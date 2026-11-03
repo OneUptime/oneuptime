@@ -505,14 +505,10 @@ resource "oneuptime_team" "sre" {
   description = "Site reliability engineering"
 }
 
-variable "alice_user_id" {
-  description = "Alice's user ID, the last part of the address of her page under Users"
-  type        = string
-}
-
+# Invited by email if she is not in the project yet.
 resource "oneuptime_team_member" "alice" {
-  team_id = oneuptime_team.sre.id
-  user_id = var.alice_user_id
+  team_id    = oneuptime_team.sre.id
+  user_email = "alice@example.com"
 }
 ```
 
@@ -538,7 +534,7 @@ resource "oneuptime_escalation_rule" "first_line" {
   escalate_after_in_minutes = 5
 }
 
-resource "oneuptime_team_on_call_duty_escalation_rule" "sre" {
+resource "oneuptime_escalation_rule_team" "sre" {
   on_call_duty_policy_id                 = oneuptime_on_call_policy.primary.id
   on_call_duty_policy_escalation_rule_id = oneuptime_escalation_rule.first_line.id
   team_id                                = oneuptime_team.sre.id
@@ -610,26 +606,23 @@ resource "oneuptime_scheduled_maintenance_event" "database_upgrade" {
 
 ## プローブ
 
-独自のプローブは、自分のネットワークからチェックを実行します。そのキーはプローブがサインインに使うシークレットなので、変数で渡します。
+独自のプローブは、自分のネットワークからチェックを実行します。名前を付けると、OneUptime がその `key`（プローブがサインインに使うシークレット）を生成します。Terraform はキーをプランとログに出さず、キーを出す output には sensitive を付ける必要があります。
 
 ```hcl
-variable "probe_key" {
-  description = "The key the probe signs in with"
-  type        = string
-  sensitive   = true
-}
-
 resource "oneuptime_probe" "eu_west" {
-  key           = var.probe_key
-  name          = "EU West"
-  description   = "Probe in our eu-west-1 network"
-  probe_version = "1.0.0"
+  name        = "EU West"
+  description = "Probe in our eu-west-1 network"
 
   should_auto_enable_probe_on_new_monitors = true
 }
+
+output "eu_west_probe_key" {
+  value     = oneuptime_probe.eu_west.key
+  sensitive = true
+}
 ```
 
-`PROBE_ID` にプローブの `id` を、`PROBE_KEY` にキーを設定してプローブを実行します。[カスタム プローブ](/docs/probe/custom-probe) を参照してください。エンドツーエンドテスト `23-probe-crud` がプローブを適用します。
+`PROBE_ID` にプローブの `id` を、`PROBE_KEY` にキーを設定してプローブを実行します。キーは `terraform output -raw eu_west_probe_key` で表示できます。[カスタム プローブ](/docs/probe/custom-probe) を参照してください。キーを自分で決めるには、sensitive な変数から `key` を設定します。エンドツーエンドテスト `23-probe-crud` と `61-name-only-and-choices` がプローブを適用します。
 
 ## 次のステップ
 

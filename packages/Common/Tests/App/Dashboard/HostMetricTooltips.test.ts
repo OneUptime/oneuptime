@@ -22,6 +22,17 @@ import {
 } from "./MetricDescriptionRules";
 import AggregationIntervalUtil from "../../../Types/BaseDatabase/AggregationIntervalUtil";
 import { getMountBarClassName } from "../../../../App/FeatureSet/Dashboard/src/Components/Host/HostFilesystemsTable";
+import {
+  HOST_DISK_FULL_PERCENT,
+  HOST_DISK_NEAR_FULL_PERCENT,
+  HOST_MEMORY_CRITICAL_PERCENT,
+  HOST_MEMORY_HIGH_PERCENT,
+} from "../../../Types/Host/HostHealth";
+import {
+  HOST_CPU_BUSY_PERCENT,
+  HOST_LOAD_QUEUING_PERCENT,
+  getHostUsageTone,
+} from "../../../../App/FeatureSet/Dashboard/src/Pages/Host/Utils/HostFacts";
 
 /*
  * The (i) texts on the Host pages: the overview, one process, one Windows
@@ -60,6 +71,8 @@ const D: Record<HostMetric, string> = HOST_METRIC_DESCRIPTIONS;
  * pins that each page really pairs them this way.
  */
 const TITLED: Array<[string, HostMetric]> = [
+  ["Host Health", "hostHealth"],
+  ["Booted", "booted"],
   ["CPU", "cpu"],
   ["Memory", "memory"],
   ["Filesystem", "filesystem"],
@@ -90,7 +103,10 @@ const TITLED: Array<[string, HostMetric]> = [
   ["Unit Type", "unitType"],
   ["State Changes", "unitStateChanges"],
   ["State timeline", "unitStateTimeline"],
-  ["Resources", "hostListResources"],
+  ["Status", "hostListStatus"],
+  ["CPU", "hostListCpu"],
+  ["Memory", "hostListMemory"],
+  ["Disk", "hostListDisk"],
   ["CPU", "processListCpu"],
   ["Memory", "processListMemory"],
   ["Status", "serviceListStatus"],
@@ -136,7 +152,6 @@ const RAW_METRIC_NAME: RegExp = /\b(system|process|windows|systemd)\.[a-z_]+/;
 const PERCENTILE_TOKEN: RegExp = /\bp\d{2}\b/i;
 const RATE_UNIT: RegExp = /bytes per second/i;
 const WHOLE_RANGE: RegExp = /whole[- ]range/;
-const LOGICAL_CORES_FIRST: RegExp = /^Logical CPU cores/;
 const RANGE_OR_AVERAGE: RegExp = /selected range|time range|averag/i;
 
 describe("HOST_METRIC_DESCRIPTIONS reads well", () => {
@@ -198,8 +213,13 @@ describe("HOST_METRIC_DESCRIPTIONS reads well", () => {
         return entry[0];
       });
 
-    // Threads and open fds are off by default in the collector.
-    expect(naming).toEqual(["processThreads"]);
+    /*
+     * Threads and open fds are off by default in the collector; Booted
+     * needs the hostmetrics `system` scraper a hand-written config may
+     * leave out.
+     */
+    expect(naming).toEqual(["booted", "processThreads"]);
+    expect(D.booted).toContain("system.uptime");
     expect(D.processThreads).toContain("process.threads");
     expect(D.processThreads).toContain("process.open_file_descriptors");
     expect(D.processThreads).toContain("turned on");
@@ -364,34 +384,51 @@ describe("denominators, units and caps", () => {
   test("load average is compared with the core count and can pass 100%", () => {
     expect(D.loadAverage).toContain("number of cores");
     expect(D.loadAverage).toContain("over 100% means work is queuing");
-    // The tile's danger threshold is exactly that 100%.
-    expect(readPage("Overview.tsx")).toContain(
-      "thresholds={{ warn: 70, danger: 100 }}",
-    );
+    /*
+     * The tile turns amber exactly there, and never red: the rules call a
+     * high load one to look at, never critical (the host's UI review - the
+     * bar was red from 100% beside an amber "15-minute load" in Needs
+     * attention).
+     */
+    expect(HOST_LOAD_QUEUING_PERCENT).toBe(100);
+    const overview: string = readPage("Overview.tsx");
+    expect(overview).toContain("warn: HOST_LOAD_QUEUING_PERCENT,");
+    expect(overview).not.toContain("thresholds={{ warn: 70, danger: 100 }}");
   });
 
-  test("filesystem percentages count reserved space in the total", () => {
+  test("filesystem percentages are df's Use%, space reserved for root left out", () => {
+    /*
+     * used / (used + free), as df and the collector's
+     * system.filesystem.utilization work it out - so the tile, the chart,
+     * the table, the Hosts list and High Filesystem Usage say one number.
+     * Used / Total still counts the reserved space in the total.
+     */
     for (const key of [
       "filesystem",
       "diskSpaceChart",
-      "filesystemUsedTotal",
       "filesystemUtilization",
+      "hostListDisk",
     ] as Array<HostMetric>) {
-      expect(D[key].toLowerCase()).toContain("reserved");
+      expect(D[key]).toContain("df's Use%");
+      expect(D[key]).toContain("reserved for root not counted");
     }
-    expect(D.filesystem).toContain("largest filesystem");
+    expect(D.filesystemUsedTotal).toContain("used, free and reserved");
+    expect(D.filesystem).toContain("fullest filesystem");
     expect(D.diskSpaceChart).toContain("same mount as the Filesystem tile");
+    expect(readPage("Overview.tsx")).toContain("used / (used + free)");
   });
 
-  test("the filesystem utilization bar colours match the table", () => {
-    expect(D.filesystemUtilization).toContain("amber at 75%");
-    expect(D.filesystemUtilization).toContain("red at 90%");
+  test("the filesystem utilization bar colours match the table and Needs attention", () => {
+    expect(D.filesystemUtilization).toContain("amber above 85%");
+    expect(D.filesystemUtilization).toContain("red above 95%");
+    expect(HOST_DISK_NEAR_FULL_PERCENT).toBe(85);
+    expect(HOST_DISK_FULL_PERCENT).toBe(95);
 
     // The bar the Filesystems table draws (HostFilesystemsTable).
-    expect(getMountBarClassName(74.9)).toBe("bg-emerald-500");
-    expect(getMountBarClassName(75)).toBe("bg-amber-500");
-    expect(getMountBarClassName(89.9)).toBe("bg-amber-500");
-    expect(getMountBarClassName(90)).toBe("bg-red-500");
+    expect(getMountBarClassName(85)).toBe("bg-emerald-500");
+    expect(getMountBarClassName(85.1)).toBe("bg-amber-500");
+    expect(getMountBarClassName(95)).toBe("bg-amber-500");
+    expect(getMountBarClassName(95.1)).toBe("bg-red-500");
   });
 
   test("sizes are called out as 1024-based, as formatMemoryBytes renders them", () => {
@@ -652,12 +689,13 @@ describe("state texts quote the labels the pages render", () => {
   });
 });
 
-describe("the Hosts list Resources column reads cached host columns", () => {
+describe("the Hosts list's Status, CPU, Memory and Disk read what the host last reported", () => {
   /*
-   * The column shows Host.cpuCores, Host.totalMemoryBytes and
-   * Host.processCount - values ingest saves on the host record while it
-   * scans each metrics batch, not telemetry fetched for a range. Each claim
-   * of the text is pinned to the code that fills the column.
+   * The columns show the readings ingest keeps on the host's record
+   * (HostReadingsScan, through ResourceHeartbeat), and under the bars
+   * Host.cpuCores and Host.totalMemoryBytes - not telemetry fetched for a
+   * range. Each claim of the texts is pinned to the code that fills the
+   * columns.
    */
   const REPO_PACKAGES: string = path.join(__dirname, "..", "..", "..", "..");
   const ingestBase: string = fs.readFileSync(
@@ -689,50 +727,103 @@ describe("the Hosts list Resources column reads cached host columns", () => {
     return ingestBase.slice(start, ingestBase.indexOf("continue;", start));
   }
 
-  test("cores are the logical CPU count, so hyperthreads count", () => {
+  const LIST_TEXTS: Array<HostMetric> = [
+    "hostListStatus",
+    "hostListCpu",
+    "hostListMemory",
+    "hostListDisk",
+  ];
+
+  test("CPU's cores are the logical CPU count, so hyperthreads count", () => {
     const cores: string = scanBranch("system.cpu.logical.count");
 
     expect(cores).toContain("this.firstDatapointNumber(m)");
     expect(cores).toContain("result.cpuCores = Math.round(v);");
     // The setup guide turns the (off-by-default) logical count on.
     expect(hostDocs).toContain("system.cpu.logical.count:");
-    expect(D.hostListResources).toMatch(LOGICAL_CORES_FIRST);
-    expect(D.hostListResources).toContain("each hyperthread counts as one");
+    expect(D.hostListCpu).toContain("its logical cores");
+    expect(D.hostListCpu).toContain("(user plus system time)");
   });
 
-  test("total RAM is every memory state added up, and the text says so", () => {
+  test("Memory's total RAM is every memory state added up", () => {
     const memory: string = scanBranch("system.memory.usage");
 
     expect(memory).toContain("this.sumDatapointNumbers(m)");
     expect(memory).toContain("result.totalMemoryBytes = Math.round(v);");
-    expect(D.hostListResources).toContain(
-      "the sum of every memory state the collector reports",
+    expect(D.hostListMemory).toContain("its total RAM");
+    expect(D.hostListMemory).toContain(
+      "not counting file cache the system can free",
     );
   });
 
-  test("processes are summed over every status, as 'in any state' says", () => {
-    const processes: string = scanBranch("system.processes.count");
-
-    expect(processes).toContain("this.sumDatapointNumbers(m)");
-    expect(processes).toContain("result.processCount = Math.round(v);");
-    expect(D.hostListResources).toContain("processes in any state");
-    // The same number as the overview's cached count, in the same words.
-    expect(D.processCountCached).toContain("any state");
-  });
-
-  test("all three ride the host heartbeat, so 'at most about once a minute'", () => {
+  test("the readings ride the host heartbeat, so 'about once a minute'", () => {
     expect(hostService).toContain(
       "const LAST_SEEN_THROTTLE_SECONDS: number = 60;",
     );
-    for (const field of ["cpuCores", "totalMemoryBytes", "processCount"]) {
-      expect(hostService).toContain(`metadata.${field} = extra.${field};`);
+    expect(hostService).toContain("metadata.readingsUpdatedAt =");
+    for (const key of [
+      "hostListCpu",
+      "hostListMemory",
+      "hostListDisk",
+    ] as Array<HostMetric>) {
+      expect(D[key]).toContain(
+        "from the host's last report, updated about once a minute",
+      );
     }
-    expect(D.hostListResources).toContain(
-      "latest values saved on the host, updated at most about once a minute",
+  });
+
+  test("Status quotes the lines Needs attention draws, and when a host stops reporting", () => {
+    expect(D.hostListStatus).toContain(
+      `a filesystem or memory past ${HOST_DISK_FULL_PERCENT}%`,
+    );
+    expect(HOST_MEMORY_CRITICAL_PERCENT).toBe(HOST_DISK_FULL_PERCENT);
+    // CleanupStaleHosts flips a host silent this long to disconnected.
+    expect(hostService).toContain("silenceInMinutes: 15,");
+    expect(D.hostListStatus).toContain(
+      "Not reporting when nothing has arrived for 15 minutes",
     );
   });
 
-  test("the text claims no time range or average - the list has no time picker", () => {
-    expect(D.hostListResources).not.toMatch(RANGE_OR_AVERAGE);
+  test("each bar's colours are the ones its text quotes", () => {
+    expect(D.hostListCpu).toContain(`Amber above ${HOST_CPU_BUSY_PERCENT}%.`);
+    expect(getHostUsageTone("cpu", HOST_CPU_BUSY_PERCENT)).toBe("positive");
+    expect(getHostUsageTone("cpu", HOST_CPU_BUSY_PERCENT + 0.1)).toBe(
+      "warning",
+    );
+    // A busy CPU is a host at work: never red.
+    expect(getHostUsageTone("cpu", 100)).toBe("warning");
+
+    expect(D.hostListMemory).toContain(
+      `Amber above ${HOST_MEMORY_HIGH_PERCENT}%, red above ${HOST_MEMORY_CRITICAL_PERCENT}%.`,
+    );
+    expect(getHostUsageTone("memory", HOST_MEMORY_HIGH_PERCENT)).toBe(
+      "positive",
+    );
+    expect(getHostUsageTone("memory", HOST_MEMORY_HIGH_PERCENT + 0.1)).toBe(
+      "warning",
+    );
+    expect(getHostUsageTone("memory", HOST_MEMORY_CRITICAL_PERCENT + 0.1)).toBe(
+      "danger",
+    );
+
+    expect(D.hostListDisk).toContain(
+      `Amber above ${HOST_DISK_NEAR_FULL_PERCENT}%, red above ${HOST_DISK_FULL_PERCENT}%.`,
+    );
+    expect(getHostUsageTone("disk", HOST_DISK_NEAR_FULL_PERCENT)).toBe(
+      "positive",
+    );
+    expect(getHostUsageTone("disk", HOST_DISK_NEAR_FULL_PERCENT + 0.1)).toBe(
+      "warning",
+    );
+    expect(getHostUsageTone("disk", HOST_DISK_FULL_PERCENT + 0.1)).toBe(
+      "danger",
+    );
   });
+
+  test.each(LIST_TEXTS)(
+    "%s claims no time range or average - the list has no time picker",
+    (key: HostMetric) => {
+      expect(D[key]).not.toMatch(RANGE_OR_AVERAGE);
+    },
+  );
 });

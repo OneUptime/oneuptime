@@ -129,7 +129,7 @@ azure_container_apps|00000000-0000-0000-0000-000000000000|eastus
 | EC2, Compute Engine, Azure VM (`aws_ec2`, `gcp_compute_engine`, `azure_vm`) | **主機** | 虛擬機器就是主機。請參閱 [主機 OpenTelemetry Collector](/docs/telemetry/host-otel-collector) |
 | EKS、GKE、AKS、自行管理的 Kubernetes | **Kubernetes** | 依 `k8s.*` 屬性路由。請參閱 [Kubernetes 代理程式](/docs/telemetry/kubernetes-agent) |
 | Lambda, Cloud Functions, Azure Functions (`aws_lambda`, `gcp_cloud_functions`, `azure_functions`) | **無伺服器函式** | 依 `faas.name` 路由，若 `cloud.platform` 為 FaaS 平台，則依 `service.name` 路由。請參閱 [無伺服器函式](/docs/telemetry/serverless-functions) |
-| 負載平衡器、儲存貯體、受控資料庫，以及其他 IaaS 或 PaaS 資源 | **Cloud Resources** | 根據 Azure Monitor、CloudWatch 與 Cloud Monitoring 發布的指標探索而來。請參閱 [雲端資源](/docs/telemetry/cloud-resources) |
+| 負載平衡器、儲存貯體、受控資料庫，以及其他 IaaS 或 PaaS 資源 | **雲端資源** | 根據 Azure Monitor、CloudWatch 與 Cloud Monitoring 發布的指標探索而來。請參閱 [雲端資源](/docs/telemetry/cloud-resources) |
 
 > [!NOTE]
 > Cloud Run 與 App Engine 會刻意出現在兩個地方。它們的偵測器同時設定了受控的 `cloud.platform` 與 `faas.name`，因此每個服務本身也是一個 **無伺服器函式**，而 **雲端環境** 則彙整該專案與區域中的所有服務。同一份遙測資料會同時歸檔到兩處。

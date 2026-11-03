@@ -250,6 +250,7 @@ Senza una chiave API né un accesso, un client può usare gli strumenti pubblici
 
 - **`oneuptime_help`**: aiuto e indicazioni sugli strumenti MCP di OneUptime
 - **`oneuptime_list_resources`**: le risorse e cosa puoi fare con ciascuna
+- **`oneuptime_describe_resource`**: i campi di una risorsa e come filtrare, ordinare e selezionare in base a essi
 - **`get_public_status_page_overview`**: la panoramica di una pagina di stato pubblica
 - **`get_public_status_page_incidents`**: gli incidenti di una pagina di stato pubblica
 - **`get_public_status_page_scheduled_maintenance`**: i suoi eventi di manutenzione programmata
@@ -277,7 +278,7 @@ Ogni altro strumento deve sapere chi sta chiamando. Un client che non invia cred
 Il server implementa la [specifica di autorizzazione MCP](https://modelcontextprotocol.io/specification/latest/basic/authorization):
 
 - **Flusso**: authorization code OAuth 2.1 con PKCE (solo `S256`). I token di accesso vengono inviati come `Authorization: Bearer`.
-- **Discovery**: metadati della risorsa protetta (RFC 9728) e metadati del server di autorizzazione (RFC 8414). L'emittente e la risorsa sono entrambi `https://<host>/mcp`.
+- **Rilevamento**: metadati della risorsa protetta (RFC 9728) e metadati del server di autorizzazione (RFC 8414). L'emittente e la risorsa sono entrambi `https://<host>/mcp`.
 - **Identità del client**: un Client ID Metadata Document (l'ID del client è un URL `https` che il server recupera), oppure la registrazione dinamica dei client (RFC 7591). Nessun client deve essere registrato da un amministratore.
 - **Ambiti**: `mcp:read` per gli strumenti `get_`, `list_` e `count_`; `mcp:write` aggiunge ogni strumento che modifica qualcosa e include `mcp:read`. Un token in sola lettura che chiama uno strumento di scrittura riceve `403` con `error="insufficient_scope"`.
 - **Durata dei token**: un token di accesso dura un'ora. Un refresh token dura 30 giorni e viene sostituito a ogni utilizzo; usare un refresh token già sostituito chiude la connessione.
@@ -353,6 +354,8 @@ Interroga sempre la telemetria con un intervallo di tempo. Un campo di query acc
 ```
 
 Gli operatori sono `EqualTo`, `NotEqual`, `IsNull`, `NotNull`, `EqualToOrNull`, `GreaterThan`, `LessThan`, `GreaterThanOrEqual`, `LessThanOrEqual`, `InBetween`, `Search` e `Includes`. I valori di ordinamento sono `"ASC"` o `"DESC"`.
+
+Gli strumenti `list_` e `count_` accettano qualsiasi campo, così l'elenco degli strumenti resta abbastanza piccolo perché un client lo carichi tutto in una volta. Per vedere i campi di una risorsa, cosa significa ciascuno e quali operatori accetta, un agente chiama `oneuptime_describe_resource` con la risorsa o uno dei suoi strumenti, come `Incident` o `list_incidents`.
 
 ## Selezione dei campi e paginazione
 

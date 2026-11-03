@@ -87,7 +87,10 @@ export const HOST_COLLECTOR_FILESYSTEM_EXCLUSION: string = `        # Leave out 
           fs_types: [${HOST_COLLECTOR_EXCLUDED_FILESYSTEM_TYPES.join(", ")}]
           match_type: strict`;
 
-// The receivers every system shares: CPU, memory, disks, network, processes.
+/*
+ * The receivers every system shares: CPU, memory, disks, network, processes,
+ * and how long the host has been up.
+ */
 const HOST_METRICS_RECEIVER: string = `  host_metrics:
     collection_interval: 30s
     scrapers:
@@ -110,6 +113,8 @@ ${HOST_COLLECTOR_FILESYSTEM_EXCLUSION}
       load:
       network:
       paging:
+      # How long the host has been up (system.uptime): when it last started.
+      system:
       processes:
       process:
         mute_process_name_error: true

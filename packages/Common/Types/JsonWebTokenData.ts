@@ -21,4 +21,15 @@ export default interface JSONWebTokenData extends JSONObject {
    * into a new token.
    */
   issuedAtMs?: number | undefined;
+  /*
+   * A session's access token only: when the session signed in, and when its
+   * person was last active as the session knew it when the token was
+   * signed, in milliseconds (its signedInAt and lastActiveAt claims). The
+   * server's session lengths are asked against them on every request
+   * (UserMiddleware.readRequestSession). Absent from a token an earlier
+   * release signed. Read by JSONWebToken.decode; never signed into a new
+   * token as they are here.
+   */
+  signedInAtMs?: number | undefined;
+  lastActiveAtMs?: number | undefined;
 }

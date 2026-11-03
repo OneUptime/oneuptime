@@ -27,6 +27,9 @@ const PROJECT_ID: string = "10000000-0000-4000-8000-000000000001";
 const CLUSTER_ID: string = "71000000-0000-4000-8000-000000000001";
 const CLUSTER_PATH: string = `/dashboard/${PROJECT_ID}/proxmox/${CLUSTER_ID}`;
 
+// An attribute that holds something.
+const NON_EMPTY: RegExp = /\S/;
+
 function nodePath(name: string): string {
   return `${CLUSTER_PATH}/nodes/${encodeURIComponent(`node/${name}`)}`;
 }
@@ -519,6 +522,360 @@ test.describe("the cluster's Overview", () => {
     await expect(page.getByTestId("proxmox-needs-attention")).toHaveCount(0);
   });
 });
+
+/*
+ * #5307's follow-up: the cluster's Details card said its name, its
+ * description, when it was last seen and its labels - all of which the
+ * hero and the header say - and "Not reported" for every fact a new
+ * cluster had not sent. It says what the cluster reported, in two columns,
+ * and the hero says the description, under the name.
+ */
+interface DetailCell {
+  label: string;
+  value: string;
+  x: number;
+  y: number;
+}
+
+// The cells of a details card, by its detail's id, read in one frame.
+async function detailCells(page: Page, id: string): Promise<Array<DetailCell>> {
+  return await page
+    .locator(`[id="${id}"]`)
+    .evaluate((detail: Element): Array<DetailCell> => {
+      return Array.from(
+        detail.querySelectorAll('[data-testid="detail-field"]'),
+      ).map((cell: Element): DetailCell => {
+        const box: DOMRect = cell.getBoundingClientRect();
+        return {
+          label: (
+            cell.querySelector('[data-testid="detail-label"]')?.textContent ||
+            ""
+          ).trim(),
+          value: (
+            cell.querySelector('[data-testid="detail-value"]')?.textContent ||
+            ""
+          ).trim(),
+          x: Math.round(box.x),
+          y: Math.round(box.y),
+        };
+      });
+    });
+}
+
+const CLUSTER_DETAILS: string = "proxmox-cluster-overview";
+
+test.describe("the cluster's Details card says what the hero does not", () => {
+  test("what the cluster reported, two columns at a laptop's width, its ID line and Edit in Settings", async ({
+    page,
+  }: {
+    page: Page;
+  }) => {
+    await openOverview(page);
+    const detail: Locator = page.locator(`[id="${CLUSTER_DETAILS}"]`);
+    await detail.scrollIntoViewIfNeeded();
+    await expect(detail).toBeVisible();
+
+    const cells: Array<DetailCell> = await detailCells(page, CLUSTER_DETAILS);
+    expect(
+      cells.map((cell: DetailCell): string => {
+        return `${cell.label}: ${cell.value}`;
+      }),
+    ).toEqual(["PVE Version: 9.0.10", "Agent Version: 0.161.1"]);
+    // Side by side: one row, two columns.
+    expect(cells[0]!.y).toBe(cells[1]!.y);
+    expect(cells[1]!.x).toBeGreaterThan(cells[0]!.x);
+
+    // Never what the hero and the header say.
+    for (const repeated of [
+      "Cluster Name",
+      "Description",
+      "Last Seen",
+      "Labels",
+      "Not reported",
+    ]) {
+      await expect(detail.getByText(repeated, { exact: true })).toHaveCount(0);
+    }
+
+    // The record's ID line, at its foot.
+    await expect(detail.getByTestId("detail-id-value")).toHaveText(CLUSTER_ID);
+    // Its name, description and labels are edited on Settings.
+    await expect(page.getByTestId("edit-in-settings")).toHaveCount(1);
+    await expect(
+      page.getByTestId("edit-in-settings").getByRole("link"),
+    ).toHaveAttribute("href", `${CLUSTER_PATH}/settings`);
+    await screenshot(page, "cluster-details-laptop");
+  });
+
+  /*
+   * The UI review of #5553: with no description under it, the card's title
+   * hung 7px above the middle of the 38px Edit in Settings beside it - the
+   * two were level only at the top. They share one middle now, at a
+   * laptop's width and beside a tablet's side menu, and the header is no
+   * taller than it was.
+   */
+  for (const width of [1280, 1024]) {
+    test(`at ${width}px its title and Edit in Settings share one middle`, async ({
+      page,
+    }: {
+      page: Page;
+    }) => {
+      await page.setViewportSize({ width: width, height: 900 });
+      await openOverview(page);
+      const card: Locator = page
+        .getByTestId("card")
+        .filter({ has: page.locator(`[id="${CLUSTER_DETAILS}"]`) })
+        .last();
+      await card.scrollIntoViewIfNeeded();
+
+      // Read in one frame, once the header has settled.
+      await expect
+        .poll(async (): Promise<number> => {
+          return await card.evaluate((element: Element): number => {
+            const title: DOMRect = element
+              .querySelector('[data-testid="card-details-heading"]')!
+              .getBoundingClientRect();
+            const button: DOMRect = element
+              .querySelector('[data-testid="edit-in-settings"] a')!
+              .getBoundingClientRect();
+            return Math.round(
+              Math.abs(
+                title.top + title.height / 2 - (button.top + button.height / 2),
+              ),
+            );
+          });
+        })
+        .toBeLessThanOrEqual(1);
+    });
+  }
+
+  test("the description is the hero's line, under the cluster's name", async ({
+    page,
+  }: {
+    page: Page;
+  }) => {
+    await openOverview(page);
+
+    await expect(page.getByTestId("resource-hero-description")).toHaveText(
+      "Production cluster in the Amsterdam data centre: web, database and mail.",
+    );
+    await expect(
+      page
+        .locator(`[id="${CLUSTER_DETAILS}"]`)
+        .getByText(
+          "Production cluster in the Amsterdam data centre: web, database and mail.",
+        ),
+    ).toHaveCount(0);
+  });
+
+  test("on a phone, one column, inside the screen", async ({
+    page,
+  }: {
+    page: Page;
+  }) => {
+    await page.setViewportSize({ width: 390, height: 844 });
+    await openOverview(page);
+    await page.locator(`[id="${CLUSTER_DETAILS}"]`).scrollIntoViewIfNeeded();
+
+    const cells: Array<DetailCell> = await detailCells(page, CLUSTER_DETAILS);
+    expect(cells).toHaveLength(2);
+    expect(cells[1]!.y).toBeGreaterThan(cells[0]!.y);
+    expect(cells[1]!.x).toBe(cells[0]!.x);
+    await expectNoSidewaysScroll(page);
+    await screenshot(page, "cluster-details-phone");
+  });
+
+  test("a cluster on Proxmox VE's own push, which has no agent: its PVE Version alone", async ({
+    page,
+  }: {
+    page: Page;
+  }) => {
+    await openOverview(page, "estate=native");
+
+    const cells: Array<DetailCell> = await detailCells(page, CLUSTER_DETAILS);
+    expect(
+      cells.map((cell: DetailCell): string => {
+        return cell.label;
+      }),
+    ).toEqual(["PVE Version"]);
+  });
+
+  test("a cluster that has reported nothing yet says so in one line, over its ID line", async ({
+    page,
+  }: {
+    page: Page;
+  }) => {
+    await openPage(page, CLUSTER_PATH, "estate=new");
+    const detail: Locator = page.locator(`[id="${CLUSTER_DETAILS}"]`);
+    await expect(detail.getByTestId("detail-empty-message")).toHaveText(
+      "No details reported yet.",
+    );
+    await expect(detail.getByTestId("detail-field")).toHaveCount(0);
+    await expect(detail.getByTestId("detail-id-value")).toHaveText(CLUSTER_ID);
+  });
+
+  test("in German, its title and its labels read in German", async ({
+    page,
+  }: {
+    page: Page;
+  }) => {
+    await openOverview(page, "lang=de");
+
+    const cells: Array<DetailCell> = await detailCells(page, CLUSTER_DETAILS);
+    expect(
+      cells.map((cell: DetailCell): string => {
+        return cell.label;
+      }),
+    ).toEqual([GERMAN["PVE Version"], GERMAN["Agent Version"]]);
+    expect(GERMAN["Agent Version"]).not.toBe("Agent Version");
+    expect(GERMAN["Cluster Details"]).not.toBe("Cluster Details");
+    await expect(
+      page
+        .getByText(GERMAN["Cluster Details"] as string, { exact: true })
+        .first(),
+    ).toBeVisible();
+  });
+});
+
+/*
+ * #5524's follow-up: a node's, a guest's and a storage's page swallowed a
+ * failed read of the inventory and said the part had "not reported yet",
+ * which sent an administrator to an agent that was working.
+ */
+test.describe("a part whose inventory cannot be read says so", () => {
+  const SERVER_ERROR: string =
+    "Something went wrong on the server. Please try again.";
+
+  test("a node's page: the Overview and its lists say the read failed, with a way to read again", async ({
+    page,
+  }: {
+    page: Page;
+  }) => {
+    await openPage(page, nodePath("pve2"), "fail=inventory");
+
+    const error: Locator = page.getByTestId("proxmox-part-read-error");
+    await expect(error).toContainText("Couldn't load this node");
+    await expect(error).toContainText(SERVER_ERROR);
+    await expect(error.getByTestId("refresh-button")).toBeVisible();
+    await expect(page.getByTestId("proxmox-node-not-reported")).toHaveCount(0);
+    await expect(
+      page.getByText("not reported yet", { exact: false }),
+    ).toHaveCount(0);
+    await screenshot(page, "node-inventory-failed-overview");
+
+    await openTab(page, "Guests");
+    await expect(
+      page.getByTestId("proxmox-node-guests-guests-table-load-error"),
+    ).toContainText(SERVER_ERROR);
+    await expect(page.getByText("No guests on this node.")).toHaveCount(0);
+    await screenshot(page, "node-inventory-failed-guests");
+  });
+
+  test("a guest's and a storage's page say so too", async ({
+    page,
+  }: {
+    page: Page;
+  }) => {
+    for (const [pathname, title] of [
+      [guestPath("qemu/102"), "Couldn't load this guest"],
+      [storagePath("pve2", "local-zfs"), "Couldn't load this storage"],
+    ] as Array<[string, string]>) {
+      await openPage(page, pathname, "fail=inventory");
+
+      const error: Locator = page.getByTestId("proxmox-part-read-error");
+      await expect(error).toContainText(title);
+      await expect(error).toContainText(SERVER_ERROR);
+      await expect(
+        page.getByText("not reported yet", { exact: false }),
+      ).toHaveCount(0);
+    }
+  });
+
+  /*
+   * The UI review of #5553: the empty state has no gutter of its own on a
+   * phone, where Try again takes the line's whole width, and the button ran
+   * into the card's borders. The card keeps a card's own 20px there.
+   */
+  test("on a phone, Try again sits inside its card, a card's gutter on each side", async ({
+    page,
+  }: {
+    page: Page;
+  }) => {
+    await page.setViewportSize({ width: 390, height: 844 });
+    await openPage(page, nodePath("pve2"), "fail=inventory");
+
+    const error: Locator = page.getByTestId("proxmox-part-read-error");
+    await expect(error.getByTestId("refresh-button")).toBeVisible();
+
+    // The card's and the button's boxes, read in one frame once settled.
+    await expect
+      .poll(async (): Promise<{ start: number; end: number }> => {
+        return await error.evaluate(
+          (card: Element): { start: number; end: number } => {
+            const box: DOMRect = card.getBoundingClientRect();
+            const button: DOMRect = card
+              .querySelector('[data-testid="refresh-button"]')!
+              .getBoundingClientRect();
+            return {
+              start: Math.round(button.left - box.left),
+              end: Math.round(box.right - button.right),
+            };
+          },
+        );
+      })
+      // 20px of padding inside the card's 1px border, on both sides.
+      .toEqual({ start: 21, end: 21 });
+    await expectNoSidewaysScroll(page);
+    await screenshot(page, "node-inventory-failed-phone");
+  });
+
+  /*
+   * The server's answer is in English. On a Persian page, laid out right to
+   * left, it put its full stop first (".Something went wrong on the
+   * server. Please try again") - on the Overview and in the node's lists
+   * alike, since both say it with the table's empty state.
+   */
+  test("in Persian, the server's answer reads as written, its full stop at its end", async ({
+    page,
+  }: {
+    page: Page;
+  }) => {
+    await openPage(page, nodePath("pve2"), "fail=inventory&lang=fa");
+    await expect(page.locator("html")).toHaveAttribute("dir", "rtl");
+
+    const overview: Locator = page.getByTestId("proxmox-part-read-error");
+    await expect(overview).toBeVisible();
+    await expectAnswerReadsAsWritten(overview.locator('bdi[dir="ltr"]'));
+
+    await openTab(page, "Guests");
+    await expectAnswerReadsAsWritten(
+      page
+        .getByTestId("proxmox-node-guests-guests-table-load-error")
+        .locator('bdi[dir="ltr"]'),
+    );
+    await screenshot(page, "node-inventory-failed-guests-persian");
+  });
+});
+
+// The server's English answer, drawn left to right: its stop after its first letter.
+async function expectAnswerReadsAsWritten(answer: Locator): Promise<void> {
+  await expect(answer).toHaveText(
+    "Something went wrong on the server. Please try again.",
+  );
+
+  const ends: { first: number; last: number } = await answer.evaluate(
+    (element: Element): { first: number; last: number } => {
+      const text: Text = element.firstChild as Text;
+      const range: Range = document.createRange();
+      range.setStart(text, 0);
+      range.setEnd(text, 1);
+      const first: number = range.getBoundingClientRect().left;
+      range.setStart(text, text.length - 1);
+      range.setEnd(text, text.length);
+      return { first: first, last: range.getBoundingClientRect().left };
+    },
+  );
+  expect(ends.last).toBeGreaterThan(ends.first);
+}
 
 test.describe("a node's page", () => {
   test("pve2: who it is, what on it needs a look, how busy it is, the guests keeping it busy, and its details", async ({
@@ -1034,5 +1391,298 @@ test.describe("at a phone's width, in dark mode, in German and in Persian", () =
     await expect(page.getByTestId("proxmox-guest-tiles")).toBeVisible();
     await expectNoSidewaysScroll(page);
     await screenshot(page, "persian-phone-guest");
+  });
+});
+
+/*
+ * The cluster's side menu beside a part's own page, and beside a tablet's
+ * narrow menu.
+ *
+ * A node's, a guest's and a storage's page is one of the rows its list
+ * shows, but the menu has an entry for the list only: nothing in it was lit
+ * there, and a phone's menu button read the trail's last crumb. The shared
+ * menu now lights the list a page is one row of (Common's SideMenuRowPage),
+ * telling a screen reader it holds the page (aria-current="true").
+ *
+ * Beside the 224 pixel menu of a 768 to 1023 pixel window, a count leaves a
+ * title some 120 pixels, and "Recommendations" (131) broke there as
+ * "Recommendatio / ns", with no hyphen. Its count now moves under it, to the
+ * row's end, and the word stays whole; from 1024 it shares the line again.
+ */
+
+const PART_PAGES: Array<{
+  part: string;
+  list: string;
+  listPath: string;
+  open: (page: Page) => Promise<void>;
+}> = [
+  {
+    part: "a node",
+    list: "Nodes",
+    listPath: `${CLUSTER_PATH}/nodes`,
+    open: async (page: Page): Promise<void> => {
+      await openNode(page, "pve2");
+    },
+  },
+  {
+    part: "a guest",
+    list: "Guests",
+    listPath: `${CLUSTER_PATH}/guests`,
+    open: async (page: Page): Promise<void> => {
+      await openGuest(page, "qemu/102", "db-01");
+    },
+  },
+  {
+    part: "a storage",
+    list: "Storage",
+    listPath: `${CLUSTER_PATH}/storage`,
+    open: async (page: Page): Promise<void> => {
+      await openStorage(page, "pve2", "local-zfs");
+    },
+  },
+];
+
+function desktopMenu(page: Page): Locator {
+  return page.locator("aside[role='navigation']");
+}
+
+// A menu row by its title, as the menu draws it.
+function menuRow(menu: Locator, title: string): Locator {
+  return menu.locator("a").filter({
+    has: menu.page().getByTestId("side-menu-item-title").getByText(title, {
+      exact: true,
+    }),
+  });
+}
+
+interface RowLayout {
+  // The lines the title's words take, and whether a word broke across two.
+  titleLines: number;
+  brokenWord: boolean;
+  // Where the count sits: on the title's line, or on the line below.
+  badgeBelowTitle: boolean;
+  // The gap between the count's end and the row's end, in pixels.
+  badgeEndGap: number;
+}
+
+async function rowLayout(row: Locator): Promise<RowLayout> {
+  return await row.evaluate((anchor: Element): RowLayout => {
+    const title: Element = anchor.querySelector(
+      '[data-testid="side-menu-item-title"]',
+    )!;
+    const badges: Element = anchor.querySelector(
+      '[data-testid="side-menu-item-badges"]',
+    )!;
+    const text: Node = title.firstChild!;
+    const words: Array<string> = (text.textContent || "").split(" ");
+    let start: number = 0;
+    let brokenWord: boolean = false;
+    const lineTops: Set<number> = new Set<number>();
+
+    for (const word of words) {
+      const range: Range = document.createRange();
+      range.setStart(text, start);
+      range.setEnd(text, start + word.length);
+      const tops: Set<number> = new Set<number>(
+        Array.from(range.getClientRects())
+          .filter((rect: DOMRect): boolean => {
+            return rect.width > 0;
+          })
+          .map((rect: DOMRect): number => {
+            return Math.round(rect.top);
+          }),
+      );
+      brokenWord = brokenWord || tops.size > 1;
+      tops.forEach((top: number) => {
+        lineTops.add(top);
+      });
+      start += word.length + 1;
+    }
+
+    const titleBox: DOMRect = title.getBoundingClientRect();
+    const badgeBox: DOMRect = badges.getBoundingClientRect();
+    const rowBox: DOMRect = anchor.getBoundingClientRect();
+    const rowEnd: number =
+      rowBox.right - parseFloat(getComputedStyle(anchor).paddingRight);
+
+    return {
+      titleLines: lineTops.size,
+      brokenWord,
+      badgeBelowTitle: badgeBox.top >= titleBox.bottom - 1,
+      badgeEndGap: Math.round(rowEnd - badgeBox.right),
+    };
+  });
+}
+
+test.describe("the cluster's side menu", () => {
+  for (const { part, list, listPath, open } of PART_PAGES) {
+    test(`on ${part}'s page, ${list} is lit: the one current entry, holding the page and leading to the list`, async ({
+      page,
+    }: {
+      page: Page;
+    }) => {
+      await open(page);
+
+      const current: Locator = desktopMenu(page).locator("a[aria-current]");
+      await expect(current).toHaveCount(1);
+      await expect(current).toHaveAttribute("aria-current", "true");
+      await expect(current.getByTestId("side-menu-item-title")).toHaveText(
+        list,
+      );
+      await expect(current).toHaveAttribute("href", listPath);
+    });
+  }
+
+  /*
+   * The menu works out which list a page is a row of each time it is drawn,
+   * so the light follows the reader around the app, not only on a fresh
+   * load: a node opened from the Overview's attention list lights Nodes,
+   * Nodes leads on to the list (the page itself then), and Back takes the
+   * light back the way it came. None of it reloads the page.
+   */
+  test("the light follows the reader without a reload: the Overview, a node from its attention list, the Nodes list, and Back", async ({
+    page,
+  }: {
+    page: Page;
+  }) => {
+    await openOverview(page);
+    const current: Locator = desktopMenu(page).locator("a[aria-current]");
+
+    const expectCurrent: (data: {
+      title: string;
+      ariaCurrent: string;
+    }) => Promise<void> = async (data: {
+      title: string;
+      ariaCurrent: string;
+    }): Promise<void> => {
+      await expect(current).toHaveCount(1);
+      await expect(current.getByTestId("side-menu-item-title")).toHaveText(
+        data.title,
+      );
+      await expect(current).toHaveAttribute("aria-current", data.ariaCurrent);
+    };
+
+    await expectCurrent({ title: "Overview", ariaCurrent: "page" });
+
+    // A reload would clear this: every step below must change the page in place.
+    await page.evaluate((): void => {
+      (window as unknown as { __samePage?: boolean }).__samePage = true;
+    });
+
+    await page
+      .locator(
+        '[data-testid="proxmox-needs-attention-item"][data-key="Node:node/pve3"] a',
+      )
+      .click();
+    await expect(page.getByTestId("proxmox-node-hero-name")).toHaveText("pve3");
+    await expectCurrent({ title: "Nodes", ariaCurrent: "true" });
+
+    await current.click();
+    await expect(page).toHaveURL((url: URL): boolean => {
+      return url.pathname === `${CLUSTER_PATH}/nodes`;
+    });
+    await expectCurrent({ title: "Nodes", ariaCurrent: "page" });
+
+    await page.goBack();
+    await expect(page.getByTestId("proxmox-node-hero-name")).toHaveText("pve3");
+    await expectCurrent({ title: "Nodes", ariaCurrent: "true" });
+
+    await page.goBack();
+    await expect(page.getByTestId("proxmox-hero-health")).toBeVisible();
+    await expectCurrent({ title: "Overview", ariaCurrent: "page" });
+
+    expect(
+      await page.evaluate((): boolean => {
+        return Boolean(
+          (window as unknown as { __samePage?: boolean }).__samePage,
+        );
+      }),
+    ).toBe(true);
+  });
+
+  test("on a phone, a guest's page names Resources / Guests on the menu's button, and the opened menu lights Guests", async ({
+    page,
+  }: {
+    page: Page;
+  }) => {
+    await page.setViewportSize({ width: 390, height: 844 });
+    await openGuest(page, "qemu/102", "db-01");
+
+    const toggle: Locator = page.getByTestId("mobile-sidemenu-toggle");
+    await expect(toggle).toContainText("Resources / Guests");
+    await expect(toggle).not.toContainText("Navigation");
+
+    await toggle.click();
+    /*
+     * The menu the button opens, by the id it names - once the menu it
+     * opens is drawn: read at once after the click, it was sometimes still
+     * empty on a busy machine.
+     */
+    await expect(toggle).toHaveAttribute("aria-controls", NON_EMPTY);
+    const opened: string = (await toggle.getAttribute("aria-controls")) || "";
+    expect(opened).not.toBe("");
+    const current: Locator = page
+      .locator(`[id="${opened}"]`)
+      .locator("a[aria-current]");
+    await expect(current).toHaveCount(1);
+    await expect(current).toHaveAttribute("aria-current", "true");
+    await expect(current.getByTestId("side-menu-item-title")).toHaveText(
+      "Guests",
+    );
+  });
+
+  test("Recommendations keeps its whole word beside a tablet's menu: its count moves under it, to the row's end", async ({
+    page,
+  }: {
+    page: Page;
+  }) => {
+    await openOverview(page);
+    const menu: Locator = desktopMenu(page);
+    const row: Locator = menuRow(menu, "Recommendations");
+    // The count of what still needs doing, once it is read.
+    await expect(row.getByTestId("side-menu-item-badges")).toHaveText(/\d+/);
+
+    for (const width of [768, 900, 1023]) {
+      await page.setViewportSize({ width, height: 900 });
+      await expect
+        .poll(async (): Promise<RowLayout> => {
+          return await rowLayout(row);
+        })
+        .toEqual({
+          titleLines: 1,
+          brokenWord: false,
+          badgeBelowTitle: true,
+          badgeEndGap: 0,
+        });
+    }
+
+    // Beside the 256 pixel menu the count shares the title's line again.
+    await page.setViewportSize({ width: 1280, height: 900 });
+    await expect
+      .poll(async (): Promise<RowLayout> => {
+        return await rowLayout(row);
+      })
+      .toEqual({
+        titleLines: 1,
+        brokenWord: false,
+        badgeBelowTitle: false,
+        badgeEndGap: 0,
+      });
+
+    // Every other row with a count keeps it beside its title, at the end.
+    await page.setViewportSize({ width: 768, height: 900 });
+    for (const title of ["Nodes", "Guests", "Storage"]) {
+      await expect
+        .poll(async (): Promise<RowLayout> => {
+          return await rowLayout(menuRow(menu, title));
+        })
+        .toEqual({
+          titleLines: 1,
+          brokenWord: false,
+          badgeBelowTitle: false,
+          badgeEndGap: 0,
+        });
+    }
+    await screenshot(page, "menu-recommendations-768");
   });
 });

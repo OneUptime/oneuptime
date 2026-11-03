@@ -56,7 +56,7 @@ Type a query and press Enter, for example `service:checkout status:error duratio
 
 ### Narrow it down with filters
 
-Click a value in the **Filters** sidebar to add it as a chip. The sidebar filters by **Service**, the host, cluster or other resource that sent the span, **Status**, **Span Type**, **Has Exception**, **Span Kind**, **Span Name**, **Service Instance** and **Host Name**.
+Click a value in the **Filters** sidebar to add it as a chip. The sidebar filters by **Service**, the host, cluster or other resource that sent the span, **Status**, **Span Type**, **Has Exception**, **Span Kind**, **Span Name**, **Service Instance** and **Host Name**. Click the minus beside a value to leave those spans out instead. Click the value again to undo it.
 
 ### Open a span
 

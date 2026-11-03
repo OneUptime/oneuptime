@@ -23,7 +23,8 @@
     "newPassword": "Nueva contraseña",
     "code": "Código",
     "yourCompany": "Su empresa",
-    "or": "o"
+    "or": "o",
+    "continueWithGoogle": "Continuar con Google"
   },
   "language": {
     "label": "Idioma",
@@ -58,6 +59,10 @@
     },
     "title": "Inicie sesión en su cuenta",
     "subtitle": "Usa tu contraseña, el SSO de tu organización o una clave de acceso.",
+    "sessionEnded": {
+      "lengthReached": "Se cerró tu sesión porque alcanzó su límite de tiempo. Vuelve a iniciar sesión para seguir donde lo dejaste.",
+      "inactive": "Se cerró tu sesión tras un periodo de inactividad. Vuelve a iniciar sesión para seguir donde lo dejaste."
+    },
     "submitButton": "Iniciar sesión",
     "forgotPassword": "¿Olvidó su contraseña?",
     "signInWithSso": "Iniciar sesión con SSO",

@@ -106,6 +106,22 @@ another monitor lands on a plain, healthy one.
 `?fail=owner-add` refuses every owner the hero's Add owners list adds ("This team is
 already an owner of this monitor."), as the server refuses a second row for an owner.
 
+`?security=news` or `quiet` has `POST /security-case/resource-security` answer what Security
+Events found this week about the hosts the subject monitor checks, read off its own steps
+with the server's reader (`getMonitorTargetHosts`): `news` (23 events, 2 findings at High, an
+open case of two naming the host, a risk of 41) or `quiet` (nothing named them). Left out, the
+project uses no Security Events and the card draws nothing. Only a monitor that checks a host
+(API, Website, SSL Certificate) asks, and only a role that may read security events.
+
+`MonitorSecurityCard.spec.ts` covers that Security card in the overview's side column: no card
+in a project that uses no Security Events (the monitor is asked about, by its id); a monitor's
+card about the host it checks - its events opening Security Events on that host, its findings,
+its open case and its risk, Open in Security Events on the host's page; a website's about its
+site's host; a quiet week's one line; no card, and no read, for a heartbeat or a role that may
+not read security events; a read again on Refresh; and the card whole at 1440 and 390, light
+and dark, its header stacked as the column's other cards are. Its screenshots are
+`monitor-security-card-*`.
+
 `CloudLinkSuggestions.spec.ts` covers what the Linked Resources card offers with
 `?type=website&cloud=suggest`: the offers inside the card, under what the monitor is linked to,
 each saying why; Link resource linking one (the card lists it and stops offering it); a refused

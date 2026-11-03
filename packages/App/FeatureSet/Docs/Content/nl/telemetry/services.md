@@ -47,7 +47,7 @@ Telkens als er telemetrie binnenkomt, schuift **Laatst gezien** van de service o
 
 ## Een service vinden
 
-Ga naar **Producten → Bronnen → Services**. **Alle services** toont elke service met **Naam**, **Beschrijving**, **Technology**, **Laatst gezien**, **Labels** en **Eigenaren**.
+Ga naar **Producten → Bronnen → Services**. **Alle services** toont elke service met **Naam**, **Beschrijving**, **Technologie**, **Laatst gezien**, **Labels** en **Eigenaren**.
 
 - Zoek op naam of beschrijving, en filter op eigenaar of label met de balk boven de lijst.
 - Selecteer meerdere services om ze allemaal tegelijk labels of eigenaren te geven, of om ze te archiveren.
@@ -62,7 +62,7 @@ Het zijmenu van een service heeft vijf secties:
 | Sectie | Pagina's |
 | --- | --- |
 | **Basis** | **Overzicht**: verzoeken, foutpercentage en p95-latentie uit de spans, grafieken en de details. **Aanbevelingen**: kant-en-klare monitors voor de service, gekozen op basis van de taal. **Eigenaren**: de mensen en teams die verantwoordelijk zijn. **Feed**: alles wat er met de service gebeurd is, van hoe hij is aangemaakt tot elke wijziging sindsdien. |
-| **Telemetrie** | De **Logboeken**, **Traces**, **Metrieken**, **Prestatieprofielen**, **Uitzonderingen** en **Source Maps**, al gefilterd op deze service. |
+| **Telemetrie** | De **Logboeken**, **Traces**, **Metrieken**, **Prestatieprofielen**, **Uitzonderingen** en **Source maps**, al gefilterd op deze service. |
 | **Activiteit** | De **Incidenten**, **Waarschuwingen** en gebeurtenissen van **Geplande onderhoud** die de service raken. |
 | **Ontwikkelaars** | **Terraform**, **API** en **AI-assistenten**: de service vanuit code beheerd. Deze sectie is eerst ingeklapt. |
 | **Geavanceerd** | **Instellingen**, **Auditlogboeken** en **Service verwijderen**. **Geavanceerd** is eerst ingeklapt: klap het eerst uit. |

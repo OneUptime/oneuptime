@@ -26,8 +26,8 @@ export const AdClickIdKeys: Array<string> = [
 ];
 
 /*
- * UTM parameters travel as snake_case on a URL and as camelCase once they are
- * columns on User/Project. Both spellings are accepted on the way in — hand
+ * Campaign parameters travel as snake_case on a URL and as camelCase once they
+ * are columns on User/Project. Both spellings are accepted on the way in — hand
  * written links produce either — and only the camelCase form is stored.
  */
 export const UtmWireKeyToPropertyKey: Record<string, string> = {
@@ -46,6 +46,19 @@ export const UtmWireKeyToPropertyKey: Record<string, string> = {
   utm_source_platform: "utmSourcePlatform",
   utm_creative_format: "utmCreativeFormat",
   utm_marketing_tactic: "utmMarketingTactic",
+  /*
+   * Google Ads' own campaign parameters. Not UTMs, but they travel the same
+   * way: Google Ads adds them to the landing URL of its ad clicks, gad_source
+   * even with auto-tagging off
+   * (https://support.google.com/google-ads/answer/16193746). gad_campaignid
+   * names the campaign on a click whose ad carries no UTMs at all;
+   * gad_source says which of Google's surfaces showed the ad, as a number
+   * Google does not document. Google appends them after the ad's own
+   * parameters, so a long landing URL loses them first when utmUrl is cut to
+   * its column - hence columns of their own.
+   */
+  gad_source: "gadSource",
+  gad_campaignid: "gadCampaignId",
 };
 
 export const UtmPropertyKeys: Array<string> = Object.values(
@@ -53,10 +66,8 @@ export const UtmPropertyKeys: Array<string> = Object.values(
 );
 
 /*
- * The landing URL of the attributed visit. Stored separately from the UTM
- * values because it is the only field that survives a campaign whose link
- * carried no UTMs at all (Google Ads auto-tagging sends gclid and nothing
- * else).
+ * The landing URL of the attributed visit. Stored beside the campaign values
+ * because it keeps whatever the link carried that no list here names.
  */
 export const UtmUrlPropertyKey: string = "utmUrl";
 
@@ -77,3 +88,32 @@ export const FirstTouchStringKeys: Array<string> = [
  * what an unauthenticated caller can push into the row.
  */
 export const MaxAttributionValueLength: number = 500;
+
+/*
+ * Signing up with Microsoft or Google posts no form. The button is a link, the
+ * browser goes off to the provider, and the account is made on the way back,
+ * by a request that cannot read localStorage - where the attribution lives. So
+ * the button writes the attribution into this cookie as it is pressed, and the
+ * callback reads it. Its path is the one every provider's sign-in sits under
+ * (/identity/microsoft, /identity/google): the page loads never carry it, and
+ * the callback spends it.
+ */
+export const SignInAttributionCookieName: string =
+  "oneuptime-sign-in-attribution";
+export const SignInAttributionCookiePath: string = "/identity";
+
+/*
+ * On the address a sign-in ends on when it made a new account, naming the
+ * provider. The sign-up page's reporting never runs for such a person, so the
+ * Dashboard - the first page they load - reports the sign-up, and takes this
+ * off the address.
+ */
+export const SignedUpWithQueryParam: string = "signed_up_with";
+export const SignedUpWithMicrosoft: string = "microsoft";
+export const SignedUpWithGoogle: string = "google";
+
+// What the Dashboard reports a sign-up for: a provider that signs people up.
+export const SignedUpWithProviders: ReadonlyArray<string> = [
+  SignedUpWithMicrosoft,
+  SignedUpWithGoogle,
+];

@@ -130,6 +130,8 @@ const MATRIX_ROW_FOR_FEATURE: Record<EnterpriseFeature, string> = {
   [EnterpriseFeature.Backups]: "[Backups](/docs/installation/backups)",
   [EnterpriseFeature.CustomNotificationChannels]:
     "[Custom notification channels](/docs/self-hosted/custom-notification-channels)",
+  [EnterpriseFeature.SessionLength]:
+    "[Session length](/docs/self-hosted/session-length)",
 };
 
 /*

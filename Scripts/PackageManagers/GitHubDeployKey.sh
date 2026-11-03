@@ -1,7 +1,8 @@
 #!/usr/bin/env bash
 #
-# Shared by the publish scripts in this directory. Source it; it defines one
-# function and runs nothing on its own.
+# Shared by the publish scripts in this directory, and by
+# Scripts/MCP/PublishCodingAgentPlugin.sh. Source it; it defines one function
+# and runs nothing on its own.
 #
 # use_github_deploy_key <private key> <directory>
 #

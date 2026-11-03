@@ -23,7 +23,8 @@
     "newPassword": "Ny adgangskode",
     "code": "Kode",
     "yourCompany": "Dit firma",
-    "or": "eller"
+    "or": "eller",
+    "continueWithGoogle": "Fortsæt med Google"
   },
   "language": {
     "label": "Sprog",
@@ -58,6 +59,10 @@
     },
     "title": "Log ind på din konto",
     "subtitle": "Brug din adgangskode, din organisations SSO eller en adgangsnøgle.",
+    "sessionEnded": {
+      "lengthReached": "Du blev logget ud, fordi din session nåede sin tidsgrænse. Log ind igen for at fortsætte, hvor du slap.",
+      "inactive": "Du blev logget ud efter en periode uden aktivitet. Log ind igen for at fortsætte, hvor du slap."
+    },
     "submitButton": "Log ind",
     "forgotPassword": "Glemt adgangskode?",
     "signInWithSso": "Log ind med SSO",

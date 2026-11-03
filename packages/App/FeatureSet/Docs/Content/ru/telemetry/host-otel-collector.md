@@ -31,10 +31,10 @@ flowchart TB
 
 | Что вы видите на хосте | Откуда это берётся |
 | --- | --- |
-| **Обзор** и **Метрики** | Приёмник `hostmetrics`: CPU, память, диски, файловые системы, сеть, нагрузка, подкачка. |
+| **Обзор** и **Метрики** | Приёмник `hostmetrics`: CPU, память, диски, файловые системы, сеть, нагрузка, подкачка, время работы. |
 | **Процессы** | Сборщик `process` приёмника `hostmetrics`: один набор рядов на процесс. |
 | **Журналы** | Приёмники `filelog`, `journald` и `windowseventlog`. |
-| **Systemd Units** (Linux) | Приёмник `systemd`. |
+| **Юниты systemd** (Linux) | Приёмник `systemd`. |
 | **Службы** (Windows) | Приёмник `windows_service`. |
 | Элемент инвентаря | Процессор `resourcedetection`, а также [атрибуты, которые вы проставляете](#атрибуты-инвентаря-ip-mac-серийный-номер-производитель-модель-прошивка). |
 | **Версия агента** | `oneuptime.agent.version` в процессоре `resource`. |
@@ -86,6 +86,8 @@ receivers:
       load:
       network:
       paging:
+      # How long the host has been up (system.uptime): when it last started.
+      system:
       processes:
       process:
         mute_process_name_error: true
@@ -189,6 +191,8 @@ receivers:
       load:
       network:
       paging:
+      # How long the host has been up (system.uptime): when it last started.
+      system:
       processes:
       process:
         mute_process_name_error: true
@@ -285,6 +289,8 @@ receivers:
       load:
       network:
       paging:
+      # How long the host has been up (system.uptime): when it last started.
+      system:
       processes:
       process:
         mute_process_name_error: true
@@ -555,7 +561,7 @@ receivers:
 
 ### Службы Linux (юниты systemd, метрики)
 
-Страница хоста **Systemd Units** показывает каждый юнит и его состояние на основе [`systemdreceiver`](https://github.com/open-telemetry/opentelemetry-collector-contrib/tree/main/receiver/systemdreceiver) (тип в конфигурации `systemd`) — это аналог страницы **Службы** в Windows для Linux. Конфигурация для Linux выше включает его:
+Страница хоста **Юниты systemd** показывает каждый юнит и его состояние на основе [`systemdreceiver`](https://github.com/open-telemetry/opentelemetry-collector-contrib/tree/main/receiver/systemdreceiver) (тип в конфигурации `systemd`) — это аналог страницы **Службы** в Windows для Linux. Конфигурация для Linux выше включает его:
 
 ```yaml
 receivers:
@@ -963,6 +969,8 @@ receivers:
       network:
       load:
       paging:
+      # How long the host has been up (system.uptime): when it last started.
+      system:
       processes: # aggregate counts only — cheap
       process:
         mute_process_name_error: true
@@ -990,7 +998,7 @@ receivers:
         enabled: false
 ```
 
-Вместе эти меры сокращают хост с 300 юнитами примерно с 6 000 точек данных в минуту до значительно меньше 100. Юниты, убранные из списка, исчезают со страницы **Systemd Units** через несколько минут, когда их последние выборки выходят из скользящего окна.
+Вместе эти меры сокращают хост с 300 юнитами примерно с 6 000 точек данных в минуту до значительно меньше 100. Юниты, убранные из списка, исчезают со страницы **Юниты systemd** через несколько минут, когда их последние выборки выходят из скользящего окна.
 
 ### Отбрасывайте записи процессором filter
 
@@ -1117,6 +1125,8 @@ receivers:
       load:
       network:
       paging:
+      # How long the host has been up (system.uptime): when it last started.
+      system:
       processes:
 
 processors:

@@ -461,6 +461,7 @@ export default class AlertEpisodeFeed extends BaseModel {
   })
   @TableColumn({
     type: TableColumnType.ShortText,
+    allowedValues: Object.values(AlertEpisodeFeedEventType),
     required: true,
     title: "Alert Episode Feed Event",
     description: "Alert Episode Feed Event Type",

@@ -385,11 +385,17 @@ const toolbarSelects: () => Array<HTMLSelectElement> =
     return screen.getAllByRole("combobox") as Array<HTMLSelectElement>;
   };
 
-// The caption a control draws before its select: the control's first child.
+/*
+ * The caption a control draws before its select: the control's first child.
+ * The select sits in a box of its own with its chevron, so the control is
+ * that box's parent.
+ */
 const captionOf: (select: HTMLSelectElement) => string = (
   select: HTMLSelectElement,
 ): string => {
-  return select.parentElement?.firstElementChild?.textContent || "";
+  return (
+    select.parentElement?.parentElement?.firstElementChild?.textContent || ""
+  );
 };
 
 const choicesOf: (select: HTMLSelectElement) => Array<string> = (

@@ -2,16 +2,14 @@ import PageComponentProps from "../../PageComponentProps";
 import ObjectID from "Common/Types/ObjectID";
 import Navigation from "Common/UI/Utils/Navigation";
 import DockerHost from "Common/Models/DatabaseModels/DockerHost";
-import CardModelDetail from "Common/UI/Components/ModelDetail/CardModelDetail";
-import EditInSettingsLink from "../../../Components/TelemetryResource/EditInSettingsLink";
+import ResourceRecordDetailsCard from "../../../Components/TelemetryResource/ResourceRecordDetailsCard";
+import ResourceHeroDescription from "../../../Components/TelemetryResource/ResourceHeroDescription";
 import AgentVersion from "../../../Components/AgentVersion/AgentVersion";
 import { AgentKind } from "../../../Components/AgentVersion/AgentKind";
 import OsVersionDisplay, {
   getOsVersionPrimary,
 } from "Common/UI/Components/OsVersionDisplay/OsVersionDisplay";
 import FieldType from "Common/UI/Components/Types/FieldType";
-import Label from "Common/Models/DatabaseModels/Label";
-import LabelsElement from "Common/UI/Components/Label/Labels";
 import Card from "Common/UI/Components/Card/Card";
 import CardGrid from "Common/UI/Components/Card/CardGrid";
 import Icon from "Common/UI/Components/Icon/Icon";
@@ -907,21 +905,6 @@ const DockerHostOverview: FunctionComponent<
     });
   };
 
-  const containersRoute: Route = RouteUtil.populateRouteParams(
-    RouteMap[PageMap.DOCKER_HOST_VIEW_CONTAINERS] as Route,
-    { modelId: modelId },
-  );
-
-  const metricsRoute: Route = RouteUtil.populateRouteParams(
-    RouteMap[PageMap.DOCKER_HOST_VIEW_METRICS] as Route,
-    { modelId: modelId },
-  );
-
-  const logsRoute: Route = RouteUtil.populateRouteParams(
-    RouteMap[PageMap.DOCKER_HOST_VIEW_LOGS] as Route,
-    { modelId: modelId },
-  );
-
   const renderRefreshControl: () => ReactElement = (): ReactElement => {
     return (
       <AutoRefreshControl
@@ -1050,6 +1033,14 @@ const DockerHostOverview: FunctionComponent<
                       {statusLabel}
                     </span>
                   </div>
+                  {/*
+                   * What the host is, in its owner's words: under its
+                   * name, as every resource hero says it. It used to be a
+                   * Description row of the Details card at the page's foot.
+                   */}
+                  <ResourceHeroDescription
+                    text={host.description as string | undefined}
+                  />
                   {hostIdentifier && (
                     <div className="mt-1 truncate font-mono text-sm text-gray-500">
                       {hostIdentifier}
@@ -1593,57 +1584,6 @@ const DockerHostOverview: FunctionComponent<
     );
   };
 
-  const renderQuickLinks: () => ReactElement = (): ReactElement => {
-    return (
-      <Card
-        title="Quick Links"
-        description="Jump to key views for this Docker host."
-      >
-        <div className="grid grid-cols-1 gap-3 sm:grid-cols-3">
-          <Link
-            to={containersRoute}
-            className="rounded-lg border border-gray-200 bg-white p-4 hover:border-indigo-300 hover:shadow-sm transition-all"
-          >
-            <div className="text-sm font-semibold text-gray-900">
-              {translator.translateText("Containers")}
-            </div>
-            <div className="text-xs text-gray-500">
-              {translator.translateText(
-                "Live list of running containers with CPU, memory, and network.",
-              )}
-            </div>
-          </Link>
-          <Link
-            to={metricsRoute}
-            className="rounded-lg border border-gray-200 bg-white p-4 hover:border-indigo-300 hover:shadow-sm transition-all"
-          >
-            <div className="text-sm font-semibold text-gray-900">
-              {translator.translateText("Metrics")}
-            </div>
-            <div className="text-xs text-gray-500">
-              {translator.translateText(
-                "Aggregated CPU, memory, network, and process charts.",
-              )}
-            </div>
-          </Link>
-          <Link
-            to={logsRoute}
-            className="rounded-lg border border-gray-200 bg-white p-4 hover:border-indigo-300 hover:shadow-sm transition-all"
-          >
-            <div className="text-sm font-semibold text-gray-900">
-              {translator.translateText("Logs")}
-            </div>
-            <div className="text-xs text-gray-500">
-              {translator.translateText(
-                "Structured container logs ingested via OpenTelemetry.",
-              )}
-            </div>
-          </Link>
-        </div>
-      </Card>
-    );
-  };
-
   /*
    * Drag-to-zoom (issue #4105): a drag on any chart sets the page's range
    * to the window dragged out, so every chart, tile, consumer list and the
@@ -1702,161 +1642,79 @@ const DockerHostOverview: FunctionComponent<
       />
       {renderCharts()}
       {renderTopContainers()}
-      <div className="mb-6">{renderQuickLinks()}</div>
-      <CardModelDetail<DockerHost>
-        name="Docker Host Details"
+      {/*
+       * What the host reported about itself, and only that
+       * (ResourceRecordDetailsCard): its name, description and when it was
+       * last seen are the hero's, its labels the header's (a phone's own
+       * card under this one). Edited on its Settings page, in the card of
+       * the same title.
+       */}
+      <ResourceRecordDetailsCard<DockerHost>
+        modelType={DockerHost}
+        modelId={modelId}
+        id="docker-host-details"
+        title="Docker Host Details"
         refresher={detailsRefresher}
-        cardProps={{
-          title: "Docker Host Details",
-          // Edited in one place: the same card on the host's Settings page.
-          buttons: [
-            <EditInSettingsLink
-              key="edit-in-settings"
-              to={RouteUtil.populateRouteParams(
-                RouteMap[PageMap.DOCKER_HOST_VIEW_SETTINGS] as Route,
-                { modelId: modelId },
-              )}
-            />,
-          ],
-        }}
-        modelDetailProps={{
-          modelType: DockerHost,
-          id: "docker-host-details",
-          modelId: modelId,
-          fields: [
-            {
-              field: {
-                name: true,
-              },
-              title: "Display Name",
-              fieldType: FieldType.Text,
-              showIf: (item: DockerHost): boolean => {
-                return Boolean(item.name);
-              },
+        settingsRoute={RouteUtil.populateRouteParams(
+          RouteMap[PageMap.DOCKER_HOST_VIEW_SETTINGS] as Route,
+          { modelId: modelId },
+        )}
+        facts={[
+          {
+            field: {
+              hostIdentifier: true,
             },
-            {
-              field: {
-                description: true,
-              },
-              title: "Description",
-              fieldType: FieldType.Text,
-              showIf: (item: DockerHost): boolean => {
-                return Boolean(item.description);
-              },
+            title: "Host Name (host.name)",
+            fieldType: FieldType.Text,
+          },
+          {
+            field: {
+              osType: true,
             },
-            {
-              field: {
-                hostIdentifier: true,
-              },
-              title: "Host Name (host.name)",
-              fieldType: FieldType.Text,
-              showIf: (item: DockerHost): boolean => {
-                return Boolean(item.hostIdentifier);
-              },
+            title: "OS Type",
+            fieldType: FieldType.Element,
+            getElement: (item: DockerHost): ReactElement => {
+              return (
+                <span className="inline-flex items-center px-2 py-0.5 rounded-md bg-slate-50 text-slate-700 text-sm font-medium ring-1 ring-inset ring-slate-200 capitalize">
+                  {String(item.osType)}
+                </span>
+              );
             },
+          },
+          {
+            field: {
+              osVersion: true,
+            },
+            title: "OS Version",
+            fieldType: FieldType.Element,
+            getElement: (item: DockerHost): ReactElement => {
+              return <OsVersionDisplay text={String(item.osVersion)} />;
+            },
+          },
+          {
+            field: {
+              agentVersion: true,
+            },
+            title: "Agent Version",
+            fieldType: FieldType.Element,
             /*
-             * No "Collector Status" row: the hero's pill says whether the
-             * collector is connected, in words; the row repeated it as the
-             * stored lowercase value ("connected").
+             * A sign beside an outdated version opens how to upgrade the
+             * agent; the docker run command is in the host's setup guide.
              */
-            {
-              field: {
-                lastSeenAt: true,
-              },
-              title: "Last Seen",
-              fieldType: FieldType.DateTime,
-              showIf: (item: DockerHost): boolean => {
-                return Boolean(item.lastSeenAt);
-              },
+            getElement: (item: DockerHost): ReactElement => {
+              return (
+                <AgentVersion
+                  kind={AgentKind.DockerAgent}
+                  version={item.agentVersion}
+                  setupGuideRoute={RouteUtil.populateRouteParams(
+                    RouteMap[PageMap.DOCKER_HOST_VIEW_DOCUMENTATION] as Route,
+                    { modelId: modelId },
+                  )}
+                />
+              );
             },
-            {
-              field: {
-                osType: true,
-              },
-              title: "OS Type",
-              fieldType: FieldType.Element,
-              getElement: (item: DockerHost): ReactElement => {
-                const osType: string | undefined =
-                  (item.osType as string | undefined) ?? undefined;
-                if (!osType) {
-                  return <span className="text-sm text-gray-400">—</span>;
-                }
-                return (
-                  <span className="inline-flex items-center px-2 py-0.5 rounded-md bg-slate-50 text-slate-700 text-sm font-medium ring-1 ring-inset ring-slate-200 capitalize">
-                    {osType}
-                  </span>
-                );
-              },
-              showIf: (item: DockerHost): boolean => {
-                return Boolean(item.osType);
-              },
-            },
-            {
-              field: {
-                osVersion: true,
-              },
-              title: "OS Version",
-              fieldType: FieldType.Element,
-              getElement: (item: DockerHost): ReactElement => {
-                const osVersion: string | undefined =
-                  (item.osVersion as string | undefined) ?? undefined;
-                if (!osVersion) {
-                  return <span className="text-sm text-gray-400">—</span>;
-                }
-                return <OsVersionDisplay text={osVersion} />;
-              },
-              showIf: (item: DockerHost): boolean => {
-                return Boolean(item.osVersion);
-              },
-            },
-            {
-              field: {
-                agentVersion: true,
-              },
-              title: "Agent Version",
-              fieldType: FieldType.Element,
-              showIf: (item: DockerHost): boolean => {
-                return Boolean(item.agentVersion);
-              },
-              /*
-               * A sign beside an outdated version opens how to upgrade the
-               * agent; the docker run command is in the host's setup guide.
-               */
-              getElement: (item: DockerHost): ReactElement => {
-                return (
-                  <AgentVersion
-                    kind={AgentKind.DockerAgent}
-                    version={item.agentVersion}
-                    setupGuideRoute={RouteUtil.populateRouteParams(
-                      RouteMap[PageMap.DOCKER_HOST_VIEW_DOCUMENTATION] as Route,
-                      { modelId: modelId },
-                    )}
-                  />
-                );
-              },
-            },
-            {
-              field: {
-                labels: {
-                  name: true,
-                  color: true,
-                },
-              },
-              title: "Labels",
-              fieldType: FieldType.Element,
-              getElement: (item: DockerHost): ReactElement => {
-                return (
-                  <LabelsElement labels={item["labels"] as Array<Label>} />
-                );
-              },
-              showIf: (item: DockerHost): boolean => {
-                const labels: Array<Label> | undefined =
-                  (item.labels as Array<Label> | undefined) ?? undefined;
-                return Array.isArray(labels) && labels.length > 0;
-              },
-            },
-          ],
-        }}
+          },
+        ]}
       />
 
       {/*

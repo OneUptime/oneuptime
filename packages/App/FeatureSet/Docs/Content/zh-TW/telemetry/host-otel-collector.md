@@ -31,10 +31,10 @@ flowchart TB
 
 | 你在主機上看到的內容 | 來源 |
 | --- | --- |
-| **概覽** 和 **指標** | `hostmetrics` 接收器：CPU、記憶體、磁碟、檔案系統、網路、負載、分頁。 |
+| **概覽** 和 **指標** | `hostmetrics` 接收器：CPU、記憶體、磁碟、檔案系統、網路、負載、分頁、運行時間。 |
 | **處理程序** | `hostmetrics` 的 `process` 抓取器：每個處理程序一組序列。 |
 | **日誌** | `filelog`、`journald` 和 `windowseventlog` 接收器。 |
-| **Systemd Units**（Linux） | `systemd` 接收器。 |
+| **Systemd 單元**（Linux） | `systemd` 接收器。 |
 | **服務**（Windows） | `windows_service` 接收器。 |
 | 清單項目 | `resourcedetection` 處理器，以及 [你自行加上的屬性](#清單屬性ipmac序號製造商型號韌體)。 |
 | **代理程式版本** | `resource` 處理器中的 `oneuptime.agent.version`。 |
@@ -86,6 +86,8 @@ receivers:
       load:
       network:
       paging:
+      # How long the host has been up (system.uptime): when it last started.
+      system:
       processes:
       process:
         mute_process_name_error: true
@@ -189,6 +191,8 @@ receivers:
       load:
       network:
       paging:
+      # How long the host has been up (system.uptime): when it last started.
+      system:
       processes:
       process:
         mute_process_name_error: true
@@ -285,6 +289,8 @@ receivers:
       load:
       network:
       paging:
+      # How long the host has been up (system.uptime): when it last started.
+      system:
       processes:
       process:
         mute_process_name_error: true
@@ -555,7 +561,7 @@ receivers:
 
 ### Linux 服務（systemd 單元，指標）
 
-主機的 **Systemd Units** 頁面列出每個單元及其狀態，資料來自 [`systemdreceiver`](https://github.com/open-telemetry/opentelemetry-collector-contrib/tree/main/receiver/systemdreceiver)（設定類型 `systemd`），它是 Windows 上 **服務** 頁面在 Linux 上的對應功能。上面的 Linux 設定會啟用它：
+主機的 **Systemd 單元** 頁面列出每個單元及其狀態，資料來自 [`systemdreceiver`](https://github.com/open-telemetry/opentelemetry-collector-contrib/tree/main/receiver/systemdreceiver)（設定類型 `systemd`），它是 Windows 上 **服務** 頁面在 Linux 上的對應功能。上面的 Linux 設定會啟用它：
 
 ```yaml
 receivers:
@@ -963,6 +969,8 @@ receivers:
       network:
       load:
       paging:
+      # How long the host has been up (system.uptime): when it last started.
+      system:
       processes: # aggregate counts only — cheap
       process:
         mute_process_name_error: true
@@ -990,7 +998,7 @@ receivers:
         enabled: false
 ```
 
-兩者結合後，一台有 300 個單元的主機每分鐘的資料點會從約 6,000 個降到遠低於 100 個。從清單中移除的單元會在幾分鐘後離開 **Systemd Units** 頁面，也就是其最後的樣本移出滾動時間範圍之後。
+兩者結合後，一台有 300 個單元的主機每分鐘的資料點會從約 6,000 個降到遠低於 100 個。從清單中移除的單元會在幾分鐘後離開 **Systemd 單元** 頁面，也就是其最後的樣本移出滾動時間範圍之後。
 
 ### 使用 filter 處理器捨棄記錄
 
@@ -1117,6 +1125,8 @@ receivers:
       load:
       network:
       paging:
+      # How long the host has been up (system.uptime): when it last started.
+      system:
       processes:
 
 processors:

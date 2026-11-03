@@ -201,7 +201,7 @@ describe("ee/Server/Index.ts default export", () => {
 });
 
 describe("ee/Server/Index.ts assembly", () => {
-  test("is assembled from the fourteen areas, license first", () => {
+  test("is assembled from the fifteen areas, license first", () => {
     expect(
       ENTERPRISE_AREAS.map((area: EnterpriseArea) => {
         return area.name;
@@ -219,6 +219,7 @@ describe("ee/Server/Index.ts assembly", () => {
       "AuditLogExport",
       "Backup",
       "CustomNotificationChannels",
+      "SessionLength",
       "Billing",
       "CloudMarketplace",
     ]);

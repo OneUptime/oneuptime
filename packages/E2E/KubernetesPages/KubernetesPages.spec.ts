@@ -1490,10 +1490,15 @@ test.describe("at a phone's width, in dark mode, in German and in Persian", () =
         .getByTestId("kubernetes-needs-attention-reason")
         .first()
         .textContent()) || "";
+    /*
+     * Each number set apart from the Persian words around it (FSI ... PDI),
+     * as the shared Needs attention card sets every value of a reason apart
+     * since a host's mount kept its slash at the wrong end there.
+     */
     expect(reason).toBe(
       fill(PERSIAN, "{{available}} of {{desired}} available", {
-        available: "۲",
-        desired: "۳",
+        available: "⁨۲⁩",
+        desired: "⁨۳⁩",
       }),
     );
     await expectNoSidewaysScroll(page);

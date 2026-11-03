@@ -153,6 +153,7 @@ moved {
 | متن، عدد، درست یا نادرست | همان‌طور که هستند | `is_public_status_page = false` |
 | ارجاع به رکوردی دیگر | ID آن، معمولاً `id` یک منبع دیگر | `incident_severity_id = oneuptime_incident_severity.sev1.id` |
 | فهرستی از ارجاع‌ها | مجموعه‌ای از IDها که ترتیبشان فرقی نمی‌کند | `labels = [oneuptime_label.critical.id]` |
+| یک شخص | نشانی ایمیل او، کنار ID کاربری‌اش: [افراد و تیم‌ها](/docs/terraform/people-and-teams) را ببینید | `user_email = "alice@example.com"` |
 | رنگ، دامنه و دیگر مقدارهای بسته‌بندی‌شده | مقدار سادهٔ آن‌ها | `color = "#FF5733"` |
 | تاریخ و زمان | متن RFC 3339 | `starts_at = "2030-06-01T02:00:00Z"` |
 | بررسی‌های یک مانیتور | ویژگی‌های تودرتوی نوع‌دار: [مراحل مانیتور](/docs/terraform/monitor-steps) را ببینید | `monitor_steps = [{ ... }]` |

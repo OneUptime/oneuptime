@@ -445,6 +445,19 @@ button when it is set; the secret is in oneuptime.env.runtime.
   {{- else }}
   value: {{ default "" ($.Values.microsoftSignInApp).clientId | quote }}
   {{- end }}
+{{- /*
+Continue with Google: the public client id. The sign-in and sign-up pages offer
+the button when it is set; the secret is in oneuptime.env.runtime.
+*/}}
+- name: GOOGLE_SIGN_IN_CLIENT_ID
+  {{- if ($.Values.googleSignInApp).existingSecret }}
+  valueFrom:
+    secretKeyRef:
+      name: {{ $.Values.googleSignInApp.existingSecret.name | quote }}
+      key: {{ $.Values.googleSignInApp.existingSecret.clientIdKey | quote }}
+  {{- else }}
+  value: {{ default "" ($.Values.googleSignInApp).clientId | quote }}
+  {{- end }}
 - name: GITHUB_APP_ID
   value: {{ $.Values.gitHubApp.id | quote }}
 - name: GITHUB_APP_NAME
@@ -494,6 +507,8 @@ button when it is set; the secret is in oneuptime.env.runtime.
 {{- $googleTagManagerEnabled := ((($.Values.analytics).googleTagManager).enabled) }}
 - name: GOOGLE_TAG_MANAGER_ENABLED
   value: {{ if kindIs "invalid" $googleTagManagerEnabled }}"true"{{ else }}{{ ternary "true" "false" $googleTagManagerEnabled | quote }}{{ end }}
+- name: GOOGLE_ANALYTICS_MEASUREMENT_PROTOCOL_API_SECRET
+  value: {{ default "" ((($.Values.analytics).googleAnalytics).measurementProtocolApiSecret) | quote }}
 - name: CAPTCHA_ENABLED
   value: {{ ternary "true" "false" (default false $.Values.captcha.enabled) | quote }}
 - name: CAPTCHA_SITE_KEY
@@ -852,6 +867,16 @@ empty and AWS accounts connect with an access key instead.
       key: {{ $.Values.microsoftSignInApp.existingSecret.clientSecretKey | quote }}
   {{- else }}
   value: {{ default "" ($.Values.microsoftSignInApp).clientSecret | quote }}
+  {{- end }}
+
+- name: GOOGLE_SIGN_IN_CLIENT_SECRET
+  {{- if ($.Values.googleSignInApp).existingSecret }}
+  valueFrom:
+    secretKeyRef:
+      name: {{ $.Values.googleSignInApp.existingSecret.name | quote }}
+      key: {{ $.Values.googleSignInApp.existingSecret.clientSecretKey | quote }}
+  {{- else }}
+  value: {{ default "" ($.Values.googleSignInApp).clientSecret | quote }}
   {{- end }}
 
 {{- /*

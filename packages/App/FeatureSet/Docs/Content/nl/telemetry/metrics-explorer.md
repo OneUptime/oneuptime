@@ -43,7 +43,7 @@ De verkenner heeft vijf tabbladen:
 Ga naar **Producten → Observability → Metrieken**. De **Kijker** toont elke metriek die uw project heeft ontvangen, op naam, elk met een kleine grafiek van het tijdsbereik en de laatste waarde.
 
 - Zoek namen met losse woorden of `name:`, bijvoorbeeld vindt `name:http.server` de metriek `http.server.request.duration`. Zie [Zoeksyntaxis](/docs/telemetry/search-syntax#metrieken).
-- Filter in de zijbalk op **Service** om alleen de metrieken van één service te zien.
+- Filter in de zijbalk op **Service** om alleen de metrieken van één service te zien. Klik op het minteken naast een service om juist de metrieken te verbergen die hij rapporteert.
 - Klik op een metriek om die in de metriekverkenner in een grafiek te zetten.
 
 ## Een metriek in een grafiek zetten

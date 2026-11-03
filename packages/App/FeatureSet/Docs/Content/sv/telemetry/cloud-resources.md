@@ -1,6 +1,6 @@
 # Molnresurser (IaaS och PaaS)
 
-**Cloud Resources** listar IaaS- och PaaS-resurserna i dina AWS-, Azure- och Google Cloud-konton: virtuella maskiner, diskar, lastbalanserare, bucketar, hanterade databaser, cachar, köer, API-gatewayer och resten. Varje resurs får en egen sida, med typ, region och konto, leverantörens eget ID för den, varje mätvärde som leverantören publicerar om den, och ägare och etiketter som alla andra resurser i OneUptime. Du hittar dem under **Moln → Alla resurser**.
+**Molnresurser** listar IaaS- och PaaS-resurserna i dina AWS-, Azure- och Google Cloud-konton: virtuella maskiner, diskar, lastbalanserare, bucketar, hanterade databaser, cachar, köer, API-gatewayer och resten. Varje resurs får en egen sida, med typ, region och konto, leverantörens eget ID för den, varje mätvärde som leverantören publicerar om den, och ägare och etiketter som alla andra resurser i OneUptime. Du hittar dem under **Moln → Alla resurser**.
 
 > [!TIP]
 > Vill du hellre slippa köra en collector? [Anslut ett molnkonto](/docs/telemetry/cloud-accounts) under **Moln → Anslut**, så läser OneUptime de här mätvärdena själv.
@@ -37,7 +37,7 @@ Molnresurser är en av flera platser där ditt moln dyker upp:
 | Containrar på ECS, Cloud Run, Container Apps, App Service, … | **Appplattformar → Alla miljöer** | Dina arbetsbelastningars egen telemetri, efter deras `cloud.platform`. Se [Molnmiljöer](/docs/telemetry/cloud-environments) |
 | Varje IaaS- eller PaaS-resurs som leverantören övervakar | **Moln → Alla resurser** | Leverantörens övervaknings-API, läst av en collector: den här sidan |
 | Virtuella maskiner med en OpenTelemetry Collector på | **Värdar** | Värdens egna mätvärden och loggar. Se [OpenTelemetry-collector på värden](/docs/telemetry/host-otel-collector) |
-| Köer och ämnen som dina applikationer använder | **Queues** | Spann, och samma molnmätvärden. Se [Köer](/docs/telemetry/queues) |
+| Köer och ämnen som dina applikationer använder | **Köer** | Spann, och samma molnmätvärden. Se [Köer](/docs/telemetry/queues) |
 
 En resurs kan visas på mer än ett ställe. En virtuell maskin med collectorn på är en **Värd**, och dess plattformsmätvärden (CPU-krediter, disk och nätverk så som hypervisorn ser dem) gör den också till en **Molnresurs**. En SQS-kö är en **Queue** och en **Molnresurs**. Varje vy visar vad dess källa vet.
 

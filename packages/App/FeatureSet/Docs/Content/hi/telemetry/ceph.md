@@ -137,7 +137,7 @@ AI एजेंट की अपनी सेटिंग्स [AI एजें
 | OSD | `ceph_osd_up`, `ceph_osd_in`, `ceph_osd_apply_latency_ms`, `ceph_osd_commit_latency_ms`, `ceph_osd_stat_bytes`, `ceph_osd_stat_bytes_used`, `ceph_osd_numpg`, `ceph_osd_metadata`, हर OSD के लिए `ceph_daemon` लेबल से (जैसे `osd.3`) |
 | पूल | `ceph_pool_stored`, `ceph_pool_max_avail`, `ceph_pool_objects`, `ceph_pool_rd`, `ceph_pool_wr`, `ceph_pool_rd_bytes`, `ceph_pool_wr_bytes`, `ceph_pool_metadata`। डेटा सीरीज़ में सिर्फ़ `pool_id` लेबल होता है; पूल का नाम `ceph_pool_metadata` पर होता है। |
 | प्लेसमेंट ग्रुप | `ceph_pg_total`, `ceph_pg_active`, `ceph_pg_clean`, `ceph_pg_degraded`, `ceph_pg_undersized` (सभी हर पूल के लिए, `pool_id` से), `ceph_num_objects_degraded`, `ceph_num_objects_misplaced` |
-| डेमन | `ceph_mgr_metadata`, `ceph_mds_metadata` और `ceph_rgw_metadata`, ऊपर के मॉनिटर और OSD मेटाडेटा के साथ। हर एक किसी डेमन का नाम बताता है और `ceph_version` लेबल में उसका वर्शन रखता है: **Daemons** पेज उनकी सूची दिखाता है। |
+| डेमन | `ceph_mgr_metadata`, `ceph_mds_metadata` और `ceph_rgw_metadata`, ऊपर के मॉनिटर और OSD मेटाडेटा के साथ। हर एक किसी डेमन का नाम बताता है और `ceph_version` लेबल में उसका वर्शन रखता है: **डेमन** पेज उनकी सूची दिखाता है। |
 
 ### और स्क्रैप लक्ष्य
 
@@ -150,7 +150,7 @@ mgr मॉड्यूल क्लस्टर की हेल्थ और �
 
 ## वैकल्पिक — Ceph क्लस्टर लॉग भेजें
 
-एजेंट `/var/log/ceph/ceph.log` को फ़ॉलो करके OneUptime को भेज सकता है, जिससे क्लस्टर का **Cluster Log** पेज भरता है। यह डिफ़ॉल्ट रूप से बंद है क्योंकि तब एजेंट को ऐसे होस्ट पर चलना होगा जिस पर क्लस्टर लॉग हो: डिफ़ॉल्ट रूप से एक मॉनिटर होस्ट।
+एजेंट `/var/log/ceph/ceph.log` को फ़ॉलो करके OneUptime को भेज सकता है, जिससे क्लस्टर का **क्लस्टर लॉग** पेज भरता है। यह डिफ़ॉल्ट रूप से बंद है क्योंकि तब एजेंट को ऐसे होस्ट पर चलना होगा जिस पर क्लस्टर लॉग हो: डिफ़ॉल्ट रूप से एक मॉनिटर होस्ट।
 
 :::steps
 ### रिसीवर चालू करें

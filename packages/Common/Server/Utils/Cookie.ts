@@ -21,6 +21,9 @@ import {
 import CaptureSpan from "./Telemetry/CaptureSpan";
 import RequestTransport from "./RequestTransport";
 
+// The default life of an SSO sign-in's proof: thirty days.
+const SSO_SIGN_IN_LIFETIME_IN_DAYS: number = 30;
+
 export default class CookieUtil {
   // set cookie with express response
 
@@ -59,6 +62,11 @@ export default class CookieUtil {
     projectId: ObjectID;
     ssoProviderId?: ObjectID | undefined;
     ssoProviderType?: SsoProviderType | undefined;
+    /*
+     * How long it lasts (SessionMetadata.ssoSignInExpiresInSeconds): thirty
+     * days, or the server's SSO session length when that is shorter.
+     */
+    expiresInSeconds?: number | undefined;
   }): string {
     const { user, projectId } = data;
 
@@ -77,9 +85,34 @@ export default class CookieUtil {
           ? data.ssoProviderType.toString()
           : undefined,
       },
-      expiresInSeconds: OneUptimeDate.getSecondsInDays(new PositiveNumber(30)),
+      expiresInSeconds: CookieUtil.getSsoSignInLifetimeInSeconds(
+        data.expiresInSeconds,
+      ),
       purpose: JsonWebTokenPurpose.SsoSignIn,
     });
+  }
+
+  /*
+   * How long an SSO sign-in's proof lasts, in seconds: as asked, when that
+   * is a positive number no longer than thirty days, and thirty days
+   * otherwise.
+   */
+  public static getSsoSignInLifetimeInSeconds(
+    expiresInSeconds?: number | undefined,
+  ): number {
+    const longest: number = OneUptimeDate.getSecondsInDays(
+      new PositiveNumber(SSO_SIGN_IN_LIFETIME_IN_DAYS),
+    );
+
+    if (
+      typeof expiresInSeconds !== "number" ||
+      !Number.isFinite(expiresInSeconds) ||
+      expiresInSeconds <= 0
+    ) {
+      return longest;
+    }
+
+    return Math.min(longest, Math.floor(expiresInSeconds));
   }
 
   @CaptureSpan()
@@ -89,6 +122,8 @@ export default class CookieUtil {
     expressResponse: ExpressResponse;
     ssoProviderId?: ObjectID | undefined;
     ssoProviderType?: SsoProviderType | undefined;
+    // As getSSOToken's.
+    expiresInSeconds?: number | undefined;
   }): void {
     const { projectId, expressResponse: res } = data;
 
@@ -97,10 +132,12 @@ export default class CookieUtil {
       projectId: projectId,
       ssoProviderId: data.ssoProviderId,
       ssoProviderType: data.ssoProviderType,
+      expiresInSeconds: data.expiresInSeconds,
     });
 
     CookieUtil.setCookie(res, CookieUtil.getUserSSOKey(projectId), ssoToken, {
-      maxAge: OneUptimeDate.getMillisecondsInDays(new PositiveNumber(30)),
+      maxAge:
+        CookieUtil.getSsoSignInLifetimeInSeconds(data.expiresInSeconds) * 1000,
       httpOnly: true,
     });
   }
@@ -120,6 +157,8 @@ export default class CookieUtil {
     user: User;
     ssoProviderId: ObjectID;
     ssoProviderType: SsoProviderType;
+    // As getSSOToken's.
+    expiresInSeconds?: number | undefined;
   }): string {
     const { user } = data;
 
@@ -133,7 +172,9 @@ export default class CookieUtil {
         ssoProviderId: data.ssoProviderId.toString(),
         ssoProviderType: data.ssoProviderType.toString(),
       },
-      expiresInSeconds: OneUptimeDate.getSecondsInDays(new PositiveNumber(30)),
+      expiresInSeconds: CookieUtil.getSsoSignInLifetimeInSeconds(
+        data.expiresInSeconds,
+      ),
       purpose: JsonWebTokenPurpose.SsoSignIn,
     });
   }
@@ -144,6 +185,8 @@ export default class CookieUtil {
     expressResponse: ExpressResponse;
     ssoProviderId: ObjectID;
     ssoProviderType: SsoProviderType;
+    // As getSSOToken's.
+    expiresInSeconds?: number | undefined;
   }): void {
     const { expressResponse: res } = data;
 
@@ -151,10 +194,12 @@ export default class CookieUtil {
       user: data.user,
       ssoProviderId: data.ssoProviderId,
       ssoProviderType: data.ssoProviderType,
+      expiresInSeconds: data.expiresInSeconds,
     });
 
     CookieUtil.setCookie(res, CookieUtil.getGlobalSSOKey(), globalSsoToken, {
-      maxAge: OneUptimeDate.getMillisecondsInDays(new PositiveNumber(30)),
+      maxAge:
+        CookieUtil.getSsoSignInLifetimeInSeconds(data.expiresInSeconds) * 1000,
       httpOnly: true,
     });
   }
@@ -168,6 +213,13 @@ export default class CookieUtil {
     refreshToken: string;
     refreshTokenExpiresAt: Date;
     accessTokenExpiresInSeconds?: number;
+    /*
+     * When the session signed in and when its person was last active
+     * (Utils/SessionCookieFields): claims of its access token, which the
+     * server's session lengths are asked against on every request.
+     */
+    signedInAt?: Date | undefined;
+    lastActiveAt?: Date | undefined;
   }): void {
     const {
       expressResponse: res,
@@ -191,6 +243,8 @@ export default class CookieUtil {
         isMasterAdmin: user.isMasterAdmin!,
         isGlobalLogin: isGlobalLogin, // This is a general login without SSO. So, we will set this to true. This will give access to all the projects that dont require SSO.
         sessionId: sessionId,
+        signedInAt: data.signedInAt,
+        lastActiveAt: data.lastActiveAt,
       },
       expiresInSeconds: accessTokenExpiresInSeconds,
     });

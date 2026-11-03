@@ -12,9 +12,9 @@ import ts from "typescript";
  * columns every infrastructure list opens on. Collected By and Agent Version
  * start hidden (isHiddenByDefault), and Customize Columns turns them back on;
  * neither is hideOnMobile, so that works on a phone too. What they said stays
- * on the vCenter's own pages: the Overview's vCenter Details shows the Agent
- * Version with its upgrade sign, and the Data Collection cards say how the
- * vCenter is collected.
+ * on the vCenter's own pages: the Overview's vCenter Details says how it is
+ * collected (Collected By) and shows the Agent Version with its upgrade
+ * sign, and the Data Collection cards say how the collection is going.
  *
  * VMware's other lists, and the other agent-collected inventories, show
  * neither by default. These read the page sources (the App suite has no
@@ -327,20 +327,42 @@ describe("All vCenters opens without Collected By and Agent Version", () => {
 });
 
 /*
+ * The hosts and virtual machines lists draw their columns from one shared
+ * file, VMwareResourceTables.tsx (a cluster's page and a host's draw the
+ * same tables): the check reads the file that declares them.
+ */
+const VMWARE_RESOURCE_TABLES: string =
+  "../Components/VMware/VMwareResourceTables.tsx";
+
+/*
  * The lists a vCenter's side menu opens (its hosts, virtual machines,
  * datastores, clusters and resource pools) and the archived vCenters: none
  * of them shows either column.
  */
 const OTHER_VMWARE_LISTS: ReadonlyArray<string> = [
   "VMware/Archived.tsx",
-  "VMware/View/Hosts.tsx",
-  "VMware/View/VirtualMachines.tsx",
+  VMWARE_RESOURCE_TABLES,
   "VMware/View/Datastores.tsx",
   "VMware/View/Clusters.tsx",
   "VMware/View/ResourcePools.tsx",
 ];
 
 describe("VMware's other lists show neither column", () => {
+  test.each([
+    ["VMware/View/Hosts.tsx", "VMwareHostsTable"],
+    ["VMware/View/VirtualMachines.tsx", "VMwareVirtualMachinesTable"],
+  ])(
+    "%s draws the shared table, whose columns are checked",
+    (file: string, table: string) => {
+      const source: string = readPage(file);
+
+      expect(source).toContain(
+        `import { ${table} } from "../../../Components/VMware/VMwareResourceTables";`,
+      );
+      expect(source).toContain(`<${table}`);
+    },
+  );
+
   test.each(OTHER_VMWARE_LISTS)("%s", (file: string) => {
     expect(
       columnLikeObjects(file)
@@ -378,7 +400,7 @@ describe("the vCenter's own pages keep what the list leaves out", () => {
   }
 
   test("the Overview shows the Agent Version among the vCenter's details", () => {
-    expect(readPage(OVERVIEW)).toContain('name="vCenter Details"');
+    expect(readPage(OVERVIEW)).toContain('title="vCenter Details"');
     expect(
       objectsTitled(OVERVIEW, "Agent Version").map(
         (field: DeclaredColumn): Array<string> => {
@@ -388,6 +410,43 @@ describe("the vCenter's own pages keep what the list leaves out", () => {
     ).toEqual([["agentVersion"]]);
     // With its upgrade sign: AgentVersionDisplayGuard holds the page to it.
     expect(readPage(OVERVIEW)).toContain("kind={AgentKind.VMwareAgent}");
+  });
+
+  /*
+   * And how it is collected, first: the VMware Agent, or the probe that
+   * logs in to it. The card draws only what the vCenter reported, so a
+   * vCenter a probe collects - which has no agent, and no Agent Version -
+   * says why there, rather than "No details reported yet."
+   */
+  test("the Overview's vCenter Details says how the vCenter is collected, always, before its Agent Version", () => {
+    const source: string = readPage(OVERVIEW).replace(/\s+/g, " ");
+
+    expect(
+      objectsTitled(OVERVIEW, "Collected By").map(
+        (field: DeclaredColumn): Array<string> => {
+          return field.fields;
+        },
+      ),
+    ).toEqual([["collectionMethod"]]);
+    const card: string = source.slice(
+      source.indexOf("<ResourceRecordDetailsCard<VMwareVCenter>"),
+    );
+    expect(card.indexOf('title: "Collected By"')).toBeGreaterThan(-1);
+    expect(card.indexOf('title: "Collected By"')).toBeLessThan(
+      card.indexOf('title: "Agent Version"'),
+    );
+    // Drawn for every vCenter, collected one way or the other.
+    expect(card).toContain(
+      'title: "Collected By", fieldType: FieldType.Element, showIf: (): boolean => { return true; },',
+    );
+    // The probe's name, read with the vCenter.
+    expect(card).toContain(
+      "selectMoreFields={{ collectionProbe: { name: true, }, }}",
+    );
+    expect(card).toContain(
+      'translator.translateTemplate("Probe: {{name}}", { name: item.collectionProbe.name, })',
+    );
+    expect(card).toContain('translator.translateText("VMware Agent")');
   });
 
   test("the Overview of a vCenter a probe collects shows how its collection is going", () => {

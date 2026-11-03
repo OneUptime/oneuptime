@@ -27,7 +27,6 @@ import {
 } from "./ClusterConfig";
 import AnalyticsBaseModel from "../../../Models/AnalyticsModels/AnalyticsBaseModel/AnalyticsBaseModel";
 import CommonModel, {
-  Record as AnalyticsRecord,
   RecordValue,
 } from "../../../Models/AnalyticsModels/AnalyticsBaseModel/CommonModel";
 import AnalyticsTableColumn, {
@@ -110,9 +109,346 @@ export interface ResourceEntityScopeQueryValue {
   entityKeys?: Array<string> | undefined;
   attributeKey?: string | undefined;
   attributeValues?: Array<string> | undefined;
+  /*
+   * The resource is left out rather than kept: the group compiles to
+   * `AND NOT (... OR ...)`. Only `true` negates - any other value keeps the
+   * group positive.
+   */
+  isExcluded?: boolean | undefined;
 }
 
 const SIMPLE_AGGREGATE_FUNCTION_NAME_REGEX: RegExp = /^[A-Za-z_][A-Za-z0-9_]*$/;
+
+/*
+ * The longest string a number or time column reads in place of a number or
+ * a time: wider than any Int128 or ISO-8601 time. A longer one is refused
+ * before it is parsed.
+ */
+const MAX_NUMBER_OR_TIME_TEXT_LENGTH: number = 64;
+
+// The strings a number column reads as a number.
+const SIGNED_WHOLE_NUMBER_TEXT_REGEX: RegExp = /^-?\d+$/;
+const UNSIGNED_WHOLE_NUMBER_TEXT_REGEX: RegExp = /^\d+$/;
+const DECIMAL_NUMBER_TEXT_REGEX: RegExp = /^-?\d+(\.\d+)?([eE][-+]?\d+)?$/;
+
+/*
+ * How a create writes a value into its INSERT, for each column type: as a
+ * literal of the column's type, or not at all (null), and then the create is
+ * refused with a BadDataException (400) naming what the column takes. A
+ * value of another type is written only where it means one of the column's
+ * own ("42" for a number, "true" for a boolean), so every value reaches the
+ * INSERT as its column's type.
+ */
+type CreateValueWriter = {
+  // What the column takes, as the refusal names it.
+  expected: string;
+  write: (value: RecordValue) => string | null;
+};
+
+// A string as a ClickHouse string literal: https://clickhouse.com/docs/en/sql-reference/syntax#string
+function toStringLiteral(raw: string | undefined | null): string {
+  if (raw === undefined || raw === null) {
+    return "''";
+  }
+
+  return `'${raw.replace(/'|\\/g, "\\$&")}'`;
+}
+
+function isPlainObject(value: unknown): value is JSONObject {
+  if (value === null || typeof value !== "object" || Array.isArray(value)) {
+    return false;
+  }
+
+  const prototype: unknown = Object.getPrototypeOf(value);
+
+  return prototype === Object.prototype || prototype === null;
+}
+
+function isNumberOrTimeText(value: unknown): value is string {
+  return (
+    typeof value === "string" && value.length <= MAX_NUMBER_OR_TIME_TEXT_LENGTH
+  );
+}
+
+// Text, an ID, a number or a boolean, as text. A list or an object is none.
+function writeText(value: RecordValue): string | null {
+  if (Array.isArray(value) || isPlainObject(value)) {
+    return null;
+  }
+
+  return toStringLiteral(value.toString());
+}
+
+function writeBoolean(value: RecordValue): string | null {
+  if (value === true || value === 1) {
+    return "true";
+  }
+
+  if (value === false || value === 0) {
+    return "false";
+  }
+
+  if (typeof value === "string") {
+    const text: string = value.trim().toLowerCase();
+
+    if (text === "true" || text === "1") {
+      return "true";
+    }
+
+    if (text === "false" || text === "0") {
+      return "false";
+    }
+  }
+
+  return null;
+}
+
+function parseWholeNumber(text: string): number {
+  return parseInt(text, 10);
+}
+
+// A number as it is, and a string of one as the number it parses to.
+function getNumberWriter(data: {
+  textRegex: RegExp;
+  parse: (text: string) => number;
+}): (value: RecordValue) => string | null {
+  return (value: RecordValue): string | null => {
+    if (typeof value === "number") {
+      return value.toString();
+    }
+
+    if (isNumberOrTimeText(value) && data.textRegex.test(value)) {
+      return data.parse(value).toString();
+    }
+
+    return null;
+  };
+}
+
+// A 64-bit or wider number, cast from its digits so that none is lost.
+function getCastNumberWriter(data: {
+  textRegex: RegExp;
+  clickhouseType: string;
+}): (value: RecordValue) => string | null {
+  return (value: RecordValue): string | null => {
+    let digits: string;
+
+    if (typeof value === "number") {
+      digits = value.toString();
+    } else if (isNumberOrTimeText(value) && data.textRegex.test(value)) {
+      digits = value;
+    } else {
+      return null;
+    }
+
+    return `CAST(${toStringLiteral(digits)} AS ${data.clickhouseType})`;
+  };
+}
+
+// A Date, or a string of a time. An invalid time is none.
+function getTimeWriter(
+  format: (date: Date) => string,
+): (value: RecordValue) => string | null {
+  return (value: RecordValue): string | null => {
+    let date: Date;
+
+    if (value instanceof Date) {
+      date = value;
+    } else if (isNumberOrTimeText(value)) {
+      date = OneUptimeDate.fromString(value);
+    } else {
+      return null;
+    }
+
+    if (Number.isNaN(date.getTime())) {
+      return null;
+    }
+
+    return `parseDateTimeBestEffortOrNull(${toStringLiteral(format(date))})`;
+  };
+}
+
+function writeJson(value: RecordValue): string {
+  return toStringLiteral(JSON.stringify(value));
+}
+
+/*
+ * A list of numbers, or of strings of numbers. A missing number, or one that
+ * is not finite (NaN, Infinity), is NULL, so that ClickHouse can serialize
+ * the row (as `toNumberOrNull` in OTLP ingest).
+ */
+function writeNumberList(value: RecordValue): string | null {
+  if (!Array.isArray(value)) {
+    return null;
+  }
+
+  const elements: Array<string> = [];
+
+  for (const element of value as Array<unknown>) {
+    let number: number;
+
+    if (element === null || element === undefined) {
+      elements.push("NULL");
+      continue;
+    }
+
+    if (typeof element === "number") {
+      number = element;
+    } else if (
+      isNumberOrTimeText(element) &&
+      DECIMAL_NUMBER_TEXT_REGEX.test(element)
+    ) {
+      number = parseFloat(element);
+    } else {
+      return null;
+    }
+
+    elements.push(Number.isFinite(number) ? number.toString() : "NULL");
+  }
+
+  return `[${elements.join(", ")}]`;
+}
+
+// A list of strings. A missing one is the empty string.
+function writeTextList(value: RecordValue): string | null {
+  if (!Array.isArray(value)) {
+    return null;
+  }
+
+  const elements: Array<string> = [];
+
+  for (const element of value as Array<unknown>) {
+    if (element === null || element === undefined) {
+      elements.push(toStringLiteral(null));
+      continue;
+    }
+
+    if (typeof element !== "string") {
+      return null;
+    }
+
+    elements.push(toStringLiteral(element));
+  }
+
+  return `[${elements.join(", ")}]`;
+}
+
+// An object of strings. A key with no value is left out.
+function writeTextMap(value: RecordValue): string | null {
+  if (!isPlainObject(value)) {
+    return null;
+  }
+
+  const entries: Array<string> = [];
+
+  for (const [key, entryValue] of Object.entries(value)) {
+    if (entryValue === null || entryValue === undefined) {
+      continue;
+    }
+
+    if (typeof entryValue !== "string") {
+      return null;
+    }
+
+    entries.push(`${toStringLiteral(key)}, ${toStringLiteral(entryValue)}`);
+  }
+
+  return `map(${entries.join(", ")})`;
+}
+
+const CREATE_VALUE_WRITERS: Record<TableColumnType, CreateValueWriter> = {
+  [TableColumnType.ObjectID]: { expected: "an ID", write: writeText },
+  [TableColumnType.Text]: { expected: "text", write: writeText },
+  [TableColumnType.IP]: { expected: "text", write: writeText },
+  [TableColumnType.Port]: { expected: "text or a number", write: writeText },
+  [TableColumnType.Boolean]: {
+    expected: "true or false",
+    write: writeBoolean,
+  },
+  [TableColumnType.Number]: {
+    expected: "a number",
+    write: getNumberWriter({
+      textRegex: SIGNED_WHOLE_NUMBER_TEXT_REGEX,
+      parse: parseWholeNumber,
+    }),
+  },
+  [TableColumnType.BigNumber]: {
+    expected: "a number",
+    write: getNumberWriter({
+      textRegex: SIGNED_WHOLE_NUMBER_TEXT_REGEX,
+      parse: parseWholeNumber,
+    }),
+  },
+  [TableColumnType.UInt8]: {
+    expected: "a number",
+    write: getNumberWriter({
+      textRegex: UNSIGNED_WHOLE_NUMBER_TEXT_REGEX,
+      parse: parseWholeNumber,
+    }),
+  },
+  [TableColumnType.Decimal]: {
+    expected: "a number",
+    write: getNumberWriter({
+      textRegex: DECIMAL_NUMBER_TEXT_REGEX,
+      parse: parseFloat,
+    }),
+  },
+  [TableColumnType.LongNumber]: {
+    expected: "a whole number, or a string of its digits",
+    write: getCastNumberWriter({
+      textRegex: SIGNED_WHOLE_NUMBER_TEXT_REGEX,
+      clickhouseType: "Int128",
+    }),
+  },
+  [TableColumnType.UInt64]: {
+    expected: "a whole number, or a string of its digits",
+    write: getCastNumberWriter({
+      textRegex: UNSIGNED_WHOLE_NUMBER_TEXT_REGEX,
+      clickhouseType: "UInt64",
+    }),
+  },
+  [TableColumnType.Date]: {
+    expected: "a date and time",
+    write: getTimeWriter((date: Date): string => {
+      return OneUptimeDate.toString(date);
+    }),
+  },
+  [TableColumnType.DateTime64]: {
+    expected: "a date and time",
+    write: getTimeWriter((date: Date): string => {
+      return OneUptimeDate.toClickhouseDateTime64(date);
+    }),
+  },
+  [TableColumnType.JSON]: { expected: "JSON", write: writeJson },
+  [TableColumnType.JSONArray]: { expected: "JSON", write: writeJson },
+  [TableColumnType.ArrayNumber]: {
+    expected: "a list of numbers",
+    write: writeNumberList,
+  },
+  [TableColumnType.ArrayBigNumber]: {
+    expected: "a list of numbers",
+    write: writeNumberList,
+  },
+  [TableColumnType.ArrayDecimal]: {
+    expected: "a list of numbers",
+    write: writeNumberList,
+  },
+  [TableColumnType.ArrayText]: {
+    expected: "a list of text values",
+    write: writeTextList,
+  },
+  [TableColumnType.MapStringString]: {
+    expected: "an object whose values are text",
+    write: writeTextMap,
+  },
+  // An aggregate state: only ClickHouse writes one.
+  [TableColumnType.AggregateFunction]: {
+    expected: "left out, as the database computes it",
+    write: (): null => {
+      return null;
+    },
+  },
+};
 
 export default class StatementGenerator<TBaseModel extends AnalyticsBaseModel> {
   public model!: TBaseModel;
@@ -268,36 +604,17 @@ export default class StatementGenerator<TBaseModel extends AnalyticsBaseModel> {
     return columnNames;
   }
 
-  public getRecordValuesStatement(record: AnalyticsRecord): string {
-    let valueStatement: string = "";
-
-    for (const value of record) {
-      if (Array.isArray(value)) {
-        if (value.length === 0) {
-          valueStatement += `[], `;
-          continue;
-        }
-
-        valueStatement += `[${value.join(",")}], `;
-      } else {
-        valueStatement += `${value}, `;
-      }
-    }
-
-    valueStatement = valueStatement.substring(0, valueStatement.length - 2); // remove last comma.
-
-    return valueStatement;
+  // A row's values, each already a literal of its column's type (getRecord).
+  public getRecordValuesStatement(record: Array<string>): string {
+    return record.join(", ");
   }
 
-  public getValuesStatement(records: Array<AnalyticsRecord>): string {
-    let statement: string = "";
-    for (const record of records) {
-      statement += `(${this.getRecordValuesStatement(record)}), `;
-    }
-
-    statement = statement.substring(0, statement.length - 2); // remove last comma.
-
-    return statement;
+  public getValuesStatement(records: Array<Array<string>>): string {
+    return records
+      .map((record: Array<string>): string => {
+        return `(${this.getRecordValuesStatement(record)})`;
+      })
+      .join(", ");
   }
 
   public toCreateStatement(data: { item: Array<TBaseModel> }): string {
@@ -309,10 +626,10 @@ export default class StatementGenerator<TBaseModel extends AnalyticsBaseModel> {
       this.model.getTableColumns(),
     );
 
-    const records: Array<AnalyticsRecord> = [];
+    const records: Array<Array<string>> = [];
 
     for (const item of data.item) {
-      const record: AnalyticsRecord = this.getRecord(item);
+      const record: Array<string> = this.getRecord(item);
       records.push(record);
     }
 
@@ -337,166 +654,39 @@ export default class StatementGenerator<TBaseModel extends AnalyticsBaseModel> {
     return statement;
   }
 
-  private getRecord(item: CommonModel): AnalyticsRecord {
-    const record: AnalyticsRecord = [];
+  private getRecord(item: CommonModel): Array<string> {
+    const record: Array<string> = [];
 
     for (const column of item.getTableColumns()) {
-      const value: RecordValue | undefined = this.sanitizeValue(
-        item.getColumnValue(column.key),
-        column,
-      );
-
-      record.push(value);
+      record.push(this.toValueLiteral(item.getColumnValue(column.key), column));
     }
 
     return record;
   }
 
-  private escapeStringLiteral(raw: string | undefined | null): string {
-    // escape String literal based on https://clickhouse.com/docs/en/sql-reference/syntax#string
-    if (raw === undefined || raw === null) {
-      return "''";
-    }
-    return `'${raw.replace(/'|\\/g, "\\$&")}'`;
-  }
-
-  private sanitizeValue(
+  /*
+   * A value as the INSERT writes it: NULL when there is none, otherwise a
+   * literal of its column's type (CREATE_VALUE_WRITERS). A value that is not
+   * one is refused, so the create is refused before anything is written.
+   */
+  private toValueLiteral(
     value: RecordValue | undefined,
     column: AnalyticsTableColumn,
-    options?: {
-      isNestedModel?: boolean;
-    },
-  ): RecordValue {
+  ): string {
     if (!value && value !== 0 && value !== false) {
-      if (options?.isNestedModel) {
-        if (column.type === TableColumnType.Text) {
-          return `''`;
-        }
-
-        if (column.type === TableColumnType.Number) {
-          return 0;
-        }
-      }
-
       return "NULL";
     }
 
-    if (
-      column.type === TableColumnType.ObjectID ||
-      column.type === TableColumnType.Text
-    ) {
-      value = this.escapeStringLiteral(value?.toString());
+    const writer: CreateValueWriter = CREATE_VALUE_WRITERS[column.type];
+    const literal: string | null = writer.write(value);
+
+    if (literal === null) {
+      throw new BadDataException(
+        `Invalid value for ${column.key}. It must be ${writer.expected}.`,
+      );
     }
 
-    if (column.type === TableColumnType.Date && value instanceof Date) {
-      value = `parseDateTimeBestEffortOrNull('${OneUptimeDate.toString(
-        value as Date,
-      )}')`;
-    }
-
-    if (column.type === TableColumnType.DateTime64 && value instanceof Date) {
-      value = `parseDateTimeBestEffortOrNull('${OneUptimeDate.toClickhouseDateTime64(
-        value as Date,
-      )}')`;
-    }
-
-    if (column.type === TableColumnType.Number) {
-      if (typeof value === "string") {
-        value = parseInt(value);
-      }
-    }
-
-    if (column.type === TableColumnType.Decimal) {
-      if (typeof value === "string") {
-        value = parseFloat(value);
-      }
-    }
-
-    if (column.type === TableColumnType.ArrayNumber) {
-      value = `[${(value as Array<number>)
-        .map((v: number) => {
-          if (v && typeof v !== "number") {
-            v = parseFloat(v);
-            return isNaN(v) ? "NULL" : v;
-          }
-          return v;
-        })
-        .join(", ")}]`;
-    }
-
-    if (column.type === TableColumnType.ArrayText) {
-      value = `[${(value as Array<string>)
-        .map((v: string) => {
-          return this.escapeStringLiteral(v);
-        })
-        .join(", ")}]`;
-    }
-
-    if (
-      column.type === TableColumnType.JSON ||
-      column.type === TableColumnType.JSONArray
-    ) {
-      value = this.escapeStringLiteral(JSON.stringify(value));
-    }
-
-    if (column.type === TableColumnType.LongNumber) {
-      value = `CAST(${this.escapeStringLiteral(value.toString())} AS Int128)`;
-    }
-
-    if (column.type === TableColumnType.UInt64) {
-      value = `CAST(${this.escapeStringLiteral(value.toString())} AS UInt64)`;
-    }
-
-    if (column.type === TableColumnType.BigNumber) {
-      if (typeof value === "string") {
-        value = parseInt(value);
-      }
-    }
-
-    if (column.type === TableColumnType.ArrayBigNumber) {
-      value = `[${(value as Array<number>)
-        .map((v: number) => {
-          if (v && typeof v !== "number") {
-            v = parseFloat(v);
-            return isNaN(v) ? "NULL" : v;
-          }
-          return v;
-        })
-        .join(", ")}]`;
-    }
-
-    if (column.type === TableColumnType.ArrayDecimal) {
-      value = `[${(value as Array<number>)
-        .map((v: number) => {
-          if (v && typeof v !== "number") {
-            v = parseFloat(v);
-            return isNaN(v) ? "NULL" : v;
-          }
-          /*
-           * Filter non-finite (NaN/+Inf/-Inf) -> NULL so ClickHouse Float64
-           * serialization succeeds (mirrors `toNumberOrNull` in OTLP ingest).
-           */
-          if (typeof v === "number" && !Number.isFinite(v)) {
-            return "NULL";
-          }
-          return v;
-        })
-        .join(", ")}]`;
-    }
-
-    if (column.type === TableColumnType.MapStringString) {
-      const mapObj: Record<string, string> = value as Record<string, string>;
-      const entries: Array<string> = Object.entries(mapObj)
-        .filter(([k, v]: [string, string | undefined]) => {
-          return k !== undefined && k !== null && v !== undefined && v !== null;
-        })
-        .map(([k, v]: [string, string]) => {
-          return `${this.escapeStringLiteral(k)}, ${this.escapeStringLiteral(v)}`;
-        });
-      value = `map(${entries.join(", ")})`;
-    }
-
-    return value;
+    return literal;
   }
 
   public toSetStatement(data: TBaseModel): Statement {
@@ -889,7 +1079,15 @@ export default class StatementGenerator<TBaseModel extends AnalyticsBaseModel> {
             whereStatement.append(SQL` `);
           }
 
-          whereStatement.append(SQL`AND (`);
+          /*
+           * A resource the reader left out ("Host is not web-01") negates
+           * the whole group, so a row that belongs to it in any of the ways
+           * above is left out. A row without the resource attribute reads
+           * it as '' - in no IN list - and is kept.
+           */
+          whereStatement.append(
+            scope.isExcluded === true ? SQL`AND NOT (` : SQL`AND (`,
+          );
 
           for (const [branchIndex, branch] of branches.entries()) {
             if (branchIndex > 0) {

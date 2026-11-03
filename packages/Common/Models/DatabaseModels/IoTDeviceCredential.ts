@@ -454,6 +454,7 @@ export default class IoTDeviceCredential extends BaseModel {
   })
   @Index()
   @TableColumn({
+    secret: true,
     type: TableColumnType.ObjectID,
     isDefaultValueColumn: false,
     computed: true,

@@ -1,3 +1,4 @@
+import CloudResource from "../../../../Models/DatabaseModels/CloudResource";
 import DockerHost from "../../../../Models/DatabaseModels/DockerHost";
 import Host from "../../../../Models/DatabaseModels/Host";
 import InventoryItem from "../../../../Models/DatabaseModels/InventoryItem";
@@ -5,8 +6,10 @@ import { JSONObject } from "../../../../Types/JSON";
 import EntityType from "../../../../Types/Telemetry/EntityType";
 import InventoryItemService from "../../../Services/InventoryItemService";
 import KubernetesCluster from "../../../../Models/DatabaseModels/KubernetesCluster";
+import Monitor from "../../../../Models/DatabaseModels/Monitor";
 import NetworkDevice from "../../../../Models/DatabaseModels/NetworkDevice";
 import PodmanHost from "../../../../Models/DatabaseModels/PodmanHost";
+import ServerlessFunction from "../../../../Models/DatabaseModels/ServerlessFunction";
 import SecurityEvent from "../../../../Models/AnalyticsModels/SecurityEvent";
 import SecurityCase from "../../../../Models/DatabaseModels/SecurityCase";
 import SecurityEntityRisk from "../../../../Models/DatabaseModels/SecurityEntityRisk";
@@ -31,19 +34,25 @@ import {
 } from "../../../../Types/SecurityCase/SecurityEntity";
 import {
   SecurityAddressScope,
+  canonicalAddress,
+  getMonitorTargetHosts,
   getObservableSearchValues,
   getRecordSecurityValues,
   getSecurityAddressScope,
+  readCloudEndpointHosts,
   readRecordAddresses,
   recordReportsAddress,
 } from "../../../../Utils/SecurityCase/SecurityConnectionMatch";
 import { getEntityRiskKey } from "../../../../Utils/SecurityCase/SecurityEntityRiskScore";
+import CloudResourceService from "../../../Services/CloudResourceService";
 import DockerHostService from "../../../Services/DockerHostService";
 import HostService from "../../../Services/HostService";
 import KubernetesClusterService from "../../../Services/KubernetesClusterService";
+import MonitorService from "../../../Services/MonitorService";
 import NetworkDeviceService from "../../../Services/NetworkDeviceService";
 import PodmanHostService from "../../../Services/PodmanHostService";
 import SecurityCaseService from "../../../Services/SecurityCaseService";
+import ServerlessFunctionService from "../../../Services/ServerlessFunctionService";
 import SecurityEntityRiskService from "../../../Services/SecurityEntityRiskService";
 import SecurityEventService, {
   SecurityEventsNamingSummary,
@@ -64,17 +73,23 @@ import {
 /*
  * THE WAY BACK: what Security Events says about one of the project's own
  * records - a host, a Docker or Podman host, a Kubernetes cluster, a network
- * device, a service, a member - for the Security card on its page.
+ * device, a cloud resource, a serverless function, a service, a monitor, a
+ * member - for the Security card on its page.
  *
  * A record is searched for by its exact identities only, the ones that
  * make an exact connection (SecurityConnectionMatch): its names (a host's
  * host.name and display name, a cluster's k8s.cluster.name, a device's
- * name and DNS name, a member's email) and the public addresses no other
- * record of the project holds. A service is searched for by its logs:
- * the events "Your logs" read from them. Possible connections - a short
- * name, a private or shared address - are left out here: a guess must never
- * put a case on the wrong host's page. A case's Connected Signals still
- * shows them, said to be possible.
+ * name and DNS name, a cloud resource's own ID and the names it answers
+ * on, the hosts a monitor checks, a member's email) and its public
+ * addresses - for a host or a device the ones no other host or device of
+ * the project holds, for a cloud resource the ones no other cloud resource
+ * answers on, for a monitor every public address it checks. A service and
+ * a serverless function are searched for by their logs: the events "Your
+ * logs" read from them; so is a cloud resource with no ID, name or address
+ * of its own. Possible connections - a short name, a private or shared
+ * address - are left out here: a guess must never put a case on the wrong
+ * host's page. A case's Connected Signals still shows them, said to be
+ * possible.
  *
  * Over the last RESOURCE_SECURITY_WINDOW_IN_DAYS days (the week an entity's
  * risk is counted over): how many events and findings name it, the open
@@ -168,15 +183,32 @@ function readAttributeText(
   return typeof value === "string" && value.trim() ? value.trim() : undefined;
 }
 
+/*
+ * Among whose addresses a record's public address has to be its own to be
+ * searched for: a host's or a device's among the hosts and devices, a
+ * cloud resource's among the cloud resources (an instance and the host it
+ * runs are one machine seen twice). A monitor checks an address whoever
+ * else holds it, so every public address it checks is searched for.
+ */
+export enum ResourceAddressOwnership {
+  HostsAndDevices = "HostsAndDevices",
+  CloudResources = "CloudResources",
+  Checked = "Checked",
+}
+
 export interface ResourceSecurityIdentity {
   name: string;
   // Names and addresses, before the public addresses are held to being nobody else's.
   names: Array<string | undefined | null>;
   addresses?: string | Array<string> | undefined | null;
+  // Whose addresses its own are counted among; hosts and devices when not said.
+  addressOwnership?: ResourceAddressOwnership | undefined;
   // The entity its Security Events page opens on.
   entity: SecurityEntity | null;
   // Searched for by the events read from its logs instead of by name.
   isSearchedByLogs: boolean;
+  // Searched for by its logs when it has no name or address of its own to search for.
+  isSearchedByLogsWithoutValues?: boolean | undefined;
 }
 
 export default class ResourceSecurity {
@@ -208,6 +240,7 @@ export default class ResourceSecurity {
       isInUse: false,
       windowDays: RESOURCE_SECURITY_WINDOW_IN_DAYS,
       values: [],
+      isSearchedByLogs: identity.isSearchedByLogs,
       entity: identity.entity,
       eventCount: 0,
       findingCount: 0,
@@ -231,7 +264,7 @@ export default class ResourceSecurity {
       return result;
     }
 
-    const values: Array<string> = identity.isSearchedByLogs
+    const ownValues: Array<string> = identity.isSearchedByLogs
       ? []
       : await this.keepOwnAddresses({
           projectId: data.projectId,
@@ -240,15 +273,24 @@ export default class ResourceSecurity {
             names: identity.names,
             addresses: identity.addresses,
           }),
+          ownership:
+            identity.addressOwnership ||
+            ResourceAddressOwnership.HostsAndDevices,
         });
+    const isSearchedByLogs: boolean =
+      identity.isSearchedByLogs ||
+      (Boolean(identity.isSearchedByLogsWithoutValues) &&
+        ownValues.length === 0);
+    const values: Array<string> = isSearchedByLogs ? [] : ownValues;
 
     result.values = values;
+    result.isSearchedByLogs = isSearchedByLogs;
 
     const summary: SecurityEventsNamingSummary =
       await SecurityEventService.countEventsNaming({
         projectId: data.projectId,
         values: getObservableSearchValues(values),
-        ...(identity.isSearchedByLogs ? { logResourceId: data.id } : {}),
+        ...(isSearchedByLogs ? { logResourceId: data.id } : {}),
         startTime,
         endTime: now,
         // Only the events of the sources the caller may read.
@@ -413,6 +455,125 @@ export default class ResourceSecurity {
           isSearchedByLogs: false,
         };
       }
+      case SecurityConnectionKind.CloudResource: {
+        const resource: CloudResource | null =
+          await CloudResourceService.findOneBy({
+            query,
+            select: {
+              _id: true,
+              name: true,
+              providerResourceId: true,
+              cloudEndpoints: true,
+            },
+            props: data.props,
+          });
+
+        if (!resource) {
+          return null;
+        }
+
+        const endpoints: { names: Array<string>; addresses: Array<string> } =
+          readCloudEndpointHosts(resource.cloudEndpoints);
+        const providerResourceId: string = (
+          resource.providerResourceId || ""
+        ).trim();
+        const publicAddress: string | undefined = endpoints.addresses.find(
+          (address: string): boolean => {
+            return (
+              getSecurityAddressScope(address) === SecurityAddressScope.Public
+            );
+          },
+        );
+        /*
+         * Its Security Events page opens on the name it answers on, else
+         * its public address, else its ID: what an event names it by most.
+         */
+        const entity: SecurityEntity | null = endpoints.names[0]
+          ? { type: SecurityEntityType.Host, value: endpoints.names[0] }
+          : publicAddress
+            ? { type: SecurityEntityType.IpAddress, value: publicAddress }
+            : providerResourceId
+              ? { type: SecurityEntityType.Other, value: providerResourceId }
+              : null;
+
+        return {
+          name: resource.name || providerResourceId,
+          names: [providerResourceId, ...endpoints.names],
+          addresses: endpoints.addresses,
+          addressOwnership: ResourceAddressOwnership.CloudResources,
+          entity,
+          isSearchedByLogs: false,
+          isSearchedByLogsWithoutValues: true,
+        };
+      }
+      case SecurityConnectionKind.ServerlessFunction: {
+        const serverlessFunction: ServerlessFunction | null =
+          await ServerlessFunctionService.findOneBy({
+            query,
+            select: { _id: true, name: true, functionIdentifier: true },
+            props: data.props,
+          });
+
+        if (!serverlessFunction) {
+          return null;
+        }
+
+        return {
+          name:
+            serverlessFunction.name ||
+            serverlessFunction.functionIdentifier ||
+            "",
+          names: [],
+          entity: null,
+          isSearchedByLogs: true,
+        };
+      }
+      case SecurityConnectionKind.Monitor: {
+        const monitor: Monitor | null = await MonitorService.findOneBy({
+          query,
+          select: { _id: true, name: true, monitorSteps: true },
+          props: data.props,
+        });
+
+        if (!monitor) {
+          return null;
+        }
+
+        const targets: Array<string> = getMonitorTargetHosts(
+          monitor.monitorSteps,
+        );
+        const addresses: Array<string> = targets.filter(
+          (target: string): boolean => {
+            return Boolean(canonicalAddress(target));
+          },
+        );
+        const names: Array<string> = targets.filter(
+          (target: string): boolean => {
+            return !canonicalAddress(target);
+          },
+        );
+        // A private address is never searched for, so it is no page to open either.
+        const publicAddress: string | undefined = addresses.find(
+          (address: string): boolean => {
+            return (
+              getSecurityAddressScope(address) === SecurityAddressScope.Public
+            );
+          },
+        );
+
+        return {
+          name: monitor.name || targets[0] || "",
+          names,
+          addresses,
+          addressOwnership: ResourceAddressOwnership.Checked,
+          entity: names[0]
+            ? { type: SecurityEntityType.Host, value: names[0] }
+            : publicAddress
+              ? { type: SecurityEntityType.IpAddress, value: publicAddress }
+              : null,
+          isSearchedByLogs: false,
+        };
+      }
       case SecurityConnectionKind.Service: {
         const service: ServiceModel | null = await ServiceService.findOneBy({
           query,
@@ -518,20 +679,63 @@ export default class ResourceSecurity {
   }
 
   /*
-   * The values, with each public address kept only when no other host or
-   * network device of the project holds it - counted as OneUptime, since
-   * how many hold it decides whether it names this record at all.
+   * The values, with each public address kept only when no other record
+   * holds it - a host's or a device's among the hosts and devices, a cloud
+   * resource's among the cloud resources - counted as OneUptime, since how
+   * many hold it decides whether it names this record at all. A monitor
+   * keeps every address it checks.
    */
   private static async keepOwnAddresses(data: {
     projectId: ObjectID;
     id: ObjectID;
     values: Array<string>;
+    ownership: ResourceAddressOwnership;
   }): Promise<Array<string>> {
     const kept: Array<string> = [];
 
     for (const value of data.values) {
-      if (getSecurityAddressScope(value) !== SecurityAddressScope.Public) {
+      if (
+        getSecurityAddressScope(value) !== SecurityAddressScope.Public ||
+        data.ownership === ResourceAddressOwnership.Checked
+      ) {
         kept.push(value);
+        continue;
+      }
+
+      if (data.ownership === ResourceAddressOwnership.CloudResources) {
+        try {
+          const resources: Array<CloudResource> =
+            await CloudResourceService.findBy({
+              query: {
+                projectId: data.projectId,
+                cloudEndpoints: QueryHelper.textContainsAnyOf([value]),
+              } as never,
+              select: { _id: true, cloudEndpoints: true },
+              limit: MAX_ADDRESS_HOLDERS_READ,
+              skip: 0,
+              props: { isRoot: true },
+            });
+          const others: Array<CloudResource> = resources.filter(
+            (resource: CloudResource): boolean => {
+              return (
+                resource.id?.toString() !== data.id.toString() &&
+                readCloudEndpointHosts(
+                  resource.cloudEndpoints,
+                ).addresses.includes(value)
+              );
+            },
+          );
+
+          if (others.length === 0) {
+            kept.push(value);
+          }
+        } catch (error) {
+          // Not known to be its own: left out, as a shared one would be.
+          logger.error(
+            `Security connections: which cloud resources answer on an address could not be read: ${error}`,
+          );
+        }
+
         continue;
       }
 

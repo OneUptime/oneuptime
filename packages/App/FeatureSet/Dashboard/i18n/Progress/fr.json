@@ -1,7 +1,7 @@
 {
   "baseline": {
-    "keys": 40054,
-    "untranslated": 7278
+    "keys": 40228,
+    "untranslated": 7238
   },
   "sameAsEnglish": [
     " incidents",
@@ -118,6 +118,7 @@
     "Clients",
     "Cloud",
     "Cluster",
+    "Cluster {{cluster}}",
     "Clusters",
     "Code",
     "Code Challenge",
@@ -228,7 +229,6 @@
     "INP 168 ms",
     "INP 190 ms",
     "INP 540 ms",
-    "Identification",
     "Image",
     "Images",
     "Important",
@@ -368,12 +368,14 @@
     "Pods",
     "Points",
     "Pool",
+    "Pool {{name}}",
     "Pools",
     "Port",
     "Ports",
     "Portugal (+351)",
     "PostgreSQL 16.4 · Kubernetes · prod-us-east",
     "Prompt",
+    "Public",
     "Pull request",
     "Pull requests",
     "Push",
@@ -494,6 +496,7 @@
     "trace",
     "trace {{traceId}}",
     "traces",
+    "vApp {{name}}",
     "vCenter",
     "vCenters",
     "vSphere Client",

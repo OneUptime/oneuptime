@@ -30,6 +30,7 @@ Slå upp meddelandet som Terraform skrev ut, eller det du såg hända, i tabelle
 | `has been renamed to` | Byt namn på resurstypen, med ett `moved`-block: se [En resurstyp med nytt namn](#en-resurstyp-med-nytt-namn) |
 | En övervakare som skapats med Terraform visar aldrig sina kontroller | Uppgradera OneUptime: se [Övervakare från före steg-ID:n](#övervakare-från-före-steg-idn) |
 | `must contain at least 1 elements` | Utelämna attributet i stället för att lämna det tomt: se [Tomma värden](#tomma-värden) |
+| `Not an ID` | Hänvisa till posten i stället för att nämna den: se [Ett namn där ett ID ska stå](#ett-namn-där-ett-id-ska-stå) |
 | JSON från instrumentpanelen i en `.tf`-fil | Skriv det som HCL: se [JSON från instrumentpanelen](#json-från-instrumentpanelen) |
 | `no available releases match the given constraints` | Använd ett versionsintervall, inte en enda exakt version: se [En version som aldrig publicerades](#en-version-som-aldrig-publicerades) |
 | `x509: certificate signed by unknown authority` | Lita på din certifikatutfärdare: se [Certifikat](#certifikat) |
@@ -172,6 +173,16 @@ Attribute monitor_steps list must contain at least 1 elements, got: 0
 ```
 
 Utelämna i stället attributet: ett attribut som inte finns där är inte angivet. [Monitorsteg](/docs/terraform/monitor-steps) listar vad varje del tar emot.
+
+### Ett namn där ett ID ska stå
+
+Ett attribut som innehåller ID:t för en annan post, som `team_id` eller en monitors `labels`, tar den postens ID: ett UUID. Ett namn eller en slug där stoppar planen:
+
+```text
+"sre" is not the ID of a oneuptime_team: OneUptime IDs are UUIDs, such as 550e8400-e29b-41d4-a716-446655440000. Refer to the resource instead (oneuptime_team.<name>.id), or read the ID with the oneuptime_team data source.
+```
+
+Hänvisa till postens resurs, som i `team_id = oneuptime_team.sre.id`, eller läs posten med en [datakälla](/docs/terraform/complete-guide#läs-det-som-redan-finns). Anger attributet en person, ange då personens e-postadress i attributet bredvid, som `user_email`.
 
 ### JSON från instrumentpanelen
 

@@ -250,6 +250,37 @@ export const SOURCE_ROOTS: Array<SourceRoot> = [
     directory: "packages/Common/Types/Kubernetes/KubernetesHealth.ts",
     kind: "keys",
   },
+  /*
+   * A host's status and what needs attention on it, by one set of rules:
+   * the Hosts list and its Needs attention card, a host's hero and page,
+   * and its Topology say them in the reader's language. Only the words the
+   * file marks are read: mount points and unit names are drawn as written.
+   */
+  {
+    directory: "packages/Common/Types/Host/HostHealth.ts",
+    kind: "keys",
+  },
+  /*
+   * Where a database or a queue was found ("Application traces", "Added
+   * manually") and what kind of cloud resource one is ("Databases and
+   * caches"): a database's and a queue's Overview, their lists and a cloud
+   * resource's Details say them in the reader's language. Only the words
+   * each file marks are read: the server writes the same labels in English
+   * (a database's Feed), and the rest of the files are not shown.
+   */
+  {
+    directory:
+      "packages/Common/Types/DatabaseServer/DatabaseServerDiscoverySource.ts",
+    kind: "keys",
+  },
+  {
+    directory: "packages/Common/Models/DatabaseModels/MessageQueue.ts",
+    kind: "keys",
+  },
+  {
+    directory: "packages/Common/Types/Cloud/CloudResourceCatalog.ts",
+    kind: "keys",
+  },
 ];
 
 /*

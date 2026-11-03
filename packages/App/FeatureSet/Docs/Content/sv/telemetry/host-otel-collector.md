@@ -31,10 +31,10 @@ flowchart TB
 
 | Det du ser på värden | Var det kommer ifrån |
 | --- | --- |
-| **Översikt** och **Mätvärden** | Receivern `hostmetrics`: CPU, minne, diskar, filsystem, nätverk, belastning, paging. |
+| **Översikt** och **Mätvärden** | Receivern `hostmetrics`: CPU, minne, diskar, filsystem, nätverk, belastning, paging, drifttid. |
 | **Processer** | Skraparen `process` i `hostmetrics`: en uppsättning serier per process. |
 | **Loggar** | Receivrarna `filelog`, `journald` och `windowseventlog`. |
-| **Systemd Units** (Linux) | Receivern `systemd`. |
+| **Systemd-enheter** (Linux) | Receivern `systemd`. |
 | **Tjänster** (Windows) | Receivern `windows_service`. |
 | Inventarieposten | Processorn `resourcedetection`, plus [attributen du stämplar](#inventarieattribut-ip-mac-serienummer-tillverkare-modell-firmware). |
 | **Agentversion** | `oneuptime.agent.version` i processorn `resource`. |
@@ -86,6 +86,8 @@ receivers:
       load:
       network:
       paging:
+      # How long the host has been up (system.uptime): when it last started.
+      system:
       processes:
       process:
         mute_process_name_error: true
@@ -189,6 +191,8 @@ receivers:
       load:
       network:
       paging:
+      # How long the host has been up (system.uptime): when it last started.
+      system:
       processes:
       process:
         mute_process_name_error: true
@@ -285,6 +289,8 @@ receivers:
       load:
       network:
       paging:
+      # How long the host has been up (system.uptime): when it last started.
+      system:
       processes:
       process:
         mute_process_name_error: true
@@ -555,7 +561,7 @@ Receivern kör `journalctl`, som alla systemd-värdar har, och collectorns anvä
 
 ### Linux-tjänster (systemd-enheter, mätvärden)
 
-Värdens sida **Systemd Units** listar varje enhet och dess tillstånd, från [`systemdreceiver`](https://github.com/open-telemetry/opentelemetry-collector-contrib/tree/main/receiver/systemdreceiver) (konfigurationstyp `systemd`), Linux-motsvarigheten till sidan **Tjänster** på Windows. Linux-konfigurationen ovan slår på den:
+Värdens sida **Systemd-enheter** listar varje enhet och dess tillstånd, från [`systemdreceiver`](https://github.com/open-telemetry/opentelemetry-collector-contrib/tree/main/receiver/systemdreceiver) (konfigurationstyp `systemd`), Linux-motsvarigheten till sidan **Tjänster** på Windows. Linux-konfigurationen ovan slår på den:
 
 ```yaml
 receivers:
@@ -963,6 +969,8 @@ receivers:
       network:
       load:
       paging:
+      # How long the host has been up (system.uptime): when it last started.
+      system:
       processes: # aggregate counts only — cheap
       process:
         mute_process_name_error: true
@@ -990,7 +998,7 @@ receivers:
         enabled: false
 ```
 
-Tillsammans tar dessa en värd med 300 enheter från omkring 6 000 datapunkter i minuten till långt under 100. Enheter som tas bort från listan försvinner från sidan **Systemd Units** några minuter senare, när deras sista sampel har åldrats ut ur det rullande fönstret.
+Tillsammans tar dessa en värd med 300 enheter från omkring 6 000 datapunkter i minuten till långt under 100. Enheter som tas bort från listan försvinner från sidan **Systemd-enheter** några minuter senare, när deras sista sampel har åldrats ut ur det rullande fönstret.
 
 ### Släpp poster med en filter-processor
 
@@ -1117,6 +1125,8 @@ receivers:
       load:
       network:
       paging:
+      # How long the host has been up (system.uptime): when it last started.
+      system:
       processes:
 
 processors:

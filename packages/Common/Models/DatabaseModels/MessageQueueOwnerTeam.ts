@@ -231,7 +231,7 @@ export default class MessageQueueOwnerTeam extends BaseModel {
     required: true,
     canReadOnRelationQuery: true,
     title: "Team ID",
-    description: "ID of your OneUptime Team in which this object belongs",
+    description: "ID of the team that owns the queue",
   })
   @Column({
     type: ColumnType.ObjectID,
@@ -309,7 +309,7 @@ export default class MessageQueueOwnerTeam extends BaseModel {
     required: true,
     canReadOnRelationQuery: true,
     title: "Queue ID",
-    description: "ID of your OneUptime Queue in which this object belongs",
+    description: "ID of the queue the team owns",
   })
   @Column({
     type: ColumnType.ObjectID,

@@ -52,6 +52,7 @@ Esta página explica qué incluye cada edición, cómo ejecutar la Enterprise Ed
 | Alertas de salud de PostgreSQL y Valkey (Redis) | No | Sí | No aplica |
 | [Copias de seguridad](/docs/installation/backups) de PostgreSQL y ClickHouse en un almacenamiento propio, según una programación, con restauración | No | Sí | No aplica |
 | [Canales de notificación personalizados](/docs/self-hosted/custom-notification-channels): avisar a las personas a través de su propio servicio, como la aplicación de su empresa | No | Sí | No aplica |
+| [Duración de la sesión](/docs/self-hosted/session-length): cuánto tiempo permanecen las personas con la sesión iniciada, y cuánto tiempo sin usar OneUptime | No | Sí | No aplica |
 | Vista de capacidad de ClickHouse, alertas de capacidad y depuración automática del disco | Sí | Sí | No aplica |
 | Estado de las migraciones, paquete de soporte y sondas globales en el panel de administración | Sí | Sí | No aplica |
 | Gestión de la licencia Enterprise, de los puestos y de las instancias | No | Sí | No aplica |
@@ -203,6 +204,7 @@ Qué **no** se detiene:
 - **La monitorización básica nunca se ve afectada**: monitores, alertas, incidentes, guardias, páginas de estado y telemetría siguen funcionando.
 - **Los administradores maestros siempre pueden iniciar sesión con su contraseña.**
 - **Los roles personalizados, las listas de IP permitidas y los controles de acceso de las páginas de estado siguen aplicándose.** Puede quitarlos, pero no crearlos ni cambiarlos.
+- **Las duraciones de la sesión siguen aplicándose.** Puede quitarlas, pero no establecerlas ni cambiarlas.
 - **No se elimina nada.** La configuración de SCIM, los registros de auditoría y las anulaciones de retención se quedan como están.
 
 **Todo se reanuda en cuanto se activa una licencia**, sin reiniciar: el aprovisionamiento SCIM, el registro de auditoría y las anulaciones de retención vuelven con la configuración que tiene. OneUptime solo los desactiva cuando sabe que la licencia ha caducado. Mientras no puede leer el estado de la licencia, por ejemplo un momento mientras arranca el servidor, SCIM, el registro de auditoría y las anulaciones de retención siguen activos.
@@ -220,6 +222,7 @@ Su configuración se queda en la base de datos. Volver a la imagen Enterprise lo
 - **Las anulaciones de retención dejan de aplicarse.** La telemetría nueva se conserva durante la retención predeterminada del proyecto, y las tarjetas de retención de **Ajustes del proyecto > Telemetría y APM > Retención de datos** y de la página de ajustes de cada servicio y de cada recurso muestran un aviso para mejorar el plan. Las anulaciones se quedan en la base de datos y vuelven a aplicarse cuando regresa.
 - **Las páginas de estado vuelven a mostrar Powered by OneUptime.** El ajuste se queda en la base de datos y vuelve a ocultar la línea cuando regresa.
 - **Los roles personalizados, las listas de IP permitidas y los controles de acceso de las páginas de estado siguen aplicándose.** Sus ajustes muestran un aviso para mejorar el plan, con lo que sigue configurado y un botón para quitarlo.
+- **Las duraciones de la sesión dejan de aplicarse.** Cada inicio de sesión dura lo mismo que en la Community Edition. Las duraciones se quedan en la base de datos y vuelven a aplicarse cuando vuelva a cambiar.
 - **Las páginas de ajustes Enterprise muestran un aviso para mejorar el plan.** Por la API todavía puede leer y eliminar la configuración Enterprise y restablecer un token bearer de SCIM, pero no crear ni cambiar nada más. El registro de auditoría no se puede activar.
 - **Los paneles Health Enterprise, la Query Console y las alertas de salud de PostgreSQL y Valkey se detienen.** La supervisión de capacidad y la depuración de ClickHouse, el estado de las migraciones y el paquete de soporte siguen funcionando.
 

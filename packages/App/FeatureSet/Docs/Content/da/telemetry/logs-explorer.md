@@ -56,7 +56,7 @@ Skriv en forespørgsel i søgefeltet, og tryk på Enter, for eksempel `severity:
 
 ### Indsnævr med filtre
 
-Klik på en værdi i sidepanelet **Filtre** for at tilføje den som en chip: en alvorlighed, en tjeneste eller en vært, en klynge eller en anden ressource, der har sendt protokoller. Hver værdi viser, hvor mange protokoller der har den. På en telefon trykker du på **Filtre** for at åbne sidepanelet.
+Klik på en værdi i sidepanelet **Filtre** for at tilføje den som en chip: en alvorlighed, en tjeneste eller en vært, en klynge eller en anden ressource, der har sendt protokoller. Hver værdi viser, hvor mange protokoller der har den. Klik på minustegnet ved siden af en værdi for i stedet at udelade de protokoller. Klik på værdien igen for at fortryde. På en telefon trykker du på **Filtre** for at åbne sidepanelet.
 
 ### Åbn en protokol
 
@@ -72,7 +72,7 @@ Detaljepanelet har to faner:
 | Fane | Hvad den viser |
 | --- | --- |
 | **Detaljer** | **Logindhold**, dens **Spor-ID**, **Span-ID** og **Session**, når den har dem, og dens **Attributter**, som liste eller som JSON. |
-| **Context** | Protokollen blandt sine naboer. **Nearby (service + time)** viser de fem linjer før og efter den fra samme tjeneste, og **This trace** viser op til 100 protokoller fra dens spor. |
+| **Kontekst** | Protokollen blandt sine naboer. **Nearby (service + time)** viser de fem linjer før og efter den fra samme tjeneste, og **This trace** viser op til 100 protokoller fra dens spor. |
 
 - Klik på spor-ID'et for at åbne hele forespørgslen i [Sporudforsker](/docs/telemetry/traces-explorer).
 - Peg på en attribut, og klik på dens filterikon for at søge efter den værdi, eller kopiér den. Du kan kopiere alle attributter på én gang som JSON.

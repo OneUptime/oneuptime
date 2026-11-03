@@ -54,7 +54,12 @@ export default class MonitorLogUtil {
   private static flushTimer: NodeJS.Timeout | null = null;
   private static shutdownHooksRegistered: boolean = false;
 
-  private static async getRetentionDays(): Promise<number> {
+  /*
+   * How long a monitor log is kept: the installation's setting, not any
+   * project's or resource's. A monitor log created through the API is kept
+   * as long (MonitorLogService).
+   */
+  public static async getRetentionDays(): Promise<number> {
     const now: Date = OneUptimeDate.getCurrentDate();
 
     // Return cached value if still fresh

@@ -210,7 +210,14 @@ const OTHER_CONSOLES: Record<string, Array<string>> = {
     "API Token Permission",
     "User Permission",
   ],
-  [VMWARE]: ["Read-Only", "Add", "Permissions", "Propagate to children"],
+  [VMWARE]: [
+    "Read-Only",
+    "Add",
+    "Permissions",
+    "Propagate to children",
+    // The vSphere Client's view that says which state a host is in.
+    "Hosts and Clusters",
+  ],
   [STORAGE_ARRAYS]: [
     "readonly",
     "Users",
@@ -413,8 +420,11 @@ const PROSE_LEADS: Record<string, Array<string>> = {
     "Log streaming",
     "error rate",
   ],
+  /*
+   * (Application traces is a Dashboard label since #5307's follow-up: a
+   * database's and a queue's Discovered From, in the reader's language.)
+   */
   [DATABASES]: [
-    "Application traces",
     "family",
     "Created from traces",
     "created",
@@ -450,9 +460,8 @@ const PROSE_LEADS: Record<string, Array<string>> = {
     "Retention.",
     "receiver batches that do not name their server are ignored",
   ],
+  // (Application traces and Broker metrics are Dashboard labels too.)
   [QUEUES]: [
-    "Application traces",
-    "Broker metrics",
     "The system",
     "The destination",
     "The direction",

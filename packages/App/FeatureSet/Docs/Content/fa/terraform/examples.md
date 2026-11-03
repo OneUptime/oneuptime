@@ -505,14 +505,10 @@ resource "oneuptime_team" "sre" {
   description = "Site reliability engineering"
 }
 
-variable "alice_user_id" {
-  description = "Alice's user ID, the last part of the address of her page under Users"
-  type        = string
-}
-
+# Invited by email if she is not in the project yet.
 resource "oneuptime_team_member" "alice" {
-  team_id = oneuptime_team.sre.id
-  user_id = var.alice_user_id
+  team_id    = oneuptime_team.sre.id
+  user_email = "alice@example.com"
 }
 ```
 
@@ -538,7 +534,7 @@ resource "oneuptime_escalation_rule" "first_line" {
   escalate_after_in_minutes = 5
 }
 
-resource "oneuptime_team_on_call_duty_escalation_rule" "sre" {
+resource "oneuptime_escalation_rule_team" "sre" {
   on_call_duty_policy_id                 = oneuptime_on_call_policy.primary.id
   on_call_duty_policy_escalation_rule_id = oneuptime_escalation_rule.first_line.id
   team_id                                = oneuptime_team.sre.id
@@ -610,26 +606,23 @@ resource "oneuptime_scheduled_maintenance_event" "database_upgrade" {
 
 ## پراب‌ها
 
-پراب خودتان بررسی‌ها را از شبکهٔ شما اجرا می‌کند. کلید آن رازی است که پراب با آن وارد می‌شود، پس آن را در یک متغیر بدهید:
+پراب خودتان بررسی‌ها را از شبکهٔ شما اجرا می‌کند. به آن یک نام بدهید تا OneUptime `key` آن را بسازد، رازی که پراب با آن وارد می‌شود. Terraform کلید را از طرح‌ها و لاگ‌ها بیرون نگه می‌دارد، و خروجی‌ای که آن را نشان دهد باید حساس علامت بخورد:
 
 ```hcl
-variable "probe_key" {
-  description = "The key the probe signs in with"
-  type        = string
-  sensitive   = true
-}
-
 resource "oneuptime_probe" "eu_west" {
-  key           = var.probe_key
-  name          = "EU West"
-  description   = "Probe in our eu-west-1 network"
-  probe_version = "1.0.0"
+  name        = "EU West"
+  description = "Probe in our eu-west-1 network"
 
   should_auto_enable_probe_on_new_monitors = true
 }
+
+output "eu_west_probe_key" {
+  value     = oneuptime_probe.eu_west.key
+  sensitive = true
+}
 ```
 
-پراب را با `PROBE_ID` برابر با `id` پراب و `PROBE_KEY` برابر با کلید اجرا کنید: [پراب‌های سفارشی](/docs/probe/custom-probe) را ببینید. تست سرتاسری `23-probe-crud` پراب‌ها را اعمال می‌کند.
+پراب را با `PROBE_ID` برابر با `id` پراب و `PROBE_KEY` برابر با کلیدی اجرا کنید که `terraform output -raw eu_west_probe_key` چاپ می‌کند: [پراب‌های سفارشی](/docs/probe/custom-probe) را ببینید. برای انتخاب کلید به دست خودتان، `key` را از یک متغیر حساس مقدار دهید. تست‌های سرتاسری `23-probe-crud` و `61-name-only-and-choices` پراب‌ها را اعمال می‌کنند.
 
 ## گام‌های بعدی
 

@@ -57,8 +57,8 @@ Apri **Prodotti → Risorse → Inventario**. Il suo menu laterale ha queste pag
 | Pagina | Cosa trovi |
 | --- | --- |
 | **Panoramica** | Quanti elementi hai, cosa sono, quanti sono diventati silenziosi e cosa è stato aggiunto più di recente. |
-| **All Items** | Ogni elemento. Cerca per nome, descrizione o chiave d'identità, filtra l'elenco per tipo, fonte, stato o campo personalizzato e aggiungi un elemento a mano. |
-| **Topology Map** | Come sono collegati gli elementi: i servizi, cosa chiamano e gli host, i pod e i dispositivi su cui girano. |
+| **Tutti gli elementi** | Ogni elemento. Cerca per nome, descrizione o chiave d'identità, filtra l'elenco per tipo, fonte, stato o campo personalizzato e aggiungi un elemento a mano. |
+| **Mappa della topologia** | Come sono collegati gli elementi: i servizi, cosa chiamano e gli host, i pod e i dispositivi su cui girano. |
 | **Gone Quiet** | Gli elementi scoperti che non inviano telemetria da più di un giorno. |
 | **By Source** | Gli elementi di una fonte: **Discovered**, **Mirrored** o **Added by You**. |
 | **Impostazioni → Campi personalizzati** | I campi che il tuo progetto tiene su ogni elemento. |
@@ -79,7 +79,7 @@ La scheda indica da dove viene ogni dato e quando. La fonte condivisa dalla magg
 
 La scheda di un dispositivo di rete ha un pulsante **Aggiorna** per chi può modificare i dispositivi di rete. Rilegge subito il dispositivo: la sua sonda lo interroga entro un minuto e la sua connessione Meraki rilegge l'organizzazione. La scheda dice quando è arrivata la nuova lettura, o che la sonda non è riuscita a raggiungere il dispositivo, e l'elemento viene copiato dal dispositivo non appena arriva la lettura.
 
-Gli stessi dati sono colonne dell'elenco **All Items**, nascoste finché non le attivi, e finiscono nella sua esportazione CSV. [Esportare in un CMDB](/docs/inventory/cmdb-sync#dettagli-dellasset) elenca le loro chiavi.
+Gli stessi dati sono colonne dell'elenco **Tutti gli elementi**, nascoste finché non le attivi, e finiscono nella sua esportazione CSV. [Esportare in un CMDB](/docs/inventory/cmdb-sync#dettagli-dellasset) elenca le loro chiavi.
 
 ### Connessioni
 
@@ -90,9 +90,9 @@ La pagina **Connessioni** di un elemento elenca i suoi vicini in entrambe le dir
 Aggiungi un elemento per qualcosa che OneUptime non vedrà mai da solo, così che una dipendenza finisca su qualcosa di reale e la cosa possa portare i tuoi campi personalizzati.
 
 :::steps
-### Aprire All Items
+### Aprire Tutti gli elementi
 
-Vai su **Prodotti → Risorse → Inventario**, poi su **All Items**.
+Vai su **Prodotti → Risorse → Inventario**, poi su **Tutti gli elementi**.
 
 ### Aggiungere l'elemento
 
@@ -106,7 +106,7 @@ Apri il nuovo elemento. La sua fonte indica **Added by you**, e la sua pagina **
 Puoi aggiungere a mano tre tipi:
 
 - `external.service` (**Servizio esterno**): un'API di terze parti o una dipendenza software-as-a-service.
-- `external.database` (**Database esterno**): un database che non è un server che OneUptime può modellare. Un server di database, self-hosted o gestito, da PostgreSQL a Snowflake, va invece in **Databases → Crea: Database** ([Database](/docs/telemetry/databases)): quel record si collega alle tracce, ai container e alle metriche del motore che nominano lo stesso indirizzo, cosa che un elemento dell'inventario non fa mai, e aggiungere lo stesso server in entrambi i modi lascia due record scollegati.
+- `external.database` (**Database esterno**): un database che non è un server che OneUptime può modellare. Un server di database, self-hosted o gestito, da PostgreSQL a Snowflake, va invece in **Database → Crea: Database** ([Database](/docs/telemetry/databases)): quel record si collega alle tracce, ai container e alle metriche del motore che nominano lo stesso indirizzo, cosa che un elemento dell'inventario non fa mai, e aggiungere lo stesso server in entrambi i modi lascia due record scollegati.
 - `appliance` (**Appliance**): hardware o software senza agente.
 
 La restrizione evita i duplicati. Un elemento creato a mano di un tipo che OneUptime può osservare, come un host, sarebbe identificato dal nome che hai scritto, mentre l'elemento scoperto della stessa macchina è identificato dagli attributi che segnala. I due non si unirebbero mai, e lo stesso host comparirebbe due volte nel tuo elenco, per sempre.
@@ -121,14 +121,14 @@ Archiviare toglie un elemento dall'elenco mentre conserva la sua identità, la s
 | **Mirrored** | Resta archiviato. | Torna con la copia successiva. Elimina invece il record originale. |
 | **Added by you** | Resta archiviato. | Sparisce per sempre. |
 
-Per archiviare elementi, selezionali in **All Items** e archiviali in un colpo solo, oppure apri un elemento e usa la scheda **Archivia** della sua pagina **Impostazioni**. Gli elementi archiviati si trovano in **Inventario → Avanzato → Archiviato**, dove puoi selezionarli e ripristinarli.
+Per archiviare elementi, selezionali in **Tutti gli elementi** e archiviali in un colpo solo, oppure apri un elemento e usa la scheda **Archivia** della sua pagina **Impostazioni**. Gli elementi archiviati si trovano in **Inventario → Avanzato → Archiviato**, dove puoi selezionarli e ripristinarli.
 
 > [!NOTE]
 > Quando un dispositivo replicato viene rimosso dal suo record di origine, OneUptime rimuove anche il suo elemento, a meno che l'elemento porti valori di campi personalizzati che hai inserito. Quei valori sono l'unica copia e non c'è modo di annullare, quindi l'elemento viene archiviato invece che eliminato. Lo troverai in **Avanzato → Archiviato** con tutto ciò che hai scritto intatto.
 
 ## Relazioni e topologia
 
-OneUptime collega gli elementi con relazioni orientate man mano che le osserva. **Inventario → Topology Map** le disegna, e la pagina **Connessioni** di un elemento elenca le sue. Vedi [Topologia](/docs/telemetry/topology).
+OneUptime collega gli elementi con relazioni orientate man mano che le osserva. **Inventario → Mappa della topologia** le disegna, e la pagina **Connessioni** di un elemento elenca le sue. Vedi [Topologia](/docs/telemetry/topology).
 
 | Relazione | Per esempio |
 | --- | --- |

@@ -11,6 +11,7 @@ import Query from "../Types/AnalyticsDatabase/Query";
 import { SQL, Statement } from "../Utils/AnalyticsDatabase/Statement";
 import { getQuerySettings } from "../Utils/AnalyticsDatabase/QuerySettingsHelper";
 import ResourceEntityFilter from "../Utils/Telemetry/ResourceEntityFilter";
+import TelemetryRowRetention from "../Utils/Telemetry/TelemetryRowRetention";
 import CaptureSpan from "../Utils/Telemetry/CaptureSpan";
 import TableColumnType from "../../Types/AnalyticsDatabase/TableColumnType";
 import DatabaseCommonInteractionProps from "../../Types/BaseDatabase/DatabaseCommonInteractionProps";
@@ -105,6 +106,17 @@ export const SECURITY_LOG_SCAN_MAX_BODY_LENGTH: number = 256 * 1024;
 export class LogService extends AnalyticsDatabaseService<Log> {
   public constructor(clickhouseDatabase?: ClickhouseDatabase | undefined) {
     super({ modelType: Log, database: clickhouseDatabase });
+  }
+
+  // Its resource's retention for logs of its severity, as on ingest.
+  protected override async getRetentionDateOnCreate(
+    log: Log,
+  ): Promise<Date | null> {
+    return await TelemetryRowRetention.getRetentionDate({
+      row: log,
+      pillar: "logs",
+      bucketKey: log.severityText,
+    });
   }
 
   /*

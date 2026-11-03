@@ -114,6 +114,13 @@ export interface ComponentProps<T extends GenericObject> {
    * so every field is drawn as the field it is.
    */
   showRecordLine?: boolean | undefined;
+  /*
+   * What the detail says, in one line, when none of its fields has anything
+   * to show - a resource that has reported nothing yet - in place of an
+   * empty grid. The record's ID line, when there is one, follows it. Left
+   * out, such a detail draws nothing but that line, as it always did.
+   */
+  emptyMessage?: string | undefined;
 }
 
 type DetailFunction = <T extends GenericObject>(
@@ -1247,7 +1254,26 @@ const Detail: DetailFunction = <T extends GenericObject>(
     },
   );
 
+  // Nothing to draw, said in one line (emptyMessage).
+  const emptyLine: ReactElement | null =
+    gridFields.length === 0 && props.emptyMessage ? (
+      <p
+        data-testid="detail-empty-message"
+        className="text-sm leading-6 text-gray-500"
+      >
+        {translateString(props.emptyMessage) || props.emptyMessage}
+      </p>
+    ) : null;
+
   if (!recordId && recordTimes.length === 0) {
+    if (emptyLine) {
+      return (
+        <div id={props.id} className="w-full">
+          {emptyLine}
+        </div>
+      );
+    }
+
     return (
       /*
        * The id names this detail, so it belongs to the element that holds all
@@ -1271,7 +1297,7 @@ const Detail: DetailFunction = <T extends GenericObject>(
    * rows are py-3 apart, the others' wider.
    */
   const recordLineClassName: string =
-    gridFields.length === 0
+    gridFields.length === 0 && !emptyLine
       ? ""
       : styleType === DetailStyle.Compact
         ? "mt-3 border-t border-gray-100 pt-3"
@@ -1282,7 +1308,7 @@ const Detail: DetailFunction = <T extends GenericObject>(
       {gridFields.length > 0 ? (
         <div className={gridClassName}>{renderedFields}</div>
       ) : (
-        <></>
+        emptyLine || <></>
       )}
       <DetailRecordLine
         recordId={recordId}

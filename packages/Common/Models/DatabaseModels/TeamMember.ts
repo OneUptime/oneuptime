@@ -72,7 +72,7 @@ import { Column, Entity, Index, JoinColumn, ManyToOne } from "typeorm";
   singularName: "Team Member",
   pluralName: "Team Members",
   icon: IconProp.User,
-  tableDescription: "This model connects users and teams",
+  tableDescription: "Add users to your teams.",
 })
 export default class TeamMember extends BaseModel {
   @ColumnAccessControl({
@@ -140,8 +140,9 @@ export default class TeamMember extends BaseModel {
   @Index()
   @TableColumn({
     type: TableColumnType.ObjectID,
+    required: true,
     title: "Team ID",
-    description: "ID of Team this user belongs to.",
+    description: "ID of the team the person is in.",
     example: "5f8b9c0d-e1a2-4b3c-8d5e-6f7a8b9c0d1e",
   })
   @Column({
@@ -294,7 +295,7 @@ export default class TeamMember extends BaseModel {
     type: TableColumnType.ObjectID,
     required: true,
     title: "User ID",
-    description: "ID of User who belongs to this team",
+    description: "ID of the person in the team.",
     example: "b7e4d9f1-c3a5-4e8b-9d2f-3c4e5f6a7b8c",
   })
   @Column({
@@ -424,7 +425,8 @@ export default class TeamMember extends BaseModel {
     required: true,
     type: TableColumnType.Boolean,
     title: "Has Accepted Invitation",
-    description: "Has this team member accepted invitation",
+    description:
+      "Whether the person has joined: false while their invitation waits, true once they accept it. Someone in the project already joins at once.",
     defaultValue: false,
     example: true,
   })
@@ -453,7 +455,7 @@ export default class TeamMember extends BaseModel {
     required: false,
     type: TableColumnType.Date,
     title: "Accepted Invitation At",
-    description: "When did this team member accept invitation",
+    description: "When the person accepted their invitation.",
     example: "2024-01-15T10:30:00Z",
   })
   @Column({

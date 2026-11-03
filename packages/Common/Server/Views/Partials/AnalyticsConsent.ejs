@@ -378,7 +378,10 @@
              * See Common/Server/Views/Partials/SensitiveUrlToken.ejs: the
              * bootstrap normally removes the token before this runs, and this
              * guard only fires when it could not - the tag would otherwise
-             * send the URL, token and all, with its first hit.
+             * send the URL, token and all, with its first hit. It also fires
+             * on a page whose query string holds an email address or a
+             * credential the page still has to read: an invitation's
+             * /accounts/register?email=...&token=...
              */
             if (window.__ONEUPTIME_SENSITIVE_URL_TOKEN_PENDING__) {
                 return;
@@ -417,14 +420,16 @@
 
     STORAGE MODEL
 
-    - Last-touch UTM values live in the individual utm* localStorage keys, read
-      by the signup page and stored on the User record.
+    - Last-touch campaign values live in individual localStorage keys named
+      as their User columns - the utm* ones, and Google Ads' gadSource and
+      gadCampaignId - read by the signup page and stored on the User record.
     - Last-touch click IDs live as a JSON object under 'clickIds'.
     - The visitor's first attributed visit is preserved as JSON under
       'firstTouch' and never overwritten.
 
-    A visit counts as a new "touch" if it carries ANY utm parameter or ad click
-    ID - Google Ads auto-tagging sends only gclid, no UTMs.
+    A visit counts as a new "touch" if it carries ANY campaign parameter or ad
+    click ID - a Google Ads click carries no UTMs unless its ad adds them, only
+    gclid, gad_source and gad_campaignid.
 
     CONSENT
 
@@ -459,7 +464,10 @@
             'utm_id': 'utmId',
             'utm_source_platform': 'utmSourcePlatform',
             'utm_creative_format': 'utmCreativeFormat',
-            'utm_marketing_tactic': 'utmMarketingTactic'
+            'utm_marketing_tactic': 'utmMarketingTactic',
+            // The campaign parameters Google Ads adds itself, kept beside the UTMs.
+            'gad_source': 'gadSource',
+            'gad_campaignid': 'gadCampaignId'
         };
 
         /*
@@ -556,7 +564,12 @@
                 utmValues: utmValues,
                 clickIds: clickIds,
                 hasClickId: hasClickId,
-                url: window.location.href,
+                /*
+                 * Bounded like every other value: this is stored on the User
+                 * row, in a column as wide as the bound, and a signup carrying
+                 * a wider value is refused.
+                 */
+                url: bound(window.location.href),
                 referrer: document.referrer || '',
                 timestamp: new Date().toISOString()
             };

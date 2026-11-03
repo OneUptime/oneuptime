@@ -85,7 +85,7 @@ import {
   isNamespaceScopedMessagingSystem,
 } from "../Utils/MessageQueuePresentation";
 import useTranslator from "Common/UI/Utils/UseTranslator";
-import { Translator } from "Common/UI/Utils/TranslateTemplate";
+import { translationKey, Translator } from "Common/UI/Utils/TranslateTemplate";
 
 const DEFAULT_RANGE: RangeStartAndEndDateTime = {
   range: TimeRange.PAST_ONE_HOUR,
@@ -442,9 +442,16 @@ const MessageQueueOverview: FunctionComponent<
   );
   // The namespace of a Service Bus / Event Hubs queue, else the address.
   const broker: string = getMessageQueueBrokerLabel(q).text;
-  const discoveryLabel: string = getMessageQueueDiscoveryLabel(
+  /*
+   * Where OneUptime found it, in the reader's language: "Application
+   * traces" and "Broker metrics" are the product's own words, which the
+   * hero's chip and the Details row used to draw in English on every page.
+   */
+  const discoverySourceLabel: string = getMessageQueueDiscoveryLabel(
     q.discoverySource,
   );
+  const discoveryLabel: string =
+    translator.translateText(discoverySourceLabel) || discoverySourceLabel;
   // Seen by any source lately: its spans or a broker metric.
   const liveness: MessageQueueLivenessStatus = getMessageQueueLivenessStatus(
     q.lastSeenAt,
@@ -577,9 +584,14 @@ const MessageQueueOverview: FunctionComponent<
     </div>
   );
 
+  /*
+   * Title Case, as every details card's labels are (a host's, a cluster's,
+   * a service's). No "Last seen" row: the hero says when the queue was last
+   * seen, under its name.
+   */
   const detailRows: Array<ResourceOverviewDetailRow> = [
     {
-      label: "Messaging system",
+      label: "Messaging System",
       value: q.messagingSystem
         ? `${systemLabel} (${q.messagingSystem})`
         : undefined,
@@ -595,23 +607,16 @@ const MessageQueueOverview: FunctionComponent<
     });
   }
   detailRows.push(
-    { label: "Broker address", value: (q.brokerAddress || "").trim() },
-    { label: "Discovered from", value: discoveryLabel, mono: false },
+    { label: "Broker Address", value: (q.brokerAddress || "").trim() },
+    { label: "Discovered From", value: discoveryLabel, mono: false },
     {
-      label: "Last seen",
-      value: q.lastSeenAt
-        ? OneUptimeDate.getDateAsLocalFormattedString(q.lastSeenAt)
-        : undefined,
-      mono: false,
-    },
-    {
-      label: "Broker metrics last received",
+      label: "Broker Metrics Last Received",
       value: q.brokerMetricsLastSeenAt
         ? OneUptimeDate.getDateAsLocalFormattedString(q.brokerMetricsLastSeenAt)
         : undefined,
       mono: false,
     },
-    { label: "Queue identifier", value: q.queueIdentifier },
+    { label: "Queue Identifier", value: q.queueIdentifier },
   );
 
   return (
@@ -670,6 +675,9 @@ const MessageQueueOverview: FunctionComponent<
           />
         }
         detailRows={detailRows}
+        detailsDescription={translationKey(
+          "Its broker and destination, where OneUptime found it, and its broker metrics.",
+        )}
         recordId={modelId.toString()}
         labels={q.labels}
         settingsRoute={populate(PageMap.MESSAGE_QUEUE_VIEW_SETTINGS)}

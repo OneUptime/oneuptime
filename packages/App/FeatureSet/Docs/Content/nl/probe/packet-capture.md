@@ -130,7 +130,7 @@ Om op deze sonde een lager plafond in te stellen dan het plafond waaraan elke so
 :::steps
 ### Open de sonde of het apparaat
 
-Open **Monitoren → Instellingen → Sondes** en klik op uw sonde: de kaart **Pakketcaptures** toont haar captures. Of open een netwerkapparaat en ga naar de pagina **Traffic**: captures daar draaien op de eigen sonde van het apparaat en starten gefilterd op zijn adres.
+Open **Monitoren → Instellingen → Sondes** en klik op uw sonde: de kaart **Pakketcaptures** toont haar captures. Of open een netwerkapparaat en ga naar de pagina **Verkeer**: captures daar draaien op de eigen sonde van het apparaat en starten gefilterd op zijn adres.
 
 ### Klik op Pakketcapture starten
 

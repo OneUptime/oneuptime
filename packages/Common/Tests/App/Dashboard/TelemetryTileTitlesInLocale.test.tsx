@@ -52,6 +52,7 @@ jest.mock("../../../UI/Components/Charts/Line/LineChart", () => {
 });
 
 import ResourceOverview, {
+  RESOURCE_OVERVIEW_DETAILS_DESCRIPTION,
   ResourceOverviewTile,
 } from "../../../../App/FeatureSet/Dashboard/src/Components/TelemetryResource/ResourceOverview";
 import ChartCard from "../../../../App/FeatureSet/Dashboard/src/Components/TelemetryResource/ChartCard";
@@ -62,8 +63,14 @@ import {
   getTileTitleWordsClassName,
   TILE_TITLE_HYPHENATED_WORD_LENGTH,
   TILE_TITLE_HYPHENATED_WORDS_CLASS_NAME,
+  TILE_TITLE_LONG_WORD_CLASS_NAME,
+  TILE_TITLE_LONG_WORDS,
   TILE_TITLE_WORDS_CLASS_NAME,
 } from "../../../../App/FeatureSet/Dashboard/src/Components/TelemetryResource/TileTitleWords";
+import {
+  getDrawnWords,
+  WordRun,
+} from "../../../UI/Components/HyphenatedWords/LongWords";
 
 const LOCALES_DIR: string = path.resolve(
   __dirname,
@@ -235,6 +242,7 @@ function renderTiles(
           chips={[]}
           tiles={tiles}
           detailRows={[]}
+          detailsDescription={RESOURCE_OVERVIEW_DETAILS_DESCRIPTION}
         />
       </MemoryRouter>
     </I18nextProvider>,
@@ -571,31 +579,49 @@ describe("a chart card", () => {
  * which language it is in, so the browser hyphenates such a word where that
  * language breaks it (TileTitleWords, as a side menu's titles do); a name
  * the reader's language did not word stays the page's English, and English
- * is never hyphenated. The icon beside the title keeps its size.
+ * is never hyphenated. Only the long word is: the short words beside it
+ * never are, in Safari too, which reads no hyphenate-limit-chars - the long
+ * word is a span of its own. The icon beside the title keeps its size.
  */
+
+// The words of a title that may be hyphenated (each a span of its own).
+function hyphenatedRuns(text: string, lang: string | undefined): Array<string> {
+  return getDrawnWords({ text, lang, rule: TILE_TITLE_LONG_WORDS })
+    .runs.filter((run: WordRun): boolean => {
+      return run.mayHyphenate;
+    })
+    .map((run: WordRun): string => {
+      return run.text;
+    });
+}
+
 describe("TileTitleWords", () => {
   test("hyphenates only a title in the reader's language that holds a word of ten letters or more", () => {
     expect(TILE_TITLE_HYPHENATED_WORD_LENGTH).toBe(10);
+    expect(TILE_TITLE_LONG_WORDS.minimumWordLength).toBe(10);
 
     // Nine letters fit the narrowest line; ten may not.
     expect(getTileTitleWordsClassName({ text: "Consultas", lang: "pt" })).toBe(
       TILE_TITLE_WORDS_CLASS_NAME,
     );
+    expect(hyphenatedRuns("Consultas", "pt")).toEqual([]);
+
+    // A long word beside short ones: the word alone, never the title.
     expect(
       getTileTitleWordsClassName({
         text: "Temps de chargement de la page (p95)",
         lang: "fr",
       }),
-    ).toBe(TILE_TITLE_HYPHENATED_WORDS_CLASS_NAME);
+    ).toBe(TILE_TITLE_WORDS_CLASS_NAME);
     expect(
-      getTileTitleWordsClassName({ text: "Chargements de page", lang: "fr" }),
-    ).toBe(TILE_TITLE_HYPHENATED_WORDS_CLASS_NAME);
-    expect(
-      getTileTitleWordsClassName({
-        text: "Carregamentos de página",
-        lang: "pt",
-      }),
-    ).toBe(TILE_TITLE_HYPHENATED_WORDS_CLASS_NAME);
+      hyphenatedRuns("Temps de chargement de la page (p95)", "fr"),
+    ).toEqual(["chargement"]);
+    expect(hyphenatedRuns("Chargements de page", "fr")).toEqual([
+      "Chargements",
+    ]);
+    expect(hyphenatedRuns("Carregamentos de página", "pt")).toEqual([
+      "Carregamentos",
+    ]);
 
     // A compound's own hyphen ends a word: "p95-latentie" is two short ones.
     expect(
@@ -631,10 +657,16 @@ describe("TileTitleWords", () => {
 
   test("breaks between words always, and hyphenates only inside long words, four letters before and three after", () => {
     expect(TILE_TITLE_WORDS_CLASS_NAME.split(" ")).toEqual(["break-words"]);
-    expect(TILE_TITLE_HYPHENATED_WORDS_CLASS_NAME.split(" ")).toEqual([
-      "break-words",
+    // Chrome and Firefox read hyphenate-limit-chars; Safari, its own two.
+    expect(TILE_TITLE_LONG_WORD_CLASS_NAME.split(" ")).toEqual([
       "hyphens-auto",
       `[hyphenate-limit-chars:${TILE_TITLE_HYPHENATED_WORD_LENGTH}_4_3]`,
+      "[-webkit-hyphenate-limit-before:4]",
+      "[-webkit-hyphenate-limit-after:3]",
+    ]);
+    expect(TILE_TITLE_HYPHENATED_WORDS_CLASS_NAME.split(" ")).toEqual([
+      "break-words",
+      ...TILE_TITLE_LONG_WORD_CLASS_NAME.split(" "),
     ]);
   });
 });
@@ -672,17 +704,26 @@ describe("a long translated name", () => {
   );
 
   test("Portuguese hyphenates its long page-load words; German Abfragen, English and a named metric only break", () => {
+    // The long word alone may be hyphenated: "de página" never is.
     renderTiles("pt", [tile("Page loads")]);
     expect(titleSpans()[0]).toHaveTextContent("Carregamentos de página");
-    expect(titleSpans()[0]).toHaveClass(
-      ...TILE_TITLE_HYPHENATED_WORDS_CLASS_NAME.split(" "),
-    );
+    expect(titleSpans()[0]).toHaveClass(TILE_TITLE_WORDS_CLASS_NAME);
+    expect(titleSpans()[0]).not.toHaveClass("hyphens-auto");
     expect(titleSpans()[0]).toHaveAttribute("lang", "pt");
+    expect(
+      Array.from(titleSpans()[0]!.querySelectorAll("span.hyphens-auto")).map(
+        (word: Element): string => {
+          return word.textContent || "";
+        },
+      ),
+    ).toEqual(["Carregamentos"]);
     cleanup();
 
     renderTiles("da", [tile("Page load time (p95)")]);
     expect(titleSpans()[0]).toHaveTextContent("Sideindlæsningstid (p95)");
-    expect(titleSpans()[0]).toHaveClass("hyphens-auto");
+    expect(
+      titleSpans()[0]!.querySelector("span.hyphens-auto"),
+    ).toHaveTextContent("Sideindlæsningstid");
     expect(titleSpans()[0]).toHaveAttribute("lang", "da");
     cleanup();
 

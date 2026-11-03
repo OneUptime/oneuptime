@@ -153,6 +153,7 @@ Attributes follow the OneUptime API, in snake_case:
 | Text, numbers, true or false | As they are | `is_public_status_page = false` |
 | A reference to another record | Its ID, usually another resource's `id` | `incident_severity_id = oneuptime_incident_severity.sev1.id` |
 | A list of references | A set of IDs, whose order makes no difference | `labels = [oneuptime_label.critical.id]` |
+| A person | Their email address, beside their user ID: see [People and Teams](/docs/terraform/people-and-teams) | `user_email = "alice@example.com"` |
 | A color, a domain and other wrapped values | Their plain value | `color = "#FF5733"` |
 | A date and time | RFC 3339 text | `starts_at = "2030-06-01T02:00:00Z"` |
 | A monitor's checks | Typed nested attributes: see [Monitor Steps](/docs/terraform/monitor-steps) | `monitor_steps = [{ ... }]` |

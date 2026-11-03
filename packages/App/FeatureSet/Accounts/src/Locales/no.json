@@ -23,7 +23,8 @@
     "newPassword": "Nytt passord",
     "code": "Kode",
     "yourCompany": "Ditt firma",
-    "or": "eller"
+    "or": "eller",
+    "continueWithGoogle": "Fortsett med Google"
   },
   "language": {
     "label": "Språk",
@@ -58,6 +59,10 @@
     },
     "title": "Logg inn på kontoen din",
     "subtitle": "Bruk passordet ditt, organisasjonens SSO eller en passnøkkel.",
+    "sessionEnded": {
+      "lengthReached": "Du ble logget ut fordi økten din nådde tidsgrensen. Logg inn igjen for å fortsette der du slapp.",
+      "inactive": "Du ble logget ut etter en periode uten aktivitet. Logg inn igjen for å fortsette der du slapp."
+    },
     "submitButton": "Logg inn",
     "forgotPassword": "Glemt passord?",
     "signInWithSso": "Logg inn med SSO",

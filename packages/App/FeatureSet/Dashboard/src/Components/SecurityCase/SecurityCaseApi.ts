@@ -26,12 +26,14 @@ import {
   parseIncidentSecurity,
   parseResourceSecurity,
   parseSecurityConnections,
+  parseSecurityTelemetryMentions,
 } from "../SecurityConnections/SecurityConnectionsModel";
 import {
   IncidentSecurityJson,
   ResourceSecurityJson,
   SecurityConnectionKind,
   SecurityConnectionsJson,
+  SecurityTelemetryMentionsJson,
 } from "Common/Types/SecurityCase/SecurityConnection";
 import { SecurityEntity } from "Common/Types/SecurityCase/SecurityEntity";
 import { SecurityLogResource } from "Common/Utils/SecurityCase/SecurityConnectionMatch";
@@ -212,6 +214,31 @@ export default class SecurityCaseApi {
                   }
                 : {}),
               ...(request.readLogResources ? { readLogResources: true } : {}),
+            },
+      ),
+    );
+  }
+
+  /*
+   * In your logs and traces: where the values the same request names
+   * appear in the logs and traces themselves, over the same window - read
+   * on its own, after the records.
+   */
+  public static async getTelemetryMentions(
+    request: SecurityConnectionsRequest,
+  ): Promise<SecurityTelemetryMentionsJson> {
+    return parseSecurityTelemetryMentions(
+      await post(
+        "/security-case/connections/telemetry",
+        "caseId" in request
+          ? { caseId: request.caseId.toString() }
+          : {
+              entities: request.entities.map(
+                (entity: SecurityEntity): JSONObject => {
+                  return { type: entity.type, value: entity.value };
+                },
+              ),
+              ...(request.time ? { time: request.time.toISOString() } : {}),
             },
       ),
     );

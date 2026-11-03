@@ -169,6 +169,7 @@ export default class SecurityEventConnection extends BaseModel {
   @TableColumn({
     required: true,
     type: TableColumnType.ShortText,
+    allowedValues: Object.values(SecurityEventConnectorProvider),
     canReadOnRelationQuery: true,
     title: "Provider",
     description:

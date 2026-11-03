@@ -400,8 +400,8 @@ describe("the Overview", () => {
   });
 
   test("links to the cluster or host it runs on", () => {
-    // The Details card's Runs on row, linked as the Runtime card's is.
-    const runsOn: string = between(code, '{ label: "Runs on",', "},");
+    // The Details card's Runs On row, linked as the Runtime card's is.
+    const runsOn: string = between(code, '{ label: "Runs On",', "},");
     expect(runsOn).toContain("value: platform ? runsOn : undefined");
     expect(code).toContain(
       'element: ( <DatabaseRunsOnLink source={r} className="text-sm text-indigo-600" /> ),',

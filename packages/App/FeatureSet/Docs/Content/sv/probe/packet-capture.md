@@ -130,7 +130,7 @@ För att sätta ett lägre tak på den här sonden än det som alla sonder håll
 :::steps
 ### Öppna sonden eller enheten
 
-Öppna **Monitorer → Inställningar → Sonder** och klicka på din sond: kortet **Paketinspelningar** visar dess inspelningar. Eller öppna en nätverksenhet och gå till sidan **Traffic**: inspelningar där körs på enhetens egen sond och startar filtrerade på enhetens adress.
+Öppna **Monitorer → Inställningar → Sonder** och klicka på din sond: kortet **Paketinspelningar** visar dess inspelningar. Eller öppna en nätverksenhet och gå till sidan **Trafik**: inspelningar där körs på enhetens egen sond och startar filtrerade på enhetens adress.
 
 ### Klicka på Starta paketinspelning
 

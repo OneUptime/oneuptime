@@ -505,14 +505,10 @@ resource "oneuptime_team" "sre" {
   description = "Site reliability engineering"
 }
 
-variable "alice_user_id" {
-  description = "Alice's user ID, the last part of the address of her page under Users"
-  type        = string
-}
-
+# Invited by email if she is not in the project yet.
 resource "oneuptime_team_member" "alice" {
-  team_id = oneuptime_team.sre.id
-  user_id = var.alice_user_id
+  team_id    = oneuptime_team.sre.id
+  user_email = "alice@example.com"
 }
 ```
 
@@ -538,7 +534,7 @@ resource "oneuptime_escalation_rule" "first_line" {
   escalate_after_in_minutes = 5
 }
 
-resource "oneuptime_team_on_call_duty_escalation_rule" "sre" {
+resource "oneuptime_escalation_rule_team" "sre" {
   on_call_duty_policy_id                 = oneuptime_on_call_policy.primary.id
   on_call_duty_policy_escalation_rule_id = oneuptime_escalation_rule.first_line.id
   team_id                                = oneuptime_team.sre.id
@@ -610,26 +606,23 @@ For å sette hendelsens monitorer i en status mens den pågår, knytter du dem t
 
 ## Prober
 
-En egen probe kjører sjekker fra nettverket ditt. Nøkkelen dens er hemmeligheten proben melder seg på med, så send den inn i en variabel:
+En egen probe kjører sjekker fra nettverket ditt. Gi den et navn, så lager OneUptime dens `key`, hemmeligheten proben melder seg på med. Terraform holder nøkkelen utenfor planer og logger, og et output av den må merkes som sensitivt:
 
 ```hcl
-variable "probe_key" {
-  description = "The key the probe signs in with"
-  type        = string
-  sensitive   = true
-}
-
 resource "oneuptime_probe" "eu_west" {
-  key           = var.probe_key
-  name          = "EU West"
-  description   = "Probe in our eu-west-1 network"
-  probe_version = "1.0.0"
+  name        = "EU West"
+  description = "Probe in our eu-west-1 network"
 
   should_auto_enable_probe_on_new_monitors = true
 }
+
+output "eu_west_probe_key" {
+  value     = oneuptime_probe.eu_west.key
+  sensitive = true
+}
 ```
 
-Kjør proben med `PROBE_ID` satt til probens `id` og `PROBE_KEY` satt til nøkkelen: se [Egendefinerte probes](/docs/probe/custom-probe). Ende-til-ende-testen `23-probe-crud` bruker prober.
+Kjør proben med `PROBE_ID` satt til probens `id` og `PROBE_KEY` satt til nøkkelen, som `terraform output -raw eu_west_probe_key` skriver ut: se [Egendefinerte probes](/docs/probe/custom-probe). Vil du velge nøkkelen selv, setter du `key` fra en sensitiv variabel. Ende-til-ende-testene `23-probe-crud` og `61-name-only-and-choices` bruker prober.
 
 ## Neste steg
 

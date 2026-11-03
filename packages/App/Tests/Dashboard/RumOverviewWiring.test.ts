@@ -1,5 +1,8 @@
 import { beforeAll, describe, expect, test } from "@jest/globals";
-import { RecordingHealthDiagnosis } from "Common/Types/Rum/SessionReplayHealth";
+import {
+  RecordingHealthDiagnosis,
+  RecordingHealthState,
+} from "Common/Types/Rum/SessionReplayHealth";
 import fs from "fs";
 import path from "path";
 
@@ -174,6 +177,14 @@ describe("correlation-14: a failed client lookup is unknown, not zero", () => {
  * whether the recorder is reporting. One line in the details list now
  * carries the same diagnosis the list strip and the settings card show.
  *
+ * #5307's follow-up: the line was the diagnosis's whole title, composed in
+ * English with its values glued in ("Recording healthy - last chunk 12s
+ * ago"), so it read in English on a German or a Persian Overview beside
+ * rows in the reader's language. It is a few words for the state now -
+ * "Healthy", "Uploads paused" - each a key of the Dashboard's locales, and
+ * the page looks them up; the whole sentence, with its numbers and what to
+ * do, is the application's Health page's.
+ *
  * The value function is pure, so it is exercised for real rather than read
  * off the source. It lives in OverviewHelpers.ts beside the page:
  * Overview.tsx is React, and App has no react installed, so the page module
@@ -190,22 +201,91 @@ beforeAll(async () => {
   );
 });
 
-describe("the overview carries one line of recording health", () => {
-  const DIAGNOSIS: RecordingHealthDiagnosis = {
-    state: "healthy",
+// Every state the diagnosis can find (Common/Types/Rum/SessionReplayHealth).
+const RECORDING_HEALTH_STATES: Array<RecordingHealthState> = [
+  "disabled-project",
+  "disabled-app",
+  "budget-paused",
+  "refusing",
+  "never-loaded",
+  "loaded-never-uploaded",
+  "stale",
+  "healthy-quiet",
+  "healthy",
+  "unknown",
+];
+
+function diagnosisOf(state: RecordingHealthState): RecordingHealthDiagnosis {
+  return {
+    state: state,
     severity: "ok",
     title: "Recording healthy - last chunk 12s ago",
     detail: "143 sessions today; sampling 100%.",
   };
+}
 
-  test("a loaded diagnosis is rendered as its own title, verbatim", () => {
+const LOCALES_DIR: string = path.join(
+  __dirname,
+  "../../FeatureSet/Dashboard/src/Locales",
+);
+
+function readLocale(file: string): Record<string, string> {
+  return JSON.parse(
+    fs.readFileSync(path.join(LOCALES_DIR, file), "utf8"),
+  ) as Record<string, string>;
+}
+
+describe("the overview carries one line of recording health", () => {
+  const DIAGNOSIS: RecordingHealthDiagnosis = diagnosisOf("healthy");
+
+  test("a loaded diagnosis is its state's few words, never its English title", () => {
+    const value: string | undefined = overview.describeRecordingHealthRow({
+      isLoading: false,
+      error: null,
+      diagnosis: DIAGNOSIS,
+    });
+
+    expect(value).toBe("Healthy");
+    // The composed sentence, numbers glued in, is the Health page's.
+    expect(value).not.toContain("last chunk");
+  });
+
+  test.each(RECORDING_HEALTH_STATES)(
+    "%s has words of its own, and the row says them",
+    (state: RecordingHealthState) => {
+      const words: string = overview.RECORDING_HEALTH_ROW_WORDS[state];
+
+      expect(typeof words).toBe("string");
+      expect(words.trim().length).toBeGreaterThan(0);
+      expect(
+        overview.describeRecordingHealthRow({
+          isLoading: false,
+          error: null,
+          diagnosis: diagnosisOf(state),
+        }),
+      ).toBe(words);
+    },
+  );
+
+  test("the words name the states apart: no two states read alike", () => {
+    const words: Array<string> = Object.values(
+      overview.RECORDING_HEALTH_ROW_WORDS,
+    );
+
+    expect(Object.keys(overview.RECORDING_HEALTH_ROW_WORDS).sort()).toEqual(
+      [...RECORDING_HEALTH_STATES].sort(),
+    );
+    expect(new Set(words).size).toBe(words.length);
+  });
+
+  test("a state this build has no words for reads as Unknown, never blank", () => {
     expect(
       overview.describeRecordingHealthRow({
         isLoading: false,
         error: null,
-        diagnosis: DIAGNOSIS,
+        diagnosis: diagnosisOf("some-new-state" as RecordingHealthState),
       }),
-    ).toBe("Recording healthy - last chunk 12s ago");
+    ).toBe(overview.RECORDING_HEALTH_ROW_WORDS.unknown);
   });
 
   test("the first load says it is checking, never 'unknown' and never a healthy-looking blank", () => {
@@ -216,6 +296,7 @@ describe("the overview carries one line of recording health", () => {
         diagnosis: DIAGNOSIS,
       }),
     ).toBe("Checking…");
+    expect(overview.RECORDING_HEALTH_ROW_CHECKING).toBe("Checking…");
   });
 
   test("a failure that is not the viewer's fault is named, so silence is never read as healthy", () => {
@@ -225,7 +306,8 @@ describe("the overview carries one line of recording health", () => {
       diagnosis: DIAGNOSIS,
     });
 
-    expect(value).toBe("Recording health could not be loaded");
+    expect(value).toBe("Could not be loaded");
+    expect(value).toBe(overview.RECORDING_HEALTH_ROW_FAILED);
     /* The raw server string is never the headline. */
     expect(value).not.toContain("Server is not available");
   });
@@ -255,7 +337,48 @@ describe("the overview carries one line of recording health", () => {
     );
 
     expect(rows).toContain("recordingHealthValue");
-    expect(rows).toContain('label: "Recording health"');
+    expect(rows).toContain('label: "Recording Health"');
     expect(SOURCE).toContain("useSessionReplayHealth(modelId)");
+  });
+
+  test("the page looks the row's words up in the reader's language", () => {
+    const squashed: string = SOURCE.replace(/\s+/g, " ");
+
+    expect(squashed).toContain(
+      "const recordingHealthWords: string | undefined = describeRecordingHealthRow(health);",
+    );
+    expect(squashed).toContain(
+      "const recordingHealthValue: string | undefined = recordingHealthWords ? translator.translateText(recordingHealthWords) || recordingHealthWords : undefined;",
+    );
+  });
+
+  test("every word the row can say is translated in every language", () => {
+    const sayable: Array<string> = [
+      ...Object.values(overview.RECORDING_HEALTH_ROW_WORDS),
+      overview.RECORDING_HEALTH_ROW_CHECKING,
+      overview.RECORDING_HEALTH_ROW_FAILED,
+    ];
+    const english: Record<string, string> = readLocale("en.json");
+    const others: Array<string> = fs
+      .readdirSync(LOCALES_DIR)
+      .filter((file: string): boolean => {
+        return file.endsWith(".json") && file !== "en.json";
+      });
+
+    expect(others).toHaveLength(16);
+    const untranslated: Array<string> = [];
+    for (const words of sayable) {
+      expect({ words, english: english[words] }).toEqual({
+        words,
+        english: words,
+      });
+      for (const file of others) {
+        const value: string | undefined = readLocale(file)[words];
+        if (!value || value === words) {
+          untranslated.push(`${file}: ${words}`);
+        }
+      }
+    }
+    expect(untranslated).toEqual([]);
   });
 });

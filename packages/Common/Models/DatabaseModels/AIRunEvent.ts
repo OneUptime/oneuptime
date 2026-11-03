@@ -268,6 +268,7 @@ export default class AIRunEvent extends BaseModel {
   @TableColumn({
     required: true,
     type: TableColumnType.ShortText,
+    allowedValues: Object.values(AIRunEventType),
     title: "Event Type",
     description: "Type of event.",
     canReadOnRelationQuery: true,

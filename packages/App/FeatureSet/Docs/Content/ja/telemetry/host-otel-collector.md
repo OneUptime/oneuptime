@@ -31,7 +31,7 @@ flowchart TB
 
 | ホストで表示される内容 | 取得元 |
 | --- | --- |
-| **概要** と **メトリクス** | `hostmetrics` レシーバー: CPU、メモリ、ディスク、ファイルシステム、ネットワーク、負荷、ページング。 |
+| **概要** と **メトリクス** | `hostmetrics` レシーバー: CPU、メモリ、ディスク、ファイルシステム、ネットワーク、負荷、ページング、稼働時間。 |
 | **プロセス** | `hostmetrics` の `process` スクレイパー: プロセスごとの系列のセット。 |
 | **ログ** | `filelog`、`journald`、`windowseventlog` レシーバー。 |
 | **Systemd ユニット** (Linux) | `systemd` レシーバー。 |
@@ -86,6 +86,8 @@ receivers:
       load:
       network:
       paging:
+      # How long the host has been up (system.uptime): when it last started.
+      system:
       processes:
       process:
         mute_process_name_error: true
@@ -189,6 +191,8 @@ receivers:
       load:
       network:
       paging:
+      # How long the host has been up (system.uptime): when it last started.
+      system:
       processes:
       process:
         mute_process_name_error: true
@@ -285,6 +289,8 @@ receivers:
       load:
       network:
       paging:
+      # How long the host has been up (system.uptime): when it last started.
+      system:
       processes:
       process:
         mute_process_name_error: true
@@ -963,6 +969,8 @@ receivers:
       network:
       load:
       paging:
+      # How long the host has been up (system.uptime): when it last started.
+      system:
       processes: # aggregate counts only — cheap
       process:
         mute_process_name_error: true
@@ -1117,6 +1125,8 @@ receivers:
       load:
       network:
       paging:
+      # How long the host has been up (system.uptime): when it last started.
+      system:
       processes:
 
 processors:

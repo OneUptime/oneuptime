@@ -318,6 +318,7 @@ export default class CodeRepository extends BaseModel {
   @TableColumn({
     required: true,
     type: TableColumnType.ShortText,
+    allowedValues: Object.values(CodeRepositoryType),
     canReadOnRelationQuery: true,
     title: "Repository Hosted At",
     description:
@@ -970,6 +971,7 @@ export default class CodeRepository extends BaseModel {
   @TableColumn({
     required: false,
     type: TableColumnType.ShortText,
+    allowedValues: Object.values(ProductionReviewPullRequestContent),
     title: "Production Review Comment",
     description:
       "What a production review posts on a pull request. Review (the default): the review, or only a link to it in OneUptime on a public repository. Link: only a link, whatever the repository. ReviewEvenIfPublic: the review, even on a public repository.",
@@ -1264,6 +1266,7 @@ export default class CodeRepository extends BaseModel {
     ],
   })
   @TableColumn({
+    secret: true,
     required: false,
     type: TableColumnType.VeryLongText,
     canReadOnRelationQuery: false,
@@ -1452,8 +1455,7 @@ export default class CodeRepository extends BaseModel {
     type: TableColumnType.EntityArray,
     modelType: Label,
     title: "Labels",
-    description:
-      "Relation to Labels Array where this object is categorized in.",
+    description: "Labels to group and filter by.",
   })
   @ManyToMany(
     () => {

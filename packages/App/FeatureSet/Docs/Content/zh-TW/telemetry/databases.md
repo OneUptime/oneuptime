@@ -1,6 +1,6 @@
 # 資料庫
 
-**Databases** 為你的專案執行或連線的每台資料庫伺服器提供專屬頁面：誰在呼叫它、呼叫有多快、它在哪裡執行、引擎本身的健康指標、它的日誌和追蹤、與它關聯的事件、警示和排定維護，以及為其引擎建議的警示監控器。與其他所有資源一樣，資料庫也有標籤、擁有者、標籤和擁有者規則、依資料庫設定的保留期以及封存。在 **產品 → 資源 → 資料庫** 下開啟它們。
+**資料庫** 為你的專案執行或連線的每台資料庫伺服器提供專屬頁面：誰在呼叫它、呼叫有多快、它在哪裡執行、引擎本身的健康指標、它的日誌和追蹤、與它關聯的事件、警示和排定維護，以及為其引擎建議的警示監控器。與其他所有資源一樣，資料庫也有標籤、擁有者、標籤和擁有者規則、依資料庫設定的保留期以及封存。在 **產品 → 資源 → 資料庫** 下開啟它們。
 
 :::cards
 - [Database Agent](#database-agent): PostgreSQL、MySQL、SQL Server、Oracle、Redis、MongoDB、Elasticsearch 和 Memcached 的引擎指標。
@@ -30,7 +30,7 @@ flowchart LR
 
 引擎指標只來自與資料庫本身通訊的 Collector（對於受控雲端資料庫，則是與其供應商的監控 API 通訊的 Collector）。追蹤和容器清單會告訴 OneUptime 資料庫存在以及它的使用方式，但不會告訴它資料庫內部的運作狀況；每個資料庫上的 **Engine metrics** 狀態會顯示這部分是否已連線。
 
-你也可以手動新增資料庫：在 **Databases → 建立資料庫** 中填入引擎、位址和連接埠。如需完全不需要代理程式、以探測器為基礎的健康檢查，請參閱 [資料庫健康狀態監控](/docs/monitor/database-health-monitor)。
+你也可以手動新增資料庫：在 **資料庫 → 建立資料庫** 中填入引擎、位址和連接埠。如需完全不需要代理程式、以探測器為基礎的健康檢查，請參閱 [資料庫健康狀態監控](/docs/monitor/database-health-monitor)。
 
 ## 支援的資料庫
 
@@ -191,7 +191,7 @@ OneUptime 讀取 Pod 中繼資料、標籤、映像檔、宣告的連接埠，�
 
 - 依 id 關聯的資料會進入該資料庫並顯示在其頁面上（且只顯示在那裡），無論它回報的是什麼位址：私人 IP、叢集本機名稱、另一個資料庫擁有的位址，或根本沒有位址。如果它回報的位址在整個專案中指向唯一的一台伺服器且尚不屬於任何資料庫，該位址會作為端點新增到這個資料庫，這樣傳往該位址的應用程式追蹤也會進入這裡；
 - 否則，資料庫已擁有的端點會把資料關聯到該資料庫，無論該資料庫是由什麼建立的；
-- 否則會 **建立** 一個資料庫，但只從在整個專案中代表唯一一台伺服器的名稱建立（DNS 名稱、公用 IP，或資料以其 Kubernetes 叢集 `k8s.cluster.name` 限定過的叢集本機名稱、`.internal` 或 `.local` 名稱；Database Agent 從不設定該叢集屬性），而且只針對可以自行建立的引擎（[支援的資料庫](#支援的資料庫) 中的 **從追蹤建立** 欄：絕不是共用雲端 API、處理序內引擎或未知引擎）。私人 IP 和連結本機 IP、單一標籤名稱（`db`）以及未限定的叢集本機名稱（`postgres.prod.svc.cluster.local`）、`.internal` 或 `.local` 名稱，在每個網路中都可能指向不同的伺服器；Pod 的 IP 每次重新啟動都會改變；而由 Collector 自己的命名空間補全的單一標籤名稱，可能是一個 Service，也可能是 Collector 自己的 Pod。指明這些名稱之一的資料只會進入已經把它當作端點的資料庫：對於 Service 名稱，就是在 Kubernetes 中偵測到的工作負載。請手動建立該資料庫（**Databases → 建立資料庫**，相同的位址和連接埠），或以 `DATABASE_SERVER_ID` 把代理程式關聯到它。在有 Kubernetes 叢集的專案中，不帶叢集的叢集本機 Service 名稱會被拒絕：請將資料庫建立為 `postgres.prod.svc.cluster.local:5432@my-cluster`，然後在它的 **端點** 分頁上新增未限定的 `postgres.prod.svc.cluster.local:5432`（也就是代理程式回報的名稱）；
+- 否則會 **建立** 一個資料庫，但只從在整個專案中代表唯一一台伺服器的名稱建立（DNS 名稱、公用 IP，或資料以其 Kubernetes 叢集 `k8s.cluster.name` 限定過的叢集本機名稱、`.internal` 或 `.local` 名稱；Database Agent 從不設定該叢集屬性），而且只針對可以自行建立的引擎（[支援的資料庫](#支援的資料庫) 中的 **從追蹤建立** 欄：絕不是共用雲端 API、處理序內引擎或未知引擎）。私人 IP 和連結本機 IP、單一標籤名稱（`db`）以及未限定的叢集本機名稱（`postgres.prod.svc.cluster.local`）、`.internal` 或 `.local` 名稱，在每個網路中都可能指向不同的伺服器；Pod 的 IP 每次重新啟動都會改變；而由 Collector 自己的命名空間補全的單一標籤名稱，可能是一個 Service，也可能是 Collector 自己的 Pod。指明這些名稱之一的資料只會進入已經把它當作端點的資料庫：對於 Service 名稱，就是在 Kubernetes 中偵測到的工作負載。請手動建立該資料庫（**資料庫 → 建立資料庫**，相同的位址和連接埠），或以 `DATABASE_SERVER_ID` 把代理程式關聯到它。在有 Kubernetes 叢集的專案中，不帶叢集的叢集本機 Service 名稱會被拒絕：請將資料庫建立為 `postgres.prod.svc.cluster.local:5432@my-cluster`，然後在它的 **端點** 分頁上新增未限定的 `postgres.prod.svc.cluster.local:5432`（也就是代理程式回報的名稱）；
 - 完全沒有指明伺服器的接收器批次會被忽略（請參閱 [使用你自己的 OpenTelemetry Collector](#使用你自己的-opentelemetry-collector)）。
 
 Collector 建立的資料庫與其他所有偵測到的資料庫一樣計入 [自動建立額度](#自動建立額度)；你手動建立並以 `DATABASE_SERVER_ID` 關聯的資料庫永遠不需要建立。請參閱 [Database Agent](#database-agent)。
@@ -355,7 +355,7 @@ docker compose up -d
 
 ### 在 OneUptime 中找到資料庫
 
-第一次收集後，資料庫會出現在 **Databases** 下；如果 OneUptime 已經從相同位址的追蹤或容器中偵測到它，它的 **Engine metrics** 狀態會變成已連線。對於私人 IP 或只在你的網路內解析的名稱（`db.prod.internal`、叢集本機名稱），請先建立資料庫或設定 `DATABASE_SERVER_ID`（請參閱 [從 Database Agent 或你自己的 Collector](#從-database-agent-或你自己的-collector)）。
+第一次收集後，資料庫會出現在 **資料庫** 下；如果 OneUptime 已經從相同位址的追蹤或容器中偵測到它，它的 **Engine metrics** 狀態會變成已連線。對於私人 IP 或只在你的網路內解析的名稱（`db.prod.internal`、叢集本機名稱），請先建立資料庫或設定 `DATABASE_SERVER_ID`（請參閱 [從 Database Agent 或你自己的 Collector](#從-database-agent-或你自己的-collector)）。
 :::
 
 ### 環境變數
@@ -418,7 +418,7 @@ sudo systemctl enable --now oneuptime-database-agent
 
 重新執行 `install.sh`：它會重複使用現有 `.env` 中的所有值，以目前版本取代 `docker-compose.yml`、`otel-collector-config.yaml` 和 systemd 單元，並重新建立代理程式的容器，讓新設定生效。你編輯過的檔案（`network_mode: host`、`filelog` 接收器及其掛接、額外的指標）會以 `<file>.bak.<timestamp>` 的形式保留在新檔案旁邊，指令碼會在最後列出它，方便你重新套用修改。對 `.env` 或 `otel-collector-config.yaml` 的任何修改都要用 `docker compose up -d --force-recreate` 套用：Collector 只在啟動時讀取設定，而當只有設定檔變更時，一般的 `docker compose up -d` 不會動到正在執行的容器。指令碼會在 `.agent-files.sha256` 中記錄它安裝的內容，因此沒有人編輯過的檔案會直接被取代而不保留副本，無論新版本改動多大；在沒有該記錄的目錄（你手動設定的目錄）中，每個與新版本不同的檔案都會被保留，因為它可能包含修改。若要移除代理程式，請執行 `cd /opt/oneuptime-database-agent && docker compose down`，然後刪除監控使用者（以及 AI 代理程式專用的登入帳戶，如果你建立過）。
 
-代理程式會把其檔案所固定的 Collector 版本回報為它的 **Agent version**。當該版本低於此 OneUptime 版本所固定的版本時，資料庫的 **概覽** 上會在它旁邊顯示一個警告標誌。選取它即可查看升級方法：透過安裝指令碼、使用 Docker Compose，或者對於 Kubernetes 中的資料庫，使用設定指南中的 Deployment。
+代理程式會把其檔案所固定的 Collector 版本回報為它的 **代理程式版本**。當該版本低於此 OneUptime 版本所固定的版本時，資料庫的 **概覽** 上會在它旁邊顯示一個警告標誌。選取它即可查看升級方法：透過安裝指令碼、使用 Docker Compose，或者對於 Kubernetes 中的資料庫，使用設定指南中的 Deployment。
 
 ## AI 代理程式
 

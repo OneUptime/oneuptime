@@ -31,10 +31,10 @@ flowchart TB
 
 | 호스트에서 보이는 것 | 출처 |
 | --- | --- |
-| **개요** 및 **메트릭** | `hostmetrics` 리시버: CPU, 메모리, 디스크, 파일 시스템, 네트워크, 부하, 페이징. |
+| **개요** 및 **메트릭** | `hostmetrics` 리시버: CPU, 메모리, 디스크, 파일 시스템, 네트워크, 부하, 페이징, 가동 시간. |
 | **프로세스** | `hostmetrics`의 `process` 스크레이퍼: 프로세스별 시계열 세트. |
 | **로그** | `filelog`, `journald`, `windowseventlog` 리시버. |
-| **Systemd Units** (Linux) | `systemd` 리시버. |
+| **Systemd 유닛** (Linux) | `systemd` 리시버. |
 | **서비스** (Windows) | `windows_service` 리시버. |
 | 인벤토리 항목 | `resourcedetection` 프로세서와 [직접 붙이는 속성](#인벤토리-속성-ip-mac-일련번호-제조사-모델-펌웨어). |
 | **에이전트 버전** | `resource` 프로세서의 `oneuptime.agent.version`. |
@@ -86,6 +86,8 @@ receivers:
       load:
       network:
       paging:
+      # How long the host has been up (system.uptime): when it last started.
+      system:
       processes:
       process:
         mute_process_name_error: true
@@ -189,6 +191,8 @@ receivers:
       load:
       network:
       paging:
+      # How long the host has been up (system.uptime): when it last started.
+      system:
       processes:
       process:
         mute_process_name_error: true
@@ -285,6 +289,8 @@ receivers:
       load:
       network:
       paging:
+      # How long the host has been up (system.uptime): when it last started.
+      system:
       processes:
       process:
         mute_process_name_error: true
@@ -555,7 +561,7 @@ receivers:
 
 ### Linux 서비스 (systemd 유닛, 메트릭)
 
-호스트의 **Systemd Units** 페이지는 [`systemdreceiver`](https://github.com/open-telemetry/opentelemetry-collector-contrib/tree/main/receiver/systemdreceiver)(구성 유형 `systemd`)에서 가져온 모든 유닛과 그 상태를 나열합니다. Windows의 **서비스** 페이지에 해당하는 Linux 페이지입니다. 위의 Linux 구성이 이를 켭니다:
+호스트의 **Systemd 유닛** 페이지는 [`systemdreceiver`](https://github.com/open-telemetry/opentelemetry-collector-contrib/tree/main/receiver/systemdreceiver)(구성 유형 `systemd`)에서 가져온 모든 유닛과 그 상태를 나열합니다. Windows의 **서비스** 페이지에 해당하는 Linux 페이지입니다. 위의 Linux 구성이 이를 켭니다:
 
 ```yaml
 receivers:
@@ -963,6 +969,8 @@ receivers:
       network:
       load:
       paging:
+      # How long the host has been up (system.uptime): when it last started.
+      system:
       processes: # aggregate counts only — cheap
       process:
         mute_process_name_error: true
@@ -990,7 +998,7 @@ receivers:
         enabled: false
 ```
 
-이렇게 하면 300개 유닛 호스트의 데이터 포인트가 분당 약 6,000개에서 100개 훨씬 아래로 줄어듭니다. 목록에서 빠진 유닛은 마지막 샘플이 롤링 기간에서 빠지는 몇 분 뒤에 **Systemd Units** 페이지에서 사라집니다.
+이렇게 하면 300개 유닛 호스트의 데이터 포인트가 분당 약 6,000개에서 100개 훨씬 아래로 줄어듭니다. 목록에서 빠진 유닛은 마지막 샘플이 롤링 기간에서 빠지는 몇 분 뒤에 **Systemd 유닛** 페이지에서 사라집니다.
 
 ### filter 프로세서로 레코드 버리기
 
@@ -1117,6 +1125,8 @@ receivers:
       load:
       network:
       paging:
+      # How long the host has been up (system.uptime): when it last started.
+      system:
       processes:
 
 processors:

@@ -1,7 +1,7 @@
 {
   "baseline": {
-    "keys": 40054,
-    "untranslated": 12666
+    "keys": 40228,
+    "untranslated": 12561
   },
   "sameAsEnglish": [
     "2xx",
@@ -14,6 +14,7 @@
     "CPU Ready",
     "CPU Ready {{percent}}",
     "CloudWatch Metric Streams",
+    "Control Plane",
     "CrowdStrike",
     "DE",
     "Datastore",
@@ -29,9 +30,12 @@
     "INP 168 ms",
     "INP 190 ms",
     "INP 540 ms",
+    "IoT",
     "Job",
     "LXC 201 · pve3",
+    "Link-local",
     "Log4Shell",
+    "Loopback",
     "MCP",
     "MITRE ATT&CK",
     "MITRE ATT&CK Enterprise v{{version}}",
@@ -51,6 +55,7 @@
     "SLI %",
     "SLOs",
     "SNMP trap",
+    "Service Mesh",
     "Slug",
     "TLS",
     "Top P",
@@ -91,6 +96,7 @@
     "svc-backup",
     "syslog",
     "timeout|connection refused",
+    "vApp {{name}}",
     "vCenter",
     "vSphere Client",
     "z",

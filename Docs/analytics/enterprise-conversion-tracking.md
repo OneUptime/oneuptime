@@ -23,6 +23,7 @@ the CRM can read it back.
 | Campaign attribution for an emitted conversion        | The event's `attribution` object        | Copied from the User/Project row the conversion happened on.                                      |
 | Which conversions belong to one person                | `emailHash` on each event               | The receiver joins on it. Nothing in OneUptime joins them.                                        |
 | Enterprise contract value                             | `EnterpriseLicense.annualContractValue` | Reported by `enterprise_license_issued`, attributed through `EnterpriseLicense.email`.            |
+| Money received, and a subscription ending             | Stripe                                  | Reported by `first_payment` and `subscription_ended`, read from Stripe's webhook.                 |
 | Web analytics                                         | GA4 / PostHog / GTM                     | Aggregate funnel analysis and client-side diagnostics.                                            |
 
 The enterprise licence conversation is not a separate conversion type: asking
@@ -124,7 +125,7 @@ in `packages/Common/Types/Marketing/Attribution.ts` so a key added for the brows
 be silently dropped on arrival, and `AttributionCapture.test.ts` asserts the
 browser's copy of those lists is identical to the contract's.
 
-It leaves the browser through two doors:
+It leaves the browser through three doors:
 
 1. **The signup form**, which posts it onto the User record
    (`packages/App/FeatureSet/Accounts/src/Pages/Register.tsx`, iterating the contract
@@ -133,6 +134,21 @@ It leaves the browser through two doors:
    `window.oneUptimeCalAttributionMetadata(bookingKind)` and pass the result as
    the embed `config`. Cal returns it on `BOOKING_CREATED` to the CRM, which is
    what makes a booked demo attributable to the ad that produced it.
+3. **The Continue with Google and Sign in with Microsoft buttons.** Signing up
+   either way posts no form: the button is a link, and the account is made on
+   the provider's way back, by a request that cannot read localStorage. So the
+   button leaves the attribution in a ten-minute cookie on `/identity`, the
+   path both providers' sign-ins are under
+   (`packages/App/FeatureSet/Accounts/src/Utils/SignInAttribution.ts`), and the
+   callback puts it on the new user through the same whitelists as the form
+   (`Attribution.fromSignInCookie`). A cookie that is missing or malformed costs
+   the attribution, never the sign-in.
+
+A signup is never refused for its campaign. Every value is bounded to 500
+characters, the landing URL included, and the server cuts a campaign column to
+its width for a browser that already holds a longer value
+(`Attribution.boundUtmColumns`): a value wider than its column refuses the whole
+create, and the visitor could neither see nor correct it.
 
 Because it is read out of localStorage rather than off the current URL, it
 survives any number of internal navigations. It is written only while
@@ -163,7 +179,8 @@ while bookings keep succeeding.
 
 | Key                         | Contents                                                       |
 | --------------------------- | -------------------------------------------------------------- |
-| `metadata[utm_*]`           | Every key in `UtmWireKeyToPropertyKey`                         |
+| `metadata[utm_*]`           | Every UTM key in `UtmWireKeyToPropertyKey`                     |
+| `metadata[gad_*]`           | Google Ads' `gad_source` and `gad_campaignid`                  |
 | `metadata[<click id>]`      | Every key in `AdClickIdKeys` the visitor arrived with          |
 | `metadata[utm_url]`         | The landing URL of the attributed visit                        |
 | `metadata[ou_first_touch]`  | The first attributed visit, one JSON string, bounded at 4000   |
@@ -256,20 +273,67 @@ Sign-up and the dashboard load Google Analytics alone, so
   (`GoogleAnalyticsEventParameters`), and nothing else.
 - **`purchase`.** Each paid conversion is also sent as GA4's `purchase`, so
   Google Analytics' revenue reports and Google Ads' return on ad spend have
-  something to count: a project created on a paid plan, and a free project
-  moving to a paid plan. A move between paid tiers is expansion and is not a
-  purchase; custom pricing has no amount and sends none. `transaction_id` is
-  the server's marketing event ID for the same conversion
-  (`subscription_started:{projectId}`, `subscription_upgraded:{projectId}:{time}`;
-  see `marketing-event-webhooks.md`), `value` the monthly recurring revenue
-  after the change, and the plan is the one item.
+  something to count: a project created on a paid plan with no free trial, and
+  a free project moving to a paid plan. A move between paid tiers is expansion
+  and is not a purchase; custom pricing has no amount and sends none; and a
+  plan that starts on a free trial sends none either, because a trial asks for
+  no card and nothing has been bought. `transaction_id` is the server's
+  marketing event ID for the same conversion (`subscription_started:{projectId}`,
+  `subscription_upgraded:{projectId}:{time}`; see
+  `marketing-event-webhooks.md`), `value` the monthly recurring revenue after
+  the change, and the plan is the one item.
+- **`purchase` when a trial converts.** That moment has no browser: Stripe
+  charges the card when the trial ends. So the server sends it, through the
+  Measurement Protocol, with `transaction_id` `first_payment:{projectId}` and
+  the amount Stripe took as `value` — only once a maintainer has created the
+  Measurement Protocol API secret and set
+  `GOOGLE_ANALYTICS_MEASUREMENT_PROTOCOL_API_SECRET`, and only for a project
+  whose row carries a campaign, which the signup form hands over only while
+  measurement is allowed. The campaign goes with it as `campaign_details`,
+  since no session is left for it to join (`first_payment` in
+  `marketing-event-webhooks.md`).
 - **`user_id`.** Every signed-in dashboard page sets `user_id` to the internal
   user ID, never an email address, so one person's sessions join up across
   devices.
+- **`sign_up` from Google and Microsoft.** A sign-in that made a new account
+  never reaches the sign-up page's reporting. The callback marks the address it
+  sends them to with the provider (`?signed_up_with=google`,
+  `?signed_up_with=microsoft`), and the Dashboard reports `sign_up` with that
+  `signup_method`, identifies the person to product analytics and takes the
+  mark off the address, so a reload reports nothing
+  (`packages/App/FeatureSet/Dashboard/src/Utils/ReportSignUpFromSignIn.ts`). A
+  mark naming any other provider is taken off and reports nothing.
 
-All three wait for consent like everything else: gtag holds the calls until
-Google Analytics loads, and on a self-hosted install there is no Google tag to
-send them to.
+The browser's calls wait for consent like everything else: gtag holds them
+until Google Analytics loads, and on a self-hosted install there is no Google
+tag to send them to. The converted trial's purchase is the server's, and the
+campaign on the project row is its evidence of consent; a self-hosted install
+has no API secret to send it with.
+
+**Sign-up never reports an address that holds an email address or a
+credential.** Google Analytics reports each page's full URL, query string
+included, as `page_location`, and its terms forbid sending it personal data.
+`packages/Common/Server/Views/Partials/SensitiveUrlToken.ejs` runs first in
+sign-up's `<head>`. A token in the path (password reset, email verification) it
+moves out of the address bar before the tag loads. A value in the query string
+has to stay, because the page reads it there: an invitation's sign-up link is
+`/accounts/register?email=<address>&token=<claim token>`, and the token claims
+the invited account. So when the query holds `email` or `token` (in any case),
+or anything with an `@` in it, the partial sets
+`__ONEUPTIME_SENSITIVE_URL_TOKEN_PENDING__` and the Google tag does not load on
+that page at all. The page view is lost, and so is the invitee's `sign_up`, on
+purpose: an invited teammate is not an acquisition. A campaign's own parameters
+(UTM values, click IDs, `promoCode`, `partnerId`) do not trip it, so the funnel
+a campaign is judged on is measured as before.
+`packages/Common/Tests/App/SensitiveUrlTokenBootstrap.test.ts` and
+`packages/Common/Tests/Server/Views/AnalyticsConsentBehaviour.test.ts` pin it.
+The dashboard does not include the partial, so its query strings reach Google
+Analytics as they are.
+
+GA4's data redaction (Admin → Data streams → the web stream → Redact data) can
+also redact email addresses and named query parameters before they are stored.
+It is a second layer, not a replacement, and only a maintainer of the property
+can turn it on.
 
 ## Deliberately not implemented
 

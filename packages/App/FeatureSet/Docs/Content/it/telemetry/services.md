@@ -47,7 +47,7 @@ Ogni volta che arriva telemetria, **Visto l'ultima volta** del servizio avanza e
 
 ## Trovare un servizio
 
-Aprite **Prodotti → Risorse → Servizi**. **Tutti i servizi** elenca ogni servizio con **Nome**, **Descrizione**, **Technology**, **Visto l'ultima volta**, **Etichette** e **Proprietari**.
+Aprite **Prodotti → Risorse → Servizi**. **Tutti i servizi** elenca ogni servizio con **Nome**, **Descrizione**, **Tecnologia**, **Visto l'ultima volta**, **Etichette** e **Proprietari**.
 
 - Cercate per nome o descrizione, e filtrate per proprietario o etichetta con la barra sopra l'elenco.
 - Selezionate più servizi per aggiungere a tutti etichette o proprietari in una volta, oppure per archiviarli.
@@ -62,7 +62,7 @@ Il menu laterale di un servizio ha cinque sezioni:
 | Sezione | Pagine |
 | --- | --- |
 | **Base** | **Panoramica**: richieste, tasso di errore e latenza p95 dai suoi span, grafici e dettagli. **Raccomandazioni**: monitor pronti all'uso per il servizio, scelti in base al suo linguaggio. **Proprietari**: le persone e i team che ne sono responsabili. **Feed**: tutto ciò che gli è successo, da come è stato creato a ogni modifica successiva. |
-| **Telemetria** | I suoi **Registri**, **Tracce**, **Metriche**, **Profili di prestazioni**, **Eccezioni** e **Source Maps**, già filtrati su questo servizio. |
+| **Telemetria** | I suoi **Registri**, **Tracce**, **Metriche**, **Profili di prestazioni**, **Eccezioni** e **Source map**, già filtrati su questo servizio. |
 | **Attività** | Gli **Incidenti**, gli **Avvisi** e gli eventi di **Manutenzione programmata** che lo riguardano. |
 | **Sviluppatori** | **Terraform**, **API** e **Assistenti IA**: il servizio gestito dal codice. All'inizio è chiusa. |
 | **Avanzato** | **Impostazioni**, **Registri di audit** ed **Elimina servizio**. **Avanzato** è inizialmente compresso: espandetelo prima. |

@@ -1,5 +1,9 @@
-import Attribution, { UtmAttribution } from "../../../Server/Utils/Attribution";
+import Attribution, {
+  SignUpAttribution,
+  UtmAttribution,
+} from "../../../Server/Utils/Attribution";
 import { JSONObject } from "../../../Types/JSON";
+import { MaxAttributionValueLength } from "../../../Types/Marketing/Attribution";
 import crypto from "crypto";
 import { describe, expect, test } from "@jest/globals";
 
@@ -294,6 +298,22 @@ describe("Attribution", () => {
       });
     });
 
+    test("reads the campaign parameters Google Ads adds, in either spelling", () => {
+      expect(
+        Attribution.sanitizeUtm({
+          gad_source: "1",
+          gad_campaignid: 23145678901,
+        }),
+      ).toEqual({ gadSource: "1", gadCampaignId: "23145678901" });
+
+      expect(
+        Attribution.sanitizeUtm({
+          gadSource: "1",
+          gadCampaignId: "23145678901",
+        }),
+      ).toEqual({ gadSource: "1", gadCampaignId: "23145678901" });
+    });
+
     test("drops empty, boolean and object values", () => {
       expect(
         Attribution.sanitizeUtm({
@@ -318,6 +338,117 @@ describe("Attribution", () => {
       input["utm_source"] = "mutated";
 
       expect(result).toEqual({ utmSource: "original" });
+    });
+  });
+
+  describe("boundUtmColumns", () => {
+    test("cuts a campaign value to the width of its column", () => {
+      const row: JSONObject = {
+        utmUrl: "u".repeat(MaxAttributionValueLength + 40),
+        utmCampaign: "c".repeat(MaxAttributionValueLength + 1),
+      };
+
+      Attribution.boundUtmColumns(row);
+
+      expect(row["utmUrl"]).toHaveLength(MaxAttributionValueLength);
+      expect(row["utmCampaign"]).toHaveLength(MaxAttributionValueLength);
+    });
+
+    test("leaves a value that fits, an empty one and a missing one as they are", () => {
+      const row: JSONObject = {
+        utmSource: "google",
+        utmMedium: "",
+        utmUrl: "u".repeat(MaxAttributionValueLength),
+      };
+
+      Attribution.boundUtmColumns(row);
+
+      expect(row).toEqual({
+        utmSource: "google",
+        utmMedium: "",
+        utmUrl: "u".repeat(MaxAttributionValueLength),
+      });
+    });
+
+    test("touches nothing that is not a campaign column", () => {
+      const companyName: string = "c".repeat(MaxAttributionValueLength + 1);
+      const row: JSONObject = { companyName };
+
+      Attribution.boundUtmColumns(row);
+
+      expect(row["companyName"]).toBe(companyName);
+    });
+  });
+
+  describe("fromSignInCookie", () => {
+    test("reads what the sign-in button writes", () => {
+      expect(
+        Attribution.fromSignInCookie(
+          JSON.stringify({
+            utm: {
+              utmSource: "google",
+              utmCampaign: "brand",
+              utmUrl: "https://oneuptime.com/?gclid=abc",
+            },
+            clickIds: { gclid: "abc" },
+            firstTouch: { utmSource: "linkedin" },
+          }),
+        ),
+      ).toEqual({
+        utm: {
+          utmSource: "google",
+          utmCampaign: "brand",
+          utmUrl: "https://oneuptime.com/?gclid=abc",
+        },
+        clickIds: { gclid: "abc" },
+        firstTouch: { utmSource: "linkedin" },
+      });
+    });
+
+    test("keeps a click with nothing else: Google Ads auto-tagging sends no UTMs", () => {
+      expect(
+        Attribution.fromSignInCookie(
+          JSON.stringify({ clickIds: { gclid: "abc" } }),
+        ),
+      ).toMatchObject({ clickIds: { gclid: "abc" } });
+    });
+
+    test("whitelists and bounds like the form body: a browser wrote this", () => {
+      const attribution: SignUpAttribution | undefined =
+        Attribution.fromSignInCookie(
+          JSON.stringify({
+            utm: {
+              utmSource: "s".repeat(MaxAttributionValueLength + 10),
+              isMasterAdmin: true,
+              password: "must-not-persist",
+            },
+            clickIds: { gclid: "abc", attacker: "must-not-persist" },
+            isMasterAdmin: true,
+          }),
+        );
+
+      expect(attribution?.utm.utmSource).toHaveLength(
+        MaxAttributionValueLength,
+      );
+      expect(Object.keys(attribution!.utm)).toEqual(["utmSource"]);
+      expect(attribution?.clickIds).toEqual({ gclid: "abc" });
+      expect(Object.keys(attribution!)).not.toContain("isMasterAdmin");
+    });
+
+    test.each([
+      undefined,
+      "",
+      "not json",
+      "{",
+      "null",
+      "42",
+      '"gclid"',
+      "[1,2]",
+      "{}",
+      '{"utm":"x","clickIds":[],"firstTouch":1}',
+      '{"clickIds":null}',
+    ])("reads %p as no attribution, and never throws", (value: unknown) => {
+      expect(Attribution.fromSignInCookie(value as never)).toBeUndefined();
     });
   });
 

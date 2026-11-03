@@ -2127,6 +2127,11 @@ const MARKETING_ALIASES = [
     appPrefix: "/workflow",
   },
   { alias: "/runbooks", product: "/product/runbooks", appPrefix: "/runbook" },
+  {
+    alias: "/status-page",
+    product: "/product/status-page",
+    appPrefix: "/status-page",
+  },
 ];
 
 /** A location's directives, one per line, with comments and indentation gone. */
@@ -2244,6 +2249,20 @@ test("the marketing alias locations leave the redirect itself to Home", () => {
       ).test(homeRoutes),
       `Home must answer ${alias} with a 301 to ${product}`,
     );
+  }
+});
+
+test("everything the status page app serves still reaches it", () => {
+  const locations = getLocationBlocks(primaryServerBlock.body);
+
+  for (const [uri, spec] of [
+    ["/status-page/", "/status-page"],
+    ["/status-page/6a7b", "/status-page"],
+    ["/status-page/6a7b/incidents", "/status-page"],
+    ["/status-page/dist/Index.js", "/status-page"],
+    ["/status-page-api/overview/6a7b", "/status-page-api/"],
+  ]) {
+    assert.equal(resolveLocation(locations, uri).spec, spec, uri);
   }
 });
 
@@ -2700,6 +2719,7 @@ const SIGN_IN_COOKIE_ADDRESSES = {
     "/identity/logout",
     "/identity/passkey-login-options",
     "/identity/microsoft/callback",
+    "/identity/google/callback",
     "/identity/oidc-callback/project/provider",
     "/identity/global-sso/x",
     "/identity/status-page-oidc-callback/page/provider",

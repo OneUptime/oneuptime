@@ -56,7 +56,7 @@ Typ een zoekopdracht in het zoekvak en druk op Enter, bijvoorbeeld `severity:err
 
 ### Beperken met filters
 
-Klik op een waarde in de zijbalk **Filters** om die als chip toe te voegen: een ernstniveau, een service, of een host, cluster of andere bron die logboeken stuurde. Elke waarde laat zien hoeveel logboeken hem dragen. Tik op een telefoon op **Filters** om de zijbalk te openen.
+Klik op een waarde in de zijbalk **Filters** om die als chip toe te voegen: een ernstniveau, een service, of een host, cluster of andere bron die logboeken stuurde. Elke waarde laat zien hoeveel logboeken hem dragen. Klik op het minteken naast een waarde om die logboeken juist uit te sluiten. Klik nogmaals op de waarde om dat ongedaan te maken. Tik op een telefoon op **Filters** om de zijbalk te openen.
 
 ### Een logboek openen
 

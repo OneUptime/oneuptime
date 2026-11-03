@@ -23,7 +23,8 @@
     "newPassword": "새 비밀번호",
     "code": "코드",
     "yourCompany": "귀하의 회사",
-    "or": "또는"
+    "or": "또는",
+    "continueWithGoogle": "Google로 계속하기"
   },
   "language": {
     "label": "언어",
@@ -58,6 +59,10 @@
     },
     "title": "계정에 로그인",
     "subtitle": "비밀번호, 조직의 SSO 또는 패스키로 로그인하세요.",
+    "sessionEnded": {
+      "lengthReached": "세션이 시간 제한에 도달하여 로그아웃되었습니다. 다시 로그인하면 중단한 곳에서 이어서 할 수 있습니다.",
+      "inactive": "한동안 활동이 없어 로그아웃되었습니다. 다시 로그인하면 중단한 곳에서 이어서 할 수 있습니다."
+    },
     "submitButton": "로그인",
     "forgotPassword": "비밀번호를 잊으셨나요?",
     "signInWithSso": "SSO로 로그인",

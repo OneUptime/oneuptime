@@ -15,6 +15,7 @@ import ProjectBalanceType from "../../../Types/Billing/ProjectBalanceType";
 import { PlanType } from "../../../Types/Billing/SubscriptionPlan";
 import SubscriptionStatus from "../../../Types/Billing/SubscriptionStatus";
 import Email from "../../../Types/Email";
+import { AdClickIdKeys } from "../../../Types/Marketing/Attribution";
 import Name from "../../../Types/Name";
 import ObjectID from "../../../Types/ObjectID";
 import Phone from "../../../Types/Phone";
@@ -800,6 +801,163 @@ describe("OperatorSlackNotice.getUserCreatedText", () => {
       "*Phone:* +15551234567",
       "*Company:* Acme *Name:* Somebody Else <!channel>",
     ]);
+  });
+
+  describe("a user who came from a campaign", () => {
+    test("says where from, after everything the channel has always been told", () => {
+      expect(
+        lines(
+          OperatorSlackNotice.getUserCreatedText({
+            user: makeUser({
+              utmSource: "google",
+              utmMedium: "cpc",
+              utmCampaign: "pagerduty-alternative",
+            }),
+          }),
+        ),
+      ).toEqual([
+        "*New OneUptime User:*",
+        "*Email:* jane@acme.example",
+        "*Name:* Jane Doe",
+        "*Phone:* +15551234567",
+        "*Company:* Acme Compliance Ltd",
+        "*Source:* google / cpc / pagerduty-alternative",
+      ]);
+    });
+
+    test("names what it knows when only some of the campaign came with them", () => {
+      expect(
+        lines(
+          OperatorSlackNotice.getUserCreatedText({
+            user: makeUser({ utmSource: "newsletter" }),
+          }),
+        ),
+      ).toContain("*Source:* newsletter");
+    });
+
+    test.each([
+      ["gclid", "Google Ads"],
+      ["gbraid", "Google Ads"],
+      ["wbraid", "Google Ads"],
+      ["msclkid", "Microsoft Ads"],
+      ["fbclid", "Meta"],
+      ["li_fat_id", "LinkedIn"],
+      ["twclid", "X"],
+      ["rdt_cid", "Reddit"],
+    ])(
+      "a %s with no UTM values reads as %s: auto-tagging sends nothing else",
+      (clickId: string, platform: string) => {
+        expect(
+          lines(
+            OperatorSlackNotice.getUserCreatedText({
+              user: makeUser({ clickIds: { [clickId]: "abc" } }),
+            }),
+          ),
+        ).toContain(`*Source:* ${platform}`);
+      },
+    );
+
+    test("names every click ID the signup can carry", () => {
+      for (const clickId of AdClickIdKeys) {
+        expect(
+          OperatorSlackNotice.getUserCreatedText({
+            user: makeUser({ clickIds: { [clickId]: "abc" } }),
+          }),
+        ).toContain("Source:");
+      }
+    });
+
+    test("the campaign's own words win over the click ID", () => {
+      expect(
+        lines(
+          OperatorSlackNotice.getUserCreatedText({
+            user: makeUser({
+              utmSource: "google",
+              clickIds: { gclid: "abc" },
+            }),
+          }),
+        ),
+      ).toContain("*Source:* google");
+    });
+
+    test("a Google Ads click with no UTM values names the campaign Google put on it", () => {
+      expect(
+        lines(
+          OperatorSlackNotice.getUserCreatedText({
+            user: makeUser({
+              clickIds: { gclid: "abc" },
+              gadSource: "1",
+              gadCampaignId: "23145678901",
+            }),
+          }),
+        ),
+      ).toContain("*Source:* Google Ads, campaign 23145678901");
+    });
+
+    // gad_source comes with auto-tagging off too, when there is no click ID.
+    test.each([
+      [{ gadSource: "1" }, "*Source:* Google Ads"],
+      [
+        { gadCampaignId: "23145678901" },
+        "*Source:* Google Ads, campaign 23145678901",
+      ],
+    ])(
+      "Google Ads' own parameters with no click ID read as Google Ads (%o)",
+      (values: Record<string, string>, line: string) => {
+        expect(
+          lines(
+            OperatorSlackNotice.getUserCreatedText({
+              user: makeUser(values),
+            }),
+          ),
+        ).toContain(line);
+      },
+    );
+
+    test("the campaign's own words win over the campaign Google Ads names", () => {
+      expect(
+        lines(
+          OperatorSlackNotice.getUserCreatedText({
+            user: makeUser({
+              utmSource: "google",
+              utmMedium: "cpc",
+              gadCampaignId: "23145678901",
+              clickIds: { gclid: "abc" },
+            }),
+          }),
+        ),
+      ).toContain("*Source:* google / cpc");
+    });
+
+    test("a campaign ID anybody can put on an address notifies nobody and links nowhere", () => {
+      const text: string = OperatorSlackNotice.getUserCreatedText({
+        user: makeUser({
+          clickIds: { gclid: "abc" },
+          gadCampaignId: `${HOSTILE_NAME}\n*Company:* Somebody Else`,
+        }),
+      });
+
+      expectNoSlackControls(text);
+      expect(lines(text)).toHaveLength(6);
+    });
+
+    test("anybody can put anything on an address, so it notifies nobody and links nowhere", () => {
+      const text: string = OperatorSlackNotice.getUserCreatedText({
+        user: makeUser({
+          utmSource: HOSTILE_NAME,
+          utmCampaign: "brand\n*Company:* Somebody Else\r\n<!channel>",
+        }),
+      });
+
+      expectNoSlackControls(text);
+      expect(lines(text)).toHaveLength(6);
+    });
+  });
+
+  test("nothing is added for a user who came from no campaign", () => {
+    expect(
+      lines(OperatorSlackNotice.getUserCreatedText({ user: makeUser() })),
+    ).not.toContainEqual(expect.stringContaining("Source"));
   });
 });
 

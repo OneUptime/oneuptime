@@ -4,7 +4,7 @@
 
 :::cards
 - [建立監測器](#建立主機監測器): 在儀表板中完成六個步驟。
-- [範本](#現成的警示範本): 六個現成的警示，涵蓋停止回報的主機、CPU、記憶體、磁碟、負載和處理程序。
+- [範本](#現成的警示範本): 十個現成的警示，涵蓋停止回報或重新啟動的主機、CPU、記憶體、交換空間、磁碟、inode、負載、處理程序和失敗的 systemd 單元。
 - [指標](#收集的指標): 可用於警示的主機指標及其單位。
 - [主機還是 Server / VM？](#主機監測器還是-server-vm-監測器): 兩種機器監測器該用哪一個。
 :::
@@ -95,27 +95,35 @@ OneUptime 有兩種用於機器的監測器。它們可以在同一台主機上�
 
 ## 現成的警示範本
 
-**告警內容** 清單提供六個範本。每個範本都會建立一個完整的監測器：一個查詢、一個觸發的條件和一個恢復的條件。閾值只是起點，你可以編輯。
+**告警內容** 清單提供十個範本。每個範本都會建立一個完整的監測器：一個查詢、一個觸發的條件和一個恢復的條件。閾值只是起點，你可以編輯。
 
 條件只有在其視窗的每一分鐘都成立時才會觸發，並在越過閾值 10% 處恢復，這樣在邊界附近徘徊的值就不會來回跳動。
 
 | 範本 | 嚴重程度 | 監控內容 | 觸發時機 | 恢復時機 |
 | --- | --- | --- | --- | --- |
 | Host Stopped Reporting | 嚴重 | `system.memory.usage`，Count，最近 10 分鐘 | 整個視窗內都沒有資料 | 資料再次送達 |
+| Host Restarted | 警告 | `system.uptime`，Min，最近 5 分鐘 | 任一值低於 600（十分鐘） | 所有值都不低於 660 |
 | High CPU Utilization | 警告 | `user` 和 `system` 狀態的 `system.cpu.utilization`，相加後以百分比顯示，最近 5 分鐘 | 高於 80% | 不高於 72% |
 | High Memory Utilization | 警告 | `used` 狀態的 `system.memory.utilization`，以百分比顯示，最近 5 分鐘 | 高於 85% | 不高於 76.5% |
+| High Swap Usage | 警告 | `used` 和 `free` 狀態的 `system.paging.usage`，已用除以已用加可用，以百分比顯示，最近 5 分鐘 | 高於 80% | 不高於 72% |
 | High Filesystem Usage | 嚴重 | `system.filesystem.utilization`，依 `mountpoint` 和 `device` 取 Max，以百分比顯示，最近 5 分鐘 | 高於 90% | 不高於 81% |
+| Running Out of Inodes | 嚴重 | `used` 和 `free` 狀態的 `system.filesystem.inodes.usage`，已用除以已用加可用，依 `mountpoint` 和 `device`，以百分比顯示，最近 5 分鐘 | 高於 90% | 不高於 81% |
 | High Load Average (1m) | 警告 | `system.cpu.load_average.1m`，Avg，最近 5 分鐘 | 高於 4 | 不高於 3.6 |
 | High Process Count | 警告 | `system.processes.count`，Max，最近 5 分鐘 | 高於 2000 | 不高於 1800 |
+| Systemd Unit Failed | 警告 | `systemd.unit.active_state = failed` 的 `systemd.unit.state`，依 `resource.systemd.unit.name` 取 Max，最近 5 分鐘 | 高於 0 | 不高於 0 |
 
 **嚴重程度** 是選擇清單中顯示的標籤。範本建立的事件和警示會從專案中最嚴重的事件和警示嚴重程度開始；請在條件中變更它們。
 
 - **Host Stopped Reporting** 會在主機 10 分鐘內沒有任何資料送達時觸發：機器當機或無法連線，或者它的 Collector 已停止、失去通往 OneUptime 的路由或權杖被撤銷。資料恢復後即會解決。資料中斷時，其他範本沒有可比較的資料，會維持最後的狀態，因此要靠這個範本告訴你。
+- **Host Restarted** 會在開機後的第一次回報時觸發：主機運行時間不到十分鐘。它從 Collector 的 `system` 擷取器讀取 `system.uptime`，OneUptime 的預設設定會開啟這個擷取器；約在開機十五分鐘後，當其五分鐘時間窗內的每個值都不少於十一分鐘時自動解決。當機的主機會改為觸發 **Host Stopped Reporting**。
 - **CPU** 是忙碌時間（`user` 加 `system`），與主機 **概覽** 圖表中的數字相同。不包括 iowait 和 steal。
 - **記憶體** 不計緩衝區和頁面快取，所以大部分被快取占用的主機不會觸發它。
+- **交換空間** 是已用交換空間除以已用加可用，涵蓋所有交換裝置，與 `free` 和 `swapon` 顯示的一致。沒有交換空間的主機不會回報，也永遠不會觸發。
 - **檔案系統** 會為每個掛接點開啟一個事件。唯讀的虛擬檔案系統（例如 snap 的 `squashfs` 掛接或 macOS 的 `devfs`）永遠是 100% 已滿：OneUptime 的 Collector 設定用 `exclude_fs_types` 把它們排除在 `filesystem` 擷取器之外，你自己的設定也需要這樣做。
+- **inode** 與 **檔案系統** 一樣，會為每個掛接點開啟一個事件。檔案系統的 inode 用盡後，無論還有多少可用空間，都無法再在其中建立檔案。沒有自己 inode 表的檔案系統（例如 btrfs）不會回報，也永遠不會觸發。
 - **平均負載** 是原始的執行佇列長度，沒有除以核心數：4 在 2 核心主機上代表飽和，在 32 核心主機上則很平常，所以在大型主機上請調高它。
 - **處理程序數** 比較的是最大的單一處理程序狀態（`running`、`sleeping`、…），而不是主機的總數，因此它與處理程序清單對不起來。程序抓取器在 Linux、macOS 和 BSD 上回報，Windows 上不回報。
+- **Systemd Unit Failed** 會為每個處於 `failed` 狀態的 systemd 服務開啟一個警示，資料來自 Collector 的 `systemd` 接收器，OneUptime 的預設設定會在有 systemd 的 Linux 主機上讀取它。單元重新執行，或被 `systemctl reset-failed` 清除後即會解決。
 
 ## 收集的指標
 

@@ -18,7 +18,7 @@ Open **Geplande onderhoud** via het menu **Producten** in de bovenste balk. De s
 | **Eigenaarsregels** | Voegt eigenaren toe aan passende gebeurtenissen.                   |
 | **Runbook-regels** | Start runbooks voor passende gebeurtenissen.                        |
 | **Labelregels**    | Voegt labels toe aan passende gebeurtenissen.                       |
-| **Reminder Rules** | Herinnert eigenaren met een interval tot een gebeurtenis voltooid is. |
+| **Herinneringsregels** | Herinnert eigenaren met een interval tot een gebeurtenis voltooid is. |
 
 De sectie **Instellingen** bevat **Status gebeurtenis**, behandeld in [Onderhoudsstatussen](/docs/scheduled-maintenance/states), **Gebeurtenis-sjablonen**, behandeld in [Sjablonen en terugkerende gebeurtenissen](/docs/scheduled-maintenance/templates), en daarna **Notitie-sjablonen**, **Aangepaste velden**, **Metingen**, **Agenda-instellingen** en **Nummering**. **Agenda-instellingen** wordt behandeld in [Onderhoudsagenda](/docs/scheduled-maintenance/calendar#externe-agendas), de rest hieronder.
 
@@ -37,7 +37,7 @@ flowchart TB
 De regels verschillen in hoe ze meerdere treffers afhandelen:
 
 - **Eigenaarsregels**, **Labelregels** en **Runbook-regels** werken allemaal wanneer ze passen. Eigenaren en labels die meerdere regels toevoegen, worden één keer toegevoegd.
-- **Reminder Rules** worden van boven naar beneden in hun lijst gecontroleerd, en de eerste die past wint. Sleep een regel om zijn plaats te wijzigen; een nieuwe regel komt onderaan.
+- **Herinneringsregels** worden van boven naar beneden in hun lijst gecontroleerd, en de eerste die past wint. Sleep een regel om zijn plaats te wijzigen; een nieuwe regel komt onderaan.
 
 Een nieuwe regel begint ingeschakeld; zet **Ingeschakeld** uit in het bewerkformulier om haar te pauzeren, en de lijst toont voor elke regel een groen **Ingeschakeld** of een rood **Uitgeschakeld**. Eigenaars-, label- en runbook-regels werken op gebeurtenissen die worden gemaakt nadat je ze opslaat. Om een eigenaars- of labelregel toe te passen op gebeurtenissen die je al hebt, gebruik je **Nu uitvoeren**: zie [Regels uitvoeren op bestaande resources](/docs/configuration/run-rules-now).
 
@@ -64,7 +64,7 @@ Een regel past alleen als elke voorwaarde die je invult klopt; een lege voorwaar
 
 ## Herinneringsregels
 
-**Geplande onderhoud → Regels → Reminder Rules** herinnert de eigenaren van een gebeurtenis tot het werk is goedgekeurd. Elke gebeurtenis krijgt de eerste regel die bij haar past, van boven naar beneden in de lijst.
+**Geplande onderhoud → Regels → Herinneringsregels** herinnert de eigenaren van een gebeurtenis tot het werk is goedgekeurd. Elke gebeurtenis krijgt de eerste regel die bij haar past, van boven naar beneden in de lijst.
 
 :::steps
 ### Kiezen voor welke gebeurtenissen

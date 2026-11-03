@@ -31,10 +31,10 @@ flowchart TB
 
 | Cosa vedi sull'host | Da dove viene |
 | --- | --- |
-| **Panoramica** e **Metriche** | Il receiver `hostmetrics`: CPU, memoria, dischi, file system, rete, carico, paginazione. |
+| **Panoramica** e **Metriche** | Il receiver `hostmetrics`: CPU, memoria, dischi, file system, rete, carico, paginazione, tempo di attività. |
 | **Processi** | Lo scraper `process` di `hostmetrics`: un insieme di serie per processo. |
 | **Registri** | I receiver `filelog`, `journald` e `windowseventlog`. |
-| **Systemd Units** (Linux) | Il receiver `systemd`. |
+| **Unità systemd** (Linux) | Il receiver `systemd`. |
 | **Servizi** (Windows) | Il receiver `windows_service`. |
 | L'elemento di inventario | Il processor `resourcedetection`, più gli [attributi che applichi](#attributi-di-inventario-ip-mac-numero-di-serie-produttore-modello-firmware). |
 | **Versione dell'agente** | `oneuptime.agent.version` nel processor `resource`. |
@@ -86,6 +86,8 @@ receivers:
       load:
       network:
       paging:
+      # How long the host has been up (system.uptime): when it last started.
+      system:
       processes:
       process:
         mute_process_name_error: true
@@ -189,6 +191,8 @@ receivers:
       load:
       network:
       paging:
+      # How long the host has been up (system.uptime): when it last started.
+      system:
       processes:
       process:
         mute_process_name_error: true
@@ -285,6 +289,8 @@ receivers:
       load:
       network:
       paging:
+      # How long the host has been up (system.uptime): when it last started.
+      system:
       processes:
       process:
         mute_process_name_error: true
@@ -555,7 +561,7 @@ Il receiver esegue `journalctl`, presente su ogni host systemd, e l'utente del c
 
 ### Servizi Linux (unità systemd, metriche)
 
-La pagina **Systemd Units** dell'host elenca ogni unità e il suo stato, dal [`systemdreceiver`](https://github.com/open-telemetry/opentelemetry-collector-contrib/tree/main/receiver/systemdreceiver) (tipo di configurazione `systemd`), l'equivalente Linux della pagina **Servizi** su Windows. La configurazione Linux qui sopra lo attiva:
+La pagina **Unità systemd** dell'host elenca ogni unità e il suo stato, dal [`systemdreceiver`](https://github.com/open-telemetry/opentelemetry-collector-contrib/tree/main/receiver/systemdreceiver) (tipo di configurazione `systemd`), l'equivalente Linux della pagina **Servizi** su Windows. La configurazione Linux qui sopra lo attiva:
 
 ```yaml
 receivers:
@@ -963,6 +969,8 @@ receivers:
       network:
       load:
       paging:
+      # How long the host has been up (system.uptime): when it last started.
+      system:
       processes: # aggregate counts only — cheap
       process:
         mute_process_name_error: true
@@ -990,7 +998,7 @@ receivers:
         enabled: false
 ```
 
-Insieme, queste modifiche portano un host con 300 unità da circa 6.000 punti dati al minuto a ben meno di 100. Le unità rimosse dall'elenco escono dalla pagina **Systemd Units** qualche minuto dopo, quando i loro ultimi campioni escono dalla sua finestra mobile.
+Insieme, queste modifiche portano un host con 300 unità da circa 6.000 punti dati al minuto a ben meno di 100. Le unità rimosse dall'elenco escono dalla pagina **Unità systemd** qualche minuto dopo, quando i loro ultimi campioni escono dalla sua finestra mobile.
 
 ### Scarta i record con un processor filter
 
@@ -1117,6 +1125,8 @@ receivers:
       load:
       network:
       paging:
+      # How long the host has been up (system.uptime): when it last started.
+      system:
       processes:
 
 processors:

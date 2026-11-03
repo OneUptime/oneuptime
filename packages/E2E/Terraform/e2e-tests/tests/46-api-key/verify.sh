@@ -42,6 +42,10 @@ validate_field "$PERMISSION_RESPONSE" "permission" "ReadProjectMonitor" || valid
 API_KEY_REF=$(echo "$PERMISSION_RESPONSE" | jq -r '(.apiKeyId | if type == "object" then .value else . end) // empty')
 assert_equals "$KEY_ID" "$API_KEY_REF" "apiKeyId" || validation_failed=1
 
+# The value lets whoever has it in: the provider keeps it out of plans, logs
+# and outputs.
+assert_sensitive "oneuptime_api_key.key" "api_key" || validation_failed=1
+
 if [ $validation_failed -eq 1 ]; then
     print_failed "API Key Verification"
 fi

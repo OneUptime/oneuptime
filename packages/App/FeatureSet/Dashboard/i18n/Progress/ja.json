@@ -1,7 +1,7 @@
 {
   "baseline": {
-    "keys": 40054,
-    "untranslated": 1152
+    "keys": 40228,
+    "untranslated": 1140
   },
   "sameAsEnglish": [
     "\"/health\"",
@@ -301,6 +301,7 @@
     "unit-1042-*",
     "user1@example.com\nuser2@example.com\nuser3@example.com",
     "user@company.com",
+    "vApp {{name}}",
     "vCenter",
     "vCenter ID",
     "vSphere Client",

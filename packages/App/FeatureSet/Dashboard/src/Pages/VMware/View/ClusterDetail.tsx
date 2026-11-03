@@ -19,17 +19,14 @@ import ErrorMessage from "Common/UI/Components/ErrorMessage/ErrorMessage";
 import { PromiseVoidFunction } from "Common/Types/FunctionTypes";
 import Tabs from "Common/UI/Components/Tabs/Tabs";
 import { Tab } from "Common/UI/Components/Tabs/Tab";
-import ResourceOverviewTab, {
-  SummaryField,
-} from "../../../Components/Infrastructure/ResourceOverviewTab";
 import ResourceMetricsTab from "../../../Components/Infrastructure/ResourceMetricsTab";
-import StatusBadge, {
-  StatusBadgeType,
-} from "Common/UI/Components/StatusBadge/StatusBadge";
+import Route from "Common/Types/API/Route";
 import {
   VMwareResourceKind,
   externalIdFromRouteParam,
   fetchVMwareInventoryRow,
+  fetchVMwareInventoryRows,
+  fetchVMwareVirtualMachinesThatMayNeedAttention,
   formatBytes,
   formatMhz,
   displayNameForResource,
@@ -37,9 +34,29 @@ import {
 } from "../Utils/VMwareResourceUtils";
 import OneUptimeDate from "Common/Types/Date";
 import ValueFormatter from "Common/Utils/ValueFormatter";
-import { VMWARE_METRIC_DESCRIPTIONS } from "../../../Components/MetricDescriptions/VMwareMetricDescriptions";
 import useTranslator from "Common/UI/Utils/UseTranslator";
 import { Translator } from "Common/UI/Utils/TranslateTemplate";
+import {
+  VMWARE_CPU_READY_WARNING_PERCENT,
+  getVMwareHostsOfCluster,
+} from "../Utils/VMwareHealth";
+import { summarizeVMwareHostVirtualMachines } from "../Utils/VMwareHostData";
+import VMwarePartHero from "../../../Components/VMware/Part/VMwarePartHero";
+import VMwareClusterOverview from "../../../Components/VMware/Part/VMwareClusterOverview";
+import VMwarePartReadError from "../../../Components/VMware/Part/VMwarePartReadError";
+import {
+  VMwarePartRoutes,
+  getVMwarePartRoutes,
+} from "../../../Components/VMware/Part/VMwarePartRoutes";
+import {
+  VMwareHostsTable,
+  VMwareVirtualMachinesTable,
+} from "../../../Components/VMware/VMwareResourceTables";
+
+export const VMWARE_CLUSTER_TAB_OVERVIEW: string = "Overview";
+export const VMWARE_CLUSTER_TAB_HOSTS: string = "ESXi Hosts";
+export const VMWARE_CLUSTER_TAB_VIRTUAL_MACHINES: string = "Virtual Machines";
+export const VMWARE_CLUSTER_TAB_METRICS: string = "Metrics";
 
 const VMwareVCenterClusterDetail: FunctionComponent<
   PageComponentProps
@@ -61,9 +78,93 @@ const VMwareVCenterClusterDetail: FunctionComponent<
 
   const [vcenter, setVCenter] = useState<VMwareVCenter | null>(null);
   const [row, setRow] = useState<VMwareResourceModel | null>(null);
+  // Its hosts, the vCenter's datacenters and the VMs in it that may need a look.
+  const [hostRows, setHostRows] = useState<Array<VMwareResourceModel>>([]);
+  const [datacenterRows, setDatacenterRows] = useState<
+    Array<VMwareResourceModel>
+  >([]);
+  const [attentionVmRows, setAttentionVmRows] = useState<
+    Array<VMwareResourceModel>
+  >([]);
+  /*
+   * The cluster's VMs, read when its Virtual Machines tab first opens: a
+   * cluster can run thousands, and the Overview needs only the ones that
+   * may need attention.
+   */
+  const [vmRows, setVmRows] = useState<Array<VMwareResourceModel> | null>(null);
+  // Why the VMs could not be read: the tab says so, with Refresh.
+  const [vmError, setVmError] = useState<string>("");
   const [isLoading, setIsLoading] = useState<boolean>(true);
   const [isLoadingRow, setIsLoadingRow] = useState<boolean>(true);
   const [error, setError] = useState<string>("");
+  /*
+   * Why the cluster's own rows could not be read: its Overview says so with
+   * Try again, and its hosts tab with Refresh.
+   */
+  const [rowError, setRowError] = useState<string>("");
+  // "View all hosts" opens the hosts tab: Tabs keeps its own selection.
+  const [tabsKey, setTabsKey] = useState<number>(0);
+  const [initialTabName, setInitialTabName] = useState<string>(
+    VMWARE_CLUSTER_TAB_OVERVIEW,
+  );
+
+  // The cluster's row, its hosts, the datacenters and its VMs that may need a look.
+  const fetchRow: PromiseVoidFunction = async (): Promise<void> => {
+    try {
+      const inventoryRow: VMwareResourceModel | null =
+        await fetchVMwareInventoryRow({
+          vmwareVCenterId: modelId,
+          kind: VMwareResourceKind.Cluster,
+          externalId: externalId,
+        });
+      const name: string = inventoryRow
+        ? inventoryRow.clusterName || displayNameForResource(inventoryRow)
+        : externalId.substring(externalId.lastIndexOf("/") + 1);
+      const datacenterName: string | undefined =
+        inventoryRow?.datacenterName || undefined;
+
+      const [hosts, datacenters, attentionVms]: [
+        Array<VMwareResourceModel>,
+        Array<VMwareResourceModel>,
+        Array<VMwareResourceModel>,
+      ] = await Promise.all([
+        fetchVMwareInventoryRows({
+          vmwareVCenterId: modelId,
+          kind: VMwareResourceKind.Host,
+          clusterName: name,
+          datacenterName: datacenterName,
+        }),
+        fetchVMwareInventoryRows({
+          vmwareVCenterId: modelId,
+          kind: VMwareResourceKind.Datacenter,
+        }),
+        fetchVMwareVirtualMachinesThatMayNeedAttention({
+          vmwareVCenterId: modelId,
+          now: OneUptimeDate.getCurrentDate(),
+          clusterName: name,
+          datacenterName: datacenterName,
+          cpuReadyWarningPercent: VMWARE_CPU_READY_WARNING_PERCENT,
+        }),
+      ]);
+      setRow(inventoryRow);
+      setHostRows(hosts);
+      setDatacenterRows(datacenters);
+      setAttentionVmRows(attentionVms);
+      setRowError("");
+    } catch (err) {
+      setRowError(API.getFriendlyMessage(err));
+    }
+    setIsLoadingRow(false);
+  };
+
+  // Try again after a failed read: the loader while it reads again.
+  const retryRow: () => void = (): void => {
+    setIsLoadingRow(true);
+    fetchRow().catch((err: Error) => {
+      setRowError(API.getFriendlyMessage(err));
+      setIsLoadingRow(false);
+    });
+  };
 
   const fetchData: PromiseVoidFunction = async (): Promise<void> => {
     setIsLoading(true);
@@ -81,18 +182,29 @@ const VMwareVCenterClusterDetail: FunctionComponent<
     }
     setIsLoading(false);
 
-    try {
-      const inventoryRow: VMwareResourceModel | null =
-        await fetchVMwareInventoryRow({
-          vmwareVCenterId: modelId,
-          kind: VMwareResourceKind.Cluster,
-          externalId: externalId,
-        });
-      setRow(inventoryRow);
-    } catch {
-      // Graceful degradation — overview tab shows its empty state.
+    await fetchRow();
+  };
+
+  const fetchVirtualMachines: () => Promise<void> = async (): Promise<void> => {
+    if (!row) {
+      setVmRows([]);
+      return;
     }
-    setIsLoadingRow(false);
+    try {
+      setVmRows(
+        await fetchVMwareInventoryRows({
+          vmwareVCenterId: modelId,
+          kind: VMwareResourceKind.VirtualMachine,
+          clusterName: row.clusterName || displayNameForResource(row),
+          datacenterName: row.datacenterName || undefined,
+        }),
+      );
+      setVmError("");
+    } catch (err) {
+      // Said in the tab, never as a cluster that runs no VMs.
+      setVmRows([]);
+      setVmError(API.getFriendlyMessage(err));
+    }
   };
 
   useEffect(() => {
@@ -347,135 +459,103 @@ const VMwareVCenterClusterDetail: FunctionComponent<
     },
   };
 
-  const toNumber: (value: number | null | undefined) => number | null = (
-    value: number | null | undefined,
-  ): number | null => {
-    if (value === null || value === undefined) {
-      return null;
-    }
-    const n: number = Number(value);
-    return Number.isFinite(n) ? n : null;
+  const now: Date = OneUptimeDate.getCurrentDate();
+  const routes: VMwarePartRoutes = getVMwarePartRoutes(modelId);
+  const clusterHosts: Array<VMwareResourceModel> = row
+    ? getVMwareHostsOfCluster(hostRows, row)
+    : hostRows;
+  // The cluster's VMs as vCenter counts them, templates left out.
+  const virtualMachineCount: number | undefined =
+    vmRows !== null
+      ? summarizeVMwareHostVirtualMachines(vmRows).total
+      : row?.vmCount !== null && row?.vmCount !== undefined
+        ? Number(row.vmCount)
+        : undefined;
+
+  const showHosts: () => void = (): void => {
+    setInitialTabName(VMWARE_CLUSTER_TAB_HOSTS);
+    setTabsKey((key: number): number => {
+      return key + 1;
+    });
   };
-
-  // Build overview summary fields from the inventory row.
-  const summaryFields: Array<SummaryField> = [
-    { title: "Cluster Name", value: clusterName },
-    { title: "vCenter", value: vcenterName },
-  ];
-
-  if (row) {
-    if (row.datacenterName) {
-      summaryFields.push({ title: "Datacenter", value: row.datacenterName });
-    }
-
-    const hostCount: number | null = toNumber(row.hostCount);
-    const effectiveHostCount: number | null = toNumber(row.effectiveHostCount);
-    if (hostCount !== null) {
-      const notEffective: number =
-        effectiveHostCount !== null
-          ? Math.max(hostCount - effectiveHostCount, 0)
-          : 0;
-      summaryFields.push({
-        title: "Hosts",
-        description: VMWARE_METRIC_DESCRIPTIONS.clusterHosts,
-        value:
-          notEffective > 0 ? (
-            <StatusBadge
-              text={translator.translateTemplate(
-                "{{effectiveHostCount}} of {{hostCount}} effective — {{notEffective}} in maintenance mode or unresponsive",
-                {
-                  effectiveHostCount: effectiveHostCount ?? 0,
-                  hostCount: hostCount,
-                  notEffective: notEffective,
-                },
-              )}
-              type={StatusBadgeType.Danger}
-            />
-          ) : effectiveHostCount !== null ? (
-            translator.translateTemplate(
-              "{{effectiveHostCount}} of {{hostCount}} effective",
-              { effectiveHostCount: effectiveHostCount, hostCount: hostCount },
-            )
-          ) : (
-            String(hostCount)
-          ),
-      });
-    }
-
-    const vmCount: number | null = toNumber(row.vmCount);
-    const poweredOnVmCount: number | null = toNumber(row.poweredOnVmCount);
-    if (vmCount !== null) {
-      summaryFields.push({
-        title: "Virtual Machines",
-        description: VMWARE_METRIC_DESCRIPTIONS.clusterVirtualMachines,
-        value:
-          poweredOnVmCount !== null
-            ? `${poweredOnVmCount} powered on of ${vmCount}`
-            : String(vmCount),
-      });
-    }
-
-    const templateCount: number | null = toNumber(row.vmTemplateCount);
-    if (templateCount !== null) {
-      summaryFields.push({
-        title: "VM Templates",
-        value: String(templateCount),
-        description: VMWARE_METRIC_DESCRIPTIONS.clusterTemplates,
-      });
-    }
-
-    const cpuEffective: number | null = toNumber(row.cpuEffectiveMhz);
-    const cpuLimit: number | null = toNumber(row.cpuCapacityMhz);
-    if (cpuEffective !== null || cpuLimit !== null) {
-      summaryFields.push({
-        title: "CPU (Effective / Total)",
-        value: `${formatMhz(cpuEffective)} / ${formatMhz(cpuLimit)}`,
-        description: VMWARE_METRIC_DESCRIPTIONS.clusterCpu,
-      });
-    }
-
-    const memoryEffective: number | null = toNumber(row.memoryEffectiveBytes);
-    const memoryLimit: number | null = toNumber(row.maxMemoryBytes);
-    if (memoryEffective !== null || memoryLimit !== null) {
-      summaryFields.push({
-        title: "Memory (Effective / Total)",
-        value: `${formatBytes(memoryEffective)} / ${formatBytes(memoryLimit)}`,
-        description: VMWARE_METRIC_DESCRIPTIONS.clusterMemory,
-      });
-    }
-
-    summaryFields.push({ title: "External ID", value: externalId });
-
-    if (row.metricsUpdatedAt) {
-      summaryFields.push({
-        title: "Metrics Updated",
-        value: OneUptimeDate.fromNow(new Date(row.metricsUpdatedAt as Date)),
-      });
-    }
-
-    if (row.lastSeenAt) {
-      summaryFields.push({
-        title: "Last Seen",
-        value: OneUptimeDate.fromNow(new Date(row.lastSeenAt as Date)),
-      });
-    }
-  }
 
   const tabs: Array<Tab> = [
     {
-      name: "Overview",
-      children: (
-        <ResourceOverviewTab
-          summaryFields={row ? summaryFields : []}
-          labels={{}}
-          annotations={{}}
-          isLoading={isLoadingRow}
-          emptyMessage="Cluster details not reported yet. Make sure the VMware agent is sending metrics."
+      name: VMWARE_CLUSTER_TAB_OVERVIEW,
+      children: isLoadingRow ? (
+        <PageLoader isVisible={true} />
+      ) : rowError ? (
+        <VMwarePartReadError
+          kind={VMwareResourceKind.Cluster}
+          message={rowError}
+          onRetry={retryRow}
+        />
+      ) : (
+        <VMwareClusterOverview
+          vcenterId={modelId}
+          vcenterName={vcenterName}
+          externalId={externalId}
+          row={row}
+          hosts={clusterHosts}
+          attentionVirtualMachines={attentionVmRows}
+          datacenters={datacenterRows}
+          routes={routes}
+          onShowHosts={showHosts}
+          now={now}
         />
       ),
     },
     {
-      name: "Metrics",
+      name: VMWARE_CLUSTER_TAB_HOSTS,
+      countBadge: clusterHosts.length,
+      children: (
+        <VMwareHostsTable
+          rows={clusterHosts}
+          context={{
+            datacenters: datacenterRows,
+            hosts: clusterHosts,
+            now: now,
+          }}
+          scope="cluster"
+          isLoading={isLoadingRow}
+          error={rowError}
+          onRefreshClick={retryRow}
+          description="The ESXi hosts of this cluster, whether vCenter can reach each one, and how busy it is."
+          getViewRoute={(hostExternalId: string) => {
+            return routes.getPartRoute(VMwareResourceKind.Host, hostExternalId);
+          }}
+        />
+      ),
+    },
+    {
+      name: VMWARE_CLUSTER_TAB_VIRTUAL_MACHINES,
+      countBadge: virtualMachineCount,
+      children: (
+        <ClusterVirtualMachinesTab
+          rows={vmRows}
+          error={vmError}
+          hosts={clusterHosts}
+          datacenters={datacenterRows}
+          onOpen={() => {
+            if (vmRows === null) {
+              fetchVirtualMachines().catch(() => {});
+            }
+          }}
+          onRefresh={() => {
+            fetchVirtualMachines().catch(() => {});
+          }}
+          getViewRoute={(vmExternalId: string) => {
+            return routes.getPartRoute(
+              VMwareResourceKind.VirtualMachine,
+              vmExternalId,
+            );
+          }}
+          now={now}
+        />
+      ),
+    },
+    {
+      name: VMWARE_CLUSTER_TAB_METRICS,
       children: (
         <Card
           title={translator.translateTemplate(
@@ -502,7 +582,74 @@ const VMwareVCenterClusterDetail: FunctionComponent<
     },
   ];
 
-  return <Tabs tabs={tabs} onTabChange={() => {}} />;
+  return (
+    <div data-testid="vmware-cluster-page">
+      <VMwarePartHero
+        kind={VMwareResourceKind.Cluster}
+        row={row}
+        isRowRead={!isLoadingRow && !rowError}
+        externalId={externalId}
+        datacenters={datacenterRows}
+        hosts={clusterHosts}
+        now={now}
+      />
+      <Tabs
+        key={tabsKey}
+        tabs={tabs}
+        initialTabName={initialTabName}
+        wrap={true}
+        onTabChange={() => {}}
+      />
+    </div>
+  );
+};
+
+/*
+ * The cluster's VMs, read the first time the tab opens (its children mount
+ * only then), and on Refresh.
+ */
+const ClusterVirtualMachinesTab: FunctionComponent<{
+  rows: Array<VMwareResourceModel> | null;
+  // Why they could not be read.
+  error: string;
+  // The cluster's hosts and the datacenters: what tells a disconnected VM.
+  hosts: Array<VMwareResourceModel>;
+  datacenters: Array<VMwareResourceModel>;
+  onOpen: () => void;
+  onRefresh: () => void;
+  getViewRoute: (externalId: string) => Route | undefined;
+  now: Date;
+}> = (props: {
+  rows: Array<VMwareResourceModel> | null;
+  error: string;
+  hosts: Array<VMwareResourceModel>;
+  datacenters: Array<VMwareResourceModel>;
+  onOpen: () => void;
+  onRefresh: () => void;
+  getViewRoute: (externalId: string) => Route | undefined;
+  now: Date;
+}): ReactElement => {
+  useEffect(() => {
+    props.onOpen();
+  }, []);
+
+  return (
+    <VMwareVirtualMachinesTable
+      rows={props.rows || []}
+      context={{
+        datacenters: props.datacenters,
+        hosts: props.hosts,
+        now: props.now,
+      }}
+      scope="cluster"
+      isLoading={props.rows === null}
+      error={props.error}
+      onRefreshClick={props.onRefresh}
+      description="The virtual machines (and VM templates) in this cluster, their state, and their current resource usage. CPU is reported only for powered-on VMs."
+      emptyMessage="This cluster runs no virtual machines."
+      getViewRoute={props.getViewRoute}
+    />
+  );
 };
 
 export default VMwareVCenterClusterDetail;

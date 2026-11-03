@@ -47,6 +47,11 @@ export interface ComponentProps {
   row: VMwareResourceModel | null;
   clusterRoute?: Route | undefined;
   virtualMachines: VMwareHostVirtualMachineSummary | null;
+  /*
+   * False on a host vCenter cannot reach: it does not know which of the
+   * VMs run, so the row says how many there are and nothing more.
+   */
+  virtualMachineStatesKnown?: boolean | undefined;
 }
 
 interface DetailRow {
@@ -142,16 +147,18 @@ const VMwareHostDetailsCard: FunctionComponent<ComponentProps> = (
       value:
         props.virtualMachines.total === 0
           ? tx("None")
-          : translator.translateTemplate(
-              "{{total}} ({{running}} running, {{off}} off)",
-              {
-                total: props.virtualMachines.total,
-                running: props.virtualMachines.running,
-                off:
-                  props.virtualMachines.poweredOff +
-                  props.virtualMachines.unknown,
-              },
-            ),
+          : props.virtualMachineStatesKnown === false
+            ? String(props.virtualMachines.total)
+            : translator.translateTemplate(
+                "{{total}} ({{running}} running, {{off}} off)",
+                {
+                  total: props.virtualMachines.total,
+                  running: props.virtualMachines.running,
+                  off:
+                    props.virtualMachines.poweredOff +
+                    props.virtualMachines.unknown,
+                },
+              ),
     });
 
     if (props.virtualMachines.templates > 0) {

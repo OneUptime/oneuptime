@@ -1572,7 +1572,7 @@ export const DEVELOPER_DOCS_PROFILES: Readonly<
       {
         title: "Team with a member",
         description:
-          "A team and its first member, you. Add the others the same way, with their user IDs.",
+          "A team and its first member, you. Add the others the same way, by their email addresses: anyone not in the project yet is invited.",
         scopes: ["list"],
         blocks: [
           {
@@ -1591,7 +1591,7 @@ export const DEVELOPER_DOCS_PROFILES: Readonly<
       {
         title: "Add a member",
         description:
-          "Adds you to this team. Add others the same way, with their user IDs.",
+          "Adds you to this team. Add others the same way, by their email addresses: anyone not in the project yet is invited.",
         scopes: ["view"],
         blocks: [
           {

@@ -8,6 +8,7 @@ import {
   getTerraformAttributes,
   getTerraformModelOperations,
   getTerraformTypeName,
+  isRequiredInTerraform,
   TerraformAttributeDescriptor,
   TerraformValueKind,
 } from "../../../Utils/DeveloperDocs/TerraformSchema";
@@ -32,16 +33,20 @@ import {
  * "changing it replaces the resource". A change to the models, ModelSchema or
  * the generator that would make the dashboard's configuration wrong fails
  * here first.
+ *
+ * People named by email address (Common/Utils/DeveloperDocs/PeopleByEmail.ts)
+ * are part of it: each person column's companion (user_email beside
+ * user_id), the person no longer required by ID alone, and no attribute for
+ * what someone else decides (has_accepted_invitation, is_owner_notified).
  */
 
 /*
- * Two models that share a singular name share a provider resource: the
- * generator groups operations by name, so one model's endpoints win. Those
- * are left out (and no Developer page documents them).
+ * No two models share a provider resource: the subscriber notification
+ * template and its link to a status page did (one singular name), until the
+ * link got a client name of its own (ClientResourceNames.ts). The generator
+ * now stops when two models make one resource, so every model with a
+ * resource is held to it here.
  */
-const SHARED_NAME_TYPES: ReadonlyArray<string> = [
-  "oneuptime_subscriber_notification_template",
-];
 
 const PROVIDER_TYPES_BY_KIND: Readonly<
   Record<TerraformValueKind, Array<string>>
@@ -111,11 +116,7 @@ function modelsWithResources(): Array<[string, DatabaseBaseModelType]> {
   return Models.filter((modelType: DatabaseBaseModelType): boolean => {
     const typeName: string | null = getTerraformTypeName(modelType);
 
-    return (
-      Boolean(typeName) &&
-      !SHARED_NAME_TYPES.includes(typeName as string) &&
-      getTerraformAttributes(modelType).length > 0
-    );
+    return Boolean(typeName) && getTerraformAttributes(modelType).length > 0;
   }).map(
     (modelType: DatabaseBaseModelType): [string, DatabaseBaseModelType] => {
       return [modelType.name, modelType];
@@ -153,8 +154,27 @@ function mirroredAttributes(
   provider: Array<ProviderAttribute>,
 ): Array<MirroredAttribute> {
   const hasUpdate: boolean = getTerraformModelOperations(modelType).canUpdate;
+  const descriptors: Array<TerraformAttributeDescriptor> =
+    getTerraformAttributes(modelType);
 
-  return getTerraformAttributes(modelType)
+  // The address beside each person column: never sent, never replacing.
+  const personEmails: Array<MirroredAttribute> = descriptors
+    .filter((descriptor: TerraformAttributeDescriptor): boolean => {
+      return Boolean(descriptor.personEmail);
+    })
+    .map((descriptor: TerraformAttributeDescriptor): MirroredAttribute => {
+      return {
+        name: descriptor.personEmail!.attributeName,
+        type: descriptor.personEmail!.isList ? "set" : "string",
+        required: false,
+        default: null,
+        isComplexObject: false,
+        isDateTime: false,
+        forceNew: false,
+      };
+    });
+
+  return descriptors
     .map((descriptor: TerraformAttributeDescriptor): MirroredAttribute => {
       const providerType: string | undefined = provider.find(
         (attribute: ProviderAttribute): boolean => {
@@ -170,7 +190,7 @@ function mirroredAttributes(
           providerType && allowed.includes(providerType)
             ? providerType
             : (allowed[0] as string),
-        required: descriptor.isRequired,
+        required: isRequiredInTerraform(descriptor),
         default: descriptor.defaultValue ?? null,
         isComplexObject:
           descriptor.kind === TerraformValueKind.Json ||
@@ -180,6 +200,7 @@ function mirroredAttributes(
           descriptor.inCreateSchema && !descriptor.inUpdateSchema && hasUpdate,
       };
     })
+    .concat(personEmails)
     .sort((a: MirroredAttribute, b: MirroredAttribute): number => {
       return a.name.localeCompare(b.name);
     });

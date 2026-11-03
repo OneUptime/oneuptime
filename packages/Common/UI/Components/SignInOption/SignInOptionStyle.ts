@@ -1,7 +1,7 @@
 /*
- * How a sign-in page draws its other ways in - "Sign in with SSO", "Sign in
- * with Microsoft", "Sign in with a passkey" - under an "or" divider below the
- * page's one filled button. Each is a normal button: full width, white and
+ * How a sign-in page draws its other ways in - "Sign in with SSO", "Continue
+ * with Google", "Sign in with Microsoft", "Sign in with a passkey" - under an
+ * "or" divider below the page's one filled button. Each is a normal button: full width, white and
  * outlined, as tall as the filled button above it (the same padding and type
  * size as Button's PRIMARY), with an icon before its words. They used to be
  * centred text links, one per line beside a bordered Microsoft button, and
@@ -72,8 +72,25 @@ export const SIGN_IN_OPTION_LABEL_CLASS: string =
 export const SIGN_IN_OPTION_ICON_SLOT_CLASS: string =
   "-my-1 me-2 inline-block align-baseline";
 
+/*
+ * The same place, 10px before the words rather than 8px: where Google's
+ * sign-in branding puts its "G" (Accounts' GoogleSignInButton).
+ */
+export const SIGN_IN_OPTION_GOOGLE_ICON_SLOT_CLASS: string =
+  "-my-1 me-2.5 inline-block align-baseline";
+
 // The icon itself: the height of the label's line.
 export const SIGN_IN_OPTION_ICON_CLASS: string = "h-5 w-5";
+
+/*
+ * Continue with Google: the box above - as wide, as tall and in the same type
+ * as the options beside it, so it is as prominent as they are - in the
+ * colours Google's sign-in branding sets for each theme rather than in theirs
+ * (ou-google-sign-in, Common/UI/Styles/Theme.css): a white fill with a darker
+ * stroke and words on a light page, Google's own dark fill on a dark one. No
+ * shadow: Google's button has none at rest.
+ */
+export const SIGN_IN_OPTION_GOOGLE_CLASS: string = `${SIGN_IN_OPTION_LAYOUT_CLASS} cursor-pointer ou-google-sign-in`;
 
 /*
  * The one way in, filled: a sign-in page whose only way in is one single

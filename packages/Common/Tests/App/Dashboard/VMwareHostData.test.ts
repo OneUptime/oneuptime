@@ -12,7 +12,6 @@ import {
   VMWARE_DISK_LATENCY_GAUGE_THRESHOLDS,
   VMWARE_DISK_LATENCY_WARN_MS,
   VMWARE_HOST_DEVICE_GROUP_KEYS,
-  VMWARE_HOST_NAME_LABEL_KEYS,
   VMWARE_HOST_OVERVIEW_METRICS,
   VMWARE_HOST_TILE_WINDOW_MINUTES,
   VMWARE_METRIC_STALE_MS,
@@ -34,7 +33,6 @@ import {
   getVMwareHostLastReportAt,
   getVMwareHostMetricAttributes,
   getVMwareHostReportState,
-  getVMwareHostReportStateLook,
   getVMwareHostSeries,
   hasFreshVMwareMetrics,
   isVMwareHostTotalObject,
@@ -42,7 +40,6 @@ import {
   meanOfRecentWindow,
   parseVMwareHostExternalId,
   readVMwareMetricSamples,
-  seriesLabelsNameVMwareHost,
   sumVMwareSeries,
   summarizeVMwareHostMetrics,
   summarizeVMwareHostVirtualMachines,
@@ -272,30 +269,6 @@ describe("whether vCenter still reports the host", () => {
     ).toEqual(new Date("2026-10-21T11:00:00Z"));
     expect(getVMwareHostLastReportAt(row({}))).toBeNull();
     expect(getVMwareHostLastReportAt(null)).toBeNull();
-  });
-
-  test("every state has its words and its tone", () => {
-    expect(
-      getVMwareHostReportStateLook(VMwareHostReportState.Reporting),
-    ).toEqual({
-      label: "Reporting",
-      tone: "positive",
-      description:
-        "vCenter reported this host's metrics in the last 15 minutes.",
-    });
-    expect(
-      getVMwareHostReportStateLook(VMwareHostReportState.NotReporting).tone,
-    ).toBe("warning");
-    expect(
-      getVMwareHostReportStateLook(VMwareHostReportState.NoDataYet).label,
-    ).toBe("No data yet");
-    expect(
-      getVMwareHostReportStateLook(VMwareHostReportState.NotInInventory),
-    ).toEqual({
-      label: "Not in inventory",
-      tone: "neutral",
-      description: "This host is not in the vCenter's inventory any more.",
-    });
   });
 
   test("a row's reading is fresh for 15 minutes", () => {
@@ -960,68 +933,6 @@ describe("the disk latency gauge", () => {
     expect(getVMwareDiskLatencyGaugePercent(-3)).toBe(0);
     expect(getVMwareDiskLatencyGaugePercent(null)).toBeNull();
     expect(getVMwareDiskLatencyGaugePercent(NaN)).toBeNull();
-  });
-});
-
-describe("whether an incident or alert is about this host", () => {
-  test("the templates' resource key and the bare key both name a host", () => {
-    expect(VMWARE_HOST_NAME_LABEL_KEYS).toEqual([
-      "resource.vcenter.host.name",
-      "vcenter.host.name",
-    ]);
-    expect(
-      seriesLabelsNameVMwareHost(
-        { "resource.vcenter.host.name": "esx01.acme.example" },
-        "esx01.acme.example",
-      ),
-    ).toBe(true);
-    expect(
-      seriesLabelsNameVMwareHost(
-        { "vcenter.host.name": "esx01.acme.example" },
-        "esx01.acme.example",
-      ),
-    ).toBe(true);
-  });
-
-  test("case and surrounding spaces do not matter", () => {
-    expect(
-      seriesLabelsNameVMwareHost(
-        { "resource.vcenter.host.name": " ESX01.Acme.Example " },
-        "esx01.acme.example",
-      ),
-    ).toBe(true);
-  });
-
-  test("another host, another key, no labels or no name is not this host", () => {
-    expect(
-      seriesLabelsNameVMwareHost(
-        { "resource.vcenter.host.name": "esx02.acme.example" },
-        "esx01.acme.example",
-      ),
-    ).toBe(false);
-    expect(
-      seriesLabelsNameVMwareHost(
-        { "resource.vcenter.vm.name": "esx01.acme.example" },
-        "esx01.acme.example",
-      ),
-    ).toBe(false);
-    expect(
-      seriesLabelsNameVMwareHost({ "resource.vcenter.host.name": 42 }, "42"),
-    ).toBe(false);
-    expect(seriesLabelsNameVMwareHost(null, "esx01")).toBe(false);
-    expect(seriesLabelsNameVMwareHost(undefined, "esx01")).toBe(false);
-    expect(
-      seriesLabelsNameVMwareHost({ "resource.vcenter.host.name": "" }, ""),
-    ).toBe(false);
-  });
-
-  test("a prefix of another host's name is not this host", () => {
-    expect(
-      seriesLabelsNameVMwareHost(
-        { "resource.vcenter.host.name": "esx01.acme.example.lab" },
-        "esx01.acme.example",
-      ),
-    ).toBe(false);
   });
 });
 

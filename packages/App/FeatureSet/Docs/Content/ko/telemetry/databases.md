@@ -1,6 +1,6 @@
 # 데이터베이스
 
-**Databases**는 프로젝트가 실행하거나 통신하는 모든 데이터베이스 서버에 전용 페이지를 제공합니다. 무엇이 얼마나 빠르게 호출하는지, 어디에서 실행되는지, 엔진 자체의 상태 메트릭, 로그와 트레이스, 연결된 인시던트, 알림, 예정된 유지 관리, 그리고 해당 엔진에 권장되는 알림 모니터를 보여 줍니다. 데이터베이스에는 다른 모든 리소스처럼 레이블, 소유자, 레이블 및 소유자 규칙, 데이터베이스별 보존 기간, 보관 기능이 있습니다. **제품 → 리소스 → 데이터베이스**에서 여세요.
+**데이터베이스**는 프로젝트가 실행하거나 통신하는 모든 데이터베이스 서버에 전용 페이지를 제공합니다. 무엇이 얼마나 빠르게 호출하는지, 어디에서 실행되는지, 엔진 자체의 상태 메트릭, 로그와 트레이스, 연결된 인시던트, 알림, 예정된 유지 관리, 그리고 해당 엔진에 권장되는 알림 모니터를 보여 줍니다. 데이터베이스에는 다른 모든 리소스처럼 레이블, 소유자, 레이블 및 소유자 규칙, 데이터베이스별 보존 기간, 보관 기능이 있습니다. **제품 → 리소스 → 데이터베이스**에서 여세요.
 
 :::cards
 - [Database Agent](#database-agent): PostgreSQL, MySQL, SQL Server, Oracle, Redis, MongoDB, Elasticsearch, Memcached의 엔진 메트릭.
@@ -30,7 +30,7 @@ flowchart LR
 
 엔진 메트릭은 데이터베이스 자체와 통신하는 Collector(관리형 클라우드 데이터베이스라면 공급자의 모니터링 API와 통신하는 Collector)에서만 옵니다. 트레이스와 컨테이너 인벤토리는 데이터베이스가 존재한다는 사실과 사용 방식을 OneUptime에 알려 주지만, 내부 상태는 알려 주지 않습니다. 각 데이터베이스의 **Engine metrics** 상태가 그 부분이 연결되어 있는지 보여 줍니다.
 
-데이터베이스를 직접 추가할 수도 있습니다. **Databases → 데이터베이스 만들기**에서 엔진, 주소, 포트를 지정하세요. 에이전트가 전혀 필요 없는 프로브 기반 상태 검사는 [데이터베이스 상태 모니터](/docs/monitor/database-health-monitor)를 참조하세요.
+데이터베이스를 직접 추가할 수도 있습니다. **데이터베이스 → 데이터베이스 만들기**에서 엔진, 주소, 포트를 지정하세요. 에이전트가 전혀 필요 없는 프로브 기반 상태 검사는 [데이터베이스 상태 모니터](/docs/monitor/database-health-monitor)를 참조하세요.
 
 ## 지원되는 데이터베이스
 
@@ -191,7 +191,7 @@ Kubernetes와 달리 컨테이너의 명령줄은 읽지 않습니다(시크릿�
 
 - ID로 연결된 데이터는 보고하는 주소가 사설 IP, 클러스터 로컬 이름, 다른 데이터베이스가 소유한 주소, 또는 주소 없음 중 무엇이든 해당 데이터베이스에 들어가 그 페이지에만 표시됩니다. 보고된 주소가 프로젝트 전체에서 하나의 서버를 가리키고 아직 어떤 데이터베이스에도 속하지 않았다면 엔드포인트로 데이터베이스에 추가되므로, 그 주소로 가는 애플리케이션 트레이스도 그곳에 들어갑니다.
 - 그렇지 않으면 데이터베이스가 이미 소유한 엔드포인트가 데이터를 그 데이터베이스에 연결합니다. 그 데이터베이스를 무엇이 만들었는지는 상관없습니다.
-- 그렇지 않으면 데이터베이스가 **생성**됩니다. 단, 프로젝트 전체에서 하나의 서버를 뜻하는 이름(DNS 이름, 공인 IP, 또는 데이터가 Kubernetes 클러스터로 한정한 클러스터 로컬, `.internal`, `.local` 이름. 클러스터는 `k8s.cluster.name`이며 Database Agent는 이를 절대 설정하지 않습니다)에서만, 그리고 스스로 생성될 수 있는 엔진([지원되는 데이터베이스](#지원되는-데이터베이스)의 **트레이스에서 생성** 열. 공유 클라우드 API, 프로세스 내 엔진, 알 수 없는 엔진은 해당하지 않음)에 대해서만 생성됩니다. 사설 IP와 링크 로컬 IP, 단일 레이블 이름(`db`), 한정되지 않은 클러스터 로컬 이름(`postgres.prod.svc.cluster.local`), `.internal`이나 `.local` 이름은 네트워크마다 다른 서버를 뜻할 수 있습니다. Pod IP는 재시작할 때마다 바뀌며, Collector 자체의 네임스페이스로 보완된 단일 레이블 이름은 Service일 수도 있고 Collector 자체의 Pod일 수도 있습니다. 이런 이름을 지정한 데이터는 그 이름을 이미 엔드포인트로 가진 데이터베이스(Service 이름의 경우 Kubernetes에서 감지된 워크로드)에만 들어갑니다. 그 데이터베이스를 직접 만들거나(**Databases → 데이터베이스 만들기**, 같은 주소와 포트) `DATABASE_SERVER_ID`로 에이전트를 연결하세요. Kubernetes 클러스터가 있는 프로젝트에서는 클러스터가 없는 클러스터 로컬 Service 이름이 거부됩니다. 데이터베이스를 `postgres.prod.svc.cluster.local:5432@my-cluster`로 만든 다음, 한정되지 않은 `postgres.prod.svc.cluster.local:5432`(에이전트가 보고하는 이름)를 그 **엔드포인트** 탭에서 추가하세요.
+- 그렇지 않으면 데이터베이스가 **생성**됩니다. 단, 프로젝트 전체에서 하나의 서버를 뜻하는 이름(DNS 이름, 공인 IP, 또는 데이터가 Kubernetes 클러스터로 한정한 클러스터 로컬, `.internal`, `.local` 이름. 클러스터는 `k8s.cluster.name`이며 Database Agent는 이를 절대 설정하지 않습니다)에서만, 그리고 스스로 생성될 수 있는 엔진([지원되는 데이터베이스](#지원되는-데이터베이스)의 **트레이스에서 생성** 열. 공유 클라우드 API, 프로세스 내 엔진, 알 수 없는 엔진은 해당하지 않음)에 대해서만 생성됩니다. 사설 IP와 링크 로컬 IP, 단일 레이블 이름(`db`), 한정되지 않은 클러스터 로컬 이름(`postgres.prod.svc.cluster.local`), `.internal`이나 `.local` 이름은 네트워크마다 다른 서버를 뜻할 수 있습니다. Pod IP는 재시작할 때마다 바뀌며, Collector 자체의 네임스페이스로 보완된 단일 레이블 이름은 Service일 수도 있고 Collector 자체의 Pod일 수도 있습니다. 이런 이름을 지정한 데이터는 그 이름을 이미 엔드포인트로 가진 데이터베이스(Service 이름의 경우 Kubernetes에서 감지된 워크로드)에만 들어갑니다. 그 데이터베이스를 직접 만들거나(**데이터베이스 → 데이터베이스 만들기**, 같은 주소와 포트) `DATABASE_SERVER_ID`로 에이전트를 연결하세요. Kubernetes 클러스터가 있는 프로젝트에서는 클러스터가 없는 클러스터 로컬 Service 이름이 거부됩니다. 데이터베이스를 `postgres.prod.svc.cluster.local:5432@my-cluster`로 만든 다음, 한정되지 않은 `postgres.prod.svc.cluster.local:5432`(에이전트가 보고하는 이름)를 그 **엔드포인트** 탭에서 추가하세요.
 - 서버를 전혀 지정하지 않는 리시버 배치는 무시됩니다([직접 운영하는 OpenTelemetry Collector 사용](#직접-운영하는-opentelemetry-collector-사용) 참조).
 
 Collector가 생성하는 데이터베이스는 다른 모든 감지된 데이터베이스처럼 [자동 생성 한도](#자동-생성-한도)에 포함됩니다. 직접 만들고 `DATABASE_SERVER_ID`로 연결한 데이터베이스는 생성될 필요가 없습니다. [Database Agent](#database-agent)를 참조하세요.
@@ -355,7 +355,7 @@ docker compose up -d
 
 ### OneUptime에서 데이터베이스 찾기
 
-첫 수집 후 데이터베이스가 **Databases** 아래에 나타납니다. OneUptime이 같은 주소의 트레이스나 컨테이너에서 이미 감지했다면 그 **Engine metrics** 상태가 연결됨으로 바뀝니다. 사설 IP나 네트워크 안에서만 확인되는 이름(`db.prod.internal`, 클러스터 로컬 이름)이라면 먼저 데이터베이스를 만들거나 `DATABASE_SERVER_ID`를 설정하세요([Database Agent 또는 직접 운영하는 Collector에서](#database-agent-또는-직접-운영하는-collector에서) 참조).
+첫 수집 후 데이터베이스가 **데이터베이스** 아래에 나타납니다. OneUptime이 같은 주소의 트레이스나 컨테이너에서 이미 감지했다면 그 **Engine metrics** 상태가 연결됨으로 바뀝니다. 사설 IP나 네트워크 안에서만 확인되는 이름(`db.prod.internal`, 클러스터 로컬 이름)이라면 먼저 데이터베이스를 만들거나 `DATABASE_SERVER_ID`를 설정하세요([Database Agent 또는 직접 운영하는 Collector에서](#database-agent-또는-직접-운영하는-collector에서) 참조).
 :::
 
 ### 환경 변수
@@ -418,7 +418,7 @@ sudo systemctl enable --now oneuptime-database-agent
 
 `install.sh`를 다시 실행하세요. 기존 `.env`의 모든 값을 재사용하고, `docker-compose.yml`, `otel-collector-config.yaml`, systemd 유닛을 현재 버전으로 바꾸며, 새 구성이 적용되도록 에이전트의 컨테이너를 다시 만듭니다. 편집했던 파일(`network_mode: host`, `filelog` 리시버와 그 마운트, 추가 메트릭)은 새 파일 옆에 `<file>.bak.<timestamp>`로 보존되며, 스크립트가 마지막에 이를 나열하므로 편집 내용을 다시 적용할 수 있습니다. `.env`나 `otel-collector-config.yaml`의 편집은 `docker compose up -d --force-recreate`로 적용하세요. Collector는 시작할 때만 구성을 읽으며, 구성 파일만 바뀐 경우 일반 `docker compose up -d`는 실행 중인 컨테이너를 그대로 둡니다. 스크립트는 설치한 내용을 `.agent-files.sha256`에 기록하므로, 아무도 편집하지 않은 파일은 새 버전이 얼마나 바뀌었든 사본 없이 교체됩니다. 그 기록이 없는 디렉터리(직접 구성한 디렉터리)에서는 편집 내용이 있을 수 있으므로 새 버전과 다른 파일을 모두 보존합니다. 에이전트를 제거하려면 `cd /opt/oneuptime-database-agent && docker compose down`을 실행한 다음 모니터링 사용자(와 만들었다면 AI 에이전트 전용 로그인)를 삭제하세요.
 
-에이전트는 파일에 고정된 Collector 버전을 **Agent version**으로 보고합니다. 그 버전이 이 OneUptime 릴리스가 고정한 버전보다 오래되면 데이터베이스의 **개요**에서 그 옆에 경고 표시가 나타납니다. 선택하면 업그레이드 방법이 표시됩니다. 설치 스크립트, Docker Compose, 또는 Kubernetes의 데이터베이스라면 설정 가이드의 Deployment를 사용합니다.
+에이전트는 파일에 고정된 Collector 버전을 **에이전트 버전**으로 보고합니다. 그 버전이 이 OneUptime 릴리스가 고정한 버전보다 오래되면 데이터베이스의 **개요**에서 그 옆에 경고 표시가 나타납니다. 선택하면 업그레이드 방법이 표시됩니다. 설치 스크립트, Docker Compose, 또는 Kubernetes의 데이터베이스라면 설정 가이드의 Deployment를 사용합니다.
 
 ## AI 에이전트
 

@@ -434,6 +434,7 @@ export default class ProjectCallSMSConfig extends BaseModel {
     isDefaultValueColumn: true,
     required: true,
     type: TableColumnType.ShortText,
+    allowedValues: Object.values(TwilioConfigUse),
     canReadOnRelationQuery: true,
     title: USED_FOR_TITLE,
     description:

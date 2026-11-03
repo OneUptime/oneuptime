@@ -1,7 +1,7 @@
 {
   "baseline": {
-    "keys": 40054,
-    "untranslated": 12378
+    "keys": 40228,
+    "untranslated": 12277
   },
   "sameAsEnglish": [
     "0 (kiss-o'-death {{kissCode}})",
@@ -34,6 +34,7 @@
     "INP 168 ms",
     "INP 190 ms",
     "INP 540 ms",
+    "IoT",
     "JavaScript API",
     "K8s Deployment",
     "LXC 201 · pve3",
@@ -105,6 +106,7 @@
     "svc-backup",
     "syslog",
     "timeout|connection refused",
+    "vApp {{name}}",
     "vCenter",
     "vSphere Client",
     "z",

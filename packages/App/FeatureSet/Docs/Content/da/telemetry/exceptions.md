@@ -60,7 +60,7 @@ Hver række viser også, hvor mange brugere undtagelsen ramte i det valgte tidsr
 
 ### Søg og filtrér
 
-Skriv en forespørgsel som `type:TypeError env:production`, se [Søgesyntaks](/docs/telemetry/search-syntax#undtagelser), eller klik på en værdi i sidepanelet **Filtre**: en tjeneste, en vært eller en anden ressource, en **Undtagelsestype**, et **Miljø** eller en **Error Class**. **Tildelt til mig** viser kun de undtagelser, der er tildelt dig, og sorteringsmenuen ordner listen efter **Sidst set**, **Først set** eller **Flest hændelser**.
+Skriv en forespørgsel som `type:TypeError env:production`, se [Søgesyntaks](/docs/telemetry/search-syntax#undtagelser), eller klik på en værdi i sidepanelet **Filtre**: en tjeneste, en vært eller en anden ressource, en **Undtagelsestype**, et **Miljø** eller en **Error Class**. Klik på minustegnet ved siden af en værdi for i stedet at udelade de undtagelser. **Tildelt til mig** viser kun de undtagelser, der er tildelt dig, og sorteringsmenuen ordner listen efter **Sidst set**, **Først set** eller **Flest hændelser**.
 
 **Gemte visninger** gemmer listen under et navn til alle i projektet: søgningen, filtrene, tidsintervallet, status, hvad der tæller som et problem, **Tildelt til mig**, sorteringen og sidestørrelsen. En visning med **Tildelt til mig** viser hver person de undtagelser, der er tildelt dem, og **Ryd visning** sætter listen tilbage, som den åbner første gang. Sidens adresse angiver den visning, du valgte, så et link, du deler, åbner den. Ellers fungerer gemte visninger som i [Protokoludforsker](/docs/telemetry/logs-explorer#gem-en-visning).
 
@@ -77,10 +77,10 @@ Sidens sidemenu samler det, du gør med en undtagelse:
 | --- | --- |
 | **Oversigt** | Beskeden, tjenesten, hvor ofte den skete, og hvornår den først og sidst blev set, dens udvikling over tid og dens seneste forekomst: release, miljø, span, spor og brugersession. Øverst OneUptime AI's forklaring af, hvad der skete, når AI er slået til. |
 | **Stack trace** | Stakkens frames. For browserkode de oprindelige filer og linjer, når du har uploadet [Source maps](/docs/telemetry/source-maps) til releasen. |
-| **Occurrences** | Hver forekomst med dens tidspunkt, dens besked og det spor, den opstod i. |
-| **Context** | Den seneste forekomsts attributter, dens sessionsoptagelse, når der er en, og de trin, der førte til den. |
+| **Forekomster** | Hver forekomst med dens tidspunkt, dens besked og det spor, den opstod i. |
+| **Kontekst** | Den seneste forekomsts attributter, dens sessionsoptagelse, når der er en, og de trin, der førte til den. |
 | **Protokoller** | De protokoller, der blev skrevet omkring den seneste forekomst. |
-| **AI Assistance** | AI-opgaver, der retter undtagelsen eller tester den. |
+| **AI-hjælp** | AI-opgaver, der retter undtagelsen eller tester den. |
 | **Indstillinger** | Løs eller arkivér undtagelsen. Den ligger under **Administrer**, som er foldet sammen fra start. |
 
 ## Løs, genåbn og arkivér
@@ -131,7 +131,7 @@ Med **Arkivér forventede undtagelser** slået til i indstillingerne for AI-inds
 | **Hvor du skal kigge** | De frames i stack trace, du skal åbne først. |
 | **Næste trin** | Højst tre trin til at bekræfte eller rette den. |
 
-Forklaringen gemmes på undtagelsen, så den næste, der åbner den, læser den med det samme, og **Forklar igen** beder om en ny. **Åbn en pull request med rettelsen** åbner undtagelsens side **AI Assistance**, og **Stil et opfølgende spørgsmål** åbner Ask AI om undtagelsen.
+Forklaringen gemmes på undtagelsen, så den næste, der åbner den, læser den med det samme, og **Forklar igen** beder om en ny. **Åbn en pull request med rettelsen** åbner undtagelsens side **AI-hjælp**, og **Stil et opfølgende spørgsmål** åbner Ask AI om undtagelsen.
 
 ID'er, e-mail- og IP-adresser samt tokens fjernes fra alt, hvad der sendes, og af et spans attributter sendes kun nogle få, såsom dets rute og statuskode. Forklaringen bruger projektets LLM-udbyder og AI-kreditter og tilbydes ikke, mens **Aktivér AI** er slået fra. Alle, der kan læse undtagelsen, kan bede om en.
 
@@ -141,7 +141,7 @@ Flet en, som OneUptime AI kalder **Sandsynligvis den samme fejl**, og som hører
 
 ## Ret den med AI
 
-Siden **AI Assistance** tilbyder tre opgaver. Hver kører som en AI-opgave, der åbner en pull request i dit kodelager:
+Siden **AI-hjælp** tilbyder tre opgaver. Hver kører som en AI-opgave, der åbner en pull request i dit kodelager:
 
 | Opgave | Hvad pull requesten gør |
 | --- | --- |
@@ -161,7 +161,7 @@ Hvert 15. minut gennemgår OneUptime dine undtagelser for nye, for dem, der plud
 | **Stigning i undtagelser** | En undtagelse, der er sket 10 eller flere gange i den seneste time, med 5 eller flere gange sin timerate i de 24 timer før. | Retter undtagelsen eller håndterer den bedre. |
 | **Manglende stack trace** | De undtagelser, en tjeneste registrerede det seneste døgn, har intet stack trace og er tilsammen sket 20 eller flere gange. | Får tjenesten til at registrere et stack trace med hver undtagelse. |
 
-En ny eller stigende undtagelses pull request er undtagelsens egen AI-opgave, den som dens side **AI Assistance** starter, og den venter på, at OneUptime AI undersøger fundet. Finder den koden skyldig (`code-fault`), retter pull requesten den, som **Fix this exception with AI** gør. Finder den en forventet fejl (`user-error` eller `expected-denial`), håndterer pull requesten fejlen bedre, som **Forbedr fejlhåndtering** gør. Enhver anden konklusion åbner ingen pull request af sig selv. Med **Arkivér forventede undtagelser** slået til arkiveres en forventet afvisning i stedet og får ingen pull request.
+En ny eller stigende undtagelses pull request er undtagelsens egen AI-opgave, den som dens side **AI-hjælp** starter, og den venter på, at OneUptime AI undersøger fundet. Finder den koden skyldig (`code-fault`), retter pull requesten den, som **Fix this exception with AI** gør. Finder den en forventet fejl (`user-error` eller `expected-denial`), håndterer pull requesten fejlen bedre, som **Forbedr fejlhåndtering** gør. Enhver anden konklusion åbner ingen pull request af sig selv. Med **Arkivér forventede undtagelser** slået til arkiveres en forventet afvisning i stedet og får ingen pull request.
 
 OneUptime AI åbner kun selv en for en undtagelse, der er rejst i din egen kode: en, hvis stack trace har en ramme fra din kode og ikke kun rammer fra biblioteker eller kørselsmiljøet. En pull request, som nogen lukkede uden at flette den, sætter de automatiske på pause for den undtagelse. Alle kan stadig bede om enhver af dem med **Ret med AI** på fundet.
 
@@ -187,7 +187,7 @@ Under **Flere felter** vælger en regel de kodelagre, MCP-servere og den LLM-udb
 
 - **Undtagelser → AI → Indsigter** viser, hvad OneUptime fandt, hvert fund med sine beviser, rammerne fra din kode i dets stack trace medregnet. **View Exception Group** åbner undtagelsen, og for en tjenestes manglende stack traces åbner **Åbn i Undtagelser** dens uløste undtagelser fra det seneste døgn.
 - **Undtagelser → AI → Protokoller** viser hver undersøgelse og hver pull request, nyeste først, med status for hver og det, hver undersøgelse fandt.
-- Pull requesten siger, hvorfor den blev åbnet, med et link til dens fund. En ny eller stigende undtagelses pull request linker også til undtagelsen og vises på undtagelsens side **AI Assistance**. I Kode nævner dens opgave den undtagelse, den retter, eller det fund, den kom fra.
+- Pull requesten siger, hvorfor den blev åbnet, med et link til dens fund. En ny eller stigende undtagelses pull request linker også til undtagelsen og vises på undtagelsens side **AI-hjælp**. I Kode nævner dens opgave den undtagelse, den retter, eller det fund, den kom fra.
 
 ## Indsigter i undtagelser
 

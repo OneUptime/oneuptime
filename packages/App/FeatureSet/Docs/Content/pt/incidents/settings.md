@@ -32,7 +32,7 @@ O que o OneUptime AI faz por conta própria não é configurado aqui: ele tem um
 
 **Estado do incidente** e **Severidade do incidente** são tratados a fundo em [Estados e severidades de incidentes](/docs/incidents/states-and-severities) — o resto desta página começa em **Modelos de incidentes**. Os formulários que deixam pessoas de fora da sua equipe relatar incidentes são um produto próprio: veja [Formulários](/docs/forms/index). Ferramentas que abrem incidentes por conta própria, como o [Huntress](/docs/integrations/huntress), são configuradas como workflows.
 
-Expanda **Regras** e você ganha mais oito páginas: **Regras de agrupamento**, **Regras de Plantão**, **Regras de proprietário**, **Regras de runbook**, **Regras de privacidade**, **Regras de Rótulos**, **Regras de SLA** e **Reminder Rules**. Elas são tratadas mais abaixo.
+Expanda **Regras** e você ganha mais oito páginas: **Regras de agrupamento**, **Regras de Plantão**, **Regras de proprietário**, **Regras de runbook**, **Regras de privacidade**, **Regras de Rótulos**, **Regras de SLA** e **Regras de lembrete**. Elas são tratadas mais abaixo.
 
 ## Modelos de incidentes
 
@@ -598,12 +598,12 @@ As regras de agrupamento, de SLA, de lembrete e de IA também agem sobre o novo 
 - **Regras de privacidade** — decidem se um incidente que corresponde é privado.
 - **Regras de Rótulos** — aplicam rótulos automaticamente.
 - **Regras de SLA** — acompanham os tempos de resposta e de resolução. As regras são avaliadas de cima para baixo na lista; arraste uma regra para mudar a posição dela.
-- **Reminder Rules** — lembram periodicamente os proprietários de um incidente enquanto ele continua aberto. As regras são avaliadas de cima para baixo na lista e a primeira regra que corresponde vence; arraste uma regra para mudar a posição dela. A regra de um incidente é reavaliada, e a espera até o próximo lembrete dele recomeça, quando a severidade ou os rótulos dele mudam ou quando o interruptor **Enviar lembretes** dele é alterado. Salvar a severidade e os rótulos que ele já tem — todo salvamento do cartão **Detalhes do incidente** os envia — deixa o próximo lembrete dele onde estava. Os alertas funcionam do mesmo jeito.
+- **Regras de lembrete** — lembram periodicamente os proprietários de um incidente enquanto ele continua aberto. As regras são avaliadas de cima para baixo na lista e a primeira regra que corresponde vence; arraste uma regra para mudar a posição dela. A regra de um incidente é reavaliada, e a espera até o próximo lembrete dele recomeça, quando a severidade ou os rótulos dele mudam ou quando o interruptor **Enviar lembretes** dele é alterado. Salvar a severidade e os rótulos que ele já tem — todo salvamento do cartão **Detalhes do incidente** os envia — deixa o próximo lembrete dele onde estava. Os alertas funcionam do mesmo jeito.
 
 > [!IMPORTANT]
 > **A semântica de ordem não é uniforme.** As regras de agrupamento, as regras de SLA e as Reminder Rules são avaliadas em ordem, e as listas delas são ordenadas arrastando: uma regra nova é adicionada no fim. As regras de plantão não — toda regra que corresponde dispara. Não suponha que um mesmo modelo vale para as nove.
 
-As páginas **Regras de Plantão**, **Regras de proprietário**, **Regras de Rótulos** e **Regras de privacidade** têm abas — uma aba **Incident Rules** e uma aba **Episode Rules**, cada uma com sua própria tabela. Configure a aba **Incident Rules** a menos que você esteja falando especificamente de episódios. **Regras de agrupamento**, **Regras de runbook**, **Regras de IA**, **Regras de SLA** e **Reminder Rules** são tabelas únicas.
+As páginas **Regras de Plantão**, **Regras de proprietário**, **Regras de Rótulos** e **Regras de privacidade** têm abas — uma aba **Incident Rules** e uma aba **Episode Rules**, cada uma com sua própria tabela. Configure a aba **Incident Rules** a menos que você esteja falando especificamente de episódios. **Regras de agrupamento**, **Regras de runbook**, **Regras de IA**, **Regras de SLA** e **Regras de lembrete** são tabelas únicas.
 
 As regras de proprietário, de rótulos e de privacidade só agem sobre os incidentes e episódios criados depois que a regra existe. Para aplicar uma delas aos incidentes que já existem, use **Executar agora** na linha da regra, na página dela ou nas ações em massa da tabela — veja [Executar regras em recursos existentes](/docs/configuration/run-rules-now). As regras de plantão, de runbook, de IA, de agrupamento, de SLA e de lembrete não podem ser executadas em incidentes existentes.
 

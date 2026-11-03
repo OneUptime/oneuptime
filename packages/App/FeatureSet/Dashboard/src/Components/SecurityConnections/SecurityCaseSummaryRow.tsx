@@ -11,6 +11,7 @@ import OneUptimeDate from "Common/Types/Date";
 import IconProp from "Common/Types/Icon/IconProp";
 import { ResourceSecurityCaseJson } from "Common/Types/SecurityCase/SecurityConnection";
 import Icon from "Common/UI/Components/Icon/Icon";
+import IsolatedText from "Common/UI/Components/IsolatedText/IsolatedText";
 import { PillSize } from "Common/UI/Components/Pill/Pill";
 import { Translator } from "Common/UI/Utils/TranslateTemplate";
 import useTranslator from "Common/UI/Utils/UseTranslator";
@@ -37,18 +38,29 @@ const SecurityCaseSummaryRow: FunctionComponent<ComponentProps> = (
   const translator: Translator = useTranslator();
   const securityCase: ResourceSecurityCaseJson = props.securityCase;
   const route: Route | null = getSecurityCaseRoute(securityCase.id);
+  /*
+   * The number and the title are each isolated (IsolatedText, a <bdi> that
+   * reads the way most of its letters do): on a right-to-left page, a
+   * number and a title both written in Latin letters ran together as one
+   * left-to-right run - "SEC-141Repeated failed..." - with the number's gap
+   * on its far side. Isolated, the number keeps the line's start. Its gap
+   * is on the span around it, which reads in the page's direction, so the
+   * gap stays between the two either way (an isolate reads in its own
+   * text's direction, and its end would be the far side again).
+   */
   const title: ReactElement = (
     <>
       {securityCase.number ? (
         <span className="mr-1.5 font-medium text-gray-500">
-          {securityCase.number}
+          <IsolatedText text={securityCase.number} />
         </span>
       ) : (
         <></>
       )}
-      <span className="font-medium text-gray-900 group-hover:text-indigo-700">
-        {securityCase.title}
-      </span>
+      <IsolatedText
+        text={securityCase.title}
+        className="font-medium text-gray-900 group-hover:text-indigo-700"
+      />
     </>
   );
 

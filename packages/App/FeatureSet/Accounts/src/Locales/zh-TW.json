@@ -23,7 +23,8 @@
     "newPassword": "新密碼",
     "code": "代碼",
     "yourCompany": "您的公司",
-    "or": "或"
+    "or": "或",
+    "continueWithGoogle": "使用 Google 繼續"
   },
   "language": {
     "label": "語言",
@@ -58,6 +59,10 @@
     },
     "title": "登入您的帳號",
     "subtitle": "使用密碼、組織的單一登入（SSO）或通行密鑰。",
+    "sessionEnded": {
+      "lengthReached": "您的工作階段已達到時間上限，因此已被登出。請重新登入，從上次離開的地方繼續。",
+      "inactive": "由於一段時間沒有活動，您已被登出。請重新登入，從上次離開的地方繼續。"
+    },
     "submitButton": "登入",
     "forgotPassword": "忘記密碼？",
     "signInWithSso": "使用 SSO 登入",

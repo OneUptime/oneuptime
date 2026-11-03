@@ -1,6 +1,6 @@
 # 클라우드 리소스(IaaS 및 PaaS)
 
-**Cloud Resources**에는 AWS, Azure, Google Cloud 계정의 IaaS와 PaaS 리소스가 나열됩니다. 가상 머신, 디스크, 로드 밸런서, 버킷, 관리형 데이터베이스, 캐시, 큐, API 게이트웨이 등입니다. 각 리소스에는 전용 페이지가 있어 유형, 리전, 계정, 공급자가 붙인 고유 ID, 공급자가 게시하는 모든 메트릭이 표시되며, OneUptime의 다른 리소스처럼 소유자와 레이블을 붙일 수 있습니다. 리소스는 **클라우드 → 모든 리소스**에 있습니다.
+**클라우드 리소스**에는 AWS, Azure, Google Cloud 계정의 IaaS와 PaaS 리소스가 나열됩니다. 가상 머신, 디스크, 로드 밸런서, 버킷, 관리형 데이터베이스, 캐시, 큐, API 게이트웨이 등입니다. 각 리소스에는 전용 페이지가 있어 유형, 리전, 계정, 공급자가 붙인 고유 ID, 공급자가 게시하는 모든 메트릭이 표시되며, OneUptime의 다른 리소스처럼 소유자와 레이블을 붙일 수 있습니다. 리소스는 **클라우드 → 모든 리소스**에 있습니다.
 
 > [!TIP]
 > 컬렉터를 실행하고 싶지 않다면 **클라우드 → 연결**에서 [클라우드 계정을 연결](/docs/telemetry/cloud-accounts)하세요. OneUptime이 이 메트릭을 직접 읽습니다.
@@ -37,7 +37,7 @@ flowchart TB
 | ECS, Cloud Run, Container Apps, App Service 등의 컨테이너 | **앱 플랫폼 → 모든 환경** | 워크로드 자체의 텔레메트리(`cloud.platform` 기준). [클라우드 환경](/docs/telemetry/cloud-environments)을 참고하세요 |
 | 공급자가 모니터링하는 모든 IaaS·PaaS 리소스 | **클라우드 → 모든 리소스** | Collector가 읽는 공급자의 모니터링 API. 이 페이지입니다 |
 | OpenTelemetry Collector가 설치된 가상 머신 | **호스트** | 호스트 자체의 메트릭과 로그. [호스트 OpenTelemetry 수집기](/docs/telemetry/host-otel-collector)를 참고하세요 |
-| 애플리케이션이 쓰는 큐와 토픽 | **Queues** | 스팬과 같은 클라우드 메트릭. [큐](/docs/telemetry/queues)를 참고하세요 |
+| 애플리케이션이 쓰는 큐와 토픽 | **큐** | 스팬과 같은 클라우드 메트릭. [큐](/docs/telemetry/queues)를 참고하세요 |
 
 하나의 리소스가 여러 곳에 나타날 수 있습니다. Collector가 설치된 가상 머신은 **호스트**며, 그 플랫폼 메트릭(하이퍼바이저가 보는 CPU 크레딧, 디스크, 네트워크) 덕분에 **클라우드 리소스**이기도 합니다. SQS 큐는 **Queue**이자 **클라우드 리소스**입니다. 각 보기는 그 데이터 원본이 아는 것을 보여 줍니다.
 

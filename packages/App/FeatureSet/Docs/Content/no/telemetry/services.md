@@ -47,7 +47,7 @@ Hver gang telemetri kommer inn, flyttes tjenestens **Sist sett** frem, og detalj
 
 ## Finn en tjeneste
 
-Gå til **Produkter → Ressurser → Tjenester**. **Alle tjenester** viser hver tjeneste med **Navn**, **Beskrivelse**, **Technology**, **Sist sett**, **Etiketter** og **Eiere**.
+Gå til **Produkter → Ressurser → Tjenester**. **Alle tjenester** viser hver tjeneste med **Navn**, **Beskrivelse**, **Teknologi**, **Sist sett**, **Etiketter** og **Eiere**.
 
 - Søk etter navn eller beskrivelse, og filtrer etter eier eller etikett med linjen over listen.
 - Velg flere tjenester for å gi alle etiketter eller eiere på én gang, eller for å arkivere dem.
@@ -62,7 +62,7 @@ Sidemenyen til en tjeneste har fem seksjoner:
 | Seksjon | Sider |
 | --- | --- |
 | **Grunnleggende** | **Oversikt**: forespørsler, feilrate og p95-latens fra spannene, diagrammer og detaljene. **Anbefalinger**: ferdige monitorer for tjenesten, valgt etter språket. **Eiere**: personene og teamene som har ansvaret for den. **Feed**: alt som har skjedd med den, fra hvordan den ble opprettet til hver endring siden. |
-| **Telemetri** | **Logger**, **Spor**, **Målinger**, **Ytelsesprofiler**, **Unntak** og **Source Maps**, allerede filtrert til denne tjenesten. |
+| **Telemetri** | **Logger**, **Spor**, **Målinger**, **Ytelsesprofiler**, **Unntak** og **Source maps**, allerede filtrert til denne tjenesten. |
 | **Aktivitet** | **Hendelser**, **Varsler** og hendelser under **Planlagt vedlikehold** som berører den. |
 | **Utvikler** | **Terraform**, **API** og **AI-assistenter**: tjenesten styrt fra kode. Seksjonen er slått sammen fra start. |
 | **Avansert** | **Innstillinger**, **Revisjonslogger** og **Slett tjeneste**. **Avansert** er lukket i starten: åpne den først. |

@@ -1664,6 +1664,35 @@ ZIP checks are skipped with the reason logged, except in CI, where they fail.
 What the package says is held by
 `packages/App/FeatureSet/MCP/Tests/ChatGPTPlugin.test.ts`.
 
+### `CodingAgentPluginPackage.test.js`
+
+`npm run build-coding-agent-plugin` (`Scripts/MCP/BuildCodingAgentPlugin.js`)
+builds the folder OneUptime publishes as its plugin for coding agents, from
+`packages/App/FeatureSet/MCP/CodingAgentPlugin` and the ChatGPT package's
+listing. The suite runs the script and reads the folder back: the three
+manifests, both server files, the README, the licence, the icon and every
+skill, and nothing else, each copied byte for byte. A rebuild replaces an
+earlier build but keeps a clone's `.git`. A folder that is neither empty nor an
+earlier build is refused and left as it was. Every manifest carries the
+repository's `VERSION`, or the version `--version` names, and a version that is
+not major.minor.patch is refused. A relative output path lands where the
+command was typed, through npm (`INIT_CWD`) as well as node. What the plugin
+says is held by `packages/App/FeatureSet/MCP/Tests/CodingAgentPlugin.test.ts`.
+
+### `CodingAgentPluginRelease.test.js`
+
+`release.yml`'s `publish-coding-agent-plugin` job runs
+`Scripts/MCP/PublishCodingAgentPlugin.sh` once the GitHub release is published,
+and the script publishes the plugin to its own repository. The suite reads the
+job: it runs only for `release`, after the e2e jobs, in its own environment,
+reads its deploy key there and nowhere else, and is skipped with a notice while
+the key is not set. It runs the script against a bare repository on disk. The
+first publish writes the whole plugin at the release's version. A release that
+would change only the version pushes nothing. A release that changes the plugin
+pushes one commit at its version, putting back what was changed by hand. A
+repository at a newer version is left alone, and one that holds something else
+is refused. Without a version or a key, nothing is touched.
+
 ### `agent-ebpf-e2e/`
 
 Not part of `npm test`: it installs the Kubernetes agent chart on a throwaway

@@ -121,6 +121,25 @@ export function getInventoryBreadcrumbs(path: string): Array<Link> | undefined {
       "Settings",
       "Custom Fields",
     ]),
+    ...getTopologyBreadcrumbs(),
   };
   return breadcrumpLinksMap[path];
+}
+
+/*
+ * The Topology Map's trail. It is an entry of the Inventory menu and drawn
+ * beside it, but its address is a section of its own (/topology/overview),
+ * so a trail built from its address alone could not link "Inventory" back
+ * to the Inventory: it is linked by hand, and the page is named as its menu
+ * entry is.
+ */
+function getTopologyBreadcrumbs(): Dictionary<Array<Link>> {
+  return BuildBreadcrumbLinks(PageMap.TOPOLOGY, [
+    { title: "Project", to: Navigation.getBreadcrumbRoute(1) },
+    {
+      title: "Inventory",
+      to: RouteUtil.populateRouteParams(RouteMap[PageMap.INVENTORY] as Route),
+    },
+    { title: "Topology Map", to: Navigation.getCurrentPath() },
+  ]);
 }

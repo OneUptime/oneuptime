@@ -270,6 +270,7 @@ export default class Form extends BaseModel {
     isDefaultValueColumn: true,
     required: true,
     type: TableColumnType.ShortText,
+    allowedValues: Object.values(FormTargetType),
     title: "Creates",
     description:
       "What each submission creates: Incident, or ScheduledMaintenance (a scheduled maintenance event).",

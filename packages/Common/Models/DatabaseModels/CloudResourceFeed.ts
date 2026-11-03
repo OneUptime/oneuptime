@@ -479,6 +479,7 @@ export default class CloudResourceFeed extends BaseModel {
   })
   @TableColumn({
     type: TableColumnType.ShortText,
+    allowedValues: Object.values(CloudResourceFeedEventType),
     required: true,
     title: "Cloud Resource Feed Event",
     description: "Cloud Resource Feed Event",

@@ -580,6 +580,12 @@ describePostgres("latest-metric mirror writes against Postgres", () => {
             vmTemplateCount: 1,
             datastoreCount: 2,
             clusterCount: 3,
+            notRespondingHostCount: 1,
+            standbyHostCount: 0,
+            criticalHostCount: 1,
+            warningHostCount: 0,
+            criticalVmCount: 2,
+            criticalClusterCount: 0,
             observedAt: T1,
           },
         ],
@@ -590,6 +596,10 @@ describePostgres("latest-metric mirror writes against Postgres", () => {
         metricsUpdatedAt: Date | null;
       }> = await readMirror("VMwareResource", "clusterCount");
       expect(rows).toEqual([{ value: "3", metricsUpdatedAt: T1 }]);
+      // A datacenter's roll-up counts land in their integer columns too.
+      expect(await readMirror("VMwareResource", "criticalVmCount")).toEqual([
+        { value: "2", metricsUpdatedAt: T1 },
+      ]);
     });
 
     test("DockerSwarmResourceService", async () => {

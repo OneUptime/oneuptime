@@ -25,7 +25,7 @@ En vurdering læser kun. Den kører på projektets egen AI: **Aktivér AI**, pro
 
 ## Før du begynder
 
-- **Aktivér AI** slået til under **Projektindstillinger → AI → AI Features**. Er den slået fra, viser sikkerhed intet fra OneUptime AI, og intet kører.
+- **Aktivér AI** slået til under **Projektindstillinger → AI → AI-funktioner**. Er den slået fra, viser sikkerhed intet fra OneUptime AI, og intet kører.
 - En LLM-udbyder, som OneUptime AI kan bruge, under **Projektindstillinger → AI → LLM-udbydere**. OneUptime Cloud stiller en til rådighed.
 - En rolle, der må arbejde med sikkerhedssager, for at starte en vurdering: Project Owner, Project Admin, Security Admin eller Security Member. Security Viewer kan læse alle vurderinger, men ikke starte nogen. Se [Roller](/docs/permissions/reference#roller).
 
@@ -112,7 +112,7 @@ Når en sag erklærer en hændelse, læser hændelsens AI-undersøgelse også sa
 
 ## Omkostninger og grænser
 
-En vurdering er arbejde for OneUptime AI ligesom undersøgelsen af en hændelse. På OneUptime Cloud betales den med projektets AI-kreditter, og den tæller med i projektets egne daglige AI-grænser (**Daglige grænser** under **Projektindstillinger → AI → AI Features**). De daglige grænser for hændelser og advarsler gælder ikke. En sag har én vurdering ad gangen, og AI-loggene (**Projektindstillinger → AI → AI-logs**) viser dens kald.
+En vurdering er arbejde for OneUptime AI ligesom undersøgelsen af en hændelse. På OneUptime Cloud betales den med projektets AI-kreditter, og den tæller med i projektets egne daglige AI-grænser (**Daglige grænser** under **Projektindstillinger → AI → AI-funktioner**). De daglige grænser for hændelser og advarsler gælder ikke. En sag har én vurdering ad gangen, og AI-loggene (**Projektindstillinger → AI → AI-logs**) viser dens kald.
 
 Når projektet er løbet tør for AI-kreditter eller har nået en daglig AI-grænse, bliver nye sager ikke vurderet: kortet siger hvorfor, og **Vurder med AI** virker igen, så snart der er tilføjet kreditter, eller grænsen nulstilles.
 
@@ -123,7 +123,7 @@ Tjek, at **Aktivér AI** er slået til, og **Vurder nye sager** under **Produkte
 :::
 
 :::details Kortet siger, at projektet er løbet tør for AI-kreditter eller har nået sin daglige AI-grænse
-En projektejer eller en person med Manage Billing kan tilføje kreditter under **Projektindstillinger → AI → AI-kreditter** eller hæve eller fjerne grænsen under **Projektindstillinger → AI → AI Features**. Klik derefter på **Vurder med AI** på sagen.
+En projektejer eller en person med Manage Billing kan tilføje kreditter under **Projektindstillinger → AI → AI-kreditter** eller hæve eller fjerne grænsen under **Projektindstillinger → AI → AI-funktioner**. Klik derefter på **Vurder med AI** på sagen.
 :::
 
 :::details Kortet siger, at tekst i sagen lyder som instruktioner til en AI

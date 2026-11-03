@@ -3,12 +3,23 @@ import {
   OpenAPISpec,
   TerraformAttribute,
   TerraformDataSource,
+  TerraformMembershipImport,
   TerraformResource,
 } from "./Types";
 import { FileGenerator } from "./FileGenerator";
 import { StringUtils } from "./StringUtils";
 import { OpenAPIParser } from "./OpenAPIParser";
 import { ResourceGenerator, SchemaFlags } from "./ResourceGenerator";
+import {
+  API_KEY_ATTRIBUTE_DESCRIPTION,
+  PROVIDER_DESCRIPTION,
+  PROVIDER_DISPLAY_NAME,
+  URL_ATTRIBUTE_DESCRIPTION,
+} from "./ProviderWords";
+import {
+  EXAMPLE_PERSON_EMAIL,
+  MembershipKind,
+} from "Common/Utils/DeveloperDocs/PeopleByEmail";
 import path from "path";
 import fs from "fs";
 
@@ -74,7 +85,6 @@ const ON_CALL_SCHEDULE_LAYER_GUIDE: {
 
 export class DocumentationGenerator {
   private config: TerraformProviderConfig;
-  private spec: OpenAPISpec;
   private fileGenerator: FileGenerator;
   private schemaDump: ProviderSchemaDump | undefined;
   private resources: Array<TerraformResource>;
@@ -86,7 +96,6 @@ export class DocumentationGenerator {
     schemaDump?: ProviderSchemaDump,
   ) {
     this.config = config;
-    this.spec = spec;
     this.fileGenerator = new FileGenerator(config.outputDir);
     this.schemaDump = schemaDump;
 
@@ -102,35 +111,97 @@ export class DocumentationGenerator {
 
   /*
    * Registry sidebar grouping. registry.terraform.io groups pages by the
-   * frontmatter `subcategory`; without it, 289 resources render as one flat
-   * list. Order matters: first match wins.
+   * frontmatter `subcategory`; without it, 400 resources render as one flat
+   * list. Order matters: first match wins. The groups follow the products
+   * a resource belongs to, as the dashboard's menus have them: a host, a
+   * Kubernetes cluster and their owners, rules and feeds are Infrastructure,
+   * a security case, a hunt and a rule exception are Security. Before, half
+   * the resources - hosts, clusters, AI, security, network, cloud, runbooks,
+   * log and trace pipelines - fell into "Other", and a security rule
+   * exception into Telemetry, by the "exception" in its name.
    */
   private static readonly SUBCATEGORIES: Array<{
     pattern: RegExp;
     name: string;
   }> = [
     { pattern: /^monitor/, name: "Monitors" },
-    { pattern: /probe/, name: "Probes" },
-    { pattern: /^status_page/, name: "Status Pages" },
-    { pattern: /^incident/, name: "Incidents" },
+    // A packet capture runs on a probe.
+    { pattern: /probe|^packet_capture/, name: "Probes" },
+    {
+      pattern: /^status_page|^subscriber_notification_template/,
+      name: "Status Pages",
+    },
+    { pattern: /^incident|^postmortem/, name: "Incidents" },
     { pattern: /^alert/, name: "Alerts" },
     {
-      pattern: /^on_call|^escalation|schedule_layer|^user_override/,
+      pattern:
+        /^on_call|^escalation|schedule_layer|^user_override|^user_on_call|^incoming_call/,
       name: "On-Call & Escalation",
     },
-    { pattern: /^scheduled_maintenance/, name: "Scheduled Maintenance" },
-    { pattern: /^team|^user|^project|^api_key/, name: "Teams & Access" },
-    { pattern: /^label|^custom_field|^file|^domain/, name: "Organization" },
-    { pattern: /^workflow/, name: "Workflows" },
     {
-      pattern: /^service|^telemetry|^dashboard|exception|^usage/,
+      pattern: /^scheduled_maintenance|^scheduled_event/,
+      name: "Scheduled Maintenance",
+    },
+    // What OneUptime sent, and how it went: not the logs a service sends.
+    {
+      pattern:
+        /^(call|email|sms|push_notification|webhook|whatsapp|telegram|workspace_notification|user_notification)_log$/,
+      name: "Notification Logs",
+    },
+    {
+      pattern:
+        /^team|^user|^project|^api_key|^custom_role|^audit_log|^scim|^totp|^two_factor|^web_authn/,
+      name: "Teams & Access",
+    },
+    {
+      pattern: /^label|^custom_field|^file|^domain|^table_view|^recommendation/,
+      name: "Organization",
+    },
+    { pattern: /^workflow/, name: "Workflows" },
+    { pattern: /^runbook|^runner/, name: "Runbooks & Runners" },
+    {
+      pattern: /^ai_|^llm_|^external_mcp_server|^auto_remediation/,
+      name: "AI",
+    },
+    {
+      pattern:
+        /^security_|^detection_rule|^hunt|^threat_intel|^watchlist|^entity_|^protected_entity|^rule_exception/,
+      name: "Security",
+    },
+    {
+      pattern:
+        /^data_store|^data_security|^data_flow|^custom_data_type|^residency_rule|^check_setting/,
+      name: "Data Security",
+    },
+    {
+      pattern: /^network_|^snmp_|^oid_|^address_name/,
+      name: "Network",
+    },
+    { pattern: /^cloud_/, name: "Cloud" },
+    {
+      pattern:
+        /^host|^docker_|^podman_|^kubernetes_|^proxmox_|^ceph_|^storage_array|^vcenter|^database|^queue|^serverless_function|^collector_config|^inventory_item/,
+      name: "Infrastructure",
+    },
+    { pattern: /^iot_/, name: "IoT" },
+    { pattern: /^form/, name: "Forms" },
+    {
+      pattern:
+        /^service|^telemetry|^dashboard|^exception|^usage|^rum_|^source_map|^slo_|^data_source/,
       name: "Telemetry & Dashboards",
     },
     { pattern: /^copilot|^code_repository/, name: "Reliability Copilot" },
-    { pattern: /log$|^span|^metric/, name: "Logs & Metrics" },
+    {
+      pattern: /^log_|log$|^trace_|^span|^metric|^profile|^change_event/,
+      name: "Logs, Traces & Metrics",
+    },
+    {
+      pattern: /^workspace_|^video_call/,
+      name: "Slack, Teams & Video Calls",
+    },
   ];
 
-  private getSubcategory(name: string): string {
+  public static getSubcategory(name: string): string {
     for (const entry of DocumentationGenerator.SUBCATEGORIES) {
       if (entry.pattern.test(name)) {
         return entry.name;
@@ -170,6 +241,7 @@ export class DocumentationGenerator {
     await this.generateDataSourceDocs();
     await this.generateExamples();
     await this.generateOpenTofuGuide();
+    await this.generatePeopleGuide();
     this.copyModules();
     await this.generateReadme();
   }
@@ -179,12 +251,12 @@ export class DocumentationGenerator {
 page_title: "${this.config.providerName} Provider"
 subcategory: ""
 description: |-
-  Terraform provider for ${StringUtils.capitalize(this.config.providerName)}.
+  ${PROVIDER_DESCRIPTION}
 ---
 
-# ${StringUtils.capitalize(this.config.providerName)} Provider
+# ${PROVIDER_DISPLAY_NAME} Provider
 
-${this.spec.info.description || `Terraform provider for ${StringUtils.capitalize(this.config.providerName)}.`}
+${PROVIDER_DESCRIPTION}
 
 ## Example Usage
 
@@ -210,8 +282,8 @@ provider "${this.config.providerName}" {
 
 ### Optional
 
-- \`api_key\` (String, Sensitive) Project-scoped API key for authentication. Falls back to the \`${StringUtils.toConstantCase(this.config.providerName)}_API_KEY\` environment variable; the provider fails at configure time when neither is set.
-- \`oneuptime_url\` (String) The ${this.config.providerName} URL (without /api path). Defaults to 'oneuptime.com' if not specified. The provider automatically appends '/api' to the URL. Can also be set via the \`${StringUtils.toConstantCase(this.config.providerName)}_URL\` environment variable.
+- \`api_key\` (String, Sensitive) ${API_KEY_ATTRIBUTE_DESCRIPTION}
+- \`oneuptime_url\` (String) ${URL_ATTRIBUTE_DESCRIPTION}
 
 ## Start Here
 
@@ -239,6 +311,17 @@ data "${this.config.providerName}_incident_severity" "critical" {
 
 Server-side ids that a resource carries inside it - the ids of a monitor's steps, criteria and incident templates - are the server's to manage. Never write them: the provider sends none, the server gives them, and it keeps them across every apply, so incidents keep pointing at the criteria that raised them.
 ${this.generateRenamedSection()}
+## People by email address
+
+Every resource that names a person takes their email address as well as their user ID - \`user_email\` beside \`user_id\`, \`owner_user_emails\` beside \`owner_users\` - and a team member named by an address that is new to the project invites them. See [Managing people and teams](./guides/people) for onboarding and offboarding as code.
+
+\`\`\`terraform
+resource "${this.config.providerName}_team_member" "alice" {
+  team_id    = ${this.config.providerName}_team.sre.id
+  user_email = "alice@example.com"
+}
+\`\`\`
+
 ## OpenTofu
 
 This provider is published to the OpenTofu Registry as well, and its end-to-end suite runs against both engines on every change. Configuration is identical — see the [OpenTofu guide](./guides/opentofu).
@@ -366,35 +449,54 @@ Pin \`ref\` to a published tag: this repository is regenerated on every release,
   }
 
   /*
+   * What a configuration does where moving a resource to another type is
+   * not possible: Terraform before 1.8 has no moved block between types.
+   */
+  public static readonly MOVE_TO_ANOTHER_TYPE_FALLBACK: string =
+    "Where the engine cannot move a resource to another type (Terraform before 1.8), remove it from the state with `terraform state rm` and import it under its new name instead.";
+
+  /*
    * The provider index lists the resources whose name changed, with the
-   * moved block that carries their state over.
+   * moved block that carries their state over - and the names that could
+   * not stay aliases, because another resource has them now: a
+   * configuration that used one for what it managed before stops planning
+   * until it is renamed, so the index says so where renames are read.
    */
   private generateRenamedSection(): string {
+    const byName: (a: TerraformResource, b: TerraformResource) => number = (
+      a: TerraformResource,
+      b: TerraformResource,
+    ): number => {
+      return a.name.localeCompare(b.name);
+    };
     const renamed: Array<TerraformResource> = this.resources
       .filter((resource: TerraformResource) => {
         return Boolean(resource.legacyName);
       })
-      .sort((a: TerraformResource, b: TerraformResource) => {
-        return a.name.localeCompare(b.name);
-      });
+      .sort(byName);
+    const moved: Array<TerraformResource> = this.resources
+      .filter((resource: TerraformResource) => {
+        return Boolean(resource.movedFrom);
+      })
+      .sort(byName);
 
-    if (renamed.length === 0) {
+    if (renamed.length === 0 && moved.length === 0) {
       return "";
     }
 
     const provider: string = this.config.providerName;
 
     // The moved example uses the plainest of them: iot_fleet, not its rules.
-    const example: TerraformResource = [...renamed].sort(
+    const example: TerraformResource | undefined = [...renamed].sort(
       (a: TerraformResource, b: TerraformResource) => {
         return a.name.length - b.name.length || a.name.localeCompare(b.name);
       },
-    )[0]!;
+    )[0];
 
-    return `
-## Renamed resources
-
-These resources were renamed: names like IoT and vCenter now read as one word, and auto remediation rules became AI rules. Each old name still works, as a deprecated alias, so no configuration breaks; plans that use one say so.
+    const aliases: string =
+      renamed.length > 0 && example
+        ? `
+These resources were renamed to read the way the product names them: IoT and vCenter are one word, auto remediation rules are AI rules, an escalation rule's users, teams and schedules are \`escalation_rule_user\`, \`escalation_rule_team\` and \`escalation_rule_schedule\`, and every team owner is \`<thing>_team_owner\`. Each old name still works, as a deprecated alias, so no configuration breaks; plans that use one say so.
 
 | Old name | New name |
 |----------|----------|
@@ -412,7 +514,36 @@ moved {
   to   = ${provider}_${example.name}.example
 }
 \`\`\`
-`;
+`
+        : "";
+
+    const takenNames: string =
+      moved.length > 0
+        ? `
+${moved.length === 1 ? "One old name is" : "These old names are"} another resource's now, so no alias can keep ${moved.length === 1 ? "it" : "them"}. A configuration that uses ${moved.length === 1 ? "it" : "one"} for what it managed before stops planning until you rename the resource and add a \`moved\` block:
+
+| Old name, now another resource | What it managed is now |
+|----------|----------|
+${moved
+  .map((resource: TerraformResource) => {
+    return `| [\`${provider}_${resource.movedFrom}\`](./resources/${resource.movedFrom}) | [\`${provider}_${resource.name}\`](./resources/${resource.name}) |`;
+  })
+  .join("\n")}
+
+\`\`\`terraform
+moved {
+  from = ${provider}_${moved[0]!.movedFrom}.example
+  to   = ${provider}_${moved[0]!.name}.example
+}
+\`\`\`
+
+${DocumentationGenerator.MOVE_TO_ANOTHER_TYPE_FALLBACK}
+`
+        : "";
+
+    return `
+## Renamed resources
+${aliases}${takenNames}`;
   }
 
   private async generateResourceDocs(): Promise<void> {
@@ -700,10 +831,25 @@ moved {
 }
 \`\`\`
 `
-      : "";
+      : resource.movedFrom
+        ? `
+~> **Renamed:** this resource was called \`${provider}_${resource.movedFrom}\` before, a name [another resource](./${resource.movedFrom}) has now. Rename the resource in your configuration and add a \`moved\` block, so Terraform keeps the existing ${resource.name.replace(/_/g, " ")}:
 
-    const importSection: string = resource.operations?.read
-      ? `## Import
+\`\`\`terraform
+moved {
+  from = ${provider}_${resource.movedFrom}.example
+  to   = ${provider}_${resource.name}.example
+}
+\`\`\`
+
+${DocumentationGenerator.MOVE_TO_ANOTHER_TYPE_FALLBACK}
+`
+        : "";
+
+    const importSection: string = resource.membershipImport
+      ? this.getMembershipImportSection(resource, resource.membershipImport)
+      : resource.operations?.read
+        ? `## Import
 
 Import an existing ${resource.name.replace(/_/g, " ")} by its id, with an \`import\` block (Terraform 1.5+, OpenTofu 1.6+):
 
@@ -720,14 +866,14 @@ or on the command line:
 terraform import ${provider}_${resource.name}.example <id>
 \`\`\`
 `
-      : `## Import
+        : `## Import
 
 This resource does not support import: the OneUptime API exposes no read endpoint for it.
 `;
 
     return `---
 page_title: "${provider}_${resource.name} Resource - ${provider}"
-subcategory: "${this.getSubcategory(resource.name)}"
+subcategory: "${DocumentationGenerator.getSubcategory(resource.name)}"
 description: |-
   ${resourceDescription}
 ---
@@ -759,7 +905,186 @@ ${importSection}`;
       return `\n${this.getOnCallScheduleLayerGuide()}\n`;
     }
 
+    if (resource.membershipImport?.kind === MembershipKind.Member) {
+      return `\n${this.getTeamMemberGuide()}`;
+    }
+
     return "";
+  }
+
+  /*
+   * A row imported by what it joins and who or what joins it: a team member
+   * by its team and the person's address, a monitor's owner by the monitor
+   * and the person's address, an owner team or an escalation rule's team by
+   * both IDs.
+   */
+  private getMembershipImportSection(
+    resource: TerraformResource,
+    membership: TerraformMembershipImport,
+  ): string {
+    const provider: string = this.config.providerName;
+    const label: string = resource.name.replace(/_/g, " ");
+    const byEmail: boolean = Boolean(membership.personEmailAttribute);
+    const importId: string = `<${membership.parentAttribute}>/${byEmail ? EXAMPLE_PERSON_EMAIL : `<${membership.personAttribute}>`}`;
+    const by: string = byEmail
+      ? `its ${membership.parentNoun} and the person's email address (or user ID)`
+      : `its ${membership.parentNoun} and its \`${membership.personAttribute}\``;
+    const after: string = byEmail
+      ? `Imported by an address, the person's \`${membership.personEmailAttribute}\` stays as you wrote it. Its own ID works too.`
+      : "Its own ID works too.";
+
+    return `## Import
+
+Import an existing ${label} by ${by}, with an \`import\` block (Terraform 1.5+, OpenTofu 1.6+):
+
+\`\`\`terraform
+import {
+  to = ${provider}_${resource.name}.example
+  id = "${importId}"
+}
+\`\`\`
+
+or on the command line:
+
+\`\`\`shell
+terraform import ${provider}_${resource.name}.example ${importId}
+\`\`\`
+
+${after}
+`;
+  }
+
+  /*
+   * The team member page's guide: what naming someone by address does -
+   * invite them when they are new - how to put them on call in the same
+   * configuration, what removing a member does, and how addresses compare.
+   */
+  private getTeamMemberGuide(): string {
+    const provider: string = this.config.providerName;
+
+    return `## Invite people by email address
+
+Name the person by \`user_email\`. Someone who is in the project already joins the team at once; someone who is not is invited, as the dashboard's **Invite** does: OneUptime makes them an account if they have none, and emails them. \`has_accepted_invitation\` is \`false\` until they accept, and their accepting is no change to the plan.
+
+To put someone this configuration invites on call, or make them an owner, refer to their membership: Terraform then invites them first.
+
+\`\`\`terraform
+resource "${provider}_monitor_user_owner" "alice" {
+  monitor_id = ${provider}_monitor.example.id
+  user_id    = ${provider}_team_member.example.user_id
+}
+\`\`\`
+
+## Remove someone
+
+Removing a member from the configuration removes them from the team. Out of their last team of the project, they are out of the project: OneUptime takes them off every on-call schedule, escalation rule and override, and off what they own, except the incidents, alerts and maintenance events that are over. Remove the blocks that name them in the same change. Their OneUptime account stays theirs. A team that must keep a member refuses to lose its last one who has accepted.
+
+## Email addresses
+
+OneUptime keeps addresses in lower case, and finds a person by theirs in any case. The address stays in state as you wrote it, and a person who changes theirs in OneUptime stays the same person to Terraform: nothing changes until you write the new address, and then only the address does.
+`;
+  }
+
+  /*
+   * Docs guide (docs/guides/people.md): onboarding and offboarding as code -
+   * teams and their members by email address, people on call and owning
+   * things, finding someone, and what removing them does.
+   */
+  private async generatePeopleGuide(): Promise<void> {
+    const provider: string = this.config.providerName;
+
+    const guide: string = `---
+page_title: "Managing people and teams"
+subcategory: "Guides"
+description: |-
+  Teams and their members by email address: invitations, on-call, owners and offboarding as code.
+---
+
+# Managing people and teams
+
+Every resource that names a person takes their email address as well as their user ID: \`user_email\` beside \`user_id\`, \`owner_user_emails\` beside \`owner_users\`, \`assigned_to_user_email\` beside \`assigned_to_user_id\`, and the same everywhere else. Give one of the two. The provider finds the person among the project's members and the people invited to it, and sends their ID. It searches only the API key's project: nobody outside it is ever found.
+
+## Onboarding
+
+A team member named by an address nobody in the project has is invited by it, as the dashboard's **Invite** does: OneUptime makes them an account if they have none, and emails them. Someone in the project already joins the team at once.
+
+\`\`\`terraform
+resource "${provider}_team" "sre" {
+  name = "SRE"
+}
+
+resource "${provider}_team_member" "alice" {
+  team_id    = ${provider}_team.sre.id
+  user_email = "alice@example.com"
+}
+
+resource "${provider}_on_call_policy_schedule" "weekly" {
+  name     = "SRE weekly"
+  timezone = "UTC"
+}
+
+resource "${provider}_on_call_schedule_layer" "weekly" {
+  on_call_duty_policy_schedule_id = ${provider}_on_call_policy_schedule.weekly.id
+  name                            = "Weekly"
+  starts_at                       = "2030-01-07T09:00:00Z"
+  hand_off_time                   = "2030-01-14T09:00:00Z"
+}
+
+# Alice takes turns on call from her first day: invited people can.
+resource "${provider}_on_call_schedule_layer_user" "alice" {
+  on_call_duty_policy_schedule_id       = ${provider}_on_call_policy_schedule.weekly.id
+  on_call_duty_policy_schedule_layer_id = ${provider}_on_call_schedule_layer.weekly.id
+  user_id                               = ${provider}_team_member.alice.user_id
+}
+
+resource "${provider}_monitor" "api" {
+  name         = "Public API"
+  monitor_type = "Manual"
+}
+
+# Bob is in the project already: name him by address anywhere.
+resource "${provider}_monitor_user_owner" "api" {
+  monitor_id = ${provider}_monitor.api.id
+  user_email = "bob@example.com"
+}
+\`\`\`
+
+Refer to a membership this configuration makes (\`user_id = ${provider}_team_member.alice.user_id\`) to name the person it invites: Terraform then invites them before it names them anywhere else. An address nobody in the project has is a warning in the plan, and an error in the apply.
+
+The API key needs a permission that may read the project's team members (Project Member, Project Admin or Read Teams) to find people, and one that may invite them (Project Admin, or Invite New Members) to add them.
+
+## Finding someone
+
+\`data "${provider}_user"\` looks someone up by \`email\`, \`name\` or \`id\`, and gives their ID, name, whether they have joined, and the teams they are in.
+
+\`\`\`terraform
+data "${provider}_user" "alice" {
+  email = "alice@example.com"
+}
+\`\`\`
+
+## Offboarding
+
+Remove the person's memberships from the configuration. Out of their last team, they are out of the project, and OneUptime takes them off every on-call schedule, escalation rule and override, and off what they own, except the incidents, alerts and maintenance events that are over. Remove the blocks that name them in the same change. Their OneUptime account stays theirs; only the project is left.
+
+## Importing
+
+A membership no screen shows the ID of is imported by its team and the person's address:
+
+\`\`\`shell
+terraform import ${provider}_team_member.alice <team id>/alice@example.com
+\`\`\`
+
+## When someone changes their address
+
+The address stays in state as you wrote it, and the person stays the same person to Terraform: nothing changes until you write the new address, and then only the address does. OneUptime keeps addresses in lower case and compares them in any case.
+
+## With an identity provider
+
+If your identity provider manages your people over SCIM, let it: while SCIM Push Groups manages a project's teams, OneUptime refuses team member changes from anywhere else, Terraform included. Keep teams, on-call and owners in Terraform, named by address.
+`;
+
+    await this.fileGenerator.writeFileInDir("docs/guides", "people.md", guide);
   }
 
   // The schema lines of the attributes a page's guide covers point at it.
@@ -965,6 +1290,23 @@ resource "${provider}_on_call_schedule_layer" "around_the_clock" {
       }
       fields.push(
         `  ${attributeName} = ${this.getExampleValue(name, attr, resource)}`,
+      );
+    }
+
+    /*
+     * A person the resource needs: named by email address, the way a
+     * configuration names people (user_email beside user_id).
+     */
+    for (const attr of Object.values(resource.schema)) {
+      if (!attr.person?.isRequired) {
+        continue;
+      }
+      fields.push(
+        `  ${attr.person.emailAttribute} = ${
+          attr.person.isList
+            ? `[${DocumentationGenerator.hclString(EXAMPLE_PERSON_EMAIL)}]`
+            : DocumentationGenerator.hclString(EXAMPLE_PERSON_EMAIL)
+        }`,
       );
     }
 
@@ -1201,8 +1543,11 @@ resource "${provider}_monitor" "example" {
     const provider: string = this.config.providerName;
     const block: SchemaDumpBlock = this.getDataSourceBlock(dataSource);
     const label: string = dataSource.name.replace(/_/g, " ");
+    // A data source written by hand says what it is itself.
     const description: string = (
-      dataSource.description || `${StringUtils.capitalize(label)} data source.`
+      (dataSource.staticFile && block.description) ||
+      dataSource.description ||
+      `${StringUtils.capitalize(label)} data source.`
     ).trim();
 
     const filters: Array<string> = Object.entries(dataSource.schema)
@@ -1213,22 +1558,79 @@ resource "${provider}_monitor" "example" {
         return name;
       });
 
-    const byArgument: string | undefined = filters.includes("name")
-      ? "name"
-      : filters.find((name: string) => {
-          return dataSource.schema[name]?.type === "string";
-        }) || filters[0];
+    // People are found by email address; everything else by name.
+    const byArgument: string | undefined = filters.includes("email")
+      ? "email"
+      : filters.includes("name")
+        ? "name"
+        : filters.find((name: string) => {
+            return dataSource.schema[name]?.type === "string";
+          }) || filters[0];
 
-    const lookupExample: string = byArgument
-      ? `data "${provider}_${dataSource.name}" "example" {
-  ${StringUtils.toTerraformAttributeName(byArgument)} = ${this.getLookupExampleValue(byArgument, dataSource)}
+    /*
+     * A record that names a person is found by their address, beside what
+     * it belongs to: a team's member by its team and the person's address.
+     */
+    const personEmail: [string, TerraformAttribute] | undefined =
+      Object.entries(dataSource.schema).find(
+        ([, attr]: [string, TerraformAttribute]) => {
+          return Boolean(attr.personEmailOf);
+        },
+      );
+    const exampleArguments: Array<[string, string]> = [];
+
+    if (personEmail) {
+      const parent: string | undefined = filters.find((name: string) => {
+        const attr: TerraformAttribute | undefined = dataSource.schema[name];
+        return (
+          name !== personEmail[0] &&
+          name !== personEmail[1].personEmailOf &&
+          attr?.type === "string" &&
+          Boolean(attr.relation)
+        );
+      });
+
+      if (parent) {
+        exampleArguments.push([
+          parent,
+          this.getLookupExampleValue(parent, dataSource),
+        ]);
+      }
+      exampleArguments.push([
+        personEmail[0],
+        DocumentationGenerator.hclString(EXAMPLE_PERSON_EMAIL),
+      ]);
+    } else if (byArgument) {
+      exampleArguments.push([
+        byArgument,
+        this.getLookupExampleValue(byArgument, dataSource),
+      ]);
+    }
+
+    // Aligned as terraform fmt aligns them.
+    const width: number = Math.max(
+      0,
+      ...exampleArguments.map(([name]: [string, string]) => {
+        return StringUtils.toTerraformAttributeName(name).length;
+      }),
+    );
+    const exampleBody: string = exampleArguments
+      .map(([name, value]: [string, string]) => {
+        return `  ${StringUtils.toTerraformAttributeName(name).padEnd(width)} = ${value}`;
+      })
+      .join("\n");
+
+    const lookupExample: string =
+      exampleArguments.length > 0
+        ? `data "${provider}_${dataSource.name}" "example" {
+${exampleBody}
 }
 
 # Or by id:
 data "${provider}_${dataSource.name}" "by_id" {
   id = "<id>"
 }`
-      : `data "${provider}_${dataSource.name}" "example" {
+        : `data "${provider}_${dataSource.name}" "example" {
   id = "<id>"
 }`;
 
@@ -1238,9 +1640,14 @@ data "${provider}_${dataSource.name}" "by_id" {
 `
       : "";
 
+    const lookupRule: string =
+      dataSource.name === "user"
+        ? `Look someone up by \`email\`, \`name\` or \`id\`: exactly one of them. Only the people of the API key's project are searched - its members, and those invited to it - so nobody outside it is ever found, and no match is an error rather than an empty result.`
+        : `Look one up by \`id\`, or by any of its other arguments: every argument you set must match, and exactly one ${label} may match them all - none, or more than one, is an error rather than an empty or arbitrary result.`;
+
     return `---
 page_title: "${provider}_${dataSource.name} Data Source - ${provider}"
-subcategory: "${this.getSubcategory(dataSource.name)}"
+subcategory: "${DocumentationGenerator.getSubcategory(dataSource.name)}"
 description: |-
   ${description}
 ---
@@ -1249,7 +1656,7 @@ description: |-
 
 ${description}
 
-Look one up by \`id\`, or by any of its other arguments: every argument you set must match, and exactly one ${label} may match them all - none, or more than one, is an error rather than an empty or arbitrary result.
+${lookupRule}
 ${renamedNote}
 ## Example Usage
 
@@ -1272,6 +1679,9 @@ ${this.renderSchema(block.attributes)}
 
     if (name === "name") {
       return `"Example ${label}"`;
+    }
+    if (name === "email") {
+      return DocumentationGenerator.hclString(EXAMPLE_PERSON_EMAIL);
     }
     if (attr?.enumValues?.length) {
       return DocumentationGenerator.hclString(attr.enumValues[0]!);
@@ -1372,9 +1782,9 @@ output "${monitorStatus.name}_id" {
   }
 
   private async generateReadme(): Promise<void> {
-    const readmeContent: string = `# Terraform Provider for ${StringUtils.capitalize(this.config.providerName)}
+    const readmeContent: string = `# Terraform Provider for ${PROVIDER_DISPLAY_NAME}
 
-${this.spec.info.description || `Terraform provider for ${StringUtils.capitalize(this.config.providerName)}.`}
+${PROVIDER_DESCRIPTION}
 
 ## Requirements
 

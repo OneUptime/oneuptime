@@ -461,6 +461,7 @@ export default class VMwareVCenterFeed extends BaseModel {
   })
   @TableColumn({
     type: TableColumnType.ShortText,
+    allowedValues: Object.values(VMwareVCenterFeedEventType),
     required: true,
     title: "vCenter Feed Event",
     description: "vCenter Feed Event",

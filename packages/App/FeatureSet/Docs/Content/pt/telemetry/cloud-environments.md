@@ -129,7 +129,7 @@ Um app que não envia nada por 30 dias é removido com as suas revisões, assim 
 | EC2, Compute Engine, Azure VM (`aws_ec2`, `gcp_compute_engine`, `azure_vm`) | **Hosts** | Uma máquina virtual é um host. Veja [Coletor OpenTelemetry no host](/docs/telemetry/host-otel-collector) |
 | EKS, GKE, AKS, Kubernetes autogerenciado | **Kubernetes** | Roteado pelos atributos `k8s.*`. Veja [Agente Kubernetes](/docs/telemetry/kubernetes-agent) |
 | Lambda, Cloud Functions, Azure Functions (`aws_lambda`, `gcp_cloud_functions`, `azure_functions`) | **Funções serverless** | Roteado por `faas.name`, ou por `service.name` em uma `cloud.platform` FaaS. Veja [Funções serverless](/docs/telemetry/serverless-functions) |
-| Balanceadores de carga, buckets, bancos de dados gerenciados e outros recursos IaaS ou PaaS | **Cloud Resources** | Descobertos a partir das métricas que o Azure Monitor, o CloudWatch e o Cloud Monitoring publicam. Veja [Recursos de nuvem](/docs/telemetry/cloud-resources) |
+| Balanceadores de carga, buckets, bancos de dados gerenciados e outros recursos IaaS ou PaaS | **Recursos de nuvem** | Descobertos a partir das métricas que o Azure Monitor, o CloudWatch e o Cloud Monitoring publicam. Veja [Recursos de nuvem](/docs/telemetry/cloud-resources) |
 
 > [!NOTE]
 > O Cloud Run e o App Engine aparecem em dois lugares de propósito. O detector deles define tanto uma `cloud.platform` gerenciada quanto `faas.name`, então cada serviço também é uma **Função serverless** própria, enquanto o **Ambiente de nuvem** agrupa todos os serviços daquele projeto e daquela região. A mesma telemetria é arquivada nos dois.

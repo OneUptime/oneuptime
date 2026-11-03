@@ -9,6 +9,9 @@ import Dictionary from "../../../Types/Dictionary";
 import BadDataException from "../../../Types/Exception/BadDataException";
 import { withoutTrailingSlashes } from "../../../Utils/TrailingRuns";
 
+// A commit hash, whole or abbreviated: hex digits only, so never an option.
+const COMMIT_HASH: RegExp = /^[0-9a-f]{4,64}$/i;
+
 export default class CodeRepositoryUtil {
   @CaptureSpan()
   public static getCurrentCommitHash(data: {
@@ -409,6 +412,8 @@ export default class CodeRepositoryUtil {
     Array<{
       authorName: string;
       authorEmail: string;
+      // When the commit was made, as strict ISO 8601 (%cI); "" when git gave none.
+      committedAt: string;
       files: Array<string>;
     }>
   > {
@@ -422,7 +427,7 @@ export default class CodeRepositoryUtil {
     const args: Array<string> = [
       "log",
       "--no-merges",
-      `--pretty=format:${recordSeparator}%an${unitSeparator}%ae`,
+      `--pretty=format:${recordSeparator}%an${unitSeparator}%ae${unitSeparator}%cI`,
       "--name-only",
     ];
 
@@ -442,6 +447,7 @@ export default class CodeRepositoryUtil {
     const commits: Array<{
       authorName: string;
       authorEmail: string;
+      committedAt: string;
       files: Array<string>;
     }> = [];
 
@@ -452,7 +458,8 @@ export default class CodeRepositoryUtil {
 
       const lines: Array<string> = record.split("\n");
       const header: string = lines.shift() || "";
-      const [authorName, authorEmail] = header.split(unitSeparator);
+      const [authorName, authorEmail, committedAt] =
+        header.split(unitSeparator);
 
       const files: Array<string> = lines
         .map((line: string) => {
@@ -465,11 +472,64 @@ export default class CodeRepositoryUtil {
       commits.push({
         authorName: (authorName || "").trim(),
         authorEmail: (authorEmail || "").trim(),
+        committedAt: (committedAt || "").trim(),
         files,
       });
     }
 
     return commits;
+  }
+
+  /*
+   * The files that differ between two commits, optionally under a pathspec
+   * (`git diff --name-only`). A renamed file is listed as the path it left and
+   * the path it took, and a deleted file is listed too. Each hash has to be a
+   * hash, so neither can be read as an option.
+   */
+  @CaptureSpan()
+  public static async getFilesChangedBetweenCommits(data: {
+    repoPath: string;
+    fromCommitHash: string;
+    toCommitHash: string;
+    path?: string | undefined;
+  }): Promise<Array<string>> {
+    for (const hash of [data.fromCommitHash, data.toCommitHash]) {
+      if (!COMMIT_HASH.test(hash)) {
+        throw new BadDataException(`Not a commit hash: ${hash}`);
+      }
+    }
+
+    const args: Array<string> = [
+      // Paths as they are, not quoted and escaped when they are not ASCII.
+      "-c",
+      "core.quotePath=false",
+      "diff",
+      "--name-only",
+      "--no-renames",
+      data.fromCommitHash,
+      data.toCommitHash,
+    ];
+
+    if (data.path) {
+      args.push("--", data.path);
+    }
+
+    const stdout: string = await Execute.executeCommandFile({
+      command: "git",
+      args,
+      cwd: path.resolve(data.repoPath),
+      // A pull that brings thousands of files lists more than the 1 MB default.
+      maxBuffer: 256 * 1024 * 1024,
+    });
+
+    return stdout
+      .split("\n")
+      .map((line: string) => {
+        return line.trim();
+      })
+      .filter((line: string) => {
+        return line.length > 0;
+      });
   }
 
   @CaptureSpan()

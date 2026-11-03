@@ -56,7 +56,7 @@ Typ een zoekopdracht en druk op Enter, bijvoorbeeld `service:checkout status:err
 
 ### Beperken met filters
 
-Klik op een waarde in de zijbalk **Filters** om die als chip toe te voegen. De zijbalk filtert op **Service**, op de host, het cluster of de andere bron die de span stuurde, op **Status**, **Span-type**, **Heeft uitzondering**, **Span-soort**, **Span-naam**, **Service-instantie** en **Naam van de host**.
+Klik op een waarde in de zijbalk **Filters** om die als chip toe te voegen. De zijbalk filtert op **Service**, op de host, het cluster of de andere bron die de span stuurde, op **Status**, **Span-type**, **Heeft uitzondering**, **Span-soort**, **Span-naam**, **Service-instantie** en **Naam van de host**. Klik op het minteken naast een waarde om die spans juist uit te sluiten. Klik nogmaals op de waarde om dat ongedaan te maken.
 
 ### Een span openen
 

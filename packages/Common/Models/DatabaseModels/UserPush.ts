@@ -143,6 +143,7 @@ class UserPush extends BaseModel {
    */
   @OwnerOnlyColumn()
   @TableColumn({
+    secret: true,
     title: "Device Token",
     required: true,
     unique: false,
@@ -166,6 +167,7 @@ class UserPush extends BaseModel {
     required: true,
     unique: false,
     type: TableColumnType.ShortText,
+    allowedValues: Object.values(PushDeviceType),
     canReadOnRelationQuery: true,
   })
   @Column({
@@ -421,6 +423,7 @@ class UserPush extends BaseModel {
       "The alarm a critical on-call page plays on this device: default, klaxon, siren, digital, smoke_alarm or rising. Chosen in the OneUptime On-Call app.",
     isDefaultValueColumn: true,
     type: TableColumnType.ShortText,
+    allowedValues: Object.values(CriticalAlertSound),
     defaultValue: CriticalAlertSound.Default,
     example: CriticalAlertSound.Klaxon,
   })

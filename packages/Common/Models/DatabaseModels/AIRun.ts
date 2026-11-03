@@ -156,6 +156,7 @@ export default class AIRun extends BaseModel {
   @TableColumn({
     required: true,
     type: TableColumnType.ShortText,
+    allowedValues: Object.values(AIRunType),
     title: "Run Type",
     description: "Type of AI run: Chat or Investigation.",
     canReadOnRelationQuery: true,
@@ -180,6 +181,7 @@ export default class AIRun extends BaseModel {
   @TableColumn({
     required: false,
     type: TableColumnType.ShortText,
+    allowedValues: Object.values(CodeFixTaskType),
     title: "Code Fix Task Type",
     description:
       "For CodeFix runs: which task recipe this run executes (fix the exception, write a regression test, ...). Null means FixException — rows created before task recipes existed.",
@@ -243,6 +245,7 @@ export default class AIRun extends BaseModel {
   @TableColumn({
     required: true,
     type: TableColumnType.ShortText,
+    allowedValues: Object.values(AIRunStatus),
     title: "Status",
     description: "Current status of this run.",
     canReadOnRelationQuery: true,
@@ -276,6 +279,7 @@ export default class AIRun extends BaseModel {
   @TableColumn({
     required: true,
     type: TableColumnType.ShortText,
+    allowedValues: Object.values(AIRunCodeFixRecommendation),
     title: "Code Fix Recommendation",
     description:
       "For incident/alert investigations: whether the structured investigation outcome recommends opening a code-fix pull request.",
@@ -1294,6 +1298,7 @@ export default class AIRun extends BaseModel {
   @TableColumn({
     required: false,
     type: TableColumnType.ShortText,
+    allowedValues: Object.values(AIRunHumanVerdict),
     title: "Human Verdict",
     description:
       "For investigation runs: the one-click human verdict on the posted analysis (Confirmed or Rejected). Null until a user weighs in.",
@@ -1372,6 +1377,7 @@ export default class AIRun extends BaseModel {
   @TableColumn({
     required: false,
     type: TableColumnType.ShortText,
+    allowedValues: Object.values(AIRunAutoGrade),
     title: "Auto Grade",
     description:
       "For investigation runs: how the posted analysis compared to the incident's final recorded root cause (Match, Partial or Mismatch).",

@@ -341,11 +341,13 @@ describe("what the READMEs say about the engines and the module", () => {
     expect(moduleReadme).toContain("replace `vX.Y.Z` with it");
   });
 
-  // Who gets paged is an escalation rule's team, user or schedule.
+  /*
+   * Who gets paged is an escalation rule's team, user or schedule, by the
+   * names the provider gives them now (ClientResourceNames.ts).
+   */
   test("the module README says how to add who gets paged", () => {
-    expect(moduleReadme).toContain(
-      "`oneuptime_team_on_call_duty_escalation_rule`",
-    );
+    expect(moduleReadme).toContain("`oneuptime_escalation_rule_team`");
+    expect(moduleReadme).not.toContain("on_call_duty_escalation_rule");
     expect(moduleReadme).not.toContain("`oneuptime_team_member`");
     expect(moduleReadme).toContain("`escalation_rule_id`");
   });

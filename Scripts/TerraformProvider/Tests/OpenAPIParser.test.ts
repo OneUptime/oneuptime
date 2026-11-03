@@ -4,7 +4,7 @@ import {
   TerraformDataSource,
   TerraformAttribute,
 } from "../Core/Types";
-import { buildFixtureSpec } from "./Fixtures";
+import { buildFixtureSpec, crudPaths } from "./Fixtures";
 
 function getParser(): OpenAPIParser {
   const parser: OpenAPIParser = new OpenAPIParser();
@@ -250,6 +250,71 @@ describe("warnings", () => {
   });
 });
 
+/*
+ * The API can create a telemetry record (a log line, a span...), but it is
+ * data the product keeps for a while, not something to manage: the spec
+ * marks a telemetry table's tag, and the provider reads the table and makes
+ * no resource of it.
+ */
+describe("telemetry", () => {
+  function parserWithLogTable(isMarked: boolean): OpenAPIParser {
+    const spec: any = buildFixtureSpec();
+    spec.tags.push({
+      name: "Log",
+      description: "API endpoints for Log",
+      ...(isMarked ? { "x-oneuptime-telemetry": true } : {}),
+    });
+    Object.assign(
+      spec.paths,
+      crudPaths({
+        path: "/logs",
+        table: "LogItemV3",
+        tag: "Log",
+        schema: "LogItemV3",
+      }),
+    );
+    spec.components.schemas.LogItemV3 = {
+      type: "object",
+      properties: {
+        _id: { type: "string" },
+        body: { type: "string", description: "Body of the Log" },
+      },
+      required: ["body"],
+    };
+
+    const parser: OpenAPIParser = new OpenAPIParser();
+    parser.setSpec(spec);
+    return parser;
+  }
+
+  function resourceNames(parser: OpenAPIParser): string[] {
+    return parser.getResources().map((r: TerraformResource) => {
+      return r.name;
+    });
+  }
+
+  test("a telemetry table the API can create is a data source, not a resource", () => {
+    const parser: OpenAPIParser = parserWithLogTable(true);
+
+    expect(resourceNames(parser)).not.toContain("log");
+    expect(
+      parser.getDataSources().map((d: TerraformDataSource) => {
+        return d.name;
+      }),
+    ).toContain("log");
+    // Left out on purpose: nothing to warn about.
+    expect(
+      parser.warnings.filter((w: string) => {
+        return w.includes('"log"');
+      }),
+    ).toEqual([]);
+  });
+
+  test("it is the mark that keeps it out: unmarked, the table is a resource", () => {
+    expect(resourceNames(parserWithLogTable(false))).toContain("log");
+  });
+});
+
 describe("relations", () => {
   /*
    * The spec says which model an id column points at (x-oneuptime-relation).
@@ -269,7 +334,11 @@ describe("relations", () => {
     const attr: TerraformAttribute | undefined = getMonitor().schema["labels"];
 
     // Label has only a list endpoint in the fixture: a data source, no resource.
-    expect(attr?.relation).toEqual({ name: "label", isList: true });
+    expect(attr?.relation).toEqual({
+      name: "label",
+      isList: true,
+      dataSourceOnly: true,
+    });
     expect(attr?.description).toBe(
       "Attached labels. IDs of `oneuptime_label` records.",
     );
@@ -396,6 +465,33 @@ describe("JSON attributes", () => {
   test("say to write them with jsonencode()", () => {
     expect(getMonitor().schema["server_meta"]?.description).toBe(
       "Arbitrary nested metadata. A JSON value: write it with `jsonencode()`.",
+    );
+  });
+
+  /*
+   * One only the server writes is read, never written: telling a reader to
+   * jsonencode() a read-only attribute sent them to write it.
+   */
+  test("a read-only one says to read it with jsondecode()", () => {
+    const report: TerraformAttribute | undefined =
+      getMonitor().schema["probe_report"];
+
+    expect(report?.computed).toBe(true);
+    expect(report?.required).toBe(false);
+    expect(report?.description).toBe(
+      "What the probes last reported. A JSON value: read it with `jsondecode()`.",
+    );
+  });
+
+  test("a data source's says to read it with jsondecode()", () => {
+    const monitor: TerraformDataSource | undefined = getParser()
+      .getDataSources()
+      .find((d: TerraformDataSource) => {
+        return d.name === "monitor";
+      });
+
+    expect(monitor?.schema["probe_report"]?.description).toBe(
+      "What the probes last reported. A JSON value: read it with `jsondecode()`.",
     );
   });
 

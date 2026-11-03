@@ -26,8 +26,8 @@ Fordi notatene kommer først og er de samme fra én kjøring til den neste, hør
 ## Skriv AI-konteksten
 
 :::steps
-### Åpne AI Features
-Åpne **Prosjektinnstillinger → KI → AI Features**. Kortet **AI-kontekst** ligger under **Aktiver AI**.
+### Åpne AI-funksjoner
+Åpne **Prosjektinnstillinger → KI → AI-funksjoner**. Kortet **AI-kontekst** ligger under **Aktiver AI**.
 
 ### Skriv notatene
 Klikk på **Legg til AI-kontekst**, eller på **Rediger** når det finnes notater. Skriv i Markdown, eller klikk på **Start med en disposisjon** for å få en overskrift for hver type notat.

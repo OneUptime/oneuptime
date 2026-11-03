@@ -4,7 +4,7 @@ A Host monitor watches one machine — its CPU, memory, disks, load and processe
 
 :::cards
 - [Create the monitor](#create-a-host-monitor): Six steps in the dashboard.
-- [Templates](#pre-built-alert-templates): Six ready-made alerts for a silent host, CPU, memory, disk, load and processes.
+- [Templates](#pre-built-alert-templates): Ten ready-made alerts for a silent or restarted host, CPU, memory, swap, disk, inodes, load, processes and failed systemd units.
 - [Metrics](#collected-metrics): The host metrics you can alert on, and their units.
 - [Host or Server / VM?](#host-monitor-or-server-vm-monitor): Which of the two machine monitors to use.
 :::
@@ -95,27 +95,35 @@ Click **Create Monitor**. OneUptime opens the monitor's page and evaluates it ev
 
 ## Pre-built Alert Templates
 
-The **What to alert on** list offers six templates. Each builds a complete monitor: a query, a criteria that fires and one that recovers. Thresholds are starting points you can edit.
+The **What to alert on** list offers ten templates. Each builds a complete monitor: a query, a criteria that fires and one that recovers. Thresholds are starting points you can edit.
 
 A criteria fires only when the condition holds for every minute of its window, and recovers 10% past the threshold so a value hovering at the line does not flap.
 
 | Template | Severity | Watches | Fires when | Recovers when |
 | --- | --- | --- | --- | --- |
 | Host Stopped Reporting | Critical | `system.memory.usage`, Count, past 10 minutes | No data for the whole window | Data arrives again |
+| Host Restarted | Warning | `system.uptime`, Min, past 5 minutes | Any value is below 600 (ten minutes) | Every value is at or above 660 |
 | High CPU Utilization | Warning | `system.cpu.utilization` for the `user` and `system` states, added and shown as a percentage, past 5 minutes | Above 80% | At or below 72% |
 | High Memory Utilization | Warning | `system.memory.utilization` for the `used` state, as a percentage, past 5 minutes | Above 85% | At or below 76.5% |
+| High Swap Usage | Warning | `system.paging.usage` for the `used` and `free` states, used over used plus free, as a percentage, past 5 minutes | Above 80% | At or below 72% |
 | High Filesystem Usage | Critical | `system.filesystem.utilization`, Max per `mountpoint` and `device`, as a percentage, past 5 minutes | Above 90% | At or below 81% |
+| Running Out of Inodes | Critical | `system.filesystem.inodes.usage` for the `used` and `free` states, used over used plus free, per `mountpoint` and `device`, as a percentage, past 5 minutes | Above 90% | At or below 81% |
 | High Load Average (1m) | Warning | `system.cpu.load_average.1m`, Avg, past 5 minutes | Above 4 | At or below 3.6 |
 | High Process Count | Warning | `system.processes.count`, Max, past 5 minutes | Above 2000 | At or below 1800 |
+| Systemd Unit Failed | Warning | `systemd.unit.state` with `systemd.unit.active_state = failed`, Max per `resource.systemd.unit.name`, past 5 minutes | Above 0 | At or below 0 |
 
 **Severity** is the label the picker shows. The incident and alert a template creates start on your project's most severe incident and alert severity; change them in the criteria.
 
 - **Host Stopped Reporting** fires when nothing arrives from the host for ten minutes: the machine is down or unreachable, or its collector stopped, lost its route to OneUptime or had its token revoked. It resolves when data comes back. When data stops, the other templates have nothing to compare and keep their last status, so this is the one that tells you.
+- **Host Restarted** fires on the first report after a boot: the host has been up for less than ten minutes. It reads `system.uptime` from the collector's `system` scraper, which OneUptime's default configs turn on, and resolves on its own about a quarter of an hour after the boot, once every value of its five-minute window reads eleven minutes or more. A host that is down raises **Host Stopped Reporting** instead.
 - **CPU** is busy time (`user` plus `system`), the same figure the host's **Overview** charts. Iowait and steal are left out.
 - **Memory** excludes buffers and page cache, so a host that is mostly cache does not trip it.
+- **Swap** is used swap over used plus free, across every swap device, as `free` and `swapon` print it. A host without swap reports none and never fires.
 - **Filesystem** opens one incident per mount. Read-only pseudo-filesystems, such as snap `squashfs` mounts or macOS `devfs`, are always 100% full: OneUptime's collector configs leave them out of the `filesystem` scraper with `exclude_fs_types`, and a config of your own needs the same.
+- **Inodes** opens one incident per mount, like **Filesystem**. Once a filesystem runs out of inodes nothing can create a file there, however much space is free. A filesystem with no inode table of its own, such as btrfs, reports none and never fires.
 - **Load average** is a raw run-queue length, not divided by the number of cores: 4 is saturation on a 2-core host and routine on a 32-core one, so raise it on large hosts.
 - **Process count** compares the largest single process state (`running`, `sleeping`, …), not the host's total, so it will not match a process listing. The processes scraper reports on Linux, macOS and BSD, not on Windows.
+- **Systemd Unit Failed** opens one alert per systemd service in the `failed` state, from the collector's `systemd` receiver, which OneUptime's default config reads on Linux hosts with systemd. It resolves when the unit runs again, or once `systemctl reset-failed` clears it.
 
 ## Collected Metrics
 

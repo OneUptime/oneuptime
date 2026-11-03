@@ -1,4 +1,5 @@
 import React, { FunctionComponent, ReactElement } from "react";
+import BreakableName from "Common/UI/Components/BreakableName/BreakableName";
 import Icon from "Common/UI/Components/Icon/Icon";
 import IconProp from "Common/Types/Icon/IconProp";
 import InfoTooltip from "Common/UI/Components/Tooltip/InfoTooltip";
@@ -24,6 +25,13 @@ export interface GoldenMetricTileProps {
   iconColor: GoldenMetricTileColor;
   value: string;
   sublabel?: string | undefined;
+  /*
+   * The sublabel is a value as the resource wrote it - a mount point, a
+   * device - rather than a sentence: it reads in its own direction, so
+   * /var/lib/postgresql keeps its leading slash on a Persian page, and a
+   * long one breaks after its slashes rather than running out of the tile.
+   */
+  isSublabelAsWritten?: boolean | undefined;
   percent?: number | null | undefined;
   thresholds?: { warn: number; danger: number } | undefined;
   /*
@@ -36,9 +44,24 @@ export interface GoldenMetricTileProps {
    * behavior.
    */
   higherIsBetter?: boolean | undefined;
+  /*
+   * The bar's colour as the product's rules say it, when they read more
+   * than the number: a vCenter's 1/3 hosts effective is calm while the two
+   * others are in standby, and red while one is not responding. Overrides
+   * `thresholds`.
+   */
+  tone?: GoldenMetricTileTone | undefined;
   // What the number means, shown in an (i) tooltip beside the title.
   description?: string | undefined;
 }
+
+export type GoldenMetricTileTone = "positive" | "warning" | "danger";
+
+const TONE_BAR_CLASS_NAMES: Record<GoldenMetricTileTone, string> = {
+  positive: "bg-emerald-500",
+  warning: "bg-amber-500",
+  danger: "bg-red-500",
+};
 
 /*
  * Exported so overview pages can reuse the same palette for sibling
@@ -73,6 +96,9 @@ const GoldenMetricTile: FunctionComponent<GoldenMetricTileProps> = (
   const barColor: string = (() => {
     if (props.percent === null || props.percent === undefined) {
       return "bg-gray-300";
+    }
+    if (props.tone) {
+      return TONE_BAR_CLASS_NAMES[props.tone];
     }
     const t: { warn: number; danger: number } = props.thresholds || {
       warn: 70,
@@ -125,7 +151,18 @@ const GoldenMetricTile: FunctionComponent<GoldenMetricTileProps> = (
         {props.value}
       </div>
       {props.sublabel ? (
-        <div className="mt-1 text-xs text-gray-500">{props.sublabel}</div>
+        <div
+          className="mt-1 text-xs text-gray-500"
+          data-testid="golden-metric-tile-sublabel"
+        >
+          {props.isSublabelAsWritten ? (
+            <bdi>
+              <BreakableName text={props.sublabel} />
+            </bdi>
+          ) : (
+            props.sublabel
+          )}
+        </div>
       ) : (
         <div className="mt-1 text-xs text-gray-400">&nbsp;</div>
       )}

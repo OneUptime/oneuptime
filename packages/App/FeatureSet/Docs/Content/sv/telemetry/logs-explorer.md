@@ -56,7 +56,7 @@ Skriv en fråga i sökrutan och tryck på Enter, till exempel `severity:error se
 
 ### Avgränsa med filter
 
-Klicka på ett värde i sidopanelen **Filter** för att lägga till det som ett chip: en allvarlighetsgrad, en tjänst, eller en värd, ett kluster eller en annan resurs som har skickat loggar. Varje värde visar hur många loggar som har det. På en telefon trycker du på **Filter** för att öppna sidopanelen.
+Klicka på ett värde i sidopanelen **Filter** för att lägga till det som ett chip: en allvarlighetsgrad, en tjänst, eller en värd, ett kluster eller en annan resurs som har skickat loggar. Varje värde visar hur många loggar som har det. Klicka på minustecknet bredvid ett värde för att i stället utesluta de loggarna. Klicka på värdet igen för att ångra. På en telefon trycker du på **Filter** för att öppna sidopanelen.
 
 ### Öppna en logg
 
@@ -72,7 +72,7 @@ Detaljpanelen har två flikar:
 | Flik | Vad den visar |
 | --- | --- |
 | **Detaljer** | **Loggkropp**, dess **Spår-ID**, **Span-ID** och **Session** när den har dem, och dess **Attribut**, som lista eller som JSON. |
-| **Context** | Loggen bland sina grannar. **Nearby (service + time)** visar de fem raderna före och efter den från samma tjänst, och **This trace** visar upp till 100 loggar från dess spår. |
+| **Kontext** | Loggen bland sina grannar. **Nearby (service + time)** visar de fem raderna före och efter den från samma tjänst, och **This trace** visar upp till 100 loggar från dess spår. |
 
 - Klicka på spår-ID:t för att öppna hela förfrågan i [Spårutforskare](/docs/telemetry/traces-explorer).
 - Peka på ett attribut och klicka på dess filterikon för att söka efter det värdet, eller kopiera det. Du kan kopiera alla attribut på en gång som JSON.

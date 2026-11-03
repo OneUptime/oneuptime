@@ -23,7 +23,8 @@
     "newPassword": "Nouveau mot de passe",
     "code": "Code",
     "yourCompany": "Votre entreprise",
-    "or": "ou"
+    "or": "ou",
+    "continueWithGoogle": "Continuer avec Google"
   },
   "language": {
     "label": "Langue",
@@ -58,6 +59,10 @@
     },
     "title": "Connectez-vous à votre compte",
     "subtitle": "Utilisez votre mot de passe, le SSO de votre organisation ou une clé d’accès.",
+    "sessionEnded": {
+      "lengthReached": "Vous avez été déconnecté, car votre session a atteint sa limite de durée. Reconnectez-vous pour reprendre là où vous en étiez.",
+      "inactive": "Vous avez été déconnecté après une période d’inactivité. Reconnectez-vous pour reprendre là où vous en étiez."
+    },
     "submitButton": "Connexion",
     "forgotPassword": "Mot de passe oublié ?",
     "signInWithSso": "Se connecter avec SSO",

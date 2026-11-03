@@ -53,6 +53,76 @@ app.get(
   },
 );
 
+/*
+ * A post as Markdown, for AI agents: its title, description, date, author,
+ * tags and canonical URL, then the post as written.
+ *
+ * The Link header names the post's page as the canonical URL. Without it,
+ * search engines took the Markdown copy for a page of its own, and AI search
+ * answers cited the copy - bare text - in place of the post.
+ */
+const sendBlogPostMarkdown: (
+  res: ExpressResponse,
+  blogPost: BlogPost,
+) => void = (res: ExpressResponse, blogPost: BlogPost): void => {
+  const lines: Array<string> = [
+    `# ${blogPost.title}`,
+    "",
+    blogPost.description.trim(),
+    "",
+    `- Published: ${blogPost.postDate}`,
+  ];
+
+  if (blogPost.updatedDate) {
+    lines.push(`- Updated: ${blogPost.updatedDate}`);
+  }
+
+  if (blogPost.author) {
+    lines.push(
+      `- Author: [${blogPost.author.name}](${blogPost.author.githubUrl})`,
+    );
+  }
+
+  if (blogPost.tags.length > 0) {
+    lines.push(`- Tags: ${blogPost.tags.join(", ")}`);
+  }
+
+  lines.push(`- Canonical: ${blogPost.blogUrl}`, "", "---", "");
+  lines.push(blogPost.markdownBody);
+
+  res.setHeader("Content-Type", "text/markdown; charset=utf-8");
+  res.setHeader("Link", `<${encodeURI(blogPost.blogUrl)}>; rel="canonical"`);
+  res.setHeader("Access-Control-Allow-Origin", "*");
+  res.send(lines.join("\n"));
+};
+
+/*
+ * The posts a post's page lists as related (Utils/BlogRelatedPosts.ts). They
+ * are a way on from the post, not the post: when they cannot be found, the
+ * page goes without them.
+ */
+const getRelatedPostsOf: (
+  fileName: string,
+) => Promise<Array<BlogPostHeader>> = async (
+  fileName: string,
+): Promise<Array<BlogPostHeader>> => {
+  try {
+    return await BlogPostUtil.getRelatedPosts(fileName);
+  } catch (err) {
+    logger.error(err);
+    return [];
+  }
+};
+
+/*
+ * A post's page. A client that asks for Markdown before HTML - coding agents
+ * such as Claude Code and OpenCode send "Accept: text/markdown, ..." - gets
+ * the post as Markdown at this address, the one it should cite, instead of
+ * a page of about 330 KB whose post is 2% of it. Browsers and crawlers ask
+ * for HTML first, and a request that accepts any type gets HTML too, which
+ * this route offers first, so they get the page as before. Both answers
+ * carry "Vary: Accept".
+ */
 app.get(
   "/blog/post/:file/view",
   async (req: ExpressRequest, res: ExpressResponse, next: NextFunction) => {
@@ -66,6 +136,17 @@ app.get(
         return NotFoundUtil.renderNotFound(res);
       }
 
+      res.vary("Accept");
+
+      if (req.accepts(["text/html", "text/markdown"]) === "text/markdown") {
+        /*
+         * Private: Cloudflare, in front of oneuptime.com, does not key its
+         * cache on Vary, so a shared copy could reach a browser.
+         */
+        res.setHeader("Cache-Control", "private, max-age=600");
+        return sendBlogPostMarkdown(res, blogPost);
+      }
+
       res.render(`${ViewsPath}/Blog/Post`, {
         support: false,
         footerCards: true,
@@ -73,6 +154,7 @@ app.get(
         blackLogo: false,
         requestDemoCta: false,
         blogPost: blogPost,
+        relatedPosts: await getRelatedPostsOf(fileName),
         blogTagPath: BlogTag.getPagePathOfTag,
         enableGoogleTagManager: GoogleTagManagerEnabled,
         seo: {
@@ -132,31 +214,8 @@ app.get(
         return res.send("Blog post not found.");
       }
 
-      const lines: Array<string> = [
-        `# ${blogPost.title}`,
-        "",
-        blogPost.description.trim(),
-        "",
-        `- Published: ${blogPost.postDate}`,
-      ];
-
-      if (blogPost.author) {
-        lines.push(
-          `- Author: [${blogPost.author.name}](${blogPost.author.githubUrl})`,
-        );
-      }
-
-      if (blogPost.tags.length > 0) {
-        lines.push(`- Tags: ${blogPost.tags.join(", ")}`);
-      }
-
-      lines.push(`- Canonical: ${blogPost.blogUrl}`, "", "---", "");
-      lines.push(blogPost.markdownBody);
-
-      res.setHeader("Content-Type", "text/markdown; charset=utf-8");
       res.setHeader("Cache-Control", "public, max-age=600");
-      res.setHeader("Access-Control-Allow-Origin", "*");
-      return res.send(lines.join("\n"));
+      return sendBlogPostMarkdown(res, blogPost);
     } catch (e) {
       logger.error(e);
       return next(e);

@@ -1618,9 +1618,9 @@ const TelemetryDocumentation: FunctionComponent<ComponentProps> = (
           {availableLanguages.map((lang: LanguageOption) => {
             const isSelected: boolean = selectedLanguage === lang.key;
             /*
-             * Each language beside its own logo. The picked one is tinted,
-             * not filled: a logo keeps its colours, and on a solid indigo
-             * button Rust's black gear or Java's blue cup would disappear.
+             * Each language beside its own mark, drawn in the button's own
+             * colour (text-current): grey at rest, indigo on hover and once
+             * picked. The picked one is tinted, not filled, as before.
              */
             return (
               <button
@@ -1640,6 +1640,7 @@ const TelemetryDocumentation: FunctionComponent<ComponentProps> = (
                   logo={lang.logo}
                   isBare={true}
                   isDecorative={true}
+                  colorClassName="text-current"
                 />
                 {/*
                   A name read the way it is written on a right-to-left page
@@ -1705,6 +1706,9 @@ const TelemetryDocumentation: FunctionComponent<ComponentProps> = (
                       isBare={true}
                       size={20}
                       isDecorative={true}
+                      colorClassName={
+                        isSelected ? "text-indigo-600" : "text-gray-500"
+                      }
                       iconClassName={`h-5 w-5 flex-shrink-0 ${isSelected ? "text-indigo-600" : "text-gray-500"}`}
                     />
                   ) : (

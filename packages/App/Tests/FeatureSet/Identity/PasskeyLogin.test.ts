@@ -289,6 +289,10 @@ beforeEach(() => {
     session,
     refreshToken: "refresh-token",
     refreshTokenExpiresAt: new Date("2030-01-01T00:00:00.000Z"),
+    signedInAt: new Date(),
+    lastActiveAt: new Date(),
+    accessTokenExpiresInSeconds: 15 * 60,
+    ssoSignInExpiresInSeconds: 30 * 24 * 60 * 60,
   });
 });
 

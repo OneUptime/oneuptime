@@ -3,15 +3,16 @@ import path from "path";
 
 /*
  * A resource's Overview drawn with ResourceOverview - a service's, a
- * database's and a queue's - in real Chromium, with no backend:
- * ResourceOverviews/Fixture/server.js bundles the production layouts, side
- * menus and Overviews with the app's esbuild config, Tailwind, theme and
- * font, over in-memory records whose every read it records. What jsdom
- * cannot show is checked here (#5298's UI review): the Details card's ID
- * line and its rows wrapping where they read, the labels card on a phone
- * only, the description under the name, and the hero's controls at the
- * row's end - at a phone's, a tablet's and a laptop's width, light and
- * dark, in German and right to left.
+ * database's, a queue's and a serverless function's - in real Chromium,
+ * with no backend: ResourceOverviews/Fixture/server.js bundles the
+ * production layouts, side menus and Overviews with the app's esbuild
+ * config, Tailwind, theme and font, over in-memory records whose every read
+ * it records. What jsdom cannot show is checked here (#5298's UI review):
+ * the Details card's ID line and its rows wrapping where they read, the
+ * labels card on a phone only, the description under the name, the hero's
+ * controls at the row's end, and the Security card a service and a
+ * serverless function draw from their own logs - at a phone's, a tablet's
+ * and a laptop's width, light and dark, in German and right to left.
  */
 const port: string = process.env["RESOURCE_OVERVIEWS_FIXTURE_PORT"] || "4643";
 

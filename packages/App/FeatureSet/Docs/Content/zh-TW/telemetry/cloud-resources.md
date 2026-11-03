@@ -1,6 +1,6 @@
 # 雲端資源(IaaS 與 PaaS)
 
-**Cloud Resources** 會列出你的 AWS、Azure 與 Google Cloud 帳戶中的 IaaS 與 PaaS 資源：虛擬機器、磁碟、負載平衡器、儲存貯體、受控資料庫、快取、佇列、API 閘道等等。每個資源都有自己的頁面，顯示它的類型、區域與帳戶、提供者為它指派的 ID、提供者發布的關於它的每個指標，並且可以像 OneUptime 中的其他資源一樣設定擁有者與標籤。你可以在 **雲端 → 所有資源** 下找到它們。
+**雲端資源** 會列出你的 AWS、Azure 與 Google Cloud 帳戶中的 IaaS 與 PaaS 資源：虛擬機器、磁碟、負載平衡器、儲存貯體、受控資料庫、快取、佇列、API 閘道等等。每個資源都有自己的頁面，顯示它的類型、區域與帳戶、提供者為它指派的 ID、提供者發布的關於它的每個指標，並且可以像 OneUptime 中的其他資源一樣設定擁有者與標籤。你可以在 **雲端 → 所有資源** 下找到它們。
 
 > [!TIP]
 > 不想執行收集器？在 **雲端 → 連線** 中[連線雲端帳戶](/docs/telemetry/cloud-accounts)，OneUptime 會自行讀取這些指標。
@@ -37,7 +37,7 @@ flowchart TB
 | ECS、Cloud Run、Container Apps、App Service 等上的容器 | **應用程式平台 → 所有環境** | 工作負載本身的遙測資料，依其 `cloud.platform` 區分。請參閱 [雲端環境](/docs/telemetry/cloud-environments) |
 | 提供者監控的任何 IaaS 或 PaaS 資源 | **雲端 → 所有資源** | 由 Collector 讀取的提供者監控 API：也就是本頁 |
 | 裝有 OpenTelemetry Collector 的虛擬機器 | **主機** | 主機本身的指標與日誌。請參閱 [主機 OpenTelemetry Collector](/docs/telemetry/host-otel-collector) |
-| 你的應用程式使用的佇列與主題 | **Queues** | span，以及相同的雲端指標。請參閱 [佇列](/docs/telemetry/queues) |
+| 你的應用程式使用的佇列與主題 | **佇列** | span，以及相同的雲端指標。請參閱 [佇列](/docs/telemetry/queues) |
 
 一個資源可能出現在多個地方。裝有 Collector 的虛擬機器是一台 **主機**，而它的平台指標（Hypervisor 看到的 CPU 點數、磁碟與網路）又讓它成為一個 **雲端資源**。SQS 佇列既是 **Queue**，也是 **雲端資源**。每個檢視顯示的是其資料來源所知道的內容。
 

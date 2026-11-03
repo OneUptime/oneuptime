@@ -3,6 +3,15 @@ import ModelAPI, { ListResult } from "Common/UI/Utils/ModelAPI/ModelAPI";
 import { LIMIT_PER_PROJECT } from "Common/Types/Database/LimitMax";
 import ObjectID from "Common/Types/ObjectID";
 import SortOrder from "Common/Types/BaseDatabase/SortOrder";
+import GreaterThan from "Common/Types/BaseDatabase/GreaterThan";
+import Includes from "Common/Types/BaseDatabase/Includes";
+import OneUptimeDate from "Common/Types/Date";
+import URL from "Common/Types/API/URL";
+import HTTPResponse from "Common/Types/API/HTTPResponse";
+import HTTPErrorResponse from "Common/Types/API/HTTPErrorResponse";
+import { JSONObject } from "Common/Types/JSON";
+import { APP_API_URL } from "Common/UI/Config";
+import API from "Common/UI/Utils/API/API";
 import { VMwareResourceKind } from "Common/Types/Monitor/MonitorStepVMwareMonitor";
 import { InfrastructureResource } from "../../../Components/Infrastructure/ResourceTable";
 import { VMWARE_METRIC_STALE_MS } from "./VMwareHostData";
@@ -227,6 +236,12 @@ const INVENTORY_SELECT: Record<string, boolean> = {
   vmTemplateCount: true,
   datastoreCount: true,
   clusterCount: true,
+  notRespondingHostCount: true,
+  standbyHostCount: true,
+  criticalHostCount: true,
+  warningHostCount: true,
+  criticalVmCount: true,
+  criticalClusterCount: true,
   metricsUpdatedAt: true,
   lastSeenAt: true,
 };
@@ -241,6 +256,8 @@ const INVENTORY_SELECT: Record<string, boolean> = {
 export async function fetchVMwareInventoryRows(options: {
   vmwareVCenterId: ObjectID;
   kind?: VMwareResourceKind | undefined;
+  // Several kinds at once (the Overview reads every kind but the VMs).
+  kinds?: Array<VMwareResourceKind> | undefined;
   /*
    * Only the rows that sit on one ESXi host: the virtual machines it runs
    * (and, on a standalone host, its resource pools). An exact match on the
@@ -250,17 +267,27 @@ export async function fetchVMwareInventoryRows(options: {
    */
   hostName?: string | undefined;
   datacenterName?: string | undefined;
+  // Only the rows in one cluster (its hosts, its VMs).
+  clusterName?: string | undefined;
 }): Promise<Array<VMwareResourceModel>> {
   const query: Record<string, unknown> = {
     vmwareVCenterId: options.vmwareVCenterId,
   };
   if (options.kind) {
     query["kind"] = options.kind;
+  } else if (options.kinds && options.kinds.length > 0) {
+    query["kind"] =
+      options.kinds.length === 1
+        ? options.kinds[0]
+        : new Includes(options.kinds);
+  }
+  if (options.clusterName) {
+    query["clusterName"] = options.clusterName;
   }
   if (options.hostName) {
     query["hostName"] = options.hostName;
   }
-  if (options.hostName && options.datacenterName) {
+  if ((options.hostName || options.clusterName) && options.datacenterName) {
     query["datacenterName"] = options.datacenterName;
   }
 
@@ -280,15 +307,187 @@ export async function fetchVMwareInventoryRows(options: {
 }
 
 /*
+ * How many virtual machines of each kind of trouble a page reads at most:
+ * enough to list every one that needs attention in any real vCenter, and a
+ * cap on what one read returns.
+ */
+export const VMWARE_ATTENTION_READ_LIMIT: number = 500;
+
+/*
+ * The virtual machines that may need attention (VMwareHealth's rules for a
+ * VM): powered on, with a reading of the last 15 minutes, and swapped,
+ * ballooned or waiting for a CPU. One read per condition, each by the
+ * vCenter's own rows, so a vCenter of thousands of VMs is never read whole
+ * for the few that need a look; the rules then judge what came back.
+ */
+export async function fetchVMwareVirtualMachinesThatMayNeedAttention(options: {
+  vmwareVCenterId: ObjectID;
+  now: Date;
+  // Only the VMs on one host, or in one cluster (with their datacenter).
+  hostName?: string | undefined;
+  clusterName?: string | undefined;
+  datacenterName?: string | undefined;
+  cpuReadyWarningPercent: number;
+}): Promise<Array<VMwareResourceModel>> {
+  const base: Record<string, unknown> = {
+    vmwareVCenterId: options.vmwareVCenterId,
+    kind: VMwareResourceKind.VirtualMachine,
+    isPoweredOn: true,
+    metricsUpdatedAt: new GreaterThan<Date>(
+      new Date(options.now.getTime() - METRIC_STALE_MS),
+    ),
+  };
+  if (options.hostName) {
+    base["hostName"] = options.hostName;
+  }
+  if (options.clusterName) {
+    base["clusterName"] = options.clusterName;
+  }
+  if ((options.hostName || options.clusterName) && options.datacenterName) {
+    base["datacenterName"] = options.datacenterName;
+  }
+
+  const conditions: Array<Record<string, unknown>> = [
+    { memorySwappedBytes: new GreaterThan<number>(0) },
+    { memoryBalloonedBytes: new GreaterThan<number>(0) },
+    {
+      cpuReadinessPercent: new GreaterThan<number>(
+        options.cpuReadyWarningPercent,
+      ),
+    },
+  ];
+
+  const results: Array<ListResult<VMwareResourceModel>> = await Promise.all(
+    conditions.map(
+      (
+        condition: Record<string, unknown>,
+      ): Promise<ListResult<VMwareResourceModel>> => {
+        return ModelAPI.getList<VMwareResourceModel>({
+          modelType: VMwareResourceModel,
+          query: { ...base, ...condition },
+          skip: 0,
+          limit: VMWARE_ATTENTION_READ_LIMIT,
+          select: INVENTORY_SELECT,
+          sort: {
+            externalId: SortOrder.Ascending,
+          },
+        });
+      },
+    ),
+  );
+
+  // A VM that is swapped and ballooned comes back from both reads once.
+  const byExternalId: Map<string, VMwareResourceModel> = new Map();
+  for (const result of results) {
+    for (const row of result.data) {
+      byExternalId.set(row.externalId || row.id?.toString() || "", row);
+    }
+  }
+  return Array.from(byExternalId.values());
+}
+
+/*
+ * The powered-on virtual machines that wait longest for a CPU, most first:
+ * the Overview's top consumers by CPU ready, read sorted from the vCenter's
+ * rows rather than from all of them.
+ */
+export async function fetchVMwareVirtualMachinesByCpuReady(options: {
+  vmwareVCenterId: ObjectID;
+  now: Date;
+  limit: number;
+}): Promise<Array<VMwareResourceModel>> {
+  const result: ListResult<VMwareResourceModel> =
+    await ModelAPI.getList<VMwareResourceModel>({
+      modelType: VMwareResourceModel,
+      query: {
+        vmwareVCenterId: options.vmwareVCenterId,
+        kind: VMwareResourceKind.VirtualMachine,
+        isPoweredOn: true,
+        metricsUpdatedAt: new GreaterThan<Date>(
+          new Date(options.now.getTime() - METRIC_STALE_MS),
+        ),
+        cpuReadinessPercent: new GreaterThan<number>(0),
+      },
+      skip: 0,
+      limit: options.limit,
+      select: INVENTORY_SELECT,
+      sort: {
+        cpuReadinessPercent: SortOrder.Descending,
+      },
+    });
+
+  return result.data;
+}
+
+/*
+ * How many of each kind of object a vCenter holds, counted in Postgres in
+ * one read (POST /vmware-resource/inventory-summary/:vcenterId): the side
+ * menu's badges and the Overview's count chips read the same numbers.
+ */
+export interface VMwareInventorySummary {
+  datacenterCount: number;
+  clusterCount: number;
+  hostCount: number;
+  // Templates left out.
+  virtualMachineCount: number;
+  poweredOnVirtualMachineCount: number;
+  virtualMachineTemplateCount: number;
+  datastoreCount: number;
+  resourcePoolCount: number;
+}
+
+export async function fetchVMwareInventorySummary(
+  vmwareVCenterId: ObjectID,
+): Promise<VMwareInventorySummary | null> {
+  const summaryUrl: URL = URL.fromString(APP_API_URL.toString())
+    .addRoute("/vmware-resource/inventory-summary/")
+    .addRoute(vmwareVCenterId.toString());
+
+  const response: HTTPResponse<JSONObject> | HTTPErrorResponse = await API.post(
+    {
+      url: summaryUrl,
+      data: {},
+      headers: {
+        ...ModelAPI.getCommonHeaders(),
+      },
+    },
+  );
+
+  if (response instanceof HTTPErrorResponse) {
+    return null;
+  }
+
+  const summary: JSONObject = response.data;
+  const readNumber: (key: string) => number = (key: string): number => {
+    const value: unknown = summary[key];
+    return typeof value === "number" && Number.isFinite(value) ? value : 0;
+  };
+
+  return {
+    datacenterCount: readNumber("datacenterCount"),
+    clusterCount: readNumber("clusterCount"),
+    hostCount: readNumber("hostCount"),
+    virtualMachineCount: readNumber("virtualMachineCount"),
+    poweredOnVirtualMachineCount: readNumber("poweredOnVirtualMachineCount"),
+    virtualMachineTemplateCount: readNumber("virtualMachineTemplateCount"),
+    datastoreCount: readNumber("datastoreCount"),
+    resourcePoolCount: readNumber("resourcePoolCount"),
+  };
+}
+
+/*
  * Whether the row's latest metric snapshot is fresh enough to show as a
  * live value (see METRIC_STALE_MS).
  */
-export function hasFreshMetrics(row: VMwareResourceModel): boolean {
+export function hasFreshMetrics(
+  row: VMwareResourceModel,
+  now: Date = OneUptimeDate.getCurrentDate(),
+): boolean {
   if (!row.metricsUpdatedAt) {
     return false;
   }
   const ageMs: number =
-    Date.now() - new Date(row.metricsUpdatedAt as Date).getTime();
+    now.getTime() - new Date(row.metricsUpdatedAt as Date).getTime();
   return Number.isFinite(ageMs) && ageMs <= METRIC_STALE_MS;
 }
 

@@ -456,6 +456,60 @@ describe("the importing page", () => {
     );
   });
 
+  it("imports a row that joins two records by what it joins too, as the provider does", () => {
+    const section: string = englishSection(
+      IMPORTING_RESOURCES,
+      "### What can be imported",
+    );
+    const joined: Array<string> = [
+      "team_member",
+      "monitor_user_owner",
+      "on_call_schedule_layer_user",
+    ].map((name: string): string => {
+      const type: ProviderType = resourceType(name);
+
+      return `${name}: <${type.importsByParent}>/<${type.importsByEmail ? "email" : type.importsByMember}>`;
+    });
+
+    expect(joined).toEqual([
+      "team_member: <team_id>/<email>",
+      "monitor_user_owner: <monitor_id>/<email>",
+      "on_call_schedule_layer_user: <on_call_duty_policy_schedule_layer_id>/<email>",
+    ]);
+    expect(section).toContain(
+      "Rows that join two records, such as a team's members, a monitor's owners and the people on an on-call layer, have IDs no screen shows.",
+    );
+    expect(codeIn(section)).toContain(
+      "68a1b2c3-d4e5-4f6a-8b9c-0d1e2f3a4b01/bob@example.com",
+    );
+  });
+
+  it("is right that the same value written another way plans no change after an import", () => {
+    const generator: string = readRepoFile(RESOURCE_GENERATOR);
+    const settle: string = readRepoFile(
+      "Scripts/TerraformProvider/StaticFiles/importsettle.go",
+    );
+
+    // A timestamp, a number, JSON (getImportSettleModifier), and steps.
+    for (const modifier of [
+      '"RFC3339KeepSameInstant()"',
+      '"NumberKeepSameAPINumber()"',
+      '"JSONSubsetKeepImported()"',
+    ]) {
+      expect(generator).toContain(modifier);
+    }
+    expect(readRepoFile(MONITOR_STEPS_GO)).toContain(
+      "func MonitorStepsKeepImported() planmodifier.List {",
+    );
+    expect(settle).toContain("a timestamp comes back in UTC with milliseconds");
+    expect(settle).toContain(
+      "a number comes back as the 64-bit float OneUptime keeps it as",
+    );
+    expect(englishPage(IMPORTING_RESOURCES)).toContain(
+      "- **The same value written another way is no change.** OneUptime keeps a timestamp in UTC with milliseconds, a number as a 64-bit float, and JSON and monitor steps with the keys it fills in itself.",
+    );
+  });
+
   it("stops managing a resource with a removed block that keeps the record", () => {
     const removed: HclBlock = parseHcl(
       sectionBlock(IMPORTING_RESOURCES, "## Stop managing a resource", "hcl")
@@ -474,6 +528,10 @@ describe("the importing page", () => {
 
 // A link to a section of the same page: "[text](#anchor)".
 const OWN_SECTION_LINK: RegExp = /\]\(#([^)]+)\)/g;
+
+// What ids.go writes for a value that is not an ID, and how it shows one.
+const LOOKS_LIKE_CONSTANT: RegExp = /const looksLike = "([^"]+)"/;
+const NOT_AN_ID_FORMAT: RegExp = /"(%q is not the ID of a %s: %s Refer[^"]+)"/;
 
 describe("the troubleshooting page", () => {
   it("quotes every error as the provider and the server word it, with its status", () => {
@@ -530,6 +588,51 @@ describe("the troubleshooting page", () => {
     // A renamed type's deprecation.
     expect(readRepoFile(RESOURCE_GENERATOR)).toContain(
       "has been renamed to ${this.providerName}_${resource.name}",
+    );
+  });
+
+  it("quotes the provider's refusal of a name where an ID goes, word for word", () => {
+    const ids: string = readRepoFile(
+      "Scripts/TerraformProvider/StaticFiles/ids.go",
+    );
+    const section: string = englishSection(
+      TROUBLESHOOTING,
+      "### A name where an ID goes",
+    );
+    // What the validator writes for team_id = "sre" (recordIDValidator.detail).
+    const looksLike: string = (
+      LOOKS_LIKE_CONSTANT.exec(ids) as RegExpExecArray
+    )[1] as string;
+    const format: string = (
+      NOT_AN_ID_FORMAT.exec(ids) as RegExpExecArray
+    )[1] as string;
+    const values: Array<string> = [
+      '"sre"',
+      "oneuptime_team",
+      looksLike,
+      "oneuptime_team",
+      "oneuptime_team",
+    ];
+    const message: string = format.replace(/%[qs]/g, (): string => {
+      return values.shift() as string;
+    });
+
+    expect(ids).toContain(
+      'resp.Diagnostics.AddAttributeError(req.Path, "Not an ID", v.detail(value))',
+    );
+    expect(
+      (
+        codeBlocks(section).find((block: CodeBlock): boolean => {
+          return block.lang === "text";
+        }) as CodeBlock
+      ).code.trim(),
+    ).toBe(message);
+    expect(englishPage(TROUBLESHOOTING)).toContain(
+      "| `Not an ID` | Refer to the record instead of naming it: see [A name where an ID goes](#a-name-where-an-id-goes) |",
+    );
+    // Every attribute that holds the ID of another record has the validator.
+    expect(readRepoFile(RESOURCE_GENERATOR)).toContain(
+      'string: "recordIDValidators",',
     );
   });
 
@@ -1220,14 +1323,22 @@ describe("the OpenTofu page", () => {
     expect(main).toContain('resource "oneuptime_escalation_rule" "primary"');
 
     for (const responder of [
-      "oneuptime_team_on_call_duty_escalation_rule",
-      "oneuptime_users_on_call_duty_escalation_rule",
-      "oneuptime_schedules_on_call_duty_escalation_rule",
+      "oneuptime_escalation_rule_team",
+      "oneuptime_escalation_rule_user",
+      "oneuptime_escalation_rule_schedule",
     ]) {
       expect(main).not.toContain(responder);
       expect(provider.resources.has(responder.slice("oneuptime_".length))).toBe(
         true,
       );
+    }
+    // Nor under the names they had before (deprecated aliases now).
+    for (const formerName of [
+      "oneuptime_team_on_call_duty_escalation_rule",
+      "oneuptime_users_on_call_duty_escalation_rule",
+      "oneuptime_schedules_on_call_duty_escalation_rule",
+    ]) {
+      expect(main).not.toContain(formerName);
     }
 
     expect(englishSection(OPENTOFU, "## A reusable module")).toContain(

@@ -31,10 +31,10 @@ flowchart TB
 
 | Wat je op de host ziet | Waar het vandaan komt |
 | --- | --- |
-| **Overzicht** en **Metrieken** | De receiver `hostmetrics`: CPU, geheugen, schijven, bestandssystemen, netwerk, belasting, paging. |
+| **Overzicht** en **Metrieken** | De receiver `hostmetrics`: CPU, geheugen, schijven, bestandssystemen, netwerk, belasting, paging, looptijd. |
 | **Processen** | De scraper `process` van `hostmetrics`: één set series per proces. |
 | **Logboeken** | De receivers `filelog`, `journald` en `windowseventlog`. |
-| **Systemd Units** (Linux) | De receiver `systemd`. |
+| **Systemd-units** (Linux) | De receiver `systemd`. |
 | **Services** (Windows) | De receiver `windows_service`. |
 | Het inventarisitem | De processor `resourcedetection`, plus de [attributen die je stempelt](#inventarisattributen-ip-mac-serienummer-merk-model-firmware). |
 | **Agentversie** | `oneuptime.agent.version` in de processor `resource`. |
@@ -86,6 +86,8 @@ receivers:
       load:
       network:
       paging:
+      # How long the host has been up (system.uptime): when it last started.
+      system:
       processes:
       process:
         mute_process_name_error: true
@@ -189,6 +191,8 @@ receivers:
       load:
       network:
       paging:
+      # How long the host has been up (system.uptime): when it last started.
+      system:
       processes:
       process:
         mute_process_name_error: true
@@ -285,6 +289,8 @@ receivers:
       load:
       network:
       paging:
+      # How long the host has been up (system.uptime): when it last started.
+      system:
       processes:
       process:
         mute_process_name_error: true
@@ -555,7 +561,7 @@ De receiver voert `journalctl` uit, dat elke systemd-host heeft, en de gebruiker
 
 ### Linux-services (systemd-units, metrics)
 
-De pagina **Systemd Units** van de host toont elke unit en zijn status, afkomstig van de [`systemdreceiver`](https://github.com/open-telemetry/opentelemetry-collector-contrib/tree/main/receiver/systemdreceiver) (configuratietype `systemd`), de Linux-tegenhanger van de pagina **Services** op Windows. De Linux-configuratie hierboven schakelt hem in:
+De pagina **Systemd-units** van de host toont elke unit en zijn status, afkomstig van de [`systemdreceiver`](https://github.com/open-telemetry/opentelemetry-collector-contrib/tree/main/receiver/systemdreceiver) (configuratietype `systemd`), de Linux-tegenhanger van de pagina **Services** op Windows. De Linux-configuratie hierboven schakelt hem in:
 
 ```yaml
 receivers:
@@ -963,6 +969,8 @@ receivers:
       network:
       load:
       paging:
+      # How long the host has been up (system.uptime): when it last started.
+      system:
       processes: # aggregate counts only — cheap
       process:
         mute_process_name_error: true
@@ -990,7 +998,7 @@ receivers:
         enabled: false
 ```
 
-Samen brengen deze een host met 300 units van ongeveer 6.000 datapunten per minuut naar ruim onder de 100. Units die van de lijst verdwijnen, verlaten de pagina **Systemd Units** een paar minuten later, zodra hun laatste samples uit het lopende venster zijn verdwenen.
+Samen brengen deze een host met 300 units van ongeveer 6.000 datapunten per minuut naar ruim onder de 100. Units die van de lijst verdwijnen, verlaten de pagina **Systemd-units** een paar minuten later, zodra hun laatste samples uit het lopende venster zijn verdwenen.
 
 ### Laat records vallen met een filter-processor
 
@@ -1117,6 +1125,8 @@ receivers:
       load:
       network:
       paging:
+      # How long the host has been up (system.uptime): when it last started.
+      system:
       processes:
 
 processors:

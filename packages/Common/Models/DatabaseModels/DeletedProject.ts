@@ -506,6 +506,7 @@ export default class DeletedProject extends BaseModel {
   @TableColumn({
     required: false,
     type: TableColumnType.ShortText,
+    allowedValues: Object.values(SubscriptionStatus),
     title: "Payment Provider Subscription Status",
     description:
       "Status the billing subscription was in when the project was deleted.",

@@ -25,8 +25,9 @@ export interface CardSelectOption {
   description: string;
   icon: IconProp;
   /*
-   * The official logo of the product the choice is (Amazon S3, OpenAI), drawn
-   * in the icon's place. A generic choice (a webhook, syslog) keeps its icon.
+   * The product the choice is (Google Cloud Storage, OpenAI): its official
+   * mark is drawn in the icon's place, in one colour as an icon is. A
+   * generic choice (a webhook, syslog) keeps its icon.
    */
   logo?: ProviderLogo | undefined;
   /*
@@ -501,7 +502,8 @@ const CardSelect: FunctionComponent<ComponentProps> = (
   /*
    * The tile at the start of a choice: its product's logo, or its icon - on
    * a grey tile that turns indigo when picked, or, among logos, on a logo's
-   * neutral tile.
+   * neutral tile, where the picked choice's mark or icon turns indigo as an
+   * icon does on a picked grey tile.
    */
   const renderOptionMark: RenderOptionMarkFunction = (data: {
     option: CardSelectOption;
@@ -518,6 +520,7 @@ const CardSelect: FunctionComponent<ComponentProps> = (
           icon={data.option.icon}
           size={data.size}
           isDecorative={true}
+          colorClassName={data.isSelected ? "text-indigo-600" : undefined}
         />
       );
     }
@@ -1108,20 +1111,26 @@ const CardSelect: FunctionComponent<ComponentProps> = (
           data-card-select-value={selectedOption.value}
           className="flex items-center gap-3 rounded-lg border border-indigo-200 bg-indigo-50/50 px-3 py-2.5"
         >
-          {selectedOption.logo ? (
-            <ProviderLogoImage
-              logo={selectedOption.logo}
-              size={32}
-              isDecorative={true}
-            />
-          ) : (
-            <div className="flex h-8 w-8 flex-shrink-0 items-center justify-center rounded-md bg-indigo-100">
+          {/*
+           * The picked choice's mark or icon on the picked tile: a product's
+           * mark is drawn as an icon is, so it takes the same indigo.
+           */}
+          <div className="flex h-8 w-8 flex-shrink-0 items-center justify-center rounded-md bg-indigo-100">
+            {selectedOption.logo ? (
+              <ProviderLogoImage
+                logo={selectedOption.logo}
+                size={16}
+                isBare={true}
+                isDecorative={true}
+                colorClassName="text-indigo-600"
+              />
+            ) : (
               <Icon
                 icon={selectedOption.icon}
                 className="h-4 w-4 text-indigo-600"
               />
-            </div>
-          )}
+            )}
+          </div>
           <div className="min-w-0 flex-1">
             <span
               id={summaryTitleId}

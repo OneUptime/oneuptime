@@ -8,6 +8,7 @@ import ObjectID from "../../Types/ObjectID";
 import User from "../../Models/DatabaseModels/User";
 import API from "../../Utils/API";
 import logger from "./Logger";
+import crypto from "crypto";
 
 /*
  * Server-side product analytics (PostHog).
@@ -29,10 +30,38 @@ export default class ProductAnalytics {
     return Boolean(AnalyticsKey && AnalyticsHost);
   }
 
+  /*
+   * The same UUID for the same key, every time. PostHog stores events that
+   * share a uuid, name, distinct id and timestamp once, so an event captured
+   * again under the key and moment it was first captured with is stored once.
+   */
+  public static getDeterministicUuid(key: string): string {
+    const bytes: Buffer = crypto
+      .createHash("sha256")
+      .update(key, "utf8")
+      .digest()
+      .subarray(0, 16);
+
+    // Version 8 (RFC 9562: a custom layout) and the RFC 4122 variant.
+    bytes[6] = ((bytes[6] as number) & 0x0f) | 0x80;
+    bytes[8] = ((bytes[8] as number) & 0x3f) | 0x80;
+
+    const hex: string = bytes.toString("hex");
+
+    return `${hex.slice(0, 8)}-${hex.slice(8, 12)}-${hex.slice(12, 16)}-${hex.slice(16, 20)}-${hex.slice(20, 32)}`;
+  }
+
   public static capture(data: {
     event: string;
     distinctId: string;
     properties?: JSONObject | undefined;
+    /*
+     * For an event that can be raised twice for one occurrence - a Stripe
+     * webhook sent again - the key of that occurrence (a marketing event's
+     * eventId), with the moment it happened: PostHog then stores it once.
+     */
+    deduplicationKey?: string | undefined;
+    timestamp?: Date | undefined;
   }): void {
     try {
       if (!this.isConfigured()) {
@@ -49,6 +78,12 @@ export default class ProductAnalytics {
           api_key: AnalyticsKey,
           event: data.event,
           distinct_id: data.distinctId,
+          ...(data.deduplicationKey
+            ? { uuid: this.getDeterministicUuid(data.deduplicationKey) }
+            : {}),
+          ...(data.timestamp
+            ? { timestamp: data.timestamp.toISOString() }
+            : {}),
           properties: {
             source: "oneuptime-server",
             ...(data.properties || {}),

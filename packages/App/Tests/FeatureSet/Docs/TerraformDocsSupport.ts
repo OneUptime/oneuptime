@@ -78,6 +78,13 @@ export interface ProviderAttribute {
    * state: an import leaves it empty.
    */
   readBack: boolean;
+  /*
+   * Resources: a person's ID attribute (`user_id`) names the attribute that
+   * names them by email address instead (`user_email`), and that attribute
+   * names the ID attribute it stands beside. Null for everything else.
+   */
+  personEmail: string | null;
+  personEmailOf: string | null;
 }
 
 export interface ProviderType {
@@ -86,6 +93,16 @@ export interface ProviderType {
   // The name before type names kept mixed-case words whole: "io_t_fleet".
   legacyName: string | null;
   canBeImported: boolean;
+  /*
+   * A row imported by what it joins and who or what joins it -
+   * `<team_id>/<email>`, `<monitor_id>/<team_id>` - as well as by its own
+   * ID: the attribute of what it joins (`team_id`).
+   */
+  importsByParent: string | null;
+  // The attribute after the slash (`user_id`, `team_id`).
+  importsByMember: string | null;
+  // Whether the part after the slash may be the person's email address.
+  importsByEmail: boolean;
   attributes: Map<string, ProviderAttribute>;
 }
 
@@ -105,6 +122,8 @@ interface TerraformAttribute {
   enumValues?: Array<string>;
   relation?: { name: string } | undefined;
   isLookupFilter?: boolean;
+  person?: { emailAttribute: string } | undefined;
+  personEmailOf?: string | undefined;
 }
 
 // What these helpers read of the generator's TerraformResource.
@@ -112,6 +131,13 @@ interface TerraformResource {
   name: string;
   legacyName?: string | undefined;
   operations: { read?: unknown };
+  membershipImport?:
+    | {
+        parentAttribute: string;
+        personAttribute: string;
+        personEmailAttribute?: string | undefined;
+      }
+    | undefined;
   schema: Record<string, TerraformAttribute>;
   // What the read operation answers with: the attributes a read maps back.
   operationSchemas?:
@@ -189,6 +215,8 @@ function attributeOf(
     relation: attribute.relation ? attribute.relation.name : null,
     isLookupFilter: Boolean(attribute.isLookupFilter),
     readBack: readBack,
+    personEmail: attribute.person?.emailAttribute || null,
+    personEmailOf: attribute.personEmailOf || null,
   };
 }
 
@@ -233,6 +261,11 @@ export function readProvider(): Promise<ProviderSchema> {
           name: resource.name,
           legacyName: resource.legacyName || null,
           canBeImported: Boolean(resource.operations.read),
+          importsByParent: resource.membershipImport?.parentAttribute || null,
+          importsByMember: resource.membershipImport?.personAttribute || null,
+          importsByEmail: Boolean(
+            resource.membershipImport?.personEmailAttribute,
+          ),
           attributes: attributes,
         });
       }
@@ -255,6 +288,9 @@ export function readProvider(): Promise<ProviderSchema> {
           name: dataSource.name,
           legacyName: dataSource.legacyName || null,
           canBeImported: false,
+          importsByParent: null,
+          importsByMember: null,
+          importsByEmail: false,
           attributes: attributes,
         });
       }

@@ -254,6 +254,7 @@ export default class VercelMarketplaceInstallation extends BaseModel {
   @TableColumn({
     required: true,
     type: TableColumnType.ShortText,
+    allowedValues: Object.values(VercelInstallationStatus),
     title: "Status",
     description:
       "Active, DeletePending (uninstalled; the final invoice is still to be sent) or Deleted.",

@@ -56,7 +56,7 @@ Digitate una query nella casella di ricerca e premete Invio, ad esempio `severit
 
 ### Restringere con i filtri
 
-Fate clic su un valore nella barra laterale **Filtri** per aggiungerlo come chip: una gravità, un servizio, oppure un host, un cluster o un'altra risorsa che ha inviato log. Ogni valore indica quanti log lo riportano. Su un telefono, toccate **Filtri** per aprire la barra laterale.
+Fate clic su un valore nella barra laterale **Filtri** per aggiungerlo come chip: una gravità, un servizio, oppure un host, un cluster o un'altra risorsa che ha inviato log. Ogni valore indica quanti log lo riportano. Fate clic sul segno meno accanto a un valore per escludere invece quei log. Fate di nuovo clic sul valore per annullare. Su un telefono, toccate **Filtri** per aprire la barra laterale.
 
 ### Aprire un log
 
@@ -72,7 +72,7 @@ Il pannello dei dettagli ha due schede:
 | Scheda | Cosa mostra |
 | --- | --- |
 | **Dettagli** | Il **Corpo del log**, il suo **ID traccia**, **ID span** e **Sessione** quando li ha, e i suoi **Attributi**, come elenco o come JSON. |
-| **Context** | Il log tra i suoi vicini. **Nearby (service + time)** mostra le cinque righe prima e dopo dello stesso servizio, e **This trace** mostra fino a 100 log della sua traccia. |
+| **Contesto** | Il log tra i suoi vicini. **Nearby (service + time)** mostra le cinque righe prima e dopo dello stesso servizio, e **This trace** mostra fino a 100 log della sua traccia. |
 
 - Fate clic sull'ID traccia per aprire l'intera richiesta nell'[Esploratore tracce](/docs/telemetry/traces-explorer).
 - Puntate un attributo e fate clic sull'icona del filtro per cercare quel valore, oppure copiatelo. Potete copiare tutti gli attributi in una volta come JSON.

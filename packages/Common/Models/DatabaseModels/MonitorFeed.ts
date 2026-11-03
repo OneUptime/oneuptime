@@ -463,6 +463,7 @@ export default class MonitorFeed extends BaseModel {
   })
   @TableColumn({
     type: TableColumnType.ShortText,
+    allowedValues: Object.values(MonitorFeedEventType),
     required: true,
     title: "Monitor Feed Event",
     description: "Monitor Feed Event",

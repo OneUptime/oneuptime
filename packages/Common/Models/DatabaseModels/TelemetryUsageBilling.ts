@@ -153,6 +153,7 @@ export default class TelemetryUsageBilling extends BaseModel {
   @TableColumn({
     required: true,
     type: TableColumnType.ShortText,
+    allowedValues: Object.values(ProductType),
     canReadOnRelationQuery: true,
     title: "Product Type",
     description: "Product Type this usage billing was generated for",
@@ -354,6 +355,7 @@ export default class TelemetryUsageBilling extends BaseModel {
   })
   @TableColumn({
     type: TableColumnType.ShortText,
+    allowedValues: Object.values(ServiceType),
     canReadOnRelationQuery: true,
     title: "Service Type",
     description:

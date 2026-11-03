@@ -23,7 +23,8 @@
     "newPassword": "Neues Passwort",
     "code": "Code",
     "yourCompany": "Ihr Unternehmen",
-    "or": "oder"
+    "or": "oder",
+    "continueWithGoogle": "Weiter mit Google"
   },
   "language": {
     "label": "Sprache",
@@ -58,6 +59,10 @@
     },
     "title": "Melden Sie sich bei Ihrem Konto an",
     "subtitle": "Verwenden Sie Ihr Passwort, das SSO Ihrer Organisation oder einen Passkey.",
+    "sessionEnded": {
+      "lengthReached": "Sie wurden abgemeldet, weil Ihre Sitzung ihr Zeitlimit erreicht hat. Melden Sie sich erneut an, um dort weiterzumachen, wo Sie aufgehört haben.",
+      "inactive": "Sie wurden nach einer Zeit ohne Aktivität abgemeldet. Melden Sie sich erneut an, um dort weiterzumachen, wo Sie aufgehört haben."
+    },
     "submitButton": "Anmelden",
     "forgotPassword": "Passwort vergessen?",
     "signInWithSso": "Mit SSO anmelden",

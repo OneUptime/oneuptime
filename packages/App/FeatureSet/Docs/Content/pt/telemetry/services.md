@@ -47,7 +47,7 @@ Cada vez que a telemetria chega, o **Visto pela última vez** do serviço avanç
 
 ## Encontrar um serviço
 
-Acesse **Produtos → Recursos → Serviços**. **Todos os serviços** lista cada serviço com **Nome**, **Descrição**, **Technology**, **Visto pela última vez**, **Rótulos** e **Proprietários**.
+Acesse **Produtos → Recursos → Serviços**. **Todos os serviços** lista cada serviço com **Nome**, **Descrição**, **Tecnologia**, **Visto pela última vez**, **Rótulos** e **Proprietários**.
 
 - Pesquise por nome ou descrição, e filtre por proprietário ou rótulo com a barra acima da lista.
 - Selecione vários serviços para adicionar rótulos ou proprietários a todos de uma vez, ou para arquivá-los.
@@ -62,7 +62,7 @@ O menu lateral de um serviço tem cinco seções:
 | Seção | Páginas |
 | --- | --- |
 | **Básico** | **Visão geral**: requisições, taxa de erros e latência p95 dos spans dele, gráficos e detalhes. **Recomendações**: monitores prontos para o serviço, escolhidos de acordo com a linguagem dele. **Proprietários**: as pessoas e as equipes responsáveis por ele. **Feed**: tudo o que aconteceu com ele, desde como foi criado até cada mudança desde então. |
-| **Telemetria** | Os **Registros**, **Traços**, **Métricas**, **Perfis de desempenho**, **Exceções** e **Source Maps** dele, já filtrados para este serviço. |
+| **Telemetria** | Os **Registros**, **Traços**, **Métricas**, **Perfis de desempenho**, **Exceções** e **Source maps** dele, já filtrados para este serviço. |
 | **Atividade** | Os **Incidentes**, os **Alertas** e os eventos de **Manutenção programada** que o afetam. |
 | **Desenvolvedores** | **Terraform**, **API** e **Assistentes de IA**: o serviço gerenciado por código. Começa recolhida. |
 | **Avançado** | **Configurações**, **Registros de auditoria** e **Excluir serviço**. **Avançado** começa recolhido: expanda-o primeiro. |

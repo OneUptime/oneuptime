@@ -26,8 +26,10 @@ import {
   DASHBOARD_URL,
   CAPTCHA_ENABLED,
   CAPTCHA_SITE_KEY,
+  GoogleSignInClientId,
   MicrosoftSignInClientId,
 } from "Common/UI/Config";
+import GoogleSignInButton from "../Components/GoogleSignInButton/GoogleSignInButton";
 import MicrosoftSignInButton from "../Components/MicrosoftSignInButton/MicrosoftSignInButton";
 import ProductLogo from "Common/UI/Components/ProductLogo/ProductLogo";
 import { isProductRenamed } from "Common/UI/Utils/ProductBranding";
@@ -65,6 +67,7 @@ import QRCodeElement from "Common/UI/Components/QR/QR";
 import PageLoader from "Common/UI/Components/Loader/PageLoader";
 import { SSO_REQUIRED_SIGN_IN_MESSAGE } from "Common/Types/SSO/SignInMethods";
 import LoginWithSsoPage from "./LoginWithSSO";
+import SessionEndedNotice from "../Components/SessionEndedNotice/SessionEndedNotice";
 import { SignInMethodsRead, useSignInMethods } from "../Utils/SignInMethods";
 
 /*
@@ -979,6 +982,11 @@ const LoginPage: (props: ComponentProps) => JSX.Element = (
                 ? t("adminLogin.subtitle")
                 : t("login.subtitle")}
             </p>
+            {/*
+             * Why they were signed out, when the server ended their
+             * session: its length or idle timeout was reached.
+             */}
+            <SessionEndedNotice className="mt-6 text-start" />
           </>
         )}
 
@@ -1172,8 +1180,8 @@ const LoginPage: (props: ComponentProps) => JSX.Element = (
                * one filled button: it is how most people sign in. Under it,
                * an "or" divider and the other ways in, as normal buttons as
                * wide and as tall as Login, outlined where Login is filled:
-               * single sign-on, Microsoft where this server offers it, and a
-               * passkey, last (SignInOptionStyle). Passkeys used to open the
+               * single sign-on, Google and Microsoft where this server offers
+               * them, and a passkey, last (SignInOptionStyle). Passkeys used to open the
                * card in a tinted panel of their own, which pushed the form
                * people came for below the fold on a phone; after that, the
                * other ways in were centred text links, which read as small
@@ -1181,8 +1189,8 @@ const LoginPage: (props: ComponentProps) => JSX.Element = (
                *
                * While a passkey attempt runs, the form is paused, and looks
                * it: disabled, faded, and out of the pointer's reach, its
-               * links, the divider, the single sign-on and Microsoft buttons
-               * and any captcha included. A bright Login that does nothing
+               * links, the divider, the single sign-on, Google and Microsoft
+               * buttons and any captcha included. A bright Login that does nothing
                * when clicked reads as broken, and a link that leaves the page
                * while the server is finishing the sign-in would throw that
                * sign-in away. Cancel, outside the form, brings it back. (The
@@ -1321,9 +1329,10 @@ const LoginPage: (props: ComponentProps) => JSX.Element = (
                   footer={
                     /*
                      * The other ways in that leave this page: single sign-on,
-                     * and Microsoft where this server offers it. Inside the
-                     * fieldset, so a passkey attempt pauses them with the
-                     * form; the passkey option, last, follows the fieldset.
+                     * and Google and Microsoft where this server offers them.
+                     * Inside the fieldset, so a passkey attempt pauses them
+                     * with the form; the passkey option, last, follows the
+                     * fieldset.
                      */
                     <div data-testid="sign-in-options">
                       <LabelledDivider
@@ -1341,8 +1350,15 @@ const LoginPage: (props: ComponentProps) => JSX.Element = (
                         />
                         {/*
                          * Not on the master admins' page: while the server
-                         * requires SSO, Microsoft signs nobody in.
+                         * requires SSO, Google and Microsoft sign nobody in.
                          */}
+                        {GoogleSignInClientId && !isMasterAdminPasswordPage ? (
+                          <GoogleSignInButton
+                            title={t("common.continueWithGoogle")}
+                          />
+                        ) : (
+                          <></>
+                        )}
                         {MicrosoftSignInClientId &&
                         !isMasterAdminPasswordPage ? (
                           <MicrosoftSignInButton

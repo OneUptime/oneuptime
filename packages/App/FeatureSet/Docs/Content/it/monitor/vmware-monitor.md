@@ -4,7 +4,7 @@ Un monitor VMware osserva un vCenter - i suoi datacenter, cluster, host ESXi, ma
 
 :::cards
 - [Creare il monitor](#creare-un-monitor-vmware): Sei passaggi nella dashboard.
-- [Modelli](#modelli-di-avviso-predefiniti): Ventiquattro avvisi pronti, un incidente per host, VM o datastore.
+- [Modelli](#modelli-di-avviso-predefiniti): Venticinque avvisi pronti, un incidente per host, VM o datastore.
 - [Attributi di identità](#attributi-di-identità): Come puntare a un host, una VM o un datastore.
 - [Metriche](#metriche-raccolte): Ogni serie `vcenter.*` su cui il monitor può generare avvisi.
 :::
@@ -106,14 +106,15 @@ Nei filtri del monitor e nelle chiavi di raggruppamento, gli attributi di risors
 
 ## Modelli di avviso predefiniti
 
-OneUptime fornisce 24 modelli per i problemi VMware più comuni, e l'elenco di **Su cosa avvisare** li offre tutti. Ognuno costruisce un monitor completo: la query della metrica, i suoi filtri sugli attributi, un raggruppamento sull'attributo di identità proprio dell'oggetto, un criterio che scatta e uno che rientra. Le soglie sono punti di partenza che puoi modificare.
+OneUptime fornisce 25 modelli per i problemi VMware più comuni, e l'elenco di **Su cosa avvisare** li offre tutti. Ognuno costruisce un monitor completo: la query della metrica, i suoi filtri sugli attributi, un raggruppamento sull'attributo di identità proprio dell'oggetto, un criterio che scatta e uno che rientra. Le soglie sono punti di partenza che puoi modificare.
 
 I modelli leggono gli ultimi 5 minuti, salvo diversa indicazione nella tabella. Un criterio scatta solo quando la condizione vale per ogni minuto della sua finestra, e un criterio di soglia rientra il 10 % oltre la sua soglia, così un valore che oscila attorno alla linea non va avanti e indietro.
 
 | Modello | Categoria | Gravità | Osserva | Scatta quando | Rientra quando |
 | --- | --- | --- | --- | --- | --- |
 | vCenter Stopped Reporting | Disponibilità | Critico | `vcenter.datacenter.cpu.limit`, Count sull'intero vCenter, **ultimi 10 minuti** | Nessun dato per tutta la finestra: l'agente o la sonda ha smesso di funzionare, oppure vCenter non gli risponde più | I dati tornano ad arrivare |
-| Host CPU Saturation | Host | Avviso | `vcenter.host.cpu.utilization`, Avg per `resource.vcenter.host.name` | Sopra il 90 %: ogni VM sull'host si contende i core e mostra tempo di CPU ready | All'81 % o meno |
+| Host Not Responding | Host | Critico | `vcenter.host.memory.usage`, Max per `resource.vcenter.host.name` | A 0, nessuna memoria in uso: vCenter ha perso il contatto con l'host (si è bloccato, ha perso l'alimentazione o la rete di gestione, o è stato disconnesso), oppure è spento o in standby. Dove vSphere DPM mette gli host in standby, usa **Datacenter Hosts Not Responding**, che li lascia fuori | Sopra 0 |
+| Host CPU Saturation | Host | Avviso | `vcenter.host.cpu.utilization`, Avg per host | Sopra il 90 %: ogni VM sull'host si contende i core e mostra tempo di CPU ready | All'81 % o meno |
 | Host Memory Saturation | Host | Avviso | `vcenter.host.memory.utilization`, Avg per host | Sopra il 90 %: l'host inizia a recuperare memoria con ballooning, compressione e swapping | All'81 % o meno |
 | Host Disk Latency High | Host | Avviso | `vcenter.host.disk.latency.max`, Max per host | Sopra 50 ms: ogni VM i cui dischi sono su quel percorso attende lo storage. Richiede il livello 3 dei contatori di prestazioni | A 45 ms o meno |
 | Host Network Packet Errors | Host | Avviso | `vcenter.host.network.packet.error.rate`, Max per host | Sopra 0: quasi sempre un guasto di cavo, SFP o porta dello switch | A 0 |
@@ -142,6 +143,7 @@ I modelli leggono gli ultimi 5 minuti, salvo diversa indicazione nella tabella. 
 - **I modelli di utilizzo usano Avg:** il receiver riporta una vera percentuale da 0 a 100 per ogni oggetto, quindi la media in un minuto è l'utilizzo sostenuto.
 - **I modelli di latenza usano Max:** la metrica è già la latenza peggiore tra i dischi dell'oggetto, quindi il suo campione più alto è quello onesto.
 - **I modelli di conteggio e di stato usano Max**, così una sola raccolta che mostra la condizione li fa scattare: errori di pacchetto, ballooning, swapping, stato rosso e giallo, host non effettivi, congestione.
+- **Host Not Responding usa Max e scatta a 0:** un host ESXi in funzione usa sempre memoria, quindi una raccolta che riporta memoria in uso è un host che risponde, e solo una finestra in cui nessuna lo ha fatto lo fa scattare.
 - **Ogni modello raggruppa sull'attributo di identità proprio dell'oggetto**, quindi scatta un incidente per ogni oggetto interessato, e l'incidente lo nomina. L'eccezione è **vCenter Stopped Reporting**, che osserva l'intero vCenter: quando i dati smettono di arrivare, gli altri modelli non hanno nulla da confrontare e mantengono il loro ultimo stato, quindi è questo il modello che te lo segnala.
 - **Le soglie sono fissate nella loro unità** (`%`, `ms`, `us`), così mantengono il loro significato qualunque unità mostri un grafico.
 
@@ -261,7 +263,7 @@ Inviate solo per i cluster con vSAN, i loro host e le VM su un datastore vSAN. L
 | `vcenter.vm.vsan.throughput`        | `By/s`            | Throughput vSAN della VM, per `direction`                                                                                                       |
 
 > [!NOTE]
-> Lo stato di alimentazione di una VM non è una metrica. Il receiver invia `vcenter.vm.cpu.*` solo per le VM accese, quindi OneUptime distingue **Powered on** da **Spenta** in base al fatto che i dati di CPU siano arrivati nella stessa raccolta dei dati di memoria e disco della VM; la pagina **Macchine virtuali** del vCenter mostra il risultato. Per generare avvisi sugli host spenti o su quante VM sono in esecuzione, usa l'attributo `power_state` di `vcenter.datacenter.host.count`, `vcenter.datacenter.vm.count` o `vcenter.cluster.vm.count`.
+> Lo stato di alimentazione di una VM non è una metrica. Il receiver invia `vcenter.vm.cpu.*` solo per le VM accese, quindi OneUptime distingue **Powered on** da **Alimentazione spenta** in base al fatto che i dati di CPU siano arrivati nella stessa raccolta dei dati di memoria e disco della VM; la pagina **Macchine virtuali** del vCenter mostra il risultato. Per generare avvisi sugli host spenti o su quante VM sono in esecuzione, usa l'attributo `power_state` di `vcenter.datacenter.host.count`, `vcenter.datacenter.vm.count` o `vcenter.cluster.vm.count`.
 
 ## Criteri di monitoraggio
 

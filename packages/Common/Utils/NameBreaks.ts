@@ -13,9 +13,12 @@
  *
  * Only a long name gets the breaks (NAME_BREAKS_FROM_LENGTH): a short one
  * ("user.id") fits on a line of its own, and breaking it would only split
- * it where a space before it would have done. A number's decimal point
- * ("4.8") and a sentence's full stop are left whole: neither is followed by
- * a letter inside a word.
+ * it where a space before it would have done. A name alone in a narrow box
+ * - a top-5 row beside its value - has no space before it, so its caller
+ * passes a shorter length (fromLength) and an 18-letter host's name breaks
+ * as "esx02.acme." / "example", never "esx02.acme.exampl" / "e". A number's
+ * decimal point ("4.8") and a sentence's full stop are left whole: neither
+ * is followed by a letter inside a word.
  */
 
 // The shortest name that may break inside: about half a phone's line.
@@ -26,8 +29,8 @@ const NAME_PART_START: RegExp = /[\p{L}{]/u;
 const WHITESPACE: RegExp = /\s/u;
 
 // One word's parts, each but the last ending in a separator.
-function splitWord(word: string): Array<string> {
-  if (word.length < NAME_BREAKS_FROM_LENGTH) {
+function splitWord(word: string, fromLength: number): Array<string> {
+  if (word.length < fromLength) {
     return [word];
   }
 
@@ -58,8 +61,14 @@ function splitWord(word: string): Array<string> {
   return parts;
 }
 
-// The text in parts, each but the last ending in a separator. Linear.
-export function splitAtNameBreaks(text: string): Array<string> {
+/*
+ * The text in parts, each but the last ending in a separator. Linear. A
+ * word shorter than fromLength stays whole.
+ */
+export function splitAtNameBreaks(
+  text: string,
+  fromLength: number = NAME_BREAKS_FROM_LENGTH,
+): Array<string> {
   const parts: Array<string> = [];
   let current: string = "";
   let word: string = "";
@@ -69,7 +78,7 @@ export function splitAtNameBreaks(text: string): Array<string> {
       return;
     }
 
-    const wordParts: Array<string> = splitWord(word);
+    const wordParts: Array<string> = splitWord(word, fromLength);
 
     // The word's first part joins what came before it on the same part.
     current += wordParts[0];

@@ -1,6 +1,10 @@
 import logger from "../Logger";
 import Dictionary from "../../../Types/Dictionary";
 import EventName from "../../../Types/Realtime/EventName";
+import {
+  getSessionEnd,
+  SessionLengths,
+} from "../../../Types/UserSession/SessionLength";
 import type { RealtimeReaderIdentity } from "./RealtimeReaders";
 
 /*
@@ -21,7 +25,12 @@ import type { RealtimeReaderIdentity } from "./RealtimeReaders";
  *     asked again from the start;
  *   - until the session ends: signing out, a revoked session (a password
  *     change, a block) and a deleted account end it at once, on every
- *     server (RealtimeAccessChanges calls endWhere).
+ *     server (RealtimeAccessChanges calls endWhere);
+ *   - until the server's session lengths end it (Common/Types/UserSession/
+ *     SessionLength.ts): its access token never outlives them, and when a
+ *     master admin shortens them, every server ends its sockets whose
+ *     session they have ended, and ends the others when they do
+ *     (applySessionLengths), from what the token says of its session.
  *
  * Ending a socket's session leaves every room it joined, forgets who it
  * is, and tells the client with EventName.AuthenticationRequired. The
@@ -55,12 +64,28 @@ export interface RealtimeSessionSocket {
   on(event: "disconnect", listener: () => void): unknown;
 }
 
+/*
+ * What a socket's session ends by under the server's session lengths: when
+ * its sign-in began, when its person was last active, and whether it is an
+ * SSO sign-in - as its access token says (SessionFacts, in milliseconds).
+ */
+export interface RealtimeSessionFacts {
+  signedInAtMs: number;
+  lastActiveAtMs: number;
+  isSsoSignIn: boolean;
+}
+
 // A socket's session, as Realtime keeps it on the socket.
 export interface RealtimeSocketSession extends RealtimeReaderIdentity {
   // The sign-in (UserSession) the access token was issued for.
   sessionId?: string | undefined;
   // When the access token stops being accepted, as Date.now() counts.
   expiresAtMs: number;
+  /*
+   * What its end under the session lengths is counted from; absent from a
+   * token an earlier release signed, whose own expiry ends it.
+   */
+  sessionFacts?: RealtimeSessionFacts | undefined;
 }
 
 // Where the session is kept on the socket: who it is, for every delivery.
@@ -159,12 +184,46 @@ export default class RealtimeSessions {
       return null;
     }
 
+    const sessionFacts: RealtimeSessionFacts | undefined =
+      RealtimeSessions.readSessionFacts(session["sessionFacts"]);
+
     return {
       userId: userId,
       isMasterAdmin: session["isMasterAdmin"] === true,
       sessionId:
         typeof sessionId === "string" && sessionId ? sessionId : undefined,
       expiresAtMs: expiresAtMs,
+      ...(sessionFacts ? { sessionFacts: sessionFacts } : {}),
+    };
+  }
+
+  // Session facts as kept on a socket, if they are facts.
+  public static readSessionFacts(
+    value: unknown,
+  ): RealtimeSessionFacts | undefined {
+    if (!value || typeof value !== "object") {
+      return undefined;
+    }
+
+    const facts: Dictionary<unknown> = value as Dictionary<unknown>;
+    const signedInAtMs: unknown = facts["signedInAtMs"];
+    const lastActiveAtMs: unknown = facts["lastActiveAtMs"];
+
+    if (
+      typeof signedInAtMs !== "number" ||
+      !Number.isFinite(signedInAtMs) ||
+      signedInAtMs <= 0 ||
+      typeof lastActiveAtMs !== "number" ||
+      !Number.isFinite(lastActiveAtMs) ||
+      lastActiveAtMs <= 0
+    ) {
+      return undefined;
+    }
+
+    return {
+      signedInAtMs: signedInAtMs,
+      lastActiveAtMs: lastActiveAtMs,
+      isSsoSignIn: facts["isSsoSignIn"] === true,
     };
   }
 
@@ -210,15 +269,7 @@ export default class RealtimeSessions {
           }
         : session;
 
-    socket.data = {
-      ...data,
-      [SESSION_OF_SOCKET_KEY]: {
-        userId: kept.userId,
-        isMasterAdmin: kept.isMasterAdmin,
-        sessionId: kept.sessionId,
-        expiresAtMs: kept.expiresAtMs,
-      },
-    };
+    RealtimeSessions.writeSession(socket, data, kept);
 
     if (existing && existing.socket === socket) {
       const expiresEarlier: boolean =
@@ -256,6 +307,67 @@ export default class RealtimeSessions {
     socket.on("disconnect", (): void => {
       RealtimeSessions.forget(socket);
     });
+  }
+
+  /*
+   * The server's session lengths are now `lengths` (null: none). Each of
+   * this server's sockets hears only while its session lasts under them,
+   * as every request of the session is held to them: one whose session
+   * they have ended ends now, and one whose session they end before its
+   * access token expires ends then instead, asked to renew a minute
+   * before, as at any expiry. A longer length changes nothing here: the
+   * token still ends first, and its renewal is asked afresh. A socket whose
+   * token says nothing of its session (an earlier release's) ends with its
+   * token. Returns how many sockets were ended or ended sooner.
+   */
+  public static applySessionLengths(
+    lengths: SessionLengths | null,
+    nowMs: number = Date.now(),
+  ): number {
+    const ending: Array<RealtimeSessionSocket> = [];
+    let shortened: number = 0;
+
+    for (const entry of RealtimeSessions.live.values()) {
+      const facts: RealtimeSessionFacts | undefined =
+        entry.session.sessionFacts;
+
+      if (!facts) {
+        continue;
+      }
+
+      const endsAtMs: number = getSessionEnd(
+        {
+          signedInAt: new Date(facts.signedInAtMs),
+          lastActiveAt: new Date(facts.lastActiveAtMs),
+          isSsoSignIn: facts.isSsoSignIn,
+        },
+        lengths,
+      ).endsAt.getTime();
+
+      if (endsAtMs <= nowMs) {
+        ending.push(entry.socket);
+        continue;
+      }
+
+      if (endsAtMs < entry.session.expiresAtMs) {
+        entry.session = { ...entry.session, expiresAtMs: endsAtMs };
+
+        const data: Dictionary<unknown> =
+          entry.socket.data && typeof entry.socket.data === "object"
+            ? (entry.socket.data as Dictionary<unknown>)
+            : {};
+
+        RealtimeSessions.writeSession(entry.socket, data, entry.session);
+        RealtimeSessions.arm(entry);
+        shortened++;
+      }
+    }
+
+    for (const socket of ending) {
+      RealtimeSessions.end(socket);
+    }
+
+    return ending.length + shortened;
   }
 
   /*
@@ -460,6 +572,32 @@ export default class RealtimeSessions {
     }
 
     return entry;
+  }
+
+  // Keeps `session` on the socket, as plain JSON, next to what `data` holds.
+  private static writeSession(
+    socket: RealtimeSessionSocket,
+    data: Dictionary<unknown>,
+    session: RealtimeSocketSession,
+  ): void {
+    socket.data = {
+      ...data,
+      [SESSION_OF_SOCKET_KEY]: {
+        userId: session.userId,
+        isMasterAdmin: session.isMasterAdmin,
+        sessionId: session.sessionId,
+        expiresAtMs: session.expiresAtMs,
+        ...(session.sessionFacts
+          ? {
+              sessionFacts: {
+                signedInAtMs: session.sessionFacts.signedInAtMs,
+                lastActiveAtMs: session.sessionFacts.lastActiveAtMs,
+                isSsoSignIn: session.sessionFacts.isSsoSignIn,
+              },
+            }
+          : {}),
+      },
+    };
   }
 
   private static forget(socket: RealtimeSessionSocket): void {

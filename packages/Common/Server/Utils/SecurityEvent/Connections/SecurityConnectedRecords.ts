@@ -1,20 +1,27 @@
+import CloudResource from "../../../../Models/DatabaseModels/CloudResource";
 import DockerHost from "../../../../Models/DatabaseModels/DockerHost";
 import Host from "../../../../Models/DatabaseModels/Host";
 import KubernetesCluster from "../../../../Models/DatabaseModels/KubernetesCluster";
+import Monitor from "../../../../Models/DatabaseModels/Monitor";
 import NetworkDevice from "../../../../Models/DatabaseModels/NetworkDevice";
 import PodmanHost from "../../../../Models/DatabaseModels/PodmanHost";
+import ServerlessFunction from "../../../../Models/DatabaseModels/ServerlessFunction";
 import ServiceModel from "../../../../Models/DatabaseModels/Service";
 import TeamMember from "../../../../Models/DatabaseModels/TeamMember";
 import User from "../../../../Models/DatabaseModels/User";
 import DatabaseCommonInteractionProps from "../../../../Types/BaseDatabase/DatabaseCommonInteractionProps";
+import SortOrder from "../../../../Types/BaseDatabase/SortOrder";
 import NotAuthorizedException from "../../../../Types/Exception/NotAuthorizedException";
 import PaymentRequiredException from "../../../../Types/Exception/PaymentRequiredException";
 import ObjectID from "../../../../Types/ObjectID";
 import {
+  EXACT_SECURITY_CONNECTION_REASONS,
+  POSSIBLE_SECURITY_CONNECTION_REASONS,
   SecurityConnectionCertainty,
   SecurityConnectionKind,
   SecurityConnectionMatch,
   SecurityConnectionReason,
+  SecurityConnectionStatusJson,
 } from "../../../../Types/SecurityCase/SecurityConnection";
 import {
   SecurityEntity,
@@ -29,18 +36,26 @@ import {
   compareConnectedResources,
   foldConnectionValue,
   getBestCertainty,
+  getMonitorMentionTexts,
+  getMonitorTargetHosts,
   getSecurityConnectionLookups,
   matchAddress,
   matchEmail,
   matchHostName,
+  matchMonitorTarget,
+  matchResourceId,
+  readCloudEndpointHosts,
   recordReportsAddress,
   wasLookedUpEverywhere,
 } from "../../../../Utils/SecurityCase/SecurityConnectionMatch";
+import CloudResourceService from "../../../Services/CloudResourceService";
 import DockerHostService from "../../../Services/DockerHostService";
 import HostService from "../../../Services/HostService";
 import KubernetesClusterService from "../../../Services/KubernetesClusterService";
+import MonitorService from "../../../Services/MonitorService";
 import NetworkDeviceService from "../../../Services/NetworkDeviceService";
 import PodmanHostService from "../../../Services/PodmanHostService";
+import ServerlessFunctionService from "../../../Services/ServerlessFunctionService";
 import ServiceService from "../../../Services/ServiceService";
 import TeamMemberService from "../../../Services/TeamMemberService";
 import UserService from "../../../Services/UserService";
@@ -55,17 +70,24 @@ import CaptureSpan from "../../Telemetry/CaptureSpan";
  * reads the records they are applied to:
  *
  *   names      hosts, Docker and Podman hosts (their host.name and their
- *              display name), Kubernetes clusters (k8s.cluster.name) and
- *              network devices (name, hostname, DNS name): a full name, the
- *              short form of a full name, and the full names a bare one
- *              starts;
+ *              display name), Kubernetes clusters (k8s.cluster.name),
+ *              network devices (name, hostname, DNS name) and the names
+ *              cloud resources answer on: a full name, the short form of a
+ *              full name, and the full names a bare one starts;
  *   addresses  the hosts and network devices holding each one, counted
  *              among ALL of the project's records - how many hold it is
  *              what makes it exact or only possible, whoever is asking -
- *              and listed only when the caller may read them;
+ *              and listed only when the caller may read them; the cloud
+ *              resources answering on it, counted among the cloud
+ *              resources alone (an instance and the host it runs are one
+ *              machine seen twice, and neither makes the other less sure);
+ *   monitors   the monitors checking a name, an address or a URL's host;
+ *   IDs        the cloud resource of an ARN, an Azure resource ID or a
+ *              Google Cloud resource name;
  *   emails     the project's members;
  *   logs       the record an event's log line was sent under ("Your logs"
- *              events carry it), exactly.
+ *              events carry it), exactly: a service, a host, a cluster, a
+ *              device, a cloud resource or a serverless function.
  *
  * Every read is inside the project, bounded, and made with the caller's own
  * permissions: a kind of record the caller's role cannot read is reported
@@ -79,6 +101,13 @@ export const MAX_ROWS_PER_READ: number = 50;
 // The most rows read to count how many records hold one address.
 export const MAX_ADDRESS_HOLDERS_READ: number = 25;
 
+/*
+ * The most monitors read whose steps mention a value: each is then held to
+ * the hosts it checks, so a mention that is not a target (a header, a
+ * criterion) is read and dropped.
+ */
+export const MAX_MONITORS_READ: number = 200;
+
 // One OneUptime record a security value names, with every way it does.
 export interface SecurityConnectedRecord {
   kind: SecurityConnectionKind;
@@ -90,6 +119,8 @@ export interface SecurityConnectedRecord {
    * inventory record and its telemetry are found by.
    */
   identity?: string | undefined;
+  // A monitor's current status, read with it.
+  status?: SecurityConnectionStatusJson | undefined;
   certainty: SecurityConnectionCertainty;
   matches: Array<SecurityConnectionMatch>;
 }
@@ -129,6 +160,14 @@ export const LOG_RESOURCE_KINDS: ReadonlyArray<{
     serviceType: ServiceType.NetworkDevice,
     kind: SecurityConnectionKind.NetworkDevice,
   },
+  {
+    serviceType: ServiceType.CloudResource,
+    kind: SecurityConnectionKind.CloudResource,
+  },
+  {
+    serviceType: ServiceType.ServerlessFunction,
+    kind: SecurityConnectionKind.ServerlessFunction,
+  },
 ];
 
 export function getLogResourceKind(
@@ -151,6 +190,12 @@ export function isRefusedRead(error: unknown): boolean {
   );
 }
 
+// The order a record's matches are listed in, within one certainty.
+const REASON_ORDER: ReadonlyArray<SecurityConnectionReason> = [
+  ...EXACT_SECURITY_CONNECTION_REASONS,
+  ...POSSIBLE_SECURITY_CONNECTION_REASONS,
+];
+
 interface NamedRow {
   id: string;
   name: string;
@@ -169,6 +214,7 @@ class Collector {
     id: string;
     name: string;
     identity?: string | undefined;
+    status?: SecurityConnectionStatusJson | undefined;
     match: SecurityConnectionMatch;
   }): void {
     const key: string = `${data.kind}:${data.id}`;
@@ -180,6 +226,7 @@ class Collector {
         id: data.id,
         name: data.name,
         ...(data.identity ? { identity: data.identity } : {}),
+        ...(data.status ? { status: data.status } : {}),
         certainty: data.match.certainty,
         matches: [],
       };
@@ -198,14 +245,20 @@ class Collector {
 
     if (!isKnown) {
       record.matches.push(data.match);
-      // The exact matches first: they are what a person reads first.
+      /*
+       * The exact matches first: they are what a person reads first. Then
+       * by reason, in the order the reasons are listed, so the sentence a
+       * record leads with never depends on which read answered first.
+       */
       record.matches.sort(
         (a: SecurityConnectionMatch, b: SecurityConnectionMatch): number => {
-          if (a.certainty === b.certainty) {
-            return 0;
+          if (a.certainty !== b.certainty) {
+            return a.certainty === SecurityConnectionCertainty.Exact ? -1 : 1;
           }
 
-          return a.certainty === SecurityConnectionCertainty.Exact ? -1 : 1;
+          return (
+            REASON_ORDER.indexOf(a.reason) - REASON_ORDER.indexOf(b.reason)
+          );
         },
       );
     }
@@ -261,6 +314,8 @@ export default class SecurityConnectedRecords {
     await Promise.all([
       this.matchNames({ ...data, lookups, collector }),
       this.matchAddresses({ ...data, lookups, collector }),
+      this.matchCloudResources({ ...data, lookups, collector }),
+      this.matchMonitors({ ...data, lookups, collector }),
       this.matchMembers({ ...data, lookups, collector }),
       this.matchLogResources({
         projectId: data.projectId,
@@ -726,6 +781,49 @@ export default class SecurityConnectedRecords {
         });
     };
 
+    /*
+     * The cloud resources answering on an address, as a cloud connection's
+     * inventory lists them: searched for as written and in its one
+     * spelling (an endpoint is kept as the provider wrote it), then held to
+     * the address itself.
+     */
+    const cloudResourcesHolding: (
+      address: string,
+    ) => Promise<Array<{ id: string; name: string }>> = async (
+      address: string,
+    ): Promise<Array<{ id: string; name: string }>> => {
+      const resources: Array<CloudResource> = await CloudResourceService.findBy(
+        {
+          query: {
+            projectId,
+            cloudEndpoints: QueryHelper.textContainsAnyOf([
+              address,
+              entityByAddress.get(address)?.value || address,
+            ]),
+          } as never,
+          select: { _id: true, name: true, cloudEndpoints: true },
+          limit: MAX_ADDRESS_HOLDERS_READ,
+          skip: 0,
+          props: { isRoot: true },
+        },
+      );
+
+      return resources
+        .filter((resource: CloudResource): boolean => {
+          return readCloudEndpointHosts(
+            resource.cloudEndpoints,
+          ).addresses.includes(address);
+        })
+        .map((resource: CloudResource): { id: string; name: string } => {
+          return { id: resource.id!.toString(), name: resource.name || "" };
+        });
+    };
+
+    const cloudHolders: Map<
+      string,
+      Array<{ id: string; name: string }>
+    > = new Map();
+
     await Promise.all(
       lookups.addresses.map(async (address: string): Promise<void> => {
         const found: Array<{
@@ -763,6 +861,16 @@ export default class SecurityConnectedRecords {
         }
 
         holders.set(address, found);
+
+        const resources: Array<{ id: string; name: string }> | null =
+          await collector.read(
+            SecurityConnectionKind.CloudResource,
+            async () => {
+              return await cloudResourcesHolding(address);
+            },
+          );
+
+        cloudHolders.set(address, resources || []);
       }),
     );
 
@@ -771,17 +879,40 @@ export default class SecurityConnectedRecords {
       projectId,
       props: data.props,
       collector,
-      ids: Array.from(holders.values()).flat(),
+      ids: [
+        ...Array.from(holders.values()).flat(),
+        ...Array.from(cloudHolders.values())
+          .flat()
+          .map((resource: { id: string; name: string }) => {
+            return { kind: SecurityConnectionKind.CloudResource, ...resource };
+          }),
+      ],
     });
 
-    for (const [address, found] of Array.from(holders.entries())) {
+    const addHolders: (
+      address: string,
+      found: Array<{
+        kind: SecurityConnectionKind;
+        id: string;
+        name: string;
+        identity?: string;
+      }>,
+    ) => void = (
+      address: string,
+      found: Array<{
+        kind: SecurityConnectionKind;
+        id: string;
+        name: string;
+        identity?: string;
+      }>,
+    ): void => {
       const verdict: SecurityConnectionVerdict | null = matchAddress({
         address,
         holderCount: found.length,
       });
 
       if (!verdict) {
-        continue;
+        return;
       }
 
       const entity: SecurityEntity = entityByAddress.get(address) || {
@@ -807,6 +938,19 @@ export default class SecurityConnectedRecords {
           },
         });
       }
+    };
+
+    for (const [address, found] of Array.from(holders.entries())) {
+      addHolders(address, found);
+    }
+
+    for (const [address, resources] of Array.from(cloudHolders.entries())) {
+      addHolders(
+        address,
+        resources.map((resource: { id: string; name: string }) => {
+          return { kind: SecurityConnectionKind.CloudResource, ...resource };
+        }),
+      );
     }
   }
 
@@ -849,6 +993,33 @@ export default class SecurityConnectedRecords {
     const deviceIds: Array<ObjectID> = idsOf(
       SecurityConnectionKind.NetworkDevice,
     );
+    const cloudResourceIds: Array<ObjectID> = idsOf(
+      SecurityConnectionKind.CloudResource,
+    );
+
+    if (cloudResourceIds.length > 0) {
+      const resources: Array<CloudResource> | null = await data.collector.read(
+        SecurityConnectionKind.CloudResource,
+        async () => {
+          return await CloudResourceService.findBy({
+            query: {
+              projectId: data.projectId,
+              _id: QueryHelper.any(cloudResourceIds),
+            },
+            select: { _id: true },
+            limit: cloudResourceIds.length,
+            skip: 0,
+            props: data.props,
+          });
+        },
+      );
+
+      for (const resource of resources || []) {
+        visible.add(
+          `${SecurityConnectionKind.CloudResource}:${resource.id!.toString()}`,
+        );
+      }
+    }
 
     if (hostIds.length > 0) {
       const hosts: Array<Host> | null = await data.collector.read(
@@ -894,6 +1065,249 @@ export default class SecurityConnectedRecords {
     }
 
     return visible;
+  }
+
+  /*
+   * The cloud resources a case names: by their own IDs (an ARN, an Azure
+   * resource ID, a Google Cloud resource name - exact, however typed), and
+   * by the host names they answer on (a load balancer's DNS name - exact
+   * when the event says the value is a host or a domain). Never by a short
+   * form: an endpoint's first label names nothing on its own. Their
+   * addresses are matched with the other records' (matchAddresses), and
+   * the ones whose logs an event was read from by their ids.
+   */
+  private static async matchCloudResources(data: {
+    projectId: ObjectID;
+    lookups: SecurityConnectionLookups;
+    props: DatabaseCommonInteractionProps;
+    collector: Collector;
+  }): Promise<void> {
+    const { lookups, collector, projectId, props } = data;
+    const reads: Array<Promise<void>> = [];
+
+    if (lookups.resourceIds.length > 0) {
+      const entityById: Map<string, SecurityEntity> = new Map();
+
+      for (const entity of lookups.lookedUp) {
+        entityById.set(foldConnectionValue(entity.value), entity);
+      }
+
+      reads.push(
+        collector
+          .read(SecurityConnectionKind.CloudResource, async () => {
+            return await CloudResourceService.findBy({
+              query: {
+                projectId,
+                providerResourceId: QueryHelper.findWithSameTextAnyOf(
+                  lookups.resourceIds,
+                ),
+              } as never,
+              select: { _id: true, name: true, providerResourceId: true },
+              limit: MAX_ROWS_PER_READ,
+              skip: 0,
+              props,
+            });
+          })
+          .then((resources: Array<CloudResource> | null) => {
+            for (const resource of resources || []) {
+              for (const resourceId of lookups.resourceIds) {
+                const entity: SecurityEntity = entityById.get(resourceId) || {
+                  type: SecurityEntityType.Other,
+                  value: resourceId,
+                };
+                const verdict: SecurityConnectionVerdict | null =
+                  matchResourceId({
+                    entityValue: entity.value,
+                    providerResourceId: resource.providerResourceId,
+                  });
+
+                if (verdict) {
+                  collector.add({
+                    kind: SecurityConnectionKind.CloudResource,
+                    id: resource.id!.toString(),
+                    name: resource.name || resource.providerResourceId || "",
+                    match: {
+                      entity,
+                      certainty: verdict.certainty,
+                      reason: verdict.reason,
+                      matchedValue: (resource.providerResourceId || "").trim(),
+                    },
+                  });
+                }
+              }
+            }
+          }),
+      );
+    }
+
+    if (lookups.hostNames.length > 0) {
+      reads.push(
+        collector
+          .read(SecurityConnectionKind.CloudResource, async () => {
+            return await CloudResourceService.findBy({
+              query: {
+                projectId,
+                cloudEndpoints: QueryHelper.textContainsAnyOf(
+                  lookups.hostNames,
+                ),
+              } as never,
+              select: { _id: true, name: true, cloudEndpoints: true },
+              limit: MAX_ROWS_PER_READ,
+              skip: 0,
+              props,
+            });
+          })
+          .then((resources: Array<CloudResource> | null) => {
+            this.addNameMatches({
+              kind: SecurityConnectionKind.CloudResource,
+              rows: (resources || []).map(
+                (resource: CloudResource): NamedRow => {
+                  return {
+                    id: resource.id!.toString(),
+                    name: resource.name || "",
+                    names: readCloudEndpointHosts(resource.cloudEndpoints)
+                      .names,
+                  };
+                },
+              ),
+              lookups,
+              collector,
+              exactReason: SecurityConnectionReason.CloudEndpoint,
+              allowShortName: false,
+            });
+          }),
+      );
+    }
+
+    await Promise.all(reads);
+  }
+
+  /*
+   * The monitors that check what a case names - a host or a domain, an
+   * address, the host of a URL - read with the caller's own permissions.
+   * The project's monitors are narrowed in the database to those whose
+   * steps hold one of the values where a step holds a host it checks
+   * (getMonitorMentionTexts), then each is held to the hosts it really
+   * checks (getMonitorTargetHosts): a mention in a header or a criterion
+   * is no target. An archived monitor
+   * checks nothing and is left out. Each carries its current status.
+   */
+  private static async matchMonitors(data: {
+    projectId: ObjectID;
+    lookups: SecurityConnectionLookups;
+    props: DatabaseCommonInteractionProps;
+    collector: Collector;
+  }): Promise<void> {
+    const { lookups, collector, projectId, props } = data;
+    const mentions: Array<string> = getMonitorMentionTexts(lookups);
+
+    if (mentions.length === 0) {
+      return;
+    }
+
+    const monitors: Array<Monitor> | null = await collector.read(
+      SecurityConnectionKind.Monitor,
+      async () => {
+        return await MonitorService.findBy({
+          query: {
+            projectId,
+            isArchived: false,
+            monitorSteps: QueryHelper.textContainsAnyOf(mentions),
+          } as never,
+          select: {
+            _id: true,
+            name: true,
+            monitorSteps: true,
+            currentMonitorStatus: { name: true, color: true },
+          },
+          sort: { name: SortOrder.Ascending },
+          limit: MAX_MONITORS_READ,
+          skip: 0,
+          props,
+        });
+      },
+    );
+
+    // The values a monitor's targets are held to, each with the entity it came from.
+    const values: Array<SecurityEntity> = [
+      ...lookups.hostNames.map((hostName: string): SecurityEntity => {
+        return (
+          lookups.hostNameEntities.get(hostName) || {
+            type: SecurityEntityType.Host,
+            value: hostName,
+          }
+        );
+      }),
+      ...lookups.urlHosts.map((host: string): SecurityEntity => {
+        return (
+          lookups.urlHostEntities.get(host) || {
+            type: SecurityEntityType.Url,
+            value: host,
+          }
+        );
+      }),
+      ...lookups.addresses.map((address: string): SecurityEntity => {
+        return (
+          lookups.lookedUp.find((entity: SecurityEntity): boolean => {
+            return canonicalAddress(entity.value) === address;
+          }) || { type: SecurityEntityType.IpAddress, value: address }
+        );
+      }),
+    ];
+
+    for (const monitor of monitors || []) {
+      const targets: Array<string> = getMonitorTargetHosts(
+        monitor.monitorSteps,
+      );
+      const status: SecurityConnectionStatusJson | undefined = monitor
+        .currentMonitorStatus?.name
+        ? {
+            name: monitor.currentMonitorStatus.name,
+            ...(monitor.currentMonitorStatus.color
+              ? { color: monitor.currentMonitorStatus.color.toString() }
+              : {}),
+          }
+        : undefined;
+
+      for (const entity of values) {
+        let best: {
+          verdict: SecurityConnectionVerdict;
+          target: string;
+        } | null = null;
+
+        for (const target of targets) {
+          const verdict: SecurityConnectionVerdict | null = matchMonitorTarget({
+            entityValue: entity.value,
+            entityType: entity.type,
+            target,
+          });
+
+          if (
+            verdict &&
+            (!best ||
+              (verdict.certainty === SecurityConnectionCertainty.Exact &&
+                best.verdict.certainty !== SecurityConnectionCertainty.Exact))
+          ) {
+            best = { verdict, target };
+          }
+        }
+
+        if (best) {
+          collector.add({
+            kind: SecurityConnectionKind.Monitor,
+            id: monitor.id!.toString(),
+            name: monitor.name || best.target,
+            status,
+            match: {
+              entity,
+              certainty: best.verdict.certainty,
+              reason: best.verdict.reason,
+              matchedValue: best.target,
+            },
+          });
+        }
+      }
+    }
   }
 
   /*
@@ -1069,6 +1483,82 @@ export default class SecurityConnectedRecords {
     );
   }
 
+  /*
+   * The names of the records log lines and spans were sent under, by
+   * "kind:id" - the records whose logs and traces named a value a case
+   * names (SecurityTelemetryMentions) - read with the caller's own
+   * permissions, at most MAX_ROWS_PER_READ of each kind. A record of a
+   * kind the caller's role cannot read, or whose read failed, is not named:
+   * it is left out of what is listed, never shown by its id alone.
+   */
+  @CaptureSpan()
+  public static async readNamesOfLogResources(data: {
+    projectId: ObjectID;
+    resources: ReadonlyArray<SecurityLogResource>;
+    props: DatabaseCommonInteractionProps;
+  }): Promise<Map<string, { kind: SecurityConnectionKind; name: string }>> {
+    const idsByKind: Map<SecurityConnectionKind, Set<string>> = new Map();
+
+    for (const resource of data.resources) {
+      const kind: SecurityConnectionKind | null = getLogResourceKind(
+        resource.type,
+      );
+
+      if (!kind || !ObjectID.isValidUUID(resource.id)) {
+        continue;
+      }
+
+      const ids: Set<string> = idsByKind.get(kind) || new Set();
+
+      if (ids.size < MAX_ROWS_PER_READ) {
+        ids.add(resource.id.toLowerCase());
+      }
+
+      idsByKind.set(kind, ids);
+    }
+
+    const names: Map<string, { kind: SecurityConnectionKind; name: string }> =
+      new Map();
+
+    await Promise.all(
+      Array.from(idsByKind.entries()).map(
+        async ([kind, ids]: [
+          SecurityConnectionKind,
+          Set<string>,
+        ]): Promise<void> => {
+          try {
+            const rows: Array<{ id: string; name: string }> =
+              await this.readNamesById({
+                kind,
+                ids: Array.from(ids).map((id: string): ObjectID => {
+                  return new ObjectID(id);
+                }),
+                projectId: data.projectId,
+                props: data.props,
+              });
+
+            for (const row of rows) {
+              if (row.name) {
+                names.set(`${kind}:${row.id.toLowerCase()}`, {
+                  kind,
+                  name: row.name,
+                });
+              }
+            }
+          } catch (error) {
+            if (!isRefusedRead(error)) {
+              logger.error(
+                `Security connections: the names of the ${kind} records could not be read: ${error}`,
+              );
+            }
+          }
+        },
+      ),
+    );
+
+    return names;
+  }
+
   private static async readNamesById(data: {
     kind: SecurityConnectionKind;
     ids: Array<ObjectID>;
@@ -1177,6 +1667,39 @@ export default class SecurityConnectedRecords {
             name: row.name || row.hostname || "",
           };
         });
+      case SecurityConnectionKind.CloudResource:
+        return (
+          await CloudResourceService.findBy({
+            query: query as never,
+            select: { _id: true, name: true, providerResourceId: true },
+            ...common,
+          })
+        ).map((row: CloudResource): { id: string; name: string } => {
+          return {
+            id: row.id!.toString(),
+            name: row.name || row.providerResourceId || "",
+          };
+        });
+      case SecurityConnectionKind.ServerlessFunction:
+        return (
+          await ServerlessFunctionService.findBy({
+            query: query as never,
+            select: { _id: true, name: true, functionIdentifier: true },
+            ...common,
+          })
+        ).map(
+          (
+            row: ServerlessFunction,
+          ): { id: string; name: string; identity?: string } => {
+            return {
+              id: row.id!.toString(),
+              name: row.name || row.functionIdentifier || "",
+              ...(row.functionIdentifier
+                ? { identity: row.functionIdentifier }
+                : {}),
+            };
+          },
+        );
       default:
         return [];
     }

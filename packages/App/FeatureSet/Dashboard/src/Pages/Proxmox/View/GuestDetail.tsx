@@ -30,6 +30,7 @@ import ResourceMetricsTab from "../../../Components/Infrastructure/ResourceMetri
 import ProxmoxRateChart from "../../../Components/Proxmox/ProxmoxRateChart";
 import ProxmoxPartHero from "../../../Components/Proxmox/Part/ProxmoxPartHero";
 import ProxmoxGuestOverview from "../../../Components/Proxmox/Part/ProxmoxGuestOverview";
+import ProxmoxPartReadError from "../../../Components/Proxmox/Part/ProxmoxPartReadError";
 import {
   ProxmoxPartRoutes,
   getProxmoxPartRoutes,
@@ -74,6 +75,12 @@ const ProxmoxClusterGuestDetail: FunctionComponent<
   const [linkedHost, setLinkedHost] = useState<Host | null>(null);
   const [isLoading, setIsLoading] = useState<boolean>(true);
   const [isLoadingRow, setIsLoadingRow] = useState<boolean>(true);
+  /*
+   * Why the guest's inventory could not be read: its Overview says so, with
+   * Refresh, instead of "Guest details not reported yet" about an agent
+   * that may be reporting fine.
+   */
+  const [rowError, setRowError] = useState<string>("");
   const [error, setError] = useState<string>("");
 
   /*
@@ -117,6 +124,35 @@ const ProxmoxClusterGuestDetail: FunctionComponent<
     }
   };
 
+  // The guest's own inventory row: who it is and how it is doing.
+  const fetchRow: PromiseVoidFunction = async (): Promise<void> => {
+    try {
+      const inventoryRow: ProxmoxResourceModel | null =
+        await fetchProxmoxInventoryRow({
+          proxmoxClusterId: modelId,
+          kind: "Guest",
+          externalId: externalId,
+        });
+      setRow(inventoryRow);
+      setRowError("");
+      if (inventoryRow?.name) {
+        void findLinkedHost(inventoryRow.name);
+      }
+    } catch (err) {
+      setRowError(API.getFriendlyMessage(err));
+    }
+    setIsLoadingRow(false);
+  };
+
+  // Refresh after a failed read: the loader while it reads again.
+  const retryRow: () => void = (): void => {
+    setIsLoadingRow(true);
+    fetchRow().catch((err: Error) => {
+      setRowError(API.getFriendlyMessage(err));
+      setIsLoadingRow(false);
+    });
+  };
+
   const fetchData: PromiseVoidFunction = async (): Promise<void> => {
     setIsLoading(true);
     try {
@@ -133,21 +169,7 @@ const ProxmoxClusterGuestDetail: FunctionComponent<
     }
     setIsLoading(false);
 
-    try {
-      const inventoryRow: ProxmoxResourceModel | null =
-        await fetchProxmoxInventoryRow({
-          proxmoxClusterId: modelId,
-          kind: "Guest",
-          externalId: externalId,
-        });
-      setRow(inventoryRow);
-      if (inventoryRow?.name) {
-        void findLinkedHost(inventoryRow.name);
-      }
-    } catch {
-      // Graceful degradation — the Overview shows its empty state.
-    }
-    setIsLoadingRow(false);
+    await fetchRow();
   };
 
   useEffect(() => {
@@ -297,6 +319,12 @@ const ProxmoxClusterGuestDetail: FunctionComponent<
       name: "Overview",
       children: isLoadingRow ? (
         <PageLoader isVisible={true} />
+      ) : rowError ? (
+        <ProxmoxPartReadError
+          kind="Guest"
+          message={rowError}
+          onRetry={retryRow}
+        />
       ) : (
         <ProxmoxGuestOverview
           clusterId={modelId}

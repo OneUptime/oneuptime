@@ -15,6 +15,7 @@ import {
   getResourceFacetServiceTypeMap,
 } from "../../../Types/Telemetry/ResourceFacetCatalog";
 import ServiceType from "../../../Types/Telemetry/ServiceType";
+import { getBaseFacetKey } from "../../../Types/Telemetry/FacetExcludeKey";
 import {
   DEFAULT_TELEMETRY_ENTITY_LABEL,
   getTelemetryEntityDisplay,
@@ -203,7 +204,9 @@ const hasParentResolvedDisplay: (filter: ActiveFilter) => boolean = (
  *      entity's type ("RUM Application"), for the typed resource facets the
  *      key ("Host") is already right and only the value changes;
  *   5. otherwise the chip is returned as it came in.
- * Non-resource chips are never touched.
+ * Non-resource chips are never touched. A chip that leaves a resource out
+ * (`!hostId`, FacetExcludeKey) is named exactly as one that keeps it: the
+ * value is the same kind of id.
  */
 export const enrichLogsActiveFilter: (
   filter: ActiveFilter,
@@ -214,15 +217,14 @@ export const enrichLogsActiveFilter: (
   maps: LogsEntityLookupMaps,
   entityNameMap: TelemetryEntityNameMap | undefined,
 ): ActiveFilter => {
-  if (
-    !isResourceFacetKey(filter.facetKey) ||
-    typeof filter.value !== "string"
-  ) {
+  const facetKey: string = getBaseFacetKey(filter.facetKey);
+
+  if (!isResourceFacetKey(facetKey) || typeof filter.value !== "string") {
     return filter;
   }
 
   const loadedName: string | undefined = getLoadedLogsEntityName(
-    filter.facetKey,
+    facetKey,
     filter.value,
     maps,
   );
@@ -240,7 +242,7 @@ export const enrichLogsActiveFilter: (
    * id is then never sent to the resolver (collectLogsEntityIdsToResolve
    * skips it), so this is the only place it gets named.
    */
-  if (isServiceFacetKey(filter.facetKey)) {
+  if (isServiceFacetKey(facetKey)) {
     const loadedResource: LoadedLogsResourceEntity | undefined =
       findLoadedLogsResourceEntity(filter.value, maps);
     if (loadedResource) {
@@ -258,7 +260,7 @@ export const enrichLogsActiveFilter: (
     return filter;
   }
 
-  if (isServiceFacetKey(filter.facetKey)) {
+  if (isServiceFacetKey(facetKey)) {
     const display: { key: string; value: string } = getTelemetryEntityDisplay({
       id: filter.value,
       nameMap: entityNameMap,
@@ -441,14 +443,16 @@ export const collectLogsEntityIdsToResolve: (data: {
   };
 
   for (const filter of data.filters || []) {
-    if (!isResourceFacetKey(filter.facetKey)) {
+    // A resource left out (`!hostId`) is named like one that is kept.
+    const facetKey: string = getBaseFacetKey(filter.facetKey);
+    if (!isResourceFacetKey(facetKey)) {
       continue;
     }
     if (hasParentResolvedDisplay(filter)) {
       continue;
     }
     add(
-      filter.facetKey,
+      facetKey,
       filter.value,
       getTelemetryEntityTypeForChipKey(filter.displayKey),
     );

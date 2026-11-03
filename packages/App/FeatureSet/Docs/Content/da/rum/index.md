@@ -42,7 +42,7 @@ En applikations egen sidemenu grupperer dens sider sådan; **Indstillinger**, **
 | --- | --- |
 | **Grundlæggende** | **Oversigt**, **Anbefalinger**, **Dokumentation** |
 | **Observabilitet** | **Metrikker**, **Protokoller**, **Spor**, **Klienter** |
-| **Sessionsafspilning** | **Sessionsafspilning**, **User Flows**, **Replay Users**, **Sundhed**, **Replay Policy**, **Adgangslog for afspilninger**, **Dokumentation** |
+| **Sessionsafspilning** | **Sessionsafspilning**, **Brugerforløb**, **Brugere i afspilninger**, **Sundhed**, **Replay Policy**, **Adgangslog for afspilninger**, **Dokumentation** |
 | **Indstillinger** | **Indstillinger** |
 | **Udvikler** | **Terraform**, **API**, **AI-assistenter** |
 | **Avanceret** | **Slet applikation** |

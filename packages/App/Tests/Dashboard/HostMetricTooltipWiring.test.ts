@@ -38,6 +38,8 @@ const TOOLTIP_IMPORT: string =
   'import InfoTooltip from "Common/UI/Components/Tooltip/InfoTooltip";';
 const REFERENCE_PATTERN: RegExp = /HOST_METRIC_DESCRIPTIONS\.([A-Za-z]+)/g;
 const TITLE_ATTRIBUTE: RegExp = /title="([^"]+)"/;
+// A tile's title, in the reader's words: title={tx("CPU")}.
+const TRANSLATED_TITLE_ATTRIBUTE: RegExp = /title=\{tx\("([^"]+)"\)\}/;
 const TITLE_PROPERTY: RegExp = /title: "([^"]+)"/;
 const DESCRIPTION_ATTRIBUTE: RegExp =
   /description=\{HOST_METRIC_DESCRIPTIONS\.([A-Za-z]+)\}/;
@@ -188,7 +190,12 @@ function tooltipsNestedInInteractive(code: string): number {
 const HOSTS_LIST_FILE: string = path.join("..", "Hosts.tsx");
 const HOSTS_LIST_IMPORT: string =
   'import { HOST_METRIC_DESCRIPTIONS } from "../../Components/MetricDescriptions/HostMetricDescriptions";';
-const HOSTS_LIST_KEYS: Array<HostMetric> = ["hostListResources"];
+const HOSTS_LIST_KEYS: Array<HostMetric> = [
+  "hostListStatus",
+  "hostListCpu",
+  "hostListMemory",
+  "hostListDisk",
+];
 
 const PAGES: Array<string> = [
   "Overview.tsx",
@@ -202,6 +209,7 @@ const PAGES: Array<string> = [
 
 const KEYS_BY_PAGE: Record<string, Array<HostMetric>> = {
   "Overview.tsx": [
+    "hostHealth",
     "cpu",
     "memory",
     "filesystem",
@@ -212,6 +220,7 @@ const KEYS_BY_PAGE: Record<string, Array<HostMetric>> = {
     "memoryChart",
     "diskSpaceChart",
     "networkChart",
+    "booted",
     "processCountCached",
   ],
   "ProcessView.tsx": [
@@ -322,7 +331,11 @@ describe("Host overview", () => {
       code,
       "GoldenMetricTile",
     ).map((tile: string): [string, string] => {
-      return titleAndKey(tile, TITLE_ATTRIBUTE, DESCRIPTION_ATTRIBUTE);
+      return titleAndKey(
+        tile,
+        TRANSLATED_TITLE_ATTRIBUTE,
+        DESCRIPTION_ATTRIBUTE,
+      );
     });
 
     expect(tiles).toEqual([
@@ -332,6 +345,29 @@ describe("Host overview", () => {
       ["Load avg (1m)", "loadAverage"],
       ["Processes", "processes"],
     ]);
+  });
+
+  test("the hero's health pill carries its (i)", () => {
+    const pill: string = between(
+      code,
+      'data-testid="host-hero-health"',
+      "text={HOST_METRIC_DESCRIPTIONS.hostHealth}",
+    );
+
+    expect(pill).toContain("{healthLabel}");
+    expect(pill).toContain('<InfoTooltip label="Host Health"');
+  });
+
+  test("the Details card says when the host booted, with its caption", () => {
+    // A Details fact is named by its model field (#5535's one Details card).
+    const field: string = between(
+      code,
+      "field: { bootedAt: true, },",
+      "fieldType:",
+    );
+
+    expect(field).toContain('title: "Booted"');
+    expect(field).toContain("description: HOST_METRIC_DESCRIPTIONS.booted,");
   });
 
   test("every chart card passes the description for its own title", () => {
@@ -430,7 +466,7 @@ describe("Host overview", () => {
   test("the cached process count carries its caption", () => {
     const field: string = between(
       code,
-      'key: "processCount",',
+      "field: { processCount: true, },",
       "fieldType: FieldType.Number,",
     );
 
@@ -667,35 +703,63 @@ describe("Hosts list (Pages/Host/Hosts.tsx)", () => {
     expect(referenced).toEqual(HOSTS_LIST_KEYS);
   });
 
-  test("the Resources column carries its header tooltip", () => {
-    expect(column("Resources")).toContain(
-      "headerTooltip: HOST_METRIC_DESCRIPTIONS.hostListResources,",
-    );
-  });
+  test.each([
+    ["Status", "hostListStatus"],
+    ["CPU", "hostListCpu"],
+    ["Memory", "hostListMemory"],
+    ["Disk", "hostListDisk"],
+  ])(
+    "the %s column carries its header tooltip",
+    (title: string, key: string) => {
+      expect(column(title)).toContain(
+        `headerTooltip: HOST_METRIC_DESCRIPTIONS.${key},`,
+      );
+    },
+  );
 
-  test("the Resources cell reads the three cached host columns the text describes", () => {
-    const resources: string = column("Resources");
+  test("the Status, CPU, Memory and Disk cells read what the host last reported", () => {
     const selectMore: string = between(code, "selectMoreFields={{", "}}");
 
-    expect(resources).toContain("cores: item.cpuCores ?? undefined,");
-    expect(resources).toContain(
-      "memoryBytes: item.totalMemoryBytes ?? undefined,",
+    expect(column("Status")).toContain(
+      "<HostStatusCell host={item} now={now} />",
     );
-    expect(resources).toContain("processes: item.processCount ?? undefined,");
-    expect(resources).toContain(
-      'other: "{{count}} processes", }, summary.processes,',
+    expect(column("CPU")).toContain(
+      '<HostUsageCell host={item} kind="cpu" now={now} />',
     );
-    for (const field of ["cpuCores", "totalMemoryBytes", "processCount"]) {
+    expect(column("Memory")).toContain(
+      '<HostUsageCell host={item} kind="memory" now={now} />',
+    );
+    expect(column("Disk")).toContain(
+      '<HostUsageCell host={item} kind="disk" now={now} />',
+    );
+    // The readings the descriptions describe, and what they are a share of.
+    for (const field of [
+      "cpuCores",
+      "totalMemoryBytes",
+      "latestCpuPercent",
+      "latestMemoryPercent",
+      "latestSwapPercent",
+      "latestDiskPercent",
+      "latestDiskMountpoint",
+      "latestInodesPercent",
+      "latestInodesMountpoint",
+      "latestLoadAverage15m",
+      "failedSystemdUnitCount",
+      "failedSystemdUnits",
+      "readingsUpdatedAt",
+      "lastSeenAt",
+      "createdAt",
+      "collectorRegisteredAt",
+    ]) {
       expect(selectMore).toContain(`${field}: true,`);
     }
   });
 
-  test("name, network, status and ownership columns stay plain", () => {
+  test("name, network, collector and ownership columns stay plain", () => {
     for (const title of [
       "Name",
-      "OS",
       "IP Address",
-      "Status",
+      "Collector",
       "Last Seen",
       "Labels",
       "Owners",
@@ -705,7 +769,7 @@ describe("Hosts list (Pages/Host/Hosts.tsx)", () => {
         tooltip: column(title).includes("headerTooltip"),
       }).toEqual({ title, tooltip: false });
     }
-    expect(countOf(columns, "headerTooltip:")).toBe(1);
+    expect(countOf(columns, "headerTooltip:")).toBe(4);
   });
 
   test("the header tooltip goes through ModelTable, not a hand-drawn (i)", () => {

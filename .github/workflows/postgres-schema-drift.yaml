@@ -1079,6 +1079,25 @@ jobs:
           node --max-old-space-size=4096 node_modules/.bin/jest --runInBand
           Tests/Server/Services/KubernetesResourceHealthPostgres.test.ts --forceExit
 
+      # What a host last reported (1808830000000-AddHostReadings) and the Hosts
+      # list's Needs attention read on it. Clones the migrated Host table into
+      # an isolated schema, seeds a host past each of HostHealth's lines and
+      # healthy ones beside them, and runs HostService
+      # .findHostsThatMayNeedAttention: every line's host is found - a load
+      # above twice the row's own cores included - and no healthy, archived
+      # or other project's host is.
+      - name: Test the Hosts list's Needs attention read on migrated Postgres
+        if: matrix.shard == 1
+        working-directory: packages/Common
+        env:
+          RUN_POSTGRES_HOST_NEEDS_ATTENTION_TESTS: "true"
+          HOST_NEEDS_ATTENTION_TEST_DATABASE_HOST: ${{ env.DATABASE_MIGRATIONS_HOST }}
+          HOST_NEEDS_ATTENTION_TEST_DATABASE_PORT: ${{ env.DATABASE_MIGRATIONS_PORT }}
+          HOST_NEEDS_ATTENTION_TEST_DATABASE_NAME: ${{ env.DATABASE_NAME }}
+        run: >-
+          node --max-old-space-size=4096 node_modules/.bin/jest --runInBand
+          Tests/Server/Services/HostNeedsAttentionPostgres.test.ts --forceExit
+
       # Enable AI became the project's only AI switch. Clones the migrated
       # Project, AutoRemediationRule, Runner and Fixes-mode tables into an
       # isolated schema, puts the two dropped switches back with the
@@ -1671,6 +1690,27 @@ jobs:
         run: >-
           node --max-old-space-size=4096 node_modules/.bin/jest --runInBand
           Tests/Server/Services/StatusPagePrivateUserSessionLengthPostgres.test.ts
+          --forceExit
+
+      # Clones the migrated UserSession and GlobalConfig tables into an
+      # isolated schema: a master admin's session length or idle timeout
+      # (Admin Dashboard > Settings > Session Length) ends, at once and by
+      # the database's clock, every sign-in already past it, each with its
+      # reason; SSO sign-ins follow the general lengths or their own; the
+      # count the Admin Dashboard asks before a change ends nothing; saving
+      # the setting applies it to the sessions there are, and a refresh
+      # after it says why; thousands of sessions end in batches.
+      - name: Test user session lengths on migrated Postgres
+        if: matrix.shard == 2
+        working-directory: packages/Common
+        env:
+          RUN_POSTGRES_USER_SESSION_LENGTH_TESTS: "true"
+          USER_SESSION_LENGTH_TEST_DATABASE_HOST: ${{ env.DATABASE_MIGRATIONS_HOST }}
+          USER_SESSION_LENGTH_TEST_DATABASE_PORT: ${{ env.DATABASE_MIGRATIONS_PORT }}
+          USER_SESSION_LENGTH_TEST_DATABASE_NAME: ${{ env.DATABASE_NAME }}
+        run: >-
+          node --max-old-space-size=4096 node_modules/.bin/jest --runInBand
+          Tests/Server/Services/UserSessionLengthsPostgres.test.ts
           --forceExit
 
       # Clones the migrated StatusPage, StatusPagePrivateUser and

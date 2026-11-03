@@ -111,6 +111,7 @@ export default class CodeRepositoryConnection extends BaseModel {
   @TableColumn({
     required: true,
     type: TableColumnType.ShortText,
+    allowedValues: Object.values(CodeRepositoryType),
     title: "Provider",
     description:
       "What the server is: GitLab, Forgejo (which reads Gitea too) or Git (any Git server).",

@@ -1,14 +1,19 @@
 import { BaseSchema } from "../../../Utils/Schema/BaseSchema";
 import Zod from "../../../Utils/Schema/Zod";
 import SortOrder from "../../../Types/BaseDatabase/SortOrder";
+import { JSONObject } from "../../../Types/JSON";
+import {
+  OpenAPIRegistry,
+  OpenApiGeneratorV3,
+} from "@asteasolutions/zod-to-openapi";
 
 /*
  * Direct unit tests for BaseSchema — the abstract base behind ModelSchema and
  * AnalyticsModelSchema.
  *
  * The two concrete subclasses only ever call a handful of the base methods
- * (generateSortSchema / generateSelectSchema / generateGroupBySchema /
- * generateQuerySchema and applyOpenApi), so the example generators and the
+ * (generateSortSchema / generateSelectSchema / generateGroupBySchema and
+ * applyOpenApi), so the example generators and the
  * create-schema builder — getCommonExampleValue, generateSelectSchemaExample,
  * generateGroupBySchemaExample, generateCreateSchema, logSchemaGeneration — are
  * not exercised anywhere else in the codebase. These tests pin down that pure
@@ -93,30 +98,6 @@ class TestSchema extends BaseSchema {
       getGroupBySchemaExample: () => {
         return {};
       },
-    });
-  }
-
-  public static querySchema(data: {
-    getColumns: () => Array<Column>;
-    getValidOperatorsForColumnType: (type: any) => Array<string>;
-    getOperatorSchema?: (op: string, type: any) => any;
-    getExampleValueForColumn?: (type: any) => unknown;
-    disableOpenApiSchema?: boolean;
-  }): any {
-    return (this.generateQuerySchema as (d: any) => any)({
-      model: MODEL,
-      getColumns: data.getColumns,
-      getValidOperatorsForColumnType: data.getValidOperatorsForColumnType,
-      getOperatorSchema: data.getOperatorSchema,
-      getQuerySchemaExample: () => {
-        return {};
-      },
-      getExampleValueForColumn:
-        data.getExampleValueForColumn ||
-        (() => {
-          return "example";
-        }),
-      disableOpenApiSchema: data.disableOpenApiSchema,
     });
   }
 
@@ -344,6 +325,8 @@ describe("BaseSchema.generateSelectSchema", () => {
       schema.safeParse({ monitor: { id: true }, name: true }).success,
     ).toBe(true);
     expect(schema.safeParse({ monitor: true }).success).toBe(false);
+    // A select need not name the relation at all.
+    expect(schema.safeParse({ name: true }).success).toBe(true);
   });
 
   test("ignores nested schemas when allowNested is false", () => {
@@ -388,83 +371,79 @@ describe("BaseSchema.generateGroupBySchema", () => {
   });
 });
 
-describe("BaseSchema.generateQuerySchema", () => {
-  const columns: Array<Column> = [
-    { key: "name", type: "text" },
-    { key: "secret", type: "password" }, // no operators => skipped
-  ];
+describe("the OpenAPI spec of BaseSchema's sort, select and group by", () => {
+  /*
+   * zod-to-openapi takes a `type` given to an object's .openapi() for the
+   * whole schema and leaves out its properties, so every sort, select and
+   * group by was published as an object that allowed no field at all.
+   */
+  test("lists their fields, each sort field ASC or DESC", () => {
+    const registry: OpenAPIRegistry = new OpenAPIRegistry();
 
-  const validOperators: (type: any) => Array<string> = (type: any) => {
-    return type === "password" ? [] : ["EqualTo", "NotEqual"];
-  };
+    registry.register(
+      "Sort",
+      TestSchema.sortSchema({
+        getSortableTypes: () => {
+          return ["text", "date"];
+        },
+        getColumnsForSorting: () => {
+          return [
+            { key: "name", type: "text" },
+            { key: "createdAt", type: "date" },
+            { key: "config", type: "json" },
+          ];
+        },
+      }),
+    );
+    registry.register(
+      "Select",
+      TestSchema.selectSchema({
+        getColumns: () => {
+          return [{ key: "name" }, { key: "email" }];
+        },
+      }),
+    );
+    registry.register(
+      "GroupBy",
+      TestSchema.groupBySchema({
+        getColumns: () => {
+          return [
+            { key: "projectId", type: "objectid" },
+            { key: "note", type: "text" },
+          ];
+        },
+        getGroupableTypes: () => {
+          return ["objectid"];
+        },
+      }),
+    );
 
-  test("skips columns that expose no operators", () => {
-    const schema: any = TestSchema.querySchema({
-      getColumns: () => {
-        return columns;
+    const schemas: JSONObject = (new OpenApiGeneratorV3(
+      registry.definitions,
+    ).generateComponents().components?.schemas || {}) as JSONObject;
+
+    expect(schemas["Sort"]).toMatchObject({
+      type: "object",
+      properties: {
+        name: { $ref: "#/components/schemas/SortOrder" },
+        createdAt: { $ref: "#/components/schemas/SortOrder" },
       },
-      getValidOperatorsForColumnType: validOperators,
+      additionalProperties: false,
     });
-
-    expect(Object.keys(schema.shape)).toEqual(["name"]);
-  });
-
-  test("builds a simple _type/value operator object when no operator schema is supplied", () => {
-    const schema: any = TestSchema.querySchema({
-      getColumns: () => {
-        return [{ key: "name", type: "text" }];
-      },
-      getValidOperatorsForColumnType: () => {
-        return ["EqualTo", "NotEqual"];
-      },
+    expect(schemas["SortOrder"]).toMatchObject({
+      type: "string",
+      enum: [SortOrder.Ascending, SortOrder.Descending],
     });
-
-    expect(
-      schema.safeParse({ name: { _type: "EqualTo", value: "x" } }).success,
-    ).toBe(true);
-    // _type must be one of the valid operators.
-    expect(
-      schema.safeParse({ name: { _type: "Bogus", value: "x" } }).success,
-    ).toBe(false);
-    expect(schema.safeParse({}).success).toBe(true);
-  });
-
-  test("uses a single optional operator schema when only one operator is valid", () => {
-    const schema: any = TestSchema.querySchema({
-      getColumns: () => {
-        return [{ key: "count", type: "number" }];
-      },
-      getValidOperatorsForColumnType: () => {
-        return ["EqualTo"];
-      },
-      getOperatorSchema: () => {
-        return Zod.object({ EqualTo: Zod.number() });
-      },
+    expect(schemas["Select"]).toMatchObject({
+      type: "object",
+      properties: { name: { type: "boolean" }, email: { type: "boolean" } },
+      additionalProperties: false,
     });
-
-    expect(schema.safeParse({ count: { EqualTo: 5 } }).success).toBe(true);
-    expect(schema.safeParse({ count: { EqualTo: "no" } }).success).toBe(false);
-    expect(schema.safeParse({}).success).toBe(true);
-  });
-
-  test("unions multiple operator schemas when several operators are valid", () => {
-    const schema: any = TestSchema.querySchema({
-      getColumns: () => {
-        return [{ key: "count", type: "number" }];
-      },
-      getValidOperatorsForColumnType: () => {
-        return ["EqualTo", "GreaterThan"];
-      },
-      getOperatorSchema: (op: string) => {
-        return op === "EqualTo"
-          ? Zod.object({ EqualTo: Zod.number() })
-          : Zod.object({ GreaterThan: Zod.number() });
-      },
+    expect(schemas["GroupBy"]).toMatchObject({
+      type: "object",
+      properties: { projectId: { type: "boolean" } },
+      additionalProperties: false,
     });
-
-    expect(schema.safeParse({ count: { EqualTo: 1 } }).success).toBe(true);
-    expect(schema.safeParse({ count: { GreaterThan: 2 } }).success).toBe(true);
-    expect(schema.safeParse({ count: { LessThan: 3 } }).success).toBe(false);
   });
 });
 

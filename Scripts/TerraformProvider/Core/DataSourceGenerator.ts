@@ -5,6 +5,7 @@ import {
   TerraformAttribute,
 } from "./Types";
 import { FileGenerator } from "./FileGenerator";
+import { ResourceGenerator } from "./ResourceGenerator";
 import { StringUtils } from "./StringUtils";
 import { OpenAPIParser } from "./OpenAPIParser";
 import { GoCodeGenerator } from "./GoCodeGenerator";
@@ -56,6 +57,23 @@ export class DataSourceGenerator {
   private async generateDataSource(
     dataSource: TerraformDataSource,
   ): Promise<void> {
+    /*
+     * A data source written by hand (OpenAPIParser.HANDWRITTEN_DATA_SOURCES)
+     * is copied in under the name the generated one would have had, so it
+     * replaces it rather than standing beside it.
+     */
+    if (dataSource.staticFile) {
+      const content: string = this.fileGenerator.readTemplateFile(
+        path.join(__dirname, "..", "StaticFiles", dataSource.staticFile),
+      );
+      await this.fileGenerator.writeFileInDir(
+        "internal/provider",
+        `data_source_${dataSource.name}.go`,
+        content,
+      );
+      return;
+    }
+
     const dataSourceGoContent: string =
       this.generateDataSourceGoFile(dataSource);
     const fileName: string = `data_source_${dataSource.name}.go`;
@@ -243,6 +261,31 @@ ${this.generateReadMethod(dataSource, dataSourceVarName)}
     return attributes.join("\n");
   }
 
+  /*
+   * The lookup arguments that name a person by email address (`user_email`),
+   * each with the ID attribute it stands beside (`user_id`): not a column
+   * of the API, so never selected, filtered on or read back as one.
+   */
+  private getPersonEmailFilters(
+    dataSource: TerraformDataSource,
+  ): Array<{ emailAttribute: string; idAttribute: string; apiField: string }> {
+    return Object.entries(dataSource.schema)
+      .filter(([, attr]: [string, TerraformAttribute]) => {
+        return Boolean(attr.personEmailOf);
+      })
+      .map(([name, attr]: [string, TerraformAttribute]) => {
+        const idAttribute: string = attr.personEmailOf as string;
+        const idAttr: TerraformAttribute | undefined =
+          dataSource.schema[idAttribute];
+
+        return {
+          emailAttribute: this.sanitizeAttributeName(name),
+          idAttribute: this.sanitizeAttributeName(idAttribute),
+          apiField: idAttr?.apiFieldName || idAttribute,
+        };
+      });
+  }
+
   private sanitizeAttributeName(name: string): string {
     return StringUtils.toTerraformAttributeName(name);
   }
@@ -271,6 +314,21 @@ ${this.generateReadMethod(dataSource, dataSourceVarName)}
 
     if (attr.sensitive) {
       options.push("Sensitive: true");
+    }
+
+    // A person by ID or by address, not both (people.go).
+    if (attr.person && attr.type === "string") {
+      options.push(
+        `Validators: personIDValidators("${attr.person.emailAttribute}", false)`,
+      );
+    } else if (attr.isLookupFilter && attr.relation && attr.type === "string") {
+      // Looked up by the ID of another record, a UUID (ids.go).
+      options.push(
+        `Validators: ${ResourceGenerator.getRecordIdValidators(attr.relation, "string")}("${this.providerName}_${attr.relation.name}")`,
+      );
+    }
+    if (attr.personEmailOf) {
+      options.push("Validators: personEmailValidators()");
     }
 
     // For collection attributes, add ElementType
@@ -350,7 +408,7 @@ ${this.generateReadMethod(dataSource, dataSourceVarName)}
 
     const filterAssignments: string = Object.entries(dataSource.schema)
       .filter(([, attr]: [string, TerraformAttribute]) => {
-        return Boolean(attr.isLookupFilter);
+        return Boolean(attr.isLookupFilter) && !attr.personEmailOf;
       })
       .map(([name, attr]: [string, TerraformAttribute]) => {
         const sanitizedName: string = this.sanitizeAttributeName(name);
@@ -373,6 +431,29 @@ ${this.generateReadMethod(dataSource, dataSourceVarName)}
         filterNames = append(filterNames, "${sanitizedName} = "+${shown})
     }`;
       })
+      .concat(
+        // A person named by address is matched by their ID (people.go).
+        this.getPersonEmailFilters(dataSource).map(
+          (filter: {
+            emailAttribute: string;
+            idAttribute: string;
+            apiField: string;
+          }): string => {
+            const emailField: string = StringUtils.toPascalCase(
+              filter.emailAttribute,
+            );
+
+            return `    if !data.${emailField}.IsNull() && !data.${emailField}.IsUnknown() {
+        personID, ok := personIDForLookup(ctx, d.client, data.${emailField}.ValueString(), "${filter.emailAttribute}", &resp.Diagnostics)
+        if !ok {
+            return
+        }
+        filters["${filter.apiField}"] = personID
+        filterNames = append(filterNames, "${filter.emailAttribute} = "+fmt.Sprintf("%q", data.${emailField}.ValueString()))
+    }`;
+          },
+        ),
+      )
       .join("\n");
 
     const readById: string = readOperation
@@ -502,7 +583,7 @@ ${this.generateResponseMapping(dataSource, dataSourceVarName)}`;
     const selectFields: string[] = [];
 
     for (const [name, attr] of Object.entries(dataSource.schema)) {
-      if (name === "id") {
+      if (name === "id" || attr.personEmailOf) {
         continue;
       }
       const apiFieldName: string = attr.apiFieldName || name;
@@ -521,6 +602,9 @@ ${this.generateResponseMapping(dataSource, dataSourceVarName)}`;
     const mappings: string[] = [];
 
     for (const [name, attr] of Object.entries(dataSource.schema)) {
+      if (attr.personEmailOf) {
+        continue;
+      }
       const sanitizedName: string = this.sanitizeAttributeName(name);
       const fieldName: string = StringUtils.toPascalCase(sanitizedName);
       const apiFieldName: string = attr.apiFieldName || name;
@@ -530,6 +614,17 @@ ${this.generateResponseMapping(dataSource, dataSourceVarName)}`;
         `item["${apiFieldName}"]`,
       );
       mappings.push(`    ${setter}`);
+    }
+
+    // The address it was looked up by, or the person's own (people.go).
+    for (const filter of this.getPersonEmailFilters(dataSource)) {
+      const emailField: string = StringUtils.toPascalCase(
+        filter.emailAttribute,
+      );
+      const idField: string = StringUtils.toPascalCase(filter.idAttribute);
+      mappings.push(
+        `    data.${emailField} = personEmailAfterLookup(ctx, d.client, data.${idField}, data.${emailField})`,
+      );
     }
 
     return mappings.join("\n");

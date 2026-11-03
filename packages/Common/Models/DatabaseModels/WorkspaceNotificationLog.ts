@@ -137,6 +137,7 @@ export default class WorkspaceNotificationLog extends BaseModel {
   @TableColumn({
     required: true,
     type: TableColumnType.ShortText,
+    allowedValues: Object.values(WorkspaceType),
     title: "Workspace Type",
     description: "Type of Workspace - Slack, Microsoft Teams",
     canReadOnRelationQuery: false,
@@ -286,6 +287,7 @@ export default class WorkspaceNotificationLog extends BaseModel {
   @TableColumn({
     required: true,
     type: TableColumnType.ShortText,
+    allowedValues: Object.values(WorkspaceNotificationStatus),
     title: "Status",
     description: "Status of the message",
     canReadOnRelationQuery: false,
@@ -311,6 +313,7 @@ export default class WorkspaceNotificationLog extends BaseModel {
   @TableColumn({
     required: true,
     type: TableColumnType.ShortText,
+    allowedValues: Object.values(WorkspaceNotificationActionType),
     title: "Action Type",
     description: "Type of workspace action performed",
     canReadOnRelationQuery: false,

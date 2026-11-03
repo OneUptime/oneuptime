@@ -15,7 +15,10 @@ import { formatFacetCount } from "Common/UI/Components/TelemetryViewer/FacetCoun
  * clicked on Traces, Metrics and Exceptions: their handlers only ever added a
  * filter, so the value stayed checked and the only way out was the chip's x.
  * The Traces "Root spans" value could not be cleared from its row at all, and
- * the exclude button beside every value did nothing on any of the four.
+ * the exclude button beside every value did nothing on any of the four. It
+ * now leaves the value out for real on all four ("Status is not Error"): the
+ * list, the chart and the counts drop its rows, and a click on its row takes
+ * it off again.
  *
  * Here the production explorers run on the offline fixture
  * (Fixture/Fixture.js), which records every request in order, and a value is
@@ -34,7 +37,15 @@ const EXCEPTIONS_PATH: string = `/dashboard/${PROJECT_ID}/exceptions/unresolved`
 const METRICS_PATH: string = `/dashboard/${PROJECT_ID}/metrics`;
 
 const LOG_TABLE: string = "LogItemV3";
+const SPAN_TABLE: string = "SpanItemV3";
+const EXCEPTION_TABLE: string = "TelemetryException";
 const METRIC_TYPE_TABLE: string = "MetricType";
+
+// The chip a value left out makes: "Status is not: Error", in red.
+const EXCLUDED_CHIP_TEST_ID: string = "excluded-filter-chip";
+
+// The bar before a value's count.
+const BAR_TEST_ID: string = "facet-value-bar";
 
 interface RecordedRequest {
   seq: number;
@@ -233,8 +244,58 @@ async function serviceId(page: Page, name: string): Promise<string> {
   return found!.id;
 }
 
-async function expectNoExcludeButtons(page: Page): Promise<void> {
-  await expect(page.getByRole("button", { name: /^Exclude / })).toHaveCount(0);
+// A value's whole row, by the value it filters on: what says its state.
+function rowOf(section: Locator, value: string): Locator {
+  return section.locator(
+    `[data-testid="facet-value-row"][data-value="${value}"]`,
+  );
+}
+
+/*
+ * Leave a value out with the minus beside it. The minus shows while its row
+ * is hovered, over the count, as a reader finds it.
+ */
+async function excludeValue(
+  section: Locator,
+  value: string,
+  name: string,
+): Promise<void> {
+  await rowOf(section, value).hover();
+  await section
+    .getByRole("button", { name: `Exclude ${name}`, exact: true })
+    .click();
+  await expect(rowOf(section, value)).toHaveAttribute("data-state", "excluded");
+}
+
+// The button that folds a facet section, by its title.
+function sectionHeader(page: Page, title: string): Locator {
+  return page
+    .locator("button[aria-expanded][aria-controls]")
+    .filter({ hasText: title })
+    .first();
+}
+
+// A value's minus, by the value's name.
+function minusOf(row: Locator, name: string): Locator {
+  return row.getByRole("button", { name: `Exclude ${name}`, exact: true });
+}
+
+// A value's count, at the end of its row.
+function countOf(row: Locator): Locator {
+  return row.getByTestId("facet-value-count");
+}
+
+// How see-through an element is drawn: "1", or "0" for not at all.
+async function opacityOf(locator: Locator): Promise<string> {
+  return locator.evaluate((element: Element): string => {
+    return window.getComputedStyle(element).opacity;
+  });
+}
+
+// The `filters` the explorer wrote to its address, parsed.
+function addressFilters(page: Page): Array<[string, unknown]> {
+  const raw: string | null = new URL(page.url()).searchParams.get("filters");
+  return raw ? (JSON.parse(raw) as Array<[string, unknown]>) : [];
 }
 
 // One facet value row as it lays out on the page.
@@ -490,19 +551,99 @@ test.describe("Traces explorer: a facet value clicks on and off", () => {
       .toBeUndefined();
   });
 
-  test("no value offers an exclude button: the chart and counts cannot leave one out", async ({
+  test("Status: the minus leaves Error out of the list, the chart and the counts, and its row takes it off again", async ({
     page,
   }: {
     page: Page;
   }) => {
     await open(page, TRACES_PATH);
-    await expect(valueRow(facetSection(page, "Status"), "Error")).toBeVisible({
-      timeout: 30000,
-    });
 
-    await valueRow(facetSection(page, "Status"), "Error").hover();
+    const status: Locator = facetSection(page, "Status");
+    await expect(valueRow(status, "Error")).toHaveAttribute(
+      "aria-checked",
+      "false",
+      { timeout: 30000 },
+    );
 
-    await expectNoExcludeButtons(page);
+    await excludeValue(status, "2", "Error");
+
+    // A red minus, read as the third state, and a chip that says it in words.
+    await expect(rowOf(status, "2").getByRole("checkbox")).toHaveAttribute(
+      "aria-checked",
+      "mixed",
+    );
+    await expect(page.getByTestId(EXCLUDED_CHIP_TEST_ID)).toContainText(
+      "Status is not",
+    );
+    await expect(page.getByTestId(EXCLUDED_CHIP_TEST_ID)).toContainText(
+      "Error",
+    );
+
+    // The list, the chart and every other facet leave the error spans out.
+    await expect
+      .poll(async () => {
+        return (await lastQueryOf(page, "analytics.getList", SPAN_TABLE))?.[
+          "statusCode"
+        ];
+      })
+      .toEqual({ _type: "NotEqual", value: 2 });
+    await expect
+      .poll(async () => {
+        return (await lastBodyTo(page, "/telemetry/traces/histogram"))?.[
+          "excludedStatusCodes"
+        ];
+      })
+      .toEqual([2]);
+    await expect
+      .poll(async () => {
+        return (await lastBodyTo(page, "/telemetry/traces/facets"))?.[
+          "excludedStatusCodes"
+        ];
+      })
+      .toEqual([2]);
+
+    // The Status facet itself is counted without it: Ok and Unset stay listed.
+    await expect
+      .poll(async () => {
+        const own: Record<string, unknown> | null = await lastOwnCountOf(
+          page,
+          "/telemetry/traces/facets",
+          "statusCode",
+        );
+        return own ? own["excludedStatusCodes"] ?? "none" : null;
+      })
+      .toBe("none");
+    await expect(valueRow(status, "Unset (no error)")).toBeVisible();
+
+    // The address carries it, so a refresh or a shared link keeps it.
+    await expect
+      .poll(() => {
+        return addressFilters(page);
+      })
+      .toContainEqual(["!statusCode", "2"]);
+
+    // A click on the row takes it off, from the list and the chart alike.
+    await rowOf(status, "2").getByRole("checkbox").click();
+
+    await expect(valueRow(status, "Error")).toHaveAttribute(
+      "aria-checked",
+      "false",
+    );
+    await expect(page.getByTestId(EXCLUDED_CHIP_TEST_ID)).toHaveCount(0);
+    await expect
+      .poll(async () => {
+        return (await lastQueryOf(page, "analytics.getList", SPAN_TABLE))?.[
+          "statusCode"
+        ];
+      })
+      .toBeUndefined();
+    await expect
+      .poll(async () => {
+        return (await lastBodyTo(page, "/telemetry/traces/histogram"))?.[
+          "excludedStatusCodes"
+        ];
+      })
+      .toBeUndefined();
   });
 });
 
@@ -552,18 +693,66 @@ test.describe("Logs explorer: a facet value clicks on and off", () => {
       .toBeNull();
   });
 
-  test("no value offers an exclude button: the old one was an empty placeholder", async ({
+  test("Severity: the minus leaves Error out of the list, the chart and the counts, and the link keeps it", async ({
     page,
   }: {
     page: Page;
   }) => {
     await open(page, LOGS_PATH);
-    const error: Locator = valueRow(facetSection(page, "Severity"), "Error");
-    await expect(error).toBeVisible({ timeout: 30000 });
 
-    await error.hover();
+    const severity: Locator = facetSection(page, "Severity");
+    await expect(valueRow(severity, "Error")).toHaveAttribute(
+      "aria-checked",
+      "false",
+      { timeout: 30000 },
+    );
 
-    await expectNoExcludeButtons(page);
+    await excludeValue(severity, "Error", "Error");
+
+    await expect(page.getByTestId(EXCLUDED_CHIP_TEST_ID)).toContainText(
+      "Severity is not",
+    );
+    await expect
+      .poll(async () => {
+        return (await lastQueryOf(page, "analytics.getList", LOG_TABLE))?.[
+          "severityText"
+        ];
+      })
+      .toEqual({ _type: "NotEqual", value: "Error" });
+    await expect
+      .poll(async () => {
+        return (await lastBodyTo(page, "/telemetry/logs/histogram"))?.[
+          "excludedSeverityTexts"
+        ];
+      })
+      .toEqual(["Error"]);
+    await expect
+      .poll(async () => {
+        return (await lastBodyTo(page, "/telemetry/logs/facets"))?.[
+          "excludedSeverityTexts"
+        ];
+      })
+      .toEqual(["Error"]);
+    await expect
+      .poll(() => {
+        return new URL(page.url()).searchParams.get("filters");
+      })
+      .toBe(JSON.stringify([["!severityText", ["Error"]]]));
+
+    await rowOf(severity, "Error").getByRole("checkbox").click();
+
+    await expect(valueRow(severity, "Error")).toHaveAttribute(
+      "aria-checked",
+      "false",
+    );
+    await expect(page.getByTestId(EXCLUDED_CHIP_TEST_ID)).toHaveCount(0);
+    await expect
+      .poll(async () => {
+        return (await lastQueryOf(page, "analytics.getList", LOG_TABLE))?.[
+          "severityText"
+        ];
+      })
+      .toBeUndefined();
   });
 });
 
@@ -605,8 +794,48 @@ test.describe("Exceptions explorer: a facet value clicks on and off", () => {
         ];
       })
       .toBeUndefined();
+  });
 
-    await expectNoExcludeButtons(page);
+  test("Exception Type: the minus leaves a type out of the list and the counts", async ({
+    page,
+  }: {
+    page: Page;
+  }) => {
+    await open(page, EXCEPTIONS_PATH);
+
+    const types: Locator = facetSection(page, "Exception Type");
+    await expect(valueRow(types, "DeadlineExceededError")).toHaveAttribute(
+      "aria-checked",
+      "false",
+      { timeout: 30000 },
+    );
+
+    await excludeValue(types, "DeadlineExceededError", "DeadlineExceededError");
+
+    await expect(page.getByTestId(EXCLUDED_CHIP_TEST_ID)).toContainText(
+      "Exception Type is not",
+    );
+    await expect
+      .poll(async () => {
+        return (await lastQueryOf(page, "getList", EXCEPTION_TABLE))?.[
+          "exceptionType"
+        ];
+      })
+      .toEqual({ _type: "NotEqual", value: "DeadlineExceededError" });
+    await expect
+      .poll(async () => {
+        return (await lastBodyTo(page, "/telemetry/exceptions/facets"))?.[
+          "excludedExceptionTypes"
+        ];
+      })
+      .toEqual(["DeadlineExceededError"]);
+    await expect
+      .poll(async () => {
+        return (await lastBodyTo(page, "/telemetry/exceptions/histogram"))?.[
+          "excludedExceptionTypes"
+        ];
+      })
+      .toEqual(["DeadlineExceededError"]);
   });
 });
 
@@ -780,7 +1009,411 @@ test.describe("Metrics explorer: a facet value clicks on and off", () => {
         );
       })
       .toBe(false);
+  });
 
-    await expectNoExcludeButtons(page);
+  test("Service: the minus hides the metrics the service reports, and its row takes it off", async ({
+    page,
+  }: {
+    page: Page;
+  }) => {
+    await open(page, METRICS_PATH);
+
+    const services: Locator = facetSection(page, "Service");
+    await expect(valueRow(services, "checkout-api")).toHaveAttribute(
+      "aria-checked",
+      "false",
+      { timeout: 30000 },
+    );
+    const checkoutId: string = await serviceId(page, "checkout-api");
+
+    await excludeValue(services, checkoutId, "checkout-api");
+
+    await expect(page.getByTestId(EXCLUDED_CHIP_TEST_ID)).toContainText(
+      "Service is not",
+    );
+    await expect
+      .poll(async () => {
+        const services: unknown = (
+          await lastQueryOf(page, "getList", METRIC_TYPE_TABLE)
+        )?.["services"];
+        return (services as { _type?: string } | undefined)?._type;
+      })
+      .toBe("IncludesNone");
+
+    await rowOf(services, checkoutId).getByRole("checkbox").click();
+
+    await expect(page.getByTestId(EXCLUDED_CHIP_TEST_ID)).toHaveCount(0);
+    await expect
+      .poll(async () => {
+        return Boolean(
+          (await lastQueryOf(page, "getList", METRIC_TYPE_TABLE))?.["services"],
+        );
+      })
+      .toBe(false);
+  });
+});
+
+/*
+ * The UI review of #5574: the minus showed only under a pointer that hovers.
+ * It was display:none otherwise, so the keyboard could not Tab to it, and a
+ * touch screen, which has no hover, never showed it - a tap on the row
+ * checked the value instead. It now shows to the keyboard (Tab onto a value
+ * and it stands where the count was, one more Tab away) and, on a touch
+ * screen, beside every count. A value a mouse click checked keeps its count
+ * in view.
+ */
+test.describe("The minus by keyboard", () => {
+  test("Tab onto a value shows the minus over its count, one more Tab reaches it, and Enter leaves the value out", async ({
+    page,
+  }: {
+    page: Page;
+  }) => {
+    await open(page, LOGS_PATH);
+
+    const severity: Locator = facetSection(page, "Severity");
+    const information: Locator = valueRow(severity, "Information");
+    await expect(information).toHaveAttribute("aria-checked", "false", {
+      timeout: 30000,
+    });
+    const row: Locator = rowOf(severity, "Information");
+    const minus: Locator = minusOf(row, "Information");
+
+    // Nothing hovered or focused: the count, and no minus to Tab past.
+    await page.mouse.move(0, 0);
+    await expect(minus).toBeHidden();
+    await expect(countOf(row)).toBeVisible();
+
+    // From the section's title, as the keyboard comes to it.
+    await sectionHeader(page, "Severity").focus();
+    await page.keyboard.press("Tab");
+
+    await expect(information).toBeFocused();
+    await expect(minus).toBeVisible();
+    expect(await opacityOf(minus)).toBe("1");
+    // It stands where the count was.
+    await expect(countOf(row)).toBeHidden();
+
+    await page.keyboard.press("Tab");
+    await expect(minus).toBeFocused();
+
+    await page.keyboard.press("Enter");
+
+    await expect(row).toHaveAttribute("data-state", "excluded");
+    await expect(page.getByTestId(EXCLUDED_CHIP_TEST_ID)).toContainText(
+      "Severity is not",
+    );
+    await expect
+      .poll(async () => {
+        return (await lastQueryOf(page, "analytics.getList", LOG_TABLE))?.[
+          "severityText"
+        ];
+      })
+      .toEqual({ _type: "NotEqual", value: "Information" });
+
+    // Pressed, it keeps the focus, and Enter again takes the exclusion off.
+    await expect(minus).toBeFocused();
+    await expect(minus).toHaveAttribute("aria-pressed", "true");
+    await page.keyboard.press("Enter");
+
+    await expect(row).toHaveAttribute("data-state", "none");
+    await expect(page.getByTestId(EXCLUDED_CHIP_TEST_ID)).toHaveCount(0);
+  });
+
+  test("Tab past a value hides its minus again, and the next value shows its own", async ({
+    page,
+  }: {
+    page: Page;
+  }) => {
+    await open(page, LOGS_PATH);
+
+    const severity: Locator = facetSection(page, "Severity");
+    await expect(valueRow(severity, "Information")).toHaveAttribute(
+      "aria-checked",
+      "false",
+      { timeout: 30000 },
+    );
+    await page.mouse.move(0, 0);
+
+    await sectionHeader(page, "Severity").focus();
+    // The first value, its minus, then the second value.
+    await page.keyboard.press("Tab");
+    await page.keyboard.press("Tab");
+    await page.keyboard.press("Tab");
+
+    const first: Locator = rowOf(severity, "Information");
+    const second: Locator = rowOf(
+      severity,
+      (await severity
+        .getByTestId("facet-value-row")
+        .nth(1)
+        .getAttribute("data-value")) || "",
+    );
+
+    await expect(second.getByRole("checkbox")).toBeFocused();
+    await expect(minusOf(first, "Information")).toBeHidden();
+    await expect(countOf(first)).toBeVisible();
+    await expect(second.locator("button[aria-pressed]")).toBeVisible();
+    await expect(countOf(second)).toBeHidden();
+  });
+
+  test("a value a click checked keeps its count in view, and the keyboard still reaches its minus", async ({
+    page,
+  }: {
+    page: Page;
+  }) => {
+    await open(page, LOGS_PATH);
+
+    const severity: Locator = facetSection(page, "Severity");
+    const warning: Locator = valueRow(severity, "Warning");
+    await expect(warning).toHaveAttribute("aria-checked", "false", {
+      timeout: 30000,
+    });
+    const row: Locator = rowOf(severity, "Warning");
+    const minus: Locator = minusOf(row, "Warning");
+
+    await warning.click();
+    await expect(warning).toHaveAttribute("aria-checked", "true");
+    await page.mouse.move(0, 0);
+
+    /*
+     * The click left the value focused - not the keyboard's focus, so the
+     * count stays and the minus, in the tab order behind it, is not drawn.
+     */
+    await expect(warning).toBeFocused();
+    await expect(countOf(row)).toBeVisible();
+    expect(await opacityOf(minus)).toBe("0");
+
+    // From there the keyboard reaches the minus, which shows.
+    await page.keyboard.press("Tab");
+
+    await expect(minus).toBeFocused();
+    expect(await opacityOf(minus)).toBe("1");
+    await expect(countOf(row)).toBeHidden();
+  });
+});
+
+test.describe("The minus on a touch screen", () => {
+  // A phone: no pointer that hovers (hover: none), the sidebar under Filters.
+  test.use({ hasTouch: true, viewport: { width: 390, height: 844 } });
+
+  async function openSeverity(page: Page): Promise<Locator> {
+    await open(page, LOGS_PATH);
+    await page.getByTestId("logs-viewer-filters-toggle").click();
+
+    const severity: Locator = facetSection(page, "Severity");
+    await expect(valueRow(severity, "Debug")).toHaveAttribute(
+      "aria-checked",
+      "false",
+      { timeout: 30000 },
+    );
+    await severity.evaluate((element: Element): void => {
+      element.scrollIntoView({ block: "center" });
+    });
+
+    return severity;
+  }
+
+  test("every value shows its minus after its count, with no hover to wait for", async ({
+    page,
+  }: {
+    page: Page;
+  }) => {
+    const severity: Locator = await openSeverity(page);
+
+    expect(
+      await page.evaluate((): boolean => {
+        return window.matchMedia("(hover: none)").matches;
+      }),
+    ).toBe(true);
+
+    for (const value of ["Information", "Debug", "Warning", "Error"]) {
+      const row: Locator = rowOf(severity, value);
+      await expect(minusOf(row, value)).toBeVisible();
+      expect(await opacityOf(minusOf(row, value))).toBe("1");
+      await expect(countOf(row)).toBeVisible();
+    }
+
+    // A column of its own: after the count, inside the row, on one line.
+    const boxes: {
+      countRight: number;
+      minusLeft: number;
+      minusRight: number;
+      rowRight: number;
+      countTop: number;
+      minusTop: number;
+    } = await rowOf(severity, "Debug").evaluate(
+      (
+        element: Element,
+      ): {
+        countRight: number;
+        minusLeft: number;
+        minusRight: number;
+        rowRight: number;
+        countTop: number;
+        minusTop: number;
+      } => {
+        const count: DOMRect = element
+          .querySelector("[data-testid='facet-value-count']")!
+          .getBoundingClientRect();
+        const minus: DOMRect = element
+          .querySelector("button[aria-pressed]")!
+          .getBoundingClientRect();
+        const row: DOMRect = element.getBoundingClientRect();
+        return {
+          countRight: count.right,
+          minusLeft: minus.left,
+          minusRight: minus.right,
+          rowRight: row.right,
+          countTop: count.top + count.height / 2,
+          minusTop: minus.top + minus.height / 2,
+        };
+      },
+    );
+
+    expect(boxes.minusLeft).toBeGreaterThanOrEqual(boxes.countRight);
+    expect(boxes.minusRight).toBeLessThanOrEqual(boxes.rowRight + 0.5);
+    expect(Math.abs(boxes.minusTop - boxes.countTop)).toBeLessThan(2);
+
+    // A phone's sidebar is the screen's width: its bars stay.
+    await expect(
+      rowOf(severity, "Debug").getByTestId(BAR_TEST_ID),
+    ).toBeVisible();
+  });
+
+  test("a tap on the minus leaves the value out, and its count stays beside it", async ({
+    page,
+  }: {
+    page: Page;
+  }) => {
+    const severity: Locator = await openSeverity(page);
+    const row: Locator = rowOf(severity, "Debug");
+
+    await minusOf(row, "Debug").tap();
+
+    await expect(row).toHaveAttribute("data-state", "excluded");
+    await expect(page.getByTestId(EXCLUDED_CHIP_TEST_ID)).toContainText(
+      "Severity is not",
+    );
+    await expect
+      .poll(async () => {
+        return (await lastQueryOf(page, "analytics.getList", LOG_TABLE))?.[
+          "severityText"
+        ];
+      })
+      .toEqual({ _type: "NotEqual", value: "Debug" });
+    await expect(minusOf(row, "Debug")).toHaveAttribute("aria-pressed", "true");
+    await expect(countOf(row)).toBeVisible();
+
+    // A tap on the pressed minus takes it off again.
+    await minusOf(row, "Debug").tap();
+    await expect(row).toHaveAttribute("data-state", "none");
+  });
+
+  test("a tap on a value checks it at once", async ({
+    page,
+  }: {
+    page: Page;
+  }) => {
+    const severity: Locator = await openSeverity(page);
+
+    await valueRow(severity, "Warning").tap();
+
+    await expect(valueRow(severity, "Warning")).toHaveAttribute(
+      "aria-checked",
+      "true",
+    );
+  });
+});
+
+// One facet row on a touch screen, measured in one read.
+interface TouchRowGeometry {
+  value: string;
+  rowWidth: number;
+  checkboxWidth: number;
+  barDisplay: string;
+  minusShown: boolean;
+  minusLeft: number;
+  countRight: number;
+}
+
+async function touchRowGeometry(
+  section: Locator,
+): Promise<Array<TouchRowGeometry>> {
+  return section
+    .getByTestId("facet-value-row")
+    .evaluateAll((rows: Array<Element>): Array<TouchRowGeometry> => {
+      return rows.map((row: Element): TouchRowGeometry => {
+        const checkbox: Element = row.querySelector("[role=checkbox]")!;
+        const bar: Element = row.querySelector(
+          "[data-testid='facet-value-bar']",
+        )!;
+        const minus: Element = row.querySelector("button[aria-pressed]")!;
+        const count: Element = row.querySelector(
+          "[data-testid='facet-value-count']",
+        )!;
+        const minusStyle: CSSStyleDeclaration = window.getComputedStyle(minus);
+
+        return {
+          value: row.getAttribute("data-value") || "",
+          rowWidth: row.getBoundingClientRect().width,
+          checkboxWidth: checkbox.getBoundingClientRect().width,
+          barDisplay: window.getComputedStyle(bar).display,
+          minusShown:
+            minusStyle.display !== "none" && minusStyle.opacity === "1",
+          minusLeft: minus.getBoundingClientRect().left,
+          countRight: count.getBoundingClientRect().right,
+        };
+      });
+    });
+}
+
+test.describe("The minus on a touch tablet", () => {
+  /*
+   * A tablet: no hover, and from md up the sidebar beside the list, as
+   * narrow as a desktop's (a row of 214px).
+   */
+  test.use({ hasTouch: true, viewport: { width: 1024, height: 1000 } });
+
+  test("the minus takes the bar's place, so every name keeps most of its row", async ({
+    page,
+  }: {
+    page: Page;
+  }) => {
+    await open(page, LOGS_PATH);
+
+    const severity: Locator = facetSection(page, "Severity");
+    await expect(valueRow(severity, "Information")).toHaveAttribute(
+      "aria-checked",
+      "false",
+      { timeout: 30000 },
+    );
+    await expect(
+      rowOf(severity, "Information").getByTestId(BAR_TEST_ID),
+    ).toBeHidden();
+
+    const rows: Array<TouchRowGeometry> = await touchRowGeometry(severity);
+    expect(rows.length).toBeGreaterThan(3);
+
+    for (const row of rows) {
+      expect({ value: row.value, bar: row.barDisplay }).toEqual({
+        value: row.value,
+        bar: "none",
+      });
+      expect(row.minusShown).toBe(true);
+      expect(row.minusLeft).toBeGreaterThanOrEqual(row.countRight);
+      /*
+       * As much of the row as under a mouse (see "the name keeps the row's
+       * width" above): with the bar kept beside the button's column the
+       * name had less than half of it.
+       */
+      expect(row.checkboxWidth / row.rowWidth).toBeGreaterThan(0.6);
+    }
+
+    // And a tap on the minus leaves the value out.
+    await minusOf(rowOf(severity, "Error"), "Error").tap();
+    await expect(rowOf(severity, "Error")).toHaveAttribute(
+      "data-state",
+      "excluded",
+    );
   });
 });

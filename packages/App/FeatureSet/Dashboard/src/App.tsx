@@ -7,6 +7,10 @@ import EventName from "./Utils/EventName";
 import { resumePendingMcpAuthorization } from "./Utils/McpAuthorizationResume";
 import { resumePendingMarketplacePurchase } from "./Utils/MarketplacePurchaseResume";
 import {
+  resumePageAfterSessionEnd,
+  takePageAfterSessionEnd,
+} from "./Utils/SessionEndResume";
+import {
   rememberWorkspaceConnectLink,
   resumeWorkspaceConnect,
 } from "./Utils/WorkspaceConnectResume";
@@ -535,6 +539,13 @@ const App: () => JSX.Element = () => {
       setProjects(result.data);
 
       /*
+       * The page somebody was on when their session ended, if they had to
+       * sign in again because of it (see Utils/SessionEndResume). Taken
+       * first, so it is forgotten whichever page below is opened instead.
+       */
+      const pageAfterSessionEnd: Route | null = takePageAfterSessionEnd();
+
+      /*
        * Somebody who was on their way to connecting an MCP client and had to
        * sign in first. Every kind of sign-in ends here, so this is where the
        * browser is sent back to the consent screen (see
@@ -560,6 +571,11 @@ const App: () => JSX.Element = () => {
        * sign in first: back to the page that connects their account.
        */
       if (resumeWorkspaceConnect()) {
+        return;
+      }
+
+      // Back to the page they were on when their session ended.
+      if (resumePageAfterSessionEnd(pageAfterSessionEnd)) {
         return;
       }
     } catch (err) {

@@ -7,8 +7,11 @@ import IncidentService from "../../../../../Server/Services/IncidentService";
 import IncidentStateService from "../../../../../Server/Services/IncidentStateService";
 import InventoryItemService from "../../../../../Server/Services/InventoryItemService";
 import MonitorService from "../../../../../Server/Services/MonitorService";
+import OnCallDutyPolicyScheduleLayerUserService from "../../../../../Server/Services/OnCallDutyPolicyScheduleLayerUserService";
+import OnCallDutyPolicyScheduleService from "../../../../../Server/Services/OnCallDutyPolicyScheduleService";
 import SecurityCaseService from "../../../../../Server/Services/SecurityCaseService";
 import SecurityEventService from "../../../../../Server/Services/SecurityEventService";
+import TeamMemberService from "../../../../../Server/Services/TeamMemberService";
 import logger from "../../../../../Server/Utils/Logger";
 import SecurityConnectedRecords, {
   SecurityConnectedRecord,
@@ -17,7 +20,10 @@ import SecurityConnectedRecords, {
 import SecurityConnections, {
   MAX_CHANGES_READ,
   MAX_FACT_ROWS_READ,
+  MONITOR_ALERTS_COLUMN,
+  MONITOR_INCIDENTS_COLUMN,
   RECORD_RELATION_COLUMNS,
+  hasRecentChanges,
   linkIncidentToConnectedRecords,
 } from "../../../../../Server/Utils/SecurityEvent/Connections/SecurityConnections";
 import TelemetryReadAccess from "../../../../../Server/Utils/Telemetry/TelemetryReadAccess";
@@ -40,6 +46,7 @@ import {
   keyForKubernetesCluster,
 } from "../../../../../Utils/Telemetry/EntityKey";
 import { afterEach, beforeEach, describe, expect, test } from "@jest/globals";
+import { FindOperator } from "typeorm";
 
 /*
  * Connected Signals: a case's, an event's or an entity's records with what
@@ -126,6 +133,9 @@ let monitorSpy: jest.SpyInstance;
 let changeSpy: jest.SpyInstance;
 let inventorySpy: jest.SpyInstance;
 let logResourcesSpy: jest.SpyInstance;
+let layerUserSpy: jest.SpyInstance;
+let scheduleSpy: jest.SpyInstance;
+let teamSpy: jest.SpyInstance;
 
 beforeEach(() => {
   jest.spyOn(logger, "error").mockImplementation((): void => {});
@@ -148,6 +158,13 @@ beforeEach(() => {
   logResourcesSpy = jest
     .spyOn(SecurityEventService, "findLogResourcesNaming")
     .mockResolvedValue([]);
+  layerUserSpy = jest
+    .spyOn(OnCallDutyPolicyScheduleLayerUserService, "findBy")
+    .mockResolvedValue([]);
+  scheduleSpy = jest
+    .spyOn(OnCallDutyPolicyScheduleService, "findBy")
+    .mockResolvedValue([]);
+  teamSpy = jest.spyOn(TeamMemberService, "findBy").mockResolvedValue([]);
 });
 
 afterEach(() => {
@@ -757,5 +774,506 @@ describe("the incident a case declares", () => {
     // A possible connection is never linked; an incident names no user.
     expect(incident.dockerHosts).toBeUndefined();
     expect(incident.podmanHosts).toBeUndefined();
+  });
+
+  test("a cloud resource the case names exactly is linked; a monitor never is", () => {
+    const CLOUD_ID: string = "ffffffff-ffff-4fff-8fff-ffffffffffff";
+    const MONITOR_ID: string = "cccccccc-cccc-4ccc-8ccc-cccccccccccc";
+    const incident: Incident = new Incident();
+
+    linkIncidentToConnectedRecords(incident, [
+      connected(SecurityConnectionKind.CloudResource, CLOUD_ID, "checkout-alb"),
+      connected(SecurityConnectionKind.Monitor, MONITOR_ID, "Checkout site"),
+      connected(
+        SecurityConnectionKind.ServerlessFunction,
+        "ffffffff-ffff-4fff-8fff-fffffffffff1",
+        "checkout-handler",
+      ),
+    ]);
+
+    expect(incident.cloudResources?.[0]?.id?.toString()).toBe(CLOUD_ID);
+    // An incident on a monitor can change its status and show on its status pages.
+    expect(incident.monitors).toBeUndefined();
+  });
+
+  test("the incident's links: a cloud resource among them, a monitor and a function never", async () => {
+    caseRead();
+    resolveSpy.mockResolvedValue({
+      ...RESOLVED,
+      records: [
+        connected(
+          SecurityConnectionKind.CloudResource,
+          "ffffffff-ffff-4fff-8fff-ffffffffffff",
+          "checkout-alb",
+        ),
+        connected(
+          SecurityConnectionKind.Monitor,
+          "cccccccc-cccc-4ccc-8ccc-cccccccccccc",
+          "Checkout site",
+        ),
+        connected(
+          SecurityConnectionKind.ServerlessFunction,
+          "ffffffff-ffff-4fff-8fff-fffffffffff1",
+          "checkout-handler",
+        ),
+      ],
+    });
+
+    const links: Array<SecurityConnectedRecord> =
+      await SecurityConnections.readIncidentLinks({
+        projectId: PROJECT_ID,
+        securityCaseId: CASE_ID,
+        now: NOW,
+      });
+
+    expect(
+      links.map((item: SecurityConnectedRecord): string => {
+        return `${item.kind}:${item.name}`;
+      }),
+    ).toEqual(["CloudResource:checkout-alb"]);
+  });
+});
+
+describe("a monitor's facts", () => {
+  const MONITOR_ID: string = "cccccccc-cccc-4ccc-8ccc-cccccccccccc";
+
+  function monitorRecord(): SecurityConnectedRecord {
+    return {
+      ...connected(SecurityConnectionKind.Monitor, MONITOR_ID, "Checkout site"),
+      status: { name: "Degraded", color: "#f59e0b" },
+    };
+  }
+
+  test("its status, and the incidents and alerts open on it - an incident by its monitors, an alert by its one monitor", async () => {
+    caseRead();
+    resolveSpy.mockResolvedValue({ ...RESOLVED, records: [monitorRecord()] });
+    incidentSpy.mockImplementation(async (args: unknown) => {
+      const query: Record<string, unknown> = (
+        args as { query: Record<string, unknown> }
+      ).query;
+
+      return query[MONITOR_INCIDENTS_COLUMN]
+        ? [
+            {
+              id: new ObjectID(INCIDENT_ID),
+              title: "Checkout returns 502s",
+              incidentNumberWithPrefix: "INC-42",
+              monitors: [{ _id: MONITOR_ID }],
+            },
+          ]
+        : [];
+    });
+    alertSpy.mockImplementation(async (args: unknown) => {
+      const query: Record<string, unknown> = (
+        args as { query: Record<string, unknown> }
+      ).query;
+
+      return query[MONITOR_ALERTS_COLUMN]
+        ? [
+            {
+              id: new ObjectID(INCIDENT_ID),
+              title: "Slow checkout",
+              alertNumber: 9,
+              monitorId: new ObjectID(MONITOR_ID),
+            },
+          ]
+        : [];
+    });
+
+    const json: SecurityConnectionsJson = (await SecurityConnections.forCase({
+      projectId: PROJECT_ID,
+      securityCaseId: CASE_ID,
+      props: CALLER,
+      now: NOW,
+    }))!;
+    const site: SecurityConnectedResourceJson = resource(
+      json,
+      SecurityConnectionKind.Monitor,
+    );
+
+    expect(site.status).toEqual({ name: "Degraded", color: "#f59e0b" });
+    expect(site.activeIncidents).toEqual({
+      count: 1,
+      items: [
+        { id: INCIDENT_ID, title: "Checkout returns 502s", number: "INC-42" },
+      ],
+    });
+    expect(site.activeAlerts).toEqual({
+      count: 1,
+      items: [{ id: INCIDENT_ID, title: "Slow checkout", number: "#9" }],
+    });
+    // A monitor is watched by no monitor, and records no change of its own.
+    expect(site.monitors).toBeNull();
+    expect(site.recentChanges).toBeNull();
+    expect(monitorSpy).not.toHaveBeenCalled();
+    // And no member's facts.
+    expect(site).not.toHaveProperty("onCallSchedules");
+    expect(site).not.toHaveProperty("teams");
+
+    // An alert names one monitor: read by its id, not as a list...
+    const alertRead: {
+      query: Record<string, unknown>;
+      select: Record<string, unknown>;
+    } = alertSpy.mock.calls[0]![0] as never;
+
+    expect(alertRead.select[MONITOR_ALERTS_COLUMN]).toBe(true);
+    expect(alertRead.query[MONITOR_ALERTS_COLUMN]).toBeInstanceOf(FindOperator);
+    expect(
+      JSON.stringify(
+        (
+          alertRead.query[MONITOR_ALERTS_COLUMN] as {
+            objectLiteralParameters?: unknown;
+          }
+        ).objectLiteralParameters,
+      ),
+    ).toContain(MONITOR_ID);
+
+    // ...and an incident lists its monitors, read through the relation.
+    const incidentRead: {
+      query: Record<string, unknown>;
+      select: Record<string, unknown>;
+    } = incidentSpy.mock.calls[0]![0] as never;
+
+    expect(incidentRead.select[MONITOR_INCIDENTS_COLUMN]).toEqual({
+      _id: true,
+    });
+    expect(
+      (incidentRead.query[MONITOR_INCIDENTS_COLUMN] as Array<ObjectID>).map(
+        (id: ObjectID): string => {
+          return id.toString();
+        },
+      ),
+    ).toEqual([MONITOR_ID]);
+  });
+
+  test("its incidents and alerts are read with the caller's own permissions, inside the project", async () => {
+    caseRead();
+    resolveSpy.mockResolvedValue({ ...RESOLVED, records: [monitorRecord()] });
+
+    await SecurityConnections.forCase({
+      projectId: PROJECT_ID,
+      securityCaseId: CASE_ID,
+      props: CALLER,
+      now: NOW,
+    });
+
+    for (const spy of [incidentSpy, alertSpy]) {
+      const read: {
+        query: Record<string, unknown>;
+        props: DatabaseCommonInteractionProps;
+        limit: number;
+      } = spy.mock.calls[0]![0] as never;
+
+      expect(read.query["projectId"]).toBe(PROJECT_ID);
+      expect(read.props).toBe(CALLER);
+      expect(read.limit).toBe(MAX_FACT_ROWS_READ);
+    }
+  });
+
+  test("the kinds whose changes are read: never a person's, a device's or a monitor's", () => {
+    expect(hasRecentChanges(SecurityConnectionKind.Host)).toBe(true);
+    expect(hasRecentChanges(SecurityConnectionKind.CloudResource)).toBe(true);
+    expect(hasRecentChanges(SecurityConnectionKind.ServerlessFunction)).toBe(
+      true,
+    );
+    expect(hasRecentChanges(SecurityConnectionKind.User)).toBe(false);
+    expect(hasRecentChanges(SecurityConnectionKind.NetworkDevice)).toBe(false);
+    expect(hasRecentChanges(SecurityConnectionKind.Monitor)).toBe(false);
+  });
+});
+
+describe("a member's on-call schedules and teams", () => {
+  const PRIMARY: string = "dddddddd-dddd-4ddd-8ddd-ddddddddddd1";
+  const SECONDARY: string = "dddddddd-dddd-4ddd-8ddd-ddddddddddd2";
+  const OVERRIDE: string = "dddddddd-dddd-4ddd-8ddd-ddddddddddd3";
+  const OTHER_MEMBER: string = "dddddddd-dddd-4ddd-8ddd-ddddddddddd4";
+  const PLATFORM_TEAM: string = "eeeeeeee-eeee-4eee-8eee-eeeeeeeeeee1";
+  const SRE_TEAM: string = "eeeeeeee-eeee-4eee-8eee-eeeeeeeeeee2";
+
+  async function member(): Promise<SecurityConnectedResourceJson> {
+    caseRead();
+
+    const json: SecurityConnectionsJson = (await SecurityConnections.forCase({
+      projectId: PROJECT_ID,
+      securityCaseId: CASE_ID,
+      props: CALLER,
+      now: NOW,
+    }))!;
+
+    return resource(json, SecurityConnectionKind.User);
+  }
+
+  test("the schedules their rotations list and those they are on call for now, on call now first, then by name", async () => {
+    layerUserSpy.mockResolvedValue([
+      {
+        userId: new ObjectID(MEMBER_ID),
+        onCallDutyPolicyScheduleId: new ObjectID(SECONDARY),
+      },
+      {
+        userId: new ObjectID(MEMBER_ID),
+        onCallDutyPolicyScheduleId: new ObjectID(PRIMARY),
+      },
+      // Another member's rotation.
+      {
+        userId: new ObjectID(OTHER_MEMBER),
+        onCallDutyPolicyScheduleId: new ObjectID(PRIMARY),
+      },
+    ] as never);
+    scheduleSpy.mockImplementation(async (args: unknown) => {
+      const query: Record<string, unknown> = (
+        args as { query: Record<string, unknown> }
+      ).query;
+
+      // On call now: for the primary by rotation, and by an override.
+      if (query["currentUserIdOnRoster"]) {
+        return [
+          {
+            id: new ObjectID(PRIMARY),
+            name: "Platform primary",
+            currentUserIdOnRoster: new ObjectID(MEMBER_ID),
+          },
+          {
+            id: new ObjectID(OVERRIDE),
+            name: "Database escalations",
+            currentUserIdOnRoster: new ObjectID(MEMBER_ID),
+          },
+        ];
+      }
+
+      return [{ id: new ObjectID(SECONDARY), name: "Platform secondary" }];
+    });
+
+    expect((await member()).onCallSchedules).toEqual({
+      count: 3,
+      items: [
+        { id: OVERRIDE, name: "Database escalations", isOnCallNow: true },
+        { id: PRIMARY, name: "Platform primary", isOnCallNow: true },
+        { id: SECONDARY, name: "Platform secondary", isOnCallNow: false },
+      ],
+    });
+
+    // Each read inside the project, as the caller, bounded.
+    for (const spy of [layerUserSpy, scheduleSpy]) {
+      for (const call of spy.mock.calls) {
+        const read: {
+          query: Record<string, unknown>;
+          props: DatabaseCommonInteractionProps;
+          limit: number;
+        } = call[0] as never;
+
+        expect(read.query["projectId"]).toBe(PROJECT_ID);
+        expect(read.props).toBe(CALLER);
+        expect(read.limit).toBeLessThanOrEqual(MAX_FACT_ROWS_READ);
+      }
+    }
+  });
+
+  test(`at most ${SECURITY_CONNECTION_MAX_LISTED} listed, all counted; a schedule the caller cannot read is left out`, async () => {
+    layerUserSpy.mockResolvedValue(
+      ["01", "02", "03", "04", "05"].map((suffix: string) => {
+        return {
+          userId: new ObjectID(MEMBER_ID),
+          onCallDutyPolicyScheduleId: new ObjectID(
+            `dddddddd-dddd-4ddd-8ddd-dddddddddd${suffix}`,
+          ),
+        };
+      }) as never,
+    );
+    // The caller may read four of the five.
+    scheduleSpy.mockImplementation(async (args: unknown) => {
+      const query: Record<string, unknown> = (
+        args as { query: Record<string, unknown> }
+      ).query;
+
+      if (query["currentUserIdOnRoster"]) {
+        return [];
+      }
+
+      return ["01", "02", "03", "04"].map((suffix: string) => {
+        return {
+          id: new ObjectID(`dddddddd-dddd-4ddd-8ddd-dddddddddd${suffix}`),
+          name: `Schedule ${suffix}`,
+        };
+      });
+    });
+
+    const schedules: SecurityConnectedResourceJson["onCallSchedules"] = (
+      await member()
+    ).onCallSchedules;
+
+    expect(schedules?.count).toBe(4);
+    expect(schedules?.items.length).toBe(SECURITY_CONNECTION_MAX_LISTED);
+    expect(schedules?.items[0]).toEqual({
+      id: "dddddddd-dddd-4ddd-8ddd-dddddddddd01",
+      name: "Schedule 01",
+      isOnCallNow: false,
+    });
+  });
+
+  test("on no schedule: none, never unknown; a role that cannot read schedules is told nothing (null)", async () => {
+    expect((await member()).onCallSchedules).toEqual({ count: 0, items: [] });
+
+    scheduleSpy.mockRejectedValue(
+      new NotAuthorizedException(
+        "You do not have permission to read schedules.",
+      ),
+    );
+
+    expect((await member()).onCallSchedules).toBeNull();
+  });
+
+  test("the teams they joined, by name - an invitation not yet accepted is no membership", async () => {
+    teamSpy.mockResolvedValue([
+      {
+        userId: new ObjectID(MEMBER_ID),
+        teamId: new ObjectID(SRE_TEAM),
+        team: { name: "SRE" },
+      },
+      {
+        userId: new ObjectID(MEMBER_ID),
+        teamId: new ObjectID(PLATFORM_TEAM),
+        team: { name: "Platform" },
+      },
+      // The same team twice: once.
+      {
+        userId: new ObjectID(MEMBER_ID),
+        teamId: new ObjectID(SRE_TEAM),
+        team: { name: "SRE" },
+      },
+    ] as never);
+
+    expect((await member()).teams).toEqual({
+      count: 2,
+      items: [
+        { id: PLATFORM_TEAM, title: "Platform" },
+        { id: SRE_TEAM, title: "SRE" },
+      ],
+    });
+
+    const read: {
+      query: Record<string, unknown>;
+      props: DatabaseCommonInteractionProps;
+    } = teamSpy.mock.calls[0]![0] as never;
+
+    expect(read.query["projectId"]).toBe(PROJECT_ID);
+    expect(read.query["hasAcceptedInvitation"]).toBe(true);
+    expect(read.props).toBe(CALLER);
+  });
+
+  test("teams that cannot be read are not known (null), and a failure is logged", async () => {
+    teamSpy.mockRejectedValue(new Error("connection reset"));
+
+    expect((await member()).teams).toBeNull();
+    expect(logger.error).toHaveBeenCalled();
+  });
+
+  test("no member among the records reads no schedule and no team", async () => {
+    caseRead();
+    resolveSpy.mockResolvedValue({
+      ...RESOLVED,
+      records: RESOLVED.records.filter(
+        (record: SecurityConnectedRecord): boolean => {
+          return record.kind !== SecurityConnectionKind.User;
+        },
+      ),
+    });
+
+    const json: SecurityConnectionsJson = (await SecurityConnections.forCase({
+      projectId: PROJECT_ID,
+      securityCaseId: CASE_ID,
+      props: CALLER,
+      now: NOW,
+    }))!;
+
+    expect(layerUserSpy).not.toHaveBeenCalled();
+    expect(scheduleSpy).not.toHaveBeenCalled();
+    expect(teamSpy).not.toHaveBeenCalled();
+    expect(resource(json, SecurityConnectionKind.Host)).not.toHaveProperty(
+      "onCallSchedules",
+    );
+  });
+});
+
+describe("a cloud resource's facts", () => {
+  test("the incidents, alerts and monitors on it, through its cloudResources relation", async () => {
+    const CLOUD_ID: string = "ffffffff-ffff-4fff-8fff-ffffffffffff";
+
+    caseRead();
+    resolveSpy.mockResolvedValue({
+      ...RESOLVED,
+      records: [
+        connected(
+          SecurityConnectionKind.CloudResource,
+          CLOUD_ID,
+          "checkout-alb",
+        ),
+      ],
+    });
+    incidentSpy.mockImplementation(async (args: unknown) => {
+      const query: Record<string, unknown> = (
+        args as { query: Record<string, unknown> }
+      ).query;
+
+      return query["cloudResources"]
+        ? [
+            {
+              id: new ObjectID(INCIDENT_ID),
+              title: "5xx on the load balancer",
+              incidentNumber: 3,
+              cloudResources: [{ _id: CLOUD_ID }],
+            },
+          ]
+        : [];
+    });
+
+    const json: SecurityConnectionsJson = (await SecurityConnections.forCase({
+      projectId: PROJECT_ID,
+      securityCaseId: CASE_ID,
+      props: CALLER,
+      now: NOW,
+    }))!;
+    const alb: SecurityConnectedResourceJson = resource(
+      json,
+      SecurityConnectionKind.CloudResource,
+    );
+
+    expect(alb.activeIncidents?.count).toBe(1);
+    expect(alb.activeAlerts).toEqual({ count: 0, items: [] });
+    expect(alb.monitors).toEqual({ count: 0, items: [] });
+    expect(alb.recentChanges).toEqual([]);
+    expect(RECORD_RELATION_COLUMNS[SecurityConnectionKind.CloudResource]).toBe(
+      "cloudResources",
+    );
+  });
+
+  test("a serverless function has no incidents, alerts or monitors of its own to read", async () => {
+    caseRead();
+    resolveSpy.mockResolvedValue({
+      ...RESOLVED,
+      records: [
+        connected(
+          SecurityConnectionKind.ServerlessFunction,
+          "ffffffff-ffff-4fff-8fff-fffffffffff1",
+          "checkout-handler",
+        ),
+      ],
+    });
+
+    const json: SecurityConnectionsJson = (await SecurityConnections.forCase({
+      projectId: PROJECT_ID,
+      securityCaseId: CASE_ID,
+      props: CALLER,
+      now: NOW,
+    }))!;
+    const handler: SecurityConnectedResourceJson = resource(
+      json,
+      SecurityConnectionKind.ServerlessFunction,
+    );
+
+    expect(handler.activeIncidents).toBeNull();
+    expect(handler.activeAlerts).toBeNull();
+    expect(handler.monitors).toBeNull();
+    expect(handler.recentChanges).toEqual([]);
+    expect(incidentSpy).not.toHaveBeenCalled();
   });
 });

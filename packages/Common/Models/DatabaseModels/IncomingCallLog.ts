@@ -274,6 +274,7 @@ export default class IncomingCallLog extends BaseModel {
   @TableColumn({
     required: true,
     type: TableColumnType.ShortText,
+    allowedValues: Object.values(IncomingCallStatus),
     title: "Status",
     description: "Current status of the incoming call",
     canReadOnRelationQuery: true,

@@ -34,9 +34,10 @@ resource "oneuptime_on_call_schedule_layer" "layer" {
   name                            = "terraform-e2e-schedule-layer"
   description                     = "Layer created by Terraform E2E tests"
 
-  # Fixed future timestamps: the provider must round-trip these without drift.
-  starts_at     = "2030-01-01T00:00:00.000Z"
-  hand_off_time = "2030-01-01T09:00:00.000Z"
+  # Fixed future timestamps, without milliseconds: OneUptime keeps them with
+  # them, and the provider must round-trip and import them without drift.
+  starts_at     = "2030-01-01T00:00:00Z"
+  hand_off_time = "2030-01-01T09:00:00Z"
 
   rotation = jsonencode({
     _type = "Recurring"

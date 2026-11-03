@@ -30,6 +30,7 @@ Cerca nella tabella qui sotto il messaggio che Terraform ha stampato, o ciò che
 | `has been renamed to` | Rinomina il tipo di risorsa, con un blocco `moved`: vedi [Un tipo di risorsa rinominato](#un-tipo-di-risorsa-rinominato) |
 | Un monitor creato con Terraform non mostra mai i suoi controlli | Aggiorna OneUptime: vedi [Monitor creati prima degli ID dei passaggi](#monitor-creati-prima-degli-id-dei-passaggi) |
 | `must contain at least 1 elements` | Ometti l'attributo invece di lasciarlo vuoto: vedi [Valori vuoti](#valori-vuoti) |
+| `Not an ID` | Fai riferimento al record invece di nominarlo: vedi [Un nome dove va un ID](#un-nome-dove-va-un-id) |
 | JSON della dashboard in un file `.tf` | Scrivilo in HCL: vedi [Il JSON della dashboard](#il-json-della-dashboard) |
 | `no available releases match the given constraints` | Usa un intervallo di versioni, non una sola versione esatta: vedi [Una versione mai pubblicata](#una-versione-mai-pubblicata) |
 | `x509: certificate signed by unknown authority` | Dai fiducia alla tua autorità di certificazione: vedi [Certificati](#certificati) |
@@ -172,6 +173,16 @@ Attribute monitor_steps list must contain at least 1 elements, got: 0
 ```
 
 Ometti invece l'attributo: un attributo che non c'è non è impostato. [Passaggi del monitor](/docs/terraform/monitor-steps) elenca cosa accetta ogni parte.
+
+### Un nome dove va un ID
+
+Un attributo che contiene l'ID di un altro record, come `team_id` o le `labels` di un monitor, prende l'ID di quel record: un UUID. Un nome o uno slug lì ferma il plan:
+
+```text
+"sre" is not the ID of a oneuptime_team: OneUptime IDs are UUIDs, such as 550e8400-e29b-41d4-a716-446655440000. Refer to the resource instead (oneuptime_team.<name>.id), or read the ID with the oneuptime_team data source.
+```
+
+Fai riferimento alla risorsa del record, come in `team_id = oneuptime_team.sre.id`, oppure leggi il record con una [sorgente dati](/docs/terraform/complete-guide#leggere-ciò-che-esiste-già). Se l'attributo indica una persona, scrivi il suo indirizzo email nell'attributo accanto, come `user_email`.
 
 ### Il JSON della dashboard
 

@@ -56,7 +56,7 @@ Skriv et søk og trykk Enter, for eksempel `service:checkout status:error durati
 
 ### Snevre inn med filtre
 
-Klikk på en verdi i sidepanelet **Filtre** for å legge den til som en brikke. Sidepanelet filtrerer etter **Tjeneste**, etter verten, klyngen eller den andre ressursen som sendte spannet, etter **Status**, **Span-kategori**, **Har unntak**, **Span-type**, **Span-navn**, **Tjenesteinstans** og **Vertens navn**.
+Klikk på en verdi i sidepanelet **Filtre** for å legge den til som en brikke. Sidepanelet filtrerer etter **Tjeneste**, etter verten, klyngen eller den andre ressursen som sendte spannet, etter **Status**, **Span-kategori**, **Har unntak**, **Span-type**, **Span-navn**, **Tjenesteinstans** og **Vertens navn**. Klikk på minustegnet ved siden av en verdi for i stedet å utelate de spannene. Klikk på verdien igjen for å angre.
 
 ### Åpne et span
 

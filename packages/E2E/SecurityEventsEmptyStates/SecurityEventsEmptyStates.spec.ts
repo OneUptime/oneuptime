@@ -225,6 +225,8 @@ const LOG_FORMATS_LINE: string =
 // Computed colours the assertions compare against.
 const WHITE_RGB: string = "rgb(255, 255, 255)";
 const GRAY_900_RGB: string = "rgb(17, 24, 39)";
+// The grey of a tile's icon (text-gray-500), which a product's mark is drawn in.
+const GRAY_500_RGB: string = "rgb(107, 114, 128)";
 const GRAY_200_RGB: string = "rgb(229, 231, 235)";
 const INDIGO_50_RGB: string = "rgb(238, 242, 255)";
 const INDIGO_300_RGB: string = "rgb(165, 180, 252)";
@@ -910,27 +912,33 @@ function tileCategory(page: Page, item: Provider): Locator {
 }
 
 /*
- * The badge: the product's official logo (Common's ProviderLogoImage, a tile
- * holding the logo's image), the tile's first child. Then the name block
- * and, where the member can connect, the plus at the end.
+ * The badge: the product's official mark (Common's ProviderLogoImage, a tile
+ * holding the mark as an inline SVG in one colour - or, for a brand that
+ * allows no logo here, OneUptime's icon), the tile's first child. Then the
+ * name block and, where the member can connect, the plus at the end.
  */
 function tileBadge(page: Page, item: Provider): Locator {
   return tile(page, item).locator(":scope > [data-provider-logo]");
 }
 
-function tileLogoImage(page: Page, item: Provider): Locator {
-  return tileBadge(page, item).locator("img");
+// The badge's one drawing: the mark, or the icon that stands in for it.
+function tileMark(page: Page, item: Provider): Locator {
+  return tileBadge(page, item).locator("svg");
 }
 
 function tilePlus(page: Page, item: Provider): Locator {
   return tile(page, item).locator(":scope > div").nth(1).locator("svg");
 }
 
-// Whether an image has loaded and has a picture: a logo that did not arrive draws nothing.
-async function isDrawn(image: Locator): Promise<boolean> {
-  return image.evaluate((element: Element): boolean => {
-    const picture: HTMLImageElement = element as HTMLImageElement;
-    return picture.complete && picture.naturalWidth > 0;
+// Whether a drawing has shapes and takes room: a mark that did not arrive draws nothing.
+async function isDrawn(drawing: Locator): Promise<boolean> {
+  return drawing.evaluate((element: Element): boolean => {
+    const box: DOMRect = element.getBoundingClientRect();
+    return (
+      element.querySelectorAll("path").length > 0 &&
+      box.width > 0 &&
+      box.height > 0
+    );
   });
 }
 
@@ -1516,23 +1524,29 @@ test.describe("connections empty state", () => {
 
     /*
      * Three providers used to share a shield, then a generic icon each
-     * (official logos audit): each badge is its product's own logo now, a
-     * local file of the installation that arrives and is drawn.
+     * (official logos audit): each badge is its product's own mark now -
+     * an inline SVG in one colour that arrives with the installation and is
+     * drawn, never an image (icons-svg-one-color).
      */
     const logos: Array<string> = [];
     for (const item of PROVIDERS) {
       logos.push(
         (await tileBadge(page, item).getAttribute("data-provider-logo")) || "",
       );
-      await expect(tileLogoImage(page, item)).toHaveCount(1);
+      await expect(tileBadge(page, item).locator("img")).toHaveCount(0);
+      await expect(tileMark(page, item)).toHaveCount(1);
       await expect
         .poll(
           async (): Promise<boolean> => {
-            return isDrawn(tileLogoImage(page, item));
+            return isDrawn(tileMark(page, item));
           },
-          { message: `${item.title} logo is drawn` },
+          { message: `${item.title} mark is drawn` },
         )
         .toBe(true);
+      // One colour: the grey of a tile's icon.
+      expect(await textColor(tileBadge(page, item)), item.title).toBe(
+        GRAY_500_RGB,
+      );
     }
     expect(new Set(logos).size, "distinct tile logos").toBe(PROVIDERS.length);
     expect(logos).not.toContain("");
@@ -2001,6 +2015,96 @@ test.describe("connections: your logs and your SIEM", () => {
       clip: toolsCard(page),
     });
   });
+
+  /*
+   * The two tables of products on this page draw a product the same way: its
+   * one-colour mark on a tile of one size, the name as far from the tile,
+   * the tile level with the name's first line. Your security tools drew its
+   * marks bare and small, Send to your SIEM on tiles, one under the other.
+   */
+  for (const width of [1280, 390]) {
+    test(`${width}: Your security tools and Send to your SIEM draw a product's mark the same way`, async ({
+      page,
+    }: {
+      page: Page;
+    }) => {
+      await open(page, CONNECTIONS_PATH, {
+        tools: "rows",
+        siem: "rows",
+        width,
+      });
+
+      interface MarkLayout {
+        width: number;
+        height: number;
+        gap: number;
+        topToName: number;
+        drawings: number;
+        images: number;
+      }
+
+      const layoutsIn: (card: Locator) => Promise<Array<MarkLayout>> = async (
+        card: Locator,
+      ): Promise<Array<MarkLayout>> => {
+        await expect(card.locator("[data-provider-logo]")).toHaveCount(3, {
+          timeout: 30000,
+        });
+        return card
+          .locator("[data-provider-logo]")
+          .evaluateAll((tiles: Array<Element>): Array<MarkLayout> => {
+            return tiles.map((tile: Element): MarkLayout => {
+              const box: DOMRect = tile.getBoundingClientRect();
+              const words: Element = tile.nextElementSibling as Element;
+              /*
+               * The name's first line as its glyphs sit, from a range over
+               * its first words: the same measure whether the name is a
+               * block (Your security tools) or a line of text (a SIEM's).
+               */
+              const walker: TreeWalker = document.createTreeWalker(
+                words,
+                NodeFilter.SHOW_TEXT,
+              );
+              let text: Node | null = walker.nextNode();
+              while (text && !(text.textContent || "").trim()) {
+                text = walker.nextNode();
+              }
+              const range: Range = document.createRange();
+              range.selectNodeContents(text as Node);
+              const nameBox: DOMRect = range.getClientRects()[0] as DOMRect;
+
+              return {
+                width: Math.round(box.width),
+                height: Math.round(box.height),
+                gap: Math.round(words.getBoundingClientRect().left - box.right),
+                topToName: Math.round(nameBox.top - box.top),
+                drawings: tile.querySelectorAll("svg").length,
+                images: tile.querySelectorAll("img").length,
+              };
+            });
+          });
+      };
+
+      const tools: Array<MarkLayout> = await layoutsIn(toolsCard(page));
+      const siems: Array<MarkLayout> = await layoutsIn(siemCard(page));
+      const first: MarkLayout = siems[0] as MarkLayout;
+
+      expect(first.width).toBe(32);
+      expect(first.height).toBe(32);
+      for (const layout of [...tools, ...siems]) {
+        expect(layout.width).toBe(first.width);
+        expect(layout.height).toBe(first.height);
+        expect(Math.abs(layout.gap - first.gap)).toBeLessThanOrEqual(1);
+        expect(
+          Math.abs(layout.topToName - first.topToName),
+        ).toBeLessThanOrEqual(2);
+        // One inline drawing, never a picture.
+        expect(layout.drawings).toBe(1);
+        expect(layout.images).toBe(0);
+      }
+
+      await expectNoHorizontalOverflow(page);
+    });
+  }
 
   test("a phone reads each tool as a card: its name over what it is, then its health and times", async ({
     page,
@@ -2945,7 +3049,7 @@ test.describe("connections empty state actions", () => {
     expect((await fixture(page)).creates).toEqual([]);
   });
 
-  test("hovering a tile turns its border and plus indigo; the logo keeps its own colours", async ({
+  test("hovering a tile turns its border and plus indigo; the mark keeps the tile's grey", async ({
     page,
   }: {
     page: Page;
@@ -2969,10 +3073,11 @@ test.describe("connections empty state actions", () => {
         return textColor(tilePlus(page, CROWDSTRIKE));
       })
       .toBe(INDIGO_600_RGB);
-    // A brand's logo is never re-coloured: its tile stays as it was.
+    // The badge stays as it was: its tile, and its mark in the tile's grey.
     expect(await backgroundColor(tileBadge(page, CROWDSTRIKE))).toBe(
       restingBadge,
     );
+    expect(await textColor(tileBadge(page, CROWDSTRIKE))).toBe(GRAY_500_RGB);
     // The name keeps its colour, and the cursor says it is clickable.
     expect(await textColor(tileButton(page, CROWDSTRIKE))).toBe(GRAY_900_RGB);
     expect(
@@ -3225,6 +3330,102 @@ test.describe("connections empty state layout", () => {
   });
 
   /*
+   * A row of tiles is as tall as its tallest: at 1280 Splunk Enterprise
+   * Security's name takes two lines. A tile with a one-line name in that row
+   * used to share the spare height between its two rows - its name sat
+   * lower than its neighbours' and its plus dropped below its mark. Each
+   * tile keeps its rows at its top, so a row reads as one line of marks over
+   * one line of names.
+   */
+  test("1280: every row of tiles lines up - names on one line, each plus level with its mark", async ({
+    page,
+  }: {
+    page: Page;
+  }) => {
+    await openConnections(page, { width: 1280, height: 900 });
+
+    interface TileLine {
+      provider: string;
+      top: number;
+      nameTop: number;
+      markMiddle: number;
+      plusMiddle: number;
+      nameLines: number;
+    }
+
+    const lines: Array<TileLine> = await tiles(page).evaluateAll(
+      (elements: Array<Element>): Array<TileLine> => {
+        const middle: (element: Element) => number = (
+          element: Element,
+        ): number => {
+          const rect: DOMRect = element.getBoundingClientRect();
+          return rect.top + rect.height / 2;
+        };
+
+        return elements.map((element: Element): TileLine => {
+          const name: HTMLElement = element.querySelector(
+            "[data-provider-tile]",
+          ) as HTMLElement;
+          const mark: Element = element.querySelector(
+            ":scope > [data-provider-logo]",
+          ) as Element;
+          const plus: Element = element.children[2] as Element;
+
+          return {
+            provider: element.getAttribute("data-testid") || "",
+            top: element.getBoundingClientRect().top,
+            nameTop: name.getBoundingClientRect().top,
+            markMiddle: middle(mark),
+            plusMiddle: middle(plus),
+            nameLines: Math.round(
+              name.getBoundingClientRect().height /
+                parseFloat(getComputedStyle(name).lineHeight),
+            ),
+          };
+        });
+      },
+    );
+
+    expect(lines).toHaveLength(PROVIDERS.length);
+
+    const rows: Map<number, Array<TileLine>> = new Map();
+    for (const line of lines) {
+      const top: number = Math.round(line.top);
+      rows.set(top, [...(rows.get(top) || []), line]);
+    }
+
+    // A row holds a two-line name beside one-line names, so this is not vacuous.
+    expect(
+      Array.from(rows.values()).some((row: Array<TileLine>): boolean => {
+        return (
+          row.some((line: TileLine): boolean => {
+            return line.nameLines === 2;
+          }) &&
+          row.some((line: TileLine): boolean => {
+            return line.nameLines === 1;
+          })
+        );
+      }),
+    ).toBe(true);
+
+    for (const row of Array.from(rows.values())) {
+      const first: TileLine = row[0] as TileLine;
+      for (const line of row) {
+        expect(
+          Math.abs(line.nameTop - first.nameTop),
+          `${line.provider}'s name starts with its row's`,
+        ).toBeLessThanOrEqual(1);
+        expect(
+          Math.abs(line.plusMiddle - line.markMiddle),
+          `${line.provider}'s plus is level with its mark`,
+        ).toBeLessThanOrEqual(1);
+      }
+    }
+
+    await screenshot(page, "connections-1280-rows");
+  });
+
+  /*
    * What you'll need sits side by side only where the card has room for
    * both, taken from the card's own width as the tiles take theirs: beside
    * the side menu at a 768 window the card is about 370px wide, where a
@@ -3344,8 +3545,13 @@ test.describe("connections empty state for a viewer", () => {
       // The logo and the name block: no plus.
       await expect(tile(page, item).locator(":scope > div")).toHaveCount(1);
       await expect(tileBadge(page, item)).toHaveCount(1);
-      // The guide's external-link icon is the tile's only icon.
-      await expect(tile(page, item).locator("svg")).toHaveCount(1);
+      /*
+       * The tile's only drawings: the mark in its badge (or the icon a
+       * brand's rules put there) and the guide's external-link icon.
+       */
+      await expect(tileMark(page, item)).toHaveCount(1);
+      await expect(guideLink(page, item).locator("svg")).toHaveCount(1);
+      await expect(tile(page, item).locator("svg")).toHaveCount(2);
       await expect(tile(page, item).locator("p").first()).toHaveText(
         item.title,
       );
@@ -3463,18 +3669,22 @@ test.describe("connections empty state in the dark theme", () => {
     ).toBeGreaterThan(0.5);
 
     /*
-     * Hover: indigo border and plus, still on the dark surface. The logo
-     * keeps its tile - the dark theme's surface - and its own colours, in
-     * the mark CrowdStrike draws on dark backgrounds.
+     * Hover: indigo border and plus, still on the dark surface. The badge
+     * keeps its tile - the dark theme's surface - and its mark in the grey
+     * the dark theme gives a tile's icon: one colour, light on the dark
+     * surface, the same mark as in the light theme.
      */
     const restingBadge: string = await backgroundColor(
       tileBadge(page, CROWDSTRIKE),
     );
     expect(restingBadge).not.toMatch(DARK_INDIGO_TINT);
-    await expect(tileLogoImage(page, CROWDSTRIKE)).toHaveAttribute(
-      "data-provider-logo-file",
-      "crowdstrike-dark.svg",
-    );
+    for (const item of PROVIDERS) {
+      expect(
+        luminance(await textColor(tileBadge(page, item))),
+        `${item.title} mark is light on the dark surface`,
+      ).toBeGreaterThan(0.2);
+      await expect(tileBadge(page, item).locator("img")).toHaveCount(0);
+    }
     await tile(page, CROWDSTRIKE).hover({
       position: await tileSpot(page, CROWDSTRIKE, "blank"),
     });
@@ -4394,7 +4604,7 @@ async function recordPartsCutOff(page: Page): Promise<Array<string>> {
 
       panel
         .querySelectorAll(
-          "[data-testid='security-connected-record'], [data-testid='security-connected-record'] *",
+          "[data-testid='security-connected-record'], [data-testid='security-connected-record'] *, [data-testid='security-telemetry-mentions'] *",
         )
         .forEach((element: Element): void => {
           const box: DOMRect = element.getBoundingClientRect();
@@ -4529,13 +4739,79 @@ test.describe("an event's Connected tab", () => {
       "Possible match",
     );
 
-    // Everything it names was found: no "not in OneUptime" line.
+    // Everything it names was found: no "no matching record" line.
     await expect(
       eventDrawer(page).getByTestId("security-connected-not-found"),
     ).toHaveCount(0);
     await expect(
       eventDrawer(page).getByTestId("security-connected-window"),
     ).toContainText("Signals from");
+
+    /*
+     * Under the records, where what it names appears in the logs and traces
+     * of the same hour - its email and its address; web-03 is a bare name,
+     * which its record answers for. One read, of the same values and time.
+     */
+    const telemetry: Locator = eventDrawer(page).getByTestId(
+      "security-telemetry-mentions",
+    );
+    await expect(telemetry.getByTestId("security-telemetry-value")).toHaveCount(
+      2,
+      { timeout: 30000 },
+    );
+    const telemetryReads: Array<RecordedApiRequest> = (
+      await fixture(page)
+    ).apiRequests.filter((request: RecordedApiRequest): boolean => {
+      return (
+        request.method === "POST" &&
+        new URL(request.url).pathname.endsWith(
+          "/security-case/connections/telemetry",
+        )
+      );
+    });
+    expect(telemetryReads).toHaveLength(1);
+    expect(telemetryReads[0]!.body).toEqual({
+      entities: reads[0]!.body!["entities"],
+      time: EVENT_TIME,
+    });
+
+    const kaiLines: Locator = telemetry
+      .getByTestId("security-telemetry-value")
+      .filter({
+        has: page
+          .getByTestId("security-telemetry-value-name")
+          .getByText("k.morgan@acme-commerce.example", { exact: true }),
+      });
+    await expect(
+      kaiLines
+        .getByTestId("security-telemetry-logs")
+        .getByTestId("security-connected-fact-label"),
+    ).toHaveText("In 3 log lines");
+    await expect(
+      kaiLines
+        .getByTestId("security-telemetry-spans")
+        .getByTestId("security-connected-fact-label"),
+    ).toHaveText("In 5 spans");
+    const web03Lines: Locator = telemetry
+      .getByTestId("security-telemetry-value")
+      .filter({
+        has: page
+          .getByTestId("security-telemetry-value-name")
+          .getByText("203.0.113.30", { exact: true }),
+      });
+    await expect(web03Lines.getByTestId("security-telemetry-place")).toHaveText(
+      /In the message\s*60/,
+    );
+    expect(
+      JSON.parse(
+        new URL(
+          (await web03Lines
+            .getByTestId("security-telemetry-place")
+            .getAttribute("href"))!,
+          `http://127.0.0.1:${PORT}`,
+        ).searchParams.get("filters") || "[]",
+      ),
+    ).toEqual([["body", ["203.0.113.30"]]]);
   });
 
   for (const view of [

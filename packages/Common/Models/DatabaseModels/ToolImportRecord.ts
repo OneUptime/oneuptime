@@ -113,6 +113,7 @@ export default class ToolImportRecord extends BaseModel {
   @TableColumn({
     required: true,
     type: TableColumnType.ShortText,
+    allowedValues: Object.values(ToolImportSource),
     title: "Source",
     description: "The tool the item was imported from (ToolImportSource).",
   })
@@ -131,6 +132,7 @@ export default class ToolImportRecord extends BaseModel {
   @TableColumn({
     required: true,
     type: TableColumnType.ShortText,
+    allowedValues: Object.values(ToolImportResourceKind),
     title: "Kind",
     description:
       "What the item is in OneUptime: a person, a team, an on-call schedule (ToolImportResourceKind).",

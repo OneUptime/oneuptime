@@ -1,7 +1,7 @@
 {
   "baseline": {
-    "keys": 40054,
-    "untranslated": 12689
+    "keys": 40228,
+    "untranslated": 12584
   },
   "sameAsEnglish": [
     "0 (kiss-o'-death {{kissCode}})",
@@ -31,9 +31,12 @@
     "INP 168 ms",
     "INP 190 ms",
     "INP 540 ms",
+    "IoT",
     "JavaScript API",
     "LXC 201 · pve3",
+    "Link-local",
     "Log4Shell",
+    "Loopback",
     "MCP",
     "MITRE ATT&CK",
     "MITRE ATT&CK Enterprise v{{version}}",
@@ -53,6 +56,7 @@
     "Runner",
     "SLI %",
     "SLOs",
+    "Serverless",
     "Slug",
     "TLS",
     "Top P",
@@ -97,6 +101,7 @@
     "svc-backup",
     "syslog",
     "timeout|connection refused",
+    "vApp {{name}}",
     "vCenter",
     "vCenters",
     "vSphere Client",

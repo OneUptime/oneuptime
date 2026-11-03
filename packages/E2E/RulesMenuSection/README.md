@@ -51,6 +51,22 @@ packages/Common read the classes a folded section carries):
 - in German (`?lang=de`) the section is "Regeln" and still folds by its English
   title; in dark mode (`?theme=dark`) its heading reads against the menu.
 
+`SideMenuWordBreaks.spec.ts` (Chromium, Firefox and WebKit) measures where the menus'
+words break: no word that fits a line of its own is broken, in French, German
+and English at 1280, 1024 and 768 pixels; only a word of 14 letters or more
+may be hyphenated, and it alone - a long word beside shorter ones is a span of
+its own (Common's `HyphenatedWords`), so Safari, which reads no
+`hyphenate-limit-chars`, keeps to it too. Firefox, which hyphenates whatever
+word ends a line as Safari does, is also told to read no
+`hyphenate-limit-chars` and the menu is drawn at every width from 176 to 320
+pixels (`/domains` and `/custom-fields` in German: "Benutzerdefinierte
+Domains", "Benutzerdefinierte Felder"). The tests of what may be hyphenated
+run in WebKit too, Safari's engine: there the long words alone carry
+`hyphens: auto`, with five letters either side told by WebKit's own
+`-webkit-hyphenate-limit-before` and `-after`. Playwright's WebKit on Linux has
+no hyphenation dictionaries, so where it breaks words is measured in Firefox
+only (`npx playwright install webkit` for a local run, if you have no WebKit).
+
 Every read the fixture does not model is recorded on
 `window.__rulesMenuFixture.unhandled`, and the suite fails if any is. So does
 an uncaught page error, or a request that leaves the fixture server.

@@ -153,6 +153,7 @@ Attributtene følger OneUptime-API-et, i snake_case:
 | Tekst, tall, sann eller usann | Som de er | `is_public_status_page = false` |
 | En henvisning til en annen post | ID-en, vanligvis `id`-en til en annen ressurs | `incident_severity_id = oneuptime_incident_severity.sev1.id` |
 | En liste med henvisninger | Et sett med ID-er, der rekkefølgen ikke betyr noe | `labels = [oneuptime_label.critical.id]` |
+| En person | E-postadressen, ved siden av bruker-ID-en: se [Personer og team](/docs/terraform/people-and-teams) | `user_email = "alice@example.com"` |
 | En farge, et domene og andre innpakkede verdier | Den enkle verdien deres | `color = "#FF5733"` |
 | En dato og et klokkeslett | Tekst i RFC 3339 | `starts_at = "2030-06-01T02:00:00Z"` |
 | Sjekkene til en monitor | Typede nestede attributter: se [Monitortrinn](/docs/terraform/monitor-steps) | `monitor_steps = [{ ... }]` |

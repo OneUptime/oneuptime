@@ -23,7 +23,7 @@ flowchart TB
 :::steps
 ### Forbind en udbyder
 
-Gå til **Projektindstillinger** > **Arbejdsområde** > **Video Calls**, og forbind Zoom, Google Meet eller Microsoft Teams, eller tilføj et fast mødelink. På OneUptime Cloud er det ét klik at forbinde Zoom, Google Meet eller Microsoft Teams: log ind, og giv OneUptime lov til at oprette møder (se [Forbind med ét klik](#forbind-med-ét-klik)). Slack-huddles kræver intet ud over projektets Slack-forbindelse.
+Gå til **Projektindstillinger** > **Arbejdsområde** > **Videoopkald**, og forbind Zoom, Google Meet eller Microsoft Teams, eller tilføj et fast mødelink. På OneUptime Cloud er det ét klik at forbinde Zoom, Google Meet eller Microsoft Teams: log ind, og giv OneUptime lov til at oprette møder (se [Forbind med ét klik](#forbind-med-ét-klik)). Slack-huddles kræver intet ud over projektets Slack-forbindelse.
 
 ### Slå det til i en regel
 
@@ -44,7 +44,7 @@ Et opkald startes én gang pr. hændelse for hvert sted, et opkald holdes. Regle
 
 At oprette en hændelse venter aldrig på en udbyder af videoopkald. Opkaldet startes, efter at hændelsen er oprettet, så en langsom eller fejlende udbyder forsinker aldrig hændelsen eller dens vagttilkald.
 
-Hvis udbyderen afviser (en udløbet hemmelighed, en manglende rettighed, en slettet vært), siger hændelsens feed, at reglens opkald ikke kunne startes, med udbyderens begrundelse, så responders ved, at de skal starte et fra hændelsens side. Reglens kørsel står i workspacets notifikationslogs som **Start videoopkald**, og forbindelsens række i **Projektindstillinger** > **Arbejdsområde** > **Video Calls** viser fejlen, indtil et opkald starter igen.
+Hvis udbyderen afviser (en udløbet hemmelighed, en manglende rettighed, en slettet vært), siger hændelsens feed, at reglens opkald ikke kunne startes, med udbyderens begrundelse, så responders ved, at de skal starte et fra hændelsens side. Reglens kørsel står i workspacets notifikationslogs som **Start videoopkald**, og forbindelsens række i **Projektindstillinger** > **Arbejdsområde** > **Videoopkald** viser fejlen, indtil et opkald starter igen.
 
 ### Private hændelser
 
@@ -55,7 +55,7 @@ Et møde får navn efter den hændelse, det er til, med dens nummer og titel, og
 På OneUptime Cloud tager det ét klik at forbinde Zoom, Google Meet eller Microsoft Teams, og der skal intet sættes op hos udbyderen:
 
 :::steps
-1. Gå til **Projektindstillinger** > **Arbejdsområde** > **Video Calls**, og klik på **Forbind** ved Zoom, Google Meet eller Microsoft Teams.
+1. Gå til **Projektindstillinger** > **Arbejdsområde** > **Videoopkald**, og klik på **Forbind** ved Zoom, Google Meet eller Microsoft Teams.
 2. Klik på **Continue to Zoom** (eller Google, eller Microsoft), log ind, og giv OneUptime lov til at oprette møder.
 3. Du kommer tilbage til siden med videoopkald med forbindelsen oprettet. **Start a test meeting** tjekker den fra ende til anden; vælg derefter forbindelsen i en notifikationsregel for Slack eller Microsoft Teams.
 :::
@@ -124,7 +124,7 @@ OneUptime AI foreslår kun en årsag, når opkaldet nævner en, med de linjer, d
 
 ### Optag og transskribér hvert opkald
 
-Så ingen skal huske at optage et opkald eller hente dets transskription, skal du slå **Optag og transskribér hændelsesopkald** til under **Projektindstillinger** > **Arbejdsområde** > **Video Calls**. Mens den er slået til:
+Så ingen skal huske at optage et opkald eller hente dets transskription, skal du slå **Optag og transskribér hændelsesopkald** til under **Projektindstillinger** > **Arbejdsområde** > **Videoopkald**. Mens den er slået til:
 
 - OneUptime beder Zoom om at optage hvert hændelsesmøde, den starter, i skyen, Google Meet om at transskribere det og Microsoft Teams om at optage og transskribere det automatisk. Beskeden, der slår opkaldet op, siger det, før nogen deltager.
 - Når opkaldet er slut, henter OneUptime selv transskriptionen, som **Hent fra Zoom** ville gøre, og OneUptime AI læser den. Indtil da siger kortet **Video Call**, at det venter.

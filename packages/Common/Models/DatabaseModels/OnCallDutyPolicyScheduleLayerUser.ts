@@ -76,7 +76,7 @@ import { Column, Entity, Index, JoinColumn, ManyToOne } from "typeorm";
   singularName: "On-Call Schedule Layer User",
   pluralName: "On-Call Schedule Layer Users",
   icon: IconProp.Layers,
-  tableDescription: "On-Call Schedule Layer Users",
+  tableDescription: "Add users to the layers of your on-call schedules.",
 })
 @Entity({
   name: "OnCallDutyPolicyScheduleLayerUser",
@@ -230,8 +230,7 @@ export default class OnCallDutyPolicyScheduleLayerUser extends BaseModel {
     required: true,
     canReadOnRelationQuery: true,
     title: "On-Call Policy Schedule ID",
-    description:
-      "ID of your On-Call Policy Schedule where this escalation rule belongs.",
+    description: "ID of the on-call schedule the layer is in",
   })
   @Column({
     type: ColumnType.ObjectID,
@@ -311,8 +310,7 @@ export default class OnCallDutyPolicyScheduleLayerUser extends BaseModel {
     required: true,
     canReadOnRelationQuery: true,
     title: "On-Call Policy Schedule Layer ID",
-    description:
-      "ID of your On-Call Policy Schedule Layer where this escalation rule belongs.",
+    description: "ID of the layer the person takes turns on call in",
   })
   @Column({
     type: ColumnType.ObjectID,
@@ -584,7 +582,7 @@ export default class OnCallDutyPolicyScheduleLayerUser extends BaseModel {
     type: TableColumnType.ObjectID,
     required: true,
     title: "User ID",
-    description: "ID of User who belongs to this team",
+    description: "ID of the person who takes turns on call in this layer.",
   })
   @Column({
     type: ColumnType.ObjectID,

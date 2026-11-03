@@ -25,6 +25,7 @@ import {
   EXAMPLES,
   MONITOR_STEPS,
   OTHER_VERSION_CONSTRAINTS,
+  PEOPLE_AND_TEAMS,
   QUICK_START,
   SELF_HOSTED,
   TERRAFORM_OVERVIEW,
@@ -92,9 +93,10 @@ import path from "path";
 
 /*
  * Docs overhaul task 30a: the Terraform overview, quick start, complete
- * guide, monitor steps and examples, held to the provider they document and
- * to the product behind it. TerraformDocsTranslations holds the 16
- * translations to these English pages.
+ * guide, monitor steps and examples - and since terraform-provider-better
+ * People and Teams - held to the provider they document and to the product
+ * behind it. TerraformDocsTranslations holds the 16 translations to these
+ * English pages.
  *
  * The provider is read where the generator reads it (TerraformDocsSupport):
  * the real OpenAPI spec through the real OpenAPIParser, with the generator's
@@ -3243,5 +3245,272 @@ describe("the examples page", () => {
       "https://oneuptime.com/heartbeat/YOUR_SECRET_KEY",
     );
     expect(page).toContain("`https://oneuptime.com/heartbeat/YOUR_SECRET_KEY`");
+  });
+});
+
+/*
+ * People and Teams (terraform-provider-better): people named by email
+ * address, held to the provider the generator makes - each pair of the
+ * page's table an ID attribute and the address beside it, the membership
+ * import, the user data source's lookups - and to what people.go and the
+ * server do with an address nobody in the project has.
+ */
+describe("the people and teams page", () => {
+  const page: string = englishPage(PEOPLE_AND_TEAMS);
+
+  it("pairs each user ID attribute of its table with the address the provider takes beside it", () => {
+    const rows: Array<Array<string>> = tableWithHeader(
+      englishSection(PEOPLE_AND_TEAMS, "## Name people by email address"),
+      "User ID",
+    );
+
+    expect(rows.length).toBeGreaterThanOrEqual(4);
+
+    for (const row of rows) {
+      const id: string = codeIn(row[0] as string)[0] as string;
+      const email: string = codeIn(row[1] as string)[0] as string;
+      // Some resource names a person by `id`, and by `email` beside it.
+      const paired: boolean = Array.from(provider.resources.values()).some(
+        (type: ProviderType): boolean => {
+          return (
+            type.attributes.get(id)?.personEmail === email &&
+            type.attributes.get(email)?.personEmailOf === id
+          );
+        },
+      );
+
+      expect({ id, email, paired }).toEqual({ id, email, paired: true });
+    }
+  });
+
+  it("is right that every resource that names a person takes their address beside their ID", () => {
+    const withoutAddress: Array<string> = [];
+    let people: number = 0;
+
+    for (const type of Array.from(provider.resources.values())) {
+      for (const attribute of Array.from(type.attributes.values())) {
+        if (attribute.relation !== "user" || !attribute.settable) {
+          continue;
+        }
+
+        people++;
+
+        const email: ProviderAttribute | undefined = attribute.personEmail
+          ? type.attributes.get(attribute.personEmail)
+          : undefined;
+
+        if (!email?.settable || email.personEmailOf !== attribute.name) {
+          withoutAddress.push(`${type.name}.${attribute.name}`);
+        }
+      }
+    }
+
+    expect(withoutAddress).toEqual([]);
+    expect(people).toBeGreaterThan(100);
+    expect(page).toContain(
+      "Every resource that names a person takes their email address beside their user ID. Give one of the two:",
+    );
+  });
+
+  it("leaves whether someone has accepted to them: no configuration sets it", () => {
+    const member: ProviderType = resourceType("team_member");
+
+    expect(member.attributes.get("has_accepted_invitation")).toEqual(
+      expect.objectContaining({ settable: false }),
+    );
+    expect(member.attributes.get("user_email")).toEqual(
+      expect.objectContaining({ settable: true, personEmailOf: "user_id" }),
+    );
+    expect(member.attributes.get("team_id")).toEqual(
+      expect.objectContaining({ required: true }),
+    );
+    expect(page).toContain(
+      "`has_accepted_invitation` stays `false` until she accepts, and her accepting is no change to the plan.",
+    );
+  });
+
+  it("imports a membership by its team's ID and the person's address, as the provider does", () => {
+    const command: string = (
+      codeBlocks(
+        englishSection(PEOPLE_AND_TEAMS, "## Import members you already have"),
+      ).find((block: CodeBlock): boolean => {
+        return block.lang === "bash";
+      }) as CodeBlock
+    ).code.trim();
+    const [, , typeAddress, importId] = command.split(" ") as [
+      string,
+      string,
+      string,
+      string,
+    ];
+    const [teamId, address] = importId.split("/") as [string, string];
+
+    expect(command.startsWith("terraform import ")).toBe(true);
+    expect(
+      resourceType(shortName(typeAddress.split(".")[0] as string)),
+    ).toEqual(
+      expect.objectContaining({
+        canBeImported: true,
+        importsByParent: "team_id",
+      }),
+    );
+    expect(UUID.test(teamId)).toBe(true);
+    expect(address).toBe("alice@example.com");
+    // A record that joins nothing is imported by its own ID only.
+    expect(resourceType("monitor").importsByParent).toBeNull();
+  });
+
+  it("imports owners and on-call rows by what they belong to, an address or an ID after the slash, as the provider does", () => {
+    const section: string = englishSection(
+      PEOPLE_AND_TEAMS,
+      "## Import members you already have",
+    );
+    const commands: Array<string> = (
+      codeBlocks(section).filter((block: CodeBlock): boolean => {
+        return block.lang === "bash";
+      })[1] as CodeBlock
+    ).code
+      .trim()
+      .split("\n");
+
+    // Each command as the provider reads its import ID (people.go).
+    const imports: Array<string> = commands.map((command: string): string => {
+      const [terraform, verb, typeAddress, importId] = command.split(" ") as [
+        string,
+        string,
+        string,
+        string,
+      ];
+      const type: ProviderType = resourceType(
+        shortName(typeAddress.split(".")[0] as string),
+      );
+      const [parentId, member] = importId.split("/") as [string, string];
+      // An address only where the row names a person; else an ID.
+      const takes: string =
+        member.includes("@") && type.importsByEmail
+          ? "<email>"
+          : UUID.test(member)
+            ? `<${type.importsByMember}>`
+            : `not ${member}`;
+      const parent: string =
+        type.canBeImported && type.importsByParent && UUID.test(parentId)
+          ? `<${type.importsByParent}>`
+          : `not ${parentId}`;
+
+      return `${terraform} ${verb} ${type.name} ${parent}/${takes}`;
+    });
+
+    expect(imports).toEqual([
+      "terraform import monitor_user_owner <monitor_id>/<email>",
+      "terraform import escalation_rule_team <on_call_duty_policy_escalation_rule_id>/<team_id>",
+    ]);
+    // Owners, layer users and escalation rule rows are all imported so.
+    for (const name of [
+      "monitor_team_owner",
+      "on_call_schedule_layer_user",
+      "escalation_rule_user",
+      "escalation_rule_schedule",
+    ]) {
+      expect([name, resourceType(name).importsByParent]).not.toEqual([
+        name,
+        null,
+      ]);
+    }
+    expect(section).toContain(
+      "Owners and on-call rows import the same way, by what they belong to.",
+    );
+  });
+
+  it("looks someone up by email, name or id, and reads their teams and whether they joined", () => {
+    const user: ProviderType = dataSourceType("user");
+    const section: string = englishSection(PEOPLE_AND_TEAMS, "## Find someone");
+
+    for (const lookup of ["email", "name", "id"]) {
+      expect(user.attributes.get(lookup)).toEqual(
+        expect.objectContaining({ settable: true }),
+      );
+    }
+
+    for (const read of ["team_ids", "has_accepted_invitation"]) {
+      expect(user.attributes.get(read)).toEqual(
+        expect.objectContaining({ settable: false }),
+      );
+    }
+
+    expect(
+      codeIn(lineStartingWith(section, "The `oneuptime_user` data source")),
+    ).toEqual(["oneuptime_user", "email", "name", "id"]);
+  });
+
+  it("finds a record by the person's address with another data source, as the generator writes them", () => {
+    const section: string = englishSection(PEOPLE_AND_TEAMS, "## Find someone");
+    const lookup: HclBlock = parseHcl(
+      (
+        codeBlocks(section).filter((block: CodeBlock): boolean => {
+          return block.lang === "hcl";
+        })[1] as CodeBlock
+      ).code,
+    ).blocks[0] as HclBlock;
+    const source: ProviderType = dataSourceType(
+      shortName(lookup.labels[0] as string),
+    );
+
+    expect([lookup.type, lookup.labels[0]]).toEqual([
+      "data",
+      "oneuptime_team_member",
+    ]);
+    // Each argument is one the data source looks up by.
+    expect(
+      lookup.body.attributes.map((argument: HclAttribute): string => {
+        const attribute: ProviderAttribute | undefined = source.attributes.get(
+          argument.name,
+        );
+        return `${argument.name}: ${attribute?.isLookupFilter ? "lookup" : "not a lookup argument"}`;
+      }),
+    ).toEqual(["team_id: lookup", "user_email: lookup"]);
+    expect(source.attributes.get("user_email")?.personEmailOf).toBe("user_id");
+    expect(source.attributes.get("user_id")?.personEmail).toBe("user_email");
+    expect(readRepoFile(DATA_SOURCE_GENERATOR)).toContain(
+      "personIDForLookup(ctx, d.client",
+    );
+    expect(section).toContain(
+      "Other data sources find a record by the address of the person it names, beside their ID.",
+    );
+  });
+
+  it("says what people.go does with an address nobody in the project has: a warning in the plan, an error in the apply", () => {
+    const people: string = readRepoFile(
+      "Scripts/TerraformProvider/StaticFiles/people.go",
+    );
+    const plan: string = goFunction(people, "func planPersonID(");
+    const write: string = goFunction(people, "func personIDForWrite(");
+
+    expect(plan).toContain("resp.Diagnostics.AddAttributeWarning(");
+    expect(plan).toContain('" is not in this project yet"');
+    expect(write).toContain(
+      'diags.AddAttributeError(path.Root(emailAttribute), email.ValueString()+" is not in this project"',
+    );
+    expect(page).toContain(
+      "An address nobody in the project has is a warning in the plan, and an error in the apply.",
+    );
+  });
+
+  it("names the server's refusal of someone in the team already, which the provider answers with an import", () => {
+    const errors: string = readRepoFile(
+      "packages/Common/Server/Utils/Errors.ts",
+    );
+    const people: string = readRepoFile(
+      "Scripts/TerraformProvider/StaticFiles/people.go",
+    );
+
+    expect(errors).toContain(
+      'ALREADY_INVITED: "This user has already been invited to this team"',
+    );
+    expect(goFunction(people, "func alreadyInvitedHint(")).toContain(
+      '"already been invited"',
+    );
+    expect(page).toContain(
+      ":::details The apply says the user has already been invited to this team",
+    );
   });
 });

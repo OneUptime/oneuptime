@@ -129,7 +129,7 @@ En app som inte skickar något på 30 dagar tas bort med sina revisioner, och de
 | EC2, Compute Engine, Azure VM (`aws_ec2`, `gcp_compute_engine`, `azure_vm`) | **Värdar** | En virtuell maskin är en värd. Se [OpenTelemetry-collector på värden](/docs/telemetry/host-otel-collector) |
 | EKS, GKE, AKS, självhanterad Kubernetes | **Kubernetes** | Routas efter attributen `k8s.*`. Se [Kubernetes-agent](/docs/telemetry/kubernetes-agent) |
 | Lambda, Cloud Functions, Azure Functions (`aws_lambda`, `gcp_cloud_functions`, `azure_functions`) | **Serverlösa funktioner** | Routas efter `faas.name`, eller efter `service.name` på en `cloud.platform` för FaaS. Se [Serverlösa funktioner](/docs/telemetry/serverless-functions) |
-| Lastbalanserare, bucketar, hanterade databaser och andra IaaS- eller PaaS-resurser | **Cloud Resources** | Upptäcks från de mätvärden som Azure Monitor, CloudWatch och Cloud Monitoring publicerar. Se [Molnresurser](/docs/telemetry/cloud-resources) |
+| Lastbalanserare, bucketar, hanterade databaser och andra IaaS- eller PaaS-resurser | **Molnresurser** | Upptäcks från de mätvärden som Azure Monitor, CloudWatch och Cloud Monitoring publicerar. Se [Molnresurser](/docs/telemetry/cloud-resources) |
 
 > [!NOTE]
 > Cloud Run och App Engine visas med avsikt på två ställen. Deras detektor sätter både en hanterad `cloud.platform` och `faas.name`, så varje tjänst är också en egen **Serverlös funktion**, medan **Molnmiljö** samlar alla tjänster i det projektet och den regionen. Samma telemetri arkiveras under båda.

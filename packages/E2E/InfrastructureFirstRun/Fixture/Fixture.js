@@ -57,6 +57,7 @@ import Probe from "Common/Models/DatabaseModels/Probe";
 import Project from "Common/Models/DatabaseModels/Project";
 import VMwareVCenter from "Common/Models/DatabaseModels/VMwareVCenter";
 import HTTPErrorResponse from "Common/Types/API/HTTPErrorResponse";
+import HTTPResponse from "Common/Types/API/HTTPResponse";
 import ObjectID from "Common/Types/ObjectID";
 import Permission from "Common/Types/Permission";
 import API from "Common/UI/Utils/API/API";
@@ -383,6 +384,16 @@ ModelAPI.getItem = async (options) => {
 async function handleApi(method, options) {
   const url = options.url.toString();
   fixture.apiRequests.push({ method, url });
+
+  /*
+   * Once the first host arrives, the Hosts list's Needs attention card reads
+   * the hosts past one of HostHealth's lines (POST /host/needs-attention):
+   * a host that just arrived needs nothing yet, so the card draws nothing.
+   */
+  if (method === "POST" && url.endsWith("/host/needs-attention")) {
+    return new HTTPResponse(200, { hosts: [], isTruncated: false }, {});
+  }
+
   fixture.unhandled.push({ kind: "api", method, url });
   return new HTTPErrorResponse(404, { message: "Not modelled." }, {});
 }

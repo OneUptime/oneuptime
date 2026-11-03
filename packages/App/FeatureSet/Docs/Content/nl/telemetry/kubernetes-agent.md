@@ -591,7 +591,7 @@ Sommige grafieken tonen metrics waarvoor de agent geen scrape heeft: **kube-prox
 
 ### Kostenobservability inschakelen
 
-Zie op de pagina **Costs** van het cluster wat elke namespace, workload en pod kost, met inactieve capaciteit en hoeveel van elk request wordt gebruikt:
+Zie op de pagina **Kosten** van het cluster wat elke namespace, workload en pod kost, met inactieve capaciteit en hoeveel van elk request wordt gebruikt:
 
 ```bash
 helm upgrade kubernetes-agent oneuptime/kubernetes-agent \

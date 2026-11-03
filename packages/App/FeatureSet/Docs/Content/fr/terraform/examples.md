@@ -505,14 +505,10 @@ resource "oneuptime_team" "sre" {
   description = "Site reliability engineering"
 }
 
-variable "alice_user_id" {
-  description = "Alice's user ID, the last part of the address of her page under Users"
-  type        = string
-}
-
+# Invited by email if she is not in the project yet.
 resource "oneuptime_team_member" "alice" {
-  team_id = oneuptime_team.sre.id
-  user_id = var.alice_user_id
+  team_id    = oneuptime_team.sre.id
+  user_email = "alice@example.com"
 }
 ```
 
@@ -538,7 +534,7 @@ resource "oneuptime_escalation_rule" "first_line" {
   escalate_after_in_minutes = 5
 }
 
-resource "oneuptime_team_on_call_duty_escalation_rule" "sre" {
+resource "oneuptime_escalation_rule_team" "sre" {
   on_call_duty_policy_id                 = oneuptime_on_call_policy.primary.id
   on_call_duty_policy_escalation_rule_id = oneuptime_escalation_rule.first_line.id
   team_id                                = oneuptime_team.sre.id
@@ -610,26 +606,23 @@ Pour mettre les moniteurs de l'événement dans un statut pendant qu'il se déro
 
 ## Sondes
 
-Une sonde à vous exécute des vérifications depuis votre réseau. Sa clé est le secret avec lequel la sonde s'identifie : passez-la donc dans une variable :
+Une sonde à vous exécute des vérifications depuis votre réseau. Donnez-lui un nom, et OneUptime génère sa `key`, le secret avec lequel la sonde s'identifie. Terraform garde la clé hors des plans et des journaux, et une sortie qui la montre doit être marquée sensible :
 
 ```hcl
-variable "probe_key" {
-  description = "The key the probe signs in with"
-  type        = string
-  sensitive   = true
-}
-
 resource "oneuptime_probe" "eu_west" {
-  key           = var.probe_key
-  name          = "EU West"
-  description   = "Probe in our eu-west-1 network"
-  probe_version = "1.0.0"
+  name        = "EU West"
+  description = "Probe in our eu-west-1 network"
 
   should_auto_enable_probe_on_new_monitors = true
 }
+
+output "eu_west_probe_key" {
+  value     = oneuptime_probe.eu_west.key
+  sensitive = true
+}
 ```
 
-Lancez la sonde avec `PROBE_ID` réglé sur l'`id` de la sonde et `PROBE_KEY` sur la clé : voir les [Sondes personnalisées](/docs/probe/custom-probe). Le test de bout en bout `23-probe-crud` applique des sondes.
+Lancez la sonde avec `PROBE_ID` réglé sur l'`id` de la sonde et `PROBE_KEY` sur la clé, que `terraform output -raw eu_west_probe_key` affiche : voir les [Sondes personnalisées](/docs/probe/custom-probe). Pour choisir la clé vous-même, définissez `key` à partir d'une variable sensible. Les tests de bout en bout `23-probe-crud` et `61-name-only-and-choices` appliquent des sondes.
 
 ## Prochaines étapes
 

@@ -56,7 +56,7 @@ Escriba una consulta y pulse Intro, por ejemplo `service:checkout status:error d
 
 ### Acotar con filtros
 
-Haga clic en un valor de la barra lateral **Filtros** para añadirlo como chip. La barra lateral filtra por **Servicio**, por el host, el clúster u otro recurso que envió el span, por **Estado**, **Categoría de span**, **Tiene excepción**, **Tipo de span**, **Nombre del span**, **Instancia del servicio** y **Nombre del host**.
+Haga clic en un valor de la barra lateral **Filtros** para añadirlo como chip. La barra lateral filtra por **Servicio**, por el host, el clúster u otro recurso que envió el span, por **Estado**, **Categoría de span**, **Tiene excepción**, **Tipo de span**, **Nombre del span**, **Instancia del servicio** y **Nombre del host**. Haga clic en el signo menos junto a un valor para excluir esos spans. Vuelva a hacer clic en el valor para deshacerlo.
 
 ### Abrir un span
 

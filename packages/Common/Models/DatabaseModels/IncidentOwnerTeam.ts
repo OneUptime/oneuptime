@@ -234,7 +234,7 @@ export default class IncidentOwnerTeam extends BaseModel {
     required: true,
     canReadOnRelationQuery: true,
     title: "Team ID",
-    description: "ID of your OneUptime Team in which this object belongs",
+    description: "ID of the team that owns the incident",
     example: "a1b2c3d4-e5f6-7890-abcd-ef1234567890",
   })
   @Column({
@@ -314,7 +314,7 @@ export default class IncidentOwnerTeam extends BaseModel {
     required: true,
     canReadOnRelationQuery: true,
     title: "Incident ID",
-    description: "ID of your OneUptime Incident in which this object belongs",
+    description: "ID of the incident the team owns",
     example: "f6a7b8c9-d0e1-2345-fabc-456789012345",
   })
   @Column({

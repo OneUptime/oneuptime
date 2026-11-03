@@ -1,6 +1,6 @@
 # Cloud-resources (IaaS en PaaS)
 
-**Cloud Resources** toont de IaaS- en PaaS-resources in je AWS-, Azure- en Google Cloud-accounts: virtuele machines, schijven, load balancers, buckets, beheerde databases, caches, wachtrijen, API-gateways en de rest. Elke resource krijgt een eigen pagina, met het type, de regio en het account, het eigen ID dat de provider eraan geeft, elke metriek die de provider erover publiceert, en eigenaren en labels zoals elke andere resource in OneUptime. Je vindt ze onder **Cloud → Alle resources**.
+**Cloud-resources** toont de IaaS- en PaaS-resources in je AWS-, Azure- en Google Cloud-accounts: virtuele machines, schijven, load balancers, buckets, beheerde databases, caches, wachtrijen, API-gateways en de rest. Elke resource krijgt een eigen pagina, met het type, de regio en het account, het eigen ID dat de provider eraan geeft, elke metriek die de provider erover publiceert, en eigenaren en labels zoals elke andere resource in OneUptime. Je vindt ze onder **Cloud → Alle resources**.
 
 > [!TIP]
 > Liever geen collector draaien? [Koppel een cloudaccount](/docs/telemetry/cloud-accounts) onder **Cloud → Koppelen**, en OneUptime leest deze metrieken zelf.
@@ -37,7 +37,7 @@ Cloud-resources zijn een van de plekken waar je cloud verschijnt:
 | Containers op ECS, Cloud Run, Container Apps, App Service, … | **App-platforms → Alle omgevingen** | De eigen telemetrie van je workloads, op basis van hun `cloud.platform`. Zie [Cloud-omgevingen](/docs/telemetry/cloud-environments) |
 | Elke IaaS- of PaaS-resource die de provider monitort | **Cloud → Alle resources** | De monitoring-API van de provider, gelezen door een collector: deze pagina |
 | Virtuele machines met een OpenTelemetry Collector erop | **Hosts** | De eigen metrieken en logs van de host. Zie [OpenTelemetry-collector op de host](/docs/telemetry/host-otel-collector) |
-| Wachtrijen en topics die je applicaties gebruiken | **Queues** | Spans, en dezelfde cloudmetrieken. Zie [Wachtrijen](/docs/telemetry/queues) |
+| Wachtrijen en topics die je applicaties gebruiken | **Wachtrijen** | Spans, en dezelfde cloudmetrieken. Zie [Wachtrijen](/docs/telemetry/queues) |
 
 Een resource kan op meer dan één plek verschijnen. Een virtuele machine met de collector erop is een **Host**, en zijn platformmetrieken (CPU-tegoed, schijf en netwerk zoals de hypervisor ze ziet) maken hem ook een **Cloud-resource**. Een SQS-wachtrij is een **Queue** en een **Cloud-resource**. Elke weergave toont wat haar bron weet.
 

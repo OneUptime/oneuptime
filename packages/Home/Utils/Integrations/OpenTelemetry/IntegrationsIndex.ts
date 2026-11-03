@@ -6,9 +6,9 @@ import {
 } from "Common/Types/Telemetry/OpenTelemetryGuides";
 import { JSONObject } from "Common/Types/JSON";
 import {
-  ProviderLogoImage,
-  getProviderLogoImage,
-} from "../../ProviderLogoFiles";
+  ProviderLogoMarkup,
+  getProviderLogoMarkup,
+} from "../../ProviderLogoMarkup";
 import { versionedStaticPath } from "../../StaticAssets";
 import { GuideCard, guideCard } from "./GuidePage";
 import { OpenTelemetryGuide } from "./GuideTypes";
@@ -35,7 +35,7 @@ export interface IndexGroup {
   id: string;
   title: string;
   description: string;
-  logo?: ProviderLogoImage | undefined;
+  logo?: ProviderLogoMarkup | undefined;
   cards: Array<IndexCard>;
 }
 
@@ -171,7 +171,7 @@ function indexGroup(
     id: group.language,
     title: group.title,
     description: group.description,
-    logo: group.logo ? getProviderLogoImage(group.logo) : undefined,
+    logo: group.logo ? getProviderLogoMarkup(group.logo) : undefined,
     cards: cards,
   };
 }

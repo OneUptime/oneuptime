@@ -62,14 +62,14 @@ Under den sier én linje om noe oppretter en hendelse når en enhet går ned: hv
 
 Før noe er lagt til, leder oversikten deg i stedet gjennom tre trinn. **Sett en sonde på nettverket ditt**: en sonde pinger og går gjennom enhetene dine fra innsiden av nettverket deres, så **Legg til en sonde** gir en sonde navn, viser kommandoen som starter den, og følger med når den kobler til. **Legg til enhetene dine**: **Finn enheter** skanner et adresseområde slik at du kan velge hva du vil legge til, best for et helt nettverk eller en ny lokasjon, og **Legg til én enhet** legger til én etter IP-adresse eller vertsnavn. **Få beskjed når en enhet går ned**: **Sett opp varsler** åpner [varslingspolicyene](#varslingspolicyer), der den anbefalte policyen er ett klikk unna. På OneUptime Cloud krever det Growth-abonnementet å [legge til en sonde](/docs/probe/custom-probe): under det sier trinnet fra og lenker i stedet til faktureringsinnstillingene dine, og OneUptimes egne sonder på internett kan fortsatt sjekke enheter med en offentlig adresse.
 
-Nettverk-menyen holder det du åpner hver dag synlig: **Oversikt**, **Enheter**, **Lokasjoner**, **Kart**, **Traffic**, **Hendelser** og **Discovery**. Resten er foldet inn i seksjoner, og en seksjon folder seg ut av seg selv på hver av sidene sine:
+Nettverk-menyen holder det du åpner hver dag synlig: **Oversikt**, **Enheter**, **Lokasjoner**, **Kart**, **Trafikk**, **Hendelser** og **Oppdagelse**. Resten er foldet inn i seksjoner, og en seksjon folder seg ut av seg selv på hver av sidene sine:
 
 | Seksjon | Sider |
 | --- | --- |
-| **Topologi** | **Device Topology**, **Endepunkter**, **Latency Matrix**, **Site Links**, **Device Links** |
-| **Regler** | **Auto Import Rules**, **Site Assignment Rules**, **Eierregler**, **Etikettregler**, **Link Rules** |
-| **Innstillinger** | **Alert Policies**, **SNMP-påloggingsinformasjon**, **Device Roles**, **Site Types**, **Adressenavn**, **OID Collection Templates** |
-| **Avansert** | **Archived Devices** |
+| **Topologi** | **Enhetstopologi**, **Endepunkter**, **Latensmatrise**, **Lokasjonslenker**, **Enhetslenker** |
+| **Regler** | **Regler for automatisk import**, **Regler for lokasjonstildeling**, **Eierregler**, **Etikettregler**, **Lenkeregler** |
+| **Innstillinger** | **Varslingsretningslinjer**, **SNMP-påloggingsinformasjon**, **Enhetsroller**, **Lokasjonstyper**, **Adressenavn**, **Maler for OID-innsamling** |
+| **Avansert** | **Arkiverte enheter** |
 
 ## Legg til en nettverksenhet
 
@@ -144,17 +144,17 @@ En discovery-skanning av en kundes nettverk henter inn dusinvis av enheter som h
 
 | Handling | Hva den gjør |
 | --- | --- |
-| **Angi lokasjon** / **Fjern lokasjon** | Flytter hver merkede enhet til lokasjonen du velger, der den teller med i lokasjonens helse; en enhet uten egen sonde tar lokasjonens standardsonde. **Fjern lokasjon** tar dem ut av lokasjonene sine. En enhet som en lokasjonstildelingsregel treffer, går tilbake til regelens lokasjon ved neste polling, så for enheter som discovery fortsetter å finne, legger du heller til en regel under **Nettverk → Regler → Site Assignment Rules**; dialogen **Angi lokasjon** lenker dit. |
-| **Angi enhetsrolle** / **Fjern enhetsrolle** | Gir hver merkede enhet én rolle, som de tjue svitsjene som alle er "Access Switch". Rollene er prosjektets egne, under **Nettverk → Innstillinger → Device Roles**, som dialogen lenker til. **Fjern enhetsrolle** utleder hver enhets rolle fra SNMP-identiteten igjen. |
+| **Angi lokasjon** / **Fjern lokasjon** | Flytter hver merkede enhet til lokasjonen du velger, der den teller med i lokasjonens helse; en enhet uten egen sonde tar lokasjonens standardsonde. **Fjern lokasjon** tar dem ut av lokasjonene sine. En enhet som en lokasjonstildelingsregel treffer, går tilbake til regelens lokasjon ved neste polling, så for enheter som discovery fortsetter å finne, legger du heller til en regel under **Nettverk → Regler → Regler for lokasjonstildeling**; dialogen **Angi lokasjon** lenker dit. |
+| **Angi enhetsrolle** / **Fjern enhetsrolle** | Gir hver merkede enhet én rolle, som de tjue svitsjene som alle er "Access Switch". Rollene er prosjektets egne, under **Nettverk → Innstillinger → Enhetsroller**, som dialogen lenker til. **Fjern enhetsrolle** utleder hver enhets rolle fra SNMP-identiteten igjen. |
 | **Bruk produsentmal** | Legger til en [produsentmals](#produsentenes-helsemaler) helse-OID-er og SNMP-tabeller på hver merkede enhet. **Match hver enhets produsent**, dialogens første valg, velger hver enhets egen mal ut fra det SNMP-walket rapporterer, så et blandet utvalg får riktig mal overalt; eller velg én mal for alle. |
 
 Hver handling er én dialog og én lagring for hele utvalget, og hver enhet går gjennom de samme kontrollene som en redigering på sin egen side Innstillinger: tillatelser, rollens etikett- og eieromfang og grensene for hva en enhet kan samle inn.
 
-**Bruk produsentmal** viser hva den skal gjøre før den gjør noe: hvor mange enheter som får hvilken mal, og hvor mange den lar være og hvorfor. Den legger til det hver enhet allerede samler inn og fjerner ingenting, og en enhet som allerede har alt i malen, skrives ikke på nytt. Den lar være en enhet med bundet monitor (ingenting poller den), en enhet som er knyttet til en [OID Collection Template](#oid-collection-templates) (malen bestemmer hva den samler inn, så legg til produsentens OID-er der) og, ved matching, en enhet som ikke er walket via SNMP ennå, eller hvis produsent ikke har noen mal.
+**Bruk produsentmal** viser hva den skal gjøre før den gjør noe: hvor mange enheter som får hvilken mal, og hvor mange den lar være og hvorfor. Den legger til det hver enhet allerede samler inn og fjerner ingenting, og en enhet som allerede har alt i malen, skrives ikke på nytt. Den lar være en enhet med bundet monitor (ingenting poller den), en enhet som er knyttet til en [OID Collection Template](#maler-for-oid-innsamling) (malen bestemmer hva den samler inn, så legg til produsentens OID-er der) og, ved matching, en enhet som ikke er walket via SNMP ennå, eller hvis produsent ikke har noen mal.
 
 Når en handling er ferdig, viser den hvor mange enheter som ble endret, hvilke som feilet og hvorfor — en enhet rollen din ikke kan redigere, en liste over grensen — og hvilke den ikke endret og hvorfor: en enhet som allerede var på den lokasjonen eller hadde den rollen, eller en som produsentmalen lar være.
 
-De andre massehandlingene beskrives der de hører hjemme: **Set OID Collection Template** under [OID Collection Templates](#oid-collection-templates), **Set SNMP Credential Profile**, **Switch to Probe Polling** og **Create Ping Monitors** under [Samlet](#samlet), og **Shorten Names to Hostname** under [Slik får oppdagede enheter navn](#slik-får-oppdagede-enheter-navn).
+De andre massehandlingene beskrives der de hører hjemme: **Set OID Collection Template** under [OID Collection Templates](#maler-for-oid-innsamling), **Set SNMP Credential Profile**, **Switch to Probe Polling** og **Create Ping Monitors** under [Samlet](#samlet), og **Shorten Names to Hostname** under [Slik får oppdagede enheter navn](#slik-får-oppdagede-enheter-navn).
 
 ## Hva en polling faktisk gjør
 
@@ -326,9 +326,9 @@ Enheter med **Auto-Apply Vendor Health Template** slått på får malens OID-er 
 
 Å bruke en produsentmal er en engangskopi, så ingenting spres når malen endres. For alt utover én enkelt enhet bruker du heller en **OID Collection Template**; produsentmalene tilbys som utgangspunkt når du oppretter en.
 
-### OID Collection Templates
+### Maler for OID-innsamling
 
-En **OID Collection Template** (**Nettverk → Innstillinger → OID Collection Templates**) er en navngitt OID-liste, som regel navngitt etter en enhetstype som "Cisco Catalyst 9300", som så mange enheter du vil, knyttes til. Koblingen er levende, ikke en kopi: en enhets OID-liste settes sammen ved hver polling, så å redigere en mal endrer hva hver tilknyttet enhet samler inn ved neste polling, uten noe synkroniseringstrinn.
+En **OID Collection Template** (**Nettverk → Innstillinger → Maler for OID-innsamling**) er en navngitt OID-liste, som regel navngitt etter en enhetstype som "Cisco Catalyst 9300", som så mange enheter du vil, knyttes til. Koblingen er levende, ikke en kopi: en enhets OID-liste settes sammen ved hver polling, så å redigere en mal endrer hva hver tilknyttet enhet samler inn ved neste polling, uten noe synkroniseringstrinn.
 
 Før du bygger en, sjekk at du trenger den. Bits inn og ut per port, driftsstatus, utnyttelse og feil per sekund samles inn for hver port ved hver polling uten noen OID-er i det hele tatt (se [Walk av grensesnitt](#walk-av-grensesnitt)), og de kan allerede gi varsler per port. Maler er for det som ikke er per port: CPU, minne, temperatur, vifter, strømforsyninger, BGP-peers.
 
@@ -414,7 +414,7 @@ Tall leses som tall, og tekst som begynner med et tall, leses som det tallet (`"
 
 Noen kolonner i produsentmaler **justerer** også tallet de leser, for MIB-er som holder en verdi i en egen enhet: ArubaOS rapporterer sendeeffekten doblet (leses × 0.5), Aruba Instant støygulvet uten fortegn (× −1), Aerohive støygulvet pluss 256 (− 256), og Extremes kontroller kanalbredden i trinn på 20 MHz (× 20). Det justerte tallet er det som vises, tegnes i diagrammer og sammenlignes, så **Noise Floor Større enn -80** betyr det samme hos hver produsent, og tabellredigeringen viser utregningen under kolonnen.
 
-Tabeller kommer fra en [OID Collection Template](#oid-collection-templates), delt av hver tilknyttet enhet (opptil 10 tabeller), eller fra enheten selv under **Device-Specific SNMP Tables** (opptil 10 til). De slås sammen etter nøkkel ved hver polling, malen først, og en enhetstabell med samme nøkkel erstatter malens. Begge redigeringsverktøyene tilbyr **Add a Vendor's Tables**.
+Tabeller kommer fra en [OID Collection Template](#maler-for-oid-innsamling), delt av hver tilknyttet enhet (opptil 10 tabeller), eller fra enheten selv under **Device-Specific SNMP Tables** (opptil 10 til). De slås sammen etter nøkkel ved hver polling, malen først, og en enhetstabell med samme nøkkel erstatter malens. Begge redigeringsverktøyene tilbyr **Add a Vendor's Tables**.
 
 Sonden walker hver kolonne som et undertre, innenfor et budsjett på 30 sekunder som alle tabellene på enheten deler. En tabell som ikke kan walkes, sier hvorfor og får aldri pollingen til å feile: enhetens side **SNMP-tabeller** beholder de siste gode radene og sier at det siste walket feilet, mens kriterier bare vurderer det dette walket produserte, så en tidsavbrudd leses aldri som en tom tabell. Hver numerisk celle registreres som målingen `oneuptime.monitor.snmp.table.value`, med attributtene `snmpTableKey`, `snmpTableName`, `snmpTableColumn`, `snmpTableColumnOid`, `snmpTableRow` og `snmpTableRowIndex`, så et dashbord kan vise hver tunnels status eller hver radios sendeeffekt i et diagram, og en målingsmonitor kan gruppere etter `snmpTableRow`.
 
@@ -546,8 +546,8 @@ flowchart TB
 ```
 
 :::steps
-### Åpne Discovery
-Gå til **Nettverk → Discovery** og klikk på **Start skanning**. **Discover Devices** på Nettverk-**Oversikt** åpner det samme skjemaet.
+### Åpne Oppdagelse
+Gå til **Nettverk → Oppdagelse** og klikk på **Start skanning**. **Discover Devices** på Nettverk-**Oversikt** åpner det samme skjemaet.
 
 ### Si hva som skal skannes
 Skriv området i **Skannemål**, kontroller **Sonde**, og velg **Skannemetode**: **ICMP (ping)**, som en ny skanning starter på, eller **SNMP**.
@@ -681,7 +681,7 @@ Et navn blir bare bedre: en enhet beholder navnet når DNS-oppføringen endres, 
 
 ### Importer automatisk med automatiske importregler
 
-Å gå gjennom hver skanning for hånd skalerer ikke forbi de første delnettene. **Nettverk → Regler → Auto Import Rules** er der du skriver ned importen én gang: en regel sier hvilke oppdagede verter den gjør krav på (et IP-område, og valgfrie mønstre for systemnavn, beskrivelse og `sysObjectID`) og eventuelt hvilken monitormal og hvilken [OID Collection Template](#oid-collection-templates) enhetene den importerer, får. En regel som er merket som unntak, gjør ikke krav på noe og nedlegger veto mot de andre: slik skjæres skrivere og telefoner ut av en bred delnettsregel.
+Å gå gjennom hver skanning for hånd skalerer ikke forbi de første delnettene. **Nettverk → Regler → Regler for automatisk import** er der du skriver ned importen én gang: en regel sier hvilke oppdagede verter den gjør krav på (et IP-område, og valgfrie mønstre for systemnavn, beskrivelse og `sysObjectID`) og eventuelt hvilken monitormal og hvilken [OID Collection Template](#maler-for-oid-innsamling) enhetene den importerer, får. En regel som er merket som unntak, gjør ikke krav på noe og nedlegger veto mot de andre: slik skjæres skrivere og telefoner ut av en bred delnettsregel.
 
 I en regel bestemmer **Sjekk hvert** hvor ofte skanningens sonde poller hver enhet regelen importerer, slik **Sjekk hvert** gjør når du importerer fra **Se gjennom resultater**; tomt er det hvert 5. minutt. En regel med **Include Ping-Only Hosts** slått på importerer også verter som bare svarte på ping, blant dem hver vert en [ICMP-skanning](#icmp-skanninger) finner, og gir også dem monitormalen sin: sonden pinger dem, så malens kontroller av om en enhet er oppe, og av trapene den sender, virker for dem med en gang, og kontrollene som leser et SNMP-walk, så snart enheten har påloggingsinformasjon.
 
@@ -722,7 +722,7 @@ Polling gir deg status, inventar og diagrammer. Hendelser, varsler og utkallinge
 
 ### Varslingspolicyer
 
-**Nettverk → Innstillinger → Alert Policies** er der en flåtes varsling skrives ned én gang. En policy sier hvilke enheter (et omfang av lokasjoner, enhetsroller og etiketter) og hva de varsler om (en monitormal for nettverksenheter), så "hver lagersvitsj oppretter en hendelse når den blir utilgjengelig" er én rad i stedet for to hundre monitorer.
+**Nettverk → Innstillinger → Varslingsretningslinjer** er der en flåtes varsling skrives ned én gang. En policy sier hvilke enheter (et omfang av lokasjoner, enhetsroller og etiketter) og hva de varsler om (en monitormal for nettverksenheter), så "hver lagersvitsj oppretter en hendelse når den blir utilgjengelig" er én rad i stedet for to hundre monitorer.
 
 ```mermaid title="Hva en varslingspolicy vedlikeholder"
 flowchart TB
@@ -950,7 +950,7 @@ blir til "Gi0/1 on core-switch-01 is down". [Maler for hendelser og varsler](/do
 
 ## Nettverkstopologi
 
-**Nettverk → Topologi → Device Topology** er et levende kart over nettverket ditt, bygget fra LLDP-naboene som grensesnittwalks samler inn, med CDP lagt til i Cisco-miljøer. Administrerte enheter er fylt ut og ikke-administrerte LLDP-peers er hule; en nodes farge er enhetens status, og et klikk på en administrert enhet åpner den.
+**Nettverk → Topologi → Enhetstopologi** er et levende kart over nettverket ditt, bygget fra LLDP-naboene som grensesnittwalks samler inn, med CDP lagt til i Cisco-miljøer. Administrerte enheter er fylt ut og ikke-administrerte LLDP-peers er hule; en nodes farge er enhetens status, og et klikk på en administrert enhet åpner den.
 
 For at kartet skal fylles ut:
 
@@ -963,7 +963,7 @@ Klikk på en ikke-administrert peer, så registrerer **Add to Monitoring** den s
 
 ### Eksporter kartet som PDF
 
-**Eksporter PDF**, øverst på kartet, laster ned kartet du ser på som en PDF du kan legge ved en vurdering, en endringsforespørsel eller en hendelsesgjennomgang, eller lese frakoblet. Hver visning av enhetskartet har den: **Device Topology**, en lokasjon på **Kart** og fanen **Nettverk** under **Topologi**.
+**Eksporter PDF**, øverst på kartet, laster ned kartet du ser på som en PDF du kan legge ved en vurdering, en endringsforespørsel eller en hendelsesgjennomgang, eller lese frakoblet. Hver visning av enhetskartet har den: **Enhetstopologi**, en lokasjon på **Kart** og fanen **Nettverk** under **Topologi**.
 
 PDF-en inneholder:
 
@@ -999,7 +999,7 @@ Svitsjen enheten henger på, trenger også **Collect Connected Endpoints** slåt
 
 En [Meraki-tilkobling](/docs/monitor/network-traffic#cisco-meraki-uten-netflow) gjør alt dette uten at noe må slås på. Klientlisten til Meraki viser hvilken svitsj og port hver klient er på, så en enhet plasseres så snart den svitsjen er en nettverksenhet her, på samme lokasjon. Listen gir også enheten MAC-adressen, og det Meraki kaller en klient, vises i kolonnen **Vertsnavn** under **Endepunkter**. Den leses hver andre time, så en ny enhet kan bruke så lang tid på å dukke opp. Så lenge Meraki rapporterer en klient, går porten dens foran en gjennomgått videresendingstabell, fordi Meraki kan skille en tilgangsport fra en opplink. En Wi-Fi-klient plasseres bare på tilgangspunktet sitt når den er en enhet her: Telefonene på et gjestenettverk holdes utenfor kartet.
 
-Enhetens oversikt har et kort **Koblet til** som navngir svitsjen, porten og VLAN-et. En svitsj, ruter eller brannmur som rapporterer naboene sine over LLDP eller CDP, viser dem der i stedet: sin egen port, naboen (en lenke når den er en enhet her) og porten i den andre enden, med **Åpne kartet** ved siden av. På kartet viser enhetens skuff det samme under **Koblet til**, og lenkens skuff sier at den ble lært fra svitsjens videresendingstabell. Parent-Child-visningen tegner enheten under svitsjen. En lenke du har tegnet for hånd under **Device Links** for det samme paret, slås sammen med den lærte i stedet for å doble den: den lærte porten erstatter en feilskrevet, og en forelder du har satt på den håndtegnede lenken, beholdes.
+Enhetens oversikt har et kort **Koblet til** som navngir svitsjen, porten og VLAN-et. En svitsj, ruter eller brannmur som rapporterer naboene sine over LLDP eller CDP, viser dem der i stedet: sin egen port, naboen (en lenke når den er en enhet her) og porten i den andre enden, med **Åpne kartet** ved siden av. På kartet viser enhetens skuff det samme under **Koblet til**, og lenkens skuff sier at den ble lært fra svitsjens videresendingstabell. Parent-Child-visningen tegner enheten under svitsjen. En lenke du har tegnet for hånd under **Enhetslenker** for det samme paret, slås sammen med den lærte i stedet for å doble den: den lærte porten erstatter en feilskrevet, og en forelder du har satt på den håndtegnede lenken, beholdes.
 
 ![Parent-Child-topologivisning som tegner en kasse med bare ping under svitsjen sin via en lært lenke](/docs/static/images/NetworkTopologyLearnedLink.png)
 

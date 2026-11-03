@@ -1,6 +1,6 @@
 # Recursos de nuvem (IaaS e PaaS)
 
-**Cloud Resources** lista os recursos IaaS e PaaS das suas contas AWS, Azure e Google Cloud: máquinas virtuais, discos, balanceadores de carga, buckets, bancos de dados gerenciados, caches, filas, gateways de API e o resto. Cada um ganha uma página própria, com o tipo, a região e a conta, o ID que o provedor dá a ele, todas as métricas que o provedor publica sobre ele, e proprietários e rótulos como qualquer outro recurso no OneUptime. Encontre-os em **Nuvem → Todos os recursos**.
+**Recursos de nuvem** lista os recursos IaaS e PaaS das suas contas AWS, Azure e Google Cloud: máquinas virtuais, discos, balanceadores de carga, buckets, bancos de dados gerenciados, caches, filas, gateways de API e o resto. Cada um ganha uma página própria, com o tipo, a região e a conta, o ID que o provedor dá a ele, todas as métricas que o provedor publica sobre ele, e proprietários e rótulos como qualquer outro recurso no OneUptime. Encontre-os em **Nuvem → Todos os recursos**.
 
 > [!TIP]
 > Prefere não rodar um coletor? [Conecte uma conta de nuvem](/docs/telemetry/cloud-accounts) em **Nuvem → Conectar**, e o OneUptime lê essas métricas por conta própria.
@@ -37,7 +37,7 @@ Os recursos de nuvem são um dos vários lugares em que sua nuvem aparece:
 | Contêineres no ECS, Cloud Run, Container Apps, App Service, … | **Plataformas de aplicativos → Todos os ambientes** | A própria telemetria das suas cargas de trabalho, pelo `cloud.platform` dela. Veja [Ambientes de nuvem](/docs/telemetry/cloud-environments) |
 | Qualquer recurso IaaS ou PaaS que o provedor monitora | **Nuvem → Todos os recursos** | A API de monitoramento do provedor, lida por um coletor: esta página |
 | Máquinas virtuais com um OpenTelemetry Collector instalado | **Hosts** | As próprias métricas e logs do host. Veja [Coletor OpenTelemetry no host](/docs/telemetry/host-otel-collector) |
-| Filas e tópicos que suas aplicações usam | **Queues** | Spans, e as mesmas métricas de nuvem. Veja [Filas](/docs/telemetry/queues) |
+| Filas e tópicos que suas aplicações usam | **Filas** | Spans, e as mesmas métricas de nuvem. Veja [Filas](/docs/telemetry/queues) |
 
 Um recurso pode aparecer em mais de um lugar. Uma máquina virtual com o coletor instalado é um **Host**, e as métricas de plataforma dela (créditos de CPU, disco e rede como o hipervisor os vê) a tornam também um **Recurso de nuvem**. Uma fila SQS é uma **Queue** e um **Recurso de nuvem**. Cada visão mostra o que a sua fonte sabe.
 

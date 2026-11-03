@@ -378,6 +378,7 @@ export default class MetricType extends BaseModel {
   @TableColumn({
     required: false,
     type: TableColumnType.ShortText,
+    allowedValues: Object.values(AggregationTemporality),
     canReadOnRelationQuery: true,
     title: "Aggregation Temporality",
     description:

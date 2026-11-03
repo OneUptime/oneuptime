@@ -130,7 +130,7 @@ curl -X POST 'https://oneuptime.com/api/inventory-item/get-list?output-type=csv'
   -o inventory.csv
 ```
 
-L'elenco **All Items** della dashboard esporta allo stesso modo, con le colonne di campi personalizzati che hai attivato. Ogni [dettaglio dell'asset](#dettagli-dellasset) è lì anche una colonna: **Nome host**, **Indirizzo IP**, **Numero di serie**, **Modello** e le altre partono nascoste, quindi attivale dal selettore di colonne, e l'esportazione contiene una colonna per dato, che una riga sia un host o un dispositivo di rete.
+L'elenco **Tutti gli elementi** della dashboard esporta allo stesso modo, con le colonne di campi personalizzati che hai attivato. Ogni [dettaglio dell'asset](#dettagli-dellasset) è lì anche una colonna: **Nome host**, **Indirizzo IP**, **Numero di serie**, **Modello** e le altre partono nascoste, quindi attivale dal selettore di colonne, e l'esportazione contiene una colonna per dato, che una riga sia un host o un dispositivo di rete.
 
 ## Dettagli dell'asset
 

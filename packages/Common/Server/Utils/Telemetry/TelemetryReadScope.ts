@@ -101,8 +101,8 @@ export default class TelemetryReadScopeUtil {
   /*
    * The resources two scopes both reach: those readable under each (every
    * resource of the project only when both read every one), less every
-   * resource either takes away. An update or a delete keeps to the resources
-   * its own grants and the read's both reach.
+   * resource either takes away. An update, a delete and a create keep to the
+   * resources their own grants and the read's both reach.
    */
   public static getScopeOfBoth(
     first: TelemetryReadScope,
@@ -267,17 +267,32 @@ export default class TelemetryReadScopeUtil {
    *
    * Blocked resources go in excludedServiceIds as well, so a request whose
    * serviceIds are rebuilt somewhere downstream still leaves them out.
+   *
+   * `excluded` is what the caller asked to leave out themselves (an
+   * explorer's "Service is not ..."). It joins the blocked ones: leaving a
+   * resource out can only narrow what the scope reads, never widen it.
    */
   public static toServiceFilter(
     scope: TelemetryReadScope,
     requested?: ReadonlyArray<ObjectID | string> | null | undefined,
+    excluded?: ReadonlyArray<ObjectID | string> | null | undefined,
   ): TelemetryServiceFilter {
-    const blockedIds: Array<string> =
-      TelemetryReadScopeUtil.getBlockedIds(scope);
+    const leftOutIds: Array<string> = Array.from(
+      new Set<string>([
+        ...TelemetryReadScopeUtil.getBlockedIds(scope),
+        ...(excluded || [])
+          .map((id: ObjectID | string): string => {
+            return TelemetryReadScopeUtil.normalizeId(id);
+          })
+          .filter((id: string): boolean => {
+            return id.length > 0;
+          }),
+      ]),
+    );
 
     const excludedServiceIds: Array<ObjectID> | undefined =
-      blockedIds.length > 0
-        ? blockedIds.map((id: string): ObjectID => {
+      leftOutIds.length > 0
+        ? leftOutIds.map((id: string): ObjectID => {
             return new ObjectID(id);
           })
         : undefined;

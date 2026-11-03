@@ -23,7 +23,8 @@
     "newPassword": "New Password",
     "code": "Code",
     "yourCompany": "Your Company",
-    "or": "or"
+    "or": "or",
+    "continueWithGoogle": "Continue with Google"
   },
   "language": {
     "label": "Language",
@@ -43,6 +44,10 @@
   "login": {
     "title": "Sign in to your account",
     "subtitle": "Use your password, your organization’s SSO, or a passkey.",
+    "sessionEnded": {
+      "lengthReached": "You were signed out because your session reached its time limit. Sign in again to pick up where you left off.",
+      "inactive": "You were signed out after a period of inactivity. Sign in again to pick up where you left off."
+    },
     "submitButton": "Sign in",
     "passkey": {
       "signIn": "Sign in with a passkey",

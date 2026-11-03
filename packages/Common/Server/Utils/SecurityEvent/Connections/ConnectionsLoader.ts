@@ -1,6 +1,7 @@
 import type IncidentSecurityType from "./IncidentSecurity";
 import type SecurityConnectedRecordsType from "./SecurityConnectedRecords";
 import type * as SecurityConnectionsModule from "./SecurityConnections";
+import type SecurityTelemetryMentionsType from "./SecurityTelemetryMentions";
 
 /*
  * THE CONNECTIONS, LOADED AT THEIR FIRST READ.
@@ -32,4 +33,13 @@ export function loadSecurityConnectedRecords(): typeof SecurityConnectedRecordsT
 export function loadIncidentSecurity(): typeof IncidentSecurityType {
   // eslint-disable-next-line @typescript-eslint/no-require-imports, @typescript-eslint/no-var-requires
   return require("./IncidentSecurity").default;
+}
+
+/*
+ * Where what a case names appears in the logs and traces: read by OneUptime
+ * AI's triage of a case, which IncidentService's imports reach too.
+ */
+export function loadSecurityTelemetryMentions(): typeof SecurityTelemetryMentionsType {
+  // eslint-disable-next-line @typescript-eslint/no-require-imports, @typescript-eslint/no-var-requires
+  return require("./SecurityTelemetryMentions").default;
 }

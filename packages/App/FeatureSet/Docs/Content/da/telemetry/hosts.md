@@ -4,6 +4,7 @@ Tilføj en Linux-, Windows- eller macOS-maskine til OneUptime med én kommando. 
 
 :::cards
 - [Tilføj en vært](#tilføj-en-vært): Én kommando på Linux, Windows eller macOS.
+- [Se, hvilke værter der kræver opmærksomhed](#se-hvilke-værter-der-kræver-opmærksomhed): Først det, der er i stykker, så hver værts tilstand, CPU, hukommelse og disk.
 - [Skift, hvad værter indsamler](#skift-hvad-værter-indsamler): Collector-konfigurationer efter system og etiket, med hver version gemt.
 - [Tjek en værts collector](#tjek-en-værts-collector): Den konfiguration, den kører, dens version, og hvorfor en konfiguration ikke startede.
 - [Hvad en konfiguration må](#hvad-en-konfiguration-må): Læse værten og kun sende til denne OneUptime.
@@ -75,8 +76,29 @@ Hver OneUptime leverer sine egne installationsprogrammer, så en selvhostet OneU
 
 ### Vent på værten
 
-Dialogens sidste trin viser, når værten forbinder, med et link til den. På listen vises den som **Starter**, indtil dens første målinger ankommer, normalt inden for et minut, og derefter som forbundet, med sin collector **Kører**. Værtens side **Topologi** tegner på ét kort, hvad der kører på den, hvad der kalder den, og hvad den kalder: se [Topologi](/docs/telemetry/topology#åbn-en-ressources-eget-kort).
+Dialogens sidste trin viser, når værten forbinder, med et link til den. På listen vises den som **Starter**, indtil dens første målinger ankommer, normalt inden for et minut, og derefter med sin tilstand, **Sund**, når intet på den bør ses på, og sin collector **Kører**. Værtens side **Topologi** tegner på ét kort, hvad der kører på den, hvad der kalder den, og hvad den kalder: se [Topologi](/docs/telemetry/topology#åbn-en-ressources-eget-kort).
 :::
+
+## Se, hvilke værter der kræver opmærksomhed
+
+Listen **Værter** begynder med **Kræver opmærksomhed**: hver vært, der er i stykker eller bør ses på, den mest akutte først, hver med årsagen og ét trin til dens side. En vært, der er holdt op med at rapportere, siger, hvornår den sidst gjorde det. Kræver intet opmærksomhed, er der intet kort.
+
+Nedenunder siger hver værts **Status** med ét ord, hvordan den har det, med årsagen nedenunder, og **CPU**, **Hukommelse** og **Disk** viser, hvad den sidst rapporterede:
+
+| Status | Hvornår |
+| --- | --- |
+| **Sund** | Den rapporterer, og intet på den bør ses på. |
+| **Forringet** | Noget bør ses på: et filsystem eller dets inodes mere end 85 % fuldt, hukommelse mere end 90 % brugt, swap mere end 80 % brugt, et 15-minutters belastningsgennemsnit over det dobbelte af dens kerner, en mislykket systemd-unit eller en collector-konfiguration, der ikke startede. |
+| **Usund** | Noget er kritisk: et filsystem eller dets inodes mere end 95 % fuldt, eller hukommelse mere end 95 % brugt. |
+| **Rapporterer ikke** | Der er ikke kommet noget fra den i 15 minutter. Dens seneste målinger er ikke længere sande, så dens række viser ingen tal og siger, hvornår den sidst rapporterede. |
+| **Starter** | Dens collector registrerede sig inden for de seneste ti minutter, og dens første målinger er på vej. En vært, der ikke har sendt noget derefter, viser **Ingen data endnu**. |
+| **Rapporterer** | Den rapporterer, men sender ingen af de målinger, disse regler bedømmer, som en vært, hvis collector er konfigureret uden `hostmetrics`. |
+
+Målingerne er værtens seneste rapport, som OneUptime gemmer på værten cirka én gang i minuttet, så listen har intet tidsrum at vælge. En bjælke bliver gul, hvor en vært bør ses på, og rød, hvor den er kritisk. **CPU** er optaget tid på tværs af alle kerner og bliver gul over 90 %, aldrig rød: en travl CPU er en vært i arbejde, og belastningsgennemsnittet siger, hvornår arbejde hober sig op. **Disk** er det mest fyldte filsystem med dets monteringspunkt nedenunder, som `df` viser sin `Use%`: plads reserveret til root tæller ikke med.
+
+En værts **Oversigt** siger det samme: dens tilstand ved siden af dens collectors tilstand, hvor længe den har kørt, og **Kræver opmærksomhed** for dens egne filsystemer, hukommelse, swap og belastning, dens collector og hver mislykket systemd-unit, som åbner den units side. **Værtsadvarsler** viser de [advarsler, OneUptime anbefaler](/docs/monitor/host-monitor#færdige-advarselsskabeloner) til en vært, og hvilke af dem der overvåger denne, og dens knap åbner **Anbefalinger** med resten valgt.
+
+Hvor længe en vært har kørt, kommer fra `system.uptime`, som scraperen `system` i OneUptimes standardkonfiguration sender. En konfiguration, du selv skriver, skal også have den scraper: se [Host OpenTelemetry Collector](/docs/telemetry/host-otel-collector).
 
 ## Sæt etiketter på værter
 
@@ -224,6 +246,10 @@ Dens side **Collector** viser, hvorfor konfigurationen ikke startede. Værten bl
 
 :::details Værten viser "Rapporterer ikke"
 OneUptime har ikke hørt fra værtens supervisor i mere end 15 minutter. Tjek, at tjenesten `oneuptime-collector` kører, og at værten stadig kan nå OneUptime.
+:::
+
+:::details En værts CPU, hukommelse eller disk viser en streg
+OneUptime viser hellere intet tal end et gammelt: værten har ikke rapporteret i 15 minutter, eller dens collector sender ingen `hostmetrics`. En collector, du selv har konfigureret, skal have receiveren `hostmetrics` med dens scrapers `cpu`, `memory` og `filesystem`, som i [Host OpenTelemetry Collector](/docs/telemetry/host-otel-collector).
 :::
 
 ## Næste trin

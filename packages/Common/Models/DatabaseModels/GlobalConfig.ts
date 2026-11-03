@@ -130,6 +130,106 @@ export default class GlobalConfig extends GlobalConfigModel {
   public disableUserProjectCreation?: boolean = undefined;
 
   /*
+   * How long a sign-in lasts (Types/UserSession/SessionLength.ts): the
+   * session length ("Sign people out after", in whole minutes from the
+   * sign-in, however active the person is; empty for no limit) and the idle
+   * timeout ("Sign people out after inactivity", in whole minutes without
+   * use; empty for 30 days, the longest a session lasts without use anyway).
+   * They apply to every sign-in, unless useSeparateSsoSessionLengths gives
+   * SSO sign-ins the two SSO columns instead. Set on Admin Dashboard >
+   * Settings > Session Length. An Enterprise Edition setting
+   * (EnterpriseFeature.SessionLength): only the Enterprise module hands them
+   * to the server's session checks, so the Community Edition keeps every
+   * sign-in as it always was.
+   */
+  @ColumnAccessControl({
+    create: [],
+    read: [],
+    update: [],
+  })
+  @TableColumn({
+    type: TableColumnType.Number,
+    title: "Session Length (Minutes)",
+    description:
+      "Sign people out this many minutes after they sign in, however active they are. Empty for no limit.",
+  })
+  @Column({
+    type: ColumnType.Number,
+    nullable: true,
+  })
+  public sessionLengthInMinutes?: number = undefined;
+
+  @ColumnAccessControl({
+    create: [],
+    read: [],
+    update: [],
+  })
+  @TableColumn({
+    type: TableColumnType.Number,
+    title: "Session Idle Timeout (Minutes)",
+    description:
+      "Sign people out after this many minutes without using OneUptime. Empty for 30 days.",
+  })
+  @Column({
+    type: ColumnType.Number,
+    nullable: true,
+  })
+  public sessionIdleTimeoutInMinutes?: number = undefined;
+
+  @ColumnAccessControl({
+    create: [],
+    read: [],
+    update: [],
+  })
+  @TableColumn({
+    type: TableColumnType.Boolean,
+    title: "Separate Session Lengths for SSO",
+    description:
+      "Give SSO sign-ins their own session length and idle timeout. Off: they follow the same ones as every other sign-in.",
+    defaultValue: false,
+  })
+  @Column({
+    type: ColumnType.Boolean,
+    nullable: true,
+    default: false,
+  })
+  public useSeparateSsoSessionLengths?: boolean = undefined;
+
+  @ColumnAccessControl({
+    create: [],
+    read: [],
+    update: [],
+  })
+  @TableColumn({
+    type: TableColumnType.Number,
+    title: "SSO Session Length (Minutes)",
+    description:
+      "With separate SSO lengths: sign people out this many minutes after an SSO sign-in, however active they are. Empty for no limit.",
+  })
+  @Column({
+    type: ColumnType.Number,
+    nullable: true,
+  })
+  public ssoSessionLengthInMinutes?: number = undefined;
+
+  @ColumnAccessControl({
+    create: [],
+    read: [],
+    update: [],
+  })
+  @TableColumn({
+    type: TableColumnType.Number,
+    title: "SSO Session Idle Timeout (Minutes)",
+    description:
+      "With separate SSO lengths: sign SSO sign-ins out after this many minutes without using OneUptime. Empty for 30 days.",
+  })
+  @Column({
+    type: ColumnType.Number,
+    nullable: true,
+  })
+  public ssoSessionIdleTimeoutInMinutes?: number = undefined;
+
+  /*
    * Push notifications for the whole server: when on, nothing is sent to a
    * phone or browser through OneUptime's apps - through Expo, the push
    * relay, or a browser's push service - and no device can be registered
@@ -200,6 +300,7 @@ export default class GlobalConfig extends GlobalConfigModel {
     update: [],
   })
   @TableColumn({
+    secret: true,
     type: TableColumnType.ShortText,
     title: "SMTP Password",
     description: "Password for your SMTP Server",
@@ -300,6 +401,7 @@ export default class GlobalConfig extends GlobalConfigModel {
   })
   @TableColumn({
     type: TableColumnType.ShortText,
+    allowedValues: Object.values(MailTransportType),
     title: "SMTP Transport",
     description:
       "How OneUptime delivers mail using the global SMTP config. 'SMTP' uses the host/port. 'Microsoft Graph' sends via the Microsoft Graph REST API.",
@@ -322,6 +424,7 @@ export default class GlobalConfig extends GlobalConfigModel {
   })
   @TableColumn({
     type: TableColumnType.ShortText,
+    allowedValues: Object.values(SMTPAuthenticationType),
     title: "SMTP Authentication Type",
     description:
       "The type of authentication to use for this SMTP server. Options: Username and Password, OAuth, or None.",
@@ -359,6 +462,7 @@ export default class GlobalConfig extends GlobalConfigModel {
     update: [],
   })
   @TableColumn({
+    secret: true,
     type: TableColumnType.VeryLongText,
     title: "SMTP OAuth Client Secret",
     description:
@@ -412,6 +516,7 @@ export default class GlobalConfig extends GlobalConfigModel {
   })
   @TableColumn({
     type: TableColumnType.ShortText,
+    allowedValues: Object.values(OAuthProviderType),
     title: "SMTP OAuth Provider Type",
     description:
       "The OAuth grant type to use. 'Client Credentials' for Microsoft 365 and most providers. 'JWT Bearer' for Google Workspace service accounts.",
@@ -449,6 +554,7 @@ export default class GlobalConfig extends GlobalConfigModel {
     update: [],
   })
   @TableColumn({
+    secret: true,
     type: TableColumnType.ShortText,
     title: "Twilio Auth Token",
     description: "Auth Token for your Twilio Account",
@@ -544,6 +650,7 @@ export default class GlobalConfig extends GlobalConfigModel {
     isDefaultValueColumn: true,
     required: true,
     type: TableColumnType.ShortText,
+    allowedValues: Object.values(TwilioConfigUse),
     title: "Twilio Used For",
     description:
       'What the server\'s Twilio account sends: "Calls and SMS", "SMS only" or "Calls only".',
@@ -575,6 +682,7 @@ export default class GlobalConfig extends GlobalConfigModel {
     isDefaultValueColumn: true,
     required: true,
     type: TableColumnType.ShortText,
+    allowedValues: Object.values(CallAndSmsProvider),
     title: "Send SMS and Calls Through",
     description:
       'What carries the server\'s SMS and calls: "Twilio" (its Twilio account) or "Gateway" (your own gateway, at the Gateway URL).',
@@ -619,6 +727,7 @@ export default class GlobalConfig extends GlobalConfigModel {
     update: [],
   })
   @TableColumn({
+    secret: true,
     type: TableColumnType.ShortText,
     title: "Gateway Signing Secret",
     description:
@@ -638,6 +747,7 @@ export default class GlobalConfig extends GlobalConfigModel {
     update: [],
   })
   @TableColumn({
+    secret: true,
     type: TableColumnType.VeryLongText,
     title: "Meta WhatsApp Access Token",
     description:
@@ -711,6 +821,7 @@ export default class GlobalConfig extends GlobalConfigModel {
     update: [],
   })
   @TableColumn({
+    secret: true,
     type: TableColumnType.VeryLongText,
     title: "Meta WhatsApp App Secret",
     description: "Facebook App Secret for the WhatsApp Business Platform.",
@@ -728,6 +839,7 @@ export default class GlobalConfig extends GlobalConfigModel {
     update: [],
   })
   @TableColumn({
+    secret: true,
     type: TableColumnType.ShortText,
     title: "Meta WhatsApp Webhook Verify Token",
     description:
@@ -747,6 +859,7 @@ export default class GlobalConfig extends GlobalConfigModel {
     update: [],
   })
   @TableColumn({
+    secret: true,
     type: TableColumnType.VeryLongText,
     title: "Telegram Bot Token",
     description:
@@ -784,6 +897,7 @@ export default class GlobalConfig extends GlobalConfigModel {
     update: [],
   })
   @TableColumn({
+    secret: true,
     type: TableColumnType.ShortText,
     title: "Telegram Webhook Secret Token",
     description:
@@ -823,6 +937,7 @@ export default class GlobalConfig extends GlobalConfigModel {
   })
   @TableColumn({
     type: TableColumnType.ShortText,
+    allowedValues: Object.values(EmailServerType),
     title: "Email Server Type",
     description: "Email Server Type",
   })
@@ -839,6 +954,7 @@ export default class GlobalConfig extends GlobalConfigModel {
     update: [],
   })
   @TableColumn({
+    secret: true,
     type: TableColumnType.ShortText,
     title: "Sendgrid API Key",
     description: "Sendgrid API Key",
@@ -909,6 +1025,7 @@ export default class GlobalConfig extends GlobalConfigModel {
     update: [],
   })
   @TableColumn({
+    secret: true,
     type: TableColumnType.ObjectID,
     computed: true,
     title: "Master API Key",
@@ -968,6 +1085,7 @@ export default class GlobalConfig extends GlobalConfigModel {
     update: [],
   })
   @TableColumn({
+    secret: true,
     type: TableColumnType.ShortText,
     title: "Enterprise License Key",
     description: "Enterprise license key stored after successful validation.",
@@ -1003,6 +1121,7 @@ export default class GlobalConfig extends GlobalConfigModel {
     update: [],
   })
   @TableColumn({
+    secret: true,
     type: TableColumnType.VeryLongText,
     title: "Enterprise License Token",
     description: "Signed JWT returned from license validation.",

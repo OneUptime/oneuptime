@@ -505,14 +505,10 @@ resource "oneuptime_team" "sre" {
   description = "Site reliability engineering"
 }
 
-variable "alice_user_id" {
-  description = "Alice's user ID, the last part of the address of her page under Users"
-  type        = string
-}
-
+# Invited by email if she is not in the project yet.
 resource "oneuptime_team_member" "alice" {
-  team_id = oneuptime_team.sre.id
-  user_id = var.alice_user_id
+  team_id    = oneuptime_team.sre.id
+  user_email = "alice@example.com"
 }
 ```
 
@@ -538,7 +534,7 @@ resource "oneuptime_escalation_rule" "first_line" {
   escalate_after_in_minutes = 5
 }
 
-resource "oneuptime_team_on_call_duty_escalation_rule" "sre" {
+resource "oneuptime_escalation_rule_team" "sre" {
   on_call_duty_policy_id                 = oneuptime_on_call_policy.primary.id
   on_call_duty_policy_escalation_rule_id = oneuptime_escalation_rule.first_line.id
   team_id                                = oneuptime_team.sre.id
@@ -610,26 +606,23 @@ resource "oneuptime_scheduled_maintenance_event" "database_upgrade" {
 
 ## 探針
 
-你自己的探針從你的網路發起檢查。它的金鑰是探針登入時使用的機密，所以請透過變數傳入：
+你自己的探針從你的網路發起檢查。給它取個名稱，OneUptime 就會產生它的 `key`，也就是探針登入時使用的機密。Terraform 不會在計畫和日誌中顯示這個金鑰，輸出它的 output 必須標記為 sensitive：
 
 ```hcl
-variable "probe_key" {
-  description = "The key the probe signs in with"
-  type        = string
-  sensitive   = true
-}
-
 resource "oneuptime_probe" "eu_west" {
-  key           = var.probe_key
-  name          = "EU West"
-  description   = "Probe in our eu-west-1 network"
-  probe_version = "1.0.0"
+  name        = "EU West"
+  description = "Probe in our eu-west-1 network"
 
   should_auto_enable_probe_on_new_monitors = true
 }
+
+output "eu_west_probe_key" {
+  value     = oneuptime_probe.eu_west.key
+  sensitive = true
+}
 ```
 
-執行探針時，把 `PROBE_ID` 設為探針的 `id`，把 `PROBE_KEY` 設為金鑰：請參閱 [自訂探針](/docs/probe/custom-probe)。端到端測試 `23-probe-crud` 會套用探針。
+執行探針時，把 `PROBE_ID` 設為探針的 `id`，把 `PROBE_KEY` 設為金鑰，`terraform output -raw eu_west_probe_key` 會印出它：請參閱 [自訂探針](/docs/probe/custom-probe)。要自己選擇金鑰，請用一個 sensitive 變數設定 `key`。端到端測試 `23-probe-crud` 和 `61-name-only-and-choices` 會套用探針。
 
 ## 後續步驟
 

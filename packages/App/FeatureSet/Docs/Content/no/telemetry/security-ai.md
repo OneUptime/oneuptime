@@ -25,7 +25,7 @@ En vurdering leser bare. Den kjører på prosjektets egen KI: **Aktiver AI**, pr
 
 ## Før du begynner
 
-- **Aktiver AI** slått på, under **Prosjektinnstillinger → KI → AI Features**. Er den slått av, viser sikkerhet ingenting fra OneUptime AI, og ingenting kjører.
+- **Aktiver AI** slått på, under **Prosjektinnstillinger → KI → AI-funksjoner**. Er den slått av, viser sikkerhet ingenting fra OneUptime AI, og ingenting kjører.
 - En LLM-leverandør som OneUptime AI kan bruke, under **Prosjektinnstillinger → KI → LLM-leverandører**. OneUptime Cloud har en.
 - En rolle som kan arbeide med sikkerhetssaker, for å starte en vurdering: Project Owner, Project Admin, Security Admin eller Security Member. Security Viewer leser alle vurderinger, men kan ikke starte noen. Se [Roller](/docs/permissions/reference#roller).
 
@@ -112,7 +112,7 @@ Når en sak erklærer en hendelse, leser også hendelsens KI-undersøkelse saken
 
 ## Kostnader og grenser
 
-En vurdering er arbeid for OneUptime AI, som undersøkelsen av en hendelse. På OneUptime Cloud betales den med prosjektets AI-kreditter, og den teller med i prosjektets egne daglige KI-grenser (**Daglige grenser**, under **Prosjektinnstillinger → KI → AI Features**). De daglige grensene for hendelser og varsler gjelder ikke. En sak har én vurdering om gangen, og AI-loggene (**Prosjektinnstillinger → KI → AI-logger**) viser kallene.
+En vurdering er arbeid for OneUptime AI, som undersøkelsen av en hendelse. På OneUptime Cloud betales den med prosjektets AI-kreditter, og den teller med i prosjektets egne daglige KI-grenser (**Daglige grenser**, under **Prosjektinnstillinger → KI → AI-funksjoner**). De daglige grensene for hendelser og varsler gjelder ikke. En sak har én vurdering om gangen, og AI-loggene (**Prosjektinnstillinger → KI → AI-logger**) viser kallene.
 
 Når prosjektet er tomt for AI-kreditter eller har nådd en daglig KI-grense, blir nye saker ikke vurdert: kortet sier hvorfor, og **Vurder med KI** virker igjen så snart det er lagt til kreditter, eller grensen nullstilles.
 
@@ -123,7 +123,7 @@ Sjekk at **Aktiver AI** er slått på, og **Vurder nye saker** under **Produkter
 :::
 
 :::details Kortet sier at prosjektet er tomt for AI-kreditter, eller har nådd sin daglige KI-grense
-En prosjekteier eller noen med Manage Billing kan legge til kreditter under **Prosjektinnstillinger → KI → AI-kreditter**, eller heve eller fjerne grensen under **Prosjektinnstillinger → KI → AI Features**. Klikk deretter på **Vurder med KI** på saken.
+En prosjekteier eller noen med Manage Billing kan legge til kreditter under **Prosjektinnstillinger → KI → AI-kreditter**, eller heve eller fjerne grensen under **Prosjektinnstillinger → KI → AI-funksjoner**. Klikk deretter på **Vurder med KI** på saken.
 :::
 
 :::details Kortet sier at tekst i saken leser som instruksjoner til en KI

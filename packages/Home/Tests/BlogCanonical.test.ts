@@ -41,6 +41,7 @@ jest.mock("../Utils/BlogPost", () => {
     default: {
       getBlogPost: jest.fn(),
       getBlogPostList: jest.fn(),
+      getRelatedPosts: jest.fn().mockResolvedValue([]),
       getTagBySlug: jest.fn(),
       getTags: jest.fn(),
       getHomeUrl: jest.fn(),
@@ -103,6 +104,8 @@ const blogPost: BlogPost = {
   },
   validationStatus: null,
   validationDate: null,
+  updatedDate: null,
+  formattedUpdatedDate: null,
 };
 
 const postHeader: (index: number) => BlogPostHeader = (
@@ -150,10 +153,21 @@ const renderedBy: (
     status: (): ExpressResponse => {
       return res;
     },
+    vary: (): ExpressResponse => {
+      return res;
+    },
   } as unknown as ExpressResponse;
   const next: jest.Mock = jest.fn();
 
-  await handler(req as unknown as ExpressRequest, res, next);
+  // Asked as a browser asks: HTML first (BlogMarkdownCopy.test.ts asks for Markdown).
+  const browserRequest: ExpressRequest = {
+    ...req,
+    accepts: (): string => {
+      return "text/html";
+    },
+  } as unknown as ExpressRequest;
+
+  await handler(browserRequest, res, next);
 
   expect(next).not.toHaveBeenCalled();
   expect(rendered).toHaveLength(1);

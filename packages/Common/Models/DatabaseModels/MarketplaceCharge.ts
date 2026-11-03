@@ -96,6 +96,7 @@ export default class MarketplaceCharge extends BaseModel {
   @TableColumn({
     required: true,
     type: TableColumnType.ShortText,
+    allowedValues: Object.values(CloudMarketplace),
     title: "Marketplace",
     description: "The cloud marketplace the charge is billed through.",
     example: "Azure",
@@ -115,6 +116,7 @@ export default class MarketplaceCharge extends BaseModel {
   @TableColumn({
     required: true,
     type: TableColumnType.ShortText,
+    allowedValues: Object.values(ProjectBalanceType),
     title: "Balance",
     description:
       "The balance that was topped up: SmsOrCall (SMS, calls, WhatsApp and Telegram) or AI (AI credits).",
