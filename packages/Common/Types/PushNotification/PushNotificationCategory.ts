@@ -1,9 +1,10 @@
 /*
  * THE ACTIONS A PHONE DRAWS UNDER A PUSH.
  *
- * A push can name a category, and the OneUptime On-Call app (1.7.0 and
- * later) registers what each one carries: the buttons under the
- * notification, on the lock screen and in the notification shade. Every
+ * A push can name a category, and the OneUptime On-Call app (its first
+ * release after 1.6.0, and later) registers what each one carries: the
+ * buttons under the notification, on the lock screen and in the
+ * notification shade. Every
  * push of an on-call page - an incident, an alert or an episode, a first
  * page, a person's page or a page again (UserNotificationRuleService) -
  * names ON_CALL_PAGE_PUSH_CATEGORY, whose actions are Acknowledge and
