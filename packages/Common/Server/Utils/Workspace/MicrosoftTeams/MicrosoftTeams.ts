@@ -5328,6 +5328,15 @@ export default class MicrosoftTeamsUtil extends WorkspaceBase {
           kind: MicrosoftTeamsProjectChoiceKind.Message,
           isQuestion: true,
           projectIds: others,
+          wording: MicrosoftTeamsProjectChoice.getAskAgainWording({
+            question: WorkspaceCommands.parse(
+              MicrosoftTeamsMentionText.removeMentions(
+                (question["text"] as string) || "",
+              ).trim(),
+            ).text,
+            answeredIn:
+              await MicrosoftTeamsProjectChoice.getProjectName(answeredIn),
+          }),
         })
       ) {
         return true;

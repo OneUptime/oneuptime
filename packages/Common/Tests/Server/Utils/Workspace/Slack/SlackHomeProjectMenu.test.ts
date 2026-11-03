@@ -123,6 +123,9 @@ describe("the menu the Home builds", () => {
         { label: "Acme Sandbox", value: SANDBOX.toString() },
       ],
       blockId: expect.any(String),
+      // What Microsoft Teams' button says: Slack's select needs none.
+      submitTitle: "Switch",
+      requiredMessage: "Choose a project to switch to.",
     });
     // The menu's block: named for the project shown, and for this drawing.
     expect(blockIdParts(menu!.blockId)).toEqual({
@@ -402,7 +405,12 @@ describe("the static select Slack is sent", () => {
     }
   });
 
-  test("Microsoft Teams draws the line alone: no menu is drawn there, and nothing is lost of the line", () => {
+  /*
+   * Changed on purpose: Microsoft Teams draws the menu too, now, under the
+   * line (MicrosoftTeamsHomeProjectMenu pins how). The line itself is drawn
+   * as it is without one, and a menu adds only what follows it.
+   */
+  test("Microsoft Teams keeps the line as it is drawn without a menu, and draws the menu after it", () => {
     const card: JSONObject =
       MicrosoftTeamsUtil.buildAdaptiveCardFromMessageBlocks({
         messageBlocks: [
@@ -415,9 +423,12 @@ describe("the static select Slack is sent", () => {
         messageBlocks: [line()],
       });
 
-    expect(card).toEqual(withoutMenu);
-    expect(JSON.stringify(card)).not.toContain("Acme Staging");
-    expect(JSON.stringify(card)).not.toContain("SwitchHomeProject");
+    const body: Array<JSONObject> = card["body"] as Array<JSONObject>;
+
+    expect(body[0]).toEqual((withoutMenu["body"] as Array<JSONObject>)[0]);
+    expect(body).toHaveLength(2);
+    expect(JSON.stringify(body[1])).toContain("Acme Staging");
+    expect(JSON.stringify(body[1])).toContain("SwitchHomeProject");
   });
 });
 

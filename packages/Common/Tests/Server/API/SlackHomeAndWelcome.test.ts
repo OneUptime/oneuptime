@@ -48,6 +48,11 @@ import {
   RunningApp,
   startApp,
 } from "./WorkspaceOAuthTestHelpers";
+import {
+  InMemoryHomeChoiceRow,
+  InMemoryWorkspaceHomeChoices,
+  useInMemoryWorkspaceHomeChoices,
+} from "../../Helpers/InMemoryWorkspaceHomeChoices";
 
 /*
  * THE ONEUPTIME APP'S HOME TAB IN SLACK, AND ITS HELLO IN A CHANNEL.
@@ -163,6 +168,8 @@ const CHECKOUT: Incident = (() => {
 
 let onCallReads: Array<JSONObject> = [];
 let incidentReads: Array<JSONObject> = [];
+// The projects people chose for their Homes (WorkspaceHomeChoice), in memory.
+let homeChoices: InMemoryWorkspaceHomeChoices;
 
 function answerSlack(method: string): JSONObject {
   const refusal: string | undefined = refusals.get(method);
@@ -332,6 +339,8 @@ beforeEach(() => {
   jest.spyOn(Date, "now").mockImplementation((): number => {
     return realDateNow() + clockOffsetInMs;
   });
+
+  homeChoices = useInMemoryWorkspaceHomeChoices();
 
   jest
     .spyOn(WorkspaceProjectAuthTokenService, "findOneBy")
@@ -607,8 +616,9 @@ describe("the Home tab, opened", () => {
       return calls("views.publish").length === 1;
     }, "the Home drawn");
 
+    // Greeted by name, as on the Home that lets her in.
     expect(blockTexts(publishedBlocks())).toEqual([
-      "👋 Hi there",
+      "👋 Hi Alice",
       "Your OneUptime account is not a member of this project. Ask a project admin to invite you, then try again.\n",
     ]);
     expect(incidentReads).toEqual([]);
@@ -1697,21 +1707,44 @@ describe("a person in several of the workspace's projects: Switch project", () =
     clockOffsetInMs += 11 * 1000;
   }
 
-  // What is kept of the project chosen for a Home, by its cache key.
-  function rememberedHomes(): Array<{ value: string; expiresAt: number }> {
-    const store: Map<string, { value: string; expiresAt: number }> = (
+  /*
+   * What is kept of the projects chosen for Homes (WorkspaceHomeChoice): a
+   * row per project and Slack account, the newest choice first.
+   */
+  function rememberedHomes(): Array<{
+    value: string;
+    slackUserId: string;
+    chosenAt: Date;
+  }> {
+    return [...homeChoices.rows]
+      .sort((a: InMemoryHomeChoiceRow, b: InMemoryHomeChoiceRow): number => {
+        return (
+          b.chosenAt.getTime() - a.chosenAt.getTime() ||
+          (b.writtenAs || 0) - (a.writtenAs || 0)
+        );
+      })
+      .map((row: InMemoryHomeChoiceRow) => {
+        expect(row.workspaceType).toBe("Slack");
+
+        return {
+          value: row.projectId,
+          slackUserId: row.workspaceUserId,
+          chosenAt: row.chosenAt,
+        };
+      });
+  }
+
+  // Keys the cache holds for a Home's choice: none, since it is kept in Postgres.
+  function homeChoiceCacheKeys(): Array<string> {
+    const store: Map<string, unknown> = (
       jest.requireMock("../../../Server/Infrastructure/GlobalCache") as {
-        default: { store: Map<string, { value: string; expiresAt: number }> };
+        default: { store: Map<string, unknown> };
       }
     ).default.store;
 
-    return Array.from(store.entries())
-      .filter(([key]: [string, unknown]): boolean => {
-        return key.startsWith("slack-project-choice-home-");
-      })
-      .map(([, entry]: [string, { value: string; expiresAt: number }]) => {
-        return entry;
-      });
+    return Array.from(store.keys()).filter((key: string): boolean => {
+      return key.startsWith("slack-project-choice-home");
+    });
   }
 
   const REFUSED: string =
@@ -1870,9 +1903,31 @@ describe("a person in several of the workspace's projects: Switch project", () =
     later();
     expect((await opened()).projectId).toBe(SANDBOX.toString());
 
-    // One choice kept for her in this workspace, the last.
-    expect(rememberedHomes()).toHaveLength(1);
-    expect(rememberedHomes()[0]!.value).toBe(SANDBOX.toString());
+    // Her choices, the last one newest - kept in Postgres, none in the cache.
+    expect(
+      rememberedHomes().map((entry: { value: string; slackUserId: string }) => {
+        return [entry.value, entry.slackUserId];
+      }),
+    ).toEqual([
+      [SANDBOX.toString(), ALICE],
+      [STAGING.toString(), ALICE],
+    ]);
+    expect(homeChoiceCacheKeys()).toEqual([]);
+  });
+
+  test("switching back to a project she chose before writes its choice again: her next opening shows it, one row a project", async () => {
+    await opened();
+    await switched({ value: STAGING.toString(), shown: PRODUCTION });
+    await switched({ value: SANDBOX.toString(), shown: STAGING });
+    await switched({ value: STAGING.toString(), shown: SANDBOX });
+
+    later();
+    expect((await opened()).projectId).toBe(STAGING.toString());
+    expect(
+      rememberedHomes().map((entry: { value: string }) => {
+        return entry.value;
+      }),
+    ).toEqual([STAGING.toString(), SANDBOX.toString()]);
   });
 
   test("kept for each person in each workspace: Erin, in the same three, still sees the first; Alice's Home elsewhere is her own", async () => {
@@ -1889,23 +1944,25 @@ describe("a person in several of the workspace's projects: Switch project", () =
     expect(elsewhere.json).not.toContain("Acme");
   });
 
-  test("kept while she goes on opening it: each opening keeps it for ninety days again", async () => {
+  test("kept for good: a year on, and with the cache emptied, her Home still opens on it - opening it writes nothing", async () => {
     await opened();
     await switched({ value: STAGING.toString(), shown: PRODUCTION });
 
-    const ninetyDays: number = 90 * 24 * 60 * 60 * 1000;
-    const keptAt: number = rememberedHomes()[0]!.expiresAt;
+    const writes: number = homeChoices.writes();
 
-    expect(keptAt - Date.now()).toBeGreaterThan(ninetyDays - 60000);
-
-    // Sixty days on, she opens it: kept for ninety days from then.
-    clockOffsetInMs += 60 * 24 * 60 * 60 * 1000;
+    // Valkey restarted: the cache holds nothing any more.
+    (
+      jest.requireMock("../../../Server/Infrastructure/GlobalCache") as {
+        default: { store: Map<string, unknown> };
+      }
+    ).default.store.clear();
+    clockOffsetInMs += 365 * 24 * 60 * 60 * 1000;
 
     expect((await opened()).projectId).toBe(STAGING.toString());
-    expect(rememberedHomes()[0]!.expiresAt - Date.now()).toBeGreaterThan(
-      ninetyDays - 60000,
-    );
-    expect(rememberedHomes()[0]!.expiresAt).toBeGreaterThan(keptAt);
+    later();
+    expect((await opened()).projectId).toBe(STAGING.toString());
+    // An opening only reads which project she chose.
+    expect(homeChoices.writes()).toBe(writes);
   });
 
   test("removed from the project she chose: her next opening falls back to the first, the menu listing only what she is still in", async () => {
@@ -2105,7 +2162,7 @@ describe("a person in several of the workspace's projects: Switch project", () =
      * never one of her three left unnamed.
      */
     expect(home.texts).toEqual([
-      "👋 Hi there",
+      "👋 Hi Alice",
       "Here's what is happening in *Acme Staging*.\n",
       `${ExceptionMessages.ProjectBlocked}\n`,
     ]);
@@ -2145,7 +2202,7 @@ describe("a person in several of the workspace's projects: Switch project", () =
     expect(home.projectId).toBe(PRODUCTION.toString());
     // Never "this project has been blocked" left to read as the one she chose.
     expect(home.texts).toEqual([
-      "👋 Hi there",
+      "👋 Hi Alice",
       REFUSED,
       "Here's what is happening in *Acme Production*.\n",
       `${ExceptionMessages.ProjectBlocked}\n`,
@@ -2168,7 +2225,7 @@ describe("a person in several of the workspace's projects: Switch project", () =
 
     expect(home.projectId).toBe(SANDBOX.toString());
     expect(home.texts).toEqual([
-      "👋 Hi there",
+      "👋 Hi Alice",
       "Here's what is happening in *Acme Sandbox*.\n",
       `${WorkspaceActionAuthorization.NOT_A_PROJECT_MEMBER_MESSAGE}\n`,
     ]);
@@ -2198,58 +2255,27 @@ describe("a person in several of the workspace's projects: Switch project", () =
     expect(home.menu).toBeNull();
   });
 
-  test("the cache is down: the Home of the first project; choosing still draws the one chosen, which her next opening cannot keep", async () => {
-    interface CacheMethod {
-      getMockImplementation: () => unknown;
-      mockImplementation: (implementation: never) => unknown;
-    }
+  test("the choices cannot be read or kept - the database refuses: the Home of the first project; choosing still draws the one chosen, which her next opening cannot keep - and it is logged", async () => {
+    homeChoices.failWith(new Error("connection refused"));
 
-    // The in-memory cache's own methods, put back once this is done.
-    const cache: { getString: CacheMethod; setString: CacheMethod } = (
-      jest.requireMock("../../../Server/Infrastructure/GlobalCache") as {
-        default: { getString: CacheMethod; setString: CacheMethod };
-      }
-    ).default;
-    const realGetString: (...args: Array<unknown>) => Promise<unknown> =
-      cache.getString.getMockImplementation() as (
-        ...args: Array<unknown>
-      ) => Promise<unknown>;
-    const realSetString: (...args: Array<unknown>) => Promise<unknown> =
-      cache.setString.getMockImplementation() as (
-        ...args: Array<unknown>
-      ) => Promise<unknown>;
+    expect((await opened()).projectId).toBe(PRODUCTION.toString());
+    expect(
+      (await switched({ value: STAGING.toString(), shown: PRODUCTION }))
+        .projectId,
+    ).toBe(STAGING.toString());
 
-    // Only what keeps a Home's project fails: the rest of the cache is up.
-    for (const [method, real] of [
-      [cache.getString, realGetString],
-      [cache.setString, realSetString],
-    ] as Array<[CacheMethod, (...args: Array<unknown>) => Promise<unknown>]>) {
-      method.mockImplementation((async (
-        namespace: string,
-        ...rest: Array<unknown>
-      ) => {
-        if (namespace === "slack-project-choice-home") {
-          throw new Error("connection refused");
-        }
+    later();
+    expect((await opened()).projectId).toBe(PRODUCTION.toString());
+    expect(rememberedHomes()).toEqual([]);
+    expect(errorLines).toContain(
+      "Could not record the project a chat Home was switched to.",
+    );
 
-        return await real(namespace, ...rest);
-      }) as never);
-    }
-
-    try {
-      expect((await opened()).projectId).toBe(PRODUCTION.toString());
-      expect(
-        (await switched({ value: STAGING.toString(), shown: PRODUCTION }))
-          .projectId,
-      ).toBe(STAGING.toString());
-
-      later();
-      expect((await opened()).projectId).toBe(PRODUCTION.toString());
-      expect(rememberedHomes()).toEqual([]);
-    } finally {
-      cache.getString.mockImplementation(realGetString as never);
-      cache.setString.mockImplementation(realSetString as never);
-    }
+    // Back up: her next choice is kept.
+    homeChoices.failWith(null);
+    await switched({ value: SANDBOX.toString(), shown: PRODUCTION });
+    later();
+    expect((await opened()).projectId).toBe(SANDBOX.toString());
   });
 
   test("a long project name: cut in the menu to what Slack takes, named in full on the Home it chooses", async () => {

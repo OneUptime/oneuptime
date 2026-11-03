@@ -368,6 +368,13 @@ export default class WorkspaceHome {
     projectName?: string | null | undefined;
     projectMenu?: WorkspacePayloadMenu | undefined;
     notice?: MarkdownText | undefined;
+    /*
+     * The chat it is drawn in. Slack draws a menu beside the line it goes
+     * with: the line that names the project. Microsoft Teams draws it under
+     * its line, so there it goes with why - the reason reads before the way
+     * out, and the project's line keeps its place above both.
+     */
+    workspaceType?: WorkspaceType | undefined;
   }): Array<WorkspaceMessageBlock> {
     const blocks: Array<WorkspaceMessageBlock> = [
       WorkspaceHome.header(WorkspaceHome.getGreeting(data.firstName)),
@@ -381,13 +388,20 @@ export default class WorkspaceHome {
       mdText`${data.message}`,
     );
 
+    const isMenuUnderWhy: boolean =
+      data.workspaceType === WorkspaceType.MicrosoftTeams;
+
     if (data.projectMenu && data.projectName) {
       blocks.push(
         WorkspaceHome.getProjectLine({
           projectName: data.projectName,
-          projectMenu: data.projectMenu,
+          projectMenu: isMenuUnderWhy ? undefined : data.projectMenu,
         }),
       );
+
+      if (isMenuUnderWhy) {
+        refusal.menu = data.projectMenu;
+      }
     } else if (data.projectMenu) {
       // No name to put it beside: the menu goes beside why.
       refusal.menu = data.projectMenu;

@@ -870,6 +870,7 @@ export default class MicrosoftTeamsHome {
           ),
           projectMenu: projectMenu,
           notice: data.notice,
+          workspaceType: WorkspaceType.MicrosoftTeams,
         }),
         summary: err.message,
         replacing: data.replacing,

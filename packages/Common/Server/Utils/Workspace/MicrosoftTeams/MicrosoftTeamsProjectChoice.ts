@@ -3,6 +3,7 @@ import WorkspaceProjectAuthToken from "../../../../Models/DatabaseModels/Workspa
 import { JSONArray, JSONObject } from "../../../../Types/JSON";
 import ObjectID from "../../../../Types/ObjectID";
 import { MarkdownText, mdText } from "../../../../Utils/Markdown/FeedMarkdown";
+import { cutToLength } from "../../../../Utils/Markdown/OverLongText";
 import GlobalCache from "../../../Infrastructure/GlobalCache";
 import logger from "../../Logger";
 import ProductBrandingText from "../../ProductBrandingText";
@@ -101,6 +102,18 @@ export interface MicrosoftTeamsProjectChoiceRequest {
 }
 
 /*
+ * What the card that asks says, when it asks for something other than a
+ * request nothing tells the project of: "Ask in another project" asks which
+ * project to ask the question in again, and says which question.
+ */
+export interface MicrosoftTeamsProjectChoiceWording {
+  // The question, as plain text: "Which project should I ask it in?".
+  question: string;
+  // Why it is asked, under it: the line Teams shows quieter.
+  reason: MarkdownText;
+}
+
+/*
  * A conversation with OneUptime AI, and the person in it: what keeps the
  * project they chose for it.
  */
@@ -127,6 +140,12 @@ const ASK_IN_ANOTHER_PROJECT_WORDS: string = "ask in another project";
 
 // Punctuation that may follow the words: "Ask in another project?".
 const TRAILING_PUNCTUATION: ReadonlyArray<string> = [".", "!", "?"];
+
+// The most characters of a question the card asking again quotes.
+const QUOTED_QUESTION_MAX_LENGTH: number = 80;
+
+// A run of whitespace: a quoted question is one line.
+const WHITESPACE_RUN: RegExp = /\s+/g;
 
 // What of an activity is kept to make it again: what the bot reads of it.
 const ACTIVITY_FIELDS: ReadonlyArray<string> = [
@@ -260,6 +279,30 @@ export default class MicrosoftTeamsProjectChoice {
     return { markdown: mdText`${text}`.toString(), text: text };
   }
 
+  /*
+   * What the card asks with, when "Ask in another project" offers more than
+   * one other project: which project to ask it in, and which question it
+   * is - "You asked "which monitors are down?" in **IRM Non-Prod**." - the
+   * question cut to one line.
+   */
+  public static getAskAgainWording(data: {
+    question: string;
+    answeredIn: string | null;
+  }): MicrosoftTeamsProjectChoiceWording {
+    const oneLine: string = data.question.replace(WHITESPACE_RUN, " ").trim();
+    const quoted: string =
+      oneLine.length > QUOTED_QUESTION_MAX_LENGTH
+        ? `${cutToLength(oneLine, QUOTED_QUESTION_MAX_LENGTH - 1).trimEnd()}…`
+        : oneLine;
+
+    return {
+      question: "Which project should I ask it in?",
+      reason: data.answeredIn
+        ? mdText`You asked "${quoted}" in **${data.answeredIn}**.`
+        : mdText`You asked "${quoted}".`,
+    };
+  }
+
   // What it is told with no other project of theirs to ask in.
   public static getNoOtherProjectAnswer(): WorkspaceAnswer {
     const text: string = MicrosoftTeamsProjectChoice.NO_OTHER_PROJECT_TEXT;
@@ -386,6 +429,8 @@ export default class MicrosoftTeamsProjectChoice {
      * offers all of theirs but the one the question was answered in.
      */
     projectIds?: Array<ObjectID> | undefined;
+    // What the card says, when not "Which project is this for?".
+    wording?: MicrosoftTeamsProjectChoiceWording | undefined;
   }): Promise<boolean> {
     const tenantId: string = MicrosoftTeamsProjectChoice.getTenantId(
       data.activity,
@@ -441,6 +486,7 @@ export default class MicrosoftTeamsProjectChoice {
         mention: MicrosoftTeamsActionAnswer.getMention(
           data.turnContext.activity as unknown as JSONObject,
         ),
+        wording: data.wording,
       });
 
     return await MicrosoftTeamsReplies.sendBestEffort(data.turnContext, {
@@ -471,15 +517,19 @@ export default class MicrosoftTeamsProjectChoice {
     token: string;
     choices: Array<WorkspaceProjectChoice>;
     mention?: MicrosoftTeamsMention | null | undefined;
+    // What it says, when not "Which project is this for?" (offer).
+    wording?: MicrosoftTeamsProjectChoiceWording | undefined;
   }): { card: JSONObject; summary: string } {
     const productName: string = ProductBrandingText.getProductName();
-    const summary: string = `Which project is this for: ${WorkspaceProjectChoiceStore.getNameList(
+    const asked: string =
+      data.wording?.question || "Which project is this for?";
+    const summary: string = `${asked.endsWith("?") ? asked.slice(0, -1) : asked}: ${WorkspaceProjectChoiceStore.getNameList(
       data.choices,
     )}?`;
 
     const card: JSONObject = MicrosoftTeamsActionAnswer.buildCard({
       answer: {
-        markdown: mdText`**Which project is this for?**`.toString(),
+        markdown: mdText`**${asked}**`.toString(),
         text: summary,
       },
       mention: data.mention,
@@ -494,7 +544,10 @@ export default class MicrosoftTeamsProjectChoice {
      */
     body.push({
       type: "TextBlock",
-      text: mdText`This Microsoft 365 organization is connected to more than one ${productName} project.`.toString(),
+      text: (
+        data.wording?.reason ||
+        mdText`This Microsoft 365 organization is connected to more than one ${productName} project.`
+      ).toString(),
       wrap: true,
       isSubtle: true,
       spacing: "Small",
