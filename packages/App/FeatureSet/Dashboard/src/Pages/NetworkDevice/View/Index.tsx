@@ -122,6 +122,12 @@ const NetworkDeviceView: FunctionComponent<
   const translator: Translator = useTranslator();
   const modelId: ObjectID = Navigation.getLastParamAsObjectID();
 
+  /*
+   * Refresh on the Inventory card reads the device again: once it is
+   * answered, the hero and the details card read it again too, so the
+   * whole page shows the new reading - not the Inventory card alone.
+   */
+  const [readAgainCount, setReadAgainCount] = useState<number>(0);
   const [monitors, setMonitors] = useState<Array<Monitor>>([]);
   const [isMonitorBacked, setIsMonitorBacked] = useState<boolean>(false);
   const [isMonitorsLoading, setIsMonitorsLoading] = useState<boolean>(true);
@@ -173,7 +179,7 @@ const NetworkDeviceView: FunctionComponent<
        * offer of its vendor's health checks, while it would add any, comes
        * after it rather than above it on every visit.
        */}
-      <DeviceStatusHero modelId={modelId} />
+      <DeviceStatusHero modelId={modelId} refreshKey={readAgainCount} />
       <DeviceVendorTemplateBanner modelId={modelId} />
       {/*
        * The device's open incidents and alerts (issue #5341): the ones linked
@@ -214,6 +220,7 @@ const NetworkDeviceView: FunctionComponent<
           modelType: NetworkDevice,
           id: "network-device-details",
           modelId: modelId,
+          refresher: readAgainCount % 2 === 1,
           /*
            * The name discovery gave the device: the Name Source row below is
            * shown only while the device is still called exactly that. And
@@ -415,7 +422,14 @@ const NetworkDeviceView: FunctionComponent<
         modelId={modelId}
         canRunDiagnostics={canRunDiagnostics}
       />
-      <DeviceInventoryCard modelId={modelId} />
+      <DeviceInventoryCard
+        modelId={modelId}
+        onRead={() => {
+          setReadAgainCount((count: number): number => {
+            return count + 1;
+          });
+        }}
+      />
       <DeviceMonitorsCard
         monitors={monitors}
         isLoading={isMonitorsLoading}

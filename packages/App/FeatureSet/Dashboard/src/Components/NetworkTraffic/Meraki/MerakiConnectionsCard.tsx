@@ -1,4 +1,23 @@
 import { readNetworkControllerConnectionNow } from "../NetworkTrafficUsageApi";
+import MerakiAddDevicesModal from "./MerakiAddDevicesModal";
+import {
+  ADDED_DEVICES_NOTE,
+  ADDED_SITES_NOTE,
+  ADDING_DEVICES,
+  ADDING_DEVICES_PROGRESS,
+  ADD_DEVICES_ACTION,
+  ADD_FAILED_NOTE,
+  ADD_STOPPED_NOTE,
+  ADD_THE_REST_ACTION,
+  DEVICE_ADD_FAILURES_SHOWN,
+  DeviceAddStanding,
+  FAILED_DEVICES_NOTE,
+  NOTHING_ADDED_NOTE,
+  NOT_ADDED_DEVICES_NOTE,
+  REMAINING_DEVICES_NOTE,
+  getDeviceAddStanding,
+  getOfferedDeviceCount,
+} from "./MerakiAddDevicesWords";
 import MerakiConnectionEditModal from "./MerakiConnectionEditModal";
 import { MERAKI_CONNECTIONS_ANCHOR } from "./MerakiUrlState";
 import {
@@ -25,14 +44,27 @@ import {
   getMerakiConnectionRowFacts,
   getMerakiConnectionSentence,
   getMerakiIntervalWords,
+  getMerakiReadTime,
 } from "./MerakiWords";
 import NetworkControllerConnection from "Common/Models/DatabaseModels/NetworkControllerConnection";
+import NetworkDevice from "Common/Models/DatabaseModels/NetworkDevice";
 import SortOrder from "Common/Types/BaseDatabase/SortOrder";
 import IconProp from "Common/Types/Icon/IconProp";
 import { DEFAULT_MERAKI_REGION } from "Common/Types/NetworkController/MerakiRegion";
 import { NetworkControllerConnectionStatus } from "Common/Types/NetworkController/NetworkControllerConnectionHealth";
+import {
+  NetworkControllerDeviceAddFailure,
+  NetworkControllerDeviceAddState,
+  isNetworkControllerDeviceAddUnderWay,
+  readNetworkControllerDeviceAddState,
+  toNetworkControllerDeviceAddStateJson,
+} from "Common/Types/NetworkController/NetworkControllerDeviceAdd";
 import ObjectID from "Common/Types/ObjectID";
 import ProviderLogo from "Common/Types/ProviderLogo/ProviderLogo";
+import {
+  ReadingDirection,
+  getTextReadingDirectionByMostLetters,
+} from "Common/Types/ReadingDirection";
 import Button, {
   ButtonSize,
   ButtonStyleType,
@@ -51,8 +83,13 @@ import PermissionGate, {
   PermissionGateOptions,
   PermissionGateResult,
 } from "Common/UI/Utils/PermissionGate";
+import {
+  bringPageAnchorIntoView,
+  getPageAnchor,
+  markPageAnchorLanded,
+} from "Common/UI/Utils/PageAnchor";
 import ProjectUtil from "Common/UI/Utils/Project";
-import { Translator } from "Common/UI/Utils/TranslateTemplate";
+import { SentenceOptions, Translator } from "Common/UI/Utils/TranslateTemplate";
 import useTranslator from "Common/UI/Utils/UseTranslator";
 import React, {
   FunctionComponent,
@@ -75,10 +112,17 @@ import React, {
  *
  * Each row has one button, the next thing to do: Read now - Turn on for a
  * connection that is off, Update API key for one whose key Meraki refused.
- * Its menu has Edit, Turn off (or on) and Delete. A read started here (or a
- * connection waiting for its first) is watched, and the list and the page
- * refresh by themselves when it ends. Connecting another organization is
- * the header's button.
+ * Its menu has Edit, Add devices, Turn off (or on) and Delete. A read
+ * started here (or a connection waiting for its first) is watched, and the
+ * list and the page refresh by themselves when it ends. Connecting another
+ * organization is the header's button.
+ *
+ * Under its notes, one line about the organization's devices that are no
+ * network device here (Add Meraki devices, MerakiAddDevicesModal): how many
+ * of the kinds it would add there are, with Add devices beside them; while
+ * an ask runs, how far it got - followed every few seconds, from any tab -
+ * and for a day after, how it went: what it added, the sites it added, and
+ * the devices it could not add, with why.
  *
  * What a reader may not do is not offered (PermissionGate): only project
  * owners and admins add, change or read connections. Anyone else sees the
@@ -124,6 +168,80 @@ interface RowNote {
 
 const LIST_LIMIT: number = 100;
 
+// One line about adding the organization's devices (drawDeviceAddLines).
+type DeviceAddTone = "info" | "done" | "act" | "error" | "progress";
+
+interface DeviceAddLine {
+  // Stable within the row, and the line's data-state.
+  key: string;
+  tone: DeviceAddTone;
+  text: string;
+  // Drawn after the text: Add devices (or Add the rest), for who may.
+  after?: ReactElement | undefined;
+  // A line each under it: the devices that could not be added, with why.
+  details?: Array<NetworkControllerDeviceAddFailure> | undefined;
+}
+
+/*
+ * A device an ask could not add: its name, then why - the server's words,
+ * in their own language. Read the way most of its letters are (an isolate),
+ * so on a Persian page an English reason keeps its full stop at its end,
+ * and the name stands out to scan the list by.
+ */
+const DeviceAddFailureLine: FunctionComponent<{
+  failure: NetworkControllerDeviceAddFailure;
+}> = (props: { failure: NetworkControllerDeviceAddFailure }): ReactElement => {
+  const direction: ReadingDirection | null =
+    getTextReadingDirectionByMostLetters(
+      props.failure.name
+        ? `${props.failure.name}: ${props.failure.reason}`
+        : props.failure.reason,
+    );
+
+  return (
+    <bdi dir={direction || undefined}>
+      {props.failure.name ? (
+        <>
+          <span className="font-medium">{props.failure.name}</span>:{" "}
+        </>
+      ) : (
+        <></>
+      )}
+      {props.failure.reason}
+    </bdi>
+  );
+};
+
+/*
+ * A line's values - a count, a time, a reason - set apart in a sentence
+ * read right to left, so they read where the sentence puts them.
+ */
+const IN_SENTENCE: SentenceOptions = { setsValuesApart: true };
+
+const DEVICE_ADD_TONE_TEXT: Record<DeviceAddTone, string> = {
+  info: "text-gray-500",
+  progress: "text-gray-600",
+  done: "text-emerald-700",
+  act: "text-amber-800",
+  error: "text-red-700",
+};
+
+const DEVICE_ADD_TONE_ICON_CLASS: Record<DeviceAddTone, string> = {
+  info: "text-gray-400",
+  progress: "text-gray-400",
+  done: "text-emerald-600",
+  act: "text-amber-600",
+  error: "text-red-600",
+};
+
+const DEVICE_ADD_TONE_ICON: Record<DeviceAddTone, IconProp> = {
+  info: IconProp.Info,
+  progress: IconProp.Clock,
+  done: IconProp.CheckCircle,
+  act: IconProp.ExclaimationCircle,
+  error: IconProp.ExclaimationCircle,
+};
+
 /*
  * Clears Button's dialog-footer margin (md:ml-3) inside a row: the gap
  * spaces the row's controls, and a locked button sits in a tooltip's span.
@@ -147,11 +265,16 @@ const MerakiConnectionsCard: FunctionComponent<ComponentProps> = (
     null,
   );
   const [isDeleting, setIsDeleting] = useState<boolean>(false);
+  const [addingDevicesOf, setAddingDevicesOf] =
+    useState<NetworkControllerConnection | null>(null);
   const [notice, setNotice] = useState<string>("");
   // First reads watched: once each, ended or not.
   const firstReadsWatched: MutableRefObject<Set<string>> = useRef<Set<string>>(
     new Set<string>(),
   );
+  const cardRef: MutableRefObject<HTMLDivElement | null> =
+    useRef<HTMLDivElement | null>(null);
+  const hasConnections: boolean = connections.length > 0;
 
   const model: NetworkControllerConnection = new NetworkControllerConnection();
   const gateOptions: PermissionGateOptions = {
@@ -173,6 +296,13 @@ const MerakiConnectionsCard: FunctionComponent<ComponentProps> = (
     ModelAction.Delete,
     gateOptions,
   ).isAllowed;
+  /*
+   * Add devices: for who may change the connection and create network
+   * devices - the devices are added as them.
+   */
+  const canAddDevices: boolean =
+    canUpdate &&
+    PermissionGate.check(new NetworkDevice(), ModelAction.Create).isAllowed;
 
   useEffect(() => {
     let isCurrent: boolean = true;
@@ -194,6 +324,7 @@ const MerakiConnectionsCard: FunctionComponent<ComponentProps> = (
               lastSuccessfulPullAt: true,
               lastError: true,
               lastPullResult: true,
+              lastDeviceAdd: true,
             },
             sort: { createdAt: SortOrder.Ascending },
             limit: LIST_LIMIT,
@@ -223,6 +354,33 @@ const MerakiConnectionsCard: FunctionComponent<ComponentProps> = (
       isCurrent = false;
     };
   }, [props.refreshKey, reloadKey]);
+
+  /*
+   * Opened at the connections (#traffic-meraki-connections) - from a
+   * device's or a site's Traffic page, or a device Meraki has not read: the
+   * card is brought into view once it is drawn, under the page's header,
+   * and kept there while the traffic above it loads, and marked for a
+   * moment (Utils/PageAnchor).
+   */
+  useEffect(() => {
+    if (
+      !isLoaded ||
+      !hasConnections ||
+      !cardRef.current ||
+      getPageAnchor() !== MERAKI_CONNECTIONS_ANCHOR
+    ) {
+      return;
+    }
+
+    const element: HTMLDivElement = cardRef.current;
+    const stopBringingIntoView: () => void = bringPageAnchorIntoView(element);
+    const unmark: () => void = markPageAnchorLanded(element);
+
+    return () => {
+      stopBringingIntoView();
+      unmark();
+    };
+  }, [isLoaded, hasConnections]);
 
   // A connection never read yet is watched once, quietly, until it is.
   useEffect(() => {
@@ -321,6 +479,98 @@ const MerakiConnectionsCard: FunctionComponent<ComponentProps> = (
       clearInterval(timer);
     };
   }, [watching]);
+
+  /*
+   * While devices are being added from a connection, ask now and then how
+   * far it got - of that connection alone, so the list does not flicker -
+   * and load the list and the page again once it is done: the devices are
+   * on the page by then.
+   */
+  const addingIds: Array<string> = connections
+    .filter((connection: NetworkControllerConnection): boolean => {
+      return isNetworkControllerDeviceAddUnderWay(
+        readNetworkControllerDeviceAddState(connection.lastDeviceAdd),
+        new Date(),
+      );
+    })
+    .map((connection: NetworkControllerConnection): string => {
+      return connection.id?.toString() || "";
+    })
+    .filter(Boolean);
+
+  useEffect(() => {
+    if (addingIds.length === 0) {
+      return;
+    }
+
+    const timer: ReturnType<typeof setInterval> = setInterval(() => {
+      const check: () => Promise<void> = async (): Promise<void> => {
+        let isAnyDone: boolean = false;
+
+        for (const id of addingIds) {
+          try {
+            const item: NetworkControllerConnection | null =
+              await ModelAPI.getItem<NetworkControllerConnection>({
+                modelType: NetworkControllerConnection,
+                id: new ObjectID(id),
+                select: { _id: true, lastDeviceAdd: true },
+              });
+
+            if (!item) {
+              continue;
+            }
+
+            setConnections(
+              (
+                current: Array<NetworkControllerConnection>,
+              ): Array<NetworkControllerConnection> => {
+                return current.map(
+                  (
+                    connection: NetworkControllerConnection,
+                  ): NetworkControllerConnection => {
+                    if (
+                      connection.id?.toString() === id &&
+                      item.lastDeviceAdd
+                    ) {
+                      connection.lastDeviceAdd = item.lastDeviceAdd;
+                    }
+
+                    return connection;
+                  },
+                );
+              },
+            );
+
+            if (
+              !isNetworkControllerDeviceAddUnderWay(
+                readNetworkControllerDeviceAddState(item.lastDeviceAdd),
+                new Date(),
+              )
+            ) {
+              isAnyDone = true;
+            }
+          } catch {
+            // the next tick asks again.
+          }
+        }
+
+        if (isAnyDone) {
+          setReloadKey((value: number): number => {
+            return value + 1;
+          });
+          props.onChanged();
+        }
+      };
+
+      check().catch(() => {
+        // the next tick asks again.
+      });
+    }, READ_NOW_POLL_MS);
+
+    return () => {
+      clearInterval(timer);
+    };
+  }, [addingIds.join(",")]);
 
   /*
    * A connection saved or turned back on is read again within a minute
@@ -441,6 +691,285 @@ const MerakiConnectionsCard: FunctionComponent<ComponentProps> = (
     }
   };
 
+  /*
+   * The line about the organization's devices that are no network device
+   * here - see the header. Nothing for a connection that is off, or one
+   * nothing is to be said about. While Meraki refuses the connection's key,
+   * the count is said but Add devices is not offered: every ask would fail
+   * on that key, and the row's one button is Update API key.
+   */
+  const drawDeviceAddLines: (data: {
+    connectionModel: NetworkControllerConnection;
+    isOff: boolean;
+    isKeyRefused: boolean;
+    summary: MerakiConnectionRowFacts["summary"];
+    now: Date;
+  }) => ReactElement = (data: {
+    connectionModel: NetworkControllerConnection;
+    isOff: boolean;
+    isKeyRefused: boolean;
+    summary: MerakiConnectionRowFacts["summary"];
+    now: Date;
+  }): ReactElement => {
+    const state: NetworkControllerDeviceAddState | undefined =
+      readNetworkControllerDeviceAddState(data.connectionModel.lastDeviceAdd);
+    const standing: DeviceAddStanding = getDeviceAddStanding(state, data.now);
+    const lastPulledAt: number = data.connectionModel.lastPulledAt
+      ? new Date(data.connectionModel.lastPulledAt).getTime()
+      : 0;
+    /*
+     * An outcome newer than the last read: the read's counts are from
+     * before the devices were added, so the row says what was added, not
+     * what the read counted.
+     */
+    const isOutcomeNewer: boolean = Boolean(
+      state?.finishedAt && Date.parse(state.finishedAt) > lastPulledAt,
+    );
+    const offered: number = getOfferedDeviceCount({
+      counts: data.summary?.unaddedDevices,
+      last: state,
+    });
+    const lines: Array<ReactElement> = [];
+
+    /*
+     * The way on, after a line's sentence: Add devices - or Add the rest,
+     * after an ask that added some and ended with more to add. Both open
+     * the dialog, for who may add devices.
+     */
+    const drawAction: (title: string) => ReactElement = (
+      title: string,
+    ): ReactElement => {
+      return canAddDevices && !data.isOff && !data.isKeyRefused ? (
+        <button
+          type="button"
+          className="ml-1 font-medium text-indigo-600 hover:text-indigo-700 focus:outline-none focus-visible:underline"
+          onClick={() => {
+            setNotice("");
+            setAddingDevicesOf(data.connectionModel);
+          }}
+          data-testid="meraki-connection-add-devices"
+        >
+          {translator.translateText(title) || title}
+        </button>
+      ) : (
+        <></>
+      );
+    };
+    const action: ReactElement = drawAction(ADD_DEVICES_ACTION);
+
+    const addLine: (lineData: DeviceAddLine) => void = (
+      lineData: DeviceAddLine,
+    ): void => {
+      lines.push(
+        <div
+          key={lineData.key}
+          className={`mt-1.5 flex items-start gap-1.5 text-xs ${DEVICE_ADD_TONE_TEXT[lineData.tone]}`}
+          data-testid="meraki-connection-device-add"
+          data-state={lineData.key}
+          data-tone={lineData.tone}
+          role={lineData.tone === "progress" ? "status" : undefined}
+          aria-live={lineData.tone === "progress" ? "polite" : undefined}
+        >
+          <Icon
+            icon={DEVICE_ADD_TONE_ICON[lineData.tone]}
+            className={`mt-0.5 h-3.5 w-3.5 flex-shrink-0 ${DEVICE_ADD_TONE_ICON_CLASS[lineData.tone]}`}
+          />
+          <div className="min-w-0">
+            <span>{lineData.text}</span>
+            {lineData.after || <></>}
+            {lineData.details && lineData.details.length > 0 ? (
+              <ul
+                className="mt-1 space-y-0.5"
+                data-testid="meraki-connection-device-add-failures"
+              >
+                {lineData.details.map(
+                  (
+                    failure: NetworkControllerDeviceAddFailure,
+                    index: number,
+                  ): ReactElement => {
+                    return (
+                      <li key={index} className="break-words">
+                        <DeviceAddFailureLine failure={failure} />
+                      </li>
+                    );
+                  },
+                )}
+              </ul>
+            ) : (
+              <></>
+            )}
+          </div>
+        </div>,
+      );
+    };
+
+    if (standing === DeviceAddStanding.UnderWay && state) {
+      addLine({
+        key: "adding",
+        tone: "progress",
+        text:
+          state.toAddCount > 0
+            ? translator.translateTemplate(
+                ADDING_DEVICES_PROGRESS,
+                {
+                  added: translator.formatNumber(state.addedCount),
+                  total: translator.formatNumber(state.toAddCount),
+                },
+                IN_SENTENCE,
+              )
+            : translator.translateText(ADDING_DEVICES) || ADDING_DEVICES,
+      });
+
+      return <>{lines}</>;
+    }
+
+    /*
+     * What an ask that ended added, when it added any: said whether it
+     * finished, failed half way (the person lost the right to add devices)
+     * or stopped (its worker went quiet) - the devices are here either way.
+     * When: when it ended, or when its worker last wrote.
+     */
+    const addAddedLine: (ended: NetworkControllerDeviceAddState) => void = (
+      ended: NetworkControllerDeviceAddState,
+    ): void => {
+      addLine({
+        key: "added",
+        tone: "done",
+        text: translator.translatePlural(
+          ADDED_DEVICES_NOTE,
+          ended.addedCount,
+          {
+            time: getMerakiReadTime(ended.finishedAt || ended.updatedAt, {
+              language: translator.language,
+              now: data.now,
+            }),
+          },
+          IN_SENTENCE,
+        ),
+      });
+    };
+
+    if (standing === DeviceAddStanding.Done && state) {
+      const when: string = getMerakiReadTime(state.finishedAt, {
+        language: translator.language,
+        now: data.now,
+      });
+
+      if (state.addedCount > 0) {
+        addAddedLine(state);
+      } else if (state.failedCount === 0) {
+        addLine({
+          key: "nothing-added",
+          tone: "info",
+          text: translator.translateTemplate(
+            NOTHING_ADDED_NOTE,
+            { time: when },
+            IN_SENTENCE,
+          ),
+        });
+      }
+
+      if (state.createdSiteCount > 0) {
+        addLine({
+          key: "sites-added",
+          tone: "info",
+          text: translator.translatePlural(
+            ADDED_SITES_NOTE,
+            state.createdSiteCount,
+            {},
+            IN_SENTENCE,
+          ),
+        });
+      }
+
+      if (state.failedCount > 0) {
+        addLine({
+          key: "failed-devices",
+          tone: "act",
+          text: translator.translatePlural(
+            FAILED_DEVICES_NOTE,
+            state.failedCount,
+            {},
+            IN_SENTENCE,
+          ),
+          details: state.failures.slice(0, DEVICE_ADD_FAILURES_SHOWN),
+        });
+      }
+
+      if (state.remainingCount > 0 && isOutcomeNewer) {
+        addLine({
+          key: "remaining",
+          tone: "act",
+          text: translator.translatePlural(
+            REMAINING_DEVICES_NOTE,
+            state.remainingCount,
+            {},
+            IN_SENTENCE,
+          ),
+          after: drawAction(ADD_THE_REST_ACTION),
+        });
+      }
+    }
+
+    if (standing === DeviceAddStanding.Failed && state) {
+      if (state.addedCount > 0) {
+        addAddedLine(state);
+      }
+
+      addLine({
+        key: "add-failed",
+        tone: "error",
+        text: translator.translateTemplate(
+          ADD_FAILED_NOTE,
+          { reason: state.message || "" },
+          IN_SENTENCE,
+        ),
+      });
+    }
+
+    if (standing === DeviceAddStanding.Stopped && state) {
+      if (state.addedCount > 0) {
+        addAddedLine(state);
+      }
+
+      addLine({
+        key: "add-stopped",
+        tone: "act",
+        text: translator.translateText(ADD_STOPPED_NOTE) || ADD_STOPPED_NOTE,
+        // The rest, after what it added; else what it set out to add.
+        after:
+          state.addedCount > 0
+            ? drawAction(ADD_THE_REST_ACTION)
+            : drawAction(ADD_DEVICES_ACTION),
+      });
+    }
+
+    /*
+     * What a read counted that is not here: offered, unless an ask that
+     * ended since the read already said what it did about them.
+     */
+    if (
+      !data.isOff &&
+      offered > 0 &&
+      standing !== DeviceAddStanding.Stopped &&
+      !(standing !== DeviceAddStanding.None && isOutcomeNewer)
+    ) {
+      addLine({
+        key: "not-added",
+        tone: "info",
+        text: translator.translatePlural(
+          NOT_ADDED_DEVICES_NOTE,
+          offered,
+          {},
+          IN_SENTENCE,
+        ),
+        after: action,
+      });
+    }
+
+    return <>{lines}</>;
+  };
+
   if (!isLoaded) {
     return <></>;
   }
@@ -490,7 +1019,7 @@ const MerakiConnectionsCard: FunctionComponent<ComponentProps> = (
   const now: Date = new Date();
 
   return (
-    <div id={MERAKI_CONNECTIONS_ANCHOR} className="scroll-mt-4">
+    <div id={MERAKI_CONNECTIONS_ANCHOR} ref={cardRef} className="scroll-mt-4">
       <Card
         title="Meraki"
         description="The Meraki organizations OneUptime reads traffic and device details from, through the Meraki dashboard API."
@@ -678,6 +1207,18 @@ const MerakiConnectionsCard: FunctionComponent<ComponentProps> = (
                   });
                 }
 
+                // Meraki refuses its key: nothing can be read or added.
+                const isKeyRefused: boolean =
+                  action === MerakiConnectionAction.UpdateKey;
+
+                const deviceAdd: ReactElement = drawDeviceAddLines({
+                  connectionModel,
+                  isOff,
+                  isKeyRefused,
+                  summary,
+                  now,
+                });
+
                 const primary: ReactElement = ((): ReactElement => {
                   if (!canUpdate) {
                     return <></>;
@@ -749,6 +1290,35 @@ const MerakiConnectionsCard: FunctionComponent<ComponentProps> = (
                         setEditing({ model: connectionModel, focusKey: false });
                       }}
                     />,
+                  );
+                }
+
+                /*
+                 * Add devices, whenever it can be asked for: the dialog
+                 * says when there is nothing left to add. Not while Meraki
+                 * refuses the key - Update API key comes first.
+                 */
+                if (
+                  canAddDevices &&
+                  !isOff &&
+                  !isKeyRefused &&
+                  !addingIds.includes(facts.connection.id)
+                ) {
+                  menuItems.push(
+                    <MoreMenuItem
+                      key="add-devices"
+                      text={ADD_DEVICES_ACTION}
+                      icon={IconProp.Add}
+                      onClick={() => {
+                        setNotice("");
+                        setAddingDevicesOf(connectionModel);
+                      }}
+                    />,
+                  );
+                }
+
+                if (canUpdate) {
+                  menuItems.push(
                     <MoreMenuItem
                       key="toggle"
                       text={isOff ? "Turn on" : "Turn off"}
@@ -871,6 +1441,7 @@ const MerakiConnectionsCard: FunctionComponent<ComponentProps> = (
                           </div>
                         );
                       })}
+                      {deviceAdd}
                     </div>
                     <div
                       className={`flex flex-shrink-0 items-center gap-2 sm:justify-end ${ROW_BUTTONS_CLASS_NAME}`}
@@ -948,6 +1519,50 @@ const MerakiConnectionsCard: FunctionComponent<ComponentProps> = (
               return value + 1;
             });
             props.onChanged();
+          }}
+        />
+      ) : (
+        <></>
+      )}
+
+      {addingDevicesOf ? (
+        <MerakiAddDevicesModal
+          connection={addingDevicesOf}
+          onClose={() => {
+            setAddingDevicesOf(null);
+          }}
+          onAsked={(state: NetworkControllerDeviceAddState | undefined) => {
+            const asked: NetworkControllerConnection = addingDevicesOf;
+            setAddingDevicesOf(null);
+
+            /*
+             * The row says "Adding devices" at once, and follows the ask
+             * from there (the watch above).
+             */
+            if (state) {
+              setConnections(
+                (
+                  current: Array<NetworkControllerConnection>,
+                ): Array<NetworkControllerConnection> => {
+                  return current.map(
+                    (
+                      connection: NetworkControllerConnection,
+                    ): NetworkControllerConnection => {
+                      if (connection.id?.toString() === asked.id?.toString()) {
+                        connection.lastDeviceAdd =
+                          toNetworkControllerDeviceAddStateJson(state);
+                      }
+
+                      return connection;
+                    },
+                  );
+                },
+              );
+            } else {
+              setReloadKey((value: number): number => {
+                return value + 1;
+              });
+            }
           }}
         />
       ) : (
