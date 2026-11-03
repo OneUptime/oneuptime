@@ -93,7 +93,7 @@ Una volta aperta una pagina di stato, il suo menu laterale sinistro è raggruppa
 | **Branding** | **Branding** (logo, titolo, favicon, link, piè di pagina, colori e lingue, in un'unica pagina), **Domini personalizzati**, **HTML, CSS e JavaScript**. |
 | **Sicurezza** | **Accesso** (chi può vedere la pagina), **Utenti privati**, **SSO**, **OIDC**, **SCIM**. |
 | **IA** | **MCP**. |
-| **Sviluppatori** | **Terraform**, **API**, **Assistenti IA**: la pagina come codice. |
+| **Sviluppatori** | **Terraform**, **API**, **CLI**, **Assistenti IA**: la pagina come codice. |
 | **Avanzato** | **Stato incorporato**, **Report**, **Campi personalizzati**, **Impostazioni avanzate**, **Registri di audit**, **Elimina pagina di stato**. |
 
 Solo **Base** e **Risorse**, ciò che la pagina mostra, partono aperte. Tutte le altre sezioni partono chiuse, come le sezioni poco usate di ogni menu di OneUptime: fate clic sul titolo di una sezione per mostrarne le pagine. Una sezione si apre da sola quando vi trovate su una delle sue pagine, come **Impostazioni avanzate** o **Iscritti email**.

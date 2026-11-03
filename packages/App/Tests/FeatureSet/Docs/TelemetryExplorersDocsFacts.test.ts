@@ -650,7 +650,7 @@ describe("Service Catalog (telemetry/services)", () => {
     }
 
     expect(page).toContain(
-      "| **Developer** | **Terraform**, **API** and **AI Assistants**: the service managed from code. It starts collapsed. |",
+      "| **Developer** | **Terraform**, **API**, **CLI** and **AI Assistants**: the service managed from code. It starts collapsed. |",
     );
     expect(page).toContain("**Advanced** starts collapsed: expand it first.");
   });

@@ -93,7 +93,7 @@ Sobald eine Statusseite geöffnet ist, ist ihr eigenes Seitenmenü links in zehn
 | **Branding** | **Branding** (Logo, Titel, Favicon, Links, Fußzeile, Farben und Sprachen, auf einer Seite), **Benutzerdefinierte Domains**, **HTML, CSS und JavaScript**. |
 | **Sicherheit** | **Zugriff** (wer die Seite sehen darf), **Private Benutzer**, **SSO**, **OIDC**, **SCIM**. |
 | **KI** | **MCP**. |
-| **Entwickler** | **Terraform**, **API**, **KI-Assistenten** – die Seite als Code. |
+| **Entwickler** | **Terraform**, **API**, **CLI**, **KI-Assistenten** – die Seite als Code. |
 | **Erweitert** | **Eingebetteter Status**, **Berichte**, **Benutzerdefinierte Felder**, **Erweiterte Einstellungen**, **Audit-Protokolle**, **Statusseite löschen**. |
 
 Nur **Grundlegend** und **Ressourcen**, also das, was die Seite zeigt, sind anfangs geöffnet. Jeder andere Abschnitt ist anfangs eingeklappt, wie die selten genutzten Abschnitte jedes Menüs in OneUptime: Klicken Sie auf den Titel eines Abschnitts, um seine Seiten einzublenden. Ein Abschnitt öffnet sich von selbst, sobald Sie auf einer seiner Seiten sind, etwa auf **Erweiterte Einstellungen** oder **E-Mail-Abonnenten**.

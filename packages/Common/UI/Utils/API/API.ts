@@ -71,68 +71,145 @@ class BaseAPI extends API {
     return new BaseAPI(url.protocol, url.hostname, url.route);
   }
 
+  /*
+   * The permission snapshots an answer carries (Common/UI/Utils/Permission
+   * says where they are kept). A project's snapshot is kept for the project
+   * it names, with the hash sent beside it - whichever tab's request it
+   * answered, and whichever project that tab shows - and the person's
+   * global snapshot with its own hash. A hash is kept only with its
+   * snapshot. A header that cannot be read is left out: it never fails the
+   * request it came on.
+   */
   protected static override async onResponseSuccessHeaders(
     headers: Dictionary<string>,
   ): Promise<Dictionary<string>> {
-    if (headers && headers["global-permissions"]) {
-      PermissionUtil.setGlobalPermissions(
-        JSONFunctions.deserialize(
-          JSONFunctions.parseJSONObject(headers["global-permissions"]),
-        ) as UserGlobalAccessPermission,
-      );
-    }
-
-    if (headers && headers["global-permissions-hash"]) {
-      LocalStorage.setItem(
-        "global-permissions-hash",
-        headers["global-permissions-hash"],
-      );
-    }
-
-    if (headers && headers["project-permissions"]) {
-      PermissionUtil.setProjectPermissions(
-        JSONFunctions.deserialize(
-          JSONFunctions.parseJSONObject(headers["project-permissions"]),
-        ) as UserTenantAccessPermission,
-      );
-    }
-
-    if (headers && headers["project-permissions-hash"]) {
-      LocalStorage.setItem(
-        "project-permissions-hash",
-        headers["project-permissions-hash"],
-      );
+    try {
+      BaseAPI.keepPermissionsHeaders(headers);
+    } catch {
+      // Not kept: the server sends them again with the next answer.
     }
 
     return Promise.resolve(headers);
   }
 
-  protected static override getHeaders(): Headers {
+  private static keepPermissionsHeaders(headers: Dictionary<string>): void {
+    if (headers && headers["global-permissions"]) {
+      const globalPermissions: UserGlobalAccessPermission | null =
+        BaseAPI.readPermissionsHeader<UserGlobalAccessPermission>(
+          headers["global-permissions"],
+        );
+
+      if (globalPermissions) {
+        PermissionUtil.setGlobalPermissions(globalPermissions, {
+          hash: headers["global-permissions-hash"],
+        });
+      }
+    }
+
+    if (headers && headers["project-permissions"]) {
+      const projectPermissions: UserTenantAccessPermission | null =
+        BaseAPI.readPermissionsHeader<UserTenantAccessPermission>(
+          headers["project-permissions"],
+        );
+
+      if (projectPermissions) {
+        PermissionUtil.setProjectPermissions(projectPermissions, {
+          hash: headers["project-permissions-hash"],
+        });
+      }
+    }
+  }
+
+  // A permission header's snapshot, or null when it is not one.
+  private static readPermissionsHeader<T extends JSONObject>(
+    value: string,
+  ): T | null {
+    try {
+      const snapshot: JSONObject = JSONFunctions.deserialize(
+        JSONFunctions.parseJSONObject(value),
+      );
+
+      return snapshot && typeof snapshot === "object" ? (snapshot as T) : null;
+    } catch {
+      return null;
+    }
+  }
+
+  /*
+   * What the request tells the server about the snapshots this browser
+   * keeps: the hash of the person's global one, and the hash of the one for
+   * the project the request is about - the project its tenantid header
+   * names, which is not always the project the tab shows (My On-Call
+   * Policies asks every project of the person in turn). A request about no
+   * project sends no project hash. The server then sends a snapshot again
+   * only when it changed.
+   */
+  protected static override getHeaders(requestHeaders?: Headers): Headers {
     let defaultHeaders: Headers = this.getDefaultHeaders();
-
-    const headers: Headers = {};
-
-    const globalPermissionsHash: string = LocalStorage.getItem(
-      "global-permissions-hash",
-    ) as string;
-    if (globalPermissionsHash) {
-      headers["global-permissions-hash"] = globalPermissionsHash;
-    }
-
-    const projectPermissionsHash: string = LocalStorage.getItem(
-      "project-permissions-hash",
-    ) as string;
-
-    if (projectPermissionsHash) {
-      headers["project-permissions-hash"] = projectPermissionsHash;
-    }
 
     defaultHeaders = {
       ...defaultHeaders,
-      ...headers,
+      ...BaseAPI.getPermissionsHashHeaders(requestHeaders),
     };
 
     return defaultHeaders;
+  }
+
+  /*
+   * The hashes are only a saving - the server sends a snapshot it is not
+   * told the browser has - so a request goes out without them rather than
+   * not at all.
+   */
+  private static getPermissionsHashHeaders(
+    requestHeaders: Headers | undefined,
+  ): Headers {
+    const headers: Headers = {};
+
+    try {
+      const globalPermissionsHash: string | null =
+        PermissionUtil.getGlobalPermissionsHash();
+
+      if (globalPermissionsHash) {
+        headers["global-permissions-hash"] = globalPermissionsHash;
+      }
+
+      const tenantId: string | null = BaseAPI.getTenantIdHeader(requestHeaders);
+
+      const projectPermissionsHash: string | null = tenantId
+        ? PermissionUtil.getProjectPermissionsHash(tenantId)
+        : null;
+
+      if (projectPermissionsHash) {
+        headers["project-permissions-hash"] = projectPermissionsHash;
+      }
+    } catch {
+      // Sent without them: the server answers with the snapshots instead.
+    }
+
+    return headers;
+  }
+
+  // The project a request names in its tenantid header, whatever its case.
+  private static getTenantIdHeader(
+    requestHeaders: Headers | undefined,
+  ): string | null {
+    if (!requestHeaders) {
+      return null;
+    }
+
+    for (const name of Object.keys(requestHeaders)) {
+      if (name.toLowerCase() !== "tenantid") {
+        continue;
+      }
+
+      const value: unknown = requestHeaders[name];
+
+      if (typeof value === "string" && value.trim()) {
+        return value.trim();
+      }
+    }
+
+    return null;
   }
 
   protected static logoutUser(): void {

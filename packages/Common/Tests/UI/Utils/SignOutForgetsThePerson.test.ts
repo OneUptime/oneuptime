@@ -113,9 +113,13 @@ const THE_PERSONS_OWN: Record<string, string> = {
   [PROJECT_ID + "_isSubscriptionInactive"]: "false",
   [PROJECT_ID + "_isSubscriptionOverdue"]: "false",
   global_permissions: "{}",
+  "global-permissions-hash": "abc",
+  // Their role in each project they opened (UI/Utils/Permission).
+  ["project_permissions:" + PROJECT_ID]: "{}",
+  ["project-permissions-hash:" + PROJECT_ID]: "abc",
+  // The one name every project shared, as a tab of the version before left it.
   project_permissions: "{}",
   "project-permissions-hash": "abc",
-  "global-permissions-hash": "abc",
   initialUrl: "https://oneuptime.example.com/dashboard/" + PROJECT_ID,
   cardRegistered: "true",
   "session-refreshed-at:dashboard": "1798761600000",

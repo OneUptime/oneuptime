@@ -44,7 +44,7 @@ En applikations egen sidemenu grupperer dens sider sådan; **Indstillinger**, **
 | **Observabilitet** | **Metrikker**, **Protokoller**, **Spor**, **Klienter** |
 | **Sessionsafspilning** | **Sessionsafspilning**, **Brugerforløb**, **Brugere i afspilninger**, **Sundhed**, **Replay Policy**, **Adgangslog for afspilninger**, **Dokumentation** |
 | **Indstillinger** | **Indstillinger** |
-| **Udvikler** | **Terraform**, **API**, **AI-assistenter** |
+| **Udvikler** | **Terraform**, **API**, **CLI**, **AI-assistenter** |
 | **Avanceret** | **Slet applikation** |
 
 ## Sådan genkender OneUptime RUM

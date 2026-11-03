@@ -108,7 +108,7 @@ Il menu laterale di un runbook raggruppa le sue pagine così. Solo **Base** è a
 | **Registri** | **Esecuzioni** |
 | **Proprietari** | **Proprietari** |
 | **Impostazioni** | **Trigger**, **Variabili**, **Impostazioni** |
-| **Sviluppatori** | **Terraform**, **API**, **Assistenti IA** |
+| **Sviluppatori** | **Terraform**, **API**, **CLI**, **Assistenti IA** |
 | **Avanzato** | **Registri di audit**, **Elimina runbook** |
 
 ## Un esempio completo

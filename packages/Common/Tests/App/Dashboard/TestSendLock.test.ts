@@ -102,6 +102,7 @@ import HeldPermissionsUtil from "../../../Types/HeldPermissions";
 import ObjectID from "../../../Types/ObjectID";
 import Permission, { UserPermission } from "../../../Types/Permission";
 import PermissionUtil from "../../../UI/Utils/Permission";
+import { keepProjectPermissionsInTab } from "../../Helpers/TabProjectPermissions";
 
 const DASHBOARD_SRC: string = path.resolve(
   __dirname,
@@ -279,7 +280,8 @@ const storeSnapshot: (rows: Array<UserPermission>) => void = (
     globalPermissions: [Permission.Public, Permission.CurrentUser],
   });
 
-  PermissionUtil.setProjectPermissions({
+  // In the tab that shows the project (Common/UI/Utils/TabProject).
+  keepProjectPermissionsInTab({
     _type: "UserTenantAccessPermission",
     projectId: PROJECT_ID,
     permissions: rows,

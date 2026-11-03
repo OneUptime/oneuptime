@@ -64,7 +64,7 @@ Le menu latéral d'un service compte cinq sections :
 | **Basique** | **Vue d'ensemble** : requêtes, taux d'erreur et latence p95 tirés de ses spans, graphiques et détails. **Recommandations** : des moniteurs prêts à l'emploi pour le service, choisis selon son langage. **Propriétaires** : les personnes et les équipes qui en sont responsables. **Fil d'activité** : tout ce qui lui est arrivé, de sa création à chaque modification depuis. |
 | **Télémétrie** | Ses **Journaux**, **Traces**, **Métriques**, **Profils de performance**, **Exceptions** et **Source Maps**, déjà filtrés sur ce service. |
 | **Activité** | Les **Incidents**, les **Alertes** et les événements de **Maintenance planifiée** qui le concernent. |
-| **Développeurs** | **Terraform**, **API** et **Assistants IA** : le service géré depuis du code. Cette section est d'abord repliée. |
+| **Développeurs** | **Terraform**, **API**, **CLI** et **Assistants IA** : le service géré depuis du code. Cette section est d'abord repliée. |
 | **Avancé** | **Paramètres**, **Journaux d'audit** et **Supprimer le service**. **Avancé** est replié au départ : dépliez-le d'abord. |
 
 Les propriétaires comptent au-delà de la page : un rôle dont la portée est Owned lit la télémétrie des services qui vous appartiennent, à vous ou à vos équipes. Voir [Télémétrie](/docs/permissions/index#télémétrie).

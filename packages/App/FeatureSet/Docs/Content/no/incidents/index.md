@@ -178,7 +178,7 @@ Selve listen over hendelser viser **Hendelsesnummer**, **Tittel**, **Tilstand**,
 | **Team**             | **Roller**, **Vaktutførelser**, **Eiere**                                                 |
 | **Varsler**          | **Varsellogger**, **AI-logger** — brettet sammen til du klikker på **Varsler**            |
 | **Notater**          | **Private notater**, **Offentlige notater**                                               |
-| **Utvikler**         | **Terraform**, **API**, **AI-assistenter** — brettet sammen til du klikker på **Utvikler** |
+| **Utvikler**         | **Terraform**, **API**, **CLI**, **AI-assistenter** — brettet sammen til du klikker på **Utvikler** |
 | **Avansert**         | **Egendefinerte felt**, **Innstillinger**, **Revisjonslogger**, **Slett hendelse** — brettet sammen til du klikker på **Avansert** |
 
 Hva hver side inneholder:

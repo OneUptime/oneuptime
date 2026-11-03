@@ -44,7 +44,10 @@ export enum InstallScriptName {
 export interface InstallScriptEntry {
   // The address's last part: /install/<name>.
   name: InstallScriptName;
-  // What it installs, as people call it.
+  /*
+   * What it installs, as people call it. Never the product's name: the
+   * /install 404 lists these, and a licence can rename the product.
+   */
   title: string;
   /*
    * The folder in the repository the files come from, relative to its root
@@ -88,7 +91,8 @@ export const INSTALL_SCRIPTS: ReadonlyArray<InstallScriptEntry> = [
    */
   {
     name: InstallScriptName.Cli,
-    title: "OneUptime CLI",
+    // As the Dashboard's Developer menus name its page.
+    title: "CLI",
     sourceDirectory: "packages/CLI/Install",
     script: INSTALL_SCRIPT_FILE,
     files: [INSTALL_SCRIPT_FILE],
