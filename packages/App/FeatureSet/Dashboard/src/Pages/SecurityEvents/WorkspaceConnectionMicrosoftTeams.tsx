@@ -5,13 +5,14 @@ import WorkspaceConnectionGate from "../../Components/Workspace/WorkspaceConnect
 import WorkspacePlanLeftoverGate from "../../Components/Workspace/WorkspacePlanLeftoverGate";
 import React, { FunctionComponent, ReactElement } from "react";
 import NotificationRuleEventType from "Common/Types/Workspace/NotificationRules/EventType";
+import { SECURITY_EVENTS_WORKSPACE_EVENT_TYPES } from "../../Utils/SecurityEventsNavigation";
 
 /*
- * Security Events > Workspace > Microsoft Teams: the rules that post security
- * cases to the project's Microsoft Teams channels and chats - when a case
- * opens or rises to a higher priority, is assigned, or has a playbook step
- * waiting for approval. A case gets no channel of its own, so each rule names
- * the channels or chats it posts in.
+ * Security Events > Workspace > Microsoft Teams: the rules that post to the
+ * project's Microsoft Teams channels and chats, a card for each kind, one
+ * under the other, as the Slack page lays them out - security cases, and
+ * what hunts find. Neither a case nor a hunt gets a channel of its own, so
+ * each rule names the channels or chats it posts in.
  */
 const SecurityEventsWorkspaceConnectionMicrosoftTeams: FunctionComponent<
   PageComponentProps
@@ -19,13 +20,22 @@ const SecurityEventsWorkspaceConnectionMicrosoftTeams: FunctionComponent<
   return (
     <WorkspacePlanLeftoverGate
       workspaceType={WorkspaceType.MicrosoftTeams}
-      eventTypes={[NotificationRuleEventType.SecurityCase]}
+      eventTypes={[...SECURITY_EVENTS_WORKSPACE_EVENT_TYPES]}
     >
       <WorkspaceConnectionGate workspaceType={WorkspaceType.MicrosoftTeams}>
-        <WorkspaceNotificationRuleTable
-          workspaceType={WorkspaceType.MicrosoftTeams}
-          eventType={NotificationRuleEventType.SecurityCase}
-        />
+        <div className="space-y-6">
+          {SECURITY_EVENTS_WORKSPACE_EVENT_TYPES.map(
+            (eventType: NotificationRuleEventType): ReactElement => {
+              return (
+                <WorkspaceNotificationRuleTable
+                  key={eventType}
+                  workspaceType={WorkspaceType.MicrosoftTeams}
+                  eventType={eventType}
+                />
+              );
+            },
+          )}
+        </div>
       </WorkspaceConnectionGate>
     </WorkspacePlanLeftoverGate>
   );

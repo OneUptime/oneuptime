@@ -6,10 +6,12 @@ import {
 
 /*
  * The words of hunts in the Dashboard: Security Events > Events > Hunts, a
- * hunt's page, Save as Hunt on Events, and Add to Case wherever events are
- * listed. Each is an en.json key, looked up where it is drawn. What is
- * wrong with a hunt is the shared rules' own words
- * (Common/Types/SecurityEvent/SecurityHunt), keys too.
+ * hunt's page and its Run History, the Hunt Library, Save as Hunt on
+ * Events, and Add to Case wherever events are listed. Each is an en.json
+ * key, looked up where it is drawn. What is wrong with a hunt is the shared
+ * rules' own words (Common/Types/SecurityEvent/SecurityHunt), keys too, and
+ * the Hunt Library's starters are named and described in theirs
+ * (Common/Types/SecurityEvent/SecurityHuntLibrary).
  *
  * A hunt's search is what a person typed, so it is always shown as written,
  * in the mono type, never looked up as words.
@@ -32,7 +34,7 @@ export const HUNTS_EMPTY_TITLE: string = translationKey("No hunts yet");
  * description, right above it: not said a second time.
  */
 export const HUNTS_EMPTY_DESCRIPTION: string = translationKey(
-  "Search on Events and choose Save as Hunt from its Hunts list, or create one here.",
+  "Add one from the Hunt Library, save a search from Events with Save as Hunt, or create one here.",
 );
 
 export const SEARCH_EVENTS: string = translationKey("Search Events");
@@ -82,6 +84,15 @@ export const NOT_RUN_YET: string = translationKey("Not run yet");
 export const COULD_NOT_RUN: string = translationKey("Couldn't run");
 
 // ---------- The form ----------
+
+/*
+ * The filters a hunt keeps beside its search, as Events' sidebar made them,
+ * each a chip in Edit with its x: the field is shown only while it has some.
+ */
+export const FILTERS_FIELD_TITLE: string = translationKey("Filters");
+export const FILTERS_FIELD_DESCRIPTION: string = translationKey(
+  "Kept beside the search, as picked in the Events sidebar. Remove one here, or change them on the hunt's page.",
+);
 
 export const SEARCH_STEP_TITLE: string = translationKey("Search");
 export const SCHEDULE_STEP_TITLE: string = translationKey("Schedule");
@@ -246,6 +257,61 @@ export const KEPT_EVENT_NOTE: string = translationKey(
   "Kept on this case as OneUptime read it {{time}}.",
 );
 
+// ---------- A hunt's Run History ----------
+
+// The link beside what its runs found, and the panel it opens.
+export const RUN_HISTORY: string = translationKey("Run history");
+export const RUN_HISTORY_TITLE: string = translationKey("Run History");
+export const RUN_HISTORY_DESCRIPTION: string = translationKey(
+  "Each scheduled run, newest first: the events it searched and what it found. Runs are kept for 90 days.",
+);
+export const RUN_SINGULAR: string = translationKey("Run");
+export const RUN_PLURAL: string = translationKey("Runs");
+export const RUN_COLUMN_TITLE: string = translationKey("Run");
+export const RUN_FOUND_COLUMN_TITLE: string = translationKey("Found");
+// Under when a run ran: the events it read.
+export const RUN_SEARCHED: string = translationKey(
+  "Searched {{start}} to {{end}}",
+);
+export const RUN_NOTHING_FOUND: string = translationKey("Nothing found");
+// Its first sentence is the empty list's title, the rest its description.
+export const RUN_HISTORY_EMPTY: string = translationKey(
+  "No runs in the last 90 days. Each scheduled run is listed here once it has run.",
+);
+
+// ---------- The Hunt Library ----------
+
+export const HUNT_LIBRARY_TITLE: string = translationKey("Hunt Library");
+export const HUNT_LIBRARY_DESCRIPTION: string = translationKey(
+  "Ready-made searches for what security teams look for most. Try one on Events, or add it to your hunts to open it again or run it on a schedule.",
+);
+/*
+ * "Hunt category", as the Rule Library's chip is "Rule category": the
+ * product's "Category" is still English in many languages, whose docs
+ * quote it as drawn.
+ */
+export const HUNT_CATEGORY_FILTER_LABEL: string =
+  translationKey("Hunt category");
+export const HUNT_LIBRARY_COUNT: PluralTemplate = {
+  one: "{{count}} hunt",
+  other: "{{count}} hunts",
+};
+export const HUNT_LIBRARY_SEARCH: string = translationKey("Search hunts");
+export const NO_MATCHING_LIBRARY_HUNT: string = translationKey(
+  "No hunt matches your search or filters.",
+);
+// The project sent no security event this week: said once, over the list.
+export const HUNT_LIBRARY_NOTHING_SENT: string = translationKey(
+  "No security events arrived in the last 7 days, so no hunt has anything to find yet.",
+);
+// What a starter that reads any event reads, in its Data column.
+export const ANY_SECURITY_EVENTS: string = translationKey(
+  "Any security events",
+);
+// A starter's buttons: its search on Events, unsaved; added, its hunt's page.
+export const TRY_IT: string = translationKey("Try it");
+export const OPEN_HUNT: string = translationKey("Open");
+
 export const HUNTS_TEST_IDS: {
   table: string;
   nameCell: string;
@@ -277,6 +343,30 @@ export const HUNTS_TEST_IDS: {
   caseOption: string;
   eventEvidenceMeta: string;
   eventEvidenceHunt: string;
+  formFilters: string;
+  runHistoryLink: string;
+  runHistory: string;
+  runHistoryTable: string;
+  runRow: string;
+  runShowThem: string;
+  library: string;
+  libraryTable: string;
+  libraryButton: string;
+  libraryEntry: string;
+  libraryTry: string;
+  libraryAdd: string;
+  libraryAdded: string;
+  libraryOpen: string;
+  libraryProblem: string;
+  libraryCount: string;
+  librarySearch: string;
+  libraryFilters: string;
+  libraryCategoryFilter: string;
+  libraryDataFilter: string;
+  libraryStatusFilter: string;
+  libraryNothingSent: string;
+  libraryDataUnknown: string;
+  libraryNoMatch: string;
 } = {
   table: "security-hunts-table",
   nameCell: "security-hunt-name",
@@ -309,4 +399,31 @@ export const HUNTS_TEST_IDS: {
   caseOption: "security-add-to-case-picker-option",
   eventEvidenceMeta: "security-case-evidence-event-meta",
   eventEvidenceHunt: "security-case-evidence-event-hunt",
+  formFilters: "security-hunt-form-filters",
+  runHistoryLink: "security-hunt-run-history-link",
+  runHistory: "security-hunt-run-history",
+  runHistoryTable: "security-hunt-runs",
+  // Each run's own: `${runRow}-${runId}`.
+  runRow: "security-hunt-run",
+  runShowThem: "security-hunt-run-show-them",
+  library: "security-hunt-library",
+  libraryTable: "security-hunt-library-table",
+  // On the Hunts list's card and its empty state.
+  libraryButton: "security-hunts-library",
+  // Each starter's own: `${libraryEntry}-${starterId}`, and the same for its buttons.
+  libraryEntry: "security-hunt-library-entry",
+  libraryTry: "security-hunt-library-try",
+  libraryAdd: "security-hunt-library-add",
+  libraryAdded: "security-hunt-library-added",
+  libraryOpen: "security-hunt-library-open",
+  libraryProblem: "security-hunt-library-problem",
+  libraryCount: "security-hunt-library-count",
+  librarySearch: "security-hunt-library-search",
+  libraryFilters: "security-hunt-library-filters",
+  libraryCategoryFilter: "security-hunt-library-category",
+  libraryDataFilter: "security-hunt-library-data",
+  libraryStatusFilter: "security-hunt-library-status",
+  libraryNothingSent: "security-hunt-library-nothing-sent",
+  libraryDataUnknown: "security-hunt-library-data-unknown",
+  libraryNoMatch: "security-hunt-library-no-match",
 };

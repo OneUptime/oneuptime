@@ -10,6 +10,7 @@ import {
   MORE_ACTIONS,
   NEXT_RUN,
   RUNS_FOUND_NOTHING_YET,
+  RUN_HISTORY,
   SAVED_SEARCH,
   SAVE_CHANGES,
   SCHEDULE_LABELS,
@@ -80,7 +81,16 @@ export interface ComponentProps {
   onDelete: () => void;
   // Show what the last run that found something found: its window, on the explorer.
   onShowWindow: (window: SecurityHuntRunWindow) => void;
+  // Open the hunt's Run History: every run of the last 90 days.
+  onShowRunHistory: () => void;
 }
+
+/*
+ * The way to a hunt's Run History, at the end of the line that says what
+ * its runs found - beside Show them - for a hunt that has run.
+ */
+export const HUNT_LINK_BUTTON_CLASS_NAME: string =
+  "font-medium text-indigo-600 hover:text-indigo-700 hover:underline focus:outline-none focus-visible:ring-2 focus-visible:ring-indigo-500";
 
 /*
  * The actions over a changed search, in the notice that says so: beside
@@ -120,6 +130,25 @@ const HuntHeader: FunctionComponent<ComponentProps> = (
   const runState: HuntRunState = getHuntRunState(hunt);
   const lastFoundWindow: SecurityHuntRunWindow | null =
     getHuntLastFoundWindow(hunt);
+  // A hunt that has run on its schedule has a history to open.
+  const hasRunHistory: boolean = Boolean(hunt.lastRunAt);
+  const runHistoryLink: ReactElement = hasRunHistory ? (
+    <>
+      <span aria-hidden="true" className="text-gray-400">
+        ·
+      </span>
+      <button
+        type="button"
+        className={HUNT_LINK_BUTTON_CLASS_NAME}
+        data-testid={HUNTS_TEST_IDS.runHistoryLink}
+        onClick={props.onShowRunHistory}
+      >
+        {translator.translateText(RUN_HISTORY) || RUN_HISTORY}
+      </button>
+    </>
+  ) : (
+    <></>
+  );
   const hasFacts: boolean =
     Boolean(hunt.description) ||
     isScheduled ||
@@ -331,7 +360,7 @@ const HuntHeader: FunctionComponent<ComponentProps> = (
                 {lastFoundWindow ? (
                   <button
                     type="button"
-                    className="font-medium text-indigo-600 hover:text-indigo-700 hover:underline focus:outline-none focus-visible:ring-2 focus-visible:ring-indigo-500"
+                    className={HUNT_LINK_BUTTON_CLASS_NAME}
                     data-testid={HUNTS_TEST_IDS.showThem}
                     onClick={() => {
                       props.onShowWindow(lastFoundWindow);
@@ -342,39 +371,48 @@ const HuntHeader: FunctionComponent<ComponentProps> = (
                 ) : (
                   <></>
                 )}
+                {runHistoryLink}
               </p>
             ) : (
               <></>
             )}
             {runState === HuntRunState.NothingFound ? (
               <p
-                className="text-xs text-gray-500"
+                className="flex flex-wrap items-center gap-x-2 text-xs text-gray-500"
                 data-testid={HUNTS_TEST_IDS.lastFound}
               >
-                {translator.translateText(RUNS_FOUND_NOTHING_YET) ||
-                  RUNS_FOUND_NOTHING_YET}
+                <span>
+                  {translator.translateText(RUNS_FOUND_NOTHING_YET) ||
+                    RUNS_FOUND_NOTHING_YET}
+                </span>
+                {runHistoryLink}
               </p>
             ) : (
               <></>
             )}
             {runState === HuntRunState.Failed ? (
               <div
-                className="flex items-start gap-1.5 text-xs text-red-700"
-                role="alert"
+                className="flex flex-wrap items-start gap-x-2 gap-y-0.5 text-xs"
                 data-testid={HUNTS_TEST_IDS.lastFound}
               >
-                <Icon
-                  icon={IconProp.Alert}
-                  className="mt-0.5 h-3.5 w-3.5 shrink-0"
-                />
-                <span>
-                  {translator.translateTemplate(LAST_RUN_FAILED, {
-                    error:
-                      translator.translateText(hunt.lastRunError || "") ||
-                      hunt.lastRunError ||
-                      "",
-                  })}
-                </span>
+                <div
+                  className="flex min-w-0 items-start gap-1.5 text-red-700"
+                  role="alert"
+                >
+                  <Icon
+                    icon={IconProp.Alert}
+                    className="mt-0.5 h-3.5 w-3.5 shrink-0"
+                  />
+                  <span>
+                    {translator.translateTemplate(LAST_RUN_FAILED, {
+                      error:
+                        translator.translateText(hunt.lastRunError || "") ||
+                        hunt.lastRunError ||
+                        "",
+                    })}
+                  </span>
+                </div>
+                {runHistoryLink}
               </div>
             ) : (
               <></>

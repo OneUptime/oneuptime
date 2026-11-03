@@ -1,6 +1,8 @@
 import {
   DESCRIPTION_FIELD_PLACEHOLDER,
   DESCRIPTION_FIELD_TITLE,
+  FILTERS_FIELD_DESCRIPTION,
+  FILTERS_FIELD_TITLE,
   NAME_FIELD_PLACEHOLDER,
   NAME_FIELD_TITLE,
   SCHEDULE_FIELD_DESCRIPTION,
@@ -17,6 +19,7 @@ import {
   TELL_FIELD_DESCRIPTION,
   TELL_FIELD_TITLE,
 } from "./HuntsCopy";
+import { renderHuntFormFilters } from "./HuntFormFilters";
 import SecurityHunt from "Common/Models/DatabaseModels/SecurityHunt";
 import ObjectID from "Common/Types/ObjectID";
 import {
@@ -183,9 +186,12 @@ export function getHuntTellProblem(
 
 /*
  * Create Hunt and Edit: the search step, then the schedule step. The
- * hunt's filters - chips it was saved from Events with - are never shown
- * (they are changed on the hunt's page, on the Events explorer), but read,
- * so the form knows whether the search may be empty.
+ * hunt's filters - chips it was saved from Events with - are drawn under
+ * its search while it has some, each with its x (HuntFormFilters): taken
+ * off here, they are taken off the hunt; they are added on the hunt's page,
+ * from the Events explorer's sidebar. The form reads them to know whether
+ * the search may be empty: a hunt whose last chip is taken off needs a
+ * search.
  */
 export function getHuntFormFields(data: {
   translator: Translator;
@@ -224,12 +230,14 @@ export function getHuntFormFields(data: {
     {
       field: { filters: true },
       stepId: "search",
-      title: "Filters",
-      fieldType: FormFieldSchemaType.JSON,
+      title: FILTERS_FIELD_TITLE,
+      description: FILTERS_FIELD_DESCRIPTION,
+      fieldType: FormFieldSchemaType.CustomComponent,
       required: false,
-      showIf: (): boolean => {
-        return false;
-      },
+      // A hunt saved from a search alone has none, and no field for them.
+      showIf: hasHuntFormFilters,
+      getCustomElement: renderHuntFormFilters,
+      dataTestId: "hunt-filters",
     },
     {
       field: { timeRange: true },

@@ -1,6 +1,7 @@
 import PageMap from "./PageMap";
 import { getSecurityCasePages } from "./SecurityCaseNavigation";
 import IconProp from "Common/Types/Icon/IconProp";
+import NotificationRuleEventType from "Common/Types/Workspace/NotificationRules/EventType";
 
 /*
  * The Security Events menu, as data.
@@ -15,7 +16,9 @@ import IconProp from "Common/Types/Icon/IconProp";
  *   Events           every security event, who is riskiest and how they
  *                    connect: Events, Hunts (searches over them saved to
  *                    open again, or run on a schedule that tells people
- *                    what they find), Campaigns (who is attacking, and
+ *                    what they find), the Hunt Library (ready-made hunts,
+ *                    one click from being the project's own), Campaigns
+ *                    (who is attacking, and
  *                    whether any of it got through), Entity Risk (every
  *                    user, host and address scored by everything found
  *                    about it, and a lookup for any value) and Correlate
@@ -155,6 +158,17 @@ export const SECURITY_EVENTS_MENU: Array<SecurityEventsMenuSection> = [
         title: "Hunts",
         icon: IconProp.ViewfinderCircle,
         detailPages: [PageMap.SECURITY_EVENTS_HUNT_VIEW],
+      },
+      {
+        /*
+         * Ready-made hunts - failed sign-ins, encoded PowerShell, the AWS
+         * root account, a shell in a pod - each one click from being a hunt
+         * of the project's own, as the Rule Library's rules are from being
+         * its detection rules (Types/SecurityEvent/SecurityHuntLibrary).
+         */
+        page: PageMap.SECURITY_EVENTS_HUNT_LIBRARY,
+        title: "Hunt Library",
+        icon: IconProp.SquareStack,
       },
       {
         /*
@@ -399,6 +413,17 @@ export const SECURITY_EVENTS_WORKSPACE_PAGES: SecurityEventsWorkspacePages = {
 
 // The section the Workspace section is drawn in front of.
 export const SECURITY_EVENTS_WORKSPACE_SECTION_BEFORE: string = "Connections";
+
+/*
+ * The kinds of rule the Slack and Microsoft Teams pages hold, a card each,
+ * one under the other: the rules that post security cases, then the rules
+ * that post what hunts find.
+ */
+export const SECURITY_EVENTS_WORKSPACE_EVENT_TYPES: ReadonlyArray<NotificationRuleEventType> =
+  [
+    NotificationRuleEventType.SecurityCase,
+    NotificationRuleEventType.SecurityHunt,
+  ];
 
 /*
  * Where each Workspace page is, as its breadcrumbs say it. Slack and

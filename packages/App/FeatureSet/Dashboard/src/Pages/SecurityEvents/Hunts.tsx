@@ -6,6 +6,7 @@ import {
   HUNTS_TABLE_TITLE,
   HUNTS_TEST_IDS,
   HUNT_COLUMN_TITLE,
+  HUNT_LIBRARY_TITLE,
   HUNT_PLURAL,
   HUNT_SINGULAR,
   LAST_FOUND_COLUMN_TITLE,
@@ -26,12 +27,14 @@ import {
   getNewHuntInitialValues,
 } from "../../Components/SecurityEvents/Hunts/HuntFormFields";
 import {
+  getHuntLibraryRoute,
   getHuntViewRoute,
   getHuntsRoute,
   getSecurityEventsRoute,
 } from "../../Components/SecurityEvents/Hunts/HuntsModel";
 import SecurityHunt from "Common/Models/DatabaseModels/SecurityHunt";
 import SortOrder from "Common/Types/BaseDatabase/SortOrder";
+import { ButtonStyleType } from "Common/UI/Components/Button/Button";
 import IconProp from "Common/Types/Icon/IconProp";
 import ObjectID from "Common/Types/ObjectID";
 import { SecurityHuntSchedule } from "Common/Types/SecurityEvent/SecurityHunt";
@@ -54,7 +57,8 @@ import React, { FunctionComponent, ReactElement } from "react";
  * A row opens the hunt's page - its search, opened on the Events explorer.
  * Create Hunt asks what it searches for, then whether it runs on a
  * schedule; most hunts are saved from Events instead (Save as Hunt), with
- * the search on screen, and the empty list says so.
+ * the search on screen, or added from the Hunt Library - its button beside
+ * Create Hunt - and the empty list says so.
  */
 const SecurityHuntsPage: FunctionComponent<PageComponentProps> = (
   props: PageComponentProps,
@@ -109,12 +113,31 @@ const SecurityHuntsPage: FunctionComponent<PageComponentProps> = (
       cardProps={{
         title: HUNTS_TABLE_TITLE,
         description: HUNTS_TABLE_DESCRIPTION,
+        // The ready-made ones, beside Create Hunt.
+        buttons: [
+          {
+            title: HUNT_LIBRARY_TITLE,
+            icon: IconProp.SquareStack,
+            buttonStyle: ButtonStyleType.OUTLINE,
+            onClick: (): void => {
+              Navigation.navigate(getHuntLibraryRoute());
+            },
+          },
+        ],
       }}
       emptyState={{
         title: HUNTS_EMPTY_TITLE,
         description: HUNTS_EMPTY_DESCRIPTION,
         icon: IconProp.ViewfinderCircle,
         actions: [
+          {
+            title: HUNT_LIBRARY_TITLE,
+            icon: IconProp.SquareStack,
+            dataTestId: HUNTS_TEST_IDS.libraryButton,
+            onClick: (): void => {
+              Navigation.navigate(getHuntLibraryRoute());
+            },
+          },
           {
             title: SEARCH_EVENTS,
             icon: IconProp.List,

@@ -2073,6 +2073,18 @@ export const PAGE_SEARCH_AREAS: ReadonlyArray<PageSearchArea> = [
             ],
           },
           {
+            page: PageMap.SECURITY_EVENTS_HUNT_LIBRARY,
+            title: "Hunt Library",
+            icon: IconProp.SquareStack,
+            keywords: [
+              "starter hunts",
+              "hunt templates",
+              "ready-made searches",
+              "hunting queries",
+              "threat hunting",
+            ],
+          },
+          {
             page: PageMap.SECURITY_EVENTS_CAMPAIGNS,
             title: "Campaigns",
             icon: IconProp.Flag,
