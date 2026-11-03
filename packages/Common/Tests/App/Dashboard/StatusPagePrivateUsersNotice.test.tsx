@@ -148,15 +148,39 @@ describe("the Private Users notice", () => {
   test("reads what decides who can see the page", async () => {
     await renderPage();
 
-    const request: { select: JSONObject; id: ObjectID } = getItemMock.mock
-      .calls[0]![0] as { select: JSONObject; id: ObjectID };
+    /*
+     * The page's own read. The Sign-In Links switch under More settings
+     * reads its column too, whichever lands first.
+     */
+    const requests: Array<{ select: JSONObject; id: ObjectID }> =
+      getItemMock.mock.calls.map((call: Array<unknown>) => {
+        return call[0] as { select: JSONObject; id: ObjectID };
+      });
+    const request: { select: JSONObject; id: ObjectID } | undefined =
+      requests.find((candidate: { select: JSONObject }): boolean => {
+        return candidate.select["isPublicStatusPage"] === true;
+      });
 
-    expect(request.id.toString()).toBe(STATUS_PAGE_ID);
-    expect(request.select).toEqual({
+    expect(request?.id.toString()).toBe(STATUS_PAGE_ID);
+    expect(request?.select).toEqual({
       isPublicStatusPage: true,
       enableMasterPassword: true,
       masterPassword: true,
     });
+
+    // And the switch reads only its own column, of the same page.
+    expect(
+      requests
+        .filter((candidate: { select: JSONObject }): boolean => {
+          return candidate !== request;
+        })
+        .map((candidate: { select: JSONObject; id: ObjectID }) => {
+          return {
+            id: candidate.id.toString(),
+            select: candidate.select,
+          };
+        }),
+    ).toEqual([{ id: STATUS_PAGE_ID, select: { enableMagicLinkLogin: true } }]);
   });
 
   test("shows while visitors enter the password, with its message and the way to Access", async () => {

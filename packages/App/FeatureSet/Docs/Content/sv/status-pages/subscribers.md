@@ -98,7 +98,7 @@ Varje gräns per nätverk räknar också adresserna i ett IPv6 /64 tillsammans, 
 
 **Det ditt team skickar räknas också.** Inget begränsar hur snabbt ditt team lägger till prenumeranter, på instrumentpanelen, i bulk, via API:t eller med ett arbetsflöde. Men meddelandet som en tillagd prenumerant får, e-postmeddelandet som ber om bekräftelse eller meddelandet om att den prenumererar, räknas in i kontaktens 10 registreringar på en timme, och över dem avvisas tillägget med `429`. En prenumerant som läggs till utan meddelande räknas aldrig: **Lägg till dem som prenumeranter nu** för en e-postadress, eller **Skicka ett välkomstmeddelande** avstängt för de andra kanalerna. Om hastighetsbegränsaren inte kan nås fortsätter ditt teams tillägg oräknade.
 
-En privat användare som ber om en länk för att återställa lösenordet på statussidans inloggningssida är begränsad på samma sätt: 5 återställningsmejl till en adress på en timme, på alla statussidor tillsammans, och 30 från ett nätverk på 15 minuter. En inbjudan, till en privat statussida eller till ett projekt, räknas också per adress: 10 till en adress på en timme, båda slagen tillsammans.
+En privat användare som ber om en länk för att återställa lösenordet på statussidans inloggningssida är begränsad på samma sätt: 5 återställningsmejl till en adress på en timme, på alla statussidor tillsammans, och 30 från ett nätverk på 15 minuter. En inbjudan, till en privat statussida eller till ett projekt, räknas också per adress: 10 till en adress på en timme, båda slagen tillsammans. Att be om en inloggningslänk på inloggningssidan är också begränsat, och räknas oavsett om adressen tillhör en privat användare av sidan eller inte: 10 mejl till en adress på en timme, på alla statussidor tillsammans, och 30 från ett nätverk på 15 minuter.
 
 På en egenvärdad installation ändrar de här miljövariablerna i OneUptime-appen gränserna:
 
@@ -113,6 +113,8 @@ På en egenvärdad installation ändrar de här miljövariablerna i OneUptime-ap
 | `PUBLIC_MESSAGE_RATE_LIMIT_STATUS_PAGE_MANAGE_LINKS_PER_CONTACT` | `5` | Hanteringslänkar för en kontakt per tidsfönster. |
 | `PUBLIC_MESSAGE_RATE_LIMIT_STATUS_PAGE_PASSWORD_RESETS_PER_IP` | `30` | Lösenordsåterställningar för privata användare som begärs från en adress per tidsfönster. |
 | `PUBLIC_MESSAGE_RATE_LIMIT_STATUS_PAGE_PASSWORD_RESETS_PER_CONTACT` | `5` | Återställningsmejl för privata användare till en adress per tidsfönster. |
+| `PUBLIC_MESSAGE_RATE_LIMIT_STATUS_PAGE_MAGIC_LINKS_PER_IP` | `30` | Inloggningslänkar för privata användare som begärs från en adress per tidsfönster. |
+| `PUBLIC_MESSAGE_RATE_LIMIT_STATUS_PAGE_MAGIC_LINKS_PER_CONTACT` | `10` | Mejl med inloggningslänk för privata användare till en adress per tidsfönster. |
 | `PUBLIC_MESSAGE_RATE_LIMIT_INVITATIONS_PER_CONTACT` | `10` | Inbjudningar till en adress per fönster, till privata statussidor och projekt tillsammans. |
 
 Varken `config.env` eller Helm-diagrammets värden skickar dem vidare: lägg själv till dem i miljön för containern `app`, med `app.extraEnv`, eller hela diagrammets `extraEnv`, i Helm-diagrammet, eller i en `docker-compose.override.yml` för Docker Compose. `TRUSTED_PROXY_HOPS` avgör vilken adress gränserna per nätverk räknar.

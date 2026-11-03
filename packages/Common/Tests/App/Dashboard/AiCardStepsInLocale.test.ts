@@ -12,12 +12,10 @@ import {
 import {
   REMEDIATION_CODE_FIX_AUTOMATIC_REASONS,
   REMEDIATION_CODE_FIX_COPY,
-  REMEDIATION_FIX_CHANGES_SENTENCE,
-  REMEDIATION_FIX_COMMANDS_SENTENCE,
   REMEDIATION_FIX_FAILED_COUNT,
   REMEDIATION_FIX_HIDE_DETAILS,
   REMEDIATION_FIX_REVIEW_AND_APPROVE,
-  REMEDIATION_FIX_SHOW_DETAILS,
+  REMEDIATION_FIX_STEP_COPY,
   REMEDIATION_STEP_NOT_TRIED,
   REMEDIATION_STEP_STATUS_LABEL,
   REMEDIATION_STEP_TITLE,
@@ -95,6 +93,22 @@ function readLocale(locale: string): Record<string, string> {
 
 const ENGLISH: Record<string, string> = readLocale("en");
 
+/*
+ * A fix's steps (issue #5598): each sentence, and each counted sentence's
+ * general form - its form for one is checked with the plurals below.
+ */
+const FIX_STEP_WORDS: Array<string> = Object.values(
+  REMEDIATION_FIX_STEP_COPY,
+).map((words: string | PluralTemplate): string => {
+  return typeof words === "string" ? words : words.other;
+});
+
+const FIX_STEP_PLURALS: Array<PluralTemplate> = Object.values(
+  REMEDIATION_FIX_STEP_COPY,
+).filter((words: string | PluralTemplate): words is PluralTemplate => {
+  return typeof words !== "string";
+});
+
 // Every sentence and label the two steps added, by the key they are looked up with.
 const WORDS: Array<string> = Array.from(
   new Set<string>([
@@ -129,15 +143,14 @@ const WORDS: Array<string> = Array.from(
       ];
     }),
     /*
-     * A fix folded to its sentence, and what opens it (#5413's UI review),
-     * and what to do under a cluster's or resource's Fixes off, and a
-     * resolved record's monitor line.
+     * A fix, step by step, and what opens the plan of one that waits for
+     * approval (issue #5598), its failures in red, and what to do under a
+     * cluster's or resource's Fixes off, and a resolved record's monitor
+     * line.
      */
+    ...FIX_STEP_WORDS,
     REMEDIATION_FIX_REVIEW_AND_APPROVE,
-    REMEDIATION_FIX_SHOW_DETAILS,
     REMEDIATION_FIX_HIDE_DETAILS,
-    REMEDIATION_FIX_COMMANDS_SENTENCE.other,
-    REMEDIATION_FIX_CHANGES_SENTENCE.other,
     REMEDIATION_FIX_FAILED_COUNT.other,
     TURN_FIXES_ON_WHAT_TO_DO,
     LINK_MONITOR_FOR_NEXT_TIME,
@@ -248,20 +261,20 @@ describe.each(LANGUAGES)("the %s locale", (language: string) => {
 });
 
 /*
- * A folded fix's counted sentences: each language words the form for one
- * too ("_one"), with the same placeholders. Japanese, Korean and Chinese
- * have no form for one of their own, so theirs is never shown; it is
- * there all the same, as en.json's keys are.
+ * A fix's counted sentences - what its steps planned, ran, made, rolled
+ * back and how long they watched, and how many failed: each language words
+ * the form for one too ("_one"), with the same placeholders. Japanese,
+ * Korean and Chinese have no form for one of their own, so theirs is never
+ * shown; it is there all the same, as en.json's keys are.
  */
 const PLURALS: Array<PluralTemplate> = [
-  REMEDIATION_FIX_COMMANDS_SENTENCE,
-  REMEDIATION_FIX_CHANGES_SENTENCE,
+  ...FIX_STEP_PLURALS,
   REMEDIATION_FIX_FAILED_COUNT,
 ];
 
 const NO_FORM_FOR_ONE: ReadonlyArray<string> = ["ja", "ko", "zh-CN", "zh-TW"];
 
-describe("a folded fix's counted sentences", () => {
+describe("a fix's counted sentences", () => {
   test.each(PLURALS)(
     "English holds $other and its form for one",
     (plural: PluralTemplate) => {

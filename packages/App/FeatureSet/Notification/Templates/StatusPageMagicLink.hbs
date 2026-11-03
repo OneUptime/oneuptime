@@ -1,0 +1,30 @@
+{{> Start this}}
+
+{{> CustomLogo this}}
+
+{{!--
+  A private status page's sign-in link (Types/StatusPage/StatusPageMagicLink),
+  sent when somebody asks for one with this address on the page's sign-in
+  page - which may not have been its owner, so the closing note says what
+  happens if it is ignored. The page's name is chosen by its team, so every
+  line that carries it is printed through plainInfo - escaped - never
+  through the raw `info`.
+--}}
+
+{{> EmailTitle title=(concat "Log in to " statusPageName) }}
+
+{{> InfoBlock plainInfo=(concat "Use the button below to log in to " statusPageName ". You don't need your password.")}}
+
+{{> ButtonBlock buttonUrl=tokenVerifyUrl buttonText="Log In"}}
+
+{{> LinkBlock linkUrl=tokenVerifyUrl linkLabel="You can also copy and paste this link:"}}
+
+{{> InfoBlock plainInfo=(concat "The link works once and expires in " expiresInMinutes " minutes. Asking for another link replaces this one.")}}
+
+{{> InfoBlock plainInfo="If you didn't ask to log in, you can ignore this email. Nobody can log in without the link."}}
+
+{{> InfoBlock plainInfo=(concat statusPageName " Team.")}}
+
+{{> VerticalSpace this}}
+
+{{> End this}}

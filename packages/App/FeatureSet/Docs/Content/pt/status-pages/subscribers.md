@@ -98,7 +98,7 @@ Cada limite por rede também conta juntos os endereços de um mesmo IPv6 /64, co
 
 **O que sua equipe envia também conta.** Nada limita a rapidez com que sua equipe adiciona assinantes, no painel, em massa, pela API ou por um workflow. Mas a mensagem que um assinante adicionado recebe, o e-mail que pede para confirmar ou a mensagem que diz que está inscrito, conta nas 10 inscrições por hora desse contato, e acima delas essa adição é recusada com `429`. Um assinante adicionado sem mensagem nunca é contado: **Inscrevê-los agora** para um endereço de e-mail, ou **Enviar uma mensagem de boas-vindas** desativado para os outros canais. Se o limitador de taxa não puder ser alcançado, as adições da sua equipe seguem sem ser contadas.
 
-Um usuário privado que pede um link para redefinir a senha na página de login da página de status é limitado da mesma forma: 5 e-mails de redefinição para um endereço em uma hora, em todas as páginas de status juntas, e 30 a partir de uma rede em 15 minutos. Um convite, para uma página de status privada ou para um projeto, também é contado por endereço: 10 para um endereço em uma hora, os dois tipos juntos.
+Um usuário privado que pede um link para redefinir a senha na página de login da página de status é limitado da mesma forma: 5 e-mails de redefinição para um endereço em uma hora, em todas as páginas de status juntas, e 30 a partir de uma rede em 15 minutos. Um convite, para uma página de status privada ou para um projeto, também é contado por endereço: 10 para um endereço em uma hora, os dois tipos juntos. Pedir um link de acesso na página de login também é limitado, e é contado seja o endereço de um usuário privado da página ou não: 10 e-mails para um endereço em uma hora, em todas as páginas de status juntas, e 30 a partir de uma rede em 15 minutos.
 
 Em uma instalação auto-hospedada, estas variáveis de ambiente do app do OneUptime alteram os limites:
 
@@ -113,6 +113,8 @@ Em uma instalação auto-hospedada, estas variáveis de ambiente do app do OneUp
 | `PUBLIC_MESSAGE_RATE_LIMIT_STATUS_PAGE_MANAGE_LINKS_PER_CONTACT` | `5` | Links de gerenciamento para um contato por janela. |
 | `PUBLIC_MESSAGE_RATE_LIMIT_STATUS_PAGE_PASSWORD_RESETS_PER_IP` | `30` | Redefinições de senha de usuários privados pedidas a partir de um endereço por janela. |
 | `PUBLIC_MESSAGE_RATE_LIMIT_STATUS_PAGE_PASSWORD_RESETS_PER_CONTACT` | `5` | E-mails de redefinição de senha de usuários privados para um endereço por janela. |
+| `PUBLIC_MESSAGE_RATE_LIMIT_STATUS_PAGE_MAGIC_LINKS_PER_IP` | `30` | Links de acesso de usuários privados pedidos a partir de um endereço por janela. |
+| `PUBLIC_MESSAGE_RATE_LIMIT_STATUS_PAGE_MAGIC_LINKS_PER_CONTACT` | `10` | E-mails com link de acesso de usuários privados para um endereço por janela. |
 | `PUBLIC_MESSAGE_RATE_LIMIT_INVITATIONS_PER_CONTACT` | `10` | Convites para um endereço por janela, para páginas de status privadas e projetos juntos. |
 
 Nem o `config.env` nem os valores do chart do Helm os repassam: adicione-os você mesmo ao ambiente do contêiner `app`, com `app.extraEnv`, ou o `extraEnv` do chart inteiro, no chart do Helm, ou em um `docker-compose.override.yml` para o Docker Compose. `TRUSTED_PROXY_HOPS` decide qual endereço os limites por rede contam.

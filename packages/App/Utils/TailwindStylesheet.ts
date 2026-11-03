@@ -52,13 +52,19 @@ export const getTailwindStylesheetFileName: (css: string) => string = (
   return `tailwind.${hash}.css`;
 };
 
-// The addresses a site's stylesheet can have, whichever build made it.
-export const getTailwindStylesheetRoutePattern: (
-  hrefPrefix: string,
-) => RegExp = (hrefPrefix: string): RegExp => {
-  const escaped: string = hrefPrefix.replace(/[.*+?^${}()|[\]\\/]/g, "\\$&");
-
-  return new RegExp(`^${escaped}tailwind\\.[0-9a-f]{${HASH_LENGTH}}\\.css$`);
+/*
+ * Whether a path is an address a site's stylesheet can have, whichever build
+ * made it: the site's prefix, then a build's file name. Read without a
+ * pattern built from the prefix, so nothing in it is ever read as a pattern.
+ */
+export const isTailwindStylesheetAddress: (data: {
+  hrefPrefix: string;
+  path: string;
+}) => boolean = (data: { hrefPrefix: string; path: string }): boolean => {
+  return (
+    data.path.startsWith(data.hrefPrefix) &&
+    FileNamePattern.test(data.path.slice(data.hrefPrefix.length))
+  );
 };
 
 /*
@@ -115,10 +121,6 @@ export const serveTailwindStylesheet: (data: {
   stylesheet: TailwindStylesheet | null;
   hrefPrefix: string;
 }): RequestHandler => {
-  const routePattern: RegExp = getTailwindStylesheetRoutePattern(
-    data.hrefPrefix,
-  );
-
   return (
     req: ExpressRequest,
     res: ExpressResponse,
@@ -126,7 +128,13 @@ export const serveTailwindStylesheet: (data: {
   ): void => {
     const stylesheet: TailwindStylesheet | null = data.stylesheet;
 
-    if (!stylesheet || !routePattern.test(req.path)) {
+    if (
+      !stylesheet ||
+      !isTailwindStylesheetAddress({
+        hrefPrefix: data.hrefPrefix,
+        path: req.path,
+      })
+    ) {
       next();
       return;
     }

@@ -144,6 +144,10 @@ const PERMISSIONS: Record<string, Array<string>> = {
     "Read Telemetry Service Log",
     "Read Telemetry Service Traces",
     "Read Telemetry Service Metrics",
+    // What Add Permission offers a scope for, and what it offers none for.
+    "Create Workflow",
+    "Edit Workflow",
+    "Create Team",
   ],
 };
 

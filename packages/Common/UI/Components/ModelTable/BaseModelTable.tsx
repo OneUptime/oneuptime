@@ -487,6 +487,16 @@ export interface BaseTableProps<
   deleteConfirmationWarning?: string | undefined;
   isEditable?: boolean | undefined;
   isCreateable: boolean;
+  /*
+   * Why Create is locked for the reader although their permissions allow
+   * it: a record this list makes reaches more than their permission does -
+   * a global user override applies to every on-call policy, and a
+   * permission limited to some policies does not reach them all. Create
+   * stays on the card (and in the empty state), locked, with the reason on
+   * hover, and showCreateForm opens nothing. Left out, Create is gated by
+   * the reader's permissions alone.
+   */
+  createDisabledReason?: string | undefined;
   onCreateClick?: (() => void) | undefined;
   disablePagination?: undefined | boolean;
   formFields?: undefined | Array<ModelField<TBaseModel>>;
@@ -1053,6 +1063,24 @@ const BaseModelTable: <TBaseModel extends BaseModel | AnalyticsBaseModel>(
     return { show: false, disabled: false, tooltip: undefined };
   };
 
+  /*
+   * Create's gate: the reader's permissions, and - where they allow it - the
+   * list's own reason it is locked for them (createDisabledReason).
+   */
+  const getCreateGate: () => ActionGate = (): ActionGate => {
+    const gate: ActionGate = getActionGate(ModelAction.Create);
+
+    if (props.createDisabledReason && gate.show && !gate.disabled) {
+      return {
+        show: true,
+        disabled: true,
+        tooltip: props.createDisabledReason,
+      };
+    }
+
+    return gate;
+  };
+
   const [bulkSelectedItems, setBulkSelectedItems] = useState<Array<TBaseModel>>(
     [],
   );
@@ -1334,7 +1362,8 @@ const BaseModelTable: <TBaseModel extends BaseModel | AnalyticsBaseModel>(
     }, [builtInRowActions, props.actionButtons, rowActionContext]);
 
   useEffect(() => {
-    if (props.showCreateForm) {
+    // A locked Create opens nothing (createDisabledReason).
+    if (props.showCreateForm && !props.createDisabledReason) {
       setShowModal(true);
       setModalType(ModalType.Create);
     }
@@ -3202,7 +3231,7 @@ const BaseModelTable: <TBaseModel extends BaseModel | AnalyticsBaseModel>(
       headerbuttons = [...headerbuttons, ...props.cardProps.buttons];
     }
 
-    const createGate: ActionGate = getActionGate(ModelAction.Create);
+    const createGate: ActionGate = getCreateGate();
 
     const showFilterButton: boolean = props.filters.length > 0;
 

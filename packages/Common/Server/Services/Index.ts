@@ -421,6 +421,8 @@ import DataSecurityCustomDataTypeService from "./DataSecurityCustomDataTypeServi
 import DataSecurityCheckSettingService from "./DataSecurityCheckSettingService";
 import DataSecurityResidencyRuleService from "./DataSecurityResidencyRuleService";
 import DataSecuritySettingService from "./DataSecuritySettingService";
+import DataAssetService from "./DataAssetService";
+import DataAssetFeedService from "./DataAssetFeedService";
 import SecurityProtectedEntityService from "./SecurityProtectedEntityService";
 import SecurityEntityRiskService from "./SecurityEntityRiskService";
 import SecurityEntityCriticalityService from "./SecurityEntityCriticalityService";
@@ -964,6 +966,8 @@ const services: Array<BaseService> = [
   DataSecurityCheckSettingService,
   DataSecurityResidencyRuleService,
   DataSecuritySettingService,
+  DataAssetService,
+  DataAssetFeedService,
   SecurityProtectedEntityService,
   SecurityEntityRiskService,
   SecurityEntityCriticalityService,

@@ -202,6 +202,8 @@ import DataSecurityCustomDataType from "./DataSecurityCustomDataType";
 import DataSecurityCheckSetting from "./DataSecurityCheckSetting";
 import DataSecurityResidencyRule from "./DataSecurityResidencyRule";
 import DataSecuritySetting from "./DataSecuritySetting";
+import DataAsset from "./DataAsset";
+import DataAssetFeed from "./DataAssetFeed";
 import SecurityProtectedEntity from "./SecurityProtectedEntity";
 import SecurityEntityRisk from "./SecurityEntityRisk";
 import SecurityEntityCriticality from "./SecurityEntityCriticality";
@@ -669,6 +671,8 @@ const AllModelTypes: Array<{
   DataSecurityCheckSetting,
   DataSecurityResidencyRule,
   DataSecuritySetting,
+  DataAsset,
+  DataAssetFeed,
   SecurityProtectedEntity,
   SecurityEntityRisk,
   SecurityEntityCriticality,

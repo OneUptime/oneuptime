@@ -518,7 +518,7 @@ These are kept beside the device's own fields, never written into them, and each
 
 A Meraki switch, access point or appliance reads no serial number or firmware over SNMP: polled directly, it answers the system group and the interface tables, which give its model and its MAC address, and nothing more. When a [Meraki connection](/docs/monitor/network-traffic#cisco-meraki-without-netflow) reads its organization, the device takes those, and whatever else its poll leaves empty, from the Meraki dashboard, and its **Inventory** card names the connection in a **Meraki** row.
 
-To read a device again now, press **Refresh** on its **Inventory** card. Its probe polls it within a minute, and its Meraki connection reads the organization again. The card says when the new reading has landed, or that the probe could not reach the device. **Refresh** is there for whoever may edit network devices, on a device a probe polls or a Meraki connection describes.
+To read a device again now, press **Refresh** on its **Inventory** card. Its probe polls it within a minute, and its Meraki connection reads the organization again. The card says when the new reading has landed, or that the probe could not reach the device. **Refresh** is there for whoever may edit network devices, on a device a probe polls or a Meraki connection describes. Once the new reading lands, the device's health and its **Device Details** card show it too. If three minutes later only the Meraki dashboard has still not been read, the card says so, with a link to the Meraki connection on the network's **Traffic** page, whose row says why.
 
 ## Discovering Devices with a Network Scan
 

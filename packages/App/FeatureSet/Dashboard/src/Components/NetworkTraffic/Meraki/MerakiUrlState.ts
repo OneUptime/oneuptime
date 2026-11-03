@@ -1,4 +1,6 @@
 import Dictionary from "Common/Types/Dictionary";
+import Route from "Common/Types/API/Route";
+import { getRouteToPageAnchor } from "Common/UI/Utils/PageAnchor";
 import {
   NetworkTrafficUsageFilters,
   NetworkTrafficUsageFiltersUtil,
@@ -34,6 +36,23 @@ export const MERAKI_URL_PARAMS: Array<string> = [
  * line over the traffic that needs acting on links to it.
  */
 export const MERAKI_CONNECTIONS_ANCHOR: string = "traffic-meraki-connections";
+
+/*
+ * The network's Traffic page (its route, filled in), on its Meraki side,
+ * at its Meraki connections: where a line elsewhere that says a connection
+ * needs looking at - "Review" on a device's or a site's Traffic page, a
+ * device Meraki has not read again - leads. The card brings itself into
+ * view when the page opens there (MerakiConnectionsCard).
+ */
+export function getMerakiConnectionsRoute(trafficRoute: Route): Route {
+  const page: string = trafficRoute.toString().split("#")[0] || "";
+  const separator: string = page.includes("?") ? "&" : "?";
+
+  return getRouteToPageAnchor(
+    new Route(`${page}${separator}source=${TrafficSide.Meraki}`),
+    MERAKI_CONNECTIONS_ANCHOR,
+  );
+}
 
 // The side the URL asks for, or null to let the page pick.
 export function readTrafficSide(

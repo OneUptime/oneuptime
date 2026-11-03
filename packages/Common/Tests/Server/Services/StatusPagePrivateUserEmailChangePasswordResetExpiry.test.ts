@@ -164,9 +164,16 @@ describe("StatusPagePrivateUserService.onBeforeUpdate — a reset link dies with
 
     expect(stubs.updateOneById).toHaveBeenCalledTimes(1);
     expect(write.id.toString()).toBe(USER_ID.toString());
+    /*
+     * The sign-in link (Types/StatusPage/StatusPageMagicLink) is found the
+     * same way - by token hash and status page - and signs the account in
+     * outright, so it dies with the reset link.
+     */
     expect(write.data).toEqual({
       resetPasswordToken: null,
       resetPasswordExpires: null,
+      magicLinkToken: null,
+      magicLinkExpires: null,
     });
     expect(write.props.isRoot).toBe(true);
     expect(write.props.ignoreHooks).toBe(true);

@@ -118,7 +118,7 @@ Den offentlige side er en applikation for sig, med et lille sæt ruter:
 - `/subscribe/email`, `/subscribe/sms`, `/subscribe/slack`, `/subscribe/microsoft-teams`, `/subscribe/webhooks`.
 - `/confirm-subscription/:id`, `/update-subscription/:token` og `/unsubscribe/:token`: linkene i de beskeder, abonnenterne får.
 - `/rss`: feedet.
-- `/login`, `/sso` og `/master-password`: kun relevante på en privat side.
+- `/login`, `/sso`, `/magic-link`, `/magic-link-login/:token` og `/master-password`: kun relevante på en privat side.
 
 Navigationsbjælken øverst viser altid **Oversigt**; resten vises kun, når det er slået til. **Hændelser**, **Meddelelser** og **Planlagte hændelser** kræver hver deres kontakt; **Abonner** kræver både **Vis abonnentside** og mindst én slået-til abonnementskanal. En privat side har også et punkt **Log ud**.
 
@@ -194,6 +194,8 @@ Et valg beder om bekræftelse og siger, hvad der ændrer sig for besøgende, og 
 Tilføj de personer, der må logge ind, under **Statussider → din side → Sikkerhed → Private brugere**. Der er en handling **Tilføj i bulk**: indsæt en liste med e-mailadresser, og hver adresse får en invitationsmail. Private brugere har deres eget forløb for glemt adgangskode og nulstilling, adskilt fra kontiene i dit OneUptime-projekt.
 
 **Private brugere og adgangskoden lægges ikke sammen.** Så længe **Alle med adgangskoden** er valget, kan private brugere ikke logge ind (de indtaster også adgangskoden), og skærmen **Private brugere** siger det, med et link tilbage til **Adgang**.
+
+**Login-links.** På en side, som besøgende logger ind på, tilbyder login-siden også **Send mig et login-link**: en privat bruger indtaster sin e-mailadresse og får tilsendt et link, der logger vedkommende ind uden adgangskode. Linket virker én gang i 15 minutter, og beder man om et nyt, erstatter det det gamle. Det åbner en side, hvor brugeren trykker på **Log ind**, så mailfiltre, der åbner alle links for at scanne dem, ikke kan bruge det op først. Siden svarer det samme, uanset om adressen tilhører en af dens private brugere, så en forespørgsel afslører ikke, hvem der kan logge ind. Links er slået til på alle sider; vil du holde private brugere til deres adgangskoder, så slå **Login-links** fra under **Yderligere indstillinger** på **Private brugere** (personer, der allerede er logget ind med et link, forbliver logget ind). De tilbydes aldrig, mens **Kræv SSO til login** er slået til, eller **Alle med adgangskoden** er valget.
 
 ### SSO og OIDC
 

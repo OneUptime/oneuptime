@@ -118,7 +118,7 @@ The public page is its own app, with a small set of routes:
 - `/subscribe/email`, `/subscribe/sms`, `/subscribe/slack`, `/subscribe/microsoft-teams`, `/subscribe/webhooks`.
 - `/confirm-subscription/:id`, `/update-subscription/:token` and `/unsubscribe/:token` — the links in the messages subscribers get.
 - `/rss` — the feed.
-- `/login`, `/sso` and `/master-password` — only relevant on a private page.
+- `/login`, `/sso`, `/magic-link`, `/magic-link-login/:token` and `/master-password` — only relevant on a private page.
 
 The top nav bar always shows **Overview**; the rest appear only when enabled. **Incidents**, **Announcements** and **Scheduled Events** each need their toggle on; **Subscribe** needs both **Show Subscriber Page** and at least one subscriber channel enabled. A private page also gets a **Log Out** item.
 
@@ -194,6 +194,8 @@ Picking a choice asks you to confirm, saying what changes for visitors, and save
 Add the people who may sign in on **Status Pages → your page → Security → Private Users**. There's an **Add in Bulk** action — paste a list of email addresses and each one gets an invitation email. Private users have their own forgot-password and reset-password flow, separate from your OneUptime project accounts.
 
 **Private users and the password don't stack.** While **Anyone with the password** is the choice, private users can't sign in — they enter the password too — and the **Private Users** screen says so, with a link back to **Access**.
+
+**Sign-in links.** On a page visitors sign in to, the sign-in page also offers **Email me a sign-in link**: a private user enters their email address and is sent a link that logs them in without their password. The link works once, for 15 minutes, and asking for another replaces it. It opens a page where they press **Log in**, so mail filters that open every link to scan it can't use it up first. The page answers the same whether or not the address is one of its private users, so asking tells nobody who can sign in. Links are on for every page; to keep private users on their passwords, turn off **Sign-In Links** under **More settings** on **Private Users** (people already signed in with a link stay signed in). They are never offered while **Require SSO for Login** is on or **Anyone with the password** is the choice.
 
 ### SSO and OIDC
 
