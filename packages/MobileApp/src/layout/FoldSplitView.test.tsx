@@ -202,6 +202,45 @@ describe("FoldSplitView", () => {
     });
   });
 
+  test("with nothing below the fold, the band stays clear and no line marks the crease above an empty half", async () => {
+    setWindowSize(SIZE);
+    const source: TestPostureSource = createTestPostureSource(
+      tabletopReport(SIZE, 442),
+    );
+
+    function AboveOnly(): React.JSX.Element {
+      const split: FoldSplit | null = useFoldSplit();
+      return (
+        <FoldSplitView
+          split={split!}
+          testID="screen-fold"
+          above={<PaneProbe name="above" />}
+        />
+      );
+    }
+
+    await render(
+      <SafeAreaInsetsContext.Provider value={INSETS}>
+        <WindowLayoutProvider postureSource={source}>
+          <HeaderHeightContext.Provider value={BAR}>
+            <AboveOnly />
+          </HeaderHeightContext.Provider>
+        </WindowLayoutProvider>
+      </SafeAreaInsetsContext.Provider>,
+    );
+
+    // The half above is where it always is, ending at the band.
+    expect(
+      flat(screen.getByTestId("screen-fold-above").props.style).height,
+    ).toBe(442 - TABLETOP_FOLD_GAP / 2 - BAR);
+    expect(flat(screen.getByTestId("screen-fold-gap").props.style).height).toBe(
+      TABLETOP_FOLD_GAP,
+    );
+    expect(screen.queryByTestId("screen-fold-fold-line")).toBeNull();
+    expect(screen.getByTestId("screen-fold-below").props.children).toBeNull();
+    expect(screen.queryByTestId("probe-below")).toBeNull();
+  });
+
   test("a hinge that hides part of the window keeps its own, wider band", async () => {
     setWindowSize(SIZE);
     await renderWith(createTestPostureSource(tabletopReport(SIZE, 422, 40)));

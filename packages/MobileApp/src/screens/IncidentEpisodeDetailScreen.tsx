@@ -47,7 +47,6 @@ import {
   ResponseSection,
   describeResponseAge,
   getResponseStage,
-  getResponseActionMinWidth,
   getResponseStageAppearance,
   responseActionIcons,
   type ResponseAction,
@@ -397,7 +396,7 @@ export default function IncidentEpisodeDetailScreen({
     stage === "resolved"
       ? "This incident episode is resolved. Review the context and team notes below."
       : stage === "pagedAgain"
-        ? "This incident episode is still not resolved, so you are paged again. Acknowledge again if you are still on it, or escalate it."
+        ? "This incident episode is still not resolved. Acknowledge again if you're still on it, or escalate it."
         : stage === "acknowledged"
           ? "A responder has acknowledged this incident episode. Resolve it once recovery is confirmed."
           : "Actions on this episode apply to its grouped incidents. Acknowledge to take responsibility, or resolve when recovery is confirmed.";
@@ -457,7 +456,6 @@ export default function IncidentEpisodeDetailScreen({
             busy={
               changingState || passOn.passingOn || passOn.acknowledgingAgain
             }
-            minWidth={getResponseActionMinWidth(stage)}
             style={{ marginBottom: 0 }}
           />
         ) : null}

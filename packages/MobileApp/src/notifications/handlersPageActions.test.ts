@@ -132,6 +132,12 @@ function serverUrlMock(): jest.Mock<() => Promise<string>> {
   ).getServerUrl;
 }
 
+function dismissMock(): jest.Mock<(identifier: string) => Promise<void>> {
+  return jest.requireMock<{
+    dismissNotificationAsync: jest.Mock<(identifier: string) => Promise<void>>;
+  }>("expo-notifications").dismissNotificationAsync;
+}
+
 // Lets the browser check's promise (the stored server address) settle.
 async function settle(): Promise<void> {
   for (let turn: number = 0; turn < 5; turn += 1) {
@@ -192,6 +198,56 @@ describe("Acknowledge and Escalate under a page's push", () => {
       incidentId: "inc-9",
       projectId: "proj-1",
       pushAction: { kind: "escalate", id: "n-43:ESCALATE_PAGE" },
+    });
+  });
+
+  test.each([ACKNOWLEDGE_PAGE, ESCALATE_PAGE])(
+    "%s takes the answered page's notification away, which Android otherwise leaves in the shade with its buttons",
+    async (action: string) => {
+      dismissMock().mockClear();
+
+      handlers.handleNotificationResponse(
+        tap(
+          { entityType: "incident", entityId: "inc-1", projectId: "proj-1" },
+          action,
+          "n-60",
+        ),
+      );
+      await settle();
+
+      expect(dismissMock()).toHaveBeenCalledTimes(1);
+      expect(dismissMock()).toHaveBeenCalledWith("n-60");
+    },
+  );
+
+  test("a plain tap leaves the notification to the phone, which takes it away itself", async () => {
+    dismissMock().mockClear();
+
+    handlers.handleNotificationResponse(
+      tap({ entityType: "incident", entityId: "inc-1", projectId: "proj-1" }),
+    );
+    await settle();
+
+    expect(dismissMock()).not.toHaveBeenCalled();
+  });
+
+  test("a notification that cannot be taken away still opens the record with its action", async () => {
+    dismissMock().mockClear();
+    dismissMock().mockRejectedValueOnce(new Error("No such notification"));
+
+    handlers.handleNotificationResponse(
+      tap(
+        { entityType: "incident", entityId: "inc-1", projectId: "proj-1" },
+        ACKNOWLEDGE_PAGE,
+        "n-61",
+      ),
+    );
+    await settle();
+
+    expect(container.navigations[0]?.params).toEqual({
+      incidentId: "inc-1",
+      projectId: "proj-1",
+      pushAction: { kind: "acknowledge", id: "n-61:ACKNOWLEDGE_PAGE" },
     });
   });
 

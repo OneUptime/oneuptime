@@ -1463,7 +1463,7 @@ describe("Paged again, and answering a page from its push", () => {
     ]);
     expect(
       screen.getByText(
-        "This alert is still not resolved, so you are paged again. Acknowledge again if you are still on it, or escalate it.",
+        "This alert is still not resolved. Acknowledge again if you're still on it, or escalate it.",
       ),
     ).toBeTruthy();
   });

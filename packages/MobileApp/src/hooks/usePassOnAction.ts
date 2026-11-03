@@ -22,6 +22,7 @@ import {
 } from "../oncall/passOn";
 import { useHaptics } from "./useHaptics";
 import {
+  PAGE_AGAIN_ACTION_MIN_WIDTH,
   responseActionIcons,
   type ResponseAction,
 } from "../components/ResponseDetailLayout";
@@ -220,6 +221,8 @@ export function usePassOnAction(data: {
         busyAccessibilityLabel: "Acknowledging",
         icon: responseActionIcons.acknowledge,
         primary: true,
+        // Two words that never break across lines: a row of its own on a phone.
+        minWidth: PAGE_AGAIN_ACTION_MIN_WIDTH,
         onPress: acknowledgeAgain,
       }
     : null;

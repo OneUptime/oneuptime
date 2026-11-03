@@ -8,10 +8,54 @@ const { installFixtures } = require("./fixtures");
  * record still acknowledged and not resolved, so it pages the reader again.
  * The record's own Acknowledge is gone - it was acknowledged all along - so
  * the record's screen offers Acknowledge again, first, then Resolve and
- * Escalate, under "You are paged again". Acknowledging again answers the page
- * (POST /api/on-call-page/acknowledge/...), and the record is a response in
- * progress again, with nothing left to answer.
+ * Escalate, under "You're being paged again". Acknowledging again answers the
+ * page (POST /api/on-call-page/acknowledge/...), and the record is a response
+ * in progress again, with nothing left to answer.
+ *
+ * Acknowledge again fills the card's first row on a phone; Resolve and
+ * Escalate share the row under it wherever two fit, and on a tablet all
+ * three sit in one row.
  */
+
+/*
+ * The three actions' boxes, read in one frame: [Acknowledge again, Resolve,
+ * Escalate], in reading order.
+ */
+async function actionBoxes(page) {
+  return page.getByTestId("response-actions").evaluate((row) => {
+    return Array.from(row.querySelectorAll('[role="button"]')).map((button) => {
+      const rect = button.getBoundingClientRect();
+      return { x: rect.x, y: rect.y, width: rect.width, height: rect.height };
+    });
+  });
+}
+
+/*
+ * How many actions share each row, top to bottom: a row is the actions whose
+ * tops are within a point of each other.
+ */
+function actionsPerRow(boxes) {
+  const rows = [];
+  for (const box of boxes) {
+    const last = rows[rows.length - 1];
+    if (last && Math.abs(last.y - box.y) <= 1) {
+      last.count += 1;
+    } else {
+      rows.push({ y: box.y, count: 1 });
+    }
+  }
+  return rows.map((row) => {
+    return row.count;
+  });
+}
+
+// What the card's rows hold at this window width (ResponseDetailLayout's minimums).
+function expectedRows(windowWidth) {
+  if (windowWidth >= 618) {
+    return [3];
+  }
+  return windowWidth >= 382 ? [1, 2] : [1, 1, 1];
+}
 
 async function capture(page, name, testInfo) {
   await page.evaluate(() => {
@@ -87,9 +131,9 @@ for (const record of RECORDS) {
       exact: true,
     });
 
-    await expect(guidance).toContainText("You are paged again");
+    await expect(guidance).toContainText("You're being paged again");
     await expect(guidance).toContainText(
-      `This ${record.kind} is still not resolved, so you are paged again. Acknowledge again if you are still on it, or escalate it.`,
+      `This ${record.kind} is still not resolved. Acknowledge again if you're still on it, or escalate it.`,
     );
     await expect(acknowledgeAgain).toBeVisible();
     await expect(escalate).toBeVisible();
@@ -131,6 +175,38 @@ for (const record of RECORDS) {
         return button.scrollWidth <= button.clientWidth + 1;
       }),
     ).toBe(true);
+
+    /*
+     * On a phone Acknowledge again fills the first row, the one filled
+     * button, and Resolve and Escalate share the row under it where two fit;
+     * on a tablet the three sit in one row.
+     */
+    const windowWidth = page.viewportSize().width;
+    await expect
+      .poll(async () => {
+        return actionsPerRow(await actionBoxes(page));
+      })
+      .toEqual(expectedRows(windowWidth));
+    const [againBox, resolveBox, escalateBox] = await actionBoxes(page);
+    if (expectedRows(windowWidth).length === 2) {
+      // The two share the row evenly, edge to edge with the filled one above.
+      expect(
+        Math.abs(resolveBox.width - escalateBox.width),
+      ).toBeLessThanOrEqual(1);
+      expect(Math.abs(resolveBox.x - againBox.x)).toBeLessThanOrEqual(1);
+      expect(
+        Math.abs(
+          escalateBox.x + escalateBox.width - (againBox.x + againBox.width),
+        ),
+      ).toBeLessThanOrEqual(1);
+    }
+    for (const label of ["Resolve", "Escalate"]) {
+      const text = await page
+        .getByTestId("response-actions")
+        .getByText(label, { exact: true })
+        .boundingBox();
+      expect(text.height).toBeLessThan(30);
+    }
     await capture(page, `${record.kind}-paged-again`, testInfo);
 
     await acknowledgeAgain.click();
@@ -165,7 +241,7 @@ test("in dark mode, the page again reads as a warning on the dark surface", asyn
     .first()
     .click();
   await expect(page.getByTestId("response-guidance")).toContainText(
-    "You are paged again",
+    "You're being paged again",
   );
   await expect(
     page.getByRole("button", {
@@ -175,7 +251,7 @@ test("in dark mode, the page again reads as a warning on the dark surface", asyn
   ).toBeVisible();
   // Light words on the dark surface, not the light palette's dark ones.
   const titleColor = await page
-    .getByText("You are paged again", { exact: true })
+    .getByText("You're being paged again", { exact: true })
     .evaluate((element) => {
       return getComputedStyle(element).color;
     });

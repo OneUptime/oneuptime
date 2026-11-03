@@ -1,3 +1,4 @@
+import * as Notifications from "expo-notifications";
 import type { NotificationResponse } from "expo-notifications";
 import * as Linking from "expo-linking";
 import { buildInboxDetailNavigation } from "../navigation/inboxNavigation";
@@ -323,6 +324,24 @@ export function openSecurityCaseFromLink(
   return true;
 }
 
+/*
+ * Takes an answered page's notification away. Android keeps a notification
+ * in the shade when one of its actions is tapped - only a tap on the
+ * notification itself takes it away - so the page stayed there, Acknowledge
+ * and Escalate still under it, after the reader had answered it. iOS takes
+ * it away on its own; asking again there does nothing.
+ */
+async function dismissAnsweredPage(identifier: string): Promise<void> {
+  try {
+    await Notifications.dismissNotificationAsync(identifier);
+  } catch (error: unknown) {
+    logger.warn(
+      "[PushNotifications] Could not take the answered page's notification away:",
+      error,
+    );
+  }
+}
+
 export function handleNotificationResponse(
   response: NotificationResponse,
 ): void {
@@ -345,6 +364,7 @@ export function handleNotificationResponse(
      * screen does the action once, as its own button would. The id is the
      * tap's, so a second tap on another push is a new action.
      */
+    void dismissAnsweredPage(response.notification.request.identifier);
     navigateToEntity({
       ...data,
       pushAction: {

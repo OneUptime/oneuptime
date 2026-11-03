@@ -1804,21 +1804,26 @@ describe("Paged again, and answering a page from its push", () => {
       "Escalate this incident",
     ]);
     expect(screen.getByText("Acknowledge again")).toBeTruthy();
-    // Wide enough that the two words never break: the actions stack on a phone.
+    /*
+     * Wide enough that the two words never break: a row of its own on a
+     * phone, with Resolve and Escalate side by side under it.
+     */
     expect(
       screen.getByRole("button", { name: "Acknowledge this incident again" }),
     ).toHaveStyle({ minWidth: PAGE_AGAIN_ACTION_MIN_WIDTH });
-    expect(
-      screen.getByRole("button", { name: "Escalate this incident" }),
-    ).toHaveStyle({ minWidth: PAGE_AGAIN_ACTION_MIN_WIDTH });
+    for (const name of ["Resolve incident", "Escalate this incident"]) {
+      expect(screen.getByRole("button", { name })).toHaveStyle({
+        minWidth: RESPONSE_ACTION_MIN_WIDTH,
+      });
+    }
     // The record's own Acknowledge stays gone: it would move it back up the list.
     expect(
       screen.queryByRole("button", { name: "Acknowledge incident" }),
     ).toBeNull();
-    expect(screen.getByText("You are paged again")).toBeTruthy();
+    expect(screen.getByText("You're being paged again")).toBeTruthy();
     expect(
       screen.getByText(
-        "This incident is still not resolved, so you are paged again. Acknowledge again if you are still on it, or escalate it.",
+        "This incident is still not resolved. Acknowledge again if you're still on it, or escalate it.",
       ),
     ).toBeTruthy();
   });

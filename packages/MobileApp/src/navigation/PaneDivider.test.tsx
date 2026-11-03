@@ -1,6 +1,11 @@
 import React from "react";
-import { Platform } from "react-native";
-import { fireEvent, render, screen } from "@testing-library/react-native";
+import { Platform, StyleSheet, type ViewStyle } from "react-native";
+import {
+  fireEvent,
+  render,
+  screen,
+  within,
+} from "@testing-library/react-native";
 import {
   afterEach,
   beforeEach,
@@ -27,6 +32,10 @@ import { DIVIDER_STEP } from "../layout/paneDivider";
  */
 
 const RANGE: PaneDividerProps["range"] = { min: 320, max: 444 };
+
+function flat(style: unknown): ViewStyle {
+  return (StyleSheet.flatten(style as ViewStyle) ?? {}) as ViewStyle;
+}
 const ON_THE_FOLD: number = 362;
 
 interface Handlers {
@@ -396,7 +405,7 @@ describe("The divider from a keyboard", () => {
     await fireEvent(screen.getByTestId("pane-divider"), "focus", {});
 
     expect(screen.getByTestId("pane-divider-line")).toBeTruthy();
-    expect(screen.getByTestId("pane-divider")).toHaveStyle({
+    expect(screen.getByTestId("pane-divider-ring")).toHaveStyle({
       borderColor: lightColors.actionPrimary,
     });
     expect(screen.getByTestId("pane-divider-pill")).toHaveStyle({
@@ -406,9 +415,41 @@ describe("The divider from a keyboard", () => {
     await fireEvent(screen.getByTestId("pane-divider"), "blur", {});
 
     expect(screen.queryByTestId("pane-divider-line")).toBeNull();
-    expect(screen.getByTestId("pane-divider")).toHaveStyle({
+    expect(screen.getByTestId("pane-divider-ring")).toHaveStyle({
       borderColor: "transparent",
     });
+  });
+
+  test("the ring hugs the pill a few points clear of it, never the whole touch target", async () => {
+    /*
+     * Around the 48 by 96 touch target, the ring ran into the cards on
+     * either side of the divider. Around the pill it is a slim capsule on
+     * the divider itself, as a focused control's ring is anywhere else.
+     */
+    await renderDivider();
+    await fireEvent(screen.getByTestId("pane-divider"), "focus", {});
+
+    const handle: ViewStyle = flat(
+      screen.getByTestId("pane-divider").props.style,
+    );
+    expect(handle.borderWidth ?? 0).toBe(0);
+
+    const ring: ReturnType<typeof screen.getByTestId> =
+      screen.getByTestId("pane-divider-ring");
+    expect(within(ring).getByTestId("pane-divider-pill")).toBeTruthy();
+    const ringStyle: ViewStyle = flat(ring.props.style);
+    const pill: ViewStyle = flat(
+      screen.getByTestId("pane-divider-pill").props.style,
+    );
+    const borderWidth: number = Number(ringStyle.borderWidth);
+    const padding: number = Number(ringStyle.padding);
+    expect(borderWidth).toBeGreaterThanOrEqual(2);
+    // A gap between the pill and its ring, so the two never read as one bar.
+    expect(padding).toBeGreaterThanOrEqual(2);
+    const ringWidth: number = Number(pill.width) + 2 * (padding + borderWidth);
+    expect(ringWidth).toBeLessThanOrEqual(16);
+    // Rounded at its ends: a capsule, like the pill inside it.
+    expect(Number(ringStyle.borderRadius)).toBe(ringWidth / 2);
   });
 
   test("a key pressed with the handle focused some other way shows the ring all the same", async () => {

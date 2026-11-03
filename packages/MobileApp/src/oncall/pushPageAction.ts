@@ -97,7 +97,7 @@ export const PUSH_PAGE_TEXT: Readonly<{
   couldNotAcknowledgeTitle: "Could not acknowledge",
   couldNotEscalateTitle: "Could not escalate",
   couldNotEscalate:
-    "OneUptime could not say whether you are being paged about it. Pull down to refresh, then try again.",
+    "OneUptime could not check whether you are being paged about this right now. Pull down to refresh, then try again.",
   notPaged: "You are not being paged about this right now.",
 };
 

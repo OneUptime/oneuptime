@@ -7,7 +7,7 @@ import {
   type ViewProps,
   type ViewStyle,
 } from "react-native";
-import { radius, touchTarget, useTheme } from "../theme";
+import { touchTarget, useTheme } from "../theme";
 import type { ListPaneWidthRange } from "../layout/windowLayout";
 import {
   clampListPaneWidth,
@@ -92,6 +92,14 @@ export const DIVIDER_HANDLE_TOUCH_HEIGHT: number = touchTarget * 2;
 /** The pill the reader sees. */
 const PILL_WIDTH: number = 4;
 const PILL_HEIGHT: number = 48;
+
+/*
+ * The focus ring hugs the pill, a few points clear of it, as a focused
+ * control's ring does anywhere else. Drawn around the whole touch target it
+ * was a 48 by 96 box that ran into the cards on either side of the divider.
+ */
+const RING_GAP: number = 3;
+const RING_WIDTH: number = 2;
 
 // Two taps closer together than this put the divider back where the layout has it.
 export const DOUBLE_TAP_INTERVAL_MS: number = 300;
@@ -318,23 +326,30 @@ export default function PaneDivider({
             marginTop: -DIVIDER_HANDLE_TOUCH_HEIGHT / 2,
             alignItems: "center",
             justifyContent: "center",
-            borderRadius: radius.md,
-            borderWidth: 2,
-            // The focus ring: the keys move what it surrounds.
-            borderColor: focused ? theme.colors.actionPrimary : "transparent",
           },
           webCursor,
         ]}
       >
         <View
-          testID="pane-divider-pill"
+          testID="pane-divider-ring"
           style={{
-            width: PILL_WIDTH,
-            height: PILL_HEIGHT,
-            borderRadius: PILL_WIDTH / 2,
-            backgroundColor: tint,
+            padding: RING_GAP,
+            borderRadius: (PILL_WIDTH + 2 * (RING_GAP + RING_WIDTH)) / 2,
+            borderWidth: RING_WIDTH,
+            // The focus ring: the keys move what it surrounds.
+            borderColor: focused ? theme.colors.actionPrimary : "transparent",
           }}
-        />
+        >
+          <View
+            testID="pane-divider-pill"
+            style={{
+              width: PILL_WIDTH,
+              height: PILL_HEIGHT,
+              borderRadius: PILL_WIDTH / 2,
+              backgroundColor: tint,
+            }}
+          />
+        </View>
       </View>
     </>
   );

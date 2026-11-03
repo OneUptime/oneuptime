@@ -108,9 +108,11 @@ keyboard, the divider's handle shows a ring while the arrow keys move it.
 The `-paged-again` images come from `tests/ui/paged-again.spec.js`: an
 acknowledged incident or alert still not resolved when its on-call policy's
 acknowledgement timeout ran out, so the policy pages the reader again.
-Acknowledge again comes first, then Resolve and Escalate; on a phone each
-takes a row of its own, so the two words never break across lines. Every
-viewport has an incident and an alert; the iPhone size also a dark one.
+Acknowledge again comes first, filled across the card on a phone so the two
+words never break across lines, with Resolve and Escalate side by side under
+it - a row each on the smallest phones, and all three in one row on a
+tablet. Every viewport has an incident and an alert; the iPhone size also a
+dark one.
 
 | Paged again about an incident                                 | Paged again about an alert                              | Dark: paged again                                                       |
 | ------------------------------------------------------------- | ------------------------------------------------------- | ----------------------------------------------------------------------- |

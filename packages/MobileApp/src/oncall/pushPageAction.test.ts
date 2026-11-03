@@ -134,7 +134,7 @@ describe("Escalate", () => {
       kind: "explain",
       title: "Could not escalate",
       message:
-        "OneUptime could not say whether you are being paged about it. Pull down to refresh, then try again.",
+        "OneUptime could not check whether you are being paged about this right now. Pull down to refresh, then try again.",
     });
   });
 });

@@ -93,7 +93,7 @@ const stageAppearance: Record<
   pagedAgain: {
     tone: "warning",
     icon: "alarm-outline",
-    title: "You are paged again",
+    title: "You're being paged again",
   },
   resolved: {
     tone: "success",
@@ -130,17 +130,13 @@ export const RESPONSE_ACTION_MIN_WIDTH: number = 148;
  * Paged again, the first action is "Acknowledge again": two words, which a
  * row too narrow for them breaks across two lines - in a browser too. Its
  * icon and words in bold take about 176 points, 208 with the button's
- * padding. From 224 the actions stack on every phone, each the card's width,
- * and sit side by side only where the card is at least 460 points wide.
+ * padding, so that one action asks for 224 (ResponseAction.minWidth) while
+ * Resolve and Escalate keep RESPONSE_ACTION_MIN_WIDTH. On a phone it takes
+ * the card's first row, filled, and the two others share the row under it
+ * wherever two fit (a 308-point card, from a 382-point window), each on a
+ * row of its own below that; on a tablet all three sit in one row.
  */
 export const PAGE_AGAIN_ACTION_MIN_WIDTH: number = 224;
-
-/** The narrowest a response action may be at this stage before they stack. */
-export function getResponseActionMinWidth(stage: ResponseStage): number {
-  return stage === "pagedAgain"
-    ? PAGE_AGAIN_ACTION_MIN_WIDTH
-    : RESPONSE_ACTION_MIN_WIDTH;
-}
 
 /** Icons for the two response actions, shared by every detail screen. */
 export const responseActionIcons: Readonly<{
@@ -431,6 +427,12 @@ export interface ResponseAction {
   onPress: () => void | Promise<void>;
   primary?: boolean;
   icon?: IconName;
+  /*
+   * The narrowest this one action may be before the row wraps, where its
+   * label needs more than the row's own minimum: "Acknowledge again"
+   * (PAGE_AGAIN_ACTION_MIN_WIDTH). The wider of the two applies.
+   */
+  minWidth?: number;
 }
 
 export function ResponseActions({
@@ -486,7 +488,7 @@ export function ResponseActions({
                 flex: 1,
                 flexDirection: "row",
                 gap: spacing.sm,
-                minWidth,
+                minWidth: Math.max(minWidth, action.minWidth ?? 0),
                 minHeight: 54,
                 paddingVertical: spacing.md,
                 paddingHorizontal: spacing.lg,

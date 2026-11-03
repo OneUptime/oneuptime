@@ -40,8 +40,12 @@ export interface FoldSplitViewProps {
   split: FoldSplit;
   /** What is worth reading from across the table: above the fold. */
   above: React.ReactNode;
-  /** The rows to tap: below the fold, on the half lying on the table. */
-  below: React.ReactNode;
+  /**
+   * The rows to tap: below the fold, on the half lying on the table. None
+   * for a screen with nothing to tap there yet (loading, or no project):
+   * the half stays empty, with no line on the crease above an empty half.
+   */
+  below?: React.ReactNode;
   /**
    * Names the halves and the band: "<id>-above", "<id>-below", "<id>-gap"
    * and its line "<id>-fold-line".
@@ -64,6 +68,8 @@ export function FoldSplitView({
 }: FoldSplitViewProps): React.JSX.Element {
   const { theme } = useTheme();
   const pane: ResolvedPaneLayout = usePane();
+  const hasBelow: boolean =
+    below !== null && below !== undefined && below !== false;
 
   const abovePane: PaneLayout = useMemo((): PaneLayout => {
     return {
@@ -112,14 +118,20 @@ export function FoldSplitView({
       <View testID={`${testID}-above`} style={{ height: split.aboveHeight }}>
         <PaneProvider pane={abovePane}>{above}</PaneProvider>
       </View>
-      <PaneGap
-        size={split.gap}
-        stacked
-        testID={`${testID}-gap`}
-        lineTestID={`${testID}-fold-line`}
-      />
+      {hasBelow ? (
+        <PaneGap
+          size={split.gap}
+          stacked
+          testID={`${testID}-gap`}
+          lineTestID={`${testID}-fold-line`}
+        />
+      ) : (
+        <View testID={`${testID}-gap`} style={{ height: split.gap }} />
+      )}
       <View testID={`${testID}-below`} style={{ flex: 1 }}>
-        <PaneProvider pane={belowPane}>{below}</PaneProvider>
+        {hasBelow ? (
+          <PaneProvider pane={belowPane}>{below}</PaneProvider>
+        ) : null}
       </View>
     </View>
   );

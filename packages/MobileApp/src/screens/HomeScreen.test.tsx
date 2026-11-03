@@ -111,6 +111,7 @@ const mockProjects: { current: ProjectItem[] } = { current: [] };
 const mockNavigate: jest.Mock = jest.fn();
 
 const mockProjectLoadError: { current: Error | null } = { current: null };
+const mockIsLoadingProjects: { current: boolean } = { current: false };
 const mockRefreshProjects: jest.Mock = jest.fn(async () => {
   return undefined;
 });
@@ -170,7 +171,7 @@ jest.mock("../hooks/useProject", () => {
     useActiveProject: () => {
       return {
         projectList: mockProjects.current,
-        isLoadingProjects: false,
+        isLoadingProjects: mockIsLoadingProjects.current,
         projectLoadError: mockProjectLoadError.current,
         refreshProjects: mockRefreshProjects,
       };
@@ -1606,6 +1607,18 @@ describe("Home half open on a table", () => {
     ).toBe(false);
   });
 
+  /*
+   * Nothing to tap yet: the projects are loading, there are none, or they
+   * could not be loaded. What there is to read stands above the fold, off
+   * the crease, and the half below stays empty - with no line on the
+   * crease above an empty half.
+   */
+  function expectNothingBelowTheFold(): void {
+    expect(screen.getByTestId("home-fold-below").props.children).toBeNull();
+    expect(styleOf("home-fold-gap").height).toBe(TABLETOP_FOLD_GAP);
+    expect(screen.queryByTestId("home-fold-fold-line")).toBeNull();
+  }
+
   test("no projects: the message stands above the fold, and nothing lies below it", async () => {
     mockProjects.current = [];
     const size: { width: number; height: number } =
@@ -1620,12 +1633,45 @@ describe("Home half open on a table", () => {
         "No Projects Found",
       ),
     ).toBeTruthy();
-    expect(screen.getByTestId("home-fold-below").props.children).toBeTruthy();
-    expect(
-      within(screen.getByTestId("home-fold-below")).queryByText(
-        "No Projects Found",
-      ),
-    ).toBeNull();
+    expectNothingBelowTheFold();
+  });
+
+  test("projects that could not be loaded: why, and Retry, above the fold", async () => {
+    mockProjects.current = [];
+    mockProjectLoadError.current = new Error("Network Error");
+    const size: { width: number; height: number } =
+      TEST_WINDOWS.innerScreenOnItsSide;
+    await renderFolded(
+      size,
+      createTestPostureSource(tabletopReport(size, 442)),
+    );
+
+    const above: ReturnType<typeof screen.getByTestId> =
+      screen.getByTestId("home-fold-above");
+    expect(within(above).getByText("Could Not Load Projects")).toBeTruthy();
+    expect(within(above).getByText("Retry")).toBeTruthy();
+    expectNothingBelowTheFold();
+  });
+
+  test("projects still loading: the spinner above the fold", async () => {
+    mockIsLoadingProjects.current = true;
+    try {
+      const size: { width: number; height: number } =
+        TEST_WINDOWS.innerScreenOnItsSide;
+      await renderFolded(
+        size,
+        createTestPostureSource(tabletopReport(size, 442)),
+      );
+
+      expect(
+        within(screen.getByTestId("home-fold-above")).getByLabelText(
+          "Loading your projects",
+        ),
+      ).toBeTruthy();
+      expectNothingBelowTheFold();
+    } finally {
+      mockIsLoadingProjects.current = false;
+    }
   });
 
   test.each([

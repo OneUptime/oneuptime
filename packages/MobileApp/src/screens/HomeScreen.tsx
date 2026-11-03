@@ -486,14 +486,12 @@ export default function HomeScreen(): React.JSX.Element {
         onRetry={refreshProjects}
       />
     );
-    // Half open on a table, the message stands above the fold, off the crease.
+    /*
+     * Half open on a table, the message stands above the fold, off the
+     * crease, and the half below stays empty.
+     */
     return foldSplit ? (
-      <FoldSplitView
-        split={foldSplit}
-        testID="home-fold"
-        above={noProjects}
-        below={null}
-      />
+      <FoldSplitView split={foldSplit} testID="home-fold" above={noProjects} />
     ) : (
       noProjects
     );
@@ -516,12 +514,7 @@ export default function HomeScreen(): React.JSX.Element {
       </View>
     );
     return foldSplit ? (
-      <FoldSplitView
-        split={foldSplit}
-        testID="home-fold"
-        above={loading}
-        below={null}
-      />
+      <FoldSplitView split={foldSplit} testID="home-fold" above={loading} />
     ) : (
       loading
     );

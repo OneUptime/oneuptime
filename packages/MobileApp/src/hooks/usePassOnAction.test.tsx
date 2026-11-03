@@ -19,6 +19,7 @@ import {
   type OnCallPassOnPage,
 } from "../api/onCallPassOn";
 import { PAGE_AGAIN_TEXT } from "../oncall/passOn";
+import { PAGE_AGAIN_ACTION_MIN_WIDTH } from "../components/ResponseDetailLayout";
 import {
   createQueryWrapper,
   createTestQueryClient,
@@ -519,7 +520,11 @@ describe("a page again: Acknowledge again", () => {
       busyAccessibilityLabel: "Acknowledging",
       icon: "eye-outline",
       primary: true,
+      // Two words that never break across lines: a row of its own on a phone.
+      minWidth: PAGE_AGAIN_ACTION_MIN_WIDTH,
     });
+    // Escalate keeps the row's own minimum.
+    expect(rendered.result.current.action?.minWidth).toBeUndefined();
     expect(PAGE_AGAIN_TEXT.button).toBe("Acknowledge again");
   });
 

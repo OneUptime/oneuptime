@@ -1304,7 +1304,12 @@ describe("Paged again, and answering a page from its push", () => {
       "Resolve incident episode",
       "Escalate this incident episode",
     ]);
-    expect(screen.getByText("You are paged again")).toBeTruthy();
+    expect(screen.getByText("You're being paged again")).toBeTruthy();
+    expect(
+      screen.getByText(
+        "This incident episode is still not resolved. Acknowledge again if you're still on it, or escalate it.",
+      ),
+    ).toBeTruthy();
   });
 
   test("the push's Acknowledge on a page again acknowledges it again, and changes no state", async () => {

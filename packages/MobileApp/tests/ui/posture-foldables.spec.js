@@ -655,10 +655,28 @@ test.describe("lying flat", () => {
     await expect.poll(widthOf).toBe(start + 40);
     // While the keys move it, the line and a ring show what they move.
     await expect(page.getByTestId("pane-divider-line")).toBeVisible();
-    const ring = await handle.evaluate((element) => {
+    const ringElement = page.getByTestId("pane-divider-ring");
+    const ring = await ringElement.evaluate((element) => {
       return getComputedStyle(element).borderTopColor;
     });
     expect(ring).not.toBe("rgba(0, 0, 0, 0)");
+    /*
+     * The ring hugs the pill, a slim capsule on the divider's line, clear of
+     * the cards on either side of it.
+     */
+    const ringBox = await box(ringElement);
+    const pillBox = await box(page.getByTestId("pane-divider-pill"));
+    expect(ringBox.width).toBeLessThanOrEqual(16);
+    expect(ringBox.height).toBeLessThanOrEqual(pillBox.height + 12);
+    expect(
+      Math.abs(ringBox.x + ringBox.width / 2 - (pillBox.x + pillBox.width / 2)),
+    ).toBeLessThanOrEqual(1);
+    const listPaneBox = await box(page.getByTestId("list-pane"));
+    expect(
+      Math.abs(
+        ringBox.x + ringBox.width / 2 - (listPaneBox.x + listPaneBox.width),
+      ),
+    ).toBeLessThanOrEqual(2);
     await capture(page, "flat-divider-keyboard", testInfo);
 
     await page.keyboard.press("End");
