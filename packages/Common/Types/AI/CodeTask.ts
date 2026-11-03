@@ -301,14 +301,27 @@ export enum CodeTaskBlockerType {
    * Runners: it needs one of the project's own.
    */
   GlobalRunnersOff = "GlobalRunnersOff",
+  /*
+   * The repository works on a global Runner, and the global Runners online
+   * take no AI code fixes: each runs a release from before global Runners
+   * took them, or its host turned them off (Types/Runner/RunnerCodeFixes).
+   */
+  GlobalRunnersTakeNoCodeFixes = "GlobalRunnersTakeNoCodeFixes",
+  /*
+   * The Runner the repository works on - the one it picks, or the project's
+   * default Runner it follows - is online but takes no AI code fixes: its
+   * host turned them off (ONEUPTIME_RUNNER_ENABLE_CODE_FIXES=false).
+   */
+  RunnerTakesNoCodeFixes = "RunnerTakesNoCodeFixes",
 }
 
 export interface CodeTaskBlocker {
   type: CodeTaskBlockerType;
   message: string;
   /*
-   * RunnerNotOnline: the name of the Runner the repository picks, so the
-   * page says which one to check. Left out when it is not known.
+   * RunnerNotOnline and RunnerTakesNoCodeFixes: the name of the Runner the
+   * repository works on, so the page says which one to check. Left out when
+   * it is not known.
    */
   runnerName?: string | undefined;
 }

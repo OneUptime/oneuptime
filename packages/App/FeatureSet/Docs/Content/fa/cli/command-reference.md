@@ -5,7 +5,7 @@
 :::cards
 - [گزینه‌های سراسری](#گزینههای-سراسری): گزینه‌هایی که هر دستور می‌پذیرد.
 - [ورود و زمینه‌ها](#ورود-و-زمینهها): login و دستورهای context.
-- [دستورهای منابع](#دستورهای-منابع): list، get، create، update، delete و count.
+- [دستورهای منبع](#دستورهای-منابع): عملیات، فیلدها و کنش‌های هر منبع.
 - [دستورهای دیگر](#دستورهای-دیگر): deploy، whoami، resources، version و help.
 :::
 
@@ -17,7 +17,8 @@ flowchart LR
     O --> C["context"]
     C --> C1["list<br/>use<br/>current<br/>delete"]
     O --> R["incident، monitor<br/>و هر منبع دیگر"]
-    R --> R1["list<br/>get<br/>create<br/>update<br/>delete<br/>count"]
+    R --> R1["list<br/>get<br/>create<br/>update<br/>delete<br/>count<br/>fields"]
+    R --> R2["acknowledge<br/>resolve<br/>start<br/>end<br/>add-note"]
     O --> U["deploy<br/>whoami<br/>resources<br/>version<br/>help"]
 ```
 
@@ -29,11 +30,14 @@ flowchart LR
 | `--url <url>` | نشانی OneUptime شما برای همین دستور | `ONEUPTIME_URL`، سپس URL زمینه |
 | `--context <name>` | زمینهٔ ذخیره‌شده‌ای که این دستور به کار می‌برد | زمینهٔ فعلی |
 | `-o, --output <format>` | `json`، `table` یا `wide` | `table` در ترمینال، `json` در پایپ |
+| `--json` | همان `-o json` | |
 | `--no-color` | بدون رنگ چاپ می‌کند | رنگی، مگر این‌که `NO_COLOR` تنظیم شده باشد |
 | `-V, --version` | نسخهٔ CLI را چاپ می‌کند | |
 | `-h, --help` | راهنمای یک دستور را نشان می‌دهد | |
 
 گزینه‌ها پیش یا پس از دستور می‌آیند: `oneuptime --context staging incident list` و `oneuptime incident list --context staging` یک کار را انجام می‌دهند.
+
+هر دستوری `-o` و `--json` را می‌پذیرد، پس جدول‌های زیر آن‌ها را نمی‌آورند. دستوری که پاسخش یک جمله است، مانند `delete`، آن جمله را چاپ می‌کند مگر این‌که `-o json` یا `--json` JSON بخواهد: [قالب‌های خروجی](/docs/cli/output-formats#json) را ببینید.
 
 ## ورود و زمینه‌ها
 
@@ -53,15 +57,11 @@ oneuptime login <api-key> <instance-url> [--context-name <name>]
 
 ### `oneuptime context list`
 
-زمینه‌های ذخیره‌شده را فهرست می‌کند؛ `*` زمینهٔ فعلی را مشخص می‌کند. کلیدهای API هرگز فهرست نمی‌شوند.
+زمینه‌های ذخیره‌شده را فهرست می‌کند؛ `*` زمینهٔ فعلی را نشان می‌دهد. کلیدهای API هرگز فهرست نمی‌شوند: JSON برای هر زمینه `name`، `apiUrl` و `isCurrent` را می‌دهد.
 
 ```bash
-oneuptime context list [-o <format>]
+oneuptime context list
 ```
-
-| گزینه | الزامی | چیست |
-| --- | --- | --- |
-| `-o, --output <format>` | خیر | `json`، `table` یا `wide`. JSON برای هر زمینه `name`، `apiUrl` و `isCurrent` را می‌دهد |
 
 ### `oneuptime context use`
 
@@ -97,14 +97,14 @@ oneuptime context delete <name>
 
 ## دستورهای منابع
 
-`<resource>` دستور یک نوع رکورد است، از جدول‌های [منابع](#منابع)، مانند `incident` یا `monitor`. برای نمونه‌ها [عملیات روی منابع](/docs/cli/resource-operations) را ببینید.
+`<resource>` دستور یک نوع رکورد است، از جدول [منابع](#منابع)، مانند `incident` یا `monitor`. یک منبع عملیاتی را دارد که API برای آن می‌پذیرد، بیشترشان هر شش عملیات را، و `oneuptime <resource> --help` عملیات خود آن را فهرست می‌کند. برای نمونه‌ها [عملیات روی منابع](/docs/cli/resource-operations) را ببینید.
 
 ### `oneuptime <resource> list`
 
 رکوردها را فهرست می‌کند، تازه‌ترین‌ها در ابتدا. برچسب‌ها در عوض به ترتیب نام فهرست می‌شوند، برچسب‌های شماره‌دار اول (`2. Team` پیش از `10. Owner`).
 
 ```bash
-oneuptime <resource> list [--query <json>] [--limit <n>] [--skip <n>] [--sort <json>] [-o <format>]
+oneuptime <resource> list [--query <json>] [--limit <n>] [--skip <n>] [--sort <json>] [--fields <names>] [--all]
 ```
 
 | گزینه | چه می‌کند | پیش‌فرض |
@@ -113,52 +113,56 @@ oneuptime <resource> list [--query <json>] [--limit <n>] [--skip <n>] [--sort <j
 | `--limit <n>` | بیشترین تعداد رکوردهای برگشتی، تا ۱۰٬۰۰۰ | `10` |
 | `--skip <n>` | چند رکورد اول نادیده گرفته شوند | `0` |
 | `--sort <json>` | ترتیب، به‌صورت JSON: `{"<field>":"ASC"}` یا `{"<field>":"DESC"}` | تازه‌ترین‌ها در ابتدا |
-| `-o, --output <format>` | `json`، `table` یا `wide` | `table` در ترمینال، `json` در پایپ |
+| `--fields <names>` | فیلدهایی که برگردانده می‌شوند، جداشده با ویرگول؛ فیلدی از یک رکورد مرتبط پس از یک نقطه، مانند `currentIncidentState.name` | هر فیلدی که کلید می‌تواند بخواند |
+| `--all` | همهٔ رکوردهای منطبق، هر بار ۱۰۰ رکورد، تا ۱۰۰٬۰۰۰، به جای `--limit` و `--skip`. فقط برای رکوردها: تله‌متری `--all` ندارد | |
 
 ### `oneuptime <resource> get`
 
-یک رکورد را می‌خواند. فقط برای رکوردها: تله‌متری `get` ندارد.
+یک رکورد را می‌خواند.
 
 ```bash
-oneuptime <resource> get <id> [-o <format>]
+oneuptime <resource> get <id> [--fields <names>]
 ```
 
 | آرگومان یا گزینه | الزامی | چیست |
 | --- | --- | --- |
 | `<id>` | بله | شناسهٔ رکورد، یک UUID |
-| `-o, --output <format>` | خیر | `json`، `table` یا `wide` |
+| `--fields <names>` | خیر | فیلدهایی که برگردانده می‌شوند، جداشده با ویرگول. پیش‌فرض: هر فیلدی که کلید می‌تواند بخواند |
 
 ### `oneuptime <resource> create`
 
 یک رکورد می‌سازد و آن را چاپ می‌کند.
 
 ```bash
-oneuptime <resource> create (--data <json> | --file <path>) [-o <format>]
+oneuptime <resource> create [--<field> <value>]... [--data <json>] [--file <path>]
 ```
 
 | گزینه | الزامی | چیست |
 | --- | --- | --- |
-| `--data <json>` | یکی از این دو | رکورد، به‌صورت JSON |
-| `--file <path>` | یکی از این دو | یک فایل JSON که رکورد را در خود دارد. اگر همراه با `--data` داده شود، فایل به کار می‌رود |
-| `-o, --output <format>` | خیر | `json`، `table` یا `wide` |
+| `--<field> <value>` | فیلدهایی که ساختن باید بدهد | مقدار یک فیلد: `--title <text>`، `--incident-severity-id <id>`، `--labels <ids>`. `oneuptime <resource> create --help` آن‌ها را فهرست می‌کند. فقط برای رکوردها |
+| `--data <json>` | خیر | رکورد، به‌صورت JSON |
+| `--file <path>` | خیر | یک فایل JSON که رکورد را در خود دارد. اگر همراه با `--data` داده شود، فایل به کار می‌رود |
+
+پرچم‌ها روی `--data` یا `--file` اعمال می‌شوند. فیلدی که یک نفر را با شناسهٔ کاربری نام می‌برد، پرچمی هم دارد که او را با نشانی ایمیل نام می‌برد: `--user-email` در کنار `--user-id`.
 
 ### `oneuptime <resource> update`
 
-فیلدهایی را که می‌دهید تغییر می‌دهد. فقط برای رکوردها: تله‌متری `update` ندارد.
+فیلدهایی را که می‌دهید تغییر می‌دهد.
 
 ```bash
-oneuptime <resource> update <id> --data <json> [-o <format>]
+oneuptime <resource> update <id> [--<field> <value>]... [--data <json>] [--file <path>]
 ```
 
 | آرگومان یا گزینه | الزامی | چیست |
 | --- | --- | --- |
 | `<id>` | بله | شناسهٔ رکورد |
-| `--data <json>` | بله | فیلدهایی که باید تغییر کنند، به‌صورت JSON |
-| `-o, --output <format>` | خیر | `json`، `table` یا `wide` |
+| `--<field> <value>` | خیر | فیلدی که باید تغییر کند: `oneuptime <resource> update --help` آن‌ها را فهرست می‌کند. فقط برای رکوردها |
+| `--data <json>` | خیر | فیلدهایی که باید تغییر کنند، به‌صورت JSON |
+| `--file <path>` | خیر | یک فایل JSON که فیلدهای در حال تغییر را در خود دارد. اگر همراه با `--data` داده شود، فایل به کار می‌رود |
 
 ### `oneuptime <resource> delete`
 
-یک رکورد را بی‌درنگ و بدون پرسیدن حذف می‌کند. فقط برای رکوردها: تله‌متری `delete` ندارد.
+یک رکورد را بی‌درنگ و بدون پرسش حذف می‌کند.
 
 ```bash
 oneuptime <resource> delete <id> [--force]
@@ -174,37 +178,88 @@ oneuptime <resource> delete <id> [--force]
 رکوردها را می‌شمارد و عدد را چاپ می‌کند.
 
 ```bash
-oneuptime <resource> count [--query <json>] [-o <format>]
+oneuptime <resource> count [--query <json>]
 ```
 
 | گزینه | الزامی | چیست |
 | --- | --- | --- |
 | `--query <json>` | خیر | یک فیلتر، به‌صورت JSON. بدون آن، هر رکوردی که کلید می‌تواند بخواند |
-| `-o, --output <format>` | خیر | `json`، `table` یا `wide` |
+
+### `oneuptime <resource> fields`
+
+فیلدهای منبع را فهرست می‌کند: هر کدام برای چیست، نوعش، این‌که ساختن باید آن را بدهد یا نه، و پرچمی که آن را تنظیم می‌کند. آن‌ها را از خود CLI می‌خواند، بدون کلید API و بدون درخواست.
+
+```bash
+oneuptime <resource> fields
+```
+
+### `oneuptime <resource> acknowledge`
+
+یک حادثه، یک هشدار یا اپیزودی از یکی از آن‌ها را، همان‌طور که دکمهٔ داشبورد می‌کند، به وضعیت تأییدشدهٔ پروژهٔ شما می‌برد. رکوردی که از پیش تأیید شده یا فراتر از آن است، همان‌طور که هست می‌ماند.
+
+```bash
+oneuptime <resource> acknowledge <id>
+```
+
+| آرگومان | الزامی | چیست |
+| --- | --- | --- |
+| `<id>` | بله | شناسهٔ رکورد |
+
+### `oneuptime <resource> resolve`
+
+یک حادثه، یک هشدار یا اپیزودی از یکی از آن‌ها را به وضعیت حل‌شدهٔ پروژهٔ شما می‌برد.
+
+```bash
+oneuptime <resource> resolve <id>
+```
+
+| آرگومان | الزامی | چیست |
+| --- | --- | --- |
+| `<id>` | بله | شناسهٔ رکورد |
+
+### `oneuptime <resource> start`
+
+یک رویداد تعمیر و نگهداری زمان‌بندی‌شده را به وضعیت در جریانِ پروژهٔ شما می‌برد.
+
+```bash
+oneuptime <resource> start <id>
+```
+
+| آرگومان | الزامی | چیست |
+| --- | --- | --- |
+| `<id>` | بله | شناسهٔ رویداد |
+
+### `oneuptime <resource> end`
+
+یک رویداد تعمیر و نگهداری زمان‌بندی‌شده را به وضعیت پایان‌یافتهٔ پروژهٔ شما می‌برد.
+
+```bash
+oneuptime <resource> end <id>
+```
+
+| آرگومان | الزامی | چیست |
+| --- | --- | --- |
+| `<id>` | بله | شناسهٔ رویداد |
+
+### `oneuptime <resource> add-note`
+
+به یک حادثه، یک هشدار، اپیزودی از یکی از آن‌ها یا یک رویداد تعمیر و نگهداری زمان‌بندی‌شده یادداشتی اضافه می‌کند.
+
+```bash
+oneuptime <resource> add-note <id> --note <markdown> [--public]
+```
+
+| آرگومان یا گزینه | الزامی | چیست |
+| --- | --- | --- |
+| `<id>` | بله | شناسهٔ رکورد |
+| `--note <markdown>` | بله | یادداشت، به Markdown |
+| `--public` | خیر | آن را روی صفحه‌های وضعیت رکورد منتشر می‌کند، جایی که مشترکانش باخبر می‌شوند. فقط حادثه‌ها، اپیزودهایشان و تعمیر و نگهداری زمان‌بندی‌شده |
 
 ### منابع
 
-رکوردها `list`، `get`، `create`، `update`، `delete` و `count` را می‌پذیرند:
+هر منبع API OneUptime یک دستور است، با عملیاتی که API برای آن می‌پذیرد، `fields`، و کنش‌های رکوردهایی که کنش دارند:
 
-| حوزه | دستورها |
-| --- | --- |
-| پایش | `monitor`, `monitor-status`, `monitor-status-event` |
-| حادثه‌ها | `incident`, `incident-state`, `incident-severity`, `incident-state-timeline`, `incident-public-note`, `incident-internal-note`, `incident-alert`, `postmortem-status` |
-| هشدارها | `alert`, `alert-state`, `alert-severity`, `alert-state-timeline`, `alert-internal-note` |
-| صفحه‌های وضعیت | `status-page`, `status-page-announcement` |
-| نگهداری زمان‌بندی‌شده | `scheduled-maintenance-event`, `scheduled-maintenance-state`, `scheduled-maintenance-state-timeline` |
-| تیم‌ها و کشیک | `team`, `on-call-policy` |
-| امنیت | `security-case`, `security-case-evidence`, `security-case-note`, `security-case-priority`, `security-case-status`, `security-case-task`, `security-detection`, `security-playbook` |
-| امنیت داده | `data-store`, `data-store-finding`, `data-store-access-entry`, `data-security-identity`, `data-flow`, `data-security-issue`, `data-security-scan`, `custom-data-type`, `check-setting`, `residency-rule`, `data-security-setting` |
-| برچسب‌ها | `label` |
-
-تله‌متری `list`، `create` و `count` را می‌پذیرد:
-
-| حوزه | دستورها |
-| --- | --- |
-| مشاهده‌پذیری | `log`, `metric`, `span`, `exception-instance`, `monitor-log` |
-| امنیت | `security-event`, `threat-intel-indicator` |
-| تغییرها و هزینه | `change-event`, `kubernetes-cost-allocation` |
+{{CLI_RESOURCE_COMMANDS}}
 
 CLI همراه با OneUptime منتشر می‌شود، پس `oneuptime resources` دستورهای همان نسخه‌ای را که نصب کرده‌اید فهرست می‌کند.
 
@@ -220,6 +275,8 @@ CLI همراه با OneUptime منتشر می‌شود، پس `oneuptime resourc
 | `update` | `PUT /api/<path>/<id>/` | `{"data": ...}` |
 | `delete` | `DELETE /api/<path>/<id>/` | هیچ |
 | `count` | `POST /api/<path>/count` | `query` |
+
+یک کنش وضعیت‌های پروژهٔ شما و رکورد را می‌خواند، سپس همان‌طور که دکمهٔ داشبورد می‌کند، یک سطر در خط زمانی وضعیت رکورد می‌سازد: `acknowledge` روی یک حادثه یک `incident-state-timeline` می‌سازد. `add-note` یک `incident-internal-note` می‌سازد، یا با `--public` یک `incident-public-note`. یک پرچم ایمیل نخست اعضای تیم پروژه را که آن نشانی را دارند فهرست می‌کند. وقتی OneUptime فیلدی را که کلید نمی‌تواند بخواند رد کند، یک list یا یک get بدون آن دوباره می‌خواهد.
 
 ## دستورهای دیگر
 
@@ -250,24 +307,27 @@ oneuptime deploy [--service <name>] [--service-version <version>] [--previous-ve
 
 ### `oneuptime whoami`
 
-URL و کلید API را که دستور بعدی به کار می‌برد، با کلید پوشانده‌شده، و زمینه‌ای را که از آن آمده‌اند نشان می‌دهد. OneUptime را فرا نمی‌خواند. [ببینید CLI از چه چیزی استفاده خواهد کرد](/docs/cli/authentication#ببینید-cli-از-چه-چیزی-استفاده-خواهد-کرد) را ببینید.
+URL و کلید API را که دستور بعدی به کار می‌برد، با کلید پوشانده‌شده، و زمینه‌ای را که از آن آمده‌اند نشان می‌دهد. بدون `--check`، OneUptime را فرانمی‌خواند. [ببینید CLI از چه چیزی استفاده خواهد کرد](/docs/cli/authentication#ببینید-cli-از-چه-چیزی-استفاده-خواهد-کرد) را ببینید.
 
 ```bash
-oneuptime whoami
+oneuptime whoami [--check]
 ```
+
+| گزینه | الزامی | چیست |
+| --- | --- | --- |
+| `--check` | خیر | از OneUptime می‌پرسد که آیا کلید را می‌پذیرد، و پروژهٔ کلید، نسخهٔ OneUptime شما و نسخهٔ CLI را نشان می‌دهد |
 
 ### `oneuptime resources`
 
-هر نوع رکوردی را که CLI برایش دستور دارد فهرست می‌کند: دستورش، نام‌های مفرد و جمع، نوع و مسیر API آن، و شمار کل.
+هر نوع رکوردی را که CLI برایش دستور دارد فهرست می‌کند: دستورش، نام‌های مفرد و جمع، نوع و مسیر API، و شمار کل. JSON برای هر کدام `name`، `singularName`، `pluralName`، `modelType`، `apiPath`، `operations` و `actions` را می‌دهد.
 
 ```bash
-oneuptime resources [--type <type>] [-o <format>]
+oneuptime resources [--type <type>]
 ```
 
 | گزینه | الزامی | چیست | پیش‌فرض |
 | --- | --- | --- | --- |
 | `--type <type>` | خیر | `database` برای رکوردها، `analytics` برای تله‌متری | هر دو |
-| `-o, --output <format>` | خیر | `json`، `table` یا `wide`. JSON برای هر کدام `name`، `singularName`، `pluralName`، `modelType` و `apiPath` را می‌دهد | `table` در ترمینال، `json` در پایپ |
 
 ### `oneuptime version`
 

@@ -1,16 +1,17 @@
 import BadDataException from "../../Types/Exception/BadDataException";
+import { SECURITY_CASE_NUMBER_PREFIX } from "../../Types/SecurityCase/SecurityCaseNumber";
 
 /*
  * Number prefixes: the short text a project puts in front of its incident,
- * alert, episode and scheduled maintenance numbers, so incident 42 shows as
- * INC-42 instead of #42.
+ * alert, episode, scheduled maintenance and security case numbers, so
+ * incident 42 shows as INC-42 instead of #42.
  *
  * The rules live here so that the three things that deal in prefixes cannot
  * disagree: the server, which stores a prefix (ProjectService) and builds
- * each new number from it (the incident, alert, episode and scheduled
- * maintenance services); and the dashboard's Number Prefix pages, which
- * preview the number a prefix makes and say what is wrong with one before
- * it is saved.
+ * each new number from it (the incident, alert, episode, scheduled
+ * maintenance and security case services); and the dashboard's Numbering
+ * pages, which preview the number a prefix makes and say what is wrong with
+ * one before it is saved.
  */
 
 // The Project columns that hold a number prefix.
@@ -19,7 +20,8 @@ export type NumberPrefixColumn =
   | "incidentEpisodeNumberPrefix"
   | "alertNumberPrefix"
   | "alertEpisodeNumberPrefix"
-  | "scheduledMaintenanceNumberPrefix";
+  | "scheduledMaintenanceNumberPrefix"
+  | "securityCaseNumberPrefix";
 
 export interface NumberPrefixColumnInfo {
   column: NumberPrefixColumn;
@@ -54,6 +56,17 @@ export const NUMBER_PREFIX_COLUMNS: ReadonlyArray<NumberPrefixColumnInfo> = [
     column: "scheduledMaintenanceNumberPrefix",
     title: "Scheduled Maintenance Number Prefix",
     defaultForNewProjects: "SM-",
+  },
+  /*
+   * Security cases were numbered CASE-1, CASE-2, ... in every project before
+   * a project could choose: the column starts at CASE- for projects from
+   * before it too (its database default), so no case number changes until
+   * someone changes the prefix.
+   */
+  {
+    column: "securityCaseNumberPrefix",
+    title: "Security Case Number Prefix",
+    defaultForNewProjects: SECURITY_CASE_NUMBER_PREFIX,
   },
 ];
 

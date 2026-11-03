@@ -1,6 +1,7 @@
 import { expect, Locator, Page, test } from "@playwright/test";
 import { escapeRegExp } from "Common/Utils/RegExpEscape";
 import path from "path";
+import { expectNoSidewaysScroll } from "../SuiteHelpers/PageFit";
 
 /*
  * OneUptime issue #4518: discovered devices are named by their own hostname,
@@ -222,10 +223,7 @@ test("the reviewed hostnames fit a narrow screen", async ({
   await page.setViewportSize({ width: 390, height: 844 });
   await openReview(page);
 
-  const scrollWidth: number = await page.evaluate((): number => {
-    return document.documentElement.scrollWidth;
-  });
-  expect(scrollWidth).toBeLessThanOrEqual(390);
+  await expectNoSidewaysScroll(page);
 
   await page.screenshot({
     path: path.join(screenshots, "discovery-review-hostnames-mobile.png"),

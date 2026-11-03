@@ -93,7 +93,7 @@ Una vez abierta una página de estado, su propio menú lateral izquierdo se agru
 | **Marca** | **Marca** (logotipo, título, favicon, enlaces, pie de página, colores e idiomas, en una sola página), **Dominios personalizados**, **HTML, CSS y JavaScript**. |
 | **Seguridad** | **Acceso** (quién puede ver la página), **Usuarios privados**, **SSO**, **OIDC**, **SCIM**. |
 | **IA** | **MCP**. |
-| **Desarrolladores** | **Terraform**, **API**, **Asistentes de IA**: la página como código. |
+| **Desarrolladores** | **Terraform**, **API**, **CLI**, **Asistentes de IA**: la página como código. |
 | **Avanzado** | **Estado incrustado**, **Informes**, **Campos personalizados**, **Ajustes avanzados**, **Registros de auditoría**, **Eliminar página de estado**. |
 
 Solo **Básico** y **Recursos**, lo que muestra la página, empiezan abiertas. Todas las demás secciones empiezan plegadas, como las secciones poco usadas de todos los menús de OneUptime: haz clic en el título de una sección para mostrar sus páginas. Una sección se abre sola cuando estás en una de sus páginas, como **Ajustes avanzados** o **Suscriptores por correo electrónico**.

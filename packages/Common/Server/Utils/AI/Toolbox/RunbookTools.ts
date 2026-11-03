@@ -28,6 +28,7 @@ import {
   ToolContext,
   ToolExecutionResult,
 } from "./ToolTypes";
+import { translationKey } from "../../../../Types/Translator";
 
 /*
  * Derived from the model ACL so the tool gate can never drift from RBAC.
@@ -369,10 +370,18 @@ export const QueryRunbooksTool: ObservabilityTool = {
                 title: `Runbook: ${runbook.name}`,
                 description: runbook.description,
                 columns: [
-                  { key: "stepNumber", title: "#", type: "number" },
-                  { key: "title", title: "Step", type: "text" },
-                  { key: "type", title: "Type", type: "text" },
-                  { key: "instructions", title: "Instructions", type: "text" },
+                  {
+                    key: "stepNumber",
+                    title: translationKey("#"),
+                    type: "number",
+                  },
+                  { key: "title", title: translationKey("Step"), type: "text" },
+                  { key: "type", title: translationKey("Type"), type: "text" },
+                  {
+                    key: "instructions",
+                    title: translationKey("Instructions"),
+                    type: "text",
+                  },
                 ],
                 rows: stepRows,
                 link: {
@@ -472,10 +481,22 @@ export const QueryRunbooksTool: ObservabilityTool = {
                 ? `Showing ${rows.length} of ${totalCount} runbooks`
                 : undefined,
               columns: [
-                { key: "name", title: "Name", type: "text" },
-                { key: "stepCount", title: "Steps", type: "number" },
-                { key: "enabled", title: "Enabled", type: "text" },
-                { key: "description", title: "Description", type: "text" },
+                { key: "name", title: translationKey("Name"), type: "text" },
+                {
+                  key: "stepCount",
+                  title: translationKey("Steps"),
+                  type: "number",
+                },
+                {
+                  key: "enabled",
+                  title: translationKey("Enabled"),
+                  type: "text",
+                },
+                {
+                  key: "description",
+                  title: translationKey("Description"),
+                  type: "text",
+                },
               ],
               rows: rows,
               link: { type: AIChatCitationTargetType.Runbooks },

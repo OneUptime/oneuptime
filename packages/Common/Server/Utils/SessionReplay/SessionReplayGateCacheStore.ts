@@ -1,6 +1,7 @@
 import Redis, { ClientType } from "../../Infrastructure/Redis";
 import logger from "../Logger";
 import ObjectID from "../../../Types/ObjectID";
+import OldestKeyMap from "../../../Utils/OldestKeyMap";
 
 /*
  * Cache state and invalidation for the session-replay gate.
@@ -58,8 +59,12 @@ interface KillKeyCacheEntry {
  * avoid. The resolver casts on read, which is safe because it is the only
  * writer.
  */
-const policyCache: Map<string, PolicyCacheEntry<unknown>> = new Map();
-const killKeyCache: Map<string, KillKeyCacheEntry> = new Map();
+const policyCache: OldestKeyMap<
+  string,
+  PolicyCacheEntry<unknown>
+> = new OldestKeyMap();
+const killKeyCache: OldestKeyMap<string, KillKeyCacheEntry> =
+  new OldestKeyMap();
 
 /*
  * Coarse-LRU bounded write (mirrors InMemoryTTLCache): evict the oldest entry
@@ -69,13 +74,13 @@ const killKeyCache: Map<string, KillKeyCacheEntry> = new Map();
  * marker depends on.
  */
 function boundedSet<TValue>(
-  map: Map<string, TValue>,
+  map: OldestKeyMap<string, TValue>,
   key: string,
   value: TValue,
   maxEntries: number,
 ): void {
   if (map.size >= maxEntries && !map.has(key)) {
-    const oldest: string | undefined = map.keys().next().value;
+    const oldest: string | undefined = map.oldestKey();
     if (oldest !== undefined) {
       map.delete(oldest);
     }

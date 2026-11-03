@@ -38,7 +38,19 @@ import { isJSONObject } from "./TerraformValues";
  * without a server; DeveloperDocsPage runs the lookups, each on its own.
  */
 
-export type DeveloperDocsPageKind = "terraform" | "api" | "ai-assistants";
+export type DeveloperDocsPageKind =
+  | "terraform"
+  | "api"
+  | "cli"
+  | "ai-assistants";
+
+/*
+ * The CLI page shows the API page's requests as commands - the same
+ * create, filters, change and tasks - so it looks up what they point at.
+ */
+function usesApiExamples(page: DeveloperDocsPageKind): boolean {
+  return page === "api" || page === "cli";
+}
 
 // What a new monitor's steps point at: the project's statuses and severities.
 const MONITOR_STEP_MODELS: Array<DatabaseBaseModelType> = [
@@ -169,7 +181,7 @@ export function getDeveloperDocsLiveModels(data: {
     }
   }
 
-  if (data.page === "api" && data.scope === "list") {
+  if (usesApiExamples(data.page) && data.scope === "list") {
     for (const filter of profile.filters || []) {
       for (const part of filter.query) {
         add(data.modelType, part.column, part.value);
@@ -177,7 +189,7 @@ export function getDeveloperDocsLiveModels(data: {
     }
   }
 
-  if (data.page === "api" && data.scope === "view") {
+  if (usesApiExamples(data.page) && data.scope === "view") {
     for (const field of profile.update?.fields || []) {
       add(data.modelType, field.column, field.value);
     }

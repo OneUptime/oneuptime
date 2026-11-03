@@ -327,7 +327,7 @@ A run whose heartbeat has been silent for more than 12 minutes is failed with an
 :::
 
 :::details No Runner picks the task up
-A task that waits more than 30 minutes while the Runner that should take it is not connected - the one its repository picks, the project's default Runner for a repository that picks none, or a global Runner - fails, with a message that says which, so it never shows as in progress forever. When a Runner is online but busy, queued tasks wait their turn. A Runner older than Code is never handed a request from Code: update a Runner you run yourself along with the server.
+A task that waits more than 30 minutes while the Runner that should take it is not connected - the one its repository picks, the project's default Runner for a repository that picks none, or a global Runner - fails, with a message that says which, so it never shows as in progress forever. A Runner that takes no code fixes counts as not connected: one started with `ONEUPTIME_RUNNER_ENABLE_CODE_FIXES=false`, or a global Runner older than 14.0.94. Code says so before you ask for a task. When a Runner is online but busy, queued tasks wait their turn. A Runner older than Code is never handed a request from Code: update a Runner you run yourself along with the server.
 :::
 
 ## Privacy

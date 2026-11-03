@@ -1,6 +1,6 @@
 {
   "name": "@oneuptime/e2e",
-  "version": "14.0.102",
+  "version": "14.0.103",
   "description": "",
   "repository": {
     "type": "git",
@@ -14,6 +14,8 @@
     "test-accounts-theme-ui": "playwright test --config playwright.accounts-theme-ui.config.ts",
     "test-public-dashboard-theme-ui": "playwright test --config playwright.public-dashboard-theme-ui.config.ts",
     "test-navigation-search-ui": "playwright test --config playwright.navigation-search.config.ts",
+    "test-lighthouse": "playwright test --config playwright.lighthouse.config.ts",
+    "test-lighthouse-production": "playwright test --config playwright.lighthouse-production.config.ts",
     "preinstall": "npx playwright install-deps && npx playwright install",
     "test": "playwright test || (curl $E2E_TESTS_FAILED_WEBHOOK_URL && exit 1)",
     "dep-check": "npm install -g depcheck && depcheck ./ --skip-missing=true",
@@ -107,6 +109,7 @@
     "test-vmware-host-page-ui": "playwright test --config playwright.vmware-host-page-ui.config.ts",
     "test-acknowledgement-timeout-ui": "playwright test --config playwright.acknowledgement-timeout-ui.config.ts",
     "test-shared-ui-ui": "playwright test --config playwright.shared-ui-ui.config.ts",
+    "test-suite-helpers-ui": "playwright test --config playwright.suite-helpers-ui.config.ts",
     "test-reading-direction-ui": "playwright test --config playwright.reading-direction-ui.config.ts",
     "test-owners-on-create-ui": "playwright test --config playwright.owners-on-create-ui.config.ts",
     "test-first-on-call-policy-ui": "playwright test --config playwright.first-on-call-policy-ui.config.ts",
@@ -116,7 +119,11 @@
     "test-snmp-walk-ui": "playwright test --config playwright.snmp-walk-ui.config.ts",
     "test-asset-details-ui": "playwright test --config playwright.asset-details-ui.config.ts",
     "test-docker-swarm-pages-ui": "playwright test --config playwright.docker-swarm-pages-ui.config.ts",
+    "test-container-host-pages-ui": "playwright test --config playwright.container-host-pages-ui.config.ts",
+    "test-ceph-pages-ui": "playwright test --config playwright.ceph-pages-ui.config.ts",
+    "test-storage-array-pages-ui": "playwright test --config playwright.storage-array-pages-ui.config.ts",
     "test-side-by-side-pages-ui": "playwright test --config playwright.side-by-side-pages-ui.config.ts",
+    "test-permissions-per-tab-ui": "playwright test --config playwright.permissions-per-tab-ui.config.ts",
     "test-resource-overviews-ui": "playwright test --config playwright.resource-overviews-ui.config.ts",
     "test-proxmox-pages-ui": "playwright test --config playwright.proxmox-pages-ui.config.ts",
     "test-kubernetes-pages-ui": "playwright test --config playwright.kubernetes-pages-ui.config.ts",
@@ -132,6 +139,7 @@
   "dependencies": {
     "@playwright/test": "^1.63.0",
     "Common": "file:../Common",
+    "lighthouse": "^13.5.0",
     "playwright": "^1.63.0",
     "typescript": "^5.9.2"
   }

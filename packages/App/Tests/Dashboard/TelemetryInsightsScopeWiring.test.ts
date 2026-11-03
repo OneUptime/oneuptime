@@ -178,23 +178,25 @@ describe("the initial saved view no longer clobbers a deep link", () => {
     expect(source).toContain("setHasFetchedSavedViews(true);");
   });
 
-  test("the project default stays a standalone-explorer idea", () => {
+  test("a page's default view applies on its own page, and an embedded panel applies none", () => {
     /*
      * Un-breaking the race above means the default view now genuinely
-     * applies where it never used to. That is right on /logs and wrong
-     * inside an embedded panel: applying one on a service's Logs tab would
-     * silently re-window and re-filter a panel the user opened to see that
-     * service's logs. `!syncUrlState` is this viewer's marker for embedded,
-     * and it is the same line the Traces and Metrics explorers already draw
-     * with enableSavedViews. One flag, computed once and read both by the
+     * applies where it never used to. A default used to be the project's,
+     * made on /logs, and applying it inside an embedded panel would have
+     * silently re-windowed and re-filtered a panel the user opened to see
+     * one service's logs - so no embed (`!syncUrlState`) applied one. Now a
+     * saved view belongs to the page it was saved on (issue #5549): a
+     * resource's Logs tab's default is a view saved on that very tab, and
+     * opens there, while a panel with no page of its own (no savedViewScope)
+     * owns what it shows. One flag, computed once and read both by the
      * resolver and by the wait for the saved views before the first reads
-     * (issue #4709), so an embed neither applies a default view nor waits
-     * for one.
+     * (issue #4709), so such a panel neither applies a default view nor
+     * waits for one.
      */
     const source: string = readSquashed("Components/Logs/LogsViewer.tsx");
 
     expect(source).toContain(
-      "const hostOwnsView: boolean = Boolean( pinnedTimeRange || props.timeRangeOverride || !props.syncUrlState, );",
+      "const hostOwnsView: boolean = doesHostOwnLogsView({ hasPinnedTimeRange: Boolean(pinnedTimeRange), hasTimeRangeOverride: Boolean(props.timeRangeOverride), savedViewScope: props.savedViewScope, });",
     );
     expect(source).toContain("hostOwnsView: hostOwnsView, });");
     expect(source).toContain("mayApplyInitialSavedView({");

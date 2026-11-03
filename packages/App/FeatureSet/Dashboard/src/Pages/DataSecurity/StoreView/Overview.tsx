@@ -5,6 +5,7 @@ import {
   SensitivityPill,
   SeverityPill,
 } from "../../../Components/DataSecurity/DataSecurityPills";
+import StoreDataPaths from "../../../Components/DataSecurity/StoreDataPaths";
 import StoreDataTypeList from "../../../Components/DataSecurity/StoreDataTypeList";
 import { getStoreProviderName } from "../../../Components/DataSecurity/StoreFieldOptions";
 import { getDataSecurityIssueRoute } from "../../../Components/DataSecurity/StoreIssuesTable";
@@ -69,8 +70,8 @@ import React, {
 /*
  * ONE STORE AT A GLANCE: how sensitive it is and why, how exposed it is,
  * what is inside it, how it is set up - each fact of its configuration as a
- * line that passes, fails or could not be read - what to fix on it first,
- * and who owns it.
+ * line that passes, fails or could not be read - who can reach it and where
+ * its data goes (StoreDataPaths), what to fix on it first, and who owns it.
  *
  * Scan Now samples its content again, and Check Now reads its configuration
  * again and runs its checks; each says what it started, and the page reads
@@ -660,6 +661,18 @@ const DataStoreOverview: FunctionComponent<
           )}
         </Card>
       </CardGrid>
+
+      <StoreDataPaths
+        dataStoreId={dataStoreId}
+        store={{
+          id: dataStoreIdString,
+          name: store.name || "",
+          kind: store.kind,
+          sensitivity: store.sensitivityOverride || store.sensitivity,
+          exposure: store.exposure,
+        }}
+        refreshToken={readCount}
+      />
 
       <CardGrid columns={2}>
         <Card

@@ -277,6 +277,8 @@ const SHOWN_IN_ENGLISH: Record<string, Array<string>> = {
   [SWARM]: [
     ...FORM_NAMES,
     "Cluster Stopped Reporting",
+    "Node Not Ready",
+    "Service Replicas Mismatch",
     "Task Down (Low Uptime)",
     ...CRITERIA_NAMES,
   ],

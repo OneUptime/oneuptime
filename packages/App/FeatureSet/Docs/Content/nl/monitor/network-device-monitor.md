@@ -195,7 +195,7 @@ Elke plek die een apparaat toont — de lijst Apparaten, de Apparaten-pagina van
 | Toevoeging | Verschijnt wanneer | Wat te doen |
 | --- | --- | --- |
 | **Verouderd** | Er is al ruim langer dan het interval van het apparaat geen poll geprobeerd. | Controleer of de sonde van het apparaat online is en haar vloot bijhoudt. |
-| **No probe** | Het apparaat wordt door een sonde gepolld maar heeft er geen, of het pollen staat uit. | Wijs een sonde toe die het kan bereiken; tot dan pollt niets het. |
+| **Geen sonde** | Het apparaat wordt door een sonde gepolld maar heeft er geen, of het pollen staat uit. | Wijs een sonde toe die het kan bereiken; tot dan pollt niets het. |
 | **Geen monitor** | Het apparaat gebruikt de [override met gekoppelde monitor](#de-override-met-gekoppelde-monitor) en er is niets gekoppeld. | Koppel een monitor, of zet het terug op pollen door de sonde. |
 | **SNMP failing** | Bereikbaar via ping, maar de laatste SNMP-walk is mislukt. | Controleer de inloggegevens, de SNMP-agent of een ACL. |
 
@@ -518,7 +518,7 @@ Deze worden naast de eigen velden van het apparaat bewaard, nooit erin geschreve
 
 Een Meraki-switch, -access point of -appliance levert over SNMP geen serienummer of firmware: rechtstreeks gepold antwoordt het apparaat op de systeemgroep en de interfacetabellen, die zijn model en zijn MAC-adres geven, en verder niets. Wanneer een [Meraki-koppeling](/docs/monitor/network-traffic#cisco-meraki-zonder-netflow) zijn organisatie leest, neemt het apparaat die, en alles wat zijn poll verder leeg laat, over uit het Meraki-dashboard, en zijn kaart **Inventaris** noemt de koppeling in een rij **Meraki**.
 
-Om een apparaat nu opnieuw te lezen, klik je op **Vernieuwen** op zijn kaart **Inventaris**. Zijn probe pollt het binnen een minuut, en zijn Meraki-koppeling leest de organisatie opnieuw. De kaart zegt wanneer de nieuwe leesbeurt binnen is, of dat de probe het apparaat niet kon bereiken. **Vernieuwen** is er voor wie netwerkapparaten mag bewerken, bij een apparaat dat een probe pollt of dat een Meraki-koppeling beschrijft.
+Om een apparaat nu opnieuw te lezen, klik je op **Vernieuwen** op zijn kaart **Inventaris**. Zijn probe pollt het binnen een minuut, en zijn Meraki-koppeling leest de organisatie opnieuw. De kaart zegt wanneer de nieuwe leesbeurt binnen is, of dat de probe het apparaat niet kon bereiken. **Vernieuwen** is er voor wie netwerkapparaten mag bewerken, bij een apparaat dat een probe pollt of dat een Meraki-koppeling beschrijft. Zodra de nieuwe leesbeurt binnen is, tonen de status van het apparaat en zijn kaart **Apparaatgegevens** hem ook. Is drie minuten later alleen het Meraki-dashboard nog steeds niet gelezen, dan zegt de kaart dat, met een link naar de Meraki-koppeling op de pagina **Verkeer** van het netwerk, waarvan de rij zegt waarom.
 
 ## Apparaten ontdekken met een netwerkscan
 
@@ -961,6 +961,12 @@ Om de kaart te laten vollopen:
 
 Klik op een onbeheerde peer en **Add to Monitoring** registreert hem als door een sonde gepold apparaat. Hij neemt de sonde waarover zijn buren het eens zijn, dus hij wordt vanaf zijn eerste poll gepingd, en je kunt later inloggegevens toevoegen als hij SNMP blijkt te hebben.
 
+### De indeling kiezen waarmee de kaart opent
+
+**Map options → Arrange the map** deelt de kaart in als **Automatisch**, **By network layer**, **Concentric**, **Hub and spoke** of **Parent and child**. De kaart opent met de indeling die als **Standaard** is gemarkeerd: **Automatisch** voor alle apparaten en **By network layer** voor een locatie, tenzij je project een indeling voor iedereen heeft gekozen. Iedereen kan tijdens het bekijken van indeling wisselen; de volgende keer opent de kaart weer met de standaard.
+
+Projecteigenaren en projectbeheerders kiezen de standaard: wissel naar een indeling en selecteer **Make default for everyone**. Daarna opent elke weergave van de apparaatkaart ermee: **Apparaattopologie**, een locatie op de **Kaart**, en het tabblad **Netwerk** van **Topologie**. Op de standaardindeling zet **Clear default** elke kaart terug op haar eigen standaard. Versleepte posities worden per indeling in je browser opgeslagen, zodat de kaart opent met de schikking die je in die indeling hebt gemaakt.
+
 ### De kaart als pdf exporteren
 
 **PDF exporteren**, bovenaan de kaart, downloadt de kaart die je bekijkt als een pdf die je aan een assessment, een wijzigingsverzoek of een incidentreview kunt toevoegen, of offline kunt lezen. Elke weergave van de apparaatkaart heeft het: **Apparaattopologie**, een locatie op de **Kaart**, en het tabblad **Netwerk** van **Topologie**.
@@ -1023,7 +1029,7 @@ Het overzicht van het apparaat heeft een kaart **Verbonden met** die de switch, 
 :::details Een apparaat blijft In behandeling
 Een apparaat toont **In behandeling** zolang er nog niets over is gerapporteerd. Lees de toevoeging naast de status:
 
-- **No probe**: wijs een sonde toe, of zet **Polling Enabled** weer aan. Tot je dat doet, pollt niets het apparaat.
+- **Geen sonde**: wijs een sonde toe, of zet **Polling Enabled** weer aan. Tot je dat doet, pollt niets het apparaat.
 - **Geen monitor**: het apparaat staat op de [override met gekoppelde monitor](#de-override-met-gekoppelde-monitor) zonder dat er iets is gekoppeld. Koppel een monitor, of gebruik **Switch to Probe Polling** om zijn sonde het te laten pingen.
 - Helemaal geen toevoeging: het apparaat heeft een sonde en wacht op zijn eerste poll. Bij een grote vloot deelt een sonde per cyclus een beperkt aantal apparaten uit, dus de eerste poll kan langer duren dan het interval van het apparaat.
 

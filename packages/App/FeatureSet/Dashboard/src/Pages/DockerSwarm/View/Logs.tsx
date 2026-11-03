@@ -16,6 +16,10 @@ import PageLoader from "Common/UI/Components/Loader/PageLoader";
 import ErrorMessage from "Common/UI/Components/ErrorMessage/ErrorMessage";
 import { PromiseVoidFunction } from "Common/Types/FunctionTypes";
 import DashboardLogsViewer from "../../../Components/Logs/LogsViewer";
+import {
+  buildSavedViewScope,
+  SavedViewScopeKind,
+} from "Common/Utils/Telemetry/SavedViewScope";
 import Query from "Common/Types/BaseDatabase/Query";
 import Log from "Common/Models/AnalyticsModels/Log";
 import ProjectUtil from "Common/UI/Utils/Project";
@@ -104,6 +108,10 @@ const DockerSwarmClusterLogs: FunctionComponent<
        */}
       <DashboardLogsViewer
         id={`docker-swarm-cluster-logs-${modelId.toString()}`}
+        savedViewScope={buildSavedViewScope(
+          SavedViewScopeKind.DockerSwarmCluster,
+          modelId,
+        )}
         logQuery={logQuery}
         attributeFilterDisplayKeys={{
           "resource.docker.swarm.cluster.name": "Cluster",
@@ -120,7 +128,7 @@ const DockerSwarmClusterLogs: FunctionComponent<
         }}
         showFilters={true}
         enableRealtime={true}
-        noLogsMessage="The Docker Swarm agent sends metrics only. Logs appear here when you send OpenTelemetry logs with this cluster's docker.swarm.cluster.name resource attribute."
+        noLogsMessage="The Docker Swarm agent sends the logs of the containers that use Docker's json-file log driver, on each node it runs on."
       />
     </Fragment>
   );

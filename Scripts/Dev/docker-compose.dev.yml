@@ -152,6 +152,8 @@ services:
       # copies them (packages/App/Dockerfile.tpl): read-only, as there.
       - ./agents:/usr/src/agents:ro
       - ./HelmChart/Public/kubernetes-agent/troubleshoot.sh:/usr/src/HelmChart/Public/kubernetes-agent/troubleshoot.sh:ro
+      # The CLI's installer, /install/cli.
+      - ./packages/CLI/Install:/usr/src/packages/CLI/Install:ro
     extends:
       file: ./docker-compose.base.yml
       service: app

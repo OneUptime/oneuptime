@@ -37,13 +37,15 @@ import ValueTextField, {
 } from "../ValuePicker/ValueTextField";
 import { ColumnValueMode, ModelColumnControl } from "./ColumnRow";
 import { containsTemplateExpression } from "./ColumnRowSerialization";
+import { WorkflowViewOnlyContext } from "../WorkflowViewOnly";
 import React, {
   FunctionComponent,
   ReactElement,
+  useContext,
   useRef,
   useState,
 } from "react";
-import { Translator } from "../../../Utils/TranslateTemplate";
+import { Translator, translationKey } from "../../../Utils/TranslateTemplate";
 import useTranslator from "../../../Utils/UseTranslator";
 
 export interface ComponentProps {
@@ -78,6 +80,9 @@ export interface ComponentProps {
 
 const INPUT_WRAPPER_CLASS: string = "relative w-full";
 
+// A list with nothing in it, read on a view (MultiValueInput).
+const NO_VALUES_TEXT: string = translationKey("None");
+
 /*
  * Text of any kind: the cell is the chip editor in every mode, so there is
  * nothing to switch between - a reference is just part of the text.
@@ -94,6 +99,13 @@ const ColumnValueInput: FunctionComponent<ComponentProps> = (
 ): ReactElement => {
   const translator: Translator = useTranslator();
   const picker: ValuePickerContextValue = useValuePicker();
+  /*
+   * A step opened to be read (WorkflowViewOnly): the value as it is, held
+   * still by the row's WorkflowViewOnlyFieldset, and none of the ways to
+   * change it - no "abc" back to typing one, no remove on a list's entry,
+   * no box to type the next one into.
+   */
+  const isViewOnly: boolean = useContext(WorkflowViewOnlyContext);
   const isReference: boolean = props.valueMode === ColumnValueMode.Reference;
   const dataTestId: string = props.dataTestId || "model-column";
   const cellRef: React.MutableRefObject<HTMLDivElement | null> =
@@ -200,6 +212,7 @@ const ColumnValueInput: FunctionComponent<ComponentProps> = (
     return (
       <MultiValueInput
         values={props.values}
+        isReadOnly={isViewOnly}
         placeholder={props.placeholder}
         ariaLabelledby={props.ariaLabelledby}
         dataTestId={props.dataTestId}
@@ -249,7 +262,7 @@ const ColumnValueInput: FunctionComponent<ComponentProps> = (
             }}
           />
         </div>
-        {typeAValueButton}
+        {isViewOnly ? null : typeAValueButton}
       </div>
     );
   }
@@ -436,6 +449,8 @@ const BooleanSegments: FunctionComponent<BooleanSegmentsProps> = (
 
 interface MultiValueInputProps {
   values: Array<string>;
+  // The list to read: its entries, with no remove and no box for another.
+  isReadOnly?: boolean | undefined;
   placeholder?: string | undefined;
   ariaLabelledby?: string | undefined;
   dataTestId?: string | undefined;
@@ -470,8 +485,15 @@ const MultiValueInput: FunctionComponent<MultiValueInputProps> = (
 
   return (
     <div className="w-full rounded-md border border-gray-300 bg-white px-2 py-1.5">
+      {props.isReadOnly && props.values.length === 0 ? (
+        <span className="text-sm text-gray-500">
+          {translator.translateText(NO_VALUES_TEXT)}
+        </span>
+      ) : null}
       {props.values.length > 0 && (
-        <div className="mb-1 flex flex-wrap gap-1">
+        <div
+          className={`flex flex-wrap gap-1 ${props.isReadOnly ? "" : "mb-1"}`}
+        >
           {props.values.map((value: string, index: number) => {
             return (
               <span
@@ -483,78 +505,82 @@ const MultiValueInput: FunctionComponent<MultiValueInputProps> = (
                 ) : (
                   value
                 )}
-                <button
-                  type="button"
-                  aria-label={translator.translateTemplate(
-                    "Remove {{option}}",
-                    {
-                      option: value,
-                    },
-                  )}
-                  className="text-gray-400 hover:text-gray-600"
-                  onClick={() => {
-                    props.onChange(
-                      props.values.filter((_entry: string, i: number) => {
-                        return i !== index;
-                      }),
-                    );
-                  }}
-                >
-                  <Icon icon={IconProp.Close} className="h-3 w-3" />
-                </button>
+                {props.isReadOnly ? null : (
+                  <button
+                    type="button"
+                    aria-label={translator.translateTemplate(
+                      "Remove {{option}}",
+                      {
+                        option: value,
+                      },
+                    )}
+                    className="text-gray-400 hover:text-gray-600"
+                    onClick={() => {
+                      props.onChange(
+                        props.values.filter((_entry: string, i: number) => {
+                          return i !== index;
+                        }),
+                      );
+                    }}
+                  >
+                    <Icon icon={IconProp.Close} className="h-3 w-3" />
+                  </button>
+                )}
               </span>
             );
           })}
         </div>
       )}
-      <input
-        type="text"
-        value={draft}
-        aria-labelledby={props.ariaLabelledby}
-        data-testid={props.dataTestId}
-        placeholder={
-          translator.translateText(props.placeholder) ||
-          translator.translateText("Type a value and press Enter")
-        }
-        className="block w-full border-0 p-0 text-sm placeholder-gray-400 focus:outline-none focus:ring-0"
-        onChange={(event: React.ChangeEvent<HTMLInputElement>) => {
-          const value: string = event.target.value;
+      {props.isReadOnly ? null : (
+        <input
+          type="text"
+          value={draft}
+          aria-labelledby={props.ariaLabelledby}
+          data-testid={props.dataTestId}
+          placeholder={
+            translator.translateText(props.placeholder) ||
+            translator.translateText("Type a value and press Enter")
+          }
+          className="block w-full border-0 p-0 text-sm placeholder-gray-400 focus:outline-none focus:ring-0"
+          onChange={(event: React.ChangeEvent<HTMLInputElement>) => {
+            const value: string = event.target.value;
 
-          if (value.endsWith(",")) {
-            setDraft(value.slice(0, -1));
-            /*
-             * setDraft is async, so commit from the typed text rather than from
-             * state, which still holds the previous keystroke here.
-             */
-            const entry: string = value.slice(0, -1).trim();
+            if (value.endsWith(",")) {
+              setDraft(value.slice(0, -1));
+              /*
+               * setDraft is async, so commit from the typed text rather than from
+               * state, which still holds the previous keystroke here.
+               */
+              const entry: string = value.slice(0, -1).trim();
 
-            if (entry !== "" && !props.values.includes(entry)) {
-              props.onChange([...props.values, entry]);
+              if (entry !== "" && !props.values.includes(entry)) {
+                props.onChange([...props.values, entry]);
+              }
+
+              setDraft("");
+              return;
             }
 
-            setDraft("");
-            return;
-          }
+            setDraft(value);
+          }}
+          onKeyDown={(event: React.KeyboardEvent<HTMLInputElement>) => {
+            if (event.key === "Enter") {
+              event.preventDefault();
+              commitDraft();
+              return;
+            }
 
-          setDraft(value);
-        }}
-        onKeyDown={(event: React.KeyboardEvent<HTMLInputElement>) => {
-          if (event.key === "Enter") {
-            event.preventDefault();
-            commitDraft();
-            return;
-          }
-
-          if (
-            event.key === "Backspace" &&
-            draft === "" &&
-            props.values.length > 0
-          ) {
-            props.onChange(props.values.slice(0, -1));
-          }
-        }}
-        onBlur={commitDraft}
-      />
+            if (
+              event.key === "Backspace" &&
+              draft === "" &&
+              props.values.length > 0
+            ) {
+              props.onChange(props.values.slice(0, -1));
+            }
+          }}
+          onBlur={commitDraft}
+        />
+      )}
     </div>
   );
 };

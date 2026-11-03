@@ -27,6 +27,7 @@ import {
   AuditLogExportDestination,
   AuditLogExportHttpTransport,
 } from "./Types";
+import OldestKeyMap from "Common/Utils/OldestKeyMap";
 
 /*
  * Google Cloud Storage: one upload per batch through the JSON API's simple
@@ -112,10 +113,8 @@ export default class GoogleCloudStorageDestination
   implements AuditLogExportDestination
 {
   private readonly transport: AuditLogExportHttpTransport;
-  private readonly tokens: Map<string, GoogleServiceAccountToken> = new Map<
-    string,
-    GoogleServiceAccountToken
-  >();
+  private readonly tokens: OldestKeyMap<string, GoogleServiceAccountToken> =
+    new OldestKeyMap<string, GoogleServiceAccountToken>();
 
   public constructor(
     options: { transport?: AuditLogExportHttpTransport | undefined } = {},
@@ -153,7 +152,7 @@ export default class GoogleCloudStorageDestination
     });
 
     if (this.tokens.size >= MAX_CACHED_TOKEN_CLIENTS) {
-      const oldest: string | undefined = this.tokens.keys().next().value;
+      const oldest: string | undefined = this.tokens.oldestKey();
 
       if (oldest !== undefined) {
         this.tokens.delete(oldest);

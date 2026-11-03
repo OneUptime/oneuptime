@@ -21,8 +21,8 @@ import SideMenuSection from "Common/UI/Components/SideMenu/SideMenuSection";
 import React, { ReactElement } from "react";
 
 /*
- * The "Developer" section of a resource's side menus: Terraform, API and AI
- * Assistants. It starts collapsed, like Advanced (the section title is in
+ * The "Developer" section of a resource's side menus: Terraform, API, CLI
+ * and AI Assistants. It starts collapsed, like Advanced (the section title is in
  * SideMenuSectionState's SECTION_TITLES_COLLAPSED_BY_DEFAULT), and opens by
  * itself on its own pages.
  *

@@ -9,6 +9,8 @@ import {
 } from "../../../Types/Monitor/DockerSwarmMetricCatalog";
 import AggregationType from "../../../Types/BaseDatabase/AggregationType";
 import { describe, expect, test } from "@jest/globals";
+import fs from "fs";
+import path from "path";
 
 describe("DockerSwarmMetricCatalog", () => {
   const allMetrics: Array<DockerSwarmMetricDefinition> =
@@ -114,5 +116,61 @@ describe("DockerSwarmMetricCatalog", () => {
     expect(
       getDockerSwarmMetricByMetricName("container.memory.usage.total"),
     ).toBeDefined();
+  });
+});
+
+/*
+ * The swarm's own state, which the agent's poller sends every minute (files
+ * 0.161.3 on), is in the catalog under "Swarm" with the very names the
+ * agent writes, so a metric monitor's picker offers them and the Node Not
+ * Ready and Service Replicas Mismatch templates read catalog metrics.
+ */
+describe("DockerSwarmMetricCatalog - the swarm's own state", () => {
+  const AGENT_SCRIPT: string = fs.readFileSync(
+    path.join(
+      __dirname,
+      "..",
+      "..",
+      "..",
+      "..",
+      "..",
+      "agents",
+      "DockerSwarmAgent",
+      "inventory-snapshot.sh",
+    ),
+    "utf8",
+  );
+
+  test("the Swarm category holds the three series the agent's poller sends, by their names", () => {
+    expect(getAllDockerSwarmMetricCategories()).toContain("Swarm");
+    const swarm: Array<string> = getDockerSwarmMetricsByCategory("Swarm").map(
+      (metric: DockerSwarmMetricDefinition): string => {
+        return metric.metricName;
+      },
+    );
+    expect(swarm).toEqual([
+      "docker.swarm.node.ready",
+      "docker.swarm.service.replicas.desired",
+      "docker.swarm.service.replicas.running",
+    ]);
+    for (const name of swarm) {
+      expect(AGENT_SCRIPT).toContain(`gauge("${name}";`);
+    }
+  });
+
+  test("a node's readiness is read at its lowest, the replica counts as averages", () => {
+    expect(
+      getDockerSwarmMetricByMetricName("docker.swarm.node.ready")
+        ?.defaultAggregation,
+    ).toBe(AggregationType.Min);
+    for (const name of [
+      "docker.swarm.service.replicas.desired",
+      "docker.swarm.service.replicas.running",
+    ]) {
+      const metric: DockerSwarmMetricDefinition | undefined =
+        getDockerSwarmMetricByMetricName(name);
+      expect(metric?.defaultAggregation).toBe(AggregationType.Avg);
+      expect(metric?.unit).toBe("count");
+    }
   });
 });

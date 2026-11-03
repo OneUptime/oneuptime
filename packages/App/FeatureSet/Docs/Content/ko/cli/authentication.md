@@ -38,7 +38,7 @@ oneuptime login <api-key> https://oneuptime.com --context-name production
 `Logged in successfully. Context "production" is now active.`라고 응답합니다. 주소 끝의 슬래시는 제거되고, 같은 이름으로 다시 로그인하면 그 컨텍스트가 바뀝니다.
 
 > [!NOTE]
-> `login`은 OneUptime에 묻지 않고 키를 저장합니다. 키가 작동하는지 보려면 `oneuptime incident count` 같은 명령을 실행하세요.
+> `login`은 OneUptime에 묻지 않고 키를 저장합니다. OneUptime이 키를 받아들이는지 보려면 `oneuptime whoami --check`를 실행하세요.
 
 ## 컨텍스트
 
@@ -154,10 +154,16 @@ API Key: 4f1c****0a13
 Context: production
 ```
 
-키는 앞의 4글자와 뒤의 4글자만 보입니다. `Context` 줄은 URL과 키가 그 컨텍스트 자신의 값일 때만 나타나며, 플래그나 환경 변수가 바꾼 값이면 나타나지 않습니다. `whoami`는 OneUptime을 호출하지 않고 설정을 읽습니다. 명령이 보낼 내용을 보여 줄 뿐, OneUptime이 받아들이는지는 보여 주지 않습니다. 아무것도 저장되거나 설정되지 않았다면 이렇게 응답합니다.
+키는 앞의 4글자와 뒤의 4글자만 보입니다. `Context` 줄은 URL과 키가 그 컨텍스트 자신의 값일 때만 나타나며, 플래그나 환경 변수가 바꾼 값이면 나타나지 않습니다. `whoami`만 실행하면 OneUptime을 호출하지 않고 설정을 읽습니다. 명령이 보낼 내용을 보여 줄 뿐, OneUptime이 받아들이는지는 보여 주지 않습니다. 저장되거나 설정된 것이 없으면 다음과 같이 응답합니다.
 
 ```text
 Not authenticated. Run `oneuptime login` to authenticate.
+```
+
+`--check`는 OneUptime에도 묻습니다. 키의 프로젝트, 사용 중인 OneUptime 버전과 CLI 버전을 더하고, 두 버전이 다르면 사용 중인 OneUptime과 같은 버전의 CLI를 설치하는 명령도 보여 줍니다. OneUptime이 키를 거부하면 종료 코드 `2`로 멈춥니다.
+
+```bash
+oneuptime whoami --check
 ```
 
 ## 설정 파일

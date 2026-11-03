@@ -53,6 +53,59 @@ describe("what a read did for the map", () => {
   });
 });
 
+describe("what a read counted for Add devices", () => {
+  const base: Record<string, unknown> = {
+    status: "success",
+    organizationName: "Acme",
+    warnings: [],
+  };
+
+  test("a summary from before a connection could add its devices says nothing about them", () => {
+    expect(
+      readNetworkControllerReadSummary(base)?.unaddedDevices,
+    ).toBeUndefined();
+  });
+
+  test("the counts are read back by kind, through the counts' own reader", () => {
+    expect(
+      readNetworkControllerReadSummary({
+        ...base,
+        unaddedDevices: [
+          { productType: "camera", addable: 2 },
+          { productType: "sensor", addable: 9 },
+          { productType: "switch", addable: 5, taken: 1 },
+        ],
+      })?.unaddedDevices,
+    ).toEqual([
+      {
+        productType: "switch",
+        addable: 5,
+        withoutAddress: 0,
+        taken: 1,
+        archived: 0,
+      },
+      {
+        productType: "camera",
+        addable: 2,
+        withoutAddress: 0,
+        taken: 0,
+        archived: 0,
+      },
+    ]);
+  });
+
+  test("an empty list stays a count of nothing, and anything else is none", () => {
+    expect(
+      readNetworkControllerReadSummary({ ...base, unaddedDevices: [] })
+        ?.unaddedDevices,
+    ).toEqual([]);
+    expect(
+      readNetworkControllerReadSummary({ ...base, unaddedDevices: "lots" })
+        ?.unaddedDevices,
+    ).toBeUndefined();
+  });
+});
+
 describe("reading a stored read summary", () => {
   test("a connection never read has none", () => {
     expect(readNetworkControllerReadSummary(undefined)).toBeUndefined();

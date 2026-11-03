@@ -17,6 +17,7 @@ import RealTimeJobs, {
   RealTimeCandidate,
   RealTimeJobData,
 } from "./RealTimeJobs";
+import OldestKeyMap from "../../../../Utils/OldestKeyMap";
 
 // The jobs are RealTimeJobs': named here too, for the paths that write events and the Worker.
 export {
@@ -90,7 +91,8 @@ export function readRowTime(value: JSONValue | undefined): Date | null {
 }
 
 export default class RealTimeDetections {
-  private static cache: Map<string, CachedProject> = new Map();
+  private static cache: OldestKeyMap<string, CachedProject> =
+    new OldestKeyMap();
   private static loading: Map<string, Promise<Array<RealTimeRule>>> = new Map();
 
   // Forget every project's rules: tests, and nothing else.
@@ -127,7 +129,7 @@ export default class RealTimeDetections {
 
     // The oldest project's rules make room: a Map keeps the order they were set in.
     while (this.cache.size >= REAL_TIME_RULES_CACHE_MAX_PROJECTS) {
-      const oldest: string | undefined = this.cache.keys().next().value;
+      const oldest: string | undefined = this.cache.oldestKey();
 
       if (oldest === undefined) {
         break;

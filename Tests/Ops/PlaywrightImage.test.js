@@ -26,7 +26,9 @@
  * This suite holds:
  *   - every job that runs a browser to running in the image, or to
  *     installing browsers under BrowserInstallLimits' limits (the Probe's
- *     job, whose suite needs strace and gcc from apt as well);
+ *     job, whose suite needs strace and gcc from apt as well, and which
+ *     installs what apt fetched for it from the Actions cache since
+ *     2026-11-02: Tests/Ops/ProbeAptCache);
  *   - the image's version to the one Playwright every lockfile pins: the
  *     image's browsers are the builds of its own version, and any other
  *     Playwright would look for builds the image does not have;
@@ -70,19 +72,22 @@ const RETRY_WAIT_SECONDS = 10;
  * real Chromium (BrowserRecorder's vitals, the Probe's synthetic monitors).
  */
 const BROWSER_JOBS = [
+  "lighthouse-production.yml scan",
   "test.app.yaml dashboard-offline-ui",
   "test.app.yaml session-replay-ui",
   "test.browser-recorder.yaml test",
   "test.ee.yaml enterprise-ui",
   "test.mobile-app.yaml expo-web-export",
   "test.probe.yaml test",
+  "test.yaml lighthouse",
 ];
 
 // The jobs that install their browsers, and why they do not use the image.
 const INSTALLING_JOBS = {
   // Its suite also runs Chromium and Firefox under strace and compiles a
   // shim with gcc, both from apt; as the runner's user in the image it
-  // could not install them.
+  // could not install them. What apt fetches for it comes from the Actions
+  // cache (Tests/Ops/ProbeAptCache).
   "test.probe.yaml test": "strace and gcc from apt",
 };
 

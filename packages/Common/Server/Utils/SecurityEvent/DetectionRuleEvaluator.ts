@@ -936,10 +936,52 @@ export default class DetectionRuleEvaluator {
   }
 
   /*
-   * One case signal per matched group: the detection a case holds. The
-   * group's value is the entity the detection is about (typed by the field
-   * the rule groups on: a principalIp group is an IP address), and the
-   * group's sample observables are its other entities.
+   * What a matched group is about: the group's value is the entity the
+   * detection is about (typed by the field the rule groups on: a principalIp
+   * group is an IP address) - a correlation's one to three group-by values,
+   * each typed by its own field - and the group's sample observables are its
+   * other entities. Its case holds them, and the alert or incident it opens
+   * is linked to the records they name exactly.
+   */
+  public static getMatchGroupEntities(data: {
+    rule: DetectionRule;
+    matchGroup: DetectionMatchGroup;
+  }): Array<SecurityEntity> {
+    const { rule, matchGroup } = data;
+    const groupEntityType: SecurityEntityType | undefined =
+      securityEntityTypeForField(rule.groupByField);
+
+    const groupEntities: Array<SecurityEntity> = matchGroup.groupFields
+      ? matchGroup.groupFields.map(
+          (entry: { field: string; value: string }): SecurityEntity => {
+            return {
+              type:
+                securityEntityTypeForField(entry.field) ||
+                inferSecurityEntityType(entry.value),
+              value: entry.value,
+            };
+          },
+        )
+      : matchGroup.groupValue
+        ? [
+            {
+              type:
+                groupEntityType ||
+                inferSecurityEntityType(matchGroup.groupValue),
+              value: matchGroup.groupValue,
+            },
+          ]
+        : [];
+
+    return mergeSecurityEntities(
+      groupEntities,
+      entitiesFromObservables(matchGroup.sampleObservables),
+    );
+  }
+
+  /*
+   * One case signal per matched group: the detection a case holds, about
+   * the group's entities (getMatchGroupEntities).
    */
   public static buildCaseSignals(data: {
     rule: DetectionRule;
@@ -952,37 +994,9 @@ export default class DetectionRuleEvaluator {
     const { rule, parsedRule } = data;
     const severity: OcsfSeverity =
       SIGMA_LEVEL_TO_OCSF_SEVERITY[parsedRule.level] || OcsfSeverity.Medium;
-    const groupEntityType: SecurityEntityType | undefined =
-      securityEntityTypeForField(rule.groupByField);
 
     return data.matchedGroups.map(
       (matchGroup: DetectionMatchGroup): SecurityDetectionSignal => {
-        /*
-         * A correlation groups by one to three fields, each typed by its
-         * own field; a single rule by its Group By Field.
-         */
-        const groupEntities: Array<SecurityEntity> = matchGroup.groupFields
-          ? matchGroup.groupFields.map(
-              (entry: { field: string; value: string }): SecurityEntity => {
-                return {
-                  type:
-                    securityEntityTypeForField(entry.field) ||
-                    inferSecurityEntityType(entry.value),
-                  value: entry.value,
-                };
-              },
-            )
-          : matchGroup.groupValue
-            ? [
-                {
-                  type:
-                    groupEntityType ||
-                    inferSecurityEntityType(matchGroup.groupValue),
-                  value: matchGroup.groupValue,
-                },
-              ]
-            : [];
-
         return {
           projectId: rule.projectId!,
           source: SecurityDetectionSource.DetectionRule,
@@ -1012,10 +1026,7 @@ export default class DetectionRuleEvaluator {
           severity,
           eventCount: matchGroup.matchCount,
           groupValue: matchGroup.groupValue || undefined,
-          entities: mergeSecurityEntities(
-            groupEntities,
-            entitiesFromObservables(matchGroup.sampleObservables),
-          ),
+          entities: this.getMatchGroupEntities({ rule, matchGroup }),
           mitreTactics: parsedRule.mitreTactics,
           mitreTechniques: parsedRule.mitreTechniques,
           ruleName: rule.name || parsedRule.title,
@@ -1062,6 +1073,7 @@ export default class DetectionRuleEvaluator {
       projectId,
       alertSeverityId,
       logLabel: `DetectionRuleEvaluator: rule ${rule.id?.toString()}`,
+      eventWindow: { start: data.startTime, end: data.endTime },
       matches: matchedGroups.map(
         (matchGroup: DetectionMatchGroup): AlertableMatch => {
           return {
@@ -1076,6 +1088,8 @@ export default class DetectionRuleEvaluator {
             }),
             rootCause:
               mdText`Sigma detection rule "${rule.name}" matched security events.`.toString(),
+            // What it is about, as its case reads it: linked to the alert.
+            entities: this.getMatchGroupEntities({ rule, matchGroup }),
           };
         },
       ),
@@ -1126,6 +1140,7 @@ export default class DetectionRuleEvaluator {
       projectId,
       incidentSeverityId,
       logLabel: `DetectionRuleEvaluator: rule ${rule.id?.toString()}`,
+      eventWindow: { start: data.startTime, end: data.endTime },
       matches: matchedGroups.map(
         (matchGroup: DetectionMatchGroup): AlertableMatch => {
           return {
@@ -1140,6 +1155,8 @@ export default class DetectionRuleEvaluator {
             }),
             rootCause:
               mdText`Sigma detection rule "${rule.name}" matched security events.`.toString(),
+            // What it is about, as its case reads it: linked to the incident.
+            entities: this.getMatchGroupEntities({ rule, matchGroup }),
           };
         },
       ),

@@ -66,6 +66,7 @@ import {
 import PerformanceFixWatch from "./PerformanceFixWatch";
 import RecurrenceFixWatch from "./RecurrenceFixWatch";
 import TelemetryFixWatch from "./TelemetryFixWatch";
+import OldestKeyMap from "../../../../Utils/OldestKeyMap";
 
 /*
  * Fix verified in production - the last step of an AI fix.
@@ -146,7 +147,10 @@ const COMPARE_STATUSES: Array<string> = [
  * once, not every run for two weeks. "" is GitHub knowing no such commit in
  * the repository, or no history the two share.
  */
-const knownCompares: Map<string, string> = new Map<string, string>();
+const knownCompares: OldestKeyMap<string, string> = new OldestKeyMap<
+  string,
+  string
+>();
 
 // A recorded deploy that contains the fix.
 export interface FixDeploy {
@@ -722,7 +726,7 @@ export default class FixProductionVerifier {
     knownCompares.set(key, status);
 
     if (knownCompares.size > MAX_KNOWN_COMPARES) {
-      const oldest: string | undefined = knownCompares.keys().next().value;
+      const oldest: string | undefined = knownCompares.oldestKey();
 
       if (oldest !== undefined) {
         knownCompares.delete(oldest);

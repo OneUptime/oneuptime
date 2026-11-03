@@ -1,5 +1,7 @@
 import { expect, Locator, Page, test } from "@playwright/test";
 import path from "path";
+import { expectNoSidewaysScroll } from "../SuiteHelpers/PageFit";
+import { boxesInOneFrame } from "../SuiteHelpers/Frames";
 
 /*
  * Where each asset detail came from, and when (OneUptime issue #5185), end
@@ -90,15 +92,6 @@ async function openOverview(page: Page, query: string = ""): Promise<void> {
   await expect(page.getByText("Device Details")).toBeVisible();
   await page.evaluate(async () => {
     await document.fonts.ready;
-  });
-}
-
-async function overflow(page: Page): Promise<number> {
-  return await page.evaluate(() => {
-    return (
-      document.documentElement.scrollWidth -
-      document.documentElement.clientWidth
-    );
   });
 }
 
@@ -228,10 +221,10 @@ test.describe("Inventory's Asset Details card, at a laptop's width", () => {
     ).toContainText(
       "neither this device's SNMP poll nor a discovery scan has found",
     );
-    const sourceBox: { y: number } | null = await saidOnce(page).boundingBox();
-    const unknownBox: { y: number } | null = await page
-      .getByTestId("inventory-asset-details-unknown")
-      .boundingBox();
+    const [sourceBox, unknownBox] = await boxesInOneFrame([
+      saidOnce(page),
+      page.getByTestId("inventory-asset-details-unknown"),
+    ]);
     expect(sourceBox!.y).toBeLessThan(unknownBox!.y);
 
     // The card read the device itself, with every column its facts need.
@@ -251,7 +244,7 @@ test.describe("Inventory's Asset Details card, at a laptop's width", () => {
       ]),
     );
 
-    expect(await overflow(page)).toBeLessThanOrEqual(0);
+    await expectNoSidewaysScroll(page);
     await shoot(page, "item-pinged-1280-light");
   });
 
@@ -467,7 +460,7 @@ test.describe("the device's own Inventory card", () => {
     );
     await expect(page.getByTestId("device-inventory-found-by")).toHaveCount(0);
 
-    expect(await overflow(page)).toBeLessThanOrEqual(0);
+    await expectNoSidewaysScroll(page);
     await shoot(page, "device-pinged-1280-light");
   });
 
@@ -525,7 +518,7 @@ test.describe("the device's Overview", () => {
       SCAN_LINE,
     );
 
-    expect(await overflow(page)).toBeLessThanOrEqual(0);
+    await expectNoSidewaysScroll(page);
     await shoot(page, "overview-pinged-1280-light");
 
     await page.setViewportSize({ width: 390, height: 844 });
@@ -533,8 +526,53 @@ test.describe("the device's Overview", () => {
     await expect(
       page.getByTestId("network-device-details-dnsName-source"),
     ).toBeVisible();
-    expect(await overflow(page)).toBeLessThanOrEqual(0);
+    await expectNoSidewaysScroll(page);
     await shoot(page, "overview-pinged-390-dark");
+  });
+
+  /*
+   * Refresh on the Inventory card reads the device again; once it was
+   * read, the rest of the Overview reads it again too - the Device Details
+   * card above shows the new reading, not the one the page opened with.
+   */
+  test("Refresh on its Inventory card: once the device was read again, the Device Details card reads it again too", async ({
+    page,
+  }: {
+    page: Page;
+  }) => {
+    await openOverview(page, "&scenario=meraki&probe=none");
+
+    /*
+     * The Device Details card's reads: the discovered name, as the Inventory
+     * card asks for too - but not when a refresh was asked for, which only
+     * the Inventory card follows.
+     */
+    const detailsReads: () => Promise<number> = async (): Promise<number> => {
+      return (await reads(page)).filter((read: FixtureRead): boolean => {
+        return (
+          read.model === "NetworkDevice" &&
+          read.select.includes("discoveredName") &&
+          !read.select.includes("refreshRequestedAt")
+        );
+      }).length;
+    };
+
+    await expect.poll(detailsReads).toBeGreaterThan(0);
+    const before: number = await detailsReads();
+
+    await page.getByTestId("device-inventory-refresh").click();
+    const status: Locator = page.getByTestId("device-inventory-refresh-status");
+    await expect(status).toHaveText(
+      "The Meraki dashboard is read again within a minute.",
+    );
+    // Not before the reading is in: nothing to show yet.
+    expect(await detailsReads()).toBe(before);
+
+    await expect(status).toHaveText("Read again just now.");
+    await expect.poll(detailsReads).toBe(before + 1);
+    await expect(page.getByText("Device Details")).toBeVisible();
+    await expectNoSidewaysScroll(page);
+    await shoot(page, "overview-meraki-read-again-1280-light");
   });
 
   test("values typed on the device say nothing; one discovery reads differently says it was saved", async ({
@@ -624,7 +662,7 @@ test.describe("the device's Overview", () => {
     );
     expect(entity.searchParams.get("value")).toBe("edge-sw-07");
 
-    expect(await overflow(page)).toBeLessThanOrEqual(0);
+    await expectNoSidewaysScroll(page);
     await card.scrollIntoViewIfNeeded();
     await card.screenshot({
       path: path.join(SCREENSHOTS, "overview-security-card-1280-light.png"),
@@ -637,12 +675,11 @@ test.describe("the device's Overview", () => {
     await expect(card.getByTestId("resource-security-case")).toBeVisible({
       timeout: 30000,
     });
-    expect(await overflow(page)).toBeLessThanOrEqual(0);
-    const cardBox: { x: number; width: number } | null =
-      await card.boundingBox();
-    const caseBox: { x: number; width: number } | null = await card
-      .getByTestId("resource-security-case")
-      .boundingBox();
+    await expectNoSidewaysScroll(page);
+    const [cardBox, caseBox] = await boxesInOneFrame([
+      card,
+      card.getByTestId("resource-security-case"),
+    ]);
     expect(caseBox!.x).toBeGreaterThanOrEqual(cardBox!.x);
     expect(caseBox!.x + caseBox!.width).toBeLessThanOrEqual(
       cardBox!.x + cardBox!.width + 1,
@@ -826,7 +863,7 @@ test.describe("an Inventory item's page: its Security card", () => {
     ).toHaveCount(0);
     expect(errors).toEqual([]);
 
-    expect(await overflow(page)).toBeLessThanOrEqual(0);
+    await expectNoSidewaysScroll(page);
     await card.scrollIntoViewIfNeeded();
     await card.screenshot({
       path: path.join(SCREENSHOTS, "inventory-security-card-1280-light.png"),
@@ -874,7 +911,7 @@ test.describe("an Inventory item's page: its Security card", () => {
       await expect(card.getByTestId("resource-security-case")).toBeVisible({
         timeout: 30000,
       });
-      expect(await overflow(page)).toBeLessThanOrEqual(0);
+      await expectNoSidewaysScroll(page);
       expect(
         await staysInside(card.getByTestId("resource-security-case"), card),
       ).toBe(true);
@@ -914,10 +951,7 @@ test.describe("at a phone's width, in the dark and in other languages", () => {
       const card: Locator = await openItem(page, `?scenario=${scenario}`);
       await expect(value(page, "hostname")).toBeVisible();
 
-      expect({ scenario, overflow: await overflow(page) }).toEqual({
-        scenario,
-        overflow: 0,
-      });
+      await expectNoSidewaysScroll(page, { message: scenario });
       expect(
         await staysInside(
           page.locator(
@@ -931,7 +965,7 @@ test.describe("at a phone's width, in the dark and in other languages", () => {
 
     await open(page, "?page=device");
     await expect(page.getByTestId("device-inventory-source")).toBeVisible();
-    expect(await overflow(page)).toBeLessThanOrEqual(0);
+    await expectNoSidewaysScroll(page);
     await shoot(page, "device-pinged-390-light");
   });
 
@@ -969,7 +1003,7 @@ test.describe("at a phone's width, in the dark and in other languages", () => {
     await expect(
       page.getByTestId("inventory-asset-details-other-machine"),
     ).toBeVisible();
-    expect(await overflow(page)).toBeLessThanOrEqual(0);
+    await expectNoSidewaysScroll(page);
     await shoot(page, "item-other-machine-390-dark");
 
     await open(page, "?page=device&theme=dark");
@@ -1004,14 +1038,14 @@ test.describe("at a phone's width, in the dark and in other languages", () => {
     await expect(different(page, "macAddress")).toHaveText(
       "ARP-Tabelle von core-rtr-01 meldet 00-1B-54-C2-7A-44 · vor 15 Minuten",
     );
-    expect(await overflow(page)).toBeLessThanOrEqual(0);
+    await expectNoSidewaysScroll(page);
     await shoot(page, "item-disagree-390-de");
 
     await open(page, "?page=device&lang=de");
     await expect(page.getByTestId("device-inventory-source")).toHaveText(
       "Von Erkennungsscan Store subnets über SNMP gelesen, vor 2 Stunden.",
     );
-    expect(await overflow(page)).toBeLessThanOrEqual(0);
+    await expectNoSidewaysScroll(page);
     await shoot(page, "device-pinged-390-de");
   });
 });
@@ -1122,7 +1156,7 @@ test.describe("the Meraki dashboard as a source, and Refresh", () => {
       ]),
     );
 
-    expect(await overflow(page)).toBeLessThanOrEqual(0);
+    await expectNoSidewaysScroll(page);
     await shoot(page, "item-meraki-1280-light");
   });
 
@@ -1168,7 +1202,7 @@ test.describe("the Meraki dashboard as a source, and Refresh", () => {
     // The page read its item again once, when the reading landed.
     expect(after.itemReloads).toBe(1);
 
-    expect(await overflow(page)).toBeLessThanOrEqual(0);
+    await expectNoSidewaysScroll(page);
     await shoot(page, "item-meraki-refreshed-1280-light");
   });
 
@@ -1212,7 +1246,7 @@ test.describe("the Meraki dashboard as a source, and Refresh", () => {
       page.getByTestId("device-inventory-controller-source"),
     ).toHaveText("Read from the Meraki dashboard (Acme Retail), just now.");
 
-    expect(await overflow(page)).toBeLessThanOrEqual(0);
+    await expectNoSidewaysScroll(page);
     await shoot(page, "device-meraki-unreachable-1280-light");
   });
 
@@ -1270,7 +1304,7 @@ test.describe("the Meraki dashboard as a source, and Refresh", () => {
       "Seine Sonde und das Meraki-Dashboard lesen es innerhalb einer Minute erneut.",
     );
     expect(await staysInside(status, card)).toBe(true);
-    expect(await overflow(page)).toBeLessThanOrEqual(0);
+    await expectNoSidewaysScroll(page);
     await shoot(page, "item-meraki-refreshing-390-dark-de");
 
     await expect(status).toHaveText("Gerade eben erneut gelesen.");
@@ -1288,7 +1322,7 @@ test.describe("the Meraki dashboard as a source, and Refresh", () => {
     await expect(
       page.getByTestId("device-inventory-controller-source"),
     ).toBeVisible();
-    expect(await overflow(page)).toBeLessThanOrEqual(0);
+    await expectNoSidewaysScroll(page);
     await shoot(page, "device-meraki-390-dark");
   });
 });
@@ -1387,6 +1421,68 @@ test.describe("Refresh, every way it can go", () => {
     await shoot(page, "item-meraki-late-1280-light");
   });
 
+  /*
+   * Only its Meraki connection reads it, and the dashboard has not been
+   * read in three minutes: the line says so and links to the connection, on
+   * the network's Traffic page - its row says why (a refused key, a
+   * connection turned off) and has the way on. On both cards.
+   */
+  test("nobody reads it in three minutes and only Meraki would: the line links to the Meraki connection", async ({
+    page,
+  }: {
+    page: Page;
+  }) => {
+    const traffic: string =
+      "/dashboard/10000000-0000-4000-8000-000000000001/network-devices/traffic?source=meraki#traffic-meraki-connections";
+
+    await page.clock.install();
+    await openItem(page, "?scenario=meraki&probe=none&refresh=late");
+
+    const button: Locator = page.getByTestId(ITEM_BUTTON);
+    const status: Locator = page.getByTestId(ITEM_STATUS);
+
+    await button.click();
+    await expect(status).toHaveText(
+      "The Meraki dashboard is read again within a minute.",
+    );
+
+    await page.clock.fastForward("03:10");
+
+    await expect(status).toHaveText(
+      "The Meraki dashboard has not been read yet. See the Meraki connection",
+    );
+    await expect(status).toHaveAttribute("data-tone", "warning");
+    const link: Locator = status.getByRole("link", {
+      name: "See the Meraki connection",
+    });
+    await expect(link).toHaveAttribute("href", traffic);
+    await expect(button).toBeEnabled();
+    await expectNoSidewaysScroll(page);
+    await shoot(page, "item-meraki-late-link-1280-light");
+
+    // The device's own Inventory card says the same, with the same link.
+    await open(page, "?page=device&scenario=meraki&probe=none&refresh=late");
+    const deviceStatus: Locator = page.getByTestId(
+      "device-inventory-refresh-status",
+    );
+    await page.getByTestId("device-inventory-refresh").click();
+    await expect(deviceStatus).toHaveAttribute("data-tone", "progress");
+    await page.clock.fastForward("03:10");
+    await expect(deviceStatus).toHaveText(
+      "The Meraki dashboard has not been read yet. See the Meraki connection",
+    );
+    const deviceLink: Locator = deviceStatus.getByRole("link", {
+      name: "See the Meraki connection",
+    });
+    await expect(deviceLink).toHaveAttribute("href", traffic);
+
+    // It goes there, in the app.
+    await deviceLink.click();
+    await expect(page).toHaveURL(
+      /\/dashboard\/10000000-0000-4000-8000-000000000001\/network-devices\/traffic\?source=meraki#traffic-meraki-connections$/,
+    );
+  });
+
   test("refused: the server's reason, in red, and Refresh ready again", async ({
     page,
   }: {
@@ -1404,7 +1500,7 @@ test.describe("Refresh, every way it can go", () => {
     await expect(status).toHaveAttribute("role", "alert");
     await expect(status).toHaveAttribute("data-tone", "error");
     await expect(button).toBeEnabled();
-    expect(await overflow(page)).toBeLessThanOrEqual(0);
+    await expectNoSidewaysScroll(page);
     await shoot(page, "item-meraki-refused-1280-light");
   });
 
@@ -1474,7 +1570,7 @@ test.describe("Refresh, every way it can go", () => {
     );
     expect(boxes.icon).toBeGreaterThanOrEqual(boxes.text);
     expect(await staysInside(status, card)).toBe(true);
-    expect(await overflow(page)).toBeLessThanOrEqual(0);
+    await expectNoSidewaysScroll(page);
     await shoot(page, "item-meraki-refreshing-1280-fa");
   });
 });
@@ -1516,7 +1612,7 @@ test.describe("why a detail is unknown (issue #5384)", () => {
       "/docs/monitor/network-traffic#cisco-meraki-without-netflow",
     );
 
-    expect(await overflow(page)).toBe(0);
+    await expectNoSidewaysScroll(page);
   });
 
   test("a device that answered its poll says it reports no more, in the reader's language", async ({

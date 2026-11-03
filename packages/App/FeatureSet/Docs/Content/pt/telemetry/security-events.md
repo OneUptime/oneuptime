@@ -26,7 +26,7 @@ flowchart TB
     monitors --> act
 ```
 
-Abra **Produtos → Eventos de segurança**, em **Observabilidade**. O menu dele tem uma seção para cada parte da segurança, e uma página própria para cada coisa nela:
+Abra **Produtos → Eventos de segurança**, em **Segurança**. O menu dele tem uma seção para cada parte da segurança, e uma página própria para cada coisa nela:
 
 | Página | Seção | Para que serve |
 | --- | --- | --- |
@@ -57,6 +57,9 @@ Abra **Produtos → Eventos de segurança**, em **Observabilidade**. O menu dele
 | **Prioridades de casos** | Configurações | Quão urgente é um caso: as prioridades do próprio projeto, a mais urgente primeiro |
 | **Metas de resposta** | Configurações | Quão rápido um caso de cada prioridade deve ser assumido e contido |
 | **Status de casos** | Configurações | As etapas por que um caso passa, e como conta um caso em cada uma |
+| **Campos personalizados** | Configurações | Os campos que sua equipe preenche em cada caso, como a unidade de negócio a que ele se refere |
+| **Modelos de notas** | Configurações | Texto pronto para as notas que sua equipe escreve em seus casos |
+| **Numeração** | Configurações | O texto antes dos números de caso e o número que o próximo caso recebe |
 | **Pontuação de risco** | Configurações | Se o risco de uma entidade abre um caso, com que risco, e quanto importa cada entidade |
 
 **Detecções**, **IA**, **Conexões** e **Configurações**, configuradas uma vez, ficam recolhidas até você abri-las. Novo na segurança? [Primeiros passos com a segurança](/docs/telemetry/security-getting-started) a configura em dois cliques.

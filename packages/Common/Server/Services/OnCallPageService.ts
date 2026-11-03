@@ -33,6 +33,8 @@ import logger, { LogAttributes } from "../Utils/Logger";
 import ProjectMembership from "../Utils/TeamMember/ProjectMembership";
 import CaptureSpan from "../Utils/Telemetry/CaptureSpan";
 import CallerPlan from "../Utils/Billing/CallerPlan";
+import { setAffectedResourcesOnNewRecord } from "../Utils/AffectedResources/AffectedResourceLists";
+import { AiAffectedResourceRef } from "../../Types/AI/AiAffectedResources";
 import AlertFeedService from "./AlertFeedService";
 import AlertService from "./AlertService";
 import AlertSeverityService from "./AlertSeverityService";
@@ -122,6 +124,14 @@ export interface OnCallPageNewAlert {
    * by Simon from Slack". A workflow's page says its workflow when left out.
    */
   rootCause?: string | undefined;
+  /*
+   * What the alert is about, when the page knows: the hosts, clusters and
+   * the rest it is linked to, so its investigation reaches them and
+   * auto-remediation can fix them - a security playbook's page names what
+   * its case is exactly connected to. Linked as the caller, as every link
+   * of a create is: one they may not read is refused.
+   */
+  affectedResources?: Array<AiAffectedResourceRef> | undefined;
 }
 
 // What the page is about: exactly one of the three.
@@ -1058,6 +1068,11 @@ export class Service {
         },
       );
     }
+
+    setAffectedResourcesOnNewRecord(
+      alert,
+      data.newAlert.affectedResources || [],
+    );
 
     // Where the alert came from, for whoever opens it.
     const workflowName: string = (props.workflowName || "").trim();

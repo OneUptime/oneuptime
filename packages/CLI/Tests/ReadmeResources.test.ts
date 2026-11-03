@@ -1,19 +1,38 @@
 import { Command } from "commander";
 import { buildProgram } from "../Program";
-import { discoverResources } from "../Commands/ResourceCommands";
+import {
+  addAllResourceSubcommands,
+  discoverResources,
+} from "../Commands/ResourceCommands";
 import { ResourceInfo } from "../Types/CLITypes";
+import { CliRun, runCli } from "./Helpers/RunCli";
+import {
+  ShownCommand,
+  commandAt,
+  commandPathOf,
+  helpFlags,
+  shownCommandsIn,
+} from "./Helpers/ShownCommands";
+import {
+  CLI_ACTIONS,
+  CLI_FIELDS_SUBCOMMAND,
+  CLI_OPERATIONS,
+  CliAction,
+  CliOperation,
+} from "Common/Utils/DeveloperDocs/CliCommands";
 import * as fs from "fs";
 import * as path from "path";
 
 /*
- * The CLI's README is the page npm shows for @oneuptime/cli. Its Supported
- * Resources section listed nine resources as "currently supported" while
- * the CLI had 32 resource commands, and it said every resource takes all
- * six subcommands, which telemetry does not. It now lists every resource
- * command, in a table for records and one for telemetry, and these tests
- * hold it to the resources the program discovers and the subcommands it
- * gives each, so a model that gains or loses MCP fails here until the
- * README says so.
+ * The CLI's README is the page npm shows for @oneuptime/cli. It listed the
+ * 52 MCP-enabled resources, a table for records and one for telemetry,
+ * when the CLI was those 52. The CLI is now every resource of the API -
+ * 456 of them, worked out from the models by the API's own rule, and
+ * ApiParity holds it to the API - so the README says that rule and shows
+ * some by area, and these tests hold what it says to the program: the
+ * commands it names are ones the CLI has, the subcommands it lists are the
+ * ones resources take, and every command it shows runs with the flags it
+ * shows.
  */
 
 const README: string = fs.readFileSync(
@@ -50,17 +69,8 @@ const CODE_SPAN: RegExp = /`([^`]+)`/g;
 const TABLE_SEPARATOR: RegExp = /^\|\s*-/;
 const MARKDOWN_LINK: RegExp =
   /\]\((https:\/\/oneuptime\.com\/docs\/[^)\s]+)\)/g;
-
-// The subcommands each kind of resource takes, in the order the CLI adds them.
-const RECORD_SUBCOMMANDS: Array<string> = [
-  "list",
-  "get",
-  "create",
-  "update",
-  "delete",
-  "count",
-];
-const TELEMETRY_SUBCOMMANDS: Array<string> = ["list", "create", "count"];
+// "450 and more of them": the number the README claims.
+const RESOURCE_COUNT_CLAIM: RegExp = /(?<!\d)(\d+) and more of them/;
 
 // A section of the README: its heading line and everything up to the next heading of its level or higher.
 function section(heading: string): string {
@@ -120,111 +130,84 @@ function tableRows(table: string): Array<Array<string>> {
     });
 }
 
-interface ResourceTable {
-  // The sentence above the table, and the commands its rows list.
-  intro: string;
-  commands: Array<string>;
-}
-
-// The tables of Supported Resources, each with the sentence that introduces it.
-function resourceTables(): Array<ResourceTable> {
-  const blocks: Array<string> = blocksOf(section("## Supported Resources"));
-  const tables: Array<ResourceTable> = [];
-
-  blocks.forEach((block: string, index: number): void => {
-    if (!block.startsWith("|")) {
-      return;
-    }
-
-    tables.push({
-      intro: blocks[index - 1] || "",
-      commands: tableRows(block).flatMap((cells: Array<string>) => {
-        return codeSpans(cells[1] || "");
-      }),
-    });
-  });
-
-  return tables;
-}
-
-function subcommandsOf(program: Command, name: string): Array<string> {
-  const command: Command | undefined = program.commands.find(
-    (child: Command): boolean => {
-      return child.name() === name;
-    },
+// The first table of a section.
+function firstTable(text: string): string {
+  return (
+    blocksOf(text).find((block: string): boolean => {
+      return block.startsWith("|");
+    }) || ""
   );
+}
 
-  if (!command) {
-    throw new Error(`The CLI has no command ${name}`);
-  }
-
-  return command.commands.map((child: Command): string => {
-    return child.name();
-  });
+function namesOf(resources: Array<ResourceInfo>): Array<string> {
+  return resources
+    .map((resource: ResourceInfo): string => {
+      return resource.name;
+    })
+    .sort();
 }
 
 describe("the CLI README's supported resources", () => {
-  let program: Command;
   let resources: Array<ResourceInfo>;
 
   beforeAll(() => {
-    program = buildProgram();
     resources = discoverResources();
   });
 
-  it("are read from the README: a table of records and a table of telemetry", () => {
-    const tables: Array<ResourceTable> = resourceTables();
+  it("say every resource of the API is a command, and no more of them than the CLI has", () => {
+    const text: string = section("## Supported Resources");
+    const claim: RegExpMatchArray | null = text.match(RESOURCE_COUNT_CLAIM);
 
-    expect(tables).toHaveLength(2);
-    expect(tables[0]!.commands).toEqual(
+    expect(text).toContain(
+      "Every resource of the OneUptime REST API is a command: `oneuptime <resource> <subcommand>`",
+    );
+    expect(claim).not.toBeNull();
+    expect(resources.length).toBeGreaterThanOrEqual(
+      Number((claim as RegExpMatchArray)[1]),
+    );
+    // The CLI it replaced had 52; the claim says what changed.
+    expect(Number((claim as RegExpMatchArray)[1])).toBeGreaterThan(52);
+  });
+
+  it("name by area only commands the CLI has, each once, telemetry under Telemetry", () => {
+    const rows: Array<Array<string>> = tableRows(
+      firstTable(section("## Supported Resources")),
+    );
+    const listed: Array<string> = rows.flatMap(
+      (cells: Array<string>): Array<string> => {
+        return codeSpans(cells[1] || "");
+      },
+    );
+    const telemetry: Array<string> = namesOf(
+      resources.filter((resource: ResourceInfo): boolean => {
+        return resource.modelType === "analytics";
+      }),
+    );
+
+    expect(listed).toEqual(
       expect.arrayContaining(["monitor", "incident", "alert", "status-page"]),
     );
-    expect(tables[1]!.commands).toEqual(
-      expect.arrayContaining(["log", "metric", "span"]),
-    );
-  });
-
-  it("list every resource command the CLI has, each once", () => {
-    const listed: Array<string> = resourceTables().flatMap(
-      (table: ResourceTable): Array<string> => {
-        return table.commands;
-      },
-    );
-    const commands: Array<string> = resources.map(
-      (resource: ResourceInfo): string => {
-        return resource.name;
-      },
-    );
-
-    expect(commands.length).toBeGreaterThan(30);
-    expect([...listed].sort()).toEqual([...commands].sort());
     expect(new Set(listed).size).toBe(listed.length);
-  });
+    expect(
+      listed.filter((name: string): boolean => {
+        return !namesOf(resources).includes(name);
+      }),
+    ).toEqual([]);
 
-  it("put records in the first table and telemetry in the second, under the subcommands each takes", () => {
-    const [records, telemetry] = resourceTables() as [
-      ResourceTable,
-      ResourceTable,
-    ];
-
-    expect(codeSpans(records.intro)).toEqual(RECORD_SUBCOMMANDS);
-    expect(codeSpans(telemetry.intro)).toEqual(TELEMETRY_SUBCOMMANDS);
-
-    for (const resource of resources) {
-      const table: ResourceTable =
-        resource.modelType === "analytics" ? telemetry : records;
-
+    for (const [area, commands] of rows.map(
+      (cells: Array<string>): [string, Array<string>] => {
+        return [cells[0] || "", codeSpans(cells[1] || "")];
+      },
+    )) {
+      // Telemetry's row is all telemetry, and no other row has any.
       expect({
-        command: resource.name,
-        listed: table.commands.includes(resource.name),
-        subcommands: subcommandsOf(program, resource.name),
+        area,
+        telemetry: commands.filter((name: string): boolean => {
+          return telemetry.includes(name);
+        }),
       }).toEqual({
-        command: resource.name,
-        listed: true,
-        subcommands:
-          resource.modelType === "analytics"
-            ? TELEMETRY_SUBCOMMANDS
-            : RECORD_SUBCOMMANDS,
+        area,
+        telemetry: area === "Telemetry" ? commands : [],
       });
     }
   });
@@ -258,53 +241,277 @@ describe("the CLI README's supported resources", () => {
       fs.existsSync(path.join(DOCS_DIR, "cli", "command-reference.md")),
     ).toBe(true);
   });
+
+  it("no longer say the CLI is the MCP-enabled resources, or telemetry takes three subcommands", () => {
+    expect(README).not.toContain("MCP-enabled");
+    expect(README).not.toContain(
+      "Telemetry takes `list`, `create` and `count`",
+    );
+    expect(README).not.toContain("Records take `list`, `get`, `create`");
+  });
 });
 
 describe("the CLI README's resource operations", () => {
   let program: Command;
+  let resources: Array<ResourceInfo>;
 
   beforeAll(() => {
-    program = buildProgram();
+    program = addAllResourceSubcommands(buildProgram());
+    resources = discoverResources();
   });
 
-  it("say which subcommands every resource takes, and which only records do", () => {
-    const blocks: Array<string> = blocksOf(section("### Resource Operations"));
-    const sentence: string = blocks[1] || "";
-    const [shared, recordsOnly] = sentence.split(". ") as [string, string];
-
-    expect(codeSpans(shared)).toEqual(TELEMETRY_SUBCOMMANDS);
-    expect(codeSpans(recordsOnly)).toEqual(
-      RECORD_SUBCOMMANDS.filter((name: string): boolean => {
-        return !TELEMETRY_SUBCOMMANDS.includes(name);
-      }),
-    );
-    expect(recordsOnly).toContain("telemetry");
-    expect(recordsOnly).toContain("does not");
-  });
-
-  it("list in its table every subcommand a record takes, as the CLI writes it", () => {
-    const table: string =
-      blocksOf(section("### Resource Operations")).find(
-        (block: string): boolean => {
-          return block.startsWith("|");
-        },
-      ) || "";
-    const subcommands: Array<string> = tableRows(table).map(
+  function tableSubcommands(): Array<string> {
+    return tableRows(firstTable(section("### Resource Operations"))).map(
       (cells: Array<string>): string => {
-        // "`<resource> update <id> --data <json>`" -> "update"
+        // "`<resource> update <id> [--<field> <value>]`" -> "update"
         return (codeSpans(cells[0] || "")[0] || "").split(" ")[1] || "";
       },
     );
+  }
 
-    expect(subcommands).toEqual(subcommandsOf(program, "incident"));
-    expect(subcommands).toEqual(RECORD_SUBCOMMANDS);
+  function describedAs(subcommand: string): string {
+    const row: Array<string> | undefined = tableRows(
+      firstTable(section("### Resource Operations")),
+    ).find((cells: Array<string>): boolean => {
+      return (codeSpans(cells[0] || "")[0] || "").split(" ")[1] === subcommand;
+    });
+
+    return row?.[1] || "";
+  }
+
+  function withAction(action: CliAction): Array<string> {
+    return namesOf(
+      resources.filter((resource: ResourceInfo): boolean => {
+        return resource.actions.includes(action);
+      }),
+    );
+  }
+
+  it("list in its table every subcommand a resource can take, in the order the CLI adds them", () => {
+    expect(tableSubcommands()).toEqual([
+      ...CLI_OPERATIONS,
+      CLI_FIELDS_SUBCOMMAND,
+      ...CLI_ACTIONS,
+    ]);
   });
 
-  it("no longer says every resource takes all six, or lists nine as currently supported", () => {
-    expect(README).not.toContain("Every discovered resource supports these");
-    expect(README).not.toContain("Currently supported:");
-    expect(README).not.toContain(
-      "Supports all MCP-enabled resources with full CRUD operations",
+  it("are the subcommands each resource has: its own, in the table's order", () => {
+    const order: Array<string> = tableSubcommands();
+
+    for (const resource of resources) {
+      const command: Command = program.commands.find(
+        (child: Command): boolean => {
+          return child.name() === resource.name;
+        },
+      ) as Command;
+      const subcommands: Array<string> = command.commands.map(
+        (child: Command): string => {
+          return child.name();
+        },
+      );
+
+      expect({ resource: resource.name, subcommands }).toEqual({
+        resource: resource.name,
+        subcommands: order.filter((name: string): boolean => {
+          return subcommands.includes(name);
+        }),
+      });
+    }
+  });
+
+  it("say which resources the dashboard's buttons are on", () => {
+    expect(withAction(CliAction.Acknowledge)).toEqual([
+      "alert",
+      "alert-episode",
+      "incident",
+      "incident-episode",
+    ]);
+    expect(withAction(CliAction.Resolve)).toEqual(
+      withAction(CliAction.Acknowledge),
     );
+    expect(describedAs("acknowledge")).toBe(
+      "Acknowledge an incident, an alert, or an episode of either",
+    );
+
+    expect(withAction(CliAction.Start)).toEqual([
+      "scheduled-maintenance-event",
+    ]);
+    expect(withAction(CliAction.End)).toEqual(withAction(CliAction.Start));
+    expect(describedAs("start")).toBe("Start a scheduled maintenance event");
+
+    expect(withAction(CliAction.AddNote)).toEqual(
+      [
+        ...withAction(CliAction.Acknowledge),
+        ...withAction(CliAction.Start),
+      ].sort(),
+    );
+    expect(describedAs("add-note")).toContain("any of those");
+  });
+
+  it("say what the subcommands are for, that most take all six, and which are read only", () => {
+    const sentence: string =
+      blocksOf(section("### Resource Operations"))[1] || "";
+    const allSix: number = resources.filter(
+      (resource: ResourceInfo): boolean => {
+        return resource.operations.length === CLI_OPERATIONS.length;
+      },
+    ).length;
+    const emailLog: ResourceInfo | undefined = resources.find(
+      (resource: ResourceInfo): boolean => {
+        return resource.name === "email-log";
+      },
+    );
+
+    expect(codeSpans(sentence)).toEqual([
+      CliOperation.List,
+      CliOperation.Get,
+      CliOperation.Count,
+      CliOperation.Create,
+      CliOperation.Update,
+      CliOperation.Delete,
+      "oneuptime <resource> --help",
+    ]);
+    expect(sentence).toContain("Most resources take all six.");
+    expect(allSix).toBeGreaterThan(resources.length / 2);
+    expect(sentence).toContain("such as an email log, are read only");
+    expect(emailLog?.operations).toEqual([
+      CliOperation.List,
+      CliOperation.Get,
+      CliOperation.Count,
+    ]);
+  });
+});
+
+// Every `oneuptime ...` command line of the README's bash blocks.
+function shownCommands(): Array<ShownCommand> {
+  return shownCommandsIn(README, ["bash"]);
+}
+
+describe("the commands the CLI README shows", () => {
+  let program: Command;
+
+  beforeAll(() => {
+    program = addAllResourceSubcommands(buildProgram());
+  });
+
+  it("are read from its bash blocks: quick start, contexts, scripting, people and deploy", () => {
+    const lines: Array<string> = shownCommands().map(
+      (command: ShownCommand): string => {
+        return command.line;
+      },
+    );
+
+    expect(lines.length).toBeGreaterThan(20);
+    expect(lines).toEqual(
+      expect.arrayContaining([
+        "oneuptime whoami --check",
+        "oneuptime incident list | jq '.[].title'",
+        "oneuptime context use staging",
+      ]),
+    );
+    expect(
+      shownCommands().find((command: ShownCommand): boolean => {
+        return command.words[0] === "deploy";
+      })?.words,
+    ).toEqual(
+      expect.arrayContaining(["--service", "--service-version", "--commit"]),
+    );
+  });
+
+  it("are commands the CLI has, with the flags its help lists for them", async () => {
+    for (const shown of shownCommands()) {
+      const commandPath: Array<string> = commandPathOf(program, shown.words);
+      const command: Command = commandAt(program, commandPath);
+      const run: CliRun = await runCli([...commandPath, "--help"]);
+      const flags: Array<string> = shown.words.filter(
+        (word: string): boolean => {
+          return word.startsWith("-");
+        },
+      );
+      // A word that is not a flag names a command: `oneuptime --version` names none.
+      const namesCommand: boolean = !(shown.words[0] || "-").startsWith("-");
+
+      /*
+       * The command it names is one the CLI runs, not a group of them: a
+       * misspelled subcommand stops the path at its group.
+       */
+      expect({
+        line: shown.line,
+        namesCommand: commandPath.length > 0,
+        runsCommand: command.commands.length === 0,
+      }).toEqual({
+        line: shown.line,
+        namesCommand,
+        runsCommand: namesCommand,
+      });
+      expect({ line: shown.line, exitCode: run.exitCode }).toEqual({
+        line: shown.line,
+        exitCode: 0,
+      });
+
+      const listed: Array<string> = helpFlags(run.printed.join("\n"));
+
+      for (const flag of flags) {
+        expect({
+          line: shown.line,
+          flag,
+          listed: listed.includes(flag),
+        }).toEqual({ line: shown.line, flag, listed: true });
+      }
+    }
+  });
+
+  it("name in Create and Update flags the CLI gives, as its help writes them", async () => {
+    const paragraph: string =
+      blocksOf(section("### Create and Update"))[1] || "";
+    const shownFlags: Array<string> = codeSpans(paragraph).filter(
+      (span: string): boolean => {
+        return span.startsWith("--") && span.includes(" ");
+      },
+    );
+    const helps: string = [
+      ...(await runCli(["incident", "create", "--help"])).printed,
+      ...(await runCli(["monitor", "create", "--help"])).printed,
+    ].join("\n");
+
+    expect(shownFlags.length).toBeGreaterThanOrEqual(5);
+
+    for (const flag of shownFlags) {
+      /*
+       * "--labels <ids>" as the help prints it: "  --labels <ids>   ...",
+       * or alone on its line when it is too long to keep its description
+       * beside it (Core/HelpLayout).
+       */
+      const listed: boolean = helps
+        .split("\n")
+        .some((line: string): boolean => {
+          return line === `  ${flag}` || line.startsWith(`  ${flag} `);
+        });
+
+      expect({ flag, listed }).toEqual({ flag, listed: true });
+    }
+  });
+
+  it("name in Create and Update the email flags beside the ID flags they stand for", async () => {
+    const paragraph: string =
+      blocksOf(section("### Create and Update"))[2] || "";
+    const teamMember: string = (
+      await runCli(["team-member", "create", "--help"])
+    ).printed.join("\n");
+    const ownerRule: string = (
+      await runCli(["incident-owner-rule", "create", "--help"])
+    ).printed.join("\n");
+
+    expect(codeSpans(paragraph)).toEqual([
+      "--user-email",
+      "--user-id",
+      "--owner-user-emails",
+      "--owner-users",
+    ]);
+    expect(teamMember).toContain("--user-email <email>");
+    expect(teamMember).toContain("--user-id <id>");
+    expect(teamMember).toContain("Someone who is not in the project");
+    expect(ownerRule).toContain("--owner-user-emails <emails>");
+    expect(ownerRule).toContain("--owner-users <ids>");
   });
 });

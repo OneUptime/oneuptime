@@ -23,6 +23,7 @@ import { MemoryRouter } from "react-router-dom";
 import IncidentNumbering from "../../../../App/FeatureSet/Dashboard/src/Pages/Incidents/Settings/IncidentNumbering";
 import AlertNumbering from "../../../../App/FeatureSet/Dashboard/src/Pages/Alerts/Settings/AlertNumbering";
 import ScheduledMaintenanceNumbering from "../../../../App/FeatureSet/Dashboard/src/Pages/ScheduledMaintenanceEvents/Settings/ScheduledMaintenanceNumbering";
+import SecurityCaseNumbering from "../../../../App/FeatureSet/Dashboard/src/Pages/SecurityEvents/Settings/Numbering";
 import {
   ALERT_NUMBER_PREFIXES,
   INCIDENT_NUMBER_PREFIXES,
@@ -32,6 +33,7 @@ import {
   NumberPrefixPage,
   NumberPrefixRow,
   SCHEDULED_MAINTENANCE_NUMBER_PREFIXES,
+  SECURITY_CASE_NUMBER_PREFIXES,
   getNumberPrefixColumns,
 } from "../../../../App/FeatureSet/Dashboard/src/Components/NumberPrefix/NumberPrefixSettings";
 import {
@@ -43,10 +45,12 @@ import RouteMap, {
   AlertsRoutePath,
   IncidentsRoutePath,
   ScheduledMaintenanceEventsRoutePath,
+  SecurityEventsRoutePath,
 } from "../../../../App/FeatureSet/Dashboard/src/Utils/RouteMap";
 import { getAlertsBreadcrumbs } from "../../../../App/FeatureSet/Dashboard/src/Utils/Breadcrumbs/AlertBreadcrumbs";
 import { getIncidentsBreadcrumbs } from "../../../../App/FeatureSet/Dashboard/src/Utils/Breadcrumbs/IncidentBreadcrumbs";
 import { getScheduleMaintenanceBreadcrumbs } from "../../../../App/FeatureSet/Dashboard/src/Utils/Breadcrumbs/ScheduledMaintenanceBreadcrumbs";
+import { getSecurityEventsBreadcrumbs } from "../../../../App/FeatureSet/Dashboard/src/Utils/Breadcrumbs/SecurityEventsBreadcrumbs";
 import Project from "../../../Models/DatabaseModels/Project";
 import Route from "../../../Types/API/Route";
 import ListResult from "../../../Types/BaseDatabase/ListResult";
@@ -167,6 +171,21 @@ const PAGES: Array<PageUnderTest> = [
       "The short text in front of scheduled maintenance event numbers, like SM- in SM-42.",
     editDescription:
       "Only new events use the new prefix. Existing ones keep their numbers.",
+  },
+  {
+    name: "Security Events",
+    page: SECURITY_CASE_NUMBER_PREFIXES,
+    Component: SecurityCaseNumbering,
+    pageMapKey: PageMap.SECURITY_EVENTS_SETTINGS_NUMBERING,
+    routePaths: SecurityEventsRoutePath,
+    productPath: "security-events",
+    getBreadcrumbs: getSecurityEventsBreadcrumbs,
+    productCrumb: "Security Events",
+    rows: [["Cases", "CASE-", "CASE-42"]],
+    description:
+      "The short text in front of case numbers, like CASE- in CASE-42.",
+    editDescription:
+      "Only new cases use the new prefix. Existing cases keep their numbers.",
   },
 ];
 

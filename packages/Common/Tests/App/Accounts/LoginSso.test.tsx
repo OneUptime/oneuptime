@@ -34,7 +34,9 @@ import english from "../../../../App/FeatureSet/Accounts/src/Locales/en.json";
 import german from "../../../../App/FeatureSet/Accounts/src/Locales/de.json";
 import LoginPage from "../../../../App/FeatureSet/Accounts/src/Pages/Login";
 import LoginWithSSOPage, {
+  LOOKED_UP_EMAIL_TEST_ID,
   SSO_PROJECTS_TEST_ID,
+  SSO_SUBTITLE_TEST_ID,
   USE_DIFFERENT_EMAIL_TEST_ID,
 } from "../../../../App/FeatureSet/Accounts/src/Pages/LoginWithSSO";
 import SsoProviderType from "../../../Types/SSO/SsoProviderType";
@@ -125,6 +127,18 @@ const PROJECT_B: string = "22222222-2222-4222-8222-222222222222";
 const PROVIDER_1: string = "33333333-3333-4333-8333-333333333333";
 const PROVIDER_2: string = "44444444-4444-4444-8444-444444444444";
 
+// Where a sentence ends, in the scripts the Accounts locales are written in.
+const SENTENCE_END: RegExp = /[.。।]$/u;
+
+/*
+ * The informal "you" - its pronouns and the imperatives a sign-in page
+ * uses - as a word of its own, in Spanish (tú) and in Dutch (je).
+ */
+const SPANISH_INFORMAL_ADDRESS: RegExp =
+  /(?<!\p{L})(?:tú|tu|tus|ti|te|contigo|tienes|introduce|pide|haz|continúa|inicia)(?!\p{L})/iu;
+const DUTCH_INFORMAL_ADDRESS: RegExp =
+  /(?<!\p{L})(?:je|jij|jou|jouw)(?!\p{L})/iu;
+
 // What neither page may say about single sign-on any more.
 const EDITION_OR_LICENSE_WORDING: RegExp =
   /Enterprise|Community Edition|licen[cs]e|not available on this server/i;
@@ -183,13 +197,12 @@ const SSO_LOCALE_KEYS: Array<string> = [
   "common.or",
   "login.signInWithSso",
   "sso.title",
-  "sso.subtitle",
+  "sso.emailFormSubtitle",
   "sso.submitButton",
   "sso.signInWithPassword",
   "sso.noAccountPrompt",
   "sso.registerLink",
   "sso.selectProjectTitle",
-  "sso.selectProjectSubtitle",
   "sso.noConfigForEmail",
   "sso.emailRequired",
   "sso.defaultProjectName",
@@ -417,7 +430,6 @@ const projectProvider: (data: {
 // The SSO page as it is when nothing has been found yet: the email form.
 const expectEmailForm: () => void = (): void => {
   expect(screen.getByTestId("email")).toBeInTheDocument();
-  expect(screen.getByText(english.sso.subtitle)).toBeInTheDocument();
   expect(screen.getByRole("link", { name: PASSWORD_OPTION })).toHaveAttribute(
     "href",
     "/accounts/login",
@@ -428,6 +440,22 @@ const expectEmailForm: () => void = (): void => {
   expect(document.body.textContent || "").not.toMatch(
     EDITION_OR_LICENSE_WORDING,
   );
+};
+
+/*
+ * The line under the heading, with the email form the only way in: what the
+ * email is for - never the old "Sign in with your SSO provider to access
+ * your account.", which said the heading "Sign in with SSO" again.
+ */
+const expectEmailFormSubtitle: () => void = (): void => {
+  expect(screen.getByTestId(SSO_SUBTITLE_TEST_ID)).toHaveTextContent(
+    english.sso.emailFormSubtitle,
+  );
+  expect(
+    screen.queryByText(
+      "Sign in with your SSO provider to access your account.",
+    ),
+  ).not.toBeInTheDocument();
 };
 
 describe("Accounts single sign-on, in every edition", () => {
@@ -563,6 +591,7 @@ describe("Accounts single sign-on, in every edition", () => {
         await renderSso();
 
         expectEmailForm();
+        expectEmailFormSubtitle();
         /*
          * How the server signs people in - its instance-wide providers with
          * it - is read once as the page opens; the two listings it read
@@ -581,6 +610,7 @@ describe("Accounts single sign-on, in every edition", () => {
         await renderSso();
 
         expectEmailForm();
+        expectEmailFormSubtitle();
         expect(
           screen.queryByText(english.sso.globalProvidersTitle),
         ).not.toBeInTheDocument();
@@ -644,6 +674,16 @@ describe("Accounts single sign-on, in every edition", () => {
       ).toBeInTheDocument();
       // The email form stays below them.
       expectEmailForm();
+      /*
+       * The providers and their own heading come first, and the divider
+       * names the form under them: no line under the page's heading.
+       */
+      expect(
+        screen.queryByTestId(SSO_SUBTITLE_TEST_ID),
+      ).not.toBeInTheDocument();
+      expect(
+        screen.queryByText(english.sso.emailFormSubtitle),
+      ).not.toBeInTheDocument();
     });
 
     test("an instance-wide SAML provider starts its sign-in at /identity/global-sso", async () => {
@@ -710,9 +750,19 @@ describe("Accounts single sign-on, in every edition", () => {
        * and a screen reader go on from its heading.
        */
       expect(heading).toHaveFocus();
+      /*
+       * Under the heading, the address the projects were found for - not a
+       * line that said the heading again - in an isolate, as written.
+       */
+      const lookedUp: HTMLElement = screen.getByTestId(LOOKED_UP_EMAIL_TEST_ID);
+      expect(lookedUp).toHaveTextContent("ada@example.com");
+      expect(lookedUp.tagName).toBe("BDI");
+      expect(screen.getByTestId(SSO_SUBTITLE_TEST_ID)).toContainElement(
+        lookedUp,
+      );
       expect(
-        screen.getByText(english.sso.selectProjectSubtitle),
-      ).toBeInTheDocument();
+        screen.queryByText("Select the project you want to sign in to."),
+      ).not.toBeInTheDocument();
 
       const groups: Array<HTMLElement> = projectGroups();
 
@@ -824,7 +874,7 @@ describe("Accounts single sign-on, in every edition", () => {
       expect(field).toHaveValue("ada@example.com");
       expect(field).toHaveAttribute("readonly");
       expect(screen.getByTestId("Sign in with SSO")).toBeDisabled();
-      expect(screen.getByText(english.sso.subtitle)).toBeInTheDocument();
+      expectEmailFormSubtitle();
 
       await act(async () => {
         answer();
@@ -919,6 +969,10 @@ describe("Accounts single sign-on, in every edition", () => {
       ).not.toBeInTheDocument();
       expect(await screen.findByTestId("email")).toHaveValue("ada@example.com");
       expectEmailForm();
+      expectEmailFormSubtitle();
+      expect(
+        screen.queryByTestId(LOOKED_UP_EMAIL_TEST_ID),
+      ).not.toBeInTheDocument();
       // Nothing was started on the way back.
       expect(navigatedTo()).toEqual([]);
     });
@@ -955,6 +1009,10 @@ describe("Accounts single sign-on, in every edition", () => {
           name: german.sso.selectProjectTitle,
         }),
       ).toBeInTheDocument();
+      // The address is shown as it was typed, in every language.
+      expect(screen.getByTestId(LOOKED_UP_EMAIL_TEST_ID)).toHaveTextContent(
+        "ada@example.com",
+      );
       expect(
         screen.getByRole("button", {
           name: german.sso.signInWithProvider.replace("{{name}}", "Okta"),
@@ -1107,6 +1165,131 @@ describe("Accounts single sign-on, in every edition", () => {
           placeholder: String(localeValue(locale, "sso.noConfigForEmail")),
         }).toEqual({ file, placeholder: expect.stringContaining("{{email}}") });
       }
+    });
+
+    /*
+     * The SSO page's line under its heading said the heading again in every
+     * language ("Sign in with your SSO provider to access your account."
+     * under "Sign in with SSO"), and so did the project list's ("Select the
+     * project you want to sign in to." under "Select Project"). The first now
+     * says what the email is for; the second is the address looked up.
+     */
+    test("the line under the SSO heading never repeats the heading, in any language", () => {
+      for (const { file, locale } of readLocales()) {
+        const title: string = String(localeValue(locale, "sso.title"));
+        const line: string = String(
+          localeValue(locale, "sso.emailFormSubtitle"),
+        );
+
+        expect({ file, repeats: line.includes(title) }).toEqual({
+          file,
+          repeats: false,
+        });
+        expect({
+          file,
+          retired: [
+            localeValue(locale, "sso.subtitle"),
+            localeValue(locale, "sso.selectProjectSubtitle"),
+          ],
+        }).toEqual({ file, retired: [undefined, undefined] });
+      }
+
+      expect(english.sso.emailFormSubtitle).toBe(
+        "Enter your email to find your organization’s sign-in.",
+      );
+    });
+
+    /*
+     * While the server requires SSO, the line under "Sign in to your
+     * account" says why only SSO is offered, in the master admins' page's
+     * own words: the first sentence of its line, in every language. It was
+     * "Sign in with your organization's single sign-on (SSO).", right over
+     * the providers' own heading, "Sign in with your organization" - the
+     * same line twice (fu-platform-next's review).
+     */
+    test("the line while SSO is required says why, in the master admins' page's words, in every language", () => {
+      for (const { file, locale } of readLocales()) {
+        const line: string = String(
+          localeValue(locale, "sso.requiredSubtitle"),
+        );
+        const adminLine: string = String(
+          localeValue(locale, "adminLogin.subtitle"),
+        );
+        const providersHeading: string = String(
+          localeValue(locale, "sso.globalProvidersTitle"),
+        );
+
+        expect({
+          file,
+          isAdminLinesFirstSentence:
+            SENTENCE_END.test(line) &&
+            adminLine.startsWith(line) &&
+            adminLine.length > line.length,
+          namesSso: line.includes("SSO"),
+          saysProvidersHeading: line.includes(providersHeading),
+        }).toEqual({
+          file,
+          isAdminLinesFirstSentence: true,
+          namesSso: true,
+          saysProvidersHeading: false,
+        });
+      }
+
+      expect(english.sso.requiredSubtitle).toBe(
+        "This server requires single sign-on (SSO).",
+      );
+    });
+
+    /*
+     * In Spanish and Dutch the SSO page speaks to the reader one way: as its
+     * older lines do, formally ("¿No tiene una cuenta?", "Inicie sesión con
+     * su organización"; "Hebt u geen account?", "Aanmelden met uw
+     * organisatie"). The email form's line and the not-set-up card's said tú
+     * and je right beside them (fu-platform-next's review).
+     */
+    test("in Spanish and Dutch, every line of the SSO page addresses the reader formally, as its older lines do", () => {
+      const informalAddress: Array<{ file: string; pattern: RegExp }> = [
+        { file: "es.json", pattern: SPANISH_INFORMAL_ADDRESS },
+        { file: "nl.json", pattern: DUTCH_INFORMAL_ADDRESS },
+      ];
+
+      for (const { file, pattern } of informalAddress) {
+        const { locale } = readLocales().find(
+          (entry: { file: string; locale: JSONObject }) => {
+            return entry.file === file;
+          },
+        ) as { file: string; locale: JSONObject };
+
+        const informal: Array<string> = [
+          ...SSO_LOCALE_KEYS,
+          "login.title",
+        ].filter((key: string) => {
+          return pattern.test(String(localeValue(locale, key)));
+        });
+
+        expect({ file, informal }).toEqual({ file, informal: [] });
+      }
+
+      // The patterns find the informal voice the lines had.
+      expect(
+        SPANISH_INFORMAL_ADDRESS.test(
+          "Introduce tu correo electrónico para encontrar el inicio de sesión de tu organización.",
+        ),
+      ).toBe(true);
+      expect(
+        SPANISH_INFORMAL_ADDRESS.test(
+          "Pide a tu administrador del servidor que lo configure.",
+        ),
+      ).toBe(true);
+      expect(
+        DUTCH_INFORMAL_ADDRESS.test(
+          "Vraag je serverbeheerder om het in te stellen.",
+        ),
+      ).toBe(true);
+      expect(SPANISH_INFORMAL_ADDRESS.test("¿No tiene una cuenta?")).toBe(
+        false,
+      );
+      expect(DUTCH_INFORMAL_ADDRESS.test("Hebt u geen account?")).toBe(false);
     });
 
     /*

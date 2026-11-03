@@ -46,7 +46,7 @@ Eine Richtlinie, die mehrere Regeln hinzufügen, läuft einmal. Ein Schweregrad 
 | --- | --- |
 | **Grundlegend** | **Übersicht**, **Eskalationsregeln** und **Eigentümer** |
 | **Protokolle** | **Ausführungsprotokolle** und **Benachrichtigungsprotokolle** |
-| **Entwickler** | **Terraform**, **API** und **KI-Assistenten** |
+| **Entwickler** | **Terraform**, **API**, **CLI** und **KI-Assistenten** |
 | **Erweitert** | **Benutzerüberschreibungen**, **Benutzerdefinierte Felder**, **Einstellungen**, **Audit-Protokolle** und **Richtlinie löschen** |
 
 **Grundlegend** ist geöffnet; die anderen Abschnitte starten eingeklappt, bis Sie sie anklicken.

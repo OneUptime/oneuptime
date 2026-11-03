@@ -92,6 +92,23 @@ import {
   getNotMonitoredRegions,
 } from "../../../Utils/ReceivingGaps";
 import ValueFormatter from "Common/Utils/ValueFormatter";
+import NeedsAttentionCard from "../../../Components/ResourcePart/NeedsAttentionCard";
+import { ResourceAttentionItem } from "../../../Components/ResourcePart/ResourceAttention";
+import ContainerHostHealthPill from "../../../Components/ContainerHost/ContainerHostHealthPill";
+import {
+  CONTAINER_CPU_WARNING_PERCENT,
+  CONTAINER_MEMORY_WARNING_PERCENT,
+  getContainerHostAttentionItems,
+  getContainerHostHealth,
+} from "../../../Components/ContainerHost/ContainerHostHealth";
+import {
+  ContainerHostRoutes,
+  PODMAN_CONTAINER_HOST_RUNTIME,
+  getContainerHostRoutes,
+} from "../../../Components/ContainerHost/ContainerHostRuntime";
+import useContainerHostReadings, {
+  ContainerHostReadingsState,
+} from "../../../Components/ContainerHost/UseContainerHostReadings";
 import React, {
   Fragment,
   FunctionComponent,
@@ -101,6 +118,7 @@ import React, {
   useState,
 } from "react";
 import useTranslator from "Common/UI/Utils/UseTranslator";
+import { formatRelativeTime } from "../../../Components/Home/HomeRelativeTime";
 import { translationKey, Translator } from "Common/UI/Utils/TranslateTemplate";
 
 interface TopContainerRow {
@@ -148,7 +166,14 @@ interface SpecChip {
   icon: IconProp;
   label: string;
   description?: string | undefined;
+  // The list a count chip opens.
+  route?: Route | undefined;
+  testId?: string | undefined;
 }
+
+const CHIP_CLASS_NAME: string =
+  "inline-flex items-center gap-1.5 rounded-md border border-gray-200 bg-gray-50 px-2 py-1 text-xs text-gray-700";
+const CHIP_LINK_CLASS_NAME: string = `${CHIP_CLASS_NAME} hover:border-indigo-300 hover:bg-indigo-50 hover:text-indigo-700 focus:outline-none focus-visible:ring-2 focus-visible:ring-indigo-500`;
 
 type ChartCardColor = Exclude<GoldenMetricTileColor, "slate">;
 
@@ -860,6 +885,35 @@ const PodmanHostOverview: FunctionComponent<
     useRef<PromiseVoidFunction>(fetchStats);
   fetchStatsRef.current = fetchStats;
 
+  /*
+   * Every container with its latest readings (ContainerHostReadings), read
+   * again with the rest of the page: what the health pill and Needs
+   * attention say, by the rules the Containers list, a container's page and
+   * the Topology use.
+   */
+  const routes: ContainerHostRoutes = getContainerHostRoutes(
+    PODMAN_CONTAINER_HOST_RUNTIME,
+    modelId,
+  );
+  const readingsState: ContainerHostReadingsState = useContainerHostReadings({
+    runtime: PODMAN_CONTAINER_HOST_RUNTIME,
+    hostId: modelId,
+    hostIdentifier: host?.hostIdentifier as string | undefined,
+    refreshToken: lastRefreshedAt ? lastRefreshedAt.getTime() : undefined,
+  });
+  const attentionItems: Array<ResourceAttentionItem> = readingsState.readings
+    ? getContainerHostAttentionItems({
+        containers: readingsState.readings.containers,
+        hostLatestReadingAt: readingsState.readings.hostLatestReadingAt,
+        getContainerRoute: routes.getContainerRoute,
+      })
+    : [];
+  const hostStatus: string = (
+    (host?.otelCollectorStatus as string | undefined) || ""
+  ).toLowerCase();
+  const isHostConnected: boolean =
+    hostStatus === "connected" || hostStatus === "active";
+
   useEffect(() => {
     fetchStatsRef.current().catch((err: Error) => {
       setStatsError(API.getFriendlyMessage(err));
@@ -938,7 +992,12 @@ const PodmanHostOverview: FunctionComponent<
      */
     const lastSeenText: string = lastSeenAt
       ? translator.translateTemplate("Last seen {{time}}", {
-          time: OneUptimeDate.fromNow(lastSeenAt),
+          // In the reader's language, as a part's page says it.
+          time: formatRelativeTime({
+            date: OneUptimeDate.fromString(lastSeenAt),
+            now: new Date(),
+            language: translator.language,
+          }),
         })
       : translator.translateText("Never seen") || "Never seen";
 
@@ -955,14 +1014,23 @@ const PodmanHostOverview: FunctionComponent<
 
     const specChips: Array<SpecChip> = [];
 
-    if (stats && stats.containerCount > 0) {
+    /*
+     * Every container the Containers list has - running, and one that
+     * stopped until OneUptime forgets it - and one step to that list.
+     */
+    const containerCount: number = readingsState.readings
+      ? readingsState.readings.containers.length
+      : 0;
+    if (containerCount > 0) {
       specChips.push({
         icon: IconProp.Cube,
         label: translator.translatePlural(
           { one: "{{count}} container", other: "{{count}} containers" },
-          stats.containerCount,
+          containerCount,
         ),
         description: CONTAINER_HOST_METRIC_DESCRIPTIONS.containers,
+        route: routes.containersRoute,
+        testId: "container-host-hero-containers",
       });
     }
     if (host.osType) {
@@ -1032,6 +1100,19 @@ const PodmanHostOverview: FunctionComponent<
                       />
                       {statusLabel}
                     </span>
+                    {/*
+                     * Its health by its containers' rules, once there is a
+                     * container to judge: a host that reported none has no
+                     * health to tell.
+                     */}
+                    {containerCount > 0 ? (
+                      <ContainerHostHealthPill
+                        health={getContainerHostHealth(attentionItems)}
+                        isConnected={isConnected}
+                      />
+                    ) : (
+                      <></>
+                    )}
                   </div>
                   {/*
                    * What the host is, in its owner's words: under its
@@ -1062,16 +1143,31 @@ const PodmanHostOverview: FunctionComponent<
             {specChips.length > 0 && (
               <div className="mt-4 flex flex-wrap gap-1.5">
                 {specChips.map((chip: SpecChip, idx: number): ReactElement => {
-                  return (
-                    <span
-                      key={`spec-${idx}`}
-                      className="inline-flex items-center gap-1.5 rounded-md border border-gray-200 bg-gray-50 px-2 py-1 text-xs text-gray-700"
-                    >
+                  const content: ReactElement = (
+                    <>
                       <Icon
                         icon={chip.icon}
                         className="h-3 w-3 text-gray-500"
                       />
                       <span className="font-medium">{chip.label}</span>
+                    </>
+                  );
+                  return (
+                    <span
+                      key={`spec-${idx}`}
+                      className="inline-flex items-center gap-1"
+                    >
+                      {chip.route ? (
+                        <Link
+                          to={chip.route}
+                          dataTestId={chip.testId}
+                          className={CHIP_LINK_CLASS_NAME}
+                        >
+                          {content}
+                        </Link>
+                      ) : (
+                        <span className={CHIP_CLASS_NAME}>{content}</span>
+                      )}
                       <InfoTooltip
                         label={chip.label}
                         text={chip.description}
@@ -1111,32 +1207,30 @@ const PodmanHostOverview: FunctionComponent<
     }
 
     return (
-      <div className="mb-6 grid grid-cols-1 gap-4 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-6">
+      <div className="mb-6 grid grid-cols-1 gap-4 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-5">
         <GoldenMetricTile
-          title="Containers"
-          icon={IconProp.Cube}
-          iconColor="sky"
-          value={formatInt(s.containerCount)}
-          sublabel="reporting"
-          description={CONTAINER_HOST_METRIC_DESCRIPTIONS.containers}
-        />
-        <GoldenMetricTile
-          title="Avg CPU"
+          title={translator.translateText("Avg CPU") as string}
           icon={IconProp.ChartBar}
           iconColor="blue"
           value={formatPercent(s.avgCpu)}
-          sublabel="across containers"
+          sublabel={translator.translateText("across containers") as string}
           percent={s.avgCpu}
           description={CONTAINER_HOST_METRIC_DESCRIPTIONS.avgCpu}
         />
         <GoldenMetricTile
-          title="Peak CPU"
+          title={translator.translateText("Peak CPU") as string}
           icon={IconProp.Activity}
           iconColor="amber"
           value={formatPercent(s.maxCpu)}
-          sublabel="busiest container"
+          sublabel={translator.translateText("busiest container") as string}
           percent={s.maxCpu}
-          thresholds={{ warn: 75, danger: 95 }}
+          tone={
+            s.maxCpu === null
+              ? undefined
+              : s.maxCpu > CONTAINER_CPU_WARNING_PERCENT
+                ? "warning"
+                : "positive"
+          }
           description={CONTAINER_HOST_METRIC_DESCRIPTIONS.peakCpu}
         />
         {/*
@@ -1144,22 +1238,30 @@ const PodmanHostOverview: FunctionComponent<
          * is of the host's memory - so the sublabel names both.
          */}
         <GoldenMetricTile
-          title="Avg Memory"
+          title={translator.translateText("Avg Memory") as string}
           icon={IconProp.SquareStack}
           iconColor="violet"
           value={formatPercent(s.avgMemory)}
-          sublabel="of limit or host memory"
+          sublabel={
+            translator.translateText("of limit or host memory") as string
+          }
           percent={s.avgMemory}
           description={CONTAINER_HOST_METRIC_DESCRIPTIONS.avgMemory}
         />
         <GoldenMetricTile
-          title="Peak Memory"
+          title={translator.translateText("Peak Memory") as string}
           icon={IconProp.Database}
           iconColor="emerald"
           value={formatPercent(s.maxMemory)}
-          sublabel="hottest container"
+          sublabel={translator.translateText("hottest container") as string}
           percent={s.maxMemory}
-          thresholds={{ warn: 80, danger: 95 }}
+          tone={
+            s.maxMemory === null
+              ? undefined
+              : s.maxMemory > CONTAINER_MEMORY_WARNING_PERCENT
+                ? "warning"
+                : "positive"
+          }
           description={CONTAINER_HOST_METRIC_DESCRIPTIONS.peakMemory}
         />
         {/*
@@ -1167,11 +1269,11 @@ const PodmanHostOverview: FunctionComponent<
          * counted along with processes (the PIDS column of podman stats).
          */}
         <GoldenMetricTile
-          title="Processes"
+          title={translator.translateText("Processes") as string}
           icon={IconProp.QueueList}
           iconColor="slate"
           value={formatInt(s.totalPids)}
-          sublabel="incl. threads"
+          sublabel={translator.translateText("incl. threads") as string}
           description={CONTAINER_HOST_METRIC_DESCRIPTIONS.processes}
         />
       </div>
@@ -1609,6 +1711,29 @@ const PodmanHostOverview: FunctionComponent<
             RouteMap[PageMap.PODMAN_HOST_VIEW_DOCUMENTATION] as Route,
             { modelId: modelId },
           )}
+        />
+      ) : (
+        <></>
+      )}
+      {/*
+       * What needs someone, most urgent first, while the agent reports: a
+       * disconnected host's last readings are no longer the truth, and the
+       * hero says Health Unknown instead. A read that fails says so in the
+       * card's frame, with Refresh.
+       */}
+      {readingsState.error ? (
+        <NeedsAttentionCard
+          testId="container-host-needs-attention"
+          items={[]}
+          error={readingsState.error}
+          onRetry={readingsState.refresh}
+        />
+      ) : isHostConnected ? (
+        <NeedsAttentionCard
+          testId="container-host-needs-attention"
+          items={attentionItems}
+          // Every row is a container: a Container chip on each would say nothing.
+          showKind={false}
         />
       ) : (
         <></>

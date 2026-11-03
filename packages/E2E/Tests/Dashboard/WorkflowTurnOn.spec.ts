@@ -12,6 +12,7 @@ import {
   test,
 } from "@playwright/test";
 import URL from "Common/Types/API/URL";
+import { boxesInOneFrame } from "../../SuiteHelpers/Frames";
 
 interface WorkflowRecord {
   _id: string;
@@ -290,8 +291,10 @@ test.describe("Testing a workflow that is off, and turning it on, from the Build
         "workflow-run-status-row",
       );
       await expect(statusRow).toBeVisible();
-      const statusBox: { y: number } | null = await statusRow.boundingBox();
-      const noteBox: { y: number } | null = await testRunNote.boundingBox();
+      const [statusBox, noteBox] = await boxesInOneFrame([
+        statusRow,
+        testRunNote,
+      ]);
       expect(statusBox).not.toBeNull();
       expect(noteBox).not.toBeNull();
       expect(noteBox!.y).toBeGreaterThan(statusBox!.y);

@@ -1,6 +1,6 @@
 {
   "name": "@oneuptime/app",
-  "version": "14.0.102",
+  "version": "14.0.103",
   "description": "",
   "repository": {
     "type": "git",
@@ -22,6 +22,7 @@
     "build-frontend:public-dashboard:prod": "bash ./scripts/frontend-run.sh FeatureSet/PublicDashboard build",
     "build-frontend:browser-recorder:prod": "bash ./scripts/frontend-run.sh FeatureSet/BrowserRecorder build",
     "build-frontends:prod": "npm run build-frontend:accounts:prod && npm run build-frontend:dashboard:prod && npm run build-frontend:admin-dashboard:prod && npm run build-frontend:status-page:prod && npm run build-frontend:public-dashboard:prod && npm run build-frontend:browser-recorder:prod",
+    "build-docs-css": "node -r ts-node/register/transpile-only scripts/build-docs-tailwind.ts",
     "watch-frontend:accounts": "bash ./scripts/frontend-run.sh FeatureSet/Accounts dev-build --watch",
     "watch-frontend:dashboard": "bash ./scripts/frontend-run.sh FeatureSet/Dashboard dev-build --watch",
     "watch-frontend:admin-dashboard": "bash ./scripts/frontend-run.sh FeatureSet/AdminDashboard dev-build --watch",
@@ -64,8 +65,11 @@
     "@types/node": "^26.1.1",
     "@types/nodemailer": "^8.0.1",
     "@types/ws": "^8.18.1",
+    "autoprefixer": "^10.6.2",
     "jest": "^28.1.0",
     "nodemon": "^3.1.14",
+    "postcss": "^8.5.32",
+    "tailwindcss": "3.4.5",
     "ts-jest": "^28.0.8",
     "typescript": "^5.9.3"
   },

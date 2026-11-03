@@ -10,8 +10,9 @@ import fs from "fs";
 import path from "path";
 
 /*
- * The docs' agent commands download the agents' install scripts and files
- * from OneUptime itself, at https://oneuptime.com/install/<agent>[/<file>]:
+ * The docs' agent commands - and the CLI's installer - download the install
+ * scripts and files from OneUptime itself, at
+ * https://oneuptime.com/install/<agent>[/<file>]:
  * every OneUptime serves the files of its own release there
  * (packages/App/FeatureSet/Install), so a self-hosted reader puts their own
  * URL in its place, as each page says. Never from GitHub, whose master is
@@ -23,6 +24,8 @@ const REPO_ROOT: string = path.resolve(__dirname, "../../../../..");
 // The pages whose commands download from /install.
 const PAGES: Array<string> = [
   "ai/infrastructure-ai-agents",
+  "cli/ai-agents",
+  "cli/index",
   "monitor/kubernetes-agent",
   "telemetry/ceph",
   "telemetry/databases",

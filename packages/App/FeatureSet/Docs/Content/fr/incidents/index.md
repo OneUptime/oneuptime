@@ -178,7 +178,7 @@ Ouvrez un incident : son propre menu latéral regroupe ses pages ainsi :
 | **Équipe**              | **Rôles**, **Exécutions d'astreinte**, **Propriétaires**                                  |
 | **Notifications**       | **Journaux de notification**, **Journaux IA** — repliée jusqu'à ce que vous cliquiez sur **Notifications** |
 | **Notes**               | **Notes privées**, **Notes publiques**                                                    |
-| **Développeurs**        | **Terraform**, **API**, **Assistants IA** — repliée jusqu'à ce que vous cliquiez sur **Développeurs** |
+| **Développeurs**        | **Terraform**, **API**, **CLI**, **Assistants IA** — repliée jusqu'à ce que vous cliquiez sur **Développeurs** |
 | **Avancé**              | **Champs personnalisés**, **Paramètres**, **Journaux d'audit**, **Supprimer l'incident** — repliée jusqu'à ce que vous cliquiez sur **Avancé** |
 
 Ce que contient chacune :

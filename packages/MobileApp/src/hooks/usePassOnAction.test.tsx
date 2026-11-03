@@ -11,12 +11,15 @@ import {
 } from "@jest/globals";
 import { usePassOnAction, type PassOnControls } from "./usePassOnAction";
 import {
+  acknowledgeOnCallPagesAgain,
   fetchOnCallPassOnPages,
   passOnOnCallPages,
   type OnCallPageRecordType,
   type OnCallPassOnAnswer,
   type OnCallPassOnPage,
 } from "../api/onCallPassOn";
+import { PAGE_AGAIN_TEXT } from "../oncall/passOn";
+import { PAGE_AGAIN_ACTION_MIN_WIDTH } from "../components/ResponseDetailLayout";
 import {
   createQueryWrapper,
   createTestQueryClient,
@@ -26,6 +29,7 @@ jest.mock("../api/onCallPassOn", () => {
   return {
     fetchOnCallPassOnPages: jest.fn(),
     passOnOnCallPages: jest.fn(),
+    acknowledgeOnCallPagesAgain: jest.fn(),
   };
 });
 
@@ -70,6 +74,11 @@ const fetchMock: jest.MockedFunction<typeof fetchOnCallPassOnPages> =
   fetchOnCallPassOnPages as jest.MockedFunction<typeof fetchOnCallPassOnPages>;
 const passOnMock: jest.MockedFunction<typeof passOnOnCallPages> =
   passOnOnCallPages as jest.MockedFunction<typeof passOnOnCallPages>;
+const acknowledgeAgainMock: jest.MockedFunction<
+  typeof acknowledgeOnCallPagesAgain
+> = acknowledgeOnCallPagesAgain as jest.MockedFunction<
+  typeof acknowledgeOnCallPagesAgain
+>;
 
 const PAGE: OnCallPassOnPage = {
   executionLogId: "run-1",
@@ -148,6 +157,7 @@ function pressInLastAlert(text: string): void {
 beforeEach(() => {
   fetchMock.mockReset();
   passOnMock.mockReset();
+  acknowledgeAgainMock.mockReset();
   mockSuccessFeedback.mockClear();
   mockErrorFeedback.mockClear();
   alertSpy = jest.spyOn(Alert, "alert").mockImplementation(() => {
@@ -479,4 +489,239 @@ describe("pressing it", () => {
       );
     },
   );
+});
+describe("a page again: Acknowledge again", () => {
+  /*
+   * The policy's acknowledgement timeout ran out with the record still
+   * acknowledged and not resolved, and it pages the reader again. The
+   * record's own Acknowledge is gone - it is acknowledged - so the reader gets
+   * Acknowledge again of their own, which answers their page in one step, as
+   * its link, a call's 1 or a text does. Nobody else sees it.
+   */
+  const PAGE_AGAIN: OnCallPassOnPage = { ...PAGE, isPageAgain: true };
+
+  test("only a page again offers it - first and filled - beside Escalate", async () => {
+    fetchMock.mockResolvedValue([PAGE_AGAIN]);
+    const client: QueryClient = createTestQueryClient();
+
+    const rendered: HookRender = await renderPassOn(client);
+
+    await waitFor(() => {
+      return expect(
+        rendered.result.current.acknowledgeAgainAction,
+      ).not.toBeNull();
+    });
+    expect(rendered.result.current.isPageAgain).toBe(true);
+    expect(rendered.result.current.hasOpenPages).toBe(true);
+    expect(rendered.result.current.action).not.toBeNull();
+    expect(rendered.result.current.acknowledgeAgainAction).toMatchObject({
+      label: PAGE_AGAIN_TEXT.button,
+      accessibilityLabel: "Acknowledge this incident again",
+      busyAccessibilityLabel: "Acknowledging",
+      icon: "eye-outline",
+      primary: true,
+      // Two words that never break across lines: a row of its own on a phone.
+      minWidth: PAGE_AGAIN_ACTION_MIN_WIDTH,
+    });
+    // Escalate keeps the row's own minimum.
+    expect(rendered.result.current.action?.minWidth).toBeUndefined();
+    expect(PAGE_AGAIN_TEXT.button).toBe("Acknowledge again");
+  });
+
+  test("a first page, and no page at all, offer none", async () => {
+    for (const pages of [[PAGE], [PAGE, { ...PAGE, isPageAgain: false }], []]) {
+      fetchMock.mockResolvedValue(pages);
+      const client: QueryClient = createTestQueryClient();
+
+      const rendered: HookRender = await renderPassOn(client);
+
+      await waitFor(() => {
+        return expect(rendered.result.current.pagesSettled).toBe(true);
+      });
+      expect(rendered.result.current.acknowledgeAgainAction).toBeNull();
+      expect(rendered.result.current.isPageAgain).toBe(false);
+    }
+  });
+
+  test("it answers the page in one step - no question - says nothing on success, and the button goes", async () => {
+    fetchMock.mockResolvedValueOnce([PAGE_AGAIN]).mockResolvedValue([]);
+    acknowledgeAgainMock.mockResolvedValue(1);
+    const onPassedOn: jest.Mock<() => Promise<void>> = jest.fn(
+      async (): Promise<void> => {
+        return undefined;
+      },
+    );
+    const client: QueryClient = createTestQueryClient();
+    const invalidate: jest.SpiedFunction<QueryClient["invalidateQueries"]> =
+      jest.spyOn(client, "invalidateQueries");
+
+    const rendered: HookRender = await renderPassOn(client, { onPassedOn });
+
+    await waitFor(() => {
+      return expect(
+        rendered.result.current.acknowledgeAgainAction,
+      ).not.toBeNull();
+    });
+
+    await act(async () => {
+      await rendered.result.current.acknowledgeAgainAction!.onPress();
+    });
+
+    expect(acknowledgeAgainMock).toHaveBeenCalledWith(
+      "project-1",
+      "incident",
+      "incident-1",
+    );
+    expect(alertSpy).not.toHaveBeenCalled();
+    expect(mockSuccessFeedback).toHaveBeenCalledTimes(1);
+    // The record's feed has news, and My Pages shows the page acknowledged.
+    expect(onPassedOn).toHaveBeenCalledTimes(1);
+    expect(invalidate).toHaveBeenCalledWith({
+      queryKey: ["oncall", "my-pages"],
+    });
+    await waitFor(() => {
+      return expect(rendered.result.current.acknowledgeAgainAction).toBeNull();
+    });
+    expect(rendered.result.current.acknowledgingAgain).toBe(false);
+  });
+
+  test("nothing left to answer - acknowledged elsewhere first - is no success, and no news", async () => {
+    fetchMock.mockResolvedValueOnce([PAGE_AGAIN]).mockResolvedValue([]);
+    acknowledgeAgainMock.mockResolvedValue(0);
+    const onPassedOn: jest.Mock<() => void> = jest.fn();
+    const client: QueryClient = createTestQueryClient();
+
+    const rendered: HookRender = await renderPassOn(client, { onPassedOn });
+
+    await waitFor(() => {
+      return expect(
+        rendered.result.current.acknowledgeAgainAction,
+      ).not.toBeNull();
+    });
+    await act(async () => {
+      await rendered.result.current.acknowledgeAgain();
+    });
+
+    expect(mockSuccessFeedback).not.toHaveBeenCalled();
+    expect(onPassedOn).not.toHaveBeenCalled();
+    expect(alertSpy).not.toHaveBeenCalled();
+    // Read again all the same: the button goes.
+    expect(fetchMock).toHaveBeenCalledTimes(2);
+  });
+
+  test("a failure says so under its own title, and the button stays: the page goes on", async () => {
+    fetchMock.mockResolvedValue([PAGE_AGAIN]);
+    acknowledgeAgainMock.mockRejectedValue(
+      new Error("Request failed with 503"),
+    );
+    const client: QueryClient = createTestQueryClient();
+
+    const rendered: HookRender = await renderPassOn(client);
+
+    await waitFor(() => {
+      return expect(
+        rendered.result.current.acknowledgeAgainAction,
+      ).not.toBeNull();
+    });
+    await act(async () => {
+      await rendered.result.current.acknowledgeAgain();
+    });
+
+    expect(mockErrorFeedback).toHaveBeenCalledTimes(1);
+    expect(lastAlert()).toEqual({
+      title: "Could not acknowledge",
+      message: "You are still being paged. Please try again.",
+      buttons: undefined,
+    });
+    expect(rendered.result.current.acknowledgeAgainAction).not.toBeNull();
+    expect(rendered.result.current.acknowledgingAgain).toBe(false);
+  });
+
+  test("busy while it asks, so the screen's buttons wait", async () => {
+    fetchMock.mockResolvedValue([PAGE_AGAIN]);
+    let finish: (value: number) => void = (): void => {
+      // Set below.
+    };
+    acknowledgeAgainMock.mockImplementation(() => {
+      return new Promise<number>((resolve: (value: number) => void) => {
+        finish = resolve;
+      });
+    });
+    const client: QueryClient = createTestQueryClient();
+
+    const rendered: HookRender = await renderPassOn(client);
+
+    await waitFor(() => {
+      return expect(
+        rendered.result.current.acknowledgeAgainAction,
+      ).not.toBeNull();
+    });
+    let pending: Promise<void> = Promise.resolve();
+    await act(async () => {
+      pending = rendered.result.current.acknowledgeAgain();
+      await Promise.resolve();
+    });
+    expect(rendered.result.current.acknowledgingAgain).toBe(true);
+
+    await act(async () => {
+      finish(1);
+      await pending;
+    });
+    expect(rendered.result.current.acknowledgingAgain).toBe(false);
+  });
+});
+
+describe("what a push's action reads from the hook", () => {
+  test("whether the pages are settled, and known: an answer, a failure, and no record yet", async () => {
+    fetchMock.mockResolvedValue([PAGE]);
+    const answered: HookRender = await renderPassOn(createTestQueryClient());
+
+    await waitFor(() => {
+      return expect(answered.result.current.pagesSettled).toBe(true);
+    });
+    expect(answered.result.current.pagesKnown).toBe(true);
+
+    fetchMock.mockRejectedValue(new Error("Network Error"));
+    const failed: HookRender = await renderPassOn(createTestQueryClient());
+
+    await waitFor(() => {
+      return expect(failed.result.current.pagesSettled).toBe(true);
+    });
+    expect(failed.result.current.pagesKnown).toBe(false);
+    expect(failed.result.current.hasOpenPages).toBe(false);
+
+    // Nothing to ask about: settled at once, and not known.
+    const none: HookRender = await renderPassOn(createTestQueryClient(), {
+      recordId: "",
+    });
+    expect(none.result.current.pagesSettled).toBe(true);
+    expect(none.result.current.pagesKnown).toBe(false);
+  });
+
+  test("askToPassOn asks exactly what the screen's Escalate asks", async () => {
+    fetchMock.mockResolvedValue([PAGE]);
+    const rendered: HookRender = await renderPassOn(createTestQueryClient());
+
+    await waitFor(() => {
+      return expect(rendered.result.current.action).not.toBeNull();
+    });
+
+    await act(async () => {
+      rendered.result.current.askToPassOn();
+    });
+    const fromPush: ReturnType<typeof lastAlert> = lastAlert();
+
+    await act(async () => {
+      await rendered.result.current.action!.onPress();
+    });
+
+    expect(fromPush.title).toBe("Escalate Incident?");
+    expect(lastAlert().title).toBe(fromPush.title);
+    expect(lastAlert().message).toBe(fromPush.message);
+    expect(
+      (fromPush.buttons ?? []).map((button: AlertButton) => {
+        return button.text;
+      }),
+    ).toEqual(["Cancel", "Escalate"]);
+  });
 });

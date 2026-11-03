@@ -38,7 +38,7 @@ oneuptime login <api-key> https://oneuptime.com --context-name production
 It answers `Logged in successfully. Context "production" is now active.` A slash at the end of the address is removed, and logging in again under the same name replaces that context.
 
 > [!NOTE]
-> `login` saves the key without asking OneUptime about it. Run a command, such as `oneuptime incident count`, to see that the key works.
+> `login` saves the key without asking OneUptime about it. Run `oneuptime whoami --check` to see that OneUptime takes it.
 
 ## Contexts
 
@@ -154,10 +154,16 @@ API Key: 4f1c****0a13
 Context: production
 ```
 
-Only the first four and the last four characters of the key are shown. The `Context` line appears only when the URL and the key are that context's own, not values a flag or an environment variable replaced. `whoami` reads your settings without calling OneUptime: it shows what a command will send, not whether OneUptime accepts it. With nothing saved or set, it answers:
+Only the first four and the last four characters of the key are shown. The `Context` line appears only when the URL and the key are that context's own, not values a flag or an environment variable replaced. On its own, `whoami` reads your settings without calling OneUptime: it shows what a command will send, not whether OneUptime accepts it. With nothing saved or set, it answers:
 
 ```text
 Not authenticated. Run `oneuptime login` to authenticate.
+```
+
+`--check` asks OneUptime as well. It adds the key's project, your OneUptime's version and the CLI's, and when the two versions differ, the command that installs the CLI of your OneUptime's version. A key that OneUptime refuses stops it with exit code `2`:
+
+```bash
+oneuptime whoami --check
 ```
 
 ## The configuration file

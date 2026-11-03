@@ -2,8 +2,8 @@ import BadDataException from "../../Types/Exception/BadDataException";
 import { NumberPrefixColumn } from "./NumberPrefix";
 
 /*
- * Next numbers: the number a project's next incident, alert, episode or
- * scheduled maintenance event gets.
+ * Next numbers: the number a project's next incident, alert, episode,
+ * scheduled maintenance event or security case gets.
  *
  * Each kind of number comes from a counter on the project
  * (incidentCounter, ...) that holds the highest number given out so far, and
@@ -34,6 +34,7 @@ export enum NumberedRecordKind {
   Alert = "Alert",
   AlertEpisode = "AlertEpisode",
   ScheduledMaintenance = "ScheduledMaintenance",
+  SecurityCase = "SecurityCase",
 }
 
 // The Project columns that hold where each kind of number starts.
@@ -42,7 +43,8 @@ export type NumbersStartAtColumn =
   | "incidentEpisodeNumbersStartAt"
   | "alertNumbersStartAt"
   | "alertEpisodeNumbersStartAt"
-  | "scheduledMaintenanceNumbersStartAt";
+  | "scheduledMaintenanceNumbersStartAt"
+  | "securityCaseNumbersStartAt";
 
 // The Project columns that hold the highest number given out so far.
 export type NumberCounterColumn =
@@ -50,7 +52,8 @@ export type NumberCounterColumn =
   | "incidentEpisodeCounter"
   | "alertCounter"
   | "alertEpisodeCounter"
-  | "scheduledMaintenanceCounter";
+  | "scheduledMaintenanceCounter"
+  | "securityCaseCounter";
 
 export interface NumberedRecordKindInfo {
   kind: NumberedRecordKind;
@@ -106,6 +109,14 @@ export const NUMBERED_RECORD_KINDS: ReadonlyArray<NumberedRecordKindInfo> = [
     prefixColumn: "scheduledMaintenanceNumberPrefix",
     title: "Scheduled Maintenance Numbers Start At",
     recordName: "scheduled maintenance event",
+  },
+  {
+    kind: NumberedRecordKind.SecurityCase,
+    counterColumn: "securityCaseCounter",
+    startsAtColumn: "securityCaseNumbersStartAt",
+    prefixColumn: "securityCaseNumberPrefix",
+    title: "Security Case Numbers Start At",
+    recordName: "security case",
   },
 ];
 

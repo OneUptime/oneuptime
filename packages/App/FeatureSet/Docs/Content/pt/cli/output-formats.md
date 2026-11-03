@@ -1,11 +1,11 @@
 # Formatos de saída
 
-A CLI imprime uma tabela quando você lê a resposta dela em um terminal, e JSON quando um script ou outro programa a lê. Escolha o formato de qualquer comando com `-o` ou `--output`.
+A CLI imprime uma tabela quando você lê a resposta dela em um terminal, e JSON quando um script ou outro programa a lê. Escolha o formato de qualquer comando com `-o` ou `--output`, ou peça JSON com `--json`.
 
 :::cards
 - [Como o formato é escolhido](#como-o-formato-é-escolhido): Um terminal recebe uma tabela, um pipe recebe JSON.
 - [Tabela](#tabela): Seis colunas, cada valor cortado em 60 caracteres.
-- [JSON](#json): Cada campo, inteiro, para scripts e jq.
+- [JSON](#json): Cada campo, inteiro, para scripts, jq e agentes de IA.
 - [Largo](#largo): Uma tabela com todas as colunas.
 :::
 
@@ -25,7 +25,7 @@ flowchart TB
 | `json` | A resposta como o OneUptime a enviou, recuada em dois espaços | Scripts, `jq` e arquivos |
 | `wide` | Uma tabela com uma coluna para cada campo | Comparar muitos campos de uma vez |
 
-`-o` funciona em todo comando que imprime registros: `list`, `get`, `create`, `update` e `count` de um recurso, `oneuptime resources` e `oneuptime context list`. Ele pode ficar em qualquer lugar da linha de comando. Qualquer outro valor é recusado antes de uma requisição ser enviada:
+`-o` e `--json` funcionam em todo comando, em qualquer lugar da linha de comando. Um comando que imprime registros escolhe o formato como o diagrama mostra. Um comando cuja resposta é uma frase, como `delete` ou `acknowledge`, imprime a frase, tanto em um terminal quanto em um pipe, a menos que `-o json` ou `--json` peça JSON. Qualquer outro valor de `-o` é recusado antes de uma requisição ser enviada:
 
 ```text
 error: option '-o, --output <format>' argument 'yaml' is invalid. Allowed choices are json, table, wide.
@@ -39,26 +39,36 @@ A tabela é o padrão em um terminal. `oneuptime resources --type analytics`, po
 ┌────────────────────────────┬────────────────────────────┬─────────────────────────────┬───────────┬─────────────────────────────┐
 │ Command                    │ Singular                   │ Plural                      │ Type      │ API Path                    │
 ├────────────────────────────┼────────────────────────────┼─────────────────────────────┼───────────┼─────────────────────────────┤
-│ log                        │ Log                        │ Logs                        │ analytics │ /logs                       │
+│ audit-log                  │ Audit Log                  │ Audit Logs                  │ analytics │ /audit-log                  │
 ├────────────────────────────┼────────────────────────────┼─────────────────────────────┼───────────┼─────────────────────────────┤
-│ span                       │ Span                       │ Spans                       │ analytics │ /span                       │
-├────────────────────────────┼────────────────────────────┼─────────────────────────────┼───────────┼─────────────────────────────┤
-│ metric                     │ Metric                     │ Metrics                     │ analytics │ /metrics                    │
+│ change-event               │ Change Event               │ Change Events               │ analytics │ /change-events              │
 ├────────────────────────────┼────────────────────────────┼─────────────────────────────┼───────────┼─────────────────────────────┤
 │ exception-instance         │ Exception Instance         │ Exception Instances         │ analytics │ /exceptions                 │
 ├────────────────────────────┼────────────────────────────┼─────────────────────────────┼───────────┼─────────────────────────────┤
+│ kubernetes-cost-allocation │ Kubernetes Cost Allocation │ Kubernetes Cost Allocations │ analytics │ /kubernetes-cost-allocation │
+├────────────────────────────┼────────────────────────────┼─────────────────────────────┼───────────┼─────────────────────────────┤
+│ log                        │ Log                        │ Logs                        │ analytics │ /logs                       │
+├────────────────────────────┼────────────────────────────┼─────────────────────────────┼───────────┼─────────────────────────────┤
+│ metric                     │ Metric                     │ Metrics                     │ analytics │ /metrics                    │
+├────────────────────────────┼────────────────────────────┼─────────────────────────────┼───────────┼─────────────────────────────┤
 │ monitor-log                │ Monitor Log                │ Monitor Logs                │ analytics │ /monitor-log                │
 ├────────────────────────────┼────────────────────────────┼─────────────────────────────┼───────────┼─────────────────────────────┤
-│ kubernetes-cost-allocation │ Kubernetes Cost Allocation │ Kubernetes Cost Allocations │ analytics │ /kubernetes-cost-allocation │
+│ network-flow               │ Network Flow               │ Network Flows               │ analytics │ /network-flow               │
+├────────────────────────────┼────────────────────────────┼─────────────────────────────┼───────────┼─────────────────────────────┤
+│ profile                    │ Profile                    │ Profiles                    │ analytics │ /profile                    │
+├────────────────────────────┼────────────────────────────┼─────────────────────────────┼───────────┼─────────────────────────────┤
+│ profile-sample             │ ProfileSample              │ ProfileSamples              │ analytics │ /profile-sample             │
 ├────────────────────────────┼────────────────────────────┼─────────────────────────────┼───────────┼─────────────────────────────┤
 │ security-event             │ Security Event             │ Security Events             │ analytics │ /security-events            │
 ├────────────────────────────┼────────────────────────────┼─────────────────────────────┼───────────┼─────────────────────────────┤
-│ change-event               │ Change Event               │ Change Events               │ analytics │ /change-events              │
+│ slo-history                │ SLO History                │ SLO History                 │ analytics │ /slo-history                │
+├────────────────────────────┼────────────────────────────┼─────────────────────────────┼───────────┼─────────────────────────────┤
+│ span                       │ Span                       │ Spans                       │ analytics │ /span                       │
 ├────────────────────────────┼────────────────────────────┼─────────────────────────────┼───────────┼─────────────────────────────┤
 │ threat-intel-indicator     │ Threat Intel Indicator     │ Threat Intel Indicators     │ analytics │ /threat-intel-indicators    │
 └────────────────────────────┴────────────────────────────┴─────────────────────────────┴───────────┴─────────────────────────────┘
 
-Total: 9 resources
+Total: 14 resources
 ```
 
 Para uma lista de registros, uma tabela mostra até seis colunas: primeiro `_id`, `name`, `title`, `status`, `createdAt` e `updatedAt`, as que os registros tiverem, e depois os próximos campos dos registros, em ordem. As colunas são tiradas do primeiro registro. Um valor com mais de 60 caracteres é cortado nos seus 57 primeiros, seguidos de `...`.
@@ -100,6 +110,16 @@ oneuptime incident list -o json | jq -r '.[] | "\(.createdAt.value)  \(.title)"'
 
 Quando a saída não é um terminal, como em `oneuptime incident list | jq '.[].title'`, a CLI imprime JSON sem `-o json`. Escreva `-o json` nos scripts mesmo assim, para que eles não dependam disso.
 
+`--json` é o mesmo que `-o json`. Um comando cuja resposta é uma frase responde então com um objeto: `delete` com o `_id` do registro e `"deleted": true`, `acknowledge` com o estado `state` em que o registro está. Quando JSON é pedido, um erro é um único objeto na saída de erro padrão, sempre com as mesmas chaves, e `exitCode` é o código com que o comando termina:
+
+```bash
+oneuptime incident get 6f1c2a40-3b1e-4c55-9a0b-3e2f8d7c1a11 --json
+```
+
+```json
+{"error":{"message":"API error (404): Incident not found.","status":404,"exitCode":3,"hint":"`oneuptime incident list` shows the ones this key may read."}}
+```
+
 ## Largo
 
 `-o wide` é uma tabela com uma coluna para cada campo dos registros. Cada valor continua cortado em 60 caracteres, e os registros têm muitos campos, então uma tabela larga é muito larga: percorra-a com `less -S`.
@@ -110,7 +130,7 @@ oneuptime incident list -o wide | less -S
 
 ## Cores
 
-Os cabeçalhos das tabelas são ciano; as mensagens são verdes quando algo funcionou, azuis para informações e vermelhas para erros. Desative as cores com `--no-color`, ou definindo `NO_COLOR` com qualquer valor:
+Os cabeçalhos das tabelas são ciano; as mensagens são verdes quando algo funcionou, azuis para informações, amarelas para avisos e para o que fazer diante de um erro, e vermelhas para erros. Desative as cores com `--no-color`, ou definindo `NO_COLOR` com qualquer valor:
 
 ```bash
 oneuptime incident list --no-color
@@ -119,7 +139,7 @@ NO_COLOR=1 oneuptime incident list
 
 ## O que cada comando imprime
 
-Registros e contagens vão para a saída padrão, e os erros para a saída de erro padrão, então um pipe lê só a resposta.
+Registros e contagens vão para a saída padrão, e erros e avisos para a saída de erro padrão, então um pipe lê só a resposta.
 
 | Comando | Em uma tabela | Em JSON |
 | --- | --- | --- |
@@ -127,7 +147,9 @@ Registros e contagens vão para a saída padrão, e os erros para a saída de er
 | Um `get` ou um `create` | Uma linha por campo | O registro |
 | Um `count` | O número | O número |
 | Um `update` | Uma linha vazia | `{}` |
-| Um `delete` | `Monitor <id> deleted successfully.` | A mesma linha |
+| Um `delete` | `Monitor <id> deleted successfully.` | O `_id` do registro e `"deleted": true` |
+| Um `acknowledge`, `resolve`, `start` ou `end` | `Incident <id> acknowledged: it is in Acknowledged now.` | O `_id` do registro, a `action`, se ele mudou (`changed`) e o `state` dele |
+| Um erro | O erro, e depois o que fazer | `{"error": {...}}`, na saída de erro padrão |
 
 ## Próximos passos
 

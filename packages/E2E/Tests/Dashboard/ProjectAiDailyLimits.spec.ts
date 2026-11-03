@@ -11,6 +11,7 @@ import {
   expect,
   test,
 } from "@playwright/test";
+import { boxesInOneFrame } from "../../SuiteHelpers/Frames";
 
 /*
  * A project's own daily AI limits, on Project Settings → AI → AI Features →
@@ -220,10 +221,7 @@ test.describe("Project Settings → AI → AI Features: daily AI limits", () => 
     await expect(daily.locator(".rounded-xl.shadow-sm")).toHaveCount(0);
 
     // The divider runs across the whole card: the section is as wide as its inside.
-    const foldBox: { x: number; width: number } | null =
-      await fold.boundingBox();
-    const dailyBox: { x: number; width: number } | null =
-      await daily.boundingBox();
+    const [foldBox, dailyBox] = await boxesInOneFrame([fold, daily]);
 
     expect(foldBox).not.toBeNull();
     expect(dailyBox).not.toBeNull();

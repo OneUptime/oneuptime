@@ -64,7 +64,7 @@ Sous **Configuration du moniteur Ceph**, choisissez le cluster dans **Cluster Ce
 Un nouveau moniteur démarre sur **Cluster Stopped Reporting**, sous **Sur quoi alerter**. Pour surveiller autre chose :
 
 - **Modifier** — choisissez un autre [modèle](#modèles-dalerte-prédéfinis). Il définit les métriques, les filtres, l'agrégation, la plage temporelle et les seuils, et remplace les critères ci-dessous par les siens. Vous pouvez encore modifier la **Plage temporelle**.
-- **Custom Metric** (sous **Plus de champs**) — choisissez une métrique dans **Métrique Ceph**, puis réglez **Agrégation** et **Plage temporelle**. **OSD** et **Pool ID** la limitent à un démon ou à un pool. Une métrique tenue par pool ou par daemon est jugée pool par pool ou daemon par daemon, avec un incident chacun.
+- **Custom Metric** (sous **Plus de champs**) — choisissez une métrique dans **Métrique Ceph**, puis réglez **Agrégation** et **Plage temporelle**. **OSD** et **ID du pool** la limitent à un démon ou à un pool. Une métrique tenue par pool ou par daemon est jugée pool par pool ou daemon par daemon, avec un incident chacun.
 - **Avancé** (sous **Plus de champs**) — construisez vous-même requêtes et formules sous **Sélectionner les métriques**, par exemple un ratio de capacité utilisée à partir de `ceph_cluster_total_used_bytes / ceph_cluster_total_bytes`. Utilisez **Regrouper par** `ceph_daemon` ou `pool_id` pour juger chaque démon ou pool séparément.
 
 ### Vérifier les critères
@@ -85,7 +85,7 @@ Cliquez sur **Créer un moniteur**. OneUptime ouvre la page du moniteur et l'év
 | --- | --- | --- |
 | **Cluster Ceph** | Tous | Obligatoire. Limite chaque requête à `resource.ceph.cluster.name`. |
 | **OSD** | Custom Metric, Avancé | Facultatif. Correspondance exacte sur le label `ceph_daemon`, par exemple `osd.3`. |
-| **Pool ID** | Custom Metric, Avancé | Facultatif. Correspondance exacte sur le label `pool_id`, par exemple `2`. |
+| **ID du pool** | Custom Metric, Avancé | Facultatif. Correspondance exacte sur le label `pool_id`, par exemple `2`. |
 | **Métrique Ceph** | Custom Metric | Une métrique du [catalogue](#métriques-collectées). |
 | **Agrégation** | Custom Metric | Comment les échantillons sont combinés : **Moyenne**, **Maximum** ou **Minimum**. Commence avec l'agrégation habituelle de la métrique. Une somme ou un comptage additionnerait chaque collecte d'une minute, ils sont donc laissés à **Avancé**. |
 | **Plage temporelle** | Tous | La fenêtre glissante lue par la requête, de **Past 1 Minute** à **Past 365 Days**. Un nouveau moniteur commence à **Past 1 Minute** ; les modèles définissent la leur. |

@@ -398,6 +398,44 @@ function seedRichAnswer() {
           ],
         },
       },
+      /*
+       * What search_security_events puts beside an answer (SecurityEventTools):
+       * dates, as JSON carries them, under column names the tool marks as
+       * keys, so the chat draws them in the reader's language.
+       */
+      {
+        id: "W4",
+        type: AIChatWidgetType.Table,
+        title: "Security Events (3)",
+        data: {
+          columns: [
+            { key: "time", title: "Time", type: "date" },
+            { key: "severity", title: "Severity", type: "text" },
+            { key: "eventShown", title: "Event", type: "text" },
+            { key: "principalHost", title: "Host", type: "text" },
+          ],
+          rows: [
+            {
+              time: minutesAgo(3).toISOString(),
+              severity: "High",
+              eventShown: "Brute force from one address · sshd",
+              principalHost: "web-01",
+            },
+            {
+              time: minutesAgo(41).toISOString(),
+              severity: "Medium",
+              eventShown: "Process Activity: Inject · lsass.exe",
+              principalHost: "win-dc-02",
+            },
+            {
+              time: minutesAgo(60 * 26).toISOString(),
+              severity: "Low",
+              eventShown: "User login to Okta (Failure)",
+              principalHost: "vpn-gw",
+            },
+          ],
+        },
+      },
       {
         id: "W3",
         type: AIChatWidgetType.TraceWaterfall,
@@ -1164,8 +1202,12 @@ if (window.location.pathname === "/" || window.location.pathname === "") {
   );
 }
 
+/*
+ * Navigates as the Dashboard does (its src/Index.tsx): each navigation renders
+ * at once, not in a React transition (Tests/Ops/E2EFixtureRouters).
+ */
 createRoot(document.getElementById("root")).render(
-  <BrowserRouter>
+  <BrowserRouter useTransitions={false}>
     <App />
   </BrowserRouter>,
 );

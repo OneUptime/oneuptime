@@ -48,15 +48,20 @@ import {
   describeProjectDefaultRunnerRefusal,
   getProjectDefaultRunnerRefusal,
 } from "../../Types/Runner/ProjectDefaultRunner";
+import {
+  GlobalRunnerCodeFixAvailability,
+  doesRunnerTakeCodeFixes,
+  getGlobalRunnerCodeFixAvailability,
+} from "../../Types/Runner/RunnerCodeFixes";
 
 /*
  * What a global Runner row is, in the words every refusal about one uses.
  * A global Runner is one the OneUptime server runs for every project: no
  * project owns it (projectId is empty), only OneUptime or a master admin
  * creates it (Admin Dashboard -> Settings -> Global Runners), and it runs
- * runbook steps only - never AI remediation commands, which act in a
- * project's own systems, nor code work: a code repository picks one of its
- * own project's Runners, or none (Types/Runner/CodeRepositoryRunner).
+ * JavaScript steps and the AI code fixes of every repository on the Global
+ * Runner (Types/Runner/GlobalRunnerWork) - never AI remediation commands,
+ * which act in a project's own systems.
  */
 export const GLOBAL_RUNNER_IN_A_PROJECT_MESSAGE: string =
   "A global Runner belongs to no project: OneUptime runs it for every project. Create it under Admin Dashboard → Settings → Global Runners, or create a Runner of this project's own under Runbooks → Runners.";
@@ -87,6 +92,36 @@ export const GLOBAL_RUNNER_PUBLIC_SELECT: Select<Model> = {
   lastAlive: true,
   canRunRunbooks: true,
   isGlobalRunner: true,
+  /*
+   * Whether it takes AI code fixes, as OneUptime counts it
+   * (findGlobalRunners): a code repository's Runner picker counts only the
+   * ones that do, as the server does.
+   */
+  takesCodeFixes: true,
+};
+
+/*
+ * What findGlobalRunners reads: the public columns, and the release, which
+ * judges whether one that does not say takes AI code fixes - read on the
+ * server, never handed on.
+ */
+export const GLOBAL_RUNNER_LIST_READ_SELECT: Select<Model> = {
+  ...GLOBAL_RUNNER_PUBLIC_SELECT,
+  agentVersion: true,
+};
+
+/*
+ * What the code-fix rule reads off a global Runner (Types/Runner/
+ * RunnerCodeFixes): what it said on its last heartbeat, and - for one of a
+ * release that does not say - that release. Read as OneUptime, for the
+ * server's own answer; the release never leaves the server.
+ */
+export const GLOBAL_RUNNER_CODE_FIX_SELECT: Select<Model> = {
+  _id: true,
+  isGlobalRunner: true,
+  takesCodeFixes: true,
+  agentVersion: true,
+  lastAlive: true,
 };
 
 /*
@@ -727,39 +762,61 @@ export class Service extends ProjectReferencesService<Model> {
    * The global Runners, as anyone signed in may see them: the columns of
    * GLOBAL_RUNNER_PUBLIC_SELECT only - never a key, a host or a version.
    * Read as OneUptime: no project owns them, so no project's read reaches
-   * them.
+   * them. Whether each takes AI code fixes is said as OneUptime counts it
+   * (Types/Runner/RunnerCodeFixes): one of a release that does not say is
+   * judged by that release, read here and left out of what is handed on.
    */
   @CaptureSpan()
   public async findGlobalRunners(): Promise<Array<Model>> {
-    return await this.findBy({
+    const runners: Array<Model> = await this.findBy({
       query: { isGlobalRunner: true },
-      select: GLOBAL_RUNNER_PUBLIC_SELECT,
+      select: GLOBAL_RUNNER_LIST_READ_SELECT,
       sort: { name: SortOrder.Ascending },
       limit: LIMIT_MAX,
       skip: 0,
       props: { isRoot: true },
     });
+
+    for (const runner of runners) {
+      runner.takesCodeFixes = doesRunnerTakeCodeFixes({
+        isGlobalRunner: true,
+        takesCodeFixes: runner.takesCodeFixes,
+        agentVersion: runner.agentVersion,
+        lastAlive: runner.lastAlive,
+      });
+
+      delete runner.agentVersion;
+    }
+
+    return runners;
   }
 
   /*
-   * Whether a global Runner has heartbeated within the Runner window: what
-   * a repository on the Global Runner waits for, since every global Runner
-   * takes those repositories' AI work (CodeFixAgentAuth). lastAlive is a
-   * query predicate, as for every other Runner liveness check.
+   * Whether a global Runner that takes AI code fixes is online - what a
+   * repository on the Global Runner waits for - or, when none is, whether
+   * any global Runner is online at all, so the repository can say which:
+   * global Runners that are online but take no code fixes (a release
+   * from before global Runners took them, or a host that turned them off,
+   * Types/Runner/RunnerCodeFixes) are not counted as there to take its
+   * work. lastAlive is a query predicate, as for every other Runner
+   * liveness check.
    */
   @CaptureSpan()
-  public async hasOnlineGlobalRunner(): Promise<boolean> {
-    const count: PositiveNumber = await this.countBy({
+  public async getGlobalRunnerCodeFixAvailability(): Promise<GlobalRunnerCodeFixAvailability> {
+    const onlineGlobalRunners: Array<Model> = await this.findBy({
       query: {
         isGlobalRunner: true,
         lastAlive: QueryHelper.greaterThan(
           OneUptimeDate.getSomeMinutesAgo(RUNNER_ALIVE_WINDOW_IN_MINUTES),
         ),
       },
+      select: GLOBAL_RUNNER_CODE_FIX_SELECT,
+      limit: LIMIT_MAX,
+      skip: 0,
       props: { isRoot: true },
     });
 
-    return count.toNumber() > 0;
+    return getGlobalRunnerCodeFixAvailability(onlineGlobalRunners);
   }
 
   private static getReservedAgentNameRefusal(): string {
@@ -982,6 +1039,11 @@ export class Service extends ProjectReferencesService<Model> {
     agentId: ObjectID;
     agentVersion?: Version | undefined;
     hostInfo?: JSONObject | undefined;
+    /*
+     * Whether the Runner takes AI code fixes, as it said (null: it said
+     * nothing). Left out, the column is not touched.
+     */
+    takesCodeFixes?: boolean | null | undefined;
   }): Promise<void> {
     if (!data.agentId) {
       throw new BadDataException("agentId is required");
@@ -998,6 +1060,10 @@ export class Service extends ProjectReferencesService<Model> {
 
     if (data.hostInfo) {
       update["hostInfo"] = data.hostInfo;
+    }
+
+    if (data.takesCodeFixes !== undefined) {
+      update["takesCodeFixes"] = data.takesCodeFixes;
     }
 
     await this.updateOneById({

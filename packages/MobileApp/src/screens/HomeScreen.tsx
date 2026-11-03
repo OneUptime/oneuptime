@@ -23,6 +23,12 @@ import {
   hasRoomForTwoColumns,
   type ContentGutters,
 } from "../layout/windowLayout";
+import type { FoldSplit } from "../layout/foldSplit";
+import {
+  FoldPaneScrollView,
+  FoldSplitView,
+  useFoldSplit,
+} from "../layout/FoldSplitView";
 import { useAllProjectCounts } from "../hooks/useAllProjectCounts";
 import { useSecurityCaseCounts } from "../hooks/useSecurityCases";
 import { useActiveProject } from "../hooks/useProject";
@@ -252,6 +258,9 @@ function CountRow({
   );
 }
 
+// The scroll a pull to refresh came from: Home's one, or a half of a tabletop fold.
+type HomePullSource = "screen" | "above" | "below";
+
 function getGreeting(): string {
   const hour: number = new Date().getHours();
   if (hour < 12) {
@@ -274,10 +283,14 @@ export default function HomeScreen(): React.JSX.Element {
    */
   const pane: PaneLayout = usePane();
   const twoColumns: boolean = hasRoomForTwoColumns(pane);
-  const gutters: ContentGutters = useContentGutters(
-    twoColumns ? TWO_COLUMN_READABLE_WIDTH : READABLE_CONTENT_WIDTH,
-  );
-  const [refreshing, setRefreshing] = useState(false);
+  const readableWidth: number = twoColumns
+    ? TWO_COLUMN_READABLE_WIDTH
+    : READABLE_CONTENT_WIDTH;
+  const gutters: ContentGutters = useContentGutters(readableWidth);
+  // Half open on a table: where the fold splits Home, or null for one scroll.
+  const foldSplit: FoldSplit | null = useFoldSplit();
+  // Which scroll the reader pulled to refresh: a tabletop fold makes two.
+  const [pulledFrom, setPulledFrom] = useState<HomePullSource | null>(null);
   const { projectList, isLoadingProjects, projectLoadError, refreshProjects } =
     useActiveProject();
   const navigation: HomeNavProp = useNavigation<HomeNavProp>();
@@ -426,9 +439,11 @@ export default function HomeScreen(): React.JSX.Element {
     }, [checkSsoStatus]),
   );
 
-  const onRefresh: () => Promise<void> = async (): Promise<void> => {
+  const onRefresh: (source: HomePullSource) => Promise<void> = async (
+    source: HomePullSource,
+  ): Promise<void> => {
     lightImpact();
-    setRefreshing(true);
+    setPulledFrom(source);
     try {
       await Promise.all([
         refetch(),
@@ -438,45 +453,51 @@ export default function HomeScreen(): React.JSX.Element {
         securityCounts.refetch(),
       ]);
     } finally {
-      setRefreshing(false);
+      setPulledFrom(null);
     }
   };
 
-  const refreshControl: React.JSX.Element = (
-    <RefreshControl
-      refreshing={refreshing}
-      onRefresh={onRefresh}
-      tintColor={theme.colors.actionPrimary}
-      colors={[theme.colors.actionPrimary]}
-      progressBackgroundColor={theme.colors.backgroundElevated}
-    />
-  );
+  /*
+   * Either half of a tabletop fold refreshes all of Home, and only the half
+   * that was pulled shows the spinner.
+   */
+  const refreshControlFor: (source: HomePullSource) => React.JSX.Element = (
+    source: HomePullSource,
+  ): React.JSX.Element => {
+    return (
+      <RefreshControl
+        refreshing={pulledFrom === source}
+        onRefresh={() => {
+          return onRefresh(source);
+        }}
+        tintColor={theme.colors.actionPrimary}
+        colors={[theme.colors.actionPrimary]}
+        progressBackgroundColor={theme.colors.backgroundElevated}
+      />
+    );
+  };
+  const refreshControl: React.JSX.Element = refreshControlFor("screen");
 
   if (!isLoadingProjects && projectList.length === 0) {
-    return (
-      <ScrollView
-        style={{ flex: 1, backgroundColor: theme.colors.backgroundPrimary }}
-        contentContainerStyle={{ flexGrow: 1, paddingBottom: bottomPadding }}
+    const noProjects: React.JSX.Element = (
+      <NoProjectsScroll
         refreshControl={refreshControl}
-      >
-        <EmptyState
-          icon={projectLoadError ? "error" : "default"}
-          title={
-            projectLoadError ? "Could Not Load Projects" : "No Projects Found"
-          }
-          subtitle={
-            projectLoadError
-              ? "We could not reach OneUptime to load your projects, which is not the same as you having none. Pull to refresh or retry."
-              : "You don't have access to any projects. Contact your administrator or pull to refresh."
-          }
-          actionLabel="Retry"
-          onAction={refreshProjects}
-        />
-      </ScrollView>
+        loadFailed={Boolean(projectLoadError)}
+        onRetry={refreshProjects}
+      />
+    );
+    /*
+     * Half open on a table, the message stands above the fold, off the
+     * crease, and the half below stays empty.
+     */
+    return foldSplit ? (
+      <FoldSplitView split={foldSplit} testID="home-fold" above={noProjects} />
+    ) : (
+      noProjects
     );
   }
   if (isLoadingProjects) {
-    return (
+    const loading: React.JSX.Element = (
       <View
         style={{
           flex: 1,
@@ -491,6 +512,11 @@ export default function HomeScreen(): React.JSX.Element {
           color={theme.colors.actionPrimary}
         />
       </View>
+    );
+    return foldSplit ? (
+      <FoldSplitView split={foldSplit} testID="home-fold" above={loading} />
+    ) : (
+      loading
     );
   }
   const dutyKnown: boolean = !onCallLoading && !onCallError;
@@ -531,6 +557,329 @@ export default function HomeScreen(): React.JSX.Element {
       : theme.colors.actionPrimary;
   const stackTiles: boolean = fontScale > 1.3;
 
+  const ssoBanner: React.JSX.Element | null =
+    unauthenticatedSsoProjects.length > 0 ? (
+      <Banner
+        testID="home-sso-banner"
+        tone="warning"
+        icon="key-outline"
+        title="SSO Authentication Required"
+        message={`Sign in with SSO to see activity from ${unauthenticatedSsoProjects
+          .map((project: ProjectItem) => {
+            return project.name;
+          })
+          .join(", ")}.`}
+        accessibilityLabel="Some projects require SSO authentication. Tap to authenticate."
+        onPress={() => {
+          lightImpact();
+          navigation.navigate("Settings", {
+            screen: "ProjectsList",
+            initial: false,
+          });
+        }}
+      />
+    ) : null;
+
+  const needsAttention: React.JSX.Element = (
+    <View>
+      <SectionHeader title="Needs attention" iconName="flash-outline" />
+      {countsError ? (
+        <QueryErrorNotice
+          message="Counts are unavailable. Open a list or retry to check the latest status."
+          retryLabel="Retry counts"
+          onRetry={refetch}
+        />
+      ) : null}
+      <View
+        style={{
+          flexDirection: stackTiles ? "column" : "row",
+          gap: spacing.md,
+        }}
+      >
+        <AttentionTile
+          testID="home-tile-incidents"
+          count={incidentCount}
+          label="Active Incidents"
+          accentColor={theme.colors.severityCritical}
+          iconName="warning-outline"
+          known={countIsKnown}
+          checking={countsChecking}
+          stacked={stackTiles}
+          accessibilityHint="Opens active incidents in the inbox"
+          onPress={() => {
+            return navigation.navigate("Inbox", {
+              screen: "InboxList",
+              params: {
+                initialView: "incidents",
+                initialSegment: "incidents",
+                initialFilter: "active",
+              },
+            });
+          }}
+        />
+        <AttentionTile
+          testID="home-tile-alerts"
+          count={alertCount}
+          label="Active Alerts"
+          accentColor={theme.colors.severityMajor}
+          iconName="notifications-outline"
+          known={countIsKnown}
+          checking={countsChecking}
+          stacked={stackTiles}
+          accessibilityHint="Opens active alerts in the inbox"
+          onPress={() => {
+            return navigation.navigate("Inbox", {
+              screen: "InboxList",
+              params: {
+                initialView: "alerts",
+                initialSegment: "alerts",
+                initialFilter: "active",
+              },
+            });
+          }}
+        />
+      </View>
+      {securityCounts.isAvailable ? (
+        <ListGroup testID="home-security" style={{ marginTop: spacing.md }}>
+          <CountRow
+            testID="home-row-security-cases"
+            count={securityCounts.openCount}
+            label="Open security cases"
+            subtitle={
+              securityKnown && awaitingApproval > 0
+                ? awaitingApproval === 1
+                  ? "Approval needed on 1 case"
+                  : `Approval needed on ${awaitingApproval} cases`
+                : undefined
+            }
+            iconColor={theme.colors.statusWarning}
+            highlightColor={theme.colors.statusWarning}
+            iconName="shield-outline"
+            known={securityKnown}
+            accessibilityHint="Opens the open security cases in the inbox"
+            onPress={() => {
+              return navigation.navigate("Inbox", {
+                screen: "InboxList",
+                params: {
+                  initialView: "security",
+                  initialCaseFilter: "open",
+                },
+              });
+            }}
+          />
+        </ListGroup>
+      ) : null}
+    </View>
+  );
+
+  const onCallCard: React.JSX.Element = (
+    <Card
+      testID="home-oncall-card"
+      accessibilityLabel={`${onCallSpokenStatus}. ${onCallDetailLine}. Tap to open the on-call tab.`}
+      onPress={() => {
+        lightImpact();
+        navigation.navigate("OnCall");
+      }}
+    >
+      <View
+        style={{
+          flexDirection: "row",
+          alignItems: "center",
+          gap: spacing.md,
+        }}
+      >
+        <IconBadge
+          testID="home-oncall-icon"
+          name={dutyActive ? "call" : "call-outline"}
+          color={onCallIconColor}
+          size="lg"
+          shape="circle"
+        />
+        <View style={{ flex: 1, gap: spacing.xs }}>
+          <StatusPill
+            testID="home-oncall-status"
+            label={onCallBadgeLabel}
+            tone={onCallTone}
+            dotColor={dutyActive ? theme.colors.oncallActive : undefined}
+            size="sm"
+          />
+          <AppText variant="title3">{onCallHeadline}</AppText>
+          <AppText variant="subhead" tone="secondary">
+            {onCallDetailLine}
+          </AppText>
+        </View>
+        <Ionicons
+          name="chevron-forward"
+          size={18}
+          color={theme.colors.textTertiary}
+        />
+      </View>
+    </Card>
+  );
+
+  const serviceHealth: React.JSX.Element = (
+    <View>
+      <SectionHeader title="Service health" iconName="pulse-outline" />
+      <ListGroup testID="home-service-health">
+        <CountRow
+          testID="home-row-monitor-issues"
+          count={inoperationalMonitorCount}
+          label="Monitor issues"
+          iconColor={theme.colors.statusError}
+          highlightColor={theme.colors.statusError}
+          iconName="alert-circle-outline"
+          known={countIsKnown}
+          accessibilityHint="Opens monitors that report a problem"
+          onPress={() => {
+            return navigation.navigate("Monitors", {
+              screen: "MonitorsList",
+              params: { initialFilter: "issues" },
+            });
+          }}
+        />
+        <CountRow
+          testID="home-row-all-monitors"
+          count={monitorCount}
+          label="All monitors"
+          iconColor={theme.colors.statusSuccess}
+          iconName="pulse-outline"
+          known={countIsKnown}
+          accessibilityHint="Opens every monitor"
+          onPress={() => {
+            return navigation.navigate("Monitors", {
+              screen: "MonitorsList",
+              params: { initialFilter: "all" },
+            });
+          }}
+        />
+        <CountRow
+          testID="home-row-disabled-monitors"
+          count={disabledMonitorCount}
+          label="Disabled monitors"
+          iconColor={theme.colors.textSecondary}
+          iconName="pause-circle-outline"
+          known={countIsKnown}
+          accessibilityHint="Opens monitors whose checks are switched off"
+          onPress={() => {
+            return navigation.navigate("Monitors", {
+              screen: "MonitorsList",
+              params: { initialFilter: "disabled" },
+            });
+          }}
+        />
+      </ListGroup>
+    </View>
+  );
+
+  const groupedEvents: React.JSX.Element = (
+    <View>
+      <SectionHeader title="Grouped events" iconName="layers-outline" />
+      <AppText
+        variant="subhead"
+        tone="secondary"
+        style={{ marginTop: -spacing.xs, marginBottom: spacing.md }}
+      >
+        Episodes bring related incidents or alerts together.
+      </AppText>
+      <ListGroup testID="home-grouped-events">
+        <CountRow
+          testID="home-row-incident-episodes"
+          count={incidentEpisodeCount}
+          label="Incident Episodes"
+          iconColor={theme.colors.severityCritical}
+          iconName="layers-outline"
+          known={countIsKnown}
+          accessibilityHint="Opens active incident episodes in the inbox"
+          onPress={() => {
+            return navigation.navigate("Inbox", {
+              screen: "InboxList",
+              params: {
+                initialView: "incidents",
+                initialSegment: "episodes",
+                initialFilter: "active",
+              },
+            });
+          }}
+        />
+        <CountRow
+          testID="home-row-alert-episodes"
+          count={alertEpisodeCount}
+          label="Alert Episodes"
+          iconColor={theme.colors.severityMajor}
+          iconName="layers-outline"
+          known={countIsKnown}
+          accessibilityHint="Opens active alert episodes in the inbox"
+          onPress={() => {
+            return navigation.navigate("Inbox", {
+              screen: "InboxList",
+              params: {
+                initialView: "alerts",
+                initialSegment: "episodes",
+                initialFilter: "active",
+              },
+            });
+          }}
+        />
+      </ListGroup>
+    </View>
+  );
+
+  /*
+   * Half open on a table: what needs the reader - the two counts and whether
+   * they are on call - stands above the fold, readable from across the
+   * table; the rows that open lists lie below it, under the hand. Each half
+   * scrolls on its own, so no card or row ever sits in the crease. Half a
+   * screen has no room for the greeting: the bar names the project, and the
+   * tab says this is Home. Each half sets its two sections side by side when
+   * it is wide enough, as Home does on a wide window.
+   */
+  if (foldSplit) {
+    return (
+      <FoldSplitView
+        split={foldSplit}
+        testID="home-fold"
+        above={
+          <FoldPaneScrollView
+            testID="home-above-fold"
+            readableWidth={readableWidth}
+            gap={spacing.xxl}
+            refreshControl={refreshControlFor("above")}
+          >
+            {ssoBanner}
+            <HomeSections testID="home-response" twoColumns={twoColumns}>
+              {needsAttention}
+              {twoColumns ? (
+                /*
+                 * Beside the counts, the card heads its column the way they
+                 * do, so the two start on one line.
+                 */
+                <View testID="home-oncall-section">
+                  <SectionHeader title="On-Call" iconName="call-outline" />
+                  {onCallCard}
+                </View>
+              ) : (
+                onCallCard
+              )}
+            </HomeSections>
+          </FoldPaneScrollView>
+        }
+        below={
+          <FoldPaneScrollView
+            testID="home-below-fold"
+            readableWidth={readableWidth}
+            gap={spacing.xxl}
+            refreshControl={refreshControlFor("below")}
+          >
+            <HomeSections testID="home-health" twoColumns={twoColumns}>
+              {serviceHealth}
+              {groupedEvents}
+            </HomeSections>
+          </FoldPaneScrollView>
+        }
+      />
+    );
+  }
+
   return (
     <ScrollView
       testID="home-scroll"
@@ -549,27 +898,7 @@ export default function HomeScreen(): React.JSX.Element {
         description="Your response queue and service health."
         style={{ marginBottom: 0 }}
       />
-      {unauthenticatedSsoProjects.length > 0 ? (
-        <Banner
-          testID="home-sso-banner"
-          tone="warning"
-          icon="key-outline"
-          title="SSO Authentication Required"
-          message={`Sign in with SSO to see activity from ${unauthenticatedSsoProjects
-            .map((project: ProjectItem) => {
-              return project.name;
-            })
-            .join(", ")}.`}
-          accessibilityLabel="Some projects require SSO authentication. Tap to authenticate."
-          onPress={() => {
-            lightImpact();
-            navigation.navigate("Settings", {
-              screen: "ProjectsList",
-              initial: false,
-            });
-          }}
-        />
-      ) : null}
+      {ssoBanner}
       <View
         testID="home-columns"
         style={{
@@ -582,248 +911,89 @@ export default function HomeScreen(): React.JSX.Element {
           testID="home-column-response"
           style={{ flex: twoColumns ? 1 : undefined, gap: spacing.xxl }}
         >
-          <View>
-            <SectionHeader title="Needs attention" iconName="flash-outline" />
-            {countsError ? (
-              <QueryErrorNotice
-                message="Counts are unavailable. Open a list or retry to check the latest status."
-                retryLabel="Retry counts"
-                onRetry={refetch}
-              />
-            ) : null}
-            <View
-              style={{
-                flexDirection: stackTiles ? "column" : "row",
-                gap: spacing.md,
-              }}
-            >
-              <AttentionTile
-                testID="home-tile-incidents"
-                count={incidentCount}
-                label="Active Incidents"
-                accentColor={theme.colors.severityCritical}
-                iconName="warning-outline"
-                known={countIsKnown}
-                checking={countsChecking}
-                stacked={stackTiles}
-                accessibilityHint="Opens active incidents in the inbox"
-                onPress={() => {
-                  return navigation.navigate("Inbox", {
-                    screen: "InboxList",
-                    params: {
-                      initialView: "incidents",
-                      initialSegment: "incidents",
-                      initialFilter: "active",
-                    },
-                  });
-                }}
-              />
-              <AttentionTile
-                testID="home-tile-alerts"
-                count={alertCount}
-                label="Active Alerts"
-                accentColor={theme.colors.severityMajor}
-                iconName="notifications-outline"
-                known={countIsKnown}
-                checking={countsChecking}
-                stacked={stackTiles}
-                accessibilityHint="Opens active alerts in the inbox"
-                onPress={() => {
-                  return navigation.navigate("Inbox", {
-                    screen: "InboxList",
-                    params: {
-                      initialView: "alerts",
-                      initialSegment: "alerts",
-                      initialFilter: "active",
-                    },
-                  });
-                }}
-              />
-            </View>
-            {securityCounts.isAvailable ? (
-              <ListGroup
-                testID="home-security"
-                style={{ marginTop: spacing.md }}
-              >
-                <CountRow
-                  testID="home-row-security-cases"
-                  count={securityCounts.openCount}
-                  label="Open security cases"
-                  subtitle={
-                    securityKnown && awaitingApproval > 0
-                      ? awaitingApproval === 1
-                        ? "Approval needed on 1 case"
-                        : `Approval needed on ${awaitingApproval} cases`
-                      : undefined
-                  }
-                  iconColor={theme.colors.statusWarning}
-                  highlightColor={theme.colors.statusWarning}
-                  iconName="shield-outline"
-                  known={securityKnown}
-                  accessibilityHint="Opens the open security cases in the inbox"
-                  onPress={() => {
-                    return navigation.navigate("Inbox", {
-                      screen: "InboxList",
-                      params: {
-                        initialView: "security",
-                        initialCaseFilter: "open",
-                      },
-                    });
-                  }}
-                />
-              </ListGroup>
-            ) : null}
-          </View>
-          <Card
-            testID="home-oncall-card"
-            accessibilityLabel={`${onCallSpokenStatus}. ${onCallDetailLine}. Tap to open the on-call tab.`}
-            onPress={() => {
-              lightImpact();
-              navigation.navigate("OnCall");
-            }}
-          >
-            <View
-              style={{
-                flexDirection: "row",
-                alignItems: "center",
-                gap: spacing.md,
-              }}
-            >
-              <IconBadge
-                testID="home-oncall-icon"
-                name={dutyActive ? "call" : "call-outline"}
-                color={onCallIconColor}
-                size="lg"
-                shape="circle"
-              />
-              <View style={{ flex: 1, gap: spacing.xs }}>
-                <StatusPill
-                  testID="home-oncall-status"
-                  label={onCallBadgeLabel}
-                  tone={onCallTone}
-                  dotColor={dutyActive ? theme.colors.oncallActive : undefined}
-                  size="sm"
-                />
-                <AppText variant="title3">{onCallHeadline}</AppText>
-                <AppText variant="subhead" tone="secondary">
-                  {onCallDetailLine}
-                </AppText>
-              </View>
-              <Ionicons
-                name="chevron-forward"
-                size={18}
-                color={theme.colors.textTertiary}
-              />
-            </View>
-          </Card>
+          {needsAttention}
+          {onCallCard}
         </View>
         <View
           testID="home-column-health"
           style={{ flex: twoColumns ? 1 : undefined, gap: spacing.xxl }}
         >
-          <View>
-            <SectionHeader title="Service health" iconName="pulse-outline" />
-            <ListGroup testID="home-service-health">
-              <CountRow
-                testID="home-row-monitor-issues"
-                count={inoperationalMonitorCount}
-                label="Monitor issues"
-                iconColor={theme.colors.statusError}
-                highlightColor={theme.colors.statusError}
-                iconName="alert-circle-outline"
-                known={countIsKnown}
-                accessibilityHint="Opens monitors that report a problem"
-                onPress={() => {
-                  return navigation.navigate("Monitors", {
-                    screen: "MonitorsList",
-                    params: { initialFilter: "issues" },
-                  });
-                }}
-              />
-              <CountRow
-                testID="home-row-all-monitors"
-                count={monitorCount}
-                label="All monitors"
-                iconColor={theme.colors.statusSuccess}
-                iconName="pulse-outline"
-                known={countIsKnown}
-                accessibilityHint="Opens every monitor"
-                onPress={() => {
-                  return navigation.navigate("Monitors", {
-                    screen: "MonitorsList",
-                    params: { initialFilter: "all" },
-                  });
-                }}
-              />
-              <CountRow
-                testID="home-row-disabled-monitors"
-                count={disabledMonitorCount}
-                label="Disabled monitors"
-                iconColor={theme.colors.textSecondary}
-                iconName="pause-circle-outline"
-                known={countIsKnown}
-                accessibilityHint="Opens monitors whose checks are switched off"
-                onPress={() => {
-                  return navigation.navigate("Monitors", {
-                    screen: "MonitorsList",
-                    params: { initialFilter: "disabled" },
-                  });
-                }}
-              />
-            </ListGroup>
-          </View>
-          <View>
-            <SectionHeader title="Grouped events" iconName="layers-outline" />
-            <AppText
-              variant="subhead"
-              tone="secondary"
-              style={{ marginTop: -spacing.xs, marginBottom: spacing.md }}
-            >
-              Episodes bring related incidents or alerts together.
-            </AppText>
-            <ListGroup testID="home-grouped-events">
-              <CountRow
-                testID="home-row-incident-episodes"
-                count={incidentEpisodeCount}
-                label="Incident Episodes"
-                iconColor={theme.colors.severityCritical}
-                iconName="layers-outline"
-                known={countIsKnown}
-                accessibilityHint="Opens active incident episodes in the inbox"
-                onPress={() => {
-                  return navigation.navigate("Inbox", {
-                    screen: "InboxList",
-                    params: {
-                      initialView: "incidents",
-                      initialSegment: "episodes",
-                      initialFilter: "active",
-                    },
-                  });
-                }}
-              />
-              <CountRow
-                testID="home-row-alert-episodes"
-                count={alertEpisodeCount}
-                label="Alert Episodes"
-                iconColor={theme.colors.severityMajor}
-                iconName="layers-outline"
-                known={countIsKnown}
-                accessibilityHint="Opens active alert episodes in the inbox"
-                onPress={() => {
-                  return navigation.navigate("Inbox", {
-                    screen: "InboxList",
-                    params: {
-                      initialView: "alerts",
-                      initialSegment: "episodes",
-                      initialFilter: "active",
-                    },
-                  });
-                }}
-              />
-            </ListGroup>
-          </View>
+          {serviceHealth}
+          {groupedEvents}
         </View>
       </View>
     </ScrollView>
+  );
+}
+
+/*
+ * No project to show: the projects could not be loaded, or there are none.
+ * Its own component so its end padding is the pane's it is drawn in - above
+ * a tabletop fold there is no tab bar to clear.
+ */
+function NoProjectsScroll({
+  refreshControl,
+  loadFailed,
+  onRetry,
+}: {
+  refreshControl: React.JSX.Element;
+  loadFailed: boolean;
+  onRetry: () => void;
+}): React.JSX.Element {
+  const { theme } = useTheme();
+  const bottomPadding: number = useScreenPadding();
+
+  return (
+    <ScrollView
+      style={{ flex: 1, backgroundColor: theme.colors.backgroundPrimary }}
+      contentContainerStyle={{ flexGrow: 1, paddingBottom: bottomPadding }}
+      refreshControl={refreshControl}
+    >
+      <EmptyState
+        icon={loadFailed ? "error" : "default"}
+        title={loadFailed ? "Could Not Load Projects" : "No Projects Found"}
+        subtitle={
+          loadFailed
+            ? "We could not reach OneUptime to load your projects, which is not the same as you having none. Pull to refresh or retry."
+            : "You don't have access to any projects. Contact your administrator or pull to refresh."
+        }
+        actionLabel="Retry"
+        onAction={onRetry}
+      />
+    </ScrollView>
+  );
+}
+
+/*
+ * Two of Home's sections in one half of a tabletop fold: side by side when
+ * the half is wide enough for two columns, one above the other otherwise.
+ */
+function HomeSections({
+  testID,
+  twoColumns,
+  children,
+}: {
+  testID: string;
+  twoColumns: boolean;
+  children: React.ReactNode;
+}): React.JSX.Element {
+  return (
+    <View
+      testID={testID}
+      style={{
+        flexDirection: twoColumns ? "row" : "column",
+        alignItems: twoColumns ? "flex-start" : "stretch",
+        gap: spacing.xxl,
+      }}
+    >
+      {React.Children.map(
+        children,
+        (child: React.ReactNode): React.JSX.Element => {
+          return (
+            <View style={{ flex: twoColumns ? 1 : undefined }}>{child}</View>
+          );
+        },
+      )}
+    </View>
   );
 }

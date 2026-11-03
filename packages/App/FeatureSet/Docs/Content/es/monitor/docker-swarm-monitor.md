@@ -2,9 +2,11 @@
 
 Un monitor de Docker Swarm vigila los contenedores que hay detrás de las tareas de servicio de un clúster Swarm y le avisa cuando una tarea se reinicia, se calienta o se queda sin memoria. Lee las métricas de contenedores que envía el agente de Docker Swarm de OneUptime, así que nada se sondea desde fuera: instale el agente y luego cree el monitor a partir de una plantilla o de su propia consulta.
 
+A partir de la versión 0.161.3 de sus archivos, el agente también envía cada minuto el estado del propio swarm, de modo que un monitor puede vigilar los propios nodos y servicios: un nodo que no está listo, o un servicio que ejecuta menos réplicas de las que quiere.
+
 :::cards
 - [Crear el monitor](#crear-un-monitor-de-docker-swarm): Seis pasos en el panel.
-- [Plantillas](#plantillas-de-alerta-listas-para-usar): Cinco alertas listas para usar, un incidente por tarea.
+- [Plantillas](#plantillas-de-alerta-listas-para-usar): Siete alertas listas para usar, un incidente por nodo, servicio o tarea.
 - [Métricas](#métricas-recopiladas): Las métricas de contenedores sobre las que puede alertar.
 - [Filtros](#ajustes-del-monitor): Restringir un monitor a un servicio, una tarea o una imagen.
 :::
@@ -12,6 +14,8 @@ Un monitor de Docker Swarm vigila los contenedores que hay detrás de las tareas
 ## Cómo funciona
 
 El agente de Docker Swarm de OneUptime se ejecuta en un nodo manager. Su colector lee las estadísticas de los contenedores del demonio de Docker de ese nodo cada 30 segundos, marca cada lote con el nombre del clúster, `docker.swarm.cluster.name`, y las métricas de cada tarea con su servicio y su nodo. Un pequeño lector de inventario a su lado lee los nodos, servicios y tareas del clúster desde la API de Swarm cada 5 minutos. Los primeros datos registran el clúster en OneUptime.
+
+Cada minuto, el lector de inventario también lee del manager si cada nodo está listo y cuántas réplicas quiere y ejecuta cada servicio, y las envía como métricas. Así es como **Node Not Ready** y **Service Replicas Mismatch** se enteran de un nodo o un servicio con problemas en uno o dos minutos, no en cinco.
 
 El colector solo ve los contenedores del nodo en el que se ejecuta. Para tener métricas de cada nodo, ejecute el colector en cada nodo con el mismo `DOCKER_SWARM_CLUSTER_NAME`.
 
@@ -92,15 +96,17 @@ Haga clic en **Crear monitor**. OneUptime abre la página del monitor y lo eval�
 
 ## Plantillas de alerta listas para usar
 
-La lista de **Sobre qué alertar** ofrece cinco plantillas. Cada una crea un monitor completo: una consulta, un criterio que se dispara y otro que se recupera. Todas las plantillas salvo **Cluster Stopped Reporting** agrupan su consulta por `resource.container.name`, así que cada tarea se juzga por separado y recibe su propio incidente y su propia alerta, cuya causa raíz enumera las tareas afectadas y sus valores. Los umbrales son puntos de partida que puede editar.
+La lista **Sobre qué alertar** ofrece siete plantillas. Cada una construye un monitor completo: una consulta, un criterio que se dispara y otro que recupera. **Node Not Ready** agrupa su consulta por nodo, `resource.docker.swarm.node.name`, **Service Replicas Mismatch** por servicio, `resource.docker.swarm.service.name`, y las plantillas de tarea por `resource.container.name`, así que cada nodo, servicio o tarea se juzga por separado y recibe su propio incidente y su propia alerta, cuya causa raíz lista los afectados y sus valores. Los umbrales son puntos de partida que puede editar.
 
-Esas plantillas además solo leen las tareas de Swarm: un contenedor iniciado de otra forma en un nodo, entre ellos el del propio agente, queda fuera. Una consulta de **Custom Metric** o **Avanzado** lee todos los contenedores que informa el agente; el filtro **Nombre del servicio** la limita a las tareas de un servicio.
+Las plantillas de tarea, además, solo leen las tareas de Swarm: un contenedor iniciado de otra forma en un nodo, entre ellos el del propio agente, queda fuera. Una consulta de **Custom Metric** o **Avanzado** lee cada contenedor que informa el agente; el filtro **Nombre del servicio** la limita a las tareas de un servicio.
 
 Salvo que la tabla diga lo contrario, un criterio solo se dispara cuando la condición se cumple en cada minuto de su ventana, y se recupera un 10 % más allá del umbral para que un valor que oscila en el límite no cambie de estado una y otra vez.
 
 | Plantilla | Gravedad | Vigila | Se dispara cuando | Se recupera cuando |
 | --- | --- | --- | --- | --- |
 | Cluster Stopped Reporting | Crítico | `container.memory.percent`, Count sobre todos los contenedores del clúster, últimos 10 minutos | Sin datos durante toda la ventana | Vuelven a llegar datos |
+| Node Not Ready | Crítico | `docker.swarm.node.ready`, Min por `resource.docker.swarm.node.name`, últimos 5 minutos | Por debajo de 1 | En 1 |
+| Service Replicas Mismatch | Advertencia | `docker.swarm.service.replicas.desired` − `docker.swarm.service.replicas.running` (ambas con Avg) por `resource.docker.swarm.service.name`, últimos 15 minutos | Por encima de 0 | En 0 o menos |
 | Task Down (Low Uptime) | Crítico | `container.uptime`, Min por tarea, último 1 minuto | Cualquier valor está por debajo de 60 segundos | Cada valor está en 66 segundos o más |
 | High Task CPU Usage | Advertencia | `container.cpu.utilization`, Avg por tarea, últimos 5 minutos | Por encima de 80 (% de un núcleo) | En 72 o menos |
 | High Task Memory Usage | Advertencia | `container.memory.percent`, Avg por tarea, últimos 5 minutos | Por encima del 85 % | En el 76,5 % o menos |
@@ -114,9 +120,14 @@ Salvo que la tabla diga lo contrario, un criterio solo se dispara cuando la cond
 > [!NOTE]
 > **Task Down (Low Uptime)** se dispara con una sola muestra joven porque un reinicio es un evento, no un nivel. Swarm da a una tarea de sustitución un contenedor nuevo, y por tanto una serie nueva, por eso la plantilla busca un tiempo de actividad inferior a un minuto en lugar de un 0. Un despliegue o un escalado también la disparan, y se resuelve en cuanto las tareas nuevas superan un minuto de actividad. Una tarea que muere y no se sustituye no envía nada, así que no se detecta.
 
+> [!NOTE]
+> **Node Not Ready** y **Service Replicas Mismatch** leen las series que el lector de inventario del agente envía desde un manager, a partir de la versión 0.161.3 de sus archivos. Un agente más antiguo no envía ninguna, así que ambas plantillas no tienen nada que leer y nunca se disparan: [actualice el agente](/docs/telemetry/docker-swarm#actualizar-el-agente); una señal junto a su versión en la vista general del clúster indica cuándo está desactualizado. Service Replicas Mismatch espera quince minutos para que una actualización gradual, que reemplaza las tareas de un servicio de pocas en pocas, no avise a nadie. Un servicio de tipo job ejecuta sus tareas hasta el final, no tiene réplicas que puedan faltar y queda fuera.
+
 ## Métricas recopiladas
 
 El colector del agente usa el receptor `docker_stats` de OpenTelemetry, así que las métricas son las métricas de contenedor habituales, una serie por contenedor de tarea. No hay métricas `docker_swarm_*`: los nodos, servicios y tareas se registran como inventario, en las páginas **Servicios**, **Tareas**, **Nodos** y relacionadas del clúster.
+
+Junto a ellas, a partir de la versión 0.161.3 de sus archivos, el lector de inventario del agente envía cada minuto el estado del propio swarm: las tres métricas de [Swarm](#swarm).
 
 ### CPU
 
@@ -146,6 +157,16 @@ El colector del agente usa el receptor `docker_stats` de OpenTelemetry, así que
 | `container.uptime` | seconds | Cuánto tiempo lleva en ejecución el contenedor de una tarea. Una tarea reprogramada o reiniciada empieza un contenedor nuevo en 0. |
 
 Cada serie lleva la identidad del contenedor como atributos de recurso: `resource.container.name` (`<service>.<slot>.<taskid>`), `resource.container.image.name`, `resource.docker.swarm.service.name`, `resource.docker.swarm.node.id`, `resource.docker.swarm.node.name` (cuando el agente conoce el nombre del nodo) y `resource.docker.swarm.cluster.name`.
+
+### Swarm
+
+| Métrica | Unidad | Descripción |
+| --- | --- | --- |
+| `docker.swarm.node.ready` | — | Si un nodo está listo, tal como lo ven los managers: 1 mientras lo está, 0 mientras está caído, desconectado o desconocido. Una serie por nodo. |
+| `docker.swarm.service.replicas.desired` | count | Las tareas que un servicio replicado o global quiere en ejecución: sus réplicas, o en un servicio global los nodos en los que debe ejecutarse. Una serie por servicio. |
+| `docker.swarm.service.replicas.running` | count | Las tareas del servicio que están en ejecución. Por debajo del número deseado, al servicio le faltan réplicas. |
+
+La serie de un nodo lleva `resource.docker.swarm.node.name`, `resource.docker.swarm.node.id` y `resource.docker.swarm.node.role`; la de un servicio lleva `resource.docker.swarm.service.name`, `resource.docker.swarm.service.mode` y, en un stack, `resource.docker.swarm.stack.namespace`. Ambas llevan `resource.docker.swarm.cluster.name`.
 
 ## Criterios de monitoreo
 
@@ -193,6 +214,10 @@ El colector lee el demonio de Docker del nodo en el que se ejecuta, así que sol
 
 :::details Todas las tareas aparecen como una sola serie
 Agrupe por el atributo de recurso, `resource.container.name`, como hacen las plantillas. El `container.name` sin prefijo no coincide con nada, así que todas las tareas se fusionan en una sola serie con el nombre vacío.
+:::
+
+:::details Node Not Ready o Service Replicas Mismatch nunca se dispara
+Ambas leen las series que el lector de inventario del agente envía a partir de la versión 0.161.3 de sus archivos, y solo desde un manager: [actualice el agente](/docs/telemetry/docker-swarm#actualizar-el-agente) y compruebe que el lector de inventario se ejecuta en un manager (`docker node ls` debe funcionar allí). La página **Métricas** del clúster muestra si llega `docker.swarm.node.ready`.
 :::
 
 ## Próximos pasos

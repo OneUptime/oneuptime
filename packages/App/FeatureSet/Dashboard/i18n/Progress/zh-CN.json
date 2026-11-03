@@ -1,7 +1,7 @@
 {
   "baseline": {
-    "keys": 40228,
-    "untranslated": 12274
+    "keys": 40610,
+    "untranslated": 11860
   },
   "sameAsEnglish": [
     "2xx",
@@ -10,6 +10,7 @@
     "4xx",
     "5xx",
     "AI / LLM",
+    "Active + Clean",
     "Apache Kafka · kafka-1:9092",
     "Brute force detected",
     "CPU Ready {{percent}}",
@@ -17,6 +18,8 @@
     "DE",
     "DeploymentConfigs",
     "Docker Compose",
+    "Down + In",
+    "Down + Out",
     "Edge",
     "Elasticsearch URL",
     "Gemini for Google Workspace",
@@ -37,6 +40,7 @@
     "MITRE ATT&CK",
     "MITRE ATT&CK Enterprise v{{version}}",
     "Markdown",
+    "NAA ID",
     "OK",
     "OSD",
     "OpenShift",
@@ -57,9 +61,12 @@
     "SLOs",
     "SNMP trap",
     "Slug",
+    "Swarm ID",
     "TLS",
     "Top P",
     "UTC",
+    "Up + In",
+    "Up + Out",
     "VLAN",
     "VM 101 · pve1",
     "VM 102 · pve2",
@@ -68,6 +75,7 @@
     "VM · esx-04",
     "VMID {{vmid}}",
     "VMware vCenter",
+    "Vital",
     "Web",
     "Webhook",
     "Webhook URL",
@@ -87,6 +95,7 @@
     "main",
     "message",
     "name",
+    "ops/s",
     "p95",
     "p95 {{latency}}",
     "prod, staging",
@@ -105,6 +114,7 @@
     "{{count}} B",
     "{{count}} KB",
     "{{count}} MB",
+    "{{in}} in",
     "{{itemName}} ID"
   ]
 }

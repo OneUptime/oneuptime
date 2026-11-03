@@ -9,7 +9,7 @@ import { ButtonStyleType } from "Common/UI/Components/Button/Button";
 import Card from "Common/UI/Components/Card/Card";
 import Icon from "Common/UI/Components/Icon/Icon";
 import Link from "Common/UI/Components/Link/Link";
-import { BILLING_ENABLED, HTTP_PROTOCOL } from "Common/UI/Config";
+import { BILLING_ENABLED, HOST, HTTP_PROTOCOL } from "Common/UI/Config";
 import LocalStorage from "Common/UI/Utils/LocalStorage";
 import ModelAPI from "Common/UI/Utils/ModelAPI/ModelAPI";
 import { Translator } from "Common/UI/Utils/TranslateTemplate";
@@ -61,6 +61,15 @@ export interface ServerSetupState {
    * in front encrypts the connection, and only HTTP_PROTOCOL is left.
    */
   isHttpsOnlyBeforeOneUptime?: boolean | undefined;
+  /*
+   * The reverse: OneUptime is set to HTTPS (HTTP_PROTOCOL=https), but this
+   * page came over plain HTTP - an http:// bookmark, the server's IP
+   * address, or a visit before the certificate arrived. Only this visit is
+   * left to move: httpsAddress is this page at the HTTPS address
+   * OneUptime's own links point to.
+   */
+  isOpenedOverHttpWhileSetToHttps?: boolean | undefined;
+  httpsAddress?: string | undefined;
   signupsAreClosed: boolean;
 }
 
@@ -70,9 +79,13 @@ export interface ServerSetupItem {
   title: string;
   description: string;
   actionTitle: string;
-  // A page of the Admin Dashboard, or a guide opened in a new tab.
+  /*
+   * Where the action goes: a page of the Admin Dashboard, a guide opened in
+   * a new tab, or a full address opened where the card is.
+   */
   route?: Route | undefined;
   guideUrl?: string | undefined;
+  address?: string | undefined;
 }
 
 // Where the browser remembers that this server's admin hid the card.
@@ -98,7 +111,9 @@ export const SERVER_SETUP_COPY: {
     done: string;
     open: string;
     onlyBeforeOneUptime: string;
+    openedOverHttp: string;
     action: string;
+    openOverHttps: string;
   };
   signups: {
     title: string;
@@ -125,7 +140,10 @@ export const SERVER_SETUP_COPY: {
     open: "Not set up yet: passwords and sessions cross the network unencrypted, and passkeys need HTTPS.",
     onlyBeforeOneUptime:
       "Almost: this page came over HTTPS, but OneUptime is still set to HTTP, so the links it sends start with http://. Set HTTP_PROTOCOL=https.",
+    openedOverHttp:
+      "Almost: OneUptime is set to HTTPS, but this page came over HTTP, so this visit is not encrypted.",
     action: "How to set up HTTPS",
+    openOverHttps: "Open over HTTPS",
   },
   signups: {
     title: "Sign-ups",
@@ -191,11 +209,51 @@ export const isHttpsOnlyBeforeOneUptime: (
   return httpProtocol !== Protocol.HTTPS && pageProtocol === "https:";
 };
 
+/*
+ * The reverse: OneUptime is told it is reached over HTTPS, and this page
+ * came over plain HTTP all the same. The server answers on both until a
+ * browser has once been told to keep to HTTPS, so an http:// bookmark, the
+ * server's IP address or a visit while the certificate was still on its
+ * way all land here. The links OneUptime sends are right; this visit is
+ * not encrypted, and the card says that - not "Not set up yet", which
+ * would send the admin to a guide whose steps are done.
+ */
+export const isOpenedOverHttpWhileSetToHttps: (
+  httpProtocol: Protocol,
+  pageProtocol: string,
+) => boolean = (httpProtocol: Protocol, pageProtocol: string): boolean => {
+  return httpProtocol === Protocol.HTTPS && pageProtocol === "http:";
+};
+
+/*
+ * This page over HTTPS, at the address OneUptime's own links point to
+ * (HOST): a visit through the server's IP address moves to its name, whose
+ * certificate it is. Without a HOST, the address the page came to.
+ */
+export const getHttpsAddress: (data: {
+  host: string;
+  location: { host: string; pathname: string; search: string };
+}) => string = (data: {
+  host: string;
+  location: { host: string; pathname: string; search: string };
+}): string => {
+  const host: string = data.host.trim() || data.location.host;
+
+  return `https://${host}${data.location.pathname}${data.location.search}`;
+};
+
 export const getServerSetupItems: (
   state: ServerSetupState,
 ) => Array<ServerSetupItem> = (
   state: ServerSetupState,
 ): Array<ServerSetupItem> => {
+  // Only this visit is left: the action opens the page over HTTPS.
+  const isOnlyThisVisitLeft: boolean = Boolean(
+    !state.isServedOverHttps &&
+      state.isOpenedOverHttpWhileSetToHttps &&
+      state.httpsAddress,
+  );
+
   return [
     {
       name: ServerSetupItemName.Email,
@@ -217,9 +275,14 @@ export const getServerSetupItems: (
         ? SERVER_SETUP_COPY.https.done
         : state.isHttpsOnlyBeforeOneUptime
           ? SERVER_SETUP_COPY.https.onlyBeforeOneUptime
-          : SERVER_SETUP_COPY.https.open,
-      actionTitle: SERVER_SETUP_COPY.https.action,
-      guideUrl: SERVER_SETUP_HTTPS_GUIDE,
+          : isOnlyThisVisitLeft
+            ? SERVER_SETUP_COPY.https.openedOverHttp
+            : SERVER_SETUP_COPY.https.open,
+      actionTitle: isOnlyThisVisitLeft
+        ? SERVER_SETUP_COPY.https.openOverHttps
+        : SERVER_SETUP_COPY.https.action,
+      guideUrl: isOnlyThisVisitLeft ? undefined : SERVER_SETUP_HTTPS_GUIDE,
+      address: isOnlyThisVisitLeft ? state.httpsAddress : undefined,
     },
     {
       name: ServerSetupItemName.Signups,
@@ -303,6 +366,14 @@ const ServerSetupChecklist: FunctionComponent<ComponentProps> = (
             HTTP_PROTOCOL,
             pageProtocol,
           ),
+          isOpenedOverHttpWhileSetToHttps: isOpenedOverHttpWhileSetToHttps(
+            HTTP_PROTOCOL,
+            pageProtocol,
+          ),
+          httpsAddress: getHttpsAddress({
+            host: HOST,
+            location: window.location,
+          }),
           signupsAreClosed: config.disableSignup === true,
         });
       } catch {
@@ -398,11 +469,13 @@ const ServerSetupChecklist: FunctionComponent<ComponentProps> = (
                   <Link
                     to={
                       item.route ||
-                      (item.guideUrl
-                        ? URL.fromString(
-                            `${window.location.origin}${item.guideUrl}`,
-                          )
-                        : undefined)
+                      (item.address
+                        ? URL.fromString(item.address)
+                        : item.guideUrl
+                          ? URL.fromString(
+                              `${window.location.origin}${item.guideUrl}`,
+                            )
+                          : undefined)
                     }
                     openInNewTab={Boolean(item.guideUrl)}
                     dataTestId={`server-setup-${item.name}-action`}

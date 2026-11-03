@@ -91,7 +91,7 @@ En sag har sin egen sidemenu, ligesom en hændelse, og hver del af sagen er en s
 | **Oversigt** | **Oversigt**, **Tidslinje** |
 | **Undersøgelse** | **Forløb**, **Detektioner**, **Entiteter**, **Forbundne signaler**, **Beviser**, **Opgaver**, **Playbooks** |
 | **Noter** | **Private noter** |
-| **Avanceret** | **Auditlogs**, **Slet sag**, foldet sammen, indtil du klikker på **Avanceret** |
+| **Avanceret** | **Brugerdefinerede felter**, **Auditlogs**, **Slet sag**, foldet sammen, indtil du klikker på **Avanceret** |
 
 Hver side beholder sagens sidehoved øverst: nummer, prioritet, status og titel, **Tildel til mig**, **Kør playbook**, **Erklær hændelse** og **Luk sag**, og i menuen ⋯ ved siden af **Angiv prioritet**, **Tildel til en anden**, **Skift status**, **Rediger sag** og **Slet sag**. Så kan sagen behandles fra enhver af dens sider, og et link til sagen åbner stadig dens **Oversigt**. Når sagens prioritet har responsmål, viser hovedet også, hvornår det næste har frist ([Responsmål](#responsmål)).
 
@@ -107,7 +107,8 @@ Hver side beholder sagens sidehoved øverst: nummer, prioritet, status og titel,
 - **Beviser**: de filer, links og sikkerhedsbegivenheder, der gemmes på sagen, hver med hvem der tilføjede den og hvornår. Med **Tilføj fil** uploader du en fil på op til 10 MB, og SHA-256 for det uploadede registreres, så den, der senere downloader den, kan kontrollere, at det er det, der blev gemt; med **Tilføj link** henviser du til beviser, der opbevares et andet sted. Kun en Security Admin kan fjerne et bevis, og sagens **Tidslinje** viser, hvad der blev tilføjet og fjernet. En sikkerhedsbegivenhed gemmes her, som den var, med **Føj til sag** under **Begivenheder** eller på en [hunts](/docs/telemetry/security-events#hunts) side, og **Vis begivenhed** åbner den. Et playbooks trin **Preserve the evidence** gemmer også her begivenhederne bag sagens detektioner.
 - **Opgaver**: hvad der skal gøres i sagen, hvem der gør det, og om det er gjort. Tilføj en opgave som en linje, giv den til nogen, og sæt flueben ved den, når den er udført. Den, opgaven gives til, får besked, medmindre vedkommende selv tog den, og menuen viser ved siden af **Opgaver**, hvor mange opgaver der er åbne. Et playbooks trin **Tilføj opgaver** tilføjer også opgaver og udelader dem, sagen allerede har.
 - **Playbooks**: hvad hver playbook gjorde på sagen, trin for trin, og de trin, der venter på godkendelse. Mens kørsler venter, viser menuen, hvor mange de er, ved siden af **Playbooks**.
-- **Private noter**: hvad teamet skrev om sagen.
+- **Private noter**: hvad teamet skrev om sagen. Editorens menu **Skabeloner** sætter en af projektets noteskabeloner ind i en note.
+- **Brugerdefinerede felter**: projektets egne felter, udfyldt for denne sag, og **Rediger felter** til at ændre dem. Så snart projektet har et felt, viser **Oversigt** dem også, i sit sidste kort. Se [Brugerdefinerede felter, noteskabeloner og nummerering](#brugerdefinerede-felter-noteskabeloner-og-nummerering).
 - **Auditlogs**: hver ændring af sagen, og hvem der lavede den. Se [Auditlogs](/docs/configuration/audit-logs).
 - **Slet sag**: sletter sagen for altid, med dens detektioner, noter, tidslinje og playbook-kørsler. Vil du beholde den som dokumentation, så luk den i stedet med en konklusion.
 
@@ -184,6 +185,16 @@ Her vises målene:
 - Sagens hoved nævner det næste mål og hvor lang tid der er tilbage, eller hvor længe det er overskredet: gråt, mens der er tid, ravgult i den sidste femtedel, rødt, når det er overskredet.
 - På sagens **Oversigt**, under **Tid til bekræftelse** og **Tid til inddæmning**: hvordan sagen ligger i forhold til hvert mål, eller hvor langt over det sagen gik.
 - I køens lister: linjen under hver sags prioritet og en kolonne **Frist**, som du kan slå til og sortere efter. Mens kolonnen er slået til, vises linjen under prioriteten ikke. Listerne viser dem kun, når en af projektets prioriteter har et mål.
+
+## Brugerdefinerede felter, noteskabeloner og nummerering
+
+Tre indstillinger mere gør sagerne til dit projekts egne, under **Produkter → Sikkerhedshændelser → Indstillinger**:
+
+- **Brugerdefinerede felter**: de felter, dit team udfylder i hver sag, f.eks. den forretningsenhed, den handler om, eller dens ticket i et andet værktøj. Et felt rummer tekst, et tal, en dato, et ja eller nej, et valg fra en liste eller en fil. En sags side **Brugerdefinerede felter**, under **Avanceret**, viser hvert felt med sagens værdi, og **Rediger felter** ændrer dem. I køens lister er hvert felt en kolonne, du kan slå til under **Kolonner**.
+- **Noteskabeloner**: færdig tekst til de noter, dit team skriver sag efter sag, f.eks. en tjekliste til inddæmning eller en overdragelse til næste vagt. På en sags **Private noter** sætter editorens menu **Skabeloner** en ind i noten, så du kan redigere den, før den slås op, og **Administrer skabeloner** åbner listen.
+- **Nummerering**: teksten foran sagsnumrene, `CASE-` i `CASE-42`, medmindre du vælger din egen, og det nummer, den næste sag får. Skifter du fra et andet værktøj? Start efter dets sidste sagsnummer, så et nummer aldrig betyder to sager. Et nyt præfiks eller en ny start gælder kun nye sager, og en start skal være højere end det højeste nummer, der er brugt indtil nu.
+
+En Security Admin administrerer de brugerdefinerede felter og noteskabelonerne, og en Security Member udfylder en sags felter; på OneUptime Cloud kræver de Growth-abonnementet eller højere. Nummereringen sættes af en Project Owner eller Project Admin, ligesom for hændelser og advarsler.
 
 ## Notifikationer
 

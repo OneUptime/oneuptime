@@ -54,7 +54,7 @@ Em **Which Logs**, restrinja a regra com serviços de telemetria, gravidades, te
 
 ### Dividir o resultado e salvar
 
-Se quiser, adicione atributos em **Agrupar Por** e uma **Unit**. Confira a linha no fim do editor e salve. Em poucos minutos a lista de regras mostra um horário em **Computed Until**.
+Se quiser, adicione atributos em **Agrupar Por** e uma **Unidade**. Confira a linha no fim do editor e salve. Em poucos minutos a lista de regras mostra um horário em **Computed Until**.
 :::
 
 | Campo | O que faz |
@@ -139,7 +139,7 @@ Em **Registros → Configurações → Regras de gravação**, crie uma regra:
 - **Which Logs:** filtros de atributo `log_type` = `SD-WAN` e `log_component` = `SLA`
 - **Agregação:** Média, **Numeric Attribute:** `latency`
 - **Agrupar Por:** `gw_name` e `profile_name`
-- **Unit:** `ms`
+- **Unidade:** `ms`
 
 Pela API, pelo MCP ou pelo Terraform, a **definição** da mesma regra é:
 

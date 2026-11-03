@@ -178,7 +178,7 @@ stateDiagram-v2
 | **Team** | **Roles**، **On-Call Executions**، **Owners** |
 | **Notifications** | **Notification Logs**، **AI Logs** — تا روی **Notifications** کلیک نکنید جمع است |
 | **Notes** | **Private Notes**، **Public Notes** |
-| **Developer** | **Terraform**، **API**، **AI Assistants** — تا روی **Developer** کلیک نکنید جمع است |
+| **Developer** | **Terraform**، **API**، **CLI**، **AI Assistants** — تا روی **Developer** کلیک نکنید جمع است |
 | **Advanced** | **Custom Fields**، **Settings**، **Audit Logs**، **Delete Incident** — تا روی **Advanced** کلیک نکنید جمع است |
 
 هر کدام چه دارد:

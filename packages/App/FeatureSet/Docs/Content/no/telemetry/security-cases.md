@@ -91,7 +91,7 @@ En sak har sin egen sidemeny, slik en hendelse har, og hver del av saken er en e
 | **Oversikt** | **Oversikt**, **Tidslinje** |
 | **Undersøkelse** | **Forløp**, **Deteksjoner**, **Entiteter**, **Tilkoblede signaler**, **Bevis**, **Oppgaver**, **Playbooks** |
 | **Notater** | **Private notater** |
-| **Avansert** | **Revisjonslogger**, **Slett sak**, skjult til du klikker på **Avansert** |
+| **Avansert** | **Egendefinerte felt**, **Revisjonslogger**, **Slett sak**, skjult til du klikker på **Avansert** |
 
 Hver side beholder sakens topptekst øverst: nummer, prioritet, status og tittel, **Tildel til meg**, **Kjør playbook**, **Erklær hendelse** og **Lukk sak**, og i menyen ⋯ ved siden av **Angi prioritet**, **Tildel til en annen**, **Endre status**, **Rediger sak** og **Slett sak**. Slik kan saken behandles fra hvilken som helst av sidene, og en lenke til saken åpner fortsatt **Oversikt**. Når sakens prioritet har responsmål, viser toppen også når det neste har frist ([Responsmål](#responsmål)).
 
@@ -107,7 +107,8 @@ Hver side beholder sakens topptekst øverst: nummer, prioritet, status og tittel
 - **Bevis**: filene, lenkene og sikkerhetshendelsene som oppbevares på saken, hver med hvem som la den til og når. Med **Legg til fil** laster du opp en fil på opptil 10 MB, og SHA-256 for det som ble lastet opp, registreres, så den som laster den ned senere kan kontrollere at det er det som ble oppbevart; med **Legg til lenke** viser du til bevis som oppbevares et annet sted. Bare en Security Admin kan fjerne bevis, og sakens **Tidslinje** viser hva som ble lagt til og fjernet. En sikkerhetshendelse oppbevares her slik den var, med **Legg til i sak** under **Hendelser** eller på siden til en [hunt](/docs/telemetry/security-events#hunts), og **Vis hendelse** åpner den. Steget **Preserve the evidence** i et playbook oppbevarer også her hendelsene bak sakens deteksjoner.
 - **Oppgaver**: hva som må gjøres i saken, hvem som gjør det, og om det er gjort. Legg til en oppgave som én linje, gi den til noen, og kryss den av når den er utført. Den som får oppgaven, får beskjed, med mindre vedkommende tok den selv, og menyen viser ved siden av **Oppgaver** hvor mange oppgaver som er åpne. Steget **Legg til oppgaver** i et playbook legger også til oppgaver og hopper over dem saken allerede har.
 - **Playbooks**: hva hver playbook gjorde på saken, steg for steg, og stegene som venter på godkjenning. Mens kjøringer venter, viser menyen hvor mange ved siden av **Playbooks**.
-- **Private notater**: hva teamet skrev om saken.
+- **Private notater**: hva teamet skrev om saken. Redigeringens meny **Maler** setter inn en av prosjektets notatmaler i et notat.
+- **Egendefinerte felt**: prosjektets egne felt, fylt ut for denne saken, og **Rediger felt** for å endre dem. Så snart prosjektet har et felt, viser **Oversikt** dem også, i sitt siste kort. Se [Egendefinerte felt, notatmaler og nummerering](#egendefinerte-felt-notatmaler-og-nummerering).
 - **Revisjonslogger**: hver endring i saken, og hvem som gjorde den. Se [Revisjonslogger](/docs/configuration/audit-logs).
 - **Slett sak**: sletter saken for godt, med deteksjonene, notatene, tidslinjen og playbook-kjøringene. For å beholde den som dokumentasjon, lukk den heller med en konklusjon.
 
@@ -184,6 +185,16 @@ Her vises målene:
 - Toppen av saken nevner det neste målet og hvor mye tid som er igjen, eller hvor lenge det er overskredet: grått mens det er tid, ravgult i den siste femtedelen, rødt når det er overskredet.
 - På sakens **Oversikt**, under **Tid til bekreftelse** og **Tid til begrensning**: hvordan saken ligger an mot hvert mål, eller hvor langt over det saken gikk.
 - I køens lister: linjen under hver saks prioritet, og en kolonne **Frist** som du kan slå på og sortere etter. Mens kolonnen er slått på, vises ikke linjen under prioriteten. Listene viser dem bare når en av prosjektets prioriteter har et mål.
+
+## Egendefinerte felt, notatmaler og nummerering
+
+Tre innstillinger til gjør sakene til prosjektets egne, under **Produkter → Sikkerhetshendelser → Innstillinger**:
+
+- **Egendefinerte felt**: feltene teamet ditt fyller ut i hver sak, for eksempel forretningsenheten den gjelder eller referansen i et annet verktøy. Et felt rommer tekst, et tall, en dato, et ja eller nei, et valg fra en liste eller en fil. Sakens side **Egendefinerte felt**, under **Avansert**, viser hvert felt med sakens verdi, og **Rediger felt** endrer dem. I køens lister er hvert felt en kolonne du kan slå på under **Kolonner**.
+- **Notatmaler**: ferdig tekst til notatene teamet ditt skriver sak etter sak, for eksempel en sjekkliste for inndemming eller en overlevering til neste vakt. På en saks **Private notater** setter redigeringens meny **Maler** inn en i notatet, som du kan redigere før det publiseres, og **Administrer maler** åpner listen.
+- **Nummerering**: teksten foran saksnumrene, `CASE-` i `CASE-42` med mindre du velger din egen, og nummeret den neste saken får. Bytter du fra et annet verktøy? Start etter det siste saksnummeret der, så et nummer aldri betyr to saker. Et nytt prefiks eller en ny start gjelder bare nye saker, og en start må være høyere enn det høyeste nummeret som er brukt så langt.
+
+En Security Admin administrerer de egendefinerte feltene og notatmalene, og en Security Member fyller ut feltene i en sak; på OneUptime Cloud krever de Growth-abonnementet eller høyere. Nummereringen settes av en Project Owner eller Project Admin, slik som for hendelser og varsler.
 
 ## Varslinger
 

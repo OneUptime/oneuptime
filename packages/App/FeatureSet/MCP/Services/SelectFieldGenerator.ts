@@ -70,6 +70,7 @@ const HEAVY_COLUMN_EXEMPTIONS: Set<string> = new Set<string>([
   "StatusPageCustomField.dropdownOptions",
   "TeamCustomField.dropdownOptions",
   "TeamMemberCustomField.dropdownOptions",
+  "SecurityCaseCustomField.dropdownOptions",
 ]);
 
 function isHeavyColumn(

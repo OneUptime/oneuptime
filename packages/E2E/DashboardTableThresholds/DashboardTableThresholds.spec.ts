@@ -10,6 +10,7 @@ import {
   getTableThresholdLevel,
   roundTableValue,
 } from "Common/Utils/Dashboard/TableThresholds";
+import { boxesInOneFrame } from "../SuiteHelpers/Frames";
 
 /*
  * A dashboard's metric tables colored by thresholds (issue #5231), in a real
@@ -60,7 +61,9 @@ declare global {
   }
 }
 
-const PORT: string = "4452";
+// The fixture's port, as its config and server read it.
+const PORT: string =
+  process.env["DASHBOARD_TABLE_THRESHOLDS_FIXTURE_PORT"] || "4452";
 
 const PROJECT_ID: string = "10000000-0000-4000-8000-000000005231";
 const DASHBOARD_ID: string = "db000000-0000-4000-8000-000000005231";
@@ -810,12 +813,10 @@ test.describe("metric tables on the dashboard inside OneUptime", () => {
     expect(normalLook.shape).toBe("none");
 
     // The shape comes before the number, so numbers line up at their end.
-    const iconBox: { x: number } | null = await critical
-      .getByRole("img")
-      .boundingBox();
-    const numberBox: { x: number } | null = await critical
-      .getByText("93.0%")
-      .boundingBox();
+    const [iconBox, numberBox] = await boxesInOneFrame([
+      critical.getByRole("img"),
+      critical.getByText("93.0%"),
+    ]);
     expect(iconBox!.x).toBeLessThan(numberBox!.x);
 
     await shoot(page, testInfo, "levels", widgetTitled(page, SATURATION));
@@ -972,12 +973,10 @@ test.describe("metric tables on the dashboard inside OneUptime", () => {
     await expect(critical).toHaveAttribute("title", "بحرانی: 90% و بالاتر");
 
     // Right to left, the start of the line is its right.
-    const iconBox: { x: number } | null = await critical
-      .getByRole("img")
-      .boundingBox();
-    const numberBox: { x: number } | null = await critical
-      .getByText("93.0%")
-      .boundingBox();
+    const [iconBox, numberBox] = await boxesInOneFrame([
+      critical.getByRole("img"),
+      critical.getByText("93.0%"),
+    ]);
     expect(iconBox!.x).toBeGreaterThan(numberBox!.x);
 
     for (const title of [SATURATION, FILLED]) {
@@ -1316,10 +1315,10 @@ test.describe("a table's thresholds in its settings", () => {
     await page.setViewportSize({ width: 390, height: 844 });
     await card.scrollIntoViewIfNeeded();
 
-    const warningBox: { x: number; y: number; width: number } | null =
-      await card.getByLabel("Warning at").boundingBox();
-    const criticalBox: { x: number; y: number; width: number } | null =
-      await card.getByLabel("Critical at").boundingBox();
+    const [warningBox, criticalBox] = await boxesInOneFrame([
+      card.getByLabel("Warning at"),
+      card.getByLabel("Critical at"),
+    ]);
 
     expect(criticalBox!.y).toBeGreaterThan(warningBox!.y + 20);
     // Each field takes the card's width, less its unit.

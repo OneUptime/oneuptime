@@ -64,7 +64,7 @@ Het zijmenu van een service heeft vijf secties:
 | **Basis** | **Overzicht**: verzoeken, foutpercentage en p95-latentie uit de spans, grafieken en de details. **Aanbevelingen**: kant-en-klare monitors voor de service, gekozen op basis van de taal. **Eigenaren**: de mensen en teams die verantwoordelijk zijn. **Feed**: alles wat er met de service gebeurd is, van hoe hij is aangemaakt tot elke wijziging sindsdien. |
 | **Telemetrie** | De **Logboeken**, **Traces**, **Metrieken**, **Prestatieprofielen**, **Uitzonderingen** en **Source maps**, al gefilterd op deze service. |
 | **Activiteit** | De **Incidenten**, **Waarschuwingen** en gebeurtenissen van **Geplande onderhoud** die de service raken. |
-| **Ontwikkelaars** | **Terraform**, **API** en **AI-assistenten**: de service vanuit code beheerd. Deze sectie is eerst ingeklapt. |
+| **Ontwikkelaars** | **Terraform**, **API**, **CLI** en **AI-assistenten**: de service vanuit code beheerd. Deze sectie is eerst ingeklapt. |
 | **Geavanceerd** | **Instellingen**, **Auditlogboeken** en **Service verwijderen**. **Geavanceerd** is eerst ingeklapt: klap het eerst uit. |
 
 Eigenaren tellen ook buiten de pagina: een rol met het bereik Owned leest de telemetrie van de services die van u of uw teams zijn. Zie [Telemetrie](/docs/permissions/index#telemetrie).

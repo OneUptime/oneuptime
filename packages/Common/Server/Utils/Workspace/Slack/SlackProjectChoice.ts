@@ -77,9 +77,9 @@ import SlackAiConversations, {
  *
  * The app's Home tab shows such a person one project at a time, with a
  * Switch project menu of their others (SlackHome). The project they choose
- * there is kept here too, for each person in each workspace
- * (rememberHomeProject), so their later openings show it - while they are
- * still a member there, which the Home reads again each time.
+ * there is kept in Postgres (WorkspaceHomeProject), so their later openings
+ * show it - while they are still a member there, which the Home reads again
+ * each time.
  */
 
 // What a request whose project its person chooses is, to make it again.
@@ -140,18 +140,8 @@ export interface SlackConversationOfPerson {
   slackUserId: string;
 }
 
-/*
- * Somebody's Home tab in a Slack workspace: what keeps the project they
- * chose for it (SlackHome).
- */
-export interface SlackHomeOfPerson {
-  teamId: string;
-  slackUserId: string;
-}
-
 const NAMESPACE: string = "slack-project-choice";
 const CONVERSATION_NAMESPACE: string = "slack-project-choice-conversation";
-const HOME_NAMESPACE: string = "slack-project-choice-home";
 
 // What of a press is kept to read it again: the fields SlackAuthAction reads.
 const PRESS_FIELDS: ReadonlyArray<string> = [
@@ -568,48 +558,6 @@ export default class SlackProjectChoice {
     });
   }
 
-  /*
-   * How long the project chosen for somebody's Home is kept: ninety days
-   * from the last time their Home was drawn for it - SlackHome keeps it
-   * again each time it shows it, so it is kept while they use it.
-   */
-  public static readonly HOME_REMEMBERED_FOR_SECONDS: number =
-    90 * 24 * 60 * 60;
-
-  /*
-   * Remembers the project somebody chose for their Home in a workspace
-   * (SlackHome's Switch project): their later openings show it while they
-   * are still a member there. Never throws: without it, the Home shows the
-   * first of their projects.
-   */
-  @CaptureSpan()
-  public static async rememberHomeProject(data: {
-    person: SlackHomeOfPerson;
-    projectId: ObjectID;
-  }): Promise<void> {
-    await WorkspaceProjectChoiceStore.rememberProject({
-      namespace: HOME_NAMESPACE,
-      keyParts: SlackProjectChoice.getHomeKeyParts(data.person),
-      projectId: data.projectId,
-      expiresInSeconds: SlackProjectChoice.HOME_REMEMBERED_FOR_SECONDS,
-    });
-  }
-
-  /*
-   * The project somebody chose last for their Home in a workspace; null for
-   * none. Whether they may still see it is read by the Home, every time.
-   * Never throws: a cache that cannot be read is none.
-   */
-  @CaptureSpan()
-  public static async getHomeProject(
-    person: SlackHomeOfPerson,
-  ): Promise<ObjectID | null> {
-    return await WorkspaceProjectChoiceStore.getRememberedProject({
-      namespace: HOME_NAMESPACE,
-      keyParts: SlackProjectChoice.getHomeKeyParts(person),
-    });
-  }
-
   // A request as it is kept (WorkspaceProjectChoiceStore.keep).
   private static writeRequest(request: SlackProjectChoiceRequest): JSONObject {
     const written: JSONObject = { kind: request.kind };
@@ -720,10 +668,5 @@ export default class SlackProjectChoice {
       conversation.threadTs,
       conversation.slackUserId,
     ];
-  }
-
-  // The parts of a Home's key: hashed, never kept as they are.
-  private static getHomeKeyParts(person: SlackHomeOfPerson): Array<string> {
-    return [person.teamId, person.slackUserId];
   }
 }

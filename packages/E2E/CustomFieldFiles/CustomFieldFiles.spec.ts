@@ -7,6 +7,8 @@ import {
 } from "@playwright/test";
 import fs from "fs";
 import path from "path";
+import { expectNoSidewaysScroll } from "../SuiteHelpers/PageFit";
+import { boxesInOneFrame } from "../SuiteHelpers/Frames";
 
 /*
  * File and Multiple files custom fields, and a public form's file
@@ -280,12 +282,6 @@ async function listedNames(page: Page, field: string): Promise<Array<string>> {
   return names;
 }
 
-async function overflowsSideways(page: Page): Promise<boolean> {
-  return page.evaluate((): boolean => {
-    return document.documentElement.scrollWidth > window.innerWidth + 1;
-  });
-}
-
 // How light a colour is, 0 (black) to 1 (white).
 async function luminance(locator: Locator, property: string): Promise<number> {
   return locator.evaluate((element: Element, name: string): number => {
@@ -399,12 +395,9 @@ test.describe("a record's file custom fields: the card", () => {
         "custom-field-file",
       );
       const card: Locator = cardFiles(page, FILE_FIELD);
-      const rowBox: { x: number; width: number } | null =
-        await row.boundingBox();
-      const listBox: { x: number; width: number } | null =
-        await card.boundingBox();
+      const [rowBox, listBox] = await boxesInOneFrame([row, card]);
 
-      expect(await overflowsSideways(page)).toBe(false);
+      await expectNoSidewaysScroll(page, { tolerance: 1 });
       expect(rowBox!.x + rowBox!.width).toBeLessThanOrEqual(
         listBox!.x + listBox!.width + 1,
       );
@@ -427,7 +420,7 @@ test.describe("a record's file custom fields: the card", () => {
     await page.setViewportSize({ width: 390, height: 844 });
     await openCard(page);
 
-    expect(await overflowsSideways(page)).toBe(false);
+    await expectNoSidewaysScroll(page, { tolerance: 1 });
     await expect(
       cardFiles(page, FILES_FIELD).getByTestId("custom-field-file"),
     ).toHaveCount(3);
@@ -843,7 +836,7 @@ test.describe("a record's file custom fields: Edit", () => {
     await openCard(page, "?data=long");
     const dialog: Locator = await openDialog(page);
 
-    expect(await overflowsSideways(page)).toBe(false);
+    await expectNoSidewaysScroll(page, { tolerance: 1 });
 
     const dialogBox: { x: number; width: number } | null =
       await dialog.boundingBox();
@@ -911,7 +904,7 @@ test.describe("a record's file custom fields: Edit", () => {
         .first(),
     ).toBeVisible();
     expect(GERMAN[FILES_HINT]).not.toBe(FILES_HINT);
-    expect(await overflowsSideways(page)).toBe(false);
+    await expectNoSidewaysScroll(page, { tolerance: 1 });
     await screenshot(page, "dialog-de-1280");
   });
 
@@ -927,12 +920,10 @@ test.describe("a record's file custom fields: Edit", () => {
     const row: Locator = cardFiles(page, FILES_FIELD)
       .getByTestId("custom-field-file")
       .first();
-    const name: { x: number } | null = await row
-      .getByText("checkout-latency.png")
-      .boundingBox();
-    const size: { x: number } | null = await row
-      .getByText("240 KB")
-      .boundingBox();
+    const [name, size] = await boxesInOneFrame([
+      row.getByText("checkout-latency.png"),
+      row.getByText("240 KB"),
+    ]);
 
     expect(name!.x).toBeGreaterThan(size!.x);
     await screenshot(page, "card-fa-1280");
@@ -941,7 +932,7 @@ test.describe("a record's file custom fields: Edit", () => {
     await expect(picker(page, FILES_FIELD)).toContainText(
       PERSIAN[FILES_HINT] as string,
     );
-    expect(await overflowsSideways(page)).toBe(false);
+    await expectNoSidewaysScroll(page, { tolerance: 1 });
     await screenshot(page, "dialog-fa-1280");
   });
 });
@@ -1185,7 +1176,7 @@ test.describe("a public form's file questions", () => {
       png("outage.png"),
     ]);
 
-    expect(await overflowsSideways(page)).toBe(false);
+    await expectNoSidewaysScroll(page, { tolerance: 1 });
     await screenshot(page, "form-390");
   });
 
@@ -1225,7 +1216,7 @@ test.describe("a public form's file questions", () => {
     await expect(
       page.getByText(accountsText("fa", "Chosen files")).first(),
     ).toBeVisible();
-    expect(await overflowsSideways(page)).toBe(false);
+    await expectNoSidewaysScroll(page, { tolerance: 1 });
     await screenshot(page, "form-fa-1280");
   });
 });

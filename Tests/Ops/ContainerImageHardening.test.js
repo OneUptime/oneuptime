@@ -388,12 +388,17 @@ describe("production images do not ship a build toolchain", () => {
   });
 
   test("the Debian purges use --auto-remove, which is what takes the kernel headers and binutils", () => {
-    for (const template of [
-      "packages/Probe/Dockerfile.tpl",
-      "packages/Runner/Dockerfile.tpl",
-      "packages/E2E/Dockerfile.tpl",
+    /*
+     * The Runner's production image never has the toolchain (only its build
+     * stage, which does not ship, installs it): its development image is the
+     * one that purges.
+     */
+    for (const [template, environment] of [
+      ["packages/Probe/Dockerfile.tpl", "production"],
+      ["packages/Runner/Dockerfile.tpl", "development"],
+      ["packages/E2E/Dockerfile.tpl", "production"],
     ]) {
-      const lines = stagesOf(template, "production").flatMap((stage) => {
+      const lines = stagesOf(template, environment).flatMap((stage) => {
         return stage.instructions;
       });
       const purges = lines.filter((line) => {
@@ -462,11 +467,146 @@ describe("tini is started from where the image's package manager installs it", (
 });
 
 describe("Runner", () => {
-  const lines = stagesOf(
-    "packages/Runner/Dockerfile.tpl",
-    "production",
-  ).flatMap((stage) => {
+  const stages = stagesOf("packages/Runner/Dockerfile.tpl", "production");
+  const lines = stages.flatMap((stage) => {
     return stage.instructions;
+  });
+  const final = stages[stages.length - 1];
+  const base = stages.find((stage) => {
+    return stage.name === "base";
+  });
+  const build = stages.find((stage) => {
+    return stage.name === "build";
+  });
+
+  test("has a base stage, a build stage, and an image that starts from the base", () => {
+    expect(base).toBeDefined();
+    expect(build).toBeDefined();
+    expect(build.from).toBe("base");
+    expect(final.from).toBe("base");
+    expect(final.name).not.toBe("build");
+  });
+
+  test("the toolchain for native modules is installed in the build stage only, never in a stage the image starts from", () => {
+    const installsToolchain = (stage) => {
+      return stage.instructions.some((line) => {
+        return installedPackagesIn(line).some((name) => {
+          return COMPILERS.includes(name);
+        });
+      });
+    };
+    expect(installsToolchain(build)).toBe(true);
+    expect(installsToolchain(base)).toBe(false);
+    expect(installsToolchain(final)).toBe(false);
+    // ...and before any npm install of the build stage.
+    const install = build.instructions.findIndex((line) => {
+      return installedPackagesIn(line).includes("g++");
+    });
+    const firstNpm = build.instructions.findIndex((line) => {
+      return NPM_INSTALLS.test(line);
+    });
+    expect(install).toBeGreaterThanOrEqual(0);
+    expect(install).toBeLessThan(firstNpm);
+  });
+
+  /*
+   * Installing Common in the image that ships put 810 MB of packages and
+   * Common's 181 MB of tests in it, for a Runner that loads a fraction of
+   * them: 1.6 GB unpacked, a 474 MB download. The build stage installs,
+   * type-checks and prunes; the image copies /usr/src out of it and installs
+   * nothing (PruneUnreachablePackages.test.js covers the prune, and
+   * RunnerImageRuntime.test.js starts the image and has it run steps).
+   */
+  describe("ships only what the Runner runs", () => {
+    const PRUNE_COPY =
+      "COPY ./Scripts/Docker/PruneUnreachablePackages.js /tmp/PruneUnreachablePackages.js";
+    const PRUNE_RUN =
+      "RUN node /tmp/PruneUnreachablePackages.js --entry /usr/src/app/Index.ts --package /usr/src/Common && npm prune --omit=dev --offline --no-audit --no-fund && node -e \"require('ts-node'); require('typescript')\" && rm -rf /tmp/PruneUnreachablePackages.js /usr/src/Common/Tests /usr/src/app/build /usr/src/app/Tests";
+
+    function indexOf(stageLines, line) {
+      const index = stageLines.indexOf(line);
+      expect({ line, found: index !== -1 }).toEqual({ line, found: true });
+      return index;
+    }
+
+    test("the image installs nothing with npm, and takes only /usr/src from the build stage", () => {
+      expect(
+        final.instructions.filter((line) => {
+          return NPM_INSTALLS.test(line);
+        }),
+      ).toEqual([]);
+      expect(
+        final.instructions.filter((line) => {
+          return /^COPY/.test(line);
+        }),
+      ).toEqual(["COPY --from=build /usr/src /usr/src"]);
+    });
+
+    test("the build stage installs Common and the Runner, type-checks, then prunes both", () => {
+      const stageLines = build.instructions;
+      const commonInstall = indexOf(
+        stageLines,
+        "RUN --mount=type=cache,target=/tmp/npm npm ci --prefer-offline",
+      );
+      expect(stageLines[commonInstall - 2]).toBe("WORKDIR /usr/src/Common");
+      const runnerInstall = stageLines.indexOf(
+        "RUN --mount=type=cache,target=/tmp/npm npm ci --prefer-offline",
+        commonInstall + 1,
+      );
+      expect(runnerInstall).toBeGreaterThan(commonInstall);
+      expect(stageLines.slice(commonInstall, runnerInstall)).toContain(
+        "COPY ./packages/Common /usr/src/Common",
+      );
+      const typeCheck = indexOf(stageLines, "RUN npm run compile");
+      const copy = indexOf(stageLines, PRUNE_COPY);
+      const prune = indexOf(stageLines, PRUNE_RUN);
+      expect(runnerInstall).toBeLessThan(typeCheck);
+      // The source is the node user's, as it was when this stage shipped.
+      expect(stageLines.slice(runnerInstall, typeCheck)).toContain(
+        "COPY --chown=1000:1000 ./packages/Runner /usr/src/app",
+      );
+      // The prune comes last: the development packages the type-check
+      // read (@types, typescript's peers) go with it.
+      expect(typeCheck).toBeLessThan(copy);
+      expect(prune).toBe(copy + 1);
+      expect(prune).toBe(stageLines.length - 1);
+    });
+
+    test("the prune walks the file the Runner's start command runs, from the folder it is copied to", () => {
+      const runnerPackage = readJson("packages/Runner/package.json");
+      expect(runnerPackage.scripts.start).toMatch(
+        /exec node --no-node-snapshot --require ts-node\/register Index\.ts$/,
+      );
+      expect(
+        fs.existsSync(path.join(REPO_ROOT, "packages/Runner/Index.ts")),
+      ).toBe(true);
+      expect(runnerPackage.dependencies.Common).toBe("file:../Common");
+      // ts-node runs it, so ts-node and the TypeScript it runs on stay.
+      expect(runnerPackage.dependencies["ts-node"]).toBeDefined();
+      expect(final.instructions).toContain("WORKDIR /usr/src/app");
+      expect(final.instructions).toContain("USER node");
+      expect(final.instructions[final.instructions.length - 1]).toMatch(
+        /exec node --no-node-snapshot --require ts-node\/register Index\.ts"\s*\]$/,
+      );
+    });
+
+    test("the development image is the base stage with everything installed where it runs", () => {
+      const development = stagesOf(
+        "packages/Runner/Dockerfile.tpl",
+        "development",
+      );
+      expect(development).toHaveLength(1);
+      expect(development[0].name).toBe("base");
+      const developmentLines = development[0].instructions;
+      expect(
+        developmentLines.filter((line) => {
+          return NPM_INSTALLS.test(line);
+        }),
+      ).toHaveLength(2);
+      expect(developmentLines[developmentLines.length - 1]).toBe(
+        'CMD [ "npm", "run", "dev" ]',
+      );
+    });
   });
 
   test("installs the command-line tools the full node image used to provide", () => {
@@ -926,6 +1066,159 @@ describe("App", () => {
     expect(
       readJson("packages/App/package-lock.json").packages["node_modules/aedes"],
     ).toBeDefined();
+  });
+
+  /*
+   * Each edition's image used to be its build stage: the six frontends' own
+   * installs (500 MB, there only to bundle them), every package Common lists
+   * (810 MB, of which the App reaches a part), Common's and the App's tests,
+   * the type-check's output and the build toolchain's layers. Now both
+   * start from a runtime stage that installs nothing and copy /usr/src out of
+   * a pruned build (PruneUnreachablePackages.test.js covers the prune and the
+   * App's walk; EnterpriseEditionBuild.test.js the stage graph).
+   */
+  describe("ships only what the App runs", () => {
+    const stages = stagesOf("packages/App/Dockerfile.tpl", "production");
+    const byName = (name) => {
+      return stages.find((stage) => {
+        return stage.name === name;
+      });
+    };
+    const runtime = byName("runtime");
+    const PRUNE_COPY =
+      "COPY ./Scripts/Docker/PruneUnreachablePackages.js /tmp/PruneUnreachablePackages.js";
+    const CALENDAR =
+      "/usr/src/Common/Server/Utils/ScheduledMaintenance/ExternalCalendar";
+    const pruneLine = (extraEntries) => {
+      return [
+        "RUN node /tmp/PruneUnreachablePackages.js",
+        "--entry /usr/src/app/Index.ts",
+        "--entry /usr/src/app/Migrate.ts",
+        `--entry ${CALENDAR}/ExternalCalendarExpansionWorker.cjs`,
+        ...extraEntries.map((entry) => {
+          return `--entry ${entry}`;
+        }),
+        "--entry-loader /usr/src/app/Utils/EnterpriseLoader.ts",
+        `--entry-loader ${CALENDAR}/ExternalCalendarExpansion.ts`,
+        "--package /usr/src/Common",
+        "&& npm prune --omit=dev --offline --no-audit --no-fund",
+        "&& node -e \"require('ts-node'); require('typescript')\"",
+        "&& rm -rf /tmp/PruneUnreachablePackages.js /usr/src/Common/Tests /usr/src/app/build /usr/src/app/Tests /usr/src/app/FeatureSet/*/node_modules",
+      ].join(" ");
+    };
+
+    test("the runtime stage starts from the same Node.js image as the build, updates npm, and installs neither a package nor a compiler", () => {
+      expect(runtime).toBeDefined();
+      expect(runtime.from).toBe(byName("base").from);
+      expect(runtime.instructions).toContain(UPDATE_RUN);
+      expect(
+        runtime.instructions.filter((line) => {
+          return NPM_INSTALLS.test(line);
+        }),
+      ).toEqual([]);
+      expect(
+        runtime.instructions.flatMap(installedPackagesIn).filter((name) => {
+          return COMPILERS.includes(name) || name === "python3";
+        }),
+      ).toEqual([]);
+      // The tools the build stage's image had, for what runs in the container.
+      expect(runtime.instructions.flatMap(installedPackagesIn)).toEqual(
+        expect.arrayContaining(["bash", "curl"]),
+      );
+      expect(runtime.instructions).toContain("ENV PRODUCTION=true");
+      expect(runtime.instructions).toContain("WORKDIR /usr/src/app");
+    });
+
+    test.each([
+      ["community", "community-build", []],
+      ["enterprise", "enterprise-build", ["/usr/src/ee/Server/Index.ts"]],
+    ])(
+      "the %s image copies only /usr/src out of a build pruned from %s",
+      (edition, build, extraEntries) => {
+        const image = byName(edition);
+        const pruned = byName(`${edition}-pruned`);
+
+        expect(image.from).toBe("runtime");
+        expect(pruned.from).toBe(build);
+        expect(
+          image.instructions.filter((line) => {
+            return /^COPY\b/.test(line) || NPM_INSTALLS.test(line);
+          }),
+        ).toEqual([`COPY --from=${edition}-pruned /usr/src /usr/src`]);
+        expect(pruned.instructions).toEqual([
+          PRUNE_COPY,
+          pruneLine(extraEntries),
+        ]);
+      },
+    );
+
+    test("every file the prune walks or lets load is where the build stage copies it", () => {
+      const inImage = [
+        ["/usr/src/app/", "packages/App/"],
+        ["/usr/src/Common/", "packages/Common/"],
+        ["/usr/src/ee/", "ee/"],
+      ];
+      const files = [
+        ...byName("enterprise-pruned").instructions[1].matchAll(
+          /--(?:entry|entry-loader) (\S+)/g,
+        ),
+      ].map((match) => {
+        return match[1];
+      });
+
+      expect(files).toHaveLength(6);
+      for (const file of files) {
+        const [prefix, repository] = inImage.find(([candidate]) => {
+          return file.startsWith(candidate);
+        });
+        expect({
+          file,
+          exists: fs.existsSync(
+            path.join(REPO_ROOT, repository, file.slice(prefix.length)),
+          ),
+        }).toEqual({ file, exists: true });
+      }
+    });
+
+    test("the App's start command and its migrate command run the two entries the prune starts from", () => {
+      const appPackage = readJson("packages/App/package.json");
+      expect(appPackage.scripts.start).toMatch(
+        /exec node --no-node-snapshot --require ts-node\/register Index\.ts$/,
+      );
+      // The Helm chart's migrate job runs `npm run migrate` in this image.
+      expect(appPackage.scripts.migrate).toMatch(
+        /exec node --no-node-snapshot --require ts-node\/register Migrate\.ts$/,
+      );
+      expect(
+        read("HelmChart/Public/oneuptime/templates/migrate-job.yaml"),
+      ).toContain('command: ["npm", "run", "migrate"]');
+      expect(appPackage.dependencies["ts-node"]).toBeDefined();
+    });
+
+    test("the build's other files under /usr/src stay: the licence files, the agents and the mermaid build", () => {
+      const removed = byName("community-pruned")
+        .instructions[1].split("rm -rf ")[1]
+        .split(" ");
+      expect(removed).toEqual([
+        "/tmp/PruneUnreachablePackages.js",
+        "/usr/src/Common/Tests",
+        "/usr/src/app/build",
+        "/usr/src/app/Tests",
+        "/usr/src/app/FeatureSet/*/node_modules",
+      ]);
+      for (const kept of [
+        "/usr/src/LICENSE",
+        "/usr/src/agents",
+        "/usr/src/Common/build",
+        "/usr/src/app/FeatureSet/Dashboard/public",
+      ]) {
+        expect(
+          removed.some((removedPath) => {
+            return kept === removedPath || kept.startsWith(`${removedPath}/`);
+          }),
+        ).toBe(false);
+      }
+    });
   });
 });
 

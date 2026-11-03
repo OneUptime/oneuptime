@@ -1,4 +1,5 @@
 import { expect, Locator, Page, test } from "@playwright/test";
+import { expectNoSidewaysScroll } from "../SuiteHelpers/PageFit";
 
 /*
  * The Page steps in the real workflow builder.
@@ -118,15 +119,6 @@ async function isWithinViewport(
   const width: number = page.viewportSize()?.width || 0;
 
   return box.x >= -0.5 && box.x + box.width <= width + 0.5;
-}
-
-async function hasNoSidewaysScroll(page: Page): Promise<boolean> {
-  return page.evaluate((): boolean => {
-    return (
-      document.documentElement.scrollWidth <=
-      document.documentElement.clientWidth
-    );
-  });
 }
 
 // The setting's row: its picks, its value chips, its button.
@@ -723,7 +715,7 @@ test.describe("Workflow builder: the Page steps", () => {
     const dialog: Locator = await openSettings(page, "page-users-1");
     const users: Locator = who(dialog, "users");
 
-    expect(await hasNoSidewaysScroll(page)).toBe(true);
+    await expectNoSidewaysScroll(page);
 
     for (const part of [
       users,
@@ -743,7 +735,7 @@ test.describe("Workflow builder: the Page steps", () => {
 
     await expect(picks(users)).toHaveCount(3);
     expect(await isWithinViewport(page, picks(users).last())).toBe(true);
-    expect(await hasNoSidewaysScroll(page)).toBe(true);
+    await expectNoSidewaysScroll(page);
   });
 
   test("in the dark theme the answers, the picks and the value chip are dark like the dialog", async ({

@@ -157,7 +157,7 @@ Un épisode que vous créez n'a pas de règle de regroupement : la liste affiche
 | **Équipe** | **Propriétaires** |
 | **Alertes** | **Alertes des membres** |
 | **Notes** | **Notes privées** |
-| **Développeurs** | **Terraform**, **API**, **Assistants IA** |
+| **Développeurs** | **Terraform**, **API**, **CLI**, **Assistants IA** |
 | **Avancé** | **Journaux d'audit**, **Supprimer l'épisode** |
 
 **Développeurs** et **Avancé** commencent repliées. Sur la **Vue d'ensemble**, l'en-tête nomme les **Propriétaires** de l'épisode, équipes d'abord, et la première tuile, **Créé**, indique quand l'épisode a été créé — **Automatiquement**, quand une règle de regroupement l'a ouvert. La carte **Ce qui s'est passé** ouvre la page — la description de l'épisode et sa **Cause racine** — puis **Alertes de cet épisode** et le **Flux de l'épisode**, à côté de la carte **Détails de l'épisode** : son numéro, son état, sa gravité, son nombre d'alertes, sa règle de regroupement et ses politiques d'astreinte. Son en-tête propose **Prendre en compte** et **Résoudre**, et **Passer l'épisode à** dans le menu **⋯**.

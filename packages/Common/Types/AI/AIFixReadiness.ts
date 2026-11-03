@@ -1,3 +1,5 @@
+import { CodeTaskBlocker } from "./CodeTask";
+
 /*
  * What a CodeFix run needs before it can complete, as a wire contract shared
  * by the server checks and every UI that renders them: the per-exception
@@ -37,6 +39,14 @@ export interface AIFixReadinessCheck {
    * shared one without leaving the page. May be empty.
    */
   detail: string;
+  /*
+   * agentAvailable, when it fails for a known repository: which of Code's
+   * blockers it is (CodeFixReadiness.getRepositoryRunnerBlocker) - a Runner
+   * the repository picks that is not online, global Runners that take no
+   * AI code fixes - so a page that draws the failure as Code's notice says
+   * what Code says, not that no global Runner is online.
+   */
+  blocker?: CodeTaskBlocker | undefined;
 }
 
 export interface AIFixReadiness {

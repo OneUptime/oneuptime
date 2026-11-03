@@ -1783,7 +1783,7 @@ describe("a redelivered activity is handled once (#4111's second bubble)", () =>
   });
 
   test("Teams retries a slow form submit that is still being handled: the submit runs once, so one incident", async () => {
-    const confirmation: string = "✅ Incident created successfully!";
+    const confirmation: string = "✅ Incident created successfully.";
     const release: Gate = createGate();
     const submitEntered: Gate = createGate();
     const invokeHandler: SpyInstance<

@@ -2,6 +2,7 @@ import { expect, Locator, Page, test } from "@playwright/test";
 import fs from "fs";
 import fsPromises from "fs/promises";
 import path from "path";
+import { expectNoSidewaysScroll } from "../SuiteHelpers/PageFit";
 
 /*
  * A step asks for approval before it runs, and every step's options are
@@ -158,13 +159,6 @@ async function saveSteps(page: Page): Promise<Array<SavedStep>> {
   const updates: Recorded["updates"] = (await recorded(page)).updates;
 
   return updates[updates.length - 1]!.data["steps"] as Array<SavedStep>;
-}
-
-// How far the page runs past the screen's right edge, if it does.
-async function overflow(page: Page): Promise<number> {
-  return await page.evaluate((): number => {
-    return document.documentElement.scrollWidth - window.innerWidth;
-  });
 }
 
 interface Box {
@@ -604,7 +598,7 @@ test.describe("on every screen", () => {
     await page.setViewportSize({ width: 390, height: 844 });
     await openSteps(page);
 
-    expect(await overflow(page)).toBeLessThanOrEqual(0);
+    await expectNoSidewaysScroll(page);
 
     // The lock is drawn; its words are for a screen reader on a phone.
     const lock: Locator = page.getByTestId("runbook-step-5-needs-approval");
@@ -646,7 +640,7 @@ test.describe("on every screen", () => {
 
     await openStep(page, "Promote the replica");
     await openMoreFields(page, 5);
-    expect(await overflow(page)).toBeLessThanOrEqual(0);
+    await expectNoSidewaysScroll(page);
     await screenshot(page, "steps-phone");
 
     // On a laptop the type is drawn beside the title, which keeps one line.
@@ -663,7 +657,7 @@ test.describe("on every screen", () => {
     await page.setViewportSize({ width: 390, height: 844 });
     await openRun(page, "wait=approval");
 
-    expect(await overflow(page)).toBeLessThanOrEqual(0);
+    await expectNoSidewaysScroll(page);
 
     const card: Locator = waitingCard(page, "Promote the replica");
     const approve: Locator = card.getByRole("button", {
@@ -732,7 +726,7 @@ test.describe("on every screen", () => {
       await page.setViewportSize({ width, height: 844 });
       await openRun(page, "wait=approval&lang=de");
 
-      expect(await overflow(page)).toBeLessThanOrEqual(0);
+      await expectNoSidewaysScroll(page);
 
       const card: Locator = waitingCard(page, "Promote the replica");
 
@@ -768,7 +762,7 @@ test.describe("on every screen", () => {
       await page.setViewportSize({ width: 390, height: 844 });
       await openRun(page, `wait=${wait}&lang=de`);
 
-      expect(await overflow(page)).toBeLessThanOrEqual(0);
+      await expectNoSidewaysScroll(page);
 
       const label: string =
         wait === "approval"

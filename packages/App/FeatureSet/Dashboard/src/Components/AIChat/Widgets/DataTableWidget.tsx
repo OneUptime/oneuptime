@@ -1,6 +1,5 @@
 import { AIChatWidget, AIChatWidgetColumn } from "Common/Types/AI/AIChatTypes";
 import { JSONObject } from "Common/Types/JSON";
-import OneUptimeDate from "Common/Types/Date";
 import { Translator } from "Common/UI/Utils/TranslateTemplate";
 import useTranslator from "Common/UI/Utils/UseTranslator";
 import useResizableColumns, {
@@ -8,6 +7,10 @@ import useResizableColumns, {
 } from "Common/UI/Components/Table/ColumnResize/useResizableColumns";
 import ResizableHeaderCell from "Common/UI/Components/Table/ColumnResize/ResizableHeaderCell";
 import { ColumnWidthKind } from "Common/UI/Components/Table/ColumnResize/ColumnWidths";
+import {
+  ChatTableCellText,
+  getChatTableCellText,
+} from "Common/UI/Utils/AIChatExport/ChatWidgetData";
 import React, { FunctionComponent, ReactElement } from "react";
 
 export interface ComponentProps {
@@ -17,24 +20,9 @@ export interface ComponentProps {
 // Rows are capped so a huge tool result never blows out the chat column.
 const MAX_ROWS: number = 25;
 
-function renderCell(value: unknown, column: AIChatWidgetColumn): string {
-  if (value === null || value === undefined || value === "") {
-    return "—";
-  }
-  if (column.type === "date") {
-    try {
-      const date: Date = OneUptimeDate.fromString(value as string);
-      return `${OneUptimeDate.getDateAsLocalFormattedString(
-        date,
-      )} · ${OneUptimeDate.fromNow(date)}`;
-    } catch {
-      return String(value);
-    }
-  }
-  if (column.type === "number" && typeof value === "number") {
-    return value.toLocaleString();
-  }
-  return String(value);
+// A date's cell and a number's keep their one line; text wraps.
+function isOneLineColumn(column: AIChatWidgetColumn): boolean {
+  return column.type === "number" || column.type === "date";
 }
 
 const DataTableWidget: FunctionComponent<ComponentProps> = (
@@ -80,6 +68,17 @@ const DataTableWidget: FunctionComponent<ComponentProps> = (
         <thead>
           <tr className="border-b border-gray-200 text-[11px] uppercase tracking-wide text-gray-400">
             {columns.map((column: AIChatWidgetColumn) => {
+              /*
+               * A tool names its columns in English, marked as keys
+               * (Common/Server/Utils/AI/Toolbox): each is drawn in the
+               * reader's language, and a name a tool builds from what it
+               * read - an attribute grouped by - as it was written. A
+               * conversation saved earlier carries the same English names,
+               * so its tables read in the reader's language too.
+               */
+              const title: string =
+                translator.translateText(column.title) || column.title;
+
               return (
                 <ResizableHeaderCell
                   key={column.key}
@@ -88,13 +87,13 @@ const DataTableWidget: FunctionComponent<ComponentProps> = (
                   }`}
                   resize={resizableColumns.getResize(
                     column.key,
-                    column.title,
-                    column.type === "number" || column.type === "date"
+                    title,
+                    isOneLineColumn(column)
                       ? ColumnWidthKind.Whole
                       : ColumnWidthKind.Prose,
                   )}
                 >
-                  <span>{column.title}</span>
+                  <span>{title}</span>
                 </ResizableHeaderCell>
               );
             })}
@@ -108,16 +107,26 @@ const DataTableWidget: FunctionComponent<ComponentProps> = (
                 className="border-b border-gray-100 last:border-0"
               >
                 {columns.map((column: AIChatWidgetColumn) => {
-                  const text: string = renderCell(row[column.key], column);
+                  const cell: ChatTableCellText = getChatTableCellText(
+                    row[column.key],
+                    column,
+                  );
 
                   /*
-                   * Every column on screen, at any width: a number keeps
-                   * its one line, and text wraps - anywhere, an endpoint
-                   * has no spaces to wrap at - up to three lines, the
-                   * whole value on hover. Cut at one line 22rem wide, the
-                   * first column of a table filled a phone and pushed the
-                   * others out of sight, with nothing to say they were
-                   * there.
+                   * Every column on screen, at any width: a number and a
+                   * date keep their one line, and text wraps - anywhere,
+                   * an endpoint has no spaces to wrap at - up to three
+                   * lines, the whole value on hover. Cut at one line 22rem
+                   * wide, the first column of a table filled a phone and
+                   * pushed the others out of sight, with nothing to say
+                   * they were there.
+                   *
+                   * A date is written as every table writes one, "Oct 14,
+                   * 11:57 AM" (Table/TableDate), and whole under the
+                   * pointer with how long ago it was. Written whole in the
+                   * cell - "Oct 14 2026, 11:57 GMT · 3 minutes ago" - it
+                   * took a third of the chat panel, and its year and zone
+                   * said the same on every row.
                    */
                   return (
                     <td
@@ -126,15 +135,19 @@ const DataTableWidget: FunctionComponent<ComponentProps> = (
                       className={`px-2.5 py-2 align-top text-gray-700 ${
                         column.type === "number"
                           ? "whitespace-nowrap text-right tabular-nums"
-                          : "min-w-[5rem] text-left"
+                          : column.type === "date" && cell.dateTime
+                            ? "whitespace-nowrap"
+                            : "min-w-[5rem] text-left"
                       }`}
-                      title={text}
+                      title={cell.fullText}
                     >
                       {column.type === "number" ? (
-                        text
+                        cell.text
+                      ) : cell.dateTime ? (
+                        <time dateTime={cell.dateTime}>{cell.text}</time>
                       ) : (
                         <span className="line-clamp-3 [overflow-wrap:anywhere]">
-                          {text}
+                          {cell.text}
                         </span>
                       )}
                     </td>

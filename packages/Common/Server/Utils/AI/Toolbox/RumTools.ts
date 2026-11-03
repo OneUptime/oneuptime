@@ -32,6 +32,7 @@ import {
 } from "./ToolTypes";
 import WidgetBuilder from "./WidgetBuilder";
 import { getMetricReadPermissions } from "../../Telemetry/MetricReadPermissions";
+import { translationKey } from "../../../../Types/Translator";
 
 function getApplicationId(args: JSONObject): ObjectID | undefined {
   if (args["rumApplicationId"] === undefined) {
@@ -162,9 +163,21 @@ export const QueryRumApplicationsTool: ObservabilityTool = {
           ? WidgetBuilder.table({
               title: "RUM applications",
               columns: [
-                { key: "name", title: "Application", type: "text" },
-                { key: "clientType", title: "Client", type: "text" },
-                { key: "connectionStatus", title: "Connection", type: "text" },
+                {
+                  key: "name",
+                  title: translationKey("Application"),
+                  type: "text",
+                },
+                {
+                  key: "clientType",
+                  title: translationKey("Client"),
+                  type: "text",
+                },
+                {
+                  key: "connectionStatus",
+                  title: translationKey("Connection"),
+                  type: "text",
+                },
               ],
               rows: rows,
               link: target,
@@ -416,16 +429,28 @@ export const QueryRumWebVitalsTool: ObservabilityTool = {
               title: "RUM web vitals",
               description: `Averages · ${startTime.toISOString()} – ${endTime.toISOString()}`,
               columns: [
-                { key: "vital", title: "Vital", type: "text" },
-                { key: "average", title: "Average", type: "number" },
-                { key: "unit", title: "Unit", type: "text" },
-                { key: "rating", title: "Rating", type: "text" },
+                { key: "vital", title: translationKey("Vital"), type: "text" },
                 {
-                  key: "previousAverage",
-                  title: "Previous average",
+                  key: "average",
+                  title: translationKey("Average"),
                   type: "number",
                 },
-                { key: "changePercent", title: "Change (%)", type: "number" },
+                { key: "unit", title: translationKey("Unit"), type: "text" },
+                {
+                  key: "rating",
+                  title: translationKey("Rating"),
+                  type: "text",
+                },
+                {
+                  key: "previousAverage",
+                  title: translationKey("Previous average"),
+                  type: "number",
+                },
+                {
+                  key: "changePercent",
+                  title: translationKey("Change (%)"),
+                  type: "number",
+                },
               ],
               rows: rows,
               link: target,

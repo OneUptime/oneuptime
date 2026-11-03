@@ -22,6 +22,7 @@ import { MemoryRouter } from "react-router-dom";
 import IncidentNumbering from "../../../../App/FeatureSet/Dashboard/src/Pages/Incidents/Settings/IncidentNumbering";
 import AlertNumbering from "../../../../App/FeatureSet/Dashboard/src/Pages/Alerts/Settings/AlertNumbering";
 import ScheduledMaintenanceNumbering from "../../../../App/FeatureSet/Dashboard/src/Pages/ScheduledMaintenanceEvents/Settings/ScheduledMaintenanceNumbering";
+import SecurityCaseNumbering from "../../../../App/FeatureSet/Dashboard/src/Pages/SecurityEvents/Settings/Numbering";
 import {
   ALERT_NEXT_NUMBERS,
   ANY_NUMBER_FROM_ONE,
@@ -38,6 +39,7 @@ import {
   NextNumberPage,
   NextNumberRow,
   SCHEDULED_MAINTENANCE_NEXT_NUMBERS,
+  SECURITY_CASE_NEXT_NUMBERS,
   getNextNumberChanges,
   getNextNumberColumns,
   getNextNumberFormValues,
@@ -170,6 +172,20 @@ const PAGES: Array<PageUnderTest> = [
       },
     ],
   },
+  {
+    name: "Security Events",
+    page: SECURITY_CASE_NEXT_NUMBERS,
+    Component: SecurityCaseNumbering,
+    productPath: "security-events",
+    rows: [
+      {
+        kind: NumberedRecordKind.SecurityCase,
+        label: "Cases",
+        next: "CASE-143",
+        highest: "142",
+      },
+    ],
+  },
 ];
 
 const BASE_PERMISSIONS: Array<Permission> = [
@@ -207,6 +223,7 @@ function standardNumbering(): Array<RecordNumbering> {
     entry(NumberedRecordKind.Alert, "ALT-", 48210),
     entry(NumberedRecordKind.AlertEpisode, "AE-", 310),
     entry(NumberedRecordKind.ScheduledMaintenance, "SM-", 57),
+    entry(NumberedRecordKind.SecurityCase, "CASE-", 142),
   ];
 }
 
@@ -514,6 +531,7 @@ describe("what each page holds", () => {
       "Next Alert Number",
       "Next Alert Episode Number",
       "Next Scheduled Maintenance Number",
+      "Next Case Number",
     ]);
   });
 

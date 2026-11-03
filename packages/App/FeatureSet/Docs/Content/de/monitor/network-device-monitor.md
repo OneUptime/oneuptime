@@ -518,7 +518,7 @@ Diese Angaben werden neben den eigenen Feldern des Geräts gespeichert, nie in s
 
 Ein Meraki-Switch, ein Meraki-Access-Point oder eine Meraki-Appliance liefert über SNMP weder Seriennummer noch Firmware: Direkt abgefragt beantwortet das Gerät die Systemgruppe und die Schnittstellentabellen, die sein Modell und seine MAC-Adresse liefern, und sonst nichts. Wenn eine [Meraki-Verbindung](/docs/monitor/network-traffic#cisco-meraki-ohne-netflow) die Organisation des Geräts liest, übernimmt das Gerät diese Werte und alles andere, was seine Abfrage leer lässt, aus dem Meraki-Dashboard, und seine Karte **Inventar** nennt die Verbindung in einer Zeile **Meraki**.
 
-Um ein Gerät sofort erneut zu lesen, klicken Sie auf **Aktualisieren** auf seiner Karte **Inventar**. Seine Sonde fragt es innerhalb einer Minute ab, und seine Meraki-Verbindung liest die Organisation erneut. Die Karte sagt, wann der neue Lesevorgang eingetroffen ist oder dass die Sonde das Gerät nicht erreichen konnte. **Aktualisieren** gibt es für alle, die Netzwerkgeräte bearbeiten dürfen, bei einem Gerät, das eine Sonde abfragt oder das eine Meraki-Verbindung beschreibt.
+Um ein Gerät sofort erneut zu lesen, klicken Sie auf **Aktualisieren** auf seiner Karte **Inventar**. Seine Sonde fragt es innerhalb einer Minute ab, und seine Meraki-Verbindung liest die Organisation erneut. Die Karte sagt, wann der neue Lesevorgang eingetroffen ist oder dass die Sonde das Gerät nicht erreichen konnte. **Aktualisieren** gibt es für alle, die Netzwerkgeräte bearbeiten dürfen, bei einem Gerät, das eine Sonde abfragt oder das eine Meraki-Verbindung beschreibt. Sobald der neue Lesevorgang eingetroffen ist, zeigen ihn auch der Zustand des Geräts und seine Karte **Gerätedetails**. Wurde drei Minuten später nur das Meraki-Dashboard noch immer nicht gelesen, sagt die Karte das, mit einem Link zur Meraki-Verbindung auf der Seite **Datenverkehr** des Netzwerks, deren Zeile sagt, warum.
 
 ## Geräte mit einem Netzwerkscan erkennen
 
@@ -960,6 +960,12 @@ Damit sich die Karte füllt:
 - Verbinden Sie in einem Meraki-Netzwerk das Dashboard. Eine [Meraki-Verbindung](/docs/monitor/network-traffic#cisco-meraki-ohne-netflow) zeichnet die Kabel, die Meraki kennt, auch die einer MX, die nur auf Ping antwortet.
 
 Klicken Sie auf einen nicht verwalteten Partner, und **Zur Überwachung hinzufügen** registriert ihn als sondenabgefragtes Gerät. Es übernimmt die Sonde, auf die sich seine Nachbarn einigen, wird also ab seiner ersten Abfrage angepingt, und Sie können später Anmeldedaten hinzufügen, wenn sich herausstellt, dass es SNMP hat.
+
+### Das Layout wählen, mit dem die Karte öffnet
+
+**Kartenoptionen → Karte anordnen** ordnet die Karte als **Automatisch**, **Nach Netzwerkschicht**, **Konzentrisch**, **Hub-and-Spoke** oder **Eltern und Kind** an. Die Karte öffnet mit dem Layout, das als **Standard** markiert ist: **Automatisch** für alle Geräte und **Nach Netzwerkschicht** für einen Standort, es sei denn, Ihr Projekt hat ein Layout für alle gewählt. Jeder kann beim Ansehen das Layout wechseln; beim nächsten Mal öffnet die Karte wieder mit dem Standard.
+
+Projektinhaber und Projektadministratoren wählen den Standard: Wechseln Sie zu einem Layout und wählen Sie **Für alle als Standard festlegen**. Danach öffnet jede Ansicht der Gerätekarte damit: **Gerätetopologie**, ein Standort auf der **Karte** und der Tab **Netzwerk** von **Topologie**. Im Standardlayout setzt **Standard entfernen** jede Karte auf ihren eigenen Standard zurück. Verschobene Positionen werden für jedes Layout in Ihrem Browser gespeichert, sodass die Karte mit der Anordnung öffnet, die Sie in diesem Layout erstellt haben.
 
 ### Die Karte als PDF exportieren
 

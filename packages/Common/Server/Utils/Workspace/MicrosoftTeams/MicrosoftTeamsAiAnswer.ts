@@ -11,9 +11,11 @@ import OperatorSlackNotice, {
 } from "../../OperatorSlackNotice";
 import ProductBrandingText from "../../ProductBrandingText";
 import CaptureSpan from "../../Telemetry/CaptureSpan";
+import WorkspaceProjectChoiceStore from "../WorkspaceProjectChoiceStore";
 import MicrosoftTeamsUtil, {
   MicrosoftTeamsTenantResolution,
 } from "./MicrosoftTeams";
+import MicrosoftTeamsProjectChoice from "./MicrosoftTeamsProjectChoice";
 
 /*
  * AN ANSWER FROM ONEUPTIME AI, AS MICROSOFT TEAMS SHOWS IT.
@@ -39,7 +41,25 @@ import MicrosoftTeamsUtil, {
  * (NOTIFICATION_SLACK_WEBHOOK_ON_AI_FEEDBACK): the project, the reaction and
  * what they wrote. The answer itself is not sent there: it was written from
  * the project's own data, for the people in the conversation.
+ *
+ * An answer given in a project its asker chose - in an organization
+ * connected to several, where nothing the feedback carries tells which -
+ * is kept with its project (rememberAnswerProject), so its feedback names
+ * the project it was answered in, given by anybody, later.
  */
+
+// The project each answer given in a chosen project was answered in.
+const ANSWER_PROJECT_NAMESPACE: string = "microsoft-teams-ai-answer-project";
+
+/*
+ * How long an answer's project is kept for its feedback: feedback comes
+ * soon after an answer, but Teams takes it for as long as the message
+ * stands.
+ */
+const ANSWER_PROJECT_KEPT_FOR_SECONDS: number = 30 * 24 * 60 * 60;
+
+// A channel thread's conversation id, after its channel's: ";messageid=...".
+const THREAD_SEPARATOR: string = ";";
 
 // The invoke Teams sends when somebody submits feedback on a message.
 const FEEDBACK_INVOKE_NAME: string = "message/submitAction";
@@ -133,6 +153,57 @@ export default class MicrosoftTeamsAiAnswer {
         feedbackLoop: { type: "default" },
       },
     };
+  }
+
+  /*
+   * Keeps the project an answer (`messageId`, the message the bot sent it
+   * as, in the activity's conversation) was answered in, for its feedback.
+   * Never throws: without it, the feedback is told without its project.
+   */
+  @CaptureSpan()
+  public static async rememberAnswerProject(data: {
+    activity: JSONObject;
+    messageId: string;
+    projectId: ObjectID;
+  }): Promise<void> {
+    const keyParts: Array<string> | null =
+      MicrosoftTeamsAiAnswer.getAnswerKeyParts({
+        activity: data.activity,
+        messageId: data.messageId,
+      });
+
+    if (!keyParts) {
+      return;
+    }
+
+    await WorkspaceProjectChoiceStore.rememberProject({
+      namespace: ANSWER_PROJECT_NAMESPACE,
+      keyParts: keyParts,
+      projectId: data.projectId,
+      expiresInSeconds: ANSWER_PROJECT_KEPT_FOR_SECONDS,
+    });
+  }
+
+  /*
+   * The project kept for an answer (rememberAnswerProject); null for none.
+   * Never throws.
+   */
+  @CaptureSpan()
+  public static async getAnswerProject(data: {
+    activity: JSONObject;
+    messageId: string;
+  }): Promise<ObjectID | null> {
+    const keyParts: Array<string> | null =
+      MicrosoftTeamsAiAnswer.getAnswerKeyParts(data);
+
+    if (!keyParts) {
+      return null;
+    }
+
+    return await WorkspaceProjectChoiceStore.getRememberedProject({
+      namespace: ANSWER_PROJECT_NAMESPACE,
+      keyParts: keyParts,
+    });
   }
 
   // An invoke that is somebody's feedback on one of the bot's messages.
@@ -286,10 +357,14 @@ export default class MicrosoftTeamsAiAnswer {
   }
 
   /*
-   * The project the conversation belongs to, read as any message to the bot
-   * is (MicrosoftTeamsUtil.resolveProjectByTenantId); none for an
-   * organization connected to no project, or to several with nothing to
-   * tell which. Its name is read for the operator's message.
+   * The project the answer was given in: the one kept for it, when it was
+   * answered in a project its asker chose (rememberAnswerProject) - else
+   * the conversation's, read as any message to the bot is
+   * (MicrosoftTeamsUtil.resolveProjectByTenantId) - else, in an
+   * organization connected to several with nothing to tell which, the
+   * project the person giving it chose for this conversation. None for an
+   * organization connected to no project. Its name is read for the
+   * operator's message.
    */
   private static async getProject(
     activity: JSONObject,
@@ -300,14 +375,30 @@ export default class MicrosoftTeamsAiAnswer {
     }
 
     try {
-      const resolution: MicrosoftTeamsTenantResolution =
-        await MicrosoftTeamsUtil.resolveProjectByTenantId({
-          tenantId: feedback.tenantId,
-          clues: MicrosoftTeamsUtil.getProjectClues({ activity: activity }),
-        });
+      let projectId: ObjectID | null = feedback.messageId
+        ? await MicrosoftTeamsAiAnswer.getAnswerProject({
+            activity: activity,
+            messageId: feedback.messageId,
+          })
+        : null;
 
-      const projectId: ObjectID | null =
-        resolution.projectAuth?.projectId || null;
+      if (!projectId) {
+        const resolution: MicrosoftTeamsTenantResolution =
+          await MicrosoftTeamsUtil.resolveProjectByTenantId({
+            tenantId: feedback.tenantId,
+            clues: MicrosoftTeamsUtil.getProjectClues({ activity: activity }),
+          });
+
+        projectId =
+          resolution.projectAuth?.projectId ||
+          (
+            await MicrosoftTeamsProjectChoice.findConversationProject({
+              activity: activity,
+              resolution: resolution.resolution,
+            })
+          )?.projectId ||
+          null;
+      }
 
       if (!projectId) {
         return { id: null, record: null };
@@ -327,6 +418,34 @@ export default class MicrosoftTeamsAiAnswer {
       logger.debug(err);
       return { id: null, record: null };
     }
+  }
+
+  /*
+   * The parts of an answer's key - its organization, its conversation (a
+   * channel thread's by its channel, as the feedback names it either way)
+   * and its message: hashed, never kept as they are. Null when the activity
+   * names none of them.
+   */
+  private static getAnswerKeyParts(data: {
+    activity: JSONObject;
+    messageId: string;
+  }): Array<string> | null {
+    const tenantId: string = MicrosoftTeamsProjectChoice.getTenantId(
+      data.activity,
+    );
+    const conversationId: string = MicrosoftTeamsAiAnswer.getString(
+      (data.activity["conversation"] as JSONObject | undefined)?.["id"],
+    ).split(THREAD_SEPARATOR)[0]!;
+    const messageId: string = data.messageId.substring(
+      0,
+      MESSAGE_ID_MAX_LENGTH,
+    );
+
+    if (!tenantId || !conversationId || !messageId) {
+      return null;
+    }
+
+    return [tenantId, conversationId, messageId];
   }
 
   private static getString(value: unknown): string {

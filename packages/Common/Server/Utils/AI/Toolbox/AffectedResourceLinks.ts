@@ -1,20 +1,6 @@
 import BaseModel from "../../../../Models/DatabaseModels/DatabaseBaseModel/DatabaseBaseModel";
 import Alert from "../../../../Models/DatabaseModels/Alert";
-import CephCluster from "../../../../Models/DatabaseModels/CephCluster";
-import CloudResource from "../../../../Models/DatabaseModels/CloudResource";
-import DatabaseServer from "../../../../Models/DatabaseModels/DatabaseServer";
-import DockerHost from "../../../../Models/DatabaseModels/DockerHost";
-import DockerSwarmCluster from "../../../../Models/DatabaseModels/DockerSwarmCluster";
-import Host from "../../../../Models/DatabaseModels/Host";
 import Incident from "../../../../Models/DatabaseModels/Incident";
-import IoTFleet from "../../../../Models/DatabaseModels/IoTFleet";
-import KubernetesCluster from "../../../../Models/DatabaseModels/KubernetesCluster";
-import NetworkDevice from "../../../../Models/DatabaseModels/NetworkDevice";
-import PodmanHost from "../../../../Models/DatabaseModels/PodmanHost";
-import ProxmoxCluster from "../../../../Models/DatabaseModels/ProxmoxCluster";
-import Service from "../../../../Models/DatabaseModels/Service";
-import StorageArray from "../../../../Models/DatabaseModels/StorageArray";
-import VMwareVCenter from "../../../../Models/DatabaseModels/VMwareVCenter";
 import {
   AI_AFFECTED_RESOURCE_KINDS,
   AiAffectedResourceArgument,
@@ -44,6 +30,7 @@ import ServiceService from "../../../Services/ServiceService";
 import StorageArrayService from "../../../Services/StorageArrayService";
 import VMwareVCenterService from "../../../Services/VMwareVCenterService";
 import FindBy from "../../../Types/Database/FindBy";
+import { toAffectedResourceStub } from "../../AffectedResources/AffectedResourceLists";
 import QueryHelper from "../../../Types/Database/QueryHelper";
 import logger from "../../Logger";
 import { ToolContext } from "./ToolTypes";
@@ -135,94 +122,79 @@ export const AFFECTED_RESOURCES_ARGUMENT_SCHEMA: JSONObject = {
 };
 
 interface AffectedResourceReader {
-  model: new () => BaseModel;
   findBy: (data: FindBy<BaseModel>) => Promise<Array<BaseModel>>;
 }
 
-// How each kind is read: its model and its service's own find.
+// How each kind is read: its service's own find.
 const READERS: Readonly<
   Record<AiAffectedResourceKind, AffectedResourceReader>
 > = {
   [AiAffectedResourceKind.Host]: {
-    model: Host,
     findBy: (data: FindBy<BaseModel>): Promise<Array<BaseModel>> => {
       return HostService.findBy(data as never);
     },
   },
   [AiAffectedResourceKind.NetworkDevice]: {
-    model: NetworkDevice,
     findBy: (data: FindBy<BaseModel>): Promise<Array<BaseModel>> => {
       return NetworkDeviceService.findBy(data as never);
     },
   },
   [AiAffectedResourceKind.DockerHost]: {
-    model: DockerHost,
     findBy: (data: FindBy<BaseModel>): Promise<Array<BaseModel>> => {
       return DockerHostService.findBy(data as never);
     },
   },
   [AiAffectedResourceKind.PodmanHost]: {
-    model: PodmanHost,
     findBy: (data: FindBy<BaseModel>): Promise<Array<BaseModel>> => {
       return PodmanHostService.findBy(data as never);
     },
   },
   [AiAffectedResourceKind.KubernetesCluster]: {
-    model: KubernetesCluster,
     findBy: (data: FindBy<BaseModel>): Promise<Array<BaseModel>> => {
       return KubernetesClusterService.findBy(data as never);
     },
   },
   [AiAffectedResourceKind.DockerSwarmCluster]: {
-    model: DockerSwarmCluster,
     findBy: (data: FindBy<BaseModel>): Promise<Array<BaseModel>> => {
       return DockerSwarmClusterService.findBy(data as never);
     },
   },
   [AiAffectedResourceKind.ProxmoxCluster]: {
-    model: ProxmoxCluster,
     findBy: (data: FindBy<BaseModel>): Promise<Array<BaseModel>> => {
       return ProxmoxClusterService.findBy(data as never);
     },
   },
   [AiAffectedResourceKind.VMwareVCenter]: {
-    model: VMwareVCenter,
     findBy: (data: FindBy<BaseModel>): Promise<Array<BaseModel>> => {
       return VMwareVCenterService.findBy(data as never);
     },
   },
   [AiAffectedResourceKind.CephCluster]: {
-    model: CephCluster,
     findBy: (data: FindBy<BaseModel>): Promise<Array<BaseModel>> => {
       return CephClusterService.findBy(data as never);
     },
   },
   [AiAffectedResourceKind.StorageArray]: {
-    model: StorageArray,
     findBy: (data: FindBy<BaseModel>): Promise<Array<BaseModel>> => {
       return StorageArrayService.findBy(data as never);
     },
   },
   [AiAffectedResourceKind.IoTFleet]: {
-    model: IoTFleet,
     findBy: (data: FindBy<BaseModel>): Promise<Array<BaseModel>> => {
       return IoTFleetService.findBy(data as never);
     },
   },
   [AiAffectedResourceKind.DatabaseServer]: {
-    model: DatabaseServer,
     findBy: (data: FindBy<BaseModel>): Promise<Array<BaseModel>> => {
       return DatabaseServerService.findBy(data as never);
     },
   },
   [AiAffectedResourceKind.CloudResource]: {
-    model: CloudResource,
     findBy: (data: FindBy<BaseModel>): Promise<Array<BaseModel>> => {
       return CloudResourceService.findBy(data as never);
     },
   },
   [AiAffectedResourceKind.Service]: {
-    model: Service,
     findBy: (data: FindBy<BaseModel>): Promise<Array<BaseModel>> => {
       return ServiceService.findBy(data as never);
     },
@@ -651,8 +623,6 @@ export default class AffectedResourceLinks {
   }
 
   private static toRecord(kind: AiAffectedResourceKind, id: string): BaseModel {
-    const record: BaseModel = new READERS[kind].model();
-    record.id = new ObjectID(id);
-    return record;
+    return toAffectedResourceStub(kind, id);
   }
 }

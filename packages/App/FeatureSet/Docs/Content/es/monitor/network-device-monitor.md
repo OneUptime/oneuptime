@@ -518,7 +518,7 @@ Estos datos se guardan junto a los campos propios del dispositivo, nunca dentro 
 
 Un switch, punto de acceso o appliance de Meraki no da por SNMP número de serie ni firmware: sondeado directamente, responde al grupo de sistema y a las tablas de interfaces, que dan su modelo y su dirección MAC, y nada más. Cuando una [conexión de Meraki](/docs/monitor/network-traffic#cisco-meraki-sin-netflow) lee su organización, el dispositivo toma esos datos, y todo lo demás que su sondeo deja vacío, del panel de Meraki, y su tarjeta **Inventario** nombra la conexión en una fila **Meraki**.
 
-Para volver a leer un dispositivo ahora, pulsa **Actualizar** en su tarjeta **Inventario**. Su sonda lo consulta en menos de un minuto y su conexión de Meraki vuelve a leer la organización. La tarjeta indica cuándo ha llegado la nueva lectura, o que la sonda no pudo alcanzar el dispositivo. **Actualizar** está disponible para quien puede editar dispositivos de red, en un dispositivo que una sonda consulta o que una conexión de Meraki describe.
+Para volver a leer un dispositivo ahora, pulsa **Actualizar** en su tarjeta **Inventario**. Su sonda lo consulta en menos de un minuto y su conexión de Meraki vuelve a leer la organización. La tarjeta indica cuándo ha llegado la nueva lectura, o que la sonda no pudo alcanzar el dispositivo. **Actualizar** está disponible para quien puede editar dispositivos de red, en un dispositivo que una sonda consulta o que una conexión de Meraki describe. Cuando llega la nueva lectura, el estado del dispositivo y su tarjeta **Detalles del dispositivo** también la muestran. Si tres minutos después solo el panel de Meraki sigue sin leerse, la tarjeta lo indica, con un enlace a la conexión de Meraki en la página **Tráfico** de la red, cuya fila dice por qué.
 
 ## Descubrir dispositivos con un escaneo de red
 
@@ -960,6 +960,12 @@ Para que el mapa se rellene:
 - En una red Meraki, conecte el panel. Una [conexión de Meraki](/docs/monitor/network-traffic#cisco-meraki-sin-netflow) dibuja los cables que Meraki conoce, incluidos los de un MX que solo responde a ping.
 
 Haz clic en un par no gestionado y **Añadir al monitoreo** lo registra como dispositivo sondeado por sonda. Toma la sonda en la que coinciden sus vecinos, así que recibe ping desde su primer sondeo, y puedes añadir credenciales más tarde si resulta que tiene SNMP.
+
+### Elegir el diseño con el que se abre el mapa
+
+**Opciones del mapa → Organizar el mapa** organiza el mapa como **Automático**, **Por capa de red**, **Concéntrico**, **Radial (hub and spoke)** o **Padre e hijo**. El mapa se abre con el diseño marcado como **Predeterminado**: **Automático** para todos los dispositivos y **Por capa de red** para un sitio, salvo que tu proyecto haya elegido un diseño para todos. Cualquiera puede cambiar de diseño mientras consulta el mapa; la próxima vez se abre de nuevo con el predeterminado.
+
+Los propietarios y administradores del proyecto eligen el predeterminado: cambia a un diseño y selecciona **Establecer como predeterminado para todos**. A partir de entonces, todas las vistas del mapa de dispositivos se abren con él: **Topología del dispositivo**, un sitio en el **Mapa**, y la pestaña **Red** de **Topología**. En el diseño predeterminado, **Quitar predeterminado** devuelve cada mapa a su propio predeterminado. Las posiciones arrastradas se guardan para cada diseño en tu navegador, así que el mapa se abre con la disposición que hiciste en ese diseño.
 
 ### Exportar el mapa como PDF
 

@@ -6,6 +6,7 @@ import {
   test,
   TestInfo,
 } from "@playwright/test";
+import { expectNoSidewaysScroll } from "../SuiteHelpers/PageFit";
 
 /*
  * A public dashboard's theme, in a real browser, on the real public
@@ -1113,11 +1114,7 @@ test.describe("pages that show no dashboard follow the visitor", () => {
     await shoot(page, testInfo, "forbidden-dark");
 
     // No sideways scroll on a phone.
-    expect(
-      await page.evaluate((): number => {
-        return document.documentElement.scrollWidth - window.innerWidth;
-      }),
-    ).toBeLessThanOrEqual(0);
+    await expectNoSidewaysScroll(page);
   });
 
   test("not found: the visitor's own pick, else their device", async ({
@@ -1356,7 +1353,6 @@ test.describe("the page at a phone's width", () => {
 
   interface PageBoxes {
     viewport: number;
-    pageScroll: number;
     header: { left: number; right: number };
     toolbar: Array<{ name: string; left: number; right: number }>;
     footer: { left: number; right: number };
@@ -1396,9 +1392,6 @@ test.describe("the page at a phone's width", () => {
 
       return {
         viewport: document.documentElement.clientWidth,
-        pageScroll:
-          document.documentElement.scrollWidth -
-          document.documentElement.clientWidth,
         header: span(byTestId("public-dashboard-header")),
         toolbar: Array.from(toolbar.querySelectorAll("button")).map(
           (button: HTMLButtonElement) => {
@@ -1449,7 +1442,7 @@ test.describe("the page at a phone's width", () => {
     const boxes: PageBoxes = await measure(page);
 
     // Nothing makes the page itself wider than the screen.
-    expect(boxes.pageScroll).toBe(0);
+    await expectNoSidewaysScroll(page);
     expect(boxes.header.left).toBeGreaterThanOrEqual(0);
     expect(boxes.header.right).toBeLessThanOrEqual(boxes.viewport + 0.5);
     expect(boxes.footer.right).toBeLessThanOrEqual(boxes.viewport + 0.5);
@@ -1567,6 +1560,74 @@ test.describe("the page at a phone's width", () => {
     }
   });
 
+  /*
+   * A public dashboard reads no logs, traces or security events: those
+   * widgets say so in their place, with an icon. On a phone each takes two
+   * rows - 150px, room for an icon and two lines of words - rather than a
+   * chart's 400px or its own five rows (390px) for a line of words (#5453's
+   * follow-up), and its words sit in the middle of it.
+   */
+  test("a widget the dashboard cannot draw takes two rows on a phone, its words in the middle", async ({
+    page,
+  }: { page: Page }, testInfo: TestInfo) => {
+    test.skip(!testInfo.project.use.isMobile, "A phone's width.");
+
+    await openDashboard(page, "light", "board=other");
+
+    const SECURITY: string =
+      "Security event widgets are not available on public dashboards.";
+
+    for (const [sentence, widgets] of [
+      ["Log charts are not available on public dashboards.", 1],
+      ["Trace charts are not available on public dashboards.", 1],
+      ["Trace tables are not available on public dashboards.", 1],
+      // The security events list and its flow.
+      [SECURITY, 2],
+    ] as Array<[string, number]>) {
+      await expect(page.getByText(sentence).first()).toBeVisible();
+
+      // Each widget and its words, read in one frame.
+      const drawn: Array<{ height: number; wordsOffCentre: number }> =
+        await page.evaluate((words: string) => {
+          return Array.from(
+            document.querySelectorAll<HTMLElement>(
+              '[id^="dashboard-component-"]',
+            ),
+          )
+            .filter((element: HTMLElement): boolean => {
+              return element.innerText.indexOf(words) >= 0;
+            })
+            .map((element: HTMLElement) => {
+              const box: DOMRect = element.getBoundingClientRect();
+              const text: HTMLElement = Array.from(
+                element.querySelectorAll<HTMLElement>("p"),
+              ).find((paragraph: HTMLElement): boolean => {
+                return paragraph.innerText.trim() === words;
+              })!;
+              const textBox: DOMRect = text.getBoundingClientRect();
+
+              return {
+                height: box.height,
+                // How far the words' middle is from the widget's, down it.
+                wordsOffCentre: Math.abs(
+                  textBox.top + textBox.height / 2 - (box.top + box.height / 2),
+                ),
+              };
+            });
+        }, sentence);
+
+      expect([sentence, drawn.length]).toEqual([sentence, widgets]);
+
+      for (const widget of drawn) {
+        expect([sentence, widget.height]).toEqual([sentence, 2 * 70 + 10]);
+        // Under the icon, so a little below the middle; never at the top.
+        expect(widget.wordsOffCentre).toBeLessThan(40);
+      }
+    }
+
+    await shoot(page, testInfo, "phone-undrawn-widgets");
+  });
+
   test("a real tap on the toolbar opens its menus: they are on the screen now", async ({
     page,
   }: { page: Page }, testInfo: TestInfo) => {
@@ -1669,7 +1730,7 @@ test.describe("the page at a phone's width", () => {
     const boxes: PageBoxes = await measure(page);
 
     expect(boxes.arrangement).toBe("grid");
-    expect(boxes.pageScroll).toBe(0);
+    await expectNoSidewaysScroll(page);
     expect(boxes.frame.scrollWidth).toBe(boxes.frame.clientWidth);
 
     for (const widget of boxes.widgets) {
@@ -1700,7 +1761,7 @@ test.describe("the page at a phone's width", () => {
 
     const boxes: PageBoxes = await measure(page);
 
-    expect(boxes.pageScroll).toBe(0);
+    await expectNoSidewaysScroll(page);
     // No scroll frame: a chart's tooltip is never cut.
     expect(boxes.frame.overflowX).toBe("visible");
     expect(boxes.frame.scrollWidth).toBe(boxes.frame.clientWidth);
@@ -1715,14 +1776,7 @@ test.describe("the page at a phone's width", () => {
 
     await openDashboard(page, "darkPassword", "", "prompt");
 
-    expect(
-      await page.evaluate((): number => {
-        return (
-          document.documentElement.scrollWidth -
-          document.documentElement.clientWidth
-        );
-      }),
-    ).toBe(0);
+    await expectNoSidewaysScroll(page);
     await expect(page.getByTestId("master-password-prompt")).toHaveText(
       "Enter the password to view this dashboard.",
     );

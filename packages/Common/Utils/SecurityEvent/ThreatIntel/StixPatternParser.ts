@@ -1,4 +1,5 @@
 import { ThreatIntelIndicatorType } from "../../../Types/SecurityEvent/ThreatIntelConstants";
+import lookupTable from "../../LookupTable";
 
 /*
  * Parser for the subset of the STIX 2.1 pattern language that maps onto
@@ -52,11 +53,12 @@ const OR_CONNECTOR_REGEX: RegExp = /^OR$/i;
 const COMPARISON_REGEX: RegExp =
   /^([a-zA-Z0-9-]+):([A-Za-z0-9_.'"-]+)\s*=\s*'((?:\\.|[^'\\])*)'$/;
 
-const HASH_KEY_TO_TYPE: Record<string, ThreatIntelIndicatorType> = {
-  SHA256: ThreatIntelIndicatorType.FileHashSha256,
-  SHA1: ThreatIntelIndicatorType.FileHashSha1,
-  MD5: ThreatIntelIndicatorType.FileHashMd5,
-};
+const HASH_KEY_TO_TYPE: ReadonlyMap<string, ThreatIntelIndicatorType> =
+  lookupTable({
+    SHA256: ThreatIntelIndicatorType.FileHashSha256,
+    SHA1: ThreatIntelIndicatorType.FileHashSha1,
+    MD5: ThreatIntelIndicatorType.FileHashMd5,
+  });
 
 export default class StixPatternParser {
   /*
@@ -350,7 +352,7 @@ export default class StixPatternParser {
 
       const hashKey: string = hashMatch[1]!.toUpperCase().replace(/-/g, "");
 
-      return HASH_KEY_TO_TYPE[hashKey] || null;
+      return HASH_KEY_TO_TYPE.get(hashKey) || null;
     }
 
     return null;

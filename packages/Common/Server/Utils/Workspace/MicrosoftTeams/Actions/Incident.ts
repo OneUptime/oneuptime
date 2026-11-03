@@ -36,7 +36,10 @@ import MicrosoftTeamsCardChoices, {
 } from "../MicrosoftTeamsCardChoices";
 import MicrosoftTeamsReplies from "../MicrosoftTeamsReplies";
 import MicrosoftTeamsActionAnswer from "../MicrosoftTeamsActionAnswer";
-import { WorkspaceLatePress } from "../../WorkspaceActionAnswers";
+import {
+  WorkspaceAnswer,
+  WorkspaceLatePress,
+} from "../../WorkspaceActionAnswers";
 import WorkspaceNoteForm, {
   WORKSPACE_NOTE_FORM_TEXT,
   WorkspaceNoteFormType,
@@ -45,11 +48,35 @@ import WorkspaceNoteForm, {
 import { PrivateRecordKind } from "../../../../../Types/StatusPage/PrivateRecordPublicNotes";
 import { WorkspaceNoteType } from "../../../../../Types/Workspace/WorkspaceNoteReaction";
 import FeedMarkdown, {
+  MarkdownText,
   mdText,
 } from "../../../../../Utils/Markdown/FeedMarkdown";
+import { LinkedAffectedResource } from "../../../AI/Toolbox/AffectedResourceLinks";
+import WorkspaceAffectedResources, {
+  WORKSPACE_AFFECTED_RESOURCES_FIELD,
+  WORKSPACE_AFFECTED_RESOURCES_TEXT,
+  WorkspaceAffectedResourcesToLink,
+} from "../../WorkspaceAffectedResources";
+import WorkspaceIncidentFromAlert, {
+  WORKSPACE_DECLARED_FROM_FIELD,
+  WorkspaceAlertNotLinked,
+  WorkspaceAlertToLink,
+  WorkspaceDeclaringAlert,
+} from "../../WorkspaceIncidentFromAlert";
+import MicrosoftTeamsAffectedResources from "../MicrosoftTeamsAffectedResources";
 
 // Incident.title is a LongText column.
 const MICROSOFT_TEAMS_INCIDENT_TITLE_MAX_LENGTH: number = ColumnLength.LongText;
+
+/*
+ * The "Create New Incident" card's Affected Resources input: the project it
+ * searches, and whether that project's AI is on - its hint says what
+ * OneUptime AI does with the picks.
+ */
+export interface MicrosoftTeamsNewIncidentAffectedResources {
+  projectId: ObjectID;
+  isAiEnabled: boolean;
+}
 
 // The lists the "Create New Incident" card offers.
 export interface MicrosoftTeamsNewIncidentFormChoices {
@@ -667,6 +694,40 @@ export default class MicrosoftTeamsIncidentActions {
         action: "declare an incident",
       });
 
+      /*
+       * The affected resources picked, read again as the member who submits
+       * the card - only what they may view now, of this project, and not
+       * archived (WorkspaceAffectedResources) - and, for a card declared in
+       * an alert's own channel, that alert, when they may link it
+       * (WorkspaceIncidentFromAlert).
+       */
+      const toLink: WorkspaceAffectedResourcesToLink =
+        await WorkspaceAffectedResources.readPicked({
+          projectId: projectId,
+          props: databaseProps,
+          picks: WorkspaceAffectedResources.readPicks(
+            value[WORKSPACE_AFFECTED_RESOURCES_FIELD],
+          ),
+        });
+
+      const fromAlertId: ObjectID | null = WorkspaceIncidentFromAlert.readValue(
+        value[WORKSPACE_DECLARED_FROM_FIELD],
+      );
+
+      const alertLink: WorkspaceAlertToLink | WorkspaceAlertNotLinked | null =
+        fromAlertId
+          ? await WorkspaceIncidentFromAlert.checkLink({
+              projectId: projectId,
+              alertId: fromAlertId,
+              props: databaseProps,
+            })
+          : null;
+
+      const linkedAlert: WorkspaceAlertToLink | null =
+        alertLink && WorkspaceIncidentFromAlert.isLinked(alertLink)
+          ? alertLink
+          : null;
+
       let createdIncident: Incident;
 
       try {
@@ -680,6 +741,10 @@ export default class MicrosoftTeamsIncidentActions {
           monitorStatusId,
           labelIds,
           onCallPolicyIds,
+          affectedResources: toLink.linked,
+          alert: linkedAlert,
+          // Private like its alert, linked or not (WorkspaceIncidentFromAlert).
+          isPrivate: alertLink?.isPrivate === true,
         });
       } catch (error) {
         MicrosoftTeamsReplies.logFailure(
@@ -710,12 +775,29 @@ export default class MicrosoftTeamsIncidentActions {
         await this.getIncidentCreatedMessage({
           projectId: projectId,
           incidentId: createdIncident.id || undefined,
+          incidentNumber: this.getIncidentNumberText(createdIncident),
+          linkedLine: WorkspaceAffectedResources.getLinkedLine({
+            linked: toLink.linked,
+            alert: linkedAlert?.name,
+          }),
         }),
       );
       await MicrosoftTeamsReplies.deleteBestEffort(
         turnContext,
         turnContext.activity.replyToId,
       );
+
+      // What was picked and not linked: a reply to whoever submitted it.
+      await this.answerNotLinked({
+        turnContext: turnContext,
+        projectId: projectId,
+        incident: createdIncident,
+        notLinkedCount: toLink.notLinkedCount,
+        alertNotLinked:
+          alertLink && !WorkspaceIncidentFromAlert.isLinked(alertLink)
+            ? alertLink
+            : null,
+      });
       return;
     }
 
@@ -756,11 +838,28 @@ export default class MicrosoftTeamsIncidentActions {
     }`.toString();
   }
 
-  // The confirmation, with a link to the incident when one can be built.
-  private static async getIncidentCreatedMessage(data: {
+  /*
+   * The confirmation: the incident by its number, as Slack's names it -
+   * "✅ Incident INC-43 created successfully. View incident" - with a link
+   * to it when one can be built, and what it is linked to
+   * (WorkspaceAffectedResources.getLinkedLine). The link is words, not the
+   * address itself, which ran past a phone's screen.
+   */
+  public static async getIncidentCreatedMessage(data: {
     projectId: ObjectID;
     incidentId?: ObjectID | undefined;
+    // "INC-43", or "#43" in a project without a prefix; null for none.
+    incidentNumber?: string | null | undefined;
+    linkedLine?: MarkdownText | null | undefined;
   }): Promise<string> {
+    const linked: MarkdownText = data.linkedLine
+      ? mdText`\n\n${data.linkedLine}`
+      : FeedMarkdown.empty();
+
+    const created: MarkdownText = data.incidentNumber
+      ? mdText`✅ **Incident ${data.incidentNumber}** created successfully.`
+      : mdText`✅ Incident created successfully.`;
+
     if (data.incidentId) {
       try {
         const incidentLink: URL =
@@ -769,14 +868,59 @@ export default class MicrosoftTeamsIncidentActions {
             data.incidentId,
           );
 
-        return mdText`✅ Incident created successfully!\n\nView incident: ${incidentLink.toString()}`.toString();
+        return mdText`${created} [View incident](${incidentLink.toString()})${linked}`.toString();
       } catch (error) {
         logger.debug("Could not build the link to a new incident");
         logger.debug(error);
       }
     }
 
-    return "✅ Incident created successfully!";
+    return mdText`${created}${linked}`.toString();
+  }
+
+  // An incident's number as people read it: "INC-43", or "#43"; null for none.
+  private static getIncidentNumberText(incident: Incident): string | null {
+    if (incident.incidentNumberWithPrefix) {
+      return incident.incidentNumberWithPrefix;
+    }
+
+    return incident.incidentNumber !== undefined &&
+      incident.incidentNumber !== null
+      ? `#${incident.incidentNumber}`
+      : null;
+  }
+
+  /*
+   * Tells whoever submitted the card what they picked and is not linked - a
+   * resource deleted or archived since they picked it, or no longer one
+   * they may view, and the alert of the channel when they may not link it -
+   * in a reply that mentions them (Microsoft Teams has no message only one
+   * person sees; WorkspaceIncidentFromAlert.getNotLinkedAnswer). The
+   * incident is declared all the same. Nothing when everything was linked.
+   */
+  private static async answerNotLinked(data: {
+    turnContext: TurnContext;
+    projectId: ObjectID;
+    incident: Incident;
+    notLinkedCount: number;
+    alertNotLinked: WorkspaceAlertNotLinked | null;
+  }): Promise<void> {
+    const answer: WorkspaceAnswer | null =
+      await WorkspaceIncidentFromAlert.readNotLinkedAnswer({
+        projectId: data.projectId,
+        incident: data.incident,
+        notLinkedCount: data.notLinkedCount,
+        alertNotLinked: data.alertNotLinked,
+      });
+
+    if (!answer) {
+      return;
+    }
+
+    await MicrosoftTeamsActionAnswer.reply({
+      turnContext: data.turnContext,
+      answer: answer,
+    });
   }
 
   /*
@@ -799,6 +943,12 @@ export default class MicrosoftTeamsIncidentActions {
     monitorStatusId: string;
     labelIds: string;
     onCallPolicyIds: string;
+    // The affected resources, as the member read them (readPicked).
+    affectedResources?: Array<LinkedAffectedResource> | undefined;
+    // The alert it is declared from, when the member may link it.
+    alert?: WorkspaceAlertToLink | null | undefined;
+    // Declared from a private alert, linked or not.
+    isPrivate?: boolean | undefined;
   }): Promise<Incident> {
     const { projectId } = data;
 
@@ -863,10 +1013,22 @@ export default class MicrosoftTeamsIncidentActions {
       incident.changeMonitorStatusToId = monitorStatusId;
     }
 
-    // Save the incident
+    // What OneUptime AI investigates and fixes.
+    WorkspaceAffectedResources.setOnIncident(
+      incident,
+      data.affectedResources || [],
+    );
+
+    // A private alert's incident is private, as the Dashboard declares it.
+    if (data.alert?.isPrivate || data.isPrivate) {
+      incident.isPrivate = true;
+    }
+
+    // Save the incident - linked to its alert, as one declared from it.
     const createdIncident: Incident = await IncidentService.create({
       data: incident,
       props: data.props,
+      ...(data.alert ? { miscDataProps: data.alert.miscDataProps } : {}),
     });
 
     logger.debug(
@@ -1137,6 +1299,13 @@ export default class MicrosoftTeamsIncidentActions {
     budgetInBytes: number;
     initialTitle?: string | undefined;
     createInOneUptimeUrl?: string | null | undefined;
+    /*
+     * The Affected Resources input, searched in this project as the person
+     * types; left out when not given (MicrosoftTeamsAffectedResources).
+     */
+    affectedResources?: MicrosoftTeamsNewIncidentAffectedResources | undefined;
+    // The open alert of the channel the card is declared in.
+    declaringAlert?: WorkspaceDeclaringAlert | null | undefined;
   }): JSONObject {
     return MicrosoftTeamsCardChoices.fitCardToBudget<
       keyof MicrosoftTeamsNewIncidentFormChoices
@@ -1154,6 +1323,8 @@ export default class MicrosoftTeamsIncidentActions {
           shown: shown,
           initialTitle: data.initialTitle,
           createInOneUptimeUrl: data.createInOneUptimeUrl,
+          affectedResources: data.affectedResources,
+          declaringAlert: data.declaringAlert,
         });
       },
     }).card;
@@ -1163,9 +1334,15 @@ export default class MicrosoftTeamsIncidentActions {
     shown: MicrosoftTeamsNewIncidentFormChoices;
     initialTitle?: string | undefined;
     createInOneUptimeUrl?: string | null | undefined;
+    affectedResources?: MicrosoftTeamsNewIncidentAffectedResources | undefined;
+    declaringAlert?: WorkspaceDeclaringAlert | null | undefined;
   }): JSONObject {
     const { shown } = data;
-    const initialTitle: string = (data.initialTitle || "").trim();
+    const initialTitle: string = (
+      data.initialTitle ||
+      data.declaringAlert?.title ||
+      ""
+    ).trim();
     let isAnythingLeftOff: boolean = false;
 
     const addLaterHint: string =
@@ -1178,6 +1355,20 @@ export default class MicrosoftTeamsIncidentActions {
         size: "Large",
         weight: "Bolder",
       },
+    ];
+
+    // The alert it is declared from, said first.
+    if (data.declaringAlert) {
+      bodyElements.push({
+        type: "TextBlock",
+        text: WorkspaceIncidentFromAlert.getFormLine(
+          data.declaringAlert,
+        ).toString(),
+        wrap: true,
+      });
+    }
+
+    bodyElements.push(
       {
         type: "Input.Text",
         id: "incidentTitle",
@@ -1202,7 +1393,7 @@ export default class MicrosoftTeamsIncidentActions {
         isMultiline: true,
         isRequired: true,
       },
-    ];
+    );
 
     const addNotShownNote: (
       list: MicrosoftTeamsCardChoiceList,
@@ -1236,16 +1427,42 @@ export default class MicrosoftTeamsIncidentActions {
       });
     }
 
-    // Add monitor multi-select if we have monitors
+    /*
+     * What the incident is about - its hosts, clusters, databases, cloud
+     * resources and services - which OneUptime AI investigates and fixes:
+     * the first of the optional inputs, as it pauses nothing. Searched as
+     * the person types, as the member (MicrosoftTeamsAffectedResources).
+     */
+    if (data.affectedResources) {
+      bodyElements.push(
+        ...MicrosoftTeamsAffectedResources.getInputElements({
+          projectId: data.affectedResources.projectId,
+          initial: data.declaringAlert?.resources || [],
+          isAiEnabled: data.affectedResources.isAiEnabled,
+        }),
+      );
+    }
+
+    /*
+     * Picked on purpose only, never filled in: a monitor linked to an
+     * incident a person declares pauses its checks until the incident is
+     * resolved, which the line under it says.
+     */
     if (shown.monitors.choices.length > 0) {
-      bodyElements.push({
-        type: "Input.ChoiceSet",
-        id: "incidentMonitors",
-        label: "Affected Monitors (Optional)",
-        style: "compact",
-        isMultiSelect: true,
-        choices: shown.monitors.choices,
-      });
+      bodyElements.push(
+        {
+          type: "Input.ChoiceSet",
+          id: "incidentMonitors",
+          label: "Affected Monitors (Optional)",
+          style: "compact",
+          isMultiSelect: true,
+          choices: shown.monitors.choices,
+        },
+        // What a pick here does, right under the list.
+        MicrosoftTeamsCardChoices.buildNoteElement(
+          WORKSPACE_AFFECTED_RESOURCES_TEXT.monitorsHint,
+        ),
+      );
     }
 
     addNotShownNote(shown.monitors, "monitors");
@@ -1292,12 +1509,24 @@ export default class MicrosoftTeamsIncidentActions {
 
     addNotShownNote(shown.labels, "labels");
 
+    /*
+     * The button carries the alert the card is declared from, for its
+     * submission to read again as whoever submits it.
+     */
     const actions: Array<JSONObject> = [
       {
         type: "Action.Submit",
         title: "Create Incident",
         data: {
           action: MicrosoftTeamsIncidentActionType.SubmitNewIncident,
+          ...(data.declaringAlert
+            ? {
+                [WORKSPACE_DECLARED_FROM_FIELD]:
+                  WorkspaceIncidentFromAlert.toValue(
+                    data.declaringAlert.alertId,
+                  ),
+              }
+            : {}),
         },
       },
     ];

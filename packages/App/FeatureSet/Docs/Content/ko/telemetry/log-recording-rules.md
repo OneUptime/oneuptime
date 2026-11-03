@@ -54,7 +54,7 @@ flowchart TB
 
 ### 결과를 나누고 저장하기
 
-필요하면 **그룹화 기준** 속성과 **Unit** 을 추가하세요. 편집기 아래쪽의 줄을 확인한 다음 저장합니다. 몇 분 안에 규칙 목록에 **Computed Until** 시각이 표시됩니다.
+필요하면 **그룹화 기준** 속성과 **단위**를 추가하세요. 편집기 아래쪽의 줄을 확인한 다음 저장합니다. 몇 분 안에 규칙 목록에 **Computed Until** 시각이 표시됩니다.
 :::
 
 | 필드 | 하는 일 |
@@ -139,7 +139,7 @@ flowchart TB
 - **Which Logs:** 속성 필터 `log_type` = `SD-WAN` 및 `log_component` = `SLA`
 - **집계:** 평균, **Numeric Attribute:** `latency`
 - **그룹화 기준:** `gw_name` 및 `profile_name`
-- **Unit:** `ms`
+- **단위:** `ms`
 
 API, MCP 또는 Terraform에서는 같은 규칙의 **정의** 가 다음과 같습니다.
 

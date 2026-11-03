@@ -5,12 +5,10 @@ import React, { FunctionComponent, ReactElement } from "react";
 import PageMap from "../../../Utils/PageMap";
 import RouteMap, { RouteUtil } from "../../../Utils/RouteMap";
 import Route from "Common/Types/API/Route";
-import FieldType from "Common/UI/Components/Types/FieldType";
 import StorageArrayResource from "Common/Models/DatabaseModels/StorageArrayResource";
 import StorageArrayResourceKind from "Common/Types/StorageArray/StorageArrayResourceKind";
 import StorageArrayResourceTable from "../../../Components/StorageArray/StorageArrayResourceTable";
 import StorageArrayResourceColumns from "../../../Components/StorageArray/StorageArrayResourceColumns";
-import StorageArrayResourceStatusBadge from "../../../Components/StorageArray/StorageArrayResourceStatusBadge";
 import StorageArrayResourceUtils from "../Utils/StorageArrayResourceUtils";
 import { STORAGE_ARRAY_METRIC_DESCRIPTIONS } from "../../../Components/MetricDescriptions/StorageArrayMetricDescriptions";
 
@@ -47,29 +45,12 @@ const StorageArrayHosts: FunctionComponent<
         );
       }}
       columns={[
-        {
-          field: {
-            status: true,
-          },
+        // By the rules: Lost redundant paths in amber, with why under it.
+        StorageArrayResourceColumns.getRulesStatusColumn({
           title: "Connectivity",
-          headerTooltip:
-            STORAGE_ARRAY_METRIC_DESCRIPTIONS.hostConnectivityColumn,
-          type: FieldType.Element,
-          getElement: (item: StorageArrayResource): ReactElement => {
-            return (
-              <div className="flex items-center gap-2">
-                <StorageArrayResourceStatusBadge status={item.status} />
-                {item.statusDetail ? (
-                  <span className="text-xs text-gray-500">
-                    {item.statusDetail}
-                  </span>
-                ) : (
-                  <></>
-                )}
-              </div>
-            );
-          },
-        },
+          description: STORAGE_ARRAY_METRIC_DESCRIPTIONS.hostConnectivityColumn,
+          field: "status",
+        }),
         StorageArrayResourceColumns.getTextColumn({
           field: "groupName",
           title: "Host Group",

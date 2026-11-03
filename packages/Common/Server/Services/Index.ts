@@ -399,6 +399,8 @@ import SecurityCaseTaskService from "./SecurityCaseTaskService";
 import SecurityCaseEvidenceService from "./SecurityCaseEvidenceService";
 import SecurityCasePriorityService from "./SecurityCasePriorityService";
 import SecurityCaseStatusService from "./SecurityCaseStatusService";
+import SecurityCaseNoteTemplateService from "./SecurityCaseNoteTemplateService";
+import SecurityCaseCustomFieldService from "./SecurityCaseCustomFieldService";
 import SecurityDetectionService from "./SecurityDetectionService";
 import SecurityPlaybookService from "./SecurityPlaybookService";
 import SecurityPlaybookRunService from "./SecurityPlaybookRunService";
@@ -493,6 +495,7 @@ import IncidentVideoCallService from "./IncidentVideoCallService";
 import AlertVideoCallService from "./AlertVideoCallService";
 import WorkspaceNotificationLogService from "./WorkspaceNotificationLogService";
 import WorkspaceLiveMessageService from "./WorkspaceLiveMessageService";
+import WorkspaceHomeChoiceService from "./WorkspaceHomeChoiceService";
 import WorkspaceNotificationSummaryService from "./WorkspaceNotificationSummaryService";
 import WorkspaceUserGroupService from "./WorkspaceUserGroupService";
 import WorkspaceUserNotificationService from "./WorkspaceUserNotificationService";
@@ -937,6 +940,8 @@ const services: Array<BaseService> = [
   SecurityCaseEvidenceService,
   SecurityCasePriorityService,
   SecurityCaseStatusService,
+  SecurityCaseNoteTemplateService,
+  SecurityCaseCustomFieldService,
   SecurityDetectionService,
   SecurityPlaybookService,
   SecurityPlaybookRunService,
@@ -1030,6 +1035,7 @@ const services: Array<BaseService> = [
   AlertVideoCallService,
   WorkspaceNotificationLogService,
   WorkspaceLiveMessageService,
+  WorkspaceHomeChoiceService,
   WorkspaceNotificationSummaryService,
   WorkspaceUserGroupService,
   WorkspaceUserNotificationService,

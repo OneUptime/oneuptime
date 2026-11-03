@@ -1,4 +1,5 @@
 import { Locator, Page, TestInfo, expect, test } from "@playwright/test";
+import { expectNoSidewaysScroll } from "../SuiteHelpers/PageFit";
 
 interface Alignment {
   iconWidth: number;
@@ -70,11 +71,7 @@ test("all labeled variants and sizes center the pencil without changing its butt
     expect(result.labelGap, `${name}: label gap`).toBeGreaterThanOrEqual(4);
     await expect(button.locator("svg")).toHaveAttribute("aria-hidden", "true");
   }
-  expect(
-    await page.evaluate((): number => {
-      return document.documentElement.scrollWidth - window.innerWidth;
-    }),
-  ).toBeLessThanOrEqual(0);
+  await expectNoSidewaysScroll(page);
 });
 
 test("pencil is visibly wider and shorter while both aliases and all sizes share the same geometry", async ({

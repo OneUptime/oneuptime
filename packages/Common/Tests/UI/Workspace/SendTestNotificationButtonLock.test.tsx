@@ -105,6 +105,7 @@ jest.mock("../../../UI/Utils/Project", () => {
 
 import SendTestNotificationButton from "../../../../App/FeatureSet/Dashboard/src/Components/Workspace/SendTestNotificationButton";
 import PermissionUtil from "../../../UI/Utils/Permission";
+import { keepProjectPermissionsInTab } from "../../Helpers/TabProjectPermissions";
 
 const PROJECT_ID: ObjectID = new ObjectID(
   "7b100000-0000-4000-8000-000000000001",
@@ -119,7 +120,8 @@ const storeSnapshot: (permissions: Array<Permission>) => void = (
     globalPermissions: [Permission.Public, Permission.CurrentUser],
   });
 
-  PermissionUtil.setProjectPermissions({
+  // In the tab that shows the project (Common/UI/Utils/TabProject).
+  keepProjectPermissionsInTab({
     _type: "UserTenantAccessPermission",
     projectId: PROJECT_ID,
     permissions: permissions.map((permission: Permission): UserPermission => {

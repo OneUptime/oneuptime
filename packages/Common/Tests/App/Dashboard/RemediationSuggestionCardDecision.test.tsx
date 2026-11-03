@@ -108,7 +108,7 @@ function suggestion(): AutoRemediationSuggestion {
 
 // The step's status pill, beside its title.
 function statusPill(): HTMLElement {
-  return screen.getByLabelText("Remediation status");
+  return screen.getByTestId("ai-card-step-remediation-pill");
 }
 
 function evaluatedDecision(entries: Array<JSONObject>): JSONObject {

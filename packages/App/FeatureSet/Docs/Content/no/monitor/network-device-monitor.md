@@ -195,7 +195,7 @@ Hvert sted som viser en enhet — listen Enheter, en lokasjons Enheter-side, ove
 | Tillegg | Vises når | Hva du gjør |
 | --- | --- | --- |
 | **Foreldet** | Ingen polling er forsøkt på godt over enhetens intervall. | Kontroller at enhetens sonde er online og henger med flåten sin. |
-| **No probe** | Enheten polles av en sonde, men har ingen, eller pollingen er slått av. | Tildel en sonde som kan nå den; ingenting poller den før det. |
+| **Ingen sonde** | Enheten polles av en sonde, men har ingen, eller pollingen er slått av. | Tildel en sonde som kan nå den; ingenting poller den før det. |
 | **Ingen overvåking** | Enheten bruker [overstyringen med bundet monitor](#overstyringen-med-bundet-monitor), og ingenting er bundet. | Bind en monitor, eller bytt den tilbake til polling med sonde. |
 | **SNMP failing** | Oppe på ping, men det siste SNMP-walket feilet. | Kontroller påloggingsinformasjonen, SNMP-agenten eller en ACL. |
 
@@ -518,7 +518,7 @@ Disse lagres ved siden av enhetens egne felter, skrives aldri inn i dem, og hver
 
 En Meraki-svitsj, et Meraki-tilgangspunkt eller en Meraki-appliance gir verken serienummer eller fastvare over SNMP: når enheten polles direkte, svarer den på systemgruppen og grensesnittabellene, som gir modellen og MAC-adressen, og ikke noe mer. Når en [Meraki-tilkobling](/docs/monitor/network-traffic#cisco-meraki-uten-netflow) leser organisasjonen dens, henter enheten disse, og alt annet pollingen lar stå tomt, fra Meraki-dashbordet, og kortet **Inventar** nevner tilkoblingen i en rad **Meraki**.
 
-For å lese en enhet på nytt nå trykker du på **Oppdater** på kortet **Inventar**. Sonden poller den innen et minutt, og Meraki-tilkoblingen leser organisasjonen på nytt. Kortet sier når den nye avlesningen er kommet inn, eller at sonden ikke nådde enheten. **Oppdater** finnes for dem som kan redigere nettverksenheter, på en enhet som en sonde poller eller som en Meraki-tilkobling beskriver.
+For å lese en enhet på nytt nå trykker du på **Oppdater** på kortet **Inventar**. Sonden poller den innen et minutt, og Meraki-tilkoblingen leser organisasjonen på nytt. Kortet sier når den nye avlesningen er kommet inn, eller at sonden ikke nådde enheten. **Oppdater** finnes for dem som kan redigere nettverksenheter, på en enhet som en sonde poller eller som en Meraki-tilkobling beskriver. Når den nye avlesningen er kommet inn, viser også enhetens tilstand og kortet **Enhetsdetaljer** den. Hvis bare Meraki-dashbordet ennå ikke er lest tre minutter senere, sier kortet det, med en lenke til Meraki-tilkoblingen på nettverkets side **Trafikk**, der raden sier hvorfor.
 
 ## Finn enheter med en nettverksskanning
 
@@ -961,6 +961,12 @@ For at kartet skal fylles ut:
 
 Klikk på en ikke-administrert peer, så registrerer **Add to Monitoring** den som en sondepollet enhet. Den tar sonden naboene er enige om, så den pinges fra første polling, og du kan legge til påloggingsinformasjon senere hvis den viser seg å ha SNMP.
 
+### Velg oppsettet kartet åpner med
+
+**Map options → Arrange the map** legger ut kartet som **Automatisk**, **By network layer**, **Concentric**, **Hub and spoke** eller **Parent and child**. Kartet åpner med oppsettet som er merket **Standard**: **Automatisk** for alle enheter og **By network layer** for en lokasjon, med mindre prosjektet ditt har valgt et oppsett for alle. Alle kan bytte oppsett mens de ser på kartet; neste gang åpner det med standarden igjen.
+
+Prosjekteiere og prosjektadministratorer velger standarden: bytt til et oppsett og velg **Make default for everyone**. Deretter åpner hver visning av enhetskartet med det: **Enhetstopologi**, en lokasjon på **Kart** og fanen **Nettverk** under **Topologi**. På standardoppsettet sender **Clear default** hvert kart tilbake til sin egen standard. Flyttede posisjoner lagres for hvert oppsett i nettleseren din, så kartet åpner med plasseringen du laget i det oppsettet.
+
 ### Eksporter kartet som PDF
 
 **Eksporter PDF**, øverst på kartet, laster ned kartet du ser på som en PDF du kan legge ved en vurdering, en endringsforespørsel eller en hendelsesgjennomgang, eller lese frakoblet. Hver visning av enhetskartet har den: **Enhetstopologi**, en lokasjon på **Kart** og fanen **Nettverk** under **Topologi**.
@@ -1023,7 +1029,7 @@ Enhetens oversikt har et kort **Koblet til** som navngir svitsjen, porten og VLA
 :::details En enhet blir stående som Venter
 En enhet viser **Venter** så lenge ingenting har rapportert om den ennå. Les tillegget ved siden av statusen:
 
-- **No probe**: tildel en sonde, eller slå **Polling Enabled** på igjen. Ingenting poller enheten før du gjør det.
+- **Ingen sonde**: tildel en sonde, eller slå **Polling Enabled** på igjen. Ingenting poller enheten før du gjør det.
 - **Ingen overvåking**: enheten har [overstyringen med bundet monitor](#overstyringen-med-bundet-monitor) uten noe bundet. Bind en monitor, eller bruk **Switch to Probe Polling** slik at sonden pinger den.
 - Ingen tillegg i det hele tatt: enheten har en sonde og venter på første polling. I en stor flåte deler en sonde ut et begrenset antall enheter per syklus, så den første pollingen kan ta lengre tid enn enhetens intervall.
 

@@ -180,6 +180,8 @@ import SecurityCaseTask from "./SecurityCaseTask";
 import SecurityCaseEvidence from "./SecurityCaseEvidence";
 import SecurityCasePriority from "./SecurityCasePriority";
 import SecurityCaseStatus from "./SecurityCaseStatus";
+import SecurityCaseNoteTemplate from "./SecurityCaseNoteTemplate";
+import SecurityCaseCustomField from "./SecurityCaseCustomField";
 import SecurityDetection from "./SecurityDetection";
 import SecurityPlaybook from "./SecurityPlaybook";
 import SecurityPlaybookRun from "./SecurityPlaybookRun";
@@ -350,6 +352,7 @@ import WebhookLog from "./WebhookLog";
 import PushNotificationLog from "./PushNotificationLog";
 import WorkspaceNotificationLog from "./WorkspaceNotificationLog";
 import WorkspaceLiveMessage from "./WorkspaceLiveMessage";
+import WorkspaceHomeChoice from "./WorkspaceHomeChoice";
 // Status Page
 import StatusPage from "./StatusPage";
 import StatusPageAnnouncement from "./StatusPageAnnouncement";
@@ -642,6 +645,8 @@ const AllModelTypes: Array<{
   SecurityCaseEvidence,
   SecurityCasePriority,
   SecurityCaseStatus,
+  SecurityCaseNoteTemplate,
+  SecurityCaseCustomField,
   SecurityDetection,
   SecurityPlaybook,
   SecurityPlaybookRun,
@@ -922,6 +927,7 @@ const AllModelTypes: Array<{
   PushNotificationLog,
   WorkspaceNotificationLog,
   WorkspaceLiveMessage,
+  WorkspaceHomeChoice,
   CallLog,
   EmailLog,
 

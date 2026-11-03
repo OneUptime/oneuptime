@@ -55,6 +55,8 @@ import OperatorSlackNotice, {
 } from "../../../../../Server/Utils/OperatorSlackNotice";
 import ProductBrandingText from "../../../../../Server/Utils/ProductBrandingText";
 import ProjectService from "../../../../../Server/Services/ProjectService";
+import GlobalCache from "../../../../../Server/Infrastructure/GlobalCache";
+import MicrosoftTeamsProjectChoice from "../../../../../Server/Utils/Workspace/MicrosoftTeams/MicrosoftTeamsProjectChoice";
 import logger from "../../../../../Server/Utils/Logger";
 import Project from "../../../../../Models/DatabaseModels/Project";
 import WorkspaceProjectAuthToken from "../../../../../Models/DatabaseModels/WorkspaceProjectAuthToken";
@@ -359,5 +361,218 @@ describe("handleFeedback: the operator is told, on Slack", () => {
       MicrosoftTeamsAiAnswer.handleFeedback({ activity: feedbackInvoke() }),
     ).resolves.toBeUndefined();
     expect(logger.error).toHaveBeenCalled();
+  });
+});
+
+/*
+ * An answer given in a project its asker chose - in an organization
+ * connected to several, where nothing a 👍 or 👎 carries tells which - is
+ * kept with its project, so its feedback names it, whoever gives it, later.
+ */
+describe("the project an answer was given in, for its feedback", () => {
+  const OTHER_PROJECT_ID: ObjectID = new ObjectID(
+    "a1000000-0000-4000-8000-000000000002",
+  );
+
+  let store: Map<string, { value: string; seconds: number | undefined }>;
+
+  beforeEach(() => {
+    store = new Map();
+
+    jest.spyOn(GlobalCache, "setString").mockImplementation((async (
+      namespace: string,
+      key: string,
+      value: string,
+      options?: { expiresInSeconds?: number },
+    ) => {
+      store.set(`${namespace}|${key}`, {
+        value: value,
+        seconds: options?.expiresInSeconds,
+      });
+    }) as never);
+    jest.spyOn(GlobalCache, "getString").mockImplementation((async (
+      namespace: string,
+      key: string,
+    ) => {
+      return store.get(`${namespace}|${key}`)?.value || null;
+    }) as never);
+    jest.spyOn(logger, "debug").mockImplementation(() => {
+      return undefined as never;
+    });
+  });
+
+  // The answer's activity: the conversation it was given in.
+  function answeredIn(conversationId: string): JSONObject {
+    return {
+      type: "message",
+      conversation: { id: conversationId, tenantId: "tenant-1" },
+      channelData: { tenant: { id: "tenant-1" } },
+    };
+  }
+
+  test("kept for thirty days, under a key that names neither the organization, the conversation nor the message", async () => {
+    await MicrosoftTeamsAiAnswer.rememberAnswerProject({
+      activity: answeredIn("a:personal-chat"),
+      messageId: "1762160000001",
+      projectId: PROJECT_ID,
+    });
+
+    const [key, entry] = Array.from(store.entries())[0]!;
+
+    expect(key.startsWith("microsoft-teams-ai-answer-project|")).toBe(true);
+
+    for (const named of ["tenant-1", "a:personal-chat", "1762160000001"]) {
+      expect(key).not.toContain(named);
+    }
+
+    expect(entry.seconds).toBe(30 * 24 * 60 * 60);
+    expect(
+      await MicrosoftTeamsAiAnswer.getAnswerProject({
+        activity: answeredIn("a:personal-chat"),
+        messageId: "1762160000001",
+      }),
+    ).toEqual(PROJECT_ID);
+  });
+
+  test("each answer its own: another message, or the same id in another conversation, has none", async () => {
+    await MicrosoftTeamsAiAnswer.rememberAnswerProject({
+      activity: answeredIn("a:personal-chat"),
+      messageId: "1762160000001",
+      projectId: PROJECT_ID,
+    });
+
+    expect(
+      await MicrosoftTeamsAiAnswer.getAnswerProject({
+        activity: answeredIn("a:personal-chat"),
+        messageId: "1762160000002",
+      }),
+    ).toBeNull();
+    expect(
+      await MicrosoftTeamsAiAnswer.getAnswerProject({
+        activity: answeredIn("a:another-chat"),
+        messageId: "1762160000001",
+      }),
+    ).toBeNull();
+  });
+
+  test("an answer in a channel thread is found whether the feedback names the thread or its channel", async () => {
+    await MicrosoftTeamsAiAnswer.rememberAnswerProject({
+      activity: answeredIn("19:ops@thread.tacv2;messageid=1761400000000"),
+      messageId: "1761400000123",
+      projectId: OTHER_PROJECT_ID,
+    });
+
+    for (const conversationId of [
+      "19:ops@thread.tacv2;messageid=1761400000000",
+      "19:ops@thread.tacv2",
+    ]) {
+      expect(
+        await MicrosoftTeamsAiAnswer.getAnswerProject({
+          activity: answeredIn(conversationId),
+          messageId: "1761400000123",
+        }),
+      ).toEqual(OTHER_PROJECT_ID);
+    }
+  });
+
+  test("nothing is kept, or read, of an activity that names no organization or conversation", async () => {
+    await MicrosoftTeamsAiAnswer.rememberAnswerProject({
+      activity: { type: "message", conversation: { id: "a:chat" } },
+      messageId: "1",
+      projectId: PROJECT_ID,
+    });
+    await MicrosoftTeamsAiAnswer.rememberAnswerProject({
+      activity: { type: "message", channelData: { tenant: { id: "t" } } },
+      messageId: "1",
+      projectId: PROJECT_ID,
+    });
+
+    expect(store.size).toBe(0);
+    expect(
+      await MicrosoftTeamsAiAnswer.getAnswerProject({
+        activity: { type: "message" },
+        messageId: "1",
+      }),
+    ).toBeNull();
+  });
+
+  describe("the operator is told of feedback with it", () => {
+    let post: ReturnType<typeof jest.spyOn>;
+
+    beforeEach(() => {
+      post = jest
+        .spyOn(OperatorSlackNotice, "post")
+        .mockResolvedValue(undefined as never);
+      jest
+        .spyOn(ProjectService, "findOneById")
+        .mockImplementation((async (data: { id: ObjectID }) => {
+          return { id: data.id, name: "Kept" } as unknown as Project;
+        }) as never);
+    });
+
+    function told(): ObjectID | null {
+      return (post.mock.calls[0]![0] as JSONObject)[
+        "projectId"
+      ] as ObjectID | null;
+    }
+
+    test("the answer's own project first: nothing else is read", async () => {
+      await MicrosoftTeamsAiAnswer.rememberAnswerProject({
+        activity: feedbackInvoke(),
+        messageId: "1761400000000",
+        projectId: OTHER_PROJECT_ID,
+      });
+      const resolve: ReturnType<typeof jest.spyOn> = jest.spyOn(
+        MicrosoftTeamsUtil,
+        "resolveProjectByTenantId",
+      );
+
+      await MicrosoftTeamsAiAnswer.handleFeedback({
+        activity: feedbackInvoke(),
+      });
+
+      expect(told()).toEqual(OTHER_PROJECT_ID);
+      expect(resolve).not.toHaveBeenCalled();
+    });
+
+    test("none kept, and nothing tells which of the projects: the one its giver chose for the conversation", async () => {
+      jest
+        .spyOn(MicrosoftTeamsUtil, "resolveProjectByTenantId")
+        .mockResolvedValue({
+          projectAuth: null,
+          isAmbiguous: true,
+          candidateProjectIds: [PROJECT_ID, OTHER_PROJECT_ID],
+        } as MicrosoftTeamsTenantResolution);
+      jest
+        .spyOn(MicrosoftTeamsProjectChoice, "findConversationProject")
+        .mockResolvedValue({
+          projectId: OTHER_PROJECT_ID,
+        } as unknown as WorkspaceProjectAuthToken);
+
+      await MicrosoftTeamsAiAnswer.handleFeedback({
+        activity: feedbackInvoke(),
+      });
+
+      expect(told()).toEqual(OTHER_PROJECT_ID);
+    });
+
+    test("none kept, none chosen: told without one, as before", async () => {
+      jest
+        .spyOn(MicrosoftTeamsUtil, "resolveProjectByTenantId")
+        .mockResolvedValue({
+          projectAuth: null,
+          isAmbiguous: true,
+          candidateProjectIds: [PROJECT_ID, OTHER_PROJECT_ID],
+        } as MicrosoftTeamsTenantResolution);
+      jest
+        .spyOn(MicrosoftTeamsProjectChoice, "findConversationProject")
+        .mockResolvedValue(null);
+
+      await MicrosoftTeamsAiAnswer.handleFeedback({
+        activity: feedbackInvoke(),
+      });
+
+      expect(told()).toBeNull();
+    });
   });
 });

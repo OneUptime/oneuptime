@@ -26,7 +26,7 @@ flowchart TB
     monitors --> act
 ```
 
-Åbn **Produkter → Sikkerhedshændelser** under **Observabilitet**. Menuen har en sektion for hver del af sikkerheden og en side for sig for hver ting i den:
+Åbn **Produkter → Sikkerhedshændelser** under **Sikkerhed**. Menuen har en sektion for hver del af sikkerheden og en side for sig for hver ting i den:
 
 | Side | Sektion | Hvad den bruges til |
 | --- | --- | --- |
@@ -57,6 +57,9 @@ flowchart TB
 | **Sagsprioriteter** | Indstillinger | Hvor presserende en sag er: projektets egne prioriteter, den mest presserende først |
 | **Responsmål** | Indstillinger | Hvor hurtigt en sag med hver prioritet skal tages og inddæmmes |
 | **Sagsstatusser** | Indstillinger | De trin, en sag går igennem, og hvad en sag i hvert trin tæller som |
+| **Brugerdefinerede felter** | Indstillinger | De felter, dit team udfylder i hver sag, f.eks. den forretningsenhed, den handler om |
+| **Noteskabeloner** | Indstillinger | Færdig tekst til de noter, dit team skriver på sine sager |
+| **Nummerering** | Indstillinger | Teksten foran sagsnumrene og det nummer, den næste sag får |
 | **Risikoscoring** | Indstillinger | Om en entitets risiko åbner en sag, ved hvilken risiko, og hvor meget hver entitet betyder |
 
 **Detektioner**, **AI**, **Forbindelser** og **Indstillinger**, som sættes op én gang, forbliver foldet sammen, indtil du åbner dem. Ny i sikkerhed? [Kom godt i gang med sikkerhed](/docs/telemetry/security-getting-started) sætter det op med to klik.

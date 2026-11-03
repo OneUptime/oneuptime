@@ -384,7 +384,7 @@ export function readDeviceSeverity(severity: string): OcsfSeverity {
   return OcsfSeverity.Unknown;
 }
 
-const SEVERITY_RANK: Record<string, number> = {
+const SEVERITY_RANK: Record<OcsfSeverity, number> = {
   [OcsfSeverity.Unknown]: 0,
   [OcsfSeverity.Informational]: 1,
   [OcsfSeverity.Low]: 2,

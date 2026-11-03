@@ -85,7 +85,7 @@ Terraform으로 관리하려는 모니터, 상태 페이지 또는 다른 리소
 
 이 페이지들에는 시크릿이 절대 표시되지 않습니다. 구성에 시크릿이 필요하면(예: 모니터의 `Authorization` 헤더) `sensitive`로 표시한 Terraform 변수에서 읽습니다. 필요 없는 시크릿은 빠지며, Terraform은 OneUptime에 있는 값을 그대로 둡니다.
 
-같은 섹션에는 리소스용 `curl` 명령이 있는 **API** 페이지와, Claude, GitHub Copilot 또는 Cursor를 [MCP 서버](/docs/ai/mcp-server)에 연결하는 **AI 어시스턴트** 페이지도 있습니다.
+같은 섹션에는 리소스용 `curl` 명령이 있는 **API** 페이지, 같은 요청을 `oneuptime` 명령으로 보여 주는 **CLI** 페이지, 그리고 Claude, GitHub Copilot 또는 Cursor를 [MCP 서버](/docs/ai/mcp-server)에 연결하는 **AI 어시스턴트** 페이지도 있습니다.
 
 ## 관리할 수 있는 것
 

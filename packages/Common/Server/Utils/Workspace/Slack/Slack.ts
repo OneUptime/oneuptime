@@ -9,6 +9,7 @@ import WorkspaceMessagePayload, {
   WorkspaceDateTimePickerBlock,
   WorkspaceDropdownBlock,
   WorkspaceDropdownOptionGroup,
+  WorkspaceDropdownOptionsLoad,
   WorkspaceMessageBlock,
   WorkspaceMessagePayloadButton,
   WorkspaceModalBlock,
@@ -3188,8 +3189,24 @@ export default class SlackUtil extends WorkspaceBase {
         })
       : undefined;
 
+    /*
+     * Options asked for as the person types (optionsLoad): Slack's external
+     * select, which lists nothing it was sent - `options` hold only the
+     * picks it opens with.
+     */
+    const optionsLoad: WorkspaceDropdownOptionsLoad | undefined =
+      data.payloadDropdownBlock.optionsLoad;
+
+    let elementType: string = isMiltiSelect
+      ? "multi_static_select"
+      : "static_select";
+
+    if (optionsLoad) {
+      elementType = isMiltiSelect ? "multi_external_select" : "external_select";
+    }
+
     const element: JSONObject = {
-      type: isMiltiSelect ? "multi_static_select" : "static_select",
+      type: elementType,
       action_id: data.payloadDropdownBlock.blockId,
       placeholder: {
         type: "plain_text",
@@ -3199,8 +3216,20 @@ export default class SlackUtil extends WorkspaceBase {
         !isMiltiSelect && initialOption ? toOption(initialOption) : undefined,
     };
 
-    // Slack takes options, or groups of them: never both.
-    if (optionGroups.length > 0) {
+    if (optionsLoad) {
+      element["min_query_length"] = Math.max(
+        0,
+        Math.floor(optionsLoad.minQueryLength),
+      );
+
+      if (isMiltiSelect && optionsLoad.maxSelectedItems) {
+        element["max_selected_items"] = Math.max(
+          1,
+          Math.floor(optionsLoad.maxSelectedItems),
+        );
+      }
+    } else if (optionGroups.length > 0) {
+      // Slack takes options, or groups of them: never both.
       element["option_groups"] = optionGroups.map(
         (group: WorkspaceDropdownOptionGroup): JSONObject => {
           return {

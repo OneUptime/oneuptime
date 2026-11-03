@@ -1,5 +1,9 @@
 import TelemetryImprovementCard from "../../../Components/AI/TelemetryImprovementCard";
 import DashboardLogsViewer from "../../../Components/Logs/LogsViewer";
+import {
+  buildSavedViewScope,
+  SavedViewScopeKind,
+} from "Common/Utils/Telemetry/SavedViewScope";
 import PageComponentProps from "../../PageComponentProps";
 import ObjectID from "Common/Types/ObjectID";
 import ServiceType from "Common/Types/Telemetry/ServiceType";
@@ -18,6 +22,10 @@ const ServiceLogs: FunctionComponent<PageComponentProps> = (): ReactElement => {
        */}
       <DashboardLogsViewer
         id="service-logs"
+        savedViewScope={buildSavedViewScope(
+          SavedViewScopeKind.Service,
+          modelId,
+        )}
         serviceIds={[modelId]}
         scopeEntityType={ServiceType.OpenTelemetry}
         showFilters={true}

@@ -154,6 +154,16 @@ De metrics en logs van elke container worden opgeslagen onder een service die na
 
 [Docker-monitor](/docs/monitor/docker-monitor#verzamelde-metrieken) toont elke metric en wat die betekent.
 
+## Wat de pagina's van de host tonen
+
+De pagina's van de host beoordelen elke container volgens dezelfde regels, zodat het overzicht, de containerlijst en de eigen pagina van een container het altijd eens zijn:
+
+- **Overzicht**: de gezondheid van de host naast zijn verbinding, en **Vraagt aandacht**: de containers die kapot zijn of aandacht nodig hebben, de dringendste eerst, elk met de reden. Een container die zijn herstartbeleid in 15 minuten meer dan 3 keer heeft herstart, zit in een herstartlus; een die herstart is, meer dan 85% van zijn geheugen gebruikt of 10 minuten of langer draaide en daarna niet meer rapporteert, heeft aandacht nodig.
+- **Containers**: de status van elke container in dezelfde woorden en kleuren, met de reden, zijn herstarts van de afgelopen 15 minuten en wanneer hij voor het laatst is gestart. Een gestopte container blijft 15 minuten na zijn laatste meting in de lijst: **Rapporteert niet meer** voor een die 10 minuten of langer draaide, **Rapporteert niet** in grijs voor een taak of eenmalige uitvoering die klaar is.
+- De eigen pagina van een container: wat er aan hem aandacht nodig heeft, zijn CPU, geheugen en herstarts, wat er op hem openstaat, de containerwaarschuwingen met één stap om ze in te schakelen, en wat de agent over hem rapporteert.
+
+De agent leest alleen draaiende containers, dus een container die al gestopt was toen de agent startte, een exitcode en het oordeel van een healthcheck worden niet getoond.
+
 ## Containerlogs hebben de logdriver json-file nodig
 
 De agent volgt `/var/lib/docker/containers/*/*-json.log`, de bestanden die de logdriver `json-file` van Docker schrijft. Een container die een andere driver gebruikt, laat geen bestand achter om te lezen: `local` schrijft binaire bestanden, en `journald`, `syslog`, `fluentd` en `gelf` sturen de logs ergens anders heen. Zijn metrics komen nog steeds binnen; zijn logs niet.

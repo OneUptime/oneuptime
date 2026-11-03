@@ -93,6 +93,7 @@ const PRODUCTS_MENU_JAPANESE: Array<[string, string]> = [
 const MENU_JAPANESE: Array<[string, string]> = [
   ["Products", "製品"],
   ["navbar.categories.observability", "オブザーバビリティ"],
+  ["navbar.categories.security", "セキュリティ"],
   ["navbar.categories.infrastructure", "インフラストラクチャ"],
 ];
 
@@ -274,10 +275,14 @@ describe("the products menu in Japanese", () => {
 
     /*
      * The menu opens on Essentials and folds the other sections to one line
-     * each. These products sit in two of them, named in Japanese as well:
-     * open those the way a user would.
+     * each. These products sit in three of them (Security Events in
+     * Security), named in Japanese as well: open those the way a user would.
      */
-    for (const section of ["オブザーバビリティ", "インフラストラクチャ"]) {
+    for (const section of [
+      "オブザーバビリティ",
+      "セキュリティ",
+      "インフラストラクチャ",
+    ]) {
       const toggle: HTMLElement = within(menu).getByRole("button", {
         name: section,
       });
@@ -287,6 +292,7 @@ describe("the products menu in Japanese", () => {
     expect(
       within(menu).queryByRole("button", { name: "Observability" }),
     ).toBeNull();
+    expect(within(menu).queryByRole("button", { name: "Security" })).toBeNull();
     expect(
       within(menu).queryByRole("button", { name: "Infrastructure" }),
     ).toBeNull();

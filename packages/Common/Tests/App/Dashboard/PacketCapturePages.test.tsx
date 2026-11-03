@@ -51,6 +51,7 @@ import ObjectID from "../../../Types/ObjectID";
 import Permission from "../../../Types/Permission";
 import API from "../../../UI/Utils/API/API";
 import ModelAPI from "../../../UI/Utils/ModelAPI/ModelAPI";
+import { getProjectPermissionsStorageKey } from "../../../UI/Utils/Permission";
 import getJestMockFunction, { MockFunction } from "../../MockType";
 
 const PROBE_ID: string = "11111111-1111-4111-8111-111111111111";
@@ -155,8 +156,9 @@ describe("a probe's page, by who may read what the probe says about capturing", 
     localStorage.setItem("user_id", "aaaaaaaa-1111-4111-8111-111111111111");
     localStorage.setItem("is_master_admin", "false");
     sessionStorage.setItem("current_project_id", SESSION_PROJECT_ID);
+    // The snapshot the browser keeps for the project the tab shows.
     localStorage.setItem(
-      "project_permissions",
+      getProjectPermissionsStorageKey(SESSION_PROJECT_ID)!,
       JSON.stringify({
         projectId: SESSION_PROJECT_ID,
         permissions: permissions.map((permission: Permission) => {

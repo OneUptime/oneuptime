@@ -10,6 +10,7 @@ import fs from "fs/promises";
 import path from "path";
 import { boxesInOneFrame, FrameBox } from "../SuiteHelpers/Frames";
 import { escapeRegExp } from "Common/Utils/RegExpEscape";
+import { expectNoSidewaysScroll } from "../SuiteHelpers/PageFit";
 
 /*
  * Code in a browser, against the offline fixture (Code/Fixture): its first
@@ -233,15 +234,33 @@ async function openAskDialog(page: Page): Promise<Locator> {
   return dialog;
 }
 
-// The page is never wider than the screen: nothing scrolls sideways.
-async function expectNoSidewaysScroll(page: Page): Promise<void> {
-  const overflow: number = await page.evaluate((): number => {
-    return (
-      document.documentElement.scrollWidth -
-      document.documentElement.clientWidth
-    );
-  });
-  expect(overflow).toBeLessThanOrEqual(0);
+/*
+ * The setting that turns a Runner's AI code fixes off, where a sentence
+ * names it: drawn as code that reads as written, and that breaks only after
+ * its underscores - each part between two of them on one line - never at
+ * the letter that fills a phone's line ("..._CODE_FIXES=fals" / "e").
+ */
+async function expectSettingWholeAsCode(container: Locator): Promise<void> {
+  const setting: Locator = container.getByTestId(
+    "runner-code-fixes-off-setting",
+  );
+
+  await expect(setting).toHaveText("ONEUPTIME_RUNNER_ENABLE_CODE_FIXES=false");
+  expect(
+    await setting.evaluate((element: Element): string => {
+      return element.tagName;
+    }),
+  ).toBe("CODE");
+
+  const linesPerPart: Array<number> = await setting
+    .locator("span")
+    .evaluateAll((parts: Array<Element>): Array<number> => {
+      return parts.map((part: Element): number => {
+        return part.getClientRects().length;
+      });
+    });
+
+  expect(linesPerPart).toEqual([1, 1, 1, 1, 1]);
 }
 
 async function addContext(page: Page, kind: string): Promise<Locator> {
@@ -333,11 +352,10 @@ test.describe("Code opens on the request box, like Claude Code and Codex", () =>
   }, testInfo: TestInfo) => {
     // Add context, the pickers and Start task share one line.
     const expectOneLine: () => Promise<void> = async (): Promise<void> => {
-      const addContext: { y: number; height: number } | null = await page
-        .getByTestId("code-add-context")
-        .boundingBox();
-      const send: { y: number; height: number } | null =
-        await sendButton(page).boundingBox();
+      const [addContext, send] = await boxesInOneFrame([
+        page.getByTestId("code-add-context"),
+        sendButton(page),
+      ]);
       expect(
         Math.abs(
           addContext!.y + addContext!.height / 2 - (send!.y + send!.height / 2),
@@ -944,10 +962,10 @@ test.describe("Code's Repositories", () => {
       "GitHub does not give OneUptime access to these repositories any more, so AI cannot work in them.",
     );
     // It sits below the list, never among its rows.
-    const cardBox: { y: number; height: number } | null =
-      await connectedCard(page).boundingBox();
-    const foldBox: { y: number } | null =
-      await notConnected(page).boundingBox();
+    const [cardBox, foldBox] = await boxesInOneFrame([
+      connectedCard(page),
+      notConnected(page),
+    ]);
     expect(foldBox!.y).toBeGreaterThanOrEqual(cardBox!.y + cardBox!.height);
 
     await expectNoSidewaysScroll(page);
@@ -2354,10 +2372,10 @@ test.describe("a repository's settings", () => {
     await expect(commandsSwitch(page)).toBeHidden();
     await expect(page.getByTestId("code-repository-runner")).toBeHidden();
     await expect(page.getByRole("switch")).toHaveCount(0);
-    const detailsBox: { y: number; height: number } | null =
-      await details.boundingBox();
-    const foldBox: { y: number } | null =
-      await moreSettings(page).boundingBox();
+    const [detailsBox, foldBox] = await boxesInOneFrame([
+      details,
+      moreSettings(page),
+    ]);
     expect(foldBox!.y).toBeGreaterThanOrEqual(
       detailsBox!.y + detailsBox!.height,
     );
@@ -3505,6 +3523,12 @@ test.describe("a repository's Runner", () => {
     await expect(ownRunner).toHaveText("Runner: prod-eu-west-1");
     await expect(ownRunner).toHaveAttribute("data-item-set", "true");
     await expect(await runnerChip("uses=0")).toHaveText("Runner: None");
+    // Its host turned AI code fixes off: said after its name, folded too.
+    await expect(await runnerChip("runner=prod&prodfix=0")).toHaveText(
+      "Runner: prod-eu-west-1 · Takes no AI code fixes",
+    );
+    // No global Runner that takes them, and none picked: None.
+    await expect(await runnerChip("gfix=0")).toHaveText("Runner: None");
   });
 
   test("picking Global Runner again saves no Runner", async ({
@@ -3689,6 +3713,160 @@ test.describe("a repository's Runner", () => {
       page.getByTestId("code-repository-runner-picker-global-waiting"),
     ).toHaveText(
       "No global Runner is connected right now, so AI cannot work in this repository until one is.",
+    );
+  });
+
+  /*
+   * A Runner that takes no AI code fixes is not counted as there to take a
+   * repository's work (Common/Types/Runner/RunnerCodeFixes): a global
+   * Runner of an older release, or one whose host turned them off. The
+   * settings say so, never that the Global Runner is connected or that the
+   * server runs none.
+   */
+  test("global Runners that take no AI code fixes: None and why on the card, and the picker says none on this server takes them", async ({
+    page,
+  }: {
+    page: Page;
+  }, testInfo: TestInfo) => {
+    await page.goto(atRunner("gfix=0"));
+
+    const value: Locator = page.getByTestId("code-repository-runner");
+    await expect(value).toHaveText(
+      "None: no global Runner takes AI code fixes",
+    );
+    await expect(value).toHaveCSS("color", "rgb(180, 83, 9)");
+
+    await openRunnerStep(page);
+    await expect(
+      page.getByTestId("code-repository-runner-picker-help"),
+    ).toHaveText(
+      "No global Runner on this server takes AI code fixes: pick one of your Runners for this repository.",
+    );
+    await expect(
+      page.getByTestId("code-repository-runner-picker-global-waiting"),
+    ).toHaveCount(0);
+
+    // Only the project's own Runners to pick: no Global Runner choice.
+    await runnerPicker(page).getByRole("combobox").click();
+    await expect(page.getByRole("option")).toHaveText([
+      "office-runner · Disconnected",
+      "prod-eu-west-1 · Connected",
+    ]);
+    await expectNoSidewaysScroll(page);
+    await screenshot(page, testInfo, "code-repository-runner-no-code-fixes");
+  });
+
+  test("its own Runner whose host turned AI code fixes off: the card, the menu and the line under the picker say so, in amber", async ({
+    page,
+  }: {
+    page: Page;
+  }, testInfo: TestInfo) => {
+    await page.goto(atRunner("runner=prod&prodfix=0"));
+
+    await expectRunnerValue(page, "prod-eu-west-1", "Connected");
+    const takesNone: Locator = page.getByTestId(
+      "code-repository-runner-takes-no-code-fixes",
+    );
+    await expect(takesNone).toHaveText(
+      "This Runner takes no AI code fixes: ONEUPTIME_RUNNER_ENABLE_CODE_FIXES=false is set on its host. Remove that setting and restart the Runner, or pick another Runner.",
+    );
+    await expect(takesNone).toHaveCSS("color", "rgb(180, 83, 9)");
+    await expectSettingWholeAsCode(takesNone);
+
+    await openRunnerStep(page);
+    await expect(
+      page.getByTestId("code-repository-runner-picker-takes-no-code-fixes"),
+    ).toHaveText(
+      "This Runner takes no AI code fixes: ONEUPTIME_RUNNER_ENABLE_CODE_FIXES=false is set on its host. Remove that setting and restart the Runner, or pick another Runner.",
+    );
+    await expectSettingWholeAsCode(
+      page.getByTestId("code-repository-runner-picker-takes-no-code-fixes"),
+    );
+    // Not what AI would do on it.
+    await expect(
+      page.getByTestId("code-repository-runner-picker-help"),
+    ).not.toContainText("builds and tests its change");
+
+    await runnerPicker(page).getByRole("combobox").click();
+    const prod: Locator = page
+      .getByRole("option")
+      .filter({ hasText: "prod-eu-west-1" });
+    await expect(prod).toContainText(
+      "Takes no AI code fixes: its host turned them off.",
+    );
+    await expect(
+      page.getByRole("option").filter({ hasText: "office-runner" }),
+    ).not.toContainText("Takes no AI code fixes");
+    await expectNoSidewaysScroll(page);
+    await screenshot(page, testInfo, "code-repository-runner-host-refuses");
+
+    // Code's notice names it, with the setting, and links its Runner.
+    await openRepository(
+      page,
+      REPOSITORY.checkout,
+      "blocker=RunnerTakesNoCodeFixes&runner=prod&prodfix=0",
+    );
+    const notice: Locator = page.getByTestId("code-blocker");
+    await expect(notice).toHaveAttribute(
+      "data-blocker",
+      "RunnerTakesNoCodeFixes",
+    );
+    await expect(notice).toContainText(
+      "The Runner this repository works on, prod-eu-west-1, does not take AI code fixes: ONEUPTIME_RUNNER_ENABLE_CODE_FIXES=false is set on its host.",
+    );
+    await expect(notice.getByTestId("code-blocker-runner")).toHaveText(
+      "prod-eu-west-1",
+    );
+    await expect(notice.getByTestId("code-blocker-fix")).toHaveText(
+      "Pick a Runner",
+    );
+    await expectSettingWholeAsCode(notice);
+    await expectNoSidewaysScroll(page);
+    await screenshot(page, testInfo, "code-blocker-runner-host-refuses");
+  });
+
+  /*
+   * Global Runners online that take no AI code fixes: Code says so - never
+   * that no global Runner is online, which the Runners page would
+   * contradict - and links the way out in the project's hands, one of its
+   * own Runners. It names no setting: which one, and why, is the master
+   * admin's to see (Admin Dashboard -> Global Runners).
+   */
+  test("global Runners that take no AI code fixes: Code's notice says so, with Pick a Runner, and names no setting", async ({
+    page,
+  }: {
+    page: Page;
+  }, testInfo: TestInfo) => {
+    await openRepository(
+      page,
+      REPOSITORY.checkout,
+      "blocker=GlobalRunnersTakeNoCodeFixes&gfix=0",
+    );
+
+    const notice: Locator = page.getByTestId("code-blocker");
+    await expect(notice).toHaveAttribute(
+      "data-blocker",
+      "GlobalRunnersTakeNoCodeFixes",
+    );
+    await expect(notice).toContainText(
+      "No global Runner online takes AI code fixes, so none can work in this repository. Pick one of your Runners for it, or ask your OneUptime administrator to let a global Runner take them.",
+    );
+    await expect(notice).not.toContainText("No global Runner is online");
+    await expect(
+      notice.getByTestId("runner-code-fixes-off-setting"),
+    ).toHaveCount(0);
+    await expect(notice.getByTestId("code-blocker-runner")).toHaveCount(0);
+
+    const fix: Locator = notice.getByTestId("code-blocker-fix");
+    await expect(fix).toHaveText("Pick a Runner");
+    expect(await fix.getAttribute("href")).toBe(
+      `${repositoryPath(REPOSITORY.checkout)}/settings#runner`,
+    );
+    await expectNoSidewaysScroll(page);
+    await screenshot(
+      page,
+      testInfo,
+      "code-blocker-global-runners-take-no-code-fixes",
     );
   });
 
@@ -4334,13 +4512,10 @@ test.describe("a task's conversation", () => {
     await expect(pullRequest).toHaveAttribute("target", "_blank");
 
     // The person's message on the right, as a chat draws what was sent.
-    const message: { x: number; width: number } | null = await page
-      .getByTestId("code-turn-request-message")
-      .first()
-      .boundingBox();
-    const turns: { x: number; width: number } | null = await page
-      .getByTestId("code-task-turns")
-      .boundingBox();
+    const [message, turns] = await boxesInOneFrame([
+      page.getByTestId("code-turn-request-message").first(),
+      page.getByTestId("code-task-turns"),
+    ]);
     expect(
       Math.abs(message!.x + message!.width - (turns!.x + turns!.width)),
     ).toBeLessThanOrEqual(1);
@@ -4837,10 +5012,10 @@ test.describe("a repository's pull requests, reviewed against production", () =>
     await expect(
       unread.getByTestId("production-review-unread-section"),
     ).toHaveText(["Traces", "Profiles"]);
-    const unreadBox: { y: number } | null = await unread.boundingBox();
-    const findingsBox: { y: number } | null = await page
-      .getByTestId("production-review-exceptions")
-      .boundingBox();
+    const [unreadBox, findingsBox] = await boxesInOneFrame([
+      unread,
+      page.getByTestId("production-review-exceptions"),
+    ]);
     expect(unreadBox!.y).toBeLessThan(findingsBox!.y);
 
     // Long names of code wrap between their parts, and nothing scrolls sideways.
@@ -4862,12 +5037,10 @@ test.describe("a repository's pull requests, reviewed against production", () =>
     await expect(ask).toHaveText("Review a pull request");
     // Beside the list's heading, on the same line at a laptop's width.
     if (!isPhone(testInfo)) {
-      const askBox: { y: number; height: number } | null =
-        await ask.boundingBox();
-      const headingBox: { y: number; height: number } | null = await page
-        .getByTestId("code-production-reviews-list")
-        .getByRole("heading")
-        .boundingBox();
+      const [askBox, headingBox] = await boxesInOneFrame([
+        ask,
+        page.getByTestId("code-production-reviews-list").getByRole("heading"),
+      ]);
       expect(
         Math.abs(
           askBox!.y +

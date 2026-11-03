@@ -29,6 +29,8 @@ import Query from "Common/Types/BaseDatabase/Query";
 import JSONFunctions from "Common/Types/JSONFunctions";
 import ComponentLoader from "Common/UI/Components/ComponentLoader/ComponentLoader";
 import ErrorMessage from "Common/UI/Components/ErrorMessage/ErrorMessage";
+import IconProp from "Common/Types/Icon/IconProp";
+import WidgetPlaceholder from "./WidgetPlaceholder";
 import {
   SecurityEventFlowRecord,
   SecurityEventsFlowData,
@@ -227,7 +229,20 @@ const DashboardSecurityEventsFlowComponentElement: FunctionComponent<
             <ComponentLoader />
           </div>
         )}
-        {!isLoading && error && <ErrorMessage message={error} />}
+        {!isLoading &&
+          error &&
+          /*
+           * A public dashboard reads no security events: the widget says so, quietly,
+           * where its data would be - as every widget it cannot draw does.
+           */
+          (DashboardResourceList.isPublic() ? (
+            <WidgetPlaceholder
+              icon={IconProp.ShieldExclamation}
+              message={error}
+            />
+          ) : (
+            <ErrorMessage message={error} />
+          ))}
         {!isLoading && !error && flowData.links.length === 0 && (
           <div className="flex h-full items-center justify-center text-xs text-gray-400">
             {translator.translateText(

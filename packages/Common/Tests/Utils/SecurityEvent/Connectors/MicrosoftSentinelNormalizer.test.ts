@@ -1,4 +1,5 @@
 import { describe, expect, test } from "@jest/globals";
+import { INHERITED_PROPERTY_NAME_SPELLINGS } from "../../../Helpers/InheritedNames";
 import MicrosoftSentinelNormalizer, {
   MICROSOFT_SENTINEL_INCIDENT_CLASS_NAME,
   MICROSOFT_SENTINEL_INCIDENT_CLASS_UID,
@@ -486,5 +487,40 @@ describe("MicrosoftSentinelNormalizer: processes", () => {
       event.parentProcessPath,
       event.parentProcessCommandLine,
     ]).toEqual(["", "", "", "", "", ""]);
+  });
+});
+
+describe("MicrosoftSentinelNormalizer: words named after what every object inherits", () => {
+  function withTactics(tactics: Array<string>): JSONObject {
+    const raw: JSONObject = sampleIncident();
+    ((raw["properties"] as JSONObject)["additionalData"] as JSONObject)[
+      "tactics"
+    ] = tactics;
+
+    return raw;
+  }
+
+  test("a tactic named after one is kept as the name it is, never read as code", () => {
+    for (const name of INHERITED_PROPERTY_NAME_SPELLINGS) {
+      expect({
+        name,
+        tactics: MicrosoftSentinelNormalizer.normalize(withTactics([name]))
+          .mitreTactics,
+      }).toEqual({ name, tactics: [name] });
+    }
+  });
+
+  test("the two ICS tactics only Sentinel names keep their ICS ids, beside the matrix's own names every connector reads", () => {
+    expect(
+      MicrosoftSentinelNormalizer.normalize(
+        withTactics([
+          "ImpairProcessControl",
+          "InhibitResponseFunction",
+          "Stealth",
+          "DefenseEvasion",
+          "DefenseImpairment",
+        ]),
+      ).mitreTactics,
+    ).toEqual(["TA0106", "TA0107", "TA0005", "TA0112"]);
   });
 });

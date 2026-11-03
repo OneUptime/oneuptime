@@ -211,7 +211,7 @@ function renderStep(
 }
 
 function statusPill(): HTMLElement {
-  return screen.getByLabelText("Remediation status");
+  return screen.getByTestId("ai-card-step-remediation-pill");
 }
 
 function tryAgainButton(): HTMLElement | null {
@@ -937,5 +937,128 @@ describe("while the investigation runs", () => {
     expect(screen.getByTestId("remediation-step-checking")).toHaveTextContent(
       "Checking what OneUptime AI did to fix this…",
     );
+  });
+});
+
+/*
+ * #5303's follow-up: OneUptime AI decides again only about an open record -
+ * once it is linked, once a cluster's or resource's Fixes are turned on, on
+ * Try again - so a resolved record's step says what happened, and how the
+ * next one is linked, and promises nothing for this one: no "tries again",
+ * no place to go and link it, no Try again, nothing that needs attention.
+ */
+describe("a resolved record's step", () => {
+  const CLUSTER_FIXES_OFF: JSONObject = {
+    stage: "Evaluated",
+    createdAt: new Date("2026-10-05T10:00:00Z"),
+    entries: [
+      {
+        lane: "KubernetesCluster",
+        reason: "ClusterFixesOff",
+        kubernetesClusterId: "0193c0de-4444-4aaa-8bbb-000000000044",
+        kubernetesClusterName: "prod-east",
+      },
+    ],
+  };
+
+  // The step's line that says the record is linked to nothing.
+  async function linkedToNothingLine(): Promise<HTMLElement> {
+    const lines: Array<HTMLElement> = await screen.findAllByTestId(
+      "remediation-decision-line",
+    );
+    const line: HTMLElement | undefined = lines.find(
+      (candidate: HTMLElement): boolean => {
+        return (candidate.textContent || "").includes(
+          "is not linked to a host, cluster or database",
+        );
+      },
+    );
+
+    if (!line) {
+      throw new Error("No line says the record is linked to nothing.");
+    }
+
+    return line;
+  }
+
+  test("linked to nothing: what happened, without trying again or a place to go", async () => {
+    serve({ suggestions: [], decisions: [LINKED_TO_NOTHING] });
+
+    renderStep({ isRecordResolved: true });
+    const line: HTMLElement = await linkedToNothingLine();
+    await settle();
+
+    expect(line).toHaveTextContent(
+      "This incident is not linked to a host, cluster or database, so OneUptime AI had nothing to fix.",
+    );
+    expect(line).toHaveAttribute("data-tone", "info");
+    expect(screen.getByTestId("remediation-decision")).not.toHaveTextContent(
+      "tries again",
+    );
+    expect(
+      screen.queryByRole("button", { name: "Go to Affected Resources" }),
+    ).toBeNull();
+    expect(tryAgainButton()).toBeNull();
+    expect(statusPill()).not.toHaveTextContent("Needs attention");
+  });
+
+  test("open, the same record asks for the link and says OneUptime AI tries again", async () => {
+    serve({ suggestions: [], decisions: [LINKED_TO_NOTHING] });
+
+    renderStep({ isRecordResolved: false });
+    const line: HTMLElement = await linkedToNothingLine();
+    await settle();
+
+    expect(line).toHaveAttribute("data-tone", "attention");
+    expect(line).toHaveTextContent("and OneUptime AI tries again");
+    expect(
+      screen.getByRole("button", { name: "Go to Affected Resources" }),
+    ).toBeInTheDocument();
+    expect(statusPill()).toHaveTextContent("Needs attention");
+  });
+
+  test("a cluster's Fixes off: turning them on is what to do while it is open, and nothing once it is resolved", async () => {
+    serve({ suggestions: [], decisions: [CLUSTER_FIXES_OFF] });
+
+    const open: ReturnType<typeof render> = renderStep({
+      isRecordResolved: false,
+    });
+    const openLine: HTMLElement = await screen.findByTestId(
+      "remediation-decision-line",
+    );
+    await settle();
+
+    expect(openLine).toHaveTextContent(
+      'Fixes are off for cluster "prod-east", so OneUptime AI only investigates there.',
+    );
+    expect(
+      within(openLine).getByTestId("remediation-decision-what-to-do"),
+    ).toHaveTextContent("Turn its Fixes on, and OneUptime AI tries again.");
+    expect(
+      within(openLine).getByRole("link", {
+        name: "Open the cluster's AI agent page",
+      }),
+    ).toBeInTheDocument();
+    open.unmount();
+
+    renderStep({ isRecordResolved: true });
+    const resolvedLine: HTMLElement = await screen.findByTestId(
+      "remediation-decision-line",
+    );
+    await settle();
+
+    expect(resolvedLine).toHaveTextContent(
+      'Fixes are off for cluster "prod-east", so OneUptime AI only investigates there.',
+    );
+    expect(
+      within(resolvedLine).queryByTestId("remediation-decision-what-to-do"),
+    ).toBeNull();
+    expect(resolvedLine).not.toHaveTextContent("tries again");
+    // Where Fixes are changed stays: the next one may need them on.
+    expect(
+      within(resolvedLine).getByRole("link", {
+        name: "Open the cluster's AI agent page",
+      }),
+    ).toBeInTheDocument();
   });
 });

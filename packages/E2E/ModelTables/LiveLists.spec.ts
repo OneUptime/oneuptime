@@ -1,6 +1,7 @@
 import { expect, Locator, Page, test } from "@playwright/test";
 import fs from "fs/promises";
 import path from "path";
+import { expectNoSidewaysScroll } from "../SuiteHelpers/PageFit";
 
 /*
  * Lists that keep themselves current, in real Chromium, against the offline
@@ -563,10 +564,7 @@ test.describe("the Incidents list keeps itself current", () => {
     await announce(page, "Incident", "Create");
 
     await expect(page.getByText("Login page down").first()).toBeVisible();
-    const pageWidth: number = await page.evaluate((): number => {
-      return document.documentElement.scrollWidth;
-    });
-    expect(pageWidth).toBeLessThanOrEqual(390);
+    await expectNoSidewaysScroll(page);
   });
 });
 

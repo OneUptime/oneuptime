@@ -1,4 +1,5 @@
 import { expect, Page, Route as PlaywrightRoute, test } from "@playwright/test";
+import { expectNoSidewaysScroll } from "../SuiteHelpers/PageFit";
 
 /*
  * The Kubernetes cluster Overview's header in a real browser (issue #4105).
@@ -43,8 +44,6 @@ interface HeaderLayout {
   hero: Box;
   // The picker, Reset zoom (when shown), Refresh and Auto-refresh.
   controls: Array<Box>;
-  pageScrollWidth: number;
-  viewportWidth: number;
 }
 
 const pageErrors: Map<Page, Array<string>> = new Map();
@@ -170,8 +169,6 @@ async function measureHeader(page: Page): Promise<HeaderLayout> {
         title: toBox(title),
         hero: toBox(hero),
         controls: controls.map(toBox),
-        pageScrollWidth: document.documentElement.scrollWidth,
-        viewportWidth: window.innerWidth,
       };
     },
     {
@@ -182,7 +179,11 @@ async function measureHeader(page: Page): Promise<HeaderLayout> {
   );
 }
 
-function expectHeaderFits(layout: HeaderLayout, label: string): void {
+async function expectHeaderFits(
+  page: Page,
+  layout: HeaderLayout,
+  label: string,
+): Promise<void> {
   // The whole name shows: its text needs no more room than it has.
   expect(
     layout.titleScrollWidth,
@@ -211,11 +212,8 @@ function expectHeaderFits(layout: HeaderLayout, label: string): void {
     expect(overlapsTitle, `${label}: a control covers the name`).toBe(false);
   }
 
-  // And the page never scrolls sideways.
-  expect(
-    layout.pageScrollWidth,
-    `${label}: the page scrolls sideways`,
-  ).toBeLessThanOrEqual(layout.viewportWidth);
+  // And the page never scrolls sideways, once it has settled.
+  await expectNoSidewaysScroll(page, { message: label });
 }
 
 // A real drag across the middle of the CPU chart's plot.
@@ -278,14 +276,18 @@ for (const width of WIDTHS) {
     page: Page;
   }) => {
     await openOverview(page, width);
-    expectHeaderFits(await measureHeader(page), `${width}px, not zoomed`);
+    await expectHeaderFits(
+      page,
+      await measureHeader(page),
+      `${width}px, not zoomed`,
+    );
 
     await zoomOnTheCpuChart(page);
 
     const zoomed: HeaderLayout = await measureHeader(page);
     // Reset zoom is one of the controls now, and it fits too.
     expect(zoomed.controls).toHaveLength(4);
-    expectHeaderFits(zoomed, `${width}px, zoomed`);
+    await expectHeaderFits(page, zoomed, `${width}px, zoomed`);
   });
 }
 
@@ -318,8 +320,6 @@ test("a name longer than the whole row still truncates inside the hero, zoomed o
     truncated: boolean;
     titleRight: number;
     heroRight: number;
-    pageScrollWidth: number;
-    viewportWidth: number;
   } = await page.evaluate(
     (
       name: string,
@@ -327,8 +327,6 @@ test("a name longer than the whole row still truncates inside the hero, zoomed o
       truncated: boolean;
       titleRight: number;
       heroRight: number;
-      pageScrollWidth: number;
-      viewportWidth: number;
     } => {
       const title: HTMLElement | undefined = Array.from(
         document.querySelectorAll("h1"),
@@ -344,8 +342,6 @@ test("a name longer than the whole row still truncates inside the hero, zoomed o
         truncated: title.scrollWidth > title.clientWidth,
         titleRight: title.getBoundingClientRect().right,
         heroRight: hero.getBoundingClientRect().right,
-        pageScrollWidth: document.documentElement.scrollWidth,
-        viewportWidth: window.innerWidth,
       };
     },
     longName,
@@ -353,5 +349,5 @@ test("a name longer than the whole row still truncates inside the hero, zoomed o
 
   expect(layout.truncated, "the long name is truncated").toBe(true);
   expect(layout.titleRight).toBeLessThanOrEqual(layout.heroRight);
-  expect(layout.pageScrollWidth).toBeLessThanOrEqual(layout.viewportWidth);
+  await expectNoSidewaysScroll(page);
 });

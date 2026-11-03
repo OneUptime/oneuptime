@@ -31,6 +31,11 @@ import Express, {
   NextFunction,
 } from "Common/Server/Utils/Express";
 import { withQueryOf } from "Common/Server/Utils/RedirectTarget";
+import {
+  DocsTailwindSite,
+  getDocsTailwindSite,
+} from "../../Utils/DocsTailwind";
+import { mountTailwindStylesheet } from "../../Utils/TailwindStylesheet";
 
 type PageHandler = (req: ExpressRequest, res: ExpressResponse) => Promise<void>;
 
@@ -65,6 +70,21 @@ function pickLanguage(req: ExpressRequest): string {
 
 const APIReferenceFeatureSet: FeatureSet = {
   init: async (): Promise<void> => {
+    /*
+     * The reference's built Tailwind stylesheet, when the image built one:
+     * the pages link it instead of generating their CSS in the browser with
+     * the Tailwind runtime (Utils/DocsTailwind.ts).
+     */
+    const tailwindSite: DocsTailwindSite = getDocsTailwindSite("reference");
+
+    mountTailwindStylesheet({
+      app: Express.getExpressApp(),
+      name: "API reference pages",
+      directory: tailwindSite.directory,
+      hrefPrefix: tailwindSite.hrefPrefix,
+      sitePath: "/reference",
+    });
+
     const ResourceDictionary: Dictionary<ModelDocumentation> =
       ResourceUtil.getResourceDictionaryByPath();
 

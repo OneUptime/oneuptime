@@ -7,6 +7,8 @@ import {
 } from "@playwright/test";
 import fs from "fs/promises";
 import path from "path";
+import { expectNoSidewaysScroll } from "../SuiteHelpers/PageFit";
+import { boxesInOneFrame } from "../SuiteHelpers/Frames";
 
 /*
  * Renders the real public and private note pages of incidents, alerts,
@@ -1515,22 +1517,14 @@ test.describe("small screens", () => {
   }) => {
     await open(page, INCIDENT_PUBLIC);
 
-    const overflow: number = await page.evaluate((): number => {
-      return (
-        document.documentElement.scrollWidth -
-        document.documentElement.clientWidth
-      );
-    });
-    expect(overflow).toBeLessThanOrEqual(0);
+    await expectNoSidewaysScroll(page);
 
     // Every note keeps its menu inside its card.
     for (const noteCard of await cards(page).all()) {
-      const cardBox: { x: number; width: number } | null = await noteCard
-        .locator("article")
-        .boundingBox();
-      const menuBox: { x: number; width: number } | null = await noteCard
-        .getByRole("button", { name: "Note actions" })
-        .boundingBox();
+      const [cardBox, menuBox] = await boxesInOneFrame([
+        noteCard.locator("article"),
+        noteCard.getByRole("button", { name: "Note actions" }),
+      ]);
       expect(menuBox!.x + menuBox!.width).toBeLessThanOrEqual(
         cardBox!.x + cardBox!.width,
       );
@@ -2241,14 +2235,7 @@ test.describe("links and quotes in a note", () => {
           return element.scrollWidth - element.clientWidth;
         }),
       ).toBeLessThanOrEqual(0);
-      expect(
-        await page.evaluate((): number => {
-          return (
-            document.documentElement.scrollWidth -
-            document.documentElement.clientWidth
-          );
-        }),
-      ).toBeLessThanOrEqual(0);
+      await expectNoSidewaysScroll(page);
 
       await screenshotNote(
         page,

@@ -2,9 +2,11 @@
 
 Docker Swarm 监视器监控 Swarm 集群中服务任务背后的容器，在任务重启、负载过高或内存耗尽时通知你。它读取 OneUptime Docker Swarm 代理发送的容器指标，因此不会从外部探测任何东西：安装代理，然后根据模板或你自己的查询创建监视器。
 
+从文件版本 0.161.3 起，代理还会每分钟发送 swarm 自身的状态，因此监视器也可以监视节点和服务本身：未就绪的节点，或运行的副本少于所需数量的服务。
+
 :::cards
 - [创建监视器](#创建-docker-swarm-监视器): 在仪表板中完成六个步骤。
-- [模板](#现成的警报模板): 五个现成的警报，每个任务一个事件。
+- [模板](#现成的警报模板): 七个现成的警报，每个节点、服务或任务一个事件。
 - [指标](#收集的指标): 可用于警报的容器指标。
 - [过滤器](#监视器设置): 把监视器限定到某个服务、任务或镜像。
 :::
@@ -12,6 +14,8 @@ Docker Swarm 监视器监控 Swarm 集群中服务任务背后的容器，在任
 ## 工作原理
 
 OneUptime Docker Swarm 代理运行在一个管理节点上。它的 Collector 每 30 秒从该节点的 Docker 守护进程读取容器统计信息，给每批数据打上集群名称 `docker.swarm.cluster.name`，并给每个任务的指标打上其服务和节点。旁边一个小型清单轮询器每 5 分钟从 Swarm API 读取集群的节点、服务和任务。第一批数据会把集群注册到 OneUptime 中。
+
+轮询器还会每分钟从管理节点读取每个节点是否就绪，以及每个服务需要和正在运行的副本数，并将其作为指标发送。这样 **Node Not Ready** 和 **Service Replicas Mismatch** 能在一两分钟内而不是五分钟后得知出问题的节点或服务。
 
 Collector 只能看到它所在节点上的容器。要获取每个节点的指标，请在每个节点上以相同的 `DOCKER_SWARM_CLUSTER_NAME` 运行 Collector。
 
@@ -92,15 +96,17 @@ flowchart TB
 
 ## 现成的警报模板
 
-**告警内容** 列表提供五个模板。每个模板都会构建一个完整的监视器：一个查询、一个触发的条件和一个恢复的条件。除 **Cluster Stopped Reporting** 外，每个模板都按 `resource.container.name` 对查询分组，因此每个任务都单独评判，并有自己的事件和警报，其根本原因会列出受影响的任务及其值。阈值只是起点，你可以编辑。
+**告警内容** 列表提供七个模板。每个模板都会构建一个完整的监视器：一个查询、一个触发的条件和一个恢复的条件。**Node Not Ready** 按节点 `resource.docker.swarm.node.name` 对查询分组，**Service Replicas Mismatch** 按服务 `resource.docker.swarm.service.name` 分组，任务模板按 `resource.container.name` 分组，因此每个节点、服务或任务都会单独评估，并获得各自的事件和警报，其根本原因会列出受影响的对象及其值。阈值是可以编辑的起点。
 
-这些模板也只读取 Swarm 的任务：在节点上以其他方式启动的容器（包括代理自己的容器）不计入。**Custom Metric** 或 **高级** 查询会读取代理上报的所有容器；**服务名称** 筛选器可将其缩小到某个服务的任务。
+任务模板还只读取 Swarm 的任务：在节点上以其他方式启动的容器（包括代理自身的容器）不会计入。**Custom Metric** 或 **高级** 查询会读取代理报告的每个容器；**服务名称** 过滤器可将其缩小到一个服务的任务。
 
 除非表中另有说明，条件只有在其窗口的每一分钟都成立时才会触发，并在越过阈值 10% 处恢复，这样在边界附近徘徊的值不会来回跳动。
 
 | 模板 | 严重程度 | 监控内容 | 触发时机 | 恢复时机 |
 | --- | --- | --- | --- | --- |
 | Cluster Stopped Reporting | 严重 | `container.memory.percent`，对集群中所有容器取 Count，最近 10 分钟 | 整个窗口内都没有数据 | 数据再次到达 |
+| Node Not Ready | 严重 | `docker.swarm.node.ready`，按 `resource.docker.swarm.node.name` 取 Min，最近 5 分钟 | 低于 1 | 等于 1 |
+| Service Replicas Mismatch | 警告 | `docker.swarm.service.replicas.desired` − `docker.swarm.service.replicas.running`（均取 Avg），按 `resource.docker.swarm.service.name`，最近 15 分钟 | 高于 0 | 不高于 0 |
 | Task Down (Low Uptime) | 严重 | `container.uptime`，按任务取 Min，最近 1 分钟 | 任意值低于 60 秒 | 每个值都不低于 66 秒 |
 | High Task CPU Usage | 警告 | `container.cpu.utilization`，按任务取 Avg，最近 5 分钟 | 高于 80（单个核心的 %） | 不高于 72 |
 | High Task Memory Usage | 警告 | `container.memory.percent`，按任务取 Avg，最近 5 分钟 | 高于 85% | 不高于 76.5% |
@@ -114,9 +120,14 @@ flowchart TB
 > [!NOTE]
 > **Task Down (Low Uptime)** 模板只要有一个“年轻”的样本就会触发，因为重启是一个事件，而不是一个水平。Swarm 会给替代任务一个新容器，也就是一个新序列，所以模板查找的是运行时间不足一分钟，而不是 0。部署或扩容也会触发它，当新任务的运行时间超过一分钟后就会清除。终止后没有被替换的任务不发送任何数据，因此无法被捕捉。
 
+> [!NOTE]
+> **Node Not Ready** 和 **Service Replicas Mismatch** 读取代理的清单轮询器从文件版本 0.161.3 起从管理节点发送的序列。更旧的代理两者都不发送，因此这两个模板没有可读取的数据，也永远不会触发：[升级代理](/docs/telemetry/docker-swarm#升级代理)；代理落后时，集群概览中其版本旁会显示一个标记。Service Replicas Mismatch 会等待十五分钟，这样一次一次替换几个任务的滚动更新不会通知任何人。作业服务会把任务运行到完成，没有可能短缺的副本，因此不计入。
+
 ## 收集的指标
 
 代理的 Collector 使用 OpenTelemetry `docker_stats` 接收器，所以这些指标就是标准的容器指标，每个任务容器一个序列。没有 `docker_swarm_*` 指标：节点、服务和任务作为清单跟踪，显示在集群的 **服务**、**任务**、**节点** 及相关页面上。
+
+除此之外，从文件版本 0.161.3 起，代理的清单轮询器每分钟发送 swarm 自身的状态：即 [Swarm](#swarm) 下的三个指标。
 
 ### CPU
 
@@ -146,6 +157,16 @@ flowchart TB
 | `container.uptime` | 秒 | 任务容器已运行的时间。被重新调度或重启的任务会从 0 开始一个新容器。 |
 
 每个序列都把容器的身份作为资源属性携带：`resource.container.name`（`<service>.<slot>.<taskid>`）、`resource.container.image.name`、`resource.docker.swarm.service.name`、`resource.docker.swarm.node.id`、`resource.docker.swarm.node.name`（当代理知道节点名称时）和 `resource.docker.swarm.cluster.name`。
+
+### Swarm
+
+| 指标 | 单位 | 说明 |
+| --- | --- | --- |
+| `docker.swarm.node.ready` | — | 管理节点眼中某个节点是否就绪：就绪时为 1，宕机、断开或状态未知时为 0。每个节点一个序列。 |
+| `docker.swarm.service.replicas.desired` | count | 复制服务或全局服务希望运行的任务：其副本数，对于全局服务则是它应运行的节点数。每个服务一个序列。 |
+| `docker.swarm.service.replicas.running` | count | 服务中正在运行的任务。低于期望数量时，服务的副本不足。 |
+
+节点的序列带有 `resource.docker.swarm.node.name`、`resource.docker.swarm.node.id` 和 `resource.docker.swarm.node.role`；服务的序列带有 `resource.docker.swarm.service.name`、`resource.docker.swarm.service.mode`，在堆栈中还带有 `resource.docker.swarm.stack.namespace`。两者都带有 `resource.docker.swarm.cluster.name`。
 
 ## 监控条件
 
@@ -193,6 +214,10 @@ Collector 读取的是它所在节点的 Docker 守护进程，所以只能看�
 
 :::details 所有任务都显示为一个序列
 像模板那样，按资源属性 `resource.container.name` 分组。不带前缀的 `container.name` 什么也匹配不到，所以所有任务会合并成一个名称为空的序列。
+:::
+
+:::details Node Not Ready 或 Service Replicas Mismatch 从不触发
+两者都只读取代理的清单轮询器从文件版本 0.161.3 起从管理节点发送的序列：[升级代理](/docs/telemetry/docker-swarm#升级代理)，并检查清单轮询器是否运行在管理节点上（在那里 `docker node ls` 必须能成功）。集群的 **指标** 页面会显示 `docker.swarm.node.ready` 是否到达。
 :::
 
 ## 后续步骤

@@ -1,4 +1,5 @@
 import { JSONObject, JSONValue } from "../../../Types/JSON";
+import lookupTable from "../../LookupTable";
 import OcsfSeverity from "../../../Types/SecurityEvent/OcsfSeverity";
 import { flattenPayload, parseEventTime } from "../NormalizerHelpers";
 import { SecurityRecordReading } from "../SecurityRecordReading";
@@ -143,12 +144,12 @@ const USER_ACCESS_MANAGEMENT: number = 3005;
 const APPLICATION_LIFECYCLE: number = 6002;
 const FILE_HOSTING_ACTIVITY: number = 6006;
 
-const ALERT_SEVERITIES: Record<string, OcsfSeverity> = {
+const ALERT_SEVERITIES: ReadonlyMap<string, OcsfSeverity> = lookupTable({
   high: OcsfSeverity.High,
   medium: OcsfSeverity.Medium,
   low: OcsfSeverity.Low,
   informational: OcsfSeverity.Informational,
-};
+});
 
 function text(value: JSONValue | undefined): string {
   if (value === null || value === undefined || typeof value === "object") {
@@ -522,7 +523,7 @@ export function readMicrosoft365Record(
   ) {
     const name: string = text(record["Name"]) || "Microsoft 365 alert";
     const severity: OcsfSeverity =
-      ALERT_SEVERITIES[text(record["Severity"]).toLowerCase()] ||
+      ALERT_SEVERITIES.get(text(record["Severity"]).toLowerCase()) ||
       OcsfSeverity.Medium;
 
     return {

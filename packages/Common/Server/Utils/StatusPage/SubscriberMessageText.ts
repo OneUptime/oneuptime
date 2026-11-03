@@ -10,7 +10,7 @@ import {
   TemplateValues,
   translationKey,
   Translator,
-} from "../../../UI/Utils/TranslateTemplate";
+} from "../../../Types/Translator";
 import { translateStateName } from "../../../Types/StatusPage/DefaultStatusNames";
 
 /*

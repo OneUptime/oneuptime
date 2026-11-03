@@ -37,6 +37,7 @@ import {
   writeChosenFields,
 } from "./FieldPicker/FieldPickerOptions";
 import { ModelSchemaState, useModelSchema } from "./ModelSchema";
+import { WorkflowViewOnlyContext } from "./WorkflowViewOnly";
 import BaseModel from "../../../Models/DatabaseModels/DatabaseBaseModel/DatabaseBaseModel";
 import CodeType from "../../../Types/Code/CodeType";
 import IconProp from "../../../Types/Icon/IconProp";
@@ -59,6 +60,7 @@ import useTranslator from "../../Utils/UseTranslator";
 import React, {
   FunctionComponent,
   ReactElement,
+  useContext,
   useEffect,
   useMemo,
   useRef,
@@ -139,6 +141,13 @@ const ModelFieldPicker: FunctionComponent<ComponentProps> = (
   props: ComponentProps,
 ): ReactElement => {
   const translator: Translator = useTranslator();
+  /*
+   * A step opened to be read (WorkflowViewOnly): the chips, to read - an
+   * unknown field still says why on hover - and none of the ways to change
+   * the list: no remove on a chip, no Add field, no Edit as JSON, no Start
+   * over. A list kept as JSON is a code box to read and copy.
+   */
+  const isViewOnly: boolean = useContext(WorkflowViewOnlyContext);
   const mode: FieldPickerMode = props.mode || FieldPickerMode.PassOn;
   const testId: string =
     mode === FieldPickerMode.Watch ? "fields-to-watch" : "fields-to-pass-on";
@@ -399,29 +408,39 @@ const ModelFieldPicker: FunctionComponent<ComponentProps> = (
                 return <li key={index}>{problem}</li>;
               })}
             </ul>
-            <p className="mt-1">
-              <TranslatedSentence
-                template={ModelFieldPickerCopy.keptAsJsonHelp}
-                slots={{
-                  reset: (
-                    <button
-                      type="button"
-                      data-testid={`${testId}-start-over`}
-                      className="font-semibold text-amber-900 underline hover:text-amber-700"
-                      onClick={startOver}
-                    >
-                      {translator.translateText(ModelFieldPickerCopy.startOver)}
-                    </button>
-                  ),
-                }}
-              />
-            </p>
+            {/* How to change it: not on a view, where nothing changes it. */}
+            {isViewOnly ? null : (
+              <p className="mt-1">
+                <TranslatedSentence
+                  template={ModelFieldPickerCopy.keptAsJsonHelp}
+                  slots={{
+                    reset: (
+                      <button
+                        type="button"
+                        data-testid={`${testId}-start-over`}
+                        className="font-semibold text-amber-900 underline hover:text-amber-700"
+                        onClick={startOver}
+                      >
+                        {translator.translateText(
+                          ModelFieldPickerCopy.startOver,
+                        )}
+                      </button>
+                    ),
+                  }}
+                />
+              </p>
+            )}
           </div>
         ) : null}
 
+        {/*
+         * In a view, the code to read and copy: nothing in it changes, and
+         * its own Copy works.
+         */}
         <CodeEditor
           type={CodeType.JSON}
           value={jsonText}
+          readOnly={isViewOnly}
           onChange={(next: string) => {
             setJsonText(next);
             props.onChange(next);
@@ -436,7 +455,7 @@ const ModelFieldPicker: FunctionComponent<ComponentProps> = (
           <p className="text-xs text-gray-500">
             {translator.translateText(ModelFieldPickerCopy.jsonHint)}
           </p>
-          {!schema.error && problems.length === 0 ? (
+          {!schema.error && problems.length === 0 && !isViewOnly ? (
             <button
               type="button"
               data-testid={`${testId}-back-to-list`}
@@ -523,6 +542,9 @@ const ModelFieldPicker: FunctionComponent<ComponentProps> = (
                     : title
                 }
                 className={`inline-flex max-w-full items-center gap-0.5 rounded-md border pl-2 text-sm ${
+                  // As tall as a chip with its remove button, which a view has not.
+                  isViewOnly ? "py-0.5 pr-2" : ""
+                } ${
                   isUnknown
                     ? "border-amber-200 bg-amber-50 font-mono text-amber-800"
                     : "border-gray-200 bg-gray-50 text-gray-800"
@@ -535,21 +557,23 @@ const ModelFieldPicker: FunctionComponent<ComponentProps> = (
                   />
                 ) : null}
                 <span className="truncate">{title}</span>
-                <button
-                  type="button"
-                  data-testid={`${testId}-remove`}
-                  aria-label={translator.translateTemplate(
-                    ModelFieldPickerCopy.remove,
-                    { field: title },
-                  )}
-                  // 24px square: no smaller a target than a finger needs.
-                  className="inline-flex h-6 w-6 shrink-0 items-center justify-center rounded text-gray-400 hover:bg-gray-200 hover:text-gray-700 focus:outline-none focus-visible:ring-2 focus-visible:ring-indigo-500"
-                  onClick={() => {
-                    remove(path);
-                  }}
-                >
-                  <Icon icon={IconProp.Close} className="h-3 w-3" />
-                </button>
+                {isViewOnly ? null : (
+                  <button
+                    type="button"
+                    data-testid={`${testId}-remove`}
+                    aria-label={translator.translateTemplate(
+                      ModelFieldPickerCopy.remove,
+                      { field: title },
+                    )}
+                    // 24px square: no smaller a target than a finger needs.
+                    className="inline-flex h-6 w-6 shrink-0 items-center justify-center rounded text-gray-400 hover:bg-gray-200 hover:text-gray-700 focus:outline-none focus-visible:ring-2 focus-visible:ring-indigo-500"
+                    onClick={() => {
+                      remove(path);
+                    }}
+                  >
+                    <Icon icon={IconProp.Close} className="h-3 w-3" />
+                  </button>
+                )}
               </li>
             );
           })}
@@ -572,23 +596,25 @@ const ModelFieldPicker: FunctionComponent<ComponentProps> = (
                 : translator.translateText(ModelFieldPickerCopy.emptyPassOn)}
             </li>
           ) : null}
-          <li>
-            <button
-              ref={addButtonRef}
-              type="button"
-              data-testid={`${testId}-add`}
-              aria-haspopup="listbox"
-              aria-expanded={isPanelOpen}
-              tabIndex={props.tabIndex}
-              className="inline-flex items-center gap-1 rounded-md px-2 py-0.5 text-sm font-medium text-indigo-600 hover:bg-indigo-50 hover:text-indigo-700 focus:outline-none focus-visible:ring-2 focus-visible:ring-indigo-500"
-              onClick={() => {
-                setIsPanelOpen(!isPanelOpen);
-              }}
-            >
-              <Icon icon={IconProp.Add} className="h-4 w-4" />
-              {translator.translateText(ModelFieldPickerCopy.addField)}
-            </button>
-          </li>
+          {isViewOnly ? null : (
+            <li>
+              <button
+                ref={addButtonRef}
+                type="button"
+                data-testid={`${testId}-add`}
+                aria-haspopup="listbox"
+                aria-expanded={isPanelOpen}
+                tabIndex={props.tabIndex}
+                className="inline-flex items-center gap-1 rounded-md px-2 py-0.5 text-sm font-medium text-indigo-600 hover:bg-indigo-50 hover:text-indigo-700 focus:outline-none focus-visible:ring-2 focus-visible:ring-indigo-500"
+                onClick={() => {
+                  setIsPanelOpen(!isPanelOpen);
+                }}
+              >
+                <Icon icon={IconProp.Add} className="h-4 w-4" />
+                {translator.translateText(ModelFieldPickerCopy.addField)}
+              </button>
+            </li>
+          )}
         </ul>
       </div>
 
@@ -615,38 +641,43 @@ const ModelFieldPicker: FunctionComponent<ComponentProps> = (
        * One line under the list: what is wrong with it, where the eye is
        * after the red border, and the way out to JSON at the far end. The
        * message used to come after Edit as JSON, a line further from the
-       * list it is about.
+       * list it is about. A view has no way out to JSON, so without an
+       * error it has no line here at all.
        */}
-      <div className="flex items-start justify-between gap-3">
-        <div className="min-w-0 flex-1">
-          {props.error ? (
-            /*
-             * A list with nothing in it can only be missing a field, and
-             * says so in its own words: "Fields to pass on is required."
-             * was the form's, for any box left blank.
-             */
-            <FieldError
-              className="pt-1 text-sm text-red-600"
-              message={
-                chosen.length === 0
-                  ? ModelFieldPickerCopy.pickAtLeastOne
-                  : props.error
-              }
-            />
-          ) : null}
+      {isViewOnly && !props.error ? null : (
+        <div className="flex items-start justify-between gap-3">
+          <div className="min-w-0 flex-1">
+            {props.error ? (
+              /*
+               * A list with nothing in it can only be missing a field, and
+               * says so in its own words: "Fields to pass on is required."
+               * was the form's, for any box left blank.
+               */
+              <FieldError
+                className="pt-1 text-sm text-red-600"
+                message={
+                  chosen.length === 0
+                    ? ModelFieldPickerCopy.pickAtLeastOne
+                    : props.error
+                }
+              />
+            ) : null}
+          </div>
+          {isViewOnly ? null : (
+            <button
+              type="button"
+              data-testid={`${testId}-edit-json`}
+              className="-mr-1 shrink-0 rounded px-1 py-1 text-xs font-medium text-gray-500 hover:text-gray-700 focus:outline-none focus-visible:underline"
+              onClick={() => {
+                setIsPanelOpen(false);
+                setIsJson(true);
+              }}
+            >
+              {translator.translateText(ModelFieldPickerCopy.editAsJson)}
+            </button>
+          )}
         </div>
-        <button
-          type="button"
-          data-testid={`${testId}-edit-json`}
-          className="-mr-1 shrink-0 rounded px-1 py-1 text-xs font-medium text-gray-500 hover:text-gray-700 focus:outline-none focus-visible:underline"
-          onClick={() => {
-            setIsPanelOpen(false);
-            setIsJson(true);
-          }}
-        >
-          {translator.translateText(ModelFieldPickerCopy.editAsJson)}
-        </button>
-      </div>
+      )}
     </div>
   );
 };

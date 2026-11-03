@@ -3,6 +3,7 @@ import ObjectID from "Common/Types/ObjectID";
 import ErrorClass from "Common/Types/Telemetry/ErrorClass";
 import { toLikePattern } from "Common/Types/BaseDatabase/WildcardPattern";
 import escapeRegExp from "Common/Utils/RegExpEscape";
+import lookupTable from "Common/Utils/LookupTable";
 import {
   SearchQueryValue,
   SearchToken,
@@ -65,6 +66,15 @@ export const EXCEPTION_KNOWN_FIELD_KEYS: Set<string> = new Set(
 /** The columns those aliases resolve to. Every other key is an attribute. */
 export const EXCEPTION_SEARCH_COLUMNS: Set<string> = new Set(
   Object.values(EXCEPTION_FIELD_ALIASES),
+);
+
+/*
+ * The aliases, read by what somebody typed: a Map answers only for them, so
+ * `constructor:x` is an attribute filter, never Object's constructor
+ * (Common/Utils/LookupTable).
+ */
+const COLUMN_BY_FIELD_ALIAS: ReadonlyMap<string, string> = lookupTable(
+  EXCEPTION_FIELD_ALIASES,
 );
 
 /**
@@ -169,8 +179,9 @@ export function parseExceptionSearch(raw: string): ExceptionSearchFilters {
      * map. An unknown key is an attribute either way, which is what makes
      * `@http.status_code:500` work.
      */
-    const column: string | undefined =
-      EXCEPTION_FIELD_ALIASES[token.key.toLowerCase()];
+    const column: string | undefined = COLUMN_BY_FIELD_ALIAS.get(
+      token.key.toLowerCase(),
+    );
 
     if (column) {
       addPredicate(fieldPredicates, column, token.predicate);

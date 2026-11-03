@@ -63,7 +63,7 @@ case $? in
 esac
 ```
 
-Fejlmeddelelser går til standard-fejl, så `incident.json` kun indeholder svaret.
+Fejlmeddelelser går til standard-fejl, så `incident.json` kun indeholder svaret. Med `-o json` er en fejl også JSON, med exitkoden i: se [JSON](/docs/cli/output-formats#json).
 
 ## Læs svar med jq
 
@@ -74,13 +74,16 @@ Skriv `-o json` i scripts. I en pipe udskriver CLI'en alligevel JSON, men flaget
 oneuptime incident list -o json | jq -r '.[].title'
 
 # The ID of a new monitor
-MONITOR_ID=$(oneuptime monitor create --data '{"name":"Checkout API","monitorType":"Manual"}' -o json | jq -r '._id')
+MONITOR_ID=$(oneuptime monitor create --name "Checkout API" --monitor-type Manual -o json | jq -r '._id')
 
 # When each incident was created: dates come as objects
 oneuptime incident list -o json | jq -r '.[] | "\(.createdAt.value)  \(.title)"'
 
 # The newest 100 incidents as CSV
 oneuptime incident list --limit 100 -o json | jq -r '.[] | [._id, .title, .createdAt.value] | @csv'
+
+# Every incident, page after page, with only the two fields the script reads
+oneuptime incident list --all --fields title,createdAt -o json | jq -r '.[] | "\(.createdAt.value)  \(.title)"'
 ```
 
 En optælling udskriver ét tal, klar til at sammenligne:

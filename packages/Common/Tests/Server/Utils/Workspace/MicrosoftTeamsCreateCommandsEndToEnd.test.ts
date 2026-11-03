@@ -3412,7 +3412,7 @@ describe("submitting the form (#4111): confirmed first, then the form is removed
 
   // What the user reads once the incident exists.
   function incidentCreatedConfirmation(): string {
-    return `✅ Incident created successfully!\n\nView incident: ${dashboardLink(`/incidents/${CREATED_INCIDENT_ID.toString()}`)}`;
+    return `✅ Incident created successfully. [View incident](${dashboardLink(`/incidents/${CREATED_INCIDENT_ID.toString()}`)})`;
   }
 
   test("the confirmation is posted, then the form is deleted; the incident has what the form offered and the user chose", async () => {
@@ -4099,7 +4099,7 @@ describe("submitting the maintenance form: start and end are read in the zone th
     ).toEqual([
       [
         "POST",
-        `✅ Scheduled maintenance created successfully!\n\n**Starts:** ${dayAsRead}, 14:00 (${SENDER_TIMEZONE})\n\n**Ends:** ${dayAsRead}, 16:00 (${SENDER_TIMEZONE})\n\nView scheduled maintenance: ${dashboardLink(`/scheduled-maintenance-events/${CREATED_MAINTENANCE_ID.toString()}`)}`,
+        `✅ Scheduled maintenance created successfully.\n\n**Starts:** ${dayAsRead}, 14:00 (${SENDER_TIMEZONE})\n\n**Ends:** ${dayAsRead}, 16:00 (${SENDER_TIMEZONE})\n\n[View scheduled maintenance](${dashboardLink(`/scheduled-maintenance-events/${CREATED_MAINTENANCE_ID.toString()}`)})`,
         200,
       ],
       ["DELETE", "msg-maintenance-form", 200],
@@ -4161,7 +4161,7 @@ describe("submitting the maintenance form: start and end are read in the zone th
      */
     expect(view.httpStatuses).toEqual([200]);
     expect(labelsOf(view.bubbles)).toEqual([
-      `✅ Scheduled maintenance created successfully!\n\n**Starts:** ${dayAsRead}, 14:00 (UTC+05:30)\n\n**Ends:** ${dayAsRead}, 16:00 (UTC+05:30)\n\nMicrosoft Teams did not say which time zone you are in, so these times were read at your current offset, UTC+05:30. If daylight saving time changes before then, check them in OneUptime.\n\nView scheduled maintenance: ${dashboardLink(`/scheduled-maintenance-events/${CREATED_MAINTENANCE_ID.toString()}`)}`,
+      `✅ Scheduled maintenance created successfully.\n\n**Starts:** ${dayAsRead}, 14:00 (UTC+05:30)\n\n**Ends:** ${dayAsRead}, 16:00 (UTC+05:30)\n\nMicrosoft Teams did not say which time zone you are in, so these times were read at your current offset, UTC+05:30. If daylight saving time changes before then, check them in OneUptime.\n\n[View scheduled maintenance](${dashboardLink(`/scheduled-maintenance-events/${CREATED_MAINTENANCE_ID.toString()}`)})`,
     ]);
 
     // 14:00 at UTC+05:30 is 08:30 UTC.
@@ -4211,7 +4211,7 @@ describe("submitting the maintenance form: start and end are read in the zone th
       [
         "POST",
         GROUP_CONVERSATION_ID,
-        `✅ Scheduled maintenance created successfully!\n\n**Starts:** ${dayAsRead}, 14:00 (${SENDER_TIMEZONE})\n\n**Ends:** ${dayAsRead}, 16:00 (${SENDER_TIMEZONE})\n\nView scheduled maintenance: ${dashboardLink(`/scheduled-maintenance-events/${CREATED_MAINTENANCE_ID.toString()}`)}`,
+        `✅ Scheduled maintenance created successfully.\n\n**Starts:** ${dayAsRead}, 14:00 (${SENDER_TIMEZONE})\n\n**Ends:** ${dayAsRead}, 16:00 (${SENDER_TIMEZONE})\n\n[View scheduled maintenance](${dashboardLink(`/scheduled-maintenance-events/${CREATED_MAINTENANCE_ID.toString()}`)})`,
       ],
       ["DELETE", GROUP_CONVERSATION_ID, "msg-maintenance-form-group"],
     ]);
@@ -4253,14 +4253,14 @@ describe("submitting the maintenance form: start and end are read in the zone th
       description: "4:59 ago: the event is created, starting now",
       arrivesAt: "14:04:59",
       endTime: "16:00",
-      reply: `✅ Scheduled maintenance created successfully!\n\n**Starts:** Oct 6, 2026, 14:04 (${SENDER_TIMEZONE})\n\n**Ends:** Oct 6, 2026, 16:00 (${SENDER_TIMEZONE})\n\nView scheduled maintenance: `,
+      reply: `✅ Scheduled maintenance created successfully.\n\n**Starts:** Oct 6, 2026, 14:04 (${SENDER_TIMEZONE})\n\n**Ends:** Oct 6, 2026, 16:00 (${SENDER_TIMEZONE})\n\n[View scheduled maintenance](`,
       startsAt: "2026-10-06T18:04:59.000Z",
     },
     {
       description: "exactly 5:00 ago: still created, starting now",
       arrivesAt: "14:05:00",
       endTime: "16:00",
-      reply: `✅ Scheduled maintenance created successfully!\n\n**Starts:** Oct 6, 2026, 14:05 (${SENDER_TIMEZONE})\n\n**Ends:** Oct 6, 2026, 16:00 (${SENDER_TIMEZONE})\n\nView scheduled maintenance: `,
+      reply: `✅ Scheduled maintenance created successfully.\n\n**Starts:** Oct 6, 2026, 14:05 (${SENDER_TIMEZONE})\n\n**Ends:** Oct 6, 2026, 16:00 (${SENDER_TIMEZONE})\n\n[View scheduled maintenance](`,
       startsAt: "2026-10-06T18:05:00.000Z",
     },
     {
@@ -4310,7 +4310,7 @@ describe("submitting the maintenance form: start and end are read in the zone th
       expect(view.httpStatuses).toEqual([200]);
       expect(labelsOf(view.bubbles)).toEqual([
         goneBy.startsAt
-          ? `${goneBy.reply}${dashboardLink(`/scheduled-maintenance-events/${CREATED_MAINTENANCE_ID.toString()}`)}`
+          ? `${goneBy.reply}${dashboardLink(`/scheduled-maintenance-events/${CREATED_MAINTENANCE_ID.toString()}`)})`
           : goneBy.reply,
       ]);
 

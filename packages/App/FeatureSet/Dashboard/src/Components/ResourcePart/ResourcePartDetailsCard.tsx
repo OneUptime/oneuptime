@@ -101,7 +101,13 @@ const ResourcePartDetailsCard: FunctionComponent<ComponentProps> = (
                     <dd
                       className={`${DETAIL_VALUE_CLASS_NAME} flex items-start gap-2`}
                     >
+                      {/*
+                       * A value reads in its own direction: "8.0 MB" or
+                       * "520 µs" on a Persian page keeps its number before
+                       * its unit, as the agent wrote it.
+                       */}
                       <div
+                        dir={typeof row.value === "string" ? "auto" : undefined}
                         className={`min-w-0 [overflow-wrap:anywhere]${row.mono ? " font-mono" : ""}`}
                       >
                         {typeof row.value === "string" ? (

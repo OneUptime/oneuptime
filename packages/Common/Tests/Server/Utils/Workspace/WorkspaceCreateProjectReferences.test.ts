@@ -571,7 +571,10 @@ describe("Slack: SubmitNewIncident", (): void => {
   function submit(viewValues: SlackRequest["viewValues"]): Promise<void> {
     return SlackIncidentActions.submitNewIncident({
       slackRequest: slackRequest(viewValues),
-      // No channel, so no confirmation message is posted back to Slack.
+      /*
+       * No channel - a form opened from the app's Home tab: the confirmation
+       * goes to the person, in their direct messages with the app.
+       */
       action: {
         actionType: SlackActionType.SubmitNewIncident,
         actionValue: "",
@@ -626,7 +629,11 @@ describe("Slack: SubmitNewIncident", (): void => {
     expect(incident.changeMonitorStatusToId?.toString()).toBe(OWN_STATUS_ID);
     // Credited by the create, from the member's props.
     expect(incident.createdByUserId).toBeUndefined();
-    expect(directMessages).not.toHaveBeenCalled();
+    // Confirmed to the person, with no channel to post in - and nothing refused.
+    expect(directMessages).toHaveBeenCalledTimes(1);
+    expect(directMessages.mock.calls[0]![0].text).toBe(
+      "Incident created successfully.",
+    );
   });
 
   test.each(INCIDENT_REFUSED_REFERENCES)(
@@ -728,6 +735,57 @@ describe("Slack: SubmitNewScheduledMaintenance", (): void => {
     ]);
     expect(relationIds(scheduledMaintenance.labels)).toEqual([OWN_LABEL_ID]);
     expect(scheduledMaintenance.createdByUserId).toBeUndefined();
+    /*
+     * No channel - a form opened from the app's Home tab: confirmed to the
+     * person, in their direct messages with the app - and nothing refused.
+     */
+    expect(directMessages).toHaveBeenCalledTimes(1);
+    expect(directMessages.mock.calls[0]![0].text).toBe(
+      "Scheduled event created successfully.",
+    );
+  });
+
+  test("an event with a number is confirmed by it, with a link to it - in the person's direct messages, with no channel", async (): Promise<void> => {
+    const event: ScheduledMaintenance = createdScheduledMaintenance();
+    event.scheduledMaintenanceNumber = 3;
+    event.scheduledMaintenanceNumberWithPrefix = "SM-3";
+    jest.spyOn(ScheduledMaintenanceService, "create").mockResolvedValue(event);
+
+    await submit({ ...OWN_CHOICE, monitors: OWN_MONITOR_ID });
+
+    expect(directMessages).toHaveBeenCalledTimes(1);
+    expect(directMessages.mock.calls[0]![0].text).toBe(
+      "Scheduled Event SM-3 created successfully.",
+    );
+    const markdown: string = String(
+      (
+        directMessages.mock.calls[0]![0].messageBlocks[0] as {
+          text?: string;
+        }
+      ).text,
+    );
+    expect(markdown).toContain(
+      "**Scheduled Event SM-3** created successfully.",
+    );
+    expect(markdown).toContain("[View Event](");
+    expect(markdown).toContain(
+      `/scheduled-maintenance-events/${CREATED_ID.toString()}`,
+    );
+  });
+
+  test("a number without the project's prefix reads '#3'; never '#undefined'", async (): Promise<void> => {
+    const event: ScheduledMaintenance = createdScheduledMaintenance();
+    event.scheduledMaintenanceNumber = 3;
+    jest.spyOn(ScheduledMaintenanceService, "create").mockResolvedValue(event);
+
+    await submit({ ...OWN_CHOICE, monitors: OWN_MONITOR_ID });
+
+    expect(directMessages.mock.calls[0]![0].text).toBe(
+      "Scheduled Event #3 created successfully.",
+    );
+    expect(JSON.stringify(directMessages.mock.calls)).not.toContain(
+      "undefined",
+    );
   });
 
   test.each(SCHEDULED_MAINTENANCE_REFUSED_REFERENCES)(

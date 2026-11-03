@@ -7,6 +7,7 @@ import {
 } from "@playwright/test";
 import fs from "fs/promises";
 import path from "path";
+import { expectNoSidewaysScroll } from "../SuiteHelpers/PageFit";
 
 /*
  * The way back from Security Events: a host's, a Kubernetes cluster's, a
@@ -174,15 +175,6 @@ async function figureRows(
     });
 }
 
-async function pageOverflow(page: Page): Promise<number> {
-  return page.evaluate((): number => {
-    return (
-      document.documentElement.scrollWidth -
-      document.documentElement.clientWidth
-    );
-  });
-}
-
 // The parts of the card that run past its edges: none may.
 async function partsOutsideTheCard(page: Page): Promise<Array<string>> {
   return card(page).evaluate((root: Element): Array<string> => {
@@ -334,7 +326,7 @@ test.describe("a host's Security card", () => {
         card(page).getByTestId("resource-security-case").first(),
       ).toBeVisible({ timeout: 30000 });
 
-      expect(await pageOverflow(page)).toBeLessThanOrEqual(1);
+      await expectNoSidewaysScroll(page, { tolerance: 1 });
       expect(await partsOutsideTheCard(page)).toEqual([]);
       /*
        * Four short figures, by the card's own width: one row from 36rem,
@@ -367,7 +359,7 @@ test.describe("a cluster's Security card", () => {
     await expect(
       card(page).getByTestId("resource-security-cases"),
     ).toContainText("Privileged pod created in kube-system");
-    expect(await pageOverflow(page)).toBeLessThanOrEqual(1);
+    await expectNoSidewaysScroll(page, { tolerance: 1 });
     await screenshot(page, "cluster-security-card-1280");
   });
 
@@ -508,7 +500,7 @@ test.describe("a Docker host's Security card", () => {
         card(page).getByTestId("resource-security-case").first(),
       ).toBeVisible({ timeout: 30000 });
 
-      expect(await pageOverflow(page)).toBeLessThanOrEqual(1);
+      await expectNoSidewaysScroll(page, { tolerance: 1 });
       expect(await partsOutsideTheCard(page)).toEqual([]);
       const figures: { width: number; rows: number } = await figureRows(page);
       const rowsByWidth: number =
@@ -552,7 +544,7 @@ test.describe("a Podman host's Security card", () => {
     expect(decodeURIComponent(search.searchParams.get("search") || "")).toBe(
       "observable:podman-build-02",
     );
-    expect(await pageOverflow(page)).toBeLessThanOrEqual(1);
+    await expectNoSidewaysScroll(page, { tolerance: 1 });
     expect(await partsOutsideTheCard(page)).toEqual([]);
     await screenshot(page, "podman-host-security-card-1280");
   });
@@ -569,4 +561,93 @@ test.describe("a Podman host's Security card", () => {
       "No security event named it in the last 7 days.",
     );
   });
+});
+
+/*
+ * A Docker host's and a Podman host's Overview also read their containers
+ * for Needs attention (ContainerHostReadings): the inventory, and each
+ * container's restarts summed over the Container Restart Loop alert's
+ * window. The fixture answers both as a calm host - its containers running,
+ * none restarted - so the afterEach finds nothing it does not model, and a
+ * page that starts reading more lands there.
+ */
+test.describe("a container host's Overview reads its containers", () => {
+  for (const host of [
+    {
+      name: "Docker",
+      path: DOCKER_HOST_PATH,
+      inventory: "DockerResource",
+      hostColumn: "dockerHostId",
+      hostId: DOCKER_HOST_ID,
+    },
+    {
+      name: "Podman",
+      path: PODMAN_HOST_PATH,
+      inventory: "PodmanResource",
+      hostColumn: "podmanHostId",
+      hostId: PODMAN_HOST_ID,
+    },
+  ]) {
+    test(`a ${host.name} host: its inventory of containers, and each one's restarts`, async ({
+      page,
+    }: {
+      page: Page;
+    }) => {
+      await open(page, host.path);
+      await securityRead(page);
+
+      await expect
+        .poll(
+          async (): Promise<{
+            inventory: boolean;
+            restarts: number | null;
+          }> => {
+            const requests: Array<Record<string, unknown>> =
+              await page.evaluate((): Array<Record<string, unknown>> => {
+                const fixture:
+                  | { requests?: Array<Record<string, unknown>> }
+                  | undefined = (
+                  window as unknown as {
+                    __chartTimeZoomFixture?: {
+                      requests?: Array<Record<string, unknown>>;
+                    };
+                  }
+                ).__chartTimeZoomFixture;
+                return JSON.parse(JSON.stringify(fixture?.requests || []));
+              });
+            const inventory: boolean = requests.some(
+              (request: Record<string, unknown>): boolean => {
+                const query: Record<string, unknown> =
+                  (request["query"] as Record<string, unknown>) || {};
+                const hostColumn: Record<string, unknown> =
+                  (query[host.hostColumn] as Record<string, unknown>) || {};
+                return (
+                  request["kind"] === "getList" &&
+                  request["modelName"] === host.inventory &&
+                  query["kind"] === "Container" &&
+                  hostColumn["value"] === host.hostId
+                );
+              },
+            );
+            const restarts: Record<string, unknown> | undefined = requests.find(
+              (request: Record<string, unknown>): boolean => {
+                return (
+                  request["kind"] === "aggregate" &&
+                  request["metricName"] === "container.restarts.increase"
+                );
+              },
+            );
+            return {
+              inventory: inventory,
+              // One total a container: two containers on each host.
+              restarts: restarts
+                ? (restarts["rows"] as number | undefined) ?? null
+                : null,
+            };
+          },
+          { timeout: 30000 },
+        )
+        .toEqual({ inventory: true, restarts: 2 });
+    });
+  }
 });

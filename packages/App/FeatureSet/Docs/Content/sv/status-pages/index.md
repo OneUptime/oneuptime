@@ -93,7 +93,7 @@ När du har öppnat en statussida är dess egen vänstermeny indelad i tio sekti
 | **Varumärke** | **Varumärke** (logotyp, titel, favicon, länkar, sidfot, färger och språk, på en sida), **Anpassade domäner**, **HTML, CSS och JavaScript**. |
 | **Säkerhet** | **Åtkomst** (vem som får se sidan), **Privata användare**, **SSO**, **OIDC**, **SCIM**. |
 | **AI** | **MCP**. |
-| **Utvecklare** | **Terraform**, **API**, **AI-assistenter**: sidan som kod. |
+| **Utvecklare** | **Terraform**, **API**, **CLI**, **AI-assistenter**: sidan som kod. |
 | **Avancerad** | **Inbäddad status**, **Rapporter**, **Anpassade fält**, **Avancerade inställningar**, **Granskningsloggar**, **Ta bort statussida**. |
 
 Bara **Grundläggande** och **Resurser**, det sidan visar, börjar öppna. Alla andra sektioner börjar ihopfällda, som de sällan använda sektionerna i alla OneUptimes menyer: klicka på en sektions rubrik för att visa dess sidor. En sektion öppnas av sig själv när du är på en av dess sidor, till exempel **Avancerade inställningar** eller **E-postprenumeranter**.

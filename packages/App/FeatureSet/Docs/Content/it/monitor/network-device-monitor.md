@@ -195,7 +195,7 @@ Ogni punto che mostra un dispositivo — l'elenco Dispositivi, la pagina Disposi
 | Qualificatore | Compare quando | Cosa fare |
 | --- | --- | --- |
 | **Non aggiornato** | Nessun polling è stato tentato da ben più dell'intervallo del dispositivo. | Controlla che la sonda del dispositivo sia online e stia al passo con la sua flotta. |
-| **No probe** | Il dispositivo è interrogato dalla sonda ma non ne ha una, o il suo polling è disattivato. | Assegna una sonda in grado di raggiungerlo; fino ad allora nulla lo interroga. |
+| **Nessuna sonda** | Il dispositivo è interrogato dalla sonda ma non ne ha una, o il suo polling è disattivato. | Assegna una sonda in grado di raggiungerlo; fino ad allora nulla lo interroga. |
 | **Nessun monitor** | Il dispositivo usa l'[override con monitor associato](#loverride-con-monitor-associato) e nulla è associato. | Associa un monitor, o riportalo al polling tramite sonda. |
 | **SNMP failing** | Attivo al ping, ma l'ultimo walk SNMP è fallito. | Controlla le credenziali, l'agente SNMP o un'ACL. |
 
@@ -518,7 +518,7 @@ Questi valori sono tenuti accanto ai campi del dispositivo, mai scritti al loro 
 
 Uno switch, un access point o un'appliance Meraki non fornisce via SNMP né numero di serie né firmware: interrogato direttamente, il dispositivo risponde al gruppo di sistema e alle tabelle delle interfacce, che danno il suo modello e il suo indirizzo MAC, e nient'altro. Quando una [connessione Meraki](/docs/monitor/network-traffic#cisco-meraki-senza-netflow) legge la sua organizzazione, il dispositivo prende questi valori, e tutto ciò che il suo polling lascia vuoto, dalla dashboard di Meraki, e la sua scheda **Inventario** nomina la connessione in una riga **Meraki**.
 
-Per rileggere subito un dispositivo, premi **Aggiorna** nella sua scheda **Inventario**. La sua sonda lo interroga entro un minuto e la sua connessione Meraki rilegge l'organizzazione. La scheda dice quando è arrivata la nuova lettura, o che la sonda non è riuscita a raggiungere il dispositivo. **Aggiorna** c'è per chi può modificare i dispositivi di rete, su un dispositivo che una sonda interroga o che una connessione Meraki descrive.
+Per rileggere subito un dispositivo, premi **Aggiorna** nella sua scheda **Inventario**. La sua sonda lo interroga entro un minuto e la sua connessione Meraki rilegge l'organizzazione. La scheda dice quando è arrivata la nuova lettura, o che la sonda non è riuscita a raggiungere il dispositivo. **Aggiorna** c'è per chi può modificare i dispositivi di rete, su un dispositivo che una sonda interroga o che una connessione Meraki descrive. Quando arriva la nuova lettura, anche lo stato del dispositivo e la sua scheda **Dettagli del dispositivo** la mostrano. Se tre minuti dopo solo la dashboard di Meraki non è ancora stata letta, la scheda lo dice, con un link alla connessione Meraki nella pagina **Traffico** della rete, la cui riga dice perché.
 
 ## Rilevare i dispositivi con una scansione di rete
 
@@ -961,6 +961,12 @@ Perché la mappa si riempia:
 
 Fai clic su un peer non gestito e **Add to Monitoring** lo registra come dispositivo interrogato dalla sonda. Prende la sonda su cui concordano i suoi vicini, quindi riceve il ping fin dal suo primo polling, e puoi aggiungere le credenziali più tardi se risulta che ha SNMP.
 
+### Scegliere il layout con cui si apre la mappa
+
+**Map options → Arrange the map** dispone la mappa come **Automatico**, **By network layer**, **Concentric**, **Hub and spoke** o **Parent and child**. La mappa si apre sul layout contrassegnato come **Predefinito**: **Automatico** per tutti i dispositivi e **By network layer** per un sito, a meno che il progetto non abbia scelto un layout per tutti. Chiunque può cambiare layout mentre guarda; la volta successiva la mappa si apre di nuovo su quello predefinito.
+
+I proprietari e gli amministratori del progetto scelgono il layout predefinito: passate a un layout e selezionate **Make default for everyone**. Da quel momento ogni vista della mappa dei dispositivi si apre su di esso: **Topologia del dispositivo**, un sito nella **Mappa** e la scheda **Rete** di **Topologia**. Sul layout predefinito, **Clear default** riporta ogni mappa al proprio layout predefinito. Le posizioni trascinate vengono salvate per ogni layout nel vostro browser, quindi la mappa si apre con la disposizione che avete fatto in quel layout.
+
 ### Esportare la mappa in PDF
 
 **Esporta PDF**, in cima alla mappa, scarica la mappa che stai guardando come PDF da allegare a una valutazione, a una richiesta di modifica o a una revisione di un incidente, o da leggere offline. Ogni vista della mappa dei dispositivi lo ha: **Topologia del dispositivo**, un sito nella **Mappa** e la scheda **Rete** di **Topologia**.
@@ -1023,7 +1029,7 @@ La panoramica del dispositivo ha una scheda **Connesso a** che indica lo switch,
 :::details Un dispositivo resta In sospeso
 Un dispositivo mostra **In sospeso** finché nulla ha ancora riferito su di esso. Leggi il qualificatore accanto allo stato:
 
-- **No probe**: assegna una sonda, o riattiva **Polling Enabled**. Nulla interroga il dispositivo finché non lo fai.
+- **Nessuna sonda**: assegna una sonda, o riattiva **Polling Enabled**. Nulla interroga il dispositivo finché non lo fai.
 - **Nessun monitor**: il dispositivo è sull'[override con monitor associato](#loverride-con-monitor-associato) senza nulla di associato. Associa un monitor, o usa **Switch to Probe Polling** perché la sua sonda gli invii il ping.
 - Nessun qualificatore: il dispositivo ha una sonda e attende il suo primo polling. Su una flotta grande una sonda distribuisce un numero limitato di dispositivi per ciclo, quindi il primo polling può richiedere più tempo dell'intervallo del dispositivo.
 

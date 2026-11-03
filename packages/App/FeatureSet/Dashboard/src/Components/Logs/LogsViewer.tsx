@@ -16,6 +16,10 @@ import {
   normalizeLogsTableColumns,
 } from "Common/UI/Components/LogsViewer/types";
 import useLiveLogsRefresh from "Common/UI/Components/LogsViewer/useLiveLogsRefresh";
+import {
+  isLogSearchFieldAlias,
+  resolveLogSearchField,
+} from "Common/UI/Components/LogsViewer/components/LogSearchBar";
 import useLogsHistogram, {
   LogsHistogramData,
   LogsHistogramState,
@@ -68,6 +72,10 @@ import {
 } from "./LogsFacetFilters";
 import { serializeSavedViewTimeRange } from "Common/Utils/Telemetry/SavedViewTimeRange";
 import { leaveSavedViewDefaultOutUnlessTicked } from "Common/Utils/Telemetry/SavedViewDefault";
+import {
+  getSavedViewScopeColumnValue,
+  getSavedViewScopeQueryValue,
+} from "Common/Utils/Telemetry/SavedViewScope";
 import ConfirmModal from "Common/UI/Components/Modal/ConfirmModal";
 import DeleteConfirmationMessage from "Common/UI/Components/DeleteConfirmation/DeleteConfirmationMessage";
 import { getRecordDisplayName } from "Common/UI/Utils/ModelDisplayName";
@@ -138,11 +146,15 @@ import TelemetryType from "Common/Types/Telemetry/TelemetryType";
 import { shouldAdoptTimeRangeOverride } from "../../Utils/SharedTelemetryTimeCursor";
 import { writeTelemetryViewerUrlState } from "../../Utils/TelemetryViewerUrlState";
 import {
+  doesHostOwnLogsView,
   InitialSavedViewResolution,
   mayApplyInitialSavedView,
   resolveInitialSavedView,
 } from "../../Utils/InitialSavedView";
-import { buildSavedViewQueryForOverrides } from "../../Utils/SavedViewQueryMerge";
+import {
+  buildSavedViewQueryForOverrides,
+  buildSavedViewQueryOverBase,
+} from "../../Utils/SavedViewQueryMerge";
 import Navigation from "Common/UI/Utils/Navigation";
 import useStableValue from "Common/UI/Utils/UseStableValue";
 import Dictionary from "Common/Types/Dictionary";
@@ -258,6 +270,17 @@ export interface ComponentProps {
    * view shows (TelemetryMonitorLink). The Logs page turns it on.
    */
   offersCreateMonitor?: boolean | undefined;
+  /*
+   * The page this viewer's saved views belong to (issue #5549): the Logs
+   * page passes EXPLORER_SAVED_VIEW_SCOPE, a resource's Logs tab its own
+   * (buildSavedViewScope, Common/Utils/Telemetry/SavedViewScope). The viewer
+   * lists only the views saved on that page, saves new ones to it, and opens
+   * on its default, so a view made for one Kubernetes cluster never turns up
+   * on the Logs page or on another cluster's tab. A panel about one moment -
+   * an incident's, an alert's, a trace's - leaves it unset and offers no
+   * saved views.
+   */
+  savedViewScope?: string | undefined;
   /*
    * When true, mirror time range / chip filters / page / pageSize to the URL
    * via `replaceState` so refresh and back-from-detail restore the view.
@@ -790,14 +813,21 @@ const DashboardLogsViewer: FunctionComponent<ComponentProps> = (
   const hasAppliedInitialSavedView: React.MutableRefObject<boolean> =
     useRef<boolean>(false);
 
+  // Whether this viewer's page has saved views of its own (savedViewScope).
+  const offersSavedViews: boolean = Boolean(props.savedViewScope);
+
   /*
    * Whether a host or link owns what this viewer shows: a pinned moment, a
-   * controlled window, or an embed (`!syncUrlState` marks a viewer inside
-   * another page). The project's default saved view never applies over one.
+   * controlled window, or a panel with no saved views of its own. The page's
+   * default saved view never applies over one. A resource's Logs tab does
+   * not own it: its default is a view saved on that very tab (issue #5549),
+   * so it opens there as the Logs page's opens on the Logs page.
    */
-  const hostOwnsView: boolean = Boolean(
-    pinnedTimeRange || props.timeRangeOverride || !props.syncUrlState,
-  );
+  const hostOwnsView: boolean = doesHostOwnLogsView({
+    hasPinnedTimeRange: Boolean(pinnedTimeRange),
+    hasTimeRangeOverride: Boolean(props.timeRangeOverride),
+    savedViewScope: props.savedViewScope,
+  });
 
   /*
    * Whether the list, the chart and the facets wait for the saved views
@@ -814,13 +844,10 @@ const DashboardLogsViewer: FunctionComponent<ComponentProps> = (
    */
   const [awaitsInitialSavedView, setAwaitsInitialSavedView] = useState<boolean>(
     (): boolean => {
-      if (!initialUrlState) {
-        return false;
-      }
-
+      // A tab that reads no URL has nothing in it to protect.
       return mayApplyInitialSavedView({
-        urlSavedViewId: initialUrlState.savedViewId,
-        hasUrlScope: initialUrlState.hasScope,
+        urlSavedViewId: initialUrlState?.savedViewId,
+        hasUrlScope: Boolean(initialUrlState?.hasScope),
         hostOwnsView: hostOwnsView,
       });
     },
@@ -1218,7 +1245,8 @@ const DashboardLogsViewer: FunctionComponent<ComponentProps> = (
 
         const projectId: ObjectID | null = ProjectUtil.getCurrentProjectId();
 
-        if (!projectId) {
+        // A panel with no saved views asks for none.
+        if (!projectId || !props.savedViewScope) {
           setSavedViews([]);
           return;
         }
@@ -1227,6 +1255,8 @@ const DashboardLogsViewer: FunctionComponent<ComponentProps> = (
           modelType: LogSavedView,
           query: {
             projectId: projectId,
+            // This page's views only (issue #5549).
+            scope: getSavedViewScopeQueryValue(props.savedViewScope),
           },
           limit: SAVED_VIEWS_LIMIT,
           skip: 0,
@@ -1253,7 +1283,7 @@ const DashboardLogsViewer: FunctionComponent<ComponentProps> = (
         setIsSavedViewLoading(false);
         setHasFetchedSavedViews(true);
       }
-    }, []);
+    }, [props.savedViewScope]);
 
   type FetchOptions = {
     skipLoadingState?: boolean;
@@ -1778,10 +1808,10 @@ const DashboardLogsViewer: FunctionComponent<ComponentProps> = (
             savedQuery: savedQuery as unknown as JSONObject,
             baseQuery: baseQuery as unknown as JSONObject,
           })
-        : {
-            ...(savedQuery as unknown as JSONObject),
-            ...(baseQuery as unknown as JSONObject),
-          };
+        : buildSavedViewQueryOverBase({
+            savedQuery: savedQuery as unknown as JSONObject,
+            baseQuery: baseQuery as unknown as JSONObject,
+          });
 
       const mergedQuery: Query<Log> = withResolvedTime(
         merged as unknown as Query<Log>,
@@ -2686,15 +2716,12 @@ const DashboardLogsViewer: FunctionComponent<ComponentProps> = (
   const handleFieldValueSelect: (fieldKey: string, value: string) => void =
     useCallback(
       (fieldKey: string, value: string): void => {
-        // Map user-facing field names to internal keys (case-insensitive)
-        const fieldAliases: Record<string, string> = {
-          severity: "severityText",
-          level: "severityText",
-          service: "primaryEntityId",
-          trace: "traceId",
-          span: "spanId",
-        };
         /*
+         * Map user-facing field names to internal keys (case-insensitive),
+         * as the search bar reads them (isLogSearchFieldAlias,
+         * resolveLogSearchField): its own names only, never "constructor"
+         * or the rest every object inherits.
+         *
          * Unknown keys are telemetry attributes (e.g. `http.method`,
          * `requestId`). Prefix them with `attributes.` so the rebuild step
          * routes them into `query.attributes[<key>]` instead of treating them
@@ -2703,10 +2730,8 @@ const DashboardLogsViewer: FunctionComponent<ComponentProps> = (
          * matches them case-insensitively. The chip displays without the
          * `attributes.` prefix.
          */
-        const aliased: string | undefined =
-          fieldAliases[fieldKey.toLowerCase()];
-        const resolvedKey: string = aliased
-          ? aliased
+        const resolvedKey: string = isLogSearchFieldAlias(fieldKey)
+          ? resolveLogSearchField(fieldKey)
           : `attributes.${fieldKey}`;
 
         handleFacetInclude(resolvedKey, value);
@@ -2938,7 +2963,14 @@ const DashboardLogsViewer: FunctionComponent<ComponentProps> = (
             savedView.sortField = sortField;
             savedView.sortOrder = sortOrder;
             savedView.pageSize = pageSize;
-            // Unticked, the service decides: a project's first view is its default.
+            // On this page, which is the only one that will list it.
+            const scope: string | null = getSavedViewScopeColumnValue(
+              props.savedViewScope,
+            );
+            if (scope) {
+              savedView.scope = scope;
+            }
+            // Unticked, the service decides: a page's first view is its default.
             return leaveSavedViewDefaultOutUnlessTicked(savedView);
           }}
           onSuccess={async (savedView: LogSavedView) => {
@@ -3166,7 +3198,7 @@ const DashboardLogsViewer: FunctionComponent<ComponentProps> = (
           onSelectedColumnsChange={(columns: Array<string>) => {
             setSelectedColumns(normalizeLogsTableColumns(columns));
           }}
-          savedViews={savedViewOptions}
+          savedViews={offersSavedViews ? savedViewOptions : undefined}
           selectedSavedViewId={selectedSavedViewId}
           onSavedViewSelect={(viewId: string) => {
             const savedView: LogSavedView | undefined = savedViews.find(

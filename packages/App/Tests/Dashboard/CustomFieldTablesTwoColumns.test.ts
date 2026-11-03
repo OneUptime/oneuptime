@@ -159,7 +159,7 @@ const LOCALE_FILES: Array<string> = fs
   .sort();
 
 describe("the custom field settings tables", () => {
-  test("there are nine definition models, one per resource", () => {
+  test("there are ten definition models, one per resource", () => {
     expect(DEFINITION_MODELS).toEqual([
       "AlertCustomField",
       "IncidentCustomField",
@@ -167,6 +167,7 @@ describe("the custom field settings tables", () => {
       "MonitorCustomField",
       "OnCallDutyPolicyCustomField",
       "ScheduledMaintenanceCustomField",
+      "SecurityCaseCustomField",
       "StatusPageCustomField",
       "TeamCustomField",
       "TeamMemberCustomField",

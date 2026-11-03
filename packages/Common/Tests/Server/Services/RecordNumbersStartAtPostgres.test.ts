@@ -106,6 +106,9 @@ const TAKE: Record<NumberedRecordKind, TakeNumber> = {
   [NumberedRecordKind.ScheduledMaintenance]: (projectId: ObjectID) => {
     return ProjectService.incrementAndGetScheduledMaintenanceCounter(projectId);
   },
+  [NumberedRecordKind.SecurityCase]: (projectId: ObjectID) => {
+    return ProjectService.incrementAndGetSecurityCaseCounter(projectId);
+  },
 };
 
 const KINDS: Array<NumberedRecordKindInfo> = [...NUMBERED_RECORD_KINDS];

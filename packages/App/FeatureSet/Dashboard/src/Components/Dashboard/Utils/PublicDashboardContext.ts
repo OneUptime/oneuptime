@@ -1,3 +1,4 @@
+import DashboardComponentType from "Common/Types/Dashboard/DashboardComponentType";
 import ObjectID from "Common/Types/ObjectID";
 import URL from "Common/Types/API/URL";
 import HTTPResponse from "Common/Types/API/HTTPResponse";
@@ -65,6 +66,41 @@ export function getPublicDashboardContext(): PublicDashboardContext | null {
 
 export function isPublicDashboard(): boolean {
   return publicDashboardContext !== null;
+}
+
+/*
+ * The widgets a public dashboard cannot draw: its API reads no logs, no
+ * traces, no security events and no external data source, so each of them
+ * says so in its place ("Log charts are not available on public
+ * dashboards.", DataSourceWidgetPlaceholder). The board lays them out as
+ * the words they are: on a phone each takes two rows at most, and a chart
+ * among them no chart's floor (Canvas, DashboardBoardLayout isPlaceholder).
+ */
+export const PUBLIC_DASHBOARD_UNDRAWN_WIDGET_TYPES: ReadonlyArray<DashboardComponentType> =
+  [
+    DashboardComponentType.LogChart,
+    DashboardComponentType.TraceChart,
+    DashboardComponentType.TraceTable,
+    DashboardComponentType.SecurityEventsList,
+    DashboardComponentType.SecurityEventsFlow,
+    DashboardComponentType.DataSourceChart,
+    DashboardComponentType.DataSourceValue,
+    DashboardComponentType.DataSourceGauge,
+    DashboardComponentType.DataSourceTable,
+  ];
+
+// Whether a widget of this type is drawn on the dashboard being shown.
+export function isWidgetDrawnHere(
+  componentType: DashboardComponentType | string | undefined,
+): boolean {
+  return !(
+    isPublicDashboard() &&
+    PUBLIC_DASHBOARD_UNDRAWN_WIDGET_TYPES.some(
+      (undrawn: DashboardComponentType) => {
+        return undrawn === componentType;
+      },
+    )
+  );
 }
 
 /*

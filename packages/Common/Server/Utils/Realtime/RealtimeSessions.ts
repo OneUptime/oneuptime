@@ -6,6 +6,7 @@ import {
   SessionLengths,
 } from "../../../Types/UserSession/SessionLength";
 import type { RealtimeReaderIdentity } from "./RealtimeReaders";
+import OldestKeyMap from "../../../Utils/OldestKeyMap";
 
 /*
  * THE SESSION A SOCKET'S LIVE UPDATES BELONG TO.
@@ -136,7 +137,10 @@ export default class RealtimeSessions {
   private static live: Map<string, LiveSocket> = new Map<string, LiveSocket>();
 
   // Sessions ("session:<id>") and people ("user:<id>") whose sessions ended.
-  private static ended: Map<string, EndedEntry> = new Map<string, EndedEntry>();
+  private static ended: OldestKeyMap<string, EndedEntry> = new OldestKeyMap<
+    string,
+    EndedEntry
+  >();
 
   /*
    * The session a socket's live updates belong to, while it lasts: null
@@ -547,9 +551,7 @@ export default class RealtimeSessions {
     RealtimeSessions.ended.delete(key);
 
     if (RealtimeSessions.ended.size >= RealtimeSessions.MAX_ENDED_ENTRIES) {
-      const oldestKey: string | undefined = RealtimeSessions.ended
-        .keys()
-        .next().value;
+      const oldestKey: string | undefined = RealtimeSessions.ended.oldestKey();
 
       if (oldestKey !== undefined) {
         RealtimeSessions.ended.delete(oldestKey);

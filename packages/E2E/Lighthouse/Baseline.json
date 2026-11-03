@@ -1,0 +1,182 @@
+{
+  "lighthouse": "13.5.0",
+  "pages": {
+    "/": {
+      "mobile": [
+        "color-contrast"
+      ],
+      "desktop": [
+        "color-contrast"
+      ]
+    },
+    "/pricing": {
+      "mobile": [
+        "aria-allowed-attr",
+        "color-contrast",
+        "label"
+      ],
+      "desktop": [
+        "aria-allowed-attr",
+        "color-contrast",
+        "label"
+      ]
+    },
+    "/product/status-page": {
+      "mobile": [
+        "color-contrast",
+        "definition-list",
+        "dlitem"
+      ],
+      "desktop": [
+        "color-contrast",
+        "definition-list",
+        "dlitem"
+      ]
+    },
+    "/product/on-call": {
+      "mobile": [
+        "color-contrast",
+        "definition-list",
+        "dlitem"
+      ],
+      "desktop": [
+        "color-contrast",
+        "definition-list",
+        "dlitem"
+      ]
+    },
+    "/solutions/sre": {
+      "mobile": [
+        "color-contrast",
+        "definition-list",
+        "dlitem"
+      ],
+      "desktop": [
+        "color-contrast",
+        "definition-list",
+        "dlitem"
+      ]
+    },
+    "/compare/datadog": {
+      "mobile": [
+        "color-contrast",
+        "heading-order"
+      ],
+      "desktop": [
+        "color-contrast",
+        "heading-order"
+      ]
+    },
+    "/integrations": {
+      "mobile": [],
+      "desktop": []
+    },
+    "/integrations/opentelemetry/browser": {
+      "mobile": [
+        "color-contrast"
+      ],
+      "desktop": []
+    },
+    "/enterprise/demo": {
+      "mobile": [
+        "color-contrast"
+      ],
+      "desktop": [
+        "color-contrast"
+      ]
+    },
+    "/legal/privacy": {
+      "mobile": [
+        "heading-order"
+      ],
+      "desktop": [
+        "heading-order"
+      ]
+    },
+    "/blog": {
+      "mobile": [
+        "heading-order",
+        "landmark-one-main",
+        "link-name",
+        "skip-link"
+      ],
+      "desktop": [
+        "heading-order",
+        "landmark-one-main",
+        "link-name",
+        "skip-link"
+      ]
+    },
+    "/blog/post/2026-01-12-reading-a-status-page/view": {
+      "mobile": [
+        "color-contrast",
+        "landmark-one-main",
+        "skip-link"
+      ],
+      "desktop": [
+        "aria-prohibited-attr",
+        "color-contrast",
+        "landmark-one-main",
+        "skip-link"
+      ]
+    },
+    "/docs/en/introduction/getting-started": {
+      "mobile": [
+        "color-contrast",
+        "landmark-one-main"
+      ],
+      "desktop": [
+        "color-contrast",
+        "landmark-one-main"
+      ]
+    },
+    "/docs/en/terraform/quick-start": {
+      "mobile": [
+        "color-contrast",
+        "landmark-one-main"
+      ],
+      "desktop": [
+        "color-contrast",
+        "landmark-one-main"
+      ]
+    },
+    "/docs/fa/introduction/getting-started": {
+      "mobile": [
+        "landmark-one-main"
+      ],
+      "desktop": [
+        "landmark-one-main"
+      ]
+    },
+    "/docs/zh-CN/introduction/getting-started": {
+      "mobile": [
+        "color-contrast",
+        "landmark-one-main"
+      ],
+      "desktop": [
+        "color-contrast",
+        "landmark-one-main"
+      ]
+    },
+    "/reference/en/introduction": {
+      "mobile": [
+        "color-contrast"
+      ],
+      "desktop": [
+        "color-contrast"
+      ]
+    },
+    "/reference/en/monitor": {
+      "mobile": [
+        "color-contrast",
+        "definition-list",
+        "heading-order"
+      ],
+      "desktop": [
+        "color-contrast",
+        "definition-list",
+        "heading-order"
+      ]
+    }
+  }
+}

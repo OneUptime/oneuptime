@@ -1,4 +1,5 @@
 import { JSONObject } from "../../Types/JSON";
+import lookupTable from "../LookupTable";
 import NormalizedSecurityEvent from "../../Types/SecurityEvent/NormalizedSecurityEvent";
 import OcsfSeverity, {
   OcsfSeverityId,
@@ -39,107 +40,108 @@ interface UdmClassMapping {
   activityName: string;
 }
 
-const UDM_EVENT_TYPE_TO_OCSF: Record<string, UdmClassMapping> = {
-  // Identity & Access Management
-  USER_LOGIN: { classUid: 3002, activityName: "Logon" },
-  USER_LOGOUT: { classUid: 3002, activityName: "Logoff" },
-  USER_CREATION: { classUid: 3001, activityName: "Create" },
-  USER_DELETION: { classUid: 3001, activityName: "Delete" },
-  USER_CHANGE_PASSWORD: { classUid: 3001, activityName: "Change Password" },
-  USER_CHANGE_PERMISSIONS: {
-    classUid: 3005,
-    activityName: "Change Permissions",
-  },
-  USER_BADGE_IN: { classUid: 3002, activityName: "Logon" },
-  USER_UNCATEGORIZED: { classUid: 3001, activityName: "Other" },
-  GROUP_CREATION: { classUid: 3006, activityName: "Create" },
-  GROUP_DELETION: { classUid: 3006, activityName: "Delete" },
-  GROUP_MODIFICATION: { classUid: 3006, activityName: "Update" },
-  GROUP_UNCATEGORIZED: { classUid: 3006, activityName: "Other" },
+const UDM_EVENT_TYPE_TO_OCSF: ReadonlyMap<string, UdmClassMapping> =
+  lookupTable({
+    // Identity & Access Management
+    USER_LOGIN: { classUid: 3002, activityName: "Logon" },
+    USER_LOGOUT: { classUid: 3002, activityName: "Logoff" },
+    USER_CREATION: { classUid: 3001, activityName: "Create" },
+    USER_DELETION: { classUid: 3001, activityName: "Delete" },
+    USER_CHANGE_PASSWORD: { classUid: 3001, activityName: "Change Password" },
+    USER_CHANGE_PERMISSIONS: {
+      classUid: 3005,
+      activityName: "Change Permissions",
+    },
+    USER_BADGE_IN: { classUid: 3002, activityName: "Logon" },
+    USER_UNCATEGORIZED: { classUid: 3001, activityName: "Other" },
+    GROUP_CREATION: { classUid: 3006, activityName: "Create" },
+    GROUP_DELETION: { classUid: 3006, activityName: "Delete" },
+    GROUP_MODIFICATION: { classUid: 3006, activityName: "Update" },
+    GROUP_UNCATEGORIZED: { classUid: 3006, activityName: "Other" },
 
-  // Network Activity
-  NETWORK_CONNECTION: { classUid: 4001, activityName: "Traffic" },
-  NETWORK_FLOW: { classUid: 4001, activityName: "Traffic" },
-  NETWORK_UNCATEGORIZED: { classUid: 4001, activityName: "Other" },
-  NETWORK_HTTP: { classUid: 4002, activityName: "HTTP Request" },
-  NETWORK_DNS: { classUid: 4003, activityName: "Query" },
-  NETWORK_DHCP: { classUid: 4004, activityName: "DHCP" },
-  NETWORK_SMTP: { classUid: 4009, activityName: "Send" },
-  NETWORK_FTP: { classUid: 4008, activityName: "Transfer" },
-  EMAIL_TRANSACTION: { classUid: 4009, activityName: "Send" },
-  EMAIL_UNCATEGORIZED: { classUid: 4009, activityName: "Other" },
+    // Network Activity
+    NETWORK_CONNECTION: { classUid: 4001, activityName: "Traffic" },
+    NETWORK_FLOW: { classUid: 4001, activityName: "Traffic" },
+    NETWORK_UNCATEGORIZED: { classUid: 4001, activityName: "Other" },
+    NETWORK_HTTP: { classUid: 4002, activityName: "HTTP Request" },
+    NETWORK_DNS: { classUid: 4003, activityName: "Query" },
+    NETWORK_DHCP: { classUid: 4004, activityName: "DHCP" },
+    NETWORK_SMTP: { classUid: 4009, activityName: "Send" },
+    NETWORK_FTP: { classUid: 4008, activityName: "Transfer" },
+    EMAIL_TRANSACTION: { classUid: 4009, activityName: "Send" },
+    EMAIL_UNCATEGORIZED: { classUid: 4009, activityName: "Other" },
 
-  // System Activity
-  PROCESS_LAUNCH: { classUid: 1007, activityName: "Launch" },
-  PROCESS_TERMINATION: { classUid: 1007, activityName: "Terminate" },
-  PROCESS_OPEN: { classUid: 1007, activityName: "Open" },
-  PROCESS_INJECTION: { classUid: 1007, activityName: "Inject" },
-  PROCESS_PRIVILEGE_ESCALATION: {
-    classUid: 1007,
-    activityName: "Privilege Escalation",
-  },
-  PROCESS_MODULE_LOAD: { classUid: 1005, activityName: "Load" },
-  PROCESS_UNCATEGORIZED: { classUid: 1007, activityName: "Other" },
-  FILE_CREATION: { classUid: 1001, activityName: "Create" },
-  FILE_DELETION: { classUid: 1001, activityName: "Delete" },
-  FILE_MODIFICATION: { classUid: 1001, activityName: "Update" },
-  FILE_READ: { classUid: 1001, activityName: "Read" },
-  FILE_COPY: { classUid: 1001, activityName: "Copy" },
-  FILE_MOVE: { classUid: 1001, activityName: "Rename" },
-  FILE_OPEN: { classUid: 1001, activityName: "Open" },
-  FILE_SYNC: { classUid: 1001, activityName: "Update" },
-  FILE_UNCATEGORIZED: { classUid: 1001, activityName: "Other" },
-  REGISTRY_CREATION: { classUid: 201001, activityName: "Create" },
-  REGISTRY_MODIFICATION: { classUid: 201001, activityName: "Modify" },
-  REGISTRY_DELETION: { classUid: 201001, activityName: "Delete" },
-  REGISTRY_UNCATEGORIZED: { classUid: 201001, activityName: "Other" },
-  SCHEDULED_TASK_CREATION: { classUid: 1006, activityName: "Create" },
-  SCHEDULED_TASK_DELETION: { classUid: 1006, activityName: "Delete" },
-  SCHEDULED_TASK_MODIFICATION: { classUid: 1006, activityName: "Update" },
-  SCHEDULED_TASK_UNCATEGORIZED: { classUid: 1006, activityName: "Other" },
+    // System Activity
+    PROCESS_LAUNCH: { classUid: 1007, activityName: "Launch" },
+    PROCESS_TERMINATION: { classUid: 1007, activityName: "Terminate" },
+    PROCESS_OPEN: { classUid: 1007, activityName: "Open" },
+    PROCESS_INJECTION: { classUid: 1007, activityName: "Inject" },
+    PROCESS_PRIVILEGE_ESCALATION: {
+      classUid: 1007,
+      activityName: "Privilege Escalation",
+    },
+    PROCESS_MODULE_LOAD: { classUid: 1005, activityName: "Load" },
+    PROCESS_UNCATEGORIZED: { classUid: 1007, activityName: "Other" },
+    FILE_CREATION: { classUid: 1001, activityName: "Create" },
+    FILE_DELETION: { classUid: 1001, activityName: "Delete" },
+    FILE_MODIFICATION: { classUid: 1001, activityName: "Update" },
+    FILE_READ: { classUid: 1001, activityName: "Read" },
+    FILE_COPY: { classUid: 1001, activityName: "Copy" },
+    FILE_MOVE: { classUid: 1001, activityName: "Rename" },
+    FILE_OPEN: { classUid: 1001, activityName: "Open" },
+    FILE_SYNC: { classUid: 1001, activityName: "Update" },
+    FILE_UNCATEGORIZED: { classUid: 1001, activityName: "Other" },
+    REGISTRY_CREATION: { classUid: 201001, activityName: "Create" },
+    REGISTRY_MODIFICATION: { classUid: 201001, activityName: "Modify" },
+    REGISTRY_DELETION: { classUid: 201001, activityName: "Delete" },
+    REGISTRY_UNCATEGORIZED: { classUid: 201001, activityName: "Other" },
+    SCHEDULED_TASK_CREATION: { classUid: 1006, activityName: "Create" },
+    SCHEDULED_TASK_DELETION: { classUid: 1006, activityName: "Delete" },
+    SCHEDULED_TASK_MODIFICATION: { classUid: 1006, activityName: "Update" },
+    SCHEDULED_TASK_UNCATEGORIZED: { classUid: 1006, activityName: "Other" },
 
-  // Findings
-  SCAN_VULN_HOST: { classUid: 2002, activityName: "Scan" },
-  SCAN_VULN_NETWORK: { classUid: 2002, activityName: "Scan" },
-  SCAN_FILE: { classUid: 2004, activityName: "Scan" },
-  SCAN_HOST: { classUid: 2004, activityName: "Scan" },
-  SCAN_NETWORK: { classUid: 2004, activityName: "Scan" },
-  SCAN_PROCESS: { classUid: 2004, activityName: "Scan" },
-  SCAN_UNCATEGORIZED: { classUid: 2004, activityName: "Scan" },
+    // Findings
+    SCAN_VULN_HOST: { classUid: 2002, activityName: "Scan" },
+    SCAN_VULN_NETWORK: { classUid: 2002, activityName: "Scan" },
+    SCAN_FILE: { classUid: 2004, activityName: "Scan" },
+    SCAN_HOST: { classUid: 2004, activityName: "Scan" },
+    SCAN_NETWORK: { classUid: 2004, activityName: "Scan" },
+    SCAN_PROCESS: { classUid: 2004, activityName: "Scan" },
+    SCAN_UNCATEGORIZED: { classUid: 2004, activityName: "Scan" },
 
-  // Application Activity / Discovery
-  SERVICE_START: { classUid: 6002, activityName: "Start" },
-  SERVICE_STOP: { classUid: 6002, activityName: "Stop" },
-  SERVICE_CREATION: { classUid: 6002, activityName: "Install" },
-  SERVICE_DELETION: { classUid: 6002, activityName: "Remove" },
-  SERVICE_MODIFICATION: { classUid: 6002, activityName: "Update" },
-  SERVICE_UNSPECIFIED: { classUid: 6002, activityName: "Other" },
-  STATUS_STARTUP: { classUid: 6002, activityName: "Start" },
-  STATUS_SHUTDOWN: { classUid: 6002, activityName: "Stop" },
-  STATUS_HEARTBEAT: { classUid: 6002, activityName: "Heartbeat" },
-  STATUS_UPDATE: { classUid: 6002, activityName: "Update" },
-  STATUS_UNCATEGORIZED: { classUid: 6002, activityName: "Other" },
-  SETTING_CREATION: { classUid: 5002, activityName: "Create" },
-  SETTING_MODIFICATION: { classUid: 5002, activityName: "Update" },
-  SETTING_DELETION: { classUid: 5002, activityName: "Delete" },
-  SETTING_UNCATEGORIZED: { classUid: 5002, activityName: "Other" },
-  RESOURCE_CREATION: { classUid: 6003, activityName: "Create" },
-  RESOURCE_DELETION: { classUid: 6003, activityName: "Delete" },
-  RESOURCE_PERMISSIONS_CHANGE: { classUid: 6003, activityName: "Update" },
-  RESOURCE_READ: { classUid: 6003, activityName: "Read" },
-  RESOURCE_WRITTEN: { classUid: 6003, activityName: "Update" },
+    // Application Activity / Discovery
+    SERVICE_START: { classUid: 6002, activityName: "Start" },
+    SERVICE_STOP: { classUid: 6002, activityName: "Stop" },
+    SERVICE_CREATION: { classUid: 6002, activityName: "Install" },
+    SERVICE_DELETION: { classUid: 6002, activityName: "Remove" },
+    SERVICE_MODIFICATION: { classUid: 6002, activityName: "Update" },
+    SERVICE_UNSPECIFIED: { classUid: 6002, activityName: "Other" },
+    STATUS_STARTUP: { classUid: 6002, activityName: "Start" },
+    STATUS_SHUTDOWN: { classUid: 6002, activityName: "Stop" },
+    STATUS_HEARTBEAT: { classUid: 6002, activityName: "Heartbeat" },
+    STATUS_UPDATE: { classUid: 6002, activityName: "Update" },
+    STATUS_UNCATEGORIZED: { classUid: 6002, activityName: "Other" },
+    SETTING_CREATION: { classUid: 5002, activityName: "Create" },
+    SETTING_MODIFICATION: { classUid: 5002, activityName: "Update" },
+    SETTING_DELETION: { classUid: 5002, activityName: "Delete" },
+    SETTING_UNCATEGORIZED: { classUid: 5002, activityName: "Other" },
+    RESOURCE_CREATION: { classUid: 6003, activityName: "Create" },
+    RESOURCE_DELETION: { classUid: 6003, activityName: "Delete" },
+    RESOURCE_PERMISSIONS_CHANGE: { classUid: 6003, activityName: "Update" },
+    RESOURCE_READ: { classUid: 6003, activityName: "Read" },
+    RESOURCE_WRITTEN: { classUid: 6003, activityName: "Update" },
 
-  GENERIC_EVENT: { classUid: 0, activityName: "" },
-};
+    GENERIC_EVENT: { classUid: 0, activityName: "" },
+  });
 
-const UDM_ACTION_TO_STATUS: Record<string, string> = {
+const UDM_ACTION_TO_STATUS: ReadonlyMap<string, string> = lookupTable({
   ALLOW: "Allowed",
   ALLOW_WITH_MODIFICATION: "Allowed",
   BLOCK: "Blocked",
   QUARANTINE: "Quarantined",
   FAIL: "Failure",
   UNKNOWN_ACTION: "",
-};
+});
 
 /** "NETWORK_CONNECTION" -> "Network Connection". */
 export function prettifyUdmEventType(eventType: string): string {
@@ -301,8 +303,9 @@ function summarizeSecurityResults(payload: JSONObject): SecurityResultSummary {
     if (!summary.statusName) {
       const actions: Array<string> = readStringArray(result, "action");
       for (const action of actions) {
-        const mapped: string | undefined =
-          UDM_ACTION_TO_STATUS[action.toUpperCase()];
+        const mapped: string | undefined = UDM_ACTION_TO_STATUS.get(
+          action.toUpperCase(),
+        );
         if (mapped) {
           summary.statusName = mapped;
           break;
@@ -371,7 +374,7 @@ export default class UdmNormalizer {
     ]).toUpperCase();
 
     const mapping: UdmClassMapping | undefined =
-      UDM_EVENT_TYPE_TO_OCSF[eventType];
+      UDM_EVENT_TYPE_TO_OCSF.get(eventType);
 
     const classUid: number = mapping ? mapping.classUid : 0;
     const mappedClass: OcsfEventClassProps | undefined =

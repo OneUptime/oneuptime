@@ -110,6 +110,13 @@ export interface TemplateTextEditorProps {
   onEnter?: (() => void) | undefined;
 }
 
+/*
+ * A box that is only read - on a view, or disabled - holds a line while it
+ * is empty: a space where the text would be (the box keeps whitespace), so
+ * it is as tall as a box with a line in it, its placeholder inside.
+ */
+export const READ_ONLY_EMPTY_LINE_CLASS: string = "empty:before:content-['_']";
+
 type ToTextFunction = (value: unknown) => string;
 
 /*
@@ -858,6 +865,15 @@ const TemplateTextEditor: React.ForwardRefExoticComponent<
 
     const sharedClass: string = `${props.className || "px-3 py-2"} ${fontClass}`;
 
+    /*
+     * A box that is only read keeps the height of a line while it is empty.
+     * An editable box is given one by the browser, for its caret; one that
+     * is not editable had none, so on a view an empty box shrank to its
+     * padding - a sliver its placeholder spilled out of. The space (kept, as
+     * the box keeps its whitespace) stands where the text would be.
+     */
+    const readOnlyClass: string = isReadOnly ? READ_ONLY_EMPTY_LINE_CLASS : "";
+
     return (
       <div className="relative min-w-0 flex-1">
         {isEmpty && props.placeholder && (
@@ -890,7 +906,7 @@ const TemplateTextEditor: React.ForwardRefExoticComponent<
           data-testid={props.dataTestId}
           data-template-editor=""
           data-multiline={props.multiline ? "true" : "false"}
-          className={`block w-full min-w-0 whitespace-pre-wrap break-words text-gray-900 [overflow-wrap:anywhere] focus:outline-none ${sharedClass} ${multilineClass} ${
+          className={`block w-full min-w-0 whitespace-pre-wrap break-words text-gray-900 [overflow-wrap:anywhere] focus:outline-none ${sharedClass} ${multilineClass} ${readOnlyClass} ${
             props.disabled ? "cursor-not-allowed text-gray-500" : ""
           }`}
           onKeyDown={(event: React.KeyboardEvent<HTMLDivElement>) => {

@@ -1,7 +1,7 @@
 {
   "baseline": {
-    "keys": 40228,
-    "untranslated": 12277
+    "keys": 40610,
+    "untranslated": 11863
   },
   "sameAsEnglish": [
     "0 (kiss-o'-death {{kissCode}})",
@@ -12,6 +12,7 @@
     "5xx",
     "AI / LLM",
     "AI: {{prompt}}",
+    "Active + Clean",
     "Apache Kafka · kafka-1:9092",
     "Brute force detected",
     "CPU Ready",
@@ -21,6 +22,8 @@
     "Deployment",
     "DeploymentConfigs",
     "Docker Compose",
+    "Down + In",
+    "Down + Out",
     "Down · In",
     "Edge",
     "Elasticsearch URL",
@@ -43,6 +46,7 @@
     "MITRE ATT&CK",
     "MITRE ATT&CK Enterprise v{{version}}",
     "Markdown",
+    "NAA ID",
     "OK",
     "OS",
     "OSD",
@@ -62,9 +66,12 @@
     "SLOs",
     "Slug",
     "Splunk On-Call API ID",
+    "Swarm ID",
     "TLS",
     "Top P",
     "UTC",
+    "Up + In",
+    "Up + Out",
     "Up · In",
     "VLAN",
     "VM",
@@ -79,6 +86,7 @@
     "VMID {{vmid}}",
     "VMware VM",
     "VMware vCenter",
+    "Vital",
     "[\".customer-name\", \"#invoice-total\"]",
     "[\"ResizeObserver loop\", \"third-party-tag\\\\.js\"]",
     "[\"iframe.payment\", \".id-document\"]",
@@ -95,8 +103,12 @@
     "main",
     "message",
     "name",
+    "ops/s",
+    "p90 (ms)",
     "p95",
+    "p95 (ms)",
     "p95 {{latency}}",
+    "p99 (ms)",
     "prod, staging",
     "prod-.*",
     "prod-vcenter",
@@ -113,6 +125,7 @@
     "{{count}} B",
     "{{count}} KB",
     "{{count}} MB",
+    "{{in}} in",
     "{{itemName}} ID"
   ]
 }

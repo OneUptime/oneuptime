@@ -125,6 +125,7 @@ import SlackHome from "../Utils/Workspace/Slack/SlackHome";
 import SlackDirectMessageHelp from "../Utils/Workspace/Slack/SlackDirectMessageHelp";
 import SlackMessagesWelcome from "../Utils/Workspace/Slack/SlackMessagesWelcome";
 import SlackWelcome from "../Utils/Workspace/Slack/SlackWelcome";
+import SlackAffectedResources from "../Utils/Workspace/Slack/SlackAffectedResources";
 import WorkspaceCommands from "../Utils/Workspace/WorkspaceCommands";
 
 import FeedMarkdown, {
@@ -1602,6 +1603,8 @@ export default class SlackAPI {
               teamId: (payload["team_id"] as string) || "",
               slackUserId: (event["user"] as string) || "",
               tab: event["tab"] as string | undefined,
+              // The Home as Slack had it: drawn over only if nothing drew it since.
+              viewHash: SlackHome.readViewHash(event),
             });
 
             return;
@@ -1839,14 +1842,21 @@ export default class SlackAPI {
       },
     );
 
-    // options load endpoint.
-
+    /*
+     * The options of a form's select that are searched as the person types
+     * (Slack's external select, the app's Options Load URL): the New
+     * Incident form's Affected Resources, read as the member the Slack
+     * account is connected to, in the project the form was drawn for
+     * (SlackAffectedResources). Any other request is answered with no
+     * options. Slack expects the answer within three seconds.
+     */
     router.post(
       "/slack/options-load",
       SlackAuthorization.isAuthorizedSlackRequest,
-      (req: ExpressRequest, res: ExpressResponse) => {
-        return Response.sendJsonObjectResponse(req, res, {
-          response_action: "clear",
+      async (req: ExpressRequest, res: ExpressResponse) => {
+        return await SlackAffectedResources.answerOptionsRequest({
+          req: req,
+          res: res,
         });
       },
     );

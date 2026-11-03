@@ -43,6 +43,8 @@ import {
 import ModelQueryBuilder from "./ColumnEditor/ModelQueryBuilder";
 import ModelRecordForm from "./ColumnEditor/ModelRecordForm";
 import { ColumnUse } from "./ColumnEditor/ColumnUse";
+import { WorkflowViewOnlyContext } from "./WorkflowViewOnly";
+import WorkflowViewOnlyFieldset from "./WorkflowViewOnlyFieldset";
 import CodeType from "../../../Types/Code/CodeType";
 import Dictionary from "../../../Types/Dictionary";
 import IconProp from "../../../Types/Icon/IconProp";
@@ -51,6 +53,7 @@ import { maskTemplateExpressions } from "../../../Types/Workflow/TemplateSyntax"
 import React, {
   FunctionComponent,
   ReactElement,
+  useContext,
   useEffect,
   useMemo,
   useState,
@@ -388,6 +391,14 @@ const ModelColumnEditor: FunctionComponent<ComponentProps> = (
   props: ComponentProps,
 ): ReactElement => {
   const translator: Translator = useTranslator();
+  /*
+   * A step opened to be read (WorkflowViewOnly): the rows are held still
+   * (WorkflowViewOnlyFieldset), with none of the ways to change them - no
+   * Edit as JSON, no Add, no Remove - and a value kept as JSON is a code box
+   * to read and copy, which says what it shows rather than that it is being
+   * edited.
+   */
+  const isViewOnly: boolean = useContext(WorkflowViewOnlyContext);
   const isQuery: boolean = props.mode === ModelColumnEditorMode.Query;
 
   /*
@@ -607,9 +618,13 @@ const ModelColumnEditor: FunctionComponent<ComponentProps> = (
           />
           <p className="text-sm text-red-700">
             {translator.translateTemplate(
-              isQuery
-                ? "Couldn't load this model's columns ({{error}}). You can still write the query as JSON."
-                : "Couldn't load this model's columns ({{error}}). You can still write these fields as JSON.",
+              isViewOnly
+                ? isQuery
+                  ? "Couldn't load this model's columns ({{error}}). The query is shown as JSON."
+                  : "Couldn't load this model's columns ({{error}}). These fields are shown as JSON."
+                : isQuery
+                  ? "Couldn't load this model's columns ({{error}}). You can still write the query as JSON."
+                  : "Couldn't load this model's columns ({{error}}). You can still write these fields as JSON.",
               { error: schema.error },
             )}
           </p>
@@ -619,7 +634,11 @@ const ModelColumnEditor: FunctionComponent<ComponentProps> = (
       {isLockedToJson && compatibility.reasons.length > 0 && (
         <div className="mb-2 rounded-md border border-amber-200 bg-amber-50/60 px-3 py-2.5">
           <p className="text-sm text-amber-800">
-            {translator.translateText("Editing as JSON, because:")}
+            {translator.translateText(
+              isViewOnly
+                ? "Shown as JSON, because:"
+                : "Editing as JSON, because:",
+            )}
           </p>
           <ul className="mt-1 list-disc pl-5 text-sm text-amber-700">
             {compatibility.reasons.map((reason: string, i: number) => {
@@ -691,13 +710,16 @@ const ModelColumnEditor: FunctionComponent<ComponentProps> = (
           ) : (
             <>
               {translator.translateText(
-                "Editing the raw JSON this step will send.",
+                isViewOnly
+                  ? "The raw JSON this step will send."
+                  : "Editing the raw JSON this step will send.",
               )}
             </>
           )}
         </p>
 
-        {!isLockedToJson && (
+        {/* Not on a view, where the rows are only read. */}
+        {!isLockedToJson && !isViewOnly && (
           <button
             type="button"
             data-testid="model-column-json-toggle"
@@ -731,32 +753,39 @@ const ModelColumnEditor: FunctionComponent<ComponentProps> = (
       </div>
 
       {effectiveMode === "builder" ? (
-        isQuery ? (
-          <ModelQueryBuilder
-            rows={rows}
-            columns={columns}
-            onChange={onRowsChange}
-          />
-        ) : (
-          <ModelRecordForm
-            rows={rows}
-            columns={columns}
-            use={
-              (props.recordIntent || RecordIntent.Create) ===
-              RecordIntent.Create
-                ? ColumnUse.Create
-                : ColumnUse.Update
-            }
-            onChange={onRowsChange}
-          />
-        )
+        <WorkflowViewOnlyFieldset>
+          {isQuery ? (
+            <ModelQueryBuilder
+              rows={rows}
+              columns={columns}
+              onChange={onRowsChange}
+            />
+          ) : (
+            <ModelRecordForm
+              rows={rows}
+              columns={columns}
+              use={
+                (props.recordIntent || RecordIntent.Create) ===
+                RecordIntent.Create
+                  ? ColumnUse.Create
+                  : ColumnUse.Update
+              }
+              onChange={onRowsChange}
+            />
+          )}
+        </WorkflowViewOnlyFieldset>
       ) : (
+        /*
+         * In a view, the code to read and copy: nothing in it changes, and
+         * its own Copy works.
+         */
         <CodeEditor
           type={CodeType.JSON}
           tabIndex={props.tabIndex}
           error={props.error}
           initialValue={initial.text}
           value={jsonText}
+          readOnly={isViewOnly}
           placeholder={props.placeholder}
           onChange={onJsonChange}
         />

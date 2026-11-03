@@ -2,9 +2,11 @@
 
 Een Docker Swarm-monitor bewaakt de containers achter de servicetaken van een Swarm-cluster en laat u weten wanneer een taak herstart, heet loopt of door zijn geheugen raakt. Hij leest de containermetrieken die de OneUptime-Docker Swarm-agent verstuurt, dus er wordt niets van buitenaf gepeild: installeer de agent en maak de monitor dan vanuit een sjabloon of uw eigen query.
 
+Vanaf versie 0.161.3 van zijn bestanden verstuurt de agent ook elke minuut de toestand van de swarm zelf, zodat een monitor de nodes en services zelf kan bewaken: een node die niet gereed is, of een service die minder replica's draait dan hij wil.
+
 :::cards
 - [De monitor maken](#een-docker-swarm-monitor-maken): Zes stappen in het dashboard.
-- [Sjablonen](#kant-en-klare-waarschuwingssjablonen): Vijf kant-en-klare waarschuwingen, één incident per taak.
+- [Sjablonen](#kant-en-klare-waarschuwingssjablonen): Zeven kant-en-klare waarschuwingen, één incident per node, service of taak.
 - [Metrieken](#verzamelde-metrieken): De containermetrieken waarop u kunt waarschuwen.
 - [Filters](#monitorinstellingen): Een monitor beperken tot een service, een taak of een image.
 :::
@@ -12,6 +14,8 @@ Een Docker Swarm-monitor bewaakt de containers achter de servicetaken van een Sw
 ## Hoe het werkt
 
 De OneUptime-Docker Swarm-agent draait op een managernode. Zijn collector leest elke 30 seconden containerstatistieken uit de Docker-daemon van die node, voorziet elke batch van de naam van het cluster, `docker.swarm.cluster.name`, en de metrieken van elke taak van de service en node van die taak. Een kleine inventarispoller ernaast leest elke 5 minuten de nodes, services en taken van het cluster uit de Swarm-API. De eerste gegevens registreren het cluster in OneUptime.
+
+Elke minuut leest de poller bij de manager ook of elke node gereed is en hoeveel replica's elke service wil en draait, en verstuurt dat als metrieken. Zo horen **Node Not Ready** en **Service Replicas Mismatch** binnen een minuut of twee van een node of service in problemen, niet pas na vijf.
 
 De collector ziet alleen containers op de node waarop hij draait. Voor metrieken van elke node draait u de collector op elke node met dezelfde `DOCKER_SWARM_CLUSTER_NAME`.
 
@@ -92,15 +96,17 @@ Klik op **Monitor maken**. OneUptime opent de pagina van de monitor en evalueert
 
 ## Kant-en-klare waarschuwingssjablonen
 
-De lijst onder **Waarover te waarschuwen** biedt vijf sjablonen. Elk bouwt een complete monitor: een query, een criterium dat afgaat en een dat herstelt. Elk sjabloon behalve **Cluster Stopped Reporting** groepeert zijn query op `resource.container.name`, zodat elke taak afzonderlijk wordt beoordeeld en een eigen incident en een eigen waarschuwing krijgt, waarvan de hoofdoorzaak de getroffen taken en hun waarden opsomt. De drempels zijn uitgangspunten die u kunt aanpassen.
+De lijst **Waarover te waarschuwen** biedt zeven sjablonen. Elk bouwt een volledige monitor: een query, een criterium dat afgaat en een dat herstelt. **Node Not Ready** groepeert zijn query per node, `resource.docker.swarm.node.name`, **Service Replicas Mismatch** per service, `resource.docker.swarm.service.name`, en de taaksjablonen per `resource.container.name`, zodat elke node, service of taak apart wordt beoordeeld en een eigen incident en een eigen waarschuwing krijgt, waarvan de hoofdoorzaak de getroffen onderdelen en hun waarden noemt. De drempels zijn startpunten die u kunt aanpassen.
 
-Die sjablonen lezen bovendien alleen de taken van Swarm: een container die op een andere manier op een node is gestart, waaronder die van de agent zelf, telt niet mee. Een query via **Custom Metric** of **Geavanceerd** leest elke container die de agent meldt; het filter **Servicenaam** beperkt die tot de taken van één service.
+De taaksjablonen lezen bovendien alleen de taken van Swarm: een container die op een andere manier op een node is gestart, die van de agent zelf incluis, telt niet mee. Een query via **Custom Metric** of **Geavanceerd** leest elke container die de agent meldt; het filter **Servicenaam** beperkt hem tot de taken van één service.
 
 Tenzij de tabel iets anders zegt, gaat een criterium alleen af als de voorwaarde elke minuut van zijn venster geldt, en herstelt het 10% voorbij de drempel, zodat een waarde die rond de grens schommelt niet heen en weer springt.
 
 | Sjabloon | Ernst | Bewaakt | Gaat af als | Herstelt als |
 | --- | --- | --- | --- | --- |
 | Cluster Stopped Reporting | Kritiek | `container.memory.percent`, Count over alle containers in het cluster, laatste 10 minuten | Geen gegevens gedurende het hele venster | Er komen weer gegevens binnen |
+| Node Not Ready | Kritiek | `docker.swarm.node.ready`, Min per `resource.docker.swarm.node.name`, laatste 5 minuten | Onder 1 | Op 1 |
+| Service Replicas Mismatch | Waarschuwing | `docker.swarm.service.replicas.desired` − `docker.swarm.service.replicas.running` (beide Avg) per `resource.docker.swarm.service.name`, laatste 15 minuten | Boven 0 | Op of onder 0 |
 | Task Down (Low Uptime) | Kritiek | `container.uptime`, Min per taak, laatste 1 minuut | Een willekeurige waarde ligt onder 60 seconden | Elke waarde ligt op of boven 66 seconden |
 | High Task CPU Usage | Waarschuwing | `container.cpu.utilization`, Avg per taak, laatste 5 minuten | Boven 80 (% van één kern) | Op of onder 72 |
 | High Task Memory Usage | Waarschuwing | `container.memory.percent`, Avg per taak, laatste 5 minuten | Boven 85% | Op of onder 76,5% |
@@ -114,9 +120,14 @@ Tenzij de tabel iets anders zegt, gaat een criterium alleen af als de voorwaarde
 > [!NOTE]
 > **Task Down (Low Uptime)** gaat af op één jonge meting, omdat een herstart een gebeurtenis is en geen niveau. Swarm geeft een vervangende taak een nieuwe container, en dus een nieuwe reeks; daarom zoekt het sjabloon naar een uptime onder een minuut in plaats van naar een 0. Een uitrol of een opschaling laat het ook afgaan, en het herstelt zodra de nieuwe taken een minuut uptime voorbij zijn. Een taak die sterft en niet wordt vervangen, stuurt niets en wordt dus niet opgemerkt.
 
+> [!NOTE]
+> **Node Not Ready** en **Service Replicas Mismatch** lezen de reeksen die de inventarispoller van de agent vanaf een manager verstuurt, vanaf versie 0.161.3 van zijn bestanden. Een oudere agent verstuurt geen van beide, dus beide sjablonen hebben niets te lezen en gaan nooit af: [werk de agent bij](/docs/telemetry/docker-swarm#de-agent-upgraden); een teken naast zijn versie in het overzicht van het cluster laat zien wanneer hij achterloopt. Service Replicas Mismatch wacht vijftien minuten, zodat een rolling update, die de taken van een service een paar tegelijk vervangt, niemand oproept. Een jobservice voert zijn taken tot het einde uit, heeft geen replica's die kunnen ontbreken, en telt niet mee.
+
 ## Verzamelde metrieken
 
 De collector van de agent gebruikt de OpenTelemetry-receiver `docker_stats`, dus de metrieken zijn de standaard containermetrieken, één reeks per taakcontainer. Er zijn geen metrieken `docker_swarm_*`: nodes, services en taken worden als inventaris bijgehouden, op de pagina's **Services**, **Taken**, **Knooppunten** en verwante pagina's van het cluster.
+
+Daarnaast verstuurt de inventarispoller van de agent vanaf versie 0.161.3 van zijn bestanden elke minuut de toestand van de swarm zelf: de drie metrieken onder [Swarm](#swarm).
 
 ### CPU
 
@@ -146,6 +157,16 @@ De collector van de agent gebruikt de OpenTelemetry-receiver `docker_stats`, dus
 | `container.uptime` | seconden | Hoe lang de container van een taak al draait. Een opnieuw ingeplande of herstarte taak begint een nieuwe container op 0. |
 
 Elke reeks draagt de identiteit van de container als resourceattributen: `resource.container.name` (`<service>.<slot>.<taskid>`), `resource.container.image.name`, `resource.docker.swarm.service.name`, `resource.docker.swarm.node.id`, `resource.docker.swarm.node.name` (als de agent de naam van de node kent) en `resource.docker.swarm.cluster.name`.
+
+### Swarm
+
+| Metriek | Eenheid | Beschrijving |
+| --- | --- | --- |
+| `docker.swarm.node.ready` | — | Of een node gereed is, zoals de managers hem zien: 1 zolang hij het is, 0 zolang hij offline, losgekoppeld of onbekend is. Eén reeks per node. |
+| `docker.swarm.service.replicas.desired` | count | De taken die een gerepliceerde of globale service wil laten draaien: zijn replica's, of voor een globale service de nodes waarop hij moet draaien. Eén reeks per service. |
+| `docker.swarm.service.replicas.running` | count | De taken van de service die draaien. Onder het gewenste aantal komt de service replica's tekort. |
+
+De reeks van een node draagt `resource.docker.swarm.node.name`, `resource.docker.swarm.node.id` en `resource.docker.swarm.node.role`; die van een service draagt `resource.docker.swarm.service.name`, `resource.docker.swarm.service.mode` en, in een stack, `resource.docker.swarm.stack.namespace`. Beide dragen `resource.docker.swarm.cluster.name`.
 
 ## Bewakingscriteria
 
@@ -193,6 +214,10 @@ De collector leest de Docker-daemon van de node waarop hij draait, dus hij ziet 
 
 :::details Elke taak verschijnt als één reeks
 Groepeer op het resourceattribuut `resource.container.name`, zoals de sjablonen doen. De kale `container.name` komt met niets overeen, dus elke taak valt samen tot één reeks met een lege naam.
+:::
+
+:::details Node Not Ready of Service Replicas Mismatch gaat nooit af
+Beide lezen de reeksen die de inventarispoller van de agent verstuurt vanaf versie 0.161.3 van zijn bestanden, en alleen vanaf een manager: [werk de agent bij](/docs/telemetry/docker-swarm#de-agent-upgraden) en controleer of de inventarispoller op een manager draait (`docker node ls` moet daar slagen). De pagina **Metrieken** van het cluster laat zien of `docker.swarm.node.ready` binnenkomt.
 :::
 
 ## Volgende stappen

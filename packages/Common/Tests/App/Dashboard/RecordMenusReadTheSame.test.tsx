@@ -284,7 +284,7 @@ describe("every record's side menu has an incident's sections", () => {
 
       for (const section of sectionTitlesInOrder()) {
         if (section === "Developer") {
-          // Terraform, API and AI Assistants: the same shared section on each.
+          // Terraform, API, CLI and AI Assistants: the same shared section on each.
           continue;
         }
 

@@ -1388,6 +1388,16 @@ export function getApiCreateExample(data: {
 }
 
 /*
+ * What sends an example's request: the API page's curl, or the CLI page's
+ * command. A new description names it, so the CLI page never writes
+ * "Updated with the OneUptime API." with the CLI.
+ */
+export enum DeveloperDocsClient {
+  Api = "API",
+  Cli = "CLI",
+}
+
+/*
  * The `data` of the "Change it" example: the profile's change, or a new
  * description. A field pointing at a record moves to another one than the
  * record has now.
@@ -1395,6 +1405,8 @@ export function getApiCreateExample(data: {
 export function getApiUpdateExample(data: {
   modelType: DatabaseBaseModelType;
   context: DeveloperDocsExampleContext;
+  // The API page's, unless the CLI page asks.
+  client?: DeveloperDocsClient | undefined;
 }): { data: JSONObject; description: string } | null {
   const profile: DeveloperDocsProfile = getDeveloperDocsProfile(data.modelType);
   const updatable: Set<string> = new Set<string>(
@@ -1464,7 +1476,9 @@ export function getApiUpdateExample(data: {
 
   if (updatable.has("description")) {
     return {
-      data: { description: "Updated with the OneUptime API." },
+      data: {
+        description: `Updated with the OneUptime ${data.client || DeveloperDocsClient.Api}.`,
+      },
       description:
         "Send only the fields you want to change. Everything else stays as it is.",
     };
@@ -1716,6 +1730,26 @@ export interface DeveloperDocsApiTask {
   operation: "create" | "list";
   body: JSONObject;
   isPlaceholder: boolean;
+  /*
+   * The flag each field's record was picked by (`incidentStateId`:
+   * "isAcknowledgedState"), for a page that words the task its own way:
+   * the CLI page writes "Acknowledge it" as `oneuptime incident
+   * acknowledge`, not as the state timeline row it makes.
+   */
+  liveFlags: Record<string, string>;
+}
+
+// The flags a task's live fields were picked by, by column.
+function getLiveFlags(task: DeveloperDocsTask): Record<string, string> {
+  const flags: Record<string, string> = {};
+
+  for (const field of task.fields || []) {
+    if (field.value?.kind === "live" && field.value.pick?.flag) {
+      flags[field.column] = field.value.pick.flag;
+    }
+  }
+
+  return flags;
 }
 
 // The profile's tasks for a scope, as request bodies.
@@ -1769,6 +1803,7 @@ export function getApiTasks(data: {
           operation: "create",
           body: { data: created.body },
           isPlaceholder: created.isPlaceholder,
+          liveFlags: getLiveFlags(task),
         };
       }
 
@@ -1795,6 +1830,7 @@ export function getApiTasks(data: {
         operation: "list",
         body: { query: query.query, select, sort: toSortJson(task.sort) },
         isPlaceholder: query.isPlaceholder,
+        liveFlags: getLiveFlags(task),
       };
     });
 }

@@ -22,6 +22,10 @@ import {
 import RunnerLiveStatus, {
   getRunnerLiveStatus,
 } from "../../../../Types/Runner/RunnerLiveStatus";
+import {
+  GlobalRunnerCodeFixAvailability,
+  doesRunnerTakeCodeFixes,
+} from "../../../../Types/Runner/RunnerCodeFixes";
 
 /*
  * Where AI works in a repository, on the server: the facts the repository's
@@ -42,6 +46,13 @@ export interface CodeRepositoryRunnerStatus {
   decision: CodeRepositoryRunnerDecision;
   // Whether what the repository runs on is online to take its work now.
   isOnline: boolean;
+  /*
+   * Why it is not, when what the repository runs on is online but takes no
+   * AI code fixes (Types/Runner/RunnerCodeFixes): the Runner it picks or
+   * follows, whose host turned them off, or every global Runner online.
+   * Left out while it is online, and while nothing is online at all.
+   */
+  takesNoCodeFixes?: boolean | undefined;
   /*
    * The name of the Runner the repository picked, or of the project's
    * default Runner it follows, for the words that name it; absent for a
@@ -262,12 +273,15 @@ export default class CodeRepositoryRunnerChoice {
    * do it:
    *
    *   - a Runner it picked, or the project's default Runner it follows:
-   *     that Runner, online while it heartbeats (an in-cluster Runner the
-   *     Kubernetes agent chart installed never takes code work, so it is
-   *     never online for it) - or, for the default Runner, while an AI
-   *     agent of the project's own is;
-   *   - a global Runner, in a project that uses them: a global Runner, or
-   *     an AI agent of the project's own;
+   *     that Runner, online while it heartbeats and takes AI code fixes (an
+   *     in-cluster Runner the Kubernetes agent chart installed never takes
+   *     code work, so it is never online for it; one whose host turned code
+   *     fixes off is not either, and says so) - or, for the default Runner,
+   *     while an AI agent of the project's own is;
+   *   - a global Runner, in a project that uses them: a global Runner that
+   *     takes AI code fixes (one of an older release, or whose host turned
+   *     them off, is not counted, and says so), or an AI agent of the
+   *     project's own;
    *   - none, in a project that does not: an AI agent of the project's own
    *     only.
    */
@@ -292,16 +306,27 @@ export default class CodeRepositoryRunnerChoice {
           name: true,
           lastAlive: true,
           hostInfo: true,
+          takesCodeFixes: true,
         },
         props: { isRoot: true },
       });
 
-      const isRunnerOnline: boolean = Boolean(
+      const isRunnerConnected: boolean = Boolean(
         runner &&
           getRunnerLiveStatus(runner.lastAlive) ===
             RunnerLiveStatus.Connected &&
           !RunnerServiceClass.isKubernetesAgentRunnerRow(runner),
       );
+
+      /*
+       * Connected, but its host turned AI code fixes off: it takes none of
+       * the repository's work, so it is not counted as there to take it.
+       */
+      const takesNoCodeFixes: boolean = Boolean(
+        runner && isRunnerConnected && !doesRunnerTakeCodeFixes(runner),
+      );
+
+      const isRunnerOnline: boolean = isRunnerConnected && !takesNoCodeFixes;
 
       /*
        * A repository that follows the project's default Runner is served
@@ -320,6 +345,9 @@ export default class CodeRepositoryRunnerChoice {
         decision,
         ...(runner?.name ? { runnerName: runner.name } : {}),
         isOnline: isRunnerOnline || isProjectAgentOnline,
+        ...(takesNoCodeFixes && !isProjectAgentOnline
+          ? { takesNoCodeFixes: true }
+          : {}),
       };
     }
 
@@ -332,9 +360,16 @@ export default class CodeRepositoryRunnerChoice {
     }
 
     if (decision.kind === CodeRepositoryRunnerChoiceKind.Global) {
+      const availability: GlobalRunnerCodeFixAvailability =
+        await RunnerService.getGlobalRunnerCodeFixAvailability();
+
       return {
         decision,
-        isOnline: await RunnerService.hasOnlineGlobalRunner(),
+        isOnline: availability === GlobalRunnerCodeFixAvailability.Online,
+        ...(availability ===
+        GlobalRunnerCodeFixAvailability.OnlineButNoneTakesCodeFixes
+          ? { takesNoCodeFixes: true }
+          : {}),
       };
     }
 
@@ -343,9 +378,10 @@ export default class CodeRepositoryRunnerChoice {
 
   /*
    * Whether anything is online to do the AI work of any of the project's
-   * repositories: a global Runner while the project uses them, a Runner a
-   * repository picks, the project's default Runner while a repository
-   * follows it, or an AI agent of the project's own. What a project-wide
+   * repositories: a global Runner that takes AI code fixes while the
+   * project uses them, a Runner a repository picks, the project's default
+   * Runner while a repository follows it - each while it takes AI code
+   * fixes - or an AI agent of the project's own. What a project-wide
    * checklist asks before any repository is known.
    */
   @CaptureSpan()
@@ -358,7 +394,8 @@ export default class CodeRepositoryRunnerChoice {
 
     if (
       (await GlobalRunnerChoice.doesProjectUseGlobalRunners(projectId)) &&
-      (await RunnerService.hasOnlineGlobalRunner())
+      (await RunnerService.getGlobalRunnerCodeFixAvailability()) ===
+        GlobalRunnerCodeFixAvailability.Online
     ) {
       return true;
     }

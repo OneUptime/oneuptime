@@ -54,7 +54,7 @@ In **Which Logs**, restringete la regola con servizi di telemetria, gravità, te
 
 ### Suddividere il risultato e salvare
 
-Facoltativamente aggiungete attributi in **Raggruppa per** e una **Unit**. Controllate la riga in fondo all'editor, poi salvate. Entro pochi minuti l'elenco delle regole mostra un orario in **Computed Until**.
+Facoltativamente aggiungete attributi in **Raggruppa per** e una **Unità**. Controllate la riga in fondo all'editor, poi salvate. Entro pochi minuti l'elenco delle regole mostra un orario in **Computed Until**.
 :::
 
 | Campo | Cosa fa |
@@ -139,7 +139,7 @@ In **Registri → Impostazioni → Regole di registrazione**, create una regola:
 - **Which Logs:** filtri di attributo `log_type` = `SD-WAN` e `log_component` = `SLA`
 - **Aggregazione:** Media, **Numeric Attribute:** `latency`
 - **Raggruppa per:** `gw_name` e `profile_name`
-- **Unit:** `ms`
+- **Unità:** `ms`
 
 Tramite l'API, MCP o Terraform, la **definizione** della stessa regola è:
 

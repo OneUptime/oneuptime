@@ -1,6 +1,7 @@
 import { expect, Locator, Page, test } from "@playwright/test";
 import path from "path";
 import { boxesInOneFrame, FrameBox } from "../SuiteHelpers/Frames";
+import { expectNoSidewaysScroll } from "../SuiteHelpers/PageFit";
 
 /*
  * THE DISCOVERED-DEVICES IMPORT, IN A BROWSER (OneUptime issues #4811,
@@ -157,14 +158,12 @@ function title(page: Page): Locator {
   return page.getByTestId("discovery-import-progress-title");
 }
 
-async function expectNoSidewaysScroll(
+// The page does not scroll sideways, and the dialog fits the screen.
+async function expectDialogFitsTheScreen(
   page: Page,
   width: number,
 ): Promise<void> {
-  const scrollWidth: number = await page.evaluate((): number => {
-    return document.documentElement.scrollWidth;
-  });
-  expect(scrollWidth).toBeLessThanOrEqual(width);
+  await expectNoSidewaysScroll(page);
 
   const dialogBox: Awaited<ReturnType<Locator["boundingBox"]>> = await page
     .getByTestId("modal")
@@ -699,7 +698,7 @@ test.describe("templates of every kind, on a phone (#5145)", () => {
     await page.getByTestId("discovery-import-alerting-template").check();
 
     await openTemplateMenu(page);
-    await expectNoSidewaysScroll(page, 390);
+    await expectDialogFitsTheScreen(page, 390);
     await page.screenshot({
       path: path.join(screenshots, "discovery-import-templates-menu-phone.png"),
       animations: "disabled",
@@ -737,14 +736,14 @@ test.describe("templates of every kind, on a phone (#5145)", () => {
     await page
       .getByTestId("discovery-import-template-preview")
       .scrollIntoViewIfNeeded();
-    await expectNoSidewaysScroll(page, 390);
+    await expectDialogFitsTheScreen(page, 390);
     await page.screenshot({
       path: path.join(screenshots, "discovery-import-ping-template-phone.png"),
       animations: "disabled",
     });
 
     await useDarkTheme(page);
-    await expectNoSidewaysScroll(page, 390);
+    await expectDialogFitsTheScreen(page, 390);
     await page.screenshot({
       path: path.join(
         screenshots,
@@ -1011,7 +1010,7 @@ test.describe("on a phone", () => {
     await expect(page.getByTestId("discovery-import-steps")).toContainText(
       "Choose devices · Step 1 of 3",
     );
-    await expectNoSidewaysScroll(page, 390);
+    await expectDialogFitsTheScreen(page, 390);
     await page.screenshot({
       path: path.join(screenshots, "discovery-import-choose-phone.png"),
     });
@@ -1039,7 +1038,7 @@ test.describe("on a phone", () => {
       page.getByTestId("discovery-import-step-phone"),
     ).toBeInViewport();
     await page.getByTestId("discovery-import-alerting-template").check();
-    await expectNoSidewaysScroll(page, 390);
+    await expectDialogFitsTheScreen(page, 390);
     await page.screenshot({
       path: path.join(screenshots, "discovery-import-monitoring-phone.png"),
     });
@@ -1047,7 +1046,7 @@ test.describe("on a phone", () => {
     await control(page, { importBatch: 600 });
     await submitImport(page);
     await expect(title(page)).toHaveText("Import finished", { timeout: 60000 });
-    await expectNoSidewaysScroll(page, 390);
+    await expectDialogFitsTheScreen(page, 390);
     await page.screenshot({
       path: path.join(screenshots, "discovery-import-finished-phone.png"),
     });

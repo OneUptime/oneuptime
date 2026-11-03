@@ -48,7 +48,7 @@ function readLocale(file: string): Record<string, string> {
 }
 
 // Names that stay as they are in every language.
-const UNTRANSLATED: ReadonlyArray<string> = ["Terraform", "API"];
+const UNTRANSLATED: ReadonlyArray<string> = ["Terraform", "API", "CLI"];
 
 const STRINGS: Array<string> = Array.from(
   new Set<string>([

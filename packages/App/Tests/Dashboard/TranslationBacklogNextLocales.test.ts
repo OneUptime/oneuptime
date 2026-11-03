@@ -443,15 +443,14 @@ describe("the Campaigns page's counts", () => {
 });
 
 /*
- * An OSD's page explains In and Out - under the list's In / Out column, in
- * the detail's Placement tooltip and in the page's description - in the
- * words its cells draw. The cells said "Dans le cluster" while the
- * description explained "In" (French, Spanish, Japanese), and the tooltips
- * were English in fifteen languages.
+ * An OSD's page explains In and Out - in the list's and the OSD page's
+ * Placement tooltips - in the words its badge draws. The cells said "Dans le
+ * cluster" while the list's description explained "In" (French, Spanish,
+ * Japanese), and the tooltips were English in fifteen languages. The list's
+ * description now says what the list shows by the cluster's rules, and the
+ * Placement tooltips are where In and Out are explained.
  */
 describe("Ceph's OSD placement, explained", () => {
-  const DESCRIPTION: string =
-    "Object storage daemons in this cluster. Up means the daemon is running; In means it participates in data placement.";
   const TOOLTIPS: ReadonlyArray<string> = [
     "In means Ceph places data on this OSD. Out means it was taken out of data placement, by an admin or automatically after being down for a while, and its data lives on other OSDs.",
     "In means Ceph is placing data on this OSD. Out means it has been removed from data placement, by an admin or automatically after being down, and its data is served from other OSDs.",
@@ -462,8 +461,6 @@ describe("Ceph's OSD placement, explained", () => {
     (code: string) => {
       const inCluster: string = valueOf(code, "In cluster") || "";
       const outOfCluster: string = valueOf(code, "Out of cluster") || "";
-
-      expect(valueOf(code, DESCRIPTION)).toContain(inCluster);
 
       for (const tooltip of TOOLTIPS) {
         const value: string = valueOf(code, tooltip) || "";

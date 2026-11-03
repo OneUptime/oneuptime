@@ -26,7 +26,7 @@ flowchart TB
     monitors --> act
 ```
 
-Open **Producten → Beveiligingsgebeurtenissen**, onder **Observability**. Het menu heeft een sectie voor elk deel van beveiliging, en een eigen pagina voor alles daarin:
+Open **Producten → Beveiligingsgebeurtenissen**, onder **Beveiliging**. Het menu heeft een sectie voor elk deel van beveiliging, en een eigen pagina voor alles daarin:
 
 | Pagina | Sectie | Waarvoor het dient |
 | --- | --- | --- |
@@ -57,6 +57,9 @@ Open **Producten → Beveiligingsgebeurtenissen**, onder **Observability**. Het 
 | **Zaakprioriteiten** | Instellingen | Hoe dringend een zaak is: de eigen prioriteiten van het project, de dringendste eerst |
 | **Reactiedoelen** | Instellingen | Hoe snel een zaak van elke prioriteit moet worden opgepakt en ingedamd |
 | **Zaakstatussen** | Instellingen | De stappen die een zaak doorloopt, en hoe een zaak in elke stap telt |
+| **Aangepaste velden** | Instellingen | De velden die je team bij elke zaak invult, zoals de bedrijfseenheid waar die over gaat |
+| **Notitie-sjablonen** | Instellingen | Kant-en-klare tekst voor de notities die je team bij zijn zaken schrijft |
+| **Nummering** | Instellingen | De tekst voor de zaaknummers, en het nummer dat de volgende zaak krijgt |
 | **Risicoscoring** | Instellingen | Of het risico van een entiteit een zaak opent, bij welk risico, en hoe zwaar elke entiteit weegt |
 
 **Detecties**, **AI**, **Verbindingen** en **Instellingen**, die je één keer instelt, blijven ingeklapt tot je ze opent. Nieuw met beveiliging? [Aan de slag met beveiliging](/docs/telemetry/security-getting-started) richt het in met twee klikken.

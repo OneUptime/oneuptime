@@ -1,5 +1,9 @@
 import ProjectReferencesService from "./ProjectReferencesService";
 import AutoRemediationSuggestionService from "./AutoRemediationSuggestionService";
+import AutoRemediationRuleEngineService, {
+  doesTurnFixesOn,
+} from "./AutoRemediationRuleEngineService";
+import { AutoRemediationDecisionLane } from "../../Types/AutoRemediation/AutoRemediationDecision";
 import KubernetesClusterLabelRuleEngineService from "./KubernetesClusterLabelRuleEngineService";
 import KubernetesClusterOwnerRuleEngineService from "./KubernetesClusterOwnerRuleEngineService";
 import RunnerService, { Service as RunnerServiceClass } from "./RunnerService";
@@ -1587,6 +1591,39 @@ export class Service extends ProjectReferencesService<Model> {
         onUpdate,
         updatedItemIds,
         previousAiAccessSettings: aiAccessWrite.previousAiAccessSettings,
+      }).catch((error: Error) => {
+        logger.error(error);
+      });
+    }
+
+    /*
+     * Fixes turned on - by an operator, the API, Terraform or the cluster's
+     * agent's configuration: the open incidents and alerts OneUptime AI
+     * found them off for here are decided again
+     * (AutoRemediationRuleEngineService.onFixesTurnedOn). Fire and forget,
+     * like the feed: the save does not wait for a fix to start.
+     */
+    if (doesTurnFixesOn(onUpdate.updateBy.data)) {
+      AutoRemediationRuleEngineService.onFixesSettingWritten({
+        lane: AutoRemediationDecisionLane.KubernetesCluster,
+        written: onUpdate.updateBy.data,
+        updatedIds: updatedItemIds,
+        readProjectId: async (
+          clusterId: ObjectID,
+        ): Promise<ObjectID | undefined> => {
+          return (
+            aiAccessWrite?.previousAiAccessSettings[clusterId.toString()]
+              ?.projectId ||
+            (
+              await this.findOneById({
+                id: clusterId,
+                select: { projectId: true },
+                props: { isRoot: true },
+              })
+            )?.projectId ||
+            undefined
+          );
+        },
       }).catch((error: Error) => {
         logger.error(error);
       });

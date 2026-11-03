@@ -1,4 +1,5 @@
 import { JSONObject } from "../../../Types/JSON";
+import lookupTable from "../../LookupTable";
 import NormalizedSecurityEvent from "../../../Types/SecurityEvent/NormalizedSecurityEvent";
 import OcsfSeverity from "../../../Types/SecurityEvent/OcsfSeverity";
 import SecurityLogFormat from "../../../Types/SecurityEvent/SecurityLogFormat";
@@ -81,7 +82,7 @@ const REGISTRY_KEY_ACTIVITY: number = 201001;
 const REGISTRY_VALUE_ACTIVITY: number = 201002;
 
 // 4624's logon types a person made, by the words a sign-in is told with.
-export const KEPT_LOGON_TYPES: Record<string, string> = {
+export const KEPT_LOGON_TYPES: ReadonlyMap<string, string> = lookupTable({
   "2": "at the keyboard",
   "8": "over the network with a cleartext password",
   "9": "with new credentials",
@@ -89,40 +90,42 @@ export const KEPT_LOGON_TYPES: Record<string, string> = {
   "11": "with cached credentials",
   "12": "over Remote Desktop with cached credentials",
   "13": "to unlock with cached credentials",
-};
+});
 
 // Every logon type, by the words a failed sign-in is told with.
-const LOGON_TYPE_WORDS: Record<string, string> = {
+const LOGON_TYPE_WORDS: ReadonlyMap<string, string> = new Map<string, string>([
   ...KEPT_LOGON_TYPES,
-  "3": "over the network",
-  "4": "as a batch job",
-  "5": "as a service",
-  "7": "to unlock",
-};
+  ["3", "over the network"],
+  ["4", "as a batch job"],
+  ["5", "as a service"],
+  ["7", "to unlock"],
+]);
 
 /*
  * Why a sign-in failed, by its NTSTATUS (4625's SubStatus, else Status) or
  * Kerberos code (4771's Status), in the words a person reads.
  */
-export const WINDOWS_FAILURE_REASONS: Record<string, string> = {
-  "0xc000006a": "wrong password",
-  "0xc0000064": "no such user",
-  "0xc0000234": "account locked out",
-  "0xc0000072": "account disabled",
-  "0xc000006f": "outside the allowed hours",
-  "0xc0000070": "not allowed from this workstation",
-  "0xc0000071": "password expired",
-  "0xc0000193": "account expired",
-  "0xc0000133": "clocks out of sync",
-  "0xc0000224": "must change password",
-  "0xc000015b": "logon type not allowed",
-  "0xc000005e": "no logon server available",
-  "0xc0000413": "blocked by the authentication firewall",
-  "0x12": "account disabled, locked out or expired",
-  "0x17": "password expired",
-  "0x18": "wrong password",
-  "0x25": "clocks out of sync",
-};
+export const WINDOWS_FAILURE_REASONS: ReadonlyMap<string, string> = lookupTable(
+  {
+    "0xc000006a": "wrong password",
+    "0xc0000064": "no such user",
+    "0xc0000234": "account locked out",
+    "0xc0000072": "account disabled",
+    "0xc000006f": "outside the allowed hours",
+    "0xc0000070": "not allowed from this workstation",
+    "0xc0000071": "password expired",
+    "0xc0000193": "account expired",
+    "0xc0000133": "clocks out of sync",
+    "0xc0000224": "must change password",
+    "0xc000015b": "logon type not allowed",
+    "0xc000005e": "no logon server available",
+    "0xc0000413": "blocked by the authentication firewall",
+    "0x12": "account disabled, locked out or expired",
+    "0x17": "password expired",
+    "0x18": "wrong password",
+    "0x25": "clocks out of sync",
+  },
+);
 
 // Groups whose members administer a machine or a domain.
 export const PRIVILEGED_WINDOWS_GROUPS: ReadonlyArray<string> = [
@@ -155,13 +158,13 @@ const SERVICE_ACCOUNT_NAMES: ReadonlyArray<string> = [
 const SERVICE_ACCOUNT_PREFIXES: ReadonlyArray<string> = ["dwm-", "umfd-"];
 
 // Defender's own severity words, as OCSF's.
-const DEFENDER_SEVERITIES: Record<string, OcsfSeverity> = {
+const DEFENDER_SEVERITIES: ReadonlyMap<string, OcsfSeverity> = lookupTable({
   severe: OcsfSeverity.Critical,
   high: OcsfSeverity.High,
   moderate: OcsfSeverity.Medium,
   medium: OcsfSeverity.Medium,
   low: OcsfSeverity.Low,
-};
+});
 
 interface WindowsEventReading {
   classUid: number;
@@ -243,8 +246,9 @@ function failureReason(event: WindowsEvent): string {
     event.field("Status"),
     event.field("FailureCode"),
   ]) {
-    const reason: string | undefined =
-      WINDOWS_FAILURE_REASONS[code.toLowerCase()];
+    const reason: string | undefined = WINDOWS_FAILURE_REASONS.get(
+      code.toLowerCase(),
+    );
 
     if (reason) {
       return reason;
@@ -303,7 +307,9 @@ function signInSuccess(event: WindowsEvent): WindowsEventReading | null {
   const logonType: string = event.field("LogonType");
   const user: string = event.field("TargetUserName");
 
-  if (!KEPT_LOGON_TYPES[logonType] || isServiceAccount(user)) {
+  const how: string | undefined = KEPT_LOGON_TYPES.get(logonType);
+
+  if (!how || isServiceAccount(user)) {
     return null;
   }
 
@@ -315,7 +321,7 @@ function signInSuccess(event: WindowsEvent): WindowsEventReading | null {
     activityName: "Logon",
     statusName: "Success",
     severity: OcsfSeverity.Informational,
-    message: `${withDomain(user, event.field("TargetDomainName"))} signed in to ${event.computer || "Windows"} ${KEPT_LOGON_TYPES[logonType]}${ip ? ` from ${ip}` : ""}`,
+    message: `${withDomain(user, event.field("TargetDomainName"))} signed in to ${event.computer || "Windows"} ${how}${ip ? ` from ${ip}` : ""}`,
     principalUser: user,
     principalIp: ip,
     principalHost: workstation,
@@ -328,7 +334,7 @@ function signInFailure(event: WindowsEvent): WindowsEventReading {
   const user: string = event.field("TargetUserName");
   const ip: string = readRemoteIpAddress(event.field("IpAddress"));
   const reason: string = failureReason(event);
-  const how: string = LOGON_TYPE_WORDS[event.field("LogonType")] || "";
+  const how: string = LOGON_TYPE_WORDS.get(event.field("LogonType")) || "";
 
   return {
     classUid: AUTHENTICATION,
@@ -910,7 +916,7 @@ function defenderDetection(
     const action: string = event.field("Action Name");
     const user: string = event.field("Detection User");
     const base: OcsfSeverity =
-      DEFENDER_SEVERITIES[severityName] || OcsfSeverity.High;
+      DEFENDER_SEVERITIES.get(severityName) || OcsfSeverity.High;
     const severity: OcsfSeverity =
       kind === "failed"
         ? OcsfSeverity.Critical
@@ -1030,8 +1036,10 @@ function suspiciousScriptBlock(
 /*
  * The events read, by provider and id. A reader may still pass an event
  * by (a network logon, a service started on demand) by returning null.
+ * The provider is the event's own words, so the table is a Map: a
+ * provider named "constructor" has no readers (Utils/LookupTable).
  */
-const READERS: Record<string, Record<number, EventReader>> = {
+const READERS: ReadonlyMap<string, Record<number, EventReader>> = lookupTable({
   [WINDOWS_PROVIDERS.securityAuditing.toLowerCase()]: {
     4624: signInSuccess,
     4625: signInFailure,
@@ -1097,7 +1105,7 @@ const READERS: Record<string, Record<number, EventReader>> = {
   [WINDOWS_PROVIDERS.powerShell.toLowerCase()]: {
     4104: suspiciousScriptBlock,
   },
-};
+});
 
 /*
  * The event ids read for each provider, as text: what the prefilter asks
@@ -1105,7 +1113,7 @@ const READERS: Record<string, Record<number, EventReader>> = {
  * types not kept out).
  */
 export function getWindowsEventIds(provider: string): Array<string> {
-  return Object.keys(READERS[provider.toLowerCase()] || {});
+  return Object.keys(READERS.get(provider.toLowerCase()) || {});
 }
 
 // 4624's logon types that are never kept: a network, batch, service or unlock logon.
@@ -1195,7 +1203,7 @@ export default class WindowsEventLogParser {
 
     const providerKey: string = record.provider.trim().toLowerCase();
     const reader: EventReader | undefined =
-      READERS[providerKey]?.[record.eventId];
+      READERS.get(providerKey)?.[record.eventId];
 
     if (!reader) {
       return [];

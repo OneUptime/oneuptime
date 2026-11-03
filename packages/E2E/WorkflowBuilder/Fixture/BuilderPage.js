@@ -9,6 +9,10 @@
  *                         "Choose what starts this workflow" card
  *   &graph=trigger        a Manual trigger connected to a Log step
  *   &graph=deleted        a Log step whose trigger was deleted
+ *   &graph=request        a Manual trigger, then an API Post (JSON) with a
+ *                         JSON body and an Authorization header (folded
+ *                         under its More fields), then a Run Custom
+ *                         JavaScript step: code boxes to read and copy
  *   &template=<id>        the graph a workflow template builds, as Create
  *                         Workflow saves it: the Builder opens on it right
  *                         after the dialog closes
@@ -19,6 +23,10 @@
  *                         Without &picked, the template's own graph: its Page
  *                         steps wait for who to page.
  *   &enabled=1            a workflow that is on
+ *   &role=member          a Workflow Member, who runs workflows but may not
+ *                         change them: the Builder is a view
+ *                         (WorkflowViewOnly), and its steps open to be read.
+ *                         Without it, a project admin, who may change it.
  *   &column=430           the width, in pixels, of the column the page is
  *                         drawn in: 430 is the Builder's column on a tablet,
  *                         beside the side menu. Without it the page is as
@@ -32,6 +40,7 @@ import WorkflowModel from "Common/Models/DatabaseModels/Workflow";
 import HTTPResponse from "Common/Types/API/HTTPResponse";
 import ObjectID from "Common/Types/ObjectID";
 import Permission from "Common/Types/Permission";
+import API from "Common/UI/Utils/API/API";
 import { ComponentType, NodeType } from "Common/Types/Workflow/Component";
 import ModelAPI from "Common/UI/Utils/ModelAPI/ModelAPI";
 import Navigation from "Common/UI/Utils/Navigation";
@@ -59,6 +68,12 @@ const params = new URLSearchParams(window.location.search);
 
 // Whoever the create dialog's who-to-page question picked: one on-call policy, team or person.
 export const PICKED_TO_PAGE_ID = "77777777-7777-4777-8777-777777777777";
+
+// What the &graph=request steps hold, for the specs to read back.
+export const REQUEST_URL = "https://deploys.example.com/hooks/checkout";
+export const REQUEST_BODY = '{"service": "checkout", "status": "deployed"}';
+export const REQUEST_AUTHORIZATION = "Bearer deploy-token";
+export const SCRIPT_CODE = "return { ok: args.status === 'deployed' };";
 
 /*
  * Who was picked for each of a template's Page steps (&picked), as the
@@ -148,6 +163,39 @@ function savedGraph() {
     return { nodes: [log], edges: [] };
   }
 
+  if (graph === "request") {
+    return {
+      nodes: [
+        savedStep("manual", ComponentType.Trigger, 64),
+        savedStep("api-post", ComponentType.Component, 320, {
+          url: REQUEST_URL,
+          "request-body": REQUEST_BODY,
+          "request-headers": { Authorization: REQUEST_AUTHORIZATION },
+        }),
+        savedStep("javascript", ComponentType.Component, 576, {
+          code: SCRIPT_CODE,
+          arguments: REQUEST_BODY,
+        }),
+      ],
+      edges: [
+        {
+          id: "manual-to-api-post",
+          source: "canvas-manual-1",
+          sourceHandle: "success",
+          target: "canvas-api-post-1",
+          targetHandle: "in",
+        },
+        {
+          id: "api-post-to-javascript",
+          source: "canvas-api-post-1",
+          sourceHandle: "success",
+          target: "canvas-javascript-1",
+          targetHandle: "in",
+        },
+      ],
+    };
+  }
+
   // A workflow from scratch saves an empty graph.
   return { nodes: [], edges: [] };
 }
@@ -164,9 +212,14 @@ export function installBuilderPage() {
     return new ObjectID(BUILDER_PROJECT_ID);
   };
 
-  // A project admin: may edit, run, and turn the workflow on and off.
+  /*
+   * A project admin: may edit, run, and turn the workflow on and off. Or,
+   * with &role=member, a Workflow Member: runs it, and may not change it.
+   */
   PermissionUtil.getAllPermissions = () => {
-    return [Permission.ProjectAdmin];
+    return params.get("role") === "member"
+      ? [Permission.WorkflowMember]
+      : [Permission.ProjectAdmin];
   };
 
   PermissionUtil.getProjectPermissions = () => {
@@ -208,6 +261,24 @@ export function installBuilderPage() {
     return 0;
   };
 
+  ModelAPI.getCommonHeaders = () => {
+    return {};
+  };
+
+  /*
+   * A step's settings ask what earlier steps held the last times they ran
+   * (/step-samples): none have run. Anything else goes on as it would.
+   */
+  const post = API.post.bind(API);
+
+  API.post = async (options) => {
+    if (options.url.toString().includes("/step-samples/")) {
+      return new HTTPResponse(200, { samples: [] }, {});
+    }
+
+    return post(options);
+  };
+
   ModelAPI.updateById = async (data) => {
     window.__builderSaves.push(Object.keys(data.data || {}));
 
@@ -224,11 +295,15 @@ function Shell(props) {
   return props.children;
 }
 
+/*
+ * Navigates as the Dashboard does (its src/Index.tsx): each navigation renders
+ * at once, not in a React transition (Tests/Ops/E2EFixtureRouters).
+ */
 export function BuilderPage() {
   const column = Number(params.get("column")) || 0;
 
   return (
-    <BrowserRouter>
+    <BrowserRouter useTransitions={false}>
       <Shell>
         <div style={{ padding: "16px" }}>
           <div

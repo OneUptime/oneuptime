@@ -1,6 +1,8 @@
 import { expect, Locator, Page, test } from "@playwright/test";
 import fs from "fs";
 import path from "path";
+import { expectNoSidewaysScroll } from "../SuiteHelpers/PageFit";
+import { boxesInOneFrame } from "../SuiteHelpers/Frames";
 
 /*
  * Scheduled Maintenance > Calendar > Maintenance Calendar, end to end in a
@@ -264,12 +266,6 @@ async function rowAction(
   await page.getByRole("menuitem", { name: action }).click();
 }
 
-async function horizontalOverflow(page: Page): Promise<number> {
-  return await page.evaluate(() => {
-    return document.documentElement.scrollWidth - window.innerWidth;
-  });
-}
-
 async function shot(page: Page, name: string, target?: Locator): Promise<void> {
   fs.mkdirSync(SCREENSHOTS, { recursive: true });
   const file: string = path.join(SCREENSHOTS, `${name}.png`);
@@ -459,13 +455,10 @@ test.describe("the calendar's own page", () => {
         "toolbar",
       );
 
-      const title: { x: number; height: number } | null = await page
-        .getByRole("heading", { name: "Maintenance Calendar" })
-        .boundingBox();
-      const description: { x: number; height: number } | null = await page
-        .getByTestId("card-description")
-        .first()
-        .boundingBox();
+      const [title, description] = await boxesInOneFrame([
+        page.getByRole("heading", { name: "Maintenance Calendar" }),
+        page.getByTestId("card-description").first(),
+      ]);
 
       // The title on one line (leading-6), in every width.
       expect({ width, titleHeight: title!.height }).toEqual({
@@ -666,10 +659,7 @@ test.describe("external calendars on the calendar", () => {
     ).toHaveCount(0);
 
     // The mark sits inside its toggle's pill, never out between two toggles.
-    const pill: { x: number; width: number } | null =
-      await freezes.boundingBox();
-    const markBox: { x: number; width: number } | null =
-      await mark.boundingBox();
+    const [pill, markBox] = await boxesInOneFrame([freezes, mark]);
 
     expect(markBox!.x).toBeGreaterThan(pill!.x);
     expect(markBox!.x + markBox!.width).toBeLessThan(pill!.x + pill!.width);
@@ -1411,15 +1401,12 @@ test.describe("the month", () => {
     await expect(calendar(page).locator(".rbc-toolbar")).toHaveCount(0);
 
     // Today, the arrows and the month read left to right on one line.
-    const today: { x: number; y: number } | null = await toolbar
-      .getByRole("button", { name: "Today" })
-      .boundingBox();
-    const label: { x: number; y: number } | null =
-      await periodLabel(page).boundingBox();
-    const switchBox: { x: number; y: number; width: number } | null =
-      await views.boundingBox();
-    const toolbarBox: { x: number; width: number } | null =
-      await toolbar.boundingBox();
+    const [today, label, switchBox, toolbarBox] = await boxesInOneFrame([
+      toolbar.getByRole("button", { name: "Today" }),
+      periodLabel(page),
+      views,
+      toolbar,
+    ]);
 
     expect(today!.x).toBeLessThan(label!.x);
     expect(Math.abs(today!.y - label!.y)).toBeLessThan(12);
@@ -1757,7 +1744,7 @@ test.describe("on a phone", () => {
     await open(page, "", 390);
     await expect(eventLink(page, "Database upgrade")).toBeAttached();
 
-    expect(await horizontalOverflow(page)).toBeLessThanOrEqual(0);
+    await expectNoSidewaysScroll(page);
 
     const grid: Locator = calendar(page).locator(".rbc-month-view");
     const gridBox: { x: number; width: number } | null =
@@ -1782,12 +1769,10 @@ test.describe("on a phone", () => {
       await open(page, query, 390);
       await expect(page.getByTestId("card-button").first()).toBeVisible();
 
-      const create: { y: number; height: number } | null = await page
-        .getByTestId("card-button")
-        .first()
-        .boundingBox();
-      const more: { y: number; height: number } | null =
-        await cardMenuButton(page).boundingBox();
+      const [create, more] = await boxesInOneFrame([
+        page.getByTestId("card-button").first(),
+        cardMenuButton(page),
+      ]);
 
       // The ⋯ sits beside Create, its middle within Create's height.
       const middle: number = more!.y + more!.height / 2;
@@ -1802,14 +1787,14 @@ test.describe("on a phone", () => {
       }).toEqual({ query, beside: true });
     }
 
-    expect(await horizontalOverflow(page)).toBeLessThanOrEqual(0);
+    await expectNoSidewaysScroll(page);
   });
 
   test("the Subscribe dialog fits too", async ({ page }: { page: Page }) => {
     await open(page, "", 390);
     await openSubscribe(page);
 
-    expect(await horizontalOverflow(page)).toBeLessThanOrEqual(0);
+    await expectNoSidewaysScroll(page);
     await shot(page, "phone-subscribe", page.getByTestId("modal"));
   });
 
@@ -1822,7 +1807,7 @@ test.describe("on a phone", () => {
     await calendarSettled(page);
     await expect(toggles(page)).toBeVisible();
 
-    expect(await horizontalOverflow(page)).toBeLessThanOrEqual(0);
+    await expectNoSidewaysScroll(page);
 
     const box: { x: number; width: number } | null =
       await toggles(page).boundingBox();
@@ -1840,7 +1825,7 @@ test.describe("on a phone", () => {
       page.getByText("Change freezes", { exact: true }).first(),
     ).toBeVisible();
 
-    expect(await horizontalOverflow(page)).toBeLessThanOrEqual(0);
+    await expectNoSidewaysScroll(page);
     await shot(page, "phone-settings");
   });
 });

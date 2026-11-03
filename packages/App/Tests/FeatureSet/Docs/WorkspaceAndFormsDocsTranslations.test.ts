@@ -46,6 +46,7 @@ import {
   REMEDIATION_CHAT_WORDS,
 } from "Common/Server/Utils/AutoRemediation/RemediationChatWords";
 import SlackIncidentActions from "Common/Server/Utils/Workspace/Slack/Actions/Incident";
+import { WORKSPACE_AFFECTED_RESOURCES_TEXT } from "Common/Server/Utils/Workspace/WorkspaceAffectedResources";
 import WorkspaceActionAuthorization from "Common/Server/Utils/Workspace/WorkspaceActionAuthorization";
 import {
   FORM_FAVICON_NOT_FOUND_MESSAGE,
@@ -195,6 +196,15 @@ const INCIDENT_MESSAGE_BUTTONS: Array<string> = [
 const SEEDED_INCIDENT_ROLES: Array<string> = ["Incident Commander"];
 
 /*
+ * The fields of the chats' Declare Incident forms that the pages name, as
+ * the server writes them for Slack's modal and Microsoft Teams' card, in
+ * English (WORKSPACE_AFFECTED_RESOURCES_TEXT).
+ */
+const INCIDENT_FORM_FIELDS: Array<string> = [
+  WORKSPACE_AFFECTED_RESOURCES_TEXT.label,
+];
+
+/*
  * The Connect button the app answers a press from an unconnected account
  * with, as each chat shows it: in English, as the server writes it.
  */
@@ -229,10 +239,21 @@ const SLACK_HOME_BUTTONS: Array<string> = ["Schedule maintenance"];
 const TEAMS_HOME_BUTTONS: Array<string> = ["Refresh"];
 
 /*
- * The menu of Slack's Home tab for somebody in several of a workspace's
- * projects, as the app draws it, in English (SLACK_HOME_PROJECT_MENU).
+ * The Home's project menu for somebody in several of a workspace's
+ * projects, as each app draws it, in English (WORKSPACE_HOME_TEXT): the
+ * select of Slack's Home tab (SLACK_HOME_PROJECT_MENU), and the Teams
+ * card's list with its Switch button.
  */
 const SLACK_HOME_MENU: Array<string> = ["Switch project"];
+const TEAMS_HOME_MENU: Array<string> = ["Switch project", "Switch"];
+
+/*
+ * What somebody in several of a Microsoft 365 organization's projects
+ * sends the bot - or presses by the compose box - to ask their last
+ * question in another of them, as the bot offers it, in English
+ * (MicrosoftTeamsProjectChoice.ASK_IN_ANOTHER_PROJECT_TEXT).
+ */
+const TEAMS_ASK_AGAIN: Array<string> = ["Ask in another project"];
 
 // Microsoft Teams' own menus and buttons, as Teams names them.
 const TEAMS_CONTROLS: Array<string> = [
@@ -332,6 +353,7 @@ const KEPT_IN_ENGLISH: Record<string, Array<string>> = {
     ...CHAT_BUTTONS,
     ...FIX_MESSAGE_BUTTONS,
     ...INCIDENT_MESSAGE_BUTTONS,
+    ...INCIDENT_FORM_FIELDS,
     ...SEEDED_INCIDENT_ROLES,
     ...SLACK_CONNECT_BUTTON,
     ...SLACK_CONTROLS,
@@ -345,6 +367,7 @@ const KEPT_IN_ENGLISH: Record<string, Array<string>> = {
     ...CHAT_BUTTONS,
     ...FIX_MESSAGE_BUTTONS,
     ...INCIDENT_MESSAGE_BUTTONS,
+    ...INCIDENT_FORM_FIELDS,
     ...SEEDED_INCIDENT_ROLES,
     ...TEAMS_CARD_BUTTONS,
     ...TEAMS_CONNECT_BUTTON,
@@ -352,6 +375,8 @@ const KEPT_IN_ENGLISH: Record<string, Array<string>> = {
     ...PAGE_FORM,
     ...CHAT_HOME_BUTTONS,
     ...TEAMS_HOME_BUTTONS,
+    ...TEAMS_HOME_MENU,
+    ...TEAMS_ASK_AGAIN,
   ],
   [VIDEO]: [...PROVIDER_CONSOLES, ...BRANDS, ...CALL_MESSAGE_BUTTONS],
   [BUILDING]: [],
@@ -517,6 +542,9 @@ const PROSE_LEADS: Record<string, Array<string>> = {
     "What the button connects.",
     "Who may use them.",
     "What a form offers.",
+    // The incident form's Affected Resources, and an alert's own channel.
+    "What the incident is about.",
+    "In an alert's own channel.",
     "What a form may name.",
     "Which records.",
     "What Change State offers.",
@@ -578,6 +606,9 @@ const PROSE_LEADS: Record<string, Array<string>> = {
     "What the button connects.",
     "Who may use them.",
     "What a form offers.",
+    // The incident card's Affected Resources, and an alert's own channel.
+    "What the incident is about.",
+    "In an alert's own channel.",
     "What a form may name.",
     "Which records.",
     "What Change State offers.",
@@ -1236,6 +1267,7 @@ describe("the lists this test keeps", () => {
       ...CHAT_BUTTONS,
       ...FIX_MESSAGE_BUTTONS,
       ...INCIDENT_MESSAGE_BUTTONS,
+      ...INCIDENT_FORM_FIELDS,
       ...SEEDED_INCIDENT_ROLES,
       ...SLACK_CONNECT_BUTTON,
       ...TEAMS_CONNECT_BUTTON,
@@ -1247,6 +1279,8 @@ describe("the lists this test keeps", () => {
       ...SLACK_HOME_BUTTONS,
       ...SLACK_HOME_MENU,
       ...TEAMS_HOME_BUTTONS,
+      ...TEAMS_HOME_MENU,
+      ...TEAMS_ASK_AGAIN,
       ...PROVIDER_CONSOLES,
       ...BRANDS,
       ...CALL_MESSAGE_BUTTONS,

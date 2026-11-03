@@ -8,6 +8,8 @@ import {
 } from "@playwright/test";
 import { mkdir } from "fs/promises";
 import path from "path";
+import { expectNoSidewaysScroll } from "../SuiteHelpers/PageFit";
+import { boxesInOneFrame } from "../SuiteHelpers/Frames";
 
 const artifacts: string = path.resolve(
   __dirname,
@@ -161,15 +163,6 @@ const clockSeconds: (text: string) => number = (text: string): number => {
   }
   return Number(match[1]) * 60 + Number(match[2]);
 };
-const noHorizontalOverflow: (page: Page) => Promise<void> = async (
-  page: Page,
-): Promise<void> => {
-  expect(
-    await page.evaluate((): number => {
-      return document.documentElement.scrollWidth - window.innerWidth;
-    }),
-  ).toBeLessThanOrEqual(1);
-};
 /*
  * The recording every desktop fixture plays, from the manifest header in
  * Fixture.js. The redesign is measured against it: the stage draws it at
@@ -302,7 +295,7 @@ test("uses the shared table and groups replay navigation in its own category", a
   await expect(
     section.getByRole("link", { name: "Replay Access Log" }),
   ).toHaveAttribute("href", `${applicationRoute}/session-replay-audit`);
-  await noHorizontalOverflow(page);
+  await expectNoSidewaysScroll(page, { tolerance: 1 });
   await screenshot(page, "session-replay-list");
   await page
     .getByRole("button", { name: "Session Replay", exact: true })
@@ -363,7 +356,7 @@ test("the health page reads a healthy application stage by stage", async ({
     },
   );
   expect(new Set(tops).size).toBe(1);
-  await noHorizontalOverflow(page);
+  await expectNoSidewaysScroll(page, { tolerance: 1 });
   await screenshot(page, "session-replay-health");
   /* Refresh reads the status again. */
   const before: number = (await state(page)).requests.filter(
@@ -482,7 +475,7 @@ test("the health page fits a narrow viewport", async ({
   await openHealth(page, "refusing");
   await expect(page.getByTestId("health-pipeline")).toBeVisible();
   await expect(page.getByTestId("health-refresh")).toBeVisible();
-  await noHorizontalOverflow(page);
+  await expectNoSidewaysScroll(page, { tolerance: 1 });
   await screenshot(page, "session-replay-health-mobile");
 });
 
@@ -503,7 +496,7 @@ test("the users page rolls the window up by person and hands one person to the l
   await expect(
     page.getByTestId("session-users-pagination").locator(".."),
   ).toHaveClass(/bg-gray-50/);
-  await noHorizontalOverflow(page);
+  await expectNoSidewaysScroll(page, { tolerance: 1 });
   await screenshot(page, "session-replay-users");
   /*
    * A visitor row: its id crosses as visitor= and the request sends it
@@ -1140,7 +1133,7 @@ test("plays incremental frames, pauses, seeks and keeps speed options visible ab
   await page.keyboard.press("Escape");
   await page.getByTestId("replay-play-pause").click();
   await expect(page.getByTestId("replay-phase")).toHaveText("playing");
-  await noHorizontalOverflow(page);
+  await expectNoSidewaysScroll(page, { tolerance: 1 });
   await screenshot(page, "session-replay-player");
 });
 
@@ -1233,7 +1226,7 @@ test("plays a React Native view tree while keeping text, images and webviews pri
   expect(replayedText).not.toContain("Place order");
   expect(replayedText).not.toContain("alex@example.com");
   await expect(page.getByTestId("replay-time")).toBeVisible();
-  await noHorizontalOverflow(page);
+  await expectNoSidewaysScroll(page, { tolerance: 1 });
   await screenshot(page, "session-replay-react-native-player");
 });
 
@@ -1402,10 +1395,10 @@ test("the mobile list, filters, recording and event search fit a narrow viewport
   await page.setViewportSize({ width: 390, height: 844 });
   await openList(page);
   await expect(rows(page)).toHaveCount(8);
-  await noHorizontalOverflow(page);
+  await expectNoSidewaysScroll(page, { tolerance: 1 });
   await facet(page, "deviceType", "Mobile");
   await expect(rows(page)).toHaveCount(3);
-  await noHorizontalOverflow(page);
+  await expectNoSidewaysScroll(page, { tolerance: 1 });
   await screenshot(page, "session-replay-list-mobile");
   await openPlayer(page);
   await expect(page.getByTestId("replay-play-pause")).toBeVisible();
@@ -1457,9 +1450,9 @@ test("the mobile list, filters, recording and event search fit a narrow viewport
       );
     },
   );
-  await noHorizontalOverflow(page);
+  await expectNoSidewaysScroll(page, { tolerance: 1 });
   await page.setViewportSize({ width: 390, height: 844 });
-  await noHorizontalOverflow(page);
+  await expectNoSidewaysScroll(page, { tolerance: 1 });
   const legendBottom: number = await page
     .getByTestId("timeline-legend")
     .evaluate((legend: HTMLElement): number => {
@@ -1494,11 +1487,10 @@ test("the mobile list, filters, recording and event search fit a narrow viewport
   expect(dialogBounds!.width).toBeLessThanOrEqual(372);
   await expect(page.getByTestId("details-section-session")).toBeVisible();
 
-  const browserTileBounds: Awaited<ReturnType<Locator["boundingBox"]>> =
-    await page.getByTestId("replay-details-browser").boundingBox();
-  const osTileBounds: Awaited<ReturnType<Locator["boundingBox"]>> = await page
-    .getByTestId("replay-details-os")
-    .boundingBox();
+  const [browserTileBounds, osTileBounds] = await boxesInOneFrame([
+    page.getByTestId("replay-details-browser"),
+    page.getByTestId("replay-details-os"),
+  ]);
 
   expect(browserTileBounds).not.toBeNull();
   expect(osTileBounds).not.toBeNull();
@@ -1506,7 +1498,7 @@ test("the mobile list, filters, recording and event search fit a narrow viewport
     browserTileBounds!.y + browserTileBounds!.height,
   );
   expect(osTileBounds!.width).toBeCloseTo(browserTileBounds!.width, 0);
-  await noHorizontalOverflow(page);
+  await expectNoSidewaysScroll(page, { tolerance: 1 });
   await screenshot(page, "session-replay-details-mobile");
 
   /*
@@ -1605,7 +1597,7 @@ test("the recording fills a laptop viewport with the transport above the fold", 
       return window.scrollY;
     }),
   ).toBe(0);
-  await noHorizontalOverflow(page);
+  await expectNoSidewaysScroll(page, { tolerance: 1 });
   await screenshot(page, "session-replay-player-laptop");
 });
 
@@ -1653,7 +1645,7 @@ test("the recording grows with the viewport and refits without a reload", async 
       return window.scrollY;
     }),
   ).toBe(0);
-  await noHorizontalOverflow(page);
+  await expectNoSidewaysScroll(page, { tolerance: 1 });
 
   /* The refit is layout, not a fresh manifest fetch. */
   expect(
@@ -1714,7 +1706,7 @@ test("the stage fit control switches between fit, width and actual size", async 
   await fit.getByRole("button", { name: "Fit", exact: true }).click();
   await expect(stage).toHaveAttribute("data-replay-fit", "contain");
   expect(await stageScalePercent(page)).toBe(containPercent);
-  await noHorizontalOverflow(page);
+  await expectNoSidewaysScroll(page, { tolerance: 1 });
 });
 
 test("keyboard shortcuts hide the events rail and cycle the stage fit", async ({
@@ -1977,7 +1969,7 @@ test("the tab strip leads with the tabs that are still open", async ({
   await expect(page.getByTestId("replay-tab-picker-button")).toContainText(
     "All 8 tabs",
   );
-  await noHorizontalOverflow(page);
+  await expectNoSidewaysScroll(page, { tolerance: 1 });
   await screenshot(page, "session-replay-player-tabs");
 });
 
@@ -2177,7 +2169,7 @@ test("the tab switcher fits a narrow viewport", async ({
   await page.setViewportSize({ width: 390, height: 844 });
   await openPlayer(page, "?tabs=many");
   await expect(page.getByTestId("replay-tab-switcher")).toBeVisible();
-  await noHorizontalOverflow(page);
+  await expectNoSidewaysScroll(page, { tolerance: 1 });
 
   /* The strip wraps; it never scrolls sideways and never leaves the page. */
   const rights: Array<number> = await page
@@ -2195,7 +2187,7 @@ test("the tab switcher fits a narrow viewport", async ({
 
   await page.setViewportSize({ width: 320, height: 844 });
   await expect(page.getByTestId("replay-tab-switcher")).toBeVisible();
-  await noHorizontalOverflow(page);
+  await expectNoSidewaysScroll(page, { tolerance: 1 });
   await openTabPicker(page);
 
   const picker: ElementBox = await boxOf(page.getByTestId("replay-tab-picker"));
@@ -2267,6 +2259,6 @@ test("a prerendered page's vitals name their view, and a CLS reported again link
     "CLS 0.02 good at 0:04.1",
   );
   await expect(rail.getByTestId("rail-vital-updated")).toHaveCount(0);
-  await noHorizontalOverflow(page);
+  await expectNoSidewaysScroll(page, { tolerance: 1 });
   await screenshot(page, "session-replay-vitals-prerender");
 });

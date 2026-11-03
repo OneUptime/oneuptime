@@ -10,11 +10,10 @@
  *
  *  - Counts come from the agent's inventory snapshot (the Swarm API walked
  *    on one manager every 5 minutes by default), not from metrics and not
- *    from any time range. Removed resources are pruned once they are 15
- *    minutes older than the cluster's own lastSeenAt (which itself may lag
- *    by the 5-minute ingest fence), on a 5-minute cleanup: gone roughly
- *    10-25 minutes after removal, depending on where in the snapshot cycle
- *    it happened.
+ *    from any time range. The pages read only the newest snapshot's rows
+ *    (keepLatestDockerSwarmSnapshot), so a removed node, service or task is
+ *    gone at the next snapshot; the cleanup deletes its row 15 minutes
+ *    after its last one.
  *  - The Clusters list reads the counts cached on the cluster row
  *    (nodeCount, serviceCount, taskCount and their ready / running parts),
  *    which ingest rewrites from each inventory batch. They are the latest
@@ -28,11 +27,14 @@
  *    run on several nodes).
  *  - Only Task rows get CPU/memory (OtelMetricsIngestService mirrors
  *    docker_stats onto kind "Task" only), so the Nodes and Services lists
- *    always show N/A in those columns.
+ *    have no usage columns; a node's tasks' readings add up on its row of
+ *    the Overview's Nodes card.
  *  - docker_stats only sees the containers of the node it runs on, so a
  *    task on a node without the agent has no CPU/memory reading.
- *  - The list views hide readings older than 15 minutes (METRIC_STALE_MS);
- *    the task detail page does not.
+ *  - Every page hides readings older than 15 minutes
+ *    (DOCKER_SWARM_READINGS_STALE_MS), a task's page too.
+ *  - States, reasons and colours are the swarm's rules (DockerSwarmHealth),
+ *    the same on the Overview, the lists, the part pages and the Topology.
  *  - Task CPU is a percent of one core, 100% being one full core: docker_stats
  *    reports a percent (declared with the unit "1", which ingest reads as
  *    "%" - ContainerStatsPercentUnit) and the row mirrors it as it is. It
@@ -45,22 +47,24 @@
 import { translationKey } from "Common/UI/Utils/TranslateTemplate";
 
 export type DockerSwarmMetric =
-  | "nodes"
   | "managers"
-  | "services"
-  | "tasks"
-  | "stacks"
-  | "networks"
-  | "volumes"
+  | "clusterHealth"
+  | "inventoryCounts"
+  | "nodeStatus"
+  | "managerStatus"
+  | "availability"
   | "serviceStatus"
   | "serviceStatusColumn"
+  | "serviceUpdate"
+  | "recentFailedTasks"
+  | "lastTaskError"
   | "replicas"
+  | "taskStatus"
+  | "taskDesiredState"
   | "taskCpu"
   | "taskMemory"
   | "taskCpuColumn"
   | "taskMemoryColumn"
-  | "nodeUsageColumns"
-  | "serviceUsageColumns"
   | "stackServices"
   | "stackStatusColumn"
   | "clusterListNodes"
@@ -71,53 +75,59 @@ export const DOCKER_SWARM_METRIC_DESCRIPTIONS: Record<
   DockerSwarmMetric,
   string
 > = {
-  nodes: translationKey(
-    "Machines running Docker that have joined this swarm, from the agent's latest inventory snapshot (taken every 5 minutes by default). Ready counts the nodes the managers currently see as up; a node that is Down cannot run tasks.",
-  ),
   managers: translationKey(
     "Nodes acting as swarm managers: they keep the swarm's state and decide which node runs each task, and they can run tasks too. Every other node is a worker.",
   ),
-  services: translationKey(
-    "Services defined in this swarm - each tells Swarm which image to run and how many copies to keep running. Converged counts the services with every wanted copy running; a service scaled to 0 never counts as converged.",
+  clusterHealth: translationKey(
+    "Unhealthy while something in the swarm is broken - a node down, a manager the others cannot reach, a service none of whose replicas run - and Degraded while something needs a look. Needs attention lists what and why. Unknown while the agent does not report.",
   ),
-  tasks: translationKey(
-    "Tasks Swarm wants running, where one task is one container of a service; running counts those actually running, while the rest are starting, stopped or failed. From the latest inventory snapshot, so a replaced task can linger for up to about 25 minutes.",
+  inventoryCounts: translationKey(
+    "The swarm's nodes, managers, services, tasks and stacks at the agent's latest inventory snapshot, taken from a manager every 5 minutes by default. Each count opens its list.",
   ),
-  stacks: translationKey(
-    "Groups of services deployed together, for example with docker stack deploy, counted from the stack name Docker puts on each service. Services created on their own are not part of a stack.",
+  nodeStatus: translationKey(
+    "The node's state as the swarm's managers see it: Ready, Down or Disconnected, and Unreachable for a manager the others cannot reach. A ready node that takes no new tasks reads Drained or Paused, which is not a problem by itself.",
   ),
-  networks: translationKey(
-    "Swarm-wide networks, such as overlay networks and the built-in ingress network, that connect services across nodes. Networks that exist on a single node only, such as bridge or host, are not counted.",
+  managerStatus: translationKey(
+    "A manager's standing in the swarm, as docker node ls shows it: the Leader, Reachable, or Unreachable when the other managers cannot reach it. The swarm keeps working while more than half of its managers are reachable.",
   ),
-  volumes: translationKey(
-    "Docker volumes on the node where the OneUptime inventory poller runs, which is normally one manager. Volumes belong to individual nodes, so volumes on nodes without the poller are not counted.",
+  availability: translationKey(
+    "Whether Swarm places tasks on the node: Active, Paused (it keeps its tasks and takes no new ones) or Drained (its tasks are moved to other nodes, as before maintenance).",
   ),
   serviceStatus: translationKey(
-    "Running tasks out of the tasks this service wants, such as 2/3, from the latest inventory snapshot. Green when every wanted task is running; amber when some are missing or the service is scaled to 0.",
+    "Running tasks out of the tasks this service wants, such as 2 of 3 running, from the latest inventory snapshot. Red when none run, amber when some are missing and no rolling update explains it, grey when it is scaled to zero or a job that ran to completion.",
   ),
   serviceStatusColumn: translationKey(
-    "For a service the status is its replica count: running tasks out of wanted tasks, the same figure as Replicas. It comes from the latest inventory snapshot.",
+    "Each service's running tasks out of the tasks it wants, by the swarm's rules, and why it needs a look: a paused or rolled-back update, or tasks that keep failing. From the latest inventory snapshot.",
+  ),
+  serviceUpdate: translationKey(
+    "How the service's last rolling update went, as Docker reports it: Updating, Completed, Update paused (Swarm stopped it after a task failed), Rolling back or Rolled back.",
+  ),
+  recentFailedTasks: translationKey(
+    "Tasks of this service that failed or were rejected in the last hour. Swarm replaces each one, so a service that keeps crashing can still read all its replicas running; three or more needs a look.",
+  ),
+  lastTaskError: translationKey(
+    "The error of the newest task that failed or was rejected in the last hour, as docker service ps shows it in its ERROR column.",
   ),
   replicas: translationKey(
     "Copies of the service running now, out of the copies it should be running - 2/3 means one is missing. A global service wants one copy on every eligible node.",
   ),
+  taskStatus: translationKey(
+    "The task's state as Swarm reports it: Running; Starting or Pending while Swarm places it; Pending in amber when no node can run it, Failed or Rejected, each with Docker's error. Amber too while it uses more than 85% of its memory limit.",
+  ),
+  taskDesiredState: translationKey(
+    "The state Swarm wants the task in, as docker service ps shows it: running for a task it keeps running, shutdown for one it replaced.",
+  ),
   taskCpu: translationKey(
-    "CPU used by this task's container at the last reading the OneUptime agent sent (it reads every 30 seconds); 100% is one full CPU core. Unlike the Tasks list, this page keeps showing that reading even when it is more than 15 minutes old.",
+    "CPU used by this task's container at the last reading the OneUptime agent sent (it reads every 30 seconds); 100% is one full CPU core. Amber past 80%, where the High Task CPU Usage alert fires. A reading more than 15 minutes old is not shown.",
   ),
   taskMemory: translationKey(
-    "Memory used by this task's container at the agent's last reading, not counting file cache the system has not used recently. This page keeps showing that reading even when it is more than 15 minutes old.",
+    "Memory used by this task's container at the agent's last reading, not counting file cache the system has not used recently, as a percent of its memory limit, or of the node's memory when the service sets none. Amber past 85%, where the High Task Memory Usage alert fires. A reading more than 15 minutes old is not shown.",
   ),
   taskCpuColumn: translationKey(
-    "CPU used by each task's container at the OneUptime agent's latest reading (100% is one full CPU core), shown only when that reading is under 15 minutes old. Tasks on nodes where the agent does not run show N/A.",
+    "CPU used by each task's container at the OneUptime agent's latest reading (100% is one full CPU core), amber past 80%, where the High Task CPU Usage alert fires. Shown only when the reading is under 15 minutes old; tasks on nodes without the agent show N/A.",
   ),
   taskMemoryColumn: translationKey(
-    "Memory used by each task's container at the agent's latest reading, not counting file cache the system has not used recently, shown only when that reading is under 15 minutes old. Tasks on nodes without the agent show N/A.",
-  ),
-  nodeUsageColumns: translationKey(
-    "Swarm CPU and memory are collected per task container, not per node, so these columns show N/A for nodes. The Tasks list shows each task's node and what it is using.",
-  ),
-  serviceUsageColumns: translationKey(
-    "Swarm CPU and memory are collected per task container, not per service, so these columns show N/A for services. The Tasks list names each task's service and shows what it is using.",
+    "Memory each task's container used, not counting file cache the system has not used recently, as a percent of its memory limit (or of the node's memory when the service sets none) over the amount; amber past 85%, where the High Task Memory Usage alert fires. Only a reading under 15 minutes old is shown; nodes without the agent show N/A.",
   ),
   stackServices: translationKey(
     "How many services carry this stack's name, which Docker adds to every service a stack deploys. They count whatever their state, including ones scaled to 0; from the agent's latest inventory snapshot, taken every 5 minutes by default.",
@@ -129,7 +139,7 @@ export const DOCKER_SWARM_METRIC_DESCRIPTIONS: Record<
     "Nodes in the swarm at the agent's latest inventory snapshot (taken every 5 minutes by default), shown as ready out of total. Ready means the managers see the node as up; the figure turns red when any node is not ready.",
   ),
   clusterListServices: translationKey(
-    "Services defined in the swarm at the agent's latest inventory snapshot, whatever their state, including ones scaled to 0. The cluster's overview shows how many have every wanted copy running.",
+    "Services defined in the swarm at the agent's latest inventory snapshot, whatever their state, including ones scaled to 0. The cluster's Services list shows each one's replicas, and its Overview the ones that run short.",
   ),
   clusterListTasks: translationKey(
     "Tasks Swarm wants running at the latest inventory snapshot (one task is one container of a service), shown as how many are actually running out of that total. The rest are still starting, or have stopped or failed.",

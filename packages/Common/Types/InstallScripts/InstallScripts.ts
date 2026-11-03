@@ -29,6 +29,7 @@ export const INSTALL_SCRIPTS_ROUTE: string = "/install";
 
 export enum InstallScriptName {
   CephAgent = "ceph-agent",
+  Cli = "cli",
   DatabaseAgent = "database-agent",
   DockerAgent = "docker-agent",
   DockerSwarmAgent = "docker-swarm-agent",
@@ -43,7 +44,10 @@ export enum InstallScriptName {
 export interface InstallScriptEntry {
   // The address's last part: /install/<name>.
   name: InstallScriptName;
-  // What it installs, as people call it.
+  /*
+   * What it installs, as people call it. Never the product's name: the
+   * /install 404 lists these, and a licence can rename the product.
+   */
   title: string;
   /*
    * The folder in the repository the files come from, relative to its root
@@ -79,6 +83,19 @@ export const INSTALL_SCRIPTS: ReadonlyArray<InstallScriptEntry> = [
       "systemd/oneuptime-ceph-agent.service",
       TROUBLESHOOT_SCRIPT_FILE,
     ],
+  },
+  /*
+   * The CLI's installer: it asks the OneUptime it came from for its version
+   * and installs the npm package of the same one, so the CLI's commands
+   * match the server's resources. It downloads nothing else from here.
+   */
+  {
+    name: InstallScriptName.Cli,
+    // As the Dashboard's Developer menus name its page.
+    title: "CLI",
+    sourceDirectory: "packages/CLI/Install",
+    script: INSTALL_SCRIPT_FILE,
+    files: [INSTALL_SCRIPT_FILE],
   },
   {
     name: InstallScriptName.DatabaseAgent,

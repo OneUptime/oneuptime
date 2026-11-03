@@ -9,6 +9,7 @@ import {
 import fsSync from "fs";
 import fs from "fs/promises";
 import path from "path";
+import { expectNoSidewaysScroll } from "../SuiteHelpers/PageFit";
 
 /*
  * The network's Traffic page with its Meraki side (issue #5140), in a real
@@ -30,6 +31,12 @@ import path from "path";
  * reads stopped, Meraki offered at the foot of a page that shows its flows,
  * a device's and a site's own pages, and a member, who sees no buttons and
  * is told why.
+ *
+ * And the organization's devices that are no network device here (#5392's
+ * follow-ups): the row's count of them, Add devices and its dialog, the ask
+ * it sends, the row following the worker job to its end, an ask that went
+ * wrong, nothing left to add, a member and a connection turned off - in
+ * German and in the dark theme too.
  *
  * Every test puts up a network fence that aborts anything leaving the
  * fixture server, and fails on an uncaught page error, on a request the
@@ -70,6 +77,8 @@ interface FixtureState {
     secrets: Record<string, unknown>;
   }>;
   readNows: Array<string>;
+  deviceAdds: Array<{ path: string; data: Record<string, unknown> }>;
+  probeAsks: number;
   updates: Array<{ id: string; data: Record<string, unknown> }>;
   creates: Array<{
     name: string;
@@ -155,6 +164,43 @@ async function finishRead(page: Page): Promise<void> {
   });
 }
 
+// The Add devices a connection waits for gets on, as its worker job would.
+async function progressDeviceAdd(
+  page: Page,
+  added: number,
+  total: number,
+): Promise<void> {
+  await page.evaluate(
+    ([addedSoFar, toAdd]: [number, number]): void => {
+      (
+        window as unknown as {
+          __merakiTrafficFixture: {
+            progressDeviceAdd: (added: number, total: number) => void;
+          };
+        }
+      ).__merakiTrafficFixture.progressDeviceAdd(addedSoFar, toAdd);
+    },
+    [added, total] as [number, number],
+  );
+}
+
+async function finishDeviceAdd(page: Page): Promise<void> {
+  await page.evaluate((): void => {
+    (
+      window as unknown as {
+        __merakiTrafficFixture: { finishDeviceAdd: () => void };
+      }
+    ).__merakiTrafficFixture.finishDeviceAdd();
+  });
+}
+
+// The lines a connection's row says about adding its devices.
+function deviceAddLine(page: Page, state: string): Locator {
+  return page.locator(
+    `[data-testid="meraki-connection-device-add"][data-state="${state}"]`,
+  );
+}
+
 function dialog(page: Page): Locator {
   return page.getByTestId("modal");
 }
@@ -190,16 +236,6 @@ async function screenshot(
   }
 
   await page.screenshot({ path: file, fullPage: true });
-}
-
-// Whether the page scrolls sideways: it must not, at any width.
-async function scrollsSideways(page: Page): Promise<boolean> {
-  return page.evaluate((): boolean => {
-    return (
-      document.documentElement.scrollWidth >
-      document.documentElement.clientWidth + 1
-    );
-  });
 }
 
 function rowsOf(page: Page, list: string): Locator {
@@ -321,7 +357,7 @@ test("nothing sends traffic yet: connect Meraki from the page, and the first rea
   await screenshot(page, testInfo, "first-read");
 
   expect(await page.locator("body").innerText()).not.toContain(API_KEY);
-  expect(await scrollsSideways(page)).toBe(false);
+  await expectNoSidewaysScroll(page, { tolerance: 1 });
 });
 
 test("a key that reads several organizations: the one picked is counted, then connected", async ({
@@ -478,7 +514,7 @@ test("an organization's traffic: the numbers, the chart, the lists and how the c
     expect(heights[0]).toBe(heights[1]);
   }
 
-  expect(await scrollsSideways(page)).toBe(false);
+  await expectNoSidewaysScroll(page, { tolerance: 1 });
   await screenshot(page, testInfo, "organization");
 });
 
@@ -491,7 +527,7 @@ test("the dark theme", async ({ page }: { page: Page }, testInfo: TestInfo) => {
       return document.documentElement.classList.contains("dark");
     }),
   ).toBe(true);
-  expect(await scrollsSideways(page)).toBe(false);
+  await expectNoSidewaysScroll(page, { tolerance: 1 });
   await screenshot(page, testInfo, "organization-dark");
 });
 
@@ -560,7 +596,7 @@ test("the page's uplinks side by side: what each carried, and how each line held
   );
   await expect(page.getByTestId("meraki-uplink-chart")).toBeVisible();
 
-  expect(await scrollsSideways(page)).toBe(false);
+  await expectNoSidewaysScroll(page, { tolerance: 1 });
   await screenshot(
     page,
     testInfo,
@@ -735,7 +771,7 @@ test("who talks to whom: what each network reached, how, and how much - and what
     });
 
   expect(height).toBeLessThan(rowsHeight + 200);
-  expect(await scrollsSideways(page)).toBe(false);
+  await expectNoSidewaysScroll(page, { tolerance: 1 });
   await screenshot(page, testInfo, "who-talks-to-whom", card);
 });
 
@@ -1065,6 +1101,452 @@ test("the organization's devices: counted on the connection's row, and the netwo
 
 /*
  * ---------------------------------------------------------------------------
+ * Adding the organization's devices
+ * ---------------------------------------------------------------------------
+ *
+ * The devices Meraki knows that are no network device here: the row says
+ * how many, Add devices asks which kinds (the network gear ticked, cameras
+ * not; the sites and the probe folded under More fields, set to what most
+ * people want), and the row follows the ask to its end by itself.
+ */
+
+const CONNECTION_PATH: string =
+  "/api/network-controller-connection/30000000-0000-4000-8000-000000000001";
+
+test("the devices Meraki knows that are not here: offered on the row, added in one go, and the row follows it to the end", async ({
+  page,
+}: {
+  page: Page;
+}, testInfo: TestInfo) => {
+  await open(page, "state=meraki&unadded=many");
+
+  // 8 switches and 12 access points: the 3 cameras are not offered.
+  const offer: Locator = deviceAddLine(page, "not-added");
+  await expect(offer).toContainText(
+    "20 Meraki devices are not network devices here yet.",
+  );
+  await expect(offer).toHaveAttribute("data-tone", "info");
+  await screenshot(
+    page,
+    testInfo,
+    "add-devices-offer",
+    page.getByTestId("meraki-connections"),
+  );
+
+  await offer.getByTestId("meraki-connection-add-devices").click();
+  await settledDialog(page);
+  await expect(dialog(page)).toContainText("Add Meraki devices");
+  await expect(dialog(page)).toContainText(
+    "Adds the devices of Acme Networks that are not here yet, at their management addresses. Meraki fills in their model, serial number and firmware.",
+  );
+
+  // The kinds with a device to add, each with how many; cameras not ticked.
+  const kinds: Locator = page.getByTestId("meraki-add-devices-kind");
+  await expect(kinds).toHaveCount(3);
+  expect(
+    await kinds.evaluateAll((elements: Array<Element>): Array<string> => {
+      return elements.map((element: Element): string => {
+        return element.getAttribute("data-kind") || "";
+      });
+    }),
+  ).toEqual(["switch", "wireless", "camera"]);
+  await expect(kinds.nth(0)).toContainText("SwitchesMS");
+  await expect(page.getByTestId("meraki-add-devices-kind-count")).toHaveText([
+    "8",
+    "12",
+    "3",
+  ]);
+  await expect(
+    page.getByTestId("meraki-add-devices-kind-switch"),
+  ).toBeChecked();
+  await expect(
+    page.getByTestId("meraki-add-devices-kind-wireless"),
+  ).toBeChecked();
+  await expect(
+    page.getByTestId("meraki-add-devices-kind-camera"),
+  ).not.toBeChecked();
+
+  // What is not added, and why - the appliances Meraki lists no address for.
+  const notAdded: Locator = page.getByTestId(
+    "meraki-add-devices-not-added-line",
+  );
+  await expect(notAdded).toHaveCount(3);
+  await expect(notAdded.nth(0)).toHaveAttribute(
+    "data-reason",
+    "without-address",
+  );
+  await expect(notAdded.nth(0)).toHaveText(
+    "4 devices have no address in Meraki (security appliances list none). Add them by hand at addresses your probe can reach, and Meraki fills in the rest.",
+  );
+  await expect(notAdded.nth(1)).toHaveText(
+    "1 device shares its address, MAC address or serial number with a network device already here.",
+  );
+  await expect(notAdded.nth(2)).toHaveText(
+    "1 device is archived here, so it is not added again.",
+  );
+
+  // The sites and the probe, folded, with what they are set to.
+  const fold: Locator = page.getByTestId("meraki-add-devices-more");
+  await expect(fold).toContainText("Named after their networks");
+  await expect(fold).toContainText("Leeds office probe");
+  const submit: Locator = page.getByTestId("modal-footer-submit-button");
+  await expect(submit).toHaveText("Add 20 devices");
+  await expect(submit).toBeEnabled();
+  await screenshot(page, testInfo, "add-devices-dialog", dialog(page));
+
+  // The cameras too, then not.
+  await page.getByTestId("meraki-add-devices-kind-camera").check();
+  await expect(submit).toHaveText("Add 23 devices");
+  await page.getByTestId("meraki-add-devices-kind-camera").uncheck();
+  await expect(submit).toHaveText("Add 20 devices");
+
+  // A press anywhere on a kind's row ticks it - its count at the far end too.
+  const cameraRow: Locator = kinds.nth(2);
+  await cameraRow.getByTestId("meraki-add-devices-kind-count").click();
+  await expect(
+    page.getByTestId("meraki-add-devices-kind-camera"),
+  ).toBeChecked();
+  await expect(submit).toHaveText("Add 23 devices");
+  // And the middle of the row, between its name and its count.
+  await cameraRow.locator("label").click();
+  await expect(
+    page.getByTestId("meraki-add-devices-kind-camera"),
+  ).not.toBeChecked();
+  await expect(submit).toHaveText("Add 20 devices");
+
+  await submit.click();
+  await expect(page.getByTestId("meraki-add-devices")).toHaveCount(0);
+
+  const state: FixtureState = await fixture(page);
+  expect(state.deviceAdds).toEqual([
+    {
+      path: `${CONNECTION_PATH}/add-devices`,
+      data: {
+        productTypes: ["switch", "wireless"],
+        groupBySite: true,
+        probeId: "60000000-0000-4000-8000-000000000001",
+      },
+    },
+  ]);
+  expect(state.probeAsks).toBeGreaterThan(0);
+
+  // The row says so at once, and follows the worker job by itself.
+  const adding: Locator = deviceAddLine(page, "adding");
+  await expect(adding).toHaveText("Adding devices from Meraki…");
+  await expect(adding).toHaveAttribute("role", "status");
+  await expect(offer).toHaveCount(0);
+  await expect(page.getByTestId("meraki-connection-add-devices")).toHaveCount(
+    0,
+  );
+
+  await progressDeviceAdd(page, 7, 20);
+  await expect(adding).toHaveText(
+    "Adding devices from Meraki: 7 of 20 so far.",
+  );
+  await screenshot(
+    page,
+    testInfo,
+    "add-devices-progress",
+    page.getByTestId("meraki-connections"),
+  );
+
+  const usageBefore: number = (await fixture(page)).usageRequests.length;
+  await finishDeviceAdd(page);
+  await expect(deviceAddLine(page, "added")).toHaveText(
+    /^Added 20 network devices from Meraki \d+ seconds? ago\.$/,
+  );
+  await expect(deviceAddLine(page, "added")).toHaveAttribute(
+    "data-tone",
+    "done",
+  );
+  await expect(deviceAddLine(page, "sites-added")).toHaveText(
+    "Added 2 sites for their Meraki networks.",
+  );
+  await expect(adding).toHaveCount(0);
+  // What the last read counted is from before: not offered again.
+  await expect(deviceAddLine(page, "not-added")).toHaveCount(0);
+  // The devices are on the page by then: it reads its traffic again.
+  await expect
+    .poll(async (): Promise<number> => {
+      return (await fixture(page)).usageRequests.length;
+    })
+    .toBeGreaterThan(usageBefore);
+  await expectNoSidewaysScroll(page, { tolerance: 1 });
+  await screenshot(
+    page,
+    testInfo,
+    "add-devices-added",
+    page.getByTestId("meraki-connections"),
+  );
+});
+
+test("an Add devices that went wrong says so on the row: devices it could not add, a failed one, and one that stopped", async ({
+  page,
+}: {
+  page: Page;
+}, testInfo: TestInfo) => {
+  // 18 of 20 added a minute ago; two could not be, each saying why.
+  await open(page, "state=meraki&unadded=many&adding=done");
+
+  await expect(deviceAddLine(page, "added")).toHaveText(
+    "Added 18 network devices from Meraki 1 minute ago.",
+  );
+  await expect(deviceAddLine(page, "sites-added")).toHaveText(
+    "Added 2 sites for their Meraki networks.",
+  );
+  const failed: Locator = deviceAddLine(page, "failed-devices");
+  await expect(failed).toHaveAttribute("data-tone", "act");
+  await expect(failed).toContainText("2 devices could not be added:");
+  await expect(
+    failed.getByTestId("meraki-connection-device-add-failures").locator("li"),
+  ).toHaveText([
+    "LDS-MS120-02: Another network device has this name.",
+    "BRS-MR36-05: Your plan allows 250 network devices.",
+  ]);
+  // The read's count is from before the devices were added: not offered.
+  await expect(deviceAddLine(page, "not-added")).toHaveCount(0);
+  await expectNoSidewaysScroll(page, { tolerance: 1 });
+  await screenshot(
+    page,
+    testInfo,
+    "add-devices-failures",
+    page.getByTestId("meraki-connections"),
+  );
+
+  /*
+   * Nor in the dialog: the read counted the 18 just added, so the next read
+   * counts what is left, and the dialog says so instead of offering them.
+   */
+  await page.getByTestId("meraki-connection-more").click();
+  await page.getByRole("menuitem", { name: "Add devices" }).click();
+  await settledDialog(page);
+  await expect(page.getByTestId("meraki-add-devices-uncounted")).toBeVisible();
+  await expect(page.getByTestId("meraki-add-devices-kind-count")).toHaveCount(
+    0,
+  );
+  await expect(page.getByTestId("modal-footer-submit-button")).toHaveText(
+    "Add devices",
+  );
+  await page.getByTestId("modal-footer-close-button").click();
+  await expect(page.getByTestId("meraki-add-devices")).toHaveCount(0);
+
+  // Meraki refused the key: the reason, in red.
+  await open(page, "state=meraki&adding=failed");
+  const refused: Locator = deviceAddLine(page, "add-failed");
+  await expect(refused).toHaveText(
+    "Devices could not be added from Meraki: Meraki answered the organization's devices with HTTP 401: Invalid API key",
+  );
+  await expect(refused).toHaveAttribute("data-tone", "error");
+
+  // Its worker went quiet: the row says so, and offers to add the rest.
+  await open(page, "state=meraki&unadded=many&adding=stopped");
+  const stopped: Locator = deviceAddLine(page, "add-stopped");
+  await expect(stopped).toHaveText(
+    "Adding devices from Meraki stopped before it finished.Add the rest",
+  );
+  await expect(stopped.getByTestId("meraki-connection-add-devices")).toHaveText(
+    "Add the rest",
+  );
+  // What it added before its worker went quiet is said above it.
+  await expect(deviceAddLine(page, "added")).toHaveText(
+    /^Added 9 network devices from Meraki \d+ minutes ago\.$/,
+  );
+  await expect(deviceAddLine(page, "not-added")).toHaveCount(0);
+  await expect(deviceAddLine(page, "adding")).toHaveCount(0);
+});
+
+test("Add devices from the row's menu: nothing left to add, and a read from before reads counted devices", async ({
+  page,
+}: {
+  page: Page;
+}, testInfo: TestInfo) => {
+  // Only the appliances are not here, and Meraki lists no address for them.
+  await open(page, "state=meraki&unadded=none");
+  await expect(page.getByTestId("meraki-connection-device-add")).toHaveCount(0);
+  await page.getByTestId("meraki-connection-more").click();
+  await page.getByRole("menuitem", { name: "Add devices" }).click();
+  await settledDialog(page);
+  await expect(page.getByTestId("meraki-add-devices-nothing")).toHaveText(
+    "Every Meraki device that can be added is a network device here already.",
+  );
+  await expect(
+    page.getByTestId("meraki-add-devices-not-added-line"),
+  ).toHaveText([
+    "4 devices have no address in Meraki (security appliances list none). Add them by hand at addresses your probe can reach, and Meraki fills in the rest.",
+  ]);
+  await expect(page.getByTestId("meraki-add-devices-more")).toHaveCount(0);
+  // Nothing to press but Close: no button that cannot be pressed.
+  await expect(page.getByTestId("modal-footer-submit-button")).toHaveCount(0);
+  await expect(page.getByTestId("modal-footer-close-button")).toHaveText(
+    "Close",
+  );
+  await screenshot(page, testInfo, "add-devices-nothing", dialog(page));
+  await page.getByTestId("modal-footer-close-button").click();
+  await expect(page.getByTestId("meraki-add-devices")).toHaveCount(0);
+
+  /*
+   * A read from before reads counted the devices: every kind, the network
+   * gear ticked - and with two probes of its own, the project's devices get
+   * none unless one is picked.
+   */
+  await open(page, "state=meraki&probes=two");
+  await expect(page.getByTestId("meraki-connection-device-add")).toHaveCount(0);
+  await page.getByTestId("meraki-connection-more").click();
+  await page.getByRole("menuitem", { name: "Add devices" }).click();
+  await settledDialog(page);
+  await expect(page.getByTestId("meraki-add-devices-kind")).toHaveCount(7);
+  await expect(page.getByTestId("meraki-add-devices-kind-count")).toHaveCount(
+    0,
+  );
+  await expect(
+    page.getByTestId("meraki-add-devices-kind-camera"),
+  ).not.toBeChecked();
+  await expect(
+    page.getByTestId("meraki-add-devices-kind-switch"),
+  ).toBeChecked();
+  await expect(page.getByTestId("meraki-add-devices-uncounted")).toHaveText(
+    "The connection counts its devices at its next read, within a few minutes. Adding them now adds every device of the kinds picked that is not here yet.",
+  );
+  await expect(page.getByTestId("meraki-add-devices-more")).toContainText(
+    "No probe",
+  );
+  const submit: Locator = page.getByTestId("modal-footer-submit-button");
+  await expect(submit).toHaveText("Add devices");
+
+  // Unticked, the site rules place each device; and no probe is sent.
+  const fold: Locator = page.getByTestId("meraki-add-devices-more");
+  await fold.getByTestId("folded-section-header").click();
+  await expect(fold).toHaveAttribute("data-collapsed", "false");
+  await page.getByTestId("meraki-add-devices-sites").uncheck();
+  await screenshot(page, testInfo, "add-devices-uncounted", dialog(page));
+  // Folded again, its line says what the sites are set to now.
+  await fold.getByTestId("folded-section-header").click();
+  await expect(fold).toHaveAttribute("data-collapsed", "true");
+  await expect(fold.getByTestId("folded-section-item").first()).toContainText(
+    "Off",
+  );
+  await submit.click();
+  await expect(page.getByTestId("meraki-add-devices")).toHaveCount(0);
+  expect((await fixture(page)).deviceAdds).toEqual([
+    {
+      path: `${CONNECTION_PATH}/add-devices`,
+      data: {
+        productTypes: [
+          "switch",
+          "wireless",
+          "appliance",
+          "cellularGateway",
+          "wirelessController",
+          "campusGateway",
+        ],
+        groupBySite: false,
+      },
+    },
+  ]);
+  await expect(deviceAddLine(page, "adding")).toHaveText(
+    "Adding devices from Meraki…",
+  );
+});
+
+test("a member is told how many devices are not here, without the button; so is anyone while Meraki refuses the key; a connection that is off offers nothing", async ({
+  page,
+}: {
+  page: Page;
+}) => {
+  await open(page, "state=meraki&unadded=many&role=member");
+  await expect(deviceAddLine(page, "not-added")).toHaveText(
+    "20 Meraki devices are not network devices here yet.",
+  );
+  await expect(page.getByTestId("meraki-connection-add-devices")).toHaveCount(
+    0,
+  );
+
+  /*
+   * Meraki refuses its key: the count stands, but every ask would fail on
+   * that key, so Update API key is the one way on - on the row and in its
+   * menu.
+   */
+  await open(page, "state=failing&unadded=many");
+  await expect(page.getByTestId("meraki-connection-update-key")).toBeVisible();
+  await expect(deviceAddLine(page, "not-added")).toHaveText(
+    "20 Meraki devices are not network devices here yet.",
+  );
+  await expect(page.getByTestId("meraki-connection-add-devices")).toHaveCount(
+    0,
+  );
+  await page.getByTestId("meraki-connection-more").click();
+  await expect(page.getByRole("menuitem", { name: "Edit" })).toBeVisible();
+  await expect(page.getByRole("menuitem", { name: "Add devices" })).toHaveCount(
+    0,
+  );
+  await page.keyboard.press("Escape");
+
+  // Turned off, it adds nothing: nothing is offered, on the row or its menu.
+  await open(page, "state=off&unadded=many");
+  await expect(page.getByTestId("meraki-connection")).toHaveAttribute(
+    "data-status",
+    "off",
+  );
+  await expect(page.getByTestId("meraki-connection-device-add")).toHaveCount(0);
+  await page.getByTestId("meraki-connection-more").click();
+  await expect(page.getByRole("menuitem", { name: "Turn on" })).toBeVisible();
+  await expect(page.getByRole("menuitem", { name: "Add devices" })).toHaveCount(
+    0,
+  );
+});
+
+test("adding devices, in German", async ({
+  page,
+}: {
+  page: Page;
+}, testInfo: TestInfo) => {
+  await open(page, "state=meraki&unadded=many&lang=de");
+
+  const offer: Locator = deviceAddLine(page, "not-added");
+  await expect(offer).toContainText(
+    "20 Meraki-Geräte sind hier noch keine Netzwerkgeräte.",
+  );
+  await expect(offer.getByTestId("meraki-connection-add-devices")).toHaveText(
+    GERMAN["Add devices"]!,
+  );
+
+  await offer.getByTestId("meraki-connection-add-devices").click();
+  await settledDialog(page);
+  await expect(dialog(page)).toContainText(GERMAN["Add Meraki devices"]!);
+  await expect(dialog(page)).toContainText(GERMAN["Devices to add"]!);
+  await expect(page.getByTestId("modal-footer-submit-button")).toHaveText(
+    "20 Geräte hinzufügen",
+  );
+  await expect(dialog(page)).not.toContainText("Add Meraki devices");
+  await expectNoSidewaysScroll(page, { tolerance: 1 });
+  await screenshot(page, testInfo, "add-devices-dialog-de", dialog(page));
+});
+
+test("adding devices, in the dark theme", async ({
+  page,
+}: {
+  page: Page;
+}, testInfo: TestInfo) => {
+  await open(page, "state=meraki&unadded=many&adding=done&theme=dark");
+
+  await expect(deviceAddLine(page, "failed-devices")).toBeVisible();
+  await screenshot(
+    page,
+    testInfo,
+    "add-devices-failures-dark",
+    page.getByTestId("meraki-connections"),
+  );
+
+  await open(page, "state=meraki&unadded=many&theme=dark");
+  await deviceAddLine(page, "not-added")
+    .getByTestId("meraki-connection-add-devices")
+    .click();
+  await settledDialog(page);
+  await screenshot(page, testInfo, "add-devices-dialog-dark", dialog(page));
+});
+
+/*
+ * ---------------------------------------------------------------------------
  * In another language
  * ---------------------------------------------------------------------------
  */
@@ -1093,7 +1575,7 @@ test("in German", async ({ page }: { page: Page }, testInfo: TestInfo) => {
     "vor 2 Minuten",
   );
   await expect(page.getByText(/minutes? ago/)).toHaveCount(0);
-  expect(await scrollsSideways(page)).toBe(false);
+  await expectNoSidewaysScroll(page, { tolerance: 1 });
   await screenshot(page, testInfo, "organization-de");
 });
 
@@ -1200,7 +1682,7 @@ test("a device's page: its MX's uplinks, applications and clients - nothing said
       "networkDeviceId"
     ],
   ).toBe("40000000-0000-4000-8000-000000000001");
-  expect(await scrollsSideways(page)).toBe(false);
+  await expectNoSidewaysScroll(page, { tolerance: 1 });
   await screenshot(page, testInfo, "device");
 });
 
@@ -1255,6 +1737,43 @@ test("a device's menu lists its incidents and alerts under Activity, each on the
   await screenshot(page, testInfo, "device-menu-activity", activity);
 });
 
+/*
+ * A device's page has no connections of its own: Review on its line opens
+ * the network's Traffic page on its Meraki side, at the connections - the
+ * card is brought into view under the page's header, whatever the traffic
+ * above it draws.
+ */
+test("Review on a device's page opens the network's Meraki side at the connections, in view", async ({
+  page,
+}: {
+  page: Page;
+}, testInfo: TestInfo) => {
+  await open(page, "state=failing", DEVICE_TRAFFIC);
+
+  const line: Locator = page.getByTestId("meraki-connection-line");
+  await expect(line).toHaveAttribute("data-status", "failing");
+  const review: Locator = line.getByRole("link", { name: "Review" });
+  await expect(review).toHaveAttribute(
+    "href",
+    `${TRAFFIC}?source=meraki#traffic-meraki-connections`,
+  );
+
+  await review.click();
+  await expect(page).toHaveURL(
+    /\/dashboard\/10000000-0000-4000-8000-000000000001\/network-devices\/traffic\?source=meraki#traffic-meraki-connections$/,
+  );
+  const connections: Locator = page.getByTestId("meraki-connections");
+  await expect(connections).toBeVisible();
+  await expect(connections).toBeInViewport();
+  // Landed on: the card takes the focus, so the keyboard starts there.
+  await expect(page.locator("#traffic-meraki-connections")).toBeFocused();
+  await expect(page.getByTestId("meraki-connection")).toHaveAttribute(
+    "data-status",
+    "failing",
+  );
+  await screenshot(page, testInfo, "device-review-lands");
+});
+
 test("a site's page: its networks, one click from narrowing to one", async ({
   page,
 }: {
@@ -1266,7 +1785,7 @@ test("a site's page: its networks, one click from narrowing to one", async ({
   await expect(networks).toHaveCount(2);
   await expect(networks.first()).toContainText("Branch 012 · Leeds");
   await expect(networks.nth(1)).toContainText("Branch 047 · Bristol");
-  expect(await scrollsSideways(page)).toBe(false);
+  await expectNoSidewaysScroll(page, { tolerance: 1 });
   await screenshot(page, testInfo, "site");
 
   await networks.nth(1).click();

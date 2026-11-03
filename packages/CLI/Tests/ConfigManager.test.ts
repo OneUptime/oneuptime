@@ -4,26 +4,11 @@ import * as os from "os";
 import * as ConfigManager from "../Core/ConfigManager";
 import { CLIConfig, ResolvedCredentials } from "../Types/CLITypes";
 
+// In this file's throwaway home (Tests/Setup/ThrowawayHome.ts).
 const CONFIG_DIR: string = path.join(os.homedir(), ".oneuptime");
 const CONFIG_FILE: string = path.join(CONFIG_DIR, "config.json");
 
 describe("ConfigManager", () => {
-  let originalConfigContent: string | null = null;
-
-  beforeAll(() => {
-    if (fs.existsSync(CONFIG_FILE)) {
-      originalConfigContent = fs.readFileSync(CONFIG_FILE, "utf-8");
-    }
-  });
-
-  afterAll(() => {
-    if (originalConfigContent) {
-      fs.writeFileSync(CONFIG_FILE, originalConfigContent, { mode: 0o600 });
-    } else if (fs.existsSync(CONFIG_FILE)) {
-      fs.unlinkSync(CONFIG_FILE);
-    }
-  });
-
   beforeEach(() => {
     if (fs.existsSync(CONFIG_FILE)) {
       fs.unlinkSync(CONFIG_FILE);
@@ -105,22 +90,17 @@ describe("ConfigManager", () => {
 
   describe("save", () => {
     it("should create config directory if it does not exist", () => {
-      // Remove the dir if it exists (we'll restore after)
-      const tmpDir: string = path.join(
-        os.tmpdir(),
-        ".oneuptime-test-" + Date.now(),
-      );
-      /*
-       * We can't easily test this with the real path, but we verify save works
-       * when the dir already exists (which it does after beforeAll).
-       */
+      // The file's own throwaway home: removing the folder harms nobody.
+      fs.rmSync(CONFIG_DIR, { recursive: true, force: true });
+      expect(fs.existsSync(CONFIG_DIR)).toBe(false);
+
       const config: CLIConfig = {
         currentContext: "",
         contexts: {},
       };
       ConfigManager.save(config);
       expect(fs.existsSync(CONFIG_FILE)).toBe(true);
-      void tmpDir; // unused but shows intent
+      expect(fs.statSync(CONFIG_FILE).mode & 0o077).toBe(0);
     });
 
     it("should write config with correct permissions", () => {

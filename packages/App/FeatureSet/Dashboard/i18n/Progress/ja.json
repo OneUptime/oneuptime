@@ -1,7 +1,7 @@
 {
   "baseline": {
-    "keys": 40228,
-    "untranslated": 1140
+    "keys": 40610,
+    "untranslated": 966
   },
   "sameAsEnglish": [
     "\"/health\"",
@@ -130,6 +130,7 @@
     "Mbps",
     "Microsoft Entra ID",
     "Mistral",
+    "NAA ID",
     "Namespace",
     "NetFlow v5",
     "Null",
@@ -215,6 +216,7 @@
     "VMware VM",
     "VMware vCenter",
     "Vertical Pod Autoscalers",
+    "Vital",
     "Vitals",
     "WARN",
     "Web",

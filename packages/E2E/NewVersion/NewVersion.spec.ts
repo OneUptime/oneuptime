@@ -9,6 +9,7 @@ import {
   test,
 } from "@playwright/test";
 import path from "path";
+import { expectNoSidewaysScroll } from "../SuiteHelpers/PageFit";
 
 /*
  * A new version of OneUptime deployed while a tab is open.
@@ -189,20 +190,6 @@ const shoot: (
   });
 };
 
-// Nothing runs past the screen's right edge: no sideways scroll.
-const fitsTheScreen: (page: Page) => Promise<void> = async (
-  page: Page,
-): Promise<void> => {
-  expect(
-    await page.evaluate((): boolean => {
-      return (
-        document.documentElement.scrollWidth <=
-        document.documentElement.clientWidth
-      );
-    }),
-  ).toBe(true);
-};
-
 const notice: (page: Page) => Locator = (page: Page): Locator => {
   return page.getByTestId("new-version-notice");
 };
@@ -333,7 +320,7 @@ test.describe("a deploy under the open tab", () => {
 
     expect(box!.y + box!.height).toBeLessThanOrEqual(viewport.height - 15);
 
-    await fitsTheScreen(page);
+    await expectNoSidewaysScroll(page);
   });
 
   /*
@@ -720,7 +707,7 @@ test.describe("a page whose code is gone after a deploy", () => {
       "/dashboard/incidents?state=open",
     );
 
-    await fitsTheScreen(page);
+    await expectNoSidewaysScroll(page);
     await shoot(page, testInfo, "updating");
   });
 
@@ -802,7 +789,7 @@ test.describe("a page whose code is gone after a deploy", () => {
     );
     expect(await boots(page)).toBe(1);
 
-    await fitsTheScreen(page);
+    await expectNoSidewaysScroll(page);
     await shoot(page, testInfo, "offline");
 
     await context.setOffline(false);
@@ -894,7 +881,7 @@ test.describe("a page whose code is gone after a deploy", () => {
     await expect(page.getByTestId("error-boundary-try-again")).toHaveCount(0);
     await expect(page.getByText("Something went wrong")).toHaveCount(0);
 
-    await fitsTheScreen(page);
+    await expectNoSidewaysScroll(page);
     await shoot(page, testInfo, "failed");
 
     // No loop.
@@ -1146,7 +1133,7 @@ test.describe("the browser going offline under an open page", () => {
     await expect(page.getByTestId("master-footer")).toBeHidden();
     await expect(page.getByText("You are offline")).toHaveCount(0);
 
-    await fitsTheScreen(page);
+    await expectNoSidewaysScroll(page);
     await shoot(page, testInfo, "master-offline");
 
     await context.setOffline(false);
@@ -1298,7 +1285,7 @@ test.describe("an app that cannot start", () => {
     expect(new URL(page.url()).pathname).toBe("/dashboard/home");
     expect((await entryStats(request)).documents).toBe(1);
 
-    await fitsTheScreen(page);
+    await expectNoSidewaysScroll(page);
     await shoot(page, testInfo, "entry-unreachable");
 
     await fixture(request, "server", "?state=up");
@@ -1345,7 +1332,7 @@ test.describe("an app that cannot start", () => {
       "Try again",
     );
 
-    await fitsTheScreen(page);
+    await expectNoSidewaysScroll(page);
     await shoot(page, testInfo, "entry-offline");
 
     await page.unroute("**/dashboard/dist/Index.js");
@@ -1382,7 +1369,7 @@ test.describe("an app that cannot start", () => {
     // One reload: the one that would have fetched it again.
     expect((await entryStats(request)).documents).toBe(2);
 
-    await fitsTheScreen(page);
+    await expectNoSidewaysScroll(page);
     await shoot(page, testInfo, "entry-failed");
 
     // No loop.
@@ -1432,7 +1419,7 @@ test.describe("as it looks, offline and before the app starts", () => {
         );
       }
 
-      await fitsTheScreen(page);
+      await expectNoSidewaysScroll(page);
       await shoot(page, testInfo, `master-offline-${variant.name}`);
       await context.setOffline(false);
       await expect(offlineScreen(page)).toHaveCount(0);
@@ -1449,7 +1436,7 @@ test.describe("as it looks, offline and before the app starts", () => {
         ).not.toHaveText("Can't reach the server");
       }
 
-      await fitsTheScreen(page);
+      await expectNoSidewaysScroll(page);
       await shoot(page, testInfo, `entry-unreachable-${variant.name}`);
     });
   }
@@ -1487,7 +1474,7 @@ test.describe("as it looks", () => {
         expect(Math.round(width - (box!.x + box!.width))).toBe(24);
       }
 
-      await fitsTheScreen(page);
+      await expectNoSidewaysScroll(page);
       await shoot(page, testInfo, `notice-${variant.name}`);
 
       // A page whose code is gone: it says it is updating.
@@ -1513,7 +1500,7 @@ test.describe("as it looks", () => {
           ? "rgb(30, 27, 75)"
           : "rgb(238, 242, 255)",
       );
-      await fitsTheScreen(page);
+      await expectNoSidewaysScroll(page);
       await shoot(page, testInfo, `updating-${variant.name}`);
 
       // A part gone for good, after its one reload.
@@ -1523,7 +1510,7 @@ test.describe("as it looks", () => {
       await expect(recovery(page)).toHaveAttribute("data-step", "failed", {
         timeout: 20000,
       });
-      await fitsTheScreen(page);
+      await expectNoSidewaysScroll(page);
       await shoot(page, testInfo, `failed-${variant.name}`);
     });
   }

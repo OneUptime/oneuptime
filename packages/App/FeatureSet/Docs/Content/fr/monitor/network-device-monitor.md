@@ -518,7 +518,7 @@ Ces valeurs sont conservées à côté des champs de l'équipement, jamais écri
 
 Un commutateur, un point d'accès ou une appliance Meraki ne livre ni numéro de série, ni firmware par SNMP : interrogé directement, l'équipement répond au groupe système et aux tables d'interfaces, qui donnent son modèle et son adresse MAC, et rien de plus. Quand une [connexion Meraki](/docs/monitor/network-traffic#cisco-meraki-sans-netflow) lit son organisation, l'équipement prend ces valeurs, et tout ce que son interrogation laisse vide, dans le tableau de bord Meraki, et sa carte **Inventaire** nomme la connexion dans une ligne **Meraki**.
 
-Pour relire un équipement maintenant, cliquez sur **Actualiser** sur sa carte **Inventaire**. Sa sonde l'interroge dans la minute, et sa connexion Meraki relit l'organisation. La carte indique quand la nouvelle lecture est arrivée, ou que la sonde n'a pas pu joindre l'équipement. **Actualiser** est proposé à qui peut modifier les équipements réseau, sur un équipement qu'une sonde interroge ou qu'une connexion Meraki décrit.
+Pour relire un équipement maintenant, cliquez sur **Actualiser** sur sa carte **Inventaire**. Sa sonde l'interroge dans la minute, et sa connexion Meraki relit l'organisation. La carte indique quand la nouvelle lecture est arrivée, ou que la sonde n'a pas pu joindre l'équipement. **Actualiser** est proposé à qui peut modifier les équipements réseau, sur un équipement qu'une sonde interroge ou qu'une connexion Meraki décrit. Une fois la nouvelle lecture arrivée, l'état de l'équipement et sa carte **Détails de l'appareil** l'affichent aussi. Si, trois minutes plus tard, seul le tableau de bord Meraki n'a toujours pas été lu, la carte le dit, avec un lien vers la connexion Meraki sur la page **Trafic** du réseau, dont la ligne dit pourquoi.
 
 ## Découvrir des équipements par une analyse réseau
 
@@ -960,6 +960,12 @@ Pour que la carte se remplisse :
 - Sur un réseau Meraki, connectez le tableau de bord. Une [connexion Meraki](/docs/monitor/network-traffic#cisco-meraki-sans-netflow) dessine les câbles que Meraki connaît, y compris ceux d'un MX qui ne répond qu'au ping.
 
 Cliquez sur un pair non géré et **Ajouter à la surveillance** l'enregistre comme équipement interrogé par sonde. Il prend la sonde sur laquelle ses voisins s'accordent, il est donc pingué dès sa première interrogation, et vous pouvez ajouter des identifiants plus tard s'il s'avère avoir SNMP.
+
+### Choisir la disposition à l'ouverture de la carte
+
+**Options de la carte → Organiser la carte** dispose la carte en **Automatique**, **Par couche réseau**, **Concentrique**, **En étoile** ou **Parent and child**. La carte s'ouvre sur la disposition marquée **Par défaut** : **Automatique** pour tous les équipements et **Par couche réseau** pour un site, sauf si votre projet a choisi une disposition pour tout le monde. Chacun peut changer de disposition pendant la consultation ; la carte s'ouvre de nouveau sur la disposition par défaut la fois suivante.
+
+Les propriétaires et les administrateurs du projet choisissent la disposition par défaut : passez à une disposition et sélectionnez **Définir par défaut pour tout le monde**. Chaque vue de la carte des équipements s'ouvre alors sur elle : **Topologie de l'équipement**, un site sur la **Carte**, et l'onglet **Réseau** de **Topologie**. Sur la disposition par défaut, **Supprimer la valeur par défaut** rend à chaque carte sa propre disposition par défaut. Les positions déplacées sont enregistrées pour chaque disposition dans votre navigateur : la carte s'ouvre avec l'agencement que vous avez fait dans cette disposition.
 
 ### Exporter la carte en PDF
 

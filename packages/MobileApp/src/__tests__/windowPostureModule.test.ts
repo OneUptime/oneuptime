@@ -15,7 +15,9 @@ import { parseFoldReport, type FoldReport } from "../layout/windowPosture";
  *
  * - Expo's autolinking - the same command the Android build runs - links the
  *   module into Android builds and into no iOS build, so iOS keeps today's
- *   layout until an iOS side is built and checked on Xcode 27.1;
+ *   layout until its iOS side (ios/, written against the iOS 27.1 SDK's
+ *   division regions and hinge) is built on Xcode 27.1 and checked in the
+ *   iPhone Duo simulator - one line in expo-module.config.json links it;
  * - the names and the report's shape the Kotlin side uses are the ones the
  *   JavaScript side reads, so a rename on one side cannot silently turn the
  *   posture off;
@@ -23,7 +25,9 @@ import { parseFoldReport, type FoldReport } from "../layout/windowPosture";
  *   ships, so it adds no second version to the app.
  *
  * The Kotlin's own logic has JVM unit tests beside it (android/src/test), run
- * with the app's Gradle build: see the module's README.
+ * with the app's Gradle build, and the Swift report has XCTests beside it
+ * (ios/Tests, run with `swift test` on a Mac or in Swift's Linux image): see
+ * the module's README.
  */
 
 const APP_ROOT: string = path.resolve(__dirname, "../..");
@@ -32,6 +36,7 @@ const KOTLIN_ROOT: string = path.join(
   MODULE_ROOT,
   "android/src/main/java/com/oneuptime/windowposture",
 );
+const SWIFT_ROOT: string = path.join(MODULE_ROOT, "ios/Sources");
 
 function read(file: string): string {
   return fs.readFileSync(file, "utf8");
@@ -221,5 +226,115 @@ describe("The module's Android build", () => {
       ),
     ).toBe(true);
     expect(gradle).toContain("testImplementation 'junit:junit:");
+  });
+});
+describe("The iOS side, written and waiting for Xcode 27.1", () => {
+  /*
+   * The iPhone Duo's fold reaches an app through UIKit's division regions and
+   * its hinge interaction, both new in the iOS 27.1 SDK. The Swift side reads
+   * them and builds the same report the Kotlin does. It is not linked yet:
+   * no Mac builds here, and an iOS side that failed to compile would break
+   * the store build. These hold what can be held without one.
+   */
+  const moduleSource: string = read(
+    path.join(SWIFT_ROOT, "WindowPostureModule.swift"),
+  );
+  const observerSource: string = read(
+    path.join(SWIFT_ROOT, "FoldObserver.swift"),
+  );
+  const reportSource: string = read(path.join(SWIFT_ROOT, "FoldReport.swift"));
+  const podspec: string = read(
+    path.join(MODULE_ROOT, "ios/WindowPosture.podspec"),
+  );
+
+  test("it registers under the name JavaScript asks Expo for, sends the same event and answers getFolds", () => {
+    expect(moduleSource).toContain(`Name("${WINDOW_POSTURE_MODULE_NAME}")`);
+    expect(moduleSource).toContain(
+      `private let foldsChangeEvent = "${FOLDS_CHANGE_EVENT}"`,
+    );
+    expect(moduleSource).toContain("Events(foldsChangeEvent)");
+    expect(moduleSource).toContain('Function("getFolds")');
+    expect(moduleSource).toContain(
+      "public class WindowPostureModule: Module {",
+    );
+  });
+
+  test("its report has every key parseFoldReport reads, the same as the Kotlin's", () => {
+    for (const key of [
+      "windowWidth",
+      "windowHeight",
+      "folds",
+      "x",
+      "y",
+      "width",
+      "height",
+      "orientation",
+      "separating",
+    ]) {
+      expect(reportSource).toContain(`"${key}": `);
+    }
+    expect(reportSource).toContain('vertical ? "vertical" : "horizontal"');
+    // UIKit already measures in points: nothing to divide by.
+    expect(reportSource).not.toContain("scale");
+  });
+
+  test("it reads the iOS 27.1 SDK's division regions and hinge only behind the SDK's own guard", () => {
+    const guard: string = "#if canImport(UIKit, _version: 9127.0.85)";
+    const blocks: Array<string> = observerSource.split(guard);
+    const guarded: Array<string> = blocks
+      .slice(1)
+      .map((block: string): string => {
+        return block.slice(0, block.indexOf("#endif"));
+      });
+    const unguarded: string = blocks
+      .map((block: string, index: number): string => {
+        return index === 0 ? block : block.slice(block.indexOf("#endif"));
+      })
+      .join("");
+
+    // The new SDK's names appear only between the guard and its #endif.
+    expect(guarded.length).toBeGreaterThanOrEqual(2);
+    for (const name of [
+      "reservedRegions",
+      "UIHingeInteraction",
+      "UIHinge",
+      "FoldProbeView",
+      "#available(iOS 27.1",
+    ]) {
+      expect(guarded.join("")).toContain(name);
+      expect(unguarded).not.toContain(name);
+    }
+    // Built with the new SDK but run on an older iOS, none of it runs either.
+    for (const block of guarded) {
+      expect(block).toMatch(/[#@]available\(iOS 27\.1, \*\)/);
+    }
+    expect(observerSource).toContain(
+      "reservedRegions(\n      kind: .division,\n      options: .includeInactive\n    )",
+    );
+    // Where UIKit says regions are tracked and read again when they change.
+    expect(observerSource).toContain("override func updateConstraints()");
+    // Nothing on screen, nothing to touch, nothing read aloud.
+    expect(observerSource).toContain("isUserInteractionEnabled = false");
+    expect(observerSource).toContain("accessibilityElementsHidden = true");
+  });
+
+  test("the pod compiles only Sources/, never the report's own Swift package or its tests", () => {
+    expect(podspec).toContain("s.source_files = 'Sources/**/*.swift'");
+    expect(podspec).toContain("s.dependency 'ExpoModulesCore'");
+    expect(fs.existsSync(path.join(MODULE_ROOT, "ios/Package.swift"))).toBe(
+      true,
+    );
+    expect(
+      fs.existsSync(path.join(MODULE_ROOT, "ios/Tests/FoldReportTests.swift")),
+    ).toBe(true);
+  });
+
+  test("linking it is one entry in the module's config - not made yet", () => {
+    const config: { platforms: Array<string> } = JSON.parse(
+      read(path.join(MODULE_ROOT, "expo-module.config.json")),
+    );
+
+    expect(config.platforms).not.toContain("apple");
+    expect(config.platforms).not.toContain("ios");
   });
 });

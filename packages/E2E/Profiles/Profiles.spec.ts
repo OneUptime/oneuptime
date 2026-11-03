@@ -2,6 +2,7 @@ import { expect, Locator, Page, test, TestInfo } from "@playwright/test";
 import fs from "fs/promises";
 import path from "path";
 import { boxesInOneFrame } from "../SuiteHelpers/Frames";
+import { expectNoSidewaysScroll } from "../SuiteHelpers/PageFit";
 
 /*
  * The real Profiler against the offline fixture (Fixture/Fixture.js): the
@@ -112,24 +113,6 @@ async function openLoaded(page: Page, query: string = ""): Promise<void> {
   await expect(page.getByTestId("profiles-headline-text")).toBeVisible({
     timeout: 60000,
   });
-}
-
-/*
- * Boxes compared with each other are read in one frame (SuiteHelpers/Frames):
- * the function panel slides in from the side (SideOver, 200 ms), and each
- * boundingBox() is a frame of its own, so two read one by one while it moves
- * came from two moments of the slide (the AI credits notice and the words it
- * lines up with read 54 to 126 pixels apart on a busy machine).
- */
-
-async function expectNoSidewaysScroll(page: Page): Promise<void> {
-  const overflow: number = await page.evaluate((): number => {
-    return (
-      document.documentElement.scrollWidth -
-      document.documentElement.clientWidth
-    );
-  });
-  expect(overflow).toBeLessThanOrEqual(0);
 }
 
 test.describe("where the time goes", () => {

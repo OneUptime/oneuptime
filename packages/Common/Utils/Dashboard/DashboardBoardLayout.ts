@@ -81,6 +81,15 @@ export const DASHBOARD_MIN_EDIT_GRID_WIDTH_IN_PX: number =
  */
 export const DASHBOARD_STACKED_CHART_MIN_HEIGHT_IN_PX: number = 400;
 
+/*
+ * The most rows a widget that is not drawn - only a sentence where it would
+ * be (isPlaceholder) - takes when the widgets are stacked: room for its
+ * title, an icon and two lines of words (150px), whatever its rows on the
+ * grid. A phone has no arrangement to keep, and a 390px card for one line
+ * of words is a page of scrolling past nothing.
+ */
+export const DASHBOARD_STACKED_PLACEHOLDER_MAX_ROWS: number = 2;
+
 // The widgets that draw a chart over time.
 export const DASHBOARD_CHART_COMPONENT_TYPES: ReadonlyArray<DashboardComponentType> =
   [
@@ -127,6 +136,14 @@ export interface DashboardBoardBox {
 export interface DashboardStackedWidget {
   heightInUnits: number;
   componentType?: DashboardComponentType | string | undefined;
+  /*
+   * The widget is not drawn here, and says so in words where it would be:
+   * a log, trace, security or Data Source widget on a public dashboard,
+   * which reads none of those. Stacked, it takes no chart's floor - room
+   * for a plot it does not draw - and at most
+   * DASHBOARD_STACKED_PLACEHOLDER_MAX_ROWS rows.
+   */
+  isPlaceholder?: boolean | undefined;
 }
 
 export default class DashboardBoardLayoutUtil {
@@ -260,7 +277,9 @@ export default class DashboardBoardLayoutUtil {
   /*
    * A widget's height when the board stacks its widgets: the height it has
    * on the narrowest grid - its rows, and the gaps between them - and a
-   * chart at least DASHBOARD_STACKED_CHART_MIN_HEIGHT_IN_PX.
+   * chart at least DASHBOARD_STACKED_CHART_MIN_HEIGHT_IN_PX. A widget that
+   * is not drawn there (isPlaceholder) takes at most
+   * DASHBOARD_STACKED_PLACEHOLDER_MAX_ROWS rows, a chart's floor none.
    */
   public static getStackedHeightInPx(widget: DashboardStackedWidget): number {
     const rows: number =
@@ -269,12 +288,15 @@ export default class DashboardBoardLayoutUtil {
         : 1;
 
     const heightInPx: number = DashboardBoardLayoutUtil.unitsToSizeInPx(
-      rows,
+      widget.isPlaceholder
+        ? Math.min(rows, DASHBOARD_STACKED_PLACEHOLDER_MAX_ROWS)
+        : rows,
       DASHBOARD_MIN_ROW_HEIGHT_IN_PX,
       DASHBOARD_BOARD_GAP_IN_PX,
     );
 
-    return DashboardBoardLayoutUtil.isChart(widget.componentType)
+    return DashboardBoardLayoutUtil.isChart(widget.componentType) &&
+      !widget.isPlaceholder
       ? Math.max(heightInPx, DASHBOARD_STACKED_CHART_MIN_HEIGHT_IN_PX)
       : heightInPx;
   }

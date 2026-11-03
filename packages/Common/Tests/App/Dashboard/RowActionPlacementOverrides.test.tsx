@@ -126,6 +126,7 @@ import { JSONObject } from "../../../Types/JSON";
 import ObjectID from "../../../Types/ObjectID";
 import Permission from "../../../Types/Permission";
 import Phone from "../../../Types/Phone";
+import { getProjectPermissionsStorageKey } from "../../../UI/Utils/Permission";
 import {
   DISCOVERY_SCAN_STARTED_MESSAGE,
   DiscoveryScanStatus,
@@ -163,8 +164,9 @@ const startSession: (options: SessionOptions) => void = (
   sessionStorage.setItem("current_project_id", PROJECT_ID);
 
   if (options.projectPermissions.length > 0) {
+    // The snapshot the browser keeps for the project the tab shows.
     localStorage.setItem(
-      "project_permissions",
+      getProjectPermissionsStorageKey(PROJECT_ID)!,
       JSON.stringify({
         projectId: PROJECT_ID,
         permissions: options.projectPermissions.map(

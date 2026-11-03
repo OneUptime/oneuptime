@@ -38,6 +38,7 @@ import {
   ToolContext,
   ToolExecutionResult,
 } from "./ToolTypes";
+import { translationKey } from "../../../../Types/Translator";
 
 /*
  * Derived from the model ACLs so the tool gates can never drift from RBAC.
@@ -567,11 +568,15 @@ export const QueryOnCallPoliciesTool: ObservabilityTool = {
           ? WidgetBuilder.table({
               title: `On-call policies (${rows.length})`,
               columns: [
-                { key: "name", title: "Policy", type: "text" },
-                { key: "description", title: "Description", type: "text" },
+                { key: "name", title: translationKey("Policy"), type: "text" },
+                {
+                  key: "description",
+                  title: translationKey("Description"),
+                  type: "text",
+                },
                 {
                   key: "escalationChain",
-                  title: "Escalation chain",
+                  title: translationKey("Escalation chain"),
                   type: "text",
                 },
               ],
@@ -666,12 +671,12 @@ function respondersLabel(count: number): string {
 }
 
 const onCallStatusColumns: Array<AIChatWidgetColumn> = [
-  { key: "source", title: "Schedule / rule", type: "text" },
-  { key: "onCallNow", title: "On call now", type: "text" },
-  { key: "onCallSince", title: "Since", type: "date" },
-  { key: "handsOffAt", title: "Hands off", type: "date" },
-  { key: "nextUp", title: "Next up", type: "text" },
-  { key: "nextStartsAt", title: "Next starts", type: "date" },
+  { key: "source", title: translationKey("Schedule / rule"), type: "text" },
+  { key: "onCallNow", title: translationKey("On call now"), type: "text" },
+  { key: "onCallSince", title: translationKey("Since"), type: "date" },
+  { key: "handsOffAt", title: translationKey("Hands off"), type: "date" },
+  { key: "nextUp", title: translationKey("Next up"), type: "text" },
+  { key: "nextStartsAt", title: translationKey("Next starts"), type: "date" },
 ];
 
 export const GetOnCallStatusTool: ObservabilityTool = {
@@ -1324,12 +1329,36 @@ export const QueryOnCallPagesTool: ObservabilityTool = {
               title: `On-call pages (${rows.length})`,
               description: `Policy executions and direct pages in the last ${windowLabel}`,
               columns: [
-                { key: "triggeredAt", title: "Triggered", type: "date" },
-                { key: "policy", title: "Policy", type: "text" },
-                { key: "trigger", title: "Trigger", type: "text" },
-                { key: "status", title: "Status", type: "text" },
-                { key: "acknowledgedBy", title: "Acked by", type: "text" },
-                { key: "notified", title: "Notified", type: "text" },
+                {
+                  key: "triggeredAt",
+                  title: translationKey("Triggered"),
+                  type: "date",
+                },
+                {
+                  key: "policy",
+                  title: translationKey("Policy"),
+                  type: "text",
+                },
+                {
+                  key: "trigger",
+                  title: translationKey("Trigger"),
+                  type: "text",
+                },
+                {
+                  key: "status",
+                  title: translationKey("Status"),
+                  type: "text",
+                },
+                {
+                  key: "acknowledgedBy",
+                  title: translationKey("Acked by"),
+                  type: "text",
+                },
+                {
+                  key: "notified",
+                  title: translationKey("Notified"),
+                  type: "text",
+                },
               ],
               rows: rows,
               link: onCallPolicyId

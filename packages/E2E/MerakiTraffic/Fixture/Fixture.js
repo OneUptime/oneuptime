@@ -29,6 +29,20 @@
  *   ?devices=  counted: the last read listed the organization's 6 devices,
  *              and filled in 5 network devices here | one: 1 of them | absent
  *              (default): a read from before reads counted devices
+ *   ?unadded=  many: the last read counted the organization's devices that
+ *              are no network device here - 8 switches and 12 access points
+ *              to add, 3 cameras, 4 security appliances Meraki lists no
+ *              address for, a switch at an address a device here has and an
+ *              access point archived here | none: only the appliances, which
+ *              cannot be added | absent (default): a read from before reads
+ *              counted them. A failing read keeps them, as the read runner
+ *              does
+ *   ?adding=   how the last Add devices went (lastDeviceAdd): progress (7 of
+ *              20 added so far) | done (18 added, 2 sites, 2 could not be) |
+ *              failed (Meraki refused the key) | stopped (its worker went
+ *              quiet) | absent (default): never asked
+ *   ?probes=   two: the project has two probes of its own, so no probe is
+ *              picked for the devices | absent (default): one, which is
  *   ?lang=     de reads the German locale file
  *   ?theme=    dark adds html.dark (handled by server.js)
  *
@@ -37,10 +51,12 @@
  * Office MX, a device in OneUptime, and the Branches site of two networks.
  *
  * Every read and write is recorded on window.__merakiTrafficFixture:
- * usageRequests, flowRequests, tests, readNows, creates, updates, deletes
- * and unhandled - anything the fixture does not model. The spec asserts
- * `unhandled` is empty. finishRead() ends the read a connection is waiting
- * for, as the worker would.
+ * usageRequests, flowRequests, tests, readNows, creates, updates, deletes,
+ * deviceAdds (each Add devices asked for), probeAsks and unhandled -
+ * anything the fixture does not model. The spec asserts `unhandled` is
+ * empty. finishRead() ends the read a connection is waiting for, as the
+ * worker would; progressDeviceAdd(added, total) and finishDeviceAdd() move
+ * an Add devices on, as its worker job would.
  */
 import React from "react";
 import { createRoot } from "react-dom/client";
@@ -67,6 +83,7 @@ import PageMap from "../../../App/FeatureSet/Dashboard/src/Utils/PageMap";
 import NetworkControllerConnection from "Common/Models/DatabaseModels/NetworkControllerConnection";
 import NetworkDevice from "Common/Models/DatabaseModels/NetworkDevice";
 import NetworkSite from "Common/Models/DatabaseModels/NetworkSite";
+import Probe from "Common/Models/DatabaseModels/Probe";
 import ScheduledMaintenanceState from "Common/Models/DatabaseModels/ScheduledMaintenanceState";
 import IncidentState from "Common/Models/DatabaseModels/IncidentState";
 import AlertState from "Common/Models/DatabaseModels/AlertState";
@@ -118,6 +135,165 @@ const DEVICE_COUNTS = {
   one: { deviceCount: 6, describedDeviceCount: 1 },
 };
 const deviceCounts = DEVICE_COUNTS[params.get("devices")] || {};
+
+/*
+ * What the last read counted of the organization's devices that are no
+ * network device here, by kind (NetworkControllerReadSummary
+ * .unaddedDevices). Adding devices empties the kinds added; the next read
+ * counts what is left.
+ */
+const UNADDED = {
+  many: [
+    {
+      productType: "switch",
+      addable: 8,
+      withoutAddress: 0,
+      taken: 1,
+      archived: 0,
+    },
+    {
+      productType: "wireless",
+      addable: 12,
+      withoutAddress: 0,
+      taken: 0,
+      archived: 1,
+    },
+    {
+      productType: "appliance",
+      addable: 0,
+      withoutAddress: 4,
+      taken: 0,
+      archived: 0,
+    },
+    {
+      productType: "camera",
+      addable: 3,
+      withoutAddress: 0,
+      taken: 0,
+      archived: 0,
+    },
+  ],
+  none: [
+    {
+      productType: "appliance",
+      addable: 0,
+      withoutAddress: 4,
+      taken: 0,
+      archived: 0,
+    },
+  ],
+};
+let unaddedDevices = UNADDED[params.get("unadded")];
+
+/*
+ * The project's probes: one of its own (the devices' probe unless someone
+ * picks another), or two (none is picked), and OneUptime's global one.
+ */
+const PROBE_ID = "60000000-0000-4000-8000-000000000001";
+const PROJECT_PROBES = [
+  { _id: PROBE_ID, name: "Leeds office probe" },
+  ...(params.get("probes") === "two"
+    ? [{ _id: "60000000-0000-4000-8000-000000000002", name: "Bristol probe" }]
+    : []),
+];
+const GLOBAL_PROBES = [
+  { _id: "60000000-0000-4000-8000-000000000101", name: "OneUptime Europe" },
+];
+const USER_ID = "80000000-0000-4000-8000-000000000001";
+
+// An Add devices, as its worker job stores it on the connection.
+function deviceAddState(fields) {
+  const now = new Date().toISOString();
+
+  return {
+    status: "queued",
+    request: {
+      productTypes: ["switch", "wireless"],
+      groupBySite: true,
+      probeId: PROBE_ID,
+    },
+    requestedAt: now,
+    requestedByUserId: USER_ID,
+    updatedAt: now,
+    toAddCount: 0,
+    addedCount: 0,
+    failedCount: 0,
+    createdSiteCount: 0,
+    withoutAddressCount: 0,
+    takenCount: 0,
+    archivedCount: 0,
+    remainingCount: 0,
+    failures: [],
+    ...fields,
+  };
+}
+
+function minutesAgo(minutes) {
+  return new Date(Date.now() - minutes * 60 * 1000).toISOString();
+}
+
+const DEVICE_ADDS = {
+  progress: () => {
+    return deviceAddState({
+      status: "adding",
+      requestedAt: minutesAgo(1),
+      startedAt: minutesAgo(1),
+      toAddCount: 20,
+      addedCount: 7,
+    });
+  },
+  done: () => {
+    return deviceAddState({
+      status: "done",
+      requestedAt: minutesAgo(3),
+      startedAt: minutesAgo(3),
+      updatedAt: minutesAgo(1),
+      finishedAt: minutesAgo(1),
+      toAddCount: 20,
+      addedCount: 18,
+      failedCount: 2,
+      createdSiteCount: 2,
+      withoutAddressCount: 4,
+      takenCount: 1,
+      archivedCount: 1,
+      failures: [
+        {
+          name: "LDS-MS120-02",
+          reason: "Another network device has this name.",
+        },
+        {
+          name: "BRS-MR36-05",
+          reason: "Your plan allows 250 network devices.",
+        },
+      ],
+    });
+  },
+  failed: () => {
+    return deviceAddState({
+      status: "failed",
+      requestedAt: minutesAgo(2),
+      startedAt: minutesAgo(2),
+      updatedAt: minutesAgo(2),
+      finishedAt: minutesAgo(2),
+      message:
+        "Meraki answered the organization's devices with HTTP 401: Invalid API key",
+    });
+  },
+  // Its worker went quiet a quarter of an hour ago, 9 of 20 in.
+  stopped: () => {
+    return deviceAddState({
+      status: "adding",
+      requestedAt: minutesAgo(20),
+      startedAt: minutesAgo(20),
+      updatedAt: minutesAgo(15),
+      toAddCount: 20,
+      addedCount: 9,
+    });
+  },
+};
+const initialDeviceAdd = DEVICE_ADDS[params.get("adding")]
+  ? DEVICE_ADDS[params.get("adding")]()
+  : undefined;
 
 const GLOBAL_PERMISSIONS = [
   Permission.Public,
@@ -276,6 +452,7 @@ function connectionRecord(fields) {
       durationMs: 1800,
       finishedAt: READ_AT.toISOString(),
       ...deviceCounts,
+      ...(unaddedDevices ? { unaddedDevices: serialize(unaddedDevices) } : {}),
     },
     ...fields,
   });
@@ -311,6 +488,10 @@ function initialConnections() {
           failureKind: "authentication",
           warnings: [],
           requestCount: 0,
+          // A read that fails keeps the last good read's counts.
+          ...(unaddedDevices
+            ? { unaddedDevices: serialize(unaddedDevices) }
+            : {}),
         },
       }),
     ];
@@ -327,7 +508,12 @@ function initialConnections() {
   }
 
   if (dataState === "off") {
-    return [connectionRecord({ isEnabled: false })];
+    return [
+      connectionRecord({
+        isEnabled: false,
+        ...(initialDeviceAdd ? { lastDeviceAdd: initialDeviceAdd } : {}),
+      }),
+    ];
   }
 
   if (dataState === "partial") {
@@ -363,7 +549,11 @@ function initialConnections() {
     ];
   }
 
-  return [connectionRecord({})];
+  return [
+    connectionRecord(
+      initialDeviceAdd ? { lastDeviceAdd: initialDeviceAdd } : {},
+    ),
+  ];
 }
 
 let connections = initialConnections();
@@ -384,6 +574,73 @@ const fixture = {
   deletes: [],
   itemAsks: 0,
   deviceAsks: 0,
+  // Each Add devices asked for: { path, data }.
+  deviceAdds: [],
+  // How often the project's probes were listed (the Add devices dialog).
+  probeAsks: 0,
+  // The Add devices a connection waits for gets on: `added` of `total`.
+  progressDeviceAdd: (added, total) => {
+    for (const connection of connections) {
+      if (!connection.lastDeviceAdd) {
+        continue;
+      }
+
+      const now = new Date().toISOString();
+      connection.lastDeviceAdd = {
+        ...connection.lastDeviceAdd,
+        status: "adding",
+        startedAt: connection.lastDeviceAdd.startedAt || now,
+        updatedAt: now,
+        toAddCount: total,
+        addedCount: added,
+      };
+    }
+  },
+  /*
+   * The Add devices a connection waits for ends, as its worker job would:
+   * every device of the kinds picked that the last read counted is added,
+   * with a site for each of two networks; the next read counts what is
+   * left.
+   */
+  finishDeviceAdd: () => {
+    for (const connection of connections) {
+      const last = connection.lastDeviceAdd;
+
+      if (!last) {
+        continue;
+      }
+
+      const picked = last.request.productTypes;
+      const counts = (unaddedDevices || []).filter((count) => {
+        return picked.includes(count.productType);
+      });
+      const total = (field) => {
+        return counts.reduce((sum, count) => {
+          return sum + count[field];
+        }, 0);
+      };
+      const now = new Date().toISOString();
+
+      connection.lastDeviceAdd = {
+        ...last,
+        status: "done",
+        startedAt: last.startedAt || now,
+        updatedAt: now,
+        finishedAt: now,
+        toAddCount: total("addable"),
+        addedCount: total("addable"),
+        createdSiteCount: last.request.groupBySite ? 2 : 0,
+        withoutAddressCount: total("withoutAddress"),
+        takenCount: total("taken"),
+        archivedCount: total("archived"),
+      };
+      unaddedDevices = (unaddedDevices || []).map((count) => {
+        return picked.includes(count.productType)
+          ? { ...count, addable: 0 }
+          : count;
+      });
+    }
+  },
   unhandled: [],
   // The read a connection waits for ends, as the worker's would.
   finishRead: () => {
@@ -1008,6 +1265,21 @@ ModelAPI.getList = async (options) => {
     return { data: [], count: 0, skip: 0, limit: options.limit };
   }
 
+  /*
+   * The probes the Add devices dialog offers: the project's own, and
+   * OneUptime's from their own address (ProbeUtil.getAllProbes).
+   */
+  if (options.modelType === Probe) {
+    fixture.probeAsks += 1;
+    const isGlobal = (
+      options.requestOptions?.overrideRequestUrl?.toString() || ""
+    ).endsWith("/probe/global-probes");
+    const data = (isGlobal ? GLOBAL_PROBES : PROJECT_PROBES).map((probe) => {
+      return Object.assign(new Probe(), probe);
+    });
+    return { data, count: data.length, skip: 0, limit: options.limit };
+  }
+
   fixture.unhandled.push({
     kind: "getList",
     modelName: tableName(options.modelType),
@@ -1157,6 +1429,37 @@ async function handleApi(method, options) {
   if (method === "POST" && url.endsWith("/read-now")) {
     fixture.readNows.push(new URL(url).pathname);
     return ok({ queued: true });
+  }
+
+  /*
+   * Add devices (NetworkControllerConnectionAPI): the ask is stored on the
+   * connection, queued, and answered with it; its worker job is the spec's
+   * progressDeviceAdd() and finishDeviceAdd().
+   */
+  if (method === "POST" && url.endsWith("/add-devices")) {
+    const pathname = new URL(url).pathname;
+    fixture.deviceAdds.push({ path: pathname, data: serialize(options.data) });
+    const id = pathname.split("/").slice(-2)[0];
+    const found = connections.find((connection) => {
+      return connection._id === id;
+    });
+
+    if (!found) {
+      return new HTTPErrorResponse(
+        404,
+        { message: "This Meraki connection was deleted." },
+        {},
+      );
+    }
+
+    const now = new Date().toISOString();
+    found.lastDeviceAdd = deviceAddState({
+      request: serialize(options.data),
+      requestedAt: now,
+      updatedAt: now,
+    });
+
+    return ok({ lastDeviceAdd: found.lastDeviceAdd });
   }
 
   fixture.unhandled.push({ kind: "api", method, url });
@@ -1311,8 +1614,12 @@ function FixtureApp() {
   );
 }
 
+/*
+ * Navigates as the Dashboard does (its src/Index.tsx): each navigation renders
+ * at once, not in a React transition (Tests/Ops/E2EFixtureRouters).
+ */
 createRoot(document.getElementById("root")).render(
-  <BrowserRouter>
+  <BrowserRouter useTransitions={false}>
     <FixtureApp />
   </BrowserRouter>,
 );
