@@ -18,7 +18,7 @@
     "test-ask-ai-ui": 3.7,
     "test-asset-details-ui": 2.8,
     "test-auto-remediation-rules-ui": 8.7,
-    "test-bulk-actions-ui": 1.1,
+    "test-bulk-actions-ui": 1.7,
     "test-calendar-feed-ui": 3.8,
     "test-ceph-pages-ui": 2.0,
     "test-chart-time-zoom-ui": 13.1,
