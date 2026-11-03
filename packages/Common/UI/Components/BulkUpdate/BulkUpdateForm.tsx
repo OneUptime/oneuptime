@@ -211,7 +211,7 @@ export const BULK_ROW_SELECT_ALL_SLOT_CLASS_NAME: string =
   "flex min-w-0 items-center max-sm:order-1 max-sm:basis-full";
 
 export const BULK_ROW_SELECT_ALL_CLASS_NAME: string =
-  "inline-flex min-w-0 items-center gap-1 rounded px-1.5 py-1 text-start text-xs font-medium text-indigo-700 transition-colors hover:bg-indigo-50 hover:text-indigo-800 focus:outline-none focus-visible:ring-2 focus-visible:ring-indigo-500 disabled:cursor-wait disabled:opacity-70";
+  "inline-flex min-w-0 items-center gap-1 rounded px-1.5 py-1 text-start text-xs font-medium text-indigo-700 transition-colors hover:bg-indigo-50 hover:text-indigo-800 focus:outline-none focus-visible:ring-2 focus-visible:ring-indigo-500";
 
 /*
  * The Row's count chip: an active filter's chip (TelemetryActiveFilterChips)
@@ -1270,7 +1270,14 @@ const BulkUpdateForm: <T extends GenericObject>(
           <div className={BULK_ROW_SELECT_ALL_SLOT_CLASS_NAME}>
             <button
               type="button"
-              className={BULK_ROW_SELECT_ALL_CLASS_NAME}
+              /*
+               * Busy, its spinner beside the words, while it reads: the
+               * shared look of a hand-drawn button that is busy.
+               */
+              className={getHandDrawnLookClassName({
+                className: BULK_ROW_SELECT_ALL_CLASS_NAME,
+                isBusy: props.isSelectingAllItems,
+              })}
               data-testid={BULK_ROW_SELECT_ALL_TEST_ID}
               disabled={props.isSelectingAllItems}
               aria-busy={props.isSelectingAllItems ? "true" : undefined}
