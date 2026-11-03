@@ -164,11 +164,18 @@ async function pendingAction(): Promise<AIChatToolAction> {
     HOST_PAGE_CONTEXT,
   );
 
-  // Its English, and the sentences the card says in the reader's language.
+  /*
+   * Its English, and the sentences the card says in the reader's language -
+   * with the arguments its line says in words, as ChatAgentRunner stores
+   * them.
+   */
   const words: AIActionWords = {
     title:
       prepared.title || CreateAlertTool.buildActionTitle!(prepared.arguments),
     ...(prepared.description ? { description: prepared.description } : {}),
+    ...(prepared.describedArguments && prepared.describedArguments.length > 0
+      ? { describedArguments: prepared.describedArguments }
+      : {}),
   };
   const english: { title: string; description?: string | undefined } =
     describeAIActionWords(words);
@@ -259,9 +266,16 @@ describe("the approval card for an alert Ask AI raises on host test01's page", (
     ).parentElement!;
     // The description the alert will carry, which only this line shows.
     expect(card).toHaveTextContent(
-      "description: Memory in use on test01 has been at 78% for 20 minutes.",
+      "Description: Memory in use on test01 has been at 78% for 20 minutes.",
     );
-    expect(card).toHaveTextContent("severityName: High");
+    /*
+     * The severity is said once, in words, by the line above: the
+     * argument line does not say it again.
+     */
+    expect(
+      screen.getByTestId("tool-approval-arguments"),
+    ).not.toHaveTextContent("High");
+    expect(card).not.toHaveTextContent("severityName");
     // The title is the card's own; the argument line does not repeat it.
     expect(card).not.toHaveTextContent("title: High memory usage on test01");
     expect(card).not.toHaveTextContent(HOST_ID);
@@ -446,9 +460,10 @@ describe("the card under the answer, once the alert is raised", () => {
     expect(heading.className).toContain("line-clamp-3");
     expect(heading.className).not.toContain("truncate");
 
-    const description: HTMLElement = screen.getByText(
-      CALL_ARGUMENTS.description,
-    );
+    // The value is an isolate inside its fact's cell, which wraps.
+    const description: HTMLElement = screen
+      .getByText(CALL_ARGUMENTS.description)
+      .closest("dd") as HTMLElement;
     expect(description.tagName).toBe("DD");
     expect(description.className).toContain("break-words");
     expect(description.className).toContain("line-clamp-2");

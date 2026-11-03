@@ -41455,7 +41455,6 @@
   "Starts acknowledged, so it pages nobody.": "인지됨 상태로 시작하므로 아무도 호출하지 않습니다.",
   "Starts resolved, so it pages nobody.": "해결됨 상태로 시작하므로 아무도 호출하지 않습니다.",
   "Status update": "상태 업데이트",
-  "Status update posted": "상태 업데이트 게시됨",
   "Status update posted, subscribers notified": "상태 업데이트 게시됨, 구독자에게 알림",
   "Steps that need approval wait on the case": "승인이 필요한 단계는 케이스에서 대기합니다",
   "not done": "수행되지 않음",
@@ -41463,5 +41462,6 @@
   "not done — the project's plan does not include it": "수행되지 않음 — 프로젝트 요금제에 포함되지 않습니다",
   "not done — you are not allowed to do this": "수행되지 않음 — 이 작업은 허용되지 않습니다",
   "not done — your role does not allow it": "수행되지 않음 — 역할에서 허용되지 않습니다",
-  "{{count}} step": "{{count}}단계"
+  "{{count}} step": "{{count}}단계",
+  "Status update posted, subscribers not notified": "상태 업데이트 게시됨, 구독자에게 알리지 않음"
 }

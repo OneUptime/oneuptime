@@ -75,10 +75,13 @@ describe("the approval card names what an action links", () => {
      * line, cut at two lines, does not spend them repeating it (#5301's UI
      * review).
      */
-    expect(card).not.toHaveTextContent("title: High memory usage");
-    expect(card).toHaveTextContent("severityName: SEV2");
+    expect(card).not.toHaveTextContent("Title: High memory usage");
+    // Each argument named in the reader's words, never by its key.
+    expect(card).toHaveTextContent("Severity: SEV2");
+    expect(card).not.toHaveTextContent("severityName");
     expect(card).not.toHaveTextContent(HOST_ID);
     expect(card).not.toHaveTextContent("affectedResources");
+    expect(card).not.toHaveTextContent("Affected resources");
   });
 
   test("an action with no description shows its arguments as before, lists included", () => {
@@ -94,7 +97,11 @@ describe("the approval card names what an action links", () => {
     expect(
       screen.queryByTestId("tool-approval-description"),
     ).not.toBeInTheDocument();
-    expect(screen.getByText(/affectedResources:/)).toBeInTheDocument();
+    // A list says how many it holds, by its name - never as JSON.
+    const line: HTMLElement = screen.getByTestId("tool-approval-arguments");
+    expect(line).toHaveTextContent("Affected resources: 1");
+    expect(line).not.toHaveTextContent(HOST_ID);
+    expect(line).not.toHaveTextContent("resourceType");
   });
 
   test("a long description wraps rather than being cut off", () => {
@@ -185,15 +192,21 @@ describe("the approval card names what an action links", () => {
 });
 
 describe("argsPreview", () => {
-  test("names every argument, as before", () => {
+  /*
+   * #5623's follow-up: the line listed the tool's own keys and JSON -
+   * "severityName: SEV2 · affectedResources: [{...}]". Each argument of a
+   * write tool is named in the reader's words, a list says how many it
+   * holds, and yes or no is said in words.
+   */
+  test("names every argument in words, and a list by how many it holds", () => {
     expect(argsPreview(DECLARE_ARGUMENTS)).toBe(
-      `title: High memory usage  ·  severityName: SEV2  ·  affectedResources: [{"resourceType":"Host","resourceId":"${HOST_ID}"}]`,
+      "Title: High memory usage  ·  Severity: SEV2  ·  Affected resources: 1",
     );
   });
 
   test("leaves the lists out when a description names them", () => {
     expect(argsPreview(DECLARE_ARGUMENTS, { leaveOutLists: true })).toBe(
-      "title: High memory usage  ·  severityName: SEV2",
+      "Title: High memory usage  ·  Severity: SEV2",
     );
   });
 
@@ -201,6 +214,50 @@ describe("argsPreview", () => {
     expect(
       argsPreview({ title: "", note: null, count: 0 }, { leaveOutLists: true }),
     ).toBe("count: 0");
+  });
+
+  test("says yes or no in words, and counts a commit's files", () => {
+    expect(
+      argsPreview({
+        note: "Rolled back the deploy.",
+        notifySubscribers: false,
+      }),
+    ).toBe("Note: Rolled back the deploy.  ·  Notify subscribers: No");
+    expect(
+      argsPreview({
+        branchName: "fix/checkout",
+        commitMessage: "fix: checkout",
+        changes: [
+          { filePath: "a.ts", content: "a" },
+          { filePath: "b.ts", content: "b" },
+        ],
+      }),
+    ).toBe(
+      "Branch: fix/checkout  ·  Commit message: fix: checkout  ·  Files: 2",
+    );
+  });
+
+  test("an argument no write tool takes keeps its own name, and a list is still counted", () => {
+    expect(argsPreview({ query: "up", targets: ["a", "b", "c"] })).toBe(
+      "query: up  ·  targets: 3",
+    );
+  });
+
+  test("leaves out what the line under the title says in words, and what the title names", () => {
+    expect(
+      argsPreview(
+        {
+          description: "Memory is at 78%.",
+          severityName: "High",
+          initialState: "resolved",
+          incidentId: HOST_ID,
+        },
+        {
+          describedArguments: ["severityName", "initialState"],
+          namedArguments: ["incidentId"],
+        },
+      ),
+    ).toBe("Description: Memory is at 78%.");
   });
 
   /*
@@ -219,9 +276,7 @@ describe("argsPreview", () => {
         },
         { title: "Create alert: High memory usage on test01" },
       ),
-    ).toBe(
-      "description: Memory in use on test01 is at 78%.  ·  severityName: High",
-    );
+    ).toBe("Description: Memory in use on test01 is at 78%.  ·  Severity: High");
   });
 
   test("leaves it out whatever the spaces around it, and when the title is the argument itself", () => {
@@ -230,7 +285,7 @@ describe("argsPreview", () => {
         { title: "  Checkout down ", severityName: "SEV1" },
         { title: "Create incident: Checkout down" },
       ),
-    ).toBe("severityName: SEV1");
+    ).toBe("Severity: SEV1");
     expect(
       argsPreview({ name: "Nightly backup" }, { title: "Nightly backup" }),
     ).toBe("");
@@ -242,20 +297,20 @@ describe("argsPreview", () => {
         { title: "P1 outage in EU", severityName: "P1" },
         { title: "Create incident: P1 outage in EU" },
       ),
-    ).toBe("severityName: P1");
+    ).toBe("Severity: P1");
     // An ID inside a sentence-like title is kept as before.
     expect(
       argsPreview(
         { incidentId: HOST_ID },
         { title: `Acknowledge incident ${HOST_ID}` },
       ),
-    ).toBe(`incidentId: ${HOST_ID}`);
+    ).toBe(`Incident: ${HOST_ID}`);
   });
 
   test("never leaves out a list or a number for matching the title", () => {
     expect(
       argsPreview({ count: 3, tags: ["3"] }, { title: "Create something: 3" }),
-    ).toBe('count: 3  ·  tags: ["3"]');
+    ).toBe("count: 3  ·  tags: 1");
   });
 });
 
@@ -427,10 +482,10 @@ describe("the approval card's lines read the way they are written", () => {
     ).toHaveAttribute("dir", "rtl");
   });
 
-  test("the arguments keep their line's monospace, which every page's font rule on * would take from the isolate", () => {
+  test("each argument's value the model wrote is in monospace, on the isolate itself, under its name in the reader's words", () => {
     render(
       <ToolApprovalCard
-        toolActions={[action()]}
+        toolActions={[action({ description: undefined })]}
         interactive={true}
         isSubmitting={false}
         onRespond={() => {}}
@@ -438,7 +493,21 @@ describe("the approval card's lines read the way they are written", () => {
     );
 
     const line: HTMLElement = screen.getByTestId("tool-approval-arguments");
-    expect(line).toHaveClass("font-mono");
-    expect(line.querySelector("bdi")).toHaveClass("[font-family:inherit]");
+    const labels: Array<string> = within(line)
+      .getAllByTestId("tool-approval-argument-label")
+      .map((label: HTMLElement): string => {
+        return label.textContent || "";
+      });
+    expect(labels).toEqual(["Severity:", "Affected resources:"]);
+
+    // The severity the model wrote: monospace, set on the isolate itself.
+    const severity: HTMLElement = within(line).getByText("SEV2");
+    expect(severity.tagName).toBe("BDI");
+    expect(severity).toHaveClass("font-mono");
+
+    // A count is the reader's own words: not the model's monospace.
+    const count: HTMLElement = within(line).getByText("1");
+    expect(count.tagName).toBe("BDI");
+    expect(count).not.toHaveClass("font-mono");
   });
 });

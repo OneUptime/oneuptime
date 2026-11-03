@@ -41455,7 +41455,6 @@
   "Starts acknowledged, so it pages nobody.": "Starter som bekræftet, så det tilkalder ingen.",
   "Starts resolved, so it pages nobody.": "Starter som løst, så det tilkalder ingen.",
   "Status update": "Statusopdatering",
-  "Status update posted": "Statusopdatering slået op",
   "Status update posted, subscribers notified": "Statusopdatering slået op, abonnenter underrettet",
   "Steps that need approval wait on the case": "Trin, der kræver godkendelse, venter i sagen",
   "not done": "ikke udført",
@@ -41463,5 +41462,6 @@
   "not done — the project's plan does not include it": "ikke udført — projektets plan omfatter det ikke",
   "not done — you are not allowed to do this": "ikke udført — du må ikke gøre det",
   "not done — your role does not allow it": "ikke udført — din rolle tillader det ikke",
-  "{{count}} step": "{{count}} trin"
+  "{{count}} step": "{{count}} trin",
+  "Status update posted, subscribers not notified": "Statusopdatering slået op, abonnenter ikke underrettet"
 }

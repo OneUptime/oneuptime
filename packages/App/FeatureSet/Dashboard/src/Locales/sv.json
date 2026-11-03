@@ -41455,7 +41455,6 @@
   "Starts acknowledged, so it pages nobody.": "Börjar som bekräftad, så den larmar ingen.",
   "Starts resolved, so it pages nobody.": "Börjar som löst, så den larmar ingen.",
   "Status update": "Statusuppdatering",
-  "Status update posted": "Statusuppdatering publicerad",
   "Status update posted, subscribers notified": "Statusuppdatering publicerad, prenumeranter aviserade",
   "Steps that need approval wait on the case": "Steg som kräver godkännande väntar i ärendet",
   "not done": "inte utförd",
@@ -41463,5 +41462,6 @@
   "not done — the project's plan does not include it": "inte utförd — projektets plan omfattar det inte",
   "not done — you are not allowed to do this": "inte utförd — du får inte göra det",
   "not done — your role does not allow it": "inte utförd — din roll tillåter det inte",
-  "{{count}} step": "{{count}} steg"
+  "{{count}} step": "{{count}} steg",
+  "Status update posted, subscribers not notified": "Statusuppdatering publicerad, prenumeranter inte aviserade"
 }

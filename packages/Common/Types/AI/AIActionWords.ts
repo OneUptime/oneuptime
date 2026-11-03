@@ -331,7 +331,7 @@ export const AI_ACTION_CARD_LINES: {
   alreadyLinkedTo: string;
   privateNoteAdded: string;
   noteAdded: string;
-  statusUpdatePosted: string;
+  statusUpdatePostedQuietly: string;
   statusUpdatePostedSubscribersNotified: string;
   pagedForIncident: string;
   runbookStarted: string;
@@ -355,7 +355,10 @@ export const AI_ACTION_CARD_LINES: {
   privateNoteAdded: translationKey("Private note added, for your team only"),
   // A note on a security case, on its timeline.
   noteAdded: translationKey("Note added"),
-  statusUpdatePosted: translationKey("Status update posted"),
+  // A public status update, and whether its subscribers heard of it.
+  statusUpdatePostedQuietly: translationKey(
+    "Status update posted, subscribers not notified",
+  ),
   statusUpdatePostedSubscribersNotified: translationKey(
     "Status update posted, subscribers notified",
   ),

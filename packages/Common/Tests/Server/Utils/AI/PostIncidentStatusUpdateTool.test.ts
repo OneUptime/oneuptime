@@ -110,7 +110,9 @@ describe("post_incident_status_update - default subscriber notification", () => 
       "Posted a public status update on incident #42.",
     );
     expect(run.result.dataForLlm).toContain("notifySubscribers=false");
-    expect(widgetSubheading(run.result)).toBe("Subscribers not notified");
+    expect(widgetSubheading(run.result)).toBe(
+      "Status update posted, subscribers not notified",
+    );
   });
 
   test("notifies when notifySubscribers is omitted and the incident notified subscribers when declared", async () => {
@@ -123,7 +125,9 @@ describe("post_incident_status_update - default subscriber notification", () => 
       "Posted a public status update on incident #42 and notified subscribers.",
     );
     expect(run.result.dataForLlm).toContain("notifySubscribers=true");
-    expect(widgetSubheading(run.result)).toBe("Subscribers notified");
+    expect(widgetSubheading(run.result)).toBe(
+      "Status update posted, subscribers notified",
+    );
   });
 
   test("notifies when notifySubscribers is omitted and the incident flag was never set", async () => {
@@ -190,7 +194,9 @@ describe("post_incident_status_update - explicit notifySubscribers wins", () => 
     );
     expect(run.result.dataForLlm).toContain("and notified subscribers");
     expect(run.result.dataForLlm).toContain("notifySubscribers=true");
-    expect(widgetSubheading(run.result)).toBe("Subscribers notified");
+    expect(widgetSubheading(run.result)).toBe(
+      "Status update posted, subscribers notified",
+    );
   });
 
   test("explicit false stays quiet even on an incident that notified subscribers", async () => {
@@ -203,7 +209,9 @@ describe("post_incident_status_update - explicit notifySubscribers wins", () => 
     );
     expect(run.result.dataForLlm).not.toContain("notified subscribers");
     expect(run.result.dataForLlm).toContain("notifySubscribers=false");
-    expect(widgetSubheading(run.result)).toBe("Subscribers not notified");
+    expect(widgetSubheading(run.result)).toBe(
+      "Status update posted, subscribers not notified",
+    );
   });
 
   test("explicit false stays quiet on an incident whose flag was never set", async () => {
@@ -249,6 +257,8 @@ describe("post_incident_status_update - incident lookup", () => {
     expect(findArgs["select"]).toEqual({
       _id: true,
       incidentNumber: true,
+      // The number with the project's prefix, for the card it leaves.
+      incidentNumberWithPrefix: true,
       title: true,
       shouldStatusPageSubscribersBeNotifiedOnIncidentCreated: true,
       isPrivate: true,

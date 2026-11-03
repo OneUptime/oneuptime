@@ -41455,7 +41455,6 @@
   "Starts acknowledged, so it pages nobody.": "確認済みの状態で始まるため、誰も呼び出しません。",
   "Starts resolved, so it pages nobody.": "解決済みの状態で始まるため、誰も呼び出しません。",
   "Status update": "ステータス更新",
-  "Status update posted": "ステータス更新を投稿しました",
   "Status update posted, subscribers notified": "ステータス更新を投稿し、購読者に通知しました",
   "Steps that need approval wait on the case": "承認が必要なステップはケースで待機します",
   "not done": "実行されませんでした",
@@ -41463,5 +41462,6 @@
   "not done — the project's plan does not include it": "実行されませんでした — プロジェクトのプランに含まれていません",
   "not done — you are not allowed to do this": "実行されませんでした — この操作は許可されていません",
   "not done — your role does not allow it": "実行されませんでした — ロールで許可されていません",
-  "{{count}} step": "{{count}} ステップ"
+  "{{count}} step": "{{count}} ステップ",
+  "Status update posted, subscribers not notified": "ステータス更新を投稿しました（購読者には通知していません）"
 }

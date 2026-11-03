@@ -727,7 +727,7 @@ export const PostIncidentStatusUpdateTool: ObservabilityTool = {
             aiActionSentence(
               notifySubscribers
                 ? AI_ACTION_CARD_LINES.statusUpdatePostedSubscribersNotified
-                : AI_ACTION_CARD_LINES.statusUpdatePosted,
+                : AI_ACTION_CARD_LINES.statusUpdatePostedQuietly,
             ),
           ],
           facts: [

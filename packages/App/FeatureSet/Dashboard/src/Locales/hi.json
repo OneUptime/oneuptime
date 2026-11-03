@@ -41455,7 +41455,6 @@
   "Starts acknowledged, so it pages nobody.": "स्वीकार की गई स्थिति में शुरू होता है, इसलिए किसी को कॉल नहीं करता।",
   "Starts resolved, so it pages nobody.": "सुलझाई गई स्थिति में शुरू होता है, इसलिए किसी को कॉल नहीं करता।",
   "Status update": "स्थिति अपडेट",
-  "Status update posted": "स्थिति अपडेट पोस्ट किया गया",
   "Status update posted, subscribers notified": "स्थिति अपडेट पोस्ट किया गया, सब्सक्राइबर्स को सूचित किया गया",
   "Steps that need approval wait on the case": "जिन चरणों को अनुमोदन चाहिए, वे केस पर प्रतीक्षा करते हैं",
   "not done": "नहीं किया गया",
@@ -41463,5 +41462,6 @@
   "not done — the project's plan does not include it": "नहीं किया गया — प्रोजेक्ट के प्लान में यह शामिल नहीं है",
   "not done — you are not allowed to do this": "नहीं किया गया — आपको यह करने की अनुमति नहीं है",
   "not done — your role does not allow it": "नहीं किया गया — आपकी भूमिका इसकी अनुमति नहीं देती",
-  "{{count}} step": "{{count}} चरण"
+  "{{count}} step": "{{count}} चरण",
+  "Status update posted, subscribers not notified": "स्थिति अपडेट पोस्ट किया गया, सब्सक्राइबर्स को सूचित नहीं किया गया"
 }

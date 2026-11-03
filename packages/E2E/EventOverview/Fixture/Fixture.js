@@ -477,6 +477,7 @@ import CallSummaryFeedMarkdown from "Common/Utils/VideoCall/CallSummaryFeedMarkd
 import UserUtil from "Common/UI/Utils/User";
 import PermissionUtil from "Common/UI/Utils/Permission";
 import { setPageLanguage } from "Common/UI/Utils/PageLanguage";
+import { followLanguageForDates } from "Common/UI/Utils/DateDisplayLanguage";
 
 /*
  * ---------------------------------------------------------------------------
@@ -8336,6 +8337,14 @@ async function loadTranslation(lang) {
 
   return response.json();
 }
+
+/*
+ * Dates follow the page's language, as the Dashboard's own setup has them
+ * (Dashboard/src/Utils/i18n): "vor 2 Monaten" on a German page, never
+ * "2 months ago" in the middle of German words. Handed the instance before
+ * it starts, as the Dashboard does.
+ */
+followLanguageForDates(i18next);
 
 await i18next.use(initReactI18next).init({
   lng: language,

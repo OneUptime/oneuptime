@@ -41455,7 +41455,6 @@
   "Starts acknowledged, so it pages nobody.": "以已確認狀態開始，因此不會呼叫任何人。",
   "Starts resolved, so it pages nobody.": "以已解決狀態開始，因此不會呼叫任何人。",
   "Status update": "狀態更新",
-  "Status update posted": "已發布狀態更新",
   "Status update posted, subscribers notified": "已發布狀態更新，並已通知訂閱者",
   "Steps that need approval wait on the case": "需要核准的步驟在案例中等待",
   "not done": "未執行",
@@ -41463,5 +41462,6 @@
   "not done — the project's plan does not include it": "未執行 — 專案的方案不包含此功能",
   "not done — you are not allowed to do this": "未執行 — 您無權執行此操作",
   "not done — your role does not allow it": "未執行 — 您的角色不允許此操作",
-  "{{count}} step": "{{count}} 個步驟"
+  "{{count}} step": "{{count}} 個步驟",
+  "Status update posted, subscribers not notified": "已發布狀態更新，未通知訂閱者"
 }

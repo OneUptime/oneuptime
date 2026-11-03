@@ -41455,7 +41455,6 @@
   "Starts acknowledged, so it pages nobody.": "Begint als bevestigd en roept dus niemand op.",
   "Starts resolved, so it pages nobody.": "Begint als opgelost en roept dus niemand op.",
   "Status update": "Statusupdate",
-  "Status update posted": "Statusupdate geplaatst",
   "Status update posted, subscribers notified": "Statusupdate geplaatst, abonnees op de hoogte gesteld",
   "Steps that need approval wait on the case": "Stappen die goedkeuring nodig hebben, wachten in de zaak",
   "not done": "niet uitgevoerd",
@@ -41463,5 +41462,6 @@
   "not done — the project's plan does not include it": "niet uitgevoerd — het abonnement van het project omvat het niet",
   "not done — you are not allowed to do this": "niet uitgevoerd — u mag dit niet doen",
   "not done — your role does not allow it": "niet uitgevoerd — uw rol staat dit niet toe",
-  "{{count}} step": "{{count}} stap"
+  "{{count}} step": "{{count}} stap",
+  "Status update posted, subscribers not notified": "Statusupdate geplaatst, abonnees niet op de hoogte gesteld"
 }

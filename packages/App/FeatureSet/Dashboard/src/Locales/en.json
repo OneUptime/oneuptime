@@ -41455,7 +41455,6 @@
   "Starts acknowledged, so it pages nobody.": "Starts acknowledged, so it pages nobody.",
   "Starts resolved, so it pages nobody.": "Starts resolved, so it pages nobody.",
   "Status update": "Status update",
-  "Status update posted": "Status update posted",
   "Status update posted, subscribers notified": "Status update posted, subscribers notified",
   "Steps that need approval wait on the case": "Steps that need approval wait on the case",
   "not done": "not done",
@@ -41463,5 +41462,6 @@
   "not done — the project's plan does not include it": "not done — the project's plan does not include it",
   "not done — you are not allowed to do this": "not done — you are not allowed to do this",
   "not done — your role does not allow it": "not done — your role does not allow it",
-  "{{count}} step": "{{count}} step"
+  "{{count}} step": "{{count}} step",
+  "Status update posted, subscribers not notified": "Status update posted, subscribers not notified"
 }

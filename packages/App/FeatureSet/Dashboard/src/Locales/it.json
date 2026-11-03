@@ -41455,7 +41455,6 @@
   "Starts acknowledged, so it pages nobody.": "Inizia come riconosciuto, quindi non chiama nessuno.",
   "Starts resolved, so it pages nobody.": "Inizia come risolto, quindi non chiama nessuno.",
   "Status update": "Aggiornamento di stato",
-  "Status update posted": "Aggiornamento di stato pubblicato",
   "Status update posted, subscribers notified": "Aggiornamento di stato pubblicato, iscritti notificati",
   "Steps that need approval wait on the case": "I passaggi da approvare attendono nel caso",
   "not done": "non eseguita",
@@ -41463,5 +41462,6 @@
   "not done — the project's plan does not include it": "non eseguita — il piano del progetto non la include",
   "not done — you are not allowed to do this": "non eseguita — non ti è consentito farlo",
   "not done — your role does not allow it": "non eseguita — il tuo ruolo non lo consente",
-  "{{count}} step": "{{count}} passaggio"
+  "{{count}} step": "{{count}} passaggio",
+  "Status update posted, subscribers not notified": "Aggiornamento di stato pubblicato, iscritti non notificati"
 }

@@ -41455,7 +41455,6 @@
   "Starts acknowledged, so it pages nobody.": "در وضعیت تأییدشده آغاز می‌شود، پس کسی را فرا نمی‌خواند.",
   "Starts resolved, so it pages nobody.": "در وضعیت برطرف‌شده آغاز می‌شود، پس کسی را فرا نمی‌خواند.",
   "Status update": "به‌روزرسانی وضعیت",
-  "Status update posted": "به‌روزرسانی وضعیت منتشر شد",
   "Status update posted, subscribers notified": "به‌روزرسانی وضعیت منتشر شد و به مشترکان اطلاع داده شد",
   "Steps that need approval wait on the case": "گام‌هایی که به تأیید نیاز دارند در پرونده منتظر می‌مانند",
   "not done": "انجام نشد",
@@ -41463,5 +41462,6 @@
   "not done — the project's plan does not include it": "انجام نشد — طرح پروژه آن را شامل نمی‌شود",
   "not done — you are not allowed to do this": "انجام نشد — اجازه انجام این کار را ندارید",
   "not done — your role does not allow it": "انجام نشد — نقش شما اجازه آن را نمی‌دهد",
-  "{{count}} step": "{{count}} گام"
+  "{{count}} step": "{{count}} گام",
+  "Status update posted, subscribers not notified": "به‌روزرسانی وضعیت منتشر شد و به مشترکان اطلاع داده نشد"
 }
