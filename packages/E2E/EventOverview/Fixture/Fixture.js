@@ -365,6 +365,7 @@ import AutoRemediationDecision from "Common/Models/DatabaseModels/AutoRemediatio
 import AutoRemediationSuggestion from "Common/Models/DatabaseModels/AutoRemediationSuggestion";
 import AlertVideoCall from "Common/Models/DatabaseModels/AlertVideoCall";
 import IncidentVideoCall from "Common/Models/DatabaseModels/IncidentVideoCall";
+import DataAlert from "Common/Models/DatabaseModels/DataAlert";
 import Incident from "Common/Models/DatabaseModels/Incident";
 import IncidentCustomField from "Common/Models/DatabaseModels/IncidentCustomField";
 import IncidentEpisode from "Common/Models/DatabaseModels/IncidentEpisode";
@@ -1450,6 +1451,13 @@ const roles = {
  *
  * The incident and alert pages also list the record's video calls; no call
  * has been started for any of them here.
+ *
+ * The alert page reads what a data monitor's alert is about, and the alerts
+ * downstream it caused (Components/DataObservability/DataAlertLineage): its
+ * data alert by { alertId }, and the data alerts naming it by
+ * { causeAlertId }. No alert here was raised by a data monitor, so the API
+ * answers two empty lists and neither the Data nor the Downstream Impact
+ * card is drawn, as on any other alert's page.
  */
 for (const modelType of [
   IncidentCustomField,
@@ -1463,6 +1471,7 @@ for (const modelType of [
   AutoRemediationDecision,
   IncidentVideoCall,
   AlertVideoCall,
+  DataAlert,
 ]) {
   table(modelType);
 }
