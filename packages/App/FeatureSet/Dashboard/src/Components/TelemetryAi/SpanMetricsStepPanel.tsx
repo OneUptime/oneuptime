@@ -62,15 +62,17 @@ export const SPAN_METRICS_STEP_NAME_CLASS_NAME: string =
  * came out - an English sentence a locale lacks reads left to right on a
  * Persian page, as a description by most of its letters does there.
  */
-const StepSentence: FunctionComponent<{
+interface StepSentenceProps {
+  // The English sentence (the translation key), a {{placeholder}} per name.
   template: string;
+  // Each placeholder's name, as the lines to add write it.
   names: Readonly<Record<string, string>>;
   dataTestId: string;
-}> = (props: {
-  template: string;
-  names: Readonly<Record<string, string>>;
-  dataTestId: string;
-}): ReactElement => {
+}
+
+const StepSentence: FunctionComponent<StepSentenceProps> = (
+  props: StepSentenceProps,
+): ReactElement => {
   const translator: Translator = useTranslator();
   const slots: Record<string, ReactElement> = {};
 
