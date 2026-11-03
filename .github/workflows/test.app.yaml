@@ -492,12 +492,17 @@ jobs:
           # Builder's half 13.5, Metrics AI 3.0). The first half (88 tests,
           # about 7 minutes) stays here; the second and Metrics AI run in group
           # 15: about 22.
+          # Global Runners (1.9 to 2.5 minutes on the last six runs; #5583 added
+          # its Runners that take no AI code fixes the same day) joined it from
+          # group 13 on 2026-11-03, when those runs took this group's step 14.1
+          # to 20.4 minutes, about 19: about 21.5.
           - group: 4
             workflow_builder_shard: 1/2
             model_tables_shard: 1/2
             suites: >-
               test-workflow-builder-ui
               test-model-tables-ui
+              test-global-runners-ui
           # The Chromium-only suites that ran after Event Overview in group 1.
           # Topology is one of them (about 2.5 minutes) since the Workflow
           # Builder suite grew again with its UI review: group 2 had reached
@@ -865,6 +870,12 @@ jobs:
           # joined it on 2026-11-03, when master's run of 2026-11-02 23:47 took
           # this group 13.7 minutes, the lightest of the sixteen (group 7,
           # where it was first placed, took 22.2): about 14.5.
+          # Value Picker (3.4 to 3.6 minutes) joined it from group 14 on
+          # 2026-11-03. Master's run of 2026-11-02 23:47 had taken this group
+          # 13.7 minutes on a fast runner, but 14.0.102's first gate run took
+          # the same suites 22.7, 1.66 times as long suite for suite, and four
+          # pull request runs that day 14.3 to 21.4: about 18.5 with
+          # Permissions Per Tab, about 22 with Value Picker.
           - group: 8
             suites: >-
               test-dashboard-time-range-ui
@@ -876,6 +887,7 @@ jobs:
               test-public-addresses-ui
               test-docker-swarm-pages-ui
               test-permissions-per-tab-ui
+              test-value-picker-ui
           # Added on 2026-10-21, when every group took 20 to 26 minutes on one
           # run (groups 1 and 5 near 25) and Resource Topology would have
           # taken group 7 past 22: Code (6.4 minutes on that run, a laptop
@@ -928,6 +940,10 @@ jobs:
           # and Topology (about 2.8 each) moved to group 15. About 22.5.
           # Kubernetes Events (3.5) followed them when the second run took this
           # group 24.0: about 20.5.
+          # Dashboard Playlists (4.2 to 4.4 minutes) came back from group 14 on
+          # 2026-11-03, when the last six runs (master's of 2026-11-02 23:47,
+          # 14.0.102's first gate run and four pull request runs that day) took
+          # this group's step 14.9 to 21.4 minutes, about 17.5: about 22.
           - group: 9
             workflow_builder_shard: 2/2
             suites: >-
@@ -937,6 +953,7 @@ jobs:
               test-runbooks-menu-ui
               test-postmortems-ui
               test-archivable-values-ui
+              test-dashboard-playlists-ui
           # Added on 2026-10-22 with the second half of Event Overview (about
           # 13 minutes on a slow runner) and Navigation Search from group 2
           # (2.9 to 3.5): about 18.5 with the setup. Chromium only. Owner
@@ -1148,9 +1165,14 @@ jobs:
           # it, its week and risk, a quiet week, no card without Security
           # Events, at 1280 and 390 pixels, dark and Persian right to left):
           # still about 22.
+          # The same six runs (master's of 2026-11-02 23:47, 14.0.102's first
+          # gate run and four pull request runs that day) took this group's
+          # step 19.9 to 29.3 minutes, three of them 28.8 to 29.3: about 25.5.
+          # Global Runners (1.9 to 2.5 minutes, before #5583 added its Runners
+          # that take no AI code fixes) moved to group 4 and Asset Details (2.3
+          # to 3.0) to group 16 on 2026-11-03: about 20.5.
           - group: 13
             suites: >-
-              test-asset-details-ui
               test-logs-ai-ui
               test-external-mcp-servers-ui
               test-detail-cards-ui
@@ -1158,7 +1180,6 @@ jobs:
               test-bulk-actions-ui
               test-status-page-search-ui
               test-reading-direction-ui
-              test-global-runners-ui
               test-accounts-theme-ui
               test-data-security-ui
           # Added on 2026-10-29, when group 3's run step reached its 28 minutes
@@ -1207,11 +1228,17 @@ jobs:
           # Recommendations, the side menu, at 1280 and 390 pixels, dark,
           # German and Persian) joined them on 2026-11-02, the lightest group:
           # about 22.5.
+          # On 2026-11-03 this group's step had taken 31.2 and 32.2 minutes on
+          # the last two runs (master's of 2026-11-02 23:47, 41541694087, and
+          # 14.0.102's first gate run, 41531358316), suite for suite the same
+          # (VMware Pages 3.0 and 3.1, Proxmox Pages 3.0 and 3.2), and 22.5 to
+          # 27.5 on three pull request runs that day before VMware Pages joined
+          # it: about 30, where a group is planned at 22. Dashboard Playlists
+          # (4.2 to 4.4 minutes) moved to group 9 and Value Picker (3.4 to 3.6)
+          # to group 8: about 22.
           - group: 14
             suites: >-
-              test-value-picker-ui
               test-list-delete-ui
-              test-dashboard-playlists-ui
               test-shared-ui-ui
               test-llm-provider-test-ui
               test-episode-bulk-add-ui
@@ -1254,6 +1281,10 @@ jobs:
           # MonitorSecurityCard.spec.ts joined Monitor Overview the same day
           # (11 tests, 52 seconds locally, about half of them in this half; see
           # group 3): about 20.
+          # Asset Details (2.3 to 3.0 minutes) joined it from group 13 on
+          # 2026-11-03, when the last six runs (master's of 2026-11-02 23:47,
+          # 14.0.102's first gate run and four pull request runs that day) took
+          # this group's step 17.2 to 23.2 minutes, about 20: about 22.5.
           - group: 16
             monitor_overview_shard: 2/2
             suites: >-
@@ -1261,6 +1292,7 @@ jobs:
               test-navigation-search-ui
               test-discovery-ui
               test-ask-ai-ui
+              test-asset-details-ui
     steps:
       - uses: actions/checkout@v4
       # Core is the Community Edition by construction: it must build and pass
