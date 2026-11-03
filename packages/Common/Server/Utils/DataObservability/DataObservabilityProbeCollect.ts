@@ -322,6 +322,8 @@ function readCollectedTable(value: unknown): CollectedTable | null {
     sizeInBytes: readCount(item["sizeInBytes"]),
     writeCount: readCount(item["writeCount"]),
     secondsSinceChange: readCount(item["secondsSinceChange"]),
+    readCount: readCount(item["readCount"]),
+    secondsSinceRead: readCount(item["secondsSinceRead"]),
     columns:
       columns === null
         ? null
@@ -385,6 +387,7 @@ export function readTableHealthSnapshot(
       : now.toISOString(),
     tables,
     isComplete: item["isComplete"] === true,
+    secondsSinceStatsReset: readCount(item["secondsSinceStatsReset"]),
     target: readTableHealthTarget(item["target"]),
     checkResults: readCheckResults(item["checkResults"]),
     warnings: Array.isArray(item["warnings"])

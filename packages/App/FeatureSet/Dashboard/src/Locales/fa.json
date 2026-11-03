@@ -41602,5 +41602,17 @@
   "The alerts on tables and pipelines built from this alert's, each a consequence of it: they started acknowledged, so this alert is the one that paged.": "The alerts on tables and pipelines built from this alert's, each a consequence of it: they started acknowledged, so this alert is the one that paged.",
   "What a data monitor's alert is about - a table, a pipeline or a store - and the alert it is a consequence of, found by lineage.": "What a data monitor's alert is about - a table, a pipeline or a store - and the alert it is a consequence of, found by lineage.",
   "What this alert is about in Data Observability, what caused it upstream, and what changed around it.": "What this alert is about in Data Observability, what caused it upstream, and what changed around it.",
-  "{{writes}} writes, {{failed}} failed, in the hour last seen {{time}}": "{{writes}} writes, {{failed}} failed, in the hour last seen {{time}}"
+  "{{writes}} writes, {{failed}} failed, in the hour last seen {{time}}": "{{writes}} writes, {{failed}} failed, in the hour last seen {{time}}",
+  "Every table has been read in the last {{days}} days, or its reads cannot be counted yet.": "Every table has been read in the last {{days}} days, or its reads cannot be counted yet.",
+  "Last Written": "Last Written",
+  "None since {{date}}": "None since {{date}}",
+  "Not known": "Not known",
+  "See them": "See them",
+  "Still written, though nobody reads it": "Still written, though nobody reads it",
+  "Tables nobody has read for 90 days: candidates to archive or drop.": "Tables nobody has read for 90 days: candidates to archive or drop.",
+  "Tables nobody has read for {{days}} days, biggest first: candidates to archive or drop. A table still being written costs its writes and storage too.": "Tables nobody has read for {{days}} days, biggest first: candidates to archive or drop. A table still being written costs its writes and storage too.",
+  "Unread Since": "Unread Since",
+  "Unused Tables": "جدول‌های بلااستفاده",
+  "{{count}} tables nobody has read for 90 days hold {{size}}.": "{{count}} tables nobody has read for 90 days hold {{size}}.",
+  "{{count}} tables nobody has read for 90 days hold {{size}}._one": "{{count}} table nobody has read for 90 days holds {{size}}."
 }
