@@ -31,6 +31,12 @@ enum TelemetryIngestSurface {
   ChangeEvents = "change-events",
   // OpenLineage run events: Data Observability's pipelines and lineage.
   OpenLineage = "openlineage",
+  /*
+   * A dbt project's manifest and run results, uploaded after a build by CI
+   * or the CLI (POST /dbt/v1/artifacts). Server keys only: a build's, never
+   * a page's.
+   */
+  DbtArtifacts = "dbt-artifacts",
   SecurityEvents = "security-events",
   Grpc = "grpc",
   Mqtt = "mqtt",
@@ -132,6 +138,7 @@ const INGEST_SURFACE_READABLE_NAMES: Record<TelemetryIngestSurface, string> = {
   [TelemetryIngestSurface.KubernetesCost]: "Kubernetes cost ingest",
   [TelemetryIngestSurface.ChangeEvents]: "change event ingest",
   [TelemetryIngestSurface.OpenLineage]: "OpenLineage event ingest",
+  [TelemetryIngestSurface.DbtArtifacts]: "dbt artifacts upload",
   [TelemetryIngestSurface.SecurityEvents]: "security event ingest",
   [TelemetryIngestSurface.Grpc]: "gRPC ingest",
   [TelemetryIngestSurface.Mqtt]: "MQTT ingest",

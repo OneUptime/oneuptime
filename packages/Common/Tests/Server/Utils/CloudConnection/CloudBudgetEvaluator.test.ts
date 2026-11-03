@@ -299,32 +299,38 @@ describe("what a budget does", () => {
   });
 
   test("says what was spent, of what, and where the month is heading", () => {
-    const threshold: { title: string; description: string } =
-      CloudBudgetEvaluator.describe({
-        budgetName: "Production",
-        scope: "every cloud account of the project",
-        amount: 1000,
-        currency: "USD",
-        spend: spend({ spent: 812.5, projected: 1240 }),
-        alert: { kind: "threshold", threshold: 80 },
-        now: NOW,
-      });
+    const threshold: {
+      title: string;
+      description: string;
+      rootCause?: string | undefined;
+    } = CloudBudgetEvaluator.describe({
+      budgetName: "Production",
+      scope: "every cloud account of the project",
+      amount: 1000,
+      currency: "USD",
+      spend: spend({ spent: 812.5, projected: 1240 }),
+      alert: { kind: "threshold", threshold: 80 },
+      now: NOW,
+    });
 
     expect(threshold.title).toBe('Cloud budget "Production" passed 80%');
     expect(threshold.description).toBe(
       "This month's cloud spend for every cloud account of the project is $812.50 of the $1,000.00 budget (81%), with 10 days of the month to go. At the pace of the last full week, the month is on course for $1,240.00.",
     );
 
-    const projection: { title: string; description: string } =
-      CloudBudgetEvaluator.describe({
-        budgetName: "Production",
-        scope: "the web account (AWS 123456789012)",
-        amount: 1000,
-        currency: "EUR",
-        spend: spend({ spent: 600, projected: 1100 }),
-        alert: { kind: "projection" },
-        now: new Date("2026-11-29T12:00:00.000Z"),
-      });
+    const projection: {
+      title: string;
+      description: string;
+      rootCause?: string | undefined;
+    } = CloudBudgetEvaluator.describe({
+      budgetName: "Production",
+      scope: "the web account (AWS 123456789012)",
+      amount: 1000,
+      currency: "EUR",
+      spend: spend({ spent: 600, projected: 1100 }),
+      alert: { kind: "projection" },
+      now: new Date("2026-11-29T12:00:00.000Z"),
+    });
 
     expect(projection.title).toBe(
       'Cloud budget "Production" is on course to be passed',

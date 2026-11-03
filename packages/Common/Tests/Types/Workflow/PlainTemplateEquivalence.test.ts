@@ -57,7 +57,12 @@ const CHANGED: Array<string> = [
   "monitor-offline-only-slack",
 ];
 
-const INTEGRATION_TEMPLATE: RegExp = /^(jira|dynamics|zabbix|huntress)-/;
+/*
+ * An integration's templates, which their own suites hold. The Datadog and
+ * New Relic ones were built simple, so there is no old graph to hold them to.
+ */
+const INTEGRATION_TEMPLATE: RegExp =
+  /^(jira|dynamics|zabbix|huntress|datadog|new-relic)-/;
 
 interface Shape {
   nodes: Record<string, { metadataId: string; arguments: JSONValue }>;

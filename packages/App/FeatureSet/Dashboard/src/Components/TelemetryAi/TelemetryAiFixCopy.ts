@@ -98,6 +98,9 @@ export const TELEMETRY_AI_FIX_LEADS: Readonly<
   [AIInsightType.MetricMissingMetrics]: translationKey(
     "OneUptime AI opens a pull request that adds metrics to this service, for you to review.",
   ),
+  [AIInsightType.MetricMissingRequestMetrics]: translationKey(
+    "OneUptime AI opens a pull request that adds request metrics to this service, for you to review.",
+  ),
 };
 
 /*
