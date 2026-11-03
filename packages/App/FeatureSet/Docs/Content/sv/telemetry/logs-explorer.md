@@ -108,7 +108,7 @@ Sök, filtrera och välj de kolumner du vill behålla.
 Välj vyn i **Sparade vyer** för att använda den, och **Rensa vy** för att gå tillbaka till den senaste timmen utan filter. Peka på en vy i listan för att **Redigera** eller **Ta bort** den, eller, medan den används, för att **Uppdatera** den med dina ändringar.
 :::
 
-Sparade vyer hör till projektet, så alla i det ser samma lista. Ett rullande intervall som den senaste timmen fortsätter att rulla: vyn visar timmen innan du öppnar den, inte timmen då du sparade den. Så länge projektet saknar en standardvy blir nästa sparade vy standard, och ett projekt har en standard i taget.
+Sparade vyer hör till projektet, så alla i det ser samma vyer, och varje vy stannar på sidan där den sparades: en vy som sparats på sidan Loggar visas på sidan Loggar, och en vy som sparats på fliken Loggar för en resurs, till exempel ett Kubernetes-kluster eller en värd, visas bara på den fliken. Ett rullande intervall som den senaste timmen fortsätter att rulla: vyn visar timmen innan du öppnar den, inte timmen då du sparade den. Så länge en sida saknar en standardvy blir nästa vy som sparas på den sidans standard, och varje sida har en standard i taget.
 
 ## Visa dina loggar i diagram
 

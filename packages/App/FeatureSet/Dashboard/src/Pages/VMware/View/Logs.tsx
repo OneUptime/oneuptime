@@ -16,6 +16,10 @@ import PageLoader from "Common/UI/Components/Loader/PageLoader";
 import ErrorMessage from "Common/UI/Components/ErrorMessage/ErrorMessage";
 import { PromiseVoidFunction } from "Common/Types/FunctionTypes";
 import DashboardLogsViewer from "../../../Components/Logs/LogsViewer";
+import {
+  buildSavedViewScope,
+  SavedViewScopeKind,
+} from "Common/Utils/Telemetry/SavedViewScope";
 import Query from "Common/Types/BaseDatabase/Query";
 import Log from "Common/Models/AnalyticsModels/Log";
 import ProjectUtil from "Common/UI/Utils/Project";
@@ -104,6 +108,10 @@ const VMwareVCenterLogs: FunctionComponent<
        */}
       <DashboardLogsViewer
         id={`vmware-vcenter-logs-${modelId.toString()}`}
+        savedViewScope={buildSavedViewScope(
+          SavedViewScopeKind.VMwareVCenter,
+          modelId,
+        )}
         logQuery={logQuery}
         attributeFilterDisplayKeys={{
           "resource.vmware.vcenter.name": "vCenter",

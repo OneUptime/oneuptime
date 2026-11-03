@@ -108,7 +108,7 @@ Suchen, filtern und wählen Sie die Spalten, die Sie behalten möchten.
 Wählen Sie die Ansicht unter **Gespeicherte Ansichten**, um sie anzuwenden, und **Ansicht zurücksetzen**, um zur letzten Stunde ohne Filter zurückzukehren. Zeigen Sie auf eine Ansicht in der Liste, um sie zu **Bearbeiten** oder zu **Löschen**, oder, solange sie angewendet ist, um sie mit Ihren Änderungen zu **Aktualisieren**.
 :::
 
-Gespeicherte Ansichten gehören zum Projekt, alle darin sehen also dieselbe Liste. Ein fortlaufender Zeitraum wie die letzte Stunde bleibt fortlaufend: Die Ansicht zeigt die Stunde vor dem Öffnen, nicht die Stunde, in der Sie sie gespeichert haben. Solange das Projekt keine Standardansicht hat, wird die nächste gespeicherte Ansicht zum Standard, und ein Projekt hat immer nur einen Standard.
+Gespeicherte Ansichten gehören zum Projekt, alle darin sehen also dieselben Ansichten, und jede Ansicht bleibt auf der Seite, auf der sie gespeichert wurde: Eine auf der Seite Protokolle gespeicherte Ansicht erscheint auf der Seite Protokolle, und eine auf dem Tab Protokolle einer Ressource gespeicherte Ansicht, etwa eines Kubernetes-Clusters oder eines Hosts, erscheint nur auf diesem Tab. Ein fortlaufender Zeitraum wie die letzte Stunde bleibt fortlaufend: Die Ansicht zeigt die Stunde vor dem Öffnen, nicht die Stunde, in der Sie sie gespeichert haben. Solange eine Seite keine Standardansicht hat, wird die nächste dort gespeicherte Ansicht zu ihrem Standard, und jede Seite hat immer nur einen Standard.
 
 ## Ihre Protokolle in Diagrammen darstellen
 
