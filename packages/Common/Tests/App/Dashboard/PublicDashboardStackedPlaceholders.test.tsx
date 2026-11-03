@@ -49,6 +49,7 @@ function stubWidget(kind: string): () => {
           "data-testid": `widget-${id}`,
           "data-kind": kind,
           "data-height": String(props["dashboardComponentHeightInPx"]),
+          "data-board-height": String(props["dashboardCanvasHeightInPx"]),
         });
       },
     };
@@ -233,6 +234,13 @@ function heightOf(key: string): number {
   );
 }
 
+// The board's height a widget is handed.
+function boardHeightAsTold(key: string): number {
+  return Number(
+    screen.getByTestId(`widget-${ID[key]}`).getAttribute("data-board-height"),
+  );
+}
+
 function wrapperHeight(key: string): string {
   return document.getElementById(`dashboard-component-${ID[key]}`)!.style
     .height;
@@ -282,6 +290,21 @@ describe("a phone's public dashboard: a widget it cannot draw takes the room of 
     ]) {
       expect([key, heightOf(key)]).toEqual([key, TWO_ROWS]);
       expect([key, wrapperHeight(key)]).toEqual([key, `${TWO_ROWS}px`]);
+    }
+
+    /*
+     * The board's height, as every widget is told it, is the stack they
+     * are drawn in: each widget's height and a 10px gap between each two.
+     */
+    const keys: Array<string> = Object.keys(ID);
+    const stacked: number =
+      keys.reduce((total: number, key: string): number => {
+        return total + heightOf(key);
+      }, 0) +
+      (keys.length - 1) * 10;
+
+    for (const key of keys) {
+      expect([key, boardHeightAsTold(key)]).toEqual([key, stacked]);
     }
   });
 

@@ -340,18 +340,39 @@ describe("on a public dashboard, every widget it cannot draw shows one placehold
 });
 
 describe("inside OneUptime, a read that fails is still an error", () => {
-  test("a log chart whose read fails says why, as an error, not as a placeholder", async () => {
-    apiPostMock.mockImplementation(() => {
-      return Promise.reject(new Error("analytics unavailable"));
-    });
+  /*
+   * The log and trace charts, the trace table (API.post) and the security
+   * events flow (AnalyticsModelAPI): a read refused says why, as the error
+   * it is - the placeholder is a public dashboard's.
+   */
+  for (const name of [
+    "Log Chart",
+    "Trace Chart",
+    "Trace Table",
+    "Security Events Flow",
+  ]) {
+    test(`${name}: a read that fails says why, as an error, not as a placeholder`, async () => {
+      apiPostMock.mockImplementation(() => {
+        return Promise.reject(new Error("analytics unavailable"));
+      });
+      analyticsListMock.mockImplementation(() => {
+        return Promise.reject(new Error("analytics unavailable"));
+      });
 
-    render(WIDGETS[0]!.element(buildBaseProps(), WIDGETS[0]!.component()));
+      const widget: WidgetUnderTest = WIDGETS.find(
+        (candidate: WidgetUnderTest): boolean => {
+          return candidate.name === name;
+        },
+      )!;
 
-    await waitFor(() => {
-      expect(screen.getByText("analytics unavailable")).toBeInTheDocument();
+      render(widget.element(buildBaseProps(), widget.component()));
+
+      await waitFor(() => {
+        expect(screen.getByText("analytics unavailable")).toBeInTheDocument();
+      });
+      expect(
+        screen.queryByTestId(WIDGET_PLACEHOLDER_TEST_ID),
+      ).not.toBeInTheDocument();
     });
-    expect(
-      screen.queryByTestId(WIDGET_PLACEHOLDER_TEST_ID),
-    ).not.toBeInTheDocument();
-  });
+  }
 });

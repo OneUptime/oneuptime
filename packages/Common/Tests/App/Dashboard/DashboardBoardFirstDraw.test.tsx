@@ -881,12 +881,15 @@ describe("the board follows a new width in the frame it comes in", () => {
     expect(observers).toHaveLength(0);
 
     const drawnBefore: number = renders[ID["title"]!]!.length;
+    const readsBefore: number = boardAtMeasures.length;
 
     act(() => {
       boardClientWidth = 600;
       window.dispatchEvent(new Event("resize"));
     });
 
+    // Not read again, and nothing drawn again.
+    expect(boardAtMeasures).toHaveLength(readsBefore);
     expect(renders[ID["title"]!]!).toHaveLength(drawnBefore);
   });
 
