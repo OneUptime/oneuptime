@@ -291,6 +291,31 @@ export function useDashboardNavigationItems(): DashboardNavigationItems {
       category: observabilityCategory,
     },
     {
+      title: t("navbar.items.dataObservabilityTitle", "Data Observability"),
+      keywords: [
+        "data quality",
+        "data freshness",
+        "stale tables",
+        "row count",
+        "schema changes",
+        "table health",
+        "data pipelines",
+        "data catalog",
+      ],
+      description: t(
+        "navbar.items.dataObservabilityDescription",
+        "Know when a table goes stale, shrinks or changes shape - and which tables in your databases are late.",
+      ),
+      // The overview opens the product; every Data Observability page keeps it lit.
+      route: RouteUtil.populateRouteParams(
+        RouteMap[PageMap.DATA_OBSERVABILITY_OVERVIEW] as Route,
+      ),
+      activeRoute: RouteMap[PageMap.DATA_OBSERVABILITY],
+      icon: IconProp.TableCells,
+      iconColor: "cyan",
+      category: observabilityCategory,
+    },
+    {
       title: t("navbar.items.topologyTitle"),
       keywords: [
         "service map",
@@ -757,8 +782,9 @@ export function useDashboardNavigationItems(): DashboardNavigationItems {
     },
     // Cloud: the accounts, the apps on the clouds' platforms, their functions.
     /*
-     * The cloud accounts connected to OneUptime and every resource in them.
-     * It lands on the accounts; every page under /cloud keeps it lit.
+     * The cloud accounts connected to OneUptime and every resource in them,
+     * what they cost and how to spend less. It lands on Cloud's Overview;
+     * every page under /cloud keeps it lit.
      */
     {
       title: t("navbar.items.cloudTitle"),
@@ -780,13 +806,19 @@ export function useDashboardNavigationItems(): DashboardNavigationItems {
         "s3",
         "virtual machines",
         "load balancers",
+        "cloud costs",
+        "cloud spend",
+        "cloud budgets",
+        "rightsizing",
+        "cost explorer",
+        "finops",
       ],
       description: t(
         "navbar.items.cloudDescription",
         "Connect your AWS, Azure and Google Cloud accounts and monitor every resource in them.",
       ),
       route: RouteUtil.populateRouteParams(
-        RouteMap[PageMap.CLOUD_ACCOUNTS] as Route,
+        RouteMap[PageMap.CLOUD_OVERVIEW] as Route,
       ),
       activeRoute: RouteMap[PageMap.CLOUD_ROOT],
       icon: IconProp.Cloud,

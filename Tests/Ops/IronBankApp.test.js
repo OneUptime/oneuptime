@@ -5,18 +5,18 @@
  * on Iron Bank's base image.
  *
  * Iron Bank builds IronBank/App/Dockerfile in its own pipeline, offline, and the
- * Dockerfile copies /usr/src out of the release's Community Edition image
+ * Dockerfile copies /usr/src out of the release's Enterprise Edition image
  * (IronBank/README.md). A COPY --from brings files and nothing else, so the
- * Dockerfile sets again everything the release's runtime and community stages
+ * Dockerfile sets again everything the release's runtime and enterprise stages
  * set. Nothing would notice a start command, a user, an environment variable or
  * a package the App's Dockerfile changed and the Iron Bank one kept, until a
  * DoD installation ran it. So this holds IronBank/App to
  * packages/App/Dockerfile.tpl as `npm run prerun` renders it for production:
  *
- *   - the community stage's start command, user, working directory, ports and
- *     environment (with the runtime stage it starts from), the runtime
- *     stage's commands (bash, curl, npm's cache directory) and what the
- *     community stage copies;
+ *   - the enterprise stage's start command, user, working directory, ports and
+ *     environment (with the runtime stage it starts from), both stages'
+ *     commands (bash, curl, the PostgreSQL clients, npm's cache directory) and
+ *     what the enterprise stage copies;
  *   - every label of the release, from the manifest or the Dockerfile;
  *   - one release everywhere: the manifest's first tag, version label and
  *     resource, the release stage, APP_VERSION, GIT_SHA and the revision
@@ -26,8 +26,11 @@
  *     the manifest's args fill, nothing from the network but Alpine packages,
  *     no ADD, a user that is not root, an absolute WORKDIR;
  *   - the manifest's labels within what Iron Bank's schema allows, the LICENSE
- *     the repository's, Renovate's patterns matching the base tag in both files,
- *     and IronBank/Justifications/App.yaml readable by NewFindings.js.
+ *     the repository's followed by ee/'s, Renovate's patterns matching the base
+ *     tag in both files, and IronBank/Justifications/App.yaml readable by
+ *     NewFindings.js;
+ *   - every file Repo1 gets tracked by git and not ignored: the repository's
+ *     rule that ignores rendered Dockerfiles once kept this one out.
  *
  * Iron Bank's schema, its FIXME check and its semgrep rules run in the Iron
  * Bank Preflight workflow (Scripts/IronBank/lint.sh), as Repo1 serves them
@@ -37,6 +40,7 @@
 const fs = require("fs");
 const path = require("path");
 const yaml = require("js-yaml");
+const { spawnSync } = require("child_process");
 
 const {
   render,
@@ -51,6 +55,30 @@ const PROJECT = "IronBank/App";
 
 function read(relativePath) {
   return fs.readFileSync(path.join(REPO_ROOT, relativePath), "utf8");
+}
+
+/*
+ * git, which says what a clone of the repository holds; failing loudly when it
+ * cannot run, rather than passing on nothing.
+ */
+function git(args) {
+  const result = spawnSync("git", args, { cwd: REPO_ROOT, encoding: "utf8" });
+  if (result.error) {
+    throw new Error(`Could not run git ${args.join(" ")}: ${result.error}`);
+  }
+  return result;
+}
+
+/*
+ * `git check-ignore` exits 0 for an ignored path and 1 for one that is not,
+ * including one a later negation rescues.
+ */
+function isGitIgnored(relativePath) {
+  const result = git(["check-ignore", "--quiet", "--no-index", relativePath]);
+  if (result.status !== 0 && result.status !== 1) {
+    throw new Error(`git check-ignore failed for ${relativePath}`);
+  }
+  return result.status === 0;
 }
 
 const dockerfileText = read(`${PROJECT}/Dockerfile`);
@@ -69,13 +97,13 @@ const appStages = parseStages(
 const runtimeStage = appStages.find((stage) => {
   return stage.name === "runtime";
 });
-const communityStage = appStages.find((stage) => {
-  return stage.name === "community";
+const enterpriseStage = appStages.find((stage) => {
+  return stage.name === "enterprise";
 });
-// What the community image is: the runtime stage, then the community stage.
-const communityInstructions = [
+// What the enterprise image is: the runtime stage, then the enterprise stage.
+const enterpriseInstructions = [
   ...instructions(runtimeStage.body),
-  ...instructions(communityStage.body),
+  ...instructions(enterpriseStage.body),
 ];
 
 const VERSION = manifest.labels["org.opencontainers.image.version"];
@@ -163,27 +191,29 @@ describe("IronBank/App runs the image the release runs", () => {
       }),
     ).toEqual(["release", null]);
     expect(runtimeStage).toBeDefined();
-    expect(communityStage).toBeDefined();
-    expect(communityStage.from).toBe("runtime");
-    expect(communityInstructions.length).toBeGreaterThan(10);
+    expect(enterpriseStage).toBeDefined();
+    expect(enterpriseStage.from).toBe("runtime");
+    expect(enterpriseInstructions.length).toBeGreaterThan(10);
   });
 
   test("the same start command, user, working directory and ports", () => {
     for (const keyword of ["CMD", "USER", "WORKDIR"]) {
       expect({ keyword, ironBank: last(finalInstructions, keyword) }).toEqual({
         keyword,
-        ironBank: last(communityInstructions, keyword),
+        ironBank: last(enterpriseInstructions, keyword),
       });
     }
     expect(all(finalInstructions, "EXPOSE")).toEqual(
-      all(communityInstructions, "EXPOSE"),
+      all(enterpriseInstructions, "EXPOSE"),
     );
   });
 
   test("the same environment, with the release's version and commit for its build arguments", () => {
-    const expected = pairs(communityInstructions, "ENV");
+    const expected = pairs(enterpriseInstructions, "ENV");
     const environment = pairs(finalInstructions, "ENV");
 
+    // The Enterprise loader's marker: ee/ must load.
+    expect(expected["ONEUPTIME_EDITION"]).toBe("enterprise");
     // Read from the release's image by PinRelease.js.
     expect(expected["APP_VERSION"]).toBe("${APP_VERSION}");
     expect(expected["GIT_SHA"]).toBe("${GIT_SHA}");
@@ -198,7 +228,7 @@ describe("IronBank/App runs the image the release runs", () => {
   });
 
   test("every label of the release, from the manifest or the Dockerfile", () => {
-    const expected = pairs(communityInstructions, "LABEL");
+    const expected = pairs(enterpriseInstructions, "LABEL");
     const labels = { ...manifest.labels, ...pairs(finalInstructions, "LABEL") };
     const gitSha = pairs(finalInstructions, "ENV")["GIT_SHA"];
 
@@ -223,23 +253,24 @@ describe("IronBank/App runs the image the release runs", () => {
     }
   });
 
-  test("the runtime stage's commands, except updating npm, which Iron Bank's base image brings", () => {
-    const runtime = commands(instructions(runtimeStage.body)).filter(
-      (command) => {
-        return !command.includes("UpdateNpmCli");
-      },
-    );
+  test("both stages' commands, except updating npm, which Iron Bank's base image brings", () => {
+    const release = commands(enterpriseInstructions).filter((command) => {
+      return !command.includes("UpdateNpmCli");
+    });
 
-    expect(runtime).toEqual(
-      expect.arrayContaining(["apk add --no-cache bash curl"]),
+    expect(release).toEqual(
+      expect.arrayContaining([
+        "apk add --no-cache bash curl",
+        "apk add --no-cache postgresql16-client postgresql17-client postgresql18-client",
+      ]),
     );
     expect(commands(finalInstructions)).toEqual(
-      expect.arrayContaining(runtime),
+      expect.arrayContaining(release),
     );
   });
 
-  test("/usr/src out of the release, as the community stage copies it out of its build", () => {
-    expect(copiesFrom(instructions(communityStage.body))).toEqual([
+  test("/usr/src out of the release, as the enterprise stage copies it out of its build", () => {
+    expect(copiesFrom(instructions(enterpriseStage.body))).toEqual([
       "/usr/src /usr/src",
     ]);
     expect(all(finalInstructions, "COPY")).toEqual([
@@ -258,12 +289,12 @@ describe("IronBank/App pins one release everywhere", () => {
     expect(manifest.tags[0]).toBe(VERSION);
     expect(manifest.resources).toEqual([
       {
-        tag: `oneuptime/app:${VERSION}`,
+        tag: `oneuptime/app:enterprise-${VERSION}`,
         url: `docker://docker.io/oneuptime/app@${digest}`,
       },
     ]);
     expect(digest).toMatch(/^sha256:[0-9a-f]{64}$/);
-    expect(releaseStage.from).toBe(`oneuptime/app:${VERSION}`);
+    expect(releaseStage.from).toBe(`oneuptime/app:enterprise-${VERSION}`);
     expect(pairs(finalInstructions, "LABEL")).toEqual(
       expect.objectContaining({
         "org.opencontainers.image.revision": gitSha,
@@ -297,11 +328,13 @@ describe("IronBank/App pins one release everywhere", () => {
     expect(moved.labels["org.opencontainers.image.version"]).toBe("99.1.2");
     expect(moved.resources).toEqual([
       {
-        tag: "oneuptime/app:99.1.2",
+        tag: "oneuptime/app:enterprise-99.1.2",
         url: `docker://docker.io/oneuptime/app@${next.digest}`,
       },
     ]);
-    expect(parseStages(pinned.dockerfile)[0].from).toBe("oneuptime/app:99.1.2");
+    expect(parseStages(pinned.dockerfile)[0].from).toBe(
+      "oneuptime/app:enterprise-99.1.2",
+    );
     expect(pairs(movedInstructions, "ENV")).toEqual(
       expect.objectContaining({
         APP_VERSION: "99.1.2",
@@ -385,9 +418,8 @@ describe("IronBank/App's other files", () => {
         printable: true,
       });
     }
-    expect(["opensource", "commercial"]).toContain(
-      manifest.labels["mil.dso.ironbank.image.type"],
-    );
+    // ee/ is under the OneUptime Enterprise License, not an open-source one.
+    expect(manifest.labels["mil.dso.ironbank.image.type"]).toBe("commercial");
   });
 
   test("the manifest is v1, names its maintainers, and tags the release first", () => {
@@ -402,8 +434,34 @@ describe("IronBank/App's other files", () => {
     }
   });
 
-  test("LICENSE is the repository's", () => {
-    expect(read(`${PROJECT}/LICENSE`)).toBe(read("LICENSE"));
+  test("LICENSE is the repository's, followed by ee/'s, which the image carries too", () => {
+    const license = read(`${PROJECT}/LICENSE`);
+
+    expect(license.startsWith(read("LICENSE"))).toBe(true);
+    expect(license.endsWith(read("ee/LICENSE"))).toBe(true);
+  });
+
+  test("every file Repo1 gets is in git: none is ignored, and each is tracked", () => {
+    // The repo-wide **/Dockerfile rule, for the Dockerfiles configure.sh
+    // renders, swallowed this project's: it merged without its Dockerfile.
+    const files = [
+      "Dockerfile",
+      "hardening_manifest.yaml",
+      "LICENSE",
+      "README.md",
+      "renovate.json",
+    ];
+    const tracked = git(["ls-files", "--", PROJECT]).stdout.split("\n");
+
+    for (const file of files) {
+      expect({
+        file,
+        ignored: isGitIgnored(`${PROJECT}/${file}`),
+        tracked: tracked.includes(`${PROJECT}/${file}`),
+      }).toEqual({ file, ignored: false, tracked: true });
+    }
+    // The negation that rescues it must not have widened to those.
+    expect(isGitIgnored("packages/App/Dockerfile")).toBe(true);
   });
 
   test("README.md says what the image is", () => {

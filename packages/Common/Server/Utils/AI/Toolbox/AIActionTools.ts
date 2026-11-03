@@ -41,8 +41,108 @@ import {
   ToolContext,
   ToolExecutionResult,
 } from "./ToolTypes";
+import {
+  AI_ACTION_TITLES,
+  AIActionSentence,
+  aiActionSentence,
+} from "../../../../Types/AI/AIActionWords";
+import {
+  getRecordTitleName,
+  prepareRecordNamesInTitle,
+  RecordNames,
+} from "./RecordNamesForPerson";
 
 import FeedMarkdown from "../../../../Utils/Markdown/FeedMarkdown";
+
+/*
+ * The cards' titles: each record by the name or the number the person
+ * knows it by, once the prepare read it, else by the call's ID.
+ *
+ * A page and a run name the incident they are for too, once the person's
+ * read named it ("Page on-call policy "Checkout" for incident INC-42"):
+ * the card's line of arguments otherwise showed its ID. An incident the
+ * prepare could not name stays on that line, as the call names it.
+ */
+function buildPageOnCallPolicyTitle(
+  args: JSONObject,
+  names: RecordNames,
+): AIActionSentence {
+  const policy: string | undefined = getRecordTitleName(
+    args,
+    names,
+    "onCallDutyPolicyId",
+  );
+
+  if (!policy) {
+    return aiActionSentence(AI_ACTION_TITLES.pageOnCallPolicyUnnamed);
+  }
+
+  return names.incidentId
+    ? aiActionSentence(AI_ACTION_TITLES.pageOnCallPolicyForIncident, {
+        policy,
+        incident: names.incidentId,
+      })
+    : aiActionSentence(AI_ACTION_TITLES.pageOnCallPolicy, { policy });
+}
+
+function buildRunRunbookTitle(
+  args: JSONObject,
+  names: RecordNames,
+): AIActionSentence {
+  const runbook: string | undefined = getRecordTitleName(
+    args,
+    names,
+    "runbookId",
+  );
+
+  if (!runbook) {
+    return aiActionSentence(AI_ACTION_TITLES.runRunbookUnnamed);
+  }
+
+  return names.incidentId
+    ? aiActionSentence(AI_ACTION_TITLES.runRunbookForIncident, {
+        runbook,
+        incident: names.incidentId,
+      })
+    : aiActionSentence(AI_ACTION_TITLES.runRunbook, { runbook });
+}
+
+function buildPostIncidentStatusUpdateTitle(
+  args: JSONObject,
+  names: RecordNames,
+): AIActionSentence {
+  const incident: string | undefined = getRecordTitleName(
+    args,
+    names,
+    "incidentId",
+  );
+
+  return incident
+    ? aiActionSentence(AI_ACTION_TITLES.postIncidentStatusUpdate, {
+        incident,
+      })
+    : aiActionSentence(AI_ACTION_TITLES.postIncidentStatusUpdateUnnamed);
+}
+
+function buildChangeIncidentSeverityTitle(
+  args: JSONObject,
+  names: RecordNames,
+): AIActionSentence {
+  const incident: string | undefined = getRecordTitleName(
+    args,
+    names,
+    "incidentId",
+  );
+  const severity: string | undefined = ToolArgs.getString(args, "severityName");
+
+  return incident && severity
+    ? aiActionSentence(AI_ACTION_TITLES.changeIncidentSeverity, {
+        incident,
+        severity,
+      })
+    : aiActionSentence(AI_ACTION_TITLES.changeIncidentSeverityUnnamed);
+}
+
 /*
  * AI "action belt" — Phase 0.
  *
@@ -121,9 +221,14 @@ export const PageOnCallPolicyTool: ObservabilityTool = {
     return resolveExecutionLogCreatePermissions();
   },
   isMutation: true,
-  buildActionTitle: (args: JSONObject): string => {
-    return `Page on-call policy ${ToolArgs.getString(args, "onCallDutyPolicyId") || ""}`.trim();
+  buildActionTitle: (args: JSONObject): AIActionSentence => {
+    return buildPageOnCallPolicyTitle(args, {});
   },
+  // The policy by its name and the incident by its number, as the person knows them.
+  prepareMutation: prepareRecordNamesInTitle({
+    keys: ["onCallDutyPolicyId", "incidentId"],
+    buildTitle: buildPageOnCallPolicyTitle,
+  }),
   execute: async (
     args: JSONObject,
     ctx: ToolContext,
@@ -291,9 +396,17 @@ export const RunRunbookTool: ObservabilityTool = {
     return [...RUNBOOK_RUN_PERMISSIONS];
   },
   isMutation: true,
-  buildActionTitle: (args: JSONObject): string => {
-    return `Run runbook ${ToolArgs.getString(args, "runbookId") || ""}`.trim();
+  buildActionTitle: (args: JSONObject): AIActionSentence => {
+    return buildRunRunbookTitle(args, {});
   },
+  /*
+   * The runbook by its name and, when the run is for one, the incident by
+   * its number, as the person knows them.
+   */
+  prepareMutation: prepareRecordNamesInTitle({
+    keys: ["runbookId", "incidentId"],
+    buildTitle: buildRunRunbookTitle,
+  }),
   execute: async (
     args: JSONObject,
     ctx: ToolContext,
@@ -469,9 +582,14 @@ export const PostIncidentStatusUpdateTool: ObservabilityTool = {
     return resolvePublicNoteCreatePermissions();
   },
   isMutation: true,
-  buildActionTitle: (args: JSONObject): string => {
-    return `Post public status update on incident ${ToolArgs.getString(args, "incidentId") || ""}`.trim();
+  buildActionTitle: (args: JSONObject): AIActionSentence => {
+    return buildPostIncidentStatusUpdateTitle(args, {});
   },
+  // The incident by its number, as the person knows it.
+  prepareMutation: prepareRecordNamesInTitle({
+    keys: ["incidentId"],
+    buildTitle: buildPostIncidentStatusUpdateTitle,
+  }),
   execute: async (
     args: JSONObject,
     ctx: ToolContext,
@@ -623,9 +741,14 @@ export const ChangeIncidentSeverityTool: ObservabilityTool = {
     return resolveIncidentUpdatePermissions();
   },
   isMutation: true,
-  buildActionTitle: (args: JSONObject): string => {
-    return `Change incident ${ToolArgs.getString(args, "incidentId") || ""} severity to ${ToolArgs.getString(args, "severityName") || ""}`.trim();
+  buildActionTitle: (args: JSONObject): AIActionSentence => {
+    return buildChangeIncidentSeverityTitle(args, {});
   },
+  // The incident by its number, as the person knows it.
+  prepareMutation: prepareRecordNamesInTitle({
+    keys: ["incidentId"],
+    buildTitle: buildChangeIncidentSeverityTitle,
+  }),
   execute: async (
     args: JSONObject,
     ctx: ToolContext,

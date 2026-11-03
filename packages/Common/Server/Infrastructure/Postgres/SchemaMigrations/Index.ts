@@ -263,7 +263,10 @@ import { AddNetworkControllerConnectionLastDeviceAdd1808900000000 } from "./1808
 import { AddDataObservability1808910000000 } from "./1808910000000-AddDataObservability";
 import { AddDataObservabilityStoreIndex1808910100000 } from "./1808910100000-AddDataObservabilityStoreIndex";
 import { AddStatusPageMagicLinkLogin1808920000000 } from "./1808920000000-AddStatusPageMagicLinkLogin";
-import { AddDatabaseServerEngineReadings1808931500000 } from "./1808931500000-AddDatabaseServerEngineReadings";
+import { AddDataAssetFeedUser1808930000000 } from "./1808930000000-AddDataAssetFeedUser";
+import { AddCloudCostsAndResourceHealth1808950000000 } from "./1808950000000-AddCloudCostsAndResourceHealth";
+import { AddCloudResourceHealthSeverityIndex1808960000000 } from "./1808960000000-AddCloudResourceHealthSeverityIndex";
+import { AddDatabaseServerEngineReadings1808990000000 } from "./1808990000000-AddDatabaseServerEngineReadings";
 import { AddConfigurableRuleCriteria1792500000000 } from "./1792500000000-AddConfigurableRuleCriteria";
 import { AddGoogleSecOpsDiagnostics1792300000000 } from "./1792300000000-AddGoogleSecOpsDiagnostics";
 import { AddIncomingCallPolicyPhoneNumbers1792600000000 } from "./1792600000000-AddIncomingCallPolicyPhoneNumbers";
@@ -1729,5 +1732,8 @@ export default [
   AddDataObservability1808910000000,
   AddDataObservabilityStoreIndex1808910100000,
   AddStatusPageMagicLinkLogin1808920000000,
-  AddDatabaseServerEngineReadings1808931500000,
+  AddDataAssetFeedUser1808930000000,
+  AddCloudCostsAndResourceHealth1808950000000,
+  AddCloudResourceHealthSeverityIndex1808960000000,
+  AddDatabaseServerEngineReadings1808990000000,
 ];

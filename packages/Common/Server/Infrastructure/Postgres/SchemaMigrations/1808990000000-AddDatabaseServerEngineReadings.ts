@@ -13,10 +13,10 @@ import { MigrationInterface, QueryRunner } from "typeorm";
  * columns with no default, so adding them rewrites nothing and existing
  * databases start empty until their engine's next batch arrives.
  */
-export class AddDatabaseServerEngineReadings1808931500000
+export class AddDatabaseServerEngineReadings1808990000000
   implements MigrationInterface
 {
-  public name: string = "AddDatabaseServerEngineReadings1808931500000";
+  public name: string = "AddDatabaseServerEngineReadings1808990000000";
 
   public async up(queryRunner: QueryRunner): Promise<void> {
     await queryRunner.query(

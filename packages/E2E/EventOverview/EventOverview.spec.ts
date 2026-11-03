@@ -19080,8 +19080,12 @@ test.describe("an action linking what a record is about waits for approval (issu
     await expect(prompt.getByTestId("tool-approval-description")).toHaveText(
       ADDS_HOST,
     );
-    // The arguments line keeps the incident and leaves the list out.
-    await expect(prompt).toContainText(`incidentId: ${INCIDENT_ID}`);
+    /*
+     * The title names the incident by its number, and the line names the
+     * host: neither's ID is repeated in the arguments.
+     */
+    await expect(prompt).not.toContainText("incidentId");
+    await expect(prompt).not.toContainText(INCIDENT_ID);
     await expect(prompt).not.toContainText("affectedResources");
     await expect(prompt).not.toContainText(HOST_ID);
 
@@ -19117,7 +19121,7 @@ test.describe("an action linking what a record is about waits for approval (issu
     await expect(prompt.getByTestId("tool-approval-description")).toHaveText(
       ADDS_HOST,
     );
-    await expect(prompt).toContainText(`alertId: ${ALERT_ID}`);
+    await expect(prompt).not.toContainText(ALERT_ID);
     await expect(prompt).not.toContainText(HOST_ID);
   });
 
@@ -19217,6 +19221,108 @@ test.describe("an action linking what a record is about waits for approval (issu
     expect(Math.abs(choiceBox!.y - titleBox!.y)).toBeLessThan(8);
     expect(choiceBox!.x).toBeGreaterThan(titleBox!.x + titleBox!.width);
   });
+
+  /*
+   * The server stores the card's title and line as sentences beside their
+   * English, and the incident's conversation says them in the reader's
+   * language: German, and Persian read right to left - the incident's
+   * number and the host's name as written, set apart in a Persian
+   * sentence. Its words are read from the locale file the page draws.
+   */
+  for (const language of ["de", "fa"]) {
+    test(`the card says it in the reader's language (?lang=${language})`, async ({
+      page,
+    }: {
+      page: Page;
+    }) => {
+      const words: Record<string, string> = JSON.parse(
+        await fs.readFile(
+          path.resolve(
+            __dirname,
+            "../../App/FeatureSet/Dashboard/src/Locales",
+            `${language}.json`,
+          ),
+          "utf8",
+        ),
+      ) as Record<string, string>;
+      const sentence: (
+        key: string,
+        values: Record<string, string>,
+      ) => string = (key: string, values: Record<string, string>): string => {
+        let text: string = words[key]!;
+        for (const name of Object.keys(values)) {
+          text = text.split(`{{${name}}}`).join(values[name]!);
+        }
+        return text;
+      };
+
+      await open(
+        page,
+        INCIDENT_PATH,
+        `thread=linking&lang=${language}${language === "fa" ? "&dir=auto" : ""}`,
+      );
+      const title: Locator = conversation(page).getByTestId(
+        "tool-approval-title",
+      );
+      const line: Locator = conversation(page).getByTestId(
+        "tool-approval-description",
+      );
+      await expect(title).toBeVisible({ timeout: 30000 });
+
+      const said: { title: string; line: string; direction: string } =
+        await conversation(page).evaluate(
+          (
+            element: Element,
+          ): { title: string; line: string; direction: string } => {
+            const read: (testId: string) => Element = (
+              testId: string,
+            ): Element => {
+              return element.querySelector(`[data-testid="${testId}"]`)!;
+            };
+            const marks: RegExp = /[\u2066-\u2069]/g;
+            return {
+              title: (read("tool-approval-title").textContent || "").replace(
+                marks,
+                "",
+              ),
+              line: (
+                read("tool-approval-description").textContent || ""
+              ).replace(marks, ""),
+              direction: window.getComputedStyle(
+                read("tool-approval-title").querySelector("bdi")!,
+              ).direction,
+            };
+          },
+        );
+
+      expect(said.title).toBe(
+        sentence("Link incident {{incident}} to affected resources", {
+          incident: "#1042",
+        }),
+      );
+      expect(said.line).toBe(
+        sentence("Adds {{resources}}.", {
+          resources: `${words["host"]} "checkout-api-7f9c"`,
+        }),
+      );
+      expect(said.direction).toBe(language === "fa" ? "rtl" : "ltr");
+      /*
+       * The question someone asked in English reads its own way on either
+       * page: left to right, its full stop at its end.
+       */
+      await expect(
+        conversation(page)
+          .getByTestId("investigation-conversation-question-text")
+          .first(),
+      ).toHaveCSS("direction", "ltr");
+      await expect(line).toBeVisible();
+      await expectNoSidewaysScroll(page, { tolerance: 1 });
+      await screenshotElement(
+        conversation(page),
+        `tool-approval-linking-${language}`,
+      );
+    });
+  }
 });
 
 /*

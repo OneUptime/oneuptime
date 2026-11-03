@@ -991,6 +991,21 @@ export function generateAirGappedMarkdown(
   }
 
   lines.push("");
+  lines.push("## Everything your security review asks for");
+  lines.push("");
+  for (const item of content.evidence.items) {
+    lines.push(
+      `- **${item.title}**: ${item.description} See [${item.link.label}](${absoluteLink(baseUrl, item.link.href)}).`,
+    );
+  }
+  lines.push("");
+  lines.push("Verify an image before it crosses:");
+  lines.push("");
+  lines.push("```bash");
+  lines.push(content.evidence.verifyCommand);
+  lines.push("```");
+
+  lines.push("");
   lines.push("## Questions buyers ask");
   for (const faq of content.faqs) {
     lines.push("");
@@ -1016,7 +1031,19 @@ export function generateAirGappedMarkdown(
     `- [Self-hosted architecture](${absoluteLink(baseUrl, content.docs.architecture)})`,
   );
   lines.push(
+    `- [Air-gapped installation](${absoluteLink(baseUrl, content.docs.installation)})`,
+  );
+  lines.push(
     `- [Offline license activation](${absoluteLink(baseUrl, content.docs.offlineActivation)})`,
+  );
+  lines.push(
+    `- [Supply chain security](${absoluteLink(baseUrl, content.docs.supplyChain)})`,
+  );
+  lines.push(
+    `- [Hardening guide](${absoluteLink(baseUrl, content.docs.hardening)})`,
+  );
+  lines.push(
+    `- [NIST SP 800-53 control mapping](${absoluteLink(baseUrl, content.docs.nist80053)})`,
   );
   lines.push(`- [Helm chart configuration](${content.helmDocs.configuration})`);
   lines.push(

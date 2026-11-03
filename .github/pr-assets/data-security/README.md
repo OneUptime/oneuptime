@@ -47,3 +47,16 @@ the server writes it.
   beside the alerts' switch and severity.
 - `when-an-issue-opens-german-dark.png`: the same card in German, on the dark
   theme.
+
+Telemetry issues (#5594): what a telemetry issue found, where, and the records it was seen in.
+
+- `telemetry-issue-laptop.png`: 1280 pixels, "Sensitive data is reaching your telemetry" on a service's
+  logs: the evidence names the data types, and **Where It Was Found** lists each finding - its data type,
+  the attribute it sits in, how often it matched, its masked samples and **Scrub It** - with the first
+  finding's newest log line open, leading to **Open in Logs** and **Open trace**.
+- `telemetry-issue-where-it-was-found.png`: the card alone, two findings' records open: lines in a
+  request lead to their trace, a line written outside any request to its service's logs around it; the
+  finding a scrub rule already masks reads **Scrubbed**.
+- `telemetry-issue-german-laptop.png`: the card in German.
+- `telemetry-issue-persian-dark-phone.png`: 390 pixels, the card in Persian, right to left, on the dark
+  theme.

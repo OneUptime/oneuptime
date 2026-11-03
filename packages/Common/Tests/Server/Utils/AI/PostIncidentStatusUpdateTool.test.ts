@@ -12,6 +12,7 @@ import BadDataException from "../../../../Types/Exception/BadDataException";
 import { JSONObject } from "../../../../Types/JSON";
 import ObjectID from "../../../../Types/ObjectID";
 import { afterEach, describe, expect, test } from "@jest/globals";
+import { actionTitleText } from "../../../Helpers/AIActionText";
 
 /*
  * post_incident_status_update posts a customer-facing public note. When the
@@ -489,9 +490,11 @@ describe("post_incident_status_update - tool metadata", () => {
 
   test("buildActionTitle names the incident from args", () => {
     expect(
-      PostIncidentStatusUpdateTool.buildActionTitle!({
-        incidentId: INCIDENT_ID.toString(),
-      }),
+      actionTitleText(
+        PostIncidentStatusUpdateTool.buildActionTitle!({
+          incidentId: INCIDENT_ID.toString(),
+        }),
+      ),
     ).toBe(`Post public status update on incident ${INCIDENT_ID.toString()}`);
   });
 });

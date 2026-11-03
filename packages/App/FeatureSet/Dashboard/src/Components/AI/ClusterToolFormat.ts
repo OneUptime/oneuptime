@@ -203,7 +203,7 @@ export function formatEvidenceOutcome(
 ): string {
   return (
     describeClusterToolOutcome(toolName, rowCount, translator)?.label ??
-    formatRowCount(rowCount)
+    formatRowCount(rowCount, translator)
   );
 }
 

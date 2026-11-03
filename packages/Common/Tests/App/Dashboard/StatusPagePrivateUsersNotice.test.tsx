@@ -13,6 +13,7 @@ import {
   fireEvent,
   render,
   screen,
+  within,
 } from "@testing-library/react";
 import React, { ReactElement } from "react";
 import getJestMockFunction, { MockFunction } from "../../MockType";
@@ -61,6 +62,10 @@ import StatusPagePrivateUsers from "../../../../App/FeatureSet/Dashboard/src/Pag
 import StatusPageAccessCopy, {
   PRIVATE_USERS_PASSWORD_NOTICE_TEST_ID,
 } from "../../../../App/FeatureSet/Dashboard/src/Components/StatusPage/StatusPageAccessCopy";
+import {
+  STATUS_PAGE_MAGIC_LINK_PLACE,
+  STATUS_PAGE_MAGIC_LINK_SECTION_TEST_ID,
+} from "../../../../App/FeatureSet/Dashboard/src/Components/StatusPage/StatusPageMagicLinkCopy";
 import PageComponentProps from "../../../../App/FeatureSet/Dashboard/src/Pages/PageComponentProps";
 import StatusPage from "../../../Models/DatabaseModels/StatusPage";
 import Route from "../../../Types/API/Route";
@@ -253,5 +258,53 @@ describe("the Private Users notice", () => {
     expect(
       screen.getByTestId("model-table-status-page-group"),
     ).toBeInTheDocument();
+  });
+});
+
+/*
+ * Sign-In Links sits under the page's More settings (c4b54e1f45), so a link
+ * to its place opens the fold there, and the page opened anywhere else keeps
+ * it folded (MoreSettingsFoldsGuard).
+ */
+describe("a link to Sign-In Links", () => {
+  afterEach(() => {
+    window.history.replaceState(null, "", "#");
+  });
+
+  function fold(): HTMLElement {
+    return screen.getByTestId(STATUS_PAGE_MAGIC_LINK_SECTION_TEST_ID);
+  }
+
+  test("names it at the card's place", async () => {
+    await renderPage();
+
+    expect(STATUS_PAGE_MAGIC_LINK_PLACE).toBe("sign-in-links");
+    expect(
+      within(fold())
+        .getByTestId("folded-section-item")
+        .getAttribute("data-item-key"),
+    ).toBe(STATUS_PAGE_MAGIC_LINK_PLACE);
+  });
+
+  test("opened at the card's place, More settings opens there", async () => {
+    window.history.replaceState(null, "", `#${STATUS_PAGE_MAGIC_LINK_PLACE}`);
+
+    await renderPage();
+
+    expect(within(fold()).getByTestId("folded-section-header")).toHaveAttribute(
+      "aria-expanded",
+      "true",
+    );
+  });
+
+  test("opened anywhere else, it stays folded", async () => {
+    window.history.replaceState(null, "", "#private-users");
+
+    await renderPage();
+
+    expect(within(fold()).getByTestId("folded-section-header")).toHaveAttribute(
+      "aria-expanded",
+      "false",
+    );
   });
 });

@@ -350,6 +350,7 @@ export default class DataAsset extends BaseModel {
     description:
       "Whether it is a table, a view, a materialized view, a partitioned table or a foreign table.",
     allowedValues: Object.values(DataAssetKind),
+    isDefaultValueColumn: true,
     defaultValue: DataAssetKind.Table,
   })
   @Column({

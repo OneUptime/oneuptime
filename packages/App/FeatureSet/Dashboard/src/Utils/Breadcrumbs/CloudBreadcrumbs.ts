@@ -13,6 +13,26 @@ import Link from "Common/Types/Link";
 export function getCloudBreadcrumbs(path: string): Array<Link> | undefined {
   const breadcrumpLinksMap: Dictionary<Link[]> = {
     ...BuildBreadcrumbLinksByTitles(PageMap.CLOUD_HOME, ["Project", "Cloud"]),
+    ...BuildBreadcrumbLinksByTitles(PageMap.CLOUD_OVERVIEW, [
+      "Project",
+      "Cloud",
+      "Overview",
+    ]),
+    ...BuildBreadcrumbLinksByTitles(PageMap.CLOUD_COSTS, [
+      "Project",
+      "Cloud",
+      "Costs",
+    ]),
+    ...BuildBreadcrumbLinksByTitles(PageMap.CLOUD_SAVINGS, [
+      "Project",
+      "Cloud",
+      "Savings",
+    ]),
+    ...BuildBreadcrumbLinksByTitles(PageMap.CLOUD_BUDGETS, [
+      "Project",
+      "Cloud",
+      "Budgets",
+    ]),
     ...BuildBreadcrumbLinksByTitles(PageMap.CLOUD_MONITORED_RESOURCES, [
       "Project",
       "Cloud",
@@ -163,6 +183,13 @@ export function getCloudBreadcrumbs(path: string): Array<Link> | undefined {
       "Accounts",
       "View Account",
       "Feed",
+    ]),
+    ...BuildBreadcrumbLinksByTitles(PageMap.CLOUD_ACCOUNT_VIEW_COSTS, [
+      "Project",
+      "Cloud",
+      "Accounts",
+      "View Account",
+      "Costs",
     ]),
     ...BuildBreadcrumbLinksByTitles(PageMap.CLOUD_ACCOUNT_VIEW_SETTINGS, [
       "Project",

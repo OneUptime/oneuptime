@@ -1,6 +1,7 @@
 import AIChatPageContextType, { AIChatPageContext } from "./AIChatPageContext";
 import { AIResourceType } from "./AIResourceContext";
 import { JSONObject } from "../JSON";
+import { translationKey } from "../Translator";
 
 /*
  * WHAT ONEUPTIME AI LINKS AN INCIDENT OR ALERT TO.
@@ -79,7 +80,11 @@ export type AiAffectedResourceRelation =
 export interface AiAffectedResourceKindInfo {
   kind: AiAffectedResourceKind;
   relation: AiAffectedResourceRelation;
-  // How one is named in a sentence: "host", "Kubernetes cluster".
+  /*
+   * How one is named in a sentence: "host", "Kubernetes cluster". A
+   * translation key: an AI action's card says it in the reader's
+   * language (Types/AI/AIActionWords), the server in English.
+   */
   noun: string;
   /*
    * Whether auto-remediation can fix it: a Kubernetes cluster through its
@@ -100,7 +105,7 @@ export const AI_AFFECTED_RESOURCE_KINDS: ReadonlyArray<AiAffectedResourceKindInf
     {
       kind: AiAffectedResourceKind.Host,
       relation: "hosts",
-      noun: "host",
+      noun: translationKey("host"),
       isFixedByOneUptimeAi: true,
     },
     /*
@@ -110,67 +115,67 @@ export const AI_AFFECTED_RESOURCE_KINDS: ReadonlyArray<AiAffectedResourceKindInf
     {
       kind: AiAffectedResourceKind.NetworkDevice,
       relation: "networkDevices",
-      noun: "network device",
+      noun: translationKey("network device"),
       isFixedByOneUptimeAi: false,
     },
     {
       kind: AiAffectedResourceKind.KubernetesCluster,
       relation: "kubernetesClusters",
-      noun: "Kubernetes cluster",
+      noun: translationKey("Kubernetes cluster"),
       isFixedByOneUptimeAi: true,
     },
     {
       kind: AiAffectedResourceKind.DockerHost,
       relation: "dockerHosts",
-      noun: "Docker host",
+      noun: translationKey("Docker host"),
       isFixedByOneUptimeAi: true,
     },
     {
       kind: AiAffectedResourceKind.PodmanHost,
       relation: "podmanHosts",
-      noun: "Podman host",
+      noun: translationKey("Podman host"),
       isFixedByOneUptimeAi: true,
     },
     {
       kind: AiAffectedResourceKind.ProxmoxCluster,
       relation: "proxmoxClusters",
-      noun: "Proxmox cluster",
+      noun: translationKey("Proxmox cluster"),
       isFixedByOneUptimeAi: true,
     },
     {
       kind: AiAffectedResourceKind.VMwareVCenter,
       relation: "vmwareVCenters",
-      noun: "VMware vCenter",
+      noun: translationKey("VMware vCenter"),
       isFixedByOneUptimeAi: true,
     },
     {
       kind: AiAffectedResourceKind.CephCluster,
       relation: "cephClusters",
-      noun: "Ceph cluster",
+      noun: translationKey("Ceph cluster"),
       isFixedByOneUptimeAi: true,
     },
     {
       kind: AiAffectedResourceKind.StorageArray,
       relation: "storageArrays",
-      noun: "storage array",
+      noun: translationKey("storage array"),
       isFixedByOneUptimeAi: false,
     },
     {
       kind: AiAffectedResourceKind.DockerSwarmCluster,
       relation: "dockerSwarmClusters",
-      noun: "Docker Swarm cluster",
+      noun: translationKey("Docker Swarm cluster"),
       isFixedByOneUptimeAi: true,
     },
     {
       kind: AiAffectedResourceKind.IoTFleet,
       relation: "iotFleets",
-      noun: "IoT fleet",
+      noun: translationKey("IoT fleet"),
       isFixedByOneUptimeAi: false,
     },
     {
       kind: AiAffectedResourceKind.DatabaseServer,
       relation: "databaseServers",
-      noun: "database server",
+      noun: translationKey("database server"),
       isFixedByOneUptimeAi: true,
     },
     /*
@@ -182,13 +187,13 @@ export const AI_AFFECTED_RESOURCE_KINDS: ReadonlyArray<AiAffectedResourceKindInf
     {
       kind: AiAffectedResourceKind.CloudResource,
       relation: "cloudResources",
-      noun: "cloud resource",
+      noun: translationKey("cloud resource"),
       isFixedByOneUptimeAi: true,
     },
     {
       kind: AiAffectedResourceKind.Service,
       relation: "services",
-      noun: "service",
+      noun: translationKey("service"),
       isFixedByOneUptimeAi: false,
     },
   ];

@@ -28,10 +28,10 @@
     Both go through window.oneUptimeConsent (defined in
     Common/Server/Views/Partials/AnalyticsConsent.ejs, before any tag loads),
     which records the answer under 'cookiesAccepted' and acts on it on this
-    page: "Accept all" loads the tags that were waiting for it, and "Reject
-    all" tells Google tags already on the page, stops PostHog, and removes the
-    measurement cookies and stored attribution. Every later page asks the same
-    helper before it loads anything.
+    page: "Accept all" tells the Google tags already on the page and lets the
+    tags that were waiting for it run, and "Reject all" tells the Google tags,
+    stops PostHog, and removes the measurement cookies and stored attribution.
+    Every later page asks the same helper before anything measuring runs.
 
     That partial is shared with the docs, sign-up and the dashboard, so the
     answer given here is the answer those honour too - they are the same origin
