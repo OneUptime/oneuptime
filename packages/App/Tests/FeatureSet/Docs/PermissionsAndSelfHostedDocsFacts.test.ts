@@ -5,6 +5,9 @@ import Label from "Common/Models/DatabaseModels/Label";
 import Team from "Common/Models/DatabaseModels/Team";
 import TeamPermission from "Common/Models/DatabaseModels/TeamPermission";
 import { PlanType } from "Common/Types/Billing/SubscriptionPlan";
+import PermissionScope from "Common/Types/Database/AccessControl/PermissionScope";
+import PermissionScopeNarrowing from "Common/Types/Database/AccessControl/PermissionScopeNarrowing";
+import Permission, { PermissionHelper } from "Common/Types/Permission";
 import AndroidNotificationChannel from "Common/Types/PushNotification/AndroidNotificationChannel";
 import PushNotificationLevel, {
   DEFAULT_PUSH_NOTIFICATION_LEVEL,
@@ -867,6 +870,56 @@ describe("Users, Teams & Permissions, against the dashboard and the server", () 
     expect(choice.split("collapsibleSection: moreFields,").length - 1).toBe(2);
     expect(page).toContain(
       "Every allow permission is granted with a scope: when you add it, **Scope** is under **More fields**, and starts on the first of these:",
+    );
+  });
+
+  /*
+   * Issue #5602: one permission is offered a scope wherever one narrows it,
+   * with only the answers that do (PermissionScopeNarrowing); a role keeps
+   * all three, and a block is never owned. The page's examples are held to
+   * what the lists say.
+   */
+  it("says one permission is offered the scopes that narrow it, with examples that hold", () => {
+    expect(
+      PermissionScopeNarrowing.getScopes(Permission.CreateWorkflow),
+    ).toEqual([
+      PermissionScope.All,
+      PermissionScope.Owned,
+      PermissionScope.Labels,
+    ]);
+    expect(PermissionScopeNarrowing.getScopes(Permission.EditWorkflow)).toEqual(
+      [PermissionScope.All, PermissionScope.Owned, PermissionScope.Labels],
+    );
+    expect(
+      PermissionScopeNarrowing.isNarrowedByAnyScope(
+        Permission.CreateProjectTeam,
+      ),
+    ).toBe(false);
+    expect(PermissionHelper.getTitle(Permission.CreateWorkflow)).toBe(
+      "Create Workflow",
+    );
+    expect(PermissionHelper.getTitle(Permission.EditWorkflow)).toBe(
+      "Edit Workflow",
+    );
+    expect(PermissionHelper.getTitle(Permission.CreateProjectTeam)).toBe(
+      "Create Team",
+    );
+
+    expect(readSource("teamPermissionTable")).toContain(
+      'return isScopeShownForPermission(values["permission"]);',
+    );
+    expect(readSource("permissionScopeChoice")).toContain(
+      "export const getRoleScopes",
+    );
+
+    expect(page).toContain(
+      "A single permission, added with **Add Permission**, is offered a scope wherever one narrows it, with only the answers that do: **Create Workflow** can be limited to the workflows a team owns, or to some labels, just as **Edit Workflow** can, while a permission on something everyone shares, such as **Create Team**, offers no scope, because none would narrow it.",
+    );
+    expect(page).toContain(
+      "A block is never limited to owned resources: it takes a permission away everywhere, or, with labels, from the resources carrying them.",
+    );
+    expect(page).toContain(
+      "A global user override applies to every on-call policy, so adding or deleting one takes the override permission scoped to all resources in the project the same way;",
     );
   });
 
@@ -2356,7 +2409,7 @@ describe("Architecture, against the compose file and the chart", () => {
     expect(
       textBetween(
         register,
-        "if (!IsBillingEnabled) {",
+        "if (!IsBillingEnabled && !DisableInstanceCheckIn) {",
         'overrideFieldKey: "notifySelfHosted"',
       ),
     ).toContain("notifySelfHosted: true");
@@ -2369,9 +2422,21 @@ describe("Architecture, against the compose file and the chart", () => {
     ).toContain("defaultValue: true");
     expect(items[2]).toContain(`“${label}” ticked, as it is at first`);
 
+    // With the daily check-in off, the form offers no box and nothing is sent.
+    expect(
+      textBetween(
+        readSource("signUpApi"),
+        "if (\n          !IsBillingEnabled &&",
+        'miscDataProps["notifySelfHosted"] === true',
+      ),
+    ).toContain("!DisableInstanceCheckIn &&");
+    expect(items[2]).toContain(
+      "With the daily call above turned off, the form no longer offers it, and nothing is sent.",
+    );
+
     const call: string = textBetween(
       readSource("signUpApi"),
-      'if (!IsBillingEnabled && miscDataProps["notifySelfHosted"] === true) {',
+      'miscDataProps["notifySelfHosted"] === true\n        ) {',
       "});",
     );
 

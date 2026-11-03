@@ -23,6 +23,7 @@ import { AIChatCitationTargetType } from "../../../../Types/AI/AIChatTypes";
 import SortOrder from "../../../../Types/BaseDatabase/SortOrder";
 import ObjectID from "../../../../Types/ObjectID";
 import { afterEach, describe, expect, test } from "@jest/globals";
+import { actionTitleText } from "../../../Helpers/AIActionText";
 
 /*
  * create_incident, acknowledge_incident and resolve_incident are the copilot's
@@ -279,9 +280,11 @@ describe("create_incident", () => {
 
   test("buildActionTitle names the incident, or says Untitled", () => {
     expect(
-      CreateIncidentTool.buildActionTitle!({ title: "Checkout down" }),
+      actionTitleText(
+        CreateIncidentTool.buildActionTitle!({ title: "Checkout down" }),
+      ),
     ).toBe("Create incident: Checkout down");
-    expect(CreateIncidentTool.buildActionTitle!({})).toBe(
+    expect(actionTitleText(CreateIncidentTool.buildActionTitle!({}))).toBe(
       "Create incident: Untitled",
     );
   });
@@ -466,9 +469,13 @@ describe.each(stateCases)(
 
     test("buildActionTitle names the incident, and stays tidy with no id", () => {
       expect(
-        tool.buildActionTitle!({ incidentId: INCIDENT_ID.toString() }),
+        actionTitleText(
+          tool.buildActionTitle!({ incidentId: INCIDENT_ID.toString() }),
+        ),
       ).toBe(`${actionTitlePrefix} ${INCIDENT_ID.toString()}`);
-      expect(tool.buildActionTitle!({})).toBe(actionTitlePrefix);
+      expect(actionTitleText(tool.buildActionTitle!({}))).toBe(
+        actionTitlePrefix,
+      );
     });
 
     test("is a mutation that needs what the dashboard's state panel needs: to change the incident's state", () => {

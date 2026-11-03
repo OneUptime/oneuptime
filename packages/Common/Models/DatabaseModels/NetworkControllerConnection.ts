@@ -311,6 +311,26 @@ export default class NetworkControllerConnection extends BaseModel {
   @Column({ type: ColumnType.JSON, nullable: true })
   public pullState?: JSONObject = undefined;
 
+  /*
+   * The last time someone asked for the organization's devices to be added
+   * as network devices (Add devices, NetworkControllerDeviceAddState): what
+   * was asked for, by whom and when, how far the worker got and what it
+   * could not add. Written by OneUptime only - the API's add-devices route
+   * asks, the worker answers - so nobody can make the worker add devices in
+   * someone else's name. Readable by whoever may see the connection, so its
+   * row can follow an ask and say how it went.
+   */
+  @ColumnAccessControl({ create: [], read: readPermissions, update: [] })
+  @TableColumn({
+    type: TableColumnType.JSON,
+    required: false,
+    title: "Last Device Add",
+    description:
+      "The last time the organization's devices were added as network devices: the kinds asked for, by whom and when, how many were added, and which could not be and why. Written by OneUptime.",
+  })
+  @Column({ type: ColumnType.JSON, nullable: true })
+  public lastDeviceAdd?: JSONObject = undefined;
+
   @ColumnAccessControl({
     create: [],
     read: readPermissions,

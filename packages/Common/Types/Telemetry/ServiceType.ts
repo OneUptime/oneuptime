@@ -42,6 +42,13 @@ enum ServiceType {
    */
   DatabaseServer = "DatabaseServer",
   /*
+   * The oneuptime.data.table.* readings Data Observability writes for each
+   * table of a data store at every collection. Like Monitor and SLO rows they
+   * are OneUptime's own operational data, so TelemetryUsageBillingService
+   * never bills them as ingested telemetry.
+   */
+  DataStore = "DataStore",
+  /*
    * Telemetry that arrived without an OTel service.name and with no
    * host / docker / k8s resource signal. Instead of synthesising a
    * placeholder "Unknown Service" Postgres row (which collected every

@@ -44,6 +44,23 @@ import StatusPageAccessCopy, {
   PRIVATE_USER_SINGULAR_NAME,
   PRIVATE_USERS_PASSWORD_NOTICE_TEST_ID,
 } from "../../../Components/StatusPage/StatusPageAccessCopy";
+import StatusPageMagicLinkCard from "../../../Components/StatusPage/StatusPageMagicLinkCard";
+import StatusPageMagicLinkCopy, {
+  getMagicLinkFoldedItem,
+  STATUS_PAGE_MAGIC_LINK_SECTION_TEST_ID,
+} from "../../../Components/StatusPage/StatusPageMagicLinkCopy";
+import AdvancedPageSection from "Common/UI/Components/AdvancedPageSection/AdvancedPageSection";
+
+/*
+ * Whether a private user has joined: they set a password, or they have
+ * signed in at least once - with a sign-in link or SSO, which need none.
+ * Somebody who has done neither has only been sent their invitation.
+ */
+export const hasPrivateUserJoined: (user: StatusPagePrivateUser) => boolean = (
+  user: StatusPagePrivateUser,
+): boolean => {
+  return Boolean(user.password) || Boolean(user.lastActive);
+};
 
 const StatusPageDelete: FunctionComponent<PageComponentProps> = (
   props: PageComponentProps,
@@ -77,6 +94,10 @@ const StatusPageDelete: FunctionComponent<PageComponentProps> = (
   });
   const [refreshToggle, setRefreshToggle] = useState<string>(
     Date.now().toString(),
+  );
+  // Whether sign-in links are on, once read: undefined until then.
+  const [isMagicLinkOn, setIsMagicLinkOn] = useState<boolean | undefined>(
+    undefined,
   );
 
   const parseBulkEmails: (input: string) => {
@@ -308,6 +329,10 @@ const StatusPageDelete: FunctionComponent<PageComponentProps> = (
             type: FieldType.Email,
           },
         ]}
+        selectMoreFields={{
+          // A user who signs in without a password has joined too.
+          lastActive: true,
+        }}
         columns={[
           {
             field: {
@@ -324,7 +349,7 @@ const StatusPageDelete: FunctionComponent<PageComponentProps> = (
             type: FieldType.Password,
 
             getElement: (item: StatusPagePrivateUser): ReactElement => {
-              if (item["password"]) {
+              if (hasPrivateUserJoined(item)) {
                 return <Pill color={Green} text={"Signed up"} />;
               }
               return <Pill color={Yellow} text={"Invite Sent"} />;
@@ -332,6 +357,19 @@ const StatusPageDelete: FunctionComponent<PageComponentProps> = (
           },
         ]}
       />
+
+      <AdvancedPageSection
+        description={StatusPageMagicLinkCopy.sectionDescription}
+        items={[getMagicLinkFoldedItem(isMagicLinkOn)]}
+        dataTestId={STATUS_PAGE_MAGIC_LINK_SECTION_TEST_ID}
+      >
+        <StatusPageMagicLinkCard
+          statusPageId={modelId}
+          onChange={(isOn: boolean) => {
+            setIsMagicLinkOn(isOn);
+          }}
+        />
+      </AdvancedPageSection>
 
       {showBulkAddModal && (
         <BasicFormModal<BulkAddFormData>

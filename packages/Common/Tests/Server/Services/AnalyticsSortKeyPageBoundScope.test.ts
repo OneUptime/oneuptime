@@ -66,6 +66,8 @@ const ALL_MODELS: Array<[string, ModelType]> = fs
 const BOUNDED_DEFAULT_LISTS: Record<string, boolean> = {
   AuditLogV2: true,
   ChangeEventV1: true,
+  // A cloud account's daily costs: sorted by project, account, day and service.
+  CloudCostV1: true,
   ExceptionItemV3: true,
   KubernetesCostAllocationV1: true,
   LogCountBaseline: false,

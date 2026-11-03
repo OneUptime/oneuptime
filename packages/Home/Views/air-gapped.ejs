@@ -111,6 +111,16 @@
     upgrade: 'M16.023 9.348h4.992v-.001M2.985 19.644v-4.992m0 0h4.992m-4.993 0 3.181 3.183a8.25 8.25 0 0 0 13.803-3.7M4.031 9.865a8.25 8.25 0 0 1 13.803-3.7l3.181 3.182m0-4.991v4.99'
   };
 
+  // The evidence cards reuse the paths above: a shield for signed images, a
+  // checked document for the signed chart, a package for its contents, a
+  // badge for the reports, a lock for hardening, columns for NIST.
+  icons['signed-images'] = icons['regulated-industries'];
+  icons['signed-chart'] = icons.accreditation;
+  icons.sbom = icons.assets;
+  icons.vulnerabilities = icons['supply-chain'];
+  icons.hardening = icons.lock;
+  icons.nist = icons.government;
+
   /*
    * How code inside a sentence looks: on white, on a light grey panel, and on
    * the dark sections. whitespace-nowrap keeps a setting on one line, so
@@ -293,6 +303,7 @@
           <a href="#connections-out" class="hover:text-gray-900">Connections out</a>
           <a href="#ai" class="hover:text-gray-900">AI</a>
           <a href="#compliance" class="hover:text-gray-900">Compliance</a>
+          <a href="#evidence" class="hover:text-gray-900">Evidence</a>
           <a href="#faq" class="hover:text-gray-900">FAQ</a>
         </nav>
         <a href="#plan-your-install" data-ou-cta="cta_request_demo" data-testid="air-gapped-nav-plan"
@@ -618,6 +629,56 @@
           which links each one to the document that makes it true. For the rest of self-hosting, from sizing to support,
           see <a href="/enterprise/self-hosted" class="font-medium text-gray-700 underline underline-offset-2 hover:text-gray-900">Self-Hosted</a>.
         </p>
+      </div>
+    </section>
+
+    <!-- ======================================================== EVIDENCE -->
+    <%#
+      What a security reviewer checks before anything crosses, and the
+      documents an assessor asks for: each card links the docs page that shows
+      how (Utils/AirGapped.ts, AirGappedEvidenceItems), beside the command that
+      verifies an image's signature.
+    -%>
+    <section id="evidence" class="border-t border-gray-100 bg-gray-50 py-20 sm:py-28" aria-labelledby="evidence-title">
+      <div class="mx-auto max-w-7xl px-6 lg:px-8">
+        <div class="lg:grid lg:grid-cols-12 lg:gap-12">
+          <div class="lg:col-span-5">
+            <p class="text-sm font-medium uppercase tracking-wide text-emerald-600">Evidence</p>
+            <h2 id="evidence-title" class="mt-3 text-3xl font-semibold tracking-tight text-gray-900 sm:text-4xl">Everything your security review asks for</h2>
+            <p class="mt-4 text-base leading-7 text-gray-600">
+              Check every image and the chart before they cross, and hand your assessor the documents that map OneUptime
+              to their controls.
+            </p>
+            <div class="mt-8 overflow-hidden rounded-2xl bg-gray-900 shadow-xl ring-1 ring-gray-900/10" data-testid="air-gapped-verify">
+              <div class="border-b border-white/10 px-5 py-3">
+                <span class="ag-code text-xs font-medium text-gray-300">Verify an image before it crosses</span>
+              </div>
+              <div class="ag-scroll px-5 py-5" tabindex="0" role="region" aria-label="cosign verify command for an image">
+                <pre class="ag-code text-[13px] leading-6 text-gray-200"><code><%= content.evidence.verifyCommand %></code></pre>
+              </div>
+            </div>
+          </div>
+
+          <ul role="list" class="mt-12 grid grid-cols-1 gap-5 sm:grid-cols-2 lg:col-span-7 lg:mt-0">
+            <% content.evidence.items.forEach(function (item) { -%>
+            <li class="ag-card flex flex-col rounded-2xl border border-gray-200 bg-white p-7 shadow-sm" data-testid="air-gapped-evidence">
+              <span class="flex h-10 w-10 flex-none items-center justify-center rounded-xl bg-emerald-50 text-emerald-700">
+                <svg class="h-5 w-5" fill="none" viewBox="0 0 24 24" stroke-width="1.5" stroke="currentColor" aria-hidden="true">
+                  <path stroke-linecap="round" stroke-linejoin="round" d="<%= icons[item.key] %>" />
+                </svg>
+              </span>
+              <h3 class="mt-5 text-base font-semibold text-gray-900"><%= item.title %></h3>
+              <p class="mt-2 flex-1 text-sm leading-6 text-gray-600"><% drawText(item.description, inlineCode); %></p>
+              <a href="<%= item.link.href %>" class="mt-4 inline-flex items-center gap-1.5 text-sm font-medium text-gray-900 hover:text-gray-600">
+                <%= item.link.label %>
+                <svg class="h-3.5 w-3.5" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24" aria-hidden="true">
+                  <path stroke-linecap="round" stroke-linejoin="round" d="<%= icons.arrowRight %>"></path>
+                </svg>
+              </a>
+            </li>
+            <% }); -%>
+          </ul>
+        </div>
       </div>
     </section>
 

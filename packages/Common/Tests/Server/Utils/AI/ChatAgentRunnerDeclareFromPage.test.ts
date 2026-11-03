@@ -1,5 +1,6 @@
 import ChatAgentRunner, {
   ChatTurnRequest,
+  summarizeShownContent,
 } from "../../../../Server/Utils/AI/Chat/ChatAgentRunner";
 import ChatInfrastructureAccess from "../../../../Server/Utils/AI/Chat/ChatInfrastructureAccess";
 import { CreateIncidentTool } from "../../../../Server/Utils/AI/Toolbox/IncidentWriteTools";
@@ -35,6 +36,17 @@ import {
   AIChatToolActionStatus,
   AIRunPausedState,
 } from "../../../../Types/AI/AIChatTypes";
+import {
+  AI_ACTION_LINES,
+  AI_ACTION_TITLES,
+  AIActionSentence,
+  AIActionWords,
+  aiActionList,
+  aiActionResourceByName,
+  aiActionSentence,
+  describeAIActionWords,
+  isKnownAIActionWords,
+} from "../../../../Types/AI/AIActionWords";
 import DatabaseCommonInteractionProps from "../../../../Types/BaseDatabase/DatabaseCommonInteractionProps";
 import { JSONObject } from "../../../../Types/JSON";
 import ObjectID from "../../../../Types/ObjectID";
@@ -526,5 +538,187 @@ describe("linking an existing incident from a host's page: the card names it by 
       "Link incident " + INCIDENT_ID + " to affected resources",
     );
     expect(actions[0]!.description).toBe('Adds host "test01".');
+  });
+});
+
+/*
+ * WHAT THE CARD SAYS, STORED TWICE.
+ *
+ * The action keeps its title and line as sentences of
+ * Types/AI/AIActionWords (`words`), which the Dashboard says in the
+ * reader's language, and in English (`title`, `description`), which the
+ * model reads in a turn's history, the exports print and conversations
+ * saved before read. Both say the same, every step of the way: prepared,
+ * paused for approval, resumed and run.
+ */
+describe("the card's words are stored as sentences beside their English", () => {
+  const LINKED_TO_TEST01: AIActionSentence = aiActionSentence(
+    AI_ACTION_LINES.linkedTo,
+    {
+      resources: aiActionList([
+        aiActionResourceByName({ noun: "host", name: "test01" }),
+      ]),
+    },
+  );
+
+  const DECLARE_WORDS: AIActionWords = {
+    title: aiActionSentence(AI_ACTION_TITLES.createIncident, {
+      title: "High memory usage",
+    }),
+    description: [LINKED_TO_TEST01],
+  };
+
+  function expectSameEnglish(action: AIChatToolAction): void {
+    expect(isKnownAIActionWords(action.words)).toBe(true);
+    expect(describeAIActionWords(action.words!)).toEqual({
+      title: action.title,
+      ...(action.description ? { description: action.description } : {}),
+    });
+  }
+
+  test("a declare from host test01's page: its title and its line, as sentences", async () => {
+    const spies: Spies = installSpies();
+    spies.executeWithLogging.mockResolvedValueOnce(
+      response({ stopReason: "tool_use", toolCalls: [DECLARE_CALL] }) as never,
+    );
+
+    await ChatAgentRunner.runTurn(buildRequest());
+
+    const actions: Array<AIChatToolAction> = lastToolActions(spies);
+    expect(actions[0]!.words).toEqual(DECLARE_WORDS);
+    expectSameEnglish(actions[0]!);
+
+    // The paused run keeps them, for the card it shows again.
+    expect(pausedStateOf(spies).toolActions[0]!.words).toEqual(DECLARE_WORDS);
+  });
+
+  test("approved and run, the action keeps its words", async () => {
+    const first: Spies = installSpies();
+    first.executeWithLogging.mockResolvedValueOnce(
+      response({ stopReason: "tool_use", toolCalls: [DECLARE_CALL] }) as never,
+    );
+    await ChatAgentRunner.runTurn(buildRequest());
+    const paused: AIRunPausedState = pausedStateOf(first);
+    jest.restoreAllMocks();
+
+    const run: AIRun = new AIRun();
+    run.status = AIRunStatus.WaitingForApproval;
+    run.pausedState = paused;
+    const spies: Spies = installSpies({ run });
+    spies.executeWithLogging.mockResolvedValueOnce(
+      response({ content: "Declared incident #12." }) as never,
+    );
+
+    await ChatAgentRunner.resumeTurn(buildRequest(), [
+      { toolCallId: DECLARE_CALL.id, approved: true },
+    ]);
+
+    const actions: Array<AIChatToolAction> = lastToolActions(spies);
+    expect(actions[0]!.status).toBe(AIChatToolActionStatus.Executed);
+    expect(actions[0]!.words).toEqual(DECLARE_WORDS);
+    expectSameEnglish(actions[0]!);
+  });
+
+  test("an incident named by its number names its argument by name, so the card leaves its ID out", async () => {
+    const spies: Spies = installSpies();
+    jest
+      .spyOn(IncidentService, "findOneById")
+      .mockImplementation((async (): Promise<Incident> => {
+        const incident: Incident = new Incident();
+        incident._id = INCIDENT_ID;
+        incident.incidentNumber = 12;
+        incident.incidentNumberWithPrefix = "INC-12";
+        return incident;
+      }) as never);
+    spies.executeWithLogging.mockResolvedValueOnce(
+      response({
+        stopReason: "tool_use",
+        toolCalls: [
+          {
+            id: "call-link",
+            name: "add_incident_affected_resources",
+            arguments: { incidentId: INCIDENT_ID },
+          },
+        ],
+      }) as never,
+    );
+
+    await ChatAgentRunner.runTurn(buildRequest());
+
+    const actions: Array<AIChatToolAction> = lastToolActions(spies);
+    expect(actions[0]!.words).toEqual({
+      title: aiActionSentence(AI_ACTION_TITLES.linkIncident, {
+        incident: "INC-12",
+      }),
+      description: [
+        aiActionSentence(AI_ACTION_LINES.adds, {
+          resources: aiActionList([
+            aiActionResourceByName({ noun: "host", name: "test01" }),
+          ]),
+        }),
+      ],
+      namedArguments: ["incidentId"],
+    });
+    expectSameEnglish(actions[0]!);
+  });
+
+  test("an incident the person may not read is named by its ID, and no argument by name", async () => {
+    const spies: Spies = installSpies();
+    jest.spyOn(IncidentService, "findOneById").mockResolvedValue(null as never);
+    spies.executeWithLogging.mockResolvedValueOnce(
+      response({
+        stopReason: "tool_use",
+        toolCalls: [
+          {
+            id: "call-link",
+            name: "add_incident_affected_resources",
+            arguments: { incidentId: INCIDENT_ID },
+          },
+        ],
+      }) as never,
+    );
+
+    await ChatAgentRunner.runTurn(buildRequest());
+
+    const words: AIActionWords = lastToolActions(spies)[0]!.words!;
+    expect(words.title).toEqual(
+      aiActionSentence(AI_ACTION_TITLES.linkIncident, {
+        incident: INCIDENT_ID,
+      }),
+    );
+    expect(words.namedArguments).toBeUndefined();
+  });
+
+  test("a prepare that fails keeps the title built from the arguments, as a sentence, and no line", async () => {
+    const spies: Spies = installSpies();
+    jest
+      .spyOn(PREPARING_CREATE_INCIDENT, "prepareMutation")
+      .mockRejectedValue(new Error("lookup failed") as never);
+    spies.executeWithLogging.mockResolvedValueOnce(
+      response({ stopReason: "tool_use", toolCalls: [DECLARE_CALL] }) as never,
+    );
+
+    await ChatAgentRunner.runTurn(buildRequest());
+
+    const action: AIChatToolAction = lastToolActions(spies)[0]!;
+    expect(action.words).toEqual({ title: DECLARE_WORDS.title });
+    expect(action.title).toBe("Create incident: High memory usage");
+    expect(action.description).toBeUndefined();
+  });
+
+  test("what the model reads of the action is its English, never its sentences", async () => {
+    const spies: Spies = installSpies();
+    spies.executeWithLogging.mockResolvedValueOnce(
+      response({ stopReason: "tool_use", toolCalls: [DECLARE_CALL] }) as never,
+    );
+
+    await ChatAgentRunner.runTurn(buildRequest());
+
+    const action: AIChatToolAction = lastToolActions(spies)[0]!;
+    expect(summarizeShownContent([], [action])).toBe(
+      "Create incident: High memory usage",
+    );
+    expect(action.title).not.toContain("{{");
+    expect(action.description).not.toContain("{{");
   });
 });

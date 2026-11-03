@@ -23,6 +23,7 @@ import FetchPacketCaptures from "./Jobs/PacketCapture/FetchPacketCaptures";
 import ReportPacketCaptureCapability from "./Jobs/PacketCapture/ReportCapability";
 import FetchVMwareWork from "./Jobs/VMware/FetchVMwareWork";
 import ScanDataSecurityDatabases from "./Jobs/DataSecurity/ScanDatabases";
+import CollectDataObservabilityTableHealth from "./Jobs/DataObservability/CollectTableHealth";
 import { describePacketCaptureSettings } from "./Utils/PacketCapture/PacketCaptureSettings";
 import Register from "./Services/Register";
 import NetFlowReceiver from "./Services/NetFlowReceiver";
@@ -187,6 +188,12 @@ const init: PromiseVoidFunction = async (): Promise<void> => {
        * the connection string in the environment variable its store names.
        */
       ScanDataSecurityDatabases();
+
+      /*
+       * The table health of databases Data Observability collects from
+       * inside this network: catalogs only, with the same variables.
+       */
+      CollectDataObservabilityTableHealth();
 
       // Optional SNMP trap receiver (PROBE_SNMP_TRAP_RECEIVER_ENABLED).
       SnmpTrapReceiver.start();

@@ -98,7 +98,7 @@ Cada límite por red también cuenta juntas las direcciones de un mismo IPv6 /64
 
 **Lo que envía tu equipo también cuenta.** Nada limita lo rápido que tu equipo añade suscriptores, en el panel, en masa, a través de la API o con un workflow. Pero el mensaje que recibe un suscriptor añadido, el correo que le pide confirmar o el mensaje que dice que está suscrito, cuenta para los 10 registros por hora de ese contacto, y por encima de ellos esa adición se rechaza con `429`. Un suscriptor añadido sin mensaje nunca se cuenta: **Suscribirlos ahora** para una dirección de correo electrónico, o **Enviar un mensaje de bienvenida** desactivado para los demás canales. Si no se puede contactar con el limitador de frecuencia, las adiciones de tu equipo siguen sin contarse.
 
-Un usuario privado que pide un enlace para restablecer la contraseña en la página de inicio de sesión de la página de estado se limita igual: 5 correos de restablecimiento a una dirección en una hora, en todas las páginas de estado en conjunto, y 30 desde una red en 15 minutos. Una invitación, a una página de estado privada o a un proyecto, también se cuenta por dirección: 10 a una dirección en una hora, ambos tipos en conjunto.
+Un usuario privado que pide un enlace para restablecer la contraseña en la página de inicio de sesión de la página de estado se limita igual: 5 correos de restablecimiento a una dirección en una hora, en todas las páginas de estado en conjunto, y 30 desde una red en 15 minutos. Una invitación, a una página de estado privada o a un proyecto, también se cuenta por dirección: 10 a una dirección en una hora, ambos tipos en conjunto. Pedir un enlace de inicio de sesión en la página de inicio de sesión también se limita, y se cuenta tanto si la dirección es de un usuario privado de la página como si no: 10 correos a una dirección en una hora, en todas las páginas de estado en conjunto, y 30 desde una red en 15 minutos.
 
 En una instalación autoalojada, estas variables de entorno de la app de OneUptime cambian los límites:
 
@@ -113,6 +113,8 @@ En una instalación autoalojada, estas variables de entorno de la app de OneUpti
 | `PUBLIC_MESSAGE_RATE_LIMIT_STATUS_PAGE_MANAGE_LINKS_PER_CONTACT` | `5` | Enlaces de gestión para un contacto por ventana. |
 | `PUBLIC_MESSAGE_RATE_LIMIT_STATUS_PAGE_PASSWORD_RESETS_PER_IP` | `30` | Restablecimientos de contraseña de usuarios privados pedidos desde una dirección por ventana. |
 | `PUBLIC_MESSAGE_RATE_LIMIT_STATUS_PAGE_PASSWORD_RESETS_PER_CONTACT` | `5` | Correos de restablecimiento de contraseña de usuarios privados a una dirección por ventana. |
+| `PUBLIC_MESSAGE_RATE_LIMIT_STATUS_PAGE_MAGIC_LINKS_PER_IP` | `30` | Enlaces de inicio de sesión de usuarios privados pedidos desde una dirección por ventana. |
+| `PUBLIC_MESSAGE_RATE_LIMIT_STATUS_PAGE_MAGIC_LINKS_PER_CONTACT` | `10` | Correos con enlace de inicio de sesión de usuarios privados a una dirección por ventana. |
 | `PUBLIC_MESSAGE_RATE_LIMIT_INVITATIONS_PER_CONTACT` | `10` | Invitaciones a una dirección por ventana, a páginas de estado privadas y proyectos en conjunto. |
 
 Ni `config.env` ni los valores del chart de Helm los transmiten: añádelos tú mismo al entorno del contenedor `app`, con `app.extraEnv`, o el `extraEnv` de todo el chart, en el chart de Helm, o en un `docker-compose.override.yml` para Docker Compose. `TRUSTED_PROXY_HOPS` decide qué dirección cuentan los límites por red.

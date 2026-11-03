@@ -111,6 +111,21 @@ const BASE_CARDS: ReadonlyArray<string> = [
  */
 const CARD_DOORS: ReadonlyArray<string> = ["EnterprisePluginPage"];
 
+/*
+ * Props an element draws beside its own cards rather than inside them: a
+ * whole card given there sits next to the element's cards, as the page's
+ * own card does. Everything else it is given is still read as inside it.
+ * ResourceOverview (Components/TelemetryResource/ResourceOverview.tsx) draws
+ * connectionGuide under its hero and charts between its tiles and its
+ * Details card; its controls are drawn inside the hero's frame. The guard
+ * holds the component to this (CardInCardGuard).
+ */
+export const PROPS_DRAWN_BESIDE: Readonly<
+  Record<string, ReadonlyArray<string>>
+> = {
+  ResourceOverview: ["connectionGuide", "charts"],
+};
+
 const CARD_TABLES: ReadonlyArray<string> = [
   "ModelTable",
   "ModelList",
@@ -972,9 +987,18 @@ class CardNestingScanner {
         }
       }
 
-      // What it is given - props as well as children - is drawn inside it.
+      /*
+       * What it is given - props as well as children - is drawn inside it,
+       * except the props it draws beside its cards (PROPS_DRAWN_BESIDE).
+       */
+      const besideProps: ReadonlyArray<string> = PROPS_DRAWN_BESIDE[name] || [];
+
       ts.forEachChild(openingOf(node).attributes, (child: ts.Node): void => {
-        this.walk(module, child, inner, found);
+        const isBeside: boolean =
+          ts.isJsxAttribute(child) &&
+          besideProps.includes(child.name.getText());
+
+        this.walk(module, child, isBeside ? container : inner, found);
       });
 
       if (ts.isJsxElement(node)) {

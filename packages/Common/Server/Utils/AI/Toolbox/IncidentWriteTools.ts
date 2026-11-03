@@ -30,7 +30,20 @@ import AffectedResourceLinks, {
 } from "./AffectedResourceLinks";
 import { AiAffectedResourceRelation } from "../../../../Types/AI/AiAffectedResources";
 import AIChatPageContextType from "../../../../Types/AI/AIChatPageContext";
+import {
+  AI_ACTION_TERMS,
+  AI_ACTION_TITLES,
+  AIActionSentence,
+  aiActionSentence,
+  aiActionTerm,
+} from "../../../../Types/AI/AIActionWords";
 import DatabaseRequestType from "../../../Types/BaseDatabase/DatabaseRequestType";
+import {
+  getIncidentNumberForPerson,
+  getRecordTitleName,
+  prepareRecordNamesInTitle,
+  RecordNames,
+} from "./RecordNamesForPerson";
 
 import FeedMarkdown from "../../../../Utils/Markdown/FeedMarkdown";
 /*
@@ -97,37 +110,46 @@ function getIncidentId(
 }
 
 /*
- * How the person knows an incident - its number with the project's prefix,
- * "INC-42" or "#42" - read with their own props, for an approval card's
- * title. Null when they may not read it or the read fails: the card then
- * keeps buildActionTitle's title, and running the action says why.
+ * An acknowledge's or resolve's card title: the incident by its number,
+ * once the prepare read it (RecordNamesForPerson), else by what the call
+ * names - its ID - or nothing at all.
  */
-async function getIncidentNumberForPerson(data: {
-  incidentId: ObjectID;
-  ctx: ToolContext;
-}): Promise<string | null> {
-  try {
-    const incident: Incident | null = await IncidentService.findOneById({
-      id: data.incidentId,
-      select: {
-        _id: true,
-        incidentNumber: true,
-        incidentNumberWithPrefix: true,
-      },
-      props: data.ctx.props,
-    });
+function buildIncidentStateChangeTitle(
+  verb: "acknowledge" | "resolve",
+): (args: JSONObject, names: RecordNames) => AIActionSentence {
+  return (args: JSONObject, names: RecordNames): AIActionSentence => {
+    const incident: string | undefined = getRecordTitleName(
+      args,
+      names,
+      "incidentId",
+    );
 
-    if (incident?.incidentNumberWithPrefix) {
-      return incident.incidentNumberWithPrefix;
+    if (!incident) {
+      return aiActionSentence(
+        verb === "acknowledge"
+          ? AI_ACTION_TITLES.acknowledgeIncidentUnnamed
+          : AI_ACTION_TITLES.resolveIncidentUnnamed,
+      );
     }
 
-    return typeof incident?.incidentNumber === "number"
-      ? `#${incident.incidentNumber}`
-      : null;
-  } catch {
-    return null;
-  }
+    return aiActionSentence(
+      verb === "acknowledge"
+        ? AI_ACTION_TITLES.acknowledgeIncident
+        : AI_ACTION_TITLES.resolveIncident,
+      { incident },
+    );
+  };
 }
+
+const buildAcknowledgeIncidentTitle: (
+  args: JSONObject,
+  names: RecordNames,
+) => AIActionSentence = buildIncidentStateChangeTitle("acknowledge");
+
+const buildResolveIncidentTitle: (
+  args: JSONObject,
+  names: RecordNames,
+) => AIActionSentence = buildIncidentStateChangeTitle("resolve");
 
 /*
  * Write tools mutate the project. They are gated twice: once by the tool's
@@ -167,8 +189,12 @@ export const CreateIncidentTool: ObservabilityTool = {
     return resolveCreatePermissions();
   },
   isMutation: true,
-  buildActionTitle: (args: JSONObject): string => {
-    return `Create incident: ${ToolArgs.getString(args, "title") || "Untitled"}`;
+  buildActionTitle: (args: JSONObject): AIActionSentence => {
+    return aiActionSentence(AI_ACTION_TITLES.createIncident, {
+      title:
+        ToolArgs.getString(args, "title") ||
+        aiActionTerm(AI_ACTION_TERMS.untitled),
+    });
   },
   /*
    * The page's resource written out (the incident is declared from it), and
@@ -400,15 +426,17 @@ export const AddIncidentAffectedResourcesTool: ObservabilityTool = {
     return resolveUpdatePermissions();
   },
   isMutation: true,
-  buildActionTitle: (args: JSONObject): string => {
+  buildActionTitle: (args: JSONObject): AIActionSentence => {
     const incidentId: string | undefined = ToolArgs.getString(
       args,
       "incidentId",
     );
 
     return incidentId
-      ? `Link incident ${incidentId} to affected resources`
-      : "Link this incident to affected resources";
+      ? aiActionSentence(AI_ACTION_TITLES.linkIncident, {
+          incident: incidentId,
+        })
+      : aiActionSentence(AI_ACTION_TITLES.linkThisIncident);
   },
   prepareMutation: async (
     args: JSONObject,
@@ -439,7 +467,12 @@ export const AddIncidentAffectedResourcesTool: ObservabilityTool = {
     return {
       arguments: prepared,
       ...(incidentNumber
-        ? { title: `Link incident ${incidentNumber} to affected resources` }
+        ? {
+            title: aiActionSentence(AI_ACTION_TITLES.linkIncident, {
+              incident: incidentNumber,
+            }),
+            namedArguments: ["incidentId"],
+          }
         : {}),
       description: AffectedResourceLinks.describeForPerson({
         linked: toLink.linked,
@@ -742,9 +775,14 @@ export const AcknowledgeIncidentTool: ObservabilityTool = {
     return resolveStateChangePermissions();
   },
   isMutation: true,
-  buildActionTitle: (args: JSONObject): string => {
-    return `Acknowledge incident ${ToolArgs.getString(args, "incidentId") || ""}`.trim();
+  buildActionTitle: (args: JSONObject): AIActionSentence => {
+    return buildAcknowledgeIncidentTitle(args, {});
   },
+  // The incident by its number, as the person knows it.
+  prepareMutation: prepareRecordNamesInTitle({
+    keys: ["incidentId"],
+    buildTitle: buildAcknowledgeIncidentTitle,
+  }),
   execute: async (
     args: JSONObject,
     ctx: ToolContext,
@@ -771,9 +809,14 @@ export const ResolveIncidentTool: ObservabilityTool = {
     return resolveStateChangePermissions();
   },
   isMutation: true,
-  buildActionTitle: (args: JSONObject): string => {
-    return `Resolve incident ${ToolArgs.getString(args, "incidentId") || ""}`.trim();
+  buildActionTitle: (args: JSONObject): AIActionSentence => {
+    return buildResolveIncidentTitle(args, {});
   },
+  // The incident by its number, as the person knows it.
+  prepareMutation: prepareRecordNamesInTitle({
+    keys: ["incidentId"],
+    buildTitle: buildResolveIncidentTitle,
+  }),
   execute: async (
     args: JSONObject,
     ctx: ToolContext,

@@ -238,7 +238,7 @@ describe("SelfHosted content model", () => {
       return `${step.title} ${step.setting}`;
     }).join(" ");
 
-    expect(settings).toContain("image.registry");
+    expect(settings).toContain("global.imageRegistry");
     expect(settings).toContain("updateCheck.disabled");
     expect(settings).toContain("instanceCheckIn.disabled");
     expect(settings).toContain("dnsConfig");

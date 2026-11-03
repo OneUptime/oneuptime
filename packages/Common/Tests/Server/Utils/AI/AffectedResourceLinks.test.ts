@@ -34,6 +34,7 @@ import NotAuthorizedException from "../../../../Types/Exception/NotAuthorizedExc
 import { JSONObject } from "../../../../Types/JSON";
 import ObjectID from "../../../../Types/ObjectID";
 import { afterEach, describe, expect, test } from "@jest/globals";
+import { actionLineText } from "../../../Helpers/AIActionText";
 
 /*
  * The server's half of what OneUptime AI links an incident or alert to
@@ -664,41 +665,49 @@ describe("the words", () => {
 
   test("the approval card names what an action links", () => {
     expect(
-      AffectedResourceLinks.describeForPerson({
-        linked: [linked(AiAffectedResourceKind.Host, HOST_ID, "test01")],
-        hasNotLinked: false,
-        verb: "Linked to",
-      }),
+      actionLineText(
+        AffectedResourceLinks.describeForPerson({
+          linked: [linked(AiAffectedResourceKind.Host, HOST_ID, "test01")],
+          hasNotLinked: false,
+          verb: "Linked to",
+        }),
+      ),
     ).toBe('Linked to host "test01".');
 
     expect(
-      AffectedResourceLinks.describeForPerson({
-        linked: [
-          linked(AiAffectedResourceKind.Host, HOST_ID, "test01"),
-          linked(AiAffectedResourceKind.Service, SERVICE_ID, "checkout"),
-        ],
-        hasNotLinked: true,
-        verb: "Adds",
-      }),
+      actionLineText(
+        AffectedResourceLinks.describeForPerson({
+          linked: [
+            linked(AiAffectedResourceKind.Host, HOST_ID, "test01"),
+            linked(AiAffectedResourceKind.Service, SERVICE_ID, "checkout"),
+          ],
+          hasNotLinked: true,
+          verb: "Adds",
+        }),
+      ),
     ).toBe(
       'Adds host "test01", service "checkout". Some of the other resources named will not be linked.',
     );
 
     expect(
-      AffectedResourceLinks.describeForPerson({
-        linked: [],
-        hasNotLinked: true,
-        verb: "Linked to",
-      }),
+      actionLineText(
+        AffectedResourceLinks.describeForPerson({
+          linked: [],
+          hasNotLinked: true,
+          verb: "Linked to",
+        }),
+      ),
     ).toBe("The resources named will not be linked.");
 
     // Nothing named: no line at all.
     expect(
-      AffectedResourceLinks.describeForPerson({
-        linked: [],
-        hasNotLinked: false,
-        verb: "Linked to",
-      }),
+      actionLineText(
+        AffectedResourceLinks.describeForPerson({
+          linked: [],
+          hasNotLinked: false,
+          verb: "Linked to",
+        }),
+      ),
     ).toBeUndefined();
   });
 

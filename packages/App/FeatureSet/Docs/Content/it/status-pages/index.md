@@ -118,7 +118,7 @@ La pagina pubblica è un'applicazione a sé, con un piccolo insieme di percorsi:
 - `/subscribe/email`, `/subscribe/sms`, `/subscribe/slack`, `/subscribe/microsoft-teams`, `/subscribe/webhooks`.
 - `/confirm-subscription/:id`, `/update-subscription/:token` e `/unsubscribe/:token`: i link dei messaggi che ricevono gli iscritti.
 - `/rss`: il feed.
-- `/login`, `/sso` e `/master-password`: rilevanti solo su una pagina privata.
+- `/login`, `/sso`, `/magic-link`, `/magic-link-login/:token` e `/master-password`: rilevanti solo su una pagina privata.
 
 La barra di navigazione in alto mostra sempre **Panoramica**; il resto compare solo quando è attivo. **Incidenti**, **Annunci** ed **Eventi pianificati** hanno bisogno ciascuno del proprio interruttore; **Iscriviti** ha bisogno sia di **Mostra pagina iscritti** sia di almeno un canale di iscrizione attivo. Una pagina privata ha anche una voce **Esci**.
 
@@ -194,6 +194,8 @@ Scegliere un'opzione chiede conferma, indicando che cosa cambia per i visitatori
 Aggiungete le persone che possono accedere in **Pagine di stato → la vostra pagina → Sicurezza → Utenti privati**. C'è un'azione **Aggiungi in blocco**: incollate un elenco di indirizzi email e ciascuno riceve un'email di invito. Gli utenti privati hanno un proprio flusso di password dimenticata e di reimpostazione, separato dagli account del vostro progetto OneUptime.
 
 **Utenti privati e password non si sommano.** Finché **Chiunque abbia la password** è la scelta in vigore, gli utenti privati non possono accedere (inseriscono anche loro la password), e la schermata **Utenti privati** lo dice, con un link per tornare ad **Accesso**.
+
+**Link di accesso.** Su una pagina a cui i visitatori accedono, la pagina di accesso offre anche **Inviami un link di accesso**: un utente privato inserisce il proprio indirizzo e-mail e riceve un link che lo fa accedere senza password. Il link funziona una sola volta, per 15 minuti, e chiederne un altro lo sostituisce. Apre una pagina in cui l'utente preme **Accedi**, così i filtri di posta che aprono ogni link per analizzarlo non possono consumarlo prima di lui. La pagina risponde allo stesso modo che l'indirizzo sia o no di uno dei suoi utenti privati, quindi chiedere un link non rivela a nessuno chi può accedere. I link sono attivi su ogni pagina; per far usare agli utenti privati solo la password, disattivate **Link di accesso** in **Altre impostazioni** su **Utenti privati** (chi ha già effettuato l'accesso con un link resta connesso). Non vengono mai offerti mentre **Richiedi l'SSO per l'accesso** è attivo o **Chiunque abbia la password** è la scelta.
 
 ### SSO e OIDC
 

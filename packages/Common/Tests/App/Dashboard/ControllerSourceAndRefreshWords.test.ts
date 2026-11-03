@@ -21,11 +21,13 @@ import {
 } from "../../../../App/FeatureSet/Dashboard/src/Components/Inventory/AssetFactSourceText";
 import {
   CONTROLLER_LATE,
+  CONTROLLER_LATE_LINK,
   PROBE_COULD_NOT_REACH,
   PROBE_LATE,
   PROBE_LATE_UNNAMED,
   READ_AGAIN,
   REFRESH_TITLE,
+  RefreshStatusLinkKind,
   RefreshStatusWords,
   WAITING_FOR_BOTH,
   WAITING_FOR_CONTROLLER,
@@ -459,6 +461,48 @@ describe("what Refresh says", () => {
       )?.template,
     ).toBe(CONTROLLER_LATE);
   });
+
+  test("Meraki late: the sentence, then a link to the connection on the network's Traffic page", () => {
+    expect(
+      words(
+        NetworkDeviceRefreshProgress.Late,
+        { isProbeReading: false, isControllerReading: true },
+        { probe: false, controller: true },
+      ),
+    ).toEqual({
+      tone: "warning",
+      template: CONTROLLER_LATE,
+      values: {},
+      link: {
+        title: CONTROLLER_LATE_LINK,
+        kind: RefreshStatusLinkKind.MerakiConnections,
+      },
+    });
+    expect(english.translateTemplate(CONTROLLER_LATE, {})).toBe(
+      "The Meraki dashboard has not been read yet.",
+    );
+    expect(english.translateText(CONTROLLER_LATE_LINK)).toBe(
+      "See the Meraki connection",
+    );
+  });
+
+  test("a line about the probe has no link: its probe is checked where the probes are", () => {
+    for (const progress of [
+      NetworkDeviceRefreshProgress.Waiting,
+      NetworkDeviceRefreshProgress.Read,
+      NetworkDeviceRefreshProgress.Unreachable,
+    ]) {
+      expect(words(progress)?.link).toBeUndefined();
+    }
+
+    expect(
+      words(
+        NetworkDeviceRefreshProgress.Late,
+        {},
+        { probe: true, controller: true },
+      )?.link,
+    ).toBeUndefined();
+  });
 });
 
 describe("every new sentence, in every language", () => {
@@ -475,6 +519,7 @@ describe("every new sentence, in every language", () => {
     PROBE_LATE,
     PROBE_LATE_UNNAMED,
     CONTROLLER_LATE,
+    CONTROLLER_LATE_LINK,
     CONTROLLER_NETWORK_LINE,
     REFRESH_TITLE,
     DESCRIBED_DEVICES_NOTE.other,

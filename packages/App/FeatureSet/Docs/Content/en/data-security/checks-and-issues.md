@@ -178,6 +178,16 @@ It asks first, saying what changes, what stops working and what it costs. It cha
 
 It acts through the store's cloud connection, so the connection needs **Data security response** turned on and its setup command run again (see [Set Up Data Security](/docs/data-security/setup#let-data-security-close-an-exposure)). Until then the panel says what to turn on. The store is checked again right after, and the issue resolves on its own once its check passes. The issue's **Timeline** and the store's **Timeline** say what was done, and who did it.
 
+## Where a telemetry issue's data was found
+
+A telemetry issue - **Sensitive data is reaching your telemetry** or **Secrets are reaching your telemetry** - names in its evidence each kind of data no scrub rule masks, such as "2 kinds of sensitive data are not scrubbed: IP address, Ireland PPS number." Its page shows where each one is, under **Where It Was Found**:
+
+- **What and where.** Each data type with its sensitivity, and the place in the telemetry it sits: an attribute such as `attributes.user.pps`, a log's body, an exception's message, a prompt. Under it, how many of the sampled values matched, when a scan last saw it, and its masked samples. The service, or the RUM application, links to its logs, traces, exceptions or session replays.
+- **The records it was seen in.** **Show the records it was seen in** reads the newest records of the last 7 days that carry the data there, up to 10: when each was written, what it is - a span and its name, a log line and its severity, an exception and its type, an AI call, a session - and the value, masked as a finding's samples are. Each opens where OneUptime already shows it: **Open trace** focuses the trace view on the span, **Open in Logs** filters the logs explorer to the line's span in the minutes around it, **Open exception** shows the exception's group, and **Open session replay** plays the session. The first finding shows its records when the page opens.
+- **Scrub It.** Beside each finding not yet masked, **Scrub It** makes the scrub rule that masks it at ingest (see [Scrub It](/docs/data-security/telemetry#scrub-it)). A finding already scrubbed stays on the list, marked **Scrubbed**, so you see what is left. The issue resolves on its own once every finding behind it is scrubbed and the store is checked again.
+
+The list holds the findings the check counts: those at least Medium sure that a value matched, or a person confirmed, seen in the last 30 days and not marked not sensitive. A value is never shown in full here: open the record to see it, which takes the same permission as reading that telemetry anywhere else. So the records are shown to someone who may read masked samples - Security Members and above - and who may read that service's logs, traces, exceptions or sessions; Security Viewers see what was found and where, without samples or records. A value that is only a test value, a value the project allows, or one a scrub rule already masked at ingest is not a match.
+
 ## Check settings
 
 **Data Security → Settings → Checks** lists every check by group, with what it looks for and the severity a failure gets for each sensitivity. Each check can be tuned for the project, and each change saves at once:

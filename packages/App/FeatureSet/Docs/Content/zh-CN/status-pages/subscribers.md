@@ -98,7 +98,7 @@ flowchart TB
 
 **你的团队发送的内容也计数。** 你的团队添加订阅者的速度不受限制，无论是在仪表板上、批量、通过 API 还是通过工作流。但被添加的订阅者收到的消息，也就是请其确认的邮件或告知其已订阅的消息，会计入该联系方式每小时 10 次注册，超过之后，该次添加会以 `429` 被拒绝。不带消息添加的订阅者从不计数：电子邮件地址选 **立即订阅**，其他渠道关闭 **发送欢迎消息**。如果无法连接到速率限制器，你的团队的添加会不计数地继续。
 
-在状态页的登录页面上请求重置密码链接的私有用户也受到同样的限制：发往一个地址的重置邮件在所有状态页合计 1 小时内最多 5 封，来自一个网络的在 15 分钟内最多 30 封。邀请也按地址计数，无论是邀请加入私有状态页还是项目：发往一个地址的邀请两种合计 1 小时内最多 10 封。
+在状态页的登录页面上请求重置密码链接的私有用户也受到同样的限制：发往一个地址的重置邮件在所有状态页合计 1 小时内最多 5 封，来自一个网络的在 15 分钟内最多 30 封。邀请也按地址计数，无论是邀请加入私有状态页还是项目：发往一个地址的邀请两种合计 1 小时内最多 10 封。在登录页面上请求登录链接也受到限制，无论该地址是否属于页面的私有用户都会计数：发往一个地址的邮件在所有状态页合计 1 小时内最多 10 封，来自一个网络的在 15 分钟内最多 30 封。
 
 在自托管安装中，OneUptime 应用的以下环境变量用于更改限制：
 
@@ -113,6 +113,8 @@ flowchart TB
 | `PUBLIC_MESSAGE_RATE_LIMIT_STATUS_PAGE_MANAGE_LINKS_PER_CONTACT` | `5` | 每个窗口内一个联系方式的管理链接数。 |
 | `PUBLIC_MESSAGE_RATE_LIMIT_STATUS_PAGE_PASSWORD_RESETS_PER_IP` | `30` | 每个窗口内从一个地址请求的私有用户密码重置数。 |
 | `PUBLIC_MESSAGE_RATE_LIMIT_STATUS_PAGE_PASSWORD_RESETS_PER_CONTACT` | `5` | 每个窗口内发往一个地址的私有用户密码重置邮件数。 |
+| `PUBLIC_MESSAGE_RATE_LIMIT_STATUS_PAGE_MAGIC_LINKS_PER_IP` | `30` | 每个窗口内从一个地址请求的私有用户登录链接数。 |
+| `PUBLIC_MESSAGE_RATE_LIMIT_STATUS_PAGE_MAGIC_LINKS_PER_CONTACT` | `10` | 每个窗口内发往一个地址的私有用户登录链接邮件数。 |
 | `PUBLIC_MESSAGE_RATE_LIMIT_INVITATIONS_PER_CONTACT` | `10` | 每个窗口内发往一个地址的邀请数，私有状态页和项目合计。 |
 
 `config.env` 和 Helm chart 的值都不会传递它们：请自行将它们添加到 `app` 容器的环境中——在 Helm chart 中使用 `app.extraEnv` 或 chart 级别的 `extraEnv`，对于 Docker Compose 则使用 `docker-compose.override.yml`。 `TRUSTED_PROXY_HOPS` 决定按网络的限制计算的是哪个地址。

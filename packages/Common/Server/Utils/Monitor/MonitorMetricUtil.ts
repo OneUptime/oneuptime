@@ -60,7 +60,8 @@ export default class MonitorMetricUtil {
   private static lastCacheRefresh: Date | null = null;
   private static readonly CACHE_TTL_MS: number = 5 * 60 * 1000; // 5 minutes
 
-  private static async getRetentionDays(): Promise<number> {
+  // How long OneUptime's own metric rows are kept; Data Observability's table health uses it too.
+  public static async getRetentionDays(): Promise<number> {
     const now: Date = OneUptimeDate.getCurrentDate();
 
     // Return cached value if still fresh

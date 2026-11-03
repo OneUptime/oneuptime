@@ -360,6 +360,7 @@ import InventoryItemCustomFieldService from "./InventoryItemCustomFieldService";
 import InventoryItemRelationshipService from "./InventoryItemRelationshipService";
 import ExceptionInstanceService from "./ExceptionInstanceService";
 import KubernetesCostAllocationService from "./KubernetesCostAllocationService";
+import CloudCostService from "./CloudCostService";
 import ScheduledMaintenanceTemplateService from "./ScheduledMaintenanceTemplateService";
 import ScheduledMaintenanceTemplateOwnerTeamService from "./ScheduledMaintenanceTemplateOwnerTeamService";
 import ScheduledMaintenanceTemplateOwnerUserService from "./ScheduledMaintenanceTemplateOwnerUserService";
@@ -421,6 +422,8 @@ import DataSecurityCustomDataTypeService from "./DataSecurityCustomDataTypeServi
 import DataSecurityCheckSettingService from "./DataSecurityCheckSettingService";
 import DataSecurityResidencyRuleService from "./DataSecurityResidencyRuleService";
 import DataSecuritySettingService from "./DataSecuritySettingService";
+import DataAssetService from "./DataAssetService";
+import DataAssetFeedService from "./DataAssetFeedService";
 import SecurityProtectedEntityService from "./SecurityProtectedEntityService";
 import SecurityEntityRiskService from "./SecurityEntityRiskService";
 import SecurityEntityCriticalityService from "./SecurityEntityCriticalityService";
@@ -527,6 +530,8 @@ import RunnerOwnerTeamService from "./RunnerOwnerTeamService";
 import RunnerOwnerUserService from "./RunnerOwnerUserService";
 import CloudAccountService from "./CloudAccountService";
 import CloudAccountFeedService from "./CloudAccountFeedService";
+import CloudBudgetService from "./CloudBudgetService";
+import CloudCostRecommendationService from "./CloudCostRecommendationService";
 import CloudConnectionService from "./CloudConnectionService";
 import CloudResourceLabelRuleService from "./CloudResourceLabelRuleService";
 import CloudResourceOwnerRuleService from "./CloudResourceOwnerRuleService";
@@ -964,6 +969,8 @@ const services: Array<BaseService> = [
   DataSecurityCheckSettingService,
   DataSecurityResidencyRuleService,
   DataSecuritySettingService,
+  DataAssetService,
+  DataAssetFeedService,
   SecurityProtectedEntityService,
   SecurityEntityRiskService,
   SecurityEntityCriticalityService,
@@ -1061,6 +1068,8 @@ const services: Array<BaseService> = [
    */
   CloudAccountService,
   CloudAccountFeedService,
+  CloudBudgetService,
+  CloudCostRecommendationService,
   CloudConnectionService,
   CloudResourceLabelRuleService,
   CloudResourceOwnerRuleService,
@@ -1129,6 +1138,7 @@ export const AnalyticsServices: Array<
   LogCountBaselineService,
   ExceptionInstanceService,
   KubernetesCostAllocationService,
+  CloudCostService,
   MonitorLogService,
   NetworkFlowService,
   NetworkTrafficUsageService,

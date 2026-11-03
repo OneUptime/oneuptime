@@ -388,9 +388,15 @@ export const InvestigationUsageLine: FunctionComponent<UsageLineProps> = (
       <li key="model" className={USAGE_ITEM_CLASS_NAME}>
         <Icon icon={IconProp.Sparkles} className={USAGE_ICON_CLASS_NAME} />
         <span className="break-all">
-          {translator.translateTemplate("Model {{name}}", {
-            name: props.modelName,
-          })}
+          {/*
+            The model's name is data, set apart: in a Persian sentence its
+            Latin letters keep their place (setsValuesApart).
+          */}
+          {translator.translateTemplate(
+            "Model {{name}}",
+            { name: props.modelName },
+            { setsValuesApart: true },
+          )}
         </span>
       </li>,
     );
