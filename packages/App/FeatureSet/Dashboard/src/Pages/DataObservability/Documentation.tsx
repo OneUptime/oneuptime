@@ -155,6 +155,26 @@ They read these metrics, each tagged with \`oneuptime.data.pipeline.id\` and \`o
 - \`oneuptime.data.pipeline.run_duration_ratio\`: the run's time over the typical run's (counted as at least a minute), as each run ends and every five minutes while it runs.
 - \`oneuptime.data.pipeline.overdue_seconds\`: how long past its schedule the next run is, every five minutes; 0 while on time.
 
+## dbt
+
+After \`dbt build\` (or run, test, seed or snapshot), send the project's artifacts with the CLI and a telemetry ingestion key. It reads \`target/manifest.json\` and \`target/run_results.json\` and sends only what Data Observability reads of them:
+
+\`\`\`bash
+npm install -g @oneuptime/cli
+export ONEUPTIME_URL=https://oneuptime.com
+export ONEUPTIME_TELEMETRY_INGESTION_KEY=<ingestion key>
+dbt build
+oneuptime dbt upload
+\`\`\`
+
+In CI, run \`oneuptime dbt upload\` as the step after the build, even when the build fails, so failed tests are recorded. For a dbt Cloud job, download its artifacts with dbt Cloud's API, then upload them with \`--manifest\` and \`--run-results\`. Or post them yourself: \`POST /telemetry/dbt/v1/artifacts\` with \`{ "manifest": ..., "run_results": ... }\` and the key in \`x-oneuptime-token\`.
+
+What each upload does:
+- **Tables:** each model, seed, snapshot and source that is a table OneUptime watches gets a **dbt** card on its Overview: the node, its materialization, owner, tags and last build. Its dbt description fills the table's description when that is empty. A table is matched by its database, schema and name, for PostgreSQL, MySQL and SQL Server. dbt does not know the host, so when two watched databases share a name, their tables are left unmatched.
+- **Lineage:** what each model is built from becomes lineage on the table's **Lineage** tab, through the project's pipeline.
+- **Tests:** each test of a watched table shows on its **Checks** tab, with its last result and the rows it found failing. Click **Alert on Failures** to have a failing test open an alert.
+- **Builds:** each build is a run of the project's pipeline under **Pipelines** (namespace \`dbt\`). A build with an error or a failed test is a failed run, so the pipeline alerts work on dbt builds too: failed, unusually long and late.
+
 ## Services that use each table
 
 A table's **Services** tab lists the services seen writing and reading it, with the statements each ran, its calls and failures in the last hour, and when it was last seen. It comes from the database spans your services already send with OpenTelemetry: a client span with \`db.system.name\`, \`db.namespace\` and \`db.collection.name\` (or \`db.sql.table\`, or a span named like \`INSERT orders\`). Nothing extra to install. It is updated every 15 minutes.

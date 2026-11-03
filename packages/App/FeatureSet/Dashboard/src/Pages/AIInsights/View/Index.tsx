@@ -24,6 +24,8 @@ import {
 } from "../../../Components/TelemetryAi/ProfileInsightFixRequest";
 import TelemetryAiFixStrip from "../../../Components/TelemetryAi/TelemetryAiFixStrip";
 import { doesInsightOfferTelemetryAiFix } from "../../../Components/TelemetryAi/TelemetryAiFixCopy";
+import SpanMetricsStepPanel from "../../../Components/TelemetryAi/SpanMetricsStepPanel";
+import { doesInsightOfferSpanMetricsStep } from "../../../Components/TelemetryAi/SpanMetricsStepCopy";
 import ChatActivityFeed from "../../../Components/AIChat/ChatActivityFeed";
 import ServiceElement from "../../../Components/Service/ServiceElement";
 import {
@@ -1169,6 +1171,22 @@ const AIInsightViewPage: FunctionComponent<
                 });
               }}
             />
+          ) : (
+            <></>
+          )}
+
+          {/*
+           * A service with no metrics for its requests, not being fixed in
+           * code yet: the way past it that changes no code - the
+           * OpenTelemetry Collector records them from the traces it already
+           * sends (its span metrics step).
+           */}
+          {doesInsightOfferSpanMetricsStep({
+            insightType: insight.insightType,
+            status: status,
+            fixAiRunId: insight.fixAiRunId,
+          }) ? (
+            <SpanMetricsStepPanel />
           ) : (
             <></>
           )}

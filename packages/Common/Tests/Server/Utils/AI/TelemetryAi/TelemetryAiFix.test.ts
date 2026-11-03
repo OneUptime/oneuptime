@@ -383,6 +383,7 @@ describe("TelemetryAiPersonFix - Metrics' findings", () => {
       AIInsightType.MetricHighCardinality,
       AIInsightType.MetricHistogramBuckets,
       AIInsightType.MetricMissingMetrics,
+      AIInsightType.MetricMissingRequestMetrics,
     ]) {
       insightType = type;
 
@@ -397,7 +398,7 @@ describe("TelemetryAiPersonFix - Metrics' findings", () => {
       ).toBe(SuggestionOffer.InProgress);
     }
 
-    expect(suggestion).toHaveBeenCalledTimes(3);
+    expect(suggestion).toHaveBeenCalledTimes(4);
     expect(
       (suggestion.mock.calls[0]![0] as unknown as JSONObject)["props"],
     ).toBe(props);
