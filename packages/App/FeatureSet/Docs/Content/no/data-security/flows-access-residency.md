@@ -80,6 +80,12 @@ På AWS lister lesingen opp kontoens brukere og roller én gang og avgjør, slik
 
 Poengsummen er høyst 100. En rolle fra en konto utenfra som kan endre ett datalager med kortnumre, får 50 + 15 + 15 + 1 = 81.
 
+## Se et datalagers veier på ett kart
+
+**Oversikt** for et datalager tegner på ett kart hvem som kan nå det og hvor dataene kan gå, slik at en vei gjennom flere trinn kan leses med ett blikk. Til venstre står hvem som kan nå datalageret: ett kort for hver identitet, uansett hvor mange tilganger den har, med en pil inn i datalageret som sier det meste den kan gjøre: rød fra hvem som helst på internett, oransje fra utenfor kontoene dine. Deretter kommer tjenestene som bruker datalageret, og til høyre står hvor dataene kan gå fra dem: AI-leverandørene og de eksterne vertene som tjenestene kaller, og datalagrene som har kopier av dataene.
+
+En pil som bærer data, er farget etter hvor sensitive dataene er, og stiplet til en skanning har funnet dataene i den andre enden. En tjenestes AI-kall og eksterne kall sier hvor datalagerets data kan gå, ikke at de gikk dit, så pilene deres forblir stiplede til en skanning bekrefter dem. Hver kolonne viser de mest risikable kortene først og samler resten i ett kort som åpner **Hvem kan nå det** eller **Dataflyter**, der alle er oppført. Klikk på et kort for å åpne identiteten, tjenesten eller datalageret.
+
 ## Residensregler
 
 En residensregel sier hvor en type data kan ligge. Legg til en under **Datasikkerhet → Innstillinger → Residensregler**:
