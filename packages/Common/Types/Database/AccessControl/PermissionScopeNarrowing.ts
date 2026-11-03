@@ -732,6 +732,7 @@ const NARROWED_BY_LABELS_AND_OWNERS: ReadonlyArray<Permission> = [
 const NARROWED_BY_LABELS: ReadonlyArray<Permission> = [
   Permission.CreateAutoRemediationRule,
   Permission.CreateCodeRepository,
+  Permission.CreateDataAsset,
   Permission.CreateIoTDeviceCredential,
   Permission.CreateMonitorTemplate,
   Permission.CreateNetworkAlertPolicy,
@@ -758,6 +759,7 @@ const NARROWED_BY_LABELS: ReadonlyArray<Permission> = [
   Permission.CreateTelemetrySourceMap,
   Permission.DeleteAutoRemediationRule,
   Permission.DeleteCodeRepository,
+  Permission.DeleteDataAsset,
   Permission.DeleteDataSecurityFlow,
   Permission.DeleteDataSecurityIssue,
   Permission.DeleteDataSecurityScan,
@@ -789,6 +791,7 @@ const NARROWED_BY_LABELS: ReadonlyArray<Permission> = [
   Permission.DeleteTelemetrySourceMap,
   Permission.EditAutoRemediationRule,
   Permission.EditCodeRepository,
+  Permission.EditDataAsset,
   Permission.EditDataSecurityIssue,
   Permission.EditDataStoreFinding,
   Permission.EditIoTDeviceCredential,
@@ -829,6 +832,7 @@ const NARROWED_BY_LABELS: ReadonlyArray<Permission> = [
   Permission.ReadCodeRepository,
   Permission.ReadDashboardOwnerTeam,
   Permission.ReadDashboardOwnerUser,
+  Permission.ReadDataAsset,
   Permission.ReadDatabaseServerOwnerTeam,
   Permission.ReadDatabaseServerOwnerUser,
   Permission.ReadDataSecurityFlow,
@@ -943,6 +947,7 @@ const NARROWED_BY_LABELS: ReadonlyArray<Permission> = [
 
 // Narrowed by owners; labels narrow nothing of them.
 const NARROWED_BY_OWNERS: ReadonlyArray<Permission> = [
+  Permission.CreateDataAssetFeed,
   Permission.CreateNetworkSiteStatusTimeline,
   Permission.CreateSecurityCaseEvidence,
   Permission.CreateSecurityCaseNote,
@@ -958,6 +963,7 @@ const NARROWED_BY_OWNERS: ReadonlyArray<Permission> = [
   Permission.EditSecurityCaseNote,
   Permission.EditSecurityCaseTask,
   Permission.EditSecurityPlaybookRun,
+  Permission.ReadDataAssetFeed,
   Permission.ReadNetworkSiteStatusTimeline,
   Permission.ReadSecurityCaseEvidence,
   Permission.ReadSecurityCaseFeed,
