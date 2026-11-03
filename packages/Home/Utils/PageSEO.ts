@@ -1351,7 +1351,7 @@ export const PageSEOConfig: Record<string, PageSEOData> = {
   "/product/cloud": {
     title: "Cloud Monitoring | AWS, Google Cloud & Azure | OneUptime",
     description:
-      "Connect AWS, Google Cloud, and Azure accounts read-only and monitor every resource in them: provider metrics, changes, health events, a topology map, and alerting across every region and account. Open source.",
+      "Connect AWS, Google Cloud, and Azure accounts read-only and monitor every resource in them: health, provider metrics, changes, a topology map, what it costs and how to spend less, and budgets that alert. Open source.",
     canonicalPath: "/product/cloud",
     twitterCard: "summary_large_image",
     pageType: "product",
@@ -1378,6 +1378,10 @@ export const PageSEOConfig: Record<string, PageSEOData> = {
         "Multi-account and multi-region rollups",
         "Linked incidents and alerts",
         "Resource saturation alerting",
+        "Each resource's health from its key metrics",
+        "Costs from AWS Cost Explorer, Azure Cost Management and Google Cloud billing",
+        "Rightsizing and savings from each cloud's own recommender",
+        "Monthly budgets that alert before the money is spent",
         "Open source",
       ],
     },
