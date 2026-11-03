@@ -188,7 +188,8 @@ Så længe **Ret nye hændelser automatisk** er slået til, og der ikke er sat n
 - dens monitor er en Kubernetes-monitor for clusteret;
 - dens monitor er knyttet til clusteret under **Overvågning → Oversigt → Tilknyttede ressourcer**, som er måden at knytte en website-, API- eller syntetisk monitor til det cluster, der leverer det, den tjekker;
 - Spørg AI erklærede den på clusterets side eller knyttede den til clusteret, da den blev bedt om det;
-- nogen valgte clusteret under **Andre berørte ressourcer**, da den blev erklæret (at vælge en tilknyttet monitor tilføjer det der for dig).
+- nogen valgte clusteret under **Andre berørte ressourcer**, da den blev erklæret (at vælge en tilknyttet monitor tilføjer det der for dig);
+- nogen valgte clusteret, da den blev erklæret fra [Slack](/docs/workspace-connections/slack) eller [Microsoft Teams](/docs/workspace-connections/microsoft-teams).
 
 Hver hændelse og advarsel fortæller i trinnet **Afhjælpning** på sit kort **OneUptime AI**, om den var knyttet til et cluster, og hvad clusterets rettelser gjorde; se [Hvad den automatiske afhjælpning gjorde](#hvad-den-automatiske-afhjælpning-gjorde). Det samme gælder en infrastrukturressource og dens AI-agent.
 

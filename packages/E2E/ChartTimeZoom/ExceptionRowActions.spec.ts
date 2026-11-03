@@ -45,6 +45,8 @@ interface SpecWindow {
   __chartTimeZoomFixture: {
     requests: Array<RecordedRequest>;
     unhandled: Array<Record<string, unknown>>;
+    // Holds the list reads of `tables` until delivered (Fixture.js).
+    listGate: { mode: string; tables: Array<string>; deliver: () => number };
   };
 }
 
@@ -539,6 +541,333 @@ test.describe("Bulk Actions on the exceptions list", () => {
           ),
           animations: "disabled",
         });
+    });
+  }
+});
+
+/*
+ * Every exception that matches, not only the page's: "Select every
+ * matching exception across pages, not just the page shown" - the
+ * maintainer's follow-up to #5344. Two to a page (pageSize=2), the
+ * fixture's five unresolved exceptions are three pages. Once the page's
+ * two are ticked, the header line offers all five, by number; taken, the
+ * list's own read reads every match - its query, its columns, its order
+ * with the exception's id after it - and the selection holds from page to
+ * page. A quick move over it asks first, naming how many.
+ */
+test.describe("every exception that matches, not only the page's", () => {
+  const TWO_A_PAGE: string = `${UNRESOLVED_PATH}&pageSize=2`;
+
+  async function openTwoAPage(page: Page, width: number): Promise<void> {
+    await page.setViewportSize({ width: width, height: 1000 });
+    await page.goto(TWO_A_PAGE);
+    await expect(page.getByTestId("synthetic-banner")).toBeVisible({
+      timeout: 60000,
+    });
+    await expect(page.getByTestId("telemetry-viewer-select-row")).toHaveCount(
+      2,
+    );
+  }
+
+  function offer(page: Page): Locator {
+    return page.getByTestId("bulk-update-select-all-matching");
+  }
+
+  async function exceptionReads(page: Page): Promise<Array<RecordedRequest>> {
+    return await page.evaluate((): Array<RecordedRequest> => {
+      return (
+        JSON.parse(
+          JSON.stringify(
+            (window as unknown as SpecWindow).__chartTimeZoomFixture.requests,
+          ),
+        ) as Array<RecordedRequest & { modelName?: string }>
+      ).filter((request: RecordedRequest): boolean => {
+        return (
+          request.kind === "getList" &&
+          request.modelName === "TelemetryException"
+        );
+      });
+    });
+  }
+
+  test("1440: Select all 5 exceptions reads the whole match with the list's own query, and holds from page to page", async ({
+    page,
+  }: {
+    page: Page;
+  }) => {
+    await openTwoAPage(page, 1440);
+
+    // Some of the page: nothing more to offer yet.
+    await rowBox(page, "DeadlineExceededError").check();
+    await expect(offer(page)).toHaveCount(0);
+
+    await page.getByTestId("telemetry-viewer-select-page").check();
+    await expect(selectedCount(page)).toHaveText("2 selected");
+    await expect(offer(page)).toHaveText("Select all 5 exceptions");
+
+    await fs.mkdir(SCREENSHOTS, { recursive: true });
+    await page.getByTestId("telemetry-viewer-list").screenshot({
+      path: path.join(SCREENSHOTS, "exceptions-select-all-offer-1440.png"),
+      animations: "disabled",
+    });
+
+    const before: Array<RecordedRequest> = await exceptionReads(page);
+    const pageRead: RecordedRequest & { query?: unknown } = before[
+      before.length - 1
+    ] as RecordedRequest & { query?: unknown };
+
+    await offer(page).click();
+
+    await expect(selectedCount(page)).toHaveText("All 5 selected");
+    await expect(offer(page)).toHaveCount(0);
+
+    // One read of every match: the list's query, a thousand at a time.
+    const reads: Array<
+      RecordedRequest & {
+        query?: unknown;
+        limit?: number;
+        skip?: number;
+        sort?: Record<string, unknown>;
+      }
+    > = (await exceptionReads(page)).slice(before.length);
+
+    expect(reads).toHaveLength(1);
+    expect(reads[0]!.limit).toBe(1000);
+    expect(reads[0]!.skip).toBe(0);
+    expect(reads[0]!.query).toEqual(pageRead.query);
+    // The list's order, then the exception's id: no page shares a row.
+    expect(Object.keys(reads[0]!.sort || {})).toEqual(["lastSeenAt", "_id"]);
+
+    // Page two: its exceptions are ticked too, and the count still says all.
+    await page.getByTestId("pagination-next-button").click();
+    await expect(exceptionRow(page, "IndexNotFoundException")).toBeVisible();
+    for (const box of await page
+      .getByTestId("telemetry-viewer-select-row")
+      .all()) {
+      await expect(box).toBeChecked();
+    }
+    await expect(
+      page.getByTestId("telemetry-viewer-select-page"),
+    ).toBeChecked();
+    await expect(selectedCount(page)).toHaveText("All 5 selected");
+
+    await page.getByTestId("telemetry-viewer-list").screenshot({
+      path: path.join(SCREENSHOTS, "exceptions-all-selected-1440.png"),
+      animations: "disabled",
+    });
+  });
+
+  test("1440: Resolve over every match asks first, naming how many, then resolves each one", async ({
+    page,
+  }: {
+    page: Page;
+  }) => {
+    await openTwoAPage(page, 1440);
+
+    await page.getByTestId("telemetry-viewer-select-page").check();
+    await offer(page).click();
+    await expect(selectedCount(page)).toHaveText("All 5 selected");
+
+    await page.getByRole("button", { name: "Bulk Actions" }).click();
+    await page
+      .getByRole("menu")
+      .getByRole("menuitem", { name: "Resolve", exact: true })
+      .click();
+
+    const question: Locator = page.getByRole("dialog");
+    // What it does and to how many, as an incidents list's Resolve says.
+    await expect(question.getByTestId("modal-title")).toHaveText(
+      "Resolve 5 Exceptions",
+    );
+    await expect(question).toContainText(
+      "This changes all 5 selected exceptions, including those on other pages.",
+    );
+    // Nothing is written until the person says so.
+    expect(await updates(page)).toEqual([]);
+
+    await page.screenshot({
+      path: path.join(SCREENSHOTS, "exceptions-every-match-question-1440.png"),
+      animations: "disabled",
+    });
+
+    await question.getByTestId("modal-footer-submit-button").click();
+
+    await expect
+      .poll(async (): Promise<number> => {
+        return (await updates(page)).length;
+      })
+      .toBe(5);
+    for (const update of await updates(page)) {
+      expect(update.body).toEqual({ isResolved: true });
+    }
+
+    const result: Locator = page.getByRole("dialog");
+    await expect(result.getByText("5 Exceptions resolved")).toBeVisible();
+    await result.getByRole("button", { name: "Close" }).click();
+
+    // Read again: none is left unresolved, and nothing is ticked.
+    await expect(page.getByTestId("telemetry-viewer-select-row")).toHaveCount(
+      0,
+    );
+    await expect(selectedCount(page)).toHaveCount(0);
+  });
+
+  test("keyboard: the offer keeps the focus while it reads, saying so, then hands it to Bulk Actions", async ({
+    page,
+  }: {
+    page: Page;
+  }) => {
+    await openTwoAPage(page, 1440);
+
+    await page.getByTestId("telemetry-viewer-select-page").check();
+    await expect(offer(page)).toHaveText("Select all 5 exceptions");
+
+    // The read of every match waits, so the moment it takes can be read.
+    await page.evaluate((): void => {
+      const gate: SpecWindow["__chartTimeZoomFixture"]["listGate"] = (
+        window as unknown as SpecWindow
+      ).__chartTimeZoomFixture.listGate;
+      gate.mode = "manual";
+      gate.tables = ["TelemetryException"];
+    });
+
+    await offer(page).focus();
+    await page.keyboard.press("Enter");
+
+    /*
+     * Busy, saying so - and still where the keyboard is: a disabled button
+     * drops the focus to the page, and the next Tab started from the top.
+     */
+    await expect(offer(page)).toHaveText("Selecting 5 exceptions…");
+    await expect(offer(page)).toHaveAttribute("aria-busy", "true");
+    await expect(offer(page)).toBeFocused();
+
+    await page.evaluate((): void => {
+      const gate: SpecWindow["__chartTimeZoomFixture"]["listGate"] = (
+        window as unknown as SpecWindow
+      ).__chartTimeZoomFixture.listGate;
+      gate.mode = "immediate";
+      gate.deliver();
+    });
+
+    await expect(selectedCount(page)).toHaveText("All 5 selected");
+    await expect(offer(page)).toHaveCount(0);
+    // The next thing to do has the focus.
+    await expect(
+      page.getByRole("button", { name: "Bulk Actions" }),
+    ).toBeFocused();
+  });
+
+  test("a changed status lets every match go: back on Unresolved, nothing is ticked", async ({
+    page,
+  }: {
+    page: Page;
+  }) => {
+    await openTwoAPage(page, 1440);
+
+    await page.getByTestId("telemetry-viewer-select-page").check();
+    await offer(page).click();
+    await expect(selectedCount(page)).toHaveText("All 5 selected");
+
+    await page.getByRole("button", { name: "Resolved", exact: true }).click();
+    await expect(page.getByTestId("telemetry-viewer-select-row")).toHaveCount(
+      0,
+    );
+
+    await page.getByRole("button", { name: "Unresolved", exact: true }).click();
+    await expect(page.getByTestId("telemetry-viewer-select-row")).toHaveCount(
+      2,
+    );
+    for (const box of await page
+      .getByTestId("telemetry-viewer-select-row")
+      .all()) {
+      await expect(box).not.toBeChecked();
+    }
+    await expect(selectedCount(page)).toHaveCount(0);
+  });
+
+  for (const theme of ["light", "dark"]) {
+    test(`390 (${theme}): the offer takes a line of its own under the count, the page's box level with the count, nothing sideways`, async ({
+      page,
+    }: {
+      page: Page;
+    }) => {
+      await page.setViewportSize({ width: 390, height: 1000 });
+      await page.goto(`${TWO_A_PAGE}${theme === "dark" ? "&theme=dark" : ""}`);
+      await expect(page.getByTestId("synthetic-banner")).toBeVisible({
+        timeout: 60000,
+      });
+      await expect(page.getByTestId("telemetry-viewer-select-row")).toHaveCount(
+        2,
+      );
+
+      await page.getByTestId("telemetry-viewer-select-page").check();
+      await expect(offer(page)).toBeVisible();
+
+      interface Line {
+        box: { y: number; height: number };
+        count: { y: number; height: number };
+        actions: { y: number; height: number; x: number; width: number };
+        offer: { y: number; x: number; width: number };
+        header: { x: number; width: number };
+        countWords: { x: number };
+        offerWords: { x: number };
+      }
+
+      // Read in one frame.
+      const line: Line = await page.evaluate((): Line => {
+        const rectOf: (selector: string) => DOMRect = (
+          selector: string,
+        ): DOMRect => {
+          return (
+            document.querySelector(selector) as Element
+          ).getBoundingClientRect();
+        };
+
+        return {
+          box: rectOf("[data-testid=telemetry-viewer-select-page]"),
+          count: rectOf("[data-testid=bulk-update-selected-count]"),
+          actions: rectOf("[data-testid=bulk-update-actions] button"),
+          offer: rectOf("[data-testid=bulk-update-select-all-matching]"),
+          header: rectOf("[data-testid=telemetry-viewer-bulk]"),
+          countWords: rectOf("[data-testid=bulk-update-selected-count] > span"),
+          offerWords: rectOf(
+            "[data-testid=bulk-update-select-all-matching] > span",
+          ),
+        };
+      });
+
+      const centerOf: (rect: { y: number; height: number }) => number = (rect: {
+        y: number;
+        height: number;
+      }): number => {
+        return rect.y + rect.height / 2;
+      };
+
+      // The box, the count and Bulk Actions on the first line.
+      expect(
+        Math.abs(centerOf(line.box) - centerOf(line.count)),
+      ).toBeLessThanOrEqual(2);
+      expect(
+        Math.abs(centerOf(line.actions) - centerOf(line.count)),
+      ).toBeLessThanOrEqual(2);
+      // The offer under them, inside the header line's box.
+      expect(line.offer.y).toBeGreaterThanOrEqual(
+        line.count.y + line.count.height - 1,
+      );
+      expect(line.offer.x + line.offer.width).toBeLessThanOrEqual(
+        line.header.x + line.header.width,
+      );
+      // Its words start where the count's do, a line under them.
+      expect(
+        Math.abs(line.offerWords.x - line.countWords.x),
+      ).toBeLessThanOrEqual(1);
+      await expectNoSidewaysScroll(page, { tolerance: 1 });
+
+      await page.getByTestId("telemetry-viewer-list").screenshot({
+        path: path.join(SCREENSHOTS, `exceptions-select-all-390-${theme}.png`),
+        animations: "disabled",
+      });
     });
   }
 });

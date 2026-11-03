@@ -271,6 +271,39 @@ export const EXCEPTION_RESULT_LABELS: Record<
 };
 
 /*
+ * What each move asks over a selection that reaches past the page - every
+ * exception that matches - is titled with what it does and to how many
+ * (BulkSelectAll's askBeforeActingAcrossPages): "Resolve 4,213
+ * Exceptions", as a selection's Resolve on an incidents list is, whose
+ * words Resolve's share.
+ */
+export const EXCEPTION_ACROSS_PAGES_TITLES: Record<
+  ExceptionTriageAction["id"],
+  PluralTemplate
+> = {
+  resolve: {
+    one: "Resolve {{count}} {{itemName}}",
+    other: "Resolve {{count}} {{itemsName}}",
+  },
+  "resolve-next-release": {
+    one: "Resolve {{count}} {{itemName}} in next release",
+    other: "Resolve {{count}} {{itemsName}} in next release",
+  },
+  unresolve: {
+    one: "Reopen {{count}} {{itemName}}",
+    other: "Reopen {{count}} {{itemsName}}",
+  },
+  archive: {
+    one: "Archive {{count}} {{itemName}}",
+    other: "Archive {{count}} {{itemsName}}",
+  },
+  unarchive: {
+    one: "Unarchive {{count}} {{itemName}}",
+    other: "Unarchive {{count}} {{itemsName}}",
+  },
+};
+
+/*
  * Why someone who may not update exceptions finds the four locked in Bulk
  * Actions: about the exceptions selected, not "this Exception".
  */
@@ -308,6 +341,8 @@ export const getExceptionBulkActions: () => Array<
         // The exception's own state, as an incident's moves are grouped.
         menuGroup: ActionMenuGroup.Change,
         resultLabels: EXCEPTION_RESULT_LABELS[id],
+        // Over every match, the question it asks first is titled so.
+        titleWithCount: EXCEPTION_ACROSS_PAGES_TITLES[id],
         isVisible: (exceptions: Array<TelemetryException>): boolean => {
           return (
             exceptions.length === 0 ||
@@ -482,6 +517,11 @@ export const getExceptionAssignBulkAction: (data: {
     buttonStyleType: ButtonStyleType.NORMAL,
     menuGroup: ActionMenuGroup.Change,
     resultLabels: EXCEPTION_ASSIGN_RESULT_LABELS,
+    /*
+     * Its dialog names how many it assigns ("Assign 4,213 exceptions"),
+     * so a selection of every match is asked nothing more before it.
+     */
+    opensItsOwnDialog: true,
     ...(!gate.isAllowed && gate.disabledReason
       ? { disabled: true, tooltip: gate.disabledReason }
       : {}),

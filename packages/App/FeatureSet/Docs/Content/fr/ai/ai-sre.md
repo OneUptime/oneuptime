@@ -188,7 +188,8 @@ Tant que **Corriger automatiquement les nouveaux incidents** est activé et qu'a
 - son moniteur est un moniteur Kubernetes du cluster ;
 - son moniteur est lié au cluster dans **Moniteur → Vue d'ensemble → Ressources liées** — la façon de lier un moniteur de site web, d'API ou synthétique au cluster qui sert ce qu'il vérifie ;
 - Demander à l'IA l'a déclaré sur la page du cluster, ou l'a lié au cluster quand on le lui a demandé ;
-- quelqu'un a choisi le cluster dans **Autres ressources affectées** en le déclarant (choisir un moniteur lié l'y ajoute pour vous).
+- quelqu'un a choisi le cluster dans **Autres ressources affectées** en le déclarant (choisir un moniteur lié l'y ajoute pour vous) ;
+- quelqu'un a choisi le cluster en le déclarant depuis [Slack](/docs/workspace-connections/slack) ou [Microsoft Teams](/docs/workspace-connections/microsoft-teams).
 
 Chaque incident et chaque alerte indique dans l'étape **Remédiation** de sa carte **OneUptime AI** s'il était lié à un cluster et ce qu'ont fait les correctifs du cluster ; voir [Ce qu'a fait la remédiation automatique](#ce-qua-fait-la-remédiation-automatique). Il en va de même pour une ressource d'infrastructure et son agent IA.
 

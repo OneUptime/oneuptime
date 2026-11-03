@@ -3,6 +3,7 @@ import { WorkspaceNoteResourceType } from "../../WorkspaceReactionNote";
 import BadDataException from "../../../../../Types/Exception/BadDataException";
 import ObjectID from "../../../../../Types/ObjectID";
 import IncidentService from "../../../../Services/IncidentService";
+import AIService from "../../../../Services/AIService";
 import { ExpressRequest, ExpressResponse } from "../../../Express";
 import SlackUtil from "../Slack";
 import SlackActionType from "./ActionTypes";
@@ -46,6 +47,7 @@ import WorkspaceMemberActions, {
 import OnCallPersonPageAnswer from "../../../OnCall/OnCallPersonPageAnswer";
 import SlackActionAnswer, { SlackAnswerPlace } from "./Answer";
 import WorkspaceActionAnswers, {
+  WorkspaceAnswer,
   WorkspaceLatePress,
 } from "../../WorkspaceActionAnswers";
 import IncidentStateTimeline from "../../../../../Models/DatabaseModels/IncidentStateTimeline";
@@ -56,7 +58,10 @@ import DatabaseCommonInteractionProps from "../../../../../Types/BaseDatabase/Da
 import SlackActionAuthorization, {
   SlackAuthorizedEvent,
 } from "./Authorization";
-import { mdText } from "../../../../../Utils/Markdown/FeedMarkdown";
+import FeedMarkdown, {
+  MarkdownText,
+  mdText,
+} from "../../../../../Utils/Markdown/FeedMarkdown";
 import SlackIncidentMoreActions from "./IncidentMoreActions";
 import { WorkspacePendingActionKind } from "../../WorkspaceConnectRequest";
 import WorkspaceIncidentActions from "../../WorkspaceIncidentActions";
@@ -66,7 +71,19 @@ import WorkspaceNoteForm, {
 } from "../../WorkspaceNoteForm";
 import { PrivateRecordKind } from "../../../../../Types/StatusPage/PrivateRecordPublicNotes";
 import { WorkspaceNoteType } from "../../../../../Types/Workspace/WorkspaceNoteReaction";
+import { SLACK_ID_PATTERN } from "../../../../../Types/Workspace/ConnectCallback";
 import WorkspaceCommands from "../../WorkspaceCommands";
+import WorkspaceAffectedResources, {
+  WORKSPACE_AFFECTED_RESOURCES_FIELD,
+  WORKSPACE_AFFECTED_RESOURCES_TEXT,
+  WorkspaceAffectedResourcesToLink,
+} from "../../WorkspaceAffectedResources";
+import WorkspaceIncidentFromAlert, {
+  WorkspaceAlertNotLinked,
+  WorkspaceAlertToLink,
+  WorkspaceDeclaringAlert,
+} from "../../WorkspaceIncidentFromAlert";
+import SlackAffectedResources from "../SlackAffectedResources";
 
 export default class SlackIncidentActions {
   @CaptureSpan()
@@ -261,6 +278,53 @@ export default class SlackIncidentActions {
       }
 
       /*
+       * The affected resources picked, read again as the member - only
+       * what they may view now, of this project, and not archived - in the
+       * lists OneUptime AI investigates and fixes (WorkspaceAffectedResources).
+       */
+      const toLink: WorkspaceAffectedResourcesToLink =
+        await WorkspaceAffectedResources.readPicked({
+          projectId: slackRequest.projectId!,
+          props: props,
+          picks: WorkspaceAffectedResources.readPicks(
+            data.slackRequest.viewValues[WORKSPACE_AFFECTED_RESOURCES_FIELD],
+          ),
+        });
+
+      WorkspaceAffectedResources.setOnIncident(incident, toLink.linked);
+
+      /*
+       * Declared in an alert's own channel: linked to that alert, when the
+       * member may link it - otherwise declared without it, and told why
+       * (WorkspaceIncidentFromAlert).
+       */
+      const fromAlertId: ObjectID | null = WorkspaceIncidentFromAlert.readValue(
+        data.action.actionValue,
+      );
+
+      const alertLink: WorkspaceAlertToLink | WorkspaceAlertNotLinked | null =
+        fromAlertId
+          ? await WorkspaceIncidentFromAlert.checkLink({
+              projectId: slackRequest.projectId!,
+              alertId: fromAlertId,
+              props: props,
+            })
+          : null;
+
+      const linkedAlert: WorkspaceAlertToLink | null =
+        alertLink && WorkspaceIncidentFromAlert.isLinked(alertLink)
+          ? alertLink
+          : null;
+
+      /*
+       * A private alert's incident is private, as the Dashboard declares it
+       * - linked or not: it starts from the alert's title and resources.
+       */
+      if (alertLink?.isPrivate) {
+        incident.isPrivate = true;
+      }
+
+      /*
        * Created with the member's props, so it is credited to them and
        * held to what they may do and name; a refusal is told to them.
        */
@@ -272,6 +336,9 @@ export default class SlackIncidentActions {
             return await IncidentService.create({
               data: incident,
               props: props,
+              ...(linkedAlert
+                ? { miscDataProps: linkedAlert.miscDataProps }
+                : {}),
             });
           },
         });
@@ -280,10 +347,36 @@ export default class SlackIncidentActions {
         return;
       }
 
-      // post a message to Slack after the incident was created.
-      const slackChannelId: string = data.action.actionValue || ""; // this is the channel id where the incident was created.
+      /*
+       * The confirmation goes where the form was opened (its metadata
+       * names the channel) - and, in a form opened before forms carried
+       * where they were opened, the channel it carried as its value.
+       */
+      const slackChannelId: string =
+        slackRequest.slackChannelId ||
+        (SLACK_ID_PATTERN.test(data.action.actionValue || "")
+          ? data.action.actionValue || ""
+          : "");
 
       if (slackChannelId) {
+        const lines: Array<MarkdownText> = [
+          mdText`**Incident ${createdIncident.incidentNumberWithPrefix || "#" + createdIncident.incidentNumber}** created successfully. [View Incident](${await IncidentService.getIncidentLinkInDashboard(
+            slackRequest.projectId!,
+            createdIncident.id!,
+          )})`,
+        ];
+
+        // What it is linked to, for everybody in the channel.
+        const linkedLine: MarkdownText | null =
+          WorkspaceAffectedResources.getLinkedLine({
+            linked: toLink.linked,
+            alert: linkedAlert?.name,
+          });
+
+        if (linkedLine) {
+          lines.push(linkedLine);
+        }
+
         await SlackUtil.sendMessage({
           authToken: projectAuthToken,
           userId: botUserId,
@@ -296,16 +389,61 @@ export default class SlackIncidentActions {
             messageBlocks: [
               {
                 _type: "WorkspacePayloadMarkdown",
-                text: mdText`**Incident ${createdIncident.incidentNumberWithPrefix || "#" + createdIncident.incidentNumber}** created successfully. [View Incident](${await IncidentService.getIncidentLinkInDashboard(
-                  slackRequest.projectId!,
-                  createdIncident.id!,
-                )})`.toString(),
+                text: FeedMarkdown.join(lines, "\n").toString(),
               } as WorkspacePayloadMarkdown,
             ],
           },
         });
       }
+
+      // What was picked and not linked: for the person who picked it only.
+      await SlackIncidentActions.answerNotLinked({
+        slackRequest: slackRequest,
+        incident: createdIncident,
+        notLinkedCount: toLink.notLinkedCount,
+        alertNotLinked:
+          alertLink && !WorkspaceIncidentFromAlert.isLinked(alertLink)
+            ? alertLink
+            : null,
+      });
     }
+  }
+
+  /*
+   * Tells the person who declared the incident what they picked and is not
+   * linked - a resource deleted or archived since they picked it, or no
+   * longer one they may view, and the alert of the channel when they may
+   * not link it - where they declared it, in a message only they see
+   * (WorkspaceIncidentFromAlert.getNotLinkedAnswer). The incident is
+   * declared all the same. Nothing when everything was linked.
+   */
+  private static async answerNotLinked(data: {
+    slackRequest: SlackRequest;
+    incident: Incident;
+    notLinkedCount: number;
+    alertNotLinked: WorkspaceAlertNotLinked | null;
+  }): Promise<void> {
+    const answer: WorkspaceAnswer | null =
+      await WorkspaceIncidentFromAlert.readNotLinkedAnswer({
+        projectId: data.slackRequest.projectId!,
+        incident: data.incident,
+        notLinkedCount: data.notLinkedCount,
+        alertNotLinked: data.alertNotLinked,
+      });
+
+    if (!answer) {
+      return;
+    }
+
+    const place: SlackAnswerPlace | null = SlackActionAnswer.getPlace(
+      data.slackRequest,
+    );
+
+    if (!place) {
+      return;
+    }
+
+    await SlackActionAnswer.answer({ place: place, answer: answer });
   }
 
   // Declaring an incident, as a refusal names it: "... to declare an incident".
@@ -370,47 +508,42 @@ export default class SlackIncidentActions {
     const projectId: ObjectID = data.slackRequest.projectId!;
 
     /*
-     * show new incident modal.
-     * new incident modal is :
-     * Incident Title (this can be prefilled with actionValue)
-     * Incident Description
-     * Incident Severity (dropdown) (single select)
-     * Monitors (dropdown) (miltiselect)
-     * Change Monitor Status to (dropdown) (single select)
-     * Labels (dropdown) (multiselect)
+     * The New Incident form:
+     *
+     *   Incident Title (filled in with what was typed after the command, or
+     *     the alert's title in an alert's channel)
+     *   Incident Description
+     *   Incident Severity (single select)
+     *   Affected Resources (searched as the person types; optional)
+     *   Monitors (multi select; optional - picking one pauses its checks)
+     *   Change Monitor Status to (single select; optional)
+     *   Execute On-Call Policies (multi select; optional)
+     *   Labels (multi select; optional)
+     *
+     * Opened in an alert's own channel, it opens with the alert it is
+     * declared from, and its resources are picked already.
+     *
+     * Everything is read at once: Slack opens the form only within three
+     * seconds of the press.
      */
-
-    const incidentTitle: WorkspaceTextBoxBlock = {
-      _type: "WorkspaceTextBoxBlock",
-      label: "Incident Title",
-      blockId: "incidentTitle",
-      placeholder: "Incident Title",
-      initialValue: data.action.actionValue || "",
-    };
-
-    blocks.push(incidentTitle);
-
-    const incidentDescription: WorkspaceTextAreaBlock = {
-      _type: "WorkspaceTextAreaBlock",
-      label: "Incident Description",
-      blockId: "incidentDescription",
-      placeholder: "Incident Description",
-    };
-
-    blocks.push(incidentDescription);
-
     const [
       incidentSeveritiesForProject,
       monitorsForProject,
       monitorStatusForProject,
       onCallPolicies,
       labelsForProject,
+      declaringAlert,
+      isAffectedResourcesOffered,
+      isAiEnabled,
     ]: [
       Array<IncidentSeverity>,
       Array<Monitor>,
       Array<MonitorStatus>,
       Array<OnCallDutyPolicy>,
       Array<Label>,
+      WorkspaceDeclaringAlert | null,
+      boolean,
+      boolean,
     ] = await Promise.all([
       WorkspaceActionAuthorization.findReadable({
         service: IncidentSeverityService,
@@ -481,7 +614,45 @@ export default class SlackIncidentActions {
         },
         limit: LIMIT_PER_PROJECT,
       }),
+      WorkspaceIncidentFromAlert.readChannelAlert({
+        projectId: projectId,
+        channelId: data.slackRequest.slackChannelId,
+        props: props,
+      }),
+      WorkspaceAffectedResources.isOffered({
+        projectId: projectId,
+        props: props,
+      }),
+      // Whether Affected Resources' hint may speak of OneUptime AI.
+      AIService.isProjectAIEnabled(projectId),
     ]);
+
+    // The alert it is declared from, said first.
+    if (declaringAlert) {
+      blocks.push({
+        _type: "WorkspacePayloadMarkdown",
+        text: WorkspaceIncidentFromAlert.getFormLine(declaringAlert).toString(),
+      } as WorkspacePayloadMarkdown);
+    }
+
+    const incidentTitle: WorkspaceTextBoxBlock = {
+      _type: "WorkspaceTextBoxBlock",
+      label: "Incident Title",
+      blockId: "incidentTitle",
+      placeholder: "Incident Title",
+      initialValue: data.action.actionValue || declaringAlert?.title || "",
+    };
+
+    blocks.push(incidentTitle);
+
+    const incidentDescription: WorkspaceTextAreaBlock = {
+      _type: "WorkspaceTextAreaBlock",
+      label: "Incident Description",
+      blockId: "incidentDescription",
+      placeholder: "Incident Description",
+    };
+
+    blocks.push(incidentDescription);
 
     const dropdownOptions: Array<DropdownOption> =
       incidentSeveritiesForProject.map((severity: IncidentSeverity) => {
@@ -503,6 +674,24 @@ export default class SlackIncidentActions {
       blocks.push(incidentSeverity);
     }
 
+    /*
+     * What the incident is about - its hosts, clusters, databases, cloud
+     * resources and services - which OneUptime AI investigates and fixes:
+     * the first of the optional fields, as it pauses nothing. Searched as
+     * the person types, as the member (SlackAffectedResources). Left off
+     * for a member who may read no kind of resource, or a project with
+     * none of them to pick - but never when an alert's resources are
+     * picked already.
+     */
+    if (isAffectedResourcesOffered || declaringAlert?.resources.length) {
+      blocks.push(
+        SlackAffectedResources.getField({
+          initial: declaringAlert?.resources || [],
+          isAiEnabled: isAiEnabled,
+        }),
+      );
+    }
+
     const monitorDropdownOptions: Array<DropdownOption> =
       monitorsForProject.map((monitor: Monitor) => {
         return {
@@ -511,6 +700,12 @@ export default class SlackIncidentActions {
         };
       });
 
+    /*
+     * Picked on purpose only, never filled in: a monitor linked to an
+     * incident a person declares pauses its checks until the incident is
+     * resolved (IncidentService.disableActiveMonitoringIfManualIncident),
+     * which the hint says.
+     */
     const incidentMonitors: WorkspaceDropdownBlock = {
       _type: "WorkspaceDropdownBlock",
       label: "Monitors",
@@ -519,6 +714,7 @@ export default class SlackIncidentActions {
       options: monitorDropdownOptions,
       multiSelect: true,
       optional: true,
+      description: WORKSPACE_AFFECTED_RESOURCES_TEXT.monitorsHint,
     };
 
     if (monitorsForProject.length > 0) {
@@ -596,13 +792,21 @@ export default class SlackIncidentActions {
       blocks.push(labelsDropdown);
     }
 
+    /*
+     * The form carries the alert it is declared from, for its submission
+     * to read again (WorkspaceIncidentFromAlert.readValue); any other form,
+     * the channel it was opened in, as it always did. Where it was opened
+     * goes along in its metadata either way (SlackActionAnswer.showModal).
+     */
     const modalBlock: WorkspaceModalBlock = {
       _type: "WorkspaceModalBlock",
       title: "New Incident",
       submitButtonTitle: "Submit",
       cancelButtonTitle: "Cancel",
       actionId: SlackActionType.SubmitNewIncident,
-      actionValue: data.slackRequest.slackChannelId || "",
+      actionValue: declaringAlert
+        ? WorkspaceIncidentFromAlert.toValue(declaringAlert.alertId)
+        : data.slackRequest.slackChannelId || "",
       blocks: blocks,
     };
 

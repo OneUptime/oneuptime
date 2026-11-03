@@ -188,7 +188,8 @@ Enquanto **Corrigir novos incidentes automaticamente** estiver ativado e nenhuma
 - o monitor dele é um monitor Kubernetes do cluster;
 - o monitor dele está vinculado ao cluster em **Monitor → Visão geral → Recursos Vinculados**, que é a forma de vincular um monitor de site, de API ou sintético ao cluster que serve o que ele verifica;
 - o Pergunte à IA o declarou na página do cluster, ou o vinculou ao cluster quando solicitado;
-- alguém escolheu o cluster em **Outros recursos afetados** ao declará-lo (escolher um monitor vinculado o adiciona ali para você).
+- alguém escolheu o cluster em **Outros recursos afetados** ao declará-lo (escolher um monitor vinculado o adiciona ali para você);
+- alguém escolheu o cluster ao declará-lo pelo [Slack](/docs/workspace-connections/slack) ou pelo [Microsoft Teams](/docs/workspace-connections/microsoft-teams).
 
 Cada incidente e cada alerta diz na etapa **Remediação** do seu cartão **OneUptime AI** se estava vinculado a um cluster e o que as correções do cluster fizeram; veja [O que a remediação automática fez](#o-que-a-remediação-automática-fez). O mesmo vale para um recurso de infraestrutura e o agente de IA dele.
 

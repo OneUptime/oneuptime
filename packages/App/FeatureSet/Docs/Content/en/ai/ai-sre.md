@@ -188,7 +188,8 @@ While **Fix new incidents automatically** is on and no AI rule is set up, OneUpt
 - its monitor is a Kubernetes monitor of the cluster;
 - its monitor is linked to the cluster under **Monitor → Overview → Linked Resources** — the way to link a website, API or synthetic monitor to the cluster that serves what it checks;
 - Ask AI declared it on the cluster's page, or linked it to the cluster when asked;
-- someone picked the cluster under **Other Affected Resources** when declaring it (picking a linked monitor adds it there for you).
+- someone picked the cluster under **Other Affected Resources** when declaring it (picking a linked monitor adds it there for you);
+- someone picked the cluster when declaring it from [Slack](/docs/workspace-connections/slack) or [Microsoft Teams](/docs/workspace-connections/microsoft-teams).
 
 Each incident and alert says in the **Remediation** step of its **OneUptime AI** card whether it was linked to a cluster and what the cluster's fixes did; see [What auto-remediation did](#what-auto-remediation-did). The same holds for an infrastructure resource and its AI agent.
 

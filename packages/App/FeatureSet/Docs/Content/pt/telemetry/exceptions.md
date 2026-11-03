@@ -99,7 +99,7 @@ Os botões no topo da página da exceção, a página **Configurações** dela e
 
 **Configurações** mostra quem resolveu ou arquivou a exceção por último, e quando. Os botões dela dizem **Marcar como resolvido** ou **Marcar como não resolvido**, e **Arquivar** ou **Desarquivar**.
 
-Para mudar várias de uma vez, marque as linhas delas na lista, ou a caixa acima das linhas para todas as exceções da página, e use as mesmas ações em **Ações em massa**. O resultado diz quais exceções mudaram, quais ficaram como estavam e por quê.
+Para mudar várias de uma vez, marque as linhas delas na lista, ou a caixa acima das linhas para todas as exceções da página, e use as mesmas ações em **Ações em massa**. Quando todas as exceções da página estão marcadas, a barra acima das linhas oferece selecionar todas as exceções que correspondem à busca e aos filtros da lista, em todas as páginas, até 10.000 de uma vez; uma ação então pergunta antes de alterá-las. O resultado diz quais exceções mudaram, quais ficaram como estavam e por quê.
 
 **Atribuir** no cabeçalho da exceção a entrega a uma pessoa ou a uma equipe, e remover a escolha desfaz a atribuição. Cada linha mostra a quem ela pertence, o menu ⋯ dela oferece **Atribuir a mim**, e **Atribuir a…** em **Ações em massa** atribui várias de uma vez. A pessoa a quem ela é atribuída, ou cada membro da equipe, recebe uma notificação conforme a linha **Exceção atribuída a mim** das suas [Configurações de notificação](/docs/notifications/notification-settings); quem a atribuiu não recebe.
 

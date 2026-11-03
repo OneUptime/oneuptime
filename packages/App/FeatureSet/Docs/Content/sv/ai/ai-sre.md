@@ -188,7 +188,8 @@ Så länge **Åtgärda nya incidenter automatiskt** är på och ingen AI-regel h
 - dess monitor är en Kubernetes-monitor för klustret;
 - dess monitor är kopplad till klustret under **Övervakning → Översikt → Länkade resurser**, vilket är sättet att koppla en webbplats-, API- eller syntetisk monitor till klustret som levererar det den kontrollerar;
 - Fråga AI deklarerade den på klustrets sida, eller kopplade den till klustret när den blev ombedd;
-- någon valde klustret under **Andra påverkade resurser** när den deklarerades (att välja en kopplad monitor lägger till det där åt dig).
+- någon valde klustret under **Andra påverkade resurser** när den deklarerades (att välja en kopplad monitor lägger till det där åt dig);
+- någon valde klustret när den deklarerades från [Slack](/docs/workspace-connections/slack) eller [Microsoft Teams](/docs/workspace-connections/microsoft-teams).
 
 Varje incident och larm talar om i steget **Åtgärd** på sitt kort **OneUptime AI** om den var kopplad till ett kluster och vad klustrets åtgärder gjorde; se [Vad den automatiska åtgärden gjorde](#vad-den-automatiska-åtgärden-gjorde). Detsamma gäller en infrastrukturresurs och dess AI-agent.
 

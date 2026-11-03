@@ -188,7 +188,8 @@ Mientras **Corregir automáticamente los incidentes nuevos** está activado y no
 - su monitor es un monitor de Kubernetes del clúster;
 - su monitor está vinculado al clúster en **Monitor → Vista general → Recursos vinculados**, que es la forma de vincular un monitor de sitio web, de API o sintético con el clúster que sirve lo que comprueba;
 - Preguntar a la IA lo declaró en la página del clúster, o lo vinculó al clúster cuando se le pidió;
-- alguien eligió el clúster en **Otros recursos afectados** al declararlo (elegir un monitor vinculado lo añade ahí por ti).
+- alguien eligió el clúster en **Otros recursos afectados** al declararlo (elegir un monitor vinculado lo añade ahí por ti);
+- alguien eligió el clúster al declararlo desde [Slack](/docs/workspace-connections/slack) o [Microsoft Teams](/docs/workspace-connections/microsoft-teams).
 
 Cada incidente y cada alerta indica en el paso **Remediación** de su tarjeta **OneUptime AI** si estaba vinculado a un clúster y qué hicieron las correcciones del clúster; consulta [Lo que hizo la remediación automática](#lo-que-hizo-la-remediación-automática). Lo mismo vale para un recurso de infraestructura y su agente de IA.
 

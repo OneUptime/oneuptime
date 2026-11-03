@@ -298,10 +298,17 @@ export default class SlackAuthAction {
       (payload as JSONObject)["team"] as JSONObject
     )?.["id"] as string;
 
-    // if there are no actions then return.
+    /*
+     * if there are no actions then return. A form's select that asks for
+     * its options as the person types (block_suggestion) is read as the
+     * form's own submission would be - its view names the project it was
+     * drawn for - so its options are read as the same member, in the same
+     * project (SlackAffectedResources).
+     */
     if (
       (!payload["actions"] || (payload["actions"] as JSONArray).length === 0) &&
       payload["type"] !== "view_submission" &&
+      payload["type"] !== "block_suggestion" &&
       payload["type"] !== "shortcut" &&
       payload["type"] !== "app_uninstalled" &&
       !payload["command"]
