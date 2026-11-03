@@ -135,9 +135,7 @@ const threadKind = [
   "error",
   "rich",
   "actions",
-].includes(
-  params.get("thread"),
-)
+].includes(params.get("thread"))
   ? params.get("thread")
   : "";
 const isRunHeld = params.get("run") === "hold";

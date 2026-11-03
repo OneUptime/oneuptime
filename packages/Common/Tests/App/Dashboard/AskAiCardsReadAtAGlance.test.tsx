@@ -178,9 +178,9 @@ describe("the approval card's arguments, a line each", () => {
     expect(notify.className).toContain("line-clamp-4");
     expect(notify.className).toContain("break-words");
     expect(notify.previousElementSibling).toHaveTextContent(NOTE);
-    expect(screen.getByTestId("tool-approval-arguments").className).not.toContain(
-      "line-clamp",
-    );
+    expect(
+      screen.getByTestId("tool-approval-arguments").className,
+    ).not.toContain("line-clamp");
   });
 
   test("a note is read whole: never cut at 80 characters", () => {
@@ -318,7 +318,9 @@ describe("the approval card's arguments, a line each", () => {
         {},
         dashboardTranslator("de"),
       ),
-    ).toBe(`${DE["Note"]}: Rolled back.  ·  ${DE["Notify subscribers"]}: ${DE["No"]}`);
+    ).toBe(
+      `${DE["Note"]}: Rolled back.  ·  ${DE["Notify subscribers"]}: ${DE["No"]}`,
+    );
   });
 });
 

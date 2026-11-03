@@ -2664,8 +2664,9 @@ test.describe("an action's arguments and the cards it leaves", () => {
     expect(await anyCut(page.getByTestId("tool-approval-argument"))).toBe(
       false,
     );
-    await expect(page.getByTestId("tool-approval-arguments").first()).not
-      .toContainText(INCIDENT_ID);
+    await expect(
+      page.getByTestId("tool-approval-arguments").first(),
+    ).not.toContainText(INCIDENT_ID);
 
     // A note is prose: in the card's face, not in monospace.
     const fonts: Array<string> = await page
@@ -2697,20 +2698,22 @@ test.describe("an action's arguments and the cards it leaves", () => {
 
     const cards: Locator = page.getByTestId("ai-chat-resource-card");
     await expect(cards).toHaveCount(2);
-    await expect(cards.nth(0).getByTestId("ai-chat-resource-card-line")).toHaveText(
-      "Status update posted, subscribers notified",
-    );
-    await expect(cards.nth(1).getByTestId("ai-chat-resource-card-line")).toHaveText(
-      "Private note added, for your team only",
-    );
+    await expect(
+      cards.nth(0).getByTestId("ai-chat-resource-card-line"),
+    ).toHaveText("Status update posted, subscribers notified");
+    await expect(
+      cards.nth(1).getByTestId("ai-chat-resource-card-line"),
+    ).toHaveText("Private note added, for your team only");
     // Each action is its card: no Executed row under them.
     await expect(page.getByTestId("tool-approval-history")).toHaveCount(0);
     await settle(page);
 
-    const fact: Locator = cards.nth(0).getByTestId("ai-chat-resource-card-fact");
-    await expect(fact.getByTestId("ai-chat-resource-card-fact-label")).toHaveText(
-      "Status update",
-    );
+    const fact: Locator = cards
+      .nth(0)
+      .getByTestId("ai-chat-resource-card-fact");
+    await expect(
+      fact.getByTestId("ai-chat-resource-card-fact-label"),
+    ).toHaveText("Status update");
     const [label, value] = await boxesInOneFrame([
       fact.getByTestId("ai-chat-resource-card-fact-label"),
       fact.getByTestId("ai-chat-resource-card-fact-value"),
