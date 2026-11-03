@@ -755,7 +755,13 @@ describe("Set Up Data Security", () => {
 
     const writer: string = `${SERVER}/DataSecurityFindingWriter.ts`;
 
-    expect(constant(writer, "FINDING_FRESHNESS_IN_DAYS")).toBe(30);
+    // The check catalog's, which the writer, the evaluator and the issue page read.
+    expect(
+      constant(
+        "Common/Types/DataSecurity/DataSecurityCheckCatalog.ts",
+        "FINDING_FRESHNESS_IN_DAYS",
+      ),
+    ).toBe(30);
     expect(constant(writer, "FINDING_RETENTION_IN_DAYS")).toBe(90);
     expect(constant(writer, "MAX_FINDINGS_PER_STORE")).toBe(2000);
     expect(keeps).toContain(
