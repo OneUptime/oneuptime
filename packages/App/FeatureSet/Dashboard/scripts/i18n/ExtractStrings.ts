@@ -282,6 +282,26 @@ export const SOURCE_ROOTS: Array<SourceRoot> = [
     kind: "keys",
   },
   /*
+   * A cloud resource's status and what needs attention on it, by one set
+   * of rules from its key metrics: the Cloud Overview's Needs attention,
+   * the lists, a resource's hero and tiles say them in the reader's
+   * language. Only the words the file marks are read: a metric's name is
+   * drawn as written.
+   */
+  {
+    directory: "packages/Common/Types/Cloud/CloudResourceHealth.ts",
+    kind: "keys",
+  },
+  /*
+   * What the clouds cost and how to spend less: the kinds of saving the
+   * Savings page and its strip name. Only the words the file marks are
+   * read: the server keeps the clouds' own words for a recommendation.
+   */
+  {
+    directory: "packages/Common/Types/Cloud/CloudCost.ts",
+    kind: "keys",
+  },
+  /*
    * The column titles of the tables OneUptime AI's tools put beside an
    * answer ("Time", "Severity", "Last seen"): the chat draws each in the
    * reader's language (DataTableWidget). Only the titles the tools mark are

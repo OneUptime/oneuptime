@@ -60,6 +60,8 @@ import {
   getCloudResourceOwnAttentionItems,
 } from "../../../Components/Cloud/CloudResourceAttention";
 import NeedsAttentionCard from "../../../Components/ResourcePart/NeedsAttentionCard";
+import CloudResourceCostCard from "../../../Components/Cloud/CloudResourceCostCard";
+import ProjectUtil from "Common/UI/Utils/Project";
 import { ResourceOverviewTile } from "../../../Components/TelemetryResource/ResourceOverview";
 
 /*
@@ -389,6 +391,21 @@ const CloudMonitoredResourceOverview: FunctionComponent<
         current={CLOUD_RESOURCE_ATTENTION_CURRENT}
         showKind={false}
       />
+
+      {/*
+       * What it costs and how it could cost less, when its cloud says:
+       * nothing is drawn for a resource with neither.
+       */}
+      {ProjectUtil.getCurrentProjectId() && r.providerResourceId ? (
+        <CloudResourceCostCard
+          projectId={ProjectUtil.getCurrentProjectId()!}
+          resourceRecordId={modelId}
+          provider={provider}
+          providerResourceId={r.providerResourceId}
+        />
+      ) : (
+        <></>
+      )}
 
       <div className="mt-6">
         <ResourceActivityCards

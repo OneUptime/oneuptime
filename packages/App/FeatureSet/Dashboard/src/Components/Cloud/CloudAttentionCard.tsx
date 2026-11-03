@@ -106,6 +106,8 @@ export interface ComponentProps {
   testId?: string | undefined;
   // What it found, for the page's own counts.
   onLoaded?: ((attention: CloudAttention) => void) | undefined;
+  // That it could not read them: the page's counts say they are not known.
+  onFailed?: (() => void) | undefined;
 }
 
 const CloudAttentionCard: FunctionComponent<ComponentProps> = (
@@ -140,6 +142,7 @@ const CloudAttentionCard: FunctionComponent<ComponentProps> = (
         .catch((err: Error): void => {
           if (!ignore) {
             setError(API.getFriendlyMessage(err));
+            props.onFailed?.();
           }
         });
     };

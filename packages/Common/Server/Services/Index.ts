@@ -360,6 +360,7 @@ import InventoryItemCustomFieldService from "./InventoryItemCustomFieldService";
 import InventoryItemRelationshipService from "./InventoryItemRelationshipService";
 import ExceptionInstanceService from "./ExceptionInstanceService";
 import KubernetesCostAllocationService from "./KubernetesCostAllocationService";
+import CloudCostService from "./CloudCostService";
 import ScheduledMaintenanceTemplateService from "./ScheduledMaintenanceTemplateService";
 import ScheduledMaintenanceTemplateOwnerTeamService from "./ScheduledMaintenanceTemplateOwnerTeamService";
 import ScheduledMaintenanceTemplateOwnerUserService from "./ScheduledMaintenanceTemplateOwnerUserService";
@@ -526,6 +527,8 @@ import RunnerOwnerTeamService from "./RunnerOwnerTeamService";
 import RunnerOwnerUserService from "./RunnerOwnerUserService";
 import CloudAccountService from "./CloudAccountService";
 import CloudAccountFeedService from "./CloudAccountFeedService";
+import CloudBudgetService from "./CloudBudgetService";
+import CloudCostRecommendationService from "./CloudCostRecommendationService";
 import CloudConnectionService from "./CloudConnectionService";
 import CloudResourceLabelRuleService from "./CloudResourceLabelRuleService";
 import CloudResourceOwnerRuleService from "./CloudResourceOwnerRuleService";
@@ -1059,6 +1062,8 @@ const services: Array<BaseService> = [
    */
   CloudAccountService,
   CloudAccountFeedService,
+  CloudBudgetService,
+  CloudCostRecommendationService,
   CloudConnectionService,
   CloudResourceLabelRuleService,
   CloudResourceOwnerRuleService,
@@ -1127,6 +1132,7 @@ export const AnalyticsServices: Array<
   LogCountBaselineService,
   ExceptionInstanceService,
   KubernetesCostAllocationService,
+  CloudCostService,
   MonitorLogService,
   NetworkFlowService,
   NetworkTrafficUsageService,

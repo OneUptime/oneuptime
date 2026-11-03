@@ -33,6 +33,12 @@ export interface RankedBarItem {
    * says it here.
    */
   title?: string | undefined;
+  /*
+   * What the count reads as when it is not a plain number - an amount of
+   * money ("$4,120", what a service cost) - drawn in its place at the
+   * line's end. The bar is still the count's share of the list.
+   */
+  countText?: string | undefined;
 }
 
 // How much of its track an item's bar fills, from 0 to 100.
@@ -149,7 +155,11 @@ const RankedBars: FunctionComponent<ComponentProps> = (
         );
         const count: ReactElement = (
           <span className="flex-shrink-0 text-sm font-semibold tabular-nums text-gray-900">
-            {translator.formatNumber(item.count)}
+            {item.countText !== undefined ? (
+              <bdi>{item.countText}</bdi>
+            ) : (
+              translator.formatNumber(item.count)
+            )}
           </span>
         );
 

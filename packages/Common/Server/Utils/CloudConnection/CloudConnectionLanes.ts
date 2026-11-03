@@ -1,10 +1,29 @@
 import CloudAccount from "../../../Models/DatabaseModels/CloudAccount";
+import {
+  CLOUD_COSTS_INTERVAL_MS,
+  CLOUD_SAVINGS_INTERVAL_MS,
+  CLOUD_COST_DEFAULT_CURRENCY,
+  CloudAccountCostSummary,
+  CloudAccountSavingsSummary,
+  CloudCostState,
+  getCloudCostWindow,
+  readCloudAccountCostSummary,
+  readCloudAccountSavingsSummary,
+  summarizeCloudAccountSavings,
+} from "../../../Types/Cloud/CloudCost";
 import { CloudProvider } from "../../../Types/Cloud/CloudPlatform";
 import { CloudConnectionFailureKind } from "../../../Types/CloudConnection/CloudConnectionTest";
+import LIMIT_MAX from "../../../Types/Database/LimitMax";
+import { JSONObject } from "../../../Types/JSON";
 import ObjectID from "../../../Types/ObjectID";
 import CloudAccountService from "../../Services/CloudAccountService";
 import LlmProviderError from "../LlmObservability/LlmProviderError";
 import logger from "../Logger";
+import CloudBudgetEvaluator from "./CloudBudgetEvaluator";
+import CloudCostWriter, { CloudCostWriteResult } from "./CloudCostWriter";
+import CloudSavingsWriter, {
+  CloudSavingsWriteResult,
+} from "./CloudSavingsWriter";
 import CloudConnectionResourceSync, {
   CloudConnectionSyncResult,
 } from "./CloudConnectionResourceSync";
@@ -16,9 +35,12 @@ import {
   CloudConnector,
   CloudConnectorTransport,
   CloudChangesResult,
+  CloudCostAccountOutcome,
+  CloudCostsResult,
   CloudInventoryAccount,
   CloudInventoryResult,
   CloudReadBudget,
+  CloudSavingsResult,
 } from "./CloudConnectorTypes";
 import CloudChangeRecorder, {
   CloudChangeRecordOutcome,
@@ -80,6 +102,22 @@ export const CHANGES_NOT_SAVED_WARNING: string =
   "Some changes could not be saved this time: they are read again on the next read.";
 
 /*
+ * What reading the accounts' costs may take, each time it is due: a few
+ * pages of each cloud's billing per account (AWS Cost Explorer charges for
+ * every request, $0.01 each).
+ */
+export const CLOUD_COSTS_MAX_REQUESTS: number = 60;
+export const CLOUD_COSTS_MAX_DURATION_MS: number = 120 * 1000;
+// What reading the ways to spend less may take, once a day.
+export const CLOUD_SAVINGS_MAX_REQUESTS: number = 300;
+export const CLOUD_SAVINGS_MAX_DURATION_MS: number = 120 * 1000;
+/*
+ * After a read of costs or savings that failed as a whole, it is tried
+ * again this soon rather than after its whole interval.
+ */
+export const CLOUD_COSTS_RETRY_MS: number = 60 * 60 * 1000;
+
+/*
  * How long a lane may run: its own limit, or what is left before the
  * read's deadline when that is sooner - 0 when too little is left to start.
  */
@@ -102,6 +140,22 @@ export interface CloudChangesLaneOutcome {
   warnings: Array<string>;
   // Change events written.
   recorded: number;
+}
+
+export interface CloudCostsLaneOutcome {
+  ran: boolean;
+  warnings: Array<string>;
+  // Cost rows written: only series whose figure changed.
+  rowsWritten: number;
+  // Accounts whose costs were read.
+  accountsRead: number;
+}
+
+export interface CloudSavingsLaneOutcome {
+  ran: boolean;
+  warnings: Array<string>;
+  // Recommendations the accounts read now have.
+  recommendations: number;
 }
 
 export interface CloudInventoryLaneOutcome {
@@ -390,6 +444,461 @@ export default class CloudConnectionLanes {
         recorded: 0,
       };
     }
+  }
+
+  public static isCostsDue(
+    state: CloudConnectionPullState,
+    now: Date,
+  ): boolean {
+    return isOlderThan(state.costsReadAt, CLOUD_COSTS_INTERVAL_MS, now);
+  }
+
+  public static isSavingsDue(
+    state: CloudConnectionPullState,
+    now: Date,
+  ): boolean {
+    return isOlderThan(state.savingsReadAt, CLOUD_SAVINGS_INTERVAL_MS, now);
+  }
+
+  /*
+   * The project's accounts of this cloud, by their id in it (lower case):
+   * what a cost or a recommendation is kept under.
+   */
+  public static async loadAccountRows(data: {
+    projectId: ObjectID;
+    provider: CloudProvider;
+  }): Promise<Map<string, CloudAccount>> {
+    const accounts: Array<CloudAccount> = await CloudAccountService.findBy({
+      query: { projectId: data.projectId, provider: data.provider },
+      select: {
+        _id: true,
+        accountId: true,
+        costSummary: true,
+        savingsSummary: true,
+      },
+      skip: 0,
+      limit: LIMIT_MAX,
+      props: { isRoot: true },
+    });
+    const rows: Map<string, CloudAccount> = new Map();
+
+    for (const account of accounts) {
+      if (account.id && account.accountId) {
+        rows.set(account.accountId.trim().toLowerCase(), account);
+      }
+    }
+
+    return rows;
+  }
+
+  private static toRowIds(
+    rows: Map<string, CloudAccount>,
+  ): Map<string, ObjectID> {
+    const ids: Map<string, ObjectID> = new Map();
+
+    for (const [accountId, row] of rows) {
+      if (row.id) {
+        ids.set(accountId, row.id);
+      }
+    }
+
+    return ids;
+  }
+
+  private static readAccounts(
+    outcomes: Array<CloudCostAccountOutcome>,
+  ): Set<string> {
+    return new Set<string>(
+      outcomes
+        .filter((outcome: CloudCostAccountOutcome): boolean => {
+          return outcome.state === CloudCostState.Reading;
+        })
+        .map((outcome: CloudCostAccountOutcome): string => {
+          return outcome.accountId.trim().toLowerCase();
+        }),
+    );
+  }
+
+  /*
+   * What the connection's accounts cost, when it is due: read from the
+   * cloud's billing, kept exactly (CloudCostWriter), each account's summary
+   * written, and the project's budgets checked against it. A first read
+   * goes back further than the ones after it (getCloudCostWindow). An
+   * account whose costs could not be read keeps the figures it had, and its
+   * summary says why. A refused credential fails the read; any other
+   * failure is a warning, tried again within the hour.
+   */
+  public static async runCosts(data: {
+    projectId: ObjectID;
+    provider: CloudProvider;
+    connectionId: ObjectID;
+    connector: CloudConnector;
+    settings: CloudConnectionSettings;
+    state: CloudConnectionPullState;
+    transport: CloudConnectorTransport;
+    now: Date;
+    clock?: (() => Date) | undefined;
+    deadlineMs: number;
+    sleep?: ((milliseconds: number) => Promise<void>) | undefined;
+  }): Promise<CloudCostsLaneOutcome> {
+    const durationMs: number = getLaneDurationMs({
+      maxDurationMs: CLOUD_COSTS_MAX_DURATION_MS,
+      deadlineMs: data.deadlineMs,
+      nowMs: Date.now(),
+    });
+
+    if (
+      !data.connector.readCosts ||
+      !CloudConnectionLanes.isCostsDue(data.state, data.now) ||
+      durationMs <= 0
+    ) {
+      return { ran: false, warnings: [], rowsWritten: 0, accountsRead: 0 };
+    }
+
+    const window: { start: Date; end: Date } = getCloudCostWindow({
+      now: data.now,
+      isFirstRead: !data.state.costsReadAt,
+    });
+
+    let read: CloudCostsResult;
+
+    try {
+      // A cost given by resource but not by Region takes its resource's.
+      const linked: Awaited<
+        ReturnType<typeof CloudConnectionResourceSync.loadLinked>
+      > = await CloudConnectionResourceSync.loadLinked({
+        projectId: data.projectId,
+        connectionId: data.connectionId,
+      });
+
+      read = await data.connector.readCosts(data.settings, {
+        knownResources: CloudConnectionResourceSync.toKnownResources(linked),
+        transport: data.transport,
+        now:
+          data.clock ||
+          ((): Date => {
+            return data.now;
+          }),
+        sleep: data.sleep,
+        state: data.state,
+        connectionId: data.connectionId.toString(),
+        budget: new CloudReadBudget({
+          maxRequests: CLOUD_COSTS_MAX_REQUESTS,
+          maxDurationMs: durationMs,
+        }),
+        start: window.start,
+        end: window.end,
+      });
+    } catch (error) {
+      if (isRefusedCredential(error)) {
+        throw error;
+      }
+
+      CloudConnectionLanes.retrySoon(data.state, "costsReadAt", data.now);
+
+      return {
+        ran: true,
+        warnings: [
+          "Could not read the accounts' costs: " +
+            (error instanceof Error ? error.message : String(error)),
+        ],
+        rowsWritten: 0,
+        accountsRead: 0,
+      };
+    }
+
+    const warnings: Array<string> = [...read.warnings];
+    let rowsWritten: number = 0;
+    let accountsRead: number = 0;
+
+    try {
+      const rows: Map<string, CloudAccount> =
+        await CloudConnectionLanes.loadAccountRows({
+          projectId: data.projectId,
+          provider: data.provider,
+        });
+      const readAccounts: Set<string> = CloudConnectionLanes.readAccounts(
+        read.accounts,
+      );
+
+      const written: CloudCostWriteResult = await CloudCostWriter.write({
+        target: {
+          projectId: data.projectId,
+          connectionId: data.connectionId,
+          provider: data.provider,
+          accountRows: CloudConnectionLanes.toRowIds(rows),
+        },
+        window,
+        records: read.records,
+        accountsRead: readAccounts,
+        now: data.now,
+      });
+
+      rowsWritten = written.rowsWritten;
+
+      // Each account's summary: its figures, or why they could not be read.
+      const summaries: Map<string, CloudAccountCostSummary> =
+        await CloudCostWriter.summarize({
+          projectId: data.projectId,
+          cloudAccountIds: Array.from(readAccounts)
+            .map((accountId: string): string => {
+              return rows.get(accountId)?.id?.toString() || "";
+            })
+            .filter((id: string): boolean => {
+              return id.length > 0;
+            }),
+          now: data.now,
+        });
+
+      for (const outcome of read.accounts) {
+        const row: CloudAccount | undefined = rows.get(
+          outcome.accountId.trim().toLowerCase(),
+        );
+
+        if (!row?.id) {
+          continue;
+        }
+
+        let summary: CloudAccountCostSummary | undefined;
+
+        if (outcome.state === CloudCostState.Reading) {
+          summary = summaries.get(row.id.toString());
+          accountsRead++;
+        } else {
+          const previous: CloudAccountCostSummary | null =
+            readCloudAccountCostSummary(row.costSummary);
+          summary = {
+            ...(previous || {
+              currency: "USD",
+              monthToDate: 0,
+              lastMonth: 0,
+              lastMonthToDate: 0,
+              projectedMonth: 0,
+              last30Days: 0,
+              topServices: [],
+              readAt: data.now.toISOString(),
+            }),
+            state: outcome.state,
+            message: outcome.message,
+          };
+        }
+
+        if (!summary) {
+          continue;
+        }
+
+        await CloudAccountService.updateOneById({
+          id: row.id,
+          data: {
+            costSummary: summary as unknown as JSONObject,
+          } as never,
+          props: { isRoot: true, ignoreHooks: true },
+        });
+      }
+    } catch (error) {
+      warnings.push(
+        "Could not keep the accounts' costs: " +
+          (error instanceof Error ? error.message : String(error)),
+      );
+      CloudConnectionLanes.retrySoon(data.state, "costsReadAt", data.now);
+
+      return { ran: true, warnings, rowsWritten, accountsRead };
+    }
+
+    data.state.costsReadAt = data.now.toISOString();
+
+    // The project's budgets, against what its accounts cost now.
+    try {
+      await CloudBudgetEvaluator.evaluateProject(data.projectId);
+    } catch (error) {
+      logger.error(
+        "Cloud connection " +
+          data.connectionId.toString() +
+          ": the project's budgets could not be checked: " +
+          (error instanceof Error ? error.message : String(error)),
+      );
+    }
+
+    return { ran: true, warnings, rowsWritten, accountsRead };
+  }
+
+  /*
+   * The ways to spend less in the connection's accounts, once a day: read
+   * from the cloud's recommender and kept in step with it
+   * (CloudSavingsWriter). An account that could not be read keeps what it
+   * has.
+   */
+  public static async runSavings(data: {
+    projectId: ObjectID;
+    provider: CloudProvider;
+    connectionId: ObjectID;
+    connector: CloudConnector;
+    settings: CloudConnectionSettings;
+    state: CloudConnectionPullState;
+    transport: CloudConnectorTransport;
+    now: Date;
+    clock?: (() => Date) | undefined;
+    deadlineMs: number;
+    sleep?: ((milliseconds: number) => Promise<void>) | undefined;
+  }): Promise<CloudSavingsLaneOutcome> {
+    const durationMs: number = getLaneDurationMs({
+      maxDurationMs: CLOUD_SAVINGS_MAX_DURATION_MS,
+      deadlineMs: data.deadlineMs,
+      nowMs: Date.now(),
+    });
+
+    if (
+      !data.connector.readSavings ||
+      !CloudConnectionLanes.isSavingsDue(data.state, data.now) ||
+      durationMs <= 0
+    ) {
+      return { ran: false, warnings: [], recommendations: 0 };
+    }
+
+    let read: CloudSavingsResult;
+
+    try {
+      // Where a recommender that answers per place is asked: the resources held.
+      const linked: Awaited<
+        ReturnType<typeof CloudConnectionResourceSync.loadLinked>
+      > = await CloudConnectionResourceSync.loadLinked({
+        projectId: data.projectId,
+        connectionId: data.connectionId,
+      });
+
+      read = await data.connector.readSavings(data.settings, {
+        knownResources: CloudConnectionResourceSync.toKnownResources(linked),
+        transport: data.transport,
+        now:
+          data.clock ||
+          ((): Date => {
+            return data.now;
+          }),
+        sleep: data.sleep,
+        state: data.state,
+        connectionId: data.connectionId.toString(),
+        budget: new CloudReadBudget({
+          maxRequests: CLOUD_SAVINGS_MAX_REQUESTS,
+          maxDurationMs: durationMs,
+        }),
+      });
+    } catch (error) {
+      if (isRefusedCredential(error)) {
+        throw error;
+      }
+
+      CloudConnectionLanes.retrySoon(data.state, "savingsReadAt", data.now);
+
+      return {
+        ran: true,
+        warnings: [
+          "Could not read the ways to spend less: " +
+            (error instanceof Error ? error.message : String(error)),
+        ],
+        recommendations: 0,
+      };
+    }
+
+    const warnings: Array<string> = [...read.warnings];
+
+    try {
+      const rows: Map<string, CloudAccount> =
+        await CloudConnectionLanes.loadAccountRows({
+          projectId: data.projectId,
+          provider: data.provider,
+        });
+
+      const written: CloudSavingsWriteResult = await CloudSavingsWriter.write({
+        projectId: data.projectId,
+        provider: data.provider,
+        accountRows: CloudConnectionLanes.toRowIds(rows),
+        accountsRead: CloudConnectionLanes.readAccounts(read.accounts),
+        recommendations: read.recommendations,
+        now: data.now,
+      });
+
+      /*
+       * Each account's summary: what its recommendations save now, or -
+       * when they could not be read - what it had, with why.
+       */
+      for (const outcome of read.accounts) {
+        const accountKey: string = outcome.accountId.trim().toLowerCase();
+        const row: CloudAccount | undefined = rows.get(accountKey);
+
+        if (!row?.id) {
+          continue;
+        }
+
+        const previous: CloudAccountSavingsSummary | null =
+          readCloudAccountSavingsSummary(row.savingsSummary);
+        const summary: CloudAccountSavingsSummary =
+          outcome.state === CloudCostState.Reading
+            ? summarizeCloudAccountSavings({
+                savings: written.savingsByAccount.get(accountKey) || [],
+                now: data.now,
+              })
+            : {
+                ...(previous || {
+                  count: 0,
+                  monthlySavings: 0,
+                  byKind: {},
+                  currency: CLOUD_COST_DEFAULT_CURRENCY,
+                  readAt: data.now.toISOString(),
+                }),
+                state: outcome.state,
+                message: outcome.message,
+              };
+
+        await CloudAccountService.updateOneById({
+          id: row.id,
+          data: {
+            savingsSummary: summary as unknown as JSONObject,
+          } as never,
+          props: { isRoot: true, ignoreHooks: true },
+        });
+      }
+
+      data.state.savingsReadAt = data.now.toISOString();
+
+      return {
+        ran: true,
+        warnings,
+        recommendations: written.created + written.updated,
+      };
+    } catch (error) {
+      warnings.push(
+        "Could not keep the ways to spend less: " +
+          (error instanceof Error ? error.message : String(error)),
+      );
+      CloudConnectionLanes.retrySoon(data.state, "savingsReadAt", data.now);
+
+      return { ran: true, warnings, recommendations: 0 };
+    }
+  }
+
+  /*
+   * A lane that failed as a whole is due again within CLOUD_COSTS_RETRY_MS,
+   * not after its whole interval: its mark is set back by the rest. A first
+   * read of costs that failed stays a first read, so it goes back as far
+   * when it is tried again - the next read, a minute or more later.
+   */
+  private static retrySoon(
+    state: CloudConnectionPullState,
+    key: "costsReadAt" | "savingsReadAt",
+    now: Date,
+  ): void {
+    const interval: number =
+      key === "costsReadAt"
+        ? CLOUD_COSTS_INTERVAL_MS
+        : CLOUD_SAVINGS_INTERVAL_MS;
+
+    if (!state[key] && key === "costsReadAt") {
+      return;
+    }
+
+    state[key] = new Date(
+      now.getTime() - interval + CLOUD_COSTS_RETRY_MS,
+    ).toISOString();
   }
 
   /*

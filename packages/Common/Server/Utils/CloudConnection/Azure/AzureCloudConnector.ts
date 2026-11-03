@@ -50,6 +50,9 @@ import {
   CloudChange,
   CloudChangesOptions,
   CloudChangesResult,
+  CloudCostAccountOutcome,
+  CloudCostsOptions,
+  CloudCostsResult,
   CloudDiscoveredResource,
   CloudInventoryItem,
   CloudInventoryOptions,
@@ -59,9 +62,20 @@ import {
   CloudReadBudgetSpent,
   CloudReadOptions,
   CloudReadResult,
+  CloudSavingsOptions,
+  CloudSavingsResult,
   getCloudSecretValues,
   readCloudSetting,
 } from "../CloudConnectorTypes";
+import {
+  describeAzureCostFailure,
+  readAzureAdvisor,
+  readAzureCosts,
+} from "./AzureCosts";
+import {
+  CloudCostState,
+  getCloudCostResourceKey,
+} from "../../../../Types/Cloud/CloudCost";
 import AzureArm, {
   AzureMetricDefinition,
   AzureMetricSeries,
@@ -851,6 +865,241 @@ export default class AzureCloudConnector implements CloudConnector {
    * over the subscriptions read, with each subscription named as Azure
    * names it.
    */
+  // The subscriptions a read of costs or savings is about, as the reads find them.
+  private async getCostSubscriptions(
+    arm: AzureArm,
+    settings: CloudConnectionSettings,
+    state: CloudConnectionPullState,
+  ): Promise<Array<string>> {
+    const subscriptionIds: Array<string> =
+      state.accounts && state.accounts.length > 0
+        ? state.accounts
+        : (await this.getSubscriptions(arm, settings)).map(
+            (subscription: AzureSubscription): string => {
+              return subscription.subscriptionId;
+            },
+          );
+
+    return subscriptionIds.slice(0, AZURE_MAX_SUBSCRIPTIONS);
+  }
+
+  /*
+   * What each subscription costs per day, by resource and service, from
+   * Cost Management (AzureCosts), side by side. A resource's Region is the
+   * one OneUptime holds for it. A subscription that cannot be read says
+   * why; the others are read.
+   */
+  public async readCosts(
+    settings: CloudConnectionSettings,
+    options: CloudCostsOptions,
+  ): Promise<CloudCostsResult> {
+    try {
+      const arm: AzureArm = this.arm(settings, options, options.budget);
+      const subscriptionIds: Array<string> = await this.getCostSubscriptions(
+        arm,
+        settings,
+        options.state,
+      );
+      const regionsByResource: Map<string, string> = new Map();
+
+      for (const resource of options.knownResources || []) {
+        if (resource.providerResourceId && resource.region) {
+          regionsByResource.set(
+            getCloudCostResourceKey("azure", resource.providerResourceId),
+            resource.region,
+          );
+        }
+      }
+
+      const outcomes: Array<
+        Settled<{ records: CloudCostsResult["records"]; complete: boolean }>
+      > = await mapWithConcurrency(
+        subscriptionIds,
+        // Cost Management is quick to throttle: two at a time.
+        2,
+        async (
+          subscriptionId: string,
+        ): Promise<{
+          records: CloudCostsResult["records"];
+          complete: boolean;
+        }> => {
+          return await readAzureCosts({
+            arm,
+            subscriptionId,
+            start: options.start,
+            end: options.end,
+            regionsByResource,
+          });
+        },
+      );
+
+      const result: CloudCostsResult = {
+        records: [],
+        accounts: [],
+        warnings: [],
+        complete: true,
+      };
+
+      outcomes.forEach(
+        (
+          outcome: Settled<{
+            records: CloudCostsResult["records"];
+            complete: boolean;
+          }>,
+          index: number,
+        ): void => {
+          const subscriptionId: string = subscriptionIds[index]!;
+
+          if (outcome.ok && outcome.value.complete) {
+            result.records.push(...outcome.value.records);
+            result.accounts.push({
+              accountId: subscriptionId,
+              state: CloudCostState.Reading,
+            });
+            return;
+          }
+
+          if (!outcome.ok) {
+            const failure: unknown = explainExpiredAzureSecret(outcome.error);
+
+            if (
+              failure instanceof LlmProviderError &&
+              failure.kind === CloudConnectionFailureKind.Authentication
+            ) {
+              throw failure;
+            }
+          }
+
+          const described: { state: CloudCostState; message: string } =
+            outcome.ok
+              ? {
+                  state: CloudCostState.Failed,
+                  message:
+                    "The subscription's costs had more pages than one read takes: they are read again shortly.",
+                }
+              : outcome.error instanceof CloudReadBudgetSpent
+                ? {
+                    state: CloudCostState.Failed,
+                    message:
+                      "The read reached its limit before these costs: they are read again shortly.",
+                  }
+                : describeAzureCostFailure({
+                    error: outcome.error,
+                    what: "costs",
+                  });
+
+          result.accounts.push({
+            accountId: subscriptionId,
+            state: described.state,
+            message: described.message,
+          } as CloudCostAccountOutcome);
+          result.warnings.push(described.message);
+          result.complete = false;
+        },
+      );
+
+      return result;
+    } catch (error) {
+      throw explainExpiredAzureSecret(error);
+    }
+  }
+
+  // The ways to spend less in each subscription, from Azure Advisor (AzureCosts).
+  public async readSavings(
+    settings: CloudConnectionSettings,
+    options: CloudSavingsOptions,
+  ): Promise<CloudSavingsResult> {
+    try {
+      const arm: AzureArm = this.arm(settings, options, options.budget);
+      const subscriptionIds: Array<string> = await this.getCostSubscriptions(
+        arm,
+        settings,
+        options.state,
+      );
+
+      const outcomes: Array<
+        Settled<{
+          recommendations: CloudSavingsResult["recommendations"];
+          complete: boolean;
+        }>
+      > = await mapWithConcurrency(
+        subscriptionIds,
+        CONCURRENCY,
+        async (
+          subscriptionId: string,
+        ): Promise<{
+          recommendations: CloudSavingsResult["recommendations"];
+          complete: boolean;
+        }> => {
+          return await readAzureAdvisor({ arm, subscriptionId });
+        },
+      );
+
+      const result: CloudSavingsResult = {
+        recommendations: [],
+        accounts: [],
+        warnings: [],
+        complete: true,
+      };
+
+      outcomes.forEach(
+        (
+          outcome: Settled<{
+            recommendations: CloudSavingsResult["recommendations"];
+            complete: boolean;
+          }>,
+          index: number,
+        ): void => {
+          const subscriptionId: string = subscriptionIds[index]!;
+
+          if (outcome.ok && outcome.value.complete) {
+            result.recommendations.push(...outcome.value.recommendations);
+            result.accounts.push({
+              accountId: subscriptionId,
+              state: CloudCostState.Reading,
+            });
+            return;
+          }
+
+          if (!outcome.ok) {
+            const failure: unknown = explainExpiredAzureSecret(outcome.error);
+
+            if (
+              failure instanceof LlmProviderError &&
+              failure.kind === CloudConnectionFailureKind.Authentication
+            ) {
+              throw failure;
+            }
+          }
+
+          const described: { state: CloudCostState; message: string } =
+            outcome.ok
+              ? {
+                  state: CloudCostState.Failed,
+                  message:
+                    "There were more recommendations than one read takes: they are read again tomorrow.",
+                }
+              : describeAzureCostFailure({
+                  error: outcome.error,
+                  what: "savings",
+                });
+
+          result.accounts.push({
+            accountId: subscriptionId,
+            state: described.state,
+            message: described.message,
+          });
+          result.warnings.push(described.message);
+          result.complete = false;
+        },
+      );
+
+      return result;
+    } catch (error) {
+      throw explainExpiredAzureSecret(error);
+    }
+  }
+
   public async readInventory(
     settings: CloudConnectionSettings,
     options: CloudInventoryOptions,

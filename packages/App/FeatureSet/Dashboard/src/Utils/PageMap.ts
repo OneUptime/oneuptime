@@ -1007,11 +1007,17 @@ enum PageMap {
   /*
    * Cloud: the AWS accounts, Azure subscriptions and Google Cloud projects
    * connected to OneUptime, and every resource in them. It opens on its
-   * accounts (CLOUD_ROOT's index forwards there).
+   * Overview (CLOUD_ROOT's index): what needs attention, what it costs and
+   * how to spend less, across every account.
    */
   CLOUD_ROOT = "CLOUD_ROOT",
-  // Cloud's own address (…/cloud): it opens on its accounts.
+  // Cloud's own address (…/cloud): its Overview.
   CLOUD_HOME = "CLOUD_HOME",
+  CLOUD_OVERVIEW = "CLOUD_OVERVIEW",
+  // What the accounts cost, the ways to spend less, and the budgets that watch it.
+  CLOUD_COSTS = "CLOUD_COSTS",
+  CLOUD_SAVINGS = "CLOUD_SAVINGS",
+  CLOUD_BUDGETS = "CLOUD_BUDGETS",
   CLOUD_MONITORED_RESOURCES = "CLOUD_MONITORED_RESOURCES",
   CLOUD_CONNECT = "CLOUD_CONNECT",
   CLOUD_RESOURCE_VIEW = "CLOUD_RESOURCE_VIEW",
@@ -1034,6 +1040,7 @@ enum PageMap {
   CLOUD_ACCOUNT_VIEW_AI_AGENT = "CLOUD_ACCOUNT_VIEW_AI_AGENT",
   CLOUD_ACCOUNT_VIEW_AI_LOGS = "CLOUD_ACCOUNT_VIEW_AI_LOGS",
   CLOUD_ACCOUNT_VIEW_FEED = "CLOUD_ACCOUNT_VIEW_FEED",
+  CLOUD_ACCOUNT_VIEW_COSTS = "CLOUD_ACCOUNT_VIEW_COSTS",
 
   // Databases (DatabaseServer rows)
   DATABASE_ROOT = "DATABASE_ROOT",
