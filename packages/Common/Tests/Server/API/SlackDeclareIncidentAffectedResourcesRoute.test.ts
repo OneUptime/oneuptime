@@ -365,7 +365,10 @@ function idsOf(condition: unknown): Array<string> | null {
 }
 
 // The rows of a kind a query asks for, as the stand-in database reads it.
-function rowsFor(kind: AiAffectedResourceKind, query: JSONObject): Array<ResourceRow> {
+function rowsFor(
+  kind: AiAffectedResourceKind,
+  query: JSONObject,
+): Array<ResourceRow> {
   const ids: Array<string> | null = idsOf(query["_id"]);
   const search: unknown = query["_multiFieldSearch"];
   const startsWith: unknown = query["name"];
@@ -422,6 +425,54 @@ function toModel(kind: AiAffectedResourceKind, row: ResourceRow): BaseModel {
   }
 
   return model;
+}
+
+/*
+ * A kind's service as a table of RESOURCES: what each findBy and countBy
+ * asks is recorded, and answered from the rows the query names.
+ */
+function stubResourceTable(
+  kind: AiAffectedResourceKind,
+  record: (read: ResourceRead) => void,
+): void {
+  const service: {
+    findBy: (data: unknown) => Promise<Array<BaseModel>>;
+    countBy: (data: unknown) => Promise<PositiveNumber>;
+  } = getAffectedResourceKindService(
+    kind as unknown as AffectedResourceKind,
+  ) as never;
+
+  jest.spyOn(service, "findBy").mockImplementation((async (findBy: {
+    query: JSONObject;
+    limit?: number;
+    props: DatabaseCommonInteractionProps;
+  }) => {
+    record({
+      kind: kind,
+      how: "findBy",
+      query: findBy.query,
+      props: findBy.props,
+    });
+
+    return rowsFor(kind, findBy.query)
+      .slice(0, findBy.limit || 10)
+      .map((row: ResourceRow): BaseModel => {
+        return toModel(kind, row);
+      });
+  }) as never);
+  jest.spyOn(service, "countBy").mockImplementation((async (countBy: {
+    query: JSONObject;
+    props: DatabaseCommonInteractionProps;
+  }) => {
+    record({
+      kind: kind,
+      how: "countBy",
+      query: countBy.query,
+      props: countBy.props,
+    });
+
+    return new PositiveNumber(rowsFor(kind, countBy.query).length);
+  }) as never);
 }
 
 // What Slack posts for /oneuptime <text>, from Simon, in a channel.
@@ -655,7 +706,9 @@ describe("declaring an incident from Slack, linked to what it is about", () => {
           tenantId: data.projectId,
           userTenantAccessPermission: {
             [data.projectId.toString()]: {
-              ...Object.values(memberProps.userTenantAccessPermission || {})[0]!,
+              ...Object.values(
+                memberProps.userTenantAccessPermission || {},
+              )[0]!,
               projectId: data.projectId,
             },
           },
@@ -690,53 +743,20 @@ describe("declaring an incident from Slack, linked to what it is about", () => {
       }) as never);
 
     // Each kind of resource, a table the stand-in reads as a query asks.
+    const recordRead: (read: ResourceRead) => void = (
+      read: ResourceRead,
+    ): void => {
+      resourceReads.push(read);
+    };
+
     for (const kind of WorkspaceAffectedResources.getKinds()) {
-      const service: {
-        findBy: (data: unknown) => Promise<Array<BaseModel>>;
-        countBy: (data: unknown) => Promise<PositiveNumber>;
-      } = getAffectedResourceKindService(
-        kind as unknown as AffectedResourceKind,
-      ) as never;
-
-      jest.spyOn(service, "findBy").mockImplementation((async (findBy: {
-        query: JSONObject;
-        limit?: number;
-        props: DatabaseCommonInteractionProps;
-      }) => {
-        resourceReads.push({
-          kind: kind,
-          how: "findBy",
-          query: findBy.query,
-          props: findBy.props,
-        });
-
-        return rowsFor(kind, findBy.query)
-          .slice(0, findBy.limit || 10)
-          .map((row: ResourceRow): BaseModel => {
-            return toModel(kind, row);
-          });
-      }) as never);
-      jest.spyOn(service, "countBy").mockImplementation((async (countBy: {
-        query: JSONObject;
-        props: DatabaseCommonInteractionProps;
-      }) => {
-        resourceReads.push({
-          kind: kind,
-          how: "countBy",
-          query: countBy.query,
-          props: countBy.props,
-        });
-
-        return new PositiveNumber(rowsFor(kind, countBy.query).length);
-      }) as never);
+      stubResourceTable(kind, recordRead);
     }
 
     // Which channel is a record's own: the alert's, read as OneUptime.
-    jest
-      .spyOn(IncidentService, "findOneBy")
-      .mockImplementation((async () => {
-        return null;
-      }) as never);
+    jest.spyOn(IncidentService, "findOneBy").mockImplementation((async () => {
+      return null;
+    }) as never);
     jest
       .spyOn(AlertService, "findOneBy")
       .mockImplementation((async (findOneBy: { query: JSONObject }) => {
@@ -787,21 +807,19 @@ describe("declaring an incident from Slack, linked to what it is about", () => {
         };
       });
     // What the alert lists: its monitor, a host, and a host of no reach.
-    jest
-      .spyOn(LinkedAffectedResources, "readForAlert")
-      .mockResolvedValue([
-        {
-          type: LinkedAffectedResourceType.Monitor,
-          id: CHECKOUT_MONITOR.toString(),
-          name: "Checkout API",
-        },
-        { type: LinkedAffectedResourceType.Host, id: API_1, name: "api-1" },
-        {
-          type: LinkedAffectedResourceType.Host,
-          id: OLD_BOX,
-          name: "api-old",
-        },
-      ]);
+    jest.spyOn(LinkedAffectedResources, "readForAlert").mockResolvedValue([
+      {
+        type: LinkedAffectedResourceType.Monitor,
+        id: CHECKOUT_MONITOR.toString(),
+        name: "Checkout API",
+      },
+      { type: LinkedAffectedResourceType.Host, id: API_1, name: "api-1" },
+      {
+        type: LinkedAffectedResourceType.Host,
+        id: OLD_BOX,
+        name: "api-old",
+      },
+    ]);
     jest
       .spyOn(IncidentAlertService, "validateAlertIdsForNewIncident")
       .mockImplementation((async (data: { alertIds: Array<string> }) => {
@@ -1172,9 +1190,11 @@ describe("declaring an incident from Slack, linked to what it is about", () => {
         answer.body!["option_groups"] as Array<JSONObject>
       )[1]!;
       expect(
-        ((devices["options"] as Array<JSONObject>)[0]!["description"] as JSONObject)[
-          "text"
-        ],
+        (
+          (devices["options"] as Array<JSONObject>)[0]![
+            "description"
+          ] as JSONObject
+        )["text"],
       ).toBe("10.0.4.1");
     });
 
@@ -1291,13 +1311,12 @@ describe("declaring an incident from Slack, linked to what it is about", () => {
       expect(answer.status).toBe(200);
       expect(answer.body).toEqual({ response_action: "clear" });
 
-      const posted: Array<{ channel: string; text: string }> = await (async (): Promise<
-        Array<{ channel: string; text: string }>
-      > => {
-        await slackCallsAfter(1);
-        await settle();
-        return postedTo("https://slack.com/api/chat.postMessage");
-      })();
+      const posted: Array<{ channel: string; text: string }> =
+        await (async (): Promise<Array<{ channel: string; text: string }>> => {
+          await slackCallsAfter(1);
+          await settle();
+          return postedTo("https://slack.com/api/chat.postMessage");
+        })();
 
       expect(created).toHaveLength(1);
       const incident: Incident = created[0]!.data;

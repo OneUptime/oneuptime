@@ -88,89 +88,88 @@ const ALERT_LEAD: string = "In an alert's own channel.";
 const KINDS_SENTENCE: string =
   "hosts, network devices, clusters, databases, cloud resources and services";
 
-describe.each(PAGES)("$name: Declare Incident's affected resources", (row: {
-  name: string;
-  page: string;
-  heading: string;
-}) => {
-  const text: string = section(read(row.page), row.heading);
+describe.each(PAGES)(
+  "$name: Declare Incident's affected resources",
+  (row: { name: string; page: string; heading: string }) => {
+    const text: string = section(read(row.page), row.heading);
 
-  test("two bullets, right after what a form offers and before what it may name", () => {
-    const leads: Array<string> = bulletsOf(text).map((line: string) => {
-      return line.substring(4, line.indexOf("**", 4));
+    test("two bullets, right after what a form offers and before what it may name", () => {
+      const leads: Array<string> = bulletsOf(text).map((line: string) => {
+        return line.substring(4, line.indexOf("**", 4));
+      });
+
+      expect(leads).toEqual([
+        "Who may use them.",
+        "What a form offers.",
+        ABOUT_LEAD,
+        ALERT_LEAD,
+        "What a form may name.",
+      ]);
     });
 
-    expect(leads).toEqual([
-      "Who may use them.",
-      "What a form offers.",
-      ABOUT_LEAD,
-      ALERT_LEAD,
-      "What a form may name.",
-    ]);
-  });
+    test("names the field as the form draws it, and the kinds it searches", () => {
+      const about: string = bullet(text, ABOUT_LEAD);
 
-  test("names the field as the form draws it, and the kinds it searches", () => {
-    const about: string = bullet(text, ABOUT_LEAD);
+      expect(about).toContain(`**${WORKSPACE_AFFECTED_RESOURCES_TEXT.label}**`);
+      expect(about).toContain(KINDS_SENTENCE);
 
-    expect(about).toContain(`**${WORKSPACE_AFFECTED_RESOURCES_TEXT.label}**`);
-    expect(about).toContain(KINDS_SENTENCE);
+      // Each kind the sentence names is one the forms offer.
+      const offered: Array<string> = WorkspaceAffectedResources.getKinds();
 
-    // Each kind the sentence names is one the forms offer.
-    const offered: Array<string> = WorkspaceAffectedResources.getKinds();
+      for (const kind of [
+        AiAffectedResourceKind.Host,
+        AiAffectedResourceKind.NetworkDevice,
+        AiAffectedResourceKind.KubernetesCluster,
+        AiAffectedResourceKind.DatabaseServer,
+        AiAffectedResourceKind.CloudResource,
+        AiAffectedResourceKind.Service,
+      ]) {
+        expect(offered).toContain(kind);
+      }
+    });
 
-    for (const kind of [
-      AiAffectedResourceKind.Host,
-      AiAffectedResourceKind.NetworkDevice,
-      AiAffectedResourceKind.KubernetesCluster,
-      AiAffectedResourceKind.DatabaseServer,
-      AiAffectedResourceKind.CloudResource,
-      AiAffectedResourceKind.Service,
-    ]) {
-      expect(offered).toContain(kind);
-    }
-  });
+    test("says monitors are picked on purpose only, and what a pick does, as the field's hint does", () => {
+      const about: string = bullet(text, ABOUT_LEAD);
 
-  test("says monitors are picked on purpose only, and what a pick does, as the field's hint does", () => {
-    const about: string = bullet(text, ABOUT_LEAD);
+      expect(WorkspaceAffectedResources.getKinds()).not.toContain("Monitor");
+      expect(about).toContain(
+        "pauses its checks until the incident is resolved",
+      );
+      expect(WORKSPACE_AFFECTED_RESOURCES_TEXT.monitorsHint).toContain(
+        "pauses its checks until the incident is resolved",
+      );
+      expect(readCommon("Server/Services/IncidentService.ts")).toContain(
+        "public async disableActiveMonitoringIfManualIncident(",
+      );
+    });
 
-    expect(WorkspaceAffectedResources.getKinds()).not.toContain("Monitor");
-    expect(about).toContain(
-      "pauses its checks until the incident is resolved",
-    );
-    expect(WORKSPACE_AFFECTED_RESOURCES_TEXT.monitorsHint).toContain(
-      "pauses its checks until the incident is resolved",
-    );
-    expect(readCommon("Server/Services/IncidentService.ts")).toContain(
-      "public async disableActiveMonitoringIfManualIncident(",
-    );
-  });
+    test("says the field is left off for somebody who may read none, or a project with none", () => {
+      expect(bullet(text, ABOUT_LEAD)).toContain("may read none of them");
+      expect(
+        readCommon("Server/Utils/Workspace/WorkspaceAffectedResources.ts"),
+      ).toContain("public static async isOffered(");
+    });
 
-  test("says the field is left off for somebody who may read none, or a project with none", () => {
-    expect(bullet(text, ABOUT_LEAD)).toContain("may read none of them");
-    expect(
-      readCommon("Server/Utils/Workspace/WorkspaceAffectedResources.ts"),
-    ).toContain("public static async isOffered(");
-  });
+    test("links to the section of AI SRE that lists how an incident is linked to a cluster", () => {
+      const about: string = bullet(text, ABOUT_LEAD);
+      const heading: string = "Which incidents a cluster's fixes act on";
 
-  test("links to the section of AI SRE that lists how an incident is linked to a cluster", () => {
-    const about: string = bullet(text, ABOUT_LEAD);
-    const heading: string = "Which incidents a cluster's fixes act on";
+      expect(about).toContain(
+        `[${heading}](/docs/ai/ai-sre#${slugify(heading)})`,
+      );
+      expect(read("ai/ai-sre.md").split("\n")).toContain(`### ${heading}`);
+    });
 
-    expect(about).toContain(
-      `[${heading}](/docs/ai/ai-sre#${slugify(heading)})`,
-    );
-    expect(read("ai/ai-sre.md").split("\n")).toContain(`### ${heading}`);
-  });
+    test("says an alert's own channel links the alert, private like a private alert, and what happens when it may not be linked", () => {
+      const alert: string = bullet(text, ALERT_LEAD);
 
-  test("says an alert's own channel links the alert, private like a private alert, and what happens when it may not be linked", () => {
-    const alert: string = bullet(text, ALERT_LEAD);
-
-    expect(alert).toContain("while the alert is open");
-    expect(alert).toContain("the incident is declared from that alert");
-    expect(alert).toContain("a private alert's incident is private too");
-    expect(alert).toContain("the incident is declared without the link");
-  });
-});
+      expect(alert).toContain("while the alert is open");
+      expect(alert).toContain("the incident is declared from that alert");
+      expect(alert).toContain("a private alert's incident is private too");
+      expect(alert).toContain("the incident is declared without the link");
+    });
+  },
+);
 
 describe("AI SRE lists the chats among the ways an incident is linked to a cluster", () => {
   test("after the Dashboard's Other Affected Resources, linking both pages", () => {

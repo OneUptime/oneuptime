@@ -98,6 +98,7 @@ function searchInvoke(
         : { tenant: { id: data.tenantId || TENANT_ID } }),
       channel: { id: "19:ops@thread.tacv2" },
     },
+    // What a test asks for, values of any type: a Record, then cast.
     value: {
       queryText: "queryText" in data ? data.queryText : "api",
       queryOptions: { skip: 0, top: "top" in data ? data.top : 15 },
@@ -105,7 +106,7 @@ function searchInvoke(
         "dataset" in data
           ? data.dataset
           : MicrosoftTeamsAffectedResources.getDataset(PROJECT_ID),
-    },
+    } as Record<string, unknown> as JSONObject,
   };
 }
 
@@ -145,7 +146,9 @@ beforeEach(() => {
 
   jest.spyOn(logger, "debug").mockImplementation((): void => {});
   jest.spyOn(logger, "error").mockImplementation((): void => {});
-  jest.spyOn(ProductBrandingText, "getProductName").mockReturnValue("OneUptime");
+  jest
+    .spyOn(ProductBrandingText, "getProductName")
+    .mockReturnValue("OneUptime");
 
   resolveSpy = jest
     .spyOn(MicrosoftTeamsUtil, "resolveProjectByTenantId")
@@ -221,23 +224,24 @@ describe("the input, as the card carries it", () => {
   });
 
   test("declared from an alert's channel, the alert's resources are picked already, each with its kind", () => {
-    const input: JSONObject = MicrosoftTeamsAffectedResources.getInputElements(
-      {
-        projectId: PROJECT_ID,
-        initial: [
-          { kind: AiAffectedResourceKind.Host, id: HOST_ID, name: "api-1" },
-          {
-            kind: AiAffectedResourceKind.NetworkDevice,
-            id: SWITCH_ID,
-            name: "core-sw-01",
-          },
-        ],
-      },
-    )[0]!;
+    const input: JSONObject = MicrosoftTeamsAffectedResources.getInputElements({
+      projectId: PROJECT_ID,
+      initial: [
+        { kind: AiAffectedResourceKind.Host, id: HOST_ID, name: "api-1" },
+        {
+          kind: AiAffectedResourceKind.NetworkDevice,
+          id: SWITCH_ID,
+          name: "core-sw-01",
+        },
+      ],
+    })[0]!;
 
     expect(input["choices"]).toEqual([
       { title: "api-1 (Host)", value: `Host:${HOST_ID}` },
-      { title: "core-sw-01 (Network Device)", value: `NetworkDevice:${SWITCH_ID}` },
+      {
+        title: "core-sw-01 (Network Device)",
+        value: `NetworkDevice:${SWITCH_ID}`,
+      },
     ]);
     expect(input["value"]).toBe(`Host:${HOST_ID},NetworkDevice:${SWITCH_ID}`);
   });
@@ -349,9 +353,11 @@ describe("the results' words", () => {
       });
 
     expect(results).toHaveLength(MICROSOFT_TEAMS_MAX_SEARCH_RESULTS);
-    expect(results.slice(0, 3).map((result: MicrosoftTeamsSearchResult) => {
-      return result.title;
-    })).toEqual([
+    expect(
+      results.slice(0, 3).map((result: MicrosoftTeamsSearchResult) => {
+        return result.title;
+      }),
+    ).toEqual([
       "web-00 (Host)",
       "web-prod (Kubernetes Cluster)",
       "web-01 (Host)",
@@ -401,9 +407,9 @@ describe("who a search is answered for", () => {
     const clues: WorkspaceProjectClues = (
       resolveSpy.mock.calls[0]![0] as { clues: WorkspaceProjectClues }
     ).clues;
-    expect((resolveSpy.mock.calls[0]![0] as { tenantId: string }).tenantId).toBe(
-      TENANT_ID,
-    );
+    expect(
+      (resolveSpy.mock.calls[0]![0] as { tenantId: string }).tenantId,
+    ).toBe(TENANT_ID);
     expect(clues.drawnForProjectId).toBe(PROJECT_ID.toString());
     expect(clues.workspaceUserId).toBe(AAD_OBJECT_ID);
     expect(clues.channelId).toBe("19:ops@thread.tacv2");
@@ -556,8 +562,6 @@ describe("who a search is answered for", () => {
       activity: searchInvoke({ queryText: undefined }),
     });
 
-    expect(
-      (searchSpy.mock.calls[0]![0] as { text: string }).text,
-    ).toBe("");
+    expect((searchSpy.mock.calls[0]![0] as { text: string }).text).toBe("");
   });
 });

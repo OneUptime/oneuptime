@@ -112,8 +112,8 @@ export default class MicrosoftTeamsCreateCommands {
        * Affected Resources, and - in an alert's own channel - the alert it
        * is declared from (WorkspaceIncidentFromAlert), read at once.
        */
-      [choices, declaringAlert, isAffectedResourcesOffered] =
-        await Promise.all([
+      [choices, declaringAlert, isAffectedResourcesOffered] = await Promise.all(
+        [
           MicrosoftTeamsIncidentActions.getNewIncidentFormChoices(
             projectId,
             props,
@@ -127,7 +127,8 @@ export default class MicrosoftTeamsCreateCommands {
             projectId: projectId,
             props: props,
           }),
-        ]);
+        ],
+      );
     } catch (error) {
       await this.replyFormCouldNotLoad({
         turnContext: turnContext,

@@ -105,7 +105,10 @@ import {
 } from "../../../../Server/Utils/Express";
 import logger from "../../../../Server/Utils/Logger";
 import { stubPrivateRecords } from "../../TestingUtils/PrivateRecords";
-import { CloudAdapter, ConfigurationBotFrameworkAuthentication } from "botbuilder";
+import {
+  CloudAdapter,
+  ConfigurationBotFrameworkAuthentication,
+} from "botbuilder";
 
 // ---- A fake Bot Connector: records what the bot sends, accepts it all ----
 
@@ -349,14 +352,15 @@ function messageActivity(text: string): JSONObject {
     textFormat: "plain",
     locale: "en-US",
     text: `<at>OneUptime</at> ${text}`,
-    entities: [
-      { type: "mention", text: "<at>OneUptime</at>", mentioned: BOT },
-    ],
+    entities: [{ type: "mention", text: "<at>OneUptime</at>", mentioned: BOT }],
     channelData: CHANNEL_DATA,
   };
 }
 
-function searchActivity(data: { queryText: string; dataset: string }): JSONObject {
+function searchActivity(data: {
+  queryText: string;
+  dataset: string;
+}): JSONObject {
   return {
     type: "invoke",
     name: "application/search",
@@ -428,9 +432,9 @@ async function deliver(activity: JSONObject): Promise<Delivery> {
 }
 
 function cardOf(request: ConnectorRequest | undefined): JSONObject {
-  const attachment: JSONObject | undefined = (
-    (request?.activity?.["attachments"] as Array<JSONObject> | undefined) || []
-  )[0];
+  const attachment: JSONObject | undefined = ((request?.activity?.[
+    "attachments"
+  ] as Array<JSONObject> | undefined) || [])[0];
 
   expect(attachment).toBeDefined();
   return attachment!["content"] as JSONObject;
@@ -487,8 +491,11 @@ beforeEach(() => {
     { kind: AiAffectedResourceKind.KubernetesCluster, id: PROD, name: "prod" },
   ];
 
-  (MicrosoftTeamsUtil as unknown as { cachedAdapter: CloudAdapter | null }).cachedAdapter =
-    new CloudAdapter(new ConfigurationBotFrameworkAuthentication({}));
+  (
+    MicrosoftTeamsUtil as unknown as { cachedAdapter: CloudAdapter | null }
+  ).cachedAdapter = new CloudAdapter(
+    new ConfigurationBotFrameworkAuthentication({}),
+  );
 
   jest.spyOn(logger, "debug").mockImplementation((): void => {});
   jest.spyOn(logger, "warn").mockImplementation((): void => {});
@@ -541,12 +548,14 @@ beforeEach(() => {
     .mockResolvedValue(URL.fromString(DASHBOARD_URL));
 
   // The card's lists: one severity, none of the rest.
-  jest.spyOn(IncidentSeverityService, "findBy").mockImplementation((async () => {
-    const severity: IncidentSeverity = new IncidentSeverity();
-    severity._id = SEVERITY_ID.toString();
-    severity.name = "Critical";
-    return [severity];
-  }) as never);
+  jest
+    .spyOn(IncidentSeverityService, "findBy")
+    .mockImplementation((async () => {
+      const severity: IncidentSeverity = new IncidentSeverity();
+      severity._id = SEVERITY_ID.toString();
+      severity.name = "Critical";
+      return [severity];
+    }) as never);
   for (const service of [
     MonitorService,
     LabelService,
@@ -607,9 +616,11 @@ beforeEach(() => {
   const kept: Map<string, string> = new Map<string, string>();
   jest
     .spyOn(GlobalCache, "setString")
-    .mockImplementation(async (namespace: string, key: string, value: string) => {
-      kept.set(`${namespace}:${key}`, value);
-    });
+    .mockImplementation(
+      async (namespace: string, key: string, value: string) => {
+        kept.set(`${namespace}:${key}`, value);
+      },
+    );
   jest
     .spyOn(GlobalCache, "getString")
     .mockImplementation(async (namespace: string, key: string) => {
@@ -618,8 +629,9 @@ beforeEach(() => {
 });
 
 afterEach(() => {
-  (MicrosoftTeamsUtil as unknown as { cachedAdapter: CloudAdapter | null }).cachedAdapter =
-    null;
+  (
+    MicrosoftTeamsUtil as unknown as { cachedAdapter: CloudAdapter | null }
+  ).cachedAdapter = null;
   jest.restoreAllMocks();
 });
 

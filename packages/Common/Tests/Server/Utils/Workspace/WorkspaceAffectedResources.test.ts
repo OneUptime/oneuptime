@@ -146,7 +146,9 @@ function group(
   };
 }
 
-function namesOf(matches: Array<WorkspaceAffectedResourceMatch>): Array<string> {
+function namesOf(
+  matches: Array<WorkspaceAffectedResourceMatch>,
+): Array<string> {
   return matches.map((item: WorkspaceAffectedResourceMatch): string => {
     return `${item.name} (${item.kind})`;
   });
@@ -154,7 +156,9 @@ function namesOf(matches: Array<WorkspaceAffectedResourceMatch>): Array<string> 
 
 beforeEach(() => {
   jest.spyOn(logger, "debug").mockImplementation((): void => {});
-  jest.spyOn(ProductBrandingText, "getProductName").mockReturnValue("OneUptime");
+  jest
+    .spyOn(ProductBrandingText, "getProductName")
+    .mockReturnValue("OneUptime");
 });
 
 afterEach(() => {
@@ -210,9 +214,10 @@ describe("the kinds a chat's Declare Incident form offers", () => {
     }
 
     for (const kind of WorkspaceAffectedResources.getKinds()) {
-      expect({ kind, ...WORKSPACE_AFFECTED_RESOURCE_KIND_LABELS[kind] }).toEqual(
-        { kind, ...picker[kind] },
-      );
+      expect({
+        kind,
+        ...WORKSPACE_AFFECTED_RESOURCE_KIND_LABELS[kind],
+      }).toEqual({ kind, ...picker[kind] });
     }
   });
 
@@ -310,7 +315,9 @@ describe("a pick's value", () => {
 
   test("white space around it is read past, and the id is lower-cased", () => {
     expect(
-      WorkspaceAffectedResources.readValue(` Service:${SERVICE_ID.toUpperCase()} `),
+      WorkspaceAffectedResources.readValue(
+        ` Service:${SERVICE_ID.toUpperCase()} `,
+      ),
     ).toEqual({ kind: AiAffectedResourceKind.Service, id: SERVICE_ID });
   });
 });
@@ -771,7 +778,9 @@ describe("the search, as the member", () => {
   function stubSearch(
     result: AffectedResourceSearchResult,
   ): SpyInstance<Search> {
-    return jest.spyOn(AffectedResourceSearch, "search").mockResolvedValue(result);
+    return jest
+      .spyOn(AffectedResourceSearch, "search")
+      .mockResolvedValue(result);
   }
 
   function requestOf(spy: SpyInstance<Search>): AffectedResourceSearchRequest {
@@ -1259,7 +1268,7 @@ describe("an alert's resources, for a form declared in its channel", () => {
         alertId: ALERT_ID,
         props: memberProps([
           Permission.CreateProjectIncident,
-          Permission.ReadProjectAlert,
+          Permission.ReadAlert,
         ]),
       }),
     ).resolves.toEqual([]);

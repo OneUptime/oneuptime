@@ -155,7 +155,9 @@ function submitDataOf(card: JSONObject): JSONObject {
 
 beforeEach(() => {
   jest.spyOn(logger, "debug").mockImplementation((): void => {});
-  jest.spyOn(ProductBrandingText, "getProductName").mockReturnValue("OneUptime");
+  jest
+    .spyOn(ProductBrandingText, "getProductName")
+    .mockReturnValue("OneUptime");
 });
 
 afterEach(() => {
@@ -402,9 +404,7 @@ describe("the command draws the card as the sender, in the channel it was typed 
   test("nothing to offer: no field", async () => {
     isOfferedSpy.mockResolvedValue(false);
 
-    expect(outlineOf(await run(CHANNEL_ID))).not.toContain(
-      "affectedResources",
-    );
+    expect(outlineOf(await run(CHANNEL_ID))).not.toContain("affectedResources");
   });
 
   test("nothing else to offer, but the alert's resources: the field, with them picked", async () => {
@@ -423,7 +423,9 @@ describe("the command draws the card as the sender, in the channel it was typed 
   });
 
   test("a sender who may not declare an incident gets no card, and nothing is read for one", async () => {
-    jest.spyOn(MicrosoftTeamsCommands, "authorizeSender").mockResolvedValue(null);
+    jest
+      .spyOn(MicrosoftTeamsCommands, "authorizeSender")
+      .mockResolvedValue(null);
 
     await MicrosoftTeamsCreateCommands.handleCreateIncidentCommand({
       turnContext: {} as TurnContext,

@@ -164,9 +164,7 @@ export default class MicrosoftTeamsAffectedResources {
     name: string;
     detail?: string | undefined;
   }): string {
-    const kind: string = WorkspaceAffectedResources.getKindLabel(
-      resource.kind,
-    );
+    const kind: string = WorkspaceAffectedResources.getKindLabel(resource.kind);
     const title: string = resource.detail
       ? `${resource.name} (${kind} · ${resource.detail})`
       : `${resource.name} (${kind})`;
@@ -250,9 +248,9 @@ export default class MicrosoftTeamsAffectedResources {
     const tenantId: unknown = (
       channelData["tenant"] as JSONObject | undefined
     )?.["id"];
-    const teamsUserId: unknown = (
-      activity["from"] as JSONObject | undefined
-    )?.["aadObjectId"];
+    const teamsUserId: unknown = (activity["from"] as JSONObject | undefined)?.[
+      "aadObjectId"
+    ];
 
     if (typeof tenantId !== "string" || !tenantId) {
       return [];
@@ -287,12 +285,11 @@ export default class MicrosoftTeamsAffectedResources {
 
     try {
       props = await WorkspaceActionAuthorization.getProjectMemberProps({
-        userId: await MicrosoftTeamsAuthAction.getOneUptimeUserIdFromTeamsUserId(
-          {
+        userId:
+          await MicrosoftTeamsAuthAction.getOneUptimeUserIdFromTeamsUserId({
             teamsUserId: teamsUserId,
             projectId: projectId,
-          },
-        ),
+          }),
         projectId: projectId,
       });
     } catch (error) {

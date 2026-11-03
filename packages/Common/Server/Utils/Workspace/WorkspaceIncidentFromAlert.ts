@@ -262,7 +262,9 @@ export default class WorkspaceIncidentFromAlert {
    * the incident: "The incident was not linked to **Alert ALT-3**: <why>"
    * - the reason as text.
    */
-  public static getNotLinkedLine(result: WorkspaceAlertNotLinked): MarkdownText {
+  public static getNotLinkedLine(
+    result: WorkspaceAlertNotLinked,
+  ): MarkdownText {
     const reason: string = result.reason.trim();
 
     if (!result.name) {
@@ -290,7 +292,9 @@ export default class WorkspaceIncidentFromAlert {
       return error.message;
     }
 
-    logger.debug(`Could not link an alert to an incident from a chat: ${error}`);
+    logger.debug(
+      `Could not link an alert to an incident from a chat: ${error}`,
+    );
 
     return "It could not be read just now.";
   }

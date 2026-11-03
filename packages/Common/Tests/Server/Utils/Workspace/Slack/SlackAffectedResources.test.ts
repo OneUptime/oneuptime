@@ -146,7 +146,9 @@ beforeEach(() => {
 
   jest.spyOn(logger, "debug").mockImplementation((): void => {});
   jest.spyOn(logger, "error").mockImplementation((): void => {});
-  jest.spyOn(ProductBrandingText, "getProductName").mockReturnValue("OneUptime");
+  jest
+    .spyOn(ProductBrandingText, "getProductName")
+    .mockReturnValue("OneUptime");
 
   isAuthorizedSpy = jest
     .spyOn(SlackAuthAction, "isAuthorized")
@@ -358,9 +360,11 @@ describe("the answer Slack lists", () => {
     ]);
 
     expect(
-      ((response["option_groups"] as Array<JSONObject>)[0]!["label"] as JSONObject)[
-        "text"
-      ],
+      (
+        (response["option_groups"] as Array<JSONObject>)[0]![
+          "label"
+        ] as JSONObject
+      )["text"],
     ).toBe("Hosts (15 of 240)");
   });
 
@@ -425,9 +429,9 @@ describe("the answer Slack lists", () => {
       Math.min(...sizes.slice(0, 13)) + 1,
     );
     // A heading cut short says how many there are.
-    expect(
-      (optionGroups[0]!["label"] as JSONObject)["text"] as string,
-    ).toMatch(/^Hosts \(\d of 300\)$/);
+    expect((optionGroups[0]!["label"] as JSONObject)["text"] as string).toMatch(
+      /^Hosts \(\d of 300\)$/,
+    );
   });
 
   test("every text Slack shows within its 75 characters", () => {
@@ -452,9 +456,9 @@ describe("the answer Slack lists", () => {
       ] as Array<JSONObject>
     )[0]!;
 
-    expect(
-      ((option["text"] as JSONObject)["text"] as string).length,
-    ).toBe(SLACK_OPTION_TEXT_MAX_LENGTH);
+    expect(((option["text"] as JSONObject)["text"] as string).length).toBe(
+      SLACK_OPTION_TEXT_MAX_LENGTH,
+    );
     expect(
       ((option["description"] as JSONObject)["text"] as string).length,
     ).toBe(SLACK_OPTION_TEXT_MAX_LENGTH);

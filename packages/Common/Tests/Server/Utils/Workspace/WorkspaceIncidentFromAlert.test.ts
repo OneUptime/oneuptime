@@ -143,7 +143,7 @@ beforeEach(() => {
       }
 
       return { record: alertRead, event: eventRecordOf(data.event) };
-    }) as never);
+    }) as never) as unknown as SpyInstance<ReadEventForMember>;
   jest
     .spyOn(WorkspaceMemberActions, "getStanding")
     .mockImplementation((async (): Promise<WorkspaceEventStanding> => {
@@ -397,9 +397,9 @@ describe("linking the alert a submission names, as whoever submits it", () => {
       alertIds: [ALERT_ID.toString()],
       props: PROPS,
     });
-    expect(
-      (readEventSpy.mock.calls[0]![0] as { props: unknown }).props,
-    ).toBe(PROPS);
+    expect((readEventSpy.mock.calls[0]![0] as { props: unknown }).props).toBe(
+      PROPS,
+    );
   });
 
   test("a private alert: and the incident private, like it", async () => {
@@ -483,7 +483,9 @@ describe("linking the alert a submission names, as whoever submits it", () => {
         name: null,
         reason: "You may not see it.",
       }).toString(),
-    ).toBe("The incident was not linked to this channel's alert: You may not see it.");
+    ).toBe(
+      "The incident was not linked to this channel's alert: You may not see it.",
+    );
     expect(
       WorkspaceIncidentFromAlert.getNotLinkedText({
         name: null,

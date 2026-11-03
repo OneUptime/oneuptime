@@ -883,7 +883,9 @@ export default class MicrosoftTeamsIncidentActions {
       lines.push(
         WorkspaceIncidentFromAlert.getNotLinkedLine(data.alertNotLinked),
       );
-      texts.push(WorkspaceIncidentFromAlert.getNotLinkedText(data.alertNotLinked));
+      texts.push(
+        WorkspaceIncidentFromAlert.getNotLinkedText(data.alertNotLinked),
+      );
     }
 
     if (lines.length === 0) {

@@ -429,7 +429,9 @@ export default class SlackIncidentActions {
       lines.push(
         WorkspaceIncidentFromAlert.getNotLinkedLine(data.alertNotLinked),
       );
-      texts.push(WorkspaceIncidentFromAlert.getNotLinkedText(data.alertNotLinked));
+      texts.push(
+        WorkspaceIncidentFromAlert.getNotLinkedText(data.alertNotLinked),
+      );
     }
 
     if (lines.length === 0) {
