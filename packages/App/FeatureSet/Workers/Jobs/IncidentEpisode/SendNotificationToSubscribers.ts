@@ -73,7 +73,7 @@ import SubscriberMessageText, {
 } from "Common/Server/Utils/StatusPage/SubscriberMessageText";
 import { writeInLanguage } from "Common/Server/Utils/ServerTranslation";
 import { DEFAULT_READER_LANGUAGE } from "Common/Types/ReaderLanguage";
-import { Translator } from "Common/UI/Utils/TranslateTemplate";
+import { Translator } from "Common/Types/Translator";
 
 RunCron(
   "IncidentEpisode:SendNotificationToSubscribers",

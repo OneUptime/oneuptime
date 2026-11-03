@@ -420,9 +420,32 @@ assert_eq 1 "$status" "fails a Community image whose bundle has the Enterprise U
 
 good_community ce-with-packages
 mkdir -p "${IMAGES_DIR}/ce-with-packages/root/usr/src/packages"
+ln -s ../Common "${IMAGES_DIR}/ce-with-packages/root/usr/src/packages/Common"
+ln -s ../app "${IMAGES_DIR}/ce-with-packages/root/usr/src/packages/App"
 status=0
 output="$(run_check --image ce-with-packages --edition community)" || status=$?
 assert_eq 1 "$status" "fails a Community image with the ee /usr/src/packages links"
+assert_contains "$output" "❌ there is no /usr/src/packages/Common (ee/'s link to Common)" "names the Common link"
+assert_contains "$output" "❌ there is no /usr/src/packages/App (ee/'s link to App)" "names the App link"
+
+# A link left dangling is a link all the same.
+good_community ce-with-dangling-link
+mkdir -p "${IMAGES_DIR}/ce-with-dangling-link/root/usr/src/packages"
+ln -s ../nowhere "${IMAGES_DIR}/ce-with-dangling-link/root/usr/src/packages/App"
+status=0
+output="$(run_check --image ce-with-dangling-link --edition community)" || status=$?
+assert_eq 1 "$status" "fails a Community image with a dangling ee link"
+
+# The CLI's installer is served from /usr/src/packages/CLI/Install in both
+# editions (#5581): a Community image that has it, and no ee link, passes.
+good_community ce-with-cli-installer
+mkdir -p "${IMAGES_DIR}/ce-with-cli-installer/root/usr/src/packages/CLI/Install"
+printf '%s\n' '#!/bin/sh' > "${IMAGES_DIR}/ce-with-cli-installer/root/usr/src/packages/CLI/Install/install.sh"
+status=0
+output="$(run_check --image ce-with-cli-installer --edition community)" || status=$?
+assert_eq 0 "$status" "a Community image with the CLI's installer under /usr/src/packages passes"
+assert_contains "$output" "✅ there is no /usr/src/packages/Common (ee/'s link to Common)" "checks the Common link"
+assert_contains "$output" "✅ there is no /usr/src/packages/App (ee/'s link to App)" "checks the App link"
 
 good_community ce-marked-enterprise
 write_config ce-marked-enterprise community "Apache-2.0" node 1 false enterprise

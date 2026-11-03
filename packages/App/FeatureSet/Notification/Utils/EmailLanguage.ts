@@ -12,7 +12,7 @@ import {
 } from "Common/Types/ReadingDirection";
 import { removeHtmlMarkup, replaceHtmlMarkup } from "Common/Types/HtmlMarkup";
 import { getServerTranslator } from "Common/Server/Utils/ServerTranslation";
-import { TemplateValues, Translator } from "Common/UI/Utils/TranslateTemplate";
+import { TemplateValues, Translator } from "Common/Types/Translator";
 
 /*
  * AN EMAIL'S OWN WORDS, IN ITS READER'S LANGUAGE.

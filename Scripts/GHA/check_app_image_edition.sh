@@ -28,7 +28,10 @@ Image contents (docker run as root, so every directory can be searched):
               is not the Enterprise License title, so the ee/ scan below does
               not take it for ee/LICENSE. /usr/src/NOTICE says that ee/ is
               under the OneUptime Enterprise License
-  community   no /usr/src/ee and no /usr/src/packages; no Enterprise Edition
+  community   no /usr/src/ee and none of the links ee/ resolves Common and
+              App through (/usr/src/packages/Common and /usr/src/packages/App;
+              /usr/src/packages/CLI/Install, the CLI's installer, is in both
+              editions); no Enterprise Edition
               file anywhere in the image, wherever ee/ was copied to (a LICENSE
               titled "OneUptime Enterprise License", or ee's TrustedLicenseKeys
               module); the Dashboard and Admin Dashboard bundles do not contain
@@ -202,6 +205,11 @@ lacks_sentinels() {
 links_to() {
 	[ "$(readlink -f "$1")" = "$2" ]
 }
+# Nothing at the path: no file, no directory and no link (a dangling link is a
+# link all the same).
+no_path() {
+	[ ! -e "$1" ] && [ ! -L "$1" ]
+}
 is_apache_license() {
 	grep -qF "Apache License" "$1" 2>/dev/null && grep -qF "Version 2.0, January 2004" "$1"
 }
@@ -244,7 +252,12 @@ if [ "$EDITION" = "enterprise" ]; then
 	check "the Admin Dashboard bundle contains the Enterprise UI" grep -rqF "$ADMIN_SENTINEL" "$ADMIN_DIST"
 else
 	check "there is no /usr/src/ee" test ! -e "$EE"
-	check "there is no /usr/src/packages" test ! -e "$ROOT/usr/src/packages"
+	# The links ee/ resolves Common and App through. /usr/src/packages itself
+	# is in both editions: the CLI's installer is served from
+	# /usr/src/packages/CLI/Install (packages/App/Dockerfile.tpl).
+	for link in Common App; do
+		check "there is no /usr/src/packages/${link} (ee/'s link to ${link})" no_path "$ROOT/usr/src/packages/${link}"
+	done
 	check "no Enterprise Edition file anywhere in the image" test -z "$ENTERPRISE_FILES"
 	list_files "$ENTERPRISE_FILES"
 	check "the bundles do not contain the Enterprise UI" lacks_sentinels

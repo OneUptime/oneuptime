@@ -21,8 +21,9 @@ import fs from "fs";
  *
  * Invocation mirrors generate-postgres-migration: config.env is sourced by
  * the npm script, which also points DATABASE_HOST/PORT at the host-exposed
- * dev Postgres (localhost:5400 — config.env's `postgres` hostname only
- * resolves inside compose) and sets RUN_DATABASE_MIGRATIONS_ON_BOOT=false so
+ * dev Postgres (localhost at DATABASE_PUBLISHED_PORT, 5400 unless config.env
+ * moves it — config.env's `postgres` hostname only resolves inside compose)
+ * and sets RUN_DATABASE_MIGRATIONS_ON_BOOT=false so
  * a read-only eval can never run schema migrations, and
  * DATABASE_MIGRATION_WAIT_TIMEOUT_MS=0 so it does not wait for them either on
  * a dev database that is behind the code (it logs which ones are missing).
