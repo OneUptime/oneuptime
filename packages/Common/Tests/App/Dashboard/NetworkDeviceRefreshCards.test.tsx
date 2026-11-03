@@ -16,6 +16,7 @@ import {
   waitFor,
 } from "@testing-library/react";
 import React from "react";
+import { MemoryRouter } from "react-router-dom";
 import getJestMockFunction, { MockFunction } from "../../MockType";
 
 /*
@@ -29,6 +30,11 @@ import getJestMockFunction, { MockFunction } from "../../MockType";
  * device again, follows the device until they have, and says how it went -
  * read again, unreachable, late, or why it could not be asked. A refresh
  * asked for before the card opened shows as under way.
+ *
+ * A device Meraki has not read again in the time a read takes says so, and
+ * links to its Meraki connection at the foot of the network's Traffic page,
+ * where its status says why. The device's Inventory card tells its page
+ * once a refresh is answered, so the page reads the rest of the device again.
  *
  * The network is replaced: ModelAPI for the device, API.post for the ask.
  */
@@ -812,5 +818,198 @@ describe("the device's Inventory card: Refresh, and what Meraki says", () => {
         "Hardware, software and location details from this device's SNMP poll and from discovery.",
       ),
     ).toBeNull();
+  });
+});
+
+describe("Meraki has not read the device again: the line leads to its connection", () => {
+  // A switch only its Meraki connection reads: no probe polls it.
+  function merakiOnlySwitch(fields: Record<string, unknown> = {}): NetworkDevice {
+    return polledSwitch({
+      probeId: undefined,
+      isPollingEnabled: false,
+      lastPolledAt: undefined,
+      discoveredDetails: { controller: merakiReading(ago(10 * MINUTE)) },
+      ...fields,
+    });
+  }
+
+  function merakiAnswer(requestedAt: string): JSONObject {
+    return {
+      requestedAt: requestedAt,
+      isProbeReading: false,
+      isControllerReading: true,
+      wasAlreadyRequested: false,
+    };
+  }
+
+  test.each([
+    ["Inventory's Asset Details card", "inventory-asset-details-refresh", "inventory-asset-details-refresh-status"],
+    ["the device's Inventory card", "device-inventory-refresh", "device-inventory-refresh-status"],
+  ])(
+    "on %s: the sentence, then a link to the Meraki connections on the network's Traffic page",
+    async (_card: string, button: string, status: string) => {
+      const askedAt: string = ago(4 * MINUTE);
+      servePost(merakiAnswer(askedAt));
+      serveDevices(
+        merakiOnlySwitch(),
+        merakiOnlySwitch({ refreshRequestedAt: askedAt }),
+      );
+
+      render(
+        <MemoryRouter>
+          {button === "device-inventory-refresh" ? (
+            <DeviceInventoryCard modelId={new ObjectID(DEVICE_ID)} />
+          ) : (
+            <InventoryAssetDetailsCard item={mirroredItem()} />
+          )}
+        </MemoryRouter>,
+      );
+
+      await waitFor((): void => {
+        expect(refreshButton(button)).toBeInTheDocument();
+      });
+      fireEvent.click(refreshButton(button));
+
+      await waitFor((): void => {
+        expect(statusOf(status)).toHaveTextContent(
+          "The Meraki dashboard has not been read yet. See the Meraki connection",
+        );
+      });
+      expect(statusOf(status)).toHaveAttribute("data-tone", "warning");
+
+      const link: HTMLElement = screen.getByTestId(`${status}-link`);
+      expect(link).toHaveTextContent("See the Meraki connection");
+
+      const href: string = link.closest("a")!.getAttribute("href") || "";
+      const address: globalThis.URL = new globalThis.URL(
+        href,
+        "https://oneuptime.example",
+      );
+      expect(address.pathname.endsWith("/network-devices/traffic")).toBe(true);
+      expect(address.searchParams.get("source")).toBe("meraki");
+      expect(address.hash).toBe("#traffic-meraki-connections");
+    },
+  );
+
+  test("a probe that is late is named, with no link: its probe is checked where the probes are", async () => {
+    const askedAt: string = ago(4 * MINUTE);
+    const polledBefore: Date = new Date(Date.now() - 10 * MINUTE);
+    servePost(probeAnswer(askedAt));
+    serveDevices(
+      polledSwitch({ lastPolledAt: polledBefore }),
+      polledSwitch({ refreshRequestedAt: askedAt, lastPolledAt: polledBefore }),
+    );
+
+    render(
+      <MemoryRouter>
+        <DeviceInventoryCard modelId={new ObjectID(DEVICE_ID)} />
+      </MemoryRouter>,
+    );
+
+    await waitFor((): void => {
+      expect(refreshButton("device-inventory-refresh")).toBeInTheDocument();
+    });
+    fireEvent.click(refreshButton("device-inventory-refresh"));
+
+    await waitFor((): void => {
+      expect(statusOf("device-inventory-refresh-status")).toHaveTextContent(
+        "Its probe (Branch probe) has not read it yet.",
+      );
+    });
+    expect(
+      screen.queryByTestId("device-inventory-refresh-status-link"),
+    ).toBeNull();
+  });
+});
+
+describe("the device's Inventory card tells its page when the device was read again", () => {
+  test("once per refresh, when it is answered: read again", async () => {
+    jest.useFakeTimers();
+    const askedAt: string = new Date().toISOString();
+    const onRead: MockFunction = getJestMockFunction();
+    servePost(probeAnswer(askedAt));
+    serveDevices(
+      polledSwitch(),
+      polledSwitch({ refreshRequestedAt: askedAt }),
+      polledSwitch({
+        refreshRequestedAt: askedAt,
+        lastPolledAt: new Date(Date.parse(askedAt) + 20 * SECOND),
+      }),
+    );
+
+    render(
+      <DeviceInventoryCard modelId={new ObjectID(DEVICE_ID)} onRead={onRead} />,
+    );
+
+    await waitFor((): void => {
+      expect(refreshButton("device-inventory-refresh")).toBeInTheDocument();
+    });
+    fireEvent.click(refreshButton("device-inventory-refresh"));
+
+    await waitFor((): void => {
+      expect(statusOf("device-inventory-refresh-status")).toHaveAttribute(
+        "data-tone",
+        "progress",
+      );
+    });
+    expect(onRead).not.toHaveBeenCalled();
+
+    await act(async (): Promise<void> => {
+      jest.advanceTimersByTime(REFRESH_FOLLOW_INTERVAL_MS);
+    });
+
+    await waitFor((): void => {
+      expect(statusOf("device-inventory-refresh-status")).toHaveTextContent(
+        "Read again just now.",
+      );
+    });
+    expect(onRead).toHaveBeenCalledTimes(1);
+
+    // Told once, not on every tick after.
+    await act(async (): Promise<void> => {
+      jest.advanceTimersByTime(3 * REFRESH_FOLLOW_INTERVAL_MS);
+    });
+    expect(onRead).toHaveBeenCalledTimes(1);
+  });
+
+  test("and when its probe could not reach it: the page reads what the poll recorded", async () => {
+    const askedAt: string = new Date().toISOString();
+    const onRead: MockFunction = getJestMockFunction();
+    servePost(probeAnswer(askedAt));
+    serveDevices(
+      polledSwitch(),
+      polledSwitch({
+        refreshRequestedAt: askedAt,
+        lastPolledAt: new Date(Date.parse(askedAt) + 10 * SECOND),
+        isReachable: false,
+      }),
+    );
+
+    render(
+      <DeviceInventoryCard modelId={new ObjectID(DEVICE_ID)} onRead={onRead} />,
+    );
+
+    await waitFor((): void => {
+      expect(refreshButton("device-inventory-refresh")).toBeInTheDocument();
+    });
+    fireEvent.click(refreshButton("device-inventory-refresh"));
+
+    await waitFor((): void => {
+      expect(onRead).toHaveBeenCalledTimes(1);
+    });
+  });
+
+  test("a card no refresh was asked on tells nothing", async () => {
+    const onRead: MockFunction = getJestMockFunction();
+    serveDevices(polledSwitch());
+
+    render(
+      <DeviceInventoryCard modelId={new ObjectID(DEVICE_ID)} onRead={onRead} />,
+    );
+
+    await waitFor((): void => {
+      expect(refreshButton("device-inventory-refresh")).toBeInTheDocument();
+    });
+    expect(onRead).not.toHaveBeenCalled();
   });
 });

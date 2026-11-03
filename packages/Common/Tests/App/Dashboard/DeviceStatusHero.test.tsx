@@ -589,6 +589,36 @@ describe("the device Overview status hero", () => {
    * so it would hang "No monitor" on every monitor-backed device and "No
    * probe" on every probe-polled one however well they are configured.
    */
+  test("a refresh answered elsewhere on the page reads the device again, in place - no skeleton - and shows the new reading", async () => {
+    deviceRow = unpolledProbeDevice();
+
+    const { rerender } = render(
+      <MemoryRouter>
+        <DeviceStatusHero modelId={DEVICE_ID} refreshKey={0} />
+      </MemoryRouter>,
+    );
+
+    await waitFor(() => {
+      expect(screen.queryByTestId("device-status-hero-skeleton")).toBeNull();
+    });
+    expect(pillTexts()).toContain(NO_PROBE_QUALIFIER.text);
+    expect(getItemRequests).toHaveLength(1);
+
+    // The device was read again, polled by its probe now.
+    deviceRow = boundReportingMonitorBackedDevice();
+    rerender(
+      <MemoryRouter>
+        <DeviceStatusHero modelId={DEVICE_ID} refreshKey={1} />
+      </MemoryRouter>,
+    );
+
+    expect(screen.queryByTestId("device-status-hero-skeleton")).toBeNull();
+    await waitFor(() => {
+      expect(pillTexts()).not.toContain(NO_PROBE_QUALIFIER.text);
+    });
+    expect(getItemRequests).toHaveLength(2);
+  });
+
   test("selects the columns the qualifiers and the verdict are decided from", async () => {
     await renderHero(boundReportingMonitorBackedDevice());
 

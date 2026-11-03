@@ -61,7 +61,10 @@ import Icon from "Common/UI/Components/Icon/Icon";
 import Modal, { ModalWidth } from "Common/UI/Components/Modal/Modal";
 import { BILLING_ENABLED } from "Common/UI/Config";
 import API from "Common/UI/Utils/API/API";
-import { Translator } from "Common/UI/Utils/TranslateTemplate";
+import {
+  SentenceOptions,
+  Translator,
+} from "Common/UI/Utils/TranslateTemplate";
 import useTranslator from "Common/UI/Utils/UseTranslator";
 import React, {
   FunctionComponent,
@@ -97,6 +100,12 @@ export interface ComponentProps {
   // The ask was recorded: the row follows it from here.
   onAsked: (state: NetworkControllerDeviceAddState | undefined) => void;
 }
+
+/*
+ * A sentence's values - a name, a count - set apart in a sentence read right
+ * to left, so they read where the sentence puts them (Types/Translator).
+ */
+const IN_SENTENCE: SentenceOptions = { setsValuesApart: true };
 
 const MerakiAddDevicesModal: FunctionComponent<ComponentProps> = (
   props: ComponentProps,
@@ -276,19 +285,31 @@ const MerakiAddDevicesModal: FunctionComponent<ComponentProps> = (
           text: translator.translatePlural(
             WITHOUT_ADDRESS_NOTE,
             notAdded.withoutAddress,
+            {},
+            IN_SENTENCE,
           ),
         }
       : null,
     notAdded.taken > 0
       ? {
           key: "taken",
-          text: translator.translatePlural(TAKEN_NOTE, notAdded.taken),
+          text: translator.translatePlural(
+            TAKEN_NOTE,
+            notAdded.taken,
+            {},
+            IN_SENTENCE,
+          ),
         }
       : null,
     notAdded.archived > 0
       ? {
           key: "archived",
-          text: translator.translatePlural(ARCHIVED_NOTE, notAdded.archived),
+          text: translator.translatePlural(
+            ARCHIVED_NOTE,
+            notAdded.archived,
+            {},
+            IN_SENTENCE,
+          ),
         }
       : null,
   ].filter((line: { key: string; text: string } | null): boolean => {
@@ -298,13 +319,15 @@ const MerakiAddDevicesModal: FunctionComponent<ComponentProps> = (
   return (
     <Modal
       title={ADD_DEVICES_TITLE}
-      description={translator.translateTemplate(ADD_DEVICES_DESCRIPTION, {
-        organization: organization,
-      })}
+      description={translator.translateTemplate(
+        ADD_DEVICES_DESCRIPTION,
+        { organization: organization },
+        IN_SENTENCE,
+      )}
       onClose={props.onClose}
       submitButtonText={
         addCount > 0
-          ? translator.translatePlural(ADD_COUNT_BUTTON, addCount)
+          ? translator.translatePlural(ADD_COUNT_BUTTON, addCount, {}, IN_SENTENCE)
           : ADD_DEVICES_ACTION
       }
       onSubmit={() => {
@@ -470,20 +493,20 @@ const MerakiAddDevicesModal: FunctionComponent<ComponentProps> = (
                   dataTestId="meraki-add-devices-sites"
                 />
               </div>
-              <div>
+              <div data-testid="meraki-add-devices-probe">
                 <FieldLabelElement
+                  id="meraki-add-devices-probe-label"
                   title={PROBE_LABEL}
                   description={PROBE_HELP}
                   required={false}
                   hideOptionalLabel={true}
-                  htmlFor="meraki-add-devices-probe"
                 />
                 <Dropdown
-                  id="meraki-add-devices-probe"
                   options={probeOptions}
                   value={pickedProbe}
                   isClearable={false}
                   isLoading={isLoadingProbes}
+                  ariaLabelledby="meraki-add-devices-probe-label"
                   onChange={(
                     value: DropdownValue | Array<DropdownValue> | null,
                   ) => {
@@ -493,7 +516,6 @@ const MerakiAddDevicesModal: FunctionComponent<ComponentProps> = (
                         : "",
                     );
                   }}
-                  dataTestId="meraki-add-devices-probe"
                 />
               </div>
             </div>

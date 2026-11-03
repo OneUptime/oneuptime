@@ -84,7 +84,10 @@ import {
   markPageAnchorLanded,
 } from "Common/UI/Utils/PageAnchor";
 import ProjectUtil from "Common/UI/Utils/Project";
-import { Translator } from "Common/UI/Utils/TranslateTemplate";
+import {
+  SentenceOptions,
+  Translator,
+} from "Common/UI/Utils/TranslateTemplate";
 import useTranslator from "Common/UI/Utils/UseTranslator";
 import React, {
   FunctionComponent,
@@ -176,6 +179,12 @@ interface DeviceAddLine {
   // A line each under it: the devices that could not be added, with why.
   details?: Array<string> | undefined;
 }
+
+/*
+ * A line's values - a count, a time, a reason - set apart in a sentence
+ * read right to left, so they read where the sentence puts them.
+ */
+const IN_SENTENCE: SentenceOptions = { setsValuesApart: true };
 
 const DEVICE_ADD_TONE_TEXT: Record<DeviceAddTone, string> = {
   info: "text-gray-500",
@@ -752,10 +761,14 @@ const MerakiConnectionsCard: FunctionComponent<ComponentProps> = (
         tone: "progress",
         text:
           state.toAddCount > 0
-            ? translator.translateTemplate(ADDING_DEVICES_PROGRESS, {
-                added: translator.formatNumber(state.addedCount),
-                total: translator.formatNumber(state.toAddCount),
-              })
+            ? translator.translateTemplate(
+                ADDING_DEVICES_PROGRESS,
+                {
+                  added: translator.formatNumber(state.addedCount),
+                  total: translator.formatNumber(state.toAddCount),
+                },
+                IN_SENTENCE,
+              )
             : translator.translateText(ADDING_DEVICES) || ADDING_DEVICES,
       });
 
@@ -776,15 +789,18 @@ const MerakiConnectionsCard: FunctionComponent<ComponentProps> = (
             ADDED_DEVICES_NOTE,
             state.addedCount,
             { time: when },
+            IN_SENTENCE,
           ),
         });
       } else if (state.failedCount === 0) {
         addLine({
           key: "nothing-added",
           tone: "info",
-          text: translator.translateTemplate(NOTHING_ADDED_NOTE, {
-            time: when,
-          }),
+          text: translator.translateTemplate(
+            NOTHING_ADDED_NOTE,
+            { time: when },
+            IN_SENTENCE,
+          ),
         });
       }
 
@@ -795,6 +811,8 @@ const MerakiConnectionsCard: FunctionComponent<ComponentProps> = (
           text: translator.translatePlural(
             ADDED_SITES_NOTE,
             state.createdSiteCount,
+            {},
+            IN_SENTENCE,
           ),
         });
       }
@@ -806,6 +824,8 @@ const MerakiConnectionsCard: FunctionComponent<ComponentProps> = (
           text: translator.translatePlural(
             FAILED_DEVICES_NOTE,
             state.failedCount,
+            {},
+            IN_SENTENCE,
           ),
           details: state.failures
             .slice(0, DEVICE_ADD_FAILURES_SHOWN)
@@ -824,6 +844,8 @@ const MerakiConnectionsCard: FunctionComponent<ComponentProps> = (
           text: translator.translatePlural(
             REMAINING_DEVICES_NOTE,
             state.remainingCount,
+            {},
+            IN_SENTENCE,
           ),
           after: action,
         });
@@ -834,9 +856,11 @@ const MerakiConnectionsCard: FunctionComponent<ComponentProps> = (
       addLine({
         key: "add-failed",
         tone: "error",
-        text: translator.translateTemplate(ADD_FAILED_NOTE, {
-          reason: state.message || "",
-        }),
+        text: translator.translateTemplate(
+          ADD_FAILED_NOTE,
+          { reason: state.message || "" },
+          IN_SENTENCE,
+        ),
       });
     }
 
@@ -862,7 +886,12 @@ const MerakiConnectionsCard: FunctionComponent<ComponentProps> = (
       addLine({
         key: "not-added",
         tone: "info",
-        text: translator.translatePlural(NOT_ADDED_DEVICES_NOTE, offered),
+        text: translator.translatePlural(
+          NOT_ADDED_DEVICES_NOTE,
+          offered,
+          {},
+          IN_SENTENCE,
+        ),
         after: action,
       });
     }
