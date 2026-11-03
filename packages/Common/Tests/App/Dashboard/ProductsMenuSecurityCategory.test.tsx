@@ -403,9 +403,7 @@ describe("the Security category, in the catalog", () => {
       "AI / LLM",
       "Topology",
     ]);
-    expect(titlesIn(catalog, "Observability")).not.toContain(
-      "Security Events",
-    );
+    expect(titlesIn(catalog, "Observability")).not.toContain("Security Events");
     expect(titlesIn(catalog, "Observability")).not.toContain("Data Security");
   });
 
