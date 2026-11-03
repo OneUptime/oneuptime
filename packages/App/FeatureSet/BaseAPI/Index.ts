@@ -1837,6 +1837,7 @@ import ScheduledMaintenanceFeedService, {
 
 import SlackAPI from "Common/Server/API/SlackAPI";
 import MicrosoftTeamsAPI from "Common/Server/API/MicrosoftTeamsAPI";
+import MattermostAPI from "Common/Server/API/MattermostAPI";
 import GitHubAPI from "Common/Server/API/GitHubAPI";
 import VideoCallOAuthAPI from "Common/Server/API/VideoCallOAuthAPI";
 
@@ -6389,6 +6390,10 @@ const BaseAPIFeatureSet: FeatureSet = {
       new OpenSourceDeploymentAPI().getRouter(),
     );
     app.use(`/${APP_NAME.toLocaleLowerCase()}`, new SlackAPI().getRouter());
+    app.use(
+      `/${APP_NAME.toLocaleLowerCase()}`,
+      new MattermostAPI().getRouter(),
+    );
     app.use(
       `/${APP_NAME.toLocaleLowerCase()}`,
       new MicrosoftTeamsAPI().getRouter(),

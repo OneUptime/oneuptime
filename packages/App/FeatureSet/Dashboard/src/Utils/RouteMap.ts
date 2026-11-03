@@ -18,6 +18,8 @@ export const MonitorsRoutePath: Dictionary<string> = {
   [PageMap.MONITORS_WORKSPACE_CONNECTION_SLACK]: "workspace-connection-slack",
   [PageMap.MONITORS_WORKSPACE_CONNECTION_MICROSOFT_TEAMS]:
     "workspace-connection-microsoft-teams",
+  [PageMap.MONITORS_WORKSPACE_CONNECTION_MATTERMOST]:
+    "workspace-connection-mattermost",
   [PageMap.MONITORS_WORKSPACE_CONNECTIONS]: "workspace-connections",
 
   // Monitor Settings
@@ -885,6 +887,8 @@ export const SecurityEventsRoutePath: Dictionary<string> = {
     "workspace-connection-slack",
   [PageMap.SECURITY_EVENTS_WORKSPACE_CONNECTION_MICROSOFT_TEAMS]:
     "workspace-connection-microsoft-teams",
+  [PageMap.SECURITY_EVENTS_WORKSPACE_CONNECTION_MATTERMOST]:
+    "workspace-connection-mattermost",
   [PageMap.SECURITY_EVENTS_WORKSPACE_CONNECTIONS]: "workspace-connections",
   // AI, at the address Incidents' and Alerts' AI settings pages have.
   [PageMap.SECURITY_EVENTS_SETTINGS_AI]: "ai/settings",
@@ -1167,6 +1171,8 @@ export const IncidentsRoutePath: Dictionary<string> = {
   [PageMap.INCIDENTS_WORKSPACE_CONNECTION_SLACK]: "workspace-connection-slack",
   [PageMap.INCIDENTS_WORKSPACE_CONNECTION_MICROSOFT_TEAMS]:
     "workspace-connection-microsoft-teams",
+  [PageMap.INCIDENTS_WORKSPACE_CONNECTION_MATTERMOST]:
+    "workspace-connection-mattermost",
   [PageMap.INCIDENTS_WORKSPACE_CONNECTIONS]: "workspace-connections",
   [PageMap.INCIDENT_CREATE]: "create",
 
@@ -1260,6 +1266,8 @@ export const AlertsRoutePath: Dictionary<string> = {
   [PageMap.ALERTS_WORKSPACE_CONNECTION_SLACK]: "workspace-connection-slack",
   [PageMap.ALERTS_WORKSPACE_CONNECTION_MICROSOFT_TEAMS]:
     "workspace-connection-microsoft-teams",
+  [PageMap.ALERTS_WORKSPACE_CONNECTION_MATTERMOST]:
+    "workspace-connection-mattermost",
   [PageMap.ALERTS_WORKSPACE_CONNECTIONS]: "workspace-connections",
 
   // Alert Episodes
@@ -1335,6 +1343,8 @@ export const ScheduledMaintenanceEventsRoutePath: Dictionary<string> = {
     "workspace-connection-slack",
   [PageMap.SCHEDULED_MAINTENANCE_EVENTS_WORKSPACE_CONNECTION_MICROSOFT_TEAMS]:
     "workspace-connection-microsoft-teams",
+  [PageMap.SCHEDULED_MAINTENANCE_EVENTS_WORKSPACE_CONNECTION_MATTERMOST]:
+    "workspace-connection-mattermost",
   [PageMap.SCHEDULED_MAINTENANCE_EVENTS_WORKSPACE_CONNECTIONS]:
     "workspace-connections",
   [PageMap.SCHEDULED_MAINTENANCE_EVENT_CREATE]: "create",
@@ -1403,6 +1413,7 @@ export const SettingsRoutePath: Dictionary<string> = {
   [PageMap.SETTINGS_TELEMETRY_SETTINGS]: `telemetry-settings`,
   [PageMap.SETTINGS_SLACK_INTEGRATION]: "slack-integration",
   [PageMap.SETTINGS_MICROSOFT_TEAMS_INTEGRATION]: "microsoft-teams-integration",
+  [PageMap.SETTINGS_MATTERMOST_INTEGRATION]: "mattermost-integration",
   [PageMap.SETTINGS_VIDEO_CALLS]: "video-calls",
 
   [PageMap.SETTINGS_DOMAINS]: "domains",
@@ -1489,6 +1500,8 @@ export const OnCallDutyRoutePath: Dictionary<string> = {
     "workspace-connection-slack",
   [PageMap.ON_CALL_DUTY_WORKSPACE_CONNECTION_MICROSOFT_TEAMS]:
     "workspace-connection-microsoft-teams",
+  [PageMap.ON_CALL_DUTY_WORKSPACE_CONNECTION_MATTERMOST]:
+    "workspace-connection-mattermost",
   [PageMap.ON_CALL_DUTY_WORKSPACE_CONNECTIONS]: "workspace-connections",
 
   // Incoming Call Policy
@@ -1522,6 +1535,7 @@ export const UserSettingsRoutePath: Dictionary<string> = {
   [PageMap.USER_SETTINGS_SLACK_INTEGRATION]: "slack-integration",
   [PageMap.USER_SETTINGS_MICROSOFT_TEAMS_INTEGRATION]:
     "microsoft-teams-integration",
+  [PageMap.USER_SETTINGS_MATTERMOST_INTEGRATION]: "mattermost-integration",
   [PageMap.USER_SETTINGS_ON_CALL_LOGS]: "on-call-logs",
   [PageMap.USER_SETTINGS_ON_CALL_LOGS_TIMELINE]: `on-call-logs/${RouteParams.ModelID}`,
   [PageMap.USER_SETTINGS_INCOMING_CALL_PHONE_NUMBERS]:
@@ -1586,6 +1600,12 @@ const RouteMap: Dictionary<Route> = {
   [PageMap.MONITORS_WORKSPACE_CONNECTION_MICROSOFT_TEAMS]: new Route(
     `/dashboard/${RouteParams.ProjectID}/monitors/${
       MonitorsRoutePath[PageMap.MONITORS_WORKSPACE_CONNECTION_MICROSOFT_TEAMS]
+    }`,
+  ),
+
+  [PageMap.MONITORS_WORKSPACE_CONNECTION_MATTERMOST]: new Route(
+    `/dashboard/${RouteParams.ProjectID}/monitors/${
+      MonitorsRoutePath[PageMap.MONITORS_WORKSPACE_CONNECTION_MATTERMOST]
     }`,
   ),
 
@@ -1815,6 +1835,12 @@ const RouteMap: Dictionary<Route> = {
   [PageMap.ALERTS_WORKSPACE_CONNECTION_MICROSOFT_TEAMS]: new Route(
     `/dashboard/${RouteParams.ProjectID}/alerts/${
       AlertsRoutePath[PageMap.ALERTS_WORKSPACE_CONNECTION_MICROSOFT_TEAMS]
+    }`,
+  ),
+
+  [PageMap.ALERTS_WORKSPACE_CONNECTION_MATTERMOST]: new Route(
+    `/dashboard/${RouteParams.ProjectID}/alerts/${
+      AlertsRoutePath[PageMap.ALERTS_WORKSPACE_CONNECTION_MATTERMOST]
     }`,
   ),
 
@@ -2191,6 +2217,12 @@ const RouteMap: Dictionary<Route> = {
   [PageMap.INCIDENTS_WORKSPACE_CONNECTION_MICROSOFT_TEAMS]: new Route(
     `/dashboard/${RouteParams.ProjectID}/incidents/${
       IncidentsRoutePath[PageMap.INCIDENTS_WORKSPACE_CONNECTION_MICROSOFT_TEAMS]
+    }`,
+  ),
+
+  [PageMap.INCIDENTS_WORKSPACE_CONNECTION_MATTERMOST]: new Route(
+    `/dashboard/${RouteParams.ProjectID}/incidents/${
+      IncidentsRoutePath[PageMap.INCIDENTS_WORKSPACE_CONNECTION_MATTERMOST]
     }`,
   ),
 
@@ -2696,6 +2728,15 @@ const RouteMap: Dictionary<Route> = {
         ScheduledMaintenanceEventsRoutePath[
           PageMap
             .SCHEDULED_MAINTENANCE_EVENTS_WORKSPACE_CONNECTION_MICROSOFT_TEAMS
+        ]
+      }`,
+    ),
+
+  [PageMap.SCHEDULED_MAINTENANCE_EVENTS_WORKSPACE_CONNECTION_MATTERMOST]:
+    new Route(
+      `/dashboard/${RouteParams.ProjectID}/scheduled-maintenance-events/${
+        ScheduledMaintenanceEventsRoutePath[
+          PageMap.SCHEDULED_MAINTENANCE_EVENTS_WORKSPACE_CONNECTION_MATTERMOST
         ]
       }`,
     ),
@@ -6983,6 +7024,12 @@ const RouteMap: Dictionary<Route> = {
     }`,
   ),
 
+  [PageMap.ON_CALL_DUTY_WORKSPACE_CONNECTION_MATTERMOST]: new Route(
+    `/dashboard/${RouteParams.ProjectID}/on-call-duty/${
+      OnCallDutyRoutePath[PageMap.ON_CALL_DUTY_WORKSPACE_CONNECTION_MATTERMOST]
+    }`,
+  ),
+
   [PageMap.ON_CALL_DUTY_WORKSPACE_CONNECTIONS]: new Route(
     `/dashboard/${RouteParams.ProjectID}/on-call-duty/${
       OnCallDutyRoutePath[PageMap.ON_CALL_DUTY_WORKSPACE_CONNECTIONS]
@@ -7499,6 +7546,14 @@ const RouteMap: Dictionary<Route> = {
     `/dashboard/${RouteParams.ProjectID}/security-events/${
       SecurityEventsRoutePath[
         PageMap.SECURITY_EVENTS_WORKSPACE_CONNECTION_MICROSOFT_TEAMS
+      ]
+    }`,
+  ),
+
+  [PageMap.SECURITY_EVENTS_WORKSPACE_CONNECTION_MATTERMOST]: new Route(
+    `/dashboard/${RouteParams.ProjectID}/security-events/${
+      SecurityEventsRoutePath[
+        PageMap.SECURITY_EVENTS_WORKSPACE_CONNECTION_MATTERMOST
       ]
     }`,
   ),
@@ -8171,6 +8226,12 @@ const RouteMap: Dictionary<Route> = {
     }`,
   ),
 
+  [PageMap.USER_SETTINGS_MATTERMOST_INTEGRATION]: new Route(
+    `/dashboard/${RouteParams.ProjectID}/user-settings/${
+      UserSettingsRoutePath[PageMap.USER_SETTINGS_MATTERMOST_INTEGRATION]
+    }`,
+  ),
+
   [PageMap.USER_SETTINGS_ON_CALL_LOGS]: new Route(
     `/dashboard/${RouteParams.ProjectID}/user-settings/${
       UserSettingsRoutePath[PageMap.USER_SETTINGS_ON_CALL_LOGS]
@@ -8478,6 +8539,12 @@ const RouteMap: Dictionary<Route> = {
   [PageMap.SETTINGS_MICROSOFT_TEAMS_INTEGRATION]: new Route(
     `/dashboard/${RouteParams.ProjectID}/settings/${
       SettingsRoutePath[PageMap.SETTINGS_MICROSOFT_TEAMS_INTEGRATION]
+    }`,
+  ),
+
+  [PageMap.SETTINGS_MATTERMOST_INTEGRATION]: new Route(
+    `/dashboard/${RouteParams.ProjectID}/settings/${
+      SettingsRoutePath[PageMap.SETTINGS_MATTERMOST_INTEGRATION]
     }`,
   ),
 

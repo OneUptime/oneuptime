@@ -41,6 +41,7 @@ import WorkspaceProjectAuthToken, {
   MicrosoftTeamsMiscData,
   MiscData,
   SlackMiscData,
+  MattermostMiscData,
 } from "../../Models/DatabaseModels/WorkspaceProjectAuthToken";
 import WorkspaceProjectAuthTokenService from "./WorkspaceProjectAuthTokenService";
 import logger, { LogAttributes } from "../Utils/Logger";
@@ -106,6 +107,10 @@ import ColumnLength from "../../Types/Database/ColumnLength";
 import SlackAccountByEmail, {
   SlackEmailAccount,
 } from "../Utils/Workspace/Slack/SlackAccountByEmail";
+import MattermostConnection from "../Utils/Workspace/Mattermost/MattermostConnection";
+import MattermostUtil, {
+  MattermostUser,
+} from "../Utils/Workspace/Mattermost/Mattermost";
 import QueryHelper from "../Types/Database/QueryHelper";
 
 export interface MessageBlocksByWorkspaceType {
@@ -987,10 +992,11 @@ export class Service extends DatabaseService<WorkspaceNotificationRule> {
   }): void {
     if (
       data.workspaceType !== WorkspaceType.Slack &&
-      data.workspaceType !== WorkspaceType.MicrosoftTeams
+      data.workspaceType !== WorkspaceType.MicrosoftTeams &&
+      data.workspaceType !== WorkspaceType.Mattermost
     ) {
       throw new BadDataException(
-        "Test notifications can only be sent to Slack or Microsoft Teams.",
+        "Test notifications can only be sent to Slack, Microsoft Teams or Mattermost.",
       );
     }
 
@@ -1007,9 +1013,9 @@ export class Service extends DatabaseService<WorkspaceNotificationRule> {
     }
 
     if (data.chatId) {
-      if (data.workspaceType === WorkspaceType.Slack) {
+      if (data.workspaceType !== WorkspaceType.MicrosoftTeams) {
         throw new BadDataException(
-          "Chats are only supported for Microsoft Teams. Please choose a Slack channel.",
+          `Chats are only supported for Microsoft Teams. Please choose a ${getWorkspaceTypeDisplayName(data.workspaceType)} channel.`,
         );
       }
 
@@ -1023,6 +1029,18 @@ export class Service extends DatabaseService<WorkspaceNotificationRule> {
     if (data.workspaceType === WorkspaceType.Slack) {
       if (!SLACK_CHANNEL_ID_REGEX.test(data.channelId)) {
         throw new BadDataException("The Slack channel id is not valid.");
+      }
+
+      return;
+    }
+
+    /*
+     * A Mattermost channel id is placed in the path of the calls that post
+     * to it, with the bot's token: only an id Mattermost could have made.
+     */
+    if (data.workspaceType === WorkspaceType.Mattermost) {
+      if (!MattermostConnection.isMattermostId(data.channelId)) {
+        throw new BadDataException("The Mattermost channel id is not valid.");
       }
 
       return;
@@ -1158,6 +1176,10 @@ export class Service extends DatabaseService<WorkspaceNotificationRule> {
 
     if (data.workspaceType === WorkspaceType.Slack && !data.isChat) {
       return `#${label}`;
+    }
+
+    if (data.workspaceType === WorkspaceType.Mattermost) {
+      return `~${label}`;
     }
 
     return `"${label}"`;
@@ -1995,7 +2017,11 @@ export class Service extends DatabaseService<WorkspaceNotificationRule> {
 
   @CaptureSpan()
   public static getAllWorkspaceTypes(): Array<WorkspaceType> {
-    return [WorkspaceType.Slack, WorkspaceType.MicrosoftTeams];
+    return [
+      WorkspaceType.Slack,
+      WorkspaceType.MicrosoftTeams,
+      WorkspaceType.Mattermost,
+    ];
   }
 
   public getBotUserIdFromprojectAuthToken(data: {
@@ -2008,8 +2034,12 @@ export class Service extends DatabaseService<WorkspaceNotificationRule> {
       throw new BadDataException("Misc data not found in project auth token");
     }
 
-    if (data.workspaceType === WorkspaceType.Slack) {
-      const userId: string = (miscData as SlackMiscData).botUserId;
+    if (
+      data.workspaceType === WorkspaceType.Slack ||
+      data.workspaceType === WorkspaceType.Mattermost
+    ) {
+      const userId: string = (miscData as SlackMiscData | MattermostMiscData)
+        .botUserId;
 
       if (!userId) {
         throw new BadDataException(
@@ -2952,7 +2982,8 @@ export class Service extends DatabaseService<WorkspaceNotificationRule> {
       projectId: data.projectId,
       notificationRules: data.notificationRules,
       notificationFor: data.notificationFor,
-      ...(data.workspaceType === WorkspaceType.Slack
+      ...(data.workspaceType === WorkspaceType.Slack ||
+      data.workspaceType === WorkspaceType.Mattermost
         ? { peopleOnCallByRule: peopleOnCallByRule }
         : {}),
     });
@@ -3619,7 +3650,8 @@ export class Service extends DatabaseService<WorkspaceNotificationRule> {
     }
 
     if (
-      data.workspaceType !== WorkspaceType.Slack ||
+      (data.workspaceType !== WorkspaceType.Slack &&
+        data.workspaceType !== WorkspaceType.Mattermost) ||
       !data.authToken ||
       notConnected.length === 0
     ) {
@@ -3629,6 +3661,15 @@ export class Service extends DatabaseService<WorkspaceNotificationRule> {
 
     const emails: Map<string, string> =
       await this.getEmailsOfUsers(notConnected);
+
+    if (data.workspaceType === WorkspaceType.Mattermost) {
+      return await this.findMattermostAccountsByEmail({
+        found: found,
+        authToken: data.authToken,
+        userIds: notConnected,
+        emails: emails,
+      });
+    }
 
     for (const userId of notConnected) {
       let account: SlackEmailAccount | null = null;
@@ -3668,6 +3709,59 @@ export class Service extends DatabaseService<WorkspaceNotificationRule> {
     }
 
     return found;
+  }
+
+  /*
+   * Whom a rule's Mattermost channels invite among the people who have not
+   * connected their account: the account with their OneUptime email
+   * address, when the Mattermost server shows the bot people's email
+   * addresses (its Show Email Address setting). A guest's account is left
+   * out, as in Slack: Mattermost keeps guests out of the channels they were
+   * not let into. Whoever is not found is handed back for the channel's
+   * note (ChannelMembersNotAddedNotice).
+   */
+  private async findMattermostAccountsByEmail(data: {
+    found: WorkspaceInvitees;
+    authToken: string;
+    userIds: Array<ObjectID>;
+    emails: Map<string, string>;
+  }): Promise<WorkspaceInvitees> {
+    for (const userId of data.userIds) {
+      let account: MattermostUser | null = null;
+      const email: string =
+        data.emails.get(userId.toString().toLowerCase()) || "";
+
+      if (email) {
+        try {
+          account = await MattermostUtil.findUserByEmail({
+            authToken: data.authToken,
+            email: email,
+          });
+        } catch (err) {
+          logger.debug(
+            "Could not look somebody up in Mattermost by their email address to invite them to a channel.",
+          );
+          logger.debug(err);
+        }
+      }
+
+      const alreadyInvited: boolean = data.found.invitees.some(
+        (invitee: { workspaceUserId: string }): boolean => {
+          return invitee.workspaceUserId === account?.id;
+        },
+      );
+
+      if (account && !account.isBot && !account.isGuest && !alreadyInvited) {
+        data.found.invitees.push({
+          userId: userId,
+          workspaceUserId: account.id,
+        });
+      } else {
+        data.found.notFoundUserIds.push(userId);
+      }
+    }
+
+    return data.found;
   }
 
   /*

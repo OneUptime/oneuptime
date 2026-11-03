@@ -97,6 +97,7 @@ export const WorkspaceConnectionTile: FunctionComponent<WorkspaceTileProps> = (
 export interface ComponentProps {
   slackPage: PageMap;
   microsoftTeamsPage: PageMap;
+  mattermostPage: PageMap;
 }
 
 const WorkspaceConnectionsOverview: FunctionComponent<ComponentProps> = (
@@ -107,6 +108,7 @@ const WorkspaceConnectionsOverview: FunctionComponent<ComponentProps> = (
   const productPages: Record<WorkspaceType, PageMap> = {
     [WorkspaceType.Slack]: props.slackPage,
     [WorkspaceType.MicrosoftTeams]: props.microsoftTeamsPage,
+    [WorkspaceType.Mattermost]: props.mattermostPage,
   };
 
   let body: ReactElement;

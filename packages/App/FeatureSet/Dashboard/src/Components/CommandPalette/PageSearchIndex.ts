@@ -208,17 +208,19 @@ const setupGuide: PageFunction = (page: PageMap): PageSearchPage => {
 };
 
 /*
- * A product's Slack and Microsoft Teams pages: which of its events are sent
- * to which channel. The menu lists only the workspaces the project has
- * connected; Search offers both, because each page says how to connect
- * its workspace when it is not.
+ * A product's Slack, Microsoft Teams and Mattermost pages: which of its
+ * events are sent to which channel. The menu lists only the workspaces the
+ * project has connected; Search offers them all, because each page says how
+ * to connect its workspace when it is not.
  */
 const workspaceSection: (pages: {
   slack: PageMap;
   microsoftTeams: PageMap;
+  mattermost: PageMap;
 }) => PageSearchSection = (pages: {
   slack: PageMap;
   microsoftTeams: PageMap;
+  mattermost: PageMap;
 }): PageSearchSection => {
   return {
     title: "Workspace",
@@ -234,6 +236,12 @@ const workspaceSection: (pages: {
         title: "Microsoft Teams",
         icon: IconProp.MicrosoftTeams,
         keywords: ["ms teams", "teams channel", "teams notifications"],
+      },
+      {
+        page: pages.mattermost,
+        title: "Mattermost",
+        icon: IconProp.Mattermost,
+        keywords: ["mattermost channel", "mattermost notifications"],
       },
     ],
   };
@@ -458,6 +466,12 @@ export const PAGE_SEARCH_AREAS: ReadonlyArray<PageSearchArea> = [
               "teams integration",
               "chat",
             ],
+          },
+          {
+            page: PageMap.SETTINGS_MATTERMOST_INTEGRATION,
+            title: "Mattermost",
+            icon: IconProp.Mattermost,
+            keywords: ["connect mattermost", "mattermost integration", "chat"],
           },
           {
             page: PageMap.SETTINGS_VIDEO_CALLS,
@@ -906,6 +920,7 @@ export const PAGE_SEARCH_AREAS: ReadonlyArray<PageSearchArea> = [
       workspaceSection({
         slack: PageMap.MONITORS_WORKSPACE_CONNECTION_SLACK,
         microsoftTeams: PageMap.MONITORS_WORKSPACE_CONNECTION_MICROSOFT_TEAMS,
+        mattermost: PageMap.MONITORS_WORKSPACE_CONNECTION_MATTERMOST,
       }),
       {
         title: "Settings",
@@ -993,6 +1008,7 @@ export const PAGE_SEARCH_AREAS: ReadonlyArray<PageSearchArea> = [
       workspaceSection({
         slack: PageMap.INCIDENTS_WORKSPACE_CONNECTION_SLACK,
         microsoftTeams: PageMap.INCIDENTS_WORKSPACE_CONNECTION_MICROSOFT_TEAMS,
+        mattermost: PageMap.INCIDENTS_WORKSPACE_CONNECTION_MATTERMOST,
       }),
       {
         title: "Rules",
@@ -1165,6 +1181,7 @@ export const PAGE_SEARCH_AREAS: ReadonlyArray<PageSearchArea> = [
       workspaceSection({
         slack: PageMap.ALERTS_WORKSPACE_CONNECTION_SLACK,
         microsoftTeams: PageMap.ALERTS_WORKSPACE_CONNECTION_MICROSOFT_TEAMS,
+        mattermost: PageMap.ALERTS_WORKSPACE_CONNECTION_MATTERMOST,
       }),
       {
         title: "Rules",
@@ -1384,6 +1401,7 @@ export const PAGE_SEARCH_AREAS: ReadonlyArray<PageSearchArea> = [
         slack: PageMap.ON_CALL_DUTY_WORKSPACE_CONNECTION_SLACK,
         microsoftTeams:
           PageMap.ON_CALL_DUTY_WORKSPACE_CONNECTION_MICROSOFT_TEAMS,
+        mattermost: PageMap.ON_CALL_DUTY_WORKSPACE_CONNECTION_MATTERMOST,
       }),
       {
         title: "Settings",
@@ -1485,6 +1503,8 @@ export const PAGE_SEARCH_AREAS: ReadonlyArray<PageSearchArea> = [
         slack: PageMap.SCHEDULED_MAINTENANCE_EVENTS_WORKSPACE_CONNECTION_SLACK,
         microsoftTeams:
           PageMap.SCHEDULED_MAINTENANCE_EVENTS_WORKSPACE_CONNECTION_MICROSOFT_TEAMS,
+        mattermost:
+          PageMap.SCHEDULED_MAINTENANCE_EVENTS_WORKSPACE_CONNECTION_MATTERMOST,
       }),
       {
         title: "Rules",
@@ -2232,6 +2252,7 @@ export const PAGE_SEARCH_AREAS: ReadonlyArray<PageSearchArea> = [
         slack: PageMap.SECURITY_EVENTS_WORKSPACE_CONNECTION_SLACK,
         microsoftTeams:
           PageMap.SECURITY_EVENTS_WORKSPACE_CONNECTION_MICROSOFT_TEAMS,
+        mattermost: PageMap.SECURITY_EVENTS_WORKSPACE_CONNECTION_MATTERMOST,
       }),
       {
         title: "Connections",
@@ -3784,6 +3805,12 @@ export const PAGE_SEARCH_AREAS: ReadonlyArray<PageSearchArea> = [
             title: "Microsoft Teams",
             icon: IconProp.MicrosoftTeams,
             keywords: ["link my microsoft teams account"],
+          },
+          {
+            page: PageMap.USER_SETTINGS_MATTERMOST_INTEGRATION,
+            title: "Mattermost",
+            icon: IconProp.Mattermost,
+            keywords: ["link my mattermost account"],
           },
         ],
       },

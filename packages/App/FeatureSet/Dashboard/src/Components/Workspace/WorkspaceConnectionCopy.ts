@@ -5,8 +5,8 @@ import WorkspaceType from "Common/Types/Workspace/WorkspaceType";
 
 /*
  * What the product says about each chat workspace, in one place: the
- * Workspace overview page, and the Slack and Microsoft Teams pages of every
- * product when the workspace is not connected. Each sentence is whole, so it
+ * Workspace overview page, and the Slack, Microsoft Teams and Mattermost
+ * pages of every product when the workspace is not connected. Each sentence is whole, so it
  * is looked up as one in the Dashboard's locales.
  */
 export interface WorkspaceConnectionCopy {
@@ -51,6 +51,18 @@ export const WORKSPACE_CONNECTION_COPY: Readonly<
     notConnectedDescription:
       "Connect your Microsoft Teams workspace to this project, then choose here which notifications are posted to which channels.",
   },
+  [WorkspaceType.Mattermost]: {
+    name: "Mattermost",
+    icon: IconProp.Mattermost,
+    logo: ProviderLogo.Mattermost,
+    description:
+      "Post notifications to your Mattermost channels and act on them from Mattermost.",
+    settingsPage: PageMap.SETTINGS_MATTERMOST_INTEGRATION,
+    connectTitle: "Connect Mattermost",
+    notConnectedTitle: "Mattermost is not connected yet!",
+    notConnectedDescription:
+      "Connect your Mattermost server to this project, then choose here which notifications are posted to which channels.",
+  },
 };
 
 export const WORKSPACE_CONNECTIONS_PAGE_COPY: Readonly<{
@@ -60,7 +72,7 @@ export const WORKSPACE_CONNECTIONS_PAGE_COPY: Readonly<{
   notConnected: string;
   setUpNotifications: string;
 }> = {
-  title: "Slack and Microsoft Teams",
+  title: "Slack, Microsoft Teams and Mattermost",
   description:
     "Send notifications to the chat tool your team already uses. Connect it once for the whole project and it appears in this menu, where you choose which notifications are posted to which channels.",
   connected: "Connected",

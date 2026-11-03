@@ -5,7 +5,7 @@ import NumberPrefixUtil, { NumberPrefixColumn } from "../Project/NumberPrefix";
 /*
  * THE NAME OF A CHANNEL A NOTIFICATION RULE CREATES.
  *
- * A Slack or Microsoft Teams rule that creates a channel for each incident,
+ * A Slack, Microsoft Teams or Mattermost rule that creates a channel for each incident,
  * alert, episode, scheduled maintenance event, monitor or on-call policy
  * names it after the record:
  *
@@ -35,7 +35,9 @@ import NumberPrefixUtil, { NumberPrefixColumn } from "../Project/NumberPrefix";
  * Slack: lowercase letters, numbers, - and _, at most 80 characters
  * (conversations.create). Microsoft Teams: what OneUptime has always kept
  * (letters, numbers, -, _ and spaces), at most 50 characters (the Graph
- * channel's displayName), not starting with an underscore.
+ * channel's displayName), not starting with an underscore. Mattermost: what
+ * Slack takes, at most 64 characters, starting and ending with a letter or
+ * a number (toMattermostChannelName).
  *
  * Pure, in Common/Utils, so the server that creates channels and the rule
  * form that previews their name work it out the same way.
@@ -136,6 +138,9 @@ const EXAMPLE_RECORD_NAMES: Partial<Record<NotificationRuleEventType, string>> =
 // Everything a Slack channel name may not hold (and the record's part never holds).
 const NOT_IN_SLACK_CHANNEL_NAME: RegExp = /[^a-z0-9\-_]/g;
 
+// Runs of white space, which a Mattermost channel's handle writes as "-".
+const SPACE_RUNS: RegExp = /\s+/g;
+
 // Everything OneUptime leaves out of a Microsoft Teams channel name.
 const NOT_IN_TEAMS_CHANNEL_NAME: RegExp = /[^a-zA-Z0-9\-_\s]/g;
 
@@ -156,6 +161,8 @@ export default class WorkspaceChannelName {
 
   public static readonly MICROSOFT_TEAMS_MAX_LENGTH: number = 50;
 
+  public static readonly MATTERMOST_MAX_LENGTH: number = 64;
+
   /*
    * How many names are tried for one channel: the name, then -2, -3, -4 and
    * -5 after it while the workspace says the name is taken.
@@ -164,9 +171,15 @@ export default class WorkspaceChannelName {
 
   // The longest channel name the workspace takes.
   public static getMaxLength(workspaceType: WorkspaceType): number {
-    return workspaceType === WorkspaceType.MicrosoftTeams
-      ? WorkspaceChannelName.MICROSOFT_TEAMS_MAX_LENGTH
-      : WorkspaceChannelName.SLACK_MAX_LENGTH;
+    if (workspaceType === WorkspaceType.MicrosoftTeams) {
+      return WorkspaceChannelName.MICROSOFT_TEAMS_MAX_LENGTH;
+    }
+
+    if (workspaceType === WorkspaceType.Mattermost) {
+      return WorkspaceChannelName.MATTERMOST_MAX_LENGTH;
+    }
+
+    return WorkspaceChannelName.SLACK_MAX_LENGTH;
   }
 
   // What a record is called in a channel name made from its kind.
@@ -455,7 +468,47 @@ export default class WorkspaceChannelName {
       return name.replace(TEAMS_NAME_START, "").trimEnd();
     }
 
+    if (workspaceType === WorkspaceType.Mattermost) {
+      return WorkspaceChannelName.toMattermostChannelName(name);
+    }
+
     return name;
+  }
+
+  /*
+   * A name as Mattermost takes a channel's handle: lowercase letters,
+   * numbers, - and _, starting and ending with a letter or a number, 2 to
+   * 64 characters. Spaces become "-". A name with nothing of that left is
+   * "oneuptime"; one of a single character gets "-channel" after it. What
+   * a rule's own name is made of (lowercase letters, numbers, - and _)
+   * stays as it is, but for the separators at its ends.
+   */
+  public static toMattermostChannelName(name: string): string {
+    const text: string = (name || "")
+      .toLowerCase()
+      .replace(SPACE_RUNS, "-")
+      .replace(NOT_IN_SLACK_CHANNEL_NAME, "")
+      .substring(0, WorkspaceChannelName.MATTERMOST_MAX_LENGTH);
+
+    // The separators at its ends, with a loop: a pattern anchored at the end is retried from every run.
+    let start: number = 0;
+    let end: number = text.length;
+
+    while (start < end && (text[start] === "-" || text[start] === "_")) {
+      start++;
+    }
+
+    while (end > start && (text[end - 1] === "-" || text[end - 1] === "_")) {
+      end--;
+    }
+
+    const trimmed: string = text.substring(start, end);
+
+    if (!trimmed) {
+      return "oneuptime";
+    }
+
+    return trimmed.length < 2 ? `${trimmed}-channel` : trimmed;
   }
 
   /*
