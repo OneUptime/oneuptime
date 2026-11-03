@@ -1,6 +1,7 @@
 import { expect, Locator, Page, test } from "@playwright/test";
 import fs from "fs/promises";
 import path from "path";
+import { expectNoSidewaysScroll } from "../SuiteHelpers/PageFit";
 
 /*
  * A table's Bulk Actions on a phone: the band over its cards.
@@ -62,7 +63,6 @@ interface BandReading {
   countWords: Box | null;
   offerWords: Box | null;
   greyBars: number;
-  sideways: number;
 }
 
 const pageErrors: Map<Page, Array<string>> = new Map();
@@ -171,9 +171,6 @@ async function readBand(page: Page): Promise<BandReading> {
       greyBars: document.querySelectorAll(
         ".rounded-xl.bg-gray-50.border-2.border-gray-100",
       ).length,
-      sideways:
-        document.documentElement.scrollWidth -
-        document.documentElement.clientWidth,
     };
   });
 }
@@ -209,7 +206,7 @@ test.describe("on a phone, a table's Bulk Actions are the band over its cards", 
     expect(Math.round(after.band.height)).toBe(36);
     // No bar of its own over the band, and nothing scrolls sideways.
     expect(after.greyBars).toBe(0);
-    expect(after.sideways).toBeLessThanOrEqual(0);
+    await expectNoSidewaysScroll(page);
     // The order steps aside for Bulk Actions at the band's end.
     await expect(band(page).getByTestId("table-cards-sort")).toHaveCount(0);
     expect(
@@ -270,7 +267,7 @@ test.describe("on a phone, a table's Bulk Actions are the band over its cards", 
     expect(
       Math.abs(ticked.offerWords!.x - ticked.countWords!.x),
     ).toBeLessThanOrEqual(1);
-    expect(ticked.sideways).toBeLessThanOrEqual(0);
+    await expectNoSidewaysScroll(page);
 
     await screenshot(page, "monitors-band-page-ticked-390");
 
@@ -320,7 +317,7 @@ test.describe("on a phone, a table's Bulk Actions are the band over its cards", 
       expect(Math.round(one.firstCardTop)).toBe(
         Math.round(before.firstCardTop),
       );
-      expect(one.sideways).toBeLessThanOrEqual(0);
+      await expectNoSidewaysScroll(page, { message: variant.name });
 
       await band(page).locator("input[type=checkbox]").first().check();
       await expect(
@@ -328,7 +325,7 @@ test.describe("on a phone, a table's Bulk Actions are the band over its cards", 
       ).toBeVisible();
 
       const ticked: BandReading = await readBand(page);
-      expect(ticked.sideways).toBeLessThanOrEqual(0);
+      await expectNoSidewaysScroll(page, { message: variant.name });
       expect(
         Math.abs(centerOf(ticked.box!) - centerOf(ticked.count!)),
       ).toBeLessThanOrEqual(2);

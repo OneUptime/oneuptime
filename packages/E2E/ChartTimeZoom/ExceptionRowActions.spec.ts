@@ -862,7 +862,7 @@ test.describe("every exception that matches, not only the page's", () => {
       expect(
         Math.abs(line.offerWords.x - line.countWords.x),
       ).toBeLessThanOrEqual(1);
-      expect(await scrollsSideways(page)).toBe(false);
+      await expectNoSidewaysScroll(page, { tolerance: 1 });
 
       await page.getByTestId("telemetry-viewer-list").screenshot({
         path: path.join(SCREENSHOTS, `exceptions-select-all-390-${theme}.png`),

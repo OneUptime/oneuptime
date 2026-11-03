@@ -2102,7 +2102,7 @@ test.describe("connections: your logs and your SIEM", () => {
         return element.scrollWidth - element.clientWidth;
       });
     expect(overflow).toBeLessThanOrEqual(1);
-    await expectNoHorizontalOverflow(page);
+    await expectNoSidewaysScroll(page, { tolerance: 1 });
 
     await toolsCard(page).scrollIntoViewIfNeeded();
     await screenshot(page, "connections-tools-health-whole-1280", {
