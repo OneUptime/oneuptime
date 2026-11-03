@@ -11,6 +11,7 @@ import {
   buildMetricsPayloads,
   connectionResourceAttributes,
   kvlistAttribute,
+  resolveCloudResourceOf,
   stringAttribute,
 } from "../../../../Server/Utils/CloudConnection/CloudMetricPayload";
 import { afterEach, beforeEach, describe, expect, test } from "@jest/globals";
@@ -29,7 +30,6 @@ import {
   CloudMonitoredResource,
   buildCloudMonitoredResourceIdentifier,
 } from "../../../../Types/Cloud/CloudMonitoredResource";
-import { resolveCloudResourceOf } from "../../../../Server/Utils/CloudConnection/CloudMetricPayload";
 import { CloudResourceKind } from "../../../../Types/Cloud/CloudResourceKind";
 import { JSONObject } from "../../../../Types/JSON";
 import ObjectID from "../../../../Types/ObjectID";
@@ -115,8 +115,12 @@ function instance(id: string): Array<{ name: string; value: string }> {
 }
 
 // The resource the ingest files a datapoint of these attributes under.
-function resourceOf(group: CloudMetricGroup, metricIndex: number = 0): CloudMonitoredResource {
-  const metric: CloudMetricGroup["metrics"][number] = group.metrics[metricIndex]!;
+function resourceOf(
+  group: CloudMetricGroup,
+  metricIndex: number = 0,
+): CloudMonitoredResource {
+  const metric: CloudMetricGroup["metrics"][number] =
+    group.metrics[metricIndex]!;
   return resolveCloudResourceOf({
     metricName: metric.name,
     resourceAttributes: group.resourceAttributes,
@@ -339,7 +343,10 @@ describe("CloudResourceReadingsWriter", () => {
   function writes(): Array<{ sql: string; parameters: Array<unknown> }> {
     return query.mock.calls
       .map((call: Array<unknown>) => {
-        return { sql: call[0] as string, parameters: call[1] as Array<unknown> };
+        return {
+          sql: call[0] as string,
+          parameters: call[1] as Array<unknown>,
+        };
       })
       .filter((item: { sql: string }): boolean => {
         return item.sql.includes(`SET "cloudReadings"`);
@@ -349,7 +356,10 @@ describe("CloudResourceReadingsWriter", () => {
   function clears(): Array<{ sql: string; parameters: Array<unknown> }> {
     return query.mock.calls
       .map((call: Array<unknown>) => {
-        return { sql: call[0] as string, parameters: call[1] as Array<unknown> };
+        return {
+          sql: call[0] as string,
+          parameters: call[1] as Array<unknown>,
+        };
       })
       .filter((item: { sql: string }): boolean => {
         return item.sql.includes(`SET "healthSeverity" = NULL`);
@@ -390,10 +400,22 @@ describe("CloudResourceReadingsWriter", () => {
 
   test("writes each linked resource's readings with the severity its rules find", async () => {
     rows = [
-      rowFor("00000000-0000-4000-8000-000000000001", "AWS:Abc", "AWS::EC2::Instance"),
-      rowFor("00000000-0000-4000-8000-000000000002", "aws:def", "AWS::EC2::Instance"),
+      rowFor(
+        "00000000-0000-4000-8000-000000000001",
+        "AWS:Abc",
+        "AWS::EC2::Instance",
+      ),
+      rowFor(
+        "00000000-0000-4000-8000-000000000002",
+        "aws:def",
+        "AWS::EC2::Instance",
+      ),
       // Linked to the connection, but this read brought nothing of it.
-      rowFor("00000000-0000-4000-8000-000000000003", "aws:quiet", "AWS::EC2::Instance"),
+      rowFor(
+        "00000000-0000-4000-8000-000000000003",
+        "aws:quiet",
+        "AWS::EC2::Instance",
+      ),
     ];
 
     const result: CloudReadingsWriteResult =
@@ -523,7 +545,11 @@ describe("CloudResourceReadingsWriter", () => {
   test("writes in batches of CLOUD_READINGS_WRITE_BATCH_SIZE", async () => {
     const entries: Array<[string, CollectedCloudReadings]> = [];
 
-    for (let index: number = 0; index < CLOUD_READINGS_WRITE_BATCH_SIZE + 3; index++) {
+    for (
+      let index: number = 0;
+      index < CLOUD_READINGS_WRITE_BATCH_SIZE + 3;
+      index++
+    ) {
       const identifier: string = `aws:r${index}`;
       rows.push(
         rowFor(
@@ -593,7 +619,11 @@ describe("CloudResourceReadingsWriter", () => {
       throw new Error("database is down");
     });
     rows = [
-      rowFor("00000000-0000-4000-8000-000000000001", "aws:abc", "AWS::EC2::Instance"),
+      rowFor(
+        "00000000-0000-4000-8000-000000000001",
+        "aws:abc",
+        "AWS::EC2::Instance",
+      ),
     ];
 
     const result: CloudReadingsWriteResult =

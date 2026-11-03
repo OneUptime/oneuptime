@@ -4,7 +4,10 @@ import { cleanup, render, screen, within } from "@testing-library/react";
 import * as React from "react";
 import { MemoryRouter } from "react-router-dom";
 import Route from "../../../Types/API/Route";
-import { CloudResourceReadings } from "../../../Types/Cloud/CloudResourceHealth";
+import {
+  CloudResourceReadings,
+  assessCloudResourceHealth,
+} from "../../../Types/Cloud/CloudResourceHealth";
 import IconProp from "../../../Types/Icon/IconProp";
 import {
   Translator,
@@ -32,7 +35,6 @@ import {
   ResourceAttentionItem,
   ResourceAttentionSeverity,
 } from "../../../../App/FeatureSet/Dashboard/src/Components/ResourcePart/ResourceAttention";
-import { assessCloudResourceHealth } from "../../../Types/Cloud/CloudResourceHealth";
 
 /*
  * Each cloud resource's health as the Dashboard draws it, from the readings

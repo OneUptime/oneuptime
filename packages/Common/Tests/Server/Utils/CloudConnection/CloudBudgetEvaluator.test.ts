@@ -352,7 +352,9 @@ describe("a budget's check", () => {
     updates = [];
     openAlerts = [];
     budget = makeBudget();
-    accounts = [makeAccount(summary({ monthToDate: 850, projectedMonth: 1200 }))];
+    accounts = [
+      makeAccount(summary({ monthToDate: 850, projectedMonth: 1200 })),
+    ];
 
     jest.spyOn(OneUptimeDate, "getCurrentDate").mockReturnValue(NOW);
     jest
@@ -406,7 +408,9 @@ describe("a budget's check", () => {
     jest
       .spyOn(AlertStateTimelineService, "create")
       .mockImplementation(
-        async (input: { data: AlertStateTimeline }): Promise<AlertStateTimeline> => {
+        async (input: {
+          data: AlertStateTimeline;
+        }): Promise<AlertStateTimeline> => {
           timelines.push(input.data);
           return input.data;
         },
@@ -426,7 +430,9 @@ describe("a budget's check", () => {
     expect(created[0]!.seriesFingerprint).toBe(
       `cloud-budget:${BUDGET_ID.toString()}:2026-11:threshold-80`,
     );
-    expect(created[0]!.alertSeverityId?.toString()).toBe(SEVERITY_ID.toString());
+    expect(created[0]!.alertSeverityId?.toString()).toBe(
+      SEVERITY_ID.toString(),
+    );
     expect(created[0]!.isCreatedAutomatically).toBe(true);
     expect(
       (created[0]!.onCallDutyPolicies || []).map((policy: OnCallDutyPolicy) => {
@@ -466,7 +472,8 @@ describe("a budget's check", () => {
     expect(created).toHaveLength(0);
     // The state still says the threshold passed: it is not tried again.
     expect(
-      (updates[0]!["alertState"] as unknown as CloudBudgetAlertState).thresholds,
+      (updates[0]!["alertState"] as unknown as CloudBudgetAlertState)
+        .thresholds,
     ).toEqual([80]);
   });
 
@@ -502,7 +509,9 @@ describe("a budget's check", () => {
     expect(calls).toBe(2);
     expect(timelines).toHaveLength(1);
     expect(timelines[0]!.alertId?.toString()).toBe(OLD_ALERT);
-    expect(timelines[0]!.rootCause).toContain("the month this cloud budget alert was raised in is over");
+    expect(timelines[0]!.rootCause).toContain(
+      "the month this cloud budget alert was raised in is over",
+    );
     expect(created).toHaveLength(0);
     expect(
       (updates[0]!["alertState"] as unknown as CloudBudgetAlertState).month,

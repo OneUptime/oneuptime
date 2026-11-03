@@ -116,7 +116,7 @@ export function collectCloudResourceReadings(
    * once per metric, not once per point.
    */
   const resolved: WeakMap<
-    object,
+    Array<OtlpAttribute>,
     Map<string, { resource: CloudMonitoredResource; identifier: string } | null>
   > = new WeakMap();
 
@@ -366,14 +366,12 @@ export default class CloudResourceReadingsWriter {
             continue;
           }
 
-          const severity: CloudHealthSeverity | null = getCloudHealthSeverity(
-            {
-              provider: row.cloudProvider || entry.provider,
-              type: row.cloudResourceType || entry.resourceType,
-              readings: entry.readings,
-              properties: row.cloudProperties,
-            },
-          );
+          const severity: CloudHealthSeverity | null = getCloudHealthSeverity({
+            provider: row.cloudProvider || entry.provider,
+            type: row.cloudResourceType || entry.resourceType,
+            readings: entry.readings,
+            properties: row.cloudProperties,
+          });
 
           pending.push({
             id: row.id.toString(),

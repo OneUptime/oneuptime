@@ -155,7 +155,10 @@ describe("the differences to write", () => {
   test("a figure the cloud corrected down is a negative row, and a series it no longer reports is cancelled", () => {
     const deltas: Array<CloudCostSeriesPoint> = CloudCostWriter.computeDeltas({
       desired: [point({ amount: 7 })],
-      stored: [point({ amount: 10 }), point({ service: "Amazon S3", amount: 2 })],
+      stored: [
+        point({ amount: 10 }),
+        point({ service: "Amazon S3", amount: 2 }),
+      ],
       window: WINDOW,
     });
 
@@ -206,15 +209,15 @@ describe("what is read and written", () => {
 
     expect(Object.values(statement.query_params)).toContain("CloudCostV1");
     expect(statement.query).toContain("sum(cost) AS total");
-    expect(statement.query).toContain("toString(toDate(day, 'UTC')) AS dayText");
+    expect(statement.query).toContain(
+      "toString(toDate(day, 'UTC')) AS dayText",
+    );
     expect(statement.query).toContain(
       "GROUP BY accountRowId, dayText, serviceName, regionName, resourceKey, currencyCode",
     );
     // A read is bounded: it fails rather than run on.
     expect(statement.query).toContain("max_execution_time");
-    expect(Object.values(statement.query_params)).toContain(
-      PROJECT.toString(),
-    );
+    expect(Object.values(statement.query_params)).toContain(PROJECT.toString());
   });
 
   test("stored sums are read back as points; a row without a day or a number is skipped", () => {
@@ -266,17 +269,15 @@ describe("a write", () => {
 
     jest
       .spyOn(CloudCostService, "executeQuery")
-      .mockImplementation(
-        async (query: string | Statement): Promise<never> => {
-          const statement: Statement = query as Statement;
-          statements.push(statement);
-          return {
-            json: async (): Promise<{ data: Array<JSONObject> }> => {
-              return { data: stored };
-            },
-          } as never;
-        },
-      );
+      .mockImplementation(async (query: string | Statement): Promise<never> => {
+        const statement: Statement = query as Statement;
+        statements.push(statement);
+        return {
+          json: async (): Promise<{ data: Array<JSONObject> }> => {
+            return { data: stored };
+          },
+        } as never;
+      });
     jest
       .spyOn(CloudCostService, "insertJsonRows")
       .mockImplementation(async (rows: Array<JSONObject>): Promise<void> => {
@@ -309,7 +310,11 @@ describe("a write", () => {
       recordsWithoutAccount: 0,
     });
     expect(inserted).toHaveLength(1);
-    expect(inserted[0]!.map((row: JSONObject) => row["cost"])).toEqual([5]);
+    expect(
+      inserted[0]!.map((row: JSONObject) => {
+        return row["cost"];
+      }),
+    ).toEqual([5]);
     // The stored sums asked for are the read account's alone.
     expect(Object.values(statements[0]!.query_params)).toContainEqual(
       expect.arrayContaining([ACCOUNT_ROW.toString()]),

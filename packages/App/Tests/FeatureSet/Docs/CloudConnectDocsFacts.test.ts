@@ -271,8 +271,10 @@ describe("Connect a Cloud Account", () => {
       expect(section("Google Cloud")).toContain(`**${consoleNames[role]}**`);
     }
 
-    // Another subscription gets both of the app's roles; another project
-    // every role but the query's, which runs in the key's own project.
+    /*
+     * Another subscription gets both of the app's roles; another project
+     * every role but the query's, which runs in the key's own project.
+     */
     expect(bashBlocks()).toContain(
       [
         `az role assignment create --assignee <APP_ID> --role "${AZURE_READ_ONLY_ROLE}" --scope /subscriptions/<SUBSCRIPTION_ID>`,

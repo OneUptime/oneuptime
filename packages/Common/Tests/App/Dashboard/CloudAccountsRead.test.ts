@@ -131,7 +131,10 @@ describe("an account's row", () => {
           _id: WEB,
           accountId: "shop-prod-123",
           costSummary: { state: "nonsense" },
-          savingsSummary: ["not", "a", "summary"] as unknown as object,
+          savingsSummary: ["not", "a", "summary"] as unknown as Record<
+            string,
+            unknown
+          >,
         }),
       ),
     ).toMatchObject({

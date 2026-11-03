@@ -31,6 +31,7 @@ import {
 import ResourceOverview, {
   ResourceOverviewChip,
   ResourceOverviewDetailRow,
+  ResourceOverviewTile,
 } from "../../../Components/TelemetryResource/ResourceOverview";
 import MetricsViewer from "../../../Components/Metrics/MetricsViewer";
 import {
@@ -62,7 +63,6 @@ import {
 import NeedsAttentionCard from "../../../Components/ResourcePart/NeedsAttentionCard";
 import CloudResourceCostCard from "../../../Components/Cloud/CloudResourceCostCard";
 import ProjectUtil from "Common/UI/Utils/Project";
-import { ResourceOverviewTile } from "../../../Components/TelemetryResource/ResourceOverview";
 
 /*
  * The Overview of a Cloud Resource - one a cloud connection lists from its

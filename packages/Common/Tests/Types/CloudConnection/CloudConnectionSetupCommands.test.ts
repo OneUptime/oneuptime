@@ -213,7 +213,10 @@ describe("AWS", () => {
           action.startsWith("billing:")
         );
       }),
-    ).toEqual(["ce:GetCostAndUsage", "cost-optimization-hub:ListRecommendations"]);
+    ).toEqual([
+      "ce:GetCostAndUsage",
+      "cost-optimization-hub:ListRecommendations",
+    ]);
     expect(
       AWS_READ_ONLY_ACTION_GROUPS.map((group: { purpose: string }): string => {
         return group.purpose;

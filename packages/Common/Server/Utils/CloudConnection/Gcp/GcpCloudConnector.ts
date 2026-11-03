@@ -6,7 +6,10 @@ import {
   getGcpKeyMetricTypes,
 } from "../../../../Types/Cloud/CloudKeyMetrics";
 import { CloudMonitoredResource } from "../../../../Types/Cloud/CloudMonitoredResource";
-import { splitCloudConnectionList } from "../../../../Types/CloudConnection/CloudConnectionCatalog";
+import {
+  GCP_BILLING_EXPORT_TABLE_FIELD_KEY,
+  splitCloudConnectionList,
+} from "../../../../Types/CloudConnection/CloudConnectionCatalog";
 import { CloudConnectionSetupScope } from "../../../../Types/CloudConnection/CloudConnectionSetupCommands";
 import {
   CloudConnectionFailureKind,
@@ -72,7 +75,6 @@ import GcpCostClient, {
   readGcpRecommendation,
 } from "./GcpCosts";
 import { CloudCostState } from "../../../../Types/Cloud/CloudCost";
-import { GCP_BILLING_EXPORT_TABLE_FIELD_KEY } from "../../../../Types/CloudConnection/CloudConnectionCatalog";
 import GcpInventoryClient, {
   GCP_INVENTORY_TYPES,
   GcpAsset,

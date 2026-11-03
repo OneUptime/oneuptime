@@ -601,11 +601,11 @@ describe("each resource's readings", () => {
 describe("what the accounts cost, and how to spend less", () => {
   test("are read after the accounts are kept, with the read's state and bounds, their warnings the read's", async () => {
     const lanes: Array<{ lane: string; data: JSONObject }> = [];
-    jest.spyOn(CloudConnectionLanes, "keepAccounts").mockImplementation(
-      (async () => {
+    jest
+      .spyOn(CloudConnectionLanes, "keepAccounts")
+      .mockImplementation((async () => {
         order.push("accounts");
-      }) as never,
-    );
+      }) as never);
     jest.spyOn(CloudConnectionLanes, "runCosts").mockImplementation((async (
       data: JSONObject,
     ) => {
@@ -642,10 +642,11 @@ describe("what the accounts cost, and how to spend less", () => {
         return step !== "import";
       }),
     ).toEqual(["sync", "accounts", "costs", "savings", "readings"]);
-    expect(lanes.map((entry: { lane: string }) => entry.lane)).toEqual([
-      "costs",
-      "savings",
-    ]);
+    expect(
+      lanes.map((entry: { lane: string }) => {
+        return entry.lane;
+      }),
+    ).toEqual(["costs", "savings"]);
     expect(lanes[0]!.data).toMatchObject({
       projectId: PROJECT,
       connectionId: CONNECTION,

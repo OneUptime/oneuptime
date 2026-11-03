@@ -301,9 +301,7 @@ const CloudSavingsTable: FunctionComponent<ComponentProps> = (
             const change: string = getSavingChangeText(item);
 
             return change ? (
-              <bdi className="break-words text-xs text-gray-700">
-                {change}
-              </bdi>
+              <bdi className="break-words text-xs text-gray-700">{change}</bdi>
             ) : (
               <></>
             );

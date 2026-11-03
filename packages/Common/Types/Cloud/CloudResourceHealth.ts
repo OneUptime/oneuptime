@@ -1018,7 +1018,9 @@ export const CLOUD_HEALTH_RULES: ReadonlyArray<CloudHealthTypeRules> = [
   {
     provider: AWS,
     types: ["AWS::MSK::Cluster"],
-    rules: [failsWhenZero("aws/kafka/activecontrollercount", REASON_NO_CONTROLLER)],
+    rules: [
+      failsWhenZero("aws/kafka/activecontrollercount", REASON_NO_CONTROLLER),
+    ],
   },
   // ---- Azure --------------------------------------------------------------
   {
@@ -1551,7 +1553,11 @@ export const CLOUD_HEADLINE_READINGS: ReadonlyArray<CloudHeadlineTypeReadings> =
       provider: GCP,
       types: ["cloud_run_revision"],
       readings: [
-        headline("run.googleapis.com/request_count", HEADLINE_REQUESTS, "perSecond"),
+        headline(
+          "run.googleapis.com/request_count",
+          HEADLINE_REQUESTS,
+          "perSecond",
+        ),
         headline(
           "run.googleapis.com/request_latencies",
           HEADLINE_LATENCY,
@@ -1600,19 +1606,21 @@ const RULES_BY_TYPE: ReadonlyMap<string, Array<CloudHealthRule>> = (() => {
   return map;
 })();
 
-const HEADLINES_BY_TYPE: ReadonlyMap<string, Array<CloudHeadlineReading>> =
-  (() => {
-    const map: Map<string, Array<CloudHeadlineReading>> = new Map();
+const HEADLINES_BY_TYPE: ReadonlyMap<
+  string,
+  Array<CloudHeadlineReading>
+> = (() => {
+  const map: Map<string, Array<CloudHeadlineReading>> = new Map();
 
-    for (const entry of CLOUD_HEADLINE_READINGS) {
-      for (const type of entry.types) {
-        const key: string = typeKey(entry.provider, type);
-        map.set(key, [...(map.get(key) || []), ...entry.readings]);
-      }
+  for (const entry of CLOUD_HEADLINE_READINGS) {
+    for (const type of entry.types) {
+      const key: string = typeKey(entry.provider, type);
+      map.set(key, [...(map.get(key) || []), ...entry.readings]);
     }
+  }
 
-    return map;
-  })();
+  return map;
+})();
 
 /*
  * The seconds one datapoint of a reading covers: the period its metric is

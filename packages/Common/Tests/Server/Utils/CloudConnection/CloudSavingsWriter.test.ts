@@ -94,11 +94,9 @@ describe("keeping the ways to spend less in step", () => {
       });
     jest
       .spyOn(CloudCostRecommendationService, "findBy")
-      .mockImplementation(
-        async (): Promise<Array<CloudCostRecommendation>> => {
-          return existing;
-        },
-      );
+      .mockImplementation(async (): Promise<Array<CloudCostRecommendation>> => {
+        return existing;
+      });
     jest
       .spyOn(CloudCostRecommendationService, "updateOneById")
       .mockImplementation(
@@ -191,7 +189,11 @@ describe("keeping the ways to spend less in step", () => {
 
     // Each account read's recommendations, for its summary.
     expect(result.savingsByAccount.get("123456789012")).toEqual([
-      { monthlySavings: 61.33, currency: "USD", kind: CloudSavingKind.Rightsize },
+      {
+        monthlySavings: 61.33,
+        currency: "USD",
+        kind: CloudSavingKind.Rightsize,
+      },
       { monthlySavings: 10, currency: "USD", kind: CloudSavingKind.Commitment },
     ]);
     expect(result.savingsByAccount.has("210987654321")).toBe(false);
@@ -213,7 +215,11 @@ describe("keeping the ways to spend less in step", () => {
   test("an account keeps its largest recommendations, at most its cap", async () => {
     const many: Array<CloudSavingRecord> = [];
 
-    for (let index: number = 0; index < CLOUD_SAVINGS_MAX_PER_ACCOUNT + 5; index++) {
+    for (
+      let index: number = 0;
+      index < CLOUD_SAVINGS_MAX_PER_ACCOUNT + 5;
+      index++
+    ) {
       many.push(
         saving({
           recommendationId: `rec-${index}`,

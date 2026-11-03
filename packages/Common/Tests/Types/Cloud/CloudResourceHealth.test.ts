@@ -77,7 +77,10 @@ function minutesAgo(minutes: number): Date {
   return new Date(NOW.getTime() - minutes * MINUTE);
 }
 
-function reading(value: number, at: Date = minutesAgo(5)): {
+function reading(
+  value: number,
+  at: Date = minutesAgo(5),
+): {
   value: number;
   time: string;
 } {
@@ -170,14 +173,10 @@ describe("CloudResourceHealth", () => {
       expect(getCloudReadingKey("aws", "azure_percentage_cpu_average")).toBe(
         null,
       );
-      expect(getCloudReadingKey("azure", "amazonaws.com/AWS/EC2/X")).toBe(
-        null,
-      );
+      expect(getCloudReadingKey("azure", "amazonaws.com/AWS/EC2/X")).toBe(null);
       expect(getCloudReadingKey("gcp", "system.cpu.utilization")).toBe(null);
       expect(getCloudReadingKey("aws", "")).toBe(null);
-      expect(getCloudReadingKey("other", "amazonaws.com/AWS/EC2/X")).toBe(
-        null,
-      );
+      expect(getCloudReadingKey("other", "amazonaws.com/AWS/EC2/X")).toBe(null);
     });
   });
 
@@ -222,7 +221,9 @@ describe("CloudResourceHealth", () => {
         for (const type of entry.types) {
           expect({
             type,
-            known: Boolean(getCloudResourceTypeDescriptor(entry.provider, type)),
+            known: Boolean(
+              getCloudResourceTypeDescriptor(entry.provider, type),
+            ),
           }).toEqual({ type, known: true });
         }
       }
@@ -232,7 +233,11 @@ describe("CloudResourceHealth", () => {
       for (const entry of CLOUD_HEALTH_RULES) {
         for (const type of entry.types) {
           for (const key of getCloudReadingKeysForType(entry.provider, type)) {
-            expect({ type, key, read: readKeys[entry.provider]!.has(key) }).toEqual({
+            expect({
+              type,
+              key,
+              read: readKeys[entry.provider]!.has(key),
+            }).toEqual({
               type,
               key,
               read: true,
@@ -547,13 +552,13 @@ describe("CloudResourceHealth", () => {
     });
 
     test("the backlog's words: each unit its own count-dependent sentence", () => {
-      expect(getCloudBacklogText(REASON_OLDEST_MESSAGE_WAITING, 3 * 86400)).toEqual(
-        {
-          text: REASON_OLDEST_MESSAGE_WAITING.days.other,
-          values: { count: "3" },
-          plural: { one: REASON_OLDEST_MESSAGE_WAITING.days.one, count: 3 },
-        },
-      );
+      expect(
+        getCloudBacklogText(REASON_OLDEST_MESSAGE_WAITING, 3 * 86400),
+      ).toEqual({
+        text: REASON_OLDEST_MESSAGE_WAITING.days.other,
+        values: { count: "3" },
+        plural: { one: REASON_OLDEST_MESSAGE_WAITING.days.one, count: 3 },
+      });
       expect(getCloudBacklogText(REASON_CONSUMERS_BEHIND, 3600)).toEqual({
         text: REASON_CONSUMERS_BEHIND.hours.other,
         values: { count: "1" },
@@ -711,7 +716,9 @@ describe("CloudResourceHealth", () => {
 
       expect(
         hasFreshCloudReadings(
-          { cloudReadingsAt: new Date(NOW.getTime() - CLOUD_READINGS_STALE_MS) },
+          {
+            cloudReadingsAt: new Date(NOW.getTime() - CLOUD_READINGS_STALE_MS),
+          },
           NOW,
         ),
       ).toBe(true);
@@ -835,10 +842,7 @@ describe("CloudResourceHealth", () => {
       );
       expect(getCloudReadingPeriodSeconds("azure", "requests")).toBe(60);
       expect(
-        getCloudReadingPeriodSeconds(
-          "gcp",
-          "run.googleapis.com/request_count",
-        ),
+        getCloudReadingPeriodSeconds("gcp", "run.googleapis.com/request_count"),
       ).toBe(60);
     });
   });

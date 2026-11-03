@@ -108,7 +108,9 @@ describe("a billing export's table", () => {
     expect(isDetailedGcpBillingExport(STANDARD)).toBe(false);
 
     const detailed: string = buildGcpBillingExportQuery(DETAILED);
-    expect(detailed).toContain("IFNULL(resource.global_name, '') AS resource_id");
+    expect(detailed).toContain(
+      "IFNULL(resource.global_name, '') AS resource_id",
+    );
     expect(detailed).toContain(`FROM \`${DETAILED}\``);
     // The window is named parameters, never written in.
     expect(detailed).toContain("usage_start_time >= TIMESTAMP(@start)");
@@ -173,7 +175,15 @@ describe("a project's daily costs from its billing export", () => {
                 "12.5",
               ]),
               // A day that netted to nothing, and a row without a day.
-              row(["2026-11-18", "acme-prod", "Networking", "", "", "USD", "0"]),
+              row([
+                "2026-11-18",
+                "acme-prod",
+                "Networking",
+                "",
+                "",
+                "USD",
+                "0",
+              ]),
               row([null, "acme-prod", "Networking", "", "", "USD", "1"]),
             ],
             pageToken: "page-2",
@@ -282,7 +292,8 @@ describe("the ways to spend less, from the Recommender", () => {
   function recommendation(overrides: JSONObject = {}): JSONObject {
     return {
       name: "projects/123/locations/us-central1-a/recommenders/google.compute.instance.MachineTypeRecommender/recommendations/rec-1",
-      description: "Save cost by changing machine type from e2-standard-8 to e2-standard-4.",
+      description:
+        "Save cost by changing machine type from e2-standard-8 to e2-standard-4.",
       recommenderSubtype: "CHANGE_MACHINE_TYPE",
       priority: "P2",
       primaryImpact: {

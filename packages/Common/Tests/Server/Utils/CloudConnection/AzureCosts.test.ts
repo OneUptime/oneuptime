@@ -236,7 +236,8 @@ describe("the ways to spend less, from Azure Advisor", () => {
                 "rec-2",
                 {
                   shortDescription: {
-                    solution: "Buy reserved instances to save money over pay-as-you-go costs",
+                    solution:
+                      "Buy reserved instances to save money over pay-as-you-go costs",
                   },
                 },
                 {
@@ -341,10 +342,12 @@ describe("why an Azure subscription's costs or savings could not be read", () =>
       responseBody: '{"error":{"code":"AuthorizationFailed"}}',
     });
 
-    expect(describeAzureCostFailure({ error: refused, what: "costs" })).toEqual({
-      state: CloudCostState.NotAllowed,
-      message: expect.stringContaining("Cost Management Reader"),
-    });
+    expect(describeAzureCostFailure({ error: refused, what: "costs" })).toEqual(
+      {
+        state: CloudCostState.NotAllowed,
+        message: expect.stringContaining("Cost Management Reader"),
+      },
+    );
     expect(
       describeAzureCostFailure({ error: refused, what: "savings" }).state,
     ).toBe(CloudCostState.NotAllowed);

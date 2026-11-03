@@ -213,15 +213,14 @@ integration("the cost writer and the cost reads against ClickHouse", () => {
     // The writer's reads and inserts go to this suite's database.
     jest
       .spyOn(CloudCostService, "executeQuery")
-      .mockImplementation(
-        async (query: string | Statement): Promise<never> => {
-          const statement: Statement = query as Statement;
-          const data: Array<JSONObject> = await run(statement);
-          return {
-            json: async (): Promise<{ data: Array<JSONObject> }> => {
-              return { data };
-            },
-          } as never;
+      .mockImplementation(async (query: string | Statement): Promise<never> => {
+        const statement: Statement = query as Statement;
+        const data: Array<JSONObject> = await run(statement);
+        return {
+          json: async (): Promise<{ data: Array<JSONObject> }> => {
+            return { data };
+          },
+        } as never;
       });
     jest
       .spyOn(CloudCostService, "insertJsonRows")
@@ -321,7 +320,9 @@ integration("the cost writer and the cost reads against ClickHouse", () => {
       format: "JSONEachRow",
       clickhouse_settings: { async_insert: 0 },
     });
-    expect((await storedSums(ACCOUNT_ROW)).get("2026-11-18|Amazon EC2|us-east-1")).toBe(200);
+    expect(
+      (await storedSums(ACCOUNT_ROW)).get("2026-11-18|Amazon EC2|us-east-1"),
+    ).toBe(200);
 
     await write([
       record({ day: "2026-11-18", amount: 100 }),
@@ -329,7 +330,9 @@ integration("the cost writer and the cost reads against ClickHouse", () => {
       record({ day: "2026-11-20", amount: 75 }),
     ]);
 
-    expect((await storedSums(ACCOUNT_ROW)).get("2026-11-18|Amazon EC2|us-east-1")).toBe(100);
+    expect(
+      (await storedSums(ACCOUNT_ROW)).get("2026-11-18|Amazon EC2|us-east-1"),
+    ).toBe(100);
   });
 
   test("an account that could not be read keeps what it has", async () => {

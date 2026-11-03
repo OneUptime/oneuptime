@@ -888,7 +888,10 @@ describe("Azure and Google Cloud", () => {
       // BigQuery is on for the costs already: each API is turned on once.
       expect(lines).toContain(
         `gcloud services enable ${Array.from(
-          new Set<string>([...GCP_SERVICES, ...GCP_DATA_SECURITY_CONTENT_SERVICES]),
+          new Set<string>([
+            ...GCP_SERVICES,
+            ...GCP_DATA_SECURITY_CONTENT_SERVICES,
+          ]),
         ).join(" ")}`,
       );
       expect(bindings).toEqual(
@@ -896,13 +899,11 @@ describe("Azure and Google Cloud", () => {
           ...GCP_READ_ONLY_ROLES,
           ...GCP_COST_ROLES,
           ...GCP_DATA_SECURITY_CONTENT_ROLES,
-        ].map(
-          (role: string): string => {
-            return scope === CloudConnectionSetupScope.Organization
-              ? `gcloud organizations add-iam-policy-binding "$ORG_ID" --member "serviceAccount:${member}" --role ${role} --condition=None > /dev/null`
-              : `gcloud projects add-iam-policy-binding "$PROJECT_ID" --member "serviceAccount:${member}" --role ${role} --condition=None > /dev/null`;
-          },
-        ),
+        ].map((role: string): string => {
+          return scope === CloudConnectionSetupScope.Organization
+            ? `gcloud organizations add-iam-policy-binding "$ORG_ID" --member "serviceAccount:${member}" --role ${role} --condition=None > /dev/null`
+            : `gcloud projects add-iam-policy-binding "$PROJECT_ID" --member "serviceAccount:${member}" --role ${role} --condition=None > /dev/null`;
+        }),
       );
     }
   });

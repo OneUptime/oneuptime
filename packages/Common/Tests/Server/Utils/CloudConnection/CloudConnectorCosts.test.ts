@@ -15,7 +15,10 @@ import {
   CloudSavingsResult,
 } from "../../../../Server/Utils/CloudConnection/CloudConnectorTypes";
 import { DataSourceHttpRequest } from "../../../../Server/Utils/DataSource/HttpFetch";
-import { CloudCostState, CloudSavingKind } from "../../../../Types/Cloud/CloudCost";
+import {
+  CloudCostState,
+  CloudSavingKind,
+} from "../../../../Types/Cloud/CloudCost";
 import { CloudProvider } from "../../../../Types/Cloud/CloudPlatform";
 import {
   CloudConnectionAuthMethod,
@@ -31,13 +34,7 @@ import {
   createFakeProviderApi,
   json,
 } from "../LlmObservability/FakeProviderApi";
-import {
-  afterEach,
-  beforeEach,
-  describe,
-  expect,
-  test,
-} from "@jest/globals";
+import { afterEach, beforeEach, describe, expect, test } from "@jest/globals";
 
 /*
  * Each cloud connector's read of costs and of the ways to spend less, with
@@ -291,7 +288,7 @@ describe("AWS: costs from Cost Explorer", () => {
       regions: {},
       callerIdentityError: {
         status: 403,
-        body: '<ErrorResponse><Error><Code>InvalidClientTokenId</Code><Message>The security token included in the request is invalid.</Message></Error></ErrorResponse>',
+        body: "<ErrorResponse><Error><Code>InvalidClientTokenId</Code><Message>The security token included in the request is invalid.</Message></Error></ErrorResponse>",
       },
     });
 
@@ -443,7 +440,8 @@ describe("Azure: costs from Cost Management, savings from Advisor", () => {
             body: {
               error: {
                 code: "AuthorizationFailed",
-                message: "The client does not have authorization to perform action.",
+                message:
+                  "The client does not have authorization to perform action.",
               },
             },
           };

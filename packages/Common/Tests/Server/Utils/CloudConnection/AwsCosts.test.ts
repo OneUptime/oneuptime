@@ -410,7 +410,12 @@ describe("the ways to spend less, from Cost Optimization Hub", () => {
     });
     expect(
       read.recommendations.slice(1).map((entry: CloudSavingRecord) => {
-        return [entry.recommendationId, entry.kind, entry.action, entry.resourceId];
+        return [
+          entry.recommendationId,
+          entry.kind,
+          entry.action,
+          entry.resourceId,
+        ];
       }),
     ).toEqual([
       ["rec-2", CloudSavingKind.Idle, "Delete", "vol-0abc"],

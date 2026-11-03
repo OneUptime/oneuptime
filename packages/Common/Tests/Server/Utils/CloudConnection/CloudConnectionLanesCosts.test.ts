@@ -153,7 +153,9 @@ beforeEach(() => {
       const failed: CloudAccount = new CloudAccount();
       failed.id = FAILED_ROW;
       failed.accountId = "210987654321";
-      failed.costSummary = summary({ monthToDate: 42 }) as unknown as JSONObject;
+      failed.costSummary = summary({
+        monthToDate: 42,
+      }) as unknown as JSONObject;
       failed.savingsSummary = {
         state: CloudCostState.Reading,
         count: 2,
@@ -218,7 +220,9 @@ describe("the costs lane", () => {
       .spyOn(CloudCostWriter, "summarize")
       .mockImplementation(
         async (): Promise<Map<string, CloudAccountCostSummary>> => {
-          return new Map([[READ_ROW.toString(), summary({ monthToDate: 321 })]]);
+          return new Map([
+            [READ_ROW.toString(), summary({ monthToDate: 321 })],
+          ]);
         },
       );
 
@@ -282,8 +286,11 @@ describe("the costs lane", () => {
       }),
     );
     expect(
-      (byId.get(READ_ROW.toString())!["costSummary"] as unknown as CloudAccountCostSummary)
-        .monthToDate,
+      (
+        byId.get(READ_ROW.toString())![
+          "costSummary"
+        ] as unknown as CloudAccountCostSummary
+      ).monthToDate,
     ).toBe(321);
     // The failed account keeps its figures, and says why.
     expect(byId.get(FAILED_ROW.toString())!["costSummary"]).toMatchObject({
