@@ -3,6 +3,9 @@ import CreateBy from "../../../Server/Types/Database/CreateBy";
 import { OnCreate, OnUpdate } from "../../../Server/Types/Database/Hooks";
 import UpdateBy from "../../../Server/Types/Database/UpdateBy";
 import ProjectReferenceCheck from "../../../Server/Utils/Database/ProjectReferenceCheck";
+import SecurityWatchlists, {
+  SecurityWatchlistMissingException,
+} from "../../../Server/Utils/SecurityEvent/Watchlists/SecurityWatchlists";
 import SecurityHunt from "../../../Models/DatabaseModels/SecurityHunt";
 import Team from "../../../Models/DatabaseModels/Team";
 import User from "../../../Models/DatabaseModels/User";
@@ -19,6 +22,7 @@ import {
   SECURITY_HUNT_RUN_ERRORS,
   SecurityHuntSchedule,
 } from "../../../Types/SecurityEvent/SecurityHunt";
+import { getMissingSecurityWatchlistsMessage } from "../../../Types/SecurityEvent/SecurityWatchlist";
 import TimeRange from "../../../Types/Time/TimeRange";
 import { getJestSpyOn } from "../../Spy";
 import {
@@ -623,5 +627,67 @@ describe("a scheduled hunt saved as it is by a teammate", () => {
     expect(
       await update({ schedule: SecurityHuntSchedule.EveryDay }, AS_API_KEY),
     ).not.toHaveProperty("scheduledByUserId");
+  });
+});
+
+describe("a hunt that reads a watchlist (#5391)", () => {
+  let assertProjectHas: Spy;
+
+  beforeEach(() => {
+    assertProjectHas = getJestSpyOn(
+      SecurityWatchlists,
+      "assertProjectHas",
+    ).mockResolvedValue(undefined as never);
+  });
+
+  test("is saved only when the project has every list its search reads", async () => {
+    await create(
+      newHunt({ searchQuery: "user:%vip_users% -ip:%Admin_Addresses%" }),
+    );
+
+    expect(assertProjectHas).toHaveBeenCalledWith({
+      projectId: PROJECT_ID,
+      names: ["vip_users", "Admin_Addresses"],
+    });
+
+    assertProjectHas.mockRejectedValue(
+      new SecurityWatchlistMissingException(["crown_jewels"]) as never,
+    );
+
+    await expect(
+      create(newHunt({ searchQuery: "host:%crown_jewels%" })),
+    ).rejects.toThrow(getMissingSecurityWatchlistsMessage(["crown_jewels"]));
+  });
+
+  test("a search that reads no list asks for none", async () => {
+    await create(newHunt());
+
+    expect(assertProjectHas).toHaveBeenCalledWith({
+      projectId: PROJECT_ID,
+      names: [],
+    });
+  });
+
+  test("given a new search, asks its own project for the lists it reads", async () => {
+    await update({ searchQuery: "user:%vip_users%" });
+
+    expect(assertProjectHas).toHaveBeenCalledWith({
+      projectId: PROJECT_ID,
+      names: ["vip_users"],
+    });
+
+    assertProjectHas.mockRejectedValue(
+      new SecurityWatchlistMissingException(["leavers"]) as never,
+    );
+
+    await expect(update({ searchQuery: "user:%leavers%" })).rejects.toThrow(
+      getMissingSecurityWatchlistsMessage(["leavers"]),
+    );
+  });
+
+  test("a change that leaves its search alone asks nothing", async () => {
+    await update({ schedule: SecurityHuntSchedule.EveryHour });
+
+    expect(assertProjectHas).not.toHaveBeenCalled();
   });
 });

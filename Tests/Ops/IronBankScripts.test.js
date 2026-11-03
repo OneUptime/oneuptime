@@ -7,7 +7,7 @@
  *
  *   PinRelease.js   which image of a release's tag it pins (linux/amd64, from
  *                   an index or a single image), that the image is the
- *                   Community Edition of that very version with a commit, and
+ *                   Enterprise Edition of that very version with a commit, and
  *                   that it refuses what is not a release, a digest or a
  *                   commit, and a file that has a value twice or not at all.
  *   NewFindings.js  how it reads Grype's and Trivy's reports, merges what both
@@ -44,7 +44,7 @@ function config(overrides = {}) {
         `GIT_SHA=${COMMIT}`,
         "NODE_OPTIONS=--a=b",
       ],
-      Labels: { "com.oneuptime.edition": "community" },
+      Labels: { "com.oneuptime.edition": "enterprise" },
       ...(overrides.config || {}),
     },
   };
@@ -87,7 +87,7 @@ describe("PinRelease.js", () => {
     }).toThrow("digest");
   });
 
-  test("reads the commit from the Community Edition image of that version", () => {
+  test("reads the commit from the Enterprise Edition image of that version", () => {
     expect(PinRelease.releaseEnvironment(config(), "14.0.101")).toEqual({
       gitSha: COMMIT,
     });
@@ -96,10 +96,10 @@ describe("PinRelease.js", () => {
   test.each([
     ["another version", config(), "14.0.102", "APP_VERSION=14.0.101"],
     [
-      "the Enterprise Edition",
-      config({ config: { Labels: { "com.oneuptime.edition": "enterprise" } } }),
+      "the Community Edition",
+      config({ config: { Labels: { "com.oneuptime.edition": "community" } } }),
       "14.0.101",
-      "enterprise edition",
+      "community edition",
     ],
     [
       "an image for another platform",
@@ -127,12 +127,12 @@ describe("PinRelease.js", () => {
       "labels:",
       '  org.opencontainers.image.version: "1.0.0"',
       "resources:",
-      '  - tag: "oneuptime/app:1.0.0"',
+      '  - tag: "oneuptime/app:enterprise-1.0.0"',
       `    url: "docker://docker.io/oneuptime/app@${ARM64}"`,
       "",
     ].join("\n"),
     dockerfile: [
-      "FROM oneuptime/app:1.0.0 AS release",
+      "FROM oneuptime/app:enterprise-1.0.0 AS release",
       'LABEL org.opencontainers.image.revision="old"',
       "ENV APP_VERSION=1.0.0",
       "ENV GIT_SHA=old",
@@ -372,6 +372,42 @@ describe("NewFindings.js", () => {
     );
     expect(markdown).toContain("- CVE-2025-9999 in left-pad");
     expect(markdown).toContain("**2 new finding(s) at high or above.**");
+  });
+
+  test("keeps a backslash, a | and a line ending in a finding inside its cell", () => {
+    const odd = NewFindings.fromGrype({
+      matches: [
+        grypeMatch("CVE-2026-0005", "a|b\\", "1.0\\|x", "Critical", {
+          path: "C:\\|dir\nnext",
+        }),
+      ],
+    });
+    const markdown = NewFindings.summary(
+      NewFindings.classify({ image: odd, base: [], justifications: [] }),
+      { failOn: "critical" },
+    );
+    const row = markdown.split("\n").find((line) => {
+      return line.includes("CVE-2026-0005");
+    });
+
+    expect(row).toBe(
+      "| Critical | CVE-2026-0005 | a\\|b\\\\ | 1.0\\\\\\|x | no fix yet | Grype | /C:\\\\\\|dir next |",
+    );
+    // Split where a table reader ends a cell: at a "|" after an even number of backslashes.
+    const cells = [];
+    let current = "";
+    let backslashes = 0;
+    for (const character of row.slice(1, -1)) {
+      if (character === "|" && backslashes % 2 === 0) {
+        cells.push(current.trim());
+        current = "";
+      } else {
+        current += character;
+      }
+      backslashes = character === "\\" ? backslashes + 1 : 0;
+    }
+    cells.push(current.trim());
+    expect(cells).toHaveLength(7);
   });
 
   test.each([

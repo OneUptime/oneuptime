@@ -10,7 +10,10 @@ import CloudResource from "Common/Models/DatabaseModels/CloudResource";
 import CloudResourceOwnerTeam from "Common/Models/DatabaseModels/CloudResourceOwnerTeam";
 import CloudResourceOwnerUser from "Common/Models/DatabaseModels/CloudResourceOwnerUser";
 import Route from "Common/Types/API/Route";
-import { Gray500, Green } from "Common/Types/BrandColors";
+import CloudResourceStatusCell, {
+  CLOUD_STATUS_COLUMN_CLASS_NAME,
+} from "../../../../Components/Cloud/CloudResourceStatusCell";
+import { CLOUD_HEALTH_FILTER_OPTIONS } from "../../../../Components/Cloud/CloudResourceAttention";
 import OneUptimeDate from "Common/Types/Date";
 import {
   CLOUD_RESOURCE_TYPES,
@@ -25,7 +28,6 @@ import ErrorMessage from "Common/UI/Components/ErrorMessage/ErrorMessage";
 import LabelsElement from "Common/UI/Components/Label/Labels";
 import PageLoader from "Common/UI/Components/Loader/PageLoader";
 import ModelTable from "Common/UI/Components/ModelTable/ModelTable";
-import Pill from "Common/UI/Components/Pill/Pill";
 import FieldType from "Common/UI/Components/Types/FieldType";
 import Navigation from "Common/UI/Utils/Navigation";
 import ProjectUtil from "Common/UI/Utils/Project";
@@ -142,6 +144,11 @@ const CloudAccountResources: FunctionComponent<
           cloudProvider: true,
           cloudRegion: true,
           lastSeenAt: true,
+          // What the Status column's rules judge (CloudResourceHealth).
+          cloudReadings: true,
+          cloudReadingsAt: true,
+          cloudProperties: true,
+          healthSeverity: true,
         }}
         cardProps={{
           title: "Resources",
@@ -156,6 +163,14 @@ const CloudAccountResources: FunctionComponent<
             },
             title: "Name",
             type: FieldType.Text,
+          },
+          {
+            field: {
+              healthSeverity: true,
+            },
+            title: "Health",
+            type: FieldType.Dropdown,
+            filterDropdownOptions: CLOUD_HEALTH_FILTER_OPTIONS,
           },
           {
             field: {
@@ -233,10 +248,10 @@ const CloudAccountResources: FunctionComponent<
             },
           },
           /*
-           * Whether it reports, and when it was last seen, in one column -
-           * as the accounts list says when each account was last read - so
-           * Labels and Owners stay clear of the row's actions beside the
-           * side menu.
+           * How it is - its health, and why when it needs attention - and
+           * when it was last seen, in one column, as the accounts list says
+           * when each account was last read: Labels and Owners stay clear
+           * of the row's actions beside the side menu.
            */
           {
             field: {
@@ -244,35 +259,33 @@ const CloudAccountResources: FunctionComponent<
             },
             title: "Status",
             type: FieldType.Element,
+            contentClassName: CLOUD_STATUS_COLUMN_CLASS_NAME,
             getElement: (item: CloudResource): ReactElement => {
-              const isReporting: boolean =
-                item.otelCollectorStatus === "connected";
-
               return (
                 <div
-                  className="min-w-0 space-y-1"
+                  className="min-w-0"
                   data-testid="cloud-account-resource-status"
                 >
-                  <Pill
-                    text={isReporting ? "Reporting" : "Not reporting"}
-                    color={isReporting ? Green : Gray500}
+                  <CloudResourceStatusCell
+                    resource={item}
+                    now={OneUptimeDate.getCurrentDate()}
+                    footer={
+                      item.lastSeenAt ? (
+                        <div
+                          className="text-xs text-gray-500"
+                          title={OneUptimeDate.getDateAsUserFriendlyLocalFormattedString(
+                            item.lastSeenAt,
+                          )}
+                        >
+                          {translator.translateTemplate("Last seen {{time}}", {
+                            time: OneUptimeDate.getDateAsLocalShortDateTimeString(
+                              item.lastSeenAt,
+                            ),
+                          })}
+                        </div>
+                      ) : undefined
+                    }
                   />
-                  {item.lastSeenAt ? (
-                    <div
-                      className="text-xs text-gray-500"
-                      title={OneUptimeDate.getDateAsUserFriendlyLocalFormattedString(
-                        item.lastSeenAt,
-                      )}
-                    >
-                      {translator.translateTemplate("Last seen {{time}}", {
-                        time: OneUptimeDate.getDateAsLocalShortDateTimeString(
-                          item.lastSeenAt,
-                        ),
-                      })}
-                    </div>
-                  ) : (
-                    <></>
-                  )}
                 </div>
               );
             },

@@ -69,6 +69,11 @@ const FRONTEND_ENV_ALLOW_LIST: Array<string> = [
   "CAPTCHA_ENABLED",
   "CAPTCHA_SITE_KEY",
   "INBOUND_EMAIL_DOMAIN",
+  /*
+   * With the daily check-in off, a self-hosted sign-up form no longer offers
+   * release emails from oneuptime.com (Accounts' Register page).
+   */
+  "DISABLE_INSTANCE_CHECK_IN",
 ];
 
 /*

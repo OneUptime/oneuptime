@@ -128,6 +128,45 @@ export interface MetricAnomalyBaseline {
   observedSigma?: number | undefined;
 }
 
+/**
+ * What a forecast criteria (ForecastAbove / ForecastBelow) read from one
+ * series: the trend fitted to the window's data points, and where it is
+ * headed (MetricForecast). Values are in the criteria's display unit.
+ *
+ *   - "Forecast" - the series was forecast; the trend fields are set.
+ *   - "Learning" - its data does not cover half the window yet.
+ *   - "Stale"    - its newest data point is too old to forecast from.
+ */
+export interface MetricForecastDetails {
+  state: "Forecast" | "Learning" | "Stale";
+  direction: "above" | "below";
+  threshold: number;
+  horizonInHours: number;
+  // The window the trend was fitted over, in milliseconds.
+  windowMs: number;
+  sampleCount: number;
+  historyMs: number;
+  requiredHistoryMs: number;
+  sinceNewestMs: number;
+  // Where the trend says the metric is now.
+  currentValue?: number | undefined;
+  // Where the trend says it is at the end of the horizon.
+  projectedValue?: number | undefined;
+  // The trend's change per day; below 0 when it falls.
+  slopePerDay?: number | undefined;
+  /*
+   * How long until the trend crosses the threshold: 0 when it is past it
+   * now, null when it never does.
+   */
+  reachesThresholdInMs?: number | null | undefined;
+  /*
+   * Why the criteria did not match, in the evaluation log's words: the
+   * forecast missed the threshold, or the series could not be forecast.
+   * Absent when it matched (the root cause says it then).
+   */
+  message?: string | undefined;
+}
+
 export default interface MetricCriteriaContext {
   metricName: string;
   alias: string;
@@ -150,6 +189,11 @@ export default interface MetricCriteriaContext {
    * one of the anomaly types. Absent for static-threshold criteria.
    */
   anomalyBaseline?: MetricAnomalyBaseline | undefined;
+  /**
+   * The trend and where it is headed, when the criterion's filterType is
+   * a forecast type. Absent for every other criteria.
+   */
+  forecast?: MetricForecastDetails | undefined;
   /**
    * Set when an "All Values" criteria did not match only because the
    * series' data does not cover the time range yet. Absent otherwise.

@@ -74,7 +74,7 @@ To leave something out, add it to the store's **Scan Exclusions**: a location na
 :::steps
 ### Open the finding
 
-Open the telemetry store - a service's **Logs**, for example - and the finding.
+Open the issue - **Where It Was Found** lists each finding behind it - or the telemetry store, a service's **Logs** for example, and the finding.
 
 ### Press Scrub It
 
@@ -82,7 +82,7 @@ Click **Scrub It**. OneUptime makes a log scrub rule for logs and a RUM applicat
 
 ### Fix the code too
 
-The rule masks new data before it is stored. Data already stored stays until its retention ends, so fix the code that writes it: the finding names the service and the attribute.
+The rule masks new data before it is stored. Data already stored stays until its retention ends, so fix the code that writes it: the finding names the service and the attribute, and on the issue's page **Show the records it was seen in** opens the newest traces, log lines, exceptions or sessions that carry it (see [Where a telemetry issue's data was found](/docs/data-security/checks-and-issues#where-a-telemetry-issues-data-was-found)).
 :::
 
 The rule is named for what it hides, such as "Data Security: Email address in attributes.user.email", and is listed with your other scrub rules (see [Drop Filters & Scrub Rules](/docs/telemetry/drop-filters-and-scrub-rules#scrub-sensitive-data)). It is one of these:

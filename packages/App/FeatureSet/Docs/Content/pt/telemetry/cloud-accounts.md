@@ -1,12 +1,13 @@
 # Conectar uma conta de nuvem
 
-Conecte uma conta da AWS, uma assinatura do Azure ou um projeto do Google Cloud pelo painel, e o OneUptime lista cada recurso dela, lê as principais métricas deles e registra o que mudou neles e o que o seu provedor de nuvem diz sobre a integridade deles. Você executa um comando no terminal do navegador da sua nuvem e cola o que ele exibe: não há coletor para rodar nem nada para instalar.
+Conecte uma conta da AWS, uma assinatura do Azure ou um projeto do Google Cloud pelo painel, e o OneUptime lista cada recurso dela, lê as principais métricas deles e diz como cada um está, registra o que mudou neles e o que o seu provedor de nuvem diz sobre a integridade deles, e lê quanto a conta custa e como poderia custar menos. Você executa um comando no terminal do navegador da sua nuvem e cola o que ele exibe: não há coletor para rodar nem nada para instalar.
 
 :::cards
 - [Amazon Web Services](#amazon-web-services): Uma função do IAM com a qual o OneUptime faz login, ou uma chave de acesso.
-- [Microsoft Azure](#microsoft-azure): Um aplicativo com a função Monitoring Reader.
-- [Google Cloud](#google-cloud): Uma conta de serviço com quatro papéis somente leitura.
-- [O que o OneUptime lê](#o-que-o-oneuptime-lê): Recursos, métricas, alterações e eventos de integridade, com que frequência e quanto custa.
+- [Microsoft Azure](#microsoft-azure): Um aplicativo com as funções Monitoring Reader e Cost Management Reader.
+- [Google Cloud](#google-cloud): Uma conta de serviço com seis papéis somente leitura.
+- [O que o OneUptime lê](#o-que-o-oneuptime-lê): Recursos, métricas, alterações, eventos de integridade e custos, com que frequência e quanto custa lê-los.
+- [Custos e economias da nuvem](/docs/telemetry/cloud-costs): Quanto custa cada conta, as formas de gastar menos e orçamentos que alertam.
 - [Segurança de dados](#segurança-de-dados): O que a conexão permite que a Segurança de dados leia, e o que cada nível acrescenta ao comando.
 - [Permitir que a IA corrija problemas](#permitir-que-a-ia-corrija-problemas): Mais um comando, e o OneUptime AI pode corrigir o que encontra.
 :::
@@ -22,10 +23,11 @@ flowchart TB
     ou --> chg["Alterações e eventos<br/>de integridade"]
 ```
 
-- **O acesso só pode ler.** O comando cria um acesso que lê os seus recursos e como estão configurados, as métricas deles, o que mudou e os eventos de integridade do seu provedor, e nada mais: as ações listadas abaixo na AWS, a função **Monitoring Reader** no Azure e quatro papéis de leitura no Google Cloud. O OneUptime nunca lê dados ou segredos com ele, exceto linhas de log quando você deixa a IA ler os logs de uma conta e amostras de conteúdo quando você as ativa para a [Segurança de dados](#segurança-de-dados). Exclua-o para cortar o acesso do OneUptime.
+- **O acesso só pode ler.** O comando cria um acesso que lê os seus recursos e como estão configurados, as métricas deles, o que mudou, os eventos de integridade do seu provedor e quanto a conta custa, e nada mais: as ações listadas abaixo na AWS, as funções **Monitoring Reader** e **Cost Management Reader** no Azure e seis papéis de leitura no Google Cloud. O OneUptime nunca lê dados ou segredos com ele, exceto linhas de log quando você deixa a IA ler os logs de uma conta e amostras de conteúdo quando você as ativa para a [Segurança de dados](#segurança-de-dados). Exclua-o para cortar o acesso do OneUptime.
 - **O OneUptime lê de forma programada.** A cada 5 minutos para o Azure e o Google Cloud, e a cada 10 minutos para a AWS, a menos que você escolha outro intervalo ao conectar. Cada leitura também registra o que mudou desde a anterior, e a cada 30 minutos uma leitura lista todos os recursos de novo.
-- **Cada recurso tem uma página própria.** Os recursos aparecem em **Nuvem → Todos os recursos** com as principais métricas, os responsáveis e os rótulos. A página de um recurso listado também mostra os **Recursos conectados** (onde ele é executado, o que lhe envia tráfego), os endpoints, tags e configurações, e os **Incidentes**, **Alertas** e **Alterações** dele.
-- **Cada conta tem uma página própria.** As contas aparecem em **Nuvem → Contas** com os recursos por tipo e região, as **Alterações** e uma **Topologia** de como os recursos se encaixam.
+- **Cada recurso tem uma página própria.** Os recursos aparecem em **Nuvem → Todos os recursos** com a integridade, as principais métricas, os responsáveis e os rótulos. A página de um recurso listado também mostra os **Recursos conectados** (onde ele é executado, o que lhe envia tráfego), os endpoints, tags e configurações, e os **Incidentes**, **Alertas** e **Alterações** dele.
+- **Cada conta tem uma página própria.** As contas aparecem em **Nuvem → Contas** com os recursos por tipo e região, os **Custos**, as **Alterações** e uma **Topologia** de como os recursos se encaixam.
+- **A Nuvem abre na sua visão geral.** **Nuvem → Visão geral** lista os recursos que precisam de atenção e por quê, quanto as contas custam este mês e quanto as suas nuvens dizem que daria para economizar. [Custos e economias da nuvem](/docs/telemetry/cloud-costs) explica como custos, economias e orçamentos são lidos.
 - **O OneUptime AI lê o que mudou.** Uma investigação de um incidente ou alerta vinculado a um recurso de nuvem lê primeiro as alterações desse recurso e lê de novo o log de atividades da conta ao começar.
 
 ## Antes de começar
@@ -50,7 +52,7 @@ Use uma **Chave de acesso** quando uma função não for possível: ela lê apen
 
 ```bash
 aws iam create-user --user-name OneUptimeReadOnly > /dev/null 2>&1 || true
-aws iam put-user-policy --user-name OneUptimeReadOnly --policy-name OneUptimeReadOnly --policy-document '{"Version":"2012-10-17","Statement":[{"Effect":"Allow","Action":["cloudwatch:GetMetricData","cloudwatch:ListMetrics","tag:GetResources","iam:ListAccountAliases","cloudformation:ListResources","ec2:DescribeInstances","ec2:DescribeVolumes","ec2:DescribeVpcs","ec2:DescribeNatGateways","autoscaling:DescribeAutoScalingGroups","elasticloadbalancing:DescribeLoadBalancers","elasticloadbalancing:DescribeLoadBalancerAttributes","elasticloadbalancing:DescribeTargetGroups","elasticloadbalancing:DescribeTargetGroupAttributes","elasticloadbalancing:DescribeTargetHealth","elasticloadbalancing:DescribeTags","ecs:ListClusters","ecs:DescribeClusters","ecs:ListServices","ecs:DescribeServices","lambda:ListFunctions","rds:DescribeDBInstances","rds:DescribeDBClusters","elasticache:DescribeReplicationGroups","sqs:ListQueues","sqs:GetQueueAttributes","sns:ListTopics","sns:GetTopicAttributes","sns:ListSubscriptionsByTopic","dynamodb:ListTables","dynamodb:DescribeTable","kinesis:ListStreams","kinesis:DescribeStreamSummary","states:ListStateMachines","states:DescribeStateMachine","cloudfront:ListDistributions","elasticfilesystem:DescribeFileSystems","es:ListDomainNames","es:DescribeDomains","apprunner:ListServices","apprunner:DescribeService","cloudtrail:LookupEvents","health:DescribeEvents","health:DescribeEventDetails","rds:DescribeEvents","autoscaling:DescribeScalingActivities","ec2:DescribeInstanceStatus","ecs:DescribeTaskDefinition","lambda:GetFunctionConfiguration","lambda:GetFunctionConcurrency","lambda:GetAlias","servicequotas:ListServiceQuotas","logs:DescribeLogGroups","logs:FilterLogEvents"],"Resource":"*"},{"Effect":"Allow","Action":["apigateway:GET"],"Resource":["arn:aws:apigateway:*::/restapis","arn:aws:apigateway:*::/restapis/*","arn:aws:apigateway:*::/apis","arn:aws:apigateway:*::/apis/*"]}]}'
+aws iam put-user-policy --user-name OneUptimeReadOnly --policy-name OneUptimeReadOnly --policy-document '{"Version":"2012-10-17","Statement":[{"Effect":"Allow","Action":["cloudwatch:GetMetricData","cloudwatch:ListMetrics","tag:GetResources","iam:ListAccountAliases","cloudformation:ListResources","ec2:DescribeInstances","ec2:DescribeVolumes","ec2:DescribeVpcs","ec2:DescribeNatGateways","autoscaling:DescribeAutoScalingGroups","elasticloadbalancing:DescribeLoadBalancers","elasticloadbalancing:DescribeLoadBalancerAttributes","elasticloadbalancing:DescribeTargetGroups","elasticloadbalancing:DescribeTargetGroupAttributes","elasticloadbalancing:DescribeTargetHealth","elasticloadbalancing:DescribeTags","ecs:ListClusters","ecs:DescribeClusters","ecs:ListServices","ecs:DescribeServices","lambda:ListFunctions","rds:DescribeDBInstances","rds:DescribeDBClusters","elasticache:DescribeReplicationGroups","sqs:ListQueues","sqs:GetQueueAttributes","sns:ListTopics","sns:GetTopicAttributes","sns:ListSubscriptionsByTopic","dynamodb:ListTables","dynamodb:DescribeTable","kinesis:ListStreams","kinesis:DescribeStreamSummary","states:ListStateMachines","states:DescribeStateMachine","cloudfront:ListDistributions","elasticfilesystem:DescribeFileSystems","es:ListDomainNames","es:DescribeDomains","apprunner:ListServices","apprunner:DescribeService","cloudtrail:LookupEvents","health:DescribeEvents","health:DescribeEventDetails","ce:GetCostAndUsage","cost-optimization-hub:ListRecommendations","rds:DescribeEvents","autoscaling:DescribeScalingActivities","ec2:DescribeInstanceStatus","ecs:DescribeTaskDefinition","lambda:GetFunctionConfiguration","lambda:GetFunctionConcurrency","lambda:GetAlias","servicequotas:ListServiceQuotas","logs:DescribeLogGroups","logs:FilterLogEvents"],"Resource":"*"},{"Effect":"Allow","Action":["apigateway:GET"],"Resource":["arn:aws:apigateway:*::/restapis","arn:aws:apigateway:*::/restapis/*","arn:aws:apigateway:*::/apis","arn:aws:apigateway:*::/apis/*"]}]}'
 aws iam create-access-key --user-name OneUptimeReadOnly
 ```
 
@@ -72,6 +74,8 @@ A função e o usuário podem fazer isto, e nada mais:
 | Listar cada recurso e como está configurado, pelo Cloud Control | `cloudformation:ListResources`, `ec2:DescribeInstances`, `ec2:DescribeVolumes`, `ec2:DescribeVpcs`, `ec2:DescribeNatGateways`, `autoscaling:DescribeAutoScalingGroups`, `elasticloadbalancing:DescribeLoadBalancers`, `elasticloadbalancing:DescribeLoadBalancerAttributes`, `elasticloadbalancing:DescribeTargetGroups`, `elasticloadbalancing:DescribeTargetGroupAttributes`, `elasticloadbalancing:DescribeTargetHealth`, `elasticloadbalancing:DescribeTags`, `ecs:ListClusters`, `ecs:DescribeClusters`, `ecs:ListServices`, `ecs:DescribeServices`, `lambda:ListFunctions`, `rds:DescribeDBInstances`, `rds:DescribeDBClusters`, `elasticache:DescribeReplicationGroups`, `sqs:ListQueues`, `sqs:GetQueueAttributes`, `sns:ListTopics`, `sns:GetTopicAttributes`, `sns:ListSubscriptionsByTopic`, `dynamodb:ListTables`, `dynamodb:DescribeTable`, `kinesis:ListStreams`, `kinesis:DescribeStreamSummary`, `states:ListStateMachines`, `states:DescribeStateMachine`, `cloudfront:ListDistributions`, `elasticfilesystem:DescribeFileSystems`, `es:ListDomainNames`, `es:DescribeDomains`, `apprunner:ListServices`, `apprunner:DescribeService`, `apigateway:GET` |
 | Ler o que mudou: os eventos de gerenciamento da conta | `cloudtrail:LookupEvents` |
 | Ler os próprios eventos de integridade da AWS para a conta | `health:DescribeEvents`, `health:DescribeEventDetails` |
+| Ler quanto a conta custa, pelo Cost Explorer | `ce:GetCostAndUsage` |
+| Ler as formas de gastar menos, pelo Cost Optimization Hub | `cost-optimization-hub:ListRecommendations` |
 | Ler o status atual e os eventos recentes de um recurso durante uma investigação | `rds:DescribeEvents`, `autoscaling:DescribeScalingActivities`, `ec2:DescribeInstanceStatus`, `ecs:DescribeTaskDefinition`, `lambda:GetFunctionConfiguration`, `lambda:GetFunctionConcurrency`, `lambda:GetAlias` |
 | Ler as cotas da conta durante uma investigação | `servicequotas:ListServiceQuotas` |
 | Ler linhas de log, só quando você deixa a IA ler os logs de uma conta | `logs:DescribeLogGroups`, `logs:FilterLogEvents` |
@@ -91,12 +95,13 @@ Vá para **Nuvem → Conectar** e escolha **Microsoft Azure**.
 
 ### Executar o comando no Azure Cloud Shell
 
-O comando cria um aplicativo com a função **Monitoring Reader** na sua assinatura atual e exibe os detalhes dele com a data em que o segredo expira:
+O comando cria um aplicativo com as funções **Monitoring Reader** e **Cost Management Reader** na sua assinatura atual e exibe os detalhes dele com a data em que o segredo expira:
 
 ```bash
 SCOPE="/subscriptions/$(az account show --query id --output tsv)"
 OUT=$(az ad sp create-for-rbac --name OneUptimeReadOnly --role "Monitoring Reader" --scopes "$SCOPE")
 APP=$(echo "$OUT" | jq -r .appId)
+az role assignment create --assignee "$APP" --role "Cost Management Reader" --scope "$SCOPE" > /dev/null
 END=$(az ad app credential list --id "$APP" --query "max([].endDateTime)" --output tsv)
 echo "$OUT" | jq --arg end "$END" '. + {endDateTime: $end}'
 ```
@@ -107,6 +112,7 @@ Em **O que ler**, escolha em vez disso todas as assinaturas do locatário, e a f
 SCOPE="/providers/Microsoft.Management/managementGroups/$(az account show --query tenantId --output tsv)"
 OUT=$(az ad sp create-for-rbac --name OneUptimeReadOnly --role "Monitoring Reader" --scopes "$SCOPE")
 APP=$(echo "$OUT" | jq -r .appId)
+az role assignment create --assignee "$APP" --role "Cost Management Reader" --scope "$SCOPE" > /dev/null
 END=$(az ad app credential list --id "$APP" --query "max([].endDateTime)" --output tsv)
 echo "$OUT" | jq --arg end "$END" '. + {endDateTime: $end}'
 ```
@@ -120,10 +126,11 @@ Cole tudo o que o comando exibiu em **O que o comando exibiu**. O OneUptime extr
 O OneUptime testa a conexão assim que esta etapa abre. Selecione **Conectar** para salvar.
 :::
 
-Para ler mais assinaturas com o mesmo aplicativo, dê a ele a função em cada uma delas:
+Para ler mais assinaturas com o mesmo aplicativo, dê a ele as duas funções em cada uma delas:
 
 ```bash
 az role assignment create --assignee <APP_ID> --role "Monitoring Reader" --scope /subscriptions/<SUBSCRIPTION_ID>
+az role assignment create --assignee <APP_ID> --role "Cost Management Reader" --scope /subscriptions/<SUBSCRIPTION_ID>
 ```
 
 O OneUptime lê cada assinatura que o aplicativo pode ler, até 50, a menos que você liste algumas em **Assinaturas**. O segredo do aplicativo para de funcionar na data em que expira: a partir de 30 dias antes, cada leitura avisa sobre isso. Execute o comando de novo e cole o que ele exibe para dar a ele um novo.
@@ -137,16 +144,18 @@ Vá para **Nuvem → Conectar** e escolha **Google Cloud**.
 
 ### Executar o comando no Google Cloud Shell
 
-Execute-o no projeto a monitorar. Ele ativa as APIs que o OneUptime lê, cria uma conta de serviço com os papéis **Monitoring Viewer**, **Cloud Asset Viewer**, **Logs Viewer** e **Service Health Viewer** e exibe a chave dela:
+Execute-o no projeto a monitorar. Ele ativa as APIs que o OneUptime lê, cria uma conta de serviço com os papéis **Monitoring Viewer**, **Cloud Asset Viewer**, **Logs Viewer**, **Service Health Viewer**, **BigQuery Job User** e **Compute Recommender Viewer** e exibe a chave dela:
 
 ```bash
 PROJECT_ID=$(gcloud config get-value project)
-gcloud services enable monitoring.googleapis.com cloudasset.googleapis.com logging.googleapis.com cloudresourcemanager.googleapis.com servicehealth.googleapis.com
+gcloud services enable monitoring.googleapis.com cloudasset.googleapis.com logging.googleapis.com cloudresourcemanager.googleapis.com servicehealth.googleapis.com bigquery.googleapis.com recommender.googleapis.com
 gcloud iam service-accounts create oneuptime-read-only --display-name "OneUptime (read only)" > /dev/null 2>&1 || true
 gcloud projects add-iam-policy-binding "$PROJECT_ID" --member "serviceAccount:oneuptime-read-only@$PROJECT_ID.iam.gserviceaccount.com" --role roles/monitoring.viewer --condition=None > /dev/null
 gcloud projects add-iam-policy-binding "$PROJECT_ID" --member "serviceAccount:oneuptime-read-only@$PROJECT_ID.iam.gserviceaccount.com" --role roles/cloudasset.viewer --condition=None > /dev/null
 gcloud projects add-iam-policy-binding "$PROJECT_ID" --member "serviceAccount:oneuptime-read-only@$PROJECT_ID.iam.gserviceaccount.com" --role roles/logging.viewer --condition=None > /dev/null
 gcloud projects add-iam-policy-binding "$PROJECT_ID" --member "serviceAccount:oneuptime-read-only@$PROJECT_ID.iam.gserviceaccount.com" --role roles/servicehealth.viewer --condition=None > /dev/null
+gcloud projects add-iam-policy-binding "$PROJECT_ID" --member "serviceAccount:oneuptime-read-only@$PROJECT_ID.iam.gserviceaccount.com" --role roles/bigquery.jobUser --condition=None > /dev/null
+gcloud projects add-iam-policy-binding "$PROJECT_ID" --member "serviceAccount:oneuptime-read-only@$PROJECT_ID.iam.gserviceaccount.com" --role roles/recommender.computeViewer --condition=None > /dev/null
 gcloud iam service-accounts keys create oneuptime-key.json --iam-account "oneuptime-read-only@$PROJECT_ID.iam.gserviceaccount.com"
 cat oneuptime-key.json && rm oneuptime-key.json
 ```
@@ -156,12 +165,14 @@ Em **O que ler**, escolha em vez disso todos os projetos da organização, e os 
 ```bash
 PROJECT_ID=$(gcloud config get-value project)
 ORG_ID=$(gcloud projects get-ancestors "$PROJECT_ID" --format="value(id)" | tail -1)
-gcloud services enable monitoring.googleapis.com cloudasset.googleapis.com logging.googleapis.com cloudresourcemanager.googleapis.com servicehealth.googleapis.com
+gcloud services enable monitoring.googleapis.com cloudasset.googleapis.com logging.googleapis.com cloudresourcemanager.googleapis.com servicehealth.googleapis.com bigquery.googleapis.com recommender.googleapis.com
 gcloud iam service-accounts create oneuptime-read-only --display-name "OneUptime (read only)" > /dev/null 2>&1 || true
 gcloud organizations add-iam-policy-binding "$ORG_ID" --member "serviceAccount:oneuptime-read-only@$PROJECT_ID.iam.gserviceaccount.com" --role roles/monitoring.viewer --condition=None > /dev/null
 gcloud organizations add-iam-policy-binding "$ORG_ID" --member "serviceAccount:oneuptime-read-only@$PROJECT_ID.iam.gserviceaccount.com" --role roles/cloudasset.viewer --condition=None > /dev/null
 gcloud organizations add-iam-policy-binding "$ORG_ID" --member "serviceAccount:oneuptime-read-only@$PROJECT_ID.iam.gserviceaccount.com" --role roles/logging.viewer --condition=None > /dev/null
 gcloud organizations add-iam-policy-binding "$ORG_ID" --member "serviceAccount:oneuptime-read-only@$PROJECT_ID.iam.gserviceaccount.com" --role roles/servicehealth.viewer --condition=None > /dev/null
+gcloud organizations add-iam-policy-binding "$ORG_ID" --member "serviceAccount:oneuptime-read-only@$PROJECT_ID.iam.gserviceaccount.com" --role roles/bigquery.jobUser --condition=None > /dev/null
+gcloud organizations add-iam-policy-binding "$ORG_ID" --member "serviceAccount:oneuptime-read-only@$PROJECT_ID.iam.gserviceaccount.com" --role roles/recommender.computeViewer --condition=None > /dev/null
 gcloud iam service-accounts keys create oneuptime-key.json --iam-account "oneuptime-read-only@$PROJECT_ID.iam.gserviceaccount.com"
 cat oneuptime-key.json && rm oneuptime-key.json
 ```
@@ -175,13 +186,15 @@ Cole tudo o que o comando exibiu. O OneUptime lê o próprio projeto da chave e 
 O OneUptime testa a conexão assim que esta etapa abre. Selecione **Conectar** para salvar.
 :::
 
-Para ler mais projetos com a mesma conta de serviço, dê a ela os quatro papéis em cada um deles e liste-os em **Projetos**:
+Para ler mais projetos com a mesma conta de serviço, dê a ela estes papéis em cada um deles e liste-os em **Projetos**:
 
 ```bash
-for ROLE in roles/monitoring.viewer roles/cloudasset.viewer roles/logging.viewer roles/servicehealth.viewer; do gcloud projects add-iam-policy-binding <PROJECT_ID> --member "serviceAccount:oneuptime-read-only@<KEY_PROJECT_ID>.iam.gserviceaccount.com" --role "$ROLE"; done
+for ROLE in roles/monitoring.viewer roles/cloudasset.viewer roles/logging.viewer roles/servicehealth.viewer roles/recommender.computeViewer; do gcloud projects add-iam-policy-binding <PROJECT_ID> --member "serviceAccount:oneuptime-read-only@<KEY_PROJECT_ID>.iam.gserviceaccount.com" --role "$ROLE"; done
 ```
 
 A conexão de uma organização lê até 50 dos projetos dela, a menos que você liste alguns em **Projetos**.
+
+O Google Cloud não tem uma API para os custos de um projeto: o OneUptime os lê da exportação da sua conta de faturamento para o BigQuery, assim que você informa a tabela dela em **Tabela da exportação de faturamento**. [Custos e economias da nuvem](/docs/telemetry/cloud-costs#google-cloud) mostra como.
 
 ## Segurança de dados
 
@@ -191,7 +204,7 @@ A mesma conexão pode permitir que a [Segurança de dados](/docs/data-security/i
 | --- | --- | --- |
 | **Desativado** | Nenhum dos repositórios da conta | Nada |
 | **Somente configuração** | Quem pode acessar cada repositório, e como ele é criptografado, copiado em backup e registrado em logs. Nunca dados. | Na AWS, uma segunda política em linha, `OneUptimeDataSecurity`, com ações de leitura. No Azure e no Google Cloud, nada: **Monitoring Reader** e **Cloud Asset Viewer** já leem isso. |
-| **Configuração e amostras de conteúdo** | Isso, e amostras de objetos e linhas, para encontrar dados sensíveis neles | Na AWS, a mesma política com `s3:ListBucket`, `s3:GetObject` e `kms:Decrypt` somente através do S3. No Azure, **Storage Blob Data Reader**. No Google Cloud, `roles/storage.objectViewer`, `roles/bigquery.dataViewer` e a API do BigQuery. |
+| **Configuração e amostras de conteúdo** | Isso, e amostras de objetos e linhas, para encontrar dados sensíveis neles | Na AWS, a mesma política com `s3:ListBucket`, `s3:GetObject` e `kms:Decrypt` somente através do S3. No Azure, **Storage Blob Data Reader**. No Google Cloud, `roles/storage.objectViewer` e `roles/bigquery.dataViewer`. |
 
 Na AWS, o comando da função acrescenta a política com mais uma linha. No nível de conteúdo, ela é:
 
@@ -203,7 +216,7 @@ O IAM limita as políticas em linha de um usuário a 2.048 caracteres no total, 
 
 ```bash
 aws iam create-user --user-name OneUptimeReadOnly > /dev/null 2>&1 || true
-aws iam put-user-policy --user-name OneUptimeReadOnly --policy-name OneUptimeReadOnly --policy-document '{"Version":"2012-10-17","Statement":[{"Effect":"Allow","Action":["cloudwatch:GetMetricData","cloudwatch:ListMetrics","tag:GetResources","iam:ListAccountAliases","cloudformation:ListResources","ec2:DescribeInstances","ec2:DescribeVolumes","ec2:DescribeVpcs","ec2:DescribeNatGateways","autoscaling:DescribeAutoScalingGroups","elasticloadbalancing:DescribeLoadBalancers","elasticloadbalancing:DescribeLoadBalancerAttributes","elasticloadbalancing:DescribeTargetGroups","elasticloadbalancing:DescribeTargetGroupAttributes","elasticloadbalancing:DescribeTargetHealth","elasticloadbalancing:DescribeTags","ecs:ListClusters","ecs:DescribeClusters","ecs:ListServices","ecs:DescribeServices","lambda:ListFunctions","rds:DescribeDBInstances","rds:DescribeDBClusters","elasticache:DescribeReplicationGroups","sqs:ListQueues","sqs:GetQueueAttributes","sns:ListTopics","sns:GetTopicAttributes","sns:ListSubscriptionsByTopic","dynamodb:ListTables","dynamodb:DescribeTable","kinesis:ListStreams","kinesis:DescribeStreamSummary","states:ListStateMachines","states:DescribeStateMachine","cloudfront:ListDistributions","elasticfilesystem:DescribeFileSystems","es:ListDomainNames","es:DescribeDomains","apprunner:ListServices","apprunner:DescribeService","cloudtrail:LookupEvents","health:DescribeEvents","health:DescribeEventDetails","rds:DescribeEvents","autoscaling:DescribeScalingActivities","ec2:DescribeInstanceStatus","ecs:DescribeTaskDefinition","lambda:GetFunctionConfiguration","lambda:GetFunctionConcurrency","lambda:GetAlias","servicequotas:ListServiceQuotas","logs:DescribeLogGroups","logs:FilterLogEvents"],"Resource":"*"},{"Effect":"Allow","Action":["apigateway:GET"],"Resource":["arn:aws:apigateway:*::/restapis","arn:aws:apigateway:*::/restapis/*","arn:aws:apigateway:*::/apis","arn:aws:apigateway:*::/apis/*"]}]}'
+aws iam put-user-policy --user-name OneUptimeReadOnly --policy-name OneUptimeReadOnly --policy-document '{"Version":"2012-10-17","Statement":[{"Effect":"Allow","Action":["cloudwatch:GetMetricData","cloudwatch:ListMetrics","tag:GetResources","iam:ListAccountAliases","cloudformation:ListResources","ec2:DescribeInstances","ec2:DescribeVolumes","ec2:DescribeVpcs","ec2:DescribeNatGateways","autoscaling:DescribeAutoScalingGroups","elasticloadbalancing:DescribeLoadBalancers","elasticloadbalancing:DescribeLoadBalancerAttributes","elasticloadbalancing:DescribeTargetGroups","elasticloadbalancing:DescribeTargetGroupAttributes","elasticloadbalancing:DescribeTargetHealth","elasticloadbalancing:DescribeTags","ecs:ListClusters","ecs:DescribeClusters","ecs:ListServices","ecs:DescribeServices","lambda:ListFunctions","rds:DescribeDBInstances","rds:DescribeDBClusters","elasticache:DescribeReplicationGroups","sqs:ListQueues","sqs:GetQueueAttributes","sns:ListTopics","sns:GetTopicAttributes","sns:ListSubscriptionsByTopic","dynamodb:ListTables","dynamodb:DescribeTable","kinesis:ListStreams","kinesis:DescribeStreamSummary","states:ListStateMachines","states:DescribeStateMachine","cloudfront:ListDistributions","elasticfilesystem:DescribeFileSystems","es:ListDomainNames","es:DescribeDomains","apprunner:ListServices","apprunner:DescribeService","cloudtrail:LookupEvents","health:DescribeEvents","health:DescribeEventDetails","ce:GetCostAndUsage","cost-optimization-hub:ListRecommendations","rds:DescribeEvents","autoscaling:DescribeScalingActivities","ec2:DescribeInstanceStatus","ecs:DescribeTaskDefinition","lambda:GetFunctionConfiguration","lambda:GetFunctionConcurrency","lambda:GetAlias","servicequotas:ListServiceQuotas","logs:DescribeLogGroups","logs:FilterLogEvents"],"Resource":"*"},{"Effect":"Allow","Action":["apigateway:GET"],"Resource":["arn:aws:apigateway:*::/restapis","arn:aws:apigateway:*::/restapis/*","arn:aws:apigateway:*::/apis","arn:aws:apigateway:*::/apis/*"]}]}'
 aws iam create-group --group-name OneUptimeDataSecurity > /dev/null 2>&1 || true
 aws iam put-group-policy --group-name OneUptimeDataSecurity --policy-name OneUptimeDataSecurity --policy-document '{"Version":"2012-10-17","Statement":[{"Effect":"Allow","Action":["s3:ListAllMyBuckets","s3:GetBucketLocation","s3:GetBucketPolicyStatus","s3:GetBucketPublicAccessBlock","s3:GetAccountPublicAccessBlock","s3:GetBucketAcl","s3:GetBucketPolicy","s3:GetEncryptionConfiguration","s3:GetBucketVersioning","s3:GetBucketLogging","s3:GetBucketOwnershipControls","s3:GetReplicationConfiguration","s3:GetBucketTagging","rds:DescribeDBInstances","rds:DescribeDBClusters","rds:DescribeDBSnapshots","rds:DescribeDBSnapshotAttributes","rds:DescribeDBClusterSnapshots","rds:DescribeDBClusterSnapshotAttributes","dynamodb:ListTables","dynamodb:DescribeTable","dynamodb:DescribeContinuousBackups","redshift:DescribeClusters","redshift:DescribeLoggingStatus","es:ListDomainNames","es:DescribeDomains","elasticache:DescribeReplicationGroups","elasticfilesystem:DescribeFileSystems","kms:ListAliases","iam:GetAccountAuthorizationDetails","iam:GenerateCredentialReport","iam:GetCredentialReport"],"Resource":"*"},{"Effect":"Allow","Action":["s3:ListBucket"],"Resource":"arn:aws:s3:::*"},{"Effect":"Allow","Action":["s3:GetObject"],"Resource":"arn:aws:s3:::*/*"},{"Effect":"Allow","Action":["kms:Decrypt"],"Resource":"*","Condition":{"StringLike":{"kms:ViaService":"s3.*.amazonaws.com"}}}]}'
 aws iam add-user-to-group --user-name OneUptimeReadOnly --group-name OneUptimeDataSecurity
@@ -216,21 +229,24 @@ No Azure, o nível de conteúdo acrescenta **Storage Blob Data Reader** no mesmo
 SCOPE="/subscriptions/$(az account show --query id --output tsv)"
 OUT=$(az ad sp create-for-rbac --name OneUptimeReadOnly --role "Monitoring Reader" --scopes "$SCOPE")
 APP=$(echo "$OUT" | jq -r .appId)
+az role assignment create --assignee "$APP" --role "Cost Management Reader" --scope "$SCOPE" > /dev/null
 az role assignment create --assignee "$APP" --role "Storage Blob Data Reader" --scope "$SCOPE" > /dev/null
 END=$(az ad app credential list --id "$APP" --query "max([].endDateTime)" --output tsv)
 echo "$OUT" | jq --arg end "$END" '. + {endDateTime: $end}'
 ```
 
-No Google Cloud, ele acrescenta os dois papéis e ativa `bigquery.googleapis.com`:
+No Google Cloud, ele acrescenta os dois papéis:
 
 ```bash
 PROJECT_ID=$(gcloud config get-value project)
-gcloud services enable monitoring.googleapis.com cloudasset.googleapis.com logging.googleapis.com cloudresourcemanager.googleapis.com servicehealth.googleapis.com bigquery.googleapis.com
+gcloud services enable monitoring.googleapis.com cloudasset.googleapis.com logging.googleapis.com cloudresourcemanager.googleapis.com servicehealth.googleapis.com bigquery.googleapis.com recommender.googleapis.com
 gcloud iam service-accounts create oneuptime-read-only --display-name "OneUptime (read only)" > /dev/null 2>&1 || true
 gcloud projects add-iam-policy-binding "$PROJECT_ID" --member "serviceAccount:oneuptime-read-only@$PROJECT_ID.iam.gserviceaccount.com" --role roles/monitoring.viewer --condition=None > /dev/null
 gcloud projects add-iam-policy-binding "$PROJECT_ID" --member "serviceAccount:oneuptime-read-only@$PROJECT_ID.iam.gserviceaccount.com" --role roles/cloudasset.viewer --condition=None > /dev/null
 gcloud projects add-iam-policy-binding "$PROJECT_ID" --member "serviceAccount:oneuptime-read-only@$PROJECT_ID.iam.gserviceaccount.com" --role roles/logging.viewer --condition=None > /dev/null
 gcloud projects add-iam-policy-binding "$PROJECT_ID" --member "serviceAccount:oneuptime-read-only@$PROJECT_ID.iam.gserviceaccount.com" --role roles/servicehealth.viewer --condition=None > /dev/null
+gcloud projects add-iam-policy-binding "$PROJECT_ID" --member "serviceAccount:oneuptime-read-only@$PROJECT_ID.iam.gserviceaccount.com" --role roles/bigquery.jobUser --condition=None > /dev/null
+gcloud projects add-iam-policy-binding "$PROJECT_ID" --member "serviceAccount:oneuptime-read-only@$PROJECT_ID.iam.gserviceaccount.com" --role roles/recommender.computeViewer --condition=None > /dev/null
 gcloud projects add-iam-policy-binding "$PROJECT_ID" --member "serviceAccount:oneuptime-read-only@$PROJECT_ID.iam.gserviceaccount.com" --role roles/storage.objectViewer --condition=None > /dev/null
 gcloud projects add-iam-policy-binding "$PROJECT_ID" --member "serviceAccount:oneuptime-read-only@$PROJECT_ID.iam.gserviceaccount.com" --role roles/bigquery.dataViewer --condition=None > /dev/null
 gcloud iam service-accounts keys create oneuptime-key.json --iam-account "oneuptime-read-only@$PROJECT_ID.iam.gserviceaccount.com"
@@ -247,24 +263,30 @@ O comando de um nível mais baixo substitui a política da AWS pela do nível ma
 | Métricas | As principais métricas de cada serviço, como CPU, rede e verificações de status de uma instância | Até 8 métricas principais por recurso | As principais métricas de cada tipo de recurso |
 | Alterações | Os eventos de gerenciamento do CloudTrail | Os eventos administrativos do log de atividades | O log de auditoria Admin Activity |
 | Eventos de integridade | AWS Health | Service Health e Resource Health | Service Health |
+| Custos | Os de cada dia, por serviço e região, pelo Cost Explorer | Os de cada dia, por recurso e serviço, pelo Cost Management | Os de cada dia, por serviço, região e recurso, pela sua exportação de faturamento para o BigQuery |
+| Formas de gastar menos | Cost Optimization Hub | Azure Advisor | O Recommender |
 | Leitura a cada | 10 minutos | 5 minutos | 5 minutos |
 | Um recurso excluído | Arquivado assim que uma listagem completa não o tem mais | Arquivado assim que uma listagem completa não o tem mais | Arquivado assim que uma listagem completa não o tem mais |
 
-Cada leitura continua de onde a anterior parou, então cada ponto de dados e cada alteração são gravados uma única vez. A primeira leitura de uma conexão nova começa em até um minuto e volta uma hora para as métricas e 2 horas para as alterações; depois de uma pausa, uma leitura volta no máximo 6 horas. Um recurso que só informa métricas, e que nenhuma listagem tem, é arquivado após 7 dias sem métricas.
+Cada leitura continua de onde a anterior parou, então cada ponto de dados e cada alteração são gravados uma única vez. A primeira leitura de uma conexão nova começa em até um minuto e volta uma hora para as métricas e 2 horas para as alterações; depois de uma pausa, uma leitura volta no máximo 6 horas. Um recurso que só informa métricas, e que nenhuma listagem tem, é arquivado após 7 dias sem métricas. Os custos são lidos duas vezes por dia, e as formas de gastar menos uma vez por dia.
 
-As chamadas que o OneUptime faz são cobradas da sua conta de nuvem, aos preços da sua nuvem. Listar recursos e ler alterações e eventos de integridade não custa nada nas três nuvens; ler métricas, sim. O teste estima o custo do que encontra, e ler com menos frequência custa menos: altere **Frequência de leitura de métricas** em **Mais campos**.
+As chamadas que o OneUptime faz são cobradas da sua conta de nuvem, aos preços da sua nuvem. Listar recursos, ler alterações e eventos de integridade, ler as formas de gastar menos e ler os custos do Azure não custa nada; ler métricas, sim, e também ler os custos da AWS e do Google Cloud. O teste estima o custo do que encontra, e ler com menos frequência custa menos: altere **Frequência de leitura de métricas** em **Mais campos**.
 
 | Nuvem | Preço |
 | --- | --- |
 | AWS | CloudWatch `GetMetricData`: $0.01 a cada 1.000 métricas, e cada métrica principal de um recurso é uma métrica por leitura |
+| Custos da AWS | Cost Explorer `GetCostAndUsage`: $0.01 por solicitação, e uma leitura dos custos faz algumas |
 | Azure | As primeiras 1.000.000 leituras de métricas por mês de cada assinatura são gratuitas, depois $0.01 a cada 1.000 |
 | Google Cloud | As primeiras 1.000.000 séries temporais lidas por mês são gratuitas, depois $0.50 por milhão |
+| Custos do Google Cloud | O BigQuery cobra a consulta da sua exportação de faturamento: o primeiro 1 TiB por mês é gratuito, depois $6.25 por TiB |
 
 ## O que você vê no OneUptime
 
 - **A página de uma conta.** Em **Nuvem → Contas**, a visão geral de uma conta conta os recursos dela por tipo e região e diz quando uma conexão a leu pela última vez. Os **Recursos** dela os listam, as **Alterações** listam o que mudou nela, os mais recentes primeiro, e a **Topologia** desenha as regiões, as redes nelas e o que roda em cada uma, com os incidentes e alertas abertos nos recursos aos quais estão vinculados. O **Feed** dela registra como a conta chegou ao OneUptime, quando o agente de IA de nuvem dela se conectou ou foi redefinido, e quem alterou o que o OneUptime AI pode fazer nela.
 - **As alterações de um recurso.** Uma alteração é guardada como um evento de alteração vinculado ao recurso que ela alterou e à conta dele, e desenhada como um marcador nos gráficos de métricas do recurso, junto com os incidentes e alertas dele. Gráficos filtrados para nenhum recurso deixam de fora o log de atividades de uma conta de nuvem, para que uma conta movimentada não esconda os seus deploys; os eventos de integridade do provedor continuam neles.
 - **Incidentes e alertas.** Vincule um recurso de nuvem a um monitor, um incidente ou um alerta nos recursos vinculados dele, e os incidentes e alertas dele são listados na página do recurso. Um monitor de site, API, SSL, ping ou porta cujo host leva a um endpoint de um recurso, diretamente ou pelo DNS, lista o recurso em **Recursos de nuvem sugeridos** no cartão **Recursos Vinculados**: selecione **Vincular recurso** para vinculá-lo.
+- **A integridade de um recurso.** Cada leitura guarda o valor mais recente das principais métricas de um recurso e as avalia: um recurso mostra **Íntegro**, **Degradado** ou **Não íntegro**, com o motivo, como verificações de status com falha ou armazenamento quase cheio, e **Não reportando** quando as métricas dele param. **Nuvem → Visão geral** e a visão geral de uma conta listam o que precisa de atenção, o mais urgente primeiro.
+- **Quanto as contas custam.** **Nuvem → Gastos → Custos** desenha os gastos de cada dia e para onde vão, **Nuvem → Gastos → Economias** lista as formas de gastar menos, e **Nuvem → Gastos → Orçamentos** alerta antes que um mês custe mais do que deveria: [Custos e economias da nuvem](/docs/telemetry/cloud-costs).
 
 ## Permitir que a IA corrija problemas
 

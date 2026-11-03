@@ -333,6 +333,7 @@ criteria = [
 | Процессы сервера | `Is Executing`, `Is Not Executing` |
 | Скрипты | `Evaluates To True` |
 | Аномалии для метрик, логов и трассировок | `Anomalously High`, `Anomalously Low`, `Anomalous` |
+| Прогнозы для метрик | `Forecast Above`, `Forecast Below` (горизонт задаёт `forecast.horizonInHours` в `metric_monitor_options`: без него неделя) |
 
 Фильтр, который совпадает, когда SSL-сертификат истекает через 14 дней или меньше:
 

@@ -91,7 +91,15 @@ export interface ResourceOverviewTile {
 }
 
 // The status pill's colour: green, amber or gray.
-export type ResourceOverviewStatusTone = "positive" | "warning" | "neutral";
+/*
+ * "danger" is a resource broken by its own rules (a cloud resource failing
+ * its status checks): the red the lists' Unhealthy pill draws.
+ */
+export type ResourceOverviewStatusTone =
+  | "positive"
+  | "warning"
+  | "danger"
+  | "neutral";
 
 export interface ResourceOverviewProps {
   icon: IconProp;
@@ -113,7 +121,9 @@ export interface ResourceOverviewProps {
   /*
    * Drawn straight under the hero, beside the status pill it explains: the
    * "how do I connect this?" card (ResourceConnectionGuideCard), which draws
-   * nothing once the resource is connected.
+   * nothing once the resource is connected - or, for a resource read from
+   * its cloud, what needs attention on it (NeedsAttentionCard), before any
+   * number, as a host's and a cluster's Overview lead with theirs.
    */
   connectionGuide?: ReactElement | undefined;
   /*
@@ -221,6 +231,10 @@ const STATUS_TONE_CLASSES: Record<
   warning: {
     badge: "bg-amber-50 text-amber-700 ring-amber-200",
     dot: "bg-amber-500",
+  },
+  danger: {
+    badge: "bg-red-50 text-red-700 ring-red-200",
+    dot: "bg-red-500",
   },
   neutral: {
     badge: "bg-gray-50 text-gray-700 ring-gray-200",

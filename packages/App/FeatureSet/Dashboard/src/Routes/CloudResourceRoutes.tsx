@@ -33,6 +33,11 @@ import CloudAccountDelete from "../Pages/Cloud/Accounts/View/Delete";
 import CloudAccountAiAgent from "../Pages/Cloud/Accounts/View/AI/Agent";
 import CloudAccountAiLogs from "../Pages/Cloud/Accounts/View/AI/Logs";
 import CloudAccountFeed from "../Pages/Cloud/Accounts/View/Feed";
+import CloudAccountCosts from "../Pages/Cloud/Accounts/View/Costs";
+import CloudOverview from "../Pages/Cloud/Overview";
+import CloudCosts from "../Pages/Cloud/Costs";
+import CloudSavings from "../Pages/Cloud/Savings";
+import CloudBudgets from "../Pages/Cloud/Budgets";
 import CloudAccount from "Common/Models/DatabaseModels/CloudAccount";
 import CloudResourceLabelRule from "Common/Models/DatabaseModels/CloudResourceLabelRule";
 import CloudResourceOwnerRule from "Common/Models/DatabaseModels/CloudResourceOwnerRule";
@@ -49,8 +54,9 @@ import MovedPageRedirect from "../Components/Routing/MovedPageRedirect";
 import PageNotFound from "../Pages/PageNotFound/PageNotFound";
 
 /*
- * Cloud, mounted at …/cloud/*: its accounts, every resource in them and the
- * way to connect one.
+ * Cloud, mounted at …/cloud/*: its Overview, its accounts, every resource
+ * in them, what they cost, the ways to spend less, the budgets that watch
+ * the spend, and the way to connect one.
  *
  * Its environments - the apps on ECS and Fargate, Cloud Run, App Service
  * and the other managed app and container platforms - moved to App
@@ -58,7 +64,8 @@ import PageNotFound from "../Pages/PageNotFound/PageNotFound";
  * still arrives:
  *
  *   - the environments list was Cloud's own address (…/cloud), which stays
- *     the product's: it forwards to Cloud > Accounts;
+ *     the product's: it is Cloud's Overview now, which counts the
+ *     environments in the accounts and links them;
  *   - an environment's pages (…/cloud/:id/…) forward to the same tab in App
  *     Platforms, keeping the id, the query string and the hash - the view
  *     reads the row's kind first (Pages/Cloud/View/Layout,
@@ -73,14 +80,46 @@ const CloudResourceRoutes: FunctionComponent<ComponentProps> = (
     <Routes>
       <PageRoute path="/" element={<CloudLayout {...props} />}>
         {/*
-         * Cloud's own address opens it on its accounts. It used to open the
-         * environments list, which moved to App Platforms.
+         * Cloud's own address opens its Overview: what needs attention, what
+         * the accounts cost and how to spend less. CLOUD_HOME, the trail's
+         * link to the product, is this address too.
          */}
         <PageRoute
           index
-          element={<MovedPageRedirect pageMap={PageMap.CLOUD_ACCOUNTS} />}
+          element={
+            <CloudOverview
+              {...props}
+              pageRoute={RouteMap[PageMap.CLOUD_OVERVIEW] as Route}
+            />
+          }
         />
-        {/* CLOUD_HOME is this address: the same forward. */}
+        <PageRoute
+          path={CloudRoutePath[PageMap.CLOUD_COSTS] || ""}
+          element={
+            <CloudCosts
+              {...props}
+              pageRoute={RouteMap[PageMap.CLOUD_COSTS] as Route}
+            />
+          }
+        />
+        <PageRoute
+          path={CloudRoutePath[PageMap.CLOUD_SAVINGS] || ""}
+          element={
+            <CloudSavings
+              {...props}
+              pageRoute={RouteMap[PageMap.CLOUD_SAVINGS] as Route}
+            />
+          }
+        />
+        <PageRoute
+          path={CloudRoutePath[PageMap.CLOUD_BUDGETS] || ""}
+          element={
+            <CloudBudgets
+              {...props}
+              pageRoute={RouteMap[PageMap.CLOUD_BUDGETS] as Route}
+            />
+          }
+        />
         <PageRoute
           path={CloudRoutePath[PageMap.CLOUD_SETTINGS_LABEL_RULES] || ""}
           element={
@@ -237,6 +276,15 @@ const CloudResourceRoutes: FunctionComponent<ComponentProps> = (
             <CloudAccountFeed
               {...props}
               pageRoute={RouteMap[PageMap.CLOUD_ACCOUNT_VIEW_FEED] as Route}
+            />
+          }
+        />
+        <PageRoute
+          path={RouteUtil.getLastPathForKey(PageMap.CLOUD_ACCOUNT_VIEW_COSTS)}
+          element={
+            <CloudAccountCosts
+              {...props}
+              pageRoute={RouteMap[PageMap.CLOUD_ACCOUNT_VIEW_COSTS] as Route}
             />
           }
         />

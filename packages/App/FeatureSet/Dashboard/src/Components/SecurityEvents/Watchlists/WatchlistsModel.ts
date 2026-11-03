@@ -14,8 +14,16 @@ import {
   IMPORT_PREVIEW_PROBLEMS,
   IMPORT_PREVIEW_VALUES,
   NO_VALUES_YET,
+  READER_KIND_HUNT,
+  READER_KIND_MONITOR,
   READ_BY_MORE,
   READ_BY_NO_RULE,
+  SOURCE_FEED_DESCRIPTION,
+  SOURCE_FEED_TITLE,
+  SOURCE_URL_DESCRIPTION,
+  SOURCE_URL_TITLE,
+  SOURCE_VALUES_DESCRIPTION,
+  SOURCE_VALUES_TITLE,
   STARTER_ADMIN_ADDRESSES_DESCRIPTION,
   STARTER_ADMIN_ADDRESSES_TITLE,
   STARTER_CRITICAL_HOSTS_DESCRIPTION,
@@ -24,6 +32,8 @@ import {
   STARTER_KNOWN_BAD_HASHES_TITLE,
   STARTER_VIP_USERS_DESCRIPTION,
   STARTER_VIP_USERS_TITLE,
+  URL_VALUES_FROM,
+  URL_WAITING,
   VALUES_TABLE_DESCRIPTION,
   VALUES_TABLE_DESCRIPTION_HASH,
   VALUES_TABLE_DESCRIPTION_IP,
@@ -42,6 +52,10 @@ import {
   canSecurityWatchlistFollowFeed,
   getSecurityWatchlistNameKey,
 } from "Common/Types/SecurityEvent/SecurityWatchlist";
+import {
+  WatchlistReader,
+  WatchlistReaderKind,
+} from "Common/Types/SecurityEvent/SecurityWatchlistFilter";
 import { NAME_BREAKS_FROM_LENGTH } from "Common/Utils/NameBreaks";
 import { Translator } from "Common/UI/Utils/TranslateTemplate";
 
@@ -162,6 +176,63 @@ export function isFeedWatchlist(source: unknown): boolean {
   return source === SecurityWatchlistSource.ThreatIntelFeed;
 }
 
+// Whether a list is read from an address on a schedule.
+export function isUrlWatchlist(source: unknown): boolean {
+  return source === SecurityWatchlistSource.Url;
+}
+
+/*
+ * Where a list's values may come from, for a list of this kind, in the
+ * form's order: values the team keeps, a file at an address, and - for a
+ * kind a feed carries - a threat intel feed. Each an English key.
+ */
+export interface WatchlistSourceChoice {
+  value: SecurityWatchlistSource;
+  title: string;
+  description: string;
+}
+
+export function getWatchlistSourceChoicesFor(
+  entityType: unknown,
+): Array<WatchlistSourceChoice> {
+  const choices: Array<WatchlistSourceChoice> = [
+    {
+      value: SecurityWatchlistSource.Values,
+      title: SOURCE_VALUES_TITLE,
+      description: SOURCE_VALUES_DESCRIPTION,
+    },
+    {
+      value: SecurityWatchlistSource.Url,
+      title: SOURCE_URL_TITLE,
+      description: SOURCE_URL_DESCRIPTION,
+    },
+  ];
+
+  if (canChooseWatchlistSource(entityType)) {
+    choices.push({
+      value: SecurityWatchlistSource.ThreatIntelFeed,
+      title: SOURCE_FEED_TITLE,
+      description: SOURCE_FEED_DESCRIPTION,
+    });
+  }
+
+  return choices;
+}
+
+/*
+ * The host of a list's address, as a row names where its values come from
+ * ("example.com"): the address itself when it is not one.
+ */
+export function getWatchlistUrlHost(url: unknown): string {
+  const text: string = typeof url === "string" ? url.trim() : "";
+
+  try {
+    return new URL(text).host || text;
+  } catch {
+    return text;
+  }
+}
+
 /*
  * What a row says of its values: how many it keeps, or which feed it
  * follows (one whose feed is gone says so).
@@ -173,8 +244,27 @@ export function describeWatchlistValues(
     valueCount?: number | undefined;
     threatIntelFeedId?: unknown;
     feedName?: string | undefined;
+    importUrl?: string | undefined;
+    lastImportSucceededAt?: Date | undefined;
   },
 ): string {
+  /*
+   * A list read from an address: how many values it read, and from where;
+   * before a read has worked, that it waits for one.
+   */
+  if (isUrlWatchlist(watchlist.source)) {
+    const count: number = Math.max(0, Number(watchlist.valueCount) || 0);
+
+    if (count === 0 && !watchlist.lastImportSucceededAt) {
+      return translator.translateText(URL_WAITING) || URL_WAITING;
+    }
+
+    return translator.translatePlural(URL_VALUES_FROM, count, {
+      count: translator.formatNumber(count),
+      host: getWatchlistUrlHost(watchlist.importUrl),
+    });
+  }
+
   if (isFeedWatchlist(watchlist.source)) {
     if (!watchlist.threatIntelFeedId) {
       return translator.translateText(FEED_GONE) || FEED_GONE;
@@ -198,10 +288,16 @@ export function describeWatchlistValues(
   });
 }
 
-// The rules that read one list, as its row shows them.
+// One of what reads a list, as a row shows it: its name, and what it is when it is not a rule.
+export interface ShownWatchlistReader {
+  name: string;
+  kind?: WatchlistReaderKind | undefined;
+}
+
+// What reads one list, as its row shows it.
 export interface WatchlistReaders {
-  // The first rules' names, as written.
-  names: Array<string>;
+  // The first readers: each one's name as written, and what it is.
+  shown: Array<ShownWatchlistReader>;
   // How many more read it.
   more: number;
 }
@@ -209,30 +305,64 @@ export interface WatchlistReaders {
 export const WATCHLIST_READERS_SHOWN: number = 2;
 
 export function summarizeWatchlistReaders(
-  readers: ReadonlyArray<{ name: string }> | undefined,
+  readers: ReadonlyArray<ShownWatchlistReader> | undefined,
 ): WatchlistReaders {
-  const all: ReadonlyArray<{ name: string }> = readers || [];
+  const all: ReadonlyArray<ShownWatchlistReader> = readers || [];
+  const shown: Array<ShownWatchlistReader> = all
+    .slice(0, WATCHLIST_READERS_SHOWN)
+    .map((reader: ShownWatchlistReader): ShownWatchlistReader => {
+      return { name: reader.name, kind: reader.kind };
+    });
 
   return {
-    names: all
-      .slice(0, WATCHLIST_READERS_SHOWN)
-      .map((reader: { name: string }): string => {
-        return reader.name;
-      }),
+    shown,
     more: Math.max(0, all.length - WATCHLIST_READERS_SHOWN),
   };
 }
 
-// The rules that read a list, in words: "VIP sign-in, VIP new country and 2 more".
+/*
+ * The word a monitor or a hunt is named with after its name, as an English
+ * key; none for a rule, the usual reader.
+ */
+export function getWatchlistReaderKindKey(
+  kind: WatchlistReaderKind | undefined,
+): string | null {
+  switch (kind) {
+    case WatchlistReaderKind.Monitor:
+      return READER_KIND_MONITOR;
+    case WatchlistReaderKind.Hunt:
+      return READER_KIND_HUNT;
+    default:
+      return null;
+  }
+}
+
+// One reader in words: its name, and "(Monitor)" or "(Hunt)" after a monitor's or a hunt's.
+export function describeWatchlistReader(
+  translator: Translator,
+  reader: ShownWatchlistReader,
+): string {
+  const kind: string | null = getWatchlistReaderKindKey(reader.kind);
+
+  return kind
+    ? `${reader.name} (${translator.translateText(kind) || kind})`
+    : reader.name;
+}
+
+// What reads a list, in words: "VIP sign-in, VIP failures (Monitor) and 2 more".
 export function describeWatchlistReaders(
   translator: Translator,
   readers: WatchlistReaders,
 ): string {
-  if (readers.names.length === 0) {
+  if (readers.shown.length === 0) {
     return translator.translateText(READ_BY_NO_RULE) || READ_BY_NO_RULE;
   }
 
-  const names: string = readers.names.join(", ");
+  const names: string = readers.shown
+    .map((reader: ShownWatchlistReader): string => {
+      return describeWatchlistReader(translator, reader);
+    })
+    .join(", ");
 
   if (readers.more === 0) {
     return names;
@@ -243,11 +373,11 @@ export function describeWatchlistReaders(
   })}`;
 }
 
-// The rules that read the list with this name, from the readers of every list.
+// What reads the list with this name, from the readers of every list.
 export function getWatchlistReaders(
-  readersByKey: ReadonlyMap<string, Array<{ id: string; name: string }>>,
+  readersByKey: ReadonlyMap<string, Array<WatchlistReader>>,
   name: unknown,
-): Array<{ id: string; name: string }> {
+): Array<WatchlistReader> {
   return readersByKey.get(getSecurityWatchlistNameKey(name)) || [];
 }
 

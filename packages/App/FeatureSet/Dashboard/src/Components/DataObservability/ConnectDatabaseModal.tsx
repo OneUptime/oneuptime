@@ -12,6 +12,7 @@ import { DropdownOption } from "Common/UI/Components/Dropdown/Dropdown";
 import BasicFormModal from "Common/UI/Components/FormModal/BasicFormModal";
 import FormValues from "Common/UI/Components/Forms/Types/FormValues";
 import FormFieldSchemaType from "Common/UI/Components/Forms/Types/FormFieldSchemaType";
+import { FormStep } from "Common/UI/Components/Forms/Types/FormStep";
 import ListResult from "Common/Types/BaseDatabase/ListResult";
 import API from "Common/UI/Utils/API/API";
 import ModelAPI from "Common/UI/Utils/ModelAPI/ModelAPI";
@@ -28,6 +29,19 @@ export interface ComponentProps {
   onClose: () => void;
   onConnected: (dataStoreId: ObjectID) => void;
 }
+
+/*
+ * Four or five rows (the connection string, or the probe and its variable,
+ * by who connects), so the form walks two steps: the database, then how
+ * OneUptime reaches it (LongFormStepsGuard).
+ */
+const DATABASE_STEP_ID: string = "database";
+const CONNECTION_STEP_ID: string = "connection";
+
+const STEPS: Array<FormStep<JSONObject>> = [
+  { id: DATABASE_STEP_ID, title: "Database" },
+  { id: CONNECTION_STEP_ID, title: "Connection" },
+];
 
 const KIND_OPTIONS: Array<DropdownOption> = [
   { value: DataStoreKind.PostgreSql, label: "PostgreSQL" },
@@ -117,6 +131,7 @@ const ConnectDatabaseModal: FunctionComponent<ComponentProps> = (
           kind: DataStoreKind.PostgreSql,
           collector: DataObservabilityCollector.OneUptime,
         },
+        steps: STEPS,
         fields: [
           {
             field: { name: true },
@@ -125,6 +140,7 @@ const ConnectDatabaseModal: FunctionComponent<ComponentProps> = (
             placeholder: "Orders database",
             fieldType: FormFieldSchemaType.Text,
             required: true,
+            stepId: DATABASE_STEP_ID,
           },
           {
             field: { kind: true },
@@ -132,11 +148,13 @@ const ConnectDatabaseModal: FunctionComponent<ComponentProps> = (
             fieldType: FormFieldSchemaType.Dropdown,
             dropdownOptions: KIND_OPTIONS,
             required: true,
+            stepId: DATABASE_STEP_ID,
           },
           {
             field: { collector: true },
             title: "Who Connects",
             fieldType: FormFieldSchemaType.RadioButton,
+            stepId: CONNECTION_STEP_ID,
             radioButtonOptions: [
               {
                 value: DataObservabilityCollector.OneUptime,
@@ -156,6 +174,7 @@ const ConnectDatabaseModal: FunctionComponent<ComponentProps> = (
           {
             field: { connectionString: true },
             title: "Connection String",
+            stepId: CONNECTION_STEP_ID,
             description:
               "For example postgres://reader:password@db.internal:5432/orders.",
             fieldType: FormFieldSchemaType.Password,
@@ -173,6 +192,7 @@ const ConnectDatabaseModal: FunctionComponent<ComponentProps> = (
           {
             field: { probeId: true },
             title: "Probe",
+            stepId: CONNECTION_STEP_ID,
             description:
               "One of this project's own probes, running where it can reach the database.",
             fieldType: FormFieldSchemaType.Dropdown,
@@ -187,6 +207,7 @@ const ConnectDatabaseModal: FunctionComponent<ComponentProps> = (
           {
             field: { probeConnectionVariable: true },
             title: "Environment Variable",
+            stepId: CONNECTION_STEP_ID,
             description:
               "The probe's environment variable that holds the connection string: upper-case letters, digits and underscores.",
             placeholder: "ORDERS_DB_URL",

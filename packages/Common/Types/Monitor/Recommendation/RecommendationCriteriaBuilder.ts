@@ -4,9 +4,11 @@ import FilterCondition from "../../Filter/FilterCondition";
 import {
   CheckOn,
   CriteriaFilter,
+  CriteriaFilterUtil,
   EvaluateOverTimeType,
   FilterType,
   MetricAnomalyDetectionOptions,
+  MetricForecastOptions,
   NoDataPolicy,
 } from "../CriteriaFilter";
 
@@ -189,6 +191,8 @@ function buildFilters(data: {
   onNoDataPolicy?: NoDataPolicy | undefined;
   deriveValue?: ((spec: AdditionalCriteriaFilterSpec) => number) | undefined;
   anomalyDetection?: MetricAnomalyDetectionOptions | undefined;
+  // How far ahead a forecast comparison looks; set only for one.
+  forecast?: MetricForecastOptions | undefined;
 }): Array<CriteriaFilter> {
   const specs: Array<AdditionalCriteriaFilterSpec> = [
     {
@@ -211,6 +215,10 @@ function buildFilters(data: {
         // The baseline options belong to the primary comparison only.
         ...(index === 0 && data.anomalyDetection
           ? { anomalyDetection: data.anomalyDetection }
+          : {}),
+        ...(data.forecast &&
+        CriteriaFilterUtil.isForecastFilterType(spec.filterType)
+          ? { forecast: data.forecast }
           : {}),
       },
       value: data.deriveValue ? data.deriveValue(spec) : spec.value,
@@ -245,6 +253,11 @@ export interface UnhealthyCriteriaArgs {
   additionalFilters?: Array<AdditionalCriteriaFilterSpec> | undefined;
   filterCondition?: FilterCondition | undefined;
   treatNoDataAsZero?: boolean | undefined;
+  /*
+   * How far ahead a forecast criteria (ForecastAbove / ForecastBelow) looks.
+   * Only its forecast filters get it.
+   */
+  forecast?: MetricForecastOptions | undefined;
   /*
    * Fire when the window holds NO samples at all, whatever the threshold.
    * For heartbeat-style criteria, where the metric going silent is itself
@@ -315,6 +328,7 @@ export function buildUnhealthyCriteriaInstance(
         triggerOnNoData: args.triggerOnNoData,
       }),
       anomalyDetection: args.anomalyDetection,
+      forecast: args.forecast,
     }),
     incidents: [
       {

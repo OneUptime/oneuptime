@@ -19,14 +19,18 @@ import BadDataException from "../../Types/Exception/BadDataException";
 import { JSONObject } from "../../Types/JSON";
 import ObjectID from "../../Types/ObjectID";
 import PositiveNumber from "../../Types/PositiveNumber";
+import OneUptimeDate from "../../Types/Date";
+import QueryDeepPartialEntity from "../../Types/Database/PartialEntity";
 import {
   SECURITY_WATCHLIST_IMPORT_MAX_CHARACTERS,
+  SECURITY_WATCHLIST_MESSAGES,
   SecurityWatchlistImportMode,
   SecurityWatchlistImportProblem,
   SecurityWatchlistImportResult,
   SecurityWatchlistImportValue,
   SecurityWatchlistSource,
   countSecurityWatchlistValues,
+  getSecurityWatchlistExpiryProblem,
   getSecurityWatchlistNoteProblem,
   getSecurityWatchlistSizeProblem,
   getSecurityWatchlistValueKey,
@@ -34,6 +38,7 @@ import {
   normalizeSecurityWatchlistNote,
   normalizeSecurityWatchlistValue,
   parseSecurityWatchlistImport,
+  readSecurityWatchlistDate,
 } from "../../Types/SecurityEvent/SecurityWatchlist";
 
 // Rows written per INSERT of an import.
@@ -90,9 +95,13 @@ export interface SecurityWatchlistImportSummary {
  * The values of the watchlists a team keeps (SecurityWatchlistItem): each
  * checked against what its list holds, once per list whatever the case, and
  * a list at most SECURITY_WATCHLIST_VALUES_MAX values (100 of them patterns,
- * 100 ranges). A list that follows a threat intel feed takes none: the feed
- * keeps its values. The list's own count (SecurityWatchlist.valueCount)
- * follows every write.
+ * 100 ranges). A value may be given the moment it leaves its list - one
+ * still to come when it is written - after which no read sees it and
+ * OneUptime deletes it (SecurityWatchlistExpiry). A list that follows a
+ * threat intel feed takes none: the feed keeps its values; and a list read
+ * from an address takes none by hand: its reads keep its values
+ * (SecurityWatchlistUrlImport). The list's own count
+ * (SecurityWatchlist.valueCount) follows every write.
  */
 export class Service extends ProjectReferencesService<Model> {
   public constructor() {
@@ -124,12 +133,34 @@ export class Service extends ProjectReferencesService<Model> {
     return watchlist;
   }
 
-  // A list that follows a feed takes no value of anyone's.
-  private static assertKeptByHand(watchlist: SecurityWatchlist): void {
+  /*
+   * A list that follows a feed takes no value of anyone's, and a list read
+   * from an address takes only its reads' (`fromUrl`).
+   */
+  private static assertKeptByHand(
+    watchlist: SecurityWatchlist,
+    options: { fromUrl?: boolean | undefined } = {},
+  ): void {
     if (watchlist.source === SecurityWatchlistSource.ThreatIntelFeed) {
       throw new BadDataException(
         "This watchlist follows a threat intel feed, which keeps its values. To keep values by hand, create a watchlist of your own.",
       );
+    }
+
+    if (watchlist.source === SecurityWatchlistSource.Url && !options.fromUrl) {
+      throw new BadDataException(SECURITY_WATCHLIST_MESSAGES.keptByUrl.message);
+    }
+  }
+
+  // When a value leaves its list, as a write gives it: a moment still to come, or none.
+  private static assertExpiryFits(expiresAt: unknown): void {
+    const problem: string | null = getSecurityWatchlistExpiryProblem(
+      expiresAt,
+      OneUptimeDate.getCurrentDate(),
+    );
+
+    if (problem) {
+      throw new BadDataException(problem);
     }
   }
 
@@ -142,6 +173,8 @@ export class Service extends ProjectReferencesService<Model> {
       select: {
         _id: true,
         value: true,
+        note: true,
+        expiresAt: true,
       },
       sort: {
         _id: SortOrder.Ascending,
@@ -293,6 +326,8 @@ export class Service extends ProjectReferencesService<Model> {
       watchlist,
     });
 
+    Service.assertExpiryFits(createBy.data.expiresAt);
+
     // The list by its id column, however the write named it.
     RelationIdUtil.stamp(
       data as unknown as Record<string, unknown>,
@@ -350,7 +385,16 @@ export class Service extends ProjectReferencesService<Model> {
       data["note"] = normalizeSecurityWatchlistNote(data["note"]);
     }
 
-    if (data["value"] === undefined && data["note"] === undefined) {
+    // A new moment to leave the list is one still to come; null keeps the value until someone removes it.
+    if (data["expiresAt"] !== undefined) {
+      Service.assertExpiryFits(data["expiresAt"]);
+    }
+
+    if (
+      data["value"] === undefined &&
+      data["note"] === undefined &&
+      data["expiresAt"] === undefined
+    ) {
       return { updateBy, carryForward: null };
     }
 
@@ -378,6 +422,11 @@ export class Service extends ProjectReferencesService<Model> {
       const watchlist: SecurityWatchlist = await this.readWatchlist(
         row.securityWatchlistId,
       );
+
+      // A list read from an address is changed by its reads alone.
+      if (!updateBy.props.isRoot) {
+        Service.assertKeptByHand(watchlist);
+      }
 
       const value: unknown =
         data["value"] !== undefined ? data["value"] : row.value;
@@ -425,6 +474,36 @@ export class Service extends ProjectReferencesService<Model> {
       })
       .filter(Boolean);
 
+    /*
+     * A list read from an address is changed by its reads alone: a value a
+     * person deleted would be back at the next read. OneUptime's own
+     * deletes - a read's replace, a value whose moment to leave has come -
+     * are the list's.
+     */
+    if (!deleteBy.props.isRoot && watchlistIds.length > 0) {
+      const watchlists: Array<SecurityWatchlist> =
+        await SecurityWatchlistService.findAllBy({
+          query: {
+            _id: new Includes(Array.from(new Set(watchlistIds))),
+          },
+          select: {
+            _id: true,
+            source: true,
+          },
+          props: {
+            isRoot: true,
+          },
+        });
+
+      for (const watchlist of watchlists) {
+        if (watchlist.source === SecurityWatchlistSource.Url) {
+          throw new BadDataException(
+            SECURITY_WATCHLIST_MESSAGES.keptByUrl.message,
+          );
+        }
+      }
+    }
+
     return { deleteBy, carryForward: watchlistIds };
   }
 
@@ -464,6 +543,17 @@ export class Service extends ProjectReferencesService<Model> {
     text: string;
     mode: SecurityWatchlistImportMode;
     props: DatabaseCommonInteractionProps;
+    /*
+     * A read of a list's address (SecurityWatchlistUrlImport): it may write
+     * a list read from an address, and the list it leaves is the file -
+     * a value already on the list takes the file's note and moment to
+     * leave too. A person's import leaves a value already on the list as
+     * it is.
+     */
+    fromUrl?: boolean | undefined;
+    now?: Date | undefined;
+    // The text as already read, when the caller has read it.
+    parsed?: SecurityWatchlistImportResult | undefined;
   }): Promise<SecurityWatchlistImportSummary> {
     if ((data.text || "").length > SECURITY_WATCHLIST_IMPORT_MAX_CHARACTERS) {
       throw new BadDataException(
@@ -488,12 +578,15 @@ export class Service extends ProjectReferencesService<Model> {
       throw new BadDataException("Watchlist not found.");
     }
 
-    Service.assertKeptByHand(watchlist);
+    Service.assertKeptByHand(watchlist, { fromUrl: data.fromUrl });
 
-    const parsed: SecurityWatchlistImportResult = parseSecurityWatchlistImport({
-      text: data.text,
-      entityType: watchlist.entityType,
-    });
+    const parsed: SecurityWatchlistImportResult =
+      data.parsed ||
+      parseSecurityWatchlistImport({
+        text: data.text,
+        entityType: watchlist.entityType,
+        now: data.now || OneUptimeDate.getCurrentDate(),
+      });
 
     if (
       data.mode === SecurityWatchlistImportMode.Replace &&
@@ -534,6 +627,14 @@ export class Service extends ProjectReferencesService<Model> {
       return !toRemove.includes(item);
     });
 
+    // A read of an address leaves the list as the file is: notes and moments to leave included.
+    const toChange: Array<{
+      item: Model;
+      value: SecurityWatchlistImportValue;
+    }> = data.fromUrl
+      ? this.findValuesTheFileChanges({ kept, imported: parsed.values })
+      : [];
+
     // The list as the import leaves it, within its limits.
     const sizeProblem: string | null = getSecurityWatchlistSizeProblem(
       countSecurityWatchlistValues({
@@ -571,6 +672,17 @@ export class Service extends ProjectReferencesService<Model> {
     }
 
     try {
+      for (const change of toChange) {
+        await this.updateOneById({
+          id: change.item.id!,
+          data: {
+            note: change.value.note || null,
+            expiresAt: change.value.expiresAt || null,
+          } as unknown as QueryDeepPartialEntity<Model>,
+          props: data.props,
+        });
+      }
+
       await this.insertImportedValues({
         watchlist,
         values: toAdd,
@@ -606,6 +718,51 @@ export class Service extends ProjectReferencesService<Model> {
     };
   }
 
+  /*
+   * The values a list keeps whose note or moment to leave the file says
+   * otherwise, with what the file says.
+   */
+  private findValuesTheFileChanges(data: {
+    kept: Array<Model>;
+    imported: Array<SecurityWatchlistImportValue>;
+  }): Array<{ item: Model; value: SecurityWatchlistImportValue }> {
+    const importedByKey: Map<string, SecurityWatchlistImportValue> = new Map();
+
+    for (const value of data.imported) {
+      importedByKey.set(getSecurityWatchlistValueKey(value.value), value);
+    }
+
+    const changes: Array<{
+      item: Model;
+      value: SecurityWatchlistImportValue;
+    }> = [];
+
+    for (const item of data.kept) {
+      const value: SecurityWatchlistImportValue | undefined = importedByKey.get(
+        getSecurityWatchlistValueKey(item.value),
+      );
+
+      if (!value || !item.id) {
+        continue;
+      }
+
+      const storedExpiry: Date | null = readSecurityWatchlistDate(
+        item.expiresAt,
+      );
+      const isNoteChanged: boolean =
+        normalizeSecurityWatchlistNote(item.note) !== value.note;
+      const isExpiryChanged: boolean =
+        (storedExpiry ? storedExpiry.getTime() : null) !==
+        (value.expiresAt ? value.expiresAt.getTime() : null);
+
+      if (isNoteChanged || isExpiryChanged) {
+        changes.push({ item, value });
+      }
+    }
+
+    return changes;
+  }
+
   // An import's new values: written in batches, each audited as a create.
   private async insertImportedValues(data: {
     watchlist: SecurityWatchlist;
@@ -629,6 +786,10 @@ export class Service extends ProjectReferencesService<Model> {
 
           if (item.note) {
             row.note = item.note;
+          }
+
+          if (item.expiresAt) {
+            row.expiresAt = item.expiresAt;
           }
 
           if (data.props.userId) {

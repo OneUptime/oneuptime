@@ -119,6 +119,10 @@ import MonitorStepIoTMonitor, {
 import MetricsViewConfig from "../Metrics/MetricsViewConfig";
 import MetricQueryConfigData from "../Metrics/MetricQueryConfigData";
 import MonitorTemplateSyncFieldUtil from "./MonitorTemplateSyncField";
+import {
+  getSecurityWatchlistFiltersProblem,
+  readSecurityWatchlistFilters,
+} from "../SecurityEvent/SecurityWatchlistFilter";
 
 /*
  * Caps and defaults for per-step request timeout and retry settings.
@@ -1011,6 +1015,24 @@ export default class MonitorStep extends DatabaseProperty {
     if (monitorType === MonitorType.NetworkDevice) {
       if (!value.data.networkDeviceMonitor?.networkDeviceId) {
         return "Network Device is required";
+      }
+    }
+
+    /*
+     * A Security Events monitor's watchlist filters each name a field and a
+     * list, and there are at most ten. Whether the project has each list is
+     * the server's to say (MonitorStepsProjectValidator).
+     */
+    if (monitorType === MonitorType.SecurityEvents) {
+      const watchlistProblem: string | null =
+        getSecurityWatchlistFiltersProblem(
+          readSecurityWatchlistFilters(
+            value.data.securityEventsMonitor?.watchlistFilters,
+          ),
+        );
+
+      if (watchlistProblem) {
+        return watchlistProblem;
       }
     }
 

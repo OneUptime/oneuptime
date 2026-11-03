@@ -254,6 +254,8 @@ var monitorStepsFilterTypeValues = []string{
 	"Anomalously High",
 	"Anomalously Low",
 	"Anomalous",
+	"Forecast Above",
+	"Forecast Below",
 }
 
 // Enum validators, exposed at package level so tests can exercise them

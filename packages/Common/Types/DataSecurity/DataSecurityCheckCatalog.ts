@@ -1,7 +1,9 @@
 import SecuritySeverity from "../SecuritySeverity";
 import ComplianceFramework from "./ComplianceFramework";
 import DataCategory from "./DataCategory";
+import DataConfidence from "./DataConfidence";
 import DataSensitivity from "./DataSensitivity";
+import { getBuiltInDataType } from "./DataTypeCatalog";
 import {
   DataStoreFamily,
   DataStoreKind,
@@ -101,6 +103,11 @@ export interface DataStoreCheckInput {
   copiedFromProductionStoreName?: string | null | undefined;
   // Telemetry: confident data types no scrub rule covers.
   unscrubbedDataTypeIds?: ReadonlyArray<string> | undefined;
+  /*
+   * What the project calls its own data types (custom:...), by id, so an
+   * issue names them; a built-in type is named from the catalog.
+   */
+  dataTypeNames?: Readonly<Record<string, string>> | undefined;
   // AI providers this store's data was confirmed to reach.
   aiProvidersReached?: ReadonlyArray<string> | undefined;
   // Tagged as training or retrieval data for AI.
@@ -337,6 +344,139 @@ function isSecretType(dataTypeId: string): boolean {
       "aws-access-key-id",
     ].includes(dataTypeId)
   );
+}
+
+/*
+ * THE FINDINGS BEHIND A TELEMETRY ISSUE.
+ *
+ * A finding counts toward its store once a value matched it or a person
+ * confirmed it - OneUptime AI's suggestions only once confirmed - while
+ * nobody has marked it not sensitive and a scan saw it in the last
+ * FINDING_FRESHNESS_IN_DAYS days. A telemetry store's finding keeps an
+ * issue open while it is at least Medium sure and no scrub rule masks it:
+ * a secret keeps "Secrets are reaching your telemetry" open, any other
+ * type "Sensitive data is reaching your telemetry". The evaluator counts
+ * findings with these, and an issue's page lists them with these, so the
+ * page names exactly what the check counted.
+ */
+
+// How long a finding counts toward its store after a scan last saw it.
+export const FINDING_FRESHNESS_IN_DAYS: number = 30;
+
+export const SENSITIVE_DATA_IN_TELEMETRY_CHECK_ID: string =
+  "sensitive-data-in-telemetry";
+export const SECRETS_IN_TELEMETRY_CHECK_ID: string = "secrets-in-telemetry";
+
+export const TELEMETRY_FINDING_CHECK_IDS: ReadonlyArray<string> = [
+  SENSITIVE_DATA_IN_TELEMETRY_CHECK_ID,
+  SECRETS_IN_TELEMETRY_CHECK_ID,
+];
+
+// What these rules read of a finding (DataStoreFinding's columns).
+export interface CheckedFinding {
+  dataTypeId?: string | null | undefined;
+  confidence?: DataConfidence | string | null | undefined;
+  matchCount?: number | null | undefined;
+  isConfirmed?: boolean | null | undefined;
+  isAiSuggested?: boolean | null | undefined;
+  isScrubbed?: boolean | null | undefined;
+  isSuppressed?: boolean | null | undefined;
+}
+
+// Whether a finding counts toward its store's sensitivity and checks.
+export function isFindingCounted(finding: CheckedFinding): boolean {
+  if (!finding.dataTypeId || finding.isSuppressed) {
+    return false;
+  }
+
+  if (finding.isAiSuggested && !finding.isConfirmed) {
+    return false;
+  }
+
+  return Boolean(finding.isConfirmed) || (finding.matchCount || 0) > 0;
+}
+
+// Whether a telemetry store's finding keeps one of its telemetry issues open.
+export function isUnscrubbedTelemetryFinding(finding: CheckedFinding): boolean {
+  return (
+    isFindingCounted(finding) &&
+    !finding.isScrubbed &&
+    finding.confidence !== DataConfidence.Low
+  );
+}
+
+// The telemetry check a data type found unscrubbed in telemetry fails.
+export function getTelemetryCheckIdOfDataType(dataTypeId: string): string {
+  return isSecretType(dataTypeId)
+    ? SECRETS_IN_TELEMETRY_CHECK_ID
+    : SENSITIVE_DATA_IN_TELEMETRY_CHECK_ID;
+}
+
+export function isTelemetryFindingCheck(checkId: string | undefined): boolean {
+  return TELEMETRY_FINDING_CHECK_IDS.includes(checkId || "");
+}
+
+/*
+ * What a data type is called: the catalog's name for a built-in one, the
+ * project's own name for a custom one, else its id.
+ */
+export function getDataTypeName(
+  dataTypeId: string,
+  names?: Readonly<Record<string, string>> | undefined,
+): string {
+  const own: string | undefined = names?.[dataTypeId];
+
+  return (
+    getBuiltInDataType(dataTypeId)?.name ||
+    (typeof own === "string" && own.trim() ? own.trim() : "") ||
+    dataTypeId
+  );
+}
+
+// The most data types an issue names before it counts the rest.
+export const MAX_DATA_TYPES_NAMED: number = 5;
+
+/*
+ * The most of one name the evidence takes: five of them, and the words
+ * around them, stay inside the 500 characters an issue keeps of it.
+ */
+export const MAX_NAMED_DATA_TYPE_LENGTH: number = 80;
+
+/*
+ * The data types an issue names, by name, in an order that does not depend
+ * on the order they were read in - so the evidence of an issue that has not
+ * changed reads the same on every evaluation, and is not written again.
+ */
+function nameDataTypes(
+  dataTypeIds: ReadonlyArray<string>,
+  input: DataStoreCheckInput,
+): { count: number; named: string } {
+  const names: Array<string> = Array.from(new Set(dataTypeIds))
+    .map((dataTypeId: string): string => {
+      const name: string = getDataTypeName(dataTypeId, input.dataTypeNames);
+
+      return name.length > MAX_NAMED_DATA_TYPE_LENGTH
+        ? `${name.slice(0, MAX_NAMED_DATA_TYPE_LENGTH - 1)}…`
+        : name;
+    })
+    .sort((first: string, second: string): number => {
+      const a: string = first.toLowerCase();
+      const b: string = second.toLowerCase();
+
+      if (a !== b) {
+        return a < b ? -1 : 1;
+      }
+
+      return first < second ? -1 : first > second ? 1 : 0;
+    });
+  const more: number = names.length - MAX_DATA_TYPES_NAMED;
+
+  return {
+    count: names.length,
+    named: `${names.slice(0, MAX_DATA_TYPES_NAMED).join(", ")}${
+      more > 0 ? ` and ${more} more` : ""
+    }`,
+  };
 }
 
 export const DATA_SECURITY_CHECKS: ReadonlyArray<DataSecurityCheckInfo> = [
@@ -1165,9 +1305,12 @@ export const DATA_SECURITY_CHECKS: ReadonlyArray<DataSecurityCheckInfo> = [
       },
     },
     evaluate: (input: DataStoreCheckInput): DataSecurityCheckResult => {
-      const secrets: Array<string> = input.dataTypeIds.filter(isSecretType);
+      const secrets: { count: number; named: string } = nameDataTypes(
+        input.dataTypeIds.filter(isSecretType),
+        input,
+      );
 
-      if (secrets.length === 0) {
+      if (secrets.count === 0) {
         return PASS;
       }
 
@@ -1177,7 +1320,9 @@ export const DATA_SECURITY_CHECKS: ReadonlyArray<DataSecurityCheckInfo> = [
         exposure === DataStoreExposure.OtherAccounts;
 
       return fail(
-        `Found ${secrets.length} kind(s) of secret.`,
+        `Found ${secrets.count} ${
+          secrets.count === 1 ? "kind of secret" : "kinds of secret"
+        }: ${secrets.named}.`,
         exposed ? S.Critical : undefined,
       );
     },
@@ -1355,7 +1500,7 @@ export const DATA_SECURITY_CHECKS: ReadonlyArray<DataSecurityCheckInfo> = [
 
   // Telemetry.
   {
-    id: "sensitive-data-in-telemetry",
+    id: SENSITIVE_DATA_IN_TELEMETRY_CHECK_ID,
     group: G.Telemetry,
     title: "Sensitive data is reaching your telemetry",
     description:
@@ -1374,21 +1519,28 @@ export const DATA_SECURITY_CHECKS: ReadonlyArray<DataSecurityCheckInfo> = [
       },
     },
     evaluate: (input: DataStoreCheckInput): DataSecurityCheckResult => {
-      const unscrubbed: ReadonlyArray<string> = (
-        input.unscrubbedDataTypeIds || []
-      ).filter((dataTypeId: string) => {
-        return !isSecretType(dataTypeId);
-      });
+      const unscrubbed: { count: number; named: string } = nameDataTypes(
+        (input.unscrubbedDataTypeIds || []).filter((dataTypeId: string) => {
+          return !isSecretType(dataTypeId);
+        }),
+        input,
+      );
 
-      return unscrubbed.length > 0
-        ? fail(
-            `${unscrubbed.length} kind(s) of sensitive data are not scrubbed.`,
-          )
-        : PASS;
+      if (unscrubbed.count === 0) {
+        return PASS;
+      }
+
+      return fail(
+        `${unscrubbed.count} ${
+          unscrubbed.count === 1
+            ? "kind of sensitive data is"
+            : "kinds of sensitive data are"
+        } not scrubbed: ${unscrubbed.named}.`,
+      );
     },
   },
   {
-    id: "secrets-in-telemetry",
+    id: SECRETS_IN_TELEMETRY_CHECK_ID,
     group: G.Telemetry,
     title: "Secrets are reaching your telemetry",
     description:
@@ -1412,13 +1564,20 @@ export const DATA_SECURITY_CHECKS: ReadonlyArray<DataSecurityCheckInfo> = [
       },
     },
     evaluate: (input: DataStoreCheckInput): DataSecurityCheckResult => {
-      const secrets: Array<string> = (input.unscrubbedDataTypeIds || []).filter(
-        isSecretType,
+      const secrets: { count: number; named: string } = nameDataTypes(
+        (input.unscrubbedDataTypeIds || []).filter(isSecretType),
+        input,
       );
 
-      return secrets.length > 0
-        ? fail(`${secrets.length} kind(s) of secret are not scrubbed.`)
-        : PASS;
+      if (secrets.count === 0) {
+        return PASS;
+      }
+
+      return fail(
+        `${secrets.count} ${
+          secrets.count === 1 ? "kind of secret is" : "kinds of secret are"
+        } not scrubbed: ${secrets.named}.`,
+      );
     },
   },
 

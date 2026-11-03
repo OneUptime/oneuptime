@@ -256,6 +256,7 @@ La barra di ricerca parla la stessa lingua degli altri esploratori di telemetria
 | `<field>:a*` | `*` è qualsiasi testo, `?` un carattere | `host:web-*` |
 | `@<attribute>:*` | L'attributo è presente | `@threat.indicator_id:*` |
 | `@<attribute>:~text` | L'attributo contiene il testo | `@finding_info.title:~ransom` |
+| `<field>:%<watchlist>%` | Il campo è in un [elenco di controllo](#elenchi-di-controllo) | `user:%vip_users%` |
 
 Un campo è un nome breve (`severity`, `class`, `category`, `activity`, `status`, `vendor`, `product`, `rule`, `user`, `host`, `ip`, `targetuser`, `targethost`, `targetip`, `processname`, `commandline`, `parentprocessname`, `observable`, `tactic`, `technique`, `requestoutcome`, `trace`, `session`) oppure il nome proprio del campo, come `severityName` o `principalHost`. Qualsiasi altro nome viene letto come attributo di origine. `observable:<value>` trova ogni evento che menziona un valore, da qualunque lato dell'attività si trovasse.
 
@@ -281,7 +282,7 @@ Una caccia è una ricerca sui tuoi eventi di sicurezza salvata con un nome: il t
 
 ### Salvare una ricerca come caccia
 
-In **Eventi**, cerca e filtra finché l'elenco mostra ciò che cerchi, poi apri **Cacce** nella barra degli strumenti e scegli **Salva come caccia**. Dalle un nome, scegli se viene eseguita secondo una pianificazione, e si apre la sua pagina. **Eventi → Cacce** elenca le cacce del progetto, ciascuna con la sua ricerca, ogni quanto viene eseguita, chi avvisa e cosa ha trovato la sua ultima esecuzione; **Crea: Caccia** lì prende la ricerca come la scriveresti in **Eventi**. Un progetto conserva fino a 200 cacce.
+In **Eventi**, cerca e filtra finché l'elenco mostra ciò che cerchi, poi apri **Cacce** nella barra degli strumenti e scegli **Salva come caccia**. Dalle un nome, scegli se viene eseguita secondo una pianificazione, e si apre la sua pagina. **Eventi → Cacce** elenca le cacce del progetto, ciascuna con la sua ricerca, ogni quanto viene eseguita, chi avvisa e cosa ha trovato la sua ultima esecuzione; **Crea: Caccia** lì prende la ricerca come la scriveresti in **Eventi**. Un progetto conserva fino a 200 cacce. Una ricerca può leggere un [elenco di controllo](#elenchi-di-controllo), come fa `user:%vip_users%`, e una caccia che legge un elenco che il progetto non ha viene rifiutata al salvataggio.
 
 La pagina di una caccia è la sua ricerca, aperta nell'esploratore degli eventi. Cambia lì la ricerca o i filtri, e l'intestazione della caccia offre **Salva modifiche** e **Annulla modifiche**. **Modifica** cambia il suo nome, la sua ricerca, fin dove guarda indietro, la sua pianificazione e chi avvisa, e **Elimina caccia** è nel suo menu. Da Security Member in su si possono salvare, modificare ed eliminare cacce, e un Security Viewer può aprirle.
 
@@ -511,7 +512,7 @@ Un'eccezione è qualcosa che una regola salta perché te lo aspetti, come uno sc
 
 ### Elenchi di controllo
 
-Un elenco di controllo è un elenco che il tuo team gestisce una volta sola e che ogni regola può leggere, come utenti VIP, host critici, hash di file malevoli noti o gli indirizzi da cui gli amministratori possono accedere. Ogni elenco si trova in **Prodotti → Eventi di sicurezza → Rilevamenti → Elenchi di controllo**: creane uno lì con **Crea: Elenco di controllo**, che chiede il suo nome e cosa contiene, oppure aggiungine uno comune da **Inizia con un elenco comune**. La pagina di un elenco mostra i suoi valori, e **Usalo in una regola** dà una selezione che legge l'elenco, da copiare in una regola.
+Un elenco di controllo è un elenco che il tuo team gestisce una volta sola e che ogni regola può leggere, come utenti VIP, host critici, hash di file malevoli noti o gli indirizzi da cui gli amministratori possono accedere. Ogni elenco si trova in **Prodotti → Eventi di sicurezza → Rilevamenti → Elenchi di controllo**: creane uno lì con **Crea: Elenco di controllo**, che chiede il suo nome e cosa contiene, oppure aggiungine uno comune da **Inizia con un elenco comune**. La pagina di un elenco mostra i suoi valori, e **Usa questo elenco** dà una selezione che legge l'elenco, da copiare in una regola, e la ricerca che lo legge in **Eventi** o in una caccia.
 
 Una regola legge un elenco con `expand` e il nome dell'elenco tra due segni `%`. Questa regola scatta quando un amministratore accede da un indirizzo che non è nell'elenco consentito:
 
@@ -529,10 +530,14 @@ level: high
 
 - Un elenco contiene utenti, host, indirizzi IP, hash di file, domini, URL, processi o altri valori, scelti alla sua creazione. Un valore corrisponde senza badare a maiuscole e minuscole, e `*` sta per qualunque sequenza di caratteri: `svc-*` corrisponde a ogni account di servizio. Un elenco di indirizzi IP accetta anche intervalli, come `10.20.0.0/16`, e un elenco di hash di file accetta hash MD5, SHA-1, SHA-256 e SHA-512.
 - Aggiungi i valori uno alla volta con **Aggiungi: Valore**, o molti insieme con **Importa valori**: incollali, oppure scegli un file `.txt` o `.csv`, un valore per riga, con una nota facoltativa dopo una virgola. **Aggiungi all'elenco** tiene i valori già presenti, e **Sostituisci l'elenco** rimuove quelli che l'importazione non contiene.
+- Un valore può avere uno **Scade il**: da quel momento nessuna regola, monitor, caccia o ricerca lo legge, e OneUptime lo toglie dall'elenco entro un minuto. Lasciato vuoto, resta finché qualcuno non lo rimuove.
+- **Esporta valori** scarica i valori di un elenco in un file CSV con le colonne `value`, `note` ed `expires`, che **Importa valori** rilegge. Un file la cui prima riga nomina queste colonne dà a ogni valore la sua nota e quando scade: una data come `2026-12-31`, oppure una data e un'ora in UTC.
+- Un elenco può invece essere letto da un file a un indirizzo https, di nuovo **Ogni ora**, **Ogni 6 ore** od **Ogni giorno**: scegli **Un file a un indirizzo** in **Altri campi** quando lo crei. Ogni lettura rende l'elenco ciò che il file contiene, letto come lo legge un'importazione. Una lettura che non riesce non cambia alcun valore e la pagina dell'elenco dice perché, e **Leggi ora** lo legge subito.
 - Invece di gestire valori, un elenco di indirizzi IP, hash di file, domini o URL può seguire un feed di threat intel: i suoi valori sono allora gli indicatori attivi del feed del tipo dell'elenco, aggiornati man mano che il feed viene letto.
-- `expand` si usa da solo, perché sono i valori dell'elenco a dire come corrispondono. Un campo che contiene più valori, come `observables`, corrisponde quando uno di essi è nell'elenco. **Letto da** nomina le regole che leggono ogni elenco, e sotto lo YAML di una regola il suo modulo nomina gli elenchi che la regola legge.
-- Una regola nomina un elenco senza badare a maiuscole e minuscole. Una regola che nomina un elenco che il progetto non ha viene rifiutata al salvataggio, e un elenco letto da regole non può essere rinominato né eliminato finché una regola lo legge.
+- `expand` si usa da solo, perché sono i valori dell'elenco a dire come corrispondono. Un campo che contiene più valori, come `observables`, corrisponde quando uno di essi è nell'elenco. **Letto da** nomina le regole, i monitor Security Events e le cacce che leggono ogni elenco, e sotto lo YAML di una regola il suo modulo nomina gli elenchi che la regola legge.
+- Una regola nomina un elenco senza badare a maiuscole e minuscole. Una regola, un monitor o una caccia che nomina un elenco che il progetto non ha viene rifiutato al salvataggio, e un elenco che uno di loro legge non può essere rinominato né eliminato finché qualcosa lo legge.
 - Una modifica a un elenco raggiunge ogni regola che lo legge alla prossima esecuzione della regola. Anche le regole di correlazione e **Esegui su eventi passati** leggono gli elenchi.
+- Un monitor Security Events legge gli elenchi nel suo **Filtra per elenchi di controllo**, e una ricerca in **Eventi** o in una caccia ne legge uno come `user:%vip_users%`. Un segno meno davanti, come in `-ip:%admin_addresses%`, tiene gli eventi il cui campo non è nell'elenco.
 - Un elenco contiene al massimo 5.000 valori, di cui al massimo 100 con `*` e 100 intervalli, e un progetto ha al massimo 200 elenchi: per un elenco più lungo, segui un feed di threat intel. Chi può creare, modificare o eliminare le regole di rilevamento può fare lo stesso con gli elenchi, e chi può modificare le regole di rilevamento aggiunge, cambia e rimuove i loro valori. Ogni ruolo Security può leggerli, e ogni modifica resta nel registro di audit del progetto.
 
 ### Esegui su eventi passati
@@ -549,11 +554,11 @@ level: high
 
 Un monitor di eventi di sicurezza conta gli eventi che corrispondono ai suoi filtri su una finestra mobile e applica al conteggio i soliti criteri dei monitor: cambia lo stato del monitor, apre avvisi o incidenti e chiama la reperibilità. Creane uno in **Monitor → Crea monitor**, con **Eventi di sicurezza** come tipo; viene elencato lì insieme agli altri tuoi monitor.
 
-Il suo modulo mostra **Monitor events that include this text**, **Monitor Security Events for (time)**, **Event Severity** e **Classe di eventi**. **Filtra per servizio di telemetria** e **Filtra per attributi** aspettano in **Altri campi**, la cui intestazione mostra quelli che un monitor usa. I suoi criteri controllano **Security Event Count**.
+Il suo modulo mostra **Monitor events that include this text**, **Monitor Security Events for (time)**, **Event Severity** e **Classe di eventi**. **Filtra per servizio di telemetria**, **Filtra per attributi** e **Filtra per elenchi di controllo** aspettano in **Altri campi**, la cui intestazione mostra quelli che un monitor usa. **Filtra per elenchi di controllo** tiene gli eventi il cui campo è, o non è, in uno dei tuoi [elenchi di controllo](#elenchi-di-controllo). I suoi criteri controllano **Security Event Count**.
 
 | | Regola di rilevamento | Monitor di eventi di sicurezza |
 | --- | --- | --- |
-| Corrisponde a | Una regola Sigma | Filtri su gravità, classe, messaggio, servizio e attributi |
+| Corrisponde a | Una regola Sigma | Filtri su gravità, classe, messaggio, servizio, attributi ed elenchi di controllo |
 | Finestra | Una dopo l'altra, una per esecuzione | Mobile: dagli ultimi 5 secondi alle ultime 24 ore |
 | Conta per gruppo | Sì, con **Campo di raggruppamento** | No: un unico conteggio per tutto ciò che corrisponde |
 | Apre | Avvisi, incidenti e risultanze | Uno stato, avvisi e incidenti |
@@ -610,11 +615,15 @@ Controlla il suo **Stato** in **Eccezioni delle regole**: un'eccezione nello sta
 :::
 
 :::details Una regola che legge un elenco di controllo non corrisponde
-Apri l'elenco e controlla i suoi valori: un valore senza `*` deve essere uguale all'intero campo, senza badare a maiuscole e minuscole, e un elenco che segue un feed di threat intel contiene solo gli indicatori attivi del feed del suo tipo. Controlla che la regola legga il campo che i tuoi eventi riempiono: **Usalo in una regola** parte dal campo in cui di solito si trova un elenco del suo tipo. Una modifica a un elenco raggiunge una regola alla sua prossima esecuzione.
+Apri l'elenco e controlla i suoi valori: un valore senza `*` deve essere uguale all'intero campo, senza badare a maiuscole e minuscole, e un elenco che segue un feed di threat intel contiene solo gli indicatori attivi del feed del suo tipo. Controlla che la regola legga il campo che i tuoi eventi riempiono: **Usa questo elenco** parte dal campo in cui di solito si trova un elenco del suo tipo. Una modifica a un elenco raggiunge una regola alla sua prossima esecuzione.
 :::
 
 :::details Un elenco di controllo non si può rinominare né eliminare
-Alcune regole lo leggono ancora per nome, e il messaggio le nomina. Cambia il nome in quelle regole, o togli l'elenco da esse, poi rinominalo o eliminalo.
+Alcune regole, monitor o cacce lo leggono ancora per nome, e il messaggio li nomina. Cambia il nome in essi, o togli l'elenco da essi, poi rinominalo o eliminalo.
+:::
+
+:::details Un elenco letto da un indirizzo mostra un errore
+La sua pagina dice perché in **Letto da un indirizzo**, con ciò che l'indirizzo ha risposto, e l'elenco mantiene i valori della sua ultima lettura riuscita. L'indirizzo deve iniziare con `https`, rispondere da internet senza accesso e scaricare un file di testo o CSV di al massimo 4 MB, non una pagina web. Correggilo in **Modifica**, poi scegli **Leggi ora**.
 :::
 
 :::details Eseguire una regola su eventi passati non trova nulla

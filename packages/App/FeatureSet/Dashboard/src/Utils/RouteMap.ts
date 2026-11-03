@@ -603,6 +603,9 @@ export const CloudRoutePath: Dictionary<string> = {
   [PageMap.CLOUD_ARCHIVED]: `archived`,
   [PageMap.CLOUD_MONITORED_RESOURCES]: `resources`,
   [PageMap.CLOUD_CONNECT]: `connect`,
+  [PageMap.CLOUD_COSTS]: `costs`,
+  [PageMap.CLOUD_SAVINGS]: `savings`,
+  [PageMap.CLOUD_BUDGETS]: `budgets`,
   [PageMap.CLOUD_RESOURCE_VIEW_INCIDENTS]: `${RouteParams.ModelID}/incidents`,
   [PageMap.CLOUD_RESOURCE_VIEW_ALERTS]: `${RouteParams.ModelID}/alerts`,
   [PageMap.CLOUD_RESOURCE_VIEW_CHANGES]: `${RouteParams.ModelID}/changes`,
@@ -616,6 +619,7 @@ export const CloudRoutePath: Dictionary<string> = {
   [PageMap.CLOUD_ACCOUNT_VIEW_AI_AGENT]: `accounts/${RouteParams.ModelID}/ai/agent`,
   [PageMap.CLOUD_ACCOUNT_VIEW_AI_LOGS]: `accounts/${RouteParams.ModelID}/ai/logs`,
   [PageMap.CLOUD_ACCOUNT_VIEW_FEED]: `accounts/${RouteParams.ModelID}/feed`,
+  [PageMap.CLOUD_ACCOUNT_VIEW_COSTS]: `accounts/${RouteParams.ModelID}/costs`,
 };
 
 export const DatabaseRoutePath: Dictionary<string> = {
@@ -5848,6 +5852,28 @@ const RouteMap: Dictionary<Route> = {
 
   [PageMap.CLOUD_HOME]: new Route(`/dashboard/${RouteParams.ProjectID}/cloud`),
 
+  [PageMap.CLOUD_OVERVIEW]: new Route(
+    `/dashboard/${RouteParams.ProjectID}/cloud`,
+  ),
+
+  [PageMap.CLOUD_COSTS]: new Route(
+    `/dashboard/${RouteParams.ProjectID}/cloud/${
+      CloudRoutePath[PageMap.CLOUD_COSTS]
+    }`,
+  ),
+
+  [PageMap.CLOUD_SAVINGS]: new Route(
+    `/dashboard/${RouteParams.ProjectID}/cloud/${
+      CloudRoutePath[PageMap.CLOUD_SAVINGS]
+    }`,
+  ),
+
+  [PageMap.CLOUD_BUDGETS]: new Route(
+    `/dashboard/${RouteParams.ProjectID}/cloud/${
+      CloudRoutePath[PageMap.CLOUD_BUDGETS]
+    }`,
+  ),
+
   [PageMap.CLOUD_MONITORED_RESOURCES]: new Route(
     `/dashboard/${RouteParams.ProjectID}/cloud/${
       CloudRoutePath[PageMap.CLOUD_MONITORED_RESOURCES]
@@ -6006,6 +6032,12 @@ const RouteMap: Dictionary<Route> = {
   [PageMap.CLOUD_ACCOUNT_VIEW_FEED]: new Route(
     `/dashboard/${RouteParams.ProjectID}/cloud/${
       CloudRoutePath[PageMap.CLOUD_ACCOUNT_VIEW_FEED]
+    }`,
+  ),
+
+  [PageMap.CLOUD_ACCOUNT_VIEW_COSTS]: new Route(
+    `/dashboard/${RouteParams.ProjectID}/cloud/${
+      CloudRoutePath[PageMap.CLOUD_ACCOUNT_VIEW_COSTS]
     }`,
   ),
 

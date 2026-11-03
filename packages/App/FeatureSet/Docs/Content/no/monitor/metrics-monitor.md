@@ -116,7 +116,7 @@ Jo lengre vinduet er, desto bredere er hvert tidsintervall, så ett datapunkt st
 
 ## Kriterier
 
-Disse monitorene evaluerer alltid **Metric Value**: den aggregerte verdien av den konfigurerte metrikkspørringen eller formelen. **Når det skal varsles** setter opp ett kriterium ut fra **Målt som**, **Tidsvindu**, **Betingelse** og **Verdi**. Når metrikken har en enhet, velger du verdiens enhet ved siden av den. **Betingelse** er **Over**, **På eller over**, **Under**, **På eller under**, **Nøyaktig**, **Uvanlig høy**, **Uvanlig lav** eller **Uvanlig høy eller lav**. For flere kriterier, for eksempel alvorlighetsbånd, klikker du på **Rediger som egne kriterier** under **Flere felt** i **Hva som skjer**: hvert kriterium der har en **Metrikk**, en **Aggregering**, en **Betingelse** og en **Terskel**.
+Disse monitorene evaluerer alltid **Metric Value**: den aggregerte verdien av den konfigurerte metrikkspørringen eller formelen. **Når det skal varsles** setter opp ett kriterium ut fra **Målt som**, **Tidsvindu**, **Betingelse** og **Verdi**. Når metrikken har en enhet, velger du verdiens enhet ved siden av den. **Betingelse** er **Over**, **På eller over**, **Under**, **På eller under**, **Nøyaktig**, **Uvanlig høy**, **Uvanlig lav**, **Uvanlig høy eller lav**, **Ventes å stige over** eller **Ventes å falle under**. For flere kriterier, for eksempel alvorlighetsbånd, klikker du på **Rediger som egne kriterier** under **Flere felt** i **Hva som skjer**: hvert kriterium der har en **Metrikk**, en **Aggregering**, en **Betingelse** og en **Terskel**.
 
 | Betingelse | Samsvarer når verdien er… |
 | --- | --- |
@@ -128,10 +128,14 @@ Disse monitorene evaluerer alltid **Metric Value**: den aggregerte verdien av de
 | **Anomalously High** | over det forventede området for denne timen i uken |
 | **Anomalously Low** | under det området |
 | **Anomalous** | utenfor det området, i hvilken som helst retning |
+| **Ventes å stige over** | er på vei over terskelen: trenden er over den ved slutten av **Tidshorisont** |
+| **Ventes å falle under** | er på vei under terskelen, ved slutten av **Tidshorisont** |
 | **Ingen data** | fraværende: spørringen sendte ingenting i vinduet |
 | **Har data** | til stede: spørringen sendte noe i vinduet |
 
 Avviksvilkårene har ingen terskel. **Når det skal varsles** viser i stedet **Følsomhet** (Lav, Middels, som er standard, eller Høy), og de egne kriteriene også et **Grunnlinjevindu** (14 dager, som er standard, 28, 60 eller 90), og hvert datapunkt sammenlignes med samme time i uken på tidligere dager, så langt tilbake som det vinduet rekker. Det som skjer nå, er aldri del av sammenligningen, så en endring som varer, fortsetter å varsle til den en uke senere har kommet inn i de tidligere dagene. Inntil den timen i uken har to ukers historikk, lærer kriteriet fortsatt og gir ingen varsler.
+
+Prognosebetingelsene sammenligner hvor metrikken er på vei, med terskelen, så en disk som fylles litt hver dag, varsler dager før den er full. Hver sjekk trekker en rett linje gjennom datapunktene til hver serie i **Tidsvindu** og følger den så langt frem som **Tidshorisont** sier, fra 1 time til 30 dager: en uke med mindre du endrer det. Kriteriet treffer når linjen er forbi terskelen ved slutten av den tiden, og hendelsen sier hvor metrikken er på vei og når den krysser terskelen. Velg et langt vindu, for eksempel **Siste 7 dager**, så linjen følger hvordan metrikken vokser, og ikke de daglige svingningene. En serie får en prognose når dataene dekker halve vinduet, og ikke lenger når dataene slutter å komme. For å bli varslet før et filsystem blir fullt, overvåk `system.filesystem.utilization` med Max, gruppert etter vert og monteringspunkt, og varsle når det ventes å stige over 90 % innen 7 dager.
 
 Hva et datapunkt sammenlignes med, avhenger av spørringen:
 

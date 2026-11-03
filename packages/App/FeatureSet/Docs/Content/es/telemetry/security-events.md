@@ -256,6 +256,7 @@ La barra de búsqueda habla el mismo lenguaje que los demás exploradores de tel
 | `<field>:a*` | `*` es cualquier texto, `?` un carácter | `host:web-*` |
 | `@<attribute>:*` | El atributo está presente | `@threat.indicator_id:*` |
 | `@<attribute>:~text` | El atributo contiene el texto | `@finding_info.title:~ransom` |
+| `<field>:%<watchlist>%` | El campo está en una [lista de seguimiento](#listas-de-seguimiento) | `user:%vip_users%` |
 
 Un campo es un nombre corto (`severity`, `class`, `category`, `activity`, `status`, `vendor`, `product`, `rule`, `user`, `host`, `ip`, `targetuser`, `targethost`, `targetip`, `processname`, `commandline`, `parentprocessname`, `observable`, `tactic`, `technique`, `requestoutcome`, `trace`, `session`) o el nombre propio del campo, como `severityName` o `principalHost`. Cualquier otro nombre se lee como atributo de origen. `observable:<value>` encuentra cada evento que menciona un valor, estuviera en el lado de la actividad que estuviera.
 
@@ -281,7 +282,7 @@ Una cacería es una búsqueda sobre tus eventos de seguridad guardada con un nom
 
 ### Guardar una búsqueda como cacería
 
-En **Eventos**, busca y filtra hasta que la lista muestre lo que buscas, luego abre **Cacerías** en la barra de herramientas y elige **Guardar como cacería**. Ponle un nombre, elige si se ejecuta según una programación, y se abre su página. **Eventos → Cacerías** lista las cacerías del proyecto, cada una con su búsqueda, con qué frecuencia se ejecuta, a quién avisa y qué encontró su última ejecución; **Crear Cacería** toma ahí la búsqueda tal como la escribirías en **Eventos**. Un proyecto guarda hasta 200 cacerías.
+En **Eventos**, busca y filtra hasta que la lista muestre lo que buscas, luego abre **Cacerías** en la barra de herramientas y elige **Guardar como cacería**. Ponle un nombre, elige si se ejecuta según una programación, y se abre su página. **Eventos → Cacerías** lista las cacerías del proyecto, cada una con su búsqueda, con qué frecuencia se ejecuta, a quién avisa y qué encontró su última ejecución; **Crear Cacería** toma ahí la búsqueda tal como la escribirías en **Eventos**. Un proyecto guarda hasta 200 cacerías. Una búsqueda puede leer una [lista de seguimiento](#listas-de-seguimiento), como hace `user:%vip_users%`, y una cacería que lee una lista que el proyecto no tiene se rechaza al guardarla.
 
 La página de una cacería es su búsqueda, abierta en el explorador de eventos. Cambia ahí la búsqueda o los filtros, y la cabecera de la cacería ofrece **Guardar cambios** y **Descartar cambios**. **Editar** cambia su nombre, su búsqueda, hasta dónde mira hacia atrás, su programación y a quién avisa, y **Eliminar cacería** está en su menú. Desde Security Member se pueden guardar, cambiar y eliminar cacerías, y un Security Viewer puede abrirlas.
 
@@ -511,7 +512,7 @@ Una excepción es algo que una regla omite porque lo esperas, como un escáner d
 
 ### Listas de seguimiento
 
-Una lista de seguimiento es una lista que tu equipo mantiene una sola vez y que cualquier regla puede leer, como usuarios VIP, hosts críticos, hashes de archivos maliciosos conocidos o las direcciones desde las que los administradores pueden iniciar sesión. Todas las listas están en **Productos → Eventos de seguridad → Detecciones → Listas de seguimiento**: crea una allí con **Crear Lista de seguimiento**, que pide su nombre y lo que contiene, o añade una habitual desde **Empieza con una lista habitual**. La página de una lista muestra sus valores, y **Úsala en una regla** da una selección que lee la lista, para copiarla en una regla.
+Una lista de seguimiento es una lista que tu equipo mantiene una sola vez y que cualquier regla puede leer, como usuarios VIP, hosts críticos, hashes de archivos maliciosos conocidos o las direcciones desde las que los administradores pueden iniciar sesión. Todas las listas están en **Productos → Eventos de seguridad → Detecciones → Listas de seguimiento**: crea una allí con **Crear Lista de seguimiento**, que pide su nombre y lo que contiene, o añade una habitual desde **Empieza con una lista habitual**. La página de una lista muestra sus valores, y **Usar esta lista** da una selección que lee la lista, para copiarla en una regla, y la búsqueda que la lee en **Eventos** o en una cacería.
 
 Una regla lee una lista con `expand` y el nombre de la lista entre signos `%`. Esta regla se dispara cuando un administrador inicia sesión desde una dirección que no está en la lista permitida:
 
@@ -529,10 +530,14 @@ level: high
 
 - Una lista contiene usuarios, hosts, direcciones IP, hashes de archivos, dominios, URLs, procesos u otros valores, elegidos al crearla. Un valor coincide sin importar mayúsculas y minúsculas, y `*` representa cualquier serie de caracteres: `svc-*` coincide con cada cuenta de servicio. Una lista de direcciones IP también admite rangos, como `10.20.0.0/16`, y una lista de hashes de archivos admite hashes MD5, SHA-1, SHA-256 y SHA-512.
 - Añade valores de uno en uno con **Añadir Valor**, o muchos a la vez con **Importar valores**: pégalos, o elige un archivo `.txt` o `.csv`, un valor por línea, con una nota opcional tras una coma. **Añadir a la lista** conserva los valores que ya tiene, y **Reemplazar la lista** quita los que la importación no trae.
+- Un valor puede tener un **Caduca el**: desde entonces ninguna regla, monitor, cacería ni búsqueda lo lee, y OneUptime lo quita de la lista en menos de un minuto. Si se deja vacío, se queda hasta que alguien lo quite.
+- **Exportar valores** descarga los valores de una lista en un archivo CSV con las columnas `value`, `note` y `expires`, que **Importar valores** vuelve a leer. Un archivo cuya primera línea nombra esas columnas da a cada valor su nota y cuándo caduca: una fecha como `2026-12-31`, o una fecha y hora en UTC.
+- Una lista puede leerse en cambio desde un archivo en una dirección https, de nuevo **Cada hora**, **Cada 6 horas** o **Cada día**: elige **Un archivo en una dirección** en **Más campos** al crearla. Cada lectura deja la lista tal como está el archivo, leído como lo lee una importación. Una lectura que falla no cambia ningún valor y la página de la lista dice por qué, y **Leer ahora** la lee al momento.
 - En lugar de mantener valores, una lista de direcciones IP, hashes de archivos, dominios o URLs puede seguir un feed de inteligencia de amenazas: sus valores son entonces los indicadores activos del feed del tipo de la lista, que se mantienen al día a medida que se lee el feed.
-- `expand` se usa solo, porque los valores de la lista dicen cómo coinciden. Un campo que contiene varios valores, como `observables`, coincide cuando alguno de ellos está en la lista. **Leída por** nombra las reglas que leen cada lista, y bajo el YAML de una regla su formulario nombra las listas que la regla lee.
-- Una regla nombra una lista sin importar mayúsculas y minúsculas. Una regla que nombra una lista que el proyecto no tiene se rechaza al guardarla, y una lista que leen reglas no puede renombrarse ni eliminarse hasta que ninguna regla la lea.
+- `expand` se usa solo, porque los valores de la lista dicen cómo coinciden. Un campo que contiene varios valores, como `observables`, coincide cuando alguno de ellos está en la lista. **Leída por** nombra las reglas, los monitores de eventos de seguridad y las cacerías que leen cada lista, y bajo el YAML de una regla su formulario nombra las listas que la regla lee.
+- Una regla nombra una lista sin importar mayúsculas y minúsculas. Una regla, un monitor o una cacería que nombra una lista que el proyecto no tiene se rechaza al guardarla, y una lista que lee alguno de ellos no puede renombrarse ni eliminarse hasta que nada la lea.
 - Un cambio en una lista llega a cada regla que la lee en la siguiente ejecución de la regla. Las reglas de correlación y **Ejecutar sobre eventos pasados** también leen listas.
+- Un monitor de eventos de seguridad lee listas en su **Filtrar por listas de seguimiento**, y una búsqueda en **Eventos** o en una cacería lee una como `user:%vip_users%`. Un signo menos delante, como en `-ip:%admin_addresses%`, conserva los eventos cuyo campo no está en la lista.
 - Una lista tiene como máximo 5.000 valores, de ellos como máximo 100 con `*` y 100 rangos, y un proyecto tiene como máximo 200 listas: para una lista más larga, sigue un feed de inteligencia de amenazas. Quien puede crear, editar o eliminar reglas de detección puede hacer lo mismo con las listas, y quien puede editar reglas de detección añade, cambia y quita sus valores. Cualquier rol de Security puede leerlas, y cada cambio queda en el registro de auditoría del proyecto.
 
 ### Ejecutar sobre eventos pasados
@@ -549,11 +554,11 @@ level: high
 
 Un monitor de eventos de seguridad cuenta los eventos que coinciden con sus filtros sobre una ventana deslizante y aplica al recuento los criterios habituales de los monitores: cambia el estado del monitor, abre alertas o incidentes y avisa a la guardia. Crea uno en **Monitores → Crear monitor**, con **Eventos de seguridad** como tipo; aparece allí junto a sus demás monitores.
 
-Su formulario muestra **Monitorear eventos que incluyan este texto**, **Monitorear eventos de seguridad durante (tiempo)**, **Gravedad del evento** y **Clase de evento**. **Filtrar por servicio de telemetría** y **Filtrar por atributos** esperan en **Más campos**, cuya cabecera muestra los que usa un monitor. Sus criterios comprueban **Security Event Count**.
+Su formulario muestra **Monitorear eventos que incluyan este texto**, **Monitorear eventos de seguridad durante (tiempo)**, **Gravedad del evento** y **Clase de evento**. **Filtrar por servicio de telemetría**, **Filtrar por atributos** y **Filtrar por listas de seguimiento** esperan en **Más campos**, cuya cabecera muestra los que usa un monitor. **Filtrar por listas de seguimiento** conserva los eventos cuyo campo está, o no está, en una de tus [listas de seguimiento](#listas-de-seguimiento). Sus criterios comprueban **Security Event Count**.
 
 | | Regla de detección | Monitor de eventos de seguridad |
 | --- | --- | --- |
-| Coincide con | Una regla Sigma | Filtros de gravedad, clase, mensaje, servicio y atributos |
+| Coincide con | Una regla Sigma | Filtros de gravedad, clase, mensaje, servicio, atributos y listas de seguimiento |
 | Ventana | Una tras otra, una por ejecución | Deslizante: de los últimos 5 segundos a 24 horas |
 | Cuenta por grupo | Sí, con **Campo de agrupación** | No: un solo recuento para todo lo que coincide |
 | Abre | Alertas, incidentes y hallazgos | Un estado, alertas e incidentes |
@@ -610,11 +615,15 @@ Comprueba su **Estado** en **Excepciones de regla**: una excepción en estado **
 :::
 
 :::details Una regla que lee una lista de seguimiento no coincide
-Abre la lista y revisa sus valores: un valor sin `*` debe ser igual al campo entero, sin importar mayúsculas y minúsculas, y una lista que sigue un feed de inteligencia de amenazas solo contiene los indicadores activos del feed de su tipo. Comprueba que la regla lee el campo que llenan tus eventos: **Úsala en una regla** empieza con el campo en el que suele estar una lista de su tipo. Un cambio en una lista llega a una regla en su siguiente ejecución.
+Abre la lista y revisa sus valores: un valor sin `*` debe ser igual al campo entero, sin importar mayúsculas y minúsculas, y una lista que sigue un feed de inteligencia de amenazas solo contiene los indicadores activos del feed de su tipo. Comprueba que la regla lee el campo que llenan tus eventos: **Usar esta lista** empieza con el campo en el que suele estar una lista de su tipo. Un cambio en una lista llega a una regla en su siguiente ejecución.
 :::
 
 :::details Una lista de seguimiento no se puede renombrar ni eliminar
-Hay reglas que aún la leen por su nombre, y el mensaje las nombra. Cambia el nombre en esas reglas, o quita la lista de ellas, y luego renómbrala o elimínala.
+Hay reglas, monitores o cacerías que aún la leen por su nombre, y el mensaje los nombra. Cambia el nombre en ellos, o quita la lista de ellos, y luego renómbrala o elimínala.
+:::
+
+:::details Una lista leída desde una dirección muestra un error
+Su página dice por qué en **Leída desde una dirección**, con lo que respondió la dirección, y la lista conserva los valores de su última lectura correcta. La dirección debe empezar por `https`, responder desde internet sin iniciar sesión y descargar un archivo de texto o CSV de 4 MB como máximo, no una página web. Corrígela en **Editar** y luego elige **Leer ahora**.
 :::
 
 :::details Ejecutar una regla sobre eventos pasados no encuentra nada

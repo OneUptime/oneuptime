@@ -39,11 +39,17 @@
 <!--
     Consent.
 
-    Nothing that measures you runs until it is allowed. Where the law asks for
-    consent first (the EEA, the UK and Switzerland), that means until you press
-    "Accept all". Elsewhere measurement runs until you press "Reject all", and
-    a refusal stops it, clears what it stored and is remembered. A browser
-    sending Global Privacy Control counts as a refusal unless you accept.
+    Nothing stores anything on your device to measure you until it is allowed.
+    Where the law asks for consent first (the EEA, the UK and Switzerland),
+    that means until you press "Accept all". Elsewhere measurement runs until
+    you press "Reject all", and a refusal stops it, clears what it stored and
+    is remembered. A browser sending Global Privacy Control counts as a refusal
+    unless you accept.
+
+    On the website, Google's own tags load either way, in Consent Mode's
+    advanced mode: until measurement is allowed they set no cookies and send
+    Google only cookieless signals. Every other tag in the container waits for
+    consent.
 -->
 <% if (tagsEnabled) { %>
 <!--
@@ -353,13 +359,14 @@
 <% if (tagsEnabled) { %>
 
 <!--
-    The Google tag, loaded only once measurement is allowed.
 <% if (tagMode === 'analytics-only') { %>
-    Google Analytics alone, sent the product's key events by
-    Common/Utils/Analytics.ts. No container, so no advertising pixel or
-    visitor identification tool can run here, whatever the container holds.
+    The Google tag, loaded only once measurement is allowed: Google Analytics
+    alone, sent the product's key events by Common/Utils/Analytics.ts. No
+    container, so no advertising pixel or visitor identification tool can run
+    here, whatever the container holds.
 <% } else { %>
-    The Google Tag Manager container, with every tag it holds.
+    The Google Tag Manager container, with every tag it holds, loaded at once
+    in Consent Mode's advanced mode (see the script below).
 <% } %>
 -->
 <script>
@@ -408,7 +415,42 @@
             }
         }
 
+<% if (tagMode === 'analytics-only') { %>
         window.oneUptimeConsent.whenAllowed(loadGoogleTag);
+<% } else { %>
+        /*
+         * Consent Mode's advanced mode. The container loads now, whatever the
+         * answer, under the default pushed above: while measurement is not
+         * allowed, Google's own tags set no cookies and send Google cookieless
+         * signals, which Google Ads and Analytics model the conversions they
+         * cannot see from. URL passthrough has them carry an ad click from
+         * page to page in the address instead of in a cookie.
+         *
+         * Every other tag in the container - the Meta, Microsoft, Quora,
+         * Reddit and X pixels - requires ad_storage in its consent settings
+         * and fires once per page, on page view and on consent_granted below.
+         * That lives in Tag Manager, not here, and must be published before
+         * this ships: without it those pixels would run for visitors who
+         * refused (Docs/analytics/enterprise-conversion-tracking.md).
+         */
+        window.gtag('set', 'url_passthrough', true);
+        loadGoogleTag();
+
+        /*
+         * A visitor who accepts after the container booted. Google's tags
+         * pick the update up on their own; the others hear this event, so
+         * they fire on this page rather than the next.
+         */
+        var allowed = window.oneUptimeConsent.isAllowed();
+
+        window.oneUptimeConsent.onChange(function (nowAllowed) {
+            if (nowAllowed && !allowed) {
+                window.dataLayer.push({ event: 'consent_granted' });
+            }
+
+            allowed = nowAllowed;
+        });
+<% } %>
     })();
 </script>
 <% } %>
@@ -435,13 +477,22 @@
 
     A touch is stored only while measurement is allowed. A visitor who has not
     been asked yet keeps this page's touch in memory, and it is stored the
-    moment they accept; a refusal clears everything stored, and nothing is
-    read back or handed to Cal.com while measurement is not allowed.
+    moment they accept; a refusal clears everything stored, and nothing stored
+    is read back while measurement is not allowed.
+
+    WHILE MEASUREMENT IS NOT ALLOWED
+
+    Only the campaign's labels are kept - the UTM values and Google Ads'
+    campaign parameters, which describe the ad rather than the person - and
+    only in the address: the website carries them from page to page in one
+    parameter, ou_campaign, as a link is followed. Nothing is stored, and no
+    click ID, landing address or first touch is kept.
 
     CAL.COM BOOKINGS
 
     window.oneUptimeCalAttributionMetadata(bookingKind) flattens the same
-    attribution into the scalar string map Cal.com accepts as booking metadata.
+    attribution into the scalar string map Cal.com accepts as booking metadata
+    - the campaign's labels alone while measurement is not allowed.
     Cal hands it back on its BOOKING_CREATED webhook, which is delivered to the
     CRM - not to OneUptime, which receives no booking webhook at all
     (Docs/analytics/enterprise-conversion-tracking.md).
@@ -488,6 +539,24 @@
          * the whole first touch silently.
          */
         var MAX_FIRST_TOUCH_LENGTH = 4000;
+
+        /*
+         * The one parameter the campaign's labels travel in while measurement
+         * is not allowed. A name of its own rather than the UTM names: those
+         * would register as a fresh touch on every page a visitor who later
+         * accepts arrives on, and overwrite utmUrl with an internal page.
+         */
+        var CARRIED_CAMPAIGN_PARAM = 'ou_campaign';
+
+        // An address a proxy refuses is worse than one that carries nothing.
+        var MAX_CARRIED_CAMPAIGN_LENGTH = 1000;
+
+        /*
+         * Never carried onto the product - sign-up and the dashboard read no
+         * campaign from a visitor who said no - or onto the pages OneUptime's
+         * customers publish.
+         */
+        var NOT_CARRIED_ONTO = /^\/(accounts|dashboard|admin|identity|status-page|public-dashboard)(\/|$)/;
 
         /*
          * This page's touch, kept in memory as well as written.
@@ -573,6 +642,36 @@
                 referrer: document.referrer || '',
                 timestamp: new Date().toISOString()
             };
+        }
+
+        /*
+         * What a visitor whose measurement is not allowed is attributed with:
+         * the campaign's labels, from this page's own address if it arrived on
+         * a campaign link, otherwise from the ones carried here from the page
+         * before. A value holding an '@' is an email address someone put in a
+         * link - it describes a person, so it is left out.
+         */
+        function readCampaignLabels() {
+            var urlParams = new URLSearchParams(window.location.search);
+
+            function labelsIn(params) {
+                var labels = {};
+                Object.keys(UTM_KEY_MAP).forEach(function (param) {
+                    var value = params.get(param);
+                    if (value && value.indexOf('@') === -1) {
+                        labels[param] = bound(value);
+                    }
+                });
+                return labels;
+            }
+
+            var own = labelsIn(urlParams);
+            if (Object.keys(own).length > 0) {
+                return own;
+            }
+
+            var carried = urlParams.get(CARRIED_CAMPAIGN_PARAM);
+            return carried ? labelsIn(new URLSearchParams(carried)) : {};
         }
 
         function storeTouch(touch) {
@@ -707,7 +806,6 @@
          * unconditionally without sending an empty metadata bag.
          */
         window.oneUptimeCalAttributionMetadata = function (bookingKind) {
-            var attribution = window.oneUptimeGetAttribution();
             var config = {};
 
             function put(key, value, maxLength) {
@@ -717,21 +815,35 @@
                 }
             }
 
-            Object.keys(UTM_KEY_MAP).forEach(function (param) {
-                put(param, attribution.utm[UTM_KEY_MAP[param]]);
-            });
+            if (isAllowed()) {
+                var attribution = window.oneUptimeGetAttribution();
 
-            put('utm_url', attribution.utm.utmUrl);
+                Object.keys(UTM_KEY_MAP).forEach(function (param) {
+                    put(param, attribution.utm[UTM_KEY_MAP[param]]);
+                });
 
-            Object.keys(attribution.clickIds).forEach(function (param) {
-                put(param, attribution.clickIds[param]);
-            });
+                put('utm_url', attribution.utm.utmUrl);
 
-            if (attribution.firstTouch) {
-                var serialized = JSON.stringify(attribution.firstTouch);
-                if (serialized.length <= MAX_FIRST_TOUCH_LENGTH) {
-                    put('ou_first_touch', serialized, MAX_FIRST_TOUCH_LENGTH);
+                Object.keys(attribution.clickIds).forEach(function (param) {
+                    put(param, attribution.clickIds[param]);
+                });
+
+                if (attribution.firstTouch) {
+                    var serialized = JSON.stringify(attribution.firstTouch);
+                    if (serialized.length <= MAX_FIRST_TOUCH_LENGTH) {
+                        put('ou_first_touch', serialized, MAX_FIRST_TOUCH_LENGTH);
+                    }
                 }
+            } else {
+                /*
+                 * The campaign's labels alone (readCampaignLabels): which ad,
+                 * not which visit. A booking from a visitor who refused still
+                 * says where it came from, with nothing that identifies them
+                 * beyond what they type into the booking form.
+                 */
+                Object.keys(campaignLabels).forEach(function (param) {
+                    put(param, campaignLabels[param]);
+                });
             }
 
             /*
@@ -748,7 +860,82 @@
             return config;
         };
 
+        /*
+         * The campaign's labels, put on a link to another page of this site so
+         * that they reach the page the visitor books on. Only while
+         * measurement is not allowed - a visitor who allows it has the stored
+         * touch - and never onto NOT_CARRIED_ONTO. Returns the address as it
+         * was when there is nothing to carry.
+         */
+        window.oneUptimeCarryCampaign = function (href) {
+            if (!href || href.charAt(0) === '#' || isAllowed()) {
+                return href;
+            }
+
+            var carried = new URLSearchParams(campaignLabels).toString();
+
+            if (!carried || carried.length > MAX_CARRIED_CAMPAIGN_LENGTH) {
+                return href;
+            }
+
+            var here;
+            var target;
+
+            try {
+                here = new URL(window.location.href);
+                target = new URL(href, here.href);
+            } catch (e) {
+                return href;
+            }
+
+            if (target.origin !== here.origin || NOT_CARRIED_ONTO.test(target.pathname)) {
+                return href;
+            }
+
+            /*
+             * A jump to a section of this page keeps this page's address, so
+             * it stays a jump - the labels are already in that address -
+             * rather than reloading the page without them.
+             */
+            if (target.pathname === here.pathname && target.hash && !target.search) {
+                target.search = here.search;
+                return target.href;
+            }
+
+            target.searchParams.set(CARRIED_CAMPAIGN_PARAM, carried);
+            return target.href;
+        };
+
+<% if (tagMode === 'tag-manager') { %>
+        /*
+         * The website carries them as a link is followed, after the page's
+         * own handlers have read the link as written, so a link added after
+         * load is carried too. A middle click or the context menu opens a
+         * link in a new tab, so those carry it as well. The product, with
+         * its own Google tag mode, rewrites no links.
+         */
+        ['click', 'auxclick', 'contextmenu'].forEach(function (eventName) {
+            document.addEventListener(eventName, function (event) {
+                var link = event.target && event.target.closest
+                    ? event.target.closest('a[href]')
+                    : null;
+
+                if (!link || event.defaultPrevented) {
+                    return;
+                }
+
+                var href = link.getAttribute('href');
+                var carried = window.oneUptimeCarryCampaign(href);
+
+                if (carried !== href) {
+                    link.setAttribute('href', carried);
+                }
+            });
+        });
+<% } %>
+
         var touch = readTouchFromUrl();
+        var campaignLabels = readCampaignLabels();
 
         if (touch) {
             currentTouch = touch;

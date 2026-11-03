@@ -333,6 +333,7 @@ criteria = [
 | サーバーのプロセス | `Is Executing`、`Is Not Executing` |
 | スクリプト | `Evaluates To True` |
 | 異常 (メトリクス、ログ、トレース用) | `Anomalously High`、`Anomalously Low`、`Anomalous` |
+| 予測 (メトリクス用) | `Forecast Above`、`Forecast Below` (予測期間は `forecast.horizonInHours` で、`metric_monitor_options` に書きます。省略時は一週間) |
 
 SSL 証明書の有効期限が 14 日以内になったときに一致するフィルター:
 

@@ -304,6 +304,7 @@ import "./Jobs/SecurityEvents/ForwardSecurityEvents";
 import "./Jobs/SecurityEvents/EntityRisk";
 import "./Jobs/SecurityEvents/RunScheduledHunts";
 import "./Jobs/SecurityEvents/SendSecurityHuntNotification";
+import "./Jobs/SecurityEvents/SecurityWatchlists";
 import "./Jobs/ThreatIntel/PollThreatIntelFeeds";
 import "./Jobs/ThreatIntel/MatchThreatIntelIndicators";
 import "./Jobs/SecurityPlaybooks/RunSecurityPlaybook";
@@ -363,6 +364,7 @@ import "./Jobs/IoT/CleanupStaleResources";
 // Cloud environment disconnection sweeper + instance inventory cleanup.
 import "./Jobs/Cloud/CleanupStaleResources";
 import "./Jobs/Cloud/ReadCloudConnections";
+import "./Jobs/Cloud/EvaluateCloudBudgets";
 import "./Jobs/DataSecurity/DataSecurityJobs";
 import "./Jobs/DataObservability/DataObservabilityJobs";
 // Network controller connections (Meraki): traffic read on a schedule.

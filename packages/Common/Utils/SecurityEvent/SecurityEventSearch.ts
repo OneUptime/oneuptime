@@ -3,8 +3,11 @@ import lookupTable from "../LookupTable";
 import Includes from "../../Types/BaseDatabase/Includes";
 import IncludesNone from "../../Types/BaseDatabase/IncludesNone";
 import NotEqual from "../../Types/BaseDatabase/NotEqual";
+import NotOnWatchlist from "../../Types/BaseDatabase/NotOnWatchlist";
+import OnWatchlist from "../../Types/BaseDatabase/OnWatchlist";
 import Query from "../../Types/BaseDatabase/Query";
 import Search from "../../Types/BaseDatabase/Search";
+import { readSecurityWatchlistPlaceholder } from "../../Types/SecurityEvent/SecurityWatchlist";
 import {
   SearchQueryValue,
   SearchToken,
@@ -179,9 +182,12 @@ export interface SecurityEventSearchFilters {
    */
   freeText: string | null;
   /** Column -> compiled predicate. */
-  fields: Record<string, SearchQueryValue | number>;
+  fields: Record<
+    string,
+    SearchQueryValue | number | OnWatchlist | NotOnWatchlist
+  >;
   /** Source attribute key -> compiled predicate. */
-  attributes: Record<string, SearchQueryValue>;
+  attributes: Record<string, SearchQueryValue | OnWatchlist | NotOnWatchlist>;
 }
 
 export const EMPTY_SECURITY_EVENT_SEARCH_FILTERS: SecurityEventSearchFilters = {
@@ -190,10 +196,53 @@ export const EMPTY_SECURITY_EVENT_SEARCH_FILTERS: SecurityEventSearchFilters = {
   attributes: {},
 };
 
+/*
+ * A field or an attribute read against a watchlist: `user:%vip_users%` is
+ * on the list, `-ip:%admin_addresses%` (or `ip:!%admin_addresses%`) is not,
+ * as a rule's `expand` and its `not` read them. The value is the list's
+ * name between % signs, alone; anything else is the value it always was.
+ * The server reads the list before the search runs
+ * (SecurityWatchlistQueryBinder).
+ */
+export function compileWatchlistSearchValue(
+  token: SearchToken,
+): OnWatchlist | NotOnWatchlist | null {
+  const operator: SearchValueOperator = token.predicate.operator;
+
+  if (
+    operator !== SearchValueOperator.Equals &&
+    operator !== SearchValueOperator.NotEquals
+  ) {
+    return null;
+  }
+
+  const name: string | null = readSecurityWatchlistPlaceholder(
+    token.predicate.value,
+  );
+
+  if (!name) {
+    return null;
+  }
+
+  return operator === SearchValueOperator.NotEquals
+    ? new NotOnWatchlist(name)
+    : new OnWatchlist(name);
+}
+
 function compileFieldValue(
   column: string,
   token: SearchToken,
-): SearchQueryValue | number {
+): SearchQueryValue | number | OnWatchlist | NotOnWatchlist {
+  // A number is never on a list: `targetPort:%x%` is the value as typed.
+  if (!SECURITY_EVENT_NUMERIC_FIELDS.has(column)) {
+    const watchlist: OnWatchlist | NotOnWatchlist | null =
+      compileWatchlistSearchValue(token);
+
+    if (watchlist) {
+      return watchlist;
+    }
+  }
+
   const compiled: SearchQueryValue = predicateToQueryValue(token.predicate);
 
   /*
@@ -235,8 +284,14 @@ export function parseSecurityEventSearch(
     fieldAliases: SECURITY_EVENT_FIELD_ALIASES,
   });
 
-  const fields: Record<string, SearchQueryValue | number> = {};
-  const attributes: Record<string, SearchQueryValue> = {};
+  const fields: Record<
+    string,
+    SearchQueryValue | number | OnWatchlist | NotOnWatchlist
+  > = {};
+  const attributes: Record<
+    string,
+    SearchQueryValue | OnWatchlist | NotOnWatchlist
+  > = {};
   const freeTextParts: Array<string> = [];
 
   for (const token of tokens) {
@@ -255,7 +310,9 @@ export function parseSecurityEventSearch(
         continue;
       }
 
-      attributes[token.key] = predicateToQueryValue(token.predicate);
+      attributes[token.key] =
+        compileWatchlistSearchValue(token) ||
+        predicateToQueryValue(token.predicate);
       continue;
     }
 
@@ -270,7 +327,9 @@ export function parseSecurityEventSearch(
     );
 
     if (!column) {
-      attributes[token.key] = predicateToQueryValue(token.predicate);
+      attributes[token.key] =
+        compileWatchlistSearchValue(token) ||
+        predicateToQueryValue(token.predicate);
       continue;
     }
 

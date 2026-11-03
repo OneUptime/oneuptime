@@ -116,7 +116,7 @@ Je länger das Fenster, desto breiter jedes Zeitintervall, sodass ein Datenpunkt
 
 ## Kriterien
 
-Diese Monitore werten immer den **Metric Value** aus – den aggregierten Wert der konfigurierten Metrikabfrage oder Formel. **Wann alarmieren** richtet ein Kriterium aus **Gemessen als**, **Zeitfenster**, **Bedingung** und **Wert** ein. Hat die Metrik eine Einheit, wählen Sie die Einheit des Werts daneben. Seine **Bedingung** lautet **Über**, **Mindestens**, **Unter**, **Höchstens**, **Genau**, **Ungewöhnlich hoch**, **Ungewöhnlich niedrig** oder **Ungewöhnlich hoch oder niedrig**. Für mehrere Kriterien, etwa Schweregradstufen, klicken Sie in **Was passiert** unter **Weitere Felder** auf **Als eigene Kriterien bearbeiten**: Jedes Kriterium dort hat eine **Metrik**, eine **Aggregation**, eine **Bedingung** und einen **Schwellenwert**.
+Diese Monitore werten immer den **Metric Value** aus – den aggregierten Wert der konfigurierten Metrikabfrage oder Formel. **Wann alarmieren** richtet ein Kriterium aus **Gemessen als**, **Zeitfenster**, **Bedingung** und **Wert** ein. Hat die Metrik eine Einheit, wählen Sie die Einheit des Werts daneben. Seine **Bedingung** lautet **Über**, **Mindestens**, **Unter**, **Höchstens**, **Genau**, **Ungewöhnlich hoch**, **Ungewöhnlich niedrig**, **Ungewöhnlich hoch oder niedrig**, **Steigt voraussichtlich über** oder **Fällt voraussichtlich unter**. Für mehrere Kriterien, etwa Schweregradstufen, klicken Sie in **Was passiert** unter **Weitere Felder** auf **Als eigene Kriterien bearbeiten**: Jedes Kriterium dort hat eine **Metrik**, eine **Aggregation**, eine **Bedingung** und einen **Schwellenwert**.
 
 | Bedingung | Passt, wenn der Wert … |
 | --- | --- |
@@ -128,10 +128,14 @@ Diese Monitore werten immer den **Metric Value** aus – den aggregierten Wert d
 | **Anomalously High** | über dem Bereich liegt, der für diese Stunde der Woche erwartet wird |
 | **Anomalously Low** | unter diesem Bereich liegt |
 | **Anomalous** | außerhalb dieses Bereichs liegt, in die eine oder andere Richtung |
+| **Steigt voraussichtlich über** | laut seinem Trend über den Schwellenwert steigt, innerhalb der unter **Prognosezeitraum** gewählten Zeit |
+| **Fällt voraussichtlich unter** | laut seinem Trend unter den Schwellenwert fällt, innerhalb der unter **Prognosezeitraum** gewählten Zeit |
 | **Keine Daten** | fehlt: Die Abfrage hat im Zeitfenster nichts gesendet |
 | **Daten vorhanden** | vorhanden ist: Die Abfrage hat im Zeitfenster etwas gesendet |
 
 Die Anomaliebedingungen haben keinen Schwellenwert. **Wann alarmieren** zeigt stattdessen **Empfindlichkeit** – Niedrig, Mittel (der Standard) oder Hoch –, die eigenen Kriterien zusätzlich ein **Baseline-Fenster** – 14 Tage (der Standard), 28, 60 oder 90 –, und jeder Datenpunkt wird mit derselben Stunde der Woche an früheren Tagen verglichen, so weit dieses Fenster zurückreicht. Was gerade geschieht, ist nie Teil dieses Vergleichs, daher warnt eine Änderung, die anhält, weiter, bis sie eine Woche später in diese früheren Tage eingegangen ist. Solange diese Stunde der Woche keine zwei Wochen Verlauf hat, lernt das Kriterium noch und erzeugt keine Warnungen.
+
+Die Prognosebedingungen vergleichen, wohin sich die Metrik bewegt, mit dem Schwellenwert, sodass eine Festplatte, die sich jeden Tag ein wenig füllt, Tage vor dem Volllaufen warnt. Jede Prüfung legt eine Gerade durch die Datenpunkte jeder Serie im **Zeitfenster** und verlängert sie so weit, wie **Prognosezeitraum** angibt, von 1 Stunde bis 30 Tage: eine Woche, sofern Sie es nicht ändern. Das Kriterium passt, wenn diese Gerade am Ende dieser Zeit jenseits des Schwellenwerts liegt, und sein Vorfall sagt, wohin sich die Metrik bewegt und wann sie den Schwellenwert überschreitet. Wählen Sie ein langes Zeitfenster, etwa **Letzte 7 Tage**, damit die Gerade zeigt, wie die Metrik wächst, und nicht ihre täglichen Schwankungen. Eine Serie wird prognostiziert, sobald ihre Daten die Hälfte des Zeitfensters abdecken, und nicht mehr, sobald keine Daten mehr kommen. Um vor einem volllaufenden Dateisystem gewarnt zu werden, beobachten Sie `system.filesystem.utilization` mit Max, gruppiert nach Host und Mountpoint, und alarmieren Sie, wenn es voraussichtlich innerhalb einer Woche über 90 % steigt.
 
 Womit ein Datenpunkt verglichen wird, hängt von der Abfrage ab:
 

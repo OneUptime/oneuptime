@@ -1,3 +1,7 @@
+import {
+  CloudCostState,
+  CloudSavingKind,
+} from "../../../Types/Cloud/CloudCost";
 import { CloudResourceRelationship } from "../../../Types/Cloud/CloudInventory";
 import { CloudProvider } from "../../../Types/Cloud/CloudPlatform";
 import { CloudMonitoredResource } from "../../../Types/Cloud/CloudMonitoredResource";
@@ -129,6 +133,14 @@ export interface CloudConnectionPullState {
    * written twice.
    */
   recentChanges?: Record<string, Record<string, number>> | undefined;
+  /*
+   * When the accounts' costs were last read (CloudConnectionLanes): they
+   * are due again CLOUD_COSTS_INTERVAL_MS later. Absent until the first
+   * read, which reads further back than the ones after it.
+   */
+  costsReadAt?: string | undefined;
+  // When the ways to spend less were last read: due a day later.
+  savingsReadAt?: string | undefined;
 }
 
 /*
@@ -372,8 +384,119 @@ export interface CloudChangesResult {
   complete: boolean;
 }
 
+/*
+ * One day's cost of one series of a connection's account, as the cloud's
+ * billing reports it - before credits and refunds.
+ */
+export interface CloudCostRecord {
+  // The account billed for it: an AWS account, a subscription, a project.
+  accountId: string;
+  // The UTC day, "2026-11-02".
+  day: string;
+  // The service, as the cloud's billing names it.
+  service: string;
+  // The Region; "" for a cost with none.
+  region: string;
+  // The resource, as getCloudCostResourceKey keeps it; "" when not one resource.
+  resourceId: string;
+  currency: string;
+  amount: number;
+}
+
+/*
+ * What a read of costs or savings made of one account: read (and so in
+ * full, for costs: what it did not bring is not there), or why it could
+ * not be.
+ */
+export interface CloudCostAccountOutcome {
+  accountId: string;
+  state: CloudCostState;
+  message?: string | undefined;
+}
+
+export interface CloudCostsOptions extends CloudConnectorCallOptions {
+  state: CloudConnectionPullState;
+  connectionId: string;
+  budget: CloudReadBudget;
+  // The first day read, and the day after the last, in UTC.
+  start: Date;
+  end: Date;
+  /*
+   * The resources the connection holds: the Region of a cost the cloud
+   * gives by resource but not by Region (Azure Cost Management).
+   */
+  knownResources?: Array<CloudKnownResource> | undefined;
+}
+
+export interface CloudCostsResult {
+  records: Array<CloudCostRecord>;
+  accounts: Array<CloudCostAccountOutcome>;
+  warnings: Array<string>;
+  complete: boolean;
+}
+
+// One way to spend less in a connection's account, as its cloud's recommender says it.
+export interface CloudSavingRecord {
+  // The recommender's own id: one row per recommendation, kept across reads.
+  recommendationId: string;
+  accountId: string;
+  region: string;
+  // The resource it is about, as its cloud names it; "" when none.
+  resourceId: string;
+  resourceType: string;
+  resourceName: string;
+  kind: CloudSavingKind;
+  // What to do, in the recommender's words: "Rightsize", "Delete unattached disk".
+  action: string;
+  currentConfiguration: string;
+  recommendedConfiguration: string;
+  monthlySavings: number;
+  // What the resource costs a month now, when the recommender says.
+  monthlyCost: number | null;
+  currency: string;
+  // How much work it is, in the recommender's words ("Low"); "" when not said.
+  effort: string;
+  // Which recommender said it (CLOUD_SAVINGS_SOURCE_*).
+  source: string;
+}
+
+export interface CloudSavingsOptions extends CloudConnectorCallOptions {
+  state: CloudConnectionPullState;
+  connectionId: string;
+  budget: CloudReadBudget;
+  /*
+   * The resources the connection holds: where a recommender that answers
+   * per place (a Google Cloud zone) is asked.
+   */
+  knownResources?: Array<CloudKnownResource> | undefined;
+}
+
+export interface CloudSavingsResult {
+  recommendations: Array<CloudSavingRecord>;
+  // The accounts whose recommendations were read: theirs are kept in step.
+  accounts: Array<CloudCostAccountOutcome>;
+  warnings: Array<string>;
+  complete: boolean;
+}
+
 export interface CloudConnector {
   provider: CloudProvider;
+  /*
+   * What the connection's accounts cost per day, service, Region and
+   * resource from the cloud's own billing. Optional, like the inventory.
+   */
+  readCosts?(
+    settings: CloudConnectionSettings,
+    options: CloudCostsOptions,
+  ): Promise<CloudCostsResult>;
+  /*
+   * The ways to spend less in the connection's accounts, from the cloud's
+   * own recommender.
+   */
+  readSavings?(
+    settings: CloudConnectionSettings,
+    options: CloudSavingsOptions,
+  ): Promise<CloudSavingsResult>;
   /*
    * What changed in the connection's accounts since the last read, and the
    * provider's health events about them. Optional, like the inventory.

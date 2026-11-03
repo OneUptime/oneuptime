@@ -333,6 +333,7 @@ criteria = [
 | 서버 프로세스 | `Is Executing`, `Is Not Executing` |
 | 스크립트 | `Evaluates To True` |
 | 이상 징후(메트릭, 로그, 트레이스용) | `Anomalously High`, `Anomalously Low`, `Anomalous` |
+| 예측(메트릭용) | `Forecast Above`, `Forecast Below` (예측 기간은 `forecast.horizonInHours`이며 `metric_monitor_options`에 씁니다. 생략하면 일주일) |
 
 SSL 인증서가 14일 이내에 만료될 때 일치하는 필터:
 

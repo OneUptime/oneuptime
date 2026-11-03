@@ -114,7 +114,10 @@ metadata so the CRM can attribute the booking, but only while measurement is
 allowed; see [Consent](#consent). Cal.com joins it to the attendee details the
 visitor types into the booking form, so a booked demo is identified campaign
 _and_ person on the CRM's side. A visitor who has not allowed measurement books
-with `ou_booking_kind` alone.
+with the campaign's labels alone — its UTM values and Google Ads' `gad_source`
+and `gad_campaignid`, which describe the ad rather than the person — and
+`ou_booking_kind`: no click ID, landing URL or first touch (see
+[While measurement is not allowed](#while-measurement-is-not-allowed)).
 
 ## Attribution
 
@@ -153,11 +156,45 @@ create, and the visitor could neither see nor correct it.
 Because it is read out of localStorage rather than off the current URL, it
 survives any number of internal navigations. It is written only while
 measurement is allowed: a visitor who has not been asked yet keeps the page's
-touch in memory until they answer, and a refusal clears what is stored. Nothing rewrites link hrefs to
-carry campaign parameters between pages: self-referential UTMs on internal links
-would register as a fresh campaign touch on arrival, overwrite `utmUrl` with an
-internal page, drop any click ID not repeated on the link, and double-count the
-touch.
+touch in memory until they answer, and a refusal clears what is stored. For a
+visitor who allows measurement nothing rewrites link hrefs to carry campaign
+parameters between pages: self-referential UTMs on internal links would register
+as a fresh campaign touch on arrival, overwrite `utmUrl` with an internal page,
+drop any click ID not repeated on the link, and double-count the touch. A
+visitor who does not is the one exception, below.
+
+### While measurement is not allowed
+
+Nothing may be stored, so the campaign's labels — the UTM values and Google
+Ads' `gad_source` and `gad_campaignid` — travel in the address instead. As a
+visitor follows a link to another page of the website (the marketing site, the
+docs, the API reference), the page adds `ou_campaign=<the labels, URL-encoded>`
+to it, taken from the page's own campaign parameters or from the `ou_campaign`
+it arrived with. The booking embed reads them back and hands them to Cal.com,
+so a call booked three pages after a paid click still says which campaign it
+came from (`window.oneUptimeCarryCampaign` and `readCampaignLabels` in
+`AnalyticsConsent.ejs`).
+
+- **Labels only.** No click ID, landing URL or first touch, and no value that
+  holds an `@` — an email address someone put in a link describes a person.
+- **A parameter of its own,** never the UTM names: those would register as a
+  fresh touch for a visitor who accepts later, for the reasons above. A visitor
+  who accepts on a later page starts from that page, as before; the carried
+  labels are neither stored nor reported.
+- **Only while measurement is not allowed,** only onto this site's own pages —
+  never onto sign-up, the dashboard, the admin console, sign-in (`/identity`),
+  or customers' status pages and public dashboards — and never more than 1000
+  characters of them.
+- **As the link is followed** (click, middle click, context menu), after the
+  page's own click handlers have read the link as written, so a link added
+  after load is carried too. A jump to a section of the same page keeps the
+  page's address, so it stays a jump.
+- **Bookings only.** Sign-up reads the stored attribution and nothing else, so
+  a visitor who refused signs up unattributed.
+
+`AnalyticsConsentBehaviour.test.ts`, `AttributionCapture.test.ts` and
+`CookieBanner.test.ts` (a refused visitor from an ad's landing page to the
+booking embed) pin this.
 
 An ad, an email or a slide can name a short address instead of the page that
 books: `oneuptime.com/demo` and the demo page's other short addresses
@@ -185,6 +222,9 @@ while bookings keep succeeding.
 | `metadata[utm_url]`         | The landing URL of the attributed visit                        |
 | `metadata[ou_first_touch]`  | The first attributed visit, one JSON string, bounded at 4000   |
 | `metadata[ou_booking_kind]` | `enterprise_demo`, `support_call` or `architecture_assessment` |
+
+While measurement is not allowed, only `metadata[utm_*]`, `metadata[gad_*]` and
+`metadata[ou_booking_kind]` are sent.
 
 `ou_booking_kind` is not optional detail. All four embeds book the same Cal
 event type (`oneuptimehq/demo`), so without it the CRM cannot tell a free
@@ -237,17 +277,25 @@ What follows from the rule:
 - Consent Mode v2 defaults are pushed before any tag loads, granted only when
   measurement is allowed, with `wait_for_update: 500`. Every answer is sent as
   an update, so a refusal reaches Google tags already on the page.
-- The Google tag loads only once measurement is allowed — at page load, or the
-  moment the visitor accepts. On the marketing site, the docs and the API
-  reference that is the Google Tag Manager container; on sign-up and the
-  dashboard it is Google Analytics alone (`googleTagMode: 'analytics-only'`),
-  so no advertising pixel or visitor identification tool runs in the product.
-- The marketing site's PostHog loads through the same gate, and a refusal opts
-  it out on the page it was given.
+- On the marketing site, the docs and the API reference the Google tag is the
+  Google Tag Manager container, and it loads at once, in Consent Mode's
+  advanced mode: while measurement is not allowed, Google's own tags set no
+  cookies and send Google cookieless signals, which Google Ads and GA4 model
+  the conversions they cannot see from, and `url_passthrough` has them carry an
+  ad click between pages in the address. Every other tag in the container waits
+  for consent inside Tag Manager — see
+  [The container's other tags](#the-containers-other-tags).
+- On sign-up and the dashboard it is Google Analytics alone
+  (`googleTagMode: 'analytics-only'`), loaded only once measurement is allowed
+  — at page load, or the moment the visitor accepts — so no advertising pixel
+  or visitor identification tool runs in the product.
+- The marketing site's PostHog loads only once measurement is allowed, and a
+  refusal opts it out on the page it was given.
 - Attribution is written to localStorage only while measurement is allowed; a
   visitor who has not been asked keeps the page's touch in memory until they
-  answer. Nothing is read back, sent with a signup or handed to Cal.com while
-  measurement is not allowed.
+  answer. Nothing stored is read back or sent with a signup while measurement
+  is not allowed, and Cal.com gets the campaign's labels alone (see
+  [While measurement is not allowed](#while-measurement-is-not-allowed)).
 - A refusal expires the measurement cookies the tags set (`_ga`, `_gcl_*`,
   `_fbp`, `_uet*`, `_rdt_*` and the like), PostHog's `ph_*` storage and the
   stored attribution. A visitor for whom measurement is not allowed has
@@ -258,6 +306,31 @@ What follows from the rule:
 
 Status pages and public dashboards load none of this: they belong to
 OneUptime's customers, and their visitors are not OneUptime's to measure.
+
+### The container's other tags
+
+The container loads before consent, so every tag in it that is not Google's —
+today the Meta (Facebook) pixel, Microsoft Ads (UET), and the Quora, Reddit and
+X (Twitter) pixels — has to wait for consent in Tag Manager itself:
+
+1. **Consent settings:** Advanced Settings → Consent Settings → _Require
+   additional consent for tag to fire_: `ad_storage`.
+2. **Tag firing options:** _Once per page_.
+3. **Triggers:** the page-view trigger it already had, and the Custom Event
+   trigger `consent_granted`. The page pushes that event when a visitor's
+   answer turns measurement on (`AnalyticsConsent.ejs`), so the tag fires on the
+   page they accept on rather than the next one; it is not pushed where
+   measurement was already on, and _Once per page_ covers the rest.
+
+A tag added later needs the same three settings. Google's own tags — the Google
+tag, the GA4 event tag, the Conversion Linker — read Consent Mode by
+themselves and need none of them.
+
+**Publish these before any release that loads the container in advanced
+mode**, or with it at the latest: a pixel without them runs for visitors who
+refused. They are safe to publish first, since until that release the
+container only loads once measurement is allowed, when every consent check
+passes.
 
 `packages/Home/Tests/AttributionCapture.test.ts` and
 `packages/Common/Tests/Server/Views/AnalyticsConsentPartial.test.ts` pin each
@@ -380,3 +453,8 @@ can turn it on.
    canonical `meeting_booked` with the older `bookingSuccessful`-derived
    events. Separating them, and documenting the historical discontinuity, is
    follow-up work.
+10. **Signup attribution while measurement is not allowed.** The campaign's
+    labels reach a booked call but not a signup: sign-up reads only the stored
+    attribution, so a visitor who refused signs up unattributed. Reading
+    `ou_campaign` there would need the same labels-only rule on the User
+    record.

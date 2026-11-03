@@ -87,6 +87,8 @@ const ENVIRONMENTS_PAGE: string = `${DASHBOARD}/Pages/AppPlatforms/Environments.
 const RESOURCES_PAGE: string = `${DASHBOARD}/Pages/Cloud/MonitoredResources.tsx`;
 const ENVIRONMENT_OVERVIEW: string = `${DASHBOARD}/Pages/AppPlatforms/View/Overview.tsx`;
 const RESOURCE_OVERVIEW: string = `${DASHBOARD}/Pages/Cloud/View/MonitoredResourceOverview.tsx`;
+const CLOUD_RESOURCE_HEALTH: string =
+  "Common/Types/Cloud/CloudResourceHealth.ts";
 const INSTANCES_PAGE: string = `${DASHBOARD}/Pages/AppPlatforms/View/Instances.tsx`;
 const TELEMETRY_SCOPE: string = `${DASHBOARD}/Pages/AppPlatforms/Utils/CloudResourceTelemetryScope.ts`;
 const ENVIRONMENT_ONBOARDING: string = `${DASHBOARD}/Components/Cloud/CloudEnvironmentOnboarding.tsx`;
@@ -447,8 +449,10 @@ describe("the menu paths", () => {
     expect(menuSections(CLOUD_SIDE_MENU)).toEqual([
       {
         title: "Cloud",
-        items: ["Accounts", "All Resources", "Connect"],
+        items: ["Overview", "Accounts", "All Resources", "Connect"],
       },
+      // What the accounts cost, how to spend less, and the budgets.
+      { title: "Spend", items: ["Costs", "Savings", "Budgets"] },
       { title: "Settings", items: ["Owner Rules", "Label Rules"] },
       { title: "Advanced", items: ["Archived"] },
     ]);
@@ -466,6 +470,9 @@ describe("the menu paths", () => {
     expect(isMenuPath("Cloud", ["Settings", "Label Rules"])).toBe(true);
     expect(isMenuPath("App Platforms", ["Settings", "Label Rules"])).toBe(true);
     expect(isMenuPath("Cloud", ["Label Rules"])).toBe(false);
+    expect(isMenuPath("Cloud", ["Spend", "Costs"])).toBe(true);
+    expect(isMenuPath("Cloud", ["Costs"])).toBe(false);
+    expect(isMenuPath("Cloud", ["Overview"])).toBe(true);
     expect(
       isMenuPath("Project Settings", ["Telemetry & APM", "Ingestion Keys"]),
     ).toBe(true);
@@ -532,8 +539,11 @@ describe("a cloud account's own pages", () => {
 
     expect(sections).toContainEqual({
       title: "Basic",
-      items: ["Overview", "Resources", "Topology"],
+      items: ["Overview", "Resources", "Topology", "Costs"],
     });
+    expect(accounts).toContain(
+      "with their resources by type and Region, their **Costs**, their **Changes**, and a **Topology**",
+    );
     // What AI did first, its agent last, as every resource's AI section.
     expect(sections).toContainEqual({
       title: "AI",
@@ -865,8 +875,18 @@ describe("the platform spellings ingest rewrites", () => {
 
 describe("cloud resources", () => {
   it("names a resource's status as its overview draws it", () => {
+    /*
+     * The hero says the resource's health (CloudResourceHealth): one with
+     * no rule for its type, or no reading lately, says Reporting.
+     */
     expect(readSource(RESOURCE_OVERVIEW)).toContain(
-      'statusLabel={isReporting ? "Reporting" : "Not reporting"}',
+      "statusLabel={health.status.text}",
+    );
+    expect(readSource(CLOUD_RESOURCE_HEALTH)).toContain(
+      'export const CLOUD_STATUS_REPORTING: string = translationKey("Reporting");',
+    );
+    expect(readSource(CLOUD_RESOURCE_HEALTH)).toContain(
+      'translationKey("Not reporting")',
     );
 
     const labels: Array<string> = boldLabels(englishPage(RESOURCES));
