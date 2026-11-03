@@ -41587,7 +41587,6 @@
   "Connections to Remote Desktop": "Tilkoblinger til Eksternt skrivebord",
   "Each rule picks the hunts it is for, then posts to channels you have each time a scheduled run finds security events.": "Hver regel velger hvilke hunts den gjelder for, og publiserer i kanaler du allerede har hver gang en planlagt kjøring finner sikkerhetshendelser.",
   "Each scheduled run of a hunt: the events it searched, how many it found, or why it could not run. Kept for 90 days.": "Hver planlagte kjøring av en hunt: hendelsene den søkte i, hvor mange den fant, eller hvorfor den ikke kunne kjøre. Lagres i 90 dager.",
-  "Each scheduled run, newest first: the events it searched and what it found. Runs are kept for 90 days.": "Hver planlagte kjøring, nyeste først: hendelsene den søkte i og hva den fant. Kjøringer lagres i 90 dager.",
   "Encoded PowerShell": "Kodet PowerShell",
   "Every command run with sudo on your Linux hosts: who ran it, and where.": "Hver kommando som er kjørt med sudo på Linux-vertene dine: hvem som kjørte den, og hvor.",
   "Every event that names an indicator on one of your threat intel feeds, whatever sent it.": "Hver hendelse som nevner en indikator fra en av threat intel-feedene dine, uansett hva som sendte den.",
@@ -41655,5 +41654,6 @@
   "dbt Node": "dbt Node",
   "dbt Tests": "dbt Tests",
   "Incident Rule Executed": "Hendelsesregel utført",
-  "What It Reads": "Hva den leser"
+  "What It Reads": "Hva den leser",
+  "Every scheduled run of the last 90 days, newest first.": "Hver planlagte kjøring de siste 90 dagene, nyeste først."
 }

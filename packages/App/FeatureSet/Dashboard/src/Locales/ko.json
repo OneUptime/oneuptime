@@ -41587,7 +41587,6 @@
   "Connections to Remote Desktop": "원격 데스크톱 연결",
   "Each rule picks the hunts it is for, then posts to channels you have each time a scheduled run finds security events.": "각 규칙은 대상 헌트를 고른 뒤, 예약 실행이 보안 이벤트를 찾을 때마다 기존 채널에 게시합니다.",
   "Each scheduled run of a hunt: the events it searched, how many it found, or why it could not run. Kept for 90 days.": "헌트의 각 예약 실행: 검색한 이벤트, 찾은 개수, 또는 실행하지 못한 이유. 90일 동안 보관됩니다.",
-  "Each scheduled run, newest first: the events it searched and what it found. Runs are kept for 90 days.": "각 예약 실행을 최신순으로 보여 줍니다: 검색한 이벤트와 찾은 내용. 실행 기록은 90일 동안 보관됩니다.",
   "Encoded PowerShell": "인코딩된 PowerShell",
   "Every command run with sudo on your Linux hosts: who ran it, and where.": "Linux 호스트에서 sudo로 실행된 모든 명령: 누가 어디에서 실행했는지.",
   "Every event that names an indicator on one of your threat intel feeds, whatever sent it.": "위협 인텔리전스 피드의 지표를 언급하는 모든 이벤트입니다. 무엇이 보냈든 상관없습니다.",
@@ -41655,5 +41654,6 @@
   "dbt Node": "dbt Node",
   "dbt Tests": "dbt Tests",
   "Incident Rule Executed": "인시던트 규칙 실행됨",
-  "What It Reads": "읽는 대상"
+  "What It Reads": "읽는 대상",
+  "Every scheduled run of the last 90 days, newest first.": "최근 90일 동안의 예약 실행을 최신순으로 보여 줍니다."
 }

@@ -41587,7 +41587,6 @@
   "Connections to Remote Desktop": "Подключения к удалённому рабочему столу",
   "Each rule picks the hunts it is for, then posts to channels you have each time a scheduled run finds security events.": "Каждое правило выбирает поиски угроз, к которым относится, и публикует в ваших каналах каждый раз, когда запуск по расписанию находит события безопасности.",
   "Each scheduled run of a hunt: the events it searched, how many it found, or why it could not run. Kept for 90 days.": "Каждый запуск поиска угроз по расписанию: какие события он просмотрел, сколько нашёл или почему не смог запуститься. Хранится 90 дней.",
-  "Each scheduled run, newest first: the events it searched and what it found. Runs are kept for 90 days.": "Каждый запуск по расписанию, сначала новые: какие события он просмотрел и что нашёл. Запуски хранятся 90 дней.",
   "Encoded PowerShell": "Закодированный PowerShell",
   "Every command run with sudo on your Linux hosts: who ran it, and where.": "Каждая команда, выполненная через sudo на ваших Linux-хостах: кто её запустил и где.",
   "Every event that names an indicator on one of your threat intel feeds, whatever sent it.": "Каждое событие, в котором упоминается индикатор из одного из ваших фидов threat intelligence, откуда бы оно ни пришло.",
@@ -41655,5 +41654,6 @@
   "dbt Node": "dbt Node",
   "dbt Tests": "dbt Tests",
   "Incident Rule Executed": "Правило инцидентов выполнено",
-  "What It Reads": "Что читает"
+  "What It Reads": "Что читает",
+  "Every scheduled run of the last 90 days, newest first.": "Все запуски по расписанию за последние 90 дней, сначала новые."
 }

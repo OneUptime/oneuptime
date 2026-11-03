@@ -6,7 +6,7 @@ import {
   OPEN_HUNT,
   TRY_IT,
 } from "./HuntsCopy";
-import { HuntLibraryView } from "./HuntLibraryModel";
+import { HuntLibraryView, getHuntLibraryTryRoute } from "./HuntLibraryModel";
 import { HUNT_SEARCH_ONE_LINE_CLASS_NAME } from "./HuntCells";
 import { getHuntViewRoute } from "./HuntsModel";
 import {
@@ -56,8 +56,9 @@ import React, { FunctionComponent, ReactElement } from "react";
  *          be typed on Events, in the mono type, on one line (the whole of
  *          it on hover);
  *   Data   the events it reads, and whether the project sends them;
- *   and at the row's end Try it - its search on Events, nothing saved -
- *   and Add, or, once the project has it, Added and Open (its hunt's page).
+ *   and at the row's end a link and whether the project has it: Try it -
+ *   its search on Events, nothing saved - and the Add button, or, once the
+ *   project has it, Open (its hunt's page) and Added.
  *
  * Below lg, and on a phone's card, the Data column folds under the name.
  */
@@ -69,6 +70,26 @@ import React, { FunctionComponent, ReactElement } from "react";
  */
 export const HUNT_LIBRARY_SEARCH_LINE_CLASS_NAME: string =
   "block font-normal [text-align:left] rtl:[text-align:right]";
+
+/*
+ * A row's end: its link (Try it, or Open), then whether the project has
+ * the starter (the Add button, or Added in its place) - so every row ends
+ * on the same thing, as the Rule Library's rows end on Add or Added. One
+ * line from lg up (a laptop's window beside the side menu); in a narrower
+ * column the link goes over the button, both at the row's end, rather than
+ * squeezing the starter's words. Two buttons of different widths stacked
+ * at every width looked unfinished.
+ */
+export const HUNT_LIBRARY_ACTIONS_CLASS_NAME: string =
+  "inline-flex flex-wrap items-center justify-end gap-x-4 gap-y-1.5 lg:flex-nowrap";
+
+// On a phone's card the two share the card's last line, from its start.
+export const HUNT_LIBRARY_CARD_ACTIONS_CLASS_NAME: string =
+  "inline-flex flex-wrap items-center gap-x-4 gap-y-1.5";
+
+// Try it and Open: links, for they go somewhere and change nothing.
+export const HUNT_LIBRARY_LINK_CLASS_NAME: string =
+  "whitespace-nowrap text-sm font-medium text-indigo-600 hover:text-indigo-700 hover:underline focus:outline-none focus-visible:ring-2 focus-visible:ring-indigo-500";
 
 export interface ComponentProps {
   views: Array<HuntLibraryView>;
@@ -83,7 +104,6 @@ export interface ComponentProps {
   cannotAddReason?: string | undefined;
   // Why the last Add of a starter could not add it, by starter.
   problems: Record<string, string>;
-  onTry: (entry: SecurityHuntLibraryEntry) => void;
   onAdd: (entry: SecurityHuntLibraryEntry) => void;
 }
 
@@ -196,37 +216,35 @@ interface ActionsCellProps {
   isAddDisabled: boolean;
   canAdd: boolean;
   cannotAddReason?: string | undefined;
-  onTry: (entry: SecurityHuntLibraryEntry) => void;
   onAdd: (entry: SecurityHuntLibraryEntry) => void;
 }
 
 /*
- * Try it, then Add - or, once the project has it, Added beside Open, its
- * hunt's page. Try it opens the starter's search on Events whatever the
- * reader may save: reading events is what Events checks.
+ * Try it, then Add - or, once the project has it, Open (its hunt's page),
+ * then Added in the place of Add (HUNT_LIBRARY_ACTIONS_CLASS_NAME). Try it
+ * is a link to the starter's search on Events, whatever the reader may
+ * save: reading events is what Events checks, and nothing is saved.
  */
 const ActionsCell: FunctionComponent<ActionsCellProps> = (
   props: ActionsCellProps,
 ): ReactElement => {
   const translator: Translator = useTranslator();
+  const isCard: boolean = useIsTableCard();
   const entry: SecurityHuntLibraryEntry = props.view.entry;
-
-  const tryButton: ReactElement = (
-    <Button
-      title={TRY_IT}
-      icon={IconProp.Search}
-      buttonStyle={ButtonStyleType.OUTLINE}
-      buttonSize={ButtonSize.Small}
-      dataTestId={`${HUNTS_TEST_IDS.libraryTry}-${entry.id}`}
-      onClick={() => {
-        props.onTry(entry);
-      }}
-    />
-  );
+  const className: string = isCard
+    ? HUNT_LIBRARY_CARD_ACTIONS_CLASS_NAME
+    : HUNT_LIBRARY_ACTIONS_CLASS_NAME;
 
   if (props.view.addedHuntId) {
     return (
-      <span className="inline-flex flex-wrap items-center justify-end gap-x-3 gap-y-1">
+      <span className={className}>
+        <Link
+          to={getHuntViewRoute(props.view.addedHuntId)}
+          className={HUNT_LIBRARY_LINK_CLASS_NAME}
+          dataTestId={`${HUNTS_TEST_IDS.libraryOpen}-${entry.id}`}
+        >
+          {translator.translateText(OPEN_HUNT) || OPEN_HUNT}
+        </Link>
         <span
           className={RULE_LIBRARY_ADDED_CLASS_NAME}
           data-testid={`${HUNTS_TEST_IDS.libraryAdded}-${entry.id}`}
@@ -237,13 +255,6 @@ const ActionsCell: FunctionComponent<ActionsCellProps> = (
           />
           {translator.translateText(ADDED)}
         </span>
-        <Link
-          to={getHuntViewRoute(props.view.addedHuntId)}
-          className="whitespace-nowrap text-sm font-medium text-indigo-600 hover:text-indigo-700 hover:underline focus:outline-none focus-visible:ring-2 focus-visible:ring-indigo-500"
-          dataTestId={`${HUNTS_TEST_IDS.libraryOpen}-${entry.id}`}
-        >
-          {translator.translateText(OPEN_HUNT) || OPEN_HUNT}
-        </Link>
       </span>
     );
   }
@@ -253,11 +264,18 @@ const ActionsCell: FunctionComponent<ActionsCellProps> = (
     !props.isAdding && Boolean(!props.canAdd || props.isAddDisabled);
 
   return (
-    <span className="inline-flex flex-wrap items-center justify-end gap-2">
-      {tryButton}
+    <span className={className}>
+      <Link
+        to={getHuntLibraryTryRoute(entry)}
+        className={HUNT_LIBRARY_LINK_CLASS_NAME}
+        dataTestId={`${HUNTS_TEST_IDS.libraryTry}-${entry.id}`}
+      >
+        {translator.translateText(TRY_IT) || TRY_IT}
+      </Link>
       {/*
-       * Sized to its words, as Try it is: the two sit side by side on a
-       * phone's card too, where a NORMAL button fills its own line.
+       * Outlined, which looks as the Rule Library's Add does and is sized to
+       * its words on a phone too: there a NORMAL button fills its own line,
+       * under Try it.
        */}
       <Button
         title={ADD}
@@ -336,7 +354,6 @@ const HuntLibraryTable: FunctionComponent<ComponentProps> = (
             isAddDisabled={props.addingId !== null}
             canAdd={props.canAdd}
             cannotAddReason={props.cannotAddReason}
-            onTry={props.onTry}
             onAdd={props.onAdd}
           />
         );

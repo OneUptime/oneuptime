@@ -41587,7 +41587,6 @@
   "Connections to Remote Desktop": "Verbindingen met Extern bureaublad",
   "Each rule picks the hunts it is for, then posts to channels you have each time a scheduled run finds security events.": "Elke regel kiest de hunts waarvoor hij geldt en plaatst berichten in kanalen die u al hebt telkens wanneer een geplande run beveiligingsgebeurtenissen vindt.",
   "Each scheduled run of a hunt: the events it searched, how many it found, or why it could not run. Kept for 90 days.": "Elke geplande run van een hunt: de doorzochte gebeurtenissen, hoeveel er gevonden zijn of waarom de run niet kon draaien. 90 dagen bewaard.",
-  "Each scheduled run, newest first: the events it searched and what it found. Runs are kept for 90 days.": "Elke geplande run, de nieuwste eerst: de doorzochte gebeurtenissen en wat er gevonden is. Runs worden 90 dagen bewaard.",
   "Encoded PowerShell": "Gecodeerde PowerShell",
   "Every command run with sudo on your Linux hosts: who ran it, and where.": "Elke opdracht die met sudo op uw Linux-hosts is uitgevoerd: wie hem uitvoerde, en waar.",
   "Every event that names an indicator on one of your threat intel feeds, whatever sent it.": "Elke gebeurtenis die een indicator uit een van uw threat-intelfeeds noemt, wat haar ook verstuurde.",
@@ -41655,5 +41654,6 @@
   "dbt Node": "dbt Node",
   "dbt Tests": "dbt Tests",
   "Incident Rule Executed": "Incidentregel uitgevoerd",
-  "What It Reads": "Wat het leest"
+  "What It Reads": "Wat het leest",
+  "Every scheduled run of the last 90 days, newest first.": "Elke geplande run van de afgelopen 90 dagen, de nieuwste eerst."
 }

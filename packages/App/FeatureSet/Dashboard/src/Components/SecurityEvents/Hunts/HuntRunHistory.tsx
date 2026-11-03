@@ -51,8 +51,11 @@ export interface ComponentProps {
 }
 
 /*
- * A run's moment, in the language of the sentence it is drawn in: "Nov 3
- * 2026, 09:00 AM GMT", the reader's time and clock.
+ * A run's moment, as every list writes a date (TableDate): short - "Nov 3,
+ * 9:00 AM", its year only when it is not this year's, and no zone - and
+ * whole under the pointer, "Nov 3 2026, 09:00 AM GMT", in the reader's time
+ * and clock and in the language of the sentence it is drawn in. Written in
+ * full, the year and the zone said the same three times on every row.
  */
 const RunMoment: FunctionComponent<{ date: Date }> = (props: {
   date: Date;
@@ -61,11 +64,17 @@ const RunMoment: FunctionComponent<{ date: Date }> = (props: {
     useWriteDatesInSentenceLanguage();
 
   return (
-    <time dateTime={props.date.toISOString()} className="whitespace-nowrap">
-      {writeDates((): string => {
+    <time
+      dateTime={props.date.toISOString()}
+      className="whitespace-nowrap"
+      title={writeDates((): string => {
         return OneUptimeDate.getDateAsUserFriendlyLocalFormattedString(
           props.date,
         );
+      })}
+    >
+      {writeDates((): string => {
+        return OneUptimeDate.getDateAsCompactLocalString(props.date);
       })}
     </time>
   );
@@ -283,6 +292,8 @@ const HuntRunHistory: FunctionComponent<ComponentProps> = (
       type: FieldType.Element,
       key: "eventCount",
       disableSort: true,
+      // A phone's card says what a run found without a "Result" over it.
+      hideTitleOnMobile: true,
       wrapContent: true,
       wrapMaxWidthClassName: "max-w-[18rem]",
       contentClassName: "min-w-[8rem]",

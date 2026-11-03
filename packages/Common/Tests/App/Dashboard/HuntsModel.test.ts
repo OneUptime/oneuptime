@@ -499,6 +499,8 @@ describe("the hunt forms", () => {
     expect(filters.getCustomElement).toBe(renderHuntFormFilters);
     expect(filters.title).toBe(FILTERS_FIELD_TITLE);
     expect(filters.description).toBe(FILTERS_FIELD_DESCRIPTION);
+    // Chips to take off, nothing to fill in: never called "(Optional)".
+    expect(filters.hideOptionalLabel).toBe(true);
     expect(search.required).toBe(isHuntFormSearchRequired);
     expect(isHuntFormSearchRequired(values({}))).toBe(true);
     expect(

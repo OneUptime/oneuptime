@@ -41587,7 +41587,6 @@
   "Connections to Remote Desktop": "Connections to Remote Desktop",
   "Each rule picks the hunts it is for, then posts to channels you have each time a scheduled run finds security events.": "Each rule picks the hunts it is for, then posts to channels you have each time a scheduled run finds security events.",
   "Each scheduled run of a hunt: the events it searched, how many it found, or why it could not run. Kept for 90 days.": "Each scheduled run of a hunt: the events it searched, how many it found, or why it could not run. Kept for 90 days.",
-  "Each scheduled run, newest first: the events it searched and what it found. Runs are kept for 90 days.": "Each scheduled run, newest first: the events it searched and what it found. Runs are kept for 90 days.",
   "Encoded PowerShell": "Encoded PowerShell",
   "Every command run with sudo on your Linux hosts: who ran it, and where.": "Every command run with sudo on your Linux hosts: who ran it, and where.",
   "Every event that names an indicator on one of your threat intel feeds, whatever sent it.": "Every event that names an indicator on one of your threat intel feeds, whatever sent it.",
@@ -41655,5 +41654,6 @@
   "dbt Node": "dbt Node",
   "dbt Tests": "dbt Tests",
   "Incident Rule Executed": "Incident Rule Executed",
-  "What It Reads": "What It Reads"
+  "What It Reads": "What It Reads",
+  "Every scheduled run of the last 90 days, newest first.": "Every scheduled run of the last 90 days, newest first."
 }

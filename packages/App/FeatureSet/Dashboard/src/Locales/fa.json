@@ -41587,7 +41587,6 @@
   "Connections to Remote Desktop": "اتصال‌ها به میزکار راه دور",
   "Each rule picks the hunts it is for, then posts to channels you have each time a scheduled run finds security events.": "هر قاعده شکارهایی را که برایشان است انتخاب می‌کند، سپس هر بار که یک اجرای زمان‌بندی‌شده رویداد امنیتی پیدا کند، در کانال‌های موجودتان ارسال می‌کند.",
   "Each scheduled run of a hunt: the events it searched, how many it found, or why it could not run. Kept for 90 days.": "هر اجرای زمان‌بندی‌شدهٔ یک شکار: رویدادهایی که جستجو کرد، چند مورد پیدا کرد، یا چرا اجرا نشد. ۹۰ روز نگه داشته می‌شود.",
-  "Each scheduled run, newest first: the events it searched and what it found. Runs are kept for 90 days.": "هر اجرای زمان‌بندی‌شده، جدیدترین اول: رویدادهایی که جستجو کرد و آنچه پیدا کرد. اجراها ۹۰ روز نگه داشته می‌شوند.",
   "Encoded PowerShell": "PowerShell رمزگذاری‌شده",
   "Every command run with sudo on your Linux hosts: who ran it, and where.": "هر فرمانی که با sudo روی میزبان‌های Linux شما اجرا شده: چه کسی و کجا اجرایش کرد.",
   "Every event that names an indicator on one of your threat intel feeds, whatever sent it.": "هر رویدادی که نشانگری از یکی از خوراک‌های اطلاعات تهدید شما را نام می‌برد، فرستنده‌اش هرچه باشد.",
@@ -41655,5 +41654,6 @@
   "dbt Node": "dbt Node",
   "dbt Tests": "dbt Tests",
   "Incident Rule Executed": "قاعده حادثه اجرا شد",
-  "What It Reads": "چه چیزی را می‌خواند"
+  "What It Reads": "چه چیزی را می‌خواند",
+  "Every scheduled run of the last 90 days, newest first.": "هر اجرای زمان‌بندی‌شده در ۹۰ روز گذشته، جدیدترین اول."
 }

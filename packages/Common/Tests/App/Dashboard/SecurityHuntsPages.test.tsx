@@ -858,9 +858,51 @@ describe("a hunt's page", () => {
 
     await renderHunt();
 
+    // The sentence ends with its full stop: no dot between it and the link.
     expect(seen(screen.getByTestId(HUNTS_TEST_IDS.lastFound))).toBe(
-      "Its runs have found nothing yet. · Run history",
+      "Its runs have found nothing yet. Run history",
     );
+  });
+
+  test("the links after what the runs found are one group, a dot between two and none before the first", async () => {
+    await renderHunt();
+
+    const line: HTMLElement = screen.getByTestId(HUNTS_TEST_IDS.lastFound);
+    const links: HTMLElement = within(line).getByTestId(
+      HUNTS_TEST_IDS.runLinks,
+    );
+
+    /*
+     * One flex item of the line, which never breaks inside: on a phone it
+     * goes under the sentence whole, and no "·" ends a line (Run history
+     * stood alone under one).
+     */
+    expect(links.parentElement).toBe(line);
+    expect(links).toHaveClass("inline-flex", "flex-none");
+    expect(seen(links)).toBe("Show them · Run history");
+    expect(links.firstElementChild).toBe(
+      within(links).getByTestId(HUNTS_TEST_IDS.showThem),
+    );
+    expect(links.lastElementChild).toBe(
+      within(links).getByTestId(HUNTS_TEST_IDS.runHistoryLink),
+    );
+    // Each link's words stay together.
+    expect(
+      within(links).getByTestId(HUNTS_TEST_IDS.runHistoryLink),
+    ).toHaveClass("whitespace-nowrap");
+  });
+
+  test("a last find whose window cannot be shown leaves Run history alone in the group, with no dot", async () => {
+    stored = hunt({ lastFoundSinceAt: undefined });
+
+    await renderHunt();
+
+    const links: HTMLElement = within(
+      screen.getByTestId(HUNTS_TEST_IDS.lastFound),
+    ).getByTestId(HUNTS_TEST_IDS.runLinks);
+
+    expect(seen(links)).toBe("Run history");
+    expect(within(links).queryByTestId(HUNTS_TEST_IDS.showThem)).toBeNull();
   });
 
   test("a changed search is the hunt's to save or discard, from the notice that says so", async () => {
@@ -1267,9 +1309,20 @@ describe("a hunt's page", () => {
       `Last run failed: ${SECURITY_HUNT_RUN_ERRORS.schedulerCannotRead.message}`,
     );
     expect(alert).not.toHaveTextContent("Run history");
-    expect(
-      within(line).getByTestId(HUNTS_TEST_IDS.runHistoryLink),
-    ).toHaveTextContent("Run history");
+
+    const link: HTMLElement = within(line).getByTestId(
+      HUNTS_TEST_IDS.runHistoryLink,
+    );
+
+    expect(link).toHaveTextContent("Run history");
+    /*
+     * Right after the sentence's last word, in its paragraph: where the
+     * line is full it goes under the words, not under the icon, and no "·"
+     * is left at a line's end.
+     */
+    expect(link.parentElement).toBe(alert.parentElement);
+    expect(link.previousElementSibling).toBe(alert);
+    expect(line.textContent).not.toContain("·");
   });
 
   test("a hunt that is not there says so; one that could not be read offers to try again", async () => {

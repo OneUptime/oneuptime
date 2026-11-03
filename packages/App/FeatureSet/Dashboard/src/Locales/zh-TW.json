@@ -41587,7 +41587,6 @@
   "Connections to Remote Desktop": "到遠端桌面的連線",
   "Each rule picks the hunts it is for, then posts to channels you have each time a scheduled run finds security events.": "每條規則選定適用的獵捕，然後在每次排程執行發現安全事件時發布到你既有的頻道。",
   "Each scheduled run of a hunt: the events it searched, how many it found, or why it could not run. Kept for 90 days.": "獵捕的每次排程執行：搜尋了哪些事件、發現了多少，或無法執行的原因。保留 90 天。",
-  "Each scheduled run, newest first: the events it searched and what it found. Runs are kept for 90 days.": "每次排程執行，最新的在前：搜尋了哪些事件以及發現了什麼。執行紀錄保留 90 天。",
   "Encoded PowerShell": "編碼的 PowerShell",
   "Every command run with sudo on your Linux hosts: who ran it, and where.": "在你的 Linux 主機上透過 sudo 執行的每個命令：誰執行的，在哪裡執行的。",
   "Every event that names an indicator on one of your threat intel feeds, whatever sent it.": "提到你某個威脅情報來源中指標的每個事件，無論它來自哪裡。",
@@ -41655,5 +41654,6 @@
   "dbt Node": "dbt Node",
   "dbt Tests": "dbt Tests",
   "Incident Rule Executed": "事件規則已執行",
-  "What It Reads": "讀取內容"
+  "What It Reads": "讀取內容",
+  "Every scheduled run of the last 90 days, newest first.": "過去 90 天內的每次排程執行，最新的在前。"
 }

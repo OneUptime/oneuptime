@@ -41587,7 +41587,6 @@
   "Connections to Remote Desktop": "Conexões à Área de Trabalho Remota",
   "Each rule picks the hunts it is for, then posts to channels you have each time a scheduled run finds security events.": "Cada regra escolhe as caçadas a que se aplica e publica nos canais que você já tem sempre que uma execução agendada encontra eventos de segurança.",
   "Each scheduled run of a hunt: the events it searched, how many it found, or why it could not run. Kept for 90 days.": "Cada execução agendada de uma caçada: os eventos pesquisados, quantos ela encontrou ou por que não pôde ser executada. Mantida por 90 dias.",
-  "Each scheduled run, newest first: the events it searched and what it found. Runs are kept for 90 days.": "Cada execução agendada, a mais recente primeiro: os eventos pesquisados e o que ela encontrou. As execuções são mantidas por 90 dias.",
   "Encoded PowerShell": "PowerShell codificado",
   "Every command run with sudo on your Linux hosts: who ran it, and where.": "Cada comando executado com sudo nos seus hosts Linux: quem executou e onde.",
   "Every event that names an indicator on one of your threat intel feeds, whatever sent it.": "Cada evento que cita um indicador de um dos seus feeds de inteligência de ameaças, seja qual for a origem.",
@@ -41655,5 +41654,6 @@
   "dbt Node": "dbt Node",
   "dbt Tests": "dbt Tests",
   "Incident Rule Executed": "Regra de incidentes executada",
-  "What It Reads": "O que lê"
+  "What It Reads": "O que lê",
+  "Every scheduled run of the last 90 days, newest first.": "Cada execução agendada dos últimos 90 dias, a mais recente primeiro."
 }

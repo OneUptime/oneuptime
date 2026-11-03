@@ -185,6 +185,19 @@ import SecurityEventsPage from "../../../App/FeatureSet/Dashboard/src/Pages/Secu
 import SecurityHuntsPage from "../../../App/FeatureSet/Dashboard/src/Pages/SecurityEvents/Hunts";
 import SecurityHuntViewPage from "../../../App/FeatureSet/Dashboard/src/Pages/SecurityEvents/HuntView";
 import SecurityHuntLibraryPage from "../../../App/FeatureSet/Dashboard/src/Pages/SecurityEvents/HuntLibrary";
+import SecurityEventsWorkspaceConnectionSlackPage from "../../../App/FeatureSet/Dashboard/src/Pages/SecurityEvents/WorkspaceConnectionSlack";
+import AlertState from "Common/Models/DatabaseModels/AlertState";
+import IncidentState from "Common/Models/DatabaseModels/IncidentState";
+import MonitorStatus from "Common/Models/DatabaseModels/MonitorStatus";
+import OnCallDutyPolicySchedule from "Common/Models/DatabaseModels/OnCallDutyPolicySchedule";
+import ScheduledMaintenanceState from "Common/Models/DatabaseModels/ScheduledMaintenanceState";
+import WorkspaceNotificationRule from "Common/Models/DatabaseModels/WorkspaceNotificationRule";
+import FilterCondition from "Common/Types/Filter/FilterCondition";
+import NotificationRuleEventType from "Common/Types/Workspace/NotificationRules/EventType";
+import {
+  ConditionType,
+  NotificationRuleConditionCheckOn,
+} from "Common/Types/Workspace/NotificationRules/NotificationRuleCondition";
 import SecurityCaseEvidence from "Common/Models/DatabaseModels/SecurityCaseEvidence";
 import SecurityCaseTask from "Common/Models/DatabaseModels/SecurityCaseTask";
 import {
@@ -609,6 +622,7 @@ const ID = {
   monitor: (n) => uuid("3e000000", n),
   hunt: (n) => uuid("3b000000", n),
   huntRun: (n) => uuid("3f000000", n),
+  workspaceRule: (n) => uuid("4c000000", n),
   event: (n) => uuid("3c000000", n),
   source: (n) => uuid("3d000000", n),
   caseField: (n) => uuid("4a000000", n),
@@ -2648,6 +2662,59 @@ insert(StatusPage, { name: "Engineering Tools" });
  */
 insert(WorkspaceProjectAuthToken, { workspaceType: WorkspaceType.Slack });
 
+/*
+ * Its Slack page's rules (Security Events > Workspace > Slack): one under
+ * Security Case Rules, posting new cases to #soc, and one under Hunt Rules,
+ * posting what the PowerShell hunts find to #threat-hunting. The rule form's
+ * value pickers read the other products' states and schedules: none here.
+ */
+table(WorkspaceNotificationRule);
+for (const modelType of [
+  AlertState,
+  IncidentState,
+  ScheduledMaintenanceState,
+  MonitorStatus,
+  OnCallDutyPolicySchedule,
+]) {
+  table(modelType);
+}
+if (!isEmpty) {
+  insert(WorkspaceNotificationRule, {
+    _id: ID.workspaceRule(1),
+    name: "New cases to #soc",
+    eventType: NotificationRuleEventType.SecurityCase,
+    workspaceType: WorkspaceType.Slack,
+    notificationRule: {
+      _type: "SecurityCaseNotificationRule",
+      filterCondition: FilterCondition.All,
+      filters: [],
+      shouldPostToExistingChannel: true,
+      existingChannelNames: "#soc",
+    },
+    createdAt: ago(20 * DAY),
+  });
+  insert(WorkspaceNotificationRule, {
+    _id: ID.workspaceRule(2),
+    name: "PowerShell finds to #threat-hunting",
+    eventType: NotificationRuleEventType.SecurityHunt,
+    workspaceType: WorkspaceType.Slack,
+    notificationRule: {
+      _type: "SecurityHuntNotificationRule",
+      filterCondition: FilterCondition.All,
+      filters: [
+        {
+          checkOn: NotificationRuleConditionCheckOn.SecurityHuntName,
+          conditionType: ConditionType.Contains,
+          value: "PowerShell",
+        },
+      ],
+      shouldPostToExistingChannel: true,
+      existingChannelNames: "#threat-hunting",
+    },
+    createdAt: ago(10 * DAY),
+  });
+}
+
 // Tables the pages may read even when they are empty.
 for (const modelType of [
   SecurityCasePriority,
@@ -4235,6 +4302,13 @@ async function handleApi(method, options) {
   if (method === "POST" && path.endsWith("/security-case/setup/test")) {
     return new HTTPResponse(200, runSetupTest(), {});
   }
+  // What a rule's channel would be named from: no channel here is a rule's own.
+  if (
+    method === "GET" &&
+    path.endsWith("/workspace-notification-rule/number-prefixes")
+  ) {
+    return new HTTPResponse(200, { numberPrefixes: {} }, {});
+  }
   if (method === "GET" && path.endsWith(`/project/${PROJECT_ID}/numbering`)) {
     return new HTTPResponse(200, caseSetup.numbering(), {});
   }
@@ -4426,6 +4500,10 @@ const PAGES = [
   [PageMap.SECURITY_EVENTS_HUNTS, SecurityHuntsPage],
   [PageMap.SECURITY_EVENTS_HUNT_VIEW, SecurityHuntViewPage],
   [PageMap.SECURITY_EVENTS_HUNT_LIBRARY, SecurityHuntLibraryPage],
+  [
+    PageMap.SECURITY_EVENTS_WORKSPACE_CONNECTION_SLACK,
+    SecurityEventsWorkspaceConnectionSlackPage,
+  ],
   ...SECURITY_CASE_QUEUE_VIEWS.map((view) => {
     return [view.page, SecurityCasesPage, view.key];
   }),

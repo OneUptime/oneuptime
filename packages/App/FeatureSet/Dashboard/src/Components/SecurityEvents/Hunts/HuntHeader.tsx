@@ -86,11 +86,22 @@ export interface ComponentProps {
 }
 
 /*
- * The way to a hunt's Run History, at the end of the line that says what
- * its runs found - beside Show them - for a hunt that has run.
+ * A link on the line that says what a hunt's runs found: Show them, Run
+ * history. Its words stay together on one line.
  */
 export const HUNT_LINK_BUTTON_CLASS_NAME: string =
-  "font-medium text-indigo-600 hover:text-indigo-700 hover:underline focus:outline-none focus-visible:ring-2 focus-visible:ring-indigo-500";
+  "whitespace-nowrap font-medium text-indigo-600 hover:text-indigo-700 hover:underline focus:outline-none focus-visible:ring-2 focus-visible:ring-indigo-500";
+
+/*
+ * The links after what the runs found - Show them, when the last find can
+ * be shown, and Run history, once the hunt has run - kept together as one
+ * group, a dot between two links and none before the first: where the line
+ * is too narrow the group goes under the sentence whole, and no dot is left
+ * at the end of a line or at the start of the next (on a phone, Run
+ * history stood alone under a "·" that ended the line above).
+ */
+export const HUNT_RUN_LINKS_CLASS_NAME: string =
+  "inline-flex flex-none items-center gap-x-2";
 
 /*
  * The actions over a changed search, in the notice that says so: beside
@@ -132,23 +143,54 @@ const HuntHeader: FunctionComponent<ComponentProps> = (
     getHuntLastFoundWindow(hunt);
   // A hunt that has run on its schedule has a history to open.
   const hasRunHistory: boolean = Boolean(hunt.lastRunAt);
-  const runHistoryLink: ReactElement = hasRunHistory ? (
-    <>
-      <span aria-hidden="true" className="text-gray-400">
-        ·
-      </span>
-      <button
-        type="button"
-        className={HUNT_LINK_BUTTON_CLASS_NAME}
-        data-testid={HUNTS_TEST_IDS.runHistoryLink}
-        onClick={props.onShowRunHistory}
+  const runHistoryLink: ReactElement | null = hasRunHistory ? (
+    <button
+      key="run-history"
+      type="button"
+      className={HUNT_LINK_BUTTON_CLASS_NAME}
+      data-testid={HUNTS_TEST_IDS.runHistoryLink}
+      onClick={props.onShowRunHistory}
+    >
+      {translator.translateText(RUN_HISTORY) || RUN_HISTORY}
+    </button>
+  ) : null;
+
+  // The links after a line's sentence, as one group (HUNT_RUN_LINKS_CLASS_NAME).
+  const renderRunLinks: (links: Array<ReactElement | null>) => ReactElement = (
+    links: Array<ReactElement | null>,
+  ): ReactElement => {
+    const shown: Array<ReactElement> = links.filter(
+      (link: ReactElement | null): link is ReactElement => {
+        return link !== null;
+      },
+    );
+
+    if (shown.length === 0) {
+      return <></>;
+    }
+
+    return (
+      <span
+        className={HUNT_RUN_LINKS_CLASS_NAME}
+        data-testid={HUNTS_TEST_IDS.runLinks}
       >
-        {translator.translateText(RUN_HISTORY) || RUN_HISTORY}
-      </button>
-    </>
-  ) : (
-    <></>
-  );
+        {shown.map((link: ReactElement, index: number): ReactElement => {
+          return (
+            <React.Fragment key={link.key || index}>
+              {index > 0 ? (
+                <span aria-hidden="true" className="text-gray-400">
+                  ·
+                </span>
+              ) : (
+                <></>
+              )}
+              {link}
+            </React.Fragment>
+          );
+        })}
+      </span>
+    );
+  };
   const hasFacts: boolean =
     Boolean(hunt.description) ||
     isScheduled ||
@@ -340,7 +382,7 @@ const HuntHeader: FunctionComponent<ComponentProps> = (
             )}
             {runState === HuntRunState.Found && hunt.lastFoundAt ? (
               <p
-                className="flex flex-wrap items-center gap-x-2 text-xs text-gray-700"
+                className="flex flex-wrap items-center gap-x-2 gap-y-0.5 text-xs text-gray-700"
                 data-testid={HUNTS_TEST_IDS.lastFound}
               >
                 <span>
@@ -357,53 +399,57 @@ const HuntHeader: FunctionComponent<ComponentProps> = (
                     }}
                   />
                 </span>
-                {lastFoundWindow ? (
-                  <button
-                    type="button"
-                    className={HUNT_LINK_BUTTON_CLASS_NAME}
-                    data-testid={HUNTS_TEST_IDS.showThem}
-                    onClick={() => {
-                      props.onShowWindow(lastFoundWindow);
-                    }}
-                  >
-                    {translator.translateText(SHOW_THEM) || SHOW_THEM}
-                  </button>
-                ) : (
-                  <></>
-                )}
-                {runHistoryLink}
+                {renderRunLinks([
+                  lastFoundWindow ? (
+                    <button
+                      key="show-them"
+                      type="button"
+                      className={HUNT_LINK_BUTTON_CLASS_NAME}
+                      data-testid={HUNTS_TEST_IDS.showThem}
+                      onClick={() => {
+                        props.onShowWindow(lastFoundWindow);
+                      }}
+                    >
+                      {translator.translateText(SHOW_THEM) || SHOW_THEM}
+                    </button>
+                  ) : null,
+                  runHistoryLink,
+                ])}
               </p>
             ) : (
               <></>
             )}
             {runState === HuntRunState.NothingFound ? (
               <p
-                className="flex flex-wrap items-center gap-x-2 text-xs text-gray-500"
+                className="flex flex-wrap items-center gap-x-2 gap-y-0.5 text-xs text-gray-500"
                 data-testid={HUNTS_TEST_IDS.lastFound}
               >
                 <span>
                   {translator.translateText(RUNS_FOUND_NOTHING_YET) ||
                     RUNS_FOUND_NOTHING_YET}
                 </span>
-                {runHistoryLink}
+                {renderRunLinks([runHistoryLink])}
               </p>
             ) : (
               <></>
             )}
             {runState === HuntRunState.Failed ? (
+              /*
+               * Why the last run could not be made, in red, and Run history
+               * right after its last word, on its line where it fits and
+               * under the sentence's words (not its icon) where it does not.
+               * The sentence alone is the alert.
+               */
               <div
-                className="flex flex-wrap items-start gap-x-2 gap-y-0.5 text-xs"
+                className="flex items-start gap-1.5 text-xs"
                 data-testid={HUNTS_TEST_IDS.lastFound}
               >
-                <div
-                  className="flex min-w-0 items-start gap-1.5 text-red-700"
-                  role="alert"
-                >
-                  <Icon
-                    icon={IconProp.Alert}
-                    className="mt-0.5 h-3.5 w-3.5 shrink-0"
-                  />
-                  <span>
+                <Icon
+                  icon={IconProp.Alert}
+                  className="mt-0.5 h-3.5 w-3.5 shrink-0 text-red-700"
+                />
+                <p className="min-w-0">
+                  <span className="text-red-700" role="alert">
                     {translator.translateTemplate(LAST_RUN_FAILED, {
                       error:
                         translator.translateText(hunt.lastRunError || "") ||
@@ -411,8 +457,8 @@ const HuntHeader: FunctionComponent<ComponentProps> = (
                         "",
                     })}
                   </span>
-                </div>
-                {runHistoryLink}
+                  {runHistoryLink ? <> {runHistoryLink}</> : <></>}
+                </p>
               </div>
             ) : (
               <></>

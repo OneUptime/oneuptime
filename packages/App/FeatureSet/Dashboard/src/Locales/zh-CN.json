@@ -41587,7 +41587,6 @@
   "Connections to Remote Desktop": "到远程桌面的连接",
   "Each rule picks the hunts it is for, then posts to channels you have each time a scheduled run finds security events.": "每条规则选定适用的狩猎，然后在每次计划运行发现安全事件时发布到你已有的频道。",
   "Each scheduled run of a hunt: the events it searched, how many it found, or why it could not run. Kept for 90 days.": "狩猎的每次计划运行：搜索了哪些事件、发现了多少，或无法运行的原因。保留 90 天。",
-  "Each scheduled run, newest first: the events it searched and what it found. Runs are kept for 90 days.": "每次计划运行，最新的在前：搜索了哪些事件以及发现了什么。运行记录保留 90 天。",
   "Encoded PowerShell": "编码的 PowerShell",
   "Every command run with sudo on your Linux hosts: who ran it, and where.": "在你的 Linux 主机上通过 sudo 运行的每条命令：谁运行的，在哪里运行的。",
   "Every event that names an indicator on one of your threat intel feeds, whatever sent it.": "提到你某个威胁情报源中指标的每个事件，无论它来自哪里。",
@@ -41655,5 +41654,6 @@
   "dbt Node": "dbt Node",
   "dbt Tests": "dbt Tests",
   "Incident Rule Executed": "事件规则已执行",
-  "What It Reads": "读取内容"
+  "What It Reads": "读取内容",
+  "Every scheduled run of the last 90 days, newest first.": "过去 90 天内的每次计划运行，最新的在前。"
 }

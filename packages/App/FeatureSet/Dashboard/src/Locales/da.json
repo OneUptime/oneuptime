@@ -41587,7 +41587,6 @@
   "Connections to Remote Desktop": "Forbindelser til Fjernskrivebord",
   "Each rule picks the hunts it is for, then posts to channels you have each time a scheduled run finds security events.": "Hver regel vælger de hunts, den gælder for, og skriver i kanaler, du allerede har, hver gang en planlagt kørsel finder sikkerhedsbegivenheder.",
   "Each scheduled run of a hunt: the events it searched, how many it found, or why it could not run. Kept for 90 days.": "Hver planlagt kørsel af en hunt: de begivenheder, den søgte i, hvor mange den fandt, eller hvorfor den ikke kunne køre. Gemmes i 90 dage.",
-  "Each scheduled run, newest first: the events it searched and what it found. Runs are kept for 90 days.": "Hver planlagt kørsel, nyeste først: de begivenheder, den søgte i, og hvad den fandt. Kørsler gemmes i 90 dage.",
   "Encoded PowerShell": "Kodet PowerShell",
   "Every command run with sudo on your Linux hosts: who ran it, and where.": "Hver kommando, der er kørt med sudo på dine Linux-værter: hvem der kørte den, og hvor.",
   "Every event that names an indicator on one of your threat intel feeds, whatever sent it.": "Hver begivenhed, der nævner en indikator fra et af dine threat intel-feeds, uanset hvad der sendte den.",
@@ -41655,5 +41654,6 @@
   "dbt Node": "dbt Node",
   "dbt Tests": "dbt Tests",
   "Incident Rule Executed": "Hændelsesregel udført",
-  "What It Reads": "Hvad den læser"
+  "What It Reads": "Hvad den læser",
+  "Every scheduled run of the last 90 days, newest first.": "Hver planlagt kørsel fra de seneste 90 dage, nyeste først."
 }

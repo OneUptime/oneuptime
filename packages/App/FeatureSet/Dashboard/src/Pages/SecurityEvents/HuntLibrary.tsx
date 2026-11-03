@@ -15,7 +15,6 @@ import {
   getEffectiveHuntLibraryFilters,
   getFilteredHuntLibraryViews,
   getHuntLibraryQueryParams,
-  getHuntLibraryTryRoute,
   isHuntLibraryFiltered,
   readHuntLibraryFilters,
 } from "../../Components/SecurityEvents/Hunts/HuntLibraryModel";
@@ -463,9 +462,6 @@ const HuntLibraryPage: FunctionComponent<PageComponentProps> = (
             canAdd={createGate.isAllowed}
             cannotAddReason={createGate.disabledReason}
             problems={problems}
-            onTry={(entry: SecurityHuntLibraryEntry) => {
-              Navigation.navigate(getHuntLibraryTryRoute(entry));
-            }}
             onAdd={(entry: SecurityHuntLibraryEntry) => {
               void addStarter(entry);
             }}

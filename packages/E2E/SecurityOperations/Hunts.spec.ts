@@ -7,6 +7,7 @@ import {
 } from "@playwright/test";
 import fs from "fs/promises";
 import path from "path";
+import { boxesInOneFrame } from "../SuiteHelpers/Frames";
 import { expectNoSidewaysScroll } from "../SuiteHelpers/PageFit";
 
 /*
@@ -42,6 +43,9 @@ const HUNT_PATH: string = `${HUNTS_PATH}/${ENCODED_POWERSHELL_ID}`;
 const ADMIN_SIGN_INS_PATH: string = `${HUNTS_PATH}/${ADMIN_SIGN_INS_ID}`;
 const FAILING_HUNT_PATH: string = `${HUNTS_PATH}/${SUDO_ID}`;
 const HUNT_LIBRARY_PATH: string = `${PRODUCT}/hunt-library`;
+const SLACK_PATH: string = `${PRODUCT}/workspace-connection-slack`;
+// Where a starter's Try it goes: Events, searching what it searches.
+const EVENTS_SEARCH_ADDRESS: RegExp = /\/security-events\?search=/;
 const MINUTE: number = 60 * 1000;
 const HOUR: number = 60 * MINUTE;
 const CASE_138_ID: string = "20000000-0000-4000-8000-000000000138";
@@ -952,7 +956,7 @@ test.describe("a hunt's Run History", () => {
     // The dialog's root is the layer its panel slides in on: the panel shows.
     await expect(runHistory(page)).toBeVisible();
     await expect(panel).toContainText(
-      "Each scheduled run, newest first: the events it searched and what it found. Runs are kept for 90 days.",
+      "Every scheduled run of the last 90 days, newest first.",
     );
     expect(await runStates(page)).toEqual([
       "found",
@@ -962,6 +966,21 @@ test.describe("a hunt's Run History", () => {
     ]);
     await expect(runRow(page, 1)).toContainText("3 events");
     await expect(runRow(page, 1)).toContainText("2 hours ago");
+    /*
+     * Each moment as every list writes a date: this year's without its
+     * year and zone ("Oct 14, 10:00 AM"), and whole under the pointer.
+     */
+    await expect(runRow(page, 1).locator("time").first()).toHaveText(
+      "Oct 14, 10:00 AM",
+    );
+    await expect(runRow(page, 1)).toContainText(
+      "Searched Oct 13, 9:58 AM to Oct 14, 9:58 AM",
+    );
+    await expect(runRow(page, 1)).not.toContainText("GMT");
+    await expect(runRow(page, 1).locator("time").first()).toHaveAttribute(
+      "title",
+      "Oct 14 2026, 10:00 AM GMT",
+    );
     await expect(runRow(page, 2)).toContainText("Nothing found");
     await expect(runRow(page, 3)).toContainText("1 event");
     // Under when it ran, the events it searched.
@@ -1021,6 +1040,50 @@ test.describe("a hunt's Run History", () => {
       .getByTestId("close-button")
       .click();
     await expect(runHistory(page)).toHaveCount(0);
+  });
+
+  test("on a phone, Show them and Run history go under what was found together, and a failed run's under its words", async ({
+    page,
+  }: {
+    page: Page;
+  }) => {
+    await open(page, HUNT_PATH, { width: 390, height: 900 });
+
+    const line: Locator = page.getByTestId("security-hunt-last-found-line");
+    const [sentence, showThem, runHistoryLink] = await boxesInOneFrame([
+      line.locator(":scope > span").first(),
+      line.getByTestId("security-hunt-show-them"),
+      line.getByTestId("security-hunt-run-history-link"),
+    ]);
+
+    // Too long for one line on a phone: the two links take the next one, whole.
+    expect(showThem!.y).toBeGreaterThan(sentence!.y + sentence!.height / 2);
+    expect(Math.abs(showThem!.y - runHistoryLink!.y)).toBeLessThan(1);
+    expect(Math.abs(showThem!.x - sentence!.x)).toBeLessThan(1);
+    // A dot between the two links, and no dot ending the line above them.
+    expect(
+      await line
+        .getByTestId("security-hunt-run-links")
+        .evaluate((links: Element): Array<string> => {
+          return Array.from(links.children).map((child: Element): string => {
+            return (child.textContent || "").trim();
+          });
+        }),
+    ).toEqual(["Show them", "·", "Run history"]);
+    expect((await line.innerText()).trim().startsWith("Last found")).toBe(true);
+
+    await open(page, FAILING_HUNT_PATH, { width: 390, height: 900 });
+
+    const failed: Locator = page.getByTestId("security-hunt-last-found-line");
+    const [why, link] = await boxesInOneFrame([
+      failed.getByRole("alert"),
+      failed.getByTestId("security-hunt-run-history-link"),
+    ]);
+
+    // After its last word, and where it wraps, under the words - never the icon.
+    expect(link!.x).toBeGreaterThan(why!.x - 1);
+    await expect(failed).not.toContainText("·");
+    await expectNoSidewaysScroll(page);
   });
 
   test("fits a phone, and reads in Persian, right to left", async ({
@@ -1106,6 +1169,20 @@ function starterRows(page: Page): Locator {
   );
 }
 
+// A row's end, its link and what follows it, on one line: centred on one another.
+async function expectRowEndsOnOneLine(
+  first: Locator,
+  second: Locator,
+): Promise<void> {
+  await expect
+    .poll(async (): Promise<number> => {
+      const [a, b] = await boxesInOneFrame([first, second]);
+
+      return Math.abs(a!.y + a!.height / 2 - (b!.y + b!.height / 2));
+    })
+    .toBeLessThan(1);
+}
+
 async function pickChip(
   page: Page,
   testId: string,
@@ -1164,6 +1241,34 @@ test.describe("the Hunt Library", () => {
         "security-hunt-library-entry-data-status-aws-root-account-activity",
       ),
     ).toHaveText("Not receiving");
+
+    /*
+     * Each row ends on one line: a link (Try it, or Open), then whether the
+     * project has the starter - Add, or Added where Add would be. Try it
+     * goes to Events and saves nothing, so it is a link, as Open is.
+     */
+    const failed: Locator = starterRow(page, "failed-sign-ins");
+
+    await expect(
+      failed.getByRole("link", { name: "Try it", exact: true }),
+    ).toHaveAttribute("href", EVENTS_SEARCH_ADDRESS);
+    await expectRowEndsOnOneLine(
+      failed.getByTestId("security-hunt-library-try-failed-sign-ins"),
+      failed.getByTestId("security-hunt-library-add-failed-sign-ins"),
+    );
+    await expectRowEndsOnOneLine(
+      powershell.getByTestId("security-hunt-library-open-encoded-powershell"),
+      powershell.getByTestId("security-hunt-library-added-encoded-powershell"),
+    );
+    // The two kinds of row end at the same edge.
+    const [add, added] = await boxesInOneFrame([
+      failed.getByTestId("security-hunt-library-add-failed-sign-ins"),
+      powershell.getByTestId("security-hunt-library-added-encoded-powershell"),
+    ]);
+
+    expect(
+      Math.abs(add!.x + add!.width - (added!.x + added!.width)),
+    ).toBeLessThan(1);
     await expectNoSidewaysScroll(page);
     await screenshot(page, "hunts-library-1440");
 
@@ -1278,6 +1383,22 @@ test.describe("the Hunt Library", () => {
     await expect(
       page.getByTestId("security-hunt-library-entry-hunt-failed-sign-ins"),
     ).toBeVisible();
+    // Try it and Add share the card's last line, each as wide as its words.
+    await expectRowEndsOnOneLine(
+      page.getByTestId("security-hunt-library-try-failed-sign-ins"),
+      page.getByTestId("security-hunt-library-add-failed-sign-ins"),
+    );
+    // The search reaches the card's edge, as the filters under it do.
+    const [searchSlot, filters] = await boxesInOneFrame([
+      page.getByTestId("security-hunt-library-search-slot"),
+      page.getByTestId("security-hunt-library-filters"),
+    ]);
+
+    expect(
+      Math.abs(
+        searchSlot!.x + searchSlot!.width - (filters!.x + filters!.width),
+      ),
+    ).toBeLessThan(1);
     await expectNoSidewaysScroll(page);
     await screenshot(page, "hunts-library-390", { window: true });
     // The starter the project has, Added and Open on its card.
@@ -1315,6 +1436,132 @@ test.describe("the Hunt Library", () => {
     ).toBe("right");
     await expectNoSidewaysScroll(page);
     await screenshot(page, "hunts-library-fa-1440");
+  });
+});
+
+/*
+ * ---------------------------------------------------------------------------
+ * Hunt Rules, on Security Events' Slack page
+ * ---------------------------------------------------------------------------
+ */
+
+// A rule card on the Slack page, by its title.
+function ruleCard(page: Page, title: string): Locator {
+  return page
+    .locator("[data-testid='card']")
+    .filter({ has: page.getByText(title, { exact: true }) });
+}
+
+test.describe("Hunt Rules on the Slack page", () => {
+  test("holds the Security Case Rules, then the Hunt Rules, each with its own rules and Create", async ({
+    page,
+  }: {
+    page: Page;
+  }) => {
+    await open(page, SLACK_PATH);
+    expect(await litEntries(page)).toEqual(["Slack"]);
+
+    const cases: Locator = ruleCard(page, "Security Case Rules");
+    const hunts: Locator = ruleCard(page, "Hunt Rules");
+
+    await expect(cases).toContainText("New cases to #soc");
+    await expect(cases).not.toContainText(
+      "PowerShell finds to #threat-hunting",
+    );
+    await expect(hunts).toContainText("PowerShell finds to #threat-hunting");
+    // Which hunts, in words: the one condition it has.
+    await expect(hunts).toContainText("Security Hunt Name");
+    await expect(hunts).toContainText("Contains");
+    await expect(hunts).toContainText("PowerShell");
+    await expect(hunts).not.toContainText("New cases to #soc");
+
+    // One under the other, the cases' first, both in sight - no tabs.
+    const [casesBox, huntsBox] = await boxesInOneFrame([cases, hunts]);
+
+    expect(huntsBox!.y).toBeGreaterThan(casesBox!.y + casesBox!.height - 1);
+    await expect(
+      cases.getByRole("button", {
+        name: "Create Security Case Notification Rule",
+      }),
+    ).toBeVisible();
+    await expect(
+      hunts.getByRole("button", { name: "Create Hunt Notification Rule" }),
+    ).toBeVisible();
+    await expectNoSidewaysScroll(page);
+    await screenshot(page, "hunts-slack-rules-1440");
+
+    await open(page, SLACK_PATH, { width: 390, height: 900 });
+    await expect(ruleCard(page, "Hunt Rules")).toContainText(
+      "PowerShell finds to #threat-hunting",
+    );
+    await expectNoSidewaysScroll(page);
+    await screenshot(page, "hunts-slack-rules-390");
+  });
+
+  test("a new hunt rule asks which hunts by name and where to post, and is saved as a hunt rule", async ({
+    page,
+  }: {
+    page: Page;
+  }) => {
+    await open(page, SLACK_PATH);
+
+    await ruleCard(page, "Hunt Rules")
+      .getByRole("button", { name: "Create Hunt Notification Rule" })
+      .click();
+    await expect(
+      dialog(page).getByText("Create New Hunt Notification Rule"),
+    ).toBeVisible();
+    await dialog(page)
+      .getByRole("textbox", { name: "Rule Name" })
+      .fill("Okta finds to #identity");
+    await dialog(page).getByRole("button", { name: "Next" }).click();
+
+    // Which hunts: every one, or only those whose name matches.
+    await expect(dialog(page).getByText("Which hunts")).toBeVisible();
+    await dialog(page).getByText("Only hunts that match conditions").click();
+
+    const conditions: Locator = dialog(page).getByTestId(
+      "notification-rule-conditions",
+    );
+
+    // A hunt is matched by its name, the one thing a hunt rule reads.
+    await expect(conditions).toContainText("Security Hunt Name");
+    await conditions.locator(".ou-select__control").nth(1).click();
+    await page.getByRole("option", { name: "Contains", exact: true }).click();
+    await conditions.getByRole("textbox").fill("Okta");
+    await dialog(page).getByRole("button", { name: "Next" }).click();
+
+    await dialog(page).getByPlaceholder("#incidents, #ops").fill("#identity");
+    await dialog(page)
+      .getByRole("button", { name: "Create Hunt Notification Rule" })
+      .click();
+    await expect(dialog(page)).toHaveCount(0);
+
+    const [create] = (await fixture(page)).creates.filter(
+      (write: { modelName: string }): boolean => {
+        return write.modelName === "WorkspaceNotificationRule";
+      },
+    );
+
+    expect(create!.data).toMatchObject({
+      name: "Okta finds to #identity",
+      eventType: "Security Hunt",
+      workspaceType: "Slack",
+      notificationRule: {
+        filters: [
+          {
+            checkOn: "Security Hunt Name",
+            conditionType: "Contains",
+            value: "Okta",
+          },
+        ],
+        shouldPostToExistingChannel: true,
+        existingChannelNames: "#identity",
+      },
+    });
+    await expect(ruleCard(page, "Hunt Rules")).toContainText(
+      "Okta finds to #identity",
+    );
   });
 });
 

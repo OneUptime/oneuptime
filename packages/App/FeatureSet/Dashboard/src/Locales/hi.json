@@ -41587,7 +41587,6 @@
   "Connections to Remote Desktop": "रिमोट डेस्कटॉप से कनेक्शन",
   "Each rule picks the hunts it is for, then posts to channels you have each time a scheduled run finds security events.": "हर नियम उन हंट को चुनता है जिनके लिए वह है, फिर हर बार जब कोई शेड्यूल्ड रन सुरक्षा इवेंट ढूंढता है, तो आपके मौजूदा चैनलों में पोस्ट करता है।",
   "Each scheduled run of a hunt: the events it searched, how many it found, or why it could not run. Kept for 90 days.": "किसी हंट का हर शेड्यूल्ड रन: उसने कौन-से इवेंट खोजे, कितने मिले, या वह क्यों नहीं चल सका। 90 दिनों तक रखा जाता है।",
-  "Each scheduled run, newest first: the events it searched and what it found. Runs are kept for 90 days.": "हर शेड्यूल्ड रन, सबसे नया पहले: उसने कौन-से इवेंट खोजे और क्या मिला। रन 90 दिनों तक रखे जाते हैं।",
   "Encoded PowerShell": "एन्कोड किया गया PowerShell",
   "Every command run with sudo on your Linux hosts: who ran it, and where.": "आपके Linux होस्ट पर sudo से चलाया गया हर कमांड: किसने चलाया, और कहां।",
   "Every event that names an indicator on one of your threat intel feeds, whatever sent it.": "हर इवेंट जो आपकी किसी थ्रेट इंटेल फ़ीड के संकेतक का नाम लेता है, उसे चाहे जिसने भेजा हो।",
@@ -41655,5 +41654,6 @@
   "dbt Node": "dbt Node",
   "dbt Tests": "dbt Tests",
   "Incident Rule Executed": "घटना नियम निष्पादित किया गया",
-  "What It Reads": "यह क्या पढ़ता है"
+  "What It Reads": "यह क्या पढ़ता है",
+  "Every scheduled run of the last 90 days, newest first.": "पिछले 90 दिनों का हर शेड्यूल्ड रन, सबसे नया पहले।"
 }

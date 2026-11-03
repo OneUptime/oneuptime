@@ -41587,7 +41587,6 @@
   "Connections to Remote Desktop": "リモート デスクトップへの接続",
   "Each rule picks the hunts it is for, then posts to channels you have each time a scheduled run finds security events.": "各ルールは対象のハントを選び、スケジュール実行がセキュリティイベントを見つけるたびに既存のチャネルに投稿します。",
   "Each scheduled run of a hunt: the events it searched, how many it found, or why it could not run. Kept for 90 days.": "ハントのスケジュール実行ごとの記録: 検索したイベント、見つかった件数、または実行できなかった理由。90 日間保持されます。",
-  "Each scheduled run, newest first: the events it searched and what it found. Runs are kept for 90 days.": "スケジュール実行ごとに新しい順で表示します: 検索したイベントと見つかったもの。実行の記録は 90 日間保持されます。",
   "Encoded PowerShell": "エンコードされた PowerShell",
   "Every command run with sudo on your Linux hosts: who ran it, and where.": "Linux ホストで sudo によって実行されたすべてのコマンド: 誰がどこで実行したか。",
   "Every event that names an indicator on one of your threat intel feeds, whatever sent it.": "脅威インテリジェンスフィードのいずれかにあるインジケーターを含むすべてのイベント。送信元は問いません。",
@@ -41655,5 +41654,6 @@
   "dbt Node": "dbt Node",
   "dbt Tests": "dbt Tests",
   "Incident Rule Executed": "インシデントルール実行済み",
-  "What It Reads": "読み取る対象"
+  "What It Reads": "読み取る対象",
+  "Every scheduled run of the last 90 days, newest first.": "過去 90 日間のスケジュール実行を新しい順に表示します。"
 }

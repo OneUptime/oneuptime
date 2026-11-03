@@ -20,6 +20,7 @@ import * as React from "react";
 import { MemoryRouter } from "react-router-dom";
 import HuntLibraryPage from "../../../../App/FeatureSet/Dashboard/src/Pages/SecurityEvents/HuntLibrary";
 import { HUNTS_TEST_IDS } from "../../../../App/FeatureSet/Dashboard/src/Components/SecurityEvents/Hunts/HuntsCopy";
+import { HUNT_LIBRARY_ACTIONS_CLASS_NAME } from "../../../../App/FeatureSet/Dashboard/src/Components/SecurityEvents/Hunts/HuntLibraryTable";
 import { LibraryStatusFilter } from "../../../../App/FeatureSet/Dashboard/src/Components/SecurityEvents/RuleLibraryUtil";
 import { BUTTON_DISABLED_CLASS_NAME } from "../../../UI/Components/Button/Button";
 import SecurityEvent from "../../../Models/AnalyticsModels/SecurityEvent";
@@ -633,6 +634,58 @@ describe("Try it", () => {
     expect(params.get("search")).toBe(ENCODED_POWERSHELL.searchQuery);
     expect(params.get("range")).toBe(TimeRange.PAST_ONE_WEEK);
     expect(created).toEqual([]);
+  });
+
+  test("is a link to that search, as Open is to an added hunt: it goes somewhere and changes nothing", async () => {
+    await renderPage();
+
+    const tryIt: HTMLElement = screen.getByTestId(
+      `${HUNTS_TEST_IDS.libraryTry}-${FAILED_SIGN_INS.id}`,
+    );
+
+    // A link with an address, so it also opens in a new tab as links do.
+    expect(tryIt.tagName).toBe("A");
+    expect(tryIt).toHaveTextContent("Try it");
+
+    const [path, query] = (tryIt.getAttribute("href") || "").split("?");
+    const params: URLSearchParams = new URLSearchParams(query || "");
+
+    expect(path!.endsWith(`/${PROJECT_ID.toString()}/security-events`)).toBe(
+      true,
+    );
+    expect(params.get("search")).toBe(FAILED_SIGN_INS.searchQuery);
+  });
+
+  test("each row ends on whether the project has it: the link first, then Add, or Added in its place", async () => {
+    hunts = [huntOf("encoded-powershell", ADDED_HUNT_ID)];
+    await renderPage();
+
+    const notAdded: HTMLElement = screen.getByTestId(
+      `${HUNTS_TEST_IDS.libraryTry}-${FAILED_SIGN_INS.id}`,
+    );
+    const add: HTMLElement = screen.getByTestId(
+      `${HUNTS_TEST_IDS.libraryAdd}-${FAILED_SIGN_INS.id}`,
+    );
+
+    // One group: Try it, then Add.
+    expect(notAdded.parentElement).toBe(add.parentElement);
+    expect(notAdded.nextElementSibling).toBe(add);
+    // Side by side from lg up; the link over the button in a narrower column.
+    expect(notAdded.parentElement).toHaveClass(
+      ...HUNT_LIBRARY_ACTIONS_CLASS_NAME.split(" "),
+    );
+
+    const open: HTMLElement = screen.getByTestId(
+      `${HUNTS_TEST_IDS.libraryOpen}-${ENCODED_POWERSHELL.id}`,
+    );
+    const added: HTMLElement = screen.getByTestId(
+      `${HUNTS_TEST_IDS.libraryAdded}-${ENCODED_POWERSHELL.id}`,
+    );
+
+    // Open, then Added where Add was: every row ends on the same thing.
+    expect(open.parentElement).toBe(added.parentElement);
+    expect(open.nextElementSibling).toBe(added);
+    expect(open.tagName).toBe("A");
   });
 });
 

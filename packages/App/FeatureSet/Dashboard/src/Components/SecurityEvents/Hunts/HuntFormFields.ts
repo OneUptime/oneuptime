@@ -234,6 +234,11 @@ export function getHuntFormFields(data: {
       description: FILTERS_FIELD_DESCRIPTION,
       fieldType: FormFieldSchemaType.CustomComponent,
       required: false,
+      /*
+       * Chips the hunt has, to take off - nothing to fill in, so not called
+       * "(Optional)".
+       */
+      hideOptionalLabel: true,
       // A hunt saved from a search alone has none, and no field for them.
       showIf: hasHuntFormFilters,
       getCustomElement: renderHuntFormFilters,

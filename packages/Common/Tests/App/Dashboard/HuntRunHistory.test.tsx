@@ -33,6 +33,7 @@ import {
   SecurityHuntRunWindow,
 } from "../../../Types/SecurityEvent/SecurityHunt";
 import ModelAPI from "../../../UI/Utils/ModelAPI/ModelAPI";
+import OneUptimeDate from "../../../Types/Date";
 
 /*
  * A HUNT'S RUN HISTORY (HuntRunHistory), beside its page: every scheduled
@@ -279,6 +280,38 @@ describe("a hunt's Run History", () => {
       FOUND.windowEndAt!.toISOString(),
     ]);
     expect(runRow(FOUND)).toHaveTextContent(/Searched .+ to .+/);
+  });
+
+  test("writes each moment as every list writes a date: short, and whole under the pointer", async () => {
+    await renderPanel();
+
+    const times: Array<Element> = Array.from(
+      runRow(FOUND).querySelectorAll("time"),
+    );
+
+    // When it ran, "1 hour ago" beside it, then the window's start and end.
+    expect(times).toHaveLength(4);
+
+    const moments: Array<Element> = [times[0]!, times[2]!, times[3]!];
+    const dates: Array<Date> = [
+      new Date(FOUND.createdAt!),
+      FOUND.windowStartAt!,
+      FOUND.windowEndAt!,
+    ];
+
+    moments.forEach((moment: Element, index: number) => {
+      const date: Date = dates[index]!;
+
+      // "Oct 14, 10:00 AM": the year only when it is not this year's, no zone.
+      expect(moment.textContent).toBe(
+        OneUptimeDate.getDateAsCompactLocalString(date),
+      );
+      // "Oct 14 2026, 10:00 AM GMT", for whoever wants the whole of it.
+      expect(moment.getAttribute("title")).toBe(
+        OneUptimeDate.getDateAsUserFriendlyLocalFormattedString(date),
+      );
+      expect(moment.textContent).not.toBe(moment.getAttribute("title"));
+    });
   });
 
   test("with no runs yet, says so, and when they will be listed", async () => {

@@ -263,7 +263,7 @@ export const KEPT_EVENT_NOTE: string = translationKey(
 export const RUN_HISTORY: string = translationKey("Run history");
 export const RUN_HISTORY_TITLE: string = translationKey("Run History");
 export const RUN_HISTORY_DESCRIPTION: string = translationKey(
-  "Each scheduled run, newest first: the events it searched and what it found. Runs are kept for 90 days.",
+  "Every scheduled run of the last 90 days, newest first.",
 );
 // A run, as the list counts them: the model's own names ("Run" alone reads as the verb).
 export const RUN_SINGULAR: string = translationKey("Hunt Run");
@@ -353,6 +353,7 @@ export const HUNTS_TEST_IDS: {
   eventEvidenceHunt: string;
   formFilters: string;
   runHistoryLink: string;
+  runLinks: string;
   runHistory: string;
   runHistoryTable: string;
   runRow: string;
@@ -409,6 +410,8 @@ export const HUNTS_TEST_IDS: {
   eventEvidenceHunt: "security-case-evidence-event-hunt",
   formFilters: "security-hunt-form-filters",
   runHistoryLink: "security-hunt-run-history-link",
+  // Show them and Run history after what a hunt's runs found, one group.
+  runLinks: "security-hunt-run-links",
   runHistory: "security-hunt-run-history",
   runHistoryTable: "security-hunt-runs",
   // Each run's own: `${runRow}-${runId}`.
