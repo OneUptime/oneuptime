@@ -1,5 +1,5 @@
 import "@testing-library/jest-dom";
-import { cleanup, render, screen } from "@testing-library/react";
+import { cleanup, render, screen, within } from "@testing-library/react";
 import fs from "fs";
 import { createInstance, i18n } from "i18next";
 import path from "path";
@@ -22,7 +22,7 @@ import {
   createTranslator,
   Translator,
 } from "../../../UI/Utils/TranslateTemplate";
-import { withoutIsolateMarks } from "../../Helpers/IsolateMarks";
+import { isolated, withoutIsolateMarks } from "../../Helpers/IsolateMarks";
 import getJestMockFunction, { MockFunction } from "../../MockType";
 
 /*
@@ -370,7 +370,7 @@ describe("the card in the reader's language", () => {
     ).toBe("Vor dem Fehler: 2 Rage-Klicks, 1 Dead-Klick");
   });
 
-  it("Persian: the page's address and the device read as written, in isolates of their own", async () => {
+  it("Persian: the page's address reads as written, and the device is a Persian sentence with its names set apart", async () => {
     await renderCardIn("fa", [sessionRow()]);
 
     const facts: HTMLElement = screen.getByTestId("replay-card-facts");
@@ -383,10 +383,145 @@ describe("the card in the reader's language", () => {
       };
     });
 
+    /*
+     * The address alone is an isolate of its own direction. The device's
+     * sentence is not: drawn as one left-to-right isolate (its letters are
+     * mostly Latin), "Chrome روی macOS" read "macOS on Chrome" from the
+     * right. It follows the page, each name set apart in it.
+     */
     expect(isolates).toEqual([
       { text: "https://shop.example.com/checkout", dir: "ltr" },
-      { text: "Chrome روی macOS", dir: "ltr" },
     ]);
+
+    const device: HTMLElement = within(facts).getByTestId("replay-card-device");
+
+    expect(device.tagName).toBe("SPAN");
+    expect(device.closest("bdi")).toBeNull();
+    expect(device.textContent).toBe(
+      drawn("fa", "{{browser}} on {{os}}")
+        .replace("{{browser}}", isolated("Chrome"))
+        .replace("{{os}}", isolated("macOS")),
+    );
+    expect(withoutIsolateMarks(device.textContent || "")).toBe(
+      "Chrome روی macOS",
+    );
+  });
+
+  it("Persian: a lone name reads as written, in an isolate of its own, in the facts and the other sessions", async () => {
+    await renderCardIn("fa", [
+      sessionRow({ osName: "" }),
+      sessionRow({
+        sessionId: "b1b2c3d4e5f60718293a4b5c6d7e8f90",
+        browserName: "",
+        osName: "",
+      }),
+    ]);
+
+    const device: HTMLElement = within(
+      screen.getByTestId("replay-card-facts"),
+    ).getByTestId("replay-card-device");
+
+    expect(device.tagName).toBe("BDI");
+    expect(device).toHaveAttribute("dir", "ltr");
+    expect(device.textContent).toBe("Chrome");
+
+    // Neither name: the reader's words, in the sentence's own direction.
+    const row: HTMLElement = screen.getByTestId("replay-card-session-row");
+    const unknown: HTMLElement = within(row).getByTestId("replay-card-device");
+
+    expect(unknown.tagName).toBe("SPAN");
+    expect(unknown.textContent).toBe(drawn("fa", "Unknown device"));
+  });
+
+  it("Persian: the other sessions' devices are sentences of the page, too", async () => {
+    await renderCardIn("fa", [
+      sessionRow(),
+      sessionRow({
+        sessionId: "b1b2c3d4e5f60718293a4b5c6d7e8f90",
+        browserName: "Firefox",
+        osName: "Windows",
+      }),
+    ]);
+
+    const row: HTMLElement = screen.getByTestId("replay-card-session-row");
+    const device: HTMLElement = within(row).getByTestId("replay-card-device");
+
+    expect(device.closest("bdi")).toBeNull();
+    expect(device.textContent).toBe(
+      drawn("fa", "{{browser}} on {{os}}")
+        .replace("{{browser}}", isolated("Firefox"))
+        .replace("{{os}}", isolated("Windows")),
+    );
+  });
+
+  it("Persian: a server's English answer is set apart in the refusal's sentence, its full stop at its end", async () => {
+    postMock.mockResolvedValue(
+      new HTTPErrorResponse(500, { message: "ClickHouse is down." }, {}),
+    );
+
+    render(
+      <I18nextProvider i18n={instances["fa"]!}>
+        <MemoryRouter>
+          <ReplayCard
+            fingerprint="fp-0123456789abcdef"
+            sessionId={SESSION_ID}
+            errorTimeUnixMs={ERROR_UNIX_MS}
+          />
+        </MemoryRouter>
+      </I18nextProvider>,
+    );
+
+    const hint: HTMLElement = await screen.findByTestId("replay-card-hint");
+
+    expect(hint.textContent).toContain(
+      drawn("fa", "Could not check for a recording: {{error}}").replace(
+        "{{error}}",
+        isolated("ClickHouse is down."),
+      ),
+    );
+  });
+
+  it("keeps the hint's icon beside the first line of a message that wraps", async () => {
+    postMock.mockResolvedValue(
+      new HTTPErrorResponse(500, { message: "ClickHouse is down." }, {}),
+    );
+
+    render(
+      <I18nextProvider i18n={instances["de"]!}>
+        <MemoryRouter>
+          <ReplayCard
+            fingerprint="fp-0123456789abcdef"
+            sessionId={SESSION_ID}
+            errorTimeUnixMs={ERROR_UNIX_MS}
+          />
+        </MemoryRouter>
+      </I18nextProvider>,
+    );
+
+    const hint: HTMLElement = await screen.findByTestId("replay-card-hint");
+
+    /*
+     * The row does not wrap: the icon is its first item, the message and
+     * Retry wrap inside the second, so the icon never stands alone above
+     * the words.
+     */
+    expect(hint.className).toContain("items-start");
+    expect(hint.className).not.toContain("flex-wrap");
+    expect(hint.children).toHaveLength(2);
+
+    const icon: Element | null = hint.children[0]!.querySelector("svg");
+
+    expect(icon).not.toBeNull();
+    expect(icon!.getAttribute("class")).toContain("shrink-0");
+
+    const words: HTMLElement = hint.children[1] as HTMLElement;
+
+    expect(words.className).toContain("flex-wrap");
+    expect(words.className).toContain("min-w-0");
+    expect(withoutIsolateMarks(words.textContent || "")).toContain(
+      "ClickHouse is down.",
+    );
+    expect(within(words).getByTestId("replay-card-retry")).toBeInTheDocument();
   });
 
   it("English reads as it always did", async () => {

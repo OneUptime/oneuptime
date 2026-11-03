@@ -196,10 +196,19 @@ export function describeReplayCardFailure(
   failure: ReplayCardFailure,
   translator: Translator,
 ): string {
+  /*
+   * The server's words, as it wrote them, are set apart in the reader's
+   * sentence: on a Persian page an English answer's full stop stayed at
+   * its start otherwise.
+   */
   if (failure.kind === "error" && failure.detail) {
-    return translator.translateTemplate(REPLAY_CARD_ERROR_DETAIL_COPY, {
-      error: failure.detail,
-    });
+    return translator.translateTemplate(
+      REPLAY_CARD_ERROR_DETAIL_COPY,
+      {
+        error: failure.detail,
+      },
+      { setsValuesApart: true },
+    );
   }
 
   return translator.translateText(failure.message) || failure.message;
@@ -230,16 +239,24 @@ function formatSessionStart(startTime: string, translator: Translator): string {
 /*
  * A session's browser and system, as the recorder named them ("Chrome on
  * macOS"), in the reader's sentence; the names themselves are as written.
+ * Each name is set apart in the sentence (setsValuesApart), so a Persian
+ * sentence reads the reader's way with its Latin names in it: drawn as one
+ * isolate of the names' direction, "Chrome روی macOS" read "macOS on
+ * Chrome" from the right.
  */
 export function describeReplayDevice(
   summary: Pick<SessionReplaySummary, "browserName" | "osName">,
   translator: Translator,
 ): string {
   if (summary.browserName && summary.osName) {
-    return translator.translateTemplate("{{browser}} on {{os}}", {
-      browser: summary.browserName,
-      os: summary.osName,
-    });
+    return translator.translateTemplate(
+      "{{browser}} on {{os}}",
+      {
+        browser: summary.browserName,
+        os: summary.osName,
+      },
+      { setsValuesApart: true },
+    );
   }
 
   return (
@@ -248,6 +265,31 @@ export function describeReplayDevice(
     translateLine("Unknown device", translator)
   );
 }
+
+/*
+ * The device as the card draws it: the sentence of the two names follows
+ * the page's direction (its names set apart in it); a name on its own reads
+ * the way it is written, in an isolate; and "Unknown device" is the
+ * reader's words.
+ */
+const ReplayDevice: FunctionComponent<{
+  summary: Pick<SessionReplaySummary, "browserName" | "osName">;
+  translator: Translator;
+}> = (props: {
+  summary: Pick<SessionReplaySummary, "browserName" | "osName">;
+  translator: Translator;
+}): ReactElement => {
+  const device: string = describeReplayDevice(props.summary, props.translator);
+  const isOneName: boolean =
+    !(props.summary.browserName && props.summary.osName) &&
+    Boolean(props.summary.browserName || props.summary.osName);
+
+  return isOneName ? (
+    <IsolatedText text={device} dataTestId="replay-card-device" />
+  ) : (
+    <span data-testid="replay-card-device">{device}</span>
+  );
+};
 
 /*
  * How long a session ran, as the reader's language writes a duration ("2
@@ -490,25 +532,35 @@ const ReplayCard: FunctionComponent<ReplayCardProps> = (
   }
 
   if (failure) {
+    /*
+     * The icon stays beside the first line of the message: a message that
+     * runs onto a second line (most do, in German or Persian) left it alone
+     * on a line of its own above the words when the three wrapped as one row.
+     */
     return (
       <div
-        className={`mb-5 flex flex-wrap items-center gap-2 text-xs text-gray-500 ${
+        className={`mb-5 flex items-start gap-2 text-xs text-gray-500 ${
           props.className || ""
         }`}
         data-testid="replay-card-hint"
         data-failure-kind={failure.kind}
       >
-        <Icon icon={IconProp.Film} className="h-3.5 w-3.5 text-gray-400" />
-        <span>{describeReplayCardFailure(failure, translator)}</span>
-        {failure.kind === "error" && (
-          <Button
-            title="Retry"
-            buttonStyle={ButtonStyleType.SECONDARY_LINK}
-            buttonSize={ButtonSize.ExtraSmall}
-            onClick={retry}
-            dataTestId="replay-card-retry"
-          />
-        )}
+        <Icon
+          icon={IconProp.Film}
+          className="mt-px h-3.5 w-3.5 shrink-0 text-gray-400"
+        />
+        <div className="flex min-w-0 flex-wrap items-center gap-x-2 gap-y-1">
+          <span>{describeReplayCardFailure(failure, translator)}</span>
+          {failure.kind === "error" && (
+            <Button
+              title="Retry"
+              buttonStyle={ButtonStyleType.SECONDARY_LINK}
+              buttonSize={ButtonSize.ExtraSmall}
+              onClick={retry}
+              dataTestId="replay-card-retry"
+            />
+          )}
+        </div>
       </div>
     );
   }
@@ -605,8 +657,9 @@ const ReplayCard: FunctionComponent<ReplayCardProps> = (
             </div>
             {/*
              * The page, how long the session ran and the device it ran on.
-             * The page's address and the device are as the recorder wrote
-             * them, each reading its own way on a Persian page.
+             * The page's address reads the way it is written on a Persian
+             * page; the device is a sentence of the page's language with
+             * the recorder's names in it (ReplayDevice).
              */}
             <div
               className="mt-2 truncate text-xs text-gray-500"
@@ -618,7 +671,7 @@ const ReplayCard: FunctionComponent<ReplayCardProps> = (
                 translator.translateText("Unknown page")
               )}{" "}
               · {describeReplayDuration(primary.durationMs, translator)} ·{" "}
-              <IsolatedText text={describeReplayDevice(primary, translator)} />
+              <ReplayDevice summary={primary} translator={translator} />
             </div>
             {signals.length > 0 && (
               <div
@@ -723,11 +776,9 @@ const ReplayCard: FunctionComponent<ReplayCardProps> = (
                               translator,
                             )}{" "}
                             ·{" "}
-                            <IsolatedText
-                              text={describeReplayDevice(
-                                row.summary,
-                                translator,
-                              )}
+                            <ReplayDevice
+                              summary={row.summary}
+                              translator={translator}
                             />
                           </span>
                           {route && (
