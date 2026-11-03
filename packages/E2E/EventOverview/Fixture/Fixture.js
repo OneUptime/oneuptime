@@ -678,8 +678,12 @@ const CODE_FIX_MODES = ["act", "no-repository", "writing", "opened"];
 const codeFixMode = CODE_FIX_MODES.includes(params.get("codefix"))
   ? params.get("codefix")
   : "";
-// ?fixes=: more fixes, of every kind, on Incident #1042's Remediation step.
-const FIXES_MODES = ["many"];
+/*
+ * ?fixes=: more fixes on Incident #1042's Remediation step - of every kind
+ * (many), or the three rounds of a fix that ran, did not work and was
+ * rolled back (rolled-back, issue #5598).
+ */
+const FIXES_MODES = ["many", "rolled-back"];
 const fixesMode = FIXES_MODES.includes(params.get("fixes"))
   ? params.get("fixes")
   : "";
@@ -4636,9 +4640,21 @@ function kubectlFixCommand(sequence, tier, command, words) {
 }
 
 function kubectlFixPlan(hasRun) {
-  const execution = hasRun
-    ? { execution: { status: "Succeeded", exitCode: 0 } }
-    : {};
+  // Run the moment it is approved, as the approved-plan executor does.
+  const ranAt = new Date().toISOString();
+  const execution = (output) => {
+    return hasRun
+      ? {
+          execution: {
+            status: "Succeeded",
+            exitCode: 0,
+            output,
+            startedAt: ranAt,
+            completedAt: ranAt,
+          },
+        }
+      : {};
+  };
   return {
     commands: [
       kubectlFixCommand(
@@ -4652,7 +4668,7 @@ function kubectlFixPlan(hasRun) {
             "Fresh pods open up to 40 connections and the queue drains within 2 minutes.",
           rollbackCommand:
             "kubectl rollout undo deployment/checkout-api -n checkout",
-          ...execution,
+          ...execution("deployment.apps/checkout-api restarted"),
         },
       ),
       kubectlFixCommand(
@@ -4665,11 +4681,17 @@ function kubectlFixPlan(hasRun) {
           expectedEffect: "p95 latency falls back under 500 ms.",
           rollbackCommand:
             "kubectl scale deployment/checkout-api --replicas=4 -n checkout",
-          ...execution,
+          ...execution("deployment.apps/checkout-api scaled"),
         },
       ),
     ],
-    ...(hasRun ? { executionStatus: "Completed" } : {}),
+    ...(hasRun
+      ? {
+          executionStatus: "Completed",
+          executionStartedAt: ranAt,
+          executionCompletedAt: ranAt,
+        }
+      : {}),
   };
 }
 
@@ -4738,6 +4760,113 @@ if (fixesMode === "many") {
   });
 }
 
+/*
+ * ---------------------------------------------------------------------------
+ * A fix that ran, did not work and was rolled back (?fixes=rolled-back), the
+ * Remediation step of issue #5598: a kubectl fix OneUptime AI ran on its own
+ * on prod-eu-west-1 - raising checkout-api's memory request, which its Helm
+ * release puts back on the next upgrade - after which p95 latency did not
+ * recover, so the change was undone; the runbooks it looked through, none
+ * of which applies; and a second round, which found no safe fix.
+ * ---------------------------------------------------------------------------
+ */
+const ROLLED_BACK_FIX_SUGGESTION_ID = uuid("93000000", 5);
+const NO_RUNBOOK_SUGGESTION_ID = uuid("93000000", 6);
+const SECOND_ROUND_SUGGESTION_ID = uuid("93000000", 7);
+
+if (fixesMode === "rolled-back") {
+  insert(AutoRemediationSuggestion, {
+    _id: ROLLED_BACK_FIX_SUGGESTION_ID,
+    incidentId: new ObjectID(ID.incident(INCIDENT_NUMBER)),
+    status: "AutoExecuted",
+    suggestionType: "CommandPlan",
+    ruleNameSnapshot: 'AI remediation for cluster "prod-eu-west-1"',
+    kubernetesClusterId: new ObjectID(ID.kubernetesCluster(1)),
+    rationaleMarkdown:
+      "checkout-api's HPA is pinned at its 3-replica ceiling: each pod uses about **515Mi** against a **512Mi** memory request, so the memory-as-%-of-request metric reads ~99% against an 80% target and can never scale down. Raising the request to 1Gi brings the metric to ~50%.",
+    commandPlan: {
+      commands: [
+        {
+          ...kubectlFixCommand(
+            1,
+            "RiskyWrite",
+            "kubectl set resources deployment/checkout-api -n checkout -c checkout-api --requests=memory=1Gi",
+            {
+              rationale:
+                "Each pod's memory (~515Mi) exceeds its 512Mi request, so the HPA reads ~99% and stays at 3 replicas.",
+              expectedEffect:
+                "The deployment rolls out with a 1Gi memory request, and the HPA's metric falls from ~99% to ~50%.",
+              rollbackCommand:
+                "kubectl rollout undo deployment/checkout-api -n checkout",
+            },
+          ),
+          wasAutoExecuted: true,
+          gitOps: {
+            controller: "Helm",
+            ownerKind: "release",
+            ownerName: "checkout",
+            ownerNamespace: "checkout",
+            evidence: "annotation meta.helm.sh/release-name",
+            objectKind: "Deployment",
+            objectName: "checkout-api",
+            objectNamespace: "checkout",
+            putsBack: true,
+            reconcilesOnItsOwn: false,
+            summary:
+              "Helm release \"checkout\" (namespace checkout) declares deployment/checkout-api, and this change edits a container's resources: the release's next helm upgrade puts it back. Treat it as a stopgap - the lasting fix is the same change in the release's chart values.",
+          },
+          execution: {
+            status: "Succeeded",
+            exitCode: 0,
+            output:
+              "deployment.apps/checkout-api resource requirements updated",
+            startedAt: at("18:04", 18).toISOString(),
+            completedAt: at("18:04", 21).toISOString(),
+          },
+          rollbackExecution: {
+            status: "Succeeded",
+            exitCode: 0,
+            output: "deployment.apps/checkout-api rolled back",
+            startedAt: at("18:14", 25).toISOString(),
+            completedAt: at("18:14", 27).toISOString(),
+          },
+        },
+      ],
+      executionStatus: "Completed",
+      executionStartedAt: at("18:04", 18).toISOString(),
+      executionCompletedAt: at("18:04", 21).toISOString(),
+      rollbackStatus: "Completed",
+    },
+    verificationStatus: "Failed",
+    verificationNote:
+      "The AI command remediation completed but the service did not recover within the verification window — escalation continues as normal. Rollback completed: 1 command(s) undone.",
+    verificationWindowMinutes: 10,
+    verificationCompletedAt: at("18:14", 21),
+    createdAt: at("18:04", 10),
+  });
+  insert(AutoRemediationSuggestion, {
+    _id: NO_RUNBOOK_SUGGESTION_ID,
+    incidentId: new ObjectID(ID.incident(INCIDENT_NUMBER)),
+    status: "NoneApplicable",
+    suggestionType: "Runbook",
+    ruleNameSnapshot: "All incidents",
+    rationaleMarkdown:
+      "None of this project's 4 runbooks changes checkout-api's resources or restarts it, so none applies to this incident.",
+    createdAt: at("18:04", 30),
+  });
+  insert(AutoRemediationSuggestion, {
+    _id: SECOND_ROUND_SUGGESTION_ID,
+    incidentId: new ObjectID(ID.incident(INCIDENT_NUMBER)),
+    status: "NoneApplicable",
+    suggestionType: "CommandPlan",
+    ruleNameSnapshot: 'AI remediation for cluster "prod-eu-west-1" (round 2)',
+    kubernetesClusterId: new ObjectID(ID.kubernetesCluster(1)),
+    rationaleMarkdown:
+      "Raising the memory request again would repeat the change that was just rolled back, and nothing else on the cluster explains the latency, so OneUptime AI proposes no change.",
+    createdAt: at("18:15", 2),
+  });
+}
+
 // Approve & Run (POST /auto-remediation/approve) on a fix that waits.
 function approveFix(suggestionId) {
   const record = table(AutoRemediationSuggestion).find((row) => {
@@ -4753,6 +4882,9 @@ function approveFix(suggestionId) {
     throw fail(400, "Only suggested remediations can be approved.");
   }
   record.status = "Approved";
+  // Who approved it and when, as the server stamps them.
+  record.approvedAt = new Date();
+  record.approvedByUser = people.maya;
   if (String(record._id) === KUBECTL_FIX_SUGGESTION_ID) {
     record.commandPlan = kubectlFixPlan(true);
   }
@@ -4767,6 +4899,8 @@ function dismissFix(suggestionId) {
     throw fail(400, "Only suggested remediations can be dismissed.");
   }
   record.status = "Dismissed";
+  record.dismissedAt = new Date();
+  record.dismissedByUser = people.maya;
 }
 
 /*

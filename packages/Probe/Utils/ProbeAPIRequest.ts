@@ -36,6 +36,12 @@ import ProbeCapability from "Common/Types/Probe/ProbeCapability";
  * string from the environment variable the store names. The server hands
  * data-security work only to a probe that declares this.
  *
+ * "dataObservabilityCollect": the probe collects the table health of the
+ * databases Data Observability assigns it (Jobs/DataObservability/
+ * CollectTableHealth) from their catalogs, with the same environment
+ * variables. The server hands table-health work only to a probe that
+ * declares this.
+ *
  * Add to this list only when the code that honours the new capability
  * ships in the same build.
  */
@@ -44,6 +50,7 @@ export const PROBE_CAPABILITIES: Array<string> = [
   ProbeCapability.SnmpTables,
   ProbeCapability.SnmpWalk,
   ProbeCapability.DataSecurityScan,
+  ProbeCapability.DataObservabilityCollect,
 ];
 
 export default class ProbeAPIRequest {

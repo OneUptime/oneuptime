@@ -53,9 +53,10 @@ const MIRROR_SCRIPT = "Scripts/GHA/use_docker_hub_mirror.sh";
 /*
  * The jobs that run the mirror action, "<workflow file>: <job id>", and what
  * their first step that can pull from Docker Hub runs. Every image these jobs
- * pull from Docker Hub is a third party's (postgres, valkey, clickhouse, the
- * OpenTelemetry collector, OBI); add a job here only if that holds for it
- * too.
+ * pull from Docker Hub by tag is a third party's (postgres, valkey,
+ * clickhouse, the OpenTelemetry collector, OBI); add a job here only if that
+ * holds for it too. One of OneUptime's images pulled by its digest is fine: a
+ * mirror cannot answer a digest with any other image.
  */
 const MIRRORED_JOBS = {
   // test-setup.sh starts postgres and valkey.
@@ -72,6 +73,9 @@ const MIRRORED_JOBS = {
   // postgres, valkey and clickhouse docker-compose.yml runs
   // (AppImageRuntime.test.js).
   "build.yml: docker-build-app": "warm_base_images.sh",
+  // Pulls the release the Iron Bank project pins, by digest, then Grype,
+  // Trivy, ClamAV and the datastores AppImageRuntime.test.js starts.
+  "iron-bank.yml: preflight": "fetch_resources.sh",
 };
 
 /*
