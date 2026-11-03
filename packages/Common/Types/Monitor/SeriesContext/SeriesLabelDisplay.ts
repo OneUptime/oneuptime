@@ -229,6 +229,10 @@ const FriendlyLabelNames: Record<string, string> = {
   "oneuptime.data.table.id": "Table ID",
   "oneuptime.data.store.name": "Data Store",
   "oneuptime.data.store.id": "Data Store ID",
+  // Each OpenLineage run that ends (OpenLineageIngest) is its pipeline's.
+  "oneuptime.data.pipeline.name": "Pipeline",
+  "oneuptime.data.pipeline.namespace": "Pipeline Namespace",
+  "oneuptime.data.pipeline.id": "Pipeline ID",
 
   // --- Services / RUM / telemetry ---
   "service.name": "Service",
@@ -378,8 +382,11 @@ const LabelPriority: Record<string, number> = {
   "oneuptime.data.table.name": 26,
   "oneuptime.data.table.schema": 35,
   "oneuptime.data.store.name": 40,
+  "oneuptime.data.pipeline.name": 25,
+  "oneuptime.data.pipeline.namespace": 35,
   "oneuptime.data.table.id": 95,
   "oneuptime.data.store.id": 95,
+  "oneuptime.data.pipeline.id": 95,
   "k8s.namespace.name": 50,
   "service.namespace": 50,
   "k8s.node.name": 60,

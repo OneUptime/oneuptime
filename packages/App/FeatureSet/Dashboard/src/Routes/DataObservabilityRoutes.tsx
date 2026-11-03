@@ -29,6 +29,9 @@ import TableServicesPage from "../Pages/DataObservability/TableView/Services";
 import TableChecksPage from "../Pages/DataObservability/TableView/Checks";
 import TableLineagePage from "../Pages/DataObservability/TableView/Lineage";
 import DataObservabilityPipelinesPage from "../Pages/DataObservability/Pipelines";
+import PipelineViewLayout from "../Pages/DataPipeline/View/Layout";
+import PipelineOverviewPage from "../Pages/DataPipeline/View/Overview";
+import DataPipelineRecommendationsPage from "../Pages/DataPipeline/View/Recommendations";
 import DataObservabilityChecksPage from "../Pages/DataObservability/Checks";
 import TableSettingsPage from "../Pages/DataObservability/TableView/Settings";
 import TableDeletePage from "../Pages/DataObservability/TableView/Delete";
@@ -247,6 +250,42 @@ const DataObservabilityRoutes: FunctionComponent<ComponentProps> = (
               {...props}
               pageRoute={
                 RouteMap[PageMap.DATA_OBSERVABILITY_TABLE_VIEW_DELETE] as Route
+              }
+            />
+          }
+        />
+      </PageRoute>
+
+      <PageRoute
+        path={
+          DataObservabilityRoutePath[
+            PageMap.DATA_OBSERVABILITY_PIPELINE_VIEW
+          ] || ""
+        }
+        element={<PipelineViewLayout {...props} />}
+      >
+        <PageRoute
+          index
+          element={
+            <PipelineOverviewPage
+              {...props}
+              pageRoute={
+                RouteMap[PageMap.DATA_OBSERVABILITY_PIPELINE_VIEW] as Route
+              }
+            />
+          }
+        />
+        <PageRoute
+          path={RouteUtil.getLastPathForKey(
+            PageMap.DATA_OBSERVABILITY_PIPELINE_VIEW_RECOMMENDATIONS,
+          )}
+          element={
+            <DataPipelineRecommendationsPage
+              {...props}
+              pageRoute={
+                RouteMap[
+                  PageMap.DATA_OBSERVABILITY_PIPELINE_VIEW_RECOMMENDATIONS
+                ] as Route
               }
             />
           }

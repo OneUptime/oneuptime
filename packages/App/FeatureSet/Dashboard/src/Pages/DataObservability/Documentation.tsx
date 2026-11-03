@@ -124,7 +124,7 @@ Saving the check makes a Metrics monitor for it, as you, with your permissions. 
 
 ## Pipelines and lineage, from OpenLineage
 
-Airflow, Dagster, Spark, dbt and Flink describe every run of a job with [OpenLineage](https://openlineage.io) events. Send them to OneUptime, unchanged, with a telemetry ingestion key (Project Settings > Telemetry Ingestion Keys):
+Airflow, Dagster, Spark, dbt and Flink describe every run of a job with [OpenLineage](https://openlineage.io) events. Send them to OneUptime, unchanged, with a telemetry ingestion key (Project Settings > Telemetry & APM > Ingestion Keys):
 
 - **URL:** \`https://oneuptime.com/telemetry/openlineage\` (on a self-hosted OneUptime, your own address)
 - **Endpoint:** \`api/v1/lineage\`, OpenLineage's default
@@ -142,11 +142,18 @@ Each job appears under **Pipelines**, with its latest run: when it started and e
 
 Datasets are matched to tables by the OpenLineage naming spec: \`postgres://host:5432\` with \`database.schema.table\`, \`mysql://host:3306\` with \`database.table\`, and \`sqlserver://host:1433\` with \`database.schema.table\`.
 
-Every run that ends writes two metrics, tagged with \`oneuptime.data.pipeline.id\` and \`oneuptime.data.pipeline.name\`:
-- \`oneuptime.data.pipeline.run_failed\` (1 or 0)
-- \`oneuptime.data.pipeline.run_duration\` (seconds)
+Each pipeline learns from its own runs how long a run usually takes (the median of its last 20 completed runs) and how long it goes between runs on its schedule (the longest gap between its last 50 starts that is not a one-off). Both are known after five runs, and fit a job that runs every five minutes as well as one that runs nightly. When your scheduler sends OpenLineage's \`nominalTime\` facet, as Airflow does, a run's scheduled time stands for its start, so a backfill still reads as the schedule.
 
-A Metrics monitor grouped by pipeline alerts once per pipeline, on a failed run or one far slower than usual.
+A pipeline's page recommends three monitors, each created in one click:
+- **Pipeline Run Failed**: a run failed or was aborted.
+- **Pipeline Run Unusually Long**: a run has taken twice its typical time, or more. It is checked every five minutes while the run is going, so a run that hangs is seen before it ends.
+- **Pipeline Is Late**: no run has started for longer than the schedule allows, with a quarter of the interval and at least fifteen minutes of slack.
+
+They read these metrics, each tagged with \`oneuptime.data.pipeline.id\` and \`oneuptime.data.pipeline.name\`:
+- \`oneuptime.data.pipeline.run_failed\`: 1 or 0, as each run ends.
+- \`oneuptime.data.pipeline.run_duration\`: seconds, as each run ends.
+- \`oneuptime.data.pipeline.run_duration_ratio\`: the run's time over the typical run's (counted as at least a minute), as each run ends and every five minutes while it runs.
+- \`oneuptime.data.pipeline.overdue_seconds\`: how long past its schedule the next run is, every five minutes; 0 while on time.
 
 ## Services that use each table
 

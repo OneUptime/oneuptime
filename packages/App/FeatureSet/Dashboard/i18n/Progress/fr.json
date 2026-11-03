@@ -359,6 +359,7 @@
     "Passthrough",
     "Perf",
     "Phase",
+    "Pipeline",
     "Pipelines",
     "Placement",
     "Placement Groups",
