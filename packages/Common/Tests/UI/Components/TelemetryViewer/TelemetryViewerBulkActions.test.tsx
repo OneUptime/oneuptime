@@ -14,17 +14,22 @@ import * as React from "react";
 import TelemetryViewer, {
   TELEMETRY_VIEWER_BULK_ROW_CLASS_NAME,
   TELEMETRY_VIEWER_LIST_TEST_ID,
+  TELEMETRY_VIEWER_PAGE_BOX_SLOT_CLASS_NAME,
   TELEMETRY_VIEWER_ROW_BOX_CLASS_NAME,
   TELEMETRY_VIEWER_SELECT_PAGE_TEST_ID,
   TELEMETRY_VIEWER_SELECT_PAGE_WORDS_TEST_ID,
   TELEMETRY_VIEWER_SELECT_ROW_TEST_ID,
   TelemetryViewerBulk,
+  TelemetryViewerSelectAllMatching,
 } from "../../../../UI/Components/TelemetryViewer/TelemetryViewer";
+import { EveryMatch } from "../../../../UI/Components/BulkUpdate/BulkSelectAll";
 import { TABLE_SELECTED_ROW_CLASS_NAME } from "../../../../UI/Components/Table/TableLayout";
 import {
   BULK_ROW_ACTIONS_TEST_ID,
   BULK_ROW_CLEAR_TEST_ID,
   BULK_ROW_COUNT_TEST_ID,
+  BULK_ROW_LIMIT_TEST_ID,
+  BULK_ROW_SELECT_ALL_TEST_ID,
   BULK_ROW_TEST_ID,
   BulkActionButtonSchema,
   BulkActionOnClickProps,
@@ -555,5 +560,565 @@ describe("a telemetry list with Bulk Actions", () => {
     for (const box of rowBoxes()) {
       expect(box.checked).toBe(false);
     }
+  });
+});
+
+/*
+ * EVERY EXCEPTION THAT MATCHES, NOT ONLY THE PAGE'S (bulk.selectAllMatching).
+ *
+ * "Select every matching exception across pages, not just the page shown:
+ * the list has no read-all path yet" - the maintainer's follow-up to #5344.
+ * Once every row on the page is ticked and the list's exact total says more
+ * match, the header line offers them all, by number. Taken, the selection is
+ * every match: kept from page to page, let go when the search changes or a
+ * row is unticked, and a quick move over it asks first.
+ */
+describe("a telemetry list offering every row that matches", () => {
+  const ALL: Array<Row> = [
+    ...ROWS,
+    { id: "4", name: "Error: page two", isResolved: false },
+    { id: "5", name: "TimeoutError: upstream", isResolved: false },
+    { id: "6", name: "Error: page three", isResolved: false },
+  ];
+
+  interface Reads {
+    count: number;
+    isSuperseded: Array<() => boolean>;
+  }
+
+  function everyMatch(
+    reads: Reads,
+    answer: () => Promise<EveryMatch<Row> | null> = async (): Promise<
+      EveryMatch<Row>
+    > => {
+      return { items: ALL, totalCount: ALL.length, isTruncated: false };
+    },
+    matchKey: string = "unresolved",
+  ): TelemetryViewerSelectAllMatching<Row> {
+    return {
+      matchKey: matchKey,
+      read: async (options: {
+        isSuperseded: () => boolean;
+      }): Promise<EveryMatch<Row> | null> => {
+        reads.count++;
+        reads.isSuperseded.push(options.isSuperseded);
+        return await answer();
+      },
+    };
+  }
+
+  function listOf(data: {
+    items: Array<Row>;
+    total: number;
+    bulk: TelemetryViewerBulk<Row>;
+    hasMore?: boolean | undefined;
+  }): React.ReactElement {
+    return (
+      <TelemetryViewer<Row>
+        items={data.items}
+        isLoading={false}
+        renderRow={(item: Row): React.ReactElement => {
+          return <span data-testid={`row-${item.id}`}>{item.name}</span>;
+        }}
+        getRowKey={(item: Row): string => {
+          return item.id;
+        }}
+        searchValue=""
+        onSearchChange={(): void => {}}
+        onSearchSubmit={(): void => {}}
+        timeRange={{ range: TimeRange.PAST_ONE_HOUR }}
+        onTimeRangeChange={(): void => {}}
+        page={1}
+        pageSize={3}
+        totalCount={data.total}
+        hasMore={data.hasMore}
+        onPageChange={(): void => {}}
+        onPageSizeChange={(): void => {}}
+        itemLabel="exceptions"
+        bulk={data.bulk}
+      />
+    );
+  }
+
+  function offer(): HTMLElement | null {
+    return screen.queryByTestId(BULK_ROW_SELECT_ALL_TEST_ID);
+  }
+
+  test("offers every exception that matches once the page is all ticked, naming how many, and selects them all", async () => {
+    const reads: Reads = { count: 0, isSuperseded: [] };
+    const bulk: TelemetryViewerBulk<Row> = {
+      ...BULK,
+      selectAllMatching: everyMatch(reads),
+    };
+
+    render(listOf({ items: ROWS, total: ALL.length, bulk: bulk }));
+
+    // Only some of the page: no offer yet.
+    fireEvent.click(rowBoxes()[0]!);
+    expect(offer()).toBeNull();
+
+    fireEvent.click(pageBox());
+    expect(selectedCount()).toBe("3 selected");
+    expect(offer()).toHaveTextContent("Select all 6 exceptions");
+
+    await act(async () => {
+      fireEvent.click(offer()!);
+    });
+
+    expect(reads.count).toBe(1);
+    expect(selectedCount()).toBe("All 6 selected");
+    expect(offer()).toBeNull();
+    for (const box of rowBoxes()) {
+      expect(box.checked).toBe(true);
+    }
+    expect(pageBox().checked).toBe(true);
+  });
+
+  test("offers nothing without a read of every match, or without an exact total", () => {
+    render(listOf({ items: ROWS, total: ALL.length, bulk: BULK }));
+
+    fireEvent.click(pageBox());
+    expect(selectedCount()).toBe("3 selected");
+    expect(offer()).toBeNull();
+    cleanup();
+
+    const reads: Reads = { count: 0, isSuperseded: [] };
+
+    // An analytics list that only knows more rows follow.
+    render(
+      listOf({
+        items: ROWS,
+        total: 4,
+        hasMore: true,
+        bulk: { ...BULK, selectAllMatching: everyMatch(reads) },
+      }),
+    );
+
+    fireEvent.click(pageBox());
+    expect(offer()).toBeNull();
+  });
+
+  test("every match stays selected from page to page, each row as the page reads it now", async () => {
+    const reads: Reads = { count: 0, isSuperseded: [] };
+    const bulk: TelemetryViewerBulk<Row> = {
+      ...BULK,
+      selectAllMatching: everyMatch(reads),
+    };
+
+    const view: RenderResult = render(
+      listOf({ items: ROWS, total: ALL.length, bulk: bulk }),
+    );
+
+    fireEvent.click(pageBox());
+    await act(async () => {
+      fireEvent.click(offer()!);
+    });
+
+    // Page two: none of its rows were on page one, all are ticked.
+    view.rerender(
+      listOf({ items: ALL.slice(3), total: ALL.length, bulk: bulk }),
+    );
+
+    expect(selectedCount()).toBe("All 6 selected");
+    for (const box of rowBoxes()) {
+      expect(box.checked).toBe(true);
+    }
+    expect(pageBox().checked).toBe(true);
+
+    // Back on page one, every row is still ticked.
+    view.rerender(listOf({ items: ROWS, total: ALL.length, bulk: bulk }));
+
+    expect(selectedCount()).toBe("All 6 selected");
+    for (const box of rowBoxes()) {
+      expect(box.checked).toBe(true);
+    }
+  });
+
+  test("a changed search lets every match go: what is left is the page's ticked rows", async () => {
+    const reads: Reads = { count: 0, isSuperseded: [] };
+    const before: TelemetryViewerBulk<Row> = {
+      ...BULK,
+      selectAllMatching: everyMatch(reads),
+    };
+
+    const view: RenderResult = render(
+      listOf({ items: ROWS, total: ALL.length, bulk: before }),
+    );
+
+    fireEvent.click(pageBox());
+    await act(async () => {
+      fireEvent.click(offer()!);
+    });
+    expect(selectedCount()).toBe("All 6 selected");
+
+    const after: TelemetryViewerBulk<Row> = {
+      ...BULK,
+      selectAllMatching: everyMatch(reads, undefined, "resolved"),
+    };
+
+    // The search changed; its first page holds two of the rows.
+    view.rerender(
+      listOf({ items: [ROWS[0]!, ALL[4]!], total: 2, bulk: after }),
+    );
+
+    expect(selectedCount()).toBe("2 selected");
+    expect(offer()).toBeNull();
+  });
+
+  test("unticking a row of every match leaves the page's other ticked rows", async () => {
+    const reads: Reads = { count: 0, isSuperseded: [] };
+
+    render(
+      listOf({
+        items: ROWS,
+        total: ALL.length,
+        bulk: { ...BULK, selectAllMatching: everyMatch(reads) },
+      }),
+    );
+
+    fireEvent.click(pageBox());
+    await act(async () => {
+      fireEvent.click(offer()!);
+    });
+    expect(selectedCount()).toBe("All 6 selected");
+
+    fireEvent.click(rowBoxes()[1]!);
+
+    expect(selectedCount()).toBe("2 selected");
+    expect(rowBoxes()[0]!.checked).toBe(true);
+    expect(rowBoxes()[1]!.checked).toBe(false);
+    expect(rowBoxes()[2]!.checked).toBe(true);
+  });
+
+  test("the page's box, unticked, lets every match go", async () => {
+    const reads: Reads = { count: 0, isSuperseded: [] };
+
+    render(
+      listOf({
+        items: ROWS,
+        total: ALL.length,
+        bulk: { ...BULK, selectAllMatching: everyMatch(reads) },
+      }),
+    );
+
+    fireEvent.click(pageBox());
+    await act(async () => {
+      fireEvent.click(offer()!);
+    });
+
+    fireEvent.click(pageBox());
+
+    expect(selectedCount()).toBeNull();
+    for (const box of rowBoxes()) {
+      expect(box.checked).toBe(false);
+    }
+  });
+
+  test("Clear Selection while the read goes on wins: nothing is selected when it lands", async () => {
+    const reads: Reads = { count: 0, isSuperseded: [] };
+    let land: (match: EveryMatch<Row>) => void = (): void => {};
+    const landing: Promise<EveryMatch<Row>> = new Promise<EveryMatch<Row>>(
+      (resolve: (match: EveryMatch<Row>) => void) => {
+        land = resolve;
+      },
+    );
+
+    render(
+      listOf({
+        items: ROWS,
+        total: ALL.length,
+        bulk: {
+          ...BULK,
+          selectAllMatching: everyMatch(reads, async () => {
+            return await landing;
+          }),
+        },
+      }),
+    );
+
+    fireEvent.click(pageBox());
+    await act(async () => {
+      fireEvent.click(offer()!);
+    });
+
+    // Busy while it reads, and not to be pressed twice.
+    expect(offer()).toBeDisabled();
+    expect(offer()).toHaveAttribute("aria-busy", "true");
+
+    fireEvent.click(clearSelectionButton()!);
+    expect(reads.isSuperseded[0]!()).toBe(true);
+
+    await act(async () => {
+      land({ items: ALL, totalCount: ALL.length, isTruncated: false });
+      await landing;
+    });
+
+    expect(selectedCount()).toBeNull();
+    for (const box of rowBoxes()) {
+      expect(box.checked).toBe(false);
+    }
+  });
+
+  test("a changed search tells a read still going on that it is out of date", async () => {
+    const reads: Reads = { count: 0, isSuperseded: [] };
+    const landing: Promise<EveryMatch<Row>> = new Promise<EveryMatch<Row>>(
+      (): void => {},
+    );
+
+    const view: RenderResult = render(
+      listOf({
+        items: ROWS,
+        total: ALL.length,
+        bulk: {
+          ...BULK,
+          selectAllMatching: everyMatch(reads, async () => {
+            return await landing;
+          }),
+        },
+      }),
+    );
+
+    fireEvent.click(pageBox());
+    await act(async () => {
+      fireEvent.click(offer()!);
+    });
+
+    expect(reads.isSuperseded[0]!()).toBe(false);
+
+    view.rerender(
+      listOf({
+        items: ROWS,
+        total: ALL.length,
+        bulk: {
+          ...BULK,
+          selectAllMatching: everyMatch(
+            reads,
+            async () => {
+              return await landing;
+            },
+            "archived",
+          ),
+        },
+      }),
+    );
+
+    expect(reads.isSuperseded[0]!()).toBe(true);
+    // Not busy any more: the offer is there to read the new search.
+    expect(offer()).not.toBeDisabled();
+  });
+
+  test("a read that fails says why under the line, keeps the page's selection, and can be tried again", async () => {
+    const reads: Reads = { count: 0, isSuperseded: [] };
+    let fails: boolean = true;
+
+    render(
+      listOf({
+        items: ROWS,
+        total: ALL.length,
+        bulk: {
+          ...BULK,
+          selectAllMatching: everyMatch(
+            reads,
+            async (): Promise<EveryMatch<Row>> => {
+              if (fails) {
+                throw new Error("The search took too long.");
+              }
+              return { items: ALL, totalCount: ALL.length, isTruncated: false };
+            },
+          ),
+        },
+      }),
+    );
+
+    fireEvent.click(pageBox());
+    await act(async () => {
+      fireEvent.click(offer()!);
+    });
+
+    expect(screen.getByRole("alert")).toHaveTextContent(
+      "The search took too long.",
+    );
+    expect(selectedCount()).toBe("3 selected");
+    expect(offer()).not.toBeDisabled();
+
+    fails = false;
+    await act(async () => {
+      fireEvent.click(offer()!);
+    });
+
+    expect(screen.queryByRole("alert")).toBeNull();
+    expect(selectedCount()).toBe("All 6 selected");
+    expect(reads.count).toBe(2);
+  });
+
+  test("stopped at the most one selection holds: says so under the line", async () => {
+    const reads: Reads = { count: 0, isSuperseded: [] };
+
+    render(
+      listOf({
+        items: ROWS,
+        total: 12345,
+        bulk: {
+          ...BULK,
+          selectAllMatching: everyMatch(
+            reads,
+            async (): Promise<EveryMatch<Row>> => {
+              return { items: ALL, totalCount: 12345, isTruncated: true };
+            },
+          ),
+        },
+      }),
+    );
+
+    fireEvent.click(pageBox());
+    // Said before anything is read: the first of them, and how many that is.
+    expect(offer()).toHaveTextContent(
+      "Select the first 10,000 of 12,345 exceptions",
+    );
+
+    await act(async () => {
+      fireEvent.click(offer()!);
+    });
+
+    expect(selectedCount()).toBe("6 selected");
+    expect(screen.getByTestId(BULK_ROW_LIMIT_TEST_ID)).toHaveTextContent(
+      "Selected 6 of 12,345 matching exceptions.",
+    );
+  });
+
+  test("a quick move over every match asks first, naming how many, and changes every one of them", async () => {
+    const reads: Reads = { count: 0, isSuperseded: [] };
+
+    render(
+      listOf({
+        items: ROWS,
+        total: ALL.length,
+        bulk: { ...BULK, selectAllMatching: everyMatch(reads) },
+      }),
+    );
+
+    fireEvent.click(pageBox());
+    await act(async () => {
+      fireEvent.click(offer()!);
+    });
+
+    fireEvent.click(screen.getByRole("button", { name: "Bulk Actions" }));
+    fireEvent.click(screen.getByRole("menuitem", { name: "Resolve" }));
+
+    const question: HTMLElement = await screen.findByRole("dialog");
+
+    expect(question).toHaveTextContent(
+      "This changes all 6 selected exceptions, including those on other pages.",
+    );
+    // Nothing runs until the person says so.
+    expect(resolved).toEqual([]);
+
+    await act(async () => {
+      fireEvent.click(
+        within(question).getByTestId("modal-footer-submit-button"),
+      );
+    });
+
+    await waitFor(() => {
+      expect(resolved.sort()).toEqual(["1", "2", "3", "4", "5", "6"]);
+    });
+
+    const result: HTMLElement = await screen.findByRole("dialog");
+    await waitFor(() => {
+      expect(within(result).getByText("6 Exceptions succeeded")).toBeVisible();
+    });
+    fireEvent.click(within(result).getByRole("button", { name: "Close" }));
+
+    await waitFor(() => {
+      expect(actionEnds).toBe(1);
+    });
+    expect(selectedCount()).toBeNull();
+  });
+
+  test("the page's own selection runs a quick move at once, as before", async () => {
+    const reads: Reads = { count: 0, isSuperseded: [] };
+
+    render(
+      listOf({
+        items: ROWS,
+        total: ALL.length,
+        bulk: { ...BULK, selectAllMatching: everyMatch(reads) },
+      }),
+    );
+
+    fireEvent.click(pageBox());
+    fireEvent.click(screen.getByRole("button", { name: "Bulk Actions" }));
+    await act(async () => {
+      fireEvent.click(screen.getByRole("menuitem", { name: "Resolve" }));
+    });
+
+    await waitFor(() => {
+      expect(resolved.sort()).toEqual(["1", "2", "3"]);
+    });
+    expect(
+      screen.queryByText(
+        "This changes all 3 selected exceptions, including those on other pages.",
+      ),
+    ).toBeNull();
+  });
+
+  test("an action that opens a dialog of its own is asked nothing more over every match", async () => {
+    const reads: Reads = { count: 0, isSuperseded: [] };
+    const opened: Array<number> = [];
+    const assign: BulkActionButtonSchema<Row> = {
+      title: "Assign to…",
+      icon: IconProp.User,
+      buttonStyleType: ButtonStyleType.NORMAL,
+      opensItsOwnDialog: true,
+      onClick: async (
+        actionProps: BulkActionOnClickProps<Row>,
+      ): Promise<void> => {
+        opened.push(actionProps.items.length);
+      },
+    };
+
+    render(
+      listOf({
+        items: ROWS,
+        total: ALL.length,
+        bulk: {
+          ...BULK,
+          buttons: [resolveAction, assign],
+          selectAllMatching: everyMatch(reads),
+        },
+      }),
+    );
+
+    fireEvent.click(pageBox());
+    await act(async () => {
+      fireEvent.click(offer()!);
+    });
+
+    fireEvent.click(screen.getByRole("button", { name: "Bulk Actions" }));
+    await act(async () => {
+      fireEvent.click(screen.getByRole("menuitem", { name: "Assign to…" }));
+    });
+
+    expect(opened).toEqual([6]);
+    expect(screen.queryByRole("dialog")).toBeNull();
+  });
+
+  test("the page's box sits level with the line's first line, so a second line leaves it beside the count", () => {
+    render(listOf({ items: ROWS, total: ALL.length, bulk: BULK }));
+
+    // The line's first part: the slot the page's box sits in.
+    const slot: HTMLElement = screen.getByTestId("telemetry-viewer-bulk")
+      .firstElementChild as HTMLElement;
+
+    expect(slot.className).toBe(TELEMETRY_VIEWER_PAGE_BOX_SLOT_CLASS_NAME);
+    expect(slot).toContainElement(pageBox());
+    // As tall as Bulk Actions, at the line's top: level with its first line.
+    expect(TELEMETRY_VIEWER_PAGE_BOX_SLOT_CLASS_NAME.split(" ")).toEqual(
+      expect.arrayContaining([
+        "self-start",
+        "min-h-[1.875rem]",
+        "items-center",
+      ]),
+    );
   });
 });

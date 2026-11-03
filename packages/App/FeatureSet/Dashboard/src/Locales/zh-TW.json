@@ -40384,5 +40384,13 @@
   "The Runner this repository works on does not take AI code fixes: {{setting}} is set on its host. Remove that setting and restart the Runner, or pick another Runner.": "此儲存庫所用的 Runner 不接受 AI 程式碼修正：它的主機上設定了 {{setting}}。請移除該設定並重新啟動 Runner，或選擇其他 Runner。",
   "The Runner this repository works on, {{runner}}, does not take AI code fixes: {{setting}} is set on its host. Remove that setting and restart the Runner, or pick another Runner.": "此儲存庫所用的 Runner（{{runner}}）不接受 AI 程式碼修正：它的主機上設定了 {{setting}}。請移除該設定並重新啟動 Runner，或選擇其他 Runner。",
   "This Runner takes no AI code fixes: {{setting}} is set on its host. Remove that setting and restart the Runner, or pick another Runner.": "此 Runner 不接受 AI 程式碼修正：它的主機上設定了 {{setting}}。請移除該設定並重新啟動 Runner，或選擇其他 Runner。",
-  "Takes no AI code fixes": "不接受 AI 程式碼修正"
+  "Takes no AI code fixes": "不接受 AI 程式碼修正",
+  "All {{count}} selected": "已選取全部 {{count}} 項",
+  "All {{count}} selected_one": "已選取全部 {{count}} 項",
+  "Select all {{count}} {{itemsName}}": "選取全部 {{count}} 個{{itemsName}}",
+  "Select all {{count}} {{itemsName}}_one": "選取全部 {{count}} 個{{itemName}}",
+  "Select the first {{limit}} of {{count}} {{itemsName}}": "選取 {{count}} 個{{itemsName}}中的前 {{limit}} 個",
+  "Select the first {{limit}} of {{count}} {{itemsName}}_one": "選取 {{count}} 個{{itemName}}中的前 {{limit}} 個",
+  "This changes all {{count}} selected {{itemsName}}, including those on other pages.": "這將變更所有 {{count}} 個已選取的{{itemsName}}，包括其他頁面上的。",
+  "This changes all {{count}} selected {{itemsName}}, including those on other pages._one": "這將變更所有 {{count}} 個已選取的{{itemName}}，包括其他頁面上的。"
 }

@@ -236,7 +236,10 @@ export const getSelectAllMatchingOffer: (data: {
     return { kind: SelectAllMatchingOfferKind.None };
   }
 
-  if (data.matchingCount === undefined || !Number.isFinite(data.matchingCount)) {
+  if (
+    data.matchingCount === undefined ||
+    !Number.isFinite(data.matchingCount)
+  ) {
     return {
       kind: data.hasMore
         ? SelectAllMatchingOfferKind.Unknown

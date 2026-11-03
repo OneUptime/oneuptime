@@ -30,7 +30,12 @@ import TelemetryViewer, {
   TelemetryViewerBulk,
 } from "../../../UI/Components/TelemetryViewer/TelemetryViewer";
 import { ButtonStyleType } from "../../../UI/Components/Button/Button";
-import { BULK_ROW_COUNT_TEST_ID } from "../../../UI/Components/BulkUpdate/BulkUpdateForm";
+import {
+  BULK_ROW_COUNT_TEST_ID,
+  BULK_ROW_SELECT_ALL_TEST_ID,
+} from "../../../UI/Components/BulkUpdate/BulkUpdateForm";
+import { EveryMatch } from "../../../UI/Components/BulkUpdate/BulkSelectAll";
+import { withoutIsolateMarks } from "../../Helpers/IsolateMarks";
 import IconProp from "../../../Types/Icon/IconProp";
 import TimeRange from "../../../Types/Time/TimeRange";
 
@@ -304,5 +309,187 @@ describe("a telemetry list's boxes", () => {
     expect(
       screen.getByRole("button", { name: "پاک کردن انتخاب" }),
     ).toBeVisible();
+  });
+});
+
+/*
+ * Every exception that matches, in the reader's words: the offer, the count
+ * once they are all selected, and the question before a quick move over
+ * them - from the shipped locale files, numbers in the reader's way.
+ */
+describe("every exception that matches, in the reader's words", () => {
+  const MATCHING: number = 1234;
+
+  const everyMatchRows: Array<Row> = [
+    ...ROWS,
+    ...Array.from(
+      { length: MATCHING - ROWS.length },
+      (_value: unknown, index: number): Row => {
+        return { _id: String(index + 10), name: `Error ${index + 1}` };
+      },
+    ),
+  ];
+
+  const resolved: Array<string> = [];
+
+  const matchingBulk: TelemetryViewerBulk<Row> = {
+    ...listBulk,
+    buttons: [
+      {
+        title: "Resolve",
+        icon: IconProp.Check,
+        buttonStyleType: ButtonStyleType.NORMAL,
+        onClick: async (): Promise<void> => {
+          resolved.push("ran");
+        },
+      },
+    ],
+    selectAllMatching: {
+      matchKey: "unresolved",
+      read: async (): Promise<EveryMatch<Row>> => {
+        return {
+          items: everyMatchRows,
+          totalCount: MATCHING,
+          isTruncated: false,
+        };
+      },
+    },
+  };
+
+  function renderMatchingList(): void {
+    render(
+      <TelemetryViewer<Row>
+        items={ROWS}
+        isLoading={false}
+        renderRow={(row: Row): React.ReactElement => {
+          return <span>{row.name}</span>;
+        }}
+        getRowKey={(row: Row): string => {
+          return row._id;
+        }}
+        searchValue=""
+        onSearchChange={(): void => {}}
+        onSearchSubmit={(): void => {}}
+        timeRange={{ range: TimeRange.PAST_ONE_HOUR }}
+        onTimeRangeChange={(): void => {}}
+        page={1}
+        pageSize={2}
+        totalCount={MATCHING}
+        onPageChange={(): void => {}}
+        onPageSizeChange={(): void => {}}
+        itemLabel="exceptions"
+        bulk={matchingBulk}
+      />,
+    );
+  }
+
+  async function selectEveryMatch(): Promise<void> {
+    fireEvent.click(screen.getByTestId(TELEMETRY_VIEWER_SELECT_PAGE_TEST_ID));
+    await act(async () => {
+      fireEvent.click(screen.getByTestId(BULK_ROW_SELECT_ALL_TEST_ID));
+    });
+  }
+
+  function text(testId: string): string {
+    return withoutIsolateMarks(screen.getByTestId(testId).textContent || "");
+  }
+
+  test("German: the offer, the count and the question", async () => {
+    renderMatchingList();
+
+    fireEvent.click(screen.getByTestId(TELEMETRY_VIEWER_SELECT_PAGE_TEST_ID));
+    expect(text(BULK_ROW_SELECT_ALL_TEST_ID)).toBe(
+      "Alle 1.234 Ausnahmen auswählen",
+    );
+
+    await act(async () => {
+      fireEvent.click(screen.getByTestId(BULK_ROW_SELECT_ALL_TEST_ID));
+    });
+    expect(text(BULK_ROW_COUNT_TEST_ID)).toContain("Alle 1.234 ausgewählt");
+
+    fireEvent.click(screen.getByRole("button", { name: "Massenaktionen" }));
+    fireEvent.click(screen.getByRole("menuitem", { name: "Beheben" }));
+
+    const question: HTMLElement = await screen.findByRole("dialog");
+
+    expect(withoutIsolateMarks(question.textContent || "")).toContain(
+      "Dies ändert alle 1.234 ausgewählten Ausnahmen, auch die auf anderen Seiten.",
+    );
+    expect(resolved).toEqual([]);
+  });
+
+  test("Persian: the offer and the count, in Persian digits", async () => {
+    await act(async () => {
+      await i18next.changeLanguage("fa");
+    });
+    renderMatchingList();
+
+    fireEvent.click(screen.getByTestId(TELEMETRY_VIEWER_SELECT_PAGE_TEST_ID));
+    expect(text(BULK_ROW_SELECT_ALL_TEST_ID)).toBe(
+      "انتخاب همهٔ ۱٬۲۳۴ مورد (استثناها)",
+    );
+
+    await act(async () => {
+      fireEvent.click(screen.getByTestId(BULK_ROW_SELECT_ALL_TEST_ID));
+    });
+    expect(text(BULK_ROW_COUNT_TEST_ID)).toContain("هر ۱٬۲۳۴ مورد انتخاب شد");
+  });
+
+  test("Russian: every match counted in the form any count takes", async () => {
+    await act(async () => {
+      await i18next.changeLanguage("ru");
+    });
+    renderMatchingList();
+
+    await selectEveryMatch();
+
+    expect(text(BULK_ROW_COUNT_TEST_ID).replace(/\s+/g, " ")).toContain(
+      "Выбраны все: 1 234",
+    );
+  });
+
+  test("past the most one selection holds, German says it takes the first of them", () => {
+    render(
+      <TelemetryViewer<Row>
+        items={ROWS}
+        isLoading={false}
+        renderRow={(row: Row): React.ReactElement => {
+          return <span>{row.name}</span>;
+        }}
+        getRowKey={(row: Row): string => {
+          return row._id;
+        }}
+        searchValue=""
+        onSearchChange={(): void => {}}
+        onSearchSubmit={(): void => {}}
+        timeRange={{ range: TimeRange.PAST_ONE_HOUR }}
+        onTimeRangeChange={(): void => {}}
+        page={1}
+        pageSize={2}
+        totalCount={12345}
+        onPageChange={(): void => {}}
+        onPageSizeChange={(): void => {}}
+        itemLabel="exceptions"
+        bulk={matchingBulk}
+      />,
+    );
+
+    fireEvent.click(screen.getByTestId(TELEMETRY_VIEWER_SELECT_PAGE_TEST_ID));
+
+    expect(text(BULK_ROW_SELECT_ALL_TEST_ID)).toBe(
+      "Die ersten 10.000 von 12.345 Ausnahmen auswählen",
+    );
+  });
+
+  test("English is unchanged for an English reader", async () => {
+    await act(async () => {
+      await i18next.changeLanguage("en");
+    });
+    renderMatchingList();
+
+    fireEvent.click(screen.getByTestId(TELEMETRY_VIEWER_SELECT_PAGE_TEST_ID));
+    expect(text(BULK_ROW_SELECT_ALL_TEST_ID)).toBe(
+      "Select all 1,234 exceptions",
+    );
   });
 });

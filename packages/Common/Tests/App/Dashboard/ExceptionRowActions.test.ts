@@ -589,6 +589,18 @@ describe("Bulk Actions on the exceptions list", () => {
     );
   });
 
+  test("ask nothing of a page's selection - one click, as the row's - and open no dialog of their own, so the list asks before moving every match", () => {
+    const actions: Array<BulkActionButtonSchema<TelemetryException>> =
+      getExceptionBulkActions();
+
+    expect(actions.length).toBeGreaterThan(0);
+
+    for (const action of actions) {
+      expect(action.confirmMessage).toBeUndefined();
+      expect(action.opensItsOwnDialog).toBeFalsy();
+    }
+  });
+
   test("someone who may update exceptions finds all five unlocked", () => {
     for (const action of getExceptionBulkActions()) {
       expect([action.title, action.disabled, action.tooltip]).toEqual([
@@ -973,6 +985,11 @@ describe("assigning from the list", () => {
     expect(action.title).toBe(EXCEPTION_ASSIGN_TITLE);
     expect(action.menuGroup).toBe(ActionMenuGroup.Change);
     expect(action.resultLabels).toBe(EXCEPTION_ASSIGN_RESULT_LABELS);
+    /*
+     * Its dialog names how many it assigns ("Assign 4,213 exceptions"): a
+     * selection of every match asks nothing more before it.
+     */
+    expect(action.opensItsOwnDialog).toBe(true);
 
     await action.onClick({
       items,

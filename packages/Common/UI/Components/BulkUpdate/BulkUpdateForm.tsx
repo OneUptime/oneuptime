@@ -1392,11 +1392,17 @@ const BulkUpdateForm: <T extends GenericObject>(
      * from the end while one is open.
      */
     if (props.rowContainer !== undefined) {
+      /*
+       * The same shape as the Card's - a block, then the dialogs - so a
+       * table that turns from rows to cards mid-run keeps the dialog it has
+       * open, not a new one drawn in its place. The block itself takes no
+       * room: the line is drawn in the band.
+       */
       return (
-        <>
+        <div>
           {props.rowContainer ? createPortal(line, props.rowContainer) : <></>}
           {dialogs}
-        </>
+        </div>
       );
     }
 

@@ -140,6 +140,15 @@ export const TELEMETRY_VIEWER_ROW_BOX_CLASS_NAME: string =
 export const TELEMETRY_VIEWER_BULK_ROW_CLASS_NAME: string =
   "flex min-h-[2.75rem] items-center gap-3 border-b border-gray-100 py-1.5 pl-4 pr-2 sm:pr-3";
 
+/*
+ * Where the page's box sits on that line: level with its first line, the
+ * 30px Bulk Actions takes - when the rest of the line wraps (a phone's
+ * "Select all 4,213 exceptions" takes a line of its own) the box stays
+ * beside the count, not halfway down the two lines.
+ */
+export const TELEMETRY_VIEWER_PAGE_BOX_SLOT_CLASS_NAME: string =
+  "flex min-h-[1.875rem] min-w-0 items-center self-start";
+
 export interface TelemetryViewerProps<T> {
   // -- Data --
   items: Array<T>;
@@ -828,36 +837,38 @@ function TelemetryViewerInner<T>(props: TelemetryViewerProps<T>): ReactElement {
                * rows are ticked the count takes their place, and the box
                * keeps its name for a screen reader.
                */}
-              <CheckboxElement
-                dataTestId={TELEMETRY_VIEWER_SELECT_PAGE_TEST_ID}
-                value={pageSelection === PageSelectionState.All}
-                isIndeterminate={pageSelection === PageSelectionState.Some}
-                ariaLabel={pageBoxWords}
-                title={
-                  shownSelection.length > 0 ? undefined : (
-                    <span
-                      className="cursor-pointer select-none text-xs font-normal text-gray-500"
-                      data-testid={TELEMETRY_VIEWER_SELECT_PAGE_WORDS_TEST_ID}
-                    >
-                      {pageBoxWords}
-                    </span>
-                  )
-                }
-                outerDivClassName={
-                  shownSelection.length > 0
-                    ? "[&>div:last-child]:ml-0"
-                    : undefined
-                }
-                onChange={(value: boolean) => {
-                  if (!value) {
-                    // Every row the selection holds, on this page or not.
-                    clearSelection();
-                    return;
+              <div className={TELEMETRY_VIEWER_PAGE_BOX_SLOT_CLASS_NAME}>
+                <CheckboxElement
+                  dataTestId={TELEMETRY_VIEWER_SELECT_PAGE_TEST_ID}
+                  value={pageSelection === PageSelectionState.All}
+                  isIndeterminate={pageSelection === PageSelectionState.Some}
+                  ariaLabel={pageBoxWords}
+                  title={
+                    shownSelection.length > 0 ? undefined : (
+                      <span
+                        className="cursor-pointer select-none text-xs font-normal text-gray-500"
+                        data-testid={TELEMETRY_VIEWER_SELECT_PAGE_WORDS_TEST_ID}
+                      >
+                        {pageBoxWords}
+                      </span>
+                    )
                   }
+                  outerDivClassName={
+                    shownSelection.length > 0
+                      ? "[&>div:last-child]:ml-0"
+                      : undefined
+                  }
+                  onChange={(value: boolean) => {
+                    if (!value) {
+                      // Every row the selection holds, on this page or not.
+                      clearSelection();
+                      return;
+                    }
 
-                  setSelectedItems([...props.items]);
-                }}
-              />
+                    setSelectedItems([...props.items]);
+                  }}
+                />
+              </div>
               <BulkUpdateForm<T & GenericObject>
                 layout={BulkUpdateBarLayout.Row}
                 buttons={bulkButtons}

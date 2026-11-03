@@ -40384,5 +40384,13 @@
   "The Runner this repository works on does not take AI code fixes: {{setting}} is set on its host. Remove that setting and restart the Runner, or pick another Runner.": "El Runner en el que trabaja este repositorio no acepta correcciones de código con IA: su host tiene {{setting}}. Quita ese ajuste y reinicia el Runner, o elige otro Runner.",
   "The Runner this repository works on, {{runner}}, does not take AI code fixes: {{setting}} is set on its host. Remove that setting and restart the Runner, or pick another Runner.": "El Runner en el que trabaja este repositorio, {{runner}}, no acepta correcciones de código con IA: su host tiene {{setting}}. Quita ese ajuste y reinicia el Runner, o elige otro Runner.",
   "This Runner takes no AI code fixes: {{setting}} is set on its host. Remove that setting and restart the Runner, or pick another Runner.": "Este Runner no acepta correcciones de código con IA: su host tiene {{setting}}. Quita ese ajuste y reinicia el Runner, o elige otro Runner.",
-  "Takes no AI code fixes": "No acepta correcciones de código con IA"
+  "Takes no AI code fixes": "No acepta correcciones de código con IA",
+  "All {{count}} selected": "Todos seleccionados: {{count}}",
+  "All {{count}} selected_one": "{{count}} seleccionado",
+  "Select all {{count}} {{itemsName}}": "Seleccionar las {{count}} coincidencias ({{itemsName}})",
+  "Select all {{count}} {{itemsName}}_one": "Seleccionar {{count}} coincidencia ({{itemName}})",
+  "Select the first {{limit}} of {{count}} {{itemsName}}": "Seleccionar las primeras {{limit}} de {{count}} coincidencias ({{itemsName}})",
+  "Select the first {{limit}} of {{count}} {{itemsName}}_one": "Seleccionar las primeras {{limit}} de {{count}} coincidencias ({{itemName}})",
+  "This changes all {{count}} selected {{itemsName}}, including those on other pages.": "Esto cambia los {{count}} elementos seleccionados ({{itemsName}}), incluidos los de otras páginas.",
+  "This changes all {{count}} selected {{itemsName}}, including those on other pages._one": "Esto cambia {{count}} elemento seleccionado ({{itemName}}), incluidos los de otras páginas."
 }

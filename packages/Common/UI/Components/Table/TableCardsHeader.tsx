@@ -7,6 +7,7 @@ import FieldType from "../Types/FieldType";
 import Column from "./Types/Column";
 import Columns from "./Types/Columns";
 import {
+  TABLE_CARDS_BOX_SLOT_CLASS_NAME,
   TABLE_CARDS_BULK_LINE_CLASS_NAME,
   TABLE_CARDS_HEADER_CLASS_NAME,
   TABLE_CARDS_SORT_BUTTON_CLASS_NAME,
@@ -152,28 +153,42 @@ const TableCardsHeader: TableCardsHeaderFunction = <T extends GenericObject>(
       data-testid={TABLE_CARDS_HEADER_TEST_ID}
     >
       {isBulk ? (
-        <CheckboxElement
-          disabled={!props.hasTableItems}
-          value={isAllSelected}
-          ariaLabel={translate(TABLE_CARDS_HEADER_TEXT.selectAll)}
-          isIndeterminate={Boolean(
-            props.isSomeItemsOnThePageSelected && !isAllSelected,
-          )}
-          onChange={(value: boolean) => {
-            if (value) {
-              props.onAllItemsOnThePageSelected?.();
-            } else {
-              props.onAllItemsDeselected?.();
-            }
-          }}
-        />
+        /*
+         * Level with the band's first line, the 32px its buttons take: a
+         * phone's "Select all 37 workflows" may take a line of its own under
+         * the count, and the box stays beside the count.
+         */
+        <div className={TABLE_CARDS_BOX_SLOT_CLASS_NAME}>
+          <CheckboxElement
+            disabled={!props.hasTableItems}
+            /*
+             * The box alone: no room kept for words it does not have, so
+             * the count follows it as closely as on the exceptions list.
+             */
+            outerDivClassName="[&>div:last-child]:ml-0"
+            value={isAllSelected}
+            ariaLabel={translate(TABLE_CARDS_HEADER_TEXT.selectAll)}
+            isIndeterminate={Boolean(
+              props.isSomeItemsOnThePageSelected && !isAllSelected,
+            )}
+            onChange={(value: boolean) => {
+              if (value) {
+                props.onAllItemsOnThePageSelected?.();
+              } else {
+                props.onAllItemsDeselected?.();
+              }
+            }}
+          />
+        </div>
       ) : (
         <span />
       )}
       {isBulk && props.bulkLineRef ? (
         <div
           ref={props.bulkLineRef}
-          className={hasBulkSelection ? TABLE_CARDS_BULK_LINE_CLASS_NAME : "hidden"}
+          className={
+            hasBulkSelection ? TABLE_CARDS_BULK_LINE_CLASS_NAME : "hidden"
+          }
           data-testid={TABLE_CARDS_BULK_LINE_TEST_ID}
         />
       ) : (

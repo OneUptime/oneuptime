@@ -122,7 +122,11 @@ describe("SecurityListNameCell", () => {
      * beside them to "Last poll succ...".
      */
     expect(SECURITY_LIST_NAME_DETAIL_PART_CLASS_NAME.split(" ")).toEqual(
-      expect.arrayContaining(["inline-block", "max-w-full", "whitespace-normal"]),
+      expect.arrayContaining([
+        "inline-block",
+        "max-w-full",
+        "whitespace-normal",
+      ]),
     );
     expect(SECURITY_LIST_NAME_DETAIL_PART_CLASS_NAME).not.toContain("nowrap");
     expect(part).not.toHaveClass("whitespace-nowrap");

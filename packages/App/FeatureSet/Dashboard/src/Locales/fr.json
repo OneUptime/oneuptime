@@ -40384,5 +40384,13 @@
   "The Runner this repository works on does not take AI code fixes: {{setting}} is set on its host. Remove that setting and restart the Runner, or pick another Runner.": "L'agent Runbook de ce dépôt ne prend pas les corrections de code par IA : {{setting}} est défini sur son hôte. Retirez ce réglage et redémarrez l'agent Runbook, ou choisissez un autre agent Runbook.",
   "The Runner this repository works on, {{runner}}, does not take AI code fixes: {{setting}} is set on its host. Remove that setting and restart the Runner, or pick another Runner.": "L'agent Runbook de ce dépôt, {{runner}}, ne prend pas les corrections de code par IA : {{setting}} est défini sur son hôte. Retirez ce réglage et redémarrez l'agent Runbook, ou choisissez un autre agent Runbook.",
   "This Runner takes no AI code fixes: {{setting}} is set on its host. Remove that setting and restart the Runner, or pick another Runner.": "Cet agent Runbook ne prend pas les corrections de code par IA : {{setting}} est défini sur son hôte. Retirez ce réglage et redémarrez l'agent Runbook, ou choisissez un autre agent Runbook.",
-  "Takes no AI code fixes": "Ne prend pas les corrections de code par IA"
+  "Takes no AI code fixes": "Ne prend pas les corrections de code par IA",
+  "All {{count}} selected": "Tous les {{count}} sélectionnés",
+  "All {{count}} selected_one": "{{count}} sélectionné",
+  "Select all {{count}} {{itemsName}}": "Sélectionner les {{count}} {{itemsName}}",
+  "Select all {{count}} {{itemsName}}_one": "Sélectionner {{count}} {{itemName}}",
+  "Select the first {{limit}} of {{count}} {{itemsName}}": "Sélectionner les {{limit}} premiers sur {{count}} ({{itemsName}})",
+  "Select the first {{limit}} of {{count}} {{itemsName}}_one": "Sélectionner les {{limit}} premiers sur {{count}} ({{itemName}})",
+  "This changes all {{count}} selected {{itemsName}}, including those on other pages.": "Cela modifie les {{count}} éléments sélectionnés ({{itemsName}}), y compris ceux des autres pages.",
+  "This changes all {{count}} selected {{itemsName}}, including those on other pages._one": "Cela modifie {{count}} élément sélectionné ({{itemName}}), y compris sur les autres pages."
 }

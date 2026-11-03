@@ -332,9 +332,7 @@ const Table: TableFunction = <T extends GenericObject>(
    * (TableCardsHeader): the one bar stays where it is (its dialogs, and a
    * run's progress and result, with it) and draws its line there.
    */
-  const [cardsBulkLine, setCardsBulkLine] = useState<HTMLElement | null>(
-    null,
-  );
+  const [cardsBulkLine, setCardsBulkLine] = useState<HTMLElement | null>(null);
 
   /*
    * A phone - a window below md - draws every row as a card. Read as the
@@ -1228,7 +1226,9 @@ const Table: TableFunction = <T extends GenericObject>(
                       bulkSelectedItems.length > 0
                     }
                     bulkLineRef={
-                      bulkActionButtons.length > 0 ? setCardsBulkLine : undefined
+                      bulkActionButtons.length > 0
+                        ? setCardsBulkLine
+                        : undefined
                     }
                   />
                 )}

@@ -40384,5 +40384,13 @@
   "The Runner this repository works on does not take AI code fixes: {{setting}} is set on its host. Remove that setting and restart the Runner, or pick another Runner.": "このリポジトリが使う Runner は AI のコード修正を受け付けません。ホストで {{setting}} が設定されています。この設定を外して Runner を再起動するか、別の Runner を選択してください。",
   "The Runner this repository works on, {{runner}}, does not take AI code fixes: {{setting}} is set on its host. Remove that setting and restart the Runner, or pick another Runner.": "このリポジトリが使う Runner（{{runner}}）は AI のコード修正を受け付けません。ホストで {{setting}} が設定されています。この設定を外して Runner を再起動するか、別の Runner を選択してください。",
   "This Runner takes no AI code fixes: {{setting}} is set on its host. Remove that setting and restart the Runner, or pick another Runner.": "この Runner は AI のコード修正を受け付けません。ホストで {{setting}} が設定されています。この設定を外して Runner を再起動するか、別の Runner を選択してください。",
-  "Takes no AI code fixes": "AI のコード修正を受け付けません"
+  "Takes no AI code fixes": "AI のコード修正を受け付けません",
+  "All {{count}} selected": "{{count}} 件すべて選択",
+  "All {{count}} selected_one": "{{count}} 件すべて選択",
+  "Select all {{count}} {{itemsName}}": "{{count}} 件の{{itemsName}}をすべて選択",
+  "Select all {{count}} {{itemsName}}_one": "{{count}} 件の{{itemName}}をすべて選択",
+  "Select the first {{limit}} of {{count}} {{itemsName}}": "{{count}} 件の{{itemsName}}のうち最初の {{limit}} 件を選択",
+  "Select the first {{limit}} of {{count}} {{itemsName}}_one": "{{count}} 件の{{itemName}}のうち最初の {{limit}} 件を選択",
+  "This changes all {{count}} selected {{itemsName}}, including those on other pages.": "選択した {{count}} 件の{{itemsName}}をすべて変更します。他のページにあるものも含まれます。",
+  "This changes all {{count}} selected {{itemsName}}, including those on other pages._one": "選択した {{count}} 件の{{itemName}}をすべて変更します。他のページにあるものも含まれます。"
 }

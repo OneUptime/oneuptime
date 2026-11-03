@@ -40384,5 +40384,13 @@
   "The Runner this repository works on does not take AI code fixes: {{setting}} is set on its host. Remove that setting and restart the Runner, or pick another Runner.": "Der Runner dieses Repositorys übernimmt keine KI-Codekorrekturen: Auf seinem Host ist {{setting}} gesetzt. Entfernen Sie diese Einstellung und starten Sie den Runner neu, oder wählen Sie einen anderen Runner.",
   "The Runner this repository works on, {{runner}}, does not take AI code fixes: {{setting}} is set on its host. Remove that setting and restart the Runner, or pick another Runner.": "Der Runner dieses Repositorys, {{runner}}, übernimmt keine KI-Codekorrekturen: Auf seinem Host ist {{setting}} gesetzt. Entfernen Sie diese Einstellung und starten Sie den Runner neu, oder wählen Sie einen anderen Runner.",
   "This Runner takes no AI code fixes: {{setting}} is set on its host. Remove that setting and restart the Runner, or pick another Runner.": "Dieser Runner übernimmt keine KI-Codekorrekturen: Auf seinem Host ist {{setting}} gesetzt. Entfernen Sie diese Einstellung und starten Sie den Runner neu, oder wählen Sie einen anderen Runner.",
-  "Takes no AI code fixes": "Übernimmt keine KI-Codekorrekturen"
+  "Takes no AI code fixes": "Übernimmt keine KI-Codekorrekturen",
+  "All {{count}} selected": "Alle {{count}} ausgewählt",
+  "All {{count}} selected_one": "{{count}} ausgewählt",
+  "Select all {{count}} {{itemsName}}": "Alle {{count}} {{itemsName}} auswählen",
+  "Select all {{count}} {{itemsName}}_one": "{{count}} {{itemName}} auswählen",
+  "Select the first {{limit}} of {{count}} {{itemsName}}": "Die ersten {{limit}} von {{count}} {{itemsName}} auswählen",
+  "Select the first {{limit}} of {{count}} {{itemsName}}_one": "Die ersten {{limit}} von {{count}} {{itemName}} auswählen",
+  "This changes all {{count}} selected {{itemsName}}, including those on other pages.": "Dies ändert alle {{count}} ausgewählten {{itemsName}}, auch die auf anderen Seiten.",
+  "This changes all {{count}} selected {{itemsName}}, including those on other pages._one": "Dies ändert die Auswahl ({{count}} {{itemName}}), auch auf anderen Seiten."
 }
