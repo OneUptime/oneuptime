@@ -40,7 +40,7 @@ Schakel in een criterium onder **Acties** **Wanneer filters overeenkomen, verkla
 
 ### De titel schrijven
 
-Typ de titel in **Incidenttitel** of **Waarschuwingstitel**, bijvoorbeeld `{{monitorName}} is down`. **Learn about dynamic templates**, ernaast, opent **Dynamic Template Variables**: elke variabele die het type van deze monitor heeft, met wat ze bevat. Klik op een variabele om haar te kopiëren.
+Typ de titel in **Incidenttitel** of **Waarschuwingstitel**, bijvoorbeeld `{{monitorName}} is down`. **Meer over dynamische sjablonen**, ernaast, opent **Dynamische sjabloonvariabelen**: elke variabele die het type van deze monitor heeft, met wat ze bevat. Klik op een variabele om haar te kopiëren.
 
 ### De beschrijving en de herstelnotities schrijven
 
@@ -566,7 +566,7 @@ SNMP walk: {{responseTimeInMs}} ms
 ## Problemen oplossen
 
 :::details De titel toont de placeholder, accolades en al
-Het pad leidt in deze controle niet naar een waarde. Controleer de naam van de variabele en de hoofdletters aan de hand van de tabellen hierboven, of open **Learn about dynamic templates** in het criterium: dat somt de variabelen van het type van deze monitor op. Een pad in de body van een antwoord of een verzoek moet overeenkomen met de body zoals die werd verstuurd, en `[*]` en negatieve indexen zoals `[-1]` lezen niets: gebruik `[0]` of `[last]`.
+Het pad leidt in deze controle niet naar een waarde. Controleer de naam van de variabele en de hoofdletters aan de hand van de tabellen hierboven, of open **Meer over dynamische sjablonen** in het criterium: dat somt de variabelen van het type van deze monitor op. Een pad in de body van een antwoord of een verzoek moet overeenkomen met de body zoals die werd verstuurd, en `[*]` en negatieve indexen zoals `[-1]` lezen niets: gebruik `[0]` of `[last]`.
 :::
 
 :::details Een waarde wordt als JSON getoond

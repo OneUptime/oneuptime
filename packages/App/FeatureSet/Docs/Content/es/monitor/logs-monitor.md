@@ -48,7 +48,7 @@ En **Registros que vigilar**, rellena **Gravedad del registro** y **El mensaje c
 
 ### Acotarlos (opcional)
 
-Abre **Más campos** para filtrar por servicio de telemetría, entidad de infraestructura o atributo. Para recibir una alerta por túnel, usuario o interfaz en lugar de una para todo el monitor, añade el atributo en **Group by Attributes**; consulta [Alertas por grupo](#alertas-por-grupo-group-by).
+Abre **Más campos** para filtrar por servicio de telemetría, entidad de infraestructura o atributo. Para recibir una alerta por túnel, usuario o interfaz en lugar de una para todo el monitor, añade el atributo en **Agrupar por atributos**; consulta [Alertas por grupo](#alertas-por-grupo-group-by).
 
 ### Decir cuándo alertar
 
@@ -70,8 +70,8 @@ Haz clic en **Crear monitor**. El monitor se abre en su página **Vista general*
 | **Gravedad del registro** | Registros con cualquiera de las gravedades elegidas. | Vacío: todas las gravedades |
 | **El mensaje contiene** | Registros cuyo cuerpo contiene este texto, sin distinguir mayúsculas y minúsculas. | Vacío: todos los registros |
 | **Ventana de tiempo** (en **Cuándo alertar**) | Registros de los últimos 5 segundos hasta las últimas 24 horas. | **Últimos 5 minutos** |
-| **Group by Attributes** | No es un filtro: cuenta por separado cada combinación de valores de estos atributos. | Vacío: un solo recuento |
-| **Resuelto por atributos** | No es un filtro: el registro que resuelve un grupo. Aparece en cuanto **Group by Attributes** tiene un atributo; consulta [Resuelto por un registro](#resuelto-por-un-registro). | Vacío: un grupo se resuelve cuando sus registros cesan |
+| **Agrupar por atributos** | No es un filtro: cuenta por separado cada combinación de valores de estos atributos. | Vacío: un solo recuento |
+| **Resuelto por atributos** | No es un filtro: el registro que resuelve un grupo. Aparece en cuanto **Agrupar por atributos** tiene un atributo; consulta [Resuelto por un registro](#resuelto-por-un-registro). | Vacío: un grupo se resuelve cuando sus registros cesan |
 | **Filtrar por servicio de telemetría** (en **Más campos**) | Registros de cualquiera de los servicios elegidos. | Vacío: todos los servicios |
 | **Filtrar por entidad de infraestructura** (en **Más campos**) | Registros de cualquiera de los hosts, pods, contenedores y otras entidades elegidos. | Vacío: todas las entidades |
 | **Filtrar por atributos** (en **Más campos**) | Registros cuyos atributos cumplen todas las condiciones. Cada condición tiene su propio operador, como «es igual a» o «contiene». | Vacío: ninguna condición |
@@ -157,7 +157,7 @@ Como las ventanas se solapan, una sola ráfaga de errores mantiene alto el recue
 
 ## Alertas por grupo (Group By)
 
-**Group by Attributes** divide el recuento de un monitor de registros en un recuento por cada combinación distinta de valores de atributos (uno por túnel IPsec, por usuario de VPN, por interfaz del cortafuegos) y evalúa los criterios en cada grupo por separado. Es el equivalente, para los registros, del [Group By](/docs/monitor/metrics-monitor#alertas-por-serie-group-by) de un monitor de métricas.
+**Agrupar por atributos** divide el recuento de un monitor de registros en un recuento por cada combinación distinta de valores de atributos (uno por túnel IPsec, por usuario de VPN, por interfaz del cortafuegos) y evalúa los criterios en cada grupo por separado. Es el equivalente, para los registros, del [Group By](/docs/monitor/metrics-monitor#alertas-por-serie-group-by) de un monitor de métricas.
 
 ### Una alerta por grupo
 
@@ -193,7 +193,7 @@ Un dispositivo que notifica un túnel caído suele notificar también que ha vue
 
 Toma un monitor que cuenta los registros con `event.name` = `vpn.tunnel_down`, agrupados por `event.device` y `vpn.tunnel.name`, con **Resuelto por atributos** configurado como `event.name` = `vpn.tunnel_up`. La caída del túnel `HQ-Branch1` abre su alerta. La alerta sigue abierta toda la noche, aunque el firewall no registre nada más sobre el túnel, y se resuelve cuando el firewall notifica que `HQ-Branch1` ha vuelto. Si el túnel vuelve a caer, se abre una alerta nueva.
 
-- El campo aparece en cuanto **Group by Attributes** tiene un atributo. Admite hasta 10 atributos, y un registro de resolución los lleva todos.
+- El campo aparece en cuanto **Agrupar por atributos** tiene un atributo. Admite hasta 10 atributos, y un registro de resolución los lleva todos.
 - Un registro de resolución pertenece a un grupo cuando tiene los valores del grupo para los atributos de agrupación, así que ambos tipos de registro deben llevar esos atributos.
 - Los servicios de telemetría y la ventana de tiempo del monitor se aplican también a los registros de resolución. Sus filtros de texto y de gravedad, no: describen el problema.
 - Un grupo cuyo registro más reciente es de resolución se cierra. Uno que volvió a registrar el problema después sigue abierto.
@@ -213,7 +213,7 @@ log_component="IPSec" con_name="HQ-Branch1" status="Terminated" message="IPSec C
 1. Crea un monitor de **Registros** y elige **Aparece un mensaje**.
 2. Pon **El mensaje contiene** en `terminated` y la **Ventana de tiempo** en **Últimos 5 minutos**.
 3. En **Más campos**, añade el filtro de atributo `log_component` = `IPSec`.
-4. En **Group by Attributes**, añade `con_name`.
+4. En **Agrupar por atributos**, añade `con_name`.
 5. Deja la regla en **Más de** `0`, y pon a la alerta o al incidente el título `IPsec tunnel {{con_name}} terminated`.
 :::
 
@@ -248,7 +248,7 @@ Los criterios se comprueban de arriba abajo y decide la primera coincidencia. Un
 :::
 
 :::details Un criterio de anomalía nunca se dispara
-Sigue aprendiendo: los servicios del monitor aún no tienen dos semanas de historial. En un monitor con **Group by Attributes**, las condiciones de anomalía nunca coinciden; usa ahí un umbral.
+Sigue aprendiendo: los servicios del monitor aún no tienen dos semanas de historial. En un monitor con **Agrupar por atributos**, las condiciones de anomalía nunca coinciden; usa ahí un umbral.
 :::
 
 :::details Las alertas de grupo llegan sin valor de grupo

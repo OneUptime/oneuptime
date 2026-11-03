@@ -40,7 +40,7 @@ Slå i et kriterium under **Handlinger** **Når filtre matcher, erklæres en hæ
 
 ### Skriv titlen
 
-Skriv titlen i **Hændelsestitel** eller **Advarselstitel**, for eksempel `{{monitorName}} is down`. **Learn about dynamic templates** ved siden af åbner **Dynamic Template Variables**: hver variabel, denne monitors type har, med hvad den indeholder. Klik på en variabel for at kopiere den.
+Skriv titlen i **Hændelsestitel** eller **Advarselstitel**, for eksempel `{{monitorName}} is down`. **Læs om dynamiske skabeloner** ved siden af åbner **Dynamiske skabelonvariabler**: hver variabel, denne monitors type har, med hvad den indeholder. Klik på en variabel for at kopiere den.
 
 ### Skriv beskrivelsen og afhjælpningsnoterne
 
@@ -566,7 +566,7 @@ SNMP walk: {{responseTimeInMs}} ms
 ## Fejlfinding
 
 :::details Titlen viser pladsholderen, med krøllede parenteser og det hele
-Stien fører ikke til en værdi i dette tjek. Tjek variablens navn og store og små bogstaver mod tabellerne ovenfor, eller åbn **Learn about dynamic templates** i kriteriet: den viser variablerne for denne monitors type. En sti ind i en svar- eller anmodningsbody skal passe til bodyen, som den blev sendt, og `[*]` og negative indeks som `[-1]` læser intet: brug `[0]` eller `[last]`.
+Stien fører ikke til en værdi i dette tjek. Tjek variablens navn og store og små bogstaver mod tabellerne ovenfor, eller åbn **Læs om dynamiske skabeloner** i kriteriet: den viser variablerne for denne monitors type. En sti ind i en svar- eller anmodningsbody skal passe til bodyen, som den blev sendt, og `[*]` og negative indeks som `[-1]` læser intet: brug `[0]` eller `[last]`.
 :::
 
 :::details En værdi vises som JSON

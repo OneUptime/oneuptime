@@ -74,7 +74,7 @@ Voer de **URL statuspagina** in. Laat de **Provider** op **Auto** staan, tenzij 
 
 ### Componenten kiezen, als dat nodig is
 
-Open **Componenten** en kies uit de lijst van de pagina de componenten waarvan u afhankelijk bent, zoals `Git Operations` en `Pull Requests` op die van GitHub; laat het leeg om de hele pagina te volgen. Om in plaats daarvan één groep te volgen, opent u **Meer velden** en voert u een **Component Group Filter** in, zoals `APIs`.
+Open **Componenten** en kies uit de lijst van de pagina de componenten waarvan u afhankelijk bent, zoals `Git Operations` en `Pull Requests` op die van GitHub; laat het leeg om de hele pagina te volgen. Om in plaats daarvan één groep te volgen, opent u **Meer velden** en voert u een **Componentgroepfilter** in, zoals `APIs`.
 
 ### Testen
 
@@ -96,7 +96,7 @@ Selecteer de **Sondes** en een **Bewakingsinterval** — dat begint op **Elke 5 
 | **URL statuspagina** | De URL van de statuspagina. Voor sites die draaien op Atlassian Statuspage en incident.io is dit meestal de hoofd-URL (bijv. `https://status.example.com`). Voer voor RSS-/Atom-feeds direct de URL van de feed in. | — |
 | **Provider** | **Auto** om het formaat vast te stellen, of **Atlassian Statuspage**, **incident.io**, **OneUptime Status Page**, **RSS** of **Atom** als u het kent. | **Auto** |
 | **Componenten** | De componenten die u volgt, gekozen uit de lijst van de pagina of ingetypt. | De hele pagina |
-| **Component Group Filter** | De groep waartoe de monitor wordt afgebakend. Onder **Meer velden**. | Alle groepen |
+| **Componentgroepfilter** | De groep waartoe de monitor wordt afgebakend. Onder **Meer velden**. | Alle groepen |
 | **Time-out (ms)** | Hoe lang maximaal op de statuspagina wordt gewacht. Onder **Meer velden**. | `10000` (10 seconden) |
 | **Nieuwe pogingen** | Hoe vaak opnieuw wordt geprobeerd, met een seconde ertussen, nadat de eerste poging is mislukt; `0` betekent één poging. Onder **Meer velden**. | `3` (tot 4 pogingen) |
 
@@ -115,7 +115,7 @@ Een monitor die is opgeslagen met het oude Filter op componentnaam, blijft volge
 > [!WARNING]
 > Een naam die nergens mee overeenkomt, volgt niets en ziet er gezond uit. **Componenten** en **Monitor testen** noemen allebei de gekozen componenten die de pagina niet toont.
 
-### Component Group Filter
+### Componentgroepfilter
 
 Deelt de statuspagina haar componenten in groepen in, dan kunt u de monitor afbakenen tot één groep. Op `https://status.openai.com` bakent u met `APIs` de monitor bijvoorbeeld af tot de API-diensten van OpenAI.
 
@@ -131,7 +131,7 @@ U kunt criteria instellen die bepalen wanneer de externe dienst als online of of
 | --- | --- | --- |
 | **External Status Page Is Online** | Of de statuspagina bereikbaar is en statusgegevens teruggeeft | Waar of Onwaar |
 | **External Status Page Overall Status** | De algemene status die de pagina meldt | Gelijk aan, Niet gelijk aan, Bevat, Bevat niet, Begint met, Eindigt op |
-| **External Status Page Component Status** | De status van elk component binnen de afbakening (de gekozen componenten, of die van de groep, als die zijn ingesteld): Operationeel, Under Maintenance, Degraded Performance, Partial Outage, Major Outage of Full Outage | Gelijk aan, Niet gelijk aan, Bevat, Bevat niet, Begint met, Eindigt op |
+| **External Status Page Component Status** | De status van elk component binnen de afbakening (de gekozen componenten, of die van de groep, als die zijn ingesteld): Operationeel, In onderhoud, Verminderde prestaties, Gedeeltelijke storing, Grote storing of Volledige storing | Gelijk aan, Niet gelijk aan, Bevat, Bevat niet, Begint met, Eindigt op |
 | **External Status Page Active Incidents** | Het aantal momenteel actieve incidenten op de statuspagina (alleen die een component binnen de afbakening raken, als er componenten of een groep zijn gekozen) | Gelijk aan, Niet gelijk aan en de numerieke vergelijkingen |
 | **External Status Page Response Time (in ms)** | Hoe lang het ophalen van de gegevens van de statuspagina duurt | Groter dan, Kleiner dan, Groter dan of gelijk aan, Kleiner dan of gelijk aan |
 
@@ -145,7 +145,7 @@ Standaard maakt OneUptime criteria op basis van wat voor een statuspagina echt t
 
 | Criterium | Filters | Effect |
 | --- | --- | --- |
-| Offline | **Minstens één** van: de pagina is niet online; er is ten minste één actief incident binnen de afbakening; een component binnen de afbakening meldt Degraded Performance, Partial Outage, Major Outage of Full Outage | Markeert de monitor als offline en verklaart een incident, dat zichzelf oplost zodra het criterium niet meer overeenkomt |
+| Offline | **Minstens één** van: de pagina is niet online; er is ten minste één actief incident binnen de afbakening; een component binnen de afbakening meldt Verminderde prestaties, Gedeeltelijke storing, Grote storing of Volledige storing | Markeert de monitor als offline en verklaart een incident, dat zichzelf oplost zodra het criterium niet meer overeenkomt |
 | Online | **Alle** van: de pagina is online; er zijn geen actieve incidenten binnen de afbakening | Markeert de monitor als online |
 
 Omdat het aantal actieve incidenten en de componentstatussen de gekozen componenten en groep volgen, richten deze standaardcriteria zich automatisch alleen op de componenten die voor u tellen.
@@ -154,7 +154,7 @@ Omdat het aantal actieve incidenten en de componentstatussen de gekozen componen
 
 Kies **OneUptime Status Page** als provider, of laat **Auto** staan, om een statuspagina te volgen die met OneUptime is gemaakt: het project van een ander team, of de pagina van een leverancier op OneUptime Cloud of op een zelf gehoste OneUptime. Vul het eigen adres van de pagina in bij **URL statuspagina**: haar domein, zoals `https://status.example.com`, of `https://oneuptime.com/status-page/<status-page-id>` voor een pagina zonder eigen domein.
 
-De monitor leest de samenvatting van de pagina, `/status-page-api/summary/<page>` (zie [De samenvatting lezen](/docs/status-pages/public-api#de-samenvatting-lezen)): alleen wat de pagina haar bezoekers laat zien, en verder niets van het andere project. Elke resource op de pagina, een monitor of een monitorgroep, is een component, onder de naam die de pagina eraan geeft, in de groep van de pagina; een groep binnen een andere heet `Core / Databases`. Kies resources in **Componenten**, of volg één groep met **Component Group Filter**.
+De monitor leest de samenvatting van de pagina, `/status-page-api/summary/<page>` (zie [De samenvatting lezen](/docs/status-pages/public-api#de-samenvatting-lezen)): alleen wat de pagina haar bezoekers laat zien, en verder niets van het andere project. Elke resource op de pagina, een monitor of een monitorgroep, is een component, onder de naam die de pagina eraan geeft, in de groep van de pagina; een groep binnen een andere heet `Core / Databases`. Kies resources in **Componenten**, of volg één groep met **Componentgroepfilter**.
 
 De status van een component is de waarde waar zijn status op de pagina voor staat, zodat de criteria voor componentstatus werken zoals op elke statuspagina:
 
@@ -249,7 +249,7 @@ Hier is een lijst met statuspagina's van populaire diensten. Veel daarvan gebrui
 ## Probleemoplossing
 
 :::details De monitor is offline, maar het incident gaat over een deel van de dienst dat ik niet gebruik
-Kies in **Componenten** de componenten waarvan u afhankelijk bent, of één groep in **Component Group Filter**. Het aantal actieve incidenten en de componentstatussen tellen dan alleen die; een incident dat geen component noemt, telt niet mee.
+Kies in **Componenten** de componenten waarvan u afhankelijk bent, of één groep in **Componentgroepfilter**. Het aantal actieve incidenten en de componentstatussen tellen dan alleen die; een incident dat geen component noemt, telt niet mee.
 :::
 
 :::details De monitor gaat nooit offline, zelfs niet tijdens een storing

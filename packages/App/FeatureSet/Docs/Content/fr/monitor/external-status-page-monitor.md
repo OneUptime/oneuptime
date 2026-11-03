@@ -131,7 +131,7 @@ Vous pouvez configurer des critères pour décider quand le service externe est 
 | --- | --- | --- |
 | **External Status Page Is Online** | Si la page de statut est accessible et renvoie des données de statut | Vrai ou Faux |
 | **External Status Page Overall Status** | Le statut global indiqué par la page | Égal à, Différent de, Contient, Ne contient pas, Commence par, Se termine par |
-| **External Status Page Component Status** | Le statut de chaque composant du périmètre (les composants choisis, ou ceux du groupe, s'ils sont définis) : Opérationnel, Under Maintenance, Performances dégradées, Partial Outage, Panne majeure ou Panne totale | Égal à, Différent de, Contient, Ne contient pas, Commence par, Se termine par |
+| **External Status Page Component Status** | Le statut de chaque composant du périmètre (les composants choisis, ou ceux du groupe, s'ils sont définis) : Opérationnel, En maintenance, Performances dégradées, Panne partielle, Panne majeure ou Panne totale | Égal à, Différent de, Contient, Ne contient pas, Commence par, Se termine par |
 | **External Status Page Active Incidents** | Le nombre d'incidents actuellement actifs signalés sur la page de statut (seulement ceux qui touchent un composant du périmètre, quand des composants ou un groupe sont choisis) | Égal à, Différent de, et les comparaisons numériques |
 | **External Status Page Response Time (in ms)** | Le temps nécessaire pour récupérer les données de la page de statut | Supérieur à, Inférieur à, Supérieur ou égal à, Inférieur ou égal à |
 
@@ -145,7 +145,7 @@ Par défaut, OneUptime crée des critères fondés sur ce qui compte vraiment po
 
 | Critère | Filtres | Effet |
 | --- | --- | --- |
-| Hors ligne | **Au moins un** parmi : la page n'est pas en ligne ; il y a au moins un incident actif dans le périmètre ; un composant du périmètre signale Performances dégradées, Partial Outage, Panne majeure ou Panne totale | Marque le moniteur hors ligne et déclare un incident, qui se résout de lui-même quand le critère cesse de correspondre |
+| Hors ligne | **Au moins un** parmi : la page n'est pas en ligne ; il y a au moins un incident actif dans le périmètre ; un composant du périmètre signale Performances dégradées, Panne partielle, Panne majeure ou Panne totale | Marque le moniteur hors ligne et déclare un incident, qui se résout de lui-même quand le critère cesse de correspondre |
 | En ligne | **Tous** parmi : la page est en ligne ; il n'y a aucun incident actif dans le périmètre | Marque le moniteur en ligne |
 
 Comme le nombre d'incidents actifs et les statuts des composants respectent les composants et le groupe choisis, ces critères par défaut ne ciblent automatiquement que les composants qui vous intéressent.

@@ -25450,7 +25450,7 @@
   "Generic": "Generic",
   "Group By (Optional)": "Group By (Optional)",
   "Group Values (one alert per group)": "Group Values (one alert per group)",
-  "Group by Attributes": "Group by Attributes",
+  "Group by Attributes": "グループ化する属性",
   "Group by attribute {{number}}": "Group by attribute {{number}}",
   "Grouped by {{attributes}}: the criteria is checked separately for every distinct value, and each group that meets it raises its own alert or incident. Logs without the attribute count as one group with an empty value.": "Grouped by {{attributes}}: the criteria is checked separately for every distinct value, and each group that meets it raises its own alert or incident. Logs without the attribute count as one group with an empty value.",
   "Healthy values (optional, e.g., 1)": "Healthy values (optional, e.g., 1)",

@@ -74,7 +74,7 @@ Angiv **Statusside-URL**. Lad **Udbyder** stå på **Auto**, medmindre du kender
 
 ### Vælg komponenter, hvis du har brug for det
 
-Åbn **Komponenter**, og vælg de komponenter, du er afhængig af, fra sidens egen liste, som `Git Operations` og `Pull Requests` på GitHubs; lad feltet være tomt for at holde øje med hele siden. Vil du i stedet holde øje med én gruppe, så åbn **Flere felter**, og angiv et **Component Group Filter**, som `APIs`.
+Åbn **Komponenter**, og vælg de komponenter, du er afhængig af, fra sidens egen liste, som `Git Operations` og `Pull Requests` på GitHubs; lad feltet være tomt for at holde øje med hele siden. Vil du i stedet holde øje med én gruppe, så åbn **Flere felter**, og angiv et **Komponentgruppefilter**, som `APIs`.
 
 ### Test den
 
@@ -96,7 +96,7 @@ Vælg **Sonder** og et **Overvågningsinterval** — det starter på **Hvert 5. 
 | **Statusside-URL** | URL'en til statussiden. For sider, der kører på Atlassian Statuspage og incident.io, er det typisk rod-URL'en (f.eks. `https://status.example.com`). For RSS-/Atom-feeds skal du angive feedets URL direkte. | — |
 | **Udbyder** | **Auto** for at finde formatet, eller **Atlassian Statuspage**, **incident.io**, **OneUptime Status Page**, **RSS** eller **Atom**, hvis du kender det. | **Auto** |
 | **Komponenter** | De komponenter, der skal holdes øje med, valgt fra sidens egen liste eller skrevet. | Hele siden |
-| **Component Group Filter** | Den gruppe, monitoren afgrænses til. Under **Flere felter**. | Alle grupper |
+| **Komponentgruppefilter** | Den gruppe, monitoren afgrænses til. Under **Flere felter**. | Alle grupper |
 | **Timeout (ms)** | Den længste tid, der ventes på statussiden. Under **Flere felter**. | `10000` (10 sekunder) |
 | **Genforsøg** | Hvor mange gange der prøves igen, med et sekunds mellemrum, efter at det første forsøg er mislykkedes; `0` betyder et enkelt forsøg. Under **Flere felter**. | `3` (op til 4 forsøg) |
 
@@ -115,7 +115,7 @@ En monitor, der er gemt med det gamle Filter for komponentnavn, holder fortsat �
 > [!WARNING]
 > Et navn, der ikke matcher noget, holder øje med ingenting og ser sundt ud. **Komponenter** og **Test monitor** nævner begge de valgte komponenter, som siden ikke viser.
 
-### Component Group Filter
+### Komponentgruppefilter
 
 Hvis statussiden inddeler sine komponenter i grupper, kan du afgrænse monitoren til en enkelt gruppe. På `https://status.openai.com` afgrænser du for eksempel monitoren til OpenAI's API-tjenester ved at angive `APIs`.
 
@@ -131,7 +131,7 @@ Du kan konfigurere kriterier, der afgør, hvornår den eksterne tjeneste betragt
 | --- | --- | --- |
 | **External Status Page Is Online** | Om statussiden kan nås og returnerer statusdata | Sand eller Falsk |
 | **External Status Page Overall Status** | Den samlede status, siden melder | Lig med, Ikke lig med, Indeholder, Indeholder ikke, Starter med, Slutter med |
-| **External Status Page Component Status** | Status for hver komponent inden for afgrænsningen (de valgte komponenter eller gruppens, når de er angivet): I drift, Under Maintenance, Degraded Performance, Partial Outage, Major Outage eller Full Outage | Lig med, Ikke lig med, Indeholder, Indeholder ikke, Starter med, Slutter med |
+| **External Status Page Component Status** | Status for hver komponent inden for afgrænsningen (de valgte komponenter eller gruppens, når de er angivet): I drift, Under vedligeholdelse, Nedsat ydeevne, Delvist nedbrud, Større nedbrud eller Fuldt nedbrud | Lig med, Ikke lig med, Indeholder, Indeholder ikke, Starter med, Slutter med |
 | **External Status Page Active Incidents** | Antallet af aktuelt aktive hændelser på statussiden (kun dem, der rammer en komponent inden for afgrænsningen, når komponenter eller en gruppe er valgt) | Lig med, Ikke lig med og de numeriske sammenligninger |
 | **External Status Page Response Time (in ms)** | Hvor lang tid det tager at hente statussidens data | Større end, Mindre end, Større end eller lig med, Mindre end eller lig med |
 
@@ -145,7 +145,7 @@ Som standard opretter OneUptime kriterier ud fra det, der virkelig betyder noget
 
 | Kriterium | Filtre | Virkning |
 | --- | --- | --- |
-| Offline | **Enhver** af: siden er ikke online; der er mindst én aktiv hændelse inden for afgrænsningen; en komponent inden for afgrænsningen melder Degraded Performance, Partial Outage, Major Outage eller Full Outage | Markerer monitoren som offline og erklærer en hændelse, der løser sig selv, når kriteriet ikke længere matcher |
+| Offline | **Enhver** af: siden er ikke online; der er mindst én aktiv hændelse inden for afgrænsningen; en komponent inden for afgrænsningen melder Nedsat ydeevne, Delvist nedbrud, Større nedbrud eller Fuldt nedbrud | Markerer monitoren som offline og erklærer en hændelse, der løser sig selv, når kriteriet ikke længere matcher |
 | Online | **Alle** af: siden er online; der er ingen aktive hændelser inden for afgrænsningen | Markerer monitoren som online |
 
 Fordi antallet af aktive hændelser og komponenternes status respekterer de valgte komponenter og gruppen, rammer disse standardkriterier automatisk kun de komponenter, du interesserer dig for.
@@ -154,7 +154,7 @@ Fordi antallet af aktive hændelser og komponenternes status respekterer de valg
 
 Vælg **OneUptime Status Page** som udbyder, eller lad **Auto** stå, for at holde øje med en statusside, der er lavet med OneUptime: et andet teams projekt eller en leverandørs side på OneUptime Cloud eller på en selvhostet OneUptime. Indtast sidens egen adresse i **Statusside-URL**: dens domæne, som `https://status.example.com`, eller `https://oneuptime.com/status-page/<status-page-id>` for en side uden eget domæne.
 
-Monitoren læser sidens resumé, `/status-page-api/summary/<page>` (se [Læs resuméet](/docs/status-pages/public-api#læs-resuméet)): kun det, siden viser sine besøgende, og intet andet fra det andet projekt. Hver ressource på siden, en monitor eller en monitorgruppe, er en komponent under det navn, siden giver den, i sidens gruppe; en gruppe inde i en anden hedder `Core / Databases`. Vælg ressourcer i **Komponenter**, eller hold øje med én gruppe med **Component Group Filter**.
+Monitoren læser sidens resumé, `/status-page-api/summary/<page>` (se [Læs resuméet](/docs/status-pages/public-api#læs-resuméet)): kun det, siden viser sine besøgende, og intet andet fra det andet projekt. Hver ressource på siden, en monitor eller en monitorgruppe, er en komponent under det navn, siden giver den, i sidens gruppe; en gruppe inde i en anden hedder `Core / Databases`. Vælg ressourcer i **Komponenter**, eller hold øje med én gruppe med **Komponentgruppefilter**.
 
 En komponents status er den værdi, dens status på siden står for, så kriterierne for komponentstatus virker som på enhver statusside:
 
@@ -249,7 +249,7 @@ Her er en liste over statussider for populære tjenester. Mange af dem bruger At
 ## Fejlfinding
 
 :::details Monitoren er offline, men hændelsen gælder en del af tjenesten, som jeg ikke bruger
-Vælg de komponenter, du er afhængig af, i **Komponenter**, eller én gruppe i **Component Group Filter**. Antallet af aktive hændelser og komponenternes status tæller så kun dem; en hændelse, der ikke nævner nogen komponent, tæller ikke med.
+Vælg de komponenter, du er afhængig af, i **Komponenter**, eller én gruppe i **Komponentgruppefilter**. Antallet af aktive hændelser og komponenternes status tæller så kun dem; en hændelse, der ikke nævner nogen komponent, tæller ikke med.
 :::
 
 :::details Monitoren går aldrig offline, heller ikke under et nedbrud
