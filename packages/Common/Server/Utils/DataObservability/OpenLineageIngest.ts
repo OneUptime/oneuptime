@@ -25,6 +25,7 @@ import { JSONObject } from "../../../Types/JSON";
 import ObjectID from "../../../Types/ObjectID";
 import ServiceType from "../../../Types/Telemetry/ServiceType";
 import DataAssetLineageService from "../../Services/DataAssetLineageService";
+import DataAssetLineageSource from "../../../Types/DataObservability/DataAssetLineageSource";
 import DataAssetService from "../../Services/DataAssetService";
 import DataPipelineRunService from "../../Services/DataPipelineRunService";
 import DataPipelineService from "../../Services/DataPipelineService";
@@ -594,6 +595,7 @@ export default class OpenLineageIngest {
 
     edge.downstreamDataAssetId = new ObjectID(data.downstreamDataAssetId);
     edge.dataPipelineId = data.pipelineId;
+    edge.source = DataAssetLineageSource.Pipeline;
     edge.edgeKey = edgeKey;
     edge.firstSeenAt = data.at;
     edge.lastSeenAt = data.at;

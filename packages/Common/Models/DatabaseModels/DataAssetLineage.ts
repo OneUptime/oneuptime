@@ -2,6 +2,7 @@ import Project from "./Project";
 import User from "./User";
 import DataAsset from "./DataAsset";
 import DataPipeline from "./DataPipeline";
+import DataAssetLineageSource from "../../Types/DataObservability/DataAssetLineageSource";
 import BaseModel from "./DatabaseBaseModel/DatabaseBaseModel";
 import Route from "../../Types/API/Route";
 import ColumnAccessControl from "../../Types/Database/AccessControl/ColumnAccessControl";
@@ -27,8 +28,11 @@ import { Column, Entity, Index, JoinColumn, ManyToOne } from "typeorm";
  * second is built from the first: one row per pair and pipeline, with when
  * it was last seen. A run that writes a table from data OneUptime does not
  * watch (files, an API, another warehouse) is one row too, with no upstream
- * table, so every table knows the pipelines that write it. A table's page
- * reads it both ways: what it is built from, and what is built from it.
+ * table, so every table knows the pipelines that write it. The databases
+ * say it too, with no pipeline: a query in their own history that read one
+ * table and wrote another, and a view over the tables it is defined on
+ * (source). A table's page reads it both ways: what it is built from, and
+ * what is built from it.
  */
 const readPermissions: Array<Permission> = [
   Permission.ProjectOwner,
@@ -41,7 +45,7 @@ const readPermissions: Array<Permission> = [
   Permission.ReadDataAsset,
 ];
 
-// OneUptime writes these from OpenLineage events; people read them.
+// OneUptime writes these from OpenLineage events and database catalogs; people read them.
 const serverWrittenColumnAccess: {
   create: Array<Permission>;
   read: Array<Permission>;
@@ -71,7 +75,7 @@ const serverWrittenColumnAccess: {
   pluralName: "Data Asset Lineage",
   icon: IconProp.Workflow,
   tableDescription:
-    "One table feeding another, from the pipelines that read the first and write the second.",
+    "One table feeding another, from the pipelines that read the first and write the second, the database's query history, or a view's definition.",
 })
 @Index(["projectId", "edgeKey"], { unique: true })
 export default class DataAssetLineage extends BaseModel {
@@ -261,13 +265,44 @@ export default class DataAssetLineage extends BaseModel {
     type: TableColumnType.Date,
     required: true,
     title: "Last Seen At",
-    description: "When a run last moved data along the edge.",
+    description:
+      "When a run or query last moved data along the edge, or a view was last seen defined on it.",
   })
   @Column({
     type: ColumnType.Date,
     nullable: false,
   })
   public lastSeenAt?: Date = undefined;
+
+  @ColumnAccessControl(serverWrittenColumnAccess)
+  @TableColumn({
+    type: TableColumnType.ShortText,
+    required: false,
+    title: "Source",
+    description:
+      "Where the edge was seen: a pipeline's run, the database's query history, or a view's definition. Empty means a pipeline's run.",
+  })
+  @Column({
+    type: ColumnType.ShortText,
+    length: ColumnLength.ShortText,
+    nullable: true,
+  })
+  public source?: DataAssetLineageSource = undefined;
+
+  @ColumnAccessControl(serverWrittenColumnAccess)
+  @TableColumn({
+    type: TableColumnType.ShortText,
+    required: false,
+    title: "Seen By",
+    description:
+      "For an edge from query history: a login or service account whose queries moved the data.",
+  })
+  @Column({
+    type: ColumnType.ShortText,
+    length: ColumnLength.ShortText,
+    nullable: true,
+  })
+  public seenBy?: string = undefined;
 
   @ColumnAccessControl(serverWrittenColumnAccess)
   @TableColumn({

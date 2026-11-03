@@ -58,7 +58,7 @@ GRANT VIEW DEFINITION TO oneuptime_reader;
 GRANT VIEW DATABASE STATE TO oneuptime_reader;
 \`\`\`
 
-Amazon Redshift: connect with a PostgreSQL connection string to the cluster or workgroup endpoint, for example \`postgres://oneuptime_reader:...@cluster.abc123.us-east-1.redshift.amazonaws.com:5439/dev?sslmode=require\`. \`SYSLOG ACCESS UNRESTRICTED\` lets OneUptime read row counts and sizes (\`svv_table_info\`), and the last writes and reads of every user's queries (\`stl_insert\`, \`stl_delete\`, \`stl_scan\`, kept a few days). Without it, a table's rows changing still says when it changed.
+Amazon Redshift: connect with a PostgreSQL connection string to the cluster or workgroup endpoint, for example \`postgres://oneuptime_reader:...@cluster.abc123.us-east-1.redshift.amazonaws.com:5439/dev?sslmode=require\`. \`SYSLOG ACCESS UNRESTRICTED\` lets OneUptime read row counts and sizes (\`svv_table_info\`), the last writes and reads of every user's queries (\`stl_insert\`, \`stl_delete\`, \`stl_scan\`, kept a few days), and the lineage of every user's queries. Without it, a table's rows changing still says when it changed.
 
 \`\`\`sql
 CREATE USER oneuptime_reader PASSWORD '...';
@@ -85,7 +85,7 @@ CREATE USER ONEUPTIME_READER DEFAULT_ROLE = ONEUPTIME_READER RSA_PUBLIC_KEY = 'M
 GRANT ROLE ONEUPTIME_READER TO USER ONEUPTIME_READER;
 \`\`\`
 
-Google BigQuery: every dataset your Google Cloud connection found is watched already, with that connection's service account, nothing to connect. Give the service account **BigQuery Metadata Viewer** and **BigQuery Job User** on the project, and **BigQuery Data Viewer** on the tables your checks read. Each collection reads the dataset's \`__TABLES__\` (rows, bytes and last change, at no cost) and its \`INFORMATION_SCHEMA.COLUMNS\` (billed at BigQuery's 10 MB minimum). To connect a dataset without a Google Cloud connection, choose **Google BigQuery** and give JSON with a service account key:
+Google BigQuery: every dataset your Google Cloud connection found is watched already, with that connection's service account, nothing to connect. Give the service account **BigQuery Metadata Viewer** and **BigQuery Job User** on the project, and **BigQuery Data Viewer** on the tables your checks read. Each collection reads the dataset's \`__TABLES__\` (rows, bytes and last change, at no cost) and its \`INFORMATION_SCHEMA.COLUMNS\` (billed at BigQuery's 10 MB minimum). Add **BigQuery Resource Viewer** on the project for lineage from its jobs, read once an hour (see Lineage the databases say). To connect a dataset without a Google Cloud connection, choose **Google BigQuery** and give JSON with a service account key:
 
 \`\`\`json
 { "projectId": "my-project", "dataset": "analytics", "location": "US", "serviceAccountJson": { "type": "service_account", "...": "..." } }
@@ -173,7 +173,7 @@ For any OpenLineage client, set \`OPENLINEAGE_URL\` and \`OPENLINEAGE_API_KEY\`.
 
 Each job appears under **Pipelines**, with its latest run: when it started and ended, how long it took, and the error of a failed run. A run that reads and writes tables OneUptime watches becomes **lineage**: a table's **Lineage** tab shows the tables it is built from, the pipelines that write it with their latest run, and the tables built from it.
 
-Datasets are matched to tables by the OpenLineage naming spec: \`postgres://host:5432\` with \`database.schema.table\`, \`mysql://host:3306\` with \`database.table\`, and \`sqlserver://host:1433\` with \`database.schema.table\`.
+Datasets are matched to tables by the OpenLineage naming spec: \`postgres://host:5432\` with \`database.schema.table\`, \`mysql://host:3306\` with \`database.table\`, \`sqlserver://host:1433\` and \`redshift://cluster:5439\` with \`database.schema.table\`, \`snowflake://account\` with \`database.schema.table\`, and \`bigquery\` with \`project.dataset.table\`.
 
 Each pipeline learns from its own runs how long a run usually takes (the median of its last 20 completed runs) and how long it goes between runs on its schedule (the longest gap between its last 50 starts that is not a one-off). Both are known after five runs, and fit a job that runs every five minutes as well as one that runs nightly. When your scheduler sends OpenLineage's \`nominalTime\` facet, as Airflow does, a run's scheduled time stands for its start, so a backfill still reads as the schedule.
 
@@ -187,6 +187,17 @@ They read these metrics, each tagged with \`oneuptime.data.pipeline.id\` and \`o
 - \`oneuptime.data.pipeline.run_duration\`: seconds, as each run ends.
 - \`oneuptime.data.pipeline.run_duration_ratio\`: the run's time over the typical run's (counted as at least a minute), as each run ends and every five minutes while it runs.
 - \`oneuptime.data.pipeline.overdue_seconds\`: how long past its schedule the next run is, every five minutes; 0 while on time.
+
+
+## Lineage the databases say
+
+Lineage does not need a pipeline that sends OpenLineage. Each database says some of it itself, and OneUptime reads it with the database's collection:
+- **Views:** a view is built from the tables it is defined on, in PostgreSQL, Redshift, MySQL 8 and SQL Server. When a view is redefined or dropped, its old lineage goes with it.
+- **Query history:** a query that read one table and wrote another, such as a scheduled query, a dbt model or a MERGE, is lineage too. It comes from BigQuery's jobs (the \`INFORMATION_SCHEMA.JOBS\` view of the dataset's project and location, which needs **BigQuery Resource Viewer**) and Redshift's query log (\`stl_insert\` and \`stl_scan\`, which need \`SYSLOG ACCESS UNRESTRICTED\`). Only jobs run in the dataset's own project are in its jobs view.
+
+Lineage is read once an hour, back to the last read, and a week back at a database's first collection, so it is there from the start. A BigQuery read is billed for the hours of jobs it reads, mostly BigQuery's 10 MB minimum.
+
+Each edge on a table's **Lineage** tab says where it was seen: a pipeline's run, the query history (with a login whose queries moved the data), or a view's definition. Lineage from every source counts for **One issue per cause**.
 
 ## dbt
 
@@ -203,7 +214,7 @@ oneuptime dbt upload
 In CI, run \`oneuptime dbt upload\` as the step after the build, even when the build fails, so failed tests are recorded. For a dbt Cloud job, download its artifacts with dbt Cloud's API, then upload them with \`--manifest\` and \`--run-results\`. Or post them yourself: \`POST /telemetry/dbt/v1/artifacts\` with \`{ "manifest": ..., "run_results": ... }\` and the key in \`x-oneuptime-token\`.
 
 What each upload does:
-- **Tables:** each model, seed, snapshot and source that is a table OneUptime watches gets a **dbt** card on its Overview: the node, its materialization, owner, tags and last build. Its dbt description fills the table's description when that is empty. A table is matched by its database, schema and name, for PostgreSQL, MySQL and SQL Server. dbt does not know the host, so when two watched databases share a name, their tables are left unmatched.
+- **Tables:** each model, seed, snapshot and source that is a table OneUptime watches gets a **dbt** card on its Overview: the node, its materialization, owner, tags and last build. Its dbt description fills the table's description when that is empty. A table is matched by its database, schema and name, for PostgreSQL, MySQL, SQL Server, Redshift, Snowflake and BigQuery. dbt does not know the host, so when two watched databases share a name, their tables are left unmatched, unless only one of them holds the table.
 - **Lineage:** what each model is built from becomes lineage on the table's **Lineage** tab, through the project's pipeline.
 - **Tests:** each test of a watched table shows on its **Checks** tab, with its last result and the rows it found failing. Click **Alert on Failures** to have a failing test open an alert.
 - **Builds:** each build is a run of the project's pipeline under **Pipelines** (namespace \`dbt\`). A build with an error or a failed test is a failed run, so the pipeline alerts work on dbt builds too: failed, unusually long and late.

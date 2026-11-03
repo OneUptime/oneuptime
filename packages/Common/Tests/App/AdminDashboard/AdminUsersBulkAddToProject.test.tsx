@@ -26,13 +26,16 @@ import { Location, MemoryRouter } from "react-router-dom";
  * That split is the whole risk. The shared bulk machinery hands the click four
  * callbacks and then waits: the progress modal appears on `onBulkActionStart`,
  * its Close button stays disabled until `onBulkActionEnd`, and only closing it
- * clears the selection and refetches the table. Call them in the wrong order,
- * or miss one on a path, and the admin is left either staring at an empty
- * progress modal behind the picker or at a modal they can never close.
+ * clears the selection and refetches the table. The click opens only the
+ * picker; once it is submitted, the page hands that same click to the run
+ * (BulkAddUsersToProject, on the shared runner), which calls all of them.
+ * Start a run on the click, or end one, and the admin is left either staring
+ * at an empty progress modal behind the picker or at a selection cleared
+ * from under them.
  *
  * None of that is visible from either component on its own - the creates live
  * in BulkAddUsersToProject and the picker only collects - so this file pins the
- * page's sequencing, with both of them stubbed.
+ * page's half with both of them stubbed, and once with the real run behind it.
  */
 
 jest.mock("react-i18next", () => {
@@ -147,15 +150,16 @@ jest.mock(
 
 type BulkAddUsersToProjectFunction = (
   options: BulkAddUsersToProjectOptions,
-) => Promise<BulkAddUsersToProjectResult>;
+) => Promise<BulkActionRunResult<User>>;
 
 const bulkAddUsersToProjectMock: Mock<BulkAddUsersToProjectFunction> =
   jest.fn<BulkAddUsersToProjectFunction>();
 
 /*
- * The creates themselves have their own tests. Stubbing them here leaves only
- * the page's half under test: what it passes down, how it renames the running
- * tally on the way back up, and what it does when the run blows up.
+ * The run itself - the shared runner, one user at a time - has its own tests
+ * (BulkAddUsersToProject). Stubbing it here leaves the page's half under
+ * test: what it hands the run. One test below hands it on to the real module
+ * and runner, to see the progress dialog driven end to end.
  */
 jest.mock(
   "../../../../App/FeatureSet/AdminDashboard/src/Components/User/BulkAddUsersToProject",
@@ -170,16 +174,35 @@ jest.mock(
   },
 );
 
+/*
+ * Where the real module creates a membership when a test hands the run on to
+ * it: the admin ModelAPI, held here.
+ */
+jest.mock(
+  "../../../../App/FeatureSet/AdminDashboard/src/Utils/ModelAPI",
+  () => {
+    return {
+      __esModule: true,
+      default: {
+        create: jest.fn(),
+      },
+    };
+  },
+);
+
 import Users from "../../../../App/FeatureSet/AdminDashboard/src/Pages/Users/Index";
-import {
-  BulkAddUsersToProjectOptions,
-  BulkAddUsersToProjectResult,
-} from "../../../../App/FeatureSet/AdminDashboard/src/Components/User/BulkAddUsersToProject";
+import { BulkAddUsersToProjectOptions } from "../../../../App/FeatureSet/AdminDashboard/src/Components/User/BulkAddUsersToProject";
+import AdminModelAPI from "../../../../App/FeatureSet/AdminDashboard/src/Utils/ModelAPI";
+import { BulkActionRunResult } from "../../../UI/Components/BulkUpdate/BulkActionRunner";
 import { BulkAddUsersToProjectSelection } from "../../../../App/FeatureSet/AdminDashboard/src/Components/User/BulkAddUsersToProjectModal";
 import {
   BulkActionButtonSchema,
   ProgressInfo,
 } from "../../../UI/Components/BulkUpdate/BulkUpdateForm";
+import {
+  ADD_TO_PROJECT_RESULT_LABELS,
+  TWO_FACTOR_AUTH_RESULT_LABELS,
+} from "../../../../App/FeatureSet/AdminDashboard/src/Components/User/BulkUserResultLabels";
 import IconProp from "../../../Types/Icon/IconProp";
 import ObjectID from "../../../Types/ObjectID";
 import Navigation from "../../../UI/Utils/Navigation";
@@ -195,14 +218,6 @@ const ADD_TO_PROJECT_TITLE_KEY: string = "pages.users.bulkAddToProject";
  */
 const ALREADY_INVITED_MESSAGE: string =
   "This user has already been invited to this team";
-
-/*
- * What the run itself failing looks like - the request never left, the session
- * expired. Distinct from ALREADY_INVITED_MESSAGE above, which is a per-user
- * outcome the creates report and carry on from.
- */
-const RUN_BROKE_MESSAGE: string =
-  "Error connecting to server. Please try again.";
 
 const SELECTION: BulkAddUsersToProjectSelection = {
   projectId: ObjectID.generate(),
@@ -233,23 +248,22 @@ const aUser: UserFactoryFunction = (): User => {
 let userOne: User = aUser();
 let userTwo: User = aUser();
 let userThree: User = aUser();
-let userFour: User = aUser();
-let userFive: User = aUser();
 
-type ResultFactoryFunction = (
-  users: Array<User>,
-) => BulkAddUsersToProjectResult;
+type ResultFactoryFunction = (users: Array<User>) => BulkActionRunResult<User>;
 
 const allSucceeded: ResultFactoryFunction = (
   users: Array<User>,
-): BulkAddUsersToProjectResult => {
+): BulkActionRunResult<User> => {
   return {
-    totalUsers: users,
-    inProgressUsers: [],
-    succeededUsers: users,
-    failedUsers: [],
+    changed: users,
+    unchanged: [],
+    failed: [],
+    notStarted: [],
   };
 };
+
+const adminModelAPICreateMock: Mock<(data: unknown) => Promise<unknown>> =
+  AdminModelAPI.create as unknown as Mock<(data: unknown) => Promise<unknown>>;
 
 type BulkActionButtonsFunction = () => Array<BulkActionButtonSchema<User>>;
 
@@ -410,17 +424,16 @@ describe("Admin > Users > Add to Project bulk action", () => {
     userOne = aUser();
     userTwo = aUser();
     userThree = aUser();
-    userFour = aUser();
-    userFive = aUser();
 
     bulkAddUsersToProjectMock.mockReset();
     bulkAddUsersToProjectMock.mockImplementation(
       (
         options: BulkAddUsersToProjectOptions,
-      ): Promise<BulkAddUsersToProjectResult> => {
-        return Promise.resolve(allSucceeded(options.users));
+      ): Promise<BulkActionRunResult<User>> => {
+        return Promise.resolve(allSucceeded(options.actionProps.items));
       },
     );
+    adminModelAPICreateMock.mockReset();
 
     /*
      * The page reads the current route to build the row's view link. In the
@@ -505,6 +518,49 @@ describe("Admin > Users > Add to Project bulk action", () => {
       expect(bulkActionTitled(ADD_TO_PROJECT_TITLE_KEY).icon).toBe(
         IconProp.FolderPlus,
       );
+    });
+
+    /*
+     * The shared dialog's result says what the action did, in its own words
+     * where it has them: "2 Users added" and "1 User not added", not "2
+     * Users succeeded" - which left the admin to work out what had.
+     */
+    test("says in its result that the users were added, or not added", () => {
+      expect(bulkActionTitled(ADD_TO_PROJECT_TITLE_KEY).resultLabels).toBe(
+        ADD_TO_PROJECT_RESULT_LABELS,
+      );
+      expect(ADD_TO_PROJECT_RESULT_LABELS).toEqual({
+        succeeded: {
+          one: "{{count}} {{itemName}} added",
+          other: "{{count}} {{itemsName}} added",
+        },
+        failed: {
+          one: "{{count}} {{itemName}} not added",
+          other: "{{count}} {{itemsName}} not added",
+        },
+      });
+    });
+
+    test("and Require / Do Not Require Two Factor Auth say the users were updated, or not updated", () => {
+      for (const title of [
+        "pages.users.bulkRequireTwoFactorAuth",
+        "pages.users.bulkDoNotRequireTwoFactorAuth",
+      ]) {
+        expect(bulkActionTitled(title).resultLabels).toBe(
+          TWO_FACTOR_AUTH_RESULT_LABELS,
+        );
+      }
+
+      expect(TWO_FACTOR_AUTH_RESULT_LABELS).toEqual({
+        succeeded: {
+          one: "{{count}} {{itemName}} updated",
+          other: "{{count}} {{itemsName}} updated",
+        },
+        failed: {
+          one: "{{count}} {{itemName}} not updated",
+          other: "{{count}} {{itemsName}} not updated",
+        },
+      });
     });
   });
 
@@ -606,9 +662,9 @@ describe("Admin > Users > Add to Project bulk action", () => {
 
       await submitPicker();
 
-      expect(createOptions().users).toBe(secondClick.items);
-      expect(secondClick.onBulkActionStart).toHaveBeenCalledTimes(1);
-      expect(secondClick.onBulkActionEnd).toHaveBeenCalledTimes(1);
+      // The run reports to the second click: its users, its dialog.
+      expect(createOptions().actionProps).toBe(secondClick);
+      expect(createOptions().actionProps.items).toBe(secondClick.items);
 
       /*
        * The abandoned click's run must stay unstarted and unended: ending it
@@ -649,111 +705,34 @@ describe("Admin > Users > Add to Project bulk action", () => {
 
   describe("submitting the picker", () => {
     /*
-     * The order is the feature, but read the asserted list carefully: it is
-     * NOT evidence that the picker leaves the screen before the creates begin,
-     * and no test could be.
-     *
-     * Dismissing the picker and starting the run are two state updates made
-     * from one handler, so React commits them together. "picker-closed" is the
-     * stub's unmount effect, which runs when that single commit flushes - after
-     * the handler has already called `onBulkActionStart` and reached the
-     * creates synchronously. Hence start, creates, picker-closed. Both updates
-     * landing in one commit is the actual guarantee: the admin never sees a
-     * frame with the picker up and the run already going.
-     *
-     * What this pins is the part that does matter. `onBulkActionStart` runs
-     * before the creates, and `onBulkActionEnd` only once they settle - the
-     * mid-run assertions below hold the creates open to prove `end` has not
-     * fired yet. Ending early re-enables the progress modal's Close button, and
-     * closing it is what clears the selection and refetches the table, so an
-     * early end throws away the selection while memberships are still being
-     * created. And by the time the run is observably in flight the picker is
-     * already off the screen, so the progress modal is not stacked behind it.
+     * The page hands the run the click itself: the shared runner reports to
+     * the progress dialog through it - opens it, counts the users down, ends
+     * it - so the page calls none of the click's callbacks on its own. What
+     * it must get right is which click, which users and which pick.
      */
-    test("closes the picker, then runs start -> creates -> end in order", async () => {
+    test("closes the picker and hands the run the click itself, with the picked project, team and auto-accept", async () => {
       const callbacks: BulkActionCallbackMocks = bulkActionCallbacks([
         userOne,
         userTwo,
       ]);
 
       await clickAddToProject(callbacks);
-
-      /*
-       * Held open so the assertions can look at the page mid-run, which is the
-       * only moment at which "the picker is gone but the run is not finished"
-       * is a distinguishable state.
-       */
-      const run: { finish: () => void } = {
-        finish: (): void => {
-          throw new Error("The creates were never started.");
-        },
-      };
-
-      bulkAddUsersToProjectMock.mockImplementation(
-        (
-          options: BulkAddUsersToProjectOptions,
-        ): Promise<BulkAddUsersToProjectResult> => {
-          return new Promise<BulkAddUsersToProjectResult>(
-            (resolve: (result: BulkAddUsersToProjectResult) => void) => {
-              run.finish = (): void => {
-                resolve(allSucceeded(options.users));
-              };
-            },
-          );
-        },
-      );
-
       await submitPicker();
 
       expect(screen.queryByTestId(PICKER_TEST_ID)).not.toBeInTheDocument();
-      expect(callbacks.onBulkActionEnd).not.toHaveBeenCalled();
-
-      await inAct(() => {
-        run.finish();
-      });
-
-      expect(callbacks.onBulkActionEnd).toHaveBeenCalledTimes(1);
-      expect(recordedEvents).toEqual([
-        "bulk-action-start",
-        "creates-started",
-        "picker-closed",
-        "bulk-action-end",
-      ]);
-    });
-
-    /*
-     * The selection the picker collected has to reach the creates intact, and
-     * against the users the click carried. `hasAcceptedInvitation` in
-     * particular is the difference between adding members outright and sending
-     * invitations nobody asked for - only a master admin may do the former, so
-     * dropping the flag silently downgrades the whole batch to pending.
-     */
-    test("hands the creates the clicked users and the picked project, team and auto-accept", async () => {
-      const callbacks: BulkActionCallbackMocks = bulkActionCallbacks([
-        userOne,
-        userTwo,
-      ]);
-
-      await clickAddToProject(callbacks);
-      await submitPicker();
-
-      expect(createOptions().users).toBe(callbacks.items);
+      expect(bulkAddUsersToProjectMock).toHaveBeenCalledTimes(1);
+      expect(createOptions().actionProps).toBe(callbacks);
+      expect(createOptions().actionProps.items).toBe(callbacks.items);
       expect(createOptions().projectId).toBe(SELECTION.projectId);
       expect(createOptions().teamId).toBe(SELECTION.teamId);
       expect(createOptions().hasAcceptedInvitation).toBe(true);
     });
 
     /*
-     * The other half of that flag, and the reason it needs its own test: the
-     * checkbox defaults to unticked, so `false` is what an ordinary submit
-     * carries. A page that ignored `selection.hasAcceptedInvitation` and always
-     * sent `true` would satisfy the test above and every other test in this
-     * file, because they all submit the same auto-accept selection.
-     *
-     * Sending `true` there is a consent bug, not a cosmetic one. `true` makes
-     * each user a member of the project outright - the invitation they were
-     * meant to accept for themselves is never offered, and they are on a
-     * project they never agreed to join. Unticked has to reach the creates as
+     * The other half of the flag: the checkbox defaults to unticked, so
+     * `false` is what an ordinary submit carries. A page that always sent
+     * `true` would pass the test above - and make each user a member outright,
+     * on a project they never agreed to join. Unticked reaches the run as
      * unticked.
      */
     test("forwards an unticked auto-accept as false rather than assuming true", async () => {
@@ -766,190 +745,146 @@ describe("Admin > Users > Add to Project bulk action", () => {
       await submitPicker(SELECTION_WITHOUT_AUTO_ACCEPT);
 
       expect(createOptions().hasAcceptedInvitation).toBe(false);
-
-      /*
-       * The rest of the pick travels from the same selection object, so pin it
-       * here too: reading the flag off one selection and the ids off another
-       * would be a stranger bug, but a silent one.
-       */
       expect(createOptions().projectId).toBe(
         SELECTION_WITHOUT_AUTO_ACCEPT.projectId,
       );
       expect(createOptions().teamId).toBe(SELECTION_WITHOUT_AUTO_ACCEPT.teamId);
     });
 
-    /*
-     * The two sides speak different dialects: the creates count users, the
-     * shared progress modal counts items. The page is the only translator, and
-     * every one of the four names differs. Get one wrong and the field arrives
-     * `undefined` - the progress bar reads 0 of 0, or the per-user failure list
-     * renders empty, which is exactly the list an admin came here to read.
-     */
-    test("renames the running tally into the shared progress modal's shape", async () => {
-      const callbacks: BulkActionCallbackMocks = bulkActionCallbacks([
-        userOne,
-        userTwo,
-      ]);
+    test("starts, reports and ends nothing itself: the run does", async () => {
+      const callbacks: BulkActionCallbackMocks = bulkActionCallbacks([userOne]);
 
       await clickAddToProject(callbacks);
       await submitPicker();
 
-      createOptions().onProgress?.({
-        totalUsers: [userOne, userTwo],
-        inProgressUsers: [userTwo],
-        succeededUsers: [userOne],
-        failedUsers: [
-          {
-            user: userTwo,
-            failedMessage: ALREADY_INVITED_MESSAGE,
-          },
-        ],
-      });
-
-      expect(callbacks.onProgressInfo).toHaveBeenCalledTimes(1);
-      expect(callbacks.onProgressInfo).toHaveBeenCalledWith({
-        totalItems: [userOne, userTwo],
-        inProgressItems: [userTwo],
-        successItems: [userOne],
-        failed: [
-          {
-            item: userTwo,
-            failedMessage: ALREADY_INVITED_MESSAGE,
-          },
-        ],
-      });
+      // The stubbed run touched none of them, and neither did the page.
+      expect(callbacks.onBulkActionStart).not.toHaveBeenCalled();
+      expect(callbacks.onProgressInfo).not.toHaveBeenCalled();
+      expect(callbacks.onBulkActionEnd).not.toHaveBeenCalled();
     });
 
     /*
-     * A user who is already on the team comes back as a per-user failure, so
-     * reaching the catch means the run itself broke - the request never left,
-     * the session expired, something unforeseen. The progress modal's Close
-     * button is disabled for as long as the action is in progress, and closing
-     * it is the only thing that clears the selection and refetches the table.
-     * So a missed `onBulkActionEnd` here is not a lost error message, it is a
-     * modal the admin can never dismiss.
-     *
-     * This is the reject that happens before a single user was attempted, so
-     * "nobody was added" is the truth and the whole selection is reported
-     * failed. The test below covers the reject that lands part-way through,
-     * where reporting the whole selection would be a lie.
+     * The runner ends the action in a `finally`, so a run that throws can
+     * only be a throw from the dialog's own callbacks. Nothing is left to do
+     * with it - but it must not surface as an unhandled rejection.
      */
-    test("still ends the run, and reports every user failed, when the creates reject before any user is attempted", async () => {
-      const callbacks: BulkActionCallbackMocks = bulkActionCallbacks([
-        userOne,
-        userTwo,
-      ]);
+    test("a run that throws surfaces no unhandled rejection", async () => {
+      const unhandled: Array<unknown> = [];
+      const onUnhandled: (reason: unknown) => void = (
+        reason: unknown,
+      ): void => {
+        unhandled.push(reason);
+      };
+      process.on("unhandledRejection", onUnhandled);
 
-      await clickAddToProject(callbacks);
+      try {
+        const callbacks: BulkActionCallbackMocks = bulkActionCallbacks([
+          userOne,
+        ]);
 
-      bulkAddUsersToProjectMock.mockImplementation(
-        (): Promise<BulkAddUsersToProjectResult> => {
-          return Promise.reject(new Error(RUN_BROKE_MESSAGE));
-        },
-      );
+        await clickAddToProject(callbacks);
 
-      await submitPicker();
-
-      expect(callbacks.onBulkActionEnd).toHaveBeenCalledTimes(1);
-      expect(callbacks.onProgressInfo).toHaveBeenCalledWith({
-        totalItems: callbacks.items,
-        inProgressItems: [],
-        successItems: [],
-        failed: [
-          {
-            item: userOne,
-            failedMessage: RUN_BROKE_MESSAGE,
+        bulkAddUsersToProjectMock.mockImplementation(
+          (): Promise<BulkActionRunResult<User>> => {
+            return Promise.reject(new Error("The dialog went away."));
           },
-          {
-            item: userTwo,
-            failedMessage: RUN_BROKE_MESSAGE,
-          },
-        ],
-      });
-    });
+        );
 
-    /*
-     * The creates run one user at a time and report after each, so a run that
-     * breaks half way has already created real memberships. Those users are on
-     * the project whatever happens next.
-     *
-     * The final report is the only record the admin gets - the progress modal
-     * is what they read, and closing it clears the selection and refetches. So
-     * the recovery has to keep what the last report said: the users already
-     * added stay added, the per-user failure already recorded (here: already on
-     * the team) keeps its own message rather than being overwritten by the
-     * run's, and only the users never attempted are added as failures. Blanket
-     * "everything failed" would send the admin to re-add users who are already
-     * members, and blanket "everything succeeded" would leave the not-attempted
-     * ones off the project with nothing on screen saying so.
-     *
-     * `onBulkActionEnd` still has to run on this path too, for the same reason
-     * as above - otherwise the Close button never unlocks.
-     */
-    test("keeps the already-added users and fails only the not-yet-attempted ones when the creates reject mid-run", async () => {
-      const callbacks: BulkActionCallbackMocks = bulkActionCallbacks([
-        userOne,
-        userTwo,
-        userThree,
-        userFour,
-        userFive,
-      ]);
+        await submitPicker();
 
-      await clickAddToProject(callbacks);
-
-      bulkAddUsersToProjectMock.mockImplementation(
-        (
-          options: BulkAddUsersToProjectOptions,
-        ): Promise<BulkAddUsersToProjectResult> => {
-          /*
-           * Three users dealt with - two added, one already on the team - and
-           * then the run breaks with userFour and userFive never attempted.
-           */
-          options.onProgress?.({
-            totalUsers: [userOne, userTwo, userThree, userFour, userFive],
-            inProgressUsers: [userFour, userFive],
-            succeededUsers: [userOne, userTwo],
-            failedUsers: [
-              {
-                user: userThree,
-                failedMessage: ALREADY_INVITED_MESSAGE,
-              },
-            ],
+        // Two macrotask turns: an unhandled rejection is reported by then.
+        for (let turn: number = 0; turn < 2; turn++) {
+          await new Promise<void>((resolve: () => void): void => {
+            setTimeout(resolve, 0);
           });
+        }
 
-          return Promise.reject(new Error(RUN_BROKE_MESSAGE));
+        expect(unhandled).toEqual([]);
+      } finally {
+        process.off("unhandledRejection", onUnhandled);
+      }
+    });
+
+    /*
+     * End to end, with the real module and the shared runner behind the
+     * page: the dialog opens as a run that can stop, ends only once the
+     * creates settle - ending early re-enables its Close, and closing it
+     * clears the selection while memberships are still being created - and
+     * its last report names who was added and who was not, with why.
+     */
+    test("with the real run behind it, the dialog opens as stoppable, ends once the creates settle, and names each user's outcome", async () => {
+      const actual: {
+        bulkAddUsersToProject: BulkAddUsersToProjectFunction;
+      } = jest.requireActual(
+        "../../../../App/FeatureSet/AdminDashboard/src/Components/User/BulkAddUsersToProject",
+      ) as { bulkAddUsersToProject: BulkAddUsersToProjectFunction };
+
+      bulkAddUsersToProjectMock.mockImplementation(
+        actual.bulkAddUsersToProject,
+      );
+
+      // The first create held open; the second refused as already invited.
+      const firstCreate: { finish: () => void } = {
+        finish: (): void => {
+          throw new Error("The first create was never started.");
+        },
+      };
+
+      adminModelAPICreateMock.mockImplementation(
+        (data: unknown): Promise<unknown> => {
+          const userId: string = String(
+            (data as { model: { userId: ObjectID } }).model.userId,
+          );
+
+          if (userId === userOne.id!.toString()) {
+            return new Promise<unknown>((resolve: (value: unknown) => void) => {
+              firstCreate.finish = (): void => {
+                resolve(undefined);
+              };
+            });
+          }
+
+          return Promise.reject(new Error(ALREADY_INVITED_MESSAGE));
         },
       );
 
+      const callbacks: BulkActionCallbackMocks = bulkActionCallbacks([
+        userOne,
+        userTwo,
+      ]);
+
+      await clickAddToProject(callbacks);
       await submitPicker();
 
-      expect(callbacks.onBulkActionEnd).toHaveBeenCalledTimes(1);
-
-      /*
-       * Once for the mid-run tally, once for the recovery. The recovery report
-       * is what the admin is left looking at, so it is the last one that has to
-       * be right.
-       */
-      expect(callbacks.onProgressInfo).toHaveBeenCalledTimes(2);
-      expect(callbacks.onProgressInfo).toHaveBeenLastCalledWith({
-        totalItems: [userOne, userTwo, userThree, userFour, userFive],
-        inProgressItems: [],
-        successItems: [userOne, userTwo],
-        failed: [
-          {
-            item: userThree,
-            failedMessage: ALREADY_INVITED_MESSAGE,
-          },
-          {
-            item: userFour,
-            failedMessage: RUN_BROKE_MESSAGE,
-          },
-          {
-            item: userFive,
-            failedMessage: RUN_BROKE_MESSAGE,
-          },
-        ],
+      // Opened as a run Stop can stop, and not ended while a create is open.
+      expect(callbacks.onBulkActionStart).toHaveBeenCalledTimes(1);
+      expect(callbacks.onBulkActionStart).toHaveBeenCalledWith({
+        isStoppable: true,
       });
+      expect(callbacks.onBulkActionEnd).not.toHaveBeenCalled();
+
+      await inAct(async () => {
+        firstCreate.finish();
+
+        await waitFor(() => {
+          expect(callbacks.onBulkActionEnd).toHaveBeenCalledTimes(1);
+        });
+      });
+
+      // One user at a time: the second create waited for the first.
+      expect(adminModelAPICreateMock).toHaveBeenCalledTimes(2);
+
+      const lastReport: ProgressInfo<User> =
+        callbacks.onProgressInfo.mock.calls[
+          callbacks.onProgressInfo.mock.calls.length - 1
+        ]![0];
+
+      expect(lastReport.totalItems).toEqual([userOne, userTwo]);
+      expect(lastReport.successItems).toEqual([userOne]);
+      expect(lastReport.inProgressItems).toEqual([]);
+      expect(lastReport.failed).toEqual([
+        { item: userTwo, failedMessage: ALREADY_INVITED_MESSAGE },
+      ]);
     });
   });
 });
