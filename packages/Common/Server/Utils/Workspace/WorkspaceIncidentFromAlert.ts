@@ -130,8 +130,16 @@ export interface WorkspaceDeclaredIncident {
   link: string | null;
 }
 
-// Whether the member may link an alert: the ids to link, or why not.
-type AlertLinkCheck = { alertIds: Array<ObjectID> } | { reason: string };
+/*
+ * Whether the member may link an alert: the ids to link, or the refusal -
+ * null when the check failed rather than refused, which is no answer.
+ */
+type AlertLinkCheck =
+  | { alertIds: Array<ObjectID> }
+  | { refusal: string | null };
+
+// Why an alert was not linked when the reason is not known.
+const COULD_NOT_BE_READ: string = "It could not be read just now.";
 
 /*
  * Where a Microsoft Teams card carries the alert it is declared from: its
@@ -208,7 +216,12 @@ export default class WorkspaceIncidentFromAlert {
         title: found.record.title?.toString() || "",
         isPrivate: found.record.isPrivate === true,
         resources: resources,
-        linkRefusal: "reason" in linkCheck ? linkCheck.reason : null,
+        /*
+         * Only a refusal is said on the form. A check that failed is no
+         * answer: the form promises the link as usual, the submission asks
+         * again, and its confirmation says what happened.
+         */
+        linkRefusal: "refusal" in linkCheck ? linkCheck.refusal : null,
       };
     } catch (error) {
       logger.debug(
@@ -288,7 +301,7 @@ export default class WorkspaceIncidentFromAlert {
     } catch (error) {
       return {
         name: null,
-        reason: this.getReason(error),
+        reason: this.getRefusal(error) || COULD_NOT_BE_READ,
         isPrivate: await this.isPrivateAsOneUptimeReadsIt(data),
       };
     }
@@ -298,8 +311,12 @@ export default class WorkspaceIncidentFromAlert {
     const isPrivate: boolean = alert.isPrivate === true;
     const linkCheck: AlertLinkCheck = await this.checkMayLink(data);
 
-    if ("reason" in linkCheck) {
-      return { name: name, reason: linkCheck.reason, isPrivate: isPrivate };
+    if ("refusal" in linkCheck) {
+      return {
+        name: name,
+        reason: linkCheck.refusal || COULD_NOT_BE_READ,
+        isPrivate: isPrivate,
+      };
     }
 
     return {
@@ -443,8 +460,8 @@ export default class WorkspaceIncidentFromAlert {
    * Whether the member may link the alert to a new incident, as a
    * declaration from alerts asks it before anything is written
    * (IncidentAlertService.validateAlertIdsForNewIncident): the ids to link,
-   * or why not. Read with a copy of their props, which the permission
-   * layer writes to.
+   * or the refusal (null for a check that failed). Read with a copy of
+   * their props, which the permission layer writes to.
    */
   private static async checkMayLink(data: {
     projectId: ObjectID;
@@ -460,7 +477,7 @@ export default class WorkspaceIncidentFromAlert {
         }),
       };
     } catch (error) {
-      return { reason: this.getReason(error) };
+      return { refusal: this.getRefusal(error) };
     }
   }
 
@@ -490,8 +507,8 @@ export default class WorkspaceIncidentFromAlert {
     }
   }
 
-  // A refusal's words, for the person; a generic line for anything else.
-  private static getReason(error: unknown): string {
+  // A refusal's words, for the person; null for anything that is no refusal.
+  private static getRefusal(error: unknown): string | null {
     if (
       error instanceof NotAuthorizedException ||
       error instanceof BadDataException
@@ -503,9 +520,9 @@ export default class WorkspaceIncidentFromAlert {
     }
 
     logger.debug(
-      `Could not link an alert to an incident from a chat: ${error}`,
+      `Could not tell whether an alert may be linked to an incident from a chat: ${error}`,
     );
 
-    return "It could not be read just now.";
+    return null;
   }
 }

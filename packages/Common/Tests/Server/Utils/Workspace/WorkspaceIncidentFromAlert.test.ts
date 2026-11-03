@@ -288,13 +288,14 @@ describe("the alert a form is declared from: the open alert of its own channel, 
     );
   });
 
-  test("a link check that fails is a reason too, and the form still opens", async () => {
+  test("a link check that fails to answer is no refusal: the form says the link as usual, and the submission asks again", async () => {
     validateSpy.mockRejectedValue(new Error("connection reset"));
 
     await expect(readChannelAlert()).resolves.toEqual(
       expect.objectContaining({
         alertId: ALERT_ID,
-        linkRefusal: "It could not be read just now.",
+        resources: [API_HOST],
+        linkRefusal: null,
       }),
     );
   });
