@@ -215,8 +215,11 @@ async function screenshot(page: Page, name: string): Promise<void> {
 
 async function openList(page: Page, query: string = ""): Promise<void> {
   await page.goto(`${DATABASES_PATH}${query ? `?${query}` : ""}`);
-  // The table has drawn its rows once a Status cell is there.
-  await expect(page.locator("tbody [data-tone]").first()).toBeVisible();
+  /*
+   * The list has drawn its databases once a Status is there: in a row, or
+   * in a card when its box is too narrow for the rows.
+   */
+  await expect(page.getByTestId("database-status").first()).toBeVisible();
 }
 
 async function openDatabase(
@@ -263,8 +266,39 @@ function statusOf(page: Page, name: string): Locator {
   return tableRow(page, name).locator("[data-tone]").first();
 }
 
-// The Databases table is no wider than the card it is drawn in.
+/*
+ * A database's Status wherever the list draws it: in its row, or - in a
+ * box too narrow for the rows - in its card. Both draw each database's
+ * name and Status in the list's order.
+ */
+async function statusInList(page: Page, name: string): Promise<Locator> {
+  const names: Array<string> = await page
+    .locator('[data-testid="database-name"] > a')
+    .allTextContents();
+  const index: number = names.indexOf(name);
+
+  expect({ name: name, isListed: index >= 0 }).toEqual({
+    name: name,
+    isListed: true,
+  });
+
+  return page
+    .getByTestId("database-status")
+    .nth(index)
+    .locator("[data-tone]")
+    .first();
+}
+
+/*
+ * The Databases table is no wider than the card it is drawn in. In a box too
+ * narrow for its rows the list is drawn as cards, which wrap to their box.
+ */
 async function expectTableFitsItsCard(page: Page): Promise<void> {
+  if ((await page.locator("table").count()) === 0) {
+    await expect(page.getByTestId("database-status").first()).toBeVisible();
+    return;
+  }
+
   const widths: { table: number; box: number } = await page
     .locator("table")
     .first()
@@ -333,24 +367,27 @@ test.describe("the Databases list", () => {
     ).toHaveText(["4 critical", "3 to look at"]);
     // Six at first, the seventh one click away.
     expect(await attentionRows(card)).toEqual(BUSY_ATTENTION.slice(0, 6));
-    await expect(page.getByTestId("database-fleet-attention-toggle")).toHaveText(
-      "Show 1 more",
-    );
+    await expect(
+      page.getByTestId("database-fleet-attention-toggle"),
+    ).toHaveText("Show 1 more");
     await page.getByTestId("database-fleet-attention-toggle").click();
     expect(await attentionRows(card)).toEqual(BUSY_ATTENTION);
 
     // Each row says why, in the words of the lines its engine's alerts draw.
     const orders: Locator = attentionRow(card, IDS["ordersDb"]!);
-    await expect(orders.getByTestId("database-fleet-attention-name")).toHaveText(
-      "orders-db",
-    );
+    await expect(
+      orders.getByTestId("database-fleet-attention-name"),
+    ).toHaveText("orders-db");
     // The engine's own name, as written.
-    await expect(orders.getByTestId("database-fleet-attention-kind")).toHaveText(
-      "PostgreSQL",
-    );
+    await expect(
+      orders.getByTestId("database-fleet-attention-kind"),
+    ).toHaveText("PostgreSQL");
     await expect(
       orders.getByTestId("database-fleet-attention-reason"),
-    ).toHaveText(["Connections at 96% of max_connections", "A replica 1 min behind"]);
+    ).toHaveText([
+      "Connections at 96% of max_connections",
+      "A replica 1 min behind",
+    ]);
     // PostgreSQL's own SQL checks: wraparound coming, a transaction left open.
     await expect(
       attentionRow(card, IDS["paymentsPg"]!).getByTestId(
@@ -383,9 +420,9 @@ test.describe("the Databases list", () => {
 
     // Engine metrics that stopped: since when, not what they said last.
     const cache: Locator = attentionRow(card, IDS["cacheMemcached"]!);
-    await expect(cache.getByTestId("database-fleet-attention-reason")).toHaveText(
-      "Engine metrics stopped",
-    );
+    await expect(
+      cache.getByTestId("database-fleet-attention-reason"),
+    ).toHaveText("Engine metrics stopped");
     await expect(
       cache.getByTestId("database-fleet-attention-last-report"),
     ).toHaveText("Last reported 3 hours ago");
@@ -471,14 +508,13 @@ test.describe("the Databases list", () => {
       .filter((text: string): boolean => {
         return text.length > 0;
       });
+    /*
+     * Runs On, Discovered From, Labels and Owners give way first: when the
+     * table cannot fit its card they fold under the name (Runs On does at
+     * 1280 here), so they are not among the headers asked for.
+     */
     expect(headers).toEqual(
-      expect.arrayContaining([
-        "Name",
-        "Status",
-        "Engine",
-        "Runs On",
-        "Last Seen",
-      ]),
+      expect.arrayContaining(["Name", "Status", "Engine", "Last Seen"]),
     );
     // Its Status stands in for the Engine Metrics column the list had.
     expect(headers).not.toContain("Engine metrics");
@@ -532,9 +568,9 @@ test.describe("the Databases list", () => {
     await expect(statuses).toHaveCount(9);
     await expect(statuses).toHaveText(new Array(9).fill("Healthy"));
     await expect(page.getByTestId("database-fleet-attention")).toHaveCount(0);
-    await expect(page.getByTestId("database-fleet-attention-error")).toHaveCount(
-      0,
-    );
+    await expect(
+      page.getByTestId("database-fleet-attention-error"),
+    ).toHaveCount(0);
   });
 
   test("a project with no databases yet reads no fleet", async ({
@@ -587,7 +623,9 @@ test.describe("the Databases list", () => {
       const card: Locator = page.getByTestId("database-fleet-attention");
       await expect(card).toBeVisible();
       expect(await attentionRows(card)).toEqual(BUSY_ATTENTION.slice(0, 6));
-      await expect(statusOf(page, "orders-db")).toHaveText("Unhealthy");
+      await expect(await statusInList(page, "orders-db")).toHaveText(
+        "Unhealthy",
+      );
       await expectNoSidewaysScroll(page);
       if (viewport.size.width >= SMALL_LAPTOP.width) {
         await expectTableFitsItsCard(page);
@@ -831,7 +869,9 @@ test.describe("a database's Overview", () => {
 
     await expect(page.getByTestId("database-alerts-item")).toHaveCount(11);
     await expect(
-      page.locator('[data-testid="database-alerts-item"][data-status="Created"]'),
+      page.locator(
+        '[data-testid="database-alerts-item"][data-status="Created"]',
+      ),
     ).toHaveCount(2);
     await expect(page.getByTestId("database-alerts-turn-on")).toHaveText(
       "Turn on 9 alerts",
@@ -980,10 +1020,9 @@ test.describe("a database's Overview", () => {
       ),
     ).toHaveText(worded(GERMAN, "Replication"));
     await expect(
-      page.getByTestId("database-alerts").getByText(
-        worded(GERMAN, "Database alerts"),
-        { exact: true },
-      ),
+      page
+        .getByTestId("database-alerts")
+        .getByText(worded(GERMAN, "Database alerts"), { exact: true }),
     ).toBeVisible();
     await expectNoSidewaysScroll(page);
     await screenshot(page, "database-overview-german");
