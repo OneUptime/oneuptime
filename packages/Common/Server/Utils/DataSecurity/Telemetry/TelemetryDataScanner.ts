@@ -166,7 +166,7 @@ interface TelemetryQueryRunner {
   executeQuery: (statement: Statement) => Promise<Results>;
 }
 
-interface SourceDefinition {
+export interface SourceDefinition {
   source: TelemetrySampleSource;
   kind: DataStoreKind;
   // What the read log calls its records.
@@ -275,6 +275,13 @@ const SOURCES: Readonly<Record<TelemetrySampleSource, SourceDefinition>> = {
   },
 };
 
+// How one source is read: its table, its columns, whose records they are.
+export function getTelemetrySource(
+  source: TelemetrySampleSource,
+): SourceDefinition {
+  return SOURCES[source];
+}
+
 // The order a project's telemetry is read in.
 export const TELEMETRY_SAMPLE_SOURCES: ReadonlyArray<TelemetrySampleSource> = [
   TelemetrySampleSource.Logs,
@@ -321,7 +328,7 @@ export interface TelemetryStoreScan {
   result: ContentScanResult;
 }
 
-function tableOf(tableName: AnalyticsTableName): string {
+export function tableOf(tableName: AnalyticsTableName): string {
   return `${getClickhouseDatabaseName()}.${tableName}`;
 }
 
@@ -334,14 +341,14 @@ function readSettings(): string {
   });
 }
 
-function whole(value: number, minimum: number): number {
+export function whole(value: number, minimum: number): number {
   return Number.isFinite(value)
     ? Math.max(minimum, Math.trunc(value))
     : minimum;
 }
 
 // The project, the window, retention, and whose records they are.
-function appendWhere(
+export function appendWhere(
   statement: Statement,
   source: SourceDefinition,
   window: TelemetryReadWindow,
@@ -391,7 +398,7 @@ function appendWhere(
   }
 }
 
-function appendOwnersIn(
+export function appendOwnersIn(
   statement: Statement,
   source: SourceDefinition,
   ownerIds: Array<string>,
@@ -657,7 +664,7 @@ export function buildTelemetrySampleStatement(
 
 // Reading the rows: ClickHouse answers a tuple as an array, a map as an object.
 
-function readText(value: unknown): string {
+export function readText(value: unknown): string {
   if (typeof value === "string") {
     return value;
   }
@@ -1040,7 +1047,7 @@ function sampleOf(
   return sample;
 }
 
-function capsOf(
+export function capsOf(
   source: SourceDefinition,
   options: ContentScanOptions,
 ): TelemetrySampleCaps {
@@ -1067,14 +1074,22 @@ function capsOf(
   };
 }
 
-function addAttributes(data: {
-  sample: StoreSample;
-  context: ScanContext;
-  base: string;
-  pairs: Array<[string, string]>;
-  caps: TelemetrySampleCaps;
-  isConversation: boolean;
-}): void {
+// One value a record holds, at the location a finding names it by.
+export interface TelemetryRecordValue {
+  location: string;
+  locationKind: DataStoreLocationKind;
+  value: string;
+}
+
+function readAttributeValues(
+  data: {
+    base: string;
+    pairs: Array<[string, string]>;
+    caps: TelemetrySampleCaps;
+    isConversation: boolean;
+  },
+  values: Array<TelemetryRecordValue>,
+): void {
   for (const [key, value] of data.pairs.slice(
     0,
     data.caps.attributesPerRecord,
@@ -1090,31 +1105,30 @@ function addAttributes(data: {
 
     if (data.isConversation && isConversationContentKey(boundedKey)) {
       // What was said to or by the model: named for its key, read as text.
-      data.sample.addValue(
-        foldedKey,
-        DataStoreLocationKind.Body,
-        boundedValue,
-        data.context,
-      );
+      values.push({
+        location: foldedKey,
+        locationKind: DataStoreLocationKind.Body,
+        value: boundedValue,
+      });
       continue;
     }
 
-    data.sample.addValue(
-      data.base + foldedKey,
-      DataStoreLocationKind.Attribute,
-      boundedValue,
-      data.context,
-    );
+    values.push({
+      location: data.base + foldedKey,
+      locationKind: DataStoreLocationKind.Attribute,
+      value: boundedValue,
+    });
   }
 }
 
-function addEvents(data: {
-  sample: StoreSample;
-  context: ScanContext;
-  events: Array<ReadEvent>;
-  caps: TelemetrySampleCaps;
-  isConversation: boolean;
-}): void {
+function readEventValues(
+  data: {
+    events: Array<ReadEvent>;
+    caps: TelemetrySampleCaps;
+    isConversation: boolean;
+  },
+  values: Array<TelemetryRecordValue>,
+): void {
   for (const event of data.events.slice(0, data.caps.eventsPerSpan)) {
     const eventName: string = event.name.slice(
       0,
@@ -1137,16 +1151,125 @@ function addEvents(data: {
         isConversationEvent ||
         (data.isConversation && isConversationContentKey(boundedKey));
 
-      data.sample.addValue(
-        location + "." + foldAttributeKey(boundedKey),
-        isContent
+      values.push({
+        location: location + "." + foldAttributeKey(boundedKey),
+        locationKind: isContent
           ? DataStoreLocationKind.Body
           : DataStoreLocationKind.Attribute,
         value,
-        data.context,
-      );
+      });
     }
   }
+}
+
+/*
+ * Every value one record of a source holds, each with the location a
+ * finding names it by, in the order a scan reads them: what a scan
+ * classifies (addRecord), and what a finding's records are matched on
+ * (TelemetryFindingOccurrences), from this one reading of the row - so a
+ * record a finding points at holds what the scan found there. A row holds
+ * the columns the read selected (appendColumnsRead); empty values are left
+ * out. Null for a source with no records to read.
+ */
+export function readTelemetryRecordValues(
+  source: TelemetrySampleSource,
+  row: JSONObject,
+  caps: TelemetrySampleCaps,
+): Array<TelemetryRecordValue> | null {
+  const values: Array<TelemetryRecordValue> = [];
+  const attributes: Array<[string, string]> = readPairs(row["readAttributes"]);
+
+  switch (source) {
+    case TelemetrySampleSource.Logs:
+      values.push({
+        location: "body",
+        locationKind: DataStoreLocationKind.Body,
+        value: readText(row["readBody"]).slice(0, caps.textLength),
+      });
+      readAttributeValues(
+        { base: "attributes.", pairs: attributes, caps, isConversation: false },
+        values,
+      );
+      break;
+    case TelemetrySampleSource.Traces:
+    case TelemetrySampleSource.AiConversations: {
+      const isConversation: boolean =
+        source === TelemetrySampleSource.AiConversations;
+
+      readAttributeValues(
+        { base: "attributes.", pairs: attributes, caps, isConversation },
+        values,
+      );
+      readEventValues(
+        { events: readEvents(row["readEvents"]), caps, isConversation },
+        values,
+      );
+      break;
+    }
+    case TelemetrySampleSource.Exceptions:
+      values.push({
+        location: "message",
+        locationKind: DataStoreLocationKind.Body,
+        value: readText(row["readMessage"]).slice(0, caps.textLength),
+      });
+      values.push({
+        location: "stackTrace",
+        locationKind: DataStoreLocationKind.Body,
+        value: readText(row["readStackTrace"]).slice(0, caps.textLength),
+      });
+      readAttributeValues(
+        { base: "attributes.", pairs: attributes, caps, isConversation: false },
+        values,
+      );
+      break;
+    case TelemetrySampleSource.RumLogs:
+    case TelemetrySampleSource.RumSpans:
+      // A RUM application's spans and logs: their attributes only.
+      readAttributeValues(
+        {
+          base:
+            source === TelemetrySampleSource.RumLogs
+              ? "logs.attributes."
+              : "spans.attributes.",
+          pairs: attributes,
+          caps,
+          isConversation: false,
+        },
+        values,
+      );
+      break;
+    case TelemetrySampleSource.RumSessions:
+      readAttributeValues(
+        {
+          base: "sessions.attributes.",
+          pairs: attributes,
+          caps,
+          isConversation: false,
+        },
+        values,
+      );
+      readAttributeValues(
+        {
+          base: "sessions.identifiedUserTraits.",
+          pairs: readPairs(row["readTraits"]),
+          caps,
+          isConversation: false,
+        },
+        values,
+      );
+      values.push({
+        location: "sessions.identifiedUserLabel",
+        locationKind: DataStoreLocationKind.Field,
+        value: readText(row["readLabel"]).slice(0, caps.attributeValueLength),
+      });
+      break;
+    default:
+      return null;
+  }
+
+  return values.filter((value: TelemetryRecordValue): boolean => {
+    return value.value.length > 0;
+  });
 }
 
 // One sampled record into its store's sample; false for one already read.
@@ -1158,122 +1281,32 @@ function addRecord(data: {
   caps: TelemetrySampleCaps;
 }): boolean {
   const { sample, source, row, context, caps } = data;
-  const attributes: Array<[string, string]> = readPairs(row["readAttributes"]);
 
-  switch (source.source) {
-    case TelemetrySampleSource.Logs:
-      sample.addValue(
-        "body",
-        DataStoreLocationKind.Body,
-        readText(row["readBody"]).slice(0, caps.textLength),
-        context,
-      );
-      addAttributes({
-        sample,
-        context,
-        base: "attributes.",
-        pairs: attributes,
-        caps,
-        isConversation: false,
-      });
-      break;
-    case TelemetrySampleSource.Traces:
-    case TelemetrySampleSource.AiConversations: {
-      const isConversation: boolean =
-        source.source === TelemetrySampleSource.AiConversations;
+  if (source.source === TelemetrySampleSource.RumSessions) {
+    // The table keeps every version of a session: one is read.
+    const sessionId: string = readText(row["readSessionId"]);
 
-      addAttributes({
-        sample,
-        context,
-        base: "attributes.",
-        pairs: attributes,
-        caps,
-        isConversation,
-      });
-      addEvents({
-        sample,
-        context,
-        events: readEvents(row["readEvents"]),
-        caps,
-        isConversation,
-      });
-      break;
-    }
-    case TelemetrySampleSource.Exceptions:
-      sample.addValue(
-        "message",
-        DataStoreLocationKind.Body,
-        readText(row["readMessage"]).slice(0, caps.textLength),
-        context,
-      );
-      sample.addValue(
-        "stackTrace",
-        DataStoreLocationKind.Body,
-        readText(row["readStackTrace"]).slice(0, caps.textLength),
-        context,
-      );
-      addAttributes({
-        sample,
-        context,
-        base: "attributes.",
-        pairs: attributes,
-        caps,
-        isConversation: false,
-      });
-      break;
-    case TelemetrySampleSource.RumLogs:
-    case TelemetrySampleSource.RumSpans:
-      // A RUM application's spans and logs: their attributes only.
-      addAttributes({
-        sample,
-        context,
-        base:
-          source.source === TelemetrySampleSource.RumLogs
-            ? "logs.attributes."
-            : "spans.attributes.",
-        pairs: attributes,
-        caps,
-        isConversation: false,
-      });
-      break;
-    case TelemetrySampleSource.RumSessions: {
-      // The table keeps every version of a session: one is read.
-      const sessionId: string = readText(row["readSessionId"]);
-
-      if (sessionId) {
-        if (sample.seenSessions.has(sessionId)) {
-          return false;
-        }
-
-        sample.seenSessions.add(sessionId);
+    if (sessionId) {
+      if (sample.seenSessions.has(sessionId)) {
+        return false;
       }
 
-      addAttributes({
-        sample,
-        context,
-        base: "sessions.attributes.",
-        pairs: attributes,
-        caps,
-        isConversation: false,
-      });
-      addAttributes({
-        sample,
-        context,
-        base: "sessions.identifiedUserTraits.",
-        pairs: readPairs(row["readTraits"]),
-        caps,
-        isConversation: false,
-      });
-      sample.addValue(
-        "sessions.identifiedUserLabel",
-        DataStoreLocationKind.Field,
-        readText(row["readLabel"]).slice(0, caps.attributeValueLength),
-        context,
-      );
-      break;
+      sample.seenSessions.add(sessionId);
     }
-    default:
-      return false;
+  }
+
+  const values: Array<TelemetryRecordValue> | null = readTelemetryRecordValues(
+    source.source,
+    row,
+    caps,
+  );
+
+  if (!values) {
+    return false;
+  }
+
+  for (const value of values) {
+    sample.addValue(value.location, value.locationKind, value.value, context);
   }
 
   sample.rowsRead++;
