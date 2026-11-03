@@ -1179,16 +1179,45 @@ describe("Use This List", () => {
     ).toBeInTheDocument();
   });
 
-  test("the way to Detection Rules, where the selection goes; the rules that read it are named in About This List", () => {
+  test("the way to Detection Rules, under the selection that goes there; the rules that read it are named in About This List", () => {
     renderSnippet();
 
-    expect(
-      screen.getByText("Open Detection Rules").closest("a"),
-    ).toHaveAttribute(
+    const open: HTMLElement | null = screen
+      .getByText("Open Detection Rules")
+      .closest("a");
+
+    expect(open).toHaveAttribute(
       "href",
       `/dashboard/${PROJECT_ID}/security-events/detection-rules`,
     );
+    // In the rule's part of the card, not the search's.
+    expect(
+      within(open!.closest("section") as HTMLElement).getByTestId(
+        WATCHLISTS_TEST_IDS.ruleSnippet,
+      ),
+    ).toBeInTheDocument();
     expect(screen.queryByTestId(WATCHLISTS_TEST_IDS.readByLine)).toBeNull();
+  });
+
+  test("Search Events opens Events on the search that reads the list, under it", () => {
+    renderSnippet();
+
+    const search: HTMLElement = screen.getByTestId(
+      WATCHLISTS_TEST_IDS.searchEvents,
+    );
+
+    expect(search).toHaveTextContent("Search Events");
+    expect(search.closest("a")).toHaveAttribute(
+      "href",
+      `/dashboard/${PROJECT_ID}/security-events?search=${encodeURIComponent(
+        "ip:%admin_addresses%",
+      )}`,
+    );
+    expect(
+      within(search.closest("section") as HTMLElement).getByTestId(
+        WATCHLISTS_TEST_IDS.searchSnippet,
+      ),
+    ).toBeInTheDocument();
   });
 
   /*
@@ -1220,10 +1249,10 @@ describe("Use This List", () => {
     ).toContain("observables|expand: '%bad_domains%'");
     expect(
       screen.getByTestId(WATCHLISTS_TEST_IDS.searchSnippet).textContent,
-    ).toContain("observables:%bad_domains%");
+    ).toContain("observable:%bad_domains%");
   });
 
-  test("the search that reads the list on Events or in a hunt, left to right, to copy", () => {
+  test("the search that reads the list on Events or in a hunt, left to right, to copy, with the search bar's short field names", () => {
     renderSnippet();
 
     const search: HTMLElement = screen.getByTestId(
@@ -1231,14 +1260,17 @@ describe("Use This List", () => {
     );
 
     expect(search).toHaveAttribute("dir", "ltr");
-    expect(search.textContent).toContain("principalIp:%admin_addresses%");
+    expect(search.textContent).toContain("ip:%admin_addresses%");
+    expect(search.textContent).not.toContain("principalIp");
     expect(
       within(search).getByTestId("code-block-copy-button"),
     ).toBeInTheDocument();
-    // Each snippet under the words that say where it goes.
-    expect(screen.getByText("In a rule's detection")).toBeInTheDocument();
+    // Each snippet under the words that say where it goes, a heading each.
     expect(
-      screen.getByText("In a search on Events or a hunt"),
+      screen.getByRole("heading", { name: "In a rule's detection" }),
+    ).toBeInTheDocument();
+    expect(
+      screen.getByRole("heading", { name: "In a search on Events or a hunt" }),
     ).toBeInTheDocument();
     expect(screen.getByText("Use This List")).toBeInTheDocument();
   });

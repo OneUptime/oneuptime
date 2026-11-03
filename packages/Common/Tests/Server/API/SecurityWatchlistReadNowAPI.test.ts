@@ -59,8 +59,20 @@ const READ: SecurityWatchlistUrlReadOutcome = {
     added: 3,
     removed: 1,
     unchanged: 2,
-    duplicates: 0,
-    problems: [],
+    duplicates: 1,
+    // The first of the lines it left out, each with its line, value and why.
+    problems: [
+      {
+        line: 4,
+        value: "lee.park@contractor.example",
+        message: SECURITY_WATCHLIST_MESSAGES.importExpiryPassed.message,
+      },
+      {
+        line: 7,
+        value: "*",
+        message: "A value of only * would match everything.",
+      },
+    ],
     problemCount: 4,
     valueCount: 5,
   },
@@ -147,7 +159,7 @@ describe("POST /security-watchlist/read-now", () => {
     expect(route().handlers).toHaveLength(3);
   });
 
-  test("the list read as the caller may read it; what the read did answered", async () => {
+  test("the list read as the caller may read it; what the read did answered, as an import answers it, the lines it left out among it", async () => {
     await ask({ securityWatchlistId: LIST_ID });
 
     expect(next).not.toHaveBeenCalled();
@@ -161,7 +173,20 @@ describe("POST /security-watchlist/read-now", () => {
       added: 3,
       removed: 1,
       unchanged: 2,
+      duplicates: 1,
       problemCount: 4,
+      problems: [
+        {
+          line: 4,
+          value: "lee.park@contractor.example",
+          message: SECURITY_WATCHLIST_MESSAGES.importExpiryPassed.message,
+        },
+        {
+          line: 7,
+          value: "*",
+          message: "A value of only * would match everything.",
+        },
+      ],
       valueCount: 5,
     });
   });
@@ -182,7 +207,9 @@ describe("POST /security-watchlist/read-now", () => {
       added: 0,
       removed: 0,
       unchanged: 0,
+      duplicates: 0,
       problemCount: 0,
+      problems: [],
       valueCount: 0,
     });
   });

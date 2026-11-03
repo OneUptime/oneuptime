@@ -389,13 +389,11 @@ const WRITTEN_AS_IS: Record<string, Array<string>> = {
     ["%"],
   "Write when the value leaves the list as a date such as 2026-12-31, or leave it empty.":
     ["2026-12-31"],
-  "The https address of a text or CSV file: one value a line, with an optional note after a comma. The list is what the file holds at its last read.":
-    ["https", "CSV"],
-  "Read again on a schedule from an https address: a text or CSV file, one value a line.":
+  "The https address of a text or CSV file, one value a line, with an optional note after a comma.":
     ["https", "CSV"],
   "Enter the https address of the file to read.": ["https"],
   "Enter a whole address, with https and the host name.": ["https"],
-  "The address starts with https.": ["https"],
+  "Enter an address that starts with https.": ["https"],
   "The file at the address is larger than 4 MB, so the list keeps the values it had. Split the list into smaller files.":
     ["4"],
   "A monitor reads at most 10 watchlist filters.": ["10"],
@@ -470,8 +468,11 @@ describe("the words there are", () => {
 
   test("the copy's words, its plurals and the models' titles", () => {
     expect(COPY_SENTENCES.length).toBeGreaterThan(80);
-    // With a read's lines left out, and a list's values from its address.
-    expect(PLURALS.length).toBe(13);
+    /*
+     * With a list's values from its address. A read's lines left out are
+     * said in Import Values' own words ("1 line left out").
+     */
+    expect(PLURALS.length).toBe(12);
     expect(MODEL_TEXTS).toEqual(
       expect.arrayContaining([
         "Watchlist",

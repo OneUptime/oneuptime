@@ -16,6 +16,13 @@ import {
   buildSecurityHuntQuery,
   getSecurityHuntWatchlistNames,
 } from "../../../Utils/SecurityEvent/SecurityHuntSearch";
+import { SecurityEntityType } from "../../../Types/SecurityCase/SecurityEntity";
+import {
+  SECURITY_WATCHLIST_ENTITY_TYPES,
+  SECURITY_WATCHLIST_SEARCH_FIELD_NAMES,
+  getSecurityWatchlistSearchSnippet,
+  getSecurityWatchlistSnippetField,
+} from "../../../Types/SecurityEvent/SecurityWatchlist";
 import { describe, expect, test } from "@jest/globals";
 
 /*
@@ -33,6 +40,53 @@ const PROJECT_ID: ObjectID = new ObjectID(
 function parsed(search: string): SecurityEventSearchFilters {
   return parseSecurityEventSearch(search);
 }
+
+/*
+ * The search a list's page offers to copy is written with the search
+ * bar's short field names (`user:%vip_users%`): each reads back as the
+ * field a list of its kind is usually in, so the short names can never
+ * drift from the search they are typed into.
+ */
+describe("the search a list's page offers to copy", () => {
+  test("reads, for a list of every kind, its kind's usual field and the list", () => {
+    for (const entityType of SECURITY_WATCHLIST_ENTITY_TYPES) {
+      const search: string = getSecurityWatchlistSearchSnippet({
+        name: "vip_users",
+        entityType,
+      });
+
+      expect({ entityType, fields: parsed(search).fields }).toEqual({
+        entityType,
+        fields: {
+          [getSecurityWatchlistSnippetField(entityType)]: new OnWatchlist(
+            "vip_users",
+          ),
+        },
+      });
+    }
+  });
+
+  test("every short name stands for its own field", () => {
+    for (const [field, shortName] of Object.entries(
+      SECURITY_WATCHLIST_SEARCH_FIELD_NAMES,
+    )) {
+      expect(parsed(`${shortName}:%vip_users%`).fields).toEqual({
+        [field]: new OnWatchlist("vip_users"),
+      });
+    }
+  });
+
+  test("a minus in front of it keeps what is not on the list", () => {
+    expect(
+      parsed(
+        `-${getSecurityWatchlistSearchSnippet({
+          name: "admin_addresses",
+          entityType: SecurityEntityType.IpAddress,
+        })}`,
+      ).fields,
+    ).toEqual({ principalIp: new NotOnWatchlist("admin_addresses") });
+  });
+});
 
 describe("a field's value that is a list's name between % signs", () => {
   test("reads the list, on a field by any of its names", () => {

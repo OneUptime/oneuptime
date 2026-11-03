@@ -53,6 +53,11 @@ const CONTRACTORS_URL: string =
 const READING_RULE: string = "VIP sign-in from outside the office";
 const READING_MONITOR: string = "Contractor sign-ins";
 const MONITOR_ID: string = "3e000000-0000-4000-8000-000000000001";
+// ?readers=many: vip_users read by a second monitor and a hunt too.
+const SECOND_MONITOR: string = "VIP failures";
+const SECOND_MONITOR_ID: string = "3e000000-0000-4000-8000-000000000002";
+const READING_HUNT: string = "VIP sign-ins at night";
+const READING_HUNT_ID: string = "3b000000-0000-4000-8000-000000000009";
 const FEODO_LIST: string = "Feodo Tracker botnet C2 servers";
 
 const SCREENSHOTS: string = path.resolve(
@@ -82,6 +87,9 @@ interface OpenOptions {
   role?: "viewer";
   lang?: "de" | "fa" | "ja";
   empty?: boolean;
+  // How the reads of the list read from an address stand (WatchlistsFixture.js).
+  urlread?: "failed" | "waiting";
+  readers?: "many";
 }
 
 test.use({ deviceScaleFactor: 2, actionTimeout: 15000 });
@@ -163,6 +171,12 @@ async function open(
   }
   if (options.empty) {
     url.searchParams.set("empty", "1");
+  }
+  if (options.urlread) {
+    url.searchParams.set("urlread", options.urlread);
+  }
+  if (options.readers) {
+    url.searchParams.set("readers", options.readers);
   }
   await page.goto(`${url.pathname}${url.search}`);
   // The first load parses a large bundle.
@@ -607,7 +621,9 @@ test.describe("a list read from an address", () => {
       .getByTestId("watchlist-import-url")
       .fill("http://hr.acme-commerce.example/board.csv");
     await dialog(page).getByTestId("modal-footer-submit-button").click();
-    await expect(dialog(page)).toContainText("The address starts with https.");
+    await expect(dialog(page)).toContainText(
+      "Enter an address that starts with https.",
+    );
     expect(await createsOf(page, "SecurityWatchlist")).toEqual([]);
     await screenshot(page, "watchlist-create-from-address", {
       fullPage: false,
@@ -642,9 +658,12 @@ test.describe("a list read from an address", () => {
     await expect(address).toHaveText(CONTRACTORS_URL);
     await expect(address).toHaveAttribute("href", CONTRACTORS_URL);
     await expect(address).toHaveAttribute("target", "_blank");
-    await expect(card).toContainText("Every Day");
+    // How often, and when next: a day after the last read.
+    await expect(page.getByTestId("watchlist-url-schedule")).toHaveText(
+      "Every Day · Next read in a day",
+    );
     await expect(page.getByTestId("watchlist-url-status")).toHaveText(
-      "Last read 2 hours ago. 1 line of the file was left out.",
+      "Last read 2 hours ago · 1 line left out",
     );
 
     // Its values, put there by its reads: none added, changed or removed by hand.
@@ -654,7 +673,7 @@ test.describe("a list read from an address", () => {
     ).toHaveCount(0);
     const jo: Locator = rowWith(page, "jo.kim@contractor.example");
     await expect(jo.getByTestId("watchlist-value-added")).toHaveText(
-      "Read from its address 2 hours ago",
+      "Added from the file 2 hours ago",
     );
     // A value kept for a while says when it leaves.
     await expect(jo.getByTestId("watchlist-value-expires")).toHaveText(
@@ -682,20 +701,189 @@ test.describe("a list read from an address", () => {
     await cardTitled(page, "Read From an Address")
       .getByRole("button", { name: "Read Now", exact: true })
       .click();
-    await expect(
-      page.getByTestId("watchlist-url-read-now-result"),
-    ).toContainText("Read just now");
-    await expect(
-      page.getByTestId("watchlist-url-read-now-result"),
-    ).toContainText("1 value added");
+    const result: Locator = page.getByTestId("watchlist-url-read-now-result");
+    await expect(result).toHaveAttribute("role", "status");
+    expect(
+      (await result.getByRole("listitem").allInnerTexts()).map(
+        (line: string): string => {
+          return line.replace(/\s+/g, " ").trim();
+        },
+      ),
+    ).toEqual([
+      "1 value added",
+      "2 were already on the list",
+      "The list now holds 3 values.",
+      "1 line left out",
+      // The line of HR's file it left out, and why: a contract that ended.
+      "Line 5: lee.park@contractor.example - The date this value leaves the list has passed.",
+    ]);
     expect(await apiRequestsTo(page, "/security-watchlist/read-now")).toEqual([
       { securityWatchlistId: CONTRACTORS_ID },
     ]);
     await expect(page.locator("table tbody tr")).toHaveCount(3);
+    await expect(rowWith(page, "ana.ruiz@contractor.example")).toContainText(
+      "Data migration",
+    );
     await expect(page.getByTestId("watchlist-url-status")).toHaveText(
-      "Last read a few seconds ago.",
+      "Last read a few seconds ago · 1 line left out",
     );
     await screenshot(page, "watchlist-read-now", { fullPage: false });
+  });
+
+  test("a read that failed says why and when it is tried again, the values kept from the read before; a Read Now that fails changes no value", async ({
+    page,
+  }: {
+    page: Page;
+  }) => {
+    await open(page, CONTRACTORS_PATH, { width: 1344, urlread: "failed" });
+    const status: Locator = page.getByTestId("watchlist-url-status");
+    await expect(status).toBeVisible({ timeout: 30000 });
+
+    await expect(status).toContainText("The last read failed 10 minutes ago");
+    await expect(status).toContainText(
+      "OneUptime could not download the file at the address, so the list keeps the values it had.",
+    );
+    // What HR's server said, as it said it, left to right.
+    await expect(
+      status.getByText(
+        "Data source responded with HTTP 503: Service Unavailable",
+      ),
+    ).toHaveAttribute("dir", "ltr");
+    await expect(status).toContainText(
+      "Its values are from the read 2 days ago.",
+    );
+    // Tried again within the hour.
+    await expect(page.getByTestId("watchlist-url-schedule")).toHaveText(
+      "Every Day · Next read in an hour",
+    );
+    // The list keeps its values, and says, wherever its values are named, that its last read failed.
+    await expect(page.locator("table tbody tr")).toHaveCount(2);
+    await expect(
+      cardTitled(page, "About This List").getByTestId("watchlist-values-cell"),
+    ).toContainText("Its last read failed");
+    await expectNoSidewaysScroll(page, { tolerance: 1 });
+    await screenshot(page, "watchlist-read-failed", { fullPage: false });
+
+    // HR's server is still down: the read fails again and nothing changes.
+    await cardTitled(page, "Read From an Address")
+      .getByRole("button", { name: "Read Now", exact: true })
+      .click();
+    await expect(status).toContainText(
+      "The last read failed a few seconds ago",
+    );
+    await expect(page.getByTestId("watchlist-url-read-now-result")).toHaveCount(
+      0,
+    );
+    await expect(page.locator("table tbody tr")).toHaveCount(2);
+    expect(await apiRequestsTo(page, "/security-watchlist/read-now")).toEqual([
+      { securityWatchlistId: CONTRACTORS_ID },
+    ]);
+
+    // The list's row says so in red, its values from the read before.
+    await open(page, WATCHLISTS_PATH, { width: 1344, urlread: "failed" });
+    const values: Locator = rowWith(page, "contractors").getByTestId(
+      "watchlist-values-cell",
+    );
+    await expect(values).toContainText(
+      "2 values from hr.acme-commerce.example",
+      { timeout: 30000 },
+    );
+    await expect(values.getByText("Its last read failed")).toBeVisible();
+  });
+
+  test("a list just saved waits for its first read, and Read Now fills it from the file", async ({
+    page,
+  }: {
+    page: Page;
+  }) => {
+    await open(page, CONTRACTORS_PATH, { width: 1344, urlread: "waiting" });
+    const status: Locator = page.getByTestId("watchlist-url-status");
+    await expect(status).toHaveText(
+      "Waiting for its first read - OneUptime reads the file within a minute of the list being saved, or now with Read Now.",
+      { timeout: 30000 },
+    );
+    // Before its first read there is nothing to say of the next.
+    await expect(page.getByTestId("watchlist-url-schedule")).toHaveText(
+      "Every Day",
+    );
+    await expect(page.getByText("No values read yet")).toBeVisible();
+    await expect(
+      cardTitled(page, "About This List").getByTestId("watchlist-values-cell"),
+    ).toHaveText("Waiting for its first read");
+    await screenshot(page, "watchlist-read-waiting", { fullPage: false });
+
+    await cardTitled(page, "Read From an Address")
+      .getByRole("button", { name: "Read Now", exact: true })
+      .click();
+    await expect(
+      page.getByTestId("watchlist-url-read-now-result"),
+    ).toContainText("3 values added");
+    await expect(page.locator("table tbody tr")).toHaveCount(3);
+    await expect(status).toHaveText(
+      "Last read a few seconds ago · 1 line left out",
+    );
+    await expect(page.getByTestId("watchlist-url-schedule")).toHaveText(
+      "Every Day · Next read in a day",
+    );
+  });
+
+  test("a host is never broken at its hyphen: it moves to a line of its own, whole", async ({
+    page,
+  }: {
+    page: Page;
+  }) => {
+    await open(page, WATCHLISTS_PATH, { width: 1344 });
+    const host: Locator = rowWith(page, "contractors").getByText(
+      "hr.acme-commerce.example",
+      { exact: true },
+    );
+    await expect(host).toBeVisible({ timeout: 30000 });
+
+    // One line of text: as tall as a line, read in one frame.
+    const fit: { height: number; lineHeight: number } = await host.evaluate(
+      (element: Element): { height: number; lineHeight: number } => {
+        return {
+          height: element.getBoundingClientRect().height,
+          lineHeight: parseFloat(getComputedStyle(element).lineHeight),
+        };
+      },
+    );
+    expect(fit.height).toBeLessThanOrEqual(fit.lineHeight + 0.5);
+    await expect(host).toHaveAttribute("title", CONTRACTORS_URL);
+  });
+
+  test("a monitor and a hunt that read a list say what they are, and each opens its own page", async ({
+    page,
+  }: {
+    page: Page;
+  }) => {
+    await open(page, VIP_USERS_PATH, { width: 1344, readers: "many" });
+    const readBy: Locator = cardTitled(page, "About This List").getByTestId(
+      "watchlist-read-by",
+    );
+    await expect(readBy).toHaveText(
+      `${READING_RULE}, ${SECOND_MONITOR} (Monitor), ${READING_HUNT} (Hunt)`,
+      { timeout: 30000 },
+    );
+    await expect(
+      readBy.getByRole("link", { name: SECOND_MONITOR }),
+    ).toHaveAttribute(
+      "href",
+      `/dashboard/${PROJECT_ID}/monitors/${SECOND_MONITOR_ID}`,
+    );
+    await expect(
+      readBy.getByRole("link", { name: READING_HUNT }),
+    ).toHaveAttribute("href", `${PRODUCT}/hunts/${READING_HUNT_ID}`);
+    // A rule has no page of its own.
+    await expect(readBy.getByRole("link")).toHaveCount(2);
+
+    // On the list, the first two by name, then how many more.
+    await open(page, WATCHLISTS_PATH, { width: 1344, readers: "many" });
+    await expect(
+      rowWith(page, "vip_users").getByTestId("watchlist-read-by-cell"),
+    ).toHaveText(`${READING_RULE}${SECOND_MONITOR} (Monitor)and 1 more`, {
+      timeout: 30000,
+    });
   });
 
   test("in the dark, and on a phone", async ({ page }: { page: Page }) => {
@@ -788,10 +976,15 @@ test.describe("a watchlist's page", () => {
 
     const snippet: Locator = page.getByTestId("watchlist-rule-snippet");
     await expect(snippet).toContainText("principalUser|expand: '%vip_users%'");
-    // And the search that reads it on Events or in a hunt, left to right.
+    // And the search that reads it on Events or in a hunt, left to right, as the search bar writes it.
     const search: Locator = page.getByTestId("watchlist-search-snippet");
-    await expect(search).toContainText("principalUser:%vip_users%");
+    await expect(search).toContainText("user:%vip_users%");
     await expect(search).toHaveAttribute("dir", "ltr");
+    // Search Events opens Events on that search.
+    await expect(page.getByTestId("watchlist-search-events")).toHaveAttribute(
+      "href",
+      `${PRODUCT}?search=${encodeURIComponent("user:%vip_users%")}`,
+    );
 
     // The important thing first: the list, its values, then how a rule and a search read it.
     const cards: Array<string> = await page.evaluate((): Array<string> => {

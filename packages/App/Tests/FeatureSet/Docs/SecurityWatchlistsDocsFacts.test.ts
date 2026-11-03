@@ -323,7 +323,7 @@ describe("the Security Events page on watchlists", () => {
         name: "vip_users",
         entityType: SecurityEntityType.User,
       }),
-    ).toBe("principalUser:%vip_users%");
+    ).toBe("user:%vip_users%");
   });
 
   it("reads a list with expand and its name between % signs, as the example does", () => {

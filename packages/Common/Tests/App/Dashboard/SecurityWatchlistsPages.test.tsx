@@ -616,11 +616,12 @@ describe("Security Events > Watchlists", () => {
     ).toEqual([
       "name",
       "entityType",
-      "description",
+      // Under More fields: where the values come from first, the description last.
       "source",
       "threatIntelFeed",
       "importUrl",
       "importSchedule",
+      "description",
     ]);
   });
 
@@ -1342,13 +1343,33 @@ describe("a watchlist's page", () => {
       source: SecurityWatchlistSource.Url,
       importUrl: "https://hr.example.com/vip-users.csv",
       importSchedule: SecurityWatchlistImportSchedule.EverySixHours,
+      nextImportAt: new Date(Date.now() + 5 * 60 * 60 * 1000 + 60 * 1000),
       lastImportAt: new Date(),
       lastImportSucceededAt: new Date(),
       lastImportLinesLeftOut: 2,
       valueCount: 3,
     });
 
+    const getItem: SpyInstance = jest.spyOn(
+      ModelAPI,
+      "getItem",
+    ) as unknown as SpyInstance;
+
     await renderView();
+
+    // The page reads when the list is read next, with how its reads stand.
+    expect(
+      (getItem.mock.calls[0]![0] as { select: Record<string, unknown> }).select,
+    ).toMatchObject({
+      importUrl: true,
+      importSchedule: true,
+      nextImportAt: true,
+      lastImportAt: true,
+      lastImportSucceededAt: true,
+      lastImportError: true,
+      lastImportErrorDetail: true,
+      lastImportLinesLeftOut: true,
+    });
 
     const card: HTMLElement = screen.getByTestId(WATCHLISTS_TEST_IDS.urlCard);
 
@@ -1357,8 +1378,11 @@ describe("a watchlist's page", () => {
     ).toHaveAttribute("href", "https://hr.example.com/vip-users.csv");
     expect(card).toHaveTextContent("Every 6 Hours");
     expect(
+      within(card).getByTestId(WATCHLISTS_TEST_IDS.urlSchedule),
+    ).toHaveTextContent("Every 6 Hours · Next read in 5 hours");
+    expect(
       within(card).getByTestId(WATCHLISTS_TEST_IDS.urlStatus),
-    ).toHaveTextContent("2 lines of the file were left out.");
+    ).toHaveTextContent("2 lines left out");
 
     const values: CapturedTable = table(VALUES_TABLE);
 
@@ -1388,7 +1412,7 @@ describe("a watchlist's page", () => {
           WATCHLISTS_TEST_IDS.addedLine,
         ),
       ),
-    ).toBe("Read from its address 2 hours ago");
+    ).toBe("Added from the file 2 hours ago");
 
     // Its settings: where its values come from, and Edit changes the address.
     const valuesField: {

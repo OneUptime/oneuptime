@@ -4,6 +4,7 @@ import {
 } from "../SecurityCase/SecurityEntity";
 import { isDetectionRuleExceptionCidr } from "./DetectionRuleException";
 import { ThreatIntelIndicatorType } from "./ThreatIntelConstants";
+import { readOwnValue } from "../../Utils/LookupTable";
 
 /*
  * WATCHLISTS: LISTS A TEAM KEEPS THAT RULES MATCH AGAINST.
@@ -517,7 +518,7 @@ export function getSecurityWatchlistSearchSnippet(data: {
   const field: string = getSecurityWatchlistSnippetField(data.entityType);
 
   return `${
-    SECURITY_WATCHLIST_SEARCH_FIELD_NAMES[field] || field
+    readOwnValue(SECURITY_WATCHLIST_SEARCH_FIELD_NAMES, field) || field
   }:${getSecurityWatchlistPlaceholder(data.name)}`;
 }
 

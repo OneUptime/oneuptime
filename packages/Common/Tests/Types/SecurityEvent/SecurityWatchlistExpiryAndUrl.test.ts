@@ -691,7 +691,7 @@ describe("a list read from a file at an address", () => {
 });
 
 describe("the search a list's page offers to copy", () => {
-  test("the list's usual field, and its name between % signs", () => {
+  test("the list's usual field by the search bar's short name, and its name between % signs", () => {
     expect(
       SECURITY_WATCHLIST_ENTITY_TYPES.map(
         (entityType: SecurityEntityType): string => {
@@ -702,14 +702,14 @@ describe("the search a list's page offers to copy", () => {
         },
       ),
     ).toEqual([
-      "principalUser:%my_list%",
-      "principalHost:%my_list%",
-      "principalIp:%my_list%",
-      "observables:%my_list%",
-      "observables:%my_list%",
-      "observables:%my_list%",
-      "processName:%my_list%",
-      "observables:%my_list%",
+      "user:%my_list%",
+      "host:%my_list%",
+      "ip:%my_list%",
+      "observable:%my_list%",
+      "observable:%my_list%",
+      "observable:%my_list%",
+      "processname:%my_list%",
+      "observable:%my_list%",
     ]);
   });
 });

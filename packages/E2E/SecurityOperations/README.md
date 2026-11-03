@@ -130,6 +130,8 @@ history is laid out from it with a seeded generator, so every run draws the same
 | `?lang=`      | `de`, `es`, `fr`, `it`, `pt`, `nl`, `ru`, `ja` or `fa` (right to left): the Dashboard's words and its times ("vor 9 Minuten") in that language; the case lists are measured in the widest of them                                                                                                                                                                                                                                  |
 | `?team=`      | `long`: the SOC team is "Security Operations Center - Tier 2 Escalations (EMEA)", wherever a list or a picker names it                                                                                                                                                                                                                                                                                                             |
 | `?casesetup=` | `none`: the busy month with no case custom fields and no note templates yet; `fail`: the first read of the case fields, and the first of the note templates, fails (a 500), and the next answers (`Fixture/CaseSetupFixture.js`)                                                                                                                                                                                                   |
+| `?urlread=`   | how the reads of `contractors`, the list read from an address, stand (`Fixture/WatchlistsFixture.js`): `failed` (its last read, ten minutes ago, could not download HR's file - the server answered 503 - so the list keeps the two values of the read two days before, and Read Now fails the same way) or `waiting` (a list just saved, waiting for its first read, with no values; Read Now fills it from the file)             |
+| `?readers=`   | `many`: `vip_users` is read by a second Security Events monitor, "VIP failures", and a hunt, "VIP sign-ins at night", as well as its rule                                                                                                                                                                                                                                                                                          |
 
 ## What the fixture records
 
@@ -508,7 +510,8 @@ deleted, and a list's values go with it, as the server keeps them. `POST
 /security-watchlist/import` reads its text with the shared reader the server uses
 (`parseSecurityWatchlistImport`), adds to the list or replaces it, and answers what it did; `POST
 /security-watchlist/read-now` reads a list from its address at once - HR's file holding one more
-contractor - and records the read on the list, as a scheduled one is.
+contractor, and a contract that ended, which the read leaves out with why - and records the read
+on the list, as a scheduled one is.
 
 `Watchlists.spec.ts` covers: the list under Detections, its entry lit and its trail, three columns
 at 1280 (a name in the mono type with what it is for, what it holds with its values or the feed
@@ -518,17 +521,22 @@ name; the common lists, one added and drawn as Added, created empty and kept by 
 Watchlist refusing a name rules cannot write, then opening the new list's page, named in the
 trail; a list's page, the list first (its settings with the rule that reads it), then its values
 with their notes and who added them, then Use This List - the selection a rule copies and the
-search that reads the list on Events or in a hunt - and Open Detection Rules; at 768 a value's
-note folded under it; an empty list's Import Values; Add Value refusing a lone `*` and adding a
+search that reads the list on Events or in a hunt, written with the search bar's short field
+names, Search Events opening Events on it - and Open Detection Rules; at 768 a value's note folded
+under it; an empty list's Import Values; Add Value refusing a lone `*` and adding a
 value, the count following; Import Values from the Values card's ⋯ - the paste box across the
 dialog, the preview as it is typed, one request, what it did - and Replace the list; Export Values
 downloading the list as a CSV of `value`, `note` and `expires`; a list that follows a feed, with
 no table of its own; a list read from an address - Create Watchlist refusing an http address and
 creating one read every hour, its page's Read From an Address card (the address, its schedule, the
 last read and the lines it left out), its values read-only with when each leaves the list, the
-monitor that reads it opening its own page, and Read Now's one request and what it did, in the
-dark and on a phone; the line under a rule's YAML, with a list the project does not have on a line
-of its own in red, whose Create it in Watchlists opens Create Watchlist with the name
+monitor that reads it opening its own page, and Read Now's one request and what it did - the line
+of HR's file it left out among it, with why - in the dark and on a phone; a read that failed
+(`?urlread=failed`) saying why, what HR's server said and when it is tried again, the values kept
+from the read before, and a Read Now that fails changing nothing; a list waiting for its first read
+(`?urlread=waiting`) that Read Now fills; a host kept whole on a line of its own; a monitor and a
+hunt that read a list (`?readers=many`) each saying what it is and opening its own page; the line
+under a rule's YAML, with a list the project does not have on a line of its own in red, whose Create it in Watchlists opens Create Watchlist with the name
 (`?create=`); a phone; a new project's common lists; a Security Viewer, Add and Import Values
 locked; German, and Persian, right to left, with `svc-*` in order inside a Persian sentence. Its
 screenshots are named `watchlists-*`, `watchlist-*` and `watchlist-rule-line-desktop`.

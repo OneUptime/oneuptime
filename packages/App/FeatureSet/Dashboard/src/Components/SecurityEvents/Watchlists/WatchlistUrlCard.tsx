@@ -439,17 +439,17 @@ const WatchlistUrlCard: FunctionComponent<ComponentProps> = (
             <ul className="space-y-1 text-gray-700">
               {describeWatchlistReadNowResult(translator, readResult).map(
                 (line: string, index: number): ReactElement => {
-                return (
-                  <li key={index} className="flex items-start gap-2">
-                    <Icon
-                      icon={index === 0 ? IconProp.Check : IconProp.Info}
-                      className={`mt-0.5 h-4 w-4 flex-shrink-0 ${
-                        index === 0 ? "text-emerald-600" : "text-gray-400"
-                      }`}
-                    />
-                    <span>{line}</span>
-                  </li>
-                );
+                  return (
+                    <li key={index} className="flex items-start gap-2">
+                      <Icon
+                        icon={index === 0 ? IconProp.Check : IconProp.Info}
+                        className={`mt-0.5 h-4 w-4 flex-shrink-0 ${
+                          index === 0 ? "text-emerald-600" : "text-gray-400"
+                        }`}
+                      />
+                      <span>{line}</span>
+                    </li>
+                  );
                 },
               )}
             </ul>

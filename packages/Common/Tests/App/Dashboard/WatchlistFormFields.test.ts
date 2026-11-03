@@ -117,15 +117,15 @@ describe("Create Watchlist", () => {
     renderSourceChoice: renderWatchlistSourceChoice,
   });
 
-  test("asks for a name and what it holds; the rest waits under More fields", () => {
+  test("asks for a name and what it holds; the rest waits under More fields, where the values come from first and the description last", () => {
     expect(fields.map(column)).toEqual([
       "name",
       "entityType",
-      "description",
       "source",
       "threatIntelFeed",
       "importUrl",
       "importSchedule",
+      "description",
     ]);
     expect(
       fields.map((field: Field): string | undefined => {
@@ -134,11 +134,11 @@ describe("Create Watchlist", () => {
     ).toEqual([
       NAME_FIELD_TITLE,
       HOLDS_FIELD_TITLE,
-      DESCRIPTION_FIELD_TITLE,
       SOURCE_FIELD_TITLE,
       FEED_FIELD_TITLE,
       IMPORT_URL_FIELD_TITLE,
       IMPORT_SCHEDULE_FIELD_TITLE,
+      DESCRIPTION_FIELD_TITLE,
     ]);
 
     // The two the form asks in the open; the rest a list rarely needs, folded.
@@ -146,11 +146,11 @@ describe("Create Watchlist", () => {
     expect(byColumn(fields, "entityType").collapsibleSection).toBeUndefined();
 
     const folded: Array<Field> = [
-      byColumn(fields, "description"),
       byColumn(fields, "source"),
       byColumn(fields, "threatIntelFeed"),
       byColumn(fields, "importUrl"),
       byColumn(fields, "importSchedule"),
+      byColumn(fields, "description"),
     ];
 
     for (const field of folded) {

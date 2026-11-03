@@ -324,7 +324,7 @@ describe("SecurityEventsMonitorStepForm field gating", () => {
     expect(recorder.latest?.watchlistFilters).toEqual([]);
   });
 
-  test("a project with no watchlist is sent to make one, and offered no filter to add", async () => {
+  test("a project with no watchlist is sent to make one - in a new tab, so the monitor stays - and offered no filter to add", async () => {
     getWatchlists.mockResolvedValue({
       data: [],
       count: 0,
@@ -335,29 +335,100 @@ describe("SecurityEventsMonitorStepForm field gating", () => {
     await renderSettled();
     fireEvent.click(moreFields());
 
-    expect(
-      await screen.findByText(
-        "No watchlists yet. Create one under Security Events > Detections > Watchlists.",
-      ),
-    ).toBeInTheDocument();
-    expect(screen.getByText("Open Watchlists").closest("a")).toHaveAttribute(
+    expect(await screen.findByText("No watchlists yet.")).toBeInTheDocument();
+
+    const create: HTMLElement | null = screen
+      .getByText("Create one in Watchlists")
+      .closest("a");
+
+    expect(create).toHaveAttribute(
       "href",
       expect.stringContaining("/security-events/watchlists"),
     );
+    expect(create).toHaveAttribute("target", "_blank");
     expect(
       screen.queryByText("Add a Watchlist Filter"),
     ).not.toBeInTheDocument();
   });
 
-  test("lists that could not be read say so, and a filter can still be added", async () => {
-    getWatchlists.mockRejectedValue(new Error("offline") as never);
+  test("a list made in that other tab is offered once the window is back in focus", async () => {
+    getWatchlists.mockResolvedValueOnce({
+      data: [],
+      count: 0,
+      skip: 0,
+      limit: 200,
+    } as never);
 
     await renderSettled();
     fireEvent.click(moreFields());
 
+    expect(await screen.findByText("No watchlists yet.")).toBeInTheDocument();
+
+    // Back from Watchlists, where vip_users was made: the lists are read again.
+    await act(async () => {
+      window.dispatchEvent(new Event("focus"));
+    });
+
     expect(
-      await screen.findByText("Couldn't load the watchlists."),
+      await screen.findByText("Add a Watchlist Filter"),
     ).toBeInTheDocument();
+    expect(screen.queryByText("No watchlists yet.")).not.toBeInTheDocument();
+    expect(getWatchlists).toHaveBeenCalledTimes(2);
+  });
+
+  test("lists that could not be read say so in red with Try again, and no filter is added until they are", async () => {
+    getWatchlists.mockRejectedValueOnce(new Error("offline") as never);
+
+    await renderSettled();
+    fireEvent.click(moreFields());
+
+    const failed: HTMLElement = await screen.findByText(
+      "Couldn't load the watchlists.",
+    );
+
+    expect(failed.closest('[role="alert"]')).not.toBeNull();
+    expect(failed.closest(".text-red-700")).not.toBeNull();
+    // A row could pick no list: the lists are not known.
+    expect(
+      screen.queryByText("Add a Watchlist Filter"),
+    ).not.toBeInTheDocument();
+
+    // Try again reads them again, and they answer.
+    await act(async () => {
+      fireEvent.click(
+        screen.getByTestId("security-events-watchlist-filters-retry"),
+      );
+    });
+
+    expect(
+      await screen.findByText("Add a Watchlist Filter"),
+    ).toBeInTheDocument();
+    expect(
+      screen.queryByText("Couldn't load the watchlists."),
+    ).not.toBeInTheDocument();
+    expect(getWatchlists).toHaveBeenCalledTimes(2);
+  });
+
+  test("a read again that fails keeps the lists the form already offers", async () => {
+    await renderSettled();
+    fireEvent.click(moreFields());
+
+    expect(
+      await screen.findByText("Add a Watchlist Filter"),
+    ).toBeInTheDocument();
+
+    getWatchlists.mockRejectedValueOnce(new Error("offline") as never);
+
+    await act(async () => {
+      window.dispatchEvent(new Event("focus"));
+    });
+
+    await waitFor(() => {
+      expect(getWatchlists).toHaveBeenCalledTimes(2);
+    });
+    expect(
+      screen.queryByText("Couldn't load the watchlists."),
+    ).not.toBeInTheDocument();
     expect(screen.getByText("Add a Watchlist Filter")).toBeInTheDocument();
   });
 

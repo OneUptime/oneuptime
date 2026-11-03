@@ -50,19 +50,24 @@ import {
   WatchlistNameCell,
   WatchlistReadByCell,
   WatchlistReadersList,
+  WatchlistUrlHostText,
   WatchlistValueExpiresLine,
   WatchlistValueNoteCell,
   WatchlistValuesCell,
   getWatchlistReaderRoute,
 } from "../../../../App/FeatureSet/Dashboard/src/Components/SecurityEvents/Watchlists/WatchlistCells";
+import { readWatchlistImportProblems } from "../../../../App/FeatureSet/Dashboard/src/Components/SecurityEvents/Watchlists/WatchlistImportModal";
 import WatchlistSourceRadio from "../../../../App/FeatureSet/Dashboard/src/Components/SecurityEvents/Watchlists/WatchlistSourceRadio";
 import WatchlistUrlCard, {
   WatchlistUrlFacts,
   WatchlistUrlReadState,
+  describeWatchlistReadNowResult,
+  getWatchlistNextReadAt,
   getWatchlistUrlReadState,
   getWatchlistUrlScheduleKey,
   isHttpsAddress,
 } from "../../../../App/FeatureSet/Dashboard/src/Components/SecurityEvents/Watchlists/WatchlistUrlCard";
+import { Translator, createTranslator } from "../../../Types/Translator";
 import { WATCHLISTS_TEST_IDS } from "../../../../App/FeatureSet/Dashboard/src/Components/SecurityEvents/Watchlists/WatchlistsCopy";
 import SecurityCaseApi from "../../../../App/FeatureSet/Dashboard/src/Components/SecurityCase/SecurityCaseApi";
 import {
@@ -273,8 +278,9 @@ describe("a value kept for a while", () => {
       />,
     );
 
+    // When it came onto the list, as "Added by Maya Chen" says it of a person.
     expect(flat(screen.getByTestId(WATCHLISTS_TEST_IDS.addedLine))).toBe(
-      "Read from its address 5 minutes ago",
+      "Added from the file 5 minutes ago",
     );
   });
 });
@@ -355,6 +361,45 @@ describe("a list read from an address, in a row", () => {
     );
   });
 
+  /*
+   * A host's own hyphen is no place to break it: "hr.acme-" over
+   * "commerce.example" read as two names. The host moves to a line of its
+   * own whole, a host too long for its column ends in "...", with the
+   * address under the pointer, and it reads left to right in any sentence.
+   */
+  test("the host is one piece: never broken, set apart, the whole address under the pointer", () => {
+    render(
+      <WatchlistValuesCell
+        source={SecurityWatchlistSource.Url}
+        valueCount={2}
+        importUrl="https://hr.acme-commerce.example/exports/contractors.csv"
+        lastImportSucceededAt={new Date()}
+      />,
+    );
+
+    const host: HTMLElement = screen.getByText("hr.acme-commerce.example");
+
+    expect(host.tagName).toBe("BDI");
+    expect(host).toHaveAttribute("dir", "ltr");
+    expect(host).toHaveClass("inline-block", "max-w-full", "truncate");
+    expect(host).toHaveAttribute(
+      "title",
+      "https://hr.acme-commerce.example/exports/contractors.csv",
+    );
+    expect(flat(screen.getByTestId(WATCHLISTS_TEST_IDS.valuesCell))).toBe(
+      "2 values from hr.acme-commerce.example",
+    );
+  });
+
+  test("an address that is no address is shown as written, never a host it does not have", () => {
+    render(<WatchlistUrlHostText url="not an address" />);
+
+    expect(screen.getByText("not an address")).toHaveAttribute(
+      "title",
+      "not an address",
+    );
+  });
+
   test("a list whose last read failed says so in red, wherever its values are named", () => {
     render(
       <WatchlistValuesCell
@@ -367,8 +412,11 @@ describe("a list read from an address, in a row", () => {
     );
 
     const failed: HTMLElement = screen.getByText("Its last read failed");
+    const line: HTMLElement = failed.parentElement as HTMLElement;
 
-    expect(failed).toHaveClass("text-red-700");
+    // In red, after the mark a failure carries, on a line of its own.
+    expect(line).toHaveClass("text-red-700", "flex");
+    expect(line.querySelector("svg")).not.toBeNull();
     expect(flat(screen.getByTestId(WATCHLISTS_TEST_IDS.valuesCell))).toBe(
       "12 values from hr.example.comIts last read failed",
     );
@@ -451,15 +499,96 @@ describe("Read From an Address", () => {
     );
   });
 
-  test("a read that worked: when, and how many lines of the file it left out", () => {
+  test("a read that worked: when, and how many lines of the file it left out, in the words an import says it with", () => {
     renderCard({
       lastImportAt: new Date(Date.now() - 2 * HOUR),
       lastImportSucceededAt: new Date(Date.now() - 2 * HOUR),
       lastImportLinesLeftOut: 1,
     });
 
+    const status: HTMLElement = screen.getByTestId(
+      WATCHLISTS_TEST_IDS.urlStatus,
+    );
+
+    expect(flat(status)).toBe("Last read 2 hours ago · 1 line left out");
+    // The moment whole under the pointer, as a time.
+    expect(status.querySelector("time")).toHaveAttribute("title");
+  });
+
+  test("a read that left nothing out says only when", () => {
+    renderCard({
+      lastImportAt: new Date(Date.now() - 2 * HOUR),
+      lastImportSucceededAt: new Date(Date.now() - 2 * HOUR),
+      lastImportLinesLeftOut: 0,
+    });
+
     expect(flat(screen.getByTestId(WATCHLISTS_TEST_IDS.urlStatus))).toBe(
-      "Last read 2 hours ago. 1 line of the file was left out.",
+      "Last read 2 hours ago",
+    );
+  });
+
+  test("how often it is read, and when next: never a moment that has passed, nor before its first read", () => {
+    const now: Date = new Date();
+
+    renderCard({
+      lastImportSucceededAt: new Date(now.getTime() - HOUR),
+      nextImportAt: new Date(now.getTime() + 5 * HOUR + 60 * 1000),
+    });
+
+    expect(flat(screen.getByTestId(WATCHLISTS_TEST_IDS.urlSchedule))).toBe(
+      "Every 6 Hours · Next read in 5 hours",
+    );
+
+    const read: WatchlistUrlFacts = {
+      lastImportSucceededAt: new Date(now.getTime() - HOUR),
+    };
+
+    expect(
+      getWatchlistNextReadAt(
+        { ...read, nextImportAt: new Date(now.getTime() + HOUR) },
+        now,
+      ),
+    ).toEqual(new Date(now.getTime() + HOUR));
+    // Due: it is being read.
+    expect(
+      getWatchlistNextReadAt(
+        { ...read, nextImportAt: new Date(now.getTime() - 60 * 1000) },
+        now,
+      ),
+    ).toBeNull();
+    // As the API sends it: an ISO string.
+    expect(
+      getWatchlistNextReadAt(
+        {
+          ...read,
+          nextImportAt: new Date(
+            now.getTime() + HOUR,
+          ).toISOString() as unknown as Date,
+        },
+        now,
+      ),
+    ).toEqual(new Date(now.getTime() + HOUR));
+    // Waiting for its first read says so in its own words.
+    expect(
+      getWatchlistNextReadAt(
+        { nextImportAt: new Date(now.getTime() + HOUR) },
+        now,
+      ),
+    ).toBeNull();
+  });
+
+  test("a read that failed says when it is tried again", () => {
+    const now: Date = new Date();
+
+    renderCard({
+      lastImportAt: new Date(now.getTime() - 10 * 60 * 1000),
+      lastImportSucceededAt: new Date(now.getTime() - 26 * HOUR),
+      lastImportError: SECURITY_WATCHLIST_MESSAGES.urlNotRead.message,
+      nextImportAt: new Date(now.getTime() + 50 * 60 * 1000),
+    });
+
+    expect(flat(screen.getByTestId(WATCHLISTS_TEST_IDS.urlSchedule))).toBe(
+      "Every 6 Hours · Next read in an hour",
     );
   });
 
@@ -482,9 +611,8 @@ describe("Read From an Address", () => {
     expect(
       within(status).getByText("Data source responded with HTTP 200"),
     ).toHaveAttribute("dir", "ltr");
-    expect(status).toHaveTextContent(
-      "The list keeps the values it read a day ago.",
-    );
+    // Which read the values are from: why it failed already says the list keeps them.
+    expect(status).toHaveTextContent("Its values are from the read a day ago.");
   });
 
   test("a list whose reads have all failed holds no values until one works", () => {
@@ -498,7 +626,7 @@ describe("Read From an Address", () => {
     );
   });
 
-  test("Read Now reads it at once, says what it did, and has the page read the list again", async () => {
+  test("Read Now reads it at once, says what it did as an import does, and has the page read the list again", async () => {
     const readNow: SpyInstance<typeof SecurityCaseApi.readWatchlistNow> = jest
       .spyOn(SecurityCaseApi, "readWatchlistNow")
       .mockResolvedValue({
@@ -508,6 +636,7 @@ describe("Read From an Address", () => {
         removed: 1,
         unchanged: 2,
         problemCount: 0,
+        problems: [],
         valueCount: 5,
       });
     const onRead: Mock<() => void> = jest.fn<() => void>();
@@ -527,9 +656,119 @@ describe("Read From an Address", () => {
       WATCHLISTS_TEST_IDS.urlReadNowResult,
     );
 
-    expect(result).toHaveTextContent("Read just now");
-    expect(result).toHaveTextContent("3 values added");
-    expect(result).toHaveTextContent("1 value removed");
+    // Said to a screen reader as it appears; the status above says when.
+    expect(result).toHaveAttribute("role", "status");
+    expect(
+      within(result)
+        .getAllByRole("listitem")
+        .map((item: HTMLElement): string => {
+          return flat(item);
+        }),
+    ).toEqual([
+      "3 values added",
+      "1 value removed",
+      "2 were already on the list",
+      "The list now holds 5 values.",
+    ]);
+    expect(result).not.toHaveTextContent("Read just now");
+    expect(
+      within(result).queryByTestId(WATCHLISTS_TEST_IDS.importProblems),
+    ).toBeNull();
+  });
+
+  test("Read Now lists the lines of the file it left out, each with its line, its value and why", async () => {
+    jest.spyOn(SecurityCaseApi, "readWatchlistNow").mockResolvedValue({
+      error: null,
+      errorDetail: null,
+      added: 1,
+      removed: 0,
+      unchanged: 2,
+      problemCount: 22,
+      problems: [
+        {
+          line: 5,
+          value: "lee.park@contractor.example",
+          message: SECURITY_WATCHLIST_MESSAGES.importExpiryPassed.message,
+        },
+        {
+          line: 6,
+          value: "*",
+          message: "A value of only * would match everything.",
+        },
+      ],
+      valueCount: 3,
+    });
+
+    renderCard({ lastImportSucceededAt: new Date() });
+
+    await act(async () => {
+      fireEvent.click(screen.getByText("Read Now"));
+    });
+
+    const result: HTMLElement = screen.getByTestId(
+      WATCHLISTS_TEST_IDS.urlReadNowResult,
+    );
+
+    expect(result).toHaveTextContent("22 lines left out");
+
+    const problems: HTMLElement = within(result).getByTestId(
+      WATCHLISTS_TEST_IDS.importProblems,
+    );
+
+    expect(
+      within(problems)
+        .getAllByRole("listitem")
+        .map((item: HTMLElement): string => {
+          return flat(item);
+        }),
+    ).toEqual([
+      "Line 5: lee.park@contractor.example - The date this value leaves the list has passed.",
+      "Line 6: * - A value of only * would match everything.",
+      "and 20 more lines",
+    ]);
+  });
+
+  test("what Read Now did, a line each; the lines left out counted whole", () => {
+    const english: Translator = createTranslator(undefined, "en");
+
+    expect(
+      describeWatchlistReadNowResult(english, {
+        summary: {
+          added: 0,
+          removed: 0,
+          unchanged: 4,
+          duplicates: 0,
+          problemCount: 1,
+          valueCount: 4,
+        },
+        problems: [],
+      }),
+    ).toEqual([
+      "0 values added",
+      "4 were already on the list",
+      "The list now holds 4 values.",
+      "1 line left out",
+    ]);
+  });
+
+  test("the lines an answer left out are read as the API sends them, and nothing else", () => {
+    expect(
+      readWatchlistImportProblems({
+        problems: [
+          { line: 2, value: "x", message: "Enter a value." },
+          { line: "3", message: "Enter a value." },
+          { value: "no line", message: "Enter a value." },
+          { line: 4, value: "y" },
+          "a line",
+          null,
+        ],
+      } as never),
+    ).toEqual([
+      { line: 2, value: "x", message: "Enter a value." },
+      { line: 3, value: "", message: "Enter a value." },
+    ]);
+    expect(readWatchlistImportProblems({})).toEqual([]);
+    expect(readWatchlistImportProblems({ problems: "x" })).toEqual([]);
   });
 
   test("a Read Now that failed says why on the card, as a scheduled read does", async () => {
@@ -610,7 +849,7 @@ describe("where a new list's values come from", () => {
     expect(screen.queryByText("A threat intel feed")).toBeNull();
     expect(
       screen.getByText(
-        "Read again on a schedule from an https address: a text or CSV file, one value a line.",
+        "Read again on a schedule, so the list follows the file.",
       ),
     ).toBeInTheDocument();
   });
