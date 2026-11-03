@@ -191,7 +191,7 @@ function read(data: {
     location: data.location,
     ownerId: data.ownerId || SERVICE,
     caps: CAPS,
-    match: matcherFor(data.dataTypeId, data.location),
+    maskIfFound: matcherFor(data.dataTypeId, data.location),
     max: data.max || MAX_OCCURRENCES,
   });
 }

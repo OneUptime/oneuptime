@@ -333,6 +333,7 @@ The `check_on` values each monitor type uses most. The dashboard's criteria edit
 | Server processes | `Is Executing`, `Is Not Executing` |
 | Scripts | `Evaluates To True` |
 | Anomalies, for metrics, logs and traces | `Anomalously High`, `Anomalously Low`, `Anomalous` |
+| Forecasts, for metrics | `Forecast Above`, `Forecast Below` (how far ahead is `forecast.horizonInHours` in `metric_monitor_options`: a week when left out) |
 
 A filter that matches when an SSL certificate expires in 14 days or less:
 

@@ -116,7 +116,7 @@ Cuanto más larga es la ventana, más ancho es cada tramo de tiempo, así que un
 
 ## Criterios
 
-Estos monitores evalúan siempre el **Metric Value**: el valor agregado de la consulta de métricas o la fórmula configurada. **Cuándo alertar** configura un criterio a partir de **Medido como**, **Ventana de tiempo**, **Condición** y **Valor**. Cuando la métrica tiene unidad, elige la unidad del valor a su lado. Su **Condición** es **Por encima de**, **Igual o por encima de**, **Por debajo de**, **Igual o por debajo de**, **Exactamente**, **Inusualmente alto**, **Inusualmente bajo** o **Inusualmente alto o bajo**. Para varios criterios, como franjas de gravedad, haz clic en **Editar como criterios propios** en **Más campos** de **Qué pasa**: cada criterio tiene allí una **Métrica**, una **Agregación**, una **Condición** y un **Umbral**.
+Estos monitores evalúan siempre el **Metric Value**: el valor agregado de la consulta de métricas o la fórmula configurada. **Cuándo alertar** configura un criterio a partir de **Medido como**, **Ventana de tiempo**, **Condición** y **Valor**. Cuando la métrica tiene unidad, elige la unidad del valor a su lado. Su **Condición** es **Por encima de**, **Igual o por encima de**, **Por debajo de**, **Igual o por debajo de**, **Exactamente**, **Inusualmente alto**, **Inusualmente bajo**, **Inusualmente alto o bajo**, **Previsto por encima de** o **Previsto por debajo de**. Para varios criterios, como franjas de gravedad, haz clic en **Editar como criterios propios** en **Más campos** de **Qué pasa**: cada criterio tiene allí una **Métrica**, una **Agregación**, una **Condición** y un **Umbral**.
 
 | Condición | Coincide cuando el valor está… |
 | --- | --- |
@@ -128,10 +128,14 @@ Estos monitores evalúan siempre el **Metric Value**: el valor agregado de la co
 | **Anomalously High** | por encima del rango esperado para esta hora de la semana |
 | **Anomalously Low** | por debajo de ese rango |
 | **Anomalous** | fuera de ese rango, en cualquier sentido |
+| **Previsto por encima de** | va camino de superar el umbral: su tendencia lo supera al final de **Plazo** |
+| **Previsto por debajo de** | va camino de bajar del umbral, al final de **Plazo** |
 | **Sin datos** | ausente: la consulta no envió nada en la ventana |
 | **Con datos** | presente: la consulta envió algo en la ventana |
 
 Las condiciones de anomalía no tienen umbral. En su lugar, **Cuándo alertar** muestra **Sensibilidad** (Baja, Media, la predeterminada, o Alta), y los criterios propios también una **Ventana de referencia** (14 días, la predeterminada, 28, 60 o 90), y cada punto de datos se compara con la misma hora de la semana en días anteriores, hasta donde llega esa ventana. Lo que ocurre ahora nunca forma parte de esa comparación, así que un cambio que perdura sigue alertando hasta que, una semana después, ha entrado en esos días anteriores. Hasta que esa hora de la semana tenga dos semanas de historial, el criterio sigue aprendiendo y no genera alertas.
+
+Las condiciones de previsión comparan hacia dónde se dirige la métrica con el umbral, así que un disco que se llena un poco cada día alerta días antes de llenarse. Cada comprobación traza una línea recta a través de los puntos de datos de cada serie en la **Ventana de tiempo** y la prolonga tanto como indica **Plazo**, de 1 hora a 30 días: una semana si no lo cambias. El criterio coincide cuando esa línea ha cruzado el umbral al final de ese plazo, y su incidente dice hacia dónde va la métrica y cuándo cruza el umbral. Elige una ventana larga, como **Últimos 7 días**, para que la línea siga cómo crece la métrica y no sus altibajos diarios. Una serie se prevé cuando sus datos cubren la mitad de la ventana, y deja de preverse cuando sus datos dejan de llegar. Para recibir un aviso antes de que un sistema de archivos se llene, vigila `system.filesystem.utilization` con Max, agrupado por host y punto de montaje, y alerta cuando se prevea que supere el 90 % en un plazo de 7 días.
 
 Con qué se compara un punto de datos depende de la consulta:
 

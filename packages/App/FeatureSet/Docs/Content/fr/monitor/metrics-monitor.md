@@ -116,7 +116,7 @@ Plus la fenêtre est longue, plus chaque intervalle de temps est large, si bien 
 
 ## Critères
 
-Ces moniteurs évaluent toujours la **Metric Value** – la valeur agrégée de la requête de métriques ou de la formule configurée. **Quand alerter** configure un critère à partir de **Mesuré comme**, **Fenêtre de temps**, **Condition** et **Valeur**. Quand la métrique a une unité, choisissez l'unité de la valeur à côté. Sa **Condition** est **Au-dessus de**, **Supérieur ou égal à**, **En dessous de**, **Inférieur ou égal à**, **Exactement**, **Anormalement haut**, **Anormalement bas** ou **Anormalement haut ou bas**. Pour plusieurs critères, comme des paliers de gravité, cliquez sur **Modifier en critères personnalisés** sous **Plus de champs** dans **Ce qui se passe** : chaque critère y a une **Métrique**, une **Agrégation**, une **Condition** et un **Seuil**.
+Ces moniteurs évaluent toujours la **Metric Value** – la valeur agrégée de la requête de métriques ou de la formule configurée. **Quand alerter** configure un critère à partir de **Mesuré comme**, **Fenêtre de temps**, **Condition** et **Valeur**. Quand la métrique a une unité, choisissez l'unité de la valeur à côté. Sa **Condition** est **Au-dessus de**, **Supérieur ou égal à**, **En dessous de**, **Inférieur ou égal à**, **Exactement**, **Anormalement haut**, **Anormalement bas**, **Anormalement haut ou bas**, **Devrait dépasser** ou **Devrait passer sous**. Pour plusieurs critères, comme des paliers de gravité, cliquez sur **Modifier en critères personnalisés** sous **Plus de champs** dans **Ce qui se passe** : chaque critère y a une **Métrique**, une **Agrégation**, une **Condition** et un **Seuil**.
 
 | Condition | Correspond quand la valeur est… |
 | --- | --- |
@@ -128,10 +128,14 @@ Ces moniteurs évaluent toujours la **Metric Value** – la valeur agrégée de 
 | **Anomalously High** | au-dessus de la plage attendue pour cette heure de la semaine |
 | **Anomalously Low** | en dessous de cette plage |
 | **Anomalous** | hors de cette plage, dans un sens ou dans l'autre |
+| **Devrait dépasser** | se dirige au-dessus du seuil : sa tendance le dépasse d'ici la fin de **Horizon** |
+| **Devrait passer sous** | se dirige sous le seuil, d'ici la fin de **Horizon** |
 | **Aucune donnée** | absente, car la requête n'a rien envoyé dans la fenêtre |
 | **Données reçues** | présente, car la requête a envoyé quelque chose dans la fenêtre |
 
 Les conditions d'anomalie n'ont pas de seuil. **Quand alerter** affiche à la place **Sensibilité** – Faible, Moyen (la valeur par défaut) ou Élevé –, et les critères personnalisés aussi une **Fenêtre de référence** – 14 jours (la valeur par défaut), 28, 60 ou 90 –, et chaque point de données est comparé à la même heure de la semaine les jours précédents, aussi loin que remonte cette fenêtre. Ce qui se passe maintenant n'entre jamais dans cette comparaison : un changement qui dure continue donc d'alerter jusqu'à ce que, une semaine plus tard, il soit entré dans ces jours précédents. Tant que cette heure de la semaine n'a pas deux semaines d'historique, le critère est encore en apprentissage et ne produit aucune alerte.
+
+Les conditions de prévision comparent la direction que prend la métrique avec le seuil : un disque qui se remplit un peu chaque jour déclenche une alerte des jours avant d'être plein. Chaque vérification trace une droite à travers les points de données de chaque série dans la **Fenêtre de temps** et la prolonge aussi loin que l'indique **Horizon**, de 1 heure à 30 jours : une semaine si vous ne le changez pas. Le critère correspond quand cette droite a franchi le seuil à la fin de ce délai, et son incident indique où va la métrique et quand elle franchit le seuil. Choisissez une fenêtre longue, comme **7 derniers jours**, pour que la droite suive la croissance de la métrique et non ses variations quotidiennes. Une série est prévue dès que ses données couvrent la moitié de la fenêtre, et ne l'est plus dès que ses données cessent d'arriver. Pour être averti avant qu'un système de fichiers se remplisse, surveillez `system.filesystem.utilization` avec Max, regroupé par hôte et point de montage, et alertez quand sa prévision dépasse 90 % d'ici 7 jours.
 
 Ce à quoi un point de données est comparé dépend de la requête :
 

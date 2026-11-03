@@ -116,7 +116,7 @@ The longer the window, the wider each time bucket, so one data point stands for 
 
 ## Criteria
 
-These monitors always evaluate the **Metric Value** — the aggregated value of the configured metric query or formula. **When to alert** sets up one criteria from **Measured as**, **Time window**, **Condition** and **Value**. When the metric has a unit, pick the value's unit next to it. Its **Condition** reads **Above**, **At or above**, **Below**, **At or below**, **Exactly**, **Unusually high**, **Unusually low** or **Unusually high or low**. For several criteria, such as severity bands, click **Edit as custom criteria** under **More fields** in **What happens**: each criteria there has a **Metric**, an **Aggregation**, a **Condition** and a **Threshold**.
+These monitors always evaluate the **Metric Value** — the aggregated value of the configured metric query or formula. **When to alert** sets up one criteria from **Measured as**, **Time window**, **Condition** and **Value**. When the metric has a unit, pick the value's unit next to it. Its **Condition** reads **Above**, **At or above**, **Below**, **At or below**, **Exactly**, **Unusually high**, **Unusually low**, **Unusually high or low**, **Forecast to rise above** or **Forecast to fall below**. For several criteria, such as severity bands, click **Edit as custom criteria** under **More fields** in **What happens**: each criteria there has a **Metric**, an **Aggregation**, a **Condition** and a **Threshold**.
 
 | Condition | Matches when the value is… |
 | --- | --- |
@@ -128,10 +128,14 @@ These monitors always evaluate the **Metric Value** — the aggregated value of 
 | **Anomalously High** | above the range expected for this hour of the week |
 | **Anomalously Low** | below that range |
 | **Anomalous** | outside that range, either way |
+| **Forecast To Rise Above** | headed above the threshold: its trend is past it by the end of **Within** |
+| **Forecast To Fall Below** | headed below the threshold, by the end of **Within** |
 | **Has No Data** | missing: the query sent nothing in the window |
 | **Has Data** | present: the query sent something in the window |
 
 The anomaly conditions have no threshold. **When to alert** shows **Sensitivity** — Low, Medium (the default) or High — instead, and the custom criteria a **Baseline Window** too — 14 days (the default), 28, 60 or 90 — and each data point is compared with the same hour of the week on earlier days, as far back as that window goes. What is happening now is never part of that comparison, so a change that lasts keeps alerting until, a week later, it has entered those earlier days. Until that hour of the week has two weeks of history, the criteria is still learning and produces no alerts.
+
+The forecast conditions compare where the metric is headed with the threshold, so a disk that fills up a little every day alerts days before it is full. Every check draws a straight line through each series' data points in the **Time window** and follows it as far ahead as **Within** says, from 1 hour to 30 days: a week unless you change it. The criteria matches when that line is past the threshold at the end of that time, and its incident says where the metric is headed and when it crosses the threshold. Pick a long window, such as **Last 7 days**, so the line follows how the metric grows rather than its daily ups and downs. A series is forecast once its data covers half the window, and no longer once its data stops coming. To be warned before a filesystem fills up, watch `system.filesystem.utilization` with Max, grouped by host and mountpoint, and alert when it is forecast to rise above 90% within 7 days.
 
 What a data point is compared with depends on the query:
 
