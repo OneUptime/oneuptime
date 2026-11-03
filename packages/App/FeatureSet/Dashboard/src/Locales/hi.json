@@ -12969,7 +12969,7 @@
   "No AI agent found.": "No AI agent found.",
   "No AI agent tasks yet. New tasks appear here when you start a fix or a regression test from an exception page (Telemetry > Exceptions).": "No AI agent tasks yet. New tasks appear here when you start a fix or a regression test from an exception page (Telemetry > Exceptions).",
   "No AI logs.": "No AI logs.",
-  "No AI providers configured yet. Add one in Project Settings → AI → LLM Providers.": "No AI providers configured yet. Add one in Project Settings → AI → LLM Providers.",
+  "No AI providers configured yet. Add one in Project Settings → AI → LLM Providers.": "अभी तक कोई एआई प्रदाता कॉन्फ़िगर नहीं किया गया है। प्रोजेक्ट सेटिंग्स → एआई → LLM प्रदाता में एक जोड़ें।",
   "No Announcement Templates": "No Announcement Templates",
   "No Auth, No Priv": "No Auth, No Priv",
   "No CPU ready data available — reported only for powered-on VMs.": "CPU ready का कोई डेटा उपलब्ध नहीं — यह केवल चालू VM के लिए रिपोर्ट होता है।",

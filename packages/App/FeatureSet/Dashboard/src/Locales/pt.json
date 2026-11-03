@@ -12969,7 +12969,7 @@
   "No AI agent found.": "No AI agent found.",
   "No AI agent tasks yet. New tasks appear here when you start a fix or a regression test from an exception page (Telemetry > Exceptions).": "No AI agent tasks yet. New tasks appear here when you start a fix or a regression test from an exception page (Telemetry > Exceptions).",
   "No AI logs.": "No AI logs.",
-  "No AI providers configured yet. Add one in Project Settings → AI → LLM Providers.": "No AI providers configured yet. Add one in Project Settings → AI → LLM Providers.",
+  "No AI providers configured yet. Add one in Project Settings → AI → LLM Providers.": "Ainda não há provedores de IA configurados. Adicione um em Configurações do projeto → IA → Provedores LLM.",
   "No Announcement Templates": "No Announcement Templates",
   "No Auth, No Priv": "No Auth, No Priv",
   "No CPU ready data available — reported only for powered-on VMs.": "Nenhum dado de CPU ready disponível — informado apenas para VMs ligadas.",

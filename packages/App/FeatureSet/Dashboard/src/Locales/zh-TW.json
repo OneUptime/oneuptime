@@ -12969,7 +12969,7 @@
   "No AI agent found.": "No AI agent found.",
   "No AI agent tasks yet. New tasks appear here when you start a fix or a regression test from an exception page (Telemetry > Exceptions).": "No AI agent tasks yet. New tasks appear here when you start a fix or a regression test from an exception page (Telemetry > Exceptions).",
   "No AI logs.": "No AI logs.",
-  "No AI providers configured yet. Add one in Project Settings → AI → LLM Providers.": "No AI providers configured yet. Add one in Project Settings → AI → LLM Providers.",
+  "No AI providers configured yet. Add one in Project Settings → AI → LLM Providers.": "尚未設定人工智慧提供商。請在「專案設定 → 人工智慧 → LLM 提供商」中新增。",
   "No Announcement Templates": "No Announcement Templates",
   "No Auth, No Priv": "No Auth, No Priv",
   "No CPU ready data available — reported only for powered-on VMs.": "沒有可用的 CPU 就緒資料——僅針對已開機的虛擬機器回報。",
