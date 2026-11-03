@@ -15,3 +15,9 @@ an offline fixture in headless Chromium, with the Inter font:
   on the SecurityEventsEmptyStates fixture (`?tools=rows`) at 1280px. `-before`
   is master's build; `-after` comes from
   `packages/E2E/SecurityEventsEmptyStates/SecurityEventsEmptyStates.spec.ts`.
+- `ui-review-*`: the UI review's before and after shots. The exceptions list
+  is the ChartTimeZoom fixture built with review-only patches (a busy
+  project's 4,213 or 12,345 exceptions, every-match reads held or failed,
+  the Dashboard's German and Persian locales); the band over a table's cards
+  is the ModelTables fixture's Monitors list (`?rows=30`) at 390px.
+  `-before` is the builder's branch, `-after` the review's.
