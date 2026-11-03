@@ -19,7 +19,12 @@ import {
   toggleLineComment,
   typeCharacter,
 } from "./CodeEditorCommands";
-import { escapeHtml, highlightCode } from "./CodeEditorHighlight";
+import {
+  CodeHighlighter,
+  escapeHtml,
+  highlightCode,
+  useCodeHighlighter,
+} from "./CodeEditorHighlight";
 import { CodeLanguage, getCodeLanguage } from "./CodeEditorLanguages";
 import Icon from "../Icon/Icon";
 import { getHandDrawnButtonStateClassName } from "../Button/ButtonStates";
@@ -509,11 +514,22 @@ const CodeEditor: FunctionComponent<ComponentProps> = (
     );
   }, [language.canFormat, readOnly, checkedText]);
 
+  /*
+   * The grammars, loaded with the first editor that has one: until they are
+   * there the text is drawn plain, in the same places (CodeEditorHighlight).
+   */
+  const highlighter: CodeHighlighter | null = useCodeHighlighter(
+    Boolean(language.grammar),
+  );
+
   const highlightedHtml: string = useMemo(() => {
-    return highlightCode(text, language.grammar, {
-      showTabs: language.showTabs,
-    });
-  }, [text, language.grammar, language.showTabs]);
+    return highlightCode(
+      text,
+      language.grammar,
+      { showTabs: language.showTabs },
+      highlighter,
+    );
+  }, [text, language.grammar, language.showTabs, highlighter]);
 
   const example: string = (props.example || "")
     .replace(/^\s*\n/, "")
@@ -534,11 +550,13 @@ const CodeEditor: FunctionComponent<ComponentProps> = (
       return `<span class="ou-code-editor__example">${highlightCode(
         example,
         language.grammar,
+        undefined,
+        highlighter,
       )}</span>`;
     }
 
     return null;
-  }, [text, placeholder, example, language.grammar]);
+  }, [text, placeholder, example, language.grammar, highlighter]);
 
   const lineCount: number = useMemo(() => {
     return countLines(text);

@@ -3,9 +3,12 @@ import hljs from "highlight.js/lib/core";
 import {
   MAX_HIGHLIGHT_LENGTH,
   escapeHtml,
+  getLoadedCodeHighlighter,
   highlightCode,
+  loadCodeHighlighter,
 } from "../../../../UI/Components/CodeEditor/CodeEditorHighlight";
-import { describe, expect, jest, test } from "@jest/globals";
+import type * as CodeEditorHighlight from "../../../../UI/Components/CodeEditor/CodeEditorHighlight";
+import { beforeAll, describe, expect, jest, test } from "@jest/globals";
 
 /*
  * The highlighted copy sits under a transparent textarea holding the same
@@ -47,6 +50,16 @@ const TRICKY_INPUTS: Array<string> = [
   "const x = `${a < b}`; // <!-- -->",
   "   \n\n  trailing spaces   \n",
 ];
+
+/*
+ * The grammars are loaded the first time an editor with one is drawn
+ * (loadCodeHighlighter, issue #5619): here, before the first test, as on any
+ * page once an editor has loaded them. CodeEditorHighlightLoading.test.tsx
+ * draws an editor before they arrive.
+ */
+beforeAll(async () => {
+  await loadCodeHighlighter();
+});
 
 type TextOfFunction = (html: string) => string;
 
@@ -291,8 +304,12 @@ describe("the grammars are registered on highlight.js core", () => {
     "sql",
     "xml",
     "yaml",
-  ])("%s is registered once the module is imported", (grammar: string) => {
+  ])("%s is registered once the grammars have loaded", (grammar: string) => {
     expect(hljs.getLanguage(grammar)).toBeDefined();
+  });
+
+  test("the grammars loaded are highlight.js core's", () => {
+    expect(getLoadedCodeHighlighter()).toBe(hljs);
   });
 
   test("html resolves, as an alias of xml", () => {
@@ -300,8 +317,8 @@ describe("the grammars are registered on highlight.js core", () => {
   });
 
   /*
-   * CodeBlock registers its own set of grammars on the same core. Importing
-   * the editor afterwards must leave them exactly as they are.
+   * CodeBlock registers its own set of grammars on the same core. Loading
+   * the editor's grammars afterwards must leave them exactly as they are.
    */
   test("a grammar CodeBlock already registered is left alone", async () => {
     jest.resetModules();
@@ -313,7 +330,10 @@ describe("the grammars are registered on highlight.js core", () => {
     const before: ReturnType<typeof core.getLanguage> =
       core.getLanguage("json");
 
-    await import("../../../../UI/Components/CodeEditor/CodeEditorHighlight");
+    const editor: typeof CodeEditorHighlight = await import(
+      "../../../../UI/Components/CodeEditor/CodeEditorHighlight"
+    );
+    await editor.loadCodeHighlighter();
 
     expect(before).toBeDefined();
     expect(core.getLanguage("json")).toBe(before);
@@ -329,10 +349,78 @@ describe("the grammars are registered on highlight.js core", () => {
       return { name: "Stub JSON", contains: [] };
     });
 
-    await import("../../../../UI/Components/CodeEditor/CodeEditorHighlight");
+    const editor: typeof CodeEditorHighlight = await import(
+      "../../../../UI/Components/CodeEditor/CodeEditorHighlight"
+    );
+    await editor.loadCodeHighlighter();
 
     expect(core.getLanguage("json")?.name).toBe("Stub JSON");
     // Every grammar it did not find is still registered.
     expect(core.getLanguage("sql")).toBeDefined();
+  });
+
+  /*
+   * Only the loader registers them: the editor's module, which every form
+   * reaches, holds no grammar until an editor with one is drawn.
+   */
+  test("nothing is registered until the grammars are loaded", async () => {
+    jest.resetModules();
+
+    const { default: core } = await import("highlight.js/lib/core");
+    const editor: typeof CodeEditorHighlight = await import(
+      "../../../../UI/Components/CodeEditor/CodeEditorHighlight"
+    );
+
+    expect(core.listLanguages()).toEqual([]);
+    expect(editor.getLoadedCodeHighlighter()).toBeNull();
+
+    const highlighter: CodeEditorHighlight.CodeHighlighter =
+      await editor.loadCodeHighlighter();
+
+    expect(highlighter).toBe(core);
+    expect(core.getLanguage("yaml")).toBeDefined();
+    expect(editor.getLoadedCodeHighlighter()).toBe(core);
+    expect(await editor.loadCodeHighlighter()).toBe(highlighter);
+  });
+});
+
+/*
+ * Before the grammars arrive an editor draws its text plain: the same
+ * characters, escaped, so nothing in the layer moves when the colours come.
+ */
+describe("highlightCode — before the grammars arrive", () => {
+  test.each(
+    TRICKY_INPUTS.map((input: string) => {
+      return [JSON.stringify(input).slice(0, 40), input];
+    }),
+  )(
+    "%s: escaped plain text, the same characters",
+    (_name: string, input: string) => {
+      for (const grammar of GRAMMARS) {
+        const html: string = highlightCode(input, grammar, undefined, null);
+
+        expect(html).toBe(escapeHtml(input));
+        expect(textOf(html)).toBe(input);
+      }
+    },
+  );
+
+  test("tabs are still drawn, where the document holds them", () => {
+    expect(highlightCode("a:\tb", "yaml", { showTabs: true }, null)).toBe(
+      'a:<span class="ou-code-editor__tab">\t</span>b',
+    );
+  });
+
+  test("the grammars given are used, whatever has loaded", () => {
+    const highlighter: CodeEditorHighlight.CodeHighlighter = {
+      getLanguage: hljs.getLanguage,
+      highlight: (): { value: string } => {
+        return { value: '<span class="hljs-stub">x</span>' };
+      },
+    } as unknown as CodeEditorHighlight.CodeHighlighter;
+
+    expect(highlightCode("x", "json", undefined, highlighter)).toBe(
+      '<span class="hljs-stub">x</span>',
+    );
   });
 });
