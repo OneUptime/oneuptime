@@ -85,6 +85,12 @@ CREATE USER ONEUPTIME_READER DEFAULT_ROLE = ONEUPTIME_READER RSA_PUBLIC_KEY = 'M
 GRANT ROLE ONEUPTIME_READER TO USER ONEUPTIME_READER;
 \`\`\`
 
+Google BigQuery: every dataset your Google Cloud connection found is watched already, with that connection's service account, nothing to connect. Give the service account **BigQuery Metadata Viewer** and **BigQuery Job User** on the project, and **BigQuery Data Viewer** on the tables your checks read. Each collection reads the dataset's \`__TABLES__\` (rows, bytes and last change, at no cost) and its \`INFORMATION_SCHEMA.COLUMNS\` (billed at BigQuery's 10 MB minimum). To connect a dataset without a Google Cloud connection, choose **Google BigQuery** and give JSON with a service account key:
+
+\`\`\`json
+{ "projectId": "my-project", "dataset": "analytics", "location": "US", "serviceAccountJson": { "type": "service_account", "...": "..." } }
+\`\`\`
+
 ## Metrics every table writes
 
 Each collection writes these for every table, so you can chart them, put them on dashboards and alert on them like any other metric:

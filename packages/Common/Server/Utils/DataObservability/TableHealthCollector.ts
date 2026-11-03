@@ -27,6 +27,10 @@ import SnowflakeSqlApi, {
   readSnowflakeConnection,
   SnowflakeConnection,
 } from "./SnowflakeSqlApi";
+import BigQueryApi, {
+  BigQueryConnection,
+  readBigQueryConnection,
+} from "./BigQueryApi";
 import { JSONObject } from "../../../Types/JSON";
 import {
   DataCheckRunResult,
@@ -1455,12 +1459,133 @@ class SnowflakeCatalog implements CatalogSession {
   }
 }
 
+// A __TABLES__ type, as a data asset kind: 1 a table, 2 a view.
+export function readBigQueryKind(type: unknown): DataAssetKind | null {
+  switch (String(type ?? "")) {
+    case "1":
+      return DataAssetKind.Table;
+    case "2":
+      return DataAssetKind.View;
+    default:
+      return null;
+  }
+}
+
+/*
+ * Google BigQuery, a dataset at a time (BigQueryApi): __TABLES__ gives each
+ * table and view with its rows, bytes and last change; the dataset's
+ * INFORMATION_SCHEMA.COLUMNS its columns. A data check runs as a query job
+ * of the dataset's project, its names in backticks and its values bound by
+ * position.
+ */
+class BigQueryCatalog implements CatalogSession {
+  public readonly engine: DatabaseEngine = "bigquery";
+  private readonly api: BigQueryApi;
+  private readonly connection: BigQueryConnection;
+
+  private constructor(api: BigQueryApi, connection: BigQueryConnection) {
+    this.api = api;
+    this.connection = connection;
+  }
+
+  public static async open(connectionString: string): Promise<BigQueryCatalog> {
+    const connection: BigQueryConnection =
+      readBigQueryConnection(connectionString);
+
+    return new BigQueryCatalog(new BigQueryApi({ connection }), connection);
+  }
+
+  public async readAggregate(
+    sql: string,
+    params: Array<string>,
+  ): Promise<Array<Record<string, unknown>>> {
+    return await this.api.query({ statement: sql, params });
+  }
+
+  private datasetReference(): string {
+    return `\`${this.connection.projectId}\`.\`${this.connection.dataset}\``;
+  }
+
+  public async read(options: TableHealthCollectOptions): Promise<CatalogRead> {
+    const warnings: Array<string> = [];
+    const dataset: string = this.connection.dataset;
+    const tables: Array<RawTable> = [];
+
+    for (const row of await this.api.query({
+      statement: `SELECT table_id, type, row_count, size_bytes,
+          TIMESTAMP_DIFF(CURRENT_TIMESTAMP(), TIMESTAMP_MILLIS(last_modified_time), SECOND) AS seconds_since_change
+        FROM ${this.datasetReference()}.__TABLES__
+        ORDER BY table_id
+        LIMIT ${options.maxTables}`,
+    })) {
+      const kind: DataAssetKind | null = readBigQueryKind(row["type"]);
+      const name: string = readText(row["table_id"], MAX_IDENTIFIER_LENGTH);
+
+      if (!kind || !name) {
+        continue;
+      }
+
+      const isTable: boolean = kind === DataAssetKind.Table;
+
+      tables.push({
+        schema: dataset,
+        name,
+        kind,
+        estimatedRows: isTable ? readCount(row["row_count"]) : null,
+        sizeInBytes: isTable ? readCount(row["size_bytes"]) : null,
+        writeCount: null,
+        secondsSinceChange: isTable
+          ? readCount(row["seconds_since_change"])
+          : null,
+        readCount: null,
+        secondsSinceRead: null,
+      });
+    }
+
+    let columns: Array<RawColumn> = [];
+
+    try {
+      columns = (
+        await this.api.query({
+          statement: `SELECT table_name, column_name, data_type, is_nullable, ordinal_position
+            FROM ${this.datasetReference()}.INFORMATION_SCHEMA.COLUMNS
+            ORDER BY table_name, ordinal_position
+            LIMIT ${options.maxColumns}`,
+        })
+      )
+        .map((row: Record<string, unknown>): RawColumn | null => {
+          return readColumnRow({ ...row, table_schema: dataset });
+        })
+        .filter((column: RawColumn | null): column is RawColumn => {
+          return column !== null;
+        });
+    } catch (error) {
+      warnings.push(
+        `Columns were left out (INFORMATION_SCHEMA.COLUMNS could not be read): ${describeError(error).slice(0, 200)}`,
+      );
+    }
+
+    return {
+      tables,
+      columns,
+      warnings,
+      secondsSinceStatsReset: null,
+    };
+  }
+
+  public async close(): Promise<void> {
+    // Each query is its own request: nothing is held open.
+  }
+}
+
 async function openCatalog(
   connection: DatabaseConnection,
 ): Promise<CatalogSession> {
   switch (connection.engine) {
     case "postgresql":
       return await PostgresCatalog.open(connection.connectionString);
+    case "bigquery":
+      return await BigQueryCatalog.open(connection.connectionString);
     case "redshift":
       return await RedshiftCatalog.open(connection.connectionString);
     case "snowflake":

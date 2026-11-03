@@ -389,6 +389,7 @@ const ADAPTER_SCHEMES: Readonly<Record<string, string>> = {
   sqlserver: "sqlserver",
   redshift: "redshift",
   snowflake: "snowflake",
+  bigquery: "bigquery",
 };
 
 /*
