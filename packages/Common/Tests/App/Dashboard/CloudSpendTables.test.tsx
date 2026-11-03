@@ -104,6 +104,7 @@ function account(overrides: Partial<CloudAccount> = {}): CloudAccount {
       currency: "EUR",
       monthToDate: 100,
       lastMonth: 0,
+      monthFullDays: 100,
       lastMonthToDate: 0,
       projectedMonth: 0,
       last30Days: 0,
@@ -534,6 +535,18 @@ describe("Cloud > Budgets", () => {
       "href",
       expect.stringContaining(`/cloud/accounts/${ACCOUNT_ROW}/costs`),
     );
+
+    // Paused: no longer checked, so what it last said of the month is old.
+    budget.isEnabled = false;
+    const paused: HTMLElement = drawn(
+      column<CloudBudget>("This Month").getElement!(budget),
+    );
+    expect(paused).toHaveTextContent("$4,100 of $5,000");
+    expect(paused).not.toHaveTextContent("On course for");
+    expect(
+      drawn(column<CloudBudget>("Status").getElement!(budget)),
+    ).toHaveTextContent("Paused");
+    budget.isEnabled = true;
 
     // Not checked yet: nothing said of where it is heading.
     budget.lastCheckedAt = undefined;

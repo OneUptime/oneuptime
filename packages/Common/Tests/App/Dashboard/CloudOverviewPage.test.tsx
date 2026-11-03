@@ -80,6 +80,7 @@ function costSummary(
     currency: "USD",
     monthToDate: 3000,
     lastMonth: 5000,
+    monthFullDays: 3000,
     lastMonthToDate: 2500,
     projectedMonth: 4800,
     last30Days: 4700,
@@ -134,6 +135,7 @@ function dataAccount(overrides: Partial<CloudAccount> = {}): CloudAccount {
     resourceCount: 8,
     costSummary: costSummary({
       monthToDate: 9000,
+      monthFullDays: 9000,
       lastMonthToDate: 9000,
       topServices: [{ service: "Amazon S3", amount: 9000 }],
     }),

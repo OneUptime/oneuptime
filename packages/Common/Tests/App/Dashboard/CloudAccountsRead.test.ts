@@ -50,6 +50,7 @@ function costSummary(
     currency: "USD",
     monthToDate: 100,
     lastMonth: 300,
+    monthFullDays: 100,
     lastMonthToDate: 90,
     projectedMonth: 310,
     last30Days: 290,

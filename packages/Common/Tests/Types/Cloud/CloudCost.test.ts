@@ -73,6 +73,7 @@ function costSummary(
     currency: "USD",
     monthToDate: 0,
     lastMonth: 0,
+    monthFullDays: 0,
     lastMonthToDate: 0,
     projectedMonth: 0,
     last30Days: 0,
@@ -250,8 +251,12 @@ describe("an account's cost summary", () => {
     expect(summary.state).toBe(CloudCostState.Reading);
     expect(summary.monthToDate).toBe(400);
     expect(summary.lastMonth).toBe(310);
-    // October 1 to 20: the same point of last month.
-    expect(summary.lastMonthToDate).toBe(200);
+    /*
+     * Compared over the full days: November 1 to 19 - the 20th, the newest
+     * day read, is reported late and in part - against October 1 to 19.
+     */
+    expect(summary.monthFullDays).toBe(19 * 20);
+    expect(summary.lastMonthToDate).toBe(19 * 10);
     // October 22 to November 20.
     expect(summary.last30Days).toBe(10 * 10 + 20 * 20);
     expect(summary.topServices).toHaveLength(CLOUD_COST_SUMMARY_TOP_SERVICES);
@@ -267,6 +272,82 @@ describe("an account's cost summary", () => {
     ).not.toContain("AWS Lambda");
     expect(summary.latestDay).toBe("2026-11-20");
     expect(summary.readAt).toBe(NOW.toISOString());
+  });
+
+  /*
+   * A cloud reports its newest day late and in part. Compared with last
+   * month's same day in full, every morning would read as a fall - on the
+   * month's first day, "70% less than last month by now" - so the month is
+   * compared over its full days only.
+   */
+  test("compares the month with last month over its full days, never the newest, half-reported one", () => {
+    const totals: Map<string, number> = new Map([
+      ...evenDays("2026-10-01", 31, 100),
+      // Two full days, and the newest read in part.
+      ["2026-11-01", 100],
+      ["2026-11-02", 100],
+      ["2026-11-03", 30],
+    ]);
+    const summary: CloudAccountCostSummary = summarizeCloudAccountCosts({
+      dailyTotals: totals,
+      monthServices: new Map(),
+      currency: "USD",
+      now: new Date("2026-11-03T09:00:00.000Z"),
+    });
+
+    // The month so far is everything read, the newest day too.
+    expect(summary.monthToDate).toBe(230);
+    // The same two days of each month: no fall where there is none.
+    expect(summary.monthFullDays).toBe(200);
+    expect(summary.lastMonthToDate).toBe(200);
+  });
+
+  test("on the month's first day there is nothing full to compare yet", () => {
+    const summary: CloudAccountCostSummary = summarizeCloudAccountCosts({
+      dailyTotals: new Map([
+        ...evenDays("2026-10-01", 31, 100),
+        ["2026-11-01", 25],
+      ]),
+      monthServices: new Map(),
+      currency: "USD",
+      now: new Date("2026-11-01T08:00:00.000Z"),
+    });
+
+    expect(summary.monthToDate).toBe(25);
+    expect(summary.monthFullDays).toBe(0);
+    expect(summary.lastMonthToDate).toBe(0);
+  });
+
+  test("a newest day read that is not this month's leaves nothing to compare", () => {
+    // Early on the 2nd, the cloud has reported nothing of November yet.
+    const summary: CloudAccountCostSummary = summarizeCloudAccountCosts({
+      dailyTotals: evenDays("2026-10-01", 31, 100),
+      monthServices: new Map(),
+      currency: "USD",
+      now: new Date("2026-11-02T03:00:00.000Z"),
+    });
+
+    expect(summary.monthToDate).toBe(0);
+    expect(summary.monthFullDays).toBe(0);
+    expect(summary.lastMonthToDate).toBe(0);
+    expect(summary.lastMonth).toBe(3100);
+  });
+
+  test("never compares more days than last month had", () => {
+    // March 31: thirty full days of March, against all of February's 28.
+    const summary: CloudAccountCostSummary = summarizeCloudAccountCosts({
+      dailyTotals: new Map([
+        ...evenDays("2027-02-01", 28, 10),
+        ...evenDays("2027-03-01", 31, 20),
+      ]),
+      monthServices: new Map(),
+      currency: "USD",
+      now: new Date("2027-03-31T18:00:00.000Z"),
+    });
+
+    expect(summary.monthFullDays).toBe(28 * 20);
+    expect(summary.lastMonthToDate).toBe(28 * 10);
+    expect(summary.lastMonth).toBe(28 * 10);
   });
 
   test("a cloud naming no currency is in dollars", () => {
@@ -304,6 +385,8 @@ describe("an account's cost summary", () => {
       currency: "USD",
       monthToDate: 12.5,
       lastMonth: 0,
+      // Not stored: nothing to compare.
+      monthFullDays: 0,
       lastMonthToDate: 0,
       projectedMonth: 0,
       last30Days: 0,

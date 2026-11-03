@@ -67,7 +67,13 @@ export interface CloudAccountCostSummary {
   monthToDate: number;
   // Last calendar month, in full.
   lastMonth: number;
-  // Last month up to the same day of the month: "how this month compares, so far".
+  /*
+   * This month over its full days - the days before the newest one read,
+   * which a cloud reports late and in part - and no more of them than last
+   * month had: what "how this month compares, so far" compares.
+   */
+  monthFullDays: number;
+  // Last month over the same days of the month as monthFullDays.
   lastMonthToDate: number;
   // This month's total at the pace of the last full week.
   projectedMonth: number;
@@ -219,33 +225,53 @@ export function summarizeCloudAccountCosts(data: {
   const lastMonthStart: Date = addUtcMonths(monthStart, -1);
   const lastMonthStartDay: string = toCloudCostDay(lastMonthStart);
   const monthStartDay: string = toCloudCostDay(monthStart);
-  const dayOfMonth: number = data.now.getUTCDate();
   const thirtyDaysBack: string = toCloudCostDay(addUtcDays(data.now, -29));
   const today: string = toCloudCostDay(data.now);
-
-  let lastMonth: number = 0;
-  let lastMonthToDate: number = 0;
-  let last30Days: number = 0;
-
-  for (const [day, amount] of data.dailyTotals) {
-    if (day >= lastMonthStartDay && day < monthStartDay) {
-      lastMonth += amount;
-
-      if (fromCloudCostDay(day).getUTCDate() <= dayOfMonth) {
-        lastMonthToDate += amount;
-      }
-    }
-
-    if (day >= thirtyDaysBack && day <= today) {
-      last30Days += amount;
-    }
-  }
 
   const projection: {
     monthToDate: number;
     projectedMonth: number;
     latestDay?: string;
   } = projectCloudMonthCost({ dailyTotals: data.dailyTotals, now: data.now });
+
+  /*
+   * The days the month is compared with last month by: its full days, the
+   * ones before the newest day read - which a cloud reports late and in
+   * part, so it would read as a fall every morning - and no more of them
+   * than last month had. None in a month's first day or two.
+   */
+  const latest: Date | null = projection.latestDay
+    ? fromCloudCostDay(projection.latestDay)
+    : null;
+  const comparedDays: number = Math.min(
+    latest && latest >= monthStart ? latest.getUTCDate() - 1 : 0,
+    daysInUtcMonth(lastMonthStart),
+  );
+
+  let lastMonth: number = 0;
+  let lastMonthToDate: number = 0;
+  let monthFullDays: number = 0;
+  let last30Days: number = 0;
+
+  for (const [day, amount] of data.dailyTotals) {
+    const dayOfMonth: number = fromCloudCostDay(day).getUTCDate();
+
+    if (day >= lastMonthStartDay && day < monthStartDay) {
+      lastMonth += amount;
+
+      if (dayOfMonth <= comparedDays) {
+        lastMonthToDate += amount;
+      }
+    }
+
+    if (day >= monthStartDay && day <= today && dayOfMonth <= comparedDays) {
+      monthFullDays += amount;
+    }
+
+    if (day >= thirtyDaysBack && day <= today) {
+      last30Days += amount;
+    }
+  }
 
   const topServices: Array<{ service: string; amount: number }> = Array.from(
     data.monthServices.entries(),
@@ -271,6 +297,7 @@ export function summarizeCloudAccountCosts(data: {
     currency: data.currency || CLOUD_COST_DEFAULT_CURRENCY,
     monthToDate: roundCost(projection.monthToDate),
     lastMonth: roundCost(lastMonth),
+    monthFullDays: roundCost(monthFullDays),
     lastMonthToDate: roundCost(lastMonthToDate),
     projectedMonth: roundCost(projection.projectedMonth),
     last30Days: roundCost(last30Days),
@@ -359,6 +386,7 @@ export function readCloudAccountCostSummary(
         : CLOUD_COST_DEFAULT_CURRENCY,
     monthToDate: readNumber(record["monthToDate"]),
     lastMonth: readNumber(record["lastMonth"]),
+    monthFullDays: readNumber(record["monthFullDays"]),
     lastMonthToDate: readNumber(record["lastMonthToDate"]),
     projectedMonth: readNumber(record["projectedMonth"]),
     last30Days: readNumber(record["last30Days"]),
@@ -396,6 +424,8 @@ export interface CloudCostTotals {
   currency: string;
   monthToDate: number;
   lastMonth: number;
+  // This month and last month over the same full days (see the summary's).
+  monthFullDays: number;
   lastMonthToDate: number;
   projectedMonth: number;
   last30Days: number;
@@ -447,6 +477,7 @@ export function totalCloudCosts(
     currency,
     monthToDate: 0,
     lastMonth: 0,
+    monthFullDays: 0,
     lastMonthToDate: 0,
     projectedMonth: 0,
     last30Days: 0,
@@ -466,6 +497,7 @@ export function totalCloudCosts(
     totals.accountsRead++;
     totals.monthToDate += summary.monthToDate;
     totals.lastMonth += summary.lastMonth;
+    totals.monthFullDays += summary.monthFullDays;
     totals.lastMonthToDate += summary.lastMonthToDate;
     totals.projectedMonth += summary.projectedMonth;
     totals.last30Days += summary.last30Days;
@@ -473,6 +505,7 @@ export function totalCloudCosts(
 
   totals.monthToDate = roundCost(totals.monthToDate);
   totals.lastMonth = roundCost(totals.lastMonth);
+  totals.monthFullDays = roundCost(totals.monthFullDays);
   totals.lastMonthToDate = roundCost(totals.lastMonthToDate);
   totals.projectedMonth = roundCost(totals.projectedMonth);
   totals.last30Days = roundCost(totals.last30Days);

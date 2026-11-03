@@ -239,7 +239,11 @@ const CloudBudgets: FunctionComponent<
                     }}
                   />
                 </div>
-                {item.lastCheckedAt ? (
+                {/*
+                 * Where the month is heading, once it has been checked. A
+                 * paused budget is not checked: what it last said is old.
+                 */}
+                {item.lastCheckedAt && item.isEnabled !== false ? (
                   <div className="mt-1 text-xs text-gray-500">
                     {translator.translateTemplate(ON_COURSE_FOR_AMOUNT, {
                       amount: money(

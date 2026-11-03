@@ -40652,5 +40652,11 @@
   "{{percent}} more than last month by now": "比上月同期多 {{percent}}",
   "{{percent}} of invocations failed": "{{percent}} 的调用失败",
   "{{percent}} of requests failed": "{{percent}} 的请求失败",
-  "{{spent}} of {{amount}}": "{{spent}} / {{amount}}"
+  "{{spent}} of {{amount}}": "{{spent}} / {{amount}}",
+  "A disabled budget is not checked, so it raises no alerts until it is enabled again.": "已禁用的预算不会被检查，因此在重新启用之前不会触发任何警报。",
+  "Chosen At": "Chosen At",
+  "Internal record of the project a person last chose for their Slack or Microsoft Teams Home, in a workspace connected to several projects.": "Internal record of the project a person last chose for their Slack or Microsoft Teams Home, in a workspace connected to several projects.",
+  "Workspace Home Choice": "Workspace Home Choice",
+  "Workspace Home Choices": "Workspace Home Choices",
+  "Workspace User ID": "Workspace User ID"
 }

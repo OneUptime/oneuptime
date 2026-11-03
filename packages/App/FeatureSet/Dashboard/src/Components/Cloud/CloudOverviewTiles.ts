@@ -132,7 +132,8 @@ export function getCloudOverviewTiles(data: {
     ? (() => {
         const change: { text: string; tone: string } | null =
           getCloudSpendChangeLine({
-            current: data.costs.monthToDate,
+            // Over the same full days: never the newest, half-reported day.
+            current: data.costs.monthFullDays,
             previous: data.costs.lastMonthToDate,
             translator,
           });
@@ -244,7 +245,8 @@ export function getCloudCostTiles(data: {
   };
   const change: { text: string; tone: string } | null = getCloudSpendChangeLine(
     {
-      current: data.costs.monthToDate,
+      // Over the same full days: never the newest, half-reported day.
+      current: data.costs.monthFullDays,
       previous: data.costs.lastMonthToDate,
       translator,
     },

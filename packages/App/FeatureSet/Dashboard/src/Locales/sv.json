@@ -40652,5 +40652,11 @@
   "{{percent}} more than last month by now": "{{percent}} mer än förra månaden vid den här tiden",
   "{{percent}} of invocations failed": "{{percent}} av anropen misslyckades",
   "{{percent}} of requests failed": "{{percent}} av förfrågningarna misslyckades",
-  "{{spent}} of {{amount}}": "{{spent}} av {{amount}}"
+  "{{spent}} of {{amount}}": "{{spent}} av {{amount}}",
+  "A disabled budget is not checked, so it raises no alerts until it is enabled again.": "En inaktiverad budget kontrolleras inte, så den utlöser inga larm förrän den aktiveras igen.",
+  "Chosen At": "Chosen At",
+  "Internal record of the project a person last chose for their Slack or Microsoft Teams Home, in a workspace connected to several projects.": "Internal record of the project a person last chose for their Slack or Microsoft Teams Home, in a workspace connected to several projects.",
+  "Workspace Home Choice": "Workspace Home Choice",
+  "Workspace Home Choices": "Workspace Home Choices",
+  "Workspace User ID": "Workspace User ID"
 }

@@ -30,6 +30,7 @@ import {
 import {
   PROJECTED_MONTH,
   SAVINGS_AVAILABLE,
+  SO_FAR_THIS_MONTH,
   SPEND_THIS_MONTH,
 } from "../../../../App/FeatureSet/Dashboard/src/Components/Cloud/CloudCostWords";
 
@@ -56,6 +57,7 @@ function summary(
     currency: "USD",
     monthToDate: 4120,
     lastMonth: 6000,
+    monthFullDays: 4120,
     lastMonthToDate: 3680,
     projectedMonth: 6300,
     last30Days: 5800,
@@ -125,6 +127,61 @@ describe("the Overview's strip", () => {
       sublabel: "12% more than last month by now",
       to: ROUTES.costs,
     });
+  });
+
+  test("the month is compared over its full days: the newest day, read in part, is no fall", () => {
+    /*
+     * $4,000 over the full days against $4,000 last month: the same, though
+     * the month so far ($4,120) has the newest day's first hours in it.
+     */
+    const same: Array<CloudStatTile> = getCloudOverviewTiles({
+      accounts: [READING],
+      resources: 1,
+      costs: totalCloudCosts([
+        summary({ monthFullDays: 4000, lastMonthToDate: 4000 }),
+      ]),
+      attention: { unhealthy: 0, degraded: 0, isMore: false },
+      now: NOW,
+      translator: T,
+      routes: ROUTES,
+    });
+
+    expect(tile(same, "spend")).toMatchObject({
+      value: "$4,120",
+      sublabel: "The same as last month by now",
+    });
+
+    // A month's first day: no full day to compare, so no comparison.
+    const firstDay: Array<CloudStatTile> = getCloudOverviewTiles({
+      accounts: [READING],
+      resources: 1,
+      costs: totalCloudCosts([
+        summary({ monthToDate: 120, monthFullDays: 0, lastMonthToDate: 0 }),
+      ]),
+      attention: { unhealthy: 0, degraded: 0, isMore: false },
+      now: NOW,
+      translator: T,
+      routes: ROUTES,
+    });
+
+    expect(tile(firstDay, "spend")).toMatchObject({
+      value: "$120.00",
+      sublabel: SO_FAR_THIS_MONTH,
+    });
+
+    // The Costs strip says the same.
+    expect(
+      tile(
+        getCloudCostTiles({
+          costs: totalCloudCosts([
+            summary({ monthFullDays: 4000, lastMonthToDate: 4000 }),
+          ]),
+          savings: totalCloudSavings({ summaries: [] }),
+          translator: T,
+        }),
+        "spend",
+      ),
+    ).toMatchObject({ sublabel: "The same as last month by now" });
   });
 
   test("accounts not read lately, and resources unhealthy or degraded, say how many and are toned", () => {

@@ -144,8 +144,14 @@ const RankedBars: FunctionComponent<ComponentProps> = (
       {props.items.map((item: RankedBarItem): ReactElement => {
         const fill: number = getRankedBarFillPercent(item, max);
         const title: string | undefined = getRankedBarTitle(item);
+        /*
+         * A name is cut in its own direction (dir="auto"): an English
+         * name on a Persian page - a cloud's service, an account - keeps
+         * its start and loses its end, as it reads.
+         */
         const label: ReactElement = (
           <span
+            dir="auto"
             className={`block truncate text-sm text-gray-800 ${RANKED_BAR_LABEL_HOVER_CLASS_NAME}`}
             // A row's link says it, wherever the row is pointed at.
             title={item.to ? undefined : title}
@@ -179,7 +185,10 @@ const RankedBars: FunctionComponent<ComponentProps> = (
                   label
                 )}
                 {item.hint ? (
-                  <span className="block truncate text-[11px] text-gray-500">
+                  <span
+                    dir="auto"
+                    className="block truncate text-[11px] text-gray-500"
+                  >
                     {item.hint}
                   </span>
                 ) : (

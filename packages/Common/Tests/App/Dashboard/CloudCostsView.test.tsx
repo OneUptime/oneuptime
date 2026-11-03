@@ -106,6 +106,7 @@ function summary(
     currency: "USD",
     monthToDate: 2000,
     lastMonth: 4000,
+    monthFullDays: 2000,
     lastMonthToDate: 1600,
     projectedMonth: 3900,
     last30Days: 3800,

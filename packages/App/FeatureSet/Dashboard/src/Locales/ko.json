@@ -40652,5 +40652,11 @@
   "{{percent}} more than last month by now": "지난달 같은 시점보다 {{percent}} 많음",
   "{{percent}} of invocations failed": "호출의 {{percent}} 실패",
   "{{percent}} of requests failed": "요청의 {{percent}} 실패",
-  "{{spent}} of {{amount}}": "{{amount}} 중 {{spent}}"
+  "{{spent}} of {{amount}}": "{{amount}} 중 {{spent}}",
+  "A disabled budget is not checked, so it raises no alerts until it is enabled again.": "비활성화된 예산은 확인되지 않으므로 다시 활성화할 때까지 알림을 발생시키지 않습니다.",
+  "Chosen At": "Chosen At",
+  "Internal record of the project a person last chose for their Slack or Microsoft Teams Home, in a workspace connected to several projects.": "Internal record of the project a person last chose for their Slack or Microsoft Teams Home, in a workspace connected to several projects.",
+  "Workspace Home Choice": "Workspace Home Choice",
+  "Workspace Home Choices": "Workspace Home Choices",
+  "Workspace User ID": "Workspace User ID"
 }

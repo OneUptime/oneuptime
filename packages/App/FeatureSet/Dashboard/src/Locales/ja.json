@@ -40652,5 +40652,11 @@
   "{{percent}} more than last month by now": "先月の同時点より {{percent}} 多い",
   "{{percent}} of invocations failed": "呼び出しの {{percent}} が失敗",
   "{{percent}} of requests failed": "リクエストの {{percent}} が失敗",
-  "{{spent}} of {{amount}}": "{{amount}} 中 {{spent}}"
+  "{{spent}} of {{amount}}": "{{amount}} 中 {{spent}}",
+  "A disabled budget is not checked, so it raises no alerts until it is enabled again.": "無効な予算はチェックされないため、再び有効にするまでアラートを発生させません。",
+  "Chosen At": "Chosen At",
+  "Internal record of the project a person last chose for their Slack or Microsoft Teams Home, in a workspace connected to several projects.": "Internal record of the project a person last chose for their Slack or Microsoft Teams Home, in a workspace connected to several projects.",
+  "Workspace Home Choice": "Workspace Home Choice",
+  "Workspace Home Choices": "Workspace Home Choices",
+  "Workspace User ID": "Workspace User ID"
 }

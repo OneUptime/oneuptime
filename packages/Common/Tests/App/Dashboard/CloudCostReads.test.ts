@@ -55,6 +55,7 @@ function summary(
     currency: "USD",
     monthToDate: 0,
     lastMonth: 0,
+    monthFullDays: 0,
     lastMonthToDate: 0,
     projectedMonth: 0,
     last30Days: 0,
