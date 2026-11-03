@@ -609,12 +609,14 @@ const UpcomingShiftRow: FunctionComponent<ComponentProps> = (
             >
               {/*
                * Each policy the reader may cover, by its name: picking one
-               * opens Add User Override on its page, as the link does.
+               * opens Add User Override on its page, as the link does. Each
+               * wears the icon On-Call Policies has in the side menu.
                */}
               {coverPolicies.map((policy: UserOverridePolicy): ReactElement => {
                 return (
                   <MoreMenuItem
                     key={policy.id}
+                    icon={IconProp.Call}
                     text={policy.name}
                     dataTestId="upcoming-shift-cover-policy"
                     onClick={() => {
