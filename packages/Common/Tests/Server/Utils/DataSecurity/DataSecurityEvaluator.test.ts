@@ -2099,6 +2099,69 @@ describe("DataSecurityEvaluator.evaluateProject: what happens after", () => {
     });
   });
 
+  /*
+   * #5303's follow-up: what the store is in OneUptime goes with its issue,
+   * so the alert or incident raised for it is linked there.
+   */
+  test("each issue carries what its store is in OneUptime: the cloud resource it was found in, its database server, its service", async () => {
+    const bucket: DataStore = storeOf({
+      name: "customer-exports",
+      posture: { readAt: NOW.toISOString(), publicRead: true },
+    });
+    const cloudResourceId: ObjectID = ObjectID.generate();
+    const databaseServerId: ObjectID = ObjectID.generate();
+    const serviceId: ObjectID = ObjectID.generate();
+    bucket.cloudResourceId = cloudResourceId;
+    bucket.databaseServerId = databaseServerId;
+    bucket.serviceId = serviceId;
+    const plain: DataStore = storeOf({
+      name: "partner-drop",
+      posture: { readAt: NOW.toISOString(), publicRead: true },
+    });
+    fixture.stores = [bucket, plain];
+    fixture.findings = [
+      findingOf(bucket, "email-address"),
+      findingOf(plain, "email-address"),
+    ];
+    fixture.ownerUsers = [ownerUserOf(bucket), ownerUserOf(plain)];
+
+    await evaluate();
+
+    const issues: Array<OpenedIssueForIntegrations> = (
+      integrationsSpy.mock.calls[0]![0] as {
+        issues: Array<OpenedIssueForIntegrations>;
+      }
+    ).issues;
+    const ofBucket: OpenedIssueForIntegrations = issues.find(
+      (issue: OpenedIssueForIntegrations): boolean => {
+        return (
+          issue.dataStoreName === "customer-exports" &&
+          issue.checkId === "public-read"
+        );
+      },
+    )!;
+    const ofPlain: OpenedIssueForIntegrations = issues.find(
+      (issue: OpenedIssueForIntegrations): boolean => {
+        return (
+          issue.dataStoreName === "partner-drop" &&
+          issue.checkId === "public-read"
+        );
+      },
+    )!;
+
+    expect(ofBucket.cloudResourceId?.toString()).toBe(
+      cloudResourceId.toString(),
+    );
+    expect(ofBucket.databaseServerId?.toString()).toBe(
+      databaseServerId.toString(),
+    );
+    expect(ofBucket.serviceId?.toString()).toBe(serviceId.toString());
+    // A store found nowhere else in OneUptime names nothing.
+    expect(ofPlain.cloudResourceId).toBeUndefined();
+    expect(ofPlain.databaseServerId).toBeUndefined();
+    expect(ofPlain.serviceId).toBeUndefined();
+  });
+
   test("nothing opened, nothing handed on", async () => {
     const store: DataStore = storeOf({ name: "billing-db" });
     fixture.stores = [store];

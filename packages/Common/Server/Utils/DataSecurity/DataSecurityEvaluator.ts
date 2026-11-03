@@ -296,6 +296,9 @@ export default class DataSecurityEvaluator {
       dataStoreKey: store.storeKey || "",
       dataStoreKind: store.kind,
       sensitivity,
+      cloudResourceId: store.cloudResourceId || undefined,
+      databaseServerId: store.databaseServerId || undefined,
+      serviceId: store.serviceId || undefined,
     };
   }
 

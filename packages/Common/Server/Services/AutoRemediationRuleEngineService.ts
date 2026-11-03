@@ -77,7 +77,11 @@ import {
 } from "../../Types/AI/LlmProviderChoice";
 import ResourceAiAccessService, {
   describeResourceNoun,
+  ResourceAiAccessRow,
 } from "./ResourceAiAccessService";
+import KubernetesClusterService from "./KubernetesClusterService";
+import KubernetesCluster from "../../Models/DatabaseModels/KubernetesCluster";
+import { JSONObject } from "../../Types/JSON";
 import ProjectService from "./ProjectService";
 import AIRunService from "./AIRunService";
 import SortOrder from "../../Types/BaseDatabase/SortOrder";
@@ -574,6 +578,109 @@ export function isLinkedToNothing(entries: unknown): boolean {
     has(AutoRemediationDecisionReason.ResourceNoneLinked)
   );
 }
+
+/*
+ * What a write of a cluster's or a resource's AI settings may turn on: its
+ * Fixes (aiRemediationMode), on the AI agent page, through the API or
+ * Terraform, or by the AI agent's own configuration. A Kubernetes cluster
+ * and a resource with an AI agent share the modes' values.
+ */
+export const REMEDIATION_FIXES_COLUMN: string = "aiRemediationMode";
+
+// Every mode that lets OneUptime AI fix, from asking first to on its own.
+export const FIXES_ON_MODES: ReadonlyArray<string> = [
+  KubernetesAiRemediationMode.RequireApproval,
+  KubernetesAiRemediationMode.Automatic,
+  KubernetesAiRemediationMode.BypassApproval,
+];
+
+// Whether a fix mode, as stored, lets OneUptime AI fix.
+export function isFixesOnMode(mode: unknown): boolean {
+  return typeof mode === "string" && FIXES_ON_MODES.includes(mode);
+}
+
+/*
+ * Whether an update's data turns Fixes on: it writes a fix mode that is
+ * not Off. Whether they were off before does not matter here - only a
+ * record OneUptime AI found them off for is tried again
+ * (onFixesTurnedOn) - so a form that posts every field again tries nothing
+ * twice.
+ */
+export function doesTurnFixesOn(data: unknown): boolean {
+  if (!data || typeof data !== "object") {
+    return false;
+  }
+
+  return isFixesOnMode(
+    (data as Record<string, unknown>)[REMEDIATION_FIXES_COLUMN],
+  );
+}
+
+/*
+ * The cluster or resource whose Fixes were turned on: a Kubernetes cluster
+ * (its id), or a resource with an AI agent (its id: a host's, a database
+ * server's, a cloud account's...). Every resource's id is its own, so the
+ * id alone names it among the decisions' entries.
+ */
+export interface RemediationFixesTarget {
+  lane:
+    | AutoRemediationDecisionLane.KubernetesCluster
+    | AutoRemediationDecisionLane.Resource;
+  id: string;
+}
+
+/*
+ * The entry an evaluation wrote when the target's Fixes were off, as the
+ * decisions store it (AutoRemediationDecisionHelper.toJSON): what the
+ * decisions are found by.
+ */
+export function getFixesOffEntryMatch(
+  target: RemediationFixesTarget,
+): JSONObject {
+  return target.lane === AutoRemediationDecisionLane.KubernetesCluster
+    ? {
+        lane: AutoRemediationDecisionLane.KubernetesCluster,
+        reason: AutoRemediationDecisionReason.ClusterFixesOff,
+        kubernetesClusterId: target.id.toLowerCase(),
+      }
+    : {
+        lane: AutoRemediationDecisionLane.Resource,
+        reason: AutoRemediationDecisionReason.ResourceFixesOff,
+        resourceId: target.id.toLowerCase(),
+      };
+}
+
+/*
+ * The entry of these that says the target's Fixes were off, if one does:
+ * its resourceType says which kind of resource the target is.
+ */
+export function getFixesOffEntry(
+  entries: unknown,
+  target: RemediationFixesTarget,
+): AutoRemediationDecisionEntry | undefined {
+  const id: string = target.id.toLowerCase();
+
+  return AutoRemediationDecisionHelper.parseEntries(entries).find(
+    (entry: AutoRemediationDecisionEntry): boolean => {
+      return target.lane === AutoRemediationDecisionLane.KubernetesCluster
+        ? entry.reason === AutoRemediationDecisionReason.ClusterFixesOff &&
+            (entry.kubernetesClusterId || "").toLowerCase() === id
+        : entry.reason === AutoRemediationDecisionReason.ResourceFixesOff &&
+            (entry.resourceId || "").toLowerCase() === id;
+    },
+  );
+}
+
+/*
+ * The most open incidents and alerts one turn of Fixes on decides again:
+ * the most recently decided first. Each may start an AI fix, so turning a
+ * cluster's Fixes on never starts hundreds at once; the rest keep their
+ * Try again.
+ */
+export const MAX_SUBJECTS_TRIED_AGAIN_WHEN_FIXES_TURN_ON: number = 25;
+
+// The most decisions read to find them (a record can have several).
+export const MAX_DECISIONS_READ_WHEN_FIXES_TURN_ON: number = 200;
 
 /*
  * Does any of these suggestions belong to a resource-level round? A signal
@@ -1601,6 +1708,31 @@ class AutoRemediationRuleEngineServiceClass {
     incidentId?: ObjectID | undefined;
     alertId?: ObjectID | undefined;
   }): Promise<boolean> {
+    return await this.decideAgainUnderRetryLock({
+      ...data,
+      what: "a newly linked subject",
+      mayDecideAgain: (): Promise<boolean> => {
+        return this.mayTryAgainAfterLinking(data);
+      },
+    });
+  }
+
+  /*
+   * Decides again about one record, as for a new one, when mayDecideAgain
+   * says it may: asked first, then again once the record's retry lock is
+   * held (getRemediationRetryLockKey, shared with Try again), so two causes
+   * arriving together - a link and Fixes turned on, two edits - decide once.
+   * Without the lock (Valkey unreachable) it does not decide, rather than
+   * risk two fixes at once. Resolves whether it decided; never throws.
+   */
+  private async decideAgainUnderRetryLock(data: {
+    projectId: ObjectID;
+    incidentId?: ObjectID | undefined;
+    alertId?: ObjectID | undefined;
+    // For the log lines: "a newly linked subject".
+    what: string;
+    mayDecideAgain: () => Promise<boolean>;
+  }): Promise<boolean> {
     const subjectId: ObjectID | undefined = data.incidentId || data.alertId;
 
     if (!subjectId) {
@@ -1608,7 +1740,7 @@ class AutoRemediationRuleEngineServiceClass {
     }
 
     try {
-      if (!(await this.mayTryAgainAfterLinking(data))) {
+      if (!(await data.mayDecideAgain())) {
         return false;
       }
 
@@ -1623,15 +1755,15 @@ class AutoRemediationRuleEngineServiceClass {
         });
       } catch (error) {
         logger.warn(
-          `AutoRemediationRuleEngine: could not take the lock to try again on a newly linked subject; not trying again: ${error}`,
+          `AutoRemediationRuleEngine: could not take the lock to try again on ${data.what}; not trying again: ${error}`,
           { projectId: data.projectId.toString() } as LogAttributes,
         );
         return false;
       }
 
       try {
-        // Another edit may have made it try again while this one waited.
-        if (!(await this.mayTryAgainAfterLinking(data))) {
+        // Another cause may have made it decide again while this one waited.
+        if (!(await data.mayDecideAgain())) {
           return false;
         }
 
@@ -1653,14 +1785,14 @@ class AutoRemediationRuleEngineServiceClass {
           await Semaphore.release(mutex);
         } catch (error) {
           logger.error(
-            `AutoRemediationRuleEngine: failed to release the lock of a newly linked subject: ${error}`,
+            `AutoRemediationRuleEngine: failed to release the lock of ${data.what}: ${error}`,
             { projectId: data.projectId.toString() } as LogAttributes,
           );
         }
       }
     } catch (error) {
       logger.error(
-        `AutoRemediationRuleEngine: could not try again on a newly linked subject: ${error}`,
+        `AutoRemediationRuleEngine: could not try again on ${data.what}: ${error}`,
         {
           projectId: data.projectId.toString(),
           incidentId: data.incidentId?.toString(),
@@ -1669,6 +1801,259 @@ class AutoRemediationRuleEngineServiceClass {
       );
       return false;
     }
+  }
+
+  /*
+   * A write of clusters' or resources' AI settings, as their service's
+   * onUpdateSuccess hands it over - an operator's, the API's or Terraform's,
+   * or one the server makes for an AI agent's configuration: when it turns
+   * their Fixes on (doesTurnFixesOn), the records OneUptime AI found them
+   * off for are decided again (onFixesTurnedOn), one target after another.
+   * The project of each is read as OneUptime (readProjectId), so a write
+   * that reached several projects' rows - a master admin's - decides each in
+   * its own. Not awaited by the hooks: a save does not wait for a fix.
+   * Resolves how many records it decided again; never throws.
+   */
+  @CaptureSpan()
+  public async onFixesSettingWritten(data: {
+    lane: RemediationFixesTarget["lane"];
+    // The update's data.
+    written: unknown;
+    // The rows the update wrote.
+    updatedIds: Array<ObjectID>;
+    readProjectId: (id: ObjectID) => Promise<ObjectID | null | undefined>;
+  }): Promise<number> {
+    if (!doesTurnFixesOn(data.written)) {
+      return 0;
+    }
+
+    let decided: number = 0;
+
+    for (const id of data.updatedIds) {
+      try {
+        const projectId: ObjectID | null | undefined =
+          await data.readProjectId(id);
+
+        if (!projectId) {
+          continue;
+        }
+
+        decided += await this.onFixesTurnedOn({
+          projectId,
+          target: { lane: data.lane, id: id.toString() },
+        });
+      } catch (error) {
+        logger.error(
+          `AutoRemediationRuleEngine: could not find the records whose fixes were turned on: ${error}`,
+        );
+      }
+    }
+
+    return decided;
+  }
+
+  /*
+   * Fixes were turned on for a Kubernetes cluster or a resource with an AI
+   * agent - on its AI agent page, through the API or Terraform, or by its
+   * agent's configuration - after OneUptime AI found them off there for an
+   * open incident or alert: its Remediation step said "Fixes are off for
+   * cluster ..., so OneUptime AI only investigates there". Turning them on is
+   * not a link, so nothing used to decide again (#5303's follow-up). Now the
+   * records whose latest decision said so are decided again, as a new one
+   * would be - Enable AI, the record kind's fixing switch, the AI rules, each
+   * cluster's and resource's fix mode and the per-record cap all decide:
+   *
+   *   - only a record whose latest evaluation found this target's Fixes off
+   *     (ClusterFixesOff / ResourceFixesOff naming it), the most recently
+   *     decided first, at most MAX_SUBJECTS_TRIED_AGAIN_WHEN_FIXES_TURN_ON;
+   *   - only while it is open;
+   *   - only while the target's Fixes are still on;
+   *   - one at a time, each under its record's retry lock, asked again
+   *     inside it, as the linking retry is.
+   *
+   * Resolves how many it decided again; never throws.
+   */
+  @CaptureSpan()
+  public async onFixesTurnedOn(data: {
+    projectId: ObjectID;
+    target: RemediationFixesTarget;
+  }): Promise<number> {
+    try {
+      if (!ObjectID.isValidUUID(data.target.id)) {
+        return 0;
+      }
+
+      const decisions: Array<AutoRemediationDecision> =
+        await AutoRemediationDecisionService.findBy({
+          query: {
+            projectId: data.projectId,
+            stage: AutoRemediationDecisionStage.Evaluated,
+            entries: QueryHelper.jsonContains([
+              getFixesOffEntryMatch(data.target),
+            ]),
+          },
+          select: { _id: true, incidentId: true, alertId: true },
+          sort: { createdAt: SortOrder.Descending },
+          limit: MAX_DECISIONS_READ_WHEN_FIXES_TURN_ON,
+          skip: 0,
+          props: { isRoot: true },
+        });
+
+      // Each record once, the most recently decided first.
+      const subjects: Array<{ incidentId?: ObjectID; alertId?: ObjectID }> =
+        [];
+      const seen: Set<string> = new Set<string>();
+
+      for (const decision of decisions) {
+        const key: string = decision.incidentId
+          ? `incident:${decision.incidentId.toString()}`
+          : decision.alertId
+            ? `alert:${decision.alertId.toString()}`
+            : "";
+
+        if (!key || seen.has(key)) {
+          continue;
+        }
+
+        seen.add(key);
+        subjects.push(
+          decision.incidentId
+            ? { incidentId: decision.incidentId }
+            : { alertId: decision.alertId! },
+        );
+
+        if (subjects.length >= MAX_SUBJECTS_TRIED_AGAIN_WHEN_FIXES_TURN_ON) {
+          break;
+        }
+      }
+
+      let decided: number = 0;
+
+      for (const subject of subjects) {
+        const subjectData: {
+          projectId: ObjectID;
+          incidentId?: ObjectID | undefined;
+          alertId?: ObjectID | undefined;
+        } = { projectId: data.projectId, ...subject };
+
+        const hasDecided: boolean = await this.decideAgainUnderRetryLock({
+          ...subjectData,
+          what: "a record whose fixes were turned on",
+          mayDecideAgain: (): Promise<boolean> => {
+            return this.mayTryAgainAfterFixesTurnedOn({
+              ...subjectData,
+              target: data.target,
+            });
+          },
+        });
+
+        if (hasDecided) {
+          decided++;
+        }
+      }
+
+      return decided;
+    } catch (error) {
+      logger.error(
+        `AutoRemediationRuleEngine: could not try again on the records whose fixes were turned on: ${error}`,
+        {
+          projectId: data.projectId.toString(),
+        } as LogAttributes,
+      );
+      return 0;
+    }
+  }
+
+  /*
+   * Whether Fixes turned on for the target may make OneUptime AI decide again
+   * about this record (onFixesTurnedOn): its latest evaluation found the
+   * target's Fixes off, it is open, and the target's Fixes are on now.
+   */
+  private async mayTryAgainAfterFixesTurnedOn(data: {
+    projectId: ObjectID;
+    incidentId?: ObjectID | undefined;
+    alertId?: ObjectID | undefined;
+    target: RemediationFixesTarget;
+  }): Promise<boolean> {
+    const latest: AutoRemediationDecision | null =
+      await AutoRemediationDecisionService.findOneBy({
+        query: {
+          projectId: data.projectId,
+          stage: AutoRemediationDecisionStage.Evaluated,
+          ...(data.incidentId
+            ? { incidentId: data.incidentId }
+            : { alertId: data.alertId! }),
+        },
+        select: { _id: true, entries: true },
+        sort: { createdAt: SortOrder.Descending },
+        props: { isRoot: true },
+      });
+
+    const entry: AutoRemediationDecisionEntry | undefined = latest
+      ? getFixesOffEntry(latest.entries, data.target)
+      : undefined;
+
+    if (!entry) {
+      return false;
+    }
+
+    const isResolved: boolean = data.incidentId
+      ? await IncidentService.isIncidentResolved({
+          incidentId: data.incidentId,
+        })
+      : await AlertService.isAlertResolved({ alertId: data.alertId! });
+
+    if (isResolved) {
+      return false;
+    }
+
+    return await this.areFixesOnNow({
+      projectId: data.projectId,
+      target: data.target,
+      resourceType: entry.resourceType,
+    });
+  }
+
+  /*
+   * Whether the target's Fixes are on now, read afresh: a cluster's from
+   * the cluster, a resource's from its own table (the entry's resourceType
+   * names which). Off, gone or unreadable is not on.
+   */
+  private async areFixesOnNow(data: {
+    projectId: ObjectID;
+    target: RemediationFixesTarget;
+    resourceType?: string | undefined;
+  }): Promise<boolean> {
+    if (data.target.lane === AutoRemediationDecisionLane.KubernetesCluster) {
+      const cluster: KubernetesCluster | null =
+        await KubernetesClusterService.findOneBy({
+          query: {
+            _id: data.target.id,
+            projectId: data.projectId,
+          },
+          select: { _id: true, aiRemediationMode: true },
+          props: { isRoot: true },
+        });
+
+      return isFixesOnMode(cluster?.aiRemediationMode);
+    }
+
+    if (!isAiResourceType(data.resourceType)) {
+      return false;
+    }
+
+    const resource: ResourceAiAccessRow | null =
+      await ResourceAiAccessService.loadResource({
+        projectId: data.projectId,
+        resourceType: data.resourceType,
+        resourceId: new ObjectID(data.target.id),
+      });
+
+    return Boolean(
+      resource &&
+        !resource.isArchived &&
+        isFixesOnMode(resource.aiRemediationMode),
+    );
   }
 
   /*

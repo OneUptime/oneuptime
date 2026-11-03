@@ -120,6 +120,7 @@ import SecurityPlaybookResponseSteps from "./SecurityPlaybookResponseSteps";
 import logger from "../Logger";
 import { loadSecurityConnections } from "../SecurityEvent/Connections/ConnectionsLoader";
 import type { SecurityConnectedRecord } from "../SecurityEvent/Connections/SecurityConnectedRecords";
+import { AiAffectedResourceRef } from "../../../Types/AI/AiAffectedResources";
 import SecurityPlaybookTargets from "./SecurityPlaybookTargets";
 import PartialEntity from "../../../Types/Database/PartialEntity";
 import DatabaseCommonInteractionProps from "../../../Types/BaseDatabase/DatabaseCommonInteractionProps";
@@ -920,6 +921,10 @@ export default class SecurityPlaybookActions {
      * On-call runs about an incident or an alert. A case that became an
      * incident pages about it, so the people paged land on the incident;
      * otherwise the page opens an alert that names the case and links to it.
+     * That alert is about what the case names, as the case's incident would
+     * be (declareIncidentForCase): it is linked to the records the case is
+     * exactly connected to, so its investigation reaches them and
+     * auto-remediation can fix them.
      */
     const result: OnCallPageResult = await OnCallPageService.page({
       projectId: context.projectId,
@@ -934,6 +939,11 @@ export default class SecurityPlaybookActions {
               description: (
                 await this.getMessageMarkdown(context, undefined, values)
               ).toString(),
+              affectedResources:
+                await SecurityPlaybookActions.readCaseAffectedResources({
+                  projectId: context.projectId,
+                  securityCase: context.securityCase,
+                }),
             },
           },
       props: {
@@ -989,6 +999,38 @@ export default class SecurityPlaybookActions {
     return succeeded(mdText`Declared incident **${result.incidentNumber}**.`, {
       hasWrittenOwnFeed: true,
     });
+  }
+
+  /*
+   * What an alert a case pages with is about: the records the case is
+   * exactly connected to (SecurityConnections.readIncidentLinks), as the
+   * case's incident is linked to them. Enrichment: when they cannot be
+   * read, the alert is linked to nothing and the page still goes out.
+   */
+  public static async readCaseAffectedResources(data: {
+    projectId: ObjectID;
+    securityCase: SecurityCase;
+  }): Promise<Array<AiAffectedResourceRef>> {
+    if (!data.securityCase.id) {
+      return [];
+    }
+
+    const connections: ReturnType<typeof loadSecurityConnections> =
+      loadSecurityConnections();
+
+    try {
+      return connections.getConnectedRecordAffectedResources(
+        await connections.default.readIncidentLinks({
+          projectId: data.projectId,
+          securityCaseId: data.securityCase.id,
+        }),
+      );
+    } catch (error) {
+      logger.error(
+        `Security playbook: what case ${data.securityCase.caseNumberWithPrefix || data.securityCase.id.toString()} names could not be read; its alert is linked to nothing: ${error}`,
+      );
+      return [];
+    }
   }
 
   /*
@@ -1053,7 +1095,7 @@ export default class SecurityPlaybookActions {
       incident.description =
         mdText`Declared from security case [${caseNumber}](${caseUrl.toString()}).${data.securityCase.description ? mdText`\n\n${FeedMarkdown.asMarkdown(data.securityCase.description)}` : FeedMarkdown.empty()}`.toString();
 
-      connections.linkIncidentToConnectedRecords(incident, linked);
+      connections.linkRecordToConnectedRecords(incident, linked);
 
       return incident;
     };

@@ -1,6 +1,8 @@
 import DataSecurityIntegrations, {
   OpenedIssueForIntegrations,
+  getIssueAffectedResources,
 } from "../../../../Server/Utils/DataSecurity/DataSecurityIntegrations";
+import { AiAffectedResourceKind } from "../../../../Types/AI/AiAffectedResources";
 import SecurityCaseIngest, {
   SecurityDetectionSignal,
 } from "../../../../Server/Utils/SecurityCase/SecurityCaseIngest";
@@ -295,8 +297,16 @@ function issueOf(data: {
   storeName?: string | undefined;
   storeKey?: string | undefined;
   sensitivity?: DataSensitivity | undefined;
+  cloudResourceId?: ObjectID | undefined;
+  databaseServerId?: ObjectID | undefined;
+  serviceId?: ObjectID | undefined;
 }): OpenedIssueForIntegrations {
   return {
+    ...(data.cloudResourceId ? { cloudResourceId: data.cloudResourceId } : {}),
+    ...(data.databaseServerId
+      ? { databaseServerId: data.databaseServerId }
+      : {}),
+    ...(data.serviceId ? { serviceId: data.serviceId } : {}),
     issueId: ObjectID.generate(),
     checkId: data.checkId || "public-read",
     title: data.title || "Anyone on the internet can read it",
@@ -622,6 +632,8 @@ describe("onIssuesOpened: alerts", () => {
         description: `customer-exports holds Restricted data and failed a Data Security check: Anyone on the internet can read it. [Open the issue](${DASHBOARD}/${PROJECT_ID.toString()}/data-security/issues/${first.issueId.toString()}).`,
         rootCause:
           'The Data Security check "public-read" failed on customer-exports.',
+        // A store OneUptime found nowhere else is about nothing more.
+        affectedResources: [],
       },
       {
         fingerprint: `data-security-issue:${second.issueId.toString()}`,
@@ -629,6 +641,7 @@ describe("onIssuesOpened: alerts", () => {
         description: `payments-db holds Restricted data and failed a Data Security check: Card security codes are stored. [Open the issue](${DASHBOARD}/${PROJECT_ID.toString()}/data-security/issues/${second.issueId.toString()}).`,
         rootCause:
           'The Data Security check "card-security-codes-stored" failed on payments-db.',
+        affectedResources: [],
       },
     ]);
     expect(
@@ -937,6 +950,7 @@ describe("onIssuesOpened: incidents", () => {
         description: `customer-exports holds Restricted data and failed a Data Security check: Anyone on the internet can read it. [Open the issue](${DASHBOARD}/${PROJECT_ID.toString()}/data-security/issues/${critical.issueId.toString()}).`,
         rootCause:
           'The Data Security check "public-read" failed on customer-exports.',
+        affectedResources: [],
       },
     ]);
   });
@@ -1067,6 +1081,135 @@ describe("onIssuesOpened: incidents", () => {
     expect(
       feedsOf(DataSecurityIssueFeedEventType.IncidentDeclared),
     ).toHaveLength(1);
+  });
+});
+
+/*
+ * #5303's follow-up: an alert or incident Data Security raises is about its
+ * store, and the store is something in OneUptime when it was found there -
+ * the cloud resource it was discovered from, the database server it is, the
+ * service whose telemetry it is. The alert and the incident are linked to
+ * them, so their investigation reaches them and OneUptime AI can fix them
+ * through their AI agents; a store found nowhere else links nothing.
+ */
+describe("onIssuesOpened: what the alert and the incident are about", () => {
+  const CLOUD_RESOURCE_ID: ObjectID = new ObjectID(
+    "cccccccc-cccc-4ccc-8ccc-cccccccccccc",
+  );
+  const DATABASE_SERVER_ID: ObjectID = new ObjectID(
+    "dddddddd-dddd-4ddd-8ddd-dddddddddddd",
+  );
+  const SERVICE_ID: ObjectID = new ObjectID(
+    "eeeeeeee-eeee-4eee-8eee-eeeeeeeeeeee",
+  );
+
+  test("getIssueAffectedResources: the store's cloud resource, database server and service, each it has", () => {
+    expect(
+      getIssueAffectedResources({
+        cloudResourceId: CLOUD_RESOURCE_ID,
+        databaseServerId: DATABASE_SERVER_ID,
+        serviceId: SERVICE_ID,
+      }),
+    ).toEqual([
+      {
+        kind: AiAffectedResourceKind.CloudResource,
+        id: CLOUD_RESOURCE_ID.toString(),
+      },
+      {
+        kind: AiAffectedResourceKind.DatabaseServer,
+        id: DATABASE_SERVER_ID.toString(),
+      },
+      { kind: AiAffectedResourceKind.Service, id: SERVICE_ID.toString() },
+    ]);
+    expect(getIssueAffectedResources({})).toEqual([]);
+    expect(
+      getIssueAffectedResources({ databaseServerId: DATABASE_SERVER_ID }),
+    ).toEqual([
+      {
+        kind: AiAffectedResourceKind.DatabaseServer,
+        id: DATABASE_SERVER_ID.toString(),
+      },
+    ]);
+  });
+
+  test("the alert of an S3 bucket's issue is linked to the cloud resource it was found in", async () => {
+    setting.raiseAlertsForCriticalIssues = true;
+
+    await opened([
+      issueOf({
+        severity: SecuritySeverity.Critical,
+        cloudResourceId: CLOUD_RESOURCE_ID,
+      }),
+    ]);
+
+    const match: SecurityEventAlerting.AlertableMatch = (
+      alertsSpy.mock.calls[0]![0] as {
+        matches: Array<SecurityEventAlerting.AlertableMatch>;
+      }
+    ).matches[0]!;
+
+    expect(match.affectedResources).toEqual([
+      {
+        kind: AiAffectedResourceKind.CloudResource,
+        id: CLOUD_RESOURCE_ID.toString(),
+      },
+    ]);
+    // Data Security knows its store: nothing is looked up by name.
+    expect(match.entities).toBeUndefined();
+  });
+
+  test("the incident of a database's issue is linked to its database server and the service whose telemetry it is", async () => {
+    setting.declareIncidentsForCriticalIssues = true;
+
+    await opened([
+      issueOf({
+        severity: SecuritySeverity.Critical,
+        storeName: "payments-db",
+        databaseServerId: DATABASE_SERVER_ID,
+        serviceId: SERVICE_ID,
+      }),
+    ]);
+
+    const match: SecurityEventAlerting.AlertableMatch = (
+      incidentsSpy.mock.calls[0]![0] as {
+        matches: Array<SecurityEventAlerting.AlertableMatch>;
+      }
+    ).matches[0]!;
+
+    expect(match.affectedResources).toEqual([
+      {
+        kind: AiAffectedResourceKind.DatabaseServer,
+        id: DATABASE_SERVER_ID.toString(),
+      },
+      { kind: AiAffectedResourceKind.Service, id: SERVICE_ID.toString() },
+    ]);
+  });
+
+  test("an alert and an incident for one issue are about the same records", async () => {
+    setting.raiseAlertsForCriticalIssues = true;
+    setting.declareIncidentsForCriticalIssues = true;
+
+    await opened([
+      issueOf({
+        severity: SecuritySeverity.Critical,
+        cloudResourceId: CLOUD_RESOURCE_ID,
+        databaseServerId: DATABASE_SERVER_ID,
+      }),
+    ]);
+
+    const alert: SecurityEventAlerting.AlertableMatch = (
+      alertsSpy.mock.calls[0]![0] as {
+        matches: Array<SecurityEventAlerting.AlertableMatch>;
+      }
+    ).matches[0]!;
+    const incident: SecurityEventAlerting.AlertableMatch = (
+      incidentsSpy.mock.calls[0]![0] as {
+        matches: Array<SecurityEventAlerting.AlertableMatch>;
+      }
+    ).matches[0]!;
+
+    expect(alert.affectedResources).toHaveLength(2);
+    expect(incident.affectedResources).toEqual(alert.affectedResources);
   });
 });
 

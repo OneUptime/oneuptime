@@ -152,7 +152,7 @@ export interface ComponentProps {
   investigationStage: AIInvestigationStage;
   /*
    * The record is resolved now: OneUptime AI does not try to fix it again,
-   * so Try again is not offered.
+   * so Try again is not offered, and no line says it tries again.
    */
   isRecordResolved?: boolean | undefined;
   /*
@@ -1566,12 +1566,17 @@ const RemediationStep: FunctionComponent<ComponentProps> = (
     isFixingOn: laneSwitches.states.fix,
   };
 
+  /*
+   * A resolved record's lines say what happened: OneUptime AI decides about
+   * it again only while it is open, so none of them says it tries again.
+   */
   const decisionLines: Array<RemediationDecisionLine> = decision
     ? getRemediationDecisionLines({
         decision,
         signal,
         translator,
         switchesNow,
+        isRecordResolved: Boolean(props.isRecordResolved),
       })
     : [];
 

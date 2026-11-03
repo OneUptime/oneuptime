@@ -1,3 +1,6 @@
+import AutoRemediationRuleEngineService, {
+  doesTurnFixesOn,
+} from "../../../Services/AutoRemediationRuleEngineService";
 import DatabaseService from "../../../Services/DatabaseService";
 import ResourceAiAgentService from "../../../Services/ResourceAiAgentService";
 import UserService from "../../../Services/UserService";
@@ -16,6 +19,7 @@ import {
   getResourceAiAccessAdminRefusal,
   getResourceSentenceName,
 } from "../../../../Types/AI/ResourceAiAccessPermissions";
+import { AutoRemediationDecisionLane } from "../../../../Types/AutoRemediation/AutoRemediationDecision";
 import DatabaseCommonInteractionProps from "../../../../Types/BaseDatabase/DatabaseCommonInteractionProps";
 import { Gray500, Yellow500 } from "../../../../Types/BrandColors";
 import Color from "../../../../Types/Color";
@@ -888,6 +892,48 @@ export default class ResourceAiAccessSettings {
   }): Promise<void> {
     const carryForward: ResourceAiAccessWriteCarryForward | null =
       ResourceAiAccessSettings.getWriteCarryForward(data.onUpdate.carryForward);
+
+    /*
+     * Fixes turned on - by an operator, the API, Terraform, or the server
+     * for the resource's AI agent's configuration (a root write, which
+     * carries nothing forward): the open incidents and alerts OneUptime AI
+     * found them off for on this resource are decided again
+     * (AutoRemediationRuleEngineService.onFixesTurnedOn). Fire and forget:
+     * the save does not wait for a fix to start.
+     */
+    if (doesTurnFixesOn(data.onUpdate.updateBy.data)) {
+      AutoRemediationRuleEngineService.onFixesSettingWritten({
+        lane: AutoRemediationDecisionLane.Resource,
+        written: data.onUpdate.updateBy.data,
+        updatedIds: data.updatedItemIds,
+        readProjectId: async (
+          resourceId: ObjectID,
+        ): Promise<ObjectID | undefined> => {
+          const known: ObjectID | undefined =
+            carryForward?.previousResourceAiAccessSettings[
+              resourceId.toString()
+            ]?.projectId;
+
+          if (known) {
+            return known;
+          }
+
+          const row: TBaseModel | null = await data.service.findOneById({
+            id: resourceId,
+            select: { projectId: true } as never,
+            props: { isRoot: true },
+          });
+
+          return (
+            ((row as unknown as Record<string, unknown> | null)?.[
+              "projectId"
+            ] as ObjectID | undefined) || undefined
+          );
+        },
+      }).catch((error: Error) => {
+        logger.error(error);
+      });
+    }
 
     if (!carryForward || data.updatedItemIds.length === 0) {
       return;
