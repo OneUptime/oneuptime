@@ -137,14 +137,18 @@ export const DOCKER_SWARM_AGENT_COLLECTOR_VERSION: string = "0.161.0";
 /*
  * The version the Docker Swarm agent reports: the default of APP_VERSION in
  * agents/DockerSwarmAgent/docker-compose.yml. Not the collector's 0.161.0:
- * its files changed twice on the same collector - 0.161.1, #5076's CPU
- * processors (a Swarm still running the old files reported 0.161.0 with no
- * sign beside it), and 0.161.2, each task's service and node on its
- * metrics and the Docker API version negotiated with the daemon.
+ * its files changed three times on the same collector - 0.161.1, #5076's
+ * CPU processors (a Swarm still running the old files reported 0.161.0 with
+ * no sign beside it); 0.161.2, each task's service and node on its metrics
+ * and the Docker API version negotiated with the daemon; and 0.161.3, every
+ * inventory snapshot read again (each used to start with the same bytes, so
+ * the collector read a calm swarm's only once), each manager's
+ * reachability, each service's rolling update and recent task failures, and
+ * the swarm's state as metrics (Node Not Ready, Service Replicas Mismatch).
  * AgentKind.test.ts and AgentFilesVersion.test.ts fail when the agent's
  * files move on without this.
  */
-export const DOCKER_SWARM_AGENT_VERSION: string = "0.161.2";
+export const DOCKER_SWARM_AGENT_VERSION: string = "0.161.3";
 
 /*
  * The collector version the Database agent reports: the

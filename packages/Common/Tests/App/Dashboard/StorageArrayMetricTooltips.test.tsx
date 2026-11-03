@@ -488,7 +488,8 @@ const DETAIL_ROWS: Array<Row> = [
     writeIops: 200,
     metricsUpdatedAt: minutesAgo(1),
     lastSeenAt: minutesAgo(1),
-    details: { protocols: ["nfs", "smb"] },
+    // As the agent writes them: a part's Details draw only what it sent.
+    details: { nfs: "true", smb: "true" },
   },
   {
     kind: "Bucket",
@@ -497,7 +498,7 @@ const DETAIL_ROWS: Array<Row> = [
     groupName: "backup-account",
     capacityBytes: 20 * TIB,
     usedBytes: 6 * TIB,
-    objectCount: 120000,
+    details: { objectCount: 120000 },
     dataReductionRatio: 1.4,
     readLatencyUsec: 2000,
     writeLatencyUsec: 3000,
@@ -594,11 +595,21 @@ function arrange(): void {
     let rows: Array<Row> = [];
 
     if (query["status"]) {
-      // The overview's Hardware Needing Attention query, by the kinds asked.
-      const kinds: Array<string> = (query["kind"] as { values: Array<string> })
-        .values;
+      // Needs attention's reads: the kinds and statuses asked for.
+      const valuesOf: (value: unknown) => Array<string> = (
+        value: unknown,
+      ): Array<string> => {
+        return typeof value === "string"
+          ? [value]
+          : (value as { values: Array<string> }).values;
+      };
+      const kinds: Array<string> = valuesOf(query["kind"]);
+      const statuses: Array<string> = valuesOf(query["status"]);
       rows = UNHEALTHY_PARTS.filter((row: Row) => {
-        return kinds.includes(String(row["kind"]));
+        return (
+          kinds.includes(String(row["kind"])) &&
+          statuses.includes(String(row["status"]))
+        );
       });
     } else if (typeof query["kind"] === "string" && query["externalId"]) {
       // A detail page looks one object up.
@@ -850,7 +861,7 @@ afterEach(() => {
 // ------------------------------------------------------------------- texts
 
 const OVERVIEW_FLASHARRAY_TITLES: Array<[string, StorageArrayMetric]> = [
-  ["Storage array health", "health"],
+  ["Storage array health", "arrayHealth"],
   ["Storage array inventory counts", "inventoryCounts"],
   ["Active Alerts", "activeAlerts"],
   ["Capacity Used", "capacityUsed"],
@@ -858,13 +869,12 @@ const OVERVIEW_FLASHARRAY_TITLES: Array<[string, StorageArrayMetric]> = [
   ["Open Alerts", "openAlerts"],
   ["Unhealthy Hardware", "unhealthyHardware"],
   ["Volumes", "volumesTile"],
-  ["Hardware Needing Attention", "unhealthyHardwareList"],
   ["Slowest Volumes", "slowestVolumes"],
   ["Largest Volumes", "largestVolumes"],
 ];
 
 const OVERVIEW_FLASHBLADE_TITLES: Array<[string, StorageArrayMetric]> = [
-  ["Storage array health", "health"],
+  ["Storage array health", "arrayHealth"],
   ["Storage array inventory counts", "inventoryCounts"],
   ["Active Alerts", "activeAlerts"],
   ["Capacity Used", "capacityUsed"],
@@ -872,7 +882,6 @@ const OVERVIEW_FLASHBLADE_TITLES: Array<[string, StorageArrayMetric]> = [
   ["Open Alerts", "openAlerts"],
   ["Unhealthy Hardware", "unhealthyHardware"],
   ["File Systems", "fileSystemsTile"],
-  ["Hardware Needing Attention", "unhealthyHardwareList"],
   ["Slowest File Systems", "slowestFileSystems"],
   ["Largest File Systems", "largestFileSystems"],
 ];
@@ -994,6 +1003,7 @@ const DIRECTORIES_COLUMNS: ColumnPairs = [
 
 const FILE_SYSTEMS_COLUMNS: ColumnPairs = [
   ["Name", null],
+  ["Status", "fileSystemStatusColumn"],
   ["Protocols", "fileSystemProtocolsColumn"],
   ["Provisioned", "fileSystemProvisionedColumn"],
   ["Physical", "physicalColumn"],
@@ -1028,7 +1038,6 @@ const VOLUME_DETAIL_FIELDS: Array<[string, StorageArrayMetric]> = [
 ];
 
 const HOST_DETAIL_FIELDS: Array<[string, StorageArrayMetric]> = [
-  ["Connectivity", "hostConnectivityColumn"],
   ["Host Group", "hostGroupColumn"],
   ["Connected Volumes", "hostVolumesColumn"],
   ["Provisioned", "hostProvisionedColumn"],
@@ -1172,8 +1181,8 @@ describe("STORAGE_ARRAY_METRIC_DESCRIPTIONS", () => {
 
   /*
    * StorageArray.healthStatus is 0 / 1 / 2, or null before the first full
-   * batch; the one text behind the overview's pill and the list's has to
-   * name every state either can show.
+   * batch (and while the agent is not connected); the text behind the
+   * list's pill has to name every state it can show.
    */
   test("the health text names every state the pill can show", () => {
     const states: Array<[number | null, StorageArrayHealthState, string]> = [
@@ -1191,6 +1200,22 @@ describe("STORAGE_ARRAY_METRIC_DESCRIPTIONS", () => {
         label,
         expect.stringMatching(new RegExp(`\\b${label}\\b`)),
       ]);
+    }
+  });
+
+  // The Overview's pill follows its Needs attention (StorageArrayHealth).
+  test("the Overview's health text names every state its pill can show, and the lines", () => {
+    for (const word of [
+      "Unhealthy",
+      "Degraded",
+      "Unknown",
+      "90%",
+      "80%",
+      "5 ms",
+      "10 ms",
+      "10% left",
+    ]) {
+      expect(STORAGE_ARRAY_METRIC_DESCRIPTIONS.arrayHealth).toContain(word);
     }
   });
 
@@ -1364,14 +1389,14 @@ describe("Storage array overview (FlashArray)", () => {
         time: { startValue: Date; endValue: Date };
         attributes: Record<string, unknown>;
       };
-    }> = analyticsGetListMock.mock.calls.map((call: Array<unknown>) => {
-      return call[0] as never;
-    });
-    expect(
-      calls.map((call: { query: { name: string } }) => {
-        return call.query.name;
-      }),
-    ).toEqual(["purefa_alerts_open"]);
+    }> = analyticsGetListMock.mock.calls
+      .map((call: Array<unknown>) => {
+        return call[0] as never;
+      })
+      .filter((call: { query: { name: string } }) => {
+        return call.query.name === "purefa_alerts_open";
+      });
+    expect(calls).toHaveLength(1);
     const window: { startValue: Date; endValue: Date } = calls[0]!.query.time;
     expect(
       (new Date(window.endValue).getTime() -
@@ -1394,40 +1419,71 @@ describe("Storage array overview (FlashArray)", () => {
     expect(screen.getByText("Code 42 · CH0.BAY9")).toBeInTheDocument();
   });
 
-  test("Hardware Needing Attention asks only for the unhealthy statuses and lists critical parts first", async () => {
+  test("Needs attention asks only for the parts the rules read, and lists the most urgent first", async () => {
     await renderOverview();
 
-    const hardwareQuery: Record<string, unknown> | undefined =
-      modelGetListMock.mock.calls
-        .map((call: Array<unknown>) => {
-          return (call[0] as { query: Record<string, unknown> }).query;
-        })
-        .find((query: Record<string, unknown>) => {
-          return Boolean(query["status"]);
-        });
-    expect(hardwareQuery).toBeDefined();
+    const queries: Array<Record<string, unknown>> =
+      modelGetListMock.mock.calls.map((call: Array<unknown>) => {
+        return (call[0] as { query: Record<string, unknown> }).query;
+      });
+
+    // The parts the array reports a status for, by the unhealthy statuses.
+    const statusQuery: Record<string, unknown> | undefined = queries.find(
+      (query: Record<string, unknown>) => {
+        return typeof query["status"] === "object";
+      },
+    );
+    expect(statusQuery).toBeDefined();
     expect(
-      [
-        ...(hardwareQuery!["status"] as { values: Array<string> }).values,
-      ].sort(),
+      [...(statusQuery!["status"] as { values: Array<string> }).values].sort(),
     ).toEqual([...UNHEALTHY_RESOURCE_STATUSES].sort());
     // Parts that are not installed, powered off or unused are never asked for.
     for (const expected of ["not_installed", "device_off", "unused", "ok"]) {
       expect(
-        (hardwareQuery!["status"] as { values: Array<string> }).values,
+        (statusQuery!["status"] as { values: Array<string> }).values,
       ).not.toContain(expected);
     }
     expect(
-      [...(hardwareQuery!["kind"] as { values: Array<string> }).values].sort(),
+      [...(statusQuery!["kind"] as { values: Array<string> }).values].sort(),
     ).toEqual(
       [
         StorageArrayResourceKind.Hardware,
         StorageArrayResourceKind.Drive,
         StorageArrayResourceKind.Controller,
+        StorageArrayResourceKind.NetworkInterface,
+        StorageArrayResourceKind.Pod,
       ].sort(),
     );
 
-    expect(inOrder(["CT0.FAN1", "SH9.BAY3"])).toEqual(["SH9.BAY3", "CT0.FAN1"]);
+    // A host that lost a path, and a pod more than a minute behind.
+    expect(queries).toContainEqual(
+      expect.objectContaining({
+        kind: StorageArrayResourceKind.Host,
+        status: "critical",
+      }),
+    );
+    const lagQuery: Record<string, unknown> | undefined = queries.find(
+      (query: Record<string, unknown>) => {
+        return query["replicationLagMs"] !== undefined;
+      },
+    );
+    expect(lagQuery?.["kind"]).toBe(StorageArrayResourceKind.Pod);
+    expect(
+      (lagQuery?.["replicationLagMs"] as { value: number } | undefined)?.value,
+    ).toBe(60000);
+
+    /*
+     * The array's own row (a critical alert open), then the failed drive,
+     * then the degraded fan.
+     */
+    const rows: Array<string | null> = within(
+      screen.getByTestId("storage-array-needs-attention"),
+    )
+      .getAllByTestId("storage-array-needs-attention-item")
+      .map((item: HTMLElement) => {
+        return item.getAttribute("data-key");
+      });
+    expect(rows).toEqual(["Array", "Drive:SH9.BAY3", "Hardware:CT0.FAN1"]);
   });
 
   test("a healthy array hides Active Alerts and its (i)", async () => {
@@ -1724,7 +1780,80 @@ describe("Inventory tables: the cells keep the promises the texts make", () => {
     ).toBe("—");
   });
 
-  test("Connectivity shows Pure's own detail beside the status", async () => {
+  test("Link Status says a link more than a minute behind, in amber, with how far; the lag turns amber past the line", async () => {
+    await renderPage(StorageArrayReplication);
+    const table: RecordedTable = recordedTable(
+      "storage-array-replication-table",
+    );
+    const status: RecordedColumn = columnByTitle(table, "Link Status");
+    const behind: Row = {
+      kind: "Pod",
+      status: "replicating",
+      replicationLagMs: 95000,
+      metricsUpdatedAt: minutesAgo(1),
+    };
+    expect(cellText(status, behind)).toContain("Replicating");
+    expect(cellText(status, behind)).toContain("Replication 1 min 35 s behind");
+    expect(cellHtml(status, behind)).toContain('data-tone="warning"');
+    expect(cellHtml(status, { ...behind, replicationLagMs: 4000 })).toContain(
+      'data-tone="positive"',
+    );
+
+    const lag: RecordedColumn = columnByTitle(table, "Replication Lag");
+    expect(cellHtml(lag, behind)).toContain('data-tone="warning"');
+    expect(cellHtml(lag, { ...behind, replicationLagMs: 60000 })).not.toContain(
+      'data-tone="warning"',
+    );
+    expect(STORAGE_ARRAY_METRIC_DESCRIPTIONS.podLinkStatusColumn).toMatch(
+      /Replication Lag Above 1 Minute alert's line/,
+    );
+  });
+
+  test("a file system's Status reads its latest available share: Near full with less than 10% left", async () => {
+    analyticsGetListMock.mockImplementation(async (args: unknown) => {
+      const name: string = (args as { query: { name: string } }).query.name;
+      if (name !== "purefb_file_systems_space_bytes") {
+        return { data: [], count: 0 };
+      }
+      return {
+        data: [
+          {
+            time: minutesAgo(1),
+            value: 0.05,
+            attributes: { name: "scratch", space: "available_ratio" },
+          },
+          {
+            time: minutesAgo(1),
+            value: 0.7,
+            attributes: { name: "home", space: "available_ratio" },
+          },
+        ],
+        count: 2,
+      };
+    });
+    mockArray = arrayFixture(FLASHBLADE_OVERRIDES);
+    await renderPage(StorageArrayFileSystems);
+    await flush();
+
+    const status: RecordedColumn = columnByTitle(
+      recordedTable("storage-array-file-systems-table"),
+      "Status",
+    );
+    const scratch: string = cellText(status, {
+      kind: "FileSystem",
+      name: "scratch",
+    });
+    expect(scratch).toContain("Near full");
+    expect(scratch).toContain("95% of its provisioned size used");
+    expect(cellText(status, { kind: "FileSystem", name: "home" })).toBe(
+      "Available",
+    );
+    expect(STORAGE_ARRAY_METRIC_DESCRIPTIONS.fileSystemStatusColumn).toMatch(
+      /less than 10%/,
+    );
+  });
+
+  test("Connectivity says a host lost a path, in amber, and why", async () => {
     await renderPage(StorageArrayHosts);
     const connectivity: RecordedColumn = columnByTitle(
       recordedTable("storage-array-hosts-table"),
@@ -1736,10 +1865,24 @@ describe("Inventory tables: the cells keep the promises the texts make", () => {
       status: "critical",
       statusDetail: "Single Controller",
     });
-    expect(text).toContain("Critical");
-    expect(text).toContain("Single Controller");
+    expect(text).toContain("Lost redundant paths");
+    expect(text).toContain("Reaches the array through one controller only");
+    expect(
+      cellHtml(connectivity, {
+        kind: "Host",
+        status: "critical",
+        statusDetail: "Single Controller",
+      }),
+    ).toContain('data-tone="warning"');
+    expect(
+      cellText(connectivity, {
+        kind: "Host",
+        status: "healthy",
+        statusDetail: "Redundant",
+      }),
+    ).toBe("Redundant paths");
     expect(STORAGE_ARRAY_METRIC_DESCRIPTIONS.hostConnectivityColumn).toMatch(
-      /such as Redundant or Single Controller, is Pure's own/,
+      /Host Lost Redundant Paths alert's line/,
     );
   });
 });
@@ -1763,7 +1906,7 @@ describe("Detail pages: summary fields", () => {
       StorageArrayVolumeDetail,
       "vg1/vol-db",
       VOLUME_DETAIL_FIELDS,
-      ["Volume", "Storage Array", "NAA ID", "Last Seen"],
+      ["Volume", "NAA ID"],
       undefined,
     ],
     [
@@ -1771,7 +1914,7 @@ describe("Detail pages: summary fields", () => {
       StorageArrayHostDetail,
       "esxi-01",
       HOST_DETAIL_FIELDS,
-      ["Host", "Storage Array", "Last Seen"],
+      ["Host"],
       undefined,
     ],
     [
@@ -1779,7 +1922,7 @@ describe("Detail pages: summary fields", () => {
       StorageArrayFileSystemDetail,
       "home",
       FILE_SYSTEM_DETAIL_FIELDS,
-      ["File System", "Storage Array", "Last Seen"],
+      ["File System"],
       FLASHBLADE_OVERRIDES,
     ],
     [
@@ -1787,7 +1930,7 @@ describe("Detail pages: summary fields", () => {
       StorageArrayBucketDetail,
       "backups",
       BUCKET_DETAIL_FIELDS,
-      ["Bucket", "Storage Array", "Last Seen"],
+      ["Bucket"],
       FLASHBLADE_OVERRIDES,
     ],
   ] as Array<

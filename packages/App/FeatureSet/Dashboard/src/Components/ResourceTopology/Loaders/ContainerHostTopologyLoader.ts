@@ -41,6 +41,7 @@ const RESOURCE_SELECT: Record<string, boolean> = {
   latestMemoryBytes: true,
   metricsUpdatedAt: true,
   lastSeenAt: true,
+  resourceCreationTimestamp: true,
 };
 
 function truncationsOf(

@@ -21,10 +21,13 @@ import {
   isRecent,
   toFiniteNumber,
 } from "../ResourceTopologyFormat";
+import { healthOfStatusWord } from "../ResourceTopologyStatusWords";
 import {
-  formatStatusWord,
-  healthOfStatusWord,
-} from "../ResourceTopologyStatusWords";
+  StorageArrayAssessment,
+  assessStorageArray,
+  assessStorageArrayPart,
+  getStorageArrayTopologyHealth,
+} from "../../../Pages/StorageArray/Utils/StorageArrayHealth";
 
 /*
  * A storage array's topology: its host groups and the hosts in them, its
@@ -33,9 +36,13 @@ import {
  * structure reads first — its controllers, drives, network interfaces and
  * other components.
  *
- * Health is each object's own status, read the way the array's pages read
- * it (StorageArrayResourceUtils): critical, failed, missing or unhealthy is
- * critical; degraded, unknown, unrecognized or not ready needs attention.
+ * Health is the rules' (Pages/StorageArray/Utils/StorageArrayHealth), as
+ * the array's Overview, its lists and a part's page say it: a part the
+ * array reports critical, failed, missing or unhealthy is critical;
+ * degraded, unknown, unrecognized or not ready, a host that lost a path and
+ * a pod more than a minute behind need attention; the array itself by its
+ * open alerts and how full it is. A word the rules do not know reads by
+ * the shared status words.
  */
 
 export const STORAGE_ARRAY_ROOT_ID: string = "array";
@@ -86,6 +93,10 @@ export interface StorageArrayTopologyInput {
     name: string;
     lastSeenAt?: Date | null | undefined;
     openAlertCount?: number | null | undefined;
+    criticalAlertCount?: number | null | undefined;
+    warningAlertCount?: number | null | undefined;
+    capacityUsedPercent?: number | null | undefined;
+    storageSystem?: string | null | undefined;
   };
   rows: Array<StorageArrayResource>;
   issues?: Array<OpenIssueRecord> | undefined;
@@ -155,7 +166,13 @@ export function buildStorageArrayTopology(
     input.rows.some((row: StorageArrayResource): boolean => {
       return isRecent(row.lastSeenAt, input.now, STORAGE_ARRAY_STALE_MS);
     });
-  const openAlerts: number = toFiniteNumber(input.array.openAlertCount) || 0;
+  // The array by the rules: its open alerts and how full it is.
+  const arrayAssessment: StorageArrayAssessment = assessStorageArray({
+    storageSystem: input.array.storageSystem,
+    criticalAlertCount: input.array.criticalAlertCount,
+    warningAlertCount: input.array.warningAlertCount,
+    capacityUsedPercent: input.array.capacityUsedPercent,
+  });
 
   const nodes: Array<ResourceTopologyNodeInput> = [
     {
@@ -167,25 +184,13 @@ export function buildStorageArrayTopology(
         ? input.array.lastSeenAt
           ? "warning"
           : "unknown"
-        : openAlerts > 0
-          ? "warning"
-          : "healthy",
+        : getStorageArrayTopologyHealth(arrayAssessment),
       status: !reporting
         ? input.array.lastSeenAt
           ? text(translationKey("Not reporting"))
           : text(translationKey("No data yet"))
         : text(translationKey("Reporting")),
-      reasons:
-        openAlerts > 0
-          ? [
-              text(
-                translationKey("Alerts open on the array itself: {{count}}"),
-                {
-                  count: String(openAlerts),
-                },
-              ),
-            ]
-          : [],
+      reasons: reporting ? arrayAssessment.reasons : [],
       link: { page: PageMap.STORAGE_ARRAY_VIEW, modelId: arrayId },
     },
   ];
@@ -228,10 +233,18 @@ export function buildStorageArrayTopology(
 
     const id: string = `${row.kind.toLowerCase()}:${row.externalId}`;
     const name: string = row.name || row.externalId;
-    const fromStatus: ResourceTopologyHealth | null = storageArrayStatusHealth(
-      row.status,
-    );
+    const assessment: StorageArrayAssessment = assessStorageArrayPart(row);
     const hardwareKind: string | undefined = HARDWARE_KINDS[row.kind];
+    /*
+     * By the rules; a part they have no word on reads by its own status
+     * word, and a hardware part with none is unknown.
+     */
+    const health: ResourceTopologyHealth = assessment.severity
+      ? getStorageArrayTopologyHealth(assessment)
+      : assessment.status.tone === "positive"
+        ? "healthy"
+        : storageArrayStatusHealth(row.status) ||
+          (hardwareKind ? "unknown" : "healthy");
     let parentId: string = STORAGE_ARRAY_ROOT_ID;
     let kind: string = "";
 
@@ -280,12 +293,12 @@ export function buildStorageArrayTopology(
       parentId: parentId,
       kind: kind,
       name: name,
-      health: fromStatus || (hardwareKind ? "unknown" : "healthy"),
-      status: row.status ? { text: formatStatusWord(row.status) } : undefined,
-      reasons:
-        row.statusDetail && fromStatus && fromStatus !== "healthy"
-          ? [{ text: row.statusDetail }]
-          : [],
+      health: health,
+      status:
+        row.status || assessment.severity
+          ? text(assessment.status.label, assessment.status.values)
+          : undefined,
+      reasons: assessment.reasons,
       facts: capacityFacts(row),
       context: row.groupName || row.componentType || undefined,
       keywords: [row.model || "", row.componentType || ""].filter(

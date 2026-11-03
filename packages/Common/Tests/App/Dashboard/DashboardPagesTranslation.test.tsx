@@ -80,9 +80,13 @@ const GERMAN: Record<string, string> = {
     "„{{name}}“ trennen? Er wird sofort abgemeldet und muss neu verbunden werden. Nichts, was er erstellt hat, wird gelöscht.",
   "Add the server, then run {{command}} inside Claude Code and choose OneUptime to sign in:":
     "Fügen Sie den Server hinzu, führen Sie in Claude Code {{command}} aus und wählen Sie OneUptime zum Anmelden:",
-  // Pages/DockerSwarm/View/Index.tsx (SwarmCountTile)
+  // Components/DockerSwarm/DockerSwarmNodesCard.tsx (the Overview's nodes)
   Nodes: "Knoten",
-  "View {{label}}": "{{label}} anzeigen",
+  Ready: "Bereit",
+  "Worker node": "Worker-Knoten",
+  "No tasks": "Keine Tasks",
+  "View {{count}} node_one": "{{count}} Knoten anzeigen",
+  "View all {{count}} nodes": "Alle {{count}} Knoten anzeigen",
   // Pages/Users/View/OnCall/Context.tsx (OnBehalfOfBanner)
   "You are editing on behalf of {{name}}":
     "Sie bearbeiten im Namen von {{name}}",
@@ -173,7 +177,8 @@ jest.mock("../../../UI/Components/ModelTable/ModelTable", () => {
 import MobileApps from "../../../../App/FeatureSet/Dashboard/src/Pages/Settings/MobileApps";
 import StatusPagePreviewLink from "../../../../App/FeatureSet/Dashboard/src/Pages/StatusPages/View/StatusPagePreviewLink";
 import McpServerPage from "../../../../App/FeatureSet/Dashboard/src/Pages/Settings/McpServer";
-import { SwarmCountTile } from "../../../../App/FeatureSet/Dashboard/src/Pages/DockerSwarm/View/Index";
+import DockerSwarmNodesCard from "../../../../App/FeatureSet/Dashboard/src/Components/DockerSwarm/DockerSwarmNodesCard";
+import DockerSwarmResource from "../../../Models/DatabaseModels/DockerSwarmResource";
 import { OnBehalfOfBanner } from "../../../../App/FeatureSet/Dashboard/src/Pages/Users/View/OnCall/Context";
 
 type CreateGermanFunction = () => Promise<i18n>;
@@ -496,23 +501,42 @@ describe("Settings > MCP Server in German", () => {
   });
 });
 
-describe("Docker Swarm count tile in German", () => {
-  test("the label and the screen-reader name of its open control are German", () => {
+describe("the Docker Swarm Overview's nodes in German", () => {
+  test("the card's title, a node's state and role, and the link to the list are German", () => {
+    const worker: DockerSwarmResource = Object.assign(
+      new DockerSwarmResource(),
+      {
+        kind: "Node",
+        externalId: "node/w1",
+        name: "worker-1",
+        state: "ready",
+        role: "worker",
+        attributes: { availability: "active" },
+      },
+    );
+
     renderInGerman(
-      <SwarmCountTile
-        label="Nodes"
-        value={3}
-        subline={null}
-        description="Nodes in the swarm."
-        onOpen={() => {
-          // not opened in this test
+      <DockerSwarmNodesCard
+        rows={[worker]}
+        getNodeRoute={(externalId: string): Route => {
+          return new Route(`/nodes/${externalId}`);
         }}
+        nodesRoute={new Route("/nodes")}
+        now={new Date()}
       />,
     );
 
     expect(screen.getAllByText("Knoten")[0]).toBeInTheDocument();
-    expect(screen.getByText("Knoten anzeigen")).toBeInTheDocument();
-    expect(screen.queryByText("View Nodes")).not.toBeInTheDocument();
+    expect(
+      screen.getByTestId("docker-swarm-nodes-card-status"),
+    ).toHaveTextContent("Bereit");
+    expect(
+      screen.getByTestId("docker-swarm-nodes-card-facts"),
+    ).toHaveTextContent("Worker-Knoten · Keine Tasks");
+    expect(screen.getByTestId("docker-swarm-nodes-card-all")).toHaveTextContent(
+      "1 Knoten anzeigen",
+    );
+    expect(screen.queryByText("Ready")).not.toBeInTheDocument();
   });
 });
 

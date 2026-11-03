@@ -133,7 +133,7 @@ Everything is ready. Begin running and processing data.
 
 | دسته | متریک‌ها |
 | --- | --- |
-| سلامت خوشه | `ceph_health_status` (0 = OK، 1 = WARN، 2 = ERR)، `ceph_health_detail` (یک سری به ازای هر بررسی سلامت، 1 تا وقتی فعال است و 0 پس از برطرف شدن، با برچسب‌های `name` و `severity`، از Quincy به بعد؛ پشتوانه الگوهای هشدار بررسی سلامت و **Active Health Checks** در نمای کلی)، `ceph_healthcheck_slow_ops`، `ceph_daemon_health_metrics` (به ازای هر دیمن، با کلید `type`)، `ceph_mon_quorum_status`، `ceph_mon_metadata`، `ceph_cluster_total_bytes`، `ceph_cluster_total_used_bytes` |
+| سلامت خوشه | `ceph_health_status` (0 = OK، 1 = WARN، 2 = ERR)، `ceph_health_detail` (یک سری به ازای هر بررسی سلامت، 1 تا وقتی فعال است و 0 پس از برطرف شدن، با برچسب‌های `name` و `severity`، از Quincy به بعد؛ پشتوانه الگوهای هشدار بررسی سلامت و بررسی‌هایی که **نیاز به توجه** در نمای کلی نشان می‌دهد)، `ceph_healthcheck_slow_ops`، `ceph_daemon_health_metrics` (به ازای هر دیمن، با کلید `type`)، `ceph_mon_quorum_status`، `ceph_mon_metadata`، `ceph_cluster_total_bytes`، `ceph_cluster_total_used_bytes` |
 | OSD | `ceph_osd_up`، `ceph_osd_in`، `ceph_osd_apply_latency_ms`، `ceph_osd_commit_latency_ms`، `ceph_osd_stat_bytes`، `ceph_osd_stat_bytes_used`، `ceph_osd_numpg`، `ceph_osd_metadata`، به ازای هر OSD با برچسب `ceph_daemon` (مانند `osd.3`) |
 | استخر | `ceph_pool_stored`، `ceph_pool_max_avail`، `ceph_pool_objects`، `ceph_pool_rd`، `ceph_pool_wr`، `ceph_pool_rd_bytes`، `ceph_pool_wr_bytes`، `ceph_pool_metadata`. سری‌های داده فقط یک برچسب `pool_id` دارند؛ نام استخر روی `ceph_pool_metadata` است. |
 | گروه‌های جای‌گذاری | `ceph_pg_total`، `ceph_pg_active`، `ceph_pg_clean`، `ceph_pg_degraded`، `ceph_pg_undersized` (همه به ازای هر استخر، با `pool_id`)، `ceph_num_objects_degraded`، `ceph_num_objects_misplaced` |
@@ -147,6 +147,19 @@ Everything is ready. Begin running and processing data.
 - **`node_exporter`.** همراه همیشگی برای متریک‌های CPU، حافظه، دیسک و شبکه هر میزبان Ceph، به‌طور پیش‌فرض روی پورت `9100`.
 
 هر دو ویژگی منبع `ceph.cluster.name` را از پردازشگر `resource` همراه بسته می‌گیرند، پس در OneUptime روی همان خوشه می‌نشینند.
+
+## آنچه صفحه‌های خوشه نشان می‌دهند
+
+**نمای کلی** خوشه سلامت آن را، **سالم**، **کاهش کارایی** یا **ناسالم**، بر اساس آنچه نیاز به توجه دارد می‌گوید و آن را زیر **نیاز به توجه**، فوری‌ترین اول، فهرست می‌کند:
+
+- **خود خوشه.** `HEALTH_WARN` یا `HEALTH_ERR` خود Ceph، با بررسی‌هایی که Ceph اعلام کرده با همان نام‌هایی که Ceph می‌گذارد، مثل `OSD_DOWN` یا `PG_DEGRADED`، و ظرفیت خام بالای ۸۵٪ (بالای ۹۵٪ بحرانی)، جایی که هشدارهای Cluster Near Full و Cluster Full فعال می‌شوند.
+- **OSDها.** OSDی که از کار افتاده اما هنوز در خوشه است بحرانی است: Placement Groupهای آن یک نسخه کم دارند. OSDی که از کار افتاده و خارج است، یا فعال اما خارج است، نیاز به بررسی دارد، همین‌طور OSDی که از نسبت nearfull در Ceph (۸۵٪) یا نسبت backfillfull (۹۰٪) گذشته، یا تأخیر اعمالش بالای ۱۰۰ ms است. بالای نسبت full (۹۵٪) نوشتن را رد می‌کند که بحرانی است.
+- **مانیتورها.** مانیتوری که خارج از حد نصاب است بحرانی است.
+- **Poolها.** Poolی که از ۸۵٪ فضای قابل نوشتنش، stored ÷ (stored + max avail)، گذشته نیاز به بررسی دارد و بالای ۹۵٪ بحرانی است. Placement Groupهای تنزل‌یافته یا ناقص نیاز به بررسی دارند؛ Placement Groupهای غیرفعال، که I/O آن‌ها گیر می‌کند، بحرانی‌اند.
+
+فهرست‌های **OSDها**، **Poolها** و **دیمن‌ها** وضعیت هر بخش را با همان قواعد نشان می‌دهند، و علت زیر آن. صفحه خود هر OSD و هر Pool می‌گوید چه چیزی در آن نیاز به توجه دارد، چه چیزی روی آن باز است و کدام هشدارهای خوشه آن را زیر نظر دارند، با یک قدم برای روشن کردن بقیه. مدیر، سرور فراداده یا درگاه شیئی که Ceph دیگر فهرست نمی‌کند، خاکستری با **گزارش‌دهی متوقف شد** نشان داده می‌شود: Ceph برای آن که از کار بیفتد بررسی‌ای اعلام می‌کند، مثل `RECENT_CRASH` یا `MDS_ALL_DOWN`، که ردیف خوشه آن را نشان می‌دهد. تا وقتی عامل قطع است، سلامت **سلامت: نامشخص** نشان داده می‌شود: آخرین گزارش خوشه دیگر درست نیست.
+
+نسبت‌های OSD مقادیر پیش‌فرض Ceph هستند. خوشه‌ای که روی مقادیر دیگری تنظیم شده، بررسی‌های `OSD_NEARFULL`، `OSD_BACKFILLFULL` و `OSD_FULL` خودش را در آستانه‌های خودش اعلام می‌کند، که ردیف خوشه آن‌ها را نشان می‌دهد.
 
 ## اختیاری — ارسال لاگ خوشه Ceph
 

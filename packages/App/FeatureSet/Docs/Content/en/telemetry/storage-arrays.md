@@ -180,7 +180,19 @@ Pure's semantic conventions are shared by the FlashArray native endpoint and bot
 | FlashBlade `/metrics/filesystems` | `purefb_file_systems_space_*`, `purefb_file_systems_performance_*` | The **File Systems** page: provisioned and used space, data reduction, latency, IOPS and bandwidth per file system |
 | FlashBlade `/metrics/objectstore` | `purefb_buckets_space_*`, `purefb_buckets_quota_space_bytes`, `purefb_buckets_object_count`, `purefb_buckets_performance_*`, `purefb_object_store_accounts_*` | The **Buckets** page: space, quota, object count and performance per bucket, grouped by account |
 
-The array's health on its **Overview** is **Critical** while it reports an open critical alert, or a hardware component, drive or controller that is critical, failed, missing or unhealthy; **Warning** while it reports an open warning alert, or a degraded or unknown component; and **OK** otherwise. In monitor criteria, the array's attributes take a `resource.` prefix (`resource.storage.array.name`, `resource.storage.system`), while the datapoint labels stay bare (`name`, `host`, `dimension`, `space`).
+The **Health** column of **All Storage Arrays** reads the array's own alerts and hardware in its latest data: **Critical** while it reports an open critical alert, or a hardware component, drive or controller that is critical, failed, missing or unhealthy; **Warning** while it reports an open warning alert, or a degraded or unknown component; **OK** otherwise; and **Unknown** while the agent is disconnected. The array's **Overview** judges more, as the next section says. In monitor criteria, the array's attributes take a `resource.` prefix (`resource.storage.array.name`, `resource.storage.system`), while the datapoint labels stay bare (`name`, `host`, `dimension`, `space`).
+
+## What the array's pages show
+
+The array's **Overview** says its health, **Healthy**, **Degraded** or **Unhealthy**, from what needs attention, and lists that under **Needs attention**, the most urgent first, each one step from where to look:
+
+- **The array itself.** An open alert the array raised with critical severity is critical, and one with warning severity needs a look. Past 80% of its usable capacity it needs a look, and past 90% it is critical, where the Capacity Above 80% and Capacity Above 90% alerts fire. A FlashArray whose average read or write latency is past 5 ms, or a FlashBlade whose reads take longer than 10 ms, needs a look.
+- **Hardware.** A component, drive, controller or network interface the array reports critical, failed, missing or unhealthy is critical: its redundancy is gone until the part is replaced. One it reports degraded, unknown, unrecognized or not ready needs a look. Parts that are not installed, powered off or unused are never listed.
+- **Hosts.** A host that no longer reaches the array through both controllers needs a look, with why: through one controller only, over uneven paths, or with no path at all.
+- **Pods.** A pod whose replica link the array reports unhealthy is critical, and one more than a minute behind needs a look.
+- **File systems.** A FlashBlade file system with less than 10% of its provisioned size left needs a look.
+
+The **Hosts**, **Replication** and **File Systems** lists say each part's state by the same rules, with why under it. A host's and a file system's own page says what about it needs attention and which of the array's alerts watch it, with one step to turn on the rest, and every part's page, a volume's and a bucket's too, says what is open on it. While the agent is disconnected, the health reads **Health Unknown**: the array's last report is no longer the truth. Every line above is the one its alert template fires at, as the [Storage Array Monitor](/docs/monitor/storage-array-monitor) lists them.
 
 ## Optional — Ship the array's syslog
 

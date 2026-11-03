@@ -133,7 +133,7 @@ Agenten skickar allt som mgr-modulen `prometheus` exporterar. OneUptimes Ceph-si
 
 | Kategori | Mätvärden |
 | --- | --- |
-| Klusterhälsa | `ceph_health_status` (0 = OK, 1 = WARN, 2 = ERR), `ceph_health_detail` (en serie per hälsokontroll, 1 medan den är aktiv och 0 när den har rensats, med etiketterna `name` och `severity`, från Quincy och framåt; grunden för larmmallarna för hälsokontroller och för översiktens **Active Health Checks**), `ceph_healthcheck_slow_ops`, `ceph_daemon_health_metrics` (per daemon, efter `type`), `ceph_mon_quorum_status`, `ceph_mon_metadata`, `ceph_cluster_total_bytes`, `ceph_cluster_total_used_bytes` |
+| Klusterhälsa | `ceph_health_status` (0 = OK, 1 = WARN, 2 = ERR), `ceph_health_detail` (en serie per hälsokontroll, 1 medan den är aktiv och 0 när den har rensats, med etiketterna `name` och `severity`, från Quincy och framåt; grunden för larmmallarna för hälsokontroller och för kontrollerna som översiktens **Kräver uppmärksamhet** visar), `ceph_healthcheck_slow_ops`, `ceph_daemon_health_metrics` (per daemon, efter `type`), `ceph_mon_quorum_status`, `ceph_mon_metadata`, `ceph_cluster_total_bytes`, `ceph_cluster_total_used_bytes` |
 | OSD | `ceph_osd_up`, `ceph_osd_in`, `ceph_osd_apply_latency_ms`, `ceph_osd_commit_latency_ms`, `ceph_osd_stat_bytes`, `ceph_osd_stat_bytes_used`, `ceph_osd_numpg`, `ceph_osd_metadata`, per OSD efter etiketten `ceph_daemon` (till exempel `osd.3`) |
 | Pool | `ceph_pool_stored`, `ceph_pool_max_avail`, `ceph_pool_objects`, `ceph_pool_rd`, `ceph_pool_wr`, `ceph_pool_rd_bytes`, `ceph_pool_wr_bytes`, `ceph_pool_metadata`. Dataserierna har bara en etikett `pool_id`; poolens namn står på `ceph_pool_metadata`. |
 | Placement groups | `ceph_pg_total`, `ceph_pg_active`, `ceph_pg_clean`, `ceph_pg_degraded`, `ceph_pg_undersized` (alla per pool, efter `pool_id`), `ceph_num_objects_degraded`, `ceph_num_objects_misplaced` |
@@ -147,6 +147,19 @@ mgr-modulen täcker klustrets hälsa och kapacitet. För en närmare titt lägge
 - **`node_exporter`.** Den vanliga följeslagaren för varje Ceph-värds CPU-, minnes-, disk- och nätverksmätvärden, på port `9100` som standard.
 
 Båda får resursattributet `ceph.cluster.name` från den medföljande processorn `resource`, så de hamnar på samma kluster i OneUptime.
+
+## Vad klustrets sidor visar
+
+Klustrets **Översikt** anger dess hälsa, **Felfri**, **Försämrad** eller **Ej felfri**, utifrån vad som behöver uppmärksamhet, och listar det under **Kräver uppmärksamhet**, det mest brådskande först:
+
+- **Klustret självt.** Cephs egen `HEALTH_WARN` eller `HEALTH_ERR`, med kontrollerna Ceph har rapporterat, namngivna som Ceph namnger dem, till exempel `OSD_DOWN` eller `PG_DEGRADED`, och rå kapacitet över 85 % (kritiskt över 95 %), där larmen Cluster Near Full och Cluster Full utlöses.
+- **OSD:er.** En OSD som är nere men fortfarande i klustret är kritisk: dess placement groups saknar en kopia. En som är nere och ute, eller uppe men ute, behöver ses över, liksom en över Cephs nearfull-gräns (85 %) eller backfillfull-gräns (90 %), eller med en apply-latens över 100 ms. Över full-gränsen (95 %) avvisar den skrivningar, vilket är kritiskt.
+- **Monitorer.** En monitor utanför kvorum är kritisk.
+- **Pooler.** En pool över 85 % av sitt skrivbara utrymme, stored ÷ (stored + max avail), behöver ses över, och över 95 % är den kritisk. Försämrade eller underbemannade placement groups behöver ses över; inaktiva, vars I/O hänger sig, är kritiska.
+
+Listorna **OSD:er**, **Pools** och **Daemoner** visar varje dels tillstånd enligt samma regler, med orsaken under. En OSD:s och en pools egen sida säger vad i den som behöver uppmärksamhet, vad som är öppet för den och vilka av klustrets larm som bevakar den, med ett steg för att slå på resten. En manager, metadataserver eller object gateway som Ceph inte längre listar visar **Slutade rapportera**, i grått: Ceph rapporterar en kontroll för en som fallerar, till exempel `RECENT_CRASH` eller `MDS_ALL_DOWN`, som klustrets rad visar. Medan agenten är frånkopplad visar hälsan **Hälsa okänd**: klustrets senaste rapport stämmer inte längre.
+
+OSD-gränserna är Cephs standardvärden. Ett kluster som är inställt på andra rapporterar sina egna kontroller `OSD_NEARFULL`, `OSD_BACKFILLFULL` och `OSD_FULL` vid sina egna gränser, som klustrets rad visar.
 
 ## Valfritt — Skicka Ceph-klusterloggen
 

@@ -170,17 +170,18 @@ function serveDaemons(names: Array<string>): void {
 }
 
 /*
- * A cluster with a large gateway fleet, in the order the table lists it:
- * managers, metadata servers, monitors, then 23 RADOS gateways.
+ * A cluster with a large gateway fleet, in the order the table lists it, by
+ * Ceph's own names for its daemons: Ceph Managers, Ceph Monitors, metadata
+ * servers, then 23 object gateways.
  */
 const THIRTY_DAEMONS: Array<string> = [
   "mgr.x",
   "mgr.y",
-  "mds.a",
-  "mds.b",
   "mon.a",
   "mon.b",
   "mon.c",
+  "mds.a",
+  "mds.b",
   ...Array.from({ length: 23 }, (_value: unknown, index: number) => {
     return `rgw.${String(index).padStart(2, "0")}`;
   }),

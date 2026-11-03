@@ -9,15 +9,24 @@ import {
 } from "./InventoryAndApiDocsSupport";
 import { CONTROLLER_READ_TEMPLATE } from "../../../FeatureSet/Dashboard/src/Components/Inventory/AssetFactSourceText";
 import {
+  CONTROLLER_LATE,
+  CONTROLLER_LATE_LINK,
   PROBE_COULD_NOT_REACH,
   READ_AGAIN,
   REFRESH_TITLE,
+  RefreshStatusLinkKind,
+  RefreshStatusWords,
   WAITING_FOR_BOTH,
   WAITING_FOR_CONTROLLER,
   WAITING_FOR_PROBE,
   getRefreshStatusWords,
 } from "../../../FeatureSet/Dashboard/src/Components/NetworkDevice/NetworkDeviceRefreshWords";
+import {
+  MERAKI_CONNECTIONS_ANCHOR,
+  getMerakiConnectionsRoute,
+} from "../../../FeatureSet/Dashboard/src/Components/NetworkTraffic/Meraki/MerakiUrlState";
 import { DESCRIBED_DEVICES_NOTE } from "../../../FeatureSet/Dashboard/src/Components/NetworkTraffic/Meraki/MerakiWords";
+import Route from "Common/Types/API/Route";
 import NetworkDevice from "Common/Models/DatabaseModels/NetworkDevice";
 import {
   ControllerInventoryCandidate,
@@ -41,6 +50,7 @@ import {
   getNetworkDeviceFactDetails,
 } from "Common/Utils/NetworkDevice/NetworkDeviceAssetFacts";
 import {
+  NETWORK_DEVICE_REFRESH_GIVE_UP_MS,
   NETWORK_DEVICE_REFRESH_POLL_AT,
   NetworkDeviceRefreshAnswer,
   NetworkDeviceRefreshProgress,
@@ -73,6 +83,8 @@ const REFRESH_HOOK: string = `${DASHBOARD_APP}/Components/NetworkDevice/useNetwo
 const DEVICE_INVENTORY_CARD: string = `${DASHBOARD_APP}/Components/NetworkDevice/DeviceInventoryCard.tsx`;
 const ASSET_DETAILS_CARD: string = `${DASHBOARD_APP}/Components/Inventory/InventoryAssetDetailsCard.tsx`;
 const MERAKI_CONNECTIONS_CARD: string = `${DASHBOARD_APP}/Components/NetworkTraffic/Meraki/MerakiConnectionsCard.tsx`;
+const DEVICE_OVERVIEW_PAGE: string = `${DASHBOARD_APP}/Pages/NetworkDevice/View/Index.tsx`;
+const REFRESH_STATUS: string = `${DASHBOARD_APP}/Components/NetworkDevice/NetworkDeviceRefreshStatus.tsx`;
 const REFRESH_API: string = "Common/Server/API/NetworkDeviceRefreshAPI.ts";
 const BASE_API: string = "App/FeatureSet/BaseAPI/Index.ts";
 
@@ -654,6 +666,88 @@ describe("Refresh, as the pages describe it", () => {
         "The card says when the new reading has landed, or that the probe could not reach the device",
       );
     }
+  });
+
+  /*
+   * Once the reading is in, the device's Overview reads the device again
+   * for its health and its Device Details card (the Inventory card's
+   * onRead), not only the Inventory card.
+   */
+  it("reads the device's health and its Device Details card again once the new reading lands", () => {
+    const overview: string = readRepoFile(DEVICE_OVERVIEW_PAGE);
+
+    expect(readRepoFile(DEVICE_INVENTORY_CARD)).toContain(
+      "onRead: props.onRead,",
+    );
+    expect(overview).toContain("<DeviceInventoryCard");
+    expect(overview).toContain("setReadAgainCount(");
+    expect(overview).toContain(
+      "<DeviceStatusHero modelId={modelId} refreshKey={readAgainCount} />",
+    );
+    expect(overview).toContain('title: "Device Details",');
+    expect(overview).toContain("refresher: readAgainCount % 2 === 1,");
+
+    expect(deviceIdentity()).toContain(
+      `Once the new reading lands, the device's health and its ${bold("Device Details")} card show it too.`,
+    );
+  });
+
+  /*
+   * Three minutes on, a refresh that waits on the Meraki dashboard alone
+   * says so and links to the connection, at the foot of the network's
+   * Traffic page: its row says why. One still waiting on its probe names
+   * the probe instead, with no link.
+   */
+  it("says when only the Meraki dashboard is still to be read after three minutes, with a link to the connection on the Traffic page", () => {
+    expect(NETWORK_DEVICE_REFRESH_GIVE_UP_MS).toBe(3 * 60 * 1000);
+
+    const late: RefreshStatusWords | undefined = getRefreshStatusWords({
+      answer: answer,
+      standing: {
+        progress: NetworkDeviceRefreshProgress.Late,
+        isProbePending: false,
+        isControllerPending: true,
+      },
+    });
+
+    expect(late?.template).toBe(CONTROLLER_LATE);
+    expect(late?.link).toEqual({
+      title: CONTROLLER_LATE_LINK,
+      kind: RefreshStatusLinkKind.MerakiConnections,
+    });
+    expect(CONTROLLER_LATE_LINK).toBe("See the Meraki connection");
+    expect(
+      getRefreshStatusWords({
+        answer: answer,
+        standing: {
+          progress: NetworkDeviceRefreshProgress.Late,
+          isProbePending: true,
+          isControllerPending: true,
+        },
+      })?.link,
+    ).toBeUndefined();
+
+    // The link: the network's Traffic page, on its Meraki side, at the connections.
+    expect(readRepoFile(REFRESH_STATUS)).toContain(
+      "getMerakiConnectionsRoute(",
+    );
+    expect(readRepoFile(REFRESH_STATUS)).toContain(
+      "RouteMap[PageMap.NETWORK_TRAFFIC]",
+    );
+    expect(
+      getMerakiConnectionsRoute(
+        new Route("/dashboard/p/network-devices/traffic"),
+      ).toString(),
+    ).toBe(
+      `/dashboard/p/network-devices/traffic?source=meraki#${MERAKI_CONNECTIONS_ANCHOR}`,
+    );
+    expect(readRepoFile(MERAKI_CONNECTIONS_CARD)).toContain(
+      "<div id={MERAKI_CONNECTIONS_ANCHOR}",
+    );
+
+    expect(deviceIdentity()).toContain(
+      `If three minutes later only the Meraki dashboard has still not been read, the card says so, with a link to the Meraki connection on the network's ${bold("Traffic")} page, whose row says why.`,
+    );
   });
 });
 

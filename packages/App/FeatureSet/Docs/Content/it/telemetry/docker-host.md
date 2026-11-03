@@ -154,6 +154,16 @@ Le metriche e i log di ogni container vengono archiviati sotto un servizio con i
 
 [Monitor Docker](/docs/monitor/docker-monitor#metriche-raccolte) elenca ogni metrica e il suo significato.
 
+## Cosa mostrano le pagine dell'host
+
+Le pagine dell'host giudicano ogni container con le stesse regole, così la panoramica, l'elenco dei container e la pagina di un container sono sempre d'accordo:
+
+- **Panoramica**: lo stato dell'host accanto alla sua connessione, e **Richiede attenzione**: i container guasti o da controllare, i più urgenti per primi, ognuno con il motivo. Un container che la sua politica di riavvio ha riavviato più di 3 volte in 15 minuti è in un ciclo di riavvii; uno che si è riavviato, usa più dell'85% della sua memoria o è stato in esecuzione per 10 minuti o più e poi ha smesso di segnalare va controllato.
+- **Contenitori**: lo stato di ogni container con le stesse parole e gli stessi colori, con il motivo, i suoi riavvii degli ultimi 15 minuti e quando è stato avviato l'ultima volta. Un container che si è fermato resta nell'elenco per 15 minuti dopo l'ultima lettura: **Ha smesso di segnalare** per uno che è stato in esecuzione per 10 minuti o più, **Non segnala** in grigio per un job o un'esecuzione una tantum terminata.
+- La pagina di un container: cosa va controllato su di esso, la sua CPU, la sua memoria e i suoi riavvii, cosa è aperto su di esso, gli avvisi del container con un passaggio per attivarli e ciò che l'agente segnala su di esso.
+
+L'agente legge solo i container in esecuzione, quindi un container già fermo all'avvio dell'agente, un codice di uscita e l'esito di un controllo di salute non compaiono.
+
 ## I log dei container richiedono il driver json-file
 
 L'agent segue `/var/lib/docker/containers/*/*-json.log`, i file che scrive il driver di log `json-file` di Docker. Un container che usa un altro driver non lascia alcun file da leggere: `local` scrive file binari, e `journald`, `syslog`, `fluentd` e `gelf` inviano i log altrove. Le sue metriche arrivano comunque; i suoi log no.

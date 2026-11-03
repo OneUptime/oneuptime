@@ -2,9 +2,11 @@
 
 Docker Swarm 모니터는 Swarm 클러스터의 서비스 작업 뒤에 있는 컨테이너를 감시하고, 작업이 다시 시작되거나 과열되거나 메모리가 부족해지면 알려 줍니다. OneUptime Docker Swarm 에이전트가 보내는 컨테이너 메트릭을 읽으므로 외부에서 아무것도 탐색하지 않습니다. 에이전트를 설치한 다음 템플릿이나 직접 만든 쿼리로 모니터를 만드세요.
 
+파일 버전 0.161.3부터 에이전트는 Swarm 자체의 상태도 매분 보내므로, 모니터가 노드와 서비스 자체도 감시할 수 있습니다. 준비되지 않은 노드나, 원하는 수보다 적은 레플리카를 실행하는 서비스입니다.
+
 :::cards
 - [모니터 만들기](#docker-swarm-모니터-만들기): 대시보드에서 6단계.
-- [템플릿](#미리-만들어진-알림-템플릿): 작업마다 인시던트 하나를 여는 5개의 미리 만들어진 알림.
+- [템플릿](#미리-만들어진-알림-템플릿): 기본 제공 알림 7개, 노드, 서비스 또는 작업마다 인시던트 하나.
 - [메트릭](#수집되는-메트릭): 알림에 쓸 수 있는 컨테이너 메트릭.
 - [필터](#모니터-설정): 모니터를 서비스, 작업, 이미지로 좁힙니다.
 :::
@@ -12,6 +14,8 @@ Docker Swarm 모니터는 Swarm 클러스터의 서비스 작업 뒤에 있는 �
 ## 작동 방식
 
 OneUptime Docker Swarm 에이전트는 매니저 노드에서 실행됩니다. 그 수집기는 30초마다 해당 노드의 Docker 데몬에서 컨테이너 통계를 읽고, 각 배치에 클러스터 이름 `docker.swarm.cluster.name`을 찍으며, 각 작업의 메트릭에는 그 작업의 서비스와 노드를 찍습니다. 옆에서 실행되는 작은 인벤토리 폴러는 5분마다 Swarm API에서 클러스터의 노드, 서비스, 작업을 읽습니다. 첫 데이터가 클러스터를 OneUptime에 등록합니다.
+
+폴러는 매분 매니저에서 각 노드가 준비되었는지와 각 서비스가 원하는 레플리카 수와 실행 중인 레플리카 수도 읽어 메트릭으로 보냅니다. 그래서 **Node Not Ready** 와 **Service Replicas Mismatch** 는 문제가 있는 노드나 서비스를 5분이 아니라 1~2분 안에 알게 됩니다.
 
 수집기는 자신이 실행되는 노드의 컨테이너만 봅니다. 모든 노드의 메트릭을 받으려면 같은 `DOCKER_SWARM_CLUSTER_NAME`으로 각 노드에서 수집기를 실행하세요.
 
@@ -92,15 +96,17 @@ flowchart TB
 
 ## 미리 만들어진 알림 템플릿
 
-**알림 대상** 목록에는 템플릿이 5개 있습니다. 각각 완전한 모니터를 만듭니다. 쿼리, 작동하는 기준, 회복하는 기준입니다. **Cluster Stopped Reporting** 을 제외한 모든 템플릿은 쿼리를 `resource.container.name`으로 그룹화하므로, 작업은 하나씩 판단되며 각자 인시던트와 알림을 받고, 그 근본 원인에는 영향받은 작업과 그 값이 나열됩니다. 임계값은 출발점이므로 편집할 수 있습니다.
+**알림 대상** 목록에는 템플릿 7개가 있습니다. 각 템플릿은 쿼리, 발생하는 조건, 복구되는 조건으로 이루어진 완전한 모니터를 만듭니다. **Node Not Ready** 는 쿼리를 노드 `resource.docker.swarm.node.name` 별로, **Service Replicas Mismatch** 는 서비스 `resource.docker.swarm.service.name` 별로, 작업 템플릿은 `resource.container.name` 별로 그룹화하므로 노드, 서비스, 작업이 각각 따로 판단되고 각자의 인시던트와 알림을 받으며, 그 근본 원인에는 영향을 받은 대상과 값이 나열됩니다. 임계값은 수정할 수 있는 시작점입니다.
 
-이 템플릿들은 Swarm 의 작업만 읽습니다. 노드에서 다른 방식으로 시작된 컨테이너(에이전트 자신의 컨테이너 포함)는 제외됩니다. **Custom Metric** 또는 **고급** 쿼리는 에이전트가 보고하는 모든 컨테이너를 읽으며, **서비스 이름** 필터로 한 서비스의 작업으로 좁힐 수 있습니다.
+작업 템플릿은 또한 Swarm의 작업만 읽습니다. 노드에서 다른 방법으로 시작된 컨테이너(에이전트 자신의 것 포함)는 제외됩니다. **Custom Metric** 또는 **고급** 쿼리는 에이전트가 보고하는 모든 컨테이너를 읽으며, **서비스 이름** 필터로 한 서비스의 작업으로 좁힐 수 있습니다.
 
 표에 달리 적혀 있지 않으면, 기준은 기간의 매분 조건이 유지될 때만 작동하고 임계값에서 10% 지난 지점에서 회복하므로 경계 근처를 오가는 값 때문에 깜빡이지 않습니다.
 
 | 템플릿 | 심각도 | 감시 대상 | 작동 조건 | 회복 조건 |
 | --- | --- | --- | --- | --- |
 | Cluster Stopped Reporting | 심각 | `container.memory.percent`, 클러스터의 모든 컨테이너에 대한 Count, 최근 10분 | 기간 내내 데이터 없음 | 데이터가 다시 들어옴 |
+| Node Not Ready | 심각 | `docker.swarm.node.ready`, `resource.docker.swarm.node.name` 별 Min, 최근 5분 | 1 미만 | 1과 같음 |
+| Service Replicas Mismatch | 경고 | `docker.swarm.service.replicas.desired` − `docker.swarm.service.replicas.running` (둘 다 Avg), `resource.docker.swarm.service.name` 별, 최근 15분 | 0 초과 | 0 이하 |
 | Task Down (Low Uptime) | 심각 | `container.uptime`, 작업별 Min, 최근 1분 | 값 중 하나가 60초 미만 | 모든 값이 66초 이상 |
 | High Task CPU Usage | 경고 | `container.cpu.utilization`, 작업별 Avg, 최근 5분 | 80 초과(코어 하나 기준 %) | 72 이하 |
 | High Task Memory Usage | 경고 | `container.memory.percent`, 작업별 Avg, 최근 5분 | 85% 초과 | 76.5% 이하 |
@@ -114,9 +120,14 @@ flowchart TB
 > [!NOTE]
 > **Task Down (Low Uptime)** 템플릿은 재시작이 수준이 아니라 이벤트이므로 새로 생긴 샘플 하나에도 작동합니다. Swarm은 대체 작업에 새 컨테이너, 즉 새 계열을 주므로, 템플릿은 0이 아니라 1분 미만의 가동 시간을 찾습니다. 배포나 확장도 이것을 작동시키며, 새 작업들의 가동 시간이 1분을 넘으면 해제됩니다. 종료되고 대체되지 않은 작업은 아무것도 보내지 않으므로 잡히지 않습니다.
 
+> [!NOTE]
+> **Node Not Ready** 와 **Service Replicas Mismatch** 는 파일 버전 0.161.3부터 에이전트의 인벤토리 폴러가 매니저에서 보내는 시계열을 읽습니다. 그보다 오래된 에이전트는 둘 다 보내지 않으므로 두 템플릿은 읽을 것이 없어 발생하지 않습니다. [에이전트를 업그레이드하세요](/docs/telemetry/docker-swarm#에이전트-업그레이드). 에이전트가 뒤처져 있으면 클러스터 개요의 버전 옆에 표시가 나타납니다. Service Replicas Mismatch는 15분을 기다리므로, 서비스의 작업을 조금씩 교체하는 롤링 업데이트로는 호출되지 않습니다. 잡 서비스는 작업을 끝까지 실행하고 모자랄 레플리카가 없으므로 제외됩니다.
+
 ## 수집되는 메트릭
 
 에이전트의 수집기는 OpenTelemetry `docker_stats` 수신기를 쓰므로, 메트릭은 작업 컨테이너마다 계열 하나인 표준 컨테이너 메트릭입니다. `docker_swarm_*` 메트릭은 없습니다. 노드, 서비스, 작업은 인벤토리로 추적되며 클러스터의 **서비스**, **작업**, **노드** 및 관련 페이지에 표시됩니다.
+
+이와 함께 파일 버전 0.161.3부터 에이전트의 인벤토리 폴러는 Swarm 자체의 상태를 매분 보냅니다. [Swarm](#swarm) 아래의 메트릭 세 개입니다.
 
 ### CPU
 
@@ -146,6 +157,16 @@ flowchart TB
 | `container.uptime` | 초 | 작업 컨테이너가 실행된 시간. 다시 예약되거나 다시 시작된 작업은 새 컨테이너를 0부터 시작합니다. |
 
 각 계열은 컨테이너의 신원을 리소스 속성으로 가집니다: `resource.container.name`(`<service>.<slot>.<taskid>`), `resource.container.image.name`, `resource.docker.swarm.service.name`, `resource.docker.swarm.node.id`, `resource.docker.swarm.node.name`(에이전트가 노드 이름을 알 때), `resource.docker.swarm.cluster.name`.
+
+### Swarm
+
+| 메트릭 | 단위 | 설명 |
+| --- | --- | --- |
+| `docker.swarm.node.ready` | — | 매니저가 보는 노드의 준비 여부. 준비된 동안 1, 다운되었거나 연결이 끊겼거나 알 수 없는 동안 0. 노드마다 시계열 하나. |
+| `docker.swarm.service.replicas.desired` | count | 복제 또는 전역 서비스가 실행하려는 작업. 그 레플리카 수, 전역 서비스라면 실행해야 할 노드 수. 서비스마다 시계열 하나. |
+| `docker.swarm.service.replicas.running` | count | 서비스의 작업 중 실행 중인 것. 원하는 수보다 적으면 서비스의 레플리카가 부족합니다. |
+
+노드의 시계열에는 `resource.docker.swarm.node.name`, `resource.docker.swarm.node.id`, `resource.docker.swarm.node.role` 이, 서비스의 시계열에는 `resource.docker.swarm.service.name`, `resource.docker.swarm.service.mode`, 스택 안이라면 `resource.docker.swarm.stack.namespace` 가 붙습니다. 둘 다 `resource.docker.swarm.cluster.name` 이 붙습니다.
 
 ## 모니터링 기준
 
@@ -193,6 +214,10 @@ flowchart TB
 
 :::details 모든 작업이 하나의 계열로 보임
 템플릿처럼 리소스 속성 `resource.container.name`으로 그룹화하세요. 접두사 없는 `container.name`은 아무것과도 일치하지 않으므로, 모든 작업이 이름이 빈 계열 하나로 합쳐집니다.
+:::
+
+:::details Node Not Ready 또는 Service Replicas Mismatch가 전혀 발생하지 않음
+둘 다 파일 버전 0.161.3부터 에이전트의 인벤토리 폴러가 보내는 시계열을 매니저에서만 읽습니다. [에이전트를 업그레이드하고](/docs/telemetry/docker-swarm#에이전트-업그레이드) 인벤토리 폴러가 매니저에서 실행되는지 확인하세요(그곳에서 `docker node ls` 가 성공해야 합니다). 클러스터의 **메트릭** 페이지에서 `docker.swarm.node.ready` 가 들어오는지 볼 수 있습니다.
 :::
 
 ## 다음 단계

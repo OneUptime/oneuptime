@@ -156,12 +156,15 @@ test.describe.skip("Docker Swarm Product Onboarding", () => {
     await page.getByTestId("alert-template-change").click();
 
     /*
-     * Every template DockerSwarmTemplatePicker renders — all 5 from
+     * Every template DockerSwarmTemplatePicker renders — all 7 from
      * Common/Types/Monitor/DockerSwarmAlertTemplates.ts across the
-     * Availability / Resource / Container categories.
+     * Availability / Resource / Container categories, the swarm's own
+     * state (Node Not Ready, Service Replicas Mismatch) among them.
      */
     const expectedTemplateNames: Array<string> = [
       "Cluster Stopped Reporting",
+      "Node Not Ready",
+      "Service Replicas Mismatch",
       "Task Down (Low Uptime)",
       "High Task CPU Usage",
       "High Task Memory Usage",

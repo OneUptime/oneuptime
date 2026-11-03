@@ -187,6 +187,91 @@ describe("a Docker or Podman host", () => {
     expect(issueIds(graph, "container:broken")).toEqual(["by-name"]);
   });
 
+  test("by the host's rules: a service that stopped needs a look, a job that finished is off", () => {
+    const minutesAgo: (minutes: number) => Date = (minutes: number): Date => {
+      return new Date(NOW.getTime() - minutes * 60 * 1000);
+    };
+    const quiet: ResourceTopologyGraph = buildContainerHostTopology({
+      product: "docker",
+      host: { id: "host-row", name: "docker-01", lastSeenAt: FRESH },
+      rows: [
+        {
+          kind: "Container",
+          name: "api",
+          state: "running",
+          metricsUpdatedAt: FRESH,
+          resourceCreationTimestamp: minutesAgo(120),
+          latestCpuPercent: 7,
+        },
+        {
+          kind: "Container",
+          name: "billing",
+          state: "running",
+          metricsUpdatedAt: minutesAgo(6),
+          resourceCreationTimestamp: minutesAgo(180),
+          latestCpuPercent: 40,
+        },
+        {
+          kind: "Container",
+          name: "migrate",
+          state: "running",
+          metricsUpdatedAt: minutesAgo(6),
+          resourceCreationTimestamp: minutesAgo(7),
+        },
+        {
+          kind: "Container",
+          name: "seed",
+          state: "running",
+          metricsUpdatedAt: minutesAgo(6),
+          resourceCreationTimestamp: minutesAgo(60),
+          labels: { "com.docker.compose.oneoff": "True" },
+        },
+      ],
+      now: NOW,
+    });
+
+    expect(node(quiet, "container:api").health).toBe("healthy");
+    expect(node(quiet, "container:api").status?.text).toBe("Running");
+
+    // A service that ran for hours and went quiet while api still reports.
+    expect(node(quiet, "container:billing").health).toBe("warning");
+    expect(node(quiet, "container:billing").status?.text).toBe(
+      "Stopped reporting",
+    );
+    expect(node(quiet, "container:billing").reasons).toEqual([
+      { text: "Stopped reporting" },
+    ]);
+    // Its last CPU reading is not what it uses now.
+    expect(node(quiet, "container:billing").facts).toEqual([]);
+
+    // A short job, and a Compose one-off, that finished: off, not a problem.
+    expect(node(quiet, "container:migrate").health).toBe("off");
+    expect(node(quiet, "container:migrate").status?.text).toBe("Not reporting");
+    expect(node(quiet, "container:seed").health).toBe("off");
+  });
+
+  test("a host whose agent went quiet does not read as every container stopping", () => {
+    const old: Date = new Date(NOW.getTime() - 20 * 60 * 1000);
+    const quietHost: ResourceTopologyGraph = buildContainerHostTopology({
+      product: "docker",
+      host: { id: "host-row", name: "docker-01", lastSeenAt: old },
+      rows: [
+        {
+          kind: "Container",
+          name: "api",
+          state: "running",
+          metricsUpdatedAt: old,
+          resourceCreationTimestamp: new Date(old.getTime() - 3600_000),
+        },
+      ],
+      now: NOW,
+    });
+
+    // No reading for 20 minutes: no data, rather than a stopped service.
+    expect(node(quietHost, "container:api").health).toBe("unknown");
+    expect(node(quietHost, CONTAINER_HOST_ROOT_ID).health).toBe("warning");
+  });
+
   test("a Podman host reads the same way, with its own pages", () => {
     const podman: ResourceTopologyGraph = buildContainerHostTopology({
       product: "podman",
@@ -250,6 +335,7 @@ describe("a Docker Swarm cluster", () => {
         kind: "Service",
         externalId: "s2",
         name: "monitoring",
+        desiredReplicas: 3,
         runningReplicas: 3,
       }),
       swarmRow({
@@ -324,14 +410,55 @@ describe("a Docker Swarm cluster", () => {
     expect(nodes.nodes.has("service:s1")).toBe(false);
   });
 
-  test("health: replicas short, a failed task, a draining node", () => {
+  /*
+   * By the swarm's rules (DockerSwarmHealth), as its Overview and lists
+   * say them: a failed task is a warning - Swarm replaces it, and its
+   * service's shortfall is what is down - with Docker's own error after
+   * the word; a drained node is routine, grey.
+   */
+  test("health by the swarm's rules: replicas short, a failed task, a drained node", () => {
     expect(node(topology.services, "service:s1").health).toBe("warning");
     expect(node(topology.services, "service:s2").health).toBe("healthy");
-    expect(node(topology.services, "task:t2").health).toBe("critical");
+    expect(node(topology.services, "task:t2").health).toBe("warning");
     expect(node(topology.services, "task:t2").reasons).toEqual([
+      { text: "Failed" },
       { text: "no suitable node" },
     ]);
-    expect(node(topology.nodes, "node:n2").health).toBe("warning");
+    expect(node(topology.nodes, "node:n2").health).toBe("off");
+  });
+
+  /*
+   * A service's card counts its replicas once: its status already says
+   * "2 of 3 running", so no Replicas fact says 2/3 again beside it. In a
+   * rolling update its status reads Updating, and the fact still counts
+   * them.
+   */
+  test("a service's card counts its replicas once: in its status, or as a fact while it updates", () => {
+    const short: ResourceTopologyNode = node(topology.services, "service:s1");
+    expect(short.status).toEqual({
+      text: "{{running}} of {{desired}} running",
+      values: { running: "2", desired: "3" },
+    });
+    expect(short.facts || []).toEqual([]);
+
+    const updating: ResourceTopologyGraph = buildDockerSwarmTopology({
+      cluster: { id: "swarm-row", name: "swarm-prod", lastSeenAt: FRESH },
+      rows: [
+        swarmRow({
+          kind: "Service",
+          externalId: "s9",
+          name: "shop_api",
+          desiredReplicas: 3,
+          runningReplicas: 2,
+          attributes: { updateState: "updating" },
+        }),
+      ],
+      now: NOW,
+    }).services;
+    expect(node(updating, "service:s9").status).toEqual({ text: "Updating" });
+    expect(node(updating, "service:s9").facts).toEqual([
+      { label: "Replicas", value: "2/3", tone: "warning" },
+    ]);
   });
 
   test("open issues land on the service or node their labels name", () => {
@@ -614,7 +741,8 @@ describe("a storage array", () => {
       id: "array-row",
       name: "flasharray-01",
       lastSeenAt: FRESH,
-      openAlertCount: 1,
+      openAlertCount: 2,
+      warningAlertCount: 1,
     },
     rows: [
       arrayRow({
@@ -680,14 +808,50 @@ describe("a storage array", () => {
     expect(node(graph, STORAGE_ARRAY_HARDWARE_ID).isSection).toBe(true);
   });
 
+  // By the rules the array's own pages use (StorageArrayHealth).
   test("statuses read the way the array's own pages read them", () => {
     expect(node(graph, "drive:d7").health).toBe("critical");
     expect(node(graph, "host:h2").health).toBe("warning");
     expect(node(graph, "controller:ct0").health).toBe("healthy");
-    // An open alert on the array itself.
+    // A warning alert open on the array itself; the other is informational.
     expect(node(graph, STORAGE_ARRAY_ROOT_ID).health).toBe("warning");
+    expect(node(graph, STORAGE_ARRAY_ROOT_ID).reasons).toEqual([
+      {
+        text: "{{count}} warning alerts open",
+        plural: { one: "{{count}} warning alert open", count: 1 },
+      },
+    ]);
     expect(storageArrayStatusHealth("Not Ready")).toBe("warning");
     expect(storageArrayStatusHealth("")).toBeNull();
+  });
+
+  test("a host that lost a path and a pod more than a minute behind need a look, with why", () => {
+    const behind: ResourceTopologyGraph = buildStorageArrayTopology({
+      array: { id: "array-row", name: "flasharray-01", lastSeenAt: FRESH },
+      rows: [
+        arrayRow({
+          kind: "Host",
+          externalId: "h3",
+          name: "esx-03",
+          status: "critical",
+          statusDetail: "Single Controller",
+        }),
+        arrayRow({
+          kind: "Pod",
+          externalId: "pod-lag",
+          name: "pod-lag",
+          status: "replicating",
+          replicationLagMs: 120000,
+        }),
+      ],
+      now: NOW,
+    });
+    expect(node(behind, "host:h3").health).toBe("warning");
+    expect(node(behind, "host:h3").reasons).toEqual([
+      { text: "Reaches the array through one controller only" },
+    ]);
+    expect(node(behind, "pod:pod-lag").health).toBe("warning");
+    expect(node(behind, STORAGE_ARRAY_ROOT_ID).health).toBe("healthy");
   });
 
   test("component_name and host place an issue", () => {
