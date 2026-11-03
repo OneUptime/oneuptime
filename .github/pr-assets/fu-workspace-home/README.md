@@ -13,18 +13,26 @@ Microsoft Teams:
   Home of the project they switched to last (else the first connected) without asking which, with
   one button naming the other project.
 - `teams-home-two-switched-*`: after pressing it. The same card is drawn again for that project.
+- `teams-home-two-long-*`: two projects, the other with a long name: the one button names it, cut by
+  Teams where a phone has no room.
 - `teams-home-many-*`: four projects, one with a long name. A **Switch project** list and a
   **Switch** button beside it (shown open). A name over 75 characters is cut with an ellipsis.
 - `teams-home-long-switched-*`: the Home of the long-named project after switching to it.
+- `teams-home-many-empty-press-*`: **Switch** pressed with nothing chosen: the list says "Choose a
+  project to switch to." and nothing is sent.
 - `teams-home-switch-refused-*`: a switch to a project the person was removed from meanwhile. The
   Home they had is drawn again, with why the switch was not made.
 - `teams-home-blocked-*`: the project the Home opens on is blocked. Greeted by first name, the
   project named, why, and the list to switch to another.
+- `teams-home-blocked-two-*`: the same with one other project: why, then the button that names it.
 - `teams-switch-not-connected-*`: somebody connected nowhere presses Switch on another person's
-  Home in a group chat. Told only them; the Home stays.
+  Home in a group chat. A reply that mentions them says how to connect, in the words their own
+  `home` gets; the Home stays.
 - `teams-welcome-two-*`: the welcome of somebody in two projects is their Home.
 - `teams-answer-chosen-*`: a question answered in the project chosen for it. "Answered in" names
   the project, and **Ask in another project** waits by the compose box.
+- `teams-answer-group-*`: the same in a group chat, which shows no suggested action: the note says
+  to @mention the bot with **Ask in another project** to ask it elsewhere.
 - `teams-ask-other-two-*`: tapping it with one other project: asked there at once.
 - `teams-ask-other-three-*`: with two others: which of them, the question quoted.
 - `teams-ask-other-none-*`: no recent question to ask again.
