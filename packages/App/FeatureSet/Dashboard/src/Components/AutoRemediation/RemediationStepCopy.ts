@@ -5,7 +5,10 @@ import {
   RemediationTryAgainSignal,
 } from "Common/Types/AutoRemediation/RemediationTryAgain";
 import { AutomaticCodeFixBlocker } from "Common/Utils/Suggestions/InvestigationCodeFixSuggestion";
-import { translationKey } from "Common/UI/Utils/TranslateTemplate";
+import {
+  PluralTemplate,
+  translationKey,
+} from "Common/UI/Utils/TranslateTemplate";
 
 /*
  * THE WORDS OF THE AI CARD'S REMEDIATION STEP (block 43), as English
@@ -236,3 +239,38 @@ export const REMEDIATION_CODE_FIX_REASONS_WITH_SETTINGS_LINK: ReadonlyArray<Auto
     AutomaticCodeFixBlocker.NoMatchingRule,
     AutomaticCodeFixBlocker.PullRequestOff,
   ];
+
+/*
+ * A FIX OF COMMANDS OR CHANGES, FOLDED TO ITS SENTENCE (#5413's UI review:
+ * a lighter fixes block). Every command of a fix drew its program, its
+ * facts, its command, why, what it should do and its undo, and every change
+ * its arguments and the server's answer, so three fixes were a page of
+ * their own on a phone, with Approve & Run under all of it. Folded, a fix
+ * says where it stands and its sentence - how many commands it runs, and
+ * where; how many changes it makes, and through which servers - and its
+ * commands, its reasoning and Approve & Run are one press away: Review and
+ * approve, as its message in Slack and Microsoft Teams says it.
+ */
+export const REMEDIATION_FIX_COMMANDS_SENTENCE: PluralTemplate = {
+  one: translationKey("{{count}} command on {{targets}}."),
+  other: translationKey("{{count}} commands on {{targets}}."),
+};
+
+export const REMEDIATION_FIX_CHANGES_SENTENCE: PluralTemplate = {
+  one: translationKey("{{count}} change through {{servers}}."),
+  other: translationKey("{{count}} changes through {{servers}}."),
+};
+
+// How many of a fix's commands or changes failed, beside where it stands.
+export const REMEDIATION_FIX_FAILED_COUNT: PluralTemplate = {
+  one: translationKey("{{count}} failed"),
+  other: translationKey("{{count}} failed"),
+};
+
+// What opens a folded fix, and folds it again.
+export const REMEDIATION_FIX_REVIEW_AND_APPROVE: string =
+  translationKey("Review and approve");
+export const REMEDIATION_FIX_SHOW_DETAILS: string =
+  translationKey("Show details");
+export const REMEDIATION_FIX_HIDE_DETAILS: string =
+  translationKey("Hide details");

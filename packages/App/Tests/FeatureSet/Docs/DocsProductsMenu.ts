@@ -1,5 +1,7 @@
 import { dashboardLocale, drawnDashboardLabel } from "./DocsDashboardLabels";
 import { PATH_SEPARATOR } from "./DocsPageShape";
+import fs from "fs";
+import path from "path";
 
 /*
  * How a docs page names a product of the Dashboard's Products menu, and a
@@ -101,9 +103,103 @@ export const PRODUCTS_MENU_GROUP_KEYS: Readonly<Record<string, string>> = {
   AI: "navbar.categories.ai",
   Code: "navbar.categories.code",
   Observability: "navbar.categories.observability",
+  // The group Security Events and Data Security are filed under.
+  Security: "navbar.categories.security",
   // The group Users, Teams and Project Settings are filed under.
   Settings: "navbar.categories.settings",
 };
+
+const NAVIGATION_ITEMS_FILE: string = path.join(
+  __dirname,
+  "..",
+  "..",
+  "..",
+  "FeatureSet",
+  "Dashboard",
+  "src",
+  "Utils",
+  "NavigationItems.tsx",
+);
+
+// `const securityCategory: string = t("navbar.categories.security", ...`
+const CATEGORY_DECLARATION: RegExp =
+  /const (\w+)Category: string = t\(\s*"(navbar\.categories\.\w+)"/g;
+
+// A product's group in the catalog: `category: securityCategory,`
+const CATEGORY_OF_PRODUCT: RegExp = /category: (\w+)Category,/g;
+
+/*
+ * The navbar keys of the Products menu's groups, in the order the menu lists
+ * them. The menu lists a group where its first product is in the catalog
+ * (Utils/NavigationItems.tsx), so this reads the catalog's own
+ * `category: ...Category` lines in order, and each one's key from where the
+ * catalog declares it.
+ */
+export function productsMenuGroupKeys(): Array<string> {
+  const source: string = fs.readFileSync(NAVIGATION_ITEMS_FILE, "utf8");
+  const keyOf: Map<string, string> = new Map();
+
+  for (const match of source.matchAll(CATEGORY_DECLARATION)) {
+    keyOf.set(match[1] as string, match[2] as string);
+  }
+
+  const keys: Array<string> = [];
+
+  for (const match of source.matchAll(CATEGORY_OF_PRODUCT)) {
+    const key: string | undefined = keyOf.get(match[1] as string);
+
+    if (!key) {
+      throw new Error(`No navbar key for ${match[1]}Category`);
+    }
+
+    if (!keys.includes(key)) {
+      keys.push(key);
+    }
+  }
+
+  return keys;
+}
+
+// A parenthesis of prose, in Latin or full-width brackets.
+const PARENTHESIS: RegExp = /[(（]([^)）]*)[)）]/g;
+
+/*
+ * The names a page's list of groups leaves out, or gives out of their
+ * order. The list is the first parenthesis that holds the first name -
+ * "Every other group (Observability, Security, AI, ...)" - read with a
+ * cursor, so each name has to come after the one before it.
+ */
+export function namesMissingOrOutOfOrder(
+  prose: string,
+  names: Array<string>,
+): Array<string> {
+  const list: string | undefined = Array.from(prose.matchAll(PARENTHESIS))
+    .map((match: RegExpMatchArray): string => {
+      return match[1] as string;
+    })
+    .find((parenthesis: string): boolean => {
+      return parenthesis.includes(names[0] as string);
+    });
+
+  if (list === undefined) {
+    return [...names];
+  }
+
+  const misplaced: Array<string> = [];
+  let cursor: number = 0;
+
+  for (const name of names) {
+    const at: number = list.indexOf(name, cursor);
+
+    if (at === -1) {
+      misplaced.push(name);
+    } else {
+      cursor = at + name.length;
+    }
+  }
+
+  return misplaced;
+}
 
 // A value of a locale file by its dotted key, or null.
 export function nestedValue(

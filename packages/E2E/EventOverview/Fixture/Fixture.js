@@ -638,6 +638,7 @@ const FIXING_MODES = [
   "acted",
   "nothing-linked",
   "nothing-linked-monitor",
+  "cluster-fixes-off",
   "none",
 ];
 const DEFAULT_FIXING_MODES = {
@@ -4391,6 +4392,21 @@ function remediationDecisionEntries() {
         remediationMode: "ApprovalRequired",
       },
       { lane: "Resource", reason: "ResourceSkippedForClusterRound" },
+    ];
+  }
+  /*
+   * Linked to cluster prod-eu-west-1, whose Fixes are off: OneUptime AI only
+   * investigates there. While the record is open, turning them on makes it
+   * try again (AutoRemediationRuleEngineService.onFixesTurnedOn).
+   */
+  if (fixingMode === "cluster-fixes-off") {
+    return [
+      {
+        lane: "KubernetesCluster",
+        reason: "ClusterFixesOff",
+        kubernetesClusterId: ID.kubernetesCluster(1),
+        kubernetesClusterName: "prod-eu-west-1",
+      },
     ];
   }
   /*

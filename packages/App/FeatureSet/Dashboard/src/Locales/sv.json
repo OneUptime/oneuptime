@@ -37,6 +37,7 @@
     "categories": {
       "essentials": "Grundläggande",
       "observability": "Observerbarhet",
+      "security": "Säkerhet",
       "ai": "AI",
       "code": "Kod",
       "resources": "Resurser",
@@ -40404,5 +40405,14 @@
   "Unarchive {{count}} {{itemsName}}": "Avarkivera {{count}} {{itemsName}}",
   "Unarchive {{count}} {{itemsName}}_one": "Avarkivera {{count}} {{itemName}}",
   "{{count}} of {{total}} selected": "{{count}} av {{total}} valda",
-  "{{count}} of {{total}} selected_one": "{{count}} av {{total}} vald"
+  "{{count}} of {{total}} selected_one": "{{count}} av {{total}} vald",
+  "Link its monitor to what it watches, and every {{signal}} it raises from then on is linked for you.": "Koppla dess monitor till det den övervakar, så kopplas varje händelse ({{signal}}) som den skapar därefter automatiskt.",
+  "Review and approve": "Granska och godkänn",
+  "Turn its Fixes on, and OneUptime AI tries again.": "Slå på dess åtgärder, så försöker OneUptime AI igen.",
+  "{{count}} change through {{servers}}.": "{{count}} ändring via {{servers}}.",
+  "{{count}} changes through {{servers}}.": "{{count}} ändringar via {{servers}}.",
+  "{{count}} changes through {{servers}}._one": "{{count}} ändring via {{servers}}.",
+  "{{count}} command on {{targets}}.": "{{count}} kommando på {{targets}}.",
+  "{{count}} commands on {{targets}}.": "{{count}} kommandon på {{targets}}.",
+  "{{count}} commands on {{targets}}._one": "{{count}} kommando på {{targets}}."
 }

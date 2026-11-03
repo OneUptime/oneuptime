@@ -127,6 +127,27 @@ jobs:
           node --max-old-space-size=4096 node_modules/.bin/jest --runInBand
           Tests/Server/Services/AiRemediationTryAgainPostgres.test.ts --forceExit
 
+      # #5303's follow-up: what an incident or alert is linked to is what
+      # OneUptime AI investigates and fixes. Ask AI's create and linking
+      # tools run as a member with a label-limited read of hosts (a held host
+      # they may not view stays; a member who may not edit changes nothing),
+      # a detection's and Data Security's records are created holding what
+      # they are about, and turning a cluster's Fixes on finds - by jsonb
+      # containment - the open records its decision stopped, all read back
+      # from the junction rows of structure-only copies of the migrated
+      # tables in a schema of their own.
+      - name: Test what incidents and alerts are linked to, on migrated Postgres
+        if: matrix.shard == 3
+        working-directory: packages/Common
+        env:
+          RUN_POSTGRES_AI_AFFECTED_RESOURCE_LINKS_TESTS: "true"
+          AI_AFFECTED_RESOURCE_LINKS_TEST_DATABASE_HOST: ${{ env.DATABASE_MIGRATIONS_HOST }}
+          AI_AFFECTED_RESOURCE_LINKS_TEST_DATABASE_PORT: ${{ env.DATABASE_MIGRATIONS_PORT }}
+          AI_AFFECTED_RESOURCE_LINKS_TEST_DATABASE_NAME: ${{ env.DATABASE_NAME }}
+        run: >-
+          node --max-old-space-size=4096 node_modules/.bin/jest --runInBand
+          Tests/Server/Utils/AI/AiAffectedResourceLinksPostgres.test.ts --forceExit
+
       # The daily AI limit's owner notice (one conditional UPDATE decides the
       # once-a-day email, even when servers race) and the catch-up that
       # investigates the incidents and alerts the limit skipped (its jsonb

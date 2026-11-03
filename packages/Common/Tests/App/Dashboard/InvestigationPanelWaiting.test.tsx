@@ -326,6 +326,171 @@ describe("an incident whose investigation waits", () => {
     expect(screen.getByTestId("investigation-waiting")).toBeInTheDocument();
   });
 
+  /*
+   * #5413's follow-up: Investigate now is locked while it works and is gone
+   * once a run started, which dropped the keyboard at the top of the page.
+   * As after Try again, the keyboard goes to the step's title once the run
+   * started, and back to Investigate now when it is still offered.
+   */
+  test("once a run started, the keyboard is on the Investigation step's title, not at the top of the page", async () => {
+    let started: boolean = false;
+    postMock.mockImplementation(async (request: any) => {
+      const url: string = request.url.toString();
+
+      if (url.endsWith("/ai-investigation/investigate-now")) {
+        started = true;
+        return new HTTPResponse<JSONObject>(
+          200,
+          { runId: "44444444-4444-4444-8444-444444444444" },
+          {},
+        );
+      }
+
+      return started ? runResponse(AIRunStatus.Queued) : waitingResponse();
+    });
+
+    render(
+      <InvestigationPanel subjectType="incident" subjectId={SUBJECT_ID} />,
+    );
+
+    const button: HTMLElement = await screen.findByRole("button", {
+      name: "Investigate now",
+    });
+    button.focus();
+    fireEvent.click(button);
+
+    expect(await screen.findByText("Queued")).toBeInTheDocument();
+    const title: HTMLElement = screen.getByRole("heading", {
+      level: 3,
+      name: "Investigation",
+    });
+    await waitFor(() => {
+      expect(title).toHaveFocus();
+    });
+    expect(
+      screen.queryByRole("button", { name: "Investigate now" }),
+    ).not.toBeInTheDocument();
+  });
+
+  test("refused, the keyboard is back on Investigate now, under which the refusal is said", async () => {
+    let answer: (response: HTTPErrorResponse) => void = () => {};
+    postMock.mockImplementation(async (request: any) => {
+      if (
+        request.url.toString().endsWith("/ai-investigation/investigate-now")
+      ) {
+        return await new Promise<HTTPErrorResponse>(
+          (resolve: (response: HTTPErrorResponse) => void) => {
+            answer = resolve;
+          },
+        );
+      }
+
+      return waitingResponse();
+    });
+
+    render(
+      <InvestigationPanel subjectType="incident" subjectId={SUBJECT_ID} />,
+    );
+
+    const button: HTMLElement = await screen.findByRole("button", {
+      name: "Investigate now",
+    });
+    button.focus();
+    fireEvent.click(button);
+
+    /*
+     * Locked while it works, the browser takes the focus off it, to the
+     * page itself: jsdom keeps it on a disabled button, so it is moved to
+     * an element that then goes, as a browser leaves it.
+     */
+    await waitFor(() => {
+      expect(postsTo("/ai-investigation/investigate-now")).toHaveLength(1);
+    });
+    act(() => {
+      const away: HTMLDivElement = document.createElement("div");
+      away.tabIndex = -1;
+      document.body.appendChild(away);
+      away.focus();
+      away.remove();
+    });
+    expect(button).not.toHaveFocus();
+
+    await act(async () => {
+      answer(
+        new HTTPErrorResponse(
+          400,
+          {
+            message:
+              "This project has reached its own daily AI limit. It resets at midnight UTC.",
+          },
+          {},
+        ),
+      );
+    });
+
+    expect(
+      await screen.findByTestId("investigate-now-error"),
+    ).toBeInTheDocument();
+    await waitFor(() => {
+      expect(
+        screen.getByRole("button", { name: "Investigate now" }),
+      ).toHaveFocus();
+    });
+  });
+
+  test("a reader who moved on while it worked keeps their place", async () => {
+    let answer: (response: HTTPErrorResponse) => void = () => {};
+    postMock.mockImplementation(async (request: any) => {
+      if (
+        request.url.toString().endsWith("/ai-investigation/investigate-now")
+      ) {
+        return await new Promise<HTTPErrorResponse>(
+          (resolve: (response: HTTPErrorResponse) => void) => {
+            answer = resolve;
+          },
+        );
+      }
+
+      return waitingResponse();
+    });
+
+    render(
+      <div>
+        <InvestigationPanel subjectType="incident" subjectId={SUBJECT_ID} />
+        <input aria-label="Elsewhere on the page" />
+      </div>,
+    );
+
+    fireEvent.click(
+      await screen.findByRole("button", { name: "Investigate now" }),
+    );
+    await waitFor(() => {
+      expect(postsTo("/ai-investigation/investigate-now")).toHaveLength(1);
+    });
+    const elsewhere: HTMLElement = screen.getByLabelText(
+      "Elsewhere on the page",
+    );
+    elsewhere.focus();
+
+    await act(async () => {
+      answer(
+        new HTTPErrorResponse(
+          400,
+          {
+            message:
+              "This project has reached its own daily AI limit. It resets at midnight UTC.",
+          },
+          {},
+        ),
+      );
+    });
+
+    expect(
+      await screen.findByTestId("investigate-now-error"),
+    ).toBeInTheDocument();
+    expect(elsewhere).toHaveFocus();
+  });
+
   test("a malformed wait from an older server falls back to the not-started body", async () => {
     postMock.mockResolvedValue(waitingResponse({ waitUntil: "not a time" }));
 

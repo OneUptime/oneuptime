@@ -94,7 +94,7 @@ Under posterna söker Kopplade signaler i dina loggar och spår, i samma tidsfö
 
 ## Incidenter som ett ärende deklarerar
 
-**Deklarera incident** på ett ärende, eller ett playbook-steg som deklarerar en, kopplar incidenten till de värdar, Docker- och Podman-värdar, Kubernetes-kluster, molnresurser och tjänster som ärendet är exakt kopplat till. Incidenten visas på deras sidor och deras ägares regler gäller för den, och dess flöde nämner ärendet och vad den kopplades till. En möjlig matchning kopplas aldrig, och det gör inte heller en monitor: en incident på en monitor kan ändra dess status och visas på dess statussidor.
+**Deklarera incident** på ett ärende, eller ett playbook-steg som deklarerar en, kopplar incidenten till de värdar, Docker- och Podman-värdar, Kubernetes-kluster, nätverksenheter, molnresurser och tjänster som ärendet är exakt kopplat till. Ett playbook-steg som larmar jouren kopplar larmet det öppnar på samma sätt; varje larm och incident som en detekteringsregel eller en träff i hotunderrättelser öppnar kopplas till det som träffen exakt nämner, och var och en som Data Security öppnar till det datalager den gäller. Incidenten visas på deras sidor och deras ägares regler gäller för den, och dess flöde nämner ärendet och vad den kopplades till. En möjlig matchning kopplas aldrig, och det gör inte heller en monitor: en incident på en monitor kan ändra dess status och visas på dess statussidor.
 
 ## OneUptime AI
 

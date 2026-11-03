@@ -169,10 +169,10 @@ describe("the products menu in German", () => {
 
     /*
      * The menu opens on Essentials and folds the other sections to one line
-     * each. These products sit in two of them, named in German as well:
-     * open those the way a user would.
+     * each. These products sit in three of them (Security Events in
+     * Security), named in German as well: open those the way a user would.
      */
-    for (const section of ["Observability", "Infrastruktur"]) {
+    for (const section of ["Observability", "Sicherheit", "Infrastruktur"]) {
       const toggle: HTMLElement = within(menu).getByRole("button", {
         name: section,
       });
@@ -182,6 +182,7 @@ describe("the products menu in German", () => {
     expect(
       within(menu).queryByRole("button", { name: "Infrastructure" }),
     ).toBeNull();
+    expect(within(menu).queryByRole("button", { name: "Security" })).toBeNull();
 
     for (const [, value] of PRODUCTS_MENU_GERMAN) {
       expect(within(menu).getAllByText(value).length).toBeGreaterThan(0);

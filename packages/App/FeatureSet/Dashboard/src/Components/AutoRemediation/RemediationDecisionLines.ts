@@ -17,6 +17,7 @@ import {
   AI_RESOURCE_TYPE_INFO,
   isAiResourceType,
 } from "Common/Types/ResourceAiAgent/AiResourceType";
+import { getResourceAiAgentDescriptor } from "../ResourceAiAgent/ResourceAiAgentDescriptors";
 import {
   translatableTerm,
   translationKey,
@@ -41,6 +42,12 @@ import {
  * they can be linked to what they watch. A lane that did not run because
  * another lane took the signal says nothing: the line of the lane that did
  * act says it all.
+ *
+ * OneUptime AI decides again only about an open record - once it is linked,
+ * once a cluster's or resource's Fixes are turned on, on Try again - so the
+ * lines of a resolved one promise none of it (isRecordResolved): they say
+ * what happened, and what links the next one, and ask nothing of the reader
+ * for this one.
  *
  * React-free, so App's tests can read it; the AI card's Remediation step
  * (RemediationStep) draws it, and its pill (RemediationStepStatus) reads it.
@@ -170,17 +177,22 @@ const GO_TO_AFFECTED_RESOURCES: string = translationKey(
 );
 const UNNAMED_MONITOR: string = translationKey("the monitor");
 
-// The AI agent page of each kind of infrastructure resource.
-const RESOURCE_AI_AGENT_PAGES: Record<string, PageMap> = {
-  DockerHost: PageMap.DOCKER_HOST_VIEW_AI_AGENT,
-  PodmanHost: PageMap.PODMAN_HOST_VIEW_AI_AGENT,
-  DockerSwarmCluster: PageMap.DOCKER_SWARM_CLUSTER_VIEW_AI_AGENT,
-  ProxmoxCluster: PageMap.PROXMOX_CLUSTER_VIEW_AI_AGENT,
-  VMwareVCenter: PageMap.VMWARE_VCENTER_VIEW_AI_AGENT,
-  CephCluster: PageMap.CEPH_CLUSTER_VIEW_AI_AGENT,
-  DatabaseServer: PageMap.DATABASE_SERVER_VIEW_AI_AGENT,
-  Host: PageMap.HOST_VIEW_AI_AGENT,
-};
+/*
+ * What to do under a line that says a cluster's or resource's Fixes are
+ * off, while the record is open: turning them on makes OneUptime AI decide
+ * again (AutoRemediationRuleEngineService.onFixesTurnedOn).
+ */
+export const TURN_FIXES_ON_WHAT_TO_DO: string = translationKey(
+  "Turn its Fixes on, and OneUptime AI tries again.",
+);
+
+/*
+ * A resolved record linked to nothing, with monitors: what links the next
+ * one it raises. Nothing is said of trying again - it does not.
+ */
+export const LINK_MONITOR_FOR_NEXT_TIME: string = translationKey(
+  "Link its monitor to what it watches, and every {{signal}} it raises from then on is linked for you.",
+);
 
 function translateText(translator: Translator, text: string): string {
   return translator.translateText(text) || text;
@@ -230,12 +242,17 @@ function clusterLink(
   );
 }
 
+/*
+ * The AI agent page of each kind of resource with an AI agent - a cloud
+ * account's included - as its own AI pages are found
+ * (ResourceAiAgentDescriptors).
+ */
 function resourceLink(
   translator: Translator,
   entry: AutoRemediationDecisionEntry,
 ): Array<RemediationDecisionLink> {
-  const page: PageMap | undefined = entry.resourceType
-    ? RESOURCE_AI_AGENT_PAGES[entry.resourceType]
+  const page: PageMap | undefined = isAiResourceType(entry.resourceType)
+    ? getResourceAiAgentDescriptor(entry.resourceType).agentPage
     : undefined;
 
   return link(
@@ -417,10 +434,22 @@ export function getRemediationDecisionLines(input: {
   signal: RemediationDecisionSignal;
   translator: Translator;
   switchesNow?: RemediationSwitchesNow | undefined;
+  /*
+   * The record is resolved now: OneUptime AI does not decide about it again,
+   * so no line says it tries again, and none needs the reader for it.
+   */
+  isRecordResolved?: boolean | undefined;
 }): Array<RemediationDecisionLine> {
   const { decision, signal, translator } = input;
   const signalTerm: TranslatableTerm = getSignalTerm(signal);
   const switchesNow: RemediationSwitchesNow = input.switchesNow || {};
+  const isOpen: boolean = input.isRecordResolved !== true;
+  /*
+   * A line that needs the reader only so OneUptime AI can try again on this
+   * record - a switch on since, what it is linked to - is a fact once the
+   * record is resolved.
+   */
+  const toneWhileOpen: RemediationDecisionTone = isOpen ? "attention" : "info";
 
   if (decision.stage === AutoRemediationDecisionStage.WaitingForInvestigation) {
     return [
@@ -485,7 +514,7 @@ export function getRemediationDecisionLines(input: {
           // Turned on since: decided again with Try again, not turned on.
           lines.push({
             key,
-            tone: "attention",
+            tone: toneWhileOpen,
             text:
               signal === "incident"
                 ? translator.translateTemplate(
@@ -521,7 +550,7 @@ export function getRemediationDecisionLines(input: {
            */
           lines.push({
             key,
-            tone: "attention",
+            tone: toneWhileOpen,
             text:
               signal === "incident"
                 ? translator.translateTemplate(
@@ -647,7 +676,32 @@ export function getRemediationDecisionLines(input: {
            * the page's Affected Resources, which makes it try again
            * (AutoRemediationRuleEngineService.onSubjectLinksChanged). With
            * monitors, linking them is how the next ones are linked.
+           *
+           * A resolved record is not tried again, whatever it is linked to:
+           * its line says what happened, and - with monitors - how the next
+           * one is linked, without a place to go for this one.
            */
+          if (!isOpen) {
+            lines.push({
+              key: "linked-to-nothing",
+              tone: "info",
+              text: translator.translateTemplate(
+                "This {{signal}} is not linked to a host, cluster or database, so OneUptime AI had nothing to fix.",
+                { signal: signalTerm },
+              ),
+              ...(monitors.length > 0
+                ? {
+                    whatToDo: translator.translateTemplate(
+                      LINK_MONITOR_FOR_NEXT_TIME,
+                      { signal: signalTerm },
+                    ),
+                  }
+                : {}),
+              links: monitorLinks(translator, monitors),
+            });
+            return;
+          }
+
           lines.push({
             key: "linked-to-nothing",
             tone: "attention",
@@ -713,6 +767,11 @@ export function getRemediationDecisionLines(input: {
           links: [],
         });
         return;
+      /*
+       * Off is a choice, so the tone is info. While the record is open,
+       * turning them on makes OneUptime AI try again
+       * (AutoRemediationRuleEngineService.onFixesTurnedOn): the line says so.
+       */
       case AutoRemediationDecisionReason.ClusterFixesOff:
         lines.push({
           key,
@@ -721,6 +780,11 @@ export function getRemediationDecisionLines(input: {
             'Fixes are off for cluster "{{clusterName}}", so OneUptime AI only investigates there.',
             { clusterName },
           ),
+          ...(isOpen
+            ? {
+                whatToDo: translateText(translator, TURN_FIXES_ON_WHAT_TO_DO),
+              }
+            : {}),
           links: clusterLink(translator, entry),
         });
         return;
@@ -823,6 +887,11 @@ export function getRemediationDecisionLines(input: {
             'Fixes are off for {{resourceKind}} "{{resourceName}}", so OneUptime AI only investigates there.',
             { resourceKind: getResourceKindTerm(entry), resourceName },
           ),
+          ...(isOpen
+            ? {
+                whatToDo: translateText(translator, TURN_FIXES_ON_WHAT_TO_DO),
+              }
+            : {}),
           links: resourceLink(translator, entry),
         });
         return;
