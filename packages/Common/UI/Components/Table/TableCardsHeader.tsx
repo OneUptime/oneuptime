@@ -7,6 +7,7 @@ import FieldType from "../Types/FieldType";
 import Column from "./Types/Column";
 import Columns from "./Types/Columns";
 import {
+  TABLE_CARDS_BULK_LINE_CLASS_NAME,
   TABLE_CARDS_HEADER_CLASS_NAME,
   TABLE_CARDS_SORT_BUTTON_CLASS_NAME,
 } from "./TableLayout";
@@ -51,7 +52,17 @@ export interface ComponentProps<T extends GenericObject> {
   isSomeItemsOnThePageSelected?: boolean | undefined;
   onAllItemsOnThePageSelected?: (() => void) | undefined;
   onAllItemsDeselected?: (() => void) | undefined;
+  /*
+   * While cards are ticked, the band's line after the box is the table's
+   * Bulk Actions line (BulkUpdateForm's Row, drawn into the element handed
+   * to bulkLineRef): how many, a × to let go of them, every match on offer
+   * and Bulk Actions at its end, where the order sits otherwise.
+   */
+  hasBulkSelection?: boolean | undefined;
+  bulkLineRef?: ((element: HTMLElement | null) => void) | undefined;
 }
+
+export const TABLE_CARDS_BULK_LINE_TEST_ID: string = "table-cards-bulk-line";
 
 // The columns a list's cards may be sorted by: those a header could sort.
 export const getSortableCardColumns: <T extends GenericObject>(
@@ -83,6 +94,12 @@ type TableCardsHeaderFunction = <T extends GenericObject>(
  * A tablet beside a side menu drew these lists as rows that ran under their
  * sticky last column, and sorted them by their header; as cards they are
  * sorted here. A phone could not sort a list at all.
+ *
+ * While cards are ticked, the rest of the band is the table's Bulk Actions
+ * line (bulkLineRef: BulkUpdateForm's Row), where the order sits otherwise:
+ * a phone drew a table's bar of its own over the band - three lines, some
+ * 170px - that pushed every card down under the finger that ticked one.
+ * The order comes back once nothing is ticked.
  */
 const TableCardsHeader: TableCardsHeaderFunction = <T extends GenericObject>(
   props: ComponentProps<T>,
@@ -101,6 +118,7 @@ const TableCardsHeader: TableCardsHeaderFunction = <T extends GenericObject>(
   );
 
   const isBulk: boolean = Boolean(props.isBulkActionsEnabled);
+  const hasBulkSelection: boolean = isBulk && Boolean(props.hasBulkSelection);
 
   if (!isBulk && sortable.length === 0) {
     // Nothing to do over the cards: the rule above them, as before.
@@ -152,7 +170,16 @@ const TableCardsHeader: TableCardsHeaderFunction = <T extends GenericObject>(
       ) : (
         <span />
       )}
-      {sortable.length > 0 ? (
+      {isBulk && props.bulkLineRef ? (
+        <div
+          ref={props.bulkLineRef}
+          className={hasBulkSelection ? TABLE_CARDS_BULK_LINE_CLASS_NAME : "hidden"}
+          data-testid={TABLE_CARDS_BULK_LINE_TEST_ID}
+        />
+      ) : (
+        <></>
+      )}
+      {sortable.length > 0 && !hasBulkSelection ? (
         <MoreMenu
           ariaLabel={sortLabel}
           dataTestId={TABLE_CARDS_SORT_TEST_ID}

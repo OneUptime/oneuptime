@@ -482,6 +482,11 @@ export const getExceptionAssignBulkAction: (data: {
     buttonStyleType: ButtonStyleType.NORMAL,
     menuGroup: ActionMenuGroup.Change,
     resultLabels: EXCEPTION_ASSIGN_RESULT_LABELS,
+    /*
+     * Its dialog names how many it assigns ("Assign 4,213 exceptions"),
+     * so a selection of every match is asked nothing more before it.
+     */
+    opensItsOwnDialog: true,
     ...(!gate.isAllowed && gate.disabledReason
       ? { disabled: true, tooltip: gate.disabledReason }
       : {}),

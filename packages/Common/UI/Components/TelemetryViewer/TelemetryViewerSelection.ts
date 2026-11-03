@@ -6,9 +6,14 @@
  * kept by each row's id: the same row read again (a refresh, a live
  * update) stays ticked, and a row that is no longer on the page (another
  * page, a narrower search, a row that moved out of the list after a bulk
- * action) leaves the selection. The list pages, so a selection is never
- * wider than its page - what the header's box selects, and all that Bulk
- * Actions acts on.
+ * action) leaves the selection - what the header's box selects.
+ *
+ * ...unless the list offers every row that matches (the bulk prop's
+ * selectAllMatching) and the person took it: then the selection is every
+ * match, read in one go, and it is kept whole from page to page - the rows
+ * on the page carry their state as the page has it now
+ * (refreshSelectedFromPage) - until the search changes or a row is
+ * unticked, which leaves the page's ticked rows.
  */
 
 export type RowId<T> = (item: T) => string;
@@ -109,4 +114,42 @@ export const getPageSelectionState: <T>(
   return onPage === items.length
     ? PageSelectionState.All
     : PageSelectionState.Some;
+};
+
+/*
+ * A selection of every match, each row as the page has it now where the
+ * page shows it: a row read again carries its new state (so the menu offers
+ * what it can take now), and the rows the page does not show stay as they
+ * were read. Nothing leaves it, and its order is its own.
+ */
+export const refreshSelectedFromPage: <T>(
+  selected: Array<T>,
+  items: Array<T>,
+  getId: RowId<T>,
+) => Array<T> = <T>(
+  selected: Array<T>,
+  items: Array<T>,
+  getId: RowId<T>,
+): Array<T> => {
+  const onPage: Map<string, T> = new Map<string, T>();
+
+  for (const item of items) {
+    onPage.set(getId(item), item);
+  }
+
+  let isChanged: boolean = false;
+
+  const refreshed: Array<T> = selected.map((each: T): T => {
+    const fresh: T | undefined = onPage.get(getId(each));
+
+    if (fresh !== undefined && fresh !== each) {
+      isChanged = true;
+      return fresh;
+    }
+
+    return each;
+  });
+
+  // The same array when nothing changed, so an idle list renders once.
+  return isChanged ? refreshed : selected;
 };

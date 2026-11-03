@@ -7,6 +7,7 @@ import { ButtonStyleType } from "../Button/Button";
 import BulkUpdateForm, {
   BulkActionButtonSchema,
   BulkActionOnClickProps,
+  BulkUpdateBarLayout,
 } from "../BulkUpdate/BulkUpdateForm";
 import TableEmptyState, {
   TableEmptyStateKind,
@@ -325,6 +326,15 @@ const Table: TableFunction = <T extends GenericObject>(
   const [dragColumnWidths, setDragColumnWidths] =
     useState<Array<number> | null>(null);
   const [bulkSelectedItems, setBulkSelectedItems] = useState<Array<T>>([]);
+
+  /*
+   * Where the band over a phone's cards draws the Bulk Actions line
+   * (TableCardsHeader): the one bar stays where it is (its dialogs, and a
+   * run's progress and result, with it) and draws its line there.
+   */
+  const [cardsBulkLine, setCardsBulkLine] = useState<HTMLElement | null>(
+    null,
+  );
 
   /*
    * A phone - a window below md - draws every row as a card. Read as the
@@ -1058,8 +1068,29 @@ const Table: TableFunction = <T extends GenericObject>(
         filterData={props.filterData}
         onAdvancedFiltersToggle={props.onAdvancedFiltersToggle}
       />
+      {/*
+       * Over rows, a bar of its own (Card). Over cards - a phone, or a box
+       * the rows do not fit - the rest of the band over them (Row), drawn
+       * into it: the same bar either way, so a table that turns from rows
+       * to cards keeps a run's dialog. Its Select All is the band's offer
+       * of every row that matches, once every card on the page is ticked.
+       */}
       {bulkActionButtons.length > 0 && (
         <BulkUpdateForm
+          layout={isMobile ? BulkUpdateBarLayout.Row : BulkUpdateBarLayout.Card}
+          rowContainer={isMobile ? cardsBulkLine : undefined}
+          selectAllMatching={
+            isMobile && props.onBulkSelectAllItems
+              ? {
+                  isPageSelected: isAllItemsOnThePageSelected,
+                  matchingCount:
+                    props.hasMore === undefined
+                      ? props.totalItemsCount
+                      : undefined,
+                  hasMore: props.hasMore,
+                }
+              : undefined
+          }
           buttons={bulkActionButtons}
           onClearSelectionClick={() => {
             props.onBulkClearAllItems?.();
@@ -1192,6 +1223,13 @@ const Table: TableFunction = <T extends GenericObject>(
                     isSomeItemsOnThePageSelected={isSomeItemsOnThePageSelected}
                     onAllItemsOnThePageSelected={onAllItemsOnThePageSelected}
                     onAllItemsDeselected={onAllItemsDeselected}
+                    hasBulkSelection={
+                      bulkActionButtons.length > 0 &&
+                      bulkSelectedItems.length > 0
+                    }
+                    bulkLineRef={
+                      bulkActionButtons.length > 0 ? setCardsBulkLine : undefined
+                    }
                   />
                 )}
                 {isEmptyResult ? <></> : getTablebody()}

@@ -595,10 +595,16 @@ export const TABLE_CARD_FIELDS_CLASS_NAME: string =
  * The band over a list's cards (TableCardsHeader), where the header row is
  * over its rows: the same light band and quiet grey words, ruled above and
  * below, as tall as the header row (36px) - the select-all box at its
- * start, the order the list is in at its end.
+ * start, the order the list is in at its end. While cards are ticked, its
+ * line after the box is the table's Bulk Actions (BulkUpdateForm's Row),
+ * whose button is 30px tall: 2px above and below it keep the band 36px, so
+ * ticking the first card moves nothing.
  */
 export const TABLE_CARDS_HEADER_CLASS_NAME: string =
-  "flex min-h-[2.25rem] items-center justify-between gap-3 border-y border-gray-200 bg-gray-50 px-5 py-1 text-xs text-gray-500";
+  "flex min-h-[2.25rem] items-center justify-between gap-3 border-y border-gray-200 bg-gray-50 px-5 py-0.5 text-xs text-gray-500";
+
+// Where the band draws the Bulk Actions line, after its box.
+export const TABLE_CARDS_BULK_LINE_CLASS_NAME: string = "flex min-w-0 flex-1";
 
 // "Sorted by Declared ↓": quiet until it is pointed at, as a header's name.
 export const TABLE_CARDS_SORT_BUTTON_CLASS_NAME: string =

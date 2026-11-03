@@ -12,6 +12,12 @@ import { startsNewMenuGroup } from "../ActionButton/ActionMenuGroup";
 import ProgressBar, { ProgressBarSize } from "../ProgressBar/ProgressBar";
 import ShortcutKey from "../ShortcutKey/ShortcutKey";
 import IsolatedText from "../IsolatedText/IsolatedText";
+import {
+  SelectAllMatchingOffer,
+  SelectAllMatchingOfferKind,
+  getSelectAllMatchingOffer,
+  getSelectAllMatchingWords,
+} from "./BulkSelectAll";
 import { Gray500, Green, Red } from "../../../Types/BrandColors";
 import { LIMIT_PER_PROJECT } from "../../../Types/Database/LimitMax";
 import GenericObject from "../../../Types/GenericObject";
@@ -25,6 +31,7 @@ import {
 } from "../../Utils/TranslateTemplate";
 import useTranslator from "../../Utils/UseTranslator";
 import React, { ReactElement } from "react";
+import { createPortal } from "react-dom";
 
 /*
  * The bulk-action bar's sentences. The labels are the table's English nouns,
@@ -150,15 +157,17 @@ export const getBulkTimeLeftText: (
 /*
  * Where the bar is drawn (ComponentProps.layout).
  *
- *   - Card, a table's: a bar of its own over the rows, with the count,
+ *   - Card, a table's rows': a bar of its own over the rows, with the count,
  *     Select All, Clear Selection and Bulk Actions.
- *   - Row, a list's whose header line holds its page box (a telemetry
- *     list's "Select all exceptions on this page"): the rest of that line -
- *     the count in a chip whose × clears it, and Bulk Actions at the line's
- *     end, in the list's own small type. The page box is its Select All.
- *     Ticking the first row moves nothing on the page, and the bar keeps to
- *     the one line on a phone, where the Card took three lines and some
- *     170px over the rows.
+ *   - Row, a list's whose header line holds its page box - a telemetry
+ *     list's "Select all exceptions on this page", the band over a table's
+ *     cards on a phone (TableCardsHeader): the rest of that line - the count
+ *     in a chip whose × clears it, and Bulk Actions at the line's end, in
+ *     the list's own small type. The page box selects the page; once every
+ *     row on it is ticked and more rows match, the line offers them all
+ *     ("Select all 4,213 exceptions", BulkSelectAll). Ticking the first row
+ *     moves nothing on the page, and the bar keeps to the one line on a
+ *     phone, where the Card took three lines and some 170px over the rows.
  */
 export enum BulkUpdateBarLayout {
   Card = "card",
@@ -174,11 +183,35 @@ export const BULK_SELECTED_SHORT_COUNT: PluralTemplate = {
   other: "{{count}} selected",
 };
 
+/*
+ * ...and once every row that matches is selected - more than the page shows
+ * - it says so: "All 4,213 selected".
+ */
+export const BULK_ALL_SELECTED_SHORT_COUNT: PluralTemplate = {
+  one: "All {{count}} selected",
+  other: "All {{count}} selected",
+};
+
 // The Row's parts, for the tests that hold its shape.
 export const BULK_ROW_TEST_ID: string = "bulk-update-row";
 export const BULK_ROW_COUNT_TEST_ID: string = "bulk-update-selected-count";
 export const BULK_ROW_CLEAR_TEST_ID: string = "bulk-update-clear-selection";
 export const BULK_ROW_ACTIONS_TEST_ID: string = "bulk-update-actions";
+export const BULK_ROW_SELECT_ALL_TEST_ID: string =
+  "bulk-update-select-all-matching";
+export const BULK_ROW_LIMIT_TEST_ID: string = "bulk-update-selection-limit";
+
+/*
+ * The Row's offer to select every row that matches: a link-like button in
+ * the line's small type, indigo as the count chip it grows. On a phone it
+ * takes a line of its own under the count and Bulk Actions, so those two
+ * stay where they were.
+ */
+export const BULK_ROW_SELECT_ALL_SLOT_CLASS_NAME: string =
+  "flex min-w-0 items-center max-sm:order-1 max-sm:basis-full";
+
+export const BULK_ROW_SELECT_ALL_CLASS_NAME: string =
+  "inline-flex min-w-0 items-center gap-1 rounded px-1.5 py-1 text-start text-xs font-medium text-indigo-700 transition-colors hover:bg-indigo-50 hover:text-indigo-800 focus:outline-none focus-visible:ring-2 focus-visible:ring-indigo-500 disabled:cursor-wait disabled:opacity-70";
 
 /*
  * The Row's count chip: an active filter's chip (TelemetryActiveFilterChips)
@@ -355,6 +388,13 @@ export interface BulkActionButtonSchema<T extends GenericObject> {
     | undefined;
   confirmButtonStyleType?: ButtonStyleType;
   /*
+   * The action opens a dialog of its own that names what it is about to act
+   * on ("Assign 4,213 exceptions"), and starts the run from there: nothing
+   * is asked before it, even over rows the page does not show
+   * (BulkSelectAll's askBeforeActingAcrossPages).
+   */
+  opensItsOwnDialog?: boolean | undefined;
+  /*
    * The result's words for what happened to each item, when this action has
    * better ones than "succeeded" and "failed": a Delete says "2 Monitors
    * deleted" and "1 Monitor not deleted", which is what the reader is
@@ -412,6 +452,31 @@ export interface ComponentProps<T extends GenericObject> {
    * after its page box (Row).
    */
   layout?: BulkUpdateBarLayout | undefined;
+  /*
+   * The Row's offer to select every row that matches, not only the page's
+   * (BulkSelectAll's getSelectAllMatchingOffer): offered once every row on
+   * the page is ticked and more rows match, and onSelectAllClick reads
+   * them. Left out, the page is all a selection holds.
+   */
+  selectAllMatching?: SelectAllMatchingProps | undefined;
+  /*
+   * Where the Row's line is drawn, when the line it belongs to is not where
+   * this bar is: the band over a table's cards (TableCardsHeader). The bar
+   * itself - its dialogs, and a run's progress and result - stays where it
+   * is, so a table that turns from rows to cards mid-run, or empties under
+   * its result, keeps them. Null: the line has nowhere to go yet, and is
+   * not drawn. Left out: drawn in place.
+   */
+  rowContainer?: HTMLElement | null | undefined;
+}
+
+export interface SelectAllMatchingProps {
+  // Every row on the page is ticked.
+  isPageSelected: boolean;
+  // How many rows match, when the list knows exactly.
+  matchingCount?: number | undefined;
+  // Without an exact count: whether rows follow the page.
+  hasMore?: boolean | undefined;
 }
 
 const isDangerStyle: (style: ButtonStyleType) => boolean = (
@@ -1126,107 +1191,218 @@ const BulkUpdateForm: <T extends GenericObject>(
   /*
    * A list's header line (BulkUpdateBarLayout.Row), after its page box: the
    * count in a chip whose × clears it, and Bulk Actions at the line's end.
-   * Selecting everything is the page box's job, so there is no Select All.
+   * The page box selects the page; once it is all ticked and more rows
+   * match, the line offers every one of them (BulkSelectAll), saying how
+   * many - and, past the most one selection holds, that it takes the first
+   * of them - before anything is read.
    */
   if (props.layout === BulkUpdateBarLayout.Row) {
     const clearSelectionWords: string = tx("Clear Selection");
+    const selectedCount: number = props.selectedItems.length;
+
+    /*
+     * Every row that matches is selected: what a select-all read, still
+     * whole - a row unticked since leaves a selection of some of them.
+     */
+    const isEveryMatchSelected: boolean =
+      props.isAllItemsSelected &&
+      (props.totalMatchingItemsCount === undefined ||
+        selectedCount >= props.totalMatchingItemsCount);
+
+    const offer: SelectAllMatchingOffer = props.selectAllMatching
+      ? getSelectAllMatchingOffer({
+          selectedCount: selectedCount,
+          isPageSelected: props.selectAllMatching.isPageSelected,
+          isEveryMatchSelected: isEveryMatchSelected,
+          matchingCount: props.selectAllMatching.matchingCount,
+          hasMore: props.selectAllMatching.hasMore,
+        })
+      : { kind: SelectAllMatchingOfferKind.None };
+
+    const offerWords: string | undefined = getSelectAllMatchingWords({
+      offer: offer,
+      translator: translator,
+      singularLabel: props.singularLabel,
+      pluralLabel: props.pluralLabel,
+    });
+
+    // "All 4,213 selected" once every match is, not stopped at the ceiling.
+    const countWords: string = translator.translatePlural(
+      isEveryMatchSelected && !showLimitWarning
+        ? BULK_ALL_SELECTED_SHORT_COUNT
+        : BULK_SELECTED_SHORT_COUNT,
+      selectedCount,
+      {
+        count: translator.formatNumber(selectedCount),
+      },
+    );
+
+    const line: ReactElement = (
+      <div
+        className="flex min-w-0 flex-1 flex-wrap items-center gap-x-2 gap-y-2"
+        data-testid={BULK_ROW_TEST_ID}
+      >
+        <span
+          className={BULK_ROW_COUNT_CHIP_CLASS_NAME}
+          data-testid={BULK_ROW_COUNT_TEST_ID}
+        >
+          <span aria-live="polite">{countWords}</span>
+          <button
+            type="button"
+            className="inline-flex h-5 w-5 items-center justify-center rounded text-indigo-400 transition-colors hover:bg-indigo-100 hover:text-indigo-600 focus:outline-none focus-visible:ring-2 focus-visible:ring-indigo-500"
+            aria-label={clearSelectionWords}
+            title={clearSelectionWords}
+            data-testid={BULK_ROW_CLEAR_TEST_ID}
+            onClick={() => {
+              props.onClearSelectionClick();
+            }}
+          >
+            <Icon icon={IconProp.Close} className="h-3 w-3" />
+          </button>
+        </span>
+
+        {/*
+         * Every row that matches, once the page's are all ticked: after the
+         * count, which it grows; on a phone on a line of its own under it.
+         * Busy, with its spinner, while it reads them.
+         */}
+        {offerWords ? (
+          <div className={BULK_ROW_SELECT_ALL_SLOT_CLASS_NAME}>
+            <button
+              type="button"
+              className={BULK_ROW_SELECT_ALL_CLASS_NAME}
+              data-testid={BULK_ROW_SELECT_ALL_TEST_ID}
+              disabled={props.isSelectingAllItems}
+              aria-busy={props.isSelectingAllItems ? "true" : undefined}
+              onClick={() => {
+                if (props.isSelectingAllItems) {
+                  // The read is paged, so it must not be re-entrant.
+                  return;
+                }
+
+                props.onSelectAllClick();
+              }}
+            >
+              {props.isSelectingAllItems ? (
+                <Icon
+                  icon={IconProp.Spinner}
+                  className="h-3 w-3 flex-none animate-spin"
+                />
+              ) : (
+                <></>
+              )}
+              <span>{offerWords}</span>
+            </button>
+          </div>
+        ) : (
+          <></>
+        )}
+
+        {/*
+         * At the line's end, where a ⋯ menu sits on a row: the menu opens
+         * back over the line from this button's end edge.
+         */}
+        {menuChildren.length > 0 ? (
+          <div
+            className="ml-auto flex flex-none items-center"
+            data-testid={BULK_ROW_ACTIONS_TEST_ID}
+          >
+            <MoreMenu
+              elementToBeShownInsteadOfButton={
+                <button
+                  type="button"
+                  className={BULK_ROW_ACTIONS_BUTTON_CLASS_NAME}
+                  /*
+                   * Named by its words: MoreMenu calls a trigger with no
+                   * name of its own "More options".
+                   */
+                  aria-label={tx("Bulk Actions")}
+                >
+                  {/*
+                   * The bolt and the chevron only where there is room for
+                   * them: on a phone the words alone keep the line to one
+                   * line in French or Russian too.
+                   */}
+                  <div className="max-sm:hidden">
+                    <Icon
+                      icon={IconProp.Bolt}
+                      className="h-3.5 w-3.5 text-gray-500"
+                    />
+                  </div>
+                  <span>{tx("Bulk Actions")}</span>
+                  <div className="max-sm:hidden">
+                    <Icon
+                      icon={IconProp.ChevronDown}
+                      className="h-3 w-3 text-gray-400"
+                    />
+                  </div>
+                </button>
+              }
+            >
+              {menuChildren}
+            </MoreMenu>
+          </div>
+        ) : (
+          <></>
+        )}
+
+        {/*
+         * More rows match than one selection holds: the offer said it took
+         * the first of them, and this says what Bulk Actions will act on.
+         */}
+        {showLimitWarning ? (
+          <div
+            className="order-2 basis-full text-xs text-gray-500"
+            data-testid={BULK_ROW_LIMIT_TEST_ID}
+          >
+            {translator.translatePlural(
+              BULK_SELECTION_LIMIT,
+              totalMatchingItemsCount,
+              {
+                selected: translator.formatNumber(selectedCount),
+                limit: translator.formatNumber(LIMIT_PER_PROJECT),
+                itemName: translatableTerm(props.singularLabel, {
+                  inSentence: true,
+                }),
+                itemsName: translatableTerm(props.pluralLabel, {
+                  inSentence: true,
+                }),
+              },
+            )}
+          </div>
+        ) : (
+          <></>
+        )}
+
+        {props.errorMessage && (
+          <div
+            role="alert"
+            className="order-3 basis-full rounded-lg bg-red-50 p-3 text-sm text-red-800"
+          >
+            {props.errorMessage}
+          </div>
+        )}
+      </div>
+    );
+
+    /*
+     * The line where its header line is - in place, or in the band over a
+     * table's cards (rowContainer) - and the dialogs here: a dialog's root
+     * takes no room, and in the line its gap would set Bulk Actions back
+     * from the end while one is open.
+     */
+    if (props.rowContainer !== undefined) {
+      return (
+        <>
+          {props.rowContainer ? createPortal(line, props.rowContainer) : <></>}
+          {dialogs}
+        </>
+      );
+    }
 
     return (
       <div className="flex min-w-0 flex-1">
-        <div
-          className="flex min-w-0 flex-1 flex-wrap items-center gap-x-2 gap-y-2"
-          data-testid={BULK_ROW_TEST_ID}
-        >
-          <span
-            className={BULK_ROW_COUNT_CHIP_CLASS_NAME}
-            data-testid={BULK_ROW_COUNT_TEST_ID}
-          >
-            <span aria-live="polite">
-              {translator.translatePlural(
-                BULK_SELECTED_SHORT_COUNT,
-                props.selectedItems.length,
-                {
-                  count: translator.formatNumber(props.selectedItems.length),
-                },
-              )}
-            </span>
-            <button
-              type="button"
-              className="inline-flex h-5 w-5 items-center justify-center rounded text-indigo-400 transition-colors hover:bg-indigo-100 hover:text-indigo-600 focus:outline-none focus-visible:ring-2 focus-visible:ring-indigo-500"
-              aria-label={clearSelectionWords}
-              title={clearSelectionWords}
-              data-testid={BULK_ROW_CLEAR_TEST_ID}
-              onClick={() => {
-                props.onClearSelectionClick();
-              }}
-            >
-              <Icon icon={IconProp.Close} className="h-3 w-3" />
-            </button>
-          </span>
-
-          {/*
-           * At the line's end, where a ⋯ menu sits on a row: the menu opens
-           * back over the line from this button's end edge.
-           */}
-          {menuChildren.length > 0 ? (
-            <div
-              className="ml-auto flex flex-none items-center"
-              data-testid={BULK_ROW_ACTIONS_TEST_ID}
-            >
-              <MoreMenu
-                elementToBeShownInsteadOfButton={
-                  <button
-                    type="button"
-                    className={BULK_ROW_ACTIONS_BUTTON_CLASS_NAME}
-                    /*
-                     * Named by its words: MoreMenu calls a trigger with no
-                     * name of its own "More options".
-                     */
-                    aria-label={tx("Bulk Actions")}
-                  >
-                    {/*
-                     * The bolt and the chevron only where there is room for
-                     * them: on a phone the words alone keep the line to one
-                     * line in French or Russian too.
-                     */}
-                    <div className="max-sm:hidden">
-                      <Icon
-                        icon={IconProp.Bolt}
-                        className="h-3.5 w-3.5 text-gray-500"
-                      />
-                    </div>
-                    <span>{tx("Bulk Actions")}</span>
-                    <div className="max-sm:hidden">
-                      <Icon
-                        icon={IconProp.ChevronDown}
-                        className="h-3 w-3 text-gray-400"
-                      />
-                    </div>
-                  </button>
-                }
-              >
-                {menuChildren}
-              </MoreMenu>
-            </div>
-          ) : (
-            <></>
-          )}
-
-          {props.errorMessage && (
-            <div
-              role="alert"
-              className="basis-full rounded-lg bg-red-50 p-3 text-sm text-red-800"
-            >
-              {props.errorMessage}
-            </div>
-          )}
-        </div>
-
-        {/*
-         * Beside the line, not in it: a dialog's root takes no room, and the
-         * line's gap would set Bulk Actions back from the end while one is
-         * open.
-         */}
+        {line}
         {dialogs}
       </div>
     );
