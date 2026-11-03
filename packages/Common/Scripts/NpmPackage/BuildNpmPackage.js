@@ -98,30 +98,10 @@ const PINNED_LEFT_OUT = Object.freeze({
     "the workspace notification rule forms' choices, as dropdown options (UI/Utils/Dropdown)",
   "Types/Workspace/NotificationRules/NotificationRuleUtil":
     "matches workspace notification rules, logging through the server's logger (Server/Utils/Logger)",
-  "Utils/CronScheduleText":
-    "a schedule in words, in the reader's language (UI/Utils/TranslateTemplate)",
   "Utils/Dashboard/Components/DashboardClockComponent":
     "the dashboard clock widget, in the viewer's time zone (UI/Utils/Timezone)",
   "Utils/Dashboard/Components/Index":
     "every dashboard widget, the clock among them (UI/Utils/Timezone)",
-  "Utils/Monitor/MonitorCheckScheduleUtil":
-    "a monitor's check schedule in words, in the reader's language (UI/Utils/TranslateTemplate)",
-  "Utils/Monitor/MonitorOverviewFamily":
-    "the monitor overview's wording, in the reader's language (UI/Utils/TranslateTemplate)",
-  "Utils/Monitor/MonitorOverviewPresentationUtil":
-    "the monitor overview's wording, in the reader's language (UI/Utils/TranslateTemplate)",
-  "Utils/Monitor/MonitorOverviewProbeUtil":
-    "the monitor overview's probe wording, in the reader's language (UI/Utils/TranslateTemplate)",
-  "Utils/Monitor/MonitorStatusHistoryUtil":
-    "a monitor's status history in words, in the reader's language (UI/Utils/TranslateTemplate)",
-  "Utils/Monitor/MonitorUptimeSummaryUtil":
-    "the uptime windows' wording, in the reader's language (UI/Utils/TranslateTemplate)",
-  "Utils/Schema/AnalyticsModelSchema":
-    "builds the API reference's schemas on the server, logging through its logger (Server/Utils/Logger)",
-  "Utils/Schema/BaseSchema":
-    "builds the API reference's schemas on the server, logging through its logger (Server/Utils/Logger)",
-  "Utils/Schema/ModelSchema":
-    "builds the API reference's schemas on the server, logging through its logger (Server/Utils/Logger)",
   "Utils/Telemetry/LockedFilterSearch":
     "a resource page's locked telemetry filters as search-bar text, with the UI's filter operators (UI/Components/Dictionary/DictionaryFilterOperator)",
   "Utils/UserPreferences":

@@ -4,6 +4,7 @@ import {
   getPageSelectionState,
   isRowSelected,
   keepSelectedOnPage,
+  refreshSelectedFromPage,
   setRowSelected,
 } from "../../../../UI/Components/TelemetryViewer/TelemetryViewerSelection";
 
@@ -97,5 +98,52 @@ describe("getPageSelectionState", () => {
     expect(getPageSelectionState([A, C], [A, B], idOf)).toBe(
       PageSelectionState.Some,
     );
+  });
+});
+
+/*
+ * A selection of every match (the list's "Select all 4,213 exceptions"):
+ * kept whole from page to page, each row the page shows as the page has it
+ * now.
+ */
+describe("refreshSelectedFromPage", () => {
+  test("a row the page shows carries the page's state; the rest stay as they were read", () => {
+    const resolvedA: Row = { id: "a", state: "resolved" };
+
+    const refreshed: Array<Row> = refreshSelectedFromPage(
+      [A, B, C],
+      [resolvedA, { id: "d", state: "open" }],
+      idOf,
+    );
+
+    expect(refreshed).toEqual([resolvedA, B, C]);
+    expect(refreshed[0]).toBe(resolvedA);
+    expect(refreshed[1]).toBe(B);
+  });
+
+  test("nothing leaves it, not even a row no page shows any more", () => {
+    expect(refreshSelectedFromPage([A, B, C], [], idOf)).toEqual([A, B, C]);
+  });
+
+  test("a row the page shows that was never selected is not added", () => {
+    const D: Row = { id: "d", state: "open" };
+
+    expect(refreshSelectedFromPage([A], [A, D], idOf)).toEqual([A]);
+  });
+
+  test("keeps its own order, not the page's", () => {
+    expect(
+      refreshSelectedFromPage([C, A, B], [B, A, C], idOf).map(idOf),
+    ).toEqual(["c", "a", "b"]);
+  });
+
+  test("hands back the same array when the page changed nothing, so an idle list renders once", () => {
+    const selected: Array<Row> = [A, B];
+
+    expect(refreshSelectedFromPage(selected, [A, B], idOf)).toBe(selected);
+    expect(refreshSelectedFromPage(selected, [C], idOf)).toBe(selected);
+    expect(
+      refreshSelectedFromPage(selected, [{ id: "a", state: "open" }], idOf),
+    ).not.toBe(selected);
   });
 });

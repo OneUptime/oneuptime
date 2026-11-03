@@ -93,7 +93,7 @@ Une fois une page de statut ouverte, son propre menu latéral gauche est répart
 | **Image de marque** | **Image de marque** (logo, titre, favicon, liens, pied de page, couleurs et langues, sur une seule page), **Domaines personnalisés**, **HTML, CSS et JavaScript**. |
 | **Sécurité** | **Accès** (qui peut voir la page), **Utilisateurs privés**, **SSO**, **OIDC**, **SCIM**. |
 | **IA** | **MCP**. |
-| **Développeurs** | **Terraform**, **API**, **Assistants IA** — la page en tant que code. |
+| **Développeurs** | **Terraform**, **API**, **CLI**, **Assistants IA** — la page en tant que code. |
 | **Avancé** | **Statut intégré**, **Rapports**, **Champs personnalisés**, **Paramètres avancés**, **Journaux d'audit**, **Supprimer la page de statut**. |
 
 Seules **Basique** et **Ressources**, ce que la page montre, sont ouvertes au départ. Toutes les autres sections sont repliées au départ, comme les sections peu utilisées de chaque menu de OneUptime : cliquez sur le titre d'une section pour afficher ses pages. Une section s'ouvre d'elle-même dès que vous êtes sur l'une de ses pages, comme **Paramètres avancés** ou **Abonnés e-mail**.

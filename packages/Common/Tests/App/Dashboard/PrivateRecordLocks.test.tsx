@@ -91,6 +91,7 @@ import PermissionUtil from "../../../UI/Utils/Permission";
 import PermissionGate from "../../../UI/Utils/PermissionGate";
 import ProjectUtil from "../../../UI/Utils/Project";
 import UserUtil from "../../../UI/Utils/User";
+import { keepProjectPermissionsInTab } from "../../Helpers/TabProjectPermissions";
 
 /*
  * THE MAINTAINER'S PAGE (block 33, INC-17): a private incident owned by
@@ -168,7 +169,8 @@ function store(rows: Array<UserPermission>): void {
     ],
     projectIds: [new ObjectID(PROJECT_ID)],
   });
-  PermissionUtil.setProjectPermissions({
+  // In the tab that shows the project (Common/UI/Utils/TabProject).
+  keepProjectPermissionsInTab({
     _type: "UserTenantAccessPermission",
     projectId: new ObjectID(PROJECT_ID),
     permissions: rows,

@@ -192,6 +192,21 @@ describe("every agent's install script, from this OneUptime's own files", () => 
     },
   );
 
+  // The CLI is no agent: its installer lives beside its code.
+  test("/install/cli is the CLI's installer, packages/CLI/Install/install.sh", async () => {
+    const reply: Reply = await request(app, "/install/cli");
+
+    expect(reply.status).toBe(200);
+    expect(
+      reply.body.equals(
+        fs.readFileSync(
+          path.join(REPO_ROOT, "packages", "CLI", "Install", "install.sh"),
+        ),
+      ),
+    ).toBe(true);
+    expectServedHeaders(reply, "install.sh");
+  });
+
   test("a trailing slash names the same script, as a browser may add one", async () => {
     const reply: Reply = await request(app, "/install/proxmox-agent/");
 
@@ -274,7 +289,10 @@ describe("what the router refuses", () => {
     ["/install/proxmox"],
     ["/install/Proxmox-Agent"],
     ["/install/ProxmoxAgent"],
-    ["/install/cli"],
+    // The CLI's installer is /install/cli, by that exact name only.
+    ["/install/CLI"],
+    ["/install/cli.sh"],
+    ["/install/oneuptime-cli"],
     ["/install/proxmox-agent.sh"],
     ["/install/proxmox-agent/README.md"],
     ["/install/proxmox-agent/.env"],

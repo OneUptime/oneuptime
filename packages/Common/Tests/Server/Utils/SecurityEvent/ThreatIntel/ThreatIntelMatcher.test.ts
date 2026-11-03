@@ -61,7 +61,16 @@ import SecurityCaseIngest, {
 import SecurityEntityRiskRecorder from "../../../../../Server/Utils/SecurityEvent/EntityRisk/SecurityEntityRiskRecorder";
 import { SecurityRiskFinding } from "../../../../../Server/Utils/SecurityEvent/EntityRisk/SecurityEntityRiskFindings";
 import SecurityDetectionSource from "../../../../../Types/SecurityCase/SecurityDetectionSource";
-import { SecurityEntityType } from "../../../../../Types/SecurityCase/SecurityEntity";
+import {
+  SecurityEntity,
+  SecurityEntityType,
+} from "../../../../../Types/SecurityCase/SecurityEntity";
+import SecurityConnections from "../../../../../Server/Utils/SecurityEvent/Connections/SecurityConnections";
+import {
+  SecurityConnectionCertainty,
+  SecurityConnectionKind,
+  SecurityConnectionReason,
+} from "../../../../../Types/SecurityCase/SecurityConnection";
 import {
   afterEach,
   beforeEach,
@@ -219,6 +228,88 @@ beforeEach(() => {
     entitiesUpdated: 0,
     riskCasesRaised: 0,
   } as never);
+  /*
+   * And what a match's entities name in OneUptime, which its alert is
+   * linked to (SecurityConnections): nothing, unless a test says.
+   */
+  getJestSpyOn(SecurityConnections, "readEntityLinks").mockResolvedValue(
+    [] as never,
+  );
+});
+
+/*
+ * #5303's follow-up: an indicator's alert is about what the events that
+ * touched it name - the host that called out, its address - and is linked
+ * to the records those name exactly, as the indicator's case reads them.
+ */
+describe("ThreatIntelMatcher: what an indicator's alert is linked to", () => {
+  const HOST_ID: string = "66666666-6666-4666-8666-666666666666";
+
+  test("getMatchGroupEntities: the indicator's value, then what its events name", () => {
+    expect(
+      ThreatIntelMatcher.getMatchGroupEntities(
+        buildMatchGroup({
+          indicatorValue: "203.0.113.7",
+          sampleObservables: ["web-01", "10.0.0.9"],
+        }),
+      ),
+    ).toEqual([
+      { type: SecurityEntityType.IpAddress, value: "203.0.113.7" },
+      // A bare name is typed Other; it is still looked up as a host's name.
+      { type: SecurityEntityType.Other, value: "web-01" },
+      { type: SecurityEntityType.IpAddress, value: "10.0.0.9" },
+    ]);
+  });
+
+  test("the alert is linked to the host its events name, read in the check's window, and the case names the same entities", async () => {
+    matchesSpy.mockResolvedValue([buildMatchGroup()] as never);
+    const links: Spy = getJestSpyOn(
+      SecurityConnections,
+      "readEntityLinks",
+    ).mockResolvedValue([
+      {
+        kind: SecurityConnectionKind.Host,
+        id: HOST_ID,
+        name: "web-01",
+        certainty: SecurityConnectionCertainty.Exact,
+        matches: [
+          {
+            entity: { type: SecurityEntityType.Host, value: "web-01" },
+            certainty: SecurityConnectionCertainty.Exact,
+            reason: SecurityConnectionReason.HostName,
+            matchedValue: "web-01",
+          },
+        ],
+      },
+    ] as never);
+    const cases: Spy = getJestSpyOn(SecurityCaseIngest, "recordDetections");
+
+    await ThreatIntelMatcher.evaluateFeed(buildFeed());
+
+    const alert: Alert = (alertCreateSpy.mock.calls[0]![0] as { data: Alert })
+      .data;
+    expect(
+      (alert.hosts || []).map((host: { id?: ObjectID | null }) => {
+        return host.id?.toString();
+      }),
+    ).toEqual([HOST_ID]);
+
+    const asked: {
+      entities: Array<SecurityEntity>;
+      window: { start: Date; end: Date };
+    } = links.mock.calls[0]![0] as never;
+    const query: JSONObject = matchesSpy.mock.calls[0]![0] as JSONObject;
+
+    expect(asked.window).toEqual({
+      start: query["startTime"],
+      end: query["endTime"],
+    });
+
+    const signal: SecurityDetectionSignal = (
+      cases.mock.calls[0]![0] as Array<SecurityDetectionSignal>
+    )[0]!;
+    expect(asked.entities).toEqual(signal.entities);
+  });
 });
 
 /*

@@ -60,7 +60,7 @@ Abra **Manutenção programada** no menu **Produtos** da barra superior. A lista
 | **Regras**    | **Regras de proprietário**, **Regras de runbook**, **Regras de Rótulos**, **Regras de lembrete**.                               |
 | **Configurações** | **Estado do evento**, **Modelos de eventos**, **Modelos de notas**, **Campos personalizados**, **Medições**, **Configurações do calendário**, **Numeração**. |
 
-**Visão geral** e **Calendário** ficam abertas; **Espaço de trabalho**, **Regras**, **Configurações** e **Desenvolvedores** começam recolhidas, e uma seção se abre sozinha quando você está em uma de suas páginas. **Desenvolvedores** reúne **Terraform**, **API** e **Assistentes de IA**, para gerenciar a manutenção pelo código. Tudo sobre manutenção fica aqui, não nas **Configurações do projeto**.
+**Visão geral** e **Calendário** ficam abertas; **Espaço de trabalho**, **Regras**, **Configurações** e **Desenvolvedores** começam recolhidas, e uma seção se abre sozinha quando você está em uma de suas páginas. **Desenvolvedores** reúne **Terraform**, **API**, **CLI** e **Assistentes de IA**, para gerenciar a manutenção pelo código. Tudo sobre manutenção fica aqui, não nas **Configurações do projeto**.
 
 A lista mostra **Número da manutenção programada**, **Título**, **Estado atual**, **Recursos afetados**, **Exibido na página de status**, **Começa em**, **Duração**, **Termina em**, **Rótulos** e **Proprietários**. Selecione eventos para agir sobre vários de uma vez: **Marcar como {{state}}**, **Alterar estado**, **Atribuir a mim**, **Adicionar proprietário**, **Remover proprietário**, **Adicionar rótulos**, **Remover rótulos** ou **Excluir**. O menu **⋯** no fim da linha de cada evento faz o mesmo só para esse evento: os passos **Marcar como {{state}}** enquanto o evento puder dá-los, **Alterar estado**, **Atribuir a mim** até você ser o proprietário e **Adicionar proprietário**.
 
@@ -87,7 +87,7 @@ Abra um evento na lista para ver suas páginas. Seu menu lateral reúne:
 | **Equipe** | **Proprietários** |
 | **Notificações**     | **Logs de notificação** e **Registros de IA**: cada mensagem enviada sobre o evento, e o que a IA fez por ele |
 | **Notas**         | **Notas privadas** e **Notas públicas**                                                        |
-| **Desenvolvedores** | **Terraform**, **API** e **Assistentes de IA**: o evento gerenciado pelo código              |
+| **Desenvolvedores** | **Terraform**, **API**, **CLI** e **Assistentes de IA**: o evento gerenciado pelo código     |
 | **Avançado**      | **Campos personalizados**, **Configurações**, **Registros de auditoria**, **Excluir evento**    |
 
 **Visão geral**, **Equipe** e **Notas** ficam abertas; as outras seções começam recolhidas até você clicar nelas.

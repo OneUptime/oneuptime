@@ -8,6 +8,8 @@ import {
 } from "@playwright/test";
 import fs from "fs/promises";
 import path from "path";
+import { expectNoSidewaysScroll } from "../SuiteHelpers/PageFit";
+import { boxesInOneFrame } from "../SuiteHelpers/Frames";
 
 /*
  * Renders the real Incident, Alert, Scheduled Maintenance, Incident Episode
@@ -956,6 +958,22 @@ const STEP_TITLES_AND_PILLS: ReadonlyArray<AiCardStepNames> = [
   },
 ];
 
+/*
+ * A step's status pill (InvestigationStatusBadge), by its test id: its name
+ * - "Investigation status" - is words a screen reader hears first, hidden
+ * on screen, never an aria-label a plain div cannot carry. stepPillWords is
+ * what everyone reads on it.
+ */
+type AiCardStepKey = "investigation" | "remediation";
+
+function stepPill(scope: Page | Locator, step: AiCardStepKey): Locator {
+  return scope.getByTestId(`ai-card-step-${step}-pill`);
+}
+
+function stepPillWords(scope: Page | Locator, step: AiCardStepKey): Locator {
+  return stepPill(scope, step).getByTestId("status-badge-words");
+}
+
 function stepTitle(page: Page, step: AiCardStepNames): Locator {
   return page
     .getByTestId(step.testId)
@@ -1286,13 +1304,6 @@ async function expectRenderedText(
   await expect(locator).toContainText(text, { useInnerText: true });
 }
 
-async function expectNoHorizontalOverflow(page: Page): Promise<void> {
-  const overflow: number = await page.evaluate((): number => {
-    return document.documentElement.scrollWidth - window.innerWidth;
-  });
-  expect(overflow, "page scrolls sideways").toBeLessThanOrEqual(1);
-}
-
 // Whether an element cuts its own content off (a clamp or a truncation).
 async function isOverflowing(locator: Locator): Promise<boolean> {
   return locator.evaluate((element: Element): boolean => {
@@ -1355,7 +1366,7 @@ test.describe("AI investigation report", () => {
     await openReady(page, INCIDENT_PAGE);
 
     const investigation: Locator = investigationCard(page);
-    await expect(investigation.getByLabel("Investigation status")).toHaveText(
+    await expect(stepPillWords(investigation, "investigation")).toHaveText(
       "Completed",
     );
     await expect(investigation).toContainText(
@@ -1637,7 +1648,7 @@ test.describe("AI investigation report", () => {
      */
     await expect(card(page, "Incident Feed")).toBeVisible();
     await expect(
-      investigationCard(page).getByLabel("Investigation status"),
+      stepPillWords(investigationCard(page), "investigation"),
     ).toHaveText("Not investigated");
     await expect(summarySection(page)).toHaveCount(0);
     await expect(reportSection(page)).toHaveCount(0);
@@ -1888,7 +1899,7 @@ test.describe("AI investigation report", () => {
     expect(await isOverflowing(tldr), "expanded summary is clipped").toBe(
       false,
     );
-    await expectNoHorizontalOverflow(page);
+    await expectNoSidewaysScroll(page, { tolerance: 1 });
 
     await showLess.click();
     await expect(showMore).toHaveAttribute("aria-expanded", "false");
@@ -2113,7 +2124,7 @@ test.describe("AI investigation report", () => {
     expect(badgeBox.y).toBeGreaterThanOrEqual(headingBox.y + headingBox.height);
     await expectAbove(badge, tldr, "the badge is above the summary");
     await expect(tldr).toHaveCSS("color", REJECTED_SUMMARY_COLOR);
-    await expectNoHorizontalOverflow(page);
+    await expectNoSidewaysScroll(page, { tolerance: 1 });
   });
 
   test("beside a tablet's side menu the heading keeps its row whole", async ({
@@ -2147,7 +2158,7 @@ test.describe("AI investigation report", () => {
       "View full report is under the summary",
     );
     await expectAbove(badge, tldr, "the badge is above the summary");
-    await expectNoHorizontalOverflow(page);
+    await expectNoSidewaysScroll(page, { tolerance: 1 });
 
     await viewReport.click();
     await expect(page.locator("#ai-investigation")).toBeFocused();
@@ -2197,7 +2208,7 @@ test.describe("AI investigation report", () => {
     await expect(
       codeFix.getByRole("link", { name: "View progress" }),
     ).toHaveAttribute("href", new RegExp(`${FIX_TASK_ID}$`));
-    await expect(remediation.getByLabel("Remediation status")).toHaveText(
+    await expect(stepPillWords(remediation, "remediation")).toHaveText(
       "Fixing…",
     );
     const requests: Array<RecordedApiRequest> = await apiRequestsTo(
@@ -2576,7 +2587,7 @@ test.describe("investigation details", () => {
     await open(page, INCIDENT_PATH, "ai=pending");
 
     const investigation: Locator = investigationCard(page);
-    await expect(investigation.getByLabel("Investigation status")).toHaveText(
+    await expect(stepPillWords(investigation, "investigation")).toHaveText(
       "Preparing report…",
       { timeout: 30000 },
     );
@@ -3333,7 +3344,7 @@ test.describe("investigation states", () => {
       await open(page, INCIDENT_PATH, `ai=${scenario.ai}`);
 
       const investigation: Locator = investigationCard(page);
-      await expect(investigation.getByLabel("Investigation status")).toHaveText(
+      await expect(stepPillWords(investigation, "investigation")).toHaveText(
         scenario.badge,
         { timeout: 30000 },
       );
@@ -3405,7 +3416,7 @@ test.describe("investigation states", () => {
 
     const investigation: Locator = investigationCard(page);
     await expect(investigation).toHaveCount(1);
-    await expect(investigation.getByLabel("Investigation status")).toHaveText(
+    await expect(stepPillWords(investigation, "investigation")).toHaveText(
       "Not investigated",
       { timeout: 30000 },
     );
@@ -3476,7 +3487,7 @@ async function openWaiting(
 ): Promise<Locator> {
   await open(page, pagePath, query);
   await expect(
-    investigationCard(page).getByLabel("Investigation status"),
+    stepPillWords(investigationCard(page), "investigation"),
   ).toHaveText("Waiting", { timeout: 30000 });
   return waitingBody(page);
 }
@@ -3530,7 +3541,7 @@ test.describe("an investigation rule's wait (issue #5074)", () => {
 
     await waiting.getByRole("button", { name: "Investigate now" }).click();
 
-    await expect(investigation.getByLabel("Investigation status")).toHaveText(
+    await expect(stepPillWords(investigation, "investigation")).toHaveText(
       "Queued",
       { timeout: 30000 },
     );
@@ -3568,7 +3579,7 @@ test.describe("an investigation rule's wait (issue #5074)", () => {
       waiting.getByRole("button", { name: "Investigate now" }),
     ).toBeEnabled();
     await expect(
-      investigationCard(page).getByLabel("Investigation status"),
+      stepPillWords(investigationCard(page), "investigation"),
     ).toHaveText("Waiting");
   });
 
@@ -3654,7 +3665,7 @@ test.describe("an investigation rule's wait (issue #5074)", () => {
     await waiting.getByRole("button", { name: "Investigate now" }).click();
 
     await expect(
-      investigationCard(page).getByLabel("Investigation status"),
+      stepPillWords(investigationCard(page), "investigation"),
     ).toHaveText("Queued", { timeout: 30000 });
     expect(
       (await apiRequestsTo(page, "/ai-investigation/investigate-now")).map(
@@ -3685,14 +3696,7 @@ test.describe("an investigation rule's wait (issue #5074)", () => {
       body.x + body.width + 0.5,
     );
     // The page never scrolls sideways.
-    expect(
-      await page.evaluate((): number => {
-        return (
-          document.documentElement.scrollWidth -
-          document.documentElement.clientWidth
-        );
-      }),
-    ).toBe(0);
+    await expectNoSidewaysScroll(page);
   });
 });
 
@@ -3833,7 +3837,7 @@ test.describe("a page OneUptime AI holds (#5351)", () => {
           }),
       ).toBe("ai-hold-notice");
       await expect(
-        investigationCard(page).getByLabel("Investigation status"),
+        stepPillWords(investigationCard(page), "investigation"),
       ).toHaveText("Completed", { timeout: 30000 });
 
       /*
@@ -3902,7 +3906,7 @@ test.describe("a page OneUptime AI holds (#5351)", () => {
     await open(page, ALERT_PATH, `${HOLD_QUERY}&role=alert-member`);
     // The card has drawn what it reads on its own.
     await expect(
-      investigationCard(page).getByLabel("Investigation status"),
+      stepPillWords(investigationCard(page), "investigation"),
     ).toHaveText("Completed", { timeout: 30000 });
     await afterNextPaint(page);
 
@@ -3985,7 +3989,7 @@ test.describe("a page OneUptime AI holds (#5351)", () => {
     expect(await isOverflowing(notice.getByText(INCIDENT_HOLD.sentence))).toBe(
       false,
     );
-    await expectNoHorizontalOverflow(page);
+    await expectNoSidewaysScroll(page, { tolerance: 1 });
 
     await screenshotElement(notice, "ai-card-hold-mobile");
   });
@@ -4007,7 +4011,7 @@ test.describe("a page OneUptime AI holds (#5351)", () => {
       `${HOLD_QUERY}&theme=dark`,
     );
     await expect(
-      investigationCard(page).getByLabel("Investigation status"),
+      stepPillWords(investigationCard(page), "investigation"),
     ).toHaveText("Completed", { timeout: 30000 });
 
     const look: {
@@ -4338,7 +4342,7 @@ const CARD_STATES: ReadonlyArray<CardState> = [
 async function openCardState(page: Page, state: CardState): Promise<Locator> {
   await open(page, INCIDENT_PATH, state.query);
   const investigation: Locator = investigationCard(page);
-  await expect(investigation.getByLabel("Investigation status")).toHaveText(
+  await expect(stepPillWords(investigation, "investigation")).toHaveText(
     state.badge,
     { timeout: 30000 },
   );
@@ -4445,9 +4449,8 @@ test.describe("one flat AI investigation card", () => {
     for (const state of CARD_STATES) {
       const investigation: Locator = await openCardState(page, state);
       looks.push(
-        await investigation
-          .getByLabel("Investigation status")
-          .evaluate((element: Element): string => {
+        await stepPill(investigation, "investigation").evaluate(
+          (element: Element): string => {
             const style: CSSStyleDeclaration = window.getComputedStyle(element);
             return [
               style.backgroundColor,
@@ -4455,7 +4458,8 @@ test.describe("one flat AI investigation card", () => {
               style.boxShadow,
               style.borderRadius,
             ].join(" | ");
-          }),
+          },
+        ),
       );
     }
 
@@ -5015,12 +5019,14 @@ test.describe("one AI card: the investigation and the conversation", () => {
       "default",
     );
     await expect(
-      investigation.getByTestId("card-header").getByLabel(/status$/),
+      investigation
+        .getByTestId("card-header")
+        .getByTestId("status-badge-label"),
     ).toHaveCount(0);
 
     for (const step of STEP_TITLES_AND_PILLS) {
       const pill: Box = await documentBox(
-        page.getByTestId(step.testId).getByLabel(step.pill, { exact: true }),
+        page.getByTestId(`${step.testId}-pill`),
       );
       const title: Box = await documentBox(stepTitle(page, step));
       // Beside the step's title, on its line.
@@ -6089,7 +6095,7 @@ test.describe("one AI card: the investigation and the conversation", () => {
         await page.keyboard.press("Escape");
         await expect(menu).toHaveCount(0);
         await expect(modePicker(page)).toBeFocused();
-        await expectNoHorizontalOverflow(page);
+        await expectNoSidewaysScroll(page, { tolerance: 1 });
       });
     }
 
@@ -6273,7 +6279,7 @@ test.describe("one AI card: the investigation and the conversation", () => {
       page: Page;
     }) => {
       const section: Locator = await openConversation(page, "thread=answered");
-      await expectNoHorizontalOverflow(page);
+      await expectNoSidewaysScroll(page, { tolerance: 1 });
 
       const answer: Locator = answers(page).first();
       const mark: Box = await documentBox(
@@ -6318,7 +6324,7 @@ test.describe("one AI card: the investigation and the conversation", () => {
       );
       // A keyboard hint is no use on a phone.
       await expect(conversation(page).getByText("to send")).toBeHidden();
-      await expectNoHorizontalOverflow(page);
+      await expectNoSidewaysScroll(page, { tolerance: 1 });
     });
 
     test("the status pill sits beside the title when it fits and under it, at the right edge, when it does not", async ({
@@ -6332,7 +6338,7 @@ test.describe("one AI card: the investigation and the conversation", () => {
         stepTitle(page, STEP_TITLES_AND_PILLS[0]!),
       );
       let pill: Box = await documentBox(
-        investigation.getByLabel("Investigation status"),
+        stepPill(investigation, "investigation"),
       );
       let section: Box = await documentBox(conversation(page));
 
@@ -6350,9 +6356,7 @@ test.describe("one AI card: the investigation and the conversation", () => {
        */
       investigation = await openCardState(page, CARD_STATES[7]!);
       title = await documentBox(stepTitle(page, STEP_TITLES_AND_PILLS[0]!));
-      pill = await documentBox(
-        investigation.getByLabel("Investigation status"),
-      );
+      pill = await documentBox(stepPill(investigation, "investigation"));
       section = await documentBox(conversation(page));
 
       // The title is never the one that gives way.
@@ -6363,7 +6367,7 @@ test.describe("one AI card: the investigation and the conversation", () => {
       } else {
         expect(pill.x).toBeGreaterThan(title.x + title.width);
       }
-      await expectNoHorizontalOverflow(page);
+      await expectNoSidewaysScroll(page, { tolerance: 1 });
     });
   });
 
@@ -6493,7 +6497,7 @@ test.describe("one AI card: the investigation and the conversation", () => {
     await expect(page).toHaveURL(new RegExp(`${incidentPath(1017)}`));
     // #1017 was never investigated and nobody has asked about it.
     await expect(
-      investigationCard(page).getByLabel("Investigation status"),
+      stepPillWords(investigationCard(page), "investigation"),
     ).toHaveText("Not investigated", { timeout: 30000 });
     await expect(questions(page)).toHaveCount(0);
     await expect(composerBox(page)).toHaveValue("");
@@ -6598,6 +6602,27 @@ function aiOffStepsPanel(page: Page): Locator {
  */
 function remediationCard(page: Page): Locator {
   return remediationStep(page);
+}
+
+/*
+ * Opens every fix on the Remediation step, as a reader does: a fix of
+ * commands or changes is folded to its sentence (#5413's UI review: a
+ * lighter fixes block), and Review and approve - Show details, for a fix
+ * that waits for nobody - opens its commands, its reasoning and Approve &
+ * Run. Waits for the first fix's press to be drawn.
+ */
+async function openEveryFix(page: Page): Promise<void> {
+  const toggles: Locator = remediationStep(page).getByTestId(
+    "remediation-fix-details-toggle",
+  );
+  await expect(toggles.first()).toBeVisible({ timeout: 30000 });
+
+  for (const toggle of await toggles.all()) {
+    if ((await toggle.getAttribute("aria-expanded")) === "false") {
+      await toggle.click();
+      await expect(toggle).toHaveAttribute("aria-expanded", "true");
+    }
+  }
 }
 
 async function openAiOffLine(
@@ -6857,8 +6882,8 @@ test.describe("the AI card as one line when AI was off for the record (?ai=off-*
           exact: true,
         }),
       ).toHaveCount(0);
-      await expect(page.getByLabel("Investigation status")).toHaveCount(0);
-      await expect(page.getByLabel("Remediation status")).toHaveCount(0);
+      await expect(stepPill(page, "investigation")).toHaveCount(0);
+      await expect(stepPill(page, "remediation")).toHaveCount(0);
       await expect(page.getByTestId("investigation-not-started")).toHaveCount(
         0,
       );
@@ -7008,7 +7033,7 @@ test.describe("the AI card as one line when AI was off for the record (?ai=off-*
       expect(
         investigate.y - (aiFeatures.y + aiFeatures.height),
       ).toBeGreaterThan(fix.y - (investigate.y + investigate.height));
-      await expectNoHorizontalOverflow(page);
+      await expectNoSidewaysScroll(page, { tolerance: 1 });
     });
   }
 
@@ -7228,7 +7253,7 @@ test.describe("the AI card as one line when AI was off for the record (?ai=off-*
     await open(page, INCIDENT_PATH, "ai=off-switch&fixing=acted");
 
     const investigation: Locator = investigationCard(page);
-    await expect(investigation.getByLabel("Investigation status")).toHaveText(
+    await expect(stepPillWords(investigation, "investigation")).toHaveText(
       "Not investigated",
       { timeout: 30000 },
     );
@@ -7436,7 +7461,7 @@ test.describe("the AI card as one line when AI was off for the record (?ai=off-*
         cardBox.x + cardBox.width,
       );
     }
-    await expectNoHorizontalOverflow(page);
+    await expectNoSidewaysScroll(page, { tolerance: 1 });
   });
 
   /*
@@ -7525,7 +7550,7 @@ test.describe("the AI card as one line when AI was off for the record (?ai=off-*
         }
 
         expect(await panelsInsideTheCard(page)).toEqual([]);
-        await expectNoHorizontalOverflow(page);
+        await expectNoSidewaysScroll(page, { tolerance: 1 });
         await screenshotElement(
           aiOffCard(page),
           `incident-ai-off-line-${width}-${theme}-open`,
@@ -7574,7 +7599,7 @@ test.describe("the AI card as one line when AI was off for the record (?ai=off-*
     // The chevron and the mark start where the title does.
     expect(Math.abs(chevron.y - title.y)).toBeLessThanOrEqual(1);
     expect(Math.abs(mark.y - title.y)).toBeLessThanOrEqual(1);
-    await expectNoHorizontalOverflow(page);
+    await expectNoSidewaysScroll(page, { tolerance: 1 });
   });
 
   for (const width of [1280, 390]) {
@@ -7623,7 +7648,7 @@ test.describe("the AI card as one line when AI was off for the record (?ai=off-*
         "Das gilt nur für neue Vorfälle, nicht für diesen. Sie können OneUptime AI trotzdem dazu befragen.",
       );
 
-      await expectNoHorizontalOverflow(page);
+      await expectNoSidewaysScroll(page, { tolerance: 1 });
       await screenshotElement(
         aiOffCard(page),
         `incident-ai-off-line-${width}-de-open`,
@@ -9173,7 +9198,7 @@ async function expectHeaderAtItsWidth(page: Page, at: string): Promise<void> {
   await expectCurrentStateWhole(page, at);
   await expectFactsOnTheirGrid(page, at);
   await expectNoticeTidy(page, at);
-  await expectNoHorizontalOverflow(page);
+  await expectNoSidewaysScroll(page, { tolerance: 1 });
 }
 
 interface HeroLayoutCase {
@@ -11154,10 +11179,10 @@ test.describe("affected resources card", () => {
 
     const resources: Locator = resourcesCard(page);
     await resources.scrollIntoViewIfNeeded();
-    await expectNoHorizontalOverflow(page);
+    await expectNoSidewaysScroll(page, { tolerance: 1 });
     await resources.getByRole("button", { name: "Show 2 more" }).click();
     await expect(resourceRows(page)).toHaveCount(13);
-    await expectNoHorizontalOverflow(page);
+    await expectNoSidewaysScroll(page, { tolerance: 1 });
 
     const cardBox: Box = await documentBox(resources);
     for (const row of await resourceRows(page).all()) {
@@ -12243,7 +12268,7 @@ test.describe("notes from the feed", () => {
       const dialog: Locator = await openFeedNoteDialog(page, FEED_NOTES[0]!);
 
       await expect(dialog.getByTestId("note-composer")).toBeVisible();
-      await expectNoHorizontalOverflow(page);
+      await expectNoSidewaysScroll(page, { tolerance: 1 });
       const box: Box = await documentBox(dialog);
       expect(box.width).toBeLessThanOrEqual(390);
     });
@@ -12306,7 +12331,7 @@ test.describe("responsive", () => {
       await page.setViewportSize({ width: 390, height: 844 });
       await openReady(page, eventPage);
       await expect(card(page, eventPage.feed)).toBeVisible();
-      await expectNoHorizontalOverflow(page);
+      await expectNoSidewaysScroll(page, { tolerance: 1 });
       // The stat bar stacks into one column.
       const cells: Locator = page
         .getByRole("group", { name: eventPage.statBar })
@@ -12325,11 +12350,11 @@ test.describe("responsive", () => {
   }) => {
     await page.setViewportSize({ width: 390, height: 844 });
     await openReady(page, INCIDENT_PAGE);
-    await expectNoHorizontalOverflow(page);
+    await expectNoSidewaysScroll(page, { tolerance: 1 });
     for (const citationId of ["C1", "C3", "C7"]) {
       await expectRowsLoaded(await expandEvidence(page, citationId));
     }
-    await expectNoHorizontalOverflow(page);
+    await expectNoSidewaysScroll(page, { tolerance: 1 });
 
     /*
      * Phones draw the short "Evidence" so both tabs share one row. Both
@@ -12407,7 +12432,7 @@ test.describe("responsive", () => {
             width === 1440 ? { onTitleLine: true } : undefined,
           );
         }
-        await expectNoHorizontalOverflow(page);
+        await expectNoSidewaysScroll(page, { tolerance: 1 });
       });
     }
   }
@@ -12494,7 +12519,7 @@ test.describe("responsive", () => {
         );
         expect(title.width, `${heading} title width`).toBeGreaterThan(120);
       }
-      await expectNoHorizontalOverflow(page);
+      await expectNoSidewaysScroll(page, { tolerance: 1 });
     });
   }
 });
@@ -12964,7 +12989,7 @@ test.describe("measurements", () => {
     await openReady(page, INCIDENT_PAGE);
 
     expect(await measurementRows(page)).toEqual(INCIDENT_MEASUREMENTS);
-    await expectNoHorizontalOverflow(page);
+    await expectNoSidewaysScroll(page, { tolerance: 1 });
     await screenshotElement(
       measurementsCard(page),
       "incident-measurements-mobile",
@@ -13123,7 +13148,7 @@ test.describe("the feed, as a timeline", () => {
     const body: Box = await documentBox(note.getByTestId("feed-entry-author"));
 
     expect(time.y + time.height).toBeLessThanOrEqual(body.y + 1);
-    await expectNoHorizontalOverflow(page);
+    await expectNoSidewaysScroll(page, { tolerance: 1 });
     await page.mouse.move(0, 0);
     await screenshotElement(feed, "incident-feed-mobile");
   });
@@ -13282,7 +13307,7 @@ test.describe("the feed, as a timeline", () => {
     await expect(feedEntry(feed, "paged nobody")).toHaveCount(0);
     await expect(showMore).toBeFocused();
 
-    await expectNoHorizontalOverflow(page);
+    await expectNoSidewaysScroll(page, { tolerance: 1 });
   });
 });
 
@@ -13504,7 +13529,7 @@ test.describe("links and quotes in a note", () => {
     });
 
     await screenshotElement(savedNote(page), "feed-note-links-and-quotes");
-    await expectNoHorizontalOverflow(page);
+    await expectNoSidewaysScroll(page, { tolerance: 1 });
 
     // In text read right to left, the bar is on the side it starts from.
     await quote.evaluate((element: Element): void => {
@@ -13792,7 +13817,7 @@ test.describe("Open in Slack / Microsoft Teams", () => {
     await expect(
       heroActions(page).getByRole("button", { name: "Open channel" }),
     ).toBeVisible();
-    await expectNoHorizontalOverflow(page);
+    await expectNoSidewaysScroll(page, { tolerance: 1 });
     await page.mouse.move(0, 0);
     await screenshotElement(hero(page), "incident-hero-open-in-chat-mobile");
   });
@@ -14064,12 +14089,10 @@ test.describe("Escalate", () => {
     expect(await dialogLines(page, "pass-on-preview")).toEqual([
       NOT_PAGED_AGAIN,
     ]);
-    const warningBox: { y: number } | null = await asked.boundingBox();
-    const lineBox: { y: number } | null = await escalateDialog(page)
-      .getByTestId("pass-on-preview")
-      .locator("p")
-      .first()
-      .boundingBox();
+    const [warningBox, lineBox] = await boxesInOneFrame([
+      asked,
+      escalateDialog(page).getByTestId("pass-on-preview").locator("p").first(),
+    ]);
     expect(warningBox!.y).toBeLessThan(lineBox!.y);
     await screenshotElement(
       escalateDialog(page),
@@ -14316,7 +14339,7 @@ test.describe("Escalate", () => {
             },
           );
           expect(fits).toBe(true);
-          await expectNoHorizontalOverflow(page);
+          await expectNoSidewaysScroll(page, { tolerance: 1 });
           await page.mouse.move(0, 0);
           await screenshotElement(
             hero(page),
@@ -14330,7 +14353,7 @@ test.describe("Escalate", () => {
           await expect(
             escalateDialog(page).getByTestId("modal-footer-submit-button"),
           ).toBeVisible();
-          await expectNoHorizontalOverflow(page);
+          await expectNoSidewaysScroll(page, { tolerance: 1 });
 
           // The dialog sits inside the screen, its buttons in reach.
           const box: { x: number; width: number } | null = await escalateDialog(
@@ -14366,7 +14389,7 @@ test.describe("Escalate", () => {
     await expect(
       escalateDialog(page).getByTestId("pass-on-warning"),
     ).toBeVisible();
-    await expectNoHorizontalOverflow(page);
+    await expectNoSidewaysScroll(page, { tolerance: 1 });
     await screenshotElement(
       escalateDialog(page),
       "escalate-dialog-stopped-ask-dark-mobile",
@@ -14417,7 +14440,7 @@ test.describe("Escalate", () => {
         "Bob Smith is still being paged. If nobody acknowledges by 6:40 PM GMT, the policy pages Platform leads (Level 2 of 3) next.",
         NOT_PAGED_AGAIN,
       ]);
-      await expectNoHorizontalOverflow(page);
+      await expectNoSidewaysScroll(page, { tolerance: 1 });
 
       // After escalating, the answer keeps them together too.
       await escalateDialog(page)
@@ -14694,7 +14717,7 @@ test.describe("the record's channel card", () => {
     await expect(channelCard(page).getByTestId("record-channel")).toHaveCount(
       3,
     );
-    await expectNoHorizontalOverflow(page);
+    await expectNoSidewaysScroll(page, { tolerance: 1 });
     await screenshotElement(channelCard(page), "incident-channel-card-mobile");
   });
 
@@ -14719,12 +14742,11 @@ test.describe("the record's channel card", () => {
 
     await expect(addPeople).toBeVisible();
 
-    const row: { x: number; width: number } | null =
-      await actions.boundingBox();
-    const joinBox: { x: number; y: number; width: number } | null =
-      await join.boundingBox();
-    const addBox: { x: number; y: number; width: number } | null =
-      await addPeople.boundingBox();
+    const [row, joinBox, addBox] = await boxesInOneFrame([
+      actions,
+      join,
+      addPeople,
+    ]);
 
     // Stacked, each as wide as the column - not two ragged ends.
     expect(addBox!.y).toBeGreaterThan(joinBox!.y);
@@ -14737,12 +14759,11 @@ test.describe("the record's channel card", () => {
     // A phone's full-width card has room for both, side by side.
     await page.setViewportSize({ width: 390, height: 844 });
     await expect(async () => {
-      const phoneJoin: { y: number } | null = await join.boundingBox();
-      const phoneAdd: { y: number } | null = await addPeople.boundingBox();
+      const [phoneJoin, phoneAdd] = await boxesInOneFrame([join, addPeople]);
 
       expect(Math.abs(phoneJoin!.y - phoneAdd!.y)).toBeLessThanOrEqual(1);
     }).toPass();
-    await expectNoHorizontalOverflow(page);
+    await expectNoSidewaysScroll(page, { tolerance: 1 });
   });
 
   test("the video call card above it reads in lines in that column, its button under the words", async ({
@@ -14760,9 +14781,7 @@ test.describe("the record's channel card", () => {
     await expect(start).toBeVisible();
 
     // Before, a row with the button beside it left the words a word a line.
-    const titleBox: { height: number; y: number } | null =
-      await title.boundingBox();
-    const startBox: { y: number } | null = await start.boundingBox();
+    const [titleBox, startBox] = await boxesInOneFrame([title, start]);
     const lineHeight: number = await title.evaluate(
       (element: Element): number => {
         return parseFloat(window.getComputedStyle(element).lineHeight);
@@ -15284,7 +15303,7 @@ test.describe("the linked infrastructure, and the follow-up check (?linked=)", (
     expect(await stepTexts(page)).toContain(
       "Searching past incidents · 3 rows · 0.4s",
     );
-    await expectNoHorizontalOverflow(page);
+    await expectNoSidewaysScroll(page, { tolerance: 1 });
   });
 
   test("the steps' detail follows their words", async ({
@@ -15513,7 +15532,7 @@ test.describe("the linked infrastructure, and the follow-up check (?linked=)", (
         ignoreCase: true,
         timeout: 30000,
       });
-      await expectNoHorizontalOverflow(page);
+      await expectNoSidewaysScroll(page, { tolerance: 1 });
     }
   });
 
@@ -16024,7 +16043,7 @@ test.describe("an incident call's transcript (?calls=)", () => {
     await expect(
       callsCard(page).getByTestId("call-transcript-outcome-details"),
     ).toBeVisible();
-    await expectNoHorizontalOverflow(page);
+    await expectNoSidewaysScroll(page, { tolerance: 1 });
   });
 
   test("a Microsoft Teams meeting's transcript is added by hand, and read", async ({
@@ -16648,7 +16667,7 @@ test.describe("an incident call's transcript (?calls=)", () => {
 
     await page.setViewportSize({ width: 390, height: 844 });
     await openReady(page, INCIDENT_PAGE, "calls=transcript");
-    await expectNoHorizontalOverflow(page);
+    await expectNoSidewaysScroll(page, { tolerance: 1 });
 
     /*
      * The heading shares its line with the menu's mark alone, and View
@@ -16902,7 +16921,7 @@ test.describe("time to acknowledge after paging", () => {
          * bar (640px) two even lines, never a word left on its own.
          */
         expect(note!.lines).toBe(width === 640 ? 2 : 1);
-        await expectNoHorizontalOverflow(page);
+        await expectNoSidewaysScroll(page, { tolerance: 1 });
       });
     }
   }
@@ -18293,7 +18312,7 @@ test.describe("at a glance: what happened", () => {
         .getByTestId("what-happened-root-cause-value")
         .getByRole("button", { name: "Show more" }),
     ).toHaveAttribute("aria-expanded", "false");
-    await expectNoHorizontalOverflow(page);
+    await expectNoSidewaysScroll(page, { tolerance: 1 });
   });
 
   test("Edit writes the description and the root cause in one dialog, and the card shows what was saved", async ({
@@ -18499,7 +18518,7 @@ test.describe("at a glance: when, and what it touched", () => {
       if (width === 390) {
         expect(lines).toEqual(["Sep 14, 06:01 PM GMT"]);
       }
-      await expectNoHorizontalOverflow(page);
+      await expectNoSidewaysScroll(page, { tolerance: 1 });
     });
   }
 
@@ -18519,7 +18538,7 @@ test.describe("at a glance: when, and what it touched", () => {
     expect(lines.join(" ")).toBe("Sep 14, 05:56 PM GMT");
     // Balanced lines: the date over the time and its zone, never a lone zone.
     expect(lines).not.toContain("GMT");
-    await expectNoHorizontalOverflow(page);
+    await expectNoSidewaysScroll(page, { tolerance: 1 });
   });
 
   test("Affected Resources leads the right column, with the monitor status the incident sets", async ({
@@ -18602,7 +18621,7 @@ test.describe("at a glance: layout", () => {
         expect(background).not.toContain("rgb(100, 116, 139)");
       }
 
-      await expectNoHorizontalOverflow(page);
+      await expectNoSidewaysScroll(page, { tolerance: 1 });
       await screenshotBetween(
         page,
         hero(page),
@@ -18653,7 +18672,7 @@ test.describe("at a glance: layout", () => {
           .getByRole("button", { name: "Bearbeiten" }),
       ).toBeVisible();
 
-      await expectNoHorizontalOverflow(page);
+      await expectNoSidewaysScroll(page, { tolerance: 1 });
       await screenshotBetween(
         page,
         germanHero,
@@ -18673,7 +18692,9 @@ test.describe("at a glance: layout", () => {
  * Resources, and OneUptime AI tries again. "Go to Affected Resources" takes the reader to that card - on a
  * phone far below - and marks where it landed. ?fixing=nothing-linked is
  * such a record with no monitor (an incident Ask AI declared);
- * ?fixing=nothing-linked-monitor names its monitor too.
+ * ?fixing=nothing-linked-monitor names its monitor too. Both are opened
+ * open (?state=created): a resolved record is not tried again, and its line
+ * says so (see the last test).
  */
 test.describe("the Remediation step of a record linked to nothing (issue #5293)", () => {
   const NOTHING_LINKED_INCIDENT: string =
@@ -18691,7 +18712,7 @@ test.describe("the Remediation step of a record linked to nothing (issue #5293)"
   }: {
     page: Page;
   }) => {
-    await open(page, INCIDENT_PATH, "fixing=nothing-linked");
+    await open(page, INCIDENT_PATH, "state=created&fixing=nothing-linked");
 
     const line: Locator = decisionLine(page);
     await expect(line).toHaveCount(1, { timeout: 30000 });
@@ -18720,7 +18741,11 @@ test.describe("the Remediation step of a record linked to nothing (issue #5293)"
   }: {
     page: Page;
   }) => {
-    await open(page, INCIDENT_PATH, "fixing=nothing-linked-monitor");
+    await open(
+      page,
+      INCIDENT_PATH,
+      "state=created&fixing=nothing-linked-monitor",
+    );
 
     const line: Locator = decisionLine(page);
     await expect(
@@ -18758,7 +18783,7 @@ test.describe("the Remediation step of a record linked to nothing (issue #5293)"
       page: Page;
     }) => {
       await page.setViewportSize({ width, height: 844 });
-      await open(page, INCIDENT_PATH, "fixing=nothing-linked");
+      await open(page, INCIDENT_PATH, "state=created&fixing=nothing-linked");
       await expectWhatHappenedSettled(page);
 
       const affectedResources: Locator = card(page, "Affected Resources");
@@ -18800,7 +18825,7 @@ test.describe("the Remediation step of a record linked to nothing (issue #5293)"
         affectedResources.getByRole("button", { name: "Edit" }),
       ).toBeInViewport();
 
-      await expectNoHorizontalOverflow(page);
+      await expectNoSidewaysScroll(page, { tolerance: 1 });
       await screenshot(page, `remediation-linked-to-nothing-landed-${width}`, {
         fullPage: false,
       });
@@ -18813,7 +18838,7 @@ test.describe("the Remediation step of a record linked to nothing (issue #5293)"
     page: Page;
   }) => {
     await page.setViewportSize({ width: 390, height: 844 });
-    await open(page, ALERT_PATH, "fixing=nothing-linked");
+    await open(page, ALERT_PATH, "state=created&fixing=nothing-linked");
 
     const line: Locator = decisionLine(page);
     await expect(line.getByTestId("remediation-decision-text")).toHaveText(
@@ -18839,16 +18864,167 @@ test.describe("the Remediation step of a record linked to nothing (issue #5293)"
     page: Page;
   }) => {
     await page.setViewportSize({ width: 390, height: 844 });
-    await open(page, INCIDENT_PATH, "fixing=nothing-linked-monitor&theme=dark");
+    await open(
+      page,
+      INCIDENT_PATH,
+      "state=created&fixing=nothing-linked-monitor&theme=dark",
+    );
 
     const line: Locator = decisionLine(page);
     await expect(line).toHaveCount(1, { timeout: 30000 });
-    await expectNoHorizontalOverflow(page);
+    await expectNoSidewaysScroll(page, { tolerance: 1 });
     await screenshotElement(
       remediationCard(page),
       "remediation-linked-to-nothing-390-dark",
     );
   });
+
+  /*
+   * Resolved, OneUptime AI does not decide about it again, whatever it is
+   * linked to: the line says what happened, and - with a monitor - how the
+   * next one is linked, without "tries again" or a place to go for this
+   * one. A fact, not something to attend to.
+   */
+  test("resolved, it says what happened and how the next one is linked, never that OneUptime AI tries again", async ({
+    page,
+  }: {
+    page: Page;
+  }) => {
+    await open(page, INCIDENT_PATH, "fixing=nothing-linked-monitor");
+
+    const line: Locator = decisionLine(page);
+    await expect(line).toHaveCount(1, { timeout: 30000 });
+    await expect(line).toHaveAttribute("data-tone", "info");
+    await expect(line.getByTestId("remediation-decision-text")).toHaveText(
+      NOTHING_LINKED_INCIDENT,
+    );
+    await expect(
+      line.getByTestId("remediation-decision-what-to-do"),
+    ).toHaveText(
+      "What to do: Link its monitor to what it watches, and every incident it raises from then on is linked for you.",
+    );
+    await expect(remediationCard(page)).not.toContainText("tries again");
+    await expect(
+      line.getByRole("button", { name: GO_TO_AFFECTED_RESOURCES }),
+    ).toHaveCount(0);
+    await expect(
+      line.getByRole("link", { name: "Link Checkout API p95 latency" }),
+    ).toHaveAttribute("href", `${DASHBOARD}/monitors/${uuid("70000000", 1)}`);
+    await expect(
+      stepPillWords(remediationCard(page), "remediation"),
+    ).not.toHaveText("Needs attention");
+    await expect(
+      remediationCard(page).getByTestId("remediation-try-again"),
+    ).toHaveCount(0);
+    await page.mouse.move(0, 0);
+    await screenshotElement(
+      remediationCard(page),
+      "remediation-linked-to-nothing-resolved",
+    );
+  });
+});
+
+/*
+ * A cluster's Fixes off (?fixing=cluster-fixes-off): OneUptime AI only
+ * investigates there. While the record is open, turning them on makes it
+ * decide again (AutoRemediationRuleEngineService.onFixesTurnedOn, for the
+ * 25 most recent open records), so the line says so; resolved, it says only
+ * what is so.
+ */
+test.describe("a cluster whose Fixes are off (?fixing=cluster-fixes-off)", () => {
+  const FIXES_OFF_LINE: string =
+    'Fixes are off for cluster "prod-eu-west-1", so OneUptime AI only investigates there.';
+
+  test("open, turning its Fixes on is what to do, and OneUptime AI tries again", async ({
+    page,
+  }: {
+    page: Page;
+  }) => {
+    await open(page, INCIDENT_PATH, "state=created&fixing=cluster-fixes-off");
+
+    const line: Locator = remediationCard(page).getByTestId(
+      "remediation-decision-line",
+    );
+    await expect(line).toHaveCount(1, { timeout: 30000 });
+    await expect(line.getByTestId("remediation-decision-text")).toHaveText(
+      FIXES_OFF_LINE,
+    );
+    await expect(
+      line.getByTestId("remediation-decision-what-to-do"),
+    ).toHaveText(
+      "What to do: Turn its Fixes on, and OneUptime AI tries again.",
+    );
+    await expect(
+      line.getByRole("link", { name: "Open the cluster's AI agent page" }),
+    ).toHaveAttribute(
+      "href",
+      `${DASHBOARD}/kubernetes/${uuid("85000000", 1)}/ai/agent`,
+    );
+    await page.mouse.move(0, 0);
+    await screenshotElement(
+      remediationCard(page),
+      "remediation-cluster-fixes-off-open",
+    );
+  });
+
+  test("resolved, the line says only that its Fixes are off", async ({
+    page,
+  }: {
+    page: Page;
+  }) => {
+    await open(page, INCIDENT_PATH, "fixing=cluster-fixes-off");
+
+    const line: Locator = remediationCard(page).getByTestId(
+      "remediation-decision-line",
+    );
+    await expect(line.getByTestId("remediation-decision-text")).toHaveText(
+      FIXES_OFF_LINE,
+      { timeout: 30000 },
+    );
+    await expect(
+      line.getByTestId("remediation-decision-what-to-do"),
+    ).toHaveCount(0);
+    await expect(remediationCard(page)).not.toContainText("tries again");
+    // Where its Fixes are changed stays a link: the next one may need them.
+    await expect(
+      line.getByRole("link", { name: "Open the cluster's AI agent page" }),
+    ).toBeVisible();
+  });
+});
+
+/*
+ * #5413's follow-up: the AI-off one line folded an open record's
+ * Remediation step away, so a fixing switch turned on since had no Try
+ * again. Open, with the switch on now, the card is drawn whole.
+ */
+test("an open incident AI did not investigate, whose fixing switch is on now, is drawn whole, with Try again (?state=created&ai=off-switch&switches=on)", async ({
+  page,
+}: {
+  page: Page;
+}) => {
+  await open(page, INCIDENT_PATH, "state=created&ai=off-switch&switches=on");
+
+  const remediation: Locator = remediationStep(page);
+  await expect(remediation).toBeVisible({ timeout: 30000 });
+  await expect(investigationStep(page)).toBeVisible();
+  await expect(page.getByTestId("ai-off-summary")).toHaveCount(0);
+  await expect(remediation.getByTestId("remediation-decision-text")).toHaveText(
+    FIXING_ON_NOW_LINE,
+  );
+  await expectWhatHappenedSettled(page);
+  await page.mouse.move(0, 0);
+  await screenshotElement(
+    investigationCard(page),
+    "ai-card-off-switch-whole-open",
+  );
+
+  await remediation.getByRole("button", { name: "Try again" }).click();
+
+  await expect(stepPillWords(remediation, "remediation")).toHaveText("Fixing…");
+  await expect(remediation.getByTestId("remediation-try-again")).toHaveCount(0);
+  expect(await apiRequestsTo(page, "/auto-remediation/try-again")).toHaveLength(
+    1,
+  );
 });
 
 /*
@@ -18944,13 +19120,13 @@ test.describe("an action linking what a record is about waits for approval (issu
       );
 
       await expect(description).toBeVisible();
-      await expectNoHorizontalOverflow(page);
+      await expectNoSidewaysScroll(page, { tolerance: 1 });
 
       // The line wraps inside the card rather than running past it.
-      const promptBox: { x: number; width: number } | null =
-        await prompt.boundingBox();
-      const descriptionBox: { x: number; width: number } | null =
-        await description.boundingBox();
+      const [promptBox, descriptionBox] = await boxesInOneFrame([
+        prompt,
+        description,
+      ]);
       expect(promptBox).not.toBeNull();
       expect(descriptionBox).not.toBeNull();
       expect(descriptionBox!.x).toBeGreaterThanOrEqual(promptBox!.x);
@@ -18983,16 +19159,11 @@ test.describe("an action linking what a record is about waits for approval (issu
       const action: Locator = prompt.getByTestId("tool-approval-action");
       const choice: Locator = prompt.getByTestId("tool-approval-choice");
       await expect(choice).toBeVisible();
-      const actionBox: { x: number; width: number } | null =
-        await action.boundingBox();
-      const titleBox: {
-        x: number;
-        y: number;
-        width: number;
-        height: number;
-      } | null = await title.boundingBox();
-      const choiceBox: { x: number; y: number } | null =
-        await choice.boundingBox();
+      const [actionBox, titleBox, choiceBox] = await boxesInOneFrame([
+        action,
+        title,
+        choice,
+      ]);
       expect(choiceBox!.y).toBeGreaterThanOrEqual(
         titleBox!.y + titleBox!.height,
       );
@@ -19023,10 +19194,7 @@ test.describe("an action linking what a record is about waits for approval (issu
       }),
     ).toBeVisible();
 
-    const titleBox: { x: number; y: number; width: number } | null =
-      await title.boundingBox();
-    const choiceBox: { x: number; y: number } | null =
-      await choice.boundingBox();
+    const [titleBox, choiceBox] = await boxesInOneFrame([title, choice]);
     // On the title's line, past its end.
     expect(Math.abs(choiceBox!.y - titleBox!.y)).toBeLessThan(8);
     expect(choiceBox!.x).toBeGreaterThan(titleBox!.x + titleBox!.width);
@@ -19209,29 +19377,25 @@ test.describe("an investigation the logs could not help (?stall=)", () => {
     );
     await notice.scrollIntoViewIfNeeded();
 
-    const fit: { pageScrolls: boolean; cardBox: number; links: Array<number> } =
-      await page.evaluate(
-        (): { pageScrolls: boolean; cardBox: number; links: Array<number> } => {
-          const card: Element | null =
-            document.querySelector("#ai-investigation");
-          const right: number = card ? card.getBoundingClientRect().right : 0;
-          return {
-            pageScrolls:
-              document.documentElement.scrollWidth >
-              document.documentElement.clientWidth,
-            cardBox: right,
-            links: Array.from(
-              document.querySelectorAll(
-                "[data-testid='investigation-log-stall-actions'] a",
-              ),
-            ).map((link: Element): number => {
-              return link.getBoundingClientRect().right;
-            }),
-          };
-        },
-      );
+    const fit: { cardBox: number; links: Array<number> } = await page.evaluate(
+      (): { cardBox: number; links: Array<number> } => {
+        const card: Element | null =
+          document.querySelector("#ai-investigation");
+        const right: number = card ? card.getBoundingClientRect().right : 0;
+        return {
+          cardBox: right,
+          links: Array.from(
+            document.querySelectorAll(
+              "[data-testid='investigation-log-stall-actions'] a",
+            ),
+          ).map((link: Element): number => {
+            return link.getBoundingClientRect().right;
+          }),
+        };
+      },
+    );
 
-    expect(fit.pageScrolls).toBe(false);
+    await expectNoSidewaysScroll(page);
     expect(fit.links).toHaveLength(2);
     for (const linkRight of fit.links) {
       expect(linkRight).toBeLessThanOrEqual(fit.cardBox + 1);
@@ -19312,6 +19476,7 @@ test.describe("a cloud fix's dry run on the Remediation step", () => {
 
   async function openCloudFix(page: Page, query: string): Promise<void> {
     await open(page, INCIDENT_PATH, query);
+    await openEveryFix(page);
     await expect(
       remediationCard(page).getByText(COMMAND, { exact: true }),
     ).toBeVisible({ timeout: 30000 });
@@ -19345,7 +19510,7 @@ test.describe("a cloud fix's dry run on the Remediation step", () => {
     await expect(dryRunButton(page)).toHaveText("Dry run again");
     await expect(dryRunButton(page)).toBeEnabled();
 
-    await expectNoHorizontalOverflow(page);
+    await expectNoSidewaysScroll(page, { tolerance: 1 });
     await screenshotElement(
       remediationCard(page),
       "remediation-cloud-dry-run-would-run",
@@ -19497,7 +19662,7 @@ test.describe("a cloud fix's dry run on the Remediation step", () => {
 
     const note: Locator = dryRunNote(page);
     await expect(note).toHaveAttribute("data-status", "WouldBeRefused");
-    await expectNoHorizontalOverflow(page);
+    await expectNoSidewaysScroll(page, { tolerance: 1 });
 
     const cardBox: Box = await documentBox(remediationCard(page));
     const noteBox: Box = await documentBox(note);
@@ -19551,6 +19716,7 @@ test.describe("a fix's changes in plain words, and how each went before", () => 
 
   async function openChange(page: Page, query: string): Promise<void> {
     await open(page, INCIDENT_PATH, query);
+    await openEveryFix(page);
     await expect(
       remediationCard(page).getByText(COMMAND, { exact: true }),
     ).toBeVisible({ timeout: 30000 });
@@ -19594,7 +19760,7 @@ test.describe("a fix's changes in plain words, and how each went before", () => 
     expect(runBoxes[1]!.y).toBe(runBoxes[0]!.y);
     expect(runBoxes[2]!.y).toBe(runBoxes[0]!.y);
 
-    await expectNoHorizontalOverflow(page);
+    await expectNoSidewaysScroll(page, { tolerance: 1 });
     expect(await isOverflowing(words)).toBe(false);
   }
 
@@ -19720,7 +19886,7 @@ test.describe("a fix's changes in plain words, and how each went before", () => 
     await expect(trackRecordText(page)).toHaveText(
       "در همهٔ ۳ باری که پیش‌تر اینجا اجرا شد مؤثر بود",
     );
-    await expectNoHorizontalOverflow(page);
+    await expectNoSidewaysScroll(page, { tolerance: 1 });
     await screenshotElement(
       remediationCard(page),
       "remediation-track-record-worked-390-fa",
@@ -19783,7 +19949,7 @@ test.describe("what the investigation ruled out", () => {
       headings.indexOf("Ruled out"),
     );
 
-    await expectNoHorizontalOverflow(page);
+    await expectNoSidewaysScroll(page, { tolerance: 1 });
     await screenshotElement(list, "investigation-ruled-out-1280");
   });
 
@@ -19798,7 +19964,7 @@ test.describe("what the investigation ruled out", () => {
     await expect(list.getByTestId("investigation-ruled-out-cause")).toHaveCount(
       3,
     );
-    await expectNoHorizontalOverflow(page);
+    await expectNoSidewaysScroll(page, { tolerance: 1 });
     await screenshotElement(list, "investigation-ruled-out-390-dark");
   });
 
@@ -19824,7 +19990,7 @@ test.describe("what the investigation ruled out", () => {
     ]);
     expect(crossBox!.x).toBeLessThan(nameBox!.x);
 
-    await expectNoHorizontalOverflow(page);
+    await expectNoSidewaysScroll(page, { tolerance: 1 });
     await screenshotElement(list, "investigation-ruled-out-390-fa");
   });
 });
@@ -19856,10 +20022,6 @@ const TRY_AGAIN_HINT: string =
 const TOO_SOON: string =
   "OneUptime AI has just checked this incident. Try again in a moment.";
 
-function stepPill(step: Locator, label: string): Locator {
-  return step.getByLabel(label, { exact: true });
-}
-
 // Opens a record and waits for its AI card to have drawn both steps.
 async function openTwoSteps(
   page: Page,
@@ -19871,9 +20033,10 @@ async function openTwoSteps(
   const investigation: Locator = investigationStep(page);
   const remediation: Locator = remediationStep(page);
   await expect(remediation).toBeVisible({ timeout: 30000 });
-  await expect(
-    stepPill(remediation, STEP_TITLES_AND_PILLS[1]!.pill),
-  ).toHaveText(remediationPill, { timeout: 30000 });
+  await expect(stepPillWords(remediation, "remediation")).toHaveText(
+    remediationPill,
+    { timeout: 30000 },
+  );
   await expectWhatHappenedSettled(page);
   return { investigation, remediation };
 }
@@ -19902,9 +20065,9 @@ test.describe("the AI card in two steps: Investigation, then Remediation (block 
 
     // Step 1: its title and pill on one line, its mark a check: it reported.
     await expect(stepTitle(page, STEP_TITLES_AND_PILLS[0]!)).toBeVisible();
-    await expect(
-      stepPill(investigation, STEP_TITLES_AND_PILLS[0]!.pill),
-    ).toHaveText("Completed");
+    await expect(stepPillWords(investigation, "investigation")).toHaveText(
+      "Completed",
+    );
     await expect(investigation).toHaveAttribute("data-indicator", "done");
     await expect(investigation).toHaveAttribute("data-step", "1");
     await expect(
@@ -19995,9 +20158,9 @@ test.describe("the AI card in two steps: Investigation, then Remediation (block 
       "Waiting",
     );
 
-    await expect(
-      stepPill(investigation, STEP_TITLES_AND_PILLS[0]!.pill),
-    ).toHaveText("Investigating…");
+    await expect(stepPillWords(investigation, "investigation")).toHaveText(
+      "Investigating…",
+    );
     await expect(investigation).toHaveAttribute("data-indicator", "live");
     await expect(
       remediation.getByTestId("remediation-decision-line"),
@@ -20049,9 +20212,9 @@ test.describe("the AI card in two steps: Investigation, then Remediation (block 
     await tryAgain.getByRole("button", { name: "Try again" }).click();
 
     // Decided again, now: OneUptime AI started a fix, read at once.
-    await expect(
-      stepPill(remediation, STEP_TITLES_AND_PILLS[1]!.pill),
-    ).toHaveText("Fixing…");
+    await expect(stepPillWords(remediation, "remediation")).toHaveText(
+      "Fixing…",
+    );
     await expect(remediation.getByTestId("remediation-decision")).toContainText(
       '"prod-eu-west-1"',
     );
@@ -20139,13 +20302,29 @@ test.describe("the AI card in two steps: Investigation, then Remediation (block 
     );
 
     await expect(remediation).toHaveAttribute("data-indicator", "attention");
-    // What approving does, over the fix that waits for it.
+    /*
+     * Folded to its sentence: Review and approve is the one press, and
+     * nothing says what approving runs while nothing is shown.
+     */
+    await expect(
+      remediation.getByTestId("remediation-approve-button"),
+    ).toHaveCount(0);
     await expect(
       remediation.getByTestId("remediation-approval-note"),
-    ).toHaveText("Approving runs exactly what is shown, under your name.");
+    ).toHaveCount(0);
+    await expect(
+      remediation.getByRole("button", { name: "Dismiss" }),
+    ).toHaveCount(0);
+    await remediation
+      .getByRole("button", { name: "Review and approve" })
+      .click();
     await expect(
       remediation.getByTestId("remediation-approve-button"),
     ).toBeVisible();
+    // What approving does, right over Approve & Run.
+    await expect(
+      remediation.getByTestId("remediation-approval-note"),
+    ).toHaveText("Approving runs exactly what is shown, under your name.");
     // Nothing to try again beside a fix.
     await expect(remediation.getByTestId("remediation-try-again")).toHaveCount(
       0,
@@ -20259,9 +20438,7 @@ test.describe("the AI card in two steps: Investigation, then Remediation (block 
         );
 
         for (const step of STEP_TITLES_AND_PILLS) {
-          const pill: Locator = page
-            .getByTestId(step.testId)
-            .getByLabel(step.pill, { exact: true });
+          const pill: Locator = page.getByTestId(`${step.testId}-pill`);
           expect(await isOverflowing(pill), `${step.pill} is cut off`).toBe(
             false,
           );
@@ -20309,7 +20486,7 @@ test.describe("the AI card in two steps: Investigation, then Remediation (block 
         ).toBeVisible();
         await expect(investigation).toBeVisible();
         expect(await panelsInsideTheCard(page)).toEqual([]);
-        await expectNoHorizontalOverflow(page);
+        await expectNoSidewaysScroll(page, { tolerance: 1 });
         await page.mouse.move(0, 0);
         await screenshotElement(
           investigationCard(page),
@@ -20331,7 +20508,10 @@ test.describe("the AI card in two steps: Investigation, then Remediation (block 
         name: "Untersuchung",
       }),
     ).toBeVisible();
-    await expect(remediation.getByLabel("Behebungsstatus")).toHaveText("Aus");
+    await expect(stepPillWords(remediation, "remediation")).toHaveText("Aus");
+    await expect(
+      stepPill(remediation, "remediation").getByTestId("status-badge-label"),
+    ).toHaveText("Behebungsstatus, ");
     await expect(reportToggle(page)).toHaveText(
       "Vollständigen Bericht anzeigen",
     );
@@ -20339,7 +20519,7 @@ test.describe("the AI card in two steps: Investigation, then Remediation (block 
       remediation.getByRole("link", { name: "Für Vorfälle einschalten" }),
     ).toHaveAttribute("href", INCIDENT_AI_SETTINGS_HREF);
     await expectWhatHappenedSettled(page);
-    await expectNoHorizontalOverflow(page);
+    await expectNoSidewaysScroll(page, { tolerance: 1 });
     await page.mouse.move(0, 0);
     await screenshotElement(investigationCard(page), "ai-card-two-steps-de");
   });
@@ -20360,9 +20540,13 @@ test.describe("the AI card in two steps: Investigation, then Remediation (block 
       await expect(
         investigation.getByRole("heading", { level: 3, name: "بررسی" }),
       ).toBeVisible();
-      await expect(remediation.getByLabel("وضعیت رفع مشکل")).toHaveText(
+      await expect(stepPillWords(remediation, "remediation")).toHaveText(
         "خاموش",
       );
+      // Its name, heard first, apart from it by the Persian comma.
+      await expect(
+        stepPill(remediation, "remediation").getByTestId("status-badge-label"),
+      ).toHaveText("وضعیت رفع مشکل، ");
       await expectWhatHappenedSettled(page);
 
       /*
@@ -20397,7 +20581,7 @@ test.describe("the AI card in two steps: Investigation, then Remediation (block 
         ).toBeGreaterThan(title.x + title.width);
       }
 
-      await expectNoHorizontalOverflow(page);
+      await expectNoSidewaysScroll(page, { tolerance: 1 });
       await page.mouse.move(0, 0);
       await screenshotElement(
         investigationCard(page),
@@ -20417,8 +20601,9 @@ test.describe("the AI card in two steps: Investigation, then Remediation (block 
  * project's MCP servers on its own (one change failed) and a runbook
  * someone approved, verified fixed. Each fix, and each of its commands,
  * says where it stands in words with a dot: the step's status is the
- * card's one pill. One note says what approving does, a refused press says
- * why under the buttons that were pressed, and nothing scrolls sideways.
+ * card's one pill. The fix that waits says what approving does right over
+ * its Approve & Run, a refused press says why under the buttons that were
+ * pressed, and nothing scrolls sideways.
  * ---------------------------------------------------------------------------
  */
 
@@ -20435,11 +20620,24 @@ function fixOnStep(page: Page, words: string): Locator {
 /*
  * What is drawn as a pill inside an element: a shape rounded all round,
  * wider than it is tall, with a fill or a ring. A fact's dot is round but
- * not wide; a code chip and a button are not rounded all round.
+ * not wide; a code chip and a button are not rounded all round. Each by the
+ * words it draws: a step pill's name, heard first by a screen reader, is
+ * hidden on screen (sr-only), so it is left out.
  */
 async function pillsIn(locator: Locator): Promise<Array<string>> {
   return locator.evaluate((root: Element): Array<string> => {
     const pills: Array<string> = [];
+    const drawnWords: (element: Element) => string = (
+      element: Element,
+    ): string => {
+      const copy: Element = element.cloneNode(true) as Element;
+
+      for (const hidden of Array.from(copy.querySelectorAll(".sr-only"))) {
+        hidden.remove();
+      }
+
+      return (copy.textContent || "").trim();
+    };
 
     for (const element of Array.from(root.querySelectorAll("*"))) {
       const style: CSSStyleDeclaration = window.getComputedStyle(element);
@@ -20456,7 +20654,7 @@ async function pillsIn(locator: Locator): Promise<Array<string>> {
         style.boxShadow !== "none";
 
       if (isRoundAllRound && isFilled) {
-        pills.push((element.textContent || "").trim());
+        pills.push(drawnWords(element));
       }
     }
 
@@ -20464,17 +20662,27 @@ async function pillsIn(locator: Locator): Promise<Array<string>> {
   });
 }
 
-async function openManyFixes(page: Page, query: string = ""): Promise<void> {
+async function openManyFixes(
+  page: Page,
+  query: string = "",
+  options: { isFolded?: boolean } = {},
+): Promise<void> {
   await open(page, INCIDENT_PATH, `fixes=many${query ? `&${query}` : ""}`);
   await expect(remediationStep(page)).toBeVisible({ timeout: 30000 });
   await expect(
     remediationStep(page).getByTestId("remediation-fix"),
   ).toHaveCount(3, { timeout: 30000 });
+
+  // Each fix of commands or changes is folded to its sentence: opened here.
+  if (!options.isFolded) {
+    await openEveryFix(page);
+  }
+
   await expectWhatHappenedSettled(page);
 }
 
 test.describe("a busy incident's fixes on the Remediation step read as lines (?fixes=many)", () => {
-  test("each fix says where it stands in words with a dot, under one note on approving, and the step's status is the one pill", async ({
+  test("each fix says where it stands in words with a dot, the waiting one what approving does over its Approve & Run, and the step's status is the one pill", async ({
     page,
   }: {
     page: Page;
@@ -20482,9 +20690,9 @@ test.describe("a busy incident's fixes on the Remediation step read as lines (?f
     await openManyFixes(page);
     const remediation: Locator = remediationStep(page);
 
-    await expect(
-      stepPill(remediation, STEP_TITLES_AND_PILLS[1]!.pill),
-    ).toHaveText("Needs your approval");
+    await expect(stepPillWords(remediation, "remediation")).toHaveText(
+      "Needs your approval",
+    );
     await expect(
       remediation.getByTestId("remediation-approval-note"),
     ).toHaveText(APPROVAL_NOTE);
@@ -20496,6 +20704,10 @@ test.describe("a busy incident's fixes on the Remediation step read as lines (?f
     const kubectl: Locator = fixOnStep(page, "AI kubectl fix");
     await expect(kubectl.getByTestId("remediation-fix-status")).toHaveText(
       "Waiting for approval",
+    );
+    // The note is the waiting fix's own, right over its Approve & Run.
+    await expect(kubectl.getByTestId("remediation-approval-note")).toHaveText(
+      APPROVAL_NOTE,
     );
     await expect(kubectl.getByTestId("remediation-command-tier")).toHaveText([
       "safe change",
@@ -20592,7 +20804,7 @@ test.describe("a busy incident's fixes on the Remediation step read as lines (?f
 
       expect(await pillsIn(body)).toEqual([]);
       expect(await panelsInsideTheCard(page)).toEqual([]);
-      await expectNoHorizontalOverflow(page);
+      await expectNoSidewaysScroll(page, { tolerance: 1 });
       await page.mouse.move(0, 0);
       await screenshotElement(
         remediationStep(page),
@@ -20640,7 +20852,7 @@ test.describe("a busy incident's fixes on the Remediation step read as lines (?f
     expect(
       await pillsIn(page.getByTestId("ai-card-step-remediation-body")),
     ).toEqual([]);
-    await expectNoHorizontalOverflow(page);
+    await expectNoSidewaysScroll(page, { tolerance: 1 });
     await page.mouse.move(0, 0);
     await screenshotElement(remediationStep(page), "ai-card-fixes-many-fa-390");
   });
@@ -20665,7 +20877,7 @@ test.describe("a busy incident's fixes on the Remediation step read as lines (?f
       remediationStep(page).getByTestId("remediation-approval-note"),
     ).toHaveCount(0);
     await expect(
-      stepPill(remediationStep(page), STEP_TITLES_AND_PILLS[1]!.pill),
+      stepPillWords(remediationStep(page), "remediation"),
     ).toHaveText("Fixed");
     const approvals: Array<RecordedApiRequest> = await apiRequestsTo(
       page,
@@ -20712,7 +20924,261 @@ test.describe("a busy incident's fixes on the Remediation step read as lines (?f
       "Waiting for approval",
     );
     expect(await frameLook(refusal)).toEqual(NO_FRAME);
-    await expectNoHorizontalOverflow(page);
+    await expectNoSidewaysScroll(page, { tolerance: 1 });
+  });
+});
+
+/*
+ * A LIGHTER FIXES BLOCK (#5413's UI review): each fix of commands or changes
+ * is folded to where it stands and its sentence - how many commands, and
+ * where; how many changes, and through which servers - with a failure in
+ * red beside where it stands, and Review and approve (or Show details) one
+ * press from its commands, its reasoning and Approve & Run.
+ */
+const KUBECTL_FIX_SENTENCE: string = "2 commands on cluster prod-eu-west-1.";
+const MCP_FIX_SENTENCE: string =
+  "2 changes through Feature flags and Status page.";
+
+test.describe("a busy incident's fixes, each folded to its sentence (?fixes=many)", () => {
+  test("where each stands and its sentence, a failure in red, and one press from its commands and Approve & Run", async ({
+    page,
+  }: {
+    page: Page;
+  }) => {
+    await openManyFixes(page, "", { isFolded: true });
+    const remediation: Locator = remediationStep(page);
+    const kubectl: Locator = fixOnStep(page, "AI kubectl fix");
+    const mcp: Locator = fixOnStep(page, "AI fix through MCP servers");
+    const runbook: Locator = fixOnStep(page, "Restart checkout-api pods");
+
+    await expect(kubectl.getByTestId("remediation-fix-sentence")).toHaveText(
+      KUBECTL_FIX_SENTENCE,
+    );
+    await expect(
+      kubectl.getByTestId("remediation-fix-details-toggle"),
+    ).toHaveText("Review and approve");
+    await expect(kubectl.getByTestId("remediation-command")).toHaveCount(0);
+    await expect(kubectl.getByTestId("remediation-approve-button")).toHaveCount(
+      0,
+    );
+    /*
+     * It is decided with its commands in sight: folded, Review and approve
+     * is its one press, and Dismiss waits beside Approve & Run inside.
+     */
+    await expect(kubectl.getByRole("button")).toHaveCount(1);
+    await expect(kubectl.getByRole("button", { name: "Dismiss" })).toHaveCount(
+      0,
+    );
+    await expect(kubectl.getByTestId("remediation-approval-note")).toHaveCount(
+      0,
+    );
+
+    await expect(mcp.getByTestId("remediation-fix-sentence")).toHaveText(
+      MCP_FIX_SENTENCE,
+    );
+    await expect(mcp.getByTestId("remediation-fix-details-toggle")).toHaveText(
+      "Show details",
+    );
+    const failed: Locator = mcp.getByTestId("remediation-fix-failed-count");
+    await expect(failed).toHaveText("1 failed");
+    await expect(failed).toHaveAttribute("data-alarming", "true");
+    await expect(mcp.getByTestId("remediation-mcp-tool-call")).toHaveCount(0);
+
+    // A runbook has nothing to fold: its name is what approving runs.
+    await expect(
+      runbook.getByTestId("remediation-fix-details-toggle"),
+    ).toHaveCount(0);
+    await expect(
+      runbook.getByRole("button", { name: "View Execution" }),
+    ).toBeVisible();
+
+    // Folded, the three fixes take a fraction of the room they took open.
+    const folded: Box = await documentBox(
+      remediation.getByTestId("remediation-fixes"),
+    );
+    expect(
+      await pillsIn(page.getByTestId("ai-card-step-remediation-body")),
+    ).toEqual([]);
+    expect(await panelsInsideTheCard(page)).toEqual([]);
+    await page.mouse.move(0, 0);
+    await screenshotElement(remediation, "ai-card-fixes-folded-1280");
+
+    // One press: the kubectl fix's commands, and Approve & Run under them.
+    const toggle: Locator = kubectl.getByTestId(
+      "remediation-fix-details-toggle",
+    );
+    await toggle.click();
+    await expect(toggle).toHaveAttribute("aria-expanded", "true");
+    await expect(toggle).toHaveText("Hide details");
+    await expect(kubectl.getByTestId("remediation-command")).toHaveCount(2);
+    // Why, shown first: never one more press inside the opened fix.
+    await expect(kubectl.getByTestId("remediation-fix-reasoning")).toHaveText(
+      "The pool exhaustion follows the 17:52 restart. Restarting the deployment brings the configured pool back.",
+    );
+    await expect(kubectl.getByText("Show reasoning")).toHaveCount(0);
+    const details: Box = await documentBox(
+      kubectl.getByTestId("remediation-fix-details"),
+    );
+    const note: Box = await documentBox(
+      kubectl.getByTestId("remediation-approval-note"),
+    );
+    const approve: Box = await documentBox(
+      kubectl.getByTestId("remediation-approve-button"),
+    );
+    const dismiss: Box = await documentBox(
+      kubectl.getByRole("button", { name: "Dismiss" }),
+    );
+    // Under the commands: what approving does, then Approve & Run and Dismiss.
+    expect(note.y).toBeGreaterThan(details.y + details.height - 1);
+    expect(approve.y).toBeGreaterThan(note.y + note.height - 1);
+    expect(Math.abs(dismiss.y - approve.y)).toBeLessThan(2);
+    expect(dismiss.x).toBeGreaterThan(approve.x + approve.width);
+
+    await mcp.getByTestId("remediation-fix-details-toggle").click();
+    const opened: Box = await documentBox(
+      remediation.getByTestId("remediation-fixes"),
+    );
+    expect(folded.height).toBeLessThan(opened.height * 0.5);
+    await expectNoErrorStates(page);
+  });
+
+  for (const [width, theme] of [
+    [390, "light"],
+    [390, "dark"],
+  ] as Array<[number, string]>) {
+    test(`at ${width}px, ${theme}: each fix is a few lines, and nothing scrolls sideways`, async ({
+      page,
+    }: {
+      page: Page;
+    }) => {
+      await page.setViewportSize({ width, height: 1000 });
+      await openManyFixes(page, theme === "dark" ? "theme=dark" : "", {
+        isFolded: true,
+      });
+      const remediation: Locator = remediationStep(page);
+
+      const body: Box = await documentBox(
+        page.getByTestId("ai-card-step-remediation-body"),
+      );
+      for (const sentence of await remediation
+        .getByTestId("remediation-fix-sentence")
+        .all()) {
+        const box: Box = await documentBox(sentence);
+        expect(box.x).toBeGreaterThanOrEqual(body.x - 1);
+        expect(box.x + box.width).toBeLessThanOrEqual(body.x + body.width + 1);
+      }
+      // All three fixes fit a phone's screen.
+      const fixes: Box = await documentBox(
+        remediation.getByTestId("remediation-fixes"),
+      );
+      expect(fixes.height).toBeLessThan(700);
+
+      expect(
+        await pillsIn(page.getByTestId("ai-card-step-remediation-body")),
+      ).toEqual([]);
+      await expectNoSidewaysScroll(page, { tolerance: 1 });
+      await page.mouse.move(0, 0);
+      await screenshotElement(
+        remediation,
+        `ai-card-fixes-folded-${width}-${theme}`,
+      );
+    });
+  }
+
+  test("by keyboard: Review and approve opens the fix and keeps the keyboard, and Tab walks what it opened to Approve & Run, then Dismiss", async ({
+    page,
+  }: {
+    page: Page;
+  }) => {
+    await openManyFixes(page, "", { isFolded: true });
+    const kubectl: Locator = fixOnStep(page, "AI kubectl fix");
+    const toggle: Locator = kubectl.getByTestId(
+      "remediation-fix-details-toggle",
+    );
+
+    await toggle.focus();
+    await page.keyboard.press("Enter");
+
+    await expect(toggle).toHaveAttribute("aria-expanded", "true");
+    await expect(toggle).toBeFocused();
+    const controls: string | null = await toggle.getAttribute("aria-controls");
+    expect(controls).toBeTruthy();
+    await expect(
+      kubectl.getByTestId("remediation-fix-details"),
+    ).toHaveAttribute("id", controls!);
+    await expect(
+      kubectl.getByTestId("remediation-approve-button"),
+    ).toBeVisible();
+
+    /*
+     * From the press, Tab stays inside the opened fix - its commands - until
+     * Approve & Run, and Dismiss is the stop after it.
+     */
+    const stops: Array<{ isInFix: boolean; name: string }> = [];
+    for (let stop: number = 0; stop < 12; stop++) {
+      await page.keyboard.press("Tab");
+      const focused: { isInFix: boolean; name: string } =
+        await kubectl.evaluate(
+          (fix: Element): { isInFix: boolean; name: string } => {
+            const active: Element | null = document.activeElement;
+            return {
+              isInFix: Boolean(active && fix.contains(active)),
+              name:
+                active?.getAttribute("data-testid") ||
+                (active?.textContent || "").trim(),
+            };
+          },
+        );
+      stops.push(focused);
+      if (focused.name === "remediation-approve-button") {
+        break;
+      }
+    }
+    expect(stops[stops.length - 1]?.name).toBe("remediation-approve-button");
+    expect(
+      stops.every((stop: { isInFix: boolean }): boolean => {
+        return stop.isInFix;
+      }),
+    ).toBe(true);
+    await page.keyboard.press("Tab");
+    await expect(
+      kubectl.getByRole("button", { name: "Dismiss" }),
+    ).toBeFocused();
+
+    await toggle.focus();
+    await page.keyboard.press("Enter");
+    await expect(toggle).toHaveAttribute("aria-expanded", "false");
+    await expect(toggle).toBeFocused();
+    await expect(kubectl.getByTestId("remediation-approve-button")).toHaveCount(
+      0,
+    );
+  });
+
+  test("in Persian at 390px: each sentence reads right to left, its names in place", async ({
+    page,
+  }: {
+    page: Page;
+  }) => {
+    await page.setViewportSize({ width: 390, height: 1000 });
+    await openManyFixes(page, "lang=fa&dir=auto", { isFolded: true });
+    const kubectl: Locator = fixOnStep(page, "prod-eu-west-1");
+    const sentence: Locator = kubectl.getByTestId("remediation-fix-sentence");
+
+    await expect(sentence).toContainText("prod-eu-west-1");
+    expect(
+      await sentence.evaluate((element: Element): string => {
+        return window.getComputedStyle(element).direction;
+      }),
+    ).toBe("rtl");
+    await expect(
+      kubectl.getByTestId("remediation-fix-details-toggle"),
+    ).toHaveText("بررسی و تأیید");
+    await expectNoSidewaysScroll(page, { tolerance: 1 });
+    await page.mouse.move(0, 0);
+    await screenshotElement(
+      remediationStep(page),
+      "ai-card-fixes-folded-fa-390",
+    );
   });
 });
 
@@ -20760,5 +21226,5 @@ test("the report's verdict fits a 320px phone: its two answers share the row, in
       false,
     );
   }
-  await expectNoHorizontalOverflow(page);
+  await expectNoSidewaysScroll(page, { tolerance: 1 });
 });

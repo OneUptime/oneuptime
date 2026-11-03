@@ -7,9 +7,12 @@ import ProjectService from "../../../../../Server/Services/ProjectService";
 import CodeFixReadiness, {
   CODE_FIX_AI_CREDITS_USED_UP_DETAIL,
   GLOBAL_RUNNERS_OFF_FOR_REPOSITORY_DETAIL,
+  GLOBAL_RUNNERS_TAKE_NO_CODE_FIXES_DETAIL,
   NO_GLOBAL_RUNNER_ONLINE_DETAIL,
   getProjectDefaultRunnerOfflineDetail,
+  getProjectDefaultRunnerTakesNoCodeFixesDetail,
   getRepositoryRunnerOfflineDetail,
+  getRepositoryRunnerTakesNoCodeFixesDetail,
 } from "../../../../../Server/Utils/AI/CodeFix/CodeFixReadiness";
 import CodeRepositoryRunnerChoice, {
   CodeRepositoryRunnerStatus,
@@ -508,6 +511,78 @@ describe("CodeTaskGate.getBlocker", () => {
       type: CodeTaskBlockerType.RunnerNotOnline,
       message: getRepositoryRunnerOfflineDetail("prod-runner"),
       runnerName: "prod-runner",
+    });
+  });
+
+  /*
+   * Global Runners online that take no AI code fixes would never take the
+   * task: it is refused before it is queued, with why - not left to wait.
+   */
+  test("the global Runners online take no AI code fixes: GlobalRunnersTakeNoCodeFixes, refused as bad data", async () => {
+    world.runnerStatus = {
+      decision: { kind: CodeRepositoryRunnerChoiceKind.Global },
+      isOnline: false,
+      takesNoCodeFixes: true,
+    };
+
+    expect(await blocker()).toEqual({
+      type: CodeTaskBlockerType.GlobalRunnersTakeNoCodeFixes,
+      message: GLOBAL_RUNNERS_TAKE_NO_CODE_FIXES_DETAIL,
+    });
+
+    let refused: unknown = null;
+    try {
+      await CodeTaskGate.assertCanStart({
+        props: props(),
+        projectId: PROJECT_ID,
+        repository: repository(),
+        canAsk: true,
+        billingEnabled: true,
+      });
+    } catch (error) {
+      refused = error;
+    }
+
+    expect(refused).toBeInstanceOf(BadDataException);
+    expect((refused as Error).message).toBe(
+      GLOBAL_RUNNERS_TAKE_NO_CODE_FIXES_DETAIL,
+    );
+  });
+
+  test("the Runner the repository picks is online but takes no AI code fixes: RunnerTakesNoCodeFixes, naming it", async () => {
+    world.repositoryRunnerId = RUNNER_ID;
+    world.runnerStatus = {
+      decision: {
+        kind: CodeRepositoryRunnerChoiceKind.Custom,
+        runnerId: RUNNER_ID.toString(),
+      },
+      isOnline: false,
+      takesNoCodeFixes: true,
+      runnerName: "prod-runner",
+    };
+
+    expect(await blocker()).toEqual({
+      type: CodeTaskBlockerType.RunnerTakesNoCodeFixes,
+      message: getRepositoryRunnerTakesNoCodeFixesDetail("prod-runner"),
+      runnerName: "prod-runner",
+    });
+  });
+
+  test("the project's default Runner the repository follows takes no AI code fixes: RunnerTakesNoCodeFixes, naming it as the default", async () => {
+    world.runnerStatus = {
+      decision: {
+        kind: CodeRepositoryRunnerChoiceKind.ProjectDefault,
+        runnerId: RUNNER_ID.toString(),
+      },
+      isOnline: false,
+      takesNoCodeFixes: true,
+      runnerName: "build-box",
+    };
+
+    expect(await blocker()).toEqual({
+      type: CodeTaskBlockerType.RunnerTakesNoCodeFixes,
+      message: getProjectDefaultRunnerTakesNoCodeFixesDetail("build-box"),
+      runnerName: "build-box",
     });
   });
 

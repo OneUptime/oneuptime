@@ -1,8 +1,8 @@
 "use strict";
 
 /**
- * Scripts/Docker/PruneUnreachablePackages.js - how the Nginx image keeps only
- * the packages its certificate sidecar reaches.
+ * Scripts/Docker/PruneUnreachablePackages.js - how the Nginx, Runner and App
+ * images keep only the packages their programs reach.
  *
  * The sidecar (packages/Nginx/Index.ts) imports part of Common, and Common's
  * package.json lists every package any part of OneUptime needs: installed as
@@ -33,8 +33,19 @@
  *    program's own files (read with TypeScript's parser, so a comment or a
  *    string that says "require(name)" is not one) - they could need any
  *    package - while one inside a package is fine, since npm keeps a kept
- *    package's own dependencies. And a walk that read nothing, which would
- *    prune everything. Refusing changes nothing.
+ *    package's own dependencies. And code the program starts beside itself,
+ *    whose file esbuild never reads: a new Worker() of worker_threads'
+ *    Worker, child_process's fork(), a node started from process.execPath
+ *    (the App's external calendar worker requires ical.js, which nothing else
+ *    does). And a walk that read nothing, which would prune everything.
+ *    Refusing changes nothing.
+ *  - Several entries and entry loaders: a program that knowingly starts or
+ *    loads code by a computed name walks that code as another --entry, and
+ *    names the file that starts or loads it as an --entry-loader, whose
+ *    computed loads and starts are then let through. An entry loader has to
+ *    be a file the walk read that still loads or starts something by a
+ *    computed name. The App's two (its Enterprise loader, and the external
+ *    calendar's worker) are pinned here as they read today.
  *  - The prune: only dependencies the walk never reached leave package.json,
  *    every other field stays, then `npm prune --omit=dev --offline` runs in
  *    the package, and it fails if npm removed anything the walk reached.
@@ -42,14 +53,19 @@
  *    unreached package goes with the dependency only it needed and the
  *    development packages, a reached package keeps a dependency of its own
  *    the walk never saw used, and nothing is downloaded.
- *  - The real sidecar, where its packages are installed (a developer's
- *    checkout; the image build itself is the check everywhere else): the
- *    walk reads its files without a computed import, reaches what the
- *    sidecar runs on and none of the Dashboard's packages, and every package
- *    it finds missing is one of the optional ones below.
+ *  - The real programs, where their packages are installed (a developer's
+ *    checkout, and for the sidecar Ops Config Test's ingress-prune job, which
+ *    installs them and sets RUN_REAL_SIDECAR_PRUNE_TESTS=1 so its walk fails
+ *    rather than skips without them; the image build itself is the check
+ *    everywhere else): the sidecar's and the Runner's walks read their files
+ *    without a computed import, the App's finds computed loads and starts
+ *    only in its two entry loaders, each reaches what it runs on and none of
+ *    the Dashboard's packages, and every package any of them finds missing
+ *    is one of the optional ones below.
  *
- * ContainerImageHardening.test.js holds the Nginx Dockerfile's stages to the
- * script (where it runs, and that only what it leaves ships).
+ * ContainerImageHardening.test.js holds the Nginx, Runner and App Dockerfiles'
+ * stages to the script (where it runs, and that only what it leaves ships),
+ * and RunnerImageRuntime.test.js starts the Runner image and has it run steps.
  */
 
 const fs = require("fs");
@@ -62,6 +78,7 @@ const typescript = require("typescript");
 
 const {
   NOT_CODE,
+  PROCESS_STARTS,
   computedImportsIn,
   directorySize,
   findComputedImports,
@@ -337,6 +354,8 @@ describe("parseArguments", () => {
       ]),
     ).toEqual({
       entry: "/usr/src/app/Index.ts",
+      entries: ["/usr/src/app/Index.ts"],
+      entryLoaders: [],
       packageDirectory: "/usr/src/Common",
       dryRun: false,
     });
@@ -344,8 +363,46 @@ describe("parseArguments", () => {
       parseArguments(["--dry-run", "--package", "a", "--entry", "b"]),
     ).toEqual({
       entry: path.resolve("b"),
+      entries: [path.resolve("b")],
+      entryLoaders: [],
       packageDirectory: path.resolve("a"),
       dryRun: true,
+    });
+  });
+
+  test("reads every --entry and --entry-loader, in order and once each; the first entry is the entry", () => {
+    expect(
+      parseArguments([
+        "--entry",
+        "/usr/src/app/Index.ts",
+        "--entry-loader",
+        "/usr/src/app/Utils/EnterpriseLoader.ts",
+        "--entry",
+        "/usr/src/Common/Worker.cjs",
+        "--package",
+        "/usr/src/Common",
+        "--entry",
+        "/usr/src/ee/Server/Index.ts",
+        "--entry-loader",
+        "/usr/src/Common/Starter.ts",
+        "--entry",
+        "/usr/src/Common/Worker.cjs",
+        "--entry-loader",
+        "/usr/src/Common/Starter.ts",
+      ]),
+    ).toEqual({
+      entry: "/usr/src/app/Index.ts",
+      entries: [
+        "/usr/src/app/Index.ts",
+        "/usr/src/Common/Worker.cjs",
+        "/usr/src/ee/Server/Index.ts",
+      ],
+      entryLoaders: [
+        "/usr/src/app/Utils/EnterpriseLoader.ts",
+        "/usr/src/Common/Starter.ts",
+      ],
+      packageDirectory: "/usr/src/Common",
+      dryRun: false,
     });
   });
 
@@ -353,6 +410,18 @@ describe("parseArguments", () => {
     expect(() => {
       return parseArguments(["--entry"]);
     }).toThrow("--entry needs a value");
+    expect(() => {
+      return parseArguments([
+        "--entry",
+        "x",
+        "--package",
+        "y",
+        "--entry-loader",
+      ]);
+    }).toThrow("--entry-loader needs a value");
+    expect(() => {
+      return parseArguments(["--entry-loader", "x", "--package", "y"]);
+    }).toThrow("--entry is required");
     expect(() => {
       return parseArguments(["--entry", "--package", "x"]);
     }).toThrow("--entry needs a value");
@@ -902,6 +971,127 @@ describe("computed imports", () => {
     ).toEqual([{ line: 1, text: "require(name)" }]);
   });
 
+  test("a worker thread of worker_threads' Worker is one, however the file imports it, and whatever it is given", () => {
+    expect(
+      computed(
+        [
+          'import { Worker } from "worker_threads";',
+          'import { Worker as Thread } from "node:worker_threads";',
+          'import * as threads from "worker_threads";',
+          'import threadsDefault from "worker_threads";',
+          'import path from "path";',
+          'export const a = new Worker(path.join(__dirname, "Worker.cjs"), { workerData: 1 });',
+          'export const b = new Worker("./Literal.js");',
+          "export const c = new Thread(new URL(import.meta.url));",
+          "export const d = new threads.Worker(String(process.env['FILE']));",
+          'export const e = new threadsDefault.Worker("./Other.js");',
+          'export const f = new (require("worker_threads").Worker)("./Required.js");',
+          "",
+        ].join("\n"),
+      ),
+    ).toEqual([
+      {
+        line: 6,
+        text: 'new Worker(path.join(__dirname, "Worker.cjs"), { workerData: 1 })',
+      },
+      { line: 7, text: 'new Worker("./Literal.js")' },
+      { line: 8, text: "new Thread(new URL(import.meta.url))" },
+      { line: 9, text: "new threads.Worker(String(process.env['FILE']))" },
+      { line: 10, text: 'new threadsDefault.Worker("./Other.js")' },
+      {
+        line: 11,
+        text: 'new (require("worker_threads").Worker)("./Required.js")',
+      },
+    ]);
+  });
+
+  test("a Worker of anything else is not: BullMQ's, the browser's, the program's own", () => {
+    expect(
+      computed(
+        [
+          'import { Worker } from "bullmq";',
+          'import * as queue from "bullmq";',
+          "export const a = new Worker(queueName, handler, { connection });",
+          "export const b = new queue.Worker(queueName, handler);",
+          "class Local {}",
+          "export const c = new Local();",
+          "",
+        ].join("\n"),
+      ),
+    ).toEqual([]);
+    expect(
+      computed(
+        "export const browser = new Worker(objectUrl, { type: 'module' });\n",
+        "Page.ts",
+      ),
+    ).toEqual([]);
+  });
+
+  test("a forked process is one, and so is node started from process.execPath; another program is not", () => {
+    expect(
+      computed(
+        [
+          'import { fork, spawn } from "child_process";',
+          'import * as childProcess from "node:child_process";',
+          'import { execFile as run } from "child_process";',
+          'const { fork: forkIt, spawnSync } = require("child_process");',
+          'const cp = require("child_process");',
+          "export const a = fork(scriptPath, [], { execArgv });",
+          'export const b = childProcess.fork("./Child.js");',
+          "export const c = forkIt(script);",
+          'export const d = require("child_process").fork(script);',
+          "export const e = cp.fork(script);",
+          'export const f = spawn(process.execPath, ["--require", "ts-node/register", script]);',
+          "export const g = spawnSync(process.execPath, [script]);",
+          "export const h = childProcess.execFileSync(process.execPath, [script]);",
+          "export const i = run(process.execPath, [script]);",
+          'export const notNode = spawn("bash", ["-c", command]);',
+          'export const kubectl = childProcess.spawnSync("kubectl", args);',
+          "",
+        ].join("\n"),
+      ),
+    ).toEqual([
+      { line: 6, text: "fork(scriptPath, [], { execArgv })" },
+      { line: 7, text: 'childProcess.fork("./Child.js")' },
+      { line: 8, text: "forkIt(script)" },
+      { line: 9, text: 'require("child_process").fork(script)' },
+      { line: 10, text: "cp.fork(script)" },
+      {
+        line: 11,
+        text: 'spawn(process.execPath, ["--require", "ts-node/register", script])',
+      },
+      { line: 12, text: "spawnSync(process.execPath, [script])" },
+      {
+        line: 13,
+        text: "childProcess.execFileSync(process.execPath, [script])",
+      },
+      { line: 14, text: "run(process.execPath, [script])" },
+    ]);
+    expect(PROCESS_STARTS).toEqual([
+      "spawn",
+      "spawnSync",
+      "execFile",
+      "execFileSync",
+      "fork",
+    ]);
+  });
+
+  test("a fork() of the program's own, or of a package that is not child_process, is not", () => {
+    expect(
+      computed(
+        [
+          'import { fork } from "./Forks";',
+          'import * as git from "simple-git";',
+          "const branch = (name: string) => name;",
+          "export const a = fork(repository);",
+          "export const b = git.fork(repository);",
+          'export const c = branch("main");',
+          "",
+        ].join("\n"),
+      ),
+    ).toEqual([]);
+  });
+
   test("findComputedImports reads each file and says which it is in", () => {
     const root = temporaryDirectory("prune-computed-");
     writeTree(root, {
@@ -1256,6 +1446,385 @@ describe("pruneUnreachablePackages", () => {
 });
 
 /*
+ * A program laid out as the App is: its entry imports a starter that runs a
+ * worker thread's file, and a loader that requires a module by a name it
+ * computes (the App's Enterprise loader and ee/). Only the worker's file
+ * requires worker-only, and only the plugin requires plugin-only: a walk from
+ * the entry alone reaches neither.
+ */
+function startingProgram() {
+  const root = temporaryDirectory("prune-starts-");
+  writeTree(root, {
+    "app/package.json": packageJson("app"),
+    "app/Index.ts": [
+      'import { startWorker } from "shared/Starter";',
+      'import { loadPlugin } from "shared/Loader";',
+      "export default [startWorker, loadPlugin];",
+      "",
+    ].join("\n"),
+    "shared/package.json": packageJson("shared"),
+    "shared/Starter.ts": [
+      'import path from "path";',
+      'import { Worker } from "worker_threads";',
+      "export const startWorker = (): Worker => {",
+      '  return new Worker(path.join(__dirname, "Worker.cjs"));',
+      "};",
+      "",
+    ].join("\n"),
+    "shared/Worker.cjs": [
+      'const { parentPort } = require("worker_threads");',
+      'const job = require("worker-only");',
+      "parentPort.postMessage(job);",
+      "",
+    ].join("\n"),
+    "shared/Loader.ts": [
+      "export const loadPlugin = (file: string): unknown => {",
+      "  return require(file);",
+      "};",
+      'export { default as alpha } from "alpha";',
+      "",
+    ].join("\n"),
+    "plugin/Index.ts": [
+      'import plugin from "plugin-only";',
+      'import alpha from "alpha";',
+      "export default [plugin, alpha];",
+      "",
+    ].join("\n"),
+    "shared/node_modules/alpha/package.json": packageJson("alpha", {
+      main: "index.js",
+    }),
+    "shared/node_modules/alpha/index.js": "module.exports = 'alpha';\n",
+    "shared/node_modules/worker-only/package.json": packageJson("worker-only", {
+      main: "index.js",
+    }),
+    "shared/node_modules/worker-only/index.js": "module.exports = 1;\n",
+    "shared/node_modules/plugin-only/package.json": packageJson("plugin-only", {
+      main: "index.js",
+    }),
+    "shared/node_modules/plugin-only/index.js": "module.exports = 2;\n",
+    // Installed, never reached.
+    "shared/node_modules/unused/package.json": packageJson("unused", {
+      main: "index.js",
+    }),
+    "shared/node_modules/unused/index.js": "module.exports = 'unused';\n",
+  });
+  fs.mkdirSync(path.join(root, "app", "node_modules"));
+  fs.symlinkSync(
+    path.join(root, "shared"),
+    path.join(root, "app", "node_modules", "shared"),
+    "dir",
+  );
+  fs.mkdirSync(path.join(root, "plugin", "node_modules"));
+  fs.symlinkSync(
+    path.join(root, "shared", "node_modules", "plugin-only"),
+    path.join(root, "plugin", "node_modules", "plugin-only"),
+    "dir",
+  );
+  fs.symlinkSync(
+    path.join(root, "shared", "node_modules", "alpha"),
+    path.join(root, "plugin", "node_modules", "alpha"),
+    "dir",
+  );
+  fs.writeFileSync(
+    path.join(root, "shared", "package.json"),
+    JSON.stringify(
+      {
+        ...packageJson("shared"),
+        dependencies: {
+          alpha: "^1.0.0",
+          "worker-only": "^1.0.0",
+          "plugin-only": "^1.0.0",
+          unused: "^1.0.0",
+        },
+      },
+      null,
+      2,
+    ),
+  );
+  return root;
+}
+
+describe("several entries and entry loaders", () => {
+  function noNpm() {
+    const calls = [];
+    return {
+      calls,
+      run: (command, args, options) => {
+        calls.push({ command, args, cwd: options.cwd });
+      },
+    };
+  }
+
+  function paths(root) {
+    return {
+      entry: path.join(root, "app", "Index.ts"),
+      worker: path.join(root, "shared", "Worker.cjs"),
+      plugin: path.join(root, "plugin", "Index.ts"),
+      starter: path.join(root, "shared", "Starter.ts"),
+      loader: path.join(root, "shared", "Loader.ts"),
+      packageDirectory: path.join(root, "shared"),
+    };
+  }
+
+  test("a walk from the entry alone never reaches what only the worker's file or the loaded module requires; one from every entry does", async () => {
+    const root = startingProgram();
+    const p = paths(root);
+
+    const alone = await walkImports({ entry: p.entry, esbuild });
+    expect(relativeTo(root, alone.reached)).toEqual([
+      "shared/node_modules/alpha",
+    ]);
+
+    const every = await walkImports({
+      entries: [p.entry, p.worker, p.plugin],
+      esbuild,
+    });
+    expect(relativeTo(root, every.reached)).toEqual([
+      "shared/node_modules/alpha",
+      "shared/node_modules/plugin-only",
+      "shared/node_modules/worker-only",
+    ]);
+    // Each entry is read as the program's own, and read once.
+    expect(relativeTo(root, every.ownFiles)).toEqual([
+      "app/Index.ts",
+      "plugin/Index.ts",
+      "shared/Loader.ts",
+      "shared/Starter.ts",
+      "shared/Worker.cjs",
+    ]);
+  });
+
+  test("refuses the program while what starts the worker and what loads by a computed name are not entry loaders, and changes nothing", async () => {
+    const root = startingProgram();
+    const p = paths(root);
+    const before = fs.readFileSync(
+      path.join(p.packageDirectory, "package.json"),
+      "utf8",
+    );
+    const npm = noNpm();
+
+    let error = null;
+    try {
+      await pruneUnreachablePackages({
+        entries: [p.entry, p.worker, p.plugin],
+        packageDirectory: p.packageDirectory,
+        esbuild,
+        typescript,
+        run: npm.run,
+        log: () => {},
+      });
+    } catch (caught) {
+      error = caught;
+    }
+
+    expect(error).not.toBeNull();
+    expect(error.message).toContain(`${p.loader}:2: require(file)`);
+    expect(error.message).toContain(
+      `${p.starter}:4: new Worker(path.join(__dirname, "Worker.cjs"))`,
+    );
+    expect(error.message).toContain("give its file as another --entry");
+    expect(npm.calls).toEqual([]);
+    expect(
+      fs.readFileSync(path.join(p.packageDirectory, "package.json"), "utf8"),
+    ).toBe(before);
+  });
+
+  test("prunes once every entry is walked and each starter and loader is an entry loader: what only the worker or the plugin needs stays", async () => {
+    const root = startingProgram();
+    const p = paths(root);
+    const npm = noNpm();
+    const lines = [];
+
+    const result = await pruneUnreachablePackages({
+      entries: [p.entry, p.worker, p.plugin],
+      entryLoaders: [p.starter, p.loader],
+      packageDirectory: p.packageDirectory,
+      esbuild,
+      typescript,
+      run: npm.run,
+      log: (line) => {
+        lines.push(line);
+      },
+    });
+
+    expect(result.removed).toEqual(["unused"]);
+    expect(
+      Object.keys(
+        JSON.parse(
+          fs.readFileSync(
+            path.join(p.packageDirectory, "package.json"),
+            "utf8",
+          ),
+        ).dependencies,
+      ),
+    ).toEqual(["alpha", "worker-only", "plugin-only"]);
+    expect(npm.calls).toHaveLength(1);
+    expect(lines.join("\n")).toContain(
+      `what ${p.starter}, ${p.loader} load or start by a computed name is among the entries.`,
+    );
+  });
+
+  test("the entry worker alone, without the starter as an entry loader, is still refused: the walk cannot know the starter starts only it", async () => {
+    const root = startingProgram();
+    const p = paths(root);
+
+    await expect(
+      pruneUnreachablePackages({
+        entries: [p.entry, p.worker, p.plugin],
+        entryLoaders: [p.loader],
+        packageDirectory: p.packageDirectory,
+        dryRun: true,
+        esbuild,
+        typescript,
+        log: () => {},
+      }),
+    ).rejects.toThrow(`${p.starter}:4: new Worker(`);
+  });
+
+  test("an entry loader has to be a file the walk read", async () => {
+    const root = startingProgram();
+    const p = paths(root);
+    writeTree(root, {
+      "shared/Unused.ts":
+        "export const unused = (file: string) => require(file);\n",
+    });
+
+    await expect(
+      pruneUnreachablePackages({
+        entries: [p.entry, p.worker, p.plugin],
+        entryLoaders: [
+          p.starter,
+          p.loader,
+          path.join(root, "shared", "Unused.ts"),
+        ],
+        packageDirectory: p.packageDirectory,
+        dryRun: true,
+        esbuild,
+        typescript,
+        log: () => {},
+      }),
+    ).rejects.toThrow(
+      `The entry loader ${path.join(root, "shared", "Unused.ts")} is not a file the walk read`,
+    );
+  });
+
+  test("an entry loader that loads and starts nothing by a computed name any more has to leave the list", async () => {
+    const root = startingProgram();
+    const p = paths(root);
+    writeTree(root, {
+      "shared/Loader.ts": [
+        "export const loadPlugin = (): unknown => {",
+        '  return require("alpha");',
+        "};",
+        'export { default as alpha } from "alpha";',
+        "",
+      ].join("\n"),
+    });
+
+    await expect(
+      pruneUnreachablePackages({
+        entries: [p.entry, p.worker, p.plugin],
+        entryLoaders: [p.starter, p.loader],
+        packageDirectory: p.packageDirectory,
+        dryRun: true,
+        esbuild,
+        typescript,
+        log: () => {},
+      }),
+    ).rejects.toThrow(
+      `The entry loader ${p.loader} loads and starts nothing by a computed name any more: take it out of the --entry-loader list.`,
+    );
+  });
+
+  test("an entry loader or an entry that does not exist is refused", async () => {
+    const root = startingProgram();
+    const p = paths(root);
+
+    await expect(
+      pruneUnreachablePackages({
+        entries: [p.entry, p.worker, p.plugin],
+        entryLoaders: [p.starter, path.join(root, "shared", "Gone.ts")],
+        packageDirectory: p.packageDirectory,
+        dryRun: true,
+        esbuild,
+        typescript,
+        log: () => {},
+      }),
+    ).rejects.toThrow(
+      `The entry loader ${path.join(root, "shared", "Gone.ts")} does not exist`,
+    );
+    await expect(
+      pruneUnreachablePackages({
+        entries: [p.entry, path.join(root, "shared", "Gone.cjs")],
+        packageDirectory: p.packageDirectory,
+        dryRun: true,
+        esbuild,
+        typescript,
+        log: () => {},
+      }),
+    ).rejects.toThrow(
+      `The entry point ${path.join(root, "shared", "Gone.cjs")} does not exist`,
+    );
+  });
+});
+
+/*
+ * The App's two entry loaders, as they read today: each one call the walk
+ * cannot follow, of the file the App image walks as an entry of its own.
+ * A new computed load or start in either file has to be looked at (is it of
+ * an entry?) before it is added here. Needs no installed packages, so it runs
+ * in CI's Ops job too.
+ */
+describe("the App's entry loaders", () => {
+  function computedIn(relativePath) {
+    const file = path.join(REPO_ROOT, relativePath);
+    return computedImportsIn({
+      file,
+      source: fs.readFileSync(file, "utf8"),
+      typescript,
+    }).map((item) => {
+      return item.text;
+    });
+  }
+
+  test("the Enterprise loader requires ee/'s entry file, and nothing else, by a computed name", () => {
+    expect(computedIn("packages/App/Utils/EnterpriseLoader.ts")).toEqual([
+      "require(entryFile)",
+    ]);
+    const source = fs.readFileSync(
+      path.join(REPO_ROOT, "packages/App/Utils/EnterpriseLoader.ts"),
+      "utf8",
+    );
+    // The file it requires is one of ee/'s two entry candidates.
+    expect(source).toContain('path.join("Server", "Index.ts")');
+  });
+
+  test("the external calendar starts its worker's file, and nothing else, beside the App", () => {
+    expect(
+      computedIn(
+        "packages/Common/Server/Utils/ScheduledMaintenance/ExternalCalendar/ExternalCalendarExpansion.ts",
+      ),
+    ).toEqual(["new Worker(EXTERNAL_CALENDAR_WORKER_PATH, {"]);
+    const source = fs.readFileSync(
+      path.join(
+        REPO_ROOT,
+        "packages/Common/Server/Utils/ScheduledMaintenance/ExternalCalendar/ExternalCalendarExpansion.ts",
+      ),
+      "utf8",
+    );
+    expect(source).toContain('"ExternalCalendarExpansionWorker.cjs"');
+    expect(
+      fs.existsSync(
+        path.join(
+          REPO_ROOT,
+          "packages/Common/Server/Utils/ScheduledMaintenance/ExternalCalendar/ExternalCalendarExpansionWorker.cjs",
+        ),
+      ),
+    ).toBe(true);
+  });
+});
+
+/*
  * The same with real npm: packages packed into tarballs and installed with
  * npm, so package-lock.json and node_modules are npm's own, then the script
  * runs its real `npm prune --omit=dev --offline`.
@@ -1464,9 +2033,13 @@ describe("with real npm", () => {
 
 /*
  * The real sidecar, where its packages are installed: a developer's checkout
- * after `npm ci` in packages/Common and packages/Nginx. Elsewhere (CI's Ops
- * job installs neither) the image build is the check: it runs this walk and
- * fails on what these tests would.
+ * after `npm ci` in packages/Common and packages/Nginx, and Ops Config Test's
+ * ingress-prune job, which installs both and sets
+ * RUN_REAL_SIDECAR_PRUNE_TESTS=1: there these fail, rather than skip, when the
+ * packages are missing. The job's main test step installs neither, and until
+ * 2026-11-02 the image build was the only check of the real sidecar: #5358's
+ * require.resolve("typeorm") failed master's Push Test Images after it merged
+ * (fixed in 552b5ee5e4), and would have failed the release that carried it.
  */
 const SIDECAR_ENTRY = path.join(REPO_ROOT, "packages", "Nginx", "Index.ts");
 const SIDECAR_INSTALLED =
@@ -1476,15 +2049,92 @@ const SIDECAR_INSTALLED =
   fs.existsSync(
     path.join(REPO_ROOT, "packages", "Common", "node_modules", "typeorm"),
   );
+const REAL_SIDECAR_REQUIRED = process.env.RUN_REAL_SIDECAR_PRUNE_TESTS === "1";
+const OPS_WORKFLOW = path.join(
+  REPO_ROOT,
+  ".github",
+  "workflows",
+  "test.ops.yaml",
+);
+
+describe("the real certificate sidecar's walk runs in CI", () => {
+  test("where RUN_REAL_SIDECAR_PRUNE_TESTS asks for it, packages/Common's and packages/Nginx's packages are installed", () => {
+    if (!REAL_SIDECAR_REQUIRED) {
+      return;
+    }
+
+    expect({
+      required: REAL_SIDECAR_REQUIRED,
+      nginxLinksCommon: fs.existsSync(
+        path.join(REPO_ROOT, "packages", "Nginx", "node_modules", "Common"),
+      ),
+      commonHasTypeorm: fs.existsSync(
+        path.join(REPO_ROOT, "packages", "Common", "node_modules", "typeorm"),
+      ),
+    }).toEqual({
+      required: true,
+      nginxLinksCommon: true,
+      commonHasTypeorm: true,
+    });
+  });
+
+  test("Ops Config Test's ingress-prune job installs both and runs this suite with RUN_REAL_SIDECAR_PRUNE_TESTS=1", () => {
+    const yaml = require("js-yaml");
+    const {
+      stepCommand,
+      stepWorkingDirectory,
+    } = require("./Utils/WorkflowStep");
+    const job = yaml.load(fs.readFileSync(OPS_WORKFLOW, "utf8")).jobs[
+      "ingress-prune"
+    ];
+
+    expect(job).toBeDefined();
+
+    const steps = job.steps;
+    const installs = steps
+      .filter((step) => {
+        return stepCommand(step).startsWith("npm ");
+      })
+      .map((step) => {
+        return stepWorkingDirectory(step);
+      });
+
+    expect(installs).toEqual([
+      "Tests/Ops",
+      "packages/Common",
+      "packages/Nginx",
+    ]);
+
+    const runs = steps.filter((step) => {
+      return stepCommand(step).includes("PruneUnreachablePackages");
+    });
+
+    expect(runs).toHaveLength(1);
+    expect(stepWorkingDirectory(runs[0])).toBe("Tests/Ops");
+    expect(runs[0].env).toEqual(
+      expect.objectContaining({ RUN_REAL_SIDECAR_PRUNE_TESTS: "1" }),
+    );
+    // After the installs it needs, under a limit of its own.
+    expect(steps.indexOf(runs[0])).toBeGreaterThan(
+      steps.findIndex((step) => {
+        return stepWorkingDirectory(step) === "packages/Nginx";
+      }),
+    );
+    expect(Number(job["timeout-minutes"])).toBeGreaterThan(0);
+  });
+});
 
 // Packages a reached package requires inside a try or for a database
-// OneUptime does not use. None is installed, and none has to be.
+// OneUptime does not use. None is installed, and none has to be (ssh2's
+// cpu-features, a native helper it requires in a try, is installed where a
+// build of it can be made: the Runner image's build stage).
 const OPTIONAL_MISSING = new Set([
   "@google-cloud/spanner",
   "@sap/hana-client",
   "@sap/hana-client/extension/Stream",
   "better-sqlite3",
   "bufferutil",
+  "cpu-features",
   "encoding",
   "mongodb",
   "mysql",
@@ -1499,7 +2149,7 @@ const OPTIONAL_MISSING = new Set([
   "utf-8-validate",
 ]);
 
-(SIDECAR_INSTALLED ? describe : describe.skip)(
+(SIDECAR_INSTALLED || REAL_SIDECAR_REQUIRED ? describe : describe.skip)(
   "the real certificate sidecar",
   () => {
     let walk;
@@ -1585,3 +2235,233 @@ const OPTIONAL_MISSING = new Set([
     });
   },
 );
+
+/*
+ * The top-level packages of Common a walk reached, by name.
+ */
+function reachedCommonNames(walk) {
+  const nodeModules = path.join(
+    REPO_ROOT,
+    "packages",
+    "Common",
+    "node_modules",
+  );
+  return new Set(
+    [...walk.reached]
+      .map((directory) => {
+        return path.relative(nodeModules, directory).split(path.sep);
+      })
+      .filter((parts) => {
+        return parts[0] !== ".." && !parts.includes("node_modules");
+      })
+      .map((parts) => {
+        return parts.join("/");
+      }),
+  );
+}
+
+function missingBeyondTheOptional(walk) {
+  return [
+    ...new Set(
+      walk.missing.map((item) => {
+        return item.specifier;
+      }),
+    ),
+  ].filter((specifier) => {
+    return !OPTIONAL_MISSING.has(specifier);
+  });
+}
+
+// What none of the server programs loads: the Dashboard's and the build's.
+const FRONTEND_AND_BUILD_PACKAGES = [
+  "mermaid",
+  "react",
+  "react-dom",
+  "recharts",
+  "reactflow",
+  "posthog-js",
+  "playwright",
+  "esbuild",
+  "@testing-library/react",
+];
+
+const COMMON_INSTALLED = fs.existsSync(
+  path.join(REPO_ROOT, "packages", "Common", "node_modules", "typeorm"),
+);
+
+/*
+ * The real Runner, where its packages are installed (after `npm ci` in
+ * packages/Common and packages/Runner). Elsewhere the image build runs this
+ * walk, and RunnerImageRuntime.test.js starts the image it leaves.
+ */
+const RUNNER_ENTRY = path.join(REPO_ROOT, "packages", "Runner", "Index.ts");
+const RUNNER_INSTALLED =
+  COMMON_INSTALLED &&
+  fs.existsSync(
+    path.join(REPO_ROOT, "packages", "Runner", "node_modules", "Common"),
+  );
+
+(RUNNER_INSTALLED ? describe : describe.skip)("the real Runner", () => {
+  let walk;
+
+  beforeAll(async () => {
+    walk = await walkImports({ entry: RUNNER_ENTRY, esbuild });
+  }, 180000);
+
+  test("loads and starts nothing by a computed name", () => {
+    expect(walk.ownFiles.length).toBeGreaterThan(300);
+    expect(findComputedImports({ files: walk.ownFiles, typescript })).toEqual(
+      [],
+    );
+  });
+
+  test("reaches what the Runner runs on", () => {
+    const names = reachedCommonNames(walk);
+    for (const name of ["isolated-vm", "express", "axios", "ioredis"]) {
+      expect({ name, reached: names.has(name) }).toEqual({
+        name,
+        reached: true,
+      });
+    }
+    // ssh2 and ts-node are the Runner's own dependencies, kept by its own install.
+    const runnerModules = path.join(
+      REPO_ROOT,
+      "packages",
+      "Runner",
+      "node_modules",
+    );
+    expect(
+      [...walk.reached].some((directory) => {
+        return directory === fs.realpathSync(path.join(runnerModules, "ssh2"));
+      }),
+    ).toBe(true);
+  });
+
+  test("reaches none of the Dashboard's or the build's packages", () => {
+    const names = reachedCommonNames(walk);
+    for (const name of [...FRONTEND_AND_BUILD_PACKAGES, "twilio", "stripe"]) {
+      expect({ name, reached: names.has(name) }).toEqual({
+        name,
+        reached: false,
+      });
+    }
+  });
+
+  test("finds missing only the optional packages it is known to", () => {
+    expect(missingBeyondTheOptional(walk)).toEqual([]);
+  });
+});
+
+/*
+ * The real App, as the App image walks it (packages/App/Dockerfile.tpl):
+ * its entry and the external calendar's worker, with the Enterprise loader
+ * and the external calendar as its entry loaders. Where its packages are
+ * installed (after `npm ci` in packages/Common and packages/App); elsewhere
+ * the image build runs this walk.
+ */
+const APP_ENTRY = path.join(REPO_ROOT, "packages", "App", "Index.ts");
+const CALENDAR_DIRECTORY = path.join(
+  REPO_ROOT,
+  "packages",
+  "Common",
+  "Server",
+  "Utils",
+  "ScheduledMaintenance",
+  "ExternalCalendar",
+);
+const CALENDAR_WORKER = path.join(
+  CALENDAR_DIRECTORY,
+  "ExternalCalendarExpansionWorker.cjs",
+);
+const APP_ENTRY_LOADERS = [
+  path.join(REPO_ROOT, "packages", "App", "Utils", "EnterpriseLoader.ts"),
+  path.join(CALENDAR_DIRECTORY, "ExternalCalendarExpansion.ts"),
+];
+const APP_INSTALLED =
+  COMMON_INSTALLED &&
+  fs.existsSync(
+    path.join(REPO_ROOT, "packages", "App", "node_modules", "Common"),
+  );
+
+(APP_INSTALLED ? describe : describe.skip)("the real App", () => {
+  let walk;
+  let alone;
+
+  beforeAll(async () => {
+    walk = await walkImports({
+      entries: [APP_ENTRY, CALENDAR_WORKER],
+      esbuild,
+    });
+    alone = await walkImports({ entry: APP_ENTRY, esbuild });
+  }, 300000);
+
+  test("loads and starts code by a computed name only in its two entry loaders", () => {
+    const computed = findComputedImports({ files: walk.ownFiles, typescript });
+    expect(
+      [
+        ...new Set(
+          computed.map((item) => {
+            return item.file;
+          }),
+        ),
+      ].sort(),
+    ).toEqual(
+      APP_ENTRY_LOADERS.map((file) => {
+        return fs.realpathSync(file);
+      }).sort(),
+    );
+    for (const loader of APP_ENTRY_LOADERS) {
+      expect(walk.ownFiles).toContain(fs.realpathSync(loader));
+    }
+  });
+
+  test("reaches ical.js only through the external calendar's worker, which is why the worker is an entry", () => {
+    expect(reachedCommonNames(alone).has("ical.js")).toBe(false);
+    expect(reachedCommonNames(walk).has("ical.js")).toBe(true);
+  });
+
+  test("reaches what the App runs on", () => {
+    const names = reachedCommonNames(walk);
+    for (const name of [
+      "typeorm",
+      "pg",
+      "express",
+      "ioredis",
+      "bullmq",
+      "@clickhouse/client",
+      "isolated-vm",
+      "ical.js",
+      "marked",
+    ]) {
+      expect({ name, reached: names.has(name) }).toEqual({
+        name,
+        reached: true,
+      });
+    }
+  });
+
+  test("reaches none of the Dashboard's or the build's packages", () => {
+    const names = reachedCommonNames(walk);
+    for (const name of FRONTEND_AND_BUILD_PACKAGES) {
+      expect({ name, reached: names.has(name) }).toEqual({
+        name,
+        reached: false,
+      });
+    }
+  });
+
+  test("reaches no package of the frontends' own installs: the image removes them once the bundles are built", () => {
+    const featureSets = path.join(REPO_ROOT, "packages", "App", "FeatureSet");
+    expect(
+      [...walk.reached].filter((directory) => {
+        return directory.startsWith(
+          `${fs.realpathSync(featureSets)}${path.sep}`,
+        );
+      }),
+    ).toEqual([]);
+  });
+
+  test("finds missing only the optional packages it is known to", () => {
+    expect(missingBeyondTheOptional(walk)).toEqual([]);
+  });
+});

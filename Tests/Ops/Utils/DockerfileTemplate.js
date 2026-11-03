@@ -277,6 +277,55 @@ function ancestry(stages, name) {
   return chain;
 }
 
+// `COPY --from=<stage>` (and `--from=<stage>` among other flags).
+const COPY_FROM_FLAG = /^COPY\s+(?:--\S+\s+)*?--from=(\S+)/i;
+
+/**
+ * Every stage a build of the named stage runs, in the order its files come
+ * about: its FROM ancestry, oldest first, with the stages a `COPY --from` in
+ * any of them copies out of - each with its own build order, once - just
+ * before the stage that copies. An image that copies /usr/src out of a build
+ * stage (the Nginx, Runner and App images) is made of that stage's steps:
+ * what they wrote under the copied path ships, though their other files and
+ * settings do not. A `--from` that names no stage (an image) is left out.
+ * @param {Array<{name: (string|null), from: string, body: string}>} stages
+ * @param {string} name
+ * @returns {Array<object>} stages, each once
+ */
+function buildOrder(stages, name) {
+  const order = [];
+
+  const visit = (stageName) => {
+    for (const stage of ancestry(stages, stageName).slice().reverse()) {
+      if (order.includes(stage)) {
+        continue;
+      }
+
+      for (const line of instructions(stage.body)) {
+        const match = COPY_FROM_FLAG.exec(line);
+        const source = match ? match[1].toLowerCase() : null;
+
+        if (
+          source &&
+          stages.some((candidate) => {
+            return candidate.name === source;
+          })
+        ) {
+          visit(source);
+        }
+      }
+
+      if (!order.includes(stage)) {
+        order.push(stage);
+      }
+    }
+  };
+
+  visit(name);
+
+  return order;
+}
+
 /**
  * The instructions of a stage body with comments and blank lines dropped and
  * backslash continuations joined, so assertions never match prose.
@@ -341,6 +390,7 @@ module.exports = {
   render,
   parseStages,
   ancestry,
+  buildOrder,
   instructions,
   findTemplates,
 };

@@ -178,7 +178,7 @@ Selve listen over hændelser viser **Hændelsesnummer**, **Titel**, **Tilstand**
 | **Team**            | **Roller**, **Vagtudførelser**, **Ejere**                                                 |
 | **Notifikationer**  | **Notifikationslogs**, **AI-logs** — foldet sammen, indtil du klikker på **Notifikationer** |
 | **Noter**           | **Private noter**, **Offentlige noter**                                                   |
-| **Udvikler**        | **Terraform**, **API**, **AI-assistenter** — foldet sammen, indtil du klikker på **Udvikler** |
+| **Udvikler**        | **Terraform**, **API**, **CLI**, **AI-assistenter** — foldet sammen, indtil du klikker på **Udvikler** |
 | **Avanceret**       | **Brugerdefinerede felter**, **Indstillinger**, **Auditlogs**, **Slet hændelse** — foldet sammen, indtil du klikker på **Avanceret** |
 
 Hvad hver side indeholder:

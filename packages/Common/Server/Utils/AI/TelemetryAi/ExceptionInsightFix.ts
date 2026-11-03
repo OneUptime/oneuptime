@@ -681,8 +681,21 @@ export default class ExceptionInsightFix {
     switch (failed.id) {
       case "llmProvider":
         return { type: CodeTaskBlockerType.NoLlmProvider, message };
+      /*
+       * Code's own blocker when the check says which it is (a Runner the
+       * repository picks that is not online, global Runners that take no
+       * AI code fixes); no global Runner online otherwise.
+       */
       case "agentAvailable":
-        return { type: CodeTaskBlockerType.NoAgent, message };
+        return failed.blocker
+          ? {
+              type: failed.blocker.type,
+              message,
+              ...(failed.blocker.runnerName
+                ? { runnerName: failed.blocker.runnerName }
+                : {}),
+            }
+          : { type: CodeTaskBlockerType.NoAgent, message };
       case "repositoryResolved":
       case "repositoryConnected":
       default:

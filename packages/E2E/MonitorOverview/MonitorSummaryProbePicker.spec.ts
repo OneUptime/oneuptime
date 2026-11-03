@@ -7,6 +7,7 @@ import {
 } from "@playwright/test";
 import fs from "fs/promises";
 import path from "path";
+import { expectNoSidewaysScroll } from "../SuiteHelpers/PageFit";
 
 /*
  * THE MONITOR SUMMARY CARD'S PROBE PICKER AND SHOW MORE DETAILS, IN A REAL
@@ -278,13 +279,7 @@ test.describe("the Monitor Summary card's probe picker", () => {
 
     expectInsideCard(layout);
 
-    const overflow: number = await page.evaluate((): number => {
-      return (
-        document.documentElement.scrollWidth -
-        document.documentElement.clientWidth
-      );
-    });
-    expect(overflow).toBeLessThanOrEqual(0);
+    await expectNoSidewaysScroll(page);
   });
 
   /*

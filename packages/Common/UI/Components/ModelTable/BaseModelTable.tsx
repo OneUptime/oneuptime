@@ -54,6 +54,12 @@ import {
   bulkItemUnchanged,
   runBulkAction,
 } from "../BulkUpdate/BulkActionRunner";
+import {
+  BULK_SELECT_ALL_PAGE_SIZE,
+  EveryMatch,
+  MatchingPage,
+  readEveryMatch,
+} from "../BulkUpdate/BulkSelectAll";
 import { ButtonSize, ButtonStyleType } from "../Button/Button";
 import Card, {
   CardButtonSchema,
@@ -250,18 +256,10 @@ export enum ShowAs {
 
 /*
  * "Select All" loads the whole filtered result set - up to LIMIT_PER_PROJECT
- * rows - with the same columns the table itself fetches. Asking for all of
- * them in one request would mean a single wide, relation-joined query for up
- * to 10,000 rows, which is exactly the kind of query the database statement
- * timeout kills. It is paged instead: each request is comparable in cost to a
- * large page load, so a big selection degrades in latency rather than failing.
- *
- * The page size trades those two costs off. Every list request also runs an
- * unbounded count over the filtered set and pays a growing OFFSET, so smaller
- * pages multiply that overhead; 1,000 keeps each query well inside the
- * statement timeout while capping a maxed-out selection at ten round trips.
+ * rows - with the same columns the table itself fetches, a page of
+ * BULK_SELECT_ALL_PAGE_SIZE at a time (BulkSelectAll, which says why).
  */
-export const BULK_SELECT_ALL_PAGE_SIZE: number = 1000;
+export { BULK_SELECT_ALL_PAGE_SIZE };
 
 /*
  * The row of a table's header controls - its search, saved views, main
@@ -2506,8 +2504,6 @@ const BaseModelTable: <TBaseModel extends BaseModel | AnalyticsBaseModel>(
       setIsBulkSelectionTruncated(false);
       setIsBulkSelectAllLoading(true);
 
-      const itemsSelected: Array<TBaseModel> = [];
-
       try {
         /*
          * An unsorted table is served in the API's default order, so the
@@ -2568,91 +2564,61 @@ const BaseModelTable: <TBaseModel extends BaseModel | AnalyticsBaseModel>(
           }
         }
 
-        let totalCount: number = 0;
-        let hasMore: boolean = false;
-        let rowsFetched: number = 0;
-
         /*
-         * Offset paging over a table that is still receiving writes can hand
-         * back a row that an earlier page already returned. Selecting it twice
-         * would duplicate it in the export and inflate the selected count.
+         * Read a page at a time, up to the selection ceiling, each row once
+         * (BulkSelectAll's readEveryMatch: the same read a telemetry list's
+         * "Select all 4,213 exceptions" makes).
          */
-        const seenItemIds: Set<string> = new Set<string>();
+        const everyMatch: EveryMatch<TBaseModel> | null =
+          await readEveryMatch<TBaseModel>({
+            readPage: async (page: {
+              skip: number;
+              limit: number;
+            }): Promise<MatchingPage<TBaseModel>> => {
+              const listResult: ListResult<TBaseModel> =
+                await props.callbacks.getList({
+                  modelType: props.modelType as
+                    | DatabaseBaseModelType
+                    | AnalyticsBaseModelType,
+                  query: {
+                    ...props.query,
+                    ...query,
+                    ...buildSearchQueryFragment(),
+                  },
+                  groupBy: {
+                    ...props.groupBy,
+                  },
+                  limit: page.limit,
+                  skip: page.skip,
+                  select: bulkSelect,
+                  sort: bulkSort,
+                  requestOptions: props.fetchRequestOptions,
+                });
 
-        while (itemsSelected.length < LIMIT_PER_PROJECT) {
-          const limit: number = Math.min(
-            BULK_SELECT_ALL_PAGE_SIZE,
-            LIMIT_PER_PROJECT - itemsSelected.length,
-          );
+              return {
+                data: listResult.data,
+                count: listResult.count,
+                hasMore: listResult.hasMore,
+              };
+            },
+            getItemId: (item: TBaseModel): string => {
+              return item[matchBulkSelectedItemByField]?.toString() || "";
+            },
+            pageSize: BULK_SELECT_ALL_PAGE_SIZE,
+            limit: LIMIT_PER_PROJECT,
+            // A newer select-all, or a cleared selection, supersedes this run.
+            isSuperseded: (): boolean => {
+              return token !== bulkSelectAllToken.current;
+            },
+          });
 
-          const listResult: ListResult<TBaseModel> =
-            await props.callbacks.getList({
-              modelType: props.modelType as
-                | DatabaseBaseModelType
-                | AnalyticsBaseModelType,
-              query: {
-                ...props.query,
-                ...query,
-                ...buildSearchQueryFragment(),
-              },
-              groupBy: {
-                ...props.groupBy,
-              },
-              limit: limit,
-              skip: rowsFetched,
-              select: bulkSelect,
-              sort: bulkSort,
-              requestOptions: props.fetchRequestOptions,
-            });
-
-          if (token !== bulkSelectAllToken.current) {
-            // A newer select-all, or a cleared selection, superseded this run.
-            return false;
-          }
-
-          totalCount = listResult.count || totalCount;
-          hasMore = Boolean(listResult.hasMore);
-          rowsFetched += listResult.data.length;
-
-          for (const item of listResult.data) {
-            const itemId: string =
-              item[matchBulkSelectedItemByField]?.toString() || "";
-
-            if (itemId) {
-              if (seenItemIds.has(itemId)) {
-                continue;
-              }
-
-              seenItemIds.add(itemId);
-            }
-
-            itemsSelected.push(item);
-          }
-
-          if (listResult.data.length < limit) {
-            // A short page is the last page.
-            hasMore = false;
-            break;
-          }
-
-          if (listResult.hasMore === false) {
-            break;
-          }
-
-          if (totalCount > 0 && rowsFetched >= totalCount) {
-            /*
-             * Everything matching has been read. Stopping here saves the
-             * empty round trip a result set that is an exact multiple of the
-             * page size would otherwise cost - and each of those requests
-             * runs a full count over the filtered set.
-             */
-            break;
-          }
+        if (!everyMatch) {
+          return false;
         }
 
-        setBulkSelectionTotalCount(Math.max(totalCount, itemsSelected.length));
-        setIsBulkSelectionTruncated(totalCount > rowsFetched || hasMore);
-        setBulkSelectedItems(itemsSelected);
+        setBulkSelectionTotalCount(everyMatch.totalCount);
+        setIsBulkSelectionTruncated(everyMatch.isTruncated);
+        setBulkSelectedItems(everyMatch.items);
 
         return true;
       } catch (err) {

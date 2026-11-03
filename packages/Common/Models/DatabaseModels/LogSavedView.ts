@@ -41,7 +41,7 @@ import { Column, Entity, Index, JoinColumn, ManyToOne } from "typeorm";
   pluralName: "Log Saved Views",
   icon: IconProp.Window,
   tableDescription:
-    "Save and reuse log explorer views, including the current filters, columns, sorting, and page size.",
+    "Save and reuse log explorer views, including the current filters, columns, sorting, and page size. Each view is listed on the page it was saved on: the Logs page, or one resource's Logs tab.",
 })
 @TableAccessControl({
   create: [
@@ -188,6 +188,47 @@ export default class LogSavedView extends BaseModel {
     length: ColumnLength.Name,
   })
   public name?: string = undefined;
+
+  /*
+   * The page the view was saved on, which is the only page that lists it
+   * (Utils/Telemetry/SavedViewScope, issue #5549). Empty for the Logs page,
+   * as for every view saved before views had a page. Set when the view is
+   * made: a view does not move to another page.
+   */
+  @ColumnAccessControl({
+    create: [
+      Permission.ProjectOwner,
+      Permission.ProjectAdmin,
+      Permission.ProjectMember,
+      Permission.TelemetryAdmin,
+      Permission.TelemetryMember,
+    ],
+    read: [
+      Permission.ProjectOwner,
+      Permission.ProjectAdmin,
+      Permission.ProjectMember,
+      Permission.Viewer,
+      Permission.TelemetryAdmin,
+      Permission.TelemetryMember,
+      Permission.TelemetryViewer,
+    ],
+    update: [],
+  })
+  @TableColumn({
+    required: false,
+    type: TableColumnType.LongText,
+    canReadOnRelationQuery: true,
+    title: "Scope",
+    description:
+      "The page this saved log view is listed on: empty for the Logs page, or the resource page it was saved on, such as a Kubernetes cluster's Logs tab (kubernetes-cluster:<cluster id>).",
+    example: "kubernetes-cluster:7b3a4c2e-9f1d-4e8a-b5c6-1d2e3f4a5b6c",
+  })
+  @Column({
+    nullable: true,
+    type: ColumnType.LongText,
+    length: ColumnLength.LongText,
+  })
+  public scope?: string = undefined;
 
   @ColumnAccessControl({
     create: [],

@@ -60,7 +60,7 @@ Open **Geplande onderhoud** via het menu **Producten** in de bovenste balk. De l
 | **Regels**    | **Eigenaarsregels**, **Runbook-regels**, **Labelregels**, **Herinneringsregels**.                                               |
 | **Instellingen** | **Status gebeurtenis**, **Gebeurtenis-sjablonen**, **Notitie-sjablonen**, **Aangepaste velden**, **Metingen**, **Agenda-instellingen**, **Nummering**. |
 
-**Overzicht** en **Agenda** zijn open; **Werkruimte**, **Regels**, **Instellingen** en **Ontwikkelaars** zijn eerst ingeklapt, en een sectie gaat vanzelf open wanneer je op een van haar pagina's bent. **Ontwikkelaars** bevat **Terraform**, **API** en **AI-assistenten**, om onderhoud vanuit code te beheren. Alles over onderhoud staat hier, niet in de **Projectinstellingen**.
+**Overzicht** en **Agenda** zijn open; **Werkruimte**, **Regels**, **Instellingen** en **Ontwikkelaars** zijn eerst ingeklapt, en een sectie gaat vanzelf open wanneer je op een van haar pagina's bent. **Ontwikkelaars** bevat **Terraform**, **API**, **CLI** en **AI-assistenten**, om onderhoud vanuit code te beheren. Alles over onderhoud staat hier, niet in de **Projectinstellingen**.
 
 De lijst toont **Nummer van geplande onderhoud**, **Titel**, **Huidige staat**, **Getroffen resources**, **Weergegeven op statuspagina**, **Begint op**, **Duur**, **Eindigt op**, **Labels** en **Eigenaren**. Selecteer gebeurtenissen om er meerdere tegelijk te bewerken: **Markeren als {{state}}**, **Status wijzigen**, **Aan mij toewijzen**, **Eigenaar toevoegen**, **Eigenaar verwijderen**, **Labels toevoegen**, **Labels verwijderen** of **Verwijderen**. Het menu **⋯** aan het eind van de rij van elke gebeurtenis doet hetzelfde voor alleen die gebeurtenis: de stappen **Markeren als {{state}}** zolang de gebeurtenis ze kan zetten, **Status wijzigen**, **Aan mij toewijzen** totdat je de eigenaar bent, en **Eigenaar toevoegen**.
 
@@ -87,7 +87,7 @@ Open een gebeurtenis uit de lijst om haar pagina's te zien. Haar zijmenu bevat:
 | **Team** | **Eigenaren** |
 | **Meldingen**     | **Meldingslogboeken** en **AI-logboeken**: elk bericht dat over de gebeurtenis is verstuurd, en wat AI ervoor deed |
 | **Notities**      | **Privénotities** en **Openbare notities**                                                     |
-| **Ontwikkelaars** | **Terraform**, **API** en **AI-assistenten**: de gebeurtenis beheerd vanuit code              |
+| **Ontwikkelaars** | **Terraform**, **API**, **CLI** en **AI-assistenten**: de gebeurtenis beheerd vanuit code     |
 | **Geavanceerd**   | **Aangepaste velden**, **Instellingen**, **Auditlogboeken**, **Gebeurtenis verwijderen**       |
 
 **Overzicht**, **Team** en **Notities** zijn open; de andere secties blijven ingeklapt tot je erop klikt.

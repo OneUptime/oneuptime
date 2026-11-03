@@ -163,8 +163,12 @@ describe("the AI SRE page says when the AI card is one line", () => {
 
   test("what auto-remediation did and both troubleshooting entries point at the line", () => {
     expect(REMEDIATION_DID_LINE).toBeGreaterThan(PARAGRAPH_LINE);
+    /*
+     * #5413's follow-up: an open incident whose fixing switch is on now is
+     * drawn whole, so Try again is there.
+     */
     expect(ENGLISH_LINES[REMEDIATION_DID_LINE]).toMatch(
-      /When AI was off for an incident altogether, the \*\*OneUptime AI\*\* card's one line says why nothing was fixed, and the \*\*Remediation\*\* step is folded into it\.$/,
+      /When AI was off for an incident altogether, the \*\*OneUptime AI\*\* card's one line says why nothing was fixed, and the \*\*Remediation\*\* step is folded into it\. While the incident is open and its fixing switch is on now, the card is drawn whole instead, so \*\*Try again\*\* is there\.$/,
     );
     expect(ENGLISH_LINES[NOT_INVESTIGATED_LINE]).toMatch(
       /When AI was off for the incident and nothing was fixed either, the card is one line: open \*\*What you can do\*\* on it to see what to turn on\.$/,
@@ -249,6 +253,10 @@ describe("every language says it in the English page's places", () => {
       expect(
         remediationDid.slice(remediationDid.lastIndexOf(investigation)),
       ).toContain(remediation);
+      // Then Try again, on an open incident whose fixing switch is on now.
+      expect(
+        remediationDid.slice(remediationDid.lastIndexOf(remediation)),
+      ).toContain(`**${drawnActionLabel(language, "Try again")}**`);
       expect(lines[NOT_INVESTIGATED_LINE]).toContain(whatYouCanDo);
       expect(lines[NOTHING_FIXED_LINE]).toContain(investigation);
       expect(lines[NOTHING_FIXED_LINE]).toContain(remediation);

@@ -508,9 +508,13 @@ function Shell(props) {
  */
 const CARD_WIDTH = "55rem";
 
+/*
+ * Navigates as the Dashboard does (its src/Index.tsx): each navigation renders
+ * at once, not in a React transition (Tests/Ops/E2EFixtureRouters).
+ */
 function Frame(props) {
   return (
-    <BrowserRouter>
+    <BrowserRouter useTransitions={false}>
       <Shell>
         <div
           data-testid="on-call-logs-page"

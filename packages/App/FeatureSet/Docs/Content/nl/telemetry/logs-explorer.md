@@ -108,7 +108,7 @@ Open **Opgeslagen weergaven** en klik op **+ Huidige weergave opslaan**. Vul een
 Kies de weergave in **Opgeslagen weergaven** om hem toe te passen, en **Weergave wissen** om terug te gaan naar het afgelopen uur zonder filters. Wijs een weergave in de lijst aan om te **Bewerken** of te **Verwijderen**, of, zolang hij is toegepast, om hem met uw wijzigingen te **Bijwerken**.
 :::
 
-Opgeslagen weergaven horen bij het project, dus iedereen erin ziet dezelfde lijst. Een doorlopend bereik zoals het afgelopen uur blijft doorlopend: de weergave toont het uur voordat u hem opent, niet het uur waarin u hem opsloeg. Zolang het project geen standaardweergave heeft, wordt de volgende opgeslagen weergave de standaard, en een project heeft telkens maar één standaard.
+Opgeslagen weergaven horen bij het project, dus iedereen erin ziet dezelfde weergaven, en elke weergave blijft op de pagina waarop hij is opgeslagen: een weergave die op de pagina Logboeken is opgeslagen, staat op de pagina Logboeken, en een weergave die op het tabblad Logboeken van een resource is opgeslagen, zoals dat van een Kubernetes-cluster of een host, staat alleen op dat tabblad. Een doorlopend bereik zoals het afgelopen uur blijft doorlopend: de weergave toont het uur voordat u hem opent, niet het uur waarin u hem opsloeg. Zolang een pagina geen standaardweergave heeft, wordt de volgende weergave die erop wordt opgeslagen de standaard ervan, en elke pagina heeft telkens maar één standaard.
 
 ## Uw logboeken in grafieken zetten
 

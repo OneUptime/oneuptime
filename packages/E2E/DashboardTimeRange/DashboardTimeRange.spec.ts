@@ -1,5 +1,6 @@
 import { expect, Locator, Page, Route, test, TestInfo } from "@playwright/test";
 import { boxesInOneFrame, FrameBox } from "../SuiteHelpers/Frames";
+import { expectNoSidewaysScroll } from "../SuiteHelpers/PageFit";
 
 /*
  * A dashboard's default time range and auto-refresh, and each viewer's own
@@ -1037,7 +1038,6 @@ test.describe("the dashboard inside OneUptime", () => {
 test.describe("the dashboard inside OneUptime at any width", () => {
   interface BoardBoxes {
     viewport: number;
-    pageScroll: number;
     arrangement: string | null;
     board: {
       left: number;
@@ -1066,9 +1066,6 @@ test.describe("the dashboard inside OneUptime at any width", () => {
 
       return {
         viewport: document.documentElement.clientWidth,
-        pageScroll:
-          document.documentElement.scrollWidth -
-          document.documentElement.clientWidth,
         arrangement: board.getAttribute("data-arrangement"),
         board: {
           left: boardBox.left,
@@ -1137,7 +1134,7 @@ test.describe("the dashboard inside OneUptime at any width", () => {
 
     const boxes: BoardBoxes = await settledBoard(page);
 
-    expect(boxes.pageScroll).toBe(0);
+    await expectNoSidewaysScroll(page);
     expect(boxes.arrangement).toBe("grid");
     expect(boxes.board.scrollWidth).toBe(boxes.board.clientWidth);
 
@@ -1161,7 +1158,7 @@ test.describe("the dashboard inside OneUptime at any width", () => {
 
     const boxes: BoardBoxes = await settledBoard(page);
 
-    expect(boxes.pageScroll).toBe(0);
+    await expectNoSidewaysScroll(page);
     expect(boxes.arrangement).toBe("grid");
 
     // The template's charts are six columns by three rows.
@@ -1187,7 +1184,7 @@ test.describe("the dashboard inside OneUptime at any width", () => {
 
     const boxes: BoardBoxes = await settledBoard(page);
 
-    expect(boxes.pageScroll).toBe(0);
+    await expectNoSidewaysScroll(page);
     expect(boxes.arrangement).toBe("stacked");
 
     await shoot(page, testInfo, "app-board-768");
@@ -1202,7 +1199,7 @@ test.describe("the dashboard inside OneUptime at any width", () => {
 
     const boxes: BoardBoxes = await settledBoard(page);
 
-    expect(boxes.pageScroll).toBe(0);
+    await expectNoSidewaysScroll(page);
     expect(boxes.arrangement).toBe("stacked");
 
     // Each the board's width, each below the one before.
@@ -1300,7 +1297,7 @@ test.describe("the dashboard inside OneUptime at any width", () => {
     const boxes: BoardBoxes = await settledBoard(page);
 
     expect(boxes.arrangement).toBe("grid");
-    expect(boxes.pageScroll).toBe(0);
+    await expectNoSidewaysScroll(page);
     expect(boxes.board.scrollWidth).toBeGreaterThan(boxes.board.clientWidth);
 
     // Save Changes and Cancel are on the screen.

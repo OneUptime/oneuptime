@@ -88,7 +88,7 @@ Aprite **Reperibilità** dal menu **Prodotti** nella barra superiore. Si apre su
 | **Report** | **Tempo di reperibilità dell'utente**: per quanto tempo ogni persona è stata reperibile |
 | **Area di lavoro** | **Slack** e **Microsoft Teams**: regole che pubblicano gli eventi di reperibilità in un canale |
 | **Impostazioni** | **Campi personalizzati**, **Regole etichette** e **Regole del proprietario** |
-| **Sviluppatori** | **Terraform**, **API** e **Assistenti IA**: la reperibilità configurata dal codice |
+| **Sviluppatori** | **Terraform**, **API**, **CLI** e **Assistenti IA**: la reperibilità configurata dal codice |
 
 **Policy**, **Pianificazioni** e **Chiamate in entrata** sono aperte; le altre sezioni partono chiuse, e una sezione si apre da sola quando siete su una delle sue pagine. **Area di lavoro** elenca gli strumenti di chat che il progetto ha collegato, oppure **Collega Slack o Teams** se non ne ha nessuno.
 

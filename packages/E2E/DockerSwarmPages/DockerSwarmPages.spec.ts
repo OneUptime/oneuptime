@@ -2,6 +2,7 @@ import { expect, Locator, Page, Route, test } from "@playwright/test";
 import fs from "fs";
 import fsPromises from "fs/promises";
 import path from "path";
+import { expectNoSidewaysScroll } from "../SuiteHelpers/PageFit";
 
 /*
  * A Docker Swarm cluster's pages on a phone, in a browser, against the
@@ -168,19 +169,6 @@ async function recorded(page: Page): Promise<Recorded> {
 
 function withQuery(pagePath: string, query: string): string {
   return query ? `${pagePath}?${query}` : pagePath;
-}
-
-async function expectNoSidewaysScroll(page: Page): Promise<void> {
-  const widths: { page: number; window: number } = await page.evaluate(
-    (): { page: number; window: number } => {
-      return {
-        page: document.documentElement.scrollWidth,
-        window: window.innerWidth,
-      };
-    },
-  );
-
-  expect(widths.page).toBeLessThanOrEqual(widths.window);
 }
 
 async function boxOf(locator: Locator): Promise<Box> {

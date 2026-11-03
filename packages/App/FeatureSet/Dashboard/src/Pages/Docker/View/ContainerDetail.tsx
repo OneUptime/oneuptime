@@ -22,6 +22,10 @@ import { PromiseVoidFunction } from "Common/Types/FunctionTypes";
 import Tabs from "Common/UI/Components/Tabs/Tabs";
 import { Tab } from "Common/UI/Components/Tabs/Tab";
 import DashboardLogsViewer from "../../../Components/Logs/LogsViewer";
+import {
+  buildSavedViewScope,
+  SavedViewScopeKind,
+} from "Common/Utils/Telemetry/SavedViewScope";
 import Query from "Common/Types/BaseDatabase/Query";
 import Log from "Common/Models/AnalyticsModels/Log";
 import EmbeddedMetricCard from "../../../Components/Metrics/EmbeddedMetricCard";
@@ -313,6 +317,11 @@ const DockerHostContainerDetail: FunctionComponent<
         >
           <DashboardLogsViewer
             id={`docker-container-logs-${containerName}`}
+            savedViewScope={buildSavedViewScope(
+              SavedViewScopeKind.DockerContainer,
+              modelId,
+              containerName,
+            )}
             logQuery={logQuery}
             attributeFilterDisplayKeys={LOG_ATTRIBUTE_DISPLAY_KEYS}
             attributeFilterDisplayValues={logAttributeDisplayValues}

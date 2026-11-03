@@ -37,7 +37,11 @@ import { afterEach, describe, expect, test } from "@jest/globals";
 import fs from "fs";
 import path from "path";
 import { FindOperator } from "typeorm";
-import { FastestRun, fastestRun } from "../../../../Helpers/FastestRun";
+import {
+  FastestRun,
+  fastestRun,
+  fastestRunAsync,
+} from "../../../../Helpers/FastestRun";
 
 /*
  * THE CODE AGENT'S PRODUCTION TELEMETRY TOOLS READ ONLY WHAT THE RUN MAY
@@ -695,15 +699,20 @@ describe("find_production_incidents", () => {
       }),
     ]);
 
-    const started: number = Date.now();
-    const output: CodeAgentTelemetryToolOutput = await run(
-      "find_production_incidents",
-      { paths: ["src/cart/total.ts"] },
-    );
+    const timed: FastestRun<CodeAgentTelemetryToolOutput> =
+      await fastestRunAsync({
+        run: (): Promise<CodeAgentTelemetryToolOutput> => {
+          return run("find_production_incidents", {
+            paths: ["src/cart/total.ts"],
+          });
+        },
+        limitInMs: 5000,
+      });
+    const output: CodeAgentTelemetryToolOutput = timed.result;
 
     expect(output.rowCount).toBe(1);
     expect(output.text.length).toBeLessThan(4000);
-    expect(Date.now() - started).toBeLessThan(5000);
+    expect(timed.inMs).toBeLessThan(5000);
   });
 
   test("an incident this repository's fix was opened for is linked by it", async () => {

@@ -64,7 +64,7 @@ En tjenestes sidemenu har fem sektioner:
 | **Grundlæggende** | **Oversigt**: forespørgsler, fejlrate og p95-latens fra dens spans, diagrammer og dens detaljer. **Anbefalinger**: færdige monitorer til tjenesten, valgt efter dens sprog. **Ejere**: de personer og teams, der har ansvaret for den. **Feed**: alt, hvad der er sket med den, fra hvordan den blev oprettet, til hver ændring siden. |
 | **Telemetri** | Dens **Protokoller**, **Spor**, **Metrikker**, **Ydeevneprofiler**, **Undtagelser** og **Source maps**, allerede filtreret til denne tjeneste. |
 | **Aktivitet** | De **Hændelser**, **Advarsler** og begivenheder under **Planlagt vedligeholdelse**, der berører den. |
-| **Udvikler** | **Terraform**, **API** og **AI-assistenter**: tjenesten styret fra kode. Sektionen er foldet sammen fra start. |
+| **Udvikler** | **Terraform**, **API**, **CLI** og **AI-assistenter**: tjenesten styret fra kode. Sektionen er foldet sammen fra start. |
 | **Avanceret** | **Indstillinger**, **Auditlogs** og **Slet tjeneste**. **Avanceret** er foldet sammen fra start: fold den ud først. |
 
 Ejere betyder noget ud over siden: en rolle med omfanget Owned læser telemetrien for de tjenester, som du eller dine teams ejer. Se [Telemetri](/docs/permissions/index#telemetri).

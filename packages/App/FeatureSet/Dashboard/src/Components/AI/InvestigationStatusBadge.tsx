@@ -1,5 +1,6 @@
 import IconProp from "Common/Types/Icon/IconProp";
 import Icon from "Common/UI/Components/Icon/Icon";
+import { getListSeparator } from "Common/UI/Utils/ListSeparator";
 import { Translator } from "Common/UI/Utils/TranslateTemplate";
 import useTranslator from "Common/UI/Utils/UseTranslator";
 import React, { FunctionComponent, ReactElement } from "react";
@@ -35,7 +36,16 @@ export interface ComponentProps {
    * each have one ("Investigation status", "Remediation status").
    */
   ariaLabel?: string | undefined;
+  // The pill's test id: AiCardStep gives each step's its own.
+  testId?: string | undefined;
 }
+
+/*
+ * The test ids of the pill's two parts: what a screen reader hears before
+ * the words (its name), and the words everyone reads.
+ */
+export const STATUS_BADGE_LABEL_TEST_ID: string = "status-badge-label";
+export const STATUS_BADGE_WORDS_TEST_ID: string = "status-badge-words";
 
 const ICON_CLASS_NAME: string = "h-3.5 w-3.5 flex-shrink-0";
 
@@ -112,23 +122,37 @@ export const STATUS_BADGE_CLASS_NAME: string =
  * with the state (green, indigo, red, amber), which added one more tinted
  * shape to a card that already had several.
  *
+ * Its name - "Investigation status" - is words a screen reader hears before
+ * the status, hidden on screen: an aria-label on a plain div is a name no
+ * screen reader says (a div has no role to name), so "Reported" was heard
+ * with nothing to say what it was the status of. The two are apart by the
+ * separator of the name's own script ("Investigation status, Reported",
+ * "وضعیت بررسی، ..."), so they are never read as one phrase.
+ *
  * A div, not a span: Icon renders its own div around the svg.
  */
 const InvestigationStatusBadge: FunctionComponent<ComponentProps> = (
   props: ComponentProps,
 ): ReactElement => {
   const translator: Translator = useTranslator();
+  const label: string =
+    translator.translateText(props.ariaLabel || "Investigation status") ||
+    props.ariaLabel ||
+    "Investigation status";
 
   return (
     <div
-      aria-label={translator.translateText(
-        props.ariaLabel || "Investigation status",
-      )}
+      {...(props.testId ? { "data-testid": props.testId } : {})}
       data-indicator={props.indicator}
       className={STATUS_BADGE_CLASS_NAME}
     >
       {renderInvestigationStatusIndicator(props.indicator)}
-      <span>{translator.translateText(props.text)}</span>
+      <span data-testid={STATUS_BADGE_LABEL_TEST_ID} className="sr-only">
+        {`${label}${getListSeparator([label])}`}
+      </span>
+      <span data-testid={STATUS_BADGE_WORDS_TEST_ID}>
+        {translator.translateText(props.text)}
+      </span>
     </div>
   );
 };

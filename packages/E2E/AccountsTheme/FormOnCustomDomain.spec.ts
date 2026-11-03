@@ -1,4 +1,5 @@
 import { BrowserContext, expect, Page, test, TestInfo } from "@playwright/test";
+import { expectNoSidewaysScroll } from "../SuiteHelpers/PageFit";
 
 /*
  * A form on its owner's own domain, in a real browser, on the real page: the
@@ -119,15 +120,6 @@ const fixture: (page: Page) => Promise<FixtureRecord> = async (
   });
 };
 
-// How much wider than the window the page is drawn: nothing, on every page.
-const overflow: (page: Page) => Promise<number> = async (
-  page: Page,
-): Promise<number> => {
-  return page.evaluate((): number => {
-    return document.documentElement.scrollWidth - window.innerWidth;
-  });
-};
-
 const openFormOnItsDomain: (
   page: Page,
   query?: string | undefined,
@@ -166,7 +158,7 @@ test.describe("a form on its own domain", () => {
       page.locator('meta[name="oneuptime-form-domain"][content="true"]'),
     ).toHaveCount(1);
 
-    expect(await overflow(page)).toBeLessThanOrEqual(0);
+    await expectNoSidewaysScroll(page);
     await shoot(page, testInfo, "laptop");
   });
 
@@ -251,7 +243,7 @@ test.describe("a form on its own domain", () => {
     ).toBeVisible();
     await settle(page);
 
-    expect(await overflow(page)).toBeLessThanOrEqual(0);
+    await expectNoSidewaysScroll(page);
     await shoot(page, testInfo, "phone");
   });
 
@@ -291,7 +283,7 @@ test.describe("a form on its own domain", () => {
           ).toBeVisible();
         }
 
-        expect(await overflow(page)).toBeLessThanOrEqual(0);
+        await expectNoSidewaysScroll(page);
         await shoot(page, testInfo, `${language.code}-${size.name}`);
       }
     });

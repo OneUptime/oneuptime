@@ -1,3 +1,7 @@
+import {
+  namesMissingOrOutOfOrder,
+  productsMenuGroupKeys,
+} from "./DocsProductsMenu";
 import { describe, expect, test } from "@jest/globals";
 import fs from "fs";
 import path from "path";
@@ -100,6 +104,31 @@ describe("Home Page & Shortcuts explains the products menu", () => {
     for (const name of folded) {
       expect([name, SECTION.includes(name)]).toEqual([name, true]);
     }
+  });
+
+  test("it names the folded groups in the order the menu lists them, Security right after Observability", () => {
+    const keys: Array<string> = productsMenuGroupKeys();
+    const folded: Array<string> = keys
+      .filter((key: string): boolean => {
+        return key !== "navbar.categories.essentials";
+      })
+      .map((key: string): string => {
+        return ENGLISH.navbar.categories[
+          key.replace("navbar.categories.", "")
+        ] as string;
+      });
+
+    // Every group the catalog files a product under has its English name.
+    expect(keys[0]).toBe("navbar.categories.essentials");
+    expect(folded).not.toContain(undefined);
+    expect(folded.slice(0, 2)).toEqual(["Observability", "Security"]);
+    expect(folded).toHaveLength(
+      Object.keys(ENGLISH.navbar.categories).length - 1,
+    );
+    expect(namesMissingOrOutOfOrder(SECTION, folded)).toEqual([]);
+    expect(SECTION).toContain(
+      "Every other group (Observability, Security, AI, Code, Resources, Infrastructure, Cloud, Dashboards & Automation and Settings)",
+    );
   });
 
   test("it promises only what the menu does: search, the current page, memory, the phone", () => {

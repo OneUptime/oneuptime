@@ -88,7 +88,7 @@ Et projekts første politik kan gøre det allerede, når den oprettes: lad **Udl
 | **Rapporter** | **Brugerens vagttid**: hvor længe hver person havde vagt |
 | **Arbejdsområde** | **Slack** og **Microsoft Teams**: regler, der sender vagthændelser til en kanal |
 | **Indstillinger** | **Brugerdefinerede felter**, **Etiketregler** og **Ejerregler** |
-| **Udvikler** | **Terraform**, **API** og **AI-assistenter**: vagt sat op fra kode |
+| **Udvikler** | **Terraform**, **API**, **CLI** og **AI-assistenter**: vagt sat op fra kode |
 
 **Politikker**, **Tidsplaner** og **Indgående opkald** er åbne; de andre sektioner starter foldet sammen, og en sektion åbner af sig selv, når du er på en af dens sider. **Arbejdsområde** viser de chatværktøjer, projektet har forbundet, eller **Forbind Slack eller Teams**, når det ikke har nogen.
 

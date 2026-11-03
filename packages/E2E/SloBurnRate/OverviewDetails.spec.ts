@@ -1,6 +1,7 @@
 import { expect, Locator, Page, Route, test } from "@playwright/test";
 import fs from "fs/promises";
 import path from "path";
+import { expectNoSidewaysScroll } from "../SuiteHelpers/PageFit";
 
 const OVERVIEW_ROUTE: string =
   "/dashboard/10000000-0000-4000-8000-000000000001/slos/20000000-0000-4000-8000-000000000001";
@@ -136,11 +137,7 @@ for (const width of [1440, 1280, 1024, 390]) {
         detailsBox.x + detailsBox.width,
       );
     }
-    expect(
-      await page.evaluate((): boolean => {
-        return document.documentElement.scrollWidth <= window.innerWidth;
-      }),
-    ).toBe(true);
+    await expectNoSidewaysScroll(page);
     expect(detailsBox.x + detailsBox.width).toBeLessThanOrEqual(width);
 
     if (width === 1440 || width === 390) {

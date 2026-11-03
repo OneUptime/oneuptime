@@ -1,4 +1,5 @@
 import { Locator, Page, expect, test } from "@playwright/test";
+import { expectNoSidewaysScroll } from "../SuiteHelpers/PageFit";
 
 /*
  * The pagination footer under every table, log and trace list, in a real
@@ -489,12 +490,6 @@ test.describe("on a phone", () => {
     ).toHaveCount(0);
 
     // Nothing on the bar spills past the screen.
-    const overflow: number = await page.evaluate(() => {
-      return (
-        document.documentElement.scrollWidth -
-        document.documentElement.clientWidth
-      );
-    });
-    expect(overflow).toBeLessThanOrEqual(0);
+    await expectNoSidewaysScroll(page);
   });
 });

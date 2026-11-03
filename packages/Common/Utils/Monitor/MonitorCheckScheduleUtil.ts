@@ -3,7 +3,7 @@ import { JSONObject } from "../../Types/JSON";
 import Monitor from "../../Models/DatabaseModels/Monitor";
 import CronTab from "../CronTab";
 import { describeCronSchedule } from "../CronScheduleText";
-import { Translator } from "../../UI/Utils/TranslateTemplate";
+import { Translator } from "../../Types/Translator";
 import MonitoringIntervalUtil from "./MonitoringIntervalUtil";
 
 /*

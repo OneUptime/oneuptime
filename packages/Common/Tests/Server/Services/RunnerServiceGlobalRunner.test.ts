@@ -3,6 +3,7 @@ import RunnerService, {
   GLOBAL_RUNNER_CAPABILITY_MESSAGE,
   GLOBAL_RUNNER_CHANGED_MESSAGE,
   GLOBAL_RUNNER_IN_A_PROJECT_MESSAGE,
+  GLOBAL_RUNNER_LIST_READ_SELECT,
   GLOBAL_RUNNER_PUBLIC_SELECT,
   RUNNER_WITHOUT_PROJECT_MESSAGE,
   Service as RunnerServiceClass,
@@ -21,6 +22,10 @@ import DatabaseCommonInteractionProps from "../../../Types/BaseDatabase/Database
 import BadDataException from "../../../Types/Exception/BadDataException";
 import ObjectID from "../../../Types/ObjectID";
 import PositiveNumber from "../../../Types/PositiveNumber";
+import OneUptimeDate from "../../../Types/Date";
+import Version from "../../../Types/Version";
+import { JSONObject } from "../../../Types/JSON";
+import BaseModel from "../../../Models/DatabaseModels/DatabaseBaseModel/DatabaseBaseModel";
 import { afterEach, beforeEach, describe, expect, it } from "@jest/globals";
 import {
   stubGenericReferenceCheck,
@@ -422,7 +427,7 @@ describe("the global Runners every project reads", () => {
     );
   });
 
-  it("findGlobalRunners reads the global Runners with the public columns only", async () => {
+  it("findGlobalRunners reads the global Runners with the public columns and the release, as OneUptime", async () => {
     const findBy: jest.SpyInstance = jest
       .spyOn(RunnerService, "findBy")
       .mockResolvedValue([]);
@@ -440,8 +445,80 @@ describe("the global Runners every project reads", () => {
     };
 
     expect(args.query).toEqual({ isGlobalRunner: true });
-    expect(args.select).toBe(GLOBAL_RUNNER_PUBLIC_SELECT);
+    expect(args.select).toBe(GLOBAL_RUNNER_LIST_READ_SELECT);
+    expect(Object.keys(GLOBAL_RUNNER_LIST_READ_SELECT).sort()).toEqual(
+      [...Object.keys(GLOBAL_RUNNER_PUBLIC_SELECT), "agentVersion"].sort(),
+    );
     expect(args.props.isRoot).toBe(true);
+  });
+
+  /*
+   * Whether each takes AI code fixes is said as OneUptime counts it - so a
+   * code repository's Runner picker never calls the Global Runner connected
+   * while only global Runners that take none are - and the release it is
+   * judged by stays on the server.
+   */
+  it("findGlobalRunners says whether each takes AI code fixes, and hands on no release", async () => {
+    const now: Date = OneUptimeDate.getCurrentDate();
+
+    function row(data: {
+      name: string;
+      takesCodeFixes?: boolean | undefined;
+      agentVersion: string;
+      lastAlive?: Date | undefined;
+    }): Runner {
+      const runner: Runner = new Runner();
+      runner._id = ObjectID.generate().toString();
+      runner.name = data.name;
+      runner.isGlobalRunner = true;
+      runner.agentVersion = new Version(data.agentVersion);
+      if (data.takesCodeFixes !== undefined) {
+        runner.takesCodeFixes = data.takesCodeFixes;
+      }
+      if (data.lastAlive) {
+        runner.lastAlive = data.lastAlive;
+      }
+      return runner;
+    }
+
+    jest.spyOn(RunnerService, "findBy").mockResolvedValue([
+      row({ name: "says-yes", takesCodeFixes: true, agentVersion: "1.0.0" }),
+      row({
+        name: "turned-off",
+        takesCodeFixes: false,
+        agentVersion: "14.0.102",
+        lastAlive: now,
+      }),
+      row({ name: "since-14.0.94", agentVersion: "14.0.94", lastAlive: now }),
+      row({ name: "older", agentVersion: "14.0.93", lastAlive: now }),
+      // Never heartbeated: its 1.0.0 is the new row's placeholder.
+      row({ name: "never-started", agentVersion: "1.0.0" }),
+    ] as never);
+
+    const runners: Array<Runner> = await RunnerService.findGlobalRunners();
+
+    expect(
+      runners.map((runner: Runner): [string, boolean | undefined] => {
+        return [runner.name || "", runner.takesCodeFixes];
+      }),
+    ).toEqual([
+      ["says-yes", true],
+      ["turned-off", false],
+      ["since-14.0.94", true],
+      ["older", false],
+      ["never-started", true],
+    ]);
+
+    // What is handed on, as the route serializes it: never a release.
+    for (const json of BaseModel.toJSONArray(
+      runners,
+      Runner,
+    ) as Array<JSONObject>) {
+      expect(json).not.toHaveProperty("agentVersion");
+      expect(json).not.toHaveProperty("key");
+      expect(json).not.toHaveProperty("hostInfo");
+      expect(typeof json["takesCodeFixes"]).toBe("boolean");
+    }
   });
 
   it("the public columns never include the key, the host or the version", () => {
@@ -453,6 +530,7 @@ describe("the global Runners every project reads", () => {
         "isGlobalRunner",
         "lastAlive",
         "name",
+        "takesCodeFixes",
       ].sort(),
     );
 

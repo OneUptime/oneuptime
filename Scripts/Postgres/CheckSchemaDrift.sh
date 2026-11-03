@@ -17,9 +17,10 @@
 #   npm run check-postgres-schema-drift
 #
 # Connection: DATABASE_MIGRATIONS_HOST / DATABASE_MIGRATIONS_PORT (default
-# localhost:5400, where docker compose publishes Postgres) plus the usual
-# DATABASE_USERNAME / DATABASE_PASSWORD / DATABASE_NAME. config.env is loaded
-# when present, so locally this needs no arguments.
+# localhost and DATABASE_PUBLISHED_PORT, 5400 unless config.env moves it: where
+# docker compose publishes Postgres) plus the usual DATABASE_USERNAME /
+# DATABASE_PASSWORD / DATABASE_NAME. config.env is loaded when present, so
+# locally this needs no arguments.
 
 set -uo pipefail
 
@@ -44,7 +45,7 @@ if [ -f "${REPO_ROOT}/config.env" ]; then
 fi
 
 export DATABASE_MIGRATIONS_HOST="${DATABASE_MIGRATIONS_HOST:-localhost}"
-export DATABASE_MIGRATIONS_PORT="${DATABASE_MIGRATIONS_PORT:-5400}"
+export DATABASE_MIGRATIONS_PORT="${DATABASE_MIGRATIONS_PORT:-${DATABASE_PUBLISHED_PORT:-5400}}"
 
 # TypeORM logs any query over DATABASE_SLOW_QUERY_LOG_THRESHOLD_MS. Schema
 # reflection reads every column in the database in one statement and migrations

@@ -1,4 +1,5 @@
 import crypto from "crypto";
+import OldestKeyMap from "Common/Utils/OldestKeyMap";
 
 /*
  * vCenter sessions the probe keeps between collections.
@@ -43,7 +44,8 @@ export function getSessionKey(data: {
 }
 
 export default class VSphereSessionCache {
-  private static sessions: Map<string, CachedSession> = new Map();
+  private static sessions: OldestKeyMap<string, CachedSession> =
+    new OldestKeyMap();
 
   public static get(key: string, now: number = Date.now()): string | null {
     const session: CachedSession | undefined = this.sessions.get(key);
@@ -70,7 +72,7 @@ export default class VSphereSessionCache {
 
     // The oldest go first: a Map iterates in insertion order.
     while (this.sessions.size > MAX_CACHED_SESSIONS) {
-      const oldest: string | undefined = this.sessions.keys().next().value;
+      const oldest: string | undefined = this.sessions.oldestKey();
 
       if (oldest === undefined) {
         break;

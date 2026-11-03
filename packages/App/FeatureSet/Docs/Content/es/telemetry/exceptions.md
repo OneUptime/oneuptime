@@ -99,7 +99,7 @@ Los botones de la parte superior de la página de la excepción, su página **Aj
 
 **Ajustes** muestra quién resolvió o archivó la excepción por última vez, y cuándo. Sus botones dicen **Marcar como resuelto** o **Marcar como no resuelto**, y **Archivar** o **Desarchivar**.
 
-Para cambiar varias a la vez, marque sus filas en la lista, o la casilla sobre las filas para todas las excepciones de la página, y use las mismas acciones en **Acciones masivas**. El resultado indica qué excepciones cambió, cuáles dejó como estaban y por qué.
+Para cambiar varias a la vez, marque sus filas en la lista, o la casilla sobre las filas para todas las excepciones de la página, y use las mismas acciones en **Acciones masivas**. Cuando todas las excepciones de la página están marcadas, la barra sobre las filas ofrece seleccionar todas las excepciones que coinciden con la búsqueda y los filtros de la lista, en todas las páginas, hasta 10.000 a la vez; una acción pregunta entonces antes de cambiarlas. El resultado indica qué excepciones cambió, cuáles dejó como estaban y por qué.
 
 **Asignar** en la cabecera de la excepción se la da a una persona o a un equipo, y quitar la selección la desasigna. Cada fila muestra a quién pertenece, su menú ⋯ ofrece **Asignarme**, y **Asignar a…** en **Acciones masivas** asigna varias a la vez. La persona a la que se asigna, o cada miembro del equipo, recibe una notificación según indique la fila **Excepción asignada a mí** de sus [Ajustes de notificaciones](/docs/notifications/notification-settings); quien la asignó no la recibe.
 

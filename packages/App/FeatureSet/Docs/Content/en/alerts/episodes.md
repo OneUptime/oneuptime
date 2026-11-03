@@ -157,7 +157,7 @@ An episode you create has no grouping rule, so the list shows its **Grouping Rul
 | **Team** | **Owners** |
 | **Alerts** | **Member Alerts** |
 | **Notes** | **Private Notes** |
-| **Developer** | **Terraform**, **API**, **AI Assistants** |
+| **Developer** | **Terraform**, **API**, **CLI**, **AI Assistants** |
 | **Advanced** | **Audit Logs**, **Delete Episode** |
 
 **Developer** and **Advanced** start folded. On the **Overview**, the header names the episode's **Owners**, teams first, and the first tile says when the episode was **Created** — **Automatically**, when a grouping rule opened it. **What happened** leads the page — the episode's description and **Root cause** — then **Alerts in this episode** and the **Episode Feed**, beside the **Episode Details** card: its number, state, severity, alert count, grouping rule and on-call policies. Its header has **Acknowledge** and **Resolve**, and **Move episode to** in the **⋯** menu.

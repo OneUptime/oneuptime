@@ -36,7 +36,10 @@ import getJestMockFunction, { MockFunction } from "../../MockType";
  *     "How to set up HTTPS" opens the guide in a new tab, and says so. A
  *     page that came over HTTPS to a server still set to HTTP (a proxy in
  *     front) is told just that - not that passwords cross the network
- *     unencrypted (fu-platform's review);
+ *     unencrypted (fu-platform's review). The reverse - a server set to
+ *     HTTPS whose page came over plain HTTP - is told that only this visit
+ *     is left, and "Open over HTTPS" opens the page at the HTTPS address
+ *     OneUptime's links point to (fu-platform-next);
  *   - Sign-ups: done once sign-ups are off; "Choose who can sign up" opens
  *     Settings > Authentication.
  *
@@ -48,6 +51,8 @@ import getJestMockFunction, { MockFunction } from "../../MockType";
 const mockGetItem: MockFunction = getJestMockFunction();
 let mockBillingEnabled: boolean = false;
 let mockHttpProtocol: string = "http";
+// The server's HOST setting, as the Admin Dashboard is handed it.
+let mockHost: string = "oneuptime.example.com";
 
 jest.mock("../../../UI/Utils/ModelAPI/ModelAPI", () => {
   return {
@@ -82,6 +87,11 @@ jest.mock("../../../UI/Config", () => {
         : protocol.default.HTTP;
     },
   });
+  Object.defineProperty(mocked, "HOST", {
+    get: (): string => {
+      return mockHost;
+    },
+  });
 
   return mocked;
 });
@@ -92,9 +102,11 @@ import ServerSetupChecklist, {
   SERVER_SETUP_HTTPS_GUIDE,
   ServerSetupItem,
   ServerSetupItemName,
+  getHttpsAddress,
   getServerSetupItems,
   isEmailSetUp,
   isHttpsOnlyBeforeOneUptime,
+  isOpenedOverHttpWhileSetToHttps,
   isServedOverHttps,
 } from "../../../../App/FeatureSet/AdminDashboard/src/Components/ServerSetup/ServerSetupChecklist";
 import PageMap from "../../../../App/FeatureSet/AdminDashboard/src/Utils/PageMap";
@@ -210,7 +222,9 @@ const COPY_WORDS: Array<string> = [
   SERVER_SETUP_COPY.https.done,
   SERVER_SETUP_COPY.https.open,
   SERVER_SETUP_COPY.https.onlyBeforeOneUptime,
+  SERVER_SETUP_COPY.https.openedOverHttp,
   SERVER_SETUP_COPY.https.action,
+  SERVER_SETUP_COPY.https.openOverHttps,
   SERVER_SETUP_COPY.signups.title,
   SERVER_SETUP_COPY.signups.done,
   SERVER_SETUP_COPY.signups.open,
@@ -227,7 +241,9 @@ beforeEach(() => {
   });
   mockBillingEnabled = false;
   mockHttpProtocol = "http";
+  mockHost = "oneuptime.example.com";
   window.localStorage.clear();
+  window.history.replaceState({}, "", "/admin/users");
 });
 
 afterEach(() => {
@@ -291,6 +307,89 @@ describe("isHttpsOnlyBeforeOneUptime", () => {
   });
 });
 
+describe("isOpenedOverHttpWhileSetToHttps", () => {
+  test("only when OneUptime is set to HTTPS and the page came over HTTP", () => {
+    expect(isOpenedOverHttpWhileSetToHttps(Protocol.HTTPS, "http:")).toBe(true);
+    expect(isOpenedOverHttpWhileSetToHttps(Protocol.HTTPS, "https:")).toBe(
+      false,
+    );
+    expect(isOpenedOverHttpWhileSetToHttps(Protocol.HTTP, "http:")).toBe(false);
+    expect(isOpenedOverHttpWhileSetToHttps(Protocol.HTTP, "https:")).toBe(
+      false,
+    );
+  });
+
+  test("never at the same time as the other two answers", () => {
+    for (const setting of [Protocol.HTTP, Protocol.HTTPS]) {
+      for (const page of ["http:", "https:"]) {
+        const answers: Array<boolean> = [
+          isServedOverHttps(setting, page),
+          isHttpsOnlyBeforeOneUptime(setting, page),
+          isOpenedOverHttpWhileSetToHttps(setting, page),
+        ];
+
+        expect(
+          answers.filter((answer: boolean) => {
+            return answer;
+          }).length,
+        ).toBeLessThanOrEqual(1);
+      }
+    }
+  });
+});
+
+describe("getHttpsAddress", () => {
+  const location: (
+    host: string,
+    pathname: string,
+    search?: string,
+  ) => { host: string; pathname: string; search: string } = (
+    host: string,
+    pathname: string,
+    search: string = "",
+  ): { host: string; pathname: string; search: string } => {
+    return { host, pathname, search };
+  };
+
+  test("this page, over HTTPS, at the address OneUptime's links point to", () => {
+    expect(
+      getHttpsAddress({
+        host: "oneuptime.example.com",
+        location: location("oneuptime.example.com", "/admin/users"),
+      }),
+    ).toBe("https://oneuptime.example.com/admin/users");
+  });
+
+  test("a visit through the server's IP address moves to HOST, whose certificate it is", () => {
+    expect(
+      getHttpsAddress({
+        host: "oneuptime.example.com",
+        location: location("203.0.113.7", "/admin/users", "?page=2"),
+      }),
+    ).toBe("https://oneuptime.example.com/admin/users?page=2");
+  });
+
+  test("a HOST with a port keeps it", () => {
+    expect(
+      getHttpsAddress({
+        host: "oneuptime.example.com:8443",
+        location: location("10.0.0.5:8080", "/admin/users"),
+      }),
+    ).toBe("https://oneuptime.example.com:8443/admin/users");
+  });
+
+  test("without a HOST, the address the page came to", () => {
+    for (const host of ["", "  "]) {
+      expect(
+        getHttpsAddress({
+          host,
+          location: location("10.0.0.5", "/admin/settings/host"),
+        }),
+      ).toBe("https://10.0.0.5/admin/settings/host");
+    }
+  });
+});
+
 describe("getServerSetupItems", () => {
   test("email, HTTPS and sign-ups, in that order, each with the place that changes it", () => {
     const items: Array<ServerSetupItem> = getServerSetupItems({
@@ -341,6 +440,55 @@ describe("getServerSetupItems", () => {
     // Not the line for a server nobody reaches over HTTPS.
     expect(https.description).not.toContain("unencrypted");
     expect(https.guideUrl).toBe(SERVER_SETUP_HTTPS_GUIDE);
+  });
+
+  test("set to HTTPS but opened over HTTP: only this visit is left, and the action opens the page over HTTPS", () => {
+    const https: ServerSetupItem = getServerSetupItems({
+      emailIsSetUp: true,
+      isServedOverHttps: false,
+      isHttpsOnlyBeforeOneUptime: false,
+      isOpenedOverHttpWhileSetToHttps: true,
+      httpsAddress: "https://oneuptime.example.com/admin/users",
+      signupsAreClosed: true,
+    })[1]!;
+
+    expect(https.isDone).toBe(false);
+    expect(https.description).toBe(SERVER_SETUP_COPY.https.openedOverHttp);
+    // Not the "Not set up yet" line, whose guide's steps are done.
+    expect(https.description).not.toBe(SERVER_SETUP_COPY.https.open);
+    expect(https.description).not.toContain("Not set up yet");
+    expect(https.actionTitle).toBe(SERVER_SETUP_COPY.https.openOverHttps);
+    expect(https.address).toBe("https://oneuptime.example.com/admin/users");
+    expect(https.guideUrl).toBeUndefined();
+    expect(https.route).toBeUndefined();
+  });
+
+  test("without the address to open, the reverse case keeps the guide", () => {
+    const https: ServerSetupItem = getServerSetupItems({
+      emailIsSetUp: false,
+      isServedOverHttps: false,
+      isOpenedOverHttpWhileSetToHttps: true,
+      signupsAreClosed: false,
+    })[1]!;
+
+    expect(https.description).toBe(SERVER_SETUP_COPY.https.open);
+    expect(https.actionTitle).toBe(SERVER_SETUP_COPY.https.action);
+    expect(https.guideUrl).toBe(SERVER_SETUP_HTTPS_GUIDE);
+    expect(https.address).toBeUndefined();
+  });
+
+  test("served over HTTPS wins over everything else", () => {
+    const https: ServerSetupItem = getServerSetupItems({
+      emailIsSetUp: false,
+      isServedOverHttps: true,
+      isOpenedOverHttpWhileSetToHttps: true,
+      httpsAddress: "https://oneuptime.example.com/admin/users",
+      signupsAreClosed: false,
+    })[1]!;
+
+    expect(https.isDone).toBe(true);
+    expect(https.description).toBe(SERVER_SETUP_COPY.https.done);
+    expect(https.address).toBeUndefined();
   });
 
   test("a done item says what it means now", () => {
@@ -488,6 +636,66 @@ describe("the card", () => {
 
     expect(screen.getByTestId("server-setup-https")).toHaveTextContent(
       SERVER_SETUP_COPY.https.open,
+    );
+  });
+
+  test("a server set to HTTPS whose page came over HTTP: only this visit is left, and Open over HTTPS opens this page at HOST", async () => {
+    mockHttpProtocol = "https";
+    window.history.replaceState({}, "", "/admin/users?page=2");
+
+    await renderIn("en", "http:");
+
+    const https: HTMLElement = screen.getByTestId("server-setup-https");
+    expect(https).toHaveAttribute("data-done", "false");
+    expect(https).toHaveTextContent(SERVER_SETUP_COPY.https.openedOverHttp);
+    expect(https).not.toHaveTextContent(SERVER_SETUP_COPY.https.open);
+    expect(https).not.toHaveTextContent(
+      SERVER_SETUP_COPY.https.onlyBeforeOneUptime,
+    );
+
+    const action: HTMLElement = within(https).getByTestId(
+      "server-setup-https-action",
+    );
+    expect(action).toHaveTextContent(SERVER_SETUP_COPY.https.openOverHttps);
+    expect(action).not.toHaveTextContent(SERVER_SETUP_COPY.https.action);
+    const address: URL = new URL(action.getAttribute("href") || "");
+    expect(address.protocol).toBe("https:");
+    expect(address.host).toBe("oneuptime.example.com");
+    expect(address.pathname).toBe("/admin/users");
+    expect(address.search).toBe("?page=2");
+    // The same app over HTTPS: it opens where the card is, not in a new tab.
+    expect(action).not.toHaveAttribute("target", "_blank");
+    expect(
+      within(action).queryByTestId("server-setup-https-new-tab"),
+    ).toBeNull();
+    expect(action).not.toHaveTextContent(SERVER_SETUP_COPY.opensInNewTab);
+  });
+
+  test("the reverse case without a HOST opens the address the page came to", async () => {
+    mockHttpProtocol = "https";
+    mockHost = "";
+
+    await renderIn("en", "http:");
+
+    const action: HTMLElement = screen.getByTestId("server-setup-https-action");
+    const address: URL = new URL(action.getAttribute("href") || "");
+    expect(address.protocol).toBe("https:");
+    expect(address.host).toBe(window.location.host);
+    expect(address.pathname).toBe("/admin/users");
+  });
+
+  test("the reverse case in Persian: the row and its action in Persian", async () => {
+    mockHttpProtocol = "https";
+
+    await renderIn("fa", "http:");
+
+    const persian: Locale = readLocale("fa");
+    const https: HTMLElement = screen.getByTestId("server-setup-https");
+    expect(https).toHaveTextContent(
+      persian[SERVER_SETUP_COPY.https.openedOverHttp] as string,
+    );
+    expect(screen.getByTestId("server-setup-https-action")).toHaveTextContent(
+      persian[SERVER_SETUP_COPY.https.openOverHttps] as string,
     );
   });
 

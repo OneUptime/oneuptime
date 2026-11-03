@@ -1,6 +1,7 @@
 import { Locator, Page, Route, expect, test } from "@playwright/test";
 import { mkdir } from "fs/promises";
 import path from "path";
+import { expectNoSidewaysScroll } from "../SuiteHelpers/PageFit";
 
 /*
  * The session list's header, measured in Chromium.
@@ -174,16 +175,6 @@ const expectOneHeight: (
   }
 };
 
-const expectNoHorizontalOverflow: (page: Page) => Promise<void> = async (
-  page: Page,
-): Promise<void> => {
-  expect(
-    await page.evaluate((): number => {
-      return document.documentElement.scrollWidth - window.innerWidth;
-    }),
-  ).toBeLessThanOrEqual(1);
-};
-
 test.describe("the session list's header", () => {
   test("at 1280: the title, then the search, the window and the ⋯ on its line, one height, centred on one another", async ({
     page,
@@ -233,7 +224,7 @@ test.describe("the session list's header", () => {
       page.getByText("Advanced filters", { exact: true }),
     ).toHaveCount(0);
 
-    await expectNoHorizontalOverflow(page);
+    await expectNoSidewaysScroll(page, { tolerance: 1 });
     await screenshot(page, "session-replay-list-header-1280");
   });
 
@@ -258,7 +249,7 @@ test.describe("the session list's header", () => {
 
     expect(more.x + more.width).toBeLessThanOrEqual(card.x + card.width - 19);
 
-    await expectNoHorizontalOverflow(page);
+    await expectNoSidewaysScroll(page, { tolerance: 1 });
     await screenshot(page, "session-replay-list-header-390");
   });
 
@@ -402,7 +393,7 @@ test.describe("the session list's header", () => {
         ).toBeLessThanOrEqual(1);
         expect(list.x).toBeGreaterThanOrEqual(0);
         expect(list.x + list.width).toBeLessThanOrEqual(size.width);
-        await expectNoHorizontalOverflow(page);
+        await expectNoSidewaysScroll(page, { tolerance: 1 });
       }
     });
   }
@@ -637,7 +628,7 @@ test.describe("the session list's header", () => {
       );
     }
 
-    await expectNoHorizontalOverflow(page);
+    await expectNoSidewaysScroll(page, { tolerance: 1 });
     await screenshot(page, "session-replay-list-search-help-390");
   });
 
@@ -744,7 +735,7 @@ test.describe("the Session Replay tables fit their cards", () => {
           actions.x + 0.5,
         );
 
-        await expectNoHorizontalOverflow(page);
+        await expectNoSidewaysScroll(page, { tolerance: 1 });
       }
     });
   }
@@ -845,7 +836,7 @@ test.describe("the Session Replay tables fit their cards", () => {
       ],
       42,
     );
-    await expectNoHorizontalOverflow(page);
+    await expectNoSidewaysScroll(page, { tolerance: 1 });
     await screenshot(page, "session-replay-users-header-390");
   });
 });

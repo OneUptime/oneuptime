@@ -64,7 +64,7 @@ En tjänsts sidomeny har fem avsnitt:
 | **Grundläggande** | **Översikt**: förfrågningar, felfrekvens och p95-latens från dess spans, diagram och dess detaljer. **Rekommendationer**: färdiga monitorer för tjänsten, valda efter dess språk. **Ägare**: de personer och team som ansvarar för den. **Feed**: allt som har hänt den, från hur den skapades till varje ändring sedan dess. |
 | **Telemetri** | Dess **Loggar**, **Spår**, **Mätvärden**, **Prestandaprofiler**, **Undantag** och **Source maps**, redan filtrerade på den här tjänsten. |
 | **Aktivitet** | De **Incidenter**, **Larm** och händelser under **Schemalagt underhåll** som berör den. |
-| **Utvecklare** | **Terraform**, **API** och **AI-assistenter**: tjänsten styrd från kod. Avsnittet är hopfällt från början. |
+| **Utvecklare** | **Terraform**, **API**, **CLI** och **AI-assistenter**: tjänsten styrd från kod. Avsnittet är hopfällt från början. |
 | **Avancerad** | **Inställningar**, **Granskningsloggar** och **Ta bort tjänst**. **Avancerad** är hopfälld från början: fäll ut den först. |
 
 Ägare spelar roll även utanför sidan: en roll med omfånget Owned läser telemetrin för de tjänster som du eller dina team äger. Se [Telemetri](/docs/permissions/index#telemetri).

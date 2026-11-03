@@ -141,7 +141,7 @@ afterAll(async () => {
 
 // The step's pill, by its name as the reader's language words it.
 function statusPill(): HTMLElement {
-  return screen.getByLabelText(japanese("Remediation status"));
+  return screen.getByTestId("ai-card-step-remediation-pill");
 }
 
 describe("the Remediation step in Japanese", () => {

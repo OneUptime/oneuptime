@@ -108,7 +108,7 @@ Søk, filtrer og velg kolonnene du vil beholde.
 Velg visningen i **Lagrede visninger** for å bruke den, og **Fjern visning** for å gå tilbake til siste time uten filtre. Pek på en visning i listen for å **Rediger** eller **Slett** den, eller, mens den er i bruk, for å **Oppdater** den med endringene dine.
 :::
 
-Lagrede visninger hører til prosjektet, så alle i det ser den samme listen. Et rullerende intervall som siste time fortsetter å rullere: visningen viser timen før du åpner den, ikke timen da du lagret den. Så lenge prosjektet ikke har en standardvisning, blir den neste lagrede visningen standard, og et prosjekt har én standard om gangen.
+Lagrede visninger hører til prosjektet, så alle i det ser de samme visningene, og hver visning blir værende på siden den ble lagret på: en visning lagret på siden Logger vises på siden Logger, og en visning lagret på fanen Logger for en ressurs, for eksempel for en Kubernetes-klynge eller en vert, vises bare på den fanen. Et rullerende intervall som siste time fortsetter å rullere: visningen viser timen før du åpner den, ikke timen da du lagret den. Så lenge en side ikke har en standardvisning, blir den neste visningen som lagres på den, sidens standard, og hver side har én standard om gangen.
 
 ## Vis loggene dine i diagrammer
 

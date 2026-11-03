@@ -973,8 +973,11 @@ function FixtureApp() {
   );
 }
 
+/*
+ * Navigates as the Dashboard does (its src/Index.tsx): each navigation renders
+ * at once, not in a React transition (Tests/Ops/E2EFixtureRouters).
+ */
 createRoot(document.getElementById("root")).render(
-  // Synchronous navigation, as the Dashboard mounts it (Index.tsx).
   <BrowserRouter useTransitions={false}>
     <FixtureApp />
   </BrowserRouter>,

@@ -73,6 +73,8 @@ En global Runner kör stegen från många projekt, så varje steg hålls åtskil
 
 En global Runner tar också OneUptime AI:s kodkorrigeringar, i varje kodrepository som arbetar på **Global Runner**. Den skriver varje korrigering och öppnar pull requesten, men kör inget kommando, inte ens repositoryts setup-, bygg- och testkommandon, så pull requesten säger att kontrollen hoppades över. Den når bara Git-servrar på internet, över HTTPS, utom på en egenhostad OneUptime, där den också får nå de privata Git-servrar som servern själv får nå. Den agerar bara för de korrigeringar den tar, och får ett repositorys token bara medan den arbetar med en korrigering där. Ett GitHub-repositorys token når bara det enda repositoryt och återkallas när korrigeringen är klar.
 
+En global Runner som är äldre än 14.0.94, eller som startats med `ONEUPTIME_RUNNER_ENABLE_CODE_FIXES=false`, tar inga kodkorrigeringar, och OneUptime räknar inte med den för dem. Ett repository på **Global Runner** säger då att ingen global Runner som är online tar AI-kodkorrigeringar, och sidan **Globala Runners** i administratörspanelen säger varför under den Runnerns status.
+
 Välj en av dina egna Runners för ett steg som måste nå ditt nätverk, eller för att hålla steget på värdar som du styr. För att hålla varje steg på dina egna Runners stänger du av **Använd globala Runners** längst ned på **Runbooks → Runbook-agenter**. Ett JavaScript-steg som inte väljer någon Runner körs då på projektets standard-Runner eller misslyckas, om ingen är angiven, och säger det, tills det väljer en av dina; ett steg som väljer en av dina Runners behåller den i vilket fall som helst. Ett kodrepository som inte väljer någon Runner i sina inställningar i Kod arbetar också på projektets standard-Runner eller, om ingen är angiven, på en global Runner, och behöver en av dina medan reglaget är avstängt; se [Kod](/docs/ai/ai-agent#välj-repositoryts-runner).
 
 ### Var globala Runners kommer ifrån
@@ -256,7 +258,7 @@ Runnern läser dessa vid start:
 | `ONEUPTIME_RUNNER_JOB_HEARTBEAT_INTERVAL_MS` | nej | `10000` | Hur ofta Runnern förnyar leasen för ett jobb som körs. Ett värde under `1000` faller tillbaka till standarden. |
 | `ONEUPTIME_RUNNER_CONCURRENCY` | nej | `1` | Högsta antal samtidiga jobb på den här Runnern. |
 | `ONEUPTIME_RUNNER_ENABLE_RUNBOOKS` | nej | — | Sätt till `false` för att få den här Runnern att sluta ta runbook-steg, oavsett vad instrumentpanelen säger. Den kan bara stänga av funktionen. |
-| `ONEUPTIME_RUNNER_ENABLE_CODE_FIXES` | nej | — | Sätt till `false` för att få den här Runnern att sluta ta AI-kodfixar, även för ett kodrepository som väljer den. |
+| `ONEUPTIME_RUNNER_ENABLE_CODE_FIXES` | nej | — | Sätt till `false` för att få den här Runnern att sluta ta AI-kodfixar, även för ett kodrepository som väljer den. Repositoryt säger då att den här Runnern inte tar några. |
 | `ONEUPTIME_RUNNER_ENABLE_AI_COMMANDS` | nej | — | Sätt till `false` för att få den här Runnern att sluta köra AI-åtgärdskommandon, oavsett vad instrumentpanelen säger. |
 
 ## Byta en agentnyckel

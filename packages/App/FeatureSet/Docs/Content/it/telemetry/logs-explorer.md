@@ -108,7 +108,7 @@ Aprite **Viste salvate** e fate clic su **+ Salva vista corrente**. Inserite un 
 Scegliete la vista da **Viste salvate** per applicarla, e **Cancella vista** per tornare all'ultima ora senza filtri. Puntate una vista nell'elenco per **Modifica** o **Elimina**, oppure, mentre è applicata, per **Aggiorna** con le vostre modifiche.
 :::
 
-Le viste salvate appartengono al progetto, quindi tutti nel progetto vedono lo stesso elenco. Un intervallo mobile come l'ultima ora resta mobile: la vista mostra l'ora che precede la sua apertura, non l'ora in cui l'avete salvata. Finché il progetto non ha una vista predefinita, la prossima vista salvata lo diventa, e un progetto ha una sola predefinita alla volta.
+Le viste salvate appartengono al progetto, quindi tutti nel progetto vedono le stesse viste, e ogni vista resta nella pagina in cui è stata salvata: una vista salvata nella pagina Registri compare nella pagina Registri, e una vista salvata nella scheda Registri di una risorsa, come quella di un cluster Kubernetes o di un host, compare solo in quella scheda. Un intervallo mobile come l'ultima ora resta mobile: la vista mostra l'ora che precede la sua apertura, non l'ora in cui l'avete salvata. Finché una pagina non ha una vista predefinita, la prossima vista salvata in quella pagina diventa la sua predefinita, e ogni pagina ha una sola predefinita alla volta.
 
 ## Rappresentare i log in grafici
 

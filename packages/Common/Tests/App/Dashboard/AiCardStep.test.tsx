@@ -63,10 +63,16 @@ describe("AiCardStep", () => {
     expect(title).toHaveClass("text-sm", "font-semibold", "text-gray-900");
 
     // The pill, named for screen readers, on the title's line.
-    const pill: HTMLElement = within(step).getByLabelText(
-      "Investigation status",
+    const pill: HTMLElement = within(step).getByTestId(
+      "ai-card-step-investigation-pill",
     );
-    expect(pill).toHaveTextContent("Completed");
+    expect(pill).toHaveTextContent("Investigation status, Completed");
+    expect(within(pill).getByTestId("status-badge-label")).toHaveClass(
+      "sr-only",
+    );
+    expect(within(pill).getByTestId("status-badge-words")).toHaveTextContent(
+      /^Completed$/,
+    );
     expect(pill).toHaveAttribute("data-indicator", "done");
     expect(
       screen.getByTestId("ai-card-step-investigation-status"),

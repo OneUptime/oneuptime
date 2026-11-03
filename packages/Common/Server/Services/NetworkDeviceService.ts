@@ -71,6 +71,7 @@ import {
   toDiscoveredDetailsJson,
 } from "../../Types/NetworkDevice/NetworkDeviceDiscoveredDetails";
 import { RuleEvaluation } from "../Utils/PatternWorkScope";
+import OldestKeyMap from "../../Utils/OldestKeyMap";
 
 /**
  * The fleet-wide numbers the device summary strip and the network overview
@@ -587,7 +588,10 @@ const EMPTY_SITE_ASSIGNMENT_RULE_CACHE_MAX_PROJECTS: number = 10000;
  * — which is precisely why the TTL, not the invalidation, is the guarantee.
  */
 export class EmptySiteAssignmentRuleCache {
-  private knownEmptyUntil: Map<string, number> = new Map<string, number>();
+  private knownEmptyUntil: OldestKeyMap<string, number> = new OldestKeyMap<
+    string,
+    number
+  >();
 
   private ttlInMs: number;
   private maxProjects: number;
@@ -643,9 +647,7 @@ export class EmptySiteAssignmentRuleCache {
       !this.knownEmptyUntil.has(key)
     ) {
       // Evict the oldest — a Map iterates in insertion order.
-      const oldestKey: string | undefined = this.knownEmptyUntil
-        .keys()
-        .next().value;
+      const oldestKey: string | undefined = this.knownEmptyUntil.oldestKey();
 
       if (oldestKey !== undefined) {
         this.knownEmptyUntil.delete(oldestKey);

@@ -46,7 +46,7 @@ Ouvrez une politique depuis la liste. Son menu latéral contient tout ce qui la 
 | --- | --- |
 | **Basique** | **Vue d'ensemble**, **Règles d'escalade** et **Propriétaires** |
 | **Journaux** | **Journaux d'exécution** et **Journaux de notification** |
-| **Développeurs** | **Terraform**, **API** et **Assistants IA** |
+| **Développeurs** | **Terraform**, **API**, **CLI** et **Assistants IA** |
 | **Avancé** | **Remplacements d'utilisateur**, **Champs personnalisés**, **Paramètres**, **Journaux d'audit** et **Supprimer la politique** |
 
 **Basique** est ouverte ; les autres sections démarrent repliées jusqu'à ce que vous cliquiez dessus.

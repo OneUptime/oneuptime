@@ -1,6 +1,7 @@
 import { expect, Locator, Page, test } from "@playwright/test";
 import fs from "fs/promises";
 import path from "path";
+import { expectNoSidewaysScroll } from "../SuiteHelpers/PageFit";
 
 /*
  * A monitor's Status Timeline and an incident's State Timeline (the name of
@@ -1148,16 +1149,7 @@ test.describe("a monitor's Status Timeline", () => {
         .getAttribute("title"),
     ).toContain(" – ");
 
-    const widths: { scroll: number; client: number } = await page.evaluate(
-      () => {
-        return {
-          scroll: document.documentElement.scrollWidth,
-          client: document.documentElement.clientWidth,
-        };
-      },
-    );
-
-    expect(widths.scroll).toBeLessThanOrEqual(widths.client);
+    await expectNoSidewaysScroll(page);
     await screenshot(page, "monitor-phone-zoomed", false);
   });
 
@@ -1179,16 +1171,7 @@ test.describe("a monitor's Status Timeline", () => {
     await page.setViewportSize({ width: 390, height: 844 });
     await openMonitor(page);
 
-    const widths: { scroll: number; client: number } = await page.evaluate(
-      () => {
-        return {
-          scroll: document.documentElement.scrollWidth,
-          client: document.documentElement.clientWidth,
-        };
-      },
-    );
-
-    expect(widths.scroll).toBeLessThanOrEqual(widths.client);
+    await expectNoSidewaysScroll(page);
 
     const band: { x: number; width: number } = await boxOf(
       page.getByTestId("status-timeline-band"),
@@ -1734,16 +1717,7 @@ test.describe("every other status timeline page", () => {
       await page.setViewportSize({ width: 390, height: 844 });
       await openOtherPage(page, otherPage.page);
 
-      const widths: { scroll: number; client: number } = await page.evaluate(
-        () => {
-          return {
-            scroll: document.documentElement.scrollWidth,
-            client: document.documentElement.clientWidth,
-          };
-        },
-      );
-
-      expect(widths.scroll).toBeLessThanOrEqual(widths.client);
+      await expectNoSidewaysScroll(page);
 
       const band: { x: number; width: number } = await boxOf(
         page.getByTestId("status-timeline-band"),

@@ -82,6 +82,7 @@ const PRODUCTS_MENU_SPANISH: Array<[string, string]> = [
 // The products menu's folded sections the test below opens or looks for.
 const MENU_SECTIONS_SPANISH: Array<[string, string]> = [
   ["navbar.categories.observability", "Observabilidad"],
+  ["navbar.categories.security", "Seguridad"],
   ["navbar.categories.infrastructure", "Infraestructura"],
   ["navbar.categories.ai", "IA"],
 ];
@@ -265,10 +266,10 @@ describe("the products menu in Spanish", () => {
 
     /*
      * The menu opens on Essentials and folds the other sections to one line
-     * each. These products sit in two of them, named in Spanish as well:
-     * open those the way a user would.
+     * each. These products sit in three of them (Security Events in
+     * Security), named in Spanish as well: open those the way a user would.
      */
-    for (const section of ["Observabilidad", "Infraestructura"]) {
+    for (const section of ["Observabilidad", "Seguridad", "Infraestructura"]) {
       const toggle: HTMLElement = within(menu).getByRole("button", {
         name: section,
       });
@@ -278,6 +279,7 @@ describe("the products menu in Spanish", () => {
     expect(
       within(menu).queryByRole("button", { name: "Observability" }),
     ).toBeNull();
+    expect(within(menu).queryByRole("button", { name: "Security" })).toBeNull();
     expect(
       within(menu).queryByRole("button", { name: "Infrastructure" }),
     ).toBeNull();

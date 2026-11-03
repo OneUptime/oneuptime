@@ -7,6 +7,7 @@ import {
 } from "@playwright/test";
 import fs from "fs/promises";
 import path from "path";
+import { expectNoSidewaysScroll } from "../SuiteHelpers/PageFit";
 
 /*
  * Entity risk on the Security Operations fixture's synthetic month
@@ -224,16 +225,6 @@ async function screenshot(
     path: path.join(SCREENSHOTS, `${name}-synthetic.png`),
     fullPage: options.fullPage !== false,
     animations: "disabled",
-  });
-}
-
-// How far the page, or an element, scrolls sideways.
-async function pageOverflow(page: Page): Promise<number> {
-  return page.evaluate((): number => {
-    return (
-      document.documentElement.scrollWidth -
-      document.documentElement.clientWidth
-    );
   });
 }
 
@@ -692,7 +683,7 @@ test.describe("Entity Risk on a phone", () => {
         .locator("xpath=ancestor::dl[1]");
       expect(await scoreOf(each), listed).toBe(score);
     }
-    expect(await pageOverflow(page)).toBeLessThanOrEqual(1);
+    await expectNoSidewaysScroll(page, { tolerance: 1 });
     await screenshot(page, "entity-risk-phone-cards", { fullPage: false });
   });
 });
@@ -914,7 +905,7 @@ test.describe("an entity's page", () => {
       } else {
         expect(correlate.y).toBeGreaterThan(title.y);
       }
-      expect(await pageOverflow(page), `${width}`).toBeLessThanOrEqual(1);
+      await expectNoSidewaysScroll(page, { tolerance: 1, message: `${width}` });
     }
   });
 
@@ -1353,7 +1344,10 @@ test.describe("entity risk on a case", () => {
       await expect(
         row(SPRAY_IP).getByTestId("security-case-entity-risk-column"),
       ).toBeHidden();
-      expect(await pageOverflow(page), `at ${width}`).toBeLessThanOrEqual(1);
+      await expectNoSidewaysScroll(page, {
+        tolerance: 1,
+        message: `at ${width}`,
+      });
     }
   });
 
@@ -1514,10 +1508,10 @@ test.describe("the Entity Risk pages fit the screen", () => {
           await expect(ready(page), `${name} at ${width}`).toBeVisible({
             timeout: 30000,
           });
-          expect(
-            await pageOverflow(page),
-            `${name} at ${width} ${theme || "light"}`,
-          ).toBeLessThanOrEqual(1);
+          await expectNoSidewaysScroll(page, {
+            tolerance: 1,
+            message: `${name} at ${width} ${theme || "light"}`,
+          });
           if (width === 1280 || width === 390) {
             await screenshot(
               page,

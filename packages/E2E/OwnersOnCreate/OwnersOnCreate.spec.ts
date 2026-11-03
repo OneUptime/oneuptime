@@ -7,6 +7,8 @@ import {
 } from "@playwright/test";
 import fs from "fs";
 import path from "path";
+import { expectNoSidewaysScroll } from "../SuiteHelpers/PageFit";
+import { boxesInOneFrame } from "../SuiteHelpers/Frames";
 
 /*
  * "On Alert/Incident creation - I don't see a way to add the team of the
@@ -346,14 +348,6 @@ async function ruleRows(
   }
 
   return result;
-}
-
-async function expectNoSidewaysScroll(page: Page): Promise<void> {
-  expect(
-    await page.evaluate((): number => {
-      return document.documentElement.scrollWidth - window.innerWidth;
-    }),
-  ).toBeLessThanOrEqual(0);
 }
 
 // ---- Settings > Owner Rules -------------------------------------------------
@@ -1282,12 +1276,10 @@ test.describe("at a phone's width", () => {
 
     await expect(row).toBeVisible();
 
-    const name: { y: number; height: number } | null = await row
-      .getByTestId("owner-rule-preview-rule-name")
-      .boundingBox();
-    const owners: { y: number } | null = await row
-      .getByTestId("owner-rule-preview-owners")
-      .boundingBox();
+    const [name, owners] = await boxesInOneFrame([
+      row.getByTestId("owner-rule-preview-rule-name"),
+      row.getByTestId("owner-rule-preview-owners"),
+    ]);
 
     expect(name!.y + name!.height).toBeLessThanOrEqual(owners!.y + 1);
     await expectNoSidewaysScroll(page);

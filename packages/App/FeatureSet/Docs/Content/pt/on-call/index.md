@@ -88,7 +88,7 @@ Abra **Plantão** pelo menu **Produtos** na barra superior. Ele abre em **Polít
 | **Relatórios** | **Tempo de plantão do usuário**: quanto tempo cada pessoa ficou de plantão |
 | **Espaço de trabalho** | **Slack** e **Microsoft Teams**: regras que publicam eventos de plantão em um canal |
 | **Configurações** | **Campos personalizados**, **Regras de Rótulos** e **Regras de proprietário** |
-| **Desenvolvedores** | **Terraform**, **API** e **Assistentes de IA**: o plantão configurado por código |
+| **Desenvolvedores** | **Terraform**, **API**, **CLI** e **Assistentes de IA**: o plantão configurado por código |
 
 **Políticas**, **Agendamentos** e **Chamadas recebidas** ficam abertas; as outras seções começam recolhidas, e uma seção se abre sozinha quando você está em uma de suas páginas. **Espaço de trabalho** lista as ferramentas de chat que o projeto conectou, ou **Conectar Slack ou Teams** quando não há nenhuma.
 

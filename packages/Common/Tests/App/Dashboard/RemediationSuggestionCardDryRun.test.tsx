@@ -53,6 +53,7 @@ import AiResourceType from "../../../Types/ResourceAiAgent/AiResourceType";
 import RunbookStepType from "../../../Types/Runbook/RunbookStepType";
 import API from "../../../UI/Utils/API/API";
 import ModelAPI from "../../../UI/Utils/ModelAPI/ModelAPI";
+import { openRemediationFixes } from "./RemediationFixHarness";
 
 /*
  * The dry run of a fix's cloud changes on the Remediation card:
@@ -139,6 +140,8 @@ async function renderCard(
   render(
     <RemediationStep investigationStage="reported" incidentId={INCIDENT_ID} />,
   );
+  // Folded to its sentence: opened, as a reader does.
+  await openRemediationFixes();
   const command: HTMLElement = await screen.findByText(COMMAND);
   const commandRow: HTMLElement | null = command.closest("li");
 
@@ -491,8 +494,11 @@ describe("the Remediation card", () => {
         incidentId={INCIDENT_ID}
       />,
     );
+    // Opened, where a cloud change's Dry run sits beside Approve & Run.
+    await openRemediationFixes();
     await screen.findByText("docker restart web");
 
+    expect(screen.getByTestId("remediation-approve-button")).toBeVisible();
     expect(
       screen.queryByTestId("remediation-dry-run-button"),
     ).not.toBeInTheDocument();

@@ -2701,7 +2701,10 @@ describe("a runbook's own side menu", () => {
       { title: "Logs", items: ["Executions"] },
       { title: "Owners", items: ["Owners"] },
       { title: "Settings", items: ["Triggers", "Variables", "Settings"] },
-      { title: "Developer", items: ["Terraform", "API", "AI Assistants"] },
+      {
+        title: "Developer",
+        items: ["Terraform", "API", "CLI", "AI Assistants"],
+      },
       { title: "Advanced", items: ["Audit Logs", "Delete Runbook"] },
     ]);
   });

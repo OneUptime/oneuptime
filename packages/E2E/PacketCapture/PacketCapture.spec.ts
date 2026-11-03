@@ -1,6 +1,7 @@
 import { Download, expect, Locator, Page, test } from "@playwright/test";
 import fs from "fs";
 import { boxesInOneFrame, FrameBox } from "../SuiteHelpers/Frames";
+import { expectNoSidewaysScroll } from "../SuiteHelpers/PageFit";
 
 /*
  * Packet captures, end to end in a browser, against the fixture's in-page
@@ -788,20 +789,11 @@ test.describe("at phone width, in the dark and in Japanese", () => {
     await page.setViewportSize({ width: 390, height: 844 });
     await open(page);
 
-    const overflow: () => Promise<number> = async (): Promise<number> => {
-      return await page.evaluate(() => {
-        return (
-          document.documentElement.scrollWidth -
-          document.documentElement.clientWidth
-        );
-      });
-    };
-
-    expect(await overflow()).toBeLessThanOrEqual(0);
+    await expectNoSidewaysScroll(page);
 
     await openStartForm(page);
 
-    expect(await overflow()).toBeLessThanOrEqual(0);
+    await expectNoSidewaysScroll(page);
 
     // In one frame: the form has only just opened.
     const [host, port] = (await boxesInOneFrame([

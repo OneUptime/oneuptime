@@ -32,6 +32,12 @@ export function useDashboardNavigationItems(): DashboardNavigationItems {
 
   const essentialsCategory: string = t("navbar.categories.essentials");
   const observabilityCategory: string = t("navbar.categories.observability");
+  /*
+   * Finding threats and protecting sensitive data: Security Events (SIEM and
+   * SOAR) and Data Security (DSPM). Observability keeps what you watch your
+   * systems with.
+   */
+  const securityCategory: string = t("navbar.categories.security", "Security");
   const aiCategory: string = t("navbar.categories.ai", "AI");
   const codeCategory: string = t("navbar.categories.code", "Code");
   const resourcesCategory: string = t("navbar.categories.resources");
@@ -285,6 +291,25 @@ export function useDashboardNavigationItems(): DashboardNavigationItems {
       category: observabilityCategory,
     },
     {
+      title: t("navbar.items.topologyTitle"),
+      keywords: [
+        "service map",
+        "dependency map",
+        "dependencies",
+        "architecture",
+      ],
+      description: t("navbar.items.topologyDescription"),
+      route: RouteUtil.populateRouteParams(RouteMap[PageMap.TOPOLOGY] as Route),
+      activeRoute: RouteMap[PageMap.TOPOLOGY],
+      icon: IconProp.FlowDiagram,
+      iconColor: "indigo",
+      category: observabilityCategory,
+    },
+    /*
+     * Security - right after Observability, where both products sat before
+     * they had a category of their own, so they are found where they were.
+     */
+    {
       title: t("navbar.items.securityEventsTitle", "Security Events"),
       keywords: [
         "siem",
@@ -309,7 +334,7 @@ export function useDashboardNavigationItems(): DashboardNavigationItems {
       activeRoute: RouteMap[PageMap.SECURITY_EVENTS],
       icon: IconProp.ShieldExclamation,
       iconColor: "rose",
-      category: observabilityCategory,
+      category: securityCategory,
     },
     {
       title: t("navbar.items.dataSecurityTitle", "Data Security"),
@@ -336,22 +361,7 @@ export function useDashboardNavigationItems(): DashboardNavigationItems {
       activeRoute: RouteMap[PageMap.DATA_SECURITY],
       icon: IconProp.ShieldCheck,
       iconColor: "violet",
-      category: observabilityCategory,
-    },
-    {
-      title: t("navbar.items.topologyTitle"),
-      keywords: [
-        "service map",
-        "dependency map",
-        "dependencies",
-        "architecture",
-      ],
-      description: t("navbar.items.topologyDescription"),
-      route: RouteUtil.populateRouteParams(RouteMap[PageMap.TOPOLOGY] as Route),
-      activeRoute: RouteMap[PageMap.TOPOLOGY],
-      icon: IconProp.FlowDiagram,
-      iconColor: "indigo",
-      category: observabilityCategory,
+      category: securityCategory,
     },
     // AI
     {
@@ -964,8 +974,9 @@ export function useDashboardNavigationItems(): DashboardNavigationItems {
    * problem flows through (see the top of the list): the maintainer asked
    * to "always have Essentials expanded by default", in the same list as
    * the other categories. Folding them lasts until the menu closes. The
-   * rest - observability, AI, code, resources, every infrastructure
-   * platform, dashboards and automation, settings - are each folded to one
+   * rest - observability, security, AI, code, resources, every
+   * infrastructure platform, cloud, dashboards and automation, settings -
+   * are each folded to one
    * row that names what is inside, one click or a search away. The category
    * of the page the user is on opens by itself, and what someone opens or
    * folds among those is remembered on their browser.

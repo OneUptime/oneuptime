@@ -2,7 +2,7 @@ import BadDataException from "../../Types/Exception/BadDataException";
 import MonitorMetricType from "../../Types/Monitor/MonitorMetricType";
 import MonitorType from "../../Types/Monitor/MonitorType";
 import MonitorMetricTypeUtil from "./MonitorMetricType";
-import { translationKey } from "../../UI/Utils/TranslateTemplate";
+import { translationKey } from "../../Types/Translator";
 
 /*
  * The monitor overview groups the 35 monitor types into eight families that

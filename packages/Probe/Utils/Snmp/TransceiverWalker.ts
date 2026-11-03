@@ -41,6 +41,7 @@ import {
 } from "Common/Types/Monitor/SnmpMonitor/SnmpTransceiver";
 import TransceiverMibSourceUtil from "Common/Utils/NetworkDevice/TransceiverMibSourceUtil";
 import crypto from "crypto";
+import OldestKeyMap from "Common/Utils/OldestKeyMap";
 
 /*
  * Reads a device's transceivers during its poll, as cheaply as the data
@@ -162,7 +163,8 @@ interface CacheEntry {
  * by device count; a Map's insertion order doubles as the LRU order.
  */
 export class TransceiverStaticCache {
-  private readonly entries: Map<string, CacheEntry> = new Map();
+  private readonly entries: OldestKeyMap<string, CacheEntry> =
+    new OldestKeyMap();
   private readonly maxEntries: number;
   private readonly ttlMs: number;
 
@@ -224,7 +226,7 @@ export class TransceiverStaticCache {
     });
 
     while (this.entries.size > this.maxEntries) {
-      const oldest: string | undefined = this.entries.keys().next().value;
+      const oldest: string | undefined = this.entries.oldestKey();
       if (oldest === undefined) {
         break;
       }

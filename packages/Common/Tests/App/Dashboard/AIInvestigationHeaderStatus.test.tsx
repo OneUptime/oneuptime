@@ -268,6 +268,14 @@ describe("AIInvestigationHeaderStatus completed summary", () => {
       eyebrow.compareDocumentPosition(summary) &
         Node.DOCUMENT_POSITION_FOLLOWING,
     ).toBeTruthy();
+    /*
+     * #5413's follow-up: OneUptime AI's answer reads in its own direction,
+     * as the AI card's TL;DR does - an English answer on a Persian page put
+     * its full stop at the start of its line.
+     */
+    expect(summary).toHaveAttribute("dir", "auto");
+    // Its heading is the page's own words: the page's direction.
+    expect(eyebrow).not.toHaveAttribute("dir");
   });
 
   test("is a band of the header, not a box: no frame, tint or shadow of its own, a Sparkles mark and no live animation", () => {

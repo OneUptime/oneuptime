@@ -8,6 +8,7 @@ import {
   RIGHT_TO_LEFT,
 } from "Common/Types/ReadingDirection";
 import { boxesInOneFrame, FrameBox } from "../SuiteHelpers/Frames";
+import { expectNoSidewaysScroll } from "../SuiteHelpers/PageFit";
 
 /*
  * AI rules - which new incidents (or alerts) OneUptime AI investigates, and
@@ -1945,10 +1946,7 @@ test.describe("people and screens", () => {
     const dialog: Locator = await openFixStep(page, card);
     await openMoreFields(dialog);
 
-    const width: number = await page.evaluate(() => {
-      return document.documentElement.scrollWidth;
-    });
-    expect(width).toBeLessThanOrEqual(390);
+    await expectNoSidewaysScroll(page);
 
     await expect(runnerPicker(dialog)).toBeVisible();
     await screenshot(page, "phone");
@@ -2483,11 +2481,7 @@ test.describe("code repositories and pull requests", () => {
       });
     expect(longRow.nameWidth).toBeGreaterThanOrEqual(longRow.rowWidth / 3);
 
-    expect(
-      await page.evaluate(() => {
-        return document.documentElement.scrollWidth;
-      }),
-    ).toBeLessThanOrEqual(390);
+    await expectNoSidewaysScroll(page);
     await screenshot(page, "code-repositories-menu-phone");
   });
 
@@ -2734,10 +2728,7 @@ test.describe("the AI card and the rule dialog, at 1280px and 390px, light and d
           pullRequestSwitch(dialog, FIX_PULL_REQUESTS),
         ).toBeVisible();
 
-        const overflow: number = await page.evaluate(() => {
-          return document.documentElement.scrollWidth;
-        });
-        expect(overflow).toBeLessThanOrEqual(width);
+        await expectNoSidewaysScroll(page);
         await dialogScreenshot(
           dialog,
           pullRequestSwitch(dialog, TELEMETRY_PULL_REQUESTS),
@@ -2748,11 +2739,7 @@ test.describe("the AI card and the rule dialog, at 1280px and 390px, light and d
         await fixChoice(dialog, "Don't fix").click();
         await expect(repositoriesPicker(dialog)).toBeVisible();
         await expect(runbooksPicker(dialog)).toHaveCount(0);
-        expect(
-          await page.evaluate(() => {
-            return document.documentElement.scrollWidth;
-          }),
-        ).toBeLessThanOrEqual(width);
+        await expectNoSidewaysScroll(page);
         await dialogScreenshot(
           dialog,
           dialog.getByTestId("rule-code-repositories-hint"),
@@ -3228,11 +3215,7 @@ test.describe("the LLM Provider field, at 1280px and 390px, light and dark", () 
         await providerBox(dialog).click();
         await expect(page.getByRole("option")).toHaveCount(3);
 
-        expect(
-          await page.evaluate(() => {
-            return document.documentElement.scrollWidth;
-          }),
-        ).toBeLessThanOrEqual(width);
+        await expectNoSidewaysScroll(page);
         // The box fits its dialog (both read in one frame).
         const [dialogBox, pickerBox] = (await boxesInOneFrame([
           dialog,
@@ -3251,11 +3234,7 @@ test.describe("the LLM Provider field, at 1280px and 390px, light and dark", () 
         // A rule that doesn't fix keeps its provider, for its investigations.
         await fixChoice(dialog, "Don't fix").click();
         await expect(providerBox(dialog)).toBeVisible();
-        expect(
-          await page.evaluate(() => {
-            return document.documentElement.scrollWidth;
-          }),
-        ).toBeLessThanOrEqual(width);
+        await expectNoSidewaysScroll(page);
         await dialogScreenshot(
           dialog,
           dialog.getByTestId("rule-llm-provider-hint"),
@@ -3556,11 +3535,7 @@ test.describe("a rule's AI context", () => {
           "of 5,000 characters",
         );
 
-        expect(
-          await page.evaluate(() => {
-            return document.documentElement.scrollWidth;
-          }),
-        ).toBeLessThanOrEqual(width);
+        await expectNoSidewaysScroll(page);
 
         const dialogBox: { x: number; width: number } =
           (await dialog.boundingBox())!;
@@ -3730,11 +3705,7 @@ test.describe("the Runner field on the Global Runner, at 1280px and 390px, light
           );
 
           // Nothing runs off the screen, and the field and its line fit the dialog.
-          expect(
-            await page.evaluate(() => {
-              return document.documentElement.scrollWidth;
-            }),
-          ).toBeLessThanOrEqual(width);
+          await expectNoSidewaysScroll(page);
           const [dialogBox, runnerBox, lineBox] = (await boxesInOneFrame([
             dialog,
             runnerPicker(dialog),
@@ -3914,11 +3885,7 @@ test.describe("the Runner field on the Global Runner, in German and Persian", ()
       );
       await page.keyboard.press("Escape");
 
-      expect(
-        await page.evaluate(() => {
-          return document.documentElement.scrollWidth;
-        }),
-      ).toBeLessThanOrEqual(1280);
+      await expectNoSidewaysScroll(page);
     });
   }
 });

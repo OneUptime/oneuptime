@@ -19,6 +19,7 @@ import { getCodeRepositoryRunnerChoice } from "./CodeRepositoryRunnerChoice";
 import {
   CODE_HIDDEN_RUNNER_LABEL,
   GLOBAL_RUNNER_CHOICE_LABEL,
+  RUNNER_TAKES_NO_CODE_FIXES_LABEL,
   RunnerPickerModel,
   RunnerPickerOptionKind,
   RunnerPickerOutcome,
@@ -371,7 +372,9 @@ function getSwitchItem(data: {
  *   - one of the project's own Runners: its name ("Runner:
  *     prod-eu-west-1"), and how it is doing when it is not connected
  *     ("Runner: office-runner · Disconnected"), as an auto remediation
- *     rule's folded Runner says it;
+ *     rule's folded Runner says it - or, connected, when its host turned
+ *     AI code fixes off ("Runner: prod-eu-west-1 · Takes no AI code
+ *     fixes"): the repository gets none of its work done there;
  *   - the Global Runner, picked beside the project's default: "Runner:
  *     Global Runner";
  *   - one the reader does not have access to: says so, never its id;
@@ -426,7 +429,9 @@ export function getRepositoryRunnerItem(
     const status: string | undefined =
       liveStatus && liveStatus !== RunnerLiveStatus.Connected
         ? translator.translateText(getRunnerLiveStatusLabel(liveStatus))
-        : undefined;
+        : model.selected.takesNoCodeFixes
+          ? translator.translateText(RUNNER_TAKES_NO_CODE_FIXES_LABEL)
+          : undefined;
 
     return {
       ...unset,

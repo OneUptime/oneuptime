@@ -327,7 +327,7 @@ Une exécution dont le heartbeat est silencieux depuis plus de 12 minutes est mi
 :::
 
 :::details Aucun Runner ne prend la tâche
-Une tâche qui attend plus de 30 minutes alors que le Runner qui doit la prendre n'est pas connecté - celui que son dépôt choisit, le Runner par défaut du projet pour un dépôt qui n'en choisit aucun, ou un Runner global - échoue, avec un message qui dit lequel, si bien qu'elle n'apparaît jamais en cours indéfiniment. Quand un Runner est en ligne mais occupé, les tâches en file attendent leur tour. Un Runner antérieur à Code ne reçoit jamais de demande de Code : mettez à jour un Runner que vous faites tourner vous-même en même temps que le serveur.
+Une tâche qui attend plus de 30 minutes alors que le Runner qui doit la prendre n'est pas connecté - celui que son dépôt choisit, le Runner par défaut du projet pour un dépôt qui n'en choisit aucun, ou un Runner global - échoue, avec un message qui dit lequel, si bien qu'elle n'apparaît jamais en cours indéfiniment. Un Runner qui ne prend aucune correction de code compte comme non connecté : un Runner démarré avec `ONEUPTIME_RUNNER_ENABLE_CODE_FIXES=false`, ou un Runner global antérieur à 14.0.94. Code le signale avant que vous ne demandiez une tâche. Quand un Runner est en ligne mais occupé, les tâches en file attendent leur tour. Un Runner antérieur à Code ne reçoit jamais de demande de Code : mettez à jour un Runner que vous faites tourner vous-même en même temps que le serveur.
 :::
 
 ## Confidentialité

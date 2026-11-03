@@ -136,7 +136,7 @@ While you work it, write down what you learn as **Private Notes**, fill in its *
 | **Team** | **On-Call Executions** and **Owners**: who was paged for the alert, and who owns it |
 | **Notifications**          | **Notification Logs** and **AI Logs**: every message sent about the alert, and everything AI did for it          |
 | **Notes**   | **Private Notes**                                                                                               |
-| **Developer**     | **Terraform**, **API** and **AI Assistants**: the alert managed from code                                       |
+| **Developer**     | **Terraform**, **API**, **CLI** and **AI Assistants**: the alert managed from code                              |
 | **Advanced** | **Custom Fields**, **Settings**, **Audit Logs**, **Delete Alert** |
 
 **Overview**, **Investigation**, **Team** and **Notes** are open; the other sections start folded until you click them.
