@@ -206,6 +206,11 @@ import DataSecurityResidencyRule from "./DataSecurityResidencyRule";
 import DataSecuritySetting from "./DataSecuritySetting";
 import DataAsset from "./DataAsset";
 import DataAssetFeed from "./DataAssetFeed";
+import DataAssetUsage from "./DataAssetUsage";
+import DataCheck from "./DataCheck";
+import DataPipeline from "./DataPipeline";
+import DataPipelineRun from "./DataPipelineRun";
+import DataAssetLineage from "./DataAssetLineage";
 import SecurityProtectedEntity from "./SecurityProtectedEntity";
 import SecurityEntityRisk from "./SecurityEntityRisk";
 import SecurityEntityCriticality from "./SecurityEntityCriticality";
@@ -472,6 +477,7 @@ import AlertEpisodeInternalNote from "./AlertEpisodeInternalNote";
 import AlertEpisodeFeed from "./AlertEpisodeFeed";
 import AlertGroupingRule from "./AlertGroupingRule";
 import AlertOnCallRule from "./AlertOnCallRule";
+import AlertIncidentRule from "./AlertIncidentRule";
 import AlertOwnerRule from "./AlertOwnerRule";
 import AlertPrivacyRule from "./AlertPrivacyRule";
 import AlertLabelRule from "./AlertLabelRule";
@@ -675,6 +681,11 @@ const AllModelTypes: Array<{
   DataSecuritySetting,
   DataAsset,
   DataAssetFeed,
+  DataAssetUsage,
+  DataCheck,
+  DataPipeline,
+  DataPipelineRun,
+  DataAssetLineage,
   SecurityProtectedEntity,
   SecurityEntityRisk,
   SecurityEntityCriticality,
@@ -765,6 +776,7 @@ const AllModelTypes: Array<{
   AlertEpisodeFeed,
   AlertGroupingRule,
   AlertOnCallRule,
+  AlertIncidentRule,
   AlertOwnerRule,
   AlertPrivacyRule,
   AlertLabelRule,

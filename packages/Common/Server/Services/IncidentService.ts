@@ -183,6 +183,7 @@ import IncidentAlertService, {
 import {
   INCIDENT_ACKNOWLEDGE_ALERTS_TO_LINK_KEY,
   INCIDENT_ALERT_IDS_TO_LINK_KEY,
+  INCIDENT_DECLARED_BY_ALERT_INCIDENT_RULE_KEY,
 } from "../../Types/Incident/IncidentAlertLink";
 import OnCallNotRunOnCreate from "../Utils/OnCall/OnCallNotRunOnCreate";
 import StartingStageUtil, {
@@ -327,6 +328,12 @@ type IncidentCreateCarryForward =
        */
       acknowledgedAlertStateId: ObjectID | null;
       alertIdsToAcknowledge: Array<ObjectID>;
+      /*
+       * The alert incident rule that declared the incident from its alert,
+       * by name, for its "Declared from 1 alert" entry
+       * (INCIDENT_DECLARED_BY_ALERT_INCIDENT_RULE_KEY). Null otherwise.
+       */
+      declaredByAlertIncidentRuleName: string | null;
     })
   | null;
 
@@ -3348,6 +3355,10 @@ export class Service extends ProjectReferencesService<Model> {
       acknowledgedAlertStateId:
         alertsToAcknowledge?.acknowledgedAlertStateId || null,
       alertIdsToAcknowledge: alertsToAcknowledge?.alertIdsToAcknowledge || [],
+      declaredByAlertIncidentRuleName: this.getDeclaringAlertIncidentRuleName({
+        createBy: createBy,
+        alertIdsToLink: validatedAlertIds,
+      }),
     };
 
     /*
@@ -3664,6 +3675,8 @@ export class Service extends ProjectReferencesService<Model> {
               apiKeyActor: FeedApiKeyActorUtil.fromProps(
                 onCreate.createBy.props,
               ),
+              declaredByRuleName:
+                this.getAlertIncidentRuleNameDeclaredWith(onCreate),
             });
           }
         } catch (error) {
@@ -4124,6 +4137,43 @@ export class Service extends ProjectReferencesService<Model> {
     );
 
     return createdItem;
+  }
+
+  /*
+   * The name of the alert incident rule declaring the incident from its
+   * alert (INCIDENT_DECLARED_BY_ALERT_INCIDENT_RULE_KEY): read only off a
+   * root create that links alerts - OneUptime's own engine - so no API
+   * request can put a rule's name on an incident. Null otherwise, and for a
+   * name that is not text or is only spaces.
+   */
+  private getDeclaringAlertIncidentRuleName(data: {
+    createBy: CreateBy<Model>;
+    alertIdsToLink: Array<ObjectID>;
+  }): string | null {
+    if (!data.createBy.props.isRoot || data.alertIdsToLink.length === 0) {
+      return null;
+    }
+
+    const name: unknown =
+      data.createBy.miscDataProps?.[
+        INCIDENT_DECLARED_BY_ALERT_INCIDENT_RULE_KEY
+      ];
+
+    if (typeof name !== "string" || !name.trim()) {
+      return null;
+    }
+
+    return name.trim();
+  }
+
+  // The alert incident rule that declared the incident, by name, if one did.
+  private getAlertIncidentRuleNameDeclaredWith(
+    onCreate: OnCreate<Model>,
+  ): string | undefined {
+    const carryForward: IncidentCreateCarryForward =
+      (onCreate.carryForward as IncidentCreateCarryForward) || null;
+
+    return carryForward?.declaredByAlertIncidentRuleName || undefined;
   }
 
   // The validated alert ids an incident is being declared from, if any.

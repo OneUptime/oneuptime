@@ -64,6 +64,38 @@ function scratch() {
   return dir;
 }
 
+/*
+ * The system's own tools, less every one that copies images. A GitHub runner,
+ * like most machines, has a real docker in /usr/bin, and a PATH that ends in
+ * /usr/bin:/bin handed it to the script: "no tool can copy images" found one.
+ * Every other tool there is linked in, so the script runs as it would.
+ */
+const IMAGE_TOOLS = ["crane", "skopeo", "docker", "podman", "nerdctl"];
+let systemTools;
+
+function systemToolsWithoutImageTools() {
+  if (systemTools) {
+    return systemTools;
+  }
+
+  systemTools = path.join(scratch(), "system-bin");
+  fs.mkdirSync(systemTools);
+
+  for (const directory of ["/usr/bin", "/bin"]) {
+    for (const name of fs.readdirSync(directory)) {
+      const link = path.join(systemTools, name);
+
+      if (IMAGE_TOOLS.includes(name) || fs.existsSync(link)) {
+        continue;
+      }
+
+      fs.symlinkSync(path.join(directory, name), link);
+    }
+  }
+
+  return systemTools;
+}
+
 function writeExecutable(file, body) {
   fs.writeFileSync(file, `#!/usr/bin/env bash\n${body}\n`);
   fs.chmodSync(file, 0o755);
@@ -150,7 +182,7 @@ function run(env, args) {
     encoding: "utf8",
     env: {
       // Only the stand-ins and the system's own tools: never a real crane or docker.
-      PATH: `${path.join(env.dir, "bin")}:/usr/bin:/bin`,
+      PATH: `${path.join(env.dir, "bin")}:${systemToolsWithoutImageTools()}`,
       HOME: env.dir,
     },
   });
@@ -251,7 +283,10 @@ describe("save", () => {
 
     expect(result.status).toBe(0);
     expect(
-      fs.readFileSync(path.join(bundle, "images.txt"), "utf8").trim().split("\n"),
+      fs
+        .readFileSync(path.join(bundle, "images.txt"), "utf8")
+        .trim()
+        .split("\n"),
     ).toEqual([
       "images/docker.io_oneuptime_app_14.0.102.tar docker.io/oneuptime/app:14.0.102",
       "images/docker.io_oneuptime_probe_14.0.102.tar docker.io/oneuptime/probe:14.0.102",
@@ -260,10 +295,16 @@ describe("save", () => {
       "images/valkey_valkey_9.1-alpine.tar valkey/valkey:9.1-alpine",
     ]);
     for (const file of fs.readdirSync(path.join(bundle, "images"))) {
-      expect(fs.statSync(path.join(bundle, "images", file)).size).toBeGreaterThan(0);
+      expect(
+        fs.statSync(path.join(bundle, "images", file)).size,
+      ).toBeGreaterThan(0);
     }
-    expect(fs.existsSync(path.join(bundle, "chart", "oneuptime-14.0.102.tgz"))).toBe(true);
-    expect(fs.existsSync(path.join(bundle, "chart", "oneuptime-14.0.102.tgz.prov"))).toBe(true);
+    expect(
+      fs.existsSync(path.join(bundle, "chart", "oneuptime-14.0.102.tgz")),
+    ).toBe(true);
+    expect(
+      fs.existsSync(path.join(bundle, "chart", "oneuptime-14.0.102.tgz.prov")),
+    ).toBe(true);
     expect(fs.readFileSync(path.join(bundle, "bundle.env"), "utf8")).toBe(
       "VERSION=14.0.102\nEDITION=community\nPLATFORM=linux/amd64\nCHART=chart/oneuptime-14.0.102.tgz\n",
     );
@@ -291,7 +332,13 @@ describe("save", () => {
 
   test("pulls each image for the platform asked for (crane)", () => {
     const env = setUp(["crane"]);
-    const result = run(env, ["save", "--version", "14.0.102", "--platform", "linux/arm64"]);
+    const result = run(env, [
+      "save",
+      "--version",
+      "14.0.102",
+      "--platform",
+      "linux/arm64",
+    ]);
 
     expect(result.status).toBe(0);
     expect(callsOf(result, "crane")).toContain(
@@ -302,7 +349,13 @@ describe("save", () => {
 
   test("pulls and saves each image with docker, for the platform asked for", () => {
     const env = setUp(["docker"]);
-    const result = run(env, ["save", "--version", "14.0.102", "--output", "bundle"]);
+    const result = run(env, [
+      "save",
+      "--version",
+      "14.0.102",
+      "--output",
+      "bundle",
+    ]);
 
     expect(result.status).toBe(0);
     expect(callsOf(result, "docker")).toEqual(
@@ -315,7 +368,13 @@ describe("save", () => {
 
   test("copies each image with skopeo, naming the OS, the architecture and a variant", () => {
     const env = setUp(["skopeo"]);
-    const result = run(env, ["save", "--version", "14.0.102", "--platform", "linux/arm/v7"]);
+    const result = run(env, [
+      "save",
+      "--version",
+      "14.0.102",
+      "--platform",
+      "linux/arm/v7",
+    ]);
 
     expect(result.status).toBe(0);
     expect(callsOf(result, "skopeo")).toContain(
@@ -339,7 +398,9 @@ describe("save", () => {
 
     expect(result.status).not.toBe(0);
     expect(result.stderr).toContain("found none of crane, skopeo or docker");
-    expect(fs.existsSync(path.join(env.dir, "oneuptime-air-gap-14.0.102"))).toBe(false);
+    expect(
+      fs.existsSync(path.join(env.dir, "oneuptime-air-gap-14.0.102")),
+    ).toBe(false);
   });
 
   test("never writes over a bundle that is already there", () => {
@@ -347,7 +408,13 @@ describe("save", () => {
     fs.mkdirSync(path.join(env.dir, "bundle"));
     fs.writeFileSync(path.join(env.dir, "bundle", "keep.txt"), "keep");
 
-    const result = run(env, ["save", "--version", "14.0.102", "--output", "bundle"]);
+    const result = run(env, [
+      "save",
+      "--version",
+      "14.0.102",
+      "--output",
+      "bundle",
+    ]);
 
     expect(result.status).not.toBe(0);
     expect(result.stderr).toContain("already exists and is not empty");
@@ -358,7 +425,13 @@ describe("save", () => {
 describe("push", () => {
   function saved(tools) {
     const env = setUp(tools);
-    const save = run(env, ["save", "--version", "14.0.102", "--output", "bundle"]);
+    const save = run(env, [
+      "save",
+      "--version",
+      "14.0.102",
+      "--output",
+      "bundle",
+    ]);
     expect(save.status).toBe(0);
     fs.writeFileSync(env.log, "");
     return env;
@@ -386,14 +459,22 @@ describe("push", () => {
 
   test("prints the values that point the chart at the registry, and the images those values do not move", () => {
     const env = saved(["crane"]);
-    const result = run(env, ["push", "--bundle", "bundle", "--registry", "registry.example.com"]);
+    const result = run(env, [
+      "push",
+      "--bundle",
+      "bundle",
+      "--registry",
+      "registry.example.com",
+    ]);
 
     expect(result.stdout).toBe(
       'global:\n  imageRegistry: registry.example.com\nimage:\n  tag: "14.0.102"\n',
     );
     const moved = result.stderr.split("name a registry of their own")[1];
     expect(moved).toBeDefined();
-    expect(moved).toContain("registry.example.com/cloudnative-pg/postgresql:17");
+    expect(moved).toContain(
+      "registry.example.com/cloudnative-pg/postgresql:17",
+    );
     // Docker Hub's images are what global.imageRegistry moves: none is listed.
     expect(moved).not.toContain("registry.example.com/postgres:15");
     expect(moved).not.toContain("registry.example.com/oneuptime/app:14.0.102");
@@ -402,17 +483,37 @@ describe("push", () => {
   test("names the Enterprise Edition in the values for an enterprise bundle", () => {
     const env = setUp(["crane"]);
     expect(
-      run(env, ["save", "--version", "14.0.102", "--edition", "enterprise", "--output", "bundle"]).status,
+      run(env, [
+        "save",
+        "--version",
+        "14.0.102",
+        "--edition",
+        "enterprise",
+        "--output",
+        "bundle",
+      ]).status,
     ).toBe(0);
 
-    const result = run(env, ["push", "--bundle", "bundle", "--registry", "registry.example.com"]);
+    const result = run(env, [
+      "push",
+      "--bundle",
+      "bundle",
+      "--registry",
+      "registry.example.com",
+    ]);
 
     expect(result.stdout).toContain("  type: enterprise-edition\n");
   });
 
   test("loads, tags and pushes each image with docker", () => {
     const env = saved(["docker"]);
-    const result = run(env, ["push", "--bundle", "bundle", "--registry", "registry.example.com"]);
+    const result = run(env, [
+      "push",
+      "--bundle",
+      "bundle",
+      "--registry",
+      "registry.example.com",
+    ]);
 
     expect(result.status).toBe(0);
     expect(callsOf(result, "docker")).toEqual(
@@ -427,22 +528,50 @@ describe("push", () => {
   test("lets crane and skopeo reach a registry they do not trust only when asked", () => {
     const crane = saved(["crane"]);
     expect(
-      callsOf(run(crane, ["push", "--bundle", "bundle", "--registry", "registry.example.com", "--insecure"]), "crane")[0],
+      callsOf(
+        run(crane, [
+          "push",
+          "--bundle",
+          "bundle",
+          "--registry",
+          "registry.example.com",
+          "--insecure",
+        ]),
+        "crane",
+      )[0],
     ).toMatch(/^crane push --insecure /);
 
     const skopeo = saved(["skopeo"]);
     const pushed = callsOf(
-      run(skopeo, ["push", "--bundle", "bundle", "--registry", "registry.example.com", "--insecure"]),
+      run(skopeo, [
+        "push",
+        "--bundle",
+        "bundle",
+        "--registry",
+        "registry.example.com",
+        "--insecure",
+      ]),
       "skopeo",
     );
-    expect(pushed[0]).toMatch(/^skopeo copy --dest-tls-verify=false docker-archive:bundle\/images\//);
+    expect(pushed[0]).toMatch(
+      /^skopeo copy --dest-tls-verify=false docker-archive:bundle\/images\//,
+    );
   });
 
   test("pushes nothing when a file no longer matches its checksum", () => {
     const env = saved(["crane"]);
-    fs.appendFileSync(path.join(env.dir, "bundle", "images", "postgres_15.tar"), "changed");
+    fs.appendFileSync(
+      path.join(env.dir, "bundle", "images", "postgres_15.tar"),
+      "changed",
+    );
 
-    const result = run(env, ["push", "--bundle", "bundle", "--registry", "registry.example.com"]);
+    const result = run(env, [
+      "push",
+      "--bundle",
+      "bundle",
+      "--registry",
+      "registry.example.com",
+    ]);
 
     expect(result.status).not.toBe(0);
     expect(result.stderr).toContain("does not match SHA256SUMS");
@@ -453,7 +582,13 @@ describe("push", () => {
     const env = setUp(["crane"]);
     fs.mkdirSync(path.join(env.dir, "bundle"));
 
-    const result = run(env, ["push", "--bundle", "bundle", "--registry", "registry.example.com"]);
+    const result = run(env, [
+      "push",
+      "--bundle",
+      "bundle",
+      "--registry",
+      "registry.example.com",
+    ]);
 
     expect(result.status).not.toBe(0);
     expect(result.stderr).toContain("is not a folder save wrote");

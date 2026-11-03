@@ -99,6 +99,7 @@ const PRODUCTS: Array<Product> = [
     rulePages: [
       [PageMap.ALERTS_SETTINGS_GROUPING_RULES, "Grouping Rules"],
       [PageMap.ALERTS_SETTINGS_ON_CALL_RULES, "On-Call Rules"],
+      [PageMap.ALERTS_SETTINGS_INCIDENT_RULES, "Incident Rules"],
       [PageMap.ALERTS_SETTINGS_OWNER_RULES, "Owner Rules"],
       [PageMap.ALERTS_SETTINGS_RUNBOOK_RULES, "Runbook Rules"],
       [PageMap.ALERTS_SETTINGS_PRIVACY_RULES, "Privacy Rules"],

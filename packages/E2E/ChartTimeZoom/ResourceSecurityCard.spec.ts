@@ -562,3 +562,92 @@ test.describe("a Podman host's Security card", () => {
     );
   });
 });
+
+/*
+ * A Docker host's and a Podman host's Overview also read their containers
+ * for Needs attention (ContainerHostReadings): the inventory, and each
+ * container's restarts summed over the Container Restart Loop alert's
+ * window. The fixture answers both as a calm host - its containers running,
+ * none restarted - so the afterEach finds nothing it does not model, and a
+ * page that starts reading more lands there.
+ */
+test.describe("a container host's Overview reads its containers", () => {
+  for (const host of [
+    {
+      name: "Docker",
+      path: DOCKER_HOST_PATH,
+      inventory: "DockerResource",
+      hostColumn: "dockerHostId",
+      hostId: DOCKER_HOST_ID,
+    },
+    {
+      name: "Podman",
+      path: PODMAN_HOST_PATH,
+      inventory: "PodmanResource",
+      hostColumn: "podmanHostId",
+      hostId: PODMAN_HOST_ID,
+    },
+  ]) {
+    test(`a ${host.name} host: its inventory of containers, and each one's restarts`, async ({
+      page,
+    }: {
+      page: Page;
+    }) => {
+      await open(page, host.path);
+      await securityRead(page);
+
+      await expect
+        .poll(
+          async (): Promise<{
+            inventory: boolean;
+            restarts: number | null;
+          }> => {
+            const requests: Array<Record<string, unknown>> =
+              await page.evaluate((): Array<Record<string, unknown>> => {
+                const fixture:
+                  | { requests?: Array<Record<string, unknown>> }
+                  | undefined = (
+                  window as unknown as {
+                    __chartTimeZoomFixture?: {
+                      requests?: Array<Record<string, unknown>>;
+                    };
+                  }
+                ).__chartTimeZoomFixture;
+                return JSON.parse(JSON.stringify(fixture?.requests || []));
+              });
+            const inventory: boolean = requests.some(
+              (request: Record<string, unknown>): boolean => {
+                const query: Record<string, unknown> =
+                  (request["query"] as Record<string, unknown>) || {};
+                const hostColumn: Record<string, unknown> =
+                  (query[host.hostColumn] as Record<string, unknown>) || {};
+                return (
+                  request["kind"] === "getList" &&
+                  request["modelName"] === host.inventory &&
+                  query["kind"] === "Container" &&
+                  hostColumn["value"] === host.hostId
+                );
+              },
+            );
+            const restarts: Record<string, unknown> | undefined = requests.find(
+              (request: Record<string, unknown>): boolean => {
+                return (
+                  request["kind"] === "aggregate" &&
+                  request["metricName"] === "container.restarts.increase"
+                );
+              },
+            );
+            return {
+              inventory: inventory,
+              // One total a container: two containers on each host.
+              restarts: restarts
+                ? (restarts["rows"] as number | undefined) ?? null
+                : null,
+            };
+          },
+          { timeout: 30000 },
+        )
+        .toEqual({ inventory: true, restarts: 2 });
+    });
+  }
+});

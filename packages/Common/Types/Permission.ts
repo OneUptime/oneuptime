@@ -2051,6 +2051,12 @@ enum Permission {
   EditAlertOnCallRule = "EditAlertOnCallRule",
   ReadAlertOnCallRule = "ReadAlertOnCallRule",
 
+  // Alert Incident Rule Permissions
+  CreateAlertIncidentRule = "CreateAlertIncidentRule",
+  DeleteAlertIncidentRule = "DeleteAlertIncidentRule",
+  EditAlertIncidentRule = "EditAlertIncidentRule",
+  ReadAlertIncidentRule = "ReadAlertIncidentRule",
+
   // Alert Owner Rule Permissions
   CreateAlertOwnerRule = "CreateAlertOwnerRule",
   DeleteAlertOwnerRule = "DeleteAlertOwnerRule",
@@ -16823,6 +16829,48 @@ export class PermissionHelper {
         title: "Read Alert On-Call Rule",
         description:
           "This permission can read Alert On-Call Rules of this project.",
+        isAssignableToTenant: true,
+        isAccessControlPermission: false,
+        isRolePermission: false,
+        group: PermissionGroup.Alert,
+      },
+
+      // Alert Incident Rule Permissions
+      {
+        permission: Permission.CreateAlertIncidentRule,
+        title: "Create Alert Incident Rule",
+        description:
+          "This permission can create Alert Incident Rules in this project.",
+        isAssignableToTenant: true,
+        isAccessControlPermission: false,
+        isRolePermission: false,
+        group: PermissionGroup.Alert,
+      },
+      {
+        permission: Permission.DeleteAlertIncidentRule,
+        title: "Delete Alert Incident Rule",
+        description:
+          "This permission can delete Alert Incident Rules of this project.",
+        isAssignableToTenant: true,
+        isAccessControlPermission: false,
+        isRolePermission: false,
+        group: PermissionGroup.Alert,
+      },
+      {
+        permission: Permission.EditAlertIncidentRule,
+        title: "Edit Alert Incident Rule",
+        description:
+          "This permission can edit Alert Incident Rules of this project.",
+        isAssignableToTenant: true,
+        isAccessControlPermission: false,
+        isRolePermission: false,
+        group: PermissionGroup.Alert,
+      },
+      {
+        permission: Permission.ReadAlertIncidentRule,
+        title: "Read Alert Incident Rule",
+        description:
+          "This permission can read Alert Incident Rules of this project.",
         isAssignableToTenant: true,
         isAccessControlPermission: false,
         isRolePermission: false,

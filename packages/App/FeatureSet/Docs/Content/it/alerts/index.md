@@ -59,7 +59,7 @@ Aprite **Avvisi** dal menu **Prodotti** nella barra superiore. L'elenco degli av
 | **Episodi** | **Tutti gli episodi** e **Episodi attivi**: avvisi correlati, raggruppati in un unico problema su cui lavorare. |
 | **IA**             | **Informazioni**, **Registri** e **Impostazioni**: che cosa OneUptime AI ha imparato dai vostri avvisi, tutto ciò che ha fatto e che cosa può fare. |
 | **Area di lavoro** | **Slack** e **Microsoft Teams**, a seconda di ciò che il progetto ha collegato, o **Collega Slack o Teams** quando non ne ha nessuno. |
-| **Regole**         | **Regole di raggruppamento**, **Regole di reperibilità**, **Regole del proprietario**, **Regole di runbook**, **Regole di privacy**, **Regole etichette**, **Regole dei promemoria**. |
+| **Regole**         | **Regole di raggruppamento**, **Regole di reperibilità**, **Regole degli incidenti**, **Regole del proprietario**, **Regole di runbook**, **Regole di privacy**, **Regole etichette**, **Regole dei promemoria**. |
 | **Impostazioni**   | **Stato avviso**, **Gravità avviso**, **Modelli di note**, **Campi personalizzati**, **Misurazioni**, **Appartenenza agli episodi**, **Numerazione**. |
 
 **Avvisi** ed **Episodi** sono aperte; **IA**, **Area di lavoro**, **Regole**, **Impostazioni** e **Sviluppatori** partono compresse, e una sezione si apre da sola quando siete su una delle sue pagine. La configurazione degli avvisi sta qui, non nelle **Impostazioni del progetto**.
@@ -99,7 +99,7 @@ Nel momento in cui un avviso viene creato, OneUptime esegue questi passaggi, in 
 3. **Il feed e i vostri strumenti di chat lo vengono a sapere.** Una voce **Avviso creato** viene scritta in **Avviso Feed**, e i canali indicati dalle vostre regole di Slack e Microsoft Teams vengono informati; una regola può creare un canale per l'avviso.
 4. **Vengono aggiunti proprietari ed etichette**: quelli indicati dai criteri del monitor o dalla richiesta, poi quelli delle regole del proprietario e delle etichette che corrispondono.
 5. **Le regole di reperibilità aggiungono le loro policy**, poi le regole di runbook avviano i runbook corrispondenti.
-6. **Le policy di reperibilità vengono eseguite.** Ogni policy dell'avviso chiama le sue persone in parallelo; se una fallisce, le altre non si fermano.
+6. **Le policy di reperibilità vengono eseguite.** Ogni policy dell'avviso chiama le sue persone in parallelo; se una fallisce, le altre non si fermano. Poi la prima regola degli incidenti che corrisponde dichiara un incidente dall'avviso, subito o allo scadere della sua attesa.
 7. **Le regole di raggruppamento lo mettono in un episodio**, quando una corrisponde. Vedere [Episodi di avvisi e regole di raggruppamento](/docs/alerts/episodes).
 8. **I promemoria vengono pianificati**, quando corrisponde una regola di promemoria, e **OneUptime AI** indaga sull'avviso quando **Indaga sui nuovi avvisi** è attivo in **Avvisi → IA → Impostazioni**, e lo corregge quando **Correggi automaticamente i nuovi avvisi** è attivo. Vedere [AI SRE](/docs/ai/ai-sre).
 
@@ -110,7 +110,7 @@ Un job in background informa i proprietari dell'avviso entro un minuto, e il tri
 Un avviso che parte da uno stato successivo registra un problema di cui qualcuno si sta già occupando, quindi non viene trattato come una nuova emergenza:
 
 - **Nel vostro stato riconosciuto o oltre**, non viene eseguita nessuna policy di reperibilità. L'avviso conserva le sue policy, e il suo feed spiega in una riga perché nessuno è stato chiamato. Può unirsi a un episodio aperto, ma non ne apre mai uno, perché chiamerebbe tramite le policy dell'episodio.
-- **Nel vostro stato risolto o oltre**, l'avviso è concluso: non viene raggruppato in un episodio, nessun runbook né rimedio automatico agisce su di esso, OneUptime AI non indaga su di esso e non viene creato alcun canale Slack o Microsoft Teams per esso.
+- **Nel vostro stato risolto o oltre**, l'avviso è concluso: non viene raggruppato in un episodio, nessun runbook, rimedio automatico o regola degli incidenti agisce su di esso, OneUptime AI non indaga su di esso e non viene creato alcun canale Slack o Microsoft Teams per esso.
 
 Le sue regole, i suoi proprietari, il suo feed e il suo primo stato avvengono comunque in entrambi i casi. Gli incidenti seguono la stessa regola: vedere [Dichiarato già riconosciuto o risolto](/docs/incidents/declaring-incidents#dichiarato-già-riconosciuto-o-risolto).
 

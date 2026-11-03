@@ -106,6 +106,7 @@ import OnCallDutyPolicy from "../../Models/DatabaseModels/OnCallDutyPolicy";
 import AlertGroupingEngineService from "./AlertGroupingEngineService";
 import AlertLabelRuleEngineService from "./AlertLabelRuleEngineService";
 import AlertOnCallRuleEngineService from "./AlertOnCallRuleEngineService";
+import AlertIncidentRuleEngineService from "./AlertIncidentRuleEngineService";
 import WaitingRunsOnRecordChange from "../Utils/OnCall/WaitingRunsOnRecordChange";
 import { OnCallRulePagingHold } from "../Utils/OnCall/OnCallRulePagingHold";
 import AiFirstResponder from "../Utils/AI/FirstResponder/AiFirstResponder";
@@ -1373,6 +1374,32 @@ export class Service extends ProjectReferencesService<Model> {
           }
         }
         return Promise.resolve();
+      })
+      .then(async () => {
+        /*
+         * Alert incident rules: the first that matches declares an incident
+         * from the alert, now or once its wait is up
+         * (AlertIncidentRuleEngineService). After the alert's own rules, so
+         * they match - and the incident takes - its labels and privacy as
+         * they end up, and after its on-call policies, so declaring never
+         * holds up the alert's own pages. None for an alert created
+         * resolved: it is over.
+         */
+        if (!isOngoing) {
+          return;
+        }
+
+        try {
+          await AlertIncidentRuleEngineService.applyRulesToAlert(createdItem);
+        } catch (error) {
+          logger.error(
+            `Apply alert incident rules failed in AlertService.onCreateSuccess: ${error}`,
+            {
+              projectId: createdItem.projectId?.toString(),
+              alertId: createdItem.id?.toString(),
+            } as LogAttributes,
+          );
+        }
       })
       .then(async () => {
         /*

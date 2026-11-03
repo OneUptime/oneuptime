@@ -18,6 +18,7 @@ import {
   MAX_COLUMNS_PER_COLLECTION,
   MAX_TABLES_PER_COLLECTION,
 } from "./TableHealthCollector";
+import { PlannedDataCheck } from "./DataCheckResults";
 
 /*
  * HANDING A PROBE THE STORES WHOSE TABLES IT COLLECTS, EACH TO ONE POLL.
@@ -116,6 +117,7 @@ export async function claimDueTableHealthStoresForProbe(data: {
 // The work of one claimed store, as the probe is handed it; null when no probe could do it.
 export function buildProbeCollectWork(
   store: DataStore,
+  checks: Array<PlannedDataCheck> = [],
 ): DataObservabilityProbeStoreWork | null {
   const engine: ReturnType<typeof getDatabaseEngineOfKind> =
     getDatabaseEngineOfKind(store.kind);
@@ -139,5 +141,6 @@ export function buildProbeCollectWork(
         return typeof exclusion === "string";
       },
     ),
+    checks,
   };
 }

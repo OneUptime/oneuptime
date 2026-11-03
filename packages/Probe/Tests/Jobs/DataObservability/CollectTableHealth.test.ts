@@ -21,6 +21,7 @@ import {
 } from "../../../Jobs/DataObservability/CollectTableHealth";
 import { PROBE_CAPABILITIES } from "../../../Utils/ProbeAPIRequest";
 import ProbeCapability from "Common/Types/Probe/ProbeCapability";
+import { DataCheckType } from "Common/Types/DataObservability/DataCheckType";
 
 /*
  * THE PROBE COLLECTS A STORE WITHOUT EVER SENDING ITS CONNECTION STRING.
@@ -109,9 +110,37 @@ describe("collectStore", () => {
           engine: "postgresql",
           connectionString: "postgres://reader:pw@db:5432/orders",
         },
-        options: { maxTables: 100, maxColumns: 1000, exclusions: ["audit"] },
+        options: {
+          maxTables: 100,
+          maxColumns: 1000,
+          exclusions: ["audit"],
+          checks: [],
+        },
       },
     ]);
+  });
+
+  test("the store's due checks go to the collector with its catalog read", async () => {
+    const check: {
+      checkId: string;
+      type: DataCheckType;
+      isSegmented: boolean;
+      sql: string;
+      params: Array<string>;
+    } = {
+      checkId: "cccccccc-cccc-4ccc-8ccc-cccccccccccc",
+      type: DataCheckType.RowCount,
+      isSegmented: false,
+      sql: 'SELECT COUNT(*) AS value FROM "public"."orders"',
+      params: [],
+    };
+    const deps: ReturnType<typeof dependencies> = dependencies({
+      environment: { ORDERS_DB_URL: "postgres://reader:pw@db:5432/orders" },
+    });
+
+    await collectStore({ ...WORK, checks: [check] }, deps);
+
+    expect(deps.calls[0]?.options.checks).toEqual([check]);
   });
 
   test("a variable the probe does not have is a report of the error", async () => {

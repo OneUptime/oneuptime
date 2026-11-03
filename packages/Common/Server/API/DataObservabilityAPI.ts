@@ -41,6 +41,9 @@ import DataStoreService from "../Services/DataStoreService";
 import ProbeService from "../Services/ProbeService";
 import QueryHelper from "../Types/Database/QueryHelper";
 import { queueTableHealthCollection } from "../Utils/DataObservability/DataObservabilityJobs";
+import DataCheckAlerts from "../Utils/DataObservability/DataCheckAlerts";
+import DataCheck from "../../Models/DatabaseModels/DataCheck";
+import DataCheckService from "../Services/DataCheckService";
 import {
   isValidProbeConnectionVariable,
   PROBE_SCANNABLE_KINDS,
@@ -60,6 +63,9 @@ import CommonAPI from "./CommonAPI";
  *  - the Overview's figures and the watched stores with how their last
  *    collection went, for anyone who may read data assets;
  *  - Collect Now on a store, for anyone who may edit data assets;
+ *  - a data check's alert monitor kept in step with it, and Run Now on a
+ *    check, for the same people - the monitor made with their own
+ *    permissions;
  *  - Connect a database, for those who may create data assets.
  *
  * A data store is Data Security's record, readable by the Security tiers
@@ -167,6 +173,68 @@ export default class DataObservabilityAPI extends BaseAPI<
             projectId,
             dataStoreId: store.id!,
           });
+        }
+
+        return {};
+      },
+    );
+
+    this.post(
+      DATA_OBSERVABILITY_API_ROUTES.checkAlert(":id"),
+      OPERATE_PERMISSIONS,
+      async (
+        projectId: ObjectID,
+        req: ExpressRequest,
+        props: DatabaseCommonInteractionProps,
+      ) => {
+        return (await DataCheckAlerts.sync({
+          projectId,
+          checkId: DataObservabilityAPI.readId(req),
+          props,
+        })) as unknown as JSONObject;
+      },
+    );
+
+    this.post(
+      DATA_OBSERVABILITY_API_ROUTES.checkRunNow(":id"),
+      OPERATE_PERMISSIONS,
+      async (projectId: ObjectID, req: ExpressRequest) => {
+        const check: DataCheck | null = await DataCheckService.findOneBy({
+          query: { _id: DataObservabilityAPI.readId(req), projectId },
+          select: { _id: true, dataStoreId: true },
+          props: { isRoot: true },
+        });
+
+        if (!check?.id || !check.dataStoreId) {
+          throw new BadDataException("Data check not found.");
+        }
+
+        const now: Date = OneUptimeDate.getCurrentDate();
+
+        await DataCheckService.updateColumnsByIdWithoutHooks({
+          id: check.id,
+          data: { nextRunAt: now } as never,
+        });
+
+        const store: DataStore | null = await DataStoreService.findOneBy({
+          query: { _id: check.dataStoreId, projectId },
+          select: { _id: true, scanProbeId: true },
+          props: { isRoot: true },
+        });
+
+        if (store?.id) {
+          await DataStoreService.updateColumnsByIdWithoutHooks({
+            id: store.id,
+            data: { nextTableHealthCollectionAt: now } as never,
+          });
+
+          // A probe's store is collected at its probe's next poll.
+          if (!store.scanProbeId) {
+            await queueTableHealthCollection({
+              projectId,
+              dataStoreId: store.id,
+            });
+          }
         }
 
         return {};
@@ -528,6 +596,16 @@ export default class DataObservabilityAPI extends BaseAPI<
         }
       },
     );
+  }
+
+  private static readId(req: ExpressRequest): ObjectID {
+    const id: string = String(req.params["id"] || "");
+
+    if (!ObjectID.isValidUUID(id)) {
+      throw new BadDataException("Not found.");
+    }
+
+    return new ObjectID(id);
   }
 
   private static async readStore(

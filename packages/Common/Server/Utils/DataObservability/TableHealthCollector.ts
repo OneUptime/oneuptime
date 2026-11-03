@@ -22,6 +22,13 @@ import {
   sanitizeErrorMessage,
   STATEMENT_TIMEOUT_IN_MS,
 } from "../DataSecurity/Content/DatabaseSampler";
+import { readConnectionTarget, TableHealthTarget } from "./TableHealthTarget";
+import {
+  DataCheckRunResult,
+  MAX_CHECK_ERROR_LENGTH,
+  PlannedDataCheck,
+  readCheckRows,
+} from "./DataCheckResults";
 
 /*
  * EVERY TABLE OF A DATABASE, FROM ITS CATALOG, WITHOUT READING A ROW.
@@ -98,6 +105,10 @@ export interface TableHealthSnapshot {
   // False when the table list was cut at its limit, so absence proves nothing.
   isComplete: boolean;
   warnings: Array<string>;
+  // The database read: its name, host and port, from the connection string. Never a credential.
+  target?: TableHealthTarget | null | undefined;
+  // What each due data check read, or why it could not run.
+  checkResults?: Array<DataCheckRunResult> | undefined;
 }
 
 export interface TableHealthCollectOptions {
@@ -105,6 +116,8 @@ export interface TableHealthCollectOptions {
   maxColumns: number;
   // "schema", "schema.table" or "table": the store's scan exclusions.
   exclusions: Array<string>;
+  // The store's data checks that are due, run after the catalog in the same session.
+  checks?: Array<PlannedDataCheck> | undefined;
 }
 
 export const DEFAULT_COLLECT_OPTIONS: TableHealthCollectOptions = {
@@ -138,6 +151,11 @@ interface CatalogRead {
 interface CatalogSession {
   readonly engine: DatabaseEngine;
   read(options: TableHealthCollectOptions): Promise<CatalogRead>;
+  // One data check's aggregate, read-only and bounded like every catalog read.
+  readAggregate(
+    sql: string,
+    params: Array<string>,
+  ): Promise<Array<Record<string, unknown>>>;
   close(): Promise<void>;
 }
 
@@ -298,6 +316,13 @@ class PostgresCatalog implements CatalogSession {
         return result.rows || [];
       },
     );
+  }
+
+  public async readAggregate(
+    sql: string,
+    params: Array<string>,
+  ): Promise<Array<Record<string, unknown>>> {
+    return await this.rows(sql, params);
   }
 
   private static readonly RELATION_FILTER: string = `c.relkind IN ('r', 'v', 'm', 'p', 'f')
@@ -514,6 +539,13 @@ class MySqlCatalog implements CatalogSession {
     }
   }
 
+  public async readAggregate(
+    sql: string,
+    params: Array<string>,
+  ): Promise<Array<Record<string, unknown>>> {
+    return await this.inReadOnlyTransaction(sql, params);
+  }
+
   private static readonly SCHEMA_FILTER: string = `NOT IN ('mysql', 'information_schema', 'performance_schema', 'sys')`;
 
   public async read(options: TableHealthCollectOptions): Promise<CatalogRead> {
@@ -698,6 +730,13 @@ class SqlServerCatalog implements CatalogSession {
     );
 
     return result.recordset ? Array.from(result.recordset) : [];
+  }
+
+  public async readAggregate(
+    sql: string,
+    params: Array<string>,
+  ): Promise<Array<Record<string, unknown>>> {
+    return await this.run(sql, params);
   }
 
   public async read(options: TableHealthCollectOptions): Promise<CatalogRead> {
@@ -961,18 +1000,47 @@ export async function collectTableHealth(
 
     const collectedAt: Date = new Date();
     const read: CatalogRead = await catalog.read(options);
+    const checkResults: Array<DataCheckRunResult> = [];
 
-    return assembleSnapshot({
-      engine: connection.engine,
-      read: {
-        ...read,
-        warnings: read.warnings.map((warning: string) => {
-          return sanitizeErrorMessage(new Error(warning), secrets);
-        }),
-      },
-      options,
-      collectedAt,
-    });
+    // Each check on its own: one that cannot run never stops the others.
+    for (const check of options.checks || []) {
+      try {
+        checkResults.push({
+          checkId: check.checkId,
+          values: readCheckRows({
+            type: check.type,
+            isSegmented: check.isSegmented,
+            rows: await catalog.readAggregate(check.sql, check.params),
+          }),
+          error: null,
+        });
+      } catch (error) {
+        checkResults.push({
+          checkId: check.checkId,
+          values: [],
+          error: sanitizeErrorMessage(error, secrets).slice(
+            0,
+            MAX_CHECK_ERROR_LENGTH,
+          ),
+        });
+      }
+    }
+
+    return {
+      ...assembleSnapshot({
+        engine: connection.engine,
+        read: {
+          ...read,
+          warnings: read.warnings.map((warning: string) => {
+            return sanitizeErrorMessage(new Error(warning), secrets);
+          }),
+        },
+        options,
+        collectedAt,
+      }),
+      target: readConnectionTarget(connection),
+      ...(options.checks && options.checks.length > 0 ? { checkResults } : {}),
+    };
   } catch (error) {
     throw new Error(sanitizeErrorMessage(error, secrets));
   } finally {

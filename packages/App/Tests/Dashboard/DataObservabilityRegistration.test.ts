@@ -110,6 +110,143 @@ describe("Data Observability registry wiring", () => {
     expect(new Set(paths).size).toBe(paths.length);
   });
 
+  test("table usage - its model, service, migration, CRUD API and discovery job - is wired", () => {
+    expect(readSquashed("Common/Models/DatabaseModels/Index.ts")).toContain(
+      "DataAssetUsage,",
+    );
+    expect(readSquashed("Common/Server/Services/Index.ts")).toContain(
+      "DataAssetUsageService,",
+    );
+
+    const migrations: string = readSquashed(
+      "Common/Server/Infrastructure/Postgres/SchemaMigrations/Index.ts",
+    );
+
+    expect(migrations).toContain(
+      'import { AddDataAssetUsage1808991300000 } from "./1808991300000-AddDataAssetUsage";',
+    );
+    expect(migrations).toContain("AddDataAssetUsage1808991300000,");
+    expect(
+      readSquashed(
+        "Common/Server/Infrastructure/Postgres/SchemaMigrations/1808991300000-AddDataAssetUsage.ts",
+      ),
+    ).toContain('CREATE TABLE "DataAssetUsage"');
+
+    expect(readSquashed("App/FeatureSet/BaseAPI/Index.ts")).toMatch(
+      /new BaseAPI<\s*DataAssetUsage,\s*DataAssetUsageServiceType\s*>\(\s*DataAssetUsage,\s*DataAssetUsageService,?\s*\)/,
+    );
+
+    const jobs: string = readSquashed(
+      "App/FeatureSet/Workers/Jobs/DataObservability/DataObservabilityJobs.ts",
+    );
+
+    expect(jobs).toContain(
+      "for (const projectId of await TableUsageDiscovery.getProjectIds())",
+    );
+    expect(jobs).toContain(
+      "JobDictionary.setJobFunction( DATA_OBSERVABILITY_DISCOVER_TABLE_USAGE_JOB,",
+    );
+    expect(jobs).toContain("await TableUsageDiscovery.discoverProject({");
+  });
+
+  test("data checks - model, service, migration, CRUD API and their own routes - are wired", () => {
+    expect(readSquashed("Common/Models/DatabaseModels/Index.ts")).toContain(
+      "DataCheck,",
+    );
+    expect(readSquashed("Common/Server/Services/Index.ts")).toContain(
+      "DataCheckService,",
+    );
+
+    const migrations: string = readSquashed(
+      "Common/Server/Infrastructure/Postgres/SchemaMigrations/Index.ts",
+    );
+
+    expect(migrations).toContain(
+      'import { AddDataChecks1808991400000 } from "./1808991400000-AddDataChecks";',
+    );
+    expect(migrations).toContain("AddDataChecks1808991400000,");
+    expect(
+      readSquashed(
+        "Common/Server/Infrastructure/Postgres/SchemaMigrations/1808991400000-AddDataChecks.ts",
+      ),
+    ).toContain('CREATE TABLE "DataCheck"');
+
+    expect(readSquashed("App/FeatureSet/BaseAPI/Index.ts")).toMatch(
+      /new BaseAPI<\s*DataCheck,\s*DataCheckServiceType\s*>\(\s*DataCheck,\s*DataCheckService,?\s*\)/,
+    );
+
+    const api: string = readSquashed(
+      "Common/Server/API/DataObservabilityAPI.ts",
+    );
+
+    expect(api).toContain('DATA_OBSERVABILITY_API_ROUTES.checkAlert(":id")');
+    expect(api).toContain('DATA_OBSERVABILITY_API_ROUTES.checkRunNow(":id")');
+
+    // Checks run with their store's collection, on a worker or a probe.
+    expect(
+      readSquashed(
+        "Common/Server/Utils/DataObservability/DataObservabilityRunner.ts",
+      ),
+    ).toContain("checks: plan.planned,");
+    expect(
+      readSquashed(
+        "App/FeatureSet/Telemetry/API/ProbeIngest/DataObservability.ts",
+      ),
+    ).toContain("buildProbeCollectWork(store, plan.planned)");
+  });
+
+  test("pipelines from OpenLineage - models, services, migration, CRUD APIs and the ingest route - are wired", () => {
+    const models: string = readSquashed(
+      "Common/Models/DatabaseModels/Index.ts",
+    );
+    const services: string = readSquashed("Common/Server/Services/Index.ts");
+    const baseApi: string = readSquashed("App/FeatureSet/BaseAPI/Index.ts");
+
+    for (const model of [
+      "DataPipeline",
+      "DataPipelineRun",
+      "DataAssetLineage",
+    ]) {
+      expect(models).toContain(`${model},`);
+      expect(services).toContain(`${model}Service,`);
+      expect(baseApi).toMatch(
+        new RegExp(
+          `new BaseAPI<\\s*${model},\\s*${model}ServiceType\\s*>\\(\\s*${model},\\s*${model}Service,?\\s*\\)`,
+        ),
+      );
+    }
+
+    const migrations: string = readSquashed(
+      "Common/Server/Infrastructure/Postgres/SchemaMigrations/Index.ts",
+    );
+
+    expect(migrations).toContain(
+      'import { AddDataPipelines1808991500000 } from "./1808991500000-AddDataPipelines";',
+    );
+    expect(migrations).toContain("AddDataPipelines1808991500000,");
+
+    const migration: string = readSquashed(
+      "Common/Server/Infrastructure/Postgres/SchemaMigrations/1808991500000-AddDataPipelines.ts",
+    );
+
+    for (const table of [
+      "DataPipeline",
+      "DataPipelineRun",
+      "DataAssetLineage",
+    ]) {
+      expect(migration).toContain(`CREATE TABLE "${table}"`);
+    }
+
+    const telemetry: string = readSquashed("App/FeatureSet/Telemetry/Index.ts");
+
+    expect(telemetry).toContain(
+      'import OpenLineageIngestAPI from "./API/OpenLineageIngest"',
+    );
+    expect(telemetry).toContain(
+      "app.use(TELEMETRY_PREFIXES, OpenLineageIngestAPI)",
+    );
+  });
+
   test("the Workers import its jobs, and the probe ingest mounts its routes", () => {
     expect(readSquashed("App/FeatureSet/Workers/Index.ts")).toContain(
       'import "./Jobs/DataObservability/DataObservabilityJobs"',

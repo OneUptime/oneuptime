@@ -955,6 +955,9 @@ export const DataObservabilityRoutePath: Dictionary<string> = {
   [PageMap.DATA_OBSERVABILITY_TABLE_VIEW_COLUMNS]: `tables/${RouteParams.ModelID}/columns`,
   [PageMap.DATA_OBSERVABILITY_TABLE_VIEW_METRICS]: `tables/${RouteParams.ModelID}/metrics`,
   [PageMap.DATA_OBSERVABILITY_TABLE_VIEW_TIMELINE]: `tables/${RouteParams.ModelID}/timeline`,
+  [PageMap.DATA_OBSERVABILITY_TABLE_VIEW_SERVICES]: `tables/${RouteParams.ModelID}/services`,
+  [PageMap.DATA_OBSERVABILITY_TABLE_VIEW_CHECKS]: `tables/${RouteParams.ModelID}/checks`,
+  [PageMap.DATA_OBSERVABILITY_TABLE_VIEW_LINEAGE]: `tables/${RouteParams.ModelID}/lineage`,
   [PageMap.DATA_OBSERVABILITY_TABLE_VIEW_SETTINGS]: `tables/${RouteParams.ModelID}/settings`,
   [PageMap.DATA_OBSERVABILITY_TABLE_VIEW_DELETE]: `tables/${RouteParams.ModelID}/delete`,
   [PageMap.DATA_OBSERVABILITY_STORES]: "stores",
@@ -962,6 +965,8 @@ export const DataObservabilityRoutePath: Dictionary<string> = {
   [PageMap.DATA_OBSERVABILITY_STORE_VIEW_TABLES]: `stores/${RouteParams.ModelID}/tables`,
   [PageMap.DATA_OBSERVABILITY_STORE_VIEW_RECOMMENDATIONS]: `stores/${RouteParams.ModelID}/recommendations`,
   [PageMap.DATA_OBSERVABILITY_SCHEMA_CHANGES]: "schema-changes",
+  [PageMap.DATA_OBSERVABILITY_CHECKS]: "checks",
+  [PageMap.DATA_OBSERVABILITY_PIPELINES]: "pipelines",
   [PageMap.DATA_OBSERVABILITY_DOCUMENTATION]: "documentation",
 };
 
@@ -1277,6 +1282,7 @@ export const AlertsRoutePath: Dictionary<string> = {
   [PageMap.ALERTS_SETTINGS_CUSTOM_FIELDS]: "settings/custom-fields",
   [PageMap.ALERTS_SETTINGS_GROUPING_RULES]: "settings/grouping-rules",
   [PageMap.ALERTS_SETTINGS_ON_CALL_RULES]: "settings/on-call-rules",
+  [PageMap.ALERTS_SETTINGS_INCIDENT_RULES]: "settings/incident-rules",
   [PageMap.ALERTS_SETTINGS_OWNER_RULES]: "settings/owner-rules",
   [PageMap.ALERTS_SETTINGS_EPISODE_OWNER_RULE_VIEW]: `settings/owner-rules/episodes/${RouteParams.ModelID}`,
   [PageMap.ALERTS_SETTINGS_OWNER_RULE_VIEW]: `settings/owner-rules/${RouteParams.ModelID}`,
@@ -1952,6 +1958,12 @@ const RouteMap: Dictionary<Route> = {
   [PageMap.ALERTS_SETTINGS_ON_CALL_RULES]: new Route(
     `/dashboard/${RouteParams.ProjectID}/alerts/${
       AlertsRoutePath[PageMap.ALERTS_SETTINGS_ON_CALL_RULES]
+    }`,
+  ),
+
+  [PageMap.ALERTS_SETTINGS_INCIDENT_RULES]: new Route(
+    `/dashboard/${RouteParams.ProjectID}/alerts/${
+      AlertsRoutePath[PageMap.ALERTS_SETTINGS_INCIDENT_RULES]
     }`,
   ),
 
@@ -7821,6 +7833,24 @@ const RouteMap: Dictionary<Route> = {
     }`,
   ),
 
+  [PageMap.DATA_OBSERVABILITY_TABLE_VIEW_SERVICES]: new Route(
+    `/dashboard/${RouteParams.ProjectID}/data-observability/${
+      DataObservabilityRoutePath[PageMap.DATA_OBSERVABILITY_TABLE_VIEW_SERVICES]
+    }`,
+  ),
+
+  [PageMap.DATA_OBSERVABILITY_TABLE_VIEW_LINEAGE]: new Route(
+    `/dashboard/${RouteParams.ProjectID}/data-observability/${
+      DataObservabilityRoutePath[PageMap.DATA_OBSERVABILITY_TABLE_VIEW_LINEAGE]
+    }`,
+  ),
+
+  [PageMap.DATA_OBSERVABILITY_TABLE_VIEW_CHECKS]: new Route(
+    `/dashboard/${RouteParams.ProjectID}/data-observability/${
+      DataObservabilityRoutePath[PageMap.DATA_OBSERVABILITY_TABLE_VIEW_CHECKS]
+    }`,
+  ),
+
   [PageMap.DATA_OBSERVABILITY_TABLE_VIEW_SETTINGS]: new Route(
     `/dashboard/${RouteParams.ProjectID}/data-observability/${
       DataObservabilityRoutePath[PageMap.DATA_OBSERVABILITY_TABLE_VIEW_SETTINGS]
@@ -7862,6 +7892,18 @@ const RouteMap: Dictionary<Route> = {
   [PageMap.DATA_OBSERVABILITY_SCHEMA_CHANGES]: new Route(
     `/dashboard/${RouteParams.ProjectID}/data-observability/${
       DataObservabilityRoutePath[PageMap.DATA_OBSERVABILITY_SCHEMA_CHANGES]
+    }`,
+  ),
+
+  [PageMap.DATA_OBSERVABILITY_PIPELINES]: new Route(
+    `/dashboard/${RouteParams.ProjectID}/data-observability/${
+      DataObservabilityRoutePath[PageMap.DATA_OBSERVABILITY_PIPELINES]
+    }`,
+  ),
+
+  [PageMap.DATA_OBSERVABILITY_CHECKS]: new Route(
+    `/dashboard/${RouteParams.ProjectID}/data-observability/${
+      DataObservabilityRoutePath[PageMap.DATA_OBSERVABILITY_CHECKS]
     }`,
   ),
 

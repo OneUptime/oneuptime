@@ -15,6 +15,8 @@
  */
 enum RecommendationType {
   Monitor = "Monitor",
+  // A check a table's columns call for (Types/DataObservability/DataCheckSuggestions).
+  DataCheck = "DataCheck",
 }
 
 export default RecommendationType;

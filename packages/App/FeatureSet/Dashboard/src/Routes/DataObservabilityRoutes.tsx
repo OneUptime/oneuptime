@@ -25,6 +25,11 @@ import TableOverviewPage from "../Pages/DataObservability/TableView/Overview";
 import TableColumnsPage from "../Pages/DataObservability/TableView/Columns";
 import TableMetricsPage from "../Pages/DataObservability/TableView/Metrics";
 import TableTimelinePage from "../Pages/DataObservability/TableView/Timeline";
+import TableServicesPage from "../Pages/DataObservability/TableView/Services";
+import TableChecksPage from "../Pages/DataObservability/TableView/Checks";
+import TableLineagePage from "../Pages/DataObservability/TableView/Lineage";
+import DataObservabilityPipelinesPage from "../Pages/DataObservability/Pipelines";
+import DataObservabilityChecksPage from "../Pages/DataObservability/Checks";
 import TableSettingsPage from "../Pages/DataObservability/TableView/Settings";
 import TableDeletePage from "../Pages/DataObservability/TableView/Delete";
 
@@ -88,6 +93,16 @@ const DataObservabilityRoutes: FunctionComponent<ComponentProps> = (
         {page(PageMap.DATA_OBSERVABILITY_STORES, (pageRoute: Route) => {
           return (
             <DataObservabilityStoresPage {...props} pageRoute={pageRoute} />
+          );
+        })}
+        {page(PageMap.DATA_OBSERVABILITY_PIPELINES, (pageRoute: Route) => {
+          return (
+            <DataObservabilityPipelinesPage {...props} pageRoute={pageRoute} />
+          );
+        })}
+        {page(PageMap.DATA_OBSERVABILITY_CHECKS, (pageRoute: Route) => {
+          return (
+            <DataObservabilityChecksPage {...props} pageRoute={pageRoute} />
           );
         })}
         {page(PageMap.DATA_OBSERVABILITY_SCHEMA_CHANGES, (pageRoute: Route) => {
@@ -162,6 +177,47 @@ const DataObservabilityRoutes: FunctionComponent<ComponentProps> = (
               pageRoute={
                 RouteMap[
                   PageMap.DATA_OBSERVABILITY_TABLE_VIEW_TIMELINE
+                ] as Route
+              }
+            />
+          }
+        />
+        <PageRoute
+          path={RouteUtil.getLastPathForKey(
+            PageMap.DATA_OBSERVABILITY_TABLE_VIEW_LINEAGE,
+          )}
+          element={
+            <TableLineagePage
+              {...props}
+              pageRoute={
+                RouteMap[PageMap.DATA_OBSERVABILITY_TABLE_VIEW_LINEAGE] as Route
+              }
+            />
+          }
+        />
+        <PageRoute
+          path={RouteUtil.getLastPathForKey(
+            PageMap.DATA_OBSERVABILITY_TABLE_VIEW_CHECKS,
+          )}
+          element={
+            <TableChecksPage
+              {...props}
+              pageRoute={
+                RouteMap[PageMap.DATA_OBSERVABILITY_TABLE_VIEW_CHECKS] as Route
+              }
+            />
+          }
+        />
+        <PageRoute
+          path={RouteUtil.getLastPathForKey(
+            PageMap.DATA_OBSERVABILITY_TABLE_VIEW_SERVICES,
+          )}
+          element={
+            <TableServicesPage
+              {...props}
+              pageRoute={
+                RouteMap[
+                  PageMap.DATA_OBSERVABILITY_TABLE_VIEW_SERVICES
                 ] as Route
               }
             />
