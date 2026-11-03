@@ -41585,5 +41585,7 @@
   "What your dbt project says of this table, from the last artifacts it uploaded.": "What your dbt project says of this table, from the last artifacts it uploaded.",
   "dbt": "dbt",
   "dbt Node": "dbt Node",
-  "dbt Tests": "dbt Tests"
+  "dbt Tests": "dbt Tests",
+  "Incident Rule Executed": "Incident Rule Executed",
+  "What It Reads": "What It Reads"
 }
