@@ -22,6 +22,10 @@ import {
   getDashboardGoToShortcuts,
 } from "../../../FeatureSet/Dashboard/src/Utils/KeyboardShortcuts";
 import {
+  namesMissingOrOutOfOrder,
+  productsMenuGroupKeys,
+} from "./DocsProductsMenu";
+import {
   CARD_LINE,
   anchorProblems,
   boldSpans,
@@ -763,6 +767,37 @@ describe.each(LANGUAGES)("%s", (language: string) => {
           named: true,
         });
       }
+    });
+
+    it("lists the folded groups in the order this language's menu does, each as the menu names it", () => {
+      const finding: string = sectionAt(
+        translated,
+        englishSectionIndex(HOME, "Finding your way around"),
+      );
+      const folded: Array<string> = productsMenuGroupKeys()
+        .filter((key: string): boolean => {
+          return key !== "navbar.categories.essentials";
+        })
+        .map((key: string): string => {
+          return drawnNavbarText(
+            language,
+            key.split("."),
+            navbarText("en", key.split(".")) as string,
+          );
+        });
+
+      // Security, the group of Security Events and Data Security, is second.
+      expect(folded[1]).toBe(
+        drawnNavbarText(
+          language,
+          ["navbar", "categories", "security"],
+          "Security",
+        ),
+      );
+      expect({
+        language: language,
+        misplaced: namesMissingOrOutOfOrder(finding, folded),
+      }).toEqual({ language: language, misplaced: [] });
     });
 
     it("names each go-to destination as this language's shortcuts dialog draws it", () => {

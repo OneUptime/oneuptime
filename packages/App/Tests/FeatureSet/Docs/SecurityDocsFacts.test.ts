@@ -525,7 +525,7 @@ function boundValues(statement: Statement): Array<unknown> {
 describe("the Security Events page", () => {
   const page: string = englishPage(SECURITY_EVENTS);
 
-  it("opens the product from Products → Security Events, which the Products menu lists under Observability", () => {
+  it("opens the product from Products → Security Events, which the Products menu lists under Security", () => {
     const items: string = source("navigationItems");
     const entry: string = items.slice(
       items.indexOf('t("navbar.items.securityEventsTitle", "Security Events")'),
@@ -533,11 +533,17 @@ describe("the Security Events page", () => {
 
     expect(entry.length).toBeLessThan(items.length);
     expect(entry.slice(0, entry.indexOf("category:") + 40)).toContain(
-      "category: observabilityCategory",
+      "category: securityCategory",
+    );
+    // The group reads "Security" in English, as the page names it.
+    expect(flat(items)).toContain(
+      'const securityCategory: string = t("navbar.categories.security", "Security");',
     );
     expect(page).toContain(
-      "Open **Products → Security Events**, under **Observability**. Its menu has a section for each part of Security, and a page of its own for each thing in it:",
+      "Open **Products → Security Events**, under **Security**. Its menu has a section for each part of Security, and a page of its own for each thing in it:",
     );
+    // Observability was the group until Security became one (#5550).
+    expect(page).not.toContain("under **Observability**");
   });
 
   it("names every page, and the menu section it sits in, in the order the product draws them", () => {

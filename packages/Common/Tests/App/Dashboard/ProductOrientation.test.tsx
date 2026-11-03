@@ -312,6 +312,7 @@ describe("Products menu sections", () => {
     ).toEqual([
       "Essentials",
       "Observability",
+      "Security",
       "AI",
       "Code",
       "Resources",
@@ -320,6 +321,40 @@ describe("Products menu sections", () => {
       "Dashboards & Automation",
       "Settings",
     ]);
+  });
+
+  /*
+   * Issue #5550: Security Events and Data Security were filed under
+   * Observability. Security is their own section, right below it.
+   */
+  test("Security holds Security Events and Data Security; Observability what you watch your systems with", () => {
+    openProductsMenu();
+
+    const sections: Array<MenuSection> = readMenuSections();
+    expect(
+      sections.find((section: MenuSection): boolean => {
+        return section.heading === "Security";
+      }),
+    ).toEqual({
+      heading: "Security",
+      items: ["Security Events", "Data Security"],
+    });
+    expect(
+      sections.find((section: MenuSection): boolean => {
+        return section.heading === "Observability";
+      }),
+    ).toEqual({
+      heading: "Observability",
+      items: [
+        "Logs",
+        "Metrics",
+        "Traces",
+        "Performance Profiles",
+        "Exceptions",
+        "AI / LLM",
+        "Topology",
+      ],
+    });
   });
 
   test("AI is what you ask and read; Code is the work AI does in your code", () => {
@@ -456,7 +491,8 @@ describe("Products menu sections", () => {
      * 45: Code Repositories became a page of Tasks, Forms (which replaced
      * Incidents > Settings > Forms) became a product, Storage Arrays
      * joined Infrastructure, Data Security joined Observability, and App
-     * Platforms took Cloud's environments.
+     * Platforms took Cloud's environments. Moving Data Security and
+     * Security Events to Security added none.
      */
     expect(titles).toHaveLength(45);
     expect(new Set(titles).size).toBe(45);
@@ -481,6 +517,7 @@ describe("the Products menu opens on the essentials", () => {
     ).toEqual(["Essentials"]);
     expect(foldedSectionNames()).toEqual([
       "Observability",
+      "Security",
       "AI",
       "Code",
       "Resources",
@@ -526,6 +563,9 @@ describe("the Products menu opens on the essentials", () => {
     expect(
       within(productsMenu()).getByRole("button", { name: "Code" }),
     ).toHaveAccessibleDescription("1 product Code");
+    expect(
+      within(productsMenu()).getByRole("button", { name: "Security" }),
+    ).toHaveAccessibleDescription("2 products Security Events, Data Security");
   });
 
   test("opening a folded line lists its products, one click away", () => {
@@ -628,9 +668,11 @@ describe("Products menu descriptions say what each product is for", () => {
     );
     expect(headings).toContain(lookupNested(DE, "navbar.categories.code"));
     expect(headings).toContain(lookupNested(DE, "navbar.categories.cloud"));
+    expect(headings).toContain(lookupNested(DE, "navbar.categories.security"));
     expect(headings).not.toContain("navbar.categories.cloud");
     expect(headings).not.toContain("navbar.categories.infrastructure");
     expect(headings).not.toContain("navbar.categories.code");
+    expect(headings).not.toContain("navbar.categories.security");
   });
 });
 
