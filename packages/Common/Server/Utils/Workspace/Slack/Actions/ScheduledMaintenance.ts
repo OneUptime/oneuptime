@@ -41,7 +41,7 @@ import WorkspaceMemberActions, {
   WorkspaceEventStateOptions,
   WorkspaceEventType,
 } from "../../WorkspaceMemberActions";
-import SlackActionAnswer from "./Answer";
+import SlackActionAnswer, { SlackAnswerPlace } from "./Answer";
 import { WorkspaceLatePress } from "../../WorkspaceActionAnswers";
 import Dictionary from "../../../../../Types/Dictionary";
 import ScheduledMaintenanceStateTimeline from "../../../../../Models/DatabaseModels/ScheduledMaintenanceStateTimeline";
@@ -320,8 +320,36 @@ export default class SlackScheduledMaintenanceActions {
         return;
       }
 
-      // post a message to Slack after the incident was created.
-      const slackChannelId: string = data.action.actionValue || ""; // this is the channel id where the incident was created.
+      /*
+       * The confirmation goes to the channel the form was opened in: its
+       * metadata names it, and a form opened before forms carried where
+       * they were opened carries it as its value.
+       */
+      const slackChannelId: string =
+        slackRequest.slackChannelId || data.action.actionValue || "";
+
+      // "SM-3", or "#3" in a project without a prefix; none without a number.
+      const eventName: string | null =
+        createdEvent.scheduledMaintenanceNumberWithPrefix ||
+        (createdEvent.scheduledMaintenanceNumber !== undefined &&
+        createdEvent.scheduledMaintenanceNumber !== null
+          ? `#${createdEvent.scheduledMaintenanceNumber}`
+          : null);
+
+      const eventLink: string = (
+        await ScheduledMaintenanceService.getScheduledMaintenanceLinkInDashboard(
+          slackRequest.projectId!,
+          createdEvent.id!,
+        )
+      ).toString();
+
+      const confirmation: WorkspacePayloadMarkdown = {
+        _type: "WorkspacePayloadMarkdown",
+        text: (eventName
+          ? mdText`**Scheduled Event ${eventName}** created successfully. [View Event](${eventLink})`
+          : mdText`Scheduled event created successfully. [View Event](${eventLink})`
+        ).toString(),
+      };
 
       if (slackChannelId) {
         await SlackUtil.sendMessage({
@@ -333,17 +361,27 @@ export default class SlackScheduledMaintenanceActions {
             channelIds: [slackChannelId],
             channelNames: [],
             workspaceType: WorkspaceType.Slack,
-            messageBlocks: [
-              {
-                _type: "WorkspacePayloadMarkdown",
-                text: mdText`**Scheduled Event ${createdEvent.scheduledMaintenanceNumberWithPrefix || "#" + createdEvent.scheduledMaintenanceNumber}** created successfully. [View Event](${await ScheduledMaintenanceService.getScheduledMaintenanceLinkInDashboard(
-                  slackRequest.projectId!,
-                  createdEvent.id!,
-                )})`.toString(),
-              } as WorkspacePayloadMarkdown,
-            ],
+            messageBlocks: [confirmation],
           },
         });
+      } else {
+        /*
+         * Opened where there is no channel - the app's Home tab: confirmed
+         * to the person who scheduled it, in their direct messages with the
+         * app (SlackActionAnswer), so they are told it worked.
+         */
+        const place: SlackAnswerPlace | null =
+          SlackActionAnswer.getPlace(slackRequest);
+
+        if (place) {
+          await SlackActionAnswer.answerWithBlocks({
+            place: place,
+            messageBlocks: [confirmation],
+            text: eventName
+              ? `Scheduled Event ${eventName} created successfully.`
+              : "Scheduled event created successfully.",
+          });
+        }
       }
     }
   }

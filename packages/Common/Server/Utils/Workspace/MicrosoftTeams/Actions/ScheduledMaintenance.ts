@@ -753,18 +753,29 @@ export default class MicrosoftTeamsScheduledMaintenanceActions {
   }
 
   /*
-   * The confirmation: when the event starts and ends in the user's time zone
-   * (so a wrong zone shows at once), and a link to it when one can be built.
+   * The confirmation: the event by its number, as Slack's names it - "✅
+   * Scheduled maintenance SM-3 created successfully." - when it starts and
+   * ends in the user's time zone (so a wrong zone shows at once), and a
+   * link to it when one can be built.
    */
-  private static async getScheduledMaintenanceCreatedMessage(data: {
+  public static async getScheduledMaintenanceCreatedMessage(data: {
     scheduledMaintenance: ScheduledMaintenance;
     projectId: ObjectID;
     startsAt: Date;
     endsAt: Date;
     timezone: MicrosoftTeamsUserTimezone;
   }): Promise<string> {
+    const eventNumber: string | null =
+      data.scheduledMaintenance.scheduledMaintenanceNumberWithPrefix ||
+      (data.scheduledMaintenance.scheduledMaintenanceNumber !== undefined &&
+      data.scheduledMaintenance.scheduledMaintenanceNumber !== null
+        ? `#${data.scheduledMaintenance.scheduledMaintenanceNumber}`
+        : null);
+
     const paragraphs: Array<MarkdownText> = [
-      mdText`✅ Scheduled maintenance created successfully!`,
+      eventNumber
+        ? mdText`✅ **Scheduled maintenance ${eventNumber}** created successfully.`
+        : mdText`✅ Scheduled maintenance created successfully.`,
       mdText`**Starts:** ${MicrosoftTeamsTimezone.format(
         data.startsAt,
         data.timezone,
@@ -789,8 +800,9 @@ export default class MicrosoftTeamsScheduledMaintenanceActions {
             data.scheduledMaintenance.id,
           );
 
+        // Words that link, not the address itself: it ran past a phone's screen.
         paragraphs.push(
-          mdText`View scheduled maintenance: ${maintenanceLink.toString()}`,
+          mdText`[View scheduled maintenance](${maintenanceLink.toString()})`,
         );
       } catch (error) {
         logger.debug(

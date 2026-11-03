@@ -48,6 +48,11 @@ import {
   RunningApp,
   startApp,
 } from "./WorkspaceOAuthTestHelpers";
+import {
+  InMemoryHomeChoiceRow,
+  InMemoryWorkspaceHomeChoices,
+  useInMemoryWorkspaceHomeChoices,
+} from "../../Helpers/InMemoryWorkspaceHomeChoices";
 
 /*
  * THE ONEUPTIME APP'S HOME TAB IN SLACK, AND ITS HELLO IN A CHANNEL.
@@ -130,6 +135,8 @@ const PROPS: DatabaseCommonInteractionProps = {
 interface SlackCall {
   method: string;
   data: JSONObject;
+  // What Slack answered it.
+  answer: JSONObject;
 }
 
 let app: RunningApp;
@@ -163,8 +170,20 @@ const CHECKOUT: Incident = (() => {
 
 let onCallReads: Array<JSONObject> = [];
 let incidentReads: Array<JSONObject> = [];
+// The projects people chose for their Homes (WorkspaceHomeChoice), in memory.
+let homeChoices: InMemoryWorkspaceHomeChoices;
 
-function answerSlack(method: string): JSONObject {
+/*
+ * Each person's Home view as Slack keeps it: its hash, new with every
+ * views.publish. A publish that names a hash Slack no longer has - the view
+ * was drawn again since - is refused with hash_conflict, as Slack's
+ * views.publish documents ("Error returned when the provided hash doesn't
+ * match the current stored value").
+ */
+let homeViewHashes: Map<string, string> = new Map();
+let homeViewVersion: number = 0;
+
+function answerSlack(method: string, data: JSONObject): JSONObject {
   const refusal: string | undefined = refusals.get(method);
 
   if (refusal) {
@@ -173,6 +192,20 @@ function answerSlack(method: string): JSONObject {
 
   if (method === "chat.postMessage") {
     return { ok: true, channel: OPS, ts: "1760000000.000900" };
+  }
+
+  if (method === "views.publish") {
+    const user: string = String(data["user_id"]);
+    const hash: unknown = data["hash"];
+
+    if (hash !== undefined && hash !== homeViewHashes.get(user)) {
+      return { ok: false, error: "hash_conflict" };
+    }
+
+    const next: string = `1760000000.${String(++homeViewVersion).padStart(6, "0")}`;
+    homeViewHashes.set(user, next);
+
+    return { ok: true, view: { id: "V0HOME", type: "home", hash: next } };
   }
 
   return { ok: true };
@@ -238,14 +271,36 @@ function homeButton(actionId: string, user: string = ALICE): JSONObject {
   };
 }
 
-function openHome(user: string, tab: string = "home"): JSONObject {
-  return eventCallback({
+/*
+ * app_home_opened. `withView`: with the Home's view as Slack has it now -
+ * Slack sends it once the app has published one for the person.
+ */
+function openHome(
+  user: string,
+  tab: string = "home",
+  withView: boolean = false,
+): JSONObject {
+  const event: JSONObject = {
     type: "app_home_opened",
     user: user,
     channel: `D${user.substring(1)}`,
     tab: tab,
     event_ts: "1760000000.000100",
-  });
+  };
+
+  const hash: string | undefined = homeViewHashes.get(user);
+
+  if (withView && hash) {
+    event["view"] = {
+      id: "V0HOME",
+      type: "home",
+      blocks: [],
+      private_metadata: "",
+      hash: hash,
+    };
+  }
+
+  return eventCallback(event);
 }
 
 async function until(
@@ -317,6 +372,7 @@ afterAll(async () => {
 beforeEach(() => {
   slackCalls = [];
   refusals = new Map();
+  homeViewHashes = new Map();
   linked = new Map([[ALICE, ALICE_ID]]);
   workspaceConnected = true;
   errorLines = [];
@@ -332,6 +388,8 @@ beforeEach(() => {
   jest.spyOn(Date, "now").mockImplementation((): number => {
     return realDateNow() + clockOffsetInMs;
   });
+
+  homeChoices = useInMemoryWorkspaceHomeChoices();
 
   jest
     .spyOn(WorkspaceProjectAuthTokenService, "findOneBy")
@@ -437,8 +495,9 @@ beforeEach(() => {
     data: JSONObject;
   }) => {
     const method: string = options.url.toString().split("/api/").pop() || "";
-    slackCalls.push({ method: method, data: options.data });
-    return new HTTPResponse<JSONObject>(200, answerSlack(method), {});
+    const answer: JSONObject = answerSlack(method, options.data);
+    slackCalls.push({ method: method, data: options.data, answer: answer });
+    return new HTTPResponse<JSONObject>(200, answer, {});
   }) as never);
 
   jest.spyOn(logger, "debug").mockImplementation((() => {
@@ -607,8 +666,9 @@ describe("the Home tab, opened", () => {
       return calls("views.publish").length === 1;
     }, "the Home drawn");
 
+    // Greeted by name, as on the Home that lets her in.
     expect(blockTexts(publishedBlocks())).toEqual([
-      "👋 Hi there",
+      "👋 Hi Alice",
       "Your OneUptime account is not a member of this project. Ask a project admin to invite you, then try again.\n",
     ]);
     expect(incidentReads).toEqual([]);
@@ -1348,6 +1408,7 @@ describe("a person in several of the workspace's projects: Switch project", () =
   }
 
   beforeEach(() => {
+    heldHomeRead = null;
     connectionsByTeam = {
       // In the order they were connected: Production first.
       [TEAM_ID]: [PRODUCTION, STAGING, SANDBOX, FINANCE],
@@ -1441,6 +1502,12 @@ describe("a person in several of the workspace's projects: Switch project", () =
         userId: ObjectID;
         projectId: ObjectID;
       }) => {
+        // A Home read held back, to be slow (holdNextHomeRead).
+        if (heldHomeRead && !heldHomeRead.isTaken) {
+          heldHomeRead.isTaken = true;
+          await heldHomeRead.released;
+        }
+
         memberPropsReads.push(data.projectId.toString());
 
         if (
@@ -1496,10 +1563,56 @@ describe("a person in several of the workspace's projects: Switch project", () =
       .mockResolvedValue(null);
   });
 
-  function openHomeIn(teamId: string, user: string): JSONObject {
-    const event: JSONObject = openHome(user);
+  function openHomeIn(
+    teamId: string,
+    user: string,
+    withView: boolean = false,
+  ): JSONObject {
+    const event: JSONObject = openHome(user, "home", withView);
     event["team_id"] = teamId;
     return event;
+  }
+
+  /*
+   * The next Home read - the member read every Home drawn starts with -
+   * waits until released: a Home slow to draw.
+   */
+  interface HeldHomeRead {
+    isTaken: boolean;
+    released: Promise<void>;
+    release: () => void;
+  }
+
+  let heldHomeRead: HeldHomeRead | null = null;
+
+  function holdNextHomeRead(): HeldHomeRead {
+    let release: () => void = (): void => {
+      return undefined;
+    };
+    const released: Promise<void> = new Promise<void>((resolve: () => void) => {
+      release = resolve;
+    });
+
+    heldHomeRead = { isTaken: false, released: released, release: release };
+
+    return heldHomeRead;
+  }
+
+  // The Home Slack shows the person: the last drawing it accepted.
+  function shownHome(user: string = ALICE): JSONObject {
+    const accepted: Array<SlackCall> = calls("views.publish").filter(
+      (call: SlackCall): boolean => {
+        return (
+          call.answer["ok"] === true && String(call.data["user_id"]) === user
+        );
+      },
+    );
+
+    return accepted[accepted.length - 1]!.data["view"] as JSONObject;
+  }
+
+  function projectOfView(view: JSONObject): string {
+    return String(JSON.parse(view["private_metadata"] as string)["projectId"]);
   }
 
   /*
@@ -1697,25 +1810,149 @@ describe("a person in several of the workspace's projects: Switch project", () =
     clockOffsetInMs += 11 * 1000;
   }
 
-  // What is kept of the project chosen for a Home, by its cache key.
-  function rememberedHomes(): Array<{ value: string; expiresAt: number }> {
-    const store: Map<string, { value: string; expiresAt: number }> = (
+  /*
+   * What is kept of the projects chosen for Homes (WorkspaceHomeChoice): a
+   * row per project and Slack account, the newest choice first.
+   */
+  function rememberedHomes(): Array<{
+    value: string;
+    slackUserId: string;
+    chosenAt: Date;
+  }> {
+    return [...homeChoices.rows]
+      .sort((a: InMemoryHomeChoiceRow, b: InMemoryHomeChoiceRow): number => {
+        return (
+          b.chosenAt.getTime() - a.chosenAt.getTime() ||
+          (b.writtenAs || 0) - (a.writtenAs || 0)
+        );
+      })
+      .map((row: InMemoryHomeChoiceRow) => {
+        expect(row.workspaceType).toBe("Slack");
+
+        return {
+          value: row.projectId,
+          slackUserId: row.workspaceUserId,
+          chosenAt: row.chosenAt,
+        };
+      });
+  }
+
+  // Keys the cache holds for a Home's choice: none, since it is kept in Postgres.
+  function homeChoiceCacheKeys(): Array<string> {
+    const store: Map<string, unknown> = (
       jest.requireMock("../../../Server/Infrastructure/GlobalCache") as {
-        default: { store: Map<string, { value: string; expiresAt: number }> };
+        default: { store: Map<string, unknown> };
       }
     ).default.store;
 
-    return Array.from(store.entries())
-      .filter(([key]: [string, unknown]): boolean => {
-        return key.startsWith("slack-project-choice-home-");
-      })
-      .map(([, entry]: [string, { value: string; expiresAt: number }]) => {
-        return entry;
-      });
+    return Array.from(store.keys()).filter((key: string): boolean => {
+      return key.startsWith("slack-project-choice-home");
+    });
   }
 
   const REFUSED: string =
     "⚠️ You can't switch to that project: you're no longer a member of it, or your Slack account isn't connected there.\n";
+
+  /*
+   * Slack tells of an opening before the Home is drawn, and drawing it reads
+   * the project: a switch made in that moment drew its Home first, and the
+   * opening's drawing landed after it, so the Home flipped back. An opening
+   * now draws only over the view Slack said was there (views.publish's
+   * hash); a switch, the person's latest word, over anything.
+   */
+  test("a slow opening never draws over a switch made meanwhile: Slack refuses the opening's view as stale, the switch stands, and nothing is logged as an error", async () => {
+    await opened();
+    later();
+
+    const viewBefore: string = homeViewHashes.get(ALICE)!;
+    const held: HeldHomeRead = holdNextHomeRead();
+    const count: number = calls("views.publish").length;
+
+    // She opens the Home - its drawing slow - and switches to Acme Staging.
+    expect((await deliverEvent(openHomeIn(TEAM_ID, ALICE, true))).status).toBe(
+      200,
+    );
+    await until((): boolean => {
+      return held.isTaken;
+    }, "the opening reading her Home");
+
+    const switchedTo: DrawnHome = await switched({
+      value: STAGING.toString(),
+      shown: PRODUCTION,
+    });
+
+    expect(switchedTo.projectId).toBe(STAGING.toString());
+
+    held.release();
+    await until((): boolean => {
+      return calls("views.publish").length === count + 2;
+    }, "the opening's drawing");
+
+    const [switchPublish, openingPublish] = calls("views.publish").slice(count);
+
+    // The switch named no view; the opening named the one it was told of.
+    expect(switchPublish!.data["hash"]).toBeUndefined();
+    expect(switchPublish!.answer["ok"]).toBe(true);
+    expect(openingPublish!.data["hash"]).toBe(viewBefore);
+    expect(openingPublish!.answer).toEqual({
+      ok: false,
+      error: "hash_conflict",
+    });
+
+    // What Slack shows her: the project she switched to.
+    expect(projectOfView(shownHome())).toBe(STAGING.toString());
+    expect(errorLines).toEqual([]);
+
+    // And her next opening, too.
+    later();
+    expect((await opened()).projectId).toBe(STAGING.toString());
+  });
+
+  test("an opening that is drawn first, and a switch after it: the switch is the last word", async () => {
+    await opened();
+    later();
+
+    expect((await opened(ALICE)).projectId).toBe(PRODUCTION.toString());
+    expect(
+      (await switched({ value: SANDBOX.toString(), shown: PRODUCTION }))
+        .projectId,
+    ).toBe(SANDBOX.toString());
+    expect(projectOfView(shownHome())).toBe(SANDBOX.toString());
+  });
+
+  test("an opening with the view Slack had, and nothing drawn since: drawn over that view, naming it", async () => {
+    await opened();
+    later();
+
+    const viewBefore: string = homeViewHashes.get(ALICE)!;
+    const count: number = calls("views.publish").length;
+
+    expect((await deliverEvent(openHomeIn(TEAM_ID, ALICE, true))).status).toBe(
+      200,
+    );
+    await until((): boolean => {
+      return calls("views.publish").length === count + 1;
+    }, "the Home drawn");
+
+    const publish: SlackCall = calls("views.publish")[count]!;
+
+    expect(publish.data["hash"]).toBe(viewBefore);
+    expect(publish.answer["ok"]).toBe(true);
+    expect(homeViewHashes.get(ALICE)).not.toBe(viewBefore);
+  });
+
+  test("an opening Slack sends no view with - nothing published for her yet - names none", async () => {
+    const count: number = calls("views.publish").length;
+
+    expect((await deliverEvent(openHomeIn(TEAM_ID, ALICE, true))).status).toBe(
+      200,
+    );
+    await until((): boolean => {
+      return calls("views.publish").length === count + 1;
+    }, "the Home drawn");
+
+    expect(calls("views.publish")[count]!.data["hash"]).toBeUndefined();
+  });
 
   test("Alice, a member in three of the four projects: the first one's Home, with Switch project beside its name, listing her other two - never the one she is not connected in", async () => {
     const home: DrawnHome = await opened();
@@ -1870,9 +2107,31 @@ describe("a person in several of the workspace's projects: Switch project", () =
     later();
     expect((await opened()).projectId).toBe(SANDBOX.toString());
 
-    // One choice kept for her in this workspace, the last.
-    expect(rememberedHomes()).toHaveLength(1);
-    expect(rememberedHomes()[0]!.value).toBe(SANDBOX.toString());
+    // Her choices, the last one newest - kept in Postgres, none in the cache.
+    expect(
+      rememberedHomes().map((entry: { value: string; slackUserId: string }) => {
+        return [entry.value, entry.slackUserId];
+      }),
+    ).toEqual([
+      [SANDBOX.toString(), ALICE],
+      [STAGING.toString(), ALICE],
+    ]);
+    expect(homeChoiceCacheKeys()).toEqual([]);
+  });
+
+  test("switching back to a project she chose before writes its choice again: her next opening shows it, one row a project", async () => {
+    await opened();
+    await switched({ value: STAGING.toString(), shown: PRODUCTION });
+    await switched({ value: SANDBOX.toString(), shown: STAGING });
+    await switched({ value: STAGING.toString(), shown: SANDBOX });
+
+    later();
+    expect((await opened()).projectId).toBe(STAGING.toString());
+    expect(
+      rememberedHomes().map((entry: { value: string }) => {
+        return entry.value;
+      }),
+    ).toEqual([STAGING.toString(), SANDBOX.toString()]);
   });
 
   test("kept for each person in each workspace: Erin, in the same three, still sees the first; Alice's Home elsewhere is her own", async () => {
@@ -1889,23 +2148,25 @@ describe("a person in several of the workspace's projects: Switch project", () =
     expect(elsewhere.json).not.toContain("Acme");
   });
 
-  test("kept while she goes on opening it: each opening keeps it for ninety days again", async () => {
+  test("kept for good: a year on, and with the cache emptied, her Home still opens on it - opening it writes nothing", async () => {
     await opened();
     await switched({ value: STAGING.toString(), shown: PRODUCTION });
 
-    const ninetyDays: number = 90 * 24 * 60 * 60 * 1000;
-    const keptAt: number = rememberedHomes()[0]!.expiresAt;
+    const writes: number = homeChoices.writes();
 
-    expect(keptAt - Date.now()).toBeGreaterThan(ninetyDays - 60000);
-
-    // Sixty days on, she opens it: kept for ninety days from then.
-    clockOffsetInMs += 60 * 24 * 60 * 60 * 1000;
+    // Valkey restarted: the cache holds nothing any more.
+    (
+      jest.requireMock("../../../Server/Infrastructure/GlobalCache") as {
+        default: { store: Map<string, unknown> };
+      }
+    ).default.store.clear();
+    clockOffsetInMs += 365 * 24 * 60 * 60 * 1000;
 
     expect((await opened()).projectId).toBe(STAGING.toString());
-    expect(rememberedHomes()[0]!.expiresAt - Date.now()).toBeGreaterThan(
-      ninetyDays - 60000,
-    );
-    expect(rememberedHomes()[0]!.expiresAt).toBeGreaterThan(keptAt);
+    later();
+    expect((await opened()).projectId).toBe(STAGING.toString());
+    // An opening only reads which project she chose.
+    expect(homeChoices.writes()).toBe(writes);
   });
 
   test("removed from the project she chose: her next opening falls back to the first, the menu listing only what she is still in", async () => {
@@ -2105,7 +2366,7 @@ describe("a person in several of the workspace's projects: Switch project", () =
      * never one of her three left unnamed.
      */
     expect(home.texts).toEqual([
-      "👋 Hi there",
+      "👋 Hi Alice",
       "Here's what is happening in *Acme Staging*.\n",
       `${ExceptionMessages.ProjectBlocked}\n`,
     ]);
@@ -2145,7 +2406,7 @@ describe("a person in several of the workspace's projects: Switch project", () =
     expect(home.projectId).toBe(PRODUCTION.toString());
     // Never "this project has been blocked" left to read as the one she chose.
     expect(home.texts).toEqual([
-      "👋 Hi there",
+      "👋 Hi Alice",
       REFUSED,
       "Here's what is happening in *Acme Production*.\n",
       `${ExceptionMessages.ProjectBlocked}\n`,
@@ -2168,7 +2429,7 @@ describe("a person in several of the workspace's projects: Switch project", () =
 
     expect(home.projectId).toBe(SANDBOX.toString());
     expect(home.texts).toEqual([
-      "👋 Hi there",
+      "👋 Hi Alice",
       "Here's what is happening in *Acme Sandbox*.\n",
       `${WorkspaceActionAuthorization.NOT_A_PROJECT_MEMBER_MESSAGE}\n`,
     ]);
@@ -2198,58 +2459,27 @@ describe("a person in several of the workspace's projects: Switch project", () =
     expect(home.menu).toBeNull();
   });
 
-  test("the cache is down: the Home of the first project; choosing still draws the one chosen, which her next opening cannot keep", async () => {
-    interface CacheMethod {
-      getMockImplementation: () => unknown;
-      mockImplementation: (implementation: never) => unknown;
-    }
+  test("the choices cannot be read or kept - the database refuses: the Home of the first project; choosing still draws the one chosen, which her next opening cannot keep - and it is logged", async () => {
+    homeChoices.failWith(new Error("connection refused"));
 
-    // The in-memory cache's own methods, put back once this is done.
-    const cache: { getString: CacheMethod; setString: CacheMethod } = (
-      jest.requireMock("../../../Server/Infrastructure/GlobalCache") as {
-        default: { getString: CacheMethod; setString: CacheMethod };
-      }
-    ).default;
-    const realGetString: (...args: Array<unknown>) => Promise<unknown> =
-      cache.getString.getMockImplementation() as (
-        ...args: Array<unknown>
-      ) => Promise<unknown>;
-    const realSetString: (...args: Array<unknown>) => Promise<unknown> =
-      cache.setString.getMockImplementation() as (
-        ...args: Array<unknown>
-      ) => Promise<unknown>;
+    expect((await opened()).projectId).toBe(PRODUCTION.toString());
+    expect(
+      (await switched({ value: STAGING.toString(), shown: PRODUCTION }))
+        .projectId,
+    ).toBe(STAGING.toString());
 
-    // Only what keeps a Home's project fails: the rest of the cache is up.
-    for (const [method, real] of [
-      [cache.getString, realGetString],
-      [cache.setString, realSetString],
-    ] as Array<[CacheMethod, (...args: Array<unknown>) => Promise<unknown>]>) {
-      method.mockImplementation((async (
-        namespace: string,
-        ...rest: Array<unknown>
-      ) => {
-        if (namespace === "slack-project-choice-home") {
-          throw new Error("connection refused");
-        }
+    later();
+    expect((await opened()).projectId).toBe(PRODUCTION.toString());
+    expect(rememberedHomes()).toEqual([]);
+    expect(errorLines).toContain(
+      "Could not record the project a chat Home was switched to.",
+    );
 
-        return await real(namespace, ...rest);
-      }) as never);
-    }
-
-    try {
-      expect((await opened()).projectId).toBe(PRODUCTION.toString());
-      expect(
-        (await switched({ value: STAGING.toString(), shown: PRODUCTION }))
-          .projectId,
-      ).toBe(STAGING.toString());
-
-      later();
-      expect((await opened()).projectId).toBe(PRODUCTION.toString());
-      expect(rememberedHomes()).toEqual([]);
-    } finally {
-      cache.getString.mockImplementation(realGetString as never);
-      cache.setString.mockImplementation(realSetString as never);
-    }
+    // Back up: her next choice is kept.
+    homeChoices.failWith(null);
+    await switched({ value: SANDBOX.toString(), shown: PRODUCTION });
+    later();
+    expect((await opened()).projectId).toBe(SANDBOX.toString());
   });
 
   test("a long project name: cut in the menu to what Slack takes, named in full on the Home it chooses", async () => {

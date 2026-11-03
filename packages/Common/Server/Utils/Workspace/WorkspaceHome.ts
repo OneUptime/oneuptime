@@ -15,6 +15,7 @@ import {
   WorkspacePayloadHeader,
   WorkspacePayloadMarkdown,
   WorkspacePayloadMenu,
+  WorkspacePayloadMenuOption,
 } from "../../../Types/Workspace/WorkspaceMessagePayload";
 import WorkspaceType from "../../../Types/Workspace/WorkspaceType";
 import FeedMarkdown, {
@@ -33,6 +34,7 @@ import WorkspaceMessageTime from "./WorkspaceMessageTime";
 import WorkspaceOpenRecords, {
   WorkspaceOpenRecordList,
 } from "./WorkspaceOpenRecords";
+import { WorkspaceProjectChoice } from "./WorkspaceProjectResolution";
 
 // A name that ends its own sentence - "Acme Inc.", "Yahoo!" - takes no full stop after it.
 const SENTENCE_END: RegExp = /[.!?]$/;
@@ -64,9 +66,13 @@ const SENTENCE_END: RegExp = /[.!?]$/;
  * one text block that a single line break separates). The footer is small
  * and muted (WorkspacePayloadContext).
  *
- * In Slack, somebody connected as a member in two or more of the projects a
- * workspace is connected to sees one of them at a time, with a Switch
- * project menu of the others beside the line that names it (SlackHome).
+ * Somebody connected as a member in two or more of the projects a Slack
+ * workspace or a Microsoft 365 organization is connected to sees one of
+ * them at a time, with a Switch project menu of the others that goes with
+ * the line that names it (getProjectMenu): Slack draws it beside the line
+ * (SlackHome), Microsoft Teams under it, with a button that switches
+ * (MicrosoftTeamsHome). The project they choose is the one their Home
+ * opens on from then on (WorkspaceHomeProject).
  *
  * Everything is read as the member the chat account is connected to, with
  * their own permissions (the lists through WorkspaceOpenRecords): a part
@@ -137,6 +143,15 @@ export const WORKSPACE_HOME_TEXT: {
   whoIsOnCall: string;
   refresh: string;
   connect: Record<WorkspaceType, string>;
+  // The Switch project menu, while nothing is chosen.
+  switchProject: string;
+  /*
+   * Microsoft Teams' button beside it - "Switch" - and, for somebody with
+   * one other project, "Switch to <it>" in its place.
+   */
+  switchButton: string;
+  // What Teams says when Switch is pressed with nothing chosen.
+  switchNothingChosen: string;
 } = {
   declareIncident: "🚨 Declare incident",
   pageSomeone: "📟 Page someone",
@@ -147,7 +162,22 @@ export const WORKSPACE_HOME_TEXT: {
     [WorkspaceType.Slack]: "Connect Slack account",
     [WorkspaceType.MicrosoftTeams]: "Connect Microsoft Teams account",
   },
+  switchProject: "Switch project",
+  switchButton: "Switch",
+  switchNothingChosen: "Choose a project to switch to.",
 };
+
+// A chat's own name, as its Home names it.
+const WORKSPACE_NAMES: Record<WorkspaceType, string> = {
+  [WorkspaceType.Slack]: "Slack",
+  [WorkspaceType.MicrosoftTeams]: "Microsoft Teams",
+};
+
+/*
+ * The most projects a Switch project menu lists: as many as Slack's static
+ * select takes. Somebody in more is shown the first of them.
+ */
+const MAX_PROJECT_MENU_OPTIONS: number = 100;
 
 export default class WorkspaceHome {
   // How many records each list on the Home shows; it links to the rest.
@@ -211,10 +241,9 @@ export default class WorkspaceHome {
     view: WorkspaceHomeView;
     actions: WorkspaceHomeActions;
     /*
-     * A menu beside the line that names the project: the Slack Home's
-     * Switch project, for somebody in several of a workspace's projects
-     * (SlackHome). It needs that line, so a view without the project's
-     * name draws none.
+     * A menu with the line that names the project: Switch project, for
+     * somebody in several of a workspace's projects (getProjectMenu). It
+     * needs that line, so a view without the project's name draws none.
      */
     projectMenu?: WorkspacePayloadMenu | undefined;
     // A line under the greeting, before anything else: why the Home shows this project.
@@ -223,9 +252,7 @@ export default class WorkspaceHome {
     const { view } = data;
 
     const blocks: Array<WorkspaceMessageBlock> = [
-      WorkspaceHome.header(
-        view.firstName ? `👋 Hi ${view.firstName}` : "👋 Hi there",
-      ),
+      WorkspaceHome.header(WorkspaceHome.getGreeting(view.firstName)),
     ];
 
     if (data.notice) {
@@ -325,23 +352,32 @@ export default class WorkspaceHome {
 
   /*
    * The Home of somebody the project refuses - not a member any more, or
-   * the project blocked by an administrator: why, in the refusal's own
-   * words, and nothing the project holds. Somebody in several of a
-   * workspace's projects (the Slack Home's Switch project) is told which
-   * one, on the line that names it on every Home, with the menu of their
-   * others beside it - so "this project" is never one of several left
-   * unnamed, and they can always switch away from it. A notice comes first,
-   * as on any Home.
+   * the project blocked by an administrator: greeted as on any Home, then
+   * why, in the refusal's own words, and nothing the project holds.
+   * Somebody in several of a workspace's projects (Switch project) is told
+   * which one, on the line that names it on every Home, with the menu of
+   * their others - so "this project" is never one of several left unnamed,
+   * and they can always switch away from it. A notice comes first, as on
+   * any Home.
    */
   public static getRefusedBlocks(data: {
     // Plain text, as NotAuthorizedException words it: never Markdown.
     message: string;
+    // Their first name, as every Home greets them (readFirstName).
+    firstName?: string | null | undefined;
     projectName?: string | null | undefined;
     projectMenu?: WorkspacePayloadMenu | undefined;
     notice?: MarkdownText | undefined;
+    /*
+     * The chat it is drawn in. Slack draws a menu beside the line it goes
+     * with: the line that names the project. Microsoft Teams draws it under
+     * its line, so there it goes with why - the reason reads before the way
+     * out, and the project's line keeps its place above both.
+     */
+    workspaceType?: WorkspaceType | undefined;
   }): Array<WorkspaceMessageBlock> {
     const blocks: Array<WorkspaceMessageBlock> = [
-      WorkspaceHome.header("👋 Hi there"),
+      WorkspaceHome.header(WorkspaceHome.getGreeting(data.firstName)),
     ];
 
     if (data.notice) {
@@ -352,13 +388,20 @@ export default class WorkspaceHome {
       mdText`${data.message}`,
     );
 
+    const isMenuUnderWhy: boolean =
+      data.workspaceType === WorkspaceType.MicrosoftTeams;
+
     if (data.projectMenu && data.projectName) {
       blocks.push(
         WorkspaceHome.getProjectLine({
           projectName: data.projectName,
-          projectMenu: data.projectMenu,
+          projectMenu: isMenuUnderWhy ? undefined : data.projectMenu,
         }),
       );
+
+      if (isMenuUnderWhy) {
+        refusal.menu = data.projectMenu;
+      }
     } else if (data.projectMenu) {
       // No name to put it beside: the menu goes beside why.
       refusal.menu = data.projectMenu;
@@ -370,9 +413,87 @@ export default class WorkspaceHome {
   }
 
   /*
+   * "👋 Hi Nitin", or "👋 Hi there" for somebody whose name is not known -
+   * on every Home, refused or not.
+   */
+  public static getGreeting(firstName: string | null | undefined): string {
+    const name: string = (firstName || "").trim();
+
+    return name ? `👋 Hi ${name}` : "👋 Hi there";
+  }
+
+  /*
+   * The Switch project menu of somebody's Home: the projects of theirs
+   * (`choices`, named, in the order the projects were connected) other than
+   * the one shown, by name. Null when there is no other, or the project
+   * shown is not among them - the menu belongs to the Home of one of the
+   * person's own projects. It names nothing a press decides: each chat reads
+   * the person's projects again when one is chosen.
+   */
+  public static getProjectMenu(data: {
+    actionId: string;
+    shownProjectId: ObjectID;
+    choices: Array<WorkspaceProjectChoice>;
+    // Names this drawing of the menu (WorkspacePayloadMenu.blockId).
+    blockId?: string | undefined;
+  }): WorkspacePayloadMenu | null {
+    const isShown: (choice: WorkspaceProjectChoice) => boolean = (
+      choice: WorkspaceProjectChoice,
+    ): boolean => {
+      return (
+        choice.projectId.toString().toLowerCase() ===
+        data.shownProjectId.toString().toLowerCase()
+      );
+    };
+
+    const others: Array<WorkspaceProjectChoice> = data.choices.filter(
+      (choice: WorkspaceProjectChoice): boolean => {
+        return !isShown(choice);
+      },
+    );
+
+    if (!data.choices.some(isShown) || others.length === 0) {
+      return null;
+    }
+
+    const menu: WorkspacePayloadMenu = {
+      actionId: data.actionId,
+      placeholder: WORKSPACE_HOME_TEXT.switchProject,
+      options: others
+        .slice(0, MAX_PROJECT_MENU_OPTIONS)
+        .map((choice: WorkspaceProjectChoice): WorkspacePayloadMenuOption => {
+          return {
+            label: choice.name,
+            value: choice.projectId.toString(),
+          };
+        }),
+      submitTitle: WORKSPACE_HOME_TEXT.switchButton,
+      requiredMessage: WORKSPACE_HOME_TEXT.switchNothingChosen,
+    };
+
+    if (data.blockId) {
+      menu.blockId = data.blockId;
+    }
+
+    return menu;
+  }
+
+  /*
+   * What a Home drawn for a project switch it could not follow says first,
+   * under the greeting - without naming the project the press named, which
+   * anybody could write: "⚠️ You can't switch to that project: you're no
+   * longer a member of it, or your Slack account isn't connected there."
+   */
+  public static getSwitchRefusedNotice(
+    workspaceType: WorkspaceType,
+  ): MarkdownText {
+    return mdText`⚠️ You can't switch to that project: you're no longer a member of it, or your ${WORKSPACE_NAMES[workspaceType]} account isn't connected there.`;
+  }
+
+  /*
    * "Here's what is happening in **Acme Production**." - the line under the
-   * greeting that says which project the Home is for, with the Slack Home's
-   * Switch project menu beside it when there is one.
+   * greeting that says which project the Home is for, with the Switch
+   * project menu when there is one.
    */
   public static getProjectLine(data: {
     projectName: string;
@@ -830,7 +951,11 @@ export default class WorkspaceHome {
     }
   }
 
-  private static async readFirstName(userId: ObjectID): Promise<string | null> {
+  /*
+   * The first name of the member a Home is for, to greet them by; null when
+   * it cannot be read. Never throws.
+   */
+  public static async readFirstName(userId: ObjectID): Promise<string | null> {
     try {
       const user: User | null = await UserService.findOneById({
         id: userId,
