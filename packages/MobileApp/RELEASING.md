@@ -398,7 +398,11 @@ describe it there - the list beside its detail on unfolded foldables and
 tablets, the rail, and on Android the tabletop layout (Home and Settings split
 on the crease, sheets over the lower half) and the divider that can be moved -
 in the same change for every language. The same goes for the actions under an
-on-call page's push (below).
+on-call page's push (below): the FAQ's "Can I acknowledge a page from the
+notification?" still answers no, for the app the stores have, and
+`packages/App/Tests/FeatureSet/Docs/MobileDesktopDocsFacts.test.ts` fails
+once `app.json` moves past 1.6.0 until it names **Acknowledge** and
+**Escalate**.
 
 ### On-call pages: Acknowledge and Escalate under the push
 

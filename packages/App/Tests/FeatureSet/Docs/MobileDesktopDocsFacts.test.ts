@@ -785,18 +785,52 @@ describe("pages arriving on the phone", () => {
     ).toContain("OneUptime sends on-call pages at high priority");
   });
 
-  it("carry no actions to acknowledge from: the server names no notification category", () => {
+  /*
+   * Every page's push names the ON_CALL_PAGE category, and only the app
+   * release after 1.6.0 registers it, with Acknowledge and Escalate
+   * (src/notifications/categories.ts): the app the stores have shows a page
+   * with no actions. The FAQ answers for the app people can install, so it
+   * says no until the release that registers the category moves app.json
+   * past 1.6.0 - and from that release on it has to say what the actions do
+   * (RELEASING.md, "On-call pages: Acknowledge and Escalate under the push").
+   */
+  it("carry Acknowledge and Escalate only from the app release after 1.6.0: until it ships, the FAQ says no", () => {
     const pushService: string = common(
       "Server/Services/PushNotificationService.ts",
     );
-
-    expect(pushService).not.toContain("categoryId");
-    expect(pushService).not.toContain("categoryIdentifier");
-    expect(
-      detailsBlock(FAQ, "Can I acknowledge a page from the notification?"),
-    ).toContain(
-      "No. Tap the notification: the app opens the incident, alert, episode or security case it is about, in the right project, and you acknowledge it there.",
+    const categories: string = mobile("src/notifications/categories.ts");
+    const answer: string = detailsBlock(
+      FAQ,
+      "Can I acknowledge a page from the notification?",
     );
+    const version: RegExpMatchArray | null =
+      appJson().expo.version.match(SEMVER);
+
+    expect(pushService).toContain("categoryId: message.categoryId");
+    expect(categories).toContain(
+      'export const ON_CALL_PAGE_CATEGORY: string = "ON_CALL_PAGE";',
+    );
+    expect(categories).toContain('buttonTitle: "Acknowledge",');
+    expect(version).not.toBeNull();
+
+    const released: number =
+      Number(version?.[1]) * 10000 +
+      Number(version?.[2]) * 100 +
+      Number(version?.[3]);
+    const storeAppHasActions: boolean = released > 10600;
+
+    expect({
+      storeAppHasActions,
+      saysNo: answer.includes(
+        "No. Tap the notification: the app opens the incident, alert, episode or security case it is about, in the right project, and you acknowledge it there.",
+      ),
+      namesTheActions:
+        answer.includes("**Acknowledge**") && answer.includes("**Escalate**"),
+    }).toEqual({
+      storeAppHasActions,
+      saysNo: !storeAppHasActions,
+      namesTheActions: storeAppHasActions,
+    });
   });
 
   it("open the security case they are about: the server names the case and its project, and the app opens its screen", () => {
@@ -1062,9 +1096,11 @@ describe("what the mobile app keeps and shows", () => {
     const settings: string = flat(mobile("src/screens/SettingsScreen.tsx"));
     const biometric: string = flat(mobile("src/hooks/useBiometric.ts"));
 
+    // Its own group, in the one scroll or below a tabletop fold.
     expect(settings).toMatch(
-      /\{biometric\.isAvailable \? \( <ListGroup title="Security"[^>]*> <ListItem title="Biometrics Login"/,
+      /biometric\.isAvailable \? \( <ListGroup title="Security"[^>]*> <ListItem title="Biometrics Login"/,
     );
+    expect(settings.split("{security}").length - 1).toBe(2);
     expect(biometric).toContain(
       "const compatible: boolean = await LocalAuthentication.hasHardwareAsync(); const enrolled: boolean = await LocalAuthentication.isEnrolledAsync();",
     );
