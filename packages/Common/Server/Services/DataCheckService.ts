@@ -12,6 +12,7 @@ import {
   readDataAssetColumns,
 } from "../../Types/DataObservability/DataAssetColumn";
 import { getDataTableKey } from "../../Types/DataObservability/DataObservabilityMetric";
+import { DataCheckType } from "../../Types/DataObservability/DataCheckType";
 import OneUptimeDate from "../../Types/Date";
 import BadDataException from "../../Types/Exception/BadDataException";
 import { JSONObject } from "../../Types/JSON";
@@ -26,8 +27,20 @@ import {
  * The checks on a table's values. Every check is validated against the
  * table's catalog as it is saved - its column, its segment column and the
  * table it refers to must be ones the collection saw - and runs at the
- * store's next collection once saved or changed.
+ * store's next collection once saved or changed. A dbt test's check is
+ * made and kept by its project's uploaded artifacts (DbtIngest): a person
+ * turns it off or on, and sets its alert, and nothing else.
  */
+
+// What a person may change of a dbt test's check.
+const DBT_TEST_EDITABLE_FIELDS: ReadonlyArray<string> = [
+  "isEnabled",
+  "alertCondition",
+  "alertThreshold",
+];
+
+const DBT_TEST_REFUSAL: string =
+  "A dbt test is defined in your dbt project and comes from its artifacts: here it is only turned off or on, and alerted on.";
 
 // The fields of a check that decide what it runs.
 const RUN_FIELDS: ReadonlyArray<string> = [
@@ -54,6 +67,13 @@ export class Service extends ProjectReferencesService<Model> {
   ): Promise<OnCreate<Model>> {
     await super.onBeforeCreate(createBy);
 
+    if (
+      createBy.data.checkType === DataCheckType.DbtTest &&
+      !createBy.props.isRoot
+    ) {
+      throw new BadDataException(DBT_TEST_REFUSAL);
+    }
+
     const asset: DataAsset = await this.readAsset(
       createBy.data.dataAssetId,
       createBy.props.tenantId || createBy.data.projectId,
@@ -74,6 +94,10 @@ export class Service extends ProjectReferencesService<Model> {
     await super.onBeforeUpdate(updateBy);
 
     const data: JSONObject = updateBy.data as unknown as JSONObject;
+
+    if (!updateBy.props.isRoot) {
+      await this.refuseDbtTestEdits(updateBy, data);
+    }
     const changesRun: boolean = RUN_FIELDS.some((field: string) => {
       return data[field] !== undefined;
     });
@@ -123,6 +147,39 @@ export class Service extends ProjectReferencesService<Model> {
       OneUptimeDate.getCurrentDate();
 
     return { updateBy, carryForward: undefined };
+  }
+
+  // A person sets only whether a dbt test is recorded, and its alert.
+  private async refuseDbtTestEdits(
+    updateBy: UpdateBy<Model>,
+    data: JSONObject,
+  ): Promise<void> {
+    if (data["checkType"] === DataCheckType.DbtTest) {
+      throw new BadDataException(DBT_TEST_REFUSAL);
+    }
+
+    const changesDefinition: boolean = Object.keys(data).some(
+      (field: string) => {
+        return (
+          data[field] !== undefined && !DBT_TEST_EDITABLE_FIELDS.includes(field)
+        );
+      },
+    );
+
+    if (!changesDefinition) {
+      return;
+    }
+
+    const dbtTests: number = (
+      await this.countBy({
+        query: { ...updateBy.query, checkType: DataCheckType.DbtTest },
+        props: { isRoot: true },
+      })
+    ).toNumber();
+
+    if (dbtTests > 0) {
+      throw new BadDataException(DBT_TEST_REFUSAL);
+    }
   }
 
   private async readAsset(

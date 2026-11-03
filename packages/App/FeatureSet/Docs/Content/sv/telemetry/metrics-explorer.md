@@ -112,15 +112,16 @@ Fliken **Insikter** räknar mätvärdena i ett tidsintervall: **Aktiva mått**, 
 
 ## Förbättra mätvärden och lägg till de som saknas med AI
 
-Varje timme går OneUptime igenom mätvärdena som dina tjänster skickade under den senaste timmen efter sådana som registrerar för många värden, histogram vars buckets inte passar och hårt belastade tjänster som inte skickar några mätvärden. Det den hittar registrerar den som AI-insikter, med bevisen. Sedan undersöker OneUptime AI varje fynd och öppnar en pull request som åtgärdar det. Inget slås någonsin ihop: ditt team granskar varje pull request.
+Varje timme går OneUptime igenom mätvärdena som dina tjänster skickade under den senaste timmen efter sådana som registrerar för många värden, histogram vars buckets inte passar och hårt belastade tjänster som inte skickar några mätvärden för sina förfrågningar. Det den hittar registrerar den som AI-insikter, med bevisen. Sedan undersöker OneUptime AI varje fynd och öppnar en pull request som åtgärdar det. Inget slås någonsin ihop: ditt team granskar varje pull request.
 
-OneUptime läser noga de 10 mätvärden som dina tjänster skickade flest datapunkter för under timmen, vart och ett med minst 1 000 av dem, och registrerar tre sorters fynd:
+OneUptime läser noga de 10 mätvärden som dina tjänster skickade flest datapunkter för under timmen, vart och ett med minst 1 000 av dem, och registrerar fyra sorters fynd:
 
 | Fynd | När OneUptime registrerar det | Pull requesten |
 | --- | --- | --- |
 | **Hög kardinalitet** | Ett attribut som koden sätter på ett av de mätvärdena fick 1 000 eller fler värden under timmen, till exempel användar-ID:n eller fullständiga URL:er, så att varje värde blir en egen serie. Eller så är 50 eller fler av en tjänsts mätvärdesnamn ett och samma namn med ett annat ID i. | Slutar registrera värdet på mätvärdet, eller tar bort ID:na ur dess namn. |
 | **Fel histogram-buckets** | Ett av de mätvärdena är ett histogram som registrerade 1 000 eller fler värden, och 90 % eller fler av dem hamnade i dess minsta bucket eller över dess största, eller så har det inga buckets, så att dess percentiler inte går att skilja åt. | Ger histogrammet buckets som passar dess värden, eller rättar dess enhet. |
 | **Saknade mätvärden** | En tjänst skickade 1 000 eller fler spans under timmen och har aldrig skickat ett mätvärde. | Lägger till antalet förfrågningar, felen och varaktigheten för dess mest belastade operationer som mätvärden. |
+| **Saknade förfrågningsmätvärden** | En tjänst skickade 1 000 eller fler spans under timmen, och även mätvärden, men har aldrig skickat ett förfrågningsmätvärde för de HTTP-förfrågningar, RPC-anrop eller meddelanden den hanterar, till exempel `http.server.request.duration`. | Lägger till de förfrågningsmätvärdena med OpenTelemetry-instrumenteringen för dess ramverk. |
 
 Ett fynd lagrar aldrig ett attributs värden: bara attributets namn, hur många värden det fick och hur de ser ut.
 
@@ -144,9 +145,34 @@ Under **Fler fält** väljer en regel de kodrepositorier, MCP-servrar och den LL
 
 ### Se vad den gjorde
 
-- **Mått → AI → Insikter** visar vad OneUptime hittade, varje fynd med sina bevis och **Öppna i Mått**, som öppnar dess mätvärde för dess tjänst, från timmen då det hittades. En tjänst utan mätvärden erbjuder i stället **Öppna i Spår**: de spans som dess mätvärden skulle mäta.
+- **Mått → AI → Insikter** visar vad OneUptime hittade, varje fynd med sina bevis och **Öppna i Mått**, som öppnar dess mätvärde för dess tjänst, från timmen då det hittades. En tjänst utan mätvärden, eller utan mätvärden för sina förfrågningar, erbjuder i stället **Öppna i Spår**: de spans som dess mätvärden skulle mäta.
 - **Mått → AI → Loggar** visar varje utredning och varje pull request, nyast först, med hur var och en står och vad varje utredning hittade.
 - I Kod säger uppgiften att OneUptime startade den, med en länk till dess fynd, och pull requesten säger varför den öppnades.
+
+### Registrera förfrågningsmätvärden utan att ändra kod
+
+Ett fynd av typen **Saknade mätvärden** eller **Saknade förfrågningsmätvärden** erbjuder **Utan att ändra kod** bredvid **Åtgärda med AI**: den OpenTelemetry Collector som dina spår passerar registrerar förfrågningsmätvärdena från dem. **Visa collector-steget** ger raderna att lägga till, `spanmetrics` som exporter i traces-pipelinen och som receiver i metrics-pipelinen:
+
+```yaml title="otel-collector-config.yaml"
+connectors:
+  spanmetrics:
+    histogram:
+      unit: s
+    aggregation_temporality: AGGREGATION_TEMPORALITY_DELTA
+
+service:
+  pipelines:
+    traces:
+      receivers: [otlp]
+      processors: [batch]
+      exporters: [otlphttp, spanmetrics]
+    metrics:
+      receivers: [otlp, spanmetrics]
+      processors: [batch]
+      exporters: [otlphttp]
+```
+
+Starta om collectorn. Varje tjänst vars spår passerar genom den skickar då `traces.span.metrics.calls` och `traces.span.metrics.duration` (i sekunder) för varje operation, span-typ och status, och OneUptime hittar inte längre problemet, så lös fyndet. Connectorn räknar varje span som collectorn tar emot, även sådana som en sampler senare släpper. En tjänst som skickar direkt till OneUptime behöver först en collector framför sig: se [Skicka via en OpenTelemetry Collector](/docs/telemetry/open-telemetry#skicka-via-en-opentelemetry-collector).
 
 ## Vad som händer med mätvärden när de kommer in
 

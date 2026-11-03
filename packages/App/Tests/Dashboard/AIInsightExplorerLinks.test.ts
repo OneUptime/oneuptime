@@ -1329,6 +1329,41 @@ describe("buildInsightInvestigationLink — Metrics' findings", () => {
     expect(query.get("end")).toBe(METRIC_WINDOW.windowEndTime);
   });
 
+  test("a service that sends metrics but none for its requests: its spans in Traces too, in the hour it was found in", () => {
+    const link: AIInsightExplorerLink | null =
+      Links.buildInsightInvestigationLink(
+        input({
+          insightType: AIInsightType.MetricMissingRequestMetrics,
+          serviceId: SERVICE_ID,
+          metric: { kind: "MissingRequestMetrics", ...METRIC_WINDOW },
+        }),
+      );
+
+    expect(link!.target).toBe("traces");
+    expect(link!.label).toBe("Open in Traces");
+    expect(pathOf(link!.route)).toBe("/dashboard/:projectId/traces");
+
+    const query: URLSearchParams = queryOf(link!.route);
+
+    expect(JSON.parse(query.get("filters") || "[]")).toEqual([
+      ["primaryEntityId", SERVICE_ID],
+    ]);
+    expect(query.get("start")).toBe(METRIC_WINDOW.windowStartTime);
+    expect(query.get("end")).toBe(METRIC_WINDOW.windowEndTime);
+
+    // Without its evidence, the hour before it was last seen, as the others.
+    const row: AIInsightExplorerLink | null =
+      Links.buildInsightInvestigationLink(
+        input({
+          insightType: AIInsightType.MetricMissingRequestMetrics,
+          serviceId: SERVICE_ID,
+        }),
+      );
+
+    expect(queryOf(row!.route).get("start")).toBe("2026-08-14T09:00:00.000Z");
+    expect(queryOf(row!.route).get("end")).toBe(LAST_SEEN.toISOString());
+  });
+
   test("without its evidence (a list row), the hour before it was last seen", () => {
     expect(Links.METRIC_INSIGHT_WINDOW_MINUTES).toBe(
       METRIC_INSIGHT_WINDOW_MINUTES,
@@ -1501,10 +1536,11 @@ describe("buildInsightInvestigationLink — URL-hostile character sweep", () => 
           case AIInsightType.TraceSlowOperation:
           case AIInsightType.TraceFailingOperation:
           case AIInsightType.TraceMissingTracing:
-          case AIInsightType.MetricMissingMetrics: {
+          case AIInsightType.MetricMissingMetrics:
+          case AIInsightType.MetricMissingRequestMetrics: {
             /*
-             * (A service with no metrics opens its spans: what they would
-             * measure.)
+             * (A service with no metrics, or none for its requests, opens
+             * its spans: what they would measure.)
              *
              * The traces grammar carries the value in `search`, escaped
              * where a character would otherwise read as an operator, and

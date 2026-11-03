@@ -36,7 +36,7 @@ const SCHEMA_MIGRATIONS_DIRECTORY: string = path.join(
 
 const MIGRATION_PATH: string = path.join(
   SCHEMA_MIGRATIONS_DIRECTORY,
-  "1808991700000-AddMagicLinkLogin.ts",
+  "1808991900000-AddMagicLinkLogin.ts",
 );
 
 const MIGRATIONS_INDEX_PATH: string = path.join(
@@ -198,8 +198,8 @@ describe("the AddMagicLinkLogin migration", () => {
     const index: string = fs.readFileSync(MIGRATIONS_INDEX_PATH, "utf8");
 
     expect(index).toContain(
-      'import { AddMagicLinkLogin1808991700000 } from "./1808991700000-AddMagicLinkLogin";',
+      'import { AddMagicLinkLogin1808991900000 } from "./1808991900000-AddMagicLinkLogin";',
     );
-    expect(index).toMatch(/\n {2}AddMagicLinkLogin1808991700000,\n/);
+    expect(index).toMatch(/\n {2}AddMagicLinkLogin1808991900000,\n/);
   });
 });

@@ -1092,6 +1092,10 @@ describe("AiActivityInsightsReader.read", () => {
           AIInsightType.MetricMissingMetrics,
           `metric-missing-metrics:${serviceId}`,
         ],
+        [
+          AIInsightType.MetricMissingRequestMetrics,
+          `metric-missing-request-metrics:${serviceId}`,
+        ],
       ];
 
       for (const [insightType, fingerprint] of findings) {

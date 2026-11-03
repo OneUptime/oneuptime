@@ -275,7 +275,9 @@ import { AddDataAssetUsage1808991300000 } from "./1808991300000-AddDataAssetUsag
 import { AddDataChecks1808991400000 } from "./1808991400000-AddDataChecks";
 import { AddDataPipelines1808991500000 } from "./1808991500000-AddDataPipelines";
 import { AddDataPipelineSchedule1808991600000 } from "./1808991600000-AddDataPipelineSchedule";
-import { AddMagicLinkLogin1808991700000 } from "./1808991700000-AddMagicLinkLogin";
+import { AddDbtArtifacts1808991700000 } from "./1808991700000-AddDbtArtifacts";
+import { AddDataAlerts1808991800000 } from "./1808991800000-AddDataAlerts";
+import { AddMagicLinkLogin1808991900000 } from "./1808991900000-AddMagicLinkLogin";
 import { AddConfigurableRuleCriteria1792500000000 } from "./1792500000000-AddConfigurableRuleCriteria";
 import { AddGoogleSecOpsDiagnostics1792300000000 } from "./1792300000000-AddGoogleSecOpsDiagnostics";
 import { AddIncomingCallPolicyPhoneNumbers1792600000000 } from "./1792600000000-AddIncomingCallPolicyPhoneNumbers";
@@ -1753,5 +1755,7 @@ export default [
   AddDataChecks1808991400000,
   AddDataPipelines1808991500000,
   AddDataPipelineSchedule1808991600000,
-  AddMagicLinkLogin1808991700000,
+  AddDbtArtifacts1808991700000,
+  AddDataAlerts1808991800000,
+  AddMagicLinkLogin1808991900000,
 ];

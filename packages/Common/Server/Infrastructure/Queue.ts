@@ -1,4 +1,4 @@
-import { QueueDashboardSecret } from "../EnvironmentConfig";
+import { AppVersion, QueueDashboardSecret } from "../EnvironmentConfig";
 import Dictionary from "../../Types/Dictionary";
 import { JSONObject } from "../../Types/JSON";
 import { Queue as BullQueue, Job, JobsOptions, RepeatableJob } from "bullmq";
@@ -80,6 +80,272 @@ export default class Queue {
     }
   }
 
+  /*
+   * Schedule claims.
+   *
+   * The Worker queue's schedules belong to code: every OneUptime process
+   * registers the same crons when it starts (RunCron). So a schedule that no
+   * process registers any more - a cron an earlier release renamed or
+   * removed, or one a newer release added before the installation went back
+   * to an older one - stays in Redis and keeps firing, with no process that
+   * can run it. And while servers of two releases share one Redis (a rolling
+   * upgrade, a rollout that stalls), a worker gets runs of crons its release
+   * does not have.
+   *
+   * So a process claims every schedule it registers: before the schedule is
+   * written, every minute for as long as it runs, and before it re-adds its
+   * schedules when Redis comes back. A claim holds the release of the process
+   * that made it and lapses ten minutes after it was last made. A schedule
+   * nobody claims belongs to no running process and can be retired
+   * (retireUnclaimedSchedule); one claimed by another release tells a worker
+   * that has no job by that name which release does.
+   *
+   * Only the Worker queue: a Workflow schedule belongs to its Workflow row,
+   * and the process that registered it may be long gone while it is still
+   * wanted.
+   */
+  public static readonly SCHEDULE_CLAIM_TTL_MS: number = 10 * 60 * 1000;
+
+  public static readonly SCHEDULE_CLAIM_REFRESH_INTERVAL_MS: number = 60 * 1000;
+
+  private static scheduleClaimRefreshTimer: ReturnType<
+    typeof setInterval
+  > | null = null;
+
+  public static isScheduleClaimedQueue(queueName: QueueName): boolean {
+    return queueName === QueueName.Worker;
+  }
+
+  private static getScheduleClaimKey(
+    queueName: QueueName,
+    jobName: string,
+  ): string {
+    return `queue:schedule-claim:${queueName}:${jobName}`;
+  }
+
+  /*
+   * Left for a short while when a schedule nobody claimed is retired. A
+   * process that registered that schedule in the moment between the check
+   * and the removal finds it at its next refresh and adds the schedule again
+   * (restoreRetiredSchedules), so no cron is lost to that race.
+   */
+  private static getRetiredScheduleKey(
+    queueName: QueueName,
+    jobName: string,
+  ): string {
+    return `queue:schedule-retired:${queueName}:${jobName}`;
+  }
+
+  private static async claimSchedules(
+    queueName: QueueName,
+    jobNames: Array<string>,
+  ): Promise<void> {
+    if (!this.isScheduleClaimedQueue(queueName) || jobNames.length === 0) {
+      return;
+    }
+
+    const client: Awaited<BullQueue["client"]> =
+      await this.getQueue(queueName).client;
+
+    const pipeline: ReturnType<typeof client.pipeline> = client.pipeline();
+
+    for (const jobName of new Set<string>(jobNames)) {
+      pipeline.set(
+        this.getScheduleClaimKey(queueName, jobName),
+        AppVersion,
+        "PX",
+        this.SCHEDULE_CLAIM_TTL_MS,
+      );
+    }
+
+    const results: Array<[Error | null, unknown]> | null =
+      await pipeline.exec();
+
+    for (const [error] of results || []) {
+      if (error) {
+        throw error;
+      }
+    }
+  }
+
+  /*
+   * A claim that cannot be written must not keep the schedule from being
+   * added: the schedule is what makes the cron run, and the next refresh
+   * writes the claim.
+   */
+  private static async claimSchedulesOrLog(
+    queueName: QueueName,
+    jobNames: Array<string>,
+  ): Promise<void> {
+    try {
+      await this.claimSchedules(queueName, jobNames);
+    } catch (err) {
+      logger.error(
+        `Could not claim the schedule of ${jobNames.join(", ")} on queue ${queueName}; the next refresh will`,
+      );
+      logger.error(err);
+    }
+  }
+
+  private static startScheduleClaimRefresh(): void {
+    if (this.scheduleClaimRefreshTimer) {
+      return;
+    }
+
+    this.scheduleClaimRefreshTimer = setInterval(() => {
+      void this.refreshScheduleClaims();
+    }, this.SCHEDULE_CLAIM_REFRESH_INTERVAL_MS);
+
+    // A claim is no reason to keep a process alive.
+    this.scheduleClaimRefreshTimer.unref?.();
+  }
+
+  // Claims again every schedule this process holds. Never throws.
+  public static async refreshScheduleClaims(): Promise<void> {
+    const queueName: QueueName = QueueName.Worker;
+
+    const held: Array<{
+      jobName: string;
+      data: JSONObject;
+      options: JobsOptions;
+    }> = Object.values(this.repeatableJobs[queueName] || {}).filter(
+      (
+        entry:
+          | { jobName: string; data: JSONObject; options: JobsOptions }
+          | undefined,
+      ): entry is {
+        jobName: string;
+        data: JSONObject;
+        options: JobsOptions;
+      } => {
+        return Boolean(entry);
+      },
+    );
+
+    if (held.length === 0) {
+      return;
+    }
+
+    try {
+      await this.claimSchedules(
+        queueName,
+        held.map((entry: { jobName: string }) => {
+          return entry.jobName;
+        }),
+      );
+
+      await this.restoreRetiredSchedules(queueName, held);
+    } catch (err) {
+      logger.error(
+        `Could not refresh the schedule claims on queue ${queueName}`,
+      );
+      logger.error(err);
+    }
+  }
+
+  private static async restoreRetiredSchedules(
+    queueName: QueueName,
+    held: Array<{ jobName: string; data: JSONObject; options: JobsOptions }>,
+  ): Promise<void> {
+    const jobNames: Array<string> = Array.from(
+      new Set<string>(
+        held.map((entry: { jobName: string }) => {
+          return entry.jobName;
+        }),
+      ),
+    );
+
+    const queue: BullQueue = this.getQueue(queueName);
+    const client: Awaited<BullQueue["client"]> = await queue.client;
+
+    const retired: Array<string | null> = await client.mget(
+      jobNames.map((jobName: string) => {
+        return this.getRetiredScheduleKey(queueName, jobName);
+      }),
+    );
+
+    for (let index: number = 0; index < jobNames.length; index++) {
+      if (retired[index] === null || retired[index] === undefined) {
+        continue;
+      }
+
+      const jobName: string = jobNames[index] as string;
+
+      for (const entry of held) {
+        if (entry.jobName === jobName) {
+          await queue.add(entry.jobName, entry.data, entry.options);
+        }
+      }
+
+      await client.del(this.getRetiredScheduleKey(queueName, jobName));
+
+      logger.info(
+        `Added the schedule of ${jobName} on queue ${queueName} again: a worker that has no job by that name retired it while this process was registering it.`,
+      );
+    }
+  }
+
+  /*
+   * The release of the process that claimed `jobName`'s schedule last, or
+   * null when no running process has claimed it for SCHEDULE_CLAIM_TTL_MS.
+   */
+  @CaptureSpan()
+  public static async getScheduleClaim(
+    queueName: QueueName,
+    jobName: string,
+  ): Promise<string | null> {
+    const client: Awaited<BullQueue["client"]> =
+      await this.getQueue(queueName).client;
+
+    return await client.get(this.getScheduleClaimKey(queueName, jobName));
+  }
+
+  /*
+   * Removes the schedules named `jobName` unless a running process claims
+   * them. Returns the release of the process that claims them (and removes
+   * nothing), or null and how many schedules were removed.
+   *
+   * Call it only for a name this process has no job for: a worker that can
+   * run the job keeps its schedule whoever claims it.
+   */
+  @CaptureSpan()
+  public static async retireUnclaimedSchedule(
+    queueName: QueueName,
+    jobName: string,
+  ): Promise<{ claimedBy: string | null; removedCount: number }> {
+    if (!this.isScheduleClaimedQueue(queueName) || !jobName) {
+      return { claimedBy: null, removedCount: 0 };
+    }
+
+    const claimedBy: string | null = await this.getScheduleClaim(
+      queueName,
+      jobName,
+    );
+
+    if (claimedBy !== null) {
+      return { claimedBy, removedCount: 0 };
+    }
+
+    const removedCount: number = await this.removeSchedulesNamed(
+      queueName,
+      jobName,
+    );
+
+    if (removedCount > 0) {
+      const client: Awaited<BullQueue["client"]> =
+        await this.getQueue(queueName).client;
+
+      await client.set(
+        this.getRetiredScheduleKey(queueName, jobName),
+        AppVersion,
+        "PX",
+        this.SCHEDULE_CLAIM_TTL_MS,
+      );
+    }
+
+    return { claimedBy: null, removedCount };
+  }
+
   // BullMQ rejects custom IDs containing colons, so normalize them early.
   private static sanitizeJobId(jobId: string): string {
     return jobId.replace(/:/g, "-");
@@ -141,6 +407,9 @@ export default class Queue {
                 delete jobs[jobId];
                 continue;
               }
+
+              // Claimed before it exists again (see Schedule claims).
+              await Queue.claimSchedulesOrLog(queueName, [job.jobName]);
 
               logger.debug(
                 `Re-adding repeatable job ${job.jobName} to queue ${queueName}`,
@@ -372,9 +641,21 @@ export default class Queue {
       return 0;
     }
 
-    const queue: BullQueue = this.getQueue(queueName);
-
     this.forgetRepeatable(queueName, jobName);
+
+    return await this.removeSchedulesNamed(queueName, jobName);
+  }
+
+  /*
+   * The removal in Redis alone. Retiring a schedule nobody claims uses only
+   * this: the worker that retires it does not hold it, and must not touch
+   * the registry of a process that does.
+   */
+  private static async removeSchedulesNamed(
+    queueName: QueueName,
+    jobName: string,
+  ): Promise<number> {
+    const queue: BullQueue = this.getQueue(queueName);
 
     const repeatableJobs: RepeatableJob[] = await queue.getRepeatableJobs();
 
@@ -541,12 +822,30 @@ export default class Queue {
         jobId: sanitizedJobId,
       };
 
+      const isClaimed: boolean = this.isScheduleClaimedQueue(queueName);
+
+      if (isClaimed) {
+        /*
+         * Claimed before the schedule is written, so no worker that has no
+         * job by this name finds it unclaimed and retires it (see Schedule
+         * claims).
+         */
+        await this.claimSchedulesOrLog(queueName, [jobName]);
+        this.startScheduleClaimRefresh();
+      }
+
       const repeatableJobs: RepeatableJob[] = await queue.getRepeatableJobs();
 
       for (const repeatableJob of repeatableJobs) {
+        /*
+         * A claimed queue's job has one schedule, so its schedules with
+         * another pattern are the ones an earlier release registered before
+         * the cron's schedule changed: left alone, they would keep running the
+         * job on the old schedule too, forever.
+         */
         const isSameJob: boolean =
           repeatableJob.name === jobName &&
-          repeatableJob.pattern === options.scheduleAt;
+          (isClaimed || repeatableJob.pattern === options.scheduleAt);
 
         if (isSameJob) {
           await queue.removeRepeatableByKey(repeatableJob.key);

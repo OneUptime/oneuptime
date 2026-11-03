@@ -22,7 +22,11 @@ export default class QueueWorker {
   @CaptureSpan()
   public static getWorker(
     queueName: QueueName,
-    onJobInQueue: (job: QueueJob) => Promise<void>,
+    /*
+     * `token` is the lock this worker holds on the job, which moving the job
+     * back to its queue needs (UnknownQueueJob.handBack).
+     */
+    onJobInQueue: (job: QueueJob, token?: string) => Promise<void>,
     options: {
       concurrency: number;
       /**
@@ -38,8 +42,12 @@ export default class QueueWorker {
       maxStalledCount?: number;
     },
   ): Worker {
-    const instrumentedJobHandler: (job: QueueJob) => Promise<void> = async (
+    const instrumentedJobHandler: (
       job: QueueJob,
+      token?: string,
+    ) => Promise<void> = async (
+      job: QueueJob,
+      token?: string,
     ): Promise<void> => {
       const startNs: bigint = process.hrtime.bigint();
       const baseAttributes: Record<string, string> = {
@@ -59,7 +67,7 @@ export default class QueueWorker {
         job.data,
       );
 
-      let outcome: "success" | "failure" | "timeout" = "success";
+      let outcome: "success" | "failure" | "timeout" | "delayed" = "success";
 
       try {
         /*
@@ -101,9 +109,15 @@ export default class QueueWorker {
               },
               fn: async (span: Span): Promise<void> => {
                 try {
-                  await onJobInQueue(job);
+                  await onJobInQueue(job, token);
                   span.setStatus({ code: SpanStatusCode.OK });
                 } catch (err) {
+                  if (QueueWorker.isMovedBackToQueue(err)) {
+                    // Not a failure: the job waits in its queue again.
+                    span.setStatus({ code: SpanStatusCode.OK });
+                    throw err;
+                  }
+
                   /*
                    * Route through the normalizer rather than calling
                    * span.recordException directly. Two reasons, both real:
@@ -135,6 +149,15 @@ export default class QueueWorker {
           },
         );
       } catch (err) {
+        if (QueueWorker.isMovedBackToQueue(err)) {
+          /*
+           * Rethrown as it is: BullMQ leaves a job that throws DelayedError
+           * where the handler moved it, and neither fails nor completes it.
+           */
+          outcome = "delayed";
+          throw err;
+        }
+
         outcome =
           err instanceof TimeoutException ||
           (err as { name?: string })?.name === "TimeoutException"
@@ -209,6 +232,15 @@ export default class QueueWorker {
     );
 
     return worker;
+  }
+
+  /*
+   * Whether a job handler moved its job back to the queue (job.moveToDelayed)
+   * and threw BullMQ's DelayedError to say so, as UnknownQueueJob.handBack
+   * does. Matched by name, as BullMQ itself also matches it.
+   */
+  public static isMovedBackToQueue(err: unknown): boolean {
+    return (err as { name?: unknown })?.name === "DelayedError";
   }
 
   private static toReportableError(err: unknown, context: string): unknown {
