@@ -192,6 +192,15 @@ export const SOURCE_ROOTS: Array<SourceRoot> = [
     kind: "ui",
   },
   /*
+   * What is wrong with a Security Events monitor's watchlist filters: the
+   * monitor's form shows it under Filter by Watchlists, and the API answers
+   * a save with the same words.
+   */
+  {
+    directory: "packages/Common/Types/SecurityEvent/SecurityWatchlistFilter.ts",
+    kind: "ui",
+  },
+  /*
    * What is wrong with a hunt, and why a scheduled run could not be made:
    * the hunt's form shows each problem under its field, and its page and
    * the Hunts list say the last run's in the reader's language.

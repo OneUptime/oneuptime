@@ -116,7 +116,7 @@ Più lunga è la finestra, più largo è ogni intervallo di raggruppamento, quin
 
 ## Criteri
 
-Questi monitor valutano sempre il **Metric Value**: il valore aggregato della query di metriche o della formula configurata. **Quando avvisare** imposta un criterio a partire da **Misurato come**, **Finestra temporale**, **Condizione** e **Valore**. Quando la metrica ha un'unità, scegliete l'unità del valore accanto. La sua **Condizione** è **Sopra**, **Pari o superiore a**, **Sotto**, **Pari o inferiore a**, **Esattamente**, **Insolitamente alto**, **Insolitamente basso** o **Insolitamente alto o basso**. Per più criteri, come fasce di gravità, fate clic su **Modifica come criteri personalizzati** in **Altri campi** di **Cosa succede**: lì ogni criterio ha una **Metrica**, un'**Aggregazione**, una **Condizione** e una **Soglia**.
+Questi monitor valutano sempre il **Metric Value**: il valore aggregato della query di metriche o della formula configurata. **Quando avvisare** imposta un criterio a partire da **Misurato come**, **Finestra temporale**, **Condizione** e **Valore**. Quando la metrica ha un'unità, scegliete l'unità del valore accanto. La sua **Condizione** è **Sopra**, **Pari o superiore a**, **Sotto**, **Pari o inferiore a**, **Esattamente**, **Insolitamente alto**, **Insolitamente basso**, **Insolitamente alto o basso**, **Previsto sopra** o **Previsto sotto**. Per più criteri, come fasce di gravità, fate clic su **Modifica come criteri personalizzati** in **Altri campi** di **Cosa succede**: lì ogni criterio ha una **Metrica**, un'**Aggregazione**, una **Condizione** e una **Soglia**.
 
 | Condizione | Corrisponde quando il valore è… |
 | --- | --- |
@@ -128,10 +128,14 @@ Questi monitor valutano sempre il **Metric Value**: il valore aggregato della qu
 | **Anomalously High** | sopra l'intervallo atteso per quest'ora della settimana |
 | **Anomalously Low** | sotto quell'intervallo |
 | **Anomalous** | fuori da quell'intervallo, in un senso o nell'altro |
+| **Previsto sopra** | è diretto sopra la soglia: la sua tendenza la supera entro la fine di **Orizzonte** |
+| **Previsto sotto** | è diretto sotto la soglia, entro la fine di **Orizzonte** |
 | **Nessun dato** | assente: la query non ha inviato nulla nella finestra |
 | **Dati presenti** | presente: la query ha inviato qualcosa nella finestra |
 
 Le condizioni di anomalia non hanno soglia. **Quando avvisare** mostra invece **Sensibilità** (Basso, Medio, quella predefinita, oppure Alto), e i criteri personalizzati anche una **Finestra di riferimento** (14 giorni, quella predefinita, 28, 60 o 90), e ogni punto dati viene confrontato con la stessa ora della settimana nei giorni precedenti, fin dove arriva quella finestra. Ciò che accade adesso non fa mai parte di questo confronto, quindi un cambiamento che dura continua ad avvisare finché, una settimana dopo, non è entrato in quei giorni precedenti. Finché quell'ora della settimana non ha due settimane di storico, il criterio sta ancora imparando e non genera avvisi.
+
+Le condizioni di previsione confrontano la direzione della metrica con la soglia, così un disco che si riempie un po' ogni giorno avvisa giorni prima di essere pieno. Ogni controllo traccia una retta attraverso i punti dati di ogni serie nella **Finestra temporale** e la prolunga fin dove indica **Orizzonte**, da 1 ora a 30 giorni: una settimana se non lo cambi. Il criterio corrisponde quando quella retta ha superato la soglia alla fine di quel tempo, e il suo incidente dice dove è diretta la metrica e quando supera la soglia. Scegli una finestra lunga, come **Ultimi 7 giorni**, così la retta segue come cresce la metrica e non i suoi alti e bassi giornalieri. Una serie viene prevista quando i suoi dati coprono metà della finestra, e non più quando i suoi dati smettono di arrivare. Per essere avvisato prima che un filesystem si riempia, osserva `system.filesystem.utilization` con Max, raggruppato per host e punto di montaggio, e avvisa quando si prevede che superi il 90% entro 7 giorni.
 
 Con che cosa viene confrontato un punto dati dipende dalla query:
 

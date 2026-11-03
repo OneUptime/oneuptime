@@ -40,6 +40,18 @@ export default class MonitorCriteriaMessageBuilder {
       return windowWaitMessage;
     }
 
+    /*
+     * A forecast criteria that did not match says where the metric is
+     * headed against the threshold it needs - "Disk Used (%) is forecast to
+     * be 72% in 7 days ..." - or why it could not be forecast yet.
+     */
+    const forecastMessage: string | undefined =
+      input.criteriaFilter.metricCriteriaContext?.forecast?.message;
+
+    if (forecastMessage) {
+      return forecastMessage;
+    }
+
     const failureMessage: string | null =
       MonitorCriteriaMessageBuilder.buildCriteriaFilterFailureMessage({
         monitor: input.monitor,

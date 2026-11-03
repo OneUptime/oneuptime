@@ -256,6 +256,7 @@ A barra de pesquisa fala a mesma linguagem dos outros exploradores de telemetria
 | `<field>:a*` | `*` é qualquer texto, `?` um caractere | `host:web-*` |
 | `@<attribute>:*` | O atributo está presente | `@threat.indicator_id:*` |
 | `@<attribute>:~text` | O atributo contém o texto | `@finding_info.title:~ransom` |
+| `<field>:%<watchlist>%` | O campo está em uma [lista de observação](#listas-de-observação) | `user:%vip_users%` |
 
 Um campo é um nome curto (`severity`, `class`, `category`, `activity`, `status`, `vendor`, `product`, `rule`, `user`, `host`, `ip`, `targetuser`, `targethost`, `targetip`, `processname`, `commandline`, `parentprocessname`, `observable`, `tactic`, `technique`, `requestoutcome`, `trace`, `session`) ou o nome próprio do campo, como `severityName` ou `principalHost`. Qualquer outro nome é lido como atributo de origem. `observable:<value>` encontra cada evento que menciona um valor, de qualquer lado da atividade em que ele estivesse.
 
@@ -281,7 +282,7 @@ Uma caçada é uma pesquisa sobre seus eventos de segurança salva com um nome: 
 
 ### Salvar uma pesquisa como caçada
 
-Em **Eventos**, pesquise e filtre até a lista mostrar o que você procura, depois abra **Caçadas** na barra de ferramentas e escolha **Salvar como caçada**. Dê um nome a ela, escolha se ela é executada em um agendamento, e a página dela se abre. **Eventos → Caçadas** lista as caçadas do projeto, cada uma com sua pesquisa, a frequência com que é executada, quem ela avisa e o que sua última execução encontrou; **Criar: Caçada** ali recebe a pesquisa como você a digitaria em **Eventos**. Um projeto guarda até 200 caçadas.
+Em **Eventos**, pesquise e filtre até a lista mostrar o que você procura, depois abra **Caçadas** na barra de ferramentas e escolha **Salvar como caçada**. Dê um nome a ela, escolha se ela é executada em um agendamento, e a página dela se abre. **Eventos → Caçadas** lista as caçadas do projeto, cada uma com sua pesquisa, a frequência com que é executada, quem ela avisa e o que sua última execução encontrou; **Criar: Caçada** ali recebe a pesquisa como você a digitaria em **Eventos**. Um projeto guarda até 200 caçadas. Uma pesquisa pode ler uma [lista de observação](#listas-de-observação), como `user:%vip_users%` faz, e uma caçada que lê uma lista que o projeto não tem é recusada ao salvar.
 
 A página de uma caçada é a pesquisa dela, aberta no explorador de eventos. Mude ali a pesquisa ou os filtros, e o cabeçalho da caçada oferece **Salvar alterações** e **Descartar alterações**. **Editar** muda o nome, a pesquisa, até quando ela olha para trás, o agendamento e quem ela avisa, e **Excluir caçada** fica no menu dela. A partir de Security Member é possível salvar, alterar e excluir caçadas, e um Security Viewer pode abri-las.
 
@@ -511,7 +512,7 @@ Uma exceção é algo que uma regra ignora porque você já espera, como um scan
 
 ### Listas de observação
 
-Uma lista de observação é uma lista que sua equipe mantém uma única vez e que qualquer regra pode ler, como usuários VIP, hosts críticos, hashes de arquivos maliciosos conhecidos ou os endereços de onde os administradores podem entrar. Toda lista fica em **Produtos → Eventos de segurança → Detecções → Listas de observação**: crie uma ali com **Criar: Lista de observação**, que pede o nome dela e o que ela contém, ou adicione uma comum em **Comece com uma lista comum**. A página de uma lista mostra seus valores, e **Use-a em uma regra** dá uma seleção que lê a lista, para copiar em uma regra.
+Uma lista de observação é uma lista que sua equipe mantém uma única vez e que qualquer regra pode ler, como usuários VIP, hosts críticos, hashes de arquivos maliciosos conhecidos ou os endereços de onde os administradores podem entrar. Toda lista fica em **Produtos → Eventos de segurança → Detecções → Listas de observação**: crie uma ali com **Criar: Lista de observação**, que pede o nome dela e o que ela contém, ou adicione uma comum em **Comece com uma lista comum**. A página de uma lista mostra seus valores, e **Usar esta lista** dá uma seleção que lê a lista, para copiar em uma regra, e a pesquisa que a lê em **Eventos** ou em uma caçada.
 
 Uma regra lê uma lista com `expand` e o nome da lista entre sinais `%`. Esta regra dispara quando um administrador entra a partir de um endereço que não está na lista permitida:
 
@@ -529,10 +530,14 @@ level: high
 
 - Uma lista contém usuários, hosts, endereços IP, hashes de arquivos, domínios, URLs, processos ou outros valores, escolhidos ao criá-la. Um valor corresponde sem diferenciar maiúsculas e minúsculas, e `*` representa qualquer sequência de caracteres: `svc-*` corresponde a toda conta de serviço. Uma lista de endereços IP também aceita intervalos, como `10.20.0.0/16`, e uma lista de hashes de arquivos aceita hashes MD5, SHA-1, SHA-256 e SHA-512.
 - Adicione valores um a um com **Adicionar: Valor**, ou vários de uma vez com **Importar valores**: cole-os, ou escolha um arquivo `.txt` ou `.csv`, um valor por linha, com uma nota opcional depois de uma vírgula. **Adicionar à lista** mantém os valores que já estão nela, e **Substituir a lista** remove os que a importação não tem.
+- Um valor pode ter um **Expira em**: a partir daí nenhuma regra, monitor, caçada ou pesquisa o lê, e o OneUptime o tira da lista em até um minuto. Se ficar em branco, ele fica até alguém removê-lo.
+- **Exportar valores** baixa os valores de uma lista em um arquivo CSV com as colunas `value`, `note` e `expires`, que **Importar valores** lê de volta. Um arquivo cuja primeira linha nomeia essas colunas dá a cada valor sua nota e quando ele expira: uma data como `2026-12-31`, ou uma data e hora em UTC.
+- Uma lista pode ser lida de um arquivo em um endereço https, de novo **A cada hora**, **A cada 6 horas** ou **Todos os dias**: escolha **Um arquivo em um endereço** em **Mais campos** ao criá-la. Cada leitura deixa a lista como o arquivo está, lido como uma importação o lê. Uma leitura que falha não muda nenhum valor e a página da lista diz por quê, e **Ler agora** a lê na hora.
 - Em vez de manter valores, uma lista de endereços IP, hashes de arquivos, domínios ou URLs pode seguir um feed de inteligência de ameaças: seus valores são então os indicadores ativos do feed do tipo da lista, mantidos atualizados à medida que o feed é lido.
-- `expand` é usado sozinho, porque os valores da lista dizem como correspondem. Um campo que contém vários valores, como `observables`, corresponde quando algum deles está na lista. **Lida por** nomeia as regras que leem cada lista, e abaixo do YAML de uma regra seu formulário nomeia as listas que a regra lê.
-- Uma regra nomeia uma lista sem diferenciar maiúsculas e minúsculas. Uma regra que nomeia uma lista que o projeto não tem é recusada ao salvar, e uma lista que regras leem não pode ser renomeada nem excluída até que nenhuma regra a leia.
+- `expand` é usado sozinho, porque os valores da lista dizem como correspondem. Um campo que contém vários valores, como `observables`, corresponde quando algum deles está na lista. **Lida por** nomeia as regras, os monitores Security Events e as caçadas que leem cada lista, e abaixo do YAML de uma regra seu formulário nomeia as listas que a regra lê.
+- Uma regra nomeia uma lista sem diferenciar maiúsculas e minúsculas. Uma regra, um monitor ou uma caçada que nomeia uma lista que o projeto não tem é recusado ao salvar, e uma lista que algum deles lê não pode ser renomeada nem excluída até que nada a leia.
 - Uma mudança em uma lista chega a toda regra que a lê na próxima execução da regra. As regras de correlação e **Executar em eventos passados** também leem listas.
+- Um monitor Security Events lê listas no seu **Filtrar por listas de observação**, e uma pesquisa em **Eventos** ou em uma caçada lê uma como `user:%vip_users%`. Um sinal de menos na frente, como em `-ip:%admin_addresses%`, mantém os eventos cujo campo não está na lista.
 - Uma lista tem no máximo 5.000 valores, dos quais no máximo 100 com `*` e 100 intervalos, e um projeto tem no máximo 200 listas: para uma lista mais longa, siga um feed de inteligência de ameaças. Quem pode criar, editar ou excluir regras de detecção pode fazer o mesmo com as listas, e quem pode editar regras de detecção adiciona, altera e remove seus valores. Toda função de Security pode lê-las, e cada alteração fica no log de auditoria do projeto.
 
 ### Executar em eventos passados
@@ -549,11 +554,11 @@ level: high
 
 Um monitor de eventos de segurança conta os eventos que correspondem aos filtros dele em uma janela deslizante e aplica à contagem os critérios habituais de monitor: muda o status do monitor, abre alertas ou incidentes e aciona o plantão. Crie um em **Monitores → Criar monitor**, com **Eventos de segurança** como tipo; ele aparece lá junto com seus outros monitores.
 
-O formulário dele mostra **Monitor events that include this text**, **Monitor Security Events for (time)**, **Event Severity** e **Classe de evento**. **Filtrar por serviço de telemetria** e **Filtrar por atributos** ficam em **Mais campos**, cujo cabeçalho mostra os que um monitor usa. Os critérios dele verificam **Security Event Count**.
+O formulário dele mostra **Monitor events that include this text**, **Monitor Security Events for (time)**, **Event Severity** e **Classe de evento**. **Filtrar por serviço de telemetria**, **Filtrar por atributos** e **Filtrar por listas de observação** ficam em **Mais campos**, cujo cabeçalho mostra os que um monitor usa. **Filtrar por listas de observação** mantém os eventos cujo campo está, ou não está, em uma das suas [listas de observação](#listas-de-observação). Os critérios dele verificam **Security Event Count**.
 
 | | Regra de detecção | Monitor de eventos de segurança |
 | --- | --- | --- |
-| Corresponde a | Uma regra Sigma | Filtros de gravidade, classe, mensagem, serviço e atributos |
+| Corresponde a | Uma regra Sigma | Filtros de gravidade, classe, mensagem, serviço, atributos e listas de observação |
 | Janela | Uma depois da outra, uma por execução | Deslizante: dos últimos 5 segundos às últimas 24 horas |
 | Conta por grupo | Sim, com **Campo de agrupamento** | Não: uma única contagem para tudo o que corresponde |
 | Abre | Alertas, incidentes e achados | Um status, alertas e incidentes |
@@ -610,11 +615,15 @@ Verifique seu **Status** em **Exceções de regra**: uma exceção com status **
 :::
 
 :::details Uma regra que lê uma lista de observação não corresponde
-Abra a lista e confira seus valores: um valor sem `*` precisa ser igual ao campo inteiro, sem diferenciar maiúsculas e minúsculas, e uma lista que segue um feed de inteligência de ameaças contém só os indicadores ativos do feed do seu tipo. Confira se a regra lê o campo que seus eventos preenchem: **Use-a em uma regra** começa pelo campo em que uma lista do seu tipo costuma estar. Uma mudança em uma lista chega a uma regra na próxima execução dela.
+Abra a lista e confira seus valores: um valor sem `*` precisa ser igual ao campo inteiro, sem diferenciar maiúsculas e minúsculas, e uma lista que segue um feed de inteligência de ameaças contém só os indicadores ativos do feed do seu tipo. Confira se a regra lê o campo que seus eventos preenchem: **Usar esta lista** começa pelo campo em que uma lista do seu tipo costuma estar. Uma mudança em uma lista chega a uma regra na próxima execução dela.
 :::
 
 :::details Uma lista de observação não pode ser renomeada nem excluída
-Regras ainda a leem pelo nome, e a mensagem as nomeia. Mude o nome nessas regras, ou tire a lista delas, e depois renomeie ou exclua a lista.
+Regras, monitores ou caçadas ainda a leem pelo nome, e a mensagem os nomeia. Mude o nome neles, ou tire a lista deles, e depois renomeie ou exclua a lista.
+:::
+
+:::details Uma lista lida de um endereço mostra um erro
+A página dela diz por quê em **Lida de um endereço**, com o que o endereço respondeu, e a lista mantém os valores da última leitura que funcionou. O endereço deve começar com `https`, responder pela internet sem login e baixar um arquivo de texto ou CSV de no máximo 4 MB, não uma página web. Corrija-o em **Editar** e depois escolha **Ler agora**.
 :::
 
 :::details Executar uma regra em eventos passados não encontra nada

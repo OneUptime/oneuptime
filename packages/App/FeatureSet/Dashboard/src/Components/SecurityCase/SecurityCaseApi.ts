@@ -433,6 +433,19 @@ export default class SecurityCaseApi {
     });
   }
 
+  /*
+   * A list read from an address, read at once (POST
+   * /security-watchlist/read-now): what the read did - the counts - or why
+   * it could not, as the list's page then says too.
+   */
+  public static async readWatchlistNow(data: {
+    watchlistId: ObjectID;
+  }): Promise<JSONObject> {
+    return await post("/security-watchlist/read-now", {
+      securityWatchlistId: data.watchlistId.toString(),
+    });
+  }
+
   // Releases one target a containment step contained, with the step's undo.
   public static async undoTarget(data: {
     runId: ObjectID;

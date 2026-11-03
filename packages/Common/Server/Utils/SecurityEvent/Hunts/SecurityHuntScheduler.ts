@@ -33,6 +33,7 @@ import SecurityProjectWork, {
   UNLIMITED_SECURITY_PROJECT_WORK_LEASE,
 } from "../SecurityProjectWork";
 import SecurityHuntNotifications from "./SecurityHuntNotifications";
+import { SecurityWatchlistMissingException } from "../Watchlists/SecurityWatchlists";
 
 /*
  * SCHEDULED HUNTS (Types/SecurityEvent/SecurityHunt).
@@ -237,6 +238,10 @@ export default class SecurityHuntScheduler {
   public static describeRunError(error: unknown): string {
     if (error instanceof SecurityHuntRunError) {
       return error.message;
+    }
+
+    if (error instanceof SecurityWatchlistMissingException) {
+      return SECURITY_HUNT_RUN_ERRORS.watchlistMissing.message;
     }
 
     if (

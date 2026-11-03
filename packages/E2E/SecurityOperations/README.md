@@ -494,16 +494,21 @@ a threat intel match. Its screenshots are named `rule-exceptions-*`, `rule-retro
 ## Watchlists
 
 The lists the rules match against, with their own spec, `Watchlists.spec.ts`.
-`Fixture/WatchlistsFixture.js` lays out four: `vip_users` (users, kept by hand: the CEO, the CFO
+`Fixture/WatchlistsFixture.js` lays out five: `vip_users` (users, kept by hand: the CEO, the CFO
 and the finance admins' accounts, a pattern with `*`), `admin_addresses` (IP addresses, kept by
 hand: the office range, the VPN's address and the bastion hosts' range), `c2_addresses` (IP
-addresses, following the Feodo Tracker list) and `lab_hosts` (hosts, no values yet). So the common
-lists still offered are Critical hosts and Known-bad file hashes. "VIP sign-in from outside the
-office", off while it is tuned (the Overview's count of rules on is unchanged), reads `vip_users`
-and `admin_addresses`. A list's `valueCount` follows its values as they are added, imported and
+addresses, following the Feodo Tracker list), `contractors` (users, read every day from HR's file
+at an https address: two contractors, one leaving the list in twelve days, the last read two hours
+ago with a line of the file left out) and `lab_hosts` (hosts, no values yet). So the common lists
+still offered are Critical hosts and Known-bad file hashes. "VIP sign-in from outside the office",
+off while it is tuned (the Overview's count of rules on is unchanged), reads `vip_users` and
+`admin_addresses`; the Security Events monitor "Contractor sign-ins" reads `contractors` in its
+Filter by Watchlists. A list's `valueCount` follows its values as they are added, imported and
 deleted, and a list's values go with it, as the server keeps them. `POST
 /security-watchlist/import` reads its text with the shared reader the server uses
-(`parseSecurityWatchlistImport`), adds to the list or replaces it, and answers what it did.
+(`parseSecurityWatchlistImport`), adds to the list or replaces it, and answers what it did; `POST
+/security-watchlist/read-now` reads a list from its address at once - HR's file holding one more
+contractor - and records the read on the list, as a scheduled one is.
 
 `Watchlists.spec.ts` covers: the list under Detections, its entry lit and its trail, three columns
 at 1280 (a name in the mono type with what it is for, what it holds with its values or the feed
@@ -512,16 +517,21 @@ a table that never runs under its row buttons; below lg (768), Holds and Read By
 name; the common lists, one added and drawn as Added, created empty and kept by hand; Create
 Watchlist refusing a name rules cannot write, then opening the new list's page, named in the
 trail; a list's page, the list first (its settings with the rule that reads it), then its values
-with their notes and who added them, then Use It in a Rule and Open Detection Rules; at 768 a
-value's note folded under it; an empty list's Import Values; Add Value refusing a lone `*` and
-adding a value, the count following; Import Values from the Values card's ⋯ - the paste box
-across the dialog, the preview as it is typed, one request, what it did - and Replace the list; a
-list that follows a feed, with no table of its own; the line under a rule's YAML, with a list the
-project does not have on a line of its own in red, whose Create it in Watchlists opens Create
-Watchlist with the name (`?create=`); a phone; a new project's common lists; a Security Viewer,
-Add and Import Values locked; German, and Persian, right to left, with `svc-*` in order inside a
-Persian sentence. Its screenshots are named `watchlists-*`, `watchlist-*` and
-`watchlist-rule-line-desktop`.
+with their notes and who added them, then Use This List - the selection a rule copies and the
+search that reads the list on Events or in a hunt - and Open Detection Rules; at 768 a value's
+note folded under it; an empty list's Import Values; Add Value refusing a lone `*` and adding a
+value, the count following; Import Values from the Values card's ⋯ - the paste box across the
+dialog, the preview as it is typed, one request, what it did - and Replace the list; Export Values
+downloading the list as a CSV of `value`, `note` and `expires`; a list that follows a feed, with
+no table of its own; a list read from an address - Create Watchlist refusing an http address and
+creating one read every hour, its page's Read From an Address card (the address, its schedule, the
+last read and the lines it left out), its values read-only with when each leaves the list, the
+monitor that reads it opening its own page, and Read Now's one request and what it did, in the
+dark and on a phone; the line under a rule's YAML, with a list the project does not have on a line
+of its own in red, whose Create it in Watchlists opens Create Watchlist with the name
+(`?create=`); a phone; a new project's common lists; a Security Viewer, Add and Import Values
+locked; German, and Persian, right to left, with `svc-*` in order inside a Persian sentence. Its
+screenshots are named `watchlists-*`, `watchlist-*` and `watchlist-rule-line-desktop`.
 
 ## Response targets, tasks and evidence
 

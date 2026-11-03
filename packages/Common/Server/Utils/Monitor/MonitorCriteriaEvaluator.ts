@@ -31,6 +31,7 @@ import MetricMonitorCriteria, {
   MetricSeriesEvaluationResult,
 } from "./Criteria/MetricMonitorCriteria";
 import CriteriaInEffect from "./CriteriaInEffect";
+import MetricWindowCoverage from "./Criteria/MetricWindowCoverage";
 import TraceMonitorCriteria from "./Criteria/TraceMonitorCriteria";
 import ExceptionMonitorCriteria from "./Criteria/ExceptionMonitorCriteria";
 import ProfileMonitorCriteria from "./Criteria/ProfileMonitorCriteria";
@@ -129,6 +130,7 @@ import MetricCriteriaContext, {
   MetricBreachingSample,
   MetricComponent,
   MetricComponentValue,
+  MetricForecastDetails,
   MetricWindowAggregate,
 } from "../../../Types/Monitor/MetricMonitor/MetricCriteriaContext";
 import MonitorStepDockerMonitor from "../../../Types/Monitor/MonitorStepDockerMonitor";
@@ -2250,6 +2252,17 @@ ${incomingRequestGrouping.rootCauseNote}
       mdText`**Metric Details**\n${FeedMarkdown.join(lines, "\n")}`,
     ];
 
+    // A forecast matched on where the metric is headed: say where, and when.
+    if (ctx.forecast?.state === "Forecast") {
+      sections.push(
+        mdText`\n\n${MonitorCriteriaEvaluator.formatForecastSection({
+          forecast: ctx.forecast,
+          unit: ctx.unit,
+          unitHeuristicMetricName: unitHeuristicMetricName,
+        })}`,
+      );
+    }
+
     const breachingSamples: Array<MetricBreachingSample> =
       ctx.breachingSamples && ctx.breachingSamples.length > 0
         ? ctx.breachingSamples
@@ -2590,6 +2603,69 @@ ${incomingRequestGrouping.rootCauseNote}
     }
 
     return mdText`${lead} ${String(input.listedCount)} of them breached the threshold on their own:`;
+  }
+
+  /*
+   * The Forecast section of a forecast criteria's root cause: the trend
+   * fitted to the window, where it puts the metric now and at the end of the
+   * horizon, and when it crosses the threshold.
+   *
+   *   **Forecast**
+   *   - Now, on its trend: **84.8%**
+   *   - In 7 days: **93.2%**
+   *   - Trend: rising 1.2% a day over the last 7 days, from 168 samples
+   *   - Reaches 90%: in about 4 days
+   */
+  private static formatForecastSection(input: {
+    forecast: MetricForecastDetails;
+    unit: string | null;
+    unitHeuristicMetricName: string | undefined;
+  }): MarkdownText {
+    const forecast: MetricForecastDetails = input.forecast;
+    const format: (value: number) => string = (value: number): string => {
+      return MetricValueFormatter.format({
+        value: value,
+        unit: input.unit,
+        metricName: input.unitHeuristicMetricName,
+      });
+    };
+
+    const horizonInHours: number = forecast.horizonInHours;
+    const horizon: string =
+      horizonInHours >= 24 && horizonInHours % 24 === 0
+        ? `${horizonInHours / 24} ${horizonInHours === 24 ? "day" : "days"}`
+        : `${horizonInHours} ${horizonInHours === 1 ? "hour" : "hours"}`;
+
+    // Under a day ahead, the trend reads by the hour.
+    const byHour: boolean = horizonInHours < 24;
+    const rate: number = (forecast.slopePerDay ?? 0) / (byHour ? 24 : 1);
+    const per: string = byHour ? "an hour" : "a day";
+    const trend: string =
+      rate > 0
+        ? `rising ${format(rate)} ${per}`
+        : rate < 0
+          ? `falling ${format(-rate)} ${per}`
+          : "flat";
+
+    const lines: Array<MarkdownText> = [
+      mdText`**Forecast**`,
+      mdText`- Now, on its trend: **${format(forecast.currentValue ?? 0)}**`,
+      mdText`- In ${horizon}: **${format(forecast.projectedValue ?? 0)}**`,
+      mdText`- Trend: ${trend} over the last ${MetricWindowCoverage.describeDuration(forecast.windowMs)}, from ${String(forecast.sampleCount)} sample${forecast.sampleCount === 1 ? "" : "s"}`,
+    ];
+
+    const reachesInMs: number | null | undefined =
+      forecast.reachesThresholdInMs;
+
+    if (typeof reachesInMs === "number") {
+      lines.push(
+        reachesInMs > 0
+          ? mdText`- Reaches ${format(forecast.threshold)}: in about ${MetricWindowCoverage.describeDuration(reachesInMs)}`
+          : mdText`- Reaches ${format(forecast.threshold)}: already ${forecast.direction} it`,
+      );
+    }
+
+    return FeedMarkdown.join(lines, "\n");
   }
 
   private static formatBreachingSamplesSummary(input: {
@@ -3697,6 +3773,18 @@ ${incomingRequestGrouping.rootCauseNote}
     context: MetricCriteriaContext | undefined;
     worstIsLowest: boolean;
   }): number | null {
+    // A forecast is judged on where the series is headed, not where it is.
+    const projectedValue: number | undefined =
+      input.context?.forecast?.projectedValue;
+
+    if (
+      input.context?.forecast?.state === "Forecast" &&
+      typeof projectedValue === "number" &&
+      Number.isFinite(projectedValue)
+    ) {
+      return projectedValue;
+    }
+
     const windowAggregate: MetricWindowAggregate | undefined =
       input.context?.windowAggregate;
 
