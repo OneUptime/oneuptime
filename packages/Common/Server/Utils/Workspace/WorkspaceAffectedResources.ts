@@ -16,8 +16,6 @@ import {
   AffectedResourceSearchResult,
 } from "../../../Types/AffectedResources/AffectedResourceSearch";
 import DatabaseCommonInteractionProps from "../../../Types/BaseDatabase/DatabaseCommonInteractionProps";
-import NotAuthorizedException from "../../../Types/Exception/NotAuthorizedException";
-import PaymentRequiredException from "../../../Types/Exception/PaymentRequiredException";
 import ObjectID from "../../../Types/ObjectID";
 import FeedMarkdown, {
   MarkdownText,
@@ -214,6 +212,18 @@ export interface WorkspaceAffectedResourcesToLink {
   notLinkedCount: number;
 }
 
+/*
+ * The member's props, for a read of their own: the permission layer writes
+ * what it works out onto the props it is given (the global permissions
+ * everybody holds), and a form's reads must not change what the caller
+ * goes on to create the incident with.
+ */
+function readerProps(
+  props: DatabaseCommonInteractionProps,
+): DatabaseCommonInteractionProps {
+  return { ...props };
+}
+
 // "A", "A and B", "A, B and C".
 function joinWithAnd(items: Array<MarkdownText>): MarkdownText {
   if (items.length <= 1) {
@@ -260,11 +270,13 @@ export default class WorkspaceAffectedResources {
   public static getReadableKinds(
     props: DatabaseCommonInteractionProps,
   ): Array<AiAffectedResourceKind> {
+    const reader: DatabaseCommonInteractionProps = readerProps(props);
+
     return this.getKinds().filter((kind: AiAffectedResourceKind): boolean => {
       return (
         AffectedResourceSearch.getReadableSearchFields({
           kind: kind as unknown as AffectedResourceKind,
-          props: props,
+          props: reader,
         }).length > 0
       );
     });
@@ -275,16 +287,17 @@ export default class WorkspaceAffectedResources {
    * of resource, and the project has one of those to pick. A project with
    * no infrastructure in OneUptime - monitors and nothing else - keeps its
    * form as it was. Asked kind by kind, and the first found ends it, so a
-   * project with hosts reads one row. A kind the plan or a block leaves out
-   * counts as none; a read that fails otherwise offers the field: a search
-   * that finds nothing costs less than a field that is missing.
+   * project with hosts reads one row. A kind the plan or a block leaves
+   * out, or whose read fails, counts as none of it.
    */
   @CaptureSpan()
   public static async isOffered(data: {
     projectId: ObjectID;
     props: DatabaseCommonInteractionProps;
   }): Promise<boolean> {
-    for (const kind of this.getReadableKinds(data.props)) {
+    const reader: DatabaseCommonInteractionProps = readerProps(data.props);
+
+    for (const kind of this.getReadableKinds(reader)) {
       const searchKind: AffectedResourceKind =
         kind as unknown as AffectedResourceKind;
 
@@ -301,19 +314,16 @@ export default class WorkspaceAffectedResources {
           select: { _id: true },
           skip: 0,
           limit: 1,
-          props: data.props,
+          props: reader,
         });
 
         if (rows.length > 0) {
           return true;
         }
       } catch (error) {
-        if (!WorkspaceAffectedResources.isRefusal(error)) {
-          logger.debug(
-            `Could not tell whether the project has ${this.getKindPluralLabel(kind)} to offer on a chat's incident form: ${error}`,
-          );
-          return true;
-        }
+        logger.debug(
+          `Could not tell whether the project has ${this.getKindPluralLabel(kind)} to offer on a chat's incident form: ${error}`,
+        );
       }
     }
 
@@ -336,7 +346,7 @@ export default class WorkspaceAffectedResources {
     const result: AffectedResourceSearchResult =
       await AffectedResourceSearch.search({
         projectId: data.projectId,
-        props: data.props,
+        props: readerProps(data.props),
         request: {
           search: this.readSearchText(data.text),
           kinds: this.getKinds().map(
@@ -559,7 +569,7 @@ export default class WorkspaceAffectedResources {
       notLinked: Array<string>;
     } = await AffectedResourceLinks.resolve({
       refs: data.picks.refs,
-      ctx: { projectId: data.projectId, props: data.props },
+      ctx: { projectId: data.projectId, props: readerProps(data.props) },
     });
 
     return {
@@ -713,12 +723,5 @@ export default class WorkspaceAffectedResources {
     }
 
     return matches;
-  }
-
-  private static isRefusal(error: unknown): boolean {
-    return (
-      error instanceof NotAuthorizedException ||
-      error instanceof PaymentRequiredException
-    );
   }
 }
