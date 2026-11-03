@@ -4,8 +4,14 @@ import {
   addEnglishAnchorAliases,
   getEnglishAnchorAliases,
 } from "../../../FeatureSet/Docs/Utils/AnchorAliases";
+import DocsPlaceholders from "../../../FeatureSet/Docs/Utils/Placeholders";
 import DocsRender from "../../../FeatureSet/Docs/Utils/Render";
-import { DOCS_DIR, TRANSLATED_LANGUAGES, readPage } from "./DocsContentSupport";
+import {
+  DOCS_DIR,
+  TRANSLATED_LANGUAGES,
+  listPages,
+  readPage,
+} from "./DocsContentSupport";
 import {
   MarkdownHeading,
   readMarkdownHeadings,
@@ -414,6 +420,38 @@ const served: (lang: string, page: string) => Promise<string> = async (
 
   return response.text();
 };
+
+describe("every translated docs page", () => {
+  it("pairs its headings with its English page's, as the page route reads both", () => {
+    const unpaired: Array<string> = [];
+    let pairs: number = 0;
+
+    for (const page of listPages("en")) {
+      // The route pairs the pages it draws: titles off, placeholders filled.
+      const english: string = DocsPlaceholders.render(
+        withoutTitle(readPage("en", page)),
+        "en",
+      );
+
+      for (const lang of TRANSLATED_LANGUAGES) {
+        const aliases: Array<DocsAnchorAlias> = getEnglishAnchorAliases(
+          english,
+          DocsPlaceholders.render(withoutTitle(readPage(lang, page)), lang),
+        );
+
+        if (aliases.length === 0 && readMarkdownHeadings(english).length > 0) {
+          unpaired.push(`${lang}/${page}`);
+        }
+
+        pairs += aliases.length;
+      }
+    }
+
+    expect(unpaired).toEqual([]);
+    // Sixteen languages of more than three hundred pages.
+    expect(pairs).toBeGreaterThan(90000);
+  });
+});
 
 describe("the docs' pages the product links to", () => {
   it("are English pages with those headings", () => {
