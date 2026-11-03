@@ -231,6 +231,13 @@ integration("Meraki traffic reads against ClickHouse", () => {
       mergeControllerReadings: async () => {
         return 0;
       },
+      /*
+       * Nor does it hold the list's serial numbers, MACs or addresses: what
+       * the read counts for Add devices is read from Postgres too.
+       */
+      findIdentityHolders: async () => {
+        return [];
+      },
     });
   }
 

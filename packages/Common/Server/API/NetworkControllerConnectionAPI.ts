@@ -1,6 +1,12 @@
 import NetworkControllerConnection from "../../Models/DatabaseModels/NetworkControllerConnection";
 import DatabaseCommonInteractionProps from "../../Types/BaseDatabase/DatabaseCommonInteractionProps";
 import BadDataException from "../../Types/Exception/BadDataException";
+import {
+  NetworkControllerDeviceAddRequest,
+  NetworkControllerDeviceAddState,
+  readNetworkControllerDeviceAddRequest,
+  toNetworkControllerDeviceAddStateJson,
+} from "../../Types/NetworkController/NetworkControllerDeviceAdd";
 import { JSONObject, JSONValue } from "../../Types/JSON";
 import { LlmConnectionFailureKind } from "../../Types/LlmObservability/LlmConnectionTest";
 import {
@@ -15,6 +21,7 @@ import UserMiddleware from "../Middleware/UserAuthorization";
 import NetworkControllerConnectionService, {
   Service as NetworkControllerConnectionServiceClass,
 } from "../Services/NetworkControllerConnectionService";
+import ProbeService from "../Services/ProbeService";
 import DataSourceHttpFetch from "../Utils/DataSource/HttpFetch";
 import {
   ExpressRequest,
@@ -23,6 +30,9 @@ import {
 } from "../Utils/Express";
 import LlmProviderError from "../Utils/LlmObservability/LlmProviderError";
 import NetworkControllerConnectorRegistry from "../Utils/NetworkController/NetworkControllerConnectorRegistry";
+import NetworkControllerDeviceAddRunner, {
+  DEVICE_ADD_PROBE_NOT_ATTACHABLE,
+} from "../Utils/NetworkController/NetworkControllerDeviceAddRunner";
 import NetworkControllerScheduler from "../Utils/NetworkController/NetworkControllerScheduler";
 import { NetworkControllerSettings } from "../Utils/NetworkController/NetworkControllerTypes";
 import Response from "../Utils/Response";
@@ -49,9 +59,17 @@ import CommonAPI from "./CommonAPI";
  *   POST /network-controller-connection/:connectionId/read-now
  *     -> queues a read of the connection now.
  *
- * Both are for whoever may edit connections (project owners and admins): a
- * test signs in to the organization with its key, and a read spends its
- * API budget.
+ *   POST /network-controller-connection/:connectionId/add-devices
+ *     { productTypes, groupBySite?, probeId? }
+ *     -> asks for the organization's devices of those kinds that are no
+ *        network device here to be added (NetworkControllerDeviceAddRunner),
+ *        and answers the connection's lastDeviceAdd: the ask, queued.
+ *
+ * All three are for whoever may edit connections (project owners and
+ * admins): a test signs in to the organization with its key, and a read and
+ * an ask spend its API budget. Adding devices also asks the right to create
+ * network devices - and sites, when the devices go into sites - since the
+ * devices are added as the person who asked.
  */
 export default class NetworkControllerConnectionAPI extends BaseAPI<
   NetworkControllerConnection,
@@ -188,6 +206,67 @@ export default class NetworkControllerConnectionAPI extends BaseAPI<
           );
 
           return Response.sendJsonObjectResponse(req, res, { queued: true });
+        } catch (error) {
+          next(error);
+        }
+      },
+    );
+
+    this.router.post(
+      `${basePath}/:connectionId/add-devices`,
+      UserMiddleware.getUserMiddleware,
+      UserMiddleware.requireUserAuthentication,
+      async (req: ExpressRequest, res: ExpressResponse, next: NextFunction) => {
+        try {
+          const props: DatabaseCommonInteractionProps =
+            await CommonAPI.getDatabaseCommonInteractionProps(req);
+          const projectId: ObjectID =
+            CommonAPI.assertAuthenticatedProjectMember(props);
+          this.assertCanOperate(props);
+
+          const request: NetworkControllerDeviceAddRequest =
+            readNetworkControllerDeviceAddRequest(req.body);
+
+          NetworkControllerDeviceAddRunner.assertMayAdd(props, request);
+
+          const connectionId: string | undefined = req.params["connectionId"];
+
+          if (!connectionId || !ObjectID.isValidUUID(connectionId)) {
+            throw new BadDataException("A valid connection ID is required.");
+          }
+
+          const connection: NetworkControllerConnection | null =
+            await this.service.findOneBy({
+              query: { _id: connectionId, projectId },
+              select: { _id: true, projectId: true },
+              props,
+            });
+          CommonAPI.assertResourceBelongsToProject({
+            resourceProjectId: connection?.projectId,
+            projectId,
+          });
+
+          if (
+            request.probeId &&
+            !(await ProbeService.isProbeAttachableToProject({
+              probeId: new ObjectID(request.probeId),
+              projectId,
+            }))
+          ) {
+            throw new BadDataException(DEVICE_ADD_PROBE_NOT_ATTACHABLE);
+          }
+
+          const state: NetworkControllerDeviceAddState =
+            await NetworkControllerDeviceAddRunner.ask({
+              connectionId: new ObjectID(connectionId),
+              projectId,
+              userId: props.userId!,
+              request,
+            });
+
+          return Response.sendJsonObjectResponse(req, res, {
+            lastDeviceAdd: toNetworkControllerDeviceAddStateJson(state),
+          });
         } catch (error) {
           next(error);
         }

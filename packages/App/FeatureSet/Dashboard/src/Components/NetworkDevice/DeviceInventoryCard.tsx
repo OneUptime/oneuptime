@@ -55,6 +55,12 @@ import useTranslator from "Common/UI/Utils/UseTranslator";
 
 export interface ComponentProps {
   modelId: ObjectID;
+  /*
+   * Told once a refresh asked here has been answered: the device was read
+   * again, or its probe could not reach it. The page reads what else the
+   * reading changed - the device's details card, its status hero.
+   */
+  onRead?: (() => void) | undefined;
 }
 
 const UPTIME_TITLE: string = "Uptime";
@@ -202,6 +208,7 @@ const DeviceInventoryCard: FunctionComponent<ComponentProps> = (
         return !value;
       });
     },
+    onRead: props.onRead,
   });
   const hasRefreshStatus: boolean = Boolean(refresh.error || refresh.answer);
   const isDescribedByController: boolean = Boolean(

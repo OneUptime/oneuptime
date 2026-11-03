@@ -20,6 +20,8 @@ import { MERAKI_REQUESTS_PER_SECOND } from "../../../../Server/Utils/NetworkCont
 import LlmProviderError from "../../../../Server/Utils/LlmObservability/LlmProviderError";
 import { JSONObject } from "../../../../Types/JSON";
 import {
+  NetworkControllerDeviceListing,
+  NetworkControllerListOptions,
   NetworkControllerPullState,
   NetworkControllerReadOptions,
   NetworkControllerReadResult,
@@ -1375,6 +1377,133 @@ describe("the organization's device list", () => {
     expect(result.warnings).toContain(
       "The organization has more than 50,000 devices: only the first 50,000 have their details read.",
     );
+  });
+});
+
+describe("listDevices: the organization's device list on its own, for Add devices", () => {
+  function withOtherDevices(count: number): FakeMerakiOrganization {
+    const organization: FakeMerakiOrganization = buildBranchOrganization({
+      id: "549236",
+      name: "Acme Retail",
+      count: 2,
+    });
+
+    organization.devices = Array.from(
+      { length: count },
+      (_: unknown, index: number) => {
+        return {
+          serial: `Q2HP-SWCH-${String(index).padStart(4, "0")}`,
+          name: `Switch ${index + 1}`,
+          model: "MS225-48LP",
+          mac: `88:15:44:aa:00:${(index % 256).toString(16).padStart(2, "0")}`,
+          networkId: `L_${1000 + (index % 2)}`,
+          productType: "switch",
+          lanIp: `10.0.${index % 250}.2`,
+          address: "1 Main Street",
+        };
+      },
+    );
+
+    return organization;
+  }
+
+  async function list(
+    env: Env,
+    overrides: Partial<NetworkControllerListOptions> = {},
+    settings: NetworkControllerSettings = settingsFor(),
+  ): Promise<NetworkControllerDeviceListing> {
+    return await MerakiTrafficReader.listDevices(settings, {
+      transport: env.api.transport,
+      now: env.clock.now,
+      sleep: env.clock.sleep,
+      maxRequests: 120,
+      maxDurationMs: 5 * MINUTE,
+      ...overrides,
+    });
+  }
+
+  test("the organization, its networks and its devices - three calls, and none of the traffic", async () => {
+    const env: Env = environment({ organizations: [withOtherDevices(3)] });
+    const listing: NetworkControllerDeviceListing = await list(env);
+
+    expect(
+      env.api.requests.map((request: FakeMerakiRequest): string => {
+        return request.url.pathname;
+      }),
+    ).toEqual([
+      "/api/v1/organizations/549236",
+      "/api/v1/organizations/549236/networks",
+      "/api/v1/organizations/549236/devices",
+    ]);
+    expect(listing.requestCount).toBe(3);
+    expect(listing.organizationName).toBe("Acme Retail");
+    expect(listing.isDeviceListComplete).toBe(true);
+    expect(listing.warnings).toEqual([]);
+    // The two MXs, then the switches, each named after its network.
+    expect(listing.devices).toHaveLength(5);
+    expect(listing.devices[2]).toEqual({
+      serial: "Q2HP-SWCH-0000",
+      name: "Switch 1",
+      model: "MS225-48LP",
+      mac: "88:15:44:aa:00:00",
+      lanIp: "10.0.0.2",
+      firmware: "switch-16-7",
+      productType: "switch",
+      controllerNetworkId: "L_1000",
+      networkName: "Branch 1",
+      address: "1 Main Street",
+    });
+    expectPaced(env.api);
+  });
+
+  test("a list cut short says so, and is not whole", async () => {
+    const env: Env = environment({
+      organizations: [withOtherDevices(60)],
+      maxPerPage: 1,
+    });
+    const listing: NetworkControllerDeviceListing = await list(env, {
+      maxRequests: 200,
+    });
+
+    expect(listing.isDeviceListComplete).toBe(false);
+    expect(listing.devices).toHaveLength(50);
+    expect(listing.warnings).toContain(
+      "The organization has more than 50,000 devices: only the first 50,000 have their details read.",
+    );
+  });
+
+  test("a refused key fails the listing, without the key in what it says", async () => {
+    const env: Env = environment({
+      scripted: {
+        "/api/v1/organizations/549236": [
+          merakiError(401, `Invalid API key ${FAKE_API_KEY}`),
+        ],
+      },
+    });
+
+    await expect(list(env)).rejects.toBeInstanceOf(LlmProviderError);
+    await list(env).catch((error: Error) => {
+      expect(error.message).not.toContain(FAKE_API_KEY);
+    });
+  });
+
+  test("a connection without an organization asks nothing", async () => {
+    const env: Env = environment();
+
+    await expect(list(env, {}, settingsFor(""))).rejects.toThrow(
+      "The connection names no Meraki organization. Edit it and pick one.",
+    );
+    expect(env.api.requests).toEqual([]);
+  });
+
+  test("its bounds hold: past its requests it stops", async () => {
+    const env: Env = environment({
+      organizations: [withOtherDevices(10)],
+      maxPerPage: 1,
+    });
+
+    await expect(list(env, { maxRequests: 4 })).rejects.toBeDefined();
+    expect(env.api.requests.length).toBeLessThanOrEqual(4);
   });
 });
 

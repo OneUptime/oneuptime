@@ -195,7 +195,7 @@ Todo lugar que mostra um dispositivo — a lista Dispositivos, a página Disposi
 | Qualificador | Aparece quando | O que fazer |
 | --- | --- | --- |
 | **Desatualizado** | Nenhuma sondagem foi tentada há bem mais tempo que o intervalo do dispositivo. | Confira se a sonda do dispositivo está online e dando conta da sua frota. |
-| **No probe** | O dispositivo é consultado pela sonda, mas não tem uma, ou a sondagem dele está desativada. | Atribua uma sonda que consiga alcançá-lo; até lá nada o consulta. |
+| **Nenhuma sonda** | O dispositivo é consultado pela sonda, mas não tem uma, ou a sondagem dele está desativada. | Atribua uma sonda que consiga alcançá-lo; até lá nada o consulta. |
 | **Sem monitor** | O dispositivo usa a [substituição por monitor vinculado](#a-substituição-por-monitor-vinculado) e nada está vinculado. | Vincule um monitor, ou volte a sondagem pela sonda. |
 | **SNMP failing** | Ativo no ping, mas o último walk SNMP falhou. | Confira as credenciais, o agente SNMP ou uma ACL. |
 
@@ -518,7 +518,7 @@ Esses valores ficam ao lado dos campos do próprio dispositivo, nunca gravados n
 
 Um switch, ponto de acesso ou appliance Meraki não informa por SNMP número de série nem firmware: consultado diretamente, responde ao grupo de sistema e às tabelas de interfaces, que dão o modelo e o endereço MAC dele, e nada mais. Quando uma [conexão do Meraki](/docs/monitor/network-traffic#cisco-meraki-sem-netflow) lê a organização dele, o dispositivo obtém esses dados, e tudo o mais que a sua consulta deixa vazio, do painel do Meraki, e o cartão **Inventário** dele nomeia a conexão em uma linha **Meraki**.
 
-Para ler um dispositivo de novo agora, clique em **Atualizar** no cartão **Inventário** dele. A sonda o consulta em até um minuto, e a conexão do Meraki lê a organização de novo. O cartão diz quando a nova leitura chegou, ou que a sonda não conseguiu alcançar o dispositivo. **Atualizar** aparece para quem pode editar dispositivos de rede, em um dispositivo que uma sonda consulta ou que uma conexão do Meraki descreve.
+Para ler um dispositivo de novo agora, clique em **Atualizar** no cartão **Inventário** dele. A sonda o consulta em até um minuto, e a conexão do Meraki lê a organização de novo. O cartão diz quando a nova leitura chegou, ou que a sonda não conseguiu alcançar o dispositivo. **Atualizar** aparece para quem pode editar dispositivos de rede, em um dispositivo que uma sonda consulta ou que uma conexão do Meraki descreve. Quando a nova leitura chega, o estado do dispositivo e o cartão **Detalhes do dispositivo** dele também a mostram. Se três minutos depois só o painel do Meraki ainda não foi lido, o cartão diz isso, com um link para a conexão do Meraki na página **Tráfego** da rede, cuja linha diz por quê.
 
 ## Descobrir dispositivos com uma varredura de rede
 
@@ -1029,7 +1029,7 @@ A visão geral do dispositivo tem um cartão **Conectado a** que indica o switch
 :::details Um dispositivo fica Pendente
 Um dispositivo mostra **Pendente** enquanto nada informou nada sobre ele ainda. Leia o qualificador ao lado do status:
 
-- **No probe**: atribua uma sonda, ou ative de novo **Polling Enabled**. Nada consulta o dispositivo até você fazer isso.
+- **Nenhuma sonda**: atribua uma sonda, ou ative de novo **Polling Enabled**. Nada consulta o dispositivo até você fazer isso.
 - **Sem monitor**: o dispositivo está com a [substituição por monitor vinculado](#a-substituição-por-monitor-vinculado) sem nada vinculado. Vincule um monitor, ou use **Switch to Probe Polling** para que a sonda dele envie ping a ele.
 - Nenhum qualificador: o dispositivo tem uma sonda e aguarda a primeira sondagem. Em uma frota grande, uma sonda distribui um número limitado de dispositivos por ciclo, então a primeira sondagem pode demorar mais que o intervalo do dispositivo.
 
