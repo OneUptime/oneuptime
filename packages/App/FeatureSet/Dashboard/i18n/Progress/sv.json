@@ -264,6 +264,8 @@
     "{{count}} datacenter",
     "{{count}} filter",
     "{{count}} filter ({{condition}})",
+    "{{count}} hunt",
+    "{{count}} hunts",
     "{{count}} incident",
     "{{count}} manager",
     "{{count}} managers",

@@ -37,6 +37,8 @@ enum PageMap {
   // Searches over security events, saved and scheduled, and one hunt's page.
   SECURITY_EVENTS_HUNTS = "SECURITY_EVENTS_HUNTS",
   SECURITY_EVENTS_HUNT_VIEW = "SECURITY_EVENTS_HUNT_VIEW",
+  // Ready-made hunts, one click from being the project's own.
+  SECURITY_EVENTS_HUNT_LIBRARY = "SECURITY_EVENTS_HUNT_LIBRARY",
   SECURITY_EVENTS_DETECTION_RULES = "SECURITY_EVENTS_DETECTION_RULES",
   // What each detection rule skips: an entity, a value or a time window.
   SECURITY_EVENTS_RULE_EXCEPTIONS = "SECURITY_EVENTS_RULE_EXCEPTIONS",

@@ -170,6 +170,7 @@ import DetectionRuleException from "./DetectionRuleException";
 import SecurityWatchlist from "./SecurityWatchlist";
 import SecurityWatchlistItem from "./SecurityWatchlistItem";
 import SecurityHunt from "./SecurityHunt";
+import SecurityHuntRun from "./SecurityHuntRun";
 import SecurityEventConnection from "./SecurityEventConnection";
 import SecurityEventConnectionRun from "./SecurityEventConnectionRun";
 import ToolImportRun from "./ToolImportRun";
@@ -645,6 +646,7 @@ const AllModelTypes: Array<{
   SecurityWatchlist,
   SecurityWatchlistItem,
   SecurityHunt,
+  SecurityHuntRun,
   SecurityEventConnection,
   SecurityEventConnectionRun,
   ToolImportRun,

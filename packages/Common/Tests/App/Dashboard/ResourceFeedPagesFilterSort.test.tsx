@@ -19,6 +19,12 @@ import {
   within,
 } from "@testing-library/react";
 import * as React from "react";
+import {
+  MemoryRouter,
+  Outlet,
+  Route as RouterRoute,
+  Routes,
+} from "react-router-dom";
 
 /*
  * ModelAPI is the only thing between these pages and the network. Stubbed
@@ -96,6 +102,13 @@ import DataSecurityIssueFeedModel, {
 import DataStoreFeedModel, {
   DataStoreFeedEventType,
 } from "../../../Models/DatabaseModels/DataStoreFeed";
+import DataAssetTimelinePage, {
+  getDataAssetFeedKind,
+} from "../../../../App/FeatureSet/Dashboard/src/Pages/DataObservability/TableView/Timeline";
+import { TableViewOutletContext } from "../../../../App/FeatureSet/Dashboard/src/Pages/DataObservability/TableView/TableViewContext";
+import DataAssetFeed, {
+  DataAssetFeedEventType,
+} from "../../../Models/DatabaseModels/DataAssetFeed";
 import {
   getSloFeedEventIcon,
   getSloFeedEventKind,
@@ -569,12 +582,64 @@ const DATA_STORE_TIMELINE: ResourceFeedSurface = {
   },
 };
 
+/*
+ * A Data Observability table's timeline, on the table's own Timeline page.
+ * The table's layout reads the table once and hands it to each of its pages
+ * through the outlet (TableViewContext), so the page is drawn below an
+ * outlet that hands it the table - and the address bar points at another.
+ */
+const DATA_ASSET_TIMELINE: ResourceFeedSurface = {
+  product: "Data Observability table timeline",
+  feedProduct: "Data Asset",
+  file: "Pages/DataObservability/TableView/Timeline.tsx",
+  component: DataAssetTimelinePage,
+  modelType: DataAssetFeed,
+  resourceIdColumn: "dataAssetId",
+  eventTypeColumn: "dataAssetFeedEventType",
+  enumObject: DataAssetFeedEventType,
+  getKind: getDataAssetFeedKind,
+  mount: (resourceId: ObjectID): React.ReactElement => {
+    window.history.pushState(
+      {},
+      "",
+      `/dashboard/${PROJECT_ID.toString()}/data-observability/tables/${ObjectID.generate().toString()}/timeline`,
+    );
+
+    const context: TableViewOutletContext = {
+      dataAssetId: resourceId,
+      dataAsset: null,
+      refresh: (): void => {},
+    };
+    const pageProps: PageComponentProps = {
+      pageRoute: RouteMap[
+        PageMap.DATA_OBSERVABILITY_TABLE_VIEW_TIMELINE
+      ] as Route,
+      currentProject: null,
+      hasPaymentMethod: true,
+    };
+
+    return (
+      <MemoryRouter>
+        <Routes>
+          <RouterRoute element={<Outlet context={context} />}>
+            <RouterRoute
+              path="*"
+              element={<DataAssetTimelinePage {...pageProps} />}
+            />
+          </RouterRoute>
+        </Routes>
+      </MemoryRouter>
+    );
+  },
+};
+
 const SURFACES: Array<ResourceFeedSurface> = [
   ...FEED_PAGES.map(toSurface),
   EMBEDDED_SLO_FEED,
   SECURITY_CASE_TIMELINE,
   DATA_SECURITY_ISSUE_TIMELINE,
   DATA_STORE_TIMELINE,
+  DATA_ASSET_TIMELINE,
 ];
 
 type GetEventTypes = (surface: ResourceFeedSurface) => Array<string>;

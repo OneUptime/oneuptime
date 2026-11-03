@@ -472,5 +472,8 @@ relative times against the real clock, not the pinned one.
   (but for the cloud fix `?cloudfix=` proposes, and the fixes `?fixes=many` puts on #1042).
   Auto-remediation decisions (what auto-remediation did, which the Remediation card reads
   beside the suggestions) are empty too, unless `?fixing=` or an off `?ai=` records one.
+- Data alerts: no alert was raised by a data monitor, so the alert page's two `DataAlert`
+  reads (what the alert is about, and the alerts downstream it caused) answer empty and its
+  Data and Downstream Impact cards stay hidden.
 - Stubs ignore `select`: every read returns the whole record, so a missing column in a page's
   select is not caught unless a test asserts on the recorded `select`.

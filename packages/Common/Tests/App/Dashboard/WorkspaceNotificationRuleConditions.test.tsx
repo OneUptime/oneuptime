@@ -265,6 +265,13 @@ const APPLIES_TO: Array<{
     all: "All security cases",
     matching: "Only security cases that match conditions",
   },
+  // What hunts find: a hunt's own words, as no other rule names hunts.
+  {
+    eventType: NotificationRuleEventType.SecurityHunt,
+    heading: "Which hunts",
+    all: "All hunts",
+    matching: "Only hunts that match conditions",
+  },
 ];
 
 const INCIDENT_TITLE_CONDITION: NotificationRuleCondition = {

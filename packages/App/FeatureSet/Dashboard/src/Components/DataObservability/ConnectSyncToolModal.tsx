@@ -65,7 +65,7 @@ const ConnectSyncToolModal: FunctionComponent<ComponentProps> = (
   return (
     <Modal
       title="Connect Fivetran or Airbyte"
-      description="Each Fivetran connector and Airbyte connection becomes a pipeline, and each sync a run, with the same alerts as any pipeline: a failed run, an unusually long one, and a late one."
+      description="Each Fivetran connector and Airbyte connection becomes a pipeline, and each sync a run, alerting on a failed, unusually long or late run."
       modalWidth={ModalWidth.Large}
       onClose={props.onClose}
       closeButtonText="Close"

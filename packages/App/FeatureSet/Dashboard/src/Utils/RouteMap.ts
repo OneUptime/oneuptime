@@ -824,6 +824,8 @@ export const SecurityEventsRoutePath: Dictionary<string> = {
   // A hunt's page is one level under the list, by its id: its search, opened.
   [PageMap.SECURITY_EVENTS_HUNTS]: "hunts",
   [PageMap.SECURITY_EVENTS_HUNT_VIEW]: `hunts/${RouteParams.ModelID}`,
+  // Beside the hunts, not under them: hunts/<id> is a hunt's page.
+  [PageMap.SECURITY_EVENTS_HUNT_LIBRARY]: "hunt-library",
   [PageMap.SECURITY_EVENTS_DETECTION_RULES]: "detection-rules",
   [PageMap.SECURITY_EVENTS_RULE_EXCEPTIONS]: "rule-exceptions",
   // A watchlist's page is one level under the list, by its id.
@@ -7271,6 +7273,12 @@ const RouteMap: Dictionary<Route> = {
   [PageMap.SECURITY_EVENTS_HUNT_VIEW]: new Route(
     `/dashboard/${RouteParams.ProjectID}/security-events/${
       SecurityEventsRoutePath[PageMap.SECURITY_EVENTS_HUNT_VIEW]
+    }`,
+  ),
+
+  [PageMap.SECURITY_EVENTS_HUNT_LIBRARY]: new Route(
+    `/dashboard/${RouteParams.ProjectID}/security-events/${
+      SecurityEventsRoutePath[PageMap.SECURITY_EVENTS_HUNT_LIBRARY]
     }`,
   ),
 
