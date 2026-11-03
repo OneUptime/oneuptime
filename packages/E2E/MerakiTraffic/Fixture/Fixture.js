@@ -291,8 +291,13 @@ const DEVICE_ADDS = {
     });
   },
 };
-const initialDeviceAdd = DEVICE_ADDS[params.get("adding")]
-  ? DEVICE_ADDS[params.get("adding")]()
+// Only a scenario named above: ?adding=toString must not call Object's own.
+const deviceAddScenario = params.get("adding") || "";
+const initialDeviceAdd = Object.prototype.hasOwnProperty.call(
+  DEVICE_ADDS,
+  deviceAddScenario,
+)
+  ? DEVICE_ADDS[deviceAddScenario]()
   : undefined;
 
 const GLOBAL_PERMISSIONS = [
