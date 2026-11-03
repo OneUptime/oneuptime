@@ -783,7 +783,7 @@ describe("Teams' Create New Incident card and its typeahead, as Teams sees them"
     );
 
     expect(confirmation?.activity?.["text"]).toBe(
-      `✅ Incident created successfully!\n\nView incident: ${DASHBOARD_URL}/${projectId.toString()}/incidents/${CREATED_ID.toString()}\n\nLinked to **api-1** (Host) and **prod** (Kubernetes Cluster).`,
+      `✅ **Incident INC-43** created successfully. [View incident](${DASHBOARD_URL}/${projectId.toString()}/incidents/${CREATED_ID.toString()})\n\nLinked to **api-1** (Host) and **prod** (Kubernetes Cluster).`,
     );
   });
 
@@ -813,7 +813,7 @@ describe("Teams' Create New Incident card and its typeahead, as Teams sees them"
     const incidentUrl: string = `${DASHBOARD_URL}/${projectId.toString()}/incidents/${CREATED_ID.toString()}`;
 
     expect(posts[0]?.activity?.["text"]).toBe(
-      `✅ Incident created successfully!\n\nView incident: ${incidentUrl}\n\nLinked to **api-1** (Host).`,
+      `✅ **Incident INC-43** created successfully. [View incident](${incidentUrl})\n\nLinked to **api-1** (Host).`,
     );
 
     const reply: JSONObject = cardOf(posts[1]);

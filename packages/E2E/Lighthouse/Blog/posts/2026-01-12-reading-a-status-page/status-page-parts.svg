@@ -1,0 +1,16 @@
+<svg xmlns="http://www.w3.org/2000/svg" width="800" height="420" viewBox="0 0 800 420" role="img" aria-labelledby="title">
+  <title id="title">The parts of a status page</title>
+  <rect width="800" height="420" fill="#f8fafc"/>
+  <rect x="40" y="30" width="720" height="60" rx="8" fill="#16a34a"/>
+  <text x="64" y="68" font-family="sans-serif" font-size="22" fill="#ffffff">All systems operational</text>
+  <rect x="40" y="110" width="720" height="150" rx="8" fill="#ffffff" stroke="#cbd5e1"/>
+  <text x="64" y="148" font-family="sans-serif" font-size="18" fill="#0f172a">Website</text>
+  <text x="64" y="188" font-family="sans-serif" font-size="18" fill="#0f172a">Dashboard</text>
+  <text x="64" y="228" font-family="sans-serif" font-size="18" fill="#0f172a">API</text>
+  <text x="620" y="148" font-family="sans-serif" font-size="18" fill="#15803d">Operational</text>
+  <text x="620" y="188" font-family="sans-serif" font-size="18" fill="#15803d">Operational</text>
+  <text x="620" y="228" font-family="sans-serif" font-size="18" fill="#15803d">Operational</text>
+  <rect x="40" y="280" width="720" height="110" rx="8" fill="#ffffff" stroke="#cbd5e1"/>
+  <text x="64" y="318" font-family="sans-serif" font-size="18" fill="#0f172a">Uptime, last 90 days</text>
+  <rect x="64" y="338" width="672" height="28" rx="4" fill="#22c55e"/>
+</svg>
