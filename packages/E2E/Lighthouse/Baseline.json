@@ -160,25 +160,21 @@
     },
     "/reference/en/introduction": {
       "mobile": [
-        "color-contrast",
-        "errors-in-console"
+        "color-contrast"
       ],
       "desktop": [
-        "color-contrast",
-        "errors-in-console"
+        "color-contrast"
       ]
     },
     "/reference/en/monitor": {
       "mobile": [
         "color-contrast",
         "definition-list",
-        "errors-in-console",
         "heading-order"
       ],
       "desktop": [
         "color-contrast",
         "definition-list",
-        "errors-in-console",
         "heading-order"
       ]
     }
