@@ -14,7 +14,7 @@ OneUptime Docker Swarm 代理程式會監控 Docker Swarm 叢集：它的節點�
 代理程式是三個容器，全部定義在一個 `docker-compose.yml` 中：
 
 1. **Collector**：一個 OpenTelemetry Collector，會讀取 `docker_stats` 取得每個容器的指標、追蹤容器的日誌檔，並追蹤清單快照檔案。它會為所有資料加上你的叢集名稱（`docker.swarm.cluster.name`），為每個工作的指標加上其服務和節點，並透過 OTLP 傳送到 OneUptime。
-2. **清單輪詢器**：一個以 `curl` 和 `jq` 組成的小型 sidecar 容器，每 5 分鐘走訪一次 swarm 管理節點的 API（`/nodes`、`/services`、`/tasks`、`/networks`、`/secrets`、`/configs`、`/volumes`），並根據服務標籤 `com.docker.stack.namespace` 推斷出堆疊。它會為每個物件寫入一行 JSON，由 Collector 轉送。
+2. **清單輪詢器**：一個以 `curl` 和 `jq` 組成的小型 sidecar 容器，每 5 分鐘走訪一次 swarm 管理節點的 API（`/nodes`、`/services`、`/tasks`、`/networks`、`/secrets`、`/configs`、`/volumes`），並根據服務標籤 `com.docker.stack.namespace` 推斷出堆疊。它會為每個物件寫入一行 JSON，由 Collector 轉送。 它還會每分鐘讀取每個節點是否就緒，以及每個服務需要和正在執行的複本數，並將其寫為指標（從代理程式檔案版本 0.161.3 起）。
 3. **AI 代理程式**：`oneuptime-docker-swarm-ai-agent`，會在 OneUptime AI 調查此叢集上的事件或警示時，執行它要求的 `docker` 命令。除非你允許修正，否則它是唯讀的（請參閱 [AI 代理程式](#ai-代理程式)）。
 
 ```mermaid title="管理節點上的三個容器"
@@ -124,7 +124,8 @@ AI 代理程式自己的設定請見 [AI 代理程式](#ai-代理程式)。
 | 訊號 | 來源 | 顯示位置 |
 | --- | --- | --- |
 | 節點、服務、工作、堆疊、網路、密碼、設定和磁碟區 | 清單輪詢器，來自 swarm 管理節點的 API | 叢集的清單頁和詳細資料頁 |
-| 叢集計數（就緒的節點、執行中的工作、服務、堆疊等） | 同一個快照 | 概覽中的卡片和側邊選單上的徽章 |
+| 叢集計數（就緒的節點、執行中的工作、服務、堆疊等） | 同一個快照 | 概覽中的計數標籤和側邊選單上的徽章 |
+| 每個節點是否就緒和每個服務的複本，每分鐘 | 清單輪詢器，作為指標 `docker.swarm.node.ready`、`docker.swarm.service.replicas.desired` 和 `docker.swarm.service.replicas.running` | Node Not Ready 和 Service Replicas Mismatch 警示，以及 **指標** 頁面 |
 | 容器的 CPU、記憶體、處理程序數和運作時間 | `docker_stats` 接收器 | **指標** 頁面 |
 | 容器的 stdout 和 stderr 日誌 | `filelog` 接收器 | **日誌** 頁面 |
 
@@ -133,6 +134,14 @@ AI 代理程式自己的設定請見 [AI 代理程式](#ai-代理程式)。
 ### 它與 Docker 代理程式有何不同
 
 [Docker 代理程式](/docs/telemetry/docker-host) 為單一主機建立模型，並為所有資料加上 `host.name`。Docker Swarm 代理程式刻意加上 `docker.swarm.cluster.name`，而從不加上 `host.name`：這樣 OneUptime 會將資料歸到 swarm 叢集下，而不是把每個節點註冊為獨立的主機。
+
+## 叢集頁面顯示的內容
+
+叢集頁面讀取同一份清單，並像 `docker node ls` 和 `docker service ls` 那樣依 Docker 本身的規則判斷，因此概覽、清單以及節點、服務或任務自己的頁面始終一致：
+
+- **概覽**：swarm 的健康狀態，以及 **需要注意**：哪些東西已損壞或需要查看，最緊急的在前，每項都附有原因和 Docker 本身的錯誤。當機的節點、其他管理節點無法連線的管理節點、即將失去管理節點多數的 swarm、沒有任何複本在執行或複本不足的服務、已暫停或已回復的滾動更新、反覆失敗的任務。下方可以一眼看到每個節點。
+- **節點**、**服務** 和 **任務**：每一列的狀態使用相同的措辭和顏色，並附有原因。
+- 節點、服務或任務自己的頁面：其中需要查看的問題、它的任務、它上面未解決的項目、監看它的警示（一步即可開啟），以及 Docker 回報的相關資訊。
 
 ## 用專案標籤標記叢集
 
@@ -253,6 +262,10 @@ docker version --format '{{ .Server.APIVersion }}'
 
 :::details 任務 CPU 是一條平線
 舊版 `otel-collector-config.yaml` 傳送的是 `docker_stats` 接收器自己算出的 CPU 值。從 Collector 0.150.0 起，接收器只根據一次統計讀數來計算它：容器自啟動以來用掉的全部 CPU，除以節點自開機以來用掉的全部 CPU。這條線幾乎不動，也不隨負載變化，而 `container.cpu.usage.total` 會隨負載變化。這樣的代理程式回報的版本為 0.161.0 或更早，所以版本旁會出現警告標誌：請依照 [升級代理程式](#升級代理程式) 重新下載代理程式的檔案。從第二次讀數起，Collector 就會傳送每個容器在每個 30 秒間隔內用掉的 CPU。已儲存的讀數保持不變。
+:::
+
+:::details 清單不再變化
+早於版本 0.161.3 的代理程式檔案會以相同的位元組開始每個快照，因此 Collector 會把平靜的 swarm 的新快照當作已經讀過的快照：叢集的清單不再變化，並在代理程式啟動 15 分鐘後清空。請在執行清單輪詢器的管理節點上 [升級代理程式](#升級代理程式)。
 :::
 
 ## 後續步驟

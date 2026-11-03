@@ -133,7 +133,7 @@ The agent sends everything the mgr `prometheus` module exports. OneUptime's Ceph
 
 | Category | Metrics |
 | --- | --- |
-| Cluster health | `ceph_health_status` (0 = OK, 1 = WARN, 2 = ERR), `ceph_health_detail` (one series per health check, 1 while it is active and 0 after it clears, labelled `name` and `severity`, from Quincy on; behind the health-check alert templates and the Overview's **Active Health Checks**), `ceph_healthcheck_slow_ops`, `ceph_daemon_health_metrics` (per daemon, keyed by `type`), `ceph_mon_quorum_status`, `ceph_mon_metadata`, `ceph_cluster_total_bytes`, `ceph_cluster_total_used_bytes` |
+| Cluster health | `ceph_health_status` (0 = OK, 1 = WARN, 2 = ERR), `ceph_health_detail` (one series per health check, 1 while it is active and 0 after it clears, labelled `name` and `severity`, from Quincy on; behind the health-check alert templates and the checks the Overview's **Needs attention** shows), `ceph_healthcheck_slow_ops`, `ceph_daemon_health_metrics` (per daemon, keyed by `type`), `ceph_mon_quorum_status`, `ceph_mon_metadata`, `ceph_cluster_total_bytes`, `ceph_cluster_total_used_bytes` |
 | OSD | `ceph_osd_up`, `ceph_osd_in`, `ceph_osd_apply_latency_ms`, `ceph_osd_commit_latency_ms`, `ceph_osd_stat_bytes`, `ceph_osd_stat_bytes_used`, `ceph_osd_numpg`, `ceph_osd_metadata`, per OSD by the `ceph_daemon` label (such as `osd.3`) |
 | Pool | `ceph_pool_stored`, `ceph_pool_max_avail`, `ceph_pool_objects`, `ceph_pool_rd`, `ceph_pool_wr`, `ceph_pool_rd_bytes`, `ceph_pool_wr_bytes`, `ceph_pool_metadata`. The data series carry only a `pool_id` label; the pool's name is on `ceph_pool_metadata`. |
 | Placement groups | `ceph_pg_total`, `ceph_pg_active`, `ceph_pg_clean`, `ceph_pg_degraded`, `ceph_pg_undersized` (all per pool, by `pool_id`), `ceph_num_objects_degraded`, `ceph_num_objects_misplaced` |
@@ -147,6 +147,19 @@ The mgr module covers the cluster's health and capacity. For a closer look, add 
 - **`node_exporter`.** The usual companion for each Ceph host's CPU, memory, disk and network metrics, on port `9100` by default.
 
 Both get the `ceph.cluster.name` resource attribute from the shipped `resource` processor, so they land on the same cluster in OneUptime.
+
+## What the cluster's pages show
+
+The cluster's **Overview** says its health, **Healthy**, **Degraded** or **Unhealthy**, from what needs attention, and lists that under **Needs attention**, the most urgent first:
+
+- **The cluster itself.** Ceph's own `HEALTH_WARN` or `HEALTH_ERR`, with the checks it raised as Ceph names them, such as `OSD_DOWN` or `PG_DEGRADED`, and raw capacity past 85% (critical past 95%), where the Cluster Near Full and Cluster Full alerts fire.
+- **OSDs.** An OSD that is down while still in the cluster is critical: its placement groups run a copy short. One that is down and out, or up but out, needs a look, as does one past Ceph's nearfull ratio (85%) or backfillfull ratio (90%), or with an apply latency past 100 ms. Past the full ratio (95%) it refuses writes, which is critical.
+- **Monitors.** A monitor out of quorum is critical.
+- **Pools.** A pool past 85% of its writable space, stored ÷ (stored + max avail), needs a look, and past 95% it is critical. Degraded or undersized placement groups need a look; inactive ones, whose I/O hangs, are critical.
+
+The **OSDs**, **Pools** and **Daemons** lists show each part's state by the same rules, with why under it. An OSD's and a pool's own page say what about it needs attention, what is open on it and which of the cluster's alerts watch it, with one step to turn on the rest. A manager, metadata server or object gateway that Ceph no longer lists reads **Stopped reporting**, in grey: Ceph raises a check for one that fails, such as `RECENT_CRASH` or `MDS_ALL_DOWN`, which the cluster's row shows. While the agent is disconnected, the health reads **Health Unknown**: the cluster's last report is no longer the truth.
+
+The OSD ratios are Ceph's defaults. A cluster set to others raises its own `OSD_NEARFULL`, `OSD_BACKFILLFULL` and `OSD_FULL` checks at its own lines, which the cluster's row shows.
 
 ## Optional — Ship the Ceph cluster log
 

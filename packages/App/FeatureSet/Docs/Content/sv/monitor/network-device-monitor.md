@@ -195,7 +195,7 @@ Varje ställe som visar en enhet — listan Enheter, en plats Enheter-sida, öve
 | Tillägg | Visas när | Vad du gör |
 | --- | --- | --- |
 | **Inaktuell** | Ingen avsökning har försökts på betydligt längre tid än enhetens intervall. | Kontrollera att enhetens sond är online och hinner med sin flotta. |
-| **No probe** | Enheten avsöks av en sond men har ingen, eller dess avsökning är avstängd. | Tilldela en sond som kan nå den; inget avsöker den förrän dess. |
+| **Ingen sond** | Enheten avsöks av en sond men har ingen, eller dess avsökning är avstängd. | Tilldela en sond som kan nå den; inget avsöker den förrän dess. |
 | **Ingen övervakning** | Enheten använder [åsidosättningen med bunden monitor](#åsidosättningen-med-bunden-monitor) och inget är bundet. | Bind en monitor, eller byt tillbaka den till avsökning via sond. |
 | **SNMP failing** | Uppe på ping, men den senaste SNMP-walken misslyckades. | Kontrollera autentiseringsuppgifterna, SNMP-agenten eller en ACL. |
 
@@ -518,7 +518,7 @@ De sparas bredvid enhetens egna fält, skrivs aldrig in i dem, och varje skannin
 
 En Meraki-switch, en Meraki-åtkomstpunkt eller en Meraki-appliance ger varken serienummer eller firmware över SNMP: när enheten pollas direkt svarar den på systemgruppen och gränssnittstabellerna, som ger dess modell och dess MAC-adress, och inget mer. När en [Meraki-anslutning](/docs/monitor/network-traffic#cisco-meraki-utan-netflow) läser dess organisation hämtar enheten dem, och allt annat som dess pollning lämnar tomt, från Meraki-dashboarden, och dess kort **Inventarie** nämner anslutningen på en rad **Meraki**.
 
-För att läsa en enhet igen nu trycker du på **Uppdatera** på dess kort **Inventarie**. Dess sond pollar den inom en minut, och dess Meraki-anslutning läser organisationen igen. Kortet säger när den nya avläsningen har kommit in, eller att sonden inte kunde nå enheten. **Uppdatera** finns för den som får redigera nätverksenheter, på en enhet som en sond pollar eller som en Meraki-anslutning beskriver.
+För att läsa en enhet igen nu trycker du på **Uppdatera** på dess kort **Inventarie**. Dess sond pollar den inom en minut, och dess Meraki-anslutning läser organisationen igen. Kortet säger när den nya avläsningen har kommit in, eller att sonden inte kunde nå enheten. **Uppdatera** finns för den som får redigera nätverksenheter, på en enhet som en sond pollar eller som en Meraki-anslutning beskriver. När den nya avläsningen har kommit in visar även enhetens status och dess kort **Enhetsinformation** den. Om bara Meraki-dashboarden fortfarande inte har lästs tre minuter senare säger kortet det, med en länk till Meraki-anslutningen på nätverkets sida **Trafik**, där raden säger varför.
 
 ## Upptäck enheter med en nätverksskanning
 
@@ -1029,7 +1029,7 @@ Enhetens översikt har ett kort **Ansluten till** som namnger switchen, porten o
 :::details En enhet står kvar som Väntar
 En enhet visar **Väntar** så länge inget har rapporterat om den ännu. Läs tillägget bredvid statusen:
 
-- **No probe**: tilldela en sond, eller slå på **Polling Enabled** igen. Inget avsöker enheten förrän du gör det.
+- **Ingen sond**: tilldela en sond, eller slå på **Polling Enabled** igen. Inget avsöker enheten förrän du gör det.
 - **Ingen övervakning**: enheten har [åsidosättningen med bunden monitor](#åsidosättningen-med-bunden-monitor) utan något bundet. Bind en monitor, eller använd **Switch to Probe Polling** så att dess sond pingar den.
 - Inget tillägg alls: enheten har en sond och väntar på sin första avsökning. I en stor flotta delar en sond ut ett begränsat antal enheter per cykel, så den första avsökningen kan ta längre tid än enhetens intervall.
 

@@ -53,15 +53,31 @@ export const PROBE_LATE_UNNAMED: string = translationKey(
   "Its probe has not read it yet. Check that the probe is online.",
 );
 export const CONTROLLER_LATE: string = translationKey(
-  "The Meraki dashboard has not been read yet. The connection's status is on the network's Traffic page.",
+  "The Meraki dashboard has not been read yet.",
+);
+/*
+ * After it, a link to the connection on the network's Traffic page, where
+ * its status says why: a refused key, Meraki asking OneUptime to slow down,
+ * a connection turned off.
+ */
+export const CONTROLLER_LATE_LINK: string = translationKey(
+  "See the Meraki connection",
 );
 
 export type RefreshStatusTone = "progress" | "done" | "warning" | "error";
+
+// Where a status line's link goes: the page draws the address.
+export enum RefreshStatusLinkKind {
+  // The Meraki connections at the foot of the network's Traffic page.
+  MerakiConnections = "meraki-connections",
+}
 
 export interface RefreshStatusWords {
   tone: RefreshStatusTone;
   template: string;
   values: TemplateValues;
+  // A link after the sentence: what it says, and where it goes.
+  link?: { title: string; kind: RefreshStatusLinkKind } | undefined;
 }
 
 /*
@@ -95,7 +111,15 @@ export function getRefreshStatusWords(data: {
           : { tone: "warning", template: PROBE_LATE_UNNAMED, values: {} };
       }
 
-      return { tone: "warning", template: CONTROLLER_LATE, values: {} };
+      return {
+        tone: "warning",
+        template: CONTROLLER_LATE,
+        values: {},
+        link: {
+          title: CONTROLLER_LATE_LINK,
+          kind: RefreshStatusLinkKind.MerakiConnections,
+        },
+      };
     case NetworkDeviceRefreshProgress.Waiting:
     default:
       return {

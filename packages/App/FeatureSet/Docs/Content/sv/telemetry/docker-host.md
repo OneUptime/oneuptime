@@ -154,6 +154,16 @@ Varje containers mätvärden och loggar arkiveras under en tjänst som är uppka
 
 [Docker-övervakning](/docs/monitor/docker-monitor#insamlade-mätvärden) listar varje mätvärde och vad det betyder.
 
+## Vad värdens sidor visar
+
+Värdens sidor bedömer varje container efter samma regler, så översikten, containerlistan och en containers egen sida alltid stämmer överens:
+
+- **Översikt**: värdens hälsa bredvid dess anslutning, och **Kräver uppmärksamhet**: containrarna som är trasiga eller behöver ses över, de mest brådskande först, var och en med skälet. En container som dess omstartspolicy har startat om mer än 3 gånger på 15 minuter är i en omstartsloop; en som har startat om, använder mer än 85 % av sitt minne eller kördes i 10 minuter eller mer och sedan slutade rapportera behöver ses över.
+- **Behållare**: varje containers tillstånd med samma ord och färger, med skälet, dess omstarter de senaste 15 minuterna och när den senast startades. En container som har stoppats står kvar i listan i 15 minuter efter sitt senaste mätvärde: **Slutade rapportera** för en som kördes i 10 minuter eller mer, **Ingen rapportering** i grått för ett jobb eller en engångskörning som är klar.
+- En containers egen sida: det i den som behöver ses över, dess CPU, minne och omstarter, det som är öppet för den, containerlarmen med ett steg för att slå på dem och det agenten rapporterar om den.
+
+Agenten läser bara containrar som körs, så en container som redan var stoppad när agenten startade, en slutkod och en hälsokontrolls utslag visas inte.
+
 ## Containerloggar behöver loggdrivrutinen json-file
 
 Agenten följer `/var/lib/docker/containers/*/*-json.log`, de filer som Dockers loggdrivrutin `json-file` skriver. En container som använder en annan drivrutin lämnar ingen fil att läsa: `local` skriver binärfiler, och `journald`, `syslog`, `fluentd` och `gelf` skickar loggarna någon annanstans. Dess mätvärden kommer fortfarande in; dess loggar gör det inte.

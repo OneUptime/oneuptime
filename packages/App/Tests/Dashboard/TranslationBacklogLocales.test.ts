@@ -985,14 +985,19 @@ describe("the overview heroes' last-seen line", () => {
     return found.sort();
   };
 
+  /*
+   * The time as OneUptimeDate writes it, or in the reader's language as a
+   * part's page writes it (formatRelativeTime): the Ceph Overview's.
+   */
+  const LAST_SEEN_WITH_A_TIME: RegExp =
+    /translator\.translateTemplate\("Last seen \{\{time\}\}", \{ time: (OneUptimeDate\.fromNow\(lastSeenAt\)|formatRelativeTime\(\{ date: OneUptimeDate\.fromString\(lastSeenAt\), now: new Date\(\), language: translator\.language, \}\)), \}\)/;
+
   test.each(HEROES)(
     "%s says Last seen with a time, or Never seen, each whole",
     (relative: string) => {
       const source: string = squashed(relative);
 
-      expect(source).toContain(
-        'translator.translateTemplate("Last seen {{time}}", { time: OneUptimeDate.fromNow(lastSeenAt), })',
-      );
+      expect(source).toMatch(LAST_SEEN_WITH_A_TIME);
       expect(source).toContain('translator.translateText("Never seen")');
       // The English word the sentence was filled with is gone.
       expect(source).not.toContain(': "never";');

@@ -19,10 +19,19 @@ import {
   sameName,
 } from "../ResourceTopologyIssues";
 import { isRecent, toFiniteNumber } from "../ResourceTopologyFormat";
+import { ResourceAttentionText } from "../../ResourcePart/ResourceAttention";
 import {
-  formatStatusWord,
-  healthOfStatusWord,
-} from "../ResourceTopologyStatusWords";
+  DockerSwarmAssessment,
+  assessDockerSwarmNode,
+  assessDockerSwarmService,
+  assessDockerSwarmTask,
+  getDockerSwarmTopologyHealth,
+  isCurrentDockerSwarmTask,
+  isDockerSwarmLeader,
+  isDockerSwarmManager,
+  isDockerSwarmReplicasStatus,
+  keepLatestDockerSwarmSnapshot,
+} from "../../../Pages/DockerSwarm/Utils/DockerSwarmHealth";
 
 /*
  * A Docker Swarm cluster's topology, two ways, like a Kubernetes cluster's:
@@ -66,29 +75,17 @@ function text(
   return values ? { text: value, values: values } : { text: value };
 }
 
-function attribute(row: DockerSwarmResource, key: string): string {
-  const value: unknown = (
-    row.attributes as Record<string, unknown> | undefined
-  )?.[key];
-
-  return value === null || value === undefined ? "" : String(value);
-}
-
 function routeParam(externalId: string): string {
   return encodeURIComponent(externalId);
 }
 
-/* A task Swarm wants running now, rather than one a slot replaced. */
+/*
+ * A task Swarm wants running now, rather than one a slot replaced: the
+ * rules' own test (DockerSwarmHealth), kept under this name for the
+ * builder's callers.
+ */
 export function isCurrentSwarmTask(row: DockerSwarmResource): boolean {
-  const desired: string = attribute(row, "desiredState").toLowerCase();
-
-  if (desired) {
-    return desired === "running" || desired === "ready";
-  }
-
-  const state: string = (row.state || "").toLowerCase();
-
-  return state !== "shutdown" && state !== "complete";
+  return isCurrentDockerSwarmTask(row);
 }
 
 interface Assessment {
@@ -98,155 +95,98 @@ interface Assessment {
   facts: Array<ResourceTopologyFact>;
 }
 
+/*
+ * A part's health, status and reasons by the swarm's rules
+ * (DockerSwarmHealth), the same the Overview's Needs attention, the lists
+ * and the part's own page read; Docker's own message (a task's error) last
+ * among the reasons, as written. A count-dependent reason reads its general
+ * form, with its count.
+ */
+function fromRules(
+  assessment: DockerSwarmAssessment,
+  facts: Array<ResourceTopologyFact>,
+): Assessment {
+  const reasons: Array<ResourceTopologyText> = assessment.reasons.map(
+    (reason: ResourceAttentionText): ResourceTopologyText => {
+      if (reason.plural) {
+        return text(reason.text, {
+          ...(reason.values || {}),
+          count: String(reason.plural.count),
+        });
+      }
+      return reason.values
+        ? text(reason.text, reason.values)
+        : text(reason.text);
+    },
+  );
+  if (assessment.message) {
+    reasons.push({ text: assessment.message });
+  }
+  return {
+    health: getDockerSwarmTopologyHealth(assessment),
+    status: assessment.status.values
+      ? text(assessment.status.label, assessment.status.values)
+      : text(assessment.status.label),
+    reasons: reasons,
+    facts: facts,
+  };
+}
+
 function assessNode(row: DockerSwarmResource): Assessment {
-  const availability: string = attribute(row, "availability").toLowerCase();
-  const facts: Array<ResourceTopologyFact> = [
+  return fromRules(assessDockerSwarmNode(row), [
     {
       label: translationKey("Role"),
-      value:
-        attribute(row, "isLeader") === "true" ? "leader" : row.role || "worker",
+      value: isDockerSwarmLeader(row)
+        ? "leader"
+        : isDockerSwarmManager(row)
+          ? "manager"
+          : "worker",
     },
-  ];
-  const fromState: ResourceTopologyHealth | null = healthOfStatusWord(
-    row.state,
-  );
-
-  if (fromState === "critical" || row.isReady === false) {
-    return {
-      health: "critical",
-      status: { text: formatStatusWord(row.state) || "Down" },
-      reasons: [text(translationKey("Swarm cannot reach this node."))],
-      facts: facts,
-    };
-  }
-
-  if (availability === "drain" || availability === "pause") {
-    return {
-      health: "warning",
-      status: text(
-        availability === "drain"
-          ? translationKey("Draining")
-          : translationKey("Paused"),
-      ),
-      reasons: [
-        text(translationKey("New tasks are not scheduled on this node.")),
-      ],
-      facts: facts,
-    };
-  }
-
-  return {
-    health: fromState || "unknown",
-    status: row.state ? { text: formatStatusWord(row.state) } : undefined,
-    reasons: [],
-    facts: facts,
-  };
+  ]);
 }
 
-function assessService(row: DockerSwarmResource): Assessment {
+function assessService(row: DockerSwarmResource, now: Date): Assessment {
   const running: number | null = toFiniteNumber(row.runningReplicas);
   const desired: number | null = toFiniteNumber(row.desiredReplicas);
+  const assessment: DockerSwarmAssessment = assessDockerSwarmService(row, now);
+  const facts: Array<ResourceTopologyFact> = [];
 
-  if (desired === null) {
-    // A global service runs one task per node: there is no count to fall short of.
-    return {
-      health: running !== null && running > 0 ? "healthy" : "unknown",
-      status:
-        running !== null
-          ? text(translationKey("{{count}} running"), {
-              count: String(running),
-            })
-          : undefined,
-      reasons: [],
-      facts: [],
-    };
-  }
-
-  const have: number = running ?? 0;
-  const facts: Array<ResourceTopologyFact> = [
-    {
+  /*
+   * Its replicas, unless its status already counts them ("2 of 3
+   * running"): a card that said "Replicas 2/3" beside it said it twice.
+   * An updating service's card still counts them.
+   */
+  if (
+    desired !== null &&
+    desired > 0 &&
+    !isDockerSwarmReplicasStatus(assessment.status.label)
+  ) {
+    const have: number = running ?? 0;
+    facts.push({
       label: translationKey("Replicas"),
       value: `${have}/${desired}`,
-      tone:
-        desired > 0 && have === 0
-          ? "critical"
-          : have < desired
-            ? "warning"
-            : undefined,
-    },
-  ];
-
-  if (desired === 0) {
-    return {
-      health: "off",
-      status: text(translationKey("Scaled to zero")),
-      reasons: [],
-      facts: facts,
-    };
+      tone: have === 0 ? "critical" : have < desired ? "warning" : undefined,
+    });
   }
 
-  if (have === 0) {
-    return {
-      health: "critical",
-      status: text(translationKey("No replicas running")),
-      reasons: [
-        text(translationKey("None of its {{count}} replicas are running."), {
-          count: String(desired),
-        }),
-      ],
-      facts: facts,
-    };
-  }
-
-  if (have < desired) {
-    return {
-      health: "warning",
-      status: text(translationKey("{{running}} of {{desired}} running"), {
-        running: String(have),
-        desired: String(desired),
-      }),
-      reasons: [
-        text(
-          translationKey("{{running}} of {{desired}} replicas are running."),
-          {
-            running: String(have),
-            desired: String(desired),
-          },
-        ),
-      ],
-      facts: facts,
-    };
-  }
-
-  return {
-    health: "healthy",
-    status: text(translationKey("{{running}} of {{desired}} running"), {
-      running: String(have),
-      desired: String(desired),
-    }),
-    reasons: [],
-    facts: facts,
-  };
+  return fromRules(assessment, facts);
 }
 
-function assessTask(row: DockerSwarmResource): Assessment {
-  const error: string = attribute(row, "error");
-
-  return {
-    health: healthOfStatusWord(row.state) || "unknown",
-    status: row.state ? { text: formatStatusWord(row.state) } : undefined,
-    reasons: error ? [{ text: error }] : [],
-    facts: [],
-  };
+function assessTask(row: DockerSwarmResource, now: Date): Assessment {
+  return fromRules(assessDockerSwarmTask(row, now), []);
 }
 
 export function buildDockerSwarmTopology(
   input: DockerSwarmTopologyInput,
 ): DockerSwarmTopology {
   const clusterId: string = input.cluster.id;
+  // The newest snapshot's rows: a replaced task is not drawn beside its replacement.
+  const rows: Array<DockerSwarmResource> = keepLatestDockerSwarmSnapshot(
+    input.rows,
+  );
   const reporting: boolean =
     isRecent(input.cluster.lastSeenAt, input.now, SWARM_STALE_MS) ||
-    input.rows.some((row: DockerSwarmResource): boolean => {
+    rows.some((row: DockerSwarmResource): boolean => {
       return isRecent(row.lastSeenAt, input.now, SWARM_STALE_MS);
     });
 
@@ -292,7 +232,7 @@ export function buildDockerSwarmTopology(
       : null;
   };
 
-  for (const row of input.rows) {
+  for (const row of rows) {
     if (!row.kind || !row.externalId) {
       continue;
     }
@@ -315,7 +255,7 @@ export function buildDockerSwarmTopology(
         link: link(PageMap.DOCKER_SWARM_CLUSTER_VIEW_NODE_DETAIL, row),
       });
     } else if (row.kind === "Service") {
-      const assessment: Assessment = assessService(row);
+      const assessment: Assessment = assessService(row, input.now);
       serviceByName.set(name, id);
       parts.set(id, {
         id: id,
@@ -335,7 +275,7 @@ export function buildDockerSwarmTopology(
         continue;
       }
 
-      const assessment: Assessment = assessTask(row);
+      const assessment: Assessment = assessTask(row, input.now);
       parts.set(id, {
         id: id,
         parentId: SWARM_ROOT_ID,
@@ -398,7 +338,7 @@ export function buildDockerSwarmTopology(
   const relations: Array<ResourceTopologyRelation> = [];
   const taskNode: Map<string, string | null> = new Map<string, string | null>();
 
-  for (const row of input.rows) {
+  for (const row of rows) {
     if (!row.externalId) {
       continue;
     }

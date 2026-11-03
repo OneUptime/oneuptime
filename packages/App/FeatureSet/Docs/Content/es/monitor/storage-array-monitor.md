@@ -32,7 +32,7 @@ flowchart TB
 ## Antes de empezar
 
 - **Instale el Storage Array Agent** donde pueda llegar a la cabina por HTTPS, con el token de API de un usuario que tenga el rol **readonly** de la cabina. La [guía del Storage Array Agent](/docs/telemetry/storage-arrays) cubre el usuario, el token y la instalación, mediante `ONEUPTIME_URL`, `ONEUPTIME_TELEMETRY_INGESTION_KEY`, `STORAGE_ARRAY_NAME`, y la dirección y el token de la cabina (`PURE_FA_ENDPOINT` y `PURE_FA_API_TOKEN`, o `PURE_FB_ENDPOINT` y `PURE_FB_API_TOKEN`).
-- **Compruebe que la cabina está registrada.** Aparece en **Productos → Infraestructura → Cabinas de almacenamiento → All Storage Arrays**, con el nombre del `STORAGE_ARRAY_NAME` del agente, alrededor de un minuto después de la primera lectura.
+- **Compruebe que la cabina está registrada.** Aparece en **Productos → Infraestructura → Cabinas de almacenamiento → Todas las cabinas de almacenamiento**, con el nombre del `STORAGE_ARRAY_NAME` del agente, alrededor de un minuto después de la primera lectura.
 
 ## Crear un monitor de cabina de almacenamiento
 
@@ -77,7 +77,7 @@ Haga clic en **Crear monitor**. OneUptime abre la página del monitor y lo eval�
 | **Volumen** | Custom Metric, Avanzado | Solo FlashArray. Un volumen, por la etiqueta `name`, como `vol-db-01`. Un volumen dentro de un pod o de un grupo de volúmenes se llama `pod::volume` o `group/volume`. |
 | **Host** | Custom Metric, Avanzado | Solo FlashArray. Un host tal como lo conoce la cabina, por la etiqueta `host`, como `esxi-01`. |
 | **Pod** | Custom Metric, Avanzado | Solo FlashArray. Un pod de ActiveCluster o ActiveDR, por la etiqueta `name`, o `local_pod` en las series de enlaces de réplica. |
-| **Hardware Component** | Custom Metric, Avanzado | Un componente de hardware, como `CH0.BAY1` o `CT0`: la etiqueta `component_name` en un FlashArray, `name` en un FlashBlade. |
+| **Componente de hardware** | Custom Metric, Avanzado | Un componente de hardware, como `CH0.BAY1` o `CT0`: la etiqueta `component_name` en un FlashArray, `name` en un FlashBlade. |
 | **Sistema de archivos** | Custom Metric, Avanzado | Solo FlashBlade. Un sistema de archivos, por la etiqueta `name`. |
 | **Bucket** | Custom Metric, Avanzado | Solo FlashBlade. Un bucket de almacenamiento de objetos, por la etiqueta `name`. |
 | **Storage Array Metric** | Custom Metric | Una métrica del [catálogo](#métricas-recogidas). El formulario añade el filtro de etiqueta que le da su significado, y la agrupa por el objeto que describe, así que cada volumen, host o componente se juzga por separado. |

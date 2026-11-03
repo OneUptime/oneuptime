@@ -6,6 +6,19 @@ import UserMiddleware from "../../../Server/Middleware/UserAuthorization";
 import Response from "../../../Server/Utils/Response";
 import NetworkControllerConnectorRegistry from "../../../Server/Utils/NetworkController/NetworkControllerConnectorRegistry";
 import NetworkControllerScheduler from "../../../Server/Utils/NetworkController/NetworkControllerScheduler";
+import NetworkControllerDeviceAddRunner, {
+  DEVICE_ADD_PROBE_NOT_ATTACHABLE,
+  DEVICE_ADD_UNDER_WAY,
+} from "../../../Server/Utils/NetworkController/NetworkControllerDeviceAddRunner";
+import ProbeService from "../../../Server/Services/ProbeService";
+import BadDataException from "../../../Types/Exception/BadDataException";
+import {
+  DEVICE_ADD_REQUEST_NO_KINDS,
+  NetworkControllerDeviceAddState,
+  buildQueuedNetworkControllerDeviceAddState,
+  toNetworkControllerDeviceAddStateJson,
+} from "../../../Types/NetworkController/NetworkControllerDeviceAdd";
+import { ON_HIGHEST_PLAN } from "../TestingUtils/RequestPlan";
 import {
   ExpressRequest,
   ExpressResponse,
@@ -22,12 +35,13 @@ import ObjectID from "../../../Types/ObjectID";
 import Permission from "../../../Types/Permission";
 
 /*
- * The two routes beside the Meraki connections' CRUD: "Test" (settings
+ * The three routes beside the Meraki connections' CRUD: "Test" (settings
  * never saved - the key, the region, the organization once one is picked -
- * or a saved connection with the form's unsaved values over it) and "Read
- * now". Both are for project owners and admins only, are scoped to the
- * caller's project, check settings before anything is sent to Meraki, and
- * never answer with the key. `jest` is the global one.
+ * or a saved connection with the form's unsaved values over it), "Read
+ * now" and "Add devices". All are for project owners and admins only, are
+ * scoped to the caller's project, check what they are sent before anything
+ * is sent to Meraki or queued, and never answer with the key. `jest` is the
+ * global one.
  */
 
 type Handler = (
@@ -96,6 +110,7 @@ const PASS: NetworkControllerTestResult = {
 let props: DatabaseCommonInteractionProps;
 let testHandler: Handler;
 let readNowHandler: Handler;
+let addDevicesHandler: Handler;
 let next: jest.Mock;
 let testConnection: jest.Mock;
 let accessible: NetworkControllerConnection | null;
@@ -155,6 +170,9 @@ beforeAll(() => {
   readNowHandler = route(
     "/network-controller-connection/:connectionId/read-now",
   ).handlers.slice(-1)[0]!;
+  addDevicesHandler = route(
+    "/network-controller-connection/:connectionId/add-devices",
+  ).handlers.slice(-1)[0]!;
 });
 
 beforeEach(() => {
@@ -208,6 +226,7 @@ describe("route registration", () => {
   test.each([
     "/network-controller-connection/test",
     "/network-controller-connection/:connectionId/read-now",
+    "/network-controller-connection/:connectionId/add-devices",
   ])(
     "%s resolves the user and requires authentication before its handler",
     (uri: string) => {
@@ -501,5 +520,151 @@ describe("POST /network-controller-connection/:connectionId/read-now", () => {
 
     expect(next).toHaveBeenCalledWith(expect.any(Error));
     expect(NetworkControllerScheduler.enqueue).not.toHaveBeenCalled();
+  });
+});
+
+describe("POST /network-controller-connection/:connectionId/add-devices", () => {
+  let asked: jest.SpyInstance;
+  let attachable: jest.SpyInstance;
+  const PROBE: string = "44444444-4444-4444-8444-444444444444";
+
+  beforeEach(() => {
+    props = { userId: USER, tenantId: PROJECT, ...ON_HIGHEST_PLAN };
+    setPermission(Permission.ProjectAdmin);
+
+    asked = jest
+      .spyOn(NetworkControllerDeviceAddRunner, "ask")
+      .mockImplementation((async (data: {
+        request: NetworkControllerDeviceAddState["request"];
+      }) => {
+        return buildQueuedNetworkControllerDeviceAddState({
+          request: data.request,
+          requestedByUserId: USER.toString(),
+          now: new Date("2026-11-03T10:00:00.000Z"),
+        });
+      }) as never);
+    attachable = jest
+      .spyOn(ProbeService, "isProbeAttachableToProject")
+      .mockResolvedValue(true);
+  });
+
+  async function addDevices(
+    body: JSONObject,
+    connectionId: string = CONNECTION.toString(),
+  ): Promise<void> {
+    await addDevicesHandler(request(body, { connectionId }), res, next);
+  }
+
+  test.each([Permission.ProjectOwner, Permission.ProjectAdmin])(
+    "%s asks, as themselves, for the kinds picked; the answer is the ask, queued",
+    async (permission: Permission) => {
+      setPermission(permission);
+
+      await addDevices({
+        productTypes: ["wireless", "switch", "wireless"],
+        groupBySite: false,
+        probeId: PROBE,
+      });
+
+      expect(next).not.toHaveBeenCalled();
+      expect(asked).toHaveBeenCalledWith({
+        connectionId: CONNECTION,
+        projectId: PROJECT,
+        userId: USER,
+        request: {
+          productTypes: ["switch", "wireless"],
+          groupBySite: false,
+          probeId: PROBE,
+        },
+      });
+      expect(attachable).toHaveBeenCalledWith({
+        probeId: new ObjectID(PROBE),
+        projectId: PROJECT,
+      });
+
+      const answer: JSONObject = sent();
+      expect(answer).toEqual({
+        lastDeviceAdd: toNetworkControllerDeviceAddStateJson(
+          buildQueuedNetworkControllerDeviceAddState({
+            request: {
+              productTypes: ["switch", "wireless"],
+              groupBySite: false,
+              probeId: PROBE,
+            },
+            requestedByUserId: USER.toString(),
+            now: new Date("2026-11-03T10:00:00.000Z"),
+          }),
+        ),
+      });
+      // The API process never reads the key to ask.
+      expect(
+        NetworkControllerConnectionService.getControllerSettings,
+      ).not.toHaveBeenCalled();
+    },
+  );
+
+  test("the connection is looked up in the caller's own project", async () => {
+    await addDevices({ productTypes: ["switch"] });
+
+    expect(NetworkControllerConnectionService.findOneBy).toHaveBeenCalledWith({
+      query: { _id: CONNECTION.toString(), projectId: PROJECT },
+      select: { _id: true, projectId: true },
+      props,
+    });
+  });
+
+  test("without a probe, none is checked", async () => {
+    await addDevices({ productTypes: ["switch"] });
+
+    expect(attachable).not.toHaveBeenCalled();
+    expect(asked).toHaveBeenCalledTimes(1);
+  });
+
+  test("a probe that is not the project's, or global, is refused before anything is asked", async () => {
+    attachable.mockResolvedValue(false);
+
+    await addDevices({ productTypes: ["switch"], probeId: PROBE });
+
+    expect(next).toHaveBeenCalledWith(
+      expect.objectContaining({ message: DEVICE_ADD_PROBE_NOT_ATTACHABLE }),
+    );
+    expect(asked).not.toHaveBeenCalled();
+  });
+
+  test("a request it cannot take is refused with its sentence", async () => {
+    await addDevices({ productTypes: [] });
+
+    expect(next).toHaveBeenCalledWith(
+      expect.objectContaining({ message: DEVICE_ADD_REQUEST_NO_KINDS }),
+    );
+    expect(asked).not.toHaveBeenCalled();
+  });
+
+  test("another project's connection, or an ID that is not one, is refused", async () => {
+    accessible = null;
+    await addDevices({ productTypes: ["switch"] });
+    await addDevices({ productTypes: ["switch"] }, "1 OR 1=1");
+
+    expect(next).toHaveBeenCalledTimes(2);
+    expect(asked).not.toHaveBeenCalled();
+  });
+
+  test("a member may not add devices from a connection", async () => {
+    setPermission(Permission.ProjectMember);
+
+    await addDevices({ productTypes: ["switch"] });
+
+    expect(next).toHaveBeenCalledWith(expect.any(Error));
+    expect(asked).not.toHaveBeenCalled();
+  });
+
+  test("an ask the runner refuses - one already under way - says why", async () => {
+    asked.mockRejectedValue(new BadDataException(DEVICE_ADD_UNDER_WAY));
+
+    await addDevices({ productTypes: ["switch"] });
+
+    expect(next).toHaveBeenCalledWith(
+      expect.objectContaining({ message: DEVICE_ADD_UNDER_WAY }),
+    );
   });
 });

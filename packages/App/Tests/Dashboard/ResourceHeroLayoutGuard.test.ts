@@ -78,11 +78,12 @@ import {
  *      word ("connected").
  *   9. A hero's pills are in the reader's language: every connection pill
  *      takes its words from ResourceHeroStatus's
- *      getResourceConnectionLabel, every health pill a cluster's hero
+ *      getResourceConnectionLabel, and every health pill a cluster's hero
  *      works out from getResourceHealthLabel ("Health Unknown" while the
- *      agent is not connected), and a Ceph cluster's health pill is looked
- *      up. Nine heroes wrote "Connected", "Disconnected", "Healthy" and
- *      "Unknown" in English on every page, German and Persian included.
+ *      agent is not connected) - a Ceph cluster's too, since its health
+ *      follows the cluster's rules (CephHealth). Nine heroes wrote
+ *      "Connected", "Disconnected", "Healthy" and "Unknown" in English on
+ *      every page, German and Persian included.
  */
 
 const DASHBOARD_SRC: string = path.resolve(
@@ -807,18 +808,30 @@ describe("rule 6: ResourceOverview's hero row is every hero's", () => {
  */
 // Each hero with a health pill: how its source writes the two pills.
 const HEALTH_HEROES: Array<[string, string, string]> = [
-  ["Pages/Ceph/View/Index.tsx", "{statusLabel}", "renderHealthPill("],
-  [
-    "Pages/StorageArray/View/Index.tsx",
-    "{statusLabel}",
-    "<StorageArrayHealthPill",
-  ],
+  // A Ceph cluster's health by its rules: Ceph's verdict, OSDs, pools.
+  ["Pages/Ceph/View/Index.tsx", "{statusLabel}", "{healthLabel}"],
+  /*
+   * A storage array's health by its rules: its own alerts, how full and
+   * how slow it is, and its parts.
+   */
+  ["Pages/StorageArray/View/Index.tsx", "{statusLabel}", "{healthLabel}"],
   ["Pages/DockerSwarm/View/Index.tsx", "{connectionLabel}", "{healthLabel}"],
   // A host's health by HostHealth's rules, beside its collector's pill.
   ["Pages/Host/View/Overview.tsx", "{statusLabel}", "{healthLabel}"],
   ["Pages/Kubernetes/View/Index.tsx", "{connectionLabel}", "{healthLabel}"],
   ["Pages/Proxmox/View/Index.tsx", "{connectionLabel}", "{healthLabel}"],
   ["Pages/VMware/View/Index.tsx", "{connectionLabel}", "{healthLabel}"],
+  // A Docker or Podman host's health by its containers' rules.
+  [
+    "Pages/Docker/View/Overview.tsx",
+    "{statusLabel}",
+    "<ContainerHostHealthPill",
+  ],
+  [
+    "Pages/Podman/View/Overview.tsx",
+    "{statusLabel}",
+    "<ContainerHostHealthPill",
+  ],
 ];
 
 // What a health pill is written with, in any hero.
@@ -1088,7 +1101,7 @@ describe("rule 9: a hero's pills are in the reader's language", () => {
     expect(withPill.sort()).toEqual([...CONNECTION_PILL_HEROES].sort());
   });
 
-  test("the five heroes that work out a health draw it from getResourceHealthLabel", () => {
+  test("the seven heroes that work out a health draw it from getResourceHealthLabel", () => {
     const withHealth: Array<string> = HEROES.filter((hero: Hero): boolean => {
       return pillVariablesDrawn(hero).includes("healthLabel");
     }).map((hero: Hero): string => {
@@ -1097,36 +1110,33 @@ describe("rule 9: a hero's pills are in the reader's language", () => {
 
     expect(withHealth.sort()).toEqual(
       [
+        "Pages/Ceph/View/Index.tsx",
         "Pages/DockerSwarm/View/Index.tsx",
         "Pages/Host/View/Overview.tsx",
         "Pages/Kubernetes/View/Index.tsx",
         "Pages/Proxmox/View/Index.tsx",
+        "Pages/StorageArray/View/Index.tsx",
         "Pages/VMware/View/Index.tsx",
       ].sort(),
     );
   });
 
-  test("a Ceph cluster's health pill looks its words up", () => {
+  /*
+   * A Ceph cluster's pill once said Ceph's own verdict in words of its own
+   * ("Health OK", "Health Warning"), beside a Disconnected badge too. It is
+   * the cluster's rules' now, whose findings Needs attention lists - Ceph's
+   * verdict among them, as Ceph writes it.
+   */
+  test("a Ceph cluster's health pill follows the cluster's rules", () => {
     const hero: Hero | undefined = HEROES.find((candidate: Hero): boolean => {
       return relative(candidate.file) === "Pages/Ceph/View/Index.tsx";
     });
     expect(hero).toBeDefined();
     const text: string = hero!.source.getFullText();
-    const pill: string = text.slice(
-      text.indexOf("const renderHealthPill"),
-      text.indexOf("const renderHealthPill") + 2000,
-    );
 
-    expect(pill).toContain("{translator.translateText(pill.label)}");
-    expect(pill).not.toContain("{pill.label}");
-    for (const word of [
-      "Health OK",
-      "Health Warning",
-      "Health Error",
-      "Health Unknown",
-    ]) {
-      expect(pill).toContain(`label: translationKey("${word}")`);
-    }
+    expect(text).toContain("getCephHealth(attentionItems)");
+    expect(text).not.toContain("renderHealthPill");
+    expect(text).not.toContain('translationKey("Health OK")');
   });
 });
 

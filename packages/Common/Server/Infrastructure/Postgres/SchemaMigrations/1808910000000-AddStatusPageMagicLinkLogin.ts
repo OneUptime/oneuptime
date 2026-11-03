@@ -11,10 +11,10 @@ import { MigrationInterface, QueryRunner } from "typeorm";
  * hash) and magicLinkExpires, empty until one is asked for. A column with a
  * constant default is added without rewriting the table.
  */
-export class AddStatusPageMagicLinkLogin1808900000000
+export class AddStatusPageMagicLinkLogin1808910000000
   implements MigrationInterface
 {
-  public name: string = "AddStatusPageMagicLinkLogin1808900000000";
+  public name: string = "AddStatusPageMagicLinkLogin1808910000000";
 
   public async up(queryRunner: QueryRunner): Promise<void> {
     await queryRunner.query(

@@ -189,6 +189,19 @@ receivers:
         from: attributes.data
         to: body
 
+  # The swarm's state as metrics, from the same poller: one OTLP JSON line,
+  # rewritten every minute, with whether each node is ready and how many
+  # replicas each service wants and runs (docker.swarm.node.ready,
+  # docker.swarm.service.replicas.desired / .running), each on a resource
+  # named as its tasks' containers are (docker.swarm.node.name,
+  # docker.swarm.service.name). OneUptime's Node Not Ready and Service
+  # Replicas Mismatch alerts read them.
+  otlpjsonfile/inventory:
+    include:
+      - /var/log/oneuptime-docker-swarm-inventory-metrics.json
+    start_at: beginning
+    poll_interval: 15s
+
 processors:
   # Container CPU as OneUptime shows it: the CPU the container used over each
   # collection interval, as a percent of ONE core -- 100% is one core busy for
@@ -326,5 +339,11 @@ service:
       exporters: [otlphttp]
     logs/inventory:
       receivers: [filelog/inventory]
+      processors: [memory_limiter, resource, batch]
+      exporters: [otlphttp]
+    # The swarm's state as metrics. Like the inventory, it describes the
+    # whole cluster, not the node the poller runs on: no swarm-node-name.
+    metrics/inventory:
+      receivers: [otlpjsonfile/inventory]
       processors: [memory_limiter, resource, batch]
       exporters: [otlphttp]
