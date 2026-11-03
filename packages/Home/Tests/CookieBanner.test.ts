@@ -30,6 +30,7 @@ const BERLIN: string = "Europe/Berlin";
 
 interface Visit {
   timeZone: string;
+  url?: string | undefined;
   storedConsent?: "true" | "false" | undefined;
   cookies?: Array<string> | undefined;
 }
@@ -79,7 +80,7 @@ const open: (visit: Visit) => Promise<OpenedPage> = async (
   });
 
   const dom: JSDOM = new JSDOM(await renderDemo(), {
-    url: PAGE_URL,
+    url: visit.url || PAGE_URL,
     runScripts: "dangerously",
     pretendToBeVisual: true,
     virtualConsole,
@@ -183,18 +184,32 @@ const lastConsentCommand: (page: OpenedPage) => Array<unknown> | undefined = (
     .pop();
 };
 
+/*
+ * The Tag Manager container loads in Consent Mode's advanced mode: before an
+ * answer, and after a refusal, Google's tags are on the page under a denied
+ * default - no cookies, cookieless signals only - and every other tag in the
+ * container waits for consent inside Tag Manager. PostHog waits here.
+ */
 describe("where the law asks for consent first", () => {
-  test("the banner asks, and nothing measuring loads until it is answered", async () => {
+  test("the banner asks, and only Google's tags load, denied, until it is answered", async () => {
     const page: OpenedPage = await open({ timeZone: BERLIN });
 
     expect(bannerShown(page)).toBe(true);
-    expect(scriptSources(page)).not.toContain(CONTAINER_URL);
+    expect(scriptSources(page)).toContain(CONTAINER_URL);
+    expect(lastConsentCommand(page)).toEqual([
+      "consent",
+      "default",
+      expect.objectContaining({
+        ad_storage: "denied",
+        analytics_storage: "denied",
+      }),
+    ]);
     expect(scriptSources(page)).not.toContain(POSTHOG_LIBRARY);
     expect(page.errors).toEqual([]);
     page.window.close();
   });
 
-  test('"Accept all" loads what it was holding back, and closes the banner', async () => {
+  test('"Accept all" lets everything it was holding back run, and closes the banner', async () => {
     const page: OpenedPage = await open({ timeZone: BERLIN });
 
     await press(page, "Accept all");
@@ -202,18 +217,31 @@ describe("where the law asks for consent first", () => {
     expect(bannerShown(page)).toBe(false);
     expect(scriptSources(page)).toContain(CONTAINER_URL);
     expect(scriptSources(page)).toContain(POSTHOG_LIBRARY);
+    expect(page.window["dataLayer"]).toContainEqual({
+      event: "consent_granted",
+    });
     expect(page.window.localStorage.getItem("cookiesAccepted")).toBe("true");
     expect(page.errors).toEqual([]);
     page.window.close();
   });
 
-  test('"Reject all" closes the banner and loads nothing', async () => {
+  test('"Reject all" closes the banner and leaves Google\'s tags denied', async () => {
     const page: OpenedPage = await open({ timeZone: BERLIN });
 
     await press(page, "Reject all");
 
     expect(bannerShown(page)).toBe(false);
-    expect(scriptSources(page)).not.toContain(CONTAINER_URL);
+    expect(lastConsentCommand(page)).toEqual([
+      "consent",
+      "update",
+      expect.objectContaining({
+        ad_storage: "denied",
+        analytics_storage: "denied",
+      }),
+    ]);
+    expect(page.window["dataLayer"]).not.toContainEqual({
+      event: "consent_granted",
+    });
     expect(scriptSources(page)).not.toContain(POSTHOG_LIBRARY);
     expect(page.window.localStorage.getItem("cookiesAccepted")).toBe("false");
     page.window.close();
@@ -304,11 +332,19 @@ describe("where measurement runs until it is refused", () => {
 describe("a visitor who refused on an earlier visit", () => {
   const visit: Visit = { timeZone: NEW_YORK, storedConsent: "false" };
 
-  test("is not asked again, and nothing measuring loads", async () => {
+  test("is not asked again, and only Google's tags load, denied", async () => {
     const page: OpenedPage = await open(visit);
 
     expect(bannerShown(page)).toBe(false);
-    expect(scriptSources(page)).not.toContain(CONTAINER_URL);
+    expect(scriptSources(page)).toContain(CONTAINER_URL);
+    expect(lastConsentCommand(page)).toEqual([
+      "consent",
+      "default",
+      expect.objectContaining({
+        ad_storage: "denied",
+        analytics_storage: "denied",
+      }),
+    ]);
     expect(scriptSources(page)).not.toContain(POSTHOG_LIBRARY);
     page.window.close();
   });
@@ -332,6 +368,112 @@ describe("a visitor who refused on an earlier visit", () => {
     expect(bannerShown(page)).toBe(false);
     expect(scriptSources(page)).toContain(CONTAINER_URL);
     expect(scriptSources(page)).toContain(POSTHOG_LIBRARY);
+    page.window.close();
+  });
+});
+
+/*
+ * What all of this is for: a visitor clicks an ad, refuses cookies, reads a
+ * page or two and books a call. Nothing is stored for them, so the campaign's
+ * labels travel in the address, and the booking embed hands them to Cal.com,
+ * which gives them to the CRM with the booking - never a click id, the landing
+ * address or a first touch.
+ */
+describe("a booking from a visitor who refused", () => {
+  const AD_LANDING: string = `${PAGE_URL}?utm_source=google&utm_medium=cpc&utm_campaign=1234567&gclid=abc123`;
+  const refused: Visit = { timeZone: NEW_YORK, storedConsent: "false" };
+
+  const LABELS: Record<string, string> = {
+    "metadata[utm_source]": "google",
+    "metadata[utm_medium]": "cpc",
+    "metadata[utm_campaign]": "1234567",
+    "metadata[ou_booking_kind]": "enterprise_demo",
+  };
+
+  // What the page handed Cal's inline embed, from the queue embed.js reads.
+  const calConfig: (page: OpenedPage) => Record<string, string> = (
+    page: OpenedPage,
+  ): Record<string, string> => {
+    const inline: Array<unknown> | undefined = (
+      page.window["Cal"].q as Array<ArrayLike<unknown>>
+    )
+      .map((call: ArrayLike<unknown>) => {
+        return Array.from(call);
+      })
+      .find((call: Array<unknown>) => {
+        return call[0] === "inline";
+      });
+
+    expect(inline).toBeDefined();
+
+    return (inline![1] as Record<string, unknown>)["config"] as Record<
+      string,
+      string
+    >;
+  };
+
+  test("still tells Cal.com which campaign it came from, and nothing about the visit", async () => {
+    const page: OpenedPage = await open({ ...refused, url: AD_LANDING });
+
+    expect(calConfig(page)).toEqual(LABELS);
+    page.window.close();
+  });
+
+  test("carries the campaign from the page the ad landed on to the page they book on", async () => {
+    const landing: OpenedPage = await open({ ...refused, url: AD_LANDING });
+    const pricing: HTMLAnchorElement = landing.window.document.querySelector(
+      'a[href="/pricing"]',
+    ) as HTMLAnchorElement;
+
+    expect(pricing).not.toBeNull();
+
+    // jsdom cannot navigate: stop it trying, after the page has heard the click.
+    landing.window.addEventListener(
+      "click",
+      (event: Event) => {
+        event.preventDefault();
+      },
+      { once: true },
+    );
+    pricing.dispatchEvent(
+      new landing.window.MouseEvent("click", {
+        bubbles: true,
+        cancelable: true,
+      }),
+    );
+
+    const next: URL = new URL(pricing.getAttribute("href")!);
+
+    expect(next.pathname).toBe("/pricing");
+    expect(next.searchParams.get("ou_campaign")).toBe(
+      "utm_source=google&utm_medium=cpc&utm_campaign=1234567",
+    );
+    expect(next.href).not.toContain("abc123");
+    expect(landing.errors).toEqual([]);
+    landing.window.close();
+
+    // And from there to the booking page, which hands it to Cal.
+    const booking: OpenedPage = await open({
+      ...refused,
+      url: `${PAGE_URL}${next.search}`,
+    });
+
+    expect(calConfig(booking)).toEqual(LABELS);
+    booking.window.close();
+  });
+
+  test("tells Cal.com the whole stored campaign once the visitor allows it", async () => {
+    const page: OpenedPage = await open({
+      timeZone: NEW_YORK,
+      storedConsent: "true",
+      url: AD_LANDING,
+    });
+
+    expect(calConfig(page)).toMatchObject({
+      ...LABELS,
+      "metadata[gclid]": "abc123",
+      "metadata[utm_url]": AD_LANDING,
+    });
     page.window.close();
   });
 });
