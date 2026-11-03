@@ -11,6 +11,7 @@ import {
 } from "@jest/globals";
 import AsyncStorage from "@react-native-async-storage/async-storage";
 import {
+  PAGE_AGAIN_ACTION_MIN_WIDTH,
   RESPONSE_ACTION_MIN_WIDTH,
   ResponseActions,
   ResponseDetailHeader,
@@ -20,6 +21,7 @@ import {
   ResponseSection,
   describeResponseAge,
   formatResponseTimestamp,
+  getResponseActionMinWidth,
   getResponseStage,
   getResponseStageAppearance,
   type ResponseAction,
@@ -350,6 +352,66 @@ describe("Response actions", () => {
      * width, so only this test can see it.
      */
     expect(flat(screen.getByText("Acknowledge")).flexShrink ?? 0).toBe(0);
+  });
+
+  test("paged again, the actions stack on every phone, so Acknowledge again never breaks across two lines", async () => {
+    /*
+     * "Acknowledge again" is two words, which a narrow row breaks across two
+     * lines on a phone and in a browser alike. Its icon, words and padding
+     * take about 208 points: the actions sit side by side only on a card at
+     * least 460 points wide, a window or pane of 534.
+     */
+    const besideEachOther: (windowWidth: number) => boolean = (
+      windowWidth: number,
+    ): boolean => {
+      return (windowWidth - 74 - 12) / 2 >= PAGE_AGAIN_ACTION_MIN_WIDTH;
+    };
+    for (const phone of [320, 344, 360, 390, 412, 430, 440]) {
+      expect([phone, besideEachOther(phone)]).toEqual([phone, false]);
+    }
+    expect(besideEachOther(534)).toBe(true);
+    expect(PAGE_AGAIN_ACTION_MIN_WIDTH).toBeGreaterThanOrEqual(208);
+
+    expect(getResponseActionMinWidth("pagedAgain")).toBe(
+      PAGE_AGAIN_ACTION_MIN_WIDTH,
+    );
+    for (const stage of ["open", "acknowledged", "resolved"] as const) {
+      expect([stage, getResponseActionMinWidth(stage)]).toEqual([
+        stage,
+        RESPONSE_ACTION_MIN_WIDTH,
+      ]);
+    }
+
+    await render(
+      <ResponseActions
+        actions={[
+          {
+            label: "Acknowledge again",
+            accessibilityLabel: "Acknowledge this incident again",
+            onPress: jest.fn<() => void>(),
+            primary: true,
+            icon: "eye-outline",
+          },
+          {
+            label: "Escalate",
+            accessibilityLabel: "Escalate this incident",
+            onPress: jest.fn<() => void>(),
+            icon: "arrow-up-circle-outline",
+          },
+        ]}
+        busy={false}
+        minWidth={getResponseActionMinWidth("pagedAgain")}
+      />,
+    );
+    for (const name of [
+      "Acknowledge this incident again",
+      "Escalate this incident",
+    ]) {
+      expect(screen.getByRole("button", { name })).toHaveStyle({
+        minWidth: PAGE_AGAIN_ACTION_MIN_WIDTH,
+      });
+    }
+    expect(flat(screen.getByText("Acknowledge again")).flexShrink ?? 0).toBe(0);
   });
 
   test("a caller can drop the bottom margin when actions sit inside a card", async () => {

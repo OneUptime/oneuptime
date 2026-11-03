@@ -13,6 +13,10 @@ import * as passOnApi from "../api/onCallPassOn";
 import type { OnCallPassOnPage } from "../api/onCallPassOn";
 import type { QueryClient, UseQueryResult } from "@tanstack/react-query";
 import IncidentDetailScreen from "./IncidentDetailScreen";
+import {
+  PAGE_AGAIN_ACTION_MIN_WIDTH,
+  RESPONSE_ACTION_MIN_WIDTH,
+} from "../components/ResponseDetailLayout";
 import { ThemeProvider, darkColors, lightColors } from "../theme";
 import { radius } from "../theme/tokens";
 import * as incidentsApi from "../api/incidents";
@@ -1800,6 +1804,13 @@ describe("Paged again, and answering a page from its push", () => {
       "Escalate this incident",
     ]);
     expect(screen.getByText("Acknowledge again")).toBeTruthy();
+    // Wide enough that the two words never break: the actions stack on a phone.
+    expect(
+      screen.getByRole("button", { name: "Acknowledge this incident again" }),
+    ).toHaveStyle({ minWidth: PAGE_AGAIN_ACTION_MIN_WIDTH });
+    expect(
+      screen.getByRole("button", { name: "Escalate this incident" }),
+    ).toHaveStyle({ minWidth: PAGE_AGAIN_ACTION_MIN_WIDTH });
     // The record's own Acknowledge stays gone: it would move it back up the list.
     expect(
       screen.queryByRole("button", { name: "Acknowledge incident" }),
@@ -1842,6 +1853,10 @@ describe("Paged again, and answering a page from its push", () => {
     });
     expect(screen.getByText("Response in progress")).toBeTruthy();
     expect(buttonLabels()).toEqual(["Resolve incident"]);
+    // Answered: the actions take their usual width again.
+    expect(
+      screen.getByRole("button", { name: "Resolve incident" }),
+    ).toHaveStyle({ minWidth: RESPONSE_ACTION_MIN_WIDTH });
   });
 
   test("a first page on an incident nobody took: no Acknowledge again", async () => {

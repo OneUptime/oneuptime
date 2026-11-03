@@ -147,7 +147,10 @@ The rows are checked in order; the first that fits the window wins.
 - **Labels in buttons keep their width.** Yoga shrinks a text that may shrink,
   and iOS and Android then break a one-word label across lines; browsers
   never do, so the web suite cannot catch it. Stack the buttons instead (see
-  `RESPONSE_ACTION_MIN_WIDTH`).
+  `RESPONSE_ACTION_MIN_WIDTH`). A label of two words, which every platform
+  breaks at the space, asks for a wider minimum: paged again, "Acknowledge
+  again" takes `PAGE_AGAIN_ACTION_MIN_WIDTH`, so the actions stack on every
+  phone (`getResponseActionMinWidth()`).
 
 ### Hinge and posture
 

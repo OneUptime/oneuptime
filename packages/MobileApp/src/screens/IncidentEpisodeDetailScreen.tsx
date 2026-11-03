@@ -47,6 +47,7 @@ import {
   ResponseSection,
   describeResponseAge,
   getResponseStage,
+  getResponseActionMinWidth,
   getResponseStageAppearance,
   responseActionIcons,
   type ResponseAction,
@@ -456,6 +457,7 @@ export default function IncidentEpisodeDetailScreen({
             busy={
               changingState || passOn.passingOn || passOn.acknowledgingAgain
             }
+            minWidth={getResponseActionMinWidth(stage)}
             style={{ marginBottom: 0 }}
           />
         ) : null}

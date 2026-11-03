@@ -126,6 +126,22 @@ export function getResponseStageAppearance(stage: ResponseStage): {
  */
 export const RESPONSE_ACTION_MIN_WIDTH: number = 148;
 
+/*
+ * Paged again, the first action is "Acknowledge again": two words, which a
+ * row too narrow for them breaks across two lines - in a browser too. Its
+ * icon and words in bold take about 176 points, 208 with the button's
+ * padding. From 224 the actions stack on every phone, each the card's width,
+ * and sit side by side only where the card is at least 460 points wide.
+ */
+export const PAGE_AGAIN_ACTION_MIN_WIDTH: number = 224;
+
+/** The narrowest a response action may be at this stage before they stack. */
+export function getResponseActionMinWidth(stage: ResponseStage): number {
+  return stage === "pagedAgain"
+    ? PAGE_AGAIN_ACTION_MIN_WIDTH
+    : RESPONSE_ACTION_MIN_WIDTH;
+}
+
 /** Icons for the two response actions, shared by every detail screen. */
 export const responseActionIcons: Readonly<{
   acknowledge: IconName;
