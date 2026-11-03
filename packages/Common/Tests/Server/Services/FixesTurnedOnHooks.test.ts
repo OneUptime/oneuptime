@@ -119,7 +119,10 @@ describe("a Kubernetes cluster's Fixes turned on", () => {
       )
       .mockResolvedValue(undefined as never);
     jest
-      .spyOn(KubernetesClusterService as never, "markAiAccessConfigured" as never)
+      .spyOn(
+        KubernetesClusterService as never,
+        "markAiAccessConfigured" as never,
+      )
       .mockResolvedValue(undefined as never);
     jest.spyOn(logger, "error").mockImplementation((): void => {});
   });
@@ -234,10 +237,7 @@ describe("a Kubernetes cluster's Fixes turned on", () => {
 });
 
 // The text of a class's method, by name.
-function methodText(
-  relativePath: string,
-  methodName: string,
-): string {
+function methodText(relativePath: string, methodName: string): string {
   const source: string = fs.readFileSync(
     path.join(COMMON_ROOT, relativePath),
     "utf8",

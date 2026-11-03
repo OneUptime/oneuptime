@@ -1900,8 +1900,7 @@ class AutoRemediationRuleEngineServiceClass {
         });
 
       // Each record once, the most recently decided first.
-      const subjects: Array<{ incidentId?: ObjectID; alertId?: ObjectID }> =
-        [];
+      const subjects: Array<{ incidentId?: ObjectID; alertId?: ObjectID }> = [];
       const seen: Set<string> = new Set<string>();
 
       for (const decision of decisions) {

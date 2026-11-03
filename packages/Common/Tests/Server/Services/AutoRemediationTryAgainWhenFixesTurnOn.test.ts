@@ -195,9 +195,7 @@ function installSpies(data: {
 
     return (
       data.found.find((row: AutoRemediationDecision): boolean => {
-        return (
-          (row.incidentId || row.alertId)?.toString() === id.toLowerCase()
-        );
+        return (row.incidentId || row.alertId)?.toString() === id.toLowerCase();
       }) || null
     );
   };
@@ -562,7 +560,10 @@ describe("onFixesTurnedOn: a cluster's Fixes turned on", () => {
     const spies: Spies = installSpies({
       found: [decision({ incidentId: incidentId(1) })],
       latest: new Map([
-        [incidentId(1).toString(), decision({ incidentId: incidentId(1) }, [OTHER])],
+        [
+          incidentId(1).toString(),
+          decision({ incidentId: incidentId(1) }, [OTHER]),
+        ],
       ]),
     });
 
@@ -645,7 +646,10 @@ describe("onFixesTurnedOn: a cluster's Fixes turned on", () => {
     expect(
       await AutoRemediationRuleEngineService.onFixesTurnedOn({
         projectId: PROJECT_ID,
-        target: { lane: AutoRemediationDecisionLane.KubernetesCluster, id: "prod" },
+        target: {
+          lane: AutoRemediationDecisionLane.KubernetesCluster,
+          id: "prod",
+        },
       }),
     ).toBe(0);
     expect(spies.found).not.toHaveBeenCalled();
@@ -884,18 +888,20 @@ describe("onFixesSettingWritten: a write handed over by a service", () => {
       });
 
     expect(decided).toBe(3);
-    expect(turnedOn.mock.calls.map((call: Array<unknown>) => call[0])).toEqual(
-      [
-        { projectId: PROJECT_ID, target: CLUSTER },
-        {
-          projectId: OTHER_PROJECT,
-          target: {
-            lane: AutoRemediationDecisionLane.KubernetesCluster,
-            id: OTHER_CLUSTER.toString(),
-          },
+    expect(
+      turnedOn.mock.calls.map((call: Array<unknown>) => {
+        return call[0];
+      }),
+    ).toEqual([
+      { projectId: PROJECT_ID, target: CLUSTER },
+      {
+        projectId: OTHER_PROJECT,
+        target: {
+          lane: AutoRemediationDecisionLane.KubernetesCluster,
+          id: OTHER_CLUSTER.toString(),
         },
-      ],
-    );
+      },
+    ]);
   });
 
   test.each([

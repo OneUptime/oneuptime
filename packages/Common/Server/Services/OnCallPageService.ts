@@ -1069,7 +1069,10 @@ export class Service {
       );
     }
 
-    setAffectedResourcesOnNewRecord(alert, data.newAlert.affectedResources || []);
+    setAffectedResourcesOnNewRecord(
+      alert,
+      data.newAlert.affectedResources || [],
+    );
 
     // Where the alert came from, for whoever opens it.
     const workflowName: string = (props.workflowName || "").trim();

@@ -50,7 +50,9 @@ function idsOf(list: unknown): Array<string> {
 describe("AFFECTED_RESOURCE_MODELS", () => {
   test.each(
     AI_AFFECTED_RESOURCE_KINDS.map(
-      (info: AiAffectedResourceKindInfo): [string, AiAffectedResourceKindInfo] => {
+      (
+        info: AiAffectedResourceKindInfo,
+      ): [string, AiAffectedResourceKindInfo] => {
         return [info.kind, info];
       },
     ),
@@ -180,14 +182,12 @@ describe("setAffectedResourcesOnNewRecord", () => {
     const incident: Incident = new Incident();
     incident.title = "Brute force on web-1";
 
-    const linked: Array<AiAffectedResourceRef> = setAffectedResourcesOnNewRecord(
-      incident,
-      [
+    const linked: Array<AiAffectedResourceRef> =
+      setAffectedResourcesOnNewRecord(incident, [
         { kind: AiAffectedResourceKind.Host, id: HOST_ID },
         { kind: AiAffectedResourceKind.Host, id: HOST_ID },
         { kind: AiAffectedResourceKind.KubernetesCluster, id: CLUSTER_ID },
-      ],
-    );
+      ]);
 
     expect(linked).toEqual([
       { kind: AiAffectedResourceKind.Host, id: HOST_ID },
@@ -216,7 +216,9 @@ describe("setAffectedResourcesOnNewRecord", () => {
 
   test("nothing named leaves every list as it was", () => {
     const incident: Incident = new Incident();
-    incident.hosts = [toAffectedResourceStub(AiAffectedResourceKind.Host, HOST_ID) as never];
+    incident.hosts = [
+      toAffectedResourceStub(AiAffectedResourceKind.Host, HOST_ID) as never,
+    ];
 
     expect(setAffectedResourcesOnNewRecord(incident, [])).toEqual([]);
     expect(idsOf(incident.hosts)).toEqual([HOST_ID]);
