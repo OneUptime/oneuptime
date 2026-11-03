@@ -23,6 +23,7 @@ import {
   getAiOffSummary,
   getRemediationFoldState,
   isAiOffInvestigationReason,
+  isFixingDecidableAgainNow,
   isRemediationFoldedIntoAiCard,
   isSameRemediationFoldState,
   INVESTIGATION_STEP_KEYS,
@@ -553,6 +554,55 @@ describe("how the AI card is drawn", () => {
         areSwitchesRead: false,
       },
       "full",
+    ],
+  ])(
+    "%s",
+    (
+      _name: string,
+      input: Parameters<typeof getAiCardFold>[0],
+      expected: AiCardFold,
+    ) => {
+      expect(getAiCardFold(input)).toBe(expected);
+    },
+  );
+
+  /*
+   * #5413's follow-up: an open record whose fixing switch is on now can be
+   * decided again (Try again), so its card is whole, not the one line.
+   */
+  test.each<[string, Parameters<typeof getAiCardFold>[0], AiCardFold]>([
+    [
+      "whole once fixing can be decided again for the record",
+      {
+        isInvestigationLoaded: true,
+        offReason,
+        remediation: { kind: "off", reason: "fixing_off" },
+        areSwitchesRead: true,
+        isFixingDecidableAgain: true,
+      },
+      "full",
+    ],
+    [
+      "still checking while the switches that would say so are read",
+      {
+        isInvestigationLoaded: true,
+        offReason,
+        remediation: { kind: "off", reason: "fixing_off" },
+        areSwitchesRead: false,
+        isFixingDecidableAgain: true,
+      },
+      "checking",
+    ],
+    [
+      "folded when it cannot",
+      {
+        isInvestigationLoaded: true,
+        offReason,
+        remediation: { kind: "off", reason: "fixing_off" },
+        areSwitchesRead: true,
+        isFixingDecidableAgain: false,
+      },
+      "folded",
     ],
   ])(
     "%s",
@@ -1481,5 +1531,82 @@ describe("the words are translation keys", () => {
     for (const value of Object.values(AI_OFF_REASONS.alert)) {
       expect(value).not.toMatch(INCIDENT_WORD);
     }
+  });
+});
+
+/*
+ * Whether fixing can be decided again for a record its switch stopped
+ * (#5413's follow-up): open, Enable AI on now, and the record kind's fixing
+ * switch on now, after it was off then - alone, or with all of AI. Then
+ * the Remediation step offers Try again, and the AI card is drawn whole.
+ */
+describe("whether fixing can be decided again for the record now", () => {
+  const OPEN_ON: {
+    isAiOn: boolean;
+    switches: AiLaneSwitchStates;
+    isRecordResolved: boolean;
+  } = {
+    isAiOn: true,
+    switches: { investigate: false, fix: true },
+    isRecordResolved: false,
+  };
+
+  test.each<[string, RemediationFoldState]>([
+    ["its fixing switch was off", { kind: "off", reason: "fixing_off" }],
+    ["all of AI was off", { kind: "off", reason: "ai_off" }],
+  ])("%s, and it is on now: yes", (_name: string, remediation) => {
+    expect(isFixingDecidableAgainNow({ ...OPEN_ON, remediation })).toBe(true);
+  });
+
+  test.each<[string, Parameters<typeof isFixingDecidableAgainNow>[0]]>([
+    [
+      "resolved",
+      {
+        ...OPEN_ON,
+        isRecordResolved: true,
+        remediation: { kind: "off", reason: "fixing_off" },
+      },
+    ],
+    [
+      "Enable AI off now",
+      {
+        ...OPEN_ON,
+        isAiOn: false,
+        remediation: { kind: "off", reason: "ai_off" },
+      },
+    ],
+    [
+      "its fixing switch still off",
+      {
+        ...OPEN_ON,
+        switches: { investigate: true, fix: false },
+        remediation: { kind: "off", reason: "fixing_off" },
+      },
+    ],
+    [
+      "its fixing switch not read",
+      {
+        ...OPEN_ON,
+        switches: {},
+        remediation: { kind: "off", reason: "fixing_off" },
+      },
+    ],
+    [
+      "stopped at the AI rules: whether one matches now is not known here",
+      { ...OPEN_ON, remediation: { kind: "off", reason: "no_rule_matched" } },
+    ],
+    [
+      "the rules that matched only investigate",
+      { ...OPEN_ON, remediation: { kind: "off", reason: "rules_do_not_fix" } },
+    ],
+    [
+      "nothing recorded about fixing",
+      { ...OPEN_ON, remediation: { kind: "off", reason: "not_recorded" } },
+    ],
+    ["fixing did something", { ...OPEN_ON, remediation: { kind: "on" } }],
+    ["still reading", { ...OPEN_ON, remediation: { kind: "loading" } }],
+    ["not said", { ...OPEN_ON, remediation: undefined }],
+  ])("%s: no", (_name: string, input) => {
+    expect(isFixingDecidableAgainNow(input)).toBe(false);
   });
 });
