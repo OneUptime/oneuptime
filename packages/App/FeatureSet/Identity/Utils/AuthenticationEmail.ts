@@ -246,22 +246,33 @@ export default class AuthenticationEmail {
   }
 
   /**
-   * Tell a user that wrong two factor codes are being entered after their
-   * password: the second step's waits have begun for their account
-   * (TwoFactorWrongCodes). Sent at most once a day, by the sign-in route.
+   * Tell a user that wrong two factor codes are being entered for their
+   * account: the second step's waits have begun for it (TwoFactorWrongCodes).
+   * Sent at most once a day, by the sign-in route.
    *
    * To the address on the account, not to the browser that entered the
-   * codes: whoever entered them knows the password, and only the owner can
-   * say whether that was them. The mail says what to do either way - a
-   * phone clock that has drifted is the honest cause, a password somebody
-   * else holds the other one - and its button is the way out of the second:
-   * a new password, which also ends the wait.
+   * codes: whoever entered them got past the first step, with the password
+   * or a sign-in link (Types/Accounts/MagicLink), and only the owner can say
+   * whether that was them. The mail says what to do either way - a phone
+   * clock that has drifted is the honest cause, somebody else holding the
+   * password or reading the mailbox the other one - and its button is the way
+   * out of the second: a new password, which also ends the wait and any link
+   * already sent.
+   *
+   * That way out is not enough for a mailbox somebody else reads: they can
+   * ask for another link, and a reset has just forgotten the wrong codes. So
+   * the mail is told what the last wrong code's sign-in began with
+   * (isMagicLinkSignIn), and has that owner secure the mailbox first. Wrong
+   * codes are counted for the account, so earlier ones may have followed the
+   * other first step; like the request's origin, this describes the last one.
    *
    * Never awaited by the sign-in route, and never allowed to fail it.
    */
   public static async sendTwoFactorWrongCodesEmail(data: {
     user: User;
     wrongCodesInARow: number;
+    // Whether the last wrong code followed a sign-in link, not the password.
+    isMagicLinkSignIn: boolean;
     // The request with the last wrong code: where the codes are coming from.
     origin?: RequestOrigin | undefined;
   }): Promise<void> {
@@ -280,6 +291,7 @@ export default class AuthenticationEmail {
       vars: {
         enteredAt: OneUptimeDate.getCurrentDateAsFormattedString(),
         wrongCodeCount: data.wrongCodesInARow.toString(),
+        isMagicLinkSignIn: data.isMagicLinkSignIn ? "true" : "false",
         forgotPasswordUrl: new URL(
           httpProtocol,
           host,
@@ -288,8 +300,8 @@ export default class AuthenticationEmail {
         homeUrl: new URL(httpProtocol, host).toString(),
         /*
          * Which address, place and device the last wrong code came from:
-         * whoever entered it knows the password, and this is how the owner
-         * tells a phone of their own from somebody else's.
+         * whoever entered it got past the first step, and this is how the
+         * owner tells a phone of their own from somebody else's.
          */
         ...RequestOriginUtil.getEmailVars({
           origin: data.origin,

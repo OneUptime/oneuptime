@@ -164,7 +164,7 @@ At the second step of signing in, choose **Lost access to your authenticator?** 
 :::
 
 :::details Signing in asks me to wait before I try another code
-After five wrong codes in a row, each next code waits before it is checked: one minute, then two, then four, and so on, up to an hour. OneUptime counts wrong codes for your account wherever they are entered, emails you when the waits begin, and starts counting again when you get a code right. Wait and try again, sign in with a security key, or choose **Lost access to your authenticator?** and enter a backup code. If you did not enter those codes, someone knows your password: reset it with **Forgot password?** on the sign-in page, which also ends the wait.
+After five wrong codes in a row, each next code waits before it is checked: one minute, then two, then four, and so on, up to an hour. OneUptime counts wrong codes for your account wherever they are entered, emails you when the waits begin, and starts counting again when you get a code right. Wait and try again, sign in with a security key, or choose **Lost access to your authenticator?** and enter a backup code. If you did not enter those codes, someone knows your password or can read your email, and the email OneUptime sent you says which. If they can read your email, first change your email account's password and remove any forwarding you did not set up: a new OneUptime password alone does not stop them asking for another sign-in link. Then reset your password with **Forgot password?** on the sign-in page, which ends the wait and any sign-in link already sent.
 :::
 
 :::details Times in the dashboard are an hour off
