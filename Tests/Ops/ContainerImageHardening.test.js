@@ -1976,6 +1976,7 @@ describe("the OpenTelemetry collector pin", () => {
     "agents/ProxmoxAgent/docker-compose.yml",
     "agents/CephAgent/docker-compose.yml",
     "agents/OpenStackAgent/docker-compose.yml",
+    "agents/OpenStackAgent/docker-compose.traces.yml",
     // The journald wrapper image the Proxmox README and guide build.
     "agents/ProxmoxAgent/README.md",
     "packages/App/FeatureSet/Dashboard/src/Pages/Proxmox/Utils/DocumentationMarkdown.ts",
@@ -2074,6 +2075,7 @@ describe("the OpenTelemetry collector pin", () => {
       "agents/ProxmoxAgent/docker-compose.yml",
       "agents/CephAgent/docker-compose.yml",
       "agents/OpenStackAgent/docker-compose.yml",
+      "agents/OpenStackAgent/docker-compose.traces.yml",
       "agents/StorageArrayAgent/docker-compose.yml",
     ]) {
       const compose = yaml.load(read(file));
@@ -2101,6 +2103,7 @@ describe("the OpenTelemetry collector pin", () => {
     ["ProxmoxAgent", "otel-collector-config.yaml"],
     ["CephAgent", "otel-collector-config.yaml"],
     ["OpenStackAgent", "otel-collector-config.yaml"],
+    ["OpenStackAgent", "otel-collector-traces.yaml"],
     ["VMwareAgent", "otel-collector-config.yaml"],
     ["StorageArrayAgent", "otel-collector-config.yaml"],
     ["StorageArrayAgent", "otel-collector-config.flasharray-exporter.yaml"],
