@@ -47,6 +47,7 @@ import DataStoreService from "../../Services/DataStoreService";
 import MetricService from "../../Services/MetricService";
 import logger from "../Logger";
 import CollectedLineage from "./CollectedLineage";
+import DataWarehouseSpendIngest from "./DataWarehouseSpendIngest";
 import MonitorMetricUtil from "../Monitor/MonitorMetricUtil";
 import TelemetryUtil from "../Telemetry/Telemetry";
 import {
@@ -715,6 +716,24 @@ export default class TableHealthIngest {
       } catch (error) {
         logger.error(
           `Data Observability: could not record the lineage of store ${store.id.toString()}`,
+        );
+        logger.error(error);
+      }
+    }
+
+    // Spend is extra too: what cannot be kept never fails the collection.
+    if (snapshot.spend) {
+      try {
+        await DataWarehouseSpendIngest.record({
+          projectId: store.projectId,
+          dataStoreId: store.id,
+          spend: snapshot.spend,
+          assetIdByKey,
+          collectedAt,
+        });
+      } catch (error) {
+        logger.error(
+          `Data Observability: could not record the spend of store ${store.id.toString()}`,
         );
         logger.error(error);
       }

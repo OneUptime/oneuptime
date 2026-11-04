@@ -80,6 +80,8 @@ GRANT USAGE ON DATABASE ANALYTICS TO ROLE ONEUPTIME_READER;
 GRANT USAGE ON ALL SCHEMAS IN DATABASE ANALYTICS TO ROLE ONEUPTIME_READER;
 GRANT REFERENCES ON ALL TABLES IN DATABASE ANALYTICS TO ROLE ONEUPTIME_READER;
 GRANT USAGE ON WAREHOUSE CHECKS_WH TO ROLE ONEUPTIME_READER;
+-- Warehouse spend reads SNOWFLAKE.ACCOUNT_USAGE.
+GRANT IMPORTED PRIVILEGES ON DATABASE SNOWFLAKE TO ROLE ONEUPTIME_READER;
 -- Checks read rows: SELECT on the tables they check.
 CREATE USER ONEUPTIME_READER DEFAULT_ROLE = ONEUPTIME_READER RSA_PUBLIC_KEY = 'MIIBIjANBgkqh...';
 GRANT ROLE ONEUPTIME_READER TO USER ONEUPTIME_READER;
@@ -261,6 +263,20 @@ A pipeline is named as the tool names the connector or connection, under \`fivet
 
 A Fivetran connector loads the schema of its destination that is named after it. When exactly one watched database has that schema, its tables record the connector as their writer: a table that goes stale points at the sync that should have loaded it, and a failed sync's alert is the cause of the tables' alerts (see One issue per cause). Airbyte names no tables.
 
+## Dashboards in BI tools
+
+The real impact of bad data is the dashboard someone opens. Under **BI Dashboards**, add your BI tools with credentials that may read their dashboards:
+
+| Tool | Credentials (JSON) |
+| --- | --- |
+| **Metabase** | \`{ "apiKey": "mb_..." }\` (or a user's \`username\` and \`password\`) |
+| **Superset** | \`{ "username": "...", "password": "..." }\` |
+| **Tableau** | \`{ "tokenName": "...", "tokenSecret": "...", "site": "acme" }\`, a personal access token |
+| **Looker** | \`{ "clientId": "...", "clientSecret": "..." }\`, an API client |
+| **Power BI** | \`{ "tenantId": "...", "clientId": "...", "clientSecret": "..." }\`, a service principal allowed to use Power BI's admin APIs |
+
+Every hour, and when a tool is added or you choose **Read Now**, OneUptime reads each dashboard and the tables behind it: a card's table and a native question's SQL (Metabase), a dataset's table or a virtual dataset's SQL (Superset), the Metadata API's upstream tables (Tableau), each tile's explore (Looker), and each report's dataset (Power BI, from a workspace scan). Each table is matched to a watched one by its database, schema and name; a name that still fits two watched tables is left unmatched. A table's **Lineage** tab, its alerts' **Data** card and Production Review list the dashboards built on it, and on the tables built from it. Only names and links are read, never a dashboard's data.
+
 ## Lineage the databases say
 
 Lineage does not need a pipeline that sends OpenLineage. Each database says some of it itself, and OneUptime reads it with the database's collection:
@@ -301,6 +317,12 @@ Every engine counts the reads of each table in its own statistics:
 Each collection compares the counter with the last one kept, so a table's **Last Read** is known to the hour, and so is the time since which it has had none. A counter of 0 at a table's first collection means it has not been read since the engine's statistics started, so an unused table shows as unused from the start, not after months of watching. A read seen in a service's database spans counts too.
 
 **Unused Tables** lists the tables nobody has read for 90 days, biggest first, with when each was last written: a table still written but never read costs its writes and its storage. The Overview shows how many there are and what they hold. Views keep no counters of their own, so they are never listed. When the database login cannot read the counters, a table's last read is not known.
+
+## Warehouse spend
+
+Once an hour, with each warehouse's collection, OneUptime reads what Snowflake and BigQuery spent over the last day, job by job: Snowflake's compute credits from \`QUERY_ATTRIBUTION_HISTORY\` (with \`IMPORTED PRIVILEGES\` on the \`SNOWFLAKE\` database, run on the connection's warehouse), and BigQuery's bytes billed from its jobs view (with **BigQuery Resource Viewer**). A job is one query run again and again - Snowflake's parameterized query, BigQuery's query with its literals left out - named by its query tag or label, or by what it does and the table it writes, and never by its query's text.
+
+**Warehouse Spend** shows the day's credits and bytes billed, by team (the \`team\` in a job's query tag or label, else whoever runs it), the tables whose writes cost the most (a job's spend shared among the tables it writes, where Snowflake's ACCESS_HISTORY or BigQuery's destination table says which), the jobs that failed, and what goes to jobs that write only tables nobody has read for 90 days.
 
 ## One issue per cause
 

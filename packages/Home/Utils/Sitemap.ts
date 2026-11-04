@@ -54,6 +54,7 @@ const PAGE_CONFIG: Record<string, SitemapPageConfig> = {
   "/product/proxmox": { priority: 0.9, changefreq: "weekly" },
   "/product/vmware": { priority: 0.9, changefreq: "weekly" },
   "/product/ai-observability": { priority: 0.9, changefreq: "weekly" },
+  "/product/data-observability": { priority: 0.9, changefreq: "weekly" },
   "/product/ceph": { priority: 0.9, changefreq: "weekly" },
   "/product/docker-swarm": { priority: 0.9, changefreq: "weekly" },
   "/product/iot": { priority: 0.9, changefreq: "weekly" },

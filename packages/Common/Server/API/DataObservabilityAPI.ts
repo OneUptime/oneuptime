@@ -62,6 +62,11 @@ import DataCheck from "../../Models/DatabaseModels/DataCheck";
 import DataCheckService from "../Services/DataCheckService";
 import { isValidProbeConnectionVariable } from "../Utils/DataSecurity/DataSecurityProbeScan";
 import { DATA_OBSERVABILITY_KINDS } from "../Utils/DataObservability/DataObservabilityEngines";
+import DataBiSync from "../Utils/DataObservability/Bi/DataBiSync";
+import DataWarehouseSpendSummary from "../Utils/DataObservability/DataWarehouseSpendSummary";
+import DataTableDashboards from "../Utils/DataObservability/Bi/DataTableDashboards";
+import DataBiConnection from "../../Models/DatabaseModels/DataBiConnection";
+import DataBiConnectionService from "../Services/DataBiConnectionService";
 import {
   ExpressRequest,
   ExpressResponse,
@@ -297,6 +302,59 @@ export default class DataObservabilityAPI extends BaseAPI<
         }
 
         return { tables: answers } as unknown as JSONObject;
+      },
+    );
+
+    this.post(
+      DATA_OBSERVABILITY_API_ROUTES.biSync(":id"),
+      CONNECT_PERMISSIONS,
+      async (projectId: ObjectID, req: ExpressRequest) => {
+        const connection: DataBiConnection | null =
+          await DataBiConnectionService.findOneBy({
+            query: { _id: DataObservabilityAPI.readId(req), projectId },
+            select: { _id: true },
+            props: { isRoot: true },
+          });
+
+        if (!connection?.id) {
+          throw new BadDataException("No such BI tool in this project.");
+        }
+
+        return (await DataBiSync.syncConnection(
+          connection.id,
+        )) as unknown as JSONObject;
+      },
+    );
+
+    this.post(
+      DATA_OBSERVABILITY_API_ROUTES.spendSummary,
+      READ_PERMISSIONS,
+      async (projectId: ObjectID) => {
+        return (await DataWarehouseSpendSummary.read(
+          projectId,
+          OneUptimeDate.getCurrentDate(),
+        )) as unknown as JSONObject;
+      },
+    );
+
+    this.post(
+      DATA_OBSERVABILITY_API_ROUTES.tableDashboards,
+      READ_PERMISSIONS,
+      async (projectId: ObjectID, req: ExpressRequest) => {
+        const body: JSONObject = (req.body || {}) as JSONObject;
+        const dataAssetId: string =
+          typeof body["dataAssetId"] === "string" ? body["dataAssetId"] : "";
+
+        if (!ObjectID.isValidUUID(dataAssetId)) {
+          throw new BadDataException("Name the table by its ID.");
+        }
+
+        return {
+          dashboards: await DataTableDashboards.find({
+            projectId,
+            dataAssetId: new ObjectID(dataAssetId),
+          }),
+        } as unknown as JSONObject;
       },
     );
 

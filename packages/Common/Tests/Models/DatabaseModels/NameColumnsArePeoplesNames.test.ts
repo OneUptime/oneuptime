@@ -11,7 +11,7 @@ import {
 import type { ColumnMetadataArgs } from "typeorm/metadata-args/ColumnMetadataArgs";
 import AllModelTypes from "../../../Models/DatabaseModels/Index";
 import BaseModel from "../../../Models/DatabaseModels/DatabaseBaseModel/DatabaseBaseModel";
-import { WidenThingNameColumns1808992300000 } from "../../../Server/Infrastructure/Postgres/SchemaMigrations/1808992300000-WidenThingNameColumns";
+import { WidenThingNameColumns1808992530000 } from "../../../Server/Infrastructure/Postgres/SchemaMigrations/1808992530000-WidenThingNameColumns";
 import SchemaMigrations from "../../../Server/Infrastructure/Postgres/SchemaMigrations/Index";
 import ColumnLength, {
   getMaxLengthFromTableColumnType,
@@ -33,7 +33,7 @@ import { ModelSchema } from "../../../Utils/Schema/ModelSchema";
  * saved view's...) and a probe's description had it, so the API asked for
  * an object where everyone sends text, and held a probe's description to 50
  * characters. They are ShortText (a probe's description LongText) since
- * WidenThingNameColumns1808992300000.
+ * WidenThingNameColumns1808992530000.
  *
  * The rule, held here for every model: a column of the Name type is a
  * person's name, one of PERSON_NAME_COLUMNS with what it names. A new
@@ -310,9 +310,9 @@ describe("a thing's name is text", () => {
   });
 });
 
-describe("WidenThingNameColumns1808992300000", () => {
+describe("WidenThingNameColumns1808992530000", () => {
   const migration: MigrationInterface =
-    new WidenThingNameColumns1808992300000();
+    new WidenThingNameColumns1808992530000();
 
   // "Model.column" -> its table, as the migration names them.
   const expectedTables: Array<{
@@ -336,14 +336,14 @@ describe("WidenThingNameColumns1808992300000", () => {
         return entry.name;
       },
     );
-    const index: number = names.indexOf("WidenThingNameColumns1808992300000");
+    const index: number = names.indexOf("WidenThingNameColumns1808992530000");
 
     expect(index).toBeGreaterThan(-1);
     expect(index).toBeGreaterThan(
-      names.indexOf("AddDataReconciliations1808992200000"),
+      names.indexOf("AddDataWarehouseSpend1808992400000"),
     );
     expect(
-      names.indexOf("AddDataReconciliations1808992200000"),
+      names.indexOf("AddDataWarehouseSpend1808992400000"),
     ).toBeGreaterThan(-1);
   });
 

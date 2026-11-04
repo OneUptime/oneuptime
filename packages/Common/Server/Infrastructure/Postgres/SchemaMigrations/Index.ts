@@ -282,7 +282,9 @@ import { AddDataAssetLineageSource1808992000000 } from "./1808992000000-AddDataA
 import { AddSecurityHuntRunHistory1808992040000 } from "./1808992040000-AddSecurityHuntRunHistory";
 import { AddDataProducts1808992100000 } from "./1808992100000-AddDataProducts";
 import { AddDataReconciliations1808992200000 } from "./1808992200000-AddDataReconciliations";
-import { WidenThingNameColumns1808992300000 } from "./1808992300000-WidenThingNameColumns";
+import { AddDataBiDashboards1808992300000 } from "./1808992300000-AddDataBiDashboards";
+import { AddDataWarehouseSpend1808992400000 } from "./1808992400000-AddDataWarehouseSpend";
+import { WidenThingNameColumns1808992530000 } from "./1808992530000-WidenThingNameColumns";
 import { AddConfigurableRuleCriteria1792500000000 } from "./1792500000000-AddConfigurableRuleCriteria";
 import { AddGoogleSecOpsDiagnostics1792300000000 } from "./1792300000000-AddGoogleSecOpsDiagnostics";
 import { AddIncomingCallPolicyPhoneNumbers1792600000000 } from "./1792600000000-AddIncomingCallPolicyPhoneNumbers";
@@ -1767,5 +1769,7 @@ export default [
   AddSecurityHuntRunHistory1808992040000,
   AddDataProducts1808992100000,
   AddDataReconciliations1808992200000,
-  WidenThingNameColumns1808992300000,
+  AddDataBiDashboards1808992300000,
+  AddDataWarehouseSpend1808992400000,
+  WidenThingNameColumns1808992530000,
 ];

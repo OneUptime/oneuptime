@@ -10,6 +10,7 @@ import SortOrder from "../../../../Types/BaseDatabase/SortOrder";
 import {
   PRODUCTION_REVIEW_LIMITS,
   ProductionReviewDataChange,
+  ProductionReviewDataDashboardJSON,
   ProductionReviewDataImpactJSON,
   ProductionReviewDataProductJSON,
   ProductionReviewDataServiceJSON,
@@ -34,6 +35,9 @@ import {
 } from "../../AnalyticsDatabase/QuerySettingsHelper";
 import { getClickhouseDatabaseName } from "../../AnalyticsDatabase/ClusterConfig";
 import { CodeHostChangedFile } from "../CodeHost/CodeHostTypes";
+import DataTableDashboards, {
+  TableDashboard,
+} from "../../DataObservability/Bi/DataTableDashboards";
 import { ResponseJSON } from "@clickhouse/client";
 
 /*
@@ -77,6 +81,7 @@ const MAX_TABLES_PER_CHANGE: number = 3;
 const MAX_SERVICES: number = 10;
 const MAX_DOWNSTREAM: number = 10;
 const MAX_DATA_PRODUCTS: number = 5;
+const MAX_DASHBOARDS: number = 10;
 const MAX_NAME_LENGTH: number = 240;
 
 // A name as SQL writes it: bare, or quoted with "", `` or [].
@@ -922,6 +927,12 @@ export default class ProductionReviewDataImpact {
 
     const services: Array<ProductionReviewDataServiceJSON> =
       ProductionReviewDataImpact.groupServices(usages as Array<DataAssetUsage>);
+    const dashboards: Array<TableDashboard> = await DataTableDashboards.find({
+      projectId: data.projectId,
+      dataAssetId: assetId,
+    }).catch((): Array<TableDashboard> => {
+      return [];
+    });
 
     if (data.change.column && services.length > 0) {
       const counts: Map<string, number> | null =
@@ -992,6 +1003,16 @@ export default class ProductionReviewDataImpact {
       services: services.slice(0, MAX_SERVICES),
       downstreamTables: downstream,
       downstreamCount: downstreamIds.size,
+      dashboards: dashboards
+        .slice(0, MAX_DASHBOARDS)
+        .map((dashboard: TableDashboard): ProductionReviewDataDashboardJSON => {
+          return {
+            dataDashboardId: dashboard.dataDashboardId,
+            name: dashboard.name,
+            tool: dashboard.tool,
+            ...(dashboard.url ? { url: dashboard.url } : {}),
+          };
+        }),
       dataProducts: (products as Array<DataProduct>).map(
         (product: DataProduct): ProductionReviewDataProductJSON => {
           const owner: string =

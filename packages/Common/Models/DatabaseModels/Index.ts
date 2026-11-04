@@ -212,6 +212,9 @@ import DataCheck from "./DataCheck";
 import DataPipeline from "./DataPipeline";
 import DataPipelineRun from "./DataPipelineRun";
 import DataProduct from "./DataProduct";
+import DataBiConnection from "./DataBiConnection";
+import DataDashboard from "./DataDashboard";
+import DataWarehouseJob from "./DataWarehouseJob";
 import DataReconciliation from "./DataReconciliation";
 import DataAssetLineage from "./DataAssetLineage";
 import DataAlert from "./DataAlert";
@@ -691,6 +694,9 @@ const AllModelTypes: Array<{
   DataPipeline,
   DataPipelineRun,
   DataProduct,
+  DataBiConnection,
+  DataDashboard,
+  DataWarehouseJob,
   DataReconciliation,
   DataAssetLineage,
   DataAlert,
