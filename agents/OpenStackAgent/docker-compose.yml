@@ -20,6 +20,25 @@ services:
       - OPENSTACK_EXPORTER_CLOUDS=${OPENSTACK_EXPORTER_CLOUDS:-[RegionOne]}
       # host:port of the exporter (no scheme). The default is the service below.
       - OPENSTACK_EXPORTER_ADDRESS=${OPENSTACK_EXPORTER_ADDRESS:-openstack-exporter:9180}
+      # The compute nodes to read real instance usage from, whichever a cloud runs, in
+      # square brackets: [compute-01:9177,compute-02:9177]. Empty reads none, which is
+      # the default because per-instance series multiply fast.
+      - OPENSTACK_LIBVIRT_EXPORTER_TARGETS=${OPENSTACK_LIBVIRT_EXPORTER_TARGETS:-[]}
+      - OPENSTACK_CEILOMETER_EXPORTER_TARGETS=${OPENSTACK_CEILOMETER_EXPORTER_TARGETS:-[]}
+      # What the cloud stands on, in square brackets, from the endpoints the deployment
+      # already serves. Empty reads none: otel-collector-config.yaml says what each is.
+      - OPENSTACK_RABBITMQ_TARGETS=${OPENSTACK_RABBITMQ_TARGETS:-[]}
+      - OPENSTACK_MARIADB_TARGETS=${OPENSTACK_MARIADB_TARGETS:-[]}
+      - OPENSTACK_MEMCACHED_TARGETS=${OPENSTACK_MEMCACHED_TARGETS:-[]}
+      - OPENSTACK_HAPROXY_TARGETS=${OPENSTACK_HAPROXY_TARGETS:-[]}
+      - OPENSTACK_NETWORK_EXPORTER_TARGETS=${OPENSTACK_NETWORK_EXPORTER_TARGETS:-[]}
+      - OPENSTACK_LIBVIRT_HEALTH_TARGETS=${OPENSTACK_LIBVIRT_HEALTH_TARGETS:-[]}
+      # The region a target above is in, unless it says its own. Also the region of an
+      # exporter that reads one cloud on /metrics, as Kolla-Ansible's does.
+      - OPENSTACK_CONTROL_PLANE_REGION=${OPENSTACK_CONTROL_PLANE_REGION:-RegionOne}
+      # An exporter already running in single-cloud mode, such as Kolla-Ansible's. Set
+      # OPENSTACK_EXPORTER_CLOUDS=[] with it: README.md says what it costs.
+      - OPENSTACK_SINGLE_CLOUD_EXPORTER_TARGETS=${OPENSTACK_SINGLE_CLOUD_EXPORTER_TARGETS:-[]}
     restart: unless-stopped
     logging:
       driver: json-file

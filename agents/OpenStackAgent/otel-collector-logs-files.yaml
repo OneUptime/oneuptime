@@ -1,0 +1,130 @@
+# The OpenStack agent's optional logs profile for a deployment that logs to files:
+# Kolla-Ansible, whose services write /var/log/kolla/<service>/<binary>.log on each
+# host. One of these runs on each controller and compute node, beside the agent that
+# watches the cloud, and it only reads. `install-logs.sh` installs it. OneUptime parses
+# what it sends when the record arrives (Common/Utils/OpenStack/OpenStackLogs): this
+# file only gets each record there whole, and says which cloud and node it came from.
+extensions:
+  # How far each file has been read, so a restart goes on from the same line rather
+  # than losing what was written while it was down.
+  file_storage:
+    directory: /var/lib/otelcol/file_storage
+
+receivers:
+  filelog:
+    # The OpenStack services by name. RabbitMQ, MariaDB, HAProxy, libvirt and the rest
+    # are in the same folder, in other formats, and have products of their own.
+    include:
+      - /var/log/kolla/aodh/*.log
+      - /var/log/kolla/barbican/*.log
+      - /var/log/kolla/ceilometer/*.log
+      - /var/log/kolla/cinder/*.log
+      - /var/log/kolla/cloudkitty/*.log
+      - /var/log/kolla/designate/*.log
+      - /var/log/kolla/glance/*.log
+      - /var/log/kolla/gnocchi/*.log
+      - /var/log/kolla/heat/*.log
+      - /var/log/kolla/ironic/*.log
+      - /var/log/kolla/keystone/*.log
+      - /var/log/kolla/magnum/*.log
+      - /var/log/kolla/manila/*.log
+      - /var/log/kolla/masakari/*.log
+      - /var/log/kolla/neutron/*.log
+      - /var/log/kolla/nova/*.log
+      - /var/log/kolla/octavia/*.log
+      - /var/log/kolla/placement/*.log
+      - /var/log/kolla/trove/*.log
+    # A web server's own access and error logs, which are not oslo.log's.
+    exclude:
+      - /var/log/kolla/*/*access*.log
+      - /var/log/kolla/*/*apache*.log
+    start_at: end
+    storage: file_storage
+    include_file_path: true
+    include_file_name: false
+    operators:
+      # When it was written, and which worker wrote it. oslo.log writes the time with
+      # no zone, in the zone of the machine: UTC unless OPENSTACK_LOGS_TIMEZONE says.
+      - type: regex_parser
+        regex: '^(?:\x1b\[[0-9;]*m)*(?P<oslo_time>\d{4}-\d{2}-\d{2} \d{2}:\d{2}:\d{2}\.\d{3}) (?P<oslo_pid>\d+) '
+        on_error: send_quiet
+        timestamp:
+          parse_from: attributes.oslo_time
+          layout_type: gotime
+          layout: "2006-01-02 15:04:05.000"
+          location: ${env:OPENSTACK_LOGS_TIMEZONE}
+      - type: remove
+        if: 'attributes.oslo_time != nil'
+        field: attributes.oslo_time
+      - type: move
+        if: 'attributes.oslo_pid != nil'
+        from: attributes.oslo_pid
+        to: attributes["process.pid"]
+      # A stack trace is one record. oslo.log writes it one line at a time, each with
+      # a prefix of its own and no [request] context, and a service's workers share a
+      # file, so lines are only joined within one process of one file.
+      - type: add
+        if: 'attributes["process.pid"] != nil'
+        field: attributes["openstack.log.stream"]
+        value: 'EXPR(attributes["log.file.path"] + "/" + attributes["process.pid"])'
+      - type: add
+        if: 'attributes["process.pid"] == nil'
+        field: attributes["openstack.log.stream"]
+        value: 'EXPR(attributes["log.file.path"])'
+      - type: recombine
+        combine_field: body
+        combine_with: "\n"
+        source_identifier: attributes["openstack.log.stream"]
+        is_first_entry: 'not ((body matches "^(?:\\x1b\\[[0-9;]*m)*(?:\\d{4}-\\d{2}-\\d{2} \\d{2}:\\d{2}:\\d{2}\\.\\d{3} \\d+ )?(?:ERROR|TRACE|CRITICAL) [A-Za-z0-9_.-]+ " and not (body matches "^(?:\\x1b\\[[0-9;]*m)*(?:\\d{4}-\\d{2}-\\d{2} \\d{2}:\\d{2}:\\d{2}\\.\\d{3} \\d+ )?[A-Z]+ [A-Za-z0-9_.-]+ (?:\\x1b\\[[0-9;]*m)*\\[(?:\\x1b\\[[0-9;]*m)*(?:-|None|req-)")) or body matches "^(?:[ \\t]+\\S|Traceback \\(most recent call last\\):|[A-Za-z_][A-Za-z0-9_.]*(?:Error|Exception|Timeout|Refused|Failure)(?:: |$))")'
+        force_flush_period: 2s
+        max_batch_size: 500
+        max_log_size: 256KiB
+      - type: remove
+        field: attributes["openstack.log.stream"]
+        on_error: send_quiet
+
+processors:
+  # Which cloud and machine each record is from. OneUptime files a record under the
+  # cloud by `openstack.cloud.name`, so keep it the name the cloud's agent uses.
+  resource:
+    attributes:
+      - key: openstack.cloud.name
+        value: ${env:OPENSTACK_CLOUD_NAME}
+        action: upsert
+      - key: openstack.node.name
+        value: ${env:OPENSTACK_NODE_NAME}
+        action: upsert
+      # Shown as the agent version, with a sign when a newer one is out. The collector
+      # image docker-compose.logs.yml pins, its last number raised when these files
+      # change on that collector.
+      - key: oneuptime.agent.version
+        value: "0.161.0"
+        action: upsert
+      # OneUptime routes a batch by service.name first, so one here would register a
+      # phantom Service instead of reaching the cloud.
+      - key: service.name
+        action: delete
+      - key: service.instance.id
+        action: delete
+  batch:
+    timeout: 5s
+    send_batch_size: 1024
+    send_batch_max_size: 4096
+  memory_limiter:
+    check_interval: 5s
+    limit_mib: 256
+    spike_limit_mib: 64
+
+exporters:
+  otlphttp:
+    endpoint: ${env:ONEUPTIME_URL}/otlp
+    headers:
+      x-oneuptime-token: ${env:ONEUPTIME_TELEMETRY_INGESTION_KEY}
+
+service:
+  extensions: [file_storage]
+  pipelines:
+    logs:
+      receivers: [filelog]
+      processors: [memory_limiter, resource, batch]
+      exporters: [otlphttp]

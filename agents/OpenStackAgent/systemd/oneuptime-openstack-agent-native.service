@@ -19,6 +19,16 @@ Type=simple
 Environment=OPENSTACK_CLOUD_NAME=openstack
 Environment=OPENSTACK_EXPORTER_CLOUDS=[RegionOne]
 Environment=OPENSTACK_EXPORTER_ADDRESS=127.0.0.1:9180
+Environment=OPENSTACK_LIBVIRT_EXPORTER_TARGETS=[]
+Environment=OPENSTACK_CEILOMETER_EXPORTER_TARGETS=[]
+Environment=OPENSTACK_RABBITMQ_TARGETS=[]
+Environment=OPENSTACK_MARIADB_TARGETS=[]
+Environment=OPENSTACK_MEMCACHED_TARGETS=[]
+Environment=OPENSTACK_HAPROXY_TARGETS=[]
+Environment=OPENSTACK_NETWORK_EXPORTER_TARGETS=[]
+Environment=OPENSTACK_LIBVIRT_HEALTH_TARGETS=[]
+Environment=OPENSTACK_CONTROL_PLANE_REGION=RegionOne
+Environment=OPENSTACK_SINGLE_CLOUD_EXPORTER_TARGETS=[]
 # The agent's settings: the variables the Docker install keeps in its .env.
 # Root's alone (mode 0600): systemd reads it before the collector starts, and
 # the collector never opens it.

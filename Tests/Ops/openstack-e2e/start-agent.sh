@@ -56,6 +56,8 @@ docker run -d --name ou-openstack-collector --network host \
   -e OPENSTACK_CLOUD_NAME=devstack \
   -e OPENSTACK_EXPORTER_CLOUDS="[$REGION]" \
   -e OPENSTACK_EXPORTER_ADDRESS=127.0.0.1:9180 \
+  -e OPENSTACK_LIBVIRT_EXPORTER_TARGETS="${OPENSTACK_LIBVIRT_EXPORTER_TARGETS:-[]}" \
+  -e OPENSTACK_CEILOMETER_EXPORTER_TARGETS="${OPENSTACK_CEILOMETER_EXPORTER_TARGETS:-[]}" \
   "$COLLECTOR_IMAGE" --config=/etc/otelcol-contrib/config.yaml --config=/etc/otelcol-contrib/recording.yaml
 
 # The exporter answers once it is listening. Keystone's answer is the real test,
