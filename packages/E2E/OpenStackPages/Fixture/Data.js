@@ -30,6 +30,8 @@
  *   ovn-stale     a calm cloud on OVN, with a stale record beside a live agent.
  *   parts         busy, with what a part's page has to say that busy does not hold: hosts
  *                 in zones and aggregates, an image stuck saving, what the probe lists.
+ *   usage         calm, with real usage: a hypervisor past its line, a neighbour burning all
+ *                 of it, and one instance made to wait.
  */
 
 export const PROJECT_ID = "10000000-0000-4000-8000-000000000001";
@@ -1224,9 +1226,76 @@ function partsInventory(context) {
   ];
 }
 
+/*
+ * ---------------------------------------------------------------------------
+ * usage: calm, with what libvirt's or Ceilometer's exporter says on compute-01. The numbers are
+ * made up to put it over a line. What real clouds really said goes through the same pages in
+ * OpenStackUsagePagesRecordings.test.tsx, and these are for what only a browser shows.
+ * ---------------------------------------------------------------------------
+ */
+export const USAGE_HOST = "compute-01.acme.example";
+const MIB = 1024 * 1024;
+
+function usageOfInstance(index) {
+  if (index === 0) {
+    // The noisy neighbour: nearly all of its 32 vCPUs, which is nearly all of the host's 32 threads.
+    return {
+      cpuCores: 29.4,
+      cpuPercent: 91.9,
+      contentionPercent: 2,
+      memoryUsageBytes: 56 * GIB,
+      memoryResidentBytes: 60 * GIB,
+      disks: {
+        vda: { read: 40 * MIB, write: 120 * MIB, readMs: 3, writeMs: 7 },
+        vdb: { read: 0, write: 900 * MIB, writeMs: 64 },
+      },
+      interfaces: { "tap5e2d1c0a-44": { receive: 25 * MIB, transmit: 310 * MIB } },
+    };
+  }
+  // Everyone else, doing very little and being made to wait for it.
+  return {
+    cpuCores: 0.3 + index / 10,
+    cpuPercent: 8 + index,
+    contentionPercent: 24 - index,
+    memoryUsageBytes: 2 * GIB,
+    memoryResidentBytes: (4 + index) * GIB,
+    disks: { vda: { read: 200 * 1024, write: 400 * 1024, readMs: 2, writeMs: 3 } },
+    interfaces: { [`tap${index}abc1234-0${index}`]: { receive: 8192, transmit: 4096 } },
+  };
+}
+
+function usageInventory(context) {
+  let index = -1;
+  return calmInventory(context).map((row) => {
+    if (row.kind === "Hypervisor" && row.name === USAGE_HOST) {
+      return {
+        ...row,
+        vcpuCapacity: 128,
+        facts: {
+          ...row.facts,
+          resourceTotals: { VCPU: 32, MEMORY_MB: 512 * 1024 },
+        },
+        hypervisorUsage: {
+          cpuCores: 31.2,
+          cpuPercent: 97.5,
+          memoryResidentBytes: 180 * GIB,
+          memoryPercent: 35.2,
+          reporting: 10,
+        },
+      };
+    }
+    if (row.kind === "Instance" && row.hypervisorName === USAGE_HOST) {
+      index += 1;
+      return { ...row, usage: usageOfInstance(index) };
+    }
+    return row;
+  });
+}
+
 const ESTATES = {
   busy: busyInventory,
   parts: partsInventory,
+  usage: usageInventory,
   calm: calmInventory,
   "ovn-stale": ovnStaleInventory,
   new: () => {

@@ -72,9 +72,7 @@ describe("how often the docs say each is read", () => {
     const job: string = CONFIG.substring(
       CONFIG.indexOf(`job_name: ${jobName}`),
     );
-    const match: RegExpMatchArray | null = job.match(
-      /scrape_interval: (\d+)s/,
-    );
+    const match: RegExpMatchArray | null = job.match(/scrape_interval: (\d+)s/);
     expect(match).not.toBeNull();
     return 3600 / Number(match![1]);
   }

@@ -1509,13 +1509,19 @@ function pruneStates(
       continue;
     }
     for (const [instanceId, instance] of Object.entries(state.i)) {
-      const lastSeen: number = Object.values(instance.s).reduce(
-        (latest: number, series: CounterState): number => {
-          return Math.max(latest, series[2]);
+      const times: Array<number> = Object.values(instance.s).map(
+        (series: CounterState): number => {
+          return series[2];
         },
-        instance.u?.[0] || newestMs,
       );
-      if (newestMs - lastSeen > OPENSTACK_CEILOMETER_LONGEST_GAP_MS) {
+      if (instance.u) {
+        times.push(instance.u[0]);
+      }
+      // Nothing but its vCPUs or its project known yet: it has only just appeared.
+      if (times.length === 0) {
+        continue;
+      }
+      if (newestMs - Math.max(...times) > OPENSTACK_CEILOMETER_LONGEST_GAP_MS) {
         delete state.i[instanceId];
         for (const [domain, id] of Object.entries(state.d)) {
           if (id === instanceId) {

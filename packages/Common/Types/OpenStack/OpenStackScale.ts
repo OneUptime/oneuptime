@@ -678,7 +678,10 @@ function getOpenStackTelemetryCostPerMonth(data: {
 }): number {
   return (
     data.gigabytesPerDay *
-    Math.max(data.retentionInDays, TELEMETRY_MINIMUM_BILLABLE_RETENTION_IN_DAYS) *
+    Math.max(
+      data.retentionInDays,
+      TELEMETRY_MINIMUM_BILLABLE_RETENTION_IN_DAYS,
+    ) *
     (TELEMETRY_PRICE_IN_USD_PER_GB / TELEMETRY_PRICE_RETENTION_IN_DAYS) *
     30
   );

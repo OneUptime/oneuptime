@@ -3,6 +3,7 @@ import AggregatedResult from "../../../../Types/BaseDatabase/AggregatedResult";
 import FilterCondition from "../../../../Types/Filter/FilterCondition";
 import MetricFormulaConfigData from "../../../../Types/Metrics/MetricFormulaConfigData";
 import MetricQueryConfigData from "../../../../Types/Metrics/MetricQueryConfigData";
+import MetricsAggregationType from "../../../../Types/Metrics/MetricsAggregationType";
 import MetricsViewConfig from "../../../../Types/Metrics/MetricsViewConfig";
 import { CriteriaFilter } from "../../../../Types/Monitor/CriteriaFilter";
 import MetricMonitorResponse from "../../../../Types/Monitor/MetricMonitor/MetricMonitorResponse";
@@ -139,4 +140,126 @@ export async function evaluateTemplateCriteria(data: {
       response,
     ),
   };
+}
+
+/*
+ * The same, for readings with their own times rather than one a minute: a real recording's. They
+ * land in one-minute buckets the way a monitor's read does, each by its query's own aggregation.
+ */
+export interface TimedSample {
+  timeMs: number;
+  value: number;
+}
+
+export type TimedSamplesByAlias = Record<string, Array<TimedSample>>;
+
+const MINUTE_MS: number = 60000;
+
+function bucketsOf(data: {
+  samples: ReadonlyArray<TimedSample>;
+  aggregation: unknown;
+  windowStartMs: number;
+  windowEndMs: number;
+}): Array<AggregateModel> {
+  const buckets: Map<number, Array<number>> = new Map();
+  for (const sample of data.samples) {
+    if (sample.timeMs < data.windowStartMs || sample.timeMs >= data.windowEndMs) {
+      continue;
+    }
+    const minute: number = Math.floor(sample.timeMs / MINUTE_MS) * MINUTE_MS;
+    buckets.set(minute, [...(buckets.get(minute) || []), sample.value]);
+  }
+  return Array.from(buckets.entries())
+    .sort((first: [number, Array<number>], second: [number, Array<number>]) => {
+      return first[0] - second[0];
+    })
+    .map(([minute, values]: [number, Array<number>]): AggregateModel => {
+      const value: number =
+        data.aggregation === MetricsAggregationType.Min
+          ? Math.min(...values)
+          : data.aggregation === MetricsAggregationType.Avg
+            ? values.reduce((sum: number, one: number): number => {
+                return sum + one;
+              }, 0) / values.length
+            : Math.max(...values);
+      return { timestamp: new Date(minute), value } as AggregateModel;
+    });
+}
+
+export function buildMetricResponseOverWindow(data: {
+  viewConfig: MetricsViewConfig;
+  samplesByAlias: TimedSamplesByAlias;
+  windowStartMs: number;
+  windowEndMs: number;
+}): MetricMonitorResponse {
+  return {
+    projectId: ObjectID.generate(),
+    metricViewConfig: data.viewConfig,
+    monitorId: ObjectID.generate(),
+    startAndEndDate: {
+      startValue: new Date(data.windowStartMs),
+      endValue: new Date(data.windowEndMs),
+    } as NonNullable<MetricMonitorResponse["startAndEndDate"]>,
+    metricResult: data.viewConfig.queryConfigs.map(
+      (queryConfig: MetricQueryConfigData): AggregatedResult => {
+        return {
+          data: bucketsOf({
+            samples:
+              data.samplesByAlias[
+                queryConfig.metricAliasData?.metricVariable || ""
+              ] || [],
+            aggregation: queryConfig.metricQueryData.filterData.aggegationType,
+            windowStartMs: data.windowStartMs,
+            windowEndMs: data.windowEndMs,
+          }),
+        };
+      },
+    ),
+  };
+}
+
+export interface TemplateWalkStep {
+  atMs: number;
+  breached: boolean;
+  healthy: boolean;
+}
+
+// A monitor's every evaluation, a minute apart, along a recording.
+export async function walkTemplateCriteria(data: {
+  step: MonitorStep;
+  viewConfig: MetricsViewConfig;
+  samplesByAlias: TimedSamplesByAlias;
+  windowMinutes: number;
+  startMs: number;
+  endMs: number;
+}): Promise<Array<TemplateWalkStep>> {
+  const instances: Array<MonitorCriteriaInstance> =
+    data.step.data!.monitorCriteria.data!.monitorCriteriaInstanceArray;
+  const steps: Array<TemplateWalkStep> = [];
+  for (
+    let atMs: number = data.startMs;
+    atMs <= data.endMs;
+    atMs += MINUTE_MS
+  ) {
+    const response: MetricMonitorResponse = buildMetricResponseOverWindow({
+      viewConfig: data.viewConfig,
+      samplesByAlias: data.samplesByAlias,
+      windowStartMs: atMs - data.windowMinutes * MINUTE_MS,
+      windowEndMs: atMs,
+    });
+    steps.push({
+      atMs,
+      breached: await isCriteriaInstanceMet(
+        data.step,
+        instances[0] as MonitorCriteriaInstance,
+        response,
+      ),
+      healthy: await isCriteriaInstanceMet(
+        data.step,
+        instances[instances.length - 1] as MonitorCriteriaInstance,
+        response,
+      ),
+    });
+  }
+  return steps;
 }

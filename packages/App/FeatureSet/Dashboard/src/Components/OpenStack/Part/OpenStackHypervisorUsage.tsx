@@ -17,6 +17,7 @@ import {
   OpenStackHypervisorLoad,
   getOpenStackHypervisorLoad,
   getOpenStackHypervisorPhysicalCapacity,
+  getOpenStackVcpusOfReading,
   isOpenStackInstanceContended,
 } from "../../../Pages/OpenStack/Utils/OpenStackUsage";
 import {
@@ -47,6 +48,26 @@ const OVER_THE_CPU_LINE: string = translationKey(
 const OVER_THE_MEMORY_LINE: string = translationKey(
   "This hypervisor's instances really hold nearly all of its memory, which leaves little for the host. The instances holding the most are named below.",
 );
+const OVER_THE_CPU_LINE_BY_HOST: string = translationKey(
+  "OneUptime's agent says nearly all of this machine's CPU is in use, and its instances are only part of that. The instances using the most of it are named below.",
+);
+const OVER_THE_MEMORY_LINE_BY_HOST: string = translationKey(
+  "OneUptime's agent says nearly all of this machine's memory is in use, and its instances are only part of that. The instances holding the most are named below.",
+);
+
+function getOverTheLineText(load: OpenStackHypervisorLoad): string | null {
+  if (load.isCpuSaturated) {
+    return load.isCpuSaturatedByHost
+      ? OVER_THE_CPU_LINE_BY_HOST
+      : OVER_THE_CPU_LINE;
+  }
+  if (load.isMemoryPressured) {
+    return load.isMemoryPressuredByHost
+      ? OVER_THE_MEMORY_LINE_BY_HOST
+      : OVER_THE_MEMORY_LINE;
+  }
+  return null;
+}
 
 interface UsageRead {
   usage: HypervisorUsage;
@@ -59,10 +80,15 @@ const OpenStackHypervisorUsage: FunctionComponent<{
   row: OpenStackResource;
   // Whether OneUptime's own agent already says what this machine is doing.
   hasHostAgent: boolean;
+  // And what it says, which has the host's own processes in it.
+  hostCpuPercent?: number | null | undefined;
+  hostMemoryPercent?: number | null | undefined;
 }> = (props: {
   part: OpenStackPart;
   row: OpenStackResource;
   hasHostAgent: boolean;
+  hostCpuPercent?: number | null | undefined;
+  hostMemoryPercent?: number | null | undefined;
 }): ReactElement => {
   const translator: Translator = useTranslator();
   const listClassName: string = useCardRuledListClassName();
@@ -116,15 +142,18 @@ const OpenStackHypervisorUsage: FunctionComponent<{
     memoryResidentBytes: usage.memoryResidentBytes,
     physicalCores: physical.cores,
     physicalMemoryBytes: physical.memoryBytes,
+    hostCpuPercent: props.hostCpuPercent,
+    hostMemoryPercent: props.hostMemoryPercent,
   });
+  const overTheLine: string | null = getOverTheLineText(load);
 
   return (
     <div data-testid="openstack-hypervisor-usage">
-      {load.isCpuSaturated || load.isMemoryPressured ? (
+      {overTheLine ? (
         <OpenStackPartNotice
           testId="openstack-hypervisor-over-line"
           tone="warning"
-          text={load.isCpuSaturated ? OVER_THE_CPU_LINE : OVER_THE_MEMORY_LINE}
+          text={overTheLine}
         />
       ) : (
         <></>
@@ -161,7 +190,7 @@ const OpenStackHypervisorUsage: FunctionComponent<{
           }
           sublabel={
             usage.memoryResidentBytes === null
-              ? "Not reported"
+              ? "This source doesn't say"
               : translator.translateTemplate("{{amount}} held", {
                   amount: formatOpenStackBytes(usage.memoryResidentBytes),
                 })
@@ -196,6 +225,8 @@ const OpenStackHypervisorUsage: FunctionComponent<{
             <ul className={listClassName}>
               {busiest.map(
                 (reading: OpenStackInstanceUsageReading): ReactElement => {
+                  const vcpus: number | null =
+                    getOpenStackVcpusOfReading(reading);
                   return (
                     <li
                       key={reading.instanceId}
@@ -218,10 +249,18 @@ const OpenStackHypervisorUsage: FunctionComponent<{
                           <></>
                         ) : (
                           <span>
-                            {translator.translateTemplate(
-                              "{{count}} CPU threads",
-                              { count: reading.cpuCores.toFixed(1) },
-                            )}
+                            {vcpus === null
+                              ? translator.translateTemplate(
+                                  "{{count}} CPU threads",
+                                  { count: reading.cpuCores.toFixed(1) },
+                                )
+                              : translator.translateTemplate(
+                                  "{{count}} CPU threads, of {{vcpus}} vCPUs it was given",
+                                  {
+                                    count: reading.cpuCores.toFixed(1),
+                                    vcpus: translator.formatNumber(vcpus),
+                                  },
+                                )}
                           </span>
                         )}
                         {reading.memoryResidentBytes === null ? (

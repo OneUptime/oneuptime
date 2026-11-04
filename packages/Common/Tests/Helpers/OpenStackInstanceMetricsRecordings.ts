@@ -1,6 +1,8 @@
 import * as fs from "fs";
 import * as path from "path";
+import * as zlib from "zlib";
 import {
+  OpenStackInstanceMetricSample,
   OpenStackInstanceMetricsDecision,
   OpenStackInstanceMetricsHostState,
   OpenStackInstancePlacement,
@@ -325,4 +327,225 @@ export function meanOf(values: ReadonlyArray<number>): number {
 
 export function sourceOf(point: ReplayedPoint): string | undefined {
   return point.attributes[OPENSTACK_INSTANCE_SOURCE_ATTRIBUTE];
+}
+
+/*
+ * ---------------------------------------------------------------------------
+ * The long drill (Tests/Ops/openstack-e2e/instance-metrics-drill.sh)
+ * ---------------------------------------------------------------------------
+ *
+ * Not a scrape at a time as this helper's other half is, but what the agent's real collector
+ * really sent, envelope by envelope, at its real pace, with Ceilometer polling at its default of
+ * five minutes. Its timeline says when each thing happened.
+ */
+export interface InstanceMetricsDrill {
+  release: string;
+  envelopes: Array<JSONObject>;
+  // When each thing in the drill happened, by its name there.
+  timeline: Record<string, number>;
+  instances: Array<RecordedDrillInstance>;
+}
+
+export interface RecordedDrillInstance {
+  id: string;
+  name: string;
+  projectId: string;
+  vcpus: number;
+}
+
+export function getDrilledInstanceMetricsReleases(): Array<string> {
+  return fs
+    .readdirSync(FIXTURES)
+    .filter((entry: string): boolean => {
+      return fs.existsSync(
+        path.join(FIXTURES, entry, "instance-metrics-drill", "otlp.jsonl.gz"),
+      );
+    })
+    .sort();
+}
+
+function labelOf(point: JSONObject, key: string): string | undefined {
+  const found: JSONObject | undefined = (
+    (point["attributes"] as Array<JSONObject> | undefined) || []
+  ).find((attribute: JSONObject): boolean => {
+    return attribute["key"] === key;
+  });
+  return (found?.["value"] as JSONObject | undefined)?.["stringValue"] as
+    | string
+    | undefined;
+}
+
+export function dataPointsOf(
+  envelope: JSONObject,
+  metricName: string,
+): Array<JSONObject> {
+  const points: Array<JSONObject> = [];
+  for (const scope of envelope["scopeMetrics"] as Array<JSONObject>) {
+    for (const metric of scope["metrics"] as Array<JSONObject>) {
+      if (metric["name"] === metricName) {
+        const holder: JSONObject = (metric["gauge"] ||
+          metric["sum"]) as JSONObject;
+        points.push(...(holder["dataPoints"] as Array<JSONObject>));
+      }
+    }
+  }
+  return points;
+}
+
+export function readInstanceMetricsDrill(
+  release: string,
+): InstanceMetricsDrill {
+  const folder: string = path.join(FIXTURES, release, "instance-metrics-drill");
+  const envelopes: Array<JSONObject> = zlib
+    .gunzipSync(fs.readFileSync(path.join(folder, "otlp.jsonl.gz")))
+    .toString("utf8")
+    .split("\n")
+    .filter((line: string): boolean => {
+      return Boolean(line);
+    })
+    .map((line: string): JSONObject => {
+      return JSON.parse(line) as JSONObject;
+    });
+
+  const timeline: Record<string, number> = {};
+  for (const line of fs
+    .readFileSync(path.join(folder, "timeline.txt"), "utf8")
+    .split("\n")) {
+    const [at, what]: Array<string> = line.trim().split(" ");
+    if (at && what) {
+      timeline[what] = Number(at) * 1000;
+    }
+  }
+
+  // Who each instance is, as libvirt's exporter says, and how many vCPUs each has.
+  const instances: Map<string, RecordedDrillInstance> = new Map();
+  const domains: Map<string, string> = new Map();
+  for (const envelope of envelopes) {
+    for (const point of dataPointsOf(
+      envelope,
+      "libvirt_domain_openstack_info",
+    )) {
+      const id: string = labelOf(point, "instance_id")!;
+      domains.set(labelOf(point, "domain")!, id);
+      instances.set(id, {
+        id,
+        name: labelOf(point, "instance_name")!,
+        projectId: labelOf(point, "project_id")!,
+        vcpus: instances.get(id)?.vcpus || 0,
+      });
+    }
+    for (const point of dataPointsOf(
+      envelope,
+      "libvirt_domain_info_virtual_cpus",
+    )) {
+      const id: string | undefined = domains.get(labelOf(point, "domain")!);
+      const instance: RecordedDrillInstance | undefined = id
+        ? instances.get(id)
+        : undefined;
+      if (instance) {
+        instance.vcpus = Number(point["asDouble"] ?? point["asInt"]);
+      }
+    }
+  }
+
+  return {
+    release,
+    envelopes,
+    timeline,
+    instances: Array.from(instances.values()),
+  };
+}
+
+export function drillInstanceNamed(
+  drill: InstanceMetricsDrill,
+  name: string,
+): RecordedDrillInstance {
+  const instance: RecordedDrillInstance | undefined = drill.instances.find(
+    (one: RecordedDrillInstance): boolean => {
+      return one.name === name;
+    },
+  );
+  if (!instance) {
+    throw new Error(`${drill.release}'s drill recorded no ${name}`);
+  }
+  return instance;
+}
+
+// The inventory of a cloud that ran the drill, with what its one hypervisor has.
+export function drillPlacements(
+  drill: InstanceMetricsDrill,
+  capacity?: OpenStackHypervisorCapacity,
+): Map<string, OpenStackInstancePlacement> {
+  return new Map(
+    drill.instances.map(
+      (
+        instance: RecordedDrillInstance,
+      ): [string, OpenStackInstancePlacement] => {
+        return [
+          instance.id,
+          {
+            hypervisorName: RECORDED_HYPERVISOR,
+            regionName: RECORDED_REGION,
+            projectId: instance.projectId,
+            aggregates: [],
+            hypervisorCapacity: capacity,
+            vcpus: instance.vcpus,
+          },
+        ];
+      },
+    ),
+  );
+}
+
+// Everything one source sent through the path a batch takes, in the order the collector sent it.
+export function replayDrillSource(data: {
+  drill: InstanceMetricsDrill;
+  source: OpenStackInstanceMetricSource;
+  capacity?: OpenStackHypervisorCapacity | undefined;
+}): Array<ReplayedPoint> {
+  const states: Map<string, OpenStackInstanceMetricsHostState> = new Map();
+  const placements: Map<string, OpenStackInstancePlacement> = drillPlacements(
+    data.drill,
+    data.capacity,
+  );
+  const points: Array<ReplayedPoint> = [];
+  for (const envelope of data.drill.envelopes) {
+    const samples: Array<OpenStackInstanceMetricSample> =
+      readOpenStackInstanceMetricSamples(envelope).filter(
+        (sample: OpenStackInstanceMetricSample): boolean => {
+          return sample.source === data.source;
+        },
+      );
+    if (samples.length > 0) {
+      points.push(
+        ...replayedPointsOf(
+          applyOpenStackInstanceMetricSamples({
+            samples,
+            states,
+            placements,
+            isInstanceKept: (): boolean => {
+              return true;
+            },
+          }),
+        ),
+      );
+    }
+  }
+  return points;
+}
+
+// What every alert template's window reads beside what it compares.
+export function drillAnchorSamples(
+  drill: InstanceMetricsDrill,
+): Array<{ timeMs: number; value: number }> {
+  const samples: Array<{ timeMs: number; value: number }> = [];
+  for (const envelope of drill.envelopes) {
+    for (const point of dataPointsOf(envelope, "openstack_nova_up")) {
+      samples.push({
+        timeMs: Math.floor(Number(point["timeUnixNano"]) / 1e6),
+        value: Number(point["asDouble"] ?? point["asInt"]),
+      });
+    }
+  }
+  return samples;
 }

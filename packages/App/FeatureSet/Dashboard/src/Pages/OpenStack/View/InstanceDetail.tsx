@@ -444,12 +444,12 @@ const OpenStackCloudInstanceDetail: FunctionComponent<
       overview={(overviewRow: OpenStackResource): ReactElement => {
         return <InstanceOverview part={part} row={overviewRow} />;
       }}
-      tabs={(): Array<Tab> => {
+      tabs={(tabRow: OpenStackResource): Array<Tab> => {
         const facts: JSONObject = { attachedToInstance: part.externalId };
         return [
           {
             name: "Usage",
-            children: <OpenStackInstanceUsageCharts part={part} />,
+            children: <OpenStackInstanceUsageCharts part={part} row={tabRow} />,
           },
           {
             name: "Volumes",

@@ -54,21 +54,24 @@ describe("the numbers behind the card", () => {
     ["small", OPENSTACK_SMALL_CLOUD],
     ["medium", OPENSTACK_MEDIUM_CLOUD],
     ["large", OPENSTACK_LARGE_CLOUD],
-  ])("a %s cloud reads what the scale module says", (_size: string, counts: OpenStackCloudCounts) => {
-    const view: OpenStackCostView = getOpenStackCostView({
-      hypervisors: counts.hypervisors,
-      instances: counts.instances,
-      projects: counts.projects,
-    });
+  ])(
+    "a %s cloud reads what the scale module says",
+    (_size: string, counts: OpenStackCloudCounts) => {
+      const view: OpenStackCostView = getOpenStackCostView({
+        hypervisors: counts.hypervisors,
+        instances: counts.instances,
+        projects: counts.projects,
+      });
 
-    expect(view.requestsPerMinute).toEqual(
-      getOpenStackProbeRequestsPerMinute(counts),
-    );
-    expect(view.everySeries).toEqual(estimateOpenStackVolume({ counts }));
-    expect(view.isSummaryMode).toBe(
-      counts.instances > OPENSTACK_SUMMARY_MODE_INSTANCE_LIMIT,
-    );
-  });
+      expect(view.requestsPerMinute).toEqual(
+        getOpenStackProbeRequestsPerMinute(counts),
+      );
+      expect(view.everySeries).toEqual(estimateOpenStackVolume({ counts }));
+      expect(view.isSummaryMode).toBe(
+        counts.instances > OPENSTACK_SUMMARY_MODE_INSTANCE_LIMIT,
+      );
+    },
+  );
 
   test("a cloud in summary mode costs less than one that keeps every series, and says what it would have", () => {
     const view: OpenStackCostView = getOpenStackCostView({

@@ -1651,7 +1651,7 @@ const openStackMetricCatalog: Array<OpenStackMetricDefinition> = [
     metricName: OpenStackInstanceMetric.CpuContention,
     friendlyName: translationKey("Instance CPU Contention"),
     description:
-      "How much of the time the instance's vCPUs wanted to run and the hypervisor made them wait, as a share of its vCPUs: the guest calls this steal. It says a neighbour is the problem rather than the instance. From libvirt's exporter, and from Ceilometer on releases that have its cpu.delay meter.",
+      "How much of the time the instance's vCPUs wanted to run and the hypervisor made them wait, as a share of its vCPUs: the guest calls this steal. It says a neighbour is the problem rather than the instance. From libvirt's exporter. No released Ceilometer has its cpu.delay meter yet, and it is read when one does.",
     identityAttributes: INSTANCE_LABELS,
   }),
   usage({
@@ -1665,7 +1665,7 @@ const openStackMetricCatalog: Array<OpenStackMetricDefinition> = [
     metricName: OpenStackInstanceMetric.MemoryResident,
     friendlyName: translationKey("Instance Memory on Host"),
     description:
-      "What the instance really holds of its hypervisor's memory, whatever the guest says it is using.",
+      "What the instance really holds of its hypervisor's memory, whatever the guest says it is using, which is more than its flavor's size because QEMU itself is in it.",
     identityAttributes: INSTANCE_LABELS,
   }),
   usage({

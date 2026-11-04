@@ -294,7 +294,8 @@ describe.each(RELEASES)("%s", (release: string) => {
         "libvirt_domain_block_stats_read_time_seconds_total",
       ).find((one: PrometheusSeries): boolean => {
         return (
-          one.labels["domain"] === domain && one.labels["target_device"] === "vda"
+          one.labels["domain"] === domain &&
+          one.labels["target_device"] === "vda"
         );
       })!;
       const latency: PrometheusSeries = seriesNamed(
@@ -397,24 +398,19 @@ describe.each(RELEASES)("%s", (release: string) => {
       const samples: Array<{ atMs: number; value: number }> = recordedSeries(
         recording,
         CEILOMETER,
-      ).flatMap(
-        (scrape: { atMs: number; series: Array<PrometheusSeries> }) => {
-          return seriesNamed(scrape.series, "ceilometer_cpu")
-            .filter((one: PrometheusSeries): boolean => {
-              return one.labels["resource"] === burner.id;
-            })
-            .map((one: PrometheusSeries): { atMs: number; value: number } => {
-              return { atMs: scrape.atMs, value: one.value / 1e9 };
-            });
-        },
-      );
+      ).flatMap((scrape: { atMs: number; series: Array<PrometheusSeries> }) => {
+        return seriesNamed(scrape.series, "ceilometer_cpu")
+          .filter((one: PrometheusSeries): boolean => {
+            return one.labels["resource"] === burner.id;
+          })
+          .map((one: PrometheusSeries): { atMs: number; value: number } => {
+            return { atMs: scrape.atMs, value: one.value / 1e9 };
+          });
+      });
       const naive: Array<number> = samples
         .slice(1)
         .map(
-          (
-            sample: { atMs: number; value: number },
-            index: number,
-          ): number => {
+          (sample: { atMs: number; value: number }, index: number): number => {
             return (
               (sample.value - samples[index]!.value) /
               ((sample.atMs - samples[index]!.atMs) / 1000)
@@ -640,7 +636,9 @@ describe.each(RELEASES)("%s", (release: string) => {
     test("every instance series the product has comes out, on the same recorded instance", () => {
       const fromLibvirt: Set<string> = new Set(
         replayed[LIBVIRT].filter((point: ReplayedPoint): boolean => {
-          return point.attributes[OPENSTACK_INSTANCE_ID_ATTRIBUTE] === burner.id;
+          return (
+            point.attributes[OPENSTACK_INSTANCE_ID_ATTRIBUTE] === burner.id
+          );
         }).map((point: ReplayedPoint): string => {
           return point.name;
         }),
@@ -754,9 +752,7 @@ describe.each(RELEASES)("%s", (release: string) => {
         );
       };
       expect(
-        Array.from(
-          devicesFrom(LIBVIRT, OpenStackInstanceMetric.DiskWriteRate),
-        ),
+        Array.from(devicesFrom(LIBVIRT, OpenStackInstanceMetric.DiskWriteRate)),
       ).toEqual(["vda"]);
       expect(
         Array.from(
@@ -948,9 +944,9 @@ describe.each(RELEASES)("%s", (release: string) => {
         };
         expect(last(OpenStackHypervisorMetric.InstancesReporting)).toBe(3);
         // One thread busy of four.
-        expect(last(OpenStackHypervisorMetric.InstancesCpuUsage)).toBeGreaterThan(
-          0.95,
-        );
+        expect(
+          last(OpenStackHypervisorMetric.InstancesCpuUsage),
+        ).toBeGreaterThan(0.95);
         expect(last(OpenStackHypervisorMetric.InstancesCpuUsage)).toBeLessThan(
           1.1,
         );
@@ -1023,11 +1019,7 @@ describe.each(RELEASES)("%s", (release: string) => {
           ),
         );
         const pieces: Array<number> = valuesOf(
-          pointsOfInstance(
-            split,
-            OpenStackInstanceMetric.CpuUsage,
-            burner.id,
-          ),
+          pointsOfInstance(split, OpenStackInstanceMetric.CpuUsage, burner.id),
         );
         expect(meanOf(pieces)).toBeCloseTo(meanOf(whole), 2);
       },

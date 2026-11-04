@@ -318,8 +318,16 @@ describe("rates", () => {
       // Scraped every two minutes, polled every six: the trap is 360 / 120 = 3.
       const first: CounterStep = step(null, START_MS, 0);
       const clock: CounterStep = step(first.next, START_MS + MINUTE_MS, 60);
-      const second: CounterStep = step(clock.next, START_MS + 3 * MINUTE_MS, 60);
-      const third: CounterStep = step(second.next, START_MS + 5 * MINUTE_MS, 60);
+      const second: CounterStep = step(
+        clock.next,
+        START_MS + 3 * MINUTE_MS,
+        60,
+      );
+      const third: CounterStep = step(
+        second.next,
+        START_MS + 5 * MINUTE_MS,
+        60,
+      );
       const fourth: CounterStep = step(
         third.next,
         START_MS + 7 * MINUTE_MS,
@@ -1325,9 +1333,9 @@ describe("what a batch from Ceilometer's exporter becomes", () => {
       states,
     });
     expect(valueOf(decision, OpenStackInstanceMetric.CpuUsage)).toBeCloseTo(1);
-    expect(
-      pointsOf(decision, OpenStackInstanceMetric.CpuUtilization),
-    ).toEqual([]);
+    expect(pointsOf(decision, OpenStackInstanceMetric.CpuUtilization)).toEqual(
+      [],
+    );
   });
 
   test("what the instance says of itself wins over what its flavor says", () => {
