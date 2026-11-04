@@ -12429,7 +12429,7 @@
   "Manufacturer": "Tillverkare",
   "Map": "Karta",
   "Shortest": "Kortaste",
-  "Connect Slack or Teams": "Anslut Slack eller Teams",
+  "Connect a workspace": "Anslut en arbetsyta",
   "Post notifications to your Slack channels and act on them from Slack.": "Publicera aviseringar i dina Slack-kanaler och hantera dem direkt från Slack.",
   "Map Value From": "Hämta värde från",
   "Map Value From Field": "Map Value From Field",
@@ -42427,6 +42427,7 @@
   "Connect your Mattermost account": "Anslut ditt Mattermost-konto",
   "Create a bot account for OneUptime in Mattermost, add it to your team, and paste its access token here.": "Skapa ett botkonto för OneUptime i Mattermost, lägg till det i ditt team och klistra in dess åtkomsttoken här.",
   "Disconnect Mattermost": "Koppla från Mattermost",
+  "Drag to resize": "Dra för att ändra storlek",
   "If Mattermost already has a channel with this name, OneUptime adds -2 to the end.": "Om Mattermost redan har en kanal med det här namnet lägger OneUptime till -2 i slutet.",
   "In Mattermost, go to Integrations → Bot Accounts, add a bot for OneUptime and copy its access token. Then add the bot to your team.": "Gå till Integrationer → Botkonton i Mattermost, lägg till en bot för OneUptime och kopiera dess åtkomsttoken. Lägg sedan till boten i ditt team.",
   "It posts as @{{bot}} on {{server}}: what your notification rules send, a channel for each incident with its people added. Each member connects their own Mattermost account to act as themselves.": "Den publicerar som @{{bot}} på {{server}}: det dina aviseringsregler skickar, och en kanal för varje incident med dess personer tillagda. Varje medlem ansluter sitt eget Mattermost-konto för att agera som sig själv.",
@@ -42440,6 +42441,7 @@
   "OneUptime sent a link to @{{username}} in Mattermost. Open it in this browser to finish connecting. It works once, for 15 minutes.": "OneUptime har skickat en länk till @{{username}} i Mattermost. Öppna den i den här webbläsaren för att slutföra anslutningen. Den fungerar en gång, i 15 minuter.",
   "Post incidents, alerts and scheduled maintenance to your Mattermost channels, give each incident a channel of its own, and let your team acknowledge and resolve from Mattermost.": "Publicera incidenter, larm och planerat underhåll i dina Mattermost-kanaler, ge varje incident en egen kanal och låt ditt team kvittera och lösa dem från Mattermost.",
   "Post notifications to your Mattermost channels and act on them from Mattermost.": "Publicera aviseringar i dina Mattermost-kanaler och hantera dem direkt från Mattermost.",
+  "Resize Ask AI": "Ändra storlek på Fråga AI",
   "Send a link to your Mattermost account": "Skicka en länk till ditt Mattermost-konto",
   "Send link": "Skicka länk",
   "Send link to @{{username}}": "Skicka länk till @{{username}}",
@@ -42470,5 +42472,6 @@
   "In Slack": "I Slack",
   "Runbook Track Record": "Runbookens tidigare resultat",
   "Where fixes were approved": "Var åtgärder godkändes",
-  "You do not have permission to dismiss this fix. Dismissing a fix needs the same permission as approving one: starting runbook executions in this project.": "Du har inte behörighet att avfärda den här åtgärden. Att avfärda en åtgärd kräver samma behörighet som att godkänna den: att starta runbook-körningar i det här projektet."
+  "You do not have permission to dismiss this fix. Dismissing a fix needs the same permission as approving one: starting runbook executions in this project.": "Du har inte behörighet att avfärda den här åtgärden. Att avfärda en åtgärd kräver samma behörighet som att godkänna den: att starta runbook-körningar i det här projektet.",
+  "Disable Sign-In Links": "Disable Sign-In Links"
 }

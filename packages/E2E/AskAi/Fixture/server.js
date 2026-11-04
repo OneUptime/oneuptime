@@ -1,8 +1,7 @@
 /*
- * Offline fixture server for Ask AI: the dialog in the middle of the
- * screen over a blurred Dashboard page, its start, a conversation with its
- * live line, sources, cards and an approval, the history, and every way
- * in. Fixture.js renders the actual Dashboard components, bundled with the
+ * Offline fixture server for Ask AI: the panel docked beside a Dashboard
+ * page, its start, a conversation with its live line, sources, cards and an
+ * approval, the history, and every way in. Fixture.js renders the actual Dashboard components, bundled with the
  * app's esbuild config, Tailwind, theme and font, and answers the API calls
  * they make from an in-page store the specs drive. No app/API server
  * needed.
@@ -47,7 +46,7 @@ const readingDirection = path.join(
   repository,
   "packages/Common/UI/Styles/TailwindReadingDirection.js",
 );
-// The Dashboard's own font, so the dialog and its lines are measured as drawn.
+// The Dashboard's own font, so the panel and its lines are measured as drawn.
 const font = path.join(
   repository,
   "packages/Common/Server/Static/Vendor/fonts/InterVariable.woff2",

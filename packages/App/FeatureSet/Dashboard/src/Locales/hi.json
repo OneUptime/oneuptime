@@ -12429,7 +12429,7 @@
   "Manufacturer": "निर्माता",
   "Map": "मानचित्र",
   "Shortest": "सबसे छोटी",
-  "Connect Slack or Teams": "Slack या Teams कनेक्ट करें",
+  "Connect a workspace": "कोई वर्कस्पेस कनेक्ट करें",
   "Post notifications to your Slack channels and act on them from Slack.": "अपने Slack चैनलों में सूचनाएं पोस्ट करें और Slack से ही उन पर कार्रवाई करें।",
   "Map Value From": "मान यहाँ से लें",
   "Map Value From Field": "Map Value From Field",
@@ -42427,6 +42427,7 @@
   "Connect your Mattermost account": "अपना Mattermost खाता कनेक्ट करें",
   "Create a bot account for OneUptime in Mattermost, add it to your team, and paste its access token here.": "Mattermost में OneUptime के लिए एक बॉट खाता बनाएं, उसे अपनी टीम में जोड़ें, और उसका एक्सेस टोकन यहां पेस्ट करें।",
   "Disconnect Mattermost": "Mattermost डिस्कनेक्ट करें",
+  "Drag to resize": "आकार बदलने के लिए खींचें",
   "If Mattermost already has a channel with this name, OneUptime adds -2 to the end.": "अगर Mattermost में इस नाम का चैनल पहले से है, तो OneUptime अंत में -2 जोड़ता है।",
   "In Mattermost, go to Integrations → Bot Accounts, add a bot for OneUptime and copy its access token. Then add the bot to your team.": "Mattermost में इंटीग्रेशन → बॉट खाते पर जाएं, OneUptime के लिए एक बॉट जोड़ें और उसका एक्सेस टोकन कॉपी करें। फिर बॉट को अपनी टीम में जोड़ें।",
   "It posts as @{{bot}} on {{server}}: what your notification rules send, a channel for each incident with its people added. Each member connects their own Mattermost account to act as themselves.": "यह {{server}} पर @{{bot}} के रूप में पोस्ट करता है: आपके सूचना नियम जो भेजते हैं, और हर घटना के लिए एक चैनल जिसमें उसके लोग जोड़े जाते हैं। हर सदस्य खुद के रूप में काम करने के लिए अपना Mattermost खाता कनेक्ट करता है।",
@@ -42440,6 +42441,7 @@
   "OneUptime sent a link to @{{username}} in Mattermost. Open it in this browser to finish connecting. It works once, for 15 minutes.": "OneUptime ने Mattermost में @{{username}} को एक लिंक भेजा है। कनेक्ट करना पूरा करने के लिए उसे इसी ब्राउज़र में खोलें। यह एक बार, 15 मिनट तक काम करता है।",
   "Post incidents, alerts and scheduled maintenance to your Mattermost channels, give each incident a channel of its own, and let your team acknowledge and resolve from Mattermost.": "घटनाएं, अलर्ट और निर्धारित रखरखाव अपने Mattermost चैनलों में पोस्ट करें, हर घटना को उसका अपना चैनल दें, और अपनी टीम को Mattermost से ही उन्हें स्वीकार और हल करने दें।",
   "Post notifications to your Mattermost channels and act on them from Mattermost.": "अपने Mattermost चैनलों में सूचनाएं पोस्ट करें और Mattermost से ही उन पर कार्रवाई करें।",
+  "Resize Ask AI": "AI से पूछें का आकार बदलें",
   "Send a link to your Mattermost account": "अपने Mattermost खाते पर लिंक भेजें",
   "Send link": "लिंक भेजें",
   "Send link to @{{username}}": "@{{username}} को लिंक भेजें",
@@ -42470,5 +42472,6 @@
   "In Slack": "Slack में",
   "Runbook Track Record": "रनबुक के पिछले परिणाम",
   "Where fixes were approved": "सुधार कहाँ स्वीकृत हुए",
-  "You do not have permission to dismiss this fix. Dismissing a fix needs the same permission as approving one: starting runbook executions in this project.": "आपको यह सुधार खारिज करने की अनुमति नहीं है। सुधार खारिज करने के लिए वही अनुमति चाहिए जो उसे स्वीकृत करने के लिए: इस प्रोजेक्ट में रनबुक निष्पादन शुरू करना।"
+  "You do not have permission to dismiss this fix. Dismissing a fix needs the same permission as approving one: starting runbook executions in this project.": "आपको यह सुधार खारिज करने की अनुमति नहीं है। सुधार खारिज करने के लिए वही अनुमति चाहिए जो उसे स्वीकृत करने के लिए: इस प्रोजेक्ट में रनबुक निष्पादन शुरू करना।",
+  "Disable Sign-In Links": "Disable Sign-In Links"
 }

@@ -234,7 +234,7 @@ Mensagens de WhatsApp não são enviadas para casos de segurança. Uma notifica�
 
 ### Publique em canais do Slack e do Microsoft Teams
 
-Para publicar em um canal, adicione uma regra em **Produtos → Eventos de segurança → Espaço de trabalho → Slack** (ou **Microsoft Teams**). Sem nenhum dos dois conectado, a única entrada da seção é **Conectar Slack ou Teams**. Uma regra indica os canais em que publicar (e, no Microsoft Teams, os chats) e, se você quiser, os casos a que ela se aplica:
+Para publicar em um canal, adicione uma regra em **Produtos → Eventos de segurança → Espaço de trabalho → Slack** (ou **Microsoft Teams**). Sem nenhum dos dois conectado, a única entrada da seção é **Conectar um espaço de trabalho**. Uma regra indica os canais em que publicar (e, no Microsoft Teams, os chats) e, se você quiser, os casos a que ela se aplica:
 
 | Condição | Corresponde a |
 | --- | --- |
