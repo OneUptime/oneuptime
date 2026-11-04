@@ -6,7 +6,7 @@ Cada comando da CLI `oneuptime`, com seus argumentos, opções e valores padrão
 - [Opções globais](#opções-globais): As opções que todo comando aceita.
 - [Login e contextos](#login-e-contextos): login e os comandos context.
 - [Comandos de recursos](#comandos-de-recursos): As operações, os campos e as ações de cada recurso.
-- [Outros comandos](#outros-comandos): deploy, dbt upload, whoami, resources, version e help.
+- [Outros comandos](#outros-comandos): deploy, dbt upload, data-checks apply, whoami, resources, version e help.
 :::
 
 ## Os comandos
@@ -322,6 +322,19 @@ oneuptime dbt upload [--target-path <dir>] [--manifest <file>] [--run-results <f
 | `--run-results <file>` | Não | Os resultados da execução a enviar | `run_results.json` na pasta de destino |
 | `--project <name>` | Não | O nome do projeto dbt, necessário só quando nenhum manifesto é enviado | O projeto do manifesto |
 | `--ingestion-key <key>` | Não | Uma chave de ingestão de telemetria do projeto | `ONEUPTIME_TELEMETRY_INGESTION_KEY` |
+
+### `oneuptime data-checks apply`
+
+Faz as verificações de dados do projeto corresponderem a um arquivo YAML, para que fiquem em um repositório e sejam revisadas como código. Um erro em qualquer parte do arquivo não aplica nada e termina com um erro. O formato do arquivo está em [Verificações e reconciliações](/docs/data-observability/checks).
+
+```bash
+oneuptime data-checks apply <file> [--dry-run] [--prune]
+```
+
+| Opção | Obrigatório | O que é | Padrão |
+| --- | --- | --- | --- |
+| `--dry-run` | Não | Diz o que mudaria, e não muda nada | Desativado |
+| `--prune` | Não | Exclui as verificações que uma aplicação anterior criou e que o arquivo não cita mais | Desativado |
 
 ### `oneuptime whoami`
 

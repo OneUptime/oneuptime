@@ -158,6 +158,19 @@ export const RULE_CRITERIA_FIELDS_BY_MODEL: Readonly<
     "dashboardNamePattern",
     "dashboardDescriptionPattern",
   ],
+  // A table's labels, its name, the database it is in and its schema.
+  DataAssetLabelRule: [
+    "matchLabels",
+    "nameRegexPattern",
+    "databaseRegexPattern",
+    "schemaRegexPattern",
+  ],
+  DataAssetOwnerRule: [
+    "matchLabels",
+    "nameRegexPattern",
+    "databaseRegexPattern",
+    "schemaRegexPattern",
+  ],
   // A data store's labels, its name and description, and its cloud tags.
   DataStoreLabelRule: [
     "matchLabels",

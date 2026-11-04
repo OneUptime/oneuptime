@@ -57,9 +57,9 @@ flowchart TB
 
 | Требование | Что требует | Проверки |
 | --- | --- | --- |
-| Ст. 5(1)(c) | Минимизация данных | `production-data-in-non-production`, `stale-sensitive-data`, `sensitive-data-in-telemetry`, `sensitive-data-to-ai`, `sensitive-data-in-ai-store` |
+| Ст. 5(1)(c) | Минимизация данных | `production-data-in-non-production`, `stale-sensitive-data`, `new-personal-data-column`, `sensitive-data-in-telemetry`, `sensitive-data-to-ai`, `sensitive-data-in-ai-store` |
 | Ст. 5(1)(e) | Ограничение хранения | `stale-sensitive-data` |
-| Ст. 25 | Защита данных при проектировании и по умолчанию | `production-data-in-non-production`, `stale-sensitive-data`, `sensitive-data-in-telemetry`, `sensitive-data-to-ai`, `sensitive-data-in-ai-store` |
+| Ст. 25 | Защита данных при проектировании и по умолчанию | `production-data-in-non-production`, `stale-sensitive-data`, `new-personal-data-column`, `sensitive-data-in-telemetry`, `sensitive-data-to-ai`, `sensitive-data-in-ai-store` |
 | Ст. 28 | Обработчики | `sensitive-data-to-ai` |
 | Ст. 30 | Записи о деятельности по обработке | Выполняет сама Безопасность данных |
 | Ст. 32 | Безопасность обработки | `public-read`, `public-write`, `public-access-not-blocked`, `internet-reachable`, `open-to-all-addresses`, `snapshot-public`, `snapshot-shared-externally`, `shared-with-external-accounts`, `not-encrypted-at-rest`, `no-customer-managed-key`, `encryption-in-transit-not-enforced`, `weak-tls`, `no-backups`, `no-point-in-time-recovery`, `deletion-protection-off`, `deleted-data-not-recoverable`, `access-not-logged`, `shared-key-access`, `object-acls-enabled`, `many-readers`, `unused-access`, `secrets-stored`, `plaintext-passwords`, `secrets-in-telemetry` |
@@ -69,7 +69,7 @@ flowchart TB
 
 | Требование | Что требует | Проверки |
 | --- | --- | --- |
-| 1798.100(c) | Сбор ограничен необходимым | `production-data-in-non-production`, `stale-sensitive-data`, `sensitive-data-in-telemetry`, `sensitive-data-to-ai`, `sensitive-data-in-ai-store` |
+| 1798.100(c) | Сбор ограничен необходимым | `production-data-in-non-production`, `stale-sensitive-data`, `new-personal-data-column`, `sensitive-data-in-telemetry`, `sensitive-data-to-ai`, `sensitive-data-in-ai-store` |
 | 1798.150 | Разумные процедуры безопасности | `public-read`, `public-write`, `public-access-not-blocked`, `internet-reachable`, `open-to-all-addresses`, `snapshot-public`, `snapshot-shared-externally`, `shared-with-external-accounts`, `shared-key-access`, `object-acls-enabled`, `many-readers` |
 
 ### HIPAA
@@ -114,8 +114,8 @@ flowchart TB
 | A.5.12 | Классификация информации | Выполняет сама Безопасность данных |
 | A.5.15 | Управление доступом | `public-read`, `public-write`, `public-access-not-blocked`, `internet-reachable`, `open-to-all-addresses`, `snapshot-public`, `snapshot-shared-externally`, `shared-with-external-accounts`, `shared-key-access`, `object-acls-enabled`, `many-readers` |
 | A.5.18 | Права доступа | `unused-access` |
-| A.5.34 | Конфиденциальность и защита PII | `production-data-in-non-production`, `stale-sensitive-data`, `sensitive-data-in-telemetry`, `sensitive-data-to-ai`, `sensitive-data-in-ai-store` |
-| A.8.11 | Маскирование данных | `production-data-in-non-production`, `stale-sensitive-data`, `sensitive-data-in-telemetry`, `sensitive-data-to-ai`, `sensitive-data-in-ai-store` |
+| A.5.34 | Конфиденциальность и защита PII | `production-data-in-non-production`, `stale-sensitive-data`, `new-personal-data-column`, `sensitive-data-in-telemetry`, `sensitive-data-to-ai`, `sensitive-data-in-ai-store` |
+| A.8.11 | Маскирование данных | `production-data-in-non-production`, `stale-sensitive-data`, `new-personal-data-column`, `sensitive-data-in-telemetry`, `sensitive-data-to-ai`, `sensitive-data-in-ai-store` |
 | A.8.12 | Предотвращение утечки данных | `secrets-stored`, `secrets-in-telemetry` |
 | A.8.13 | Резервное копирование информации | `no-backups`, `no-point-in-time-recovery`, `deletion-protection-off`, `deleted-data-not-recoverable` |
 | A.8.15 | Ведение журналов | `access-not-logged` |
@@ -136,7 +136,7 @@ flowchart TB
 
 | Требование | Что требует | Проверки |
 | --- | --- | --- |
-| Ст. 6 | Необходимость и ограничение цели | `production-data-in-non-production`, `stale-sensitive-data`, `sensitive-data-in-telemetry`, `sensitive-data-to-ai`, `sensitive-data-in-ai-store` |
+| Ст. 6 | Необходимость и ограничение цели | `production-data-in-non-production`, `stale-sensitive-data`, `new-personal-data-column`, `sensitive-data-in-telemetry`, `sensitive-data-to-ai`, `sensitive-data-in-ai-store` |
 | Ст. 33 | Международная передача данных | `residency-violation` |
 | Ст. 46 | Меры безопасности | `public-read`, `public-write`, `public-access-not-blocked`, `internet-reachable`, `open-to-all-addresses`, `snapshot-public`, `snapshot-shared-externally`, `shared-with-external-accounts`, `not-encrypted-at-rest`, `no-customer-managed-key`, `shared-key-access`, `object-acls-enabled`, `many-readers` |
 
@@ -145,7 +145,7 @@ flowchart TB
 | Требование | Что требует | Проверки |
 | --- | --- | --- |
 | Разд. 8(5) | Разумные меры защиты | `public-read`, `public-write`, `public-access-not-blocked`, `internet-reachable`, `open-to-all-addresses`, `snapshot-public`, `snapshot-shared-externally`, `shared-with-external-accounts`, `not-encrypted-at-rest`, `no-customer-managed-key`, `shared-key-access`, `object-acls-enabled`, `many-readers` |
-| Разд. 8(7) | Удаление, когда цель достигнута | `production-data-in-non-production`, `stale-sensitive-data`, `sensitive-data-in-telemetry`, `sensitive-data-to-ai`, `sensitive-data-in-ai-store` |
+| Разд. 8(7) | Удаление, когда цель достигнута | `production-data-in-non-production`, `stale-sensitive-data`, `new-personal-data-column`, `sensitive-data-in-telemetry`, `sensitive-data-to-ai`, `sensitive-data-in-ai-store` |
 | Разд. 16 | Передача за пределы Индии | `residency-violation` |
 
 ## Реестр обработки

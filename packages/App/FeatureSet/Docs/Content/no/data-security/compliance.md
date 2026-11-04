@@ -57,9 +57,9 @@ Bare åpne problemer teller. Et problem der risikoen er godtatt, eller som ikke 
 
 | Krav | Hva det krever | Kontroller |
 | --- | --- | --- |
-| Art. 5(1)(c) | Dataminimering | `production-data-in-non-production`, `stale-sensitive-data`, `sensitive-data-in-telemetry`, `sensitive-data-to-ai`, `sensitive-data-in-ai-store` |
+| Art. 5(1)(c) | Dataminimering | `production-data-in-non-production`, `stale-sensitive-data`, `new-personal-data-column`, `sensitive-data-in-telemetry`, `sensitive-data-to-ai`, `sensitive-data-in-ai-store` |
 | Art. 5(1)(e) | Lagringsbegrensning | `stale-sensitive-data` |
-| Art. 25 | Innebygd personvern og personvern som standard | `production-data-in-non-production`, `stale-sensitive-data`, `sensitive-data-in-telemetry`, `sensitive-data-to-ai`, `sensitive-data-in-ai-store` |
+| Art. 25 | Innebygd personvern og personvern som standard | `production-data-in-non-production`, `stale-sensitive-data`, `new-personal-data-column`, `sensitive-data-in-telemetry`, `sensitive-data-to-ai`, `sensitive-data-in-ai-store` |
 | Art. 28 | Databehandlere | `sensitive-data-to-ai` |
 | Art. 30 | Protokoll over behandlingsaktiviteter | Oppfylt av Datasikkerhet selv |
 | Art. 32 | Sikkerhet ved behandlingen | `public-read`, `public-write`, `public-access-not-blocked`, `internet-reachable`, `open-to-all-addresses`, `snapshot-public`, `snapshot-shared-externally`, `shared-with-external-accounts`, `not-encrypted-at-rest`, `no-customer-managed-key`, `encryption-in-transit-not-enforced`, `weak-tls`, `no-backups`, `no-point-in-time-recovery`, `deletion-protection-off`, `deleted-data-not-recoverable`, `access-not-logged`, `shared-key-access`, `object-acls-enabled`, `many-readers`, `unused-access`, `secrets-stored`, `plaintext-passwords`, `secrets-in-telemetry` |
@@ -69,7 +69,7 @@ Bare åpne problemer teller. Et problem der risikoen er godtatt, eller som ikke 
 
 | Krav | Hva det krever | Kontroller |
 | --- | --- | --- |
-| 1798.100(c) | Innsamling begrenset til det som er nødvendig | `production-data-in-non-production`, `stale-sensitive-data`, `sensitive-data-in-telemetry`, `sensitive-data-to-ai`, `sensitive-data-in-ai-store` |
+| 1798.100(c) | Innsamling begrenset til det som er nødvendig | `production-data-in-non-production`, `stale-sensitive-data`, `new-personal-data-column`, `sensitive-data-in-telemetry`, `sensitive-data-to-ai`, `sensitive-data-in-ai-store` |
 | 1798.150 | Rimelige sikkerhetsprosedyrer | `public-read`, `public-write`, `public-access-not-blocked`, `internet-reachable`, `open-to-all-addresses`, `snapshot-public`, `snapshot-shared-externally`, `shared-with-external-accounts`, `shared-key-access`, `object-acls-enabled`, `many-readers` |
 
 ### HIPAA
@@ -114,8 +114,8 @@ Bare åpne problemer teller. Et problem der risikoen er godtatt, eller som ikke 
 | A.5.12 | Klassifisering av informasjon | Oppfylt av Datasikkerhet selv |
 | A.5.15 | Tilgangskontroll | `public-read`, `public-write`, `public-access-not-blocked`, `internet-reachable`, `open-to-all-addresses`, `snapshot-public`, `snapshot-shared-externally`, `shared-with-external-accounts`, `shared-key-access`, `object-acls-enabled`, `many-readers` |
 | A.5.18 | Tilgangsrettigheter | `unused-access` |
-| A.5.34 | Personvern og beskyttelse av PII | `production-data-in-non-production`, `stale-sensitive-data`, `sensitive-data-in-telemetry`, `sensitive-data-to-ai`, `sensitive-data-in-ai-store` |
-| A.8.11 | Datamaskering | `production-data-in-non-production`, `stale-sensitive-data`, `sensitive-data-in-telemetry`, `sensitive-data-to-ai`, `sensitive-data-in-ai-store` |
+| A.5.34 | Personvern og beskyttelse av PII | `production-data-in-non-production`, `stale-sensitive-data`, `new-personal-data-column`, `sensitive-data-in-telemetry`, `sensitive-data-to-ai`, `sensitive-data-in-ai-store` |
+| A.8.11 | Datamaskering | `production-data-in-non-production`, `stale-sensitive-data`, `new-personal-data-column`, `sensitive-data-in-telemetry`, `sensitive-data-to-ai`, `sensitive-data-in-ai-store` |
 | A.8.12 | Forebygging av datalekkasje | `secrets-stored`, `secrets-in-telemetry` |
 | A.8.13 | Sikkerhetskopiering av informasjon | `no-backups`, `no-point-in-time-recovery`, `deletion-protection-off`, `deleted-data-not-recoverable` |
 | A.8.15 | Logging | `access-not-logged` |
@@ -136,7 +136,7 @@ Bare åpne problemer teller. Et problem der risikoen er godtatt, eller som ikke 
 
 | Krav | Hva det krever | Kontroller |
 | --- | --- | --- |
-| Art. 6 | Nødvendighet og formålsbegrensning | `production-data-in-non-production`, `stale-sensitive-data`, `sensitive-data-in-telemetry`, `sensitive-data-to-ai`, `sensitive-data-in-ai-store` |
+| Art. 6 | Nødvendighet og formålsbegrensning | `production-data-in-non-production`, `stale-sensitive-data`, `new-personal-data-column`, `sensitive-data-in-telemetry`, `sensitive-data-to-ai`, `sensitive-data-in-ai-store` |
 | Art. 33 | Internasjonal overføring av data | `residency-violation` |
 | Art. 46 | Sikkerhetstiltak | `public-read`, `public-write`, `public-access-not-blocked`, `internet-reachable`, `open-to-all-addresses`, `snapshot-public`, `snapshot-shared-externally`, `shared-with-external-accounts`, `not-encrypted-at-rest`, `no-customer-managed-key`, `shared-key-access`, `object-acls-enabled`, `many-readers` |
 
@@ -145,7 +145,7 @@ Bare åpne problemer teller. Et problem der risikoen er godtatt, eller som ikke 
 | Krav | Hva det krever | Kontroller |
 | --- | --- | --- |
 | Sec. 8(5) | Rimelige sikkerhetstiltak | `public-read`, `public-write`, `public-access-not-blocked`, `internet-reachable`, `open-to-all-addresses`, `snapshot-public`, `snapshot-shared-externally`, `shared-with-external-accounts`, `not-encrypted-at-rest`, `no-customer-managed-key`, `shared-key-access`, `object-acls-enabled`, `many-readers` |
-| Sec. 8(7) | Sletting når formålet er oppfylt | `production-data-in-non-production`, `stale-sensitive-data`, `sensitive-data-in-telemetry`, `sensitive-data-to-ai`, `sensitive-data-in-ai-store` |
+| Sec. 8(7) | Sletting når formålet er oppfylt | `production-data-in-non-production`, `stale-sensitive-data`, `new-personal-data-column`, `sensitive-data-in-telemetry`, `sensitive-data-to-ai`, `sensitive-data-in-ai-store` |
 | Sec. 16 | Overføring utenfor India | `residency-violation` |
 
 ## Behandlingsprotokoll

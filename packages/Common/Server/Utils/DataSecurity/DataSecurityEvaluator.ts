@@ -1,3 +1,7 @@
+import {
+  describeNewPersonalDataColumn,
+  readNewPersonalDataColumns,
+} from "../../../Types/DataObservability/DataColumnSensitivity";
 import DataStore from "../../../Models/DatabaseModels/DataStore";
 import DataStoreAccess from "../../../Models/DatabaseModels/DataStoreAccess";
 import DataStoreFinding from "../../../Models/DatabaseModels/DataStoreFinding";
@@ -394,6 +398,12 @@ export default class DataSecurityEvaluator {
       isAiData: Boolean(store.isAiData),
       residencyViolations,
       plaintextPasswordFields,
+      // Only a store whose tables are collected can say: the others have no columns to judge.
+      newPersonalDataColumns: store.tableHealthCollectedAt
+        ? readNewPersonalDataColumns(store.newPersonalDataColumns, now).map(
+            describeNewPersonalDataColumn,
+          )
+        : undefined,
       now,
     };
 
@@ -479,6 +489,8 @@ export default class DataSecurityEvaluator {
       lastActivityAt: true,
       estimatedRecords: true,
       contentScanState: true,
+      newPersonalDataColumns: true,
+      tableHealthCollectedAt: true,
       serviceId: true,
       fingerprints: true,
       firstSeenAt: true,

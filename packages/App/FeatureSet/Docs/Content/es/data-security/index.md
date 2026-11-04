@@ -6,7 +6,7 @@ Responde a cuatro preguntas:
 
 :::cards
 - [¿Dónde están nuestros datos sensibles?](/docs/data-security/data-types): 143 tipos de datos, desde números de tarjeta y documentos nacionales de identidad hasta claves de API, encontrados en buckets, tablas y telemetría.
-- [¿Están expuestos?](/docs/data-security/checks-and-issues): 33 comprobaciones de cada almacén: acceso público, cifrado, copias de seguridad, registro de actividad, secretos y copias.
+- [¿Están expuestos?](/docs/data-security/checks-and-issues): 34 comprobaciones de cada almacén: acceso público, cifrado, copias de seguridad, registro de actividad, secretos y copias.
 - [¿Quién puede acceder a ellos y adónde van?](/docs/data-security/flows-access-residency): Cada identidad que puede acceder a cada almacén, la más arriesgada primero, qué servicios lo usan y a qué proveedores de IA y hosts llegan sus datos.
 - [¿Cumplen nuestras normas?](/docs/data-security/compliance): Reglas de residencia y nueve marcos de cumplimiento puntuados a partir de lo que encontraron los escaneos.
 :::

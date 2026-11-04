@@ -4,9 +4,12 @@ OneUptime AI knows your data: it investigates a data alert from the table's writ
 
 ## OneUptime AI
 
-- **Investigations of data alerts.** When OneUptime AI investigates an alert on a table, a pipeline or a database, it starts from what is next to it: the table's freshness and open alerts, the alert it is a consequence of, the runs of the pipelines that write it since the day before (a failed run with its error, or the run that never came), the services that write it with their failed writes, deploys and other changes, and the tables it is built from. It names the run, deploy or upstream table behind the alert. See [AI SRE](/docs/ai/ai-sre).
+- **Investigations of data alerts.** When OneUptime AI investigates an alert on a table, a pipeline or a database, it starts from what is next to it: the table's freshness and open alerts, the alert it is a consequence of, the runs of the pipelines that write it since the day before (a failed run with its error, or the run that never came), the services that write it with their failed writes, deploys and other changes, the tables it is built from, and the columns that changed. It names the run, deploy or upstream table behind the alert. See [AI SRE](/docs/ai/ai-sre).
 - **Is this table fresh?** Ask in [Ask AI](/docs/ai/ask-ai), Slack or Microsoft Teams: "is the orders table fresh?". The answer gives the table's freshness by its own rhythm, when it last changed, its open alerts, its writers' latest runs and the data products it is part of. A name several databases share is answered for each, so nobody is told the wrong table is fresh.
 - **A check from a sentence.** On a table's **Checks** tab, **Write a Check from a Sentence** turns a rule into a Custom SQL check in your engine's SQL. See [Checks and Reconciliations](/docs/data-observability/checks).
+
+- **Slow drift.** A table's rows, or a check's value, moving by a fifth or more in a week, too slowly for any alert, goes to AI Insights as a look-here. It pages no one.
+- **Stale data behind AI apps.** A service that both calls a model and reads a table is that table's AI consumer. When such a table goes late, the AI product's **Conversations** page says so: an app answering from old data shows nothing wrong in its own traces.
 
 Each of these needs OneUptime AI to be on for the project, and acts with the permissions of the person who asks.
 
@@ -29,9 +32,10 @@ It works with a read-only sign-in, and answers as the person or API key that sig
 | `POST /telemetry/fivetran/v1/webhook/<ingestion key ID>` | Fivetran's sync webhooks | The ingestion key, as Fivetran's signing secret |
 | `POST /telemetry/airbyte/v1/webhook/<ingestion key>` | Airbyte's sync webhooks | The ingestion key in the URL |
 | `POST /api/data-observability/tables/freshness` | A table's freshness, as the MCP tool answers it, with `{ "table": "public.orders" }` | An API key |
+| `POST /api/data-observability/checks/apply` | Make the project's checks match a file, as `oneuptime data-checks apply` does, with `{ "manifest": "...", "isDryRun": true, "shouldPrune": false }` | An API key |
 | `GET /api/data-observability/data-products/<data product ID>/badge?token=<badge token>` | A data product's "data as of" badge | The badge's own token |
 
-Tables, checks, reconciliations, pipelines and data products are also ordinary resources of the [API](/docs/api-reference/api-reference), read and changed with an API key that has the matching permissions.
+Tables, checks, reconciliations, pipelines, data products, BI connections and warehouse jobs are also ordinary resources of the [API](/docs/api-reference/api-reference), read and changed with an API key that has the matching permissions, and of the MCP server and workflows.
 
 ## Metrics
 

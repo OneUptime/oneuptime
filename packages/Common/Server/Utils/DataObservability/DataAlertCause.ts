@@ -1,4 +1,16 @@
 import Alert from "../../../Models/DatabaseModels/Alert";
+import AlertOwnerTeam from "../../../Models/DatabaseModels/AlertOwnerTeam";
+import AlertOwnerUser from "../../../Models/DatabaseModels/AlertOwnerUser";
+import DataAssetOwnerTeam from "../../../Models/DatabaseModels/DataAssetOwnerTeam";
+import DataAssetOwnerUser from "../../../Models/DatabaseModels/DataAssetOwnerUser";
+import DataStoreOwnerTeam from "../../../Models/DatabaseModels/DataStoreOwnerTeam";
+import DataStoreOwnerUser from "../../../Models/DatabaseModels/DataStoreOwnerUser";
+import AlertOwnerTeamService from "../../Services/AlertOwnerTeamService";
+import AlertOwnerUserService from "../../Services/AlertOwnerUserService";
+import DataAssetOwnerTeamService from "../../Services/DataAssetOwnerTeamService";
+import DataAssetOwnerUserService from "../../Services/DataAssetOwnerUserService";
+import DataStoreOwnerTeamService from "../../Services/DataStoreOwnerTeamService";
+import DataStoreOwnerUserService from "../../Services/DataStoreOwnerUserService";
 import { AlertFeedEventType } from "../../../Models/DatabaseModels/AlertFeed";
 import DataAlert from "../../../Models/DatabaseModels/DataAlert";
 import DataAsset from "../../../Models/DatabaseModels/DataAsset";
@@ -6,6 +18,8 @@ import DataAssetLineage from "../../../Models/DatabaseModels/DataAssetLineage";
 import DataCheck from "../../../Models/DatabaseModels/DataCheck";
 import SortOrder from "../../../Types/BaseDatabase/SortOrder";
 import { Gray500 } from "../../../Types/BrandColors";
+import { getDataAssetFreshness } from "../../../Types/DataObservability/DataAssetFreshness";
+import DataAssetKind from "../../../Types/DataObservability/DataAssetKind";
 import { DataCheckAttribute } from "../../../Types/DataObservability/DataCheckMetric";
 import { DataObservabilityAttribute } from "../../../Types/DataObservability/DataObservabilityMetric";
 import { DataPipelineAttribute } from "../../../Types/DataObservability/DataPipelineMetric";
@@ -45,6 +59,9 @@ import logger from "../Logger";
  * cause's page lists its downstream impact.
  */
 
+// The most people and teams one data alert takes from what it is about.
+const MAX_OWNERS_PER_ALERT: number = 50;
+
 // How far up lineage a cause is looked for.
 export const MAX_CAUSE_DEPTH: number = 5;
 
@@ -76,6 +93,24 @@ function readId(value: unknown): string | null {
 }
 
 // What a data monitor's metric queries are scoped to; null for any other monitor.
+// What a data monitor measures: the metric its query reads.
+export function getDataAlertMetricName(
+  monitorSteps: MonitorSteps | undefined | null,
+): string | null {
+  for (const step of monitorSteps?.data?.monitorStepsInstanceArray || []) {
+    for (const query of step.data?.metricMonitor?.metricViewConfig
+      ?.queryConfigs || []) {
+      const name: unknown = query.metricQueryData?.filterData?.metricName;
+
+      if (typeof name === "string" && name) {
+        return name;
+      }
+    }
+  }
+
+  return null;
+}
+
 export function getDataAlertScope(
   monitorSteps: MonitorSteps | undefined | null,
 ): DataAlertScope | null {
@@ -294,6 +329,116 @@ export default class DataAlertCause {
   }
 
   // What the new alert is about, and - with a cause - its place beside it.
+  /*
+   * A data alert goes to who owns what it is about: the table's owners, else
+   * the database's. An owner the alert already has is left as it is, and one
+   * that cannot be added never stops the alert.
+   */
+  private static async addOwners(data: {
+    alert: Alert;
+    subject: DataAlertSubject;
+  }): Promise<void> {
+    const alertId: ObjectID = data.alert.id!;
+    const projectId: ObjectID = data.alert.projectId!;
+
+    try {
+      let userIds: Array<ObjectID> = [];
+      let teamIds: Array<ObjectID> = [];
+
+      if (data.subject.dataAssetId) {
+        const query: { dataAssetId: ObjectID; projectId: ObjectID } = {
+          dataAssetId: data.subject.dataAssetId,
+          projectId,
+        };
+
+        userIds = (
+          await DataAssetOwnerUserService.findBy({
+            query,
+            select: { userId: true },
+            skip: 0,
+            limit: MAX_OWNERS_PER_ALERT,
+            props: { isRoot: true },
+          })
+        ).map((owner: DataAssetOwnerUser): ObjectID => {
+          return owner.userId!;
+        });
+        teamIds = (
+          await DataAssetOwnerTeamService.findBy({
+            query,
+            select: { teamId: true },
+            skip: 0,
+            limit: MAX_OWNERS_PER_ALERT,
+            props: { isRoot: true },
+          })
+        ).map((owner: DataAssetOwnerTeam): ObjectID => {
+          return owner.teamId!;
+        });
+      }
+
+      if (
+        userIds.length === 0 &&
+        teamIds.length === 0 &&
+        data.subject.dataStoreId
+      ) {
+        const query: { dataStoreId: ObjectID; projectId: ObjectID } = {
+          dataStoreId: data.subject.dataStoreId,
+          projectId,
+        };
+
+        userIds = (
+          await DataStoreOwnerUserService.findBy({
+            query,
+            select: { userId: true },
+            skip: 0,
+            limit: MAX_OWNERS_PER_ALERT,
+            props: { isRoot: true },
+          })
+        ).map((owner: DataStoreOwnerUser): ObjectID => {
+          return owner.userId!;
+        });
+        teamIds = (
+          await DataStoreOwnerTeamService.findBy({
+            query,
+            select: { teamId: true },
+            skip: 0,
+            limit: MAX_OWNERS_PER_ALERT,
+            props: { isRoot: true },
+          })
+        ).map((owner: DataStoreOwnerTeam): ObjectID => {
+          return owner.teamId!;
+        });
+      }
+
+      for (const userId of userIds) {
+        const owner: AlertOwnerUser = new AlertOwnerUser();
+        owner.alertId = alertId;
+        owner.projectId = projectId;
+        owner.userId = userId;
+        await AlertOwnerUserService.create({
+          data: owner,
+          props: { isRoot: true },
+        }).catch((error: Error) => {
+          logger.debug(`Data alert owner not added: ${error.message}`);
+        });
+      }
+
+      for (const teamId of teamIds) {
+        const owner: AlertOwnerTeam = new AlertOwnerTeam();
+        owner.alertId = alertId;
+        owner.projectId = projectId;
+        owner.teamId = teamId;
+        await AlertOwnerTeamService.create({
+          data: owner,
+          props: { isRoot: true },
+        }).catch((error: Error) => {
+          logger.debug(`Data alert owner not added: ${error.message}`);
+        });
+      }
+    } catch (error) {
+      logger.error(`Could not add a data alert's owners: ${error}`);
+    }
+  }
+
   public static async record(data: {
     alert: Alert;
     subject: DataAlertSubject;
@@ -319,7 +464,37 @@ export default class DataAlertCause {
       row.causeAlertId = data.cause.id;
     }
 
+    // How long after its update was due a late table's alert opened.
+    if (data.subject.dataAssetId) {
+      try {
+        const asset: DataAsset | null = await DataAssetService.findOneById({
+          id: data.subject.dataAssetId,
+          select: {
+            assetKind: true,
+            lastChangedAt: true,
+            updateIntervalInSeconds: true,
+          },
+          props: { isRoot: true },
+        });
+        const overdue: number = getDataAssetFreshness({
+          kind: asset?.assetKind as DataAssetKind | undefined,
+          lastChangedAt: asset?.lastChangedAt,
+          updateIntervalInSeconds: asset?.updateIntervalInSeconds,
+          now: new Date(),
+        }).overdueBySeconds;
+
+        if (overdue > 0) {
+          row.detectedAfterInSeconds = overdue;
+        }
+      } catch (error) {
+        // A measure of how quickly it was seen: never a reason to lose the alert's record.
+        logger.debug(error);
+      }
+    }
+
     await DataAlertService.create({ data: row, props: { isRoot: true } });
+
+    await this.addOwners(data);
 
     if (!data.cause?.id) {
       return;

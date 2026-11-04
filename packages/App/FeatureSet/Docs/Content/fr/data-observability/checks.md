@@ -1,6 +1,6 @@
 # Contrôles et rapprochements
 
-La santé des tables dit si une table change. Un **contrôle** dit si ce qu'elle contient est juste, un **rapprochement** dit si deux copies des données concordent, et les **tests de dbt** rendent compte des tables que dbt construit. Chacun s'exécute là où s'exécute la collecte de la base de données, chez OneUptime ou sur sa sonde, et seul un nombre quitte jamais la base de données.
+La santé des tables dit si une table change. Un **contrôle** dit si ce qu'elle contient est juste, un **rapprochement** dit si deux copies des données concordent, et les **tests de dbt** rendent compte des tables que dbt construit. Chacun s'exécute là où s'exécute la collecte de la base de données, chez OneUptime ou sur sa sonde, et seul un nombre quitte la base de données, sauf si un projet auto-hébergé choisit de conserver un échantillon masqué des lignes en échec.
 
 ## Contrôles
 
@@ -13,16 +13,17 @@ Ajoutez un contrôle dans l'onglet **Vérifications** d'une table :
 | **Distinct Count** | Nombre de valeurs différentes que contient la colonne |
 | **Minimum**, **Maximum**, **Moyenne**, **Somme** | D'une colonne numérique (la somme de zéro ligne vaut 0) |
 | **Invalid Percent** | Pourcentage de valeurs hors d'une liste que vous fournissez |
-| **Format Mismatch Percent** | Pourcentage de valeurs qui ne correspondent pas à une expression régulière (tous les moteurs sauf SQL Server) |
+| **Format Mismatch Percent** | Pourcentage de valeurs qui ne sont pas dans un format que vous choisissez, comme Email, UUID ou Country Code, ou qui ne correspondent pas à une expression régulière de votre choix (tous les moteurs sauf SQL Server) |
 | **Orphan Count** | Lignes dont la valeur n'a aucune correspondance dans la colonne d'une autre table |
 | **Row Count** | Lignes de la table, surtout utile avec **Segment By** |
 | **SQL personnalisé** | Le nombre que renvoie l'un de vos SELECT en lecture seule, nommé `value` (sur MongoDB, celui d'un pipeline d'agrégation) |
+| **Failing Rows** | Combien de lignes renvoie l'un de vos SELECT en lecture seule : les lignes qui ne devraient pas exister. 0 est sain (sur MongoDB, les documents auxquels aboutit un pipeline) |
 
 Chaque contrôle s'exécute toutes les 15 minutes, toutes les heures, toutes les 6 heures ou tous les jours, sous la forme d'une seule instruction d'agrégation dans une transaction en lecture seule avec un délai d'expiration d'instruction. Sa valeur est écrite comme `oneuptime.data.check.value`, avec `oneuptime.data.check.id`, `oneuptime.data.check.name` et `oneuptime.data.check.segment`.
 
 ## Contrôles suggérés
 
-**Suggested Checks**, dans le même onglet, propose les contrôles qu'appellent les colonnes d'une table, d'après leurs seuls noms et types : un identifiant est unique, un `customer_id` a une ligne correspondante dans `customers`, une adresse e-mail en a bien la forme, un montant n'est pas négatif, un statut garde ses valeurs habituelles, et une table répartie par locataire est comptée par locataire. Ajoutez-en un, ajoutez-les tous, ou écartez-en un définitivement.
+**Suggested Checks**, dans le même onglet, propose les contrôles qu'appellent les colonnes d'une table, d'après leurs seuls noms et types : un identifiant est unique, un `customer_id` a une ligne correspondante dans `customers`, une adresse e-mail en a bien la forme, un montant n'est pas négatif, un statut garde ses valeurs habituelles, et une table répartie par locataire est comptée par locataire. Une colonne dont Sécurité des données sait qu'elle contient une adresse e-mail, un numéro de téléphone ou une adresse IP est tenue à ce format, quel que soit son nom. Ajoutez-en un, ajoutez-les tous, ou écartez-en un définitivement.
 
 ## Un contrôle à partir d'une phrase
 
@@ -40,6 +41,60 @@ Renseignez **Alert When** pour déclencher une alerte sur un contrôle :
 - **Au-dessus de** ou **En dessous de** la compare à un seuil.
 
 L'enregistrement du contrôle crée un moniteur de métrique pour lui, en votre nom et avec vos autorisations. Vider la condition supprime le moniteur.
+
+## Ce que coûte un contrôle
+
+Un contrôle se dispute la base de données avec votre application, et sur un entrepôt qui facture selon ce qu'une requête lit, il coûte de l'argent. Trois choses permettent de le maîtriser :
+
+- **Pourcentage d'échantillon** lit une part des lignes au lieu de toutes, pour un contrôle qui lit un taux : Null Percent, Moyenne, Invalid Percent et Format Mismatch Percent. La plupart des moteurs sautent des pages entières de la table ; MySQL, Redshift, ClickHouse et MongoDB lisent encore chaque ligne, et s'épargnent le travail sur les autres. Une vue peut le refuser, et le contrôle l'indique.
+- **Maximum lisible par une vérification (Go)**, sous **Paramètres**, arrête un contrôle sur BigQuery ou Athena avant qu'il ne lise plus de gigaoctets que cela. Il vaut 10 tant que vous ne le changez pas.
+- **Attendre quand une base de données est occupée**, sous **Paramètres**, laisse les contrôles dus pour la prochaine collecte quand une base de données PostgreSQL, MySQL ou SQL Server semble occupée. Il est activé tant que vous ne le désactivez pas, et la base de données indique quand des contrôles ont attendu.
+
+## Lignes en échec
+
+Un nombre dit que quelque chose ne va pas ; quelques lignes disent quoi. Sur un OneUptime auto-hébergé, **Conserver les Failing Rows** sous **Paramètres** conserve jusqu'à 20 des lignes qu'a trouvées un contrôle Failing Rows, Invalid Percent, Format Mismatch Percent ou Orphan Count, et **Failing Rows** sur le contrôle les affiche. Les colonnes sensibles sont masquées à l'endroit où la ligne est lue, d'après ce que Sécurité des données y a trouvé ou d'après leurs noms, de sorte que ce qui quitte la base de données, ou une sonde, est déjà masqué. OneUptime Cloud n'en conserve aucune.
+
+## Des contrôles dans un fichier
+
+Les contrôles écrits à la main dérivent du code qui modifie les tables. Gardez-les dans votre dépôt, relus dans la même pull request :
+
+```yaml
+checks:
+  - name: Orders have a total
+    table: public.orders
+    type: Null Percent
+    column: total
+    every: 60
+    alert: { when: Above, threshold: 1 }
+  - name: Emails look right
+    table: public.customers
+    database: Orders database
+    type: Format Mismatch Percent
+    column: email
+    format: Email
+    sample_percent: 10
+  - name: Orders have a customer
+    table: public.orders
+    type: Orphan Count
+    column: customer_id
+    references: public.customers.id
+  - name: No negative totals
+    table: public.orders
+    type: Failing Rows
+    query: SELECT id FROM orders WHERE total < 0
+    alert: { when: Above, threshold: 0 }
+```
+
+Appliquez-le depuis la CI avec la [CLI OneUptime](/docs/cli/index) et une clé API :
+
+```bash
+oneuptime data-checks apply checks.yaml --dry-run
+oneuptime data-checks apply checks.yaml --prune
+```
+
+Un contrôle est le même contrôle s'il porte le même nom sur la même table, donc appliquer un fichier deux fois ne change rien. Une erreur n'importe où dans le fichier n'applique rien et se termine par une erreur : lancez donc `--dry-run` sur la pull request et appliquez à la fusion. Avec `--prune`, un contrôle qu'un apply précédent a créé et que le fichier ne nomme plus est supprimé. Un contrôle que vous avez ajouté à la main ne l'est jamais. Un contrôle issu d'un fichier l'indique sur sa ligne, et son prochain apply écrase ce qui a été changé à la main.
+
+Les clés sont `name`, `table`, `database`, `type`, `column`, `segment`, `accepted_values`, `format`, `pattern`, `references`, `query`, `sample_percent`, `every`, `alert`, `description` et `enabled`.
 
 ## Rapprochements
 

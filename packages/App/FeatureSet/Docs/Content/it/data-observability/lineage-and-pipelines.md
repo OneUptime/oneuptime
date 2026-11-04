@@ -1,6 +1,6 @@
 # Lineage e pipeline
 
-Il lineage dice da quali tabelle viene costruita ogni tabella, e quali pipeline la scrivono. Osservabilità dei dati lo raccoglie da cinque fonti contemporaneamente - eventi OpenLineage, dbt, sincronizzazioni di Fivetran e Airbyte, viste e la cronologia delle query di ogni database - e lo usa per collegare ogni tabella in ritardo o danneggiata all'esecuzione che ne è la causa, così un problema apre una sola segnalazione.
+Il lineage dice da quali tabelle viene costruita ogni tabella, e quali pipeline la scrivono. Osservabilità dei dati lo raccoglie da sei fonti contemporaneamente - eventi OpenLineage, dbt, sincronizzazioni di Fivetran e Airbyte, job nei tuoi trace, viste e la cronologia delle query di ogni database - e lo usa per collegare ogni tabella in ritardo o danneggiata all'esecuzione che ne è la causa, così un problema apre una sola segnalazione.
 
 ## Da dove viene il lineage
 
@@ -9,10 +9,13 @@ Il lineage dice da quali tabelle viene costruita ogni tabella, e quali pipeline 
 | **OpenLineage** | Ogni esecuzione di un job Airflow, Dagster, Spark, dbt o Flink, con le tabelle che ha letto e scritto |
 | **dbt** | Da cosa viene costruito ogni modello, ogni build come esecuzione, e il risultato di ogni test |
 | **Fivetran e Airbyte** | Ogni sincronizzazione come esecuzione del suo connettore, e le tabelle grezze che carica |
-| **Viste** | Una vista viene costruita dalle tabelle su cui è definita (PostgreSQL, Redshift, MySQL 8, SQL Server, Oracle, viste materializzate di ClickHouse, Databricks, MongoDB) |
-| **Cronologia delle query** | Una query che ha letto una tabella e ne ha scritta un'altra (i job di BigQuery, il log delle query di Redshift, il log delle query di ClickHouse, la tabella di lineage di Databricks) |
+| **Job nei tuoi trace** | Un CronJob Kubernetes o una funzione pianificata, le sue esecuzioni, e le tabelle che le chiamate al suo database hanno letto e scritto |
+| **Viste** | Una vista viene costruita dalle tabelle su cui è definita (PostgreSQL, Redshift, MySQL 8, SQL Server, Oracle, Snowflake, viste materializzate di ClickHouse, Databricks, MongoDB) |
+| **Cronologia delle query** | Una query che ha letto una tabella e ne ha scritta un'altra (la cronologia degli accessi di Snowflake, i job di BigQuery, il log delle query di Redshift, il log delle query di ClickHouse, la tabella di lineage di Databricks) |
 
 La scheda **Derivazione** di una tabella mostra le tabelle da cui viene costruita, le pipeline che la scrivono con la loro ultima esecuzione, e le tabelle costruite a partire da essa. Ogni arco indica dove è stato osservato.
+
+Dove la fonte indica le colonne, la scheda **Colonne** di una tabella dice da dove viene ciascuna colonna e cosa alimenta: la cronologia degli accessi di Snowflake (edizione Enterprise, che richiede `IMPORTED PRIVILEGES` sul database `SNOWFLAKE`) e la faccetta `columnLineage` di OpenLineage.
 
 ## OpenLineage
 
@@ -53,6 +56,16 @@ I loro webhook indicano quando ogni sincronizzazione inizia e finisce. **Pipelin
 
 Una sincronizzazione di Fivetran riprogrammata per il limite di frequenza di un'API termina come **Riprogrammata**: non è un errore, quindi non chiama nessuno.
 
+## Job nei tuoi trace
+
+Molte pipeline sono un CronJob Kubernetes, o una funzione su un timer, senza uno scheduler che invii il lineage. I loro trace lo dicono comunque, senza nulla da installare. Ogni quindici minuti, gli span con l'attributo di risorsa `k8s.cronjob.name` o `k8s.job.name`, oppure `faas.name` con un `faas.trigger` pari a `timer` o `datasource`, diventano una pipeline in **Pipeline**:
+
+- Un'esecuzione di un CronJob è il suo Job Kubernetes, e un'esecuzione di una funzione è il suo `faas.invocation_id`.
+- Un'esecuzione non è riuscita quando lo è stato lo span in cima al suo trace. Una chiamata fallita e ritentata al suo interno non la fa fallire.
+- Le tabelle che ha scritto e letto provengono dai suoi span di database.
+
+Ogni esecuzione rimanda al suo trace, con i suoi registri. Valgono gli stessi tre monitor, quindi un CronJob che smette di girare viene visto come in ritardo.
+
 ## Dashboard negli strumenti BI
 
 Il vero impatto dei dati sbagliati è la dashboard che qualcuno apre. In **Dashboard BI**, aggiungi i tuoi strumenti BI con credenziali che possano leggerne le dashboard. Ogni ora l'Osservabilità dei dati legge ogni dashboard e le tabelle che la alimentano, abbina ogni tabella a una monitorata e mostra le dashboard costruite su una tabella, e sulle tabelle costruite da essa, nella sua scheda **Derivazione**, nei suoi avvisi e in Production Review.
@@ -64,12 +77,16 @@ Il vero impatto dei dati sbagliati è la dashboard che qualcuno apre. In **Dashb
 | **Tableau** | `{ "tokenName": "...", "tokenSecret": "...", "site": "acme" }` |
 | **Looker** | `{ "clientId": "...", "clientSecret": "..." }` |
 | **Power BI** | `{ "tenantId": "...", "clientId": "...", "clientSecret": "..." }`, un service principal autorizzato a usare le API di amministrazione di Power BI |
+| **Hightouch** | `{ "apiKey": "..." }` |
+| **Census** | `{ "apiKey": "...", "region": "us" }` (oppure `eu`) |
+
+Hightouch e Census sono strumenti di reverse ETL: una sincronizzazione che copia una tabella in un CRM dipende da quella tabella come una dashboard, quindi viene letta allo stesso modo e nominata negli avvisi della tabella.
 
 Vengono letti solo nomi e link delle dashboard e le tabelle che interrogano: mai i loro dati.
 
 ## Pipeline
 
-Ogni job, progetto dbt e sincronizzazione compare in **Pipeline**, con le sue esecuzioni: quando ciascuna è iniziata e finita, quanto è durata, e l'errore di un'esecuzione non riuscita. Dopo cinque esecuzioni, ogni pipeline impara dalle proprie esecuzioni quanto dura di solito un'esecuzione e quanto tempo passa tra un'esecuzione e l'altra secondo la sua pianificazione. La pagina di una pipeline consiglia tre monitor:
+Ogni job, progetto dbt e sincronizzazione compare in **Pipeline**, con le sue esecuzioni: quando ciascuna è iniziata e finita, quanto è durata, a quale tentativo corrispondeva dove lo scheduler lo indica (il numero di tentativo di Airflow), e l'errore di un'esecuzione non riuscita. Dopo cinque esecuzioni, ogni pipeline impara dalle proprie esecuzioni quanto dura di solito un'esecuzione e quanto tempo passa tra un'esecuzione e l'altra secondo la sua pianificazione. La pagina di una pipeline consiglia tre monitor:
 
 - **Pipeline Run Failed**: un'esecuzione non è riuscita o è stata interrotta.
 - **Pipeline Run Unusually Long**: un'esecuzione ha impiegato il doppio del tempo abituale o più, verificato ogni cinque minuti mentre è in corso, così un'esecuzione bloccata viene notata prima che finisca.
@@ -83,6 +100,10 @@ Quando una tabella smette di essere aggiornata, ogni tabella costruita a partire
 - Il suo feed e il suo riquadro **Dati** indicano quale avviso lo ha causato, e si unisce all'episodio della causa.
 
 Il riquadro **Dati** della causa elenca il suo **Downstream Impact**: ogni avviso che ha causato. Il riquadro di un avviso su una tabella mostra anche i servizi che scrivono la tabella, con le loro scritture non riuscite, e i loro deploy e le altre modifiche nel giorno precedente l'avviso.
+
+## Prima che una modifica venga unita
+
+Quando una pull request modifica una tabella sorvegliata, [Production Review](/docs/ai/ai-agent) indica sulla pull request cosa ne dipende: i servizi che la leggono, le tabelle costruite a partire da essa, le dashboard su di essa e i suoi prodotti di dati. Una tabella con una copia su un database contrassegnato come Staging indica anche in cosa la copia differisce: le sue righe, le sue colonne e ciò che i controlli della tabella leggono lì, eseguiti al momento. Su un database raggiungibile solo da una sonda, i controlli vengono omessi, e lo indica.
 
 ## Passaggi successivi
 

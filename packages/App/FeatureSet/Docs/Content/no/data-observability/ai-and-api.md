@@ -4,9 +4,12 @@ OneUptime AI kjenner dataene dine: den undersøker et datavarsel ut fra tabellen
 
 ## OneUptime AI
 
-- **Undersøkelser av datavarsler.** Når OneUptime AI undersøker et varsel på en tabell, en pipeline eller en database, starter den fra det som ligger nærmest: tabellens aktualitet og åpne varsler, varselet det er en følge av, kjøringene av pipelinene som skriver til den siden dagen før (en mislykket kjøring med feilen, eller kjøringen som aldri kom), tjenestene som skriver til den, med de mislykkede skrivingene, utrullingene og andre endringer deres, og tabellene den er bygget fra. Den navngir kjøringen, utrullingen eller oppstrømstabellen bak varselet. Se [AI SRE](/docs/ai/ai-sre).
+- **Undersøkelser av datavarsler.** Når OneUptime AI undersøker et varsel på en tabell, en pipeline eller en database, starter den fra det som ligger nærmest: tabellens aktualitet og åpne varsler, varselet det er en følge av, kjøringene av pipelinene som skriver til den siden dagen før (en mislykket kjøring med feilen, eller kjøringen som aldri kom), tjenestene som skriver til den, med de mislykkede skrivingene, utrullingene og andre endringer deres, tabellene den er bygget fra, og kolonnene som endret seg. Den navngir kjøringen, utrullingen eller oppstrømstabellen bak varselet. Se [AI SRE](/docs/ai/ai-sre).
 - **Er denne tabellen fersk?** Spør i [Spør AI](/docs/ai/ask-ai), Slack eller Microsoft Teams: «er orders-tabellen fersk?». Svaret gir tabellens aktualitet målt mot dens egen rytme, når den sist ble endret, de åpne varslene, skrivernes siste kjøringer og dataproduktene den er en del av. Et navn som flere databaser deler, besvares for hver av dem, så ingen får høre at feil tabell er fersk.
 - **En sjekk ut fra en setning.** I fanen **Sjekker** for en tabell gjør **Skriv en sjekk fra en setning** en regel om til en sjekk med egendefinert SQL i databasemotorens SQL. Se [Kontroller og avstemminger](/docs/data-observability/checks).
+
+- **Langsom drift.** Når radene i en tabell, eller verdien til en sjekk, flytter seg med en femtedel eller mer på en uke, for langsomt til at noe varsel utløses, havner det i AI Insights som et «se her». Det varsler ingen.
+- **Utdaterte data bak AI-apper.** En tjeneste som både kaller en modell og leser en tabell, er tabellens AI-forbruker. Når en slik tabell blir forsinket, sier siden **Samtaler** i AI-produktet fra om det: en app som svarer ut fra gamle data viser ingenting galt i sine egne traces.
 
 Hver av disse krever at OneUptime AI er slått på for prosjektet, og handler med tillatelsene til den som spør.
 
@@ -29,9 +32,10 @@ Det fungerer med en skrivebeskyttet innlogging, og svarer som personen eller API
 | `POST /telemetry/fivetran/v1/webhook/<ingestion key ID>` | Synkroniseringswebhookene fra Fivetran | Inntaksnøkkelen, som signeringshemmeligheten til Fivetran |
 | `POST /telemetry/airbyte/v1/webhook/<ingestion key>` | Synkroniseringswebhookene fra Airbyte | Inntaksnøkkelen i URL-en |
 | `POST /api/data-observability/tables/freshness` | Aktualiteten til en tabell, slik MCP-verktøyet svarer, med `{ "table": "public.orders" }` | En API-nøkkel |
+| `POST /api/data-observability/checks/apply` | Få prosjektets sjekker til å samsvare med en fil, slik `oneuptime data-checks apply` gjør, med `{ "manifest": "...", "isDryRun": true, "shouldPrune": false }` | En API-nøkkel |
 | `GET /api/data-observability/data-products/<data product ID>/badge?token=<badge token>` | «data as of»-merket til et dataprodukt | Merkets eget token |
 
-Tabeller, sjekker, avstemminger, pipelines og dataprodukter er også vanlige ressurser i [API-et](/docs/api-reference/api-reference), som leses og endres med en API-nøkkel som har de tilsvarende tillatelsene.
+Tabeller, sjekker, avstemminger, pipelines, dataprodukter, BI-tilkoblinger og datavarehusjobber er også vanlige ressurser i [API-et](/docs/api-reference/api-reference), som leses og endres med en API-nøkkel som har de tilsvarende tillatelsene, og i MCP-serveren og arbeidsflytene.
 
 ## Metrikker
 

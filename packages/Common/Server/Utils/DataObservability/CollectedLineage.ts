@@ -2,6 +2,13 @@ import DataAssetLineage from "../../../Models/DatabaseModels/DataAssetLineage";
 import DataAssetLineageService from "../../Services/DataAssetLineageService";
 import QueryHelper from "../../Types/Database/QueryHelper";
 import DataAssetLineageSource from "../../../Types/DataObservability/DataAssetLineageSource";
+import {
+  DataColumnMapping,
+  isSameColumnMappings,
+  mergeColumnMappings,
+  readColumnMappings,
+} from "../../../Types/DataObservability/DataColumnLineage";
+import { JSONArray } from "../../../Types/JSON";
 import { getDataTableKey } from "../../../Types/DataObservability/DataObservabilityMetric";
 import ObjectID from "../../../Types/ObjectID";
 import logger from "../Logger";
@@ -63,6 +70,13 @@ export function getUpstreamDataset(
     };
   }
 
+  if (engine === "snowflake" && edge.upstreamDatabase) {
+    return {
+      namespace: "snowflake://",
+      name: `${edge.upstreamDatabase}.${edge.upstreamSchema}.${edge.upstreamTable}`,
+    };
+  }
+
   if (engine === "clickhouse" && edge.upstreamSchema) {
     return {
       namespace: "clickhouse://",
@@ -79,6 +93,7 @@ export interface ResolvedLineageEdge {
   downstreamDataAssetId: string;
   lastSeenAt: Date;
   seenBy: string | null;
+  columnMappings?: Array<DataColumnMapping> | undefined;
 }
 
 // An edge already kept, of a source a collection reports.
@@ -88,11 +103,17 @@ export interface KeptLineageEdge {
   source: DataAssetLineageSource;
   lastSeenAt: Date;
   seenBy: string | null;
+  columnMappings?: Array<DataColumnMapping> | undefined;
 }
 
 export interface CollectedLineagePlan {
   creates: Array<ResolvedLineageEdge & { edgeKey: string }>;
-  updates: Array<{ id: string; lastSeenAt: Date; seenBy: string | null }>;
+  updates: Array<{
+    id: string;
+    lastSeenAt: Date;
+    seenBy: string | null;
+    columnMappings?: Array<DataColumnMapping> | undefined;
+  }>;
   deletes: Array<string>;
 }
 
@@ -120,9 +141,17 @@ export function planCollectedLineage(data: {
     const key: string = getCollectedEdgeKey(edge);
     const known: ResolvedLineageEdge | undefined = byKey.get(key);
 
-    if (!known || edge.lastSeenAt > known.lastSeenAt) {
-      byKey.set(key, edge);
-    }
+    const columnMappings: Array<DataColumnMapping> = mergeColumnMappings(
+      known?.columnMappings,
+      edge.columnMappings,
+    );
+    const later: ResolvedLineageEdge =
+      !known || edge.lastSeenAt > known.lastSeenAt ? edge : known;
+
+    byKey.set(key, {
+      ...later,
+      ...(columnMappings.length > 0 ? { columnMappings } : {}),
+    });
   }
 
   const keptByKey: Map<string, KeptLineageEdge> = new Map();
@@ -145,15 +174,25 @@ export function planCollectedLineage(data: {
       (edge.source === DataAssetLineageSource.QueryHistory
         ? QUERY_EDGE_SEEN_PRECISION_IN_SECONDS
         : VIEW_EDGE_SEEN_PRECISION_IN_SECONDS) * 1000;
+    const columnMappings: Array<DataColumnMapping> = mergeColumnMappings(
+      kept.columnMappings,
+      edge.columnMappings,
+    );
+    const hasNewColumns: boolean = !isSameColumnMappings(
+      kept.columnMappings,
+      columnMappings,
+    );
 
     if (
-      edge.lastSeenAt.getTime() - kept.lastSeenAt.getTime() >=
-      precisionInMs
+      hasNewColumns ||
+      edge.lastSeenAt.getTime() - kept.lastSeenAt.getTime() >= precisionInMs
     ) {
       plan.updates.push({
         id: kept.id,
-        lastSeenAt: edge.lastSeenAt,
+        lastSeenAt:
+          edge.lastSeenAt > kept.lastSeenAt ? edge.lastSeenAt : kept.lastSeenAt,
         seenBy: edge.seenBy ?? kept.seenBy,
+        ...(hasNewColumns ? { columnMappings } : {}),
       });
     }
   }
@@ -218,6 +257,7 @@ export default class CollectedLineage {
           source: true,
           lastSeenAt: true,
           seenBy: true,
+          columnMappings: true,
         },
         props: { isRoot: true },
       });
@@ -235,6 +275,7 @@ export default class CollectedLineage {
             source: edge.source || DataAssetLineageSource.Pipeline,
             lastSeenAt: new Date(edge.lastSeenAt!),
             seenBy: edge.seenBy || null,
+            columnMappings: readColumnMappings(edge.columnMappings),
           };
         }),
       isViewLineageComplete: data.isViewLineageComplete,
@@ -249,6 +290,10 @@ export default class CollectedLineage {
       edge.source = create.source;
       edge.firstSeenAt = create.lastSeenAt;
       edge.lastSeenAt = create.lastSeenAt;
+
+      if (create.columnMappings && create.columnMappings.length > 0) {
+        edge.columnMappings = create.columnMappings as unknown as JSONArray;
+      }
 
       if (create.seenBy) {
         edge.seenBy = create.seenBy;
@@ -275,6 +320,9 @@ export default class CollectedLineage {
         data: {
           lastSeenAt: update.lastSeenAt,
           seenBy: update.seenBy,
+          ...(update.columnMappings
+            ? { columnMappings: update.columnMappings }
+            : {}),
         } as never,
       });
     }
@@ -363,6 +411,9 @@ export default class CollectedLineage {
               )
             : data.collectedAt,
         seenBy: edge.seenBy,
+        ...(edge.columnMappings
+          ? { columnMappings: readColumnMappings(edge.columnMappings) }
+          : {}),
       });
     }
 

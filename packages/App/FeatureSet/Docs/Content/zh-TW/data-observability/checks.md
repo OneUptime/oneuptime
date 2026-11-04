@@ -1,6 +1,6 @@
 # 檢查與對帳
 
-資料表健康說明資料表是否在變更。**檢查** 說明資料表中保存的內容是否正確，**對帳** 說明資料的兩個複本是否一致，**dbt 的測試** 則回報 dbt 所建置資料表的情況。它們都在資料庫的收集執行的地方執行（由 OneUptime 或其探測器執行），離開資料庫的只有一個數字。
+資料表健康說明資料表是否在變更。**檢查** 說明資料表中保存的內容是否正確，**對帳** 說明資料的兩個複本是否一致，**dbt 的測試** 則回報 dbt 所建置資料表的情況。它們都在資料庫的收集執行的地方執行（由 OneUptime 或其探測器執行），離開資料庫的只有一個數字，除非自行代管的專案選擇保留失敗資料列的遮蔽樣本。
 
 ## 檢查
 
@@ -13,16 +13,17 @@
 | **Distinct Count** | 該欄包含多少個不同的值 |
 | **最小值**、**最大值**、**平均**、**總和** | 數值欄的相應值（沒有列時總和為 0） |
 | **Invalid Percent** | 不在你提供的清單中的值所占的百分比 |
-| **Format Mismatch Percent** | 不符合規則運算式的值所占的百分比（SQL Server 以外的所有引擎） |
+| **Format Mismatch Percent** | 不是你所選格式（例如 Email、UUID 或 Country Code）的值，或不符合你的規則運算式的值所占的百分比（SQL Server 以外的所有引擎） |
 | **Orphan Count** | 其值在另一個資料表的欄中找不到相符項目的列 |
 | **Row Count** | 資料表中的列數，搭配 **Segment By** 使用最有用 |
 | **自訂 SQL** | 你的一個唯讀 SELECT 所傳回、名為 `value` 的數字（在 MongoDB 中為聚合管線傳回的數字） |
+| **Failing Rows** | 你的一個唯讀 SELECT 傳回多少列：那些不該存在的列。0 表示健康（在 MongoDB 中為管線最後得到的文件） |
 
 每個檢查每 15 分鐘、每小時、每 6 小時或每天執行一次，作為一個彙總陳述式，在設有陳述式逾時的唯讀交易中執行。它的值會寫入為 `oneuptime.data.check.value`，並帶有 `oneuptime.data.check.id`、`oneuptime.data.check.name` 和 `oneuptime.data.check.segment`。
 
 ## 建議的檢查
 
-同一個索引標籤上的 **Suggested Checks** 會只根據欄的名稱和類型，提供資料表的欄所需要的檢查：id 是唯一的、`customer_id` 在 `customers` 中有相符的列、電子郵件看起來像電子郵件、金額不是負數、狀態保持其通常的值，以及依租用戶拆分的資料表依租用戶計數。你可以新增一個、全部新增，或永久隱藏某一個。
+同一個索引標籤上的 **Suggested Checks** 會只根據欄的名稱和類型，提供資料表的欄所需要的檢查：id 是唯一的、`customer_id` 在 `customers` 中有相符的列、電子郵件看起來像電子郵件、金額不是負數、狀態保持其通常的值，以及依租用戶拆分的資料表依租用戶計數。資料安全得知保存電子郵件地址、電話號碼或 IP 位址的欄，無論它叫什麼名稱，都會依該格式檢查。你可以新增一個、全部新增，或永久隱藏某一個。
 
 ## 用一句話撰寫檢查
 
@@ -40,6 +41,60 @@
 - **高於** 或 **低於** 會把它與閾值進行比較。
 
 儲存檢查時，會以你的身分、依你的權限為它建立一個指標監測器。清除該條件會移除該監測器。
+
+## 檢查的成本
+
+檢查會與你的應用程式爭用資料庫，而在依查詢讀取量計費的資料倉儲上，它會花錢。有三項設定可以控制：
+
+- **取樣百分比** 只讀取一部分列而不是全部，適用於讀取比率的檢查：Null Percent、平均、Invalid Percent 和 Format Mismatch Percent。大多數引擎會略過資料表的整個頁面；MySQL、Redshift、ClickHouse 和 MongoDB 仍會讀取每一列，只是省去其餘部分的處理工作。檢視可能會拒絕它，檢查會如實說明。
+- **單次檢查最多可讀取量 (GB)**（在 **設定** 下）會在 BigQuery 或 Athena 上的檢查讀取超過該吉位元組數之前將它停止。在你變更之前為 10。
+- **資料庫忙碌時等待**（在 **設定** 下）會在 PostgreSQL、MySQL 或 SQL Server 資料庫看起來忙碌時，把到期的檢查留到下一次收集。在你關閉之前它一直是開啟的，資料庫會說明檢查何時等待過。
+
+## 失敗的資料列
+
+數字說明有地方出錯；幾列資料則說明是哪裡。在自行代管的 OneUptime 上，**設定** 下的 **保留 Failing Rows** 會保留 Failing Rows、Invalid Percent、Format Mismatch Percent 或 Orphan Count 檢查找到的最多 20 列，檢查上的 **Failing Rows** 會顯示它們。敏感欄位在讀取該列的地方就會被遮蔽，依資料安全在其中找到的內容或依其名稱，因此離開資料庫或探測器的內容已經是遮蔽過的。OneUptime Cloud 不保留任何資料列。
+
+## 檔案中的檢查
+
+手動撰寫的檢查會與變更資料表的程式碼產生偏差。把它們保存在你的儲存庫中，並在同一個 pull request 中審查：
+
+```yaml
+checks:
+  - name: Orders have a total
+    table: public.orders
+    type: Null Percent
+    column: total
+    every: 60
+    alert: { when: Above, threshold: 1 }
+  - name: Emails look right
+    table: public.customers
+    database: Orders database
+    type: Format Mismatch Percent
+    column: email
+    format: Email
+    sample_percent: 10
+  - name: Orders have a customer
+    table: public.orders
+    type: Orphan Count
+    column: customer_id
+    references: public.customers.id
+  - name: No negative totals
+    table: public.orders
+    type: Failing Rows
+    query: SELECT id FROM orders WHERE total < 0
+    alert: { when: Above, threshold: 0 }
+```
+
+使用 [OneUptime CLI](/docs/cli/index) 和 API 金鑰，從 CI 套用它：
+
+```bash
+oneuptime data-checks apply checks.yaml --dry-run
+oneuptime data-checks apply checks.yaml --prune
+```
+
+同一個資料表上名稱相同的檢查就是同一個檢查，因此把檔案套用兩次不會改變任何東西。檔案中任何一處有錯誤，就不會套用任何內容，並以錯誤結束，所以請在 pull request 上執行 `--dry-run`，在合併時再套用。使用 `--prune` 時，先前的 apply 所建立、但檔案中已不再提到的檢查會被刪除。你手動新增的檢查絕不會被刪除。來自檔案的檢查會在其資料列上說明這一點，下一次套用會覆寫以手動做過的變更。
+
+這些鍵為 `name`、`table`、`database`、`type`、`column`、`segment`、`accepted_values`、`format`、`pattern`、`references`、`query`、`sample_percent`、`every`、`alert`、`description` 和 `enabled`。
 
 ## 對帳
 

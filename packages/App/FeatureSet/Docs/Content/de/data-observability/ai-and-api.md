@@ -4,9 +4,12 @@ OneUptime AI kennt Ihre Daten: Sie untersucht eine Datenwarnung ausgehend von de
 
 ## OneUptime AI
 
-- **Untersuchungen von Datenwarnungen.** Wenn OneUptime AI eine Warnung zu einer Tabelle, einer Pipeline oder einer Datenbank untersucht, beginnt sie bei dem, was daneben liegt: der Aktualität und den offenen Warnungen der Tabelle, der Warnung, deren Folge sie ist, den Läufen der Pipelines, die seit dem Vortag in sie schreiben (ein fehlgeschlagener Lauf mit seinem Fehler oder der Lauf, der nie kam), den Diensten, die in sie schreiben, mit ihren fehlgeschlagenen Schreibvorgängen, Deployments und anderen Änderungen, und den Tabellen, aus denen sie erstellt wird. Sie nennt den Lauf, das Deployment oder die vorgelagerte Tabelle hinter der Warnung. Siehe [AI SRE](/docs/ai/ai-sre).
+- **Untersuchungen von Datenwarnungen.** Wenn OneUptime AI eine Warnung zu einer Tabelle, einer Pipeline oder einer Datenbank untersucht, beginnt sie bei dem, was daneben liegt: der Aktualität und den offenen Warnungen der Tabelle, der Warnung, deren Folge sie ist, den Läufen der Pipelines, die seit dem Vortag in sie schreiben (ein fehlgeschlagener Lauf mit seinem Fehler oder der Lauf, der nie kam), den Diensten, die in sie schreiben, mit ihren fehlgeschlagenen Schreibvorgängen, Deployments und anderen Änderungen, den Tabellen, aus denen sie erstellt wird, und den Spalten, die sich geändert haben. Sie nennt den Lauf, das Deployment oder die vorgelagerte Tabelle hinter der Warnung. Siehe [AI SRE](/docs/ai/ai-sre).
 - **Ist diese Tabelle aktuell?** Fragen Sie in [KI fragen](/docs/ai/ask-ai), Slack oder Microsoft Teams: „Ist die Tabelle orders aktuell?“. Die Antwort nennt die Aktualität der Tabelle gemessen an ihrem eigenen Rhythmus, wann sie sich zuletzt geändert hat, ihre offenen Warnungen, die letzten Läufe dessen, was in sie schreibt, und die Datenprodukte, zu denen sie gehört. Ein Name, den mehrere Datenbanken teilen, wird für jede einzeln beantwortet, damit niemandem gesagt wird, die falsche Tabelle sei aktuell.
 - **Eine Prüfung aus einem Satz.** Im Tab **Prüfungen** einer Tabelle macht **Prüfung aus einem Satz schreiben** aus einer Regel eine Prüfung mit benutzerdefiniertem SQL im SQL Ihrer Engine. Siehe [Prüfungen und Abgleiche](/docs/data-observability/checks).
+
+- **Langsame Drift.** Verändern sich die Zeilen einer Tabelle oder der Wert einer Prüfung innerhalb einer Woche um ein Fünftel oder mehr, zu langsam für jede Warnung, geht das als Hinweis „Hier nachsehen“ an AI Insights. Es alarmiert niemanden.
+- **Veraltete Daten hinter KI-Apps.** Ein Dienst, der sowohl ein Modell aufruft als auch eine Tabelle liest, ist der KI-Verbraucher dieser Tabelle. Wird eine solche Tabelle verspätet, sagt das die Seite **Unterhaltungen** des KI-Produkts: Eine App, die aus alten Daten antwortet, zeigt in ihren eigenen Traces nichts Falsches.
 
 Für jede dieser Funktionen muss OneUptime AI für das Projekt eingeschaltet sein, und sie handelt mit den Berechtigungen der Person, die fragt.
 
@@ -29,9 +32,10 @@ Es funktioniert mit einer schreibgeschützten Anmeldung und antwortet als die Pe
 | `POST /telemetry/fivetran/v1/webhook/<ingestion key ID>` | Die Sync-Webhooks von Fivetran | Dem Ingestion-Schlüssel, als Signatur-Secret von Fivetran |
 | `POST /telemetry/airbyte/v1/webhook/<ingestion key>` | Die Sync-Webhooks von Airbyte | Dem Ingestion-Schlüssel in der URL |
 | `POST /api/data-observability/tables/freshness` | Die Aktualität einer Tabelle, wie das MCP-Werkzeug sie beantwortet, mit `{ "table": "public.orders" }` | Einem API-Schlüssel |
+| `POST /api/data-observability/checks/apply` | Die Prüfungen des Projekts mit einer Datei in Übereinstimmung bringen, wie es `oneuptime data-checks apply` tut, mit `{ "manifest": "...", "isDryRun": true, "shouldPrune": false }` | Einem API-Schlüssel |
 | `GET /api/data-observability/data-products/<data product ID>/badge?token=<badge token>` | Das Badge „data as of“ eines Datenprodukts | Dem eigenen Token des Badges |
 
-Tabellen, Prüfungen, Abgleiche, Pipelines und Datenprodukte sind außerdem gewöhnliche Ressourcen der [API](/docs/api-reference/api-reference), die Sie mit einem API-Schlüssel mit den passenden Berechtigungen lesen und ändern.
+Tabellen, Prüfungen, Abgleiche, Pipelines, Datenprodukte, BI-Verbindungen und Warehouse-Jobs sind außerdem gewöhnliche Ressourcen der [API](/docs/api-reference/api-reference), die Sie mit einem API-Schlüssel mit den passenden Berechtigungen lesen und ändern, und des MCP-Servers und der Workflows.
 
 ## Metriken
 

@@ -101,6 +101,7 @@ oneuptime resources
 | `oneuptime context list`, `use`, `current`, `delete` | 列出、切换、显示和删除已保存的上下文 | [认证](/docs/cli/authentication#上下文) |
 | `oneuptime whoami` | 显示下一条命令将使用的 URL 和 API 密钥，加上 `--check` 时还显示 OneUptime 是否接受该密钥 | [认证](/docs/cli/authentication#检查-cli-将使用什么) |
 | `oneuptime deploy` | 为图表和 OneUptime AI 记录一次部署或其他变更 | [部署与变更](/docs/telemetry/change-events) |
+| `oneuptime data-checks apply` | 让项目的数据检查与你仓库中的一个文件一致 | [命令参考](/docs/cli/command-reference) |
 | `oneuptime dbt upload` | 在构建之后把 dbt 项目的产物发送到数据可观测性 | [命令参考](/docs/cli/command-reference#oneuptime-dbt-upload) |
 | `oneuptime <resource> list`, `get`, `create`, `update`, `delete`, `count` | 处理一种记录 | [资源操作](/docs/cli/resource-operations) |
 | `oneuptime <resource> fields` | 列出资源的字段以及设置它们的标志 | [资源操作](/docs/cli/resource-operations#查看资源的字段) |

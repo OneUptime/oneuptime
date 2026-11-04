@@ -1,6 +1,6 @@
 # Prüfungen und Abgleiche
 
-Der Tabellenzustand sagt, ob sich eine Tabelle ändert. Eine **Prüfung** sagt, ob stimmt, was sie enthält, ein **Abgleich** sagt, ob zwei Kopien der Daten übereinstimmen, und die **Tests von dbt** berichten über die Tabellen, die dbt erstellt. Jede davon läuft dort, wo die Erfassung der Datenbank läuft, bei OneUptime oder auf ihrer Sonde, und nur eine Zahl verlässt je die Datenbank.
+Der Tabellenzustand sagt, ob sich eine Tabelle ändert. Eine **Prüfung** sagt, ob stimmt, was sie enthält, ein **Abgleich** sagt, ob zwei Kopien der Daten übereinstimmen, und die **Tests von dbt** berichten über die Tabellen, die dbt erstellt. Jede davon läuft dort, wo die Erfassung der Datenbank läuft, bei OneUptime oder auf ihrer Sonde, und nur eine Zahl verlässt die Datenbank, es sei denn, ein selbst gehostetes Projekt entscheidet sich, eine maskierte Stichprobe fehlerhafter Zeilen aufzubewahren.
 
 ## Prüfungen
 
@@ -13,16 +13,17 @@ Fügen Sie eine Prüfung im Tab **Prüfungen** einer Tabelle hinzu:
 | **Distinct Count** | Wie viele verschiedene Werte die Spalte enthält |
 | **Minimum**, **Maximum**, **Durchschnitt**, **Summe** | Die Werte einer numerischen Spalte (eine Summe über keine Zeilen ist 0) |
 | **Invalid Percent** | Prozentsatz der Werte außerhalb einer Liste, die Sie angeben |
-| **Format Mismatch Percent** | Prozentsatz der Werte, die nicht auf einen regulären Ausdruck passen (jede Engine außer SQL Server) |
+| **Format Mismatch Percent** | Prozentsatz der Werte, die nicht in einem Format sind, das Sie wählen, etwa Email, UUID oder Country Code, oder die nicht auf einen regulären Ausdruck von Ihnen passen (jede Engine außer SQL Server) |
 | **Orphan Count** | Zeilen, deren Wert keine Entsprechung in der Spalte einer anderen Tabelle hat |
 | **Zeilenanzahl** | Zeilen in der Tabelle, am nützlichsten mit **Segment By** |
 | **Benutzerdefiniertes SQL** | Die Zahl, die ein schreibgeschütztes SELECT von Ihnen zurückgibt, benannt `value` (bei MongoDB die einer Aggregations-Pipeline) |
+| **Failing Rows** | Wie viele Zeilen ein schreibgeschütztes SELECT von Ihnen zurückgibt: die Zeilen, die es nicht geben sollte. 0 ist gesund (bei MongoDB die Dokumente, mit denen eine Pipeline endet) |
 
 Jede Prüfung läuft alle 15 Minuten, stündlich, alle 6 Stunden oder täglich, als eine einzige Aggregatanweisung in einer schreibgeschützten Transaktion mit einem Timeout für Anweisungen. Ihr Wert wird als `oneuptime.data.check.value` geschrieben, mit `oneuptime.data.check.id`, `oneuptime.data.check.name` und `oneuptime.data.check.segment`.
 
 ## Vorgeschlagene Prüfungen
 
-**Suggested Checks** im selben Tab bieten die Prüfungen an, die die Spalten einer Tabelle nahelegen, allein aus ihren Namen und Typen: Eine ID ist eindeutig, eine `customer_id` hat eine passende Zeile in `customers`, eine E-Mail-Adresse sieht wie eine aus, ein Betrag ist nicht negativ, ein Status behält seine üblichen Werte, und eine nach Mandanten aufgeteilte Tabelle wird pro Mandant gezählt. Fügen Sie eine hinzu, fügen Sie alle hinzu oder verwerfen Sie eine endgültig.
+**Suggested Checks** im selben Tab bieten die Prüfungen an, die die Spalten einer Tabelle nahelegen, allein aus ihren Namen und Typen: Eine ID ist eindeutig, eine `customer_id` hat eine passende Zeile in `customers`, eine E-Mail-Adresse sieht wie eine aus, ein Betrag ist nicht negativ, ein Status behält seine üblichen Werte, und eine nach Mandanten aufgeteilte Tabelle wird pro Mandant gezählt. Eine Spalte, von der Datensicherheit weiß, dass sie eine E-Mail-Adresse, eine Telefonnummer oder eine IP-Adresse enthält, muss diesem Format entsprechen, egal wie sie heißt. Fügen Sie eine hinzu, fügen Sie alle hinzu oder verwerfen Sie eine endgültig.
 
 ## Eine Prüfung aus einem Satz
 
@@ -40,6 +41,60 @@ Setzen Sie **Alert When**, um bei einer Prüfung zu warnen:
 - **Über** oder **Unter** vergleicht ihn mit einem Schwellenwert.
 
 Beim Speichern der Prüfung entsteht ein Metrik-Monitor für sie, in Ihrem Namen und mit Ihren Berechtigungen. Wenn Sie die Bedingung leeren, wird der Monitor entfernt.
+
+## Was eine Prüfung kostet
+
+Eine Prüfung konkurriert mit Ihrer Anwendung um die Datenbank, und bei einem Warehouse, das nach dem abrechnet, was eine Abfrage liest, kostet sie Geld. Drei Dinge halten das im Griff:
+
+- **Stichprobenanteil (%)** liest einen Teil der Zeilen statt aller, für eine Prüfung, die eine Rate liest: Null Percent, Durchschnitt, Invalid Percent und Format Mismatch Percent. Die meisten Engines überspringen ganze Seiten der Tabelle; MySQL, Redshift, ClickHouse und MongoDB lesen weiterhin jede Zeile und sparen sich die Arbeit für den Rest. Eine Sicht kann es ablehnen, und die Prüfung sagt das.
+- **Maximal von einer Prüfung lesbar (GB)** unter **Einstellungen** stoppt eine Prüfung bei BigQuery oder Athena, bevor sie mehr als so viele Gigabyte liest. Der Wert ist 10, bis Sie ihn ändern.
+- **Warten, wenn eine Datenbank ausgelastet ist** unter **Einstellungen** lässt fällige Prüfungen für die nächste Erfassung liegen, wenn eine PostgreSQL-, MySQL- oder SQL-Server-Datenbank ausgelastet wirkt. Es ist eingeschaltet, bis Sie es ausschalten, und die Datenbank sagt, wann Prüfungen gewartet haben.
+
+## Fehlerhafte Zeilen
+
+Eine Zahl sagt, dass etwas nicht stimmt; ein paar Zeilen sagen, was. Bei einem selbst gehosteten OneUptime behält **Fehlerhafte Zeilen aufbewahren** unter **Einstellungen** bis zu 20 der Zeilen, die eine Prüfung Failing Rows, Invalid Percent, Format Mismatch Percent oder Orphan Count gefunden hat, und **Failing Rows** an der Prüfung zeigt sie. Sensible Spalten werden dort maskiert, wo die Zeile gelesen wird, nach dem, was die Datensicherheit in ihnen gefunden hat, oder nach ihren Namen, sodass das, was die Datenbank oder eine Sonde verlässt, bereits maskiert ist. OneUptime Cloud behält keine.
+
+## Prüfungen in einer Datei
+
+Von Hand geschriebene Prüfungen driften von dem Code weg, der die Tabellen ändert. Halten Sie sie in Ihrem Repository, geprüft im selben Pull Request:
+
+```yaml
+checks:
+  - name: Orders have a total
+    table: public.orders
+    type: Null Percent
+    column: total
+    every: 60
+    alert: { when: Above, threshold: 1 }
+  - name: Emails look right
+    table: public.customers
+    database: Orders database
+    type: Format Mismatch Percent
+    column: email
+    format: Email
+    sample_percent: 10
+  - name: Orders have a customer
+    table: public.orders
+    type: Orphan Count
+    column: customer_id
+    references: public.customers.id
+  - name: No negative totals
+    table: public.orders
+    type: Failing Rows
+    query: SELECT id FROM orders WHERE total < 0
+    alert: { when: Above, threshold: 0 }
+```
+
+Wenden Sie sie aus der CI mit der [OneUptime CLI](/docs/cli/index) und einem API-Schlüssel an:
+
+```bash
+oneuptime data-checks apply checks.yaml --dry-run
+oneuptime data-checks apply checks.yaml --prune
+```
+
+Eine Prüfung ist dieselbe Prüfung, wenn sie denselben Namen auf derselben Tabelle hat, sodass zweimaliges Anwenden einer Datei nichts ändert. Ein Fehler irgendwo in der Datei wendet nichts an und beendet mit einem Fehler, führen Sie also `--dry-run` im Pull Request aus und wenden Sie beim Merge an. Mit `--prune` wird eine Prüfung gelöscht, die ein früheres Anwenden erstellt hat und die die Datei nicht mehr nennt. Eine Prüfung, die Sie von Hand hinzugefügt haben, wird nie gelöscht. Eine Prüfung aus einer Datei sagt das in ihrer Zeile, und ihr nächstes Anwenden überschreibt, was von Hand geändert wurde.
+
+Die Schlüssel sind `name`, `table`, `database`, `type`, `column`, `segment`, `accepted_values`, `format`, `pattern`, `references`, `query`, `sample_percent`, `every`, `alert`, `description` und `enabled`.
 
 ## Abgleiche
 

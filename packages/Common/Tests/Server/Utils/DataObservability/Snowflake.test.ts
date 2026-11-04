@@ -14,6 +14,10 @@ import {
   readSnowflakeColumnType,
   readSnowflakeTableKind,
   snowflakeIdentifier,
+  buildSnowflakeColumnLineageQuery,
+  buildSnowflakeQueryLineageQuery,
+  readSnowflakeObjectParts,
+  SNOWFLAKE_VIEW_LINEAGE_QUERY,
 } from "../../../../Server/Utils/DataObservability/TableHealthCollector";
 import { readConnectionTarget } from "../../../../Server/Utils/DataObservability/TableHealthTarget";
 import { buildDataCheckStatement } from "../../../../Server/Utils/DataObservability/DataCheckSql";
@@ -356,5 +360,52 @@ describe("the Snowflake catalog", () => {
     );
     expect(statement.sql).toContain('FROM "PUBLIC"."ORDERS"');
     expect(statement.params).toEqual(["@"]);
+  });
+});
+
+describe("Snowflake's lineage", () => {
+  test("a view's lineage comes from its dependencies", () => {
+    expect(SNOWFLAKE_VIEW_LINEAGE_QUERY).toContain("OBJECT_DEPENDENCIES");
+    expect(SNOWFLAKE_VIEW_LINEAGE_QUERY).toContain(
+      "UPPER(d.referencing_database) = UPPER(?)",
+    );
+  });
+
+  test("a job's lineage looks back as far as asked, in whole seconds", () => {
+    const query: string = buildSnowflakeQueryLineageQuery(3600.7);
+
+    expect(query).toContain("ACCESS_HISTORY");
+    expect(query).toContain("base_objects_accessed");
+    expect(query).toContain("objects_modified");
+    expect(query).toContain("DATEADD('second', -3600,");
+  });
+
+  test("a column's lineage reads each written column and the base columns behind it", () => {
+    const query: string = buildSnowflakeColumnLineageQuery(21600);
+
+    expect(query).toContain("baseSources");
+    expect(query).toContain("upstream_column");
+    expect(query).toContain("downstream_column");
+    expect(query).toContain("GROUP BY 1, 2, 3, 4");
+    expect(query).toContain("DATEADD('second', -21600,");
+  });
+
+  test("an object's name says its database only when it is another's", () => {
+    expect(readSnowflakeObjectParts("SHOP.PUBLIC.ORDERS", "shop")).toEqual({
+      database: "",
+      schema: "PUBLIC",
+      table: "ORDERS",
+    });
+    expect(readSnowflakeObjectParts("RAW.PUBLIC.ORDERS", "SHOP")).toEqual({
+      database: "RAW",
+      schema: "PUBLIC",
+      table: "ORDERS",
+    });
+  });
+
+  test("a name that is not three parts is not an object", () => {
+    expect(readSnowflakeObjectParts("PUBLIC.ORDERS", "SHOP")).toBeNull();
+    expect(readSnowflakeObjectParts("A..C", "SHOP")).toBeNull();
+    expect(readSnowflakeObjectParts(null, "SHOP")).toBeNull();
   });
 });

@@ -1,4 +1,5 @@
 import PageComponentProps from "../../PageComponentProps";
+import DatabaseServerTablesCard from "../../../Components/DataObservability/DatabaseServerTablesCard";
 import PageMap from "../../../Utils/PageMap";
 import RouteMap, { RouteUtil } from "../../../Utils/RouteMap";
 import Route from "Common/Types/API/Route";
@@ -970,6 +971,10 @@ const DatabaseServerOverview: FunctionComponent<
           windowStart={chartWindow?.start ?? null}
           windowEnd={chartWindow?.end ?? null}
         />
+      </div>
+
+      <div className="mt-6">
+        <DatabaseServerTablesCard databaseServerId={modelId} />
       </div>
 
       {/*

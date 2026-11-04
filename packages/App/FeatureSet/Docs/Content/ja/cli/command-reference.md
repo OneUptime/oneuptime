@@ -6,7 +6,7 @@
 - [グローバルオプション](#グローバルオプション): すべてのコマンドが受け付けるオプション。
 - [ログインとコンテキスト](#ログインとコンテキスト): login と context のコマンド。
 - [リソースのコマンド](#リソースのコマンド): すべてのリソースの操作、フィールド、アクション。
-- [その他のコマンド](#その他のコマンド): deploy、dbt upload、whoami、resources、version、help。
+- [その他のコマンド](#その他のコマンド): deploy、dbt upload、data-checks apply、whoami、resources、version、help。
 :::
 
 ## コマンドの全体像
@@ -322,6 +322,19 @@ oneuptime dbt upload [--target-path <dir>] [--manifest <file>] [--run-results <f
 | `--run-results <file>` | いいえ | 送信する実行結果 | ターゲット フォルダー内の `run_results.json` |
 | `--project <name>` | いいえ | dbt プロジェクトの名前。マニフェストを送らないときにだけ必要です | マニフェストのプロジェクト |
 | `--ingestion-key <key>` | いいえ | プロジェクトのテレメトリ取り込みキー | `ONEUPTIME_TELEMETRY_INGESTION_KEY` |
+
+### `oneuptime data-checks apply`
+
+プロジェクトのデータチェックを YAML ファイルに一致させます。チェックをリポジトリで管理し、コードと同じようにレビューできます。ファイル内のどこかに誤りがあると、何も適用されず、エラーで終了します。ファイルの形式は [チェックと照合](/docs/data-observability/checks) にあります。
+
+```bash
+oneuptime data-checks apply <file> [--dry-run] [--prune]
+```
+
+| オプション | 必須 | 内容 | 既定値 |
+| --- | --- | --- | --- |
+| `--dry-run` | いいえ | 何が変わるかを表示し、何も変更しません | オフ |
+| `--prune` | いいえ | 以前の apply が作成したチェックのうち、ファイルに名前がなくなったものを削除します | オフ |
 
 ### `oneuptime whoami`
 

@@ -754,6 +754,24 @@ import DataWarehouseJobService, {
 import DataReconciliationService, {
   Service as DataReconciliationServiceType,
 } from "Common/Server/Services/DataReconciliationService";
+import DataIssueReportService, {
+  Service as DataIssueReportServiceType,
+} from "Common/Server/Services/DataIssueReportService";
+import DataAssetOwnerUserService, {
+  Service as DataAssetOwnerUserServiceType,
+} from "Common/Server/Services/DataAssetOwnerUserService";
+import DataAssetOwnerTeamService, {
+  Service as DataAssetOwnerTeamServiceType,
+} from "Common/Server/Services/DataAssetOwnerTeamService";
+import DataAssetOwnerRuleService, {
+  Service as DataAssetOwnerRuleServiceType,
+} from "Common/Server/Services/DataAssetOwnerRuleService";
+import DataAssetLabelRuleService, {
+  Service as DataAssetLabelRuleServiceType,
+} from "Common/Server/Services/DataAssetLabelRuleService";
+import DataObservabilitySettingService, {
+  Service as DataObservabilitySettingServiceType,
+} from "Common/Server/Services/DataObservabilitySettingService";
 import DataAssetLineageService, {
   Service as DataAssetLineageServiceType,
 } from "Common/Server/Services/DataAssetLineageService";
@@ -1831,6 +1849,12 @@ import DataBiConnection from "Common/Models/DatabaseModels/DataBiConnection";
 import DataDashboard from "Common/Models/DatabaseModels/DataDashboard";
 import DataWarehouseJob from "Common/Models/DatabaseModels/DataWarehouseJob";
 import DataReconciliation from "Common/Models/DatabaseModels/DataReconciliation";
+import DataIssueReport from "Common/Models/DatabaseModels/DataIssueReport";
+import DataAssetOwnerUser from "Common/Models/DatabaseModels/DataAssetOwnerUser";
+import DataAssetOwnerTeam from "Common/Models/DatabaseModels/DataAssetOwnerTeam";
+import DataAssetOwnerRule from "Common/Models/DatabaseModels/DataAssetOwnerRule";
+import DataAssetLabelRule from "Common/Models/DatabaseModels/DataAssetLabelRule";
+import DataObservabilitySetting from "Common/Models/DatabaseModels/DataObservabilitySetting";
 import DataAssetLineage from "Common/Models/DatabaseModels/DataAssetLineage";
 import DataAlert from "Common/Models/DatabaseModels/DataAlert";
 import SecurityEntityCriticality from "Common/Models/DatabaseModels/SecurityEntityCriticality";
@@ -4659,6 +4683,54 @@ const BaseAPIFeatureSet: FeatureSet = {
         DataReconciliation,
         DataReconciliationService,
       ).getRouter(),
+    );
+
+    app.use(
+      `/${APP_NAME.toLocaleLowerCase()}`,
+      new BaseAPI<DataIssueReport, DataIssueReportServiceType>(
+        DataIssueReport,
+        DataIssueReportService,
+      ).getRouter(),
+    );
+
+    app.use(
+      `/${APP_NAME.toLocaleLowerCase()}`,
+      new BaseAPI<DataAssetOwnerUser, DataAssetOwnerUserServiceType>(
+        DataAssetOwnerUser,
+        DataAssetOwnerUserService,
+      ).getRouter(),
+    );
+
+    app.use(
+      `/${APP_NAME.toLocaleLowerCase()}`,
+      new BaseAPI<DataAssetOwnerTeam, DataAssetOwnerTeamServiceType>(
+        DataAssetOwnerTeam,
+        DataAssetOwnerTeamService,
+      ).getRouter(),
+    );
+
+    app.use(
+      `/${APP_NAME.toLocaleLowerCase()}`,
+      new BaseAPI<DataAssetOwnerRule, DataAssetOwnerRuleServiceType>(
+        DataAssetOwnerRule,
+        DataAssetOwnerRuleService,
+      ).getRouter(),
+    );
+
+    app.use(
+      `/${APP_NAME.toLocaleLowerCase()}`,
+      new BaseAPI<DataAssetLabelRule, DataAssetLabelRuleServiceType>(
+        DataAssetLabelRule,
+        DataAssetLabelRuleService,
+      ).getRouter(),
+    );
+
+    app.use(
+      `/${APP_NAME.toLocaleLowerCase()}`,
+      new BaseAPI<
+        DataObservabilitySetting,
+        DataObservabilitySettingServiceType
+      >(DataObservabilitySetting, DataObservabilitySettingService).getRouter(),
     );
 
     app.use(

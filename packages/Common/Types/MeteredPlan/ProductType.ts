@@ -6,6 +6,8 @@ enum ProductType {
   SessionReplay = "Session Replay",
   SecurityEvents = "Security Events",
   ActiveMonitoring = "Active Monitoring",
+  // Data Observability's watched tables. Nothing is charged until this has a price.
+  WatchedTables = "Watched Tables",
 }
 
 export default ProductType;

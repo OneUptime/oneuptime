@@ -57,9 +57,9 @@ flowchart TB
 
 | 要求 | 要求内容 | 检查 |
 | --- | --- | --- |
-| 第 5(1)(c) 条 | 数据最小化 | `production-data-in-non-production`、`stale-sensitive-data`、`sensitive-data-in-telemetry`、`sensitive-data-to-ai`、`sensitive-data-in-ai-store` |
+| 第 5(1)(c) 条 | 数据最小化 | `production-data-in-non-production`、`stale-sensitive-data`, `new-personal-data-column`、`sensitive-data-in-telemetry`、`sensitive-data-to-ai`、`sensitive-data-in-ai-store` |
 | 第 5(1)(e) 条 | 存储限制 | `stale-sensitive-data` |
-| 第 25 条 | 通过设计和默认设置实现数据保护 | `production-data-in-non-production`、`stale-sensitive-data`、`sensitive-data-in-telemetry`、`sensitive-data-to-ai`、`sensitive-data-in-ai-store` |
+| 第 25 条 | 通过设计和默认设置实现数据保护 | `production-data-in-non-production`、`stale-sensitive-data`, `new-personal-data-column`、`sensitive-data-in-telemetry`、`sensitive-data-to-ai`、`sensitive-data-in-ai-store` |
 | 第 28 条 | 处理者 | `sensitive-data-to-ai` |
 | 第 30 条 | 处理活动记录 | 由数据安全本身满足 |
 | 第 32 条 | 处理的安全性 | `public-read`、`public-write`、`public-access-not-blocked`、`internet-reachable`、`open-to-all-addresses`、`snapshot-public`、`snapshot-shared-externally`、`shared-with-external-accounts`、`not-encrypted-at-rest`、`no-customer-managed-key`、`encryption-in-transit-not-enforced`、`weak-tls`、`no-backups`、`no-point-in-time-recovery`、`deletion-protection-off`、`deleted-data-not-recoverable`、`access-not-logged`、`shared-key-access`、`object-acls-enabled`、`many-readers`、`unused-access`、`secrets-stored`、`plaintext-passwords`、`secrets-in-telemetry` |
@@ -69,7 +69,7 @@ flowchart TB
 
 | 要求 | 要求内容 | 检查 |
 | --- | --- | --- |
-| 1798.100(c) | 收集仅限于必要的内容 | `production-data-in-non-production`、`stale-sensitive-data`、`sensitive-data-in-telemetry`、`sensitive-data-to-ai`、`sensitive-data-in-ai-store` |
+| 1798.100(c) | 收集仅限于必要的内容 | `production-data-in-non-production`、`stale-sensitive-data`, `new-personal-data-column`、`sensitive-data-in-telemetry`、`sensitive-data-to-ai`、`sensitive-data-in-ai-store` |
 | 1798.150 | 合理的安全程序 | `public-read`、`public-write`、`public-access-not-blocked`、`internet-reachable`、`open-to-all-addresses`、`snapshot-public`、`snapshot-shared-externally`、`shared-with-external-accounts`、`shared-key-access`、`object-acls-enabled`、`many-readers` |
 
 ### HIPAA
@@ -114,8 +114,8 @@ flowchart TB
 | A.5.12 | 信息分类 | 由数据安全本身满足 |
 | A.5.15 | 访问控制 | `public-read`、`public-write`、`public-access-not-blocked`、`internet-reachable`、`open-to-all-addresses`、`snapshot-public`、`snapshot-shared-externally`、`shared-with-external-accounts`、`shared-key-access`、`object-acls-enabled`、`many-readers` |
 | A.5.18 | 访问权限 | `unused-access` |
-| A.5.34 | 隐私和 PII 保护 | `production-data-in-non-production`、`stale-sensitive-data`、`sensitive-data-in-telemetry`、`sensitive-data-to-ai`、`sensitive-data-in-ai-store` |
-| A.8.11 | 数据脱敏 | `production-data-in-non-production`、`stale-sensitive-data`、`sensitive-data-in-telemetry`、`sensitive-data-to-ai`、`sensitive-data-in-ai-store` |
+| A.5.34 | 隐私和 PII 保护 | `production-data-in-non-production`、`stale-sensitive-data`, `new-personal-data-column`、`sensitive-data-in-telemetry`、`sensitive-data-to-ai`、`sensitive-data-in-ai-store` |
+| A.8.11 | 数据脱敏 | `production-data-in-non-production`、`stale-sensitive-data`, `new-personal-data-column`、`sensitive-data-in-telemetry`、`sensitive-data-to-ai`、`sensitive-data-in-ai-store` |
 | A.8.12 | 数据泄露防护 | `secrets-stored`、`secrets-in-telemetry` |
 | A.8.13 | 信息备份 | `no-backups`、`no-point-in-time-recovery`、`deletion-protection-off`、`deleted-data-not-recoverable` |
 | A.8.15 | 日志记录 | `access-not-logged` |
@@ -136,7 +136,7 @@ flowchart TB
 
 | 要求 | 要求内容 | 检查 |
 | --- | --- | --- |
-| 第 6 条 | 必要性和目的限制 | `production-data-in-non-production`、`stale-sensitive-data`、`sensitive-data-in-telemetry`、`sensitive-data-to-ai`、`sensitive-data-in-ai-store` |
+| 第 6 条 | 必要性和目的限制 | `production-data-in-non-production`、`stale-sensitive-data`, `new-personal-data-column`、`sensitive-data-in-telemetry`、`sensitive-data-to-ai`、`sensitive-data-in-ai-store` |
 | 第 33 条 | 数据的国际传输 | `residency-violation` |
 | 第 46 条 | 安全措施 | `public-read`、`public-write`、`public-access-not-blocked`、`internet-reachable`、`open-to-all-addresses`、`snapshot-public`、`snapshot-shared-externally`、`shared-with-external-accounts`、`not-encrypted-at-rest`、`no-customer-managed-key`、`shared-key-access`、`object-acls-enabled`、`many-readers` |
 
@@ -145,7 +145,7 @@ flowchart TB
 | 要求 | 要求内容 | 检查 |
 | --- | --- | --- |
 | 第 8(5) 条 | 合理的安全保障措施 | `public-read`、`public-write`、`public-access-not-blocked`、`internet-reachable`、`open-to-all-addresses`、`snapshot-public`、`snapshot-shared-externally`、`shared-with-external-accounts`、`not-encrypted-at-rest`、`no-customer-managed-key`、`shared-key-access`、`object-acls-enabled`、`many-readers` |
-| 第 8(7) 条 | 目的达成后删除 | `production-data-in-non-production`、`stale-sensitive-data`、`sensitive-data-in-telemetry`、`sensitive-data-to-ai`、`sensitive-data-in-ai-store` |
+| 第 8(7) 条 | 目的达成后删除 | `production-data-in-non-production`、`stale-sensitive-data`, `new-personal-data-column`、`sensitive-data-in-telemetry`、`sensitive-data-to-ai`、`sensitive-data-in-ai-store` |
 | 第 16 条 | 向印度境外传输 | `residency-violation` |
 
 ## 处理活动记录

@@ -17,6 +17,7 @@ import TableColumnType from "../../Types/Database/TableColumnType";
 import TableMetadata from "../../Types/Database/TableMetadata";
 import TenantColumn from "../../Types/Database/TenantColumn";
 import IconProp from "../../Types/Icon/IconProp";
+import { JSONArray } from "../../Types/JSON";
 import ObjectID from "../../Types/ObjectID";
 import Permission from "../../Types/Permission";
 import { Column, Entity, Index, JoinColumn, ManyToOne } from "typeorm";
@@ -304,6 +305,21 @@ export default class DataAssetLineage extends BaseModel {
     nullable: true,
   })
   public seenBy?: string = undefined;
+
+  @ColumnAccessControl(serverWrittenColumnAccess)
+  @TableColumn({
+    type: TableColumnType.JSON,
+    required: false,
+    canReadOnRelationQuery: true,
+    title: "Column Mappings",
+    description:
+      "Which columns of the upstream table feed which columns of the downstream one, when its source names them.",
+  })
+  @Column({
+    type: ColumnType.JSON,
+    nullable: true,
+  })
+  public columnMappings?: JSONArray = undefined;
 
   @ColumnAccessControl(serverWrittenColumnAccess)
   @TableColumn({

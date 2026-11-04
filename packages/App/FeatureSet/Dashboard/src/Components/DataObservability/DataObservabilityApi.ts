@@ -1,3 +1,9 @@
+import { DataColumnSensitivity } from "Common/Types/DataObservability/DataColumnSensitivity";
+import {
+  DataAlertExplanation,
+  DataAlertFeedback,
+  DataObservabilityQuality,
+} from "Common/Types/DataObservability/DataAlertFeedback";
 import URL from "Common/Types/API/URL";
 import HTTPErrorResponse from "Common/Types/API/HTTPErrorResponse";
 import HTTPResponse from "Common/Types/API/HTTPResponse";
@@ -14,7 +20,11 @@ import {
   DataObservabilityDataProductSyncResponse,
   DataObservabilityOverview,
   DataObservabilityReconciliationSyncResponse,
+  DataObservabilityAiAppTable,
+  DataObservabilitySourceSuggestion,
   DataObservabilitySpendSummary,
+  DataObservabilityStoragePathStore,
+  DataObservabilityTableErrors,
   DataObservabilityStoreSummary,
   DataObservabilityTableDashboard,
 } from "Common/Types/DataObservability/DataObservabilityApiTypes";
@@ -170,6 +180,34 @@ export default class DataObservabilityApi {
     )) as unknown as DataObservabilityBiSyncResponse;
   }
 
+  public static async getAlertExplanation(
+    alertId: ObjectID,
+  ): Promise<DataAlertExplanation | null> {
+    const response: JSONObject = await post(
+      DATA_OBSERVABILITY_API_ROUTES.alertExplanation(alertId.toString()),
+    );
+
+    return (response["explanation"] ||
+      null) as unknown as DataAlertExplanation | null;
+  }
+
+  public static async sendAlertFeedback(
+    alertId: ObjectID,
+    data: { feedback?: DataAlertFeedback; isCauseConfirmed?: boolean },
+  ): Promise<void> {
+    await post(
+      DATA_OBSERVABILITY_API_ROUTES.alertFeedback(alertId.toString()),
+      data as unknown as JSONObject,
+    );
+  }
+
+  // How well Data Observability is working for the project.
+  public static async getQuality(): Promise<DataObservabilityQuality> {
+    return (await post(
+      DATA_OBSERVABILITY_API_ROUTES.quality,
+    )) as unknown as DataObservabilityQuality;
+  }
+
   // What the project's warehouses spent over the last day.
   public static async getSpendSummary(): Promise<DataObservabilitySpendSummary> {
     return (await post(
@@ -189,6 +227,88 @@ export default class DataObservabilityApi {
     return (Array.isArray(response["dashboards"])
       ? response["dashboards"]
       : []) as unknown as Array<DataObservabilityTableDashboard>;
+  }
+
+  // The databases the project knows of that nobody has connected.
+  public static async getSourceSuggestions(): Promise<
+    Array<DataObservabilitySourceSuggestion>
+  > {
+    const response: JSONObject = (await post(
+      DATA_OBSERVABILITY_API_ROUTES.sourceSuggestions,
+    )) as JSONObject;
+
+    return (Array.isArray(response["suggestions"])
+      ? response["suggestions"]
+      : []) as unknown as Array<DataObservabilitySourceSuggestion>;
+  }
+
+  public static async getTableErrors(
+    dataAssetId: ObjectID,
+  ): Promise<DataObservabilityTableErrors> {
+    return (await post(DATA_OBSERVABILITY_API_ROUTES.tableErrors, {
+      dataAssetId: dataAssetId.toString(),
+    })) as unknown as DataObservabilityTableErrors;
+  }
+
+  public static async getAiAppTables(): Promise<
+    Array<DataObservabilityAiAppTable>
+  > {
+    const response: JSONObject = (await post(
+      DATA_OBSERVABILITY_API_ROUTES.aiAppTables,
+    )) as JSONObject;
+
+    return (Array.isArray(response["tables"])
+      ? response["tables"]
+      : []) as unknown as Array<DataObservabilityAiAppTable>;
+  }
+
+  public static async getStoresOfDatabaseServer(
+    databaseServerId: ObjectID,
+  ): Promise<Array<DataObservabilityStoreSummary>> {
+    const response: JSONObject = (await post(
+      DATA_OBSERVABILITY_API_ROUTES.databaseServerStores,
+      { databaseServerId: databaseServerId.toString() },
+    )) as JSONObject;
+
+    return (Array.isArray(response["stores"])
+      ? response["stores"]
+      : []) as unknown as Array<DataObservabilityStoreSummary>;
+  }
+
+  public static async getStoragePaths(): Promise<
+    Array<DataObservabilityStoragePathStore>
+  > {
+    const response: JSONObject = (await post(
+      DATA_OBSERVABILITY_API_ROUTES.storagePaths,
+    )) as JSONObject;
+
+    return (Array.isArray(response["stores"])
+      ? response["stores"]
+      : []) as unknown as Array<DataObservabilityStoragePathStore>;
+  }
+
+  public static async saveStoragePaths(
+    dataStoreId: ObjectID,
+    watchedPaths: string,
+  ): Promise<void> {
+    await post(
+      DATA_OBSERVABILITY_API_ROUTES.storagePathsSave(dataStoreId.toString()),
+      { watchedPaths },
+    );
+  }
+
+  // What Data Security knows each of a table's columns holds.
+  public static async getTableSensitivity(
+    dataAssetId: ObjectID,
+  ): Promise<Array<DataColumnSensitivity>> {
+    const response: JSONObject = (await post(
+      DATA_OBSERVABILITY_API_ROUTES.tableSensitivity,
+      { dataAssetId: dataAssetId.toString() },
+    )) as JSONObject;
+
+    return (Array.isArray(response["columns"])
+      ? response["columns"]
+      : []) as unknown as Array<DataColumnSensitivity>;
   }
 
   public static async runCheckNow(dataCheckId: ObjectID): Promise<void> {
