@@ -1009,7 +1009,11 @@ describe("adding people to a Mattermost channel", () => {
     });
 
     test.each([
-      ["a channel kept to its groups", 400, "api.channel.add_members.user_denied"],
+      [
+        "a channel kept to its groups",
+        400,
+        "api.channel.add_members.user_denied",
+      ],
       [
         "an access policy the person does not meet",
         403,
@@ -1320,12 +1324,7 @@ describe("adding people to a Mattermost channel", () => {
       "ie-3",
       "incidentEpisodeId",
     ],
-    [
-      WorkspaceChannelRecordType.AlertEpisode,
-      MM_AE5,
-      "ae-5",
-      "alertEpisodeId",
-    ],
+    [WorkspaceChannelRecordType.AlertEpisode, MM_AE5, "ae-5", "alertEpisodeId"],
     [
       WorkspaceChannelRecordType.ScheduledMaintenance,
       MM_SM5,

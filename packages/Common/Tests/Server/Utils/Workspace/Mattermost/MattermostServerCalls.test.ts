@@ -797,15 +797,12 @@ describe("MattermostUtil: calls to the Mattermost server", () => {
           from: number,
           length: number,
         ): Array<JSONObject> => {
-          return Array.from(
-            { length: length },
-            (_: unknown, index: number) => {
-              return {
-                id: String(from + index).padStart(26, "u"),
-                username: `user${from + index}`,
-              };
-            },
-          );
+          return Array.from({ length: length }, (_: unknown, index: number) => {
+            return {
+              id: String(from + index).padStart(26, "u"),
+              username: `user${from + index}`,
+            };
+          });
         };
 
         on("GET", "/api/v4/users", (call: ServerCall) => {

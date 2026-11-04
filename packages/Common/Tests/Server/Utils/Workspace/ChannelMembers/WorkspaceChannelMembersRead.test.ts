@@ -934,7 +934,9 @@ describe("the people in a record's Mattermost channel", () => {
 
     const channel: WorkspaceRecordChannel = (await read()).channels[0]!;
 
-    expect(channel.url).toBe(`${MATTERMOST_SERVER}/acme/channels/inc-42-renamed`);
+    expect(channel.url).toBe(
+      `${MATTERMOST_SERVER}/acme/channels/inc-42-renamed`,
+    );
     // As the record stored it, like the header's button.
     expect(channel.name).toBe("inc-42");
   });

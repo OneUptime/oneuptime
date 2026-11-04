@@ -1476,9 +1476,7 @@ describe("Mattermost channels", () => {
 
     const element: HTMLElement = await card();
 
-    expect(
-      within(element).getByTestId("record-channel-ask"),
-    ).toHaveTextContent(
+    expect(within(element).getByTestId("record-channel-ask")).toHaveTextContent(
       "You're not in this channel. Ask someone who can edit this incident to add you.",
     );
     expect(within(element).queryByTestId("record-channel-join")).toBeNull();
@@ -1641,9 +1639,7 @@ describe("Mattermost channels", () => {
 
     fireEvent.click(within(element).getByTestId("record-channel-join"));
 
-    expect(
-      await within(element).findByRole("alert"),
-    ).toHaveTextContent(
+    expect(await within(element).findByRole("alert")).toHaveTextContent(
       "You're not in the Mattermost team this project is connected to, so OneUptime can't add you.",
     );
     expect(

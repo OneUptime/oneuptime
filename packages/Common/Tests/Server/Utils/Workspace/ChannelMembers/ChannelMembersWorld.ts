@@ -327,7 +327,12 @@ export const MATTERMOST_ACCOUNTS: Array<MattermostAccount> = [
     email: "alice@acme.test",
   },
   { id: MM_BOB, username: "bob", email: "bob@acme.test" },
-  { id: MM_CAROL, username: "carol", firstName: "Carol", email: "carol@acme.test" },
+  {
+    id: MM_CAROL,
+    username: "carol",
+    firstName: "Carol",
+    email: "carol@acme.test",
+  },
   { id: MM_ERIN, username: "erin", email: "erin@acme.test" },
   { id: MM_GINA, username: "gina", email: "gina@partner.test", isGuest: true },
   { id: MM_OSCAR, username: "oscar", email: "oscar@acme.test" },
@@ -381,10 +386,7 @@ export function mattermostChannel(
 }
 
 // What Mattermost answers when it refuses.
-function mattermostRefusal(
-  status: number,
-  errorId: string,
-): HTTPErrorResponse {
+function mattermostRefusal(status: number, errorId: string): HTTPErrorResponse {
   return new HTTPErrorResponse(
     status,
     { id: errorId, message: `Refused: ${errorId}`, status_code: status },
@@ -766,9 +768,7 @@ export default class ChannelMembersWorld {
         );
       }
 
-      const email: string = decodeURIComponent(
-        segments[5] || "",
-      ).toLowerCase();
+      const email: string = decodeURIComponent(segments[5] || "").toLowerCase();
       const account: MattermostAccount | undefined =
         this.mattermostAccounts.find((candidate: MattermostAccount) => {
           return Boolean(email) && candidate.email.toLowerCase() === email;
