@@ -1,3 +1,5 @@
+import WorkspaceType from "./WorkspaceType";
+
 /*
  * What a connect callback tells the page a connection started from.
  *
@@ -23,6 +25,7 @@
 export enum ConnectProvider {
   Slack = "slack",
   MicrosoftTeams = "microsoft-teams",
+  Mattermost = "mattermost",
   GitHub = "github",
   /*
    * The one-click Connect of a video call provider. All three start from, and
@@ -85,6 +88,8 @@ export enum ConnectCallbackError {
    * connected.
    */
   TeamsOtherAccount = "teams-other-account",
+  // Mattermost sign-in: the project is no longer connected to the Mattermost team the link was sent from.
+  MattermostNotConnected = "mattermost-not-connected",
   // GitHub: no installation came back (an owner may still have to approve it).
   GitHubNoInstallation = "github-no-installation",
   // GitHub: no authorization code came back, so the installation cannot be verified.
@@ -230,6 +235,21 @@ export default class ConnectCallbackUtil {
    * when it was started there; GitHub on Code. The callbacks and
    * the connect-return page both send the browser here.
    */
+  // The provider whose page a workspace's connections start from and come back to.
+  public static getProviderOfWorkspace(
+    workspaceType: WorkspaceType,
+  ): ConnectProvider {
+    switch (workspaceType) {
+      case WorkspaceType.MicrosoftTeams:
+        return ConnectProvider.MicrosoftTeams;
+      case WorkspaceType.Mattermost:
+        return ConnectProvider.Mattermost;
+      case WorkspaceType.Slack:
+      default:
+        return ConnectProvider.Slack;
+    }
+  }
+
   public static getPagePath(
     provider: ConnectProvider,
     startPage: ConnectStartPage,
@@ -244,6 +264,8 @@ export default class ConnectCallbackUtil {
         return `${settings}/slack-integration`;
       case ConnectProvider.MicrosoftTeams:
         return `${settings}/microsoft-teams-integration`;
+      case ConnectProvider.Mattermost:
+        return `${settings}/mattermost-integration`;
       // Code's first page, where the repositories are.
       case ConnectProvider.GitHub:
         return "/code";

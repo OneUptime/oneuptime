@@ -8,6 +8,7 @@ Anslut ett AWS-konto, en Azure-prenumeration eller ett Google Cloud-projekt frå
 - [Google Cloud](#google-cloud): Ett tjänstkonto med sex skrivskyddade roller.
 - [Vad OneUptime läser](#vad-oneuptime-läser): Resurser, mätvärden, ändringar, hälsohändelser och kostnader, hur ofta och vad det kostar att läsa dem.
 - [Molnkostnader och besparingar](/docs/telemetry/cloud-costs): Vad varje konto kostar, sätten att spendera mindre och budgetar som larmar.
+- [Strömma CloudWatch-mätvärden och -loggar](/docs/telemetry/cloud-streaming): Varje mätvärde inom några minuter, och CloudWatch Logs, via Amazon Data Firehose.
 - [Datasäkerhet](#datasäkerhet): Vad anslutningen låter Datasäkerhet läsa, och vad varje nivå lägger till i kommandot.
 - [Låt AI åtgärda problem](#låt-ai-åtgärda-problem): Ett kommando till, så kan OneUptime AI åtgärda det den hittar.
 :::
@@ -268,7 +269,7 @@ Kommandot för en lägre nivå ersätter AWS-policyn med den lägre nivåns poli
 | Läses var | 10:e minut | 5:e minut | 5:e minut |
 | En borttagen resurs | Arkiveras när en fullständig listning inte längre har den | Arkiveras när en fullständig listning inte längre har den | Arkiveras när en fullständig listning inte längre har den |
 
-Varje läsning fortsätter där den förra slutade, så varje datapunkt och varje ändring skrivs en gång. En ny anslutnings första läsning startar inom en minut och går en timme bakåt för mätvärden och 2 timmar bakåt för ändringar; efter ett uppehåll går en läsning högst 6 timmar bakåt. En resurs som bara rapporterar mätvärden, och som ingen listning har, arkiveras efter 7 dagar utan mätvärden. Kostnader läses två gånger om dagen, och sätten att spendera mindre en gång om dagen.
+Varje läsning fortsätter där den förra slutade, så varje datapunkt och varje ändring skrivs en gång. Med **Molngranskningsloggar** påslaget i Säkerhetshändelser sparar samma läsningar även kontonas granskningsloggar som [säkerhetshändelser](/docs/telemetry/security-events#läs-granskningsloggarna-för-dina-molnkonton). En ny anslutnings första läsning startar inom en minut och går en timme bakåt för mätvärden och 2 timmar bakåt för ändringar; efter ett uppehåll går en läsning högst 6 timmar bakåt. En resurs som bara rapporterar mätvärden, och som ingen listning har, arkiveras efter 7 dagar utan mätvärden. Kostnader läses två gånger om dagen, och sätten att spendera mindre en gång om dagen.
 
 Anropen som OneUptime gör faktureras ditt molnkonto, till molnets priser. Att lista resurser, läsa ändringar och hälsohändelser, läsa sätten att spendera mindre och läsa Azures kostnader kostar inget; att läsa mätvärden gör det, och likaså att läsa kostnaderna för AWS och Google Cloud. Testet uppskattar vad det som hittas kostar, och att läsa mer sällan kostar mindre: ändra **Intervall för läsning av mätvärden** under **Fler fält**.
 
@@ -320,7 +321,7 @@ En organisationsprincip, `iam.disableServiceAccountKeyCreation`, kan förbjuda n
 :::
 
 :::details Inga resurser visas
-Den första läsningen listar varje resurs i kontot, oavsett om den rapporterar mätvärden eller inte. Om en anslutning inte fungerar säger **View error** under **Moln → Anslut** varför dess senaste läsning misslyckades.
+Den första läsningen listar varje resurs i kontot, oavsett om den rapporterar mätvärden eller inte. Om en anslutning inte fungerar säger **Visa fel** under **Moln → Anslut** varför dess senaste läsning misslyckades.
 :::
 
 :::details Några av organisationens konton saknas

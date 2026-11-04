@@ -86,11 +86,11 @@ Open **Bereikbaarheidsdienst** via het menu **Producten** in de bovenste balk. H
 | **Inkomende gesprekken** | **Beleid inkomende gesprekken**: een telefoonnummer dat overgaat bij wie dienst heeft |
 | **Geavanceerd** | **Gebruikersoverschrijvingen**, **Uitvoeringslogboeken** en **Gearchiveerde beleidsregels** |
 | **Rapporten** | **Bereikbaarheidstijd gebruiker**: hoe lang elke persoon dienst had |
-| **Werkruimte** | **Slack** en **Microsoft Teams**: regels die bereikbaarheidsgebeurtenissen in een kanaal plaatsen |
+| **Werkruimte** | **Slack**, **Microsoft Teams** en **Mattermost**: regels die bereikbaarheidsgebeurtenissen in een kanaal plaatsen |
 | **Instellingen** | **Aangepaste velden**, **Labelregels** en **Eigenaarsregels** |
 | **Ontwikkelaars** | **Terraform**, **API**, **CLI** en **AI-assistenten**: bereikbaarheid ingericht vanuit code |
 
-**Beleidsregels**, **Schema's** en **Inkomende gesprekken** staan open; de andere secties beginnen ingeklapt, en een sectie gaat vanzelf open als je op een van de pagina's ervan bent. **Werkruimte** toont de chattools die het project heeft gekoppeld, of **Slack of Teams koppelen** als het er geen heeft.
+**Beleidsregels**, **Schema's** en **Inkomende gesprekken** staan open; de andere secties beginnen ingeklapt, en een sectie gaat vanzelf open als je op een van de pagina's ervan bent. **Werkruimte** toont de chattools die het project heeft gekoppeld, of **Werkruimte koppelen** als het er geen heeft.
 
 Als je dienst hebt voor een beleid, laat de bel rechtsboven dat zien. Klik erop om **Mijn bereikbaarheidsbeleid** te openen: elk beleid waarvoor je dienst hebt, in al je projecten, en of je er direct in staat, via een team of via een schema.
 

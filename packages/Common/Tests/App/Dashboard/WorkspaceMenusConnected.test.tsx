@@ -19,8 +19,8 @@ import { FunctionComponent } from "react";
  * Please do this everywhere else in the project." (the maintainer)
  *
  * Every side menu with a Workspace section, rendered for real against the
- * real RouteMap, for a project with nothing, Slack, Microsoft Teams and both
- * connected. Also what a person sees while the answer is on its way: the
+ * real RouteMap, for a project with nothing, Slack, Microsoft Teams,
+ * Mattermost and several of them connected. Also what a person sees while the answer is on its way: the
  * menu must never flash the old two entries, or fold and unfold a section
  * under them.
  */
@@ -78,6 +78,7 @@ interface ProductMenu {
   landing: string;
   slack: string;
   microsoftTeams: string;
+  mattermost: string;
   connect: string;
 }
 
@@ -88,6 +89,7 @@ const PRODUCT_MENUS: Array<ProductMenu> = [
     landing: PageMap.INCIDENTS,
     slack: PageMap.INCIDENTS_WORKSPACE_CONNECTION_SLACK,
     microsoftTeams: PageMap.INCIDENTS_WORKSPACE_CONNECTION_MICROSOFT_TEAMS,
+    mattermost: PageMap.INCIDENTS_WORKSPACE_CONNECTION_MATTERMOST,
     connect: PageMap.INCIDENTS_WORKSPACE_CONNECTIONS,
   },
   {
@@ -96,6 +98,7 @@ const PRODUCT_MENUS: Array<ProductMenu> = [
     landing: PageMap.ALERTS,
     slack: PageMap.ALERTS_WORKSPACE_CONNECTION_SLACK,
     microsoftTeams: PageMap.ALERTS_WORKSPACE_CONNECTION_MICROSOFT_TEAMS,
+    mattermost: PageMap.ALERTS_WORKSPACE_CONNECTION_MATTERMOST,
     connect: PageMap.ALERTS_WORKSPACE_CONNECTIONS,
   },
   {
@@ -107,6 +110,8 @@ const PRODUCT_MENUS: Array<ProductMenu> = [
     slack: PageMap.SCHEDULED_MAINTENANCE_EVENTS_WORKSPACE_CONNECTION_SLACK,
     microsoftTeams:
       PageMap.SCHEDULED_MAINTENANCE_EVENTS_WORKSPACE_CONNECTION_MICROSOFT_TEAMS,
+    mattermost:
+      PageMap.SCHEDULED_MAINTENANCE_EVENTS_WORKSPACE_CONNECTION_MATTERMOST,
     connect: PageMap.SCHEDULED_MAINTENANCE_EVENTS_WORKSPACE_CONNECTIONS,
   },
   {
@@ -115,6 +120,7 @@ const PRODUCT_MENUS: Array<ProductMenu> = [
     landing: PageMap.MONITORS,
     slack: PageMap.MONITORS_WORKSPACE_CONNECTION_SLACK,
     microsoftTeams: PageMap.MONITORS_WORKSPACE_CONNECTION_MICROSOFT_TEAMS,
+    mattermost: PageMap.MONITORS_WORKSPACE_CONNECTION_MATTERMOST,
     connect: PageMap.MONITORS_WORKSPACE_CONNECTIONS,
   },
   {
@@ -123,6 +129,7 @@ const PRODUCT_MENUS: Array<ProductMenu> = [
     landing: PageMap.ON_CALL_DUTY_POLICIES,
     slack: PageMap.ON_CALL_DUTY_WORKSPACE_CONNECTION_SLACK,
     microsoftTeams: PageMap.ON_CALL_DUTY_WORKSPACE_CONNECTION_MICROSOFT_TEAMS,
+    mattermost: PageMap.ON_CALL_DUTY_WORKSPACE_CONNECTION_MATTERMOST,
     connect: PageMap.ON_CALL_DUTY_WORKSPACE_CONNECTIONS,
   },
   {
@@ -132,6 +139,7 @@ const PRODUCT_MENUS: Array<ProductMenu> = [
     slack: PageMap.SECURITY_EVENTS_WORKSPACE_CONNECTION_SLACK,
     microsoftTeams:
       PageMap.SECURITY_EVENTS_WORKSPACE_CONNECTION_MICROSOFT_TEAMS,
+    mattermost: PageMap.SECURITY_EVENTS_WORKSPACE_CONNECTION_MATTERMOST,
     connect: PageMap.SECURITY_EVENTS_WORKSPACE_CONNECTIONS,
   },
 ];
@@ -215,7 +223,7 @@ describe("product menus list only the connected workspaces", () => {
       await renderAt(menu.Menu, menu.landing);
 
       expect(workspaceLinks()).toEqual([
-        { title: "Connect Slack or Teams", href: routeFor(menu.connect) },
+        { title: "Connect a workspace", href: routeFor(menu.connect) },
       ]);
     },
   );
@@ -245,6 +253,49 @@ describe("product menus list only the connected workspaces", () => {
   );
 
   test.each(PRODUCT_CASES)(
+    "%s: Mattermost connected, Mattermost only",
+    async (_name: string, menu: ProductMenu) => {
+      connect(WorkspaceType.Mattermost);
+      await renderAt(menu.Menu, menu.landing);
+
+      expect(workspaceLinks()).toEqual([
+        { title: "Mattermost", href: routeFor(menu.mattermost) },
+      ]);
+    },
+  );
+
+  test.each(PRODUCT_CASES)(
+    "%s: all three connected, Slack, Microsoft Teams, then Mattermost",
+    async (_name: string, menu: ProductMenu) => {
+      connect(
+        WorkspaceType.Mattermost,
+        WorkspaceType.MicrosoftTeams,
+        WorkspaceType.Slack,
+      );
+      await renderAt(menu.Menu, menu.landing);
+
+      expect(workspaceLinks()).toEqual([
+        { title: "Slack", href: routeFor(menu.slack) },
+        { title: "Microsoft Teams", href: routeFor(menu.microsoftTeams) },
+        { title: "Mattermost", href: routeFor(menu.mattermost) },
+      ]);
+    },
+  );
+
+  test.each(PRODUCT_CASES)(
+    "%s: Slack and Mattermost connected, no Microsoft Teams between them",
+    async (_name: string, menu: ProductMenu) => {
+      connect(WorkspaceType.Mattermost, WorkspaceType.Slack);
+      await renderAt(menu.Menu, menu.landing);
+
+      expect(workspaceLinks()).toEqual([
+        { title: "Slack", href: routeFor(menu.slack) },
+        { title: "Mattermost", href: routeFor(menu.mattermost) },
+      ]);
+    },
+  );
+
+  test.each(PRODUCT_CASES)(
     "%s: both connected, Slack then Microsoft Teams",
     async (_name: string, menu: ProductMenu) => {
       connect(WorkspaceType.MicrosoftTeams, WorkspaceType.Slack);
@@ -266,7 +317,13 @@ describe("product menus list only the connected workspaces", () => {
         [],
         [WorkspaceType.Slack],
         [WorkspaceType.MicrosoftTeams],
+        [WorkspaceType.Mattermost],
         [WorkspaceType.Slack, WorkspaceType.MicrosoftTeams],
+        [
+          WorkspaceType.Slack,
+          WorkspaceType.MicrosoftTeams,
+          WorkspaceType.Mattermost,
+        ],
       ]) {
         connect(...types);
         await renderAt(menu.Menu, menu.landing);
@@ -301,7 +358,7 @@ describe("product menus list only the connected workspaces", () => {
 
       expect(isExpanded("Workspace")).toBe(true);
       expect(sectionBody("Workspace")).not.toHaveClass("invisible");
-      expect(activeLinkTitles()).toEqual(["Connect Slack or Teams"]);
+      expect(activeLinkTitles()).toEqual(["Connect a workspace"]);
     },
   );
 
@@ -313,6 +370,28 @@ describe("product menus list only the connected workspaces", () => {
 
       expect(isExpanded("Workspace")).toBe(true);
       expect(activeLinkTitles()).toEqual(["Microsoft Teams"]);
+    },
+  );
+
+  test.each(PRODUCT_CASES)(
+    "%s: the Mattermost page opens Workspace and marks it",
+    async (_name: string, menu: ProductMenu) => {
+      connect(WorkspaceType.Mattermost);
+      await renderAt(menu.Menu, menu.mattermost);
+
+      expect(isExpanded("Workspace")).toBe(true);
+      expect(activeLinkTitles()).toEqual(["Mattermost"]);
+    },
+  );
+
+  test.each(PRODUCT_CASES)(
+    "%s: a bookmarked Mattermost page is listed while you are on it, after the connected Slack",
+    async (_name: string, menu: ProductMenu) => {
+      connect(WorkspaceType.Slack);
+      await renderAt(menu.Menu, menu.mattermost);
+
+      expect(titles(workspaceLinks())).toEqual(["Slack", "Mattermost"]);
+      expect(activeLinkTitles()).toEqual(["Mattermost"]);
     },
   );
 
@@ -329,7 +408,7 @@ describe("product menus list only the connected workspaces", () => {
   );
 
   test.each(PRODUCT_CASES)(
-    "%s: if asking fails, both are listed, as before",
+    "%s: if asking fails, all three are listed",
     async (_name: string, menu: ProductMenu) => {
       fetcher.mockRejectedValue(new Error("Permission denied"));
       await renderAt(menu.Menu, menu.landing);
@@ -337,6 +416,7 @@ describe("product menus list only the connected workspaces", () => {
       expect(workspaceLinks()).toEqual([
         { title: "Slack", href: routeFor(menu.slack) },
         { title: "Microsoft Teams", href: routeFor(menu.microsoftTeams) },
+        { title: "Mattermost", href: routeFor(menu.mattermost) },
       ]);
     },
   );
@@ -348,15 +428,15 @@ describe("product menus list only the connected workspaces", () => {
     fireEvent.click(sectionToggle("Workspace"));
 
     expect(isExpanded("Workspace")).toBe(true);
-    expect(titles(workspaceLinks())).toEqual(["Connect Slack or Teams"]);
+    expect(titles(workspaceLinks())).toEqual(["Connect a workspace"]);
   });
 
-  test("on a phone, the connect page is named Workspace / Connect Slack or Teams", async () => {
+  test("on a phone, the connect page is named Workspace / Connect a workspace", async () => {
     setViewportWidth(MOBILE_WIDTH);
     connect();
     await renderAt(IncidentsSideMenu, PageMap.INCIDENTS_WORKSPACE_CONNECTIONS);
 
-    expect(mobileSummaryText()).toContain("Workspace / Connect Slack or Teams");
+    expect(mobileSummaryText()).toContain("Workspace / Connect a workspace");
   });
 });
 
@@ -394,7 +474,7 @@ describe("no flash while the answer is on its way", () => {
     async (_name: string, menu: ProductMenu) => {
       await renderAt(menu.Menu, menu.landing);
 
-      expect(titles(workspaceLinks())).toEqual(["Connect Slack or Teams"]);
+      expect(titles(workspaceLinks())).toEqual(["Connect a workspace"]);
       expect(isExpanded("Workspace")).toBe(false);
     },
   );
@@ -438,7 +518,7 @@ describe("no flash while the answer is on its way", () => {
       await answer.promise;
     });
 
-    expect(titles(workspaceLinks())).toEqual(["Connect Slack or Teams"]);
+    expect(titles(workspaceLinks())).toEqual(["Connect a workspace"]);
     expect(isExpanded("Workspace")).toBe(false);
   });
 });
@@ -463,9 +543,18 @@ describe("User Settings lists the connected workspaces, or none at all", () => {
   test.each([
     [[WorkspaceType.Slack], ["Slack"]],
     [[WorkspaceType.MicrosoftTeams], ["Microsoft Teams"]],
+    [[WorkspaceType.Mattermost], ["Mattermost"]],
     [
       [WorkspaceType.MicrosoftTeams, WorkspaceType.Slack],
       ["Slack", "Microsoft Teams"],
+    ],
+    [
+      [
+        WorkspaceType.Mattermost,
+        WorkspaceType.MicrosoftTeams,
+        WorkspaceType.Slack,
+      ],
+      ["Slack", "Microsoft Teams", "Mattermost"],
     ],
   ])(
     "%j connected: a Workspace section, last, with %j",
@@ -483,7 +572,11 @@ describe("User Settings lists the connected workspaces, or none at all", () => {
   );
 
   test("its entries are the pages that link your own account", async () => {
-    connect(WorkspaceType.Slack, WorkspaceType.MicrosoftTeams);
+    connect(
+      WorkspaceType.Slack,
+      WorkspaceType.MicrosoftTeams,
+      WorkspaceType.Mattermost,
+    );
     await renderAt(UserSettingsSideMenu, PageMap.USER_SETTINGS_SETUP);
 
     expect(workspaceLinks()).toEqual([
@@ -495,7 +588,23 @@ describe("User Settings lists the connected workspaces, or none at all", () => {
         title: "Microsoft Teams",
         href: routeFor(PageMap.USER_SETTINGS_MICROSOFT_TEAMS_INTEGRATION),
       },
+      {
+        title: "Mattermost",
+        href: routeFor(PageMap.USER_SETTINGS_MATTERMOST_INTEGRATION),
+      },
     ]);
+  });
+
+  test("the Mattermost page of a project without Mattermost still shows where you are", async () => {
+    connect();
+    await renderAt(
+      UserSettingsSideMenu,
+      PageMap.USER_SETTINGS_MATTERMOST_INTEGRATION,
+    );
+
+    expect(titles(workspaceLinks())).toEqual(["Mattermost"]);
+    expect(isExpanded("Workspace")).toBe(true);
+    expect(activeLinkTitles()).toEqual(["Mattermost"]);
   });
 
   test("the Slack page of a project without Slack still shows where you are", async () => {
@@ -531,31 +640,36 @@ describe("User Settings lists the connected workspaces, or none at all", () => {
     expect(titles(workspaceLinks())).toEqual(["Microsoft Teams"]);
   });
 
-  test("if asking fails, both are listed, as before", async () => {
+  test("if asking fails, all three are listed", async () => {
     fetcher.mockRejectedValue(new Error("Permission denied"));
     await renderAt(UserSettingsSideMenu, PageMap.USER_SETTINGS_SETUP);
 
-    expect(titles(workspaceLinks())).toEqual(["Slack", "Microsoft Teams"]);
+    expect(titles(workspaceLinks())).toEqual([
+      "Slack",
+      "Microsoft Teams",
+      "Mattermost",
+    ]);
   });
 });
 
 /*
  * Project Settings is where a workspace is connected (or disconnected), so
- * both stay listed there in every project: hiding the one not connected
- * would hide the only way to connect it.
+ * all three stay listed there in every project: hiding the ones not
+ * connected would hide the only way to connect them.
  *
  * Video Calls follows them in every project too: a call started from an
  * incident's page needs neither workspace, and its page is where Zoom,
  * Google Meet and Microsoft Teams meetings are connected.
  */
-describe("Project Settings keeps both: it is where they are connected", () => {
+describe("Project Settings keeps all three: it is where they are connected", () => {
   test.each([
     [[]],
     [[WorkspaceType.Slack]],
     [[WorkspaceType.MicrosoftTeams]],
+    [[WorkspaceType.Mattermost]],
     [[WorkspaceType.Slack, WorkspaceType.MicrosoftTeams]],
   ])(
-    "with %j connected, Workspace lists Slack, Microsoft Teams and Video Calls",
+    "with %j connected, Workspace lists Slack, Microsoft Teams, Mattermost and Video Calls",
     async (types: Array<WorkspaceType>) => {
       connect(...types);
       await renderAt(ProjectSettingsSideMenu, PageMap.SETTINGS);
@@ -565,6 +679,10 @@ describe("Project Settings keeps both: it is where they are connected", () => {
         {
           title: "Microsoft Teams",
           href: routeFor(PageMap.SETTINGS_MICROSOFT_TEAMS_INTEGRATION),
+        },
+        {
+          title: "Mattermost",
+          href: routeFor(PageMap.SETTINGS_MATTERMOST_INTEGRATION),
         },
         {
           title: "Video Calls",

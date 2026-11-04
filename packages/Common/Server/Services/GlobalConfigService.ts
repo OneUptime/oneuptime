@@ -50,6 +50,13 @@ import crypto from "crypto";
 export const PUSH_NOTIFICATIONS_TURNED_OFF_CACHE_TTL_MS: number = 10_000;
 
 /*
+ * How long a server keeps whether sign-in links are turned off before it
+ * reads the switch again. A write drops this server's copy at once; another
+ * server's runs out within this, and a link is refused once it does.
+ */
+export const MAGIC_LINK_LOGIN_TURNED_OFF_CACHE_TTL_MS: number = 10_000;
+
+/*
  * A gateway's signing secret: 32 random bytes as 64 hex digits, as a custom
  * channel's is (CustomNotificationChannelService.generateSecret).
  */
@@ -215,9 +222,63 @@ export class Service extends DatabaseService<Model> {
    * old value back for the next 10 seconds.
    */
   private pushNotificationsTurnedOffGeneration: number = 0;
+  /*
+   * This server's copy of whether sign-in links are turned off
+   * (GlobalConfig.disableMagicLinkLogin), for
+   * MAGIC_LINK_LOGIN_TURNED_OFF_CACHE_TTL_MS, dropped when it is written. The
+   * sign-in page asks on every visit (GET /identity/sign-in-methods).
+   */
+  private magicLinkLoginTurnedOffCache: InMemoryTTLCache<boolean> =
+    new InMemoryTTLCache(1);
+  // As pushNotificationsTurnedOffGeneration, for sign-in links.
+  private magicLinkLoginTurnedOffGeneration: number = 0;
 
   public constructor() {
     super(Model);
+  }
+
+  /*
+   * Whether a master admin has turned sign-in links off for the whole server
+   * (Types/Accounts/MagicLink). Throws when it cannot be read, and keeps
+   * nothing: asking for a link and signing in with one are refused rather
+   * than take a failed read for "on".
+   */
+  @CaptureSpan()
+  public async getMagicLinkLoginTurnedOff(): Promise<boolean> {
+    const key: string = "global";
+    const cached: boolean | undefined =
+      this.magicLinkLoginTurnedOffCache.get(key);
+
+    if (cached !== undefined) {
+      return cached;
+    }
+
+    const generation: number = this.magicLinkLoginTurnedOffGeneration;
+
+    const config: Model | null = await this.findOneBy({
+      query: {},
+      select: { disableMagicLinkLogin: true },
+      props: { isRoot: true },
+    });
+
+    const value: boolean = Boolean(config?.disableMagicLinkLogin);
+
+    // Kept only while no write dropped the copy during the read.
+    if (generation === this.magicLinkLoginTurnedOffGeneration) {
+      this.magicLinkLoginTurnedOffCache.set(
+        key,
+        value,
+        MAGIC_LINK_LOGIN_TURNED_OFF_CACHE_TTL_MS,
+      );
+    }
+
+    return value;
+  }
+
+  // Drops this server's copy of the sign-in links switch.
+  public forgetMagicLinkLoginTurnedOff(): void {
+    this.magicLinkLoginTurnedOffGeneration++;
+    this.magicLinkLoginTurnedOffCache.clear();
   }
 
   /*
@@ -1193,6 +1254,14 @@ export class Service extends DatabaseService<Model> {
         .disablePushNotifications !== undefined
     ) {
       this.forgetPushNotificationsTurnedOff();
+    }
+
+    // Turned on or off: this server's next sign-in page reads the switch again.
+    if (
+      (onUpdate.updateBy.data as { disableMagicLinkLogin?: unknown })
+        .disableMagicLinkLogin !== undefined
+    ) {
+      this.forgetMagicLinkLoginTurnedOff();
     }
 
     /*

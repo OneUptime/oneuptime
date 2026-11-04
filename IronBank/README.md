@@ -22,8 +22,8 @@ Iron Bank's onboarding team picks the final Repo1 paths; keep each manifest's
 `name` the same as its path. PostgreSQL, ClickHouse, Valkey and kubectl are
 already in Iron Bank, so the chart can run those from Registry1 as they are.
 
-[Justifications](Justifications) is not pushed to Repo1. It records, per
-project, the findings OneUptime has justified in VAT.
+[Justifications](Justifications) is not pushed to Repo1. It holds, per project,
+the findings OneUptime justifies, with the text to give for each in VAT.
 
 ## How the images are built
 
@@ -124,7 +124,10 @@ do, so the findings are known before a merge request reaches Repo1:
    - **justified**: it is in `Justifications/<Project>.yaml`;
    - **new**: it needs a fix in the release, or a justification.
 
-   A new high or critical finding fails the job. Each job uploads an artifact,
+   A new high or critical finding fails the App's and the ingress's jobs. The
+   runner's and the probe's report theirs with a warning for now, because they
+   have hundreds to work through: remove `report_only` from the workflow's
+   matrix once they are dealt with. Each job uploads an artifact,
    `iron-bank-<Project>-<version>`, holding `repo1/` (the files to push) and
    `scans/` (the reports).
 
@@ -146,8 +149,8 @@ For each project:
    finding as answered.
 3. Push the contents of `repo1/` to a feature branch of the Repo1 project, and
    open a merge request to `development`. Iron Bank's pipeline runs on it.
-   Justify anything its scans add in VAT, then add the `Status::Review` label
-   to the project's issue.
+   Give VAT the text in `Justifications/<Project>.yaml`, justify anything its
+   scans add, then add the `Status::Review` label to the project's issue.
 4. Iron Bank's Container Hardening Team reviews the image and the
    justifications. Once the image is merged to `master`, Iron Bank publishes it
    at `registry1.dso.mil/ironbank/oneuptime/<image>:<version>`.
@@ -168,19 +171,20 @@ project's `renovate.json`). When Renovate moves it, update it here too:
      Platform One username);
    - a **Government point of contact**: a DoD military or civilian user (not a
      contractor) who will use or support OneUptime and can validate the mission
-     need. This person does not have to fund it.
+     need. This person does not have to fund it, but Iron Bank requires one: they
+     give the initial approval, and are the one requesting the onboarding
+     ([dccscr #6531](https://repo1.dso.mil/dsop/dccscr/-/work_items/6531)).
 
    It also asks for commitments: public images and scan results, updates on
    the day of each release, timely justifications, and builds and runs without
    internet access.
 3. Iron Bank's onboarding team creates the project on Repo1, emails the
-   contacts, and assigns an initial issue to the engineers. Its own
-   onboarding checklist (the dccscr "Onboarding" template) lists a quote that
-   is "completed and signed" before the project is created. Ask Iron Bank what
-   it covers.
-4. Replace the `FIXME` maintainers in `App/hardening_manifest.yaml` with those
-   engineers' names and Repo1 usernames. Iron Bank's pipeline refuses the
-   manifest until then, and `lint.sh` warns about it.
+   contacts, and assigns an initial issue to the engineers. Its onboarding
+   checklist (the dccscr "Onboarding" template) mentions a quote, but Iron Bank
+   says there is currently no cost to onboard or host an application (same
+   issue).
+4. Keep the maintainers in each `hardening_manifest.yaml` the same as the
+   engineers the onboarding request names, by their Repo1 usernames.
 5. Push the first feature branch. Then open a "VAT Pipeline Access Request" in
    dccscr: the pipeline fails at lint until the onboarding team approves the
    project.

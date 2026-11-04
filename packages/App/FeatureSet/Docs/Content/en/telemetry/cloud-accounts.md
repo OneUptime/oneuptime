@@ -8,6 +8,7 @@ Connect an AWS account, an Azure subscription or a Google Cloud project from the
 - [Google Cloud](#google-cloud): A service account with six read-only roles.
 - [What OneUptime reads](#what-oneuptime-reads): Resources, metrics, changes, health events and costs, how often, and what reading them costs.
 - [Cloud Costs and Savings](/docs/telemetry/cloud-costs): What each account costs, the ways to spend less, and budgets that alert.
+- [Stream CloudWatch Metrics and Logs](/docs/telemetry/cloud-streaming): Every metric within minutes, and CloudWatch Logs, through Amazon Data Firehose.
 - [Data security](#data-security): What the connection lets Data Security read, and what each level adds to the command.
 - [Let AI fix problems](#let-ai-fix-problems): One more command, and OneUptime AI can fix what it finds.
 :::
@@ -268,7 +269,7 @@ A lower level's command replaces the AWS policy with the lower one. **Off** adds
 | Read every | 10 minutes | 5 minutes | 5 minutes |
 | A deleted resource | Archived once a full listing no longer has it | Archived once a full listing no longer has it | Archived once a full listing no longer has it |
 
-Each read picks up where the last one stopped, so every data point and every change is written once. A new connection's first read starts within a minute and goes an hour back for metrics and 2 hours back for changes; after a pause, a read goes back 6 hours at most. A resource that only reports metrics, which no listing has, is archived after 7 days without metrics. Costs are read twice a day, and the ways to spend less once a day.
+Each read picks up where the last one stopped, so every data point and every change is written once. With **Cloud audit logs** on in Security Events, the same reads keep the accounts' audit logs as [security events](/docs/telemetry/security-events#read-your-cloud-accounts-audit-logs) too. A new connection's first read starts within a minute and goes an hour back for metrics and 2 hours back for changes; after a pause, a read goes back 6 hours at most. A resource that only reports metrics, which no listing has, is archived after 7 days without metrics. Costs are read twice a day, and the ways to spend less once a day.
 
 The calls OneUptime makes are billed to your cloud account, at your cloud's prices. Listing resources, reading changes and health events, reading the ways to spend less and reading Azure's costs cost nothing; reading metrics does, and so does reading AWS's and Google Cloud's costs. The test estimates the cost of what it finds, and reading less often costs less: change **Read metrics every** under **More fields**.
 

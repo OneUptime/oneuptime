@@ -4,6 +4,7 @@ import {
   DATADOG,
   GRAFANA,
   GROUPING_VARIABLES,
+  INBOUND_WORKFLOW_PAGES,
 } from "./IntegrationsDocsPages";
 import { scanMarkdown } from "./DocsContentSupport";
 import {
@@ -44,13 +45,15 @@ import path from "path";
  * resolves it on recovery, so this suite takes what the page writes - its
  * filters, its grouping settings, its incident title and the payload it
  * tests with - and runs them through the monitor's own criteria, incident
- * grouping and templates. The workflow each page builds is read the same
- * way: its references are resolved against what a Webhook trigger returns.
+ * grouping and templates. The workflow the Alertmanager and Grafana pages
+ * build is read the same way: its references are resolved against what a
+ * Webhook trigger returns.
  *
  * IntegrationsDocsFacts holds what every integration page shares (the
  * workflow steps' names, the references a page may write, the blocks'
- * identifiers), and IntegrationsDocsTranslations holds the 16 translations
- * to these English pages, line for line.
+ * identifiers), AlertingToolTemplateDocsFacts holds the Datadog page to its
+ * workflow template, and IntegrationsDocsTranslations holds the 16
+ * translations to these English pages, line for line.
  */
 
 const MONITOR_SECTION: string = "## Receive alerts with a monitor";
@@ -684,7 +687,7 @@ describe("each alerting page's incident title", () => {
 
     expect(title).toBe(payload["title"]);
     expect(englishPage(DATADOG)).toContain(
-      `An incident opens, titled \`${title}\`.`,
+      `With the monitor, an incident opens, titled \`${title}\`.`,
     );
   });
 
@@ -709,8 +712,8 @@ describe("each alerting page's incident title", () => {
   });
 });
 
-describe("each alerting page's workflow", () => {
-  it.each(ALERTING_PAGES)(
+describe("each workflow an alerting page builds", () => {
+  it.each(INBOUND_WORKFLOW_PAGES)(
     "%s checks the field its tool sends, and builds the incident from fields its notification has",
     (page: string) => {
       const section: string = englishSection(page, WORKFLOW_SECTION);
@@ -743,7 +746,7 @@ describe("each alerting page's workflow", () => {
     },
   );
 
-  it.each(ALERTING_PAGES)(
+  it.each(INBOUND_WORKFLOW_PAGES)(
     "%s says a workflow that is off answers 400, as the webhook route does",
     (page: string) => {
       expect(
@@ -934,7 +937,9 @@ describe("Datadog", () => {
   const SAMPLE: Record<string, string> = {
     $ALERT_ID: "1234",
     $ALERT_SCOPE: "host:web-1",
+    $ALERT_CYCLE_KEY: "7151157925468446720",
     $ALERT_TRANSITION: "Triggered",
+    $ALERT_PRIORITY: "P1",
     $EVENT_TITLE: "[Triggered] High CPU",
     $TEXT_ONLY_MSG: "CPU is above 90% on web-1.",
     $HOSTNAME: "web-1",

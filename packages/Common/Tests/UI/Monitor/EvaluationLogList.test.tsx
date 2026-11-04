@@ -305,6 +305,85 @@ describe("EvaluationLogList criteria results", () => {
 });
 
 /*
+ * A series that waits for its window says how far it has got, and why
+ * (#5714): "Deployment: checkout | Namespace: payments - ... Waiting for 15
+ * minutes of data: 3 of 15 minutes so far. Its data arrives about 3 minutes
+ * late." A long sentence, which the server writes in English whatever the
+ * page's language. On a phone it ran a dozen lines of three or four words
+ * beside its status, the criteria's own "Not Met" broke over two lines, and
+ * on a Persian page its full stop moved to its start (".late").
+ */
+describe("EvaluationLogList filter messages on a phone and on a Persian page", () => {
+  const CRITERIA_NAME: string =
+    "Replica Mismatch - Desired > Available for 15 minutes";
+
+  const WAITING: string =
+    "Deployment: checkout | Namespace: payments - Deployment Replica Shortfall was 1 in all 3 readings, above the 0 threshold. Waiting for 15 minutes of data: 3 of 15 minutes so far. Its data arrives about 3 minutes late.";
+
+  function renderWaiting(): HTMLElement {
+    renderCriteria([
+      criteriaResult({
+        criteriaName: CRITERIA_NAME,
+        met: false,
+        filters: [
+          {
+            checkOn: CheckOn.MetricValue,
+            filterType: FilterType.GreaterThan,
+            value: 0,
+            message: WAITING,
+            met: false,
+          },
+        ],
+      }),
+    ]);
+
+    return screen.getByRole("group", { name: `${CRITERIA_NAME}: Not Met` });
+  }
+
+  it("reads the server's sentence in its own direction, so its full stop stays at its end on a Persian page", () => {
+    const criterion: HTMLElement = renderWaiting();
+
+    expect(within(criterion).getByText(WAITING)).toHaveAttribute("dir", "auto");
+  });
+
+  it("puts the status above the message on a phone, and beside it from sm up", () => {
+    const criterion: HTMLElement = renderWaiting();
+    const row: HTMLElement = within(criterion).getByTestId(
+      "evaluation-filter-result",
+    );
+
+    expect(row).toHaveClass(
+      "flex-col",
+      "items-start",
+      "gap-2",
+      "sm:flex-row",
+      "sm:items-center",
+    );
+    // A gap, not a margin on one side: the same space in either direction.
+    expect(row.className.includes("space-x-")).toBe(false);
+    expect(row.firstElementChild).toHaveTextContent("Not Met");
+    expect(row.lastElementChild).toHaveTextContent(WAITING);
+  });
+
+  it("keeps the criteria's Not Met on one line beside a long name, which wraps instead", () => {
+    const criterion: HTMLElement = renderWaiting();
+
+    const name: HTMLElement = within(criterion).getByText(CRITERIA_NAME);
+    const status: HTMLElement | undefined = within(criterion)
+      .getAllByText("Not Met")
+      .find((element: HTMLElement) => {
+        return element.tagName === "SPAN" && !element.closest("li");
+      });
+
+    expect(status).toBeDefined();
+    expect(status).toHaveClass("shrink-0", "whitespace-nowrap");
+    expect(name).toHaveClass("break-words");
+    expect(name.parentElement).toHaveClass("min-w-0");
+    expect(name.parentElement!.parentElement).toHaveClass("gap-3");
+  });
+});
+
+/*
  * An Incoming Request criteria that groups by a payload field says, among the
  * Actions, how it handled a request it matched - one without the field, say,
  * which it handled for the whole monitor rather than not at all. The server

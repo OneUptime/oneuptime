@@ -1,7 +1,9 @@
-# syntax=docker/dockerfile:1.7
+# syntax=docker/dockerfile:1.19
 #
 # OneUptime-Probe Dockerfile
 #
+# Syntax 1.19 is the first whose stable channel has COPY --exclude, which keeps
+# Common's and the Probe's tests out of the image (see the copy of Common below).
 
 # Pull base image nodejs image.
 # Floating on the 26.x patch + bookworm-slim so each rebuild picks up the
@@ -107,7 +109,14 @@ COPY ./packages/Common/package*.json /usr/src/Common/
 # Set version in ./Common/package.json to the APP_VERSION
 RUN sed -i "s/\"version\": \".*\"/\"version\": \"$APP_VERSION\"/g" /usr/src/Common/package.json
 RUN --mount=type=cache,target=/tmp/npm npm ci --prefer-offline
-COPY ./packages/Common /usr/src/Common
+# Common without its tests, which no image runs. They were 185 MB of this
+# copy, and one of their fixtures (an SVG data URI with a script in it) is what
+# ClamAV calls phishing. Left out as they are copied, because a later `rm` in
+# this stage would only hide them: they would stay in this layer, for a pull
+# to download and a scanner to read. Tests/Ops/ContainerImageHardening.test.js
+# holds every image to this. A development container mounts them from the
+# checkout (Scripts/Dev/docker-compose.dev.yml).
+COPY --exclude=Tests ./packages/Common /usr/src/Common
 
 
 
@@ -207,8 +216,10 @@ ENTRYPOINT ["/usr/bin/tini", "--"]
 #Run the app
 CMD [ "bash", "/usr/src/app/Start.dev.sh" ]
 {{ else }}
-# Copy app source
-COPY ./packages/Probe /usr/src/app
+# Copy app source, without its tests, like Common above. They import Common's,
+# so the compile below type-checks neither: the Compile workflow does, on the
+# checkout.
+COPY --exclude=Tests ./packages/Probe /usr/src/app
 # Bundle app source
 RUN npm run compile
 # Production source is copied after the shared permission setup above. Keep it

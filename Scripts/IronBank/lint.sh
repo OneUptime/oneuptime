@@ -8,9 +8,7 @@
 #      schema/hardening_manifest.schema.json (draft 2019-09), with
 #      check-jsonschema in place of the pipeline's Python jsonschema.
 #   2. No label or maintainer value containing FIXME: the pipeline refuses the
-#      manifest (ironbank/pipeline/hardening_manifest.py). Reported as a
-#      warning here, because a project waits on those until Iron Bank's
-#      onboarding team has named its engineers; set FAIL_ON_FIXME=1 to fail.
+#      manifest (ironbank/pipeline/hardening_manifest.py), and so does this.
 #   3. The Dockerfile through semgrep with the pipeline's Dockerfile rules
 #      (semgrep-dockerfile-lint). Every finding is printed; ERROR ones (root as
 #      the last user, no USER, a relative WORKDIR, a mounted docker socket)
@@ -56,12 +54,8 @@ FIXMES="$(yq -r '
 		| select(.value | tostring | test("(?i)fixme")) | "maintainers[" + ($i | tostring) + "]." + .key)
 ' "$MANIFEST")"
 if [[ -n "$FIXMES" ]]; then
-	MESSAGE="Iron Bank's pipeline refuses a hardening manifest with FIXME in it. Fill in: $(echo "$FIXMES" | paste -sd ',' - | sed 's/,/, /g')"
-	if [[ "${FAIL_ON_FIXME:-0}" == "1" ]]; then
-		echo "::error file=${MANIFEST}::${MESSAGE}"
-		exit 1
-	fi
-	echo "::warning file=${MANIFEST}::${MESSAGE}"
+	echo "::error file=${MANIFEST}::Iron Bank's pipeline refuses a hardening manifest with FIXME in it. Fill in: $(echo "$FIXMES" | paste -sd ',' - | sed 's/,/, /g')"
+	exit 1
 fi
 
 echo "3. ${DOCKERFILE} through Iron Bank's semgrep rules"

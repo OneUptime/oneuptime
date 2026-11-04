@@ -41,11 +41,33 @@ const readPermissions: Array<Permission> = [
 ];
 
 // Connecting a tool is connecting a source of data: as connecting a database.
-const writePermissions: Array<Permission> = [
+const createPermissions: Array<Permission> = [
   Permission.ProjectOwner,
   Permission.ProjectAdmin,
   Permission.TelemetryAdmin,
   Permission.CreateDataAsset,
+];
+
+/*
+ * Changing one is for the same admins, and Edit Data Asset is its record
+ * permission, as it is the other Data Observability records'. Not the
+ * members who may edit those: OneUptime sends a tool's credentials to its
+ * address every hour, so whoever may change the address may send them
+ * anywhere.
+ */
+const updatePermissions: Array<Permission> = [
+  Permission.ProjectOwner,
+  Permission.ProjectAdmin,
+  Permission.TelemetryAdmin,
+  Permission.EditDataAsset,
+];
+
+// Taking one away, with its dashboards, as a table is deleted.
+const deletePermissions: Array<Permission> = [
+  Permission.ProjectOwner,
+  Permission.ProjectAdmin,
+  Permission.TelemetryAdmin,
+  Permission.DeleteDataAsset,
 ];
 
 const secretColumnAccess: {
@@ -53,9 +75,9 @@ const secretColumnAccess: {
   read: Array<Permission>;
   update: Array<Permission>;
 } = {
-  create: writePermissions,
+  create: createPermissions,
   read: [],
-  update: writePermissions,
+  update: updatePermissions,
 };
 
 const editableColumnAccess: {
@@ -63,9 +85,9 @@ const editableColumnAccess: {
   read: Array<Permission>;
   update: Array<Permission>;
 } = {
-  create: writePermissions,
+  create: createPermissions,
   read: readPermissions,
-  update: writePermissions,
+  update: updatePermissions,
 };
 
 const createOnlyColumnAccess: {
@@ -73,7 +95,7 @@ const createOnlyColumnAccess: {
   read: Array<Permission>;
   update: Array<Permission>;
 } = {
-  create: writePermissions,
+  create: createPermissions,
   read: readPermissions,
   update: [],
 };
@@ -108,10 +130,10 @@ const hiddenColumnAccess: {
 })
 @TenantColumn("projectId")
 @TableAccessControl({
-  create: writePermissions,
+  create: createPermissions,
   read: readPermissions,
-  update: writePermissions,
-  delete: writePermissions,
+  update: updatePermissions,
+  delete: deletePermissions,
 })
 @CrudApiEndpoint(new Route("/data-bi-connection"))
 @Entity({

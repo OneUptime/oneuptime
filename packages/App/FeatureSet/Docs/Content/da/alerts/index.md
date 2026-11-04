@@ -59,7 +59,7 @@ Udløs en advarsel, når dit team bør kigge, før nogen udenfor opdager noget, 
 | **Advarsler**     | **Alle advarsler** og **Aktive advarsler**, hvis røde mærke tæller de advarsler, der endnu ikke er løst.                    |
 | **Episoder** | **Alle episoder** og **Aktive episoder**: relaterede advarsler samlet i ét problem at arbejde på. |
 | **AI**            | **Indsigter**, **Protokoller** og **Indstillinger**: hvad OneUptime AI har lært af dine advarsler, alt, hvad den har gjort, og hvad den må gøre. |
-| **Arbejdsområde** | **Slack** og **Microsoft Teams**, alt efter hvad projektet har forbundet, eller **Forbind Slack eller Teams**, når det har ingen af dem. |
+| **Arbejdsområde** | **Slack**, **Microsoft Teams** og **Mattermost**, alt efter hvad projektet har forbundet, eller **Forbind et arbejdsområde**, når det har ingen af dem. |
 | **Regler**        | **Grupperingsregler**, **Vagtregler**, **Hændelsesregler**, **Ejerregler**, **Runbook-regler**, **Privatlivsregler**, **Etiketregler**, **Påmindelsesregler**. |
 | **Indstillinger** | **Advarselsstatus**, **Advarselsalvor**, **Noteskabeloner**, **Brugerdefinerede felter**, **Målinger**, **Medlemskab af episoder**, **Nummerering**. |
 

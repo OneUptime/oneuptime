@@ -43,7 +43,7 @@ Un espace de travail Slack peut être connecté à plus d'un projet, par exemple
 :::steps
 ### Installer OneUptime dans votre espace de travail Slack
 
-Allez dans **Paramètres du projet** > **Espace de travail** > **Slack** et cliquez sur **Se connecter avec Slack**. Choisissez l'espace de travail et autorisez OneUptime. Slack vous renvoie sur la même page, qui nomme maintenant l'espace de travail auquel le projet est connecté. Tant qu'aucun espace de travail n'est connecté, la section **Espace de travail** des menus Incidents, Alertes, Maintenance planifiée, Moniteurs et Astreinte contient **Connecter Slack ou Teams**, qui mène aussi ici.
+Allez dans **Paramètres du projet** > **Espace de travail** > **Slack** et cliquez sur **Se connecter avec Slack**. Choisissez l'espace de travail et autorisez OneUptime. Slack vous renvoie sur la même page, qui nomme maintenant l'espace de travail auquel le projet est connecté. Tant qu'aucun espace de travail n'est connecté, la section **Espace de travail** des menus Incidents, Alertes, Maintenance planifiée, Moniteurs et Astreinte contient **Connecter un espace de travail**, qui mène aussi ici.
 
 ### Connecter votre propre compte Slack
 

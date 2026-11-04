@@ -50,10 +50,11 @@ Var och en av dessa behörigheter kan också ges för sig, från att skapa ett �
 | Detektionsregler | En regel träffar | **Öppna ett ärende vid matchning**, i regelns steg **Vid träff** |
 | Hotunderrättelser | En händelse nämner en känd indikator | **Öppna ett ärende vid matchning**, i flödets steg **Vid träff** |
 | Anslutna produkter | Ett larm från produkten själv importeras på eller över anslutningens tröskel | **Open Cases From** satt till **Aldrig**, i anslutningens steg **Hämtning** |
+| Säkerhetsprodukter i dina loggar | Ett hot som en brandvägg, ett IDS eller en endpointprodukt skriver i dina loggar ligger på eller över tröskeln för Dina loggar | **Öppna ärenden från** satt till **Aldrig**, på **Dina loggar** |
 | Entitetsrisk | En användares, värds eller adress risk når projektets tröskel | **Riskärenden** under **Inställningar → Riskbedömning** |
 | Personer | Någon öppnar ett från **Säkerhetsärenden**, eller med **Öppna ärende** i en händelses panel | Går inte |
 
-Alla källor öppnar ärenden som standard, utom entitetsrisk i projekt som skapades innan den fanns: slå först på **Riskärenden** där ([Entitetsrisk](/docs/telemetry/security-entity-risk)). En anslutning öppnar ärenden för **Hög och högre** om du inte väljer en annan nivå; larmen under den nivån importeras ändå som händelser.
+Alla källor öppnar ärenden som standard, utom entitetsrisk i projekt som skapades innan den fanns: slå först på **Riskärenden** där ([Entitetsrisk](/docs/telemetry/security-entity-risk)). En anslutning öppnar ärenden för **Hög och högre** om du inte väljer en annan nivå; larmen under den nivån importeras ändå som händelser. **Dina loggar** gör detsamma för hoten i dina loggar.
 
 ### Så grupperas detektioner
 
@@ -233,7 +234,7 @@ WhatsApp-meddelanden skickas inte för säkerhetsärenden. En push-avisering öp
 
 ### Posta i kanaler i Slack och Microsoft Teams
 
-För att posta i en kanal lägger du till en regel under **Produkter → Säkerhetshändelser → Arbetsyta → Slack** (eller **Microsoft Teams**). När inget av dem är anslutet är avsnittets enda post **Anslut Slack eller Teams**. En regel anger vilka kanaler den postar i (och, i Microsoft Teams, vilka chattar) och, om du vill, vilka ärenden den gäller:
+För att posta i en kanal lägger du till en regel under **Produkter → Säkerhetshändelser → Arbetsyta → Slack** (eller **Microsoft Teams**). När inget av dem är anslutet är avsnittets enda post **Anslut en arbetsyta**. En regel anger vilka kanaler den postar i (och, i Microsoft Teams, vilka chattar) och, om du vill, vilka ärenden den gäller:
 
 | Villkor | Matchar på |
 | --- | --- |

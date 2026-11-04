@@ -936,14 +936,16 @@ jobs:
           # 20.9. With the Cloud agent follow-ups' tests (#5704, 7.8 minutes
           # for the suite on its own) the suite is about 8.6 and the group
           # 22.1, so Permissions Per Tab (0.5) moved to group 12 the same
-          # day: 21.6.
+          # day: 21.6. Streaming an AWS account's metrics and logs added 11
+          # tests to Cloud Connect the same day (about 0.7 minutes: the suite
+          # 9.3, the group 22.3), so Resource Onboarding (0.6) moved to group
+          # 16: 21.7.
           - group: 8
             suites: >-
               test-dashboard-time-range-ui
               test-dashboard-widget-sort-ui
               test-cloud-connect-ui
               test-host-collectors-ui
-              test-resource-onboarding-ui
               test-vmware-host-page-ui
               test-public-addresses-ui
               test-docker-swarm-pages-ui
@@ -1385,7 +1387,9 @@ jobs:
           # Suite Helpers (16 tests on pages the spec writes, no fixture server,
           # about 20 seconds locally in Chromium and Firefox: the shared page
           # fit and box helpers held to their jobs) joined it on 2026-11-02:
-          # about half a minute.
+          # about half a minute. Resource Onboarding (0.6) joined it from
+          # group 8 on 2026-11-04, when Cloud Connect's streaming tests took
+          # that group past 22: 20.1.
           - group: 16
             monitor_overview_shard: 2/2
             suites: >-
@@ -1393,6 +1397,7 @@ jobs:
               test-navigation-search-ui
               test-discovery-ui
               test-suite-helpers-ui
+              test-resource-onboarding-ui
           # Added on 2026-11-03, when the sixteen groups' run steps added up to
           # 367.1 and 364.4 minutes on the last two runs with these suites
           # (master's of 2026-11-02 23:47, 41541694087, and 14.0.102's first
@@ -1413,9 +1418,15 @@ jobs:
           # File Systems and a host's, a file system's and a volume's page),
           # each at 1280, 1024, 768 and 390 pixels, dark, German and Persian,
           # joined it on 2026-11-03, the lightest group (16.5): 19.9.
+          # Multi-Device SNMP Walk (13 tests, 1.7 minutes locally with its
+          # bundle, Chromium only: the Network's SNMP Walk page walking seven
+          # routers at once, the OIDs compared, Collect on every device that
+          # answers, the CSV, the walk read back, at 1280 and 390 pixels, dark
+          # and German) joined it beside SNMP Walk on 2026-11-03: 21.6.
           - group: 17
             suites: >-
               test-snmp-walk-ui
+              test-multi-device-snmp-walk-ui
               test-rules-menu-section-ui
               test-slo-burn-rate-ui
               test-dashboard-value-widget-ui
@@ -1698,6 +1709,8 @@ jobs:
             output/playwright/openshift-pages-ui/test-results
             output/playwright/snmp-walk-ui/*.png
             output/playwright/snmp-walk-ui/test-results
+            output/playwright/multi-device-snmp-walk-ui/*.png
+            output/playwright/multi-device-snmp-walk-ui/test-results
             output/playwright/asset-details-ui/*.png
             output/playwright/asset-details-ui/test-results
             output/playwright/docker-swarm-pages-ui/*.png

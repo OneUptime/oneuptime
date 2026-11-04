@@ -1,4 +1,4 @@
-# syntax=docker/dockerfile:1.7
+# syntax=docker/dockerfile:1.19
 #
 # OneUptime-App Dockerfile
 #
@@ -56,7 +56,8 @@ RUN mkdir /usr/src
 WORKDIR /usr/src/Common
 COPY ./packages/Common/package*.json /usr/src/Common/
 RUN --mount=type=cache,target=/tmp/npm npm ci --prefer-offline
-COPY ./packages/Common /usr/src/Common
+# Common without its tests, which no image runs (see packages/Probe/Dockerfile.tpl).
+COPY --exclude=Tests ./packages/Common /usr/src/Common
 # mermaid for the blog, built from mermaid's ES module source with the
 # packages npm just installed (Common/Scripts/build-mermaid-browser.js) and
 # served at /oneuptime-assets/mermaid. A build that fails stops the image here
@@ -97,8 +98,9 @@ CMD [ "npm", "run", "dev" ]
 {{ else }}
 # Copy app source. --chown sets node (UID 1000) ownership at copy time so we
 # avoid a slow recursive `chown -R` over node_modules; deps stay root-owned and
-# world-readable.
-COPY --chown=1000:1000 ./packages/Home /usr/src/app
+# world-readable. Without its tests, like Common above: they import Common's, so
+# the compile below type-checks neither, and the Compile workflow does.
+COPY --chown=1000:1000 --exclude=Tests ./packages/Home /usr/src/app
 # Bundle app source
 RUN npm run compile
 # Give node ownership of /usr/src itself (non-recursive — instant) so it can

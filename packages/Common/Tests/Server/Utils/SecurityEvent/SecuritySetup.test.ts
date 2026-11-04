@@ -26,6 +26,7 @@ import SecurityEventDestinationService from "../../../../Server/Services/Securit
 import SecurityEventService from "../../../../Server/Services/SecurityEventService";
 import SecurityLogSourceService from "../../../../Server/Services/SecurityLogSourceService";
 import SecurityTelemetrySourceService from "../../../../Server/Services/SecurityTelemetrySourceService";
+import CloudConnectionService from "../../../../Server/Services/CloudConnectionService";
 import SecurityTelemetrySource from "../../../../Models/DatabaseModels/SecurityTelemetrySource";
 import {
   SECURITY_TELEMETRY_SOURCE_KINDS,
@@ -441,6 +442,12 @@ describe("SecuritySetup.turnOnRecommended", () => {
         });
         return 1;
       });
+    // No cloud account connected under Cloud, unless a test connects one.
+    jest.spyOn(CloudConnectionService, "countBy").mockResolvedValue({
+      toNumber: () => {
+        return 0;
+      },
+    } as never);
     jest
       .spyOn(SecurityPlaybookService, "findBy")
       .mockResolvedValue((existing.playbooks || []) as never);
@@ -1200,6 +1207,94 @@ describe("SecuritySetup.turnOnRecommended", () => {
         },
       ]);
       expect(result.telemetrySourcesTurnedOn).toBe(0);
+    });
+
+    /*
+     * Cloud audit logs read the cloud accounts connected under Cloud: they
+     * are turned on where one is connected, and left alone where none is,
+     * so no switch says it watches what is not there.
+     */
+    test("cloud audit logs are added where a cloud account is connected, and left alone where none is", async () => {
+      const writes: Writes = install({ telemetrySources: [] });
+      const count: ReturnType<typeof jest.spyOn> = jest
+        .spyOn(CloudConnectionService, "countBy")
+        .mockResolvedValue({
+          toNumber: () => {
+            return 2;
+          },
+        } as never);
+
+      const result: TurnOnRecommendedResult =
+        await SecuritySetup.turnOnRecommended({
+          projectId: PROJECT_ID,
+          props: PROPS,
+          options: { logs: true, detections: false, playbook: false },
+        });
+
+      expect(
+        writes.telemetrySourcesCreated.map(
+          (created: SecurityTelemetrySource): unknown => {
+            return created.kind;
+          },
+        ),
+      ).toEqual([
+        SecurityTelemetrySourceKind.Traces,
+        SecurityTelemetrySourceKind.NetworkFlows,
+        SecurityTelemetrySourceKind.RumSessions,
+        SecurityTelemetrySourceKind.CloudAudit,
+      ]);
+      expect(result.telemetrySourcesTurnedOn).toBe(4);
+      // Asked as OneUptime: whether there is anything to read, nothing more.
+      expect(count).toHaveBeenCalledWith({
+        query: { projectId: PROJECT_ID },
+        props: { isRoot: true },
+      });
+      // Created as the caller, like every other kind.
+      for (const props of writes.propsSeen) {
+        expect(props).toBe(PROPS);
+      }
+    });
+
+    test("cloud audit logs are left alone where no cloud account is connected, or that cannot be told", async () => {
+      for (const answer of [
+        Promise.resolve({
+          toNumber: () => {
+            return 0;
+          },
+        }),
+        Promise.reject(new Error("Postgres is away")),
+      ]) {
+        answer.catch(() => {
+          return undefined;
+        });
+
+        const writes: Writes = install({ telemetrySources: [] });
+        jest
+          .spyOn(CloudConnectionService, "countBy")
+          .mockReturnValue(answer as never);
+        jest.spyOn(logger, "error").mockImplementation(() => {
+          return undefined;
+        });
+
+        const result: TurnOnRecommendedResult =
+          await SecuritySetup.turnOnRecommended({
+            projectId: PROJECT_ID,
+            props: PROPS,
+            options: { logs: true, detections: false, playbook: false },
+          });
+
+        expect(
+          writes.telemetrySourcesCreated.some(
+            (created: SecurityTelemetrySource): boolean => {
+              return created.kind === SecurityTelemetrySourceKind.CloudAudit;
+            },
+          ),
+        ).toBe(false);
+        expect(result.telemetrySourcesTurnedOn).toBe(3);
+        expect(result.problems).toEqual([]);
+
+        jest.restoreAllMocks();
+      }
     });
 
     test("leaving your logs out leaves your OneUptime data alone too", async () => {

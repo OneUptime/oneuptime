@@ -48,9 +48,9 @@ Open **Gebruikersinstellingen**, rechts in de balk onder de bovenste balk. Het z
 | **Beleid inkomend gesprek** | **Inkomende telefoonnummers**: het nummer waarop een beleid voor inkomende gesprekken je belt |
 | **Agenda** | **Agendafeed**: je diensten in je agenda-app, en herinneringen voordat ze beginnen |
 | **Profiel** | **Aangepaste velden**: gegevens die je project aan zijn leden vraagt |
-| **Werkruimte** | **Slack** en **Microsoft Teams**: je eigen account, in elke werkruimte die het project heeft gekoppeld |
+| **Werkruimte** | **Slack**, **Microsoft Teams** en **Mattermost**: je eigen account, in elke werkruimte die het project heeft gekoppeld |
 
-**Aan de slag** en **Waarschuwingen & meldingen** zijn open; de andere secties beginnen ingeklapt, en een sectie gaat vanzelf open wanneer je op een van haar pagina's bent. **Werkruimte** verschijnt alleen als het project Slack of Microsoft Teams heeft gekoppeld.
+**Aan de slag** en **Waarschuwingen & meldingen** zijn open; de andere secties beginnen ingeklapt, en een sectie gaat vanzelf open wanneer je op een van haar pagina's bent. **Werkruimte** verschijnt alleen als het project Slack, Microsoft Teams of Mattermost heeft gekoppeld.
 
 Projecteigenaren en -beheerders kunnen je instellingen ook bekijken: onder **Gebruikers** openen ze jouw rij en de sectie **Bereikbaarheid** daarvan, met **Gereedheid**, **Meldingsmethoden** en **Bereikbaarheidsregels**. Ze kunnen daar een methode voor je toevoegen, maar de code gaat naar de methode zelf, dus alleen jij kunt hem verifiëren.
 

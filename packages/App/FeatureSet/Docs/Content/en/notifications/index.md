@@ -48,9 +48,9 @@ Open **User Settings**, on the right of the bar under the top bar. Its side menu
 | **Incoming Call Policy** | **Incoming Phone Numbers**: the number an incoming call policy rings you on |
 | **Calendar** | **Calendar Feed**: your shifts in your calendar app, and reminders before they start |
 | **Profile** | **Custom Fields**: details your project asks its members for |
-| **Workspace** | **Slack** and **Microsoft Teams**: your own account, in each workspace the project has connected |
+| **Workspace** | **Slack**, **Microsoft Teams** and **Mattermost**: your own account, in each workspace the project has connected |
 
-**Get Started** and **Alerts & Notifications** are open; the other sections start folded, and a section opens by itself when you are on one of its pages. **Workspace** shows only when the project has connected Slack or Microsoft Teams.
+**Get Started** and **Alerts & Notifications** are open; the other sections start folded, and a section opens by itself when you are on one of its pages. **Workspace** shows only when the project has connected Slack, Microsoft Teams or Mattermost.
 
 Project owners and admins can look at your setup too: under **Users**, they open your row and its **On-Call** section, with **Readiness**, **Notification Methods** and **On-Call Rules**. They can add a method for you there, but the code goes to the method itself, so only you can verify it.
 

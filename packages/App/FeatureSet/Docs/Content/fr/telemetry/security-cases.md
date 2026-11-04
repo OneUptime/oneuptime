@@ -50,10 +50,11 @@ Chacune de ces actions peut aussi être accordée isolément, de la création d'
 | Règles de détection | Une règle correspond | **Ouvrir un dossier en cas de correspondance**, à l'étape **En cas de correspondance** de la règle |
 | Renseignement sur les menaces | Un événement nomme un indicateur connu | **Ouvrir un dossier en cas de correspondance**, à l'étape **En cas de correspondance** du flux |
 | Produits connectés | Une alerte propre au produit est importée à un niveau égal ou supérieur au seuil de la connexion | **Open Cases From** réglé sur **Jamais**, à l'étape **Interrogation** de la connexion |
+| Produits de sécurité dans vos journaux | Une menace qu'un pare-feu, un IDS ou un produit de protection des terminaux écrit dans vos journaux atteint ou dépasse le seuil de Vos journaux | **Ouvrir des dossiers à partir de** réglé sur **Jamais**, sur **Vos journaux** |
 | Risque des entités | Le risque d'un utilisateur, d'un hôte ou d'une adresse atteint le seuil du projet | **Dossiers de risque**, dans **Paramètres → Notation du risque** |
 | Personnes | Quelqu'un en ouvre un depuis **Dossiers de sécurité**, ou avec **Ouvrir un dossier** dans le panneau d'un événement | Impossible |
 
-Chaque source ouvre des dossiers par défaut, sauf le risque des entités dans les projets créés avant lui : activez-y d'abord **Dossiers de risque** ([Risque des entités](/docs/telemetry/security-entity-risk)). Une connexion ouvre des dossiers pour **Élevé et au-dessus**, sauf si vous choisissez un autre niveau ; les alertes de niveau inférieur sont tout de même importées comme événements.
+Chaque source ouvre des dossiers par défaut, sauf le risque des entités dans les projets créés avant lui : activez-y d'abord **Dossiers de risque** ([Risque des entités](/docs/telemetry/security-entity-risk)). Une connexion ouvre des dossiers pour **Élevé et au-dessus**, sauf si vous choisissez un autre niveau ; les alertes de niveau inférieur sont tout de même importées comme événements. **Vos journaux** fait de même pour les menaces de vos journaux.
 
 ### Comment les détections sont regroupées
 
@@ -233,7 +234,7 @@ Aucun message WhatsApp n'est envoyé pour les dossiers de sécurité. Une notifi
 
 ### Publier dans des canaux Slack et Microsoft Teams
 
-Pour publier dans un canal, ajoutez une règle sous **Produits → Événements de sécurité → Espace de travail → Slack** (ou **Microsoft Teams**). Quand ni l'un ni l'autre n'est connecté, la seule entrée de la section est **Connecter Slack ou Teams**. Une règle nomme les canaux où publier (et, dans Microsoft Teams, les conversations) et, si vous le souhaitez, les dossiers qu'elle concerne :
+Pour publier dans un canal, ajoutez une règle sous **Produits → Événements de sécurité → Espace de travail → Slack** (ou **Microsoft Teams**). Quand ni l'un ni l'autre n'est connecté, la seule entrée de la section est **Connecter un espace de travail**. Une règle nomme les canaux où publier (et, dans Microsoft Teams, les conversations) et, si vous le souhaitez, les dossiers qu'elle concerne :
 
 | Condition | Correspond à |
 | --- | --- |

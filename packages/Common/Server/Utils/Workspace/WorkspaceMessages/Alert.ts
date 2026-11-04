@@ -70,6 +70,12 @@ export default class AlertWorkspaceMessages {
         projectId: projectId!,
       });
 
+    const mattermostBlocks: WorkspaceMessageBlock[] =
+      await SlackAlertMessages.getAlertCreateMessageBlocks({
+        alertId: alertId,
+        projectId: projectId!,
+      });
+
     return [
       {
         workspaceType: WorkspaceType.Slack,
@@ -78,6 +84,10 @@ export default class AlertWorkspaceMessages {
       {
         workspaceType: WorkspaceType.MicrosoftTeams,
         messageBlocks: microsoftTeamsBlocks,
+      },
+      {
+        workspaceType: WorkspaceType.Mattermost,
+        messageBlocks: mattermostBlocks,
       },
     ];
   }

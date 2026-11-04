@@ -2015,6 +2015,46 @@ export const DEVELOPER_DOCS_PROFILES: Readonly<
     ],
   },
 
+  /*
+   * A data product: the watched tables people rely on, who uses them and
+   * when their data must land. Its monitor and SLO are made from its
+   * Overview, as the person who sets them up (DataProductSync), so a
+   * configuration sets the product itself.
+   */
+  DataProduct: {
+    createNote:
+      "A data product made here has no monitor or SLO yet: Set Up Monitor and SLO on its Overview makes both, with your own permissions, to put it on a status page and track its SLA.",
+    fields: [
+      field("name", literal("Revenue dashboard")),
+      field(
+        "description",
+        literal("Daily revenue by region, for the finance team's dashboard."),
+      ),
+      field(
+        "consumers",
+        literal("Finance, the board deck, the forecasting agent"),
+        "Who uses the data: teams, dashboards, reports and AI agents.",
+      ),
+      field("dataAssets", undefined, "The watched tables it is made of."),
+      field(
+        "freshByTimeOfDay",
+        literal("07:00"),
+        "The time of day, in UTC, by which each day's data lands.",
+      ),
+      field(
+        "maxDataAgeInMinutes",
+        literal(120),
+        "How old the data may be, in minutes, before it is late.",
+      ),
+      field(
+        "slaTargetPercentage",
+        literal(99),
+        "The share of time the data must be on time, which its SLO tracks.",
+      ),
+      field("ownerTeamId", undefined, "The team that owns it."),
+    ],
+  },
+
   InventoryItem: {
     createNote:
       "Most inventory items are discovered from telemetry. Add one by hand for something that sends none, such as a vendor's API: its type is external.service, external.database or appliance.",

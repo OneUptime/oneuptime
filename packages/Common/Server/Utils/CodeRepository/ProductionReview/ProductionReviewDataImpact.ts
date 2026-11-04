@@ -21,6 +21,7 @@ import OneUptimeDate from "../../../../Types/Date";
 import { JSONObject } from "../../../../Types/JSON";
 import ObjectID from "../../../../Types/ObjectID";
 import ServiceType from "../../../../Types/Telemetry/ServiceType";
+import { isLineTerminatorCode } from "../../../../Utils/RegExpCharacterClasses";
 import escapeRegExp from "../../../../Utils/RegExpEscape";
 import DataAssetLineageService from "../../../Services/DataAssetLineageService";
 import DataAssetService from "../../../Services/DataAssetService";
@@ -85,9 +86,13 @@ const MAX_DATA_PRODUCTS: number = 5;
 const MAX_DASHBOARDS: number = 10;
 const MAX_NAME_LENGTH: number = 240;
 
-// A name as SQL writes it: bare, or quoted with "", `` or [].
-const IDENT: string =
-  '(?:"[^"]+"|`[^`]+`|\\[[^\\]]+\\]|[A-Za-z_][A-Za-z0-9_$]*)';
+/*
+ * A name as SQL writes it: bare, or quoted with "", `` or []. A quoted name
+ * holds at most MAX_NAME_LENGTH characters, the longest table name the
+ * review looks up, so a quote left open is read that far and no further:
+ * never to the end of the text again from every ALTER TABLE before it.
+ */
+const IDENT: string = `(?:"[^"]{1,${MAX_NAME_LENGTH}}"|\`[^\`]{1,${MAX_NAME_LENGTH}}\`|\\[[^\\]]{1,${MAX_NAME_LENGTH}}\\]|[A-Za-z_][A-Za-z0-9_$]*)`;
 const QUALIFIED: string = `${IDENT}(?:\\s*\\.\\s*${IDENT}){0,2}`;
 
 const ALTER_TABLE: RegExp = new RegExp(
@@ -157,10 +162,13 @@ const DOWN_STEP: RegExp =
 
 const MIGRATION_DIRECTORY: RegExp =
   /(^|\/)(migrations?|migrate|schemamigrations|flyway|liquibase|alembic|versions|changelogs?|ddl)(\/)/i;
-const DBT_MODEL: RegExp = /(^|\/)models\/.+\.sql$/i;
 const DBT_OTHER: RegExp = /(^|\/)(macros|tests|analyses|seeds|snapshots)\//i;
-// Undo and down files of Flyway, golang-migrate and dbmate.
-const UNDO_FILE: RegExp = /(^|\/)U\d[^/]*__[^/]*\.sql$|\.down\.sql$/i;
+const SQL_FILE: RegExp = /\.sql$/i;
+const MODELS_FOLDER: RegExp = /\/models\//i;
+// Flyway's undo migrations, U<version>__<description>.sql.
+const UNDO_NAME: RegExp = /^U\d/i;
+// The down files of golang-migrate and dbmate.
+const DOWN_FILE: RegExp = /\.down\.sql$/i;
 
 // A Ruby symbol or a string: one of remove_columns' columns, never an option.
 const SYMBOL_OR_STRING: RegExp = /^:?["']?\w+["']?$/;
@@ -170,13 +178,19 @@ const TYPE_ARGUMENT: RegExp = /\btype_\s*=/;
 const MIGRATION_LANGUAGE: RegExp = /\.(rb|py|ts|js|mjs|cjs)$/;
 const JAVASCRIPT_FILE: RegExp = /\.(ts|js|mjs|cjs)$/;
 
+/*
+ * A call's parenthesis is optional in Ruby, and the spaces after it are
+ * read only with it - [ \t]*(?:\([ \t]*)? or \s*(?:\(\s*)? - since two runs
+ * of spaces side by side, as in [ \t]*\(?[ \t]*, are tried at every split
+ * of a long run of them.
+ */
 const RAILS: Array<{
   pattern: RegExp;
   read: (match: RegExpMatchArray) => Array<Omit<PullRequestDataChange, "path">>;
 }> = [
   {
     pattern:
-      /\bremove_column[ \t]*\(?[ \t]*:?["']?(\w+)["']?[ \t]*,[ \t]*:?["']?(\w+)/g,
+      /\bremove_column[ \t]*(?:\([ \t]*)?:?["']?(\w+)["']?[ \t]*,[ \t]*:?["']?(\w+)/g,
     read: (
       match: RegExpMatchArray,
     ): Array<Omit<PullRequestDataChange, "path">> => {
@@ -187,7 +201,8 @@ const RAILS: Array<{
   },
   {
     // remove_columns :orders, :total, :coupon, type: :string - the columns, never an option.
-    pattern: /\bremove_columns[ \t]*\(?[ \t]*:?["']?(\w+)["']?[ \t]*,([^\n]*)/g,
+    pattern:
+      /\bremove_columns[ \t]*(?:\([ \t]*)?:?["']?(\w+)["']?[ \t]*,([^\n]*)/g,
     read: (
       match: RegExpMatchArray,
     ): Array<Omit<PullRequestDataChange, "path">> => {
@@ -210,7 +225,7 @@ const RAILS: Array<{
   },
   {
     pattern:
-      /\brename_column\s*\(?\s*:?["']?(\w+)["']?\s*,\s*:?["']?(\w+)["']?\s*,\s*:?["']?(\w+)/g,
+      /\brename_column\s*(?:\(\s*)?:?["']?(\w+)["']?\s*,\s*:?["']?(\w+)["']?\s*,\s*:?["']?(\w+)/g,
     read: (
       match: RegExpMatchArray,
     ): Array<Omit<PullRequestDataChange, "path">> => {
@@ -225,7 +240,8 @@ const RAILS: Array<{
     },
   },
   {
-    pattern: /\bchange_column\s*\(?\s*:?["']?(\w+)["']?\s*,\s*:?["']?(\w+)/g,
+    pattern:
+      /\bchange_column\s*(?:\(\s*)?:?["']?(\w+)["']?\s*,\s*:?["']?(\w+)/g,
     read: (
       match: RegExpMatchArray,
     ): Array<Omit<PullRequestDataChange, "path">> => {
@@ -235,7 +251,7 @@ const RAILS: Array<{
     },
   },
   {
-    pattern: /\bdrop_table\s*\(?\s*:?["']?(\w+)/g,
+    pattern: /\bdrop_table\s*(?:\(\s*)?:?["']?(\w+)/g,
     read: (
       match: RegExpMatchArray,
     ): Array<Omit<PullRequestDataChange, "path">> => {
@@ -243,7 +259,7 @@ const RAILS: Array<{
     },
   },
   {
-    pattern: /\brename_table\s*\(?\s*:?["']?(\w+)["']?\s*,\s*:?["']?(\w+)/g,
+    pattern: /\brename_table\s*(?:\(\s*)?:?["']?(\w+)["']?\s*,\s*:?["']?(\w+)/g,
     read: (
       match: RegExpMatchArray,
     ): Array<Omit<PullRequestDataChange, "path">> => {
@@ -294,8 +310,13 @@ const PYTHON: typeof RAILS = [
     },
   },
   {
+    /*
+     * The call's arguments up to its first ")", never past the next
+     * op.alter_column( - a call left open would be read to the end of the
+     * text again from every call before it.
+     */
     pattern:
-      /\bop\.alter_column\(\s*["'](\w+)["']\s*,\s*["'](\w+)["']([^)]*)\)/g,
+      /\bop\.alter_column\(\s*["'](\w+)["']\s*,\s*["'](\w+)["']((?:(?!\bop\.alter_column\()[^)])*)\)/g,
     read: (
       match: RegExpMatchArray,
     ): Array<Omit<PullRequestDataChange, "path">> => {
@@ -580,15 +601,42 @@ function readAlterAction(
   return null;
 }
 
+/*
+ * SQL without its comments, each one a space: -- to its line's end, then
+ * each block comment from its opening to the first close after it. Those
+ * are found with indexOf: a pattern would look for the close of a comment
+ * left open again from every opening after it.
+ */
+export function withoutSqlComments(sql: string): string {
+  const text: string = sql.replace(/--[^\n]*/g, " ");
+  const parts: Array<string> = [];
+  let from: number = 0;
+
+  for (;;) {
+    const opening: number = text.indexOf("/*", from);
+    // A comment left open: no opening after it closes either.
+    const close: number = opening < 0 ? -1 : text.indexOf("*/", opening + 2);
+
+    if (close < 0) {
+      break;
+    }
+
+    parts.push(text.slice(from, opening), " ");
+    from = close + 2;
+  }
+
+  parts.push(text.slice(from));
+
+  return parts.join("");
+}
+
 // The SQL a migration runs, as its changes to tables and columns.
 export function readSqlChanges(
   sql: string,
 ): Array<Omit<PullRequestDataChange, "path">> {
   const changes: Array<Omit<PullRequestDataChange, "path">> = [];
   // Comments say nothing a database does.
-  const text: string = sql
-    .replace(/--[^\n]*/g, " ")
-    .replace(/\/\*[\s\S]*?\*\//g, " ");
+  const text: string = withoutSqlComments(sql);
 
   for (const match of text.matchAll(ALTER_TABLE)) {
     for (const action of splitActions(match[2] || "")) {
@@ -625,12 +673,59 @@ export function readAddedText(patch: string | null | undefined): string {
     .join("\n");
 }
 
+// Where a text's last line break, a character "." does not match, is: -1 when it has none.
+function lastLineBreak(text: string): number {
+  for (let index: number = text.length - 1; index >= 0; index--) {
+    if (isLineTerminatorCode(text.charCodeAt(index))) {
+      return index;
+    }
+  }
+
+  return -1;
+}
+
+/*
+ * A dbt model: a .sql file inside a folder named models, with a name before
+ * its ".sql" - what (^|\/)models\/.+\.sql$ says, read once, since that
+ * pattern reads the rest of the path again from every "models/" in it.
+ * "." never crosses a line break, so the folder is on the path's last line,
+ * and the first one there leaves the most after it.
+ */
 export function isDbtModelPath(path: string): boolean {
-  return DBT_MODEL.test(path) && !DBT_OTHER.test(path);
+  if (!SQL_FILE.test(path) || DBT_OTHER.test(path)) {
+    return false;
+  }
+
+  const lineBreak: number = lastLineBreak(path);
+  // The path's start counts as a "/"; a line's start after a break does not.
+  const line: string = lineBreak < 0 ? `/${path}` : path.slice(lineBreak + 1);
+  const folder: number = line.search(MODELS_FOLDER);
+
+  return (
+    folder >= 0 && line.length - folder - "/models/".length > ".sql".length
+  );
+}
+
+/*
+ * An undo or down file: (^|\/)U\d[^/]*__[^/]*\.sql$ or \.down\.sql$, read
+ * once, since the first tries every "__" of a file's name against the rest
+ * of it. "[^/]" never crosses a "/", so the file's own name holds all of
+ * that match.
+ */
+function isUndoFile(path: string): boolean {
+  if (DOWN_FILE.test(path)) {
+    return true;
+  }
+
+  const name: string = path.slice(path.lastIndexOf("/") + 1);
+
+  return (
+    UNDO_NAME.test(name) && SQL_FILE.test(name) && name.indexOf("__", 2) >= 0
+  );
 }
 
 export function isMigrationPath(path: string): boolean {
-  if (UNDO_FILE.test(path) || isDbtModelPath(path) || DBT_OTHER.test(path)) {
+  if (isUndoFile(path) || isDbtModelPath(path) || DBT_OTHER.test(path)) {
     return false;
   }
 

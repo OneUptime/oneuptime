@@ -1208,6 +1208,15 @@ What keeps the images free of the rest of what scanners reported, for every
   starts from a runtime stage that installs nothing and copies `/usr/src` out
   of a build pruned from the App's entry, `Migrate.ts`, the external
   calendar's worker and (Enterprise) ee/'s entry;
+- no layer of an image that ships holds `Common/Tests`, and only a listed
+  image holds its own tests. The check follows the folders through each stage,
+  so a later `rm` in a stage the image is built on does not count: they stay
+  out of the copy (`COPY --exclude=Tests`: the Probe, Home, the Test Server) or
+  leave a stage that does not ship before the image copies out of it (the App,
+  the Runner, Nginx). The E2E image keeps them, because its fixtures import
+  Common's test helpers, which is also why `.dockerignore` cannot leave them
+  out. Where docker answers, BuildKit builds the Probe's copies through the
+  real `.dockerignore`;
 - the collector version is the same everywhere the container agents run it or
   it is validated.
 
@@ -1915,6 +1924,18 @@ python3 -m unittest discover -s Tests/Ops/agent-ebpf-e2e/tests -v
 ```
 
 See [its README](agent-ebpf-e2e/README.md) for what it checks and how to run it.
+
+### `openstack-e2e/`
+
+Not part of `npm test`: it deploys a real OpenStack with DevStack, builds a known
+estate on it, breaks it in the ways that page operators and records what its APIs
+and openstack-exporter answer, for the OpenStack product's tests to replay. It
+needs a machine it can give over to DevStack, and runs in its own workflow,
+"OpenStack E2E", by hand, once a week, and when the agent or the rig changes.
+`OpenStackAgentConfig.test.js` (in `npm test`) checks its scripts parse, and the
+agent's files.
+
+See [its README](openstack-e2e/README.md) for what it records and how to use it.
 
 ## Utils
 

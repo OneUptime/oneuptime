@@ -23,6 +23,7 @@ import {
   AI_ACTIVITY_INSIGHTS_TIME_OF_DAY_MIN_OCCURRENCES,
   AI_ACTIVITY_INSIGHTS_TIME_OF_DAY_MIN_OCCURRENCE_PERCENT,
   AiActivityFinding,
+  AiActivityFixApprovalSources,
   AiActivityFixOutcomes,
   AiActivityHotspot,
   AiActivityInsight,
@@ -37,6 +38,9 @@ import {
   AiActivityTimeOfDay,
   AiActivityTrendDay,
 } from "../../../../Types/AI/AiActivityInsights";
+import AutoRemediationApprovalSource, {
+  readRemediationApprovalSource,
+} from "../../../../Types/AutoRemediation/AutoRemediationApprovalSource";
 import AutoRemediationSuggestionStatus from "../../../../Types/AutoRemediation/AutoRemediationSuggestionStatus";
 import AutoRemediationVerificationStatus from "../../../../Types/AutoRemediation/AutoRemediationVerificationStatus";
 import { JSONObject } from "../../../../Types/JSON";
@@ -130,6 +134,11 @@ export interface AiActivityFixInput {
   createdAt: Date;
   // When a person approved it: an approved fix ran then.
   approvedAt?: Date | undefined;
+  /*
+   * Where they approved it (AutoRemediationApprovalSource): the AI card,
+   * Slack or Microsoft Teams. Absent for one approved before it was kept.
+   */
+  approvedFrom?: string | undefined;
   incidentId?: string | undefined;
   alertId?: string | undefined;
 }
@@ -1393,8 +1402,30 @@ export default class AiActivityInsightsBuilder {
       failed: 0,
       verifying: 0,
     };
+    // Where the approved ones were approved, when it was kept.
+    const approvedFrom: AiActivityFixApprovalSources = {
+      dashboard: 0,
+      slack: 0,
+      microsoftTeams: 0,
+    };
 
     for (const fix of fixes) {
+      if (fix.status === AutoRemediationSuggestionStatus.Approved) {
+        switch (readRemediationApprovalSource(fix.approvedFrom)) {
+          case AutoRemediationApprovalSource.Dashboard:
+            approvedFrom.dashboard++;
+            break;
+          case AutoRemediationApprovalSource.Slack:
+            approvedFrom.slack++;
+            break;
+          case AutoRemediationApprovalSource.MicrosoftTeams:
+            approvedFrom.microsoftTeams++;
+            break;
+          default:
+            break;
+        }
+      }
+
       switch (fix.status) {
         case AutoRemediationSuggestionStatus.Planning:
           outcomes.planning++;
@@ -1433,7 +1464,16 @@ export default class AiActivityInsightsBuilder {
       }
     }
 
-    return outcomes;
+    /*
+     * Said only once a fix of the window was approved somewhere it was kept
+     * for: until then the page has nothing to say of where.
+     */
+    return approvedFrom.dashboard +
+      approvedFrom.slack +
+      approvedFrom.microsoftTeams >
+      0
+      ? { ...outcomes, approvedFrom }
+      : outcomes;
   }
 
   private static buildTrend(data: {

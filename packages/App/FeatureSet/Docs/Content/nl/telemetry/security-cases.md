@@ -50,10 +50,11 @@ Elk van deze rechten kan ook afzonderlijk worden toegekend, van het aanmaken van
 | Detectieregels | Een regel matcht | **Zaak openen bij overeenkomst**, in de stap **Bij overeenkomst** van de regel |
 | Dreigingsinformatie | Een gebeurtenis een bekende indicator noemt | **Zaak openen bij overeenkomst**, in de stap **Bij overeenkomst** van de feed |
 | Gekoppelde producten | Een eigen waarschuwing van het product op of boven de drempel van de verbinding wordt geïmporteerd | **Open Cases From** op **Nooit** gezet, in de stap **Opvragen** van de verbinding |
+| Beveiligingsproducten in je logs | Een bedreiging die een firewall, IDS of endpointproduct in je logs schrijft, ligt op of boven de drempel van Uw logboeken | **Cases openen vanaf** op **Nooit** gezet, op **Uw logboeken** |
 | Entiteitrisico | Het risico van een gebruiker, host of adres de drempel van het project haalt | **Risicozaken**, onder **Instellingen → Risicoscoring** |
 | Mensen | Iemand er een opent vanuit **Beveiligingszaken**, of met **Zaak openen** in het paneel van een gebeurtenis | Niet uit te zetten |
 
-Elke bron opent standaard zaken, behalve entiteitrisico in projecten die zijn aangemaakt voordat het bestond: zet daar eerst **Risicozaken** aan ([Entiteitrisico](/docs/telemetry/security-entity-risk)). Een verbinding opent zaken voor **Hoog en hoger**, tenzij je een ander niveau kiest; de waarschuwingen daaronder worden nog steeds als gebeurtenissen geïmporteerd.
+Elke bron opent standaard zaken, behalve entiteitrisico in projecten die zijn aangemaakt voordat het bestond: zet daar eerst **Risicozaken** aan ([Entiteitrisico](/docs/telemetry/security-entity-risk)). Een verbinding opent zaken voor **Hoog en hoger**, tenzij je een ander niveau kiest; de waarschuwingen daaronder worden nog steeds als gebeurtenissen geïmporteerd. **Uw logboeken** doet hetzelfde voor de bedreigingen in je logs.
 
 ### Hoe detecties worden gegroepeerd
 
@@ -233,7 +234,7 @@ Voor beveiligingszaken worden geen WhatsApp-berichten verstuurd. Een pushmelding
 
 ### Plaatsen in kanalen van Slack en Microsoft Teams
 
-Om in een kanaal te plaatsen, voeg je een regel toe onder **Producten → Beveiligingsgebeurtenissen → Werkruimte → Slack** (of **Microsoft Teams**). Is geen van beide gekoppeld, dan is de enige vermelding in dat onderdeel **Slack of Teams koppelen**. Een regel noemt de kanalen waarin hij plaatst (en, in Microsoft Teams, de chats) en, als je wilt, de zaken waarvoor hij geldt:
+Om in een kanaal te plaatsen, voeg je een regel toe onder **Producten → Beveiligingsgebeurtenissen → Werkruimte → Slack** (of **Microsoft Teams**). Is geen van beide gekoppeld, dan is de enige vermelding in dat onderdeel **Werkruimte koppelen**. Een regel noemt de kanalen waarin hij plaatst (en, in Microsoft Teams, de chats) en, als je wilt, de zaken waarvoor hij geldt:
 
 | Voorwaarde | Matcht op |
 | --- | --- |
