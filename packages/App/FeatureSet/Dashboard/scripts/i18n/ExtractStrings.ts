@@ -342,6 +342,17 @@ export const SOURCE_ROOTS: Array<SourceRoot> = [
     kind: "keys",
   },
   /*
+   * A cloud change's title - "Failed: DeleteLoadBalancer on web-alb" - in
+   * the reader's language: a cloud resource's and an account's Changes,
+   * the chart markers and the security cards word it from what the change
+   * keeps. Only the frame is a key: the operation and the resource are the
+   * cloud's words and OneUptime's names, drawn as written.
+   */
+  {
+    directory: "packages/Common/Utils/Telemetry/CloudChangeTitle.ts",
+    kind: "keys",
+  },
+  /*
    * The column titles of the tables OneUptime AI's tools put beside an
    * answer ("Time", "Severity", "Last seen"): the chat draws each in the
    * reader's language (DataTableWidget). Only the titles the tools mark are
@@ -464,6 +475,8 @@ export const USER_FACING_PROPS: ReadonlySet<string> = new Set<string>([
   "heading",
   "helpText",
   "hint",
+  // A resource overview's identifier line: "type", "account" (ResourceOverview).
+  "identifierLabel",
   // A telemetry explorer's chart title (TelemetryViewer looks it up).
   "histogramTitle",
   "label",
@@ -490,6 +503,8 @@ export const USER_FACING_PROPS: ReadonlySet<string> = new Set<string>([
   "seriesName",
   "singularLabel",
   "singularName",
+  // A resource overview's status pill's hover (ResourceOverview).
+  "statusDescription",
   "strongTitle",
   "sublabel",
   "submitButtonText",

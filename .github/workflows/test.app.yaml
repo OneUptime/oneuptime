@@ -930,7 +930,13 @@ jobs:
           # health and what needs attention by the containers' rules - its
           # Containers list and a container's page, at 1280, 1024, 768 and 390
           # pixels, dark, German and Persian) joined it on 2026-11-03, beside
-          # Docker Swarm Pages: 20.1.
+          # Docker Swarm Pages: 20.1. Cloud Connect grew by 8 tests on
+          # 2026-11-04 (a cloud account and a cloud resource in German and
+          # Persian, at a laptop's and a phone's width; about 0.8 minutes):
+          # 20.9. With the Cloud agent follow-ups' tests (#5704, 7.8 minutes
+          # for the suite on its own) the suite is about 8.6 and the group
+          # 22.1, so Permissions Per Tab (0.5) moved to group 12 the same
+          # day: 21.6.
           - group: 8
             suites: >-
               test-dashboard-time-range-ui
@@ -941,7 +947,6 @@ jobs:
               test-vmware-host-page-ui
               test-public-addresses-ui
               test-docker-swarm-pages-ui
-              test-permissions-per-tab-ui
               test-container-host-pages-ui
           # Added on 2026-10-21, when every group took 20 to 26 minutes on one
           # run (groups 1 and 5 near 25) and Resource Topology would have
@@ -1197,13 +1202,17 @@ jobs:
           # Tests/Ops/DashboardOfflineUiBudget holds every group to): this
           # group's suites sum to 23.9 minutes on a runner of median speed (25.1
           # on its slowest run). Resource Overviews (4.6) moved to the new group
-          # 18: about 19.5.
+          # 18: about 19.5. Permissions Per Tab (0.5, Chromium only) moved here
+          # from group 8 on 2026-11-04, when Cloud Connect's German and Persian
+          # tests and the Cloud agent follow-ups' together took that group
+          # past 22: 19.8.
           - group: 12
             suites: >-
               test-code-ui
               test-exceptions-ai-ui
               test-acknowledgement-timeout-ui
               test-new-version-ui
+              test-permissions-per-tab-ui
           # Added on 2026-10-27, when 14.0.93's gate run took groups 10, 11, 1, 6
           # and 2 20.9 to 24.4 minutes and the Workflow Builder suite's halves
           # filled groups 4 and 9: Navigation Search (3.6) and Bulk Actions (1.2)

@@ -30,6 +30,10 @@ const MARKERS: string = path.resolve(
   __dirname,
   "../../../FeatureSet/Dashboard/src/Components/Metrics/Utils/UseEventTimeReferenceLines.ts",
 );
+const TITLES: string = path.resolve(
+  __dirname,
+  "../../../../Common/Utils/Telemetry/CloudChangeTitle.ts",
+);
 const PAGE: string = "telemetry/change-events.md";
 
 function readPage(language: string, page: string): string {
@@ -58,6 +62,7 @@ const english: string = readPage("en", PAGE);
 const englishLines: Array<string> = english.split("\n");
 const recorder: string = fs.readFileSync(RECORDER, "utf8");
 const markers: string = fs.readFileSync(MARKERS, "utf8");
+const titles: string = fs.readFileSync(TITLES, "utf8");
 
 // The lines of the English page that are about a cloud account.
 function lineIndex(predicate: (line: string) => boolean): number {
@@ -216,6 +221,28 @@ describe("Deploys and Changes, on a connected cloud account", () => {
     expect(english).toContain(
       "A change read from a cloud account names the account and the resource under OpenTelemetry's names, `cloud.provider`, `cloud.account.id`, `cloud.region` and `cloud.resource_id`,",
     );
+  });
+
+  it("says the title is stored in English and each page words it in its reader's language", () => {
+    expect(english).toContain(
+      "the name OneUptime holds the resource by in `oneuptime.cloud.resource_name`",
+    );
+    expect(english).toContain(
+      "Its title is stored in English, as the API and OneUptime AI read it, and each page words it from these in its reader's language.",
+    );
+
+    // The recorder keeps the name, and words its English title from the same sentences the pages do.
+    expect(recorder).toContain(
+      "attributes[ChangeEventAttribute.CloudResourceName] = clamp(",
+    );
+    expect(recorder).toContain(
+      "getCloudChangeTitle({\n          operation: change.operation,",
+    );
+    expect(titles).toContain(
+      'onResource: translationKey("{{operation}} on {{resource}}")',
+    );
+    // A row written before the name was kept is worded from its title.
+    expect(titles).toContain("readResourceFromCloudChangeTitle");
   });
 
   it("says a chart filtered to no resource leaves the activity log out and keeps the health events", () => {

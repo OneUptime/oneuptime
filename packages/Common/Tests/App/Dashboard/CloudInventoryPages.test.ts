@@ -20,9 +20,14 @@ import {
 import {
   CLOUD_ACCOUNT_READING_WINDOW_MS,
   CLOUD_ACCOUNT_STATUS_COLORS,
+  CLOUD_ACCOUNT_STATUS_DESCRIPTIONS,
   CloudAccountStatusTone,
   getCloudAccountStatus,
 } from "../../../../App/FeatureSet/Dashboard/src/Components/Cloud/CloudAccountStatus";
+import {
+  DASHBOARD_LANGUAGES,
+  isWordedInDashboardLocale,
+} from "../../Helpers/DashboardLocales";
 import {
   RECENT_CLOUD_CHANGES_HOURS,
   getCloudChangesAttributeFilter,
@@ -313,7 +318,11 @@ describe("an account's status", () => {
         hasConnection: true,
         now: NOW,
       }),
-    ).toEqual({ label: "Reading", tone: "positive" });
+    ).toEqual({
+      label: "Reading",
+      description: "A cloud connection read this account within the last hour.",
+      tone: "positive",
+    });
     // As the API sends it, too.
     expect(
       getCloudAccountStatus({
@@ -333,7 +342,12 @@ describe("an account's status", () => {
         hasConnection: true,
         now: NOW,
       }),
-    ).toEqual({ label: "Not read lately", tone: "warning" });
+    ).toEqual({
+      label: "Not read lately",
+      description:
+        "No cloud connection has read this account for over an hour. Cloud > Connect says why.",
+      tone: "warning",
+    });
     expect(
       getCloudAccountStatus({ lastSeenAt: null, hasConnection: true, now: NOW })
         .tone,
@@ -347,7 +361,35 @@ describe("an account's status", () => {
         hasConnection: false,
         now: NOW,
       }),
-    ).toEqual({ label: "Not connected", tone: "neutral" });
+    ).toEqual({
+      label: "Not connected",
+      description:
+        "No cloud connection reads this account any more. Connect it again from Cloud > Connect.",
+      tone: "neutral",
+    });
+  });
+
+  /*
+   * The pill's hover on an account's Overview says what its state means -
+   * it used to say what Reading means whatever the state, in English on
+   * every page - in the reader's language.
+   */
+  test("each state's hover says what it means, in every language", () => {
+    expect(new Set(Object.values(CLOUD_ACCOUNT_STATUS_DESCRIPTIONS)).size).toBe(
+      3,
+    );
+
+    for (const description of Object.values(
+      CLOUD_ACCOUNT_STATUS_DESCRIPTIONS,
+    )) {
+      for (const language of DASHBOARD_LANGUAGES) {
+        expect({
+          language,
+          description,
+          worded: isWordedInDashboardLocale(description, language),
+        }).toEqual({ language, description, worded: true });
+      }
+    }
   });
 
   /*

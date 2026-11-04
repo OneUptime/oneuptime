@@ -559,6 +559,62 @@ export const CLOUD_SAVING_KIND_LABELS: Readonly<
   [CloudSavingKind.Other]: translationKey("Other"),
 };
 
+/*
+ * What to do, as OneUptime words it for the recommenders that answer with a
+ * code: AWS Cost Optimization Hub's action types (describeAwsSavingAction)
+ * and Google Cloud's recommendation subtypes (describeGcpSavingAction), and
+ * "Review" when a recommender said nothing. They are stored in English and
+ * drawn in the reader's language (getCloudSavingActionText), old rows too.
+ * Azure Advisor says what to do in a sentence of its own, drawn as written.
+ */
+export const CLOUD_SAVING_ACTION_WORDS: ReadonlyArray<string> = [
+  translationKey("Rightsize"),
+  translationKey("Scale in"),
+  translationKey("Stop"),
+  translationKey("Delete"),
+  translationKey("Upgrade"),
+  translationKey("Migrate to Graviton"),
+  translationKey("Purchase Savings Plans"),
+  translationKey("Purchase Reserved Instances"),
+  translationKey("Change machine type"),
+  translationKey("Stop VM"),
+  translationKey("Snapshot and delete disk"),
+  translationKey("Delete disk"),
+  translationKey("Delete address"),
+  translationKey("Delete image"),
+  translationKey("Review"),
+];
+
+const CLOUD_SAVING_ACTION_WORD_SET: ReadonlySet<string> = new Set<string>(
+  CLOUD_SAVING_ACTION_WORDS,
+);
+
+/*
+ * A recommendation's action in the reader's language: OneUptime's own words
+ * translated, a recommender's sentence as it wrote it, and the kind's label
+ * when there is no action at all.
+ */
+export function getCloudSavingActionText(data: {
+  action: string | null | undefined;
+  kind: CloudSavingKind | null | undefined;
+  translateText: (text: string) => string | undefined;
+}): string {
+  const action: string = (data.action || "").trim();
+
+  if (!action) {
+    const label: string =
+      CLOUD_SAVING_KIND_LABELS[data.kind || CloudSavingKind.Other] ||
+      CLOUD_SAVING_KIND_LABELS[CloudSavingKind.Other];
+    return data.translateText(label) || label;
+  }
+
+  if (CLOUD_SAVING_ACTION_WORD_SET.has(action)) {
+    return data.translateText(action) || action;
+  }
+
+  return action;
+}
+
 // The recommenders a cloud's ways to spend less come from, by their names.
 export const CLOUD_SAVINGS_SOURCE_AWS: string = "AWS Cost Optimization Hub";
 export const CLOUD_SAVINGS_SOURCE_AZURE: string = "Azure Advisor";
@@ -850,8 +906,10 @@ export function getPassedCloudBudgetThresholds(data: {
     });
 }
 
-// A budget's thresholds as stored, read back: whole percents from 1 to 1000.
-// The lowest and highest share of a budget an alert may be raised at.
+/*
+ * A budget's thresholds as stored, read back: whole percents from 1 to 1000.
+ * The lowest and highest share of a budget an alert may be raised at.
+ */
 export const CLOUD_BUDGET_THRESHOLD_MIN: number = 1;
 export const CLOUD_BUDGET_THRESHOLD_MAX: number = 1000;
 
