@@ -76,6 +76,9 @@ const MIRRORED_JOBS = {
   // Pulls the release the Iron Bank project pins, by digest, then Grype,
   // Trivy, ClamAV and the datastores AppImageRuntime.test.js starts.
   "iron-bank.yml: preflight": "fetch_resources.sh",
+  // Pulls the releases all four projects pin, by digest, then the cluster's
+  // node image (iron-bank-install.sh).
+  "iron-bank.yml: install": "fetch_resources.sh",
 };
 
 /*

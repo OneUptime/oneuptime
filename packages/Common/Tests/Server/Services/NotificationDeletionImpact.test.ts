@@ -15,6 +15,7 @@ import ProjectService from "../../../Server/Services/ProjectService";
 import TeamMemberService from "../../../Server/Services/TeamMemberService";
 import UserCallService from "../../../Server/Services/UserCallService";
 import UserEmailService from "../../../Server/Services/UserEmailService";
+import UserMattermostService from "../../../Server/Services/UserMattermostService";
 import UserMicrosoftTeamsService from "../../../Server/Services/UserMicrosoftTeamsService";
 import UserNotificationRuleService, {
   CoverageLossCell,
@@ -33,6 +34,7 @@ import IncidentSeverity from "../../../Models/DatabaseModels/IncidentSeverity";
 import Project from "../../../Models/DatabaseModels/Project";
 import UserCall from "../../../Models/DatabaseModels/UserCall";
 import UserEmail from "../../../Models/DatabaseModels/UserEmail";
+import UserMattermost from "../../../Models/DatabaseModels/UserMattermost";
 import UserMicrosoftTeams from "../../../Models/DatabaseModels/UserMicrosoftTeams";
 import UserNotificationRule from "../../../Models/DatabaseModels/UserNotificationRule";
 import UserPush from "../../../Models/DatabaseModels/UserPush";
@@ -198,6 +200,7 @@ let whatsAppFindOneBy: jest.SpyInstance;
 let telegramFindOneBy: jest.SpyInstance;
 let slackFindOneBy: jest.SpyInstance;
 let microsoftTeamsFindOneBy: jest.SpyInstance;
+let mattermostFindOneBy: jest.SpyInstance;
 let webhookFindOneBy: jest.SpyInstance;
 let escalationUserFindBy: jest.SpyInstance;
 let escalationTeamFindBy: jest.SpyInstance;
@@ -220,6 +223,7 @@ function rule(data: {
   userTelegramId?: ObjectID | undefined;
   userSlackId?: ObjectID | undefined;
   userMicrosoftTeamsId?: ObjectID | undefined;
+  userMattermostId?: ObjectID | undefined;
   userWebhookId?: ObjectID | undefined;
 }): UserNotificationRule {
   const model: UserNotificationRule = new UserNotificationRule();
@@ -273,6 +277,10 @@ function rule(data: {
 
   if (data.userMicrosoftTeamsId) {
     model.userMicrosoftTeamsId = data.userMicrosoftTeamsId;
+  }
+
+  if (data.userMattermostId) {
+    model.userMattermostId = data.userMattermostId;
   }
 
   if (data.userWebhookId) {
@@ -518,8 +526,8 @@ beforeEach(() => {
   telegramRow.isVerified = true;
 
   /*
-   * Born verified: a UserSlack / UserMicrosoftTeams row is a pointer at the
-   * owner's own OAuth workspace link, so creation is verification.
+   * Born verified: a UserSlack / UserMicrosoftTeams / UserMattermost row is a
+   * pointer at the owner's own workspace link, so creation is verification.
    */
   const slackRow: UserSlack = new UserSlack();
   slackRow.id = SMS_METHOD_ID;
@@ -530,6 +538,11 @@ beforeEach(() => {
   microsoftTeamsRow.id = SMS_METHOD_ID;
   microsoftTeamsRow.userId = USER_ID;
   microsoftTeamsRow.isVerified = true;
+
+  const mattermostRow: UserMattermost = new UserMattermost();
+  mattermostRow.id = SMS_METHOD_ID;
+  mattermostRow.userId = USER_ID;
+  mattermostRow.isVerified = true;
 
   /*
    * Deliberately carries NO isVerified. UserWebhook has no such column at all,
@@ -564,6 +577,9 @@ beforeEach(() => {
   microsoftTeamsFindOneBy = jest
     .spyOn(UserMicrosoftTeamsService, "findOneBy")
     .mockResolvedValue(microsoftTeamsRow as never);
+  mattermostFindOneBy = jest
+    .spyOn(UserMattermostService, "findOneBy")
+    .mockResolvedValue(mattermostRow as never);
   webhookFindOneBy = jest
     .spyOn(UserWebhookService, "findOneBy")
     .mockResolvedValue(webhookRow as never);
@@ -1244,6 +1260,17 @@ describe("deleting a notification method: the cascade", () => {
             ruleType: NotificationRuleType.ON_CALL_EXECUTED_INCIDENT,
             incidentSeverityId: SEV1_ID,
             userMicrosoftTeamsId: SMS_METHOD_ID,
+          });
+        },
+      },
+      {
+        methodType: ReadinessMethodType.Mattermost,
+        makeRule: (): UserNotificationRule => {
+          return rule({
+            id: RULE_1_ID,
+            ruleType: NotificationRuleType.ON_CALL_EXECUTED_INCIDENT,
+            incidentSeverityId: SEV1_ID,
+            userMattermostId: SMS_METHOD_ID,
           });
         },
       },
@@ -2289,6 +2316,21 @@ describe("the per-method-service entry points", () => {
         }),
       },
       {
+        name: "UserMattermostService",
+        call: (): Promise<NotificationDeletionImpact> => {
+          return UserMattermostService.getDeletionImpact({
+            itemId: SMS_METHOD_ID,
+            projectId: PROJECT_ID,
+          });
+        },
+        ruleWithThisMethod: rule({
+          id: RULE_1_ID,
+          ruleType: NotificationRuleType.ON_CALL_EXECUTED_INCIDENT,
+          incidentSeverityId: SEV1_ID,
+          userMattermostId: SMS_METHOD_ID,
+        }),
+      },
+      {
         name: "UserWebhookService",
         call: (): Promise<NotificationDeletionImpact> => {
           return UserWebhookService.getDeletionImpact({
@@ -2374,6 +2416,7 @@ describe("the per-method-service entry points", () => {
     expect(whatsAppFindOneBy).not.toHaveBeenCalled();
     expect(slackFindOneBy).not.toHaveBeenCalled();
     expect(microsoftTeamsFindOneBy).not.toHaveBeenCalled();
+    expect(mattermostFindOneBy).not.toHaveBeenCalled();
     expect(webhookFindOneBy).not.toHaveBeenCalled();
   });
 });

@@ -60,7 +60,7 @@ Gå till **Incidenter** > **Arbetsyta** > **Mattermost** och skapa en regel, til
 
 Botens åtkomsttoken lagras bara på OneUptime-servern, krypterad tillsammans med projektets andra hemligheter, och visas aldrig igen. Serveradressen, teamet och botens användarnamn visas för alla i projektet, på inställningssidan för Mattermost.
 
-Ett projekt är anslutet till ett enda Mattermost-team. För att flytta det till ett annat team, eller en annan server, kopplar du först från det: **Projektinställningar** > **Arbetsyta** > **Mattermost**, sedan **⋯** > **Koppla från Mattermost**. Att koppla från kopplar också från varje medlems eget Mattermost-konto. Dina aviseringsregler och sammanfattningar sparas tills du ansluter igen.
+Ett projekt är anslutet till ett enda Mattermost-team. För att flytta det till ett annat team, eller en annan server, kopplar du först från det: **Projektinställningar** > **Arbetsyta** > **Mattermost**, sedan **⋯** > **Koppla från Mattermost**. Att koppla från kopplar också från varje medlems eget Mattermost-konto och tar bort deras aviseringsmetoder för Mattermost och jourreglerna som använder dem. Dina aviseringsregler och sammanfattningar sparas tills du ansluter igen.
 
 ## Anslut ditt eget Mattermost-konto
 
@@ -75,6 +75,18 @@ Mattermost har ingen inloggning som OneUptime kan skicka dig till, så OneUptime
 Öppna länken i samma webbläsare som du bad om den i: den fungerar bara där, bara en gång och bara i 15 minuter. Det bevisar att den som bad om länken har båda kontona, så ingen kan ansluta någon annans Mattermost-konto. Om du inte bad om någon länk kan du strunta i den: ingenting ansluts förrän den öppnas i webbläsaren där den begärdes.
 
 Ditt kontos anslutning hör till det här projektet. I ett annat projekt som är anslutet till samma Mattermost-team ansluter du det där också.
+
+## Bli larmad i Mattermost
+
+För att bli larmad via direktmeddelande när du har jour lägger du till Mattermost som en av dina aviseringsmetoder:
+
+:::steps
+1. Anslut ditt eget Mattermost-konto (se [Anslut ditt eget Mattermost-konto](#anslut-ditt-eget-mattermost-konto)).
+2. Gå till **Användarinställningar** > **Aviseringsmetoder**, öppna fliken **Arbetsyteappar** och klicka på **Lägg till Mattermost-konto**.
+3. Klicka på **Send Test Message** på dess rad. Meddelandet kommer som ett direktmeddelande från projektets bot.
+:::
+
+Att lägga till den lägger in den i dina jourregler direkt, så larm når dig i Mattermost från och med då. Ändra vilka larm den får under **Användarinställningar** > **Jourregler**. Varje larm har en länk för att bekräfta det och en för att eskalera det. När du kopplar från ditt Mattermost-konto tas den här metoden och jourreglerna som använder den bort.
 
 ## Aviseringsregler
 

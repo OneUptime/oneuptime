@@ -162,7 +162,7 @@ Cada respuesta de tu proveedor de identidad inicia sesión una sola vez, y solo 
 :::
 
 :::details "This server requires single sign-on (SSO). Sign in with SSO instead."
-Toda la instancia exige SSO, y esto fue un inicio de sesión con contraseña, clave de acceso, Google o Microsoft, o un registro. Inicia sesión con uno de los botones de SSO de la página de inicio de sesión. Un administrador maestro inicia sesión con su contraseña en `/accounts/admin-login`; para que todos puedan volver a iniciar sesión con contraseña, desactiva **Exigir SSO para iniciar sesión** en **Inicio de sesión único**.
+Toda la instancia exige SSO, y esto fue un inicio de sesión con contraseña, clave de acceso, un enlace enviado por correo, Google o Microsoft, o un registro. Inicia sesión con uno de los botones de SSO de la página de inicio de sesión. Un administrador maestro inicia sesión con su contraseña en `/accounts/admin-login`; para que todos puedan volver a iniciar sesión con contraseña, desactiva **Exigir SSO para iniciar sesión** en **Inicio de sesión único**.
 :::
 
 ## Próximos pasos

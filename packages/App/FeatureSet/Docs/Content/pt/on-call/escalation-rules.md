@@ -221,7 +221,7 @@ Todo acionamento pode ser escalonado de onde ele chegou até você:
 | --- | --- |
 | E-mail | O botão **Escalate**, e depois **Escalate** na página que ele abre |
 | SMS e WhatsApp | O link da mensagem abre a página de confirmação, que também tem **Escalate** |
-| Telegram, Slack e Microsoft Teams | O link "Can't take it? Escalate", e depois **Escalate** na página que ele abre |
+| Telegram, Slack, Microsoft Teams e Mattermost | O link "Can't take it? Escalate", e depois **Escalate** na página que ele abre |
 | Chamada | Pressione 2. A chamada então diz o que aconteceu |
 | Notificação push | Toque nela: o incidente, alerta ou episódio abre no app OneUptime On-Call, com **Escalate** abaixo |
 | OneUptime | **Escalonar** no topo do incidente, alerta ou episódio, depois dos botões de estado |

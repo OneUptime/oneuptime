@@ -60,7 +60,7 @@ Gå til **Hændelser** > **Arbejdsområde** > **Mattermost**, og opret en regel.
 
 Bottens adgangstoken gemmes kun på OneUptime-serveren, krypteret sammen med projektets andre hemmeligheder, og vises aldrig igen. Serveradressen, teamet og bottens brugernavn vises for alle i projektet på Mattermost-indstillingssiden.
 
-Et projekt er forbundet med ét Mattermost-team. For at flytte det til et andet team eller en anden server skal du først afbryde forbindelsen: **Projektindstillinger** > **Arbejdsområde** > **Mattermost**, derefter **⋯** > **Afbryd forbindelsen til Mattermost**. At afbryde forbindelsen fjerner også tilknytningen af hvert medlems egen Mattermost-konto. Dine notifikationsregler og opsummeringer bevares, til du forbinder igen.
+Et projekt er forbundet med ét Mattermost-team. For at flytte det til et andet team eller en anden server skal du først afbryde forbindelsen: **Projektindstillinger** > **Arbejdsområde** > **Mattermost**, derefter **⋯** > **Afbryd forbindelsen til Mattermost**. At afbryde forbindelsen fjerner også tilknytningen af hvert medlems egen Mattermost-konto, deres Mattermost-notifikationsmetoder og de vagtregler, der bruger dem. Dine notifikationsregler og opsummeringer bevares, til du forbinder igen.
 
 ## Forbind din egen Mattermost-konto
 
@@ -75,6 +75,18 @@ Mattermost har ikke noget login, OneUptime kan sende dig til, så OneUptimes bot
 Åbn linket i den samme browser, som du bad om det i: det virker kun der, kun én gang og kun i 15 minutter. Det beviser, at den, der bad om det, har begge konti, så ingen kan forbinde en andens Mattermost-konto. Hvis du ikke bad om et link, så ignorer det: intet forbindes, før det åbnes i den browser, der bad om det.
 
 Din kontos forbindelse hører til dette projekt. I et andet projekt, der er forbundet med det samme Mattermost-team, skal du også forbinde den der.
+
+## Bliv tilkaldt i Mattermost
+
+For at blive tilkaldt via direkte besked, når du har vagt, tilføjer du Mattermost som en af dine notifikationsmetoder:
+
+:::steps
+1. Forbind din egen Mattermost-konto (se [Forbind din egen Mattermost-konto](#forbind-din-egen-mattermost-konto)).
+2. Gå til **Brugerindstillinger** > **Notifikationsmetoder**, åbn fanen **Arbejdsområdeapps**, og klik på **Tilføj Mattermost-konto**.
+3. Klik på **Send Test Message** i dens række. Beskeden ankommer som en direkte besked fra projektets bot.
+:::
+
+At tilføje den sætter den straks ind i dine vagtregler, så tilkald når dig i Mattermost fra da af. Ændr, hvilke tilkald den får, under **Brugerindstillinger** > **Vagtregler**. Hvert tilkald har et link til at bekræfte det og et til at eskalere det. Hvis du afbryder forbindelsen til din Mattermost-konto, fjernes denne metode og de vagtregler, der bruger den.
 
 ## Notifikationsregler
 

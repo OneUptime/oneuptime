@@ -60,7 +60,7 @@ Vá para **Incidentes** > **Espaço de trabalho** > **Mattermost** e crie uma re
 
 O token de acesso do bot fica guardado apenas no servidor do OneUptime, criptografado com os outros segredos do projeto, e nunca mais é mostrado. O endereço do servidor, a equipe e o nome de usuário do bot são mostrados a todos no projeto, na página de configurações do Mattermost.
 
-Um projeto fica conectado a uma única equipe do Mattermost. Para movê-lo para outra equipe, ou outro servidor, desconecte-o primeiro: **Configurações do projeto** > **Espaço de trabalho** > **Mattermost**, depois **⋯** > **Desconectar o Mattermost**. Desconectar também desconecta a conta do Mattermost de cada membro. As suas regras de notificação e os seus resumos são mantidos para quando você conectar de novo.
+Um projeto fica conectado a uma única equipe do Mattermost. Para movê-lo para outra equipe, ou outro servidor, desconecte-o primeiro: **Configurações do projeto** > **Espaço de trabalho** > **Mattermost**, depois **⋯** > **Desconectar o Mattermost**. Desconectar também desconecta a conta do Mattermost de cada membro e remove os métodos de notificação do Mattermost dele e as regras de plantão que os usam. As suas regras de notificação e os seus resumos são mantidos para quando você conectar de novo.
 
 ## Conectar a sua própria conta do Mattermost
 
@@ -75,6 +75,18 @@ O Mattermost não tem um login para o qual o OneUptime possa enviar você, entã
 Abra o link no mesmo navegador em que você o pediu: ele só funciona ali, só uma vez e só por 15 minutos. Isso prova que quem o pediu tem as duas contas, então ninguém consegue conectar a conta do Mattermost de outra pessoa. Se você não pediu um link, ignore-o: nada é conectado até que ele seja aberto no navegador que o pediu.
 
 A conexão da sua conta pertence a este projeto. Em outro projeto conectado à mesma equipe do Mattermost, conecte-a lá também.
+
+## Ser acionado no Mattermost
+
+Para ser acionado por mensagem direta quando estiver de plantão, adicione o Mattermost como um dos seus métodos de notificação:
+
+:::steps
+1. Conecte a sua própria conta do Mattermost (consulte [Conectar a sua própria conta do Mattermost](#conectar-a-sua-própria-conta-do-mattermost)).
+2. Vá para **Configurações do usuário** > **Métodos de notificação**, abra a aba **Aplicativos do espaço de trabalho** e clique em **Adicionar conta do Mattermost**.
+3. Clique em **Send Test Message** na linha dele. A mensagem chega como mensagem direta do bot do projeto.
+:::
+
+Adicioná-lo o inclui imediatamente nas suas regras de plantão, então a partir daí os acionamentos chegam a você no Mattermost. Altere quais acionamentos ele recebe em **Configurações do usuário** > **Regras de Plantão**. Cada acionamento traz um link para confirmá-lo e outro para escaloná-lo. Desconectar a sua conta do Mattermost remove este método e as regras de plantão que o usam.
 
 ## Regras de notificação
 

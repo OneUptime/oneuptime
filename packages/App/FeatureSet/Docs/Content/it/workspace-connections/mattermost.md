@@ -60,7 +60,7 @@ Vai in **Incidenti** > **Area di lavoro** > **Mattermost** e crea una regola. Pe
 
 Il token di accesso del bot viene conservato solo sul server di OneUptime, cifrato insieme agli altri segreti del progetto, e non viene mai più mostrato. L'indirizzo del server, il team e il nome utente del bot sono visibili a tutti nel progetto, nella pagina delle impostazioni di Mattermost.
 
-Un progetto è collegato a un solo team Mattermost. Per spostarlo in un altro team, o su un altro server, scollegalo prima: **Impostazioni del progetto** > **Area di lavoro** > **Mattermost**, poi **⋯** > **Scollega Mattermost**. Scollegarlo scollega anche l'account Mattermost di ogni membro. Le tue regole di notifica e i tuoi riepiloghi vengono conservati per quando lo ricolleghi.
+Un progetto è collegato a un solo team Mattermost. Per spostarlo in un altro team, o su un altro server, scollegalo prima: **Impostazioni del progetto** > **Area di lavoro** > **Mattermost**, poi **⋯** > **Scollega Mattermost**. Scollegarlo scollega anche l'account Mattermost di ogni membro e rimuove i suoi metodi di notifica Mattermost e le regole di reperibilità che li usano. Le tue regole di notifica e i tuoi riepiloghi vengono conservati per quando lo ricolleghi.
 
 ## Collegare il tuo account Mattermost
 
@@ -75,6 +75,18 @@ Mattermost non ha una pagina di accesso a cui OneUptime possa mandarti, quindi i
 Apri il link nello stesso browser in cui l'hai richiesto: funziona solo lì, una sola volta e solo per 15 minuti. Questo dimostra che chi l'ha richiesto possiede entrambi gli account, così nessuno può collegare l'account Mattermost di un'altra persona. Se non hai richiesto un link, ignoralo: non viene collegato nulla finché non viene aperto nel browser che l'ha richiesto.
 
 Il collegamento del tuo account appartiene a questo progetto. In un altro progetto collegato allo stesso team Mattermost, collegalo anche lì.
+
+## Ricevere chiamate in Mattermost
+
+Per essere chiamato con un messaggio diretto quando sei di reperibilità, aggiungi Mattermost ai tuoi metodi di notifica:
+
+:::steps
+1. Collega il tuo account Mattermost (vedi [Collegare il tuo account Mattermost](#collegare-il-tuo-account-mattermost)).
+2. Vai in **Impostazioni utente** > **Metodi di notifica**, apri la scheda **App dell'area di lavoro** e fai clic su **Aggiungi account Mattermost**.
+3. Fai clic su **Send Test Message** nella sua riga. Il messaggio arriva come messaggio diretto dal bot del progetto.
+:::
+
+Aggiungerlo lo inserisce subito nelle tue regole di reperibilità, quindi da quel momento le chiamate ti raggiungono in Mattermost. Cambia quali chiamate riceve in **Impostazioni utente** > **Regole di reperibilità**. Ogni chiamata contiene un link per riconoscerla e uno per escalarla. Scollegare il tuo account Mattermost rimuove questo metodo e le regole di reperibilità che lo usano.
 
 ## Regole di notifica
 

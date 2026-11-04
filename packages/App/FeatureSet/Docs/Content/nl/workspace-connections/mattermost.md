@@ -60,7 +60,7 @@ Ga naar **Incidenten** > **Werkruimte** > **Mattermost** en maak een regel aan. 
 
 Het toegangstoken van de bot wordt alleen op de OneUptime-server bewaard, versleuteld samen met de andere geheimen van het project, en wordt nooit meer getoond. Het serveradres, het team en de gebruikersnaam van de bot zijn voor iedereen in het project zichtbaar, op de instellingenpagina van Mattermost.
 
-Een project is aan één Mattermost-team gekoppeld. Om het naar een ander team of een andere server te verplaatsen, ontkoppel je het eerst: **Projectinstellingen** > **Werkruimte** > **Mattermost**, daarna **⋯** > **Mattermost ontkoppelen**. Ontkoppelen ontkoppelt ook het eigen Mattermost-account van elk lid. Je meldingsregels en samenvattingen blijven bewaard voor als je opnieuw koppelt.
+Een project is aan één Mattermost-team gekoppeld. Om het naar een ander team of een andere server te verplaatsen, ontkoppel je het eerst: **Projectinstellingen** > **Werkruimte** > **Mattermost**, daarna **⋯** > **Mattermost ontkoppelen**. Ontkoppelen ontkoppelt ook het eigen Mattermost-account van elk lid, en verwijdert diens Mattermost-meldingsmethode en de bereikbaarheidsregels die die gebruiken. Je meldingsregels en samenvattingen blijven bewaard voor als je opnieuw koppelt.
 
 ## Je eigen Mattermost-account koppelen
 
@@ -75,6 +75,18 @@ Mattermost heeft geen aanmelding waar OneUptime je naartoe kan sturen, dus stuur
 Open de link in dezelfde browser waarin je hem hebt aangevraagd: hij werkt alleen daar, maar één keer en maar 15 minuten lang. Zo is bewezen dat wie de link aanvroeg beide accounts heeft, dus niemand kan het Mattermost-account van iemand anders koppelen. Heb je geen link aangevraagd, negeer hem dan: er wordt niets gekoppeld tot hij wordt geopend in de browser die erom vroeg.
 
 De koppeling van je account hoort bij dit project. Is een ander project aan hetzelfde Mattermost-team gekoppeld, koppel je account dan daar ook.
+
+## Opgeroepen worden in Mattermost
+
+Om met een direct bericht te worden opgeroepen als je dienst hebt, voeg je Mattermost toe als een van je meldingsmethoden:
+
+:::steps
+1. Koppel je eigen Mattermost-account (zie [Je eigen Mattermost-account koppelen](#je-eigen-mattermost-account-koppelen)).
+2. Ga naar **Gebruikersinstellingen** > **Meldingsmethoden**, open het tabblad **Werkruimte-apps** en klik op **Mattermost-account toevoegen**.
+3. Klik op **Send Test Message** in de rij ervan. Het bericht komt aan als direct bericht van de bot van het project.
+:::
+
+Toevoegen zet het meteen in je bereikbaarheidsregels, dus vanaf dan bereiken oproepen je in Mattermost. Wijzig welke oproepen het krijgt onder **Gebruikersinstellingen** > **Bereikbaarheidsregels**. Elke oproep bevat een link om hem te bevestigen en een om hem te escaleren. Als je je Mattermost-account ontkoppelt, verdwijnen deze methode en de bereikbaarheidsregels die hem gebruiken.
 
 ## Meldingsregels
 

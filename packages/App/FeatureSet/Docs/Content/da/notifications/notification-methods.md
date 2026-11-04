@@ -1,6 +1,6 @@
 # Notifikationsmetoder
 
-En notifikationsmetode er en adresse, OneUptime må nå dig på i ét projekt: en e-mailadresse, et telefonnummer til sms eller opkald, et WhatsApp-nummer, en Telegram-konto, din Slack- eller Microsoft Teams-konto, en telefon eller browser til push-notifikationer eller en webhook. Du tilføjer dem under **Brugerindstillinger → Notifikationsmetoder**, bekræfter dem, og OneUptime begynder straks at bruge dem til dine tilkald.
+En notifikationsmetode er en adresse, OneUptime må nå dig på i ét projekt: en e-mailadresse, et telefonnummer til sms eller opkald, et WhatsApp-nummer, en Telegram-konto, din Slack-, Microsoft Teams- eller Mattermost-konto, en telefon eller browser til push-notifikationer eller en webhook. Du tilføjer dem under **Brugerindstillinger → Notifikationsmetoder**, bekræfter dem, og OneUptime begynder straks at bruge dem til dine tilkald.
 
 :::cards
 - [Vælg en metode](#vælg-en-metode): Hvad hver metode kræver, og hvordan den bekræftes.
@@ -20,7 +20,7 @@ flowchart TB
     rules --> used["Tilkald og nyheder<br/>kan nå den"]
 ```
 
-En metode, du ikke har bekræftet, bliver aldrig brugt. Push-enheder, Slack, Microsoft Teams og webhooks klarer sig uden kode: at registrere en enhed eller forbinde din konto beviser, at den er din, og en webhook kræver intet bevis. At bekræfte en metode tilføjer straks dine [standardregler](/docs/notifications/on-call-rules#de-regler-du-starter-med) for den, så et nyt telefonnummer tilkalder dig for hver alvorlighed, indtil du ændrer dets regler.
+En metode, du ikke har bekræftet, bliver aldrig brugt. Push-enheder, Slack, Microsoft Teams, Mattermost og webhooks klarer sig uden kode: at registrere en enhed eller forbinde din konto beviser, at den er din, og en webhook kræver intet bevis. At bekræfte en metode tilføjer straks dine [standardregler](/docs/notifications/on-call-rules#de-regler-du-starter-med) for den, så et nyt telefonnummer tilkalder dig for hver alvorlighed, indtil du ændrer dets regler.
 
 ## Vælg en metode
 
@@ -35,10 +35,11 @@ Hver fane i **Notifikationsmetoder** indeholder et eller flere kort, ét pr. sla
 | **Telegram-konti til notifikationer** | **Direkte kontakt** | Din Telegram-konto | En besked til OneUptime-botten |
 | **Slack Account for Notifications** | **Arbejdsområdeapps** | Din Slack-konto | At forbinde din konto med projektets arbejdsområde |
 | **Microsoft Teams Account for Notifications** | **Arbejdsområdeapps** | Din Microsoft Teams-konto | At forbinde din konto med projektets arbejdsområde |
+| **Mattermost-konto til notifikationer** | **Arbejdsområdeapps** | Din Mattermost-konto | At forbinde din konto med projektets arbejdsområde |
 | **Enheder til push-notifikationer** | **Push-notifikationer** | En telefon med appen OneUptime On-Call, eller en browser | At registrere enheden |
 | **Webhooks til notifikationer** | **Webhooks** | Et HTTPS-endpoint af dine egne | Ingen |
 
-**Arbejdsområdeapps** vises kun, når projektet har forbundet Slack eller Microsoft Teams, og indeholder kun dem, det har forbundet. Sms, opkald, WhatsApp og Telegram kan være slået fra for hele projektet; se [Slå en kanal til for dit projekt](#slå-en-kanal-til-for-dit-projekt).
+**Arbejdsområdeapps** vises kun, når projektet har forbundet Slack, Microsoft Teams eller Mattermost, og indeholder kun dem, det har forbundet. Sms, opkald, WhatsApp og Telegram kan være slået fra for hele projektet; se [Slå en kanal til for dit projekt](#slå-en-kanal-til-for-dit-projekt).
 
 ## Tilføj og bekræft en metode
 
@@ -85,11 +86,13 @@ Klik tilbage i OneUptime på **I've sent the message — check**. Så snart bott
 
 **Rotér kode** laver en ny kode til en konto, der endnu ikke er bekræftet. QR-koden og linket, du åbnede før, holder så op med at virke. I en selvhostet OneUptime forbinder serverens administrator en Telegram-bot, før nogen kan forbinde en konto.
 
-## Slack og Microsoft Teams
+## Slack, Microsoft Teams og Mattermost
 
-1. Forbind din egen konto med projektets arbejdsområde: **Brugerindstillinger → Arbejdsområde → Slack**, eller **Microsoft Teams**. Se [Slack](/docs/workspace-connections/slack) og [Microsoft Teams](/docs/workspace-connections/microsoft-teams).
-2. Klik på fanen **Arbejdsområdeapps** på **Add Slack Account** eller **Add Microsoft Teams Account**. Kontoen er bekræftet, så snart den er tilføjet.
-3. Klik på **Send Test Message** i dens række. Tilkald kommer som direkte beskeder fra OneUptime-appen.
+1. Forbind din egen konto med projektets arbejdsområde: **Brugerindstillinger → Arbejdsområde → Slack**, **Microsoft Teams** eller **Mattermost**. Se [Slack](/docs/workspace-connections/slack), [Microsoft Teams](/docs/workspace-connections/microsoft-teams) og [Mattermost](/docs/workspace-connections/mattermost).
+2. Klik på fanen **Arbejdsområdeapps** på **Add Slack Account**, **Add Microsoft Teams Account** eller **Tilføj Mattermost-konto**. Kontoen er bekræftet, så snart den er tilføjet.
+3. Klik på **Send Test Message** i dens række. Tilkald kommer som direkte beskeder fra OneUptime-appen, eller i Mattermost fra projektets bot.
+
+En Mattermost-konto får kun dine tilkald, ikke de nyheder, du vælger i **Notifikationsindstillinger**.
 
 ## Push-notifikationer
 
@@ -167,7 +170,7 @@ En webhook kræver ingen bekræftelse, så når du tilføjer den, tilføjes dens
 
 ## Slå en kanal til for dit projekt
 
-**SMS**, **Telefonopkald**, **WhatsApp** og **Telegram** er slået fra i hvert nyt projekt, fordi hver besked koster penge: I OneUptime Cloud betales den af projektets saldo, og sms og opkald går i stedet gennem projektets egen Twilio-konto, når projektets standardkonto sender dem. E-mail, push, Slack, Microsoft Teams og webhooks er altid slået til.
+**SMS**, **Telefonopkald**, **WhatsApp** og **Telegram** er slået fra i hvert nyt projekt, fordi hver besked koster penge: I OneUptime Cloud betales den af projektets saldo, og sms og opkald går i stedet gennem projektets egen Twilio-konto, når projektets standardkonto sender dem. E-mail, push, Slack, Microsoft Teams, Mattermost og webhooks er altid slået til.
 
 Så længe en kanal er slået fra, kan ingen i projektet tilføje en metode på den: dens kort har ingen tilføj-knap og fortæller, hvem der kan slå den til. En projektejer, en **Faktureringsadministrator** eller en person med **Manage Billing** slår den til, i kortet **Notifikationskanaler** under **Projektindstillinger → Notifikationer → Notifikationsindstillinger**. En projektadministrator kan ikke. I en selvhostet OneUptime kræver sms og opkald desuden en Twilio-konto eller en gateway, du selv driver, og Telegram en bot, som serverens administrator forbinder; se [Twilio-integration](/docs/self-hosted/twilio-integration) og [SMS- og opkaldsgateway](/docs/self-hosted/sms-and-call-gateway).
 

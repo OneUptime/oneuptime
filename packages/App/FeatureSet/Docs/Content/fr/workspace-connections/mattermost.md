@@ -60,7 +60,7 @@ Allez dans **Incidents** > **Espace de travail** > **Mattermost** et créez une 
 
 Le jeton d'accès du bot n'est conservé que sur le serveur OneUptime, chiffré avec les autres secrets du projet, et n'est plus jamais affiché. L'adresse du serveur, l'équipe et le nom d'utilisateur du bot sont visibles par tous dans le projet, sur la page des paramètres Mattermost.
 
-Un projet est connecté à une seule équipe Mattermost. Pour le déplacer vers une autre équipe, ou un autre serveur, déconnectez-le d'abord : **Paramètres du projet** > **Espace de travail** > **Mattermost**, puis **⋯** > **Déconnecter Mattermost**. La déconnexion déconnecte aussi le compte Mattermost de chaque membre. Vos règles de notification et vos résumés sont conservés pour quand vous vous reconnectez.
+Un projet est connecté à une seule équipe Mattermost. Pour le déplacer vers une autre équipe, ou un autre serveur, déconnectez-le d'abord : **Paramètres du projet** > **Espace de travail** > **Mattermost**, puis **⋯** > **Déconnecter Mattermost**. La déconnexion déconnecte aussi le compte Mattermost de chaque membre, et supprime ses méthodes de notification Mattermost et les règles d'astreinte qui les utilisent. Vos règles de notification et vos résumés sont conservés pour quand vous vous reconnectez.
 
 ## Connecter votre propre compte Mattermost
 
@@ -75,6 +75,18 @@ Mattermost n'a pas de page de connexion vers laquelle OneUptime pourrait vous en
 Ouvrez le lien dans le navigateur où vous l'avez demandé : il ne fonctionne que là, une seule fois, et pendant 15 minutes seulement. Cela prouve que la personne qui l'a demandé détient les deux comptes, si bien que personne ne peut connecter le compte Mattermost de quelqu'un d'autre. Si vous n'avez pas demandé de lien, ignorez-le : rien n'est connecté tant qu'il n'est pas ouvert dans le navigateur qui l'a demandé.
 
 La connexion de votre compte appartient à ce projet. Dans un autre projet connecté à la même équipe Mattermost, connectez-le aussi là-bas.
+
+## Être alerté dans Mattermost
+
+Pour être alerté par message direct quand vous êtes d'astreinte, ajoutez Mattermost parmi vos méthodes de notification :
+
+:::steps
+1. Connectez votre propre compte Mattermost (voir [Connecter votre propre compte Mattermost](#connecter-votre-propre-compte-mattermost)).
+2. Allez dans **Paramètres utilisateur** > **Méthodes de notification**, ouvrez l'onglet **Applications d'espace de travail** et cliquez sur **Ajouter un compte Mattermost**.
+3. Cliquez sur **Send Test Message** sur sa ligne. Le message arrive en message direct du bot du projet.
+:::
+
+L'ajouter l'ajoute aussitôt à vos règles d'astreinte, si bien que les alertes vous atteignent dans Mattermost dès lors. Changez les alertes qu'il reçoit dans **Paramètres utilisateur** > **Règles d'astreinte**. Chaque alerte contient un lien pour la prendre en compte et un autre pour l'escalader. Déconnecter votre compte Mattermost supprime cette méthode et les règles d'astreinte qui l'utilisent.
 
 ## Règles de notification
 

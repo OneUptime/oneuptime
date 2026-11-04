@@ -193,6 +193,7 @@ const KNOWN_MODELS: Array<string> = [
   "UserCall",
   "UserEmail",
   "UserIncomingCallNumber",
+  "UserMattermost",
   "UserMicrosoftTeams",
   "UserNotificationEmailRollupSetting",
   "UserNotificationRule",

@@ -2,6 +2,7 @@ import DatabaseRequestType from "../../../../../Server/Types/BaseDatabase/Databa
 import ColumnPermissions from "../../../../../Server/Types/Database/Permissions/ColumnPermission";
 import UserSlack from "../../../../../Models/DatabaseModels/UserSlack";
 import UserMicrosoftTeams from "../../../../../Models/DatabaseModels/UserMicrosoftTeams";
+import UserMattermost from "../../../../../Models/DatabaseModels/UserMattermost";
 import DatabaseCommonInteractionProps from "../../../../../Types/BaseDatabase/DatabaseCommonInteractionProps";
 import ObjectID from "../../../../../Types/ObjectID";
 import Permission, {
@@ -12,8 +13,9 @@ import { describe, expect, it } from "@jest/globals";
 /*
  * REGRESSION PIN for the defect that made the whole feature dead on arrival.
  *
- * UserSlackService / UserMicrosoftTeamsService stamp the workspace identifier,
- * the display name and isVerified onto createBy.data inside onBeforeCreate.
+ * UserSlackService / UserMicrosoftTeamsService / UserMattermostService stamp the
+ * workspace identifier, the display name and isVerified onto createBy.data
+ * inside onBeforeCreate.
  * DatabaseService.create runs that hook FIRST and only then calls
  * ModelPermission.checkCreatePermissions on the STAMPED data — so the column
  * ACLs are evaluated against values the SERVER wrote, with the CALLER's
@@ -82,6 +84,17 @@ function stampedUserMicrosoftTeams(): UserMicrosoftTeams {
   return model;
 }
 
+/* Exactly what UserMattermostService.onBeforeCreate leaves behind. */
+function stampedUserMattermost(): UserMattermost {
+  const model: UserMattermost = new UserMattermost();
+  model.projectId = projectId;
+  model.userId = userId;
+  model.mattermostUserId = "abcdefghijklmnopqrstuvwxyz";
+  model.mattermostUserName = "alice";
+  model.isVerified = true;
+  return model;
+}
+
 describe("server-stamped workspace method columns survive the create column check", () => {
   /*
    * Harness guard: a caller with NO permissions at all must still be refused,
@@ -128,11 +141,23 @@ describe("server-stamped workspace method columns survive the create column chec
     }).not.toThrow();
   });
 
+  it("a stamped UserMattermost passes for a plain authenticated member", () => {
+    expect(() => {
+      ColumnPermissions.checkDataColumnPermissions(
+        UserMattermost,
+        stampedUserMattermost(),
+        makeProps([Permission.CurrentUser]),
+        DatabaseRequestType.Create,
+      );
+    }).not.toThrow();
+  });
+
   /*
    * The other half of the design: opening the column ACL did NOT hand the
    * value to the client — the SERVICE hook refuses any non-root payload that
    * arrives carrying these columns, before anything is stamped. That refusal
-   * is pinned in UserSlackService.test.ts / UserMicrosoftTeamsService.test.ts
+   * is pinned in UserSlackService.test.ts / UserMicrosoftTeamsService.test.ts /
+   * UserMattermostService.test.ts
    * ("cannot be set directly" / "cannot be set to true"); this file exists so
    * that the two halves cannot drift apart unnoticed: if someone reverts the
    * ACL to create: [], the two "passes" tests above fail; if someone removes
@@ -160,11 +185,30 @@ describe("server-stamped workspace method columns survive the create column chec
     }).toThrow();
   });
 
-  it("update stays closed on isVerified for both models", () => {
+  it("update stays closed on the Mattermost identifier and username too", () => {
+    for (const data of [
+      { mattermostUserId: "someoneelsesaccountid00000" },
+      { mattermostUserName: "not-alice" },
+    ] as Array<UserMattermost>) {
+      expect(() => {
+        ColumnPermissions.checkDataColumnPermissions(
+          UserMattermost,
+          data,
+          makeProps([Permission.CurrentUser]),
+          DatabaseRequestType.Update,
+        );
+      }).toThrow();
+    }
+  });
+
+  it("update stays closed on isVerified for every model", () => {
     for (const [modelType, data] of [
       [UserSlack, { isVerified: true } as UserSlack],
       [UserMicrosoftTeams, { isVerified: true } as UserMicrosoftTeams],
-    ] as Array<[{ new (): UserSlack | UserMicrosoftTeams }, UserSlack]>) {
+      [UserMattermost, { isVerified: true } as UserMattermost],
+    ] as Array<
+      [{ new (): UserSlack | UserMicrosoftTeams | UserMattermost }, UserSlack]
+    >) {
       expect(() => {
         ColumnPermissions.checkDataColumnPermissions(
           modelType,

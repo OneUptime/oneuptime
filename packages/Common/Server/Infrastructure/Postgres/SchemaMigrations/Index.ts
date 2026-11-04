@@ -290,6 +290,8 @@ import { AddSecurityLogSourceCaseMinimumSeverity1808992580000 } from "./18089925
 import { AddCloudConnectionStreams1808992600000 } from "./1808992600000-AddCloudConnectionStreams";
 import { AddMagicLinkLogin1808992650000 } from "./1808992650000-AddMagicLinkLogin";
 import { AddFixApprovalSourceAndRunbookTrackRecord1808992660000 } from "./1808992660000-AddFixApprovalSourceAndRunbookTrackRecord";
+import { AddUserMattermost1808992670000 } from "./1808992670000-AddUserMattermost";
+import { AddUserMattermostIndexesAndKeys1808992680000 } from "./1808992680000-AddUserMattermostIndexesAndKeys";
 import { AddConfigurableRuleCriteria1792500000000 } from "./1792500000000-AddConfigurableRuleCriteria";
 import { AddGoogleSecOpsDiagnostics1792300000000 } from "./1792300000000-AddGoogleSecOpsDiagnostics";
 import { AddIncomingCallPolicyPhoneNumbers1792600000000 } from "./1792600000000-AddIncomingCallPolicyPhoneNumbers";
@@ -1782,4 +1784,6 @@ export default [
   AddCloudConnectionStreams1808992600000,
   AddMagicLinkLogin1808992650000,
   AddFixApprovalSourceAndRunbookTrackRecord1808992660000,
+  AddUserMattermost1808992670000,
+  AddUserMattermostIndexesAndKeys1808992680000,
 ];

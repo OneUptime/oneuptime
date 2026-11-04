@@ -60,7 +60,7 @@ Ve a **Incidentes** > **Espacio de trabajo** > **Mattermost** y crea una regla. 
 
 El token de acceso del bot se guarda solo en el servidor de OneUptime, cifrado junto con los demás secretos del proyecto, y no se vuelve a mostrar nunca. La dirección del servidor, el equipo y el nombre de usuario del bot se muestran a todos en el proyecto, en la página de ajustes de Mattermost.
 
-Un proyecto está conectado a un solo equipo de Mattermost. Para moverlo a otro equipo, o a otro servidor, desconéctalo primero: **Ajustes del proyecto** > **Espacio de trabajo** > **Mattermost**, y luego **⋯** > **Desconectar Mattermost**. Al desconectarlo se desconecta también la cuenta de Mattermost de cada miembro. Tus reglas de notificación y resúmenes se conservan para cuando vuelvas a conectar.
+Un proyecto está conectado a un solo equipo de Mattermost. Para moverlo a otro equipo, o a otro servidor, desconéctalo primero: **Ajustes del proyecto** > **Espacio de trabajo** > **Mattermost**, y luego **⋯** > **Desconectar Mattermost**. Al desconectarlo se desconecta también la cuenta de Mattermost de cada miembro, y se quitan sus métodos de notificación de Mattermost y las reglas de guardia que los usan. Tus reglas de notificación y resúmenes se conservan para cuando vuelvas a conectar.
 
 ## Conectar tu propia cuenta de Mattermost
 
@@ -75,6 +75,18 @@ Mattermost no tiene un inicio de sesión al que OneUptime pueda enviarte, así q
 Abre el enlace en el mismo navegador en el que lo pediste: solo funciona allí, solo una vez y solo durante 15 minutos. Eso demuestra que quien lo pidió tiene las dos cuentas, así que nadie puede conectar la cuenta de Mattermost de otra persona. Si no pediste ningún enlace, ignóralo: no se conecta nada hasta que se abre en el navegador que lo pidió.
 
 La conexión de tu cuenta pertenece a este proyecto. En otro proyecto conectado al mismo equipo de Mattermost, conéctala también allí.
+
+## Recibir avisos en Mattermost
+
+Para recibir avisos por mensaje directo cuando estás de guardia, añade Mattermost como uno de tus métodos de notificación:
+
+:::steps
+1. Conecta tu propia cuenta de Mattermost (consulta [Conectar tu propia cuenta de Mattermost](#conectar-tu-propia-cuenta-de-mattermost)).
+2. Ve a **Ajustes de usuario** > **Métodos de notificación**, abre la pestaña **Aplicaciones del espacio de trabajo** y haz clic en **Añadir cuenta de Mattermost**.
+3. Haz clic en **Enviar mensaje de prueba** en su fila. El mensaje llega como mensaje directo del bot del proyecto.
+:::
+
+Al añadirlo, entra de inmediato en tus reglas de guardia, así que a partir de entonces los avisos te llegan en Mattermost. Cambia qué avisos recibe en **Ajustes de usuario** > **Reglas de guardia**. Cada aviso lleva un enlace para reconocerlo y otro para escalarlo. Al desconectar tu cuenta de Mattermost se quitan este método y las reglas de guardia que lo usan.
 
 ## Reglas de notificación
 

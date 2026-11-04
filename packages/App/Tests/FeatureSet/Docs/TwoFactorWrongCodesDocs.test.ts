@@ -4,7 +4,7 @@ import {
   TRANSLATED_LANGUAGES,
   DocsLink,
 } from "./DocsContentSupport";
-import { inlineCode } from "./DocsTranslationChecks";
+import { inlineCode, strayMarkers } from "./DocsTranslationChecks";
 import { flattened, otherChangesItems } from "./UpgradingDocsNotes";
 import TwoFactorWrongCodes, {
   FIRST_WAIT_SECONDS,
@@ -26,8 +26,12 @@ import path from "path";
  *   - Your Account's troubleshooting entry: five wrong codes in a row, then a
  *     minute, doubling, up to an hour; counted wherever they are entered; an
  *     email when the waits begin; a right code starts the count again; a
- *     security key and a backup code still sign in; a password reset ends the
- *     wait - naming the sign-in page's links as the sign-in page draws them;
+ *     security key and a backup code still sign in; a stranger's codes mean
+ *     somebody knows the password or can read the mailbox, as the email says;
+ *     a mailbox somebody else reads is secured first, because a new password
+ *     does not stop them asking for another link; a password reset ends the
+ *     wait and any link already sent - naming the sign-in page's links as the
+ *     sign-in page draws them;
  *   - the upgrade note (installation/upgrading, "Other changes in 14"),
  *     after the note on the bundled Runner and before the pointer to the
  *     endpoint changes, saying the same and linking to Your Account;
@@ -67,11 +71,108 @@ const CONTAINER_CLOSE: string = ":::";
 // The sign-in page's links, as the Accounts app's locale keys them.
 const LOST_ACCESS_KEYS: Array<string> = ["login", "twoFactor", "lostAccess"];
 const FORGOT_PASSWORD_KEYS: Array<string> = ["login", "forgotPassword"];
+const SIGN_IN_LINK_KEYS: Array<string> = ["login", "emailSignInLink"];
 
 interface DetailsEntry {
   title: string;
   body: string;
 }
+
+interface MailboxWords {
+  // That somebody can read the reader's email.
+  canRead: string;
+  // The forwarding to remove, which outlasts a new mailbox password.
+  forwarding: string;
+  // A sign-in link: the noun inside the sign-in page's own option.
+  signInLink: string;
+}
+
+/*
+ * The words a translation's entry turns on, so that each has to say what the
+ * English says about the mailbox, in its own words.
+ */
+const MAILBOX_WORDS: Record<string, MailboxWords> = {
+  da: {
+    canRead: "kan læse din e-mail",
+    forwarding: "videresendelse",
+    signInLink: "login-link",
+  },
+  de: {
+    canRead: "Ihre E-Mails lesen",
+    forwarding: "Weiterleitung",
+    signInLink: "Anmeldelink",
+  },
+  es: {
+    canRead: "puede leer tu correo",
+    forwarding: "reenvío",
+    signInLink: "enlace de inicio de sesión",
+  },
+  fa: {
+    canRead: "ایمیل شما را بخواند",
+    forwarding: "بازارسال",
+    signInLink: "لینک ورود",
+  },
+  fr: {
+    canRead: "peut lire vos e-mails",
+    forwarding: "transfert",
+    signInLink: "lien de connexion",
+  },
+  hi: {
+    canRead: "ईमेल पढ़ सकता",
+    forwarding: "फ़ॉरवर्डिंग",
+    signInLink: "साइन-इन लिंक",
+  },
+  it: {
+    canRead: "può leggere la tua e-mail",
+    forwarding: "inoltro",
+    signInLink: "link di accesso",
+  },
+  ja: {
+    canRead: "メールを読むことができます",
+    forwarding: "転送",
+    signInLink: "サインインリンク",
+  },
+  ko: {
+    canRead: "이메일을 읽을 수 있습니다",
+    forwarding: "전달",
+    signInLink: "로그인 링크",
+  },
+  nl: {
+    canRead: "uw e-mail lezen",
+    forwarding: "doorstuurregel",
+    signInLink: "inloglink",
+  },
+  no: {
+    canRead: "kan lese e-posten din",
+    forwarding: "videresending",
+    signInLink: "innloggingslenke",
+  },
+  pt: {
+    canRead: "ler o seu e-mail",
+    forwarding: "encaminhamento",
+    signInLink: "link de acesso",
+  },
+  ru: {
+    canRead: "читать вашу почту",
+    forwarding: "пересылку",
+    signInLink: "ссылку для входа",
+  },
+  sv: {
+    canRead: "kan läsa din e-post",
+    forwarding: "vidarebefordran",
+    signInLink: "inloggningslänk",
+  },
+  "zh-CN": {
+    canRead: "能读取你的电子邮件",
+    forwarding: "转发",
+    signInLink: "登录链接",
+  },
+  "zh-TW": {
+    canRead: "能讀取你的電子郵件",
+    forwarding: "轉寄",
+    signInLink: "登入連結",
+  },
+};
 
 function source(relativePath: string): string {
   return fs.readFileSync(path.join(PACKAGES_DIR, relativePath), "utf8");
@@ -179,6 +280,27 @@ describe("the code the docs describe", () => {
       reset.slice(0, reset.indexOf("public async setPassword(")),
     ).toContain("await TwoFactorWrongCodes.forget(user.id!);");
   });
+
+  it("ends a sign-in link already sent on a password reset", () => {
+    const signIn: string = source(
+      "App/FeatureSet/Identity/API/Authentication.ts",
+    );
+    const reset: string = signIn.slice(signIn.indexOf('"/reset-password"'));
+
+    expect(reset.slice(0, reset.indexOf('"/refresh-token"'))).toContain(
+      "magicLinkToken: null!",
+    );
+  });
+
+  it("tells the owner in the email which of the two it was", () => {
+    const email: string = source(
+      "App/FeatureSet/Notification/Templates/TwoFactorWrongCodes.hbs",
+    );
+
+    expect(email).toContain('{{#ifCond isMagicLinkSignIn "true"}}');
+    expect(email).toContain("someone can read your email.");
+    expect(email).toContain("someone knows your password.");
+  });
 });
 
 describe("Your Account's troubleshooting entry", () => {
@@ -206,9 +328,23 @@ describe("Your Account's troubleshooting entry", () => {
     );
   });
 
-  it("says what to do when the codes were not theirs, by the sign-in page's own link", () => {
+  it("says codes that were not theirs mean somebody knows the password or can read the email, and that the email says which", () => {
     expect(ENGLISH_ENTRY).toContain(
-      "If you did not enter those codes, someone knows your password: reset it with **Forgot password?** on the sign-in page, which also ends the wait.",
+      "If you did not enter those codes, someone knows your password or can read your email, and the email OneUptime sent you says which.",
+    );
+    expect(ENGLISH_ENTRY).not.toContain("someone knows your password:");
+  });
+
+  it("has a mailbox somebody else reads secured first, because a new password does not stop them asking for another link", () => {
+    expect(ENGLISH_ENTRY).toContain(
+      "If they can read your email, first change your email account's password and remove any forwarding you did not set up: a new OneUptime password alone does not stop them asking for another sign-in link.",
+    );
+    expect(accountsLabel("en", SIGN_IN_LINK_KEYS)).toContain("sign-in link");
+  });
+
+  it("then says what a reset ends, by the sign-in page's own link", () => {
+    expect(ENGLISH_ENTRY).toContain(
+      "Then reset your password with **Forgot password?** on the sign-in page, which ends the wait and any sign-in link already sent.",
     );
     expect(accountsLabel("en", FORGOT_PASSWORD_KEYS)).toBe("Forgot password?");
   });
@@ -289,6 +425,37 @@ describe.each(TRANSLATED_LANGUAGES)("in %s", (language: string) => {
         named: true,
       });
     }
+  });
+
+  it("says somebody may read the email, and has that mailbox secured before the password is reset", () => {
+    const body: string = entries[ENTRY_INDEX]!.body;
+    const words: MailboxWords = MAILBOX_WORDS[language]!;
+
+    const canRead: number = body.indexOf(words.canRead);
+    const forwarding: number = body.indexOf(words.forwarding);
+    const reset: number = body.indexOf(
+      `**${accountsLabel(language, FORGOT_PASSWORD_KEYS)}**`,
+    );
+
+    expect({ words, canRead: canRead >= 0 }).toEqual({ words, canRead: true });
+    expect(forwarding).toBeGreaterThan(canRead);
+    expect(reset).toBeGreaterThan(forwarding);
+  });
+
+  it("calls a sign-in link what this language's sign-in page calls it", () => {
+    const words: MailboxWords = MAILBOX_WORDS[language]!;
+
+    expect(accountsLabel(language, SIGN_IN_LINK_KEYS)).toContain(
+      words.signInLink,
+    );
+    expect(entries[ENTRY_INDEX]!.body).toContain(words.signInLink);
+  });
+
+  it("draws every bold span it opens, with no asterisks left", async () => {
+    // A leading line, for the title strayMarkers leaves out of a page.
+    expect(
+      await strayMarkers(`\n${entries[ENTRY_INDEX]!.body}`, language),
+    ).toEqual([]);
   });
 
   it("the upgrade note is in the English note's place, under a lead of its own, linking to Your Account", () => {

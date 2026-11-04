@@ -2682,9 +2682,9 @@ const getOrCreatePendingTotpEnrolment: GetOrCreatePendingTotpEnrolmentFunction =
 /*
  * The answer to a code that was not checked, because the account is waiting
  * after too many wrong codes in a row (TwoFactorWrongCodes), or because the
- * count could not be read. Reached only after the password was accepted, so
- * the waiting message may say what is going on; the unavailable one is the
- * sign-in limiter's, word for word.
+ * count could not be read. Reached only after the password or a sign-in link
+ * was accepted, so the waiting message may say what is going on; the
+ * unavailable one is the sign-in limiter's, word for word.
  */
 type SendCodeNotCheckedFunction = (data: {
   req: ExpressRequest;
@@ -2736,7 +2736,9 @@ const sendCodeNotChecked: SendCodeNotCheckedFunction = (data: {
  * is not the account's, or a request that failed before its code could be
  * checked: once the waits have begun, the owner is emailed, at most once a
  * day (TwoFactorWrongCodes.shouldTellOwner), at the address on the account
- * rather than in the browser that entered the codes.
+ * rather than in the browser that entered the codes. The mail is told whether
+ * this attempt's sign-in began with a link, since what the owner should do
+ * next depends on it.
  *
  * Called from a `finally`, so it never throws: the mail is never awaited,
  * and nothing here may change the answer the caller gets, whatever the mail
@@ -2746,12 +2748,14 @@ type TellOwnerAboutWrongCodeFunction = (data: {
   req: ExpressRequest;
   user: User;
   check: TwoFactorCodeCheck;
+  isMagicLinkSignIn: boolean;
 }) => Promise<void>;
 
 const tellOwnerAboutWrongCode: TellOwnerAboutWrongCodeFunction = async (data: {
   req: ExpressRequest;
   user: User;
   check: TwoFactorCodeCheck;
+  isMagicLinkSignIn: boolean;
 }): Promise<void> => {
   try {
     // Read while the request is open: the count below is awaited first.
@@ -2774,6 +2778,7 @@ const tellOwnerAboutWrongCode: TellOwnerAboutWrongCodeFunction = async (data: {
     AuthenticationEmail.sendTwoFactorWrongCodesEmail({
       user: data.user,
       wrongCodesInARow: data.check.wrongCodesInARow,
+      isMagicLinkSignIn: data.isMagicLinkSignIn,
       origin: origin,
     }).catch((err: Error) => {
       logger.error(err, getLogAttributesFromRequest(data.req as RequestLike));
@@ -3306,8 +3311,8 @@ const login: LoginFunction = async (options: {
            * Counted for the account before the code is looked at, wherever
            * the request came from (TwoFactorWrongCodes): after five wrong
            * codes in a row, each next code waits, and while it waits no code
-           * is checked, right or wrong. The password has been checked above,
-           * so only somebody who holds it moves this count.
+           * is checked, right or wrong. The password or sign-in link has been
+           * checked above, so only somebody who holds one moves this count.
            */
           const codeCheck: TwoFactorCodeCheck =
             await TwoFactorWrongCodes.startCheck({
@@ -3366,6 +3371,7 @@ const login: LoginFunction = async (options: {
                 req,
                 user: alreadySavedUser,
                 check: codeCheck,
+                isMagicLinkSignIn: isMagicLinkSignIn,
               });
             }
           }
@@ -3512,6 +3518,7 @@ const login: LoginFunction = async (options: {
                 req,
                 user: alreadySavedUser,
                 check: backupCodeCheck,
+                isMagicLinkSignIn: isMagicLinkSignIn,
               });
             }
           }

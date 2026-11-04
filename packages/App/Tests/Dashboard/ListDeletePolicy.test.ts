@@ -128,6 +128,7 @@ const OWN_DELETE_FLOW_LISTS: Array<string> = [
   "Dashboard/src/Components/NotificationMethods/Push.tsx",
   "Dashboard/src/Components/NotificationMethods/Slack.tsx",
   "Dashboard/src/Components/NotificationMethods/MicrosoftTeams.tsx",
+  "Dashboard/src/Components/NotificationMethods/Mattermost.tsx",
   "Dashboard/src/Components/NotificationMethods/Webhook.tsx",
 ];
 

@@ -8,7 +8,7 @@
  * compliance rule that could only ask about some of them would report a
  * member whose pager is Telegram as unreachable when they are not.
  *
- * Nine of them are a method each member owns (a phone, a push device, a
+ * Ten of them are a method each member owns (a phone, a push device, a
  * webhook...). CustomChannel is different: a custom channel
  * (CustomNotificationChannel, #5332) is the installation's, added by its
  * admin, and a member's rule simply names it - there is nothing per person to
@@ -24,6 +24,7 @@ enum ComplianceNotificationChannel {
   Telegram = "Telegram",
   Slack = "Slack",
   MicrosoftTeams = "MicrosoftTeams",
+  Mattermost = "Mattermost",
   Webhook = "Webhook",
   // Any custom channel (CustomNotificationChannel) that is on.
   CustomChannel = "CustomChannel",

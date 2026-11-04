@@ -1,6 +1,6 @@
 # Varselmetoder
 
-En varselmetode er en adresse OneUptime kan nå deg på i ett prosjekt: en e-postadresse, et telefonnummer for SMS eller anrop, et WhatsApp-nummer, en Telegram-konto, Slack- eller Microsoft Teams-kontoen din, en telefon eller nettleser for push-varsler, eller en webhook. Du legger dem til under **Brukerinnstillinger → Varselmetoder**, verifiserer dem, og OneUptime begynner straks å bruke dem til tilkallingene dine.
+En varselmetode er en adresse OneUptime kan nå deg på i ett prosjekt: en e-postadresse, et telefonnummer for SMS eller anrop, et WhatsApp-nummer, en Telegram-konto, Slack-, Microsoft Teams- eller Mattermost-kontoen din, en telefon eller nettleser for push-varsler, eller en webhook. Du legger dem til under **Brukerinnstillinger → Varselmetoder**, verifiserer dem, og OneUptime begynner straks å bruke dem til tilkallingene dine.
 
 :::cards
 - [Velg en metode](#velg-en-metode): Hva hver metode trenger, og hvordan den verifiseres.
@@ -20,7 +20,7 @@ flowchart TB
     rules --> used["Tilkallinger og<br/>oppdateringer når den"]
 ```
 
-En metode du ikke har verifisert, blir aldri brukt. Push-enheter, Slack, Microsoft Teams og webhooks trenger ingen kode: å registrere en enhet eller koble til kontoen din beviser at den er din, og en webhook trenger ikke noe bevis. Å verifisere en metode legger straks til [standardreglene](/docs/notifications/on-call-rules#reglene-du-starter-med) dine for den, så et nytt telefonnummer tilkaller deg for hver alvorlighetsgrad til du endrer reglene dets.
+En metode du ikke har verifisert, blir aldri brukt. Push-enheter, Slack, Microsoft Teams, Mattermost og webhooks trenger ingen kode: å registrere en enhet eller koble til kontoen din beviser at den er din, og en webhook trenger ikke noe bevis. Å verifisere en metode legger straks til [standardreglene](/docs/notifications/on-call-rules#reglene-du-starter-med) dine for den, så et nytt telefonnummer tilkaller deg for hver alvorlighetsgrad til du endrer reglene dets.
 
 ## Velg en metode
 
@@ -35,10 +35,11 @@ Hver fane i **Varselmetoder** har ett eller flere kort, ett per type metode:
 | **Telegram-kontoer for varsler** | **Direkte kontakt** | Telegram-kontoen din | En melding til OneUptime-boten |
 | **Slack Account for Notifications** | **Arbeidsområdeapper** | Slack-kontoen din | Å koble kontoen din til prosjektets arbeidsområde |
 | **Microsoft Teams Account for Notifications** | **Arbeidsområdeapper** | Microsoft Teams-kontoen din | Å koble kontoen din til prosjektets arbeidsområde |
+| **Mattermost-konto for varsler** | **Arbeidsområdeapper** | Mattermost-kontoen din | Å koble kontoen din til prosjektets arbeidsområde |
 | **Enheter for push-varsler** | **Push-varsler** | En telefon med appen OneUptime On-Call, eller en nettleser | Å registrere enheten |
 | **Webhooks for varsler** | **Webhooker** | Et eget HTTPS-endepunkt | Ingen |
 
-**Arbeidsområdeapper** vises bare når prosjektet har koblet til Slack eller Microsoft Teams, og inneholder bare dem det har koblet til. SMS, anrop, WhatsApp og Telegram kan være slått av for hele prosjektet; se [Slå på en kanal for prosjektet](#slå-på-en-kanal-for-prosjektet).
+**Arbeidsområdeapper** vises bare når prosjektet har koblet til Slack, Microsoft Teams eller Mattermost, og inneholder bare dem det har koblet til. SMS, anrop, WhatsApp og Telegram kan være slått av for hele prosjektet; se [Slå på en kanal for prosjektet](#slå-på-en-kanal-for-prosjektet).
 
 ## Legg til og verifiser en metode
 
@@ -85,11 +86,13 @@ Tilbake i OneUptime klikker du **I've sent the message — check**. Så snart bo
 
 **Roter kode** lager en ny kode for en konto som ikke er verifisert ennå. QR-koden og lenken du åpnet før, slutter da å virke. I en selvdriftet OneUptime kobler serverens administrator til en Telegram-bot før noen kan koble til en konto.
 
-## Slack og Microsoft Teams
+## Slack, Microsoft Teams og Mattermost
 
-1. Koble din egen konto til prosjektets arbeidsområde: **Brukerinnstillinger → Arbeidsområde → Slack**, eller **Microsoft Teams**. Se [Slack](/docs/workspace-connections/slack) og [Microsoft Teams](/docs/workspace-connections/microsoft-teams).
-2. Klikk **Add Slack Account** eller **Add Microsoft Teams Account** på fanen **Arbeidsområdeapper**. Kontoen er verifisert så snart den er lagt til.
-3. Klikk **Send Test Message** i raden dens. Tilkallinger kommer som direktemeldinger fra OneUptime-appen.
+1. Koble din egen konto til prosjektets arbeidsområde: **Brukerinnstillinger → Arbeidsområde → Slack**, **Microsoft Teams** eller **Mattermost**. Se [Slack](/docs/workspace-connections/slack), [Microsoft Teams](/docs/workspace-connections/microsoft-teams) og [Mattermost](/docs/workspace-connections/mattermost).
+2. Klikk **Add Slack Account**, **Add Microsoft Teams Account** eller **Legg til Mattermost-konto** på fanen **Arbeidsområdeapper**. Kontoen er verifisert så snart den er lagt til.
+3. Klikk **Send Test Message** i raden dens. Tilkallinger kommer som direktemeldinger fra OneUptime-appen, eller i Mattermost fra prosjektets bot.
+
+En Mattermost-konto får bare tilkallingene dine, ikke oppdateringene du velger i **Varselinnstillinger**.
 
 ## Push-varsler
 
@@ -167,7 +170,7 @@ En webhook trenger ingen verifisering, så når du legger den til, legges reglen
 
 ## Slå på en kanal for prosjektet
 
-**SMS**, **Telefonanrop**, **WhatsApp** og **Telegram** er slått av i hvert nytt prosjekt, fordi hver melding koster penger: I OneUptime Cloud betales den fra prosjektets saldo, og SMS og anrop går i stedet gjennom prosjektets egen Twilio-konto når standardkontoen sender dem. E-post, push, Slack, Microsoft Teams og webhooks er alltid slått på.
+**SMS**, **Telefonanrop**, **WhatsApp** og **Telegram** er slått av i hvert nytt prosjekt, fordi hver melding koster penger: I OneUptime Cloud betales den fra prosjektets saldo, og SMS og anrop går i stedet gjennom prosjektets egen Twilio-konto når standardkontoen sender dem. E-post, push, Slack, Microsoft Teams, Mattermost og webhooks er alltid slått på.
 
 Så lenge en kanal er slått av, kan ingen i prosjektet legge til en metode på den: kortet har ingen legg-til-knapp, og sier hvem som kan slå den på. En prosjekteier, en **Faktureringsadministrator** eller noen med **Manage Billing** slår den på, i kortet **Varslingskanaler** under **Prosjektinnstillinger → Varsler → Varselinnstillinger**. En prosjektadministrator kan ikke det. I en selvdriftet OneUptime trenger SMS og anrop i tillegg en Twilio-konto eller en gateway du selv drifter, og Telegram en bot som serverens administrator kobler til; se [Twilio-integrasjon](/docs/self-hosted/twilio-integration) og [SMS- og anropsgateway](/docs/self-hosted/sms-and-call-gateway).
 
