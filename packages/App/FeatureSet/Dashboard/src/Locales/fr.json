@@ -43559,6 +43559,7 @@
   "Problem Reported": "Problème signalé",
   "SELECT * FROM orders WHERE total < 0": "SELECT * FROM orders WHERE total < 0",
   "[{ \"$match\": { \"total\": { \"$lt\": 0 } } }]": "[{ \"$match\": { \"total\": { \"$lt\": 0 } } }]",
+  "Microsoft Teams isn't connected to this project.": "Microsoft Teams n'est pas connecté à ce projet.",
   "{{status}} for {{duration}}": "{{status}} for {{duration}}",
   "{{up}} of {{count}} APIs up": "{{up}} of {{count}} APIs up",
   "{{up}} of {{count}} APIs up_one": "{{up}} of {{count}} API up",

@@ -1313,6 +1313,111 @@ describe("Microsoft Teams channels", () => {
       WorkspaceChannelState.ManagedInTeams,
     ]);
   });
+
+  /*
+   * A channel's link is built without the connection, so a project that lost
+   * its connection still has the card, with this channel as the server reads
+   * it then. It used to say "Slack isn't connected to this project." and send
+   * people to the Slack settings, about a channel in Microsoft Teams.
+   */
+  test("the connection gone: Connect Microsoft Teams, to the project's Microsoft Teams settings, and no word of Slack", async () => {
+    readAnswer({
+      channels: [
+        teamsChannel({
+          state: WorkspaceChannelState.NotConnected,
+          isPrivate: null,
+          teamName: undefined,
+        }),
+      ],
+      canAddPeople: true,
+    });
+    renderCard({ links: [TEAMS_LINK] });
+
+    const element: HTMLElement = await card();
+    const state: HTMLElement = within(element).getByTestId(
+      "record-channel-state",
+    );
+
+    expect(state).toHaveTextContent(
+      "Microsoft Teams isn't connected to this project.",
+    );
+
+    const connect: HTMLElement = within(state).getByRole("link", {
+      name: "Connect Microsoft Teams",
+    });
+
+    expect(connect).toHaveAttribute(
+      "href",
+      `/dashboard/${PROJECT_ID}/settings/microsoft-teams-integration`,
+    );
+    expect(
+      within(state).getByTestId("record-channel-connect-project"),
+    ).toContainElement(connect);
+    expect(element).not.toHaveTextContent("Slack");
+
+    // The channel can still be opened in Teams, and nothing else is offered.
+    expect(screen.getByText("Microsoft Teams Channel")).toBeInTheDocument();
+
+    const name: HTMLElement = within(element).getByTestId(
+      "record-channel-name",
+    );
+
+    expect(name).toHaveAttribute("href", TEAMS_URL);
+    expect(name).toHaveAttribute("title", "Open in Microsoft Teams");
+    expect(
+      within(element).queryByTestId("record-channel-teams-note"),
+    ).toBeNull();
+    expect(within(element).queryByTestId("record-channel-connect")).toBeNull();
+    expect(within(element).queryByTestId("record-channel-join")).toBeNull();
+    expect(
+      within(element).queryByTestId("record-channel-add-people"),
+    ).toBeNull();
+  });
+
+  test("Slack and Teams both disconnected: each says its own, and connects on its own page", async () => {
+    readAnswer({
+      channels: [
+        slackChannel({
+          state: WorkspaceChannelState.NotConnected,
+          people: [],
+          peopleCount: 0,
+        }),
+        teamsChannel({
+          state: WorkspaceChannelState.NotConnected,
+          isPrivate: null,
+          teamName: undefined,
+        }),
+      ],
+      canAddPeople: true,
+    });
+    renderCard({ links: [SLACK_LINK, TEAMS_LINK] });
+
+    const states: Array<HTMLElement> = within(await card()).getAllByTestId(
+      "record-channel-state",
+    );
+
+    expect(states.length).toBe(2);
+    expect(states[0]!).toHaveTextContent(
+      "Slack isn't connected to this project.",
+    );
+    expect(
+      within(states[0]!).getByRole("link", { name: "Connect Slack" }),
+    ).toHaveAttribute(
+      "href",
+      `/dashboard/${PROJECT_ID}/settings/slack-integration`,
+    );
+    expect(states[1]!).toHaveTextContent(
+      "Microsoft Teams isn't connected to this project.",
+    );
+    expect(
+      within(states[1]!).getByRole("link", {
+        name: "Connect Microsoft Teams",
+      }),
+    ).toHaveAttribute(
+      "href",
+      `/dashboard/${PROJECT_ID}/settings/microsoft-teams-integration`,
+    );
+  });
 });
 
 describe("Mattermost channels", () => {

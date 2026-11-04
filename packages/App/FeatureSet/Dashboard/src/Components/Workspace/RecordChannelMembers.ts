@@ -177,11 +177,26 @@ export const MATTERMOST_CHANNEL_TEXT: ChannelProductText = {
   connectProject: translationKey("Connect Mattermost"),
 };
 
+/*
+ * A Microsoft Teams channel is only ever ManagedInTeams, which the card words
+ * on its own, or NotConnected (WorkspaceChannelMembers.readTeamsChannels), and
+ * OneUptime adds nobody to one. So the project's connection is all it needs
+ * its own words for: the rest of Slack's are never drawn for it.
+ */
+export const TEAMS_CHANNEL_TEXT: ChannelProductText = {
+  ...SLACK_CHANNEL_TEXT,
+  connectProject: translationKey("Connect Microsoft Teams"),
+};
+
 export function getChannelProductText(
   workspaceType: WorkspaceType,
 ): ChannelProductText {
-  return workspaceType === WorkspaceType.Mattermost
-    ? MATTERMOST_CHANNEL_TEXT
+  if (workspaceType === WorkspaceType.Mattermost) {
+    return MATTERMOST_CHANNEL_TEXT;
+  }
+
+  return workspaceType === WorkspaceType.MicrosoftTeams
+    ? TEAMS_CHANNEL_TEXT
     : SLACK_CHANNEL_TEXT;
 }
 
@@ -449,6 +464,14 @@ export const MATTERMOST_CHANNEL_STATE_TEXT: Record<
     MATTERMOST_ADD_OUTCOME_TEXT[WorkspaceChannelAddOutcome.TryAgain].self,
 };
 
+// NotConnected is the one of these a Teams channel reaches (TEAMS_CHANNEL_TEXT).
+export const TEAMS_CHANNEL_STATE_TEXT: Record<ChannelStateWithText, string> = {
+  ...CHANNEL_STATE_TEXT,
+  [WorkspaceChannelState.NotConnected]: translationKey(
+    "Microsoft Teams isn't connected to this project.",
+  ),
+};
+
 // What the card says about a channel in this state; nothing for one that takes people.
 export function getChannelStateText(
   workspaceType: WorkspaceType,
@@ -457,7 +480,9 @@ export function getChannelStateText(
   const text: Record<ChannelStateWithText, string> =
     workspaceType === WorkspaceType.Mattermost
       ? MATTERMOST_CHANNEL_STATE_TEXT
-      : CHANNEL_STATE_TEXT;
+      : workspaceType === WorkspaceType.MicrosoftTeams
+        ? TEAMS_CHANNEL_STATE_TEXT
+        : CHANNEL_STATE_TEXT;
 
   return text[state as ChannelStateWithText];
 }
