@@ -50,10 +50,11 @@ Cada uma dessas ações também pode ser concedida separadamente, de criar um ca
 | Regras de detecção | Uma regra corresponde | **Abrir um caso ao corresponder**, na etapa **Ao corresponder** da regra |
 | Inteligência de ameaças | Um evento cita um indicador conhecido | **Abrir um caso ao corresponder**, na etapa **Ao corresponder** do feed |
 | Produtos conectados | Um alerta do próprio produto é importado no limite da conexão ou acima dele | **Open Cases From** definido como **Nunca**, na etapa **Consulta periódica** da conexão |
+| Produtos de segurança nos seus logs | Uma ameaça que um firewall, um IDS ou um produto de endpoint escreve nos seus logs está no limite de Seus logs ou acima dele | **Abrir casos a partir de** definido como **Nunca**, em **Seus logs** |
 | Risco de entidades | O risco de um usuário, host ou endereço atinge o limite do projeto | **Casos de risco**, em **Configurações → Pontuação de risco** |
 | Pessoas | Alguém abre um em **Casos de segurança**, ou com **Abrir caso** no painel de um evento | Não há como |
 
-Todas as origens abrem casos por padrão, exceto o risco de entidades em projetos criados antes de ele existir: neles, ative primeiro **Casos de risco** ([Risco de entidades](/docs/telemetry/security-entity-risk)). Uma conexão abre casos para **Alta e acima**, a menos que você escolha outro nível; os alertas abaixo dele continuam sendo importados como eventos.
+Todas as origens abrem casos por padrão, exceto o risco de entidades em projetos criados antes de ele existir: neles, ative primeiro **Casos de risco** ([Risco de entidades](/docs/telemetry/security-entity-risk)). Uma conexão abre casos para **Alta e acima**, a menos que você escolha outro nível; os alertas abaixo dele continuam sendo importados como eventos. **Seus logs** faz o mesmo com as ameaças dos seus logs.
 
 ### Como as detecções são agrupadas
 

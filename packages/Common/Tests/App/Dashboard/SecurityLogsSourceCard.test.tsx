@@ -20,11 +20,21 @@ import * as React from "react";
 import SecurityLogsSourceCard, {
   SECURITY_LOGS_SOURCE_CARD_ID,
   SECURITY_LOG_FORMAT_GROUPS_CLASS_NAME,
+  SECURITY_LOG_FORMAT_GROUP_CLASS_NAME,
   SECURITY_LOG_FORMAT_HEALTH_DOT_CLASS_NAMES,
   getSecurityLogFormatHealth,
   readFoundByFormat,
   readScanProgress,
 } from "../../../../App/FeatureSet/Dashboard/src/Components/SecurityEvents/SecurityLogsSourceCard";
+import {
+  SECURITY_LOGS_CASE_SEVERITY_DESCRIPTION,
+  SECURITY_LOGS_CASE_SEVERITY_DROPDOWN_CLASS_NAME,
+  SECURITY_LOGS_CASE_SEVERITY_LABELS,
+  SECURITY_LOGS_CASE_SEVERITY_TEST_ID,
+  getYourLogsCaseSeverityChoice,
+  getYourLogsCaseSeverityOptions,
+  getYourLogsCaseSeverityWrite,
+} from "../../../../App/FeatureSet/Dashboard/src/Components/SecurityEvents/SecurityLogsCaseSeverity";
 import SecurityLogSource from "../../../Models/DatabaseModels/SecurityLogSource";
 import HTTPResponse from "../../../Types/API/HTTPResponse";
 import OneUptimeDate from "../../../Types/Date";
@@ -35,6 +45,10 @@ import SecurityLogFormat, {
 import ModelAPI from "../../../UI/Utils/ModelAPI/ModelAPI";
 import PermissionGate from "../../../UI/Utils/PermissionGate";
 import ProjectUtil from "../../../UI/Utils/Project";
+import {
+  DASHBOARD_LANGUAGES,
+  readDashboardLocale,
+} from "../../Helpers/DashboardLocales";
 
 /*
  * "Your logs" on the Connections page: one switch that saves when it is
@@ -158,6 +172,9 @@ describe("Your logs", () => {
       "Azure activity and Entra ID logs",
       "CEF",
       "LEEF",
+      "Palo Alto Networks",
+      "Fortinet FortiGate",
+      "Cisco ASA",
       "Kubernetes audit logs",
       "Web attacks",
     ]);
@@ -173,7 +190,10 @@ describe("Your logs", () => {
     const groups: Array<[string, Array<string>]> = [
       ["servers", ["ssh-sign-in", "sudo", "windows-events"]],
       ["cloud", ["aws-cloudtrail", "google-cloud-audit", "azure-activity"]],
-      ["security-devices", ["cef", "leef"]],
+      [
+        "security-devices",
+        ["cef", "leef", "palo-alto", "fortigate", "cisco-asa"],
+      ],
       ["applications", ["kubernetes-audit", "web-attack"]],
     ];
 
@@ -207,9 +227,12 @@ describe("Your logs", () => {
    * Each group is one list, a kind a row, as Your OneUptime data lists its
    * sources: ten bordered tiles in rows of three left two groups with an
    * empty third of a row, and made the card the page's longest. The groups
-   * pair up side by side from 44rem of the card's own width - beside the
-   * side menu the card is about 370px wide at a 768 window, whatever the
-   * window says. The browser suite measures them.
+   * flow into two newspaper columns from 44rem of the card's own width -
+   * beside the side menu the card is about 370px wide at a 768 window,
+   * whatever the window says - each kept whole in one of them, so Security
+   * devices' five kinds never leave half a card of nothing beside
+   * Applications' two, as a grid's rows did. The browser suite measures
+   * them.
    */
   test("each group is one list, a kind a row, and the groups take their columns from the card's width", async () => {
     await renderCard();
@@ -219,13 +242,19 @@ describe("Your logs", () => {
     );
     expect(groups.parentElement).toHaveClass("[container-type:inline-size]");
     expect(groups).toHaveClass(
-      "grid",
-      "grid-cols-1",
-      "[@container(min-width:44rem)]:grid-cols-2",
+      "columns-1",
+      "[@container(min-width:44rem)]:columns-2",
     );
     expect(groups.className).toBe(SECURITY_LOG_FORMAT_GROUPS_CLASS_NAME);
+    // Columns that flow, not a grid's rows, which pair the groups up.
+    expect(groups.className).not.toMatch(GRID_COLUMNS);
     // No column count from the window: md and xl are the window's widths.
     expect(groups.className).not.toMatch(WINDOW_COLUMNS);
+    // Each group whole in one column.
+    for (const group of Array.from(groups.children)) {
+      expect(group.className).toBe(SECURITY_LOG_FORMAT_GROUP_CLASS_NAME);
+      expect(group).toHaveClass("break-inside-avoid");
+    }
 
     expect(
       Array.from(groups.children).map((child: Element): string | null => {
@@ -620,5 +649,290 @@ describe("readScanProgress", () => {
         skippedTo: "2026-10-18T12:00:00.000Z",
       }).skipped,
     ).toBeNull();
+  });
+});
+
+/*
+ * "Open cases from" on Your logs: which threats security products write in
+ * the logs open a case, as a connection's Open Cases From says for its
+ * alerts. Shown while Your logs is on; it saves the moment it is picked.
+ */
+describe("Your logs - Open cases from", () => {
+  function row(): HTMLElement {
+    return screen.getByTestId(`${SECURITY_LOGS_CASE_SEVERITY_TEST_ID}-row`);
+  }
+
+  function box(): HTMLElement {
+    return within(row()).getByRole("combobox", { hidden: true });
+  }
+
+  function shown(): string {
+    return row().querySelector(".ou-select__single-value")?.textContent || "";
+  }
+
+  function offered(): Array<string> {
+    fireEvent.keyDown(box(), { key: "ArrowDown", code: "ArrowDown" });
+
+    const labels: Array<string> = screen
+      .queryAllByRole("option")
+      .map((option: HTMLElement): string => {
+        return (option.textContent || "").trim();
+      });
+
+    fireEvent.keyDown(box(), { key: "Escape", code: "Escape" });
+
+    return labels;
+  }
+
+  async function pick(label: string): Promise<void> {
+    fireEvent.keyDown(box(), { key: "ArrowDown", code: "ArrowDown" });
+
+    const option: HTMLElement = screen.getByRole("option", { name: label });
+
+    await act(async () => {
+      fireEvent.mouseDown(option);
+      fireEvent.click(option);
+    });
+  }
+
+  function writes(): Array<unknown> {
+    return (ModelAPI.updateById as unknown as jest.Mock).mock.calls.map(
+      (call: Array<unknown>): unknown => {
+        return (call[0] as { data: unknown }).data;
+      },
+    );
+  }
+
+  test("off, or never turned on, it is not shown: there is nothing to open cases from", async () => {
+    await renderCard();
+
+    expect(
+      screen.queryByTestId(`${SECURITY_LOGS_CASE_SEVERITY_TEST_ID}-row`),
+    ).toBeNull();
+
+    cleanup();
+    stored = [source({ isEnabled: false, caseMinimumSeverity: "High" })];
+    await renderCard();
+
+    expect(
+      screen.queryByTestId(`${SECURITY_LOGS_CASE_SEVERITY_TEST_ID}-row`),
+    ).toBeNull();
+  });
+
+  test("on: it shows what Your logs has, named for the reader, with what it does", async () => {
+    stored = [source({ caseMinimumSeverity: "High" })];
+    await renderCard();
+
+    expect(
+      screen.getByRole("combobox", { name: "Open cases from" }),
+    ).toBeInTheDocument();
+    expect(shown()).toBe("High and above");
+    expect(offered()).toEqual([
+      "Critical only",
+      "High and above",
+      "Medium and above",
+      "Low and above",
+      "Never - events only",
+    ]);
+    // What it is for, in a sentence the dropdown is described by.
+    const description: HTMLElement = screen.getByTestId(
+      `${SECURITY_LOGS_CASE_SEVERITY_TEST_ID}-description`,
+    );
+    expect(description).toHaveTextContent(
+      "Threats your security devices report at or above this severity open security cases, grouped by user, host or address.",
+    );
+    expect(description.textContent).toBe(
+      SECURITY_LOGS_CASE_SEVERITY_DESCRIPTION,
+    );
+    expect(
+      screen.getByRole("combobox", { name: "Open cases from" }),
+    ).toHaveAccessibleDescription(SECURITY_LOGS_CASE_SEVERITY_DESCRIPTION);
+    // As the switch's description above it reads.
+    expect(description).toHaveClass("text-sm", "text-gray-500");
+    // The card reads the threshold with the rest of Your logs.
+    expect(
+      (
+        (ModelAPI.getList as unknown as jest.Mock).mock.calls[0]![0] as {
+          select: Record<string, boolean>;
+        }
+      ).select["caseMinimumSeverity"],
+    ).toBe(true);
+  });
+
+  test("an empty threshold is Never; Critical is Critical only", async () => {
+    stored = [source({ caseMinimumSeverity: "" })];
+    await renderCard();
+
+    expect(shown()).toBe("Never - events only");
+
+    cleanup();
+    stored = [source({ caseMinimumSeverity: "Critical" })];
+    await renderCard();
+
+    expect(shown()).toBe("Critical only");
+  });
+
+  test("picking a severity saves that column alone, at once, and says Saved", async () => {
+    stored = [source({ caseMinimumSeverity: "High" })];
+    await renderCard();
+
+    await pick("Medium and above");
+
+    await waitFor(() => {
+      expect(
+        screen.getByTestId(`${SECURITY_LOGS_CASE_SEVERITY_TEST_ID}-status`),
+      ).toHaveTextContent("Saved");
+    });
+    expect(writes()).toEqual([{ caseMinimumSeverity: "Medium" }]);
+    expect(
+      (
+        (ModelAPI.updateById as unknown as jest.Mock).mock.calls[0]![0] as {
+          id: ObjectID;
+        }
+      ).id.toString(),
+    ).toBe(SOURCE_ID.toString());
+    expect(shown()).toBe("Medium and above");
+  });
+
+  test("Never saves the empty value: the threats stay events", async () => {
+    stored = [source({ caseMinimumSeverity: "High" })];
+    await renderCard();
+
+    await pick("Never - events only");
+
+    await waitFor(() => {
+      expect(writes()).toEqual([{ caseMinimumSeverity: "" }]);
+    });
+  });
+
+  test("a pick the server refuses goes back to what Your logs has, with the reason", async () => {
+    stored = [source({ caseMinimumSeverity: "High" })];
+    await renderCard();
+    jest
+      .spyOn(ModelAPI, "updateById")
+      .mockRejectedValue(new Error("You need Security Admin to change this."));
+
+    await pick("Low and above");
+
+    expect(
+      await screen.findByTestId(`${SECURITY_LOGS_CASE_SEVERITY_TEST_ID}-error`),
+    ).toHaveTextContent("You need Security Admin to change this.");
+    expect(shown()).toBe("High and above");
+  });
+
+  test("whoever may not change it sees it locked, still showing the value, and nothing is saved", async () => {
+    stored = [source({ caseMinimumSeverity: "High" })];
+    jest.spyOn(PermissionGate, "check").mockReturnValue({
+      isAllowed: false,
+      disabledReason: "You need Security Admin to change this.",
+    });
+    await act(async () => {
+      render(<SecurityLogsSourceCard />);
+    });
+    await waitFor(() => {
+      expect(
+        screen.getByTestId(`${SECURITY_LOGS_CASE_SEVERITY_TEST_ID}-row`),
+      ).toBeInTheDocument();
+    });
+
+    expect(box()).toBeDisabled();
+    expect(shown()).toBe("High and above");
+    expect(offered()).toEqual([]);
+    expect(
+      screen.getAllByText("You need Security Admin to change this.").length,
+    ).toBeGreaterThan(0);
+    expect(ModelAPI.updateById).not.toHaveBeenCalled();
+  });
+
+  test("turned on for the first time, it shows the High the new record starts with", async () => {
+    jest
+      .spyOn(ModelAPI, "create")
+      .mockImplementation(async (data: { model: unknown }) => {
+        const created: SecurityLogSource = data.model as SecurityLogSource;
+        // The column's default, as Postgres writes it.
+        stored = [
+          source({
+            isEnabled: created.isEnabled === true,
+            caseMinimumSeverity: "High",
+          }),
+        ];
+        return new HTTPResponse(200, {}, {}) as never;
+      });
+    await renderCard();
+
+    expect(
+      screen.queryByTestId(`${SECURITY_LOGS_CASE_SEVERITY_TEST_ID}-row`),
+    ).toBeNull();
+
+    await flip();
+
+    await waitFor(() => {
+      expect(shown()).toBe("High and above");
+    });
+    // The switch's create sends no threshold of its own.
+    expect(
+      (
+        (ModelAPI.create as unknown as jest.Mock).mock.calls[0]![0] as {
+          model: SecurityLogSource;
+        }
+      ).model.caseMinimumSeverity,
+    ).toBeUndefined();
+  });
+});
+
+describe("Your logs - Open cases from, as read and written", () => {
+  test("the stored value is the choice; empty is Never, and Never writes empty", () => {
+    expect(getYourLogsCaseSeverityChoice("High")).toBe("High");
+    expect(getYourLogsCaseSeverityChoice("")).toBe("Never");
+    expect(getYourLogsCaseSeverityChoice(null)).toBe("Never");
+    expect(getYourLogsCaseSeverityChoice(undefined)).toBe("Never");
+    expect(getYourLogsCaseSeverityChoice("  ")).toBe("Never");
+    expect(getYourLogsCaseSeverityWrite("Never")).toBe("");
+    expect(getYourLogsCaseSeverityWrite("Low")).toBe("Low");
+  });
+
+  test("a value written through the API stays offered, as it is, while Your logs has it", () => {
+    expect(
+      getYourLogsCaseSeverityOptions("Informational").map(
+        (option: { label: string; isUserContent?: boolean | undefined }) => {
+          return [option.label, Boolean(option.isUserContent)];
+        },
+      ),
+    ).toEqual([
+      ["Critical only", false],
+      ["High and above", false],
+      ["Medium and above", false],
+      ["Low and above", false],
+      ["Never - events only", false],
+      ["Informational", true],
+    ]);
+    expect(getYourLogsCaseSeverityOptions("High")).toHaveLength(5);
+  });
+
+  /*
+   * The dropdown takes the card's width on a phone and is 18rem from sm up,
+   * and every level is said in every language the Dashboard speaks. The
+   * browser suite measures each language's levels against the room the
+   * dropdown has on a phone: "Never - keep them as events only" was cut
+   * after its second word in French and Russian.
+   */
+  test("every level is the reader's words in every language", () => {
+    expect(SECURITY_LOGS_CASE_SEVERITY_DROPDOWN_CLASS_NAME).toBe(
+      "w-full sm:w-[18rem]",
+    );
+
+    for (const language of DASHBOARD_LANGUAGES) {
+      const locale: Record<string, string> = readDashboardLocale(language);
+
+      for (const label of Object.values(SECURITY_LOGS_CASE_SEVERITY_LABELS)) {
+        const said: string | undefined = locale[label];
+
+        expect([language, label, Boolean(said) && said !== label]).toEqual([
+          language,
+          label,
+          true,
+        ]);
+      }
+    }
   });
 });

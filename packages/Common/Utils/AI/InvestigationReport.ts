@@ -51,6 +51,13 @@ const MAX_FOLLOW_UP_LEAD_LENGTH: number = 1000;
 
 export enum InvestigationReportSectionKind {
   Summary = "Summary",
+  /*
+   * Who and what the signal hurts, and how that was worked out
+   * (AIInvestigationEngine's persona): one bullet per thing affected -
+   * "**Users:** ...", "**Services:** ...", "**SLOs:** ..." - right after
+   * the summary, where the AI card draws it.
+   */
+  Impact = "Impact",
   RootCause = "RootCause",
   Evidence = "Evidence",
   /*
@@ -65,6 +72,32 @@ export enum InvestigationReportSectionKind {
 
 // The heading the investigation writes its ruled-out causes under.
 export const RULED_OUT_SECTION_TITLE: string = "Ruled out";
+
+// The heading the investigation writes what the signal hurts under.
+export const IMPACT_SECTION_TITLE: string = "Impact";
+
+/*
+ * What an Impact section's lines are about, by the bold label each opens
+ * with: the people, the services, the objectives. A line with any other
+ * label is about what its label says.
+ */
+export enum InvestigationImpactAspect {
+  Users = "Users",
+  Services = "Services",
+  Slos = "Slos",
+}
+
+/*
+ * The labels the persona asks an Impact section's lines to open with, one
+ * per aspect, in the order it asks for them (and a test holds it to them).
+ */
+export const IMPACT_LINE_LABELS: Readonly<
+  Record<InvestigationImpactAspect, string>
+> = {
+  [InvestigationImpactAspect.Users]: "Users",
+  [InvestigationImpactAspect.Services]: "Services",
+  [InvestigationImpactAspect.Slos]: "SLOs",
+};
 
 export interface InvestigationReportSection {
   kind: InvestigationReportSectionKind;
@@ -142,6 +175,8 @@ export interface ParsedInvestigationReport {
   sections: Array<InvestigationReportSection>;
   // Convenience: the first section body of each kind, or undefined.
   summary?: string | undefined;
+  // Who and what the signal hurts, and how that was worked out.
+  impact?: string | undefined;
   rootCause?: string | undefined;
   evidence?: string | undefined;
   // The other causes the investigation checked and ruled out.
@@ -198,6 +233,16 @@ const KNOWN_LABELS: Map<string, LabelKind> = new Map<string, LabelKind>([
   ["tl;dr", InvestigationReportSectionKind.Summary],
   ["tl; dr", InvestigationReportSectionKind.Summary],
   ["tldr", InvestigationReportSectionKind.Summary],
+  ["impact", InvestigationReportSectionKind.Impact],
+  ["customer impact", InvestigationReportSectionKind.Impact],
+  ["user impact", InvestigationReportSectionKind.Impact],
+  ["business impact", InvestigationReportSectionKind.Impact],
+  ["impact assessment", InvestigationReportSectionKind.Impact],
+  ["impact and scope", InvestigationReportSectionKind.Impact],
+  ["scope of impact", InvestigationReportSectionKind.Impact],
+  ["blast radius", InvestigationReportSectionKind.Impact],
+  ["who is affected", InvestigationReportSectionKind.Impact],
+  ["what is affected", InvestigationReportSectionKind.Impact],
   ["most likely root cause", InvestigationReportSectionKind.RootCause],
   ["likely root cause", InvestigationReportSectionKind.RootCause],
   ["probable root cause", InvestigationReportSectionKind.RootCause],
@@ -1651,17 +1696,20 @@ function resolveSectionStarts(
      * also how a model groups an Evidence section's findings ("**Evidence**"
      * then "**Ruled out:**" and "**Supports:**", or "## Evidence" then
      * "### Ruled out"). Nested so, it stays in the section it is in, as it
-     * did before it was a section; every other recognised label always
+     * did before it was a section. "Impact" is read the same way
+     * (IMPACT_SECTION_TITLE): a root cause grouped into "### Cause" and
+     * "### Impact" keeps its impact. Every other recognised label always
      * starts one.
      */
-    const isNestedRuledOut: boolean =
-      match.kind === InvestigationReportSectionKind.RuledOut &&
+    const isNestedSubSection: boolean =
+      (match.kind === InvestigationReportSectionKind.RuledOut ||
+        match.kind === InvestigationReportSectionKind.Impact) &&
       (isSubHeadingOfOpen || isFirstUnderBodilessLabel);
 
     if (
       match.kind !== null &&
       match.kind !== "EvidenceChecked" &&
-      !isNestedRuledOut
+      !isNestedSubSection
     ) {
       starts.push({
         index: candidate.index,
@@ -1889,6 +1937,7 @@ export function parseInvestigationReport(
     followUpLead,
     sections,
     summary,
+    impact: firstOfKind(InvestigationReportSectionKind.Impact),
     rootCause,
     evidence: firstOfKind(InvestigationReportSectionKind.Evidence),
     ruledOut: firstOfKind(InvestigationReportSectionKind.RuledOut),
@@ -1960,6 +2009,30 @@ function withoutLeadingColon(text: string): string {
 export function parseRuledOutCauses(
   markdown: string | null | undefined,
 ): Array<RuledOutCause> {
+  return parseLabelledBullets(markdown, MAX_RULED_OUT_CAUSES_SHOWN).map(
+    (bullet: LabelledBullet): RuledOutCause => {
+      return { causeMarkdown: bullet.label, reasonMarkdown: bullet.text };
+    },
+  );
+}
+
+// One bullet of a list a section is: its bold label, and the rest of it.
+interface LabelledBullet {
+  // "The cause"; "" when the bullet names none in bold.
+  label: string;
+  text: string;
+}
+
+/*
+ * A section's bullets, each read as a bold label and the rest - the shape
+ * the persona asks a Ruled out section's and an Impact section's lines to
+ * take: at most `max`, in order; empty when the section is not a list.
+ * Lines under a bullet continue it. Linear in the text.
+ */
+function parseLabelledBullets(
+  markdown: string | null | undefined,
+  max: number,
+): Array<LabelledBullet> {
   if (typeof markdown !== "string" || !markdown.trim()) {
     return [];
   }
@@ -1986,9 +2059,9 @@ export function parseRuledOutCauses(
     bullets[bullets.length - 1]!.push(line.trim());
   }
 
-  const causes: Array<RuledOutCause> = [];
+  const read: Array<LabelledBullet> = [];
 
-  for (const parts of bullets.slice(0, MAX_RULED_OUT_CAUSES_SHOWN)) {
+  for (const parts of bullets.slice(0, max)) {
     const text: string = parts
       .join(" ")
       .slice(0, MAX_RULED_OUT_BULLET_LENGTH)
@@ -2001,17 +2074,127 @@ export function parseRuledOutCauses(
     const label: RegExpExecArray | null = BOLD_LABEL_REGEX.exec(text);
 
     if (!label) {
-      causes.push({ causeMarkdown: "", reasonMarkdown: text });
+      read.push({ label: "", text });
       continue;
     }
 
-    causes.push({
-      causeMarkdown: withoutTrailingColon(label[1] || ""),
-      reasonMarkdown: withoutLeadingColon(text.slice(label[0].length)),
+    read.push({
+      label: withoutTrailingColon(label[1] || ""),
+      text: withoutLeadingColon(text.slice(label[0].length)),
     });
   }
 
-  return causes;
+  return read;
+}
+
+/*
+ * One line of a report's Impact section: what it is about (the bullet's bold
+ * label, and the aspect that label names) and what the report says of it,
+ * how it was worked out included - each still Markdown, citations and all.
+ */
+export interface InvestigationImpactLine {
+  // The aspect the label names; null for a label of any other kind, or none.
+  aspect: InvestigationImpactAspect | null;
+  // "Users"; "" when the bullet names none in bold.
+  labelMarkdown: string;
+  // "About 1,240 failed checkout requests since 14:02 [C2] ...".
+  textMarkdown: string;
+}
+
+// The most lines the card lists: the persona asks for three.
+export const MAX_IMPACT_LINES_SHOWN: number = 8;
+
+/*
+ * The words a label may say an aspect with, lower case: what a model writes
+ * for each beside the persona's own label.
+ */
+const IMPACT_ASPECT_WORDS: ReadonlyArray<{
+  aspect: InvestigationImpactAspect;
+  words: ReadonlyArray<string>;
+}> = [
+  {
+    aspect: InvestigationImpactAspect.Users,
+    words: [
+      "users",
+      "user",
+      "customers",
+      "customer",
+      "people",
+      "end users",
+      "visitors",
+      "sessions",
+      "requests",
+      "customers affected",
+      "users affected",
+      "affected users",
+    ],
+  },
+  {
+    aspect: InvestigationImpactAspect.Services,
+    words: [
+      "services",
+      "service",
+      "affected services",
+      "services affected",
+      "systems",
+      "components",
+      "dependencies",
+      "apis",
+    ],
+  },
+  {
+    aspect: InvestigationImpactAspect.Slos,
+    words: [
+      "slos",
+      "slo",
+      "slas",
+      "sla",
+      "error budget",
+      "error budgets",
+      "objectives",
+      "service level objectives",
+      "slos affected",
+      "affected slos",
+    ],
+  },
+];
+
+// The aspect a line's label names, read as the report's labels are.
+export function getImpactAspect(
+  labelMarkdown: string,
+): InvestigationImpactAspect | null {
+  const normalised: string = labelMarkdown
+    .replace(WHITESPACE_RUN_REGEX, " ")
+    .trim()
+    .toLowerCase();
+
+  for (const entry of IMPACT_ASPECT_WORDS) {
+    if (entry.words.includes(normalised)) {
+      return entry.aspect;
+    }
+  }
+
+  return null;
+}
+
+/*
+ * The lines a report's Impact section lists, one per bullet, in order;
+ * empty when the section is not a list (the card then draws it as written).
+ * Lines under a bullet continue it. Pure, and linear in the text: the
+ * ruled-out causes' reader, with what each label names.
+ */
+export function parseImpactLines(
+  markdown: string | null | undefined,
+): Array<InvestigationImpactLine> {
+  return parseLabelledBullets(markdown, MAX_IMPACT_LINES_SHOWN).map(
+    (bullet: LabelledBullet): InvestigationImpactLine => {
+      return {
+        aspect: bullet.label ? getImpactAspect(bullet.label) : null,
+        labelMarkdown: bullet.label,
+        textMarkdown: bullet.text,
+      };
+    },
+  );
 }
 
 type EventReferenceQualifier = "incident" | "alert" | "blocked";

@@ -8,6 +8,7 @@ Koppel een AWS-account, een Azure-abonnement of een Google Cloud-project vanuit 
 - [Google Cloud](#google-cloud): Een serviceaccount met zes rollen die alleen lezen.
 - [Wat OneUptime leest](#wat-oneuptime-leest): Resources, metrieken, wijzigingen, statusgebeurtenissen en kosten, hoe vaak, en wat het lezen ervan kost.
 - [Cloudkosten en besparingen](/docs/telemetry/cloud-costs): Wat elk account kost, de manieren om minder uit te geven en budgetten die waarschuwen.
+- [CloudWatch-metrieken en -logboeken streamen](/docs/telemetry/cloud-streaming): Elke metriek binnen enkele minuten, en CloudWatch Logs, via Amazon Data Firehose.
 - [Gegevensbeveiliging](#gegevensbeveiliging): Wat de koppeling Gegevensbeveiliging laat lezen, en wat elk niveau aan de opdracht toevoegt.
 - [AI problemen laten oplossen](#ai-problemen-laten-oplossen): Nog één opdracht, en OneUptime AI kan oplossen wat het vindt.
 :::
@@ -268,7 +269,7 @@ De opdracht van een lager niveau vervangt het AWS-beleid door het lagere. **Uit*
 | Gelezen elke | 10 minuten | 5 minuten | 5 minuten |
 | Een verwijderde resource | Gearchiveerd zodra een volledige lijst hem niet meer bevat | Gearchiveerd zodra een volledige lijst hem niet meer bevat | Gearchiveerd zodra een volledige lijst hem niet meer bevat |
 
-Elke leesbeurt gaat verder waar de vorige stopte, zodat elk datapunt en elke wijziging één keer wordt geschreven. De eerste leesbeurt van een nieuwe koppeling start binnen een minuut en gaat een uur terug voor metrieken en 2 uur voor wijzigingen; na een pauze gaat een leesbeurt hooguit 6 uur terug. Een resource die alleen metrieken meldt, en die geen enkele lijst bevat, wordt na 7 dagen zonder metrieken gearchiveerd. Kosten worden twee keer per dag gelezen, en de manieren om minder uit te geven één keer per dag.
+Elke leesbeurt gaat verder waar de vorige stopte, zodat elk datapunt en elke wijziging één keer wordt geschreven. Met **Cloud-auditlogboeken** aan in Beveiligingsgebeurtenissen bewaren dezelfde leesbeurten de auditlogs van de accounts ook als [beveiligingsgebeurtenissen](/docs/telemetry/security-events#de-auditlogs-van-uw-cloudaccounts-lezen). De eerste leesbeurt van een nieuwe koppeling start binnen een minuut en gaat een uur terug voor metrieken en 2 uur voor wijzigingen; na een pauze gaat een leesbeurt hooguit 6 uur terug. Een resource die alleen metrieken meldt, en die geen enkele lijst bevat, wordt na 7 dagen zonder metrieken gearchiveerd. Kosten worden twee keer per dag gelezen, en de manieren om minder uit te geven één keer per dag.
 
 De aanroepen van OneUptime worden aan je cloudaccount gefactureerd, tegen de prijzen van je cloud. Resources tonen, wijzigingen en statusgebeurtenissen lezen, de manieren lezen om minder uit te geven en de kosten van Azure lezen kost niets; metrieken lezen wel, en ook de kosten van AWS en Google Cloud lezen. De test schat de kosten van wat hij vindt, en minder vaak lezen kost minder: wijzig **Leesinterval voor metrieken** onder **Meer velden**.
 
@@ -320,7 +321,7 @@ Een organisatiebeleid, `iam.disableServiceAccountKeyCreation`, kan sleutels voor
 :::
 
 :::details Er verschijnen geen resources
-De eerste leesbeurt toont elke resource van het account, of die nu metrieken meldt of niet. Als een koppeling niet werkt, zegt **View error** onder **Cloud → Koppelen** waarom de laatste leesbeurt mislukte.
+De eerste leesbeurt toont elke resource van het account, of die nu metrieken meldt of niet. Als een koppeling niet werkt, zegt **Fout bekijken** onder **Cloud → Koppelen** waarom de laatste leesbeurt mislukte.
 :::
 
 :::details Sommige accounts van de organisatie ontbreken

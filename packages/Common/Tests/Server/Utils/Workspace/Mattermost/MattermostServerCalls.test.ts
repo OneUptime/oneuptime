@@ -778,7 +778,7 @@ describe("MattermostUtil: calls to the Mattermost server", () => {
           },
         ],
       },
-    ] as Array<WorkspaceMessageBlock>;
+    ] as unknown as Array<WorkspaceMessageBlock>;
 
     test("posts to channels by id and by name, each once, with the message's buttons", async () => {
       on(
@@ -1043,7 +1043,7 @@ describe("MattermostUtil: calls to the Mattermost server", () => {
         workspaceUserId: ALICE_ID,
         messageBlocks: [
           { _type: "WorkspacePayloadMarkdown", text: "You are on call." },
-        ] as Array<WorkspaceMessageBlock>,
+        ] as unknown as Array<WorkspaceMessageBlock>,
       });
 
       expect(calls[0]!.args.data).toEqual([BOT_ID, ALICE_ID]);
@@ -1073,7 +1073,7 @@ describe("MattermostUtil: calls to the Mattermost server", () => {
               blockId: "note",
               placeholder: "Note",
             },
-          ] as Array<WorkspaceMessageBlock>,
+          ] as unknown as Array<WorkspaceMessageBlock>,
         },
       });
 

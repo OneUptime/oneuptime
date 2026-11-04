@@ -34,6 +34,16 @@ import { ConnectorTransport } from "../Types";
  *    (learn.microsoft.com/graph/api/directoryaudit-list). AuditLog.Read.All;
  *    activityDateTime filters with ge and le.
  *
+ *  - Risk detections: GET {graph}/v1.0/identityProtection/riskDetections
+ *    (learn.microsoft.com/graph/api/riskdetection-list).
+ *    IdentityRiskEvent.Read.All; P1 or P2; at most 500 a page;
+ *    detectedDateTime filters with ge and le.
+ *
+ *  - Background and app sign-ins: GET {graph}/beta/auditLogs/signIns with
+ *    signInEventTypes/any(t: t eq 'nonInteractiveUser') or
+ *    'servicePrincipal' beside the time range - the v1.0 list returns a
+ *    person's interactive sign-ins only. AuditLog.Read.All.
+ *
  *  - Microsoft 365: {manage}/api/v1.0/{tenant GUID}/activity/feed/...
  *    (learn.microsoft.com/office/office-365-management-api/office-365-
  *    management-activity-api-reference). ActivityFeed.Read. A content type
@@ -51,17 +61,35 @@ import { ConnectorTransport } from "../Types";
  * token is never sent where a response body pointed.
  */
 
-export type MicrosoftEntraIdCloud = "public" | "usgov";
+/*
+ * The Microsoft clouds a tenant can live in, by what each signs in at, what
+ * Graph answers at and where the Management Activity API is - one address
+ * per Microsoft 365 plan, as its reference lists them:
+ *
+ *   public  the commercial cloud (worldwide), the Enterprise plan;
+ *   gcc     Microsoft 365 GCC: a US government tenant in the commercial
+ *           Entra ID and Graph, whose audit log is served from GCC's own
+ *           Management API address;
+ *   usgov   Azure Government: Microsoft 365 GCC High;
+ *   dod     Azure Government's DoD cloud: Graph and the Management API at
+ *           the DoD addresses.
+ *
+ * A token is asked for the resource it is used at ({host}/.default), so a
+ * GCC tenant's Management API token names manage-gcc.office.com.
+ */
+export type MicrosoftEntraIdCloud = "public" | "gcc" | "usgov" | "dod";
 
 export const MICROSOFT_ENTRA_ID_CLOUDS: Array<MicrosoftEntraIdCloud> = [
   "public",
+  "gcc",
   "usgov",
+  "dod",
 ];
 
-interface CloudHosts {
+export interface CloudHosts {
   loginHost: string;
   graphHost: string;
-  // The Management Activity API: worldwide, and GCC High for usgov.
+  // The Management Activity API of the cloud's Microsoft 365 plan.
   manageHost: string;
 }
 
@@ -71,10 +99,20 @@ const CLOUD_HOSTS: Record<MicrosoftEntraIdCloud, CloudHosts> = {
     graphHost: "https://graph.microsoft.com",
     manageHost: "https://manage.office.com",
   },
+  gcc: {
+    loginHost: "https://login.microsoftonline.com",
+    graphHost: "https://graph.microsoft.com",
+    manageHost: "https://manage-gcc.office.com",
+  },
   usgov: {
     loginHost: "https://login.microsoftonline.us",
     graphHost: "https://graph.microsoft.us",
     manageHost: "https://manage.office365.us",
+  },
+  dod: {
+    loginHost: "https://login.microsoftonline.us",
+    graphHost: "https://dod-graph.microsoft.us",
+    manageHost: "https://manage.protection.apps.mil",
   },
 };
 
@@ -162,21 +200,72 @@ export interface Microsoft365Subscription {
   status: string;
 }
 
-export type MicrosoftEntraIdLog = "signIns" | "directoryAudits";
+/*
+ * The Graph lists a connection reads:
+ *
+ *   signIns                  a person's interactive sign-ins (v1.0);
+ *   directoryAudits          directory changes (v1.0);
+ *   riskDetections           what Identity Protection found
+ *                            (v1.0 identityProtection/riskDetections,
+ *                            IdentityRiskEvent.Read.All, P1 or P2), by when
+ *                            it was detected;
+ *   nonInteractiveSignIns    the sign-ins apps make for a person in the
+ *   servicePrincipalSignIns  background, and apps' own: only Graph's beta
+ *                            list has them, one kind at a time - Graph does
+ *                            not take both kinds in one filter.
+ */
+export type MicrosoftEntraIdLog =
+  | "signIns"
+  | "directoryAudits"
+  | "riskDetections"
+  | "nonInteractiveSignIns"
+  | "servicePrincipalSignIns";
 
-const LOG_PATHS: Record<MicrosoftEntraIdLog, string> = {
-  signIns: "auditLogs/signIns",
-  directoryAudits: "auditLogs/directoryAudits",
-};
+interface GraphLogAddress {
+  version: "v1.0" | "beta";
+  path: string;
+  // The time the list is filtered by: when the record was created.
+  timeField: string;
+  // What the filter adds to the time range, for a beta sign-in kind.
+  extraFilter?: string | undefined;
+}
 
-const LOG_TIME_FIELDS: Record<MicrosoftEntraIdLog, string> = {
-  signIns: "createdDateTime",
-  directoryAudits: "activityDateTime",
+const LOG_ADDRESSES: Record<MicrosoftEntraIdLog, GraphLogAddress> = {
+  signIns: {
+    version: "v1.0",
+    path: "auditLogs/signIns",
+    timeField: "createdDateTime",
+  },
+  directoryAudits: {
+    version: "v1.0",
+    path: "auditLogs/directoryAudits",
+    timeField: "activityDateTime",
+  },
+  riskDetections: {
+    version: "v1.0",
+    path: "identityProtection/riskDetections",
+    timeField: "detectedDateTime",
+  },
+  nonInteractiveSignIns: {
+    version: "beta",
+    path: "auditLogs/signIns",
+    timeField: "createdDateTime",
+    extraFilter: "signInEventTypes/any(t: t eq 'nonInteractiveUser')",
+  },
+  servicePrincipalSignIns: {
+    version: "beta",
+    path: "auditLogs/signIns",
+    timeField: "createdDateTime",
+    extraFilter: "signInEventTypes/any(t: t eq 'servicePrincipal')",
+  },
 };
 
 const LOG_STEPS: Record<MicrosoftEntraIdLog, string> = {
   signIns: "sign-ins request",
   directoryAudits: "audit logs request",
+  riskDetections: "risk detections request",
+  nonInteractiveSignIns: "background sign-ins request",
+  servicePrincipalSignIns: "app sign-ins request",
 };
 
 function isJsonObject(value: unknown): value is JSONObject {
@@ -239,7 +328,9 @@ export default class MicrosoftEntraIdClient {
 
   /*
    * One page of a log over [startTime, endTime): Graph filters with ge and
-   * le only, so the end is the last millisecond before it.
+   * le only, so the end is the last millisecond before it. A beta sign-in
+   * kind adds its kind to the filter, the time range in brackets before it,
+   * as Graph's own examples write it.
    */
   public buildLogUrl(data: {
     log: MicrosoftEntraIdLog;
@@ -247,15 +338,17 @@ export default class MicrosoftEntraIdClient {
     endTime: Date;
     pageSize?: number | undefined;
   }): string {
-    const field: string = LOG_TIME_FIELDS[data.log];
+    const address: GraphLogAddress = LOG_ADDRESSES[data.log];
+    const field: string = address.timeField;
     const lastIncluded: Date = new Date(data.endTime.getTime() - 1);
     const url: URL = new URL(
-      `${CLOUD_HOSTS[this.cloud].graphHost}/v1.0/${LOG_PATHS[data.log]}`,
+      `${CLOUD_HOSTS[this.cloud].graphHost}/${address.version}/${address.path}`,
     );
+    const range: string = `${field} ge ${data.startTime.toISOString()} and ${field} le ${lastIncluded.toISOString()}`;
 
     url.searchParams.set(
       "$filter",
-      `${field} ge ${data.startTime.toISOString()} and ${field} le ${lastIncluded.toISOString()}`,
+      address.extraFilter ? `(${range}) and ${address.extraFilter}` : range,
     );
     url.searchParams.set(
       "$top",

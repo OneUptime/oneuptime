@@ -50,10 +50,11 @@ Hver af disse rettigheder kan også tildeles for sig, fra at oprette en sag til 
 | Detektionsregler | En regel matcher | **Åbn en sag ved match** i regelens trin **Ved match** |
 | Trusselsintelligens | En begivenhed nævner en kendt indikator | **Åbn en sag ved match** i feedets trin **Ved match** |
 | Forbundne produkter | En advarsel fra selve produktet importeres på eller over forbindelsens tærskel | **Open Cases From** sat til **Aldrig** i forbindelsens trin **Hentning** |
+| Sikkerhedsprodukter i dine logs | En trussel, som en firewall, et IDS eller et endpointprodukt skriver i dine logs, ligger på eller over tærsklen for Dine logs | **Åbn sager fra** sat til **Aldrig** på **Dine logs** |
 | Entitetsrisiko | En brugers, værts eller adresses risiko når projektets tærskel | **Risikosager** under **Indstillinger → Risikoscoring** |
 | Personer | Nogen åbner en fra **Sikkerhedssager** eller med **Åbn sag** i en begivenheds panel | Ingen |
 
-Alle kilder åbner sager som standard, undtagen entitetsrisiko i projekter, der blev oprettet, før det fandtes: slå først **Risikosager** til dér ([Entitetsrisiko](/docs/telemetry/security-entity-risk)). En forbindelse åbner sager for **Høj og højere**, medmindre du vælger et andet niveau; advarslerne under det importeres stadig som begivenheder.
+Alle kilder åbner sager som standard, undtagen entitetsrisiko i projekter, der blev oprettet, før det fandtes: slå først **Risikosager** til dér ([Entitetsrisiko](/docs/telemetry/security-entity-risk)). En forbindelse åbner sager for **Høj og højere**, medmindre du vælger et andet niveau; advarslerne under det importeres stadig som begivenheder. **Dine logs** gør det samme for truslerne i dine logs.
 
 ### Sådan grupperes detektioner
 

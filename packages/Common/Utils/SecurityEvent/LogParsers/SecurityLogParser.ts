@@ -13,6 +13,15 @@ import SecurityDeviceLogParser, {
   SECURITY_DEVICE_PREFILTER_WORDS,
 } from "./SecurityDeviceLogParser";
 import { SecurityLogLine } from "./SecurityLogLine";
+import CiscoAsaLogParser, {
+  CISCO_ASA_PREFILTER_GROUPS,
+} from "./CiscoAsaLogParser";
+import FortiGateLogParser, {
+  FORTIGATE_PREFILTER_GROUPS,
+} from "./FortiGateLogParser";
+import PaloAltoLogParser, {
+  PALO_ALTO_PREFILTER_GROUPS,
+} from "./PaloAltoLogParser";
 import SshLogParser, { SSH_AUTHENTICATION_METHODS } from "./SshLogParser";
 import SudoLogParser from "./SudoLogParser";
 import WebAttackLogParser, { WEB_ATTACK_MARKERS } from "./WebAttackLogParser";
@@ -29,7 +38,8 @@ import WindowsEventLogParser, {
  *
  * The parsers are tried from the most specific shape to the least: a JSON
  * audit, CloudTrail, Google Cloud audit or Azure record, then a Windows
- * event, then a security product's CEF or LEEF record, then SSH and sudo
+ * event, then a security product's CEF or LEEF record, then a firewall's
+ * own syslog (Palo Alto Networks, FortiGate, Cisco ASA), then SSH and sudo
  * lines, and last an attack string in a request. A line is one kind of
  * record, so the first parser that reads it wins - a WAF's CEF record of
  * an attack is one event, never a second one for the attack string in it.
@@ -55,6 +65,15 @@ const PARSERS: ReadonlyArray<LogLineParser> = [
   },
   (line: SecurityLogLine): Array<NormalizedSecurityEvent> => {
     return SecurityDeviceLogParser.parse(line);
+  },
+  (line: SecurityLogLine): Array<NormalizedSecurityEvent> => {
+    return PaloAltoLogParser.parse(line);
+  },
+  (line: SecurityLogLine): Array<NormalizedSecurityEvent> => {
+    return FortiGateLogParser.parse(line);
+  },
+  (line: SecurityLogLine): Array<NormalizedSecurityEvent> => {
+    return CiscoAsaLogParser.parse(line);
   },
   (line: SecurityLogLine): Array<NormalizedSecurityEvent> => {
     return SshLogParser.parse(line);
@@ -213,6 +232,14 @@ export const SECURITY_LOG_PREFILTER: SecurityLogPrefilter = {
       requires: "leef:",
       anyOf: SECURITY_DEVICE_PREFILTER_WORDS,
     },
+    /*
+     * A firewall's own syslog: a record of a type read, with the words
+     * that make it an event (PaloAltoLogParser, FortiGateLogParser,
+     * CiscoAsaLogParser).
+     */
+    ...PALO_ALTO_PREFILTER_GROUPS,
+    ...FORTIGATE_PREFILTER_GROUPS,
+    ...CISCO_ASA_PREFILTER_GROUPS,
   ],
 };
 

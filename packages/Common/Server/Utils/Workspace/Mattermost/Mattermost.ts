@@ -1590,8 +1590,13 @@ export default class MattermostUtil extends WorkspaceBase {
    * joiner would break. Scanned with a loop: the text can be long.
    */
   public static neutralizeMentions(text: string): string {
-    if (!text || text.indexOf("@") === -1) {
-      return text || "";
+    // What a request sent may be anything: only a string's length bounds the loop.
+    if (typeof text !== "string") {
+      return "";
+    }
+
+    if (text.indexOf("@") === -1) {
+      return text;
     }
 
     let result: string = "";

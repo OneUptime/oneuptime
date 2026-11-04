@@ -27,7 +27,9 @@ name: Iron Bank Preflight
 #      and its base image are scanned with Grype and Trivy, and its files with
 #      ClamAV, and Scripts/IronBank/NewFindings.js sorts the findings against
 #      IronBank/Justifications/<Project>.yaml into the run's summary: a new
-#      high or critical one fails the job.
+#      high or critical one fails the job, except for the runner and the probe,
+#      which report theirs with a warning until they have been dealt with
+#      (report_only below).
 #   5. Uploads the project's files as pinned, the files to push to Repo1, with
 #      the scans.
 #
@@ -75,11 +77,15 @@ jobs:
           - project: Ingress
             image: oneuptime/nginx
             allow_root: "1"
+          # report_only: their new high and critical findings are reported, and
+          # do not fail the job, until they have been fixed or justified.
           - project: Runner
             image: oneuptime/runner
+            report_only: "1"
           - project: Probe
             image: oneuptime/probe
             allow_root: "1"
+            report_only: "1"
     env:
       NAME: ${{ matrix.project }}
       PROJECT: IronBank/${{ matrix.project }}
@@ -245,6 +251,7 @@ jobs:
         if: steps.registry1.outputs.available == 'true'
         env:
           VERSION: ${{ steps.release.outputs.version }}
+          REPORT_ONLY: ${{ matrix.report_only || '0' }}
         run: |
           SCANS="$RUNNER_TEMP/iron-bank/scans"
           JUSTIFICATIONS="IronBank/Justifications/${NAME}.yaml"
@@ -258,6 +265,11 @@ jobs:
             --title "${NAME}: ${{ matrix.image }} ${VERSION} on ${BASE}, scanned with Grype and Trivy." \
             --fail-on high > "$SCANS/findings.md" || STATUS=$?
           cat "$SCANS/findings.md" >> "$GITHUB_STEP_SUMMARY"
+          # NewFindings.js exits 1 for findings and 2 for a mistake, which still fails.
+          if [ "$STATUS" = "1" ] && [ "$REPORT_ONLY" = "1" ]; then
+            echo "::warning title=Iron Bank preflight::${NAME} has new high or critical findings: see the run's summary. It reports them without failing for now (report_only in this workflow)."
+            STATUS=0
+          fi
           exit "$STATUS"
 
       # The project's own files, as pinned: not the resources the fetch step

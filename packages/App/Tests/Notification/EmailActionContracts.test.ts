@@ -376,6 +376,7 @@ const SINGLE_ACTION_CONTRACTS: Array<
     "View on Dashboard",
     "incidentViewLink",
   ],
+  ["MagicLink", "tokenVerifyUrl", "Sign In", "tokenVerifyUrl"],
   [
     "ManageExistingStatusPageSubscriberSubscription",
     "manageSubscriptionUrl",

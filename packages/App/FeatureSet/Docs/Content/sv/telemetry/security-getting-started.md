@@ -64,10 +64,17 @@ Kortet **Dina loggar**, högst upp på **Anslutningar**, behöver ingen installa
 | Azure-aktivitetsloggar och Entra ID-loggar | Ändringar i dina Azure-prenumerationer, larm från Defender for Cloud, samt inloggningar och katalogändringar i Microsoft Entra ID |
 | CEF | Hot, blockerade anslutningar och inloggningar från brandväggar, IDS, WAF:ar och andra säkerhetsprodukter som skickar Common Event Format |
 | LEEF | Samma sak från produkter som skickar Log Event Extended Format, som många gör för IBM QRadar |
+| Palo Alto Networks | Hot, blockerade anslutningar, GlobalProtect- och administratörsinloggningar samt konfigurationsändringar från PAN-OS egen syslog |
+| Fortinet FortiGate | IPS- och antivirusfynd, nekad trafik, VPN- och administratörsinloggningar samt konfigurationsändringar från FortiGates egen syslog |
+| Cisco ASA | Nekade anslutningar, fynd från hotidentifiering och IPS, VPN- och administratörsinloggningar samt kommandon från Cisco ASA och Firepower Threat Defense |
 | Kubernetes granskningsloggar | Ändringar i klustret, skal som öppnas i poddar, lästa hemligheter och nekade förfrågningar |
 | Webbattacker | Förfrågningar i en webbservers åtkomstlogg som försöker med SQL-injektion, path traversal eller Log4Shell |
 
 Dina loggar förblir som de är. Bara raderna som spelar roll för säkerheten blir händelser: aldrig varje sida som en webbserver har levererat, eller varje läsning av ett API.
+
+Ett hot som en säkerhetsprodukt skriver i dina loggar, till exempel ett CEF- eller LEEF-fynd eller ett IPS-fynd från en FortiGate, öppnar ett ärende på samma sätt som en ansluten produkts larm. **Öppna ärenden från** på **Dina loggar** anger från vilken allvarlighetsgrad: **Hög och högre** om du inte väljer en annan, eller **Aldrig**.
+
+Ett AWS-konto, ett Google Cloud-projekt eller en Azure-prenumeration som är ansluten under **Moln** behöver ingen loggpipeline: slå på **Molngranskningsloggar** under **Dina OneUptime-data** på **Anslutningar**, så läses dess granskningslogg tillsammans med kontot. Se [Läs granskningsloggarna för dina molnkonton](/docs/telemetry/security-events#läs-granskningsloggarna-för-dina-molnkonton).
 
 ## Skicka det OneUptime hittar till ditt SIEM
 
@@ -88,7 +95,7 @@ Kortet nämner allt det inte kunde slå på och varför: din roll, din plan elle
 :::
 
 :::details Inga säkerhetshändelser kommer från mina loggar
-Kontrollera att **Hitta säkerhetshändelser i dina loggar** är påslaget och att kortet **Dina loggar** visar när det senast kontrollerades. Bara typerna av rader i tabellen ovan blir händelser: en server som inte skickar SSH-, sudo-, Windows-, gransknings-, CEF-, LEEF- eller åtkomstloggar har inget att hitta. Klistra in en av dess rader i **Kontrollera en loggrad** på **Dina loggar** för att se om OneUptime läser den.
+Kontrollera att **Hitta säkerhetshändelser i dina loggar** är påslaget och att kortet **Dina loggar** visar när det senast kontrollerades. Bara typerna av rader i tabellen ovan blir händelser: en server som inte skickar SSH-, sudo-, Windows-, gransknings-, CEF-, LEEF-, brandväggs- eller åtkomstloggar har inget att hitta. Klistra in en av dess rader i **Kontrollera en loggrad** på **Dina loggar** för att se om OneUptime läser den.
 :::
 
 :::details Översikt säger att den senaste säkerhetshändelsen kom för flera dagar sedan

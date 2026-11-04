@@ -8,6 +8,7 @@ import ProductionReviewDataImpact, {
   readAddedText,
   readDataChanges,
   readSqlChanges,
+  withoutSqlComments,
 } from "../../../../../Server/Utils/CodeRepository/ProductionReview/ProductionReviewDataImpact";
 import ProductionReviewComposer, {
   describeDataUse,
@@ -33,13 +34,16 @@ import {
 } from "../../../../../Types/CodeRepository/ProductionReview";
 import { DataAssetAccessKind } from "../../../../../Types/DataObservability/DataAssetUsage";
 import ObjectID from "../../../../../Types/ObjectID";
+import { fastestRun } from "../../../../Helpers/FastestRun";
 import { emptyReport, PROJECT_ID } from "./ProductionReviewFixtures";
 
 /*
  * A migration that drops or renames a column breaks whatever reads it. The
  * review reads what the pull request's migrations and dbt models change -
  * never their down step - and names the services, tables and data products
- * that depend on each watched table it changes.
+ * that depend on each watched table it changes. All of it is text the pull
+ * request's author wrote, so the last block holds each reader to time in
+ * line with it.
  */
 
 function file(
@@ -97,6 +101,34 @@ describe("which files are read", () => {
     expect(isDbtModelPath("analytics/macros/cents.sql")).toBe(false);
   });
 
+  test("a dbt model is a .sql file inside a folder named models, with a name before its .sql", () => {
+    expect(isDbtModelPath("models/orders.sql")).toBe(true);
+    expect(isDbtModelPath("analytics/Models/marts/Orders.SQL")).toBe(true);
+    expect(isDbtModelPath("analytics/models/a/.sql")).toBe(true);
+    // The first models folder leaves the most after it.
+    expect(isDbtModelPath("analytics/models/b/models/.sql")).toBe(true);
+    expect(isDbtModelPath("analytics/models/.sql")).toBe(false);
+    expect(isDbtModelPath("analytics/notmodels/orders.sql")).toBe(false);
+    expect(isDbtModelPath("analytics/models/orders.sql.bak")).toBe(false);
+    expect(isDbtModelPath("analytics/models/macros/cents.sql")).toBe(false);
+    // A folder starts the path or follows a "/": never a line break.
+    expect(isDbtModelPath("x\n/models/orders.sql")).toBe(true);
+    expect(isDbtModelPath("x\nmodels/orders.sql")).toBe(false);
+    expect(isDbtModelPath("analytics/models/a\nb.sql")).toBe(false);
+  });
+
+  test("an undo file is Flyway's U<version>__ file by its own name, or a .down.sql", () => {
+    expect(isMigrationPath("flyway/U12__drop_orders.sql")).toBe(false);
+    expect(isMigrationPath("flyway/u12__drop_orders.SQL")).toBe(false);
+    expect(isMigrationPath("U1__orders.sql")).toBe(false);
+    expect(isMigrationPath("migrations/000012_orders.down.sql")).toBe(false);
+    expect(isMigrationPath("flyway/V12__orders.sql")).toBe(true);
+    expect(isMigrationPath("flyway/U12_drop_orders.sql")).toBe(true);
+    expect(isMigrationPath("flyway/U__drop_orders.sql")).toBe(true);
+    expect(isMigrationPath("migrations/U12__/drop_orders.sql")).toBe(true);
+    expect(isMigrationPath("migrations/000012_orders.up.sql")).toBe(true);
+  });
+
   test("only the lines a patch adds", () => {
     expect(
       readAddedText(
@@ -151,6 +183,45 @@ describe("SQL", () => {
       `),
     ).toEqual([]);
   });
+
+  test("a block comment ends at its first close, on its line or a later one", () => {
+    expect(
+      kinds(
+        readSqlChanges(
+          [
+            "/* ALTER TABLE orders DROP COLUMN amount; */ ALTER TABLE orders DROP COLUMN total; /**/",
+            "/* DROP TABLE carts;",
+            "   still the comment */ -- DROP TABLE baskets;",
+            "DROP TABLE legacy_orders; /*/ DROP TABLE notes; */",
+          ].join("\n"),
+        ),
+      ),
+    ).toEqual(["DropColumn orders total", "DropTable legacy_orders"]);
+
+    // Each comment is a space; one left open stays, as it was written.
+    expect(withoutSqlComments("a/*b*/c--d\ne/**/f/*/g*/h/*i")).toBe(
+      "a c \ne f h/*i",
+    );
+  });
+
+  test("names as long as databases make them, in each kind of quotes", () => {
+    // PostgreSQL's longest name, then SQL Server's, then MySQL's.
+    const table: string = "o".repeat(63);
+    const column: string = "t".repeat(128);
+    const status: string = "s".repeat(128);
+    const state: string = "u".repeat(64);
+
+    expect(
+      kinds(
+        readSqlChanges(
+          `ALTER TABLE "${table}" DROP COLUMN "${column}", RENAME COLUMN [${status}] TO \`${state}\`;`,
+        ),
+      ),
+    ).toEqual([
+      `DropColumn ${table} ${column}`,
+      `RenameColumn ${table} ${status} ${state}`,
+    ]);
+  });
 });
 
 describe("migrations of each framework", () => {
@@ -198,6 +269,65 @@ describe("migrations of each framework", () => {
       "DropColumn orders note",
       "RenameColumn orders status state",
       "DropTable legacy_orders",
+    ]);
+  });
+
+  test("Rails calls with or without parentheses, spaced, or over several lines", () => {
+    expect(
+      kinds(
+        readDataChanges([
+          file("db/migrate/20261104120000_calls.rb", [
+            "class Calls < ActiveRecord::Migration[7.1]",
+            "  def change",
+            "    remove_column( :orders , :total )",
+            '    remove_column("orders", "coupon", :string)',
+            "    remove_columns(:orders, :note, :memo)",
+            '    rename_column ("orders", "status", "state")',
+            "    rename_column(",
+            "      :carts,",
+            "      :owner,",
+            "      :customer",
+            "    )",
+            "    change_column(:orders, :amount, :decimal)",
+            "    drop_table(:legacy_orders)",
+            "    rename_table\t(:carts, :baskets)",
+            "  end",
+            "end",
+          ]),
+        ]),
+      ),
+    ).toEqual([
+      "DropColumn orders total",
+      "DropColumn orders coupon",
+      "DropColumn orders note",
+      "DropColumn orders memo",
+      "RenameColumn orders status state",
+      "RenameColumn carts owner customer",
+      "AlterColumn orders amount",
+      "DropTable legacy_orders",
+      "RenameTable carts baskets",
+    ]);
+  });
+
+  test("Alembic's alter_column with parentheses among its arguments, or over several lines", () => {
+    expect(
+      kinds(
+        readDataChanges([
+          file("alembic/versions/abc124_amounts.py", [
+            "def upgrade():",
+            "    op.alter_column('orders', 'amount', type_=sa.Numeric(12, 2))",
+            "    op.alter_column(",
+            '        "orders",',
+            '        "status",',
+            '        new_column_name="state",',
+            "    )",
+            "    op.alter_column('orders', 'note', nullable=False)",
+          ]),
+        ]),
+      ),
+    ).toEqual([
+      "AlterColumn orders amount",
+      "RenameColumn orders status state",
     ]);
   });
 
@@ -512,4 +642,96 @@ describe("what depends on a watched table", () => {
     expect(sql).toContain("positionCaseInsensitive(statementText,");
     expect(sql).toContain("match(statementText,");
   });
+});
+
+describe("time in line with what the author wrote", () => {
+  /*
+   * A pull request's migrations and file names are text its author wrote,
+   * so each reader takes time in line with it: 400,000 characters of the
+   * shapes that made the first patterns slow (Rails' remove_column took
+   * 13.9 s on one 100,000-character line of tabs) within two seconds. The
+   * fastest of up to three attempts counts, as it would have run on a usual
+   * runner when every attempt overran on a slow one (Tests/Helpers/FastestRun).
+   */
+  const LENGTH: number = 400000;
+
+  function timeOf(work: () => void): number {
+    return fastestRun({ run: work, limitInMs: 2000 }).inMs;
+  }
+
+  // LENGTH characters: the start, the unit again and again, the end.
+  function longText(start: string, unit: string, end: string = ""): string {
+    const count: number = Math.ceil(
+      (LENGTH - start.length - end.length) / unit.length,
+    );
+
+    return `${start}${unit.repeat(count)}${end}`;
+  }
+
+  test.each([
+    ["remove_column"],
+    ["remove_columns"],
+    ["rename_column"],
+    ["change_column"],
+    ["drop_table"],
+    ["rename_table"],
+  ])("Rails' %s before 400,000 tabs", (call: string) => {
+    const migration: CodeHostChangedFile = file(
+      "db/migrate/20261104120000_tabs.rb",
+      [longText(call, "\t", "-")],
+    );
+
+    expect(
+      timeOf(() => {
+        readDataChanges([migration]);
+      }),
+    ).toBeLessThan(2000);
+  });
+
+  test("Alembic's alter_column called again and again, never closed", () => {
+    const migration: CodeHostChangedFile = file(
+      "alembic/versions/abc125_open.py",
+      [longText("", "op.alter_column('orders', 'total', ")],
+    );
+
+    expect(
+      timeOf(() => {
+        readDataChanges([migration]);
+      }),
+    ).toBeLessThan(2000);
+  });
+
+  test.each([
+    ["ALTER TABLE before a bracket never closed", "ALTER TABLE ["],
+    ["ALTER TABLE before a schema's bracket never closed", "ALTER TABLE a.["],
+    ["DROP TABLE before a bracket never closed", "DROP TABLE ["],
+    ["block comments opened and never closed", "/* "],
+  ])("SQL: %s, again and again", (_shape: string, unit: string) => {
+    const migration: CodeHostChangedFile = file(
+      "db/migrations/20261104_open.sql",
+      [longText("", unit)],
+    );
+
+    expect(
+      timeOf(() => {
+        readDataChanges([migration]);
+      }),
+    ).toBeLessThan(2000);
+  });
+
+  test.each([
+    ["models folders, and no .sql at its end", longText("", "/models/", "x")],
+    ["underscores in a file's name", longText("U1", "__", "x")],
+  ])(
+    "a file's path of 400,000 characters: %s",
+    (_shape: string, path: string) => {
+      const migration: CodeHostChangedFile = file(path, ["DROP TABLE orders;"]);
+
+      expect(
+        timeOf(() => {
+          readDataChanges([migration]);
+        }),
+      ).toBeLessThan(2000);
+    },
+  );
 });

@@ -50,10 +50,11 @@ Each of these can also be granted on its own, from creating a case to approving 
 | Detection rules | A rule matches | **Open a Case on Match**, on the rule's **On Match** step |
 | Threat intelligence | An event names a known indicator | **Open a Case on Match**, on the feed's **On Match** step |
 | Connected products | A product's own alert is imported at or above the connection's threshold | **Open Cases From** set to **Never**, in the connection's **Polling** step |
+| Security products in your logs | A threat a firewall, IDS or endpoint product writes in your logs is at or above Your logs' threshold | **Open cases from** set to **Never**, on **Your logs** |
 | Entity risk | A user's, host's or address's risk reaches the project's threshold | **Risk Cases**, under **Settings → Risk Scoring** |
 | People | Someone opens one from **Security Cases**, or with **Open Case** in an event's panel | None |
 
-Every source opens cases by default, except entity risk on projects created before it existed, which turn on **Risk Cases** first ([Entity Risk](/docs/telemetry/security-entity-risk)). A connection opens cases for **High and above** unless you choose another level; the alerts below it are still imported as events.
+Every source opens cases by default, except entity risk on projects created before it existed, which turn on **Risk Cases** first ([Entity Risk](/docs/telemetry/security-entity-risk)). A connection opens cases for **High and above** unless you choose another level; the alerts below it are still imported as events. **Your logs** does the same for the threats in your logs.
 
 ### How detections are grouped
 

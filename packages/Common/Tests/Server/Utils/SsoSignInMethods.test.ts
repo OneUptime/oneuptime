@@ -192,12 +192,14 @@ beforeEach(() => {
   useInMemoryTable(GlobalOidcProjectService, []);
 
   GlobalConfigService.forgetSignInRules();
+  GlobalConfigService.forgetMagicLinkLoginTurnedOff();
   ProjectService.forgetSignInRules();
   clearGlobalSsoAuthorizationCaches();
 });
 
 afterEach(() => {
   GlobalConfigService.forgetSignInRules();
+  GlobalConfigService.forgetMagicLinkLoginTurnedOff();
   ProjectService.forgetSignInRules();
   clearGlobalSsoAuthorizationCaches();
   jest.restoreAllMocks();
@@ -310,7 +312,38 @@ describe("SsoSignInMethods.getSignInMethods", () => {
       isSsoRequired: true,
       ssoProviders: [],
       hasProjectSsoProviders: false,
+      isMagicLinkLoginEnabled: false,
     });
+  });
+
+  /*
+   * Sign-in links (Types/Accounts/MagicLink): on until a master admin turns
+   * them off, and never offered while SSO is required.
+   */
+  test("offers sign-in links on a server nobody turned them off on", async () => {
+    const methods: SignInMethods = await SsoSignInMethods.getSignInMethods();
+
+    expect(methods.isMagicLinkLoginEnabled).toBe(true);
+  });
+
+  test("offers no sign-in links once a master admin turns them off", async () => {
+    config.get(CONFIG_ID)!["disableMagicLinkLogin"] = true;
+    GlobalConfigService.forgetMagicLinkLoginTurnedOff();
+
+    const methods: SignInMethods = await SsoSignInMethods.getSignInMethods();
+
+    expect(methods.isMagicLinkLoginEnabled).toBe(false);
+    expect(methods.isSsoRequired).toBe(false);
+  });
+
+  test("offers no sign-in links while SSO is required, even where they are on", async () => {
+    config.get(CONFIG_ID)!["disableMagicLinkLogin"] = false;
+    GlobalConfigService.forgetMagicLinkLoginTurnedOff();
+    setServerRule(true);
+
+    const methods: SignInMethods = await SsoSignInMethods.getSignInMethods();
+
+    expect(methods.isMagicLinkLoginEnabled).toBe(false);
   });
 
   // A failed read is no answer: the page shows what it shows when nothing is known.
