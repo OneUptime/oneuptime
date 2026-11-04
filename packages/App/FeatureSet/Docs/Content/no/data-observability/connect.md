@@ -104,12 +104,32 @@ GRANT USE SCHEMA, SELECT ON SCHEMA system.access TO `oneuptime-reader`;
 ```
 
 Katalogen, kolonnene og siste commit for hver Delta-tabell kommer fra REST API-et til Unity Catalog uten noe SQL warehouse, så innsamlingen koster ingen beregningskapasitet. Sjekker, samt avstamning og siste lesinger fra `system.access.table_lineage` én gang i timen, kjører på SQL warehouset du oppgir; gi service principalen **Can use** på det.
+@tab Oracle
+```sql
+CREATE USER oneuptime_reader IDENTIFIED BY "...";
+GRANT CREATE SESSION TO oneuptime_reader;
+GRANT READ ON sales.orders TO oneuptime_reader;
+GRANT SELECT_CATALOG_ROLE TO oneuptime_reader;
+```
+
+Oracle leses over sin egen protokoll uten en Oracle-klient å installere: `oracle://oneuptime_reader:...@orders-db.internal:1521/ORCLPDB1`. Brukeren ser tabellene den kan lese: gi `READ` på hver tabell som skal overvåkes, slik at den kan spørre mot dem og aldri låse eller endre dem. `SELECT_CATALOG_ROLE` lar OneUptime lese hver tabells størrelse, og `ALL_TAB_MODIFICATIONS` gir hver tabells inserts, updates og deletes siden siste statistikk, og når den sist endret seg.
 @tab Amazon Athena
 Én Glue-database er én database. Tabellene og visningene, kolonnene og statistikken deres og hver Iceberg-tabells siste commit kommer fra Glue Data Catalogs API, som ikke leser data og ikke koster noe. Sjekker kjøres som Athena-spørringer i workgroupen du oppgir. Koble til med nøklene til en IAM-bruker eller -rolle som kan kalle `glue:GetDatabase` og `glue:GetTables` og for sjekker kjøre Athena-spørringer i workgroupen med lesetilgang til tabellenes data:
 
 ```json
 { "region": "us-east-1", "accessKeyId": "AKIA...", "secretAccessKey": "...", "database": "analytics", "workgroup": "primary", "outputLocation": "s3://acme-athena-results/oneuptime/" }
 ```
+@tab MongoDB
+```javascript
+use admin
+db.createUser({
+  user: "oneuptime_reader",
+  pwd: "...",
+  roles: [{ role: "readAnyDatabase", db: "admin" }]
+})
+```
+
+MongoDB leses med sin egen driver: `mongodb+srv://oneuptime_reader:...@cluster0.example.mongodb.net/` eller `mongodb://` med vertene til et replica set. En database i stien er den eneste som overvåkes; uten en overvåkes hver database brukeren kan lese, og `{ role: "read", db: "orders" }` i stedet for `readAnyDatabase` begrenser den til én. Dokumentene, størrelsen og skrivingene til hver samling kommer fra `$collStats`, og når den sist fikk et dokument, fra dens nyeste `_id`. Feltene kommer fra validatorens JSON-skjema, ellers fra navnene og typene til feltene i de 100 nyeste dokumentene, regnet ut i databasen slik at ingen verdi forlater den. Dokumenter leses på en sekundær der det finnes en, og en egendefinert kontroll er en aggregeringspipeline som JSON.
 :::
 
 ## Hva som leses, og hvor ofte

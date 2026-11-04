@@ -9,7 +9,9 @@ import OnCallDutyExecutionLogTimelineStatus from "Common/Types/OnCallDutyPolicy/
 import {
   CANT_TAKE_IT_ESCALATE,
   ESCALATE,
+  ON_CALL_LEVEL_SKIPPED_BY_ESCALATION_TIMELINE_MESSAGE,
   ON_CALL_PAGE_CALL_PASS_ON_DIGIT,
+  ON_CALL_PAGE_ESCALATE_TO_LABEL,
   ON_CALL_PAGE_PASSED_ON_STATUS_MESSAGE,
   OnCallPassOnOutcome,
   getOnCallPageStatusLabel,
@@ -60,6 +62,9 @@ const DASHBOARD_LABELS: Array<string> = [
   "Execution Timeline",
   "Escalated",
   "On-Call Logs",
+  // Where a later level than the next is picked, and the level it skips.
+  "Escalate to",
+  "Skipped",
 ];
 
 // What no page says any more: the action's first name, in English.
@@ -110,6 +115,21 @@ const FEED_SENTENCE: string = OnCallFeedText.getStepMarkdown({
   ruleCount: 3,
   recipient: mdText`Alex Kim`,
   statusMessage: ON_CALL_PAGE_PASSED_ON_STATUS_MESSAGE,
+})
+  .split("**")
+  .join("");
+
+/*
+ * The feed's entry for a level skipped for a later one the person picked,
+ * as a reader sees it: bold drawn, no stars.
+ */
+const SKIPPED_LEVEL_FEED_SENTENCE: string = OnCallFeedText.getStepMarkdown({
+  status: OnCallDutyExecutionLogTimelineStatus.Skipped,
+  policyLink: mdText`Payments`,
+  ruleName: "Platform leads",
+  ruleOrder: 2,
+  ruleCount: 3,
+  statusMessage: ON_CALL_LEVEL_SKIPPED_BY_ESCALATION_TIMELINE_MESSAGE,
 })
   .split("**")
   .join("");
@@ -318,6 +338,37 @@ describe("the Escalation Rules page, on escalating a page", () => {
     );
   });
 
+  it("says a later level can be picked, under the label both places draw", () => {
+    const dialog: string = readRepoFile(
+      "App/FeatureSet/Dashboard/src/Components/OnCallPolicy/PassOn/PassOnPage.ts",
+    );
+
+    // The Dashboard's dialog and the Escalate pages a message's links open.
+    expect(ON_CALL_PAGE_ESCALATE_TO_LABEL).toBe("Escalate to");
+    expect(dialog).toContain(
+      `escalateTo: translationKey("${ON_CALL_PAGE_ESCALATE_TO_LABEL}"),`,
+    );
+    expect(section).toContain(
+      `under **${ON_CALL_PAGE_ESCALATE_TO_LABEL}**, with the next level picked.`,
+    );
+    expect(section).toContain("the levels in between are skipped");
+    // The call and the app page the next level, as they always did.
+    expect(section).toContain(
+      "A call and the OneUptime On-Call app page the next level.",
+    );
+  });
+
+  it("quotes the feed's entry for a level skipped, and names its status as the timeline draws it", () => {
+    expect(SKIPPED_LEVEL_FEED_SENTENCE).toBe(
+      "On-call policy Payments skipped Platform leads (Level 2 of 3): the page was escalated past it.",
+    );
+    expect(section).toContain(`the feed says "${SKIPPED_LEVEL_FEED_SENTENCE}"`);
+    expect(OnCallDutyExecutionLogTimelineStatus.Skipped).toBe("Skipped");
+    expect(section).toContain(
+      "A level skipped for a later one is marked **Skipped** on the **Execution Timeline**",
+    );
+  });
+
   it("never says the old words", () => {
     for (const old of OLD_WORDS) {
       expect({ old, found: page.includes(old) }).toEqual({
@@ -376,6 +427,7 @@ describe.each(SUPPORTED_DOCS_LANGUAGE_CODES)(
         CANT_TAKE_IT_ESCALATE,
         PREVIEW_SENTENCE,
         FEED_SENTENCE,
+        SKIPPED_LEVEL_FEED_SENTENCE,
         "OneUptime On-Call",
       ]) {
         expect({ language, kept, found: body.includes(kept) }).toEqual({

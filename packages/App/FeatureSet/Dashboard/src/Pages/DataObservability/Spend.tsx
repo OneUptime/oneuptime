@@ -255,7 +255,7 @@ const SpendPage: FunctionComponent<PageComponentProps> = (): ReactElement => {
         cardProps={{
           title: "Jobs",
           description:
-            "Each query your warehouses run again and again, with what it spent over the last day, its failures and the watched tables it writes. Named by its tag, or by what it does and the table it writes: never by its query.",
+            "Each query your warehouses run again and again, with what it spent over the last day, its failures and the watched tables it writes. Named by its tag, or by what it does and writes: never by its query.",
         }}
         noItemsMessage="No job read yet. Spend is read once an hour from each Snowflake and BigQuery collection."
         selectMoreFields={{ writesOnlyUnusedTables: true, runCount: true }}

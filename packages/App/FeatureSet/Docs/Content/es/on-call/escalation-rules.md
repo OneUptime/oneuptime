@@ -228,6 +228,8 @@ Cada aviso se puede escalar desde donde te llegó:
 
 Todas las vías salvo la llamada preguntan antes de hacer nada y dicen qué va a pasar, por ejemplo «This will immediately page Platform leads (Level 2 of 3), without waiting.»; en una llamada, pulsar 2 es la respuesta. Solo la persona a la que se avisa puede escalar su aviso: el botón en OneUptime solo se le muestra a ella, y el enlace de un mensaje solo escala el aviso sobre el que se envió, para la persona a la que se envió, durante 7 días.
 
+Con dos o más niveles después del tuyo, OneUptime y las páginas que abren los enlaces de un mensaje también preguntan a qué nivel avisar, en **Escalar a**, con el siguiente nivel elegido. Déjalo así para avisar al siguiente nivel, como siempre, o elige un nivel posterior para avisarlo de inmediato en su lugar: los niveles intermedios se omiten, y la política continúa desde el nivel que elegiste. Una llamada y la app OneUptime On-Call avisan al siguiente nivel.
+
 Lo que pasa después depende de a quién más se esté avisando:
 
 - Se sigue avisando a otras personas del mismo nivel: la política las espera, como antes. Avanza cuando se cumple la espera del nivel, o en cuanto la última de ellas también escala el aviso.
@@ -238,7 +240,7 @@ Escalar un aviso no lo reconoce: el incidente o la alerta sigue esperando a que 
 
 Un aviso que un workflow envía directamente a personas no tiene niveles: escalarlo deja de avisarte, y cuando todas las personas a las que avisó lo han escalado, los avisos se detienen.
 
-Cada vez que se escala un aviso, queda registrado. La **Cronología de ejecución** de la ejecución marca la línea de la persona como **Escalado**, el feed del incidente dice «Alex Kim escalated the page from on-call policy Payments at Level 1 of 3.», el mensaje de la ejecución en Slack y Microsoft Teams dice que lo escaló, y sus **Registros de guardia** muestran el aviso como **Escalado**.
+Cada vez que se escala un aviso, queda registrado. La **Cronología de ejecución** de la ejecución marca la línea de la persona como **Escalado**, el feed del incidente dice «Alex Kim escalated the page from on-call policy Payments at Level 1 of 3.», el mensaje de la ejecución en Slack y Microsoft Teams dice que lo escaló, y sus **Registros de guardia** muestran el aviso como **Escalado**. Un nivel omitido por uno posterior aparece como **Omitido** en la **Cronología de ejecución**, y el feed dice «On-call policy Payments skipped Platform leads (Level 2 of 3): the page was escalated past it.»
 
 ## Editar, reordenar y eliminar reglas
 

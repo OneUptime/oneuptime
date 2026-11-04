@@ -1074,7 +1074,9 @@ describe("the message tiles and charts", () => {
     await renderLoaded();
 
     expect(screen.getByRole("heading", { name: "orders" })).toBeInTheDocument();
-    expect(screen.getByText("destination: orders")).toBeInTheDocument();
+    expect(
+      screen.getByTestId("resource-overview-identifier"),
+    ).toHaveTextContent(/^destination: orders$/);
     expect(screen.getAllByText("Apache Kafka").length).toBeGreaterThan(0);
     expect(screen.getAllByText("Application traces").length).toBeGreaterThan(0);
     expect(screen.getByTestId("resource-overview-status")).toHaveTextContent(

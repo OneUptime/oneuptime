@@ -26,6 +26,8 @@ describe("DataObservabilityEngines", () => {
       DataStoreKind.ClickHouse,
       DataStoreKind.Databricks,
       DataStoreKind.AwsAthena,
+      DataStoreKind.Oracle,
+      DataStoreKind.MongoDb,
     ]);
   });
 

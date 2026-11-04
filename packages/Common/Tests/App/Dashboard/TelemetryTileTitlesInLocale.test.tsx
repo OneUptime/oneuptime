@@ -63,6 +63,7 @@ import {
   getTileTitleWordsClassName,
   TILE_TITLE_HYPHENATED_WORD_LENGTH,
   TILE_TITLE_HYPHENATED_WORDS_CLASS_NAME,
+  TILE_TITLE_LONG_WORD_BOX_CLASS_NAME,
   TILE_TITLE_LONG_WORD_CLASS_NAME,
   TILE_TITLE_LONG_WORDS,
   TILE_TITLE_WORDS_CLASS_NAME,
@@ -71,6 +72,7 @@ import {
   getDrawnWords,
   WordRun,
 } from "../../../UI/Components/HyphenatedWords/LongWords";
+import HyphenatedWords from "../../../UI/Components/HyphenatedWords/HyphenatedWords";
 
 const LOCALES_DIR: string = path.resolve(
   __dirname,
@@ -681,8 +683,47 @@ describe("TileTitleWords", () => {
     ]);
     expect(TILE_TITLE_HYPHENATED_WORDS_CLASS_NAME.split(" ")).toEqual([
       "break-words",
+      ...TILE_TITLE_LONG_WORD_BOX_CLASS_NAME.split(" "),
       ...TILE_TITLE_LONG_WORD_CLASS_NAME.split(" "),
     ]);
+  });
+
+  /*
+   * Chrome too hyphenates a long word where it ends a line though the word
+   * would fit the next: four German tiles beside the side menu read
+   * "ERFORDERT AUFMERK- / SAMKEIT" (#5646's review). A long word is a box
+   * no wider than the line, so it moves whole to the next line when it
+   * fits one, and is hyphenated only inside its box, when it does not.
+   */
+  test("a long word is a box no wider than its line, so it moves whole to the next line when it fits one", () => {
+    expect(TILE_TITLE_LONG_WORD_BOX_CLASS_NAME.split(" ")).toEqual([
+      "inline-block",
+      "max-w-full",
+    ]);
+    expect(TILE_TITLE_LONG_WORDS.longWordClassName.split(" ")).toEqual([
+      ...TILE_TITLE_LONG_WORD_BOX_CLASS_NAME.split(" "),
+      ...TILE_TITLE_LONG_WORD_CLASS_NAME.split(" "),
+    ]);
+
+    // Its words drawn: the long one in a box of its own, the short ones not.
+    render(
+      <span lang="de">
+        <HyphenatedWords
+          text="Erfordert Aufmerksamkeit"
+          lang="de"
+          rule={TILE_TITLE_LONG_WORDS}
+        />
+      </span>,
+    );
+    const boxes: Array<Element> = Array.from(
+      document.querySelectorAll("span.inline-block"),
+    );
+    expect(
+      boxes.map((box: Element): string => {
+        return box.textContent || "";
+      }),
+    ).toEqual(["Aufmerksamkeit"]);
+    expect(boxes[0]).toHaveClass("max-w-full", "hyphens-auto");
   });
 });
 

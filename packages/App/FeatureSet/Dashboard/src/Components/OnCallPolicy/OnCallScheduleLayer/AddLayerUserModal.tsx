@@ -1,3 +1,4 @@
+import { ON_CALL_SECTION_LABEL_ON_WHITE_CLASS_NAME } from "../OnCallLabelClasses";
 import ProjectUser, { ProjectUserResult } from "../../../Utils/ProjectUser";
 import { getUserAvatarStyle, getUserInitials } from "./LayerUserColors";
 import IconProp from "Common/Types/Icon/IconProp";
@@ -299,7 +300,7 @@ const AddLayerUserModal: FunctionComponent<ComponentProps> = (
 
         {showMeta ? (
           <div className="mb-1.5 mt-4 flex items-center justify-between px-0.5">
-            <span className="text-[11px] font-medium uppercase tracking-wide text-gray-400">
+            <span className={ON_CALL_SECTION_LABEL_ON_WHITE_CLASS_NAME}>
               {translator.translateText("Project members")}
             </span>
             <span className="text-[11px] font-medium tabular-nums text-gray-400">

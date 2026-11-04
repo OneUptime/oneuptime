@@ -755,6 +755,11 @@ export default class OneUptimeDate {
    * abbreviation appended so the reader is never in doubt which wall clock the
    * time refers to. When `timezone` is omitted the instant is formatted in the
    * viewer's local zone (matching the rest of the local-time UI).
+   *
+   * A list that says its zone once, and whose moments are all of this year -
+   * an on-call schedule's upcoming hand-offs - leaves both out of each
+   * moment (`hideYear`, `hideZone`): "Mon, Nov 4, 9:00 AM", not "Mon, Nov 4,
+   * 2026, 9:00 AM PST" twice a row.
    */
   public static getDateAsFormattedStringInTimezone(data: {
     date: Date | string;
@@ -762,6 +767,8 @@ export default class OneUptimeDate {
     onlyShowDate?: boolean | undefined;
     showWeekday?: boolean | undefined;
     use12HourFormat?: boolean | undefined;
+    hideYear?: boolean | undefined;
+    hideZone?: boolean | undefined;
   }): string {
     const date: Date = this.fromString(data.date);
     const use12HourFormat: boolean =
@@ -775,6 +782,8 @@ export default class OneUptimeDate {
           onlyShowDate: data.onlyShowDate,
           showWeekday: data.showWeekday,
           use12HourFormat,
+          hideYear: data.hideYear,
+          hideZone: data.hideZone,
         });
       },
       (language: string, locale: string): string | null => {
@@ -789,11 +798,12 @@ export default class OneUptimeDate {
             onlyShowDate: data.onlyShowDate,
             showWeekday: data.showWeekday,
             use12HourFormat,
+            hideYear: data.hideYear,
           },
           timezones: this.getTimezoneNames(timezone),
         });
 
-        if (!text || data.onlyShowDate) {
+        if (!text || data.onlyShowDate || data.hideZone) {
           return text;
         }
 
@@ -812,23 +822,25 @@ export default class OneUptimeDate {
     onlyShowDate?: boolean | undefined;
     showWeekday?: boolean | undefined;
     use12HourFormat: boolean;
+    hideYear?: boolean | undefined;
+    hideZone?: boolean | undefined;
   }): string {
     const date: Date = data.date;
     const use12HourFormat: boolean = data.use12HourFormat;
 
     const timePart: string = use12HourFormat ? "h:mm A" : "HH:mm";
-    const datePart: string = data.showWeekday
-      ? "ddd, MMM D, YYYY"
-      : "MMM D, YYYY";
+    const dayPart: string = data.showWeekday ? "ddd, MMM D" : "MMM D";
+    const datePart: string = data.hideYear ? dayPart : `${dayPart}, YYYY`;
     const formatString: string = data.onlyShowDate
       ? datePart
       : `${datePart}, ${timePart}`;
+    const withoutZone: boolean = Boolean(data.onlyShowDate || data.hideZone);
 
     if (!data.timezone) {
       const local: moment.Moment = this.inCurrentTimezone(date);
       return (
         local.format(formatString) +
-        (data.onlyShowDate
+        (withoutZone
           ? ""
           : // Same DST-aware lookup the explicit-timezone branch below uses.
             " " + this.getZoneAbbrByTimezone(this.getCurrentTimezone(), date))
@@ -838,10 +850,33 @@ export default class OneUptimeDate {
     const zoned: moment.Moment = moment(date).tz(data.timezone);
     return (
       zoned.format(formatString) +
-      (data.onlyShowDate
+      (withoutZone
         ? ""
         : " " + this.getZoneAbbrByTimezone(data.timezone as Timezone, date))
     ).trim();
+  }
+
+  /*
+   * Whether two moments fall in the same calendar year, as a clock in
+   * `timezone` reads them - the viewer's zone without one. New Year's Eve in
+   * one zone can be New Year's Day in another.
+   */
+  public static isSameYearInTimezone(
+    a: Date | string,
+    b: Date | string,
+    timezone?: string | undefined,
+  ): boolean {
+    const yearOf: (date: Date | string) => number = (
+      date: Date | string,
+    ): number => {
+      const instant: Date = this.fromString(date);
+
+      return timezone
+        ? moment(instant).tz(timezone).year()
+        : this.inCurrentTimezone(instant).year();
+    };
+
+    return yearOf(a) === yearOf(b);
   }
 
   /*

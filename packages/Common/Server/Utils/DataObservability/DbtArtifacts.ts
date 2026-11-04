@@ -393,6 +393,7 @@ const ADAPTER_SCHEMES: Readonly<Record<string, string>> = {
   clickhouse: "clickhouse",
   databricks: "databricks",
   athena: "awsathena",
+  oracle: "oracle",
 };
 
 /*

@@ -16,7 +16,7 @@ Voeg een controle toe op het tabblad **Controles** van een tabel:
 | **Format Mismatch Percent** | Percentage waarden die niet overeenkomen met een reguliere expressie (elke engine behalve SQL Server) |
 | **Orphan Count** | Rijen waarvan de waarde geen tegenhanger heeft in de kolom van een andere tabel |
 | **Row Count** | Rijen in de tabel, het nuttigst met **Segment By** |
-| **Aangepaste SQL** | Het getal dat een eigen alleen-lezen SELECT teruggeeft, met de naam `value` |
+| **Aangepaste SQL** | Het getal dat een eigen alleen-lezen SELECT teruggeeft, met de naam `value` (bij MongoDB dat van een aggregatiepijplijn) |
 
 Elke controle draait elke 15 minuten, elk uur, elke 6 uur of elke dag, als één aggregatiestatement in een alleen-lezen transactie met een statement-time-out. Haar waarde wordt geschreven als `oneuptime.data.check.value`, met `oneuptime.data.check.id`, `oneuptime.data.check.name` en `oneuptime.data.check.segment`.
 
@@ -26,7 +26,7 @@ Elke controle draait elke 15 minuten, elk uur, elke 6 uur of elke dag, als één
 
 ## Een controle vanuit een zin
 
-**Een controle schrijven vanuit een zin** maakt van een regel zoals "bestellingen hebben nooit een negatief totaal" een controle met aangepaste SQL die de rijen telt die de regel breken, in de eigen SQL van je engine, met een waarschuwing zodra er zo'n rij is. Je leest de query voordat **Controle toevoegen** hem toevoegt, en hij moet aan alles voldoen waaraan elke controle met aangepaste SQL moet voldoen. Hiervoor moet OneUptime AI voor het project aan staan.
+**Een controle schrijven vanuit een zin** maakt van een regel zoals "bestellingen hebben nooit een negatief totaal" een controle met aangepaste SQL die de rijen telt die de regel breken, in de eigen SQL van je engine, met een waarschuwing zodra er zo'n rij is. Je leest de query voordat **Controle toevoegen** hem toevoegt, en hij moet aan alles voldoen waaraan elke controle met aangepaste SQL moet voldoen. Hiervoor moet OneUptime AI voor het project aan staan. Bij MongoDB is het resultaat een aggregatiepijplijn.
 
 ## Segmenten
 

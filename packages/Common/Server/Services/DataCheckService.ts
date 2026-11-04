@@ -8,7 +8,6 @@ import CreateBy from "../Types/Database/CreateBy";
 import DeleteBy from "../Types/Database/DeleteBy";
 import UpdateBy from "../Types/Database/UpdateBy";
 import { OnCreate, OnDelete, OnUpdate } from "../Types/Database/Hooks";
-import QueryHelper from "../Types/Database/QueryHelper";
 import {
   DataAssetColumn,
   readDataAssetColumns,
@@ -124,18 +123,15 @@ export class Service extends ProjectReferencesService<Model> {
     await super.onBeforeUpdate(updateBy);
 
     const data: JSONObject = updateBy.data as unknown as JSONObject;
+    const isPerson: boolean = !updateBy.props.isRoot;
 
     // A person sets only whether a dbt test is recorded, and its alert.
-    if (!updateBy.props.isRoot && data["checkType"] === DataCheckType.DbtTest) {
+    if (isPerson && data["checkType"] === DataCheckType.DbtTest) {
       throw new BadDataException(DBT_TEST_REFUSAL);
     }
 
-    if (!updateBy.props.isRoot) {
-      await this.refuseReconciliationChecks(updateBy.query);
-    }
-
     const changesDbtTestDefinition: boolean =
-      !updateBy.props.isRoot &&
+      isPerson &&
       Object.keys(data).some((field: string) => {
         return (
           data[field] !== undefined && !DBT_TEST_EDITABLE_FIELDS.includes(field)
@@ -146,7 +142,12 @@ export class Service extends ProjectReferencesService<Model> {
       return data[field] !== undefined;
     });
 
-    if (!changesDbtTestDefinition && !changesRun) {
+    /*
+     * A person's update is judged on its checks whatever it changes - a
+     * reconciliation's is changed only through the reconciliation - and
+     * OneUptime's only when it changes what a check runs.
+     */
+    if (!isPerson && !changesRun) {
       return { updateBy, carryForward: undefined };
     }
 
@@ -160,6 +161,7 @@ export class Service extends ProjectReferencesService<Model> {
       {
         projectId: true,
         dataAssetId: true,
+        dataReconciliationId: true,
         checkType: true,
         columnName: true,
         segmentColumn: true,
@@ -173,6 +175,10 @@ export class Service extends ProjectReferencesService<Model> {
         alertThreshold: true,
       },
     );
+
+    if (isPerson) {
+      this.refuseReconciliationChecks(checks);
+    }
 
     if (
       changesDbtTestDefinition &&
@@ -234,25 +240,29 @@ export class Service extends ProjectReferencesService<Model> {
   protected override async onBeforeDelete(
     deleteBy: DeleteBy<Model>,
   ): Promise<OnDelete<Model>> {
+    /*
+     * A person's delete is judged on the checks it removes, and held to
+     * them: never a check its caller may not delete. OneUptime deletes a
+     * reconciliation's checks with it (DataReconciliationService).
+     */
     if (!deleteBy.props.isRoot) {
-      await this.refuseReconciliationChecks(deleteBy.query);
+      this.refuseReconciliationChecks(
+        await this.findRowsAndHoldDeleteToThem(deleteBy, {
+          dataReconciliationId: true,
+        }),
+      );
     }
 
     return { deleteBy, carryForward: undefined };
   }
 
   // A reconciliation's checks are changed and deleted only through it.
-  private async refuseReconciliationChecks(
-    query: UpdateBy<Model>["query"],
-  ): Promise<void> {
-    const managed: number = (
-      await this.countBy({
-        query: { ...query, dataReconciliationId: QueryHelper.notNull() },
-        props: { isRoot: true },
+  private refuseReconciliationChecks(checks: Array<Model>): void {
+    if (
+      checks.some((check: Model) => {
+        return Boolean(check.dataReconciliationId);
       })
-    ).toNumber();
-
-    if (managed > 0) {
+    ) {
       throw new BadDataException(RECONCILIATION_REFUSAL);
     }
   }

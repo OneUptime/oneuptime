@@ -18,7 +18,7 @@ import OneUptimeDate from "Common/Types/Date";
 import {
   CLOUD_RESOURCE_TYPES,
   CloudResourceTypeDescriptor,
-  getCloudResourceTypeLabel,
+  getCloudResourceTypeDisplayName,
 } from "Common/Types/Cloud/CloudResourceCatalog";
 import ObjectID from "Common/Types/ObjectID";
 import useBulkLabelActions from "Common/UI/Components/BulkUpdate/BulkLabelActions";
@@ -211,7 +211,7 @@ const CloudAccountResources: FunctionComponent<
              * Region is then still said.
              */
             getElement: (item: CloudResource): ReactElement => {
-              const typeLabel: string = getCloudResourceTypeLabel(
+              const typeLabel: string = getCloudResourceTypeDisplayName(
                 item.cloudProvider as string | undefined,
                 item.cloudResourceType as string | undefined,
               );

@@ -16,7 +16,7 @@ Ajoutez un contrôle dans l'onglet **Vérifications** d'une table :
 | **Format Mismatch Percent** | Pourcentage de valeurs qui ne correspondent pas à une expression régulière (tous les moteurs sauf SQL Server) |
 | **Orphan Count** | Lignes dont la valeur n'a aucune correspondance dans la colonne d'une autre table |
 | **Row Count** | Lignes de la table, surtout utile avec **Segment By** |
-| **SQL personnalisé** | Le nombre que renvoie l'un de vos SELECT en lecture seule, nommé `value` |
+| **SQL personnalisé** | Le nombre que renvoie l'un de vos SELECT en lecture seule, nommé `value` (sur MongoDB, celui d'un pipeline d'agrégation) |
 
 Chaque contrôle s'exécute toutes les 15 minutes, toutes les heures, toutes les 6 heures ou tous les jours, sous la forme d'une seule instruction d'agrégation dans une transaction en lecture seule avec un délai d'expiration d'instruction. Sa valeur est écrite comme `oneuptime.data.check.value`, avec `oneuptime.data.check.id`, `oneuptime.data.check.name` et `oneuptime.data.check.segment`.
 
@@ -26,7 +26,7 @@ Chaque contrôle s'exécute toutes les 15 minutes, toutes les heures, toutes les
 
 ## Un contrôle à partir d'une phrase
 
-**Écrire un contrôle à partir d'une phrase** transforme une règle comme « les commandes n'ont jamais un total négatif » en un contrôle SQL personnalisé qui compte les lignes qui l'enfreignent, dans le SQL propre à votre moteur, avec une alerte dès qu'il y en a. Vous lisez la requête avant que **Ajouter le contrôle** ne l'ajoute, et elle est soumise aux mêmes règles que tout contrôle SQL personnalisé. Il faut pour cela que OneUptime AI soit activé pour le projet.
+**Écrire un contrôle à partir d'une phrase** transforme une règle comme « les commandes n'ont jamais un total négatif » en un contrôle SQL personnalisé qui compte les lignes qui l'enfreignent, dans le SQL propre à votre moteur, avec une alerte dès qu'il y en a. Vous lisez la requête avant que **Ajouter le contrôle** ne l'ajoute, et elle est soumise aux mêmes règles que tout contrôle SQL personnalisé. Il faut pour cela que OneUptime AI soit activé pour le projet. Sur MongoDB, le résultat est un pipeline d'agrégation.
 
 ## Segments
 

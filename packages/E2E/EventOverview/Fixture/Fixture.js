@@ -200,8 +200,13 @@
  *            left to page), acknowledged (Sam Rivera acknowledged it
  *            meanwhile: the POST refuses, and incident #1042 is
  *            Acknowledged from then on) or two (two policies page the
- *            viewer about it). Once escalated, the record no longer pages
- *            the viewer.
+ *            viewer about it), levels (three levels after the viewer's to
+ *            pick from - Platform leads, DBA leads and Level 4 of 4 - and the
+ *            POST pages the one its escalateTo names) or levels-gone (the
+ *            same, but DBA leads was deleted meanwhile: a POST that picks a
+ *            later level is refused, LevelNotAvailable, and the page then
+ *            offers Platform leads and Level 4 of 4). Once escalated, the
+ *            record no longer pages the viewer.
  *   ?hold=   1: OneUptime AI holds the on-call pages of Incident #1042 and
  *            Alert #311 while it works (OnCallPolicyAiHold): an on-call rule
  *            set to After OneUptime AI tries holds each record's policy run
@@ -799,6 +804,9 @@ const PASS_ON_MODES = [
   "stopped",
   "acknowledged",
   "two",
+  "levels",
+  "levels-gone",
+  "levels-two",
 ];
 const passOnMode = PASS_ON_MODES.includes(params.get("passOn"))
   ? params.get("passOn")
@@ -8370,7 +8378,7 @@ async function handleApi(method, options) {
       if (failures.has("pass-on")) {
         throw fail(500, "The page could not be escalated.");
       }
-      return ok({ answers: passOnAnswers(recordType, recordId) });
+      return ok({ answers: passOnAnswers(recordType, recordId, body) });
     }
   }
 
@@ -8444,7 +8452,100 @@ async function handleApi(method, options) {
  */
 const passedOnRecords = new Set();
 
+/*
+ * ?passOn=levels / levels-gone: the levels after the viewer's, as the
+ * preview offers them (levelChoices), each with who it pages.
+ */
+const LATER_LEVELS = [
+  {
+    escalationRuleId: uuid("74000000", 2),
+    order: 2,
+    name: "Platform leads",
+    paged: ["Sam Lee", "Priya Patel"],
+  },
+  {
+    escalationRuleId: uuid("74000000", 3),
+    order: 3,
+    name: "DBA leads",
+    paged: ["Dana Kim"],
+  },
+  {
+    escalationRuleId: uuid("74000000", 4),
+    order: 4,
+    name: "Level 4",
+    paged: ["Morgan Chen"],
+  },
+];
+
+/*
+ * ?passOn=levels-two: the second policy paging the viewer, Payments
+ * escalation, has levels of its own after the viewer's - one with a name
+ * as long as people give them.
+ */
+const PAYMENTS_POLICY = "Payments escalation";
+const PAYMENTS_LATER_LEVELS = [
+  {
+    escalationRuleId: uuid("74100000", 2),
+    order: 2,
+    name: "Payments on-call",
+    paged: ["Lee Wong"],
+  },
+  {
+    escalationRuleId: uuid("74100000", 3),
+    order: 3,
+    name: "Payments platform engineering managers, EU and US regions",
+    paged: ["Ana Lopez"],
+  },
+];
+
+// levels-gone: DBA leads was deleted while the dialog asked.
+let isDbaLevelGone = false;
+
+function laterLevels(policyName) {
+  if (policyName === PAYMENTS_POLICY) {
+    return PAYMENTS_LATER_LEVELS;
+  }
+
+  return LATER_LEVELS.filter((level) => {
+    return !(isDbaLevelGone && level.order === 3);
+  });
+}
+
+function levelsResult(isPreview, policyName, pickedLevel) {
+  const level = pickedLevel || laterLevels(policyName)[0];
+
+  return {
+    isPreview,
+    isDirectPage: false,
+    policyName,
+    stillPagedNames: [],
+    ruleCount: policyName === PAYMENTS_POLICY ? 3 : 4,
+    outcome: "NextRulePaged",
+    rule: { order: level.order, name: level.name },
+    pagedNames: isPreview ? [] : level.paged,
+    ...(isPreview
+      ? {
+          levelChoices: laterLevels(policyName).map((choice) => {
+            return {
+              escalationRuleId: choice.escalationRuleId,
+              order: choice.order,
+              name: choice.name,
+            };
+          }),
+        }
+      : {}),
+  };
+}
+
 function passOnResult(isPreview, policyName) {
+  if (
+    passOnMode === "levels" ||
+    passOnMode === "levels-gone" ||
+    passOnMode === "levels-two"
+  ) {
+    return levelsResult(isPreview, policyName);
+  }
+
   const base = {
     isPreview,
     isDirectPage: false,
@@ -8505,8 +8606,8 @@ function openPassOnPages(recordType, recordId) {
   }
 
   const policies =
-    passOnMode === "two"
-      ? ["Checkout on-call", "Payments escalation"]
+    passOnMode === "two" || passOnMode === "levels-two"
+      ? ["Checkout on-call", PAYMENTS_POLICY]
       : ["Checkout on-call"];
 
   return policies.map((policyName, index) => {
@@ -8562,11 +8663,45 @@ function acknowledgeMeanwhile(recordType, recordId) {
   mainIncident.record.currentIncidentStateId = acknowledged.id;
 }
 
-function passOnAnswers(recordType, recordId) {
+function passOnAnswers(recordType, recordId, body) {
   const pages = openPassOnPages(recordType, recordId);
 
   if (pages.length === 0) {
     return [{ passedOn: false, refusal: "NotPaged" }];
+  }
+
+  /*
+   * ?passOn=levels: the level the POST picked for the page's run, or the
+   * next. levels-gone: a later level picked is no longer offered - the
+   * first time - and nothing is escalated; the page is still paging.
+   * levels-two: each policy's page pages the level picked for its own run.
+   */
+  if (
+    passOnMode === "levels" ||
+    passOnMode === "levels-gone" ||
+    passOnMode === "levels-two"
+  ) {
+    const escalateTo = (body && body.escalateTo) || {};
+    const pickedId = escalateTo[pages[0].executionLogId];
+
+    if (pickedId && passOnMode === "levels-gone" && !isDbaLevelGone) {
+      isDbaLevelGone = true;
+      return [{ passedOn: false, refusal: "LevelNotAvailable" }];
+    }
+
+    passedOnRecords.add(`${recordType}:${recordId}`);
+
+    return pages.map((page) => {
+      const policyName = page.preview.policyName;
+      const picked = laterLevels(policyName).find((level) => {
+        return level.escalationRuleId === escalateTo[page.executionLogId];
+      });
+
+      return {
+        passedOn: true,
+        result: levelsResult(false, policyName, picked),
+      };
+    });
   }
 
   if (passOnMode === "acknowledged") {

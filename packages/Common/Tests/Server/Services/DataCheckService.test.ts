@@ -2,7 +2,8 @@ import DataAssetService from "../../../Server/Services/DataAssetService";
 import DataCheckService from "../../../Server/Services/DataCheckService";
 import DataStoreService from "../../../Server/Services/DataStoreService";
 import CreateBy from "../../../Server/Types/Database/CreateBy";
-import { OnUpdate } from "../../../Server/Types/Database/Hooks";
+import DeleteBy from "../../../Server/Types/Database/DeleteBy";
+import { OnDelete, OnUpdate } from "../../../Server/Types/Database/Hooks";
 import UpdateBy from "../../../Server/Types/Database/UpdateBy";
 import ColumnWriteRefusedException from "../../../Server/Types/Database/Permissions/ColumnWriteRefusedException";
 import logger from "../../../Server/Utils/Logger";
@@ -57,6 +58,14 @@ import type { SpyInstance } from "jest-mock";
  *     names it under both names is stored with the relation's: a check
  *     could be validated against one table and saved on another. Both
  *     names are read now, and must agree.
+ *
+ * And one thing the refusal of a reconciliation's check did wrong: a
+ * person's update or delete was judged by a count, as root, of the
+ * reconciliation checks its query named - past the write's window, and
+ * checks of tables its caller does not own among them - so a change of
+ * some checks was refused for a check it would never write. It is judged on
+ * the checks the update writes and the delete removes now
+ * (findRowsAndHoldUpdateToThem, findRowsAndHoldDeleteToThem).
  */
 
 const PROJECT_ID: ObjectID = new ObjectID(
@@ -70,6 +79,9 @@ const CHECK_ID: string = "22222222-2222-4222-8222-222222222222";
 
 const DBT_TEST_REFUSAL: string =
   "A dbt test is defined in your dbt project and comes from its artifacts: here it is only turned off or on, and alerted on.";
+
+const RECONCILIATION_REFUSAL: string =
+  "This check reads one side of a reconciliation, which keeps it: change or delete it from the reconciliation, under Reconciliations.";
 
 function column(name: string, position: number): DataAssetColumn {
   return {
@@ -174,6 +186,10 @@ function tablesRead(): Array<string> {
 interface UpdateHooks {
   onBeforeUpdate(updateBy: UpdateBy<DataCheck>): Promise<OnUpdate<DataCheck>>;
   onUpdatePermitted(updateBy: UpdateBy<DataCheck>): Promise<void>;
+}
+
+interface DeleteHooks {
+  onBeforeDelete(deleteBy: DeleteBy<DataCheck>): Promise<OnDelete<DataCheck>>;
 }
 
 interface CreateHooks {
@@ -542,6 +558,167 @@ describe("the order of the update's hooks", () => {
 
     expect(held).toHaveBeenCalledTimes(1);
     expect(held.mock.calls[0]![0]).toBe(change);
+    expect(countBy).not.toHaveBeenCalled();
+  });
+});
+
+describe("a reconciliation's check, changed and deleted only through it", () => {
+  let table: InMemoryTable;
+
+  // Two checks of the project's own, then one side of a reconciliation.
+  const PLAIN_IDS: Array<string> = [
+    "88888888-8888-4888-8888-000000000001",
+    "88888888-8888-4888-8888-000000000002",
+  ];
+  const SIDE_ID: string = "88888888-8888-4888-8888-000000000003";
+
+  const EDITOR: DatabaseCommonInteractionProps = member([
+    Permission.EditDataAsset,
+    Permission.ReadDataAsset,
+  ]);
+
+  beforeEach(() => {
+    table = useInMemoryTable(DataCheckService, [
+      checkRow(PLAIN_IDS[0]!, ORDERS_ID),
+      checkRow(PLAIN_IDS[1]!, ORDERS_ID),
+      checkRow(SIDE_ID, ORDERS_ID, {
+        dataReconciliationId: "99999999-9999-4999-8999-000000000001",
+      }),
+    ]);
+  });
+
+  test.each([
+    ["switching it off", { isEnabled: false }],
+    ["renaming it", { name: "Orders total - source" }],
+    ["changing what it reads", { columnName: "email" }],
+  ] as Array<[string, Record<string, unknown>]>)(
+    "a person is refused %s, and nothing changes",
+    async (_change: string, data: Record<string, unknown>) => {
+      const error: unknown = await refusalOf(
+        DataCheckService.updateOneById({
+          id: new ObjectID(SIDE_ID),
+          data: data as never,
+          props: EDITOR,
+        }),
+      );
+
+      expect((error as Error).message).toBe(RECONCILIATION_REFUSAL);
+      expect(table.get(SIDE_ID)?.["isEnabled"]).toBe(true);
+      expect(table.get(SIDE_ID)?.["name"]).toBe(`Check ${SIDE_ID}`);
+      expect(table.get(SIDE_ID)?.["columnName"]).toBe("status");
+    },
+  );
+
+  test("a person is refused deleting it, and it stays", async () => {
+    const error: unknown = await refusalOf(
+      DataCheckService.deleteOneById({
+        id: new ObjectID(SIDE_ID),
+        props: EDITOR,
+      }),
+    );
+
+    expect((error as Error).message).toBe(RECONCILIATION_REFUSAL);
+    expect(table.get(SIDE_ID)).toBeDefined();
+  });
+
+  test("an update over several checks that writes it is refused whole", async () => {
+    const error: unknown = await refusalOf(
+      DataCheckService.updateBy({
+        query: { projectId: PROJECT_ID },
+        data: { description: "Owned by the shop team" } as never,
+        limit: 50,
+        skip: 0,
+        props: EDITOR,
+      }),
+    );
+
+    expect((error as Error).message).toBe(RECONCILIATION_REFUSAL);
+
+    for (const id of [...PLAIN_IDS, SIDE_ID]) {
+      expect(table.get(id)?.["description"]).toBeUndefined();
+    }
+  });
+
+  test("an update whose window holds only the project's own checks writes them: a reconciliation's past its window refuses nothing", async () => {
+    await DataCheckService.updateBy({
+      query: { projectId: PROJECT_ID },
+      data: { description: "Owned by the shop team" } as never,
+      limit: 2,
+      skip: 0,
+      props: EDITOR,
+    });
+
+    for (const id of PLAIN_IDS) {
+      expect(table.get(id)?.["description"]).toBe("Owned by the shop team");
+    }
+
+    expect(table.get(SIDE_ID)?.["description"]).toBeUndefined();
+  });
+
+  test("a delete whose window holds only the project's own checks removes them, and the reconciliation's stays", async () => {
+    await DataCheckService.deleteBy({
+      query: { projectId: PROJECT_ID },
+      limit: 2,
+      skip: 0,
+      props: EDITOR,
+    });
+
+    for (const id of PLAIN_IDS) {
+      expect(table.get(id)).toBeUndefined();
+    }
+
+    expect(table.get(SIDE_ID)).toBeDefined();
+  });
+
+  test("OneUptime changes and deletes it, as the reconciliation does", async () => {
+    await DataCheckService.updateOneById({
+      id: new ObjectID(SIDE_ID),
+      data: { name: "Orders total - source" } as never,
+      props: { isRoot: true },
+    });
+
+    expect(table.get(SIDE_ID)?.["name"]).toBe("Orders total - source");
+
+    await DataCheckService.deleteOneById({
+      id: new ObjectID(SIDE_ID),
+      props: { isRoot: true },
+    });
+
+    expect(table.get(SIDE_ID)).toBeUndefined();
+  });
+
+  test("a person's delete reads the checks it removes as the rows the delete is held to, and OneUptime's reads none", async () => {
+    const hooks: DeleteHooks = DataCheckService as unknown as DeleteHooks;
+    const held: SpyInstance<
+      typeof DataCheckService.findRowsAndHoldDeleteToThem
+    > = jest.spyOn(DataCheckService, "findRowsAndHoldDeleteToThem");
+    const countBy: SpyInstance<typeof DataCheckService.countBy> = jest.spyOn(
+      DataCheckService,
+      "countBy",
+    );
+    const deleteOf: (
+      props: DatabaseCommonInteractionProps,
+    ) => DeleteBy<DataCheck> = (
+      props: DatabaseCommonInteractionProps,
+    ): DeleteBy<DataCheck> => {
+      return {
+        query: { _id: PLAIN_IDS[0]! },
+        limit: 1,
+        skip: 0,
+        props: props,
+      } as unknown as DeleteBy<DataCheck>;
+    };
+
+    await hooks.onBeforeDelete(deleteOf({ isRoot: true }));
+    expect(held).not.toHaveBeenCalled();
+
+    const deleteBy: DeleteBy<DataCheck> = deleteOf(EDITOR);
+    const onDelete: OnDelete<DataCheck> = await hooks.onBeforeDelete(deleteBy);
+
+    expect(held).toHaveBeenCalledTimes(1);
+    expect(held.mock.calls[0]![0]).toBe(deleteBy);
+    expect(held.mock.calls[0]![1]).toEqual({ dataReconciliationId: true });
+    expect(onDelete.deleteBy).toBe(deleteBy);
     expect(countBy).not.toHaveBeenCalled();
   });
 });
