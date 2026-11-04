@@ -41,14 +41,22 @@ import {
   ON_CALL_PAGE_ALREADY_ACKNOWLEDGED_TITLE,
   ON_CALL_PAGE_ALREADY_ESCALATED_TITLE,
   ON_CALL_PAGE_CALL_PASS_ON_DIGIT,
+  ON_CALL_PAGE_ESCALATE_TO_LABEL,
   ON_CALL_PAGE_NOTHING_TO_ESCALATE_TITLE,
+  ON_CALL_PAGE_NOT_ESCALATED_TITLE,
+  ON_CALL_PAGE_PASS_ON_LEVEL_PARAM,
+  ON_CALL_PAGE_PICK_LEVEL_SENTENCE,
   OnCallPassOnAnswer,
+  OnCallPassOnLevelChoice,
   OnCallPassOnRefusal,
   OnCallPassOnResult,
   getOnCallPageEscalatedTitle,
   getOnCallPageNotPagedAgainSentence,
+  getOnCallPassOnLevelChoices,
+  getOnCallPassOnLevelLabel,
   getOnCallPassOnRefusalSentence,
   getOnCallPassOnSentence,
+  hasOnCallPassOnLevelChoice,
   isOnCallPassOnPagingStopped,
 } from "../../Types/OnCallDutyPolicy/OnCallPagePassOn";
 
@@ -106,11 +114,79 @@ interface NotificationRecord {
 
 /*
  * What a page that offers escalating says under its heading, and - when
- * escalating leaves nobody being paged - the warning it draws apart.
+ * escalating leaves nobody being paged - the warning it draws apart. Where
+ * the person can pick the level (two or more levels after theirs), the
+ * levels, for the form's "Escalate to" (OnCallPassOnForm.ejs).
  */
 interface PassOnWording {
   explanation: string;
   warning?: string | undefined;
+  levelChoices?: PassOnFormLevels | undefined;
+}
+
+/*
+ * The levels the Escalate form offers, as the form draws them: a radio for
+ * each, the next level picked. The next level's value is empty - "the next
+ * level", as a form without levels sends - so leaving it picked escalates
+ * exactly as before, whatever the levels have become since the page was
+ * drawn; a later level's is its escalation rule's id.
+ */
+export interface PassOnFormLevels {
+  // The radio group's label: "Escalate to".
+  label: string;
+  // The field the form sends the level picked in.
+  param: string;
+  options: Array<{ value: string; label: string; isPicked: boolean }>;
+}
+
+// The levels a preview offers, for the Escalate form; none without a choice.
+export function getPassOnFormLevels(
+  result: OnCallPassOnResult,
+): PassOnFormLevels | undefined {
+  if (!hasOnCallPassOnLevelChoice(result)) {
+    return undefined;
+  }
+
+  return {
+    label: ON_CALL_PAGE_ESCALATE_TO_LABEL,
+    param: ON_CALL_PAGE_PASS_ON_LEVEL_PARAM,
+    options: getOnCallPassOnLevelChoices(result).map(
+      (choice: OnCallPassOnLevelChoice, index: number) => {
+        return {
+          value: index === 0 ? "" : choice.escalationRuleId,
+          // A page, often a phone's: "Level 2 of 3" stays on one line.
+          label: getOnCallPassOnLevelLabel(choice, result.ruleCount, true),
+          isPicked: index === 0,
+        };
+      },
+    ),
+  };
+}
+
+/*
+ * The level the Escalate form picked: none for the next level (an empty
+ * value, or a form without levels), an id for a later one. A value that is
+ * not an id cannot be a level of the policy: `isUnknown`, and nothing is
+ * escalated.
+ */
+export function readPassOnFormLevel(body: unknown): {
+  escalationRuleId?: ObjectID | undefined;
+  isUnknown: boolean;
+} {
+  const value: unknown =
+    body && typeof body === "object"
+      ? (body as JSONObject)[ON_CALL_PAGE_PASS_ON_LEVEL_PARAM]
+      : undefined;
+
+  if (value === undefined || value === null || value === "") {
+    return { isUnknown: false };
+  }
+
+  if (typeof value !== "string" || !ObjectID.isValidUUID(value.trim())) {
+    return { isUnknown: true };
+  }
+
+  return { escalationRuleId: new ObjectID(value.trim()), isUnknown: false };
 }
 
 export default class UserNotificationLogTimelineAPI extends BaseAPI<
@@ -580,58 +656,14 @@ export default class UserNotificationLogTimelineAPI extends BaseAPI<
             });
           }
 
-          const preview: OnCallPassOnAnswer = await OnCallPagePassOn.getPreview(
-            {
-              userId: timelineItem.userId!,
-              executionLogId: timelineItem.onCallDutyPolicyExecutionLogId!,
-            },
-          );
-
-          if (!preview.result) {
-            return this.renderPassOnAnswer({
-              req: req,
-              res: res,
-              record: record,
-              answer: preview,
-            });
-          }
-
-          /*
-           * The heading asks - "Escalate Incident INC-42?" - and under it,
-           * what escalating does, then that they are not paged again. The
-           * person followed "Can't take it? Escalate" to get here, so the
-           * page does not ask that again.
-           */
-          const wording: PassOnWording = this.getPassOnWording({
-            result: preview.result,
-            timezone: record.timezone,
-            recordNoun: record.notificationType,
+          return await this.renderPassOnQuestion({
+            req: req,
+            res: res,
+            itemId: itemId,
+            timelineItem: timelineItem,
+            record: record,
+            pageToken: String(pageToken),
           });
-
-          return Response.render(
-            req,
-            res,
-            "/usr/src/Common/Server/Views/PassOnUserOnCallNotification.ejs",
-            {
-              title: `${ESCALATE} ${record.labelInSentence}?`,
-              message: wording.explanation,
-              ...(wording.warning ? { warning: wording.warning } : {}),
-              passOnText: ESCALATE,
-              passOnFormUrl: (
-                await OnCallPageLinks.getPassOnUrl(itemId)
-              ).toString(),
-              pageTokenParam: ON_CALL_PAGE_LINK_TOKEN_PARAM,
-              pageToken: String(pageToken),
-              acknowledgeText: `Acknowledge ${record.notificationType} instead`,
-              acknowledgeUrl: (
-                await OnCallPageLinks.getAcknowledgeUrl(itemId)
-              ).toString(),
-              resourceNumber: record.context?.resourceNumber || "",
-              resourceTitle: record.title,
-              resourceDescription: record.context?.resourceDescription || "",
-              details: detailsToJSON(record.context?.details || []),
-            },
-          );
         } catch (error) {
           return next(error);
         }
@@ -688,11 +720,42 @@ export default class UserNotificationLogTimelineAPI extends BaseAPI<
             });
           }
 
-          const answer: OnCallPassOnAnswer = await OnCallPagePassOn.passOn({
-            userId: timelineItem.userId!,
-            executionLogId: timelineItem.onCallDutyPolicyExecutionLogId!,
-            viaUserOnCallLogTimelineId: itemId,
-          });
+          // The level picked on the form, if a later one than the next.
+          const level: {
+            escalationRuleId?: ObjectID | undefined;
+            isUnknown: boolean;
+          } = readPassOnFormLevel(req.body);
+
+          const answer: OnCallPassOnAnswer = level.isUnknown
+            ? {
+                passedOn: false,
+                refusal: OnCallPassOnRefusal.LevelNotAvailable,
+              }
+            : await OnCallPagePassOn.passOn({
+                userId: timelineItem.userId!,
+                executionLogId: timelineItem.onCallDutyPolicyExecutionLogId!,
+                viaUserOnCallLogTimelineId: itemId,
+                toEscalationRuleId: level.escalationRuleId,
+              });
+
+          /*
+           * The level picked was not there to page: the page asks again,
+           * with the levels as they are now, saying why - the person is
+           * still being paged, and one more press escalates.
+           */
+          if (answer.refusal === OnCallPassOnRefusal.LevelNotAvailable) {
+            return await this.renderPassOnQuestion({
+              req: req,
+              res: res,
+              itemId: itemId,
+              timelineItem: timelineItem,
+              record: record,
+              pageToken: String(
+                (req.body as JSONObject)[ON_CALL_PAGE_LINK_TOKEN_PARAM],
+              ),
+              notice: getOnCallPassOnRefusalSentence(answer),
+            });
+          }
 
           return this.renderPassOnAnswer({
             req: req,
@@ -827,11 +890,88 @@ export default class UserNotificationLogTimelineAPI extends BaseAPI<
       lead: CANT_TAKE_IT,
       explanation: wording.explanation,
       ...(wording.warning ? { warning: wording.warning } : {}),
+      // Two or more levels after theirs: the form asks which.
+      ...(wording.levelChoices
+        ? { levelChoices: wording.levelChoices as unknown as JSONObject }
+        : {}),
       buttonText: ESCALATE,
       formUrl: (await OnCallPageLinks.getPassOnUrl(data.itemId)).toString(),
       tokenParam: ON_CALL_PAGE_LINK_TOKEN_PARAM,
       token: String(data.token),
     };
+  }
+
+  /*
+   * The page a message's Escalate link opens: what escalating would do, and
+   * the form that does it - with the levels to pick from, when there are
+   * two or more after the person's. `notice` is why it asks again: the
+   * level picked was not there to page.
+   */
+  private async renderPassOnQuestion(data: {
+    req: ExpressRequest;
+    res: ExpressResponse;
+    itemId: ObjectID;
+    timelineItem: UserOnCallLogTimeline;
+    record: NotificationRecord;
+    pageToken: string;
+    notice?: string | undefined;
+  }): Promise<void> {
+    const record: NotificationRecord = data.record;
+
+    const preview: OnCallPassOnAnswer = await OnCallPagePassOn.getPreview({
+      userId: data.timelineItem.userId!,
+      executionLogId: data.timelineItem.onCallDutyPolicyExecutionLogId!,
+    });
+
+    if (!preview.result) {
+      return this.renderPassOnAnswer({
+        req: data.req,
+        res: data.res,
+        record: record,
+        answer: preview,
+      });
+    }
+
+    /*
+     * The heading asks - "Escalate Incident INC-42?" - and under it, what
+     * escalating does, then that they are not paged again. The person
+     * followed "Can't take it? Escalate" to get here, so the page does not
+     * ask that again.
+     */
+    const wording: PassOnWording = this.getPassOnWording({
+      result: preview.result,
+      timezone: record.timezone,
+      recordNoun: record.notificationType,
+    });
+
+    return Response.render(
+      data.req,
+      data.res,
+      "/usr/src/Common/Server/Views/PassOnUserOnCallNotification.ejs",
+      {
+        title: `${ESCALATE} ${record.labelInSentence}?`,
+        message: wording.explanation,
+        ...(wording.warning ? { warning: wording.warning } : {}),
+        ...(data.notice ? { notice: data.notice } : {}),
+        ...(wording.levelChoices
+          ? { levelChoices: wording.levelChoices as unknown as JSONObject }
+          : {}),
+        passOnText: ESCALATE,
+        passOnFormUrl: (
+          await OnCallPageLinks.getPassOnUrl(data.itemId)
+        ).toString(),
+        pageTokenParam: ON_CALL_PAGE_LINK_TOKEN_PARAM,
+        pageToken: data.pageToken,
+        acknowledgeText: `Acknowledge ${record.notificationType} instead`,
+        acknowledgeUrl: (
+          await OnCallPageLinks.getAcknowledgeUrl(data.itemId)
+        ).toString(),
+        resourceNumber: record.context?.resourceNumber || "",
+        resourceTitle: record.title,
+        resourceDescription: record.context?.resourceDescription || "",
+        details: detailsToJSON(record.context?.details || []),
+      },
+    );
   }
 
   // What escalating came to, or why it could not - on a page of its own.
@@ -906,6 +1046,8 @@ export default class UserNotificationLogTimelineAPI extends BaseAPI<
       // A link outlives its page by days at most: one past its week is why.
       case OnCallPassOnRefusal.InvalidLink:
         return "This link has expired";
+      case OnCallPassOnRefusal.LevelNotAvailable:
+        return ON_CALL_PAGE_NOT_ESCALATED_TITLE;
       case OnCallPassOnRefusal.PageOver:
       case OnCallPassOnRefusal.NotPaged:
       default:
@@ -938,6 +1080,21 @@ export default class UserNotificationLogTimelineAPI extends BaseAPI<
 
     if (isOnCallPassOnPagingStopped(data.result)) {
       return { explanation: notPagedAgain, warning: sentence };
+    }
+
+    /*
+     * Two or more levels after theirs: the form asks which, and until they
+     * pick, the page can only say that it pages the one they pick.
+     */
+    const levelChoices: PassOnFormLevels | undefined = getPassOnFormLevels(
+      data.result,
+    );
+
+    if (levelChoices) {
+      return {
+        explanation: `${ON_CALL_PAGE_PICK_LEVEL_SENTENCE} ${notPagedAgain}`,
+        levelChoices: levelChoices,
+      };
     }
 
     return { explanation: `${sentence} ${notPagedAgain}` };

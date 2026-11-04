@@ -56,7 +56,10 @@ import {
   NOBODY_NEXT_IN_ROTATION_TIMELINE_MESSAGE,
   readNextInRotationScheduleIds,
 } from "../../Types/OnCallDutyPolicy/NextInRotation";
-import { ON_CALL_PAGE_PASSED_ON_SKIP_TIMELINE_MESSAGE } from "../../Types/OnCallDutyPolicy/OnCallPagePassOn";
+import {
+  ON_CALL_LEVEL_SKIPPED_BY_ESCALATION_TIMELINE_MESSAGE,
+  ON_CALL_PAGE_PASSED_ON_SKIP_TIMELINE_MESSAGE,
+} from "../../Types/OnCallDutyPolicy/OnCallPagePassOn";
 import {
   getOnCallEmptyLevelTimelineMessage,
   isOnCallPageLineReached,
@@ -146,7 +149,7 @@ type RuleTarget =
  * run, on one of its escalation rules, or a direct page's - which names no
  * policy.
  */
-interface PageContext {
+export interface PageContext {
   projectId: ObjectID;
   triggeredByIncidentId?: ObjectID | undefined;
   triggeredByAlertId?: ObjectID | undefined;
@@ -692,6 +695,46 @@ export class Service extends OnCallDutyPolicyChildService<Model> {
    * page on: nobody is on it, and nobody may come on call in it, so there
    * is nothing to wait for - and nothing to say about the level itself.
    */
+  /*
+   * A level a run did not page because the person escalating picked a later
+   * one (OnCallPagePassOn's level choice): its line on the run's timeline. It
+   * names nobody, and says the page was escalated past the level
+   * (ON_CALL_LEVEL_SKIPPED_BY_ESCALATION_TIMELINE_MESSAGE), which the
+   * Execution Timeline, the record's feed and the run's chat message read
+   * back. Written only by the one place a run moves on
+   * (OnCallEscalationAdvance), once it has claimed the move, so each skip is
+   * written once.
+   */
+  @CaptureSpan()
+  public async recordLevelSkippedByEscalation(
+    ruleId: ObjectID,
+    options: PageContext,
+  ): Promise<void> {
+    const log: OnCallDutyPolicyExecutionLogTimeline = Service.getNewTimelineLog(
+      {
+        context: options,
+        ruleId: ruleId,
+      },
+    );
+    log.statusMessage = ON_CALL_LEVEL_SKIPPED_BY_ESCALATION_TIMELINE_MESSAGE;
+    log.status = OnCallDutyExecutionLogTimelineStatus.Skipped;
+
+    await OnCallDutyPolicyExecutionLogTimelineService.create({
+      data: log,
+      props: {
+        isRoot: true,
+      },
+    });
+
+    logger.debug(
+      `Escalation rule ${ruleId.toString()} was skipped: the page was escalated past it.`,
+      {
+        projectId: options.projectId.toString(),
+        onCallDutyPolicyEscalationRuleId: ruleId.toString(),
+      } as LogAttributes,
+    );
+  }
+
   public static isEveryTargetPassedOn(outcome: OnCallPagingOutcome): boolean {
     return (
       outcome.paged.length === 0 &&

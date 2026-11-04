@@ -1,4 +1,5 @@
 import OnCallDutyPolicyEscalationRule from "../../../Models/DatabaseModels/OnCallDutyPolicyEscalationRule";
+import SortOrder from "../../../Types/BaseDatabase/SortOrder";
 import OnCallDutyPolicyExecutionLog from "../../../Models/DatabaseModels/OnCallDutyPolicyExecutionLog";
 import OnCallDutyPolicyExecutionLogTimeline from "../../../Models/DatabaseModels/OnCallDutyPolicyExecutionLogTimeline";
 import { LIMIT_PER_PROJECT } from "../../../Types/Database/LimitMax";
@@ -15,6 +16,7 @@ import OnCallDutyExecutionLogTimelineStatus from "../../../Types/OnCallDutyPolic
 import OnCallDutyPolicyStatus from "../../../Types/OnCallDutyPolicy/OnCallDutyPolicyStatus";
 import OnCallDutyPolicyEscalationRuleService, {
   OnCallRuleExecutionOutcome,
+  PageContext,
 } from "../../Services/OnCallDutyPolicyEscalationRuleService";
 import OnCallDutyPolicyExecutionLogService from "../../Services/OnCallDutyPolicyExecutionLogService";
 import OnCallDutyPolicyExecutionLogTimelineService from "../../Services/OnCallDutyPolicyExecutionLogTimelineService";
@@ -62,6 +64,18 @@ import CaptureSpan from "../Telemetry/CaptureSpan";
  * round again at once would page nobody again, and going round with waits
  * would only wait: the run ends there, saying nobody was paged. A pass that
  * reached somebody repeats as its policy says.
+ *
+ * A LATER LEVEL PICKED BY THE PERSON ESCALATING. Somebody who escalates their
+ * page may pick which later level to page (OnCallPagePassOn's level choice):
+ * the run moves on to that level instead of the next, and each level
+ * between gets a line on its timeline saying the page was escalated past it
+ * (ON_CALL_LEVEL_SKIPPED_BY_ESCALATION_TIMELINE_MESSAGE) - written after the
+ * claim, so once. From the level picked the run goes on as from any: its
+ * wait, then the level after it, then the policy's Repeat Policy, whose next
+ * pass starts from the first level again, skipping nothing. A rule that is
+ * no longer a later level of the run's policy - deleted, moved up, or
+ * another policy's - is not paged: the run moves on to its next level, as
+ * it would have.
  */
 
 export enum OnCallEscalationAdvanceKind {
@@ -213,12 +227,16 @@ export default class OnCallEscalationAdvance {
    * run moves on from it at once (moveOnAtOnce). Otherwise the rule reached
    * somebody - its wait ran out, or they passed the page on - and so has
    * the pass the run is in.
+   *
+   * `toRuleId`: the later level to page instead of the next, picked by the
+   * person escalating (OnCallPagePassOn). The levels between are skipped.
    */
   @CaptureSpan()
   public static async advance(data: {
     run: OnCallDutyPolicyExecutionLog;
     now: Date;
     isCurrentRuleEmpty?: boolean | undefined;
+    toRuleId?: ObjectID | undefined;
   }): Promise<OnCallEscalationAdvanceResult> {
     const run: OnCallDutyPolicyExecutionLog = data.run;
     const runId: ObjectID = run.id!;
@@ -278,8 +296,23 @@ export default class OnCallEscalationAdvance {
         return lastStarted!;
       }
 
+      /*
+       * The level the person escalating picked, on the first move only: a
+       * level it moves past at once afterwards is followed by the next, as
+       * any level is.
+       */
+      const pickedRule: OnCallDutyPolicyEscalationRule | null =
+        step === 0 && data.toRuleId
+          ? await this.readLaterRule({
+              run: run,
+              ruleId: data.toRuleId,
+              afterOrder: lastOrder,
+            })
+          : null;
+
       const nextRule: OnCallDutyPolicyEscalationRule | null =
-        await OnCallDutyPolicyEscalationRuleService.findOneBy({
+        pickedRule ||
+        (await OnCallDutyPolicyEscalationRuleService.findOneBy({
           query: {
             projectId: run.projectId!,
             onCallDutyPolicyId: run.onCallDutyPolicyId!,
@@ -293,9 +326,17 @@ export default class OnCallEscalationAdvance {
             order: true,
             name: true,
           },
-        });
+        }));
 
       if (nextRule) {
+        if (pickedRule) {
+          await this.skipLevels({
+            run: run,
+            afterOrder: lastOrder,
+            beforeOrder: pickedRule.order!,
+          });
+        }
+
         logger.debug(
           `Starting execution of the next escalation rule: ${nextRule.id}`,
         );
@@ -310,7 +351,7 @@ export default class OnCallEscalationAdvance {
         lastStarted = this.getStarted({
           kind: OnCallEscalationAdvanceKind.RuleStarted,
           rule: nextRule,
-          fallbackOrder: lastOrder + 1,
+          fallbackOrder: pickedRule ? pickedRule.order! : lastOrder + 1,
           outcome: outcome,
         });
 
@@ -594,22 +635,135 @@ export default class OnCallEscalationAdvance {
     ruleId: ObjectID;
     passedOnUserIds: Array<ObjectID>;
   }): Promise<OnCallRuleExecutionOutcome | undefined> {
-    const run: OnCallDutyPolicyExecutionLog = data.run;
-
     return await OnCallDutyPolicyEscalationRuleService.startRuleExecution(
       data.ruleId,
       {
-        projectId: run.projectId!,
-        triggeredByIncidentId: run.triggeredByIncidentId,
-        triggeredByAlertId: run.triggeredByAlertId,
-        triggeredByAlertEpisodeId: run.triggeredByAlertEpisodeId,
-        triggeredByIncidentEpisodeId: run.triggeredByIncidentEpisodeId,
-        userNotificationEventType: run.userNotificationEventType!,
-        onCallPolicyExecutionLogId: run.id!,
-        onCallPolicyId: run.onCallDutyPolicyId!,
+        ...this.getPageContext(data.run),
+        onCallPolicyId: data.run.onCallDutyPolicyId!,
         passedOnUserIds: data.passedOnUserIds,
       },
     );
+  }
+
+  // What a run pages about, as its rules' lines on its timeline name it.
+  private static getPageContext(
+    run: OnCallDutyPolicyExecutionLog,
+  ): PageContext {
+    return {
+      projectId: run.projectId!,
+      triggeredByIncidentId: run.triggeredByIncidentId,
+      triggeredByAlertId: run.triggeredByAlertId,
+      triggeredByAlertEpisodeId: run.triggeredByAlertEpisodeId,
+      triggeredByIncidentEpisodeId: run.triggeredByIncidentEpisodeId,
+      userNotificationEventType: run.userNotificationEventType!,
+      onCallPolicyExecutionLogId: run.id!,
+      onCallPolicyId: run.onCallDutyPolicyId || undefined,
+    };
+  }
+
+  /*
+   * The level picked to page, when it is still a level of the run's policy
+   * after the one the run is on; null otherwise - it was deleted, moved up
+   * past the run, or is another policy's - and the run moves on to its next
+   * level instead.
+   */
+  private static async readLaterRule(data: {
+    run: OnCallDutyPolicyExecutionLog;
+    ruleId: ObjectID;
+    afterOrder: number;
+  }): Promise<OnCallDutyPolicyEscalationRule | null> {
+    const rule: OnCallDutyPolicyEscalationRule | null =
+      await OnCallDutyPolicyEscalationRuleService.findOneBy({
+        query: {
+          _id: data.ruleId.toString(),
+          projectId: data.run.projectId!,
+          onCallDutyPolicyId: data.run.onCallDutyPolicyId!,
+        },
+        props: {
+          isRoot: true,
+        },
+        select: {
+          _id: true,
+          order: true,
+          name: true,
+        },
+      });
+
+    if (
+      !rule ||
+      typeof rule.order !== "number" ||
+      !(rule.order > data.afterOrder)
+    ) {
+      logger.debug(
+        `Escalation rule ${data.ruleId.toString()} is not a later level of execution log ${data.run.id?.toString()}; moving on to its next level instead.`,
+        {
+          projectId: data.run.projectId?.toString(),
+        } as LogAttributes,
+      );
+
+      return null;
+    }
+
+    return rule;
+  }
+
+  /*
+   * The levels after `afterOrder` and before `beforeOrder`: the run skips
+   * them for a later level picked to page, and each gets its line on the
+   * run's timeline saying so. A line that cannot be written is logged and
+   * left: the level picked is paged regardless.
+   */
+  private static async skipLevels(data: {
+    run: OnCallDutyPolicyExecutionLog;
+    afterOrder: number;
+    beforeOrder: number;
+  }): Promise<void> {
+    if (data.beforeOrder <= data.afterOrder + 1) {
+      return;
+    }
+
+    try {
+      const rules: Array<OnCallDutyPolicyEscalationRule> =
+        await OnCallDutyPolicyEscalationRuleService.findBy({
+          query: {
+            projectId: data.run.projectId!,
+            onCallDutyPolicyId: data.run.onCallDutyPolicyId!,
+          },
+          select: {
+            _id: true,
+            order: true,
+          },
+          sort: {
+            order: SortOrder.Ascending,
+          },
+          skip: 0,
+          limit: LIMIT_PER_PROJECT,
+          props: {
+            isRoot: true,
+          },
+        });
+
+      for (const rule of rules) {
+        if (
+          !rule.id ||
+          typeof rule.order !== "number" ||
+          rule.order <= data.afterOrder ||
+          rule.order >= data.beforeOrder
+        ) {
+          continue;
+        }
+
+        await OnCallDutyPolicyEscalationRuleService.recordLevelSkippedByEscalation(
+          rule.id,
+          this.getPageContext(data.run),
+        );
+      }
+    } catch (err) {
+      logger.error(
+        `Could not write the levels execution log ${data.run.id?.toString()} skipped for a later level picked to page.`,
+      );
+      logger.error(err as Error);
+    }
   }
 
   private static getStarted(data: {

@@ -7,7 +7,10 @@ jest.mock("isolated-vm", () => {
 });
 
 import { mockRouter } from "./Helpers";
-import UserNotificationLogTimelineAPI from "../../../Server/API/UserOnCallLogTimelineAPI";
+import UserNotificationLogTimelineAPI, {
+  getPassOnFormLevels,
+  readPassOnFormLevel,
+} from "../../../Server/API/UserOnCallLogTimelineAPI";
 import DatabaseConfig from "../../../Server/DatabaseConfig";
 import AlertService from "../../../Server/Services/AlertService";
 import IncidentService from "../../../Server/Services/IncidentService";
@@ -673,6 +676,237 @@ describe("the Escalate button", () => {
     expect(variables["message"]).toBe(
       "You escalated it already, so you will not be paged again for it.",
     );
+  });
+});
+
+/*
+ * PICKING THE LEVEL. With two or more levels after the person's, both pages
+ * that escalate ask which to page - "Escalate to", a radio for each level,
+ * the next one picked - and say until then that escalating pages the level
+ * they pick. The next level's radio sends nothing, as a form without levels
+ * does, so leaving it picked escalates exactly as before.
+ */
+describe("picking the level, with two or more after theirs", () => {
+  const LEVEL_2_ID: string = "0f900000-0000-4000-8000-000000000012";
+  const LEVEL_3_ID: string = "0f900000-0000-4000-8000-000000000013";
+
+  const PICK_SENTENCE: string =
+    "This will immediately page the level you pick, without waiting. You will not be paged again for this incident.";
+
+  const NOT_AVAILABLE: string =
+    "The policy's levels have changed, so nothing was escalated. Escalate again to pick a level.";
+
+  function withLevels(): OnCallPassOnResult {
+    return {
+      ...preview(OnCallPassOnOutcome.NextRulePaged),
+      rule: { order: 2, name: "Platform leads" },
+      ruleCount: 3,
+      levelChoices: [
+        { escalationRuleId: LEVEL_2_ID, order: 2, name: "Platform leads" },
+        { escalationRuleId: LEVEL_3_ID, order: 3, name: "DBA leads" },
+      ],
+    };
+  }
+
+  const LEVELS: JSONObject = {
+    label: "Escalate to",
+    param: "escalationRuleId",
+    options: [
+      {
+        value: "",
+        label: `Platform leads (${kept("Level 2 of 3")})`,
+        isPicked: true,
+      },
+      {
+        value: LEVEL_3_ID,
+        label: `DBA leads (${kept("Level 3 of 3")})`,
+        isPicked: false,
+      },
+    ],
+  };
+
+  beforeEach(() => {
+    previewSpy.mockResolvedValue({ passedOn: false, result: withLevels() });
+  });
+
+  test("the escalate page asks which, the next level picked", async () => {
+    await call({
+      method: "GET",
+      uri: `${BASE}/pass-on-page/:itemId`,
+      query: { pageToken: VALID_TOKEN() },
+    });
+
+    const { path, variables } = rendered();
+
+    expect(path).toBe(
+      "/usr/src/Common/Server/Views/PassOnUserOnCallNotification.ejs",
+    );
+    expect(variables["levelChoices"]).toEqual(LEVELS);
+    expect(variables["message"]).toBe(PICK_SENTENCE);
+    expect(variables["notice"]).toBeUndefined();
+  });
+
+  test("the acknowledge page's Can't take it? asks the same", async () => {
+    await call({
+      method: "GET",
+      uri: `${BASE}/acknowledge-page/:itemId`,
+      query: { pageToken: VALID_TOKEN() },
+    });
+
+    expect(rendered().variables["passOn"]).toMatchObject({
+      lead: "Can't take it?",
+      explanation: PICK_SENTENCE,
+      levelChoices: LEVELS,
+      buttonText: "Escalate",
+    });
+  });
+
+  test("with one level after theirs there is nothing to pick: the page names the level", async () => {
+    previewSpy.mockResolvedValue({
+      passedOn: false,
+      result: {
+        ...withLevels(),
+        ruleCount: 2,
+        levelChoices: [
+          { escalationRuleId: LEVEL_2_ID, order: 2, name: "Platform leads" },
+        ],
+      },
+    });
+
+    await call({
+      method: "GET",
+      uri: `${BASE}/pass-on-page/:itemId`,
+      query: { pageToken: VALID_TOKEN() },
+    });
+
+    const { variables } = rendered();
+
+    expect(variables["levelChoices"]).toBeUndefined();
+    expect(variables["message"]).toBe(
+      `This will immediately page Platform leads (${kept("Level 2 of 2")}), without waiting. You will not be paged again for this incident.`,
+    );
+  });
+
+  test("a later level picked on the form is handed on", async () => {
+    await call({
+      method: "POST",
+      uri: `${BASE}/pass-on/:itemId`,
+      body: { pageToken: VALID_TOKEN(), escalationRuleId: LEVEL_3_ID },
+    });
+
+    expect(passOnSpy).toHaveBeenCalledTimes(1);
+
+    const asked: { toEscalationRuleId?: ObjectID } = passOnSpy.mock
+      .calls[0]![0] as { toEscalationRuleId?: ObjectID };
+
+    expect(asked.toEscalationRuleId).toBeInstanceOf(ObjectID);
+    expect(asked.toEscalationRuleId!.toString()).toBe(LEVEL_3_ID);
+    expect(rendered().variables["title"]).toBe(
+      "Incident escalated - Checkout is down",
+    );
+  });
+
+  test("the next level, left picked, sends nothing: escalating pages it as before", async () => {
+    await call({
+      method: "POST",
+      uri: `${BASE}/pass-on/:itemId`,
+      body: { pageToken: VALID_TOKEN(), escalationRuleId: "" },
+    });
+
+    expect(
+      (passOnSpy.mock.calls[0]![0] as { toEscalationRuleId?: ObjectID })
+        .toEscalationRuleId,
+    ).toBeUndefined();
+  });
+
+  test("a level not offered any more: the page asks again with the levels as they are, saying why", async () => {
+    passOnSpy.mockResolvedValue({
+      passedOn: false,
+      refusal: OnCallPassOnRefusal.LevelNotAvailable,
+    } as OnCallPassOnAnswer);
+
+    const token: string = VALID_TOKEN();
+
+    await call({
+      method: "POST",
+      uri: `${BASE}/pass-on/:itemId`,
+      body: { pageToken: token, escalationRuleId: LEVEL_3_ID },
+    });
+
+    const { path, variables } = rendered();
+
+    expect(path).toBe(
+      "/usr/src/Common/Server/Views/PassOnUserOnCallNotification.ejs",
+    );
+    expect(variables["notice"]).toBe(NOT_AVAILABLE);
+    // Read again: the levels as they are now.
+    expect(previewSpy).toHaveBeenCalledTimes(1);
+    expect(variables["levelChoices"]).toEqual(LEVELS);
+    // The same link's token: one more press escalates.
+    expect(variables["pageToken"]).toBe(token);
+  });
+
+  test("a value that is no level escalates nothing, and asks again", async () => {
+    for (const escalationRuleId of ["Level 3", "1 OR 1=1", "   x   "]) {
+      (Response.render as unknown as jest.Mock).mockClear();
+      passOnSpy.mockClear();
+
+      await call({
+        method: "POST",
+        uri: `${BASE}/pass-on/:itemId`,
+        body: { pageToken: VALID_TOKEN(), escalationRuleId: escalationRuleId },
+      });
+
+      expect(passOnSpy).not.toHaveBeenCalled();
+      expect(rendered().variables["notice"]).toBe(NOT_AVAILABLE);
+    }
+  });
+
+  test("asked again with nothing left to escalate, it says why instead", async () => {
+    passOnSpy.mockResolvedValue({
+      passedOn: false,
+      refusal: OnCallPassOnRefusal.LevelNotAvailable,
+    } as OnCallPassOnAnswer);
+    previewSpy.mockResolvedValue({
+      passedOn: false,
+      refusal: OnCallPassOnRefusal.RecordAcknowledged,
+      acknowledgedByName: "Bob Smith",
+    });
+
+    await call({
+      method: "POST",
+      uri: `${BASE}/pass-on/:itemId`,
+      body: { pageToken: VALID_TOKEN(), escalationRuleId: LEVEL_3_ID },
+    });
+
+    const { path, variables } = rendered();
+
+    expect(path).toBe("/usr/src/Common/Server/Views/ViewMessage.ejs");
+    expect(variables["title"]).toBe("Already acknowledged - Checkout is down");
+  });
+
+  test("the form's levels, read on their own", () => {
+    expect(getPassOnFormLevels(withLevels())).toEqual(LEVELS);
+    expect(
+      getPassOnFormLevels({ ...withLevels(), levelChoices: undefined }),
+    ).toBeUndefined();
+
+    expect(readPassOnFormLevel({})).toEqual({ isUnknown: false });
+    expect(readPassOnFormLevel({ escalationRuleId: "" })).toEqual({
+      isUnknown: false,
+    });
+    expect(readPassOnFormLevel(undefined)).toEqual({ isUnknown: false });
+    expect(readPassOnFormLevel({ escalationRuleId: "Level 3" })).toEqual({
+      isUnknown: true,
+    });
+    expect(readPassOnFormLevel({ escalationRuleId: ["a"] })).toEqual({
+      isUnknown: true,
+    });
+    expect(
+      readPassOnFormLevel({
+        escalationRuleId: ` ${LEVEL_3_ID} `,
+      }).escalationRuleId?.toString(),
+    ).toBe(LEVEL_3_ID);
   });
 });
 

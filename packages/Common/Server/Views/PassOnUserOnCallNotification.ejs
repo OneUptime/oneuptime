@@ -25,6 +25,10 @@
                                     <div>
                                         <h2 id="pass-on-heading"
                                             class="text-lg font-medium leading-6 text-gray-900 dark:text-slate-50"><%= title %></h2>
+                                        <%# Why it asks again: the level picked was not there to page. -%>
+                                        <% if (typeof notice !== 'undefined' && notice) { %>
+                                        <%- include('./Partials/OnCallPassOnWarning.ejs', { warning: notice, testId: 'pass-on-notice' }) -%>
+                                        <% } %>
                                         <p class="mt-1 text-sm text-gray-500 dark:text-slate-400"><%= message %></p>
                                         <% if (typeof warning !== 'undefined' && warning) { %>
                                         <%- include('./Partials/OnCallPassOnWarning.ejs', { warning: warning }) -%>
@@ -34,7 +38,7 @@
                                     <%- include('./Partials/OnCallNotificationDetails.ejs') -%>
 
                                     <div class="mt-6">
-                                        <%- include('./Partials/OnCallPassOnForm.ejs', { formUrl: passOnFormUrl, tokenParam: pageTokenParam, token: pageToken, buttonText: passOnText, isPrimary: true }) -%>
+                                        <%- include('./Partials/OnCallPassOnForm.ejs', { formUrl: passOnFormUrl, tokenParam: pageTokenParam, token: pageToken, buttonText: passOnText, isPrimary: true, levelChoices: (typeof levelChoices !== 'undefined' ? levelChoices : null) }) -%>
                                     </div>
 
                                     <%# Somebody who opened this by mistake, or who can take it after all. -%>
