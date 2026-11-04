@@ -41882,7 +41882,6 @@
   "Every dashboard of the BI tools above, with the watched tables its charts query.": "Every dashboard of the BI tools above, with the watched tables its charts query.",
   "Finance Metabase": "Finance Metabase",
   "ID in the Tool": "ID nello strumento",
-  "JSON that may read its dashboards: Metabase an API key, Superset a user, Tableau a personal access token, Looker an API client, Power BI a service principal. Encrypted, and never shown again.": "JSON that may read its dashboards: Metabase an API key, Superset a user, Tableau a personal access token, Looker an API client, Power BI a service principal. Encrypted, and never shown again.",
   "Metabase, Superset, Tableau, Looker and Power BI: their dashboards, and the tables behind them, read every hour, so a table's alerts list the dashboards built on it.": "Metabase, Superset, Tableau, Looker and Power BI: their dashboards, and the tables behind them, read every hour, so a table's alerts list the dashboards built on it.",
   "No BI tool yet. Add one, with credentials that may read its dashboards, and a late table's alert names the dashboards people open on it.": "No BI tool yet. Add one, with credentials that may read its dashboards, and a late table's alert names the dashboards people open on it.",
   "No dashboard of a connected BI tool reads this table, or a table built from it. Add your BI tools under BI Dashboards.": "No dashboard of a connected BI tool reads this table, or a table built from it. Add your BI tools under BI Dashboards.",
@@ -41899,7 +41898,6 @@
   "Bytes Billed (24h)": "Byte fatturati (24 h)",
   "Costliest Tables": "Tabelle più costose",
   "Credits (24h)": "Crediti (24 h)",
-  "Each query your warehouses run again and again, with what it spent over the last day, its failures and the watched tables it writes. Named by its tag, or by what it does and the table it writes: never by its query.": "Each query your warehouses run again and again, with what it spent over the last day, its failures and the watched tables it writes. Named by its tag, or by what it does and the table it writes: never by its query.",
   "Failed Runs (24h)": "Esecuzioni non riuscite (24 h)",
   "Job Key": "Chiave del job",
   "Jobs That Failed": "Job non riusciti",
@@ -41919,5 +41917,10 @@
   "Writes unused tables": "Scrive tabelle inutilizzate",
   "{{bytes}} billed": "{{bytes}} fatturati",
   "{{credits}} credits": "{{credits}} crediti",
-  "Amazon Athena": "Amazon Athena"
+  "Amazon Athena": "Amazon Athena",
+  "Aggregation Pipeline": "Pipeline di aggregazione",
+  "An aggregation pipeline, as JSON, ending in a document with a number named value. With Segment By, a segment and a number per document.": "Una pipeline di aggregazione, in JSON, che termina con un documento con un numero chiamato value. Con Segment By, un segmento e un numero per documento.",
+  "[{ \"$match\": { \"total\": { \"$lt\": 0 } } }, { \"$count\": \"value\" }]": "[{ \"$match\": { \"total\": { \"$lt\": 0 } } }, { \"$count\": \"value\" }]",
+  "Each query your warehouses run again and again, with what it spent over the last day, its failures and the watched tables it writes. Named by its tag, or by what it does and writes: never by its query.": "Ogni query che i tuoi warehouse eseguono di continuo, con quanto ha speso nell'ultimo giorno, i suoi errori e le tabelle monitorate che scrive. Chiamata con il suo tag, o con ciò che fa e scrive: mai con la sua query.",
+  "JSON with what may read its dashboards: an API key, a user, a token or a service principal, as the tool asks. Encrypted, and never shown again.": "JSON con ciò che può leggere le sue dashboard: una chiave API, un utente, un token o un'entità servizio, come chiede lo strumento. Cifrato e mai più mostrato."
 }

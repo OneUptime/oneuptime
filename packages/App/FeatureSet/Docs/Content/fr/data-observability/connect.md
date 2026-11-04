@@ -104,12 +104,32 @@ Un catalogue Unity Catalog correspond à une base de données. Connectez-vous av
 ```
 
 Le catalogue, ses colonnes et le dernier commit de chaque table Delta viennent de l'API REST d'Unity Catalog, sans entrepôt SQL : la collecte ne coûte donc aucune ressource de calcul. Les contrôles, ainsi que le lignage et les dernières lectures tirés de `system.access.table_lineage` une fois par heure, s'exécutent sur l'entrepôt SQL que vous indiquez ; accordez-y **Can use** au principal de service.
+@tab Oracle
+```sql
+CREATE USER oneuptime_reader IDENTIFIED BY "...";
+GRANT CREATE SESSION TO oneuptime_reader;
+GRANT READ ON sales.orders TO oneuptime_reader;
+GRANT SELECT_CATALOG_ROLE TO oneuptime_reader;
+```
+
+Oracle est lu par son propre protocole, sans client Oracle à installer : `oracle://oneuptime_reader:...@orders-db.internal:1521/ORCLPDB1`. L'utilisateur voit les tables qu'il peut lire : accordez `READ` sur chaque table à surveiller, ce qui lui permet de les interroger sans jamais les verrouiller ni les modifier. `SELECT_CATALOG_ROLE` permet à OneUptime de lire la taille de chaque table, et `ALL_TAB_MODIFICATIONS` donne les inserts, updates et deletes de chaque table depuis ses dernières statistiques, et quand elle a changé pour la dernière fois.
 @tab Amazon Athena
 Une base de données Glue est une base de données. Ses tables et vues, leurs colonnes et statistiques, et le dernier commit de chaque table Iceberg viennent de l'API du Glue Data Catalog, qui ne lit aucune donnée et ne coûte rien. Les contrôles s'exécutent comme des requêtes Athena dans le workgroup que vous indiquez. Connectez-vous avec les clés d'un utilisateur ou d'un rôle IAM autorisé à appeler `glue:GetDatabase` et `glue:GetTables` et, pour les contrôles, à exécuter des requêtes Athena dans le workgroup avec un accès en lecture aux données des tables :
 
 ```json
 { "region": "us-east-1", "accessKeyId": "AKIA...", "secretAccessKey": "...", "database": "analytics", "workgroup": "primary", "outputLocation": "s3://acme-athena-results/oneuptime/" }
 ```
+@tab MongoDB
+```javascript
+use admin
+db.createUser({
+  user: "oneuptime_reader",
+  pwd: "...",
+  roles: [{ role: "readAnyDatabase", db: "admin" }]
+})
+```
+
+MongoDB est lu par son propre pilote : `mongodb+srv://oneuptime_reader:...@cluster0.example.mongodb.net/`, ou `mongodb://` avec les hôtes d'un replica set. Une base nommée dans le chemin est la seule surveillée ; sans elle, chaque base que l'utilisateur peut lire est surveillée, et `{ role: "read", db: "orders" }` à la place de `readAnyDatabase` le limite à une seule. Les documents, la taille et les écritures de chaque collection viennent de `$collStats`, et le moment où elle a reçu son dernier document, de son `_id` le plus récent. Ses champs viennent du schéma JSON de son validateur, ou sinon des noms et types des champs de ses 100 documents les plus récents, calculés dans la base pour qu'aucune valeur n'en sorte. Les documents sont lus sur un secondaire quand il y en a un, et un contrôle personnalisé est un pipeline d'agrégation, en JSON.
 :::
 
 ## Ce qui est lu, et à quelle fréquence

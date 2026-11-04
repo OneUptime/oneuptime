@@ -104,12 +104,32 @@ One Unity Catalog catalog is one database. Connect with a service principal, or 
 ```
 
 The catalog, its columns and each Delta table's last commit come from Unity Catalog's REST API with no SQL warehouse, so collection costs no compute. Checks, and lineage and last reads from `system.access.table_lineage` once an hour, run on the SQL warehouse you name; give the service principal **Can use** on it.
+@tab Oracle
+```sql
+CREATE USER oneuptime_reader IDENTIFIED BY "...";
+GRANT CREATE SESSION TO oneuptime_reader;
+GRANT READ ON sales.orders TO oneuptime_reader;
+GRANT SELECT_CATALOG_ROLE TO oneuptime_reader;
+```
+
+Oracle is read over its own protocol, with no Oracle client to install: `oracle://oneuptime_reader:...@orders-db.internal:1521/ORCLPDB1`. The login sees the tables it may read: grant `READ` on each one to watch, which lets it query them and never lock or change them. `SELECT_CATALOG_ROLE` lets OneUptime read every table's size, and `ALL_TAB_MODIFICATIONS` gives each table's inserts, updates and deletes since its last statistics, and when it last changed.
 @tab Amazon Athena
 One Glue database is one database. Its tables and views, their columns and statistics, and each Iceberg table's last commit come from the Glue Data Catalog's API, which reads no data and costs nothing. Checks run as Athena queries in the workgroup you name. Connect with the keys of an IAM user or role that may call `glue:GetDatabase` and `glue:GetTables`, and for checks run Athena queries in the workgroup with read access to the tables' data:
 
 ```json
 { "region": "us-east-1", "accessKeyId": "AKIA...", "secretAccessKey": "...", "database": "analytics", "workgroup": "primary", "outputLocation": "s3://acme-athena-results/oneuptime/" }
 ```
+@tab MongoDB
+```javascript
+use admin
+db.createUser({
+  user: "oneuptime_reader",
+  pwd: "...",
+  roles: [{ role: "readAnyDatabase", db: "admin" }]
+})
+```
+
+MongoDB is read over its own driver: `mongodb+srv://oneuptime_reader:...@cluster0.example.mongodb.net/`, or `mongodb://` with a replica set's hosts. A database in the path is the only one watched; without one, every database the login may read is watched, and `{ role: "read", db: "orders" }` in place of `readAnyDatabase` limits it to one. Each collection's documents, size and writes come from `$collStats`, and when it last took a document from its newest `_id`. Its fields come from its validator's JSON schema, or else from the names and types of the fields of its 100 newest documents, worked out in the database so no value leaves it. Documents are read on a secondary where there is one, and a custom check is an aggregation pipeline, as JSON.
 :::
 
 ## What is read, and how often

@@ -16,7 +16,7 @@ Fügen Sie eine Prüfung im Tab **Prüfungen** einer Tabelle hinzu:
 | **Format Mismatch Percent** | Prozentsatz der Werte, die nicht auf einen regulären Ausdruck passen (jede Engine außer SQL Server) |
 | **Orphan Count** | Zeilen, deren Wert keine Entsprechung in der Spalte einer anderen Tabelle hat |
 | **Zeilenanzahl** | Zeilen in der Tabelle, am nützlichsten mit **Segment By** |
-| **Benutzerdefiniertes SQL** | Die Zahl, die ein schreibgeschütztes SELECT von Ihnen zurückgibt, benannt `value` |
+| **Benutzerdefiniertes SQL** | Die Zahl, die ein schreibgeschütztes SELECT von Ihnen zurückgibt, benannt `value` (bei MongoDB die einer Aggregations-Pipeline) |
 
 Jede Prüfung läuft alle 15 Minuten, stündlich, alle 6 Stunden oder täglich, als eine einzige Aggregatanweisung in einer schreibgeschützten Transaktion mit einem Timeout für Anweisungen. Ihr Wert wird als `oneuptime.data.check.value` geschrieben, mit `oneuptime.data.check.id`, `oneuptime.data.check.name` und `oneuptime.data.check.segment`.
 

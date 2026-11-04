@@ -41882,7 +41882,6 @@
   "Every dashboard of the BI tools above, with the watched tables its charts query.": "Every dashboard of the BI tools above, with the watched tables its charts query.",
   "Finance Metabase": "Finance Metabase",
   "ID in the Tool": "ツール内の ID",
-  "JSON that may read its dashboards: Metabase an API key, Superset a user, Tableau a personal access token, Looker an API client, Power BI a service principal. Encrypted, and never shown again.": "JSON that may read its dashboards: Metabase an API key, Superset a user, Tableau a personal access token, Looker an API client, Power BI a service principal. Encrypted, and never shown again.",
   "Metabase, Superset, Tableau, Looker and Power BI: their dashboards, and the tables behind them, read every hour, so a table's alerts list the dashboards built on it.": "Metabase, Superset, Tableau, Looker and Power BI: their dashboards, and the tables behind them, read every hour, so a table's alerts list the dashboards built on it.",
   "No BI tool yet. Add one, with credentials that may read its dashboards, and a late table's alert names the dashboards people open on it.": "No BI tool yet. Add one, with credentials that may read its dashboards, and a late table's alert names the dashboards people open on it.",
   "No dashboard of a connected BI tool reads this table, or a table built from it. Add your BI tools under BI Dashboards.": "No dashboard of a connected BI tool reads this table, or a table built from it. Add your BI tools under BI Dashboards.",
@@ -41899,7 +41898,6 @@
   "Bytes Billed (24h)": "課金バイト数 (24 時間)",
   "Costliest Tables": "最もコストの高いテーブル",
   "Credits (24h)": "クレジット (24 時間)",
-  "Each query your warehouses run again and again, with what it spent over the last day, its failures and the watched tables it writes. Named by its tag, or by what it does and the table it writes: never by its query.": "Each query your warehouses run again and again, with what it spent over the last day, its failures and the watched tables it writes. Named by its tag, or by what it does and the table it writes: never by its query.",
   "Failed Runs (24h)": "失敗した実行 (24 時間)",
   "Job Key": "ジョブキー",
   "Jobs That Failed": "失敗したジョブ",
@@ -41919,5 +41917,10 @@
   "Writes unused tables": "未使用テーブルを書き込み",
   "{{bytes}} billed": "{{bytes}} 課金",
   "{{credits}} credits": "{{credits}} クレジット",
-  "Amazon Athena": "Amazon Athena"
+  "Amazon Athena": "Amazon Athena",
+  "Aggregation Pipeline": "集計パイプライン",
+  "An aggregation pipeline, as JSON, ending in a document with a number named value. With Segment By, a segment and a number per document.": "JSON 形式の集計パイプライン。value という名前の数値を持つドキュメントで終わります。Segment By を使う場合は、ドキュメントごとにセグメントと数値を返します。",
+  "[{ \"$match\": { \"total\": { \"$lt\": 0 } } }, { \"$count\": \"value\" }]": "[{ \"$match\": { \"total\": { \"$lt\": 0 } } }, { \"$count\": \"value\" }]",
+  "Each query your warehouses run again and again, with what it spent over the last day, its failures and the watched tables it writes. Named by its tag, or by what it does and writes: never by its query.": "ウェアハウスが繰り返し実行する各クエリと、直近 1 日の費用、失敗、書き込み先の監視対象テーブル。名前はタグ、または処理内容と書き込み先から付けられ、クエリ本文からは付けられません。",
+  "JSON with what may read its dashboards: an API key, a user, a token or a service principal, as the tool asks. Encrypted, and never shown again.": "ダッシュボードを読み取れる認証情報の JSON: ツールに応じて API キー、ユーザー、トークン、またはサービス プリンシパル。暗号化され、再表示されません。"
 }

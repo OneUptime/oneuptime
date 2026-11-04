@@ -41882,7 +41882,6 @@
   "Every dashboard of the BI tools above, with the watched tables its charts query.": "Every dashboard of the BI tools above, with the watched tables its charts query.",
   "Finance Metabase": "Finance Metabase",
   "ID in the Tool": "工具中的 ID",
-  "JSON that may read its dashboards: Metabase an API key, Superset a user, Tableau a personal access token, Looker an API client, Power BI a service principal. Encrypted, and never shown again.": "JSON that may read its dashboards: Metabase an API key, Superset a user, Tableau a personal access token, Looker an API client, Power BI a service principal. Encrypted, and never shown again.",
   "Metabase, Superset, Tableau, Looker and Power BI: their dashboards, and the tables behind them, read every hour, so a table's alerts list the dashboards built on it.": "Metabase, Superset, Tableau, Looker and Power BI: their dashboards, and the tables behind them, read every hour, so a table's alerts list the dashboards built on it.",
   "No BI tool yet. Add one, with credentials that may read its dashboards, and a late table's alert names the dashboards people open on it.": "No BI tool yet. Add one, with credentials that may read its dashboards, and a late table's alert names the dashboards people open on it.",
   "No dashboard of a connected BI tool reads this table, or a table built from it. Add your BI tools under BI Dashboards.": "No dashboard of a connected BI tool reads this table, or a table built from it. Add your BI tools under BI Dashboards.",
@@ -41899,7 +41898,6 @@
   "Bytes Billed (24h)": "计费字节 (24 小时)",
   "Costliest Tables": "最昂贵的表",
   "Credits (24h)": "积分 (24 小时)",
-  "Each query your warehouses run again and again, with what it spent over the last day, its failures and the watched tables it writes. Named by its tag, or by what it does and the table it writes: never by its query.": "Each query your warehouses run again and again, with what it spent over the last day, its failures and the watched tables it writes. Named by its tag, or by what it does and the table it writes: never by its query.",
   "Failed Runs (24h)": "失败的运行 (24 小时)",
   "Job Key": "作业键",
   "Jobs That Failed": "失败的作业",
@@ -41919,5 +41917,10 @@
   "Writes unused tables": "写入未使用的表",
   "{{bytes}} billed": "已计费 {{bytes}}",
   "{{credits}} credits": "{{credits}} 积分",
-  "Amazon Athena": "Amazon Athena"
+  "Amazon Athena": "Amazon Athena",
+  "Aggregation Pipeline": "聚合管道",
+  "An aggregation pipeline, as JSON, ending in a document with a number named value. With Segment By, a segment and a number per document.": "JSON 格式的聚合管道，最后输出一个包含名为 value 的数字的文档。使用 Segment By 时，每个文档返回一个分段和一个数字。",
+  "[{ \"$match\": { \"total\": { \"$lt\": 0 } } }, { \"$count\": \"value\" }]": "[{ \"$match\": { \"total\": { \"$lt\": 0 } } }, { \"$count\": \"value\" }]",
+  "Each query your warehouses run again and again, with what it spent over the last day, its failures and the watched tables it writes. Named by its tag, or by what it does and writes: never by its query.": "您的数据仓库反复运行的每个查询，以及它在过去一天的花费、失败次数和写入的受监控表。按其标签命名，或按它所做和所写的内容命名：从不按查询文本命名。",
+  "JSON with what may read its dashboards: an API key, a user, a token or a service principal, as the tool asks. Encrypted, and never shown again.": "可读取其仪表板的凭据 JSON：按工具要求提供 API 密钥、用户、令牌或服务主体。已加密，且不会再次显示。"
 }

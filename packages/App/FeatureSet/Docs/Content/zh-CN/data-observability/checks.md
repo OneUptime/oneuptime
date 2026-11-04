@@ -16,7 +16,7 @@
 | **Format Mismatch Percent** | 不匹配正则表达式的值所占的百分比（SQL Server 以外的所有引擎） |
 | **Orphan Count** | 其值在另一个表的列中没有匹配项的行 |
 | **Row Count** | 表中的行数，与 **Segment By** 搭配使用最有用 |
-| **自定义 SQL** | 你的一条只读 SELECT 返回的、名为 `value` 的数字 |
+| **自定义 SQL** | 你的一条只读 SELECT 返回的、名为 `value` 的数字（在 MongoDB 中为聚合管道返回的数字） |
 
 每个检查每 15 分钟、每小时、每 6 小时或每天运行一次，作为一条聚合语句，在带有语句超时的只读事务中执行。它的值写入为 `oneuptime.data.check.value`，并带有 `oneuptime.data.check.id`、`oneuptime.data.check.name` 和 `oneuptime.data.check.segment`。
 

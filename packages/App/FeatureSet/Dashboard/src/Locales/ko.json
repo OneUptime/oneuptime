@@ -41882,7 +41882,6 @@
   "Every dashboard of the BI tools above, with the watched tables its charts query.": "Every dashboard of the BI tools above, with the watched tables its charts query.",
   "Finance Metabase": "Finance Metabase",
   "ID in the Tool": "도구 내 ID",
-  "JSON that may read its dashboards: Metabase an API key, Superset a user, Tableau a personal access token, Looker an API client, Power BI a service principal. Encrypted, and never shown again.": "JSON that may read its dashboards: Metabase an API key, Superset a user, Tableau a personal access token, Looker an API client, Power BI a service principal. Encrypted, and never shown again.",
   "Metabase, Superset, Tableau, Looker and Power BI: their dashboards, and the tables behind them, read every hour, so a table's alerts list the dashboards built on it.": "Metabase, Superset, Tableau, Looker and Power BI: their dashboards, and the tables behind them, read every hour, so a table's alerts list the dashboards built on it.",
   "No BI tool yet. Add one, with credentials that may read its dashboards, and a late table's alert names the dashboards people open on it.": "No BI tool yet. Add one, with credentials that may read its dashboards, and a late table's alert names the dashboards people open on it.",
   "No dashboard of a connected BI tool reads this table, or a table built from it. Add your BI tools under BI Dashboards.": "No dashboard of a connected BI tool reads this table, or a table built from it. Add your BI tools under BI Dashboards.",
@@ -41899,7 +41898,6 @@
   "Bytes Billed (24h)": "청구된 바이트 (24시간)",
   "Costliest Tables": "가장 비싼 테이블",
   "Credits (24h)": "크레딧 (24시간)",
-  "Each query your warehouses run again and again, with what it spent over the last day, its failures and the watched tables it writes. Named by its tag, or by what it does and the table it writes: never by its query.": "Each query your warehouses run again and again, with what it spent over the last day, its failures and the watched tables it writes. Named by its tag, or by what it does and the table it writes: never by its query.",
   "Failed Runs (24h)": "실패한 실행 (24시간)",
   "Job Key": "작업 키",
   "Jobs That Failed": "실패한 작업",
@@ -41919,5 +41917,10 @@
   "Writes unused tables": "사용되지 않는 테이블을 씀",
   "{{bytes}} billed": "{{bytes}} 청구됨",
   "{{credits}} credits": "{{credits}} 크레딧",
-  "Amazon Athena": "Amazon Athena"
+  "Amazon Athena": "Amazon Athena",
+  "Aggregation Pipeline": "집계 파이프라인",
+  "An aggregation pipeline, as JSON, ending in a document with a number named value. With Segment By, a segment and a number per document.": "value라는 숫자가 있는 문서로 끝나는 JSON 형식의 집계 파이프라인입니다. Segment By를 사용하면 문서마다 세그먼트와 숫자를 반환합니다.",
+  "[{ \"$match\": { \"total\": { \"$lt\": 0 } } }, { \"$count\": \"value\" }]": "[{ \"$match\": { \"total\": { \"$lt\": 0 } } }, { \"$count\": \"value\" }]",
+  "Each query your warehouses run again and again, with what it spent over the last day, its failures and the watched tables it writes. Named by its tag, or by what it does and writes: never by its query.": "웨어하우스가 반복해서 실행하는 각 쿼리와 지난 하루 동안의 비용, 실패, 쓰는 모니터링 대상 테이블입니다. 이름은 태그 또는 하는 일과 쓰는 대상으로 정해지며, 쿼리 본문으로는 정해지지 않습니다.",
+  "JSON with what may read its dashboards: an API key, a user, a token or a service principal, as the tool asks. Encrypted, and never shown again.": "대시보드를 읽을 수 있는 자격 증명의 JSON: 도구에 따라 API 키, 사용자, 토큰 또는 서비스 주체입니다. 암호화되며 다시 표시되지 않습니다."
 }

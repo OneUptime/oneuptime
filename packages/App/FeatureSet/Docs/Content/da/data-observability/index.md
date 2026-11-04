@@ -1,6 +1,6 @@
 # Dataobservabilitet
 
-Dataobservabilitet holder øje med de tabeller, din virksomhed er afhængig af, i PostgreSQL, MySQL, SQL Server, Redshift, Snowflake, BigQuery, ClickHouse og Databricks, og fortæller dig, når deres data er forsinkede, mangler, er forkerte eller ødelagte, før de mennesker, der bruger dem, opdager det. Den lærer selv hver tabels rytme, læser hver databases katalog og aldrig en række, og knytter hvert dataproblem til den pipelinekørsel, den udrulning eller den opstrøms tabel, der ligger bag.
+Dataobservabilitet holder øje med de tabeller, din virksomhed er afhængig af, i PostgreSQL, MySQL, SQL Server, Oracle, MongoDB, Redshift, Snowflake, BigQuery, ClickHouse, Databricks og Athena, og fortæller dig, når deres data er forsinkede, mangler, er forkerte eller ødelagte, før de mennesker, der bruger dem, opdager det. Den lærer selv hver tabels rytme, læser hver databases katalog og aldrig en række, og knytter hvert dataproblem til den pipelinekørsel, den udrulning eller den opstrøms tabel, der ligger bag.
 
 Den besvarer fire spørgsmål:
 

@@ -9,7 +9,7 @@ El linaje dice a partir de qué tablas se construye cada tabla y qué pipelines 
 | **OpenLineage** | Cada ejecución de un job de Airflow, Dagster, Spark, dbt o Flink, con las tablas que leyó y escribió |
 | **dbt** | A partir de qué se construye cada modelo, cada build como una ejecución y el resultado de cada prueba |
 | **Fivetran y Airbyte** | Cada sincronización como una ejecución de su conector, y las tablas sin procesar que carga |
-| **Vistas** | Una vista se construye a partir de las tablas sobre las que está definida (PostgreSQL, Redshift, MySQL 8, SQL Server, vistas materializadas de ClickHouse, Databricks) |
+| **Vistas** | Una vista se construye a partir de las tablas sobre las que está definida (PostgreSQL, Redshift, MySQL 8, SQL Server, Oracle, vistas materializadas de ClickHouse, Databricks, MongoDB) |
 | **Historial de consultas** | Una consulta que leyó una tabla y escribió otra (los jobs de BigQuery, el registro de consultas de Redshift, el registro de consultas de ClickHouse, la tabla de linaje de Databricks) |
 
 La pestaña **Linaje** de una tabla muestra las tablas a partir de las que se construye, los pipelines que escriben en ella con su última ejecución, y las tablas que se construyen a partir de ella. Cada arista indica dónde se vio.

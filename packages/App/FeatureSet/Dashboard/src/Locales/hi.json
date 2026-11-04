@@ -41882,7 +41882,6 @@
   "Every dashboard of the BI tools above, with the watched tables its charts query.": "Every dashboard of the BI tools above, with the watched tables its charts query.",
   "Finance Metabase": "Finance Metabase",
   "ID in the Tool": "टूल में ID",
-  "JSON that may read its dashboards: Metabase an API key, Superset a user, Tableau a personal access token, Looker an API client, Power BI a service principal. Encrypted, and never shown again.": "JSON that may read its dashboards: Metabase an API key, Superset a user, Tableau a personal access token, Looker an API client, Power BI a service principal. Encrypted, and never shown again.",
   "Metabase, Superset, Tableau, Looker and Power BI: their dashboards, and the tables behind them, read every hour, so a table's alerts list the dashboards built on it.": "Metabase, Superset, Tableau, Looker and Power BI: their dashboards, and the tables behind them, read every hour, so a table's alerts list the dashboards built on it.",
   "No BI tool yet. Add one, with credentials that may read its dashboards, and a late table's alert names the dashboards people open on it.": "No BI tool yet. Add one, with credentials that may read its dashboards, and a late table's alert names the dashboards people open on it.",
   "No dashboard of a connected BI tool reads this table, or a table built from it. Add your BI tools under BI Dashboards.": "No dashboard of a connected BI tool reads this table, or a table built from it. Add your BI tools under BI Dashboards.",
@@ -41899,7 +41898,6 @@
   "Bytes Billed (24h)": "बिल किए गए बाइट (24 घंटे)",
   "Costliest Tables": "सबसे महंगी टेबल",
   "Credits (24h)": "क्रेडिट (24 घंटे)",
-  "Each query your warehouses run again and again, with what it spent over the last day, its failures and the watched tables it writes. Named by its tag, or by what it does and the table it writes: never by its query.": "Each query your warehouses run again and again, with what it spent over the last day, its failures and the watched tables it writes. Named by its tag, or by what it does and the table it writes: never by its query.",
   "Failed Runs (24h)": "विफल रन (24 घंटे)",
   "Job Key": "जॉब कुंजी",
   "Jobs That Failed": "विफल जॉब",
@@ -41919,5 +41917,10 @@
   "Writes unused tables": "अप्रयुक्त टेबल लिखता है",
   "{{bytes}} billed": "{{bytes}} बिल किए गए",
   "{{credits}} credits": "{{credits}} क्रेडिट",
-  "Amazon Athena": "Amazon Athena"
+  "Amazon Athena": "Amazon Athena",
+  "Aggregation Pipeline": "एग्रीगेशन पाइपलाइन",
+  "An aggregation pipeline, as JSON, ending in a document with a number named value. With Segment By, a segment and a number per document.": "JSON में एक एग्रीगेशन पाइपलाइन, जो value नाम की संख्या वाले दस्तावेज़ पर खत्म होती है। Segment By के साथ, हर दस्तावेज़ के लिए एक सेगमेंट और एक संख्या।",
+  "[{ \"$match\": { \"total\": { \"$lt\": 0 } } }, { \"$count\": \"value\" }]": "[{ \"$match\": { \"total\": { \"$lt\": 0 } } }, { \"$count\": \"value\" }]",
+  "Each query your warehouses run again and again, with what it spent over the last day, its failures and the watched tables it writes. Named by its tag, or by what it does and writes: never by its query.": "हर क्वेरी जिसे आपके वेयरहाउस बार-बार चलाते हैं, पिछले एक दिन के खर्च, उसकी विफलताओं और उन निगरानी वाली टेबलों के साथ जिनमें वह लिखती है। नाम उसके टैग से, या वह क्या करती और लिखती है उससे: कभी उसकी क्वेरी से नहीं।",
+  "JSON with what may read its dashboards: an API key, a user, a token or a service principal, as the tool asks. Encrypted, and never shown again.": "JSON, जिसमें वह हो जो इसके डैशबोर्ड पढ़ सके: टूल के अनुसार API कुंजी, उपयोगकर्ता, टोकन या सर्विस प्रिंसिपल। एन्क्रिप्ट किया जाता है और फिर कभी नहीं दिखाया जाता।"
 }

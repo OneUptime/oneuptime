@@ -1,6 +1,6 @@
 # Data Observability
 
-Data Observability überwacht die Tabellen, auf die sich Ihr Unternehmen verlässt, in PostgreSQL, MySQL, SQL Server, Redshift, Snowflake, BigQuery, ClickHouse und Databricks, und sagt Ihnen, wenn ihre Daten verspätet, unvollständig, falsch oder fehlerhaft sind, bevor es den Menschen auffällt, die sie nutzen. Sie lernt den Rhythmus jeder Tabelle von selbst, liest den Katalog jeder Datenbank und nie eine Zeile, und verknüpft jedes Datenproblem mit dem Pipeline-Lauf, dem Deployment oder der vorgelagerten Tabelle, die dahintersteckt.
+Data Observability überwacht die Tabellen, auf die sich Ihr Unternehmen verlässt, in PostgreSQL, MySQL, SQL Server, Oracle, MongoDB, Redshift, Snowflake, BigQuery, ClickHouse, Databricks und Athena, und sagt Ihnen, wenn ihre Daten verspätet, unvollständig, falsch oder fehlerhaft sind, bevor es den Menschen auffällt, die sie nutzen. Sie lernt den Rhythmus jeder Tabelle von selbst, liest den Katalog jeder Datenbank und nie eine Zeile, und verknüpft jedes Datenproblem mit dem Pipeline-Lauf, dem Deployment oder der vorgelagerten Tabelle, die dahintersteckt.
 
 Sie beantwortet vier Fragen:
 

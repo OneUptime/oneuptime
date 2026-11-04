@@ -41882,7 +41882,6 @@
   "Every dashboard of the BI tools above, with the watched tables its charts query.": "Every dashboard of the BI tools above, with the watched tables its charts query.",
   "Finance Metabase": "Finance Metabase",
   "ID in the Tool": "شناسه در ابزار",
-  "JSON that may read its dashboards: Metabase an API key, Superset a user, Tableau a personal access token, Looker an API client, Power BI a service principal. Encrypted, and never shown again.": "JSON that may read its dashboards: Metabase an API key, Superset a user, Tableau a personal access token, Looker an API client, Power BI a service principal. Encrypted, and never shown again.",
   "Metabase, Superset, Tableau, Looker and Power BI: their dashboards, and the tables behind them, read every hour, so a table's alerts list the dashboards built on it.": "Metabase, Superset, Tableau, Looker and Power BI: their dashboards, and the tables behind them, read every hour, so a table's alerts list the dashboards built on it.",
   "No BI tool yet. Add one, with credentials that may read its dashboards, and a late table's alert names the dashboards people open on it.": "No BI tool yet. Add one, with credentials that may read its dashboards, and a late table's alert names the dashboards people open on it.",
   "No dashboard of a connected BI tool reads this table, or a table built from it. Add your BI tools under BI Dashboards.": "No dashboard of a connected BI tool reads this table, or a table built from it. Add your BI tools under BI Dashboards.",
@@ -41899,7 +41898,6 @@
   "Bytes Billed (24h)": "بایت‌های صورتحساب‌شده (۲۴ ساعت)",
   "Costliest Tables": "پرهزینه‌ترین جدول‌ها",
   "Credits (24h)": "اعتبار (۲۴ ساعت)",
-  "Each query your warehouses run again and again, with what it spent over the last day, its failures and the watched tables it writes. Named by its tag, or by what it does and the table it writes: never by its query.": "Each query your warehouses run again and again, with what it spent over the last day, its failures and the watched tables it writes. Named by its tag, or by what it does and the table it writes: never by its query.",
   "Failed Runs (24h)": "اجراهای ناموفق (۲۴ ساعت)",
   "Job Key": "کلید کار",
   "Jobs That Failed": "کارهای ناموفق",
@@ -41919,5 +41917,10 @@
   "Writes unused tables": "جدول‌های بی‌استفاده را می‌نویسد",
   "{{bytes}} billed": "{{bytes}} صورتحساب‌شده",
   "{{credits}} credits": "{{credits}} اعتبار",
-  "Amazon Athena": "Amazon Athena"
+  "Amazon Athena": "Amazon Athena",
+  "Aggregation Pipeline": "پایپ‌لاین تجمیع",
+  "An aggregation pipeline, as JSON, ending in a document with a number named value. With Segment By, a segment and a number per document.": "یک پایپ‌لاین تجمیع به صورت JSON که با سندی دارای عددی به نام value تمام می‌شود. با Segment By، برای هر سند یک بخش و یک عدد.",
+  "[{ \"$match\": { \"total\": { \"$lt\": 0 } } }, { \"$count\": \"value\" }]": "[{ \"$match\": { \"total\": { \"$lt\": 0 } } }, { \"$count\": \"value\" }]",
+  "Each query your warehouses run again and again, with what it spent over the last day, its failures and the watched tables it writes. Named by its tag, or by what it does and writes: never by its query.": "هر کوئری که انبارهای داده‌تان بارها و بارها اجرا می‌کنند، با هزینه‌اش در یک روز گذشته، شکست‌هایش و جدول‌های پایش‌شده‌ای که در آن‌ها می‌نویسد. نام‌گذاری با برچسبش، یا با کاری که می‌کند و آنچه می‌نویسد: هرگز با متن کوئری.",
+  "JSON with what may read its dashboards: an API key, a user, a token or a service principal, as the tool asks. Encrypted, and never shown again.": "JSON با آنچه اجازهٔ خواندن داشبوردهایش را دارد: یک کلید API، یک کاربر، یک توکن یا یک service principal، به خواست ابزار. رمزگذاری می‌شود و دیگر هرگز نمایش داده نمی‌شود."
 }

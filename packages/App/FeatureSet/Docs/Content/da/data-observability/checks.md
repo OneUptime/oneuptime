@@ -16,7 +16,7 @@ Tilføj et tjek på en tabels fane **Tjek**:
 | **Format Mismatch Percent** | Procentdel af værdier, der ikke matcher et regulært udtryk (alle motorer undtagen SQL Server) |
 | **Orphan Count** | Rækker, hvis værdi ikke har noget match i en anden tabels kolonne |
 | **Row Count** | Rækker i tabellen, mest nyttigt med **Segment By** |
-| **Brugerdefineret SQL** | Det tal, som en skrivebeskyttet SELECT af din egen returnerer, med navnet `value` |
+| **Brugerdefineret SQL** | Det tal, som en skrivebeskyttet SELECT af din egen returnerer, med navnet `value` (i MongoDB en aggregeringspipelines) |
 
 Hvert tjek kører hvert 15. minut, hver time, hver 6. time eller hver dag som én aggregerende sætning i en skrivebeskyttet transaktion med en tidsgrænse for sætningen. Dets værdi skrives som `oneuptime.data.check.value`, med `oneuptime.data.check.id`, `oneuptime.data.check.name` og `oneuptime.data.check.segment`.
 

@@ -8,6 +8,7 @@ import NotEqual from "Common/Types/BaseDatabase/NotEqual";
 import SortOrder from "Common/Types/BaseDatabase/SortOrder";
 import { Gray500, Green500, Red500 } from "Common/Types/BrandColors";
 import { DataAssetColumn } from "Common/Types/DataObservability/DataAssetColumn";
+import { DataStoreKind } from "Common/Types/DataSecurity/DataStoreKind";
 import {
   DATA_CHECK_ALERT_CONDITIONS,
   DATA_CHECK_INTERVALS_IN_MINUTES,
@@ -41,6 +42,8 @@ export interface ComponentProps {
   columns?: Array<DataAssetColumn> | undefined;
   // Changed when checks were added from elsewhere (suggestions), to read the list again.
   refreshToggle?: string | undefined;
+  // The table's store kind: a MongoDB collection's custom check is an aggregation pipeline.
+  dataStoreKind?: string | undefined;
 }
 
 const TYPE_OPTIONS: Array<DropdownOption> = DATA_CHECK_TYPES.map(
@@ -120,6 +123,7 @@ const DataCheckTable: FunctionComponent<ComponentProps> = (
   const projectId: ObjectID | null = ProjectUtil.getCurrentProjectId();
   const [alertError, setAlertError] = useState<string>("");
   const isForOneTable: boolean = Boolean(props.dataAssetId);
+  const isPipeline: boolean = props.dataStoreKind === DataStoreKind.MongoDb;
   const columnOptions: Array<DropdownOption> = (props.columns || []).map(
     (column: DataAssetColumn): DropdownOption => {
       return { value: column.name, label: column.name };
@@ -345,12 +349,15 @@ const DataCheckTable: FunctionComponent<ComponentProps> = (
           {
             field: { customSql: true },
             stepId: "reads",
-            title: "Query",
-            description:
-              "One SELECT returning a number. With Segment By, a segment and a number per row.",
+            title: isPipeline ? "Aggregation Pipeline" : "Query",
+            description: isPipeline
+              ? "An aggregation pipeline, as JSON, ending in a document with a number named value. With Segment By, a segment and a number per document."
+              : "One SELECT returning a number. With Segment By, a segment and a number per row.",
             fieldType: FormFieldSchemaType.LongText,
             required: false,
-            placeholder: "SELECT COUNT(*) FROM orders WHERE total < 0",
+            placeholder: isPipeline
+              ? '[{ "$match": { "total": { "$lt": 0 } } }, { "$count": "value" }]'
+              : "SELECT COUNT(*) FROM orders WHERE total < 0",
             showIf: (values: FormValues<DataCheck>): boolean => {
               return values.checkType === DataCheckType.CustomSql;
             },

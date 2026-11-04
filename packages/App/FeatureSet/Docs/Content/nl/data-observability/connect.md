@@ -104,12 +104,32 @@ Eén catalogus van Unity Catalog is één database. Maak verbinding met een serv
 ```
 
 De catalogus, de kolommen ervan en de laatste commit van elke Delta-tabel komen uit de REST API van Unity Catalog, zonder SQL-warehouse, dus het verzamelen kost geen rekenkracht. Controles, en herkomst en laatste leesacties uit `system.access.table_lineage` eens per uur, draaien op het SQL-warehouse dat je opgeeft; geef de service principal daarop **Can use**.
+@tab Oracle
+```sql
+CREATE USER oneuptime_reader IDENTIFIED BY "...";
+GRANT CREATE SESSION TO oneuptime_reader;
+GRANT READ ON sales.orders TO oneuptime_reader;
+GRANT SELECT_CATALOG_ROLE TO oneuptime_reader;
+```
+
+Oracle wordt gelezen via het eigen protocol, zonder een Oracle-client te installeren: `oracle://oneuptime_reader:...@orders-db.internal:1521/ORCLPDB1`. De login ziet de tabellen die hij mag lezen: geef `READ` op elke tabel die bewaakt moet worden, zodat hij ze kan opvragen maar nooit vergrendelen of wijzigen. `SELECT_CATALOG_ROLE` laat OneUptime de grootte van elke tabel lezen, en `ALL_TAB_MODIFICATIONS` geeft de inserts, updates en deletes van elke tabel sinds de laatste statistieken, en wanneer hij voor het laatst wijzigde.
 @tab Amazon Athena
 Eén Glue-database is één database. De tabellen en views, hun kolommen en statistieken en de laatste commit van elke Iceberg-tabel komen uit de API van de Glue Data Catalog, die geen gegevens leest en niets kost. Controles draaien als Athena-query's in de workgroup die je opgeeft. Maak verbinding met de sleutels van een IAM-gebruiker of -rol die `glue:GetDatabase` en `glue:GetTables` mag aanroepen en voor controles Athena-query's in de workgroup mag uitvoeren met leestoegang tot de gegevens van de tabellen:
 
 ```json
 { "region": "us-east-1", "accessKeyId": "AKIA...", "secretAccessKey": "...", "database": "analytics", "workgroup": "primary", "outputLocation": "s3://acme-athena-results/oneuptime/" }
 ```
+@tab MongoDB
+```javascript
+use admin
+db.createUser({
+  user: "oneuptime_reader",
+  pwd: "...",
+  roles: [{ role: "readAnyDatabase", db: "admin" }]
+})
+```
+
+MongoDB wordt gelezen met de eigen driver: `mongodb+srv://oneuptime_reader:...@cluster0.example.mongodb.net/`, of `mongodb://` met de hosts van een replica set. Een database in het pad is de enige die bewaakt wordt; zonder pad wordt elke database bewaakt die de login mag lezen, en `{ role: "read", db: "orders" }` in plaats van `readAnyDatabase` beperkt hem tot één. De documenten, grootte en schrijfacties van elke collectie komen uit `$collStats`, en wanneer er voor het laatst een document bij kwam uit de nieuwste `_id`. De velden komen uit het JSON-schema van de validator, of anders uit de namen en typen van de velden van de 100 nieuwste documenten, in de database bepaald zodat geen waarde haar verlaat. Documenten worden gelezen op een secondary als die er is, en een aangepaste controle is een aggregatiepijplijn, als JSON.
 :::
 
 ## Wat wordt gelezen, en hoe vaak

@@ -104,12 +104,32 @@ Unity Catalog의 카탈로그 하나가 데이터베이스 하나입니다. 서�
 ```
 
 카탈로그, 그 열, 각 Delta 테이블의 마지막 커밋은 SQL 웨어하우스 없이 Unity Catalog의 REST API에서 가져오므로, 수집에는 컴퓨팅 비용이 들지 않습니다. 검사, 그리고 한 시간에 한 번 `system.access.table_lineage` 에서 가져오는 리니지와 마지막 읽기는 지정한 SQL 웨어하우스에서 실행됩니다. 서비스 주체에 그 웨어하우스에 대한 **Can use** 를 부여하세요.
+@tab Oracle
+```sql
+CREATE USER oneuptime_reader IDENTIFIED BY "...";
+GRANT CREATE SESSION TO oneuptime_reader;
+GRANT READ ON sales.orders TO oneuptime_reader;
+GRANT SELECT_CATALOG_ROLE TO oneuptime_reader;
+```
+
+Oracle은 Oracle 클라이언트를 설치하지 않고 자체 프로토콜로 읽습니다: `oracle://oneuptime_reader:...@orders-db.internal:1521/ORCLPDB1`. 로그인은 읽을 수 있는 테이블만 봅니다. 모니터링할 각 테이블에 `READ`를 부여하세요. 쿼리는 할 수 있지만 잠그거나 변경할 수는 없습니다. `SELECT_CATALOG_ROLE`로 OneUptime은 모든 테이블의 크기를 읽고, `ALL_TAB_MODIFICATIONS`는 각 테이블의 마지막 통계 이후의 삽입, 업데이트, 삭제와 마지막 변경 시각을 제공합니다.
 @tab Amazon Athena
 하나의 Glue 데이터베이스가 하나의 데이터베이스입니다. 테이블과 뷰, 그 열과 통계, 각 Iceberg 테이블의 마지막 커밋은 Glue Data Catalog API에서 읽으며, 데이터는 읽지 않고 비용도 들지 않습니다. 검사는 지정한 워크그룹에서 Athena 쿼리로 실행됩니다. `glue:GetDatabase`와 `glue:GetTables`를 호출할 수 있고, 검사를 위해 테이블 데이터에 대한 읽기 권한으로 워크그룹에서 Athena 쿼리를 실행할 수 있는 IAM 사용자 또는 역할의 키로 연결하세요:
 
 ```json
 { "region": "us-east-1", "accessKeyId": "AKIA...", "secretAccessKey": "...", "database": "analytics", "workgroup": "primary", "outputLocation": "s3://acme-athena-results/oneuptime/" }
 ```
+@tab MongoDB
+```javascript
+use admin
+db.createUser({
+  user: "oneuptime_reader",
+  pwd: "...",
+  roles: [{ role: "readAnyDatabase", db: "admin" }]
+})
+```
+
+MongoDB는 자체 드라이버로 읽습니다: `mongodb+srv://oneuptime_reader:...@cluster0.example.mongodb.net/` 또는 레플리카 세트의 호스트를 지정한 `mongodb://`. 경로에 데이터베이스가 있으면 그 데이터베이스만 모니터링합니다. 없으면 로그인이 읽을 수 있는 모든 데이터베이스를 모니터링하며, `readAnyDatabase` 대신 `{ role: "read", db: "orders" }`를 부여하면 하나로 제한됩니다. 각 컬렉션의 문서, 크기, 쓰기는 `$collStats`에서, 마지막으로 문서를 받은 시각은 가장 최신 `_id`에서 가져옵니다. 필드는 검증기의 JSON 스키마에서, 없으면 가장 최신 문서 100개의 필드 이름과 유형에서 가져오며, 데이터베이스 안에서 계산되므로 어떤 값도 밖으로 나가지 않습니다. 문서는 세컨더리가 있으면 세컨더리에서 읽고, 사용자 지정 검사는 JSON 형식의 집계 파이프라인입니다.
 :::
 
 ## 읽는 항목과 주기

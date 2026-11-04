@@ -9,7 +9,7 @@
 | **OpenLineage** | Airflow、Dagster、Spark、dbt 或 Flink 作業的每次執行，以及它讀取和寫入的資料表 |
 | **dbt** | 每個模型由什麼建置而成、作為一次執行的每次建置，以及每個測試的結果 |
 | **Fivetran 和 Airbyte** | 作為其連接器一次執行的每次同步，以及它載入的原始資料表 |
-| **檢視** | 檢視是由其定義所依據的資料表建置而成（PostgreSQL、Redshift、MySQL 8、SQL Server、ClickHouse 具體化檢視、Databricks） |
+| **檢視** | 檢視是由其定義所依據的資料表建置而成（PostgreSQL、Redshift、MySQL 8、SQL Server、Oracle、ClickHouse 具體化檢視、Databricks、MongoDB） |
 | **查詢歷史** | 讀取一個資料表並寫入另一個資料表的查詢（BigQuery 的作業、Redshift 的查詢記錄、ClickHouse 的查詢記錄、Databricks 的血緣資料表） |
 
 資料表的 **血緣** 索引標籤會顯示建置它的資料表、寫入它的管線及其最新執行，以及由它建置的資料表。每條邊都會說明它是在哪裡觀察到的。

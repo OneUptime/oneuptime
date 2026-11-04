@@ -9,7 +9,7 @@ A linhagem diz a partir de quais tabelas cada tabela é construída e quais pipe
 | **OpenLineage** | Cada execução de um job do Airflow, Dagster, Spark, dbt ou Flink, e as tabelas que ele leu e escreveu |
 | **dbt** | A partir de que cada modelo é construído, cada build como uma execução, e o resultado de cada teste |
 | **Fivetran e Airbyte** | Cada sincronização como uma execução do seu conector, e as tabelas brutas que ela carrega |
-| **Views** | Uma view é construída a partir das tabelas sobre as quais é definida (PostgreSQL, Redshift, MySQL 8, SQL Server, views materializadas do ClickHouse, Databricks) |
+| **Views** | Uma view é construída a partir das tabelas sobre as quais é definida (PostgreSQL, Redshift, MySQL 8, SQL Server, Oracle, views materializadas do ClickHouse, Databricks, MongoDB) |
 | **Histórico de consultas** | Uma consulta que leu uma tabela e escreveu em outra (os jobs do BigQuery, o log de consultas do Redshift, o log de consultas do ClickHouse, a tabela de linhagem do Databricks) |
 
 A aba **Linhagem** de uma tabela mostra as tabelas a partir das quais ela é construída, os pipelines que escrevem nela com a última execução de cada um, e as tabelas construídas a partir dela. Cada aresta diz onde foi vista.
