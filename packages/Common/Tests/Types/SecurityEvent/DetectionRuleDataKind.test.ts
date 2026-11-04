@@ -499,14 +499,17 @@ describe("whether a project sends a kind", () => {
 
       /*
        * SSH sign-ins come by their class (Authentication), and so do a
-       * security product's CEF and LEEF records (Authentication, Network
-       * Activity, Detection Finding), which carry the product's own name;
-       * the rest by product.
+       * security product's CEF and LEEF records and a firewall's own
+       * syslog (Authentication, Network Activity, Detection Finding), which
+       * carry the product's own name; the rest by product.
        */
       if (
         format.format === SecurityLogFormat.SshSignIn ||
         format.format === SecurityLogFormat.Cef ||
-        format.format === SecurityLogFormat.Leef
+        format.format === SecurityLogFormat.Leef ||
+        format.format === SecurityLogFormat.PaloAlto ||
+        format.format === SecurityLogFormat.FortiGate ||
+        format.format === SecurityLogFormat.CiscoAsa
       ) {
         continue;
       }
@@ -516,6 +519,54 @@ describe("whether a project sends a kind", () => {
         true,
       ]);
       expect(kindsRead.has(definition!.kind)).toBe(true);
+    }
+  });
+
+  /*
+   * A firewall's own syslog carries the firewall's name, so it is read by
+   * class: its blocked connections are Network Activity and its sign-ins
+   * Authentication, which library rules read whoever sent them.
+   */
+  test("a firewall's own syslog makes kinds library rules read, by class", () => {
+    const kindsRead: Set<DetectionRuleDataKind> = new Set(
+      DETECTION_RULE_LIBRARY.map(
+        (entry: DetectionRuleLibraryEntry): DetectionRuleDataKind => {
+          return entry.dataKind;
+        },
+      ),
+    );
+
+    for (const [format, line] of [
+      [
+        SecurityLogFormat.PaloAlto,
+        "1,2026/10/30 10:00:00,012801000000,TRAFFIC,deny,2561,2026/10/30 10:00:00,203.0.113.99,192.0.2.5,0.0.0.0,0.0.0.0,deny-rdp,,,ms-rdp,vsys1,untrust,trust,ethernet1/1,ethernet1/2,default,,1,1,40000,3389,0,0,0x0,tcp,deny",
+      ],
+      [
+        SecurityLogFormat.FortiGate,
+        'logid="0100032002" type="event" subtype="system" devname="FGT60F" logdesc="Admin login failed" user="admin" srcip=203.0.113.7 action="login" status="failed"',
+      ],
+      [
+        SecurityLogFormat.CiscoAsa,
+        '%ASA-4-106023: Deny tcp src outside:203.0.113.7/52314 dst inside:192.0.2.5/443 by access-group "outside_access_in" [0x0, 0x0]',
+      ],
+    ] as Array<[SecurityLogFormat, string]>) {
+      const event: NormalizedSecurityEvent = SecurityLogParser.parse(
+        logLine(line),
+      )[0]!;
+      const kinds: Array<DetectionRuleDataKind> =
+        DETECTION_RULE_DATA_KINDS_IN_ORDER.filter(
+          (kind: DetectionRuleDataKind): boolean => {
+            return (
+              kindsRead.has(kind) &&
+              isDetectionRuleDataKindSeen(kind, {
+                ...NOTHING,
+                classNames: [event.className],
+              })
+            );
+          },
+        );
+
+      expect([format, kinds.length > 0]).toEqual([format, true]);
     }
   });
 });

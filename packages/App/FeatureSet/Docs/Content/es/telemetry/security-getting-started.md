@@ -64,10 +64,17 @@ La tarjeta **Tus registros**, en la parte superior de **Conexiones**, no necesit
 | Registros de actividad de Azure y de Entra ID | Cambios en sus suscripciones de Azure, alertas de Defender for Cloud, e inicios de sesión y cambios de directorio de Microsoft Entra ID |
 | CEF | Amenazas, conexiones bloqueadas e inicios de sesión de firewalls, IDS, WAF y otros productos de seguridad que envían Common Event Format |
 | LEEF | Lo mismo de los productos que envían Log Event Extended Format, como hacen muchos para IBM QRadar |
+| Palo Alto Networks | Amenazas, conexiones bloqueadas, inicios de sesión de GlobalProtect y de administradores, y cambios de configuración del propio syslog de PAN-OS |
+| Fortinet FortiGate | Hallazgos de IPS y antivirus, tráfico denegado, inicios de sesión de VPN y de administradores, y cambios de configuración del propio syslog de FortiGate |
+| Cisco ASA | Conexiones denegadas, hallazgos de detección de amenazas y de IPS, inicios de sesión de VPN y de administradores, y comandos de Cisco ASA y Firepower Threat Defense |
 | Registros de auditoría de Kubernetes | Cambios en el clúster, shells abiertos en pods, secretos leídos y solicitudes rechazadas |
 | Ataques web | Solicitudes del registro de acceso de un servidor web que intentan inyección SQL, recorrido de rutas o Log4Shell |
 
 Sus registros quedan como están. Solo las líneas que importan para la seguridad se convierten en eventos: nunca cada página que sirvió un servidor web ni cada lectura de una API.
+
+Una amenaza que un producto de seguridad escribe en sus registros, como un hallazgo CEF o LEEF o un hallazgo de IPS de un FortiGate, abre un caso como lo hace la alerta de un producto conectado. **Abrir casos a partir de**, en **Tus registros**, indica a partir de qué gravedad: **Alta y superior** salvo que elija otra, o **Nunca**.
+
+Una cuenta de AWS, un proyecto de Google Cloud o una suscripción de Azure conectados en **Nube** no necesitan ninguna canalización de registros: active **Registros de auditoría de la nube**, en **Tus datos de OneUptime** de **Conexiones**, y su registro de auditoría se lee junto con la cuenta. Consulte [Leer los registros de auditoría de sus cuentas en la nube](/docs/telemetry/security-events#leer-los-registros-de-auditoría-de-sus-cuentas-en-la-nube).
 
 ## Enviar a su SIEM lo que encuentra OneUptime
 
@@ -88,7 +95,7 @@ Normalmente el caso se abre antes de que el botón responda; si la regla aún se
 :::
 
 :::details Mis registros no generan ningún evento de seguridad
-Compruebe que **Encontrar eventos de seguridad en tus registros** está activado y que la tarjeta **Tus registros** indica cuándo fue la última comprobación. Solo los tipos de líneas de la tabla anterior se convierten en eventos: un servidor que no envía registros de SSH, sudo, Windows, auditoría, CEF, LEEF ni de acceso no tiene nada que encontrar. Pegue una de sus líneas en **Comprobar una línea de registro**, en **Tus registros**, para ver si OneUptime la lee.
+Compruebe que **Encontrar eventos de seguridad en tus registros** está activado y que la tarjeta **Tus registros** indica cuándo fue la última comprobación. Solo los tipos de líneas de la tabla anterior se convierten en eventos: un servidor que no envía registros de SSH, sudo, Windows, auditoría, CEF, LEEF, firewall ni de acceso no tiene nada que encontrar. Pegue una de sus líneas en **Comprobar una línea de registro**, en **Tus registros**, para ver si OneUptime la lee.
 :::
 
 :::details Vista general dice que el último evento de seguridad llegó hace días

@@ -471,3 +471,37 @@ export function isEntraDirectoryAudit(record: JSONObject): boolean {
     Boolean(readString(record, "activityDateTime"))
   );
 }
+
+// Whether a record is a risk Identity Protection detected (a riskDetection).
+export function isEntraRiskDetection(record: JSONObject): boolean {
+  return (
+    Boolean(readString(record, "id")) &&
+    Boolean(
+      readString(record, "riskEventType") || readString(record, "riskType"),
+    ) &&
+    Boolean(
+      readString(record, "detectedDateTime") ||
+        readString(record, "activityDateTime"),
+    )
+  );
+}
+
+/*
+ * A sign-in an app made for a person in the background, or an app's own,
+ * as the connection keeps it: only when it did not succeed - the
+ * successful ones are most of a tenant's sign-ins, and Azure's export
+ * reader keeps the same (AzureActivityLogParser). Null for one that
+ * worked.
+ */
+export function readEntraBackgroundSignIn(
+  signIn: JSONObject,
+  log:
+    | EntraLog.NonInteractiveUserSignInLogs
+    | EntraLog.ServicePrincipalSignInLogs,
+): SecurityRecordReading | null {
+  if (readSignInErrorCode(signIn) === 0) {
+    return null;
+  }
+
+  return readEntraSignIn(signIn, log);
+}
