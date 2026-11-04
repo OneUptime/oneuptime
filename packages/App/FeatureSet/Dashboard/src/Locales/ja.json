@@ -42253,7 +42253,7 @@
   "Turn it on to take its streams again. Firehose keeps what it could not deliver in the stack's bucket.": "オンにすると、そのストリームを再び受け付けます。配信できなかったものは、Firehose がスタックのバケットに保管しています。",
   "Wait for the first delivery": "最初の配信を待つ",
   "Waiting for the first delivery. Firehose delivers within a few minutes of the command finishing.": "最初の配信を待っています。Firehose はコマンドの完了から数分以内に配信します。",
-  "What should it stream?": "何をストリーミングしますか?",
+  "What should it stream?": "何をストリーミングしますか？",
   "Where to stream from, separated by commas: at first, the Regions this connection found resources in. Left empty, the command streams from AWS CloudShell's own Region.": "ストリーミング元のリージョンをカンマ区切りで指定します。最初は、この接続がリソースを見つけたリージョンが入っています。空のままにすると、AWS CloudShell 自身のリージョンからストリーミングします。",
   "With Terraform or the console: give each Firehose stream an HTTP endpoint destination with these values, GZIP content encoding and a 1 MiB buffer, and the metric stream the OpenTelemetry 1.0 output format.": "Terraform またはコンソールで設定する場合: 各 Firehose ストリームに、これらの値を使った HTTP エンドポイント送信先、GZIP のコンテンツエンコーディング、1 MiB のバッファを設定し、メトリクスストリームの出力形式を OpenTelemetry 1.0 にしてください。",
   "Writes it": "書き込みます",
