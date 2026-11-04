@@ -7,6 +7,7 @@ import {
 } from "../Cloud/CloudKeyMetrics";
 import { AWS_LOG_GROUP_NAME_MAX_LENGTH } from "../Cloud/CloudLogGroups";
 import { JSONObject } from "../JSON";
+import { translationKey } from "../Translator";
 import {
   CLOUD_STREAM_BUFFER_INTERVAL_SECONDS,
   CLOUD_STREAM_BUFFER_SIZE_MIB,
@@ -60,7 +61,7 @@ export enum CloudStreamMetricsMode {
 
 export enum CloudStreamLogsMode {
   Off = "off",
-  // The log groups named, in one Region (logsRegion).
+  // The log groups named, each in its own Region.
   Groups = "groups",
   // Every log group of the account, in every Region the stack is in.
   All = "all",
@@ -71,8 +72,9 @@ export const CLOUD_STREAM_METRICS_MODES: ReadonlyArray<CloudStreamMetricsMode> =
 export const CLOUD_STREAM_LOGS_MODES: ReadonlyArray<CloudStreamLogsMode> =
   Object.values(CloudStreamLogsMode);
 
-// The most log groups one stack subscribes by name.
+// The most log groups one stack subscribes by name, and in how many Regions.
 export const CLOUD_STREAM_MAX_LOG_GROUPS: number = 50;
+export const CLOUD_STREAM_MAX_LOG_GROUP_REGIONS: number = 10;
 
 // The most Regions one command sets streams up in.
 export const CLOUD_STREAM_MAX_REGIONS: number = 30;
@@ -85,15 +87,20 @@ export const CLOUDFORMATION_TEMPLATE_BODY_MAX_BYTES: number = 51_200;
 
 export const CLOUD_STREAM_TEMPLATE_FILE: string = "oneuptime-stream.json";
 
+// A log group named to stream, and the Region it is in.
+export interface CloudStreamLogGroup {
+  name: string;
+  region: string;
+}
+
 export interface CloudStreamTemplateOptions {
   connectionId: string;
   metricsUrl: string;
   logsUrl: string;
   metrics: CloudStreamMetricsMode;
   logs: CloudStreamLogsMode;
-  // CloudStreamLogsMode.Groups: the groups, and the Region they are in.
-  logGroups?: Array<string> | undefined;
-  logsRegion?: string | undefined;
+  // CloudStreamLogsMode.Groups: the groups, each with its Region.
+  logGroups?: Array<CloudStreamLogGroup> | undefined;
 }
 
 // The first 8 hex characters of the connection: what its AWS names end in.
@@ -171,36 +178,119 @@ export function isAwsLogGroupName(value: string): boolean {
   return true;
 }
 
-/*
- * Names typed one a line or separated by commas, each once, in order. A
- * log group's ARN is read as its name.
- */
-export function splitCloudStreamNames(text: string): Array<string> {
-  const names: Array<string> = [];
+// Values typed one a line or separated by commas, each once, in order.
+export function splitCloudStreamList(text: string): Array<string> {
+  const values: Array<string> = [];
   const seen: Set<string> = new Set<string>();
 
   for (const line of text.split("\n")) {
     for (const piece of line.split(",")) {
-      let name: string = piece.trim();
-      const marker: string = ":log-group:";
-      const at: number = name.indexOf(marker);
+      const value: string = piece.trim();
 
-      if (name.startsWith("arn:") && at > 0) {
-        name = name.slice(at + marker.length);
-
-        if (name.endsWith(":*")) {
-          name = name.slice(0, -2);
-        }
-      }
-
-      if (name && !seen.has(name)) {
-        seen.add(name);
-        names.push(name);
+      if (value && !seen.has(value)) {
+        seen.add(value);
+        values.push(value);
       }
     }
   }
 
-  return names;
+  return values;
+}
+
+/*
+ * The log groups typed, each with its Region: a name is in `defaultRegion`
+ * (the dialog's Region of the log groups), a log group's ARN
+ * (arn:aws:logs:<Region>:<account>:log-group:<name>[:*]) in its own. Each
+ * group once.
+ */
+export function parseCloudStreamLogGroups(
+  text: string,
+  defaultRegion: string,
+): Array<CloudStreamLogGroup> {
+  const groups: Array<CloudStreamLogGroup> = [];
+  const seen: Set<string> = new Set<string>();
+  const marker: string = ":log-group:";
+
+  for (const value of splitCloudStreamList(text)) {
+    let name: string = value;
+    let region: string = defaultRegion.trim().toLowerCase();
+    const at: number = value.indexOf(marker);
+
+    if (value.startsWith("arn:") && at > 0) {
+      // arn, partition, service, Region, account: the Region is the fourth.
+      region = (value.slice(0, at).split(":")[3] || "").toLowerCase();
+      name = value.slice(at + marker.length);
+
+      if (name.endsWith(":*")) {
+        name = name.slice(0, -2);
+      }
+    }
+
+    const key: string = `${region}|${name}`;
+
+    if (name && !seen.has(key)) {
+      seen.add(key);
+      groups.push({ name, region });
+    }
+  }
+
+  return groups;
+}
+
+// The Regions the groups are in, each once, in order.
+export function getCloudStreamLogGroupRegions(
+  logGroups: Array<CloudStreamLogGroup>,
+): Array<string> {
+  const regions: Array<string> = [];
+
+  for (const group of logGroups) {
+    if (!regions.includes(group.region)) {
+      regions.push(group.region);
+    }
+  }
+
+  return regions;
+}
+
+/*
+ * What stops a command being written from the choices: a sentence of the
+ * dialog (a translation key) and its values.
+ */
+export interface CloudStreamProblem {
+  text: string;
+  values: Record<string, string>;
+}
+
+export const STREAM_NOTHING_CHOSEN: string = translationKey(
+  "Choose metrics, logs or both to stream.",
+);
+export const STREAM_TOO_MANY_REGIONS: string = translationKey(
+  "List at most {{count}} Regions.",
+);
+export const STREAM_NOT_A_REGION: string = translationKey(
+  "List Regions by their codes, such as us-east-1 or eu-central-1.",
+);
+export const STREAM_NO_LOG_GROUP: string = translationKey(
+  "Name at least one log group.",
+);
+export const STREAM_TOO_MANY_LOG_GROUPS: string = translationKey(
+  "Name at most {{count}} log groups, or stream every log group.",
+);
+export const STREAM_NOT_A_LOG_GROUP: string = translationKey(
+  "A log group's name has letters, digits and _ - / . # only.",
+);
+export const STREAM_NO_LOG_GROUP_REGION: string = translationKey(
+  "Choose the Region the log groups are in.",
+);
+export const STREAM_TOO_MANY_LOG_GROUP_REGIONS: string = translationKey(
+  "Name log groups in at most {{count}} Regions, or stream every log group.",
+);
+
+function problem(
+  text: string,
+  values: Record<string, string> = {},
+): CloudStreamProblem {
+  return { text, values };
 }
 
 /*
@@ -210,44 +300,56 @@ export function splitCloudStreamNames(text: string): Array<string> {
 export function getCloudStreamOptionsProblem(data: {
   metrics: CloudStreamMetricsMode;
   logs: CloudStreamLogsMode;
-  logGroups: Array<string>;
-  logsRegion?: string | undefined;
+  logGroups: Array<CloudStreamLogGroup>;
   regions: Array<string>;
-}): string | null {
+}): CloudStreamProblem | null {
   if (
     data.metrics === CloudStreamMetricsMode.Off &&
     data.logs === CloudStreamLogsMode.Off
   ) {
-    return "Choose metrics, logs or both to stream.";
+    return problem(STREAM_NOTHING_CHOSEN);
   }
 
   if (data.regions.length > CLOUD_STREAM_MAX_REGIONS) {
-    return `List at most ${CLOUD_STREAM_MAX_REGIONS} Regions.`;
+    return problem(STREAM_TOO_MANY_REGIONS, {
+      count: String(CLOUD_STREAM_MAX_REGIONS),
+    });
   }
 
   for (const region of data.regions) {
     if (!isAwsRegion(region)) {
-      return "List Regions by their codes, such as us-east-1 or eu-central-1.";
+      return problem(STREAM_NOT_A_REGION);
     }
   }
 
   if (data.logs === CloudStreamLogsMode.Groups) {
     if (data.logGroups.length === 0) {
-      return "Name at least one log group.";
+      return problem(STREAM_NO_LOG_GROUP);
     }
 
     if (data.logGroups.length > CLOUD_STREAM_MAX_LOG_GROUPS) {
-      return `Name at most ${CLOUD_STREAM_MAX_LOG_GROUPS} log groups, or stream every log group.`;
+      return problem(STREAM_TOO_MANY_LOG_GROUPS, {
+        count: String(CLOUD_STREAM_MAX_LOG_GROUPS),
+      });
     }
 
     for (const logGroup of data.logGroups) {
-      if (!isAwsLogGroupName(logGroup)) {
-        return "A log group's name has letters, digits and _ - / . # only.";
+      if (!isAwsLogGroupName(logGroup.name)) {
+        return problem(STREAM_NOT_A_LOG_GROUP);
+      }
+
+      if (!isAwsRegion(logGroup.region)) {
+        return problem(STREAM_NO_LOG_GROUP_REGION);
       }
     }
 
-    if (!data.logsRegion || !isAwsRegion(data.logsRegion)) {
-      return "Choose the Region the log groups are in.";
+    if (
+      getCloudStreamLogGroupRegions(data.logGroups).length >
+      CLOUD_STREAM_MAX_LOG_GROUP_REGIONS
+    ) {
+      return problem(STREAM_TOO_MANY_LOG_GROUP_REGIONS, {
+        count: String(CLOUD_STREAM_MAX_LOG_GROUP_REGIONS),
+      });
     }
   }
 
@@ -264,8 +366,7 @@ export function getCloudStreamKeyMetricFilters(): Array<{
   Namespace: string;
   MetricNames: Array<string>;
 }> {
-  const filters: Array<{ Namespace: string; MetricNames: Array<string> }> =
-    [];
+  const filters: Array<{ Namespace: string; MetricNames: Array<string> }> = [];
 
   for (const namespace of AWS_KEY_METRICS as ReadonlyArray<AwsNamespaceKeyMetrics>) {
     const metricNames: Array<string> = namespace.metrics
@@ -314,7 +415,8 @@ function ref(name: string): JSONObject {
 
 // A role only one AWS service may take, on behalf of this account only.
 function serviceRole(data: {
-  description: string;
+  // IAM's own words for the role, in English: AWS shows them as written.
+  roleDescription: string;
   service: string;
   condition: JSONObject;
   policyName: string;
@@ -325,7 +427,7 @@ function serviceRole(data: {
     Type: "AWS::IAM::Role",
     ...(data.stackCondition ? { Condition: data.stackCondition } : {}),
     Properties: {
-      Description: data.description,
+      Description: data.roleDescription,
       AssumeRolePolicyDocument: {
         Version: "2012-10-17",
         Statement: [
@@ -377,7 +479,9 @@ function deliveryStream(data: {
           SizeInMBs: CLOUD_STREAM_BUFFER_SIZE_MIB,
           IntervalInSeconds: CLOUD_STREAM_BUFFER_INTERVAL_SECONDS,
         },
-        RetryOptions: { DurationInSeconds: CLOUD_STREAM_RETRY_DURATION_SECONDS },
+        RetryOptions: {
+          DurationInSeconds: CLOUD_STREAM_RETRY_DURATION_SECONDS,
+        },
         RoleARN: getAtt("FirehoseRole", "Arn"),
         S3BackupMode: "FailedDataOnly",
         S3Configuration: {
@@ -400,6 +504,15 @@ function logicalIdForLogGroup(index: number): string {
   return `LogGroupSubscription${index + 1}`;
 }
 
+// The condition that holds in one Region of the named groups: "LogGroupsInRegion1".
+function regionConditionName(index: number): string {
+  return `LogGroupsInRegion${index + 1}`;
+}
+
+function inRegion(region: string): JSONObject {
+  return { "Fn::Equals": [ref("AWS::Region"), region] };
+}
+
 export function getAwsCloudStreamTemplate(
   options: CloudStreamTemplateOptions,
 ): JSONObject {
@@ -410,11 +523,38 @@ export function getAwsCloudStreamTemplate(
     options.metrics !== CloudStreamMetricsMode.Off;
   const streamsLogs: boolean = options.logs !== CloudStreamLogsMode.Off;
   /*
-   * Named log groups live in one Region: the logs half of the stack is made
-   * there only, the metrics half in every Region.
+   * Named log groups live in their own Regions: the logs half of the stack
+   * is made there only (StreamLogsHere), each group's subscription in its
+   * Region alone, and the metrics half in every Region.
    */
+  const logGroups: Array<CloudStreamLogGroup> = (options.logGroups || []).slice(
+    0,
+    CLOUD_STREAM_MAX_LOG_GROUPS,
+  );
+  const groupRegions: Array<string> = getCloudStreamLogGroupRegions(
+    logGroups,
+  ).slice(0, CLOUD_STREAM_MAX_LOG_GROUP_REGIONS);
   const logsCondition: string | undefined =
     options.logs === CloudStreamLogsMode.Groups ? "StreamLogsHere" : undefined;
+  const conditions: JSONObject = {};
+
+  if (logsCondition) {
+    // No group named: a Region no stack is in, so the logs half is made nowhere.
+    conditions[logsCondition] =
+      groupRegions.length <= 1
+        ? inRegion(groupRegions[0] || "none")
+        : {
+            "Fn::Or": groupRegions.map((region: string): JSONObject => {
+              return inRegion(region);
+            }),
+          };
+
+    if (groupRegions.length > 1) {
+      groupRegions.forEach((region: string, index: number): void => {
+        conditions[regionConditionName(index)] = inRegion(region);
+      });
+    }
+  }
 
   const resources: JSONObject = {
     FailedDeliveryBucket: {
@@ -457,7 +597,7 @@ export function getAwsCloudStreamTemplate(
       },
     },
     FirehoseRole: serviceRole({
-      description:
+      roleDescription:
         "OneUptime: lets Amazon Data Firehose keep a batch it could not deliver in this stack's bucket, and say why in its log group.",
       service: "firehose.amazonaws.com",
       condition: { StringEquals: { "sts:ExternalId": ref("AWS::AccountId") } },
@@ -505,7 +645,7 @@ export function getAwsCloudStreamTemplate(
     });
 
     resources["MetricStreamRole"] = serviceRole({
-      description:
+      roleDescription:
         "OneUptime: lets the CloudWatch metric stream put its records into its Firehose stream, and nothing else.",
       service: "streams.metrics.cloudwatch.amazonaws.com",
       condition: { StringEquals: { "sts:ExternalId": ref("AWS::AccountId") } },
@@ -553,13 +693,14 @@ export function getAwsCloudStreamTemplate(
     });
 
     resources["LogsSubscriptionRole"] = serviceRole({
-      description:
+      roleDescription:
         "OneUptime: lets CloudWatch Logs put the subscribed log groups' events into their Firehose stream, and nothing else.",
       service: "logs.amazonaws.com",
       condition: {
         StringLike: {
           "aws:SourceArn": {
-            "Fn::Sub": "arn:${AWS::Partition}:logs:${AWS::Region}:${AWS::AccountId}:*",
+            "Fn::Sub":
+              "arn:${AWS::Partition}:logs:${AWS::Region}:${AWS::AccountId}:*",
           },
         },
       },
@@ -590,14 +731,20 @@ export function getAwsCloudStreamTemplate(
         },
       };
     } else {
-      (options.logGroups || [])
-        .slice(0, CLOUD_STREAM_MAX_LOG_GROUPS)
-        .forEach((logGroup: string, index: number): void => {
+      logGroups
+        .filter((logGroup: CloudStreamLogGroup): boolean => {
+          return groupRegions.includes(logGroup.region);
+        })
+        .forEach((logGroup: CloudStreamLogGroup, index: number): void => {
           resources[logicalIdForLogGroup(index)] = {
             Type: "AWS::Logs::SubscriptionFilter",
-            ...(logsCondition ? { Condition: logsCondition } : {}),
+            // In its own Region only: a group a Region does not have fails the stack there.
+            Condition:
+              groupRegions.length > 1
+                ? regionConditionName(groupRegions.indexOf(logGroup.region))
+                : logsCondition!,
             Properties: {
-              LogGroupName: logGroup,
+              LogGroupName: logGroup.name,
               FilterName: names.subscriptionFilter,
               FilterPattern: "",
               DestinationArn: getAtt("LogsDeliveryStream", "Arn"),
@@ -649,18 +796,7 @@ export function getAwsCloudStreamTemplate(
           "The stream key OneUptime showed with this command, starting with oucs_.",
       },
     },
-    ...(logsCondition
-      ? {
-          Conditions: {
-            [logsCondition]: {
-              "Fn::Equals": [
-                ref("AWS::Region"),
-                (options.logsRegion || "").toLowerCase(),
-              ],
-            },
-          },
-        }
-      : {}),
+    ...(Object.keys(conditions).length > 0 ? { Conditions: conditions } : {}),
     Resources: resources,
     Outputs: outputs,
   };
@@ -675,12 +811,12 @@ export function getAwsCloudStreamTemplateBody(
 
 /*
  * The Regions a command sets streams up in: the ones named, each once, in
- * order - and, for named log groups, their Region too.
+ * order - and, for named log groups, their Regions too.
  */
 export function getCloudStreamCommandRegions(data: {
   regions: Array<string>;
   logs: CloudStreamLogsMode;
-  logsRegion?: string | undefined;
+  logGroups?: Array<CloudStreamLogGroup> | undefined;
   metrics: CloudStreamMetricsMode;
 }): Array<string> {
   const regions: Array<string> = [];
@@ -695,24 +831,28 @@ export function getCloudStreamCommandRegions(data: {
     }
   };
 
+  const groupRegions: Array<string> =
+    data.logs === CloudStreamLogsMode.Groups
+      ? getCloudStreamLogGroupRegions(data.logGroups || [])
+      : [];
+
   /*
    * Named log groups and no metrics: the stack is needed in the groups'
-   * Region alone.
+   * Regions alone.
    */
   if (
     data.metrics === CloudStreamMetricsMode.Off &&
     data.logs === CloudStreamLogsMode.Groups
   ) {
-    add(data.logsRegion);
+    for (const region of groupRegions) {
+      add(region);
+    }
+
     return regions;
   }
 
-  for (const region of data.regions) {
+  for (const region of [...data.regions, ...groupRegions]) {
     add(region);
-  }
-
-  if (data.logs === CloudStreamLogsMode.Groups) {
-    add(data.logsRegion);
   }
 
   return regions.slice(0, CLOUD_STREAM_MAX_REGIONS);
@@ -740,7 +880,7 @@ export function getAwsCloudStreamCommand(data: {
   const regions: Array<string> = getCloudStreamCommandRegions({
     regions: data.regions,
     logs: data.options.logs,
-    logsRegion: data.options.logsRegion,
+    logGroups: data.options.logGroups,
     metrics: data.options.metrics,
   });
   const regionList: string =

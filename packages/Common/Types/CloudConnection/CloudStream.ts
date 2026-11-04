@@ -649,13 +649,25 @@ export function getCloudStreamState(data: {
 
 /*
  * The connection's stream key hashes (CloudConnection.streamKeyHashes):
- * server only, never readable. The current key's SHA-256, and the one it
- * replaced while it still works.
+ * server only, never readable. The current key's SHA-256, and the keys it
+ * replaced that still work, the newest first.
  */
+export interface CloudStreamPreviousKeyHash {
+  hash: string;
+  expiresAt: string;
+}
+
 export interface CloudStreamKeyHashes {
   current?: { hash: string; createdAt: string } | undefined;
-  previous?: { hash: string; expiresAt: string } | undefined;
+  previous?: Array<CloudStreamPreviousKeyHash> | undefined;
 }
+
+/*
+ * How many replaced keys work at once. More than one: a key made twice
+ * before the command ran - the dialog closed, then opened again - must not
+ * stop the key the streams deliver with.
+ */
+export const CLOUD_STREAM_MAX_PREVIOUS_KEYS: number = 3;
 
 function isSha256Hex(value: unknown): value is string {
   return typeof value === "string" && value.length === 64 && isLowerHex(value);
@@ -683,22 +695,41 @@ export function readCloudStreamKeyHashes(value: unknown): CloudStreamKeyHashes {
     }
   }
 
-  if (previous && typeof previous === "object" && !Array.isArray(previous)) {
-    const hash: JSONValue | undefined = (previous as JSONObject)["hash"];
-    const expiresAt: string | undefined = readTime(
-      (previous as JSONObject)["expiresAt"],
-    );
+  if (Array.isArray(previous)) {
+    const read: Array<CloudStreamPreviousKeyHash> = [];
 
-    if (isSha256Hex(hash) && expiresAt) {
-      hashes.previous = { hash, expiresAt };
+    for (const item of previous.slice(0, CLOUD_STREAM_MAX_PREVIOUS_KEYS)) {
+      if (!item || typeof item !== "object" || Array.isArray(item)) {
+        continue;
+      }
+
+      const hash: JSONValue | undefined = (item as JSONObject)["hash"];
+      const expiresAt: string | undefined = readTime(
+        (item as JSONObject)["expiresAt"],
+      );
+
+      if (isSha256Hex(hash) && expiresAt) {
+        read.push({ hash, expiresAt });
+      }
+    }
+
+    if (read.length > 0) {
+      hashes.previous = read;
     }
   }
 
   return hashes;
 }
 
+function isStillWorking(
+  previous: CloudStreamPreviousKeyHash,
+  now: Date,
+): boolean {
+  return Date.parse(previous.expiresAt) > now.getTime();
+}
+
 /*
- * The hashes a key may match now: the current one, and the previous one
+ * The hashes a key may match now: the current one, and each replaced one
  * until it expires.
  */
 export function getLiveCloudStreamKeyHashes(data: {
@@ -711,11 +742,10 @@ export function getLiveCloudStreamKeyHashes(data: {
     live.push(data.hashes.current.hash);
   }
 
-  if (
-    data.hashes.previous &&
-    Date.parse(data.hashes.previous.expiresAt) > data.now.getTime()
-  ) {
-    live.push(data.hashes.previous.hash);
+  for (const previous of data.hashes.previous || []) {
+    if (isStillWorking(previous, data.now)) {
+      live.push(previous.hash);
+    }
   }
 
   return live;
@@ -723,26 +753,36 @@ export function getLiveCloudStreamKeyHashes(data: {
 
 /*
  * The hashes after a new key is made: the new one is current, and the key
- * it replaces works for CLOUD_STREAM_PREVIOUS_KEY_GRACE_MS more. A key made
- * again within that time does not extend the oldest one: only the key it
- * replaces keeps working.
+ * it replaces works for CLOUD_STREAM_PREVIOUS_KEY_GRACE_MS more. Keys
+ * replaced before it keep their own time - a new key never extends one -
+ * and at most CLOUD_STREAM_MAX_PREVIOUS_KEYS work at once, the oldest
+ * stopping first.
  */
 export function rotateCloudStreamKeyHashes(data: {
   hashes: CloudStreamKeyHashes;
   newHash: string;
   now: Date;
 }): CloudStreamKeyHashes {
-  return {
-    current: { hash: data.newHash, createdAt: data.now.toISOString() },
+  const previous: Array<CloudStreamPreviousKeyHash> = [
     ...(data.hashes.current
-      ? {
-          previous: {
+      ? [
+          {
             hash: data.hashes.current.hash,
             expiresAt: new Date(
               data.now.getTime() + CLOUD_STREAM_PREVIOUS_KEY_GRACE_MS,
             ).toISOString(),
           },
-        }
-      : {}),
+        ]
+      : []),
+    ...(data.hashes.previous || []).filter(
+      (item: CloudStreamPreviousKeyHash): boolean => {
+        return isStillWorking(item, data.now);
+      },
+    ),
+  ].slice(0, CLOUD_STREAM_MAX_PREVIOUS_KEYS);
+
+  return {
+    current: { hash: data.newHash, createdAt: data.now.toISOString() },
+    ...(previous.length > 0 ? { previous } : {}),
   };
 }

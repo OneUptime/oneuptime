@@ -646,8 +646,9 @@ export class Service extends DatabaseService<Model> {
     return {
       streamKey: generated.key,
       createdAt: data.now,
-      previousKeyWorksUntil: hashes.previous
-        ? new Date(hashes.previous.expiresAt)
+      // The key this one replaced: the newest of those that still work.
+      previousKeyWorksUntil: hashes.previous?.[0]
+        ? new Date(hashes.previous[0].expiresAt)
         : null,
     };
   }

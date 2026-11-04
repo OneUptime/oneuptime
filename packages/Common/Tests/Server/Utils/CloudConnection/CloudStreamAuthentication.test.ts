@@ -35,8 +35,12 @@ import ObjectID from "../../../../Types/ObjectID";
  * changes. `jest` is the global one.
  */
 
-const PROJECT_A: ObjectID = new ObjectID("11111111-1111-4111-8111-111111111111");
-const PROJECT_B: ObjectID = new ObjectID("55555555-5555-4555-8555-555555555555");
+const PROJECT_A: ObjectID = new ObjectID(
+  "11111111-1111-4111-8111-111111111111",
+);
+const PROJECT_B: ObjectID = new ObjectID(
+  "55555555-5555-4555-8555-555555555555",
+);
 const CONNECTION_A: ObjectID = new ObjectID(
   "33333333-3333-4333-8333-333333333333",
 );
@@ -111,12 +115,14 @@ beforeEach(() => {
           hash: CloudStreamKeys.hash(KEY_A),
           createdAt: NOW.toISOString(),
         },
-        previous: {
-          hash: CloudStreamKeys.hash(KEY_A_OLD),
-          expiresAt: new Date(
-            NOW.getTime() + CLOUD_STREAM_PREVIOUS_KEY_GRACE_MS,
-          ).toISOString(),
-        },
+        previous: [
+          {
+            hash: CloudStreamKeys.hash(KEY_A_OLD),
+            expiresAt: new Date(
+              NOW.getTime() + CLOUD_STREAM_PREVIOUS_KEY_GRACE_MS,
+            ).toISOString(),
+          },
+        ],
       },
     }),
   );

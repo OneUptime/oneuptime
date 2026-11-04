@@ -17,11 +17,21 @@ import {
 import {
   CLOUDFORMATION_TEMPLATE_BODY_MAX_BYTES,
   CLOUD_STREAM_MAX_LOG_GROUPS,
+  CLOUD_STREAM_MAX_LOG_GROUP_REGIONS,
   CLOUD_STREAM_MAX_REGIONS,
   CLOUD_STREAM_TEMPLATE_FILE,
+  CloudStreamLogGroup,
   CloudStreamLogsMode,
   CloudStreamMetricsMode,
   CloudStreamTemplateOptions,
+  STREAM_NOTHING_CHOSEN,
+  STREAM_NOT_A_LOG_GROUP,
+  STREAM_NOT_A_REGION,
+  STREAM_NO_LOG_GROUP,
+  STREAM_NO_LOG_GROUP_REGION,
+  STREAM_TOO_MANY_LOG_GROUPS,
+  STREAM_TOO_MANY_LOG_GROUP_REGIONS,
+  STREAM_TOO_MANY_REGIONS,
   getAwsCloudStreamCommand,
   getAwsCloudStreamDeleteCommand,
   getAwsCloudStreamTemplate,
@@ -32,7 +42,8 @@ import {
   getCloudStreamOptionsProblem,
   getCloudStreamSuffix,
   isAwsLogGroupName,
-  splitCloudStreamNames,
+  parseCloudStreamLogGroups,
+  splitCloudStreamList,
 } from "../../../Types/CloudConnection/CloudStreamTemplate";
 import { JSONObject, JSONValue } from "../../../Types/JSON";
 import { describe, expect, test } from "@jest/globals";
@@ -95,11 +106,35 @@ for (const metrics of Object.values(CloudStreamMetricsMode)) {
       options: options({
         metrics,
         logs,
-        logGroups: ["/aws/lambda/checkout", "/aws/rds/instance/orders/error"],
-        logsRegion: "eu-west-1",
+        logGroups: [
+          { name: "/aws/lambda/checkout", region: "eu-west-1" },
+          { name: "/aws/rds/instance/orders/error", region: "eu-west-1" },
+        ],
       }),
     });
   }
+}
+
+// Named log groups in two Regions: a condition for each.
+VARIANTS.push({
+  name: "metrics key, logs groups in two Regions",
+  options: options({
+    logs: CloudStreamLogsMode.Groups,
+    logGroups: [
+      { name: "/aws/lambda/checkout", region: "us-east-1" },
+      { name: "/aws/lambda/cart", region: "eu-west-1" },
+      { name: "/aws/lambda/search", region: "us-east-1" },
+    ],
+  }),
+});
+
+function groups(
+  names: Array<string>,
+  region: string = "us-east-1",
+): Array<CloudStreamLogGroup> {
+  return names.map((name: string): CloudStreamLogGroup => {
+    return { name, region };
+  });
 }
 
 function resourcesOf(template: JSONObject): Record<string, JSONObject> {
@@ -269,9 +304,11 @@ describe("every variant of the template", () => {
       expect(body.includes("oucs_6f1c3a2e")).toBe(false);
       expect(
         (
-          (getAwsCloudStreamTemplate(variant.options)["Parameters"] as JSONObject)[
-            "StreamKey"
-          ] as JSONObject
+          (
+            getAwsCloudStreamTemplate(variant.options)[
+              "Parameters"
+            ] as JSONObject
+          )["StreamKey"] as JSONObject
         )["NoEcho"],
       ).toBe(true);
     },
@@ -324,8 +361,10 @@ describe("which resources each mode makes", () => {
     const template: JSONObject = getAwsCloudStreamTemplate(
       options({
         logs: CloudStreamLogsMode.Groups,
-        logGroups: ["/aws/lambda/checkout", "/aws/lambda/cart"],
-        logsRegion: "EU-WEST-1",
+        logGroups: groups(
+          ["/aws/lambda/checkout", "/aws/lambda/cart"],
+          "eu-west-1",
+        ),
       }),
     );
 
@@ -365,18 +404,59 @@ describe("which resources each mode makes", () => {
     ).toBe("/aws/lambda/cart");
   });
 
-  test("subscribes at most 50 log groups by name", () => {
-    const logGroups: Array<string> = Array.from({ length: 70 }).map(
-      (_value: unknown, index: number) => {
-        return `/aws/lambda/fn-${index}`;
+  test("named log groups in several Regions: each subscription in its own Region, the logs half in any of them", () => {
+    const template: JSONObject = getAwsCloudStreamTemplate(
+      options({
+        logs: CloudStreamLogsMode.Groups,
+        logGroups: [
+          { name: "/aws/lambda/checkout", region: "us-east-1" },
+          { name: "/aws/lambda/cart", region: "eu-west-1" },
+          { name: "/aws/lambda/search", region: "us-east-1" },
+        ],
+      }),
+    );
+    const resources: Record<string, JSONObject> = resourcesOf(template);
+
+    expect(template["Conditions"]).toEqual({
+      StreamLogsHere: {
+        "Fn::Or": [
+          { "Fn::Equals": [{ Ref: "AWS::Region" }, "us-east-1"] },
+          { "Fn::Equals": [{ Ref: "AWS::Region" }, "eu-west-1"] },
+        ],
       },
+      LogGroupsInRegion1: {
+        "Fn::Equals": [{ Ref: "AWS::Region" }, "us-east-1"],
+      },
+      LogGroupsInRegion2: {
+        "Fn::Equals": [{ Ref: "AWS::Region" }, "eu-west-1"],
+      },
+    });
+    expect(
+      [1, 2, 3].map((index: number) => {
+        const filter: JSONObject = resources[`LogGroupSubscription${index}`]!;
+        return `${(filter["Properties"] as JSONObject)["LogGroupName"] as string} ${filter["Condition"] as string}`;
+      }),
+    ).toEqual([
+      "/aws/lambda/checkout LogGroupsInRegion1",
+      "/aws/lambda/cart LogGroupsInRegion2",
+      "/aws/lambda/search LogGroupsInRegion1",
+    ]);
+    expect(resources["LogsDeliveryStream"]!["Condition"]).toBe(
+      "StreamLogsHere",
+    );
+  });
+
+  test("subscribes at most 50 log groups by name", () => {
+    const logGroups: Array<CloudStreamLogGroup> = groups(
+      Array.from({ length: 70 }).map((_value: unknown, index: number) => {
+        return `/aws/lambda/fn-${index}`;
+      }),
     );
     const types: Record<string, string> = typesOf(
       getAwsCloudStreamTemplate(
         options({
           logs: CloudStreamLogsMode.Groups,
           logGroups,
-          logsRegion: "us-east-1",
         }),
       ),
     );
@@ -393,8 +473,7 @@ describe("what the stack's roles may do: least privilege", () => {
   const template: JSONObject = getAwsCloudStreamTemplate(
     options({
       logs: CloudStreamLogsMode.Groups,
-      logGroups: ["/aws/lambda/checkout"],
-      logsRegion: "us-east-1",
+      logGroups: groups(["/aws/lambda/checkout"]),
     }),
   );
   const resources: Record<string, JSONObject> = resourcesOf(template);
@@ -407,7 +486,9 @@ describe("what the stack's roles may do: least privilege", () => {
     const trust: Array<JSONObject> = (
       properties["AssumeRolePolicyDocument"] as JSONObject
     )["Statement"] as Array<JSONObject>;
-    const policies: Array<JSONObject> = properties["Policies"] as Array<JSONObject>;
+    const policies: Array<JSONObject> = properties[
+      "Policies"
+    ] as Array<JSONObject>;
 
     expect(trust).toHaveLength(1);
     expect(policies).toHaveLength(1);
@@ -429,7 +510,9 @@ describe("what the stack's roles may do: least privilege", () => {
       Effect: "Allow",
       Principal: { Service: "firehose.amazonaws.com" },
       Action: "sts:AssumeRole",
-      Condition: { StringEquals: { "sts:ExternalId": { Ref: "AWS::AccountId" } } },
+      Condition: {
+        StringEquals: { "sts:ExternalId": { Ref: "AWS::AccountId" } },
+      },
     });
     expect(role.statements).toEqual([
       {
@@ -475,14 +558,16 @@ describe("what the stack's roles may do: least privilege", () => {
   });
 
   test("only this account's CloudWatch Logs takes its role, to put records into the logs stream", () => {
-    const role: { trust: JSONObject; statements: Array<JSONObject> } =
-      roleOf("LogsSubscriptionRole");
+    const role: { trust: JSONObject; statements: Array<JSONObject> } = roleOf(
+      "LogsSubscriptionRole",
+    );
 
     expect(role.trust["Principal"]).toEqual({ Service: "logs.amazonaws.com" });
     expect(role.trust["Condition"]).toEqual({
       StringLike: {
         "aws:SourceArn": {
-          "Fn::Sub": "arn:${AWS::Partition}:logs:${AWS::Region}:${AWS::AccountId}:*",
+          "Fn::Sub":
+            "arn:${AWS::Partition}:logs:${AWS::Region}:${AWS::AccountId}:*",
         },
       },
     });
@@ -530,9 +615,7 @@ describe("what the stack's roles may do: least privilege", () => {
 
 describe("the Firehose streams and the bucket", () => {
   const resources: Record<string, JSONObject> = resourcesOf(
-    getAwsCloudStreamTemplate(
-      options({ logs: CloudStreamLogsMode.All }),
-    ),
+    getAwsCloudStreamTemplate(options({ logs: CloudStreamLogsMode.All })),
   );
 
   function destination(name: string): JSONObject {
@@ -666,7 +749,9 @@ describe("the metric stream's filters", () => {
       getAwsCloudStreamTemplate(options()),
     )["MetricStream"]!["Properties"] as JSONObject;
     const allStream: JSONObject = resourcesOf(
-      getAwsCloudStreamTemplate(options({ metrics: CloudStreamMetricsMode.All })),
+      getAwsCloudStreamTemplate(
+        options({ metrics: CloudStreamMetricsMode.All }),
+      ),
     )["MetricStream"]!["Properties"] as JSONObject;
 
     expect(keyStream["IncludeFilters"]).toEqual(
@@ -696,11 +781,14 @@ describe("the stream key parameter", () => {
 });
 
 describe("the template's size", () => {
-  test("fits the body aws cloudformation deploy sends, with 50 of the longest log group names", () => {
-    const longest: Array<string> = Array.from({
+  test("fits the body aws cloudformation deploy sends, with 50 of the longest log group names in 10 Regions", () => {
+    const longest: Array<CloudStreamLogGroup> = Array.from({
       length: CLOUD_STREAM_MAX_LOG_GROUPS,
     }).map((_value: unknown, index: number) => {
-      return `/${String(index).padStart(2, "0")}${"x".repeat(509)}`;
+      return {
+        name: `/${String(index).padStart(2, "0")}${"x".repeat(509)}`,
+        region: `us-test-${index % CLOUD_STREAM_MAX_LOG_GROUP_REGIONS}`,
+      };
     });
 
     for (const metrics of [
@@ -712,7 +800,6 @@ describe("the template's size", () => {
           metrics,
           logs: CloudStreamLogsMode.Groups,
           logGroups: longest,
-          logsRegion: "us-east-1",
         }),
       );
 
@@ -781,23 +868,27 @@ describe("the command", () => {
     expect(command).toContain("STREAM_KEY='<YOUR_STREAM_KEY>'");
   });
 
-  test("named log groups without metrics deploy in their Region alone", () => {
+  test("named log groups without metrics deploy in their Regions alone", () => {
     expect(
       getCloudStreamCommandRegions({
         regions: ["us-east-1", "eu-west-1"],
         metrics: CloudStreamMetricsMode.Off,
         logs: CloudStreamLogsMode.Groups,
-        logsRegion: "ap-south-1",
+        logGroups: [
+          { name: "/a", region: "ap-south-1" },
+          { name: "/b", region: "ap-south-1" },
+          { name: "/c", region: "sa-east-1" },
+        ],
       }),
-    ).toEqual(["ap-south-1"]);
+    ).toEqual(["ap-south-1", "sa-east-1"]);
 
-    // With metrics, the log groups' Region is one more.
+    // With metrics, the log groups' Regions are more.
     expect(
       getCloudStreamCommandRegions({
         regions: ["us-east-1"],
         metrics: CloudStreamMetricsMode.Key,
         logs: CloudStreamLogsMode.Groups,
-        logsRegion: "ap-south-1",
+        logGroups: groups(["/a"], "ap-south-1"),
       }),
     ).toEqual(["us-east-1", "ap-south-1"]);
   });
@@ -842,15 +933,23 @@ describe("the command", () => {
 });
 
 describe("what the dialog takes", () => {
-  test("log group names one a line or by commas, an ARN as its name, each once", () => {
+  test("log groups one a line or by commas: a name in the Region chosen, an ARN in its own, each once", () => {
     expect(
-      splitCloudStreamNames(
-        "/aws/lambda/checkout, /aws/lambda/cart\n\n arn:aws:logs:us-east-1:123456789012:log-group:/aws/rds/instance/orders/error:*\n/aws/lambda/checkout",
+      parseCloudStreamLogGroups(
+        "/aws/lambda/checkout, /aws/lambda/cart\n\n arn:aws:logs:EU-WEST-1:123456789012:log-group:/aws/rds/instance/orders/error:*\n/aws/lambda/checkout\narn:aws:logs:us-east-1:123456789012:log-group:/aws/lambda/checkout",
+        "US-EAST-1",
       ),
     ).toEqual([
-      "/aws/lambda/checkout",
-      "/aws/lambda/cart",
-      "/aws/rds/instance/orders/error",
+      { name: "/aws/lambda/checkout", region: "us-east-1" },
+      { name: "/aws/lambda/cart", region: "us-east-1" },
+      { name: "/aws/rds/instance/orders/error", region: "eu-west-1" },
+    ]);
+  });
+
+  test("Regions one a line or by commas, each once", () => {
+    expect(splitCloudStreamList(" us-east-1,eu-west-1\nus-east-1 ,")).toEqual([
+      "us-east-1",
+      "eu-west-1",
     ]);
   });
 
@@ -866,7 +965,7 @@ describe("what the dialog takes", () => {
     const base: {
       metrics: CloudStreamMetricsMode;
       logs: CloudStreamLogsMode;
-      logGroups: Array<string>;
+      logGroups: Array<CloudStreamLogGroup>;
       regions: Array<string>;
     } = {
       metrics: CloudStreamMetricsMode.Key,
@@ -881,43 +980,65 @@ describe("what the dialog takes", () => {
         ...base,
         metrics: CloudStreamMetricsMode.Off,
       }),
-    ).toBe("Choose metrics, logs or both to stream.");
+    ).toEqual({ text: STREAM_NOTHING_CHOSEN, values: {} });
     expect(
       getCloudStreamOptionsProblem({ ...base, regions: ["moon-1"] }),
-    ).toContain("Regions");
+    ).toEqual({ text: STREAM_NOT_A_REGION, values: {} });
     expect(
       getCloudStreamOptionsProblem({
         ...base,
-        logs: CloudStreamLogsMode.Groups,
-      }),
-    ).toBe("Name at least one log group.");
-    expect(
-      getCloudStreamOptionsProblem({
-        ...base,
-        logs: CloudStreamLogsMode.Groups,
-        logGroups: ["bad name"],
-        logsRegion: "us-east-1",
-      }),
-    ).toContain("letters, digits");
-    expect(
-      getCloudStreamOptionsProblem({
-        ...base,
-        logs: CloudStreamLogsMode.Groups,
-        logGroups: ["/aws/lambda/x"],
-      }),
-    ).toBe("Choose the Region the log groups are in.");
-    expect(
-      getCloudStreamOptionsProblem({
-        ...base,
-        logs: CloudStreamLogsMode.Groups,
-        logGroups: Array.from({ length: 51 }).map(
+        regions: Array.from({ length: 31 }).map(
           (_value: unknown, index: number) => {
-            return `/aws/lambda/${index}`;
+            return `us-test-${index}`;
           },
         ),
-        logsRegion: "us-east-1",
       }),
-    ).toContain("at most 50");
+    ).toEqual({ text: STREAM_TOO_MANY_REGIONS, values: { count: "30" } });
+    expect(
+      getCloudStreamOptionsProblem({
+        ...base,
+        logs: CloudStreamLogsMode.Groups,
+      }),
+    ).toEqual({ text: STREAM_NO_LOG_GROUP, values: {} });
+    expect(
+      getCloudStreamOptionsProblem({
+        ...base,
+        logs: CloudStreamLogsMode.Groups,
+        logGroups: groups(["bad name"]),
+      }),
+    ).toEqual({ text: STREAM_NOT_A_LOG_GROUP, values: {} });
+    expect(
+      getCloudStreamOptionsProblem({
+        ...base,
+        logs: CloudStreamLogsMode.Groups,
+        logGroups: groups(["/aws/lambda/x"], ""),
+      }),
+    ).toEqual({ text: STREAM_NO_LOG_GROUP_REGION, values: {} });
+    expect(
+      getCloudStreamOptionsProblem({
+        ...base,
+        logs: CloudStreamLogsMode.Groups,
+        logGroups: groups(
+          Array.from({ length: 51 }).map((_value: unknown, index: number) => {
+            return `/aws/lambda/${index}`;
+          }),
+        ),
+      }),
+    ).toEqual({ text: STREAM_TOO_MANY_LOG_GROUPS, values: { count: "50" } });
+    expect(
+      getCloudStreamOptionsProblem({
+        ...base,
+        logs: CloudStreamLogsMode.Groups,
+        logGroups: Array.from({ length: 11 }).map(
+          (_value: unknown, index: number) => {
+            return { name: `/aws/lambda/${index}`, region: `us-test-${index}` };
+          },
+        ),
+      }),
+    ).toEqual({
+      text: STREAM_TOO_MANY_LOG_GROUP_REGIONS,
+      values: { count: "10" },
+    });
   });
 });
 
@@ -938,7 +1059,10 @@ describe("cfn-lint", () => {
 
     try {
       const files: Array<string> = VARIANTS.map(
-        (variant: { name: string; options: CloudStreamTemplateOptions }, index: number) => {
+        (
+          variant: { name: string; options: CloudStreamTemplateOptions },
+          index: number,
+        ) => {
           const file: string = path.join(directory, `variant-${index}.json`);
           fs.writeFileSync(
             file,

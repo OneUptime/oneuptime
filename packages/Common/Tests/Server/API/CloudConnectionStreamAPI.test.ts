@@ -224,9 +224,7 @@ describe("POST /cloud-connection/:connectionId/stream-key", () => {
 
       // What is stored is the hash: never the key, never its secret.
       expect(writes).toHaveLength(1);
-      expect(JSON.stringify(writes[0])).not.toContain(
-        streamKey.split("_")[2]!,
-      );
+      expect(JSON.stringify(writes[0])).not.toContain(streamKey.split("_")[2]!);
 
       const hashes: CloudStreamKeyHashes = readCloudStreamKeyHashes(
         writes[0]!["streamKeyHashes"],
@@ -264,12 +262,39 @@ describe("POST /cloud-connection/:connectionId/stream-key", () => {
     expect(hashes.current?.hash).toBe(
       CloudStreamKeys.hash(answer["streamKey"] as string),
     );
-    expect(hashes.previous?.hash).toBe(CloudStreamKeys.hash(first));
+    expect(hashes.previous?.[0]?.hash).toBe(CloudStreamKeys.hash(first));
     expect(
-      Date.parse(hashes.previous!.expiresAt) -
+      Date.parse(hashes.previous![0]!.expiresAt) -
         Date.parse(answer["createdAt"] as string),
     ).toBe(CLOUD_STREAM_PREVIOUS_KEY_GRACE_MS);
-    expect(answer["previousKeyWorksUntil"]).toBe(hashes.previous!.expiresAt);
+    expect(answer["previousKeyWorksUntil"]).toBe(
+      hashes.previous![0]!.expiresAt,
+    );
+  });
+
+  test("a key made twice before the command ran leaves the streams' first key working", async () => {
+    const keys: Array<string> = [];
+
+    for (let index: number = 0; index < 3; index++) {
+      await streamKeyHandler(
+        request({ connectionId: CONNECTION.toString() }),
+        res,
+        next,
+      );
+      keys.push(sent()["streamKey"] as string);
+      (Response.sendJsonObjectResponse as jest.Mock).mockClear();
+    }
+
+    const hashes: CloudStreamKeyHashes = readCloudStreamKeyHashes(
+      writes[2]!["streamKeyHashes"],
+    );
+
+    expect(hashes.current?.hash).toBe(CloudStreamKeys.hash(keys[2]!));
+    expect(
+      (hashes.previous || []).map((item: { hash: string }) => {
+        return item.hash;
+      }),
+    ).toEqual([CloudStreamKeys.hash(keys[1]!), CloudStreamKeys.hash(keys[0]!)]);
   });
 
   test.each([
@@ -335,7 +360,9 @@ describe("POST /cloud-connection/:connectionId/stop-streaming", () => {
 
     expect(next).not.toHaveBeenCalled();
     expect(sent()).toEqual({ stopped: true });
-    expect(writes).toEqual([{ streamKeyHashes: null, streamKeyCreatedAt: null }]);
+    expect(writes).toEqual([
+      { streamKeyHashes: null, streamKeyCreatedAt: null },
+    ]);
     expect(forget).toHaveBeenCalledWith(CONNECTION);
   });
 

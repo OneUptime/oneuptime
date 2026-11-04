@@ -4,6 +4,7 @@ import {
   CLOUD_STREAM_LOGS_PATH,
   CLOUD_STREAM_MAX_LOG_GROUPS_PER_SOURCE,
   CLOUD_STREAM_MAX_NAMESPACES_PER_SOURCE,
+  CLOUD_STREAM_MAX_PREVIOUS_KEYS,
   CLOUD_STREAM_MAX_SOURCES,
   CLOUD_STREAM_METRICS_PATH,
   CLOUD_STREAM_PREVIOUS_KEY_GRACE_MS,
@@ -32,7 +33,7 @@ import { describe, expect, test } from "@jest/globals";
  * delivers to, the stream key's shape, the summary of what arrived (read
  * defensively, merged so a server writing twice counts nothing twice), the
  * namespaces the reads leave to a stream, how streaming is said to be doing,
- * and the key hashes - the current one and the one it replaced, for a day.
+ * and the key hashes - the current one and the ones it replaced, for a day.
  */
 
 const CONNECTION: string = "6f1c3a2e-9b8d-4c7e-a1f0-2d3c4b5a6e7f";
@@ -306,7 +307,10 @@ describe("merging what a server saw into what is stored", () => {
           lastAt: minutesAgo(1),
         },
       ],
-      lastRefusal: { at: minutesAgo(5), reason: CloudStreamRefusalReason.Throttled },
+      lastRefusal: {
+        at: minutesAgo(5),
+        reason: CloudStreamRefusalReason.Throttled,
+      },
     });
 
     const once: CloudStreamSummary = mergeCloudStreamSummary({
@@ -459,7 +463,9 @@ describe("the namespaces a connection's reads leave to its streams", () => {
 
   test("are the ones delivered in the last fifteen minutes, by account and Region", () => {
     expect(
-      Array.from(getStreamedMetricKeys({ summary: streaming, now: NOW })).sort(),
+      Array.from(
+        getStreamedMetricKeys({ summary: streaming, now: NOW }),
+      ).sort(),
     ).toEqual([
       "123456789012|us-east-1|aws/applicationelb",
       "123456789012|us-east-1|aws/ec2",
@@ -592,11 +598,18 @@ describe("the stream key hashes", () => {
     expect(
       readCloudStreamKeyHashes({
         current: { hash: HASH_A, createdAt: minutesAgo(5) },
-        previous: { hash: HASH_B, expiresAt: minutesAgo(-60) },
+        previous: [
+          { hash: HASH_B, expiresAt: minutesAgo(-60) },
+          { hash: "short", expiresAt: minutesAgo(-60) },
+          { hash: HASH_C, expiresAt: minutesAgo(-30) },
+        ],
       }),
     ).toEqual({
       current: { hash: HASH_A, createdAt: minutesAgo(5) },
-      previous: { hash: HASH_B, expiresAt: minutesAgo(-60) },
+      previous: [
+        { hash: HASH_B, expiresAt: minutesAgo(-60) },
+        { hash: HASH_C, expiresAt: minutesAgo(-30) },
+      ],
     });
 
     for (const value of [
@@ -605,32 +618,60 @@ describe("the stream key hashes", () => {
       { current: { hash: "short", createdAt: minutesAgo(1) } },
       { current: { hash: HASH_A.toUpperCase(), createdAt: minutesAgo(1) } },
       { current: { hash: HASH_A } },
-      { previous: { hash: HASH_B, expiresAt: "never" } },
+      { previous: [{ hash: HASH_B, expiresAt: "never" }] },
+      // One key, not a list of them, is not what is stored.
+      { previous: { hash: HASH_B, expiresAt: minutesAgo(-60) } },
+      { previous: [] },
     ]) {
       expect(readCloudStreamKeyHashes(value)).toEqual({});
     }
   });
 
-  test("a key may match the current hash, and the previous one until it expires", () => {
+  test("never more replaced keys than work at once, however many are stored", () => {
+    const stored: Array<{ hash: string; expiresAt: string }> = Array.from({
+      length: CLOUD_STREAM_MAX_PREVIOUS_KEYS + 5,
+    }).map((_value: unknown, index: number) => {
+      return {
+        hash: String(index % 10).repeat(64),
+        expiresAt: minutesAgo(-60),
+      };
+    });
+
+    expect(
+      readCloudStreamKeyHashes({ previous: stored }).previous,
+    ).toHaveLength(CLOUD_STREAM_MAX_PREVIOUS_KEYS);
+  });
+
+  test("a key may match the current hash, and each replaced one until it expires", () => {
     const hashes: CloudStreamKeyHashes = {
       current: { hash: HASH_A, createdAt: minutesAgo(5) },
-      previous: { hash: HASH_B, expiresAt: minutesAgo(-1) },
+      previous: [
+        { hash: HASH_B, expiresAt: minutesAgo(-1) },
+        { hash: HASH_C, expiresAt: minutesAgo(-3) },
+      ],
     };
 
     expect(getLiveCloudStreamKeyHashes({ hashes, now: NOW })).toEqual([
       HASH_A,
       HASH_B,
+      HASH_C,
     ]);
     expect(
       getLiveCloudStreamKeyHashes({
         hashes,
         now: new Date(NOW.getTime() + 2 * 60 * 1000),
       }),
+    ).toEqual([HASH_A, HASH_C]);
+    expect(
+      getLiveCloudStreamKeyHashes({
+        hashes,
+        now: new Date(NOW.getTime() + 3 * 60 * 1000),
+      }),
     ).toEqual([HASH_A]);
     expect(getLiveCloudStreamKeyHashes({ hashes: {}, now: NOW })).toEqual([]);
   });
 
-  test("a new key keeps the one it replaces for a day, and only that one", () => {
+  test("a new key keeps the one it replaces for a day", () => {
     const first: CloudStreamKeyHashes = rotateCloudStreamKeyHashes({
       hashes: {},
       newHash: HASH_A,
@@ -648,14 +689,26 @@ describe("the stream key hashes", () => {
     });
 
     expect(second.current?.hash).toBe(HASH_B);
-    expect(second.previous).toEqual({
-      hash: HASH_A,
-      expiresAt: new Date(
-        NOW.getTime() + CLOUD_STREAM_PREVIOUS_KEY_GRACE_MS,
-      ).toISOString(),
-    });
+    expect(second.previous).toEqual([
+      {
+        hash: HASH_A,
+        expiresAt: new Date(
+          NOW.getTime() + CLOUD_STREAM_PREVIOUS_KEY_GRACE_MS,
+        ).toISOString(),
+      },
+    ]);
+  });
 
-    // A third key a minute later: the first stops at once.
+  test("a key made twice before the command ran leaves the streams' own key working, for its own day", () => {
+    // The streams deliver with A; B is made, then C a minute later.
+    const streamsKey: CloudStreamKeyHashes = {
+      current: { hash: HASH_A, createdAt: minutesAgo(600) },
+    };
+    const second: CloudStreamKeyHashes = rotateCloudStreamKeyHashes({
+      hashes: streamsKey,
+      newHash: HASH_B,
+      now: NOW,
+    });
     const third: CloudStreamKeyHashes = rotateCloudStreamKeyHashes({
       hashes: second,
       newHash: HASH_C,
@@ -667,6 +720,63 @@ describe("the stream key hashes", () => {
         hashes: third,
         now: new Date(NOW.getTime() + 61 * 1000),
       }),
+    ).toEqual([HASH_C, HASH_B, HASH_A]);
+
+    // A's day ran from when B replaced it: C did not make it longer.
+    expect(third.previous?.[1]).toEqual({
+      hash: HASH_A,
+      expiresAt: new Date(
+        NOW.getTime() + CLOUD_STREAM_PREVIOUS_KEY_GRACE_MS,
+      ).toISOString(),
+    });
+    expect(
+      getLiveCloudStreamKeyHashes({
+        hashes: third,
+        now: new Date(NOW.getTime() + CLOUD_STREAM_PREVIOUS_KEY_GRACE_MS),
+      }),
     ).toEqual([HASH_C, HASH_B]);
+  });
+
+  test("keys made over and over keep only the newest replaced ones, and drop the ones that stopped", () => {
+    let hashes: CloudStreamKeyHashes = {};
+    const made: Array<string> = [];
+
+    for (
+      let index: number = 0;
+      index < CLOUD_STREAM_MAX_PREVIOUS_KEYS + 3;
+      index++
+    ) {
+      const hash: string = String(index).repeat(64);
+      made.push(hash);
+      hashes = rotateCloudStreamKeyHashes({
+        hashes,
+        newHash: hash,
+        now: new Date(NOW.getTime() + index * 1000),
+      });
+    }
+
+    expect(hashes.previous).toHaveLength(CLOUD_STREAM_MAX_PREVIOUS_KEYS);
+    expect(
+      getLiveCloudStreamKeyHashes({
+        hashes,
+        now: new Date(NOW.getTime() + 60 * 1000),
+      }),
+    ).toEqual(made.slice(-(CLOUD_STREAM_MAX_PREVIOUS_KEYS + 1)).reverse());
+
+    // A day later every replaced key has stopped, and a new key drops them.
+    const later: CloudStreamKeyHashes = rotateCloudStreamKeyHashes({
+      hashes,
+      newHash: HASH_A,
+      now: new Date(NOW.getTime() + 2 * CLOUD_STREAM_PREVIOUS_KEY_GRACE_MS),
+    });
+
+    expect(later.previous).toEqual([
+      {
+        hash: made[made.length - 1],
+        expiresAt: new Date(
+          NOW.getTime() + 3 * CLOUD_STREAM_PREVIOUS_KEY_GRACE_MS,
+        ).toISOString(),
+      },
+    ]);
   });
 });

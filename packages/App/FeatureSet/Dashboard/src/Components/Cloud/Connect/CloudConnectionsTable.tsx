@@ -1,6 +1,7 @@
 import CloudConnection from "Common/Models/DatabaseModels/CloudConnection";
 import Route from "Common/Types/API/Route";
 import SortOrder from "Common/Types/BaseDatabase/SortOrder";
+import { CloudProvider } from "Common/Types/Cloud/CloudPlatform";
 import {
   CloudConnectionDefinition,
   getCloudConnectionDefinition,
@@ -11,13 +12,15 @@ import {
   CloudConnectionReadSummary,
   readCloudConnectionReadSummary,
 } from "Common/Types/CloudConnection/CloudConnectionTest";
+import { getAwsCloudStreamDeleteCommand } from "Common/Types/CloudConnection/CloudStreamTemplate";
 import OneUptimeDate from "Common/Types/Date";
-import { VoidFunction } from "Common/Types/FunctionTypes";
+import { ErrorFunction, VoidFunction } from "Common/Types/FunctionTypes";
 import IconProp from "Common/Types/Icon/IconProp";
 import ObjectID from "Common/Types/ObjectID";
 import { ActionButtonPlacement } from "Common/UI/Components/ActionButton/ActionButtonSchema";
 import Alert, { AlertType } from "Common/UI/Components/Alerts/Alert";
 import { ButtonStyleType } from "Common/UI/Components/Button/Button";
+import CodeBlock from "Common/UI/Components/CodeBlock/CodeBlock";
 import CopyTextButton from "Common/UI/Components/CopyTextButton/CopyTextButton";
 import Icon from "Common/UI/Components/Icon/Icon";
 import Modal, { ModalWidth } from "Common/UI/Components/Modal/Modal";
@@ -28,7 +31,7 @@ import API from "Common/UI/Utils/API/API";
 import ModelAPI from "Common/UI/Utils/ModelAPI/ModelAPI";
 import { PermissionGateResult } from "Common/UI/Utils/PermissionGate";
 import ProjectUtil from "Common/UI/Utils/Project";
-import { Translator } from "Common/UI/Utils/TranslateTemplate";
+import { Translator, translationKey } from "Common/UI/Utils/TranslateTemplate";
 import useTranslator from "Common/UI/Utils/UseTranslator";
 import React, {
   Fragment,
@@ -47,9 +50,16 @@ import {
   getLastReadKey,
   hasCloudConnectionReadEnded,
   readCloudConnectionNow,
+  stopCloudStreaming,
 } from "./CloudConnectApi";
 import CloudConnectionLogo from "./CloudConnectionLogo";
 import CloudConnectionTestDialog from "./CloudConnectionTestDialog";
+import CloudStreamDialog from "./CloudStreamDialog";
+import {
+  CloudStreamStatusWords,
+  getCloudStreamDefaultRegions,
+  getCloudStreamStatusWords,
+} from "./CloudStreamWords";
 import {
   CloudConnectionHealth,
   CloudWords,
@@ -78,7 +88,8 @@ import {
  *
  * What can be done with a connection: read it now (the row then says it
  * is reading, and the list catches up by itself when the read ends), test
- * it, see why it failed, turn it off or on, edit or remove it. A
+ * it, see why it failed, stream an AWS account's metrics and logs (and
+ * stop), turn it off or on, edit or remove it. A
  * connection waiting for its first read is watched the same way, quietly:
  * its row shows what the read found once it ends. Create and
  * edit go through CloudConnectionFormModal (opened by the page): its
@@ -115,6 +126,8 @@ const CloudConnectionsTable: FunctionComponent<ComponentProps> = (
   const [testItem, setTestItem] = useState<CloudConnection | null>(null);
   const [testRun, setTestRun] = useState<number>(0);
   const [errorItem, setErrorItem] = useState<CloudConnection | null>(null);
+  // The AWS connection whose streaming dialog is open.
+  const [streamItem, setStreamItem] = useState<CloudConnection | null>(null);
   const [notice, setNotice] = useState<
     { type: AlertType; text: string } | undefined
   >(undefined);
@@ -384,6 +397,8 @@ const CloudConnectionsTable: FunctionComponent<ComponentProps> = (
             lastSuccessfulPullAt: true,
             lastPullResult: true,
             lastError: true,
+            streamKeyCreatedAt: true,
+            streamSummary: true,
           }}
           onFetchSuccess={(
             data: Array<CloudConnection>,
@@ -527,6 +542,95 @@ const CloudConnectionsTable: FunctionComponent<ComponentProps> = (
                 onCompleteAction();
               },
             },
+            /*
+             * An AWS account's CloudWatch metrics and logs, delivered by
+             * Amazon Data Firehose within minutes of CloudWatch having them
+             * (CloudStreamDialog) - and the way to stop.
+             */
+            {
+              title: "Stream metrics and logs",
+              icon: IconProp.Signal,
+              buttonStyleType: ButtonStyleType.OUTLINE,
+              isVisible: (item: CloudConnection): boolean => {
+                return item.provider === CloudProvider.AWS;
+              },
+              disabled: !props.updateGate.isAllowed,
+              tooltip: props.updateGate.isAllowed
+                ? "Have Amazon Data Firehose deliver its CloudWatch metrics and logs within minutes."
+                : props.updateGate.disabledReason,
+              onClick: (
+                item: CloudConnection,
+                onCompleteAction: VoidFunction,
+              ): void => {
+                setStreamItem(item);
+                onCompleteAction();
+              },
+            },
+            {
+              title: "Stop streaming",
+              icon: IconProp.SignalSlash,
+              buttonStyleType: ButtonStyleType.OUTLINE,
+              isVisible: (item: CloudConnection): boolean => {
+                return (
+                  item.provider === CloudProvider.AWS &&
+                  Boolean(item.streamKeyCreatedAt)
+                );
+              },
+              disabled: !props.updateGate.isAllowed,
+              tooltip: props.updateGate.isAllowed
+                ? "Refuse what its streams deliver from now on."
+                : props.updateGate.disabledReason,
+              getConfirmation: (item: CloudConnection) => {
+                return {
+                  title: "Stop streaming",
+                  description: translator.translateTemplate(
+                    "Every stream key of {{name}} stops working at once: OneUptime refuses what its streams deliver, and the connection reads all its metrics on its schedule again. What the streams delivered stays.",
+                    { name: item.name || "" },
+                  ),
+                  submitButtonText: "Stop streaming",
+                  submitButtonType: ButtonStyleType.DANGER,
+                  details: (
+                    <div
+                      className="space-y-2"
+                      data-testid="cloud-connection-stop-streaming"
+                    >
+                      <p className="text-sm text-gray-700">
+                        {translator.translateText(
+                          translationKey(
+                            "The streams stay in AWS, and AWS bills them, until their stacks are deleted. To delete them, run this in AWS CloudShell:",
+                          ),
+                        )}
+                      </p>
+                      <CodeBlock
+                        code={getAwsCloudStreamDeleteCommand({
+                          connectionId: item.id?.toString() || "",
+                          regions: getCloudStreamDefaultRegions(
+                            item.lastPullResult,
+                          ),
+                        })}
+                        language="bash"
+                        wrapLongLines={true}
+                      />
+                    </div>
+                  ),
+                };
+              },
+              onClick: async (
+                item: CloudConnection,
+                onCompleteAction: VoidFunction,
+                onError: ErrorFunction,
+              ): Promise<void> => {
+                try {
+                  await stopCloudStreaming(item.id!);
+                  setNotice(undefined);
+                  onCompleteAction();
+                  refresh();
+                } catch (err) {
+                  onCompleteAction();
+                  onError(err as Error);
+                }
+              },
+            },
             {
               title: "Turn off",
               icon: IconProp.Stop,
@@ -647,6 +751,15 @@ const CloudConnectionsTable: FunctionComponent<ComponentProps> = (
                   getCloudConnectionHealth(item);
                 const definition: CloudConnectionDefinition | undefined =
                   getCloudConnectionDefinition(item.provider);
+                // How its streams are doing: nothing while it streams nothing.
+                const stream: CloudStreamStatusWords | null =
+                  item.provider === CloudProvider.AWS
+                    ? getCloudStreamStatusWords({
+                        streamKeyCreatedAt: item.streamKeyCreatedAt,
+                        streamSummary: item.streamSummary,
+                        now: new Date(),
+                      })
+                    : null;
 
                 let lastRead: ReactElement = <></>;
 
@@ -722,6 +835,23 @@ const CloudConnectionsTable: FunctionComponent<ComponentProps> = (
                     ) : (
                       <></>
                     )}
+                    {stream ? (
+                      <div
+                        className="flex items-center gap-1.5 text-xs text-gray-500"
+                        data-testid="cloud-connection-stream"
+                        data-state={stream.state}
+                        title={drawCloudTemplate(translator, stream.sentence)}
+                      >
+                        <span
+                          aria-hidden="true"
+                          className="inline-block h-1.5 w-1.5 flex-shrink-0 rounded-full"
+                          style={{ backgroundColor: stream.color.toString() }}
+                        />
+                        <span>{translator.translateText(stream.label)}</span>
+                      </div>
+                    ) : (
+                      <></>
+                    )}
                   </div>
                 );
               },
@@ -793,6 +923,19 @@ const CloudConnectionsTable: FunctionComponent<ComponentProps> = (
           ]}
         />
       </div>
+
+      {streamItem && (
+        <CloudStreamDialog
+          key={streamItem.id?.toString()}
+          connection={streamItem}
+          onClose={(): void => {
+            setStreamItem(null);
+            // What the dialog saw arrive, in the row too.
+            refresh();
+          }}
+          onChanged={refresh}
+        />
+      )}
 
       {testItem && (
         <CloudConnectionTestDialog
