@@ -754,10 +754,9 @@ const RecordChannelMembersCard: FunctionComponent<ComponentProps> = (
   props: ComponentProps,
 ): ReactElement | null => {
   const translator: Translator = useTranslator();
-  const links: Array<WorkspaceChannelLink> = props.links;
 
   // A new channel - created a moment after the record - is read again.
-  const readKey: string = links
+  const readKey: string = props.links
     .map((link: WorkspaceChannelLink) => {
       return link.url;
     })
@@ -767,10 +766,10 @@ const RecordChannelMembersCard: FunctionComponent<ComponentProps> = (
     recordType: props.recordType,
     recordId: props.recordId,
     readKey: readKey,
-    isEnabled: links.length > 0,
+    isEnabled: props.links.length > 0,
   });
 
-  if (links.length === 0) {
+  if (props.links.length === 0) {
     return null;
   }
 
@@ -831,7 +830,7 @@ const RecordChannelMembersCard: FunctionComponent<ComponentProps> = (
 
   // While the channels load, the page's links say what they are.
   const shownChannels: Array<{ workspaceType: WorkspaceType }> =
-    channels.length > 0 ? channels : links;
+    channels.length > 0 ? channels : props.links;
 
   return (
     <Card title={getCardTitle(shownChannels)} headerLayout="stacked">
