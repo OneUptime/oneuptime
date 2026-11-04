@@ -26,7 +26,7 @@ Each check runs every 15 minutes, hour, 6 hours or day, as one aggregate stateme
 
 ## A check from a sentence
 
-**Write a Check from a Sentence** turns a rule such as "orders never have a negative total" into a Custom SQL check that counts the rows breaking it, in your engine's own SQL, with an alert when any do. You read the query before **Add Check** adds it, and it is held to everything any Custom SQL check is. It needs OneUptime AI to be on for the project.
+**Write a Check from a Sentence** turns a rule such as "orders never have a negative total" into a Custom SQL check that counts the rows breaking it, in your engine's own SQL, with an alert when any do. You read the query before **Add Check** adds it, and it is held to everything any Custom SQL check is. It needs OneUptime AI to be on for the project. On MongoDB, it writes an aggregation pipeline instead.
 
 ## Segments
 

@@ -26,7 +26,7 @@ Elke controle draait elke 15 minuten, elk uur, elke 6 uur of elke dag, als één
 
 ## Een controle vanuit een zin
 
-**Een controle schrijven vanuit een zin** maakt van een regel zoals "bestellingen hebben nooit een negatief totaal" een controle met aangepaste SQL die de rijen telt die de regel breken, in de eigen SQL van je engine, met een waarschuwing zodra er zo'n rij is. Je leest de query voordat **Controle toevoegen** hem toevoegt, en hij moet aan alles voldoen waaraan elke controle met aangepaste SQL moet voldoen. Hiervoor moet OneUptime AI voor het project aan staan.
+**Een controle schrijven vanuit een zin** maakt van een regel zoals "bestellingen hebben nooit een negatief totaal" een controle met aangepaste SQL die de rijen telt die de regel breken, in de eigen SQL van je engine, met een waarschuwing zodra er zo'n rij is. Je leest de query voordat **Controle toevoegen** hem toevoegt, en hij moet aan alles voldoen waaraan elke controle met aangepaste SQL moet voldoen. Hiervoor moet OneUptime AI voor het project aan staan. Bij MongoDB is het resultaat een aggregatiepijplijn.
 
 ## Segmenten
 

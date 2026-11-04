@@ -26,7 +26,7 @@ Jede Prüfung läuft alle 15 Minuten, stündlich, alle 6 Stunden oder täglich, 
 
 ## Eine Prüfung aus einem Satz
 
-**Prüfung aus einem Satz schreiben** macht aus einer Regel wie „Bestellungen haben nie einen negativen Gesamtbetrag“ eine Prüfung mit benutzerdefiniertem SQL, die die Zeilen zählt, die gegen sie verstoßen, im eigenen SQL Ihrer Engine, mit einer Warnung, sobald es welche gibt. Sie lesen die Abfrage, bevor **Prüfung hinzufügen** sie hinzufügt, und sie unterliegt allen Regeln, die für jede Prüfung mit benutzerdefiniertem SQL gelten. Dafür muss OneUptime AI für das Projekt eingeschaltet sein.
+**Prüfung aus einem Satz schreiben** macht aus einer Regel wie „Bestellungen haben nie einen negativen Gesamtbetrag“ eine Prüfung mit benutzerdefiniertem SQL, die die Zeilen zählt, die gegen sie verstoßen, im eigenen SQL Ihrer Engine, mit einer Warnung, sobald es welche gibt. Sie lesen die Abfrage, bevor **Prüfung hinzufügen** sie hinzufügt, und sie unterliegt allen Regeln, die für jede Prüfung mit benutzerdefiniertem SQL gelten. Dafür muss OneUptime AI für das Projekt eingeschaltet sein. Bei MongoDB entsteht stattdessen eine Aggregations-Pipeline.
 
 ## Segmente
 

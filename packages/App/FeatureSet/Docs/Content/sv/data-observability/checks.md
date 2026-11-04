@@ -26,7 +26,7 @@ Varje kontroll körs var 15:e minut, varje timme, var 6:e timme eller varje dag,
 
 ## En kontroll utifrån en mening
 
-**Skriv en kontroll utifrån en mening** gör en regel som "order har aldrig ett negativt totalbelopp" till en kontroll med anpassad SQL som räknar de rader som bryter mot den, i din motors egen SQL, med ett larm när någon rad gör det. Du läser frågan innan **Lägg till kontroll** lägger till den, och den måste uppfylla samma krav som varje kontroll med anpassad SQL. Det kräver att OneUptime AI är påslaget för projektet.
+**Skriv en kontroll utifrån en mening** gör en regel som "order har aldrig ett negativt totalbelopp" till en kontroll med anpassad SQL som räknar de rader som bryter mot den, i din motors egen SQL, med ett larm när någon rad gör det. Du läser frågan innan **Lägg till kontroll** lägger till den, och den måste uppfylla samma krav som varje kontroll med anpassad SQL. Det kräver att OneUptime AI är påslaget för projektet. I MongoDB blir resultatet en aggregeringspipeline.
 
 ## Segment
 

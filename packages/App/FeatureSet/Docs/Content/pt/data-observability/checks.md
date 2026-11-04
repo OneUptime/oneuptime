@@ -26,7 +26,7 @@ Cada verificação roda a cada 15 minutos, hora, 6 horas ou dia, como uma única
 
 ## Uma verificação a partir de uma frase
 
-**Escrever uma verificação a partir de uma frase** transforma uma regra como "pedidos nunca têm total negativo" em uma verificação de SQL personalizado que conta as linhas que a violam, no próprio SQL do seu mecanismo, com um alerta quando alguma violar. Você lê a consulta antes que **Adicionar verificação** a adicione, e ela segue as mesmas regras de qualquer verificação de SQL personalizado. É preciso que o OneUptime AI esteja ativado para o projeto.
+**Escrever uma verificação a partir de uma frase** transforma uma regra como "pedidos nunca têm total negativo" em uma verificação de SQL personalizado que conta as linhas que a violam, no próprio SQL do seu mecanismo, com um alerta quando alguma violar. Você lê a consulta antes que **Adicionar verificação** a adicione, e ela segue as mesmas regras de qualquer verificação de SQL personalizado. É preciso que o OneUptime AI esteja ativado para o projeto. No MongoDB, o resultado é um pipeline de agregação.
 
 ## Segmentos
 
