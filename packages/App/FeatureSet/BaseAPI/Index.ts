@@ -980,6 +980,9 @@ import OpenStackCloudConnectionTestService, {
 import VMwareVCenterService, {
   Service as VMwareVCenterServiceType,
 } from "Common/Server/Services/VMwareVCenterService";
+import VMwareVCenterConnectionTestService, {
+  Service as VMwareVCenterConnectionTestServiceType,
+} from "Common/Server/Services/VMwareVCenterConnectionTestService";
 import IoTFleetService, {
   Service as IoTFleetServiceType,
 } from "Common/Server/Services/IoTFleetService";
@@ -1658,6 +1661,7 @@ import ProxmoxCluster from "Common/Models/DatabaseModels/ProxmoxCluster";
 import OpenStackCloud from "Common/Models/DatabaseModels/OpenStackCloud";
 import OpenStackCloudConnectionTest from "Common/Models/DatabaseModels/OpenStackCloudConnectionTest";
 import VMwareVCenter from "Common/Models/DatabaseModels/VMwareVCenter";
+import VMwareVCenterConnectionTest from "Common/Models/DatabaseModels/VMwareVCenterConnectionTest";
 import IoTFleet from "Common/Models/DatabaseModels/IoTFleet";
 import DockerSwarmCluster from "Common/Models/DatabaseModels/DockerSwarmCluster";
 import ProxmoxClusterOwnerTeam from "Common/Models/DatabaseModels/ProxmoxClusterOwnerTeam";
@@ -5800,6 +5804,17 @@ const BaseAPIFeatureSet: FeatureSet = {
       new BaseAPI<VMwareVCenter, VMwareVCenterServiceType>(
         VMwareVCenter,
         VMwareVCenterService,
+      ).getRouter(),
+    );
+
+    app.use(
+      `/${APP_NAME.toLocaleLowerCase()}`,
+      new BaseAPI<
+        VMwareVCenterConnectionTest,
+        VMwareVCenterConnectionTestServiceType
+      >(
+        VMwareVCenterConnectionTest,
+        VMwareVCenterConnectionTestService,
       ).getRouter(),
     );
 
