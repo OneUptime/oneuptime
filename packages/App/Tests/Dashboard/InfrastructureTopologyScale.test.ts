@@ -33,14 +33,18 @@ import {
  * (generous here, so a slow CI machine does not flake), and that it is
  * still the right tree at that size.
  *
- * process.hrtime is used rather than Date.now so the measurement is
- * monotonic and this file stays free of wall-clock reads.
- *
- * A query counts as the fastest of a few attempts (Common's fastestRun):
+ * Every timing counts as the fastest of a few attempts (Common's fastestRun):
  * a garbage collection of this estate's heap can stall one attempt for
- * longer than the query takes - one search took 2,246 ms on a runner where
- * the same searches took 192 ms between them. Searching and drawing the
- * map keep nothing between calls, so each attempt does the same work.
+ * longer than the work takes - one search took 2,246 ms on a runner where
+ * the same searches took 192 ms between them. Building, indexing, searching
+ * and drawing the map keep nothing between calls, so each attempt does the
+ * same work.
+ *
+ * The bounds are real and it was the load that was not: three of these, then
+ * timed once each, failed on a machine with a load average in the hundreds.
+ * At a load average of 92 (2026-11-04) the build took 7,026 ms, the build
+ * with inactive resources 4,297 ms and the index 1,326 ms, against bounds of
+ * 15,000, 15,000 and 10,000. None of the bounds moved.
  */
 
 const NOW: Date = new Date("2026-09-07T10:00:00Z");
@@ -61,16 +65,18 @@ const BUILD_BOUND_MS: number = 15000;
 const INDEX_BOUND_MS: number = 10000;
 const QUERY_BOUND_MS: number = 2000;
 
+/*
+ * What jest allows a timing that keeps overrunning, for all its attempts and
+ * the reference work after them. Not a budget: the bounds above are.
+ */
+const ATTEMPTS_TIMEOUT_MS: number = 300000;
+
 interface Estate {
   entities: Array<TopologyEntity>;
   relationships: Array<TopologyRelationship>;
   collections: Array<InfrastructureCollection>;
   inactivePods: number;
   bareHosts: number;
-}
-
-function elapsedSince(start: bigint): number {
-  return Number(process.hrtime.bigint() - start) / 1000000;
 }
 
 function entity(
@@ -223,14 +229,19 @@ let buildMs: number = 0;
 
 beforeAll(() => {
   estate = buildEstate();
-  const start: bigint = process.hrtime.bigint();
-  model = buildInfrastructureTopologyModel(
-    estate.entities,
-    estate.relationships,
-    { rangeStart: RANGE_START, collections: estate.collections },
-  );
-  buildMs = elapsedSince(start);
-}, 120000);
+  const build: FastestRun<InfrastructureTopologyModel> = fastestRun({
+    run: (): InfrastructureTopologyModel => {
+      return buildInfrastructureTopologyModel(
+        estate.entities,
+        estate.relationships,
+        { rangeStart: RANGE_START, collections: estate.collections },
+      );
+    },
+    limitInMs: BUILD_BOUND_MS,
+  });
+  model = build.result;
+  buildMs = build.inMs;
+}, ATTEMPTS_TIMEOUT_MS);
 
 describe("the estate", () => {
   test("is as large as the Topology API is built for", () => {
@@ -252,17 +263,24 @@ describe("building the model", () => {
   });
 
   test("with inactive resources shown too", () => {
-    const start: bigint = process.hrtime.bigint();
-    const withInactive: InfrastructureTopologyModel =
-      buildInfrastructureTopologyModel(estate.entities, estate.relationships, {
-        rangeStart: RANGE_START,
-        includeInactive: true,
-        collections: estate.collections,
-      });
-    expect(elapsedSince(start)).toBeLessThan(BUILD_BOUND_MS);
-    expect(withInactive.inactiveCount).toBe(0);
-    expect(withInactive.resourceCount).toBe(RESOURCES + 250000);
-  }, 120000);
+    const withInactive: FastestRun<InfrastructureTopologyModel> = fastestRun({
+      run: (): InfrastructureTopologyModel => {
+        return buildInfrastructureTopologyModel(
+          estate.entities,
+          estate.relationships,
+          {
+            rangeStart: RANGE_START,
+            includeInactive: true,
+            collections: estate.collections,
+          },
+        );
+      },
+      limitInMs: BUILD_BOUND_MS,
+    });
+    expect(withInactive.inMs).toBeLessThan(BUILD_BOUND_MS);
+    expect(withInactive.result.inactiveCount).toBe(0);
+    expect(withInactive.result.resourceCount).toBe(RESOURCES + 250000);
+  }, ATTEMPTS_TIMEOUT_MS);
 
   test("is still exactly the right tree", () => {
     expect(model.inactiveCount).toBe(estate.inactivePods + 10000);
@@ -325,10 +343,15 @@ describe("searching the model", () => {
   let indexMs: number = 0;
 
   beforeAll(() => {
-    const start: bigint = process.hrtime.bigint();
-    index = buildInfrastructureSearchIndex(model);
-    indexMs = elapsedSince(start);
-  }, 120000);
+    const built: FastestRun<InfrastructureSearchIndex> = fastestRun({
+      run: (): InfrastructureSearchIndex => {
+        return buildInfrastructureSearchIndex(model);
+      },
+      limitInMs: INDEX_BOUND_MS,
+    });
+    index = built.result;
+    indexMs = built.inMs;
+  }, ATTEMPTS_TIMEOUT_MS);
 
   test("the index builds once within the bound and covers every searchable node", () => {
     expect(indexMs).toBeLessThan(INDEX_BOUND_MS);
