@@ -77,8 +77,6 @@ describe("matching a key Firehose sent", () => {
   });
 
   test("a key with a space around it is not the key", () => {
-    expect(CloudStreamKeys.matchesAny(` ${made.key}`, [made.hash])).toBe(
-      false,
-    );
+    expect(CloudStreamKeys.matchesAny(` ${made.key}`, [made.hash])).toBe(false);
   });
 });

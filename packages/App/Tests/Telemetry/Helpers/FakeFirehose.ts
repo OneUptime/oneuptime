@@ -244,8 +244,8 @@ export async function sendFirehoseDelivery(data: {
   requestId: string;
   sourceArn?: string | undefined;
   body: Buffer | JSONObject;
-  gzip?: boolean;
-  headers?: Record<string, string>;
+  gzip?: boolean | undefined;
+  headers?: Record<string, string> | undefined;
 }): Promise<FirehoseReply> {
   const raw: Buffer = Buffer.isBuffer(data.body)
     ? data.body
@@ -265,7 +265,10 @@ export async function sendFirehoseDelivery(data: {
   };
 
   return await new Promise<FirehoseReply>(
-    (resolve: (reply: FirehoseReply) => void, reject: (error: Error) => void) => {
+    (
+      resolve: (reply: FirehoseReply) => void,
+      reject: (error: Error) => void,
+    ) => {
       const request: http.ClientRequest = http.request(
         {
           host: "127.0.0.1",

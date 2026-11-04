@@ -76,7 +76,9 @@ export interface CloudStreamRefused {
   connectionId?: ObjectID | undefined;
 }
 
-export type CloudStreamAuthentication = CloudStreamAuthorized | CloudStreamRefused;
+export type CloudStreamAuthentication =
+  | CloudStreamAuthorized
+  | CloudStreamRefused;
 
 export const WRONG_STREAM_KEY_MESSAGE: string =
   "This is not the connection's stream key. In OneUptime, open Cloud > Connect, choose Stream metrics and logs on the connection, make a new key and run the command again.";

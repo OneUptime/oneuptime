@@ -282,7 +282,8 @@ export const isCloudStreamPath: (path: string) => boolean = (
   return [CLOUD_STREAM_METRICS_PATH, CLOUD_STREAM_LOGS_PATH].some(
     (streamPath: string): boolean => {
       return (
-        path === streamPath || path === `${CLOUD_STREAM_URL_PREFIX}${streamPath}`
+        path === streamPath ||
+        path === `${CLOUD_STREAM_URL_PREFIX}${streamPath}`
       );
     },
   );

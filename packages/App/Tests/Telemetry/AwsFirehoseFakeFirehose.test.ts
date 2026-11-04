@@ -22,12 +22,15 @@ jest.mock("Common/Server/Utils/PasswordHash", () => {
   };
 });
 
-jest.mock("../../FeatureSet/Telemetry/Services/Queue/MetricsQueueService", () => {
-  return {
-    __esModule: true,
-    default: { addMetricIngestJob: jest.fn() },
-  };
-});
+jest.mock(
+  "../../FeatureSet/Telemetry/Services/Queue/MetricsQueueService",
+  () => {
+    return {
+      __esModule: true,
+      default: { addMetricIngestJob: jest.fn() },
+    };
+  },
+);
 
 jest.mock("../../FeatureSet/Telemetry/Services/Queue/LogsQueueService", () => {
   return {
@@ -39,7 +42,15 @@ jest.mock("../../FeatureSet/Telemetry/Services/Queue/LogsQueueService", () => {
 import http from "http";
 import zlib from "zlib";
 import { AddressInfo } from "net";
-import { afterAll, afterEach, beforeAll, beforeEach, describe, expect, test } from "@jest/globals";
+import {
+  afterAll,
+  afterEach,
+  beforeAll,
+  beforeEach,
+  describe,
+  expect,
+  test,
+} from "@jest/globals";
 import CloudConnection from "Common/Models/DatabaseModels/CloudConnection";
 import Service from "Common/Models/DatabaseModels/Service";
 import Redis from "Common/Server/Infrastructure/Redis";
@@ -49,7 +60,10 @@ import ProjectService from "Common/Server/Services/ProjectService";
 import CloudStreamActivity from "Common/Server/Utils/CloudConnection/CloudStreamActivity";
 import CloudStreamAuthenticator from "Common/Server/Utils/CloudConnection/CloudStreamAuthentication";
 import CloudStreamKeys from "Common/Server/Utils/CloudConnection/CloudStreamKeys";
-import { createExpressApp, ExpressApplication } from "Common/Server/Utils/Express";
+import {
+  createExpressApp,
+  ExpressApplication,
+} from "Common/Server/Utils/Express";
 import LlmConnectionPullRunner from "Common/Server/Utils/LlmObservability/LlmConnectionPullRunner";
 import TelemetryUtil from "Common/Server/Utils/Telemetry/Telemetry";
 import TelemetryIngestionKeyRateLimiter, {
@@ -124,8 +138,12 @@ import {
  * `jest` is the global one.
  */
 
-const PROJECT_A: ObjectID = new ObjectID("11111111-1111-4111-8111-111111111111");
-const PROJECT_B: ObjectID = new ObjectID("55555555-5555-4555-8555-555555555555");
+const PROJECT_A: ObjectID = new ObjectID(
+  "11111111-1111-4111-8111-111111111111",
+);
+const PROJECT_B: ObjectID = new ObjectID(
+  "55555555-5555-4555-8555-555555555555",
+);
 const CONNECTION_A: ObjectID = new ObjectID(
   "33333333-3333-4333-8333-333333333333",
 );
@@ -145,8 +163,16 @@ const KEY_B: string = keyOf(CONNECTION_B, "b2");
 
 let server: http.Server;
 let port: number;
-let metricJobs: Array<{ projectId: string; body: JSONObject; productType: string }>;
-let logJobs: Array<{ projectId: string; body: JSONObject; productType: string }>;
+let metricJobs: Array<{
+  projectId: string;
+  body: JSONObject;
+  productType: string;
+}>;
+let logJobs: Array<{
+  projectId: string;
+  body: JSONObject;
+  productType: string;
+}>;
 let summaries: Map<string, CloudStreamSummary>;
 let rateDecision: TelemetryIngestionKeyLimitOutcome;
 let queueFails: boolean;
@@ -232,13 +258,18 @@ function expectFirehoseAnswer(
   }
 }
 
-function resourceAttribute(resource: JSONObject, key: string): string | undefined {
+function resourceAttribute(
+  resource: JSONObject,
+  key: string,
+): string | undefined {
   const attributes: Array<JSONObject> = (resource["resource"] as JSONObject)[
     "attributes"
   ] as Array<JSONObject>;
-  const found: JSONObject | undefined = attributes.find((attribute: JSONObject) => {
-    return attribute["key"] === key;
-  });
+  const found: JSONObject | undefined = attributes.find(
+    (attribute: JSONObject) => {
+      return attribute["key"] === key;
+    },
+  );
   return found
     ? ((found["value"] as JSONObject)["stringValue"] as string)
     : undefined;
@@ -254,24 +285,27 @@ const EC2_CPU: JSONObject = openTelemetryMetric({
   max: 12.5,
 });
 
-const LAMBDA_EVENTS: Array<{ id: string; timestamp: number; message: string }> = [
-  {
-    id: "31953106606966983378809025079804211143289615424298221568",
-    timestamp: MINUTE_START_MS + 1000,
-    message: "START RequestId: 0b1d2c3e-1111-2222-3333-444455556666 Version: $LATEST\n",
-  },
-  {
-    id: "31953106606966983378809025079804211143289615424298221569",
-    timestamp: MINUTE_START_MS + 1200,
-    message:
-      "2026-11-04T09:59:01.200Z\t0b1d2c3e-1111-2222-3333-444455556666\tERROR\tPayment failed: card declined\n",
-  },
-  {
-    id: "31953106606966983378809025079804211143289615424298221570",
-    timestamp: MINUTE_START_MS + 1300,
-    message: '{"timestamp":"2026-11-04T09:59:01.300Z","level":"WARN","message":"retrying"}',
-  },
-];
+const LAMBDA_EVENTS: Array<{ id: string; timestamp: number; message: string }> =
+  [
+    {
+      id: "31953106606966983378809025079804211143289615424298221568",
+      timestamp: MINUTE_START_MS + 1000,
+      message:
+        "START RequestId: 0b1d2c3e-1111-2222-3333-444455556666 Version: $LATEST\n",
+    },
+    {
+      id: "31953106606966983378809025079804211143289615424298221569",
+      timestamp: MINUTE_START_MS + 1200,
+      message:
+        "2026-11-04T09:59:01.200Z\t0b1d2c3e-1111-2222-3333-444455556666\tERROR\tPayment failed: card declined\n",
+    },
+    {
+      id: "31953106606966983378809025079804211143289615424298221570",
+      timestamp: MINUTE_START_MS + 1300,
+      message:
+        '{"timestamp":"2026-11-04T09:59:01.300Z","level":"WARN","message":"retrying"}',
+    },
+  ];
 
 beforeAll(async () => {
   const app: ExpressApplication = createExpressApp();
@@ -449,7 +483,9 @@ describe("a metric stream in OpenTelemetry 1.0", () => {
     );
 
     const metric: JSONObject = (
-      (resource["scopeMetrics"] as Array<JSONObject>)[0]!["metrics"] as Array<JSONObject>
+      (resource["scopeMetrics"] as Array<JSONObject>)[0]![
+        "metrics"
+      ] as Array<JSONObject>
     )[0]!;
     const point: JSONObject = (
       (metric["summary"] as JSONObject)["dataPoints"] as Array<JSONObject>
@@ -469,7 +505,9 @@ describe("a metric stream in OpenTelemetry 1.0", () => {
       metricJobs[0]!.body["resourceMetrics"] as Array<JSONObject>
     )[0]!;
     const metric: JSONObject = (
-      (resource["scopeMetrics"] as Array<JSONObject>)[0]!["metrics"] as Array<JSONObject>
+      (resource["scopeMetrics"] as Array<JSONObject>)[0]![
+        "metrics"
+      ] as Array<JSONObject>
     )[0]!;
     const point: JSONObject = (
       (metric["summary"] as JSONObject)["dataPoints"] as Array<JSONObject>
@@ -481,7 +519,9 @@ describe("a metric stream in OpenTelemetry 1.0", () => {
       attributes: {
         ...TelemetryUtil.getAttributes({
           prefixKeysWithString: "resource",
-          items: (resource["resource"] as JSONObject)["attributes"] as JSONArray,
+          items: (resource["resource"] as JSONObject)[
+            "attributes"
+          ] as JSONArray,
         }),
         ...TelemetryUtil.getAttributes({
           prefixKeysWithString: "",
@@ -555,7 +595,9 @@ describe("a metric stream in JSON", () => {
       metricJobs[0]!.body["resourceMetrics"] as Array<JSONObject>
     )[0]!;
     const metric: JSONObject = (
-      (resource["scopeMetrics"] as Array<JSONObject>)[0]!["metrics"] as Array<JSONObject>
+      (resource["scopeMetrics"] as Array<JSONObject>)[0]![
+        "metrics"
+      ] as Array<JSONObject>
     )[0]!;
     const point: JSONObject = (
       (metric["summary"] as JSONObject)["dataPoints"] as Array<JSONObject>
@@ -625,13 +667,16 @@ describe("CloudWatch Logs subscriptions", () => {
     });
 
     const records: Array<JSONObject> = (
-      (resource["scopeLogs"] as Array<JSONObject>)[0]!["logRecords"] as Array<JSONObject>
-    );
+      resource["scopeLogs"] as Array<JSONObject>
+    )[0]!["logRecords"] as Array<JSONObject>;
 
     expect(records).toHaveLength(3);
     expect(
       records.map((record: JSONObject) => {
-        return [record["severityText"], (record["body"] as JSONObject)["stringValue"]];
+        return [
+          record["severityText"],
+          (record["body"] as JSONObject)["stringValue"],
+        ];
       }),
     ).toEqual([
       ["", LAMBDA_EVENTS[0]!.message],
@@ -645,7 +690,8 @@ describe("CloudWatch Logs subscriptions", () => {
         items: records[1]!["attributes"] as JSONArray,
       }),
     ).toEqual({
-      "aws.log.stream.name": "2026/11/04/[$LATEST]0123456789abcdef0123456789abcdef",
+      "aws.log.stream.name":
+        "2026/11/04/[$LATEST]0123456789abcdef0123456789abcdef",
       "aws.log.event.id": LAMBDA_EVENTS[1]!.id,
     });
   });
@@ -663,7 +709,9 @@ describe("CloudWatch Logs subscriptions", () => {
     await settle();
 
     // The delivery arrived: the person setting the stream up sees it did.
-    expect(summaries.get(CONNECTION_A.toString())?.lastDeliveryAt).toBeDefined();
+    expect(
+      summaries.get(CONNECTION_A.toString())?.lastDeliveryAt,
+    ).toBeDefined();
   });
 
   test("a group no rule reads lands unfiled, under its account and Region", async () => {
@@ -702,7 +750,11 @@ describe("CloudWatch Logs subscriptions", () => {
             logGroup: "/aws/rds/instance/orders-db/error",
             logStream: "orders-db",
             events: [
-              { id: "1", timestamp: MINUTE_START_MS, message: "ERROR: deadlock detected" },
+              {
+                id: "1",
+                timestamp: MINUTE_START_MS,
+                message: "ERROR: deadlock detected",
+              },
             ],
           }),
           { gzip: false },
@@ -885,7 +937,9 @@ describe("who a delivery is from", () => {
     });
 
     expectFirehoseAnswer(reply, { status: 401, requestId });
-    expect(reply.body["errorMessage"]).toContain("not the connection's stream key");
+    expect(reply.body["errorMessage"]).toContain(
+      "not the connection's stream key",
+    );
     expect(metricJobs).toHaveLength(0);
 
     await settle();
@@ -947,8 +1001,12 @@ describe("who a delivery is from", () => {
 
   test("a service.name or a connection id a record carries is replaced by the key's", async () => {
     const forged: JSONObject = openTelemetryRequest([EC2_CPU]);
-    const resource: JSONObject = (forged["resourceMetrics"] as Array<JSONObject>)[0]!;
-    ((resource["resource"] as JSONObject)["attributes"] as Array<JSONObject>).push(
+    const resource: JSONObject = (
+      forged["resourceMetrics"] as Array<JSONObject>
+    )[0]!;
+    (
+      (resource["resource"] as JSONObject)["attributes"] as Array<JSONObject>
+    ).push(
       { key: "service.name", value: { stringValue: "someone else" } },
       {
         key: "oneuptime.cloud.connection.id",
@@ -973,7 +1031,9 @@ describe("who a delivery is from", () => {
     );
     expect(
       keys.filter((key: string) => {
-        return key === "service.name" || key === "oneuptime.cloud.connection.id";
+        return (
+          key === "service.name" || key === "oneuptime.cloud.connection.id"
+        );
       }),
     ).toHaveLength(2);
   });
@@ -1077,7 +1137,9 @@ describe("what makes Firehose send a batch again", () => {
   });
 
   test("the rate is counted per connection, never per project or per caller", async () => {
-    await deliver({ records: [openTelemetryRecord([openTelemetryRequest([EC2_CPU])])] });
+    await deliver({
+      records: [openTelemetryRecord([openTelemetryRequest([EC2_CPU])])],
+    });
 
     expect(TelemetryIngestionKeyRateLimiter.consume).toHaveBeenCalledWith({
       ingestionKeyId: CONNECTION_A,

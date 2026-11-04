@@ -154,7 +154,9 @@ describe("Firehose's envelope", () => {
     expect(
       "problem" in
         readFirehoseEnvelope(
-          Buffer.from(JSON.stringify({ records: [{ data: "a".repeat(1_365_337) }] })),
+          Buffer.from(
+            JSON.stringify({ records: [{ data: "a".repeat(1_365_337) }] }),
+          ),
         ),
     ).toBe(true);
   });
@@ -189,21 +191,24 @@ describe("the stream's Region", () => {
 
 describe("a metric stream's JSON format", () => {
   test("an update is the OpenTelemetry 1.0 summary of its minute", () => {
-    const update: { accountId: string; region: string; metric: JSONObject } | null =
-      readJsonMetricUpdate({
-        metric_stream_name: "OneUptime-6f1c3a2e",
-        account_id: "123456789012",
-        region: "us-east-1",
-        namespace: "AWS/ELB",
-        metric_name: "RequestCount",
-        dimensions: {
-          AvailabilityZone: "us-east-1a",
-          LoadBalancerName: "some-load-balancer",
-        },
-        timestamp: 1611929698000,
-        value: { max: 10.0, min: 0.0, sum: 12.0, count: 2.0, "p99.9": 9.5 },
-        unit: "Count",
-      });
+    const update: {
+      accountId: string;
+      region: string;
+      metric: JSONObject;
+    } | null = readJsonMetricUpdate({
+      metric_stream_name: "OneUptime-6f1c3a2e",
+      account_id: "123456789012",
+      region: "us-east-1",
+      namespace: "AWS/ELB",
+      metric_name: "RequestCount",
+      dimensions: {
+        AvailabilityZone: "us-east-1a",
+        LoadBalancerName: "some-load-balancer",
+      },
+      timestamp: 1611929698000,
+      value: { max: 10.0, min: 0.0, sum: 12.0, count: 2.0, "p99.9": 9.5 },
+      unit: "Count",
+    });
 
     expect(update).toEqual({
       accountId: "123456789012",
@@ -377,7 +382,9 @@ describe("a CloudWatch Logs delivery", () => {
       ],
     });
 
-    expect(message?.logEvents).toEqual([{ id: "1", timestamp: 5, message: "kept" }]);
+    expect(message?.logEvents).toEqual([
+      { id: "1", timestamp: 5, message: "kept" },
+    ]);
     expect(readCloudWatchLogsMessage({ messageType: "OTHER" })).toBeNull();
     expect(readCloudWatchLogsMessage(null)).toBeNull();
   });
@@ -420,7 +427,10 @@ describe("the severity a log line says", () => {
     ["[ERROR]\t2026-11-04T09:59:01.200Z\treq\tTraceback", "ERROR"],
     ["[WARNING]\t2026-11-04T09:59:01.200Z\treq\tdeprecated", "WARN"],
     // Lambda's JSON log format, and loggers that write JSON.
-    ['{"timestamp":"2026-11-04T09:59:01Z","level":"ERROR","message":"x"}', "ERROR"],
+    [
+      '{"timestamp":"2026-11-04T09:59:01Z","level":"ERROR","message":"x"}',
+      "ERROR",
+    ],
     ['{"severity":"warning","msg":"x"}', "WARN"],
     ['{"levelname":"CRITICAL"}', "FATAL"],
     // A first word that is a level.
@@ -445,9 +455,7 @@ describe("the severity a log line says", () => {
   test("reads only the start of a long line", () => {
     const run: FastestRun<string | undefined> = fastestRun({
       run: (): string | undefined => {
-        return inferCloudWatchLogSeverity(
-          `x\t${"\t".repeat(400_000)}`,
-        )?.text;
+        return inferCloudWatchLogSeverity(`x\t${"\t".repeat(400_000)}`)?.text;
       },
       limitInMs: 2000,
     });
@@ -601,9 +609,10 @@ describe("telling records apart", () => {
 
 describe("splitting a delivery into jobs", () => {
   test("keeps whole resources together, up to the limit, and one larger alone", () => {
-    const resource: (count: number) => { resource: JSONObject; count: number } = (
-      count: number,
-    ): { resource: JSONObject; count: number } => {
+    const resource: (count: number) => {
+      resource: JSONObject;
+      count: number;
+    } = (count: number): { resource: JSONObject; count: number } => {
       return { resource: { count }, count };
     };
 

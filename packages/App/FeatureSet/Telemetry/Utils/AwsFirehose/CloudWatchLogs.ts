@@ -269,9 +269,7 @@ const SEVERITIES: ReadonlyMap<string, { number: number; text: string }> =
 const MAX_JSON_MESSAGE_FOR_LEVEL: number = 64 * 1024;
 const HEAD_LENGTH: number = 200;
 
-function severityOfWord(
-  word: string,
-): { number: number; text: string } | null {
+function severityOfWord(word: string): { number: number; text: string } | null {
   let text: string = word.trim();
 
   if (text.startsWith("[") && text.endsWith("]")) {
@@ -290,10 +288,7 @@ export function inferCloudWatchLogSeverity(
 ): { number: number; text: string } | null {
   const trimmed: string = message.trimStart();
 
-  if (
-    trimmed.startsWith("{") &&
-    trimmed.length <= MAX_JSON_MESSAGE_FOR_LEVEL
-  ) {
+  if (trimmed.startsWith("{") && trimmed.length <= MAX_JSON_MESSAGE_FOR_LEVEL) {
     try {
       const document: JSONObject = readObject(JSON.parse(trimmed));
 
@@ -447,7 +442,9 @@ export function buildResourceLogs(data: {
         ...(message.logStream
           ? [stringAttribute(AWS_LOG_STREAM_NAME_ATTRIBUTE, message.logStream)]
           : []),
-        ...(event.id ? [stringAttribute(AWS_LOG_EVENT_ID_ATTRIBUTE, event.id)] : []),
+        ...(event.id
+          ? [stringAttribute(AWS_LOG_EVENT_ID_ATTRIBUTE, event.id)]
+          : []),
       ];
 
       group.records.push({

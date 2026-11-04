@@ -60,7 +60,9 @@ interface AwsLogGroupRule {
     parts: Array<string>,
   ) => { dimensions: Record<string, string>; region?: string } | null;
   // Resource attributes the logs carry for it, beside cloud.resource_id.
-  attributes?: ((dimensions: Record<string, string>) => Record<string, string>) | undefined;
+  attributes?:
+    | ((dimensions: Record<string, string>) => Record<string, string>)
+    | undefined;
 }
 
 function isIdentity(value: string | undefined): value is string {
@@ -75,9 +77,7 @@ function isIdentity(value: string | undefined): value is string {
 function firstPart(
   dimension: string,
   minimum: number,
-): (
-  parts: Array<string>,
-) => { dimensions: Record<string, string> } | null {
+): (parts: Array<string>) => { dimensions: Record<string, string> } | null {
   return (
     parts: Array<string>,
   ): { dimensions: Record<string, string> } | null => {
@@ -124,7 +124,9 @@ export const AWS_LOG_GROUP_RULES: ReadonlyArray<AwsLogGroupRule> = [
     namespace: "AWS/Lambda",
     type: "AWS::Lambda::Function",
     read: readLambdaFunction,
-    attributes: (dimensions: Record<string, string>): Record<string, string> => {
+    attributes: (
+      dimensions: Record<string, string>,
+    ): Record<string, string> => {
       return {
         "cloud.platform": FaasCloudPlatform.AwsLambda,
         "faas.name": dimensions["FunctionName"]!,
@@ -208,11 +210,12 @@ export const AWS_LOG_GROUP_RULES: ReadonlyArray<AwsLogGroupRule> = [
 ];
 
 // The resource types a stream can deliver logs of.
-export const AWS_LOG_GROUP_RESOURCE_TYPES: ReadonlySet<string> = new Set<string>(
-  AWS_LOG_GROUP_RULES.map((rule: AwsLogGroupRule): string => {
-    return rule.type;
-  }),
-);
+export const AWS_LOG_GROUP_RESOURCE_TYPES: ReadonlySet<string> =
+  new Set<string>(
+    AWS_LOG_GROUP_RULES.map((rule: AwsLogGroupRule): string => {
+      return rule.type;
+    }),
+  );
 
 // Whether a resource's page has a Logs tab: its type is one a log group names.
 export function canCloudResourceHaveStreamedLogs(data: {
@@ -240,7 +243,8 @@ export function getAwsLogGroupResource(data: {
   accountId: string;
   region: string;
 }): CloudLogGroupResource | null {
-  const logGroup: string = typeof data.logGroup === "string" ? data.logGroup : "";
+  const logGroup: string =
+    typeof data.logGroup === "string" ? data.logGroup : "";
 
   if (
     logGroup.length === 0 ||

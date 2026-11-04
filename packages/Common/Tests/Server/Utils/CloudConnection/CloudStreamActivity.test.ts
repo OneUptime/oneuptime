@@ -126,7 +126,11 @@ describe("a delivery taken", () => {
       connectionId: CONNECTION,
       now: NOW,
       sightings: [
-        { accountId: "123456789012", region: "us-east-1", namespaces: ["AWS/EC2"] },
+        {
+          accountId: "123456789012",
+          region: "us-east-1",
+          namespaces: ["AWS/EC2"],
+        },
       ],
     });
     await settle();
@@ -152,7 +156,11 @@ describe("a delivery taken", () => {
       connectionId: CONNECTION,
       now: at(CLOUD_STREAM_SUMMARY_WRITE_INTERVAL_MS),
       sightings: [
-        { accountId: "123456789012", region: "us-east-1", namespaces: ["AWS/Lambda"] },
+        {
+          accountId: "123456789012",
+          region: "us-east-1",
+          namespaces: ["AWS/Lambda"],
+        },
       ],
     });
     await settle();
@@ -185,7 +193,11 @@ describe("a delivery taken", () => {
       connectionId: CONNECTION,
       now: NOW,
       sightings: [
-        { accountId: "123456789012", region: "us-east-1", namespaces: ["AWS/EC2"] },
+        {
+          accountId: "123456789012",
+          region: "us-east-1",
+          namespaces: ["AWS/EC2"],
+        },
       ],
     });
     await settle();
@@ -203,7 +215,11 @@ describe("a delivery taken", () => {
       connectionId: CONNECTION,
       now: NOW,
       sightings: [
-        { accountId: "123456789012", region: "us-east-1", logGroups: ["/a", "/b"] },
+        {
+          accountId: "123456789012",
+          region: "us-east-1",
+          logGroups: ["/a", "/b"],
+        },
       ],
     });
     await settle();
@@ -276,7 +292,11 @@ describe("a write that fails", () => {
         connectionId: CONNECTION,
         now: NOW,
         sightings: [
-          { accountId: "123456789012", region: "us-east-1", namespaces: ["AWS/EC2"] },
+          {
+            accountId: "123456789012",
+            region: "us-east-1",
+            namespaces: ["AWS/EC2"],
+          },
         ],
       });
     }).not.toThrow();

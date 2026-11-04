@@ -50,7 +50,10 @@ export interface DeliverySightings {
     { accountId: string; region: string; namespaces: Set<string> }
   >;
   // "account|region": the log groups its logs came from.
-  logs: Map<string, { accountId: string; region: string; logGroups: Set<string> }>;
+  logs: Map<
+    string,
+    { accountId: string; region: string; logGroups: Set<string> }
+  >;
 }
 
 // One OTLP resource of the delivery, and how many datapoints or records it holds.

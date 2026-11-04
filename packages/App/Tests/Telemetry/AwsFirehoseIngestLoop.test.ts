@@ -181,7 +181,29 @@ beforeEach(() => {
     );
   });
 
-  for (const ingestService of [OtelLogsIngestService, OtelMetricsIngestService]) {
+  // What each ingest service would discover, kept for the tests to read.
+  const recordCloudResources: (
+    ...args: Array<unknown>
+  ) => Promise<number> = async (...args: Array<unknown>): Promise<number> => {
+    const data: { resources: Array<CloudMonitoredResource> } = args[0] as {
+      resources: Array<CloudMonitoredResource>;
+    };
+    discoveredResources.push(...data.resources);
+    return data.resources.length;
+  };
+  const recordServerless: (...args: Array<unknown>) => Promise<null> = async (
+    ...args: Array<unknown>
+  ): Promise<null> => {
+    serverlessAttributes.push(
+      (args[0] as { attributes: JSONArray }).attributes,
+    );
+    return null;
+  };
+
+  for (const ingestService of [
+    OtelLogsIngestService,
+    OtelMetricsIngestService,
+  ]) {
     /* eslint-disable @typescript-eslint/no-explicit-any */
     const service: Record<string, any> = ingestService as unknown as Record<
       string,
@@ -194,21 +216,10 @@ beforeEach(() => {
 
     jest
       .spyOn(service, "autoDiscoverCloudMonitoredResources")
-      .mockImplementation(async (...args: Array<unknown>): Promise<number> => {
-        const data: { resources: Array<CloudMonitoredResource> } = args[0] as {
-          resources: Array<CloudMonitoredResource>;
-        };
-        discoveredResources.push(...data.resources);
-        return data.resources.length;
-      });
+      .mockImplementation(recordCloudResources);
     jest
       .spyOn(service, "autoDiscoverServerless")
-      .mockImplementation(async (...args: Array<unknown>): Promise<null> => {
-        serverlessAttributes.push(
-          (args[0] as { attributes: JSONArray }).attributes,
-        );
-        return null;
-      });
+      .mockImplementation(recordServerless);
     jest
       .spyOn(service, "resolveTelemetryResource")
       .mockImplementation(async (): Promise<TelemetryServiceMetadata> => {
@@ -216,7 +227,9 @@ beforeEach(() => {
       });
 
     if (ingestService === OtelMetricsIngestService) {
-      jest.spyOn(service, "runBatchHostEnrichment").mockResolvedValue(undefined);
+      jest
+        .spyOn(service, "runBatchHostEnrichment")
+        .mockResolvedValue(undefined);
     }
   }
 
@@ -251,7 +264,9 @@ function polledInstance(): CloudMonitoredResource {
   const datapoint: Array<OtlpAttribute> = [
     stringAttribute("Namespace", "AWS/EC2"),
     stringAttribute("MetricName", "CPUUtilization"),
-    kvlistAttribute("Dimensions", [stringAttribute("InstanceId", "i-0abc123def")]),
+    kvlistAttribute("Dimensions", [
+      stringAttribute("InstanceId", "i-0abc123def"),
+    ]),
   ];
 
   return resolveCloudResourceOf({
@@ -402,8 +417,9 @@ describe("streamed logs, through the real logs ingest", () => {
     ).toBe(functionArn);
 
     // Serverless discovery is handed the function's identity.
-    const identity: { functionIdentifier: string } | null =
-      baseService["resolveServerlessFunctionIdentity"](serverlessAttributes[0]);
+    const identity: { functionIdentifier: string } | null = baseService[
+      "resolveServerlessFunctionIdentity"
+    ](serverlessAttributes[0]);
 
     expect(identity?.functionIdentifier).toBe("checkout");
   });

@@ -51,7 +51,10 @@ function readArray(value: unknown): JSONArray {
   return Array.isArray(value) ? (value as JSONArray) : [];
 }
 
-export function readStringAttribute(attributes: JSONArray, key: string): string {
+export function readStringAttribute(
+  attributes: JSONArray,
+  key: string,
+): string {
   for (const raw of attributes) {
     const attribute: JSONObject = readObject(raw);
 
@@ -220,8 +223,11 @@ export function decodeJsonMetricRecord(text: string): Array<JSONObject> {
       continue;
     }
 
-    const update: { accountId: string; region: string; metric: JSONObject } | null =
-      readJsonMetricUpdate(readObject(parsed));
+    const update: {
+      accountId: string;
+      region: string;
+      metric: JSONObject;
+    } | null = readJsonMetricUpdate(readObject(parsed));
 
     if (!update) {
       continue;
@@ -332,7 +338,10 @@ export function readMetricResourceFacts(
     for (const rawMetric of readArray(readObject(rawScope)["metrics"])) {
       const metric: JSONObject = readObject(rawMetric);
       const series: JSONObject = readObject(
-        metric["summary"] || metric["gauge"] || metric["sum"] || metric["histogram"],
+        metric["summary"] ||
+          metric["gauge"] ||
+          metric["sum"] ||
+          metric["histogram"],
       );
 
       for (const rawPoint of readArray(series["dataPoints"])) {

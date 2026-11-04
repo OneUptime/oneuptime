@@ -201,13 +201,14 @@ export default class AwsFirehoseIngestService {
         body = await AwsFirehoseIngestService.readBody(req);
 
         if (encoding === "gzip") {
-          body = await gunzipBounded(body, CLOUD_STREAM_MAX_DECODED_BYTES).catch(
-            (error: unknown): never => {
-              throw AwsFirehoseIngestService.isTooLarge(error)
-                ? new TooLarge()
-                : new MalformedBody();
-            },
-          );
+          body = await gunzipBounded(
+            body,
+            CLOUD_STREAM_MAX_DECODED_BYTES,
+          ).catch((error: unknown): never => {
+            throw AwsFirehoseIngestService.isTooLarge(error)
+              ? new TooLarge()
+              : new MalformedBody();
+          });
         }
       } catch (error) {
         if (error instanceof TooLarge) {
@@ -309,7 +310,10 @@ export default class AwsFirehoseIngestService {
       );
 
       // Firehose sends a 500 again; the message says nothing of the server.
-      return answer(500, "OneUptime could not take this delivery. Firehose sends it again.");
+      return answer(
+        500,
+        "OneUptime could not take this delivery. Firehose sends it again.",
+      );
     }
   }
 
@@ -427,7 +431,10 @@ export default class AwsFirehoseIngestService {
       10,
     );
 
-    if (Number.isFinite(declared) && declared > CLOUD_STREAM_MAX_REQUEST_BYTES) {
+    if (
+      Number.isFinite(declared) &&
+      declared > CLOUD_STREAM_MAX_REQUEST_BYTES
+    ) {
       AwsFirehoseIngestService.drain(req);
       throw new TooLarge();
     }

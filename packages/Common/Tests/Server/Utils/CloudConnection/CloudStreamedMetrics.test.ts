@@ -39,7 +39,11 @@ function resource(data: {
 }
 
 function gauge(name: string, points: Array<JSONObject>): JSONObject {
-  return { name, unit: "Percent", gauge: { dataPoints: points } } as unknown as JSONObject;
+  return {
+    name,
+    unit: "Percent",
+    gauge: { dataPoints: points },
+  } as unknown as JSONObject;
 }
 
 const EC2: string = "amazonaws.com/AWS/EC2/CPUUtilization";
@@ -78,7 +82,9 @@ function namesOf(payload: JSONObject | null): Array<string> {
 
   const names: Array<string> = [];
 
-  for (const resourceMetrics of payload["resourceMetrics"] as Array<JSONObject>) {
+  for (const resourceMetrics of payload[
+    "resourceMetrics"
+  ] as Array<JSONObject>) {
     const region: string = (
       (
         (resourceMetrics["resource"] as JSONObject)[
@@ -109,7 +115,11 @@ describe("a read's payload while a stream delivers", () => {
       withoutStreamedMetrics({
         payload: PAYLOAD,
         streamedKeys: keys([
-          { accountId: "123456789012", region: "us-east-1", namespace: "AWS/EC2" },
+          {
+            accountId: "123456789012",
+            region: "us-east-1",
+            namespace: "AWS/EC2",
+          },
         ]),
       });
 
@@ -128,7 +138,11 @@ describe("a read's payload while a stream delivers", () => {
       withoutStreamedMetrics({
         payload: PAYLOAD,
         streamedKeys: keys([
-          { accountId: "123456789012", region: "us-east-1", namespace: "AWS/S3" },
+          {
+            accountId: "123456789012",
+            region: "us-east-1",
+            namespace: "AWS/S3",
+          },
         ]),
       });
 
@@ -149,7 +163,11 @@ describe("a read's payload while a stream delivers", () => {
           ],
         } as unknown as JSONObject,
         streamedKeys: keys([
-          { accountId: "123456789012", region: "us-east-1", namespace: "aws/ec2" },
+          {
+            accountId: "123456789012",
+            region: "us-east-1",
+            namespace: "aws/ec2",
+          },
         ]),
       });
 

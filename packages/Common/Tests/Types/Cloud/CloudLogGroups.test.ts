@@ -41,17 +41,21 @@ function fromMetrics(data: {
     attributes[`Dimensions.${name}`] = value;
   }
 
-  const resource: CloudMonitoredResource | null =
-    resolveCloudMonitoredResource({
+  const resource: CloudMonitoredResource | null = resolveCloudMonitoredResource(
+    {
       metricName: `amazonaws.com/${data.namespace}/AnyMetric`,
       attributes,
-    });
+    },
+  );
 
   expect(resource).not.toBeNull();
   return resource!;
 }
 
-function fromLogs(logGroup: string, region: string = REGION): CloudLogGroupResource {
+function fromLogs(
+  logGroup: string,
+  region: string = REGION,
+): CloudLogGroupResource {
   const filed: CloudLogGroupResource | null = getAwsLogGroupResource({
     logGroup,
     accountId: ACCOUNT,
@@ -192,7 +196,9 @@ describe("log groups AWS names after their resource", () => {
     expect(
       fromLogs("/aws/lambda/checkout", "us-gov-west-1").resource
         .providerResourceId,
-    ).toBe("arn:aws-us-gov:lambda:us-gov-west-1:123456789012:function:checkout");
+    ).toBe(
+      "arn:aws-us-gov:lambda:us-gov-west-1:123456789012:function:checkout",
+    );
     expect(
       fromLogs("/aws/lambda/checkout", "cn-north-1").resource
         .providerResourceId,
