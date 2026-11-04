@@ -26,7 +26,7 @@ Hver sjekk kjører hvert 15. minutt, hver time, hver 6. time eller hver dag, som
 
 ## En sjekk ut fra en setning
 
-**Skriv en sjekk fra en setning** gjør en regel som «ordrer har aldri en negativ totalsum» om til en sjekk med egendefinert SQL som teller radene som bryter regelen, i databasemotorens egen SQL, med et varsel når noen gjør det. Du leser spørringen før **Legg til sjekk** legger den til, og den holdes til alt som gjelder for enhver sjekk med egendefinert SQL. Det krever at OneUptime AI er slått på for prosjektet.
+**Skriv en sjekk fra en setning** gjør en regel som «ordrer har aldri en negativ totalsum» om til en sjekk med egendefinert SQL som teller radene som bryter regelen, i databasemotorens egen SQL, med et varsel når noen gjør det. Du leser spørringen før **Legg til sjekk** legger den til, og den holdes til alt som gjelder for enhver sjekk med egendefinert SQL. Det krever at OneUptime AI er slått på for prosjektet. I MongoDB er resultatet en aggregeringspipeline.
 
 ## Segmenter
 

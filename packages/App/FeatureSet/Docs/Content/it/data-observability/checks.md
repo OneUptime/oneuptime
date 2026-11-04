@@ -26,7 +26,7 @@ Ogni controllo viene eseguito ogni 15 minuti, ogni ora, ogni 6 ore o ogni giorno
 
 ## Un controllo da una frase
 
-**Scrivi un controllo da una frase** trasforma una regola come «gli ordini non hanno mai un totale negativo» in un controllo SQL personalizzato che conta le righe che la violano, nel SQL del tuo motore, con un avviso non appena ce n'è qualcuna. Leggi la query prima che **Aggiungi controllo** la aggiunga, ed è soggetta a tutte le regole di qualsiasi controllo SQL personalizzato. Richiede che OneUptime AI sia attivo per il progetto.
+**Scrivi un controllo da una frase** trasforma una regola come «gli ordini non hanno mai un totale negativo» in un controllo SQL personalizzato che conta le righe che la violano, nel SQL del tuo motore, con un avviso non appena ce n'è qualcuna. Leggi la query prima che **Aggiungi controllo** la aggiunga, ed è soggetta a tutte le regole di qualsiasi controllo SQL personalizzato. Richiede che OneUptime AI sia attivo per il progetto. Su MongoDB il risultato è una pipeline di aggregazione.
 
 ## Segmenti
 

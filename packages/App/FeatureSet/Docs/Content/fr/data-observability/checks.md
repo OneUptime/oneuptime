@@ -26,7 +26,7 @@ Chaque contrôle s'exécute toutes les 15 minutes, toutes les heures, toutes les
 
 ## Un contrôle à partir d'une phrase
 
-**Écrire un contrôle à partir d'une phrase** transforme une règle comme « les commandes n'ont jamais un total négatif » en un contrôle SQL personnalisé qui compte les lignes qui l'enfreignent, dans le SQL propre à votre moteur, avec une alerte dès qu'il y en a. Vous lisez la requête avant que **Ajouter le contrôle** ne l'ajoute, et elle est soumise aux mêmes règles que tout contrôle SQL personnalisé. Il faut pour cela que OneUptime AI soit activé pour le projet.
+**Écrire un contrôle à partir d'une phrase** transforme une règle comme « les commandes n'ont jamais un total négatif » en un contrôle SQL personnalisé qui compte les lignes qui l'enfreignent, dans le SQL propre à votre moteur, avec une alerte dès qu'il y en a. Vous lisez la requête avant que **Ajouter le contrôle** ne l'ajoute, et elle est soumise aux mêmes règles que tout contrôle SQL personnalisé. Il faut pour cela que OneUptime AI soit activé pour le projet. Sur MongoDB, le résultat est un pipeline d'agrégation.
 
 ## Segments
 

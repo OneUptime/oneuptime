@@ -26,7 +26,7 @@ Hvert tjek kører hvert 15. minut, hver time, hver 6. time eller hver dag som é
 
 ## Et tjek ud fra en sætning
 
-**Skriv et tjek ud fra en sætning** gør en regel som "ordrer har aldrig en negativ total" til et tjek med brugerdefineret SQL, der tæller de rækker, der bryder den, i din motors egen SQL, med en advarsel, når der er nogen. Du læser forespørgslen, før **Tilføj tjek** tilføjer den, og den skal opfylde de samme krav som ethvert tjek med brugerdefineret SQL. Det kræver, at OneUptime AI er slået til for projektet.
+**Skriv et tjek ud fra en sætning** gør en regel som "ordrer har aldrig en negativ total" til et tjek med brugerdefineret SQL, der tæller de rækker, der bryder den, i din motors egen SQL, med en advarsel, når der er nogen. Du læser forespørgslen, før **Tilføj tjek** tilføjer den, og den skal opfylde de samme krav som ethvert tjek med brugerdefineret SQL. Det kræver, at OneUptime AI er slået til for projektet. I MongoDB er resultatet en aggregeringspipeline.
 
 ## Segmenter
 
