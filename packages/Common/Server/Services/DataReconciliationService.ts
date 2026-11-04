@@ -125,10 +125,13 @@ export class Service extends ProjectReferencesService<Model> {
 
     checkInterval(data["intervalInMinutes"]);
 
-    const reconciliations: Array<Model> = await this.findBy({
-      query: updateBy.query,
-      select: {
-        _id: true,
+    /*
+     * Every reconciliation the update writes, and the update held to them:
+     * each one is checked as it will be saved - however many - and never one
+     * its caller may not write.
+     */
+    const reconciliations: Array<Model> =
+      await this.findRowsAndHoldUpdateToThem(updateBy, {
         toleranceType: true,
         tolerance: true,
         sourceMeasure: true,
@@ -137,11 +140,7 @@ export class Service extends ProjectReferencesService<Model> {
         targetMeasure: true,
         targetColumnName: true,
         targetCustomSql: true,
-      },
-      limit: 10,
-      skip: 0,
-      props: { isRoot: true },
-    });
+      });
 
     for (const reconciliation of reconciliations) {
       const error: string | null = getDataReconciliationError({
