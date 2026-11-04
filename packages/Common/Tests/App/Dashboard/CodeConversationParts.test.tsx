@@ -7,7 +7,7 @@ import {
   test,
 } from "@jest/globals";
 import "@testing-library/jest-dom";
-import { cleanup, render, screen, within } from "@testing-library/react";
+import { act, cleanup, render, screen, within } from "@testing-library/react";
 import userEvent from "@testing-library/user-event";
 import { createInstance, i18n } from "i18next";
 import React, { ReactElement } from "react";
@@ -81,6 +81,7 @@ import {
   TelemetryAiLane,
 } from "../../../Types/AI/TelemetryAi";
 import CodeTaskSteps, {
+  ARRIVED_STEP_CLASS_NAME,
   LIVE_STEPS_SHOWN,
 } from "../../../../App/FeatureSet/Dashboard/src/Components/Code/CodeTaskSteps";
 import CodeTaskChangesView, {
@@ -1200,6 +1201,410 @@ describe("steps", () => {
     expect(toggle.querySelector("svg")?.getAttribute("class")).toContain(
       "flex-shrink-0",
     );
+  });
+});
+
+/*
+ * The UI review of live steps (#5696). The page now reads only what is new
+ * while AI works, so what used to be drawn again on every three-second read
+ * of the whole task keeps up on its own: how long the turn has taken, and
+ * the line that says a wait has grown long. A step that arrives rises into
+ * place, as Ask AI's answers do, and so does the reply when the turn ends
+ * in view; what was there when the page opened never moves.
+ */
+describe("live: what keeps up on its own, and what arrives", () => {
+  const NOW: Date = new Date("2026-11-03T10:00:00.000Z");
+
+  function minutesBefore(minutes: number): string {
+    return new Date(NOW.getTime() - minutes * 60000).toISOString();
+  }
+
+  // Steps that arrived while the reader watched, by their words.
+  function arrivedSteps(): Array<string> {
+    return screen
+      .queryAllByTestId("code-task-step")
+      .filter((element: HTMLElement): boolean => {
+        return element.getAttribute("data-step-arrived") === "true";
+      })
+      .map((element: HTMLElement): string => {
+        return element.textContent || "";
+      });
+  }
+
+  function inProvider(element: ReactElement): ReactElement {
+    return <I18nextProvider i18n={translation}>{element}</I18nextProvider>;
+  }
+
+  afterEach(() => {
+    jest.useRealTimers();
+  });
+
+  test("working: how long so far counts up on its own, with nothing new read", () => {
+    jest.useFakeTimers();
+    jest.setSystemTime(NOW);
+
+    draw(
+      <ol>
+        <CodeTaskTurn
+          isLatest={true}
+          turn={turn({
+            status: AIRunStatus.Running,
+            state: CodeTaskState.Working,
+            createdAt: minutesBefore(3),
+            startedAt: minutesBefore(2),
+            completedAt: undefined,
+            steps: steps(1, CodeTaskStepKind.Ran),
+          })}
+        />
+      </ol>,
+    );
+
+    expect(screen.getByTestId("code-turn-duration")).toHaveTextContent(
+      "2 minutes so far",
+    );
+
+    // A test suite runs for three minutes: no step, no read of anything.
+    act(() => {
+      jest.advanceTimersByTime(3 * 60000);
+    });
+
+    expect(screen.getByTestId("code-turn-duration")).toHaveTextContent(
+      "5 minutes so far",
+    );
+  });
+
+  test("finished: how long it worked is said once, and no clock is kept for it", () => {
+    jest.useFakeTimers();
+    jest.setSystemTime(NOW);
+
+    draw(
+      <ol>
+        <CodeTaskTurn
+          isLatest={true}
+          turn={turn({
+            createdAt: minutesBefore(30),
+            startedAt: minutesBefore(29),
+            completedAt: minutesBefore(21),
+          })}
+        />
+      </ol>,
+    );
+
+    expect(screen.getByTestId("code-turn-duration")).toHaveTextContent(
+      "worked 8 minutes",
+    );
+    expect(jest.getTimerCount()).toBe(0);
+  });
+
+  test("queued: what to check comes on its own once the wait has grown long", () => {
+    jest.useFakeTimers();
+    jest.setSystemTime(NOW);
+
+    draw(
+      <ol>
+        <CodeTaskTurn
+          isLatest={true}
+          turn={turn({
+            status: AIRunStatus.Queued,
+            state: CodeTaskState.Working,
+            createdAt: minutesBefore(4),
+            startedAt: undefined,
+            completedAt: undefined,
+          })}
+        />
+      </ol>,
+    );
+
+    expect(screen.queryByTestId("code-turn-slow-queue")).toBeNull();
+
+    // Nobody picks it up, and nothing is announced while it waits.
+    act(() => {
+      jest.advanceTimersByTime(60000);
+    });
+
+    expect(screen.getByTestId("code-turn-slow-queue")).toHaveTextContent(
+      "Taking longer than usual? Check that a Runner is online and up to date in Runners.",
+    );
+  });
+
+  test("on the byline, how long it took and its Log go together - they wrap onto a phone's next line as one", () => {
+    draw(
+      <ol>
+        <CodeTaskTurn
+          isLatest={true}
+          logRoute={new Route("/dashboard/x/code/tasks/y/log")}
+          turn={turn({
+            status: AIRunStatus.Running,
+            state: CodeTaskState.Working,
+            completedAt: undefined,
+            steps: steps(2, CodeTaskStepKind.Read),
+          })}
+        />
+      </ol>,
+    );
+
+    const facts: HTMLElement = screen.getByTestId("code-turn-facts");
+    expect(within(facts).getByTestId("code-turn-duration")).toHaveTextContent(
+      "so far",
+    );
+    expect(within(facts).getByRole("link", { name: "Log" })).toHaveAttribute(
+      "href",
+      "/dashboard/x/code/tasks/y/log",
+    );
+    expect(facts.className).toContain("inline-flex");
+    expect(facts.className).toContain("flex-wrap");
+  });
+
+  test("a step that arrives while AI works rises into place - only it, and only once", () => {
+    expect(ARRIVED_STEP_CLASS_NAME).toBe("ou-ai-rise");
+
+    const { rerender } = render(
+      inProvider(
+        <CodeTaskSteps isLive={true} steps={steps(2, CodeTaskStepKind.Read)} />,
+      ),
+    );
+
+    // What the list held when it was first drawn was not seen arriving.
+    expect(arrivedSteps()).toEqual([]);
+
+    rerender(
+      inProvider(
+        <CodeTaskSteps isLive={true} steps={steps(3, CodeTaskStepKind.Read)} />,
+      ),
+    );
+    expect(arrivedSteps()).toEqual(["Read src/file-3.ts"]);
+    const newest: HTMLElement = screen.getAllByTestId("code-task-step")[2]!;
+    expect(newest.className).toContain(ARRIVED_STEP_CLASS_NAME);
+    expect(screen.getAllByTestId("code-task-step")[0]!.className).not.toContain(
+      ARRIVED_STEP_CLASS_NAME,
+    );
+
+    // Two more at once: both rise, the one before them is settled.
+    rerender(
+      inProvider(
+        <CodeTaskSteps isLive={true} steps={steps(5, CodeTaskStepKind.Read)} />,
+      ),
+    );
+    expect(arrivedSteps()).toEqual([
+      "Read src/file-4.ts",
+      "Read src/file-5.ts",
+    ]);
+  });
+
+  test("a step shown again by Show earlier steps never rises, nor does a finished turn's", async () => {
+    const { rerender } = render(
+      inProvider(
+        <CodeTaskSteps isLive={true} steps={steps(8, CodeTaskStepKind.Read)} />,
+      ),
+    );
+    rerender(
+      inProvider(
+        <CodeTaskSteps isLive={true} steps={steps(9, CodeTaskStepKind.Read)} />,
+      ),
+    );
+    expect(arrivedSteps()).toEqual(["Read src/file-9.ts"]);
+
+    await userEvent.click(
+      screen.getByRole("button", { name: "Show 3 earlier steps" }),
+    );
+    expect(screen.getAllByTestId("code-task-step")).toHaveLength(9);
+    expect(arrivedSteps()).toEqual([]);
+
+    cleanup();
+    render(
+      inProvider(
+        <CodeTaskSteps
+          isLive={false}
+          steps={steps(3, CodeTaskStepKind.Read)}
+        />,
+      ),
+    );
+    await userEvent.click(screen.getByTestId("code-task-steps-toggle"));
+    expect(screen.getAllByTestId("code-task-step")).toHaveLength(3);
+    expect(arrivedSteps()).toEqual([]);
+  });
+
+  test("even a turn's first steps rise: its steps are drawn from the turn's start, before the first one", () => {
+    const queued: CodeTaskTurnJSON = turn({
+      status: AIRunStatus.Queued,
+      state: CodeTaskState.Working,
+      createdAt: new Date().toISOString(),
+      startedAt: undefined,
+      completedAt: undefined,
+    });
+
+    const { rerender } = render(
+      inProvider(
+        <ol>
+          <CodeTaskTurn isLatest={true} turn={queued} />
+        </ol>,
+      ),
+    );
+    expect(screen.getByTestId("code-turn-working")).toHaveTextContent(
+      "Waiting for a Runner to pick this up…",
+    );
+
+    rerender(
+      inProvider(
+        <ol>
+          <CodeTaskTurn
+            isLatest={true}
+            turn={{
+              ...queued,
+              status: AIRunStatus.Running,
+              startedAt: new Date().toISOString(),
+              steps: steps(2, CodeTaskStepKind.Read),
+            }}
+          />
+        </ol>,
+      ),
+    );
+    expect(arrivedSteps()).toEqual([
+      "Read src/file-1.ts",
+      "Read src/file-2.ts",
+    ]);
+  });
+
+  test("the reply rises into place when the turn ends in view; a turn opened finished never moves", () => {
+    const workingTurn: CodeTaskTurnJSON = turn({
+      status: AIRunStatus.Running,
+      state: CodeTaskState.Working,
+      completedAt: undefined,
+      steps: steps(3, CodeTaskStepKind.Read),
+    });
+
+    const { rerender } = render(
+      inProvider(
+        <ol>
+          <CodeTaskTurn isLatest={true} turn={workingTurn} />
+        </ol>,
+      ),
+    );
+    const body: () => HTMLElement = (): HTMLElement => {
+      return screen.getByTestId("code-turn-body");
+    };
+    expect(body()).not.toHaveAttribute("data-turn-ended-in-view");
+    expect(body().className).not.toContain(ARRIVED_STEP_CLASS_NAME);
+
+    rerender(
+      inProvider(
+        <ol>
+          <CodeTaskTurn
+            isLatest={true}
+            turn={{
+              ...workingTurn,
+              status: AIRunStatus.Completed,
+              state: CodeTaskState.Done,
+              completedAt: new Date().toISOString(),
+              outcome: { summary: "Charges retry twice.", filesChanged: [] },
+            }}
+          />
+        </ol>,
+      ),
+    );
+    expect(body()).toHaveAttribute("data-turn-ended-in-view", "true");
+    expect(body().className).toContain(ARRIVED_STEP_CLASS_NAME);
+    expect(within(body()).getByTestId("code-turn-summary")).toHaveTextContent(
+      "Charges retry twice.",
+    );
+
+    cleanup();
+    draw(
+      <ol>
+        <CodeTaskTurn
+          isLatest={true}
+          turn={turn({
+            outcome: { summary: "Charges retry twice.", filesChanged: [] },
+          })}
+        />
+      </ol>,
+    );
+    expect(body()).not.toHaveAttribute("data-turn-ended-in-view");
+    expect(body().className).not.toContain(ARRIVED_STEP_CLASS_NAME);
+  });
+
+  test("Show earlier steps is a quiet button of the summary's look: lit under the pointer, ringed under the keyboard", () => {
+    draw(
+      <CodeTaskSteps isLive={true} steps={steps(8, CodeTaskStepKind.Read)} />,
+    );
+
+    const earlier: HTMLElement = screen.getByTestId("code-task-steps-earlier");
+    expect(earlier).toHaveAccessibleName("Show 2 earlier steps");
+    for (const className of [
+      "hover:bg-gray-100",
+      "focus-visible:ring-2",
+      "rounded-md",
+      "-ml-1.5",
+      "px-1.5",
+    ]) {
+      expect(earlier.className.split(" ")).toContain(className);
+    }
+    // Its chevron points up, at what it opens, above the steps' marks.
+    expect(earlier.querySelector("svg")).not.toBeNull();
+  });
+
+  /*
+   * Showing the earlier steps removes the button that was pressed: with
+   * nothing to hold it, the focus fell to the top of the page.
+   */
+  test("Show earlier steps hands the focus to the steps it opened", async () => {
+    draw(
+      <CodeTaskSteps isLive={true} steps={steps(8, CodeTaskStepKind.Read)} />,
+    );
+
+    const earlier: HTMLElement = screen.getByTestId("code-task-steps-earlier");
+    earlier.focus();
+    await userEvent.keyboard("{Enter}");
+
+    expect(screen.queryByTestId("code-task-steps-earlier")).toBeNull();
+    expect(screen.getAllByTestId("code-task-step")).toHaveLength(8);
+    const list: HTMLElement = screen.getByTestId("code-task-steps-list");
+    expect(document.activeElement).toBe(list);
+    expect(list).toHaveAttribute("tabindex", "-1");
+  });
+
+  test("a person's words, and OneUptime's own, keep the direction they were written in (dir=auto)", () => {
+    draw(
+      <ol>
+        <CodeTaskTurn
+          isLatest={true}
+          turn={turn({
+            request: { message: "Retry charges. Never twice.", context: [] },
+          })}
+        />
+      </ol>,
+    );
+    expect(
+      within(screen.getByTestId("code-turn-request-message")).getByText(
+        "Retry charges. Never twice.",
+      ),
+    ).toHaveAttribute("dir", "auto");
+
+    cleanup();
+    draw(
+      <ol>
+        <CodeTaskTurn
+          isLatest={true}
+          origin={{
+            type: CodeTaskOriginType.Insight,
+            label: "OrderParser.parse takes 18% of the CPU time in checkout",
+            recordId: INSIGHT_ID,
+          }}
+          turn={turn({
+            requestedBy: undefined,
+            request: {
+              message: "Make OrderParser.parse faster.",
+              context: [],
+            },
+          })}
+        />
+      </ol>,
+    );
+    expect(
+      within(screen.getByTestId("code-turn-request-message")).getByText(
+        "Make OrderParser.parse faster.",
+      ),
+    ).toHaveAttribute("dir", "auto");
   });
 });
 
