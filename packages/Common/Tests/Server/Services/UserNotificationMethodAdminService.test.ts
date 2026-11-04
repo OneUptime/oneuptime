@@ -455,7 +455,7 @@ describe("listing", () => {
         userId: targetUserId,
       });
 
-    expect(methods).toHaveLength(7);
+    expect(methods).toHaveLength(8);
 
     /*
      * The real maskIdentifier, not a stub, so these are the exact shapes an

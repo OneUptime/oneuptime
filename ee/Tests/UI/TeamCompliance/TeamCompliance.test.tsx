@@ -289,7 +289,7 @@ beforeEach(() => {
   mockPermissions = [];
   mockCustomChannels = [];
   /*
-   * Both chat workspaces connected, so the rule form offers everything.
+   * Every chat workspace connected, so the rule form offers everything.
    * Recorded rather than asked, so no test counts that request as its own.
    */
   window.localStorage.clear();
@@ -297,6 +297,7 @@ beforeEach(() => {
   ConnectedWorkspaces.setConnected(PROJECT_ID, [
     WorkspaceType.Slack,
     WorkspaceType.MicrosoftTeams,
+    WorkspaceType.Mattermost,
   ]);
   jest.spyOn(ModelAPI, "getCommonHeaders").mockReturnValue({});
   jest.spyOn(ProjectUtil, "getCurrentProjectId").mockReturnValue(PROJECT_ID);
@@ -2342,6 +2343,12 @@ describe("Slack and Microsoft Teams in the rule form", () => {
     expect(offered.channels).not.toContain(
       ComplianceNotificationChannel.MicrosoftTeams,
     );
+    expect(offered.ruleTypes).not.toContain(
+      ComplianceRuleType.HasNotificationMattermostMethod,
+    );
+    expect(offered.channels).not.toContain(
+      ComplianceNotificationChannel.Mattermost,
+    );
     expect(offered.ruleTypes).toHaveLength(11);
     expect(offered.channels).toHaveLength(7);
   });
@@ -2359,12 +2366,12 @@ describe("Slack and Microsoft Teams in the rule form", () => {
       ComplianceRuleType.HasNotificationMicrosoftTeamsMethod,
     );
     expect(offered.channels).toContain(ComplianceNotificationChannel.Slack);
-    expect(offered.ruleTypes).toHaveLength(13);
+    expect(offered.ruleTypes).toHaveLength(14);
     // The custom channel too, though no custom channel is on.
     expect(offered.channels).toContain(
       ComplianceNotificationChannel.CustomChannel,
     );
-    expect(offered.channels).toHaveLength(10);
+    expect(offered.channels).toHaveLength(11);
   });
 
   test("a new rule offers the custom channel only while the server has one on", async () => {

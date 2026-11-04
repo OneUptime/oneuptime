@@ -1009,7 +1009,7 @@ describe("OnCallRulesTable", () => {
   test("the signed-in user's own table still reads the method models itself", async () => {
     /*
      * The regression surface. The settings page every existing user already
-     * relies on reads their own nine models to fill this dropdown, and reading
+     * relies on reads their own ten models to fill this dropdown, and reading
      * your own rows is exactly what those models allow. Nothing about the admin
      * surface is a reason to change it - and an unmasked label is more use to
      * somebody looking at their own phone number than a mask of it.
@@ -1026,7 +1026,7 @@ describe("OnCallRulesTable", () => {
       getQueriedUserIds().filter((userId: string | undefined) => {
         return userId === CURRENT_USER_ID_STRING;
       }),
-    ).toHaveLength(9);
+    ).toHaveLength(10);
 
     expect(getMethodOptions(capturedTables[0]!)).toEqual([
       { label: `Email: ${OWN_EMAIL_ADDRESS}`, value: OWN_EMAIL_ID },

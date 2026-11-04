@@ -98,6 +98,10 @@ export class Service extends DatabaseService<Model> {
       throw new BadDataException("mattermostUserId cannot be set directly");
     }
 
+    if (!createBy.props.isRoot && createBy.data.mattermostUserName) {
+      throw new BadDataException("mattermostUserName cannot be set directly");
+    }
+
     if (!createBy.data.projectId || !createBy.data.userId) {
       throw new BadDataException("projectId and userId are required");
     }

@@ -876,14 +876,14 @@ describe("UserNotificationRuleService.executeNotificationRuleItem", () => {
       expect(spies.workspaceMessage).not.toHaveBeenCalled();
       expect(spies.push).not.toHaveBeenCalled();
 
-      // One Error row per unverified channel: 8 in total.
-      expect(timelineRows).toHaveLength(8);
+      // One Error row per unverified channel: 9 in total.
+      expect(timelineRows).toHaveLength(9);
       for (const row of timelineRows) {
         expect(row.status).toBe(UserNotificationStatus.Error);
       }
 
       /*
-       * Seven say the method is not verified. The push row says what an
+       * Eight say the method is not verified. The push row says what an
        * unverified push device is - one its push service or Expo said is
        * gone - and how to bring it back: "device is not verified" told
        * on-call nothing they could act on.

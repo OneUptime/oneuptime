@@ -1252,7 +1252,7 @@ describe("UserNotificationRuleService channel x event coverage", () => {
       expect(FULL_MATRIX).toHaveLength(
         CHANNEL_NAMES.length * EVENT_NAMES.length,
       );
-      expect(FULL_MATRIX).toHaveLength(36);
+      expect(FULL_MATRIX).toHaveLength(40);
     });
   });
 

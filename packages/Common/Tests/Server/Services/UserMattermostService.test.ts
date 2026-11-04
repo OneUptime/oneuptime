@@ -195,12 +195,10 @@ describe("UserMattermostService", () => {
       ).rejects.toThrow("mattermostUserId cannot be set directly");
     });
 
-    test("a username the caller sends is replaced by the one the sign-in link recorded", async () => {
-      const result: OnCreate<UserMattermost> = await callOnBeforeCreate(
-        createBy({ mattermostUserName: "not-alice" }),
-      );
-
-      expect(result.createBy.data.mattermostUserName).toBe("alice");
+    test("a non-root caller supplying mattermostUserName is refused - the label comes from the sign-in link too", async () => {
+      await expect(
+        callOnBeforeCreate(createBy({ mattermostUserName: "not-alice" })),
+      ).rejects.toThrow("mattermostUserName cannot be set directly");
     });
 
     test("a project that is not connected to Mattermost is refused with the settings pointer", async () => {

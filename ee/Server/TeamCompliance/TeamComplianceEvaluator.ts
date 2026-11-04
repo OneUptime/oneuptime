@@ -95,6 +95,8 @@ export const METHOD_RULE_FAILURE_REASONS: Readonly<
     "No verified Slack account configured for notifications",
   [ComplianceNotificationChannel.MicrosoftTeams]:
     "No verified Microsoft Teams account configured for notifications",
+  [ComplianceNotificationChannel.Mattermost]:
+    "No verified Mattermost account configured for notifications",
   [ComplianceNotificationChannel.Webhook]:
     "No webhook configured for notifications",
 };
@@ -138,7 +140,8 @@ export const SEVERITIES_DELETED_WARNING: string =
  *    cannot meet the rule at all. Its warning says that instead
  *    (getChannelSwitchedOffWarning).
  *
- * Push, Email, Slack, Microsoft Teams and webhooks have no such switch.
+ * Push, Email, Slack, Microsoft Teams, Mattermost and webhooks have no such
+ * switch.
  *
  * Only a project owner, a Billing Admin or someone with Manage Billing may
  * turn one on, and the people reading these warnings - whoever sees the

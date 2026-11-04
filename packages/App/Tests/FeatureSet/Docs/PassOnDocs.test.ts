@@ -81,7 +81,7 @@ const OLD_WORDS: Array<string> = [
 const CHANNEL_ROWS: Array<string> = [
   "Email",
   "SMS and WhatsApp",
-  "Telegram, Slack and Microsoft Teams",
+  "Telegram, Slack, Microsoft Teams and Mattermost",
   "Phone call",
   "Push notification",
   "OneUptime",
@@ -261,10 +261,10 @@ describe("the Escalation Rules page, on escalating a page", () => {
     );
   });
 
-  it("quotes the link Telegram, Slack and Microsoft Teams messages carry", () => {
+  it("quotes the link Telegram, Slack, Microsoft Teams and Mattermost messages carry", () => {
     expect(CANT_TAKE_IT_ESCALATE).toBe("Can't take it? Escalate");
     expect(section).toContain(
-      `| Telegram, Slack and Microsoft Teams | The "${CANT_TAKE_IT_ESCALATE}" link, then **${ESCALATE}** on the page it opens |`,
+      `| Telegram, Slack, Microsoft Teams and Mattermost | The "${CANT_TAKE_IT_ESCALATE}" link, then **${ESCALATE}** on the page it opens |`,
     );
   });
 

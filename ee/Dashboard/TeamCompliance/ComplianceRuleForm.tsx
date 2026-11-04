@@ -74,18 +74,19 @@ const toCardOption: (
 };
 
 /*
- * The two channels that need the project to have connected a chat
- * workspace. A rule asking for a verified Slack account, in a project that
- * never connected Slack, is a rule nobody can meet: so a NEW rule offers
- * Slack and Microsoft Teams only once the project has connected them, as
- * every Workspace menu does. Editing a rule offers everything, so a rule
- * saved before a workspace was disconnected still shows what it asks for.
+ * The channels that need the project to have connected a chat workspace. A
+ * rule asking for a verified Slack account, in a project that never connected
+ * Slack, is a rule nobody can meet: so a NEW rule offers Slack, Microsoft Teams
+ * and Mattermost only once the project has connected them, as every Workspace
+ * menu does. Editing a rule offers everything, so a rule saved before a
+ * workspace was disconnected still shows what it asks for.
  */
 const WORKSPACE_OF_CHANNEL: Readonly<
   Partial<Record<ComplianceNotificationChannel, WorkspaceType>>
 > = {
   [ComplianceNotificationChannel.Slack]: WorkspaceType.Slack,
   [ComplianceNotificationChannel.MicrosoftTeams]: WorkspaceType.MicrosoftTeams,
+  [ComplianceNotificationChannel.Mattermost]: WorkspaceType.Mattermost,
 };
 
 /*
@@ -575,8 +576,8 @@ const ComplianceRuleFormModal: FunctionComponent<ComponentProps> = (
   const isEditing: boolean = Boolean(props.modelIdToEdit);
 
   /*
-   * A new rule offers Slack and Microsoft Teams only for the workspaces the
-   * project has connected; an edit offers everything (see
+   * A new rule offers Slack, Microsoft Teams and Mattermost only for the
+   * workspaces the project has connected; an edit offers everything (see
    * WORKSPACE_OF_CHANNEL). Not known yet, or not knowable: everything.
    */
   const offeredWorkspaces: ReadonlyArray<WorkspaceType> | undefined =

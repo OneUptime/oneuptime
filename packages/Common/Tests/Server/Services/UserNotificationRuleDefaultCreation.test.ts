@@ -595,8 +595,8 @@ describe("addDefaultNotificationRulesForVerifiedMethod - the method lands on the
      * KNOWN DEFECT, pinned as-is. With no id on the descriptor the duplicate
      * check degenerates to (projectId, userId, ruleType) and the created rows
      * carry no notification method at all - onBeforeCreate would reject them
-     * with "Call, SMS, WhatsApp, Telegram, Slack, Microsoft Teams, Webhook,
-     * Email, or Push notification is required" against a real database. Nothing
+     * with "Call, SMS, WhatsApp, Telegram, Slack, Microsoft Teams, Mattermost,
+     * Webhook, Email, or Push notification is required" against a real database. Nothing
      * in this method guards against being handed an empty descriptor.
      */
     await runForDescriptor({});

@@ -9,6 +9,7 @@ import IncidentEpisodeService from "../../../Server/Services/IncidentEpisodeServ
 import WorkspaceUserNotificationService from "../../../Server/Services/WorkspaceUserNotificationService";
 import ShortLinkService from "../../../Server/Services/ShortLinkService";
 import DatabaseConfig from "../../../Server/DatabaseConfig";
+import MattermostUtil from "../../../Server/Utils/Workspace/Mattermost/Mattermost";
 import logger from "../../../Server/Utils/Logger";
 import Hostname from "../../../Types/API/Hostname";
 import Protocol from "../../../Types/API/Protocol";
@@ -550,6 +551,30 @@ describe("deliverNotificationForRule - Slack, Microsoft Teams and Mattermost", (
         expect(sendArg().workspaceType).toBe(WorkspaceType.Mattermost);
         expect(markdownText()).toContain(`[Acknowledge](${ACK_SHORT_URL})`);
       }
+    });
+
+    test("the page reaches Mattermost as one post, its links intact and a mention in its title notifying nobody", async () => {
+      jest.spyOn(IncidentService, "findOneById").mockResolvedValue({
+        id: INCIDENT_ID,
+        projectId: PROJECT_ID,
+        title: "Checkout @channel is down",
+        incidentNumber: 42,
+        incidentNumberWithPrefix: "INC-42",
+      } as unknown as Incident as never);
+
+      await execute();
+
+      const message: string = MattermostUtil.toPost({
+        blocks: MattermostUtil.getBlocksFromWorkspaceMessagePayload({
+          messageBlocks: sendArg().messageBlocks,
+        }),
+        teamId: "t".repeat(26),
+      })["message"] as string;
+
+      expect(message).toContain(`[Acknowledge](${ACK_SHORT_URL})`);
+      expect(message).toContain("Escalate");
+      expect(message).toContain("INC-42");
+      expect(message).not.toContain("@channel");
     });
 
     test("a sender rejection lands on the timeline row, with the channel-named default", async () => {

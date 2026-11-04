@@ -91,7 +91,7 @@ import PermissionGate, { ModelAction } from "Common/UI/Utils/PermissionGate";
  * submits nothing and is refused.
  */
 export interface NotificationMethodChoice {
-  /* One of the ten channel names: Email, SMS, Call, Push, WhatsApp, Telegram, Slack, Microsoft Teams, Webhook, Custom Channel. */
+  /* One of the eleven channel names: Email, SMS, Call, Push, WhatsApp, Telegram, Slack, Microsoft Teams, Mattermost, Webhook, Custom Channel. */
   methodType: string;
   /* The method row's own id — UserSMS._id and so on — as a plain uuid string. */
   methodId: string;
