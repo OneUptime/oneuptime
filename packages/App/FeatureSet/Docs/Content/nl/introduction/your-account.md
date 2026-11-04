@@ -12,7 +12,7 @@ flowchart TB
 
 :::cards
 - [Uw profiel](#uw-profiel): Uw naam, e-mailadres, tijdzone en foto.
-- [Veilig inloggen](#veilig-inloggen): Uw wachtwoord, passkeys en tweestapsverificatie.
+- [Veilig inloggen](#veilig-inloggen): Uw wachtwoord, inloglinks, passkeys en tweestapsverificatie.
 - [Uw projecten](#uw-projecten): Van project wisselen, er een aanmaken en uitnodigingen accepteren.
 - [Gebruikersinstellingen](#wat-elk-project-voor-u-bewaart): Hoe OneUptime u in elk project bereikt.
 :::
@@ -63,7 +63,7 @@ Klap **Beveiliging** open in het zijmenu van **Gebruikersprofiel**. De sectie he
 | --- | --- |
 | **Wachtwoordbeheer** | Een nieuw wachtwoord instellen. |
 | **Passkeys** | Zonder wachtwoord inloggen, met uw vingerafdruk, gezicht, schermvergrendeling of een beveiligingssleutel. |
-| **Two-factor authentication** | Na uw wachtwoord om een tweede stap vragen: een code uit een app, of een beveiligingssleutel. |
+| **Two-factor authentication** | Na uw wachtwoord of een gemailde link om een tweede stap vragen: een code uit een app, of een beveiligingssleutel. |
 
 ### Uw wachtwoord wijzigen
 
@@ -83,9 +83,24 @@ Klap **Beveiliging** open in het zijmenu van **Gebruikersprofiel**. De sectie he
 
 Kies de volgende keer **Inloggen met een passkey** op de inlogpagina.
 
+### Inloggen met een gemailde link
+
+U kunt inloggen met een link in plaats van uw wachtwoord. U hoeft niets in te stellen.
+
+:::steps
+1. Kies op de inlogpagina **Stuur mij een inloglink**.
+2. Voer uw e-mailadres in en klik op **Stuur mij een inloglink**. De pagina toont dan **Controleer uw e-mail**.
+3. Open de link in de e-mail en klik op **Inloggen**.
+:::
+
+De link werkt één keer, gedurende 15 minuten, en een nieuwere link vervangt hem. U kunt hem op een ander apparaat openen, en u bent dan daar ingelogd. Als u tweestapsverificatie gebruikt, vraagt OneUptime nog steeds om uw tweede stap.
+
+> [!NOTE]
+> Hoofdbeheerders van een zelf-gehoste installatie kunnen inloglinks uitschakelen met **Inloggen met een gemailde link toestaan**, onder **Admin Dashboard > Instellingen > Authenticatie**. Links die al zijn verstuurd, werken dan niet meer. Zolang de server SSO vereist, biedt de inlogpagina alleen SSO aan.
+
 ### Tweestapsverificatie inschakelen
 
-Tweestapsverificatie geldt wanneer u met uw wachtwoord inlogt. Voeg eerst een tweede stap toe, en schakel haar dan in.
+Tweestapsverificatie geldt wanneer u met uw wachtwoord of een gemailde link inlogt. Voeg eerst een tweede stap toe, en schakel haar dan in.
 
 :::steps
 ### Een authenticator-app toevoegen
@@ -98,7 +113,7 @@ De eerste keer dat u een app, een sleutel of een passkey toevoegt, toont OneUpti
 
 ### Haar inschakelen
 
-Klik bovenaan de pagina op **Enable two-factor authentication** en bevestig. De kaart toont nu **Ingeschakeld**. Vanaf uw volgende aanmelding met wachtwoord vraagt OneUptime om uw tweede stap.
+Klik bovenaan de pagina op **Enable two-factor authentication** en bevestig. De kaart toont nu **Ingeschakeld**. Vanaf uw volgende aanmelding met wachtwoord of een gemailde link vraagt OneUptime om uw tweede stap.
 :::
 
 > [!TIP]

@@ -12,7 +12,7 @@ flowchart TB
 
 :::cards
 - [Il tuo profilo](#il-tuo-profilo): Il tuo nome, la tua e-mail, il fuso orario e la tua foto.
-- [Accedere in sicurezza](#accedere-in-sicurezza): La password, le passkey e l'autenticazione a due fattori.
+- [Accedere in sicurezza](#accedere-in-sicurezza): La password, i link di accesso, le passkey e l'autenticazione a due fattori.
 - [I tuoi progetti](#i-tuoi-progetti): Cambiare progetto, crearne uno e accettare inviti.
 - [Impostazioni utente](#cosa-conserva-per-te-ogni-progetto): Come OneUptime ti raggiunge in ogni progetto.
 :::
@@ -63,7 +63,7 @@ Espandi **Sicurezza** nel menu laterale di **Profilo utente**. Contiene tre pagi
 | --- | --- |
 | **Gestione password** | Impostare una nuova password. |
 | **Passkeys** | Accedere senza password, con impronta digitale, volto, blocco schermo o una chiave di sicurezza. |
-| **Two-factor authentication** | Chiedere un secondo passaggio dopo la password: un codice da un'app, o una chiave di sicurezza. |
+| **Two-factor authentication** | Chiedere un secondo passaggio dopo la password o un link inviato via e-mail: un codice da un'app, o una chiave di sicurezza. |
 
 ### Cambiare la password
 
@@ -83,9 +83,24 @@ Espandi **Sicurezza** nel menu laterale di **Profilo utente**. Contiene tre pagi
 
 La prossima volta, scegli **Accedi con una passkey** nella pagina di accesso.
 
+### Accedere con un link inviato via e-mail
+
+Puoi accedere con un link invece della password. Non c'è nulla da configurare.
+
+:::steps
+1. Nella pagina di accesso, scegli **Inviami un link di accesso**.
+2. Inserisci il tuo indirizzo e-mail e fai clic su **Inviami un link di accesso**. La pagina mostra quindi **Controlla la tua e-mail**.
+3. Apri il link nell'e-mail e fai clic su **Accedi**.
+:::
+
+Il link funziona una sola volta, per 15 minuti, e un link più recente lo sostituisce. Puoi aprirlo su un altro dispositivo, e l'accesso avviene lì. Se usi l'autenticazione a due fattori, OneUptime ti chiede comunque il secondo passaggio.
+
+> [!NOTE]
+> Gli amministratori principali di un'installazione self-hosted possono disattivare i link di accesso con **Consenti l'accesso con un link inviato via e-mail**, in **Admin Dashboard > Impostazioni > Autenticazione**. I link già inviati smettono quindi di funzionare. Finché il server richiede l'SSO, la pagina di accesso offre solo l'SSO.
+
 ### Attivare l'autenticazione a due fattori
 
-L'autenticazione a due fattori si applica quando accedi con la password. Aggiungi prima un secondo passaggio, poi attivala.
+L'autenticazione a due fattori si applica quando accedi con la password o con un link inviato via e-mail. Aggiungi prima un secondo passaggio, poi attivala.
 
 :::steps
 ### Aggiungere un'app di autenticazione
@@ -98,7 +113,7 @@ La prima volta che aggiungi un'app, una chiave o una passkey, OneUptime mostra *
 
 ### Attivarla
 
-In cima alla pagina, fai clic su **Enable two-factor authentication** e conferma. La scheda ora mostra **Abilitato**. Dal prossimo accesso con password, OneUptime ti chiede il secondo passaggio.
+In cima alla pagina, fai clic su **Enable two-factor authentication** e conferma. La scheda ora mostra **Abilitato**. Dal prossimo accesso con password o con un link inviato via e-mail, OneUptime ti chiede il secondo passaggio.
 :::
 
 > [!TIP]

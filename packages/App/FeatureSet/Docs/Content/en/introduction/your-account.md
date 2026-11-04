@@ -12,7 +12,7 @@ flowchart TB
 
 :::cards
 - [Your profile](#your-profile): Your name, email, time zone and picture.
-- [Signing in securely](#signing-in-securely): Your password, passkeys and two-factor authentication.
+- [Signing in securely](#signing-in-securely): Your password, sign-in links, passkeys and two-factor authentication.
 - [Your projects](#your-projects): Switch projects, create one and accept invitations.
 - [User Settings](#what-each-project-keeps-for-you): How OneUptime reaches you in each project.
 :::
@@ -63,7 +63,7 @@ Expand **Security** in the side menu of **User Profile**. It has three pages.
 | --- | --- |
 | **Password Management** | Set a new password. |
 | **Passkeys** | Sign in without a password, with your fingerprint, face, screen lock or a security key. |
-| **Two-factor authentication** | Ask for a second step after your password: a code from an app, or a security key. |
+| **Two-factor authentication** | Ask for a second step after your password or an emailed link: a code from an app, or a security key. |
 
 ### Change your password
 
@@ -83,9 +83,24 @@ Expand **Security** in the side menu of **User Profile**. It has three pages.
 
 Next time, choose **Sign in with a passkey** on the sign-in page.
 
+### Sign in with an emailed link
+
+You can sign in with a link instead of your password. There is nothing to set up.
+
+:::steps
+1. On the sign-in page, choose **Email me a sign-in link**.
+2. Enter your email address and click **Email me a sign-in link**. The page then shows **Check your email**.
+3. Open the link in the email and click **Sign in**.
+:::
+
+The link works once, for 15 minutes, and a newer link replaces it. You can open it on another device, and you are signed in there. If you use two-factor authentication, OneUptime still asks for your second step.
+
+> [!NOTE]
+> Master admins of a self-hosted installation can turn sign-in links off with **Let people sign in with an emailed link**, on **Admin Dashboard > Settings > Authentication**. Links already sent then stop working. While the server requires SSO, the sign-in page offers SSO only.
+
 ### Turn on two-factor authentication
 
-Two-factor authentication applies when you sign in with your password. Add a second step first, then turn it on.
+Two-factor authentication applies when you sign in with your password or an emailed link. Add a second step first, then turn it on.
 
 :::steps
 ### Add an authenticator app
@@ -98,7 +113,7 @@ The first time you add an app, a key or a passkey, OneUptime shows **Your backup
 
 ### Turn it on
 
-At the top of the page, click **Enable two-factor authentication** and confirm. The card now reads **Enabled**. From your next sign-in with a password, OneUptime asks for your second step.
+At the top of the page, click **Enable two-factor authentication** and confirm. The card now reads **Enabled**. From your next sign-in with a password or an emailed link, OneUptime asks for your second step.
 :::
 
 > [!TIP]

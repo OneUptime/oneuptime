@@ -12,7 +12,7 @@ flowchart TB
 
 :::cards
 - [Tu perfil](#tu-perfil): Tu nombre, tu correo, tu zona horaria y tu foto.
-- [Iniciar sesión de forma segura](#iniciar-sesión-de-forma-segura): Tu contraseña, tus llaves de acceso y la autenticación de dos factores.
+- [Iniciar sesión de forma segura](#iniciar-sesión-de-forma-segura): Tu contraseña, los enlaces de inicio de sesión, tus llaves de acceso y la autenticación de dos factores.
 - [Tus proyectos](#tus-proyectos): Cambiar de proyecto, crear uno y aceptar invitaciones.
 - [Ajustes de usuario](#lo-que-cada-proyecto-guarda-para-ti): Cómo te localiza OneUptime en cada proyecto.
 :::
@@ -63,7 +63,7 @@ Despliega **Seguridad** en el menú lateral de **Perfil de usuario**. Tiene tres
 | --- | --- |
 | **Gestión de contraseñas** | Establecer una contraseña nueva. |
 | **Llaves de acceso** | Iniciar sesión sin contraseña, con tu huella, tu cara, el bloqueo de pantalla o una llave de seguridad. |
-| **Autenticación de dos factores** | Pedir un segundo paso después de tu contraseña: un código de una aplicación, o una llave de seguridad. |
+| **Autenticación de dos factores** | Pedir un segundo paso después de tu contraseña o de un enlace enviado por correo: un código de una aplicación, o una llave de seguridad. |
 
 ### Cambiar tu contraseña
 
@@ -83,9 +83,24 @@ Despliega **Seguridad** en el menú lateral de **Perfil de usuario**. Tiene tres
 
 La próxima vez, elige **Iniciar sesión con una clave de acceso** en la página de inicio de sesión.
 
+### Iniciar sesión con un enlace enviado por correo
+
+Puedes iniciar sesión con un enlace en lugar de tu contraseña. No hay nada que configurar.
+
+:::steps
+1. En la página de inicio de sesión, elige **Enviarme un enlace de inicio de sesión**.
+2. Escribe tu dirección de correo electrónico y haz clic en **Enviarme un enlace de inicio de sesión**. La página muestra entonces **Revise su correo electrónico**.
+3. Abre el enlace del correo y haz clic en **Iniciar sesión**.
+:::
+
+El enlace funciona una sola vez, durante 15 minutos, y un enlace más reciente lo sustituye. Puedes abrirlo en otro dispositivo, y la sesión se inicia allí. Si usas la autenticación de dos factores, OneUptime sigue pidiéndote tu segundo paso.
+
+> [!NOTE]
+> Los administradores principales de una instalación autoalojada pueden desactivar los enlaces de inicio de sesión con **Permitir iniciar sesión con un enlace enviado por correo**, en **Admin Dashboard > Ajustes > Autenticación**. Los enlaces ya enviados dejan entonces de funcionar. Mientras el servidor exija SSO, la página de inicio de sesión solo ofrece SSO.
+
 ### Activar la autenticación de dos factores
 
-La autenticación de dos factores se aplica cuando inicias sesión con tu contraseña. Añade primero un segundo paso y luego actívala.
+La autenticación de dos factores se aplica cuando inicias sesión con tu contraseña o con un enlace enviado por correo. Añade primero un segundo paso y luego actívala.
 
 :::steps
 ### Añadir una aplicación de autenticación
@@ -98,7 +113,7 @@ La primera vez que añades una aplicación, una llave o una llave de acceso, One
 
 ### Activarla
 
-Arriba en la página, haz clic en **Habilitar la autenticación de dos factores** y confirma. La tarjeta muestra ahora **Habilitado**. Desde tu próximo inicio de sesión con contraseña, OneUptime te pide tu segundo paso.
+Arriba en la página, haz clic en **Habilitar la autenticación de dos factores** y confirma. La tarjeta muestra ahora **Habilitado**. Desde tu próximo inicio de sesión con contraseña o con un enlace enviado por correo, OneUptime te pide tu segundo paso.
 :::
 
 > [!TIP]

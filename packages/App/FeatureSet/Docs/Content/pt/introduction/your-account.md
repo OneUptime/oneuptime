@@ -12,7 +12,7 @@ flowchart TB
 
 :::cards
 - [Seu perfil](#seu-perfil): Seu nome, seu e-mail, seu fuso horário e sua foto.
-- [Entrar com segurança](#entrar-com-segurança): Sua senha, suas chaves de acesso e a autenticação em dois fatores.
+- [Entrar com segurança](#entrar-com-segurança): Sua senha, os links de acesso, suas chaves de acesso e a autenticação em dois fatores.
 - [Seus projetos](#seus-projetos): Trocar de projeto, criar um e aceitar convites.
 - [Configurações do usuário](#o-que-cada-projeto-guarda-para-você): Como o OneUptime contata você em cada projeto.
 :::
@@ -63,7 +63,7 @@ Expanda **Segurança** no menu lateral de **Perfil do usuário**. Ela tem três 
 | --- | --- |
 | **Gerenciamento de senhas** | Definir uma senha nova. |
 | **Passkeys** | Entrar sem senha, com sua digital, seu rosto, o bloqueio de tela ou uma chave de segurança. |
-| **Two-factor authentication** | Pedir uma segunda etapa depois da senha: um código de um aplicativo, ou uma chave de segurança. |
+| **Two-factor authentication** | Pedir uma segunda etapa depois da senha ou de um link enviado por e-mail: um código de um aplicativo, ou uma chave de segurança. |
 
 ### Mudar sua senha
 
@@ -83,9 +83,24 @@ Expanda **Segurança** no menu lateral de **Perfil do usuário**. Ela tem três 
 
 Na próxima vez, escolha **Entrar com uma chave de acesso** na página de login.
 
+### Entrar com um link enviado por e-mail
+
+Você pode entrar com um link em vez da sua senha. Não há nada para configurar.
+
+:::steps
+1. Na página de login, escolha **Enviar link de acesso por e-mail**.
+2. Digite seu endereço de e-mail e clique em **Enviar link de acesso**. A página mostra então **Verifique seu e-mail**.
+3. Abra o link do e-mail e clique em **Entrar**.
+:::
+
+O link funciona uma vez, por 15 minutos, e um link mais recente o substitui. Você pode abri-lo em outro dispositivo, e é nele que você entra. Se você usa a autenticação em dois fatores, o OneUptime continua pedindo a sua segunda etapa.
+
+> [!NOTE]
+> Os administradores principais de uma instalação auto-hospedada podem desativar os links de acesso com **Permitir entrar com um link enviado por e-mail**, em **Admin Dashboard > Configurações > Autenticação**. Os links já enviados deixam então de funcionar. Enquanto o servidor exigir SSO, a página de login oferece apenas SSO.
+
 ### Ativar a autenticação em dois fatores
 
-A autenticação em dois fatores vale quando você entra com sua senha. Adicione primeiro uma segunda etapa, e depois ative-a.
+A autenticação em dois fatores vale quando você entra com sua senha ou com um link enviado por e-mail. Adicione primeiro uma segunda etapa, e depois ative-a.
 
 :::steps
 ### Adicionar um aplicativo autenticador
@@ -98,7 +113,7 @@ Na primeira vez que você adiciona um aplicativo, uma chave ou uma chave de aces
 
 ### Ativar
 
-No topo da página, clique em **Enable two-factor authentication** e confirme. O cartão agora mostra **Habilitado**. A partir do seu próximo login com senha, o OneUptime pede a sua segunda etapa.
+No topo da página, clique em **Enable two-factor authentication** e confirme. O cartão agora mostra **Habilitado**. A partir do seu próximo login com senha ou com um link enviado por e-mail, o OneUptime pede a sua segunda etapa.
 :::
 
 > [!TIP]

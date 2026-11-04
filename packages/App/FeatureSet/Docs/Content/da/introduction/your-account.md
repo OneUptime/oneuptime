@@ -12,7 +12,7 @@ flowchart TB
 
 :::cards
 - [Din profil](#din-profil): Dit navn, din e-mail, din tidszone og dit billede.
-- [Log sikkert ind](#log-sikkert-ind): Din adgangskode, adgangsnøgler og totrinsgodkendelse.
+- [Log sikkert ind](#log-sikkert-ind): Din adgangskode, login-links, adgangsnøgler og totrinsgodkendelse.
 - [Dine projekter](#dine-projekter): Skift projekt, opret et, og accepter invitationer.
 - [Brugerindstillinger](#det-hvert-projekt-gemmer-for-dig): Hvordan OneUptime kontakter dig i hvert projekt.
 :::
@@ -63,7 +63,7 @@ Fold **Sikkerhed** ud i sidemenuen i **Brugerprofil**. Afsnittet har tre sider.
 | --- | --- |
 | **Adgangskodeadministration** | Sæt en ny adgangskode. |
 | **Passkeys** | Log ind uden adgangskode, med dit fingeraftryk, dit ansigt, din skærmlås eller en sikkerhedsnøgle. |
-| **Two-factor authentication** | Bed om et andet trin efter din adgangskode: en kode fra en app eller en sikkerhedsnøgle. |
+| **Two-factor authentication** | Bed om et andet trin efter din adgangskode eller et link sendt på e-mail: en kode fra en app eller en sikkerhedsnøgle. |
 
 ### Skift din adgangskode
 
@@ -83,9 +83,24 @@ Fold **Sikkerhed** ud i sidemenuen i **Brugerprofil**. Afsnittet har tre sider.
 
 Næste gang vælger du **Log ind med en adgangsnøgle** på loginsiden.
 
+### Log ind med et link sendt på e-mail
+
+Du kan logge ind med et link i stedet for din adgangskode. Der er intet at sætte op.
+
+:::steps
+1. Vælg **Send mig et login-link** på loginsiden.
+2. Indtast din e-mailadresse, og klik på **Send mig et login-link**. Siden viser derefter **Tjek din e-mail**.
+3. Åbn linket i e-mailen, og klik på **Log ind**.
+:::
+
+Linket virker én gang, i 15 minutter, og et nyere link erstatter det. Du kan åbne det på en anden enhed, og så er du logget ind dér. Hvis du bruger totrinsgodkendelse, beder OneUptime stadig om dit andet trin.
+
+> [!NOTE]
+> Hovedadministratorer på en selvhostet installation kan slå login-links fra med **Lad folk logge ind med et link sendt på e-mail** under **Admin Dashboard > Indstillinger > Godkendelse**. Links, der allerede er sendt, holder så op med at virke. Så længe serveren kræver SSO, tilbyder loginsiden kun SSO.
+
 ### Slå totrinsgodkendelse til
 
-Totrinsgodkendelse gælder, når du logger ind med din adgangskode. Tilføj først et andet trin, og slå den så til.
+Totrinsgodkendelse gælder, når du logger ind med din adgangskode eller et link sendt på e-mail. Tilføj først et andet trin, og slå den så til.
 
 :::steps
 ### Tilføj en godkendelsesapp
@@ -98,7 +113,7 @@ Første gang du tilføjer en app, en nøgle eller en adgangsnøgle, viser OneUpt
 
 ### Slå den til
 
-Øverst på siden klikker du på **Enable two-factor authentication** og bekræfter. Kortet viser nu **Aktiveret**. Fra dit næste login med adgangskode beder OneUptime om dit andet trin.
+Øverst på siden klikker du på **Enable two-factor authentication** og bekræfter. Kortet viser nu **Aktiveret**. Fra dit næste login med adgangskode eller et link sendt på e-mail beder OneUptime om dit andet trin.
 :::
 
 > [!TIP]
