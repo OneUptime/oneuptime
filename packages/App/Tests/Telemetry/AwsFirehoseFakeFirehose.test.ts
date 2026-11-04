@@ -1141,6 +1141,8 @@ async function withServer(
   try {
     await run((other.address() as AddressInfo).port);
   } finally {
+    // A request the endpoint never answered must not hold the run open.
+    other.closeAllConnections();
     await new Promise<void>((resolve: () => void) => {
       other.close(() => {
         resolve();
@@ -1216,27 +1218,47 @@ describe("the body", () => {
       },
       async (otherPort: number): Promise<void> => {
         const requestId: string = nextRequestId();
-        const startedAt: number = Date.now();
-        const reply: FirehoseReply = await sendFirehoseDelivery({
-          port: otherPort,
-          path: "/telemetry/aws-firehose/v1/metrics",
-          accessKey: KEY_A,
-          requestId,
-          sourceArn: METRICS_FIREHOSE_ARN,
-          gzip: false,
-          body: firehoseEnvelope({
-            requestId,
-            records: [openTelemetryRecord([openTelemetryRequest([EC2_CPU])])],
-          }),
-        });
+        let timer: ReturnType<typeof setTimeout> | undefined = undefined;
 
-        expectFirehoseAnswer(reply, {
-          status: 500,
-          requestId,
-          errorMessage:
-            "OneUptime could not take this delivery. Firehose sends it again.",
-        });
-        expect(Date.now() - startedAt).toBeLessThan(5_000);
+        try {
+          // An endpoint that waited for the body would never answer: fail at 5 seconds.
+          const reply: FirehoseReply = await Promise.race([
+            sendFirehoseDelivery({
+              port: otherPort,
+              path: "/telemetry/aws-firehose/v1/metrics",
+              accessKey: KEY_A,
+              requestId,
+              sourceArn: METRICS_FIREHOSE_ARN,
+              gzip: false,
+              body: firehoseEnvelope({
+                requestId,
+                records: [
+                  openTelemetryRecord([openTelemetryRequest([EC2_CPU])]),
+                ],
+              }),
+            }),
+            new Promise<FirehoseReply>(
+              (_resolve: unknown, reject: (error: Error) => void) => {
+                timer = setTimeout(() => {
+                  reject(
+                    new Error(
+                      "No answer within 5 seconds: the endpoint waited for a body that was already read.",
+                    ),
+                  );
+                }, 5_000);
+              },
+            ),
+          ]);
+
+          expectFirehoseAnswer(reply, {
+            status: 500,
+            requestId,
+            errorMessage:
+              "OneUptime could not take this delivery. Firehose sends it again.",
+          });
+        } finally {
+          clearTimeout(timer);
+        }
       },
     );
 
