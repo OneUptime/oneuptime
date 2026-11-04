@@ -812,28 +812,31 @@ describe("A grouped criteria that counts missing data as zero, once every series
       );
 
       const view: MetricsViewConfig = MonitorStep.getMetricsViewConfig(step)!;
-      const wholeMonitorCheck: (values: Array<number>) => MetricMonitorResponse =
-        (values: Array<number>): MetricMonitorResponse => {
-          return {
-            projectId: PROJECT_ID,
-            monitorId: MONITOR_ID,
-            metricViewConfig: view,
-            metricResult: [
-              {
-                data: values.map((value: number, minute: number) => {
-                  return {
-                    timestamp: new Date(FIRST_BUCKET_MS + minute * MINUTE_MS),
-                    value: value,
-                  } as AggregateModel;
-                }),
-              },
-            ],
-            startAndEndDate: RollingTimeUtil.convertToStartAndEndDate(
-              RollingTime.Past5Minutes,
-              NOW,
-            ),
-          };
+      const wholeMonitorCheck: (
+        values: Array<number>,
+      ) => MetricMonitorResponse = (
+        values: Array<number>,
+      ): MetricMonitorResponse => {
+        return {
+          projectId: PROJECT_ID,
+          monitorId: MONITOR_ID,
+          metricViewConfig: view,
+          metricResult: [
+            {
+              data: values.map((value: number, minute: number) => {
+                return {
+                  timestamp: new Date(FIRST_BUCKET_MS + minute * MINUTE_MS),
+                  value: value,
+                } as AggregateModel;
+              }),
+            },
+          ],
+          startAndEndDate: RollingTimeUtil.convertToStartAndEndDate(
+            RollingTime.Past5Minutes,
+            NOW,
+          ),
         };
+      };
 
       await ingest(wholeMonitorCheck([1, 1, 1, 1, 1, 1]));
 
@@ -851,9 +854,7 @@ describe("A grouped criteria that counts missing data as zero, once every series
   });
 
   describe("a Metrics monitor, whose silence keeps its old meaning", () => {
-    function metricsStep(input: {
-      firingChangesStatus: boolean;
-    }): MonitorStep {
+    function metricsStep(input: { firingChangesStatus: boolean }): MonitorStep {
       const fire: MonitorCriteriaInstance = buildUnhealthyCriteriaInstance({
         offlineMonitorStatusId: OFFLINE,
         incidentSeverityId: ObjectID.generate(),
@@ -1071,9 +1072,7 @@ describe("GroupedSeriesGone", () => {
   });
 
   describe("needsResourceReport", () => {
-    function stepWith(
-      instances: Array<MonitorCriteriaInstance>,
-    ): MonitorStep {
+    function stepWith(instances: Array<MonitorCriteriaInstance>): MonitorStep {
       const criteria: MonitorCriteria = new MonitorCriteria();
       criteria.data = { monitorCriteriaInstanceArray: instances };
 

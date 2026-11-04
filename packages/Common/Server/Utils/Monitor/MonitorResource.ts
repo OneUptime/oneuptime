@@ -147,7 +147,9 @@ export default class MonitorResourceUtil {
    * it stopped, and the monitor turned green. The monitor now keeps its
    * status, and its open incidents and alerts stay open, until data comes
    * back. A criteria that asks for silence - Has No Data, or If No Data set
-   * to Trigger - still matches it as before.
+   * to Trigger - still matches it as before, and a grouped recovery criteria
+   * that counts a missing series as zero matches it while the resource still
+   * reports (GroupedSeriesGone): then this is never reached.
    */
   public static isSilentInfrastructureWindow(input: {
     monitor: Monitor;
