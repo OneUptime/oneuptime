@@ -1,5 +1,6 @@
 import UserCall from "../../../../../Models/DatabaseModels/UserCall";
 import UserEmail from "../../../../../Models/DatabaseModels/UserEmail";
+import UserMattermost from "../../../../../Models/DatabaseModels/UserMattermost";
 import UserMicrosoftTeams from "../../../../../Models/DatabaseModels/UserMicrosoftTeams";
 import UserPush from "../../../../../Models/DatabaseModels/UserPush";
 import UserSlack from "../../../../../Models/DatabaseModels/UserSlack";
@@ -110,6 +111,9 @@ class AdminReadableUserSlack extends UserSlack {}
 
 @TableAccessControl(ADMIN_READABLE_TABLE_ACCESS)
 class AdminReadableUserMicrosoftTeams extends UserMicrosoftTeams {}
+
+@TableAccessControl(ADMIN_READABLE_TABLE_ACCESS)
+class AdminReadableUserMattermost extends UserMattermost {}
 
 @TableAccessControl(ADMIN_READABLE_TABLE_ACCESS)
 class AdminReadableUserWebhook extends UserWebhook {}
@@ -251,6 +255,19 @@ class AdminReadableRuleModel extends BaseModel {
     title: "User Microsoft Teams",
   })
   public userMicrosoftTeams?: UserMicrosoftTeams = undefined;
+
+  @ColumnAccessControl({
+    create: [Permission.CurrentUser],
+    read: [Permission.CurrentUser, Permission.ProjectAdmin],
+    update: [],
+  })
+  @TableColumn({
+    type: TableColumnType.Entity,
+    modelType: UserMattermost,
+    manyToOneRelationColumn: "userMattermostId",
+    title: "User Mattermost",
+  })
+  public userMattermost?: UserMattermost = undefined;
 
   @ColumnAccessControl({
     create: [Permission.CurrentUser],
@@ -424,6 +441,22 @@ const METHOD_MODELS: Array<MethodModelUnderTest> = [
       "microsoftTeamsUserName",
     ],
     ownerOnlyColumnReachableThroughRelation: "microsoftTeamsUserId",
+    labelColumnReachableThroughRelation: "projectId",
+    labelColumns: ["userId", "projectId", "isVerified"],
+    unmarkedSortColumn: "isVerified",
+  },
+  {
+    name: "UserMattermost",
+    modelType: UserMattermost,
+    adminReadableModelType: AdminReadableUserMattermost,
+    relationColumnName: "userMattermost",
+    // Same shape as UserSlack: created verified, no verificationCode column.
+    ownerOnlyColumns: ["mattermostUserId", "mattermostUserName"],
+    ownerOnlyColumnsSelectableByOwner: [
+      "mattermostUserId",
+      "mattermostUserName",
+    ],
+    ownerOnlyColumnReachableThroughRelation: "mattermostUserId",
     labelColumnReachableThroughRelation: "projectId",
     labelColumns: ["userId", "projectId", "isVerified"],
     unmarkedSortColumn: "isVerified",

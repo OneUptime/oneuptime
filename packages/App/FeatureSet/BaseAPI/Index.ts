@@ -132,6 +132,7 @@ import UserWhatsAppAPI from "Common/Server/API/UserWhatsAppAPI";
 import UserTelegramAPI from "Common/Server/API/UserTelegramAPI";
 import UserSlackAPI from "Common/Server/API/UserSlackAPI";
 import UserMicrosoftTeamsAPI from "Common/Server/API/UserMicrosoftTeamsAPI";
+import UserMattermostAPI from "Common/Server/API/UserMattermostAPI";
 import UserWebhookAPI from "Common/Server/API/UserWebhookAPI";
 import CustomNotificationChannelAPI from "Common/Server/API/CustomNotificationChannelAPI";
 import UserPushAPI from "Common/Server/API/UserPushAPI";
@@ -6530,6 +6531,10 @@ const BaseAPIFeatureSet: FeatureSet = {
     app.use(
       `/${APP_NAME.toLocaleLowerCase()}`,
       new UserMicrosoftTeamsAPI().getRouter(),
+    );
+    app.use(
+      `/${APP_NAME.toLocaleLowerCase()}`,
+      new UserMattermostAPI().getRouter(),
     );
     app.use(
       `/${APP_NAME.toLocaleLowerCase()}`,

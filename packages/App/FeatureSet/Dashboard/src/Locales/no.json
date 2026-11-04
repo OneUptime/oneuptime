@@ -42474,5 +42474,19 @@
   "Runbook Track Record": "Runbookens tidligere resultater",
   "Where fixes were approved": "Hvor rettinger ble godkjent",
   "You do not have permission to dismiss this fix. Dismissing a fix needs the same permission as approving one: starting runbook executions in this project.": "Du har ikke tillatelse til å avvise denne rettingen. Å avvise en retting krever samme tillatelse som å godkjenne den: å starte runbook-kjøringer i dette prosjektet.",
-  "Disable Sign-In Links": "Disable Sign-In Links"
+  "Disable Sign-In Links": "Disable Sign-In Links",
+  "Add Mattermost Account": "Legg til Mattermost-konto",
+  "Could not add Mattermost": "Kunne ikke legge til Mattermost",
+  "Mattermost Account": "Mattermost-konto",
+  "Mattermost Account for Notifications": "Mattermost-konto for varsler",
+  "Mattermost Accounts": "Mattermost-kontoer",
+  "Mattermost User ID": "Mattermost-bruker-ID",
+  "Mattermost Username": "Mattermost-brukernavn",
+  "Mattermost accounts used for Mattermost notifications.": "Mattermost-kontoer som brukes til Mattermost-varsler.",
+  "No Mattermost account added. Connect yours under User Settings > Workspace > Mattermost, then click 'Add Mattermost Account'.": "Ingen Mattermost-konto lagt til. Koble til din under Brukerinnstillinger > Arbeidsområde > Mattermost, og klikk deretter på «Legg til Mattermost-konto».",
+  "Open Mattermost Settings": "Åpne Mattermost-innstillinger",
+  "Receive on-call pages as Mattermost direct messages from this project's Mattermost bot.": "Motta vakttilkallinger som direktemeldinger i Mattermost fra dette prosjektets Mattermost-bot.",
+  "Test message sent. Check your Mattermost direct messages.": "Testmelding sendt. Sjekk direktemeldingene dine i Mattermost.",
+  "User Mattermost": "Brukerens Mattermost",
+  "User Mattermost ID": "Brukerens Mattermost-ID"
 }

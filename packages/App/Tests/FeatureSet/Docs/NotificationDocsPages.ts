@@ -105,6 +105,7 @@ export const PRODUCT_NAMES: ReadonlyArray<string> = [
   "OneUptime Cloud",
   "OneUptime",
   "Microsoft Teams",
+  "Mattermost",
   "WhatsApp",
   "Telegram",
   "Twilio",

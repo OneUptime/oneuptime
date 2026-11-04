@@ -42474,5 +42474,19 @@
   "Runbook Track Record": "Runbook Track Record",
   "Where fixes were approved": "Where fixes were approved",
   "You do not have permission to dismiss this fix. Dismissing a fix needs the same permission as approving one: starting runbook executions in this project.": "You do not have permission to dismiss this fix. Dismissing a fix needs the same permission as approving one: starting runbook executions in this project.",
-  "Disable Sign-In Links": "Disable Sign-In Links"
+  "Disable Sign-In Links": "Disable Sign-In Links",
+  "Add Mattermost Account": "Add Mattermost Account",
+  "Could not add Mattermost": "Could not add Mattermost",
+  "Mattermost Account": "Mattermost Account",
+  "Mattermost Account for Notifications": "Mattermost Account for Notifications",
+  "Mattermost Accounts": "Mattermost Accounts",
+  "Mattermost User ID": "Mattermost User ID",
+  "Mattermost Username": "Mattermost Username",
+  "Mattermost accounts used for Mattermost notifications.": "Mattermost accounts used for Mattermost notifications.",
+  "No Mattermost account added. Connect yours under User Settings > Workspace > Mattermost, then click 'Add Mattermost Account'.": "No Mattermost account added. Connect yours under User Settings > Workspace > Mattermost, then click 'Add Mattermost Account'.",
+  "Open Mattermost Settings": "Open Mattermost Settings",
+  "Receive on-call pages as Mattermost direct messages from this project's Mattermost bot.": "Receive on-call pages as Mattermost direct messages from this project's Mattermost bot.",
+  "Test message sent. Check your Mattermost direct messages.": "Test message sent. Check your Mattermost direct messages.",
+  "User Mattermost": "User Mattermost",
+  "User Mattermost ID": "User Mattermost ID"
 }

@@ -42474,5 +42474,19 @@
   "Runbook Track Record": "Eerdere resultaten van het runbook",
   "Where fixes were approved": "Waar oplossingen zijn goedgekeurd",
   "You do not have permission to dismiss this fix. Dismissing a fix needs the same permission as approving one: starting runbook executions in this project.": "Je hebt geen toestemming om deze oplossing te negeren. Een oplossing negeren vraagt dezelfde toestemming als haar goedkeuren: runbookuitvoeringen starten in dit project.",
-  "Disable Sign-In Links": "Disable Sign-In Links"
+  "Disable Sign-In Links": "Disable Sign-In Links",
+  "Add Mattermost Account": "Mattermost-account toevoegen",
+  "Could not add Mattermost": "Mattermost kon niet worden toegevoegd",
+  "Mattermost Account": "Mattermost-account",
+  "Mattermost Account for Notifications": "Mattermost-account voor meldingen",
+  "Mattermost Accounts": "Mattermost-accounts",
+  "Mattermost User ID": "Mattermost-gebruikers-ID",
+  "Mattermost Username": "Mattermost-gebruikersnaam",
+  "Mattermost accounts used for Mattermost notifications.": "Mattermost-accounts die worden gebruikt voor Mattermost-meldingen.",
+  "No Mattermost account added. Connect yours under User Settings > Workspace > Mattermost, then click 'Add Mattermost Account'.": "Geen Mattermost-account toegevoegd. Koppel uw account via Gebruikersinstellingen > Werkruimte > Mattermost en klik daarna op 'Mattermost-account toevoegen'.",
+  "Open Mattermost Settings": "Mattermost-instellingen openen",
+  "Receive on-call pages as Mattermost direct messages from this project's Mattermost bot.": "Ontvang dienstoproepen als directe Mattermost-berichten van de Mattermost-bot van dit project.",
+  "Test message sent. Check your Mattermost direct messages.": "Testbericht verzonden. Controleer uw directe berichten in Mattermost.",
+  "User Mattermost": "Mattermost van de gebruiker",
+  "User Mattermost ID": "Mattermost-ID van de gebruiker"
 }

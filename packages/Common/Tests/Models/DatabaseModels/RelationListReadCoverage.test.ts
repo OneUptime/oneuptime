@@ -337,6 +337,7 @@ const REFERENCED_AS_A_WHOLE_TABLE: Record<string, string> = {
     "Every member reads the project's Collector Configs, and a host names the one picked for it; the reference check refuses another project's config.",
   UserCall: NOTIFICATION_METHOD,
   UserEmail: NOTIFICATION_METHOD,
+  UserMattermost: NOTIFICATION_METHOD,
   UserMicrosoftTeams: NOTIFICATION_METHOD,
   UserPush: NOTIFICATION_METHOD,
   UserSMS: NOTIFICATION_METHOD,

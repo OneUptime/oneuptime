@@ -42474,5 +42474,19 @@
   "Runbook Track Record": "Bisherige Ergebnisse des Runbooks",
   "Where fixes were approved": "Wo Korrekturen genehmigt wurden",
   "You do not have permission to dismiss this fix. Dismissing a fix needs the same permission as approving one: starting runbook executions in this project.": "Sie haben keine Berechtigung, diese Korrektur zu verwerfen. Zum Verwerfen einer Korrektur braucht es dieselbe Berechtigung wie zum Genehmigen: Runbook-Ausführungen in diesem Projekt starten.",
-  "Disable Sign-In Links": "Disable Sign-In Links"
+  "Disable Sign-In Links": "Disable Sign-In Links",
+  "Add Mattermost Account": "Mattermost-Konto hinzufügen",
+  "Could not add Mattermost": "Mattermost konnte nicht hinzugefügt werden",
+  "Mattermost Account": "Mattermost-Konto",
+  "Mattermost Account for Notifications": "Mattermost-Konto für Benachrichtigungen",
+  "Mattermost Accounts": "Mattermost-Konten",
+  "Mattermost User ID": "Mattermost-Benutzer-ID",
+  "Mattermost Username": "Mattermost-Benutzername",
+  "Mattermost accounts used for Mattermost notifications.": "Mattermost-Konten, die für Mattermost-Benachrichtigungen verwendet werden.",
+  "No Mattermost account added. Connect yours under User Settings > Workspace > Mattermost, then click 'Add Mattermost Account'.": "Kein Mattermost-Konto hinzugefügt. Verbinden Sie Ihres unter Benutzereinstellungen > Arbeitsbereich > Mattermost und klicken Sie dann auf „Mattermost-Konto hinzufügen“.",
+  "Open Mattermost Settings": "Mattermost-Einstellungen öffnen",
+  "Receive on-call pages as Mattermost direct messages from this project's Mattermost bot.": "Erhalten Sie Bereitschaftsalarme als Mattermost-Direktnachrichten vom Mattermost-Bot dieses Projekts.",
+  "Test message sent. Check your Mattermost direct messages.": "Testnachricht gesendet. Prüfen Sie Ihre Mattermost-Direktnachrichten.",
+  "User Mattermost": "Mattermost des Benutzers",
+  "User Mattermost ID": "Mattermost-ID des Benutzers"
 }

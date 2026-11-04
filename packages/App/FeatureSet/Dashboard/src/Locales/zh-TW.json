@@ -42474,5 +42474,19 @@
   "Runbook Track Record": "操作手冊的過往結果",
   "Where fixes were approved": "修正的核准位置",
   "You do not have permission to dismiss this fix. Dismissing a fix needs the same permission as approving one: starting runbook executions in this project.": "您沒有忽略此修正的權限。忽略修正所需的權限與核准修正相同：在此專案中啟動操作手冊執行。",
-  "Disable Sign-In Links": "Disable Sign-In Links"
+  "Disable Sign-In Links": "Disable Sign-In Links",
+  "Add Mattermost Account": "新增 Mattermost 帳戶",
+  "Could not add Mattermost": "無法新增 Mattermost",
+  "Mattermost Account": "Mattermost 帳戶",
+  "Mattermost Account for Notifications": "用於通知的 Mattermost 帳戶",
+  "Mattermost Accounts": "Mattermost 帳戶",
+  "Mattermost User ID": "Mattermost 使用者 ID",
+  "Mattermost Username": "Mattermost 使用者名稱",
+  "Mattermost accounts used for Mattermost notifications.": "用於 Mattermost 通知的 Mattermost 帳戶。",
+  "No Mattermost account added. Connect yours under User Settings > Workspace > Mattermost, then click 'Add Mattermost Account'.": "尚未新增 Mattermost 帳戶。請在「使用者設定 > 工作區 > Mattermost」中連線您的帳戶，然後按一下「新增 Mattermost 帳戶」。",
+  "Open Mattermost Settings": "開啟 Mattermost 設定",
+  "Receive on-call pages as Mattermost direct messages from this project's Mattermost bot.": "透過此專案的 Mattermost 機器人，以 Mattermost 私人訊息接收待命呼叫。",
+  "Test message sent. Check your Mattermost direct messages.": "測試訊息已傳送。請查看您的 Mattermost 私人訊息。",
+  "User Mattermost": "使用者的 Mattermost",
+  "User Mattermost ID": "使用者的 Mattermost ID"
 }

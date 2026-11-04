@@ -54,6 +54,7 @@ function models(
     userTelegrams: [],
     userSlacks: [],
     userMicrosoftTeamsAccounts: [],
+    userMattermostAccounts: [],
     userWebhooks: [],
     ...overrides,
   };

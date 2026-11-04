@@ -42474,5 +42474,19 @@
   "Runbook Track Record": "Runbookens tidigare resultat",
   "Where fixes were approved": "Var åtgärder godkändes",
   "You do not have permission to dismiss this fix. Dismissing a fix needs the same permission as approving one: starting runbook executions in this project.": "Du har inte behörighet att avfärda den här åtgärden. Att avfärda en åtgärd kräver samma behörighet som att godkänna den: att starta runbook-körningar i det här projektet.",
-  "Disable Sign-In Links": "Disable Sign-In Links"
+  "Disable Sign-In Links": "Disable Sign-In Links",
+  "Add Mattermost Account": "Lägg till Mattermost-konto",
+  "Could not add Mattermost": "Det gick inte att lägga till Mattermost",
+  "Mattermost Account": "Mattermost-konto",
+  "Mattermost Account for Notifications": "Mattermost-konto för aviseringar",
+  "Mattermost Accounts": "Mattermost-konton",
+  "Mattermost User ID": "Mattermost-användar-ID",
+  "Mattermost Username": "Mattermost-användarnamn",
+  "Mattermost accounts used for Mattermost notifications.": "Mattermost-konton som används för Mattermost-aviseringar.",
+  "No Mattermost account added. Connect yours under User Settings > Workspace > Mattermost, then click 'Add Mattermost Account'.": "Inget Mattermost-konto har lagts till. Anslut ditt under Användarinställningar > Arbetsyta > Mattermost och klicka sedan på 'Lägg till Mattermost-konto'.",
+  "Open Mattermost Settings": "Öppna Mattermost-inställningar",
+  "Receive on-call pages as Mattermost direct messages from this project's Mattermost bot.": "Få jourlarm som direktmeddelanden i Mattermost från projektets Mattermost-bot.",
+  "Test message sent. Check your Mattermost direct messages.": "Testmeddelandet har skickats. Kontrollera dina direktmeddelanden i Mattermost.",
+  "User Mattermost": "Användarens Mattermost",
+  "User Mattermost ID": "Användarens Mattermost-ID"
 }

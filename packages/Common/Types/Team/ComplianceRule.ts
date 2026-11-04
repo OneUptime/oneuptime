@@ -129,6 +129,11 @@ export const COMPLIANCE_CHANNEL_DEFINITIONS: ReadonlyArray<ComplianceChannelDefi
       method: { noun: "Microsoft Teams account", hasVerification: true },
     },
     {
+      channel: ComplianceNotificationChannel.Mattermost,
+      label: "Mattermost",
+      method: { noun: "Mattermost account", hasVerification: true },
+    },
+    {
       channel: ComplianceNotificationChannel.Webhook,
       label: "Webhook",
       method: { noun: "webhook", hasVerification: false },
@@ -279,6 +284,13 @@ export const COMPLIANCE_RULE_DEFINITIONS: ReadonlyArray<ComplianceRuleDefinition
       channel: ComplianceNotificationChannel.MicrosoftTeams,
       title: "Verified Microsoft Teams",
       description: "Members have a verified Microsoft Teams account.",
+    }),
+    methodRule({
+      ruleType: ComplianceRuleType.HasNotificationMattermostMethod,
+      channel: ComplianceNotificationChannel.Mattermost,
+      title: "Verified Mattermost",
+      description:
+        "Members have a verified Mattermost account for direct messages.",
     }),
     methodRule({
       ruleType: ComplianceRuleType.HasNotificationWebhookMethod,

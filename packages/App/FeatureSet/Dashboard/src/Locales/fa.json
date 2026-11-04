@@ -42474,5 +42474,19 @@
   "Runbook Track Record": "نتایج پیشین رانبوک",
   "Where fixes were approved": "جایی که اصلاح‌ها تأیید شدند",
   "You do not have permission to dismiss this fix. Dismissing a fix needs the same permission as approving one: starting runbook executions in this project.": "اجازهٔ رد کردن این اصلاح را ندارید. رد کردن یک اصلاح همان اجازه‌ای را می‌خواهد که تأیید آن: شروع اجرای رانبوک‌ها در این پروژه.",
-  "Disable Sign-In Links": "Disable Sign-In Links"
+  "Disable Sign-In Links": "Disable Sign-In Links",
+  "Add Mattermost Account": "افزودن حساب Mattermost",
+  "Could not add Mattermost": "افزودن Mattermost ممکن نشد",
+  "Mattermost Account": "حساب Mattermost",
+  "Mattermost Account for Notifications": "حساب Mattermost برای اعلان‌ها",
+  "Mattermost Accounts": "حساب‌های Mattermost",
+  "Mattermost User ID": "شناسهٔ کاربری Mattermost",
+  "Mattermost Username": "نام کاربری Mattermost",
+  "Mattermost accounts used for Mattermost notifications.": "حساب‌های Mattermost که برای اعلان‌های Mattermost به کار می‌روند.",
+  "No Mattermost account added. Connect yours under User Settings > Workspace > Mattermost, then click 'Add Mattermost Account'.": "هیچ حساب Mattermost افزوده نشده است. حساب خود را در تنظیمات کاربر > فضای کاری > Mattermost متصل کنید، سپس روی «افزودن حساب Mattermost» کلیک کنید.",
+  "Open Mattermost Settings": "باز کردن تنظیمات Mattermost",
+  "Receive on-call pages as Mattermost direct messages from this project's Mattermost bot.": "فراخوانی‌های آنکال را به‌صورت پیام مستقیم Mattermost از ربات Mattermost این پروژه دریافت کنید.",
+  "Test message sent. Check your Mattermost direct messages.": "پیام آزمایشی فرستاده شد. پیام‌های مستقیم Mattermost خود را بررسی کنید.",
+  "User Mattermost": "Mattermost کاربر",
+  "User Mattermost ID": "شناسهٔ Mattermost کاربر"
 }

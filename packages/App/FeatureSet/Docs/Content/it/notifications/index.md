@@ -27,7 +27,7 @@ flowchart TB
 
 | Pagina | Cosa contiene | La domanda a cui risponde |
 | --- | --- | --- |
-| **Metodi di notifica** | I vostri indirizzi e-mail, numeri di telefono, numeri WhatsApp, account Telegram, Slack e Microsoft Teams, dispositivi push e webhook | Dove può raggiungermi OneUptime? |
+| **Metodi di notifica** | I vostri indirizzi e-mail, numeri di telefono, numeri WhatsApp, account Telegram, Slack, Microsoft Teams e Mattermost, dispositivi push e webhook | Dove può raggiungermi OneUptime? |
 | **Regole di reperibilità** | Per ogni tipo di chiamata e ogni gravità, quale metodo provare e dopo quanto tempo | Come vengo chiamato mentre sono di reperibilità? |
 | **Impostazioni notifiche** | Per ogni evento su un elemento vostro o sui vostri turni, quali canali usare | Di cos'altro vengo a sapere, e dove? |
 
@@ -90,7 +90,7 @@ Ogni metodo che verificate in seguito riceve le stesse regole: una regola per og
 
 Una chiamata può raggiungervi per un tipo e una gravità per cui non avete una regola: per esempio una gravità aggiunta dopo il vostro arrivo. OneUptime vi chiama comunque, con ciò che avete verificato:
 
-1. Ogni metodo gratuito che avete: dispositivi push, indirizzi e-mail, Slack e Microsoft Teams.
+1. Ogni metodo gratuito che avete: dispositivi push, indirizzi e-mail, Slack, Microsoft Teams e Mattermost.
 2. Se non ne avete nessuno, un solo metodo a pagamento, in questo ordine: SMS, una chiamata telefonica, WhatsApp, Telegram. È il primo che avete verificato, su un canale che il progetto ha attivato.
 3. Se non avete nemmeno questi, un webhook.
 

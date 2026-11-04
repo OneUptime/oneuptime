@@ -1,6 +1,6 @@
 # 알림 방법
 
-알림 방법은 한 프로젝트에서 OneUptime이 나에게 연락할 수 있는 연락처입니다. 이메일 주소, SMS나 전화용 전화번호, WhatsApp 번호, Telegram 계정, Slack 또는 Microsoft Teams 계정, 푸시 알림을 받을 휴대폰이나 브라우저, 또는 웹훅입니다. **사용자 설정 → 알림 방법**에서 추가하고 인증하면, OneUptime이 바로 호출에 사용하기 시작합니다.
+알림 방법은 한 프로젝트에서 OneUptime이 나에게 연락할 수 있는 연락처입니다. 이메일 주소, SMS나 전화용 전화번호, WhatsApp 번호, Telegram 계정, Slack, Microsoft Teams 또는 Mattermost 계정, 푸시 알림을 받을 휴대폰이나 브라우저, 또는 웹훅입니다. **사용자 설정 → 알림 방법**에서 추가하고 인증하면, OneUptime이 바로 호출에 사용하기 시작합니다.
 
 :::cards
 - [알림 방법 고르기](#알림-방법-고르기): 각 알림 방법에 필요한 것과 인증 방식.
@@ -20,7 +20,7 @@ flowchart TB
     rules --> used["호출과 소식이<br/>전달될 수 있음"]
 ```
 
-인증하지 않은 알림 방법은 사용되지 않습니다. 푸시 디바이스, Slack, Microsoft Teams, 웹훅은 코드를 거치지 않습니다. 디바이스를 등록하거나 계정을 연결하면 내 것임이 증명되고, 웹훅은 증명이 필요 없습니다. 알림 방법을 인증하면 그 방법의 [기본 규칙](/docs/notifications/on-call-rules#처음에-있는-규칙)이 바로 추가되므로, 새 전화번호는 규칙을 바꿀 때까지 모든 심각도에서 나를 호출합니다.
+인증하지 않은 알림 방법은 사용되지 않습니다. 푸시 디바이스, Slack, Microsoft Teams, Mattermost, 웹훅은 코드를 거치지 않습니다. 디바이스를 등록하거나 계정을 연결하면 내 것임이 증명되고, 웹훅은 증명이 필요 없습니다. 알림 방법을 인증하면 그 방법의 [기본 규칙](/docs/notifications/on-call-rules#처음에-있는-규칙)이 바로 추가되므로, 새 전화번호는 규칙을 바꿀 때까지 모든 심각도에서 나를 호출합니다.
 
 ## 알림 방법 고르기
 
@@ -35,10 +35,11 @@ flowchart TB
 | **알림을 위한 Telegram 계정** | **직접 연락** | 내 Telegram 계정 | OneUptime 봇에 보내는 메시지 |
 | **Slack Account for Notifications** | **워크스페이스 앱** | 내 Slack 계정 | 프로젝트의 워크스페이스에 계정 연결 |
 | **Microsoft Teams Account for Notifications** | **워크스페이스 앱** | 내 Microsoft Teams 계정 | 프로젝트의 워크스페이스에 계정 연결 |
+| **알림용 Mattermost 계정** | **워크스페이스 앱** | 내 Mattermost 계정 | 프로젝트의 워크스페이스에 계정 연결 |
 | **푸시 알림 디바이스** | **푸시 알림** | OneUptime On-Call 앱이 설치된 휴대폰 또는 브라우저 | 디바이스 등록 |
 | **알림용 Webhook** | **웹훅** | 자체 HTTPS 엔드포인트 | 없음 |
 
-**워크스페이스 앱**은 프로젝트가 Slack 또는 Microsoft Teams를 연결한 경우에만 표시되며, 연결한 것만 담겨 있습니다. SMS, 전화, WhatsApp, Telegram은 프로젝트 전체에서 꺼질 수 있습니다. [프로젝트에서 채널 켜기](#프로젝트에서-채널-켜기)를 참고하세요.
+**워크스페이스 앱**은 프로젝트가 Slack, Microsoft Teams 또는 Mattermost를 연결한 경우에만 표시되며, 연결한 것만 담겨 있습니다. SMS, 전화, WhatsApp, Telegram은 프로젝트 전체에서 꺼질 수 있습니다. [프로젝트에서 채널 켜기](#프로젝트에서-채널-켜기)를 참고하세요.
 
 ## 알림 방법 추가 및 인증
 
@@ -85,11 +86,13 @@ OneUptime으로 돌아와 **I've sent the message — check**를 클릭합니다
 
 **코드 교체**는 아직 인증되지 않은 계정의 새 코드를 만듭니다. 이전의 QR 코드와 열었던 링크는 더 이상 작동하지 않습니다. 자체 호스팅 OneUptime에서는 누군가 계정을 연결하기 전에 서버 관리자가 Telegram 봇을 연결해야 합니다.
 
-## Slack과 Microsoft Teams
+## Slack, Microsoft Teams, Mattermost
 
-1. 내 계정을 프로젝트의 워크스페이스에 연결합니다: **사용자 설정 → 워크스페이스 → Slack** 또는 **Microsoft Teams**. [Slack](/docs/workspace-connections/slack)과 [Microsoft Teams](/docs/workspace-connections/microsoft-teams)를 참고하세요.
-2. **워크스페이스 앱** 탭에서 **Add Slack Account** 또는 **Add Microsoft Teams Account**를 클릭합니다. 계정은 추가되는 즉시 인증됩니다.
-3. 그 행의 **Send Test Message**를 클릭합니다. 호출은 OneUptime 앱의 다이렉트 메시지로 옵니다.
+1. 내 계정을 프로젝트의 워크스페이스에 연결합니다: **사용자 설정 → 워크스페이스 → Slack**, **Microsoft Teams** 또는 **Mattermost**. [Slack](/docs/workspace-connections/slack), [Microsoft Teams](/docs/workspace-connections/microsoft-teams), [Mattermost](/docs/workspace-connections/mattermost)를 참고하세요.
+2. **워크스페이스 앱** 탭에서 **Add Slack Account**, **Add Microsoft Teams Account** 또는 **Mattermost 계정 추가**를 클릭합니다. 계정은 추가되는 즉시 인증됩니다.
+3. 그 행의 **Send Test Message**를 클릭합니다. 호출은 OneUptime 앱의 다이렉트 메시지로 오며, Mattermost에서는 프로젝트의 봇이 보냅니다.
+
+Mattermost 계정에는 호출만 오며, **알림 설정**에서 고른 소식은 오지 않습니다.
 
 ## 푸시 알림
 
@@ -167,7 +170,7 @@ function isFromOneUptime(rawBody, signatureHeader, secret) {
 
 ## 프로젝트에서 채널 켜기
 
-**SMS**, **음성 전화**, **WhatsApp**, **Telegram**은 메시지마다 비용이 들기 때문에 모든 새 프로젝트에서 꺼진 상태로 시작합니다. OneUptime Cloud에서는 프로젝트 잔액에서 지불되며, 프로젝트의 기본 Twilio 계정이 SMS와 전화를 보내면 그 계정을 통해 나갑니다. 이메일, 푸시, Slack, Microsoft Teams, 웹훅은 항상 켜져 있습니다.
+**SMS**, **음성 전화**, **WhatsApp**, **Telegram**은 메시지마다 비용이 들기 때문에 모든 새 프로젝트에서 꺼진 상태로 시작합니다. OneUptime Cloud에서는 프로젝트 잔액에서 지불되며, 프로젝트의 기본 Twilio 계정이 SMS와 전화를 보내면 그 계정을 통해 나갑니다. 이메일, 푸시, Slack, Microsoft Teams, Mattermost, 웹훅은 항상 켜져 있습니다.
 
 채널이 꺼져 있는 동안에는 프로젝트의 누구도 그 채널에 알림 방법을 추가할 수 없습니다. 카드에 추가 버튼이 없고, 누가 켤 수 있는지 알려 줍니다. 프로젝트 소유자, **결제 관리자**, 또는 **Manage Billing** 권한이 있는 사람이 **프로젝트 설정 → 알림 → 알림 설정**의 **알림 채널** 카드에서 켭니다. 프로젝트 관리자는 할 수 없습니다. 자체 호스팅 OneUptime에서는 SMS와 전화에 Twilio 계정이나 직접 운영하는 게이트웨이도 필요하고, Telegram에는 서버 관리자가 연결하는 봇이 필요합니다. [Twilio 통합](/docs/self-hosted/twilio-integration)과 [SMS 및 통화 게이트웨이](/docs/self-hosted/sms-and-call-gateway)를 참고하세요.
 

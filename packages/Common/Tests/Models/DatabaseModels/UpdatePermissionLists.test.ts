@@ -447,6 +447,7 @@ const RELATIONS_LEFT_APART: Array<RelationsLeftApart> = [
       "customNotificationChannel",
       "userCall",
       "userEmail",
+      "userMattermost",
       "userMicrosoftTeams",
       "userPush",
       "userSlack",

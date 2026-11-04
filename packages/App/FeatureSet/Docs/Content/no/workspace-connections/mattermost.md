@@ -59,7 +59,7 @@ Gå til **Hendelser** > **Arbeidsområde** > **Mattermost**, og opprett en regel
 
 Tilgangstokenet til boten lagres bare på OneUptime-serveren, kryptert sammen med prosjektets andre hemmeligheter, og vises aldri igjen. Serveradressen, teamet og brukernavnet til boten vises for alle i prosjektet, på innstillingssiden for Mattermost.
 
-Et prosjekt er koblet til ett Mattermost-team. For å flytte det til et annet team, eller en annen server, kobler du det først fra: **Prosjektinnstillinger** > **Arbeidsområde** > **Mattermost**, deretter **⋯** > **Koble fra Mattermost**. Å koble fra kobler også fra hvert medlems egen Mattermost-konto. Varslingsreglene og sammendragene dine beholdes til du kobler til igjen.
+Et prosjekt er koblet til ett Mattermost-team. For å flytte det til et annet team, eller en annen server, kobler du det først fra: **Prosjektinnstillinger** > **Arbeidsområde** > **Mattermost**, deretter **⋯** > **Koble fra Mattermost**. Å koble fra kobler også fra hvert medlems egen Mattermost-konto, og fjerner Mattermost-varselmetodene deres og vaktreglene som bruker dem. Varslingsreglene og sammendragene dine beholdes til du kobler til igjen.
 
 ## Koble til din egen Mattermost-konto
 
@@ -74,6 +74,18 @@ Mattermost har ingen pålogging OneUptime kan sende deg til, så OneUptime-boten
 Åpne lenken i den samme nettleseren som du ba om den i: den virker bare der, bare én gang og bare i 15 minutter. Det beviser at den som ba om den, har begge kontoene, så ingen kan koble til Mattermost-kontoen til noen andre. Hvis du ikke ba om en lenke, ignorerer du den: ingenting kobles til før den åpnes i nettleseren som ba om den.
 
 Tilkoblingen til kontoen din hører til dette prosjektet. I et annet prosjekt som er koblet til det samme Mattermost-teamet, kobler du den til der også.
+
+## Bli tilkalt i Mattermost
+
+For å bli tilkalt med direktemelding når du har vakt, legger du til Mattermost som en av varselmetodene dine:
+
+:::steps
+1. Koble til din egen Mattermost-konto (se [Koble til din egen Mattermost-konto](#koble-til-din-egen-mattermost-konto)).
+2. Gå til **Brukerinnstillinger** > **Varselmetoder**, åpne fanen **Arbeidsområdeapper**, og klikk på **Legg til Mattermost-konto**.
+3. Klikk på **Send Test Message** i raden. Meldingen kommer som en direktemelding fra prosjektets bot.
+:::
+
+Å legge den til setter den straks inn i vaktreglene dine, så tilkallinger når deg i Mattermost fra da av. Endre hvilke tilkallinger den får, under **Brukerinnstillinger** > **Vaktregler**. Hver tilkalling har en lenke for å bekrefte den og en for å eskalere den. Når du kobler fra Mattermost-kontoen din, fjernes denne metoden og vaktreglene som bruker den.
 
 ## Varslingsregler
 

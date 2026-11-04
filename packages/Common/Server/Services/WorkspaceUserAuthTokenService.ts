@@ -4,6 +4,7 @@ import LIMIT_MAX from "../../Types/Database/LimitMax";
 import DatabaseService from "./DatabaseService";
 import UserSlackService from "./UserSlackService";
 import UserMicrosoftTeamsService from "./UserMicrosoftTeamsService";
+import UserMattermostService from "./UserMattermostService";
 import CountBy from "../Types/Database/CountBy";
 import CreateBy from "../Types/Database/CreateBy";
 import DeleteBy from "../Types/Database/DeleteBy";
@@ -147,8 +148,8 @@ export class Service extends DatabaseService<Model> {
   }
 
   /*
-   * A UserSlack / UserMicrosoftTeams notification method is a pointer at the
-   * workspace link being deleted here, so it goes down with it (which also
+   * A UserSlack / UserMicrosoftTeams / UserMattermost notification method is a
+   * pointer at the workspace link being deleted here, so it goes down with it (which also
    * deletes the notification rules routing to it, via that service's own
    * delete hook). Leaving the method row behind would be worse than deleting
    * it: a rule pointing at a dead link fails with an error row and no re-page,
@@ -191,6 +192,20 @@ export class Service extends DatabaseService<Model> {
 
       if (item.workspaceType === WorkspaceType.MicrosoftTeams) {
         await UserMicrosoftTeamsService.deleteBy({
+          query: {
+            projectId: item.projectId,
+            userId: item.userId,
+          },
+          limit: LIMIT_MAX,
+          skip: 0,
+          props: {
+            isRoot: true,
+          },
+        });
+      }
+
+      if (item.workspaceType === WorkspaceType.Mattermost) {
+        await UserMattermostService.deleteBy({
           query: {
             projectId: item.projectId,
             userId: item.userId,

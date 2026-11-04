@@ -7,6 +7,7 @@ import NotificationMethodUtil, {
 import { DropdownOption } from "../../../UI/Components/Dropdown/Dropdown";
 import UserCall from "../../../Models/DatabaseModels/UserCall";
 import UserEmail from "../../../Models/DatabaseModels/UserEmail";
+import UserMattermost from "../../../Models/DatabaseModels/UserMattermost";
 import UserMicrosoftTeams from "../../../Models/DatabaseModels/UserMicrosoftTeams";
 import UserNotificationRule from "../../../Models/DatabaseModels/UserNotificationRule";
 import UserPush from "../../../Models/DatabaseModels/UserPush";
@@ -125,6 +126,22 @@ function microsoftTeams(
   return model;
 }
 
+function mattermost(
+  id: string,
+  userName?: string,
+  userId?: string,
+): UserMattermost {
+  const model: UserMattermost = new UserMattermost();
+  model.id = new ObjectID(id);
+  if (userName !== undefined) {
+    model.mattermostUserName = userName;
+  }
+  if (userId !== undefined) {
+    model.mattermostUserId = userId;
+  }
+  return model;
+}
+
 function emptyModels(): NotificationMethodModels {
   return {
     userCalls: [],
@@ -135,23 +152,27 @@ function emptyModels(): NotificationMethodModels {
     userTelegrams: [],
     userSlacks: [],
     userMicrosoftTeamsAccounts: [],
+    userMattermostAccounts: [],
     userWebhooks: [],
   };
 }
 
 // A 24-hex-char string is a valid ObjectID.
-const ID: Record<"a" | "b" | "c" | "d" | "e" | "f" | "g" | "h" | "i", string> =
-  {
-    a: "aaaaaaaaaaaaaaaaaaaaaaaa",
-    b: "bbbbbbbbbbbbbbbbbbbbbbbb",
-    c: "cccccccccccccccccccccccc",
-    d: "dddddddddddddddddddddddd",
-    e: "eeeeeeeeeeeeeeeeeeeeeeee",
-    f: "ffffffffffffffffffffffff",
-    g: "abcabcabcabcabcabcabcabc",
-    h: "cdecdecdecdecdecdecdecde",
-    i: "fabfabfabfabfabfabfabfab",
-  };
+const ID: Record<
+  "a" | "b" | "c" | "d" | "e" | "f" | "g" | "h" | "i" | "j",
+  string
+> = {
+  a: "aaaaaaaaaaaaaaaaaaaaaaaa",
+  b: "bbbbbbbbbbbbbbbbbbbbbbbb",
+  c: "cccccccccccccccccccccccc",
+  d: "dddddddddddddddddddddddd",
+  e: "eeeeeeeeeeeeeeeeeeeeeeee",
+  f: "ffffffffffffffffffffffff",
+  g: "abcabcabcabcabcabcabcabc",
+  h: "cdecdecdecdecdecdecdecde",
+  i: "fabfabfabfabfabfabfabfab",
+  j: "abababababababababababab",
+};
 
 /*
  * A minimal stand-in for a model row: getDisplayItems only needs getColumnValue,
@@ -180,6 +201,7 @@ describe("NotificationMethodUtil.getSelectForNotificationMethods", () => {
         "customNotificationChannel",
         "userCall",
         "userEmail",
+        "userMattermost",
         "userMicrosoftTeams",
         "userPush",
         "userSlack",
@@ -216,6 +238,10 @@ describe("NotificationMethodUtil.getSelectForNotificationMethods", () => {
     expect(select["userMicrosoftTeams"]).toEqual({
       microsoftTeamsUserName: true,
       microsoftTeamsUserId: true,
+    });
+    expect(select["userMattermost"]).toEqual({
+      mattermostUserName: true,
+      mattermostUserId: true,
     });
   });
 
@@ -373,6 +399,33 @@ describe("NotificationMethodUtil.getDisplayItems", () => {
       );
 
     expect(items).toEqual([{ title: "Microsoft Teams", value: "29:1abc" }]);
+  });
+
+  test("prefers the Mattermost username over the Mattermost account id", () => {
+    const items: Array<NotificationMethodDisplayItem> =
+      NotificationMethodUtil.getDisplayItems(
+        reader({
+          userMattermost: {
+            mattermostUserName: "alice",
+            mattermostUserId: "abcdefghijklmnopqrstuvwxyz",
+          },
+        }),
+      );
+
+    expect(items).toEqual([{ title: "Mattermost", value: "alice" }]);
+  });
+
+  test("falls back to the Mattermost account id when the username is absent", () => {
+    const items: Array<NotificationMethodDisplayItem> =
+      NotificationMethodUtil.getDisplayItems(
+        reader({
+          userMattermost: { mattermostUserId: "abcdefghijklmnopqrstuvwxyz" },
+        }),
+      );
+
+    expect(items).toEqual([
+      { title: "Mattermost", value: "abcdefghijklmnopqrstuvwxyz" },
+    ]);
   });
 
   test("ignores a relation whose value is not an object", () => {
@@ -539,6 +592,7 @@ describe("NotificationMethodUtil.getDropdownOptions", () => {
       userTelegrams: [telegram(ID.f, "@jane")],
       userSlacks: [slack(ID.h, "alice")],
       userMicrosoftTeamsAccounts: [microsoftTeams(ID.i, "Alice Example")],
+      userMattermostAccounts: [mattermost(ID.j, "alice")],
       userWebhooks: [webhook(ID.g, "Hook")],
     };
 
@@ -557,7 +611,27 @@ describe("NotificationMethodUtil.getDropdownOptions", () => {
       "Telegram: @jane",
       "Slack: alice",
       "Microsoft Teams: Alice Example",
+      "Mattermost: alice",
       "Webhook: Hook",
+    ]);
+  });
+
+  test("labels a Mattermost account by its username, then its account id", () => {
+    const labels: Array<string> = NotificationMethodUtil.getDropdownOptions({
+      ...emptyModels(),
+      userMattermostAccounts: [
+        mattermost(ID.a, "alice"),
+        mattermost(ID.b, undefined, "abcdefghijklmnopqrstuvwxyz"),
+        mattermost(ID.c),
+      ],
+    }).map((option: DropdownOption) => {
+      return option.label;
+    });
+
+    expect(labels).toEqual([
+      "Mattermost: alice",
+      "Mattermost: abcdefghijklmnopqrstuvwxyz",
+      "Mattermost: Unknown Account",
     ]);
   });
 
@@ -590,6 +664,7 @@ describe("NotificationMethodUtil.setSelectedMethodOnRule", () => {
       userTelegrams: [telegram(ID.f, "@jane")],
       userSlacks: [slack(ID.h, "alice")],
       userMicrosoftTeamsAccounts: [microsoftTeams(ID.i, "Alice Example")],
+      userMattermostAccounts: [mattermost(ID.j, "alice")],
       userWebhooks: [webhook(ID.g, "Hook")],
     };
   }
@@ -616,6 +691,7 @@ describe("NotificationMethodUtil.setSelectedMethodOnRule", () => {
     expect(rule.userTelegramId).toBeUndefined();
     expect(rule.userSlackId).toBeUndefined();
     expect(rule.userMicrosoftTeamsId).toBeUndefined();
+    expect(rule.userMattermostId).toBeUndefined();
   });
 
   test("maps each method type to its own foreign key", () => {
@@ -628,6 +704,7 @@ describe("NotificationMethodUtil.setSelectedMethodOnRule", () => {
       { id: ID.f, key: "userTelegramId" },
       { id: ID.h, key: "userSlackId" },
       { id: ID.i, key: "userMicrosoftTeamsId" },
+      { id: ID.j, key: "userMattermostId" },
       { id: ID.g, key: "userWebhookId" },
     ];
 
