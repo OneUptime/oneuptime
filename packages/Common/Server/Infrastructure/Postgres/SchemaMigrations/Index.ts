@@ -292,6 +292,7 @@ import { AddMagicLinkLogin1808992650000 } from "./1808992650000-AddMagicLinkLogi
 import { AddFixApprovalSourceAndRunbookTrackRecord1808992660000 } from "./1808992660000-AddFixApprovalSourceAndRunbookTrackRecord";
 import { AddUserMattermost1808992670000 } from "./1808992670000-AddUserMattermost";
 import { AddUserMattermostIndexesAndKeys1808992680000 } from "./1808992680000-AddUserMattermostIndexesAndKeys";
+import { AddUserNotificationSettingAlertByMattermost1808992690000 } from "./1808992690000-AddUserNotificationSettingAlertByMattermost";
 import { AddConfigurableRuleCriteria1792500000000 } from "./1792500000000-AddConfigurableRuleCriteria";
 import { AddGoogleSecOpsDiagnostics1792300000000 } from "./1792300000000-AddGoogleSecOpsDiagnostics";
 import { AddIncomingCallPolicyPhoneNumbers1792600000000 } from "./1792600000000-AddIncomingCallPolicyPhoneNumbers";
@@ -1786,4 +1787,5 @@ export default [
   AddFixApprovalSourceAndRunbookTrackRecord1808992660000,
   AddUserMattermost1808992670000,
   AddUserMattermostIndexesAndKeys1808992680000,
+  AddUserNotificationSettingAlertByMattermost1808992690000,
 ];
