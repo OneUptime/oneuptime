@@ -485,7 +485,7 @@ Een query is altijd beperkt tot het project waarin de workflow draait. Je kunt d
 { "name": "Checkout API", "monitorType": "Website" }
 ```
 
-Een sleutel die geen kolom is, wordt genegeerd in plaats van geweigerd — het logboek van de uitvoering noemt de sleutels die zijn weggelaten, dus kijk daar als een veld niet aankomt. **Fields to pass on**, bij de Find-componenten en de triggers, kies je uit een lijst; **Bewerken als JSON** toont daar dezelfde kolomsleutels met de waarde `true`: `{"_id": true, "name": true}`.
+Een sleutel die geen kolom is, wordt genegeerd in plaats van geweigerd — het logboek van de uitvoering noemt de sleutels die zijn weggelaten, dus kijk daar als een veld niet aankomt. **Fields to pass on**, bij de Find-componenten en de triggers, kies je uit een lijst; **Bewerken als JSON** toont daar dezelfde kolomsleutels met de waarde `true`: `{"_id": true, "name": true}`. De velden van een gekoppeld record staan onder zijn sleutel, zoals in `{"monitor": {"name": true}}`: `{"monitor": true}` geeft alleen de ID ervan door.
 
 **Aangepaste velden** zijn één kolom, `customFields`, met de waarde van elk aangepast veld onder de naam van het veld. De Update-componenten wijzigen alleen de aangepaste velden die je noemt, en alle andere houden hun waarde:
 
