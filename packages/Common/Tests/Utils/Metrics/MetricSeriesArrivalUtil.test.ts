@@ -39,7 +39,7 @@ function arrivalOf(
   overrides: Partial<MetricSeriesArrivalAggregates> = {},
 ): MetricSeriesArrival | null {
   return MetricSeriesArrivalUtil.fromAggregates({
-    readAtMs: READ_AT,
+    asOfMs: READ_AT,
     aggregates: aggregates(overrides),
   });
 }
@@ -156,7 +156,7 @@ describe("MetricSeriesArrivalUtil.fromAggregates", () => {
     expect(arrivalOf({ newestArrivalMs: 0 })).toBeNull();
     expect(
       MetricSeriesArrivalUtil.fromAggregates({
-        readAtMs: Number.NaN,
+        asOfMs: Number.NaN,
         aggregates: aggregates(),
       }),
     ).toBeNull();

@@ -18,14 +18,16 @@
  *
  * The telemetry worker reads these from the Metric table when a series looks
  * behind (MetricService.readSeriesArrivals), and hands them to the evaluator
- * as durations measured when it read them, so the evaluator never reads a
- * clock of its own for them.
+ * as durations measured to the end of the window it read, so the evaluator
+ * never reads a clock of its own for them.
  */
 export default interface MetricSeriesArrival {
   /*
-   * How long before the read nothing new of the series had arrived: the read
-   * time minus the newest createdAt of its rows in the window. The series'
-   * staleness.
+   * How long before the end of the window nothing new of the series had
+   * arrived: the window's end minus the newest createdAt of its rows in it,
+   * never below 0. The series' staleness. The window ends now - or where the
+   * ingest queue is while it is behind, so OneUptime's own backlog is never
+   * a series' silence.
    */
   sinceNewestArrivalMs: number;
   /*

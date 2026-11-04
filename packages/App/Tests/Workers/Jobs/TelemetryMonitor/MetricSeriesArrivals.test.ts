@@ -64,8 +64,11 @@ const MINUTE: number = 60 * SECOND;
 const readSeriesArrivals: jest.Mock =
   MetricService.readSeriesArrivals as unknown as jest.Mock;
 
-// A 15-minute window ending at 12:15:30.
-const END_MS: number = Date.UTC(2026, 10, 4, 12, 15, 30);
+/*
+ * A 15-minute window ending at 12:15:30 on a day long past: arrivals are
+ * measured to the window's end - never later than now.
+ */
+const END_MS: number = Date.UTC(2026, 9, 16, 12, 15, 30);
 const WINDOW: InBetween<Date> = new InBetween<Date>(
   new Date(END_MS - 15 * MINUTE),
   new Date(END_MS),
@@ -352,11 +355,10 @@ describe("readQueryArrivals: read only when it can change a verdict", () => {
     expect(readSeriesArrivals).not.toHaveBeenCalled();
   });
 
-  test("a grouped read behind: each series' arrival by its fingerprint, measured when the read starts", async () => {
-    const before: number = Date.now();
+  test("a grouped read behind: each series' arrival by its fingerprint, measured to the window's end", async () => {
     readSeriesArrivals.mockResolvedValue([
-      arrivalRow({ pod: "checkout-1", newestArrivalMs: before - 10 * SECOND }),
-      arrivalRow({ pod: "checkout-2", newestArrivalMs: before - 6 * MINUTE }),
+      arrivalRow({ pod: "checkout-1", newestArrivalMs: END_MS - 10 * SECOND }),
+      arrivalRow({ pod: "checkout-2", newestArrivalMs: END_MS - 6 * MINUTE }),
     ]);
 
     const arrivals: QueryArrivals | null = await readQueryArrivals({
@@ -397,16 +399,45 @@ describe("readQueryArrivals: read only when it can change a verdict", () => {
     )!;
 
     expect(first.lagMs).toBe(3 * MINUTE);
-    expect(first.sinceNewestArrivalMs).toBeGreaterThanOrEqual(10 * SECOND);
-    expect(first.sinceNewestArrivalMs).toBeLessThan(
-      10 * SECOND + (Date.now() - before) + 1,
-    );
-    expect(second.sinceNewestArrivalMs).toBeGreaterThanOrEqual(6 * MINUTE);
+    expect(first.sinceNewestArrivalMs).toBe(10 * SECOND);
+    expect(second.sinceNewestArrivalMs).toBe(6 * MINUTE);
+  });
+
+  /*
+   * While OneUptime's ingest queue is behind, the window ends where the
+   * queue is (ReceivingCoverage): rows written since - still being worked
+   * through - must not make a series look stopped, nor the backlog itself.
+   */
+  test("an ingest backlog: what arrived after the window's end counts as arrived at it, never as a series' silence", async () => {
+    readSeriesArrivals.mockResolvedValue([
+      arrivalRow({ pod: "checkout-1", newestArrivalMs: END_MS + 2 * MINUTE }),
+      arrivalRow({ pod: "checkout-2", newestArrivalMs: END_MS - 30 * SECOND }),
+    ]);
+
+    const arrivals: QueryArrivals | null = await readQueryArrivals({
+      query: { projectId, name: "k8s.pod.cpu.utilization", time: WINDOW },
+      groupByAttributeKeys: [POD_KEY],
+      aggregatedResult: behind,
+      startAndEndDate: WINDOW,
+      judgesFreshness: true,
+      projectId,
+    });
+
+    expect(
+      arrivals!.bySeries.get(
+        MetricSeriesFingerprint.computeFingerprint({ [POD_KEY]: "checkout-1" }),
+      )!.sinceNewestArrivalMs,
+    ).toBe(0);
+    expect(
+      arrivals!.bySeries.get(
+        MetricSeriesFingerprint.computeFingerprint({ [POD_KEY]: "checkout-2" }),
+      )!.sinceNewestArrivalMs,
+    ).toBe(30 * SECOND);
   });
 
   test("an ungrouped read's one row is the query's whole arrival", async () => {
     readSeriesArrivals.mockResolvedValue([
-      arrivalRow({ newestArrivalMs: Date.now() - 20 * SECOND }),
+      arrivalRow({ newestArrivalMs: END_MS - 20 * SECOND }),
     ]);
 
     const arrivals: QueryArrivals | null = await readQueryArrivals({
@@ -422,7 +453,10 @@ describe("readQueryArrivals: read only when it can change a verdict", () => {
       expect.objectContaining({ groupByAttributeKeys: undefined }),
     );
     expect(arrivals!.whole).toEqual(
-      expect.objectContaining({ lagMs: 3 * MINUTE }),
+      expect.objectContaining({
+        lagMs: 3 * MINUTE,
+        sinceNewestArrivalMs: 20 * SECOND,
+      }),
     );
     expect(arrivals!.bySeries.size).toBe(0);
   });

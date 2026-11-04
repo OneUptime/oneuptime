@@ -210,8 +210,19 @@ export const readQueryArrivals: (input: {
   }
 
   try {
-    // What "nothing has arrived for" is counted to: when the read starts.
-    const readAtMs: number = OneUptimeDate.getCurrentDate().getTime();
+    /*
+     * What "nothing has arrived for" is counted to: the end of the window,
+     * as the data points' freshness is - now, or where the ingest queue is
+     * while it is behind (ReceivingCoverage), so rows still waiting in
+     * OneUptime's own queue never make a series look stopped.
+     */
+    const nowMs: number = OneUptimeDate.getCurrentDate().getTime();
+    const windowEndMs: number = new Date(
+      input.startAndEndDate.endValue as Date,
+    ).getTime();
+    const asOfMs: number = Number.isFinite(windowEndMs)
+      ? Math.min(nowMs, windowEndMs)
+      : nowMs;
 
     const rows: Array<MetricSeriesArrivalRow> =
       await MetricService.readSeriesArrivals({
@@ -231,7 +242,7 @@ export const readQueryArrivals: (input: {
     for (const row of rows) {
       const arrival: MetricSeriesArrival | null =
         MetricSeriesArrivalUtil.fromAggregates({
-          readAtMs: readAtMs,
+          asOfMs: asOfMs,
           aggregates: row.aggregates,
         });
 
@@ -247,7 +258,7 @@ export const readQueryArrivals: (input: {
       arrivals.bySeries.set(
         getRowFingerprint({
           row: {
-            timestamp: new Date(readAtMs),
+            timestamp: new Date(asOfMs),
             value: 0,
             attributes: row.attributes,
           },

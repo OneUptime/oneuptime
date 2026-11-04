@@ -203,6 +203,18 @@ const ROWS: Array<Row> = [
       return timeMs + 2 * SECOND;
     },
   }),
+  // Sent as read, and one old reading sent again long after - a retry.
+  ...everyMinute({
+    pod: "resent",
+    arrive: (timeMs: number) => {
+      return timeMs + 2 * SECOND;
+    },
+  }),
+  {
+    pod: "resent",
+    timeMs: WINDOW_START_MS + 3 * MINUTE + 20 * SECOND + 123,
+    createdAtMs: WINDOW_END_MS + 4 * MINUTE,
+  },
 ];
 
 /*
@@ -413,12 +425,13 @@ integration(
     test("a row a series, each folded from its own rows - and only the rows the query reads", async () => {
       const rows: Array<MetricSeriesArrivalRow> = await readGrouped();
 
-      expect(rows).toHaveLength(4);
+      expect(rows).toHaveLength(5);
       expect(byPod(rows)).toEqual({
         "on-time": expectedAggregates("on-time"),
         "clock-behind": expectedAggregates("clock-behind"),
         batched: expectedAggregates("batched"),
         stopped: expectedAggregates("stopped"),
+        resent: expectedAggregates("resent"),
       });
 
       // Each row's map is the grouped key alone, as a grouped read's.
@@ -437,6 +450,18 @@ integration(
       expect(
         aggregates.newestPointArrivalMs - aggregates.newestPointTimeMs,
       ).toBe(3 * MINUTE - 123);
+    });
+
+    test("an old reading sent again moves the newest arrival, never the lag", async () => {
+      const resent: MetricSeriesArrivalAggregates = byPod(await readGrouped())[
+        "resent"
+      ]!;
+
+      expect(resent.newestArrivalMs).toBe(WINDOW_END_MS + 4 * MINUTE);
+      // The newest data point's own arrival: two seconds after it was taken.
+      expect(resent.newestPointArrivalMs - resent.newestPointTimeMs).toBe(
+        2 * SECOND - 123,
+      );
     });
 
     test("a batch written at once is one arrival minute: 30 readings delivered five minutes at a time arrive in three or four", async () => {
@@ -484,9 +509,7 @@ integration(
       ).toEqual([]);
     });
 
-    test("the worker's read of a query that looks behind hands over each series' arrivals by fingerprint", async () => {
-      const before: number = Date.now();
-
+    test("the worker's read of a query that looks behind hands over each series' arrivals by fingerprint, measured to the window's end", async () => {
       const read: QueryDataPoints = await readQueryDataPoints({
         query: {
           projectId: projectId,
@@ -511,16 +534,19 @@ integration(
         )!;
       };
 
-      // The stopped series' newest row arrived ten minutes into the window.
-      const stopped: MetricSeriesArrival = arrivalOf("stopped");
-      const stoppedNewestMs: number =
-        expectedAggregates("stopped").newestArrivalMs;
-      expect(stopped.sinceNewestArrivalMs).toBeGreaterThanOrEqual(
-        before - stoppedNewestMs,
+      // The stopped series' newest row arrived five minutes into the window.
+      expect(arrivalOf("stopped").sinceNewestArrivalMs).toBe(
+        WINDOW_END_MS - expectedAggregates("stopped").newestArrivalMs,
       );
-      expect(stopped.sinceNewestArrivalMs).toBeLessThanOrEqual(
-        Date.now() - stoppedNewestMs,
+      expect(arrivalOf("stopped").sinceNewestArrivalMs).toBeGreaterThan(
+        9 * MINUTE,
       );
+      // Sent as read: its newest row arrived eight seconds before the end.
+      expect(arrivalOf("on-time").sinceNewestArrivalMs).toBe(8 * SECOND);
+      // What arrived after the window's end counts as arrived at it.
+      expect(arrivalOf("clock-behind").sinceNewestArrivalMs).toBe(0);
+      expect(arrivalOf("resent").sinceNewestArrivalMs).toBe(0);
+      expect(arrivalOf("resent").lagMs).toBe(2 * SECOND - 123);
 
       expect(arrivalOf("clock-behind").lagMs).toBe(3 * MINUTE - 123);
       expect(arrivalOf("on-time").lagMs).toBe(2 * SECOND - 123);

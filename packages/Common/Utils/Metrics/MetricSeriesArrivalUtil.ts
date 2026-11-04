@@ -23,17 +23,19 @@ export interface MetricSeriesArrivalAggregates {
 export default class MetricSeriesArrivalUtil {
   /*
    * A series' arrival from what its rows say (MetricService
-   * .readSeriesArrivals), as of `readAtMs`, when the rows were read. Null
-   * when the read gave no usable time.
+   * .readSeriesArrivals), as of `asOfMs`: the end of the window the rows were
+   * read over (where the ingest queue is while it is behind, so OneUptime's
+   * own backlog never counts as a series' silence). Null when the read gave
+   * no usable time.
    */
   public static fromAggregates(input: {
-    readAtMs: number;
+    asOfMs: number;
     aggregates: MetricSeriesArrivalAggregates;
   }): MetricSeriesArrival | null {
     const aggregates: MetricSeriesArrivalAggregates = input.aggregates;
 
     if (
-      !MetricSeriesArrivalUtil.isTime(input.readAtMs) ||
+      !MetricSeriesArrivalUtil.isTime(input.asOfMs) ||
       !MetricSeriesArrivalUtil.isTime(aggregates.newestArrivalMs)
     ) {
       return null;
@@ -74,7 +76,7 @@ export default class MetricSeriesArrivalUtil {
     return {
       sinceNewestArrivalMs: Math.max(
         0,
-        input.readAtMs - aggregates.newestArrivalMs,
+        input.asOfMs - aggregates.newestArrivalMs,
       ),
       lagMs: lagMs,
       arrivalIntervalMs: arrivalIntervalMs,
