@@ -566,6 +566,45 @@ export class Service extends DatabaseService<Model> {
     return { updateBy, carryForward: carryForward };
   }
 
+  /*
+   * A new password ends the account's sign-in link (Types/Accounts/MagicLink),
+   * however it is set: the reset link's page, the profile page or a master
+   * admin's Set Password. A link stands in for the password, so somebody
+   * holding one when the owner changes it would still get past the first step
+   * of signing in, with the wrong two factor codes onUpdateSuccess forgets
+   * counted from nothing again.
+   *
+   * Written here, after every permission check, and never in onBeforeUpdate:
+   * the link's columns are OneUptime's (update: []), and DatabaseService holds
+   * what onBeforeUpdate leaves to the caller's column permissions - so written
+   * there, they would refuse everybody changing their own password.
+   *
+   * And in the password's own UPDATE, not in one ahead of it as a new email
+   * address does (expirePasswordResetTokensForEmailChange): there is no instant
+   * at which the new password is stored and the link still signs in, a link
+   * sent while the write is on its way is on the row for it to clear, and a
+   * write that fails leaves the password and the link as they were.
+   *
+   * A hook-free write skips this, as it skips what onUpdateSuccess does for a
+   * new password: any new caller that writes `password` with `ignoreHooks: true`
+   * has to clear these columns itself. The upgrade of a legacy hash
+   * (verifyHashedColumnValue) is hook-free and stays so: it stores the same
+   * password.
+   */
+  @CaptureSpan()
+  protected override async onUpdatePermitted(
+    updateBy: UpdateBy<Model>,
+  ): Promise<void> {
+    await super.onUpdatePermitted(updateBy);
+
+    if (!updateBy.data.password) {
+      return;
+    }
+
+    updateBy.data.magicLinkToken = null!;
+    updateBy.data.magicLinkExpires = null!;
+  }
+
   /**
    * Kill any outstanding password-reset link for every account whose email
    * address this update is about to change.
@@ -906,10 +945,11 @@ export class Service extends DatabaseService<Model> {
 
         /*
          * A new password ends any wait for wrong two factor codes. Whoever
-         * entered them held the old password, which no longer signs anybody
-         * in; the owner, who just set the new one, signs in at once. Every
-         * way a password changes comes through here: the reset link, the
-         * profile page and a master admin's Set Password.
+         * entered them held the old password or a sign-in link, and neither
+         * signs anybody in now: the write that stored this password ended the
+         * link too (onUpdatePermitted). The owner, who just set the new one,
+         * signs in at once. Every way a password changes comes through here:
+         * the reset link, the profile page and a master admin's Set Password.
          */
         await TwoFactorWrongCodes.forget(user.id!);
 
@@ -1671,7 +1711,8 @@ export class Service extends DatabaseService<Model> {
    *    guard) precisely because it would strand the row's salt;
    *  - any outstanding reset link is invalidated in the SAME statement. A link
    *    mailed before the admin intervened must not still be able to change the
-   *    password afterwards;
+   *    password afterwards. A sign-in link ends in that statement too, by
+   *    `onUpdatePermitted`, as it does for any update that carries a password;
    *  - session revocation and the "Password Changed." email are NOT done here.
    *    `onUpdateSuccess` already does both for any update that carries a
    *    password, and doing it again would send the user two identical emails.

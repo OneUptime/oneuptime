@@ -71,6 +71,8 @@ import { afterEach, beforeEach, describe, expect, it } from "@jest/globals";
  *  - a link works once, for fifteen minutes, only until a newer one is
  *    sent, and only while a master admin has not turned links off; of two
  *    requests carrying one link exactly one signs in;
+ *  - a new password ends it, however the password is set - and with it a
+ *    sign-in begun with the link, which even the right code cannot finish;
  *  - following a link verifies the address, and asks for no captcha;
  *  - neither the token nor any other secret reaches a response or a log.
  * ---------------------------------------------------------------------------
@@ -148,7 +150,16 @@ jest.mock("Common/Server/Services/EmailVerificationTokenService", () => {
 });
 
 jest.mock("Common/Server/Services/TeamMemberService", () => {
-  return { __esModule: true, default: { findOneBy: jest.fn() } };
+  return {
+    __esModule: true,
+    default: {
+      findOneBy: jest.fn(),
+      // What a reset's real write reads for the address it verifies: no teams.
+      findBy: (): Promise<Array<unknown>> => {
+        return Promise.resolve([]);
+      },
+    },
+  };
 });
 
 const refreshUserAllPermissions: jest.Mock = jest.fn();
@@ -384,6 +395,9 @@ jest.mock("Common/Server/Utils/Logger", () => {
       error: record,
       warn: record,
       debug: record,
+      getLogLevel: (): string => {
+        return "INFO";
+      },
     },
     getLogAttributesFromRequest: (): Record<string, unknown> => {
       return {};
@@ -649,6 +663,65 @@ function installAccountStore(): void {
       return { affected: 1 };
     },
   } as never);
+}
+
+/*
+ * What a new password does to the row is the write's own hooks' to do
+ * (UserService.onUpdatePermitted, onUpdateSuccess). So a test of it runs the
+ * real write - the real update path and permission checks, over the one row -
+ * in place of the store's stand-ins for it: a route that stopped going through
+ * the hooks would leave the link working, and fail here.
+ */
+function letWritesRunForReal(): void {
+  (UserService.updateOneBy as unknown as jest.SpyInstance).mockRestore();
+  (UserService.updateOneById as unknown as jest.SpyInstance).mockRestore();
+
+  jest
+    .spyOn(UserService as unknown as { _findBy: () => unknown }, "_findBy")
+    .mockImplementation((async (findBy: unknown): Promise<Array<User>> => {
+      const options: {
+        query: Record<string, unknown>;
+        select: Record<string, unknown>;
+      } = findBy as {
+        query: Record<string, unknown>;
+        select: Record<string, unknown>;
+      };
+
+      const { _id: namedId, ...otherTerms } = options.query;
+
+      /*
+       * The permission check hands a person's query on with its _id as an
+       * operator holding the id (QueryUtil.serializeQuery).
+       */
+      const operatorParameters: Record<string, unknown> | undefined = (
+        namedId as { objectLiteralParameters?: Record<string, unknown> } | null
+      )?.objectLiteralParameters;
+
+      const namedIds: Array<string> = (
+        operatorParameters
+          ? Object.values(operatorParameters).flat()
+          : [namedId]
+      ).map(valueOf);
+
+      return namedIds.includes(valueOf(row?.["_id"])) && rowMatches(otherTerms)
+        ? [projectRow(options.select)]
+        : [];
+    }) as never);
+}
+
+/*
+ * The write the profile page's Update Password makes, as the signed-in owner.
+ * One that found no row would leave every link as it was, so it is held to
+ * having written the row.
+ */
+async function changePasswordOnProfilePage(): Promise<void> {
+  expect(
+    await UserService.updateOneById({
+      id: new ObjectID(USER_ID),
+      data: { password: new HashedString("a brand new passphrase") } as never,
+      props: { userId: new ObjectID(USER_ID) },
+    }),
+  ).toBe(1);
 }
 
 interface Answer {
@@ -1451,6 +1524,36 @@ describe("POST /login-with-magic-link - an account with two factor authenticatio
   });
 
   /*
+   * Whoever began the sign-in holds the link and has been entering codes; the
+   * new password forgets those codes, and must not leave them the link to
+   * enter more with, from a count of nothing.
+   */
+  it("a new password ends a sign-in begun with the link: its wrong codes are forgotten, and even the right code no longer finishes it", async () => {
+    letWritesRunForReal();
+
+    const app: ReturnType<typeof authenticatorApp> = authenticatorApp();
+    totpFindOneBy.mockResolvedValue(app.row);
+    await storeLink(TOKEN);
+
+    await verifyTotp({ magicLinkToken: TOKEN, code: wrongCodeFor(app.code()) });
+
+    expect(errorMessage()).toBe("Invalid code.");
+    expect(isLinkStillStored()).toBe(true);
+
+    sendErrorResponse.mockClear();
+
+    await changePasswordOnProfilePage();
+
+    expect(forgetWrongCodes).toHaveBeenCalledWith(new ObjectID(USER_ID));
+    expect(isLinkStillStored()).toBe(false);
+
+    await verifyTotp({ magicLinkToken: TOKEN, code: app.code() });
+
+    expect(errorMessage()).toBe(MAGIC_LINK_INVALID_MESSAGE);
+    expect(createSession).not.toHaveBeenCalled();
+  });
+
+  /*
    * The email says something else for each: somebody who opened a link can
    * read the mailbox, and a new password does not secure that
    * (Templates/TwoFactorWrongCodes.hbs). What it says is
@@ -1881,28 +1984,101 @@ describe("POST /login does not take a sign-in link", () => {
   });
 });
 
-describe("POST /reset-password", () => {
-  it("ends a sign-in link sent before the reset, with the sessions", async () => {
-    const resetToken: string = "2d3f8c7a-5e41-4a9c-9dae-3f4a5b6c7d8e";
-    row!["resetPasswordToken"] = await hashOf(resetToken);
-    row!["resetPasswordExpires"] = new Date(Date.now() + 60 * 60 * 1000);
+/*
+ * Every way a password changes, through the real write, which is what ends the
+ * link (Common's UserServiceNewPasswordEndsSignInLink.test.ts), and then the
+ * sign-in route itself, asked to sign in with it.
+ */
+describe("a new password ends a sign-in link sent before it", () => {
+  beforeEach(() => {
+    letWritesRunForReal();
+  });
+
+  describe("POST /reset-password", () => {
+    it("ends a sign-in link sent before the reset, with the sessions", async () => {
+      const resetToken: string = "2d3f8c7a-5e41-4a9c-9dae-3f4a5b6c7d8e";
+      row!["resetPasswordToken"] = await hashOf(resetToken);
+      row!["resetPasswordExpires"] = new Date(Date.now() + 60 * 60 * 1000);
+      await storeLink(TOKEN);
+
+      await post("/reset-password", {
+        data: {
+          resetPasswordToken: resetToken,
+          password: { _type: "HashedString", value: "a brand new passphrase" },
+        },
+      });
+
+      expect(sendErrorResponse).not.toHaveBeenCalled();
+      expect(sendEmptySuccessResponse).toHaveBeenCalledTimes(1);
+      expect(revokeAllSessionsByUserId).toHaveBeenCalled();
+      expect(row!["magicLinkToken"]).toBeNull();
+      expect(row!["magicLinkExpires"]).toBeNull();
+
+      await signInWithLink(TOKEN);
+
+      expect(errorMessage()).toBe(MAGIC_LINK_INVALID_MESSAGE);
+      expect(createSession).not.toHaveBeenCalled();
+    });
+  });
+
+  it.each<[string, () => Promise<void>]>([
+    ["the profile page", changePasswordOnProfilePage],
+    [
+      "a master admin's Set Password",
+      async (): Promise<void> => {
+        await UserService.setPassword({
+          userId: new ObjectID(USER_ID),
+          password: "a brand new passphrase",
+        });
+      },
+    ],
+  ])(
+    "%s: the sessions end, and the link no longer signs in",
+    async (_name: string, changePassword: () => Promise<void>) => {
+      await storeLink(TOKEN);
+
+      await changePassword();
+
+      expect(revokeAllSessionsByUserId).toHaveBeenCalledTimes(1);
+      expect(row!["magicLinkToken"]).toBeNull();
+      expect(row!["magicLinkExpires"]).toBeNull();
+
+      await signInWithLink(TOKEN);
+
+      expect(errorMessage()).toBe(MAGIC_LINK_INVALID_MESSAGE);
+      expect(createSession).not.toHaveBeenCalled();
+    },
+  );
+
+  it("a link asked for after the new password works: only the links sent before it end", async () => {
     await storeLink(TOKEN);
 
-    await post("/reset-password", {
-      data: {
-        resetPasswordToken: resetToken,
-        password: { _type: "HashedString", value: "a brand new passphrase" },
-      },
-    });
+    await changePasswordOnProfilePage();
 
-    expect(sendErrorResponse).not.toHaveBeenCalled();
-    expect(revokeAllSessionsByUserId).toHaveBeenCalledTimes(1);
-    expect(row!["magicLinkToken"]).toBeNull();
-    expect(row!["magicLinkExpires"]).toBeNull();
+    await storeLink(OTHER_TOKEN);
+
+    await signInWithLink(OTHER_TOKEN);
+
+    expect(signedIn()).toBe(true);
+    expect(isLinkStillStored()).toBe(false);
+  });
+
+  it("any other change to the account leaves the link working", async () => {
+    await storeLink(TOKEN);
+
+    expect(
+      await UserService.updateOneById({
+        id: new ObjectID(USER_ID),
+        data: { timezone: Timezone.EuropeLondon } as never,
+        props: { userId: new ObjectID(USER_ID) },
+      }),
+    ).toBe(1);
+
+    expect(row!["timezone"]).toBe(Timezone.EuropeLondon);
+    expect(isLinkStillStored()).toBe(true);
 
     await signInWithLink(TOKEN);
 
-    expect(errorMessage()).toBe(MAGIC_LINK_INVALID_MESSAGE);
-    expect(createSession).not.toHaveBeenCalled();
+    expect(signedIn()).toBe(true);
   });
 });

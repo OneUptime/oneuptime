@@ -26,9 +26,10 @@ import { afterEach, beforeEach, describe, expect, test } from "@jest/globals";
  *
  * Wrong second-step codes are counted for the account once the password is
  * right (Utils/TwoFactorWrongCodes), and after five in a row each next code
- * waits. Whoever entered them held the password; once it changes they hold
- * nothing, and the owner who changed it must sign in at once. A reset is how
- * an administrator lets somebody back in, so it must not leave them waiting
+ * waits. Whoever entered them held the password or a sign-in link; once the
+ * password changes they hold neither (UserServiceNewPasswordEndsSignInLink.test.ts),
+ * and the owner who changed it must sign in at once. A reset is how an
+ * administrator lets somebody back in, so it must not leave them waiting
  * behind codes for an app they no longer have.
  *
  * UserService owns both: `onUpdateSuccess`, which every password change goes

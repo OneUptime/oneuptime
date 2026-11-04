@@ -1,10 +1,18 @@
 import Entities from "../../../Models/DatabaseModels/Index";
 import User from "../../../Models/DatabaseModels/User";
+import DatabaseConfig from "../../../Server/DatabaseConfig";
 import { EncryptionSecret } from "../../../Server/EnvironmentConfig";
 import PostgresAppInstance from "../../../Server/Infrastructure/PostgresDatabase";
+import MailService from "../../../Server/Services/MailService";
 import UserService from "../../../Server/Services/UserService";
+import UserSessionService from "../../../Server/Services/UserSessionService";
+import TwoFactorWrongCodes from "../../../Server/Utils/TwoFactorWrongCodes";
+import Hostname from "../../../Types/API/Hostname";
+import Protocol from "../../../Types/API/Protocol";
+import DatabaseCommonInteractionProps from "../../../Types/BaseDatabase/DatabaseCommonInteractionProps";
 import HashedString from "../../../Types/HashedString";
 import ObjectID from "../../../Types/ObjectID";
+import Timezone from "../../../Types/Timezone";
 import { DataSource } from "typeorm";
 
 /*
@@ -25,6 +33,9 @@ import { DataSource } from "typeorm";
  *     account and a token that is not the link find nothing and spend
  *     nothing;
  *   - a newer link replaces the older one;
+ *   - a new password ends the account's link in the write that stores it,
+ *     however it is set and by whom, through the real update path - and no
+ *     other account's link, and a link asked for afterwards works;
  *   - no account holds a link until one is asked for, and the server takes
  *     sign-in links until a master admin turns them off - the one that
  *     existed before the column too.
@@ -143,6 +154,21 @@ describePostgres("an account's sign-in links against Postgres", () => {
 
     jest.spyOn(PostgresAppInstance, "isConnected").mockReturnValue(true);
     jest.spyOn(PostgresAppInstance, "getDataSource").mockReturnValue(database);
+
+    // The rest of what a new password does: tables and servers not cloned here.
+    jest
+      .spyOn(UserSessionService, "revokeAllSessionsByUserId")
+      .mockResolvedValue(undefined as never);
+    jest
+      .spyOn(TwoFactorWrongCodes, "forget")
+      .mockResolvedValue(undefined as never);
+    jest.spyOn(MailService, "sendMail").mockResolvedValue(undefined as never);
+    jest
+      .spyOn(DatabaseConfig, "getHost")
+      .mockResolvedValue(new Hostname("oneuptime.example.com"));
+    jest
+      .spyOn(DatabaseConfig, "getHttpProtocol")
+      .mockResolvedValue(Protocol.HTTPS);
   });
 
   beforeEach(async () => {
@@ -279,5 +305,117 @@ describePostgres("an account's sign-in links against Postgres", () => {
     expect(await consume(token, otherUserId)).toBe(true);
     expect((await storedRow(otherUserId)).magicLinkToken).toBeNull();
     expect((await storedRow()).magicLinkToken).toBe(await hashOf(token));
+  });
+
+  describe("a new password", () => {
+    const otherToken: string = "3e4f9d8b-6f52-4bad-8ebf-4a5b6c7d8e9f";
+    const newPassword: string = "a brand new passphrase";
+
+    const writeNewPasswordAs: (
+      props: DatabaseCommonInteractionProps,
+    ) => Promise<number> = async (
+      props: DatabaseCommonInteractionProps,
+    ): Promise<number> => {
+      return await UserService.updateOneById({
+        id: userId,
+        data: { password: new HashedString(newPassword) } as never,
+        props: props,
+      });
+    };
+
+    const storedPassword: () => Promise<{
+      password: string | null;
+      passwordSalt: string | null;
+    }> = async (): Promise<{
+      password: string | null;
+      passwordSalt: string | null;
+    }> => {
+      const rows: Array<{
+        password: string | null;
+        passwordSalt: string | null;
+      }> = await query(
+        `SELECT "password", "passwordSalt" FROM "${schema}"."User" WHERE "_id" = $1`,
+        [userId.toString()],
+      );
+
+      return rows[0]!;
+    };
+
+    test.each<[string, () => Promise<unknown>]>([
+      [
+        "the owner on the profile page, who may not write the link's columns",
+        (): Promise<unknown> => {
+          return writeNewPasswordAs({ userId: userId });
+        },
+      ],
+      [
+        "a master admin's Set Password",
+        (): Promise<unknown> => {
+          return UserService.setPassword({
+            userId: userId,
+            password: newPassword,
+          });
+        },
+      ],
+      [
+        "OneUptime, as the reset link's page writes it",
+        (): Promise<unknown> => {
+          return writeNewPasswordAs({ isRoot: true });
+        },
+      ],
+    ])(
+      "set by %s ends the account's link with the write that stores it, and no other account's",
+      async (_name: string, changePassword: () => Promise<unknown>) => {
+        await storeLink(token, 15);
+        await storeLink(otherToken, 15, otherUserId);
+
+        await changePassword();
+
+        const stored: {
+          password: string | null;
+          passwordSalt: string | null;
+        } = await storedPassword();
+
+        expect(stored.password).toBeTruthy();
+        expect(stored.password).not.toBe(newPassword);
+        expect(stored.passwordSalt).toBeTruthy();
+
+        expect(await storedRow()).toEqual({
+          magicLinkToken: null,
+          magicLinkExpires: null,
+        });
+        expect(await find(token)).toBeNull();
+        expect(await consume(token)).toBe(false);
+
+        expect((await storedRow(otherUserId)).magicLinkToken).toBe(
+          await hashOf(otherToken),
+        );
+      },
+    );
+
+    test("a link asked for after it works", async () => {
+      await storeLink(token, 15);
+      expect(await writeNewPasswordAs({ userId: userId })).toBe(1);
+
+      await storeLink(otherToken, 15);
+
+      expect(await consume(token)).toBe(false);
+      expect(await consume(otherToken)).toBe(true);
+    });
+
+    test("another change to the account leaves the link working", async () => {
+      await storeLink(token, 15);
+
+      expect(
+        await UserService.updateOneById({
+          id: userId,
+          data: { timezone: Timezone.EuropeLondon } as never,
+          props: { userId: userId },
+        }),
+      ).toBe(1);
+
+      expect((await storedRow()).magicLinkToken).toBe(await hashOf(token));
+      expect(await find(token)).not.toBeNull();
+    });
   });
 });
