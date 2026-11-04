@@ -304,6 +304,35 @@ describe("the recording rig", () => {
     expect(readFlags.trim().split(" ")).toEqual(flags);
   });
 
+  test("start-agent.sh gives the collector everything its config asks of the environment", () => {
+    // One left out and it refuses its config, or quietly reads no target at all.
+    const script = read(path.join(RIG, "start-agent.sh"));
+    const config = read(path.join(AGENT, "otel-collector-config.yaml"));
+    const names = new Set(
+      Array.from(config.matchAll(/\$\{env:([A-Z_]+)\}/g)).map((match) => {
+        return match[1];
+      }),
+    );
+    expect(names.size).toBeGreaterThan(10);
+    for (const name of names) {
+      expect(script).toContain(`-e ${name}=`);
+    }
+  });
+
+  test("start-agent.sh gives the collector what the agent's compose file does", () => {
+    // The memory limit the agent really runs with, or the recording isn't of the agent.
+    const script = read(path.join(RIG, "start-agent.sh"));
+    const compose = read(path.join(AGENT, "docker-compose.yml"));
+    expect(compose).toContain(
+      "OPENSTACK_AGENT_MEMORY_LIMIT_MIB=${OPENSTACK_AGENT_MEMORY_LIMIT_MIB:-512}",
+    );
+    expect(script).toContain("-e OPENSTACK_AGENT_MEMORY_LIMIT_MIB=512");
+    expect(compose).toContain(
+      "OPENSTACK_AGENT_SERVICES=${OPENSTACK_AGENT_SERVICES:-.*}",
+    );
+    expect(script).toContain("-e OPENSTACK_AGENT_SERVICES='.*'");
+  });
+
   test("the recording only replaces where the data goes", () => {
     const recording = yaml.load(
       read(path.join(RIG, "collector-recording.yaml")),

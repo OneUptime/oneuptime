@@ -19,8 +19,9 @@ EXPORTER_IMAGE="$(grep -E '^[[:space:]]*image:[[:space:]]*ghcr.io/openstack-expo
 COLLECTOR_IMAGE="$(grep -E '^[[:space:]]*image:[[:space:]]*otel/opentelemetry-collector-contrib' "$AGENT_DIR/docker-compose.yml" | head -1 | awk '{print $2}')"
 EXPORTER_STABLE_IMAGE="${EXPORTER_STABLE_IMAGE:-ghcr.io/openstack-exporter/openstack-exporter:1.7.0}"
 
-# The same goes for what it is told to leave out: one flag per word, on purpose.
-EXPORTER_FLAGS="$(grep -E '^[[:space:]]*- --disable-metric=' "$AGENT_DIR/docker-compose.yml" | sed -E 's/^[[:space:]]*- //' | tr '\n' ' ')"
+# The same goes for what it is told to leave out: one flag per word, on purpose, from this
+# exporter's own service, because the worker-state exporter's turn off nearly everything.
+EXPORTER_FLAGS="$(sed -n '/^  openstack-exporter:$/,/^  [^ ]/p' "$AGENT_DIR/docker-compose.yml" | grep -E '^[[:space:]]*- --disable-metric=' | sed -E 's/^[[:space:]]*- //' | tr '\n' ' ')"
 
 [ -n "$EXPORTER_IMAGE" ] && [ -n "$COLLECTOR_IMAGE" ] || {
   echo "Could not read the agent's image pins from $AGENT_DIR/docker-compose.yml" >&2
@@ -66,7 +67,21 @@ docker run -d --name ou-openstack-collector --network host \
   -e OPENSTACK_LIBVIRT_HEALTH_TARGETS="${OPENSTACK_LIBVIRT_HEALTH_TARGETS:-[]}" \
   -e OPENSTACK_CONTROL_PLANE_REGION="$REGION" \
   -e OPENSTACK_SINGLE_CLOUD_EXPORTER_TARGETS='[]' \
+  -e OPENSTACK_AGENT_SERVICES='.*' \
+  -e OPENSTACK_AGENT_MEMORY_LIMIT_MIB=512 \
+  -e OPENSTACK_DATABASE_EXPORTER_TARGETS='[]' \
+  -e OPENSTACK_DATABASE_EXPORTER_HOST_SUFFIX= \
+  -e OPENSTACK_WORKER_STATE_CLOUDS='[]' \
+  -e OPENSTACK_WORKER_STATE_EXPORTER_ADDRESS=127.0.0.1:9182 \
   "$COLLECTOR_IMAGE" --config=/etc/otelcol-contrib/config.yaml --config=/etc/otelcol-contrib/recording.yaml
+
+# A config it refuses stops it within seconds, and every recording that doesn't come through it
+# goes on regardless, so this says so here rather than an hour later in stop-agent.sh.
+sleep 15
+if [ "$(docker inspect -f '{{.State.Running}}' ou-openstack-collector 2>/dev/null)" != "true" ]; then
+  echo "The collector stopped: nothing it would have sent gets recorded." >&2
+  docker logs ou-openstack-collector 2>&1 | grep -v 'Configuration references unset' | tail -20 >&2
+fi
 
 # The exporter answers once it is listening. Keystone's answer is the real test,
 # and a scrape of the identity service exercises it.
