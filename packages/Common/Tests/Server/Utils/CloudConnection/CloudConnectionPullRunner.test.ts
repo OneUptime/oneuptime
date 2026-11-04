@@ -725,6 +725,7 @@ describe("the namespaces the connection's streams deliver", () => {
         return { written: 1, needingAttention: 0, cleared: 0 };
       }) as never);
 
+    connection.streamKeyCreatedAt = new Date(NOW.getTime() - 60 * MINUTE);
     connection.streamSummary = {
       lastDeliveryAt: new Date(NOW.getTime() - 2 * MINUTE).toISOString(),
       metricSources: [
@@ -757,7 +758,36 @@ describe("the namespaces the connection's streams deliver", () => {
     expect((written[0]!["payloads"] as Array<JSONObject>)[0]).toBe(PAYLOAD);
   });
 
+  test("once streaming is stopped, the read writes everything again at once, whatever the streams delivered a minute ago", async () => {
+    // Stop streaming cleared the key; the stacks still deliver, and are refused.
+    connection.streamKeyCreatedAt = undefined;
+    connection.streamSummary = {
+      lastDeliveryAt: new Date(NOW.getTime() - MINUTE).toISOString(),
+      metricSources: [
+        {
+          accountId: "123456789012",
+          region: "us-east-1",
+          namespaces: ["AWS/EC2", "AWS/RDS"],
+          lastAt: new Date(NOW.getTime() - MINUTE).toISOString(),
+        },
+      ],
+      logSources: [],
+    };
+    readResult = async () => {
+      return result({ payloads: [PAYLOAD], pointsWritten: 4 });
+    };
+
+    await run();
+
+    expect(imported).toHaveLength(1);
+    expect(imported[0]!.payload).toBe(PAYLOAD);
+    expect(
+      (lastRecord()["lastPullResult"] as JSONObject)["pointsWritten"],
+    ).toBe(4);
+  });
+
   test("a stream quiet for fifteen minutes leaves the read to write everything again", async () => {
+    connection.streamKeyCreatedAt = new Date(NOW.getTime() - 60 * MINUTE);
     connection.streamSummary = {
       metricSources: [
         {
@@ -780,6 +810,7 @@ describe("the namespaces the connection's streams deliver", () => {
   });
 
   test("another account's or Region's stream leaves this one's metrics to the read", async () => {
+    connection.streamKeyCreatedAt = new Date(NOW.getTime() - 60 * MINUTE);
     connection.streamSummary = {
       metricSources: [
         {

@@ -180,6 +180,7 @@ export default class CloudConnectionPullRunner {
           serviceId: true,
           pullState: true,
           lastPullResult: true,
+          streamKeyCreatedAt: true,
           streamSummary: true,
         },
         props: { isRoot: true },
@@ -257,12 +258,16 @@ export default class CloudConnectionPullRunner {
       /*
        * A namespace a stream delivered lately is the stream's to write: the
        * read leaves its datapoints out of what it writes, and keeps them
-       * for the resources' readings below.
+       * for the resources' readings below. Only while the connection has a
+       * stream key: once Stop streaming refuses what its streams deliver,
+       * the read writes everything again at once.
        */
-      const streamedKeys: Set<string> = getStreamedMetricKeys({
-        summary: readCloudStreamSummary(connection.streamSummary),
-        now,
-      });
+      const streamedKeys: Set<string> = connection.streamKeyCreatedAt
+        ? getStreamedMetricKeys({
+            summary: readCloudStreamSummary(connection.streamSummary),
+            now,
+          })
+        : new Set<string>();
       let pointsLeftToStreams: number = 0;
 
       for (const payload of read.payloads) {

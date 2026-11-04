@@ -120,7 +120,7 @@ Velg **Stopp strømmingen** i kontoens rad under **Sky → Koble til**. Alle str
 
 ### Slett stakkene
 
-Strømmene blir værende i AWS, og AWS fakturerer dem, til stakkene deres er slettet. Dialogen viser kommandoen, for regionene der tilkoblingen fant ressurser:
+Strømmene blir værende i AWS, og AWS fakturerer dem, til stakkene deres er slettet. Dialogen viser kommandoen, for regionene strømmene leverte fra og de der tilkoblingen fant ressurser:
 
 ```bash
 for REGION in us-east-1 eu-west-1; do

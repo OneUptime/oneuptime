@@ -120,7 +120,7 @@ Nella riga dell'account in **Cloud → Collega**, scegli **Interrompi la trasmis
 
 ### Eliminare gli stack
 
-I flussi restano in AWS, e AWS li addebita, finché i loro stack non vengono eliminati. La finestra mostra il comando, per le regioni in cui la connessione ha trovato risorse:
+I flussi restano in AWS, e AWS li addebita, finché i loro stack non vengono eliminati. La finestra mostra il comando, per le regioni da cui i flussi hanno consegnato e quelle in cui la connessione ha trovato risorse:
 
 ```bash
 for REGION in us-east-1 eu-west-1; do

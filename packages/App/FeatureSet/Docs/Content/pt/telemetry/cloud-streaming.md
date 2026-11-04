@@ -120,7 +120,7 @@ Na linha da conta em **Nuvem → Conectar**, escolha **Parar a transmissão**. T
 
 ### Excluir as pilhas
 
-Os fluxos continuam na AWS, e a AWS os cobra, até as pilhas deles serem excluídas. A caixa mostra o comando, para as regiões em que a conexão encontrou recursos:
+Os fluxos continuam na AWS, e a AWS os cobra, até as pilhas deles serem excluídas. A caixa mostra o comando, para as regiões de onde os fluxos entregaram e aquelas em que a conexão encontrou recursos:
 
 ```bash
 for REGION in us-east-1 eu-west-1; do

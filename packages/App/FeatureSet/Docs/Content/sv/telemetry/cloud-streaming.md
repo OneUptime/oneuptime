@@ -120,7 +120,7 @@ Välj **Sluta strömma** på kontots rad under **Moln → Anslut**. Alla anslutn
 
 ### Ta bort stackarna
 
-Strömmarna finns kvar i AWS, och AWS debiterar dem, tills deras stackar har tagits bort. Dialogen visar kommandot, för de regioner där anslutningen hittade resurser:
+Strömmarna finns kvar i AWS, och AWS debiterar dem, tills deras stackar har tagits bort. Dialogen visar kommandot, för de regioner som strömmarna levererade från och de där anslutningen hittade resurser:
 
 ```bash
 for REGION in us-east-1 eu-west-1; do

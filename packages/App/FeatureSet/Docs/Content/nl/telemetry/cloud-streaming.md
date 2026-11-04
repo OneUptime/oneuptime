@@ -120,7 +120,7 @@ Kies in de rij van het account onder **Cloud → Koppelen** **Streamen stoppen**
 
 ### De stacks verwijderen
 
-De streams blijven in AWS, en AWS rekent ze af, totdat hun stacks zijn verwijderd. Het venster toont de opdracht, voor de regio's waarin de koppeling resources vond:
+De streams blijven in AWS, en AWS rekent ze af, totdat hun stacks zijn verwijderd. Het venster toont de opdracht, voor de regio's waaruit de streams leverden en die waarin de koppeling resources vond:
 
 ```bash
 for REGION in us-east-1 eu-west-1; do

@@ -120,7 +120,7 @@ Sur la ligne du compte dans **Cloud → Connecter**, choisissez **Arrêter la di
 
 ### Supprimer les piles
 
-Les flux restent dans AWS, et AWS les facture, jusqu'à la suppression de leurs piles. La fenêtre affiche la commande, pour les régions où la connexion a trouvé des ressources :
+Les flux restent dans AWS, et AWS les facture, jusqu'à la suppression de leurs piles. La fenêtre affiche la commande, pour les régions d'où les flux ont livré et celles où la connexion a trouvé des ressources :
 
 ```bash
 for REGION in us-east-1 eu-west-1; do

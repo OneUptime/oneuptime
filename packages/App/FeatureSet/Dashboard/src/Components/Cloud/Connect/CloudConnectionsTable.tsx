@@ -57,7 +57,7 @@ import CloudConnectionTestDialog from "./CloudConnectionTestDialog";
 import CloudStreamDialog from "./CloudStreamDialog";
 import {
   CloudStreamStatusWords,
-  getCloudStreamDefaultRegions,
+  getCloudStreamStackRegions,
   getCloudStreamStatusWords,
 } from "./CloudStreamWords";
 import {
@@ -604,9 +604,11 @@ const CloudConnectionsTable: FunctionComponent<ComponentProps> = (
                       <CodeBlock
                         code={getAwsCloudStreamDeleteCommand({
                           connectionId: item.id?.toString() || "",
-                          regions: getCloudStreamDefaultRegions(
-                            item.lastPullResult,
-                          ),
+                          // Where its streams delivered from, then where the read found resources.
+                          regions: getCloudStreamStackRegions({
+                            streamSummary: item.streamSummary,
+                            lastPullResult: item.lastPullResult,
+                          }),
                         })}
                         language="bash"
                         wrapLongLines={true}

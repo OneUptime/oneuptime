@@ -120,7 +120,7 @@ Vælg **Stop streamingen** i kontoens række under **Cloud → Forbind**. Alle f
 
 ### Slet stakkene
 
-Streamsne bliver i AWS, og AWS fakturerer dem, indtil deres stakke er slettet. Dialogen viser kommandoen, for de regioner, hvor forbindelsen fandt ressourcer:
+Streamsne bliver i AWS, og AWS fakturerer dem, indtil deres stakke er slettet. Dialogen viser kommandoen, for de regioner, streamsne leverede fra, og dem, hvor forbindelsen fandt ressourcer:
 
 ```bash
 for REGION in us-east-1 eu-west-1; do

@@ -120,7 +120,7 @@ Wählen Sie in der Zeile des Kontos unter **Cloud → Verbinden** **Streaming be
 
 ### Die Stacks löschen
 
-Die Streams bleiben in AWS, und AWS berechnet sie, bis ihre Stacks gelöscht sind. Der Dialog zeigt den Befehl, für die Regionen, in denen die Verbindung Ressourcen gefunden hat:
+Die Streams bleiben in AWS, und AWS berechnet sie, bis ihre Stacks gelöscht sind. Der Dialog zeigt den Befehl, für die Regionen, aus denen die Streams geliefert haben, und die, in denen die Verbindung Ressourcen gefunden hat:
 
 ```bash
 for REGION in us-east-1 eu-west-1; do

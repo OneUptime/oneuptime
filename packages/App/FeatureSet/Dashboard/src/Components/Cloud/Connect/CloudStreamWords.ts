@@ -1,4 +1,5 @@
 import { Gray500, Green, Red, Yellow } from "Common/Types/BrandColors";
+import { isAwsRegion } from "Common/Types/Cloud/AwsRegionCode";
 import {
   CloudStreamRefusalReason,
   CloudStreamState,
@@ -294,4 +295,40 @@ export function getCloudStreamDefaultRegions(
     .filter((region: string, index: number, all: Array<string>): boolean => {
       return Boolean(region) && all.indexOf(region) === index;
     });
+}
+
+/*
+ * The Regions a connection's stacks are in, as far as OneUptime knows: the
+ * Regions its streams delivered from - each delivery comes from its
+ * stack's own - and then those its last read found resources in, where
+ * the command deploys unless told otherwise. What Stop streaming's command
+ * deletes, so a stack in a Region the read never found anything in is not
+ * left behind, still billed.
+ */
+export function getCloudStreamStackRegions(data: {
+  streamSummary: unknown;
+  lastPullResult: unknown;
+}): Array<string> {
+  const summary: CloudStreamSummary = readCloudStreamSummary(
+    data.streamSummary,
+  );
+  const regions: Array<string> = [];
+
+  for (const region of [
+    ...summary.metricSources.map((source: { region: string }): string => {
+      return source.region;
+    }),
+    ...summary.logSources.map((source: { region: string }): string => {
+      return source.region;
+    }),
+    ...getCloudStreamDefaultRegions(data.lastPullResult),
+  ]) {
+    const code: string = region.trim().toLowerCase();
+
+    if (code && isAwsRegion(code) && !regions.includes(code)) {
+      regions.push(code);
+    }
+  }
+
+  return regions;
 }

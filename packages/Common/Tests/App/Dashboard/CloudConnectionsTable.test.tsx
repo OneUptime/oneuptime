@@ -1033,6 +1033,40 @@ describe("streaming an AWS connection's metrics and logs", () => {
     expect(code).toContain("eu-west-1");
   });
 
+  test("Stop streaming's command deletes the stack of every Region a stream delivered from, one the read found nothing in too", () => {
+    renderTable();
+
+    const at: string = new Date().toISOString();
+    const confirmation: ReturnType<
+      NonNullable<CapturedAction["getConfirmation"]>
+    > = action("Stop streaming").getConfirmation!(
+      connection({
+        streamKeyCreatedAt: STREAM_KEY_MADE_AT,
+        streamSummary: {
+          lastDeliveryAt: at,
+          metricSources: [
+            {
+              accountId: "123456789012",
+              region: "ap-southeast-2",
+              namespaces: ["AWS/EC2"],
+              lastAt: at,
+            },
+          ],
+          logSources: [],
+        },
+        lastPullResult: readResult({
+          resourceCount: 2,
+          regions: [{ region: "us-east-1", count: 2 }],
+        }),
+      }),
+    )!;
+
+    const { container } = render(confirmation.details!);
+    const code: string = container.querySelector("pre code")?.textContent || "";
+
+    expect(code).toContain("for REGION in ap-southeast-2 us-east-1; do");
+  });
+
   test("Stop streaming stops every key of the connection, and the list reads again", async () => {
     renderTable();
 

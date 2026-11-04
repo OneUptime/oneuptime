@@ -82,6 +82,7 @@ import {
   STREAM_WAITING_SENTENCE,
   getCloudStreamDefaultRegions,
   getCloudStreamSourceWords,
+  getCloudStreamStackRegions,
   getCloudStreamStatusWords,
 } from "../../../../App/FeatureSet/Dashboard/src/Components/Cloud/Connect/CloudStreamWords";
 import { CloudTemplate } from "../../../../App/FeatureSet/Dashboard/src/Components/Cloud/Connect/CloudConnectionWords";
@@ -407,6 +408,57 @@ describe("what arrived, from where", () => {
     for (const value of [undefined, null, "x", { regions: "us-east-1" }]) {
       expect(getCloudStreamDefaultRegions(value)).toEqual([]);
     }
+  });
+
+  test("the Regions a connection's stacks are in: where its streams delivered from, then where its read found resources", () => {
+    const at: string = new Date(NOW.getTime() - 60 * 1000).toISOString();
+
+    expect(
+      getCloudStreamStackRegions({
+        streamSummary: {
+          lastDeliveryAt: at,
+          metricSources: [
+            {
+              accountId: "123456789012",
+              region: "ap-southeast-2",
+              namespaces: ["AWS/EC2"],
+              lastAt: at,
+            },
+          ],
+          logSources: [
+            {
+              accountId: "123456789012",
+              region: "EU-WEST-1",
+              logGroups: ["/aws/lambda/checkout"],
+              lastAt: at,
+            },
+            {
+              accountId: "123456789012",
+              region: "not a region",
+              logGroups: ["/aws/lambda/refunds"],
+              lastAt: at,
+            },
+          ],
+        },
+        lastPullResult: {
+          regions: [
+            { region: "us-east-1", count: 5 },
+            { region: "eu-west-1", count: 2 },
+          ],
+        },
+      }),
+    ).toEqual(["ap-southeast-2", "eu-west-1", "us-east-1"]);
+
+    // Nothing delivered yet: the read's Regions, as the command's were.
+    expect(
+      getCloudStreamStackRegions({
+        streamSummary: null,
+        lastPullResult: { regions: [{ region: "us-east-1", count: 5 }] },
+      }),
+    ).toEqual(["us-east-1"]);
+    expect(
+      getCloudStreamStackRegions({ streamSummary: null, lastPullResult: null }),
+    ).toEqual([]);
   });
 });
 

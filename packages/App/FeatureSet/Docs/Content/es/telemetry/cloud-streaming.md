@@ -120,7 +120,7 @@ En la fila de la cuenta en **Nube → Conectar**, elige **Detener la transmisió
 
 ### Eliminar las pilas
 
-Los flujos siguen en AWS, y AWS los factura, hasta que se eliminan sus pilas. El cuadro muestra el comando, para las regiones en las que la conexión encontró recursos:
+Los flujos siguen en AWS, y AWS los factura, hasta que se eliminan sus pilas. El cuadro muestra el comando, para las regiones desde las que entregaron los flujos y aquellas en las que la conexión encontró recursos:
 
 ```bash
 for REGION in us-east-1 eu-west-1; do

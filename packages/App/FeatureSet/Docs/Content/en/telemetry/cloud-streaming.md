@@ -120,7 +120,7 @@ On the account's row in **Cloud → Connect**, choose **Stop streaming**. Every 
 
 ### Delete the stacks
 
-The streams stay in AWS, and AWS bills them, until their stacks are deleted. The dialog shows the command, for the Regions the connection found resources in:
+The streams stay in AWS, and AWS bills them, until their stacks are deleted. The dialog shows the command, for the Regions the streams delivered from and those the connection found resources in:
 
 ```bash
 for REGION in us-east-1 eu-west-1; do
