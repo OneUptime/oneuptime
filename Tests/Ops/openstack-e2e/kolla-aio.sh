@@ -85,9 +85,15 @@ install_kolla() {
   mkdir -p /etc/kolla/globals.d
   cat >/etc/kolla/globals.d/rig.yml <<GLOBALS
 kolla_base_distro: "ubuntu"
+# Its "Virtual Environments" page, which its quick start points to: with Kolla-Ansible in a
+# virtual environment and none for what it runs, its check for the Docker SDK fails on Ubuntu.
+virtualenv: "$KOLLA_RUNTIME_VENV"
+virtualenv_site_packages: true
 network_interface: "$KOLLA_API_INTERFACE"
 neutron_external_interface: "$KOLLA_EXTERNAL_INTERFACE"
 kolla_internal_vip_address: "$KOLLA_VIP"
+# Open vSwitch is Kolla-Ansible's default, and OVN what the guide's network exporter is for.
+neutron_plugin_agent: "${KOLLA_NEUTRON:-openvswitch}"
 # What the guide starts from. Kolla-Ansible leaves it off.
 enable_prometheus: true
 # So the guide's table of what exporter 1.7.0 goes without is tested on a cloud with a Cinder.
@@ -128,16 +134,19 @@ deploy() {
   prepare_host
   install_kolla
   logged bootstrap-servers kolla-ansible bootstrap-servers -i "$KOLLA_INVENTORY"
+  # That page again: every command after bootstrap-servers runs on what it made.
+  printf 'ansible_python_interpreter: %s/bin/python\n' "$KOLLA_RUNTIME_VENV" >/etc/kolla/globals.d/rig-python.yml
   logged prechecks kolla-ansible prechecks -i "$KOLLA_INVENTORY"
   logged pull kolla-ansible pull -i "$KOLLA_INVENTORY"
   logged deploy kolla-ansible deploy -i "$KOLLA_INVENTORY"
   logged post-deploy kolla-ansible post-deploy -i "$KOLLA_INVENTORY"
   install_client
   record_what_runs
-  openstack service list
-  openstack compute service list
-  openstack network agent list
-  openstack volume service list
+  # What it left, for whoever reads this log. A service that is down is for the guide to find.
+  openstack service list || true
+  openstack compute service list || true
+  openstack network agent list || true
+  openstack volume service list || true
 }
 
 estate() {

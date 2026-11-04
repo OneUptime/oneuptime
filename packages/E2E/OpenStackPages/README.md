@@ -27,6 +27,8 @@ tell them apart:
   release's agent names, Nova's short and full host names, a floating IP's labels. A drill
   reads on top of its cloud's healthy recording, as the rows OneUptime holds would: a
   stopped API's scrape says nothing of its workers, whose rows stay as they last were.
+  `?recording=gazpacho-ovs/healthy@1.7.0` is what exporter 1.7.0, which Kolla-Ansible pins,
+  said of that same cloud at the same moment, on its own.
 - **Made up:** `?estate=busy|calm|new|multi-region|overflow|ovn-stale|tenants|parts`
   (`Fixture/Data.js`), built with one builder per kind, each writing what a recording of that kind has. Use one when
   a walk needs what no recording holds: a full pool, a second region, a lost host with 42
@@ -78,6 +80,10 @@ Screenshots are written to `output/playwright/openstack-pages-ui/`.
 the pages while working on them.
 
 ## What the walks hold
+
+`DeploymentGuides.spec.ts`: the setup guide's one question, how do you deploy OpenStack, each answer's steps and how far it says it has been tested, what a tool a probe reads leaves out, and every width.
+
+`ExporterVersions.spec.ts`: the Overview and each list on what the agent's own exporter and exporter 1.7.0 said of one cloud: less to say on 1.7.0, and nothing false.
 
 `Overview.spec.ts`: a cloud's Overview busy, calm, new, in several regions, quiet for days
 and with its inventory and metric reads failing, at 1280, 1024, 768 and 390 pixels, dark,

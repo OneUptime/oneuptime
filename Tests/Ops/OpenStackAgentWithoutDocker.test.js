@@ -1301,7 +1301,7 @@ describe("the README", () => {
     expect(text).toContain("except Keystone's users and groups, on purpose");
     expect(text).toContain("Keystone needs nothing.");
     expect(text).toContain(
-      "The rules also carry `volumev3`, for a Cinder configured that way.",
+      "The rules also carry `volume` and `volumev3`, for a Cinder configured that way.",
     );
   });
 

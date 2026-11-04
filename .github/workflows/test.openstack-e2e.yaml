@@ -30,6 +30,13 @@ on:
         description: Only deploy an all-in-one Kolla-Ansible and follow the guide for it, command by command
         type: boolean
         default: false
+      kolla_neutron:
+        description: With kolla_aio, the network backend, which is openvswitch unless you say ovn
+        type: choice
+        options:
+          - openvswitch
+          - ovn
+        default: openvswitch
       osa_aio:
         description: Only deploy an all-in-one OpenStack-Ansible and follow the guide for it, command by command
         type: boolean
@@ -53,7 +60,7 @@ permissions:
 # so neither cancels the other. Nor does a run that only records traces, or that follows a
 # deployment tool's guide: each of those deploys something else entirely.
 concurrency:
-  group: ${{ github.workflow }}-${{ github.event.pull_request.number || github.ref }}-${{ inputs.kolla_aio && 'kolla' || inputs.osa_aio && 'osa' || inputs.live_oneuptime && 'live' || inputs.control_plane_only && 'control-plane' || inputs.traces_only && 'traces' || 'all' }}
+  group: ${{ github.workflow }}-${{ github.event.pull_request.number || github.ref }}-${{ inputs.kolla_aio && format('kolla-{0}', inputs.kolla_neutron) || inputs.osa_aio && 'osa' || inputs.live_oneuptime && 'live' || inputs.control_plane_only && 'control-plane' || inputs.traces_only && 'traces' || 'all' }}
   cancel-in-progress: true
 
 jobs:
@@ -141,6 +148,8 @@ jobs:
       - name: Deploy Kolla-Ansible, as its quick start says
         id: deploy
         timeout-minutes: 150
+        env:
+          KOLLA_NEUTRON: ${{ inputs.kolla_neutron }}
         run: bash Tests/Ops/openstack-e2e/kolla-aio.sh deploy
 
       - name: Build the estate
@@ -222,7 +231,7 @@ jobs:
         if: always()
         uses: actions/upload-artifact@v4
         with:
-          name: openstack-recording-kolla-aio
+          name: openstack-recording-kolla-aio-${{ inputs.kolla_neutron }}
           path: ${{ runner.temp }}/recording
           if-no-files-found: warn
           retention-days: 30

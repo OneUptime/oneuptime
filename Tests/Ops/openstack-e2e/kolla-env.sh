@@ -10,6 +10,7 @@ KOLLA_GIT="https://github.com/openstack/kolla-ansible"
 
 KOLLA_HOME="/opt/ou-kolla"
 KOLLA_VENV="$KOLLA_HOME/venv"
+KOLLA_RUNTIME_VENV="$KOLLA_HOME/runtime"
 KOLLA_INVENTORY="$KOLLA_HOME/all-in-one"
 
 KOLLA_API_INTERFACE="ou-api"

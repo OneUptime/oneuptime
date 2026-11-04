@@ -214,6 +214,10 @@ GUIDE
   sudo tee -a "$AGENT_FOLDER/.env" <"$targets" >/dev/null
   (cd "$AGENT_FOLDER" && sudo docker compose up -d) 2>&1 | tee -a "$GUIDE_RECORDING/commands.log" || status=$?
 
+  # On a Kolla node, Docker is told to leave the firewall alone. A machine off the cloud, as the
+  # guide asks for, is not: so this says what someone who runs it on a node anyway would find.
+  record_where_the_logs_can_reach oneuptime-openstack-agent "$GUIDE_RECORDING/$phase/reach.txt"
+
   wait_for_what_it_sends "$phase" || status=$?
   troubleshoot "$phase"
   keep_what_the_agent_was "$phase"

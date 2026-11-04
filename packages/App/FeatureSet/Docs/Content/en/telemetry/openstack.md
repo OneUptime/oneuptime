@@ -162,7 +162,7 @@ service_type = compute
 | --- | --- |
 | `nova.conf` | `compute` |
 | `neutron.conf` | `network` |
-| `cinder.conf` | `block-storage`. The rules also carry `volumev3`, for a Cinder configured that way |
+| `cinder.conf` | `block-storage`. The rules also carry `volume` and `volumev3`, for a Cinder configured that way |
 | `glance-api.conf` | `image` |
 | `placement.conf` | `placement` |
 

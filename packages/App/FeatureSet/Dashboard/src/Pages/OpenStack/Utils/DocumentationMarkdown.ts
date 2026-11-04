@@ -400,7 +400,7 @@ openstack application credential create ${OPENSTACK_CREDENTIAL_NAME} \\
 
 - Copy the \`id\` and the \`secret\` it prints: the secret is shown only once.
 - Never add \`--unrestricted\`, which would let it make more credentials.
-- Access rules work only where each service sets \`service_type\` in its \`[keystone_authtoken]\` section and has been restarted since: \`compute\`, \`network\`, \`block-storage\` (the rules also carry \`volumev3\`, for a Cinder configured that way), \`image\` and \`placement\`. Keystone needs nothing. Without that, the services refuse the credential with a \`401\`.
+- Access rules work only where each service sets \`service_type\` in its \`[keystone_authtoken]\` section and has been restarted since: \`compute\`, \`network\`, \`block-storage\` (the rules also carry \`volume\` and \`volumev3\`, for a Cinder configured that way), \`image\` and \`placement\`. Keystone needs nothing. Without that, the services refuse the credential with a \`401\`.
 - If you won't change that, leave out \`--access-rules\`. That makes a plain admin application credential, which can write as well as read, so keep it as safe as an admin password.
 - It stops working when it expires. To replace it, make the second credential before you delete the first.`;
 }
@@ -691,7 +691,7 @@ Only the largest clouds need these, and none is asked for:
 
 | Variable | Description |
 |----------|-------------|
-| \`OPENSTACK_AGENT_SERVICES\` | Which services this agent reads, as a pattern: \`compute\|placement\` here and the rest on a second agent. Every service by default. No two agents should read one service of one region |
+| \`OPENSTACK_AGENT_SERVICES\` | Which services this agent reads, as a pattern: \`compute\\|placement\` here and the rest on a second agent. Every service by default. No two agents should read one service of one region |
 | \`OPENSTACK_AGENT_MEMORY_LIMIT_MIB\` | The memory the collector may use, in MiB (default: \`512\`). It holds a whole scrape, so raise this past tens of thousands of instances |
 | \`OPENSTACK_DATABASE_EXPORTER_TARGETS\` | Reading each service's database rather than its API, with a read-only account: where that exporter answers. Set \`OPENSTACK_EXPORTER_CLOUDS=[]\` with it, or every series arrives twice |
 | \`NOVA_DATABASE_URL\`, \`NOVA_API_DATABASE_URL\`, \`PLACEMENT_DATABASE_URL\`, \`NEUTRON_DATABASE_URL\`, \`CINDER_DATABASE_URL\`, \`GLANCE_DATABASE_URL\`, \`KEYSTONE_DATABASE_URL\` | The database of each service it reads, as \`mysql+pymysql://oneuptime:secret@db.example:3306/nova\`. One left empty is a service it leaves alone. Each holds a password, and \`.env\` is readable by its owner alone |
@@ -970,7 +970,7 @@ It needs \`sudo\` to read \`clouds.yaml\`, or it skips the credential checks. It
 ${codeBlock(
   "ini",
   `# nova.conf, for example. neutron.conf: network. glance-api.conf: image.
-# cinder.conf: block-storage. The rules also carry volumev3, for a Cinder configured that way.
+# cinder.conf: block-storage. The rules also carry volume and volumev3, for a Cinder configured that way.
 # placement.conf: placement. Keystone needs nothing.
 [keystone_authtoken]
 service_type = compute`,
@@ -1028,6 +1028,7 @@ export function getOpenStackSetupGuide(
   // A probe reads this tool's cloud, so the agent's own steps would only mislead.
   if (!doesOpenStackToolUseAgent(tool)) {
     return {
+      needsNoKey: true,
       wrapLongLines: true,
       intro: intro,
       steps: [...guide.firstSteps, ...guide.lastSteps],
