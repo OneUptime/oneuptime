@@ -720,9 +720,9 @@ describe("Ask AI opens from every way in", () => {
 
     await toggle({ conversationId: CONVERSATION_ID });
 
-    expect(screen.getByRole("complementary", { name: "Checkout latency" })).toBe(
-      askAi(),
-    );
+    expect(
+      screen.getByRole("complementary", { name: "Checkout latency" }),
+    ).toBe(askAi());
     expect(screen.getByText(QUESTION)).toBeInTheDocument();
     expect(screen.getByTestId("ai-chat-answer-text")).toHaveTextContent(
       "payments-db ran out of connections",

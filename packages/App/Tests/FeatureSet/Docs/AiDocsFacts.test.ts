@@ -238,29 +238,20 @@ describe("Ask AI", () => {
     const layout: string = dashboardSource(
       "Components/AIChat/AskAiPanelLayout.ts",
     );
-    const dock: string = readFileSync(
-      path.join(
-        __dirname,
-        "..",
-        "..",
-        "..",
-        "..",
-        "Common",
-        "UI",
-        "Utils",
-        "PageDock.ts",
-      ),
-      "utf8",
-    );
+    const dock: string = readRepoFile("Common/UI/Utils/PageDock.ts");
     const resume: string = dashboardSource(
       "Components/AIChat/AskAiResumeButton.tsx",
     );
     const said: string = flat(englishSection(ASK_AI, "## Open Ask AI"));
 
-    expect(panel).toContain("usePageDock(props.isDocked ? props.width : null);");
+    expect(panel).toContain(
+      "usePageDock(props.isDocked ? props.width : null);",
+    );
     expect(dock).toContain("padding-inline-end");
     expect(panel).toContain("<AskAiResizeHandle");
-    expect(panel).toContain('role={props.isDocked ? "complementary" : "dialog"}');
+    expect(panel).toContain(
+      'role={props.isDocked ? "complementary" : "dialog"}',
+    );
     expect(layout).toContain("ASK_AI_DOCK_MIN_WINDOW_WIDTH: number = 1024");
     expect(panel).toContain('"inset-0 sm:start-auto sm:w-[28rem]');
     expect(panel).toContain('event.key === "Escape"');

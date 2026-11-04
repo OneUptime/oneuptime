@@ -35,9 +35,9 @@ describe("whether the window has room for both", () => {
   });
 
   test("where it docks, the page keeps its room with the panel at its narrowest", () => {
-    expect(ASK_AI_DOCK_MIN_WINDOW_WIDTH - ASK_AI_PANEL_MIN_WIDTH).toBeGreaterThanOrEqual(
-      ASK_AI_PAGE_MIN_WIDTH,
-    );
+    expect(
+      ASK_AI_DOCK_MIN_WINDOW_WIDTH - ASK_AI_PANEL_MIN_WIDTH,
+    ).toBeGreaterThanOrEqual(ASK_AI_PAGE_MIN_WIDTH);
   });
 
   test("the width it opens at can be had on a laptop, with room to spare", () => {
@@ -80,14 +80,15 @@ describe("how wide the panel can be", () => {
     const random: (limit?: number) => number = seededRandom(5597);
 
     for (let run: number = 0; run < 500; run++) {
-      const windowWidth: number =
-        ASK_AI_DOCK_MIN_WINDOW_WIDTH + random(3000);
+      const windowWidth: number = ASK_AI_DOCK_MIN_WINDOW_WIDTH + random(3000);
       const asked: number = random(6000) - 1000;
       const width: number = clampAskAiPanelWidth(asked, windowWidth);
 
-      expect({ windowWidth, asked, fits: width >= ASK_AI_PANEL_MIN_WIDTH }).toEqual(
-        { windowWidth, asked, fits: true },
-      );
+      expect({
+        windowWidth,
+        asked,
+        fits: width >= ASK_AI_PANEL_MIN_WIDTH,
+      }).toEqual({ windowWidth, asked, fits: true });
       expect({
         windowWidth,
         asked,
@@ -148,8 +149,7 @@ describe("the width this browser keeps", () => {
   );
 
   test("a browser that keeps nothing still holds the width while the page is open", () => {
-    const storage: Storage = window.localStorage;
-    const setItem: typeof storage.setItem = Storage.prototype.setItem;
+    const setItem: Storage["setItem"] = Storage.prototype.setItem;
 
     Storage.prototype.setItem = (): void => {
       throw new Error("The quota is full.");

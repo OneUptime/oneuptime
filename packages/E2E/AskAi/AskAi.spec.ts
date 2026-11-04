@@ -523,9 +523,7 @@ test.describe("Ask AI beside the page", () => {
     for (let index: number = 0; index < 12 && !isOutside; index++) {
       await page.keyboard.press("Tab");
       isOutside = await page.evaluate((): boolean => {
-        return !document.activeElement?.closest(
-          '[data-testid="ask-ai-panel"]',
-        );
+        return !document.activeElement?.closest('[data-testid="ask-ai-panel"]');
       });
     }
 
@@ -872,11 +870,19 @@ test.describe("its edge", () => {
     await openAskAi(page);
 
     await page.setViewportSize({ width: 1024, height: 800 });
-    await expect.poll((): Promise<number> => widthOf(askAi(page))).toBe(384);
+    await expect
+      .poll((): Promise<number> => {
+        return widthOf(askAi(page));
+      })
+      .toBe(384);
     expect(await widthOf(page.getByTestId("fixture-page"))).toBe(640);
 
     await page.setViewportSize({ width: 1280, height: 800 });
-    await expect.poll((): Promise<number> => widthOf(askAi(page))).toBe(440);
+    await expect
+      .poll((): Promise<number> => {
+        return widthOf(askAi(page));
+      })
+      .toBe(440);
     expect(await widthOf(page.getByTestId("fixture-page"))).toBe(840);
   });
 
@@ -1659,7 +1665,8 @@ test.describe("what an answer carries fits where it is drawn", () => {
       );
 
       expect(date.lines).toBe(1);
-      expect(date.cellWidth).toBeLessThan(date.tableWidth / 4);
+      // Beside three other columns in the panel's width: it leaves them the most.
+      expect(date.cellWidth).toBeLessThan(date.tableWidth / 3);
       expect(date.text).not.toContain("2026");
       expect(date.title).toContain("2026");
 
@@ -1680,7 +1687,12 @@ test.describe("what an answer carries fits where it is drawn", () => {
 
   for (const viewport of [
     { name: "two by two in the panel", width: 1280, kept: 0, rows: 2 },
-    { name: "one row in a panel dragged wide", width: 1280, kept: 640, rows: 1 },
+    {
+      name: "one row in a panel dragged wide",
+      width: 1280,
+      kept: 640,
+      rows: 1,
+    },
     { name: "two by two on a phone", width: 390, kept: 0, rows: 2 },
   ]) {
     test(`four figures fill their rows: ${viewport.name} (${viewport.width})`, async ({
@@ -3235,11 +3247,12 @@ test.describe("an action's arguments and the cards it leaves", () => {
     await screenshot(page, "approval-arguments-1280");
   });
 
-  test("the cards they leave set each fact beside its name, and no row repeats them", async ({
+  test("the cards they leave set each fact beside its name in a panel with room for it, and no row repeats them", async ({
     page,
   }: {
     page: Page;
   }) => {
+    await keepPanelWidth(page, 640);
     await load(page, "thread=actions");
     await expect(askAi(page)).toBeVisible();
     await settle(page);
@@ -3272,6 +3285,35 @@ test.describe("an action's arguments and the cards it leaves", () => {
     expect(Math.abs(label!.y - value!.y)).toBeLessThanOrEqual(2);
     expect(label!.x + label!.width).toBeLessThanOrEqual(value!.x);
 
+    await screenshot(page, "cards-wide-1280");
+  });
+
+  test("in the panel at the width it opens at, a card's facts sit under their names, the card's whole width", async ({
+    page,
+  }: {
+    page: Page;
+  }) => {
+    await load(page, "thread=actions");
+    await expect(askAi(page)).toBeVisible();
+    await settle(page);
+
+    await page.getByRole("button", { name: "Run 2 actions" }).click();
+
+    const card: Locator = page.getByTestId("ai-chat-resource-card").first();
+    await expect(card).toBeVisible();
+    await settle(page);
+
+    const fact: Locator = card.getByTestId("ai-chat-resource-card-fact");
+    const [text, label, value] = await boxesInOneFrame([
+      card.getByTestId("ai-chat-resource-card-heading"),
+      fact.getByTestId("ai-chat-resource-card-fact-label"),
+      fact.getByTestId("ai-chat-resource-card-fact-value"),
+    ]);
+    expect(value!.y).toBeGreaterThanOrEqual(label!.y + label!.height - 1);
+    expect(Math.abs(value!.x - label!.x)).toBeLessThanOrEqual(1);
+    expect(value!.width).toBeGreaterThanOrEqual(text!.width - 1);
+
+    await expectNothingScrollsSideways(page);
     await screenshot(page, "cards-1280");
   });
 

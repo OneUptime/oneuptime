@@ -54,6 +54,10 @@ const BLOCK_COMMENT: RegExp = /\/\*[\s\S]*?\*\//g;
 const LINE_COMMENT: RegExp = /\/\/.*$/gm;
 const WHITESPACE: RegExp = /\s+/g;
 
+// A class list with `fixed`, and with `right-0` or `end-0`: no variant of them.
+const FIXED_CLASS: RegExp = /(?<![\w:-])fixed(?![\w-])/;
+const PINNED_TO_END_CLASS: RegExp = /(?<![\w:-])(?:right|end)-0(?![\w-])/;
+
 function stripComments(raw: string): string {
   return raw.replace(BLOCK_COMMENT, " ").replace(LINE_COMMENT, " ");
 }
@@ -98,7 +102,9 @@ describe("Ask AI is docked beside the page", () => {
     expect(surface).toContain(
       'role={props.isDocked ? "complementary" : "dialog"}',
     );
-    expect(surface).toContain('aria-modal={props.isDocked ? undefined : "true"}');
+    expect(surface).toContain(
+      'aria-modal={props.isDocked ? undefined : "true"}',
+    );
     expect(surface).toContain("aria-labelledby={titleId}");
     expect(surface).toContain("id={titleId}");
   });
@@ -144,7 +150,9 @@ describe("Ask AI is docked beside the page", () => {
       "utf8",
     );
 
-    expect(surfaceComponent()).toContain('className="relative z-40 print:hidden"');
+    expect(surfaceComponent()).toContain(
+      'className="relative z-40 print:hidden"',
+    );
     expect(squash(theme)).toContain(
       "@media print { html { padding-inline-end: 0 !important; } }",
     );
@@ -290,7 +298,9 @@ describe("what is pinned to the window's end stops short of Ask AI", () => {
   test.each(PINNED)("%s (%s)", (file: string) => {
     const source: string = squash(stripComments(fs.readFileSync(file, "utf8")));
 
-    expect(source).toMatch(/import \{ PAGE_DOCK_END_CLASS_NAME \} from "[^"]*PageDock";/);
+    expect(source).toMatch(
+      /import \{ PAGE_DOCK_END_CLASS_NAME \} from "[^"]*PageDock";/,
+    );
     expect(source).toContain("${PAGE_DOCK_END_CLASS_NAME}");
     expect(source).not.toContain("fixed right-0");
     expect(source).not.toContain("fixed inset-y-0 right-0");
@@ -325,10 +335,7 @@ describe("what is pinned to the window's end stops short of Ask AI", () => {
         const source: string = stripComments(fs.readFileSync(file, "utf8"));
 
         for (const classes of classStringsIn(source)) {
-          if (
-            /(?<![\w:-])fixed(?![\w-])/.test(classes) &&
-            /(?<![\w:-])(?:right|end)-0(?![\w-])/.test(classes)
-          ) {
+          if (FIXED_CLASS.test(classes) && PINNED_TO_END_CLASS.test(classes)) {
             pinned.push(`${path.relative(root, file)}: ${classes}`);
           }
         }
@@ -419,9 +426,10 @@ describe("the composer stays at the panel's foot", () => {
     for (const picker of ["PermissionModePicker.tsx", "ProviderPicker.tsx"]) {
       const source: string = squash(readCode(AI_CHAT_DIR, picker));
 
-      expect({ picker, placed: source.includes("<div ref={containerRef}>") }).toEqual(
-        { picker, placed: true },
-      );
+      expect({
+        picker,
+        placed: source.includes("<div ref={containerRef}>"),
+      }).toEqual({ picker, placed: true });
       expect({ picker, fits: source.includes("max-w-full") }).toEqual({
         picker,
         fits: true,

@@ -684,7 +684,7 @@ describe("asynchronous module context changes", () => {
     getItemMock.mockResolvedValue({ name: "Renamed application" });
     await openAskAi(`rum/${ENTITY_ID}`);
     fireEvent.click(screen.getByRole("button", { name: "Close" }));
-    expect(isDialogOpen()).toBe(false);
+    expect(screen.queryByTestId("ask-ai-panel")).not.toBeInTheDocument();
 
     await act(async () => {
       GlobalEvents.dispatchEvent(EventName.AI_CHAT_TOGGLE);
