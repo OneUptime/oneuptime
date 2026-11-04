@@ -191,7 +191,7 @@ Faire un choix demande une confirmation, indique ce qui change pour les visiteur
 
 ### Utilisateurs privés
 
-Ajoutez les personnes autorisées à se connecter sur **Pages de statut → votre page → Sécurité → Utilisateurs privés**. Il existe une action **Ajouter en masse** — collez une liste d'adresses e-mail et chacune reçoit un e-mail d'invitation. Les utilisateurs privés ont leur propre parcours « mot de passe oublié » et « réinitialisation », distinct des comptes de votre projet OneUptime.
+Ajoutez les personnes autorisées à se connecter sur **Pages de statut → votre page → Sécurité → Utilisateurs privés**. Il existe une action **Ajouter en masse** — collez une liste d'adresses e-mail et chacune reçoit un e-mail d'invitation. Les utilisateurs privés ont leur propre parcours « mot de passe oublié » et « réinitialisation », distinct des comptes de votre projet OneUptime. Un nouveau mot de passe les déconnecte sur tous leurs appareils, et tout lien de connexion ou de réinitialisation déjà envoyé cesse de fonctionner.
 
 **Utilisateurs privés et mot de passe ne se cumulent pas.** Tant que **Toute personne disposant du mot de passe** est le choix, les utilisateurs privés ne peuvent pas se connecter — ils saisissent eux aussi le mot de passe — et l'écran **Utilisateurs privés** le signale, avec un lien vers **Accès**.
 
