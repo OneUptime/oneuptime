@@ -28,7 +28,7 @@ flowchart TB
 | Способ | Лучше всего подходит для | Примеры |
 | --- | --- | --- |
 | Встроенное подключение | Инструментов, к которым OneUptime подключается сам. Вы заполняете форму, и ничего не нужно создавать. | [Slack](/docs/workspace-connections/slack), [Microsoft Teams](/docs/workspace-connections/microsoft-teams), подключения [Событий безопасности](/docs/telemetry/security-events) |
-| Шаблон рабочего процесса | Тикет-систем, синхронизируемых в обе стороны, проблем мониторинга, отчётов об инцидентах безопасности и сообщений в чатах. Вы выбираете шаблон и заполняете несколько настроек. | [Jira](/docs/integrations/jira), [Microsoft Dynamics 365](/docs/integrations/microsoft-dynamics-365), [Huntress](/docs/integrations/huntress), [Zabbix](/docs/integrations/zabbix) |
+| Шаблон рабочего процесса | Тикет-систем, синхронизируемых в обе стороны, проблем мониторинга, отчётов об инцидентах безопасности и сообщений в чатах. Вы выбираете шаблон и заполняете несколько настроек. | [Jira](/docs/integrations/jira), [Microsoft Dynamics 365](/docs/integrations/microsoft-dynamics-365), [Huntress](/docs/integrations/huntress), [Zabbix](/docs/integrations/zabbix), [Datadog](/docs/integrations/datadog), [New Relic](/docs/integrations/new-relic) |
 | Монитор Incoming Request | Инструментов оповещения, которые отправляют вебхук. Вы получаете один инцидент на оповещение, переданный дежурным и устранённый, когда оповещение восстанавливается, без рабочего процесса. | [Zabbix](/docs/integrations/zabbix), [Prometheus Alertmanager](/docs/integrations/prometheus-alertmanager), [Grafana](/docs/integrations/grafana) |
 | Рабочий процесс, который вы создаёте | Любого инструмента с вебхуком или REST API и любой собственной логики. | [PagerDuty](/docs/integrations/pagerduty), [Opsgenie](/docs/integrations/opsgenie), [ServiceNow](/docs/integrations/servicenow) |
 
@@ -43,7 +43,8 @@ flowchart TB
 | [Zabbix](/docs/integrations/zabbix) | Оба | Превращает проблемы Zabbix в инциденты или оповещения, устраняет их при восстановлении и подтверждает или закрывает проблемы из OneUptime. |
 | [Prometheus Alertmanager](/docs/integrations/prometheus-alertmanager) | Входящее | Превращает уведомления Alertmanager в инциденты. |
 | [Grafana](/docs/integrations/grafana) | Входящее | Превращает оповещения Grafana в инциденты. |
-| [Datadog](/docs/integrations/datadog) | Входящее | Превращает оповещения мониторов Datadog в инциденты. |
+| [Datadog](/docs/integrations/datadog) | Входящее | Превращает оповещения мониторов Datadog в инциденты или оповещения и устраняет их при восстановлении. |
+| [New Relic](/docs/integrations/new-relic) | Входящее | Превращает проблемы New Relic в инциденты или оповещения и устраняет их при закрытии проблемы. |
 
 ### Инструменты безопасности
 
@@ -133,7 +134,7 @@ URL — единственные учётные данные, поэтому о�
 5. Нажмите **Запустить рабочий процесс**, выберите инцидент в поле **Инцидент** и запустите. Тестовый запуск действительно отправляет запрос. Затем включите **Включено**.
 :::
 
-Если инструменту нужны данные в другом виде, добавьте между ними блок [Run Custom JavaScript](/docs/workflows/components#custom-code). Рецепт одинаков для Zendesk, New Relic, AWS (через SNS), StatusCake и всех остальных: меняются только URL и тело.
+Если инструменту нужны данные в другом виде, добавьте между ними блок [Run Custom JavaScript](/docs/workflows/components#custom-code). Рецепт одинаков для Zendesk, AWS (через SNS), StatusCake и всех остальных: меняются только URL и тело.
 
 ## Защита учётных данных
 
