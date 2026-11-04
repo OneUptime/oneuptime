@@ -339,7 +339,7 @@ curl -X POST "https://oneuptime.com/security-events/v1/ingest" \
 
 通知 **狩猎发现了安全事件** 会写明狩猎及其搜索、运行发现的事件数量和读取的时间窗口，并链接到显示这些事件的狩猎页面；其中不包含任何事件本身的内容。每个人默认通过电子邮件和推送接收，并可在 **用户设置 → 通知设置** 中选择渠道。与其他例行邮件一样，它可能会被归入 [邮件汇总](/docs/emails/notification-rollup)。
 
-要将狩猎的发现发布到 Slack 或 Microsoft Teams，请在 **产品 → 安全事件 → 工作区 → Slack**（或 **Microsoft Teams**）中，在发布[安全案例](/docs/telemetry/security-cases#发布到-slack-和-microsoft-teams-频道)的规则下方，向 **狩猎规则** 添加规则。规则指定要发布到的频道（在 Microsoft Teams 中还包括聊天），以及（如果需要）它适用的狩猎，按 **狩猎名称** 匹配：名称等于、包含、以你的文本开头或以你的文本结尾。每当计划运行发现事件时，它会发布该狩猎、其搜索、事件数量和时间，并附上指向这些事件的链接，不含事件本身的任何内容。狩猎规则由可以设置安全剧本的角色设置，例如 Project Owner、Project Admin 或 Security Admin。
+要将狩猎的发现发布到 Slack、Microsoft Teams 或 Mattermost，请在 **产品 → 安全事件 → 工作区 → Slack**（或 **Microsoft Teams**、**Mattermost**）中，在发布[安全案例](/docs/telemetry/security-cases#发布到-slackmicrosoft-teams-和-mattermost-频道)的规则下方，向 **狩猎规则** 添加规则。规则指定要发布到的频道（在 Microsoft Teams 中还包括聊天），以及（如果需要）它适用的狩猎，按 **狩猎名称** 匹配：名称等于、包含、以你的文本开头或以你的文本结尾。每当计划运行发现事件时，它会发布该狩猎、其搜索、事件数量和时间，并附上指向这些事件的链接，不含事件本身的任何内容。狩猎规则由可以设置安全剧本的角色设置，例如 Project Owner、Project Admin 或 Security Admin。
 
 ### 将事件保存到案例
 

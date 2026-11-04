@@ -144,7 +144,7 @@ Un caso abierto a partir de alertas de Google SecOps también las cierra en Goog
 
 ## Prioridades y estados de los casos
 
-Cada proyecto tiene sus propias prioridades y estados de caso, en **Productos → Eventos de seguridad → Ajustes → Prioridades de casos** y **Estados de casos**. Cámbiales el nombre o el color, arrástralos a otro orden y añade los tuyos, como un estado «Triaje» o una prioridad «Emergencia» por encima de **Crítico**. Un nombre nuevo se ve en todas partes a la vez: en la cola, en las páginas de los casos y en la vista general, en las notificaciones, en Slack y Microsoft Teams, y en los mensajes de los playbooks.
+Cada proyecto tiene sus propias prioridades y estados de caso, en **Productos → Eventos de seguridad → Ajustes → Prioridades de casos** y **Estados de casos**. Cámbiales el nombre o el color, arrástralos a otro orden y añade los tuyos, como un estado «Triaje» o una prioridad «Emergencia» por encima de **Crítico**. Un nombre nuevo se ve en todas partes a la vez: en la cola, en las páginas de los casos y en la vista general, en las notificaciones, en Slack, Microsoft Teams y Mattermost, y en los mensajes de los playbooks.
 
 Algunos son predefinidos, porque OneUptime lee lo que significan. Se les puede cambiar el nombre y el color, pero no eliminarlos ni archivarlos, y conservan su orden:
 
@@ -157,7 +157,7 @@ Algunos son predefinidos, porque OneUptime lee lo que significan. Se les puede c
 | Las prioridades Crítico, Alta, Medium, Low e Informativos | Una detección abre su caso en la prioridad de su gravedad, y un caso que abre una persona empieza en Medium |
 
 - El lugar de un estado decide qué cuenta un caso que está en él, como muestra la columna **Cuenta como**: desde el estado reconocido hacia abajo, reconocido; desde el estado contenido hacia abajo, contenido; desde el estado cerrado hacia abajo, cerrado. Un estado que añades se coloca justo encima del estado cerrado, y pasar un caso a un estado que lo cierra pide antes un veredicto.
-- El puesto de una prioridad es su urgencia, la más urgente primero: **Para casos de al menos**, las opciones de notificación y las reglas de Slack y Microsoft Teams leen este orden. Una prioridad que añades va al final, y la columna **Gravedad de la detección** muestra qué detecciones abren sus casos en cada prioridad predefinida.
+- El puesto de una prioridad es su urgencia, la más urgente primero: **Para casos de al menos**, las opciones de notificación y las reglas de Slack, Microsoft Teams y Mattermost leen este orden. Una prioridad que añades va al final, y la columna **Gravedad de la detección** muestra qué detecciones abren sus casos en cada prioridad predefinida.
 
 Para dejar de usar un estado o una prioridad propios, usa **Archivar** en su fila. Nadie puede volver a elegirlo, y la API, Terraform y MCP lo rechazan, pero los casos que lo tienen lo conservan, y puedes seguir filtrando por él. Los valores archivados aparecen en la sección plegada **Estados de caso archivados** o **Prioridades de caso archivadas** bajo la tabla, donde **Desarchivar** devuelve uno. **Eliminar** se rechaza mientras haya casos con el valor o un playbook que parta de la prioridad.
 
@@ -232,9 +232,9 @@ Las opciones siguen las prioridades de caso del proyecto, con sus propios nombre
 
 No se envían mensajes de WhatsApp para los casos de seguridad. Una notificación push abre el caso en la app OneUptime On-Call (1.7.0 o posterior), donde puedes aprobar o rechazar un paso de playbook en espera, hacerte cargo del caso y cerrarlo. Su enlace abre el caso en el navegador.
 
-### Publicar en canales de Slack y Microsoft Teams
+### Publicar en canales de Slack, Microsoft Teams y Mattermost
 
-Para publicar en un canal, añade una regla en **Productos → Eventos de seguridad → Espacio de trabajo → Slack** (o **Microsoft Teams**). Si no hay ninguno de los dos conectado, la única entrada de la sección es **Conectar un espacio de trabajo**. Una regla nombra los canales en los que publicar (y, en Microsoft Teams, los chats) y, si quieres, los casos a los que se aplica:
+Para publicar en un canal, añade una regla en **Productos → Eventos de seguridad → Espacio de trabajo → Slack** (o **Microsoft Teams** o **Mattermost**). Si no hay ninguno conectado, la única entrada de la sección es **Conectar un espacio de trabajo**. Una regla nombra los canales en los que publicar (y, en Microsoft Teams, los chats) y, si quieres, los casos a los que se aplica:
 
 | Condición | Coincide con |
 | --- | --- |

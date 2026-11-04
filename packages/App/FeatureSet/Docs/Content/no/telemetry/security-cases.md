@@ -144,7 +144,7 @@ En sak som er åpnet fra Google SecOps-varsler, lukker dem også i Google SecOps
 
 ## Saksprioriteter og saksstatuser
 
-Hvert prosjekt har sine egne saksprioriteter og saksstatuser, under **Produkter → Sikkerhetshendelser → Innstillinger → Saksprioriteter** og **Saksstatuser**. Gi dem nye navn og farger, dra dem i en annen rekkefølge, og legg til dine egne, for eksempel en status «Triage» eller en prioritet «Nødsituasjon» over **Kritisk**. Et nytt navn vises overalt med én gang: i køen, på sakssidene og oversikten, i varslinger, i Slack og Microsoft Teams og i playbook-meldinger.
+Hvert prosjekt har sine egne saksprioriteter og saksstatuser, under **Produkter → Sikkerhetshendelser → Innstillinger → Saksprioriteter** og **Saksstatuser**. Gi dem nye navn og farger, dra dem i en annen rekkefølge, og legg til dine egne, for eksempel en status «Triage» eller en prioritet «Nødsituasjon» over **Kritisk**. Et nytt navn vises overalt med én gang: i køen, på sakssidene og oversikten, i varslinger, i Slack, Microsoft Teams og Mattermost og i playbook-meldinger.
 
 Noen er innebygde, fordi OneUptime leser hva de betyr. De kan få nytt navn og ny farge, men ikke slettes eller arkiveres, og de beholder rekkefølgen sin:
 
@@ -157,7 +157,7 @@ Noen er innebygde, fordi OneUptime leser hva de betyr. De kan få nytt navn og n
 | Prioritetene Kritisk, High, Medium, Low og Til orientering | En deteksjon åpner saken sin med prioriteten for alvorlighetsgraden sin, og en sak som noen åpner, starter på Medium |
 
 - Hvor en status står, avgjør hva en sak i den teller som, slik kolonnen **Teller som** viser: fra den kvitterte statusen og ned som kvittert, fra den begrensede statusen og ned som begrenset, fra den lukkede statusen og ned som lukket. En status du legger til, havner rett over den lukkede statusen, og når du flytter en sak til en status som lukker den, blir du først bedt om en konklusjon.
-- Plassen til en prioritet sier hvor mye den haster, den som haster mest først: **For saker med minst**, valgene for varslinger og reglene for Slack og Microsoft Teams leser denne rekkefølgen. En prioritet du legger til, havner sist, og kolonnen **Deteksjonens alvorlighetsgrad** viser hvilke deteksjoner som åpner sakene sine med hver innebygde prioritet.
+- Plassen til en prioritet sier hvor mye den haster, den som haster mest først: **For saker med minst**, valgene for varslinger og reglene for Slack, Microsoft Teams og Mattermost leser denne rekkefølgen. En prioritet du legger til, havner sist, og kolonnen **Deteksjonens alvorlighetsgrad** viser hvilke deteksjoner som åpner sakene sine med hver innebygde prioritet.
 
 For å slutte å bruke en egen status eller prioritet bruker du **Arkiver** i raden dens. Ingen kan velge den igjen, og API-et, Terraform og MCP avviser den, men sakene som har den, beholder den, og du kan fortsatt filtrere på den. Arkiverte verdier står i den sammenslåtte delen **Arkiverte saksstatuser** eller **Arkiverte saksprioriteter** under tabellen, der **Fjern fra arkiv** henter en tilbake. **Slett** avvises så lenge saker har verdien eller en playbook kjører fra prioriteten.
 
@@ -232,9 +232,9 @@ Valgene følger prosjektets saksprioriteter, under sine egne navn: dette er valg
 
 Det sendes ikke WhatsApp-meldinger for sikkerhetssaker. Et push-varsel åpner saken i OneUptime On-Call-appen (1.7.0 eller nyere), der du kan godkjenne eller avvise et playbook-steg som venter, ta saken og lukke den. Lenken i det åpner saken i nettleseren.
 
-### Legg ut i Slack- og Microsoft Teams-kanaler
+### Legg ut i Slack-, Microsoft Teams- og Mattermost-kanaler
 
-For å legge ut i en kanal legger du til en regel under **Produkter → Sikkerhetshendelser → Arbeidsområde → Slack** (eller **Microsoft Teams**). Er ingen av dem koblet til, er seksjonens eneste oppføring **Koble til et arbeidsområde**. En regel angir kanalene den legger ut i (og i Microsoft Teams chattene) og, om du vil, sakene den gjelder for:
+For å legge ut i en kanal legger du til en regel under **Produkter → Sikkerhetshendelser → Arbeidsområde → Slack** (eller **Microsoft Teams** eller **Mattermost**). Er ingen av dem koblet til, er seksjonens eneste oppføring **Koble til et arbeidsområde**. En regel angir kanalene den legger ut i (og i Microsoft Teams chattene) og, om du vil, sakene den gjelder for:
 
 | Betingelse | Treffer på |
 | --- | --- |

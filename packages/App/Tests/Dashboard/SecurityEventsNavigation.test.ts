@@ -389,11 +389,11 @@ describe("the Security Events menu", () => {
 });
 
 /*
- * "Products → Security Events → Workspace → Slack (or Microsoft Teams)", as
- * the Security Cases docs send people: the rules that post cases to
- * channels. Drawn by useWorkspaceSideMenuSection, so it lists only what the
- * project has connected, and kept out of SECURITY_EVENTS_MENU, whose entries
- * every project has.
+ * "Products → Security Events → Workspace → Slack (or Microsoft Teams, or
+ * Mattermost)", as the Security Cases docs send people: the rules that post
+ * cases to channels. Drawn by useWorkspaceSideMenuSection, so it lists only
+ * what the project has connected, and kept out of SECURITY_EVENTS_MENU, whose
+ * entries every project has.
  */
 describe("the Workspace section", () => {
   test("is the security cases' Slack, Microsoft Teams and Mattermost pages, and the page that connects one", () => {
