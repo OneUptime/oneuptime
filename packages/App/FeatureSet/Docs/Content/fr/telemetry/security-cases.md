@@ -233,7 +233,7 @@ Aucun message WhatsApp n'est envoyé pour les dossiers de sécurité. Une notifi
 
 ### Publier dans des canaux Slack et Microsoft Teams
 
-Pour publier dans un canal, ajoutez une règle sous **Produits → Événements de sécurité → Espace de travail → Slack** (ou **Microsoft Teams**). Quand ni l'un ni l'autre n'est connecté, la seule entrée de la section est **Connecter Slack ou Teams**. Une règle nomme les canaux où publier (et, dans Microsoft Teams, les conversations) et, si vous le souhaitez, les dossiers qu'elle concerne :
+Pour publier dans un canal, ajoutez une règle sous **Produits → Événements de sécurité → Espace de travail → Slack** (ou **Microsoft Teams**). Quand ni l'un ni l'autre n'est connecté, la seule entrée de la section est **Connecter un espace de travail**. Une règle nomme les canaux où publier (et, dans Microsoft Teams, les conversations) et, si vous le souhaitez, les dossiers qu'elle concerne :
 
 | Condition | Correspond à |
 | --- | --- |

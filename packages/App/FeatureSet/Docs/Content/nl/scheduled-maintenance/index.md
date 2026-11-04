@@ -56,7 +56,7 @@ Open **Geplande onderhoud** via het menu **Producten** in de bovenste balk. De l
 | ------------- | -------------------------------------------------------------------------------------------------------------------------- |
 | **Overzicht** | **Alle gebeurtenissen** en **Lopende gebeurtenissen**, waarvan de badge de gebeurtenissen telt die nu lopen.                |
 | **Agenda** | **Onderhoudsagenda**: elke gebeurtenis op een maand, een week of een dag, naast de agenda's van buiten het project die je toevoegt. |
-| **Werkruimte** | **Slack**, **Microsoft Teams** en **Mattermost**, afhankelijk van wat het project heeft gekoppeld, of **Slack of Teams koppelen** als het er geen heeft. |
+| **Werkruimte** | **Slack**, **Microsoft Teams** en **Mattermost**, afhankelijk van wat het project heeft gekoppeld, of **Werkruimte koppelen** als het er geen heeft. |
 | **Regels**    | **Eigenaarsregels**, **Runbook-regels**, **Labelregels**, **Herinneringsregels**.                                               |
 | **Instellingen** | **Status gebeurtenis**, **Gebeurtenis-sjablonen**, **Notitie-sjablonen**, **Aangepaste velden**, **Metingen**, **Agenda-instellingen**, **Nummering**. |
 

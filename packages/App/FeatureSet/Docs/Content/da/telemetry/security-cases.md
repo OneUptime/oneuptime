@@ -233,7 +233,7 @@ Der sendes ingen WhatsApp-beskeder for sikkerhedssager. En push-notifikation åb
 
 ### Slå op i Slack- og Microsoft Teams-kanaler
 
-For at slå op i en kanal tilføjer du en regel under **Produkter → Sikkerhedshændelser → Arbejdsområde → Slack** (eller **Microsoft Teams**). Er ingen af dem forbundet, er sektionens eneste punkt **Forbind Slack eller Teams**. En regel angiver de kanaler, den slår op i (og i Microsoft Teams chattene), og, hvis du vil, de sager, den gælder for:
+For at slå op i en kanal tilføjer du en regel under **Produkter → Sikkerhedshændelser → Arbejdsområde → Slack** (eller **Microsoft Teams**). Er ingen af dem forbundet, er sektionens eneste punkt **Forbind et arbejdsområde**. En regel angiver de kanaler, den slår op i (og i Microsoft Teams chattene), og, hvis du vil, de sager, den gælder for:
 
 | Betingelse | Matcher på |
 | --- | --- |

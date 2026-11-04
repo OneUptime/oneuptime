@@ -233,7 +233,7 @@ Det sendes ikke WhatsApp-meldinger for sikkerhetssaker. Et push-varsel åpner sa
 
 ### Legg ut i Slack- og Microsoft Teams-kanaler
 
-For å legge ut i en kanal legger du til en regel under **Produkter → Sikkerhetshendelser → Arbeidsområde → Slack** (eller **Microsoft Teams**). Er ingen av dem koblet til, er seksjonens eneste oppføring **Koble til Slack eller Teams**. En regel angir kanalene den legger ut i (og i Microsoft Teams chattene) og, om du vil, sakene den gjelder for:
+For å legge ut i en kanal legger du til en regel under **Produkter → Sikkerhetshendelser → Arbeidsområde → Slack** (eller **Microsoft Teams**). Er ingen av dem koblet til, er seksjonens eneste oppføring **Koble til et arbeidsområde**. En regel angir kanalene den legger ut i (og i Microsoft Teams chattene) og, om du vil, sakene den gjelder for:
 
 | Betingelse | Treffer på |
 | --- | --- |

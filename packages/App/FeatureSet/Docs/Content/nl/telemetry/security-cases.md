@@ -233,7 +233,7 @@ Voor beveiligingszaken worden geen WhatsApp-berichten verstuurd. Een pushmelding
 
 ### Plaatsen in kanalen van Slack en Microsoft Teams
 
-Om in een kanaal te plaatsen, voeg je een regel toe onder **Producten → Beveiligingsgebeurtenissen → Werkruimte → Slack** (of **Microsoft Teams**). Is geen van beide gekoppeld, dan is de enige vermelding in dat onderdeel **Slack of Teams koppelen**. Een regel noemt de kanalen waarin hij plaatst (en, in Microsoft Teams, de chats) en, als je wilt, de zaken waarvoor hij geldt:
+Om in een kanaal te plaatsen, voeg je een regel toe onder **Producten → Beveiligingsgebeurtenissen → Werkruimte → Slack** (of **Microsoft Teams**). Is geen van beide gekoppeld, dan is de enige vermelding in dat onderdeel **Werkruimte koppelen**. Een regel noemt de kanalen waarin hij plaatst (en, in Microsoft Teams, de chats) en, als je wilt, de zaken waarvoor hij geldt:
 
 | Voorwaarde | Matcht op |
 | --- | --- |

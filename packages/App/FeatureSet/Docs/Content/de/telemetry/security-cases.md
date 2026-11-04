@@ -233,7 +233,7 @@ Für Sicherheitsfälle werden keine WhatsApp-Nachrichten gesendet. Eine Push-Ben
 
 ### In Kanäle von Slack und Microsoft Teams posten
 
-Um in einem Kanal zu posten, fügen Sie unter **Produkte → Sicherheitsereignisse → Arbeitsbereich → Slack** (oder **Microsoft Teams**) eine Regel hinzu. Ist keines von beiden verbunden, ist der einzige Eintrag des Bereichs **Slack oder Teams verbinden**. Eine Regel nennt die Kanäle, in die gepostet wird (und in Microsoft Teams die Chats), und auf Wunsch die Fälle, für die sie gilt:
+Um in einem Kanal zu posten, fügen Sie unter **Produkte → Sicherheitsereignisse → Arbeitsbereich → Slack** (oder **Microsoft Teams**) eine Regel hinzu. Ist keines von beiden verbunden, ist der einzige Eintrag des Bereichs **Arbeitsbereich verbinden**. Eine Regel nennt die Kanäle, in die gepostet wird (und in Microsoft Teams die Chats), und auf Wunsch die Fälle, für die sie gilt:
 
 | Bedingung | Trifft zu auf |
 | --- | --- |

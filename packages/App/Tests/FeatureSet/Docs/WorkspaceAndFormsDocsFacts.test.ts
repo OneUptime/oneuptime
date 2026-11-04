@@ -1,4 +1,5 @@
-import { readPage } from "./DocsContentSupport";
+import { DOCS_LANGUAGES, readPage } from "./DocsContentSupport";
+import { dashboardLabel, drawnDashboardLabel } from "./DocsDashboardLabels";
 import { boldSpans, inlineCode } from "./DocsTranslationChecks";
 import FormsCopy from "../../../FeatureSet/Dashboard/src/Components/FormBuilder/FormsCopy";
 import { PublicAddressCopy } from "../../../FeatureSet/Dashboard/src/Components/CustomDomain/PublicAddressCopy";
@@ -178,6 +179,16 @@ const SHARING: string = "forms/sharing-and-security";
 const INCIDENT_FEED: string = "incidents/notes-owners-and-feed";
 
 const CHAT_PAGES: ReadonlyArray<string> = [SLACK, TEAMS];
+
+// The pages that name the entry a project with nothing connected sees.
+const CONNECT_ENTRY_PAGES: ReadonlyArray<string> = [
+  ...CHAT_PAGES,
+  "alerts/index",
+  "incidents/index",
+  "on-call/index",
+  "scheduled-maintenance/index",
+  "telemetry/security-cases",
+];
 
 const HEADING: RegExp = /^(#{1,6}) (.+)$/;
 const TABLE_ROW: RegExp = /^\|.*\|$/;
@@ -446,7 +457,7 @@ describe("Slack and Microsoft Teams, against the Dashboard and the server", () =
       Slack: "Slack",
       MicrosoftTeams: "Microsoft Teams",
       Mattermost: "Mattermost",
-      Connect: "Connect Slack or Teams",
+      Connect: "Connect a workspace",
     });
 
     // Incidents, Alerts, Scheduled Maintenance, Monitors and On-Call send a project with nothing connected to connect one.
@@ -482,12 +493,33 @@ describe("Slack and Microsoft Teams, against the Dashboard and the server", () =
       const markdown: string = englishPage(page);
 
       expect(markdown).toContain(
-        "the **Workspace** section of the Incidents, Alerts, Scheduled Maintenance, Monitors and On-Call menus holds **Connect Slack or Teams**",
+        "the **Workspace** section of the Incidents, Alerts, Scheduled Maintenance, Monitors and On-Call menus holds **Connect a workspace**",
       );
       expect(markdown).toContain(
         "The **Workspace** section lists only the chat workspaces your project has connected",
       );
     }
+  });
+
+  it("quotes the connect entry on every page that names it, in every language, as that language's Dashboard draws it", () => {
+    const entry: string = "Connect a workspace";
+
+    const missing: Array<string> = DOCS_LANGUAGES.flatMap(
+      (language: string): Array<string> => {
+        return CONNECT_ENTRY_PAGES.filter((page: string): boolean => {
+          // Persian's incident pages keep the Dashboard's English names.
+          const drawn: string = page.startsWith("incidents/")
+            ? dashboardLabel(language, entry)
+            : drawnDashboardLabel(language, entry);
+
+          return !readPage(language, page).includes(`**${drawn}**`);
+        }).map((page: string): string => {
+          return `${language}/${page}`;
+        });
+      },
+    );
+
+    expect(missing).toEqual([]);
   });
 
   it("lists each product's tabs as its Slack and Microsoft Teams pages draw them", () => {
