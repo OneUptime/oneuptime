@@ -143,7 +143,7 @@ Um per Direktnachricht alarmiert zu werden, wenn Sie Bereitschaft haben, fügen 
 
 :::steps
 1. Verbinden Sie Ihr eigenes Slack-Konto (siehe [Slack verbinden](#slack-verbinden)).
-2. Gehen Sie zu **Benutzereinstellungen** > **Benachrichtigungsmethoden**, öffnen Sie die Registerkarte **Workspace Apps** und klicken Sie auf **Slack-Konto hinzufügen**.
+2. Gehen Sie zu **Benutzereinstellungen** > **Benachrichtigungsmethoden**, öffnen Sie die Registerkarte **Workspace-Apps** und klicken Sie auf **Slack-Konto hinzufügen**.
 3. Klicken Sie in seiner Zeile auf **Testnachricht senden**. Die Nachricht kommt in Ihren Slack-Direktnachrichten an.
 :::
 

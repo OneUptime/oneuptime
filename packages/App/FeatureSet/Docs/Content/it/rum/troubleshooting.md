@@ -139,7 +139,7 @@ localStorage.setItem("oneuptime.sessionReplay.debug", "true");
 // then reload the page
 ```
 
-La pagina **Integrità** dell'applicazione, nella sua sezione **Riproduzione delle sessioni**, e il pannello **Test your installation** di **Replay Policy** verificano la chiave, gli elenchi delle origini consentite e la policy dal lato server, e dicono perché non arriva nulla. La console del browser ti dà la metà che il server non può vedere.
+La pagina **Integrità** dell'applicazione, nella sua sezione **Riproduzione delle sessioni**, e il pannello **Test your installation** di **Policy di riproduzione** verificano la chiave, gli elenchi delle origini consentite e la policy dal lato server, e dicono perché non arriva nulla. La console del browser ti dà la metà che il server non può vedere.
 
 Con la policy predefinita, un registratore invia un frammento circa ogni 15 secondi mentre l'utente interagisce con la pagina. Una scheda inattiva non ha nulla da inviare, quindi prima fai clic o muovi il mouse; poi, se non c'è alcuna richiesta di frammento, qualcosa non va. Se l'app carica solo _On error or frustration_, il silenzio è previsto finché qualcosa non fallisce. Chiama `OneUptimeReplay.captureSession()` per forzare un caricamento e provare il percorso in ogni caso.
 

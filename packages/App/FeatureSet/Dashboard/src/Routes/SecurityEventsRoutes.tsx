@@ -47,6 +47,7 @@ import SecurityCaseCustomFieldsPage from "../Pages/SecurityEvents/CaseView/Custo
 import SecurityCaseAuditLogsPage from "../Pages/SecurityEvents/CaseView/AuditLogs";
 import SecurityCaseDeletePage from "../Pages/SecurityEvents/CaseView/Delete";
 import RuleLibraryPage from "../Pages/SecurityEvents/RuleLibrary";
+import HuntLibraryPage from "../Pages/SecurityEvents/HuntLibrary";
 import AttackCoveragePage from "../Pages/SecurityEvents/AttackCoverage";
 import SecurityPlaybooksPage from "../Pages/SecurityEvents/Playbooks";
 import SecurityPlaybookViewPage from "../Pages/SecurityEvents/PlaybookView";
@@ -127,6 +128,20 @@ const SecurityEventsRoutes: FunctionComponent<ComponentProps> = (
             <SecurityHuntsPage
               {...props}
               pageRoute={RouteMap[PageMap.SECURITY_EVENTS_HUNTS] as Route}
+            />
+          }
+        />
+        {/* Ready-made hunts, under Hunts in the menu. */}
+        <PageRoute
+          path={
+            SecurityEventsRoutePath[PageMap.SECURITY_EVENTS_HUNT_LIBRARY] || ""
+          }
+          element={
+            <HuntLibraryPage
+              {...props}
+              pageRoute={
+                RouteMap[PageMap.SECURITY_EVENTS_HUNT_LIBRARY] as Route
+              }
             />
           }
         />

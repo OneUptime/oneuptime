@@ -112,7 +112,10 @@ case:
    Checkbox, CollapsibleSection, SideOver, Link, EmptyState, the "What AI may
    do" building blocks (`Components/AiAccess/AiAccessRow.tsx`), the telemetry
    overviews' metric tiles (`ResourceOverview` `tiles[].title` and
-   `tiles[].sublabel`) and `ChartCard` `title`, and more. Do not
+   `tiles[].sublabel`), the infrastructure pages' tiles
+   (`Components/Infrastructure/GoldenMetricTile` `title` and `sublabel`, but
+   never a sublabel marked `isSublabelAsWritten`), `ChartCard` `title` and
+   the `seriesName` of every line it plots, and more. Do not
    translate a prop before you pass it. Write it as a literal, so the extractor
    sees it. `USER_FACING_PROPS` in `scripts/i18n/ExtractStrings.ts` lists the
    prop names the extractor reads.
@@ -423,9 +426,12 @@ translated the same locale. Take either side, then run
   and the rest) were translated that way: `DocsQuotedLabelsTranslated` holds
   each of them translated in every language, or kept as written for the
   reason it gives, and every page that quotes it in the same words.
-- The infrastructure pages' metric tiles
-  (`Components/Infrastructure/GoldenMetricTile`) draw their title as a page
-  hands it, so a page that wants it translated words it itself (the VMware
-  host tab does); the telemetry overviews' tiles and `ChartCard` translate
-  theirs. A chart's legend draws its series names as given.
+- A chart's legend draws its series names as given, because most series
+  are named by data (a service, a container, eth0). `ChartCard` translates
+  the lines it plots, which the overviews name in the product's words, and
+  a page whose own chart's series are the product's words hands them over
+  through `withTranslatedSeriesNames` (`Common/UI/Components/Charts/Utils/SeriesNames`).
+  `InfrastructureTileTitlesInLocale` (Common Tests/App/Dashboard) holds every
+  tile title and literal line a page hands `GoldenMetricTile` worded in every
+  language, and no page looks one up before handing it over.
 - `ee/Dashboard` and documentation markdown are not scanned.

@@ -24,8 +24,8 @@ import { MigrationInterface, QueryRunner } from "typeorm";
  * is locked only for its catalog change. Same shape as
  * WidenDetectionRuleName1806400000000.
  */
-export class WidenThingNameColumns1808992000000 implements MigrationInterface {
-  public name: string = "WidenThingNameColumns1808992000000";
+export class WidenThingNameColumns1808992300000 implements MigrationInterface {
+  public name: string = "WidenThingNameColumns1808992300000";
 
   public async up(queryRunner: QueryRunner): Promise<void> {
     await queryRunner.query(

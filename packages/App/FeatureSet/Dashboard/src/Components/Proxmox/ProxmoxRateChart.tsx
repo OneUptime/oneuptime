@@ -5,6 +5,7 @@ import React, {
   useState,
 } from "react";
 import LineChartElement from "Common/UI/Components/Charts/Line/LineChart";
+import { withTranslatedSeriesNames } from "Common/UI/Components/Charts/Utils/SeriesNames";
 import SeriesPoint from "Common/UI/Components/Charts/Types/SeriesPoints";
 import ChartCurve from "Common/UI/Components/Charts/Types/ChartCurve";
 import XAxisType from "Common/UI/Components/Charts/Types/XAxis/XAxisType";
@@ -333,7 +334,7 @@ const ProxmoxRateChart: FunctionComponent<ComponentProps> = (
   return (
     <ChartRefetchFrame isRefetching={isLoading} refetchError={error}>
       <LineChartElement
-        data={series}
+        data={withTranslatedSeriesNames(series, translator)}
         xAxis={xAxis}
         yAxis={yAxis}
         curve={ChartCurve.MONOTONE}

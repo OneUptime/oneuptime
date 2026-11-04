@@ -337,6 +337,8 @@ Et typisk forløb: `list_incidents` → `acknowledge_incident` → undersøg med
 
 Værktøjet **`oneuptime_whoami`** returnerer det projekt, dine legitimationsoplysninger hører til (dets id og navn). For en klient, der loggede ind, siger det også, hvem den er logget ind som, og om den må lave ændringer. Det er et godt første kald, så en agent kan orientere sig, og da oprettelsesværktøjer tager `projectId` fra legitimationsoplysningerne, behøver agenten aldrig at angive et projekt-id.
 
+Værktøjet **`get_data_table_freshness`** fortæller en agent, om en tabel, som Data Observability overvåger, er frisk, før den bruger dataene: frisk eller forsinket målt på tabellens egen rytme, hvornår den sidst blev ændret, dens åbne alarmer, og hvordan den seneste kørsel af hver pipeline, der skriver den, gik. Angiv `table` som `schema.table`, tabellens navn alene eller dens ID. Det ændrer intet.
+
 ## Forespørgsel på telemetri
 
 Logs, metrikker, spor (spans), undtagelser, monitorlogs og de andre slags telemetri findes som skrivebeskyttede værktøjer `list_` og `count_` (`list_logs`, `list_metrics`, `list_spans`, `list_exception_instances`, `list_monitor_logs` og deres `count_`-modstykker). Telemetri kommer ind gennem OpenTelemetry, så der er ingen oprettelsesværktøjer.

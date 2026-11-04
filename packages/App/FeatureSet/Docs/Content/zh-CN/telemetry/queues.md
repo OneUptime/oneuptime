@@ -256,10 +256,10 @@ service:
 
 | 指标 | 显示为 | 类型 |
 | --- | --- | --- |
-| `amazonaws.com/aws/sns/numberofmessagespublished` (JSON 流: `numberofmessagespublished`) | Messages published | 每周期计数 |
-| `amazonaws.com/aws/sns/numberofnotificationsdelivered` (JSON 流: `numberofnotificationsdelivered`) | Notifications delivered | 每周期计数 |
-| `amazonaws.com/aws/sns/numberofnotificationsfailed` (JSON 流: `numberofnotificationsfailed`) | Notifications failed | 每周期计数 |
-| `amazonaws.com/aws/sns/numberofnotificationsredriventodlq` (JSON 流: `numberofnotificationsredriventodlq`) | Redriven to dead-letter queue | 每周期计数 |
+| `amazonaws.com/aws/sns/numberofmessagespublished` (JSON 流: `numberofmessagespublished`) | 已发布消息 | 每周期计数 |
+| `amazonaws.com/aws/sns/numberofnotificationsdelivered` (JSON 流: `numberofnotificationsdelivered`) | 已投递通知 | 每周期计数 |
+| `amazonaws.com/aws/sns/numberofnotificationsfailed` (JSON 流: `numberofnotificationsfailed`) | 失败的通知 | 每周期计数 |
+| `amazonaws.com/aws/sns/numberofnotificationsredriventodlq` (JSON 流: `numberofnotificationsredriventodlq`) | 重新驱动到死信队列 | 每周期计数 |
 
 ### Amazon SQS
 
@@ -345,12 +345,12 @@ service:
 
 | 指标 | 显示为 | 类型 |
 | --- | --- | --- |
-| `amazonaws.com/aws/sqs/approximatenumberofmessagesvisible` (JSON 流: `approximatenumberofmessagesvisible`) | Messages visible | 仪表 |
-| `amazonaws.com/aws/sqs/approximateageofoldestmessage` (JSON 流: `approximateageofoldestmessage`) | Oldest message age | 仪表 |
-| `amazonaws.com/aws/sqs/approximatenumberofmessagesnotvisible` (JSON 流: `approximatenumberofmessagesnotvisible`) | Messages in flight | 仪表 |
-| `amazonaws.com/aws/sqs/numberofmessagessent` (JSON 流: `numberofmessagessent`) | Messages sent | 每周期计数 |
-| `amazonaws.com/aws/sqs/numberofmessagesreceived` (JSON 流: `numberofmessagesreceived`) | Messages received | 每周期计数 |
-| `amazonaws.com/aws/sqs/numberofmessagesdeleted` (JSON 流: `numberofmessagesdeleted`) | Messages deleted | 每周期计数 |
+| `amazonaws.com/aws/sqs/approximatenumberofmessagesvisible` (JSON 流: `approximatenumberofmessagesvisible`) | 可见消息 | 仪表 |
+| `amazonaws.com/aws/sqs/approximateageofoldestmessage` (JSON 流: `approximateageofoldestmessage`) | 最旧消息的时长 | 仪表 |
+| `amazonaws.com/aws/sqs/approximatenumberofmessagesnotvisible` (JSON 流: `approximatenumberofmessagesnotvisible`) | 传输中的消息 | 仪表 |
+| `amazonaws.com/aws/sqs/numberofmessagessent` (JSON 流: `numberofmessagessent`) | 已发送消息 | 每周期计数 |
+| `amazonaws.com/aws/sqs/numberofmessagesreceived` (JSON 流: `numberofmessagesreceived`) | 已接收消息 | 每周期计数 |
+| `amazonaws.com/aws/sqs/numberofmessagesdeleted` (JSON 流: `numberofmessagesdeleted`) | 已删除消息 | 每周期计数 |
 
 ### Apache ActiveMQ
 
@@ -384,14 +384,14 @@ broker 的指标会并入其 JMS 客户端的 span 所创建的队列，从那�
 
 | 指标 | 显示为 | 类型 |
 | --- | --- | --- |
-| `activemq.message.queue.size` | Queue size | 仪表 |
-| `activemq.message.current` | Queue size (legacy names) | 仪表 |
-| `activemq.message.enqueued` | Enqueued | 计数器，按每秒绘制 |
-| `activemq.message.dequeued` | Dequeued | 计数器，按每秒绘制 |
-| `activemq.message.expired` | Expired | 计数器，按每秒绘制 |
-| `activemq.consumer.count` | Consumers | 仪表 |
-| `activemq.message.enqueue.average_duration` | Average time in queue | 仪表 |
-| `activemq.message.wait_time.avg` | Average time in queue (legacy names) | 仪表 |
+| `activemq.message.queue.size` | 队列大小 | 仪表 |
+| `activemq.message.current` | 队列大小 (旧名称) | 仪表 |
+| `activemq.message.enqueued` | 已入队 | 计数器，按每秒绘制 |
+| `activemq.message.dequeued` | 已出队 | 计数器，按每秒绘制 |
+| `activemq.message.expired` | 已过期 | 计数器，按每秒绘制 |
+| `activemq.consumer.count` | 消费者 | 仪表 |
+| `activemq.message.enqueue.average_duration` | 队列中的平均时间 | 仪表 |
+| `activemq.message.wait_time.avg` | 队列中的平均时间 (旧名称) | 仪表 |
 
 ### Apache Kafka
 
@@ -434,10 +434,10 @@ service:
 
 | 指标 | 显示为 | 类型 |
 | --- | --- | --- |
-| `kafka.consumer_group.lag_sum` | Consumer lag | 仪表 |
-| `kafka.consumer_group.lag` | Partition lag | 仪表 |
-| `kafka.consumer_group.offset_sum` | Consumed | 计数器，按每秒绘制 |
-| `kafka.partition.current_offset` | Produced | 计数器，按每秒绘制 |
+| `kafka.consumer_group.lag_sum` | 消费者延迟 | 仪表 |
+| `kafka.consumer_group.lag` | 分区延迟 | 仪表 |
+| `kafka.consumer_group.offset_sum` | 已消费 | 计数器，按每秒绘制 |
+| `kafka.partition.current_offset` | 已生产 | 计数器，按每秒绘制 |
 
 ### Apache Pulsar
 
@@ -486,11 +486,11 @@ service:
 
 | 指标 | 显示为 | 类型 |
 | --- | --- | --- |
-| `pulsar_msg_backlog` | Backlog | 仪表 |
-| `pulsar_subscription_back_log` | Subscription backlog | 仪表 |
-| `pulsar_storage_backlog_age_seconds` | Backlog age | 仪表 |
-| `pulsar_in_messages_total` | Messages in | 计数器，按每秒绘制 |
-| `pulsar_out_messages_total` | Messages out | 计数器，按每秒绘制 |
+| `pulsar_msg_backlog` | 积压 | 仪表 |
+| `pulsar_subscription_back_log` | 订阅积压 | 仪表 |
+| `pulsar_storage_backlog_age_seconds` | 积压时长 | 仪表 |
+| `pulsar_in_messages_total` | 流入消息 | 计数器，按每秒绘制 |
+| `pulsar_out_messages_total` | 流出消息 | 计数器，按每秒绘制 |
 
 ### Apache RocketMQ
 
@@ -536,10 +536,10 @@ service:
 
 | 指标 | 显示为 | 类型 |
 | --- | --- | --- |
-| `rocketmq_consumer_lag_messages` | Consumer lag | 仪表 |
-| `rocketmq_consumer_ready_messages` | Ready messages | 仪表 |
-| `rocketmq_send_to_dlq_messages_total` | Sent to dead-letter queue | 计数器，按每秒绘制 |
-| `rocketmq_messages_in_total` | Messages in | 计数器，按每秒绘制 |
+| `rocketmq_consumer_lag_messages` | 消费者延迟 | 仪表 |
+| `rocketmq_consumer_ready_messages` | 就绪消息 | 仪表 |
+| `rocketmq_send_to_dlq_messages_total` | 已发送到死信队列 | 计数器，按每秒绘制 |
+| `rocketmq_messages_in_total` | 流入消息 | 计数器，按每秒绘制 |
 
 ### Azure Event Grid
 
@@ -642,12 +642,12 @@ Azure Monitor 没有 Event Hubs 的消费者滞后指标：它的 `ConsumerLag` 
 
 | 指标 | 显示为 | 类型 |
 | --- | --- | --- |
-| `azure_incomingmessages_total` | Incoming messages | 每周期计数 |
-| `azure_outgoingmessages_total` | Outgoing messages | 每周期计数 |
-| `azure_servererrors_total` | Server errors | 每周期计数 |
-| `azure_usererrors_total` | User errors | 每周期计数 |
-| `azure_quotaexceedederrors_total` | Quota exceeded errors | 每周期计数 |
-| `azure_throttledrequests_total` | Throttled requests | 每周期计数 |
+| `azure_incomingmessages_total` | 传入消息 | 每周期计数 |
+| `azure_outgoingmessages_total` | 传出消息 | 每周期计数 |
+| `azure_servererrors_total` | 服务器错误 | 每周期计数 |
+| `azure_usererrors_total` | 用户错误 | 每周期计数 |
+| `azure_quotaexceedederrors_total` | 超出配额错误 | 每周期计数 |
+| `azure_throttledrequests_total` | 被限流的请求 | 每周期计数 |
 
 ### Azure Service Bus
 
@@ -711,15 +711,15 @@ service:
 
 | 指标 | 显示为 | 类型 |
 | --- | --- | --- |
-| `azure_activemessages_average` | Active messages | 仪表 |
-| `azure_deadletteredmessages_average` | Dead-lettered messages | 仪表 |
-| `azure_incomingmessages_total` | Incoming messages | 每周期计数 |
-| `azure_outgoingmessages_total` | Outgoing messages | 每周期计数 |
-| `azure_completemessage_total` | Completed messages | 每周期计数 |
-| `azure_abandonmessage_total` | Abandoned messages | 每周期计数 |
-| `azure_servererrors_total` | Server errors | 每周期计数 |
-| `azure_usererrors_total` | User errors | 每周期计数 |
-| `azure_throttledrequests_total` | Throttled requests | 每周期计数 |
+| `azure_activemessages_average` | 活动消息 | 仪表 |
+| `azure_deadletteredmessages_average` | 死信消息 | 仪表 |
+| `azure_incomingmessages_total` | 传入消息 | 每周期计数 |
+| `azure_outgoingmessages_total` | 传出消息 | 每周期计数 |
+| `azure_completemessage_total` | 已完成消息 | 每周期计数 |
+| `azure_abandonmessage_total` | 已放弃的消息 | 每周期计数 |
+| `azure_servererrors_total` | 服务器错误 | 每周期计数 |
+| `azure_usererrors_total` | 用户错误 | 每周期计数 |
+| `azure_throttledrequests_total` | 被限流的请求 | 每周期计数 |
 
 ### BullMQ
 
@@ -837,11 +837,11 @@ service:
 
 | 指标 | 显示为 | 类型 |
 | --- | --- | --- |
-| `pubsub.googleapis.com/subscription/num_undelivered_messages` | Undelivered messages | 仪表 |
-| `pubsub.googleapis.com/subscription/oldest_unacked_message_age` | Oldest unacked message age | 仪表 |
-| `pubsub.googleapis.com/subscription/dead_letter_message_count` | Dead-lettered messages | 每周期计数 |
-| `pubsub.googleapis.com/subscription/ack_message_count` | Acknowledged messages | 每周期计数 |
-| `pubsub.googleapis.com/topic/send_request_count` | Publish requests | 每周期计数 |
+| `pubsub.googleapis.com/subscription/num_undelivered_messages` | 未投递消息 | 仪表 |
+| `pubsub.googleapis.com/subscription/oldest_unacked_message_age` | 最旧未确认消息的时长 | 仪表 |
+| `pubsub.googleapis.com/subscription/dead_letter_message_count` | 死信消息 | 每周期计数 |
+| `pubsub.googleapis.com/subscription/ack_message_count` | 已确认消息 | 每周期计数 |
+| `pubsub.googleapis.com/topic/send_request_count` | 发布请求 | 每周期计数 |
 
 ### JMS
 
@@ -936,12 +936,12 @@ service:
 
 | 指标 | 显示为 | 类型 |
 | --- | --- | --- |
-| `rabbitmq.message.current` | Queue depth | 仪表 |
-| `rabbitmq.message.published` | Published | 计数器，按每秒绘制 |
-| `rabbitmq.message.delivered` | Delivered | 计数器，按每秒绘制 |
-| `rabbitmq.message.acknowledged` | Acknowledged | 计数器，按每秒绘制 |
-| `rabbitmq.message.dropped` | Dropped | 计数器，按每秒绘制 |
-| `rabbitmq.consumer.count` | Consumers | 仪表 |
+| `rabbitmq.message.current` | 队列深度 | 仪表 |
+| `rabbitmq.message.published` | 已发布 | 计数器，按每秒绘制 |
+| `rabbitmq.message.delivered` | 已投递 | 计数器，按每秒绘制 |
+| `rabbitmq.message.acknowledged` | 已确认 | 计数器，按每秒绘制 |
+| `rabbitmq.message.dropped` | 已丢弃 | 计数器，按每秒绘制 |
+| `rabbitmq.consumer.count` | 消费者 | 仪表 |
 
 ## 警报
 

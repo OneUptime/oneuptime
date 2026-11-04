@@ -132,7 +132,7 @@ OneUptimeReplay.captureSession("installation test");
 
 要找的是带有 `chunk-accepted` 的 `202` 。 `204` 则会记录 `chunk-not-recorded` ：请求没有问题，是服务器选择不存储它 — 预算超标、未被采样，或应用程序已关闭。这是策略给出的答案，而不是安装故障，旁边的 `server-directive` 行会说明是哪一种。
 
-要重新录制每个会话，在应用程序的 **Replay Policy** 页面上将 **何时上传录制** 设为 _Always_ ，并将 **采样百分比** 设为大于 0。这是出厂默认设置。
+要重新录制每个会话，在应用程序的 **回放策略** 页面上将 **何时上传录制** 设为 _Always_ ，并将 **采样百分比** 设为大于 0。这是出厂默认设置。
 
 ## 代码
 
@@ -179,13 +179,13 @@ OneUptimeReplay.captureSession("installation test");
 
 | 值 | 处理 |
 | --- | --- |
-| `not-enabled-for-application` | 这个 RUM 应用程序关闭了会话回放、标识符与任何应用程序都不匹配，或者项目不允许使用回放。 `disabledDetail` 会说明是哪一种： `application-not-enabled` （该应用程序的开关）、 `project-not-allowed` （位于 **真实用户监控 → 设置 → 会话回放** 下的项目级开关）、 `application-unknown` （没有应用程序使用这个 `appIdentifier` — 在应用程序的 **Replay Policy** 页面上核对拼写），或 `project-killed` （此部署上运维人员的紧急开关）。 |
-| `budget-exhausted` | 项目的每日字节预算或应用程序的每月预算已经用完，因此录制器被告知不要录制，而不是上传会被拒绝的分块。 `disabledDetail` 为 `project-daily-budget-exhausted` 或 `app-monthly-budget-exhausted` ， `budgetResetsAt` 会说明何时解除。在 **Replay Policy** 页面上提高预算，或等待重置。 |
+| `not-enabled-for-application` | 这个 RUM 应用程序关闭了会话回放、标识符与任何应用程序都不匹配，或者项目不允许使用回放。 `disabledDetail` 会说明是哪一种： `application-not-enabled` （该应用程序的开关）、 `project-not-allowed` （位于 **真实用户监控 → 设置 → 会话回放** 下的项目级开关）、 `application-unknown` （没有应用程序使用这个 `appIdentifier` — 在应用程序的 **回放策略** 页面上核对拼写），或 `project-killed` （此部署上运维人员的紧急开关）。 |
+| `budget-exhausted` | 项目的每日字节预算或应用程序的每月预算已经用完，因此录制器被告知不要录制，而不是上传会被拒绝的分块。 `disabledDetail` 为 `project-daily-budget-exhausted` 或 `app-monthly-budget-exhausted` ， `budgetResetsAt` 会说明何时解除。在 **回放策略** 页面上提高预算，或等待重置。 |
 | `recorder-not-built` | **该部署没有录制器构件。** 客户端无法修复这个问题。生成 `packages/App/FeatureSet/BrowserRecorder/public/dist/manifest.json` 的构建没有运行，或者其输出从未进入正在运行的镜像。重新构建并重新部署 OneUptime 应用。对于回放从未正常工作过的自托管安装，这就是典型的答案。 |
 | `disabled-by-default` | 此部署上设置了 `SESSION_REPLAY_ENABLED_BY_DEFAULT=false` 。将其设为 `true` — 如果是自托管，请先设置 `SESSION_REPLAY_MAX_BYTES_PER_PROJECT_PER_DAY` ，因为回放是你最重的表。 |
 | `ingest-disabled` | 此部署上设置了 `SESSION_REPLAY_INGEST_ENABLED=false` 。 |
 | `policy-unavailable` | 服务器无法确定策略 — 通常是 Redis 或 Postgres 的问题。这是有意的失败即关闭。检查 OneUptime 应用的日志。 |
-| `not-reported` | 服务器比这个字段旧。改用仪表板中 **Replay Policy** 页面上的 **Test your installation** 面板。 |
+| `not-reported` | 服务器比这个字段旧。改用仪表板中 **回放策略** 页面上的 **Test your installation** 面板。 |
 
 ### 构件
 
@@ -210,7 +210,7 @@ OneUptimeReplay.captureSession("installation test");
 | --- | --- |
 | `not-sampled` | 这个会话在采样抽签中落选，因此完全不会被录制。采样由会话 ID 决定，是确定性的，所以重新加载对这个会话没有帮助。提高采样百分比。 |
 | `recording` | 正在录制。阅读详细信息：在默认触发器 `Always` 下， `uploading: true` 是正常状态。 `captureTrigger: "OnErrorOrFrustration"` 时的 `uploading: false` 是另一种正常状态，不会发出请求。 |
-| `same-origin-propagation` | 录制器启动时记录一次：它是否会向页面自身来源的请求添加追踪上下文（ `traceparent` ，以及携带会话 ID 的 `tracestate` ）。带 `reason: "on"` 的 `enabled: true` 是默认值。 `reason: "policy-off"` 表示应用程序的 **Replay Policy** 页面上关闭了 **同源追踪传播** ； `reason: "opaque-origin"` 表示页面没有自己的来源（沙箱化的 iframe、 `about:blank` 、 `srcdoc` 或 `file:` ），因此没有任何东西算作同源。即使开启，这些标头也只随会话上传期间发出的请求一起发送，并且绝不会附加到路径以 `/v1/traces` 、 `/v1/logs` 或 `/v1/metrics` 结尾的 `POST` 上（页面自身的 OpenTelemetry 导出）。当录制器在一次页面加载中第一次把同源请求的 `traceparent` 让给某个代理（因为该代理被配置为追踪该请求；对 Datadog RUM 而言仅限它跟踪的会话）时，还会再记录一次，带有 `reason: "agent-stand-down"` 和一个 `agent` 字段（ `DD_RUM` 、 `NREUM` 或 `elasticApm` ）；该请求仍会获得 `tracestate` 成员，并且只有在代理确实发送了 `traceparent` 时才会被关联，而 Datadog 只会在被采样用于追踪的、它所跟踪的 Datadog 会话中发送。New Relic（ `NREUM` ）会发送它自己的 `tracestate` 来代替该成员，因此它的请求只能通过追踪 ID 关联（参见 [Logs 和 Traces 选项卡为空](#播放器的-logs-和-traces-选项卡为空) ）。参见 [与其他遥测数据关联](/docs/telemetry/session-replay#与其他遥测数据关联) 。 |
+| `same-origin-propagation` | 录制器启动时记录一次：它是否会向页面自身来源的请求添加追踪上下文（ `traceparent` ，以及携带会话 ID 的 `tracestate` ）。带 `reason: "on"` 的 `enabled: true` 是默认值。 `reason: "policy-off"` 表示应用程序的 **回放策略** 页面上关闭了 **同源追踪传播** ； `reason: "opaque-origin"` 表示页面没有自己的来源（沙箱化的 iframe、 `about:blank` 、 `srcdoc` 或 `file:` ），因此没有任何东西算作同源。即使开启，这些标头也只随会话上传期间发出的请求一起发送，并且绝不会附加到路径以 `/v1/traces` 、 `/v1/logs` 或 `/v1/metrics` 结尾的 `POST` 上（页面自身的 OpenTelemetry 导出）。当录制器在一次页面加载中第一次把同源请求的 `traceparent` 让给某个代理（因为该代理被配置为追踪该请求；对 Datadog RUM 而言仅限它跟踪的会话）时，还会再记录一次，带有 `reason: "agent-stand-down"` 和一个 `agent` 字段（ `DD_RUM` 、 `NREUM` 或 `elasticApm` ）；该请求仍会获得 `tracestate` 成员，并且只有在代理确实发送了 `traceparent` 时才会被关联，而 Datadog 只会在被采样用于追踪的、它所跟踪的 Datadog 会话中发送。New Relic（ `NREUM` ）会发送它自己的 `tracestate` 来代替该成员，因此它的请求只能通过追踪 ID 关联（参见 [Logs 和 Traces 选项卡为空](#播放器的-logs-和-traces-选项卡为空) ）。参见 [与其他遥测数据关联](/docs/telemetry/session-replay#与其他遥测数据关联) 。 |
 | `same-origin-propagation-tripped` | 录制器添加了追踪上下文的某个请求在网络层失败，通常是一个被重定向到另一个来源的同源请求，而那个来源不允许 `traceparent` 和 `tracestate` 。在本次页面加载的剩余时间里，录制器不再添加它们。 `retried: true` 表示它是不带正文的 `fetch` `GET` 或 `HEAD` ，并已按你的页面发出的原样再发送了一次； `false` 表示它无法重试并且失败了：只有不带正文的 `fetch` `GET` 或 `HEAD` 会被重试（不包括 XHR、其他方法和带正文的请求）。你自己页面的中止和超时不会触发它，浏览器报告离线期间的失败也不会；下一次页面加载会重新开始。参见 [启用会话回放后下载或重定向失败](#启用会话回放后下载或重定向失败) 。 |
 | `trigger` | 发生了值得保留的事情。 `reason` 是 `error` 、 `frustration` 、 `performance` 、 `sampled` 或 `manual` 之一。 |
 | `upload-started` | 正在冲刷缓冲区中的预录内容。分块 POST 从这里开始。 |
@@ -435,7 +435,7 @@ OpenTelemetry 浏览器 SDK 的 OTLP/HTTP 导出器发送 `application/json` ，
 录制器在第一次出现这种失败时就会熔断。它会记录 `same-origin-propagation-tripped` ，在本次页面加载的剩余时间里停止添加这些标头，并把不带正文的 `fetch` `GET` 或 `HEAD` 按你的页面发出的原样重试一次（详细信息中的 `retried: true` ），因此你的页面会得到重试的结果。除了不带正文的 `fetch` `GET` 或 `HEAD` 之外的任何请求（不包括 `XMLHttpRequest` 、其他方法和带正文的请求）都不会重试，所以那个请求仍然会失败，而下一次页面加载又会重新添加这些标头。要彻底解决，可以：
 
 - 在另一个来源的 CORS 配置中允许 `traceparent` 和 `tracestate` （在 S3 上是存储桶 CORS 的 `AllowedHeaders` ），或者
-- 在应用程序的 **Replay Policy** 页面上关闭 **同源追踪传播** ，如果你把自己的来源加入了 **追踪传播来源** ，也把它移除，否则它的请求会继续获得 `traceparent` 。这样一来，只有 **追踪传播来源** 中的来源以及你的页面自行追踪的请求，才会关联后端遥测。
+- 在应用程序的 **回放策略** 页面上关闭 **同源追踪传播** ，如果你把自己的来源加入了 **追踪传播来源** ，也把它移除，否则它的请求会继续获得 `traceparent` 。这样一来，只有 **追踪传播来源** 中的来源以及你的页面自行追踪的请求，才会关联后端遥测。
 
 参见 [重定向到其他来源](/docs/telemetry/session-replay#重定向到其他来源) 。
 
@@ -467,7 +467,7 @@ OpenTelemetry 浏览器 SDK 的 OTLP/HTTP 导出器发送 `application/json` ，
 
 - `OneUptimeReplay.getDiagnostics()` 的输出。
 - `session-replay/v1/config` 请求的状态。
-- 应用程序的 **健康状况** 页面以及 **Replay Policy** 上的 **Test your installation** 面板显示的内容。它们从服务器端回答，也就是浏览器看不到的那一半。
+- 应用程序的 **健康状况** 页面以及 **回放策略** 上的 **Test your installation** 面板显示的内容。它们从服务器端回答，也就是浏览器看不到的那一半。
 - 对于缺失的图片、图标或样式：一个未能加载的文件的地址（ **Missing assets** 会列出它们），以及浏览器控制台为它输出的那一行。
 
 然后联系 support@oneuptime.com，或在 [GitHub](https://github.com/OneUptime/oneuptime) 上提交 issue。

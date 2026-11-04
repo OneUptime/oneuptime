@@ -55,7 +55,7 @@ flowchart TB
 
 ### 클러스터 선택
 
-**Docker Swarm Monitor Configuration** 에서 **Docker Swarm Cluster** 의 클러스터를 고릅니다. 데이터를 보낸 모든 클러스터가 목록에 있습니다. 고르고 나면 필드 아래 줄에 데이터가 들어오는지 표시됩니다. **Docker Swarm 클러스터 추가** 는 키가 채워진 설정 단계를 열고, 첫 데이터를 기다립니다.
+**Docker Swarm Monitor Configuration** 에서 **Docker Swarm 클러스터** 의 클러스터를 고릅니다. 데이터를 보낸 모든 클러스터가 목록에 있습니다. 고르고 나면 필드 아래 줄에 데이터가 들어오는지 표시됩니다. **Docker Swarm 클러스터 추가** 는 키가 채워진 설정 단계를 열고, 첫 데이터를 기다립니다.
 
 ### 감시할 대상 선택
 
@@ -81,7 +81,7 @@ flowchart TB
 
 | 필드 | 탭 | 하는 일 |
 | --- | --- | --- |
-| **Docker Swarm Cluster** | 모두 | 필수. 모든 쿼리를 `resource.docker.swarm.cluster.name`으로 한정합니다. 작업의 메트릭에는 Docker 호스트의 메트릭처럼 `container.runtime=docker`가 붙고, 에이전트는 `host.name`을 절대 찍지 않으므로, 모니터는 둘 중 어느 것으로도 필터링하지 않습니다. |
+| **Docker Swarm 클러스터** | 모두 | 필수. 모든 쿼리를 `resource.docker.swarm.cluster.name`으로 한정합니다. 작업의 메트릭에는 Docker 호스트의 메트릭처럼 `container.runtime=docker`가 붙고, 에이전트는 `host.name`을 절대 찍지 않으므로, 모니터는 둘 중 어느 것으로도 필터링하지 않습니다. |
 | **서비스 이름** | Custom Metric, 고급 | 선택 사항. `resource.docker.swarm.service.name`과 정확히 일치. `docker service ls`에 표시되는 서비스 이름입니다. 예: `web`(스택에서는 `<stack>_web`). |
 | **노드 이름** | Custom Metric, 고급 | 선택 사항. `resource.docker.swarm.node.name`과 정확히 일치. `docker node ls`에 표시되는 노드의 호스트 이름입니다. 예: `swarm-node-1`. 그 노드의 에이전트가 `DOCKER_SWARM_NODE_NAME`에서 이 값을 찍습니다. |
 | **컨테이너 이름** | Custom Metric, 고급 | 선택 사항. `resource.container.name`과 정확히 일치. 작업의 컨테이너 이름은 `<service>.<slot>.<taskid>`이며, 예는 `web.1.abc123`입니다. |

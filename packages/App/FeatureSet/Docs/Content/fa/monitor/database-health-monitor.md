@@ -149,7 +149,7 @@ ALTER SERVER ROLE ##MS_ServerStateReader## ADD MEMBER oneuptime_health;
 
 یک کاربر پایگاه دادهٔ مستقل (`CREATE USER oneuptime_health WITH PASSWORD = '...'` در پایگاه دادهٔ پایش‌شده، بدون ورود) از S2 به بالا با `VIEW DATABASE STATE` کار می‌کند، ولی نمی‌تواند به `##MS_ServerStateReader##` بپیوندد: نقش‌های سرور فقط ورودها را می‌پذیرند. برای بردن یک کاربر مستقل به آن نقش، آن را حذف کنید (`DROP USER oneuptime_health;`) و دستورهای بالا را دنبال کنید.
 
-پراب Azure SQL Database را از روی `SERVERPROPERTY('EngineEdition')` می‌شناسد، نه از روی نسخه‌اش — Azure SQL Database هر چه واقعاً اجرا کند `12.0.2000.8` را گزارش می‌دهد که مثل SQL Server 2014 خوانده می‌شود. برای همین **Engine** مانیتور `Azure SQL Database 12.0.2000.8` را نشان می‌دهد، و نبود مجوز به‌صورت دستور Azure بالا نشان داده می‌شود، هرگز به‌صورت `VIEW SERVER STATE`.
+پراب Azure SQL Database را از روی `SERVERPROPERTY('EngineEdition')` می‌شناسد، نه از روی نسخه‌اش — Azure SQL Database هر چه واقعاً اجرا کند `12.0.2000.8` را گزارش می‌دهد که مثل SQL Server 2014 خوانده می‌شود. برای همین **موتور** مانیتور `Azure SQL Database 12.0.2000.8` را نشان می‌دهد، و نبود مجوز به‌صورت دستور Azure بالا نشان داده می‌شود، هرگز به‌صورت `VIEW SERVER STATE`.
 
 - **تکثیر در Azure SQL Database گردآوری نمی‌شود.** Azure SQL Database نمای `sys.dm_hadr_database_replica_states` را ندارد، پس گروه Replication آنجا نادیده گرفته می‌شود، به‌جای اینکه در هر بررسی شکست‌خورده گزارش شود. نماهای تکثیر خودِ Azure (`sys.dm_database_replica_states`، `sys.dm_geo_replication_link_status`) هنوز خوانده نمی‌شوند.
 - **اتصال‌ها برای هر پایگاه داده جدا شمرده می‌شوند.** با `VIEW DATABASE STATE`، Azure SQL Database فقط نشست‌های پایگاه دادهٔ پایش‌شده را نشان می‌دهد، پس Connections همان پایگاه داده را می‌شمارد، نه سرور منطقی را. هر پایگاه داده‌ای را که برایتان مهم است جداگانه پایش کنید.
@@ -160,7 +160,7 @@ ALTER SERVER ROLE ##MS_ServerStateReader## ADD MEMBER oneuptime_health;
 :::steps
 ### یک مانیتور تازه را آغاز کنید
 
-به **مانیتورها** بروید و روی **ساخت مانیتور** کلیک کنید. زیر **نوع مانیتور**، روی **انواع دیگر مانیتور** کلیک کنید و **Database Health** را زیر **Database Monitoring** برگزینید، یا `health` را در کادر جست‌وجو بنویسید. یک **نام** وارد کنید و سپس روی **بعدی** کلیک کنید.
+به **مانیتورها** بروید و روی **ساخت مانیتور** کلیک کنید. زیر **نوع مانیتور**، روی **انواع دیگر مانیتور** کلیک کنید و **Database Health** را زیر **پایش پایگاه داده** برگزینید، یا `health` را در کادر جست‌وجو بنویسید. یک **نام** وارد کنید و سپس روی **بعدی** کلیک کنید.
 
 ### اطلاعات اتصال را وارد کنید
 

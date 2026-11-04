@@ -141,7 +141,7 @@ Pour être alerté par message direct quand vous êtes d'astreinte, ajoutez Micr
 
 :::steps
 1. Connectez votre propre compte Microsoft Teams (voir [Connecter Microsoft Teams](#connecter-microsoft-teams)).
-2. Allez dans **Paramètres utilisateur** > **Méthodes de notification**, ouvrez l'onglet **Workspace Apps** et cliquez sur **Ajouter un compte Microsoft Teams**.
+2. Allez dans **Paramètres utilisateur** > **Méthodes de notification**, ouvrez l'onglet **Applications d'espace de travail** et cliquez sur **Ajouter un compte Microsoft Teams**.
 3. Cliquez sur **Send Test Message** sur sa ligne. Le message arrive dans vos conversations Microsoft Teams.
 :::
 

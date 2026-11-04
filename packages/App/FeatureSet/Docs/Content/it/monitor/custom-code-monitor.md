@@ -38,7 +38,7 @@ La sandbox non è Node.js: non ci sono `require`, `process`, `fetch` né un file
 :::steps
 ### Iniziare un nuovo monitor
 
-Andate in **Monitor** e fate clic su **Crea monitor**. In **Tipo di monitor**, fate clic su **Altri tipi di monitor** e scegliete **Custom JavaScript Code** sotto **Synthetic Monitoring**, oppure digitate `script` nella casella di ricerca. Inserite un **Nome**, poi fate clic su **Avanti**.
+Andate in **Monitor** e fate clic su **Crea monitor**. In **Tipo di monitor**, fate clic su **Altri tipi di monitor** e scegliete **Custom JavaScript Code** sotto **Monitoraggio sintetico**, oppure digitate `script` nella casella di ricerca. Inserite un **Nome**, poi fate clic su **Avanti**.
 
 ### Aggiungere lo script
 

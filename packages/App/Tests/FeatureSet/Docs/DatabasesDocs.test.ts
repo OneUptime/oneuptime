@@ -490,6 +490,10 @@ function navGroup(title: string): NavGroup {
   return group as NavGroup;
 }
 
+// The Metrics list's caption for a row the catalog does not know, a key.
+const DEFAULT_CAPTION_KEY: RegExp =
+  /DATABASE_METRIC_LIST_DEFAULT_CAPTION: string =\s+translationKey\("average of series"\)/;
+
 describe("Databases docs", (): void => {
   describe("page", (): void => {
     it("ships in English and opens with the nav's title", (): void => {
@@ -3274,15 +3278,14 @@ describe("Databases docs", (): void => {
       expect(collected).toContain(
         "a metric the Overview charts shows the Overview's value — its series combined the same way, a counter as a per-second rate — with a caption saying how (_total of series_, _per second, all series_); every other row shows the average of its series",
       );
+      // The captions are keys, said in the reader's language on the row.
       for (const caption of ["total of series", "per second, all series"]) {
         expect({
           caption,
-          inCode: queries.includes(`how = "${caption}"`),
+          inCode: queries.includes(`how = translationKey("${caption}")`),
         }).toEqual({ caption, inCode: true });
       }
-      expect(metricsTab).toContain(
-        'DATABASE_METRIC_LIST_DEFAULT_CAPTION: string = "average of series"',
-      );
+      expect(metricsTab).toMatch(DEFAULT_CAPTION_KEY);
 
       expect(collected).toContain(
         "MariaDB reports `mysql.buffer_pool.limit` as the buffer pool's page count rather than the bytes the receiver declares, so on a MariaDB database that row and its chart read in pages.",

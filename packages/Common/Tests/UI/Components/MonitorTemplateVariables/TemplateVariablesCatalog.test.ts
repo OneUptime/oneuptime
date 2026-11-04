@@ -298,6 +298,7 @@ const PER_TYPE_EXPECTATIONS: Array<PerTypeExpectation> = [
       "provider",
       "componentGroup",
       "componentName",
+      "componentNames",
       "isOnline",
       "responseTimeInMs",
       "failureCause",

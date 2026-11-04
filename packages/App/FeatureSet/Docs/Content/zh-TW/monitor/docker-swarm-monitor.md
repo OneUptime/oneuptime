@@ -55,7 +55,7 @@ flowchart TB
 
 ### 選擇叢集
 
-在 **Docker Swarm Monitor Configuration** 下，從 **Docker Swarm Cluster** 中選擇叢集。傳送過資料的每個叢集都在清單中。選好後，欄位下方的一行會顯示是否有資料傳入。**新增 Docker Swarm 叢集** 會開啟已填好你的金鑰的設定步驟，並等待第一批資料。
+在 **Docker Swarm Monitor Configuration** 下，從 **Docker Swarm 叢集** 中選擇叢集。傳送過資料的每個叢集都在清單中。選好後，欄位下方的一行會顯示是否有資料傳入。**新增 Docker Swarm 叢集** 會開啟已填好你的金鑰的設定步驟，並等待第一批資料。
 
 ### 選擇要監控的內容
 
@@ -81,7 +81,7 @@ flowchart TB
 
 | 欄位 | 分頁 | 作用 |
 | --- | --- | --- |
-| **Docker Swarm Cluster** | 全部 | 必填。把每個查詢限定在 `resource.docker.swarm.cluster.name`。任務的指標和 Docker 主機的指標一樣帶有 `container.runtime=docker`，而代理程式從不加上 `host.name`，所以監測器對這兩者都不篩選。 |
+| **Docker Swarm 叢集** | 全部 | 必填。把每個查詢限定在 `resource.docker.swarm.cluster.name`。任務的指標和 Docker 主機的指標一樣帶有 `container.runtime=docker`，而代理程式從不加上 `host.name`，所以監測器對這兩者都不篩選。 |
 | **服務名稱** | Custom Metric、進階 | 選用。與 `resource.docker.swarm.service.name` 完全相符，即 `docker service ls` 顯示的服務名稱，例如 `web`（在堆疊中為 `<stack>_web`）。 |
 | **節點名稱** | Custom Metric、進階 | 選用。與 `resource.docker.swarm.node.name` 完全相符，即 `docker node ls` 顯示的節點主機名稱，例如 `swarm-node-1`。該節點上的代理程式會根據 `DOCKER_SWARM_NODE_NAME` 加上它。 |
 | **容器名稱** | Custom Metric、進階 | 選用。與 `resource.container.name` 完全相符。任務的容器命名為 `<service>.<slot>.<taskid>`，例如 `web.1.abc123`。 |

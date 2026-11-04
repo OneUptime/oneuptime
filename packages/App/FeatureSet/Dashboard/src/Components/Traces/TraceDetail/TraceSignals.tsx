@@ -413,8 +413,52 @@ const TraceSignals: FunctionComponent<ComponentProps> = (
     return buildTracePodLogQuery({ podEntityKeys, window: podLogWindow });
   }, [podEntityKeys, podLogWindow]);
 
+  const canReadMetrics: boolean = canOfferTraceMetrics();
+
+  /*
+   * Which tabs are offered: Metrics to who may read metrics, Profile only
+   * when the trace was profiled. The tab list, the panels and the fallback
+   * below all ask this one question.
+   */
+  const isTabOffered: (tab: CorrelatedSignalTab) => boolean = (
+    tab: CorrelatedSignalTab,
+  ): boolean => {
+    if (tab === "metrics") {
+      return canReadMetrics;
+    }
+
+    if (tab === "profile") {
+      return profileSampleCount > 0;
+    }
+
+    return true;
+  };
+
+  const isActiveTabOffered: boolean = isTabOffered(activeSignalTab);
+
+  /*
+   * The tab shown. If a tab's gate closes while it is selected (a trace
+   * without profile samples, or a permission snapshot that arrives without
+   * the metric read), the default tab is shown in the same render that
+   * takes the tab away, so the list is never left with no tab selected and
+   * no panel under it.
+   */
+  const shownSignalTab: CorrelatedSignalTab = isActiveTabOffered
+    ? activeSignalTab
+    : "logs";
+
+  /*
+   * And the pick falls back too, so a gate that opens again later does not
+   * bring the tab back.
+   */
+  useEffect(() => {
+    if (!isActiveTabOffered) {
+      setActiveSignalTab("logs");
+    }
+  }, [isActiveTabOffered]);
+
   const isPodLogViewShown: boolean =
-    activeSignalTab === "logs" && logScope === "pods" && podLogQuery !== null;
+    shownSignalTab === "logs" && logScope === "pods" && podLogQuery !== null;
 
   // The pods' names for the viewer's chips, once their view is shown.
   useEffect(() => {
@@ -478,40 +522,6 @@ const TraceSignals: FunctionComponent<ComponentProps> = (
       items: podInventoryItems,
     });
   }, [podEntityKeys, podInventoryItems]);
-
-  const canReadMetrics: boolean = canOfferTraceMetrics();
-
-  /*
-   * Which tabs are offered: Metrics to who may read metrics, Profile only
-   * when the trace was profiled. The tab list, the panels and the fallback
-   * below all ask this one question.
-   */
-  const isTabOffered: (tab: CorrelatedSignalTab) => boolean = (
-    tab: CorrelatedSignalTab,
-  ): boolean => {
-    if (tab === "metrics") {
-      return canReadMetrics;
-    }
-
-    if (tab === "profile") {
-      return profileSampleCount > 0;
-    }
-
-    return true;
-  };
-
-  const isActiveTabOffered: boolean = isTabOffered(activeSignalTab);
-
-  /*
-   * If a tab's gate closes while it is selected (a trace without profile
-   * samples, or a permission snapshot that arrives without the metric
-   * read), fall back to the default tab.
-   */
-  useEffect(() => {
-    if (!isActiveTabOffered) {
-      setActiveSignalTab("logs");
-    }
-  }, [isActiveTabOffered]);
 
   // Metrics tab: reverse exemplar lookup, fetched on first open only.
   useEffect(() => {
@@ -711,7 +721,7 @@ const TraceSignals: FunctionComponent<ComponentProps> = (
               label: string;
               count: number | null;
             }): ReactElement => {
-              const isActive: boolean = activeSignalTab === tab.id;
+              const isActive: boolean = shownSignalTab === tab.id;
               return (
                 <button
                   key={tab.id}
@@ -748,7 +758,7 @@ const TraceSignals: FunctionComponent<ComponentProps> = (
       </div>
 
       <div className="p-4" role="tabpanel">
-        {activeSignalTab === "logs" && (
+        {shownSignalTab === "logs" && (
           <div data-testid="trace-logs">
             {hasPods && logScope !== null && (
               <div className="mb-3 flex flex-col gap-2 md:flex-row md:items-start md:justify-between">
@@ -818,7 +828,7 @@ const TraceSignals: FunctionComponent<ComponentProps> = (
           </div>
         )}
 
-        {activeSignalTab === "exceptions" && (
+        {shownSignalTab === "exceptions" && (
           <ExceptionInstanceTable
             title="Exceptions for this Trace"
             description="Exception instances captured on this trace's spans."
@@ -827,7 +837,7 @@ const TraceSignals: FunctionComponent<ComponentProps> = (
           />
         )}
 
-        {activeSignalTab === "metrics" && isActiveTabOffered && (
+        {shownSignalTab === "metrics" && (
           <div data-testid="trace-metrics">
             {metricsLoading ? (
               <div className="flex h-32 items-center justify-center">
@@ -1003,7 +1013,7 @@ const TraceSignals: FunctionComponent<ComponentProps> = (
           </div>
         )}
 
-        {activeSignalTab === "profile" && isActiveTabOffered && (
+        {shownSignalTab === "profile" && (
           <div data-testid="trace-profile">
             <p className="mb-3 text-xs text-gray-500">
               {translator.translatePlural(

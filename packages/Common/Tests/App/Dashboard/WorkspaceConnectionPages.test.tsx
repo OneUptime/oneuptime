@@ -539,7 +539,9 @@ describe("a product's Slack or Microsoft Teams page", () => {
       connect(page.workspaceType);
       await renderPage(page);
 
-      const rules: HTMLElement = screen.getByTestId("notification-rules");
+      // The first (Security Events holds a second under it, below).
+      const rules: HTMLElement =
+        screen.getAllByTestId("notification-rules")[0]!;
 
       expect(rules).toHaveAttribute("data-workspace-type", page.workspaceType);
       expect(rules).toHaveAttribute("data-event-type", page.firstEventType);
@@ -550,6 +552,72 @@ describe("a product's Slack or Microsoft Teams page", () => {
       ).not.toBeInTheDocument();
     },
   );
+
+  /*
+   * Security Events' pages hold two kinds of rule, one card under the
+   * other, not behind tabs: the rules that post security cases, then the
+   * rules that post what hunts find - so a team that sets up one finds the
+   * other.
+   */
+  test.each([
+    [
+      "Security Events > Slack",
+      SecurityEventsWorkspaceConnectionSlack,
+      WorkspaceType.Slack,
+    ],
+    [
+      "Security Events > Microsoft Teams",
+      SecurityEventsWorkspaceConnectionMicrosoftTeams,
+      WorkspaceType.MicrosoftTeams,
+    ],
+  ] as Array<[string, FunctionComponent<PageComponentProps>, WorkspaceType]>)(
+    "%s: the security case rules, then the hunt rules, both in sight",
+    async (
+      _name: string,
+      Page: FunctionComponent<PageComponentProps>,
+      workspaceType: WorkspaceType,
+    ) => {
+      connect(workspaceType);
+      await act(async () => {
+        render(<Page {...pageProps} />);
+      });
+
+      const tables: Array<HTMLElement> =
+        screen.getAllByTestId("notification-rules");
+
+      expect(
+        tables.map((table: HTMLElement): [string | null, string | null] => {
+          return [
+            table.getAttribute("data-event-type"),
+            table.getAttribute("data-workspace-type"),
+          ];
+        }),
+      ).toEqual([
+        [NotificationRuleEventType.SecurityCase, workspaceType],
+        [NotificationRuleEventType.SecurityHunt, workspaceType],
+      ]);
+      expect(screen.queryByRole("tablist")).not.toBeInTheDocument();
+    },
+  );
+
+  test("no other product's page holds the hunt rules", async () => {
+    for (const page of PAGES.filter((candidate: WorkspacePage): boolean => {
+      return (
+        candidate.firstEventType !== NotificationRuleEventType.SecurityCase
+      );
+    })) {
+      connect(page.workspaceType);
+      await renderPage(page);
+
+      for (const table of screen.getAllByTestId("notification-rules")) {
+        expect(table.getAttribute("data-event-type")).not.toBe(
+          NotificationRuleEventType.SecurityHunt,
+        );
+      }
+
+      cleanup();
+    }
+  });
 
   test.each(PAGE_CASES)(
     "%s: not connected (the other one is), it says so and offers the connect button",

@@ -236,16 +236,16 @@ const ADMIN_LABELS: Record<string, Record<string, string>> = {
  * the Admin Dashboard's locale that draws each segment: a translation draws
  * each segment as the Admin Dashboard does in its language. A segment with
  * no key (null) stays as the English page writes it: "Admin Dashboard", the
- * product's name, as every page names it, and a label the Admin Dashboard
- * draws in English in every language - the Push Notifications settings page
- * and its side menu entry.
+ * product's name, as every page names it. The Push Notifications settings
+ * page's side menu entry is looked up by its English text, an entry of
+ * every Admin locale (it was English in every language).
  */
 const ADMIN_PATHS: Record<string, Record<string, Array<string | null>>> = {
   [PUSH_PAGE]: {
     "Admin Dashboard > Settings > Push Notifications": [
       null,
       "breadcrumbs.settings",
-      null,
+      "Push Notifications",
     ],
   },
   [ENTERPRISE_PAGE]: {
@@ -1588,17 +1588,24 @@ describe("the helpers, on these pages' shapes", () => {
 
   it("draw an Admin Dashboard path from its keys, keeping the product's name and a label with no key as written", () => {
     const english: string = "Admin Dashboard > Settings > Push Notifications";
-    const keys: Array<string | null> = [null, "breadcrumbs.settings", null];
+    const keys: Array<string | null> = [
+      null,
+      "breadcrumbs.settings",
+      "Push Notifications",
+    ];
 
     expect(drawnAdminPath("en", english, keys)).toBe(`**${english}**`);
     expect(drawnAdminPath("de", english, keys)).toBe(
-      `**Admin Dashboard > ${adminLabel("de", "breadcrumbs.settings")} > Push Notifications**`,
+      `**Admin Dashboard > ${adminLabel("de", "breadcrumbs.settings")} > ${adminLabel("de", "Push Notifications")}**`,
     );
     expect(drawnAdminPath("fa", english, keys)).toBe(
-      `**Admin Dashboard** > **${adminLabel("fa", "breadcrumbs.settings")}** > **Push Notifications**`,
+      `**Admin Dashboard** > **${adminLabel("fa", "breadcrumbs.settings")}** > **${adminLabel("fa", "Push Notifications")}**`,
+    );
+    // A key with no dots is an entry looked up by its English text.
+    expect(adminLabel("de", "Push Notifications")).not.toBe(
+      "Push Notifications",
     );
     expect(adminValues("en")).toContain(ADMIN_DASHBOARD);
-    expect(adminValues("en")).not.toContain("Push Notifications");
   });
 
   it("lay a translation beside its English page by what each line is", () => {

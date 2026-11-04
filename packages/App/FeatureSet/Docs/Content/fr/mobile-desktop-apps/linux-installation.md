@@ -54,7 +54,7 @@ L'application affiche des notifications par son navigateur, une fois que vous av
 
 :::steps
 ### Ouvrir vos appareils push
-Dans l'application, ouvrez **Paramètres utilisateur → Méthodes de notification** et l'onglet **Push Notifications**.
+Dans l'application, ouvrez **Paramètres utilisateur → Méthodes de notification** et l'onglet **Notifications push**.
 
 ### Enregistrer ce navigateur
 Cliquez sur **Enregistrer l'appareil**, gardez la valeur proposée dans **Nom de l'appareil**, par exemple `Chrome on Linux`, ou modifiez-la, puis cliquez de nouveau sur **Enregistrer l'appareil**. Quand le navigateur demande si OneUptime peut afficher des notifications, choisissez **Autoriser**.
@@ -80,7 +80,7 @@ Dans la fenêtre de l'application, ouvrez le menu **⋮**, choisissez l'élémen
 Ouvrez `edge://apps` dans Edge, choisissez **Détails** sur OneUptime, puis **Désinstaller**.
 :::
 
-Désinstaller l'application ne désenregistre pas son navigateur : il reçoit toujours des notifications. Pour les arrêter, supprimez le navigateur sous **Paramètres utilisateur → Méthodes de notification**, dans l'onglet **Push Notifications**, avec **Supprimer**.
+Désinstaller l'application ne désenregistre pas son navigateur : il reçoit toujours des notifications. Pour les arrêter, supprimez le navigateur sous **Paramètres utilisateur → Méthodes de notification**, dans l'onglet **Notifications push**, avec **Supprimer**.
 
 ## Dépannage
 
@@ -89,7 +89,7 @@ Ouvrez une page du tableau de bord une fois connecté, pas la page de connexion,
 :::
 
 :::details Aucune notification n'apparaît
-- Dans **Paramètres utilisateur → Méthodes de notification**, onglet **Push Notifications**, vérifiez que ce navigateur est listé, et envoyez-lui une **Notification de test**.
+- Dans **Paramètres utilisateur → Méthodes de notification**, onglet **Notifications push**, vérifiez que ce navigateur est listé, et envoyez-lui une **Notification de test**.
 - Vérifiez que le Ne pas déranger de votre bureau est désactivé et que ses réglages de notification autorisent le navigateur.
 - Si le navigateur bloque les notifications pour OneUptime, cliquez sur l'icône à gauche de la barre d'adresse, autorisez les notifications pour le site, et enregistrez à nouveau le navigateur.
 - Sur un OneUptime auto-hébergé, la boîte de dialogue **Enregistrer l'appareil** indique quand le serveur n'a pas de clés VAPID.

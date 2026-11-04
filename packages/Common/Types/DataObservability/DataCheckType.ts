@@ -16,6 +16,8 @@ export enum DataCheckType {
   Minimum = "Minimum",
   Maximum = "Maximum",
   Average = "Average",
+  // The column's values added up: a day's revenue, an inventory's units. 0 for no rows.
+  Sum = "Sum",
   // Percent of non-empty values outside an accepted list.
   InvalidPercent = "Invalid Percent",
   // Percent of non-empty values that do not match a pattern.
@@ -48,6 +50,7 @@ export const COLUMN_CHECK_TYPES: ReadonlyArray<DataCheckType> = [
   DataCheckType.Minimum,
   DataCheckType.Maximum,
   DataCheckType.Average,
+  DataCheckType.Sum,
   DataCheckType.InvalidPercent,
   DataCheckType.FormatMismatchPercent,
   DataCheckType.OrphanCount,
@@ -62,6 +65,12 @@ export const MAX_ACCEPTED_VALUES: number = 200;
 
 // The most segments one run reports: the largest, by rows.
 export const MAX_SEGMENTS_PER_CHECK: number = 100;
+
+// How a check's last run went.
+export enum DataCheckRunStatus {
+  Ran = "Ran",
+  Failed = "Failed",
+}
 
 // How often a check may run, in minutes.
 export const DATA_CHECK_INTERVALS_IN_MINUTES: ReadonlyArray<number> = [

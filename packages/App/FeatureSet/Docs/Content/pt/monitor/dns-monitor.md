@@ -36,7 +36,7 @@ Uma sonda que perdeu a própria conexão de rede não informa nenhum resultado, 
 :::steps
 ### Começar um monitor novo
 
-Vá em **Monitores** e clique em **Criar monitor**. Em **Tipo de monitor**, clique em **Mais tipos de monitor** e escolha **DNS** em **DNS Monitoring**.
+Vá em **Monitores** e clique em **Criar monitor**. Em **Tipo de monitor**, clique em **Mais tipos de monitor** e escolha **DNS** em **Monitoramento de DNS**.
 
 ### Dar um nome a ele
 

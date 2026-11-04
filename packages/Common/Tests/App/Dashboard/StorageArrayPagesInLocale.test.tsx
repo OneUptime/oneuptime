@@ -403,6 +403,26 @@ function attentionText(testId: string): string {
     .join("\n");
 }
 
+/*
+ * The elements whose whole text is these words. A tile's title draws its
+ * long words in spans of their own, hyphenated in the reader's language
+ * (GoldenMetricTile, HyphenatedWords), so getByText - which reads one
+ * element's own text - does not find a German title whole.
+ */
+function wholeText(words: string): Array<HTMLElement> {
+  return screen.queryAllByText(
+    (_content: string, element: Element | null): boolean => {
+      if (!element || element.textContent !== words) {
+        return false;
+      }
+
+      return Array.from(element.children).every((child: Element): boolean => {
+        return child.textContent !== words;
+      });
+    },
+  );
+}
+
 beforeAll(async () => {
   await i18next.use(initReactI18next).init({
     lng: "de",
@@ -544,7 +564,7 @@ describe("a storage array's Overview in German", () => {
       "Unhealthy Hardware",
       "deduplication and compression",
     ]) {
-      expect(screen.getAllByText(worded(DE, key)).length).toBeGreaterThan(0);
+      expect(wholeText(worded(DE, key)).length).toBeGreaterThan(0);
       expect(screen.queryByText(key)).not.toBeInTheDocument();
     }
     expect(

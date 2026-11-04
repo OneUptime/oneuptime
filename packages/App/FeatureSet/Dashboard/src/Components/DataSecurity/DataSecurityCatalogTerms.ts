@@ -100,6 +100,7 @@ export const DATA_SECURITY_CATALOG_TERMS: ReadonlyArray<string> = [
   translationKey("Oracle"),
   translationKey("Redis"),
   translationKey("Elasticsearch"),
+  translationKey("Snowflake"),
   translationKey("Logs"),
   translationKey("Traces"),
   translationKey("Exceptions"),

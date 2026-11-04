@@ -260,6 +260,14 @@ const EVERYDAY_SECTION_TITLES: ReadonlyArray<string> = [
   "Security Cases",
   "Events",
   "Playbooks",
+  /*
+   * Cloud's Spend: what the accounts cost, the ways to spend less and the
+   * budgets that alert (Costs, Savings, Budgets). Everyone with a cloud
+   * account pays its bill, so they are what Cloud is opened for beside the
+   * accounts themselves: its Overview leads with the month's spend, and
+   * search finds Cloud by its costs' words.
+   */
+  "Spend",
 ];
 
 /*

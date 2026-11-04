@@ -72,7 +72,7 @@ export function quoteIdentifier(engine: DatabaseEngine, name: string): string {
   }
 }
 
-function tableReference(
+export function tableReference(
   engine: DatabaseEngine,
   schemaName: string,
   tableName: string,
@@ -157,6 +157,9 @@ function valueExpression(
       return asNumber(engine, `MAX(${column})`);
     case DataCheckType.Average:
       return `AVG(${asNumber(engine, column)})`;
+    // No rows add up to 0, so a sum is never empty: a reconciliation compares it.
+    case DataCheckType.Sum:
+      return `COALESCE(SUM(${asNumber(engine, column)}), 0)`;
     case DataCheckType.InvalidPercent: {
       const values: Array<string> = (target.acceptedValues || [])
         .filter((value: string) => {

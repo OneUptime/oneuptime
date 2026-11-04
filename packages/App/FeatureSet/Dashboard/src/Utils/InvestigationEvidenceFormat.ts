@@ -321,6 +321,15 @@ const TOOL_DESCRIPTIONS: Map<string, EvidenceToolDescription> = new Map<
       category: "Data security",
     },
   ],
+  // Data Observability: whether a watched table is fresh, and why not.
+  [
+    "get_data_table_freshness",
+    {
+      description: "Checked whether a table is fresh",
+      icon: IconProp.TableCells,
+      category: "Data observability",
+    },
+  ],
   // Real user monitoring: the applications, and their web vitals.
   [
     "query_rum_applications",
@@ -873,6 +882,7 @@ const TARGET_PAGE_NAMES: { [key in AIChatCitationTargetType]: string } = {
   [AIChatCitationTargetType.SecurityPlaybooks]: translationKey("Playbooks"),
   [AIChatCitationTargetType.DataStores]: translationKey("Data stores"),
   [AIChatCitationTargetType.DataStoreView]: translationKey("Data store"),
+  [AIChatCitationTargetType.DataTableView]: translationKey("Data table"),
   [AIChatCitationTargetType.DataSecurityIssues]: translationKey(
     "Data security issues",
   ),

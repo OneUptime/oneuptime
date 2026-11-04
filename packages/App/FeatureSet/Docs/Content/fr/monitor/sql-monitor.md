@@ -108,7 +108,7 @@ Pour un octroi plus restreint, donnez à l'utilisateur `SELECT` sur les seules t
 :::steps
 ### Commencer un nouveau moniteur
 
-Allez dans **Moniteurs** et cliquez sur **Créer un moniteur**. Sous **Type de moniteur**, cliquez sur **Plus de types de moniteurs** et choisissez **SQL Query** sous **Database Monitoring**, ou tapez `query` dans le champ de recherche. Saisissez un **Nom**, puis cliquez sur **Suivant**.
+Allez dans **Moniteurs** et cliquez sur **Créer un moniteur**. Sous **Type de moniteur**, cliquez sur **Plus de types de moniteurs** et choisissez **SQL Query** sous **Surveillance des bases de données**, ou tapez `query` dans le champ de recherche. Saisissez un **Nom**, puis cliquez sur **Suivant**.
 
 ### Saisir les informations de connexion
 

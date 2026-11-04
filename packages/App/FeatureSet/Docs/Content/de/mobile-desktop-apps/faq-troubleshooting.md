@@ -85,7 +85,7 @@ flowchart TB
     Registered --> Gone --> Marked --> Open --> Renewed
 ```
 
-Expo meldet ein Telefon als weg, wenn die App davon entfernt wurde oder sein Push-Token nicht mehr gilt. Das Telefon wird nicht gelöscht: **Benutzereinstellungen → Benachrichtigungsmethoden** zeigt es auf dem Tab **Push Notifications** als **Keine Benachrichtigungen**, und die Bereitschafts-Zeitleiste eines Alarms, der es nicht erreicht hat, sagt, warum. Ihre anderen Telefone und Benachrichtigungsmethoden werden wie gewohnt alarmiert.
+Expo meldet ein Telefon als weg, wenn die App davon entfernt wurde oder sein Push-Token nicht mehr gilt. Das Telefon wird nicht gelöscht: **Benutzereinstellungen → Benachrichtigungsmethoden** zeigt es auf dem Tab **Push-Benachrichtigungen** als **Keine Benachrichtigungen**, und die Bereitschafts-Zeitleiste eines Alarms, der es nicht erreicht hat, sagt, warum. Ihre anderen Telefone und Benachrichtigungsmethoden werden wie gewohnt alarmiert.
 
 Die App registriert das Telefon bei jedem Start, wenn Sie sich anmelden, und wenn Sie zu ihr zurückkehren, höchstens alle fünf Minuten einmal. Beim Registrieren fragt sie Expo erneut nach dem Push-Token, was es erneuert, und das Telefon bekommt wieder Alarme, mit den Regeln, die es hatte.
 
@@ -124,7 +124,7 @@ Passkeys brauchen eine Adresse Ihres OneUptime, die mit `https://` beginnt, und 
 
 :::details Keine Benachrichtigungen auf dem Telefon
 - Prüfen Sie, dass das Telefon Benachrichtigungen von OneUptime On-Call erlaubt und dass „Nicht stören“ oder ein Fokus sie nicht zurückhält.
-- Prüfen Sie unter **Benutzereinstellungen → Benachrichtigungsmethoden** auf dem Tab **Push Notifications**, dass das Telefon aufgeführt ist, und senden Sie ihm eine **Testbenachrichtigung**.
+- Prüfen Sie unter **Benutzereinstellungen → Benachrichtigungsmethoden** auf dem Tab **Push-Benachrichtigungen**, dass das Telefon aufgeführt ist, und senden Sie ihm eine **Testbenachrichtigung**.
 - Ist es mit **Keine Benachrichtigungen** markiert, öffnen Sie die App, während Sie angemeldet sind: siehe [Wenn sich ein Telefon neu registrieren muss](#wenn-sich-ein-telefon-neu-registrieren-muss).
 - Prüfen Sie Ihre Bereitschaftsregeln unter **Benutzereinstellungen → Bereitschaftsregeln**: Sie entscheiden, welche Alarme welche Methode erreichen.
 - Prüfen Sie bei einem selbst gehosteten OneUptime, dass der Server sein Push-Relay erreicht: siehe [Push-Benachrichtigungen](/docs/self-hosted/push-notifications#netzwerkzugriff).
@@ -145,7 +145,7 @@ Installieren Sie von einer Dashboard-Seite aus, nach der Anmeldung, über `https
 :::
 
 :::details Keine Desktop-Benachrichtigungen
-Registrieren Sie den Browser unter **Benutzereinstellungen → Benachrichtigungsmethoden** auf dem Tab **Push Notifications** mit **Gerät registrieren**, erlauben Sie Benachrichtigungen, wenn danach gefragt wird, und prüfen Sie die Benachrichtigungseinstellungen des Computers selbst. Ein selbst gehostetes OneUptime braucht seine VAPID-Schlüssel für Browser-Benachrichtigungen.
+Registrieren Sie den Browser unter **Benutzereinstellungen → Benachrichtigungsmethoden** auf dem Tab **Push-Benachrichtigungen** mit **Gerät registrieren**, erlauben Sie Benachrichtigungen, wenn danach gefragt wird, und prüfen Sie die Benachrichtigungseinstellungen des Computers selbst. Ein selbst gehostetes OneUptime braucht seine VAPID-Schlüssel für Browser-Benachrichtigungen.
 :::
 
 ## Hilfe bekommen

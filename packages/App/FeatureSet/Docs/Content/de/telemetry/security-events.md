@@ -38,6 +38,7 @@ flowchart TB
 | **Alle Fälle** | Sicherheitsfälle | Jeder Fall, offen oder geschlossen |
 | **Ereignisse** | Ereignisse | Jedes Ereignis suchen und filtern, und eines öffnen, um alle seine Felder zu sehen |
 | **Bedrohungssuchen** | Ereignisse | Unter Ereignisse gespeicherte Suchen, mit einem Klick wieder geöffnet oder nach einem Zeitplan ausgeführt, der Personen benachrichtigt, wenn sie etwas finden |
+| **Suchbibliothek** | Ereignisse | Fertige Bedrohungssuchen zum Ausprobieren unter Ereignisse oder zum Hinzufügen zu Ihren Bedrohungssuchen, jede mit den Ereignissen, die sie liest, und ob diese eingehen |
 | **Kampagnen** | Ereignisse | Jede Adresse, die Angriffsanfragen gesendet hat, und ob eine ihrer Anfragen durchkam |
 | **Entitätsrisiko** | Ereignisse | Jeder Benutzer, Host und jede Adresse, bewertet nach dem, was diese Woche dazu gefunden wurde, die riskantesten zuerst |
 | **Korrelieren** | Ereignisse | Ein Graph der Ereignisse, die einen Host, einen Benutzer oder eine IP-Adresse teilen |
@@ -286,6 +287,14 @@ Suchen und filtern Sie unter **Ereignisse**, bis die Liste zeigt, was Sie suchen
 
 Die Seite einer Bedrohungssuche ist ihre Suche, im Explorer für Ereignisse geöffnet. Ändern Sie dort die Suche oder die Filter, dann bietet der Kopf der Bedrohungssuche **Änderungen speichern** und **Änderungen verwerfen** an. **Bearbeiten** ändert ihren Namen, ihre Suche, wie weit sie zurückblickt, ihren Zeitplan und wen sie benachrichtigt, und **Bedrohungssuche löschen** steht in ihrem Menü. Ab Security Member können Bedrohungssuchen gespeichert, geändert und gelöscht werden, und ein Security Viewer kann sie öffnen.
 
+Eine Bedrohungssuche, die mit Filtern aus der Seitenleiste von Ereignisse gespeichert wurde, zeigt diese in **Bearbeiten** unter **Filter** so, wie Ereignisse sie darstellt, jeden mit einem x, um ihn zu entfernen. Filter fügen Sie auf der Seite der Bedrohungssuche über die Seitenleiste hinzu.
+
+### Mit der Suchbibliothek beginnen
+
+**Ereignisse → Suchbibliothek** listet fertige Bedrohungssuchen für das, wonach Sicherheitsteams am häufigsten suchen, etwa fehlgeschlagene Anmeldungen, codiertes PowerShell, das AWS-Root-Konto und in Kubernetes-Pods geöffnete Shells. Jede zeigt, was sie findet, ihre Suche so, wie Sie sie unter **Ereignisse** eingeben würden, und ob die Ereignisse eingehen, die sie liest, so wie die **Regelbibliothek** es für ihre Regeln tut. Grenzen Sie sie nach **Kategorie der Suche**, **Daten** und **Status** ein, oder durchsuchen Sie sie.
+
+**Ausprobieren** öffnet die Suche unter **Ereignisse** über das Zeitfenster der Bedrohungssuche und speichert nichts. **Hinzufügen** speichert sie sofort als eine der Bedrohungssuchen des Projekts, benannt und beschrieben in Ihrer Sprache und ohne Zeitplan, wie jede neue Bedrohungssuche. Danach steht dort **Hinzugefügt**, und **Öffnen** öffnet sie, wo Sie ihr einen Zeitplan geben können.
+
 ### Eine Bedrohungssuche nach Zeitplan ausführen
 
 | Zeitplan | Läuft |
@@ -303,9 +312,15 @@ Ein Lauf öffnet keinen Fall und löst keine Warnung aus: Schreiben Sie, was Fä
 
 Eine geplante Bedrohungssuche läuft unter der Person, die zuletzt ihren Zeitplan festgelegt, ihre Suche geändert oder sie mit **Bearbeiten** gespeichert hat. Ein API-Schlüssel kann keinen Zeitplan festlegen. Verlässt diese Person das Projekt oder darf sie keine Sicherheitsereignisse mehr lesen, zeigt die Bedrohungssuche das an: Öffnen Sie **Bearbeiten** und speichern Sie sie, damit sie unter Ihnen läuft.
 
+### Ausführungsverlauf
+
+Jeder geplante Lauf wird 90 Tage aufbewahrt. **Ausführungsverlauf**, am Ende der Zeile, die sagt, was die Läufe einer Bedrohungssuche gefunden haben, listet sie mit dem neuesten zuerst: wann jeder lief und welche Ereignisse er durchsucht hat, dann wie viele er gefunden hat, mit **Anzeigen**, um diese Ereignisse auf der Seite der Bedrohungssuche zu öffnen; dass er nichts gefunden hat; oder warum er nicht laufen konnte. Wer eine Bedrohungssuche öffnen kann, kann auch ihre Läufe lesen.
+
 ### Wer benachrichtigt wird
 
 Die Benachrichtigung **Bedrohungssuche hat Sicherheitsereignisse gefunden** nennt die Bedrohungssuche und ihre Suche, wie viele Ereignisse ihr Lauf gefunden hat und welches Zeitfenster er gelesen hat, und verlinkt auf die Seite der Bedrohungssuche mit diesen Ereignissen; kein Wortlaut eines Ereignisses steht darin. Alle erhalten sie per E-Mail und Push und wählen ihre Kanäle unter **Benutzereinstellungen → Benachrichtigungseinstellungen**. Wie andere Routine-E-Mails kann sie in einer [E-Mail-Zusammenfassung](/docs/emails/notification-rollup) zurückgehalten werden.
+
+Um in Slack oder Microsoft Teams zu posten, was Bedrohungssuchen finden, fügen Sie unter **Produkte → Sicherheitsereignisse → Arbeitsbereich → Slack** (oder **Microsoft Teams**) eine Regel zu **Regeln für Bedrohungssuchen** hinzu, unterhalb der Regeln, die [Sicherheitsfälle](/docs/telemetry/security-cases#in-kanäle-von-slack-und-microsoft-teams-posten) posten. Eine Regel nennt die Kanäle, in die gepostet wird (und in Microsoft Teams die Chats), und, wenn Sie möchten, die Bedrohungssuchen, für die sie gilt, nach **Name der Bedrohungssuche**: ein Name, der Ihr Text ist, ihn enthält, mit ihm beginnt oder auf ihn endet. Jedes Mal, wenn ein geplanter Lauf Ereignisse findet, werden die Bedrohungssuche, ihre Suche, wie viele Ereignisse und wann mit einem Link zu ihnen gepostet, und keines der eigenen Worte eines Ereignisses. Eine Regel für Bedrohungssuchen richtet eine Rolle ein, die Sicherheits-Playbooks einrichten darf, etwa Project Owner, Project Admin oder Security Admin.
 
 ### Ereignisse in einem Fall aufbewahren
 
@@ -313,7 +328,7 @@ Wählen Sie Ereignisse unter **Ereignisse** oder auf der Seite einer Bedrohungss
 
 OneUptime liest jedes Ereignis erneut als Sie und bewahrt es so, wie es war, auf der Seite **Belege** des Falls auf, sodass der Fall es auch nach dem Ende der Aufbewahrungsfrist des Ereignisses zeigt. Ein Ereignis, das Sie nicht lesen dürfen, wird nicht aufbewahrt, und eines, das der Fall bereits aufbewahrt, bleibt, wie es ist. Ein über eine Bedrohungssuche gefundenes Ereignis nennt die Bedrohungssuche, und **Ereignis anzeigen** öffnet es so, wie es aufbewahrt wurde.
 
-Bedrohungssuchen haben dieselbe REST-API wie der Rest von OneUptime, unter `/security-hunt`, und `POST /security-case-evidence/add-events` bewahrt Ereignisse in einem Fall auf. Siehe [API-Referenz](/docs/api-reference/api-reference).
+Bedrohungssuchen haben dieselbe REST-API wie der Rest von OneUptime, unter `/security-hunt`, und `POST /security-case-evidence/add-events` bewahrt Ereignisse in einem Fall auf. Die Läufe einer Bedrohungssuche werden unter `/security-hunt-run` gelesen. Siehe [API-Referenz](/docs/api-reference/api-reference).
 
 ## Erkennungsregeln
 

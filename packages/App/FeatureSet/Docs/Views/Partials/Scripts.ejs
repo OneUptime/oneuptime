@@ -799,10 +799,49 @@
         updateScrollChrome();
 
         /* ======================= Language switcher ===================== */
+        /*
+         * The place the address points at, as every copy of the page names
+         * it, so the page picked in another language opens there too: a
+         * heading by its English anchor, which a translated copy answers as
+         * well (Utils/AnchorAliases.ts). An English copy's heading has it as
+         * its id; a translated heading names it in data-english-anchor, and
+         * so does the heading of the mark it answers with. A translated
+         * heading with none - its copy's headings do not line up with the
+         * English page's - is a place no other copy has, so the page opens
+         * at its top, as it always did. Anything else keeps its id: it is
+         * the same in every copy.
+         */
+        function placeInEveryCopy() {
+            var hash = window.location.hash.slice(1);
+            if (!hash) {
+                return '';
+            }
+            var id = hash;
+            try {
+                id = decodeURIComponent(hash);
+            } catch (error) {
+                /* Not percent-encoding: the id as it is written. */
+            }
+            var target = document.getElementById(id);
+            if (!target) {
+                return '';
+            }
+            var heading = target.closest('.docs-heading');
+            if (!heading) {
+                return id;
+            }
+            if (heading.hasAttribute('data-english-anchor')) {
+                return heading.getAttribute('data-english-anchor') || '';
+            }
+            var copyLanguage = (article && article.getAttribute('lang')) || window.__docsLang;
+            return copyLanguage === 'en' ? heading.id : '';
+        }
+
         document.querySelectorAll('[data-language-switcher]').forEach(function (switcher) {
             switcher.addEventListener('change', function () {
                 var currentPath = switcher.getAttribute('data-current-path') || '';
-                window.location.href = currentPath.replace(/^\/docs\/[^/]+/, '/docs/' + switcher.value);
+                var place = placeInEveryCopy();
+                window.location.href = currentPath.replace(/^\/docs\/[^/]+/, '/docs/' + switcher.value) + (place ? '#' + encodeURIComponent(place) : '');
             });
         });
     })();

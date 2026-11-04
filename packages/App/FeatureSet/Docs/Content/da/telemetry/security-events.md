@@ -38,6 +38,7 @@ flowchart TB
 | **Alle sager** | Sikkerhedssager | Hver sag, åben eller lukket |
 | **Begivenheder** | Begivenheder | Søg i og filtrér alle begivenheder, og åbn en for at se alle dens felter |
 | **Hunts** | Begivenheder | Søgninger gemt fra Begivenheder, åbnet igen med ét klik eller kørt efter en tidsplan, der giver personer besked, når de finder noget |
+| **Huntbibliotek** | Begivenheder | Færdige hunts at prøve under Begivenheder eller føje til dine hunts, hver med de begivenheder, den læser, og om de kommer |
 | **Kampagner** | Begivenheder | Hver adresse, der sendte angrebsforespørgsler, og om nogen af dens forespørgsler kom igennem |
 | **Entitetsrisiko** | Begivenheder | Hver bruger, vært og adresse, scoret efter hvad der er fundet om den i denne uge, de mest risikable først |
 | **Korrelér** | Begivenheder | En graf over de begivenheder, der deler en vært, en bruger eller en IP-adresse |
@@ -286,6 +287,14 @@ Søg og filtrér under **Begivenheder**, indtil listen viser det, du leder efter
 
 En hunts side er dens søgning, åbnet i begivenhedsoversigten. Ændr søgningen eller filtrene der, så tilbyder huntens overskrift **Gem ændringer** og **Kassér ændringer**. **Rediger** ændrer dens navn, dens søgning, hvor langt tilbage den ser, dens tidsplan og hvem den giver besked, og **Slet hunt** findes i dens menu. Fra Security Member og op kan man gemme, ændre og slette hunts, og en Security Viewer kan åbne dem.
 
+En hunt, der er gemt med filtre fra sidepanelet under Begivenheder, viser dem i **Rediger** under **Filtre**, som Begivenheder tegner dem, hvert med et x til at fjerne det. Tilføj filtre på huntens side, fra sidepanelet.
+
+### Start fra Huntbiblioteket
+
+**Begivenheder → Huntbibliotek** viser færdige hunts til det, sikkerhedsteams oftest leder efter, såsom mislykkede logins, kodet PowerShell, AWS-rodkontoen og shells åbnet i Kubernetes-pods. Hver viser, hvad den finder, dens søgning, som du ville skrive den under **Begivenheder**, og om de begivenheder, den læser, kommer, som **Regelbibliotek** gør det for sine regler. Indsnævr dem efter **Huntkategori**, **Data** og **Status**, eller søg i dem.
+
+**Prøv det** åbner søgningen under **Begivenheder** over huntens tidsvindue og gemmer intet. **Tilføj** gemmer den med det samme som en af projektets hunts, navngivet og beskrevet på dit sprog og uden tidsplan, som enhver ny hunt. Derefter står der **Tilføjet**, og **Åbn** åbner den, hvor du kan give den en tidsplan.
+
 ### Kør en hunt efter en tidsplan
 
 | Tidsplan | Kører |
@@ -303,9 +312,15 @@ En kørsel åbner ingen sag og udløser ingen advarsel: skriv det, der skal åbn
 
 En planlagt hunt kører som den person, der sidst satte dens tidsplan, ændrede dens søgning eller gemte den med **Rediger**. En API-nøgle kan ikke sætte en tidsplan. Når den person forlader projektet eller ikke længere må læse sikkerhedsbegivenheder, siger hunten det: åbn **Rediger**, og gem den for at køre den som dig.
 
+### Kørselshistorik
+
+Hver planlagt kørsel gemmes i 90 dage. **Kørselshistorik**, for enden af linjen, der siger, hvad en hunts kørsler fandt, viser dem med den nyeste først: hvornår hver kørte, og hvilke begivenheder den søgte i, derefter hvor mange den fandt, med **Vis dem** til at åbne de begivenheder på huntens side; at den intet fandt; eller hvorfor den ikke kunne køre. Den, der kan åbne en hunt, kan læse dens kørsler.
+
 ### Hvem der får besked
 
 Notifikationen **En hunt fandt sikkerhedsbegivenheder** nævner hunten og dens søgning, hvor mange begivenheder dens kørsel fandt, og hvilket vindue den læste, og linker til huntens side på de begivenheder; ingen af begivenhedernes egne ord står i den. Alle får den på e-mail og push og vælger dens kanaler under **Brugerindstillinger → Notifikationsindstillinger**. Ligesom andre rutinemails kan den holdes tilbage i en [e-mailsamling](/docs/emails/notification-rollup).
+
+For at slå det op, hunts finder, i Slack eller Microsoft Teams tilføjer du en regel til **Regler for hunts** under **Produkter → Sikkerhedshændelser → Arbejdsområde → Slack** (eller **Microsoft Teams**), under de regler, der slår [sikkerhedssager](/docs/telemetry/security-cases#slå-op-i-slack-og-microsoft-teams-kanaler) op. En regel angiver de kanaler, der skal slås op i (og i Microsoft Teams chattene), og, hvis du vil, de hunts, den gælder for, efter **Huntens navn**: et navn, der er din tekst, indeholder den, begynder eller slutter med den. Hver gang en planlagt kørsel finder begivenheder, slår den hunten op, dens søgning, hvor mange begivenheder og hvornår, med et link til dem, og ingen af en begivenheds egne ord. En huntregel oprettes af en rolle, der må oprette sikkerheds-playbooks, såsom Project Owner, Project Admin eller Security Admin.
 
 ### Gem begivenheder på en sag
 
@@ -313,7 +328,7 @@ Vælg begivenheder under **Begivenheder** eller på en hunts side, og vælg **Ma
 
 OneUptime læser hver begivenhed igen som dig og gemmer den, som den var, på sagens side **Beviser**, så sagen stadig viser den, når begivenhedens opbevaringstid er udløbet. En begivenhed, du ikke må læse, gemmes ikke, og en, som sagen allerede gemmer, forbliver, som den er. En begivenhed fundet via en hunt nævner hunten, og **Vis begivenhed** åbner den, som den blev gemt.
 
-Hunts har den samme REST API som resten af OneUptime, under `/security-hunt`, og `POST /security-case-evidence/add-events` gemmer begivenheder på en sag. Se [API-reference](/docs/api-reference/api-reference).
+Hunts har den samme REST API som resten af OneUptime, under `/security-hunt`, og `POST /security-case-evidence/add-events` gemmer begivenheder på en sag. En hunts kørsler læses under `/security-hunt-run`. Se [API-reference](/docs/api-reference/api-reference).
 
 ## Detektionsregler
 

@@ -339,6 +339,8 @@ const NAMES_BUT_IS_NO_PART: Record<string, string> = {
   AutoRemediationSuggestion:
     "OneUptime AI's own suggestion, written by OneUptime",
   CallLog: "a log of a call OneUptime made",
+  DataAlert:
+    "what a data monitor's alert is about, written by OneUptime and read through its alerts' privacy filters",
   DataSecurityIssue: "a Data Security issue, which may point at one",
   EmailLog: "a log of an email OneUptime sent",
   FormSubmission: "a form's answer, which may have declared one",

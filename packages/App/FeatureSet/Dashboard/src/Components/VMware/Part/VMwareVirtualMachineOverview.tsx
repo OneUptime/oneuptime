@@ -286,7 +286,7 @@ const VMwareVirtualMachineOverview: FunctionComponent<ComponentProps> = (
         ) : (
           <>
             <GoldenMetricTile
-              title={tx("CPU")}
+              title="CPU"
               icon={IconProp.CPUChip}
               iconColor="blue"
               value={formatPercent(cpuPercent)}
@@ -296,7 +296,7 @@ const VMwareVirtualMachineOverview: FunctionComponent<ComponentProps> = (
               description={VMWARE_METRIC_DESCRIPTIONS.vmCpu}
             />
             <GoldenMetricTile
-              title={tx("CPU Ready")}
+              title="CPU Ready"
               icon={IconProp.Clock}
               iconColor="sky"
               value={formatPercent(cpuReady)}
@@ -310,7 +310,7 @@ const VMwareVirtualMachineOverview: FunctionComponent<ComponentProps> = (
               description={VMWARE_METRIC_DESCRIPTIONS.vmCpuReady}
             />
             <GoldenMetricTile
-              title={tx("Memory")}
+              title="Memory"
               icon={IconProp.SquareStack}
               iconColor="violet"
               value={formatPercent(memoryPercent)}
@@ -329,7 +329,7 @@ const VMwareVirtualMachineOverview: FunctionComponent<ComponentProps> = (
           </>
         )}
         <GoldenMetricTile
-          title={tx("Disk")}
+          title="Disk"
           icon={IconProp.Database}
           iconColor="amber"
           value={formatPercent(diskPercent)}

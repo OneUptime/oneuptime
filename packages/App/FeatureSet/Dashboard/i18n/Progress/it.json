@@ -1,7 +1,7 @@
 {
   "baseline": {
-    "keys": 41249,
-    "untranslated": 12135
+    "keys": 42078,
+    "untranslated": 12152
   },
   "sameAsEnglish": [
     "0 (kiss-o'-death {{kissCode}})",
@@ -32,6 +32,7 @@
     "CPU Ready",
     "CPU Ready {{percent}}",
     "Canada (+1)",
+    "Celsius",
     "Chat",
     "Client",
     "Cloud",
@@ -63,6 +64,7 @@
     "Edge",
     "Embedding",
     "Endpoint",
+    "Fahrenheit",
     "Failover",
     "Feed",
     "File",
@@ -71,7 +73,9 @@
     "Filesystem %",
     "Fingerprint",
     "Flame graph",
+    "Formula: {{formula}}",
     "Gateway",
+    "Gigahertz",
     "Golden Signals",
     "Google Calendar",
     "Google SecOps",
@@ -80,6 +84,7 @@
     "HA: {{state}}",
     "Hardware",
     "Hello world",
+    "Hertz",
     "Hong Kong (+852)",
     "Host",
     "ICMP (ping)",
@@ -92,7 +97,9 @@
     "Insight",
     "IoT",
     "Job",
+    "Kelvin",
     "Kernel",
+    "Kilohertz",
     "LXC 201 · pve3",
     "Leader",
     "Link-local",
@@ -106,6 +113,7 @@
     "Markdown",
     "Marketplace",
     "Max",
+    "Megahertz",
     "Merge request !{{number}}",
     "Merge request {{label}}",
     "Mesh / VPN",

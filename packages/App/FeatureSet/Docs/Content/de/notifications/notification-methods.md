@@ -28,17 +28,17 @@ Jeder Tab der **Benachrichtigungsmethoden** enthält eine oder mehrere Karten, e
 
 | Karte | Tab | Was Sie hinzufügen | Wie sie verifiziert wird |
 | --- | --- | --- | --- |
-| **E-Mails für Benachrichtigungen** | **Direct Contact** | Eine E-Mail-Adresse | Ein Code per E-Mail |
-| **Telefonnummern für SMS-Benachrichtigungen** | **Direct Contact** | Eine Telefonnummer | Ein Code per SMS |
-| **Telefonnummern für Anrufbenachrichtigungen** | **Direct Contact** | Eine Telefonnummer | Ein Code, der in einem Anruf vorgelesen wird, oder keiner für eine Nummer, die für SMS verifiziert ist |
-| **WhatsApp-Nummern für Benachrichtigungen** | **Direct Contact** | Eine WhatsApp-Nummer | Ein Code über WhatsApp |
-| **Telegram-Konten für Benachrichtigungen** | **Direct Contact** | Ihr Telegram-Konto | Eine Nachricht an den OneUptime-Bot |
-| **Slack-Konto für Benachrichtigungen** | **Workspace Apps** | Ihr Slack-Konto | Ihr Konto mit dem Arbeitsbereich des Projekts verknüpfen |
-| **Microsoft Teams-Konto für Benachrichtigungen** | **Workspace Apps** | Ihr Microsoft Teams-Konto | Ihr Konto mit dem Arbeitsbereich des Projekts verknüpfen |
-| **Geräte für Push-Benachrichtigungen** | **Push Notifications** | Ein Telefon mit der App OneUptime On-Call, oder ein Browser | Das Gerät registrieren |
+| **E-Mails für Benachrichtigungen** | **Direkter Kontakt** | Eine E-Mail-Adresse | Ein Code per E-Mail |
+| **Telefonnummern für SMS-Benachrichtigungen** | **Direkter Kontakt** | Eine Telefonnummer | Ein Code per SMS |
+| **Telefonnummern für Anrufbenachrichtigungen** | **Direkter Kontakt** | Eine Telefonnummer | Ein Code, der in einem Anruf vorgelesen wird, oder keiner für eine Nummer, die für SMS verifiziert ist |
+| **WhatsApp-Nummern für Benachrichtigungen** | **Direkter Kontakt** | Eine WhatsApp-Nummer | Ein Code über WhatsApp |
+| **Telegram-Konten für Benachrichtigungen** | **Direkter Kontakt** | Ihr Telegram-Konto | Eine Nachricht an den OneUptime-Bot |
+| **Slack-Konto für Benachrichtigungen** | **Workspace-Apps** | Ihr Slack-Konto | Ihr Konto mit dem Arbeitsbereich des Projekts verknüpfen |
+| **Microsoft Teams-Konto für Benachrichtigungen** | **Workspace-Apps** | Ihr Microsoft Teams-Konto | Ihr Konto mit dem Arbeitsbereich des Projekts verknüpfen |
+| **Geräte für Push-Benachrichtigungen** | **Push-Benachrichtigungen** | Ein Telefon mit der App OneUptime On-Call, oder ein Browser | Das Gerät registrieren |
 | **Webhooks für Benachrichtigungen** | **Webhooks** | Ein eigener HTTPS-Endpunkt | Keine |
 
-**Workspace Apps** erscheint nur, wenn das Projekt Slack oder Microsoft Teams verbunden hat, und enthält nur die verbundenen. SMS, Anrufe, WhatsApp und Telegram können für das ganze Projekt ausgeschaltet sein; siehe [Einen Kanal für Ihr Projekt einschalten](#einen-kanal-für-ihr-projekt-einschalten).
+**Workspace-Apps** erscheint nur, wenn das Projekt Slack oder Microsoft Teams verbunden hat, und enthält nur die verbundenen. SMS, Anrufe, WhatsApp und Telegram können für das ganze Projekt ausgeschaltet sein; siehe [Einen Kanal für Ihr Projekt einschalten](#einen-kanal-für-ihr-projekt-einschalten).
 
 ## Eine Methode hinzufügen und verifizieren
 
@@ -47,7 +47,7 @@ E-Mail-Adressen, SMS-Nummern, Anrufnummern und WhatsApp-Nummern werden mit einem
 :::steps
 ### Ihre Methoden öffnen
 
-Gehen Sie zu **Benutzereinstellungen → Benachrichtigungsmethoden**. **Direct Contact** ist der erste Tab.
+Gehen Sie zu **Benutzereinstellungen → Benachrichtigungsmethoden**. **Direkter Kontakt** ist der erste Tab.
 
 ### Die Adresse hinzufügen
 
@@ -88,12 +88,12 @@ Klicken Sie zurück in OneUptime auf **Ich habe die Nachricht gesendet — prüf
 ## Slack und Microsoft Teams
 
 1. Verknüpfen Sie Ihr eigenes Konto mit dem Arbeitsbereich des Projekts: **Benutzereinstellungen → Arbeitsbereich → Slack**, oder **Microsoft Teams**. Siehe [Slack](/docs/workspace-connections/slack) und [Microsoft Teams](/docs/workspace-connections/microsoft-teams).
-2. Klicken Sie auf dem Tab **Workspace Apps** auf **Slack-Konto hinzufügen** oder **Microsoft Teams-Konto hinzufügen**. Das Konto ist verifiziert, sobald es hinzugefügt ist.
+2. Klicken Sie auf dem Tab **Workspace-Apps** auf **Slack-Konto hinzufügen** oder **Microsoft Teams-Konto hinzufügen**. Das Konto ist verifiziert, sobald es hinzugefügt ist.
 3. Klicken Sie in seiner Zeile auf **Testnachricht senden**. Alarme kommen als Direktnachrichten von der OneUptime-App an.
 
 ## Push-Benachrichtigungen
 
-Der Tab **Push Notifications** listet Ihre **Geräte für Push-Benachrichtigungen**.
+Der Tab **Push-Benachrichtigungen** listet Ihre **Geräte für Push-Benachrichtigungen**.
 
 - **Ein Telefon.** Installieren Sie die App OneUptime On-Call, verbinden Sie sie mit Ihrem OneUptime, melden Sie sich an und erlauben Sie Benachrichtigungen: Das Telefon trägt sich selbst in diese Liste ein. Siehe [Apps – Übersicht](/docs/mobile-desktop-apps/index).
 - **Dieser Browser.** Klicken Sie auf **Gerät registrieren**, tragen Sie unter **Gerätename** einen Namen ein, und erlauben Sie Benachrichtigungen, wenn der Browser fragt.

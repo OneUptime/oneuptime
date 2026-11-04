@@ -55,7 +55,7 @@ O aplicativo mostra notificações pelo navegador dele, depois que você registr
 
 :::steps
 ### Abrir os seus dispositivos push
-No aplicativo, abra **Configurações do usuário → Métodos de notificação** e a aba **Push Notifications**.
+No aplicativo, abra **Configurações do usuário → Métodos de notificação** e a aba **Notificações push**.
 
 ### Registrar este navegador
 Clique em **Registrar Dispositivo**, mantenha o valor sugerido em **Nome do dispositivo**, por exemplo `Edge on Windows`, ou altere-o, e clique de novo em **Registrar Dispositivo**. Quando o navegador perguntar se o OneUptime pode mostrar notificações, escolha **Permitir**.
@@ -83,7 +83,7 @@ Na janela do aplicativo, abra o menu **⋮**, escolha o item que desinstala o ap
 
 O Windows também lista o aplicativo em **Configurações → Aplicativos → Aplicativos instalados**, onde **Desinstalar** também o remove.
 
-Desinstalar o aplicativo não cancela o registro do navegador dele: ele continua recebendo notificações. Para pará-las, exclua o navegador em **Configurações do usuário → Métodos de notificação**, na aba **Push Notifications**, com **Excluir**.
+Desinstalar o aplicativo não cancela o registro do navegador dele: ele continua recebendo notificações. Para pará-las, exclua o navegador em **Configurações do usuário → Métodos de notificação**, na aba **Notificações push**, com **Excluir**.
 
 ## Solução de problemas
 
@@ -92,7 +92,7 @@ Abra uma página do painel depois de entrar, não a página de login, e verifiqu
 :::
 
 :::details Nenhuma notificação aparece
-- Em **Configurações do usuário → Métodos de notificação**, aba **Push Notifications**, verifique se este navegador aparece na lista, e envie a ele uma **Notificação de teste**.
+- Em **Configurações do usuário → Métodos de notificação**, aba **Notificações push**, verifique se este navegador aparece na lista, e envie a ele uma **Notificação de teste**.
 - No Windows, abra **Configurações → Sistema → Notificações**: as notificações precisam estar ativadas, também para o navegador, e o Não Perturbe desativado. O Windows 10 chama a página de “Notificações e ações”.
 - Se o navegador bloqueia as notificações do OneUptime, clique no ícone à esquerda da barra de endereços, permita as notificações do site e registre o navegador de novo.
 - Num OneUptime auto-hospedado, a caixa de diálogo **Registrar Dispositivo** avisa quando o servidor não tem chaves VAPID.

@@ -143,7 +143,7 @@ Para ser acionado por mensagem direta quando estiver de plantão, adicione o Sla
 
 :::steps
 1. Conecte a sua própria conta do Slack (consulte [Conectar o Slack](#conectar-o-slack)).
-2. Vá para **Configurações do usuário** > **Métodos de notificação**, abra a aba **Workspace Apps** e clique em **Add Slack Account**.
+2. Vá para **Configurações do usuário** > **Métodos de notificação**, abra a aba **Aplicativos do espaço de trabalho** e clique em **Add Slack Account**.
 3. Clique em **Send Test Message** na linha dele. A mensagem chega às suas mensagens diretas do Slack.
 :::
 
