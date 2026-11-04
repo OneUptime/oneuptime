@@ -364,4 +364,126 @@ describe("MetricForecast.forecast", () => {
       ).toBe("Forecast");
     });
   });
+
+  /*
+   * With the series' arrivals known (#4912's follow-up), fresh means its data
+   * still arrives: a series twenty hours behind by its own time is forecast
+   * while its data keeps coming, and one whose data stopped is stale however
+   * recent its data points' times look.
+   */
+  describe("with the series' arrivals known", () => {
+    const filling: (hoursAgo: number) => number = (hoursAgo: number): number => {
+      return 85 - hoursAgo / 24;
+    };
+
+    function forecastArrived(data: {
+      points: Array<MetricForecastPoint>;
+      sinceNewestArrivalMs: number;
+      arrivalIntervalMs?: number | null;
+      freshnessReferenceMs?: number;
+    }): MetricForecastResult {
+      return MetricForecast.forecast({
+        points: data.points,
+        windowStartMs: WEEK_AGO,
+        windowEndMs: NOW,
+        horizonMs: 7 * DAY,
+        threshold: 90,
+        filterType: FilterType.ForecastAbove,
+        dataPointMs: HOUR,
+        freshnessReferenceMs: data.freshnessReferenceMs,
+        arrival: {
+          sinceNewestArrivalMs: data.sinceNewestArrivalMs,
+          arrivalIntervalMs: data.arrivalIntervalMs ?? null,
+        },
+      });
+    }
+
+    test("data twenty hours behind that still arrives is forecast", () => {
+      const result: MetricForecastResult = forecastArrived({
+        points: hourly(filling, { toHoursAgo: 20 }),
+        sinceNewestArrivalMs: 10 * 60 * 1000,
+      });
+
+      expect(result.state).toBe("Forecast");
+      // How old its newest data point is, by the window's end, is still said.
+      expect(result.sinceNewestMs).toBe(20 * HOUR);
+    });
+
+    test("data right up to now that stopped arriving a day ago is stale", () => {
+      const result: MetricForecastResult = forecastArrived({
+        points: hourly(filling),
+        sinceNewestArrivalMs: 24 * HOUR,
+      });
+
+      expect(result.state).toBe("Stale");
+      expect(result.isMet).toBe(false);
+      expect(result.sinceNewestMs).toBe(HOUR);
+    });
+
+    test("stale once nothing arrived for longer than the window allows - 5% of a week", () => {
+      const points: Array<MetricForecastPoint> = hourly(filling);
+
+      expect(
+        forecastArrived({ points, sinceNewestArrivalMs: 8.4 * HOUR }).state,
+      ).toBe("Forecast");
+      expect(
+        forecastArrived({ points, sinceNewestArrivalMs: 8.4 * HOUR + 1 })
+          .state,
+      ).toBe("Stale");
+    });
+
+    test("a source that delivers its data in batches may go one and a half batches without anything new", () => {
+      const points: Array<MetricForecastPoint> = hourly(filling);
+
+      // Delivered twice a day: 18 hours of quiet is within one and a half.
+      expect(
+        forecastArrived({
+          points,
+          sinceNewestArrivalMs: 18 * HOUR,
+          arrivalIntervalMs: 12 * HOUR,
+        }).state,
+      ).toBe("Forecast");
+      expect(
+        forecastArrived({
+          points,
+          sinceNewestArrivalMs: 18 * HOUR + 1,
+          arrivalIntervalMs: 12 * HOUR,
+        }).state,
+      ).toBe("Stale");
+    });
+
+    test("the monitor's newest data point is not read: the arrivals decide", () => {
+      expect(
+        forecastArrived({
+          points: hourly(filling, { toHoursAgo: 20 }),
+          sinceNewestArrivalMs: 30 * HOUR,
+          freshnessReferenceMs: NOW - 20 * HOUR,
+        }).state,
+      ).toBe("Stale");
+    });
+
+    test("too little history is still learning, whatever arrived", () => {
+      expect(
+        forecastArrived({
+          points: hourly(filling, { fromHoursAgo: 30 }),
+          sinceNewestArrivalMs: 0,
+        }).state,
+      ).toBe("Learning");
+    });
+
+    test("an arrival that cannot be read leaves the data points' times to decide", () => {
+      const result: MetricForecastResult = MetricForecast.forecast({
+        points: hourly(filling, { toHoursAgo: 20 }),
+        windowStartMs: WEEK_AGO,
+        windowEndMs: NOW,
+        horizonMs: 7 * DAY,
+        threshold: 90,
+        filterType: FilterType.ForecastAbove,
+        dataPointMs: HOUR,
+        arrival: { sinceNewestArrivalMs: Number.NaN, arrivalIntervalMs: null },
+      });
+
+      expect(result.state).toBe("Stale");
+    });
+  });
 });

@@ -2196,6 +2196,17 @@ ${incomingRequestGrouping.rootCauseNote}
     if (ctx.timeWindowMinutes) {
       lines.push(mdText`- Time Window: last ${ctx.timeWindowMinutes} minutes`);
     }
+    /*
+     * Its data arrives well after the time it measures - a source late by
+     * design, a collector whose clock runs behind - so the window was judged
+     * as far as its data reaches, and what the incident describes is that
+     * long ago.
+     */
+    if (typeof ctx.dataLagMs === "number" && ctx.dataLagMs > 0) {
+      lines.push(
+        mdText`- Data Arrives: about ${MetricWindowCoverage.describeDuration(ctx.dataLagMs)} late`,
+      );
+    }
 
     /*
      * For formulas, enumerate the underlying variables so the on-call
