@@ -80,75 +80,6 @@ receivers:
       db.server.top_query:
         enabled: ${env:DATABASE_QUERY_EVENTS}
 
-  # What the mysql receiver does not report: where this server stands in a
-  # Galera cluster, for the database's Overview and its Galera monitors. It
-  # asks the server once per collection interval over the same login, with a
-  # statement every login may run on MySQL and MariaDB alike. A server in no
-  # cluster answers with no rows or with a size of 0, and nothing here says it
-  # is unwell. The strings Galera also reports (wsrep_ready ON or OFF,
-  # wsrep_cluster_status Primary) are left out, because this receiver can only
-  # keep a number: wsrep_local_state says the same, and 0 is a node outside
-  # the Primary component.
-  sqlquery/oneuptime:
-    driver: mysql
-    host: "${env:DATABASE_ENDPOINT_HOST}"
-    # Unquoted on purpose: port is an integer field.
-    port: ${env:DATABASE_ENDPOINT_PORT}
-    # A schema every login can open. The statement reads nothing from it.
-    database: information_schema
-    username: "${env:DATABASE_USERNAME}"
-    password: "${env:DATABASE_PASSWORD}"
-    additional_params:
-      tls: "${env:DATABASE_TLS_MYSQL}"
-    collection_interval: "${env:DATABASE_COLLECTION_INTERVAL}"
-    initial_delay: 1s
-    queries:
-      - sql: >-
-          SHOW GLOBAL STATUS WHERE Variable_name IN
-          ('wsrep_cluster_size', 'wsrep_local_state', 'wsrep_desync_count',
-          'wsrep_flow_control_paused', 'wsrep_local_recv_queue')
-        metrics:
-          - metric_name: mysql.wsrep.cluster_size
-            value_column: Value
-            value_type: int
-            data_type: gauge
-            unit: "{nodes}"
-            row_condition:
-              column: Variable_name
-              value: wsrep_cluster_size
-          - metric_name: mysql.wsrep.local_state
-            value_column: Value
-            value_type: int
-            data_type: gauge
-            unit: "{state}"
-            row_condition:
-              column: Variable_name
-              value: wsrep_local_state
-          - metric_name: mysql.wsrep.desync_count
-            value_column: Value
-            value_type: int
-            data_type: gauge
-            unit: "{requests}"
-            row_condition:
-              column: Variable_name
-              value: wsrep_desync_count
-          - metric_name: mysql.wsrep.flow_control_paused
-            value_column: Value
-            value_type: double
-            data_type: gauge
-            unit: "1"
-            row_condition:
-              column: Variable_name
-              value: wsrep_flow_control_paused
-          - metric_name: mysql.wsrep.local_recv_queue
-            value_column: Value
-            value_type: int
-            data_type: gauge
-            unit: "{writesets}"
-            row_condition:
-              column: Variable_name
-              value: wsrep_local_recv_queue
-
   # Optional: ship the MySQL error log. Uncomment this receiver, add it to
   # the logs pipeline at the bottom, and mount the server's log directory
   # at /var/log/database in docker-compose.yml, e.g.
@@ -260,7 +191,7 @@ exporters:
 service:
   pipelines:
     metrics:
-      receivers: [mysql, sqlquery/oneuptime]
+      receivers: [mysql]
       processors: [memory_limiter, resource, transform/optional_identity, batch]
       exporters: [otlphttp]
     # Query samples and top queries (DATABASE_QUERY_EVENTS=true). Add
