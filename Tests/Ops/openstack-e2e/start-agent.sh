@@ -20,7 +20,8 @@ COLLECTOR_IMAGE="$(grep -E '^[[:space:]]*image:[[:space:]]*otel/opentelemetry-co
 EXPORTER_STABLE_IMAGE="${EXPORTER_STABLE_IMAGE:-ghcr.io/openstack-exporter/openstack-exporter:1.7.0}"
 
 # The same goes for what it is told to leave out: one flag per word, on purpose.
-EXPORTER_FLAGS="$(awk '/^  [a-z]/ { in_exporter = ($0 == "  openstack-exporter:") } in_exporter && /^[[:space:]]*- --disable-metric=/ { print $2 }' "$AGENT_DIR/docker-compose.yml" | tr '\n' ' ')"
+# Only its own service's: the compose file also starts an exporter with most reads turned off.
+EXPORTER_FLAGS="$(sed -n '/^  openstack-exporter:$/,/^  [a-z-]*:$/p' "$AGENT_DIR/docker-compose.yml" | grep -E '^[[:space:]]*- --disable-metric=' | sed -E 's/^[[:space:]]*- //' | tr '\n' ' ')"
 
 [ -n "$EXPORTER_IMAGE" ] && [ -n "$COLLECTOR_IMAGE" ] || {
   echo "Could not read the agent's image pins from $AGENT_DIR/docker-compose.yml" >&2
