@@ -206,7 +206,7 @@ Ein Datensatz, der OneUptime auf zwei Wegen erreicht, wird einmal gespeichert: e
 
 ### Die Audit-Logs Ihrer Cloud-Konten lesen
 
-Ein AWS-Konto, Google Cloud-Projekt oder Azure-Abonnement, das [unter **Cloud** verbunden](/docs/telemetry/cloud-accounts) ist, braucht keine Log-Pipeline. Schalten Sie **Cloud-Audit-Protokolle** unter **Your OneUptime data** auf **Verbindungen** ein, dann behält jeder Lesevorgang des Kontos sein Audit-Log als Sicherheitsereignisse:
+Ein AWS-Konto, Google Cloud-Projekt oder Azure-Abonnement, das [unter **Cloud** verbunden](/docs/telemetry/cloud-accounts) ist, braucht keine Log-Pipeline. Schalten Sie **Cloud-Audit-Protokolle** unter **Ihre OneUptime-Daten** auf **Verbindungen** ein, dann behält jeder Lesevorgang des Kontos sein Audit-Log als Sicherheitsereignisse:
 
 | Cloud | Was gelesen wird |
 | --- | --- |

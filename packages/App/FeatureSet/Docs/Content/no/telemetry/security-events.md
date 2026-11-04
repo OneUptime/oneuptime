@@ -206,7 +206,7 @@ En oppføring som når OneUptime på to måter, lagres én gang: en Microsoft En
 
 ### Les revisjonsloggene til skykontoene dine
 
-En AWS-konto, et Google Cloud-prosjekt eller et Azure-abonnement som er [koblet til under **Sky**](/docs/telemetry/cloud-accounts), trenger ingen loggpipeline. Slå på **Skyrevisjonslogger** under **Your OneUptime data** på **Tilkoblinger**, så tar hver lesing av kontoen vare på revisjonsloggen som sikkerhetshendelser:
+En AWS-konto, et Google Cloud-prosjekt eller et Azure-abonnement som er [koblet til under **Sky**](/docs/telemetry/cloud-accounts), trenger ingen loggpipeline. Slå på **Skyrevisjonslogger** under **OneUptime-dataene dine** på **Tilkoblinger**, så tar hver lesing av kontoen vare på revisjonsloggen som sikkerhetshendelser:
 
 | Sky | Hva som leses |
 | --- | --- |

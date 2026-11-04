@@ -118,6 +118,14 @@ export function getLogThreatProductName(
   return getSecurityLogFormatDefinition(format)?.title || "Security product";
 }
 
+/*
+ * What a threat's detection says first: which product reported it, in the
+ * project's logs, read by Your logs - as an imported alert names the
+ * product and the connection it came through. The kind of log follows the
+ * product's name only where the name does not say it already: "(CEF)"
+ * after Imperva Inc. SecureSphere, nothing after Fortinet FortiGate, whose
+ * own syslog it is.
+ */
 export function logThreatMarkdown(
   event: NormalizedSecurityEvent,
 ): MarkdownText {
@@ -126,8 +134,13 @@ export function logThreatMarkdown(
   );
   const formatTitle: string =
     getSecurityLogFormatDefinition(format)?.title || format;
+  const product: string = getLogThreatProductName(event);
+  const isFormatInName: boolean =
+    !formatTitle || product.toLowerCase().includes(formatTitle.toLowerCase());
   const parts: Array<MarkdownValue> = [
-    mdText`A threat **${getLogThreatProductName(event)}** wrote in the project's logs (${formatTitle}), read by **Your logs**.`,
+    isFormatInName
+      ? mdText`A threat reported by **${product}** in the project's logs, read by **Your logs**.`
+      : mdText`A threat reported by **${product}** in the project's logs (${formatTitle}), read by **Your logs**.`,
   ];
 
   if (event.ruleName) {

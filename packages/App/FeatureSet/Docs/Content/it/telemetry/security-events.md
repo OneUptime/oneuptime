@@ -206,7 +206,7 @@ Un record che raggiunge OneUptime per due vie viene salvato una sola volta: un a
 
 ### Leggere i log di audit dei tuoi account cloud
 
-Un account AWS, un progetto Google Cloud o una sottoscrizione Azure [collegati in **Cloud**](/docs/telemetry/cloud-accounts) non hanno bisogno di alcuna pipeline di log. Attiva **Log di audit cloud**, in **Your OneUptime data** su **Connessioni**, e ogni lettura dell'account conserva il suo log di audit come eventi di sicurezza:
+Un account AWS, un progetto Google Cloud o una sottoscrizione Azure [collegati in **Cloud**](/docs/telemetry/cloud-accounts) non hanno bisogno di alcuna pipeline di log. Attiva **Log di audit cloud**, in **I tuoi dati OneUptime** su **Connessioni**, e ogni lettura dell'account conserva il suo log di audit come eventi di sicurezza:
 
 | Cloud | Cosa viene letto |
 | --- | --- |

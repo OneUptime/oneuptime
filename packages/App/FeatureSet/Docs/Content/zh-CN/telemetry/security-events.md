@@ -206,7 +206,7 @@ curl -X POST "https://oneuptime.com/security-events/v1/ingest" \
 
 ### 读取云账户的审计日志
 
-[在 **云** 下连接的](/docs/telemetry/cloud-accounts) AWS 账户、Google Cloud 项目或 Azure 订阅不需要日志管道。在 **连接** 的 **Your OneUptime data** 下开启 **云审计日志** 后，每次读取账户都会把它的审计日志保存为安全事件：
+[在 **云** 下连接的](/docs/telemetry/cloud-accounts) AWS 账户、Google Cloud 项目或 Azure 订阅不需要日志管道。在 **连接** 的 **你的 OneUptime 数据** 下开启 **云审计日志** 后，每次读取账户都会把它的审计日志保存为安全事件：
 
 | 云 | 读取的内容 |
 | --- | --- |

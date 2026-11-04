@@ -1013,7 +1013,7 @@ describe("GoogleWorkspaceConnector - the late sweep", () => {
     expect(result.events.length).toBeGreaterThan(0);
     expect(check(result.checks!, "read-late-activity").status).toBe("warn");
     expect(result.warnings.join(" ")).toContain(
-      "Activity Google made readable late was not swept:",
+      "Late OAuth token activity was not read:",
     );
   });
 

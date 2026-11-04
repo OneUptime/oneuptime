@@ -206,7 +206,7 @@ Un enregistrement qui parvient à OneUptime par deux voies est stocké une seule
 
 ### Lire les journaux d'audit de vos comptes cloud
 
-Un compte AWS, un projet Google Cloud ou un abonnement Azure [connecté sous **Cloud**](/docs/telemetry/cloud-accounts) n'a besoin d'aucun pipeline de journaux. Activez **Journaux d'audit cloud**, sous **Your OneUptime data** sur **Connexions**, et chaque lecture du compte conserve son journal d'audit comme événements de sécurité :
+Un compte AWS, un projet Google Cloud ou un abonnement Azure [connecté sous **Cloud**](/docs/telemetry/cloud-accounts) n'a besoin d'aucun pipeline de journaux. Activez **Journaux d'audit cloud**, sous **Vos données OneUptime** sur **Connexions**, et chaque lecture du compte conserve son journal d'audit comme événements de sécurité :
 
 | Cloud | Ce qui est lu |
 | --- | --- |

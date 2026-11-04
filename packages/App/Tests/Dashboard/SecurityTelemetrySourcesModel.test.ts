@@ -8,6 +8,7 @@ import {
   SecurityTelemetrySourceStatus,
   SecurityTelemetrySourceStatusKind,
   getSecurityTelemetrySourceStatus,
+  getSecurityTelemetrySourceWaitingLine,
   getSecurityTelemetrySourceWaitingText,
   isSecurityTelemetrySourceAvailable,
   needsCloudAccountNote,
@@ -194,7 +195,9 @@ describe("cloud audit logs", () => {
     ).toBe(SecurityTelemetrySourceKind.CloudAudit);
     expect(cloud.title).toBe("Cloud audit logs");
     expect(cloud.description).toContain("connected under Cloud");
-    expect(cloud.description).toContain("no log pipeline to set up");
+    expect(cloud.description).toContain("from their own audit logs");
+    // One sentence of what it finds, as its neighbours' are: two lines at most at 1280.
+    expect(cloud.description.length).toBeLessThanOrEqual(130);
     expect(cloud.needsEnterprise).toBe(false);
   });
 
@@ -225,14 +228,13 @@ describe("cloud audit logs", () => {
         cloudConnectionCount: 0,
       }),
     ).toBe(false);
-    expect(NO_CLOUD_ACCOUNT_NOTE).toBe(
-      "No cloud account is connected yet. Connect one under Cloud, and its audit logs are read with it.",
-    );
+    // One sentence: the link after it says how to connect one.
+    expect(NO_CLOUD_ACCOUNT_NOTE).toBe("No cloud account is connected yet.");
   });
 
   test("it waits for the next read of the cloud accounts; the rest for the minute's scan", () => {
     expect(getSecurityTelemetrySourceWaitingText(cloud)).toBe(
-      "The first read comes with the next read of your cloud accounts, within a few minutes.",
+      "The first check runs with your cloud accounts' next read, within a few minutes.",
     );
 
     for (const row of SECURITY_TELEMETRY_SOURCE_ROWS) {
@@ -246,6 +248,32 @@ describe("cloud audit logs", () => {
     expect(FIRST_CHECK_WITHIN_A_MINUTE).toBe(
       "The first check runs within a minute.",
     );
+  });
+
+  test("with no cloud account to read, cloud audit logs promise no first check", () => {
+    expect(
+      getSecurityTelemetrySourceWaitingLine({
+        row: cloud,
+        isMissingCloudAccount: true,
+      }),
+    ).toBeNull();
+    expect(
+      getSecurityTelemetrySourceWaitingLine({
+        row: cloud,
+        isMissingCloudAccount: false,
+      }),
+    ).toBe(getSecurityTelemetrySourceWaitingText(cloud));
+
+    for (const row of SECURITY_TELEMETRY_SOURCE_ROWS) {
+      if (row.kind !== SecurityTelemetrySourceKind.CloudAudit) {
+        expect(
+          getSecurityTelemetrySourceWaitingLine({
+            row,
+            isMissingCloudAccount: false,
+          }),
+        ).toBe(FIRST_CHECK_WITHIN_A_MINUTE);
+      }
+    }
   });
 
   test("what a read found is counted as any source's: by the kind of record", () => {

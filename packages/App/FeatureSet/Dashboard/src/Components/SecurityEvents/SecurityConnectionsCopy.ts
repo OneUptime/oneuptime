@@ -299,7 +299,7 @@ export const SECURITY_EVENT_CONNECTION_OPTION_TEXTS: Record<
   [ENTRA_BACKGROUND_SIGN_INS_KEY]: {
     title: translationKey("Background and app sign-ins"),
     description: translationKey(
-      "Also import the failed sign-ins apps make for people in the background, and service principals' own.",
+      "Also import failed sign-ins apps make in the background: non-interactive user sign-ins and service principal sign-ins.",
     ),
   },
   [MICROSOFT_365_AUDIT_KEY]: {

@@ -74,7 +74,7 @@ Dina loggar förblir som de är. Bara raderna som spelar roll för säkerheten b
 
 Ett hot som en säkerhetsprodukt skriver i dina loggar, till exempel ett CEF- eller LEEF-fynd eller ett IPS-fynd från en FortiGate, öppnar ett ärende på samma sätt som en ansluten produkts larm. **Öppna ärenden från** på **Dina loggar** anger från vilken allvarlighetsgrad: **Hög och högre** om du inte väljer en annan, eller **Aldrig**.
 
-Ett AWS-konto, ett Google Cloud-projekt eller en Azure-prenumeration som är ansluten under **Moln** behöver ingen loggpipeline: slå på **Molngranskningsloggar** under **Your OneUptime data** på **Anslutningar**, så läses dess granskningslogg tillsammans med kontot. Se [Läs granskningsloggarna för dina molnkonton](/docs/telemetry/security-events#läs-granskningsloggarna-för-dina-molnkonton).
+Ett AWS-konto, ett Google Cloud-projekt eller en Azure-prenumeration som är ansluten under **Moln** behöver ingen loggpipeline: slå på **Molngranskningsloggar** under **Dina OneUptime-data** på **Anslutningar**, så läses dess granskningslogg tillsammans med kontot. Se [Läs granskningsloggarna för dina molnkonton](/docs/telemetry/security-events#läs-granskningsloggarna-för-dina-molnkonton).
 
 ## Skicka det OneUptime hittar till ditt SIEM
 

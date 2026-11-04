@@ -206,7 +206,7 @@ curl -X POST "https://oneuptime.com/security-events/v1/ingest" \
 
 ### 讀取雲端帳戶的稽核日誌
 
-[在 **雲端** 下連線的](/docs/telemetry/cloud-accounts) AWS 帳戶、Google Cloud 專案或 Azure 訂用帳戶不需要日誌管線。在 **連線** 的 **Your OneUptime data** 下開啟 **雲端稽核日誌** 後，每次讀取帳戶都會把它的稽核日誌保存為安全性事件：
+[在 **雲端** 下連線的](/docs/telemetry/cloud-accounts) AWS 帳戶、Google Cloud 專案或 Azure 訂用帳戶不需要日誌管線。在 **連線** 的 **你的 OneUptime 資料** 下開啟 **雲端稽核日誌** 後，每次讀取帳戶都會把它的稽核日誌保存為安全性事件：
 
 | 雲端 | 讀取的內容 |
 | --- | --- |

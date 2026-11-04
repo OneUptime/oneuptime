@@ -74,7 +74,7 @@ Loggene dine forblir som de er. Bare linjene som betyr noe for sikkerheten, blir
 
 En trussel som et sikkerhetsprodukt skriver i loggene dine, for eksempel et CEF- eller LEEF-funn eller et IPS-funn fra en FortiGate, åpner en sak slik et tilkoblet produkts varsel gjør. **Åpne saker fra** på **Loggene dine** angir fra hvilken alvorlighetsgrad: **Høy og høyere** med mindre du velger en annen, eller **Aldri**.
 
-En AWS-konto, et Google Cloud-prosjekt eller et Azure-abonnement som er koblet til under **Sky**, trenger ingen loggpipeline: Slå på **Skyrevisjonslogger** under **Your OneUptime data** på **Tilkoblinger**, så leses revisjonsloggen sammen med kontoen. Se [Les revisjonsloggene til skykontoene dine](/docs/telemetry/security-events#les-revisjonsloggene-til-skykontoene-dine).
+En AWS-konto, et Google Cloud-prosjekt eller et Azure-abonnement som er koblet til under **Sky**, trenger ingen loggpipeline: Slå på **Skyrevisjonslogger** under **OneUptime-dataene dine** på **Tilkoblinger**, så leses revisjonsloggen sammen med kontoen. Se [Les revisjonsloggene til skykontoene dine](/docs/telemetry/security-events#les-revisjonsloggene-til-skykontoene-dine).
 
 ## Send det OneUptime finner til SIEM-et ditt
 

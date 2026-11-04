@@ -24,14 +24,32 @@ import React, { FunctionComponent, ReactElement, useId, useMemo } from "react";
 export const SECURITY_LOGS_CASE_SEVERITY_TEST_ID: string =
   "security-logs-case-severity";
 
-// Whole labels, each looked up on its own: a connection's, but for logs.
+// The dropdown's box: the card's width on a phone, 18rem from sm up.
+export const SECURITY_LOGS_CASE_SEVERITY_DROPDOWN_CLASS_NAME: string =
+  "w-full sm:w-[18rem]";
+
+/*
+ * Whole labels, each looked up on its own: a connection's, but for logs,
+ * and short enough to read whole in the dropdown in every language - "Never
+ * - keep them as events only" was cut after its second word in French and
+ * Russian ("Jamais - les garder comme...").
+ */
 export const SECURITY_LOGS_CASE_SEVERITY_LABELS: Record<string, string> = {
   Critical: translationKey("Critical only"),
   High: translationKey("High and above"),
   Medium: translationKey("Medium and above"),
   Low: translationKey("Low and above"),
-  [CASE_SEVERITY_NEVER]: translationKey("Never - keep them as events only"),
+  [CASE_SEVERITY_NEVER]: translationKey("Never - events only"),
 };
+
+/*
+ * What the dropdown is for, under it. The kinds it is about are the
+ * Security devices group listed below it (CEF, LEEF and the firewalls' own
+ * syslog), so it names them by that group rather than listing them again.
+ */
+export const SECURITY_LOGS_CASE_SEVERITY_DESCRIPTION: string = translationKey(
+  "Threats your security devices report at or above this severity open security cases, grouped by user, host or address.",
+);
 
 /*
  * What the dropdown shows for what Your logs has: "Never" for the empty
@@ -125,10 +143,15 @@ const SecurityLogsCaseSeverity: FunctionComponent<ComponentProps> = (
     },
   );
 
-  // Wide enough for "Never - keep them as events only" on one line.
+  /*
+   * Wide enough for every label on one line, in every language: 18rem
+   * leaves about 225px for the value, and the longest, French's "Jamais -
+   * événements seulement", is 213px in Inter. On a phone it takes the
+   * card's width, under its label.
+   */
   const dropdown: ReactElement = (
     <div
-      className="w-full max-w-[17rem] sm:w-[17rem]"
+      className={SECURITY_LOGS_CASE_SEVERITY_DROPDOWN_CLASS_NAME}
       data-testid={SECURITY_LOGS_CASE_SEVERITY_TEST_ID}
     >
       <Dropdown
@@ -166,14 +189,13 @@ const SecurityLogsCaseSeverity: FunctionComponent<ComponentProps> = (
           dataTestId={`${SECURITY_LOGS_CASE_SEVERITY_TEST_ID}-status`}
         />
       </div>
+      {/* As a switch's description reads on the same card. */}
       <p
         id={descriptionId}
-        className="mt-1 text-xs text-gray-500"
+        className="mt-1 text-sm text-gray-500"
         data-testid={`${SECURITY_LOGS_CASE_SEVERITY_TEST_ID}-description`}
       >
-        {translator.translateText(
-          "Threats your firewalls and security products write in your logs - in CEF, LEEF, or Palo Alto Networks, FortiGate and Cisco ASA syslog - open security cases from this severity, grouped by user, host or address.",
-        )}
+        {translator.translateText(SECURITY_LOGS_CASE_SEVERITY_DESCRIPTION)}
       </p>
       {setting.error ? (
         <p

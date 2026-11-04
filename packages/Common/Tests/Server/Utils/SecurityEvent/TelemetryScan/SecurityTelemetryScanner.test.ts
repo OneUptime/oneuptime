@@ -30,6 +30,7 @@ import ObjectID from "../../../../../Types/ObjectID";
 import NormalizedSecurityEvent from "../../../../../Types/SecurityEvent/NormalizedSecurityEvent";
 import OcsfSeverity from "../../../../../Types/SecurityEvent/OcsfSeverity";
 import {
+  SecurityTelemetryScannedKind,
   SecurityTelemetrySignal,
   SecurityTelemetrySourceKind,
 } from "../../../../../Types/SecurityEvent/SecurityTelemetrySource";
@@ -498,12 +499,13 @@ describe("a project's turn", () => {
 });
 
 describe("which reader reads a kind", () => {
-  test.each([
+  // The kinds the scan reads: cloud audit logs are read with each cloud account's own read.
+  test.each<[SecurityTelemetryScannedKind, string]>([
     [SecurityTelemetrySourceKind.Traces, "trace"],
     [SecurityTelemetrySourceKind.NetworkFlows, "flow"],
     [SecurityTelemetrySourceKind.AuditLog, "audit"],
     [SecurityTelemetrySourceKind.RumSessions, "rum"],
-  ])("%s", async (kind: SecurityTelemetrySourceKind, reader: string) => {
+  ])("%s", async (kind: SecurityTelemetryScannedKind, reader: string) => {
     const read: TelemetryWindowRead = {
       events: [],
       recordsRead: 0,

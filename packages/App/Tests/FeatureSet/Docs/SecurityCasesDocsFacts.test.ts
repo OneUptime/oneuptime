@@ -482,7 +482,7 @@ describe("Security Cases and Playbooks docs", () => {
     expect(yourLogs).toContain('{translator.translateText("Open cases from")}');
     expect(yourLogs).toContain('High: translationKey("High and above"),');
     expect(yourLogs).toContain(
-      '[CASE_SEVERITY_NEVER]: translationKey("Never - keep them as events only"),',
+      '[CASE_SEVERITY_NEVER]: translationKey("Never - events only"),',
     );
     expect(yourLogsCard).toContain("<SecurityLogsCaseSeverity");
     expect(

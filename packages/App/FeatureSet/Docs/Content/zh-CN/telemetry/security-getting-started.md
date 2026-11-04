@@ -74,7 +74,7 @@ flowchart LR
 
 安全产品写入日志的威胁，例如 CEF 或 LEEF 的发现，或 FortiGate 的 IPS 发现，会像已连接产品的警报一样打开案例。**你的日志** 上的 **从以下级别开启案例** 决定从哪个严重程度开始：默认为 **高及以上**，你也可以选择其他级别或 **从未**。
 
-在 **云** 下连接的 AWS 账户、Google Cloud 项目或 Azure 订阅不需要日志管道：在 **连接** 的 **Your OneUptime data** 下开启 **云审计日志**，它的审计日志就会随账户一起读取。请参阅 [读取云账户的审计日志](/docs/telemetry/security-events#读取云账户的审计日志)。
+在 **云** 下连接的 AWS 账户、Google Cloud 项目或 Azure 订阅不需要日志管道：在 **连接** 的 **你的 OneUptime 数据** 下开启 **云审计日志**，它的审计日志就会随账户一起读取。请参阅 [读取云账户的审计日志](/docs/telemetry/security-events#读取云账户的审计日志)。
 
 ## 把 OneUptime 的发现发送到您的 SIEM
 

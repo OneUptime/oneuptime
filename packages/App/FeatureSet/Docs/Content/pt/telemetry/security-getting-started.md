@@ -74,7 +74,7 @@ Seus logs continuam como estão. Só as linhas que importam para a segurança vi
 
 Uma ameaça que um produto de segurança escreve nos seus logs, como uma detecção CEF ou LEEF ou uma detecção de IPS de um FortiGate, abre um caso como o alerta de um produto conectado faz. **Abrir casos a partir de**, em **Seus logs**, diz a partir de qual gravidade: **Alta e acima**, a menos que você escolha outra, ou **Nunca**.
 
-Uma conta da AWS, um projeto do Google Cloud ou uma assinatura do Azure conectados em **Nuvem** não precisam de nenhum pipeline de logs: ative **Logs de auditoria da nuvem**, em **Your OneUptime data** na página **Conexões**, e o log de auditoria é lido junto com a conta. Consulte [Ler os logs de auditoria das suas contas de nuvem](/docs/telemetry/security-events#ler-os-logs-de-auditoria-das-suas-contas-de-nuvem).
+Uma conta da AWS, um projeto do Google Cloud ou uma assinatura do Azure conectados em **Nuvem** não precisam de nenhum pipeline de logs: ative **Logs de auditoria da nuvem**, em **Seus dados do OneUptime** na página **Conexões**, e o log de auditoria é lido junto com a conta. Consulte [Ler os logs de auditoria das suas contas de nuvem](/docs/telemetry/security-events#ler-os-logs-de-auditoria-das-suas-contas-de-nuvem).
 
 ## Enviar ao seu SIEM o que o OneUptime encontra
 

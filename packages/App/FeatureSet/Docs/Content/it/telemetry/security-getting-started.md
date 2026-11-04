@@ -74,7 +74,7 @@ I tuoi log restano come sono. Solo le righe che contano per la sicurezza diventa
 
 Una minaccia che un prodotto di sicurezza scrive nei tuoi log, come un rilevamento CEF o LEEF o un rilevamento IPS di un FortiGate, apre un caso come fa l'avviso di un prodotto collegato. **Apri casi a partire da**, su **I tuoi log**, indica da quale gravità: **Alta e superiori** a meno che tu non ne scelga un'altra, oppure **Mai**.
 
-Un account AWS, un progetto Google Cloud o una sottoscrizione Azure collegati in **Cloud** non hanno bisogno di alcuna pipeline di log: attiva **Log di audit cloud**, in **Your OneUptime data** su **Connessioni**, e il loro log di audit viene letto insieme all'account. Vedi [Leggere i log di audit dei tuoi account cloud](/docs/telemetry/security-events#leggere-i-log-di-audit-dei-tuoi-account-cloud).
+Un account AWS, un progetto Google Cloud o una sottoscrizione Azure collegati in **Cloud** non hanno bisogno di alcuna pipeline di log: attiva **Log di audit cloud**, in **I tuoi dati OneUptime** su **Connessioni**, e il loro log di audit viene letto insieme all'account. Vedi [Leggere i log di audit dei tuoi account cloud](/docs/telemetry/security-events#leggere-i-log-di-audit-dei-tuoi-account-cloud).
 
 ## Inviare al tuo SIEM ciò che OneUptime trova
 

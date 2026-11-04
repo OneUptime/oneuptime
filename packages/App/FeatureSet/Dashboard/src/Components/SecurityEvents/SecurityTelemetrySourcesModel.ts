@@ -77,13 +77,13 @@ export const SECURITY_TELEMETRY_SOURCE_ROWS: ReadonlyArray<SecurityTelemetrySour
       kind: SecurityTelemetrySourceKind.CloudAudit,
       title: translationKey("Cloud audit logs"),
       description: translationKey(
-        "Changes, refused calls and AWS console sign-ins in the cloud accounts connected under Cloud, from their own audit logs, with no log pipeline to set up.",
+        "Changes, refused calls and AWS console sign-ins in the cloud accounts connected under Cloud, from their own audit logs.",
       ),
       icon: IconProp.Cloud,
       needsEnterprise: false,
       needsCloudAccount: true,
       waitingText: translationKey(
-        "The first read comes with the next read of your cloud accounts, within a few minutes.",
+        "The first check runs with your cloud accounts' next read, within a few minutes.",
       ),
     },
   ];
@@ -92,8 +92,9 @@ export const NEEDS_ENTERPRISE_NOTE: string = translationKey(
   "Available in OneUptime Enterprise, which keeps the audit log.",
 );
 
+// Followed by the link to connect one (CONNECT_CLOUD_ACCOUNT_LINK_TEXT).
 export const NO_CLOUD_ACCOUNT_NOTE: string = translationKey(
-  "No cloud account is connected yet. Connect one under Cloud, and its audit logs are read with it.",
+  "No cloud account is connected yet.",
 );
 
 export const CONNECT_CLOUD_ACCOUNT_LINK_TEXT: string = translationKey(
@@ -109,6 +110,21 @@ export function getSecurityTelemetrySourceWaitingText(
   row: SecurityTelemetrySourceRow,
 ): string {
   return row.waitingText || FIRST_CHECK_WITHIN_A_MINUTE;
+}
+
+/*
+ * The line a row shows while it is on and not read yet, or null for none:
+ * a source with nothing to read - cloud audit logs with no cloud account
+ * connected - says that instead (needsCloudAccountNote), and never that a
+ * first check is coming.
+ */
+export function getSecurityTelemetrySourceWaitingLine(data: {
+  row: SecurityTelemetrySourceRow;
+  isMissingCloudAccount: boolean;
+}): string | null {
+  return data.isMissingCloudAccount
+    ? null
+    : getSecurityTelemetrySourceWaitingText(data.row);
 }
 
 /*

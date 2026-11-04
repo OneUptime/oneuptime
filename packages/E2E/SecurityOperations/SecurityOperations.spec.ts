@@ -930,7 +930,8 @@ test.describe("the overview", () => {
     await expect(gettingStarted(page)).toHaveCount(0);
     /*
      * Your logs, and your other OneUptime data beside them: traces, network
-     * flows and session replays (the audit log is OneUptime Enterprise's).
+     * flows and session replays (the audit log is OneUptime Enterprise's,
+     * and cloud audit logs wait for a cloud account connected under Cloud).
      */
     await expect(stage(page, "sources")).toContainText("4 sources");
     await expect(stage(page, "detections")).toContainText(

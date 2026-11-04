@@ -206,7 +206,7 @@ En post som når OneUptime på två vägar lagras en gång: en Microsoft Entra I
 
 ### Läs granskningsloggarna för dina molnkonton
 
-Ett AWS-konto, ett Google Cloud-projekt eller en Azure-prenumeration som är [ansluten under **Moln**](/docs/telemetry/cloud-accounts) behöver ingen loggpipeline. Slå på **Molngranskningsloggar** under **Your OneUptime data** på **Anslutningar**, så sparar varje läsning av kontot dess granskningslogg som säkerhetshändelser:
+Ett AWS-konto, ett Google Cloud-projekt eller en Azure-prenumeration som är [ansluten under **Moln**](/docs/telemetry/cloud-accounts) behöver ingen loggpipeline. Slå på **Molngranskningsloggar** under **Dina OneUptime-data** på **Anslutningar**, så sparar varje läsning av kontot dess granskningslogg som säkerhetshändelser:
 
 | Moln | Vad som läses |
 | --- | --- |

@@ -169,7 +169,7 @@ const DRIVE_CHECK: { key: string; name: string } = {
 
 const LATE_SWEEP_CHECK: { key: string; name: string } = {
   key: "read-late-activity",
-  name: "Read activity Google made readable late",
+  name: "Read late OAuth token activity",
 };
 
 const AVAILABILITY_CHECK: { key: string; name: string } = {
@@ -968,7 +968,7 @@ export default class GoogleWorkspaceConnector
       }
     } catch (error) {
       run.warnings.push(
-        `Activity Google made readable late was not swept: ${GoogleWorkspaceConnector.errorMessage(error)}`,
+        `Late OAuth token activity was not read: ${GoogleWorkspaceConnector.errorMessage(error)}`,
       );
 
       return makeCheck({

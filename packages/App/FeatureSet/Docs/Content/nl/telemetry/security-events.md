@@ -206,7 +206,7 @@ Een record dat OneUptime langs twee wegen bereikt, wordt één keer opgeslagen: 
 
 ### De auditlogs van uw cloudaccounts lezen
 
-Een AWS-account, Google Cloud-project of Azure-abonnement dat [onder **Cloud** is gekoppeld](/docs/telemetry/cloud-accounts), heeft geen logpijplijn nodig. Zet **Cloud-auditlogboeken** aan, onder **Your OneUptime data** op **Verbindingen**, en elke leesbeurt van het account bewaart het auditlog als beveiligingsgebeurtenissen:
+Een AWS-account, Google Cloud-project of Azure-abonnement dat [onder **Cloud** is gekoppeld](/docs/telemetry/cloud-accounts), heeft geen logpijplijn nodig. Zet **Cloud-auditlogboeken** aan, onder **Uw OneUptime-gegevens** op **Verbindingen**, en elke leesbeurt van het account bewaart het auditlog als beveiligingsgebeurtenissen:
 
 | Cloud | Wat er wordt gelezen |
 | --- | --- |

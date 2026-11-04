@@ -206,7 +206,7 @@ Um registro que chega ao OneUptime por dois caminhos é salvo uma única vez: um
 
 ### Ler os logs de auditoria das suas contas de nuvem
 
-Uma conta da AWS, um projeto do Google Cloud ou uma assinatura do Azure [conectados em **Nuvem**](/docs/telemetry/cloud-accounts) não precisam de nenhum pipeline de logs. Ative **Logs de auditoria da nuvem**, em **Your OneUptime data** na página **Conexões**, e cada leitura da conta guarda o log de auditoria dela como eventos de segurança:
+Uma conta da AWS, um projeto do Google Cloud ou uma assinatura do Azure [conectados em **Nuvem**](/docs/telemetry/cloud-accounts) não precisam de nenhum pipeline de logs. Ative **Logs de auditoria da nuvem**, em **Seus dados do OneUptime** na página **Conexões**, e cada leitura da conta guarda o log de auditoria dela como eventos de segurança:
 
 | Nuvem | O que é lido |
 | --- | --- |

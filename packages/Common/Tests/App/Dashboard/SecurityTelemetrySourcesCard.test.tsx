@@ -133,7 +133,7 @@ describe("Your OneUptime data - Cloud audit logs", () => {
 
     expect(rows[rows.length - 1]).toBe(cloudRow());
     expect(cloudRow()).toHaveTextContent(
-      "Changes, refused calls and AWS console sign-ins in the cloud accounts connected under Cloud, from their own audit logs, with no log pipeline to set up.",
+      "Changes, refused calls and AWS console sign-ins in the cloud accounts connected under Cloud, from their own audit logs.",
     );
     expect(cloudSwitch()).toHaveAttribute("aria-checked", "false");
     expect(
@@ -151,8 +151,12 @@ describe("Your OneUptime data - Cloud audit logs", () => {
       `security-telemetry-source-cloud-note-${CLOUD}`,
     );
 
+    // One short sentence, then the way to connect one: never said twice.
     expect(note).toHaveTextContent(
-      "No cloud account is connected yet. Connect one under Cloud, and its audit logs are read with it.",
+      "No cloud account is connected yet. Connect a cloud account",
+    );
+    expect(note.textContent).toBe(
+      "No cloud account is connected yet. Connect a cloud account",
     );
     expect(
       within(note).getByRole("link", { name: "Connect a cloud account" }),
@@ -193,8 +197,34 @@ describe("Your OneUptime data - Cloud audit logs", () => {
     expect(
       screen.getByTestId(`security-telemetry-source-status-${CLOUD}`),
     ).toHaveTextContent(
-      "The first read comes with the next read of your cloud accounts, within a few minutes.",
+      "The first check runs with your cloud accounts' next read, within a few minutes.",
     );
+    expect(
+      screen.getByTestId(
+        `security-telemetry-source-status-${SecurityTelemetrySourceKind.Traces}`,
+      ),
+    ).toHaveTextContent("The first check runs within a minute.");
+  });
+
+  /*
+   * On with no cloud account to read: the note says what is missing, and
+   * no line promises a first check that has nothing to read.
+   */
+  test("on with no cloud account connected, it says so and promises no first check", async () => {
+    cloudConnections = 0;
+    stored = [source(CLOUD), source(SecurityTelemetrySourceKind.Traces)];
+    await renderCard();
+
+    expect(
+      await screen.findByTestId(
+        `security-telemetry-source-cloud-note-${CLOUD}`,
+      ),
+    ).toHaveTextContent("No cloud account is connected yet.");
+    expect(
+      screen.queryByTestId(`security-telemetry-source-status-${CLOUD}`),
+    ).toBeNull();
+    expect(cloudRow()).not.toHaveTextContent("The first check runs");
+    // The other kinds wait for their first check as before.
     expect(
       screen.getByTestId(
         `security-telemetry-source-status-${SecurityTelemetrySourceKind.Traces}`,

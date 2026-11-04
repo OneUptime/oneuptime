@@ -20,12 +20,16 @@ import * as React from "react";
 import SecurityLogsSourceCard, {
   SECURITY_LOGS_SOURCE_CARD_ID,
   SECURITY_LOG_FORMAT_GROUPS_CLASS_NAME,
+  SECURITY_LOG_FORMAT_GROUP_CLASS_NAME,
   SECURITY_LOG_FORMAT_HEALTH_DOT_CLASS_NAMES,
   getSecurityLogFormatHealth,
   readFoundByFormat,
   readScanProgress,
 } from "../../../../App/FeatureSet/Dashboard/src/Components/SecurityEvents/SecurityLogsSourceCard";
 import {
+  SECURITY_LOGS_CASE_SEVERITY_DESCRIPTION,
+  SECURITY_LOGS_CASE_SEVERITY_DROPDOWN_CLASS_NAME,
+  SECURITY_LOGS_CASE_SEVERITY_LABELS,
   SECURITY_LOGS_CASE_SEVERITY_TEST_ID,
   getYourLogsCaseSeverityChoice,
   getYourLogsCaseSeverityOptions,
@@ -41,6 +45,10 @@ import SecurityLogFormat, {
 import ModelAPI from "../../../UI/Utils/ModelAPI/ModelAPI";
 import PermissionGate from "../../../UI/Utils/PermissionGate";
 import ProjectUtil from "../../../UI/Utils/Project";
+import {
+  DASHBOARD_LANGUAGES,
+  readDashboardLocale,
+} from "../../Helpers/DashboardLocales";
 
 /*
  * "Your logs" on the Connections page: one switch that saves when it is
@@ -219,9 +227,12 @@ describe("Your logs", () => {
    * Each group is one list, a kind a row, as Your OneUptime data lists its
    * sources: ten bordered tiles in rows of three left two groups with an
    * empty third of a row, and made the card the page's longest. The groups
-   * pair up side by side from 44rem of the card's own width - beside the
-   * side menu the card is about 370px wide at a 768 window, whatever the
-   * window says. The browser suite measures them.
+   * flow into two newspaper columns from 44rem of the card's own width -
+   * beside the side menu the card is about 370px wide at a 768 window,
+   * whatever the window says - each kept whole in one of them, so Security
+   * devices' five kinds never leave half a card of nothing beside
+   * Applications' two, as a grid's rows did. The browser suite measures
+   * them.
    */
   test("each group is one list, a kind a row, and the groups take their columns from the card's width", async () => {
     await renderCard();
@@ -231,13 +242,19 @@ describe("Your logs", () => {
     );
     expect(groups.parentElement).toHaveClass("[container-type:inline-size]");
     expect(groups).toHaveClass(
-      "grid",
-      "grid-cols-1",
-      "[@container(min-width:44rem)]:grid-cols-2",
+      "columns-1",
+      "[@container(min-width:44rem)]:columns-2",
     );
     expect(groups.className).toBe(SECURITY_LOG_FORMAT_GROUPS_CLASS_NAME);
+    // Columns that flow, not a grid's rows, which pair the groups up.
+    expect(groups.className).not.toMatch(GRID_COLUMNS);
     // No column count from the window: md and xl are the window's widths.
     expect(groups.className).not.toMatch(WINDOW_COLUMNS);
+    // Each group whole in one column.
+    for (const group of Array.from(groups.children)) {
+      expect(group.className).toBe(SECURITY_LOG_FORMAT_GROUP_CLASS_NAME);
+      expect(group).toHaveClass("break-inside-avoid");
+    }
 
     expect(
       Array.from(groups.children).map((child: Element): string | null => {
@@ -715,13 +732,23 @@ describe("Your logs - Open cases from", () => {
       "High and above",
       "Medium and above",
       "Low and above",
-      "Never - keep them as events only",
+      "Never - events only",
     ]);
-    expect(
-      screen.getByTestId(`${SECURITY_LOGS_CASE_SEVERITY_TEST_ID}-description`),
-    ).toHaveTextContent(
-      "Threats your firewalls and security products write in your logs - in CEF, LEEF, or Palo Alto Networks, FortiGate and Cisco ASA syslog - open security cases from this severity, grouped by user, host or address.",
+    // What it is for, in a sentence the dropdown is described by.
+    const description: HTMLElement = screen.getByTestId(
+      `${SECURITY_LOGS_CASE_SEVERITY_TEST_ID}-description`,
     );
+    expect(description).toHaveTextContent(
+      "Threats your security devices report at or above this severity open security cases, grouped by user, host or address.",
+    );
+    expect(description.textContent).toBe(
+      SECURITY_LOGS_CASE_SEVERITY_DESCRIPTION,
+    );
+    expect(
+      screen.getByRole("combobox", { name: "Open cases from" }),
+    ).toHaveAccessibleDescription(SECURITY_LOGS_CASE_SEVERITY_DESCRIPTION);
+    // As the switch's description above it reads.
+    expect(description).toHaveClass("text-sm", "text-gray-500");
     // The card reads the threshold with the rest of Your logs.
     expect(
       (
@@ -736,7 +763,7 @@ describe("Your logs - Open cases from", () => {
     stored = [source({ caseMinimumSeverity: "" })];
     await renderCard();
 
-    expect(shown()).toBe("Never - keep them as events only");
+    expect(shown()).toBe("Never - events only");
 
     cleanup();
     stored = [source({ caseMinimumSeverity: "Critical" })];
@@ -771,7 +798,7 @@ describe("Your logs - Open cases from", () => {
     stored = [source({ caseMinimumSeverity: "High" })];
     await renderCard();
 
-    await pick("Never - keep them as events only");
+    await pick("Never - events only");
 
     await waitFor(() => {
       expect(writes()).toEqual([{ caseMinimumSeverity: "" }]);
@@ -876,9 +903,36 @@ describe("Your logs - Open cases from, as read and written", () => {
       ["High and above", false],
       ["Medium and above", false],
       ["Low and above", false],
-      ["Never - keep them as events only", false],
+      ["Never - events only", false],
       ["Informational", true],
     ]);
     expect(getYourLogsCaseSeverityOptions("High")).toHaveLength(5);
+  });
+
+  /*
+   * The dropdown takes the card's width on a phone and is 18rem from sm up,
+   * and every level is said in every language the Dashboard speaks. The
+   * browser suite measures each language's levels against the room the
+   * dropdown has on a phone: "Never - keep them as events only" was cut
+   * after its second word in French and Russian.
+   */
+  test("every level is the reader's words in every language", () => {
+    expect(SECURITY_LOGS_CASE_SEVERITY_DROPDOWN_CLASS_NAME).toBe(
+      "w-full sm:w-[18rem]",
+    );
+
+    for (const language of DASHBOARD_LANGUAGES) {
+      const locale: Record<string, string> = readDashboardLocale(language);
+
+      for (const label of Object.values(SECURITY_LOGS_CASE_SEVERITY_LABELS)) {
+        const said: string | undefined = locale[label];
+
+        expect([language, label, Boolean(said) && said !== label]).toEqual([
+          language,
+          label,
+          true,
+        ]);
+      }
+    }
   });
 });

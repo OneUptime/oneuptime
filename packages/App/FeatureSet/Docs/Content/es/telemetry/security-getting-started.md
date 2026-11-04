@@ -74,7 +74,7 @@ Sus registros quedan como están. Solo las líneas que importan para la segurida
 
 Una amenaza que un producto de seguridad escribe en sus registros, como un hallazgo CEF o LEEF o un hallazgo de IPS de un FortiGate, abre un caso como lo hace la alerta de un producto conectado. **Abrir casos a partir de**, en **Tus registros**, indica a partir de qué gravedad: **Alta y superior** salvo que elija otra, o **Nunca**.
 
-Una cuenta de AWS, un proyecto de Google Cloud o una suscripción de Azure conectados en **Nube** no necesitan ninguna canalización de registros: active **Registros de auditoría de la nube**, en **Your OneUptime data** de **Conexiones**, y su registro de auditoría se lee junto con la cuenta. Consulte [Leer los registros de auditoría de sus cuentas en la nube](/docs/telemetry/security-events#leer-los-registros-de-auditoría-de-sus-cuentas-en-la-nube).
+Una cuenta de AWS, un proyecto de Google Cloud o una suscripción de Azure conectados en **Nube** no necesitan ninguna canalización de registros: active **Registros de auditoría de la nube**, en **Tus datos de OneUptime** de **Conexiones**, y su registro de auditoría se lee junto con la cuenta. Consulte [Leer los registros de auditoría de sus cuentas en la nube](/docs/telemetry/security-events#leer-los-registros-de-auditoría-de-sus-cuentas-en-la-nube).
 
 ## Enviar a su SIEM lo que encuentra OneUptime
 

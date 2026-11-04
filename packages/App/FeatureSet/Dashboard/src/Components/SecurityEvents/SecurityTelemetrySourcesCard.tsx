@@ -8,7 +8,7 @@ import {
   SecurityTelemetrySourceStatus,
   SecurityTelemetrySourceStatusKind,
   getSecurityTelemetrySourceStatus,
-  getSecurityTelemetrySourceWaitingText,
+  getSecurityTelemetrySourceWaitingLine,
   isSecurityTelemetrySourceAvailable,
   needsCloudAccountNote,
 } from "./SecurityTelemetrySourcesModel";
@@ -217,17 +217,21 @@ const SecurityTelemetrySourcesCard: FunctionComponent = (): ReactElement => {
   const statusLine: (
     row: SecurityTelemetrySourceRow,
     status: SecurityTelemetrySourceStatus,
+    isMissingCloudAccount: boolean,
   ) => string = (
     row: SecurityTelemetrySourceRow,
     status: SecurityTelemetrySourceStatus,
+    isMissingCloudAccount: boolean,
   ): string => {
     switch (status.kind) {
-      case SecurityTelemetrySourceStatusKind.Waiting:
-        return (
-          translator.translateText(
-            getSecurityTelemetrySourceWaitingText(row),
-          ) || ""
-        );
+      case SecurityTelemetrySourceStatusKind.Waiting: {
+        const waiting: string | null = getSecurityTelemetrySourceWaitingLine({
+          row,
+          isMissingCloudAccount,
+        });
+
+        return waiting ? translator.translateText(waiting) || "" : "";
+      }
       case SecurityTelemetrySourceStatusKind.Checked:
         return [
           translator.translateTemplate("Checked {{time}}.", {
@@ -292,11 +296,15 @@ const SecurityTelemetrySourcesCard: FunctionComponent = (): ReactElement => {
                   lastScanResult: source?.lastScanResult,
                   lastError: source?.lastError,
                 });
-              const line: string = statusLine(row, status);
               const isMissingCloudAccount: boolean = needsCloudAccountNote({
                 row,
                 cloudConnectionCount,
               });
+              const line: string = statusLine(
+                row,
+                status,
+                isMissingCloudAccount,
+              );
 
               return (
                 <li
@@ -378,8 +386,14 @@ const SecurityTelemetrySourcesCard: FunctionComponent = (): ReactElement => {
                         data-testid={`security-telemetry-source-status-${row.kind}`}
                       >
                         {line}
+                        {/*
+                         * A space, not a margin, before the count: read
+                         * aloud, the line and its count are two sentences,
+                         * never "ago.Found".
+                         */}
+                        {status.foundInLastCheck > 0 ? " " : ""}
                         {status.foundInLastCheck > 0 ? (
-                          <span className="ml-1 font-medium text-emerald-700">
+                          <span className="font-medium text-emerald-700">
                             {translator.translateTemplate(
                               "Found in the last check: {{count}}",
                               {

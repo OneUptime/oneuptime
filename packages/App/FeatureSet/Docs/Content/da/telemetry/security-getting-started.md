@@ -74,7 +74,7 @@ Dine logs forbliver, som de er. Kun de linjer, der betyder noget for sikkerheden
 
 En trussel, som et sikkerhedsprodukt skriver i dine logs, for eksempel et CEF- eller LEEF-fund eller et IPS-fund fra en FortiGate, åbner en sag, som et forbundet produkts advarsel gør. **Åbn sager fra** på **Dine logs** angiver, fra hvilken alvorlighed: **Høj og højere**, medmindre du vælger en anden, eller **Aldrig**.
 
-En AWS-konto, et Google Cloud-projekt eller et Azure-abonnement, der er forbundet under **Cloud**, behøver ingen logpipeline: Slå **Cloud-auditlogs** til under **Your OneUptime data** på **Forbindelser**, så læses dets auditlog sammen med kontoen. Se [Læs auditlogs fra dine cloudkonti](/docs/telemetry/security-events#læs-auditlogs-fra-dine-cloudkonti).
+En AWS-konto, et Google Cloud-projekt eller et Azure-abonnement, der er forbundet under **Cloud**, behøver ingen logpipeline: Slå **Cloud-auditlogs** til under **Dine OneUptime-data** på **Forbindelser**, så læses dets auditlog sammen med kontoen. Se [Læs auditlogs fra dine cloudkonti](/docs/telemetry/security-events#læs-auditlogs-fra-dine-cloudkonti).
 
 ## Send det, OneUptime finder, til dit SIEM
 

@@ -206,7 +206,7 @@ CEF や LEEF の検出結果、Palo Alto Networks、FortiGate、Cisco ASA の脅
 
 ### クラウド アカウントの監査ログを読み取る
 
-[**クラウド** で接続した](/docs/telemetry/cloud-accounts) AWS アカウント、Google Cloud プロジェクト、Azure サブスクリプションには、ログのパイプラインは要りません。**接続** の **Your OneUptime data** で **クラウド監査ログ** を有効にすると、アカウントを読み取るたびに、その監査ログがセキュリティイベントとして保存されます。
+[**クラウド** で接続した](/docs/telemetry/cloud-accounts) AWS アカウント、Google Cloud プロジェクト、Azure サブスクリプションには、ログのパイプラインは要りません。**接続** の **OneUptime のデータ** で **クラウド監査ログ** を有効にすると、アカウントを読み取るたびに、その監査ログがセキュリティイベントとして保存されます。
 
 | クラウド | 読み取る内容 |
 | --- | --- |

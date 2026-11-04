@@ -627,8 +627,12 @@ export const SecurityEventConnectorCatalog: Array<SecurityEventConnectorDefiniti
         {
           key: ENTRA_BACKGROUND_SIGN_INS_KEY,
           title: "Background and app sign-ins",
+          /*
+           * Plain words first, then the names the Entra admin center's
+           * Sign-in logs give the two lists.
+           */
           description:
-            "Also import the failed sign-ins apps make for people in the background, and service principals' own.",
+            "Also import failed sign-ins apps make in the background: non-interactive user sign-ins and service principal sign-ins.",
           type: "toggle",
           required: false,
           defaultValue: false,

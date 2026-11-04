@@ -206,7 +206,7 @@ En post, der når OneUptime ad to veje, gemmes én gang: et Microsoft Entra ID-l
 
 ### Læs auditlogs fra dine cloudkonti
 
-En AWS-konto, et Google Cloud-projekt eller et Azure-abonnement, der er [forbundet under **Cloud**](/docs/telemetry/cloud-accounts), behøver ingen logpipeline. Slå **Cloud-auditlogs** til under **Your OneUptime data** på **Forbindelser**, så gemmer hver læsning af kontoen dens auditlog som sikkerhedshændelser:
+En AWS-konto, et Google Cloud-projekt eller et Azure-abonnement, der er [forbundet under **Cloud**](/docs/telemetry/cloud-accounts), behøver ingen logpipeline. Slå **Cloud-auditlogs** til under **Dine OneUptime-data** på **Forbindelser**, så gemmer hver læsning af kontoen dens auditlog som sikkerhedshændelser:
 
 | Cloud | Hvad der læses |
 | --- | --- |

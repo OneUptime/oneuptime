@@ -369,7 +369,15 @@ describe("EntraIdNormalizer - risk detections and background sign-ins, as the co
     expect(exported?.message).toBe(fromGraph?.message);
   });
 
-  test.each([
+  test.each<
+    [
+      (
+        | EntraLog.NonInteractiveUserSignInLogs
+        | EntraLog.ServicePrincipalSignInLogs
+      ),
+      string,
+    ]
+  >([
     [EntraLog.NonInteractiveUserSignInLogs, "NonInteractiveUserSignInLogs"],
     [EntraLog.ServicePrincipalSignInLogs, "ServicePrincipalSignInLogs"],
   ])(

@@ -907,7 +907,7 @@ export const KEPT_AS_WRITTEN: Readonly<Record<string, ReadonlyArray<string>>> =
       "Authenticate with Google",
       "Read the audit logs",
       "Read Drive activity",
-      "Read activity Google made readable late",
+      "Read late OAuth token activity",
       "Activities available to import",
       "Background workers",
       "Poll scheduler",

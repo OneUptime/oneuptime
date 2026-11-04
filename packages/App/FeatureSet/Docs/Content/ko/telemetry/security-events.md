@@ -206,7 +206,7 @@ CEF나 LEEF 탐지 결과, Palo Alto Networks, FortiGate, Cisco ASA의 위협처
 
 ### 클라우드 계정의 감사 로그 읽기
 
-[**클라우드**에서 연결한](/docs/telemetry/cloud-accounts) AWS 계정, Google Cloud 프로젝트, Azure 구독에는 로그 파이프라인이 필요 없습니다. **연결**의 **Your OneUptime data**에서 **클라우드 감사 로그**를 켜면 계정을 읽을 때마다 그 감사 로그를 보안 이벤트로 보관합니다.
+[**클라우드**에서 연결한](/docs/telemetry/cloud-accounts) AWS 계정, Google Cloud 프로젝트, Azure 구독에는 로그 파이프라인이 필요 없습니다. **연결**의 **내 OneUptime 데이터**에서 **클라우드 감사 로그**를 켜면 계정을 읽을 때마다 그 감사 로그를 보안 이벤트로 보관합니다.
 
 | 클라우드 | 읽는 내용 |
 | --- | --- |

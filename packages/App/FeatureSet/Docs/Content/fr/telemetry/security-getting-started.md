@@ -74,7 +74,7 @@ Vos journaux restent tels quels. Seules les lignes qui comptent pour la sécurit
 
 Une menace qu'un produit de sécurité écrit dans vos journaux, comme une détection CEF ou LEEF ou une détection IPS d'un FortiGate, ouvre un dossier comme le fait l'alerte d'un produit connecté. **Ouvrir des dossiers à partir de**, sur **Vos journaux**, indique à partir de quelle gravité : **Élevé et au-dessus** sauf si vous en choisissez une autre, ou **Jamais**.
 
-Un compte AWS, un projet Google Cloud ou un abonnement Azure connecté sous **Cloud** n'a besoin d'aucun pipeline de journaux : activez **Journaux d'audit cloud**, sous **Your OneUptime data** sur **Connexions**, et son journal d'audit est lu avec le compte. Voir [Lire les journaux d'audit de vos comptes cloud](/docs/telemetry/security-events#lire-les-journaux-daudit-de-vos-comptes-cloud).
+Un compte AWS, un projet Google Cloud ou un abonnement Azure connecté sous **Cloud** n'a besoin d'aucun pipeline de journaux : activez **Journaux d'audit cloud**, sous **Vos données OneUptime** sur **Connexions**, et son journal d'audit est lu avec le compte. Voir [Lire les journaux d'audit de vos comptes cloud](/docs/telemetry/security-events#lire-les-journaux-daudit-de-vos-comptes-cloud).
 
 ## Envoyer ce que trouve OneUptime à votre SIEM
 

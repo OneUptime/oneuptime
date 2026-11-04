@@ -295,9 +295,11 @@ describe("SecurityLogCases - a threat as a detection", () => {
     const event: NormalizedSecurityEvent = readOne(FORTIGATE_LINES.ips);
     const markdown: string = logThreatMarkdown(event).toString();
 
-    expect(markdown).toContain("**Fortinet FortiGate**");
-    expect(markdown).toContain("(Fortinet FortiGate)");
-    expect(markdown).toContain("**Your logs**");
+    // The product's own syslog: its name says the kind of log already.
+    expect(markdown.split("\n\n")[0]).toBe(
+      "A threat reported by **Fortinet FortiGate** in the project's logs, read by **Your logs**.",
+    );
+    expect(markdown).not.toContain("(Fortinet FortiGate)");
     expect(markdown).toContain(
       "`Apache.Log4j.Error.Log.Remote.Code.Execution`",
     );
@@ -308,6 +310,29 @@ describe("SecurityLogCases - a threat as a detection", () => {
     ).toString();
 
     expect(crafted).toContain("Rule: `[click](https://evil.example)`");
+  });
+
+  test("names the kind of log only where the product's name does not say it", () => {
+    const firstLine: (event: NormalizedSecurityEvent) => string = (
+      event: NormalizedSecurityEvent,
+    ): string => {
+      return logThreatMarkdown(event).toString().split("\n\n")[0] || "";
+    };
+
+    // A product's CEF: the kind is news.
+    expect(firstLine(readOne(DEVICE_LINES.impervaSqlInjection))).toContain(
+      "in the project's logs (CEF), read by **Your logs**.",
+    );
+    // A firewall's own syslog: its name is the kind already.
+    for (const event of [
+      readOne(PAN_LINES.threatSpyware),
+      readOne(ASA_LINES.botnet),
+      threat({ vendorName: "", productName: "" }),
+    ]) {
+      expect(firstLine(event)).toMatch(
+        /^A threat reported by \*\*[^*]+\*\* in the project's logs, read by \*\*Your logs\*\*\.$/,
+      );
+    }
   });
 });
 

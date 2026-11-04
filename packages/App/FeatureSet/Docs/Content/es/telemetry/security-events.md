@@ -206,7 +206,7 @@ Un registro que llega a OneUptime por dos vías se guarda una sola vez: un inici
 
 ### Leer los registros de auditoría de sus cuentas en la nube
 
-Una cuenta de AWS, un proyecto de Google Cloud o una suscripción de Azure [conectados en **Nube**](/docs/telemetry/cloud-accounts) no necesitan ninguna canalización de registros. Active **Registros de auditoría de la nube**, en **Your OneUptime data** de **Conexiones**, y cada lectura de la cuenta guarda su registro de auditoría como eventos de seguridad:
+Una cuenta de AWS, un proyecto de Google Cloud o una suscripción de Azure [conectados en **Nube**](/docs/telemetry/cloud-accounts) no necesitan ninguna canalización de registros. Active **Registros de auditoría de la nube**, en **Tus datos de OneUptime** de **Conexiones**, y cada lectura de la cuenta guarda su registro de auditoría como eventos de seguridad:
 
 | Nube | Qué se lee |
 | --- | --- |

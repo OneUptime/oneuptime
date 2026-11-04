@@ -74,7 +74,7 @@ Uw logs blijven zoals ze zijn. Alleen de regels die voor beveiliging tellen, wor
 
 Een bedreiging die een beveiligingsproduct in uw logs schrijft, zoals een CEF- of LEEF-bevinding of een IPS-bevinding van een FortiGate, opent een zaak zoals de waarschuwing van een gekoppeld product dat doet. **Cases openen vanaf**, op **Uw logboeken**, bepaalt vanaf welke ernst: **Hoog en hoger**, tenzij u een andere kiest, of **Nooit**.
 
-Een AWS-account, Google Cloud-project of Azure-abonnement dat onder **Cloud** is gekoppeld, heeft geen logpijplijn nodig: zet **Cloud-auditlogboeken** aan, onder **Your OneUptime data** op **Verbindingen**, en het auditlog wordt samen met het account gelezen. Zie [De auditlogs van uw cloudaccounts lezen](/docs/telemetry/security-events#de-auditlogs-van-uw-cloudaccounts-lezen).
+Een AWS-account, Google Cloud-project of Azure-abonnement dat onder **Cloud** is gekoppeld, heeft geen logpijplijn nodig: zet **Cloud-auditlogboeken** aan, onder **Uw OneUptime-gegevens** op **Verbindingen**, en het auditlog wordt samen met het account gelezen. Zie [De auditlogs van uw cloudaccounts lezen](/docs/telemetry/security-events#de-auditlogs-van-uw-cloudaccounts-lezen).
 
 ## Wat OneUptime vindt naar uw SIEM sturen
 

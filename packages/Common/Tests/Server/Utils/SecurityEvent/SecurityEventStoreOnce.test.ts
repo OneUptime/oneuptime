@@ -1,4 +1,5 @@
 import { afterEach, describe, expect, jest, test } from "@jest/globals";
+import type { Mock } from "jest-mock";
 import Semaphore, {
   SemaphoreMutex,
 } from "../../../../Server/Infrastructure/Semaphore";
@@ -88,7 +89,7 @@ function installLock(): {
     taken: Array<{ namespace: string; key: string }>;
     released: number;
   } = { taken: [], released: 0 };
-  const releases: WeakMap<object, () => void> = new WeakMap();
+  const releases: WeakMap<Record<string, unknown>, () => void> = new WeakMap();
 
   getJestSpyOn(Semaphore, "lock").mockImplementation((async (data: {
     namespace: string;
@@ -110,7 +111,7 @@ function installLock(): {
     await previous;
     state.taken.push({ namespace: data.namespace, key: data.key });
 
-    const mutex: object = {};
+    const mutex: Record<string, unknown> = {};
     releases.set(mutex, release);
     return mutex;
   }) as never);
@@ -118,7 +119,7 @@ function installLock(): {
     mutex: SemaphoreMutex,
   ) => {
     state.released++;
-    releases.get(mutex as unknown as object)?.();
+    releases.get(mutex as unknown as Record<string, unknown>)?.();
   }) as never);
 
   return state;
@@ -305,9 +306,12 @@ describe("SecurityEventStoreOnce.storeNew", () => {
       released: number;
     } = installLock();
     const table: Array<NormalizedSecurityEvent> = installTable();
-    const insert: jest.Mock<
+    // A jest-mock Mock, as @jest/globals' jest.fn makes it.
+    const insert: Mock<
       (events: Array<NormalizedSecurityEvent>) => Promise<void>
-    > = jest.fn(async (): Promise<void> => {});
+    > = jest.fn(
+      async (_events: Array<NormalizedSecurityEvent>): Promise<void> => {},
+    );
 
     table.push(event());
 

@@ -74,7 +74,7 @@ Ihre Logs bleiben, wie sie sind. Nur die Zeilen, die für die Sicherheit zählen
 
 Eine Bedrohung, die ein Sicherheitsprodukt in Ihre Logs schreibt, etwa ein CEF- oder LEEF-Fund oder ein IPS-Fund einer FortiGate, eröffnet einen Fall, wie es die Warnung eines verbundenen Produkts tut. **Fälle eröffnen ab** auf **Ihre Protokolle** legt fest, ab welchem Schweregrad: **Hoch und höher**, sofern Sie keinen anderen wählen, oder **Nie**.
 
-Ein AWS-Konto, Google Cloud-Projekt oder Azure-Abonnement, das unter **Cloud** verbunden ist, braucht keine Log-Pipeline: Schalten Sie **Cloud-Audit-Protokolle** unter **Your OneUptime data** auf **Verbindungen** ein, dann wird sein Audit-Log mit dem Konto gelesen. Siehe [Die Audit-Logs Ihrer Cloud-Konten lesen](/docs/telemetry/security-events#die-audit-logs-ihrer-cloud-konten-lesen).
+Ein AWS-Konto, Google Cloud-Projekt oder Azure-Abonnement, das unter **Cloud** verbunden ist, braucht keine Log-Pipeline: Schalten Sie **Cloud-Audit-Protokolle** unter **Ihre OneUptime-Daten** auf **Verbindungen** ein, dann wird sein Audit-Log mit dem Konto gelesen. Siehe [Die Audit-Logs Ihrer Cloud-Konten lesen](/docs/telemetry/security-events#die-audit-logs-ihrer-cloud-konten-lesen).
 
 ## An Ihr SIEM senden, was OneUptime findet
 

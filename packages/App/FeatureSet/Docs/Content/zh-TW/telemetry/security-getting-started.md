@@ -74,7 +74,7 @@ flowchart LR
 
 安全性產品寫入日誌的威脅，例如 CEF 或 LEEF 的發現，或 FortiGate 的 IPS 發現，會像已連線產品的警示一樣開啟案件。**你的日誌** 上的 **從以下等級開啟案例** 決定從哪個嚴重程度開始：預設為 **高及以上**，你也可以選擇其他等級或 **從未**。
 
-在 **雲端** 下連線的 AWS 帳戶、Google Cloud 專案或 Azure 訂用帳戶不需要日誌管線：在 **連線** 的 **Your OneUptime data** 下開啟 **雲端稽核日誌**，它的稽核日誌就會隨帳戶一起讀取。請參閱 [讀取雲端帳戶的稽核日誌](/docs/telemetry/security-events#讀取雲端帳戶的稽核日誌)。
+在 **雲端** 下連線的 AWS 帳戶、Google Cloud 專案或 Azure 訂用帳戶不需要日誌管線：在 **連線** 的 **你的 OneUptime 資料** 下開啟 **雲端稽核日誌**，它的稽核日誌就會隨帳戶一起讀取。請參閱 [讀取雲端帳戶的稽核日誌](/docs/telemetry/security-events#讀取雲端帳戶的稽核日誌)。
 
 ## 把 OneUptime 的發現傳送到您的 SIEM
 
