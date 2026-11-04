@@ -273,7 +273,7 @@ export const REMEDIATION_FIX_DISMISS: string = translationKey("Dismiss fix");
  * approving asks, as the fix's Slack and Microsoft Teams buttons do.
  */
 export const REMEDIATION_FIX_DISMISS_REFUSED: string = translationKey(
-  "You do not have permission to dismiss this fix. Dismissing a fix needs the permission approving one does: starting runbook executions in this project.",
+  "You do not have permission to dismiss this fix. Dismissing a fix needs the same permission as approving one: starting runbook executions in this project.",
 );
 
 /*

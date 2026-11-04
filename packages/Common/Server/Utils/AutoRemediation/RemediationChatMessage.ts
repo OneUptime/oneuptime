@@ -186,10 +186,6 @@ export function describeChangeTier(
 }
 
 /*
- * What a change runs on: 'cluster "prod-eu-west-1"', 'AWS account "prod"',
- * or nothing for a Runner's command.
- */
-/*
  * A track record's line in a chat: its mark, its sentence and the incidents
  * and alerts it names, each a link to its page in OneUptime when one was
  * built - '✅ Worked both times it ran here before ([INC-41](...),
@@ -219,6 +215,10 @@ export function describeTrackRecordLine(
     : mdText`${mark} ${sentence}.`;
 }
 
+/*
+ * What a change runs on: 'cluster "prod-eu-west-1"', 'AWS account "prod"',
+ * or nothing for a Runner's command.
+ */
 export function describeChangeTarget(
   command: AiRemediationCommand,
 ): string | null {

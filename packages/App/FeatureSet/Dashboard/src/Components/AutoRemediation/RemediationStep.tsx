@@ -455,14 +455,18 @@ export function getActionErrorTitle(
   if (action === "dry-run") {
     return CLOUD_DRY_RUN_COPY.dryRunActionError;
   }
+  /*
+   * "fix", as Dismiss fix and every other line of the step say it - never
+   * "suggestion", the model's name for it.
+   */
   if (action === "dismiss") {
     if (isAlreadyStarted(statusAfterReload)) {
       return translationKey(
-        "Could not save your action: the suggestion was not dismissed — this fix had already started; see its commands below",
+        "Could not save your action: the fix was not dismissed — it had already started; see its commands below",
       );
     }
     return translationKey(
-      "Could not save your action: the suggestion was not dismissed",
+      "Could not save your action: the fix was not dismissed",
     );
   }
   return translationKey("Could not save your action");

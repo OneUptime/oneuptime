@@ -390,7 +390,7 @@ describe("Dismiss fix", () => {
     );
     expect(notice).toHaveAttribute("role", "alert");
     expect(notice).toHaveTextContent(
-      "Could not save your action: the suggestion was not dismissed",
+      "Could not save your action: the fix was not dismissed",
     );
     expect(notice).toHaveTextContent(FIX_DISMISS_REFUSED_MESSAGE);
     // The fix still waits, Dismiss fix and all.

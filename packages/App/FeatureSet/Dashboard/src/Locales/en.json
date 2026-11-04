@@ -20607,8 +20607,8 @@
   "Could not load this item's connections.": "Could not load this item's connections.",
   "Could not load this item's connections. {{detail}}": "Could not load this item's connections. {{detail}}",
   "Could not save your action: the fix was not approved and nothing ran": "Could not save your action: the fix was not approved and nothing ran",
-  "Could not save your action: the suggestion was not dismissed": "Could not save your action: the suggestion was not dismissed",
-  "Could not save your action: the suggestion was not dismissed — this fix had already started; see its commands below": "Could not save your action: the suggestion was not dismissed — this fix had already started; see its commands below",
+  "Could not save your action: the fix was not dismissed": "Could not save your action: the fix was not dismissed",
+  "Could not save your action: the fix was not dismissed — it had already started; see its commands below": "Could not save your action: the fix was not dismissed — it had already started; see its commands below",
   "Couldn't load the fields of {{value}}: {{error}}": "Couldn't load the fields of {{value}}: {{error}}",
   "Couldn't load the variables: {{error}}": "Couldn't load the variables: {{error}}",
   "Couldn't load this model's columns ({{error}}). You can still write the query as JSON.": "Couldn't load this model's columns ({{error}}). You can still write the query as JSON.",
@@ -42293,5 +42293,5 @@
   "In Slack": "In Slack",
   "Runbook Track Record": "Runbook Track Record",
   "Where fixes were approved": "Where fixes were approved",
-  "You do not have permission to dismiss this fix. Dismissing a fix needs the permission approving one does: starting runbook executions in this project.": "You do not have permission to dismiss this fix. Dismissing a fix needs the permission approving one does: starting runbook executions in this project."
+  "You do not have permission to dismiss this fix. Dismissing a fix needs the same permission as approving one: starting runbook executions in this project.": "You do not have permission to dismiss this fix. Dismissing a fix needs the same permission as approving one: starting runbook executions in this project."
 }

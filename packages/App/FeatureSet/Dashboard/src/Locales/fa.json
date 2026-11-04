@@ -20607,8 +20607,8 @@
   "Could not load this item's connections.": "Could not load this item's connections.",
   "Could not load this item's connections. {{detail}}": "Could not load this item's connections. {{detail}}",
   "Could not save your action: the fix was not approved and nothing ran": "اقدام شما ذخیره نشد: اصلاح تأیید نشد و هیچ چیزی اجرا نشد",
-  "Could not save your action: the suggestion was not dismissed": "اقدام شما ذخیره نشد: پیشنهاد رد نشد",
-  "Could not save your action: the suggestion was not dismissed — this fix had already started; see its commands below": "اقدام شما ذخیره نشد: پیشنهاد رد نشد — این اصلاح از قبل شروع شده بود؛ فرمان‌های آن را در پایین ببینید",
+  "Could not save your action: the fix was not dismissed": "اقدام شما ذخیره نشد: اصلاح رد نشد",
+  "Could not save your action: the fix was not dismissed — it had already started; see its commands below": "اقدام شما ذخیره نشد: اصلاح رد نشد — از قبل شروع شده بود؛ فرمان‌های آن را در پایین ببینید",
   "Couldn't load the fields of {{value}}: {{error}}": "فیلدهای {{value}} بارگذاری نشد: {{error}}",
   "Couldn't load the variables: {{error}}": "متغیرها بارگذاری نشد: {{error}}",
   "Couldn't load this model's columns ({{error}}). You can still write the query as JSON.": "Couldn't load this model's columns ({{error}}). You can still write the query as JSON.",
@@ -24400,7 +24400,7 @@
   "Add the host, cluster or database it is about under Affected Resources, and OneUptime AI tries again. Link its monitor to what it watches, and every {{signal}} it raises from then on is linked for you.": "میزبان، خوشه یا پایگاه داده‌ای را که این مورد به آن مربوط است در منابع تحت تأثیر اضافه کنید تا OneUptime AI دوباره تلاش کند. مانیتور آن را به آنچه پایش می‌کند پیوند دهید تا هر {{signal}} که از آن پس ایجاد می‌کند خودکار به آن پیوند داده شود.",
   "This {{signal}} is not linked to a Kubernetes cluster.": "این {{signal}} به هیچ خوشه Kubernetes پیوند داده نشده است.",
   "This {{signal}} is not linked to an infrastructure resource with an AI agent.": "این {{signal}} به هیچ منبع زیرساختی دارای عامل هوش مصنوعی پیوند داده نشده است.",
-  "Verification: {{verified}} resolved the problem, {{failed}} did not, {{verifying}} still being checked.": "Verification: {{verified}} resolved the problem, {{failed}} did not, {{verifying}} still being checked.",
+  "Verification: {{verified}} resolved the problem, {{failed}} did not, {{verifying}} still being checked.": "راستی‌آزمایی: {{verified}} مورد مشکل را برطرف کرد، {{failed}} مورد نکرد، {{verifying}} مورد هنوز در حال بررسی است.",
   "What OneUptime AI has learned about this {{noun}} in the last 30 days, and what deserves your attention.": "What OneUptime AI has learned about this {{noun}} in the last 30 days, and what deserves your attention.",
   "What OneUptime AI's work here says deserves a look, most important first.": "What OneUptime AI's work here says deserves a look, most important first.",
   "What OneUptime did to fix this automatically, or why it did nothing.": "OneUptime برای رفع خودکار این مورد چه کرد، یا چرا کاری نکرد.",
@@ -42293,5 +42293,5 @@
   "In Slack": "در Slack",
   "Runbook Track Record": "نتایج پیشین رانبوک",
   "Where fixes were approved": "جایی که اصلاح‌ها تأیید شدند",
-  "You do not have permission to dismiss this fix. Dismissing a fix needs the permission approving one does: starting runbook executions in this project.": "اجازهٔ رد کردن این اصلاح را ندارید. رد کردن یک اصلاح همان اجازه‌ای را می‌خواهد که تأیید آن: شروع اجرای رانبوک‌ها در این پروژه."
+  "You do not have permission to dismiss this fix. Dismissing a fix needs the same permission as approving one: starting runbook executions in this project.": "اجازهٔ رد کردن این اصلاح را ندارید. رد کردن یک اصلاح همان اجازه‌ای را می‌خواهد که تأیید آن: شروع اجرای رانبوک‌ها در این پروژه."
 }

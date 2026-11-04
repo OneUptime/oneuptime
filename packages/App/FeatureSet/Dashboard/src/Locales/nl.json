@@ -20607,8 +20607,8 @@
   "Could not load this item's connections.": "Could not load this item's connections.",
   "Could not load this item's connections. {{detail}}": "Could not load this item's connections. {{detail}}",
   "Could not save your action: the fix was not approved and nothing ran": "Uw actie kon niet worden opgeslagen: de oplossing is niet goedgekeurd en er is niets uitgevoerd",
-  "Could not save your action: the suggestion was not dismissed": "Uw actie kon niet worden opgeslagen: de suggestie is niet genegeerd",
-  "Could not save your action: the suggestion was not dismissed — this fix had already started; see its commands below": "Uw actie kon niet worden opgeslagen: de suggestie is niet genegeerd — deze oplossing was al gestart; zie de opdrachten hieronder",
+  "Could not save your action: the fix was not dismissed": "Uw actie kon niet worden opgeslagen: de oplossing is niet genegeerd",
+  "Could not save your action: the fix was not dismissed — it had already started; see its commands below": "Uw actie kon niet worden opgeslagen: de oplossing is niet genegeerd — ze was al gestart; zie de opdrachten hieronder",
   "Couldn't load the fields of {{value}}: {{error}}": "De velden van {{value}} konden niet worden geladen: {{error}}",
   "Couldn't load the variables: {{error}}": "De variabelen konden niet worden geladen: {{error}}",
   "Couldn't load this model's columns ({{error}}). You can still write the query as JSON.": "Couldn't load this model's columns ({{error}}). You can still write the query as JSON.",
@@ -24400,7 +24400,7 @@
   "Add the host, cluster or database it is about under Affected Resources, and OneUptime AI tries again. Link its monitor to what it watches, and every {{signal}} it raises from then on is linked for you.": "Voeg onder Getroffen resources de host, het cluster of de database toe waar het om gaat, en OneUptime AI probeert het opnieuw. Koppel de monitor ervan aan wat hij bewaakt; elk item ({{signal}}) dat hij daarna genereert, wordt dan automatisch gekoppeld.",
   "This {{signal}} is not linked to a Kubernetes cluster.": "Dit item ({{signal}}) is niet gekoppeld aan een Kubernetes-cluster.",
   "This {{signal}} is not linked to an infrastructure resource with an AI agent.": "Dit item ({{signal}}) is niet gekoppeld aan een infrastructuurresource met een AI-agent.",
-  "Verification: {{verified}} resolved the problem, {{failed}} did not, {{verifying}} still being checked.": "Verification: {{verified}} resolved the problem, {{failed}} did not, {{verifying}} still being checked.",
+  "Verification: {{verified}} resolved the problem, {{failed}} did not, {{verifying}} still being checked.": "Verificatie: {{verified}} losten het probleem op, {{failed}} niet, {{verifying}} worden nog gecontroleerd.",
   "What OneUptime AI has learned about this {{noun}} in the last 30 days, and what deserves your attention.": "What OneUptime AI has learned about this {{noun}} in the last 30 days, and what deserves your attention.",
   "What OneUptime AI's work here says deserves a look, most important first.": "What OneUptime AI's work here says deserves a look, most important first.",
   "What OneUptime did to fix this automatically, or why it did nothing.": "Wat OneUptime heeft gedaan om dit automatisch op te lossen, of waarom het niets heeft gedaan.",
@@ -42293,5 +42293,5 @@
   "In Slack": "In Slack",
   "Runbook Track Record": "Eerdere resultaten van het runbook",
   "Where fixes were approved": "Waar oplossingen zijn goedgekeurd",
-  "You do not have permission to dismiss this fix. Dismissing a fix needs the permission approving one does: starting runbook executions in this project.": "Je hebt geen toestemming om deze oplossing te negeren. Een oplossing negeren vraagt dezelfde toestemming als haar goedkeuren: runbookuitvoeringen starten in dit project."
+  "You do not have permission to dismiss this fix. Dismissing a fix needs the same permission as approving one: starting runbook executions in this project.": "Je hebt geen toestemming om deze oplossing te negeren. Een oplossing negeren vraagt dezelfde toestemming als haar goedkeuren: runbookuitvoeringen starten in dit project."
 }

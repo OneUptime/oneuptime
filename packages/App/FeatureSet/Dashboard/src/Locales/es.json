@@ -20607,8 +20607,8 @@
   "Could not load this item's connections.": "Could not load this item's connections.",
   "Could not load this item's connections. {{detail}}": "Could not load this item's connections. {{detail}}",
   "Could not save your action: the fix was not approved and nothing ran": "No se pudo guardar tu acción: la corrección no se aprobó y no se ejecutó nada",
-  "Could not save your action: the suggestion was not dismissed": "No se pudo guardar tu acción: la sugerencia no se descartó",
-  "Could not save your action: the suggestion was not dismissed — this fix had already started; see its commands below": "No se pudo guardar tu acción: la sugerencia no se descartó; esta corrección ya se había iniciado, consulta sus comandos abajo",
+  "Could not save your action: the fix was not dismissed": "No se pudo guardar tu acción: la corrección no se descartó",
+  "Could not save your action: the fix was not dismissed — it had already started; see its commands below": "No se pudo guardar tu acción: la corrección no se descartó; ya se había iniciado, consulta sus comandos abajo",
   "Couldn't load the fields of {{value}}: {{error}}": "No se pudieron cargar los campos de {{value}}: {{error}}",
   "Couldn't load the variables: {{error}}": "No se pudieron cargar las variables: {{error}}",
   "Couldn't load this model's columns ({{error}}). You can still write the query as JSON.": "No se pudieron cargar las columnas de este modelo ({{error}}). Aun así, puedes escribir la consulta como JSON.",
@@ -24400,7 +24400,7 @@
   "Add the host, cluster or database it is about under Affected Resources, and OneUptime AI tries again. Link its monitor to what it watches, and every {{signal}} it raises from then on is linked for you.": "Añade el host, el clúster o la base de datos al que se refiere en Recursos afectados y OneUptime AI lo intentará de nuevo. Vincula su monitor a lo que vigila, y cada elemento ({{signal}}) que genere a partir de entonces quedará vinculado automáticamente.",
   "This {{signal}} is not linked to a Kubernetes cluster.": "Este elemento ({{signal}}) no está vinculado a ningún clúster de Kubernetes.",
   "This {{signal}} is not linked to an infrastructure resource with an AI agent.": "Este elemento ({{signal}}) no está vinculado a ningún recurso de infraestructura con un agente de IA.",
-  "Verification: {{verified}} resolved the problem, {{failed}} did not, {{verifying}} still being checked.": "Verification: {{verified}} resolved the problem, {{failed}} did not, {{verifying}} still being checked.",
+  "Verification: {{verified}} resolved the problem, {{failed}} did not, {{verifying}} still being checked.": "Verificación: {{verified}} resolvieron el problema, {{failed}} no, {{verifying}} aún en comprobación.",
   "What OneUptime AI has learned about this {{noun}} in the last 30 days, and what deserves your attention.": "What OneUptime AI has learned about this {{noun}} in the last 30 days, and what deserves your attention.",
   "What OneUptime AI's work here says deserves a look, most important first.": "What OneUptime AI's work here says deserves a look, most important first.",
   "What OneUptime did to fix this automatically, or why it did nothing.": "Qué hizo OneUptime para corregir esto automáticamente, o por qué no hizo nada.",
@@ -42293,5 +42293,5 @@
   "In Slack": "En Slack",
   "Runbook Track Record": "Historial de resultados del runbook",
   "Where fixes were approved": "Dónde se aprobaron las correcciones",
-  "You do not have permission to dismiss this fix. Dismissing a fix needs the permission approving one does: starting runbook executions in this project.": "No tienes permiso para descartar esta corrección. Descartar una corrección requiere el mismo permiso que aprobarla: iniciar ejecuciones de runbooks en este proyecto."
+  "You do not have permission to dismiss this fix. Dismissing a fix needs the same permission as approving one: starting runbook executions in this project.": "No tienes permiso para descartar esta corrección. Descartar una corrección requiere el mismo permiso que aprobarla: iniciar ejecuciones de runbooks en este proyecto."
 }

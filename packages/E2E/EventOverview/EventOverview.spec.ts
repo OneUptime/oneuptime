@@ -22282,7 +22282,7 @@ test.describe("what an investigation says it hurts, first (?impact=on)", () => {
 test.describe("a runbook's record, where a fix was approved, and Dismiss fix (?fixes=runbook)", () => {
   const RUNBOOK_PROPOSAL_ID: string = uuid("93000000", 8);
   const DISMISS_REFUSED: string =
-    "You do not have permission to dismiss this fix. Dismissing a fix needs the permission approving one does: starting runbook executions in this project.";
+    "You do not have permission to dismiss this fix. Dismissing a fix needs the same permission as approving one: starting runbook executions in this project.";
 
   // The runbook that waits: "Restart checkout-api pods".
   function runbookFix(page: Page): Locator {
@@ -22419,17 +22419,16 @@ test.describe("a runbook's record, where a fix was approved, and Dismiss fix (?f
         }),
       );
 
-    // The shared Dismiss is German's Hide since #5512; Dismiss fix is not.
+    // Dismiss fix, never German's Hide, whatever the shared Dismiss reads.
     const dismiss: Locator = runbook.getByTestId("remediation-dismiss-button");
     await expect(dismiss).toHaveText(german["Dismiss fix"]!);
     expect(german["Dismiss fix"]).not.toBe(german["Hide"]);
-    expect(german["Dismiss"]).toBe(german["Hide"]);
 
     // Refused for want of the permission approving asks: why, in German.
     await dismiss.click();
     const refusal: Locator = runbook.getByTestId("remediation-action-error");
     await expect(refusal).toContainText(
-      german["Could not save your action: the suggestion was not dismissed"]!,
+      german["Could not save your action: the fix was not dismissed"]!,
       { timeout: 30000 },
     );
     await expect(refusal).toContainText(german[DISMISS_REFUSED]!);

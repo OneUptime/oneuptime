@@ -20607,8 +20607,8 @@
   "Could not load this item's connections.": "Could not load this item's connections.",
   "Could not load this item's connections. {{detail}}": "Could not load this item's connections. {{detail}}",
   "Could not save your action: the fix was not approved and nothing ran": "आपकी कार्रवाई सहेजी नहीं जा सकी: सुधार स्वीकृत नहीं हुआ और कुछ नहीं चला",
-  "Could not save your action: the suggestion was not dismissed": "आपकी कार्रवाई सहेजी नहीं जा सकी: सुझाव खारिज नहीं हुआ",
-  "Could not save your action: the suggestion was not dismissed — this fix had already started; see its commands below": "आपकी कार्रवाई सहेजी नहीं जा सकी: सुझाव खारिज नहीं हुआ — यह सुधार पहले ही शुरू हो चुका था; इसके कमांड नीचे देखें",
+  "Could not save your action: the fix was not dismissed": "आपकी कार्रवाई सहेजी नहीं जा सकी: सुधार खारिज नहीं हुआ",
+  "Could not save your action: the fix was not dismissed — it had already started; see its commands below": "आपकी कार्रवाई सहेजी नहीं जा सकी: सुधार खारिज नहीं हुआ — यह पहले ही शुरू हो चुका था; इसके कमांड नीचे देखें",
   "Couldn't load the fields of {{value}}: {{error}}": "{{value}} के फ़ील्ड लोड नहीं हो सके: {{error}}",
   "Couldn't load the variables: {{error}}": "वेरिएबल लोड नहीं हो सके: {{error}}",
   "Couldn't load this model's columns ({{error}}). You can still write the query as JSON.": "Couldn't load this model's columns ({{error}}). You can still write the query as JSON.",
@@ -24400,7 +24400,7 @@
   "Add the host, cluster or database it is about under Affected Resources, and OneUptime AI tries again. Link its monitor to what it watches, and every {{signal}} it raises from then on is linked for you.": "यह जिस होस्ट, क्लस्टर या डेटाबेस से संबंधित है, उसे प्रभावित संसाधन में जोड़ें, और OneUptime AI फिर से कोशिश करेगा। इसके मॉनिटर को उससे जोड़ें जिस पर वह नज़र रखता है, तब से वह जो भी {{signal}} बनाएगा, वह अपने आप जुड़ जाएगा।",
   "This {{signal}} is not linked to a Kubernetes cluster.": "यह {{signal}} किसी Kubernetes क्लस्टर से जुड़ा नहीं है।",
   "This {{signal}} is not linked to an infrastructure resource with an AI agent.": "यह {{signal}} AI एजेंट वाले किसी बुनियादी ढांचे के संसाधन से जुड़ा नहीं है।",
-  "Verification: {{verified}} resolved the problem, {{failed}} did not, {{verifying}} still being checked.": "Verification: {{verified}} resolved the problem, {{failed}} did not, {{verifying}} still being checked.",
+  "Verification: {{verified}} resolved the problem, {{failed}} did not, {{verifying}} still being checked.": "सत्यापन: {{verified}} ने समस्या हल की, {{failed}} ने नहीं की, {{verifying}} की जाँच अभी जारी है।",
   "What OneUptime AI has learned about this {{noun}} in the last 30 days, and what deserves your attention.": "What OneUptime AI has learned about this {{noun}} in the last 30 days, and what deserves your attention.",
   "What OneUptime AI's work here says deserves a look, most important first.": "What OneUptime AI's work here says deserves a look, most important first.",
   "What OneUptime did to fix this automatically, or why it did nothing.": "OneUptime ने इसे अपने आप ठीक करने के लिए क्या किया, या उसने कुछ क्यों नहीं किया।",
@@ -42293,5 +42293,5 @@
   "In Slack": "Slack में",
   "Runbook Track Record": "रनबुक के पिछले परिणाम",
   "Where fixes were approved": "सुधार कहाँ स्वीकृत हुए",
-  "You do not have permission to dismiss this fix. Dismissing a fix needs the permission approving one does: starting runbook executions in this project.": "आपको यह सुधार खारिज करने की अनुमति नहीं है। सुधार खारिज करने के लिए वही अनुमति चाहिए जो उसे स्वीकृत करने के लिए: इस प्रोजेक्ट में रनबुक निष्पादन शुरू करना।"
+  "You do not have permission to dismiss this fix. Dismissing a fix needs the same permission as approving one: starting runbook executions in this project.": "आपको यह सुधार खारिज करने की अनुमति नहीं है। सुधार खारिज करने के लिए वही अनुमति चाहिए जो उसे स्वीकृत करने के लिए: इस प्रोजेक्ट में रनबुक निष्पादन शुरू करना।"
 }

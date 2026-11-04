@@ -20607,8 +20607,8 @@
   "Could not load this item's connections.": "Could not load this item's connections.",
   "Could not load this item's connections. {{detail}}": "Could not load this item's connections. {{detail}}",
   "Could not save your action: the fix was not approved and nothing ran": "無法儲存您的操作：修正未獲核准，也沒有執行任何內容",
-  "Could not save your action: the suggestion was not dismissed": "無法儲存您的操作：建議未被忽略",
-  "Could not save your action: the suggestion was not dismissed — this fix had already started; see its commands below": "無法儲存您的操作：建議未被忽略——此修正先前已開始執行；請查看下方的命令",
+  "Could not save your action: the fix was not dismissed": "無法儲存您的操作：修正未被忽略",
+  "Could not save your action: the fix was not dismissed — it had already started; see its commands below": "無法儲存您的操作：修正未被忽略——它先前已開始執行；請查看下方的命令",
   "Couldn't load the fields of {{value}}: {{error}}": "無法載入 {{value}} 的欄位：{{error}}",
   "Couldn't load the variables: {{error}}": "無法載入變數：{{error}}",
   "Couldn't load this model's columns ({{error}}). You can still write the query as JSON.": "Couldn't load this model's columns ({{error}}). You can still write the query as JSON.",
@@ -24400,7 +24400,7 @@
   "Add the host, cluster or database it is about under Affected Resources, and OneUptime AI tries again. Link its monitor to what it watches, and every {{signal}} it raises from then on is linked for you.": "在受影響的資源中加入它所涉及的主機、叢集或資料庫，OneUptime AI 會再試一次。將其監測器連結到它所監測的對象後，此後它產生的每個{{signal}}都會自動連結。",
   "This {{signal}} is not linked to a Kubernetes cluster.": "此{{signal}}未連結到 Kubernetes 叢集。",
   "This {{signal}} is not linked to an infrastructure resource with an AI agent.": "此{{signal}}未連結到具有 AI 代理程式的基礎設施資源。",
-  "Verification: {{verified}} resolved the problem, {{failed}} did not, {{verifying}} still being checked.": "Verification: {{verified}} resolved the problem, {{failed}} did not, {{verifying}} still being checked.",
+  "Verification: {{verified}} resolved the problem, {{failed}} did not, {{verifying}} still being checked.": "驗證：{{verified}} 個解決了問題，{{failed}} 個未解決，{{verifying}} 個仍在檢查。",
   "What OneUptime AI has learned about this {{noun}} in the last 30 days, and what deserves your attention.": "What OneUptime AI has learned about this {{noun}} in the last 30 days, and what deserves your attention.",
   "What OneUptime AI's work here says deserves a look, most important first.": "What OneUptime AI's work here says deserves a look, most important first.",
   "What OneUptime did to fix this automatically, or why it did nothing.": "OneUptime 為自動修復此問題做了什麼，或者為什麼什麼都沒做。",
@@ -42293,5 +42293,5 @@
   "In Slack": "在 Slack 中",
   "Runbook Track Record": "操作手冊的過往結果",
   "Where fixes were approved": "修正的核准位置",
-  "You do not have permission to dismiss this fix. Dismissing a fix needs the permission approving one does: starting runbook executions in this project.": "您沒有忽略此修正的權限。忽略修正所需的權限與核准修正相同：在此專案中啟動操作手冊執行。"
+  "You do not have permission to dismiss this fix. Dismissing a fix needs the same permission as approving one: starting runbook executions in this project.": "您沒有忽略此修正的權限。忽略修正所需的權限與核准修正相同：在此專案中啟動操作手冊執行。"
 }

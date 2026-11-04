@@ -291,7 +291,7 @@ describe("approving or dismissing a fix from a chat", () => {
     );
     expect(approval).toContain("assertCanDismissFixes(");
     expect(FIX_DISMISS_REFUSED_MESSAGE).toContain(
-      "Dismissing a fix needs the permission approving one does: starting runbook executions in this project.",
+      "Dismissing a fix needs the same permission as approving one: starting runbook executions in this project.",
     );
   });
 

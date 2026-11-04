@@ -475,7 +475,9 @@ describe("RemediationStep Approve & Run", () => {
       "remediation-action-error",
     );
     expect(alert).toHaveTextContent("You cannot dismiss this.");
-    expect(alert).toHaveTextContent("the suggestion was not dismissed");
+    // A fix, as the button names it - never the model's "suggestion".
+    expect(alert).toHaveTextContent("the fix was not dismissed");
+    expect(alert).not.toHaveTextContent("suggestion");
     expect(alert).not.toHaveTextContent("nothing ran");
   });
 
@@ -484,6 +486,35 @@ describe("RemediationStep Approve & Run", () => {
     expect(getActionErrorTitle("approve")).toMatch(/nothing ran/);
     expect(getActionErrorTitle("dismiss")).toMatch(/not dismissed/);
     expect(getActionErrorTitle(null)).toBe("Could not save your action");
+  });
+
+  /*
+   * The UI review of #5519's follow-ups: a refused Dismiss fix said "the
+   * suggestion was not dismissed" under a button that says Dismiss fix.
+   * Each headline is the key RemediationFollowUpWordsInLocale holds every
+   * language to.
+   */
+  test("every refusal headline names a fix, as the step's buttons do, never a suggestion", () => {
+    expect(getActionErrorTitle("dismiss")).toBe(
+      "Could not save your action: the fix was not dismissed",
+    );
+
+    for (const action of ["approve", "dry-run", "dismiss", null] as const) {
+      for (const status of [
+        undefined,
+        ...Object.values(AutoRemediationSuggestionStatus),
+      ]) {
+        expect({
+          action,
+          status,
+          title: getActionErrorTitle(action, status),
+        }).toEqual({
+          action,
+          status,
+          title: expect.not.stringContaining("suggestion"),
+        });
+      }
+    }
   });
 
   /*
@@ -518,7 +549,9 @@ describe("RemediationStep Approve & Run", () => {
 
     expect(
       getActionErrorTitle("dismiss", AutoRemediationSuggestionStatus.Approved),
-    ).toMatch(/not dismissed — this fix had already started/);
+    ).toBe(
+      "Could not save your action: the fix was not dismissed — it had already started; see its commands below",
+    );
   });
 
   test("an approval refused because a teammate already approved does not say nothing ran", async () => {

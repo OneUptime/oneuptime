@@ -78,7 +78,7 @@ export const RUNBOOK_RUN_REFUSED_MESSAGE: string =
  * and Microsoft Teams message (WorkspaceRemediationActions).
  */
 export const FIX_DISMISS_REFUSED_MESSAGE: string =
-  "You do not have permission to dismiss this fix. Dismissing a fix needs the permission approving one does: starting runbook executions in this project.";
+  "You do not have permission to dismiss this fix. Dismissing a fix needs the same permission as approving one: starting runbook executions in this project.";
 
 // What a refused complete, skip or cancel says.
 export const RUNBOOK_ADVANCE_REFUSED_MESSAGE: string =

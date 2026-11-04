@@ -19,6 +19,12 @@ import AutoRemediationSuggestion from "../../../Models/DatabaseModels/AutoRemedi
  * own words, or lost a placeholder is caught. The chats' and the product's
  * names stay as their makers write them. And Dismiss fix is never the word
  * the shared Dismiss became in most languages (#5512): their Hide.
+ *
+ * With them, the UI review's words: what a refused Dismiss fix says
+ * happened (the fix was not dismissed - a "fix", as its button says;
+ * RemediationSuggestionCardApproval holds the step to these keys), and the
+ * Fixes section's verification line, right over Where fixes were approved,
+ * which every language read in English.
  */
 
 const DASHBOARD_DIR: string = path.resolve(
@@ -65,6 +71,16 @@ function columnTitle(column: string): string {
   return title || "";
 }
 
+// A refused Dismiss fix's headlines (RemediationStep's getActionErrorTitle).
+const FIX_NOT_DISMISSED: string =
+  "Could not save your action: the fix was not dismissed";
+const FIX_NOT_DISMISSED_STARTED: string =
+  "Could not save your action: the fix was not dismissed — it had already started; see its commands below";
+
+// The Fixes section's verification line (describeFixVerification), as its key.
+const FIX_VERIFICATION_LINE: string =
+  "Verification: {{verified}} resolved the problem, {{failed}} did not, {{verifying}} still being checked.";
+
 const WORDS: Array<string> = [
   REMEDIATION_FIX_DISMISS,
   REMEDIATION_FIX_DISMISS_REFUSED,
@@ -79,6 +95,9 @@ const WORDS: Array<string> = [
   "Cloud environment",
   columnTitle("approvedFrom"),
   columnTitle("runbookTrackRecord"),
+  FIX_NOT_DISMISSED,
+  FIX_NOT_DISMISSED_STARTED,
+  FIX_VERIFICATION_LINE,
 ];
 
 /*

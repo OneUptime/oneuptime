@@ -352,8 +352,7 @@ describe("the Remediation step in Japanese", () => {
       "remediation-dismiss-button",
     );
     expect(dismiss).toHaveTextContent(japanese(REMEDIATION_FIX_DISMISS));
-    // The shared Dismiss is Japanese's Hide: a fix is not hidden.
-    expect(JA["Dismiss"]).toBe(JA["Hide"]);
+    // A fix is not hidden, whatever the shared Dismiss reads.
     expect(dismiss).not.toHaveTextContent(JA["Hide"]!);
 
     await act(async (): Promise<void> => {
@@ -364,7 +363,7 @@ describe("the Remediation step in Japanese", () => {
       "remediation-action-error",
     );
     expect(notice).toHaveTextContent(
-      japanese("Could not save your action: the suggestion was not dismissed"),
+      japanese("Could not save your action: the fix was not dismissed"),
     );
     expect(notice).toHaveTextContent(japanese(FIX_DISMISS_REFUSED_MESSAGE));
   });

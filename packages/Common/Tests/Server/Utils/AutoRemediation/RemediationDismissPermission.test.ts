@@ -296,7 +296,7 @@ describe("what dismissing asks is what approving and the chats ask", () => {
 
   test("the refusal says what dismissing needs, in words a person reads", () => {
     expect(FIX_DISMISS_REFUSED_MESSAGE).toBe(
-      "You do not have permission to dismiss this fix. Dismissing a fix needs the permission approving one does: starting runbook executions in this project.",
+      "You do not have permission to dismiss this fix. Dismissing a fix needs the same permission as approving one: starting runbook executions in this project.",
     );
   });
 });

@@ -20607,8 +20607,8 @@
   "Could not load this item's connections.": "Could not load this item's connections.",
   "Could not load this item's connections. {{detail}}": "Could not load this item's connections. {{detail}}",
   "Could not save your action: the fix was not approved and nothing ran": "Не удалось сохранить ваше действие: исправление не подтверждено, и ничего не запускалось",
-  "Could not save your action: the suggestion was not dismissed": "Не удалось сохранить ваше действие: предложение не отклонено",
-  "Could not save your action: the suggestion was not dismissed — this fix had already started; see its commands below": "Не удалось сохранить ваше действие: предложение не отклонено — это исправление уже было запущено; его команды показаны ниже",
+  "Could not save your action: the fix was not dismissed": "Не удалось сохранить ваше действие: исправление не отклонено",
+  "Could not save your action: the fix was not dismissed — it had already started; see its commands below": "Не удалось сохранить ваше действие: исправление не отклонено — оно уже было запущено; его команды показаны ниже",
   "Couldn't load the fields of {{value}}: {{error}}": "Не удалось загрузить поля {{value}}: {{error}}",
   "Couldn't load the variables: {{error}}": "Не удалось загрузить переменные: {{error}}",
   "Couldn't load this model's columns ({{error}}). You can still write the query as JSON.": "Couldn't load this model's columns ({{error}}). You can still write the query as JSON.",
@@ -24400,7 +24400,7 @@
   "Add the host, cluster or database it is about under Affected Resources, and OneUptime AI tries again. Link its monitor to what it watches, and every {{signal}} it raises from then on is linked for you.": "Добавьте хост, кластер или базу данных, к которым оно относится, в разделе «Затронутые ресурсы», и OneUptime AI попробует снова. Свяжите его монитор с тем, за чем он следит, и каждое событие ({{signal}}), которое он создаст после этого, будет связано автоматически.",
   "This {{signal}} is not linked to a Kubernetes cluster.": "Это событие ({{signal}}) не связано с кластером Kubernetes.",
   "This {{signal}} is not linked to an infrastructure resource with an AI agent.": "Это событие ({{signal}}) не связано с ресурсом инфраструктуры, у которого есть ИИ-агент.",
-  "Verification: {{verified}} resolved the problem, {{failed}} did not, {{verifying}} still being checked.": "Verification: {{verified}} resolved the problem, {{failed}} did not, {{verifying}} still being checked.",
+  "Verification: {{verified}} resolved the problem, {{failed}} did not, {{verifying}} still being checked.": "Проверка: устранили проблему — {{verified}}, не устранили — {{failed}}, ещё проверяются — {{verifying}}.",
   "What OneUptime AI has learned about this {{noun}} in the last 30 days, and what deserves your attention.": "What OneUptime AI has learned about this {{noun}} in the last 30 days, and what deserves your attention.",
   "What OneUptime AI's work here says deserves a look, most important first.": "What OneUptime AI's work here says deserves a look, most important first.",
   "What OneUptime did to fix this automatically, or why it did nothing.": "Что OneUptime сделал, чтобы исправить это автоматически, или почему ничего не сделал.",
@@ -42293,5 +42293,5 @@
   "In Slack": "В Slack",
   "Runbook Track Record": "Прошлые результаты сценария",
   "Where fixes were approved": "Где одобрены исправления",
-  "You do not have permission to dismiss this fix. Dismissing a fix needs the permission approving one does: starting runbook executions in this project.": "У вас нет прав отклонить это исправление. Чтобы отклонить исправление, нужно то же право, что и для его одобрения: запуск выполнений сценариев в этом проекте."
+  "You do not have permission to dismiss this fix. Dismissing a fix needs the same permission as approving one: starting runbook executions in this project.": "У вас нет прав отклонить это исправление. Чтобы отклонить исправление, нужно то же право, что и для его одобрения: запуск выполнений сценариев в этом проекте."
 }
