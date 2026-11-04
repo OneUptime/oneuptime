@@ -228,6 +228,8 @@ flowchart TB
 
 除電話外，每種方式都會在執行任何操作前先詢問，並說明將會發生什麼，例如 "This will immediately page Platform leads (Level 2 of 3), without waiting."；在電話中，按 2 就是回答。只有被呼叫的人才能升級自己的呼叫：OneUptime 中的按鈕只對本人顯示，訊息中的連結只能升級該訊息所涉及的呼叫，只對收件人本人有效，有效期為 7 天。
 
+如果你的級別之後還有兩個或更多級別，OneUptime 和訊息連結開啟的頁面還會在 **升級到** 下詢問要呼叫哪個級別，並預設選取下一個級別。保持不變即像以往一樣呼叫下一個級別；選擇更後面的級別則會立即呼叫該級別：中間的級別會被略過，策略從你選擇的級別繼續。電話和 OneUptime On-Call 應用程式會呼叫下一個級別。
+
 接下來會發生什麼，取決於還有誰正在被呼叫：
 
 - 同一級別上還有其他人正在被呼叫：策略照舊等待他們。當該級別的等待時間結束，或其中最後一人也升級了呼叫時，策略才會繼續。
@@ -238,7 +240,7 @@ flowchart TB
 
 工作流程直接傳給相關人員的呼叫沒有級別：升級後你不會再被呼叫，當它呼叫的所有人都已升級時，呼叫停止。
 
-每次升級都會被記錄。執行的 **執行時間軸** 會把此人的那一列標為 **已升級** ，事件的 Feed 會寫 "Alex Kim escalated the page from on-call policy Payments at Level 1 of 3."，策略執行在 Slack 和 Microsoft Teams 中的訊息會註明此人已升級，此人的 **待命日誌** 也會把這次呼叫顯示為 **已升級** 。
+每次升級都會被記錄。執行的 **執行時間軸** 會把此人的那一列標為 **已升級** ，事件的 Feed 會寫 "Alex Kim escalated the page from on-call policy Payments at Level 1 of 3."，策略執行在 Slack 和 Microsoft Teams 中的訊息會註明此人已升級，此人的 **待命日誌** 也會把這次呼叫顯示為 **已升級** 。為更後面的級別而略過的級別在 **執行時間軸** 中標為 **已略過** ，Feed 會寫 "On-call policy Payments skipped Platform leads (Level 2 of 3): the page was escalated past it."。
 
 ## 編輯、重新排序和刪除規則
 
