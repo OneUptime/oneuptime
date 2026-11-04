@@ -191,7 +191,7 @@ Eine Wahl zu treffen fragt nach einer Bestätigung, sagt, was sich für Besucher
 
 ### Private Benutzer
 
-Fügen Sie die Personen, die sich anmelden dürfen, auf **Statusseiten → Ihre Seite → Sicherheit → Private Benutzer** hinzu. Es gibt eine Aktion **In großen Mengen hinzufügen** – fügen Sie eine Liste von E-Mail-Adressen ein, und jede bekommt eine Einladungs-E-Mail. Private Benutzer haben ihren eigenen Ablauf für „Passwort vergessen“ und „Passwort zurücksetzen“, getrennt von den Konten Ihres OneUptime-Projekts.
+Fügen Sie die Personen, die sich anmelden dürfen, auf **Statusseiten → Ihre Seite → Sicherheit → Private Benutzer** hinzu. Es gibt eine Aktion **In großen Mengen hinzufügen** – fügen Sie eine Liste von E-Mail-Adressen ein, und jede bekommt eine Einladungs-E-Mail. Private Benutzer haben ihren eigenen Ablauf für „Passwort vergessen“ und „Passwort zurücksetzen“, getrennt von den Konten Ihres OneUptime-Projekts. Ein neues Passwort meldet sie auf jedem Gerät ab, und jeder bereits gesendete Anmeldelink oder Link zum Zurücksetzen funktioniert nicht mehr.
 
 **Private Benutzer und das Passwort lassen sich nicht kombinieren.** Solange **Alle mit dem Passwort** die Wahl ist, können sich private Benutzer nicht anmelden – sie geben ebenfalls das Passwort ein –, und der Bildschirm **Private Benutzer** sagt das, mit einem Link zurück zu **Zugriff**.
 

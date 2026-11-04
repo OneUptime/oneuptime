@@ -10,6 +10,7 @@ import QueryHelper from "../Types/Database/QueryHelper";
 import ProjectReferencesService from "./ProjectReferencesService";
 import MailService from "./MailService";
 import ProjectSMTPConfigService from "./ProjectSmtpConfigService";
+import StatusPagePrivateUserSessionService from "./StatusPagePrivateUserSessionService";
 import StatusPageService from "./StatusPageService";
 import CaptureSpan from "../Utils/Telemetry/CaptureSpan";
 import Hostname from "../../Types/API/Hostname";
@@ -262,6 +263,74 @@ export class Service extends ProjectReferencesService<Model> {
       updateBy: updateBy,
       carryForward: null,
     };
+  }
+
+  /*
+   * A new password ends the links already sent for this private user, however
+   * it is set: their reset link's page, or a teammate writing it through the
+   * API. A reader sets one because somebody else may have the old password or
+   * may be reading their mail, and each link is a bearer credential found by its
+   * token's hash and the status page alone:
+   *
+   *   - a sign-in link (Types/StatusPage/StatusPageMagicLink) stands in for the
+   *     password, and signs in outright;
+   *   - a reset link replaces the password. Whoever holds one could otherwise
+   *     set another, for up to a day, undoing this one.
+   *
+   * Written here, after every permission check, and never in onBeforeUpdate:
+   * the links' columns are OneUptime's (update: []), and DatabaseService holds
+   * what onBeforeUpdate leaves to the caller's column permissions - so written
+   * there, they would refuse a teammate's write.
+   *
+   * And in the password's own UPDATE: there is no instant at which the new
+   * password is stored and a link still works, a link sent while the write is on
+   * its way is on the row for it to clear, and a write that fails leaves the
+   * password and the links as they were.
+   *
+   * A hook-free write skips this and onUpdateSuccess below: any new caller that
+   * writes `password` with `ignoreHooks: true` has to do what they do itself.
+   * The upgrade of a legacy hash (verifyHashedColumnValue) is hook-free and stays
+   * so: it stores the same password.
+   */
+  @CaptureSpan()
+  protected override async onUpdatePermitted(
+    updateBy: UpdateBy<Model>,
+  ): Promise<void> {
+    await super.onUpdatePermitted(updateBy);
+
+    if (!updateBy.data.password) {
+      return;
+    }
+
+    updateBy.data.resetPasswordToken = null!;
+    updateBy.data.resetPasswordExpires = null!;
+    updateBy.data.magicLinkToken = null!;
+    updateBy.data.magicLinkExpires = null!;
+  }
+
+  /*
+   * And it ends their sessions, and with them any SSO login code not yet
+   * exchanged: a session otherwise goes on for as long as it is used, so a reader
+   * who resets their password to lock somebody out would not have locked them
+   * out. Every read of a session asks whether it was revoked
+   * (StatusPageService.findSignedInSession), so it ends at their next request,
+   * not when an access token runs out.
+   */
+  @CaptureSpan()
+  protected override async onUpdateSuccess(
+    onUpdate: OnUpdate<Model>,
+    updatedItemIds: Array<ObjectID>,
+  ): Promise<OnUpdate<Model>> {
+    if (onUpdate.updateBy.data.password) {
+      for (const userId of updatedItemIds) {
+        await StatusPagePrivateUserSessionService.revokeAllSessionsByPrivateUserId(
+          userId,
+          { reason: "Password changed" },
+        );
+      }
+    }
+
+    return onUpdate;
   }
 
   @CaptureSpan()

@@ -191,7 +191,7 @@ Et valg ber om bekreftelse og sier hva som endres for de besøkende, og lagres m
 
 ### Private brukere
 
-Legg til personene som kan logge inn, under **Statussider → siden din → Sikkerhet → Private brukere**. Det finnes en handling **Legg til i bulk**: lim inn en liste med e-postadresser, så får hver adresse en invitasjons-e-post. Private brukere har sin egen flyt for glemt passord og tilbakestilling, atskilt fra kontoene i OneUptime-prosjektet ditt.
+Legg til personene som kan logge inn, under **Statussider → siden din → Sikkerhet → Private brukere**. Det finnes en handling **Legg til i bulk**: lim inn en liste med e-postadresser, så får hver adresse en invitasjons-e-post. Private brukere har sin egen flyt for glemt passord og tilbakestilling, atskilt fra kontoene i OneUptime-prosjektet ditt. Et nytt passord logger dem ut på alle enheter, og enhver innloggingslenke eller tilbakestillingslenke som allerede er sendt, slutter å virke.
 
 **Private brukere og passordet legges ikke sammen.** Så lenge **Alle med passordet** er valget, kan private brukere ikke logge inn (de skriver også inn passordet), og skjermen **Private brukere** sier det, med en lenke tilbake til **Tilgang**.
 

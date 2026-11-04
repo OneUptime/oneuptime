@@ -354,6 +354,22 @@ describe("the password reset email", () => {
   });
 });
 
+describe("a private status page's password changed email", () => {
+  it("says what changed and what was signed out", () => {
+    const rendered: string = textOf(
+      render("StatusPagePasswordChanged", {
+        ...ORIGIN,
+        statusPageName: "Acme Status",
+      }),
+    );
+
+    expect(rendered).toContain("Your password was changed.");
+    expect(rendered).toContain(
+      "The password you use to log in to Acme Status was just changed, and every device that was signed in with it has been signed out.",
+    );
+  });
+});
+
 describe("the password changed email", () => {
   it("says what changed and what was signed out", () => {
     const rendered: string = textOf(render("PasswordChanged", ORIGIN));
