@@ -227,6 +227,13 @@ x-common-runtime-variables: &common-runtime-variables
   # every visitor look like the ingress container.
   TRUSTED_PROXY_HOPS: ${TRUSTED_PROXY_HOPS:-1}
 
+  # The headers your CDN or load balancer writes the visitor's country, region
+  # and city into, which security emails read to say roughly where a request
+  # came from. Empty reads none: see config.example.env.
+  TRUSTED_GEO_COUNTRY_HEADER: ${TRUSTED_GEO_COUNTRY_HEADER:-}
+  TRUSTED_GEO_REGION_HEADER: ${TRUSTED_GEO_REGION_HEADER:-}
+  TRUSTED_GEO_CITY_HEADER: ${TRUSTED_GEO_CITY_HEADER:-}
+
   # Open Source Deployment Webhook
   OPEN_SOURCE_DEPLOYMENT_WEBHOOK_URL: ${OPEN_SOURCE_DEPLOYMENT_WEBHOOK_URL}
 

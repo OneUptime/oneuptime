@@ -1,6 +1,7 @@
 import { PlanType } from "../Billing/SubscriptionPlan";
 import Dictionary from "../Dictionary";
 import ObjectID from "../ObjectID";
+import RequestOrigin from "../RequestOrigin";
 import {
   UserGlobalAccessPermission,
   UserTenantAccessPermission,
@@ -58,4 +59,11 @@ export default interface DatabaseCommonInteractionProps {
    * every tool being classified correctly.
    */
   isReadOnlyCredential?: boolean | undefined;
+  /*
+   * Where the request that made the change came from - its address, place
+   * and device (Server/Utils/RequestOrigin) - for the security emails a
+   * write sends its owner, and for nothing else: no permission check reads
+   * it. "Your password was changed" (UserService) says from where.
+   */
+  requestOrigin?: RequestOrigin | undefined;
 }

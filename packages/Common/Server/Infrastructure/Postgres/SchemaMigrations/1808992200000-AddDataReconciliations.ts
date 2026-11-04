@@ -4,7 +4,10 @@ import { MigrationInterface, QueryRunner } from "typeorm";
  * Reconciliations (DataReconciliation): one measure of two tables compared
  * with a tolerance - a new table, its indexes and keys built with it - and,
  * on DataCheck, the reconciliation a check reads a side of: a nullable
- * column, a catalogue change, indexed on a table of one row per check.
+ * column, a catalogue change.
+ *
+ * The index on that column is built online, without blocking the table's
+ * writes, by AddDataCheckReconciliationIndex1808992540000.
  */
 export class AddDataReconciliations1808992200000 implements MigrationInterface {
   public name: string = "AddDataReconciliations1808992200000";
@@ -36,9 +39,6 @@ export class AddDataReconciliations1808992200000 implements MigrationInterface {
     );
     await queryRunner.query(
       `ALTER TABLE "DataCheck" ADD "dataReconciliationId" uuid`,
-    );
-    await queryRunner.query(
-      `CREATE INDEX "IDX_e4cb27aa7170e1f4419363439e" ON "DataCheck" ("dataReconciliationId") `,
     );
     await queryRunner.query(
       `ALTER TABLE "DataReconciliation" ADD CONSTRAINT "FK_7ab6f0fd1e8bd5f14197d5bd0b7" FOREIGN KEY ("projectId") REFERENCES "Project"("_id") ON DELETE CASCADE ON UPDATE NO ACTION`,
@@ -90,9 +90,6 @@ export class AddDataReconciliations1808992200000 implements MigrationInterface {
     );
     await queryRunner.query(
       `ALTER TABLE "DataReconciliation" DROP CONSTRAINT "FK_7ab6f0fd1e8bd5f14197d5bd0b7"`,
-    );
-    await queryRunner.query(
-      `DROP INDEX "public"."IDX_e4cb27aa7170e1f4419363439e"`,
     );
     await queryRunner.query(
       `ALTER TABLE "DataCheck" DROP COLUMN "dataReconciliationId"`,

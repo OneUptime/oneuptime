@@ -1,0 +1,16 @@
+{{!--
+  WHERE A REQUEST CAME FROM: the rows a security email adds to its detail
+  card, between DetailBoxStart and DetailBoxEnd, under the row that says
+  when - so its owner can tell their own request from somebody else's.
+  Common/Server/Utils/RequestOrigin/RequestOriginUtil.getEmailVars writes
+  all three values.
+
+  Each is printed escaped (plainText): the device is built only of names
+  UserAgentDevice spells out and the place only of what a header the
+  operator named says, but neither is markup. A row without a value does
+  not show - an installation that names no geo header has no location, and
+  an email with no request behind it has none of the three.
+--}}
+{{> DetailBoxField title="IP address:" plainText=requestIpAddress }}
+{{> DetailBoxField title="Approximate location:" plainText=requestLocation }}
+{{> DetailBoxField title="Device:" plainText=requestDevice }}

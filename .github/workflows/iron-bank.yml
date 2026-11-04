@@ -1,34 +1,38 @@
 name: Iron Bank Preflight
 
-# Does to the App's Iron Bank project (IronBank/App) what Iron Bank
-# (registry1.dso.mil) does to it, before Iron Bank does, so what Iron Bank will
-# find is known before a merge request reaches Repo1. IronBank/README.md
-# describes the whole process. The job:
+# Does to OneUptime's Iron Bank projects (IronBank/<Project>: the App, the
+# ingress, the runner and the probe) what Iron Bank (registry1.dso.mil) does to
+# them, before Iron Bank does, so what Iron Bank will find is known before a
+# merge request reaches Repo1. IronBank/README.md describes the whole process.
+# One job per project:
 #
-#   1. Pins IronBank/App to a release (Scripts/IronBank/PinRelease.js). On a
+#   1. Pins the project to a release (Scripts/IronBank/PinRelease.js). On a
 #      pull request it checks that the committed pin is the release as Docker
 #      Hub has it; on the schedule, or when run by hand, it moves the pin to
 #      the latest published release (or the one asked for), as the next merge
 #      request to Repo1 will.
-#   2. Runs the Ops suites that hold IronBank/App to packages/App/Dockerfile.tpl
-#      and test the scripts below (Tests/Ops/IronBank*.test.js).
+#   2. Runs the Ops suites that hold the projects to the Dockerfiles their
+#      release images are built from, and test the scripts below
+#      (Tests/Ops/IronBank*.test.js).
 #   3. Lints the project with Iron Bank's own schema and semgrep rules
-#      (Scripts/IronBank/lint.sh).
+#      (Scripts/IronBank/lint.sh). The ingress and the probe run as root, as
+#      their releases do, which Iron Bank accepts with a justification.
 #   4. With a Registry1 robot account (secrets REGISTRY1_USERNAME and
 #      REGISTRY1_PASSWORD): fetches the manifest's resources as Iron Bank's
-#      pipeline does (Scripts/IronBank/fetch_resources.sh), builds the
-#      Dockerfile on Iron Bank's base image with the manifest's labels, checks
-#      it is the Enterprise Edition, boots it with PostgreSQL, ClickHouse and
-#      Valkey (Tests/Ops/AppImageRuntime.test.js), and scans it and its base
-#      image with Grype and Trivy, and its files with ClamAV.
-#      Scripts/IronBank/NewFindings.js sorts the findings against
-#      IronBank/Justifications/App.yaml into the run's summary, and a new high
-#      or critical one fails the run.
-#   5. Uploads IronBank/App as pinned, the files to push to Repo1, with the
-#      scans.
+#      pipeline does (Scripts/IronBank/fetch_resources.sh), and builds the
+#      Dockerfile on Iron Bank's base image with the manifest's labels. The App
+#      is checked to be the Enterprise Edition and booted with PostgreSQL,
+#      ClickHouse and Valkey (Tests/Ops/AppImageRuntime.test.js); the others
+#      run their smoke tests (Scripts/IronBank/smoke_test.sh). Then the image
+#      and its base image are scanned with Grype and Trivy, and its files with
+#      ClamAV, and Scripts/IronBank/NewFindings.js sorts the findings against
+#      IronBank/Justifications/<Project>.yaml into the run's summary: a new
+#      high or critical one fails the job.
+#   5. Uploads the project's files as pinned, the files to push to Repo1, with
+#      the scans.
 #
 # Without the robot account, and on a fork's pull requests (which get no
-# secrets), it stops after step 3 with a warning.
+# secrets), each job stops after step 3 with a warning.
 
 # Supersede in-flight runs for the same branch/PR: only the newest commit needs CI.
 concurrency:
@@ -58,12 +62,31 @@ permissions:
 
 jobs:
   preflight:
+    name: Preflight ${{ matrix.project }}
     runs-on: ubuntu-latest
     timeout-minutes: 90
+    strategy:
+      # Each project is its own image: one failing says nothing of the others.
+      fail-fast: false
+      matrix:
+        include:
+          - project: App
+            image: oneuptime/app
+          - project: Ingress
+            image: oneuptime/nginx
+            allow_root: "1"
+          - project: Runner
+            image: oneuptime/runner
+          - project: Probe
+            image: oneuptime/probe
+            allow_root: "1"
     env:
-      PROJECT: IronBank/App
-      # The tag Tests/Ops/AppImageRuntime.test.js boots (APP_IMAGE_TAG).
+      NAME: ${{ matrix.project }}
+      PROJECT: IronBank/${{ matrix.project }}
+      # The App's is the tag Tests/Ops/AppImageRuntime.test.js boots
+      # (APP_IMAGE_TAG).
       IMAGE_TAG: iron-bank-preflight
+      IMAGE: ${{ matrix.image }}:iron-bank-preflight
       GRYPE: anchore/grype:v0.121.0
       TRIVY: aquasec/trivy:0.76.0
       CLAMAV: clamav/clamav:1.5.4
@@ -105,23 +128,25 @@ jobs:
           echo "version=${VERSION}" >> "$GITHUB_OUTPUT"
 
       # PinRelease.js refuses anything that is not major.minor.patch.
-      - name: Pin IronBank/App to the release
+      - name: Pin the project to the release
         env:
           EVENT: ${{ github.event_name }}
           VERSION: ${{ steps.release.outputs.version }}
         run: |
           if [ "$EVENT" = "pull_request" ]; then
-            node Scripts/IronBank/PinRelease.js --version "$VERSION" --check
+            node Scripts/IronBank/PinRelease.js --project "$NAME" --version "$VERSION" --check
           else
-            node Scripts/IronBank/PinRelease.js --version "$VERSION"
+            node Scripts/IronBank/PinRelease.js --project "$NAME" --version "$VERSION"
             git diff -- "$PROJECT"
           fi
 
-      - name: Check IronBank/App against the App's Dockerfile
+      - name: Check the projects against the release Dockerfiles
         working-directory: Tests/Ops
         run: npx jest --config ./jest.config.json IronBank
 
       - name: Lint as Iron Bank's pipeline does
+        env:
+          ALLOW_ROOT: ${{ matrix.allow_root || '0' }}
         run: bash Scripts/IronBank/lint.sh "$PROJECT"
 
       - name: Look for the Registry1 robot account
@@ -151,9 +176,9 @@ jobs:
 
       # As Iron Bank's pipeline builds it: the base image the manifest's args
       # name (under registry1's ironbank/ project), and the manifest's labels.
-      # The build reaches Alpine's package repositories for the Dockerfile's
-      # apk, as Iron Bank's does through its proxy; IronBankApp.test.js holds
-      # the Dockerfile to fetching nothing else.
+      # The build reaches Alpine's or Debian's package repositories for the
+      # Dockerfile's packages, as Iron Bank's does through its proxy; the Ops
+      # suites hold the Dockerfiles to fetching nothing else.
       - name: Build the image on Iron Bank's base image
         if: steps.registry1.outputs.available == 'true'
         run: |
@@ -169,17 +194,21 @@ jobs:
             --build-arg BASE_IMAGE="$BASE_IMAGE" \
             --build-arg BASE_TAG="$BASE_TAG" \
             "${LABELS[@]}" \
-            -t "oneuptime/app:${IMAGE_TAG}" \
+            -t "$IMAGE" \
             "$PROJECT"
 
-      - name: Check it is the Enterprise Edition
-        if: steps.registry1.outputs.available == 'true'
-        run: bash ./Scripts/GHA/check_app_image_edition.sh --image "oneuptime/app:${IMAGE_TAG}" --edition enterprise
+      - name: Check the App is the Enterprise Edition
+        if: steps.registry1.outputs.available == 'true' && matrix.project == 'App'
+        run: bash ./Scripts/GHA/check_app_image_edition.sh --image "$IMAGE" --edition enterprise
 
-      - name: Boot it with its datastores
-        if: steps.registry1.outputs.available == 'true'
+      - name: Boot the App with its datastores
+        if: steps.registry1.outputs.available == 'true' && matrix.project == 'App'
         working-directory: Tests/Ops
         run: RUN_APP_IMAGE_RUNTIME_TESTS=1 APP_IMAGE_TAG="$IMAGE_TAG" npx jest --config ./jest.config.json AppImageRuntime
+
+      - name: Smoke-test the image
+        if: steps.registry1.outputs.available == 'true' && matrix.project != 'App'
+        run: bash Scripts/IronBank/smoke_test.sh "$NAME" "$IMAGE"
 
       # Both scanners read the images as `docker save` writes them, keep their
       # vulnerability databases in one cache for both images, and write their
@@ -189,7 +218,7 @@ jobs:
         run: |
           SCANS="$RUNNER_TEMP/iron-bank/scans"
           mkdir -p "$SCANS" "$RUNNER_TEMP/scanner-cache"
-          docker save "oneuptime/app:${IMAGE_TAG}" -o "$RUNNER_TEMP/image.tar"
+          docker save "$IMAGE" -o "$RUNNER_TEMP/image.tar"
           docker save "$BASE" -o "$RUNNER_TEMP/base.tar"
           for TARGET in image base; do
             docker run --rm -v "$RUNNER_TEMP:/work" -e GRYPE_DB_CACHE_DIR=/work/scanner-cache/grype \
@@ -206,7 +235,7 @@ jobs:
         run: |
           ROOTFS="$RUNNER_TEMP/rootfs"
           mkdir -p "$ROOTFS"
-          CONTAINER="$(docker create "oneuptime/app:${IMAGE_TAG}")"
+          CONTAINER="$(docker create "$IMAGE")"
           docker export "$CONTAINER" | sudo tar -x -C "$ROOTFS" --exclude='dev/*'
           docker rm "$CONTAINER" > /dev/null
           docker run --rm -v "$ROOTFS:/scan:ro" --entrypoint clamscan "$CLAMAV" \
@@ -218,27 +247,31 @@ jobs:
           VERSION: ${{ steps.release.outputs.version }}
         run: |
           SCANS="$RUNNER_TEMP/iron-bank/scans"
-          yq -o=json '.' IronBank/Justifications/App.yaml > "$RUNNER_TEMP/justifications.json"
+          JUSTIFICATIONS="IronBank/Justifications/${NAME}.yaml"
+          yq -o=json '.' "$JUSTIFICATIONS" > "$RUNNER_TEMP/justifications.json"
           STATUS=0
           node Scripts/IronBank/NewFindings.js \
             --grype "$SCANS/grype-image.json" --trivy "$SCANS/trivy-image.json" \
             --base-grype "$SCANS/grype-base.json" --base-trivy "$SCANS/trivy-base.json" \
             --justifications "$RUNNER_TEMP/justifications.json" \
-            --title "oneuptime/app ${VERSION} on ${BASE}, scanned with Grype and Trivy." \
+            --justifications-source "$JUSTIFICATIONS" \
+            --title "${NAME}: ${{ matrix.image }} ${VERSION} on ${BASE}, scanned with Grype and Trivy." \
             --fail-on high > "$SCANS/findings.md" || STATUS=$?
           cat "$SCANS/findings.md" >> "$GITHUB_STEP_SUMMARY"
           exit "$STATUS"
 
+      # The project's own files, as pinned: not the resources the fetch step
+      # downloaded into it, which Iron Bank's pipeline downloads itself.
       - name: Collect the files to push to Repo1
         if: always()
         run: |
           mkdir -p "$RUNNER_TEMP/iron-bank/repo1"
-          cp -R "$PROJECT/." "$RUNNER_TEMP/iron-bank/repo1/"
+          git ls-files -z -- "$PROJECT" | xargs -0 -I {} cp {} "$RUNNER_TEMP/iron-bank/repo1/"
 
       - name: Upload them with the scans
         if: always()
         uses: actions/upload-artifact@v4
         with:
-          name: iron-bank-app-${{ steps.release.outputs.version }}
+          name: iron-bank-${{ matrix.project }}-${{ steps.release.outputs.version }}
           path: ${{ runner.temp }}/iron-bank
           if-no-files-found: warn

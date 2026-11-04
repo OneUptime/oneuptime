@@ -1161,6 +1161,43 @@ export const TrustedProxyHops: number = ((): number => {
   return parsedValue;
 })();
 
+/*
+ * The request headers a CDN or load balancer in front of OneUptime writes
+ * the visitor's country, region and city into, which security emails read
+ * to say roughly where a request came from - "Berlin, Germany" in a password
+ * reset (Utils/RequestOrigin/RequestLocation). Behind Cloudflare these are
+ * cf-ipcountry, and cf-region and cf-ipcity with its visitor location
+ * headers turned on.
+ *
+ * Empty, the default, reads no header and the emails name no place: a
+ * request header is the caller's own writing unless a proxy overwrites it,
+ * so only a header that something in front of OneUptime always writes may
+ * be named here. Anything that is not a header name reads nothing.
+ */
+const TRUSTED_HEADER_NAME: RegExp = /^[a-z0-9_-]{1,128}$/;
+
+type ReadTrustedHeaderNameFunction = (value: string | undefined) => string;
+
+const readTrustedHeaderName: ReadTrustedHeaderNameFunction = (
+  value: string | undefined,
+): string => {
+  const name: string = (value || "").trim().toLowerCase();
+
+  return TRUSTED_HEADER_NAME.test(name) ? name : "";
+};
+
+export const TrustedGeoCountryHeader: string = readTrustedHeaderName(
+  process.env["TRUSTED_GEO_COUNTRY_HEADER"],
+);
+
+export const TrustedGeoRegionHeader: string = readTrustedHeaderName(
+  process.env["TRUSTED_GEO_REGION_HEADER"],
+);
+
+export const TrustedGeoCityHeader: string = readTrustedHeaderName(
+  process.env["TRUSTED_GEO_CITY_HEADER"],
+);
+
 export const ProvisionSsl: boolean = process.env["PROVISION_SSL"] === "true";
 
 // One year: what browsers and security scanners expect of an HTTPS-only site.

@@ -14,7 +14,9 @@ import { VERIFICATION_EMAIL_RESEND_UNAVAILABLE_MESSAGE } from "Common/Server/Mid
 import EmailVerificationTokenService from "Common/Server/Services/EmailVerificationTokenService";
 import MailService from "Common/Server/Services/MailService";
 import ProductBrandingText from "Common/Server/Utils/ProductBrandingText";
+import RequestOriginUtil from "Common/Server/Utils/RequestOrigin/RequestOriginUtil";
 import logger from "Common/Server/Utils/Logger";
+import RequestOrigin from "Common/Types/RequestOrigin";
 import UserRegistrationToken, {
   REGISTRATION_TOKEN_EXPIRY_IN_DAYS,
 } from "Common/Server/Utils/UserRegistrationToken";
@@ -188,6 +190,8 @@ export default class AuthenticationEmail {
   public static async sendTwoFactorBackupCodeUsedEmail(data: {
     user: User;
     remainingCodeCount: number;
+    // The sign-in's request: where the code was spent from.
+    origin?: RequestOrigin | undefined;
   }): Promise<void> {
     if (!data.user.email) {
       return;
@@ -232,6 +236,11 @@ export default class AuthenticationEmail {
         remainingCodeMessage: remainingCodeMessage,
         twoFactorAuthUrl: twoFactorAuthUrl,
         homeUrl: new URL(httpProtocol, host).toString(),
+        // Which address, place and device the code was spent from.
+        ...RequestOriginUtil.getEmailVars({
+          origin: data.origin,
+          timezone: data.user.timezone,
+        }),
       },
     });
   }
@@ -253,6 +262,8 @@ export default class AuthenticationEmail {
   public static async sendTwoFactorWrongCodesEmail(data: {
     user: User;
     wrongCodesInARow: number;
+    // The request with the last wrong code: where the codes are coming from.
+    origin?: RequestOrigin | undefined;
   }): Promise<void> {
     if (!data.user.email) {
       return;
@@ -275,6 +286,15 @@ export default class AuthenticationEmail {
           new Route(AccountsRoute.toString()).addRoute("/forgot-password"),
         ).toString(),
         homeUrl: new URL(httpProtocol, host).toString(),
+        /*
+         * Which address, place and device the last wrong code came from:
+         * whoever entered it knows the password, and this is how the owner
+         * tells a phone of their own from somebody else's.
+         */
+        ...RequestOriginUtil.getEmailVars({
+          origin: data.origin,
+          timezone: data.user.timezone,
+        }),
       },
     });
   }

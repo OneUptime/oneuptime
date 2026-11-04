@@ -113,6 +113,9 @@ secret.env
 # App's merged without its Dockerfile). Tests/Ops/IronBankApp.test.js fails if
 # it is ever ignored again.
 !IronBank/**/Dockerfile
+# The resources Scripts/IronBank/fetch_resources.sh downloads into a project:
+# Iron Bank's pipeline downloads its own copies, and Repo1 never holds them.
+IronBank/**/*.deb
 config.env
 config.env.tmp
 config.env.temp

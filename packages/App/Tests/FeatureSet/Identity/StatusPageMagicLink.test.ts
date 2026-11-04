@@ -525,6 +525,37 @@ describe("POST /status-page/send-magic-link", () => {
     expect(options["statusPageId"]?.toString()).toBe(PAGE_ID);
   });
 
+  /*
+   * Anybody who knows a reader's address can ask for their link, so the
+   * email says when, from which address and on which device it was asked
+   * for (RequestOriginUtil) - the address the bundled Nginx appended, not
+   * the one the caller wrote first.
+   */
+  it("says when, from which address and on which device the link was asked for", async () => {
+    await invoke(
+      mockRouter.match("post", "/send-magic-link"),
+      buildRequest(
+        { data: { email: READER_EMAIL, statusPageId: PAGE_ID } },
+        {
+          headers: {
+            "x-forwarded-for": `198.51.100.66, ${CALLER}`,
+            "user-agent":
+              "Mozilla/5.0 (iPhone; CPU iPhone OS 18_1 like Mac OS X) AppleWebKit/605.1.15 (KHTML, like Gecko) Version/18.1 Mobile/15E148 Safari/604.1",
+          },
+          socketAddress: "10.0.0.2",
+        },
+      ),
+    );
+
+    const message: { vars: Record<string, string> } = sendMail.mock
+      .calls[0]![0] as { vars: Record<string, string> };
+
+    expect(message.vars["requestIpAddress"]).toBe(CALLER);
+    expect(message.vars["requestDevice"]).toBe("Safari 18 on iPhone");
+    expect(message.vars["requestLocation"]).toBe("");
+    expect(message.vars["requestedAt"]).toContain("UTC");
+  });
+
   it("stores only the hash of the link's token, on the private user it signs in", async () => {
     await sendMagicLink(READER_EMAIL);
 
@@ -557,9 +588,7 @@ describe("POST /status-page/send-magic-link", () => {
 
     expect(sendMail).toHaveBeenCalledTimes(2);
     expect(sentLink(0).token).not.toBe(sentLink(1).token);
-    expect(storedLink(0).magicLinkToken).not.toBe(
-      storedLink(1).magicLinkToken,
-    );
+    expect(storedLink(0).magicLinkToken).not.toBe(storedLink(1).magicLinkToken);
     expect(storedLink(1).magicLinkToken).toBe(
       await HashedString.hashValue(sentLink(1).token, EncryptionSecret),
     );
@@ -640,9 +669,7 @@ describe("POST /status-page/send-magic-link", () => {
     let firstRefusal: Answer | null = null;
 
     for (let index: number = 0; index < 40; index++) {
-      const answer: Answer = await sendMagicLink(
-        `someone${index}@example.com`,
-      );
+      const answer: Answer = await sendMagicLink(`someone${index}@example.com`);
 
       if (answer.error) {
         firstRefusal = firstRefusal || answer;
