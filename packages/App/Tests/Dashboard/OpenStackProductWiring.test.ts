@@ -1054,7 +1054,9 @@ describe("the setup guide is true for agents/OpenStackAgent", () => {
       "utf8",
     );
 
-    expect(script).toContain(`INSTALL_DIR:-${OPENSTACK_AGENT_INSTALL_DIR}`);
+    expect(script).toContain(
+      `DEFAULT_INSTALL_DIR="${OPENSTACK_AGENT_INSTALL_DIR}"`,
+    );
   });
 
   test("every file it downloads is served at /install/openstack-agent", () => {
