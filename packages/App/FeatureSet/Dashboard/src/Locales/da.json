@@ -42485,7 +42485,7 @@
   "Mattermost accounts used for Mattermost notifications.": "Mattermost-konti, der bruges til Mattermost-notifikationer.",
   "No Mattermost account added. Connect yours under User Settings > Workspace > Mattermost, then click 'Add Mattermost Account'.": "Ingen Mattermost-konto tilføjet. Forbind din under Brugerindstillinger > Arbejdsområde > Mattermost, og klik derefter på 'Tilføj Mattermost-konto'.",
   "Open Mattermost Settings": "Åbn Mattermost-indstillinger",
-  "Receive on-call pages as Mattermost direct messages from this project's Mattermost bot.": "Modtag vagttilkald som direkte beskeder i Mattermost fra dette projekts Mattermost-bot.",
+  "Receive OneUptime notifications as Mattermost direct messages from this project's Mattermost bot.": "Modtag OneUptime-notifikationer som direkte beskeder i Mattermost fra dette projekts Mattermost-bot.",
   "Test message sent. Check your Mattermost direct messages.": "Testbesked sendt. Tjek dine direkte beskeder i Mattermost.",
   "User Mattermost": "Brugerens Mattermost",
   "User Mattermost ID": "Brugerens Mattermost-id"

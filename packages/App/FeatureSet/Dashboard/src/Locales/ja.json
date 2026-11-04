@@ -42485,7 +42485,7 @@
   "Mattermost accounts used for Mattermost notifications.": "Mattermost の通知に使用する Mattermost アカウント。",
   "No Mattermost account added. Connect yours under User Settings > Workspace > Mattermost, then click 'Add Mattermost Account'.": "Mattermost アカウントが追加されていません。「ユーザー設定 > ワークスペース > Mattermost」で Mattermost アカウントを接続してから、「Mattermost アカウントを追加」をクリックしてください。",
   "Open Mattermost Settings": "Mattermost の設定を開く",
-  "Receive on-call pages as Mattermost direct messages from this project's Mattermost bot.": "このプロジェクトの Mattermost ボットから、オンコールの呼び出しを Mattermost のダイレクトメッセージで受け取ります。",
+  "Receive OneUptime notifications as Mattermost direct messages from this project's Mattermost bot.": "このプロジェクトの Mattermost ボットから、OneUptime の通知を Mattermost のダイレクトメッセージで受け取ります。",
   "Test message sent. Check your Mattermost direct messages.": "テストメッセージを送信しました。Mattermost のダイレクトメッセージを確認してください。",
   "User Mattermost": "ユーザーの Mattermost",
   "User Mattermost ID": "ユーザーの Mattermost ID"

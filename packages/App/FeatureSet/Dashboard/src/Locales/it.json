@@ -42485,7 +42485,7 @@
   "Mattermost accounts used for Mattermost notifications.": "Account Mattermost usati per le notifiche Mattermost.",
   "No Mattermost account added. Connect yours under User Settings > Workspace > Mattermost, then click 'Add Mattermost Account'.": "Nessun account Mattermost aggiunto. Collega il tuo in Impostazioni utente > Area di lavoro > Mattermost, poi fai clic su 'Aggiungi account Mattermost'.",
   "Open Mattermost Settings": "Apri le impostazioni di Mattermost",
-  "Receive on-call pages as Mattermost direct messages from this project's Mattermost bot.": "Ricevi le chiamate di reperibilità come messaggi diretti di Mattermost dal bot Mattermost di questo progetto.",
+  "Receive OneUptime notifications as Mattermost direct messages from this project's Mattermost bot.": "Ricevi le notifiche di OneUptime come messaggi diretti di Mattermost dal bot Mattermost di questo progetto.",
   "Test message sent. Check your Mattermost direct messages.": "Messaggio di prova inviato. Controlla i tuoi messaggi diretti di Mattermost.",
   "User Mattermost": "Mattermost dell'utente",
   "User Mattermost ID": "ID Mattermost dell'utente"

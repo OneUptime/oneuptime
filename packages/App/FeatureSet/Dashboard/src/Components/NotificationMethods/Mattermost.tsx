@@ -31,9 +31,6 @@ import { translateTemplate } from "Common/UI/Utils/TranslateTemplate";
  * sent them (User Settings > Workspace > Mattermost, which the empty table
  * names as the side menu draws it). The server resolves the Mattermost account
  * id from that connection and refuses the add when there is none.
- *
- * The card speaks of pages because that is what reaches this account: on-call
- * rules send to it, and Notification Settings has no Mattermost column.
  */
 const Mattermost: () => JSX.Element = (): ReactElement => {
   const [refreshToggle, setRefreshToggle] = useState<string>(
@@ -150,7 +147,7 @@ const Mattermost: () => JSX.Element = (): ReactElement => {
         cardProps={{
           title: "Mattermost Account for Notifications",
           description:
-            "Receive on-call pages as Mattermost direct messages from this project's Mattermost bot.",
+            "Receive OneUptime notifications as Mattermost direct messages from this project's Mattermost bot.",
           buttons: [
             {
               title: "Add Mattermost Account",

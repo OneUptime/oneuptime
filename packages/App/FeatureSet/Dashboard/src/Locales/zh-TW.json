@@ -42485,7 +42485,7 @@
   "Mattermost accounts used for Mattermost notifications.": "用於 Mattermost 通知的 Mattermost 帳戶。",
   "No Mattermost account added. Connect yours under User Settings > Workspace > Mattermost, then click 'Add Mattermost Account'.": "尚未新增 Mattermost 帳戶。請在「使用者設定 > 工作區 > Mattermost」中連線您的帳戶，然後按一下「新增 Mattermost 帳戶」。",
   "Open Mattermost Settings": "開啟 Mattermost 設定",
-  "Receive on-call pages as Mattermost direct messages from this project's Mattermost bot.": "透過此專案的 Mattermost 機器人，以 Mattermost 私人訊息接收待命呼叫。",
+  "Receive OneUptime notifications as Mattermost direct messages from this project's Mattermost bot.": "透過此專案的 Mattermost 機器人，以 Mattermost 私人訊息接收 OneUptime 通知。",
   "Test message sent. Check your Mattermost direct messages.": "測試訊息已傳送。請查看您的 Mattermost 私人訊息。",
   "User Mattermost": "使用者的 Mattermost",
   "User Mattermost ID": "使用者的 Mattermost ID"

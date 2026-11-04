@@ -42485,7 +42485,7 @@
   "Mattermost accounts used for Mattermost notifications.": "Mattermost सूचनाओं के लिए उपयोग किए जाने वाले Mattermost खाते।",
   "No Mattermost account added. Connect yours under User Settings > Workspace > Mattermost, then click 'Add Mattermost Account'.": "कोई Mattermost खाता नहीं जोड़ा गया। उपयोगकर्ता सेटिंग्स > वर्कस्पेस > Mattermost में अपना खाता कनेक्ट करें, फिर 'Mattermost खाता जोड़ें' पर क्लिक करें।",
   "Open Mattermost Settings": "Mattermost सेटिंग्स खोलें",
-  "Receive on-call pages as Mattermost direct messages from this project's Mattermost bot.": "इस प्रोजेक्ट के Mattermost बॉट से ऑन-कॉल पेज Mattermost डायरेक्ट मैसेज के रूप में पाएं।",
+  "Receive OneUptime notifications as Mattermost direct messages from this project's Mattermost bot.": "इस प्रोजेक्ट के Mattermost बॉट से OneUptime सूचनाएं Mattermost डायरेक्ट मैसेज के रूप में पाएं।",
   "Test message sent. Check your Mattermost direct messages.": "टेस्ट संदेश भेजा गया। अपने Mattermost डायरेक्ट मैसेज देखें।",
   "User Mattermost": "उपयोगकर्ता का Mattermost",
   "User Mattermost ID": "उपयोगकर्ता की Mattermost ID"

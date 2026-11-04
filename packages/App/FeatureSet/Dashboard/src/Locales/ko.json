@@ -42485,7 +42485,7 @@
   "Mattermost accounts used for Mattermost notifications.": "Mattermost 알림에 사용되는 Mattermost 계정입니다.",
   "No Mattermost account added. Connect yours under User Settings > Workspace > Mattermost, then click 'Add Mattermost Account'.": "추가된 Mattermost 계정이 없습니다. 사용자 설정 > 워크스페이스 > Mattermost에서 계정을 연결한 다음 'Mattermost 계정 추가' 버튼을 클릭하세요.",
   "Open Mattermost Settings": "Mattermost 설정 열기",
-  "Receive on-call pages as Mattermost direct messages from this project's Mattermost bot.": "이 프로젝트의 Mattermost 봇이 보내는 Mattermost 다이렉트 메시지로 온콜 호출을 받습니다.",
+  "Receive OneUptime notifications as Mattermost direct messages from this project's Mattermost bot.": "이 프로젝트의 Mattermost 봇이 보내는 Mattermost 다이렉트 메시지로 OneUptime 알림을 받습니다.",
   "Test message sent. Check your Mattermost direct messages.": "테스트 메시지를 보냈습니다. Mattermost 다이렉트 메시지를 확인하세요.",
   "User Mattermost": "사용자의 Mattermost",
   "User Mattermost ID": "사용자의 Mattermost ID"
