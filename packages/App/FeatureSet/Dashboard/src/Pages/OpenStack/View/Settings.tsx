@@ -3,6 +3,7 @@ import ObjectID from "Common/Types/ObjectID";
 import Navigation from "Common/UI/Utils/Navigation";
 import OpenStackCloud from "Common/Models/DatabaseModels/OpenStackCloud";
 import ArchiveResourceCard from "../../../Components/TelemetryResource/ArchiveResourceCard";
+import OpenStackDataCollectionCard from "../../../Components/OpenStack/OpenStackDataCollectionCard";
 import ResourceDetailsCard from "../../../Components/TelemetryResource/ResourceDetailsCard";
 import TelemetryResourceMoreSettings from "../../../Components/TelemetryResource/TelemetryResourceMoreSettings";
 import PageMap from "../../../Utils/PageMap";
@@ -26,13 +27,14 @@ const OpenStackCloudSettings: FunctionComponent<
         nameField={{
           title: "Name",
           description:
-            "Must match the openstack.cloud.name the OpenStack agent reports. Rename it there too, or the agent's next report creates a new cloud.",
+            "Must match the openstack.cloud.name the OpenStack agent reports, if it sends this cloud. Rename it there too, or its next report creates a new one.",
           placeholder: "prod-eu",
         }}
         descriptionField={{
           placeholder: "Production OpenStack cloud running in EU West",
         }}
       />
+      <OpenStackDataCollectionCard modelId={modelId} />
       <TelemetryResourceMoreSettings<OpenStackCloud>
         modelType={OpenStackCloud}
         modelId={modelId}

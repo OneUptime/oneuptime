@@ -7,11 +7,13 @@ import {
   OPENSTACK_IMAGE_STUCK_MINUTES,
   OPENSTACK_INSTANCE_STUCK_MINUTES,
   OPENSTACK_IP_POOL_WARNING_PERCENT,
+  OPENSTACK_PROJECT_QUOTA_WARNING_PERCENT,
   OPENSTACK_SERVICE_DISABLED_WARNING_DAYS,
   OPENSTACK_STORAGE_POOL_CRITICAL_PERCENT,
   OPENSTACK_STORAGE_POOL_WARNING_PERCENT,
   OPENSTACK_VOLUME_STUCK_MINUTES,
   getOpenStackShortHostName,
+  isOpenStackServiceDown,
   isSameOpenStackHost,
 } from "../../../Types/OpenStack/OpenStackHealthRules";
 import {
@@ -74,6 +76,60 @@ function ago(minutes: number): Date {
 function reasonOf(assessment: OpenStackAssessment): string {
   return assessment.reasons[0]?.text || "";
 }
+
+/*
+ * The lines themselves, as numbers. Everything below reads them by name and follows them
+ * wherever they go, so this is what notices one moved: each is what the issue promised, and
+ * what an alert and a tile's (i) text tell people.
+ */
+describe("the lines", () => {
+  test.each<[string, number, number]>([
+    ["a storage pool warns past", OPENSTACK_STORAGE_POOL_WARNING_PERCENT, 85],
+    [
+      "a storage pool is critical past",
+      OPENSTACK_STORAGE_POOL_CRITICAL_PERCENT,
+      95,
+    ],
+    [
+      "a hypervisor's allocation warns past",
+      OPENSTACK_ALLOCATION_WARNING_PERCENT,
+      90,
+    ],
+    ["an external network warns past", OPENSTACK_IP_POOL_WARNING_PERCENT, 90],
+    ["a project's quota warns at", OPENSTACK_PROJECT_QUOTA_WARNING_PERCENT, 90],
+    ["an instance is stuck after", OPENSTACK_INSTANCE_STUCK_MINUTES, 60],
+    ["a volume is stuck after", OPENSTACK_VOLUME_STUCK_MINUTES, 30],
+    ["an image is stuck after", OPENSTACK_IMAGE_STUCK_MINUTES, 60],
+    [
+      "a service disabled is probably forgotten after",
+      OPENSTACK_SERVICE_DISABLED_WARNING_DAYS,
+      7,
+    ],
+  ])("%s %d", (_what: string, line: number, expected: number) => {
+    expect(line).toBe(expected);
+  });
+});
+
+describe("what counts as down", () => {
+  test("down and enabled, in Nova's word or Neutron's, and never what someone disabled", () => {
+    expect(
+      isOpenStackServiceDown({ status: "down", adminState: "enabled" }),
+    ).toBe(true);
+    expect(isOpenStackServiceDown({ status: "down", adminState: "up" })).toBe(
+      true,
+    );
+    expect(isOpenStackServiceDown({ status: "down" })).toBe(true);
+    expect(
+      isOpenStackServiceDown({ status: "down", adminState: "disabled" }),
+    ).toBe(false);
+    expect(isOpenStackServiceDown({ status: "down", adminState: "down" })).toBe(
+      false,
+    );
+    expect(
+      isOpenStackServiceDown({ status: "up", adminState: "enabled" }),
+    ).toBe(false);
+  });
+});
 
 describe("an API", () => {
   test("up is fine", () => {
@@ -357,7 +413,7 @@ describe("an instance", () => {
     return assessOpenStackInstance({
       row: row(OpenStackResourceKind.Instance, {
         status,
-        stateChangedAt: minutes === null ? undefined : ago(minutes),
+        ...(minutes === null ? {} : { stateChangedAt: ago(minutes) }),
       }),
       now: NOW,
     });
@@ -405,7 +461,7 @@ describe("a volume", () => {
     return assessOpenStackVolume({
       row: row(OpenStackResourceKind.Volume, {
         status,
-        stateChangedAt: minutes === null ? undefined : ago(minutes),
+        ...(minutes === null ? {} : { stateChangedAt: ago(minutes) }),
       }),
       now: NOW,
     });
@@ -448,7 +504,7 @@ describe("an image", () => {
     return assessOpenStackImage({
       row: row(OpenStackResourceKind.Image, {
         status,
-        stateChangedAt: minutes === null ? undefined : ago(minutes),
+        ...(minutes === null ? {} : { stateChangedAt: ago(minutes) }),
       }),
       now: NOW,
     });

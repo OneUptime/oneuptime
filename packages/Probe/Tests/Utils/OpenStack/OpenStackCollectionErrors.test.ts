@@ -398,7 +398,7 @@ describe("what an error answer says, which every service words differently", () 
       "Access was denied to this resource.",
     ],
     ["Glance", { message: "403 Forbidden" }, "403 Forbidden"],
-  ])("%s", (_name: string, body: object, message: string) => {
+  ])("%s", (_name: string, body: Record<string, unknown>, message: string) => {
     expect(readErrorMessage(JSON.stringify(body))).toBe(message);
   });
 

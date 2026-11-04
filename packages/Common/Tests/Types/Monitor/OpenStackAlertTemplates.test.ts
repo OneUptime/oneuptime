@@ -369,7 +369,7 @@ const THRESHOLDS: Readonly<
   },
   "openstack-volume-stuck": { filterType: FilterType.GreaterThan, value: 0 },
   "openstack-project-quota-nearly-reached": {
-    filterType: FilterType.GreaterThan,
+    filterType: FilterType.GreaterThanOrEqualTo,
     value: OPENSTACK_PROJECT_QUOTA_WARNING_PERCENT,
   },
 };

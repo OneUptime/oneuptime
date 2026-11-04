@@ -51,8 +51,10 @@ function readingOf(data: {
   stateChangedAt?: Date;
   now?: Date;
 }): OpenStackStatusReading {
-  const reading: OpenStackStatusReading | null =
-    getOpenStackStatusReading(data);
+  const reading: OpenStackStatusReading | null = getOpenStackStatusReading({
+    ...data,
+    status: data.status,
+  });
 
   if (!reading) {
     throw new Error("Expected a reading");
@@ -347,7 +349,7 @@ describe("a status word stays OpenStack's own in every language", () => {
 
 describe("how long a state has held is part of what it says", () => {
   const NOW: Date = new Date("2026-11-04T12:00:00.000Z");
-  const ago = (minutes: number): Date => {
+  const ago: (minutes: number) => Date = (minutes: number): Date => {
     return new Date(NOW.getTime() - minutes * 60 * 1000);
   };
 

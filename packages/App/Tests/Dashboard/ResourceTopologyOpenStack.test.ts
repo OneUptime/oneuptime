@@ -1038,6 +1038,8 @@ describe("a cloud of 5,000 hypervisors and 100,000 instances", () => {
         return firstView(graph, getOpenStackTopologyFocus(graph));
       },
       limitInMs: 2000,
+      // Each try takes seconds on a busy machine, long enough for a stall to land on three.
+      attempts: 5,
     });
 
     expect(timed.inMs).toBeLessThan(2000);

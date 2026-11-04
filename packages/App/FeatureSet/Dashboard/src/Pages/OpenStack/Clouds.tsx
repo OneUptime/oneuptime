@@ -36,11 +36,15 @@ import {
 import ErrorMessage from "Common/UI/Components/ErrorMessage/ErrorMessage";
 import AddResourceModal from "../../Components/ResourceOnboarding/AddResourceModal";
 import OPENSTACK_CLOUD_ONBOARDING from "../../Components/OpenStack/OpenStackCloudOnboarding";
+import { OpenStackConnectCloudModal } from "../../Components/OpenStack/OpenStackConnectionFormModal";
+import { isOpenStackProbeCollected } from "../../Components/OpenStack/OpenStackProbeCollectionView";
 import ResourceShowcaseCard from "../../Components/ResourceShowcase/ResourceShowcaseCard";
 import OPENSTACK_CLOUD_SHOWCASE from "../../Components/OpenStack/OpenStackCloudShowcase";
 import { ButtonStyleType } from "Common/UI/Components/Button/Button";
 import AppLink from "../../Components/AppLink/AppLink";
 import ObjectID from "Common/Types/ObjectID";
+import Navigation from "Common/UI/Utils/Navigation";
+import PermissionGate, { ModelAction } from "Common/UI/Utils/PermissionGate";
 import useTranslator from "Common/UI/Utils/UseTranslator";
 import { Translator } from "Common/UI/Utils/TranslateTemplate";
 
@@ -53,6 +57,7 @@ const OpenStackClouds: FunctionComponent<
       modelType: OpenStackCloud,
     });
   const [isAddCloudOpen, setIsAddCloudOpen] = useState<boolean>(false);
+  const [isConnectCloudOpen, setIsConnectCloudOpen] = useState<boolean>(false);
   // Clouds connected from the Add dialog show in the list at once.
   const [connectedCount, setConnectedCount] = useState<number>(0);
 
@@ -121,12 +126,18 @@ const OpenStackClouds: FunctionComponent<
     );
   }
 
+  const canConnectCloud: boolean = PermissionGate.check(
+    new OpenStackCloud(),
+    ModelAction.Create,
+  ).isAllowed;
+
   /*
-   * An OpenStack cloud is added by connecting it (Add OpenStack Cloud): the
-   * guide asks for the cloud's name, writes it into the commands, and the
-   * cloud registers itself under it when its first data arrives. There
-   * is no form: a cloud typed in by hand would only wait for telemetry
-   * that nothing sends.
+   * A cloud is added one of two ways. Connect Cloud saves its address, a
+   * read-only credential and a probe, and that probe collects it. Add
+   * OpenStack Cloud is the agent's guide: it asks for the cloud's name,
+   * writes it into the commands, and the cloud registers itself under it
+   * when its first data arrives, so there is no form for that one: a cloud
+   * typed in by hand would only wait for telemetry that nothing sends.
    */
   return (
     <Fragment>
@@ -170,12 +181,24 @@ const OpenStackClouds: FunctionComponent<
         cardProps={{
           title: "OpenStack Clouds",
           description:
-            "Clouds being monitored in this project. Install the OneUptime OpenStack Agent to connect a cloud.",
+            "Clouds being monitored in this project. Connect one with a read-only credential and a probe, or install the OneUptime OpenStack Agent.",
           buttons: [
+            ...(canConnectCloud
+              ? [
+                  {
+                    title: "Connect Cloud",
+                    icon: IconProp.Add,
+                    buttonStyle: ButtonStyleType.NORMAL,
+                    onClick: () => {
+                      setIsConnectCloudOpen(true);
+                    },
+                  },
+                ]
+              : []),
             {
               title: OPENSTACK_CLOUD_ONBOARDING.addTitle,
               icon: IconProp.Add,
-              buttonStyle: ButtonStyleType.NORMAL,
+              buttonStyle: ButtonStyleType.OUTLINE,
               onClick: () => {
                 setIsAddCloudOpen(true);
               },
@@ -184,6 +207,12 @@ const OpenStackClouds: FunctionComponent<
         }}
         showViewIdButton={true}
         formFields={[]}
+        selectMoreFields={{
+          collectionMethod: true,
+          collectionProbe: {
+            name: true,
+          },
+        }}
         columns={[
           {
             field: {
@@ -234,6 +263,39 @@ const OpenStackClouds: FunctionComponent<
                       : translator.translateText("Disconnected")}
                   </span>
                 </div>
+              );
+            },
+          },
+          /*
+           * Starts hidden, as on the vCenters list: how one cloud is collected
+           * is a detail of that cloud, on its Settings page. The table's
+           * Customize Columns turns it on. Not hideOnMobile: that flag drops a
+           * column at render while the picker knows nothing of it.
+           */
+          {
+            field: {
+              collectionMethod: true,
+            },
+            title: "Collected By",
+            type: FieldType.Element,
+            isHiddenByDefault: true,
+            getElement: (item: OpenStackCloud): ReactElement => {
+              if (!isOpenStackProbeCollected(item)) {
+                return (
+                  <span className="text-sm text-gray-700">
+                    {translator.translateText("OpenStack Agent")}
+                  </span>
+                );
+              }
+
+              return (
+                <span className="text-sm text-gray-700">
+                  {item.collectionProbe?.name
+                    ? translator.translateTemplate("Probe: {{name}}", {
+                        name: item.collectionProbe.name,
+                      })
+                    : translator.translateText("Probe")}
+                </span>
               );
             },
           },
@@ -318,6 +380,30 @@ const OpenStackClouds: FunctionComponent<
             onClick: () => {
               setIsAddCloudOpen(true);
             },
+          }}
+        />
+      )}
+      {isConnectCloudOpen && (
+        <OpenStackConnectCloudModal
+          onClose={() => {
+            setIsConnectCloudOpen(false);
+          }}
+          onSuccess={(cloud: OpenStackCloud) => {
+            setIsConnectCloudOpen(false);
+            firstRecordWatch.onRecordCreated();
+            /*
+             * Its page is where the first collection shows: the Data Collection
+             * card there says whether the probe got in, and offers "Trust this
+             * certificate" for a certificate nobody trusted yet.
+             */
+            if (cloud._id) {
+              Navigation.navigate(
+                RouteUtil.populateRouteParams(
+                  RouteMap[PageMap.OPENSTACK_CLOUD_VIEW] as Route,
+                  { modelId: new ObjectID(cloud._id.toString()) },
+                ),
+              );
+            }
           }}
         />
       )}

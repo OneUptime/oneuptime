@@ -107,7 +107,7 @@ describe("the compute microversion", () => {
     ["a list that is not one", { versions: "2.87" }],
   ])(
     "%s: a Nova older than microversions, asked without saying",
-    (_name: string, body: object) => {
+    (_name: string, body: Record<string, unknown>) => {
       expect(chooseComputeMicroversion(body as JSONObject)).toBeNull();
     },
   );
@@ -526,7 +526,7 @@ describe("what is kept between collections", () => {
       ["another certificate", { trustedFingerprints: ["CC"] }],
     ])(
       "%s starts clean: a token bought with the old one is never reused",
-      (_name: string, overrides: object) => {
+      (_name: string, overrides: Record<string, unknown>) => {
         expect(key(overrides)).not.toBe(key());
       },
     );

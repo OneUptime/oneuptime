@@ -932,6 +932,139 @@ describe("what can stop it before it reads anything", () => {
   });
 });
 
+/*
+ * A credential never goes to a plain HTTP cloud over a probe. Those clouds turn on TLS or use
+ * the agent, and a person asking whether theirs can be collected is told exactly that.
+ */
+describe("a catalog on plain HTTP", () => {
+  function catalogOn(networkUrl: string, computeUrl: string): JSONObject {
+    return {
+      catalog: [
+        {
+          type: "compute",
+          name: "nova",
+          endpoints: [
+            {
+              url: computeUrl,
+              interface: "public",
+              region_id: RECORDED_REGION,
+            },
+          ],
+        },
+        {
+          type: "network",
+          name: "neutron",
+          endpoints: [
+            {
+              url: networkUrl,
+              interface: "public",
+              region_id: RECORDED_REGION,
+            },
+          ],
+        },
+      ],
+    };
+  }
+
+  test("is said to be the problem, with the way out, and nothing goes near it", async () => {
+    const { report, summary, cloud } = await runTest({
+      tokenOverrides: catalogOn(
+        "http://10.0.0.5:9696",
+        "https://openstack.example/compute/v2.1",
+      ),
+    });
+
+    expect(report.status).toBe("Failed");
+    expect(report.errorCode).toBe(OpenStackCollectionErrorCode.InsecureEndpoint);
+    expect(report.errorMessage).toBe(
+      "The catalog puts Networking (Neutron) on plain HTTP, such as http://10.0.0.5:9696. A credential's token is never sent unencrypted, so the probe read none of them. Turn on TLS for these APIs, pick another endpoint interface, or use the OpenStack agent for this cloud.",
+    );
+
+    for (const request of cloud.requests) {
+      expect(request.url.startsWith("https://")).toBe(true);
+    }
+
+    // Each read it would have made says so, and what goes without it.
+    const networks: OpenStackAccessRead = readOf(
+      summary,
+      OpenStackServiceType.Network,
+      "networks",
+    );
+
+    expect(networks.access).toBe("Failing");
+    expect(networks.reason).toBe(
+      "The catalog names http://10.0.0.5:9696, plain HTTP. A token is never sent unencrypted.",
+    );
+    expect(networks.fix).toBe(
+      "Turn on TLS for this API, pick another endpoint interface, or use the OpenStack agent for this cloud.",
+    );
+    expect(networks.goesWithout).toBeTruthy();
+
+    // The catalog still names it: what the rest of the cloud is, it says as ever.
+    expect(summary.servicesByRegion[RECORDED_REGION]).toContain(
+      OpenStackServiceType.Network,
+    );
+  });
+
+  test("every service on it is named once, whichever regions they answer in", async () => {
+    const { report } = await runTest({
+      tokenOverrides: catalogOn("http://10.0.0.5:9696", "http://10.0.0.5:8774"),
+    });
+
+    expect(report.errorCode).toBe(OpenStackCollectionErrorCode.InsecureEndpoint);
+    expect(report.errorMessage).toContain(
+      "The catalog puts Compute (Nova), Networking (Neutron) on plain HTTP, such as http://10.0.0.5:8774.",
+    );
+  });
+
+  test("a URL the probe will not speak to for another reason is not called plain HTTP", async () => {
+    const { report, summary } = await runTest({
+      tokenOverrides: catalogOn(
+        "https://169.254.169.254/latest",
+        "https://openstack.example/compute/v2.1",
+      ),
+    });
+
+    expect(report.errorCode).not.toBe(
+      OpenStackCollectionErrorCode.InsecureEndpoint,
+    );
+    expect(
+      readOf(summary, OpenStackServiceType.Network, "networks").reason,
+    ).toContain("a loopback, link-local or cloud metadata address");
+  });
+
+  test("a certificate nobody trusted is still asked about first", async () => {
+    const { report } = await runTest({
+      tokenOverrides: catalogOn(
+        "http://10.0.0.5:9696",
+        "https://openstack.example/compute/v2.1",
+      ),
+      answer: (
+        request: OpenStackHttpRequest,
+      ): OpenStackHttpResponse | undefined => {
+        if (request.url.includes("/compute/") && request.method === "GET") {
+          throw new OpenStackCertificateError({
+            kind: "untrusted",
+            message: "Not trusted.",
+            presentedCertificate: {
+              fingerprint256: "AB",
+              subject: "CN=nova",
+              issuer: "CN=CA",
+              isSelfSigned: false,
+            },
+          });
+        }
+
+        return undefined;
+      },
+    });
+
+    expect(report.errorCode).toBe(
+      OpenStackCollectionErrorCode.UntrustedCertificate,
+    );
+  });
+});
+
 describe("what each service can be missing", () => {
   test.each([
     ["Keystone", "/identity/v3/", OpenStackServiceType.Identity, "projects"],
@@ -1522,17 +1655,20 @@ describe("classifyAccessList", () => {
     ["no list at all", { other: [] }],
     ["not a list", { items: "many" }],
     ["rows that are not objects", { items: [null, 7] }],
-  ])("%s is nothing to tell by", (_name: string, body: object) => {
-    expect(
-      classifyAccessList({
-        body: body as JSONObject,
-        key: "items",
-        projectField: "project_id",
-        ownProjectId: OWN,
-        hasAdminRole: false,
-      }).access,
-    ).toBe("OwnProjectOnly");
-  });
+  ])(
+    "%s is nothing to tell by",
+    (_name: string, body: Record<string, unknown>) => {
+      expect(
+        classifyAccessList({
+          body: body as JSONObject,
+          key: "items",
+          projectField: "project_id",
+          ownProjectId: OWN,
+          hasAdminRole: false,
+        }).access,
+      ).toBe("OwnProjectOnly");
+    },
+  );
 });
 
 describe("classifyAccessFailure", () => {
@@ -1770,9 +1906,7 @@ describe("the reads themselves", () => {
           ? "placement"
           : definition.fix.includes("neutron's")
             ? "neutron"
-            : definition.fix.includes("cinder's")
-              ? "cinder"
-              : "keystone";
+            : "keystone";
 
       expect(
         fs.readFileSync(

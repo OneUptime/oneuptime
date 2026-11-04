@@ -20,6 +20,7 @@ import OpenStackServiceClient, {
   OpenStackJsonAnswer,
 } from "./OpenStackServiceClient";
 import { OpenStackCertificateError } from "./OpenStackTls";
+import OpenStackAuthUrl from "Common/Utils/OpenStack/OpenStackAuthUrl";
 
 /*
  * What this credential can really read, read by read. It is the connection test's
@@ -458,6 +459,9 @@ export function classifyAccessList(data: {
   };
 }
 
+const OPENSTACK_REFUSED_ENDPOINT_FIX: string =
+  "Turn on TLS for this API, pick another endpoint interface, or use the OpenStack agent for this cloud.";
+
 // What a read's failure says. A refusal is the credential's, the rest the cloud's.
 export function classifyAccessFailure(error: unknown): {
   access: OpenStackReadAccess;
@@ -494,10 +498,23 @@ function errorContextOf(url: string): OpenStackErrorContext {
   }
 }
 
+// A service whose address in the catalog the probe will not speak to.
+export interface OpenStackRefusedEndpoint {
+  regionName: string;
+  service: OpenStackServiceType;
+  url: string;
+  isPlainHttp: boolean;
+}
+
 export interface OpenStackAccessCheckResult {
   reads: Array<OpenStackAccessRead>;
   // The first certificate that stopped a read: a person has to decide about it.
   certificateError: OpenStackCertificateError | null;
+  /*
+   * What the catalog names and the probe never spoke to, because a token would go with the
+   * request. A person has to decide about these too.
+   */
+  refusedEndpoints: Array<OpenStackRefusedEndpoint>;
   // What the catalog names per region, by the type OneUptime reads each as.
   servicesByRegion: Record<string, Array<OpenStackServiceType>>;
   // What the credential's own project was seen to hold, per region that holds anything.
@@ -524,12 +541,14 @@ export async function runOpenStackAccessCheck(data: {
   const reads: Array<OpenStackAccessRead> = [];
   const servicesByRegion: Record<string, Array<OpenStackServiceType>> = {};
   const projectHoldings: Record<string, Array<string>> = {};
+  const refusedEndpoints: Array<OpenStackRefusedEndpoint> = [];
   let certificateError: OpenStackCertificateError | null = null;
 
   for (let index: number = 0; index < data.regions.length; index++) {
     const regionName: string = data.regions[index] as string;
     const clients: Map<OpenStackServiceType, OpenStackServiceClient | null> =
       new Map();
+    const refusals: Map<OpenStackServiceType, string> = new Map();
 
     servicesByRegion[regionName] = [];
 
@@ -546,6 +565,23 @@ export async function runOpenStackAccessCheck(data: {
 
       if (!url) {
         clients.set(service, null);
+        continue;
+      }
+
+      const refusal: ReturnType<typeof OpenStackAuthUrl.getCatalogUrlRefusal> =
+        OpenStackAuthUrl.getCatalogUrlRefusal(url);
+
+      // Nothing is asked of it, not even which versions it speaks.
+      if (refusal) {
+        clients.set(service, null);
+        refusals.set(service, refusal.message);
+        servicesByRegion[regionName]!.push(service);
+        refusedEndpoints.push({
+          regionName: regionName,
+          service: service,
+          url: url,
+          isPlainHttp: refusal.code === "insecure",
+        });
         continue;
       }
 
@@ -614,6 +650,21 @@ export async function runOpenStackAccessCheck(data: {
           fix: fix,
         });
       };
+
+      const refusal: string | undefined = refusals.get(definition.service);
+
+      if (refusal) {
+        reads.push({
+          regionName: regionName,
+          service: definition.service,
+          read: definition.read,
+          access: "Failing",
+          reason: refusal,
+          goesWithout: definition.goesWithout,
+          fix: OPENSTACK_REFUSED_ENDPOINT_FIX,
+        });
+        continue;
+      }
 
       if (!client) {
         write({
@@ -697,6 +748,7 @@ export async function runOpenStackAccessCheck(data: {
   return {
     reads: reads,
     certificateError: certificateError,
+    refusedEndpoints: refusedEndpoints,
     servicesByRegion: servicesByRegion,
     projectHoldings: projectHoldings,
   };

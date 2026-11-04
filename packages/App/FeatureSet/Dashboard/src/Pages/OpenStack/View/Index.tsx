@@ -41,6 +41,8 @@ import GoldenMetricTile, {
 import { OPENSTACK_METRIC_DESCRIPTIONS } from "../../../Components/MetricDescriptions/OpenStackMetricDescriptions";
 import OpenStackDocumentationCard from "../../../Components/OpenStack/DocumentationCard";
 import OpenStackAccessNotice from "../../../Components/OpenStack/OpenStackAccessNotice";
+import OpenStackCollectionStatusCard from "../../../Components/OpenStack/OpenStackCollectionStatusCard";
+import { isOpenStackProbeCollected } from "../../../Components/OpenStack/OpenStackProbeCollectionView";
 import {
   OpenStackRegionState,
   useOpenStackRegion,
@@ -637,6 +639,7 @@ const OpenStackCloudOverview: FunctionComponent<
             otelCollectorStatus: true,
             lastSeenAt: true,
             agentVersion: true,
+            collectionMethod: true,
           },
         }),
         loadSummary(),
@@ -664,6 +667,7 @@ const OpenStackCloudOverview: FunctionComponent<
             otelCollectorStatus: true,
             lastSeenAt: true,
             agentVersion: true,
+            collectionMethod: true,
           },
         });
       if (item) {
@@ -746,6 +750,11 @@ const OpenStackCloudOverview: FunctionComponent<
    * be running fine.
    */
   if (!hasReported && !summaryError) {
+    // A probe has no agent to install: how its collection is going is what there is to say.
+    if (isOpenStackProbeCollected(cloud)) {
+      return <OpenStackCollectionStatusCard modelId={modelId} />;
+    }
+
     return (
       <OpenStackDocumentationCard
         cloudName={cloud.name || ""}
@@ -982,15 +991,19 @@ const OpenStackCloudOverview: FunctionComponent<
 
   return (
     <Fragment>
-      <ResourceConnectionGuideCard
-        status={status}
-        lastSeenAt={cloud.lastSeenAt}
-        guide={getOpenStackCloudConnectionGuide(
-          cloud.name || "",
-          getConfiguredOneUptimeUrl(),
-        )}
-        documentationRoute={documentationRoute}
-      />
+      {isOpenStackProbeCollected(cloud) ? (
+        <OpenStackCollectionStatusCard modelId={modelId} />
+      ) : (
+        <ResourceConnectionGuideCard
+          status={status}
+          lastSeenAt={cloud.lastSeenAt}
+          guide={getOpenStackCloudConnectionGuide(
+            cloud.name || "",
+            getConfiguredOneUptimeUrl(),
+          )}
+          documentationRoute={documentationRoute}
+        />
+      )}
 
       <div data-testid="openstack-overview-data-status">
         <Card
@@ -1058,12 +1071,16 @@ const OpenStackCloudOverview: FunctionComponent<
                 version={cloud.agentVersion}
                 variant="chip"
               />
-              <Link
-                to={documentationRoute}
-                className="text-sm font-medium text-indigo-600 hover:underline"
-              >
-                {translator.translateText("Setup guide") || "Setup guide"}
-              </Link>
+              {isOpenStackProbeCollected(cloud) ? (
+                <></>
+              ) : (
+                <Link
+                  to={documentationRoute}
+                  className="text-sm font-medium text-indigo-600 hover:underline"
+                >
+                  {translator.translateText("Setup guide") || "Setup guide"}
+                </Link>
+              )}
             </div>
             {!isConnected && cloud.lastSeenAt ? (
               <p

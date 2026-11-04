@@ -92,23 +92,23 @@ function parse(text: string): Array<Series> {
 }
 
 function toRow(entry: OpenStackResourceBufferEntry): OpenStackResource {
-  const row: OpenStackResource = new OpenStackResource();
-  row.kind = entry.kind;
-  row.externalId = entry.externalId;
-  row.name = entry.name || undefined;
-  row.regionName = entry.regionName || undefined;
-  row.availabilityZone = entry.availabilityZone || undefined;
-  row.hypervisorName = entry.hypervisorName || undefined;
-  row.status = entry.status || undefined;
-  row.adminState = entry.adminState || undefined;
-  row.disabledReason = entry.disabledReason || undefined;
-  row.vcpuCapacity = entry.vcpuCapacity ?? undefined;
-  row.vcpuAllocated = entry.vcpuAllocated ?? undefined;
-  row.memoryCapacityBytes = entry.memoryCapacityBytes ?? undefined;
-  row.memoryAllocatedBytes = entry.memoryAllocatedBytes ?? undefined;
-  row.instanceCount = entry.instanceCount ?? undefined;
-  row.facts = entry.facts;
-  return row;
+  return Object.assign(new OpenStackResource(), {
+    kind: entry.kind,
+    externalId: entry.externalId,
+    name: entry.name || undefined,
+    regionName: entry.regionName || undefined,
+    availabilityZone: entry.availabilityZone || undefined,
+    hypervisorName: entry.hypervisorName || undefined,
+    status: entry.status || undefined,
+    adminState: entry.adminState || undefined,
+    disabledReason: entry.disabledReason || undefined,
+    vcpuCapacity: entry.vcpuCapacity ?? undefined,
+    vcpuAllocated: entry.vcpuAllocated ?? undefined,
+    memoryCapacityBytes: entry.memoryCapacityBytes ?? undefined,
+    memoryAllocatedBytes: entry.memoryAllocatedBytes ?? undefined,
+    instanceCount: entry.instanceCount ?? undefined,
+    facts: entry.facts,
+  });
 }
 
 function readScene(release: string, scene: string): Array<OpenStackResource> {

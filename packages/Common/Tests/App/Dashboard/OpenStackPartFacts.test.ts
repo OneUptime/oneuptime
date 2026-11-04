@@ -26,7 +26,6 @@ import {
   OPENSTACK_IMAGE_STATE_PRESETS,
   OPENSTACK_INSTANCE_STATE_PRESETS,
   OPENSTACK_VOLUME_STATE_PRESETS,
-  OpenStackStatePreset,
 } from "../../../../App/FeatureSet/Dashboard/src/Components/OpenStack/OpenStackListFacets";
 import {
   ResourceAttentionItem,
@@ -713,16 +712,6 @@ describe("what is promised on a hypervisor", () => {
       ),
     );
   }
-
-  test("always says allocated, never CPU", () => {
-    expect(
-      getOpenStackAllocationLines(row(HYPERVISOR)).map(
-        (line: OpenStackAllocationLine) => {
-          return line.title;
-        },
-      ),
-    ).toEqual(["vCPUs allocated", "Memory allocated", "Local disk allocated"]);
-  });
 
   test("reads what is promised, out of what can be, at Placement's ratio", () => {
     const vcpu: OpenStackAllocationLine = lines(HYPERVISOR)["vcpu"]!;
@@ -1808,15 +1797,15 @@ describe("the alert templates each kind of part names", () => {
 });
 
 describe("a state a list is asked for by name finds what the rules call that", () => {
+  type Preset = { value: string; getQuery: (now: Date) => unknown };
+
   function preset(
-    presets: Array<{ value: string; getQuery: (now: Date) => unknown }>,
+    presets: Array<Preset>,
     value: string,
   ): Record<string, unknown> {
-    const found: OpenStackStatePreset | undefined = presets.find(
-      (candidate: OpenStackStatePreset) => {
-        return candidate.value === value;
-      },
-    );
+    const found: Preset | undefined = presets.find((candidate: Preset) => {
+      return candidate.value === value;
+    });
     return found!.getQuery(NOW) as Record<string, unknown>;
   }
 

@@ -393,7 +393,7 @@ export class Service extends DatabaseService<Model> {
         return `"${column}"`;
       }).join(", ");
 
-      const coalesce = (column: string): string => {
+      const coalesce: (column: string) => string = (column: string): string => {
         return `"${column}" = COALESCE(EXCLUDED."${column}", "OpenStackResource"."${column}")`;
       };
 
@@ -522,18 +522,26 @@ export class Service extends DatabaseService<Model> {
       scope,
     );
 
-    const toNumber = (value: string | null | undefined): number => {
+    const toNumber: (value: string | null | undefined) => number = (
+      value: string | null | undefined,
+    ): number => {
       const parsed: number = Number.parseFloat(value || "0");
       return Number.isFinite(parsed) ? parsed : 0;
     };
-    const rowOf = (kind: OpenStackResourceKind): (typeof rows)[number] | null => {
+    const rowOf: (
+      kind: OpenStackResourceKind,
+    ) => (typeof rows)[number] | null = (
+      kind: OpenStackResourceKind,
+    ): (typeof rows)[number] | null => {
       return (
         rows.find((row: (typeof rows)[number]) => {
           return row.kind === kind;
         }) || null
       );
     };
-    const countOf = (kind: OpenStackResourceKind): number => {
+    const countOf: (kind: OpenStackResourceKind) => number = (
+      kind: OpenStackResourceKind,
+    ): number => {
       return toNumber(rowOf(kind)?.count);
     };
 
@@ -826,7 +834,9 @@ export class Service extends DatabaseService<Model> {
       data.openStackCloudId.toString(),
     ];
 
-    const statuses = (values: ReadonlySet<string>): Array<string> => {
+    const statuses: (values: ReadonlySet<string>) => Array<string> = (
+      values: ReadonlySet<string>,
+    ): Array<string> => {
       return Array.from(values);
     };
 
@@ -1053,7 +1063,13 @@ export class Service extends DatabaseService<Model> {
       byProject: Array<{ projectId: string | null; count: number }>;
     }> = [];
 
-    const countByProject = async (query: {
+    const countByProject: (query: {
+      kind: OpenStackResourceKind;
+      where: string;
+      params: Array<unknown>;
+    }) => Promise<
+      Array<{ projectId: string | null; count: number }>
+    > = async (query: {
       kind: OpenStackResourceKind;
       where: string;
       params: Array<unknown>;
@@ -1080,15 +1096,15 @@ export class Service extends DatabaseService<Model> {
       });
     };
 
-    const finish = async (
+    const finish: (isKnown?: boolean) => Promise<OpenStackBlastRadius> = async (
       isKnown: boolean = true,
     ): Promise<OpenStackBlastRadius> => {
       const projectIds: Array<string> = Array.from(
         new Set(
-          counts.flatMap(({ byProject }) => {
-            return byProject
-              .map(({ projectId }) => {
-                return projectId;
+          counts.flatMap((part: (typeof counts)[number]) => {
+            return part.byProject
+              .map((one: { projectId: string | null; count: number }) => {
+                return one.projectId;
               })
               .filter((projectId: string | null): projectId is string => {
                 return Boolean(projectId);
@@ -1132,9 +1148,9 @@ export class Service extends DatabaseService<Model> {
       });
     };
 
-    const floatingIpsThrough = async (
+    const floatingIpsThrough: (
       routerIds: Array<string>,
-    ): Promise<void> => {
+    ) => Promise<void> = async (routerIds: Array<string>): Promise<void> => {
       if (routerIds.length === 0) {
         return;
       }
@@ -1148,7 +1164,9 @@ export class Service extends DatabaseService<Model> {
       });
     };
 
-    const instancesOn = async (hypervisorName: string): Promise<void> => {
+    const instancesOn: (hypervisorName: string) => Promise<void> = async (
+      hypervisorName: string,
+    ): Promise<void> => {
       counts.push({
         count: "instanceCount",
         byProject: await countByProject({
@@ -1311,7 +1329,10 @@ export class Service extends DatabaseService<Model> {
 
     if (part.kind === OpenStackResourceKind.Api) {
       const kinds: Partial<
-        Record<string, Array<[OpenStackResourceKind, OpenStackBlastRadiusCount]>>
+        Record<
+          string,
+          Array<[OpenStackResourceKind, OpenStackBlastRadiusCount]>
+        >
       > = {
         [OpenStackServiceType.Compute]: [
           [OpenStackResourceKind.Instance, "instanceCount"],
@@ -1696,7 +1717,12 @@ export class Service extends DatabaseService<Model> {
     const isSummarized: boolean =
       drawnTotal > OPENSTACK_TOPOLOGY_FULL_PART_LIMIT;
 
-    const read = async (query: {
+    const read: (query: {
+      kind: OpenStackResourceKind;
+      where?: string | undefined;
+      params?: Array<unknown> | undefined;
+      limit: number;
+    }) => Promise<Array<JSONObject>> = async (query: {
       kind: OpenStackResourceKind;
       where?: string | undefined;
       params?: Array<unknown> | undefined;
@@ -1765,10 +1791,7 @@ export class Service extends DatabaseService<Model> {
       );
       for (const row of attention.rows) {
         const key: string = `${row["kind"]}/${row["externalId"]}`;
-        if (
-          !seen.has(key) &&
-          row["kind"] !== OpenStackResourceKind.Project
-        ) {
+        if (!seen.has(key) && row["kind"] !== OpenStackResourceKind.Project) {
           seen.add(key);
           rows.push(row);
         }

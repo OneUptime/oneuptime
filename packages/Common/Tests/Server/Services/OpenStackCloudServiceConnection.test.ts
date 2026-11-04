@@ -192,8 +192,7 @@ describe("creating a cloud", () => {
   test("one the agent or ingest registers names no setting, so nothing is carried", async () => {
     const by: CreateBy<OpenStackCloud> = createBy({ name: "Production" });
 
-    const result: OnCreate<OpenStackCloud> =
-      await internals.onBeforeCreate(by);
+    const result: OnCreate<OpenStackCloud> = await internals.onBeforeCreate(by);
 
     expect(result.createBy).toBe(by);
     expect(result.carryForward).toBeNull();
@@ -203,8 +202,7 @@ describe("creating a cloud", () => {
   test("a probe-collected one is checked and normalized before it is saved", async () => {
     const by: CreateBy<OpenStackCloud> = createBy(PROBE_SETTINGS);
 
-    const result: OnCreate<OpenStackCloud> =
-      await internals.onBeforeCreate(by);
+    const result: OnCreate<OpenStackCloud> = await internals.onBeforeCreate(by);
 
     expect(by.data.authUrl).toBe("https://keystone.example.com:5000");
     expect(by.data.credentialKind).toBe("applicationCredential");
@@ -329,8 +327,7 @@ describe("updating a cloud", () => {
       collectionIntervalInMinutes: 5,
     });
 
-    const result: OnUpdate<OpenStackCloud> =
-      await internals.onBeforeUpdate(by);
+    const result: OnUpdate<OpenStackCloud> = await internals.onBeforeUpdate(by);
 
     expect(read.mock.calls).toHaveLength(1);
     expect(read.mock.calls[0]![0]).toBe(by);
@@ -362,7 +359,9 @@ describe("updating a cloud", () => {
     stubSavedRows([savedRow()]);
 
     await expect(
-      internals.onBeforeUpdate(updateBy({ authUrl: "https://evil.example.com" })),
+      internals.onBeforeUpdate(
+        updateBy({ authUrl: "https://evil.example.com" }),
+      ),
     ).rejects.toThrow(
       "Enter the credential again: a saved credential is only sent to the Keystone it was entered for.",
     );

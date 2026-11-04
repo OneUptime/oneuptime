@@ -377,8 +377,6 @@ export type OpenStackAllocationKey = "vcpu" | "memory" | "disk";
 
 export interface OpenStackAllocationLine {
   key: OpenStackAllocationKey;
-  // "vCPUs allocated": always allocated, never "CPU", because this is not load.
-  title: string;
   taken: number | null;
   capacity: number | null;
   percent: number | null;
@@ -387,15 +385,6 @@ export interface OpenStackAllocationLine {
   isOverLine: boolean;
   isLastKnown: boolean;
 }
-
-export const OPENSTACK_ALLOCATION_TITLES: Record<
-  OpenStackAllocationKey,
-  string
-> = {
-  vcpu: translationKey("vCPUs allocated"),
-  memory: translationKey("Memory allocated"),
-  disk: translationKey("Local disk allocated"),
-};
 
 export function getOpenStackAllocationLines(
   row: OpenStackResource,
@@ -419,7 +408,6 @@ export function getOpenStackAllocationLines(
     const ratio: JSONValue | undefined = ratios[data.resource];
     return {
       key: data.key,
-      title: OPENSTACK_ALLOCATION_TITLES[data.key],
       taken: data.taken ?? null,
       capacity: data.capacity ?? null,
       percent: percent,

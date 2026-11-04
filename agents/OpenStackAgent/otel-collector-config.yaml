@@ -121,7 +121,7 @@ receivers:
               target_label: openstack_exporter_host
           metric_relabel_configs:
             - source_labels: [__name__]
-              regex: libvirt_domain_openstack_info|libvirt_domain_info_(cpu_time_seconds_total|virtual_cpus|maximum_memory_bytes)|libvirt_domain_memory_stats_(available|usable|unused|rss)_bytes|libvirt_domain_block_stats_(read|write)_(bytes|requests|time_seconds)_total|libvirt_domain_interface_stats_(receive|transmit)_bytes_total|libvirt_domain_vcpu_delay_seconds_total|libvirt_up
+              regex: libvirt_domain_openstack_info|libvirt_domain_info_(cpu_time_seconds_total|virtual_cpus)|libvirt_domain_memory_stats_(available|usable|unused|rss)_bytes|libvirt_domain_block_stats_(read|write)_(bytes|requests|time_seconds)_total|libvirt_domain_interface_stats_(receive|transmit)_bytes_total|libvirt_domain_vcpu_delay_seconds_total|libvirt_up
               action: keep
         # Its readings change once a polling cycle (five minutes by default) however
         # often it is scraped, so scraping it faster than that buys nothing.
@@ -135,7 +135,7 @@ receivers:
           relabel_configs: *openstack_instance_metrics_target
           metric_relabel_configs:
             - source_labels: [__name__]
-              regex: ceilometer_(cpu|cpu_delay|vcpus|memory|memory_usage|memory_resident)|ceilometer_disk_device_(read|write)_(bytes|requests|latency)|ceilometer_network_(incoming|outgoing)_bytes
+              regex: ceilometer_(cpu|cpu_delay|vcpus|memory_usage|memory_resident)|ceilometer_disk_device_(read|write)_(bytes|requests|latency)|ceilometer_network_(incoming|outgoing)_bytes
               action: keep
 
   # What the cloud stands on. Most OpenStack outages begin underneath it: a RabbitMQ
@@ -231,22 +231,11 @@ receivers:
             - source_labels: [__name__]
               regex: haproxy_backend_status|haproxy_server_status|haproxy_backend_active_servers|haproxy_backend_http_responses_total
               action: keep
-            # One series per backend or server for each state it could be in. Whether
-            # it is up says all of them, at a tenth of the series.
+            # One series per backend or server for each state it could be in. A monitor
+            # asks whether it is down or up, and planned work reads as neither: at a
+            # fraction of the series.
             - source_labels: [__name__, state]
-              regex: haproxy_(backend|server)_status;(.*)
-              target_label: __tmp_status_state
-              replacement: $$2
-            - source_labels: [__tmp_status_state]
-              regex: (.+)
-              target_label: __tmp_status_keep
-              replacement: "no"
-            - source_labels: [__tmp_status_state]
-              regex: UP
-              target_label: __tmp_status_keep
-              replacement: "yes"
-            - source_labels: [__tmp_status_keep]
-              regex: "no"
+              regex: haproxy_(backend|server)_status;(MAINT|DRAIN|NOLB)
               action: drop
         - job_name: oneuptime-openstack-network-exporter
           scrape_interval: 60s

@@ -44,7 +44,11 @@ import ResourceTable, {
   ResourceStatusTone,
 } from "../../Infrastructure/ResourceTable";
 import NeedsAttentionCard from "../../ResourcePart/NeedsAttentionCard";
-import { ResourceHealth } from "../../ResourcePart/ResourceAttention";
+import {
+  ResourceAttentionItem,
+  ResourceAttentionText,
+  ResourceHealth,
+} from "../../ResourcePart/ResourceAttention";
 import ResourcePartAlertsCard from "../../ResourcePart/ResourcePartAlertsCard";
 import ResourcePartDetailsCard from "../../ResourcePart/ResourcePartDetailsCard";
 import ResourcePartHero from "../../ResourcePart/ResourcePartHero";
@@ -161,8 +165,8 @@ function amountText(
   if (percent === null) {
     return translator.translateText("Not reported") || "Not reported";
   }
-  return translator.translateTemplate("{{used}} of {{total}} ({{percent}})", {
-    used: format(taken),
+  // The share first and short: a list of zones has little room, and the page has the rest.
+  return translator.translateTemplate("{{percent}} of {{total}}", {
     total: format(capacity),
     percent: `${Math.round(percent)}%`,
   });

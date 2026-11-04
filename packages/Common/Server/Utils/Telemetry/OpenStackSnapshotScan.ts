@@ -1,3 +1,4 @@
+import { OPENSTACK_INSTANCE_METRIC_JOBS } from "../../../Types/OpenStack/OpenStackInstanceMetrics";
 import OneUptimeDate from "../../../Types/Date";
 import { JSONArray, JSONObject, JSONValue } from "../../../Types/JSON";
 import { getOpenStackShortHostName } from "../../../Types/OpenStack/OpenStackHealthRules";
@@ -221,7 +222,9 @@ export function isOpenStackSnapshotDatapoint(data: {
   ) {
     const attributes: JSONArray =
       (data.datapoint["attributes"] as JSONArray) || [];
-    return getLabel(attributes, OPENSTACK_SERVICE_LABEL) !== null;
+    const service: string | null = getLabel(attributes, OPENSTACK_SERVICE_LABEL);
+    // The agent's VM metric jobs read compute nodes: they are no OpenStack API to list.
+    return service !== null && !OPENSTACK_INSTANCE_METRIC_JOBS.has(service);
   }
   return OPENSTACK_SNAPSHOT_METRIC_NAMES.has(data.metricName);
 }
@@ -1636,7 +1639,10 @@ export function finishOpenStackBatch(
     finishOpenStackResource,
   );
 
-  const hostKey = (region: string | null, host: string | null): string => {
+  const hostKey: (region: string | null, host: string | null) => string = (
+    region: string | null,
+    host: string | null,
+  ): string => {
     return `${region || ""}/${getOpenStackShortHostName(host)}`;
   };
 
