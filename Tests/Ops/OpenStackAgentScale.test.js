@@ -285,16 +285,22 @@ describe("the database path", () => {
     for (const flag of [
       // Each names the series whose read fills the rest.
       "nova-total_vms",
-      "nova-current_workload",
+      "nova-running_vms",
       "nova-flavors",
       "nova-availability_zones",
       "cinder-volumes",
+      "cinder-volume_status",
       "cinder-snapshots",
-      "cinder-backups",
       "cinder-agent_state",
     ]) {
       expect(off).toContain(`--disable-metric=${flag}`);
     }
+
+    /*
+     * Read at the exporter's pinned revision and seen on the rig: ListHypervisors reads on when
+     * nova-current_workload alone is off, and panics writing it at exporters/nova.go:223.
+     */
+    expect(off).not.toContain("--disable-metric=nova-current_workload");
 
     expect(workers.image).toBe(
       compose.services["openstack-exporter"].image,
