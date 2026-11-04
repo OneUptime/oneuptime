@@ -260,6 +260,18 @@ export interface AiActivityResourceHotspot extends AiActivityNamedResource {
   lastSeenAt?: string | undefined;
 }
 
+/*
+ * Where the window's approved fixes were approved
+ * (AutoRemediationSuggestion.approvedFrom): on the AI card, or from the
+ * fix's message in Slack or Microsoft Teams. A fix approved before this was
+ * kept is in none.
+ */
+export interface AiActivityFixApprovalSources {
+  dashboard: number;
+  slack: number;
+  microsoftTeams: number;
+}
+
 // The fixes of the window by where they ended up.
 export interface AiActivityFixOutcomes {
   total: number;
@@ -273,6 +285,11 @@ export interface AiActivityFixOutcomes {
   verified: number;
   failed: number;
   verifying: number;
+  /*
+   * Where the approved ones were approved. Absent from a server that did
+   * not count it yet: the page then says nothing of where.
+   */
+  approvedFrom?: AiActivityFixApprovalSources | undefined;
 }
 
 /*

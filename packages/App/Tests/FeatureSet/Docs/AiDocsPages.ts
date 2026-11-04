@@ -173,6 +173,7 @@ export const OTHER_NAMES: Readonly<Record<string, ReadonlyArray<string>>> = {
    */
   [AI_SRE]: [
     "Summary",
+    "Impact",
     "Evidence",
     "Review and approve",
     "Approve and run",
