@@ -253,6 +253,8 @@ const SCHEME_KINDS: Readonly<Record<string, DataStoreKind>> = {
   redshift: DataStoreKind.AwsRedshiftCluster,
   snowflake: DataStoreKind.Snowflake,
   bigquery: DataStoreKind.GcpBigQueryDataset,
+  clickhouse: DataStoreKind.ClickHouse,
+  databricks: DataStoreKind.Databricks,
 };
 
 /*
@@ -282,7 +284,8 @@ export function parseDatasetName(
     return null;
   }
 
-  if (kind === DataStoreKind.MySql) {
+  // MySQL's and ClickHouse's schema is their database: db.table.
+  if (kind === DataStoreKind.MySql || kind === DataStoreKind.ClickHouse) {
     return parts.length === 2
       ? {
           kind,

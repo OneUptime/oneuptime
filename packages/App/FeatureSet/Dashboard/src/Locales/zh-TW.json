@@ -41852,5 +41852,7 @@
   "Say a rule this table should hold to, and OneUptime AI writes the check: one read-only query that counts the rows breaking it. You read it before it is added.": "Say a rule this table should hold to, and OneUptime AI writes the check: one read-only query that counts the rows breaking it. You read it before it is added.",
   "The rule, in a sentence": "用一句話描述規則",
   "Write a Check from a Sentence": "用一句話撰寫檢查",
-  "Write the Check": "撰寫檢查"
+  "Write the Check": "撰寫檢查",
+  "ClickHouse": "ClickHouse",
+  "Databricks": "Databricks"
 }
