@@ -63,7 +63,12 @@ import CloudStreamKeys from "Common/Server/Utils/CloudConnection/CloudStreamKeys
 import {
   createExpressApp,
   ExpressApplication,
+  ExpressRequest,
+  ExpressResponse,
+  NextFunction,
+  RequestHandler as ExpressRequestHandler,
 } from "Common/Server/Utils/Express";
+import { isCloudStreamPath } from "Common/Server/Utils/StartServer";
 import LlmConnectionPullRunner from "Common/Server/Utils/LlmObservability/LlmConnectionPullRunner";
 import TelemetryUtil from "Common/Server/Utils/Telemetry/Telemetry";
 import TelemetryIngestionKeyRateLimiter, {
@@ -93,6 +98,7 @@ import {
   STREAM_THROTTLED_MESSAGE,
   STREAM_TOO_LARGE_MESSAGE,
 } from "../../FeatureSet/Telemetry/Services/AwsFirehoseIngestService";
+import { STREAMED_SERIES_MEMORY } from "../../FeatureSet/Telemetry/Utils/AwsFirehose/CloudWatchMetricStream";
 import {
   ACCOUNT_ID,
   CONTROL_MESSAGE_DOCUMENT,
@@ -130,7 +136,8 @@ import {
  *     not (413), as its contract reads;
  *   - each delivery's records land as OTLP metrics and logs of the key's
  *     project only, under the connection's service and id, filed under
- *     their cloud resource and account;
+ *     their cloud resource and account - the key metrics as the gauges the
+ *     connection's read writes, each resource's own aggregate once;
  *   - a delivery Firehose sends again after it was taken is not taken twice;
  *   - limits: the body as sent - a length declared past it answered before
  *     the body comes, a body sent without one let go of as it grows past
@@ -360,6 +367,8 @@ beforeEach(() => {
   CloudStreamAuthenticator.forget(CONNECTION_A);
   CloudStreamAuthenticator.forget(CONNECTION_B);
   CloudStreamActivity.reset();
+  // What earlier tests' deliveries carried never decides this one's.
+  STREAMED_SERIES_MEMORY.clear();
 
   jest
     .spyOn(CloudConnectionService, "findOneById")
@@ -491,12 +500,15 @@ describe("a metric stream in OpenTelemetry 1.0", () => {
       ] as Array<JSONObject>
     )[0]!;
     const point: JSONObject = (
-      (metric["summary"] as JSONObject)["dataPoints"] as Array<JSONObject>
+      (metric["gauge"] as JSONObject)["dataPoints"] as Array<JSONObject>
     )[0]!;
 
+    // A key metric: the gauge the connection's read writes, at the minute's start.
     expect(metric["name"]).toBe("amazonaws.com/AWS/EC2/CPUUtilization");
-    expect(point["sum"]).toBe(12.5);
-    expect(point["timeUnixNano"]).toBe(`${MINUTE_START_MS + 60_000}000000`);
+    expect(metric["summary"]).toBeUndefined();
+    expect(metric["unit"]).toBe("Percent");
+    expect(point["asDouble"]).toBe(12.5);
+    expect(point["timeUnixNano"]).toBe(`${MINUTE_START_MS}000000`);
   });
 
   test("is filed under the resource the connection's inventory lists, in its account", async () => {
@@ -513,7 +525,7 @@ describe("a metric stream in OpenTelemetry 1.0", () => {
       ] as Array<JSONObject>
     )[0]!;
     const point: JSONObject = (
-      (metric["summary"] as JSONObject)["dataPoints"] as Array<JSONObject>
+      (metric["gauge"] as JSONObject)["dataPoints"] as Array<JSONObject>
     )[0]!;
 
     // The row the ingest will store, and the resource its resolver files it under.
@@ -579,6 +591,59 @@ describe("a metric stream in OpenTelemetry 1.0", () => {
   });
 });
 
+// The first metric of the first job's first resource.
+function firstQueuedMetric(): { resource: JSONObject; metric: JSONObject } {
+  const resource: JSONObject = (
+    metricJobs[0]!.body["resourceMetrics"] as Array<JSONObject>
+  )[0]!;
+  const metric: JSONObject = (
+    (resource["scopeMetrics"] as Array<JSONObject>)[0]![
+      "metrics"
+    ] as Array<JSONObject>
+  )[0]!;
+
+  return { resource, metric };
+}
+
+// Every queued metric's datapoints, gauge or summary, by the metric's name.
+function queuedPoints(): Map<string, Array<JSONObject>> {
+  const points: Map<string, Array<JSONObject>> = new Map();
+
+  for (const job of metricJobs) {
+    for (const resource of job.body["resourceMetrics"] as Array<JSONObject>) {
+      for (const scope of resource["scopeMetrics"] as Array<JSONObject>) {
+        for (const metric of scope["metrics"] as Array<JSONObject>) {
+          const series: JSONObject = (metric["gauge"] ||
+            metric["summary"]) as JSONObject;
+          points.set(metric["name"] as string, [
+            ...(points.get(metric["name"] as string) || []),
+            ...(series["dataPoints"] as Array<JSONObject>),
+          ]);
+        }
+      }
+    }
+  }
+
+  return points;
+}
+
+// A datapoint's dimensions, as the ingest stores them.
+function dimensionsOf(point: JSONObject): Record<string, unknown> {
+  const stored: Record<string, unknown> = TelemetryUtil.getAttributes({
+    prefixKeysWithString: "",
+    items: point["attributes"] as JSONArray,
+  });
+  const dimensions: Record<string, unknown> = {};
+
+  for (const key of Object.keys(stored)) {
+    if (key.startsWith("Dimensions.")) {
+      dimensions[key.slice("Dimensions.".length)] = stored[key];
+    }
+  }
+
+  return dimensions;
+}
+
 describe("a metric stream in JSON", () => {
   test("lands as the very series OpenTelemetry 1.0 writes", async () => {
     await deliver({
@@ -593,36 +658,299 @@ describe("a metric stream in JSON", () => {
         ]),
       ],
     });
+    const fromJson: { resource: JSONObject; metric: JSONObject } =
+      firstQueuedMetric();
 
-    const resource: JSONObject = (
-      metricJobs[0]!.body["resourceMetrics"] as Array<JSONObject>
-    )[0]!;
-    const metric: JSONObject = (
-      (resource["scopeMetrics"] as Array<JSONObject>)[0]![
-        "metrics"
-      ] as Array<JSONObject>
-    )[0]!;
+    metricJobs = [];
+    await deliver({
+      records: [openTelemetryRecord([openTelemetryRequest([EC2_CPU])])],
+    });
+    const fromOpenTelemetry: { resource: JSONObject; metric: JSONObject } =
+      firstQueuedMetric();
+
     const point: JSONObject = (
-      (metric["summary"] as JSONObject)["dataPoints"] as Array<JSONObject>
+      (fromJson.metric["gauge"] as JSONObject)[
+        "dataPoints"
+      ] as Array<JSONObject>
     )[0]!;
     const stored: Record<string, unknown> = TelemetryUtil.getAttributes({
       prefixKeysWithString: "",
       items: point["attributes"] as JSONArray,
     });
 
-    expect(metric["name"]).toBe("amazonaws.com/AWS/EC2/CPUUtilization");
+    // One metric, one shape, one value, one time - whichever format it came in.
+    expect(fromJson.metric).toEqual(fromOpenTelemetry.metric);
+    expect(fromJson.metric["name"]).toBe(
+      "amazonaws.com/AWS/EC2/CPUUtilization",
+    );
+    expect(point["asDouble"]).toBe(12.5);
+    expect(point["timeUnixNano"]).toBe(`${MINUTE_START_MS}000000`);
     expect(stored).toEqual({
       Namespace: "AWS/EC2",
       MetricName: "CPUUtilization",
       "Dimensions.InstanceId": "i-0abc123def",
     });
+    expect(resourceAttribute(fromJson.resource, "service.name")).toBe(
+      "Production AWS",
+    );
+    expect(resourceAttribute(fromJson.resource, "cloud.account.id")).toBe(
+      ACCOUNT_ID,
+    );
+  });
+
+  test("a metric that is not a key one stays the stream's summary, its percentiles too", async () => {
+    await deliver({
+      records: [
+        jsonMetricRecord([
+          jsonMetricUpdate({
+            namespace: "AWS/EC2",
+            metricName: "CPUCreditBalance",
+            dimensions: { InstanceId: "i-0abc123def" },
+            unit: "Count",
+            value: { max: 80, min: 76, sum: 390, count: 5, p99: 79.5 },
+          }),
+        ]),
+      ],
+    });
+
+    const { metric } = firstQueuedMetric();
+    const point: JSONObject = (
+      (metric["summary"] as JSONObject)["dataPoints"] as Array<JSONObject>
+    )[0]!;
+
+    expect(metric["gauge"]).toBeUndefined();
+    expect(point["count"]).toBe(5);
+    expect(point["sum"]).toBe(390);
     expect(point["quantileValues"]).toEqual([
-      { quantile: 0, value: 12.5 },
-      { quantile: 0.99, value: 12.5 },
-      { quantile: 1, value: 12.5 },
+      { quantile: 0, value: 76 },
+      { quantile: 0.99, value: 79.5 },
+      { quantile: 1, value: 80 },
     ]);
-    expect(resourceAttribute(resource, "service.name")).toBe("Production AWS");
-    expect(resourceAttribute(resource, "cloud.account.id")).toBe(ACCOUNT_ID);
+  });
+});
+
+describe("the key metrics, as the connection's read writes them", () => {
+  test("each is a gauge of the statistic the read reads: Average, Sum, Maximum and Minimum", async () => {
+    await deliver({
+      records: [
+        openTelemetryRecord([
+          openTelemetryRequest([
+            // Average: the sum over the count.
+            openTelemetryMetric({
+              namespace: "AWS/EC2",
+              metricName: "CPUUtilization",
+              dimensions: { InstanceId: "i-0abc123def" },
+              count: 4,
+              sum: 50,
+              min: 2,
+              max: 30,
+            }),
+            // Sum: the sum.
+            openTelemetryMetric({
+              namespace: "AWS/EC2",
+              metricName: "NetworkIn",
+              dimensions: { InstanceId: "i-0abc123def" },
+              unit: "By",
+              count: 5,
+              sum: 1000,
+              min: 100,
+              max: 400,
+            }),
+            // Maximum: the largest the minute saw.
+            openTelemetryMetric({
+              namespace: "AWS/EC2",
+              metricName: "StatusCheckFailed",
+              dimensions: { InstanceId: "i-0abc123def" },
+              unit: "1",
+              count: 3,
+              sum: 1,
+              min: 0,
+              max: 1,
+            }),
+            // Minimum: the smallest the minute saw.
+            openTelemetryMetric({
+              namespace: "AWS/Route53",
+              metricName: "HealthCheckStatus",
+              dimensions: {
+                HealthCheckId: "3d2f6c1e-0000-4000-8000-000000000001",
+              },
+              unit: "None",
+              count: 6,
+              sum: 5,
+              min: 0,
+              max: 1,
+            }),
+          ]),
+        ]),
+      ],
+    });
+
+    const points: Map<string, Array<JSONObject>> = queuedPoints();
+
+    expect(
+      points
+        .get("amazonaws.com/AWS/EC2/CPUUtilization")!
+        .map((point: JSONObject) => {
+          return point["asDouble"];
+        }),
+    ).toEqual([12.5]);
+    expect(
+      points
+        .get("amazonaws.com/AWS/EC2/NetworkIn")!
+        .map((point: JSONObject) => {
+          return point["asDouble"];
+        }),
+    ).toEqual([1000]);
+    expect(
+      points
+        .get("amazonaws.com/AWS/EC2/StatusCheckFailed")!
+        .map((point: JSONObject) => {
+          return point["asDouble"];
+        }),
+    ).toEqual([1]);
+    expect(
+      points
+        .get("amazonaws.com/AWS/Route53/HealthCheckStatus")!
+        .map((point: JSONObject) => {
+          return point["asDouble"];
+        }),
+    ).toEqual([0]);
+  });
+
+  test("a resource's own aggregate is written once: its per-version and per-alias splits are left out", async () => {
+    const invocations: (
+      dimensions: Record<string, string>,
+      sum: number,
+    ) => JSONObject = (
+      dimensions: Record<string, string>,
+      sum: number,
+    ): JSONObject => {
+      return openTelemetryMetric({
+        namespace: "AWS/Lambda",
+        metricName: "Invocations",
+        dimensions,
+        unit: "1",
+        count: 1,
+        sum,
+        min: sum,
+        max: sum,
+      });
+    };
+
+    await deliver({
+      records: [
+        openTelemetryRecord([
+          openTelemetryRequest([
+            invocations({ FunctionName: "checkout" }, 120),
+            invocations(
+              { FunctionName: "checkout", Resource: "checkout:live" },
+              100,
+            ),
+            invocations(
+              {
+                FunctionName: "checkout",
+                Resource: "checkout:live",
+                ExecutedVersion: "7",
+              },
+              100,
+            ),
+          ]),
+        ]),
+      ],
+    });
+
+    const points: Array<JSONObject> = queuedPoints().get(
+      "amazonaws.com/AWS/Lambda/Invocations",
+    )!;
+
+    // 120 invocations, not 320.
+    expect(points).toHaveLength(1);
+    expect(points[0]!["asDouble"]).toBe(120);
+    expect(dimensionsOf(points[0]!)).toEqual({ FunctionName: "checkout" });
+  });
+
+  test("a split that comes in a later delivery than its resource's aggregate is left out too", async () => {
+    await deliver({
+      records: [
+        openTelemetryRecord([
+          openTelemetryRequest([
+            openTelemetryMetric({
+              namespace: "AWS/ApplicationELB",
+              metricName: "RequestCount",
+              dimensions: { LoadBalancer: "app/checkout/50dc6c495c0c9188" },
+              unit: "1",
+              count: 1,
+              sum: 900,
+              min: 900,
+              max: 900,
+            }),
+          ]),
+        ]),
+      ],
+    });
+
+    metricJobs = [];
+    await deliver({
+      records: [
+        openTelemetryRecord([
+          openTelemetryRequest([
+            openTelemetryMetric({
+              namespace: "AWS/ApplicationELB",
+              metricName: "RequestCount",
+              dimensions: {
+                LoadBalancer: "app/checkout/50dc6c495c0c9188",
+                AvailabilityZone: "us-east-1a",
+              },
+              unit: "1",
+              count: 1,
+              sum: 450,
+              min: 450,
+              max: 450,
+            }),
+          ]),
+        ]),
+      ],
+    });
+
+    // Taken, and nothing of it queued: the load balancer's own count came before.
+    expect(metricJobs).toHaveLength(0);
+  });
+
+  test("a resource with no series of its own keeps every series with the fewest dimensions: an ElastiCache cluster's nodes", async () => {
+    const node: (nodeId: string, sum: number) => JSONObject = (
+      nodeId: string,
+      sum: number,
+    ): JSONObject => {
+      return openTelemetryMetric({
+        namespace: "AWS/ElastiCache",
+        metricName: "CPUUtilization",
+        dimensions: { CacheClusterId: "sessions-001", CacheNodeId: nodeId },
+        count: 1,
+        sum,
+        min: sum,
+        max: sum,
+      });
+    };
+
+    await deliver({
+      records: [
+        openTelemetryRecord([
+          openTelemetryRequest([node("0001", 20), node("0002", 40)]),
+        ]),
+      ],
+    });
+
+    const points: Array<JSONObject> = queuedPoints().get(
+      "amazonaws.com/AWS/ElastiCache/CPUUtilization",
+    )!;
+
+    expect(
+      points
+        .map((point: JSONObject) => {
+          return point["asDouble"];
+        })
+        .sort(),
+    ).toEqual([20, 40]);
   });
 });
 
@@ -796,6 +1124,31 @@ describe("CloudWatch Logs subscriptions", () => {
   });
 });
 
+// A server of its own, with what runs before the stream router; closed after.
+async function withServer(
+  before: ExpressRequestHandler,
+  run: (otherPort: number) => Promise<void>,
+): Promise<void> {
+  const app: ExpressApplication = createExpressApp();
+  app.use(before);
+  app.use(["/telemetry", "/"], AwsFirehoseAPI);
+
+  const other: http.Server = http.createServer(app);
+  await new Promise<void>((resolve: () => void) => {
+    other.listen(0, "127.0.0.1", resolve);
+  });
+
+  try {
+    await run((other.address() as AddressInfo).port);
+  } finally {
+    await new Promise<void>((resolve: () => void) => {
+      other.close(() => {
+        resolve();
+      });
+    });
+  }
+}
+
 describe("the body", () => {
   test("may come without gzip", async () => {
     const reply: FirehoseReply = await deliver({
@@ -805,6 +1158,89 @@ describe("the body", () => {
 
     expectFirehoseAnswer(reply, { status: 200 });
     expect(metricJobs).toHaveLength(1);
+  });
+
+  test("every path the router answers - in any case, with or without a trailing slash - is one StartServer leaves to it raw", async () => {
+    const seen: Array<{ path: string; isRaw: boolean }> = [];
+
+    await withServer(
+      (req: ExpressRequest, _res: ExpressResponse, next: NextFunction) => {
+        seen.push({ path: req.path, isRaw: isCloudStreamPath(req.path) });
+        next();
+      },
+      async (otherPort: number): Promise<void> => {
+        for (const path of [
+          "/telemetry/aws-firehose/v1/metrics/",
+          "/TELEMETRY/AWS-FIREHOSE/V1/LOGS",
+          "/aws-firehose/v1/Metrics/",
+          "/aws-firehose/v1/logs",
+        ]) {
+          const requestId: string = nextRequestId();
+          const reply: FirehoseReply = await sendFirehoseDelivery({
+            port: otherPort,
+            path,
+            accessKey: KEY_A,
+            requestId,
+            sourceArn: METRICS_FIREHOSE_ARN,
+            body: firehoseEnvelope({
+              requestId,
+              records: [openTelemetryRecord([openTelemetryRequest([EC2_CPU])])],
+            }),
+          });
+
+          // The router answered it, so it is the endpoint...
+          expectFirehoseAnswer(reply, { status: 200, requestId });
+        }
+      },
+    );
+
+    // ...and none of its paths was handed to a body parser first.
+    expect(seen).toHaveLength(4);
+    expect(
+      seen.filter((entry: { path: string; isRaw: boolean }) => {
+        return !entry.isRaw;
+      }),
+    ).toEqual([]);
+  });
+
+  test("a body something read before the endpoint is answered at once, as a failure Firehose sends again - never waited for", async () => {
+    await withServer(
+      (req: ExpressRequest, _res: ExpressResponse, next: NextFunction) => {
+        // A body parser that read the stream to its end.
+        req.on("data", () => {
+          // Read and let go.
+        });
+        req.on("end", () => {
+          next();
+        });
+      },
+      async (otherPort: number): Promise<void> => {
+        const requestId: string = nextRequestId();
+        const startedAt: number = Date.now();
+        const reply: FirehoseReply = await sendFirehoseDelivery({
+          port: otherPort,
+          path: "/telemetry/aws-firehose/v1/metrics",
+          accessKey: KEY_A,
+          requestId,
+          sourceArn: METRICS_FIREHOSE_ARN,
+          gzip: false,
+          body: firehoseEnvelope({
+            requestId,
+            records: [openTelemetryRecord([openTelemetryRequest([EC2_CPU])])],
+          }),
+        });
+
+        expectFirehoseAnswer(reply, {
+          status: 500,
+          requestId,
+          errorMessage:
+            "OneUptime could not take this delivery. Firehose sends it again.",
+        });
+        expect(Date.now() - startedAt).toBeLessThan(5_000);
+      },
+    );
+
+    expect(metricJobs).toHaveLength(0);
   });
 
   test("declared larger than OneUptime takes is 413 - which Firehose does not send again - before it is read", async () => {

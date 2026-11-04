@@ -426,6 +426,18 @@ export default class AwsFirehoseIngestService {
       return req.body;
     }
 
+    /*
+     * A body something read before this route (a body parser StartServer
+     * did not leave the path to) is gone: said at once, as a failure
+     * Firehose sends again, rather than waited for until the socket times
+     * out.
+     */
+    if ((req as { readableEnded?: boolean }).readableEnded === true) {
+      throw new Error(
+        "The delivery's body was read before the stream endpoint could read it.",
+      );
+    }
+
     const declared: number = parseInt(
       headerValueToString(req.headers["content-length"]) || "",
       10,

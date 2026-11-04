@@ -274,16 +274,25 @@ export const isVercelLogDrainPath: (path: string) => boolean = (
  * The Amazon Data Firehose endpoint an AWS connection streams to
  * (/aws-firehose/v1/metrics and /logs, also under /telemetry) reads its
  * body raw: it answers in Firehose's own contract, a body too large too,
- * which a body parser's own refusal would not keep.
+ * which a body parser's own refusal would not keep. Matched as the router
+ * matches it - in any case, with or without a trailing slash - since a
+ * path the router sends there that a body parser read first would reach
+ * the endpoint with its body gone.
  */
 export const isCloudStreamPath: (path: string) => boolean = (
   path: string,
 ): boolean => {
+  let normalized: string = path.toLowerCase();
+
+  while (normalized.length > 1 && normalized.endsWith("/")) {
+    normalized = normalized.slice(0, -1);
+  }
+
   return [CLOUD_STREAM_METRICS_PATH, CLOUD_STREAM_LOGS_PATH].some(
     (streamPath: string): boolean => {
       return (
-        path === streamPath ||
-        path === `${CLOUD_STREAM_URL_PREFIX}${streamPath}`
+        normalized === streamPath ||
+        normalized === `${CLOUD_STREAM_URL_PREFIX}${streamPath}`
       );
     },
   );

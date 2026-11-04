@@ -21,6 +21,23 @@ describe("isCloudStreamPath", () => {
     expect(isCloudStreamPath(path)).toBe(true);
   });
 
+  /*
+   * The router matches a path in any case and with a trailing slash, so
+   * the paths StartServer leaves raw are matched the same way: one it
+   * handed a body parser would reach the endpoint with its body gone.
+   */
+  test.each([
+    [`${CLOUD_STREAM_METRICS_PATH}/`],
+    [`/telemetry${CLOUD_STREAM_LOGS_PATH}//`],
+    ["/AWS-FIREHOSE/V1/METRICS"],
+    ["/Telemetry/Aws-Firehose/v1/Logs/"],
+  ])(
+    "%s, as the router matches it, is the stream endpoint too",
+    (path: string) => {
+      expect(isCloudStreamPath(path)).toBe(true);
+    },
+  );
+
   test.each([
     ["/aws-firehose/v1/metrics/extra"],
     ["/aws-firehose/v1"],
@@ -28,6 +45,8 @@ describe("isCloudStreamPath", () => {
     ["/telemetry/aws-firehose/v1/traces"],
     ["/otlp/v1/metrics"],
     ["/vercel/v1/logs"],
+    ["/"],
+    [""],
   ])("%s is not", (path: string) => {
     expect(isCloudStreamPath(path)).toBe(false);
   });
