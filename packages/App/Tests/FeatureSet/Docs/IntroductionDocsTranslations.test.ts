@@ -122,6 +122,12 @@ const PROSE: Record<string, Array<string>> = {
     "Telemetry",
     "Labels",
     "Owners",
+    /*
+     * "Your **account** is separate from your projects": the user's own
+     * account. The Dashboard's "account" is a cloud account's identifier
+     * line.
+     */
+    "account",
   ],
   /*
    * "**Language**: the dashboard starts in your browser's language" - a list
