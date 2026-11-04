@@ -42182,5 +42182,6 @@
   "Writes Only Unused Tables": "Writes Only Unused Tables",
   "Writes unused tables": "Writes unused tables",
   "{{bytes}} billed": "{{bytes}} billed",
-  "{{credits}} credits": "{{credits}} credits"
+  "{{credits}} credits": "{{credits}} credits",
+  "Amazon Athena": "Amazon Athena"
 }

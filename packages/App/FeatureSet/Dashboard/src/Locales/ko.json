@@ -42182,5 +42182,6 @@
   "Writes Only Unused Tables": "사용되지 않는 테이블만 씀",
   "Writes unused tables": "사용되지 않는 테이블을 씀",
   "{{bytes}} billed": "{{bytes}} 청구됨",
-  "{{credits}} credits": "{{credits}} 크레딧"
+  "{{credits}} credits": "{{credits}} 크레딧",
+  "Amazon Athena": "Amazon Athena"
 }

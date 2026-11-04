@@ -42182,5 +42182,6 @@
   "Writes Only Unused Tables": "只寫入未使用的資料表",
   "Writes unused tables": "寫入未使用的資料表",
   "{{bytes}} billed": "已計費 {{bytes}}",
-  "{{credits}} credits": "{{credits}} 點數"
+  "{{credits}} credits": "{{credits}} 點數",
+  "Amazon Athena": "Amazon Athena"
 }

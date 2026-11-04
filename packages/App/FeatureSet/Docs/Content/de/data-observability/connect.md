@@ -104,6 +104,12 @@ Ein Katalog von Unity Catalog ist eine Datenbank. Verbinden Sie sich mit einem S
 ```
 
 Der Katalog, seine Spalten und der letzte Commit jeder Delta-Tabelle kommen aus der REST-API von Unity Catalog, ohne SQL-Warehouse, sodass die Erfassung keine Rechenleistung kostet. Prüfungen sowie Lineage und letzte Lesezugriffe aus `system.access.table_lineage`, einmal pro Stunde, laufen auf dem SQL-Warehouse, das Sie nennen; geben Sie dem Service Principal darauf **Can use**.
+@tab Amazon Athena
+Eine Glue-Datenbank ist eine Datenbank. Ihre Tabellen und Views, deren Spalten und Statistiken sowie der letzte Commit jeder Iceberg-Tabelle kommen aus der API des Glue Data Catalog, die keine Daten liest und nichts kostet. Prüfungen laufen als Athena-Abfragen in der angegebenen Workgroup. Verbinden Sie sich mit den Schlüsseln eines IAM-Benutzers oder einer IAM-Rolle, die `glue:GetDatabase` und `glue:GetTables` aufrufen und für Prüfungen Athena-Abfragen in der Workgroup mit Lesezugriff auf die Daten der Tabellen ausführen dürfen:
+
+```json
+{ "region": "us-east-1", "accessKeyId": "AKIA...", "secretAccessKey": "...", "database": "analytics", "workgroup": "primary", "outputLocation": "s3://acme-athena-results/oneuptime/" }
+```
 :::
 
 ## Was gelesen wird, und wie oft

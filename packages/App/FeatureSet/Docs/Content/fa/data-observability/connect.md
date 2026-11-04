@@ -104,6 +104,12 @@ GRANT USE SCHEMA, SELECT ON SCHEMA system.access TO `oneuptime-reader`;
 ```
 
 کاتالوگ، ستون‌های آن و آخرین commit هر جدول Delta بدون هیچ SQL warehouse از REST API مربوط به Unity Catalog می‌آیند، پس جمع‌آوری هیچ هزینهٔ محاسباتی ندارد. بررسی‌ها، و تبار داده و آخرین خواندن‌ها از `system.access.table_lineage` که ساعتی یک بار خوانده می‌شوند، روی SQL warehouseای اجرا می‌شوند که نام می‌برید؛ دسترسی **Can use** روی آن را به service principal بدهید.
+@tab Amazon Athena
+یک پایگاه دادهٔ Glue یک پایگاه داده است. جدول‌ها و نماهای آن، ستون‌ها و آمارشان، و آخرین commit هر جدول Iceberg از API ‏Glue Data Catalog می‌آید که هیچ داده‌ای نمی‌خواند و هزینه‌ای ندارد. بررسی‌ها به‌صورت پرس‌وجوهای Athena در workgroup‌ای که نام می‌برید اجرا می‌شوند. با کلیدهای یک کاربر یا نقش IAM وصل شوید که بتواند `glue:GetDatabase` و `glue:GetTables` را فراخوانی کند و برای بررسی‌ها پرس‌وجوهای Athena را در workgroup با دسترسی خواندن به دادهٔ جدول‌ها اجرا کند:
+
+```json
+{ "region": "us-east-1", "accessKeyId": "AKIA...", "secretAccessKey": "...", "database": "analytics", "workgroup": "primary", "outputLocation": "s3://acme-athena-results/oneuptime/" }
+```
 :::
 
 ## چه چیزی خوانده می‌شود، و هر چند وقت یک بار

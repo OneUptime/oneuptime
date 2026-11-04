@@ -104,6 +104,12 @@ Unity Catalog의 카탈로그 하나가 데이터베이스 하나입니다. 서�
 ```
 
 카탈로그, 그 열, 각 Delta 테이블의 마지막 커밋은 SQL 웨어하우스 없이 Unity Catalog의 REST API에서 가져오므로, 수집에는 컴퓨팅 비용이 들지 않습니다. 검사, 그리고 한 시간에 한 번 `system.access.table_lineage` 에서 가져오는 리니지와 마지막 읽기는 지정한 SQL 웨어하우스에서 실행됩니다. 서비스 주체에 그 웨어하우스에 대한 **Can use** 를 부여하세요.
+@tab Amazon Athena
+하나의 Glue 데이터베이스가 하나의 데이터베이스입니다. 테이블과 뷰, 그 열과 통계, 각 Iceberg 테이블의 마지막 커밋은 Glue Data Catalog API에서 읽으며, 데이터는 읽지 않고 비용도 들지 않습니다. 검사는 지정한 워크그룹에서 Athena 쿼리로 실행됩니다. `glue:GetDatabase`와 `glue:GetTables`를 호출할 수 있고, 검사를 위해 테이블 데이터에 대한 읽기 권한으로 워크그룹에서 Athena 쿼리를 실행할 수 있는 IAM 사용자 또는 역할의 키로 연결하세요:
+
+```json
+{ "region": "us-east-1", "accessKeyId": "AKIA...", "secretAccessKey": "...", "database": "analytics", "workgroup": "primary", "outputLocation": "s3://acme-athena-results/oneuptime/" }
+```
 :::
 
 ## 읽는 항목과 주기

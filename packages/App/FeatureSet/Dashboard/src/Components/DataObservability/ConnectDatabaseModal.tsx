@@ -52,6 +52,7 @@ const KIND_OPTIONS: Array<DropdownOption> = [
   { value: DataStoreKind.GcpBigQueryDataset, label: "Google BigQuery" },
   { value: DataStoreKind.ClickHouse, label: "ClickHouse" },
   { value: DataStoreKind.Databricks, label: "Databricks" },
+  { value: DataStoreKind.AwsAthena, label: "Amazon Athena" },
 ];
 
 /*

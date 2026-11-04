@@ -42182,5 +42182,6 @@
   "Writes Only Unused Tables": "Skriver bara oanvända tabeller",
   "Writes unused tables": "Skriver oanvända tabeller",
   "{{bytes}} billed": "{{bytes}} fakturerat",
-  "{{credits}} credits": "{{credits}} krediter"
+  "{{credits}} credits": "{{credits}} krediter",
+  "Amazon Athena": "Amazon Athena"
 }

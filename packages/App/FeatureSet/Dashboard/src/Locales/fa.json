@@ -42182,5 +42182,6 @@
   "Writes Only Unused Tables": "فقط جدول‌های بی‌استفاده را می‌نویسد",
   "Writes unused tables": "جدول‌های بی‌استفاده را می‌نویسد",
   "{{bytes}} billed": "{{bytes}} صورتحساب‌شده",
-  "{{credits}} credits": "{{credits}} اعتبار"
+  "{{credits}} credits": "{{credits}} اعتبار",
+  "Amazon Athena": "Amazon Athena"
 }

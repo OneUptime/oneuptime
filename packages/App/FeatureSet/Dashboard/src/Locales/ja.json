@@ -42182,5 +42182,6 @@
   "Writes Only Unused Tables": "未使用テーブルのみ書き込み",
   "Writes unused tables": "未使用テーブルを書き込み",
   "{{bytes}} billed": "{{bytes}} 課金",
-  "{{credits}} credits": "{{credits}} クレジット"
+  "{{credits}} credits": "{{credits}} クレジット",
+  "Amazon Athena": "Amazon Athena"
 }
