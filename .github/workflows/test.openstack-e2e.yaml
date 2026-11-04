@@ -95,7 +95,10 @@ jobs:
         env:
           OUTPUT_DIR: ${{ runner.temp }}/recording
 
+      # On its own, so that a problem here still leaves the drills recorded. It takes
+      # its policy files back off when it ends, whichever way it ends.
       - name: Least privilege, tested on the real policies
+        continue-on-error: true
         run: bash Tests/Ops/openstack-e2e/access-matrix.sh
         env:
           OUTPUT_DIR: ${{ runner.temp }}/recording

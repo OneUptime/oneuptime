@@ -54,8 +54,8 @@ APPCRED_JSON="$(openstack application credential create ou-read-only \
   --role admin --access-rules "$(cat "$RULES_FILE")" -f json 2>"$OUTPUT_DIR/access/appcred-error.txt" || true)"
 APPCRED_TOKEN=""
 if [ -n "$APPCRED_JSON" ]; then
-  APPCRED_ID="$(printf '%s' "$APPCRED_JSON" | python3 -I -c 'import json,sys; print(json.load(sys.stdin)["id"])')"
-  APPCRED_SECRET="$(printf '%s' "$APPCRED_JSON" | python3 -I -c 'import json,sys; print(json.load(sys.stdin)["secret"])')"
+  APPCRED_ID="$(printf '%s' "$APPCRED_JSON" | python3 -I -c 'import json,sys; c=json.load(sys.stdin); print(c.get("id") or c["ID"])')"
+  APPCRED_SECRET="$(printf '%s' "$APPCRED_JSON" | python3 -I -c 'import json,sys; c=json.load(sys.stdin); print(c.get("secret") or c["Secret"])')"
   APPCRED_TOKEN="$(openstack --os-cloud= --os-auth-url "$AUTH_URL" --os-identity-api-version 3 \
     --os-auth-type v3applicationcredential \
     --os-application-credential-id "$APPCRED_ID" --os-application-credential-secret "$APPCRED_SECRET" \
