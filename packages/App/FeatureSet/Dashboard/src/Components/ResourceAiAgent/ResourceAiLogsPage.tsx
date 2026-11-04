@@ -25,6 +25,8 @@ import {
   describeResourceInvestigationSubject,
   getResourceAiLogsEmptyDescription,
   getResourceAiLogsPageSubtitle,
+  getResourceCommandStatusLook,
+  getResourceCommandStatusOptions,
   getResourceCommandsCardDescription,
   getResourceCommandsEmptyMessage,
   getResourceFixStatusLook,
@@ -41,8 +43,6 @@ import HTTPResponse from "Common/Types/API/HTTPResponse";
 import Route from "Common/Types/API/Route";
 import URL from "Common/Types/API/URL";
 import SortOrder from "Common/Types/BaseDatabase/SortOrder";
-import Color from "Common/Types/Color";
-import { Green500, Red500, Yellow500 } from "Common/Types/BrandColors";
 import OneUptimeDate from "Common/Types/Date";
 import IconProp from "Common/Types/Icon/IconProp";
 import { JSONObject } from "Common/Types/JSON";
@@ -50,11 +50,9 @@ import ObjectID from "Common/Types/ObjectID";
 import { ResourceAiAccessStatus } from "Common/Types/ResourceAiAgent/ResourceAiAccess";
 import RunbookStepType from "Common/Types/Runbook/RunbookStepType";
 import RunnerJobOrigin from "Common/Types/Runbook/RunnerJobOrigin";
-import RunnerJobStatus from "Common/Types/Runbook/RunnerJobStatus";
 import RunnerJob from "Common/Models/DatabaseModels/RunnerJob";
 import { APP_API_URL } from "Common/UI/Config";
 import API from "Common/UI/Utils/API/API";
-import DropdownUtil from "Common/UI/Utils/Dropdown";
 import ModelAPI from "Common/UI/Utils/ModelAPI/ModelAPI";
 import Card from "Common/UI/Components/Card/Card";
 import EmptyState from "Common/UI/Components/EmptyState/EmptyState";
@@ -602,8 +600,7 @@ const ResourceAiLogsPage: FunctionComponent<ComponentProps> = (
               field: { status: true },
               title: "Result",
               type: FieldType.Dropdown,
-              filterDropdownOptions:
-                DropdownUtil.getDropdownOptionsFromEnum(RunnerJobStatus),
+              filterDropdownOptions: getResourceCommandStatusOptions(),
             },
             {
               field: { origin: true },
@@ -673,30 +670,30 @@ const ResourceAiLogsPage: FunctionComponent<ComponentProps> = (
               type: FieldType.Element,
               getElement: (item: RunnerJob): ReactElement => {
                 const statusText: string = String(item.status || "");
-                const color: Color =
-                  statusText === RunnerJobStatus.Succeeded
-                    ? Green500
-                    : statusText === RunnerJobStatus.Pending ||
-                        statusText === RunnerJobStatus.Claimed ||
-                        statusText === RunnerJobStatus.Running
-                      ? Yellow500
-                      : Red500;
+                // How it ended in words: "Not picked up in time", never "TimedOut".
+                const look: ResourceAiStatusLook | null = statusText
+                  ? getResourceCommandStatusLook(statusText)
+                  : null;
                 return (
                   <div>
-                    <Pill
-                      text={
-                        typeof item.exitCode === "number"
-                          ? translator.translateTemplate(
-                              "{{status}} (exit {{exitCode}})",
-                              {
-                                status: translatableTerm(statusText),
-                                exitCode: item.exitCode,
-                              },
-                            )
-                          : statusText
-                      }
-                      color={color}
-                    />
+                    {look ? (
+                      <Pill
+                        text={
+                          typeof item.exitCode === "number"
+                            ? translator.translateTemplate(
+                                "{{status}} (exit {{exitCode}})",
+                                {
+                                  status: translatableTerm(look.label),
+                                  exitCode: item.exitCode,
+                                },
+                              )
+                            : look.label
+                        }
+                        color={look.color}
+                      />
+                    ) : (
+                      <></>
+                    )}
                     {item.errorMessage ? (
                       <p className="mt-1 max-w-md break-words text-xs text-rose-600">
                         {item.errorMessage}

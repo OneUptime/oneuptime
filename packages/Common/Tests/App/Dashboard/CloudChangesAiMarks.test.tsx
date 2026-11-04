@@ -413,7 +413,10 @@ describe("a fix, as the reader read it", () => {
           incident: { number: 42 },
         }),
       ),
-    ).toMatchObject({ approvedByName: "maya@example.com", incidentNumber: "#42" });
+    ).toMatchObject({
+      approvedByName: "maya@example.com",
+      incidentNumber: "#42",
+    });
     expect(
       readCloudAiChangeFix(
         suggestionRow({
@@ -477,7 +480,11 @@ describe("the words of a change OneUptime AI made", () => {
     expect(
       describeCloudAiChangeSubject({
         change: aiChange({ incidentId: null, alertId: ALERT_ID }),
-        fix: fixOf({ incidentId: null, alertId: ALERT_ID, alertNumber: "ALT-7" }),
+        fix: fixOf({
+          incidentId: null,
+          alertId: ALERT_ID,
+          alertNumber: "ALT-7",
+        }),
       }),
     ).toEqual({
       kind: "alert",
@@ -493,7 +500,11 @@ describe("the words of a change OneUptime AI made", () => {
     ).toBe(CLOUD_AI_CHANGE_SUBJECTS.rollback.incident);
     expect(
       describeCloudAiChangeSubject({
-        change: aiChange({ isRollback: true, incidentId: null, alertId: ALERT_ID }),
+        change: aiChange({
+          isRollback: true,
+          incidentId: null,
+          alertId: ALERT_ID,
+        }),
         fix: null,
       })?.template,
     ).toBe(CLOUD_AI_CHANGE_SUBJECTS.rollback.anAlert);
@@ -548,7 +559,10 @@ describe("the words of a change OneUptime AI made", () => {
       })?.toString(),
     ).toBe(`${AI_LOGS_ROUTE}#fix-${SUGGESTION_ID}`);
     expect(
-      getCloudAiChangeLogsRoute({ aiLogsRoute: logs, suggestionId: null })?.toString(),
+      getCloudAiChangeLogsRoute({
+        aiLogsRoute: logs,
+        suggestionId: null,
+      })?.toString(),
     ).toBe(AI_LOGS_ROUTE);
     expect(
       getCloudAiChangeLogsRoute({
@@ -571,9 +585,9 @@ describe("the words of a change OneUptime AI made", () => {
     expect(readResourceAiLogsFixAnchor(`#fix-${SUGGESTION_ID}`)).toBe(
       SUGGESTION_ID,
     );
-    expect(readResourceAiLogsFixAnchor(`fix-${SUGGESTION_ID.toUpperCase()}`)).toBe(
-      SUGGESTION_ID,
-    );
+    expect(
+      readResourceAiLogsFixAnchor(`fix-${SUGGESTION_ID.toUpperCase()}`),
+    ).toBe(SUGGESTION_ID);
     expect(readResourceAiLogsFixAnchor("#commands")).toBeNull();
     expect(readResourceAiLogsFixAnchor("#fix-")).toBeNull();
     expect(readResourceAiLogsFixAnchor("")).toBeNull();
@@ -681,7 +695,11 @@ describe("the line under a change OneUptime AI made", () => {
 
   test("an alert's rollback links the alert", () => {
     const line: HTMLElement = renderLine({
-      change: aiChange({ isRollback: true, incidentId: null, alertId: ALERT_ID }),
+      change: aiChange({
+        isRollback: true,
+        incidentId: null,
+        alertId: ALERT_ID,
+      }),
       fix: fixOf({ incidentId: null, alertId: ALERT_ID, alertNumber: "ALT-7" }),
     });
     const subject: HTMLElement = within(line).getByTestId(
@@ -707,7 +725,9 @@ describe("the line under a change OneUptime AI made", () => {
 
     expect(line.textContent).toBe("OneUptime AI·AI Logs");
     expect(
-      within(line).getByTestId(`${CLOUD_CHANGE_AI_LINE_TEST_ID}-logs`).closest("a"),
+      within(line)
+        .getByTestId(`${CLOUD_CHANGE_AI_LINE_TEST_ID}-logs`)
+        .closest("a"),
     ).toHaveAttribute("href", AI_LOGS_ROUTE);
   });
 
@@ -715,7 +735,9 @@ describe("the line under a change OneUptime AI made", () => {
     const line: HTMLElement = renderLine({ cloudAccountId: null });
 
     expect(
-      within(line).getByTestId(`${CLOUD_CHANGE_AI_LINE_TEST_ID}-logs`).closest("a"),
+      within(line)
+        .getByTestId(`${CLOUD_CHANGE_AI_LINE_TEST_ID}-logs`)
+        .closest("a"),
     ).toHaveAttribute("href", `${AI_LOGS_ROUTE}#fix-${SUGGESTION_ID}`);
   });
 
@@ -730,26 +752,80 @@ describe("the line under a change OneUptime AI made", () => {
     ).toBeNull();
   });
 
-  test("in German, every phrase is the locale's own", () => {
-    words = locale("de");
+  test.each(["de", "fa"])(
+    "in %s, every phrase is the locale's own",
+    (language: string) => {
+      words = locale(language);
 
-    const line: HTMLElement = renderLine({});
-    const german: Record<string, string> = locale("de");
+      const line: HTMLElement = renderLine({});
+      const own: Record<string, string> = locale(language);
 
-    expect(line).toHaveTextContent(
-      german["Fix for incident {{number}}"]!.replace("{{number}}", "INC-42"),
-    );
-    expect(line).toHaveTextContent(german["AI Logs"]!);
-    expect(line).not.toHaveTextContent("Fix for incident");
-    expect(line).not.toHaveTextContent("Approved by");
-  });
+      expect(line).toHaveTextContent(
+        own["Fix for incident {{number}}"]!.replace("{{number}}", "INC-42"),
+      );
+      expect(line).toHaveTextContent(own["AI Logs"]!);
+      expect(line).not.toHaveTextContent("Fix for incident");
+      expect(line).not.toHaveTextContent("Approved by");
+
+      // The approver's sentence is the locale's, with the name as written.
+      const approval: HTMLElement = within(line).getByTestId(
+        `${CLOUD_CHANGE_AI_LINE_TEST_ID}-approval`,
+      );
+      expect(approval).toHaveTextContent("Maya Chen");
+      for (const part of own["Approved by {{name}}"]!.split("{{name}}")) {
+        if (part.trim()) {
+          expect(approval).toHaveTextContent(part.trim());
+        }
+      }
+    },
+  );
+
+  test.each(["de", "fa"])(
+    "in %s, a rollback and a fix that ran on its own say so in the locale's words",
+    (language: string) => {
+      words = locale(language);
+      const own: Record<string, string> = locale(language);
+
+      const line: HTMLElement = renderLine({
+        change: aiChange({
+          incidentId: null,
+          alertId: ALERT_ID,
+          isRollback: true,
+        }),
+        fix: fixOf({
+          status: AutoRemediationSuggestionStatus.AutoExecuted,
+          approvedByName: null,
+          incidentId: null,
+          incidentNumber: null,
+          alertId: ALERT_ID,
+          alertNumber: "ALT-7",
+        }),
+      });
+
+      expect(
+        within(line).getByTestId(`${CLOUD_CHANGE_AI_LINE_TEST_ID}-alert`),
+      ).toHaveTextContent(
+        own["Rollback of the fix for alert {{number}}"]!.replace(
+          "{{number}}",
+          "ALT-7",
+        ),
+      );
+      expect(
+        within(line).getByTestId(`${CLOUD_CHANGE_AI_LINE_TEST_ID}-approval`),
+      ).toHaveTextContent(own["Applied automatically"]!);
+      expect(line).not.toHaveTextContent("Rollback of");
+      expect(line).not.toHaveTextContent("Applied automatically");
+    },
+  );
 });
 
 describe("the By column of a change OneUptime AI made", () => {
   test("OneUptime AI, with the session the cloud's audit log names under it, whole on hover", () => {
     render(<CloudChangeAiActor actor={SESSION} />);
 
-    const actor: HTMLElement = screen.getByTestId(CLOUD_CHANGE_AI_ACTOR_TEST_ID);
+    const actor: HTMLElement = screen.getByTestId(
+      CLOUD_CHANGE_AI_ACTOR_TEST_ID,
+    );
 
     expect(actor).toHaveTextContent("OneUptime AI");
     const session: HTMLElement = within(actor).getByTestId(
@@ -860,15 +936,15 @@ describe("an account's Changes, with OneUptime AI's change beside a person's", (
     await mountChanges();
 
     await waitFor(() => {
-      expect(screen.getByTestId(CLOUD_CHANGE_AI_LINE_TEST_ID)).toHaveTextContent(
-        "Approved by Maya Chen",
-      );
+      expect(
+        screen.getByTestId(CLOUD_CHANGE_AI_LINE_TEST_ID),
+      ).toHaveTextContent("Approved by Maya Chen");
     });
 
     const ai: HTMLElement = rowOf("ecs:UpdateService on checkout-api");
-    expect(within(ai).getByTestId(CLOUD_CHANGE_AI_ACTOR_TEST_ID)).toHaveTextContent(
-      "OneUptime AI",
-    );
+    expect(
+      within(ai).getByTestId(CLOUD_CHANGE_AI_ACTOR_TEST_ID),
+    ).toHaveTextContent("OneUptime AI");
     expect(
       within(ai).getByTestId(`${CLOUD_CHANGE_AI_LINE_TEST_ID}-incident`),
     ).toHaveTextContent("Fix for incident INC-42");
@@ -880,7 +956,9 @@ describe("an account's Changes, with OneUptime AI's change beside a person's", (
     expect(within(person).getByTestId("cloud-change-actor")).toHaveTextContent(
       "maya.lopez",
     );
-    expect(within(person).queryByTestId(CLOUD_CHANGE_AI_LINE_TEST_ID)).toBeNull();
+    expect(
+      within(person).queryByTestId(CLOUD_CHANGE_AI_LINE_TEST_ID),
+    ).toBeNull();
     expect(
       within(person).queryByTestId(CLOUD_CHANGE_AI_ACTOR_TEST_ID),
     ).toBeNull();
@@ -925,7 +1003,9 @@ describe("an account's Changes, with OneUptime AI's change beside a person's", (
     expect(line).toHaveTextContent("Fix for an incident");
     expect(line).not.toHaveTextContent("Approved by");
     expect(
-      within(line).getByTestId(`${CLOUD_CHANGE_AI_LINE_TEST_ID}-logs`).closest("a"),
+      within(line)
+        .getByTestId(`${CLOUD_CHANGE_AI_LINE_TEST_ID}-logs`)
+        .closest("a"),
     ).toHaveAttribute("href", `${AI_LOGS_ROUTE}#fix-${SUGGESTION_ID}`);
   });
 
@@ -933,7 +1013,10 @@ describe("an account's Changes, with OneUptime AI's change beside a person's", (
     analyticsGetListMock.mockImplementation(
       async (): Promise<ListResult<ChangeEvent>> => {
         const data: Array<ChangeEvent> =
-          AnalyticsBaseModel.fromJSONArray<ChangeEvent>([PERSON_ROW], ChangeEvent);
+          AnalyticsBaseModel.fromJSONArray<ChangeEvent>(
+            [PERSON_ROW],
+            ChangeEvent,
+          );
         return { data, count: 1, skip: 0, limit: 1 };
       },
     );
