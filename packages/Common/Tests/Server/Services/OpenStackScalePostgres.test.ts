@@ -496,7 +496,13 @@ describePostgres("the OpenStack inventory at scale, on Postgres", () => {
     });
   });
 
-  describe("the skip stays well inside the stale window", () => {
+  describe("a part that is still reported is never deleted", () => {
+    const SECOND_MS: number = 1000;
+
+    function atSeconds(seconds: number): Date {
+      return new Date(NOW.getTime() + seconds * SECOND_MS);
+    }
+
     test.each([
       [5, 100],
       [6, 120],
@@ -514,40 +520,89 @@ describePostgres("the OpenStack inventory at scale, on Postgres", () => {
     );
 
     /*
-     * The worst order there is: a scrape's `up` lands, and the sweep runs, before that same
-     * scrape's rows. Every window the setting allows, against scrape intervals shorter than it.
-     * A row that is there on every scrape is never deleted, whatever the skip did to it.
+     * The real boundary, to the second: every window the setting allows, against reads right beside
+     * the touch interval, where the skip leaves a row furthest behind, and right beside the window
+     * itself, in the worst order there is. A read's `up` lands and the sweep runs before that read's
+     * own rows do, then again after they have. The row was reported by every read, so it must be
+     * there every time.
      */
+    const WINDOWS_IN_MINUTES: Array<number> = [5, 6, 9, 10, 15, 30, 60];
+
     test.each(
-      [5, 6, 10, 15, 30].flatMap((window: number) => {
-        return [1, 2, 3, 4, 5, 10, 20]
-          .filter((interval: number) => {
-            return interval < window;
-          })
-          .map((interval: number): [number, number] => {
-            return [window, interval];
-          });
+      WINDOWS_IN_MINUTES.flatMap((window: number) => {
+        const touch: number = Math.min(300, Math.floor((window * 60) / 3));
+
+        return [
+          60,
+          touch - 1,
+          touch,
+          touch + 1,
+          touch * 2,
+          window * 60 - 1,
+          window * 60,
+          window * 60 + 1,
+          window * 120,
+        ].map((interval: number): [number, number] => {
+          return [window, interval];
+        });
       }),
     )(
-      "with a window of %d minutes and a scrape every %d, a live part is never swept away",
+      "with a window of %d minutes and a read every %d seconds, however its parts land",
       async (window: number, interval: number) => {
         process.env["OPENSTACK_INVENTORY_STALE_MINUTES"] = String(window);
 
-        for (let scrape: number = 0; scrape < 40; scrape++) {
-          const when: Date = at(scrape * interval);
+        // Long enough to go past the window several times over, at any of these intervals.
+        const reads: number = Math.min(
+          60,
+          Math.max(12, Math.ceil((window * 60 * 3) / interval)),
+        );
+
+        for (let read: number = 0; read < reads; read++) {
+          const when: Date = atSeconds(read * interval);
 
           await write([computeApi(when)]);
           await sweep();
-          expect(
-            await rowOf(OpenStackResourceKind.Api, `RegionOne/compute`),
-          ).toBeDefined();
 
-          if (scrape > 0) {
-            // Still there after a sweep measured against a read its rows have not caught up with.
+          if (read > 0) {
             expect(await lastSeenOf("i-live")).toBeDefined();
           }
 
           await write([instance("i-live", { lastSeenAt: when })]);
+          await sweep();
+          expect(await lastSeenOf("i-live")).toBeDefined();
+
+          // How far behind the skip left it, which is what all of this rests on.
+          expect(
+            when.getTime() - ((await lastSeenOf("i-live")) as number),
+          ).toBeLessThanOrEqual(
+            OpenStackResourceService.getRowTouchIntervalInSeconds() * SECOND_MS,
+          );
+        }
+      },
+      120000,
+    );
+
+    test.each([
+      [5, 60],
+      [5, 100],
+      [15, 120],
+      [15, 300],
+      [30, 300],
+    ])(
+      "with a window of %d minutes and a read every %d seconds, losing one read's rows altogether takes nothing",
+      async (window: number, interval: number) => {
+        process.env["OPENSTACK_INVENTORY_STALE_MINUTES"] = String(window);
+
+        for (let read: number = 0; read < 12; read++) {
+          const when: Date = atSeconds(read * interval);
+
+          await write([computeApi(when)]);
+
+          // Every fourth read's rows never arrive.
+          if (read % 4 !== 3) {
+            await write([instance("i-live", { lastSeenAt: when })]);
+          }
+
           await sweep();
           expect(await lastSeenOf("i-live")).toBeDefined();
         }
@@ -555,7 +610,54 @@ describePostgres("the OpenStack inventory at scale, on Postgres", () => {
       120000,
     );
 
-    test("a part that really went is gone within the window, the interval and one touch", async () => {
+    test("a service back from an outage longer than the window takes nothing while its rows are on their way", async () => {
+      await write([computeApi(at(0))]);
+      await write([computeApi(at(2))]);
+      await write([instance("i-live", { lastSeenAt: at(2) })]);
+
+      // Its reads failed for an hour, and every row is older than the window before this one.
+      await write([computeApi(at(62))]);
+      expect(await sweep()).toBe(0);
+      expect(await lastSeenOf("i-live")).toBeDefined();
+
+      await write([instance("i-live", { lastSeenAt: at(62) })]);
+      expect(await sweep()).toBe(0);
+
+      // The read after, whose own rows are in hand, takes what the one before did not report.
+      await write([instance("i-gone", { lastSeenAt: at(2) })]);
+      await write([computeApi(at(64))]);
+      expect(await sweep()).toBe(1);
+      expect(await lastSeenOf("i-gone")).toBeUndefined();
+      expect(await lastSeenOf("i-live")).toBeDefined();
+    });
+
+    test("a first read ever takes nothing, because nothing has yet been measured from", async () => {
+      await write([instance("i-old", { lastSeenAt: at(-600) })]);
+      await write([computeApi(at(0))]);
+      expect(await sweep()).toBe(0);
+
+      await write([computeApi(at(2))]);
+      expect(await sweep()).toBe(1);
+    });
+
+    test("the read a row is deleted against has to be past it by more than the window, to the millisecond", async () => {
+      await write([computeApi(at(0))]);
+      await write([computeApi(at(2))]);
+
+      // The rule measures from minute 0, with a window of 15.
+      await write([
+        instance("exactly-the-window", { lastSeenAt: at(-15) }),
+        instance("a-moment-more", {
+          lastSeenAt: new Date(at(-15).getTime() - 1),
+        }),
+      ]);
+
+      expect(await sweep()).toBe(1);
+      expect(await lastSeenOf("exactly-the-window")).toBeDefined();
+      expect(await lastSeenOf("a-moment-more")).toBeUndefined();
+    });
+
+    test("a part that really went is gone within the window, two reads and one touch", async () => {
       for (let scrape: number = 0; scrape <= 3; scrape++) {
         await write([
           computeApi(at(scrape * 2)),
@@ -578,26 +680,99 @@ describePostgres("the OpenStack inventory at scale, on Postgres", () => {
 
       // lastSeenAt can be up to five minutes behind minute 6, so a sweep can go from minute 16.
       expect(goneAt).not.toBeNull();
-      expect(goneAt as number).toBeLessThanOrEqual(6 + 15 + 2);
+      expect(goneAt as number).toBeLessThanOrEqual(6 + 15 + 2 + 2);
       expect(goneAt as number).toBeGreaterThanOrEqual(6 + 15 - 5);
     });
 
     test("a service sending rows in turns gives them as long as a turn takes", async () => {
       await write([instance("i-turn", { lastSeenAt: at(0) })]);
 
+      // The rule measures from minute 38, and waits a window and a cycle: minute -7.
+      await write([computeApi(at(38), 30)]);
       await write([computeApi(at(40), 30)]);
       await sweep();
       expect(await lastSeenOf("i-turn")).toBeDefined();
 
+      // From minute 46, to minute 1.
       await write([computeApi(at(46), 30)]);
+      await write([computeApi(at(48), 30)]);
       await sweep();
       expect(await lastSeenOf("i-turn")).toBeUndefined();
 
       // A cloud that left summary mode stops waiting.
       await write([instance("i-next", { lastSeenAt: at(46) })]);
       await write([computeApi(at(62))]);
+      await write([computeApi(at(64))]);
       await sweep();
       expect(await lastSeenOf("i-next")).toBeUndefined();
+    });
+
+    test("a read that cannot speak for the rows it held back moves nothing the rule reads", async () => {
+      const heldBack: (when: Date) => ParsedOpenStackResource = (
+        when: Date,
+      ): ParsedOpenStackResource => {
+        // What foldApiUp writes of an `up` with vouches_for_rows="false".
+        return resource({
+          kind: OpenStackResourceKind.Api,
+          externalId: `RegionOne/${OpenStackServiceType.Compute}`,
+          name: OpenStackServiceType.Compute,
+          status: "up",
+          facts: { refreshCycleMinutes: 30 },
+          lastSeenAt: when,
+        });
+      };
+
+      await write([instance("i-old", { lastSeenAt: at(0) })]);
+      await write([computeApi(at(0), 30)]);
+      await write([computeApi(at(2), 30)]);
+
+      for (let minute: number = 4; minute < 300; minute += 60) {
+        await write([heldBack(at(minute))]);
+        expect(await sweep()).toBe(0);
+      }
+
+      expect(await lastSeenOf("i-old")).toBeDefined();
+    });
+
+    test("what a cloud stands on waits for the read before the latest too", async () => {
+      const dependency: (when: Date) => ParsedOpenStackResource = (
+        when: Date,
+      ): ParsedOpenStackResource => {
+        return resource({
+          kind: OpenStackResourceKind.ControlPlane,
+          externalId: "RegionOne/rabbitmq/mq-1",
+          status: "up",
+          lastSeenAt: when,
+        });
+      };
+      const hasDependency: () => Promise<boolean> =
+        async (): Promise<boolean> => {
+          return Boolean(
+            await rowOf(
+              OpenStackResourceKind.ControlPlane,
+              "RegionOne/rabbitmq/mq-1",
+            ),
+          );
+        };
+
+      await write([computeApi(at(0)), dependency(at(0))]);
+      await write([computeApi(at(2))]);
+
+      // An agent back after an hour answers its API jobs before this one.
+      await write([computeApi(at(62))]);
+      await sweep();
+      expect(await hasDependency()).toBe(true);
+
+      await write([dependency(at(62))]);
+      await write([computeApi(at(64))]);
+      await sweep();
+      expect(await hasDependency()).toBe(true);
+
+      // Someone stopped naming it: the agent goes on reporting without it.
+      await write([computeApi(at(90))]);
+      await write([computeApi(at(92))]);
+      await sweep();
+      expect(await hasDependency()).toBe(false);
     });
   });
 
@@ -614,6 +789,7 @@ describePostgres("the OpenStack inventory at scale, on Postgres", () => {
       const query: jest.SpiedFunction<typeof database.manager.query> =
         jest.spyOn(database.manager, "query");
 
+      await write([computeApi(at(118))]);
       await write([computeApi(at(120))]);
 
       expect(await sweep()).toBe(12000);

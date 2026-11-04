@@ -77,9 +77,9 @@ export interface MockServerChange {
 
 export interface MockOpenStackCloudOptions {
   counts: OpenStackCloudCounts;
-  clock: OpenStackClock & { advance?: (milliseconds: number) => void };
+  clock: OpenStackClock;
   networkBackend?: "ovn" | "ovs" | undefined;
-  // How long an answer takes. On a fake clock it moves the clock.
+  // How long an answer takes, on whatever clock this has: see createEventClock.
   latencyInMs?:
     | ((request: OpenStackHttpRequest, service: OpenStackServiceType) => number)
     | undefined;
@@ -281,11 +281,7 @@ export default class MockOpenStackCloud {
     const latency: number = this.options.latencyInMs?.(request, service) ?? 0;
 
     if (latency > 0) {
-      if (this.options.clock.advance) {
-        this.options.clock.advance(latency);
-      } else {
-        await this.options.clock.sleep(latency);
-      }
+      await this.options.clock.sleep(latency);
     }
 
     const scripted: OpenStackHttpResponse | undefined = this.options.answer?.(

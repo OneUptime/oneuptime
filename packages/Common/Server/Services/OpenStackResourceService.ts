@@ -248,13 +248,12 @@ const UPSERT_BATCH_SIZE: number = 500;
  * is most of what a scrape costs Postgres: on 200,000 unchanged rows, 313 MiB of WAL against
  * 11 MiB (measured: OpenStackScalePostgres).
  *
- * What holds this inside the stale rule. The sweep deletes a row whose lastSeenAt is older than
- * the window before the time its service last answered. A read skips a row only when the row's
- * lastSeenAt is within this of the read, so straight after any read a live row is at most this far
- * behind it. The next read's `up` can land before that read's own rows, which adds one scrape
- * interval. A scrape interval longer than this never skips anything, and is exactly the exposure
- * rewriting every row had. Otherwise the two add up to at most twice this, which a third of the
- * window keeps inside it at any window the setting allows, down to its minimum.
+ * What holds this inside the stale rule. The sweep measures from the read before the latest one
+ * (deleteStaleForCloud), so a read's rows have that long to land. A read skips a row only when the
+ * row's lastSeenAt is within this of the read, so once any read's rows have landed, a part it
+ * reported is at most this far behind it: a third of the window, at any window the setting allows.
+ * A read that lost its rows altogether adds its own interval, and the two still fit, because an
+ * interval longer than this never skips anything.
  */
 const MAX_ROW_TOUCH_INTERVAL_IN_SECONDS: number = 5 * 60;
 const STALE_DELETE_BATCH_SIZE: number = 5000;
@@ -492,7 +491,18 @@ export class Service extends DatabaseService<Model> {
           ${coalesce("diskCapacityBytes")},
           ${coalesce("diskAllocatedBytes")},
           ${coalesce("instanceCount")},
-          "facts" = COALESCE("OpenStackResource"."facts", '{}'::jsonb) || EXCLUDED."facts",
+          "facts" = COALESCE("OpenStackResource"."facts", '{}'::jsonb) || EXCLUDED."facts"
+            -- The read this one follows, which is what the stale rule measures from.
+            || CASE
+              WHEN EXCLUDED."facts" ? 'vouchedAt'
+                AND "OpenStackResource"."facts" ? 'vouchedAt'
+                AND EXCLUDED."facts"->>'vouchedAt' IS DISTINCT FROM "OpenStackResource"."facts"->>'vouchedAt'
+              THEN jsonb_build_object(
+                'previousVouchedAt', "OpenStackResource"."facts"->'vouchedAt',
+                'previousRefreshCycleMinutes', "OpenStackResource"."facts"->'refreshCycleMinutes'
+              )
+              ELSE '{}'::jsonb
+            END,
           "metricsUpdatedAt" = EXCLUDED."metricsUpdatedAt",
           "lastSeenAt" = EXCLUDED."lastSeenAt",
           "updatedAt" = now()
@@ -2394,6 +2404,12 @@ export class Service extends DatabaseService<Model> {
    *  - A cloud deleting its last instance still removes that row, because the cutoff
    *    comes from the service's scrape and not from the newest row of the kind.
    *  - A Service row (a worker) is vouched for by its family's API, in its region.
+   *  - It measures from the read before the latest. A read's `up` can land before its own
+   *    rows, in another batch or another upload of a large scrape. So the latest read is not
+   *    yet evidence of anything, least of all after an outage longer than the window, when every
+   *    row is older than the window before it, and those very rows are on their way. A part
+   *    reported by a read whose rows have landed is never older than that read by more than the
+   *    touch interval (MAX_ROW_TOUCH_INTERVAL_IN_SECONDS), which is a third of the window.
    *
    * The exporter says a service is up while any one of its reads works, so a read
    * that fails alone (a policy change takes one list away) looks like those parts
@@ -2417,8 +2433,8 @@ export class Service extends DatabaseService<Model> {
       vouchedAt: string | null;
       refreshCycleMinutes: string | null;
     }> = await this.getRepository().manager.query(
-      `SELECT "regionName", "name", "facts"->>'vouchedAt' AS "vouchedAt",
-              "facts"->>'refreshCycleMinutes' AS "refreshCycleMinutes"
+      `SELECT "regionName", "name", "facts"->>'previousVouchedAt' AS "vouchedAt",
+              "facts"->>'previousRefreshCycleMinutes' AS "refreshCycleMinutes"
        FROM "OpenStackResource"
        WHERE "projectId" = $1 AND "openStackCloudId" = $2
          AND "kind" = '${OpenStackResourceKind.Api}'
@@ -2521,19 +2537,16 @@ export class Service extends DatabaseService<Model> {
      * machine of it is gone when the agent has gone on reporting without it: someone stopped
      * naming that target. A target that is down still reports, through its `up` of 0, so
      * this never takes one that has only failed. An agent that stopped moves nothing, and
-     * removes nothing.
+     * removes nothing. Measured from the read before the latest, as above: an agent back after a
+     * while answers its API jobs a minute or so before these.
      */
-    const reporting: Array<{ newest: Date | null }> =
+    const reporting: Array<{ newest: string | null }> =
       await this.getRepository().manager.query(
-        `SELECT MAX("lastSeenAt") AS "newest"
+        `SELECT MAX("facts"->>'previousVouchedAt') AS "newest"
          FROM "OpenStackResource"
          WHERE "projectId" = $1 AND "openStackCloudId" = $2
-           AND "kind" = ANY($3::text[])`,
-        [
-          data.projectId.toString(),
-          data.openStackCloudId.toString(),
-          [OpenStackResourceKind.Api, OpenStackResourceKind.ControlPlane],
-        ],
+           AND "kind" = '${OpenStackResourceKind.Api}'`,
+        [data.projectId.toString(), data.openStackCloudId.toString()],
       );
     if (reporting[0]?.newest) {
       const gone: unknown = await this.getRepository().manager.query(

@@ -143,10 +143,13 @@ const SETTLED_STATUSES: Readonly<Record<string, ReadonlySet<string>>> = {
 export function isOpenStackSummaryMode(data: {
   options: Pick<OpenStackInstanceMetricsOptions, "mode">;
   instanceCount: number | null | undefined;
+  // For tests, so a scene with a few hundred instances can stand for a cloud past the line.
+  instanceLimit?: number | undefined;
 }): boolean {
   return (
     data.options.mode !== OpenStackInstanceMetricsMode.All &&
-    (data.instanceCount || 0) > OPENSTACK_SUMMARY_MODE_INSTANCE_LIMIT
+    (data.instanceCount || 0) >
+      (data.instanceLimit ?? OPENSTACK_SUMMARY_MODE_INSTANCE_LIMIT)
   );
 }
 
@@ -195,14 +198,17 @@ export const OPENSTACK_MAX_ROLLING_TURNS: number = 30;
  */
 export const OPENSTACK_ROLLING_BYTES_PER_DATAPOINT: number = 1100;
 
-export function getOpenStackRollingTurns(rollingDatapoints: number): number {
+export function getOpenStackRollingTurns(
+  rollingDatapoints: number,
+  targetBytesPerCollection: number = OPENSTACK_ROLLING_TARGET_BYTES_PER_COLLECTION,
+): number {
   return Math.min(
     OPENSTACK_MAX_ROLLING_TURNS,
     Math.max(
       1,
       Math.ceil(
         (rollingDatapoints * OPENSTACK_ROLLING_BYTES_PER_DATAPOINT) /
-          OPENSTACK_ROLLING_TARGET_BYTES_PER_COLLECTION,
+          targetBytesPerCollection,
       ),
     ),
   );

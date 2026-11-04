@@ -13,18 +13,11 @@ import Entities from "Common/Models/DatabaseModels/Index";
 import PostgresAppInstance from "Common/Server/Infrastructure/PostgresDatabase";
 import OpenStackResourceService, {
   OpenStackInventorySummary,
-  ParsedOpenStackResource,
 } from "Common/Server/Services/OpenStackResourceService";
 import logger from "Common/Server/Utils/Logger";
-import OpenStackProbeMetrics, {
-  OpenStackProbeMetricsPayload,
-} from "Common/Server/Utils/OpenStack/OpenStackProbeMetrics";
 import {
   OpenStackResourceBufferEntry,
-  bufferOpenStackSnapshotMetric,
-  finishOpenStackBatch,
   getOpenStackHostsToReconcile,
-  isOpenStackSnapshotDatapoint,
 } from "Common/Server/Utils/Telemetry/OpenStackSnapshotScan";
 import { JSONObject } from "Common/Types/JSON";
 import ObjectID from "Common/Types/ObjectID";
@@ -50,6 +43,10 @@ import {
   collectionJob,
   createCollectorHarness,
 } from "./Helpers/CollectorHarness";
+import {
+  foldOpenStackUpload,
+  toOpenStackInventoryRow,
+} from "./Helpers/InventoryFold";
 import MockOpenStackCloud, {
   MOCK_AUTH_URL,
 } from "./Helpers/MockOpenStackCloud";
@@ -126,61 +123,6 @@ function sleep(milliseconds: number): Promise<void> {
   return new Promise<void>((resolve: () => void) => {
     setTimeout(resolve, milliseconds);
   });
-}
-
-// The fold of one upload, exactly as OtelMetricsIngestService does it, without ClickHouse.
-function foldUpload(
-  report: OpenStackCollectionReport,
-): Array<OpenStackResourceBufferEntry> {
-  const payload: OpenStackProbeMetricsPayload = OpenStackProbeMetrics.prepare({
-    resourceMetrics: report.resourceMetrics,
-    cloudName: "soak",
-  });
-  const buffer: Map<string, OpenStackResourceBufferEntry> = new Map();
-
-  for (const resource of payload.resourceMetrics as Array<JSONObject>) {
-    for (const scope of resource["scopeMetrics"] as Array<JSONObject>) {
-      for (const metric of scope["metrics"] as Array<JSONObject>) {
-        const metricName: string = metric["name"] as string;
-        const gauge: JSONObject | undefined = metric["gauge"] as
-          | JSONObject
-          | undefined;
-
-        for (const datapoint of (gauge?.["dataPoints"] ||
-          []) as Array<JSONObject>) {
-          if (isOpenStackSnapshotDatapoint({ metricName, datapoint })) {
-            bufferOpenStackSnapshotMetric({ metricName, datapoint, buffer });
-          }
-        }
-      }
-    }
-  }
-
-  return finishOpenStackBatch(buffer.values());
-}
-
-function toRow(entry: OpenStackResourceBufferEntry): ParsedOpenStackResource {
-  return {
-    kind: entry.kind,
-    externalId: entry.externalId,
-    name: entry.name,
-    regionName: entry.regionName,
-    availabilityZone: entry.availabilityZone,
-    hypervisorName: entry.hypervisorName,
-    openStackProjectId: entry.openStackProjectId,
-    status: entry.status,
-    adminState: entry.adminState,
-    disabledReason: entry.disabledReason,
-    vcpuCapacity: entry.vcpuCapacity,
-    vcpuAllocated: entry.vcpuAllocated,
-    memoryCapacityBytes: entry.memoryCapacityBytes,
-    memoryAllocatedBytes: entry.memoryAllocatedBytes,
-    diskCapacityBytes: entry.diskCapacityBytes,
-    diskAllocatedBytes: entry.diskAllocatedBytes,
-    instanceCount: entry.instanceCount,
-    facts: entry.facts,
-    lastSeenAt: entry.observedAt,
-  };
 }
 
 describeSoak("the largest size, held for as long as it is asked", () => {
@@ -364,11 +306,11 @@ describeSoak("the largest size, held for as long as it is asked", () => {
 
         for (const part of parts) {
           const finished: Array<OpenStackResourceBufferEntry> =
-            foldUpload(part);
+            foldOpenStackUpload(part);
 
           await OpenStackResourceService.bulkUpsert({
             ...scope,
-            resources: finished.map(toRow),
+            resources: finished.map(toOpenStackInventoryRow),
           });
           await OpenStackResourceService.reconcileHypervisorStates({
             ...scope,

@@ -23,6 +23,59 @@ function sizeOf(value: unknown): number {
   return Buffer.byteLength(JSON.stringify(value));
 }
 
+/*
+ * A datapoint is about a kilobyte of JSON. Measured this many at a time, because a string this
+ * process can hold ends at 512 MiB, and a whole metric can hold more than that.
+ */
+const DATAPOINTS_MEASURED_AT_ONCE: number = 50_000;
+
+function sizeOfMetric(metric: JSONObject): number {
+  const kind: "gauge" | "sum" | null = kindOf(metric);
+  const points: JSONArray | undefined = kind
+    ? ((metric[kind] as JSONObject)["dataPoints"] as JSONArray)
+    : undefined;
+
+  if (!kind || !points || points.length <= DATAPOINTS_MEASURED_AT_ONCE) {
+    return sizeOf(metric);
+  }
+
+  let size: number = sizeOf({
+    ...metric,
+    [kind]: { ...(metric[kind] as JSONObject), dataPoints: [] },
+  });
+
+  for (
+    let start: number = 0;
+    start < points.length;
+    start += DATAPOINTS_MEASURED_AT_ONCE
+  ) {
+    size += sizeOf(points.slice(start, start + DATAPOINTS_MEASURED_AT_ONCE));
+  }
+
+  return size;
+}
+
+// How large the JSON of these metrics is, however large: nothing here holds it as one string.
+export function getOpenStackMetricsSizeInBytes(
+  resourceMetrics: JSONArray,
+): number {
+  let size: number = 0;
+
+  for (const resource of resourceMetrics as Array<JSONObject>) {
+    size += sizeOf(resource["resource"] ?? null);
+
+    for (const scope of (resource["scopeMetrics"] || []) as Array<JSONObject>) {
+      size += sizeOf(scope["scope"] ?? null);
+
+      for (const metric of (scope["metrics"] || []) as Array<JSONObject>) {
+        size += sizeOfMetric(metric);
+      }
+    }
+  }
+
+  return size;
+}
+
 function kindOf(metric: JSONObject): "gauge" | "sum" | null {
   return metric["gauge"] ? "gauge" : metric["sum"] ? "sum" : null;
 }
@@ -73,7 +126,7 @@ export function splitOpenStackResourceMetrics(
   for (const resource of resourceMetrics as Array<JSONObject>) {
     for (const scope of (resource["scopeMetrics"] || []) as Array<JSONObject>) {
       for (const metric of (scope["metrics"] || []) as Array<JSONObject>) {
-        const bytes: number = sizeOf(metric);
+        const bytes: number = sizeOfMetric(metric);
 
         if (bytes <= maxBytes) {
           if (current().bytes + bytes > maxBytes) {
@@ -144,7 +197,10 @@ export function splitOpenStackReport(
 ): Array<OpenStackCollectionReport> {
   const resourceMetrics: JSONArray | undefined = report.resourceMetrics;
 
-  if (!resourceMetrics || sizeOf(resourceMetrics) <= maxBytes) {
+  if (
+    !resourceMetrics ||
+    getOpenStackMetricsSizeInBytes(resourceMetrics) <= maxBytes
+  ) {
     return [report];
   }
 

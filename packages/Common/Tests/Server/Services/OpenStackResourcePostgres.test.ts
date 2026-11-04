@@ -128,7 +128,11 @@ function api(
     externalId: `${rest.regionName || "RegionOne"}/${service}`,
     name: service,
     status: "up",
-    facts: { vouchedAt: (vouchedAt || NOW).toISOString() },
+    // Two reads say the same, so the rule has a read before the latest to measure from.
+    facts: {
+      vouchedAt: (vouchedAt || NOW).toISOString(),
+      previousVouchedAt: (vouchedAt || NOW).toISOString(),
+    },
     ...rest,
   });
 }
