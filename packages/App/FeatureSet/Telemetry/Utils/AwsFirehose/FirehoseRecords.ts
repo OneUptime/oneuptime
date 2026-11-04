@@ -18,7 +18,7 @@ import {
   decodeJsonMetricRecord,
   decodeOpenTelemetryMetricRecord,
   readMetricResourceFacts,
-  shapeStreamedKeyMetrics,
+  shapeStreamedMetrics,
   stampConnection,
 } from "./CloudWatchMetricStream";
 
@@ -41,9 +41,10 @@ import {
  * the same record again. A delivery that decompresses to more than its
  * budget is refused whole (RangeError).
  *
- * The delivery's key metrics are then written as the connection's read
- * writes them - a gauge of the read's statistic, for each resource's own
- * aggregate - so the two are one series (shapeStreamedKeyMetrics).
+ * The delivery's metrics are then kept once for each resource - its own
+ * aggregate, never its splits too - and its key metrics written as the
+ * connection's read writes them, a gauge of the read's statistic, so the
+ * two are one series (shapeStreamedMetrics).
  */
 
 // Records read between two yields to the event loop.
@@ -278,8 +279,8 @@ export async function decodeFirehoseRecords(data: {
     }
   }
 
-  // The key metrics as the connection's read writes them, the whole delivery at once.
-  const shapedResources: Array<JSONObject> = await shapeStreamedKeyMetrics({
+  // Each resource's own series once, the key ones as the read writes them: the whole delivery at once.
+  const shapedResources: Array<JSONObject> = await shapeStreamedMetrics({
     resources: metricResources,
     connectionId: data.connectionId,
     now: data.now,

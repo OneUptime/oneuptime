@@ -975,6 +975,202 @@ describe("the key metrics, as the connection's read writes them", () => {
   });
 });
 
+describe("Every metric: a resource's chart without a group-by", () => {
+  const FUNCTION: Record<string, string> = { FunctionName: "checkout" };
+  const ALIAS: Record<string, string> = {
+    FunctionName: "checkout",
+    Resource: "checkout:live",
+  };
+  const VERSION: Record<string, string> = {
+    FunctionName: "checkout",
+    Resource: "checkout:live",
+    ExecutedVersion: "7",
+  };
+
+  function lambda(
+    metricName: string,
+    dimensions: Record<string, string>,
+    sum: number,
+  ): JSONObject {
+    return openTelemetryMetric({
+      namespace: "AWS/Lambda",
+      metricName,
+      dimensions,
+      unit: "1",
+      count: 1,
+      sum,
+      min: sum,
+      max: sum,
+    });
+  }
+
+  // The filter the function's Metrics page charts it by (CloudMonitoredResourceScope).
+  function functionFilter(): Record<string, string> {
+    const resource: CloudMonitoredResource | null =
+      resolveCloudMonitoredResource({
+        metricName: "amazonaws.com/AWS/Lambda/Invocations",
+        attributes: {
+          Namespace: "AWS/Lambda",
+          "Dimensions.FunctionName": "checkout",
+          "resource.cloud.account.id": ACCOUNT_ID,
+          "resource.cloud.region": REGION,
+        },
+      });
+
+    expect(resource?.resourceType).toBe("AWS::Lambda::Function");
+
+    return resource!.telemetryAttributes;
+  }
+
+  // What a chart of the resource sums with no group-by: every queued point its filter matches.
+  function chartOf(
+    filter: Record<string, string>,
+    metricName: string,
+  ): { total: number; series: number } {
+    let total: number = 0;
+    let series: number = 0;
+
+    for (const job of metricJobs) {
+      for (const resource of job.body["resourceMetrics"] as Array<JSONObject>) {
+        const resourceAttributes: Record<string, unknown> =
+          TelemetryUtil.getAttributes({
+            prefixKeysWithString: "resource",
+            items: (resource["resource"] as JSONObject)[
+              "attributes"
+            ] as JSONArray,
+          });
+
+        for (const scope of resource["scopeMetrics"] as Array<JSONObject>) {
+          for (const metric of scope["metrics"] as Array<JSONObject>) {
+            if (metric["name"] !== metricName) {
+              continue;
+            }
+
+            const points: Array<JSONObject> = ((
+              (metric["gauge"] || metric["summary"]) as JSONObject
+            )["dataPoints"] || []) as Array<JSONObject>;
+
+            for (const point of points) {
+              const stored: Record<string, unknown> = {
+                ...resourceAttributes,
+                ...TelemetryUtil.getAttributes({
+                  prefixKeysWithString: "",
+                  items: point["attributes"] as JSONArray,
+                }),
+              };
+              const isMatched: boolean = Object.entries(filter).every(
+                ([key, value]: [string, string]): boolean => {
+                  return stored[key] === value;
+                },
+              );
+
+              if (isMatched) {
+                total += (point["asDouble"] ?? point["sum"]) as number;
+                series++;
+              }
+            }
+          }
+        }
+      }
+    }
+
+    return { total, series };
+  }
+
+  test("is the resource's own series once - never its aggregate and its splits summed - for a key metric and for any other", async () => {
+    const reply: FirehoseReply = await deliver({
+      records: [
+        openTelemetryRecord([
+          openTelemetryRequest([
+            // A key metric: the read writes the function's own 120.
+            lambda("Invocations", FUNCTION, 120),
+            lambda("Invocations", ALIAS, 100),
+            lambda("Invocations", VERSION, 100),
+            // Not a key one (Every metric): CloudWatch says the function ran 8 at once.
+            lambda("ConcurrentExecutions", ALIAS, 6),
+            lambda("ConcurrentExecutions", FUNCTION, 8),
+            lambda("ConcurrentExecutions", VERSION, 6),
+          ]),
+        ]),
+      ],
+    });
+
+    expectFirehoseAnswer(reply, { status: 200 });
+
+    const filter: Record<string, string> = functionFilter();
+
+    expect(chartOf(filter, "amazonaws.com/AWS/Lambda/Invocations")).toEqual({
+      total: 120,
+      series: 1,
+    });
+    expect(
+      chartOf(filter, "amazonaws.com/AWS/Lambda/ConcurrentExecutions"),
+    ).toEqual({ total: 8, series: 1 });
+  });
+
+  test("a split that comes in a later delivery than its resource's aggregate is left out, for any metric", async () => {
+    await deliver({
+      records: [
+        openTelemetryRecord([
+          openTelemetryRequest([lambda("ConcurrentExecutions", FUNCTION, 8)]),
+        ]),
+      ],
+    });
+    await deliver({
+      records: [
+        openTelemetryRecord([
+          openTelemetryRequest([
+            lambda("ConcurrentExecutions", ALIAS, 6),
+            lambda("ConcurrentExecutions", VERSION, 6),
+          ]),
+        ]),
+      ],
+    });
+
+    expect(
+      chartOf(
+        functionFilter(),
+        "amazonaws.com/AWS/Lambda/ConcurrentExecutions",
+      ),
+    ).toEqual({ total: 8, series: 1 });
+  });
+
+  test("the account's own metrics, in its own namespaces too, are kept whole: no resource's chart reads them", async () => {
+    await deliver({
+      records: [
+        openTelemetryRecord([
+          openTelemetryRequest([
+            openTelemetryMetric({
+              namespace: "Checkout/Orders",
+              metricName: "Placed",
+              dimensions: { Stage: "prod" },
+              unit: "1",
+              count: 3,
+              sum: 42,
+              min: 10,
+              max: 20,
+            }),
+            lambda("ConcurrentExecutions", {}, 9),
+          ]),
+        ]),
+      ],
+    });
+
+    const points: Map<string, Array<JSONObject>> = queuedPoints();
+
+    expect(points.get("amazonaws.com/Checkout/Orders/Placed")).toHaveLength(1);
+    expect(
+      points.get("amazonaws.com/AWS/Lambda/ConcurrentExecutions"),
+    ).toHaveLength(1);
+    expect(
+      chartOf(
+        functionFilter(),
+        "amazonaws.com/AWS/Lambda/ConcurrentExecutions",
+      ),
+    ).toEqual({ total: 0, series: 0 });
+  });
+});
+
 describe("CloudWatch Logs subscriptions", () => {
   test("land as the connection's logs, filed under the function they are the log of", async () => {
     const reply: FirehoseReply = await deliver({
