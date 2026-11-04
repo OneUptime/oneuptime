@@ -64,10 +64,17 @@ Die Karte **Ihre Protokolle** oben auf **Verbindungen** braucht keine Installati
 | Azure-Aktivitäts- und Entra-ID-Logs | Änderungen in Ihren Azure-Abonnements, Warnungen von Defender for Cloud sowie Anmeldungen und Verzeichnisänderungen in Microsoft Entra ID |
 | CEF | Bedrohungen, blockierte Verbindungen und Anmeldungen von Firewalls, IDS, WAFs und anderen Sicherheitsprodukten, die Common Event Format senden |
 | LEEF | Dasselbe von Produkten, die Log Event Extended Format senden, wie viele es für IBM QRadar tun |
+| Palo Alto Networks | Bedrohungen, blockierte Verbindungen, GlobalProtect- und Administratoranmeldungen sowie Konfigurationsänderungen aus dem eigenen Syslog von PAN-OS |
+| Fortinet FortiGate | IPS- und Antivirenfunde, abgelehnter Datenverkehr, VPN- und Administratoranmeldungen sowie Konfigurationsänderungen aus dem eigenen Syslog von FortiGate |
+| Cisco ASA | Abgelehnte Verbindungen, Funde der Bedrohungserkennung und des IPS, VPN- und Administratoranmeldungen sowie Befehle von Cisco ASA und Firepower Threat Defense |
 | Kubernetes-Audit-Logs | Änderungen am Cluster, in Pods geöffnete Shells, gelesene Secrets und abgelehnte Anfragen |
 | Webangriffe | Anfragen im Zugriffslog eines Webservers, die SQL-Injection, Path Traversal oder Log4Shell versuchen |
 
 Ihre Logs bleiben, wie sie sind. Nur die Zeilen, die für die Sicherheit zählen, werden zu Ereignissen: nie jede Seite, die ein Webserver ausgeliefert hat, oder jeder Lesezugriff auf eine API.
+
+Eine Bedrohung, die ein Sicherheitsprodukt in Ihre Logs schreibt, etwa ein CEF- oder LEEF-Fund oder ein IPS-Fund einer FortiGate, eröffnet einen Fall, wie es die Warnung eines verbundenen Produkts tut. **Fälle eröffnen ab** auf **Ihre Protokolle** legt fest, ab welchem Schweregrad: **Hoch und höher**, sofern Sie keinen anderen wählen, oder **Nie**.
+
+Ein AWS-Konto, Google Cloud-Projekt oder Azure-Abonnement, das unter **Cloud** verbunden ist, braucht keine Log-Pipeline: Schalten Sie **Cloud-Audit-Protokolle** unter **Ihre OneUptime-Daten** auf **Verbindungen** ein, dann wird sein Audit-Log mit dem Konto gelesen. Siehe [Die Audit-Logs Ihrer Cloud-Konten lesen](/docs/telemetry/security-events#die-audit-logs-ihrer-cloud-konten-lesen).
 
 ## An Ihr SIEM senden, was OneUptime findet
 
@@ -88,7 +95,7 @@ Meist ist der Fall schon offen, bevor die Schaltfläche antwortet; holt die Rege
 :::
 
 :::details Aus meinen Logs kommt kein Sicherheitsereignis
-Prüfen Sie, ob **Sicherheitsereignisse in Ihren Protokollen finden** eingeschaltet ist und die Karte **Ihre Protokolle** anzeigt, wann zuletzt geprüft wurde. Nur die Arten von Zeilen aus der Tabelle oben werden zu Ereignissen: Ein Server, der keine SSH-, sudo-, Windows-, Audit-, CEF-, LEEF- oder Zugriffslogs sendet, hat nichts zu finden. Fügen Sie eine seiner Zeilen in **Eine Protokollzeile prüfen** auf **Ihre Protokolle** ein, um zu sehen, ob OneUptime sie liest.
+Prüfen Sie, ob **Sicherheitsereignisse in Ihren Protokollen finden** eingeschaltet ist und die Karte **Ihre Protokolle** anzeigt, wann zuletzt geprüft wurde. Nur die Arten von Zeilen aus der Tabelle oben werden zu Ereignissen: Ein Server, der keine SSH-, sudo-, Windows-, Audit-, CEF-, LEEF-, Firewall- oder Zugriffslogs sendet, hat nichts zu finden. Fügen Sie eine seiner Zeilen in **Eine Protokollzeile prüfen** auf **Ihre Protokolle** ein, um zu sehen, ob OneUptime sie liest.
 :::
 
 :::details Übersicht sagt, das letzte Sicherheitsereignis kam vor Tagen

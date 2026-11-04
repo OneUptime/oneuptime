@@ -378,6 +378,12 @@ export interface CloudChangesOptions extends CloudConnectorCallOptions {
   connectionId: string;
   budget: CloudReadBudget;
   /*
+   * Also hand back every audit record the read brought in, as the cloud
+   * wrote it (CloudChangesResult.auditRecords): the project's Security
+   * Events read them (Cloud audit logs). Never for a look back.
+   */
+  keepAuditRecords?: boolean | undefined;
+  /*
    * Read from this time, not from the cursors, and move no cursor: an
    * investigation's look back over the accounts it names in `only`.
    */
@@ -391,6 +397,28 @@ export interface CloudChangesResult {
   changes: Array<CloudChange>;
   warnings: Array<string>;
   complete: boolean;
+  // Every audit record read, when keepAuditRecords asked for them.
+  auditRecords?: Array<CloudAuditRecord> | undefined;
+}
+
+/*
+ * One audit record as the cloud wrote it, beside the changes made of it: a
+ * CloudTrail event (LookupEvents' CloudTrailEvent), a Google Cloud audit
+ * log entry, an Azure Activity Log event. Security Events' Cloud audit logs
+ * keep each as a security event, read by the same parsers as "Your logs"
+ * (SecurityEvent/CloudAudit/CloudAuditSecurityEvents) - every record the
+ * read brought in, the ones Cloud leaves out of its changes as machinery
+ * (a sign-in, a read) too, for the parsers to judge.
+ */
+export interface CloudAuditRecord {
+  // The AWS account, Google Cloud project or Azure subscription it is of.
+  accountId: string;
+  record: JSONObject;
+}
+
+// Whether a read hands back its audit records: asked to, and no look back.
+export function keepsAuditRecords(options: CloudChangesOptions): boolean {
+  return Boolean(options.keepAuditRecords) && !options.since;
 }
 
 /*

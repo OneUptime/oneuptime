@@ -182,22 +182,41 @@ La page **Guide de configuration**, sous **Connexions**, contient ces extraits a
 
 ### Trouver des événements de sécurité dans vos journaux
 
-La carte **Vos journaux**, en haut de **Connexions**, fait des journaux que vous envoyez déjà à OneUptime une source. Avec **Trouver des événements de sécurité dans vos journaux** activé, les nouveaux journaux du projet sont lus chaque minute, et chaque connexion SSH ou Windows, commande sudo, entrée d'audit d'un cloud, enregistrement CEF ou LEEF d'un produit de sécurité, entrée d'audit Kubernetes et attaque web qu'ils contiennent est stocké comme événement de sécurité. Voir [Bien démarrer avec la sécurité](/docs/telemetry/security-getting-started#trouver-des-événements-de-sécurité-dans-vos-journaux) pour ce que couvre chaque type.
+La carte **Vos journaux**, en haut de **Connexions**, fait des journaux que vous envoyez déjà à OneUptime une source. Avec **Trouver des événements de sécurité dans vos journaux** activé, les nouveaux journaux du projet sont lus chaque minute, et chaque connexion SSH ou Windows, commande sudo, entrée d'audit d'un cloud, enregistrement CEF ou LEEF d'un produit de sécurité, enregistrement d'un pare-feu Palo Alto Networks, FortiGate ou Cisco ASA, entrée d'audit Kubernetes et attaque web qu'ils contiennent est stocké comme événement de sécurité. Voir [Bien démarrer avec la sécurité](/docs/telemetry/security-getting-started#trouver-des-événements-de-sécurité-dans-vos-journaux) pour ce que couvre chaque type.
 
 Chaque type parvient à OneUptime sous forme de journaux ordinaires :
 
 | Type | L'envoyer depuis |
 | --- | --- |
 | Connexions SSH, sudo | Le journal système ou le journal d'authentification d'une machine Linux, avec l'[OpenTelemetry Collector](/docs/telemetry/host-otel-collector) |
-| Événements Windows | Le récepteur `windowseventlog` du collecteur sur la machine, ou un transmetteur qui écrit chaque événement en JSON, comme NXLog ou Winlogbeat |
-| AWS CloudTrail | Un trail livré à CloudWatch Logs, lu par le récepteur `awscloudwatch` du collecteur |
-| Journaux d'audit Google Cloud | Un récepteur de journaux vers Pub/Sub, lu par le récepteur `googlecloudpubsub` du collecteur avec `encoding: raw_text` |
-| Journaux d'activité Azure et d'Entra ID | Un paramètre de diagnostic qui diffuse vers un Event Hub, lu par le récepteur `azureeventhub` du collecteur avec `format: raw` |
+| Événements Windows | Le récepteur `windowseventlog` du collecteur sur la machine, ou un transmetteur qui écrit chaque événement en JSON, comme NXLog ou Winlogbeat. Un [hôte](/docs/telemetry/hosts) ajouté à OneUptime lit aussi Sysmon, Microsoft Defender et PowerShell là où il en a |
+| AWS CloudTrail | Un trail livré à CloudWatch Logs, lu par le récepteur `awscloudwatch` du collecteur, ou, pour un compte connecté sous **Cloud**, [Journaux d'audit cloud](#lire-les-journaux-daudit-de-vos-comptes-cloud) |
+| Journaux d'audit Google Cloud | Un récepteur de journaux vers Pub/Sub, lu par le récepteur `googlecloudpubsub` du collecteur avec `encoding: raw_text`, ou, pour un projet connecté sous **Cloud**, [Journaux d'audit cloud](#lire-les-journaux-daudit-de-vos-comptes-cloud) |
+| Journaux d'activité Azure et d'Entra ID | Un paramètre de diagnostic qui diffuse vers un Event Hub, lu par le récepteur `azureeventhub` du collecteur avec `format: raw`, ou, pour le journal d'activité d'un abonnement connecté sous **Cloud**, [Journaux d'audit cloud](#lire-les-journaux-daudit-de-vos-comptes-cloud) |
 | CEF, LEEF | Le syslog du produit, relayé par [rsyslog](/docs/telemetry/syslog) |
+| Palo Alto Networks, FortiGate, Cisco ASA | Le syslog propre au pare-feu, relayé par [rsyslog](/docs/telemetry/syslog) |
 | Journaux d'audit Kubernetes | Le fichier de journal d'audit du serveur d'API, lu par le récepteur `filelog` du collecteur |
 | Attaques web | Le journal d'accès d'un serveur web, lu par le récepteur `filelog` du collecteur |
 
 Sur **Vos journaux**, chaque type indique quand il a été trouvé pour la dernière fois, et **Vérifier une ligne de journal** montre ce que devient une ligne que vous collez, avant qu'il en arrive une.
+
+Une menace qu'un produit de sécurité écrit dans vos journaux, comme une détection CEF ou LEEF ou une menace Palo Alto Networks, FortiGate ou Cisco ASA, ouvre un [dossier](/docs/telemetry/security-cases) comme le fait l'alerte d'un produit connecté, et accroît le risque de l'utilisateur, de l'hôte ou de l'adresse qu'elle nomme. **Ouvrir des dossiers à partir de**, sur **Vos journaux**, indique à partir de quelle gravité : **Élevé et au-dessus** sauf si vous en choisissez une autre, ou **Jamais**. Les authentifications du produit et les connexions qu'il bloque restent des événements, que vos règles lisent.
+
+Un enregistrement qui parvient à OneUptime par deux voies est stocké une seule fois : une authentification Microsoft Entra ID lue par sa connexion et exportée par Azure dans vos journaux, ou un enregistrement CloudTrail présent dans vos journaux et dans le journal d'audit d'un compte AWS connecté.
+
+### Lire les journaux d'audit de vos comptes cloud
+
+Un compte AWS, un projet Google Cloud ou un abonnement Azure [connecté sous **Cloud**](/docs/telemetry/cloud-accounts) n'a besoin d'aucun pipeline de journaux. Activez **Journaux d'audit cloud**, sous **Vos données OneUptime** sur **Connexions**, et chaque lecture du compte conserve son journal d'audit comme événements de sécurité :
+
+| Cloud | Ce qui est lu |
+| --- | --- |
+| AWS | Les événements de gestion de CloudTrail qui modifient quelque chose, dans chaque Région qu'utilise le compte : connexions à la console, modifications et appels refusés par AWS |
+| Google Cloud | Le journal d'audit Admin Activity : modifications des ressources et de qui peut y accéder, et appels refusés par Google |
+| Azure | Le journal d'activité : modifications faites dans l'abonnement, opérations qui ont échoué, refus d'Azure Policy et alertes de Defender for Cloud |
+
+- Chaque enregistrement est lu comme **Vos journaux** le lit depuis un pipeline, si bien que les règles CloudTrail, Google Cloud et Azure de la bibliothèque de règles le reconnaissent.
+- Un événement est horodaté au moment où il est stocké, l'heure propre de l'enregistrement étant dans `oneuptime.cloud.record_time` : un journal d'audit arrive dans OneUptime avec quelques minutes de retard, et une règle lit les événements selon leur heure.
+- La lecture du compte n'apporte rien de plus : les événements de données, les journaux Data Access et les journaux de Microsoft Entra ID passent toujours par **Vos journaux** ou par une [connexion](/docs/integrations/microsoft-entra-id).
 
 ### Connecter un produit de sécurité
 
@@ -213,7 +232,7 @@ Sur **Vos journaux**, chaque type indique quand il a été trouvé pour la derni
 | Elastic Security | Alertes de détection, comme Detection Findings | [Elastic Security](/docs/integrations/elastic-security) |
 | AWS Security Hub | Findings, comme Detection et Compliance Findings | [AWS Security Hub](/docs/integrations/aws-security-hub) |
 | Okta System Log | Événements de connexion, de MFA, de compte et de stratégie | [Okta System Log](/docs/integrations/okta) |
-| Microsoft Entra ID | Connexions et modifications d'annuaire, et, du journal d'audit Microsoft 365, les transferts de courrier, les partages et les verdicts d'hameçonnage | [Microsoft Entra ID](/docs/integrations/microsoft-entra-id) |
+| Microsoft Entra ID | Connexions, modifications d'annuaire et détections de risque, si vous le choisissez les connexions en arrière-plan et d'applications qui ont échoué, et, du journal d'audit Microsoft 365, les transferts de courrier, les partages et les verdicts d'hameçonnage | [Microsoft Entra ID](/docs/integrations/microsoft-entra-id) |
 | Google Workspace | Connexions, détections propres à Google, modifications d'administration et accès accordés aux applications, et partages Drive | [Google Workspace](/docs/integrations/google-workspace) |
 
 - Les alertes propres au produit d'un niveau égal ou supérieur à **Open Cases From** (**Élevé et au-dessus** sauf si vous choisissez un autre niveau, ou **Jamais**) ouvrent des [dossiers](/docs/telemetry/security-cases), regroupées selon l'utilisateur, l'hôte ou l'adresse qu'elles concernent.
