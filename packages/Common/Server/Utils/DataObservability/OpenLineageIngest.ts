@@ -8,6 +8,11 @@ import { MetricPointType } from "../../../Models/AnalyticsModels/Metric";
 import Includes from "../../../Types/BaseDatabase/Includes";
 import SortOrder from "../../../Types/BaseDatabase/SortOrder";
 import OneUptimeDate from "../../../Types/Date";
+import {
+  DataColumnMapping,
+  isSameColumnMappings,
+  mergeColumnMappings,
+} from "../../../Types/DataObservability/DataColumnLineage";
 import Dictionary from "../../../Types/Dictionary";
 import {
   DATA_PIPELINE_METRICS,
@@ -21,7 +26,7 @@ import {
   RUNS_FOR_EXPECTED_INTERVAL,
   RUNS_FOR_TYPICAL_DURATION,
 } from "../../../Types/DataObservability/DataPipelineSchedule";
-import { JSONObject } from "../../../Types/JSON";
+import { JSONArray, JSONObject } from "../../../Types/JSON";
 import ObjectID from "../../../Types/ObjectID";
 import ServiceType from "../../../Types/Telemetry/ServiceType";
 import QueryHelper from "../../Types/Database/QueryHelper";
@@ -169,6 +174,14 @@ export function buildPipelineMetricRow(data: {
 }
 
 // The stores and tables of a project, read once per request and matched against.
+// An edge a run says it moved data along.
+interface LineageEdgeToKeep {
+  // Null for the pipeline-writes-table edge.
+  upstreamDataAssetId: string | null;
+  downstreamDataAssetId: string;
+  columnMappings?: Array<DataColumnMapping> | undefined;
+}
+
 export interface ProjectCatalog {
   stores: Array<UsageStore>;
   assets: Array<UsageAsset>;
@@ -223,6 +236,29 @@ export default class OpenLineageIngest {
     return recorded;
   }
 
+  private static addNamedAssets(
+    assets: Array<UsageAsset>,
+    ids: Array<string> | undefined,
+    catalog: ProjectCatalog,
+  ): void {
+    if (!ids || ids.length === 0) {
+      return;
+    }
+
+    const named: Set<string> = new Set(ids);
+    const matched: Set<string> = new Set(
+      assets.map((asset: UsageAsset): string => {
+        return asset.dataAssetId;
+      }),
+    );
+
+    for (const asset of catalog.assets) {
+      if (named.has(asset.dataAssetId) && !matched.has(asset.dataAssetId)) {
+        assets.push(asset);
+      }
+    }
+  }
+
   private static async recordEvent(data: {
     projectId: ObjectID;
     event: OpenLineageRunEvent;
@@ -242,21 +278,9 @@ export default class OpenLineageIngest {
       data.catalog,
     );
 
-    // Tables its producer named by id (a Fivetran connector's schema).
-    if (event.outputDataAssetIds && event.outputDataAssetIds.length > 0) {
-      const named: Set<string> = new Set(event.outputDataAssetIds);
-      const matched: Set<string> = new Set(
-        outputAssets.map((asset: UsageAsset): string => {
-          return asset.dataAssetId;
-        }),
-      );
-
-      for (const asset of data.catalog.assets) {
-        if (named.has(asset.dataAssetId) && !matched.has(asset.dataAssetId)) {
-          outputAssets.push(asset);
-        }
-      }
-    }
+    // Tables its producer named by id (a Fivetran connector's schema, a job in traces).
+    this.addNamedAssets(outputAssets, event.outputDataAssetIds, data.catalog);
+    this.addNamedAssets(inputAssets, event.inputDataAssetIds, data.catalog);
 
     if (event.runId) {
       await this.recordRun({
@@ -269,10 +293,11 @@ export default class OpenLineageIngest {
       });
     }
 
-    const edges: Array<{
-      upstreamDataAssetId: string | null;
-      downstreamDataAssetId: string;
-    }> = [];
+    const edges: Array<LineageEdgeToKeep> = [];
+    const columnMappings: Map<
+      string,
+      Array<DataColumnMapping>
+    > = this.readColumnMappings(event, data.catalog);
 
     for (const output of outputAssets) {
       // Every table a pipeline writes knows the pipeline, whatever it reads.
@@ -283,9 +308,13 @@ export default class OpenLineageIngest {
 
       for (const input of inputAssets) {
         if (input.dataAssetId !== output.dataAssetId) {
+          const mappings: Array<DataColumnMapping> | undefined =
+            columnMappings.get(`${input.dataAssetId}:${output.dataAssetId}`);
+
           edges.push({
             upstreamDataAssetId: input.dataAssetId,
             downstreamDataAssetId: output.dataAssetId,
+            ...(mappings ? { columnMappings: mappings } : {}),
           });
         }
       }
@@ -425,6 +454,10 @@ export default class OpenLineageIngest {
           ...(event.scheduledAt && !run.scheduledAt
             ? { scheduledAt: event.scheduledAt }
             : {}),
+          ...(event.attemptNumber
+            ? { attemptNumber: event.attemptNumber }
+            : {}),
+          ...(event.traceId ? { traceId: event.traceId } : {}),
           inputs: mergeDatasetLabels(run.inputs, event.inputs),
           outputs: mergeDatasetLabels(run.outputs, event.outputs),
           outputDataAssetIds: outputIds,
@@ -439,6 +472,14 @@ export default class OpenLineageIngest {
       created.startedAt = startedAt;
       if (event.scheduledAt) {
         created.scheduledAt = event.scheduledAt;
+      }
+
+      if (event.attemptNumber) {
+        created.attemptNumber = event.attemptNumber;
+      }
+
+      if (event.traceId) {
+        created.traceId = event.traceId;
       }
 
       created.inputs = mergeDatasetLabels([], event.inputs);
@@ -609,6 +650,53 @@ export default class OpenLineageIngest {
     );
   }
 
+  /*
+   * Which columns feed which, by the pair of watched tables the event's
+   * columnLineage facets name; empty for a producer that sends none.
+   */
+  private static readColumnMappings(
+    event: OpenLineageRunEvent,
+    catalog: ProjectCatalog,
+  ): Map<string, Array<DataColumnMapping>> {
+    const mappings: Map<string, Array<DataColumnMapping>> = new Map();
+
+    for (const output of event.outputs) {
+      if (!output.columnLineage || output.columnLineage.length === 0) {
+        continue;
+      }
+
+      const [downstream] = this.matchDatasets(
+        [{ namespace: output.namespace, name: output.name }],
+        catalog,
+      );
+
+      if (!downstream) {
+        continue;
+      }
+
+      for (const lineage of output.columnLineage) {
+        const [upstream] = this.matchDatasets(
+          [{ namespace: lineage.inputNamespace, name: lineage.inputName }],
+          catalog,
+        );
+
+        if (upstream && upstream.dataAssetId !== downstream.dataAssetId) {
+          const key: string = `${upstream.dataAssetId}:${downstream.dataAssetId}`;
+
+          mappings.set(key, [
+            ...(mappings.get(key) || []),
+            {
+              upstreamColumn: lineage.inputColumn,
+              downstreamColumn: lineage.downstreamColumn,
+            },
+          ]);
+        }
+      }
+    }
+
+    return mappings;
+  }
+
   public static async upsertLineage(data: {
     projectId: ObjectID;
     // Null for the pipeline-writes-table edge.
@@ -639,17 +727,10 @@ export default class OpenLineageIngest {
   public static async upsertLineageEdges(data: {
     projectId: ObjectID;
     pipelineId: ObjectID;
-    edges: Array<{
-      // Null for the pipeline-writes-table edge.
-      upstreamDataAssetId: string | null;
-      downstreamDataAssetId: string;
-    }>;
+    edges: Array<LineageEdgeToKeep>;
     at: Date;
   }): Promise<void> {
-    const byKey: Map<
-      string,
-      { upstreamDataAssetId: string | null; downstreamDataAssetId: string }
-    > = new Map();
+    const byKey: Map<string, LineageEdgeToKeep> = new Map();
 
     for (const edge of data.edges) {
       byKey.set(
@@ -668,7 +749,12 @@ export default class OpenLineageIngest {
           projectId: data.projectId,
           edgeKey: QueryHelper.any(Array.from(byKey.keys())),
         },
-        select: { _id: true, edgeKey: true, lastSeenAt: true },
+        select: {
+          _id: true,
+          edgeKey: true,
+          lastSeenAt: true,
+          columnMappings: true,
+        },
         props: { isRoot: true },
       });
     const keptByKey: Map<string, DataAssetLineage> = new Map();
@@ -686,14 +772,26 @@ export default class OpenLineageIngest {
         const lastSeenAt: number = existing.lastSeenAt
           ? new Date(existing.lastSeenAt).getTime()
           : 0;
+        const columnMappings: Array<DataColumnMapping> = mergeColumnMappings(
+          existing.columnMappings,
+          edge.columnMappings,
+        );
+        const hasNewColumns: boolean = !isSameColumnMappings(
+          existing.columnMappings,
+          columnMappings,
+        );
 
         if (
+          hasNewColumns ||
           data.at.getTime() - lastSeenAt >=
-          PIPELINE_EDGE_SEEN_PRECISION_IN_SECONDS * 1000
+            PIPELINE_EDGE_SEEN_PRECISION_IN_SECONDS * 1000
         ) {
           await DataAssetLineageService.updateColumnsByIdWithoutHooks({
             id: existing.id,
-            data: { lastSeenAt: data.at } as never,
+            data: {
+              lastSeenAt: data.at,
+              ...(hasNewColumns ? { columnMappings } : {}),
+            } as never,
           });
         }
 
@@ -712,6 +810,13 @@ export default class OpenLineageIngest {
       created.edgeKey = edgeKey;
       created.firstSeenAt = data.at;
       created.lastSeenAt = data.at;
+
+      if (edge.columnMappings && edge.columnMappings.length > 0) {
+        created.columnMappings = mergeColumnMappings(
+          edge.columnMappings,
+          [],
+        ) as unknown as JSONArray;
+      }
 
       try {
         await DataAssetLineageService.create({

@@ -1,3 +1,8 @@
+import {
+  normalizeWatchedPaths,
+  OBJECT_STORE_KINDS,
+} from "../../Types/DataObservability/StoragePaths";
+import Select from "../Types/Database/Select";
 import DataAsset from "../../Models/DatabaseModels/DataAsset";
 import DataAssetFeed, {
   DataAssetFeedEventType,
@@ -26,6 +31,7 @@ import {
   DataObservabilityOverview,
   DataObservabilityOverviewAsset,
   DataObservabilityOverviewChange,
+  DataObservabilityStoragePathStore,
   DataObservabilityStoreSummary,
   SCHEMA_CHANGE_WINDOW_IN_DAYS,
 } from "../../Types/DataObservability/DataObservabilityApiTypes";
@@ -42,6 +48,9 @@ import DataStoreService from "../Services/DataStoreService";
 import ProbeService from "../Services/ProbeService";
 import QueryHelper from "../Types/Database/QueryHelper";
 import { queueTableHealthCollection } from "../Utils/DataObservability/DataObservabilityJobs";
+import DataAlertExplanationReader from "../Utils/DataObservability/DataAlertExplanation";
+import DataAlertFeedbackRecorder from "../Utils/DataObservability/DataAlertFeedbackRecorder";
+import DataObservabilityQualityReader from "../Utils/DataObservability/DataObservabilityQualityReader";
 import DataCheckAlerts from "../Utils/DataObservability/DataCheckAlerts";
 import DataProductSync from "../Utils/DataObservability/DataProductSync";
 import DataReconciliationSync from "../Utils/DataObservability/DataReconciliationSync";
@@ -65,6 +74,14 @@ import { DATA_OBSERVABILITY_KINDS } from "../Utils/DataObservability/DataObserva
 import DataBiSync from "../Utils/DataObservability/Bi/DataBiSync";
 import DataWarehouseSpendSummary from "../Utils/DataObservability/DataWarehouseSpendSummary";
 import DataTableDashboards from "../Utils/DataObservability/Bi/DataTableDashboards";
+import DataTableSensitivity from "../Utils/DataObservability/DataTableSensitivity";
+import TableHealthIngest from "../Utils/DataObservability/TableHealthIngest";
+import DataTableErrors from "../Utils/DataObservability/DataTableErrors";
+import DataAiAppTables from "../Utils/DataObservability/DataAiAppTables";
+import DataCheckApply from "../Utils/DataObservability/DataCheckApply";
+import DataSourceSuggestions, {
+  isStoreConnected,
+} from "../Utils/DataObservability/DataSourceSuggestions";
 import DataBiConnection from "../../Models/DatabaseModels/DataBiConnection";
 import DataBiConnectionService from "../Services/DataBiConnectionService";
 import {
@@ -103,7 +120,7 @@ import CommonAPI from "./CommonAPI";
  * health needs - a name, a kind, how the last collection went - never a
  * store's findings or connection string. A store connected from here is
  * watched for table health and not content-scanned: Data Observability
- * promises to read the catalog and never a row, and turning content scans
+ * reads the catalog, so that no value leaves the database, and turning content scans
  * on is Data Security's call.
  */
 
@@ -169,6 +186,56 @@ export default class DataObservabilityAPI extends BaseAPI<
     );
 
     this.post(
+      DATA_OBSERVABILITY_API_ROUTES.quality,
+      READ_PERMISSIONS,
+      async (projectId: ObjectID) => {
+        return (await DataObservabilityQualityReader.read(
+          projectId,
+          OneUptimeDate.getCurrentDate(),
+        )) as unknown as JSONObject;
+      },
+    );
+
+    this.post(
+      DATA_OBSERVABILITY_API_ROUTES.alertExplanation(":id"),
+      READ_PERMISSIONS,
+      async (projectId: ObjectID, req: ExpressRequest) => {
+        return {
+          explanation: (await DataAlertExplanationReader.read({
+            projectId,
+            alertId: DataObservabilityAPI.readId(req),
+          })) as unknown as JSONObject,
+        };
+      },
+    );
+
+    this.post(
+      DATA_OBSERVABILITY_API_ROUTES.alertFeedback(":id"),
+      OPERATE_PERMISSIONS,
+      async (
+        projectId: ObjectID,
+        req: ExpressRequest,
+        props: DatabaseCommonInteractionProps,
+      ) => {
+        const body: JSONObject = (req.body || {}) as JSONObject;
+
+        await DataAlertFeedbackRecorder.record({
+          projectId,
+          alertId: DataObservabilityAPI.readId(req),
+          userId: props.userId || null,
+          ...(typeof body["feedback"] === "string"
+            ? { feedback: body["feedback"] }
+            : {}),
+          ...(typeof body["isCauseConfirmed"] === "boolean"
+            ? { isCauseConfirmed: body["isCauseConfirmed"] }
+            : {}),
+        });
+
+        return {};
+      },
+    );
+
+    this.post(
       DATA_OBSERVABILITY_API_ROUTES.stores,
       READ_PERMISSIONS,
       async (projectId: ObjectID) => {
@@ -207,6 +274,27 @@ export default class DataObservabilityAPI extends BaseAPI<
 
         return {};
       },
+    );
+
+    this.post(
+      DATA_OBSERVABILITY_API_ROUTES.checkApply,
+      OPERATE_PERMISSIONS,
+      async (
+        projectId: ObjectID,
+        req: ExpressRequest,
+        props: DatabaseCommonInteractionProps,
+      ) => {
+        const body: JSONObject = (req.body || {}) as JSONObject;
+
+        return (await DataCheckApply.apply({
+          projectId,
+          manifest: body["manifest"],
+          isDryRun: body["isDryRun"] === true,
+          shouldPrune: body["shouldPrune"] === true,
+          props,
+        })) as unknown as JSONObject;
+      },
+      { allowsApiKey: true },
     );
 
     this.post(
@@ -357,6 +445,27 @@ export default class DataObservabilityAPI extends BaseAPI<
 
         return {
           dashboards: await DataTableDashboards.find({
+            projectId,
+            dataAssetId: new ObjectID(dataAssetId),
+          }),
+        } as unknown as JSONObject;
+      },
+    );
+
+    this.post(
+      DATA_OBSERVABILITY_API_ROUTES.tableSensitivity,
+      READ_PERMISSIONS,
+      async (projectId: ObjectID, req: ExpressRequest) => {
+        const body: JSONObject = (req.body || {}) as JSONObject;
+        const dataAssetId: string =
+          typeof body["dataAssetId"] === "string" ? body["dataAssetId"] : "";
+
+        if (!ObjectID.isValidUUID(dataAssetId)) {
+          throw new BadDataException("Name the table by its ID.");
+        }
+
+        return {
+          columns: await DataTableSensitivity.read({
             projectId,
             dataAssetId: new ObjectID(dataAssetId),
           }),
@@ -583,6 +692,203 @@ export default class DataObservabilityAPI extends BaseAPI<
     );
 
     this.post(
+      DATA_OBSERVABILITY_API_ROUTES.tableErrors,
+      READ_PERMISSIONS,
+      async (projectId: ObjectID, req: ExpressRequest) => {
+        const body: JSONObject = (req.body || {}) as JSONObject;
+        const dataAssetId: string =
+          typeof body["dataAssetId"] === "string" ? body["dataAssetId"] : "";
+
+        if (!ObjectID.isValidUUID(dataAssetId)) {
+          throw new BadDataException("Name the table by its ID.");
+        }
+
+        return (await DataTableErrors.read({
+          projectId,
+          dataAssetId: new ObjectID(dataAssetId),
+          now: OneUptimeDate.getCurrentDate(),
+        })) as unknown as JSONObject;
+      },
+    );
+
+    this.post(
+      DATA_OBSERVABILITY_API_ROUTES.aiAppTables,
+      READ_PERMISSIONS,
+      async (projectId: ObjectID) => {
+        return {
+          tables: await DataAiAppTables.readLate(
+            projectId,
+            OneUptimeDate.getCurrentDate(),
+          ),
+        } as unknown as JSONObject;
+      },
+    );
+
+    this.post(
+      DATA_OBSERVABILITY_API_ROUTES.databaseServerStores,
+      READ_PERMISSIONS,
+      async (projectId: ObjectID, req: ExpressRequest) => {
+        const body: JSONObject = (req.body || {}) as JSONObject;
+        const databaseServerId: string =
+          typeof body["databaseServerId"] === "string"
+            ? body["databaseServerId"]
+            : "";
+
+        if (!ObjectID.isValidUUID(databaseServerId)) {
+          throw new BadDataException("Name the database server by its ID.");
+        }
+
+        const linked: Array<DataStore> = await DataStoreService.findBy({
+          query: {
+            projectId,
+            databaseServerId: new ObjectID(databaseServerId),
+            isArchived: false,
+          },
+          select: { _id: true },
+          skip: 0,
+          limit: MAX_STORES,
+          props: { isRoot: true },
+        });
+        const ids: Set<string> = new Set(
+          linked.map((store: DataStore): string => {
+            return store.id?.toString() || "";
+          }),
+        );
+
+        return {
+          stores: (
+            await DataObservabilityAPI.getStoreSummaries(
+              projectId,
+              OneUptimeDate.getCurrentDate(),
+            )
+          ).filter((store: DataObservabilityStoreSummary) => {
+            return ids.has(store.dataStoreId);
+          }),
+        } as unknown as JSONObject;
+      },
+    );
+
+    this.post(
+      DATA_OBSERVABILITY_API_ROUTES.storagePaths,
+      READ_PERMISSIONS,
+      async (projectId: ObjectID) => {
+        const stores: Array<DataStore> = await DataStoreService.findBy({
+          query: {
+            projectId,
+            isArchived: false,
+            kind: new Includes([...OBJECT_STORE_KINDS]),
+          },
+          select: {
+            _id: true,
+            name: true,
+            kind: true,
+            watchedPaths: true,
+            tableHealthStatus: true,
+            tableHealthMessage: true,
+            tableHealthCollectedAt: true,
+          },
+          sort: { name: SortOrder.Ascending },
+          skip: 0,
+          limit: MAX_STORES,
+          props: { isRoot: true },
+        });
+
+        return {
+          stores: stores.map(
+            (store: DataStore): DataObservabilityStoragePathStore => {
+              return {
+                dataStoreId: store.id!.toString(),
+                name: store.name || "",
+                kind: store.kind || "",
+                watchedPaths: store.watchedPaths || "",
+                status: store.tableHealthStatus || null,
+                message: store.tableHealthMessage || null,
+                collectedAt: store.tableHealthCollectedAt
+                  ? OneUptimeDate.fromString(
+                      store.tableHealthCollectedAt,
+                    ).toISOString()
+                  : null,
+              };
+            },
+          ),
+        } as unknown as JSONObject;
+      },
+    );
+
+    this.post(
+      DATA_OBSERVABILITY_API_ROUTES.storagePathsSave(":id"),
+      CONNECT_PERMISSIONS,
+      async (projectId: ObjectID, req: ExpressRequest) => {
+        const dataStoreId: ObjectID = DataObservabilityAPI.readId(req);
+        const store: DataStore | null = await DataStoreService.findOneBy({
+          query: {
+            _id: dataStoreId,
+            projectId,
+            isArchived: false,
+            kind: new Includes([...OBJECT_STORE_KINDS]),
+          },
+          select: { _id: true, name: true, kind: true },
+          props: { isRoot: true },
+        });
+
+        if (!store?.id) {
+          throw new BadDataException("Bucket not found.");
+        }
+
+        const watchedPaths: string | null = normalizeWatchedPaths(
+          ((req.body || {}) as JSONObject)["watchedPaths"],
+        );
+
+        await DataStoreService.updateColumnsByIdWithoutHooks({
+          id: store.id,
+          data: {
+            watchedPaths,
+            ...(watchedPaths
+              ? {
+                  isTableHealthEnabled: true,
+                  nextTableHealthCollectionAt: null,
+                }
+              : {}),
+          } as never,
+        });
+
+        /*
+         * With no paths left, nothing collects this bucket again: its tables are
+         * called dropped now, as they would be at a collection, not left to go late.
+         */
+        if (!watchedPaths) {
+          await TableHealthIngest.recordSnapshot({
+            store: {
+              id: store.id,
+              projectId,
+              name: store.name || "",
+              kind: store.kind || "",
+            },
+            snapshot: {
+              engine: "storage",
+              collectedAt: OneUptimeDate.getCurrentDate().toISOString(),
+              tables: [],
+              isComplete: true,
+              warnings: [],
+            },
+          });
+        }
+
+        return { watchedPaths } as unknown as JSONObject;
+      },
+    );
+
+    this.post(
+      DATA_OBSERVABILITY_API_ROUTES.sourceSuggestions,
+      READ_PERMISSIONS,
+      async (projectId: ObjectID) => {
+        return {
+          suggestions: await DataSourceSuggestions.read(projectId),
+        } as unknown as JSONObject;
+      },
+    );
+
+    this.post(
       DATA_OBSERVABILITY_API_ROUTES.connectStore,
       CONNECT_PERMISSIONS,
       async (projectId: ObjectID, req: ExpressRequest) => {
@@ -598,29 +904,49 @@ export default class DataObservabilityAPI extends BaseAPI<
     projectId: ObjectID,
     now: Date,
   ): Promise<Array<DataObservabilityStoreSummary>> {
-    const stores: Array<DataStore> = await DataStoreService.findBy({
-      query: {
-        projectId,
-        isArchived: false,
-        kind: new Includes([...COLLECTABLE_KINDS]),
-      },
-      select: {
-        _id: true,
-        name: true,
-        kind: true,
-        isTableHealthEnabled: true,
-        scanProbeId: true,
-        scanProbe: { name: true },
-        tableHealthStatus: true,
-        tableHealthMessage: true,
-        tableHealthCollectedAt: true,
-        tableHealthAssetCount: true,
-      },
-      sort: { name: SortOrder.Ascending },
-      skip: 0,
-      limit: MAX_STORES,
-      props: { isRoot: true },
-    });
+    const select: Select<DataStore> = {
+      _id: true,
+      name: true,
+      kind: true,
+      isTableHealthEnabled: true,
+      scanProbeId: true,
+      scanProbe: { name: true },
+      tableHealthStatus: true,
+      tableHealthMessage: true,
+      tableHealthCollectedAt: true,
+      tableHealthAssetCount: true,
+      connectionString: true,
+      cloudConnectionId: true,
+      watchedPaths: true,
+    };
+    const stores: Array<DataStore> = [
+      ...(await DataStoreService.findBy({
+        query: {
+          projectId,
+          isArchived: false,
+          kind: new Includes([...COLLECTABLE_KINDS]),
+        },
+        select,
+        sort: { name: SortOrder.Ascending },
+        skip: 0,
+        limit: MAX_STORES,
+        props: { isRoot: true },
+      })),
+      // Buckets count once someone named paths of them, and a project can have thousands that don't.
+      ...(await DataStoreService.findBy({
+        query: {
+          projectId,
+          isArchived: false,
+          kind: new Includes([...OBJECT_STORE_KINDS]),
+          watchedPaths: QueryHelper.notNull(),
+        },
+        select,
+        sort: { name: SortOrder.Ascending },
+        skip: 0,
+        limit: MAX_STORES,
+        props: { isRoot: true },
+      })),
+    ];
 
     const lateByStore: Map<string, number> = new Map();
 
@@ -642,9 +968,13 @@ export default class DataObservabilityAPI extends BaseAPI<
       }
     }
 
+    /*
+     * A store with no way in is watched by nobody: it is one of the suggestions
+     * (DataSourceSuggestions), not a database waiting for its first collection.
+     */
     return stores
       .filter((store: DataStore) => {
-        return Boolean(store.id);
+        return Boolean(store.id) && isStoreConnected(store);
       })
       .map((store: DataStore): DataObservabilityStoreSummary => {
         return {
@@ -852,6 +1182,19 @@ export default class DataObservabilityAPI extends BaseAPI<
       );
     }
 
+    const existingStoreId: unknown = body["dataStoreId"];
+
+    // A store the project already knows of takes the connection, rather than a second row.
+    if (typeof existingStoreId === "string" && existingStoreId) {
+      return await DataObservabilityAPI.connectKnownStore({
+        projectId,
+        dataStoreId: existingStoreId,
+        connectionString,
+        probe,
+        probeConnectionVariable: probeConnectionVariable as string | undefined,
+      });
+    }
+
     const now: Date = OneUptimeDate.getCurrentDate();
     const store: DataStore = new DataStore();
 
@@ -865,7 +1208,7 @@ export default class DataObservabilityAPI extends BaseAPI<
     store.firstSeenAt = now;
     store.lastSeenAt = now;
     store.isTableHealthEnabled = true;
-    // Data Observability reads the catalog, never a row; content scans are Data Security's to turn on.
+    // Data Observability reads the catalog; content scans are Data Security's to turn on.
     store.isContentScanEnabled = false;
 
     if (probe?.id) {
@@ -888,6 +1231,56 @@ export default class DataObservabilityAPI extends BaseAPI<
     }
 
     return { dataStoreId: created.id!.toString() };
+  }
+
+  private static async connectKnownStore(data: {
+    projectId: ObjectID;
+    dataStoreId: string;
+    connectionString: string;
+    probe: Probe | null;
+    probeConnectionVariable: string | undefined;
+  }): Promise<DataObservabilityConnectStoreResponse> {
+    if (!ObjectID.isValidUUID(data.dataStoreId)) {
+      throw new BadDataException("Database not found.");
+    }
+
+    const known: DataStore | null = await DataStoreService.findOneBy({
+      query: {
+        _id: new ObjectID(data.dataStoreId),
+        projectId: data.projectId,
+        isArchived: false,
+        kind: new Includes([...COLLECTABLE_KINDS]),
+      },
+      select: { _id: true },
+      props: { isRoot: true },
+    });
+
+    if (!known?.id) {
+      throw new BadDataException("Database not found.");
+    }
+
+    await DataStoreService.updateOneById({
+      id: known.id,
+      data: {
+        isTableHealthEnabled: true,
+        ...(data.probe?.id
+          ? {
+              scanProbeId: data.probe.id,
+              probeConnectionVariable: data.probeConnectionVariable,
+            }
+          : { connectionString: data.connectionString }),
+      } as never,
+      props: { isRoot: true },
+    });
+
+    if (!data.probe?.id) {
+      await queueTableHealthCollection({
+        projectId: data.projectId,
+        dataStoreId: known.id,
+      });
+    }
+
+    return { dataStoreId: known.id.toString() };
   }
 
   private static async readAssets(
@@ -921,6 +1314,8 @@ export default class DataObservabilityAPI extends BaseAPI<
       req: ExpressRequest,
       props: DatabaseCommonInteractionProps,
     ) => Promise<JSONObject>,
+    // Whether a project API key may call it too: what a build in CI signs in with.
+    options: { allowsApiKey: boolean } = { allowsApiKey: false },
   ): void {
     this.router.post(
       route,
@@ -930,8 +1325,9 @@ export default class DataObservabilityAPI extends BaseAPI<
         try {
           const props: DatabaseCommonInteractionProps =
             await CommonAPI.getDatabaseCommonInteractionProps(req);
-          const projectId: ObjectID =
-            CommonAPI.assertAuthenticatedProjectMember(props);
+          const projectId: ObjectID = options.allowsApiKey
+            ? CommonAPI.assertAuthenticatedProjectPrincipal(props)
+            : CommonAPI.assertAuthenticatedProjectMember(props);
 
           CommonAPI.assertPermittedInProject({
             databaseProps: props,
@@ -982,7 +1378,7 @@ export default class DataObservabilityAPI extends BaseAPI<
       query: {
         _id: new ObjectID(id),
         projectId,
-        kind: new Includes([...COLLECTABLE_KINDS]),
+        kind: new Includes([...COLLECTABLE_KINDS, ...OBJECT_STORE_KINDS]),
       },
       select: { _id: true, scanProbeId: true },
       props: { isRoot: true },

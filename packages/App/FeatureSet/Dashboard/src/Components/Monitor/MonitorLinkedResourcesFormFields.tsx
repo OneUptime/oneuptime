@@ -14,6 +14,7 @@ import KubernetesCluster from "Common/Models/DatabaseModels/KubernetesCluster";
 import Monitor from "Common/Models/DatabaseModels/Monitor";
 import PodmanHost from "Common/Models/DatabaseModels/PodmanHost";
 import ProxmoxCluster from "Common/Models/DatabaseModels/ProxmoxCluster";
+import OpenStackCloud from "Common/Models/DatabaseModels/OpenStackCloud";
 import Service from "Common/Models/DatabaseModels/Service";
 import VMwareVCenter from "Common/Models/DatabaseModels/VMwareVCenter";
 import { CustomElementProps } from "Common/UI/Components/Forms/Types/Field";
@@ -57,6 +58,7 @@ export const getMonitorLinkedResourcesFormFields: () => Fields<Monitor> =
               dockerHosts={values.dockerHosts as Array<DockerHost>}
               podmanHosts={values.podmanHosts as Array<PodmanHost>}
               proxmoxClusters={values.proxmoxClusters as Array<ProxmoxCluster>}
+              openStackClouds={values.openStackClouds as Array<OpenStackCloud>}
               vmwareVCenters={values.vmwareVCenters as Array<VMwareVCenter>}
               cephClusters={values.cephClusters as Array<CephCluster>}
               storageArrays={values.storageArrays as Array<StorageArray>}
@@ -94,6 +96,7 @@ export const getMonitorLinkedResourcesFormFields: () => Fields<Monitor> =
                 dockerHosts: payload.dockerHosts,
                 podmanHosts: payload.podmanHosts,
                 proxmoxClusters: payload.proxmoxClusters,
+                openStackClouds: payload.openStackClouds,
                 vmwareVCenters: payload.vmwareVCenters,
                 cephClusters: payload.cephClusters,
                 storageArrays: payload.storageArrays,
@@ -144,6 +147,16 @@ export const getMonitorLinkedResourcesFormFields: () => Fields<Monitor> =
       },
       {
         field: { proxmoxClusters: true },
+        title: "",
+        fieldType: FormFieldSchemaType.Text,
+        required: false,
+        hideColumnDescription: true,
+        showIf: () => {
+          return false;
+        },
+      },
+      {
+        field: { openStackClouds: true },
         title: "",
         fieldType: FormFieldSchemaType.Text,
         required: false,

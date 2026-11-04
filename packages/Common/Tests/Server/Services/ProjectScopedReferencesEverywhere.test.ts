@@ -111,6 +111,7 @@ const SERVICES_WITH_ANOTHER_CHECK: Record<string, AnotherCheck> = {
   "UserCallService.ts": { kind: "owner-is-the-caller" },
   "UserEmailService.ts": { kind: "owner-is-the-caller" },
   "UserIncomingCallNumberService.ts": { kind: "owner-is-the-caller" },
+  "UserMattermostService.ts": { kind: "owner-is-the-caller" },
   "UserMicrosoftTeamsService.ts": { kind: "owner-is-the-caller" },
   "UserNotificationEmailRollupSettingService.ts": {
     kind: "owner-is-the-caller",
@@ -197,6 +198,10 @@ const SERVICES_WITH_THEIR_OWN_CHECKS: Record<string, string> = {
     "TeamComplianceSettingService.test.ts (severities, after the rule type drops the options it does not use)",
   "TeamMemberService.ts":
     "the invited user is not a member until the row exists (TeamMemberService.test.ts)",
+  "OpenStackCloudService.ts":
+    "OpenStackCloudConnection.test.ts (the collection probe: the project's own, or one of a self-hosted instance's global probes; another project's refused, a missing one not found)",
+  "OpenStackCloudConnectionTestService.ts":
+    "OpenStackCloudConnectionTestService.test.ts (the probe as a cloud's collection probe; the cloud read within the test's project, a foreign and a missing one answered alike)",
   "VMwareVCenterService.ts":
     "VMwareVCenterConnection.test.ts (the collection probe: the project's own, or one of a self-hosted instance's global probes; another project's refused, a missing one not found)",
   "VMwareVCenterConnectionTestService.ts":
@@ -229,6 +234,7 @@ const SERVICES_TRUSTING_SERVER_WRITES: Array<string> = [
   "OnCallDutyPolicyExecutionLogService.ts",
   "OnCallDutyPolicyFeedService.ts",
   "OnCallDutyPolicyTimeLogService.ts",
+  "OpenStackCloudFeedService.ts",
   "PodmanHostFeedService.ts",
   "ProxmoxClusterFeedService.ts",
   "PushNotificationLogService.ts",

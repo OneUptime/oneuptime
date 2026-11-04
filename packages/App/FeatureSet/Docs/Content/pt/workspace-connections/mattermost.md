@@ -6,6 +6,7 @@ Conecte o OneUptime ao seu servidor do Mattermost para publicar nos seus canais 
 - [Conectar o Mattermost](#conectar-o-mattermost): Crie uma conta de bot para o OneUptime e depois conecte o projeto com o token dela.
 - [Conectar a sua própria conta](#conectar-a-sua-própria-conta-do-mattermost): Vincule a sua conta do Mattermost à sua conta do OneUptime.
 - [Regras de notificação](#regras-de-notificação): Decida quais eventos são publicados onde, e quais ganham um canal próprio.
+- [Quem está no canal de um registro](#quem-está-no-canal-de-um-registro): Veja quem está nele, entre e adicione pessoas, pela página do registro.
 - [Agir pelo Mattermost](#agir-sobre-incidentes-alertas-e-eventos-pelo-mattermost): Os botões das mensagens do OneUptime.
 - [Rede e auto-hospedagem](#rede-e-auto-hospedagem): O que cada servidor precisa conseguir alcançar.
 :::
@@ -59,7 +60,7 @@ Vá para **Incidentes** > **Espaço de trabalho** > **Mattermost** e crie uma re
 
 O token de acesso do bot fica guardado apenas no servidor do OneUptime, criptografado com os outros segredos do projeto, e nunca mais é mostrado. O endereço do servidor, a equipe e o nome de usuário do bot são mostrados a todos no projeto, na página de configurações do Mattermost.
 
-Um projeto fica conectado a uma única equipe do Mattermost. Para movê-lo para outra equipe, ou outro servidor, desconecte-o primeiro: **Configurações do projeto** > **Espaço de trabalho** > **Mattermost**, depois **⋯** > **Desconectar o Mattermost**. Desconectar também desconecta a conta do Mattermost de cada membro. As suas regras de notificação e os seus resumos são mantidos para quando você conectar de novo.
+Um projeto fica conectado a uma única equipe do Mattermost. Para movê-lo para outra equipe, ou outro servidor, desconecte-o primeiro: **Configurações do projeto** > **Espaço de trabalho** > **Mattermost**, depois **⋯** > **Desconectar o Mattermost**. Desconectar também desconecta a conta do Mattermost de cada membro e remove os métodos de notificação do Mattermost dele e as regras de plantão que os usam. As suas regras de notificação e os seus resumos são mantidos para quando você conectar de novo.
 
 ## Conectar a sua própria conta do Mattermost
 
@@ -74,6 +75,18 @@ O Mattermost não tem um login para o qual o OneUptime possa enviar você, entã
 Abra o link no mesmo navegador em que você o pediu: ele só funciona ali, só uma vez e só por 15 minutos. Isso prova que quem o pediu tem as duas contas, então ninguém consegue conectar a conta do Mattermost de outra pessoa. Se você não pediu um link, ignore-o: nada é conectado até que ele seja aberto no navegador que o pediu.
 
 A conexão da sua conta pertence a este projeto. Em outro projeto conectado à mesma equipe do Mattermost, conecte-a lá também.
+
+## Ser acionado no Mattermost
+
+Para ser acionado por mensagem direta quando estiver de plantão, adicione o Mattermost como um dos seus métodos de notificação:
+
+:::steps
+1. Conecte a sua própria conta do Mattermost (consulte [Conectar a sua própria conta do Mattermost](#conectar-a-sua-própria-conta-do-mattermost)).
+2. Vá para **Configurações do usuário** > **Métodos de notificação**, abra a aba **Aplicativos do espaço de trabalho** e clique em **Adicionar conta do Mattermost**.
+3. Clique em **Send Test Message** na linha dele. A mensagem chega como mensagem direta do bot do projeto.
+:::
+
+Adicioná-lo o inclui imediatamente nas suas regras de plantão, então a partir daí os acionamentos chegam a você no Mattermost. Altere quais acionamentos ele recebe em **Configurações do usuário** > **Regras de Plantão**. Cada acionamento traz um link para confirmá-lo e outro para escaloná-lo. Desconectar a sua conta do Mattermost remove este método e as regras de plantão que o usam.
 
 ## Regras de notificação
 
@@ -90,6 +103,22 @@ Um incidente, alerta, episódio ou evento de manutenção agendada com um canal 
 **Regra de teste** na linha de uma regra publica uma mensagem de teste dessa regra nos canais que ela indica, como faz para o Slack.
 
 As mensagens do OneUptime não notificam ninguém com o que citam: um nome ou uma descrição que contenha `@channel`, `@here` ou `@someone` é mostrado como foi escrito, e não notifica ninguém.
+
+## Quem está no canal de um registro
+
+Um incidente, alerta, episódio ou evento de manutenção agendada com um canal do Mattermost próprio tem um cartão **Canal do Mattermost** na sua página no OneUptime. O cartão mostra o canal, como um link que o abre no seu servidor do Mattermost, se ele é privado e quem está nele, você primeiro. Pelo cartão, sem um administrador do Mattermost:
+
+- **Entrar no canal** adiciona você, quando você não está no canal.
+- **Adicionar pessoas** abre uma lista das pessoas e equipes do projeto: escolha uma pessoa para adicioná-la, ou uma equipe para adicionar todos os membros dela.
+
+O bot do OneUptime as adiciona, como adiciona as pessoas do canal de uma regra. O bot fica nos canais que cria, então isso funciona também para um canal privado que todos deixaram. Um registro que também tem canais no Slack ou no Microsoft Teams lista todos em um único cartão **Canais de chat**.
+
+- **Quem pode adicionar pessoas.** Quem pode editar o registro: **Proprietário do projeto**, **Administrador do projeto**, **Membro do projeto**, **Administrador de incidentes** e **Membro de incidentes** para um incidente, ou **Edit Incident** em uma função personalizada, e a mesma permissão para um alerta, um episódio ou um evento (**Edit Alert**, por exemplo). Os demais veem quem está no canal e como entrar.
+- **Quem pode ser adicionado.** Alguém que o OneUptime encontra no Mattermost, pela conta que a pessoa conectou ou então pelo endereço de e-mail dela, quando o seu servidor mostra endereços de e-mail ao bot, e que está na equipe à qual o projeto está conectado. Uma conta de convidado dessa equipe também pode ser adicionada: o Mattermost permite que os membros de um canal adicionem convidados. O cartão nomeia quem não pôde adicionar, e por quê.
+- **O que fica registrado.** Quem foi adicionado, e por quem, no feed do registro (**Membro adicionado ao canal**) e em **Configurações do projeto** > **Notificações** > **Logs de notificação**, na aba **Espaço de trabalho**.
+- **Um canal arquivado.** O cartão continua listando quem está nele, e não adiciona ninguém até que o canal seja desarquivado no Mattermost.
+- **Um canal do qual o bot foi removido.** O Mattermost mostra as pessoas de um canal só a quem está nele, mesmo em um canal público, então o cartão diz que não consegue ver o canal. Alguém que esteja nele pode adicionar o bot de novo no Mattermost. O OneUptime também entra sozinho em um canal público na próxima vez que publica nele.
+- **Tirar alguém.** O OneUptime só adiciona pessoas: tire alguém do canal no Mattermost.
 
 ## Agir sobre incidentes, alertas e eventos pelo Mattermost
 
@@ -127,3 +156,5 @@ Todo botão que o OneUptime publica leva uma assinatura, verificada quando ele �
 | **The bot is not a member of the private Mattermost channel** | Adicione o bot ao canal no Mattermost. |
 | Um botão não faz nada, ou o Mattermost diz que não conseguiu concluir a ação | O Mattermost não consegue alcançar o OneUptime. Consulte [Rede e auto-hospedagem](#rede-e-auto-hospedagem). |
 | Nenhuma mensagem direta chega com o seu link | Verifique o nome de usuário, e se o bot está em uma equipe da qual você faz parte. |
+| O cartão do canal diz que o OneUptime não consegue ver o canal | O canal foi excluído, ou o bot foi removido dele. Se ele ainda existir, alguém que esteja nele pode adicionar o bot de novo no Mattermost. |
+| O cartão do canal diz que alguém não está na equipe do Mattermost | Adicione a pessoa, no Mattermost, à equipe à qual o projeto está conectado e depois adicione-a de novo. |

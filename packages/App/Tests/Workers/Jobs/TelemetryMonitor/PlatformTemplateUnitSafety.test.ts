@@ -38,6 +38,7 @@ import {
   getAllProxmoxAlertTemplates,
   ProxmoxAlertTemplateArgs,
 } from "Common/Types/Monitor/ProxmoxAlertTemplates";
+import { getAllOpenStackAlertTemplates } from "Common/Types/Monitor/OpenStackAlertTemplates";
 import {
   getAllVMwareAlertTemplates,
   VMwareAlertTemplateArgs,
@@ -141,6 +142,7 @@ import {
   monitorIoT,
   monitorKubernetes,
   monitorPodman,
+  monitorOpenStack,
   monitorProxmox,
   monitorStorageArray,
   monitorVMware,
@@ -228,6 +230,11 @@ const platformCases: Array<PlatformCase> = [
     monitorType: MonitorType.Proxmox,
     monitor: monitorProxmox,
     templates: getAllProxmoxAlertTemplates(),
+  },
+  {
+    monitorType: MonitorType.OpenStack,
+    monitor: monitorOpenStack,
+    templates: getAllOpenStackAlertTemplates(),
   },
   {
     monitorType: MonitorType.VMware,

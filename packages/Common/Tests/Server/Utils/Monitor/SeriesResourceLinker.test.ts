@@ -29,6 +29,7 @@ import HostService from "../../../../Server/Services/HostService";
 import IoTFleetService from "../../../../Server/Services/IoTFleetService";
 import KubernetesClusterService from "../../../../Server/Services/KubernetesClusterService";
 import PodmanHostService from "../../../../Server/Services/PodmanHostService";
+import OpenStackCloudService from "../../../../Server/Services/OpenStackCloudService";
 import ProxmoxClusterService from "../../../../Server/Services/ProxmoxClusterService";
 import ServiceService from "../../../../Server/Services/ServiceService";
 import StorageArrayService from "../../../../Server/Services/StorageArrayService";
@@ -103,6 +104,11 @@ const RESOURCE_SERVICES: Array<ResourceServiceUnderTest> = [
   {
     relation: "proxmoxClusters",
     service: ProxmoxClusterService,
+    nameColumn: "name",
+  },
+  {
+    relation: "openStackClouds",
+    service: OpenStackCloudService,
     nameColumn: "name",
   },
   {
@@ -207,6 +213,7 @@ function emptyResourceContext(): SeriesResolvedResourceIds {
     kubernetesClusterIds: [],
     serviceIds: [],
     proxmoxClusterIds: [],
+    openStackCloudIds: [],
     vmwareVCenterIds: [],
     cephClusterIds: [],
     dockerSwarmClusterIds: [],
@@ -363,6 +370,8 @@ describe("SeriesResourceLinker.linkSeriesResourcesToModel", () => {
     ["services", "service.name", "name"],
     ["services", "oneuptime.service.name", "name"],
     ["proxmoxClusters", "proxmox.cluster.name", "name"],
+    ["openStackClouds", "openstack.cloud.name", "name"],
+    ["openStackClouds", "resource.openstack.cloud.name", "name"],
     ["vmwareVCenters", "vmware.vcenter.name", "name"],
     ["vmwareVCenters", "resource.vmware.vcenter.name", "name"],
     ["cephClusters", "ceph.cluster.name", "name"],
@@ -553,6 +562,7 @@ describe("SeriesResourceLinker.linkSeriesResourcesToModel", () => {
         "k8s.cluster.name": "k8s-1",
         "service.name": "svc-1",
         "proxmox.cluster.name": "pve-1",
+        "openstack.cloud.name": "prod-1",
         "vmware.vcenter.name": "vcsa-1",
         "ceph.cluster.name": "ceph-1",
         "docker.swarm.cluster.name": "swarm-1",
@@ -575,8 +585,8 @@ describe("SeriesResourceLinker.linkSeriesResourcesToModel", () => {
       }
     }
 
-    // 12 types, and hosts get an extra query for the id stamp.
-    expect(assertedQueries).toBe(13);
+    // 13 types, and hosts get an extra query for the id stamp.
+    expect(assertedQueries).toBe(14);
   });
 
   test("does not link a resource that belongs to another project", async () => {

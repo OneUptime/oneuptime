@@ -84,6 +84,17 @@ import CephResourceService, {
   CephResourceLatestMetric,
 } from "Common/Server/Services/CephResourceService";
 import ProxmoxClusterService from "Common/Server/Services/ProxmoxClusterService";
+import OpenStackCloudService from "Common/Server/Services/OpenStackCloudService";
+import OpenStackResourceService, {
+  OpenStackInventorySummary,
+  ParsedOpenStackResource,
+} from "Common/Server/Services/OpenStackResourceService";
+import {
+  OpenStackResourceBufferEntry,
+  bufferOpenStackSnapshotMetric,
+  finishOpenStackBatch,
+  isOpenStackSnapshotDatapoint,
+} from "Common/Server/Utils/Telemetry/OpenStackSnapshotScan";
 import VMwareResourceService, {
   ParsedVMwareResource,
   VMwareResourceLatestMetric,
@@ -1074,6 +1085,14 @@ export default class OtelMetricsIngestService extends OtelIngestBaseService {
        * Per cluster: the native-push nodes this batch's live nodes
        * reported as not reporting, for the inventory flush.
        */
+      /*
+       * OpenStack parts folded per cloud: see OpenStackSnapshotScan. The counts
+       * are read back from the inventory at flush, so nothing here counts.
+       */
+      const openStackResourceBuffer: Map<
+        string,
+        Map<string, OpenStackResourceBufferEntry>
+      > = new Map();
       const proxmoxSilentNodeReports: Map<string, ProxmoxSilentNodeReport> =
         new Map();
       const vmwareResourceMetricsBuffer: Map<
@@ -1225,6 +1244,7 @@ export default class OtelMetricsIngestService extends OtelIngestBaseService {
             dockerHostId,
             podmanHostId,
             proxmoxClusterId,
+            openStackCloudId,
             vmwareVCenterId,
             cephClusterId,
             storageArrayId,
@@ -1232,6 +1252,7 @@ export default class OtelMetricsIngestService extends OtelIngestBaseService {
             iotFleetId,
             databaseServerId,
           ]: [
+            ObjectID | null,
             ObjectID | null,
             ObjectID | null,
             ObjectID | null,
@@ -1256,6 +1277,10 @@ export default class OtelMetricsIngestService extends OtelIngestBaseService {
               attributes: resourceAttributes_raw,
             }),
             this.autoDiscoverProxmoxCluster({
+              projectId,
+              attributes: resourceAttributes_raw,
+            }),
+            this.autoDiscoverOpenStackCloud({
               projectId,
               attributes: resourceAttributes_raw,
             }),
@@ -1417,6 +1442,7 @@ export default class OtelMetricsIngestService extends OtelIngestBaseService {
               podmanHostId,
               kubernetesClusterId,
               proxmoxClusterId,
+              openStackCloudId,
               vmwareVCenterId,
               cephClusterId,
               storageArrayId,
@@ -1944,6 +1970,33 @@ export default class OtelMetricsIngestService extends OtelIngestBaseService {
                         }
 
                         if (
+                          openStackCloudId &&
+                          isOpenStackSnapshotDatapoint({
+                            metricName,
+                            datapoint: datapoint as JSONObject,
+                          })
+                        ) {
+                          const cloudIdStr: string =
+                            openStackCloudId.toString();
+                          let cloudBuffer:
+                            | Map<string, OpenStackResourceBufferEntry>
+                            | undefined =
+                            openStackResourceBuffer.get(cloudIdStr);
+                          if (!cloudBuffer) {
+                            cloudBuffer = new Map();
+                            openStackResourceBuffer.set(
+                              cloudIdStr,
+                              cloudBuffer,
+                            );
+                          }
+                          bufferOpenStackSnapshotMetric({
+                            metricName,
+                            datapoint: datapoint as JSONObject,
+                            buffer: cloudBuffer,
+                          });
+                        }
+
+                        if (
                           cephClusterId &&
                           CEPH_SNAPSHOT_METRIC_NAMES.has(metricName)
                         ) {
@@ -2241,6 +2294,11 @@ export default class OtelMetricsIngestService extends OtelIngestBaseService {
         resourceBuffer: proxmoxResourceMetricsBuffer,
         clusterBuffer: proxmoxClusterSnapshotBuffer,
         silentNodeReports: proxmoxSilentNodeReports,
+      });
+
+      await this.flushOpenStackSnapshotBuffers({
+        projectId,
+        resourceBuffer: openStackResourceBuffer,
       });
 
       await this.flushVMwareSnapshotBuffers({
@@ -3901,6 +3959,74 @@ export default class OtelMetricsIngestService extends OtelIngestBaseService {
    * are logged and swallowed: snapshots are best-effort and must never
    * affect ClickHouse ingest.
    */
+  /*
+   * Write what one batch said about each OpenStack cloud, then recount the cloud
+   * from its inventory. A batch only ever holds one service of one region, so its
+   * own counts would flip with every scrape. A failure here costs one snapshot of
+   * the inventory and never the telemetry itself.
+   */
+  private static async flushOpenStackSnapshotBuffers(data: {
+    projectId: ObjectID;
+    resourceBuffer: Map<string, Map<string, OpenStackResourceBufferEntry>>;
+  }): Promise<void> {
+    for (const [cloudIdStr, byKey] of data.resourceBuffer) {
+      try {
+        const resources: Array<ParsedOpenStackResource> = finishOpenStackBatch(
+          byKey.values(),
+        ).map((finished: OpenStackResourceBufferEntry) => {
+          return {
+            kind: finished.kind,
+            externalId: finished.externalId,
+            name: finished.name,
+            regionName: finished.regionName,
+            availabilityZone: finished.availabilityZone,
+            hypervisorName: finished.hypervisorName,
+            openStackProjectId: finished.openStackProjectId,
+            status: finished.status,
+            adminState: finished.adminState,
+            disabledReason: finished.disabledReason,
+            vcpuCapacity: finished.vcpuCapacity,
+            vcpuAllocated: finished.vcpuAllocated,
+            memoryCapacityBytes: finished.memoryCapacityBytes,
+            memoryAllocatedBytes: finished.memoryAllocatedBytes,
+            diskCapacityBytes: finished.diskCapacityBytes,
+            diskAllocatedBytes: finished.diskAllocatedBytes,
+            instanceCount: finished.instanceCount,
+            facts: finished.facts,
+            lastSeenAt: finished.observedAt,
+          };
+        });
+
+        await this.writeForDiscoveredResource({
+          kind: DiscoveredResourceKinds.OpenStackCloud,
+          id: cloudIdStr,
+          write: async (openStackCloudId: ObjectID): Promise<void> => {
+            await OpenStackResourceService.bulkUpsert({
+              projectId: data.projectId,
+              openStackCloudId,
+              resources,
+            });
+
+            const summary: OpenStackInventorySummary =
+              await OpenStackResourceService.getInventorySummary({
+                projectId: data.projectId,
+                openStackCloudId,
+              });
+
+            await OpenStackCloudService.updateLastSeen(
+              openStackCloudId,
+              summary,
+            );
+          },
+        });
+      } catch (err) {
+        logger.warn(
+          `OpenStack snapshot writeback failed for cloud ${cloudIdStr}: ${err instanceof Error ? err.message : String(err)}`,
+        );
+      }
+    }
+  }
+
   private static async flushProxmoxSnapshotBuffers(data: {
     projectId: ObjectID;
     resourceBuffer: Map<string, Map<string, ProxmoxResourceBufferEntry>>;

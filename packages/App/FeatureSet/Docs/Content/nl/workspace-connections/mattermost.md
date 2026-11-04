@@ -6,6 +6,7 @@ Koppel OneUptime aan je Mattermost-server om incidenten, waarschuwingen, episode
 - [Mattermost koppelen](#mattermost-koppelen): Maak een botaccount voor OneUptime aan en koppel daarna het project met zijn token.
 - [Je eigen account koppelen](#je-eigen-mattermost-account-koppelen): Koppel je Mattermost-account aan je OneUptime-account.
 - [Meldingsregels](#meldingsregels): Bepaal welke gebeurtenissen waar worden geplaatst, en welke een eigen kanaal krijgen.
+- [Wie er in het kanaal van een record zit](#wie-er-in-het-kanaal-van-een-record-zit): Zie wie erin zit, neem deel en voeg mensen toe, vanaf de pagina van het record.
 - [Handelen vanuit Mattermost](#handelen-op-incidenten-waarschuwingen-en-gebeurtenissen-vanuit-mattermost): De knoppen in de berichten van OneUptime.
 - [Netwerk en zelf hosten](#netwerk-en-zelf-hosten): Wat elke server moet kunnen bereiken.
 :::
@@ -59,7 +60,7 @@ Ga naar **Incidenten** > **Werkruimte** > **Mattermost** en maak een regel aan. 
 
 Het toegangstoken van de bot wordt alleen op de OneUptime-server bewaard, versleuteld samen met de andere geheimen van het project, en wordt nooit meer getoond. Het serveradres, het team en de gebruikersnaam van de bot zijn voor iedereen in het project zichtbaar, op de instellingenpagina van Mattermost.
 
-Een project is aan één Mattermost-team gekoppeld. Om het naar een ander team of een andere server te verplaatsen, ontkoppel je het eerst: **Projectinstellingen** > **Werkruimte** > **Mattermost**, daarna **⋯** > **Mattermost ontkoppelen**. Ontkoppelen ontkoppelt ook het eigen Mattermost-account van elk lid. Je meldingsregels en samenvattingen blijven bewaard voor als je opnieuw koppelt.
+Een project is aan één Mattermost-team gekoppeld. Om het naar een ander team of een andere server te verplaatsen, ontkoppel je het eerst: **Projectinstellingen** > **Werkruimte** > **Mattermost**, daarna **⋯** > **Mattermost ontkoppelen**. Ontkoppelen ontkoppelt ook het eigen Mattermost-account van elk lid, en verwijdert diens Mattermost-meldingsmethode en de bereikbaarheidsregels die die gebruiken. Je meldingsregels en samenvattingen blijven bewaard voor als je opnieuw koppelt.
 
 ## Je eigen Mattermost-account koppelen
 
@@ -74,6 +75,18 @@ Mattermost heeft geen aanmelding waar OneUptime je naartoe kan sturen, dus stuur
 Open de link in dezelfde browser waarin je hem hebt aangevraagd: hij werkt alleen daar, maar één keer en maar 15 minuten lang. Zo is bewezen dat wie de link aanvroeg beide accounts heeft, dus niemand kan het Mattermost-account van iemand anders koppelen. Heb je geen link aangevraagd, negeer hem dan: er wordt niets gekoppeld tot hij wordt geopend in de browser die erom vroeg.
 
 De koppeling van je account hoort bij dit project. Is een ander project aan hetzelfde Mattermost-team gekoppeld, koppel je account dan daar ook.
+
+## Opgeroepen worden in Mattermost
+
+Om met een direct bericht te worden opgeroepen als je dienst hebt, voeg je Mattermost toe als een van je meldingsmethoden:
+
+:::steps
+1. Koppel je eigen Mattermost-account (zie [Je eigen Mattermost-account koppelen](#je-eigen-mattermost-account-koppelen)).
+2. Ga naar **Gebruikersinstellingen** > **Meldingsmethoden**, open het tabblad **Werkruimte-apps** en klik op **Mattermost-account toevoegen**.
+3. Klik op **Send Test Message** in de rij ervan. Het bericht komt aan als direct bericht van de bot van het project.
+:::
+
+Toevoegen zet het meteen in je bereikbaarheidsregels, dus vanaf dan bereiken oproepen je in Mattermost. Wijzig welke oproepen het krijgt onder **Gebruikersinstellingen** > **Bereikbaarheidsregels**. Elke oproep bevat een link om hem te bevestigen en een om hem te escaleren. Als je je Mattermost-account ontkoppelt, verdwijnen deze methode en de bereikbaarheidsregels die hem gebruiken.
 
 ## Meldingsregels
 
@@ -90,6 +103,22 @@ Een incident, waarschuwing, episode of geplande onderhoudsgebeurtenis met een ei
 **Testregel** in de rij van een regel plaatst een testbericht voor die regel in de kanalen die hij noemt, zoals bij Slack.
 
 De berichten van OneUptime sturen niemand een melding via wat ze citeren: een naam of een beschrijving met `@channel`, `@here` of `@someone` wordt getoond zoals die is geschreven, en pingt niemand.
+
+## Wie er in het kanaal van een record zit
+
+Een incident, waarschuwing, episode of geplande onderhoudsgebeurtenis met een eigen Mattermost-kanaal heeft een kaart **Mattermost-kanaal** op zijn pagina in OneUptime. De kaart toont het kanaal, als link die het op je Mattermost-server opent, of het privé is en wie erin zit, jij eerst. Vanaf de kaart, zonder Mattermost-beheerder:
+
+- **Deelnemen aan kanaal** voegt jou toe, als je niet in het kanaal zit.
+- **Mensen toevoegen** opent een lijst van de mensen en teams van het project: kies iemand om die toe te voegen, of een team om iedereen erin toe te voegen.
+
+De bot van OneUptime voegt ze toe, zoals hij de mensen van het kanaal van een regel toevoegt. De bot blijft in de kanalen die hij aanmaakt, dus dit werkt ook voor een privékanaal dat iedereen heeft verlaten. Een record dat ook kanalen in Slack of Microsoft Teams heeft, toont ze allemaal op één kaart **Chatkanalen**.
+
+- **Wie mensen mag toevoegen.** Wie het record mag bewerken: **Projecteigenaar**, **Projectbeheerder**, **Projectlid**, **Incidentbeheerder** en **Incidentlid** voor een incident, of **Edit Incident** in een aangepaste rol, en dezelfde toestemming voor een waarschuwing, een episode of een gebeurtenis (bijvoorbeeld **Edit Alert**). Ieder ander ziet wie er in het kanaal zit, en hoe je erin komt.
+- **Wie kan worden toegevoegd.** Iemand die OneUptime in Mattermost vindt, via het account dat diegene heeft gekoppeld of anders via het e-mailadres, als je server e-mailadressen aan de bot toont, en die in het team zit waaraan het project is gekoppeld. Ook een gastaccount in dat team kan worden toegevoegd: Mattermost laat de leden van een kanaal gasten toevoegen. De kaart noemt wie hij niet kon toevoegen, en waarom.
+- **Wat wordt vastgelegd.** Wie is toegevoegd, en door wie, in de feed van het record (**Kanaallid toegevoegd**) en in **Projectinstellingen** > **Meldingen** > **Meldingslogboeken**, op het tabblad **Werkruimte**.
+- **Een gearchiveerd kanaal.** De kaart toont nog steeds wie erin zit, en voegt niemand toe totdat het kanaal in Mattermost uit het archief is gehaald.
+- **Een kanaal waaruit de bot is verwijderd.** Mattermost toont de mensen van een kanaal alleen aan iemand die erin zit, ook bij een openbaar kanaal, dus de kaart zegt dat hij het kanaal niet kan zien. Iemand in het kanaal kan de bot weer toevoegen in Mattermost. OneUptime gaat ook vanzelf weer in een openbaar kanaal zitten zodra het daar weer iets plaatst.
+- **Iemand eruit halen.** OneUptime voegt alleen toe: haal iemand in Mattermost uit het kanaal.
 
 ## Handelen op incidenten, waarschuwingen en gebeurtenissen vanuit Mattermost
 
@@ -127,3 +156,5 @@ Elke knop die OneUptime plaatst, draagt een handtekening, die wordt gecontroleer
 | **The bot is not a member of the private Mattermost channel** | Voeg de bot in Mattermost toe aan het kanaal. |
 | Een knop doet niets, of Mattermost zegt dat het de actie niet kon voltooien | Mattermost kan OneUptime niet bereiken. Zie [Netwerk en zelf hosten](#netwerk-en-zelf-hosten). |
 | Er komt geen direct bericht met je link aan | Controleer de gebruikersnaam, en of de bot in een team zit waarin jij ook zit. |
+| De kanaalkaart zegt dat OneUptime het kanaal niet kan zien | Het kanaal is verwijderd, of de bot is eruit verwijderd. Als het nog bestaat, kan iemand in het kanaal de bot weer toevoegen in Mattermost. |
+| De kanaalkaart zegt dat iemand niet in het Mattermost-team zit | Voeg diegene in Mattermost toe aan het team waaraan het project is gekoppeld, en voeg diegene daarna opnieuw toe. |

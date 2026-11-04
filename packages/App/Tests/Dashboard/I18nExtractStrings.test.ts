@@ -1387,12 +1387,14 @@ describe("the real source roots", () => {
       "keys packages/Common/Types/AutoRemediation/RemediationRoundName.ts",
       /*
        * The curated metrics' names: a database's engine charts, a queue's
-       * Broker health, the storage array, Proxmox and Ceph metric pickers.
+       * Broker health, the storage array, Proxmox, OpenStack and Ceph metric
+       * pickers.
        */
       "keys packages/Common/Types/DatabaseServer/DatabaseServerMetricCatalog.ts",
       "keys packages/Common/Types/MessageQueue/MessageQueueMetricCatalog.ts",
       "keys packages/Common/Types/Monitor/StorageArrayMetricCatalog.ts",
       "keys packages/Common/Types/Monitor/ProxmoxMetricCatalog.ts",
+      "keys packages/Common/Types/Monitor/OpenStackMetricCatalog.ts",
       "keys packages/Common/Types/Monitor/CephMetricCatalog.ts",
     ]);
   });

@@ -6,7 +6,7 @@
 
 :::cards
 - [我们的敏感数据在哪里？](/docs/data-security/data-types): 143 种数据类型，从卡号、国民身份证号到 API 密钥，可在存储桶、表和遥测中找到。
-- [它是否暴露？](/docs/data-security/checks-and-issues): 对每个数据存储的 33 项检查：公开访问、加密、备份、日志记录、密钥和副本。
+- [它是否暴露？](/docs/data-security/checks-and-issues): 对每个数据存储的 34 项检查：公开访问、加密、备份、日志记录、密钥和副本。
 - [谁可以访问它，它又流向哪里？](/docs/data-security/flows-access-residency): 可以访问每个数据存储的每个身份（风险最高的排在前面）、哪些服务使用它，以及它的数据会到达哪些 AI 提供商和主机。
 - [它是否符合我们的规则？](/docs/data-security/compliance): 数据驻留规则，以及根据扫描结果评分的九个合规框架。
 :::

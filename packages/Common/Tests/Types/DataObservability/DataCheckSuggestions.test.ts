@@ -1,6 +1,12 @@
 import { describe, expect, test } from "@jest/globals";
 import { DataAssetColumn } from "../../../Types/DataObservability/DataAssetColumn";
 import {
+  DataCheckFormat,
+  getFormatPattern,
+} from "../../../Types/DataObservability/DataCheckFormats";
+import { DataColumnSensitivity } from "../../../Types/DataObservability/DataColumnSensitivity";
+import DataSensitivity from "../../../Types/DataSecurity/DataSensitivity";
+import {
   DataCheckAlertCondition,
   DataCheckType,
 } from "../../../Types/DataObservability/DataCheckType";
@@ -162,6 +168,85 @@ describe("suggestDataChecks", () => {
     expect(
       suggest({
         columns: [column("email", "integer"), column("total", "text")],
+      }),
+    ).toEqual([]);
+  });
+});
+
+describe("a column Data Security knows about", () => {
+  const COLUMNS: Array<DataAssetColumn> = [
+    column("contact", "varchar"),
+    column("login_ip", "text"),
+    column("name", "text"),
+    column("email", "varchar"),
+    column("counter", "bigint"),
+  ];
+
+  function suggest(
+    sensitiveColumns: Array<DataColumnSensitivity>,
+  ): Array<DataCheckSuggestion> {
+    return suggestDataChecks({
+      tableName: "people",
+      columns: COLUMNS,
+      otherTables: [],
+      existing: [],
+      dismissedIds: [],
+      sensitiveColumns,
+    });
+  }
+
+  function sensitive(
+    columnName: string,
+    dataTypeId: string,
+    dataTypeName: string,
+  ): DataColumnSensitivity {
+    return {
+      column: columnName,
+      dataTypeId,
+      dataTypeName,
+      sensitivity: DataSensitivity.Confidential,
+      isFromName: false,
+    };
+  }
+
+  test("is held to the format of what it holds, whatever it is called", () => {
+    const found: Array<DataCheckSuggestion> = suggest([
+      sensitive("contact", "email-address", "Email address"),
+      sensitive("login_ip", "ip-address", "IP address"),
+    ]).filter((suggestion: DataCheckSuggestion) => {
+      return suggestion.id.startsWith("sensitive-format:");
+    });
+
+    expect(
+      found.map((suggestion: DataCheckSuggestion) => {
+        return [suggestion.columnName, suggestion.pattern];
+      }),
+    ).toEqual([
+      ["contact", getFormatPattern(DataCheckFormat.Email)],
+      ["login_ip", getFormatPattern(DataCheckFormat.IpAddress)],
+    ]);
+  });
+
+  test("a column already suggested by its name is not offered twice", () => {
+    const found: Array<DataCheckSuggestion> = suggest([
+      sensitive("email", "email-address", "Email address"),
+    ]);
+
+    expect(
+      found.filter((suggestion: DataCheckSuggestion) => {
+        return suggestion.columnName === "email";
+      }),
+    ).toHaveLength(1);
+  });
+
+  test("a type with no format, or a column that is not text, is left alone", () => {
+    expect(
+      suggest([
+        sensitive("name", "person-name", "Person name"),
+        sensitive("counter", "phone-number", "Phone number"),
+        sensitive("gone", "email-address", "Email address"),
+      ]).filter((suggestion: DataCheckSuggestion) => {
+        return suggestion.id.startsWith("sensitive-format:");
       }),
     ).toEqual([]);
   });

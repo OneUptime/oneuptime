@@ -21,14 +21,36 @@ export const DATA_OBSERVABILITY_API_ROUTES: {
   reconciliationSync: (reconciliationId: string) => string;
   reconciliationRunNow: (reconciliationId: string) => string;
   checkSuggest: string;
+  checkApply: string;
+  alertExplanation: (alertId: string) => string;
+  alertFeedback: (alertId: string) => string;
+  quality: string;
   tableFreshness: string;
   biSync: (dataBiConnectionId: string) => string;
   tableDashboards: string;
+  tableSensitivity: string;
+  tableErrors: string;
+  aiAppTables: string;
+  databaseServerStores: string;
+  storagePaths: string;
+  storagePathsSave: (dataStoreId: string) => string;
+  sourceSuggestions: string;
   spendSummary: string;
 } = {
   overview: "/data-observability/overview",
+  // Why a data alert most likely happened, and what depends on it.
+  alertExplanation: (alertId: string): string => {
+    return `/data-observability/alerts/${alertId}/explanation`;
+  },
+  alertFeedback: (alertId: string): string => {
+    return `/data-observability/alerts/${alertId}/feedback`;
+  },
+  // How well Data Observability is working for the project.
+  quality: "/data-observability/quality",
   stores: "/data-observability/stores",
   connectStore: "/data-observability/stores/connect",
+  // The databases the project knows of that nobody has connected.
+  sourceSuggestions: "/data-observability/stores/suggestions",
   collectNow: (dataStoreId: string): string => {
     return `/data-observability/stores/${dataStoreId}/collect-now`;
   },
@@ -62,6 +84,8 @@ export const DATA_OBSERVABILITY_API_ROUTES: {
   },
   // A rule in a sentence, written as a Custom SQL check by OneUptime AI, to review.
   checkSuggest: "/data-observability/checks/suggest",
+  // Makes the project's checks match a file in its repository.
+  checkApply: "/data-observability/checks/apply",
   // Whether a table is fresh, as one answer: what the MCP server's tool asks.
   tableFreshness: "/data-observability/tables/freshness",
   // Reads a BI tool's dashboards now, and says how it went.
@@ -71,6 +95,19 @@ export const DATA_OBSERVABILITY_API_ROUTES: {
   // The dashboards built on a table, and on the tables built from it.
   tableDashboards: "/data-observability/tables/dashboards",
   // What the project's warehouses spent over the last day: by team, by table, and where it is wasted.
+  // What Data Security knows each of a table's columns holds.
+  tableSensitivity: "/data-observability/tables/sensitivity",
+  // The errors in the services that write a table, naming it.
+  tableErrors: "/data-observability/tables/errors",
+  // The late tables that AI apps read from.
+  aiAppTables: "/data-observability/tables/ai-apps",
+  // The databases a Database product server holds, with how their tables are.
+  databaseServerStores: "/data-observability/stores/of-database-server",
+  // The buckets a cloud connection found, and which of their paths are watched.
+  storagePaths: "/data-observability/storage-paths",
+  storagePathsSave: (dataStoreId: string): string => {
+    return `/data-observability/storage-paths/${dataStoreId}`;
+  },
   spendSummary: "/data-observability/spend/summary",
 };
 
@@ -215,6 +252,8 @@ export interface DataObservabilityOverview {
 export const SCHEMA_CHANGE_WINDOW_IN_DAYS: number = 7;
 
 export interface DataObservabilityConnectStoreRequest {
+  // A store the project already knows of takes the connection, rather than a new one.
+  dataStoreId?: string | undefined;
   name: string;
   kind: string;
   // Saved on the store, for OneUptime's workers; or leave it out and name a probe.
@@ -225,4 +264,79 @@ export interface DataObservabilityConnectStoreRequest {
 
 export interface DataObservabilityConnectStoreResponse {
   dataStoreId: string;
+}
+
+// Where the project first heard of a database nobody has connected.
+export enum DataObservabilitySourceOrigin {
+  Traces = "Traces",
+  DatabaseMonitoring = "Database Monitoring",
+  CloudAccount = "Cloud Account",
+}
+
+export interface DataObservabilitySourceSuggestion {
+  // Stable across visits: what a dismissal remembers.
+  id: string;
+  // The store connecting fills in; none for a kind connecting makes a new store for.
+  dataStoreId: string | null;
+  name: string;
+  // The engine to preselect, when the suggestion can tell.
+  kind: string | null;
+  origin: DataObservabilitySourceOrigin;
+  // A connection string to start from, with placeholders for its user and password.
+  connectionExample: string | null;
+}
+
+// What applying a file of checks did, or would do on a dry run: each named "table: check".
+export interface DataObservabilityCheckApplyResult {
+  isDryRun: boolean;
+  created: Array<string>;
+  updated: Array<string>;
+  unchanged: Array<string>;
+  removed: Array<string>;
+  // Any at all, and nothing was applied.
+  errors: Array<string>;
+  // What was applied, but did not all go through: a check saved whose alert could not be set up.
+  warnings: Array<string>;
+}
+
+export interface DataObservabilityTableErrorException {
+  id: string;
+  type: string;
+  message: string;
+  serviceName: string;
+  count: number;
+  lastSeenAt: string | null;
+}
+
+export interface DataObservabilityTableErrorLog {
+  time: string;
+  severity: string;
+  body: string;
+  serviceName: string;
+}
+
+// The errors in the services that write a table, that name it.
+export interface DataObservabilityTableErrors {
+  services: Array<string>;
+  exceptions: Array<DataObservabilityTableErrorException>;
+  logs: Array<DataObservabilityTableErrorLog>;
+}
+
+// A late table an AI app reads from.
+export interface DataObservabilityAiAppTable {
+  dataAssetId: string;
+  table: string;
+  serviceName: string;
+  lastChangedAt: string | null;
+}
+
+// A bucket a cloud connection found, and which of its paths are watched like tables.
+export interface DataObservabilityStoragePathStore {
+  dataStoreId: string;
+  name: string;
+  kind: string;
+  watchedPaths: string;
+  status: string | null;
+  message: string | null;
+  collectedAt: string | null;
 }

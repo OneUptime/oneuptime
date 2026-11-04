@@ -131,6 +131,8 @@ const SLACK_USER_ID: string = "U0123ABCD";
 const SLACK_USER_NAME: string = "alice";
 const TEAMS_USER_ID: string = "aad-object-0123";
 const TEAMS_USER_NAME: string = "Alice Example";
+const MATTERMOST_USER_ID: string = "abcdefghijklmnopqrstuvwxyz";
+const MATTERMOST_USER_NAME: string = "alice";
 const WORKSPACE_BLOCKS: Array<Record<string, unknown>> = [
   { _type: "WorkspacePayloadMarkdown", text: "**workspace body**" },
 ];
@@ -536,6 +538,42 @@ const CHANNEL_SPECS: Record<string, ChannelSpec> = {
     generatorPrefix: "generateWorkspaceMessageBlocksFor",
     generatorTimelineIdArgIndex: 1,
   },
+  Mattermost: {
+    channel: "Mattermost",
+    verifiedMethod: (): Record<string, unknown> => {
+      return {
+        userMattermost: {
+          id: METHOD_ID,
+          mattermostUserId: MATTERMOST_USER_ID,
+          mattermostUserName: MATTERMOST_USER_NAME,
+          isVerified: true,
+        },
+      };
+    },
+    unverifiedMethod: (): Record<string, unknown> => {
+      return {
+        userMattermost: {
+          id: METHOD_ID,
+          mattermostUserId: MATTERMOST_USER_ID,
+          mattermostUserName: MATTERMOST_USER_NAME,
+          isVerified: false,
+        },
+      };
+    },
+    sendingMessage: "Sending Mattermost message.",
+    unverifiedMessage:
+      "Mattermost message not sent because the Mattermost account is not verified.",
+    unverifiedReason: "not verified",
+    sender: (): jest.SpyInstance => {
+      return spies.workspace;
+    },
+    senderOptionsArgIndex: 0,
+    workspaceType: WorkspaceType.Mattermost,
+    timelineMethodIdField: "userMattermostId",
+    /* Shared with Slack - see the note on that spec. */
+    generatorPrefix: "generateWorkspaceMessageBlocksFor",
+    generatorTimelineIdArgIndex: 1,
+  },
   Webhook: {
     channel: "Webhook",
     verifiedMethod: (): Record<string, unknown> => {
@@ -736,6 +774,7 @@ const CHANNEL_NAMES: Array<string> = [
   "Telegram",
   "Slack",
   "Microsoft Teams",
+  "Mattermost",
   "Webhook",
   "Call",
   "Push",
@@ -756,6 +795,7 @@ const GENERATOR_CHANNEL_NAMES: Array<string> = [
   "Telegram",
   "Slack",
   "Microsoft Teams",
+  "Mattermost",
   "Call",
 ];
 
@@ -767,6 +807,7 @@ const VERIFIABLE_CHANNEL_NAMES: Array<string> = [
   "Telegram",
   "Slack",
   "Microsoft Teams",
+  "Mattermost",
   "Call",
   "Push",
 ];
@@ -880,6 +921,7 @@ describe("UserNotificationRuleService channel x event coverage", () => {
             userTelegramId: data.userTelegramId,
             userSlackId: data.userSlackId,
             userMicrosoftTeamsId: data.userMicrosoftTeamsId,
+            userMattermostId: data.userMattermostId,
             userPushId: data.userPushId,
             userWebhookId: data.userWebhookId,
           },
@@ -1210,7 +1252,7 @@ describe("UserNotificationRuleService channel x event coverage", () => {
       expect(FULL_MATRIX).toHaveLength(
         CHANNEL_NAMES.length * EVENT_NAMES.length,
       );
-      expect(FULL_MATRIX).toHaveLength(36);
+      expect(FULL_MATRIX).toHaveLength(40);
     });
   });
 
@@ -1544,6 +1586,7 @@ describe("UserNotificationRuleService channel x event coverage", () => {
         "Telegram",
         "Slack",
         "Microsoft Teams",
+        "Mattermost",
         "Call",
         "Push",
       ]),
@@ -1589,7 +1632,9 @@ describe("UserNotificationRuleService channel x event coverage", () => {
       },
     );
 
-    test.each<[string, string]>(buildMatrix(["Slack", "Microsoft Teams"]))(
+    test.each<[string, string]>(
+      buildMatrix(["Slack", "Microsoft Teams", "Mattermost"]),
+    )(
       "%s links the incident episode it is paging about (%s is ignored unless it is the incident episode)",
       async (channelName: string, eventName: string): Promise<void> => {
         const channel: ChannelSpec = channelSpec(channelName);
@@ -1933,6 +1978,7 @@ describe("UserNotificationRuleService channel x event coverage", () => {
       ["Telegram"],
       ["Slack"],
       ["Microsoft Teams"],
+      ["Mattermost"],
       ["Webhook"],
       ["Call"],
       ["Push"],

@@ -265,6 +265,7 @@ describe("BindInfrastructureMonitorSteps", () => {
         MonitorType.Kubernetes,
         MonitorType.DockerSwarm,
         MonitorType.Proxmox,
+        MonitorType.OpenStack,
         MonitorType.VMware,
         MonitorType.Ceph,
         MonitorType.StorageArray,

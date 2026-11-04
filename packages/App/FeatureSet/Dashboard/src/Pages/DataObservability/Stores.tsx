@@ -2,6 +2,7 @@ import PageComponentProps from "../PageComponentProps";
 import AppLink from "../../Components/AppLink/AppLink";
 import ConnectDatabaseModal from "../../Components/DataObservability/ConnectDatabaseModal";
 import DataObservabilityApi from "../../Components/DataObservability/DataObservabilityApi";
+import DataSourceSuggestionsCard from "../../Components/DataObservability/DataSourceSuggestionsCard";
 import StoreStatusPill from "../../Components/DataObservability/StoreStatusPill";
 import PageMap from "../../Utils/PageMap";
 import RouteMap, { RouteUtil } from "../../Utils/RouteMap";
@@ -9,6 +10,7 @@ import Route from "Common/Types/API/Route";
 import OneUptimeDate from "Common/Types/Date";
 import {
   DataObservabilityCollector,
+  DataObservabilitySourceSuggestion,
   DataObservabilityStoreSummary,
 } from "Common/Types/DataObservability/DataObservabilityApiTypes";
 import IconProp from "Common/Types/Icon/IconProp";
@@ -33,7 +35,8 @@ import React, {
  * or a probe in the customer's network - how the last collection went and
  * why one failed. Connect a Database adds one; Collect Now reads one again
  * without waiting for its next turn; Recommended Alerts opens the monitors
- * recommended for its tables.
+ * recommended for its tables. Below them, the databases the project already
+ * knows of that nobody has connected.
  */
 const DataObservabilityStoresPage: FunctionComponent<
   PageComponentProps
@@ -46,6 +49,9 @@ const DataObservabilityStoresPage: FunctionComponent<
   const [isLoading, setIsLoading] = useState<boolean>(true);
   const [readCount, setReadCount] = useState<number>(0);
   const [isConnecting, setIsConnecting] = useState<boolean>(false);
+  const [suggestion, setSuggestion] = useState<
+    DataObservabilitySourceSuggestion | undefined
+  >(undefined);
   const [collecting, setCollecting] = useState<Set<string>>(new Set());
   const [actionError, setActionError] = useState<string>("");
 
@@ -132,6 +138,7 @@ const DataObservabilityStoresPage: FunctionComponent<
             buttonStyle: ButtonStyleType.PRIMARY,
             icon: IconProp.Add,
             onClick: () => {
+              setSuggestion(undefined);
               setIsConnecting(true);
             },
           },
@@ -271,8 +278,17 @@ const DataObservabilityStoresPage: FunctionComponent<
         </div>
       </Card>
 
+      <DataSourceSuggestionsCard
+        refreshToken={readCount}
+        onConnect={(chosen: DataObservabilitySourceSuggestion) => {
+          setSuggestion(chosen);
+          setIsConnecting(true);
+        }}
+      />
+
       {isConnecting ? (
         <ConnectDatabaseModal
+          suggestion={suggestion}
           onClose={() => {
             setIsConnecting(false);
           }}

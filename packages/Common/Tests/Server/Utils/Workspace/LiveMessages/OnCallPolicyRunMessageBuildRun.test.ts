@@ -1128,6 +1128,7 @@ describe("OnCallPolicyRunMessage.buildRun - how pages reached people", () => {
         delivery(NITIN, UserNotificationStatus.Sent, "userEmailId"),
         delivery(NITIN, UserNotificationStatus.Sent, "userSlackId"),
         delivery(NITIN, UserNotificationStatus.Sent, "userMicrosoftTeamsId"),
+        delivery(NITIN, UserNotificationStatus.Sent, "userMattermostId"),
         delivery(NITIN, UserNotificationStatus.Sent, "userTelegramId"),
         delivery(NITIN, UserNotificationStatus.Sent, "userWebhookId"),
       ],
@@ -1140,6 +1141,7 @@ describe("OnCallPolicyRunMessage.buildRun - how pages reached people", () => {
       "email",
       "Slack",
       "Microsoft Teams",
+      "Mattermost",
       "webhook",
     ]);
   });

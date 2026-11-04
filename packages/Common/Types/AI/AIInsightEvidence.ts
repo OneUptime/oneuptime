@@ -131,6 +131,16 @@ export interface LatencyInsightEvidence {
   codeLocations?: Array<PerformanceCodeLocation> | undefined;
 }
 
+// Evidence for DataDrift insights: a table's rows, or a data check's value, week over week.
+export interface DataDriftInsightEvidence {
+  metricName: string;
+  // The table's "schema.table", or the check's name.
+  subject: string;
+  recentMean: number;
+  priorMean: number;
+  relativeChange: number;
+}
+
 // Evidence for MetricDrift insights (week-over-week mean comparison).
 export interface MetricDriftInsightEvidence {
   metricName: string;
@@ -440,6 +450,7 @@ export interface AIInsightEvidence {
   logSpike?: LogSpikeInsightEvidence | undefined;
   latency?: LatencyInsightEvidence | undefined;
   metricDrift?: MetricDriftInsightEvidence | undefined;
+  dataDrift?: DataDriftInsightEvidence | undefined;
   deployRegression?: DeployRegressionInsightEvidence | undefined;
   profile?: ProfileInsightEvidence | undefined;
   trace?: TraceInsightEvidence | undefined;

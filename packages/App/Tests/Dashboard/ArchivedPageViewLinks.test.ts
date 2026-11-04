@@ -104,6 +104,7 @@ const VIEW_PAGE_BY_PRODUCT: Record<string, string> = {
   Kubernetes: "KUBERNETES_CLUSTER_VIEW",
   MessageQueue: "MESSAGE_QUEUE_VIEW",
   NetworkDevice: "NETWORK_DEVICE_VIEW",
+  OpenStack: "OPENSTACK_CLOUD_VIEW",
   Podman: "PODMAN_HOST_VIEW",
   Proxmox: "PROXMOX_CLUSTER_VIEW",
   Rum: "RUM_APPLICATION_VIEW",

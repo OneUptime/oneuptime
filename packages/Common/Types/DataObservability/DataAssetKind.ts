@@ -14,6 +14,8 @@ enum DataAssetKind {
   MaterializedView = "Materialized View",
   PartitionedTable = "Partitioned Table",
   ForeignTable = "Foreign Table",
+  // A path in a bucket, watched like a table: its objects are its rows (StoragePaths).
+  StoragePath = "Storage Path",
 }
 
 export default DataAssetKind;
@@ -24,6 +26,7 @@ export const DATA_ASSET_KINDS: ReadonlyArray<DataAssetKind> = [
   DataAssetKind.MaterializedView,
   DataAssetKind.PartitionedTable,
   DataAssetKind.ForeignTable,
+  DataAssetKind.StoragePath,
 ];
 
 export function isDataAssetKind(value: unknown): value is DataAssetKind {

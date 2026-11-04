@@ -13,6 +13,7 @@ import CloudResourceService from "../../../../Server/Services/CloudResourceServi
 import RumApplicationService from "../../../../Server/Services/RumApplicationService";
 import DockerSwarmClusterService from "../../../../Server/Services/DockerSwarmClusterService";
 import ProxmoxClusterService from "../../../../Server/Services/ProxmoxClusterService";
+import OpenStackCloudService from "../../../../Server/Services/OpenStackCloudService";
 import VMwareVCenterService from "../../../../Server/Services/VMwareVCenterService";
 import CephClusterService from "../../../../Server/Services/CephClusterService";
 import StorageArrayService from "../../../../Server/Services/StorageArrayService";
@@ -141,6 +142,12 @@ const SERVICES: Array<{
     identifierField: null,
   },
   {
+    name: "OpenStackCloud",
+    service: OpenStackCloudService as any,
+    facetKeys: ["openStackCloudId"],
+    identifierField: null,
+  },
+  {
     name: "VMwareVCenter",
     service: VMwareVCenterService as any,
     facetKeys: ["vmwareVCenterId"],
@@ -210,6 +217,7 @@ describe("ResourceFacetResolver.isResourceFacet", () => {
     "rumApplicationId",
     "dockerSwarmClusterId",
     "proxmoxClusterId",
+    "openStackCloudId",
     "vmwareVCenterId",
     "cephClusterId",
     "storageArrayId",
@@ -251,8 +259,8 @@ describe("ResourceFacetResolver.isResourceFacet", () => {
     },
   );
 
-  test("the exported key set has exactly the sixteen supported keys, each routed to a service", () => {
-    expect(RESOURCE_FACET_KEYS.size).toBe(16);
+  test("the exported key set has exactly the seventeen supported keys, each routed to a service", () => {
+    expect(RESOURCE_FACET_KEYS.size).toBe(17);
     const routed: Array<string> = SERVICES.flatMap(
       (entry: { facetKeys: Array<string> }) => {
         return entry.facetKeys;
@@ -515,12 +523,17 @@ describe("ResourceFacetResolver name-only resource types", () => {
     },
   );
 
-  test("covers Proxmox, vCenter and IoT fleet", () => {
+  test("covers Proxmox, OpenStack, vCenter and IoT fleet", () => {
     expect(
       NAME_ONLY.map((entry: { name: string }): string => {
         return entry.name;
       }).sort(),
-    ).toEqual(["IoTFleet", "ProxmoxCluster", "VMwareVCenter"]);
+    ).toEqual([
+      "IoTFleet",
+      "OpenStackCloud",
+      "ProxmoxCluster",
+      "VMwareVCenter",
+    ]);
   });
 
   for (const entry of NAME_ONLY) {

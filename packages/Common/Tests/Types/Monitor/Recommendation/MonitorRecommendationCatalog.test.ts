@@ -19,6 +19,7 @@ import { getAllIoTAlertTemplates } from "../../../../Types/Monitor/IotAlertTempl
 import { getAllKubernetesAlertTemplates } from "../../../../Types/Monitor/KubernetesAlertTemplates";
 import { getAllKubernetesEventAlertTemplates } from "../../../../Types/Monitor/KubernetesEventAlertTemplates";
 import { getAllOpenShiftAlertTemplates } from "../../../../Types/Monitor/OpenShiftAlertTemplates";
+import { getAllOpenStackAlertTemplates } from "../../../../Types/Monitor/OpenStackAlertTemplates";
 import { getAllProxmoxNotificationAlertTemplates } from "../../../../Types/Monitor/ProxmoxNotificationAlertTemplates";
 import { getAllPodmanAlertTemplates } from "../../../../Types/Monitor/PodmanAlertTemplates";
 import { getAllProxmoxAlertTemplates } from "../../../../Types/Monitor/ProxmoxAlertTemplates";
@@ -168,6 +169,13 @@ const MODULE_EXPECTATIONS: Array<ModuleExpectation> = [
       getAllProxmoxAlertTemplates().length +
       getAllProxmoxNotificationAlertTemplates().length,
     identifierFieldName: "clusterIdentifier",
+  },
+  {
+    resourceType: MonitorRecommendationResourceType.OpenStack,
+    monitorTypes: [MonitorType.OpenStack],
+    templateCount: getAllOpenStackAlertTemplates().length,
+    contextFreeTemplateCount: getAllOpenStackAlertTemplates().length,
+    identifierFieldName: "cloudIdentifier",
   },
   {
     resourceType: MonitorRecommendationResourceType.VMware,

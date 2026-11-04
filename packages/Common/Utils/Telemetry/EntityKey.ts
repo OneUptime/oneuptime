@@ -167,6 +167,17 @@ export function keyForProxmoxCluster(
   });
 }
 
+export function keyForOpenStackCloud(
+  projectId: string,
+  cloudName: string,
+): string {
+  return computeEntityKey({
+    projectId,
+    entityType: EntityType.OpenStackCloud,
+    identifyingAttributes: { "openstack.cloud.name": cloudName },
+  });
+}
+
 /**
  * `ceph.cluster.name` is the cluster identity (matches the CephCluster
  * row's `name`, the project-unique join key written by

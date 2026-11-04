@@ -178,6 +178,8 @@ export default class BigQueryApi {
   public async query(data: {
     statement: string;
     params?: Array<string> | undefined;
+    // BigQuery refuses a query that would bill more, before it reads a byte.
+    maximumBytesBilled?: number | undefined;
   }): Promise<Array<Record<string, unknown>>> {
     const base: string = `${BIGQUERY_BASE_URL}/projects/${encodeURIComponent(
       this.connection.projectId,
@@ -191,6 +193,9 @@ export default class BigQueryApi {
         useLegacySql: false,
         timeoutMs: QUERY_WAIT_MS,
         maxResults: QUERY_MAX_ROWS,
+        ...(data.maximumBytesBilled
+          ? { maximumBytesBilled: String(data.maximumBytesBilled) }
+          : {}),
         ...(this.connection.location
           ? { location: this.connection.location }
           : {}),

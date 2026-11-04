@@ -346,6 +346,9 @@ import "./Jobs/Host/CleanupStaleHosts";
 
 // Proxmox cluster disconnection sweeper + inventory cleanup.
 import "./Jobs/Proxmox/CleanupStaleResources";
+import "./Jobs/OpenStack/CleanupStaleResources";
+// Cloud connection tests no probe will answer: failed, secret wiped.
+import "./Jobs/OpenStack/ExpireConnectionTests";
 
 // VMware vCenter disconnection sweeper + inventory cleanup.
 import "./Jobs/VMware/CleanupStaleResources";

@@ -95,7 +95,7 @@ const CREATED_EMAIL_ID: ObjectID = new ObjectID(
 
 const USER_EMAIL: Email = new Email("responder@company.com");
 
-/* The nine FK columns a NotificationMethodDescriptor can drive. */
+/* The ten FK columns a NotificationMethodDescriptor can drive. */
 type ChannelColumn =
   | "userEmailId"
   | "userSmsId"
@@ -104,6 +104,7 @@ type ChannelColumn =
   | "userTelegramId"
   | "userSlackId"
   | "userMicrosoftTeamsId"
+  | "userMattermostId"
   | "userWebhookId"
   | "userPushId";
 
@@ -115,6 +116,7 @@ const ALL_CHANNELS: Array<ChannelColumn> = [
   "userTelegramId",
   "userSlackId",
   "userMicrosoftTeamsId",
+  "userMattermostId",
   "userWebhookId",
   "userPushId",
 ];
@@ -593,8 +595,8 @@ describe("addDefaultNotificationRulesForVerifiedMethod - the method lands on the
      * KNOWN DEFECT, pinned as-is. With no id on the descriptor the duplicate
      * check degenerates to (projectId, userId, ruleType) and the created rows
      * carry no notification method at all - onBeforeCreate would reject them
-     * with "Call, SMS, WhatsApp, Telegram, Slack, Microsoft Teams, Webhook,
-     * Email, or Push notification is required" against a real database. Nothing
+     * with "Call, SMS, WhatsApp, Telegram, Slack, Microsoft Teams, Mattermost,
+     * Webhook, Email, or Push notification is required" against a real database. Nothing
      * in this method guards against being handed an empty descriptor.
      */
     await runForDescriptor({});

@@ -103,6 +103,7 @@ const COLLAPSED_SETTINGS_PRODUCTS: Array<string> = [
   "NetworkDevice",
   "NetworkSite",
   "OnCallDuty",
+  "OpenStack",
   "Podman",
   "Proxmox",
   /*

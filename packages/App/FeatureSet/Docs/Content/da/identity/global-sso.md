@@ -100,8 +100,8 @@ At opsætte en global udbyder tvinger ingen til at bruge den; login med adgangsk
 
 Så længe hele instansen kræver SSO:
 
-- Loginsiden tilbyder kun SSO: en knap for hver global udbyder, der er slået til, og ingen adgangskode, adgangsnøgle, Google- eller Microsoft-login eller tilmelding. Den beholder opslaget via e-mail, der finder et projekts egen udbyder, kun så længe et projekt har en.
-- OneUptime afviser en adgangskode, en adgangsnøgle, et Google- eller Microsoft-login og en tilmelding med "This server requires single sign-on (SSO). Sign in with SSO instead." Kun en master-admins adgangskode eller adgangsnøgle logger stadig vedkommende ind. Folk får deres konto ved at logge ind med SSO eller via en invitation.
+- Loginsiden tilbyder kun SSO: en knap for hver global udbyder, der er slået til, og ingen adgangskode, adgangsnøgle, link sendt på e-mail, Google- eller Microsoft-login eller tilmelding. Den beholder opslaget via e-mail, der finder et projekts egen udbyder, kun så længe et projekt har en.
+- OneUptime afviser en adgangskode, en adgangsnøgle, et link sendt på e-mail, et Google- eller Microsoft-login og en tilmelding med "This server requires single sign-on (SSO). Sign in with SSO instead." Kun en master-admins adgangskode eller adgangsnøgle logger stadig vedkommende ind. Folk får deres konto ved at logge ind med SSO eller via en invitation.
 - Den, der allerede er logget ind med en adgangskode, logger ind med SSO for at åbne et projekt. Vedkommende lander på projektets single sign-on-side, som tilbyder projektets egne udbydere og de globale udbydere, der logger folk ind i det.
 - Master-admins logger ind med deres adgangskode på `/accounts/admin-login`, en adresse loginsiden ikke linker til. Kortet **Kræv SSO** viser hele adressen under kontakten som **Login for hovedadministratorer**: gem den, så du kan slå kravet fra, hvis din identitetsudbyder holder op med at virke.
 
@@ -162,7 +162,7 @@ Hvert svar fra din identitetsudbyder logger kun ind én gang og kun inden for f�
 :::
 
 :::details "This server requires single sign-on (SSO). Sign in with SSO instead."
-Hele instansen kræver SSO, og dette var et login med adgangskode, adgangsnøgle, Google eller Microsoft eller en tilmelding. Log i stedet ind med en af SSO-knapperne på loginsiden. En master-admin logger ind med sin adgangskode på `/accounts/admin-login`; for at lade alle logge ind med adgangskode igen slår vedkommende **Kræv SSO til login** fra på **Single sign-on**.
+Hele instansen kræver SSO, og dette var et login med adgangskode, adgangsnøgle, et link sendt på e-mail, Google eller Microsoft eller en tilmelding. Log i stedet ind med en af SSO-knapperne på loginsiden. En master-admin logger ind med sin adgangskode på `/accounts/admin-login`; for at lade alle logge ind med adgangskode igen slår vedkommende **Kræv SSO til login** fra på **Single sign-on**.
 :::
 
 ## Næste trin

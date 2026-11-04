@@ -64,8 +64,8 @@ import {
  *    learned baseline for that hour of the week, for the slow losses a
  *    single step does not show; it stays quiet for its first two weeks.
  *  - SCHEMA: "Schema Changed" fires on a collection that saw a column
- *    added, removed, renamed or retyped, so a migration that breaks
- *    readers is seen at once.
+ *    removed, renamed or retyped, so a migration that breaks readers is
+ *    seen at once. An added column breaks nothing: it stays on the timeline.
  *  - COLLECTION: "Table Health Stopped Reporting" fires when no table of
  *    the store has been read for fifteen minutes - the database is down,
  *    its credentials changed, or the probe that reads it stopped - so a
@@ -388,10 +388,10 @@ const schemaChangedTemplate: DataObservabilityAlertTemplate = buildTemplate({
   id: "data-store-schema-changed",
   name: "Schema Changed",
   description:
-    "Alert when a table's columns are added, removed, renamed or retyped, so a migration that breaks the reports, jobs and services reading it is seen at once.",
+    "Alert when a table's columns are removed, renamed or retyped, so a migration that breaks the reports, jobs and services reading it is seen at once. An added column stays on the table's timeline.",
   category: "Schema",
   severity: "Warning",
-  metricName: DataObservabilityMetricName.SchemaChanges,
+  metricName: DataObservabilityMetricName.BreakingSchemaChanges,
   aggregationType: MetricsAggregationType.Max,
   rollingTime: RollingTime.Past10Minutes,
   isPerTable: true,
@@ -400,9 +400,9 @@ const schemaChangedTemplate: DataObservabilityAlertTemplate = buildTemplate({
     threshold: 0,
     // A schema change is an event: fire on the collection that saw it.
     evaluation: EvaluateOverTimeType.AnyValue,
-    criteriaName: "A table's columns changed",
+    criteriaName: "A column that readers rely on changed",
     criteriaDescription:
-      "Triggers when a collection in the last ten minutes saw a table's columns change.",
+      "Triggers when a collection in the last ten minutes saw a table's column removed, renamed or retyped.",
     incidentDescription:
       "A table's columns changed. Its timeline in Data Observability says which column and how. Check what reads that column: reports, jobs and services that select it by name or type.",
   },

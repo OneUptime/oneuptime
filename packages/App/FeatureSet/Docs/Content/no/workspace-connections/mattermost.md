@@ -6,6 +6,7 @@ Koble OneUptime til Mattermost-serveren din for å publisere hendelser, varsler,
 - [Koble til Mattermost](#koble-til-mattermost): Opprett en botkonto for OneUptime, og koble deretter til prosjektet med tokenet.
 - [Koble til din egen konto](#koble-til-din-egen-mattermost-konto): Koble Mattermost-kontoen din til OneUptime-kontoen din.
 - [Varslingsregler](#varslingsregler): Bestem hvilke hendelser som publiseres hvor, og hvilke som får sin egen kanal.
+- [Hvem som er i kanalen til en post](#hvem-som-er-i-kanalen-til-en-post): Se hvem som er i den, bli med og legg til personer, fra siden til posten.
 - [Handle fra Mattermost](#handle-på-hendelser-varsler-og-begivenheter-fra-mattermost): Knappene i meldingene fra OneUptime.
 - [Nettverk og selvhosting](#nettverk-og-selvhosting): Hva hver server må kunne nå.
 :::
@@ -59,7 +60,7 @@ Gå til **Hendelser** > **Arbeidsområde** > **Mattermost**, og opprett en regel
 
 Tilgangstokenet til boten lagres bare på OneUptime-serveren, kryptert sammen med prosjektets andre hemmeligheter, og vises aldri igjen. Serveradressen, teamet og brukernavnet til boten vises for alle i prosjektet, på innstillingssiden for Mattermost.
 
-Et prosjekt er koblet til ett Mattermost-team. For å flytte det til et annet team, eller en annen server, kobler du det først fra: **Prosjektinnstillinger** > **Arbeidsområde** > **Mattermost**, deretter **⋯** > **Koble fra Mattermost**. Å koble fra kobler også fra hvert medlems egen Mattermost-konto. Varslingsreglene og sammendragene dine beholdes til du kobler til igjen.
+Et prosjekt er koblet til ett Mattermost-team. For å flytte det til et annet team, eller en annen server, kobler du det først fra: **Prosjektinnstillinger** > **Arbeidsområde** > **Mattermost**, deretter **⋯** > **Koble fra Mattermost**. Å koble fra kobler også fra hvert medlems egen Mattermost-konto, og fjerner Mattermost-varselmetodene deres og vaktreglene som bruker dem. Varslingsreglene og sammendragene dine beholdes til du kobler til igjen.
 
 ## Koble til din egen Mattermost-konto
 
@@ -74,6 +75,18 @@ Mattermost har ingen pålogging OneUptime kan sende deg til, så OneUptime-boten
 Åpne lenken i den samme nettleseren som du ba om den i: den virker bare der, bare én gang og bare i 15 minutter. Det beviser at den som ba om den, har begge kontoene, så ingen kan koble til Mattermost-kontoen til noen andre. Hvis du ikke ba om en lenke, ignorerer du den: ingenting kobles til før den åpnes i nettleseren som ba om den.
 
 Tilkoblingen til kontoen din hører til dette prosjektet. I et annet prosjekt som er koblet til det samme Mattermost-teamet, kobler du den til der også.
+
+## Bli tilkalt i Mattermost
+
+For å bli tilkalt med direktemelding når du har vakt, legger du til Mattermost som en av varselmetodene dine:
+
+:::steps
+1. Koble til din egen Mattermost-konto (se [Koble til din egen Mattermost-konto](#koble-til-din-egen-mattermost-konto)).
+2. Gå til **Brukerinnstillinger** > **Varselmetoder**, åpne fanen **Arbeidsområdeapper**, og klikk på **Legg til Mattermost-konto**.
+3. Klikk på **Send Test Message** i raden. Meldingen kommer som en direktemelding fra prosjektets bot.
+:::
+
+Å legge den til setter den straks inn i vaktreglene dine, så tilkallinger når deg i Mattermost fra da av. Endre hvilke tilkallinger den får, under **Brukerinnstillinger** > **Vaktregler**. Hver tilkalling har en lenke for å bekrefte den og en for å eskalere den. Når du kobler fra Mattermost-kontoen din, fjernes denne metoden og vaktreglene som bruker den.
 
 ## Varslingsregler
 
@@ -90,6 +103,22 @@ En hendelse, et varsel, en episode eller en planlagt vedlikeholdshendelse med si
 **Testregel** i en regels rad publiserer en testmelding for den regelen i kanalene den nevner, slik den gjør for Slack.
 
 Meldingene fra OneUptime varsler ingen gjennom det de siterer: et navn eller en beskrivelse som inneholder `@channel`, `@here` eller `@someone`, vises slik det er skrevet, og pinger ingen.
+
+## Hvem som er i kanalen til en post
+
+En hendelse, et varsel, en episode eller en planlagt vedlikeholdshendelse med sin egen Mattermost-kanal har kortet **Mattermost-kanal** på siden sin i OneUptime. Kortet viser kanalen, som en lenke som åpner den på Mattermost-serveren din, om den er privat, og hvem som er i den, deg først. Fra kortet, uten en Mattermost-administrator:
+
+- **Bli med i kanalen** legger deg til når du ikke er i kanalen.
+- **Legg til personer** åpner en liste over prosjektets personer og team: velg en person for å legge vedkommende til, eller et team for å legge til alle i det.
+
+OneUptime-boten legger dem til, slik den legger til personene i kanalen til en regel. Boten blir værende i kanalene den oppretter, så dette virker også for en privat kanal som alle har forlatt. En post som også har kanaler i Slack eller Microsoft Teams, viser dem alle på ett kort **Chattekanaler**.
+
+- **Hvem som kan legge til personer.** Den som kan redigere posten: **Prosjekteier**, **Prosjektadministrator**, **Prosjektmedlem**, **Hendelsesadministrator** og **Hendelsesmedlem** for en hendelse, eller **Edit Incident** i en egendefinert rolle, og den samme tillatelsen for et varsel, en episode eller en vedlikeholdshendelse (for eksempel **Edit Alert**). Alle andre ser hvem som er i kanalen, og hvordan de kommer inn.
+- **Hvem som kan legges til.** Noen OneUptime finner i Mattermost, gjennom kontoen vedkommende har koblet til, eller ellers gjennom e-postadressen, når serveren din viser e-postadresser til boten, og som er i teamet prosjektet er koblet til. En gjestekonto i det teamet kan også legges til: Mattermost lar medlemmene i en kanal legge til gjester. Kortet nevner hvem det ikke kunne legge til, og hvorfor.
+- **Hva som registreres.** Hvem som ble lagt til, og av hvem, i feeden til posten (**Kanalmedlem lagt til**) og under **Prosjektinnstillinger** > **Varsler** > **Varsellogger**, på fanen **Arbeidsområde**.
+- **En arkivert kanal.** Kortet viser fortsatt hvem som er i den, og legger ikke til noen før kanalen er hentet ut av arkivet i Mattermost.
+- **En kanal boten er fjernet fra.** Mattermost viser personene i en kanal bare til noen som er i den, også for en offentlig kanal, så kortet sier at det ikke kan se kanalen. Noen i kanalen kan legge til boten igjen i Mattermost. OneUptime blir også selv med i en offentlig kanal igjen neste gang det publiserer der.
+- **Å ta noen ut.** OneUptime legger bare til: fjern noen fra kanalen i Mattermost.
 
 ## Handle på hendelser, varsler og begivenheter fra Mattermost
 
@@ -127,3 +156,5 @@ Hver knapp OneUptime publiserer, har en signatur som sjekkes når noen trykker p
 | **The bot is not a member of the private Mattermost channel** | Legg til boten i kanalen i Mattermost. |
 | En knapp gjør ingenting, eller Mattermost sier at den ikke kunne fullføre handlingen | Mattermost når ikke OneUptime. Se [Nettverk og selvhosting](#nettverk-og-selvhosting). |
 | Ingen direktemelding med lenken din kommer frem | Sjekk brukernavnet, og at boten er i et team du er med i. |
+| Kanalkortet sier at OneUptime ikke kan se kanalen | Kanalen er slettet, eller boten er fjernet fra den. Hvis den fortsatt finnes, kan noen i kanalen legge til boten igjen i Mattermost. |
+| Kanalkortet sier at noen ikke er i Mattermost-teamet | Legg vedkommende i Mattermost til i teamet prosjektet er koblet til, og legg vedkommende deretter til på nytt. |

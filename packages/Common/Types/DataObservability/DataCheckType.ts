@@ -4,7 +4,8 @@
  * Each check reads one number from a table - per segment when it has one -
  * and writes it as the oneuptime.data.check.value metric, so it is charted,
  * baselined and alerted on like every other metric. Only that number leaves
- * the database: every statement is an aggregate.
+ * the database, unless a self-hosted project chose to keep a masked sample of
+ * failing rows (DataObservabilitySetting).
  */
 export enum DataCheckType {
   // Percent of rows whose column is empty (NULL).
@@ -28,6 +29,8 @@ export enum DataCheckType {
   RowCount = "Row Count",
   // The number a read-only query returns.
   CustomSql = "Custom SQL",
+  // How many rows a read-only query returns: the rows that should not exist. 0 is healthy.
+  FailingRows = "Failing Rows",
   /*
    * A test of the project's dbt models, run by dbt and read from its
    * artifacts (DbtIngest): the rows it found failing. OneUptime never runs it.
@@ -59,6 +62,39 @@ export const COLUMN_CHECK_TYPES: ReadonlyArray<DataCheckType> = [
 export function isColumnCheckType(type: DataCheckType): boolean {
   return COLUMN_CHECK_TYPES.includes(type);
 }
+
+// The checks a person writes the query of.
+export function isQueryCheckType(type: DataCheckType): boolean {
+  return type === DataCheckType.CustomSql || type === DataCheckType.FailingRows;
+}
+
+/*
+ * The checks a share of the rows answers as well as all of them: what they read
+ * is a rate. A count needs them all, and so does finding what repeats.
+ */
+export const SAMPLEABLE_CHECK_TYPES: ReadonlyArray<DataCheckType> = [
+  DataCheckType.NullPercent,
+  DataCheckType.Average,
+  DataCheckType.InvalidPercent,
+  DataCheckType.FormatMismatchPercent,
+];
+
+export function isSampleableCheckType(type: DataCheckType): boolean {
+  return SAMPLEABLE_CHECK_TYPES.includes(type);
+}
+
+// The checks whose failing rows can be named, for a project that keeps a sample of them.
+export const FAILING_ROW_CHECK_TYPES: ReadonlyArray<DataCheckType> = [
+  DataCheckType.FailingRows,
+  DataCheckType.InvalidPercent,
+  DataCheckType.FormatMismatchPercent,
+  DataCheckType.OrphanCount,
+];
+
+// The most failing rows kept of one run, the longest value kept, and the most columns.
+export const MAX_FAILING_ROWS: number = 20;
+export const MAX_FAILING_ROW_VALUE_LENGTH: number = 200;
+export const MAX_FAILING_ROW_COLUMNS: number = 30;
 
 // The most accepted values one check compares against.
 export const MAX_ACCEPTED_VALUES: number = 200;

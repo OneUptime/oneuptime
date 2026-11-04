@@ -49,6 +49,7 @@ export enum AiAffectedResourceKind {
   KubernetesCluster = "KubernetesCluster",
   DockerSwarmCluster = "DockerSwarmCluster",
   ProxmoxCluster = "ProxmoxCluster",
+  OpenStackCloud = "OpenStackCloud",
   VMwareVCenter = "VMwareVCenter",
   CephCluster = "CephCluster",
   StorageArray = "StorageArray",
@@ -69,6 +70,7 @@ export type AiAffectedResourceRelation =
   | "kubernetesClusters"
   | "dockerSwarmClusters"
   | "proxmoxClusters"
+  | "openStackClouds"
   | "vmwareVCenters"
   | "cephClusters"
   | "storageArrays"
@@ -141,6 +143,17 @@ export const AI_AFFECTED_RESOURCE_KINDS: ReadonlyArray<AiAffectedResourceKindInf
       relation: "proxmoxClusters",
       noun: translationKey("Proxmox cluster"),
       isFixedByOneUptimeAi: true,
+    },
+    /*
+     * Linked for its owners, its page's Incidents and Alerts tabs and the
+     * investigation's context: no AI agent acts on an OpenStack cloud yet, so
+     * saying it can be fixed would promise a fix nothing can run.
+     */
+    {
+      kind: AiAffectedResourceKind.OpenStackCloud,
+      relation: "openStackClouds",
+      noun: translationKey("OpenStack cloud"),
+      isFixedByOneUptimeAi: false,
     },
     {
       kind: AiAffectedResourceKind.VMwareVCenter,

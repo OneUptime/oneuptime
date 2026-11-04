@@ -1,10 +1,10 @@
 # Controles en problemen van Gegevensbeveiliging
 
-Gegevensbeveiliging voert 33 controles uit op elke opslag, in negen groepen. Een controle leest wat er bekend is over één opslag - hoe die is geconfigureerd, wat erin is gevonden, wie erbij kan, waar die staat - en slaagt, faalt of kan het niet bepalen. Een controle die faalt, opent één probleem op die opslag, en het probleem sluit vanzelf zodra de controle slaagt. Deze pagina somt elke controle op, legt uit hoe de ernst en de risicoscore van een probleem worden bepaald, en wat er tijdens zijn levensloop met een probleem gebeurt.
+Gegevensbeveiliging voert 34 controles uit op elke opslag, in negen groepen. Een controle leest wat er bekend is over één opslag - hoe die is geconfigureerd, wat erin is gevonden, wie erbij kan, waar die staat - en slaagt, faalt of kan het niet bepalen. Een controle die faalt, opent één probleem op die opslag, en het probleem sluit vanzelf zodra de controle slaagt. Deze pagina somt elke controle op, legt uit hoe de ernst en de risicoscore van een probleem worden bepaald, en wat er tijdens zijn levensloop met een probleem gebeurt.
 
 :::cards
 - [Hoe een controle beslist](#hoe-een-controle-beslist): Slagen, falen of niet te bepalen, en hoe erg een falen is.
-- [Elke controle](#elke-controle): Alle 33, met wat elke controle nagaat en hoe je het oplost.
+- [Elke controle](#elke-controle): Alle 34, met wat elke controle nagaat en hoe je het oplost.
 - [Risicoscore](#risicoscore): Hoe problemen binnen een ernst worden geordend.
 - [Wat er met een probleem gebeurt](#wat-er-met-een-probleem-gebeurt): Openstaand, opgelost, geaccepteerd, geen probleem.
 - [Hier oplossen](#hier-oplossen): Sluit een blootstelling, of zet een ontbrekende bescherming aan, met één klik.
@@ -87,6 +87,7 @@ De ernst staat vermeld voor gegevens met Beperkt, Vertrouwelijk, Intern en Openb
 | Wachtwoorden worden als platte tekst opgeslagen (`plaintext-passwords`) | Elke opslag behalve telemetrie | Een wachtwoordveld bevat waarden die geen wachtwoordhashes zijn (bcrypt, argon2, scrypt of PBKDF2). | Kritiek / Kritiek / Kritiek / Kritiek | Hash wachtwoorden met bcrypt, scrypt of argon2, migreer de opgeslagen wachtwoorden, en laat elk account zijn wachtwoord opnieuw instellen. |
 | Productiegegevens zijn gekopieerd naar een niet-productieopslag (`production-data-in-non-production`) | Elke opslag behalve telemetrie | Waarden die in een productieopslag zijn gevonden, zijn ook hier gevonden, in een ontwikkel-, test- of stagingopslag. | Hoog / Gemiddeld / — / — | Vervang de kopie door gemaskeerde of synthetische gegevens, en verwijder de echte gegevens uit de niet-productieopslag. |
 | Gevoelige gegevens die 90 dagen niemand heeft gebruikt (`stale-sensitive-data`) | Elke opslag behalve telemetrie | De opslag bevat gevoelige gegevens en is 90 dagen niet gelezen of beschreven. | Gemiddeld / Laag / — / — | Bevestig dat de gegevens niet meer nodig zijn, en archiveer ze daarna met een bewaardatum, of verwijder ze. |
+| Een nieuwe kolom bevat persoonsgegevens (`new-personal-data-column`) | Elke opslag behalve telemetrie | Een kolom die in de laatste 14 dagen is toegevoegd, heeft een naam die zegt dat ze persoonsgegevens bevat. | Hoog / Hoog / Gemiddeld / Gemiddeld | Bevestig dat de kolom deze gegevens hoort te bevatten, en leg vast waarom. Als dat niet zo is, verwijder de kolom of stop met ernaar schrijven. |
 | Niemand is eigenaar van deze gevoelige opslag (`no-owner`) | Elke opslag | De opslag bevat gevoelige gegevens en heeft geen eigenaar. | Gemiddeld / Laag / — / — | Voeg een eigenaar toe op de pagina **Eigenaren** van de opslag, of een eigenaarsregel die bij zijn tags past. |
 
 ### Telemetrie

@@ -406,6 +406,12 @@ export const DELETE_CONSEQUENCES: Readonly<Record<string, DeleteConsequence>> =
         code: "public async findOrCreateByName(",
       },
     },
+    OpenStackCloud: {
+      addedBackBy: {
+        service: "OpenStackCloudService",
+        code: "public async findOrCreateByName(",
+      },
+    },
     VMwareVCenter: {
       addedBackBy: {
         service: "VMwareVCenterService",

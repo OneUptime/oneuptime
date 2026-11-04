@@ -407,6 +407,18 @@ function buildStepForMonitorType(monitorType: MonitorType): MonitorStep {
           rollingTime: RollingTime.Past1Hour,
         },
       });
+    case MonitorType.OpenStack:
+      return buildStep({
+        openstackMonitor: {
+          cloudIdentifier: "prod",
+          resourceFilters: {
+            regionName: "RegionOne",
+            hypervisorName: "compute-01.example.internal",
+          },
+          metricViewConfig: METRIC_VIEW_CONFIG,
+          rollingTime: RollingTime.Past15Minutes,
+        },
+      });
     case MonitorType.VMware:
       return buildStep({
         vmwareMonitor: {
@@ -1501,6 +1513,7 @@ describe("MonitorStepViewModel.getRows — metric-backed monitors", () => {
     MonitorType.Podman,
     MonitorType.Host,
     MonitorType.Proxmox,
+    MonitorType.OpenStack,
     MonitorType.VMware,
     MonitorType.DockerSwarm,
     MonitorType.Ceph,
@@ -1611,6 +1624,26 @@ describe("MonitorStepViewModel.getRows — metric-backed monitors", () => {
     expect(getRow(MonitorType.Proxmox, "proxmoxGuestId")?.value).toBe(
       "qemu/100",
     );
+  });
+
+  it("shows the OpenStack cloud and every resource filter that is set", () => {
+    expect(getRow(MonitorType.OpenStack, "cloudIdentifier")?.value).toBe(
+      "prod",
+    );
+    expect(getRowTitles(MonitorType.OpenStack)).toContain("Cloud");
+    expect(getRow(MonitorType.OpenStack, "openstackRegion")?.value).toBe(
+      "RegionOne",
+    );
+    expect(getRow(MonitorType.OpenStack, "openstackHypervisor")?.value).toBe(
+      "compute-01.example.internal",
+    );
+
+    // A filter nobody set is not a row.
+    expect(
+      getRow(MonitorType.OpenStack, "openstackAvailabilityZone"),
+    ).toBeUndefined();
+    expect(getRow(MonitorType.OpenStack, "openstackService")).toBeUndefined();
+    expect(getRow(MonitorType.OpenStack, "openstackProject")).toBeUndefined();
   });
 
   it("shows the VMware vCenter and every resource filter that is set", () => {
@@ -1807,6 +1840,12 @@ describe("MonitorStepViewModel metric helpers", () => {
 
     expect(
       MonitorStepViewModel.getRollingTime(
+        buildStepForMonitorType(MonitorType.OpenStack),
+      ),
+    ).toBe(RollingTime.Past15Minutes);
+
+    expect(
+      MonitorStepViewModel.getRollingTime(
         buildStepForMonitorType(MonitorType.VMware),
       ),
     ).toBe(RollingTime.Past30Minutes);
@@ -1828,6 +1867,7 @@ describe("MonitorStepViewModel metric helpers", () => {
       MonitorType.Podman,
       MonitorType.Host,
       MonitorType.Proxmox,
+      MonitorType.OpenStack,
       MonitorType.VMware,
       MonitorType.DockerSwarm,
       MonitorType.Ceph,

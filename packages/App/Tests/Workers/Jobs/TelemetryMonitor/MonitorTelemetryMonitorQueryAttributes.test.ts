@@ -56,6 +56,7 @@ import {
   monitorKubernetes,
   monitorMetric,
   monitorPodman,
+  monitorOpenStack,
   monitorProxmox,
   monitorStorageArray,
   monitorVMware,
@@ -122,6 +123,13 @@ const CASES: Array<MonitorCase> = [
     stepKey: "proxmoxMonitor",
     settings: { clusterIdentifier: "pve" },
     added: { "resource.proxmox.cluster.name": "pve" },
+  },
+  {
+    name: "OpenStack",
+    run: monitorOpenStack,
+    stepKey: "openstackMonitor",
+    settings: { cloudIdentifier: "prod" },
+    added: { "resource.openstack.cloud.name": "prod" },
   },
   {
     name: "VMware",

@@ -124,6 +124,12 @@ const ALL_KNOWN_TEST_ROUTES: ReadonlyArray<KnownTestRoute> = [
     why: "A direct message to the caller's own Teams account.",
   },
   {
+    file: "packages/Common/Server/API/UserMattermostAPI.ts",
+    path: "/test",
+    rule: "self",
+    why: "A direct message to the caller's own Mattermost account.",
+  },
+  {
     file: "packages/Common/Server/API/UserWebhookAPI.ts",
     path: "/test",
     rule: "self",
@@ -260,6 +266,12 @@ const ALL_KNOWN_TEST_ROUTES: ReadonlyArray<KnownTestRoute> = [
     path: "/probe/vmware/test",
     rule: "check",
     why: "A probe reports the vCenter connection test it ran, as the probe the test names; sends nobody a message.",
+  },
+  {
+    file: "packages/App/FeatureSet/Telemetry/API/ProbeIngest/OpenStackCollection.ts",
+    path: "/probe/openstack/test",
+    rule: "check",
+    why: "A probe reports the cloud connection test it ran, as the probe the test names; sends nobody a message.",
   },
   {
     file: "ee/Server/AuditLogExport/API/AuditLogExportAPI.ts",

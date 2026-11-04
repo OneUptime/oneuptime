@@ -57,6 +57,7 @@ import IoTFleet from "Common/Models/DatabaseModels/IoTFleet";
 import DatabaseServer from "Common/Models/DatabaseModels/DatabaseServer";
 import CloudResource from "Common/Models/DatabaseModels/CloudResource";
 import ProxmoxCluster from "Common/Models/DatabaseModels/ProxmoxCluster";
+import OpenStackCloud from "Common/Models/DatabaseModels/OpenStackCloud";
 import VMwareVCenter from "Common/Models/DatabaseModels/VMwareVCenter";
 import KubernetesCluster from "Common/Models/DatabaseModels/KubernetesCluster";
 import NetworkDevice from "Common/Models/DatabaseModels/NetworkDevice";
@@ -115,6 +116,7 @@ import EntityRunbooks from "../../../Components/Runbook/EntityRunbooks";
 import { AFFECTED_RESOURCES_PLACE_ID } from "../../../Components/AutoRemediation/RemediationDecisionLines";
 import AlertAffectedResources from "./AffectedResources";
 import DataAlertLineage from "../../../Components/DataObservability/DataAlertLineage";
+import DataAlertExplanationCard from "../../../Components/DataObservability/DataAlertExplanationCard";
 import MonitorSummarySnapshotCard from "../../../Components/Monitor/MonitorSummarySnapshotCard";
 import ExceptionsViewer from "../../../Components/Exceptions/ExceptionsViewer";
 import Query from "Common/Types/BaseDatabase/Query";
@@ -1333,6 +1335,8 @@ const AlertView: FunctionComponent<PageComponentProps> = (): ReactElement => {
 
           <DataAlertLineage alertId={modelId} />
 
+          <DataAlertExplanationCard alertId={modelId} />
+
           <EntityRunbooks alertId={modelId} hideIfEmpty={true} />
 
           <AlertFeedElement alertId={modelId} refreshToken={feedRefreshToken} />
@@ -1434,6 +1438,9 @@ const AlertView: FunctionComponent<PageComponentProps> = (): ReactElement => {
                       proxmoxClusters={
                         values.proxmoxClusters as Array<ProxmoxCluster>
                       }
+                      openStackClouds={
+                        values.openStackClouds as Array<OpenStackCloud>
+                      }
                       vmwareVCenters={
                         values.vmwareVCenters as Array<VMwareVCenter>
                       }
@@ -1459,6 +1466,7 @@ const AlertView: FunctionComponent<PageComponentProps> = (): ReactElement => {
                         "DockerHost",
                         "PodmanHost",
                         "ProxmoxCluster",
+                        "OpenStackCloud",
                         "VMwareVCenter",
                         "CephCluster",
                         "StorageArray",
@@ -1492,6 +1500,7 @@ const AlertView: FunctionComponent<PageComponentProps> = (): ReactElement => {
                         dockerHosts: payload.dockerHosts,
                         podmanHosts: payload.podmanHosts,
                         proxmoxClusters: payload.proxmoxClusters,
+                        openStackClouds: payload.openStackClouds,
                         vmwareVCenters: payload.vmwareVCenters,
                         cephClusters: payload.cephClusters,
                         storageArrays: payload.storageArrays,
@@ -1547,6 +1556,15 @@ const AlertView: FunctionComponent<PageComponentProps> = (): ReactElement => {
               },
               {
                 field: { proxmoxClusters: true },
+                title: "",
+                fieldType: FormFieldSchemaType.Text,
+                required: false,
+                showIf: () => {
+                  return false;
+                },
+              },
+              {
+                field: { openStackClouds: true },
                 title: "",
                 fieldType: FormFieldSchemaType.Text,
                 required: false,
@@ -1669,6 +1687,10 @@ const AlertView: FunctionComponent<PageComponentProps> = (): ReactElement => {
                       name: true,
                       _id: true,
                     },
+                    openStackClouds: {
+                      name: true,
+                      _id: true,
+                    },
                     vmwareVCenters: {
                       name: true,
                       _id: true,
@@ -1727,6 +1749,7 @@ const AlertView: FunctionComponent<PageComponentProps> = (): ReactElement => {
                         dockerHosts={item.dockerHosts || []}
                         podmanHosts={item.podmanHosts || []}
                         proxmoxClusters={item.proxmoxClusters || []}
+                        openStackClouds={item.openStackClouds || []}
                         vmwareVCenters={item.vmwareVCenters || []}
                         cephClusters={item.cephClusters || []}
                         storageArrays={item.storageArrays || []}

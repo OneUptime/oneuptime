@@ -61,6 +61,8 @@ export enum AgentKind {
   HostCollector = "host-collector",
   // agents/ProxmoxAgent: a Proxmox cluster.
   ProxmoxAgent = "proxmox-agent",
+  // agents/OpenStackAgent: an OpenStack cloud.
+  OpenStackAgent = "openstack-agent",
   // agents/CephAgent: a Ceph cluster.
   CephAgent = "ceph-agent",
   // agents/VMwareAgent: a vCenter.
@@ -185,6 +187,7 @@ export const PROXMOX_AGENT_VERSION: string = "0.161.1";
  * old files reports 0.161.0 and is told to upgrade.
  */
 export const PROXMOX_AGENT_COLLECTOR_VERSION: string = "0.161.0";
+export const OPENSTACK_AGENT_VERSION: string = "0.161.0";
 export const CEPH_AGENT_VERSION: string = "0.161.0";
 export const VMWARE_AGENT_VERSION: string = "0.161.0";
 export const STORAGE_ARRAY_AGENT_VERSION: string = "0.161.0";
@@ -253,6 +256,12 @@ export const AGENT_KINDS: Record<AgentKind, AgentKindDefinition> = {
     latestVersionSource: AgentLatestVersionSource.PinnedCollector,
     pinnedVersion: PROXMOX_AGENT_VERSION,
     collectorVersion: PROXMOX_AGENT_COLLECTOR_VERSION,
+  },
+  [AgentKind.OpenStackAgent]: {
+    name: "OneUptime OpenStack Agent",
+    latestVersionSource: AgentLatestVersionSource.PinnedCollector,
+    pinnedVersion: OPENSTACK_AGENT_VERSION,
+    collectorVersion: OPENSTACK_AGENT_VERSION,
   },
   [AgentKind.CephAgent]: {
     name: "OneUptime Ceph Agent",

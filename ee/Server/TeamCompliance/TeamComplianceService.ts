@@ -27,6 +27,7 @@ import TeamService from "Common/Server/Services/TeamService";
 import UserCallService from "Common/Server/Services/UserCallService";
 import UserEmailService from "Common/Server/Services/UserEmailService";
 import UserMicrosoftTeamsService from "Common/Server/Services/UserMicrosoftTeamsService";
+import UserMattermostService from "Common/Server/Services/UserMattermostService";
 import UserNotificationRuleService from "Common/Server/Services/UserNotificationRuleService";
 import UserPushService from "Common/Server/Services/UserPushService";
 import UserService from "Common/Server/Services/UserService";
@@ -79,11 +80,12 @@ type NotificationRuleMethodColumn = keyof UserNotificationRule &
     | "userTelegramId"
     | "userSlackId"
     | "userMicrosoftTeamsId"
+    | "userMattermostId"
     | "userWebhookId"
   );
 
 /*
- * The column a rule's channel is read from: the method column on the nine
+ * The column a rule's channel is read from: the method column on the ten
  * channels a member owns a method on, and on the custom channel the custom
  * channel the rule pages through - there is no method of the member's own.
  */
@@ -102,14 +104,15 @@ type NotificationRuleMethodRelation = keyof UserNotificationRule &
     | "userTelegram"
     | "userSlack"
     | "userMicrosoftTeams"
+    | "userMattermost"
     | "userWebhook"
   );
 
 /*
- * Where each channel's methods live. The nine method tables are different
+ * Where each channel's methods live. The ten method tables are different
  * models with the same three columns this file cares about (_id, userId,
  * isVerified - and webhooks have no isVerified), so they are read through one
- * loosely-typed door rather than nine copies of the same query.
+ * loosely-typed door rather than ten copies of the same query.
  */
 interface MethodChannelSource {
   service: DatabaseService<any>;
@@ -168,6 +171,12 @@ const METHOD_CHANNEL_SOURCES: Readonly<
     service: UserMicrosoftTeamsService,
     ruleColumn: "userMicrosoftTeamsId",
     ruleRelation: "userMicrosoftTeams",
+    hasVerification: true,
+  },
+  [ComplianceNotificationChannel.Mattermost]: {
+    service: UserMattermostService,
+    ruleColumn: "userMattermostId",
+    ruleRelation: "userMattermost",
     hasVerification: true,
   },
   [ComplianceNotificationChannel.Webhook]: {

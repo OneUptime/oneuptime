@@ -1,16 +1,24 @@
 import {
   DocsHeading,
+  DocsLink,
   TRANSLATED_LANGUAGES,
   readPage,
   scanMarkdown,
 } from "./DocsContentSupport";
 import {
   escapeRegExp,
+  inlineCode,
   strayMarkers,
   toLatinDigits,
 } from "./DocsTranslationChecks";
+import {
+  flattened,
+  otherChangesItems,
+  sectionAtEnglishPlace,
+} from "./UpgradingDocsNotes";
 import { slugifyMarkdownHeading } from "Common/Server/Types/MarkdownSlugify";
 import { MAGIC_LINK_EXPIRY_MINUTES } from "Common/Types/Accounts/MagicLink";
+import { SSO_REQUIRED_SIGN_IN_MESSAGE } from "Common/Types/SSO/SignInMethods";
 import { describe, expect, it } from "@jest/globals";
 import fs from "fs";
 import path from "path";
@@ -29,6 +37,17 @@ import path from "path";
  *   - the Docker Compose guide's production checklist, after the sign-ups
  *     row, and the Hardening Guide's "Control who signs in", after "Require
  *     it": each names the switch and links to that section;
+ *   - the upgrade guide's "Other changes in 14": a self-hosted server shows
+ *     the sign-in page's option after the upgrade, and one with no working
+ *     mail server offers it all the same. It names the switch and links to
+ *     that section. Its neighbours in the list are not pinned: nothing it says
+ *     depends on them, and the next note can go beside it. The paragraph above
+ *     the list tells a server with no working mail server to read it;
+ *   - Global SSO's Enforcing SSO bullets and its troubleshooting entry on the
+ *     server's refusal while SSO is required, which list an emailed link among
+ *     what the page leaves out and the server refuses. MagicLinkLogin (the
+ *     server) and LoginMagicLink (the page a link opens) hold the refusal
+ *     itself;
  *   - every translation carries all of it in the English places, with that
  *     language's labels. The Hardening Guide is English in every language, so
  *     its line is too, and only its link follows the language's heading.
@@ -41,6 +60,7 @@ const ADMIN_DASHBOARD: string = "App/FeatureSet/AdminDashboard/src";
 const YOUR_ACCOUNT: string = "introduction/your-account";
 const COMPOSE: string = "installation/docker-compose";
 const HARDENING: string = "self-hosted/hardening";
+const GLOBAL_SSO: string = "identity/global-sso";
 
 const SECTION: string = "Sign in with an emailed link";
 const SECTION_BEFORE: string = "Add a passkey";
@@ -68,6 +88,62 @@ const SIGN_UP_SWITCH: string =
   "pages.settings.authentication.signUpSwitchTitle";
 const SETTINGS: string = "navbar.settings";
 const AUTHENTICATION: string = "sideMenu.settingsAuthentication";
+const ADMIN_DASHBOARD_BREADCRUMB: string = "breadcrumbs.adminDashboard";
+
+const UPGRADE_NOTE_LEAD: string =
+  "**The sign-in page offers an emailed sign-in link, even with no working mail server.**";
+
+const UPGRADE_LIST_HEADING: string = "Other changes in 14";
+
+const ENFORCING_SSO: string = "Enforcing SSO";
+const OFFERS_ONLY_SSO: string = "- The sign-in page offers only SSO:";
+const REFUSES: string = "- OneUptime refuses a password,";
+
+/*
+ * How each translation's Global SSO page names an emailed link: the words of
+ * its own heading for the section, so a reader meets one name for it.
+ */
+const EMAILED_LINK: Record<string, string> = {
+  da: "link sendt på e-mail",
+  de: "per E-Mail gesendeten Link",
+  es: "enlace enviado por correo",
+  fa: "لینک ارسال‌شده به ایمیل",
+  fr: "lien envoyé par e-mail",
+  hi: "लिंक",
+  it: "link inviato via e-mail",
+  ja: "メールで届いたリンク",
+  ko: "이메일로 받은 링크",
+  nl: "gemailde link",
+  no: "lenke på e-post",
+  pt: "link enviado por e-mail",
+  ru: "по ссылке из письма",
+  sv: "länk via e-post",
+  "zh-CN": "电子邮件链接",
+  "zh-TW": "電子郵件連結",
+};
+
+/*
+ * How each translation's upgrade guide names a mail server, in the note and in
+ * the paragraph that sends its readers to the note.
+ */
+const MAIL_SERVER: Record<string, string> = {
+  da: "mailserver",
+  de: "Mailserver",
+  es: "servidor de correo",
+  fa: "سرور ایمیل",
+  fr: "serveur de messagerie",
+  hi: "मेल सर्वर",
+  it: "server di posta",
+  ja: "メールサーバー",
+  ko: "메일 서버",
+  nl: "mailserver",
+  no: "e-postserver",
+  pt: "servidor de e-mail",
+  ru: "почтового сервера",
+  sv: "e-postserver",
+  "zh-CN": "邮件服务器",
+  "zh-TW": "郵件伺服器",
+};
 
 const REQUIRE_IT_BULLET: string = "- **Require it.**";
 
@@ -186,6 +262,86 @@ function stepsOf(section: Array<string>): Array<string> {
   });
 }
 
+const ENGLISH_NOTES: Array<string> = otherChangesItems("en");
+const UPGRADE_NOTE_INDEX: number = ENGLISH_NOTES.findIndex(
+  (note: string): boolean => {
+    return flattened(note).startsWith(`- ${UPGRADE_NOTE_LEAD}`);
+  },
+);
+
+// The upgrade note in a language: the note in the English note's place.
+function upgradeNote(language: string): string {
+  return flattened(otherChangesItems(language)[UPGRADE_NOTE_INDEX] || "");
+}
+
+// Where some Markdown links, written as sectionLink writes it.
+function linksOf(markdown: string): Array<string> {
+  return scanMarkdown(markdown).links.map((link: DocsLink): string => {
+    return `(${link.target})`;
+  });
+}
+
+/*
+ * The upgrade guide names the Admin Dashboard as its breadcrumb draws it, as
+ * it does on its other paths through the Admin Dashboard.
+ */
+function upgradeGuidePath(language: string): Array<string> {
+  return [
+    drawn(ADMIN_DASHBOARD, language, ADMIN_DASHBOARD_BREADCRUMB),
+    ...settingsPath(language),
+  ];
+}
+
+// The paragraph above the fold of the "Other changes in 14" list.
+function upgradeListIntro(language: string): string {
+  const section: string = sectionAtEnglishPlace(language, UPGRADE_LIST_HEADING);
+
+  return flattened(section.slice(0, section.indexOf(":::details ")));
+}
+
+// The bullets of Global SSO's Enforcing SSO section in a language.
+function enforcingBullets(language: string): Array<string> {
+  const headings: Array<DocsHeading> = headingsOf(GLOBAL_SSO, language);
+  const at: number = headingsOf(GLOBAL_SSO, "en").findIndex(
+    (heading: DocsHeading): boolean => {
+      return heading.text === ENFORCING_SSO;
+    },
+  );
+
+  return readPage(language, GLOBAL_SSO)
+    .split("\n")
+    .slice(
+      (headings[at] as DocsHeading).line - 1,
+      (headings[at + 1] as DocsHeading).line - 1,
+    )
+    .filter((line: string): boolean => {
+      return line.startsWith("- ");
+    });
+}
+
+// A language's Enforcing SSO bullet in the place of the English one with this opening.
+function enforcingBullet(language: string, englishOpening: string): string {
+  const at: number = enforcingBullets("en").findIndex(
+    (bullet: string): boolean => {
+      return bullet.startsWith(englishOpening);
+    },
+  );
+
+  return enforcingBullets(language)[at] as string;
+}
+
+// The Global SSO entry a sign-in refused while SSO is required opens, by its title.
+function ssoEntry(language: string): string {
+  const lines: Array<string> = readPage(language, GLOBAL_SSO).split("\n");
+  const title: number = lines.indexOf(
+    `:::details "${SSO_REQUIRED_SIGN_IN_MESSAGE}"`,
+  );
+
+  expect({ language, found: title >= 0 }).toEqual({ language, found: true });
+
+  return lines[title + 1] as string;
+}
+
 describe("the screens the docs name", () => {
   it("draw each step from the key the docs read it from", () => {
     const signIn: string = source(`${ACCOUNTS}/Pages/Login.tsx`);
@@ -213,6 +369,22 @@ describe("the screens the docs name", () => {
     );
     expect(source("Common/Server/Utils/SsoSignInMethods.ts")).toContain(
       "isMagicLinkLoginEnabled: isSsoRequired",
+    );
+  });
+
+  it("offer the option on an upgraded server, whatever its mail server does", () => {
+    // The upgrade leaves the switch on, for a server that was already running.
+    expect(
+      source(
+        "Common/Server/Infrastructure/Postgres/SchemaMigrations/1808992650000-AddMagicLinkLogin.ts",
+      ),
+    ).toContain('"disableMagicLinkLogin" boolean DEFAULT false');
+
+    // The offer reads the SSO requirement and the switch, and nothing about mail.
+    expect(
+      flattened(source("Common/Server/Utils/SsoSignInMethods.ts")),
+    ).toContain(
+      "isMagicLinkLoginEnabled: isSsoRequired ? false : !(await GlobalConfigService.getMagicLinkLoginTurnedOff())",
     );
   });
 });
@@ -300,9 +472,74 @@ describe("the admin pages, in English", () => {
   });
 });
 
+describe("the upgrade note, in English", () => {
+  const note: string = upgradeNote("en");
+
+  it("is a note of the 14 changes, once", () => {
+    expect(UPGRADE_NOTE_INDEX).toBeGreaterThan(0);
+    expect(
+      ENGLISH_NOTES.filter((item: string): boolean => {
+        return flattened(item).includes(UPGRADE_NOTE_LEAD);
+      }),
+    ).toHaveLength(1);
+  });
+
+  it("says a self-hosted server gets the sign-in page's option, by that page's words", () => {
+    expect(note).toContain(
+      `After the upgrade, a self-hosted server's sign-in page shows **${drawn(ACCOUNTS, "en", SIGN_IN_OPTION)}**, so people can sign in with an emailed link instead of their password.`,
+    );
+  });
+
+  it("says a server with no working mail server offers it all the same", () => {
+    expect(note).toContain(
+      "A server with no working mail server still offers it, and the email never arrives.",
+    );
+  });
+
+  it("names the switch and the way to it, links to the section, and carries no code", () => {
+    expect(note).toContain(
+      `turn off **${drawn(ADMIN_DASHBOARD, "en", SWITCH)}** on **Admin Dashboard > Settings > Authentication**.`,
+    );
+    expect(upgradeGuidePath("en")).toEqual([
+      "Admin Dashboard",
+      "Settings",
+      "Authentication",
+    ]);
+    expect(linksOf(note)).toEqual([sectionLink("en")]);
+    expect(inlineCode(note)).toEqual([]);
+  });
+
+  it("is what the paragraph above the list sends a server with no working mail server to read", () => {
+    expect(upgradeListIntro("en")).toContain(
+      "or the Slack and Microsoft Teams apps, or if your server has no working mail server.",
+    );
+  });
+});
+
+describe("the Global SSO page on the refusal, in English", () => {
+  it("Enforcing SSO lists an emailed link among what the page leaves out", () => {
+    expect(enforcingBullet("en", OFFERS_ONLY_SSO)).toContain(
+      "and no password, passkey, emailed link, Google or Microsoft sign-in, or sign-up.",
+    );
+  });
+
+  it("Enforcing SSO lists an emailed link among what the server refuses, with the server's message", () => {
+    expect(enforcingBullet("en", REFUSES)).toContain(
+      `OneUptime refuses a password, a passkey, an emailed link, a Google or Microsoft sign-in and a sign-up with "${SSO_REQUIRED_SIGN_IN_MESSAGE}"`,
+    );
+  });
+
+  it("the troubleshooting entry lists an emailed link among the sign-ins it explains", () => {
+    expect(ssoEntry("en")).toContain(
+      "this was a sign-in with a password, a passkey, an emailed link, Google or Microsoft, or a sign-up.",
+    );
+  });
+});
+
 describe.each(TRANSLATED_LANGUAGES)("in %s", (language: string) => {
   const section: Array<string> = sectionOf(language);
   const text: string = section.join("\n");
+  const note: string = upgradeNote(language);
 
   it("Your Account has the section in the English place, in its own words", () => {
     const english: Array<string> = sectionOf("en");
@@ -376,5 +613,55 @@ describe.each(TRANSLATED_LANGUAGES)("in %s", (language: string) => {
     expect(hardeningBullet(language)).toBe(
       english.replace(sectionLink("en"), sectionLink(language)),
     );
+  });
+
+  it("the upgrade note is in the English note's place, under a lead of its own", () => {
+    expect(note.startsWith("- **")).toBe(true);
+    expect(note).not.toContain(UPGRADE_NOTE_LEAD);
+  });
+
+  it("the upgrade note names the sign-in page's option, not the request page's button", () => {
+    const option: string = drawn(ACCOUNTS, language, SIGN_IN_OPTION);
+    const button: string = drawn(ACCOUNTS, language, REQUEST_BUTTON);
+
+    expect(note).toContain(`**${option}**`);
+    expect(note.includes(`**${button}**`)).toBe(button === option);
+  });
+
+  it("the upgrade note names the switch and the way to it as this language's Admin Dashboard draws them", () => {
+    expect(note).toContain(`**${drawn(ADMIN_DASHBOARD, language, SWITCH)}**`);
+    expect(note).toMatch(adminPathPattern(upgradeGuidePath(language)));
+  });
+
+  it("the upgrade note links to this language's section, carries no code, and draws every bold span", async () => {
+    expect(linksOf(note)).toEqual([sectionLink(language)]);
+    expect(inlineCode(note)).toEqual([]);
+    // strayMarkers reads a page, and leaves out its first line: the title.
+    expect(await strayMarkers(`# Title\n${note}`, language)).toEqual([]);
+  });
+
+  it("the paragraph above the list names a mail server as the upgrade note does", () => {
+    const words: string = MAIL_SERVER[language] as string;
+
+    expect(upgradeListIntro(language)).toContain(words);
+    expect(note).toContain(words);
+  });
+
+  it("the Global SSO page lists an emailed link in the words of this language's section, wherever it lists what is refused", () => {
+    const words: string = EMAILED_LINK[language] as string;
+
+    expect(sectionHeading(language).text).toContain(words);
+
+    for (const place of [
+      enforcingBullet(language, OFFERS_ONLY_SSO),
+      enforcingBullet(language, REFUSES),
+      ssoEntry(language),
+    ]) {
+      expect({ words, place, listed: place.includes(words) }).toEqual({
+        words,
+        place,
+        listed: true,
+      });
+    }
   });
 });

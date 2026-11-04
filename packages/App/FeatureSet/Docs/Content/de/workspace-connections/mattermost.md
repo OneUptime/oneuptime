@@ -6,6 +6,7 @@ Verbinden Sie OneUptime mit Ihrem Mattermost-Server, um Vorfälle, Warnungen, Ep
 - [Mattermost verbinden](#mattermost-verbinden): Erstellen Sie ein Bot-Konto für OneUptime und verbinden Sie dann das Projekt mit seinem Token.
 - [Ihr eigenes Konto verbinden](#ihr-eigenes-mattermost-konto-verbinden): Verknüpfen Sie Ihr Mattermost-Konto mit Ihrem OneUptime-Konto.
 - [Benachrichtigungsregeln](#benachrichtigungsregeln): Legen Sie fest, welche Ereignisse wohin posten und welche einen eigenen Kanal bekommen.
+- [Wer im Kanal eines Datensatzes ist](#wer-im-kanal-eines-datensatzes-ist): Sehen Sie, wer darin ist, treten Sie bei und fügen Sie Personen hinzu, direkt auf der Seite des Datensatzes.
 - [Aus Mattermost reagieren](#aus-mattermost-auf-vorfälle-warnungen-und-ereignisse-reagieren): Die Schaltflächen in den Nachrichten von OneUptime.
 - [Netzwerk und Selbsthosting](#netzwerk-und-selbsthosting): Was jeder Server erreichen können muss.
 :::
@@ -59,7 +60,7 @@ Gehen Sie zu **Vorfälle** > **Arbeitsbereich** > **Mattermost** und legen Sie e
 
 Das Zugriffstoken des Bots wird nur auf dem OneUptime-Server aufbewahrt, verschlüsselt zusammen mit den übrigen Geheimnissen des Projekts, und nie wieder angezeigt. Die Serveradresse, das Team und der Benutzername des Bots werden allen im Projekt angezeigt, auf der Mattermost-Einstellungsseite.
 
-Ein Projekt ist mit einem einzigen Mattermost-Team verbunden. Um es in ein anderes Team oder auf einen anderen Server zu verlegen, trennen Sie es zuerst: **Projekteinstellungen** > **Arbeitsbereich** > **Mattermost**, dann **⋯** > **Mattermost trennen**. Das Trennen trennt auch das eigene Mattermost-Konto jedes Mitglieds. Ihre Benachrichtigungsregeln und Zusammenfassungen bleiben für eine spätere neue Verbindung erhalten.
+Ein Projekt ist mit einem einzigen Mattermost-Team verbunden. Um es in ein anderes Team oder auf einen anderen Server zu verlegen, trennen Sie es zuerst: **Projekteinstellungen** > **Arbeitsbereich** > **Mattermost**, dann **⋯** > **Mattermost trennen**. Das Trennen trennt auch das eigene Mattermost-Konto jedes Mitglieds und entfernt dessen Mattermost-Benachrichtigungsmethoden und die Bereitschaftsregeln, die sie verwenden. Ihre Benachrichtigungsregeln und Zusammenfassungen bleiben für eine spätere neue Verbindung erhalten.
 
 ## Ihr eigenes Mattermost-Konto verbinden
 
@@ -74,6 +75,18 @@ Mattermost hat keine Anmeldeseite, zu der OneUptime Sie schicken könnte, daher 
 Öffnen Sie den Link im selben Browser, in dem Sie ihn angefordert haben: Er funktioniert nur dort, nur einmal und nur 15 Minuten lang. Das beweist, dass die Person, die ihn angefordert hat, beide Konten besitzt, sodass niemand das Mattermost-Konto einer anderen Person verbinden kann. Haben Sie keinen Link angefordert, ignorieren Sie ihn: Es wird nichts verbunden, solange er nicht in dem Browser geöffnet wird, der ihn angefordert hat.
 
 Die Verbindung Ihres Kontos gehört zu diesem Projekt. In einem anderen Projekt, das mit demselben Mattermost-Team verbunden ist, verbinden Sie es dort ebenfalls.
+
+## In Mattermost alarmiert werden
+
+Um per Direktnachricht alarmiert zu werden, wenn Sie Bereitschaft haben, fügen Sie Mattermost als eine Ihrer Benachrichtigungsmethoden hinzu:
+
+:::steps
+1. Verbinden Sie Ihr eigenes Mattermost-Konto (siehe [Ihr eigenes Mattermost-Konto verbinden](#ihr-eigenes-mattermost-konto-verbinden)).
+2. Gehen Sie zu **Benutzereinstellungen** > **Benachrichtigungsmethoden**, öffnen Sie die Registerkarte **Workspace-Apps** und klicken Sie auf **Mattermost-Konto hinzufügen**.
+3. Klicken Sie in seiner Zeile auf **Testnachricht senden**. Die Nachricht kommt als Direktnachricht vom Bot des Projekts an.
+:::
+
+Durch das Hinzufügen landet es sofort in Ihren Bereitschaftsregeln, sodass Alarme Sie ab dann in Mattermost erreichen. Welche Alarme es bekommt, ändern Sie unter **Benutzereinstellungen** > **Bereitschaftsregeln**. Jeder Alarm enthält einen Link zum Bestätigen und einen zum Eskalieren. Wenn Sie Ihr Mattermost-Konto trennen, werden diese Methode und die Bereitschaftsregeln entfernt, die sie verwenden.
 
 ## Benachrichtigungsregeln
 
@@ -90,6 +103,22 @@ Ein Vorfall, eine Warnung, eine Episode oder ein geplantes Wartungsereignis mit 
 **Regel testen** in der Zeile einer Regel postet eine Testnachricht für diese Regel in die Kanäle, die sie nennt, wie bei Slack.
 
 Die Nachrichten von OneUptime benachrichtigen niemanden durch das, was sie zitieren: Ein Name oder eine Beschreibung mit `@channel`, `@here` oder `@someone` erscheint so, wie sie geschrieben ist, und benachrichtigt niemanden.
+
+## Wer im Kanal eines Datensatzes ist
+
+Ein Vorfall, eine Warnung, eine Episode oder ein geplantes Wartungsereignis mit einem eigenen Mattermost-Kanal hat auf seiner Seite in OneUptime eine Karte **Mattermost-Kanal**. Die Karte zeigt den Kanal als Link, der ihn auf Ihrem Mattermost-Server öffnet, ob er privat ist und wer darin ist, Sie zuerst. Auf der Karte, ohne einen Mattermost-Admin:
+
+- **Kanal beitreten** fügt Sie hinzu, wenn Sie nicht im Kanal sind.
+- **Personen hinzufügen** öffnet eine Liste der Personen und Teams des Projekts: Wählen Sie eine Person, um sie hinzuzufügen, oder ein Team, um alle darin hinzuzufügen.
+
+Der Bot von OneUptime fügt sie hinzu, so wie er die Personen des Kanals einer Regel hinzufügt. Der Bot bleibt in den Kanälen, die er erstellt, daher klappt das auch bei einem privaten Kanal, den alle verlassen haben. Ein Datensatz, der auch Kanäle in Slack oder Microsoft Teams hat, listet sie alle auf einer Karte **Chat-Kanäle**.
+
+- **Wer Personen hinzufügen darf.** Wer den Datensatz bearbeiten darf: **Projektinhaber**, **Projektadministrator**, **Projektmitglied**, **Vorfall-Administrator** und **Vorfall-Mitglied** bei einem Vorfall oder **Edit Incident** in einer benutzerdefinierten Rolle, und dieselbe Berechtigung bei einer Warnung, einer Episode oder einem Ereignis (zum Beispiel **Edit Alert**). Alle anderen sehen, wer im Kanal ist und wie sie hineinkommen.
+- **Wer hinzugefügt werden kann.** Jemand, den OneUptime in Mattermost findet, über das verbundene Konto oder sonst über die E-Mail-Adresse, wenn Ihr Server dem Bot E-Mail-Adressen zeigt, und der in dem Team ist, mit dem das Projekt verbunden ist. Auch ein Gastkonto in diesem Team kann hinzugefügt werden: Mattermost erlaubt den Mitgliedern eines Kanals, Gäste hinzuzufügen. Die Karte nennt, wen sie nicht hinzufügen konnte, und warum.
+- **Was festgehalten wird.** Wer hinzugefügt wurde und von wem, im Feed des Datensatzes (**Kanalmitglied hinzugefügt**) und unter **Projekteinstellungen** > **Benachrichtigungen** > **Benachrichtigungsprotokolle** auf der Registerkarte **Arbeitsbereich**.
+- **Ein archivierter Kanal.** Die Karte listet weiter, wer darin ist, und fügt niemanden hinzu, bis die Archivierung des Kanals in Mattermost aufgehoben wird.
+- **Ein Kanal, aus dem der Bot entfernt wurde.** Mattermost zeigt die Personen eines Kanals nur jemandem, der darin ist, auch bei einem öffentlichen Kanal, daher sagt die Karte, dass sie den Kanal nicht sehen kann. Jemand darin kann den Bot in Mattermost wieder hinzufügen. Einem öffentlichen Kanal tritt OneUptime außerdem selbst wieder bei, wenn es das nächste Mal dort postet.
+- **Jemanden entfernen.** OneUptime fügt nur hinzu: Entfernen Sie jemanden in Mattermost aus dem Kanal.
 
 ## Aus Mattermost auf Vorfälle, Warnungen und Ereignisse reagieren
 
@@ -127,3 +156,5 @@ Jede Schaltfläche, die OneUptime postet, trägt eine Signatur für das Mattermo
 | **The bot is not a member of the private Mattermost channel** | Fügen Sie den Bot in Mattermost dem Kanal hinzu. |
 | Eine Schaltfläche tut nichts, oder Mattermost sagt, die Aktion habe nicht abgeschlossen werden können | Mattermost kann OneUptime nicht erreichen. Siehe [Netzwerk und Selbsthosting](#netzwerk-und-selbsthosting). |
 | Es kommt keine Direktnachricht mit Ihrem Link an | Prüfen Sie den Benutzernamen und ob der Bot in einem Team ist, in dem Sie Mitglied sind. |
+| Die Kanalkarte sagt, dass OneUptime den Kanal nicht sehen kann | Der Kanal wurde gelöscht, oder der Bot wurde daraus entfernt. Falls er noch existiert, kann jemand darin den Bot in Mattermost wieder hinzufügen. |
+| Die Kanalkarte sagt, dass jemand nicht im Mattermost-Team ist | Fügen Sie die Person in Mattermost dem Team hinzu, mit dem das Projekt verbunden ist, und fügen Sie sie dann erneut hinzu. |

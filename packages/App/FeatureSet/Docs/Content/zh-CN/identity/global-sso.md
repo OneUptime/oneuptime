@@ -100,8 +100,8 @@ flowchart TB
 
 在整个实例要求使用 SSO 期间：
 
-- 登录页面只提供 SSO：每个已启用的全局提供商一个按钮，没有密码、通行密钥、Google 或 Microsoft 登录和注册。用于查找项目自有提供商的电子邮件查找，只在有项目拥有自有提供商时保留。
-- OneUptime 会以 "This server requires single sign-on (SSO). Sign in with SSO instead." 拒绝密码、通行密钥、Google 或 Microsoft 登录和注册。只有主管理员的密码或通行密钥仍能用于登录。用户通过 SSO 登录或接受邀请来获得账户。
+- 登录页面只提供 SSO：每个已启用的全局提供商一个按钮，没有密码、通行密钥、电子邮件链接、Google 或 Microsoft 登录和注册。用于查找项目自有提供商的电子邮件查找，只在有项目拥有自有提供商时保留。
+- OneUptime 会以 "This server requires single sign-on (SSO). Sign in with SSO instead." 拒绝密码、通行密钥、电子邮件链接、Google 或 Microsoft 登录和注册。只有主管理员的密码或通行密钥仍能用于登录。用户通过 SSO 登录或接受邀请来获得账户。
 - 已经用密码登录的人要打开项目，需要用 SSO 登录。他们会来到项目的单点登录页面，该页面提供项目自有的提供商，以及能让人登录该项目的全局提供商。
 - 主管理员在 `/accounts/admin-login` 用密码登录，登录页面不会链接到这个地址。**要求使用 SSO** 卡片在开关下方以 **主管理员登录** 显示完整地址：请保存它，以便在身份提供商停止工作时关闭该要求。
 
@@ -162,7 +162,7 @@ flowchart TB
 :::
 
 :::details "This server requires single sign-on (SSO). Sign in with SSO instead."
-整个实例要求使用 SSO，而这是一次使用密码、通行密钥、Google 或 Microsoft 的登录，或是一次注册。请改用登录页面上的某个 SSO 按钮登录。主管理员在 `/accounts/admin-login` 用密码登录；要让所有人重新可以用密码登录，请在 **单点登录** 上关闭 **登录时要求使用 SSO**。
+整个实例要求使用 SSO，而这是一次使用密码、通行密钥、电子邮件链接、Google 或 Microsoft 的登录，或是一次注册。请改用登录页面上的某个 SSO 按钮登录。主管理员在 `/accounts/admin-login` 用密码登录；要让所有人重新可以用密码登录，请在 **单点登录** 上关闭 **登录时要求使用 SSO**。
 :::
 
 ## 后续步骤

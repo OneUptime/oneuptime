@@ -9,7 +9,7 @@ In **Osservabilità dei dati > Prodotti di dati**, crea un prodotto di dati: dag
 - **Aggiornato entro un'ora del giorno (UTC):** i dati di ogni giorno arrivano quel giorno stesso, entro quell'ora. Da quell'ora in poi, ogni tabella deve essere cambiata in giornata; fino ad allora vale il caricamento di ieri. Un caricamento che arriva sempre con mezz'ora di ritardo è in ritardo per quella mezz'ora ogni giorno.
 - **Un'età massima:** nessuna tabella può avere un'ultima modifica più vecchia di questo valore.
 
-Ogni cinque minuti le tabelle di ogni prodotto vengono verificate rispetto al suo SLA. Il prodotto è **Late** quando lo è una qualsiasi delle sue tabelle, e i suoi dati risalgono all'ultima modifica più vecchia tra loro. Scrive `oneuptime.data.product.late_tables` e `oneuptime.data.product.data_age`, così puoi rappresentare in un grafico la freschezza di tutti i prodotti fianco a fianco.
+Ogni cinque minuti le tabelle di ogni prodotto vengono verificate rispetto al suo SLA. Il prodotto è **In ritardo** quando lo è una qualsiasi delle sue tabelle, e i suoi dati risalgono all'ultima modifica più vecchia tra loro. Scrive `oneuptime.data.product.late_tables` e `oneuptime.data.product.data_age`, così puoi rappresentare in un grafico la freschezza di tutti i prodotti fianco a fianco.
 
 ## Sulle pagine di stato
 

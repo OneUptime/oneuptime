@@ -43,6 +43,7 @@ export const CHANNEL_ICONS: Record<ComplianceNotificationChannel, IconProp> = {
   [ComplianceNotificationChannel.Telegram]: IconProp.Telegram,
   [ComplianceNotificationChannel.Slack]: IconProp.Slack,
   [ComplianceNotificationChannel.MicrosoftTeams]: IconProp.MicrosoftTeams,
+  [ComplianceNotificationChannel.Mattermost]: IconProp.Mattermost,
   [ComplianceNotificationChannel.Webhook]: IconProp.Webhook,
   // A channel the server's admin added (#5332), not one of the member's own.
   [ComplianceNotificationChannel.CustomChannel]: IconProp.PuzzlePiece,

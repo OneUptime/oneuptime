@@ -22,6 +22,7 @@ import FetchNetworkDeviceDiagnostics from "./Jobs/NetworkDevice/FetchDiagnostics
 import FetchPacketCaptures from "./Jobs/PacketCapture/FetchPacketCaptures";
 import ReportPacketCaptureCapability from "./Jobs/PacketCapture/ReportCapability";
 import FetchVMwareWork from "./Jobs/VMware/FetchVMwareWork";
+import FetchOpenStackWork from "./Jobs/OpenStack/FetchOpenStackWork";
 import ScanDataSecurityDatabases from "./Jobs/DataSecurity/ScanDatabases";
 import CollectDataObservabilityTableHealth from "./Jobs/DataObservability/CollectTableHealth";
 import { describePacketCaptureSettings } from "./Utils/PacketCapture/PacketCaptureSettings";
@@ -182,6 +183,12 @@ const init: PromiseVoidFunction = async (): Promise<void> => {
        * tests people start from the dashboard.
        */
       FetchVMwareWork();
+
+      /*
+       * OpenStack clouds this probe collects with the credential saved in OneUptime:
+       * OpenStack monitoring without an agent, and its connection tests.
+       */
+      FetchOpenStackWork();
 
       /*
        * Databases Data Security scans from inside this network, each with

@@ -18,6 +18,9 @@ import MonitorStepKubernetesMonitor, {
   KubernetesResourceScope,
   MonitorStepKubernetesMonitorUtil,
 } from "../../../Types/Monitor/MonitorStepKubernetesMonitor";
+import MonitorStepOpenStackMonitor, {
+  MonitorStepOpenStackMonitorUtil,
+} from "../../../Types/Monitor/MonitorStepOpenStackMonitor";
 import MonitorStepPodmanMonitor, {
   MonitorStepPodmanMonitorUtil,
 } from "../../../Types/Monitor/MonitorStepPodmanMonitor";
@@ -36,7 +39,7 @@ import { describe, expect, it } from "@jest/globals";
 
 /*
  * The infrastructure monitor-step types (Host, Docker, Podman, Kubernetes,
- * Ceph, IoT, Docker Swarm, Proxmox, VMware, Storage Array) each ship a small
+ * Ceph, IoT, Docker Swarm, Proxmox, OpenStack, VMware, Storage Array) each ship a small
  * `*Util` class with getDefault / fromJSON / toJSON. getDefault seeds the
  * monitor-step editor
  * when a user first picks that monitor type, so two things it does are
@@ -49,7 +52,10 @@ import { describe, expect, it } from "@jest/globals";
  *      object per collection, and the Storage Array Agent reads the array
  *      endpoint every 60 seconds and volumes, hosts and pods every 2
  *      minutes, so both default to Past5Minutes — a 1-minute window
- *      would be empty every other evaluation and flap. That value is what
+ *      would be empty every other evaluation and flap. OpenStack's agent
+ *      collects compute, network, volume and placement every 2 minutes and
+ *      identity and image every 5, so it defaults to Past15Minutes, three of
+ *      its slowest collections. That value is what
  *      a freshly created metric monitor evaluates over until the user
  *      changes it; a silent change to it would change the meaning of every
  *      new monitor. Pinned per type so a copy-paste edit in one file is
@@ -128,6 +134,12 @@ const CASES: Array<InfraCase> = [
     defaultRollingTime: RollingTime.Past1Minute,
   },
   {
+    name: "OpenStack",
+    util: MonitorStepOpenStackMonitorUtil as InfraMonitorUtil<MonitorStepOpenStackMonitor>,
+    identifierField: "cloudIdentifier",
+    defaultRollingTime: RollingTime.Past15Minutes,
+  },
+  {
     name: "VMware",
     util: MonitorStepVMwareMonitorUtil as InfraMonitorUtil<MonitorStepVMwareMonitor>,
     identifierField: "vcenterIdentifier",
@@ -187,14 +199,16 @@ describe("Infrastructure monitor-step getDefault contract", () => {
 });
 
 describe("Infrastructure monitor-step default rolling window", () => {
-  it("only VMware and Storage Array depart from the 1-minute window, and only upward", () => {
+  it("only VMware, Storage Array and OpenStack depart from the 1-minute window, and only upward", () => {
     /*
      * Guards the table itself: a new product copy-pasted from VMware must
      * not inherit the 5-minute window without a slow-collection
      * justification, and neither slow collector may slide back to 1 minute.
      */
     for (const testCase of CASES) {
-      if (SLOW_COLLECTION_TYPES.includes(testCase.name)) {
+      if (testCase.name === "OpenStack") {
+        expect(testCase.defaultRollingTime).toBe(RollingTime.Past15Minutes);
+      } else if (SLOW_COLLECTION_TYPES.includes(testCase.name)) {
         expect(testCase.defaultRollingTime).toBe(RollingTime.Past5Minutes);
       } else {
         expect(testCase.defaultRollingTime).toBe(RollingTime.Past1Minute);

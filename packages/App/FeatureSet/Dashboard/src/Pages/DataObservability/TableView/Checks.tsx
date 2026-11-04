@@ -8,6 +8,8 @@ import {
   DataAssetColumn,
   readDataAssetColumns,
 } from "Common/Types/DataObservability/DataAssetColumn";
+import DataAssetKind from "Common/Types/DataObservability/DataAssetKind";
+import Card from "Common/UI/Components/Card/Card";
 import React, { FunctionComponent, ReactElement, useState } from "react";
 
 /*
@@ -24,6 +26,16 @@ const TableChecksPage: FunctionComponent<
   const columns: Array<DataAssetColumn> = readDataAssetColumns(
     dataAsset?.columns,
   );
+
+  // A check reads a table's rows: a storage path has only objects' names, sizes and times.
+  if (dataAsset?.assetKind === DataAssetKind.StoragePath) {
+    return (
+      <Card
+        title="Checks"
+        description="A storage path has no rows to check. It is watched by when its newest object landed, how many objects it holds and their size."
+      />
+    );
+  }
 
   return (
     <div className="space-y-5">

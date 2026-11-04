@@ -238,6 +238,7 @@ export function getMonitorStepSchema(): ZodSchema {
       hostMonitor: Zod.any().optional(),
       podmanMonitor: Zod.any().optional(),
       proxmoxMonitor: Zod.any().optional(),
+      openstackMonitor: Zod.any().optional(),
       vmwareMonitor: Zod.any().optional(),
       dockerSwarmMonitor: Zod.any().optional(),
       cephMonitor: Zod.any().optional(),

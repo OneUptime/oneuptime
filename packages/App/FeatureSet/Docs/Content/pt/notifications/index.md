@@ -27,7 +27,7 @@ flowchart TB
 
 | Página | O que ela guarda | A pergunta que ela responde |
 | --- | --- | --- |
-| **Métodos de notificação** | Seus endereços de e-mail, números de telefone, números do WhatsApp, contas do Telegram, Slack e Microsoft Teams, dispositivos push e webhooks | Onde o OneUptime pode me encontrar? |
+| **Métodos de notificação** | Seus endereços de e-mail, números de telefone, números do WhatsApp, contas do Telegram, Slack, Microsoft Teams e Mattermost, dispositivos push e webhooks | Onde o OneUptime pode me encontrar? |
 | **Regras de Plantão** | Para cada tipo de acionamento e cada gravidade, qual método tentar e depois de quanto tempo | Como sou acionado enquanto estou de plantão? |
 | **Configurações de notificação** | Para cada evento sobre um registro seu ou sobre os seus turnos, quais canais usar | Do que mais fico sabendo, e onde? |
 
@@ -90,7 +90,7 @@ Cada método que você verificar depois recebe as mesmas regras: uma regra para 
 
 Um acionamento pode chegar até você para um tipo e uma gravidade para os quais você não tem regra: por exemplo, uma gravidade adicionada depois que você entrou. O OneUptime aciona você mesmo assim, pelo que você verificou:
 
-1. Cada método gratuito que você tem: dispositivos push, endereços de e-mail, Slack e Microsoft Teams.
+1. Cada método gratuito que você tem: dispositivos push, endereços de e-mail, Slack, Microsoft Teams e Mattermost.
 2. Se você não tem nenhum desses, um método pago, nesta ordem: SMS, uma chamada telefônica, WhatsApp, Telegram. É o primeiro que você verificou, em um canal que o projeto ativou.
 3. Se você também não tem nenhum desses, um webhook.
 

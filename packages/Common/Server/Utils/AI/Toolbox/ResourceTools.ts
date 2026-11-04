@@ -5,6 +5,7 @@ import PodmanHost from "../../../../Models/DatabaseModels/PodmanHost";
 import KubernetesCluster from "../../../../Models/DatabaseModels/KubernetesCluster";
 import DockerSwarmCluster from "../../../../Models/DatabaseModels/DockerSwarmCluster";
 import ProxmoxCluster from "../../../../Models/DatabaseModels/ProxmoxCluster";
+import OpenStackCloud from "../../../../Models/DatabaseModels/OpenStackCloud";
 import VMwareVCenter from "../../../../Models/DatabaseModels/VMwareVCenter";
 import CephCluster from "../../../../Models/DatabaseModels/CephCluster";
 import StorageArray from "../../../../Models/DatabaseModels/StorageArray";
@@ -41,6 +42,7 @@ import {
   keyForKubernetesCluster,
   keyForDockerSwarmCluster,
   keyForProxmoxCluster,
+  keyForOpenStackCloud,
   keyForVMwareVCenter,
   keyForCephCluster,
   keyForStorageArray,
@@ -51,6 +53,7 @@ import PodmanHostService from "../../../Services/PodmanHostService";
 import KubernetesClusterService from "../../../Services/KubernetesClusterService";
 import DockerSwarmClusterService from "../../../Services/DockerSwarmClusterService";
 import ProxmoxClusterService from "../../../Services/ProxmoxClusterService";
+import OpenStackCloudService from "../../../Services/OpenStackCloudService";
 import VMwareVCenterService from "../../../Services/VMwareVCenterService";
 import CephClusterService from "../../../Services/CephClusterService";
 import StorageArrayService from "../../../Services/StorageArrayService";
@@ -220,6 +223,25 @@ const RESOURCE_DESCRIPTORS: Record<AIResourceType, ResourceDescriptor> = {
     identifier: "name",
     attributeKey: "resource.proxmox.cluster.name",
     keyFor: keyForProxmoxCluster,
+  },
+  [AIResourceType.OpenStackCloud]: {
+    model: OpenStackCloud,
+    findBy: (data: FindBy<BaseModel>) => {
+      return OpenStackCloudService.findBy(data as never);
+    },
+    fields: [
+      "regionCount",
+      "hypervisorCount",
+      "instanceCount",
+      "activeInstanceCount",
+      "volumeCount",
+      "networkCount",
+      "serviceCount",
+      "downServiceCount",
+    ],
+    identifier: "name",
+    attributeKey: "resource.openstack.cloud.name",
+    keyFor: keyForOpenStackCloud,
   },
   [AIResourceType.VMwareVCenter]: {
     model: VMwareVCenter,
