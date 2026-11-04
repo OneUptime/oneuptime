@@ -110,11 +110,15 @@ export function buildOpenStackChangeEntry(data: {
   set(OpenStackLogAttribute.RequestId, event.requestId);
   set(OpenStackLogAttribute.ProjectId, event.projectId);
   set(OpenStackLogAttribute.InstanceId, event.instanceId);
+  /*
+   * The binary that wrote it, which its own service's page goes by. A publisher only says that
+   * for Nova's: Cinder's and Neutron's say volume and network, and the line says the rest.
+   */
   set(
     OPENSTACK_EVENT_SERVICE_ATTRIBUTE,
     (event.part && event.part.binary) ||
-      event.publisherService ||
-      recorded.service,
+      recorded.service ||
+      event.publisherService,
   );
 
   const host: string = event.host || recorded.host;

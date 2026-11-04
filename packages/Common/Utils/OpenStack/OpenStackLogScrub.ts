@@ -34,50 +34,55 @@ const MIN_TOKEN_LENGTH: number = 32;
  * The names a value is secret under. Each is found anywhere in a longer name, so `password`
  * is also admin_password and rabbit_password, and `token` is X-Auth-Token. A name that runs
  * on past one is another name (password_expires_at), so what runs on and is secret is listed.
- * Most of these are what oslo.utils itself masks in the logs that go through it.
+ * Most of these are what oslo.utils itself masks in the logs that go through it. They are
+ * kept under what they all hold, so a line that holds none of that costs one look per group.
  */
-const KEY_WORDS: ReadonlyArray<string> = [
-  "password",
-  "passwords",
-  "password_hash",
-  "passwd",
-  "passphrase",
-  "pwd",
-  "pswd",
-  "adminpass",
-  "admin_pass",
-  "new_pass",
-  "secret",
-  "secrets",
-  "secret_key",
-  "secret_uuid",
-  "access_key",
-  "private_key",
-  "api_key",
-  "api-key",
-  "apikey",
-  "auth_key",
-  "auth-key",
-  "encrypted_key",
-  "encryption_key",
-  "fernetkey",
-  "fernet_key",
-  "sslkey",
-  "ssl_key",
-  "temp_url_key",
-  "temp-url-key",
-  "temp_url_sig",
-  "signature",
-  "token",
-  "tokens",
-  "token_id",
-  "authorization",
-  "credential",
-  "credentials",
-  "credential_blob",
-  "blob",
-  "configdrive",
-  "cookie",
+const KEY_WORD_GROUPS: ReadonlyArray<{
+  holds: string;
+  words: ReadonlyArray<string>;
+}> = [
+  {
+    holds: "pass",
+    words: [
+      "password",
+      "password_hash",
+      "passwd",
+      "passphrase",
+      "adminpass",
+      "admin_pass",
+      "new_pass",
+    ],
+  },
+  { holds: "pwd", words: ["pwd"] },
+  { holds: "pswd", words: ["pswd"] },
+  { holds: "secret", words: ["secret", "secret_key", "secret_uuid"] },
+  {
+    holds: "key",
+    words: [
+      "access_key",
+      "private_key",
+      "api_key",
+      "api-key",
+      "apikey",
+      "auth_key",
+      "auth-key",
+      "encrypted_key",
+      "encryption_key",
+      "fernetkey",
+      "fernet_key",
+      "sslkey",
+      "ssl_key",
+      "temp_url_key",
+      "temp-url-key",
+    ],
+  },
+  { holds: "sig", words: ["temp_url_sig", "signature"] },
+  { holds: "token", words: ["token", "token_id"] },
+  { holds: "authorization", words: ["authorization"] },
+  { holds: "credential", words: ["credential", "credentials", "credential_blob"] },
+  { holds: "blob", words: ["blob"] },
+  { holds: "configdrive", words: ["configdrive"] },
+  { holds: "cookie", words: ["cookie"] },
 ];
 
 // A word that names something secret only when what follows it can be a value.
@@ -86,7 +91,6 @@ const VALUES_THAT_ARE_NOT_SECRETS: ReadonlyArray<string> = [
   "null",
   "true",
   "false",
-  "***",
   "",
 ];
 
@@ -101,6 +105,9 @@ const AUTHORIZATION_SCHEMES: ReadonlyArray<string> = [
 ];
 
 const LONGEST_PORT: number = 5;
+
+// How far ahead a closing character looks for the next name: password=a,user=b.
+const LONGEST_NAME_AFTER_A_VALUE: number = 64;
 
 interface TextRange {
   start: number;
@@ -203,6 +210,32 @@ function countBackslashesBefore(
 }
 
 /*
+ * Whether another name starts here, which is what a,b=c and a&b=c look like between two values
+ * and rarely inside one: a=1,b=2,c=3, as Python writes an object and a URL writes its query.
+ * Looks a short way, so a line of nothing but commas is still read once.
+ */
+function startsName(text: string, position: number): boolean {
+  const limit: number = Math.min(
+    text.length,
+    position + LONGEST_NAME_AFTER_A_VALUE,
+  );
+
+  for (let index: number = position; index < limit; index++) {
+    const code: number = text.charCodeAt(index);
+
+    if (code === 61) {
+      return index > position;
+    }
+
+    if (!isKeyCharacter(code)) {
+      return false;
+    }
+  }
+
+  return false;
+}
+
+/*
  * Whether a closing character at this place ends a value that has no opening quote: only
  * when nothing of a value comes after it. A password can hold any of them.
  */
@@ -227,7 +260,8 @@ function closesValue(
     isWhitespace(next) ||
     isCloser(next) ||
     next === BACKSLASH ||
-    next === COLON
+    next === COLON ||
+    (!onlyQuotes && !isQuote(code) && startsName(text, position + 1))
   );
 }
 
@@ -413,13 +447,25 @@ function readValue(data: {
   });
 }
 
+// Stars are how oslo.utils and oslo.config write a secret they have already taken out.
+function isOnlyStars(text: string, from: number, to: number): boolean {
+  for (let index: number = from; index < to; index++) {
+    if (text.charCodeAt(index) !== 42) {
+      return false;
+    }
+  }
+
+  return true;
+}
+
 function isNotASecret(text: string, read: ValueRead): boolean {
   return (
     read.valueEnd <= read.valueStart ||
     (read.valueEnd - read.valueStart <= LONGEST_VALUE_THAT_IS_NOT_A_SECRET &&
-      VALUES_THAT_ARE_NOT_SECRETS.includes(
-        text.slice(read.valueStart, read.valueEnd).trim().toLowerCase(),
-      ))
+      (isOnlyStars(text, read.valueStart, read.valueEnd) ||
+        VALUES_THAT_ARE_NOT_SECRETS.includes(
+          text.slice(read.valueStart, read.valueEnd).trim().toLowerCase(),
+        )))
   );
 }
 
@@ -473,6 +519,11 @@ function readNamedValue(data: {
   let valueStart: number = -1;
 
   if (separator === "=" || separator === ":") {
+    // A path's last word, as uWSGI writes a request: POST /v3/auth/token => generated 207 bytes.
+    if (spaces > 0 && wordStart > 0 && text.charAt(wordStart - 1) === "/") {
+      return { range: null, resumeAt: wordEnd };
+    }
+
     valueStart = position + 1;
     // Python's own => and Ruby's, as a few of these are written.
     if (text.charAt(valueStart) === ">") {
@@ -520,7 +571,14 @@ function readNamedValue(data: {
     return { range: null, resumeAt: valueStart };
   }
 
-  if (isNotASecret(text, read)) {
+  /*
+   * What a shell calls the folder it is in, as sudo writes it for every command it runs: a
+   * password is a folder rarely enough, and a folder is a password never.
+   */
+  if (
+    isNotASecret(text, read) ||
+    (word === "pwd" && text.charAt(read.valueStart) === "/")
+  ) {
     return { range: null, resumeAt: read.closedAt };
   }
 
@@ -561,29 +619,35 @@ function findNamedValues(data: {
   lower: string;
   ranges: Array<TextRange>;
 }): void {
-  for (const word of KEY_WORDS) {
-    let from: number = 0;
+  for (const group of KEY_WORD_GROUPS) {
+    if (data.lower.indexOf(group.holds) === -1) {
+      continue;
+    }
 
-    for (;;) {
-      const at: number = data.lower.indexOf(word, from);
+    for (const word of group.words) {
+      let from: number = 0;
 
-      if (at === -1) {
-        break;
+      for (;;) {
+        const at: number = data.lower.indexOf(word, from);
+
+        if (at === -1) {
+          break;
+        }
+
+        const read: { range: TextRange | null; resumeAt: number } =
+          readNamedValue({
+            text: data.text,
+            wordStart: at,
+            wordEnd: at + word.length,
+            word,
+          });
+
+        if (read.range) {
+          data.ranges.push(read.range);
+        }
+
+        from = Math.max(read.resumeAt, at + word.length);
       }
-
-      const read: { range: TextRange | null; resumeAt: number } =
-        readNamedValue({
-          text: data.text,
-          wordStart: at,
-          wordEnd: at + word.length,
-          word,
-        });
-
-      if (read.range) {
-        data.ranges.push(read.range);
-      }
-
-      from = Math.max(read.resumeAt, at + word.length);
     }
   }
 }
@@ -907,9 +971,43 @@ export function stripAnsiCodes(text: string): string {
 }
 
 /*
+ * Whether a field's name is one a value is secret under, by the same words as a line's: its
+ * name ends with one, as admin_password does and password_expires_at does not.
+ */
+function isSecretFieldName(lowerName: string): boolean {
+  if (lowerName.length > MAX_FIELD_NAME_LENGTH) {
+    return false;
+  }
+
+  for (const group of KEY_WORD_GROUPS) {
+    for (const word of group.words) {
+      const at: number = lowerName.lastIndexOf(word);
+
+      if (at === -1) {
+        continue;
+      }
+
+      let end: number = at + word.length;
+
+      while (end < lowerName.length && isDigit(lowerName.charCodeAt(end))) {
+        end++;
+      }
+
+      if (end === lowerName.length) {
+        return true;
+      }
+    }
+  }
+
+  return false;
+}
+
+/*
  * A notification's or an audit event's fields with what must never be stored taken out:
  * whatever a credential holds, what a request or response held, and an oslo.context's
- * own copy of its token. By key, on the parsed value. Depth is bounded because a value
+ * own copy of its token. By key, on the parsed value, and every text left is scrubbed on its
+ * own: a line's scrub reads text and cannot see where a string of JSON ends, so it can take
+ * more than it should and leave what no longer parses. Depth is bounded because a value
  * anyone can write decides it, and a walk that recursed for each level could run out of
  * stack on one long nesting.
  */
@@ -937,6 +1035,8 @@ const REMOVED_KEYS: ReadonlySet<string> = new Set([
 ]);
 
 const MAX_CLEANED_DEPTH: number = 32;
+
+const MAX_FIELD_NAME_LENGTH: number = 128;
 
 export function removeOpenStackSecretFields(
   value: unknown,
@@ -970,14 +1070,23 @@ export function removeOpenStackSecretFields(
         continue;
       }
 
-      cleaned[key] = removeOpenStackSecretFields(
-        (value as Record<string, unknown>)[key],
-        depth + 1,
-      );
+      const field: unknown = (value as Record<string, unknown>)[key];
+
+      if (
+        typeof field === "string" &&
+        isSecretFieldName(lower) &&
+        !isOnlyStars(field, 0, field.length) &&
+        !VALUES_THAT_ARE_NOT_SECRETS.includes(field.trim().toLowerCase())
+      ) {
+        cleaned[key] = OPENSTACK_SCRUBBED_VALUE;
+        continue;
+      }
+
+      cleaned[key] = removeOpenStackSecretFields(field, depth + 1);
     }
 
     return cleaned;
   }
 
-  return value;
+  return typeof value === "string" ? scrubOpenStackSecrets(value) : value;
 }

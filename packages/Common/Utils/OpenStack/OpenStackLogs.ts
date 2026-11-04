@@ -101,6 +101,9 @@ export const MAX_OPENSTACK_LOG_BODY_LENGTH: number = 1024 * 1024;
 
 const TRUNCATED_NOTE: string = "… (truncated by OneUptime)";
 
+// What Python starts a stack trace with.
+const TRACEBACK_START: string = "Traceback (most recent call last)";
+
 // The first line is all that is read for a line's fields.
 const MAX_HEADER_LENGTH: number = 16 * 1024;
 const MAX_LOGGER_LENGTH: number = 200;
@@ -539,12 +542,16 @@ function readJson(text: string): Record<string, unknown> | null {
 
 /*
  * oslo.log's JSON formatter: `message` is the line, `levelname` and `name` its level and
- * logger, `context` the request, `traceback` a list of lines. `msg` and `args` are not
- * read and do not stay: `args` is the values a service was logging, secrets included.
+ * logger, `context` the request, `error_summary` the exception a line in text ends with, and
+ * `traceback` a list of lines. `msg` and `args` are not read and do not stay: `args` is the
+ * values a service was logging, secrets included. The message comes back as it was written,
+ * for a notification to be read from, and the body with its secrets gone.
  */
-function readOsloJson(
-  parsed: Record<string, unknown>,
-): { line: OpenStackLogLine; body: string } | null {
+function readOsloJson(parsed: Record<string, unknown>): {
+  line: OpenStackLogLine;
+  body: string;
+  rawMessage: string;
+} | null {
   if (
     typeof parsed["levelname"] !== "string" ||
     typeof parsed["name"] !== "string" ||
@@ -560,9 +567,14 @@ function readOsloJson(
     extra ? extra["instance"] : undefined,
   );
 
+  const summary: string = readString(parsed, "error_summary");
+  const rawMessage: string = parsed["message"] as string;
+
   line.level = cut(parsed["levelname"] as string, 16);
   line.logger = cut(parsed["name"] as string, MAX_LOGGER_LENGTH);
-  line.message = parsed["message"] as string;
+  line.message = scrubOpenStackSecrets(
+    summary ? `${rawMessage}: ${summary}` : rawMessage,
+  );
   line.processId = readString(parsed, "process");
   line.hostname = cut(readString(parsed, "hostname"));
   line.requestId = cut(readString(context, "request_id"));
@@ -590,15 +602,17 @@ function readOsloJson(
 
   const traceback: unknown = parsed["traceback"];
   const body: string = Array.isArray(traceback)
-    ? [
-        line.message,
-        ...traceback.filter((item: unknown): boolean => {
-          return typeof item === "string";
-        }),
-      ].join("\n")
+    ? scrubOpenStackSecrets(
+        [
+          line.message,
+          ...traceback.filter((item: unknown): boolean => {
+            return typeof item === "string";
+          }),
+        ].join("\n"),
+      )
     : line.message;
 
-  return { line, body };
+  return { line, body, rawMessage };
 }
 
 function readRecordString(
@@ -693,13 +707,23 @@ export function getOpenStackServiceOfUnit(unit: string): string {
   return DEVSTACK_UNIT_SERVICES.get(name) || withoutEnding(name);
 }
 
-// A log file as a service: /var/log/kolla/nova/nova-compute.log is nova-compute.
+/*
+ * A log file as a service: /var/log/kolla/nova/nova-compute.log is nova-compute. oslo.log names
+ * a file after the program that runs it, and with log_dir and no log_file a service under uWSGI
+ * has no program of its own: "<frozen importlib._bootstrap>.log". Its folder says whose it is.
+ */
 export function getOpenStackServiceOfFile(path: string): string {
   const slash: number = path.lastIndexOf("/");
   let name: string = slash === -1 ? path : path.slice(slash + 1);
 
   if (name.endsWith(".log")) {
     name = name.slice(0, name.length - ".log".length);
+  }
+
+  if (name.indexOf(" ") !== -1 || name.charAt(0) === "<") {
+    const folderSlash: number = slash > 0 ? path.lastIndexOf("/", slash - 1) : -1;
+
+    return slash > 0 ? path.slice(folderSlash + 1, slash) : "";
   }
 
   return withoutEnding(name);
@@ -805,10 +829,44 @@ const HEALTH_CHECK_PATHS: ReadonlySet<string> = new Set([
   "/healthz",
 ]);
 
+// What an API's path starts with where one server holds them all, as DevStack's Apache does.
+const API_PATH_PREFIXES: ReadonlyArray<string> = [
+  "/identity",
+  "/compute",
+  "/volume",
+  "/image",
+  "/placement",
+  "/networking",
+];
+
+function isHealthCheckPath(path: string): boolean {
+  if (HEALTH_CHECK_PATHS.has(path)) {
+    return true;
+  }
+
+  for (const prefix of API_PATH_PREFIXES) {
+    if (
+      path.startsWith(prefix) &&
+      HEALTH_CHECK_PATHS.has(path.slice(prefix.length))
+    ) {
+      return true;
+    }
+  }
+
+  return false;
+}
+
+/*
+ * How an API's own log writes a request, and what that says of the path: oslo.log's request
+ * line has "GET /path" in quotes, and uWSGI's own says ] GET /path => generated.
+ */
 const HEALTH_CHECK_METHODS: ReadonlyArray<string> = [
   '"GET ',
   '"HEAD ',
   '"OPTIONS ',
+  "] GET ",
+  "] HEAD ",
+  "] OPTIONS ",
 ];
 
 /*
@@ -816,12 +874,8 @@ const HEALTH_CHECK_METHODS: ReadonlyArray<string> = [
  * /healthcheck every few seconds on most clouds, and each answer is a line. Only the
  * API's own access lines count: a person's "GET /" reads the same, and costs nothing.
  */
-function isHealthCheckLine(line: OpenStackLogLine): boolean {
-  if (line.level !== "INFO" && line.level !== "DEBUG") {
-    return false;
-  }
-
-  const message: string = line.message.slice(0, 1024);
+function isHealthCheckMessage(text: string): boolean {
+  const message: string = text.slice(0, 1024);
 
   for (const method of HEALTH_CHECK_METHODS) {
     const at: number = message.indexOf(method);
@@ -842,12 +896,24 @@ function isHealthCheckLine(line: OpenStackLogLine): boolean {
       pathEnd++;
     }
 
-    if (HEALTH_CHECK_PATHS.has(message.slice(pathStart, pathEnd))) {
+    if (isHealthCheckPath(message.slice(pathStart, pathEnd))) {
       return true;
     }
   }
 
   return false;
+}
+
+function isHealthCheckLine(line: OpenStackLogLine): boolean {
+  return (
+    (line.level === "INFO" || line.level === "DEBUG") &&
+    isHealthCheckMessage(line.message)
+  );
+}
+
+// uWSGI's own line for a request, which its service's unit holds beside oslo.log's.
+function isUwsgiRequestLine(body: string): boolean {
+  return body.startsWith("[pid: ");
 }
 
 /*
@@ -1017,17 +1083,58 @@ function holdsOsloJournalFields(attributes: Record<string, unknown>): boolean {
 }
 
 /*
- * A notification, from the JSON at the end of its line. A DEBUG one has oslo.log's suffix
- * after the JSON, which is the only thing that can follow it. What must never be stored is
- * taken out of the fields, and the body is written from what is left.
+ * Where the JSON object starting at a place ends, by its braces outside its strings: -1 if it
+ * never does. What follows it can hold braces of its own.
  */
-function readNotificationMessage(
-  message: string,
-): { parsed: Record<string, unknown>; text: string } | null {
-  const start: number = message.indexOf("{");
-  const end: number = message.lastIndexOf("}");
+function findJsonObjectEnd(text: string, start: number): number {
+  let depth: number = 0;
+  let isInString: boolean = false;
 
-  if (start === -1 || end <= start) {
+  for (let index: number = start; index < text.length; index++) {
+    const code: number = text.charCodeAt(index);
+
+    if (isInString) {
+      if (code === 92) {
+        index++;
+      } else if (code === 34) {
+        isInString = false;
+      }
+    } else if (code === 34) {
+      isInString = true;
+    } else if (code === 123) {
+      depth++;
+    } else if (code === 125) {
+      depth--;
+
+      if (depth === 0) {
+        return index;
+      }
+    }
+  }
+
+  return -1;
+}
+
+/*
+ * A notification, from the JSON in its line, as the service wrote it. Something can follow
+ * the JSON: oslo.log adds the exception being handled to an error, and DevStack's format the
+ * function that logged it to a DEBUG line. What must never be stored is taken out of the
+ * fields, the body is written from what is left, and what followed stays, its secrets gone.
+ */
+function readNotificationMessage(message: string): {
+  parsed: Record<string, unknown>;
+  text: string;
+  rest: string;
+} | null {
+  const start: number = message.indexOf("{");
+
+  if (start === -1) {
+    return null;
+  }
+
+  const end: number = findJsonObjectEnd(message, start);
+
+  if (end === -1) {
     return null;
   }
 
@@ -1043,7 +1150,11 @@ function readNotificationMessage(
     parsed,
   ) as Record<string, unknown>;
 
-  return { parsed: cleaned, text: JSON.stringify(cleaned) };
+  return {
+    parsed: cleaned,
+    text: JSON.stringify(cleaned),
+    rest: scrubOpenStackSecrets(message.slice(end + 1)),
+  };
 }
 
 function setIfPresent(
@@ -1070,11 +1181,17 @@ export function stampOpenStackLogRecord(data: {
   const removedAttributes: Array<string> = [];
   let source: string = data.body || "";
 
-  // oslo.log's journal handler keeps a traceback beside the line. It belongs in the body.
+  /*
+   * oslo.log's journal handler keeps a traceback beside the line. It belongs in the body,
+   * which holds it already when the line's format wrote it, as the default format does.
+   */
   const exceptionInfo: unknown = data.attributes["journald.exception_info"];
 
   if (typeof exceptionInfo === "string" && exceptionInfo) {
-    source = source ? `${source}\n${exceptionInfo}` : exceptionInfo;
+    if (source.indexOf(TRACEBACK_START) === -1) {
+      source = source ? `${source}\n${exceptionInfo}` : exceptionInfo;
+    }
+
     removedAttributes.push("journald.exception_info");
   }
 
@@ -1084,14 +1201,19 @@ export function stampOpenStackLogRecord(data: {
     source = cutWhole(source, MAX_OPENSTACK_LOG_BODY_LENGTH);
   }
 
-  let body: string = scrubOpenStackSecrets(stripAnsiCodes(source), { wasCut });
+  /*
+   * JSON is read as it was written, and its secrets taken out field by field. The scrub of a
+   * line reads text: "memcache_password = " at the end of a string of JSON looks to it like a
+   * value opening at the quote that closes the string, and what it took then no longer parses.
+   */
+  const written: string = stripAnsiCodes(source);
+  let body: string = scrubOpenStackSecrets(written, { wasCut });
   let line: OpenStackLogLine | null = null;
   let notification: Record<string, unknown> | null = null;
+  let rawMessage: string = "";
 
-  const trimmedStart: string = body.slice(0, 1);
-
-  if (trimmedStart === "{") {
-    const parsed: Record<string, unknown> | null = readJson(body);
+  if (written.charAt(0) === "{") {
+    const parsed: Record<string, unknown> | null = readJson(written);
 
     if (parsed && typeof parsed["event_type"] === "string") {
       const cleaned: Record<string, unknown> = removeOpenStackSecretFields(
@@ -1101,21 +1223,34 @@ export function stampOpenStackLogRecord(data: {
       body = JSON.stringify(cleaned);
       line = emptyLine(OpenStackLogFormat.Notification);
     } else if (parsed) {
-      const json: { line: OpenStackLogLine; body: string } | null =
-        readOsloJson(parsed);
+      const json: {
+        line: OpenStackLogLine;
+        body: string;
+        rawMessage: string;
+      } | null = readOsloJson(parsed);
 
       if (json) {
         line = json.line;
         body = json.body;
+        rawMessage = json.rawMessage;
       }
     }
   } else {
     line = readOpenStackLogLine(body);
+
+    if (line && line.logger.startsWith(OPENSTACK_NOTIFICATION_LOGGER_PREFIX)) {
+      // Its fields come from the line with its secrets gone, and its JSON from before that.
+      const asWritten: OpenStackLogLine | null =
+        body === written ? line : readOpenStackLogLine(written);
+
+      rawMessage = asWritten ? asWritten.message : line.message;
+    }
   }
 
   if (!line && holdsOsloJournalFields(data.attributes)) {
     line = emptyLine(OpenStackLogFormat.Oslo);
     line.message = body;
+    rawMessage = written;
   }
 
   if (line) {
@@ -1129,8 +1264,11 @@ export function stampOpenStackLogRecord(data: {
     !notification &&
     logger.startsWith(OPENSTACK_NOTIFICATION_LOGGER_PREFIX)
   ) {
-    const read: { parsed: Record<string, unknown>; text: string } | null =
-      readNotificationMessage(line.message);
+    const read: {
+      parsed: Record<string, unknown>;
+      text: string;
+      rest: string;
+    } | null = readNotificationMessage(rawMessage || line.message);
 
     if (read) {
       notification = read.parsed;
@@ -1142,8 +1280,8 @@ export function stampOpenStackLogRecord(data: {
        */
       body =
         line.format === OpenStackLogFormat.OsloJson
-          ? read.text
-          : `${body.slice(0, body.length - line.message.length)}${read.text}`;
+          ? `${read.text}${read.rest}`
+          : `${body.slice(0, body.length - line.message.length)}${read.text}${read.rest}`;
     }
   }
 
@@ -1259,6 +1397,10 @@ export function stampOpenStackLogRecord(data: {
       attributes[OpenStackLogAttribute.Noise] =
         OPENSTACK_LOG_NOISE_HEALTH_CHECK;
     }
+  }
+
+  if (!line && isUwsgiRequestLine(body) && isHealthCheckMessage(body)) {
+    attributes[OpenStackLogAttribute.Noise] = OPENSTACK_LOG_NOISE_HEALTH_CHECK;
   }
 
   if (severityNumber === null && !data.severityNumber) {

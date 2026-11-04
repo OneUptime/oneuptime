@@ -152,12 +152,21 @@ describe("a value named as a secret", () => {
       expect(kept(text)).toBe(expected);
     });
 
-    test("what is unsure goes: the names after a comma with no space go too", () => {
-      expect(kept("password=abc,user=bob after")).toBe(
+    test.each([
+      ["password=abc,user=bob after", `password=${OPENSTACK_SCRUBBED_VALUE},user=bob after`],
+      ["?password=abc&limit=1 HTTP/1.1", `?password=${OPENSTACK_SCRUBBED_VALUE}&limit=1 HTTP/1.1`],
+      ["Password=abc;Server=db after", `Password=${OPENSTACK_SCRUBBED_VALUE};Server=db after`],
+      [
+        "encryption_secret_uuid=<?>,guest_format=None,id=<?>",
+        `encryption_secret_uuid=${OPENSTACK_SCRUBBED_VALUE},guest_format=None,id=<?>`,
+      ],
+    ])("the next name after a comma stays, as Python writes an object: %s", (text: string, expected: string) => {
+      expect(kept(text)).toBe(expected);
+    });
+
+    test("a word after the comma that names nothing stays in the value", () => {
+      expect(kept("password=abc,def,ghi after")).toBe(
         `password=${OPENSTACK_SCRUBBED_VALUE} after`,
-      );
-      expect(kept("?password=abc&limit=1 HTTP/1.1")).toBe(
-        `?password=${OPENSTACK_SCRUBBED_VALUE} HTTP/1.1`,
       );
     });
 
@@ -176,7 +185,7 @@ describe("a value named as a secret", () => {
     test.each([
       '"password": {"user": {"name": "admin", "password": "s3cr3t"}}',
       "'token': {'expires_at': 'x', 'id': 'y', 'password': 's3cr3t'}",
-      '"secrets": ["a", {"password": "s3cr3t"}]',
+      '"secret": ["a", {"password": "s3cr3t"}]',
       "'secret': {u'password': u's3cr3t'}",
       '"token": { "password": "s3cr3t" }',
     ])("an object or a list stays, and what is secret in it goes: %s", (text: string) => {
@@ -190,7 +199,6 @@ describe("a value named as a secret", () => {
 
   describe("names it used to miss", () => {
     test.each([
-      "passwords",
       "password1",
       "new_password2",
       "passphrase",
@@ -198,7 +206,6 @@ describe("a value named as a secret", () => {
       "pwd",
       "sys_pswd",
       "new_pass",
-      "secrets",
       "secret_uuid",
       "client_secret",
       "api_key",
@@ -214,7 +221,6 @@ describe("a value named as a secret", () => {
       "X-Account-Meta-Temp-URL-Key",
       "temp_url_sig",
       "signature",
-      "tokens",
       "token_id",
       "credentials",
       "credential_blob",
@@ -381,6 +387,18 @@ describe("words that name no value", () => {
   test("the same string comes back when there is nothing to take", () => {
     const text: string = "INFO nova.compute.manager [-] Ordinary line";
 
+    expect(kept(text)).toBe(text);
+  });
+
+  test.each([
+    // Read off what a real cloud's services wrote.
+    "POST /identity/v3/auth/tokens => generated 2599 bytes in 1149 msecs (HTTP/1.1 201)",
+    "POST /identity/auth/token => generated 207 bytes in 2 msecs (HTTP/1.1 404)",
+    "runner : PWD=/ ; USER=root ; COMMAND=/opt/stack/data/venv/bin/cinder-rootwrap",
+    "runner : PWD=/opt/stack ; USER=root ; COMMAND=/usr/bin/true",
+    "Error during ConsoleAuthTokensManager._cleanup_expired_console_auth_tokens: oslo_messaging.rpc.client.RemoteError: Remote error",
+    "encryption_secret_uuid=None,guest_format=None,id=<?>",
+  ])("%s stays as it is", (text: string) => {
     expect(kept(text)).toBe(text);
   });
 
@@ -604,6 +622,57 @@ describe("colours", () => {
 });
 
 describe("the fields of a notification", () => {
+  test.each([
+    "admin_password",
+    "new_password",
+    "auth_password",
+    "password1",
+    "client_secret",
+    "secret_key",
+    "chappassword",
+    "metadata_proxy_shared_secret",
+    "X-Auth-Token",
+    "encrypted_key",
+  ])("a field named %s loses its value and keeps its name", (name: string) => {
+    expect(
+      removeOpenStackSecretFields({ payload: { [name]: SECRET, keep: "x" } }),
+    ).toEqual({ payload: { [name]: OPENSTACK_SCRUBBED_VALUE, keep: "x" } });
+  });
+
+  test.each(["password_expires_at", "token_type", "secret_ref", "tokens"])(
+    "a field named %s is another word",
+    (name: string) => {
+      expect(removeOpenStackSecretFields({ [name]: "value" })).toEqual({
+        [name]: "value",
+      });
+    },
+  );
+
+  test.each(["***", "None", "null", ""])(
+    "a secret's field already saying %j says it still",
+    (value: string) => {
+      expect(removeOpenStackSecretFields({ admin_password: value })).toEqual({
+        admin_password: value,
+      });
+    },
+  );
+
+  test("every text left is read on its own, and stays JSON whatever it held", () => {
+    const cleaned: unknown = removeOpenStackSecretFields({
+      message: "keystone_authtoken.memcache_password = ",
+      next: 'it said password="the-password" and went on',
+      url: "rabbit://u:the-password@host:5672/",
+      list: [`token: ${FERNET}`],
+    });
+
+    expect(JSON.stringify(cleaned)).not.toContain("the-password");
+    expect(JSON.stringify(cleaned)).not.toContain("gAAAA");
+    expect((cleaned as { message: string }).message).toBe(
+      "keystone_authtoken.memcache_password = ",
+    );
+    expect((cleaned as { next: string }).next).toContain("and went on");
+  });
+
   test("lose what must never be stored, however deep", () => {
     expect(
       removeOpenStackSecretFields({
