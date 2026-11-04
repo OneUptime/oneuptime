@@ -83,6 +83,12 @@ export const CLOSE_ALERTS_WHEN_CASE_CLOSES_KEY: string =
  */
 export const MICROSOFT_365_AUDIT_KEY: string = "includeMicrosoft365Audit";
 
+/*
+ * The Microsoft Entra ID connection's option that also reads the sign-ins
+ * apps make for people in the background, and apps' own, that failed.
+ */
+export const ENTRA_BACKGROUND_SIGN_INS_KEY: string = "includeBackgroundSignIns";
+
 // The Google Workspace connection's option that also reads Drive activity.
 export const GOOGLE_WORKSPACE_DRIVE_KEY: string = "includeDrive";
 
@@ -161,6 +167,18 @@ const MICROSOFT_CLOUD_OPTIONS: Array<ConnectorFieldOption> = [
   { label: "Azure Government (US)", value: "usgov" },
 ];
 
+/*
+ * Microsoft Entra ID's clouds, one for each Microsoft 365 plan: a GCC tenant
+ * signs in to the public cloud but reads its audit log from GCC's own
+ * address, and DoD has addresses of its own (MicrosoftEntraIdClient).
+ */
+const MICROSOFT_ENTRA_ID_CLOUD_OPTIONS: Array<ConnectorFieldOption> = [
+  { label: "Azure public cloud", value: "public" },
+  { label: "Azure public cloud, Microsoft 365 GCC", value: "gcc" },
+  { label: "Azure Government (US), GCC High", value: "usgov" },
+  { label: "Azure Government (US), DoD", value: "dod" },
+];
+
 export const SecurityEventConnectorCatalog: Array<SecurityEventConnectorDefinition> =
   [
     {
@@ -224,9 +242,11 @@ export const SecurityEventConnectorCatalog: Array<SecurityEventConnectorDefiniti
           title: "Cloud",
           description: "Which Azure cloud hosts the tenant and workspace.",
           type: "dropdown",
-          required: true,
+          // Left out, the connector reads the public cloud (defaultValue).
+          required: false,
           options: MICROSOFT_CLOUD_OPTIONS,
           defaultValue: "public",
+          isAdvanced: true,
         },
       ],
       secretFields: [
@@ -234,7 +254,7 @@ export const SecurityEventConnectorCatalog: Array<SecurityEventConnectorDefiniti
           key: "clientSecret",
           title: "Client secret",
           description:
-            "A client secret of the app registration. Encrypted at rest and never returned by the API.",
+            "A client secret of the app registration.",
           type: "password",
           required: true,
         },
@@ -279,9 +299,11 @@ export const SecurityEventConnectorCatalog: Array<SecurityEventConnectorDefiniti
           title: "Cloud",
           description: "Which Azure cloud hosts the tenant.",
           type: "dropdown",
-          required: true,
+          // Left out, the connector reads the public cloud (defaultValue).
+          required: false,
           options: MICROSOFT_CLOUD_OPTIONS,
           defaultValue: "public",
+          isAdvanced: true,
         },
       ],
       secretFields: [
@@ -289,7 +311,7 @@ export const SecurityEventConnectorCatalog: Array<SecurityEventConnectorDefiniti
           key: "clientSecret",
           title: "Client secret",
           description:
-            "A client secret of the app registration. Encrypted at rest and never returned by the API.",
+            "A client secret of the app registration.",
           type: "password",
           required: true,
         },
@@ -343,7 +365,7 @@ export const SecurityEventConnectorCatalog: Array<SecurityEventConnectorDefiniti
           key: "clientSecret",
           title: "Client secret",
           description:
-            "The Falcon API client secret. Encrypted at rest and never returned by the API.",
+            "The Falcon API client secret.",
           type: "password",
           required: true,
         },
@@ -450,7 +472,7 @@ export const SecurityEventConnectorCatalog: Array<SecurityEventConnectorDefiniti
           key: "apiKey",
           title: "API key",
           description:
-            "A Kibana API key (the base64 encoded id:key value) with read access to detection alerts. Encrypted at rest and never returned by the API.",
+            "A Kibana API key (the base64 encoded id:key value) with read access to detection alerts.",
           type: "password",
           required: true,
         },
@@ -496,7 +518,7 @@ export const SecurityEventConnectorCatalog: Array<SecurityEventConnectorDefiniti
           key: "secretAccessKey",
           title: "Secret access key",
           description:
-            "The secret access key for the access key ID above. Encrypted at rest and never returned by the API.",
+            "The secret access key for the access key ID above.",
           type: "password",
           required: true,
         },
@@ -549,7 +571,7 @@ export const SecurityEventConnectorCatalog: Array<SecurityEventConnectorDefiniti
           key: "apiToken",
           title: "API token",
           description:
-            "An Okta API token (SSWS) for a read-only administrator. Encrypted at rest and never returned by the API.",
+            "An Okta API token (SSWS) for a read-only administrator.",
           type: "password",
           required: true,
         },
@@ -561,7 +583,7 @@ export const SecurityEventConnectorCatalog: Array<SecurityEventConnectorDefiniti
       vendorName: "Microsoft",
       productName: "Microsoft Entra ID",
       description:
-        "Import sign-ins and directory changes from Microsoft Entra ID, and the Microsoft 365 audit log if you choose, as OCSF identity events.",
+        "Import sign-ins, directory changes and Identity Protection's risk detections from Microsoft Entra ID, and the Microsoft 365 audit log if you choose, as OCSF identity events.",
       category: "Identity",
       icon: IconProp.Identification,
       logo: ProviderLogo.MicrosoftEntraId,
@@ -589,7 +611,7 @@ export const SecurityEventConnectorCatalog: Array<SecurityEventConnectorDefiniti
           key: "clientId",
           title: "Application (client) ID",
           description:
-            "The app registration granted the AuditLog.Read.All application permission.",
+            "The app registration granted the AuditLog.Read.All and IdentityRiskEvent.Read.All application permissions.",
           type: "text",
           required: true,
           placeholder: "00000000-0000-0000-0000-000000000000",
@@ -597,11 +619,24 @@ export const SecurityEventConnectorCatalog: Array<SecurityEventConnectorDefiniti
         {
           key: "cloud",
           title: "Cloud",
-          description: "Which Microsoft cloud hosts the tenant.",
+          description:
+            "Which Microsoft cloud hosts the tenant, by its Microsoft 365 plan.",
           type: "dropdown",
-          required: true,
-          options: MICROSOFT_CLOUD_OPTIONS,
+          // Left out, the connector reads the public cloud (defaultValue).
+          required: false,
+          options: MICROSOFT_ENTRA_ID_CLOUD_OPTIONS,
           defaultValue: "public",
+          isAdvanced: true,
+        },
+        {
+          key: ENTRA_BACKGROUND_SIGN_INS_KEY,
+          title: "Background and app sign-ins",
+          description:
+            "Also import the failed sign-ins apps make for people in the background, and service principals' own.",
+          type: "toggle",
+          required: false,
+          defaultValue: false,
+          isOption: true,
         },
         {
           key: MICROSOFT_365_AUDIT_KEY,
@@ -619,7 +654,7 @@ export const SecurityEventConnectorCatalog: Array<SecurityEventConnectorDefiniti
           key: "clientSecret",
           title: "Client secret",
           description:
-            "A client secret of the app registration. Encrypted at rest and never returned by the API.",
+            "A client secret of the app registration.",
           type: "password",
           required: true,
         },
@@ -672,7 +707,7 @@ export const SecurityEventConnectorCatalog: Array<SecurityEventConnectorDefiniti
           key: "serviceAccountJson",
           title: "Service account JSON",
           description:
-            "A Google Cloud service-account key (JSON) whose client ID has domain-wide delegation for the admin.reports.audit.readonly scope. Encrypted at rest and never returned by the API.",
+            "A Google Cloud service-account key (JSON) whose client ID has domain-wide delegation for the admin.reports.audit.readonly scope.",
           type: "json",
           required: true,
           placeholder: '{ "client_email": "...", "private_key": "..." }',
@@ -755,7 +790,7 @@ export const SecurityEventConnectorCatalog: Array<SecurityEventConnectorDefiniti
           key: "serviceAccountJson",
           title: "Service account JSON",
           description:
-            "A Google Cloud service-account key (JSON) with the Chronicle API Viewer role. Encrypted at rest and never returned by the API.",
+            "A Google Cloud service-account key (JSON) with the Chronicle API Viewer role.",
           type: "json",
           required: true,
           placeholder: '{ "client_email": "...", "private_key": "..." }',
