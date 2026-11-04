@@ -227,6 +227,7 @@ describe("LOGS_RESOURCE_FACET_ENTITY_TYPES", () => {
       kubernetesClusterId: ServiceType.KubernetesCluster,
       dockerSwarmClusterId: ServiceType.DockerSwarmCluster,
       proxmoxClusterId: ServiceType.ProxmoxCluster,
+      openStackCloudId: ServiceType.OpenStackCloud,
       vmwareVCenterId: ServiceType.VMwareVCenter,
       cephClusterId: ServiceType.CephCluster,
       storageArrayId: ServiceType.StorageArray,
@@ -1509,6 +1510,7 @@ describe("catalog resource types the viewer does not preload", () => {
     ).toEqual([
       "dockerSwarmClusterId",
       "proxmoxClusterId",
+      "openStackCloudId",
       "vmwareVCenterId",
       "cephClusterId",
       "storageArrayId",

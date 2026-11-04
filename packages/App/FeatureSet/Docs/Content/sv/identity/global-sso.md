@@ -100,8 +100,8 @@ Att konfigurera en global leverantör tvingar ingen att använda den; inloggning
 
 Så länge hela instansen kräver SSO:
 
-- Inloggningssidan erbjuder bara SSO: en knapp för varje påslagen global leverantör, och inget lösenord, ingen passnyckel, ingen Google- eller Microsoft-inloggning och ingen registrering. Den behåller sökningen via e-post, som hittar ett projekts egen leverantör, bara så länge något projekt har en.
-- OneUptime avvisar ett lösenord, en passnyckel, en Google- eller Microsoft-inloggning och en registrering med "This server requires single sign-on (SSO). Sign in with SSO instead." Bara en master admins lösenord eller passnyckel loggar fortfarande in personen. Användare får sitt konto genom att logga in med SSO eller genom en inbjudan.
+- Inloggningssidan erbjuder bara SSO: en knapp för varje påslagen global leverantör, och inget lösenord, ingen passnyckel, ingen länk via e-post, ingen Google- eller Microsoft-inloggning och ingen registrering. Den behåller sökningen via e-post, som hittar ett projekts egen leverantör, bara så länge något projekt har en.
+- OneUptime avvisar ett lösenord, en passnyckel, en länk via e-post, en Google- eller Microsoft-inloggning och en registrering med "This server requires single sign-on (SSO). Sign in with SSO instead." Bara en master admins lösenord eller passnyckel loggar fortfarande in personen. Användare får sitt konto genom att logga in med SSO eller genom en inbjudan.
 - Den som redan är inloggad med lösenord loggar in med SSO för att öppna ett projekt. Personen hamnar på projektets sida för enkel inloggning, som erbjuder projektets egna leverantörer och de globala leverantörer som loggar in användare i det.
 - Master admins loggar in med sitt lösenord på `/accounts/admin-login`, en adress som inloggningssidan inte länkar till. Kortet **Kräv SSO** visar hela adressen under reglaget, som **Inloggning för huvudadministratörer**: spara den, så att du kan stänga av kravet om din identitetsleverantör slutar fungera.
 

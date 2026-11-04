@@ -193,7 +193,7 @@ helm upgrade my-oneuptime oneuptime/oneuptime -f values.yaml
 
 ### Altre modifiche nella 14
 
-Queste modifiche cambiano il comportamento di OneUptime dopo l'aggiornamento, e la maggior parte non richiede nulla da parte vostra. Leggetele se usate ruoli personalizzati o chiavi API composti da singoli permessi, stati personalizzati di incidenti, avvisi o manutenzioni, Terraform o le API, l'SSO, o le app di Slack e Microsoft Teams.
+Queste modifiche cambiano il comportamento di OneUptime dopo l'aggiornamento, e la maggior parte non richiede nulla da parte vostra. Leggetele se usate ruoli personalizzati o chiavi API composti da singoli permessi, stati personalizzati di incidenti, avvisi o manutenzioni, Terraform o le API, l'SSO, o le app di Slack e Microsoft Teams, o se il vostro server non ha un server di posta funzionante.
 
 :::details Leggete le altre modifiche della 14
 - **L'acquisizione OTLP conferma un batch solo dopo che la coda lo ha accettato.** La 13 rispondeva prima `200` e accodava dopo, quindi un batch rifiutato dalla coda andava perso in silenzio. La 14 risponde invece `503` con `Telemetry queue unavailable. Please retry.`, e l'endpoint gRPC restituisce `UNAVAILABLE`; entrambi si possono ritentare, e gli exporter ritentano. Questo vale per log, metriche, trace e profili. Non serve fare nulla, ma i nuovi tentativi lato exporter e la contropressione della coda ora sono visibili dove prima i dati sparivano – utile da sapere se dimensionate la capacità di acquisizione.

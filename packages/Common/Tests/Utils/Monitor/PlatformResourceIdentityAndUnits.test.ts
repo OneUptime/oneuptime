@@ -9,6 +9,7 @@ import { getAllIoTMetrics } from "../../../Types/Monitor/IotMetricCatalog";
 import { getAllKubernetesMetrics } from "../../../Types/Monitor/KubernetesMetricCatalog";
 import { getAllPodmanMetrics } from "../../../Types/Monitor/PodmanMetricCatalog";
 import { getAllProxmoxMetrics } from "../../../Types/Monitor/ProxmoxMetricCatalog";
+import { getAllOpenStackMetrics } from "../../../Types/Monitor/OpenStackMetricCatalog";
 import { getAllVMwareMetrics } from "../../../Types/Monitor/VMwareMetricCatalog";
 import {
   StorageArrayMetricDefinition,
@@ -22,6 +23,7 @@ import PlatformResourceIdentity, {
   CephResourceIdentity,
   DockerSwarmResourceIdentity,
   KubernetesResourceIdentity,
+  OpenStackResourceIdentity,
   ProxmoxResourceIdentity,
   StorageArrayResourceIdentity,
   VMwareResourceIdentity,
@@ -524,6 +526,141 @@ describe("PlatformResourceIdentity.withKubernetesContext", () => {
       ).toBe(series);
     });
   }
+});
+
+describe("PlatformResourceIdentity.openstack", () => {
+  const worker: JSONObject = {
+    "openstack.region.name": "RegionOne",
+    hostname: "compute-01",
+    service: "nova-compute",
+    id: "12",
+    zone: "nova",
+  };
+
+  test("a worker is named by its host and binary, not by its row id in Nova", () => {
+    const expected: ExpectedIdentity<OpenStackResourceIdentity> = {
+      hostName: "compute-01",
+      serviceName: "nova-compute",
+      regionName: "RegionOne",
+    };
+
+    expectSameIdentity(PlatformResourceIdentity.openstack(worker), expected);
+  });
+
+  test("an instance is named by its uuid and name, on its hypervisor, in its project", () => {
+    expectSameIdentity(
+      PlatformResourceIdentity.openstack({
+        "openstack.region.name": "RegionOne",
+        uuid: "3f1c",
+        id: "3f1c",
+        name: "web-01",
+        hypervisor_hostname: "compute-01.example.internal",
+        tenant_id: "4f2d",
+      }),
+      {
+        resourceId: "3f1c",
+        resourceName: "web-01",
+        hostName: "compute-01.example.internal",
+        regionName: "RegionOne",
+        projectId: "4f2d",
+      },
+    );
+  });
+
+  test("a router and a network are named by the labels their series spell them with", () => {
+    expectSameIdentity(
+      PlatformResourceIdentity.openstack({
+        router_id: "r-1",
+        agent_host: "net-01",
+      }),
+      { resourceId: "r-1", hostName: "net-01" },
+    );
+    expectSameIdentity(
+      PlatformResourceIdentity.openstack({
+        network_id: "n-1",
+        network_name: "public",
+      }),
+      { resourceId: "n-1", resourceName: "public" },
+    );
+  });
+
+  test("a floating IP's project_id and a volume's id read the same as the others", () => {
+    expectSameIdentity(
+      PlatformResourceIdentity.openstack({ id: "f-1", project_id: "4f2d" }),
+      { resourceId: "f-1", projectId: "4f2d" },
+    );
+    expectSameIdentity(
+      PlatformResourceIdentity.openstack({
+        id: "v-1",
+        name: "data",
+        tenant_id: "4f2d",
+      }),
+      { resourceId: "v-1", resourceName: "data", projectId: "4f2d" },
+    );
+  });
+
+  test("a project's quota series is named by the project", () => {
+    expectSameIdentity(
+      PlatformResourceIdentity.openstack({
+        tenant: "payments",
+        tenant_id: "4f2d",
+      }),
+      { resourceName: "payments", projectId: "4f2d" },
+    );
+  });
+
+  test("openstackKey tells apart two regions' parts with the same names", () => {
+    const here: string = PlatformResourceIdentity.openstackKey(
+      PlatformResourceIdentity.openstack(worker),
+    );
+    const there: string = PlatformResourceIdentity.openstackKey(
+      PlatformResourceIdentity.openstack({
+        ...worker,
+        "openstack.region.name": "RegionTwo",
+      }),
+    );
+
+    expect(here).toBe("RegionOne|compute-01|nova-compute||");
+    expect(there).toBe("RegionTwo|compute-01|nova-compute||");
+  });
+
+  test("a grouped series takes what its group-by left out from a sample that agrees", () => {
+    const series: OpenStackResourceIdentity = {
+      resourceId: "3f1c",
+      regionName: "RegionOne",
+    };
+
+    expect(
+      PlatformResourceIdentity.withOpenStackContext(series, {
+        resourceId: "3f1c",
+        resourceName: "web-01",
+        regionName: "RegionOne",
+        hostName: "compute-01.example.internal",
+        projectId: "4f2d",
+      }),
+    ).toEqual({
+      resourceId: "3f1c",
+      resourceName: "web-01",
+      regionName: "RegionOne",
+      hostName: "compute-01.example.internal",
+      serviceName: undefined,
+      projectId: "4f2d",
+    });
+  });
+
+  test("a sample of another part lends nothing", () => {
+    const series: OpenStackResourceIdentity = {
+      resourceId: "3f1c",
+      regionName: "RegionOne",
+    };
+
+    expect(
+      PlatformResourceIdentity.withOpenStackContext(series, {
+        resourceId: "9a9a",
+        resourceName: "web-02",
+      }),
+    ).toBe(series);
+  });
 });
 
 describe("PlatformResourceIdentity.proxmox", () => {
@@ -1191,6 +1328,7 @@ describe("PlatformMetricUnitUtil.getPlatformForMonitorType", () => {
   const mapped: Array<[MonitorType, MetricCatalogPlatform]> = [
     [MonitorType.Kubernetes, "kubernetes"],
     [MonitorType.Proxmox, "proxmox"],
+    [MonitorType.OpenStack, "openstack"],
     [MonitorType.VMware, "vmware"],
     [MonitorType.DockerSwarm, "dockerSwarm"],
     [MonitorType.Ceph, "ceph"],
@@ -1691,6 +1829,11 @@ describe("PlatformMetricUnitUtil × MetricValueFormatter over every catalog entr
         return { platform: "proxmox" as MetricCatalogPlatform, ...m };
       },
     ),
+    ...getAllOpenStackMetrics().map(
+      (m: { metricName: string; unit?: string }) => {
+        return { platform: "openstack" as MetricCatalogPlatform, ...m };
+      },
+    ),
     ...getAllVMwareMetrics().map((m: { metricName: string; unit?: string }) => {
       return { platform: "vmware" as MetricCatalogPlatform, ...m };
     }),
@@ -1725,7 +1868,7 @@ describe("PlatformMetricUnitUtil × MetricValueFormatter over every catalog entr
       }),
     );
 
-    expect(platforms.size).toBe(9);
+    expect(platforms.size).toBe(10);
   });
 
   test("every entry formats a large value without NaN or undefined", () => {

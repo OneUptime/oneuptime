@@ -100,8 +100,8 @@ Configurare un provider globale non obbliga nessuno a usarlo; l'accesso con pass
 
 Finché l'intera istanza richiede l'SSO:
 
-- La pagina di accesso offre solo l'SSO: un pulsante per ogni provider globale attivo, e nessuna password, passkey, accesso con Google o Microsoft, o registrazione. Mantiene la ricerca per email, che trova il provider proprio di un progetto, solo finché qualche progetto ne ha uno.
-- OneUptime rifiuta una password, una passkey, un accesso con Google o Microsoft e una registrazione con "This server requires single sign-on (SSO). Sign in with SSO instead." Solo la password o la passkey di un amministratore principale lo fanno ancora accedere. Le persone ottengono l'account accedendo con l'SSO o tramite un invito.
+- La pagina di accesso offre solo l'SSO: un pulsante per ogni provider globale attivo, e nessuna password, passkey, link inviato via e-mail, accesso con Google o Microsoft, o registrazione. Mantiene la ricerca per email, che trova il provider proprio di un progetto, solo finché qualche progetto ne ha uno.
+- OneUptime rifiuta una password, una passkey, un link inviato via e-mail, un accesso con Google o Microsoft e una registrazione con "This server requires single sign-on (SSO). Sign in with SSO instead." Solo la password o la passkey di un amministratore principale lo fanno ancora accedere. Le persone ottengono l'account accedendo con l'SSO o tramite un invito.
 - Chi ha già effettuato l'accesso con una password accede con l'SSO per aprire un progetto. Arriva alla pagina di single sign-on del progetto, che offre i provider propri del progetto e i provider globali che vi fanno accedere.
 - Gli amministratori principali accedono con la loro password su `/accounts/admin-login`, un indirizzo a cui la pagina di accesso non rimanda. La scheda **Richiedi l'SSO** mostra l'indirizzo completo sotto l'interruttore, come **Accesso amministratori principali**: conservalo, per disattivare l'obbligo se il tuo provider di identità smette di funzionare.
 

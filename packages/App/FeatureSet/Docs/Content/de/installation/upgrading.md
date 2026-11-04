@@ -193,7 +193,7 @@ helm upgrade my-oneuptime oneuptime/oneuptime -f values.yaml
 
 ### Weitere Änderungen in 14
 
-Diese Änderungen betreffen, wie sich OneUptime nach dem Upgrade verhält, und die meisten erfordern nichts von Ihnen. Lesen Sie sie, wenn Sie benutzerdefinierte Rollen oder API-Schlüssel aus einzelnen Berechtigungen, eigene Vorfalls-, Warnungs- oder Wartungsstatus, Terraform oder die API, SSO oder die Apps für Slack und Microsoft Teams verwenden.
+Diese Änderungen betreffen, wie sich OneUptime nach dem Upgrade verhält, und die meisten erfordern nichts von Ihnen. Lesen Sie sie, wenn Sie benutzerdefinierte Rollen oder API-Schlüssel aus einzelnen Berechtigungen, eigene Vorfalls-, Warnungs- oder Wartungsstatus, Terraform oder die API, SSO oder die Apps für Slack und Microsoft Teams verwenden oder wenn Ihr Server keinen funktionierenden Mailserver hat.
 
 :::details Die weiteren Änderungen in 14 lesen
 - **Die OTLP-Aufnahme bestätigt ein Batch erst, wenn die Warteschlange es angenommen hat.** 13 antwortete zuerst mit `200` und stellte danach ein, sodass ein Batch, das die Warteschlange ablehnte, unbemerkt verloren ging. 14 antwortet stattdessen mit `503` und `Telemetry queue unavailable. Please retry.`, und der gRPC-Endpunkt gibt `UNAVAILABLE` zurück; beides ist wiederholbar, und Exporter wiederholen. Das gilt für Logs, Metriken, Traces und Profile. Zu tun ist nichts, aber Wiederholungen auf Seiten der Exporter und Rückstau in der Warteschlange werden jetzt dort sichtbar, wo früher Daten verschwanden – gut zu wissen, wenn Sie die Aufnahmekapazität dimensionieren.

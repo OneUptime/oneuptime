@@ -100,8 +100,8 @@ Een globale provider instellen dwingt niemand om hem te gebruiken; aanmelden met
 
 Zolang de hele instantie SSO verplicht:
 
-- De aanmeldpagina biedt alleen SSO aan: een knop voor elke ingeschakelde globale provider, en geen wachtwoord, passkey, aanmelding met Google of Microsoft, of registratie. Het zoeken op e-mailadres, dat de eigen provider van een project vindt, blijft alleen zolang een project er een heeft.
-- OneUptime weigert een wachtwoord, een passkey, een aanmelding met Google of Microsoft en een registratie met "This server requires single sign-on (SSO). Sign in with SSO instead." Alleen het wachtwoord of de passkey van een master-admin meldt die nog aan. Mensen krijgen hun account door zich met SSO aan te melden of via een uitnodiging.
+- De aanmeldpagina biedt alleen SSO aan: een knop voor elke ingeschakelde globale provider, en geen wachtwoord, passkey, gemailde link, aanmelding met Google of Microsoft, of registratie. Het zoeken op e-mailadres, dat de eigen provider van een project vindt, blijft alleen zolang een project er een heeft.
+- OneUptime weigert een wachtwoord, een passkey, een gemailde link, een aanmelding met Google of Microsoft en een registratie met "This server requires single sign-on (SSO). Sign in with SSO instead." Alleen het wachtwoord of de passkey van een master-admin meldt die nog aan. Mensen krijgen hun account door zich met SSO aan te melden of via een uitnodiging.
 - Wie al met een wachtwoord is aangemeld, meldt zich met SSO aan om een project te openen. Diegene komt op de single sign-on-pagina van het project, die de eigen providers van het project biedt en de globale providers die mensen in het project aanmelden.
 - Master-admins melden zich met hun wachtwoord aan op `/accounts/admin-login`, een adres waar de aanmeldpagina niet naar linkt. De kaart **SSO vereisen** toont het volledige adres onder de schakelaar, als **Inloggen voor hoofdbeheerders**: bewaar het, om de verplichting uit te zetten als uw identiteitsprovider niet meer werkt.
 

@@ -113,6 +113,7 @@ function emptyResourceContext(): SeriesResolvedResourceIds {
     kubernetesClusterIds: [],
     serviceIds: [],
     proxmoxClusterIds: [],
+    openStackCloudIds: [],
     vmwareVCenterIds: [],
     cephClusterIds: [],
     dockerSwarmClusterIds: [],

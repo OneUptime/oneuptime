@@ -337,16 +337,17 @@ describe("static rule criteria runtime coverage", () => {
   const inheritedRuleModelNames: Array<string> = getInheritedRuleModelNames();
 
   /*
-   * 77 forms and 86 models: the investigation rules' form and model went
+   * 79 forms and 88 models: the investigation rules' form and model went
    * when they became AI rules - AiRulesTable for incidents and alerts, and
    * TelemetryAiRulesTable for the telemetry products, for the one model -
    * Data Security's label and owner rules for data stores came, App
-   * Platforms' pages for the cloud rules' environments, and the alert
-   * incident rules' page (AlertIncidentRules) for its model.
+   * Platforms' pages for the cloud rules' environments, the alert incident
+   * rules' page (AlertIncidentRules) for its model, and OpenStack's label and
+   * owner rules for clouds.
    */
-  test("all 77 static match-criteria forms route their 86 rule models through ModelForm", () => {
-    expect(formFiles).toHaveLength(77);
-    expect(formsByModel.size).toBe(86);
+  test("all 79 static match-criteria forms route their 88 rule models through ModelForm", () => {
+    expect(formFiles).toHaveLength(79);
+    expect(formsByModel.size).toBe(88);
     expect([...secondFormsByModel.keys()]).toEqual(
       Object.keys(SECOND_RULE_FORMS),
     );

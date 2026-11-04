@@ -23,6 +23,7 @@ import DockerHost from "../../Models/DatabaseModels/DockerHost";
 import PodmanHost from "../../Models/DatabaseModels/PodmanHost";
 import KubernetesCluster from "../../Models/DatabaseModels/KubernetesCluster";
 import ProxmoxCluster from "../../Models/DatabaseModels/ProxmoxCluster";
+import OpenStackCloud from "../../Models/DatabaseModels/OpenStackCloud";
 import VMwareVCenter from "../../Models/DatabaseModels/VMwareVCenter";
 import CephCluster from "../../Models/DatabaseModels/CephCluster";
 import StorageArray from "../../Models/DatabaseModels/StorageArray";
@@ -37,6 +38,7 @@ import DockerHostService from "./DockerHostService";
 import PodmanHostService from "./PodmanHostService";
 import KubernetesClusterService from "./KubernetesClusterService";
 import ProxmoxClusterService from "./ProxmoxClusterService";
+import OpenStackCloudService from "./OpenStackCloudService";
 import VMwareVCenterService from "./VMwareVCenterService";
 import CephClusterService from "./CephClusterService";
 import StorageArrayService from "./StorageArrayService";
@@ -1205,6 +1207,24 @@ export default class OTelIngestService {
     if (primaryEntityType === ServiceType.ProxmoxCluster) {
       const cluster: ProxmoxCluster | null =
         await ProxmoxClusterService.findOneById({
+          id: resourceId,
+          select: {
+            retainTelemetryDataForDays: true,
+            telemetryRetentionConfig: true,
+            projectId: true,
+          },
+          props: { isRoot: true },
+        });
+      return {
+        retainTelemetryDataForDays: cluster?.retainTelemetryDataForDays ?? null,
+        telemetryRetentionConfig: cluster?.telemetryRetentionConfig ?? null,
+        projectId: cluster?.projectId ?? null,
+      };
+    }
+
+    if (primaryEntityType === ServiceType.OpenStackCloud) {
+      const cluster: OpenStackCloud | null =
+        await OpenStackCloudService.findOneById({
           id: resourceId,
           select: {
             retainTelemetryDataForDays: true,

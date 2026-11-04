@@ -48,6 +48,7 @@ import { IncidentMemberRoleAssignment } from "../../../Types/Monitor/CriteriaInc
 import { PerSeriesCriteriaMatch } from "../../../Types/Probe/ProbeApiIngestResponse";
 import MonitorResourceContextUtil from "./MonitorResourceContext";
 import PerSeriesResolutionRootCause from "./PerSeriesResolutionRootCause";
+import OpenStackAlertContext from "../OpenStack/OpenStackAlertContext";
 import SeriesResourceLinker, {
   SeriesResolvedResourceIds,
 } from "./SeriesResourceLinker";
@@ -897,6 +898,15 @@ export default class MonitorIncident {
           SeriesResourceLinker.attachResolvedResources({
             model: incident,
             resolved: await getLinkedResources(),
+          });
+
+          // What a part of an OpenStack cloud takes with it, and whose that is.
+          incident.description = await OpenStackAlertContext.addToDescription({
+            description: incident.description,
+            projectId: input.monitor.projectId!,
+            clouds: incident.openStackClouds,
+            seriesLabels: seriesLabels,
+            monitorSteps: input.monitor.monitorSteps,
           });
 
           /*

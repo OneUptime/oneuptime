@@ -199,5 +199,6 @@
   "whsec_…",
   "{ \"Authorization\": \"Bearer ...\" }",
   "{ \"client_email\": \"...\", \"private_key\": \"...\" }",
-  "{ \"message\": \"...\" }"
+  "{ \"message\": \"...\" }",
+  "OpenStack"
 ]

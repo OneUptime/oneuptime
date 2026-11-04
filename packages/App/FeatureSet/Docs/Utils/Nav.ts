@@ -331,6 +331,10 @@ const DocsNav: NavGroup[] = [
         title: "VMware Monitor",
         url: "/docs/monitor/vmware-monitor",
       },
+      {
+        title: "OpenStack Monitor",
+        url: "/docs/monitor/openstack-monitor",
+      },
     ],
   },
   // Monitors whose criteria run over the telemetry OneUptime ingests.
@@ -799,6 +803,14 @@ const DocsNav: NavGroup[] = [
       {
         title: "Serverless Functions",
         url: "/docs/telemetry/serverless-functions",
+      },
+      {
+        title: "OpenStack Agent",
+        url: "/docs/telemetry/openstack",
+      },
+      {
+        title: "OpenStack Without an Agent",
+        url: "/docs/telemetry/openstack-agentless",
       },
     ],
   },

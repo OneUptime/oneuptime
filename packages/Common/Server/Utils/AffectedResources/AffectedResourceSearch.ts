@@ -11,6 +11,7 @@ import NetworkDeviceService from "../../Services/NetworkDeviceService";
 import NetworkSiteService from "../../Services/NetworkSiteService";
 import PodmanHostService from "../../Services/PodmanHostService";
 import ProxmoxClusterService from "../../Services/ProxmoxClusterService";
+import OpenStackCloudService from "../../Services/OpenStackCloudService";
 import ServiceService from "../../Services/ServiceService";
 import StorageArrayService from "../../Services/StorageArrayService";
 import VMwareVCenterService from "../../Services/VMwareVCenterService";
@@ -33,6 +34,7 @@ import NetworkDevice from "../../../Models/DatabaseModels/NetworkDevice";
 import NetworkSite from "../../../Models/DatabaseModels/NetworkSite";
 import PodmanHost from "../../../Models/DatabaseModels/PodmanHost";
 import ProxmoxCluster from "../../../Models/DatabaseModels/ProxmoxCluster";
+import OpenStackCloud from "../../../Models/DatabaseModels/OpenStackCloud";
 import Service from "../../../Models/DatabaseModels/Service";
 import StorageArray from "../../../Models/DatabaseModels/StorageArray";
 import VMwareVCenter from "../../../Models/DatabaseModels/VMwareVCenter";
@@ -128,6 +130,10 @@ export const AFFECTED_RESOURCE_KIND_SEARCH_SPECS: Readonly<
     modelType: ProxmoxCluster,
     searchFields: NAME_AND_DESCRIPTION,
   },
+  [AffectedResourceKind.OpenStackCloud]: {
+    modelType: OpenStackCloud,
+    searchFields: NAME_AND_DESCRIPTION,
+  },
   [AffectedResourceKind.VMwareVCenter]: {
     modelType: VMwareVCenter,
     searchFields: NAME_AND_DESCRIPTION,
@@ -178,6 +184,7 @@ export function getAffectedResourceKindService(
     [AffectedResourceKind.DockerHost]: DockerHostService,
     [AffectedResourceKind.PodmanHost]: PodmanHostService,
     [AffectedResourceKind.ProxmoxCluster]: ProxmoxClusterService,
+    [AffectedResourceKind.OpenStackCloud]: OpenStackCloudService,
     [AffectedResourceKind.VMwareVCenter]: VMwareVCenterService,
     [AffectedResourceKind.CephCluster]: CephClusterService,
     [AffectedResourceKind.StorageArray]: StorageArrayService,

@@ -183,6 +183,7 @@ describe("the phone menu folds the products like the desktop menu", () => {
       "Docker Swarm",
       "Podman",
       "Proxmox",
+      "OpenStack",
       "VMware",
       "Ceph",
       "Storage Arrays",

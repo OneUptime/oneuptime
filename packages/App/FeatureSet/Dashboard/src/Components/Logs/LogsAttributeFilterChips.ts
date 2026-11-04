@@ -47,6 +47,7 @@ export const ATTRIBUTE_DISPLAY_NAMES: Readonly<Record<string, string>> = {
   // Infrastructure clusters.
   "resource.ceph.cluster.name": "Cluster",
   "resource.proxmox.cluster.name": "Cluster",
+  "resource.openstack.cloud.name": "Cloud",
   "resource.docker.swarm.cluster.name": "Cluster",
   "resource.vmware.vcenter.name": "vCenter",
   "resource.storage.array.name": "Storage Array",

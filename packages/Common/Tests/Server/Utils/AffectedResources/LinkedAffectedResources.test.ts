@@ -10,6 +10,7 @@ import IncidentService from "../../../../Server/Services/IncidentService";
 import KubernetesClusterService from "../../../../Server/Services/KubernetesClusterService";
 import MonitorService from "../../../../Server/Services/MonitorService";
 import NetworkDeviceService from "../../../../Server/Services/NetworkDeviceService";
+import OpenStackCloudService from "../../../../Server/Services/OpenStackCloudService";
 import PodmanHostService from "../../../../Server/Services/PodmanHostService";
 import ProxmoxClusterService from "../../../../Server/Services/ProxmoxClusterService";
 import ScheduledMaintenanceService from "../../../../Server/Services/ScheduledMaintenanceService";
@@ -160,6 +161,7 @@ describe("the relation table", () => {
       "dockerHosts",
       "podmanHosts",
       "proxmoxClusters",
+      "openStackClouds",
       "vmwareVCenters",
       "cephClusters",
       "storageArrays",
@@ -258,6 +260,15 @@ describe("dashboard links match each resource's own link", () => {
       LinkedAffectedResourceType.ProxmoxCluster,
       (): Promise<URL> => {
         return ProxmoxClusterService.getProxmoxClusterLinkInDashboard(
+          PROJECT,
+          ID,
+        );
+      },
+    ],
+    [
+      LinkedAffectedResourceType.OpenStackCloud,
+      (): Promise<URL> => {
+        return OpenStackCloudService.getOpenStackCloudLinkInDashboard(
           PROJECT,
           ID,
         );

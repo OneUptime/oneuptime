@@ -2231,10 +2231,10 @@ describe("Topology (telemetry/topology)", () => {
 
   it("names every resource that has a Topology page of its own, and each page is in its side menu", () => {
     expect(page).toContain(
-      "A vCenter, a Kubernetes cluster, a host, a Docker or Podman host, a Docker Swarm, Proxmox or Ceph cluster and a storage array each have a **Topology** page of their own.",
+      "A vCenter, a Kubernetes cluster, a host, a Docker or Podman host, a Docker Swarm, Proxmox or Ceph cluster, an OpenStack cloud and a storage array each have a **Topology** page of their own.",
     );
 
-    // Each of the nine is a page of the resource, under Topology in its side menu.
+    // Each of the ten is a page of the resource, under Topology in its side menu.
     for (const [menu, key] of [
       ["VMware", "VMWARE_VCENTER_VIEW_TOPOLOGY"],
       ["Kubernetes", "KUBERNETES_CLUSTER_VIEW_TOPOLOGY"],
@@ -2244,6 +2244,7 @@ describe("Topology (telemetry/topology)", () => {
       ["DockerSwarm", "DOCKER_SWARM_CLUSTER_VIEW_TOPOLOGY"],
       ["Proxmox", "PROXMOX_CLUSTER_VIEW_TOPOLOGY"],
       ["Ceph", "CEPH_CLUSTER_VIEW_TOPOLOGY"],
+      ["OpenStack", "OPENSTACK_CLOUD_VIEW_TOPOLOGY"],
       ["StorageArray", "STORAGE_ARRAY_VIEW_TOPOLOGY"],
     ] as Array<[string, string]>) {
       const sideMenu: string = readDashboardSource(
@@ -2259,7 +2260,7 @@ describe("Topology (telemetry/topology)", () => {
       );
     }
 
-    // The nine are the ones the master map links into, and no others.
+    // The ten are the ones the master map links into, and no others.
     const links: string = readDashboardSource(
       "Components/ResourceTopology/ResourceTopologyLinks.ts",
     );
@@ -2271,6 +2272,7 @@ describe("Topology (telemetry/topology)", () => {
         "DOCKER_SWARM_CLUSTER_VIEW_TOPOLOGY",
         "HOST_VIEW_TOPOLOGY",
         "KUBERNETES_CLUSTER_VIEW_TOPOLOGY",
+        "OPENSTACK_CLOUD_VIEW_TOPOLOGY",
         "PODMAN_HOST_VIEW_TOPOLOGY",
         "PROXMOX_CLUSTER_VIEW_TOPOLOGY",
         "STORAGE_ARRAY_VIEW_TOPOLOGY",
@@ -2344,6 +2346,7 @@ describe("Topology (telemetry/topology)", () => {
 
     expect(Array.from(new Set<string>(backLinks)).sort()).toEqual(
       [
+        "Open cloud topology",
         "Open cluster topology",
         "Open host topology",
         "Open storage array topology",

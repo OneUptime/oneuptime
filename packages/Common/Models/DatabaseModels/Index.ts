@@ -42,12 +42,17 @@ import PodmanHostOwnerTeam from "./PodmanHostOwnerTeam";
 import PodmanHostOwnerUser from "./PodmanHostOwnerUser";
 import PodmanResource from "./PodmanResource";
 import ProxmoxCluster from "./ProxmoxCluster";
+import OpenStackCloud from "./OpenStackCloud";
+import OpenStackCloudConnectionTest from "./OpenStackCloudConnectionTest";
 import DockerSwarmCluster from "./DockerSwarmCluster";
 import ProxmoxClusterOwnerTeam from "./ProxmoxClusterOwnerTeam";
+import OpenStackCloudOwnerTeam from "./OpenStackCloudOwnerTeam";
 import DockerSwarmClusterOwnerTeam from "./DockerSwarmClusterOwnerTeam";
 import ProxmoxClusterOwnerUser from "./ProxmoxClusterOwnerUser";
+import OpenStackCloudOwnerUser from "./OpenStackCloudOwnerUser";
 import DockerSwarmClusterOwnerUser from "./DockerSwarmClusterOwnerUser";
 import ProxmoxResource from "./ProxmoxResource";
+import OpenStackResource from "./OpenStackResource";
 import DockerSwarmResource from "./DockerSwarmResource";
 import IoTFleet from "./IoTFleet";
 import IoTFleetOwnerTeam from "./IoTFleetOwnerTeam";
@@ -556,8 +561,10 @@ import PodmanHostLabelRule from "./PodmanHostLabelRule";
 import KubernetesClusterOwnerRule from "./KubernetesClusterOwnerRule";
 import KubernetesClusterLabelRule from "./KubernetesClusterLabelRule";
 import ProxmoxClusterOwnerRule from "./ProxmoxClusterOwnerRule";
+import OpenStackCloudOwnerRule from "./OpenStackCloudOwnerRule";
 import DockerSwarmClusterOwnerRule from "./DockerSwarmClusterOwnerRule";
 import ProxmoxClusterLabelRule from "./ProxmoxClusterLabelRule";
+import OpenStackCloudLabelRule from "./OpenStackCloudLabelRule";
 import DockerSwarmClusterLabelRule from "./DockerSwarmClusterLabelRule";
 import IoTFleetOwnerRule from "./IoTFleetOwnerRule";
 import IoTFleetLabelRule from "./IoTFleetLabelRule";
@@ -603,6 +610,7 @@ import CephClusterFeed from "./CephClusterFeed";
 import StorageArrayFeed from "./StorageArrayFeed";
 import PodmanHostFeed from "./PodmanHostFeed";
 import ProxmoxClusterFeed from "./ProxmoxClusterFeed";
+import OpenStackCloudFeed from "./OpenStackCloudFeed";
 import VMwareVCenterFeed from "./VMwareVCenterFeed";
 import HostFeed from "./HostFeed";
 import CloudResourceFeed from "./CloudResourceFeed";
@@ -869,8 +877,10 @@ const AllModelTypes: Array<{
   KubernetesClusterOwnerRule,
   KubernetesClusterLabelRule,
   ProxmoxClusterOwnerRule,
+  OpenStackCloudOwnerRule,
   DockerSwarmClusterOwnerRule,
   ProxmoxClusterLabelRule,
+  OpenStackCloudLabelRule,
   DockerSwarmClusterLabelRule,
   IoTFleetOwnerRule,
   IoTFleetLabelRule,
@@ -1129,6 +1139,7 @@ const AllModelTypes: Array<{
   StorageArrayFeed,
   PodmanHostFeed,
   ProxmoxClusterFeed,
+  OpenStackCloudFeed,
   VMwareVCenterFeed,
   HostFeed,
   CloudResourceFeed,
@@ -1185,12 +1196,17 @@ const AllModelTypes: Array<{
   PodmanHostOwnerUser,
   PodmanResource,
   ProxmoxCluster,
+  OpenStackCloud,
+  OpenStackCloudConnectionTest,
   DockerSwarmCluster,
   ProxmoxClusterOwnerTeam,
+  OpenStackCloudOwnerTeam,
   DockerSwarmClusterOwnerTeam,
   ProxmoxClusterOwnerUser,
+  OpenStackCloudOwnerUser,
   DockerSwarmClusterOwnerUser,
   ProxmoxResource,
+  OpenStackResource,
   DockerSwarmResource,
   IoTFleet,
   IoTFleetOwnerTeam,

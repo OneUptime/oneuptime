@@ -100,8 +100,8 @@ Einen globalen Anbieter einzurichten zwingt niemanden, ihn zu nutzen; die Anmeld
 
 Solange die ganze Instanz SSO verlangt:
 
-- Die Anmeldeseite bietet nur SSO an: eine Schaltfläche für jeden eingeschalteten globalen Anbieter, und kein Passwort, keinen Passkey, keine Google- oder Microsoft-Anmeldung und keine Registrierung. Die Suche per E-Mail, die den eigenen Anbieter eines Projekts findet, bleibt nur, solange ein Projekt einen eigenen hat.
-- OneUptime lehnt ein Passwort, einen Passkey, eine Google- oder Microsoft-Anmeldung und eine Registrierung mit "This server requires single sign-on (SSO). Sign in with SSO instead." ab. Nur das Passwort oder der Passkey eines Master-Admins meldet ihn weiterhin an. Ihr Konto erhalten Personen, indem sie sich mit SSO anmelden oder eingeladen werden.
+- Die Anmeldeseite bietet nur SSO an: eine Schaltfläche für jeden eingeschalteten globalen Anbieter, und kein Passwort, keinen Passkey, keinen per E-Mail gesendeten Link, keine Google- oder Microsoft-Anmeldung und keine Registrierung. Die Suche per E-Mail, die den eigenen Anbieter eines Projekts findet, bleibt nur, solange ein Projekt einen eigenen hat.
+- OneUptime lehnt ein Passwort, einen Passkey, einen per E-Mail gesendeten Link, eine Google- oder Microsoft-Anmeldung und eine Registrierung mit "This server requires single sign-on (SSO). Sign in with SSO instead." ab. Nur das Passwort oder der Passkey eines Master-Admins meldet ihn weiterhin an. Ihr Konto erhalten Personen, indem sie sich mit SSO anmelden oder eingeladen werden.
 - Wer schon mit einem Passwort angemeldet ist, meldet sich mit SSO an, um ein Projekt zu öffnen. Dabei landet er auf der Single-Sign-On-Seite des Projekts, die die eigenen Anbieter des Projekts anbietet und die globalen Anbieter, die Personen in das Projekt anmelden.
 - Master-Admins melden sich mit ihrem Passwort unter `/accounts/admin-login` an; die Anmeldeseite verlinkt diese Adresse nicht. Die Karte **SSO erfordern** zeigt die vollständige Adresse unter dem Schalter als **Anmeldung für Master-Administratoren**: Bewahren Sie sie auf, um die Anforderung auszuschalten, falls Ihr Identitätsanbieter nicht mehr funktioniert.
 

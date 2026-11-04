@@ -126,6 +126,15 @@ export const RESOURCE_KEYS: Partial<Record<MonitorType, ResourceKey>> = {
       return asService(await import("../../Services/ProxmoxClusterService"));
     },
   },
+  [MonitorType.OpenStack]: {
+    stepKey: "openstackMonitor",
+    identifierField: "cloudIdentifier",
+    matchColumn: "name",
+    isCanonicalHostName: false,
+    loadService: async () => {
+      return asService(await import("../../Services/OpenStackCloudService"));
+    },
+  },
   [MonitorType.VMware]: {
     stepKey: "vmwareMonitor",
     identifierField: "vcenterIdentifier",

@@ -33,6 +33,7 @@ import KubernetesClusterService from "../../../Services/KubernetesClusterService
 import NetworkDeviceService from "../../../Services/NetworkDeviceService";
 import PodmanHostService from "../../../Services/PodmanHostService";
 import ProxmoxClusterService from "../../../Services/ProxmoxClusterService";
+import OpenStackCloudService from "../../../Services/OpenStackCloudService";
 import ServiceService from "../../../Services/ServiceService";
 import StorageArrayService from "../../../Services/StorageArrayService";
 import VMwareVCenterService from "../../../Services/VMwareVCenterService";
@@ -169,6 +170,11 @@ const READERS: Readonly<
   [AiAffectedResourceKind.ProxmoxCluster]: {
     findBy: (data: FindBy<BaseModel>): Promise<Array<BaseModel>> => {
       return ProxmoxClusterService.findBy(data as never);
+    },
+  },
+  [AiAffectedResourceKind.OpenStackCloud]: {
+    findBy: (data: FindBy<BaseModel>): Promise<Array<BaseModel>> => {
+      return OpenStackCloudService.findBy(data as never);
     },
   },
   [AiAffectedResourceKind.VMwareVCenter]: {

@@ -1,7 +1,5 @@
-import {
-  WorkspaceChannelLink,
-  WorkspaceChannelRecordType,
-} from "Common/Types/Workspace/WorkspaceChannelLink";
+import IconProp from "Common/Types/Icon/IconProp";
+import { WorkspaceChannelRecordType } from "Common/Types/Workspace/WorkspaceChannelLink";
 import {
   WorkspaceChannelAddAnswer,
   WorkspaceChannelAddOutcome,
@@ -23,6 +21,7 @@ import {
   Translator,
 } from "Common/UI/Utils/TranslateTemplate";
 import { formatNameList } from "../AiAccess/AiAccessModes";
+import { CHANNEL_LINK_TEXT } from "./ChannelLinks";
 
 /*
  * THE CHANNEL CARD OF A RECORD'S PAGE: WHO IS IN ITS CHANNEL, AND ADDING
@@ -33,13 +32,15 @@ import { formatNameList } from "../AiAccess/AiAccessModes";
  * its details: the channel, the people in it, and - for somebody who may
  * edit the record - Join channel and Add people, which have the OneUptime
  * app invite them. The app created the channel and stays in it, so this
- * works for a private Slack channel that everybody has left, without a
- * Slack admin. A Microsoft Teams channel says who can open it instead:
- * Teams decides that, by the team or the private channel's own members.
+ * works for a private Slack or Mattermost channel that everybody has left,
+ * without an admin of either. A Microsoft Teams channel says who can open it
+ * instead: Teams decides that, by the team or the private channel's own
+ * members.
  *
  * What the card says in each state, and in which order things are listed,
  * decided here, React-free, so the rules can be tested on their own. Every
- * string is a whole English sentence the Dashboard's locale files translate.
+ * string is a whole English sentence the Dashboard's locale files translate,
+ * and names the product the channel is in (getChannelProductText).
  */
 
 // How many people the card lists before "Show N more".
@@ -50,6 +51,8 @@ export const RECORD_CHANNEL_TEXT: {
   slackChannels: string;
   teamsChannel: string;
   teamsChannels: string;
+  mattermostChannel: string;
+  mattermostChannels: string;
   channels: string;
   privateChannel: string;
   publicChannel: string;
@@ -76,7 +79,6 @@ export const RECORD_CHANNEL_TEXT: {
   teamsUnknown: string;
   couldNotRead: string;
   joined: string;
-  openInSlack: string;
   connectProjectSlack: string;
   teamAlreadyIn: string;
 } = {
@@ -84,6 +86,8 @@ export const RECORD_CHANNEL_TEXT: {
   slackChannels: translationKey("Slack Channels"),
   teamsChannel: translationKey("Microsoft Teams Channel"),
   teamsChannels: translationKey("Microsoft Teams Channels"),
+  mattermostChannel: translationKey("Mattermost Channel"),
+  mattermostChannels: translationKey("Mattermost Channels"),
   channels: translationKey("Chat Channels"),
   privateChannel: translationKey("Private channel"),
   publicChannel: translationKey("Public channel"),
@@ -130,7 +134,6 @@ export const RECORD_CHANNEL_TEXT: {
     "Could not read who is in this channel. {{error}}",
   ),
   joined: translationKey("You're in the channel now."),
-  openInSlack: translationKey("Open in Slack"),
   // Slack was taken off the project: where it is connected again.
   connectProjectSlack: translationKey("Connect Slack"),
   // A team picked in Add people whose people are all in the channel.
@@ -138,6 +141,70 @@ export const RECORD_CHANNEL_TEXT: {
     "Everyone in {{team}} is already in this channel.",
   ),
 };
+
+/*
+ * What the card says about a channel, in the words of the product it is in:
+ * who to find there, how to get in, and where to connect it.
+ */
+export interface ChannelProductText {
+  notFound: string;
+  connectAccount: string;
+  publicJoin: string;
+  unreachableHint: string;
+  connectProject: string;
+}
+
+const SLACK_CHANNEL_TEXT: ChannelProductText = {
+  notFound: RECORD_CHANNEL_TEXT.notFound,
+  connectAccount: RECORD_CHANNEL_TEXT.connectSlack,
+  publicJoin: RECORD_CHANNEL_TEXT.publicJoinInSlack,
+  unreachableHint: RECORD_CHANNEL_TEXT.unreachableHint,
+  connectProject: RECORD_CHANNEL_TEXT.connectProjectSlack,
+};
+
+export const MATTERMOST_CHANNEL_TEXT: ChannelProductText = {
+  notFound: translationKey(
+    "OneUptime can't find your Mattermost account, so it can't add you.",
+  ),
+  connectAccount: translationKey("Connect Mattermost account"),
+  publicJoin: translationKey(
+    "You're not in this channel. It's public: open it in Mattermost to join.",
+  ),
+  // Not a command: the bot's username is whatever it was given in Mattermost.
+  unreachableHint: translationKey(
+    "If it's still there, someone in it can add the bot back in Mattermost.",
+  ),
+  connectProject: translationKey("Connect Mattermost"),
+};
+
+export function getChannelProductText(
+  workspaceType: WorkspaceType,
+): ChannelProductText {
+  return workspaceType === WorkspaceType.Mattermost
+    ? MATTERMOST_CHANNEL_TEXT
+    : SLACK_CHANNEL_TEXT;
+}
+
+// The product's name on the card: its icon, and what opens a channel there.
+export function getChannelIcon(workspaceType: WorkspaceType): IconProp {
+  if (workspaceType === WorkspaceType.Mattermost) {
+    return IconProp.Mattermost;
+  }
+
+  return workspaceType === WorkspaceType.MicrosoftTeams
+    ? IconProp.MicrosoftTeams
+    : IconProp.Slack;
+}
+
+export function getOpenChannelText(workspaceType: WorkspaceType): string {
+  if (workspaceType === WorkspaceType.Mattermost) {
+    return CHANNEL_LINK_TEXT.openInMattermost;
+  }
+
+  return workspaceType === WorkspaceType.MicrosoftTeams
+    ? CHANNEL_LINK_TEXT.openInMicrosoftTeams
+    : CHANNEL_LINK_TEXT.openInSlack;
+}
 
 // What picking a team in Add people did: "Added 3 people from Platform."
 export const ADDED_FROM_TEAM: PluralTemplate = {
@@ -168,8 +235,14 @@ export const PEOPLE_COUNT: PluralTemplate = {
 
 /*
  * What adding one person came to, as the card or the Add people list says
- * it: about the viewer themselves, or about somebody else by name.
+ * it: about the viewer themselves, or about somebody else by name. Slack's
+ * words; a Mattermost channel has its own (getAddOutcomeText).
  */
+const SLACK_REFUSED_TEXT: { self: string; other: string } = {
+  self: translationKey("Slack didn't let OneUptime add you."),
+  other: translationKey("Slack didn't let OneUptime add {{name}}."),
+};
+
 export const ADD_OUTCOME_TEXT: Record<
   WorkspaceChannelAddOutcome,
   { self: string; other: string }
@@ -198,6 +271,8 @@ export const ADD_OUTCOME_TEXT: Record<
       "{{name}} isn't a member of this project, so OneUptime can't add them.",
     ),
   },
+  // Slack has no such answer: its channels are the whole workspace's.
+  [WorkspaceChannelAddOutcome.NotInTeam]: SLACK_REFUSED_TEXT,
   [WorkspaceChannelAddOutcome.Guest]: {
     self: translationKey(
       "You're a guest in Slack, and Slack doesn't let OneUptime add you to this channel.",
@@ -212,11 +287,61 @@ export const ADD_OUTCOME_TEXT: Record<
       "Slack didn't answer for {{name}}. Try again in a minute.",
     ),
   },
-  [WorkspaceChannelAddOutcome.Refused]: {
-    self: translationKey("Slack didn't let OneUptime add you."),
-    other: translationKey("Slack didn't let OneUptime add {{name}}."),
-  },
+  [WorkspaceChannelAddOutcome.Refused]: SLACK_REFUSED_TEXT,
 };
+
+/*
+ * The same for a Mattermost channel. Mattermost lets a guest be added when
+ * they are in the team, and answers nothing of its own about guests: one it
+ * did refuse is refused like anybody else.
+ */
+const MATTERMOST_REFUSED_TEXT: { self: string; other: string } = {
+  self: translationKey("Mattermost didn't let OneUptime add you."),
+  other: translationKey("Mattermost didn't let OneUptime add {{name}}."),
+};
+
+export const MATTERMOST_ADD_OUTCOME_TEXT: Record<
+  WorkspaceChannelAddOutcome,
+  { self: string; other: string }
+> = {
+  [WorkspaceChannelAddOutcome.Added]:
+    ADD_OUTCOME_TEXT[WorkspaceChannelAddOutcome.Added],
+  [WorkspaceChannelAddOutcome.AlreadyIn]:
+    ADD_OUTCOME_TEXT[WorkspaceChannelAddOutcome.AlreadyIn],
+  [WorkspaceChannelAddOutcome.NotFound]: {
+    self: MATTERMOST_CHANNEL_TEXT.notFound,
+    other: translationKey(
+      "OneUptime can't find {{name}} in Mattermost: their account isn't connected, and OneUptime can't see a Mattermost account with their email address. Ask them to connect Mattermost in User Settings.",
+    ),
+  },
+  [WorkspaceChannelAddOutcome.NotProjectMember]:
+    ADD_OUTCOME_TEXT[WorkspaceChannelAddOutcome.NotProjectMember],
+  [WorkspaceChannelAddOutcome.NotInTeam]: {
+    self: translationKey(
+      "You're not in the Mattermost team this project is connected to, so OneUptime can't add you.",
+    ),
+    other: translationKey(
+      "{{name}} isn't in the Mattermost team this project is connected to, so OneUptime can't add them.",
+    ),
+  },
+  [WorkspaceChannelAddOutcome.Guest]: MATTERMOST_REFUSED_TEXT,
+  [WorkspaceChannelAddOutcome.TryAgain]: {
+    self: translationKey("Mattermost didn't answer. Try again in a minute."),
+    other: translationKey(
+      "Mattermost didn't answer for {{name}}. Try again in a minute.",
+    ),
+  },
+  [WorkspaceChannelAddOutcome.Refused]: MATTERMOST_REFUSED_TEXT,
+};
+
+export function getAddOutcomeText(
+  workspaceType: WorkspaceType,
+  outcome: WorkspaceChannelAddOutcome,
+): { self: string; other: string } {
+  return workspaceType === WorkspaceType.Mattermost
+    ? MATTERMOST_ADD_OUTCOME_TEXT[outcome]
+    : ADD_OUTCOME_TEXT[outcome];
+}
 
 // The outcomes somebody has to do something about.
 export type AddProblemOutcome = Exclude<
@@ -228,8 +353,13 @@ export type AddProblemOutcome = Exclude<
  * Several people with the same problem, said once: "OneUptime can't find
  * Ada Lovelace and Bob Stone in Slack: ..." - a team picked in Add people
  * would otherwise repeat a long sentence for each of them. {{names}} is
- * their names, listed the way the sentence's language lists names.
+ * their names, listed the way the sentence's language lists names. Slack's
+ * words; a Mattermost channel has its own (getAddProblemTextForSeveral).
  */
+const SLACK_REFUSED_TEXT_FOR_SEVERAL: string = translationKey(
+  "Slack didn't let OneUptime add {{names}}.",
+);
+
 export const ADD_PROBLEM_TEXT_FOR_SEVERAL: Record<AddProblemOutcome, string> = {
   [WorkspaceChannelAddOutcome.NotFound]: translationKey(
     "OneUptime can't find {{names}} in Slack: their accounts aren't connected, and no Slack account has their email address. Ask them to connect Slack in User Settings.",
@@ -237,39 +367,100 @@ export const ADD_PROBLEM_TEXT_FOR_SEVERAL: Record<AddProblemOutcome, string> = {
   [WorkspaceChannelAddOutcome.NotProjectMember]: translationKey(
     "{{names}} aren't members of this project, so OneUptime can't add them.",
   ),
+  [WorkspaceChannelAddOutcome.NotInTeam]: SLACK_REFUSED_TEXT_FOR_SEVERAL,
   [WorkspaceChannelAddOutcome.Guest]: translationKey(
     "{{names}} are guests in Slack, and Slack doesn't let OneUptime add them to this channel.",
   ),
   [WorkspaceChannelAddOutcome.TryAgain]: translationKey(
     "Slack didn't answer for {{names}}. Try again in a minute.",
   ),
-  [WorkspaceChannelAddOutcome.Refused]: translationKey(
-    "Slack didn't let OneUptime add {{names}}.",
-  ),
+  [WorkspaceChannelAddOutcome.Refused]: SLACK_REFUSED_TEXT_FOR_SEVERAL,
 };
+
+const MATTERMOST_REFUSED_TEXT_FOR_SEVERAL: string = translationKey(
+  "Mattermost didn't let OneUptime add {{names}}.",
+);
+
+export const MATTERMOST_ADD_PROBLEM_TEXT_FOR_SEVERAL: Record<
+  AddProblemOutcome,
+  string
+> = {
+  [WorkspaceChannelAddOutcome.NotFound]: translationKey(
+    "OneUptime can't find {{names}} in Mattermost: their accounts aren't connected, and OneUptime can't see Mattermost accounts with their email addresses. Ask them to connect Mattermost in User Settings.",
+  ),
+  [WorkspaceChannelAddOutcome.NotProjectMember]:
+    ADD_PROBLEM_TEXT_FOR_SEVERAL[WorkspaceChannelAddOutcome.NotProjectMember],
+  [WorkspaceChannelAddOutcome.NotInTeam]: translationKey(
+    "{{names}} aren't in the Mattermost team this project is connected to, so OneUptime can't add them.",
+  ),
+  [WorkspaceChannelAddOutcome.Guest]: MATTERMOST_REFUSED_TEXT_FOR_SEVERAL,
+  [WorkspaceChannelAddOutcome.TryAgain]: translationKey(
+    "Mattermost didn't answer for {{names}}. Try again in a minute.",
+  ),
+  [WorkspaceChannelAddOutcome.Refused]: MATTERMOST_REFUSED_TEXT_FOR_SEVERAL,
+};
+
+export function getAddProblemTextForSeveral(
+  workspaceType: WorkspaceType,
+  outcome: AddProblemOutcome,
+): string {
+  return workspaceType === WorkspaceType.Mattermost
+    ? MATTERMOST_ADD_PROBLEM_TEXT_FOR_SEVERAL[outcome]
+    : ADD_PROBLEM_TEXT_FOR_SEVERAL[outcome];
+}
 
 // The order the problems of one pick are said in: what to do first, first.
 export const ADD_PROBLEM_ORDER: ReadonlyArray<AddProblemOutcome> = [
   WorkspaceChannelAddOutcome.NotFound,
   WorkspaceChannelAddOutcome.NotProjectMember,
+  WorkspaceChannelAddOutcome.NotInTeam,
   WorkspaceChannelAddOutcome.Guest,
   WorkspaceChannelAddOutcome.Refused,
   WorkspaceChannelAddOutcome.TryAgain,
 ];
 
+type ChannelStateWithText = Exclude<
+  WorkspaceChannelState,
+  WorkspaceChannelState.Members | WorkspaceChannelState.ManagedInTeams
+>;
+
 // What the card says about a channel that can take nobody.
-export const CHANNEL_STATE_TEXT: Record<
-  Exclude<
-    WorkspaceChannelState,
-    WorkspaceChannelState.Members | WorkspaceChannelState.ManagedInTeams
-  >,
-  string
-> = {
+export const CHANNEL_STATE_TEXT: Record<ChannelStateWithText, string> = {
   [WorkspaceChannelState.Archived]: RECORD_CHANNEL_TEXT.archivedNote,
   [WorkspaceChannelState.Unreachable]: RECORD_CHANNEL_TEXT.unreachable,
   [WorkspaceChannelState.NotConnected]: RECORD_CHANNEL_TEXT.notConnected,
   [WorkspaceChannelState.Unavailable]: RECORD_CHANNEL_TEXT.unavailable,
 };
+
+export const MATTERMOST_CHANNEL_STATE_TEXT: Record<
+  ChannelStateWithText,
+  string
+> = {
+  [WorkspaceChannelState.Archived]: translationKey(
+    "This channel is archived. Unarchive it in Mattermost to add people.",
+  ),
+  [WorkspaceChannelState.Unreachable]: translationKey(
+    "OneUptime can't see this channel. It was deleted, or OneUptime's bot was removed from it.",
+  ),
+  [WorkspaceChannelState.NotConnected]: translationKey(
+    "Mattermost isn't connected to this project.",
+  ),
+  [WorkspaceChannelState.Unavailable]:
+    MATTERMOST_ADD_OUTCOME_TEXT[WorkspaceChannelAddOutcome.TryAgain].self,
+};
+
+// What the card says about a channel in this state; nothing for one that takes people.
+export function getChannelStateText(
+  workspaceType: WorkspaceType,
+  state: WorkspaceChannelState,
+): string | undefined {
+  const text: Record<ChannelStateWithText, string> =
+    workspaceType === WorkspaceType.Mattermost
+      ? MATTERMOST_CHANNEL_STATE_TEXT
+      : CHANNEL_STATE_TEXT;
+
+  return text[state as ChannelStateWithText];
+}
 
 /*
  * What somebody who may not add people is told when they are not in the
@@ -295,51 +486,34 @@ export const ASK_TO_BE_ADDED: Record<WorkspaceChannelRecordType, string> = {
 };
 
 /*
- * The page's links to the channels the card can read. OneUptime reads who is
- * in a Slack or Microsoft Teams channel (WorkspaceChannelMembers). A
- * Mattermost channel has its button in the page's header and no card, so a
- * record whose channels are all in Mattermost asks for nothing and shows no
- * card, rather than a loading one that goes away.
- */
-export function getLinksToChannelsOfCard(
-  links: Array<WorkspaceChannelLink>,
-): Array<WorkspaceChannelLink> {
-  return links.filter((link: WorkspaceChannelLink) => {
-    return (
-      link.workspaceType === WorkspaceType.Slack ||
-      link.workspaceType === WorkspaceType.MicrosoftTeams
-    );
-  });
-}
-
-/*
  * The card's title: the product the record's channels are in, by name, or
- * Chat Channels when they are in both. Read off the record's channels, or
- * off the page's links to them while the channels load.
+ * Chat Channels when they are in more than one. Read off the record's
+ * channels, or off the page's links to them while the channels load.
  */
 export function getCardTitle(
   channels: Array<{ workspaceType: WorkspaceType }>,
 ): string {
-  const isSlack: boolean = channels.some(
-    (channel: { workspaceType: WorkspaceType }) => {
-      return channel.workspaceType === WorkspaceType.Slack;
-    },
-  );
-  const isTeams: boolean = channels.some(
-    (channel: { workspaceType: WorkspaceType }) => {
-      return channel.workspaceType === WorkspaceType.MicrosoftTeams;
-    },
+  const workspaceTypes: Set<WorkspaceType> = new Set<WorkspaceType>(
+    channels.map((channel: { workspaceType: WorkspaceType }) => {
+      return channel.workspaceType;
+    }),
   );
   const isMany: boolean = channels.length > 1;
 
-  if (isSlack && isTeams) {
+  if (workspaceTypes.size > 1) {
     return RECORD_CHANNEL_TEXT.channels;
   }
 
-  if (isTeams) {
+  if (workspaceTypes.has(WorkspaceType.MicrosoftTeams)) {
     return isMany
       ? RECORD_CHANNEL_TEXT.teamsChannels
       : RECORD_CHANNEL_TEXT.teamsChannel;
+  }
+
+  if (workspaceTypes.has(WorkspaceType.Mattermost)) {
+    return isMany
+      ? RECORD_CHANNEL_TEXT.mattermostChannels
+      : RECORD_CHANNEL_TEXT.mattermostChannel;
   }
 
   return isMany
@@ -347,7 +521,10 @@ export function getCardTitle(
     : RECORD_CHANNEL_TEXT.slackChannel;
 }
 
-// "#inc-42" in Slack, where channels are written with their #; "inc-42" in Teams.
+/*
+ * "#inc-42" in Slack, where channels are written with their #; "inc-42" in
+ * Teams and Mattermost.
+ */
 export function getChannelLabel(channel: WorkspaceRecordChannel): string {
   const name: string = channel.name.trim().replace(/^#+/, "");
 
@@ -376,15 +553,15 @@ export function getFoldedCount(people: Array<WorkspaceChannelPerson>): number {
   return Math.max(0, people.length - CHANNEL_PEOPLE_FOLDED_COUNT);
 }
 
-// People counted but not named (past the names Slack was asked for).
+// People counted but not named (past the names the workspace was asked for).
 export function getUnnamedCount(channel: WorkspaceRecordChannel): number {
   return Math.max(0, channel.peopleCount - channel.people.length);
 }
 
 /*
  * What the card offers the viewer under a channel's people: to join it
- * (they may edit the record and are not in it), to connect their Slack
- * account first (OneUptime cannot tell who they are in Slack), or how to get
+ * (they may edit the record and are not in it), to connect their account
+ * first (OneUptime cannot tell who they are in the workspace), or how to get
  * in without that permission. Nothing when they are in it already.
  */
 export enum ChannelViewerPrompt {
@@ -392,7 +569,7 @@ export enum ChannelViewerPrompt {
   Join = "join",
   ConnectToJoin = "connect-to-join",
   AskToBeAdded = "ask-to-be-added",
-  JoinInSlack = "join-in-slack",
+  JoinInWorkspace = "join-in-workspace",
 }
 
 export function getViewerPrompt(data: {
@@ -402,7 +579,7 @@ export function getViewerPrompt(data: {
   const channel: WorkspaceRecordChannel = data.channel;
 
   if (
-    channel.workspaceType !== WorkspaceType.Slack ||
+    channel.workspaceType === WorkspaceType.MicrosoftTeams ||
     channel.state !== WorkspaceChannelState.Members ||
     channel.viewer === WorkspaceChannelViewerStatus.In
   ) {
@@ -421,7 +598,7 @@ export function getViewerPrompt(data: {
   }
 
   return channel.isPrivate === false
-    ? ChannelViewerPrompt.JoinInSlack
+    ? ChannelViewerPrompt.JoinInWorkspace
     : ChannelViewerPrompt.AskToBeAdded;
 }
 
@@ -432,7 +609,7 @@ export function canAddPeopleTo(data: {
 }): boolean {
   return (
     data.canAddPeople &&
-    data.channel.workspaceType === WorkspaceType.Slack &&
+    data.channel.workspaceType !== WorkspaceType.MicrosoftTeams &&
     data.channel.state === WorkspaceChannelState.Members
   );
 }
@@ -468,6 +645,7 @@ export interface AddOutcomeSentence {
  * said by its state instead.
  */
 export function getAddOutcomeSentences(data: {
+  workspaceType: WorkspaceType;
   answer: WorkspaceChannelAddAnswer;
   viewerUserId: string | null;
 }): Array<AddOutcomeSentence> {
@@ -483,8 +661,10 @@ export function getAddOutcomeSentences(data: {
       continue;
     }
 
-    const text: { self: string; other: string } =
-      ADD_OUTCOME_TEXT[result.outcome];
+    const text: { self: string; other: string } = getAddOutcomeText(
+      data.workspaceType,
+      result.outcome,
+    );
 
     sentences.push({
       template: isViewer ? text.self : text.other,
@@ -494,10 +674,10 @@ export function getAddOutcomeSentences(data: {
   }
 
   if (data.answer.channelState) {
-    const stateText: string | undefined =
-      CHANNEL_STATE_TEXT[
-        data.answer.channelState as keyof typeof CHANNEL_STATE_TEXT
-      ];
+    const stateText: string | undefined = getChannelStateText(
+      data.workspaceType,
+      data.answer.channelState,
+    );
 
     if (stateText) {
       sentences.push({ template: stateText, name: "", isProblem: true });
@@ -521,6 +701,7 @@ export function isAddProblem(result: WorkspaceChannelAddResult): boolean {
  * in one sentence that names them all.
  */
 export function getAddProblemSentences(data: {
+  workspaceType: WorkspaceType;
   results: Array<WorkspaceChannelAddResult>;
   viewerUserId: string | null;
   translator: Translator;
@@ -541,15 +722,18 @@ export function getAddProblemSentences(data: {
       },
     );
 
-    if (others.length < people.length) {
-      const self: string = ADD_OUTCOME_TEXT[outcome].self;
+    const text: { self: string; other: string } = getAddOutcomeText(
+      data.workspaceType,
+      outcome,
+    );
 
-      sentences.push(translator.translateText(self) || self);
+    if (others.length < people.length) {
+      sentences.push(translator.translateText(text.self) || text.self);
     }
 
     if (others.length === 1) {
       sentences.push(
-        translator.translateTemplate(ADD_OUTCOME_TEXT[outcome].other, {
+        translator.translateTemplate(text.other, {
           name: others[0]!.name,
         }),
       );
@@ -561,11 +745,14 @@ export function getAddProblemSentences(data: {
       );
 
       sentences.push(
-        translator.translateTemplate(ADD_PROBLEM_TEXT_FOR_SEVERAL[outcome], {
-          names: composedValue((sentence: Translator): string => {
-            return formatNameList(names, "and", sentence);
-          }),
-        }),
+        translator.translateTemplate(
+          getAddProblemTextForSeveral(data.workspaceType, outcome),
+          {
+            names: composedValue((sentence: Translator): string => {
+              return formatNameList(names, "and", sentence);
+            }),
+          },
+        ),
       );
     }
   }
@@ -581,6 +768,7 @@ export function getAddProblemSentences(data: {
  * nothing.
  */
 export function getPickNotices(data: {
+  workspaceType: WorkspaceType;
   answer: WorkspaceChannelAddAnswer;
   viewerUserId: string | null;
   // The team picked, by its name; undefined when a person was picked.
@@ -603,6 +791,7 @@ export function getPickNotices(data: {
     },
   );
   const problems: Array<string> = getAddProblemSentences({
+    workspaceType: data.workspaceType,
     results: results,
     viewerUserId: data.viewerUserId,
     translator: translator,
@@ -626,8 +815,10 @@ export function getPickNotices(data: {
     }
   } else {
     for (const result of [...added, ...alreadyIn]) {
-      const text: { self: string; other: string } =
-        ADD_OUTCOME_TEXT[result.outcome];
+      const text: { self: string; other: string } = getAddOutcomeText(
+        data.workspaceType,
+        result.outcome,
+      );
       const isViewer: boolean =
         Boolean(viewerKey) && result.userId.toLowerCase() === viewerKey;
 
@@ -648,10 +839,10 @@ export function getPickNotices(data: {
   }
 
   if (data.answer.channelState) {
-    const stateText: string | undefined =
-      CHANNEL_STATE_TEXT[
-        data.answer.channelState as keyof typeof CHANNEL_STATE_TEXT
-      ];
+    const stateText: string | undefined = getChannelStateText(
+      data.workspaceType,
+      data.answer.channelState,
+    );
 
     if (stateText) {
       notices.push({

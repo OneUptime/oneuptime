@@ -96,14 +96,16 @@ const EVENT_TYPE_LABELS: Map<string, string> = new Map<string, string>([
 
 /*
  * Runs that camel-case splitting would get wrong, matched before any other
- * word: "VMware" would split into "V Mware", "OnCall" should read
- * "On-Call", and the SLO feed's "ServiceLevelObjective" prefix is written
- * "SLO" everywhere else in the dashboard.
+ * word: "VMware" would split into "V Mware", "OpenStack" into "Open Stack",
+ * "OnCall" should read "On-Call", and the SLO feed's
+ * "ServiceLevelObjective" prefix is written "SLO" everywhere else in the
+ * dashboard.
  */
 const EVENT_TYPE_WORDS: Array<{ word: string; label: string }> = [
   { word: "ServiceLevelObjective", label: "SLO" },
   { word: "VMware", label: "VMware" },
   { word: "VCenter", label: "vCenter" },
+  { word: "OpenStack", label: "OpenStack" },
   { word: "OnCall", label: "On-Call" },
 ];
 

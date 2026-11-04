@@ -10,9 +10,10 @@ receivers:
   # only costs that service's series.
   #
   # Every job's targets are OPENSTACK_EXPORTER_CLOUDS: the clouds.yaml entries
-  # to read, one per region, as a list in square brackets so the collector reads
-  # a list, e.g. [region-one,region-two]. The relabelling hands each one to the
-  # exporter as its `cloud` parameter, and scrapes the exporter.
+  # to read, one per region and NAMED FOR THE REGION, as a list in square brackets
+  # so the collector reads a list, e.g. [RegionOne,RegionTwo]. The relabelling hands
+  # each one to the exporter as its `cloud` parameter, scrapes the exporter, and
+  # keeps the name: the exporter's series do not say which region they are from.
   #
   # Each scrape makes real API calls and logs in to Keystone, so the intervals
   # are minutes, not seconds, and each timeout sits under its interval: a slow
@@ -28,11 +29,13 @@ receivers:
           scrape_timeout: 120s
           static_configs:
             - targets: ${env:OPENSTACK_EXPORTER_CLOUDS}
+              labels:
+                openstack_service: identity
           relabel_configs: &openstack_exporter_target
             - source_labels: [__address__]
               target_label: __param_cloud
             - source_labels: [__param_cloud]
-              target_label: openstack_clouds_entry
+              target_label: openstack_region
             - target_label: __address__
               replacement: ${env:OPENSTACK_EXPORTER_ADDRESS}
         - job_name: oneuptime-openstack-compute
@@ -43,6 +46,8 @@ receivers:
           scrape_timeout: 110s
           static_configs:
             - targets: ${env:OPENSTACK_EXPORTER_CLOUDS}
+              labels:
+                openstack_service: compute
           relabel_configs: *openstack_exporter_target
         - job_name: oneuptime-openstack-placement
           metrics_path: /probe
@@ -52,6 +57,8 @@ receivers:
           scrape_timeout: 110s
           static_configs:
             - targets: ${env:OPENSTACK_EXPORTER_CLOUDS}
+              labels:
+                openstack_service: placement
           relabel_configs: *openstack_exporter_target
         - job_name: oneuptime-openstack-network
           metrics_path: /probe
@@ -61,6 +68,8 @@ receivers:
           scrape_timeout: 110s
           static_configs:
             - targets: ${env:OPENSTACK_EXPORTER_CLOUDS}
+              labels:
+                openstack_service: network
           relabel_configs: *openstack_exporter_target
         - job_name: oneuptime-openstack-volume
           metrics_path: /probe
@@ -70,6 +79,8 @@ receivers:
           scrape_timeout: 110s
           static_configs:
             - targets: ${env:OPENSTACK_EXPORTER_CLOUDS}
+              labels:
+                openstack_service: volume
           relabel_configs: *openstack_exporter_target
         - job_name: oneuptime-openstack-image
           metrics_path: /probe
@@ -79,6 +90,8 @@ receivers:
           scrape_timeout: 120s
           static_configs:
             - targets: ${env:OPENSTACK_EXPORTER_CLOUDS}
+              labels:
+                openstack_service: image
           relabel_configs: *openstack_exporter_target
 
 processors:
@@ -90,7 +103,8 @@ processors:
     metric_statements:
       - context: datapoint
         statements:
-          - set(attributes["openstack.region.name"], attributes["region"]) where attributes["region"] != nil and attributes["region"] != ""
+          - set(attributes["openstack.region.name"], attributes["openstack_region"]) where attributes["openstack_region"] != nil
+          - delete_key(attributes, "openstack_region")
   # Stamp every metric with the cloud's identity. OneUptime registers the cloud
   # from `openstack.cloud.name`, and every OpenStack page and monitor scopes on
   # it. Keep it stable: changing it later registers a brand-new cloud.

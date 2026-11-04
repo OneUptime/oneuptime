@@ -129,6 +129,12 @@ const RESOURCE_MAPPINGS: Array<ResourceMapping> = [
     nameColumn: "name",
   },
   {
+    relation: "openStackClouds",
+    ids: ["openStackCloudId", "openStackCloudIds"],
+    names: attributeAliases("openstack.cloud.name"),
+    nameColumn: "name",
+  },
+  {
     relation: "vmwareVCenters",
     ids: ["vmwareVCenterId", "vmwareVCenterIds"],
     names: attributeAliases("vmware.vcenter.name"),
@@ -187,6 +193,7 @@ const PRIMARY_TYPE_RELATIONS: Partial<Record<ServiceType, string>> = {
   [ServiceType.PodmanHost]: "podmanHosts",
   [ServiceType.KubernetesCluster]: "kubernetesClusters",
   [ServiceType.ProxmoxCluster]: "proxmoxClusters",
+  [ServiceType.OpenStackCloud]: "openStackClouds",
   [ServiceType.VMwareVCenter]: "vmwareVCenters",
   [ServiceType.CephCluster]: "cephClusters",
   [ServiceType.StorageArray]: "storageArrays",
@@ -931,6 +938,9 @@ function buildQueryScope(config: MetricQueryConfigData): EventOverlayScope {
       attributeAliases("proxmox.cluster.name", "iot.fleet.name"),
     )
       ? ["id", "device.id"]
+      : []),
+    ...(hasAny(attributes, attributeAliases("openstack.cloud.name"))
+      ? ["id"]
       : []),
     ...(hasAny(attributes, attributeAliases("ceph.cluster.name"))
       ? ["ceph_daemon", "pool_id", "pool_name"]

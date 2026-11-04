@@ -2,6 +2,9 @@
 # catalog. It reads no users, credentials or role assignments. Merge these into
 # your /etc/keystone/policy.yaml. oslo.policy notices a changed file on its own,
 # so no restart is needed.
+# To take them off again, empty the file rather than deleting it: on Flamingo and
+# Epoxy a service fails every request once a policy file it has read is gone, until
+# it is restarted, and Keystone failing that way stops the whole cloud.
 "identity:list_projects": "rule:admin_required or role:oneuptime_monitoring"
 "identity:get_project": "rule:admin_required or role:oneuptime_monitoring"
 "identity:list_domains": "rule:admin_required or role:oneuptime_monitoring"

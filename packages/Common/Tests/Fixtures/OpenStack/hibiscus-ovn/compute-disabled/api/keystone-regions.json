@@ -1,0 +1,1 @@
+{"regions": [{"id": "RegionOne", "description": "", "parent_region_id": null, "links": {"self": "https://openstack.example/identity/v3/regions/RegionOne"}}], "links": {"next": null, "self": "https://openstack.example/identity/v3/regions", "previous": null}}

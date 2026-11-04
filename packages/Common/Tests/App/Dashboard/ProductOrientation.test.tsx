@@ -442,6 +442,7 @@ describe("Products menu sections", () => {
       "Docker Swarm",
       "Podman",
       "Proxmox",
+      "OpenStack",
       "VMware",
       "Ceph",
       "Storage Arrays",
@@ -480,7 +481,7 @@ describe("Products menu sections", () => {
     ]);
   });
 
-  test("regrouping lost no product: all 46 are still listed exactly once", () => {
+  test("regrouping lost no product: all 47 are still listed exactly once", () => {
     openProductsMenu();
 
     const titles: Array<string> = readMenuSections().flatMap(
@@ -489,15 +490,16 @@ describe("Products menu sections", () => {
       },
     );
     /*
-     * 46: Code Repositories became a page of Tasks, Forms (which replaced
+     * 47: Code Repositories became a page of Tasks, Forms (which replaced
      * Incidents > Settings > Forms) became a product, Storage Arrays
      * joined Infrastructure, Data Security joined Observability, and App
      * Platforms took Cloud's environments. Moving Data Security and
-     * Security Events to Security added none, and Data Observability (#5647)
-     * joined Observability as the 46th.
+     * Security Events to Security added none, Data Observability (#5647)
+     * joined Observability as the 46th, and OpenStack (#5676) joined
+     * Infrastructure as the 47th.
      */
-    expect(titles).toHaveLength(46);
-    expect(new Set(titles).size).toBe(46);
+    expect(titles).toHaveLength(47);
+    expect(new Set(titles).size).toBe(47);
     expect(titles).toContain("App Platforms");
     expect(titles).not.toContain("Code Repositories");
     expect(titles).toContain("Forms");
@@ -555,7 +557,7 @@ describe("the Products menu opens on the essentials", () => {
 
     expect(infrastructure).toHaveAttribute("aria-expanded", "false");
     expect(infrastructure).toHaveAccessibleDescription(
-      "11 products Hosts, Kubernetes, Docker, Docker Swarm, Podman, Proxmox, VMware, Ceph, Storage Arrays, Network, IoT",
+      "12 products Hosts, Kubernetes, Docker, Docker Swarm, Podman, Proxmox, OpenStack, VMware, Ceph, Storage Arrays, Network, IoT",
     );
     expect(
       within(productsMenu()).getByRole("button", { name: "Cloud" }),
