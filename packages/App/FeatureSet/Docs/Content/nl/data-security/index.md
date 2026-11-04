@@ -69,7 +69,7 @@ Open **Gegevensbeveiliging**. Opslagen verschijnen onder **Gegevensopslagen** zo
 | AWS | AWS S3 Bucket, AWS RDS Instance, AWS Aurora Cluster, AWS RDS Snapshot, AWS DynamoDB Table, AWS Redshift Cluster, AWS DocumentDB Cluster, AWS OpenSearch Domain, AWS ElastiCache Cluster, AWS EFS File System | AWS S3 Bucket |
 | Azure | Azure Storage Account, Azure SQL Database, Azure Cosmos DB Account, Azure PostgreSQL Server, Azure MySQL Server | Azure Storage Account |
 | Google Cloud | Google Cloud Storage Bucket, Google Cloud SQL Instance, Google BigQuery Dataset, Google Firestore Database, Google Spanner Instance, Google Bigtable Instance | Google Cloud Storage Bucket, Google BigQuery Dataset |
-| Databases die je zelf beheert | PostgreSQL, MySQL, MongoDB, SQL Server, Oracle, Redis, Elasticsearch, Snowflake | PostgreSQL, MySQL |
+| Databases die je zelf beheert | PostgreSQL, MySQL, MongoDB, SQL Server, Oracle, Redis, Elasticsearch, Snowflake, ClickHouse, Databricks | PostgreSQL, MySQL |
 | OneUptime | Logs, traces, uitzonderingen, sessieherhalingen, AI-gesprekken | Logs, traces, uitzonderingen, sessieherhalingen, AI-gesprekken |
 
 Elke opslag krijgt de controles die bij zijn soort horen. Een opslag waarvan de inhoud niet kan worden bemonsterd, wordt toch gecontroleerd: een openbare bucket of een onversleutelde database is een probleem, wat er ook in staat.

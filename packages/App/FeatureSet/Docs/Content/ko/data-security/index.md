@@ -69,7 +69,7 @@ flowchart TB
 | AWS | AWS S3 Bucket, AWS RDS Instance, AWS Aurora Cluster, AWS RDS Snapshot, AWS DynamoDB Table, AWS Redshift Cluster, AWS DocumentDB Cluster, AWS OpenSearch Domain, AWS ElastiCache Cluster, AWS EFS File System | AWS S3 Bucket |
 | Azure | Azure Storage Account, Azure SQL Database, Azure Cosmos DB Account, Azure PostgreSQL Server, Azure MySQL Server | Azure Storage Account |
 | Google Cloud | Google Cloud Storage Bucket, Google Cloud SQL Instance, Google BigQuery Dataset, Google Firestore Database, Google Spanner Instance, Google Bigtable Instance | Google Cloud Storage Bucket, Google BigQuery Dataset |
-| 직접 운영하는 데이터베이스 | PostgreSQL, MySQL, MongoDB, SQL Server, Oracle, Redis, Elasticsearch, Snowflake | PostgreSQL, MySQL |
+| 직접 운영하는 데이터베이스 | PostgreSQL, MySQL, MongoDB, SQL Server, Oracle, Redis, Elasticsearch, Snowflake, ClickHouse, Databricks | PostgreSQL, MySQL |
 | OneUptime | 로그, 트레이스, 예외, 세션 리플레이, AI 대화 | 로그, 트레이스, 예외, 세션 리플레이, AI 대화 |
 
 모든 저장소는 그 종류에 해당하는 검사를 받습니다. 콘텐츠를 샘플링할 수 없는 저장소도 검사합니다. 공개 버킷이나 암호화되지 않은 데이터베이스는 무엇을 담고 있든 문제이기 때문입니다.
