@@ -105,13 +105,20 @@ describe("each kind's pages are in its own product", () => {
 
   test("an environment has its apps' telemetry and no cloud changes; a resource the reverse", () => {
     for (const tab of [
-      CloudResourceViewTab.Logs,
       CloudResourceViewTab.Traces,
       CloudResourceViewTab.Instances,
     ]) {
       expect(ENVIRONMENT_VIEW_PAGES[tab]).toBeDefined();
       expect(RESOURCE_VIEW_PAGES[tab]).toBeUndefined();
     }
+
+    // Both have logs: an environment's apps', a resource's streamed ones.
+    expect(ENVIRONMENT_VIEW_PAGES[CloudResourceViewTab.Logs]).toBe(
+      PageMap.APP_PLATFORMS_ENVIRONMENT_VIEW_LOGS,
+    );
+    expect(RESOURCE_VIEW_PAGES[CloudResourceViewTab.Logs]).toBe(
+      PageMap.CLOUD_RESOURCE_VIEW_LOGS,
+    );
 
     expect(
       ENVIRONMENT_VIEW_PAGES[CloudResourceViewTab.Changes],
@@ -125,7 +132,7 @@ describe("each kind's pages are in its own product", () => {
     expect(
       getCloudResourceViewPageKey(
         CloudResourceKind.Resource,
-        CloudResourceViewTab.Logs,
+        CloudResourceViewTab.Traces,
       ),
     ).toBe(PageMap.CLOUD_RESOURCE_VIEW);
     expect(
