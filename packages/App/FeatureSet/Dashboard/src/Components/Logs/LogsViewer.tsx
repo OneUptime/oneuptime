@@ -113,6 +113,7 @@ import Select from "Common/Types/BaseDatabase/Select";
 import RouteMap, { RouteUtil } from "../../Utils/RouteMap";
 import PageMap from "../../Utils/PageMap";
 import useTelemetryEntityNames from "Common/UI/Utils/Telemetry/UseTelemetryEntityNames";
+import OpenStackLogRequestLink from "../OpenStack/OpenStackLogRequestLink";
 import TelemetryFirstStepsEmptyState from "../Telemetry/TelemetryFirstStepsEmptyState";
 import { TelemetryFirstStepsSignal } from "../Telemetry/TelemetryFirstSteps";
 import { ResultTotal } from "Common/UI/Utils/Telemetry/ResultTotal";
@@ -240,6 +241,11 @@ export interface ComponentProps {
    */
   emptyContentWhenUnfiltered?: ReactElement | undefined;
   logQuery?: Query<Log> | undefined;
+  /*
+   * The order the list opens in: newest first, unless what it shows reads from the top
+   * down, as one request followed across a cloud's services does.
+   */
+  initialSortOrder?: SortOrder | undefined;
   /*
    * Entity scope with attribute fallback (contract C4): compiles server-side
    * to `hasAny(entityKeys, [...]) OR attributes[attributeKey] =
@@ -767,7 +773,9 @@ const DashboardLogsViewer: FunctionComponent<ComponentProps> = (
   const resultTotalListQueryRef: React.MutableRefObject<Query<Log> | null> =
     useRef<Query<Log> | null>(null);
   const [sortField, setSortField] = useState<LogsSortField>("time");
-  const [sortOrder, setSortOrder] = useState<SortOrder>(SortOrder.Descending);
+  const [sortOrder, setSortOrder] = useState<SortOrder>(
+    props.initialSortOrder || SortOrder.Descending,
+  );
   const [isLiveEnabled, setIsLiveEnabled] = useState<boolean>(false);
   const [isLiveUpdating, setIsLiveUpdating] = useState<boolean>(false);
   const [savedViews, setSavedViews] = useState<Array<LogSavedView>>([]);
@@ -3144,13 +3152,16 @@ const DashboardLogsViewer: FunctionComponent<ComponentProps> = (
            */
           renderLogExtraSection={(log: Log) => {
             return (
-              <SecurityEventsInSignal
-                scope={{
-                  traceId: log.traceId?.toString() || "",
-                  logId: log._id?.toString() || "",
-                }}
-                time={log.time ? new Date(log.time) : null}
-              />
+              <>
+                <OpenStackLogRequestLink log={log} />
+                <SecurityEventsInSignal
+                  scope={{
+                    traceId: log.traceId?.toString() || "",
+                    logId: log._id?.toString() || "",
+                  }}
+                  time={log.time ? new Date(log.time) : null}
+                />
+              </>
             );
           }}
           signalPivotActions={signalPivotActions}

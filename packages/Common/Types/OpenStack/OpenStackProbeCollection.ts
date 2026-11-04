@@ -1,4 +1,5 @@
 import OpenStackCollectionErrorCode from "./OpenStackCollectionError";
+import { OpenStackInstanceMetricsMode } from "./OpenStackInstanceMetrics";
 import { OpenStackServiceType } from "./OpenStackResourceKind";
 import { JSONArray } from "../JSON";
 
@@ -33,6 +34,15 @@ export const OPENSTACK_PROBE_TEST_BATCH_SIZE: number = 5;
  * for the rest of the report.
  */
 export const OPENSTACK_COLLECTION_MAX_PAYLOAD_BYTES: number = 48 * 1024 * 1024;
+
+/*
+ * The most one collection sends in all. A larger one goes in several uploads, each under the
+ * ceiling above (OpenStackReportParts). Past this a probe is the wrong collector for the cloud:
+ * it would hold gigabytes in memory to build it, beside whatever else the probe is doing.
+ */
+export const OPENSTACK_COLLECTION_MAX_UPLOADS: number = 10;
+export const OPENSTACK_COLLECTION_MAX_TOTAL_PAYLOAD_BYTES: number =
+  OPENSTACK_COLLECTION_MAX_UPLOADS * OPENSTACK_COLLECTION_MAX_PAYLOAD_BYTES;
 
 /*
  * Which of an OpenStack catalog's three URLs to use for a service. Most probes sit
@@ -91,6 +101,14 @@ export interface OpenStackCollectionOptions {
   portProjectIds?: Array<string> | undefined;
   // Quotas and limits per project.
   collectProjectLimits?: boolean | undefined;
+  /*
+   * What the cloud chose to keep per instance (OpenStackCloud.instanceMetricsOptions), which
+   * the server adds to a job as it hands it out. Nobody saves these here. Past a stated size a
+   * cloud keeps counts and rows instead of a series per instance (OpenStackScale), and these
+   * say which instances keep theirs.
+   */
+  instanceSeriesMode?: OpenStackInstanceMetricsMode | undefined;
+  keptProjectIds?: Array<string> | undefined;
 }
 
 // One cloud a probe was handed to collect now.
@@ -191,6 +209,9 @@ export interface OpenStackServiceSummary {
   backingOffUntil?: string | undefined;
   durationInMs: number;
   requestCount: number;
+  // Its slowest answer, and how long the probe waited between requests because of it.
+  slowestAnswerInMs?: number | undefined;
+  pausedForInMs?: number | undefined;
 }
 
 export type OpenStackInstanceReadMode = "Full" | "Incremental";
@@ -216,6 +237,12 @@ export interface OpenStackCollectionSummary {
   datapointCount?: number | undefined;
   // How many API calls it made: the load a person can be told about.
   requestCount?: number | undefined;
+  /*
+   * On a cloud past the summary size: how many instances keep their own series, and how long
+   * a row that did not change can go before it is sent again.
+   */
+  isSummaryMode?: boolean | undefined;
+  refreshCycleInMinutes?: number | undefined;
   /*
    * Parts that were left out without failing the collection, in words: what a
    * credential cannot read, a list cut short by Keystone's list_limit.
@@ -297,6 +324,11 @@ export interface OpenStackCollectionReport extends OpenStackProbeReportBase {
    * every resource itself.
    */
   resourceMetrics?: JSONArray | undefined;
+  /*
+   * What Nova says instances went through, as OTLP/JSON resourceLogs whose bodies are
+   * notifications: for a cloud that cannot turn its own on. Left out when nothing happened.
+   */
+  resourceLogs?: JSONArray | undefined;
 }
 
 // What a probe posts after a connection test.

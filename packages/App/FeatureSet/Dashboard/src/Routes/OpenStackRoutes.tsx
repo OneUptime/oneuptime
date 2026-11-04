@@ -46,10 +46,13 @@ import OpenStackCloudImageDetail from "../Pages/OpenStack/View/ImageDetail";
 import OpenStackCloudProjects from "../Pages/OpenStack/View/Projects";
 import OpenStackCloudProjectDetail from "../Pages/OpenStack/View/ProjectDetail";
 import OpenStackCloudDomains from "../Pages/OpenStack/View/Domains";
+import OpenStackCloudControlPlane from "../Pages/OpenStack/View/ControlPlane";
+import OpenStackCloudControlPlaneDependency from "../Pages/OpenStack/View/ControlPlaneDependency";
 import OpenStackCloudTopology from "../Pages/OpenStack/View/Topology";
 import OpenStackCloudMetrics from "../Pages/OpenStack/View/Metrics";
 import OpenStackCloudRecommendations from "../Pages/OpenStack/View/Recommendations";
 import OpenStackCloudLogs from "../Pages/OpenStack/View/Logs";
+import OpenStackCloudTraces from "../Pages/OpenStack/View/Traces";
 import OpenStackCloudIncidents from "../Pages/OpenStack/View/Incidents";
 import OpenStackCloudAlerts from "../Pages/OpenStack/View/Alerts";
 import OpenStackCloudScheduledMaintenance from "../Pages/OpenStack/View/ScheduledMaintenance";
@@ -641,6 +644,36 @@ const OpenStackRoutes: FunctionComponent<ComponentProps> = (
           }
         />
 
+        <PageRoute
+          path={RouteUtil.getLastPathForKey(
+            PageMap.OPENSTACK_CLOUD_VIEW_CONTROL_PLANE,
+          )}
+          element={
+            <OpenStackCloudControlPlane
+              {...props}
+              pageRoute={
+                RouteMap[PageMap.OPENSTACK_CLOUD_VIEW_CONTROL_PLANE] as Route
+              }
+            />
+          }
+        />
+
+        <PageRoute
+          path={RouteUtil.getLastPathForKey(
+            PageMap.OPENSTACK_CLOUD_VIEW_CONTROL_PLANE_DEPENDENCY,
+          )}
+          element={
+            <OpenStackCloudControlPlaneDependency
+              {...props}
+              pageRoute={
+                RouteMap[
+                  PageMap.OPENSTACK_CLOUD_VIEW_CONTROL_PLANE_DEPENDENCY
+                ] as Route
+              }
+            />
+          }
+        />
+
         {/* Telemetry */}
         <PageRoute
           path={RouteUtil.getLastPathForKey(
@@ -663,6 +696,19 @@ const OpenStackRoutes: FunctionComponent<ComponentProps> = (
             <OpenStackCloudLogs
               {...props}
               pageRoute={RouteMap[PageMap.OPENSTACK_CLOUD_VIEW_LOGS] as Route}
+            />
+          }
+        />
+
+        {/* Traces */}
+        <PageRoute
+          path={RouteUtil.getLastPathForKey(
+            PageMap.OPENSTACK_CLOUD_VIEW_TRACES,
+          )}
+          element={
+            <OpenStackCloudTraces
+              {...props}
+              pageRoute={RouteMap[PageMap.OPENSTACK_CLOUD_VIEW_TRACES] as Route}
             />
           }
         />

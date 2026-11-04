@@ -105,7 +105,7 @@ In monitor filters and group-by keys, a resource attribute starts with `resource
 
 ## Pre-built Alert Templates
 
-OneUptime ships 30 templates for common OpenStack problems, and the **What to alert on** list offers all of them. Each builds a complete monitor: the metric query, its attribute filters, a group-by on what one incident is about, a criteria that fires and one that recovers. Thresholds are the same lines the cloud's own pages draw, and are starting points you can edit.
+OneUptime ships 34 templates for common OpenStack problems, and the **What to alert on** list offers all of them. Each builds a complete monitor: the metric query, its attribute filters, a group-by on what one incident is about, a criteria that fires and one that recovers. Thresholds are the same lines the cloud's own pages draw, and are starting points you can edit.
 
 Every template reads at least three collections of what it watches, and fires only when the condition holds for its whole window. A threshold on a share recovers 10% past its line, so a value hovering there does not flap.
 
@@ -126,6 +126,10 @@ Every template reads at least three collections of what it watches, and fires on
 | vCPU Allocation High | Compute | Warning | `openstack_placement_resource_*` filtered to `resourcetype = VCPU`, usage / ((total - reserved) x ratio), per hypervisor, **past 10 minutes** | Above 90%: allocation, not load | At or below 81% |
 | Memory Allocation High | Compute | Warning | The same, `resourcetype = MEMORY_MB` | Above 90% | At or below 81% |
 | Local Disk Allocation High | Compute | Warning | The same, `resourcetype = DISK_GB` | Above 90% | At or below 81% |
+| Hypervisor CPU Saturated | Compute | Warning | `openstack.hypervisor.instances.cpu.utilization`, per hypervisor, **past 15 minutes**. Needs libvirt's or Ceilometer's exporter | Above 90% of its CPU threads: load, not allocation. Its page names the instances responsible | At or below 81% |
+| Hypervisor Memory Pressure | Compute | Warning | `openstack.hypervisor.instances.memory.utilization`, per hypervisor, **past 15 minutes**. Needs libvirt's or Ceilometer's exporter | Above 90% of its memory: in use, not promised | At or below 81% |
+| Instance CPU Saturated | Compute | Warning | `openstack.instance.cpu.utilization`, Max per instance, **past 15 minutes**. Needs libvirt's or Ceilometer's exporter | Above 95% of its vCPUs | At or below 85.5% |
+| Instance Disk Latency High | Compute | Warning | `openstack.instance.disk.read.latency` and `openstack.instance.disk.write.latency`, Max per instance and disk, **past 15 minutes**. Needs libvirt's or Ceilometer's exporter | Above 50 ms per request. A disk with no requests has no latency, so an idle one never fires | At or below 45 ms, or it stops being used |
 | Instances in Error | Compute | Warning | `openstack_nova_server_status` filtered to `status = ERROR`, Count per region, **past 10 minutes** | Above 0 | None left |
 | Instance Stuck Building | Compute | Warning | `openstack_nova_server_status` filtered to `status = BUILD` or `BUILD(spawning)`, Max per instance, **past 1 hour** | In that status at every collection for an hour | Left it |
 | Instance Stuck Transitioning | Compute | Warning | The same for `REBUILD`, `RESIZE`, `REVERT_RESIZE`, `MIGRATING`, `REBOOT`, `HARD_REBOOT` and `PASSWORD`, **past 1 hour** | In one of them at every collection for an hour | Left it |
@@ -150,6 +154,20 @@ Every template reads at least three collections of what it watches, and fires on
 - **A series that goes away counts as recovered:** a worker someone disabled, the last instance in ERROR deleted, a pool removed. Each template reads its service's own `_up` series beside its own, so it can tell a part that went away from a cloud that went quiet. When nothing arrives at all, its incidents stay open and **Cloud Stopped Reporting** speaks instead.
 - **When an API is down, its own series go too**, so that service's other templates resolve, and fire again a window after it is back if the fault is still there. If every API reads down at once, look at the exporter first.
 - **A cloud that has no such service stays quiet.** The exporter answers with nothing for a service that is not in the cloud's catalog, and **Network**, **Block Storage**, **Image** and **Placement API Down** do not read that as an outage. **Identity** and **Compute API Down** do, because that is also how the exporter reports Keystone or Nova's API stopped outright, and every cloud has them.
+
+### What the services say
+
+Seven more templates read a cloud's logs rather than its metrics, so they are Logs monitors, and they need the agent's [logs profile](/docs/telemetry/openstack#service-logs). Each reads only this cloud's logs, counts what it is looking for, and resolves on its own once the count falls.
+
+| Template | Category | Severity | Reads | Fires when | Recovers when |
+| --- | --- | --- | --- | --- | --- |
+| No Valid Host | Service Logs | Warning | Lines a service wrote at `WARNING` or worse holding `No valid host was found`, **past 15 minutes** | One or more | None left in the window |
+| RabbitMQ Connection Lost | Service Logs | Critical | `AMQP server on <host> is unreachable` or `MessagingTimeout`, **past 5 minutes** | 5 or more | Fewer than 5 |
+| Database Connection Lost | Service Logs | Critical | `DBConnectionError`, or MySQL's `Lost connection` and `Can't connect`, **past 5 minutes** | 5 or more | Fewer than 5 |
+| Too Many Errors from a Service | Service Logs | Warning | `ERROR` and `CRITICAL` lines, per service and machine, **past 5 minutes** | 50 or more | Fewer than 50 |
+| Token Validation Failing | Service Logs | Critical | Tokens a service or Keystone cannot validate, **past 5 minutes** | 10 or more. One is someone's stale session | Fewer than 10 |
+| Instance Action Failed | Events | Warning | `compute.exception` and any `instance.*.error`, per instance, event and reason, **past 15 minutes**. Needs [notifications](/docs/telemetry/openstack#turn-on-notifications) or a probe | One or more | None left in the window |
+| Scheduling Failed | Events | Warning | `scheduler.select_destinations.error`, or a compute task's error naming `NoValidHost`, per instance, event and reason, **past 15 minutes**. Needs the same | One or more | None left in the window |
 
 ### Turn on the limits series
 
@@ -217,10 +235,30 @@ The metrics below are the catalog the monitor form offers. **Reads** is its usua
 | `openstack_nova_server_status` | - | Max | One series per instance, whose value is a numeric code for its status: ACTIVE is 0, BUILD is 1, ERROR is 4. Read the word from the status label, and filter on it: the code is not a count and not a severity. address_ipv4 and address_ipv6 are empty on a real cloud, and hypervisor_hostname, host_id and availability_zone are empty until the instance is scheduled. |
 | `openstack_nova_server_local_gb` | `GiB` | Max | The local disk one instance holds. _Off by default:_ delete `--disable-metric=nova-server_local_gb` from the exporter. |
 | `openstack_nova_total_vms` | `count` | Max | How many instances the region has, in any status. |
+| `openstack_nova_instances_by_status` | `count` | Max | How many instances are in each status, one series per status in each region. A cloud past the summary size keeps this in place of a series per instance. Other clouds do not send it. |
+| `openstack_nova_instances_by_project` | `count` | Max | How many instances each project holds, one series per project in each region. A cloud past the summary size keeps this in place of a series per instance. Other clouds do not send it. |
 | `openstack_nova_flavors` | `count` | Max | How many flavors the region has. |
 | `openstack_nova_flavor` | `count` | Max | One series per flavor, always 1, with its size in the vcpus, ram (MiB) and disk (GiB) labels. |
 | `openstack_nova_availability_zones` | `count` | Max | How many availability zones Nova has in the region. |
 | `openstack_nova_security_groups` | `count` | Max | How many security groups Nova reports in the region. The agent leaves it out with `--disable-metric=nova-security_groups`, because Nova no longer has this route. |
+| `openstack.instance.cpu.usage` | `{cpu}` | Max | How many of its hypervisor's CPU threads this instance is using, worked out from its cumulative CPU time. Reported only where libvirt's or Ceilometer's exporter is read. |
+| `openstack.instance.cpu.utilization` | `%` | Max | That CPU as a share of the instance's own vCPUs. 100 is every vCPU busy, and it can read past 100 while QEMU's own threads work for it. Reported only where libvirt's or Ceilometer's exporter is read. |
+| `openstack.instance.cpu.contention` | `%` | Max | How much of the time the instance's vCPUs wanted to run and the hypervisor made them wait, as a share of its vCPUs: the guest calls this steal. It says a neighbour is the problem rather than the instance. From libvirt's exporter, and from Ceilometer on releases that have its `cpu.delay` meter. |
+| `openstack.instance.memory.usage` | `By` | Max | What the guest says it is using, from its balloon driver. A guest without one has no such reading. Reported only where libvirt's or Ceilometer's exporter is read. |
+| `openstack.instance.memory.resident` | `By` | Max | What the instance really holds of its hypervisor's memory, whatever the guest says it is using. Reported only where libvirt's or Ceilometer's exporter is read. |
+| `openstack.instance.disk.read.rate` | `By/s` | Max | Bytes per second this instance is reading from one disk, its `device`. Reported only where libvirt's or Ceilometer's exporter is read. |
+| `openstack.instance.disk.write.rate` | `By/s` | Max | Bytes per second this instance is writing to one disk. Reported only where libvirt's or Ceilometer's exporter is read. |
+| `openstack.instance.disk.read.operations` | `{operation}/s` | Max | Read requests per second on one disk of this instance. Reported only where libvirt's or Ceilometer's exporter is read. |
+| `openstack.instance.disk.write.operations` | `{operation}/s` | Max | Write requests per second on one disk of this instance. Reported only where libvirt's or Ceilometer's exporter is read. |
+| `openstack.instance.disk.read.latency` | `ms` | Max | How long a read took on one disk of this instance, on average. A disk with no reads has no reading, rather than reading 0. Reported only where libvirt's or Ceilometer's exporter is read. |
+| `openstack.instance.disk.write.latency` | `ms` | Max | How long a write took on one disk of this instance, on average. A disk with no writes has no reading, rather than reading 0. Reported only where libvirt's or Ceilometer's exporter is read. |
+| `openstack.instance.network.receive.rate` | `By/s` | Max | Bytes per second reaching this instance on one network interface, its `device`. Reported only where libvirt's or Ceilometer's exporter is read. |
+| `openstack.instance.network.transmit.rate` | `By/s` | Max | Bytes per second leaving this instance on one network interface. Reported only where libvirt's or Ceilometer's exporter is read. |
+| `openstack.hypervisor.instances.cpu.usage` | `{cpu}` | Max | How many of this hypervisor's CPU threads its instances are using between them. The host's own processes are not in this: the Host product has them, where OneUptime's agent runs on it. Reported only where libvirt's or Ceilometer's exporter is read. |
+| `openstack.hypervisor.instances.cpu.utilization` | `%` | Max | That as a share of the CPU threads this hypervisor has, before any allocation ratio. 100 is every thread busy. Reported only where libvirt's or Ceilometer's exporter is read, and once the inventory knows what the hypervisor has. |
+| `openstack.hypervisor.instances.memory.resident` | `By` | Max | What this hypervisor's instances really hold of its memory between them, whatever they have been promised. Reported only where libvirt's or Ceilometer's exporter is read. |
+| `openstack.hypervisor.instances.memory.utilization` | `%` | Max | That as a share of the memory this hypervisor has, before any allocation ratio. Reported only where libvirt's or Ceilometer's exporter is read, and once the inventory knows what the hypervisor has. |
+| `openstack.hypervisor.instances.reporting` | `{instance}` | Max | How many instances those series add up, so a total can be told from a total with some of them missing. Reported only where libvirt's or Ceilometer's exporter is read. |
 
 ### Network
 

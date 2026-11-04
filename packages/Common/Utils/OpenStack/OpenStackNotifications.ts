@@ -25,6 +25,14 @@ import { OpenStackResourceKind } from "../../Types/OpenStack/OpenStackResourceKi
 export const OPENSTACK_NOTIFICATION_LOGGER_PREFIX: string =
   "oslo.messaging.notification.";
 
+/*
+ * What the message ID of a probe's instance action starts with, which is the one way to tell
+ * one from what Nova itself sent: OpenStackEventRecorder leaves them out for a cloud whose
+ * own notifications are arriving.
+ */
+export const OPENSTACK_PROBE_ACTION_MESSAGE_PREFIX: string =
+  "os-instance-actions/";
+
 export enum OpenStackEventAttribute {
   Type = "openstack.event.type",
   Priority = "openstack.event.priority",
@@ -495,6 +503,8 @@ const ACTION_WORDS: ReadonlyMap<string, string> = new Map<string, string>([
   ["reboot", "rebooted"],
   ["rebuild", "rebuilt"],
   ["resize", "resized"],
+  ["migrate", "migrated"],
+  ["live_migration", "live migrated"],
   ["resize_finish", "resize finished"],
   ["resize_prep", "resize prepared"],
   ["resize_confirm", "resize confirmed"],
@@ -601,8 +611,18 @@ function buildTitle(data: {
     }
   }
 
-  const noun: string = part ? KIND_NOUNS[part.kind] || "Part" : "OpenStack";
-  const name: string = part ? part.name || part.id : "";
+  // An aggregate has no row of its own, and its name is still what a person calls it.
+  const isAggregate: boolean = !part && type.startsWith("aggregate.");
+  const noun: string = part
+    ? KIND_NOUNS[part.kind] || "Part"
+    : isAggregate
+      ? "Aggregate"
+      : "OpenStack";
+  const name: string = part
+    ? part.name || part.id
+    : isAggregate
+      ? readText(data.fields, "name")
+      : "";
   const subject: string = name ? `${noun} ${name}` : noun;
 
   if (outcome === OpenStackEventOutcome.Failed) {
@@ -634,6 +654,9 @@ const INSTANCE_STATE_ACTIONS: ReadonlySet<string> = new Set([
   "shutdown",
   "reboot",
   "rebuild",
+  "resize",
+  "migrate",
+  "live_migration",
   "resize_finish",
   "resize_confirm",
   "resize_revert",
@@ -762,9 +785,14 @@ export function readOpenStackNotification(data: {
   lineTime?: Date | null | undefined;
 }): OpenStackEvent | null {
   const message: Record<string, unknown> | null = asObject(data.message);
+
+  if (!message || typeof message["event_type"] !== "string") {
+    return null;
+  }
+
   const type: string = readText(message, "event_type");
 
-  if (!message || !type) {
+  if (!type) {
     return null;
   }
 

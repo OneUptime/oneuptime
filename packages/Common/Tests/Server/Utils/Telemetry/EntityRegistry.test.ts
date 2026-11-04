@@ -87,6 +87,12 @@ describe("REGISTRY_PROMOTED_TYPES", () => {
     expect(REGISTRY_PROMOTED_TYPES.has(EntityType.Database)).toBe(true);
   });
 
+  test("openstack.resource is membership-only (the OpenStackResource table is its row)", () => {
+    expect(REGISTRY_PROMOTED_TYPES.has(EntityType.OpenStackResource)).toBe(
+      false,
+    );
+  });
+
   test("message.queue is membership-only (the MessageQueue table is its row)", () => {
     expect(REGISTRY_PROMOTED_TYPES.has(EntityType.MessageQueue)).toBe(false);
     // The broker a messaging span calls is still a promoted dependency node.

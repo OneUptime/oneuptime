@@ -9,9 +9,24 @@ echo ""
 # Every variable docker-compose.yml reads, and what this script and
 # troubleshoot.sh read from .env. The .env holds all of them, so a value set by
 # hand survives a re-run. The credential is not here: clouds.yaml alone holds it.
+#
+# The lists of targets are never asked for: what a cloud stands on is named by whoever
+# knows where it runs, and README.md says how. Each is kept across a re-run.
+TARGET_LIST_NAMES="OPENSTACK_RABBITMQ_TARGETS OPENSTACK_MARIADB_TARGETS OPENSTACK_MEMCACHED_TARGETS \
+OPENSTACK_HAPROXY_TARGETS OPENSTACK_NETWORK_EXPORTER_TARGETS OPENSTACK_LIBVIRT_HEALTH_TARGETS \
+OPENSTACK_LIBVIRT_EXPORTER_TARGETS OPENSTACK_CEILOMETER_EXPORTER_TARGETS"
+# What only the largest clouds set, by hand: see "Very large clouds" in the docs. Never asked for,
+# and kept across a re-run when they are set. The database URLs hold a password, and .env is 0600.
+VERY_LARGE_CLOUD_NAMES="OPENSTACK_AGENT_SERVICES OPENSTACK_AGENT_MEMORY_LIMIT_MIB \
+OPENSTACK_DATABASE_EXPORTER_TARGETS OPENSTACK_DATABASE_EXPORTER_HOST_SUFFIX \
+OPENSTACK_WORKER_STATE_CLOUDS OPENSTACK_WORKER_STATE_EXPORTER_ADDRESS \
+NOVA_DATABASE_URL NOVA_API_DATABASE_URL PLACEMENT_DATABASE_URL NEUTRON_DATABASE_URL \
+CINDER_DATABASE_URL GLANCE_DATABASE_URL KEYSTONE_DATABASE_URL"
 ENV_NAMES="ONEUPTIME_URL ONEUPTIME_TELEMETRY_INGESTION_KEY OPENSTACK_CLOUD_NAME \
 OPENSTACK_AUTH_URL OPENSTACK_EXPORTER_CLOUDS OPENSTACK_EXPORTER_ADDRESS \
-OPENSTACK_EXPORTER_USER OPENSTACK_CA_FILE COMPOSE_PROFILES"
+OPENSTACK_EXPORTER_USER OPENSTACK_CA_FILE COMPOSE_PROFILES \
+OPENSTACK_CONTROL_PLANE_REGION OPENSTACK_SINGLE_CLOUD_EXPORTER_TARGETS $TARGET_LIST_NAMES \
+$VERY_LARGE_CLOUD_NAMES"
 
 # The answers that end up in clouds.yaml and nowhere else.
 CREDENTIAL_NAMES="OPENSTACK_APPLICATION_CREDENTIAL_ID OPENSTACK_APPLICATION_CREDENTIAL_SECRET \
@@ -428,6 +443,68 @@ if [ -z "$OPENSTACK_CLOUD_NAME" ]; then
     OPENSTACK_CLOUD_NAME="${OPENSTACK_CLOUD_NAME:-openstack}"
 fi
 
+# A list of scrape targets as the collector reads it, in square brackets. It takes
+# one with or without them, and a target may say which region it is in:
+# [10.0.0.11:15692,RegionTwo@10.1.0.11:15692]. An IPv6 address goes in double quotes,
+# because a bare [ opens a list inside the list.
+normalized_target_list() {
+    local name="$1" left="${!1}" item="" written=""
+    left="${left#"${left%%[![:space:]]*}"}"
+    left="${left%"${left##*[![:space:]]}"}"
+    case "$left" in
+        \[*\]) left="${left#\[}"; left="${left%\]}" ;;
+    esac
+    left="$left,"
+    while [ -n "$left" ]; do
+        item="${left%%,*}"
+        left="${left#*,}"
+        item="${item#"${item%%[![:space:]]*}"}"
+        item="${item%"${item##*[![:space:]]}"}"
+        item="${item#\"}"
+        item="${item%\"}"
+        [ -n "$item" ] || continue
+        case "$item" in
+            *[!A-Za-z0-9._:@\[\]\ -]* | *:)
+                echo "Error: $name holds \"$item\", which is not a host:port to scrape." >&2
+                return 1
+                ;;
+            *:[0-9]*) ;;
+            *)
+                echo "Error: $name holds \"$item\", which has no port. Each target is a host:port." >&2
+                return 1
+                ;;
+        esac
+        case "$item" in
+            \[*) item="\"$item\"" ;;
+        esac
+        written="$written,$item"
+    done
+    printf '[%s]' "${written#,}"
+}
+
+for name in OPENSTACK_SINGLE_CLOUD_EXPORTER_TARGETS $TARGET_LIST_NAMES; do
+    NORMALIZED_TARGETS="$(normalized_target_list "$name")" || exit 1
+    printf -v "$name" '%s' "$NORMALIZED_TARGETS"
+    if [ "$RUNS_WITHOUT_DOCKER" = 0 ]; then
+        case "$NORMALIZED_TARGETS" in
+            *localhost:* | *127.0.0.1:*)
+                # The agent runs as a container on the compose bridge network, so
+                # "localhost" inside it is the agent itself.
+                echo "Error: $name is $NORMALIZED_TARGETS, and the agent runs in a container, where that is the"
+                echo "container itself. Use an address containers can reach: this machine's LAN IP or DNS name."
+                exit 1
+                ;;
+        esac
+    fi
+done
+
+# An exporter already running in single-cloud mode, such as Kolla-Ansible's. It has no
+# /probe, so it is scraped on /metrics by a job of its own, and it reads one region.
+SINGLE_CLOUD_EXPORTER=0
+if [ "$OPENSTACK_SINGLE_CLOUD_EXPORTER_TARGETS" != "[]" ]; then
+    SINGLE_CLOUD_EXPORTER=1
+fi
+
 # Bring your own exporter: an address other than the bundled exporter's. The
 # bundled one then never starts, and the exporter's own clouds.yaml holds the
 # credential, so nothing asks for one here.
@@ -441,7 +518,10 @@ OPENSTACK_EXPORTER_ADDRESS="${OPENSTACK_EXPORTER_ADDRESS%/}"
 case "$OPENSTACK_EXPORTER_ADDRESS" in
     "" | "openstack-exporter:9180") OPENSTACK_EXPORTER_ADDRESS="$BUNDLED_EXPORTER_ADDRESS" ;;
 esac
-if [ "$OPENSTACK_EXPORTER_ADDRESS" = "$BUNDLED_EXPORTER_ADDRESS" ]; then
+if [ "$SINGLE_CLOUD_EXPORTER" = 1 ]; then
+    BUNDLED_EXPORTER=0
+    COMPOSE_PROFILES=""
+elif [ "$OPENSTACK_EXPORTER_ADDRESS" = "$BUNDLED_EXPORTER_ADDRESS" ]; then
     BUNDLED_EXPORTER=1
     if [ "$RUNS_WITHOUT_DOCKER" = 1 ]; then
         COMPOSE_PROFILES=""
@@ -502,7 +582,14 @@ fi
 # the collector needs, which are added here. Each is the name of a clouds.yaml
 # entry, and the collector stamps that name as the region on every series,
 # because the exporter's series do not say which region they are from.
-if [ -z "$OPENSTACK_EXPORTER_CLOUDS" ]; then
+if [ "$SINGLE_CLOUD_EXPORTER" = 1 ]; then
+    # It has no entry per region to name: the region is whatever its clouds.yaml says.
+    if [ -z "$OPENSTACK_CONTROL_PLANE_REGION" ]; then
+        read -rp "The region this exporter reads [RegionOne]: " OPENSTACK_CONTROL_PLANE_REGION
+        OPENSTACK_CONTROL_PLANE_REGION="${OPENSTACK_CONTROL_PLANE_REGION:-RegionOne}"
+    fi
+    OPENSTACK_EXPORTER_CLOUDS="$OPENSTACK_CONTROL_PLANE_REGION"
+elif [ -z "$OPENSTACK_EXPORTER_CLOUDS" ]; then
     read -rp "Region names, comma-separated [RegionOne]: " OPENSTACK_EXPORTER_CLOUDS
     OPENSTACK_EXPORTER_CLOUDS="${OPENSTACK_EXPORTER_CLOUDS:-RegionOne}"
 fi
@@ -534,6 +621,17 @@ if [ "${#REGIONS[@]}" = 0 ]; then
     exit 1
 fi
 OPENSTACK_EXPORTER_CLOUDS="$(IFS=,; printf '[%s]' "${REGIONS[*]}")"
+if [ "$SINGLE_CLOUD_EXPORTER" = 1 ]; then
+    if [ "${#REGIONS[@]}" != 1 ]; then
+        echo "Error: an exporter in single-cloud mode reads one region, and OPENSTACK_CONTROL_PLANE_REGION names ${#REGIONS[@]}."
+        echo "Run one agent for each region, with the same cloud name."
+        exit 1
+    fi
+    # The per-service jobs read this list, and that exporter has no /probe to ask.
+    OPENSTACK_EXPORTER_CLOUDS="[]"
+fi
+# The region of a target that does not say its own.
+OPENSTACK_CONTROL_PLANE_REGION="${OPENSTACK_CONTROL_PLANE_REGION:-${REGIONS[0]}}"
 
 # ----------------------------------------------------------------------------
 # The credential, the bundled exporter's alone
@@ -1091,7 +1189,18 @@ OPENSTACK_EXPORTER_ADDRESS=$(env_value "$OPENSTACK_EXPORTER_ADDRESS")
 OPENSTACK_EXPORTER_USER=$OPENSTACK_EXPORTER_USER
 OPENSTACK_CA_FILE=$(env_value "$OPENSTACK_CA_FILE")
 COMPOSE_PROFILES=$(env_value "$COMPOSE_PROFILES")
+OPENSTACK_CONTROL_PLANE_REGION=$(env_value "$OPENSTACK_CONTROL_PLANE_REGION")
+OPENSTACK_SINGLE_CLOUD_EXPORTER_TARGETS=$(env_value "$OPENSTACK_SINGLE_CLOUD_EXPORTER_TARGETS")
 ENVEOF
+for name in $TARGET_LIST_NAMES; do
+    printf '%s=%s\n' "$name" "$(env_value "${!name}")" >> "$ENV_FILE"
+done
+# Only when set: an empty one would overrule the default each runs with.
+for name in $VERY_LARGE_CLOUD_NAMES; do
+    if [ -n "${!name:-}" ]; then
+        printf '%s=%s\n' "$name" "$(env_value "${!name}")" >> "$ENV_FILE"
+    fi
+done
 chmod 600 "$ENV_FILE"
 
 # Start the agent
@@ -1153,10 +1262,15 @@ echo "If nothing shows up: curl -fsSL $AGENT_FILES_URL/troubleshoot.sh | bash$DO
 echo "That script also says what this credential can read, what each gap costs, and whether"
 echo "its project holds anything it might be able to write to."
 
-if [ "$BUNDLED_EXPORTER" = 0 ]; then
+if [ "$SINGLE_CLOUD_EXPORTER" = 1 ]; then
+    echo ""
+    echo "NOTE: the agent reads your exporter at $OPENSTACK_SINGLE_CLOUD_EXPORTER_TARGETS on /metrics, for region"
+    echo "$OPENSTACK_CONTROL_PLANE_REGION. Exporter 1.7.0 says less than the bundled one: README.md says what the pages go without."
+elif [ "$BUNDLED_EXPORTER" = 0 ]; then
     echo ""
     echo "NOTE: the agent reads your exporter at $OPENSTACK_EXPORTER_ADDRESS. It must run with --multi-cloud, and"
     echo "its clouds.yaml needs an entry named for each region: $OPENSTACK_EXPORTER_CLOUDS."
+    echo "Started without --multi-cloud, as Kolla-Ansible starts it? Set OPENSTACK_SINGLE_CLOUD_EXPORTER_TARGETS instead."
 fi
 
 if [ "${#EDITED_FILES[@]}" -gt 0 ]; then

@@ -269,12 +269,17 @@ function getReadRows(
       return {
         key: `${read.regionName}/${read.service}/${read.read}`,
         access: read.access,
-        label: translator.translateText(READ_ACCESS_LABELS[read.access]) as string,
-        title: translator.translateTemplate("{{service}}, {{region}}: {{read}}", {
-          service: getServiceTitle(read.service),
-          region: read.regionName,
-          read: read.read,
-        }),
+        label: translator.translateText(
+          READ_ACCESS_LABELS[read.access],
+        ) as string,
+        title: translator.translateTemplate(
+          "{{service}}, {{region}}: {{read}}",
+          {
+            service: getServiceTitle(read.service),
+            region: read.regionName,
+            read: read.read,
+          },
+        ),
         reason: read.reason || null,
         goesWithout: read.goesWithout || null,
         fix: read.fix || null,
@@ -524,6 +529,72 @@ export function getOpenStackServiceRows(
         message: service.errorMessage || null,
       };
     });
+}
+
+export interface OpenStackGentlerRow {
+  key: string;
+  // "Compute (Nova), RegionOne".
+  title: string;
+  message: string;
+}
+
+/*
+ * The services the probe slowed down for in the last collection, because their answers were
+ * taking far longer than they usually do. Nothing is wrong enough to say it failed: this is the
+ * probe keeping out of a service's way, and a person looking at a slow cloud should know.
+ */
+export function getOpenStackGentlerRows(
+  summary: OpenStackCollectionSummary | null | undefined,
+  translator: Translator,
+): Array<OpenStackGentlerRow> {
+  const seconds: (milliseconds: number) => string = (
+    milliseconds: number,
+  ): string => {
+    return translator.formatNumber(Math.round(milliseconds / 100) / 10);
+  };
+
+  return (summary?.services || [])
+    .filter((service: OpenStackServiceSummary): boolean => {
+      return Boolean(service.pausedForInMs);
+    })
+    .map((service: OpenStackServiceSummary): OpenStackGentlerRow => {
+      return {
+        key: `${service.regionName}/${service.service}`,
+        title: translator.translateTemplate("{{service}}, {{region}}", {
+          service: getServiceTitle(service.service),
+          region: service.regionName,
+        }),
+        message: translator.translateTemplate(
+          "Its answers took up to {{slowest}} s, so the probe waited {{waited}} s in all between its requests.",
+          {
+            slowest: seconds(service.slowestAnswerInMs || 0),
+            waited: seconds(service.pausedForInMs || 0),
+          },
+        ),
+      };
+    });
+}
+
+/*
+ * What a cloud past the summary size keeps, which is less than a small cloud does and worth saying
+ * where someone will look for a series that is not there.
+ */
+export function getOpenStackSummaryModeLine(
+  summary: OpenStackCollectionSummary | null | undefined,
+  translator: Translator,
+): string | null {
+  if (!summary?.isSummaryMode) {
+    return null;
+  }
+
+  return translator.translatePlural(
+    {
+      one: "This cloud is large enough to keep counts rather than a series per instance. A part that has not changed is sent again every {{count}} minute.",
+      other:
+        "This cloud is large enough to keep counts rather than a series per instance. A part that has not changed is sent again every {{count}} minutes.",
+    },
+    summary.refreshCycleInMinutes || 0,
+  );
 }
 
 // What a collection read, as short phrases a person scans: "48 hypervisors".

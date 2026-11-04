@@ -281,13 +281,86 @@ The unit assumes the agent lives in `/opt/oneuptime-openstack-agent` (the instal
 
 ## Bring your own exporter
 
-Already running openstack-exporter, say the one Kolla-Ansible deploys? Point the agent at it, and the bundled one never starts:
+Already running openstack-exporter? Point the agent at it, and the bundled one never starts. No Keystone URL or credential is asked for: your exporter holds them. How depends on how it was started. From inside the agent's container `localhost` is the container itself, so use an address containers can reach.
+
+**With `--multi-cloud`,** as the bundled one runs:
 
 ```bash
 OPENSTACK_EXPORTER_ADDRESS=10.0.0.5:9180 bash install.sh
 ```
 
-No Keystone URL or credential is asked for: your exporter holds them. It must run with `--multi-cloud`, and its `clouds.yaml` needs an entry named for each region you give, because the collector stamps that name as the region. Turn off what the bundled one turns off, too: see [What it costs](#what-it-costs). From inside the agent's container `localhost` is the container itself, so use an address containers can reach.
+Its `clouds.yaml` needs an entry named for each region you give, because the collector stamps that name as the region. Turn off what the bundled one turns off, too: see [What it costs](#what-it-costs).
+
+**Without it,** as Kolla-Ansible's and Canonical's charm run. It has no `/probe`, so the collector asks it for everything at once on `/metrics`, every 2 minutes, for one region:
+
+```bash
+OPENSTACK_SINGLE_CLOUD_EXPORTER_TARGETS=10.0.0.254:9198 OPENSTACK_CONTROL_PLANE_REGION=RegionOne bash install.sh
+```
+
+Kolla-Ansible serves it on its internal VIP on `9198`, behind an HAProxy that gives up after 45 seconds, and pins exporter 1.7.0, which says less than the one the agent pins. On five real clouds the pages went without (`OpenStackExporterStablePages.test.ts` holds this to those recordings):
+
+| Goes without | Because | What it costs |
+| --- | --- | --- |
+| Everything of Cinder's | It asks the catalog for `volumev3`, and finds no such thing where Cinder registers as `block-storage` | **Volumes** and **Storage pools** stay empty, and **Services** has no Block Storage API, `cinder-volume` or `cinder-scheduler`. **Block Storage API Down**, **Block Storage Service Down**, **Storage Pool Warning**, **Storage Pool Critical**, **Volumes in Error** and **Volume Stuck** stay quiet |
+| How many instances a hypervisor holds, and its aggregates | Nova's list of hypervisors fails at the newest microversion, which Kolla-Ansible asks for | Those two on **Hypervisors**, and what a lost host says it takes with it. Its vCPUs, memory and disk are still there: they come from Placement |
+| Domains | It has no such series | **Domains** stays empty |
+| An image's status, visibility and creation date | It has no such labels | Those columns on **Images**, and an image stuck on its way to `active` goes unnoticed |
+| A network's MTU | It has no such label | That line on a network's page |
+
+## What the cloud stands on
+
+Optional, and off until you name something. The collector can read the exporters a cloud's RabbitMQ, MariaDB, Memcached, HAProxy, OVN, Open vSwitch and libvirt already have, every minute, and the cloud's **Control Plane** card then says how each is. What nobody named, it says is not watched, rather than that it is fine.
+
+Name each in `.env`, then run `docker compose up -d`. A list takes `host:port` targets, and a target can say which region it is in:
+
+```bash
+OPENSTACK_RABBITMQ_TARGETS=[10.0.0.11:15692,10.0.0.12:15692,10.0.0.13:15692]
+OPENSTACK_MARIADB_TARGETS=[10.0.0.11:9104,10.0.0.12:9104,10.0.0.13:9104]
+OPENSTACK_MEMCACHED_TARGETS=[10.0.0.11:9150,10.0.0.12:9150]
+OPENSTACK_HAPROXY_TARGETS=[10.0.0.11:9101,10.0.0.12:9101]
+OPENSTACK_NETWORK_EXPORTER_TARGETS=[10.0.0.11:1981,10.0.0.21:1981,RegionTwo@10.1.0.21:1981]
+OPENSTACK_LIBVIRT_HEALTH_TARGETS=[10.0.0.21:9177]
+OPENSTACK_CONTROL_PLANE_REGION=RegionOne
+```
+
+On Kolla-Ansible, whose Prometheus already knows all of them, `control-plane-targets.py` prints these for you:
+
+```bash
+sudo cat /etc/kolla/prometheus-server/prometheus.yml | python3 control-plane-targets.py --region RegionOne
+```
+
+Name every member of a cluster: whether a whole cluster is down is read from all of them. Only a few series of each are kept, so this is little data, and nothing here writes to any of them. [OpenStack by Deployment Tool](https://oneuptime.com/docs/telemetry/openstack-deployment-tools) has each tool's steps, including how far each has been tested, which is not end to end on any of them.
+
+## Traces, with OSProfiler
+
+An optional profile, off until you ask for it, on each controller and compute node whose services you want traced. It is a collector of its own and nothing else from this folder.
+
+```bash
+curl -fsSLO https://oneuptime.com/install/openstack-agent/install-traces.sh
+sudo -E bash install-traces.sh
+```
+
+It uses Docker Compose where the machine has it, and otherwise a systemd service (`bash install-traces.sh native` asks for that). It listens on `127.0.0.1:4318`, because [OSProfiler's OTLP driver](https://github.com/openstack/osprofiler/blob/master/osprofiler/drivers/otlp.py) can only post plain HTTP, removes what a traced call was handed (`args`, `kwargs`, `result`, `db.params`), stamps the cloud, region and machine, which the driver never says, and forwards the rest to OneUptime over TLS.
+
+It never touches OpenStack's own config. Each service then needs the driver's two libraries, `opentelemetry-sdk` and `opentelemetry-exporter-otlp`, and this, with a key of your own that is the same on every service:
+
+```ini
+[profiler]
+enabled = True
+hmac_keys = <your key>
+connection_string = otlp://127.0.0.1:4318
+trace_sqlalchemy = False
+```
+
+Nothing arrives until a request is signed with that key: only a signed request is traced, so this is not an always-on feed. The cloud's **Traces** page gives the command, and [the guide](https://oneuptime.com/docs/telemetry/openstack#trace-requests-through-the-control-plane) says how for each deployment tool.
+
+| Setting | Default | What it is for |
+| --- | --- | --- |
+| `OPENSTACK_CLOUD_NAME` | asked | The name this cloud has in OneUptime, the one its agent reports under |
+| `OPENSTACK_REGION_NAME` | asked, `RegionOne` | The region this machine serves |
+| `OPENSTACK_NODE_NAME` | this machine's name | What a span says it came from |
+| `OPENSTACK_TRACES_LISTEN_ADDRESS` | `127.0.0.1:4318` | Without Docker: where it listens. For services in containers of their own, such as OpenStack-Ansible's in LXC |
+| `OPENSTACK_TRACES_PUBLISH_ADDRESS` | `127.0.0.1` | With Docker: the address the port is published on |
 
 ## Settings
 
@@ -301,9 +374,14 @@ Answers to the installer. Set any of them in the environment to skip its questio
 | `OPENSTACK_AUTH_URL` | Bundled exporter | The Keystone auth URL. `/v3` is added if it is missing |
 | `OPENSTACK_EXPORTER_CLOUDS` | Yes | The regions, comma-separated, with or without square brackets. `.env` holds them in brackets, which the collector reads as a list: `[RegionOne,RegionTwo]` (default: `RegionOne`) |
 | `OPENSTACK_EXPORTER_ADDRESS` | No | `host:port` of [your own exporter](#bring-your-own-exporter). Leave it out for the bundled one |
+| `OPENSTACK_LIBVIRT_EXPORTER_TARGETS` | No | The compute nodes to read real instance usage from through `prometheus-libvirt-exporter`, such as `[compute-01:9177,compute-02:9177]`. Defaults to none: see [Real usage](https://oneuptime.com/docs/telemetry/openstack#real-usage) |
+| `OPENSTACK_CEILOMETER_EXPORTER_TARGETS` | No | The same through Ceilometer's own exporter, such as `[compute-01:9101]`. Defaults to none |
 | `OPENSTACK_CA_FILE` | No | A PEM file with the CA of a cloud that has its own. The installer keeps a copy as `ca.pem` next to `clouds.yaml`, and `.env` then says `./ca.pem` |
 | `OPENSTACK_EXPORTER_USER` | No | The `uid:gid` the exporter's container runs as, which must own `clouds.yaml`. The installer sets it (default: `65532:65532`) |
 | `COMPOSE_PROFILES` | Bundled exporter | `openstack-exporter` starts the bundled exporter. The installer sets it |
+| `OPENSTACK_SINGLE_CLOUD_EXPORTER_TARGETS` | No | `host:port` of [an exporter running without `--multi-cloud`](#bring-your-own-exporter). `.env` holds it in brackets |
+| `OPENSTACK_RABBITMQ_TARGETS`, `OPENSTACK_MARIADB_TARGETS`, `OPENSTACK_MEMCACHED_TARGETS`, `OPENSTACK_HAPROXY_TARGETS`, `OPENSTACK_NETWORK_EXPORTER_TARGETS`, `OPENSTACK_LIBVIRT_HEALTH_TARGETS` | No | [What the cloud stands on](#what-the-cloud-stands-on). The installer keeps them across a re-run, and never asks |
+| `OPENSTACK_CONTROL_PLANE_REGION` | No | The region of a target in those lists that does not say its own (default: the first region) |
 
 | Variable | Description |
 |----------|-------------|

@@ -393,6 +393,7 @@
     "VMware Without an Agent": "VMware Without an Agent",
     "OpenStack Agent": "OpenStack Agent",
     "OpenStack Without an Agent": "OpenStack Without an Agent",
+    "OpenStack by Deployment Tool": "OpenStack by Deployment Tool",
     "Databases": "Databases",
     "Queues": "Queues",
     "Serverless Functions": "Serverless Functions",

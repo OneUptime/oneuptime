@@ -47,6 +47,28 @@ export const OPENSTACK_VOLUME_STUCK_MINUTES: number = 30;
 export const OPENSTACK_IMAGE_STUCK_MINUTES: number = 60;
 
 /*
+ * What a hypervisor's instances really use, as apart from what is promised on it. Past
+ * these its instances are competing with each other, whatever Placement allows.
+ */
+export const OPENSTACK_HYPERVISOR_CPU_SATURATED_PERCENT: number = 90;
+export const OPENSTACK_HYPERVISOR_MEMORY_PRESSURE_PERCENT: number = 90;
+
+// An instance using all of its vCPUs for this long is limited by its flavor.
+export const OPENSTACK_INSTANCE_CPU_SATURATED_PERCENT: number = 95;
+
+/*
+ * The same line the VMware templates draw for a host. A guest's disk at this latency is
+ * slow enough for its users to notice, and past what a healthy backend does when busy.
+ */
+export const OPENSTACK_INSTANCE_DISK_LATENCY_HIGH_MS: number = 50;
+
+/*
+ * A share of its vCPUs an instance spent waiting for the hypervisor. Past this a neighbour
+ * is the problem, rather than the instance itself.
+ */
+export const OPENSTACK_INSTANCE_CPU_CONTENTION_WARNING_PERCENT: number = 10;
+
+/*
  * A service someone disabled is planned work, until it has been so long that
  * somebody probably forgot it.
  */

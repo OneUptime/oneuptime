@@ -48,6 +48,7 @@ export const SECURITY_LOG_FORMAT_ICONS: Record<SecurityLogFormat, IconProp> = {
   [SecurityLogFormat.AwsCloudTrail]: IconProp.Cloud,
   [SecurityLogFormat.GoogleCloudAudit]: IconProp.DocumentMagnifyingGlass,
   [SecurityLogFormat.AzureActivity]: IconProp.Identification,
+  [SecurityLogFormat.OpenStackAudit]: IconProp.Cloud,
   [SecurityLogFormat.Cef]: IconProp.ShieldExclamation,
   [SecurityLogFormat.Leef]: IconProp.ShieldCheck,
   [SecurityLogFormat.PaloAlto]: IconProp.Fire,

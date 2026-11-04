@@ -21,6 +21,13 @@
  *   ?fail=      a comma list of reads that fail, as a server that answers 500 does:
  *               inventory (the summaries and the rows), attention, regions, consumers,
  *               blast, counts, metrics, events
+ *   ?collection= Probe: a probe collects the cloud (ProbeCollection.js)
+ *   ?probe=     how its last collection went: checking | collecting (default) | partial |
+ *               untrusted | plain-http
+ *   ?probes=    many: a choice of probes, where a new cloud starts on none
+ *   ?tests=     a comma list of what each connection test answers, in turn: ok | project |
+ *               untrusted | plain-http | refused | not-found | no-probe
+ *   ?clouds=    none: the project has no cloud yet, for the clouds list's first run
  *   ?lang=      de or fa reads the German or Persian locale file (Persian lays the page
  *               out right to left)
  *   ?theme=     dark adds html.dark (server.js)
@@ -81,9 +88,13 @@ import CloudImageDetail from "../../../App/FeatureSet/Dashboard/src/Pages/OpenSt
 import CloudProjects from "../../../App/FeatureSet/Dashboard/src/Pages/OpenStack/View/Projects";
 import CloudProjectDetail from "../../../App/FeatureSet/Dashboard/src/Pages/OpenStack/View/ProjectDetail";
 import CloudDomains from "../../../App/FeatureSet/Dashboard/src/Pages/OpenStack/View/Domains";
+import CloudControlPlane from "../../../App/FeatureSet/Dashboard/src/Pages/OpenStack/View/ControlPlane";
+import CloudControlPlaneDependency from "../../../App/FeatureSet/Dashboard/src/Pages/OpenStack/View/ControlPlaneDependency";
 import CloudTopology from "../../../App/FeatureSet/Dashboard/src/Pages/OpenStack/View/Topology";
 import CloudRecommendations from "../../../App/FeatureSet/Dashboard/src/Pages/OpenStack/View/Recommendations";
 import CloudDocumentation from "../../../App/FeatureSet/Dashboard/src/Pages/OpenStack/View/Documentation";
+import CloudSettings from "../../../App/FeatureSet/Dashboard/src/Pages/OpenStack/View/Settings";
+import CloudsList from "../../../App/FeatureSet/Dashboard/src/Pages/OpenStack/Clouds";
 import RouteMap from "../../../App/FeatureSet/Dashboard/src/Utils/RouteMap";
 import PageMap from "../../../App/FeatureSet/Dashboard/src/Utils/PageMap";
 import Project from "Common/Models/DatabaseModels/Project";
@@ -140,6 +151,15 @@ import {
   buildEstate,
   uuid,
 } from "./Data";
+import {
+  PROBES,
+  SHARED_PROBES,
+  collectionOf,
+  connectionTestOutcome,
+  getWrittenValues,
+  probeCollectedCloud,
+  writeCloud,
+} from "./ProbeCollection";
 import {
   hasRecording,
   rowsFromRecording,
@@ -422,6 +442,7 @@ const fixture = {
   itemRequests: [],
   aggregateRequests: [],
   apiRequests: [],
+  writeRequests: [],
   unhandled: [],
 };
 window.__openStackPagesFixture = fixture;
@@ -598,11 +619,20 @@ function matches(modelName, record, query) {
 }
 
 const store = {
-  OpenStackCloud: [
-    params.get("collection")
-      ? { ...estate.cloud, collectionMethod: params.get("collection") }
-      : estate.cloud,
-  ],
+  OpenStackCloud:
+    params.get("clouds") === "none"
+      ? []
+      : [
+          params.get("collection") === "Probe"
+            ? probeCollectedCloud(estate.cloud, params.get("probe"), LOADED_AT)
+            : params.get("collection")
+              ? { ...estate.cloud, collectionMethod: params.get("collection") }
+              : estate.cloud,
+        ],
+  OpenStackCloudConnectionTest: [],
+  OpenStackCloudOwnerUser: [],
+  OpenStackCloudOwnerTeam: [],
+  Probe: params.get("probes") === "many" ? PROBES : PROBES.slice(0, 1),
   OpenStackResource: estate.inventory,
   // A worker's page links to the Hosts product when a host reports under its name.
   Host:
@@ -791,6 +821,19 @@ ModelAPI.getList = async (options) => {
     skip: options.skip,
   });
 
+  // The instance's global probes come from an endpoint of their own.
+  if (modelName === "Probe" && options.requestOptions?.overrideRequestUrl) {
+    const shared = params.get("probes") === "many" ? SHARED_PROBES : [];
+    return {
+      data: shared.map((record) => {
+        return Object.assign(new options.modelType(), record);
+      }),
+      count: shared.length,
+      skip: 0,
+      limit: options.limit || 10,
+    };
+  }
+
   if (modelName === "Monitor" && ALERTS === "denied") {
     throw new Error("You do not have permission to read monitors.");
   }
@@ -838,6 +881,24 @@ ModelAPI.getItem = async (options) => {
     select: serialize(options.select),
   });
 
+  // A test is picked up on the first read, and has its answer on the next.
+  if (modelName === "OpenStackCloudConnectionTest") {
+    const test = store.OpenStackCloudConnectionTest.find((candidate) => {
+      return candidate._id === id;
+    });
+
+    if (!test) {
+      return null;
+    }
+
+    test.reads++;
+
+    return Object.assign(
+      new options.modelType(),
+      test.reads === 1 ? { status: "Running" } : test.answer,
+    );
+  }
+
   if (!store[modelName]) {
     fixture.unhandled.push({ kind: "getItem", modelName });
     return null;
@@ -848,6 +909,99 @@ ModelAPI.getItem = async (options) => {
   });
 
   return record ? Object.assign(new options.modelType(), record) : null;
+};
+
+/*
+ * ---------------------------------------------------------------------------
+ * What a cloud's forms write. The rules a save is held to have tests of their own against a
+ * real database (OpenStackProbeCollectionSqlPostgres), so this keeps only what a page reads
+ * back: a secret goes in and never comes out, and new settings mean the probe tries again.
+ * ---------------------------------------------------------------------------
+ */
+const connectionTestsToAnswer = (params.get("tests") || "")
+  .split(",")
+  .filter(Boolean);
+let writeRefusal = "";
+
+// A walk's way of having the server refuse the next save.
+window.__openStackPagesRefuseNextWrite = (message) => {
+  writeRefusal = message;
+};
+
+// A walk's way of having the probe report: every cloud it collects, as that collection went.
+window.__openStackPagesCollect = (name) => {
+  for (const cloud of store.OpenStackCloud) {
+    if (cloud.collectionMethod === "Probe") {
+      Object.assign(cloud, collectionOf(name, Date.now()));
+    }
+  }
+};
+
+function refuseWrite() {
+  if (writeRefusal) {
+    const message = writeRefusal;
+    writeRefusal = "";
+    throw new Error(message);
+  }
+}
+
+function writeRow(modelName, id, data) {
+  if (modelName === "OpenStackCloud") {
+    return writeCloud(store.OpenStackCloud, id, data, store.Probe);
+  }
+
+  // A row of another table is a read the walks do not model, and they say so.
+  fixture.unhandled.push({ kind: "write", modelName });
+  return { _id: id };
+}
+
+ModelAPI.create = async (options) => {
+  const modelName = tableName(options.modelType);
+  const data = getWrittenValues(options.model, options.modelType);
+  fixture.writeRequests.push({ kind: "create", modelName, data });
+  refuseWrite();
+
+  if (modelName === "OpenStackCloudConnectionTest") {
+    const id = uuid("76000000", store.OpenStackCloudConnectionTest.length + 1);
+    store.OpenStackCloudConnectionTest.push({
+      _id: id,
+      reads: 0,
+      answer: connectionTestOutcome(connectionTestsToAnswer.shift() || "ok"),
+    });
+    return { data: { _id: id } };
+  }
+
+  return { data: writeRow(modelName, null, data) };
+};
+
+ModelAPI.createOrUpdate = async (options) => {
+  const modelName = tableName(options.modelType);
+  const data = getWrittenValues(options.model, options.modelType);
+  const id = data._id || null;
+  fixture.writeRequests.push({
+    kind: id ? "update" : "create",
+    modelName,
+    id,
+    data,
+  });
+  refuseWrite();
+
+  return { data: writeRow(modelName, id, data), miscData: {} };
+};
+
+ModelAPI.updateById = async (options) => {
+  const modelName = tableName(options.modelType);
+  const id = plain(options.id);
+  fixture.writeRequests.push({
+    kind: "updateById",
+    modelName,
+    id,
+    data: serialize(options.data),
+  });
+  refuseWrite();
+
+  writeRow(modelName, id, options.data);
+  return { data: {} };
 };
 
 /*
@@ -1343,6 +1497,17 @@ async function handleApi(method, options) {
             {},
           );
     }
+    // A project that does not use Security Events: the card draws nothing.
+    if (parsed.pathname.endsWith("/security-case/resource-security")) {
+      return ok({
+        kind: body.kind,
+        id: body.id,
+        name: estate.cloud.name,
+        isInUse: false,
+        windowDays: 7,
+        values: [],
+      });
+    }
     // A part's Metrics: the metric catalog it reads.
     if (parsed.pathname.endsWith("/telemetry/metrics/get-attributes")) {
       return ok({
@@ -1459,9 +1624,15 @@ const PAGES = [
   [PageMap.OPENSTACK_CLOUD_VIEW_PROJECTS, CloudProjects],
   [PageMap.OPENSTACK_CLOUD_VIEW_PROJECT_DETAIL, CloudProjectDetail],
   [PageMap.OPENSTACK_CLOUD_VIEW_DOMAINS, CloudDomains],
+  [PageMap.OPENSTACK_CLOUD_VIEW_CONTROL_PLANE, CloudControlPlane],
+  [
+    PageMap.OPENSTACK_CLOUD_VIEW_CONTROL_PLANE_DEPENDENCY,
+    CloudControlPlaneDependency,
+  ],
   [PageMap.OPENSTACK_CLOUD_VIEW_TOPOLOGY, CloudTopology],
   [PageMap.OPENSTACK_CLOUD_VIEW_RECOMMENDATIONS, CloudRecommendations],
   [PageMap.OPENSTACK_CLOUD_VIEW_DOCUMENTATION, CloudDocumentation],
+  [PageMap.OPENSTACK_CLOUD_VIEW_SETTINGS, CloudSettings],
 ].map(([pageKey, Component]) => {
   return {
     path: RouteMap[pageKey].toString(),
@@ -1470,6 +1641,7 @@ const PAGES = [
 });
 
 const FixtureLayout = withNavigation(CloudLayout, PageMap.OPENSTACK_CLOUD_VIEW);
+const FixtureCloudsList = withNavigation(CloudsList, PageMap.OPENSTACK_CLOUDS);
 
 // A page the views link to that is not modelled: says where it is.
 function StubPage() {
@@ -1507,6 +1679,10 @@ function FixtureApp() {
         </span>
       </header>
       <Routes>
+        <Route
+          path={RouteMap[PageMap.OPENSTACK_CLOUDS].toString()}
+          element={<FixtureCloudsList />}
+        />
         <Route element={<FixtureLayout />}>
           {PAGES.map((page) => {
             return (

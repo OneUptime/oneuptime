@@ -179,6 +179,32 @@ export function keyForOpenStackCloud(
 }
 
 /**
+ * One part of a cloud a span touched, by the kind and the id its
+ * OpenStackResource row holds (`OpenStackResourceKind`, `externalId`). The
+ * membership key ingest appends to a span from OSProfiler's driver whose request
+ * names the part, and the part's page queries by. Its cloud is in the identity,
+ * because a project can hold two clouds, and a restore can give two the same id.
+ */
+export function keyForOpenStackResource(
+  projectId: string,
+  resource: {
+    cloudName: string;
+    kind: string;
+    id: string;
+  },
+): string {
+  return computeEntityKey({
+    projectId,
+    entityType: EntityType.OpenStackResource,
+    identifyingAttributes: {
+      "openstack.cloud.name": resource.cloudName,
+      "openstack.resource.kind": resource.kind,
+      "openstack.resource.id": resource.id,
+    },
+  });
+}
+
+/**
  * `ceph.cluster.name` is the cluster identity (matches the CephCluster
  * row's `name`, the project-unique join key written by
  * `findOrCreateByName`; the ingest resolver is name-only —

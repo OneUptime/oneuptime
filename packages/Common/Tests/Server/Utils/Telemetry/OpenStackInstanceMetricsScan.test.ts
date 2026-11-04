@@ -31,6 +31,7 @@ import {
   OPENSTACK_INSTANCE_ID_ATTRIBUTE,
   OPENSTACK_INSTANCE_PROJECT_ATTRIBUTE,
   OPENSTACK_INSTANCE_SOURCE_ATTRIBUTE,
+  OpenStackHypervisorCapacity,
   OpenStackHypervisorMetric,
   OpenStackInstanceMetric,
   OpenStackInstanceMetricSource,
@@ -1067,6 +1068,99 @@ describe("a hypervisor's totals", () => {
       }),
     ];
   }
+
+  function withCapacity(
+    capacity: OpenStackHypervisorCapacity,
+  ): Map<string, OpenStackInstancePlacement> {
+    return new Map(
+      Array.from(known.entries()).map(
+        ([id, placement]: [string, OpenStackInstancePlacement]): [
+          string,
+          OpenStackInstancePlacement,
+        ] => {
+          return [id, { ...placement, hypervisorCapacity: capacity }];
+        },
+      ),
+    );
+  }
+
+  test("say what share of the hypervisor that is, in the same batch, so an alert can't miss it", () => {
+    const states: Map<string, OpenStackInstanceMetricsHostState> = newStates();
+    const capacity: Map<string, OpenStackInstancePlacement> = withCapacity({
+      cores: 4,
+      memoryBytes: 2000 * 1024 * 1024,
+    });
+    runBatch({
+      text: libvirtText(estate(0)),
+      timeMs: START_MS,
+      states,
+      known: capacity,
+    });
+    const { decision }: Run = runBatch({
+      text: libvirtText(estate(1)),
+      timeMs: START_MS + MINUTE_MS,
+      states,
+      known: capacity,
+    });
+
+    // 2.1 threads of 4, and 1000 MiB of 2000.
+    expect(
+      valueOf(decision, OpenStackHypervisorMetric.InstancesCpuUtilization),
+    ).toBeCloseTo(52.5);
+    expect(
+      valueOf(decision, OpenStackHypervisorMetric.InstancesMemoryUtilization),
+    ).toBeCloseTo(50);
+    const point: JSONObject = pointsOf(
+      decision,
+      OpenStackHypervisorMetric.InstancesCpuUtilization,
+    )[0]!;
+    const total: JSONObject = pointsOf(
+      decision,
+      OpenStackHypervisorMetric.InstancesCpuUsage,
+    )[0]!;
+    expect(point["timeUnixNano"]).toBe(total["timeUnixNano"]);
+    expect(attribute(point, OPENSTACK_HYPERVISOR_ATTRIBUTE)).toBe(HYPERVISOR);
+  });
+
+  test.each([
+    ["no capacity read yet", undefined],
+    ["a capacity of nothing", { cores: 0, memoryBytes: 0 }],
+    ["only what is unknown", { cores: null, memoryBytes: null }],
+  ])(
+    "say no share with %s: a number against nothing is no number",
+    (_name: string, capacity: OpenStackHypervisorCapacity | undefined) => {
+      const states: Map<string, OpenStackInstanceMetricsHostState> =
+        newStates();
+      const given: Map<string, OpenStackInstancePlacement> = capacity
+        ? withCapacity(capacity)
+        : known;
+      runBatch({
+        text: libvirtText(estate(0)),
+        timeMs: START_MS,
+        states,
+        known: given,
+      });
+      const { decision }: Run = runBatch({
+        text: libvirtText(estate(1)),
+        timeMs: START_MS + MINUTE_MS,
+        states,
+        known: given,
+      });
+      expect(
+        pointsOf(decision, OpenStackHypervisorMetric.InstancesCpuUtilization),
+      ).toHaveLength(0);
+      expect(
+        pointsOf(
+          decision,
+          OpenStackHypervisorMetric.InstancesMemoryUtilization,
+        ),
+      ).toHaveLength(0);
+      // What it adds up to is still known, and still said.
+      expect(
+        valueOf(decision, OpenStackHypervisorMetric.InstancesCpuUsage),
+      ).toBeCloseTo(2.1);
+    },
+  );
 
   test("add up what its instances use, and name it by Nova's own word for it", () => {
     const states: Map<string, OpenStackInstanceMetricsHostState> = newStates();

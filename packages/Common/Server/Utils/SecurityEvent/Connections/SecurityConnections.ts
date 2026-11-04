@@ -56,6 +56,7 @@ import {
   keyForHost,
   keyForInventoryEntity,
   keyForKubernetesCluster,
+  keyForOpenStackCloud,
   keyForService,
 } from "../../../../Utils/Telemetry/EntityKey";
 import AlertService from "../../../Services/AlertService";
@@ -118,6 +119,8 @@ export const CONNECTION_KIND_AFFECTED_RESOURCES: Readonly<
   [SecurityConnectionKind.PodmanHost]: AiAffectedResourceKind.PodmanHost,
   [SecurityConnectionKind.KubernetesCluster]:
     AiAffectedResourceKind.KubernetesCluster,
+  [SecurityConnectionKind.OpenStackCloud]:
+    AiAffectedResourceKind.OpenStackCloud,
   // Listed on incidents and alerts since #5341.
   [SecurityConnectionKind.NetworkDevice]: AiAffectedResourceKind.NetworkDevice,
   [SecurityConnectionKind.CloudResource]: AiAffectedResourceKind.CloudResource,
@@ -155,6 +158,7 @@ export const MONITOR_RELATION_COLUMNS: Partial<
   [SecurityConnectionKind.DockerHost]: "dockerHosts",
   [SecurityConnectionKind.PodmanHost]: "podmanHosts",
   [SecurityConnectionKind.KubernetesCluster]: "kubernetesClusters",
+  [SecurityConnectionKind.OpenStackCloud]: "openStackClouds",
   [SecurityConnectionKind.CloudResource]: "cloudResources",
   [SecurityConnectionKind.Service]: "services",
 };
@@ -1407,6 +1411,11 @@ export default class SecurityConnections {
         case SecurityConnectionKind.KubernetesCluster:
           key = record.identity
             ? keyForKubernetesCluster(projectId, record.identity)
+            : null;
+          break;
+        case SecurityConnectionKind.OpenStackCloud:
+          key = record.identity
+            ? keyForOpenStackCloud(projectId, record.identity)
             : null;
           break;
         case SecurityConnectionKind.Service:

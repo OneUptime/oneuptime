@@ -1,4 +1,14 @@
 import MetricsAggregationType from "../Metrics/MetricsAggregationType";
+import {
+  OPENSTACK_HYPERVISOR_ATTRIBUTE,
+  OPENSTACK_INSTANCE_DEVICE_ATTRIBUTE,
+  OPENSTACK_INSTANCE_ID_ATTRIBUTE,
+  OPENSTACK_INSTANCE_PROJECT_ATTRIBUTE,
+  OPENSTACK_INSTANCE_SOURCE_ATTRIBUTE,
+  OPENSTACK_INSTANCE_METRIC_UNITS,
+  OpenStackHypervisorMetric,
+  OpenStackInstanceMetric,
+} from "../OpenStack/OpenStackInstanceMetrics";
 import { OpenStackServiceType } from "../OpenStack/OpenStackResourceKind";
 import { translationKey } from "../Translator";
 
@@ -43,6 +53,16 @@ export interface OpenStackMetricDefinition {
   probeOnlyAttributes?: ReadonlyArray<string>;
   // A series only the probe's native collector sends: the exporter has no such thing.
   onlyFromProbe?: boolean;
+  /*
+   * Worked out at ingest from libvirt's or Ceilometer's exporter, whichever a cloud has
+   * (OpenStackInstanceMetricsScan). Empty until a cloud names a source, and it says so.
+   */
+  fromInstanceSource?: boolean;
+  /*
+   * Written by OneUptime itself, from a cloud's rows, for a cloud past the summary size
+   * (OpenStackScale), in place of a series per instance. Nothing collects these.
+   */
+  fromSummaryMode?: boolean;
   unit?: string;
 }
 
@@ -90,7 +110,50 @@ const POOL_LABELS: ReadonlyArray<string> = [
   "volume_backend_name",
   "vendor_name",
 ];
+// What Cinder's driver says of itself, which is what says a pool is on a Ceph cluster.
+const POOL_PROBE_ONLY_LABELS: ReadonlyArray<string> = [
+  "storage_protocol",
+  "ceph_fsid",
+  "ceph_pool",
+];
 const VOLUME_LIMIT_LABELS: ReadonlyArray<string> = ["tenant", "tenant_id"];
+
+const INSTANCE_LABELS: ReadonlyArray<string> = [
+  OPENSTACK_INSTANCE_ID_ATTRIBUTE,
+  OPENSTACK_INSTANCE_SOURCE_ATTRIBUTE,
+  OPENSTACK_INSTANCE_PROJECT_ATTRIBUTE,
+  OPENSTACK_HYPERVISOR_ATTRIBUTE,
+];
+const INSTANCE_DEVICE_LABELS: ReadonlyArray<string> = [
+  ...INSTANCE_LABELS,
+  OPENSTACK_INSTANCE_DEVICE_ATTRIBUTE,
+];
+const HYPERVISOR_USAGE_LABELS: ReadonlyArray<string> = [
+  OPENSTACK_HYPERVISOR_ATTRIBUTE,
+  OPENSTACK_INSTANCE_SOURCE_ATTRIBUTE,
+];
+
+const FROM_INSTANCE_SOURCE: string =
+  "Reported only where libvirt's or Ceilometer's exporter is read.";
+
+function usage(data: {
+  metricName: OpenStackInstanceMetric | OpenStackHypervisorMetric;
+  friendlyName: string;
+  description: string;
+  identityAttributes: ReadonlyArray<string>;
+}): OpenStackMetricDefinition {
+  return metric({
+    metricName: data.metricName,
+    friendlyName: data.friendlyName,
+    description: `${data.description} ${FROM_INSTANCE_SOURCE}`,
+    category: "Compute",
+    defaultAggregation: MetricsAggregationType.Max,
+    service: OpenStackServiceType.Compute,
+    identityAttributes: data.identityAttributes,
+    fromInstanceSource: true,
+    unit: OPENSTACK_INSTANCE_METRIC_UNITS[data.metricName],
+  });
+}
 
 function metric(
   data: Omit<OpenStackMetricDefinition, "id">,
@@ -137,6 +200,7 @@ const openStackMetricCatalog: Array<OpenStackMetricDefinition> = [
     defaultAggregation: MetricsAggregationType.Min,
     service: OpenStackServiceType.Identity,
     identityAttributes: [],
+    probeOnlyAttributes: ["refresh_cycle_minutes"],
   }),
   metric({
     metricName: "openstack_nova_up",
@@ -147,6 +211,7 @@ const openStackMetricCatalog: Array<OpenStackMetricDefinition> = [
     defaultAggregation: MetricsAggregationType.Min,
     service: OpenStackServiceType.Compute,
     identityAttributes: [],
+    probeOnlyAttributes: ["refresh_cycle_minutes"],
   }),
   metric({
     metricName: "openstack_neutron_up",
@@ -157,6 +222,7 @@ const openStackMetricCatalog: Array<OpenStackMetricDefinition> = [
     defaultAggregation: MetricsAggregationType.Min,
     service: OpenStackServiceType.Network,
     identityAttributes: [],
+    probeOnlyAttributes: ["refresh_cycle_minutes"],
   }),
   metric({
     metricName: "openstack_cinder_up",
@@ -167,6 +233,7 @@ const openStackMetricCatalog: Array<OpenStackMetricDefinition> = [
     defaultAggregation: MetricsAggregationType.Min,
     service: OpenStackServiceType.Volume,
     identityAttributes: [],
+    probeOnlyAttributes: ["refresh_cycle_minutes"],
   }),
   metric({
     metricName: "openstack_glance_up",
@@ -177,6 +244,7 @@ const openStackMetricCatalog: Array<OpenStackMetricDefinition> = [
     defaultAggregation: MetricsAggregationType.Min,
     service: OpenStackServiceType.Image,
     identityAttributes: [],
+    probeOnlyAttributes: ["refresh_cycle_minutes"],
   }),
   metric({
     metricName: "openstack_placement_up",
@@ -187,6 +255,7 @@ const openStackMetricCatalog: Array<OpenStackMetricDefinition> = [
     defaultAggregation: MetricsAggregationType.Min,
     service: OpenStackServiceType.Placement,
     identityAttributes: [],
+    probeOnlyAttributes: ["refresh_cycle_minutes"],
   }),
 
   // Control plane: the workers `openstack compute service list` and friends show.
@@ -438,6 +507,30 @@ const openStackMetricCatalog: Array<OpenStackMetricDefinition> = [
     identityAttributes: ["name", "id", "tenant_id"],
     offByDefault: "nova-server_local_gb",
     unit: "GiB",
+  }),
+  metric({
+    metricName: "openstack_nova_instances_by_status",
+    friendlyName: translationKey("Instances by Status"),
+    description:
+      "How many instances are in each status, one series per status in each region. A cloud past the summary size keeps this in place of a series per instance. Other clouds do not send it.",
+    category: "Compute",
+    defaultAggregation: MetricsAggregationType.Max,
+    service: OpenStackServiceType.Compute,
+    identityAttributes: ["status"],
+    fromSummaryMode: true,
+    unit: "count",
+  }),
+  metric({
+    metricName: "openstack_nova_instances_by_project",
+    friendlyName: translationKey("Instances by Project"),
+    description:
+      "How many instances each project holds, one series per project in each region. A cloud past the summary size keeps this in place of a series per instance. Other clouds do not send it.",
+    category: "Compute",
+    defaultAggregation: MetricsAggregationType.Max,
+    service: OpenStackServiceType.Compute,
+    identityAttributes: ["tenant_id"],
+    fromSummaryMode: true,
+    unit: "count",
   }),
   metric({
     metricName: "openstack_nova_total_vms",
@@ -881,6 +974,7 @@ const openStackMetricCatalog: Array<OpenStackMetricDefinition> = [
     defaultAggregation: MetricsAggregationType.Max,
     service: OpenStackServiceType.Volume,
     identityAttributes: POOL_LABELS,
+    probeOnlyAttributes: POOL_PROBE_ONLY_LABELS,
     unit: "GiB",
   }),
   metric({
@@ -892,6 +986,7 @@ const openStackMetricCatalog: Array<OpenStackMetricDefinition> = [
     defaultAggregation: MetricsAggregationType.Min,
     service: OpenStackServiceType.Volume,
     identityAttributes: POOL_LABELS,
+    probeOnlyAttributes: POOL_PROBE_ONLY_LABELS,
     unit: "GiB",
   }),
   metric({
@@ -1535,6 +1630,130 @@ const openStackMetricCatalog: Array<OpenStackMetricDefinition> = [
     identityAttributes: QUOTA_LABELS,
     offByDefault: "neutron-quota_network",
     unit: "count",
+  }),
+
+  // What is really busy, as apart from what Placement has promised.
+  usage({
+    metricName: OpenStackInstanceMetric.CpuUsage,
+    friendlyName: translationKey("Instance CPU in Use"),
+    description:
+      "How many of its hypervisor's CPU threads this instance is using, worked out from its cumulative CPU time.",
+    identityAttributes: INSTANCE_LABELS,
+  }),
+  usage({
+    metricName: OpenStackInstanceMetric.CpuUtilization,
+    friendlyName: translationKey("Instance CPU Utilization"),
+    description:
+      "That CPU as a share of the instance's own vCPUs. 100 is every vCPU busy, and it can read past 100 while QEMU's own threads work for it.",
+    identityAttributes: INSTANCE_LABELS,
+  }),
+  usage({
+    metricName: OpenStackInstanceMetric.CpuContention,
+    friendlyName: translationKey("Instance CPU Contention"),
+    description:
+      "How much of the time the instance's vCPUs wanted to run and the hypervisor made them wait, as a share of its vCPUs: the guest calls this steal. It says a neighbour is the problem rather than the instance. From libvirt's exporter, and from Ceilometer on releases that have its cpu.delay meter.",
+    identityAttributes: INSTANCE_LABELS,
+  }),
+  usage({
+    metricName: OpenStackInstanceMetric.MemoryUsage,
+    friendlyName: translationKey("Instance Memory in Use"),
+    description:
+      "What the guest says it is using, from its balloon driver. A guest without one has no such reading.",
+    identityAttributes: INSTANCE_LABELS,
+  }),
+  usage({
+    metricName: OpenStackInstanceMetric.MemoryResident,
+    friendlyName: translationKey("Instance Memory on Host"),
+    description:
+      "What the instance really holds of its hypervisor's memory, whatever the guest says it is using.",
+    identityAttributes: INSTANCE_LABELS,
+  }),
+  usage({
+    metricName: OpenStackInstanceMetric.DiskReadRate,
+    friendlyName: translationKey("Instance Disk Read Rate"),
+    description: "Bytes per second this instance is reading from one disk.",
+    identityAttributes: INSTANCE_DEVICE_LABELS,
+  }),
+  usage({
+    metricName: OpenStackInstanceMetric.DiskWriteRate,
+    friendlyName: translationKey("Instance Disk Write Rate"),
+    description: "Bytes per second this instance is writing to one disk.",
+    identityAttributes: INSTANCE_DEVICE_LABELS,
+  }),
+  usage({
+    metricName: OpenStackInstanceMetric.DiskReadOperations,
+    friendlyName: translationKey("Instance Disk Reads"),
+    description: "Read requests per second on one disk of this instance.",
+    identityAttributes: INSTANCE_DEVICE_LABELS,
+  }),
+  usage({
+    metricName: OpenStackInstanceMetric.DiskWriteOperations,
+    friendlyName: translationKey("Instance Disk Writes"),
+    description: "Write requests per second on one disk of this instance.",
+    identityAttributes: INSTANCE_DEVICE_LABELS,
+  }),
+  usage({
+    metricName: OpenStackInstanceMetric.DiskReadLatency,
+    friendlyName: translationKey("Instance Disk Read Latency"),
+    description:
+      "How long a read took on one disk of this instance, on average. A disk with no reads has no reading, rather than reading 0.",
+    identityAttributes: INSTANCE_DEVICE_LABELS,
+  }),
+  usage({
+    metricName: OpenStackInstanceMetric.DiskWriteLatency,
+    friendlyName: translationKey("Instance Disk Write Latency"),
+    description:
+      "How long a write took on one disk of this instance, on average. A disk with no writes has no reading, rather than reading 0.",
+    identityAttributes: INSTANCE_DEVICE_LABELS,
+  }),
+  usage({
+    metricName: OpenStackInstanceMetric.NetworkReceiveRate,
+    friendlyName: translationKey("Instance Network Receive Rate"),
+    description:
+      "Bytes per second reaching this instance on one network interface.",
+    identityAttributes: INSTANCE_DEVICE_LABELS,
+  }),
+  usage({
+    metricName: OpenStackInstanceMetric.NetworkTransmitRate,
+    friendlyName: translationKey("Instance Network Transmit Rate"),
+    description:
+      "Bytes per second leaving this instance on one network interface.",
+    identityAttributes: INSTANCE_DEVICE_LABELS,
+  }),
+  usage({
+    metricName: OpenStackHypervisorMetric.InstancesCpuUsage,
+    friendlyName: translationKey("Hypervisor CPU Used by Instances"),
+    description:
+      "How many of this hypervisor's CPU threads its instances are using between them. The host's own processes are not in this: the Host product has them, where OneUptime's agent runs on it.",
+    identityAttributes: HYPERVISOR_USAGE_LABELS,
+  }),
+  usage({
+    metricName: OpenStackHypervisorMetric.InstancesCpuUtilization,
+    friendlyName: translationKey("Hypervisor CPU Share Used by Instances"),
+    description:
+      "That as a share of the CPU threads this hypervisor has, before any allocation ratio. 100 is every thread busy. It needs the inventory to know what the hypervisor has.",
+    identityAttributes: HYPERVISOR_USAGE_LABELS,
+  }),
+  usage({
+    metricName: OpenStackHypervisorMetric.InstancesMemoryResident,
+    friendlyName: translationKey("Hypervisor Memory Held by Instances"),
+    description:
+      "What this hypervisor's instances really hold of its memory between them, whatever they have been promised.",
+    identityAttributes: HYPERVISOR_USAGE_LABELS,
+  }),
+  usage({
+    metricName: OpenStackHypervisorMetric.InstancesMemoryUtilization,
+    friendlyName: translationKey("Hypervisor Memory Share Held by Instances"),
+    description:
+      "That as a share of the memory this hypervisor has, before any allocation ratio. It needs the inventory to know what the hypervisor has.",
+    identityAttributes: HYPERVISOR_USAGE_LABELS,
+  }),
+  usage({
+    metricName: OpenStackHypervisorMetric.InstancesReporting,
+    friendlyName: translationKey("Hypervisor Instances Reporting"),
+    description:
+      "How many instances those series add up, so a total can be told from a total with some of them missing.",
+    identityAttributes: HYPERVISOR_USAGE_LABELS,
   }),
 ];
 

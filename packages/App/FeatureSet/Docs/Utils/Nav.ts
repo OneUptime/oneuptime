@@ -812,6 +812,10 @@ const DocsNav: NavGroup[] = [
         title: "OpenStack Without an Agent",
         url: "/docs/telemetry/openstack-agentless",
       },
+      {
+        title: "OpenStack by Deployment Tool",
+        url: "/docs/telemetry/openstack-deployment-tools",
+      },
     ],
   },
   /*

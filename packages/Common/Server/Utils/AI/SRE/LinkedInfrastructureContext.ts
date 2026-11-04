@@ -28,9 +28,18 @@ import {
   describeOpenStackBlastRadiusCounts,
   isOpenStackBlastRadiusEmpty,
 } from "../../../../Types/OpenStack/OpenStackBlastRadius";
+import OpenStackAcrossProducts from "../../OpenStack/OpenStackAcrossProducts";
 import OpenStackAlertContext, {
   OpenStackAlertContextResult,
+  OpenStackBusyInstance,
 } from "../../OpenStack/OpenStackAlertContext";
+import {
+  OpenStackPlacement,
+  OpenStackReachAcrossProducts,
+  describeOpenStackReachAcrossProducts,
+  isOpenStackReachEmpty,
+} from "../../../../Types/OpenStack/OpenStackLinks";
+import ServiceService from "../../../Services/ServiceService";
 
 /*
  * AI SRE - the infrastructure an incident or alert is linked to, and the
@@ -216,7 +225,22 @@ export interface LinkedInfrastructure {
   readAt: Date;
   // What the subject takes with it on an OpenStack cloud, and whose that is.
   openStack?: OpenStackAlertContextResult | undefined;
+  /*
+   * Which part of a cloud each linked host, service or Kubernetes cluster runs on, so an
+   * investigation that starts at a slow service can walk down to its hypervisor.
+   */
+  openStackPlacements?: Array<OpenStackPlacementOfResource> | undefined;
 }
+
+export interface OpenStackPlacementOfResource {
+  resource: LinkedInfrastructureResource;
+  // What the placement is reached through, when that isn't the resource itself: a host, a node.
+  through?: string | undefined;
+  placement: OpenStackPlacement;
+}
+
+// Enough to say where a thing runs, without crowding out everything else the context says.
+const MAX_OPENSTACK_PLACEMENTS: number = 10;
 
 // The noun a kind of linked resource is called by.
 export function describeLinkedResourceKind(
@@ -424,6 +448,11 @@ export default class LinkedInfrastructureContext {
         resources,
         seriesLabels: incident.seriesLabels,
       }),
+      openStackPlacements:
+        await LinkedInfrastructureContext.readOpenStackPlacements({
+          projectId: data.projectId,
+          resources,
+        }),
     };
   }
 
@@ -465,7 +494,106 @@ export default class LinkedInfrastructureContext {
         resources,
         seriesLabels: alert.seriesLabels as JSONObject | undefined,
       }),
+      openStackPlacements:
+        await LinkedInfrastructureContext.readOpenStackPlacements({
+          projectId: data.projectId,
+          resources,
+        }),
     };
+  }
+
+  /*
+   * Where the linked hosts, services and Kubernetes nodes are in a cloud. One more thing to
+   * know rather than the thing an investigation stands on, so a read that fails says nothing.
+   */
+  private static async readOpenStackPlacements(data: {
+    projectId: ObjectID;
+    resources: Array<LinkedInfrastructureResource>;
+  }): Promise<Array<OpenStackPlacementOfResource> | undefined> {
+    const placements: Array<OpenStackPlacementOfResource> = [];
+    try {
+      for (const resource of data.resources) {
+        if (placements.length >= MAX_OPENSTACK_PLACEMENTS) {
+          break;
+        }
+        if (resource.type === LinkedAffectedResourceType.Host) {
+          const placement: OpenStackPlacement | null =
+            await OpenStackAcrossProducts.getPlacementOfHost({
+              projectId: data.projectId,
+              hostId: new ObjectID(resource.id),
+            });
+          if (placement) {
+            placements.push({ resource, placement });
+          }
+        }
+        if (resource.type === LinkedAffectedResourceType.Service) {
+          const service: { name?: string | undefined } | null =
+            await ServiceService.findOneById({
+              id: new ObjectID(resource.id),
+              select: { name: true },
+              props: { isRoot: true },
+            });
+          if (service?.name) {
+            for (const found of await OpenStackAcrossProducts.getPlacementsOfService(
+              { projectId: data.projectId, serviceName: service.name },
+            )) {
+              placements.push({
+                resource,
+                through: `host ${JSON.stringify(found.hostName)}`,
+                placement: found.placement,
+              });
+            }
+          }
+        }
+        if (resource.type === LinkedAffectedResourceType.KubernetesCluster) {
+          placements.push(
+            ...(await LinkedInfrastructureContext.readPlacementsOfCluster({
+              projectId: data.projectId,
+              resource,
+            })),
+          );
+        }
+      }
+    } catch {
+      return placements.length > 0 ? placements : undefined;
+    }
+    return placements.length > 0
+      ? placements.slice(0, MAX_OPENSTACK_PLACEMENTS)
+      : undefined;
+  }
+
+  private static async readPlacementsOfCluster(data: {
+    projectId: ObjectID;
+    resource: LinkedInfrastructureResource;
+  }): Promise<Array<OpenStackPlacementOfResource>> {
+    const nodes: Awaited<
+      ReturnType<typeof OpenStackAcrossProducts.readOpenStackKubernetesNodes>
+    > = await OpenStackAcrossProducts.readOpenStackKubernetesNodes(
+      data.projectId,
+    );
+    const placements: Array<OpenStackPlacementOfResource> = [];
+    for (const node of nodes) {
+      if (
+        node.clusterId !== data.resource.id ||
+        placements.length >= MAX_OPENSTACK_PLACEMENTS
+      ) {
+        continue;
+      }
+      const placement: OpenStackPlacement | null =
+        await OpenStackAcrossProducts.getPlacementOfKubernetesNode({
+          projectId: data.projectId,
+          kubernetesClusterId: new ObjectID(data.resource.id),
+          nodeName: node.nodeName,
+        });
+      if (placement) {
+        placements.push({
+          resource: data.resource,
+          through: `node ${JSON.stringify(node.nodeName)}`,
+          placement,
+        });
+      }
+    }
+    return placements;
   }
 
   /*
@@ -635,6 +763,7 @@ export default class LinkedInfrastructureContext {
     }
 
     lines.push(...LinkedInfrastructureContext.describeOpenStack(data));
+    lines.push(...LinkedInfrastructureContext.describeOpenStackPlacements(data));
 
     const windowStartText: string = data.windowStart.toISOString();
 
@@ -712,7 +841,94 @@ export default class LinkedInfrastructureContext {
       }
     }
 
+    const reach: OpenStackReachAcrossProducts | null | undefined =
+      context.radius?.acrossProducts;
+    if (reach && !isOpenStackReachEmpty(reach)) {
+      lines.push(
+        `Beyond the cloud it takes: ${describeOpenStackReachAcrossProducts(reach)}.`,
+      );
+      for (const cluster of reach.kubernetesClusters) {
+        lines.push(
+          `- Kubernetes cluster ${JSON.stringify(PromptText.field(cluster.name, { maxLength: 200 }))} (resourceType: ${AIResourceType.KubernetesCluster}, resourceId: ${cluster.id}): ${cluster.nodeCount} ${cluster.nodeCount === 1 ? "node" : "nodes"}`,
+        );
+      }
+      for (const service of reach.services) {
+        lines.push(
+          `- Service ${JSON.stringify(PromptText.field(service.name, { maxLength: 200 }))} (serviceId: ${service.id})`,
+        );
+      }
+    }
+
+    if (context.busiestInstances && context.busiestInstances.length > 0) {
+      lines.push("The instances using the most of this hypervisor:");
+      for (const instance of context.busiestInstances) {
+        lines.push(
+          `- ${LinkedInfrastructureContext.describeBusyInstance(instance)}`,
+        );
+      }
+    }
+
     return lines.length > 0 ? ["", ...lines] : lines;
+  }
+
+  private static describeBusyInstance(instance: OpenStackBusyInstance): string {
+    const name: string = PromptText.field(
+      instance.name || instance.instanceId,
+      { maxLength: 200 },
+    );
+    const facts: Array<string> = [];
+    if (instance.cpuCores !== null) {
+      facts.push(`${instance.cpuCores.toFixed(1)} CPU threads`);
+    }
+    if (instance.contentionPercent !== null) {
+      facts.push(
+        `waiting ${Math.round(instance.contentionPercent)}% of its time for the hypervisor`,
+      );
+    }
+    return `Instance ${JSON.stringify(name)} (id: ${instance.instanceId})${facts.length > 0 ? `: ${facts.join(", ")}` : ""}`;
+  }
+
+  /*
+   * How to walk down from what the subject is linked to: "Service "api", through host
+   * "web-1", is OpenStack instance "web-1" on hypervisor "compute-01" of cloud "prod-eu"".
+   * Names are a tenant's own words, so each goes in as a field.
+   */
+  private static describeOpenStackPlacements(
+    data: LinkedInfrastructure,
+  ): Array<string> {
+    const placements: Array<OpenStackPlacementOfResource> =
+      data.openStackPlacements || [];
+    if (placements.length === 0) {
+      return [];
+    }
+    const lines: Array<string> = [
+      "",
+      "Where this infrastructure runs in OpenStack, which the same tools can read as an OpenStack cloud:",
+    ];
+    for (const { resource, through, placement } of placements) {
+      const field: (value: string | null) => string = (
+        value: string | null,
+      ): string => {
+        return JSON.stringify(
+          PromptText.field(value || "unknown", { maxLength: 200 }),
+        );
+      };
+      const start: string = `${describeLinkedResource(resource)}${through ? `, through ${through},` : ""}`;
+      const where: string =
+        placement.kind === "hypervisor"
+          ? `is OpenStack hypervisor ${field(placement.hypervisorName)}`
+          : `is OpenStack instance ${field(placement.name || placement.externalId)} (id: ${placement.externalId}) on hypervisor ${field(placement.hypervisorName)}`;
+      const zone: string = placement.availabilityZone
+        ? ` in zone ${field(placement.availabilityZone)}`
+        : "";
+      const owner: string = placement.openStackProjectId
+        ? `, in project ${field(placement.openStackProjectName || placement.openStackProjectId)}`
+        : "";
+      lines.push(
+        `- ${start} ${where}${zone}${owner}, of cloud ${field(placement.cloudName)} (resourceType: ${AIResourceType.OpenStackCloud}, resourceId: ${placement.openStackCloudId})`,
+      );
+    }
+    return lines;
   }
 
   private static describeOpenStackProject(

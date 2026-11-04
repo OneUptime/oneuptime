@@ -32,6 +32,12 @@ receivers:
               labels:
                 openstack_service: identity
           relabel_configs: &openstack_exporter_target
+            # Which services this agent reads: all of them, unless the largest clouds share
+            # them between agents, such as compute|placement on this one. No two agents should
+            # read the same service of the same region, or its series arrive twice.
+            - source_labels: [openstack_service]
+              regex: ${env:OPENSTACK_AGENT_SERVICES}
+              action: keep
             - source_labels: [__address__]
               target_label: __param_cloud
             - source_labels: [__param_cloud]
@@ -312,6 +318,119 @@ receivers:
               target_label: openstack_service
               replacement: image
 
+  # The largest clouds' path: openstack_database_exporter reads Nova, Neutron, Cinder, Glance,
+  # Keystone and Placement from their databases, with a read-only account, instead of through
+  # APIs that at that size cannot be scraped. Empty until someone names it. Set
+  # OPENSTACK_EXPORTER_CLOUDS=[] with it, or every series arrives twice.
+  #
+  # Each exporter reads one region, and one Nova cell. Its series get the service and region
+  # the per-service jobs would have given them.
+  #
+  # Two things it says differently are put right here, because pages and alerts read them:
+  #  - its openstack_nova_agent_state reads 1 for a service that is enabled, whether or not it
+  #    is alive, so a stopped nova-compute would read up. So that one series is dropped, and the
+  #    job below reads it from Nova's API, which is one small list.
+  #  - its hypervisor_hostname on an instance is Nova's host name, where a hypervisor's is its
+  #    full name. OPENSTACK_DATABASE_EXPORTER_HOST_SUFFIX is what the one adds to the other,
+  #    such as .example.org, so an instance finds the hypervisor it runs on.
+  prometheus/database-exporter:
+    config:
+      scrape_configs:
+        - job_name: oneuptime-openstack-database-exporter
+          scrape_interval: 120s
+          scrape_timeout: 110s
+          static_configs:
+            - targets: ${env:OPENSTACK_DATABASE_EXPORTER_TARGETS}
+              labels:
+                openstack_region: ${env:OPENSTACK_CONTROL_PLANE_REGION}
+          metric_relabel_configs:
+            - source_labels: [__name__]
+              regex: openstack_nova_agent_state|openstack_neutron_(port|ports|ports_no_ips|ports_lb_not_active|subnets_total|subnets_used|subnets_free)|openstack_nova_server_local_gb|openstack_nova_security_groups
+              action: drop
+            # A database read of these costs the cloud nothing, and each is still a series per
+            # project per scrape: 790,000 datapoints at 10,000 projects. Delete this rule to
+            # keep them, as the bundled exporter's --disable-metric lines leave them off.
+            - source_labels: [__name__]
+              regex: openstack_nova_(quota|limits)_.+|openstack_neutron_quota_.+|openstack_cinder_limits_.+|openstack_cinder_volume_type_quota_gigabytes
+              action: drop
+            - source_labels: [__name__, hypervisor_hostname]
+              regex: openstack_nova_server_status;(.+)
+              target_label: hypervisor_hostname
+              replacement: $$1${env:OPENSTACK_DATABASE_EXPORTER_HOST_SUFFIX}
+            - source_labels: [__name__]
+              regex: openstack_identity_.+
+              target_label: openstack_service
+              replacement: identity
+            - source_labels: [__name__]
+              regex: openstack_nova_.+
+              target_label: openstack_service
+              replacement: compute
+            - source_labels: [__name__]
+              regex: openstack_placement_.+
+              target_label: openstack_service
+              replacement: placement
+            - source_labels: [__name__]
+              regex: openstack_neutron_.+
+              target_label: openstack_service
+              replacement: network
+            - source_labels: [__name__]
+              regex: openstack_cinder_.+
+              target_label: openstack_service
+              replacement: volume
+            - source_labels: [__name__]
+              regex: openstack_glance_.+
+              target_label: openstack_service
+              replacement: image
+        # Whether each Nova worker is alive, which the database exporter does not say. An
+        # openstack-exporter that reads nothing else (docker-compose.yml starts one with the
+        # exporter above), so this costs Nova one list per scrape. Only that series is kept, and
+        # it is labelled apart from the scrape's own `up`, so a failed scrape of this one list
+        # never says all of Nova is down.
+        - job_name: oneuptime-openstack-worker-states
+          metrics_path: /probe
+          params:
+            include_services: [compute]
+          scrape_interval: 120s
+          scrape_timeout: 110s
+          static_configs:
+            - targets: ${env:OPENSTACK_WORKER_STATE_CLOUDS}
+          relabel_configs:
+            - source_labels: [__address__]
+              target_label: __param_cloud
+            - source_labels: [__param_cloud]
+              target_label: openstack_region
+            - target_label: __address__
+              replacement: ${env:OPENSTACK_WORKER_STATE_EXPORTER_ADDRESS}
+          metric_relabel_configs:
+            - source_labels: [__name__]
+              regex: openstack_nova_agent_state
+              action: keep
+            - target_label: openstack_service
+              replacement: compute
+        # Storage pools, which Cinder's database does not hold: its scheduler reports them from
+        # each backend, and only its API says. One more small list, from the same exporter.
+        - job_name: oneuptime-openstack-storage-pools
+          metrics_path: /probe
+          params:
+            include_services: [volume]
+          scrape_interval: 120s
+          scrape_timeout: 110s
+          static_configs:
+            - targets: ${env:OPENSTACK_WORKER_STATE_CLOUDS}
+          relabel_configs:
+            - source_labels: [__address__]
+              target_label: __param_cloud
+            - source_labels: [__param_cloud]
+              target_label: openstack_region
+            - target_label: __address__
+              replacement: ${env:OPENSTACK_WORKER_STATE_EXPORTER_ADDRESS}
+          metric_relabel_configs:
+            - source_labels: [__name__]
+              regex: openstack_cinder_pool_capacity_(free|total)_gb
+              action: keep
+            - target_label: openstack_service
+              replacement: volume
+
 processors:
   # Lift what OneUptime filters on out of the exporter's labels. Monitor
   # criteria and attribute filters match on equality, and every OpenStack page
@@ -378,12 +497,20 @@ processors:
     initial_value: drop
     max_staleness: 2h
 
+  # At most this many datapoints a request. A scrape is otherwise one batch however large, and
+  # OneUptime refuses a request over 50 MiB: 200,000 instances are about 140 MiB in one. An
+  # instance's series, the longest there is, is about 1.3 KB as JSON and less on the wire, so
+  # this is about 26 MiB at worst, and a part split across requests is put back together on
+  # the way in (OpenStackResourceService.reconcileHypervisorStates).
   batch:
     timeout: 10s
     send_batch_size: 1024
+    send_batch_max_size: 20000
+  # 512 is plenty for a cloud of thousands of instances. A scrape is held in memory whole: give
+  # a cloud of tens of thousands more, and see "Very large clouds" in the docs.
   memory_limiter:
     check_interval: 5s
-    limit_mib: 512
+    limit_mib: ${env:OPENSTACK_AGENT_MEMORY_LIMIT_MIB}
     spike_limit_mib: 128
 
 exporters:
@@ -405,6 +532,7 @@ service:
         - prometheus/instance-metrics
         - prometheus/control-plane
         - prometheus/single-cloud-exporter
+        - prometheus/database-exporter
         - forward/control-plane-increases
       processors: [memory_limiter, transform/openstack-identity, resource, batch]
       exporters: [otlphttp]

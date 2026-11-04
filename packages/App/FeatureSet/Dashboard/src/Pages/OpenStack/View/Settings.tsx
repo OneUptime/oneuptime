@@ -4,6 +4,7 @@ import Navigation from "Common/UI/Utils/Navigation";
 import OpenStackCloud from "Common/Models/DatabaseModels/OpenStackCloud";
 import ArchiveResourceCard from "../../../Components/TelemetryResource/ArchiveResourceCard";
 import OpenStackDataCollectionCard from "../../../Components/OpenStack/OpenStackDataCollectionCard";
+import OpenStackInstanceMetricsCard from "../../../Components/OpenStack/OpenStackInstanceMetricsCard";
 import ResourceDetailsCard from "../../../Components/TelemetryResource/ResourceDetailsCard";
 import TelemetryResourceMoreSettings from "../../../Components/TelemetryResource/TelemetryResourceMoreSettings";
 import PageMap from "../../../Utils/PageMap";
@@ -35,6 +36,7 @@ const OpenStackCloudSettings: FunctionComponent<
         }}
       />
       <OpenStackDataCollectionCard modelId={modelId} />
+      <OpenStackInstanceMetricsCard modelId={modelId} />
       <TelemetryResourceMoreSettings<OpenStackCloud>
         modelType={OpenStackCloud}
         modelId={modelId}

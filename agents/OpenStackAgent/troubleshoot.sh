@@ -485,7 +485,14 @@ EXPORTER_ADDRESS=$(agent_env OPENSTACK_EXPORTER_ADDRESS)
 EXPORTER_BUNDLED=0
 [ "$EXPORTER_ADDRESS" = "$BUNDLED_EXPORTER_ADDRESS" ] && EXPORTER_BUNDLED=1
 
-if [ "$EXPORTER_BUNDLED" = 0 ]; then
+# An exporter in single-cloud mode, such as Kolla-Ansible's: read on /metrics, with no /probe.
+SINGLE_CLOUD_TARGETS=$(agent_env OPENSTACK_SINGLE_CLOUD_EXPORTER_TARGETS)
+[ "$SINGLE_CLOUD_TARGETS" = "[]" ] && SINGLE_CLOUD_TARGETS=""
+[ -n "$SINGLE_CLOUD_TARGETS" ] && EXPORTER_BUNDLED=0
+
+if [ -n "$SINGLE_CLOUD_TARGETS" ]; then
+  info "No bundled exporter: the agent reads your own at $SINGLE_CLOUD_TARGETS on /metrics (OPENSTACK_SINGLE_CLOUD_EXPORTER_TARGETS), and its clouds.yaml holds the credential."
+elif [ "$EXPORTER_BUNDLED" = 0 ]; then
   info "No bundled exporter: the agent reads your own at $EXPORTER_ADDRESS (OPENSTACK_EXPORTER_ADDRESS), and its clouds.yaml holds the credential."
 elif [ "$NATIVE" = 1 ]; then
   EXP_STATE=$(systemctl is-active "$EXPORTER_SERVICE" 2>/dev/null || true)
@@ -580,6 +587,35 @@ if [ "$NATIVE" = 0 ]; then
   esac
 fi
 
+# A target list as words, one per line: a target that names its region gives its address.
+target_addresses() {
+  printf '%s' "$1" | sed 's/^\[//; s/\]$//' | tr ',' '\n' \
+    | sed "s/^[[:space:]\"']*//; s/[[:space:]\"']*\$//; s/^[^@]*@//" | grep -v '^$'
+}
+
+# What the collector asks of an exporter in single-cloud mode: everything, on /metrics.
+if [ -n "$SINGLE_CLOUD_TARGETS" ]; then
+  for TARGET in $(target_addresses "$SINGLE_CLOUD_TARGETS"); do
+    SCRAPE_OUT=$(network_curl "$AGENT_NETWORK" -sS -m 110 "http://${TARGET}/metrics")
+    SCRAPE_EXIT=$?
+    SERIES=$(printf '%s\n' "$SCRAPE_OUT" | grep -c '^openstack_' 2>/dev/null || true)
+    if [ "$SCRAPE_EXIT" != "0" ]; then
+      fail "Cannot reach the exporter at $TARGET from the agent's network."
+      detail "curl: $(printf '%s' "$SCRAPE_OUT" | tr '\n' ' ' | head -c 200)"
+      add_finding "The collector cannot scrape $TARGET. Kolla-Ansible binds it to the API network, behind its internal VIP on 9198: check this machine has a route there."
+    elif printf '%s\n' "$SCRAPE_OUT" | grep -Eq '^openstack_identity_up(\{[^}]*\})? 1'; then
+      pass "The exporter at $TARGET reads the cloud ($SERIES openstack_* series)."
+      EXPORTER_OK=1
+    elif [ "$SERIES" = "0" ]; then
+      fail "The exporter at $TARGET answers /metrics with no openstack_* series."
+      add_finding "An exporter started with --multi-cloud only answers on /probe, so it does not belong in OPENSTACK_SINGLE_CLOUD_EXPORTER_TARGETS. Set OPENSTACK_EXPORTER_ADDRESS to it instead, with OPENSTACK_EXPORTER_CLOUDS naming its clouds.yaml entries."
+    else
+      warn "The exporter at $TARGET answers, but openstack_identity_up is not 1: it could not read Keystone's lists."
+      add_finding "The exporter at $TARGET reads nothing from Keystone. Look at its log: on Kolla-Ansible, /var/log/kolla/prometheus/ on the host that runs it."
+    fi
+  done
+fi
+
 # One scrape of the lightest service, per region: exactly what the collector
 # asks, from the collector's network. It logs in to Keystone with the entry
 # named for that region, so it tests the whole chain to Keystone.
@@ -591,7 +627,7 @@ for REGION in ${REGIONS[@]+"${REGIONS[@]}"}; do
   if [ "$SCRAPE_EXIT" != "0" ]; then
     fail "Region $REGION: cannot reach the exporter at $EXPORTER_ADDRESS from the agent's network."
     detail "curl: $(printf '%s' "$SCRAPE_OUT" | tr '\n' ' ' | head -c 200)"
-    add_finding "The collector cannot scrape $EXPORTER_ADDRESS. If you run your own exporter, check the address and that it runs with --multi-cloud; if you meant the bundled one, set COMPOSE_PROFILES=openstack-exporter and restart."
+    add_finding "The collector cannot scrape $EXPORTER_ADDRESS. If you run your own exporter, check the address and that it runs with --multi-cloud; without it there is no /probe, so set OPENSTACK_SINGLE_CLOUD_EXPORTER_TARGETS instead. If you meant the bundled one, set COMPOSE_PROFILES=openstack-exporter and restart."
   elif printf '%s\n' "$SCRAPE_OUT" | grep -Eq '^openstack_identity_up(\{[^}]*\})? 1'; then
     pass "Region $REGION: the exporter reads Keystone ($SERIES openstack_* series, openstack_identity_up 1)."
     EXPORTER_OK=1
@@ -601,7 +637,7 @@ for REGION in ${REGIONS[@]+"${REGIONS[@]}"}; do
   else
     fail "Region $REGION: the exporter answered with no openstack_identity_up series."
     detail "Response head: $(printf '%s' "$SCRAPE_OUT" | head -c 200)"
-    add_finding "The exporter has no clouds.yaml entry named \"$REGION\", or cannot log in with it. Each region needs an entry named for it. Check the exporter's log."
+    add_finding "The exporter has no clouds.yaml entry named \"$REGION\", or cannot log in with it. Each region needs an entry named for it. Check the exporter's log. An exporter started without --multi-cloud, as Kolla-Ansible starts it, has no /probe: set OPENSTACK_SINGLE_CLOUD_EXPORTER_TARGETS and OPENSTACK_EXPORTER_CLOUDS=[] instead."
     if [ "$EXPORTER_RUNNING" = 1 ] && [ "$NATIVE" = 0 ]; then
       AUTHERR=$(docker logs --tail 50 "$EXPORTER_CONTAINER" 2>&1 | grep -iE '401|auth|permission|denied|x509|could not|failed' | tail -3)
       if [ -n "$AUTHERR" ]; then
@@ -1122,6 +1158,47 @@ READS
   if [ "$ACCESS_GAPS" -gt 0 ]; then
     add_finding "This credential cannot read everything: $COUNT_REFUSED reads refused, $COUNT_OWN that may be its own project only. Section 5 says what goes without each and what to do. That is fine if it is the level of access you chose."
   fi
+fi
+
+# ----------------------------------------------------------------------------
+section "What the cloud stands on"
+# ----------------------------------------------------------------------------
+# Each is read only when someone named it, from the collector's own network. A target
+# that does not answer costs its own series, and the Control Plane card says so.
+#
+#   check_control_plane <variable> <what it is> <a series that says it answers>
+CONTROL_PLANE_NAMED=0
+check_control_plane() {
+  local variable="$1" what="$2" series="$3" list="" target="" answer="" code=""
+  list=$(agent_env "$variable")
+  if [ -z "$list" ] || [ "$list" = "[]" ]; then
+    return 0
+  fi
+  CONTROL_PLANE_NAMED=1
+  for target in $(target_addresses "$list"); do
+    answer=$(network_curl "$AGENT_NETWORK" -sS -m 30 "http://${target}/metrics")
+    code=$?
+    if [ "$code" != "0" ]; then
+      fail "$what at $target does not answer from the agent's network: $(explain_curl_exit "$code")."
+      add_finding "The collector cannot scrape $what at $target ($variable). Check the address, and that this machine has a route to the network it listens on."
+    elif printf '%s\n' "$answer" | grep -Eq "^${series}(\{[^}]*\})? 0"; then
+      warn "$what at $target answers, and says the service behind it is down ($series 0)."
+    elif printf '%s\n' "$answer" | grep -Eq "^${series}(\{[^}]*\})? "; then
+      pass "$what at $target answers."
+    else
+      fail "$target answers, but with no $series: it is not $what."
+      add_finding "$variable names $target, and what answers there is not $what. Check the port."
+    fi
+  done
+}
+check_control_plane OPENSTACK_RABBITMQ_TARGETS "RabbitMQ's Prometheus plugin" rabbitmq_identity_info
+check_control_plane OPENSTACK_MARIADB_TARGETS "mysqld_exporter" mysql_up
+check_control_plane OPENSTACK_MEMCACHED_TARGETS "memcached_exporter" memcached_up
+check_control_plane OPENSTACK_HAPROXY_TARGETS "HAProxy's Prometheus exporter" haproxy_process_uptime_seconds
+check_control_plane OPENSTACK_NETWORK_EXPORTER_TARGETS "openstack-network-exporter" ovs_build_info
+check_control_plane OPENSTACK_LIBVIRT_HEALTH_TARGETS "prometheus-libvirt-exporter" libvirt_up
+if [ "$CONTROL_PLANE_NAMED" = 0 ]; then
+  info "None named, so the cloud's Control Plane card says each is not watched. README.md says how to name them."
 fi
 
 # ----------------------------------------------------------------------------

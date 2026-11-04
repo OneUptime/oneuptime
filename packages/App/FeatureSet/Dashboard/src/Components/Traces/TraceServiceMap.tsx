@@ -4,7 +4,7 @@ import Service from "Common/Models/DatabaseModels/Service";
 import TelemetryServiceUtil, {
   UNKNOWN_RESOURCE_LABEL,
 } from "Common/UI/Utils/TelemetryService";
-import { Translator } from "Common/UI/Utils/TranslateTemplate";
+import { Translator, translationKey } from "Common/UI/Utils/TranslateTemplate";
 import useTranslator from "Common/UI/Utils/UseTranslator";
 import React, { FunctionComponent, ReactElement } from "react";
 import ReactFlow, {
@@ -45,6 +45,11 @@ export interface TraceServiceMapProps {
    * of that service (node) or the slowest call of that pair (edge).
    */
   onSpanSelect?: ((spanId: string) => void) | undefined;
+  /*
+   * The line above the map, for a map of more than one trace (an OpenStack cloud's
+   * control plane). English, looked up in the reader's language.
+   */
+  caption?: string | undefined;
 }
 
 interface ServiceNode {
@@ -98,6 +103,10 @@ const NODE_TYPES: Record<
 
 const X_GAP: number = 260;
 const Y_GAP: number = 130;
+
+const TRACE_CAPTION: string = translationKey(
+  "Service flow for this trace. Arrows show cross-service calls with count and latency. Click a service or call to open its slowest span.",
+);
 
 const TraceServiceMap: FunctionComponent<TraceServiceMapProps> = (
   props: TraceServiceMapProps,
@@ -334,9 +343,7 @@ const TraceServiceMap: FunctionComponent<TraceServiceMapProps> = (
   return (
     <div className="trace-service-map">
       <div className="text-[11px] text-gray-500 mb-2 px-1">
-        {translator.translateText(
-          "Service flow for this trace. Arrows show cross-service calls with count and latency. Click a service or call to open its slowest span.",
-        )}
+        {translator.translateText(props.caption || TRACE_CAPTION)}
       </div>
       <div
         className="rounded border border-gray-200 bg-gray-50"

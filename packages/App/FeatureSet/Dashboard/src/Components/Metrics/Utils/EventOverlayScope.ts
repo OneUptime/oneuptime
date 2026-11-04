@@ -973,6 +973,28 @@ function buildQueryScope(config: MetricQueryConfigData): EventOverlayScope {
     apply(key, ["seriesLabels", key], ["seriesLabels", key]);
   }
 
+  /*
+   * A hypervisor's or a compute service's chart names its host. Its lifecycle events
+   * name it the same way (OpenStackEventEntries), so its markers are its own. Only the
+   * changes: an incident on the host's nova-compute names the host by another spelling
+   * than one on its Placement series, and which it is must not hide either.
+   */
+  if (
+    hasAny(attributes, attributeAliases("openstack.cloud.name")) &&
+    Object.prototype.hasOwnProperty.call(attributes, "hostname")
+  ) {
+    const hosts: Array<string> | null = exactValues(attributes["hostname"]);
+
+    if (hosts) {
+      consumedKeys.add("hostname");
+      changeEventQueries = addPredicate(
+        changeEventQueries,
+        ["attributes", "hostname"],
+        hosts,
+      );
+    }
+  }
+
   if (runtimeKey) {
     consumedKeys.add(runtimeKey);
     if (

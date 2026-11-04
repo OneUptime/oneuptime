@@ -1,0 +1,414 @@
+{
+  "openstack_cinder_agent_state": [
+    "adminState",
+    "disabledReason",
+    "hostname",
+    "service",
+    "uuid",
+    "zone"
+  ],
+  "openstack_cinder_limits_backup_max_gb": [
+    "tenant",
+    "tenant_id"
+  ],
+  "openstack_cinder_limits_backup_used_gb": [
+    "tenant",
+    "tenant_id"
+  ],
+  "openstack_cinder_limits_volume_max_gb": [
+    "tenant",
+    "tenant_id"
+  ],
+  "openstack_cinder_limits_volume_used_gb": [
+    "tenant",
+    "tenant_id"
+  ],
+  "openstack_cinder_snapshots": [],
+  "openstack_cinder_up": [],
+  "openstack_cinder_volume_gb": [
+    "availability_zone",
+    "bootable",
+    "id",
+    "name",
+    "server_id",
+    "status",
+    "tenant_id",
+    "user_id",
+    "volume_type"
+  ],
+  "openstack_cinder_volume_status": [
+    "bootable",
+    "id",
+    "name",
+    "server_id",
+    "size",
+    "status",
+    "tenant_id",
+    "volume_type"
+  ],
+  "openstack_cinder_volume_status_counter": [
+    "status"
+  ],
+  "openstack_cinder_volume_type_quota_gigabytes": [
+    "tenant",
+    "tenant_id",
+    "volume_type"
+  ],
+  "openstack_cinder_volumes": [],
+  "openstack_glance_image_bytes": [
+    "id",
+    "name",
+    "tenant_id"
+  ],
+  "openstack_glance_image_created_at": [
+    "hidden",
+    "id",
+    "name",
+    "status",
+    "tenant_id",
+    "visibility"
+  ],
+  "openstack_glance_images": [],
+  "openstack_glance_up": [],
+  "openstack_identity_domain_info": [
+    "description",
+    "enabled",
+    "id",
+    "name"
+  ],
+  "openstack_identity_domains": [],
+  "openstack_identity_groups": [],
+  "openstack_identity_project_info": [
+    "description",
+    "domain_id",
+    "enabled",
+    "id",
+    "is_domain",
+    "name",
+    "parent_id",
+    "tags"
+  ],
+  "openstack_identity_projects": [],
+  "openstack_identity_regions": [],
+  "openstack_identity_up": [],
+  "openstack_identity_users": [],
+  "openstack_neutron_agent_state": [
+    "adminState",
+    "hostname",
+    "id",
+    "service",
+    "zone"
+  ],
+  "openstack_neutron_floating_ip": [
+    "floating_ip_address",
+    "floating_network_id",
+    "id",
+    "project_id",
+    "router_id",
+    "status"
+  ],
+  "openstack_neutron_floating_ips": [],
+  "openstack_neutron_floating_ips_associated_not_active": [],
+  "openstack_neutron_l3_agent_of_router": [
+    "agent_admin_up",
+    "agent_alive",
+    "agent_host",
+    "ha_state",
+    "l3_agent_id",
+    "router_id"
+  ],
+  "openstack_neutron_network": [
+    "id",
+    "is_external",
+    "is_shared",
+    "name",
+    "provider_network_type",
+    "provider_physical_network",
+    "provider_segmentation_id",
+    "status",
+    "subnets",
+    "tags",
+    "tenant_id"
+  ],
+  "openstack_neutron_network_ip_availabilities_total": [
+    "cidr",
+    "ip_version",
+    "network_id",
+    "network_name",
+    "project_id",
+    "subnet_name"
+  ],
+  "openstack_neutron_network_ip_availabilities_used": [
+    "cidr",
+    "ip_version",
+    "network_id",
+    "network_name",
+    "project_id",
+    "subnet_name"
+  ],
+  "openstack_neutron_networks": [],
+  "openstack_neutron_port": [
+    "admin_state_up",
+    "binding_vif_type",
+    "device_owner",
+    "fixed_ips",
+    "mac_address",
+    "network_id",
+    "status",
+    "uuid"
+  ],
+  "openstack_neutron_ports": [],
+  "openstack_neutron_ports_lb_not_active": [],
+  "openstack_neutron_ports_no_ips": [],
+  "openstack_neutron_router": [
+    "admin_state_up",
+    "external_network_id",
+    "id",
+    "name",
+    "project_id",
+    "status"
+  ],
+  "openstack_neutron_routers": [],
+  "openstack_neutron_routers_not_active": [],
+  "openstack_neutron_security_groups": [],
+  "openstack_neutron_subnet": [
+    "cidr",
+    "dns_nameservers",
+    "enable_dhcp",
+    "gateway_ip",
+    "id",
+    "name",
+    "network_id",
+    "tags",
+    "tenant_id"
+  ],
+  "openstack_neutron_subnets": [],
+  "openstack_neutron_subnets_free": [
+    "ip_version",
+    "prefix",
+    "prefix_length",
+    "project_id",
+    "subnet_pool_id",
+    "subnet_pool_name"
+  ],
+  "openstack_neutron_subnets_total": [
+    "ip_version",
+    "prefix",
+    "prefix_length",
+    "project_id",
+    "subnet_pool_id",
+    "subnet_pool_name"
+  ],
+  "openstack_neutron_subnets_used": [
+    "ip_version",
+    "prefix",
+    "prefix_length",
+    "project_id",
+    "subnet_pool_id",
+    "subnet_pool_name"
+  ],
+  "openstack_neutron_up": [],
+  "openstack_nova_agent_state": [
+    "adminState",
+    "disabledReason",
+    "hostname",
+    "id",
+    "service",
+    "zone"
+  ],
+  "openstack_nova_availability_zones": [],
+  "openstack_nova_current_workload": [
+    "aggregates",
+    "availability_zone",
+    "hostname"
+  ],
+  "openstack_nova_flavor": [
+    "disk",
+    "id",
+    "is_public",
+    "name",
+    "ram",
+    "vcpus"
+  ],
+  "openstack_nova_flavors": [],
+  "openstack_nova_free_disk_bytes": [
+    "aggregates",
+    "availability_zone",
+    "hostname"
+  ],
+  "openstack_nova_limits_instances_max": [
+    "domain_id",
+    "tenant",
+    "tenant_id"
+  ],
+  "openstack_nova_limits_instances_used": [
+    "domain_id",
+    "tenant",
+    "tenant_id"
+  ],
+  "openstack_nova_limits_memory_max": [
+    "domain_id",
+    "tenant",
+    "tenant_id"
+  ],
+  "openstack_nova_limits_memory_used": [
+    "domain_id",
+    "tenant",
+    "tenant_id"
+  ],
+  "openstack_nova_limits_vcpus_max": [
+    "domain_id",
+    "tenant",
+    "tenant_id"
+  ],
+  "openstack_nova_limits_vcpus_used": [
+    "domain_id",
+    "tenant",
+    "tenant_id"
+  ],
+  "openstack_nova_local_storage_available_bytes": [
+    "aggregates",
+    "availability_zone",
+    "hostname"
+  ],
+  "openstack_nova_local_storage_used_bytes": [
+    "aggregates",
+    "availability_zone",
+    "hostname"
+  ],
+  "openstack_nova_memory_available_bytes": [
+    "aggregates",
+    "availability_zone",
+    "hostname"
+  ],
+  "openstack_nova_memory_used_bytes": [
+    "aggregates",
+    "availability_zone",
+    "hostname"
+  ],
+  "openstack_nova_quota_cores": [
+    "domain_id",
+    "tenant",
+    "type"
+  ],
+  "openstack_nova_quota_fixed_ips": [
+    "domain_id",
+    "tenant",
+    "type"
+  ],
+  "openstack_nova_quota_floating_ips": [
+    "domain_id",
+    "tenant",
+    "type"
+  ],
+  "openstack_nova_quota_injected_file_content_bytes": [
+    "domain_id",
+    "tenant",
+    "type"
+  ],
+  "openstack_nova_quota_injected_file_path_bytes": [
+    "domain_id",
+    "tenant",
+    "type"
+  ],
+  "openstack_nova_quota_injected_files": [
+    "domain_id",
+    "tenant",
+    "type"
+  ],
+  "openstack_nova_quota_instances": [
+    "domain_id",
+    "tenant",
+    "type"
+  ],
+  "openstack_nova_quota_key_pairs": [
+    "domain_id",
+    "tenant",
+    "type"
+  ],
+  "openstack_nova_quota_metadata_items": [
+    "domain_id",
+    "tenant",
+    "type"
+  ],
+  "openstack_nova_quota_ram": [
+    "domain_id",
+    "tenant",
+    "type"
+  ],
+  "openstack_nova_quota_security_group_rules": [
+    "domain_id",
+    "tenant",
+    "type"
+  ],
+  "openstack_nova_quota_security_groups": [
+    "domain_id",
+    "tenant",
+    "type"
+  ],
+  "openstack_nova_quota_server_group_members": [
+    "domain_id",
+    "tenant",
+    "type"
+  ],
+  "openstack_nova_quota_server_groups": [
+    "domain_id",
+    "tenant",
+    "type"
+  ],
+  "openstack_nova_running_vms": [
+    "aggregates",
+    "availability_zone",
+    "hostname"
+  ],
+  "openstack_nova_security_groups": [],
+  "openstack_nova_server_local_gb": [
+    "id",
+    "name",
+    "tenant_id"
+  ],
+  "openstack_nova_server_status": [
+    "address_ipv4",
+    "address_ipv6",
+    "availability_zone",
+    "flavor_id",
+    "host_id",
+    "hypervisor_hostname",
+    "id",
+    "instance_libvirt",
+    "name",
+    "status",
+    "tenant_id",
+    "user_id",
+    "uuid"
+  ],
+  "openstack_nova_total_vms": [],
+  "openstack_nova_up": [],
+  "openstack_nova_vcpus_available": [
+    "aggregates",
+    "availability_zone",
+    "hostname"
+  ],
+  "openstack_nova_vcpus_used": [
+    "aggregates",
+    "availability_zone",
+    "hostname"
+  ],
+  "openstack_placement_resource_allocation_ratio": [
+    "hostname",
+    "resourcetype"
+  ],
+  "openstack_placement_resource_reserved": [
+    "hostname",
+    "resourcetype"
+  ],
+  "openstack_placement_resource_total": [
+    "hostname",
+    "resourcetype"
+  ],
+  "openstack_placement_resource_usage": [
+    "hostname",
+    "resourcetype"
+  ],
+  "openstack_placement_up": []
+}

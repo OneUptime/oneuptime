@@ -167,6 +167,16 @@ export function getOpenStackBreadcrumbs(path: string): Array<Link> | undefined {
       PageMap.OPENSTACK_CLOUD_VIEW_IMAGE_DETAIL,
       ["Project", "OpenStack", "View Cloud", "Images", "Image Detail"],
     ),
+    ...BuildBreadcrumbLinksByTitles(PageMap.OPENSTACK_CLOUD_VIEW_CONTROL_PLANE, [
+      "Project",
+      "OpenStack",
+      "View Cloud",
+      "What It Stands On",
+    ]),
+    ...BuildBreadcrumbLinksByTitles(
+      PageMap.OPENSTACK_CLOUD_VIEW_CONTROL_PLANE_DEPENDENCY,
+      ["Project", "OpenStack", "View Cloud", "What It Stands On", "Dependency"],
+    ),
     ...BuildBreadcrumbLinksByTitles(PageMap.OPENSTACK_CLOUD_VIEW_DOMAINS, [
       "Project",
       "OpenStack",
@@ -225,6 +235,12 @@ export function getOpenStackBreadcrumbs(path: string): Array<Link> | undefined {
       "OpenStack",
       "View Cloud",
       "Logs",
+    ]),
+    ...BuildBreadcrumbLinksByTitles(PageMap.OPENSTACK_CLOUD_VIEW_TRACES, [
+      "Project",
+      "OpenStack",
+      "View Cloud",
+      "Traces",
     ]),
     ...BuildBreadcrumbLinksByTitles(PageMap.OPENSTACK_CLOUD_VIEW_INCIDENTS, [
       "Project",

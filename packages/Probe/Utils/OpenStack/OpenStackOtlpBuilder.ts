@@ -8,7 +8,13 @@ import {
   NovaFlavorRecord,
   NovaHypervisorRecord,
 } from "./OpenStackInventory";
+import { OpenStackSendGate } from "./OpenStackRollingSend";
 import { JSONArray, JSONObject } from "Common/Types/JSON";
+import {
+  OpenStackRbdLocation,
+  isOpenStackRbdProtocol,
+  parseOpenStackRbdLocation,
+} from "Common/Types/OpenStack/OpenStackLinks";
 import { OpenStackServiceType } from "Common/Types/OpenStack/OpenStackResourceKind";
 import crypto from "crypto";
 
@@ -187,6 +193,11 @@ export interface OpenStackServiceReading {
   answered: boolean;
   observedAt: number;
   durationInMs: number;
+  /*
+   * On a cloud whose rows are sent in turns, how long one that did not change can go without
+   * being sent. openstack_<service>_up says so, because it is what vouches for those rows.
+   */
+  refreshCycleInMinutes?: number | undefined;
 }
 
 interface MetricBeingBuilt {
@@ -250,22 +261,36 @@ export function compareDatapointsAsTheExporterDoes(
 // One service of one region: one resource, as one scrape is to the agent's collector.
 class SeriesWriter {
   public datapointCount: number = 0;
+  // Read and said about, and held back for its turn: it still counts as a sample of the scrape.
+  public heldBackCount: number = 0;
 
   private readonly metrics: Map<string, MetricBeingBuilt> = new Map();
   private readonly regionName: string;
   private readonly service: OpenStackServiceType;
   private readonly timeUnixNano: string;
+  private readonly gate: OpenStackSendGate | undefined;
 
-  public constructor(reading: OpenStackServiceReading) {
+  public constructor(
+    reading: OpenStackServiceReading,
+    gate?: OpenStackSendGate | undefined,
+  ) {
     this.regionName = reading.regionName;
     this.service = reading.service;
     this.timeUnixNano = `${Math.round(reading.observedAt)}000000`;
+    this.gate = gate;
   }
 
   // openstack_<service>_<name>, whose help text is the exporter's: the name alone.
   public add(name: string, labels: Labels, value: number | null): void {
+    const metricName: string = `${SERVICE_PREFIXES[this.service]}_${name}`;
+
+    if (this.gate && !this.gate.shouldSend(metricName, labels, value)) {
+      this.heldBackCount++;
+      return;
+    }
+
     const isWritten: boolean = this.write({
-      name: `${SERVICE_PREFIXES[this.service]}_${name}`,
+      name: metricName,
       description: name,
       labels: labels,
       value: value,
@@ -953,10 +978,22 @@ function writeVolume(
   }
 
   for (const pool of inventory.pools || []) {
+    const rbd: OpenStackRbdLocation | null = isOpenStackRbdProtocol(
+      pool.storageProtocol,
+    )
+      ? parseOpenStackRbdLocation(pool.locationInfo)
+      : null;
     const labels: Labels = {
       name: pool.name,
       volume_backend_name: pool.backendName,
       vendor_name: pool.vendorName,
+      /*
+       * Only a probe at the Full view level can read these, and they are what names the
+       * Ceph cluster behind a pool as a fact rather than a guess.
+       */
+      storage_protocol: pool.storageProtocol,
+      ceph_fsid: rbd?.fsid,
+      ceph_pool: rbd?.poolName,
     };
 
     writer.add("pool_capacity_free_gb", labels, pool.freeCapacityGb);
@@ -1157,17 +1194,22 @@ export default class OpenStackOtlpBuilder {
   public static build(
     readings: ReadonlyArray<OpenStackServiceReading>,
     scopeVersion: string,
+    gate?: OpenStackSendGate | undefined,
   ): OpenStackOtlpBuildResult {
     const resourceMetrics: JSONArray = [];
     let datapointCount: number = 0;
 
     for (const reading of readings) {
-      const writer: SeriesWriter = new SeriesWriter(reading);
+      const writer: SeriesWriter = new SeriesWriter(reading, gate);
 
       writeInventory(writer, reading);
 
       if (reading.apiUp !== null) {
-        writer.add("up", {}, reading.apiUp ? 1 : 0);
+        writer.add(
+          "up",
+          { refresh_cycle_minutes: reading.refreshCycleInMinutes },
+          reading.apiUp ? 1 : 0,
+        );
       }
 
       /*
@@ -1175,7 +1217,7 @@ export default class OpenStackOtlpBuilder {
        * `up` is how a page tells a service nothing could be asked, and a count of 0 is
        * how the agent's own series say Keystone could not be logged in to.
        */
-      const samples: number = writer.datapointCount;
+      const samples: number = writer.datapointCount + writer.heldBackCount;
 
       writer.addScrapeSeries({
         name: "up",
@@ -1204,7 +1246,7 @@ export default class OpenStackOtlpBuilder {
         ],
       });
 
-      datapointCount += samples + 3;
+      datapointCount += writer.datapointCount + 3;
     }
 
     return {

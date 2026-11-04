@@ -126,6 +126,7 @@ jest.mock(
       __esModule: true,
       default: {
         addMetricIngestJob: jest.fn(),
+        addLogIngestJob: jest.fn(),
       },
     };
   },
@@ -185,8 +186,11 @@ const connectionTests: {
 const ingestion: { isDisabled: jest.Mock } =
   TelemetryIngestionDisabled as unknown as { isDisabled: jest.Mock };
 
-const queue: { addMetricIngestJob: jest.Mock } =
-  TelemetryQueueService as unknown as { addMetricIngestJob: jest.Mock };
+const queue: { addMetricIngestJob: jest.Mock; addLogIngestJob: jest.Mock } =
+  TelemetryQueueService as unknown as {
+    addMetricIngestJob: jest.Mock;
+    addLogIngestJob: jest.Mock;
+  };
 
 const responseUtil: {
   sendErrorResponse: jest.Mock;
@@ -405,6 +409,7 @@ beforeEach(() => {
   jest.clearAllMocks();
   ingestion.isDisabled.mockReturnValue(false as never);
   queue.addMetricIngestJob.mockResolvedValue(undefined as never);
+  queue.addLogIngestJob.mockResolvedValue(undefined as never);
   fake = fakeStore();
   router = createOpenStackCollectionRouter(
     fake.store,
@@ -781,6 +786,65 @@ describe(`POST ${COLLECTION_URI}`, () => {
       isCurrent: true,
       queuedResourceCount: 1,
     });
+  });
+
+  test("what Nova says instances went through enters the log ingest, under the server's word for the cloud", async () => {
+    const logRecord: JSONObject = {
+      timeUnixNano: "1793354400000000000",
+      severityNumber: 17,
+      body: { stringValue: '{"event_type":"instance.reboot.error"}' },
+    };
+
+    await call(
+      COLLECTION_URI,
+      makeRequest({
+        body: collectionReport({
+          resourceLogs: [
+            {
+              resource: {
+                attributes: [
+                  {
+                    key: "openstack.cloud.name",
+                    value: { stringValue: "Someone Else's" },
+                  },
+                  {
+                    key: "openstack.region.name",
+                    value: { stringValue: "RegionOne" },
+                  },
+                ],
+              },
+              scopeLogs: [{ scope: { name: "x" }, logRecords: [logRecord] }],
+            },
+          ],
+        }),
+      }),
+    );
+
+    expect(queue.addLogIngestJob).toHaveBeenCalledTimes(1);
+
+    const job: JSONObject = queue.addLogIngestJob.mock
+      .calls[0]?.[0] as JSONObject;
+
+    expect(job["projectId"]).toEqual(PROJECT_ID);
+    expect(job["productType"]).toBe(ProductType.Logs);
+
+    const [resource] = (job["body"] as JSONObject)[
+      "resourceLogs"
+    ] as Array<JSONObject>;
+
+    expect((resource!["resource"] as JSONObject)["attributes"]).toEqual([
+      { key: "openstack.region.name", value: { stringValue: "RegionOne" } },
+      { key: "openstack.cloud.name", value: { stringValue: "Production" } },
+    ]);
+    expect(resource!["scopeLogs"]).toEqual([
+      { scope: { name: "x" }, logRecords: [logRecord] },
+    ]);
+  });
+
+  test("a collection in which nothing happened queues no logs", async () => {
+    await call(COLLECTION_URI, makeRequest({ body: collectionReport() }));
+
+    expect(queue.addLogIngestJob).not.toHaveBeenCalled();
   });
 
   test("a failed collection's metrics enter too: they are what says it is failing", async () => {

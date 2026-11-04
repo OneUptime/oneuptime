@@ -1197,6 +1197,12 @@ describe("the guide's claims match ingest", () => {
     ),
   );
 
+  test("a host on OpenStack is told how to be linked to its instance, nova first so its host.id wins", () => {
+    expect(reported).toContain("**Running on OpenStack?**");
+    expect(reported).toContain("`detectors: [nova, system, env]`");
+    expect(reported).toContain("`host.id` is the instance's UUID");
+  });
+
   test("a host needs host.name plus os.type, container.runtime or host metrics", () => {
     expect(reported).toContain("carries `host.name` also carries any of");
     expect(reported).toContain(

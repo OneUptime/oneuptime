@@ -9,8 +9,10 @@ import OpenStackServiceClient, {
   OpenStackListAnswer,
   mapWithLimit,
 } from "../OpenStackServiceClient";
+import { takeReadTurn } from "../OpenStackReadTurns";
 import { OpenStackCollectorContext } from "./OpenStackCollectorContext";
 import { JSONObject, JSONValue } from "Common/Types/JSON";
+import { OPENSTACK_PER_PART_READS_PER_COLLECTION } from "Common/Types/OpenStack/OpenStackScale";
 
 /*
  * Placement: what each hypervisor holds and has promised. This is where capacity comes
@@ -23,7 +25,27 @@ import { JSONObject, JSONValue } from "Common/Types/JSON";
  * time runs short they are what goes. A read of them that is refused stops the pass
  * too: a credential refused one provider's is refused them all, and a call per provider
  * to be told so is load for nothing.
+ *
+ * Three calls per hypervisor is most of the load a large cloud's collection puts on its
+ * control plane, so each is only made when it can say something new:
+ *
+ *   - Inventories only when the provider's generation has moved, which the one list call
+ *     says of them all. Placement moves it whenever an inventory is written.
+ *   - Usages every time, but past a stated number of providers in turns, each provider's
+ *     own as soon as its generation moves. An allocation deleted does not move it, so the
+ *     turn is what catches those.
+ *   - Allocations not at all once a cloud is past the summary size: they are a series per
+ *     instance, which is what summary mode leaves out.
+ *
+ * What was not read this time is sent as it last stood, so no series has a gap.
  */
+
+interface PlacementMemory {
+  known: Map<string, PlacementProviderRecord>;
+  cursor: number;
+}
+
+const PLACEMENT_REMEMBERED_FOR_IN_MS: number = 24 * 60 * 60_000;
 
 export const PLACEMENT_READS_AT_ONCE: number = 4;
 
@@ -139,26 +161,86 @@ export default async function collectPlacement(
   const providers: Array<PlacementProviderRecord> = readProviders(answer);
   inventory.providers = providers;
 
+  const memoryKey: string = `${context.memoryKey}/${run.regionName}/placement`;
+  const memory: PlacementMemory = context.memory.recall<PlacementMemory>(
+    memoryKey,
+    PLACEMENT_REMEMBERED_FOR_IN_MS,
+    client.now(),
+  ) || { known: new Map(), cursor: 0 };
+
+  context.memory.remember(memoryKey, memory, client.now());
+
+  const inventoryIsDue: Set<string> = new Set();
+  // Not read before, however many: the rows need what they hold.
+  const toReadNow: Array<PlacementProviderRecord> = [];
+  const moved: Array<PlacementProviderRecord> = [];
+  const settled: Array<PlacementProviderRecord> = [];
+
+  for (const provider of providers) {
+    const known: PlacementProviderRecord | undefined = memory.known.get(
+      provider.uuid,
+    );
+
+    if (known?.inventories) {
+      provider.inventories = known.inventories;
+      provider.usages = known.usages;
+      provider.allocations = known.allocations;
+    }
+
+    if (!known?.inventories) {
+      inventoryIsDue.add(provider.uuid);
+      toReadNow.push(provider);
+    } else if (known.generation !== provider.generation) {
+      inventoryIsDue.add(provider.uuid);
+      moved.push(provider);
+    } else {
+      settled.push(provider);
+    }
+  }
+
+  const { turn, nextCursor }: {
+    turn: Array<PlacementProviderRecord>;
+    nextCursor: number;
+  } = takeReadTurn({
+    items: settled,
+    limit: Math.max(
+      0,
+      OPENSTACK_PER_PART_READS_PER_COLLECTION - toReadNow.length - moved.length,
+    ),
+    cursor: memory.cursor,
+  });
+
+  memory.cursor = nextCursor;
+
+  const toRead: Array<PlacementProviderRecord> = [
+    ...toReadNow,
+    // A burst of changes waits its turn too: a load budget that gives way to one is no budget.
+    ...moved.slice(0, OPENSTACK_PER_PART_READS_PER_COLLECTION),
+    ...turn,
+  ];
+
   await forEachProvider(context, {
     name: "inventories and usages",
     isInventory: true,
-    providers: providers,
+    providers: toRead,
     read: async (provider: PlacementProviderRecord): Promise<void> => {
       const path: string = `/resource_providers/${encodeURIComponent(provider.uuid)}`;
 
-      const inventories: OpenStackJsonAnswer = await client.get({
-        read: "a provider's inventories",
-        path: `${path}/inventories`,
-      });
+      if (inventoryIsDue.has(provider.uuid)) {
+        const inventories: OpenStackJsonAnswer = await client.get({
+          read: "a provider's inventories",
+          path: `${path}/inventories`,
+        });
 
-      provider.inventories = toPlacementInventories(inventories.body);
+        provider.inventories = toPlacementInventories(inventories.body);
 
-      const generation: number | null = numeric(
-        inventories.body["resource_provider_generation"],
-      );
+        const generation: number | null = numeric(
+          inventories.body["resource_provider_generation"],
+        );
 
-      if (generation !== null) {
-        provider.generation = generation;
+        if (generation !== null) {
+          provider.generation = generation;
+        }
       }
 
       const usages: OpenStackJsonAnswer = await client.get({
@@ -167,13 +249,37 @@ export default async function collectPlacement(
       });
 
       provider.usages = toPlacementUsages(usages.body);
+      memory.known.set(provider.uuid, provider);
     },
   });
+
+  // A provider that has gone, so memory does not grow for ever on a cloud that replaces hosts.
+  if (memory.known.size > providers.length) {
+    const present: Set<string> = new Set(
+      providers.map((provider: PlacementProviderRecord): string => {
+        return provider.uuid;
+      }),
+    );
+
+    for (const uuid of Array.from(memory.known.keys())) {
+      if (!present.has(uuid)) {
+        memory.known.delete(uuid);
+      }
+    }
+  }
+
+  if (context.isSummaryMode) {
+    for (const provider of providers) {
+      provider.allocations = undefined;
+    }
+
+    return;
+  }
 
   await forEachProvider(context, {
     name: "allocations",
     isInventory: false,
-    providers: providers,
+    providers: toRead.slice(0, OPENSTACK_PER_PART_READS_PER_COLLECTION),
     read: async (provider: PlacementProviderRecord): Promise<void> => {
       const allocations: OpenStackJsonAnswer = await client.get({
         read: "a provider's allocations",

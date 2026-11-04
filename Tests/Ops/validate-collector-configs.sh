@@ -148,11 +148,22 @@ ENV_ARGS=(
   -e "OPENSTACK_NETWORK_EXPORTER_TARGETS=[10.0.0.11:1981]"
   -e "OPENSTACK_LIBVIRT_HEALTH_TARGETS=[10.0.0.21:9177]"
   -e "OPENSTACK_CONTROL_PLANE_REGION=RegionOne"
+  -e "OPENSTACK_AGENT_SERVICES=compute|placement"
+  -e "OPENSTACK_AGENT_MEMORY_LIMIT_MIB=4096"
+  -e "OPENSTACK_DATABASE_EXPORTER_TARGETS=[10.0.0.253:9180]"
+  -e "OPENSTACK_DATABASE_EXPORTER_HOST_SUFFIX=.example.org"
+  -e "OPENSTACK_WORKER_STATE_CLOUDS=[RegionOne]"
+  -e "OPENSTACK_WORKER_STATE_EXPORTER_ADDRESS=openstack-worker-state-exporter:9180"
   -e "OPENSTACK_SINGLE_CLOUD_EXPORTER_TARGETS=[10.0.0.254:9198]"
   # Its traces profile, which runs on each machine whose services are traced.
   -e "OPENSTACK_REGION_NAME=RegionOne"
   -e "OPENSTACK_NODE_NAME=validate-only"
   -e "OPENSTACK_TRACES_LISTEN_ADDRESS=127.0.0.1:4318"
+  # Its logs profile, also per machine. file_storage needs its folder to exist, so the
+  # journal's is one the stubs already mount, and the files' is mounted where it validates.
+  -e "OPENSTACK_LOGS_UNITS=[devstack@*,nova-*]"
+  -e "OPENSTACK_LOGS_STATE_DIRECTORY=/host"
+  -e "OPENSTACK_LOGS_TIMEZONE=UTC"
   # The Storage Array Agent (a prometheus receiver scraping a FlashArray's
   # native endpoint, or Pure's exporter sidecars). The prometheus receiver
   # parses the scrape target and the TLS flag (an unquoted boolean), and the
@@ -232,9 +243,33 @@ for agent in DockerAgent PodmanAgent DockerSwarmAgent VMwareAgent ProxmoxAgent C
   validate "${agent}" "${WORK_DIR}/${agent}.yaml"
 done
 
+# The agent's config as each deployment tool's guide leaves it. A list that reads as nothing
+# and a list of quoted addresses are each a different target list to the receiver, and a job
+# with no targets at all has to build too.
+validate "OpenStackAgent / Kolla-Ansible's exporter, as its guide leaves it" "${WORK_DIR}/OpenStackAgent.yaml" \
+  -e "OPENSTACK_EXPORTER_CLOUDS=[]" \
+  -e "OPENSTACK_SINGLE_CLOUD_EXPORTER_TARGETS=[10.0.0.254:9198]"
+validate "OpenStackAgent / nothing under the cloud named" "${WORK_DIR}/OpenStackAgent.yaml" \
+  -e "OPENSTACK_RABBITMQ_TARGETS=[]" \
+  -e "OPENSTACK_MARIADB_TARGETS=[]" \
+  -e "OPENSTACK_MEMCACHED_TARGETS=[]" \
+  -e "OPENSTACK_HAPROXY_TARGETS=[]" \
+  -e "OPENSTACK_NETWORK_EXPORTER_TARGETS=[]" \
+  -e "OPENSTACK_LIBVIRT_HEALTH_TARGETS=[]" \
+  -e "OPENSTACK_SINGLE_CLOUD_EXPORTER_TARGETS=[]"
+validate "OpenStackAgent / IPv6 targets, as control-plane-targets.py writes them" "${WORK_DIR}/OpenStackAgent.yaml" \
+  -e 'OPENSTACK_RABBITMQ_TARGETS=["[fd00::11]:15692","RegionTwo@[fd00::12]:15692"]'
+
 # The OpenStack agent's optional traces profile, a config of its own.
 cp "${REPO_ROOT}/agents/OpenStackAgent/otel-collector-traces.yaml" "${WORK_DIR}/OpenStackAgent-traces.yaml"
 validate "OpenStackAgent / traces" "${WORK_DIR}/OpenStackAgent-traces.yaml"
+
+# Its optional logs profile, one config per way a deployment logs.
+cp "${REPO_ROOT}/agents/OpenStackAgent/otel-collector-logs-files.yaml" "${WORK_DIR}/OpenStackAgent-logs-files.yaml"
+validate "OpenStackAgent / logs from files" "${WORK_DIR}/OpenStackAgent-logs-files.yaml" \
+  -v "${WORK_DIR}/hostfs":/var/lib/otelcol/file_storage:ro
+cp "${REPO_ROOT}/agents/OpenStackAgent/otel-collector-logs-journald.yaml" "${WORK_DIR}/OpenStackAgent-logs-journald.yaml"
+validate "OpenStackAgent / logs from the journal" "${WORK_DIR}/OpenStackAgent-logs-journald.yaml"
 
 # The Storage Array Agent ships one config per way of reading an array:
 # docker-compose.yml mounts the one STORAGE_ARRAY_COLLECTOR_CONFIG names (the

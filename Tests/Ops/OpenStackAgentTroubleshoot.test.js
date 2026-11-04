@@ -346,6 +346,10 @@ function startCloud({
       ? "# HELP openstack_identity_up up\nopenstack_identity_up 1\nopenstack_identity_regions 2\n"
       : "";
   },
+  // What answers on /metrics: an exporter in single-cloud mode, or what a cloud stands on.
+  metrics = () => {
+    return "";
+  },
 } = {}) {
   const requests = [];
   const logins = [];
@@ -379,6 +383,9 @@ function startCloud({
 
       if (url.pathname === "/probe") {
         return send(200, probe(url), { "Content-Type": "text/plain" });
+      }
+      if (url.pathname === "/metrics") {
+        return send(200, metrics(url), { "Content-Type": "text/plain" });
       }
       if (url.pathname === "/oneuptime/otlp/v1/validate") {
         return request.headers["x-oneuptime-token"] === KEY
@@ -2011,6 +2018,238 @@ describe("several regions", () => {
     const lines = accessLines(run);
     expect(lines).toContain("  • Region RegionOne");
     expect(lines).toContain("  • Region Region Two");
+  });
+});
+
+/* -------------------------------------------- an exporter without --multi-cloud */
+
+describe("an exporter in single-cloud mode", () => {
+  // The docker stub sends this address to the fake cloud, as it does the bundled exporter's.
+  const TARGETS = "[openstack-exporter:9180]";
+
+  test("reads it on /metrics, and says so", async () => {
+    const cloud = await startCloud({
+      metrics: () => {
+        return "openstack_identity_up 1\nopenstack_nova_up 1\n";
+      },
+    });
+    const run = await runDoctor(cloud, {
+      regions: [],
+      writeClouds: false,
+      env: { OPENSTACK_SINGLE_CLOUD_EXPORTER_TARGETS: TARGETS },
+      args: ["--skip-access"],
+    });
+    const asked = cloud.requests.filter((request) => {
+      return request.path === "/metrics";
+    });
+    await cloud.close();
+
+    expect(asked.length).toBe(1);
+    expect(run.output).toContain(
+      `No bundled exporter: the agent reads your own at ${TARGETS} on /metrics`,
+    );
+    expect(run.output).toContain(
+      "✔ The exporter at openstack-exporter:9180 reads the cloud (2 openstack_* series).",
+    );
+  });
+
+  test("one started with --multi-cloud answers /metrics with none of it, and is told where it belongs", async () => {
+    const cloud = await startCloud({
+      metrics: () => {
+        return "go_goroutines 12\n";
+      },
+    });
+    const run = await runDoctor(cloud, {
+      regions: [],
+      writeClouds: false,
+      env: { OPENSTACK_SINGLE_CLOUD_EXPORTER_TARGETS: TARGETS },
+      args: ["--skip-access"],
+    });
+    await cloud.close();
+
+    expect(run.output).toContain(
+      "✗ The exporter at openstack-exporter:9180 answers /metrics with no openstack_* series.",
+    );
+    expect(run.output).toContain(
+      "An exporter started with --multi-cloud only answers on /probe",
+    );
+    expect(run.output).toContain("Set OPENSTACK_EXPORTER_ADDRESS to it instead");
+  });
+
+  test("one that cannot read Keystone says where its log is on Kolla-Ansible", async () => {
+    const cloud = await startCloud({
+      metrics: () => {
+        return "openstack_identity_up 0\n";
+      },
+    });
+    const run = await runDoctor(cloud, {
+      regions: [],
+      writeClouds: false,
+      env: { OPENSTACK_SINGLE_CLOUD_EXPORTER_TARGETS: TARGETS },
+      args: ["--skip-access"],
+    });
+    await cloud.close();
+
+    expect(run.output).toContain(
+      "▲ The exporter at openstack-exporter:9180 answers, but openstack_identity_up is not 1",
+    );
+    expect(run.output).toContain("/var/log/kolla/prometheus/");
+  });
+
+  test("one that does not answer is the network, and says which", async () => {
+    const cloud = await startCloud();
+    const run = await runDoctor(cloud, {
+      regions: [],
+      writeClouds: false,
+      env: { OPENSTACK_SINGLE_CLOUD_EXPORTER_TARGETS: TARGETS },
+      files: { "curl-fails": `/metrics 7\n` },
+      args: ["--skip-access"],
+    });
+    await cloud.close();
+
+    expect(run.output).toContain(
+      "✗ Cannot reach the exporter at openstack-exporter:9180 from the agent's network.",
+    );
+    expect(run.output).toContain("behind its internal VIP on 9198");
+  });
+
+  test("the plain case's advice names it, for the exporter that has no /probe", async () => {
+    const cloud = await startCloud({
+      probe: () => {
+        return "";
+      },
+    });
+    const run = await runDoctor(cloud, { args: ["--skip-access"] });
+    await cloud.close();
+
+    expect(run.output).toContain(
+      "An exporter started without --multi-cloud, as Kolla-Ansible starts it, has no /probe: set OPENSTACK_SINGLE_CLOUD_EXPORTER_TARGETS",
+    );
+  });
+});
+
+/* --------------------------------------------- what the cloud stands on */
+
+describe("what the cloud stands on", () => {
+  const THERE = "[openstack-exporter:9180]";
+
+  function section(run) {
+    return sectionOf(run.output, "What the cloud stands on").join("\n");
+  }
+
+  test("with nothing named, says each reads as not watched", async () => {
+    const cloud = await startCloud();
+    const run = await runDoctor(cloud, { args: ["--skip-access"] });
+    await cloud.close();
+
+    expect(section(run)).toContain(
+      "None named, so the cloud's Control Plane card says each is not watched.",
+    );
+  });
+
+  test.each([
+    [
+      "OPENSTACK_RABBITMQ_TARGETS",
+      "RabbitMQ's Prometheus plugin",
+      'rabbitmq_identity_info{rabbitmq_node="rabbit@ctl1"} 1',
+    ],
+    ["OPENSTACK_MARIADB_TARGETS", "mysqld_exporter", "mysql_up 1"],
+    ["OPENSTACK_MEMCACHED_TARGETS", "memcached_exporter", "memcached_up 1"],
+    [
+      "OPENSTACK_HAPROXY_TARGETS",
+      "HAProxy's Prometheus exporter",
+      "haproxy_process_uptime_seconds 42",
+    ],
+    [
+      "OPENSTACK_NETWORK_EXPORTER_TARGETS",
+      "openstack-network-exporter",
+      'ovs_build_info{version="3.5.0"} 1',
+    ],
+    ["OPENSTACK_LIBVIRT_HEALTH_TARGETS", "prometheus-libvirt-exporter", "libvirt_up 1"],
+  ])("%s answering as %s passes", async (variable, what, line) => {
+    const cloud = await startCloud({
+      metrics: () => {
+        return `${line}\n`;
+      },
+    });
+    const run = await runDoctor(cloud, {
+      env: { [variable]: THERE },
+      args: ["--skip-access"],
+    });
+    await cloud.close();
+
+    expect(section(run)).toContain(`✔ ${what} at openstack-exporter:9180 answers.`);
+  });
+
+  test("an exporter that says what is behind it is down says that", async () => {
+    const cloud = await startCloud({
+      metrics: () => {
+        return "mysql_up 0\n";
+      },
+    });
+    const run = await runDoctor(cloud, {
+      env: { OPENSTACK_MARIADB_TARGETS: THERE },
+      args: ["--skip-access"],
+    });
+    await cloud.close();
+
+    expect(section(run)).toContain(
+      "▲ mysqld_exporter at openstack-exporter:9180 answers, and says the service behind it is down (mysql_up 0).",
+    );
+  });
+
+  test("the wrong port is told apart from a target that is down", async () => {
+    const cloud = await startCloud({
+      metrics: () => {
+        return "memcached_up 1\n";
+      },
+    });
+    const run = await runDoctor(cloud, {
+      env: { OPENSTACK_MARIADB_TARGETS: THERE },
+      args: ["--skip-access"],
+    });
+    await cloud.close();
+
+    expect(section(run)).toContain(
+      "✗ openstack-exporter:9180 answers, but with no mysql_up: it is not mysqld_exporter.",
+    );
+    expect(run.output).toContain(
+      "OPENSTACK_MARIADB_TARGETS names openstack-exporter:9180, and what answers there is not mysqld_exporter. Check the port.",
+    );
+  });
+
+  test("one that does not answer costs its own series, and is a finding", async () => {
+    const cloud = await startCloud();
+    const run = await runDoctor(cloud, {
+      env: { OPENSTACK_RABBITMQ_TARGETS: THERE },
+      files: { "curl-fails": `/metrics 7\n` },
+      args: ["--skip-access"],
+    });
+    await cloud.close();
+
+    expect(section(run)).toContain(
+      "✗ RabbitMQ's Prometheus plugin at openstack-exporter:9180 does not answer from the agent's network",
+    );
+    expect(run.output).toContain(
+      "The collector cannot scrape RabbitMQ's Prometheus plugin at openstack-exporter:9180 (OPENSTACK_RABBITMQ_TARGETS).",
+    );
+  });
+
+  test("a target that names its region is read at its address", async () => {
+    const cloud = await startCloud({
+      metrics: () => {
+        return "memcached_up 1\n";
+      },
+    });
+    const run = await runDoctor(cloud, {
+      env: { OPENSTACK_MEMCACHED_TARGETS: "[RegionTwo@openstack-exporter:9180]" },
+      args: ["--skip-access"],
+    });
+    await cloud.close();
+
+    expect(section(run)).toContain(
+      "✔ memcached_exporter at openstack-exporter:9180 answers.",
+    );
   });
 });
 

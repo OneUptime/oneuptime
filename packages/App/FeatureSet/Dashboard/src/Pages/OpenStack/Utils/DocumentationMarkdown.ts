@@ -17,6 +17,14 @@ import {
 } from "../../../Components/SetupGuide/AgentInstallCommands";
 import { InstallScriptName } from "Common/Types/InstallScripts/InstallScripts";
 import { translationKey } from "Common/UI/Utils/TranslateTemplate";
+import {
+  DEFAULT_OPENSTACK_DEPLOYMENT_TOOL,
+  OpenStackDeploymentGuide,
+  OpenStackDeploymentTool,
+  OPENSTACK_EXPORTER_170_LOSSES,
+  doesOpenStackToolUseAgent,
+  getOpenStackDeploymentGuide,
+} from "./OpenStackDeploymentGuides";
 
 /*
  * The in-app guide for connecting an OpenStack cloud with the OneUptime OpenStack
@@ -183,6 +191,11 @@ export interface OpenStackSetupGuideOptions {
   cloudName?: string | undefined;
   // When the guide is read: its example credential expires a year after.
   now?: Date | undefined;
+  /*
+   * How the reader deploys OpenStack, which is what the guide's one question asks: each
+   * tool has its own paths, and what it already runs. Left out means the general steps.
+   */
+  tool?: OpenStackDeploymentTool | undefined;
 }
 
 interface GuideContext {
@@ -661,6 +674,16 @@ function getEnvironmentVariablesTopic(context: GuideContext): SetupGuideTopic {
 | \`OPENSTACK_EXPORTER_USER\` | No | The \`uid:gid\` the exporter's container runs as, which must own \`clouds.yaml\` (default: \`65532:65532\`) |
 | \`OPENSTACK_CA_FILE\` | No | A PEM file with the certificate authority of a cloud that has its own |
 | \`COMPOSE_PROFILES\` | Bundled exporter | \`openstack-exporter\` starts the bundled exporter |
+| \`OPENSTACK_SINGLE_CLOUD_EXPORTER_TARGETS\` | No | An exporter already running without \`--multi-cloud\`, such as Kolla-Ansible's: \`[10.0.0.254:9198]\`. Set \`OPENSTACK_EXPORTER_CLOUDS=[]\` with it |
+| \`OPENSTACK_RABBITMQ_TARGETS\` | No | RabbitMQ's Prometheus plugin on each node: \`[10.0.0.11:15692,10.0.0.12:15692]\` |
+| \`OPENSTACK_MARIADB_TARGETS\` | No | mysqld_exporter beside each MariaDB node, usually on \`9104\` |
+| \`OPENSTACK_MEMCACHED_TARGETS\` | No | memcached_exporter beside each Memcached, usually on \`9150\` |
+| \`OPENSTACK_HAPROXY_TARGETS\` | No | HAProxy's own Prometheus exporter |
+| \`OPENSTACK_NETWORK_EXPORTER_TARGETS\` | No | openstack-network-exporter on each node, for OVN and Open vSwitch, usually on \`1981\` |
+| \`OPENSTACK_LIBVIRT_HEALTH_TARGETS\` | No | prometheus-libvirt-exporter on each compute node, usually on \`9177\`, for whether libvirt answers and nothing per instance |
+| \`OPENSTACK_CONTROL_PLANE_REGION\` | No | The region of a target above that does not say its own. A target can: \`RegionTwo@10.1.0.11:15692\` |
+| \`OPENSTACK_LIBVIRT_EXPORTER_TARGETS\` | No | The same exporter, for what each instance is really doing. Per-instance series multiply fast |
+| \`OPENSTACK_CEILOMETER_EXPORTER_TARGETS\` | No | Ceilometer's exporter on each compute node, usually on \`9101\`, for the same |
 
 \`clouds.yaml\` alone holds the credential.`,
   };
@@ -694,7 +717,13 @@ function getOwnExporterTopic(context: GuideContext): SetupGuideTopic {
       "Skip the bundled exporter and point the agent at one you already run, such as Kolla-Ansible's.",
     markdown: `${how}
 
-Your exporter must run with \`--multi-cloud\`, and its \`clouds.yaml\` needs an entry named for each region. Turn off what the bundled one turns off: see **What the agent collects, and what it costs your cloud**. Use an address the agent's container can reach: \`localhost\` inside the container is the container itself.`,
+Your exporter must run with \`--multi-cloud\`, and its \`clouds.yaml\` needs an entry named for each region. Turn off what the bundled one turns off: see **What the agent collects, and what it costs your cloud**. Use an address the agent's container can reach: \`localhost\` inside the container is the container itself.
+
+**Started without \`--multi-cloud\`?** Kolla-Ansible's is, and Canonical's charm. It has no \`/probe\`, so set \`OPENSTACK_SINGLE_CLOUD_EXPORTER_TARGETS\` instead of the address above, with \`OPENSTACK_EXPORTER_CLOUDS=[]\` and \`OPENSTACK_CONTROL_PLANE_REGION\`. It is then asked for everything at once, every 2 minutes.
+
+**On exporter 1.7.0,** which Kolla-Ansible pins, it answers either way, and the pages go without what it does not say. On five real clouds that was:
+
+${OPENSTACK_EXPORTER_170_LOSSES}`,
   };
 }
 
@@ -968,17 +997,60 @@ export function getOpenStackSetupGuide(
     now: options.now || new Date(),
   };
 
+  const tool: OpenStackDeploymentTool =
+    options.tool || DEFAULT_OPENSTACK_DEPLOYMENT_TOOL;
+  const guide: OpenStackDeploymentGuide = getOpenStackDeploymentGuide({
+    tool: tool,
+    context: {
+      oneuptimeUrl: context.oneuptimeUrl,
+      apiKey: context.apiKey,
+      cloudName: context.cloudName,
+    },
+  });
+
+  const intro: string | undefined =
+    guide.alreadyRuns && guide.howFarTested
+      ? `${guide.alreadyRuns}\n\n**How far this guide has been tested:** ${guide.howFarTested}`
+      : undefined;
+
+  // A probe reads this tool's cloud, so the agent's own steps would only mislead.
+  if (!doesOpenStackToolUseAgent(tool)) {
+    return {
+      wrapLongLines: true,
+      intro: intro,
+      steps: [...guide.firstSteps, ...guide.lastSteps],
+      advanced: guide.topics,
+    };
+  }
+
+  const credentialStep: SetupGuideStep = getCredentialStep(context);
+
   return {
     wrapLongLines: true,
+    intro: intro,
     prerequisites: getPrerequisites(context.method),
     steps: [
-      getCredentialStep(context),
+      ...guide.firstSteps,
+      {
+        ...credentialStep,
+        markdown:
+          guide.credentialNotes
+            .map((note: string): string => {
+              return `- ${note}`;
+            })
+            .join("\n") || undefined,
+        variants: [
+          ...(credentialStep.variants || []),
+          ...guide.credentialVariants,
+        ],
+      },
       context.method === "install-script"
         ? getInstallScriptStep(context)
         : getDockerComposeStep(context),
       getVerifyStep(context),
+      ...guide.lastSteps,
     ],
-    advanced: getAdvancedTopics(context),
+    advanced: [...guide.topics, ...getAdvancedTopics(context)],
     troubleshooting: getTroubleshootingTopics(context),
   };
 }

@@ -556,6 +556,15 @@ logs:
     exportMaxRetries: 5
     sinceSecondsOnStart: 10
     logLevel: "info"
+  # OpenStack's services running in this cluster: OpenStack-Helm, Atmosphere, Red
+  # Hat's distribution. With a cloud's name set, a stack trace from those namespaces
+  # stays one record, and OneUptime files their logs under that OpenStack cloud,
+  # parsed. Use the name the cloud's OpenStack agent or connection has. It takes
+  # daemonset log mode: the API log tailer does not read this.
+  openStack:
+    cloudName: ""
+    namespaces:
+      - openstack
 
 # Resource spec collection — pulls full K8s resource objects (pods, nodes,
 # deployments, etc.) for displaying labels, annotations, env vars, status,

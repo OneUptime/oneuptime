@@ -6,6 +6,7 @@ import { JSONObject } from "../../../../Types/JSON";
 import EntityType from "../../../../Types/Telemetry/EntityType";
 import InventoryItemService from "../../../Services/InventoryItemService";
 import KubernetesCluster from "../../../../Models/DatabaseModels/KubernetesCluster";
+import OpenStackCloud from "../../../../Models/DatabaseModels/OpenStackCloud";
 import Monitor from "../../../../Models/DatabaseModels/Monitor";
 import NetworkDevice from "../../../../Models/DatabaseModels/NetworkDevice";
 import PodmanHost from "../../../../Models/DatabaseModels/PodmanHost";
@@ -48,6 +49,7 @@ import CloudResourceService from "../../../Services/CloudResourceService";
 import DockerHostService from "../../../Services/DockerHostService";
 import HostService from "../../../Services/HostService";
 import KubernetesClusterService from "../../../Services/KubernetesClusterService";
+import OpenStackCloudService from "../../../Services/OpenStackCloudService";
 import MonitorService from "../../../Services/MonitorService";
 import NetworkDeviceService from "../../../Services/NetworkDeviceService";
 import PodmanHostService from "../../../Services/PodmanHostService";
@@ -414,6 +416,32 @@ export default class ResourceSecurity {
               }
             : null,
           isSearchedByLogs: false,
+        };
+      }
+      case SecurityConnectionKind.OpenStackCloud: {
+        const cloud: OpenStackCloud | null =
+          await OpenStackCloudService.findOneBy({
+            query,
+            select: { _id: true, name: true },
+            props: data.props,
+          });
+
+        if (!cloud) {
+          return null;
+        }
+
+        return {
+          name: cloud.name || "",
+          /*
+           * An audit event names its cloud by openstack.cloud.name, and what the events
+           * read from its logs name is why they were read: its users, its projects.
+           */
+          names: [cloud.name],
+          entity: cloud.name
+            ? { type: SecurityEntityType.Host, value: cloud.name }
+            : null,
+          isSearchedByLogs: false,
+          isSearchedByLogsWithoutValues: true,
         };
       }
       case SecurityConnectionKind.NetworkDevice: {

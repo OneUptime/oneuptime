@@ -11,6 +11,15 @@ import OpenStackPartHero, {
   ComponentProps as HeroProps,
   OPENSTACK_PART_SLUGS,
 } from "./OpenStackPartHero";
+import {
+  OpenStackPartFeed,
+  OpenStackWhoChangedThis,
+  hasOpenStackPartFeed,
+} from "./OpenStackPartFeed";
+import OpenStackPartLogs, { hasOpenStackPartLogs } from "./OpenStackPartLogs";
+import OpenStackPartTraces, {
+  hasOpenStackPartTraces,
+} from "./OpenStackPartTraces";
 import OpenStackPartReadError from "./OpenStackPartReadError";
 import { OpenStackPart } from "./UseOpenStackPart";
 
@@ -97,7 +106,10 @@ const OpenStackPartPage: FunctionComponent<ComponentProps> = (
       onRetry={part.retry}
     />
   ) : part.row ? (
-    props.overview(part.row)
+    <>
+      {props.overview(part.row)}
+      <OpenStackWhoChangedThis part={part} row={part.row} />
+    </>
   ) : (
     <p
       className="rounded-xl border border-gray-200 bg-white p-5 text-sm text-gray-500 shadow-sm"
@@ -108,9 +120,37 @@ const OpenStackPartPage: FunctionComponent<ComponentProps> = (
     </p>
   );
 
+  /*
+   * What a cloud's services said about this part, on every kind that a line or a
+   * notification can name. The page's own tabs come first.
+   */
   const tabs: Array<Tab> = [
     { name: "Overview", children: overview },
     ...(part.row && props.tabs ? props.tabs(part.row) : []),
+    ...(part.row && hasOpenStackPartLogs(part, part.row)
+      ? [
+          {
+            name: "Logs",
+            children: <OpenStackPartLogs part={part} row={part.row} />,
+          },
+        ]
+      : []),
+    ...(part.row && hasOpenStackPartTraces(part, part.row)
+      ? [
+          {
+            name: "Traces",
+            children: <OpenStackPartTraces part={part} row={part.row} />,
+          },
+        ]
+      : []),
+    ...(part.row && hasOpenStackPartFeed(part, part.row)
+      ? [
+          {
+            name: "Feed",
+            children: <OpenStackPartFeed part={part} row={part.row} />,
+          },
+        ]
+      : []),
   ];
 
   return (

@@ -39,10 +39,23 @@ estate has to say nothing beyond its rows.
 
 The other scenarios are query parameters (see the top of `Fixture/Fixture.js`):
 `?collector=disconnected`, `?quiet=<minutes>`, `?access=project`, `?collection=Probe`,
-`?alerts=none|some|all|denied`, `?open=0|1|many`,
+`?probe=checking|collecting|partial|untrusted|plain-http`, `?probes=many`,
+`?tests=ok,untrusted,...`, `?clouds=none`, `?alerts=none|some|all|denied`, `?open=0|1|many`,
 `?fail=inventory,attention,regions,consumers,blast,metrics,events`, `?lang=de|fa` and
 `?theme=dark`. `?region=` is the product's own. They are read when a page loads, and a
 reload reads what the tab was first given: a link inside the product knows nothing of them.
+
+## A cloud a probe collects
+
+`OpenStackDataCollection.spec.ts` connects a cloud from the Dashboard alone: Connect Cloud on
+the clouds list, the connection test, the Data Collection cards on the Overview and on Settings,
+the switch between a probe and the agent, and what is read beyond the defaults. The clouds list
+and Settings are real pages here, so what their forms save is held too: `writeRequests` on
+`window.__openStackPagesFixture` records every write, and `Fixture/ProbeCollection.js` keeps what
+a page reads back. How each collection went and what each connection test answers are scripted
+there, in the words the probe writes, because the probe's own tests read those from real clouds'
+recordings. `window.__openStackPagesCollect("collecting")` has the probe report after a page has
+loaded, and `window.__openStackPagesRefuseNextWrite("...")` has the server refuse the next save.
 
 ## Adding to it
 
@@ -56,7 +69,8 @@ reload reads what the tab was first given: a link inside the product knows nothi
   test.
 
 `Fixture/Fixture.js` records every read on `window.__openStackPagesFixture`
-(`listRequests`, `countRequests`, `itemRequests`, `aggregateRequests`, `apiRequests`), and
+(`listRequests`, `countRequests`, `itemRequests`, `aggregateRequests`, `apiRequests`,
+`writeRequests`), and
 `window.__openStackPagesFail("inventory")` makes a read start failing after a page has loaded.
 Screenshots are written to `output/playwright/openstack-pages-ui/`.
 
