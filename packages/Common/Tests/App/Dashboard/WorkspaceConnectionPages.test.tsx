@@ -707,6 +707,11 @@ describe("a product's Slack, Microsoft Teams or Mattermost page", () => {
       SecurityEventsWorkspaceConnectionMicrosoftTeams,
       WorkspaceType.MicrosoftTeams,
     ],
+    [
+      "Security Events > Mattermost",
+      SecurityEventsWorkspaceConnectionMattermost,
+      WorkspaceType.Mattermost,
+    ],
   ] as Array<[string, FunctionComponent<PageComponentProps>, WorkspaceType]>)(
     "%s: the security case rules, then the hunt rules, both in sight",
     async (
@@ -876,7 +881,10 @@ describe("a product's Slack, Microsoft Teams or Mattermost page", () => {
       connect(page.workspaceType);
       await renderPage(page);
 
-      expect(screen.getByTestId("notification-rules")).toBeInTheDocument();
+      // Security Events holds two kinds of rule, a card each.
+      expect(
+        screen.getAllByTestId("notification-rules").length,
+      ).toBeGreaterThan(0);
       expect(screen.queryByTestId("reaction-notes-tips")).toBeNull();
       cleanup();
     }
@@ -1027,6 +1035,7 @@ describe("one answer for the page and its menu", () => {
             microsoftTeamsPage={
               PageMap.ALERTS_WORKSPACE_CONNECTION_MICROSOFT_TEAMS
             }
+            mattermostPage={PageMap.ALERTS_WORKSPACE_CONNECTION_MATTERMOST}
           />
           <WorkspaceConnectionGate workspaceType={WorkspaceType.MicrosoftTeams}>
             <div data-testid="teams-body" />
