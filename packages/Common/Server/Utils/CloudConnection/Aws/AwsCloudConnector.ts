@@ -47,6 +47,7 @@ import {
   CloudConnectionSettings,
   CloudConnector,
   CloudConnectorCallOptions,
+  CloudAuditRecord,
   CloudChange,
   CloudChangesOptions,
   CloudChangesResult,
@@ -64,6 +65,7 @@ import {
   CloudSavingsResult,
   getCloudSecretValues,
   getOrganizationLimitWarning,
+  keepsAuditRecords,
   orderLeastRecentlyRead,
   readCloudSetting,
 } from "../CloudConnectorTypes";
@@ -1660,6 +1662,12 @@ export default class AwsCloudConnector implements CloudConnector {
       complete: true,
     };
     const isLookBack: boolean = Boolean(options.since);
+    const keepAudit: boolean = keepsAuditRecords(options);
+
+    if (keepAudit) {
+      result.auditRecords = [];
+    }
+
     const isOrganization: boolean = this.isOrganization(settings);
     const homeRegion: string = this.getStsRegion(settings);
     let refusedTrail: boolean = false;
@@ -1731,13 +1739,21 @@ export default class AwsCloudConnector implements CloudConnector {
           : account.regions;
 
       const outcomes: Array<
-        Settled<{ changes: Array<CloudChange>; complete: boolean }>
+        Settled<{
+          changes: Array<CloudChange>;
+          complete: boolean;
+          auditRecords: Array<CloudAuditRecord>;
+        }>
       > = await mapWithConcurrency(
         regions,
         CHANGE_REGION_CONCURRENCY,
         async (
           region: string,
-        ): Promise<{ changes: Array<CloudChange>; complete: boolean }> => {
+        ): Promise<{
+          changes: Array<CloudChange>;
+          complete: boolean;
+          auditRecords: Array<CloudAuditRecord>;
+        }> => {
           return await lookupAwsChanges({
             credentials,
             accountId,
@@ -1751,6 +1767,7 @@ export default class AwsCloudConnector implements CloudConnector {
             end: now,
             options,
             budget: options.budget,
+            keepAuditRecords: keepAudit,
           });
         },
       );
@@ -1759,10 +1776,13 @@ export default class AwsCloudConnector implements CloudConnector {
         const outcome: Settled<{
           changes: Array<CloudChange>;
           complete: boolean;
+          auditRecords: Array<CloudAuditRecord>;
         }> = outcomes[index]!;
         const region: string = regions[index]!;
 
         if (outcome.ok) {
+          result.auditRecords?.push(...outcome.value.auditRecords);
+
           result.changes.push(
             ...keepNewChanges({
               state,

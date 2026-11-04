@@ -21,6 +21,7 @@ import SecurityLogLineCheck, {
 } from "../../../../App/FeatureSet/Dashboard/src/Components/SecurityEvents/SecurityLogLineCheck";
 import { SecurityEventDetailField } from "../../../../App/FeatureSet/Dashboard/src/Components/SecurityEvents/SecurityEventDetailFields";
 import { SECURITY_LOG_FORMAT_ICONS } from "../../../../App/FeatureSet/Dashboard/src/Components/SecurityEvents/SecurityLogsSourceCard";
+import { WIDE_MENU_WIDTH } from "../../../UI/Components/MoreMenu/MoreMenu";
 import SecurityLogFormat, {
   SECURITY_LOG_FORMATS,
   SecurityLogFormatDefinition,
@@ -484,6 +485,8 @@ describe("SecurityLogLineCheck", () => {
         return format.title;
       }),
     );
+    // Wide: "Azure activity and Entra ID logs" keeps one line beside its mark.
+    expect(menu.style.width).toBe(WIDE_MENU_WIDTH);
   });
 
   test("an example fills the box and is checked at once", async () => {

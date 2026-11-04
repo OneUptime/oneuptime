@@ -709,3 +709,70 @@ describe("a busy project, and a quota", () => {
     );
   });
 });
+
+/*
+ * While the project's Security Events read the project's audit log (Cloud
+ * audit logs), the same read hands back each Admin Activity entry whole -
+ * a read too, which is no change of Cloud's - for the Google Cloud audit
+ * log parser to judge. Only when asked, and never for a look back.
+ */
+describe("a Google Cloud project's audit log entries, for Security Events", () => {
+  const entries: Array<JSONObject> = [
+    auditEntry({
+      id: "log-iam",
+      method: "SetIamPolicy",
+      service: "cloudresourcemanager.googleapis.com",
+      resourceName: `projects/${PROJECT_ID}`,
+      at: "2026-10-21T11:03:00Z",
+    }),
+    auditEntry({
+      id: "log-get",
+      method: "v1.compute.instances.get",
+      at: "2026-10-21T11:04:00Z",
+    }),
+  ];
+
+  test("asked, every entry the read brought in comes back whole, beside the changes", async () => {
+    const result: CloudChangesResult = await connector.readChanges(
+      settings(),
+      changeOptions(
+        createFakeGcpActivity({ entries: { [PROJECT_ID]: entries } }),
+        {},
+        { keepAuditRecords: true },
+      ),
+    );
+
+    expect(
+      result.changes.map((change: CloudChange): string => {
+        return change.eventId;
+      }),
+    ).toEqual(["log-iam"]);
+    expect(result.auditRecords).toEqual([
+      { accountId: PROJECT_ID, record: entries[0] },
+      { accountId: PROJECT_ID, record: entries[1] },
+    ]);
+  });
+
+  test("not asked, or reading back for an investigation, no entry comes back", async () => {
+    const plain: CloudChangesResult = await connector.readChanges(
+      settings(),
+      changeOptions(
+        createFakeGcpActivity({ entries: { [PROJECT_ID]: entries } }),
+        {},
+      ),
+    );
+
+    expect(plain.auditRecords).toBeUndefined();
+
+    const lookBack: CloudChangesResult = await connector.readChanges(
+      settings(),
+      changeOptions(
+        createFakeGcpActivity({ entries: { [PROJECT_ID]: entries } }),
+        {},
+        { keepAuditRecords: true, since: new Date("2026-10-21T10:00:00Z") },
+      ),
+    );
+
+    expect(lookBack.auditRecords).toBeUndefined();
+  });
+});

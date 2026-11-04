@@ -48,7 +48,8 @@ const readPermissions: Array<Permission> = [
  *
  * The scan reads the logs that arrived since `cursor`, a window at a time;
  * the counts of the last scan are kept so the Connections page can say
- * what it found.
+ * what it found. A threat a security product wrote in them opens a case
+ * from `caseMinimumSeverity`, as a connection's alert does.
  */
 @EnableDocumentation()
 @TableBillingAccessControl({
@@ -145,6 +146,36 @@ export default class SecurityLogSource extends BaseModel {
     default: true,
   })
   public isEnabled?: boolean = undefined;
+
+  /*
+   * A threat a security product wrote in the logs - a firewall's or an
+   * IDS's, in CEF, LEEF or its vendor's own syslog - is that product's own
+   * alert: one at or above this severity opens a security case, or joins
+   * the open case about the same entity, as a connection's imported alerts
+   * do (Server/Utils/SecurityCase/SecurityLogCases.ts). Empty stores them as
+   * events only. High by default, as a connection's is.
+   */
+  @ColumnAccessControl({
+    create: adminPermissions,
+    read: readPermissions,
+    update: adminPermissions,
+  })
+  @TableColumn({
+    type: TableColumnType.ShortText,
+    required: false,
+    title: "Open Cases From Severity",
+    description:
+      "Threats security products write in the logs (CEF, LEEF, Palo Alto Networks, FortiGate, Cisco ASA) at or above this severity (Low, Medium, High or Critical) open security cases. Empty stores them as events only.",
+    defaultValue: "High",
+    canReadOnRelationQuery: true,
+  })
+  @Column({
+    type: ColumnType.ShortText,
+    length: ColumnLength.ShortText,
+    nullable: true,
+    default: "High",
+  })
+  public caseMinimumSeverity?: string = undefined;
 
   @ColumnAccessControl({
     create: [],

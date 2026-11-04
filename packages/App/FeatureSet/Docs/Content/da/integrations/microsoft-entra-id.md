@@ -1,6 +1,6 @@
 # Microsoft Entra ID
 
-Importér logins og mappeændringer fra [Microsoft Entra ID](https://learn.microsoft.com/en-us/entra/identity/) i OneUptimes sikkerhedsbegivenheder og, hvis du vil, aktiviteten i Exchange, SharePoint, OneDrive og Teams fra [Microsoft 365-auditloggen](https://learn.microsoft.com/en-us/purview/audit-log-activities). Der søger du i dem ved siden af dine logs, traces og metrikker, korrelerer dem med alle andre kilder og kalder vagten op for dem, der betyder noget. OneUptime læser dem med en appregistrering, som du opretter, og ændrer intet i din lejer.
+Importér logins, mappeændringer og risikoregistreringer fra [Microsoft Entra ID](https://learn.microsoft.com/en-us/entra/identity/) i OneUptimes sikkerhedsbegivenheder og, hvis du vil, de logins, apps foretager i baggrunden, og aktiviteten i Exchange, SharePoint, OneDrive og Teams fra [Microsoft 365-auditloggen](https://learn.microsoft.com/en-us/purview/audit-log-activities). Der søger du i dem ved siden af dine logs, traces og metrikker, korrelerer dem med alle andre kilder og kalder vagten op for dem, der betyder noget. OneUptime læser dem med en appregistrering, som du opretter, og ændrer intet i din lejer.
 
 :::cards
 - [Opsæt forbindelsen](#opsæt-forbindelsen): En appregistrering, dens tilladelser og forbindelsens formular.
@@ -19,15 +19,15 @@ flowchart TB
     list --> event["Hver gemmes som en<br/>OCSF-begivenhed af<br/>sin slags"]
 ```
 
-Hvert minut poller OneUptime hver aktiveret forbindelse, hvis pollinterval er gået. En poll logger på Microsoft Entra ID som din appregistrering og læser, i denne rækkefølge, mappeændringerne ([List directoryAudits](https://learn.microsoft.com/en-us/graph/api/directoryaudit-list)) og de logins ([List signIns](https://learn.microsoft.com/en-us/graph/api/signin-list)), der er registreret siden sidste poll, og derefter, når indstillingen **Microsoft 365-auditlog** er slået til, auditloggens nye indhold ([Office 365 Management Activity API](https://learn.microsoft.com/en-us/office/office-365-management-api/office-365-management-activity-api-reference)). Hver post gemmes som en [OCSF](https://schema.ocsf.io/)-begivenhed: et login som en begivenhed Authentication, en tildelt rolle som en begivenhed User Access Management, en phishingdom som et Detection Finding.
+Hvert minut poller OneUptime hver aktiveret forbindelse, hvis pollinterval er gået. En poll logger på Microsoft Entra ID som din appregistrering og læser, i denne rækkefølge, mappeændringerne ([List directoryAudits](https://learn.microsoft.com/en-us/graph/api/directoryaudit-list)) og de logins ([List signIns](https://learn.microsoft.com/en-us/graph/api/signin-list)), der er registreret siden sidste poll, derefter Identity Protections risikoregistreringer ([List riskDetections](https://learn.microsoft.com/en-us/graph/api/riskdetection-list)), derefter, når indstillingen **Baggrunds- og app-logins** er slået til, baggrunds- og app-logins og, når indstillingen **Microsoft 365-auditlog** er slået til, auditloggens nye indhold ([Office 365 Management Activity API](https://learn.microsoft.com/en-us/office/office-365-management-api/office-365-management-activity-api-reference)). Hver post gemmes som en [OCSF](https://schema.ocsf.io/)-begivenhed: et login som en begivenhed Authentication, en tildelt rolle som en begivenhed User Access Management, en risikoregistrering eller en phishingdom som et Detection Finding.
 
 ## Før du går i gang
 
 - I OneUptime rollen Project Owner, Project Admin eller Security Admin. Security Member og Security Viewer kan se forbindelser og deres kørselshistorik, men ikke ændre dem.
-- Til logins: Microsoft Entra ID P1 eller P2, som Microsoft 365 E3, E5 og Business Premium indeholder: Microsoft Graph giver kun logins til sådanne lejere. Mappeændringer læses i enhver lejer.
+- Til logins og risikoregistreringer: Microsoft Entra ID P1 eller P2, som Microsoft 365 E3, E5 og Business Premium indeholder: Microsoft Graph giver dem kun til sådanne lejere, og P2 giver detaljerne for hver risikoregistrering. Mappeændringer læses i enhver lejer.
 - En Entra-rolle, der kan registrere programmer, som Programadministrator, og en Global administrator eller Administrator af privilegerede roller til at give administratorsamtykke.
 - Til Microsoft 365-auditloggen: overvågning slået til for lejeren, som den er som standard: i [Microsoft Purview-portalen](https://purview.microsoft.com) må **Audit** ikke tilbyde **Start recording user and admin activity**.
-- Udgående HTTPS fra OneUptimes app og workere til `login.microsoftonline.com`, `graph.microsoft.com` og `manage.office.com`, eller til `login.microsoftonline.us`, `graph.microsoft.us` og `manage.office365.us` for Azure Government.
+- Udgående HTTPS fra OneUptimes app og workere til `login.microsoftonline.com`, `graph.microsoft.com` og `manage.office.com`, med `manage-gcc.office.com` i stedet for Microsoft 365 GCC, eller til `login.microsoftonline.us`, `graph.microsoft.us` og `manage.office365.us` for GCC High og `login.microsoftonline.us`, `dod-graph.microsoft.us` og `manage.protection.apps.mil` for DoD.
 
 ## Opsæt forbindelsen
 
@@ -42,7 +42,7 @@ Forbindelsen logger på med [OAuth 2.0-flowet for klientlegitimationsoplysninger
 
 ### Lad den læse loggene
 
-1. Gå til **API permissions → Add a permission → Microsoft Graph → Application permissions**, vælg `AuditLog.Read.All`, og vælg **Add permissions**. Microsoft dokumenterer, at listen over logins også kan kræve `Directory.Read.All`: tilføj den, hvis logins afvises med `403`, når samtykket er givet.
+1. Gå til **API permissions → Add a permission → Microsoft Graph → Application permissions**, vælg `AuditLog.Read.All` og, til risikoregistreringer, `IdentityRiskEvent.Read.All`, og vælg **Add permissions**. Microsoft dokumenterer, at listen over logins også kan kræve `Directory.Read.All`: tilføj den, hvis logins afvises med `403`, når samtykket er givet.
 2. Til Microsoft 365-auditloggen tilføjer du en anden tilladelse: **Add a permission → Office 365 Management APIs → Application permissions** og derefter `ActivityFeed.Read`.
 3. For at lade playbooks deaktivere, aktivere og logge brugere ud (se [Inddæmning](/docs/telemetry/security-cases#inddæmning)) tilføjer du på samme måde `User.Read.All`, `User.EnableDisableAccount.All` og `User.RevokeSessions.All`. Microsoft lader kun en app, der også har rollen Privileged Authentication Administrator, ændre en administrators konto.
 4. Vælg **Grant admin consent for** din lejer, og bekræft. Hver tilladelses status skal være **Granted**: uden samtykke afvises hver læsning med `403`.
@@ -53,7 +53,7 @@ Gå til **Certificates & secrets → Client secrets → New client secret**, væ
 
 ### Tilføj forbindelsen i OneUptime
 
-Åbn **Produkter → Sikkerhedshændelser → Forbindelser** (`/dashboard/{projectId}/security-events/connections`), klik på **Tilføj forbindelse**, vælg **Microsoft Entra ID** under **Identitet**, og klik på **Næste**. Udfyld indstillingerne i tabellen nedenfor, klik på **Næste**, og indsæt hemmelighedens værdi i **Klienthemmelighed**. Slå **Microsoft 365-auditlog** til i trinnet **Hentning** for også at læse den.
+Åbn **Produkter → Sikkerhedshændelser → Forbindelser** (`/dashboard/{projectId}/security-events/connections`), klik på **Tilføj forbindelse**, vælg **Microsoft Entra ID** under **Identitet**, og klik på **Næste**. Udfyld indstillingerne i tabellen nedenfor, klik på **Næste**, og indsæt hemmelighedens værdi i **Klienthemmelighed**. Slå **Baggrunds- og app-logins** eller **Microsoft 365-auditlog** til i trinnet **Hentning** for også at læse dem. En lejer uden for den offentlige Azure-sky vælger sin **Cloud** under **Flere felter** i trinnet med indstillinger.
 
 ### Test den, før du gemmer
 
@@ -63,8 +63,9 @@ Klik på **Test disse indstillinger** under **Test, før du gemmer**. Testen log
 | Indstilling | Hvor du finder den |
 | --- | --- |
 | **Mappe-id (tenant)** | Appens side **Overview**. Lejerens GUID eller et verificeret domæne som `contoso.onmicrosoft.com`. Med **Microsoft 365-auditlog** slået til GUID'et: Management API'et kender kun en lejer ved det. |
-| **Program-id (klient)** | Appens side **Overview**. GUID'et for den app, der har `AuditLog.Read.All`. |
-| **Cloud** | **Offentlig Azure-sky** eller **Azure Government (USA)** til GCC High (`login.microsoftonline.us`, `graph.microsoft.us` og `manage.office365.us`). |
+| **Program-id (klient)** | Appens side **Overview**. GUID'et for den app, der har `AuditLog.Read.All` og `IdentityRiskEvent.Read.All`. |
+| **Cloud** | Under **Flere felter**, **Offentlig Azure-sky**, medmindre du vælger en anden: **Offentlig Azure-sky, Microsoft 365 GCC** til GCC, **Azure Government (USA), GCC High** til GCC High eller **Azure Government (USA), DoD** til DoD. |
+| **Baggrunds- og app-logins** | Valgfri, slået fra som standard. Slået til læser hver poll også de logins, apps foretager i baggrunden for personer, og tjenesteprincipalers egne fra Microsoft Graphs beta-loginliste og importerer dem, der mislykkedes. |
 | **Microsoft 365-auditlog** | Valgfri, slået fra som standard. Slået til læser hver poll også Microsoft 365-auditloggen. Appen skal have `ActivityFeed.Read`. |
 | **Klienthemmelighed** | Hemmelighedens **Value**. Den krypteres, returneres aldrig af API'et og vises aldrig igen. Erstat den med **Opdater legitimationsoplysninger** på forbindelsen. |
 
@@ -80,6 +81,8 @@ Hver begivenhed har leverandøren `Microsoft` og produktet `Microsoft Entra ID`.
 | Et login, der venter på et andet trin, som MFA (`50074`, `50076`) eller en opfordring til at skifte adgangskode | Authentication (`3002`), status `Interrupted` | Informational: et trin, ikke en fejl |
 | Et login, der mislykkedes, med Entras årsag og fejlkode | Authentication (`3002`), status `Failure` | Low |
 | Et login, som Identity Protection vurderede til middel eller høj risiko | Authentication (`3002`) | Medium eller High |
+| En risiko, som Identity Protection registrerede, for eksempel en anonym IP-adresse eller en lækket legitimationsoplysning | Detection Finding (`2004`) | Dens risikoniveau; Critical for en bruger, der er bekræftet kompromitteret |
+| Et baggrunds- eller app-login, der mislykkedes, med **Baggrunds- og app-logins** slået til | Authentication (`3002`), status `Failure` | Low |
 | En bruger, gruppe eller rolle, der er ændret, efter dens kategori | Account Change (`3001`), Group Management (`3006`), User Access Management (`3005`) eller Entity Management (`3004`) for resten | Medium for en privilegeret rolle, som Global Administrator; Low for en ændring, der mislykkedes |
 
 Med **Microsoft 365-auditlog** slået til importeres de poster, et sikkerhedsteam handler på, fra den, og resten, som en åbnet fil eller en læst mail, tælles kun:
@@ -96,22 +99,22 @@ Med **Microsoft 365-auditlog** slået til importeres de poster, et sikkerhedstea
 
 Exchanges egen vedligeholdelse, der kører som dens systemkonto, udelades, medmindre den videresender mail. Hver begivenhed beholder hele posten, fladgjort til nøgler med punktum som `status.errorCode` eller `Parameters.ForwardTo`, så en regel læser ethvert felt under Microsofts navn for det. Regelbibliotekets regler for Entra ID læser dem, som de importeres her.
 
-De samme logins og mappeændringer kan i stedet nå OneUptime som logs, eksporteret af en diagnosticeringsindstilling i Azure og læst af [Dine logs](/docs/telemetry/security-events#find-sikkerhedshændelser-i-dine-logs). Hver post får det samme begivenheds-id ad begge veje, men en post, der læses ad begge veje, gemmes to gange: læs Entra ID ad én vej.
+De samme logins, mappeændringer og risikoregistreringer kan også nå OneUptime som logs, eksporteret af en diagnosticeringsindstilling i Azure og læst af [Dine logs](/docs/telemetry/security-events#find-sikkerhedshændelser-i-dine-logs). Hver post får det samme begivenheds-id ad begge veje, og en post, der læses ad begge veje, gemmes én gang, af den vej, der læser den først.
 
 ## Sådan fungerer polling
 
-- **Poster læses efter, hvornår Entra ID registrerede dem**, `activityDateTime` for en ændring og `createdDateTime` for et login.
+- **Poster læses efter, hvornår Entra ID registrerede dem**, `activityDateTime` for en ændring, `createdDateTime` for et login og `detectedDateTime` for en risikoregistrering.
 - **Den første poll ser 24 timer tilbage**, så en ny forbindelse straks viser sine nylige poster.
 - **Hver senere poll starter 30 minutter før den gemte markør.** Microsoft dokumenterer, at begge logs ankommer minutter for sent, så overlappet læser en forsinket post ved den næste poll, og dubletter kasseres efter post-id i projektet.
 - **En poll læser højst 24 timer forbi markøren.** En forbindelse, hvis markør er kommet bagud, indhenter i en række vinduer på 24 timer.
 - **En lejer uden Microsoft Entra ID P1 eller P2** importerer sine mappeændringer, og hver kørsels kontrol **Read sign-ins** advarer om, at logins ikke blev læst.
 - **En mislykket kørsel ændrer intet.** Efter en netværksfejl eller en fejlstatus fra Graph forbliver markøren og vindueslængden, som de var, og den næste poll læser det samme vindue igen. Den eneste undtagelse er en anmodning, der fik timeout: markøren bliver, men det næste vindue er halvt så langt, fordi et vindue, der er for tungt til at blive besvaret i tide, ville få timeout ved hvert forsøg.
 
-Microsoft 365-auditloggen læses efter, hvornår Microsoft gjorde hver indholdsblob tilgængelig, én dag ad gangen, og ikke længere tilbage end de 7 dage, Microsoft gemmer den. Den første poll abonnerer appen på `Audit.Exchange`, `Audit.SharePoint` og `Audit.General`, og Microsoft gør de første poster i et nyt abonnement tilgængelige inden for 12 timer. Auditloggen stopper aldrig Entra ID's logs: en manglende tilladelse er en advarsel, og vinduet går videre, mens en fejl på Microsofts side, som `HTTP 503`, gør kørslen **Delvis**, så vinduet læses igen.
+Microsoft 365-auditloggen læses efter, hvornår Microsoft gjorde hver indholdsblob tilgængelig, én dag ad gangen, og ikke længere tilbage end de 7 dage, Microsoft gemmer den. Den første poll abonnerer appen på `Audit.Exchange`, `Audit.SharePoint` og `Audit.General`, og Microsoft gør de første poster i et nyt abonnement tilgængelige inden for 12 timer. Auditloggen stopper aldrig Entra ID's logs: en manglende tilladelse er en advarsel, og vinduet går videre, mens en fejl på Microsofts side, som `HTTP 503`, gør kørslen **Delvis**, så vinduet læses igen. Risikoregistreringer og baggrunds- og app-logins opfører sig på samme måde: De stopper aldrig logins og mappeændringer.
 
 ### Når et vindue indeholder mere, end én poll kan læse
 
-Hver log har sit eget budget: 10 sider med 500 mappeændringer, 20 sider med 500 logins og, for Microsoft 365-auditloggen, 120 anmodninger og 10.000 poster. En poll stopper efter 4 minutter. Når et budget stopper en log før slutningen af dens vindue, er kørslen **Delvis**, og dens advarsel navngiver loggen og budgettet. Microsoft Graph viser de nyeste poster først, så OneUptime forkorter vinduet i stedet for at flytte markøren forbi poster, den aldrig nåede:
+Hver log har sit eget budget: 10 sider med 500 mappeændringer, 20 sider med 500 logins, 4 sider med 500 risikoregistreringer, 10 sider med 500 af hver slags baggrundslogin og, for Microsoft 365-auditloggen, 120 anmodninger og 10.000 poster. En poll stopper efter 4 minutter. Når et budget stopper en log før slutningen af dens vindue, er kørslen **Delvis**, og dens advarsel navngiver loggen og budgettet. Microsoft Graph viser de nyeste poster først, så OneUptime forkorter vinduet i stedet for at flytte markøren forbi poster, den aldrig nåede:
 
 1. **Indsnævr.** Den næste poll læser et vindue, der er halvt så langt, fra det samme startpunkt, og bliver ved med at halvere, indtil et vindue læses helt, ned til ét minut. Kørslens advarsel siger det: `This window holds more records than one poll can read; the next poll reads a {n} minute window from the same starting point.` Poster, der allerede er importeret fra det længere vindue, springes over som dubletter.
 2. **Voks igen.** Når et vindue er læst helt, flyttes markøren til dets slutning, og det næste vindue er igen dobbelt så langt, op til 24 timer.
@@ -138,6 +141,8 @@ Klik på **Diagnosticering** på en forbindelse for at se dens seneste kørsler 
 | **Authenticate with Microsoft Entra** | Entra ID udsteder et token til Microsoft Graph til appen, i den cloud, du valgte. |
 | **Read sign-ins** | Logins fra de seneste 24 timer kan læses. En advarsel, ikke en fejl, i en lejer uden P1 eller P2. |
 | **Read directory changes** | Mappeændringer fra de seneste 24 timer kan læses. |
+| **Read risk detections** | Identity Protections risikoregistreringer fra de seneste 24 timer kan læses. En advarsel, ikke en fejl, uden tilladelsen eller licensen. |
+| **Read background and app sign-ins** | Kun med indstillingen slået til: Microsoft Graphs beta-loginliste svarer for begge slags. |
 | **Read the Microsoft 365 audit log** | Kun med indstillingen slået til: Management API'et svarer, og hvilke indholdstyper appen abonnerer på. |
 | **Records available to import** | Hvor mange logins og mappeændringer de seneste 24 timer indeholder, højst 500 af hver, så `500+` betyder flere. Ingen er en advarsel. |
 | **Background workers**, **Poll scheduler**, **Security event storage** | OneUptimes egen side: en proces tager jobbene fra Worker-køen, poll-jobbet kører hvert minut, og lageret for sikkerhedsbegivenheder svarer. |
@@ -157,6 +162,11 @@ Forbindelsens **Seneste fejl** gemmer hele fejlmeddelelsen, med legitimationsopl
 :::details Seneste fejl siger `sign-ins request failed (HTTP 403)` eller `audit logs request failed (HTTP 403)`
 - Fejlkode `Authorization_RequestDenied`: appen mangler `AuditLog.Read.All`, eller samtykket blev ikke givet. Giv administratorsamtykke, vent et par minutter, og test igen. Giv også `Directory.Read.All` til logins.
 - Fejlkode `Authentication_RequestFromNonPremiumTenantOrB2CTenant`: lejeren har ikke Microsoft Entra ID P1 eller P2. Mappeændringer importeres stadig.
+:::
+
+:::details Risikoregistreringer læses ikke
+- `risk detections request failed (HTTP 403)`: appen mangler `IdentityRiskEvent.Read.All`, eller samtykket blev ikke givet. Logins og mappeændringer importeres stadig.
+- Fejlkode `Authentication_RequestFromNonPremiumTenantOrB2CTenant`: lejeren har ikke Microsoft Entra ID P1 eller P2.
 :::
 
 :::details Microsoft 365-auditloggen læses ikke

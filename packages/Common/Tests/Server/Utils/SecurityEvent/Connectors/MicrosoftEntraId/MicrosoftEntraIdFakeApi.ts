@@ -7,12 +7,14 @@ import { JSONObject, JSONValue } from "../../../../../../Types/JSON";
 
 /*
  * A fake Microsoft tenant behind the connector's transport: the Entra
- * token endpoint, Microsoft Graph's sign-in and directory audit lists, and
- * the Office 365 Management Activity API, each answering the way
- * Microsoft's reference pages describe - Graph newest first, filtered by
- * ge and le, paged by @odata.nextLink; the Management API listing content
- * by contentCreated (start inclusive, end exclusive), paged by a
- * NextPageUri header, its blobs fetched by contentUri. Every request is
+ * token endpoint, Microsoft Graph's sign-in, directory audit and risk
+ * detection lists - and the beta sign-in list's background and app
+ * sign-ins, picked by its signInEventTypes filter - and the Office 365
+ * Management Activity API, each answering the way Microsoft's reference
+ * pages describe - Graph newest first, filtered by ge and le, paged by
+ * @odata.nextLink; the Management API listing content by contentCreated
+ * (start inclusive, end exclusive), paged by a NextPageUri header, its
+ * blobs fetched by contentUri - on every cloud's hosts. Every request is
  * recorded. Not a test file itself.
  */
 
@@ -39,6 +41,13 @@ export interface FakeContent {
 export interface FakeEntraTenant {
   signIns?: Array<JSONObject> | undefined;
   directoryAudits?: Array<JSONObject> | undefined;
+  riskDetections?: Array<JSONObject> | undefined;
+  // The beta list's signInEventTypes: nonInteractiveUser, servicePrincipal.
+  nonInteractiveSignIns?: Array<JSONObject> | undefined;
+  servicePrincipalSignIns?: Array<JSONObject> | undefined;
+  riskDetectionsFailure?: FakeFailure | undefined;
+  nonInteractiveSignInsFailure?: FakeFailure | undefined;
+  servicePrincipalSignInsFailure?: FakeFailure | undefined;
   // The most records a Graph page holds, whatever $top asks for.
   graphPageCap?: number | undefined;
   tokenFailure?: FakeFailure | undefined;
@@ -64,18 +73,24 @@ export interface FakeEntraApi {
 const GRAPH_HOSTS: Array<string> = [
   "graph.microsoft.com",
   "graph.microsoft.us",
+  "dod-graph.microsoft.us",
 ];
 const MANAGE_HOSTS: Array<string> = [
   "manage.office.com",
+  "manage-gcc.office.com",
   "manage.office365.us",
+  "manage.protection.apps.mil",
 ];
 const LOGIN_HOSTS: Array<string> = [
   "login.microsoftonline.com",
   "login.microsoftonline.us",
 ];
 
-// "createdDateTime ge 2026-...Z and createdDateTime le 2026-...Z"
-const FILTER_BOUND_REGEX: RegExp = /\s(ge|le)\s(\S+)/g;
+/*
+ * "createdDateTime ge 2026-...Z and createdDateTime le 2026-...Z", in
+ * brackets when another clause follows.
+ */
+const FILTER_BOUND_REGEX: RegExp = /\s(ge|le)\s([^\s)]+)/g;
 
 export function respond(
   statusCode: number,
@@ -197,11 +212,55 @@ export function createFakeEntraApi(tenant: FakeEntraTenant): FakeEntraApi {
       const cap: number = tenant.graphPageCap || 1000;
 
       if (url.pathname.endsWith("/auditLogs/signIns")) {
+        const filter: string = url.searchParams.get("$filter") || "";
+
+        // Only the beta list reads the other kinds of sign-in.
+        if (url.pathname.startsWith("/beta/")) {
+          if (filter.includes("'nonInteractiveUser'")) {
+            if (tenant.nonInteractiveSignInsFailure) {
+              return fail(tenant.nonInteractiveSignInsFailure);
+            }
+
+            return graphList(
+              url,
+              tenant.nonInteractiveSignIns || [],
+              "createdDateTime",
+              cap,
+            );
+          }
+
+          if (filter.includes("'servicePrincipal'")) {
+            if (tenant.servicePrincipalSignInsFailure) {
+              return fail(tenant.servicePrincipalSignInsFailure);
+            }
+
+            return graphList(
+              url,
+              tenant.servicePrincipalSignIns || [],
+              "createdDateTime",
+              cap,
+            );
+          }
+        }
+
         if (tenant.signInsFailure) {
           return fail(tenant.signInsFailure);
         }
 
         return graphList(url, tenant.signIns || [], "createdDateTime", cap);
+      }
+
+      if (url.pathname.endsWith("/identityProtection/riskDetections")) {
+        if (tenant.riskDetectionsFailure) {
+          return fail(tenant.riskDetectionsFailure);
+        }
+
+        return graphList(
+          url,
+          tenant.riskDetections || [],
+          "detectedDateTime",
+          cap,
+        );
       }
 
       if (url.pathname.endsWith("/auditLogs/directoryAudits")) {
