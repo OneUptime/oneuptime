@@ -42196,5 +42196,18 @@
   "Writes unused tables": "جدول‌های بی‌استفاده را می‌نویسد",
   "{{bytes}} billed": "{{bytes}} صورتحساب‌شده",
   "{{credits}} credits": "{{credits}} اعتبار",
-  "Amazon Athena": "Amazon Athena"
+  "Amazon Athena": "Amazon Athena",
+  "Approved From": "محل تأیید",
+  "Approved by {{name}} in Microsoft Teams": "توسط {{name}} در Microsoft Teams تأیید شد",
+  "Approved by {{name}} in Slack": "توسط {{name}} در Slack تأیید شد",
+  "Approved in Microsoft Teams": "در Microsoft Teams تأیید شد",
+  "Approved in Slack": "در Slack تأیید شد",
+  "Cloud environment": "محیط ابری",
+  "Dismiss fix": "رد کردن اصلاح",
+  "In Microsoft Teams": "در Microsoft Teams",
+  "In OneUptime": "در OneUptime",
+  "In Slack": "در Slack",
+  "Runbook Track Record": "نتایج پیشین رانبوک",
+  "Where fixes were approved": "جایی که اصلاح‌ها تأیید شدند",
+  "You do not have permission to dismiss this fix. Dismissing a fix needs the permission approving one does: starting runbook executions in this project.": "اجازهٔ رد کردن این اصلاح را ندارید. رد کردن یک اصلاح همان اجازه‌ای را می‌خواهد که تأیید آن: شروع اجرای رانبوک‌ها در این پروژه."
 }

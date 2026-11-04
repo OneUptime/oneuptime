@@ -42196,5 +42196,18 @@
   "Writes unused tables": "Escreve tabelas sem uso",
   "{{bytes}} billed": "{{bytes}} faturados",
   "{{credits}} credits": "{{credits}} créditos",
-  "Amazon Athena": "Amazon Athena"
+  "Amazon Athena": "Amazon Athena",
+  "Approved From": "Aprovado em",
+  "Approved by {{name}} in Microsoft Teams": "Aprovado por {{name}} no Microsoft Teams",
+  "Approved by {{name}} in Slack": "Aprovado por {{name}} no Slack",
+  "Approved in Microsoft Teams": "Aprovado no Microsoft Teams",
+  "Approved in Slack": "Aprovado no Slack",
+  "Cloud environment": "ambiente de nuvem",
+  "Dismiss fix": "Dispensar correção",
+  "In Microsoft Teams": "No Microsoft Teams",
+  "In OneUptime": "No OneUptime",
+  "In Slack": "No Slack",
+  "Runbook Track Record": "Histórico de resultados do runbook",
+  "Where fixes were approved": "Onde as correções foram aprovadas",
+  "You do not have permission to dismiss this fix. Dismissing a fix needs the permission approving one does: starting runbook executions in this project.": "Você não tem permissão para dispensar esta correção. Dispensar uma correção exige a mesma permissão que aprová-la: iniciar execuções de runbook neste projeto."
 }

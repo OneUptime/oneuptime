@@ -42196,5 +42196,18 @@
   "Writes unused tables": "Writes unused tables",
   "{{bytes}} billed": "{{bytes}} billed",
   "{{credits}} credits": "{{credits}} credits",
-  "Amazon Athena": "Amazon Athena"
+  "Amazon Athena": "Amazon Athena",
+  "Approved From": "Approved From",
+  "Approved by {{name}} in Microsoft Teams": "Approved by {{name}} in Microsoft Teams",
+  "Approved by {{name}} in Slack": "Approved by {{name}} in Slack",
+  "Approved in Microsoft Teams": "Approved in Microsoft Teams",
+  "Approved in Slack": "Approved in Slack",
+  "Cloud environment": "Cloud environment",
+  "Dismiss fix": "Dismiss fix",
+  "In Microsoft Teams": "In Microsoft Teams",
+  "In OneUptime": "In OneUptime",
+  "In Slack": "In Slack",
+  "Runbook Track Record": "Runbook Track Record",
+  "Where fixes were approved": "Where fixes were approved",
+  "You do not have permission to dismiss this fix. Dismissing a fix needs the permission approving one does: starting runbook executions in this project.": "You do not have permission to dismiss this fix. Dismissing a fix needs the permission approving one does: starting runbook executions in this project."
 }

@@ -42196,5 +42196,18 @@
   "Writes unused tables": "写入未使用的表",
   "{{bytes}} billed": "已计费 {{bytes}}",
   "{{credits}} credits": "{{credits}} 积分",
-  "Amazon Athena": "Amazon Athena"
+  "Amazon Athena": "Amazon Athena",
+  "Approved From": "批准来源",
+  "Approved by {{name}} in Microsoft Teams": "{{name}} 已在 Microsoft Teams 中批准",
+  "Approved by {{name}} in Slack": "{{name}} 已在 Slack 中批准",
+  "Approved in Microsoft Teams": "已在 Microsoft Teams 中批准",
+  "Approved in Slack": "已在 Slack 中批准",
+  "Cloud environment": "云环境",
+  "Dismiss fix": "忽略修复",
+  "In Microsoft Teams": "在 Microsoft Teams 中",
+  "In OneUptime": "在 OneUptime 中",
+  "In Slack": "在 Slack 中",
+  "Runbook Track Record": "运行手册的过往结果",
+  "Where fixes were approved": "修复的批准位置",
+  "You do not have permission to dismiss this fix. Dismissing a fix needs the permission approving one does: starting runbook executions in this project.": "您没有忽略此修复的权限。忽略修复所需的权限与批准修复相同：在此项目中启动运行手册执行。"
 }

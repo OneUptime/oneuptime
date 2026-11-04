@@ -42196,5 +42196,18 @@
   "Writes unused tables": "Écrit des tables inutilisées",
   "{{bytes}} billed": "{{bytes}} facturés",
   "{{credits}} credits": "{{credits}} crédits",
-  "Amazon Athena": "Amazon Athena"
+  "Amazon Athena": "Amazon Athena",
+  "Approved From": "Approuvé depuis",
+  "Approved by {{name}} in Microsoft Teams": "Approuvé par {{name}} dans Microsoft Teams",
+  "Approved by {{name}} in Slack": "Approuvé par {{name}} dans Slack",
+  "Approved in Microsoft Teams": "Approuvé dans Microsoft Teams",
+  "Approved in Slack": "Approuvé dans Slack",
+  "Cloud environment": "environnement cloud",
+  "Dismiss fix": "Ignorer le correctif",
+  "In Microsoft Teams": "Dans Microsoft Teams",
+  "In OneUptime": "Dans OneUptime",
+  "In Slack": "Dans Slack",
+  "Runbook Track Record": "Historique des résultats du runbook",
+  "Where fixes were approved": "Où les correctifs ont été approuvés",
+  "You do not have permission to dismiss this fix. Dismissing a fix needs the permission approving one does: starting runbook executions in this project.": "Vous n'avez pas l'autorisation d'ignorer ce correctif. Ignorer un correctif demande la même autorisation que l'approuver : démarrer des exécutions de runbook dans ce projet."
 }

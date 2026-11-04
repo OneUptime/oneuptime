@@ -42196,5 +42196,18 @@
   "Writes unused tables": "अप्रयुक्त टेबल लिखता है",
   "{{bytes}} billed": "{{bytes}} बिल किए गए",
   "{{credits}} credits": "{{credits}} क्रेडिट",
-  "Amazon Athena": "Amazon Athena"
+  "Amazon Athena": "Amazon Athena",
+  "Approved From": "कहाँ से स्वीकृत",
+  "Approved by {{name}} in Microsoft Teams": "{{name}} द्वारा Microsoft Teams में स्वीकृत",
+  "Approved by {{name}} in Slack": "{{name}} द्वारा Slack में स्वीकृत",
+  "Approved in Microsoft Teams": "Microsoft Teams में स्वीकृत",
+  "Approved in Slack": "Slack में स्वीकृत",
+  "Cloud environment": "क्लाउड परिवेश",
+  "Dismiss fix": "सुधार खारिज करें",
+  "In Microsoft Teams": "Microsoft Teams में",
+  "In OneUptime": "OneUptime में",
+  "In Slack": "Slack में",
+  "Runbook Track Record": "रनबुक के पिछले परिणाम",
+  "Where fixes were approved": "सुधार कहाँ स्वीकृत हुए",
+  "You do not have permission to dismiss this fix. Dismissing a fix needs the permission approving one does: starting runbook executions in this project.": "आपको यह सुधार खारिज करने की अनुमति नहीं है। सुधार खारिज करने के लिए वही अनुमति चाहिए जो उसे स्वीकृत करने के लिए: इस प्रोजेक्ट में रनबुक निष्पादन शुरू करना।"
 }

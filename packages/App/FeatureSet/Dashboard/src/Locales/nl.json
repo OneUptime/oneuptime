@@ -42196,5 +42196,18 @@
   "Writes unused tables": "Schrijft ongebruikte tabellen",
   "{{bytes}} billed": "{{bytes}} gefactureerd",
   "{{credits}} credits": "{{credits}} credits",
-  "Amazon Athena": "Amazon Athena"
+  "Amazon Athena": "Amazon Athena",
+  "Approved From": "Goedgekeurd via",
+  "Approved by {{name}} in Microsoft Teams": "Goedgekeurd door {{name}} in Microsoft Teams",
+  "Approved by {{name}} in Slack": "Goedgekeurd door {{name}} in Slack",
+  "Approved in Microsoft Teams": "Goedgekeurd in Microsoft Teams",
+  "Approved in Slack": "Goedgekeurd in Slack",
+  "Cloud environment": "Cloud-omgeving",
+  "Dismiss fix": "Oplossing negeren",
+  "In Microsoft Teams": "In Microsoft Teams",
+  "In OneUptime": "In OneUptime",
+  "In Slack": "In Slack",
+  "Runbook Track Record": "Eerdere resultaten van het runbook",
+  "Where fixes were approved": "Waar oplossingen zijn goedgekeurd",
+  "You do not have permission to dismiss this fix. Dismissing a fix needs the permission approving one does: starting runbook executions in this project.": "Je hebt geen toestemming om deze oplossing te negeren. Een oplossing negeren vraagt dezelfde toestemming als haar goedkeuren: runbookuitvoeringen starten in dit project."
 }

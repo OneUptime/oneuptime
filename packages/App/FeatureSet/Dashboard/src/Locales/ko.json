@@ -42196,5 +42196,18 @@
   "Writes unused tables": "사용되지 않는 테이블을 씀",
   "{{bytes}} billed": "{{bytes}} 청구됨",
   "{{credits}} credits": "{{credits}} 크레딧",
-  "Amazon Athena": "Amazon Athena"
+  "Amazon Athena": "Amazon Athena",
+  "Approved From": "승인한 곳",
+  "Approved by {{name}} in Microsoft Teams": "{{name}} 님이 Microsoft Teams에서 승인함",
+  "Approved by {{name}} in Slack": "{{name}} 님이 Slack에서 승인함",
+  "Approved in Microsoft Teams": "Microsoft Teams에서 승인함",
+  "Approved in Slack": "Slack에서 승인함",
+  "Cloud environment": "클라우드 환경",
+  "Dismiss fix": "수정 무시",
+  "In Microsoft Teams": "Microsoft Teams에서",
+  "In OneUptime": "OneUptime에서",
+  "In Slack": "Slack에서",
+  "Runbook Track Record": "런북의 이전 결과",
+  "Where fixes were approved": "수정이 승인된 곳",
+  "You do not have permission to dismiss this fix. Dismissing a fix needs the permission approving one does: starting runbook executions in this project.": "이 수정을 무시할 권한이 없습니다. 수정을 무시하려면 승인할 때와 같은 권한이 필요합니다: 이 프로젝트에서 런북 실행을 시작할 권한입니다."
 }

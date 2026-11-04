@@ -42196,5 +42196,18 @@
   "Writes unused tables": "Skriver ubrugte tabeller",
   "{{bytes}} billed": "{{bytes}} faktureret",
   "{{credits}} credits": "{{credits}} credits",
-  "Amazon Athena": "Amazon Athena"
+  "Amazon Athena": "Amazon Athena",
+  "Approved From": "Godkendt fra",
+  "Approved by {{name}} in Microsoft Teams": "Godkendt af {{name}} i Microsoft Teams",
+  "Approved by {{name}} in Slack": "Godkendt af {{name}} i Slack",
+  "Approved in Microsoft Teams": "Godkendt i Microsoft Teams",
+  "Approved in Slack": "Godkendt i Slack",
+  "Cloud environment": "Cloud-miljø",
+  "Dismiss fix": "Afvis rettelsen",
+  "In Microsoft Teams": "I Microsoft Teams",
+  "In OneUptime": "I OneUptime",
+  "In Slack": "I Slack",
+  "Runbook Track Record": "Runbookens tidligere resultater",
+  "Where fixes were approved": "Hvor rettelser blev godkendt",
+  "You do not have permission to dismiss this fix. Dismissing a fix needs the permission approving one does: starting runbook executions in this project.": "Du har ikke tilladelse til at afvise denne rettelse. At afvise en rettelse kræver den samme tilladelse som at godkende den: at starte runbook-kørsler i dette projekt."
 }
