@@ -132,8 +132,9 @@ import {
  *     project only, under the connection's service and id, filed under
  *     their cloud resource and account;
  *   - a delivery Firehose sends again after it was taken is not taken twice;
- *   - limits: the body as sent, what it decompresses to, deliveries a
- *     minute.
+ *   - limits: the body as sent - a length declared past it answered before
+ *     the body comes, a body sent without one let go of as it grows past
+ *     it - what it decompresses to, deliveries a minute.
  *
  * `jest` is the global one.
  */
@@ -218,6 +219,7 @@ async function deliver(data: {
   requestId?: string;
   sourceArn?: string;
   gzip?: boolean;
+  chunked?: boolean;
 }): Promise<FirehoseReply> {
   const requestId: string = data.requestId || nextRequestId();
 
@@ -229,6 +231,7 @@ async function deliver(data: {
     sourceArn: data.sourceArn || METRICS_FIREHOSE_ARN,
     body: firehoseEnvelope({ requestId, records: data.records }),
     gzip: data.gzip,
+    chunked: data.chunked,
   });
 }
 
@@ -828,6 +831,59 @@ describe("the body", () => {
     expect(summaries.get(CONNECTION_A.toString())?.lastRefusal?.reason).toBe(
       CloudStreamRefusalReason.TooLarge,
     );
+  });
+
+  test("declared larger than OneUptime takes is answered 413 before a byte of its body is sent", async () => {
+    const requestId: string = nextRequestId();
+    const reply: FirehoseReply = await sendFirehoseDelivery({
+      port,
+      path: "/telemetry/aws-firehose/v1/metrics",
+      accessKey: KEY_A,
+      requestId,
+      sourceArn: METRICS_FIREHOSE_ARN,
+      gzip: false,
+      body: Buffer.alloc(0),
+      declaredLength: CLOUD_STREAM_MAX_REQUEST_BYTES + 1,
+    });
+
+    expectFirehoseAnswer(reply, {
+      status: 413,
+      requestId,
+      errorMessage: STREAM_TOO_LARGE_MESSAGE,
+    });
+    expect(metricJobs).toHaveLength(0);
+  });
+
+  test("sent without a length, it is let go of once it grows past what OneUptime takes: 413", async () => {
+    const requestId: string = nextRequestId();
+    const reply: FirehoseReply = await sendFirehoseDelivery({
+      port,
+      path: "/telemetry/aws-firehose/v1/metrics",
+      accessKey: KEY_A,
+      requestId,
+      sourceArn: METRICS_FIREHOSE_ARN,
+      gzip: false,
+      chunked: true,
+      body: Buffer.alloc(CLOUD_STREAM_MAX_REQUEST_BYTES + 64 * 1024, 0x20),
+    });
+
+    expectFirehoseAnswer(reply, {
+      status: 413,
+      requestId,
+      errorMessage: STREAM_TOO_LARGE_MESSAGE,
+    });
+    expect(metricJobs).toHaveLength(0);
+  });
+
+  test("sent without a length and within what OneUptime takes, it is taken", async () => {
+    const reply: FirehoseReply = await deliver({
+      path: "/telemetry/aws-firehose/v1/metrics",
+      records: [openTelemetryRecord([openTelemetryRequest([EC2_CPU])])],
+      chunked: true,
+    });
+
+    expectFirehoseAnswer(reply, { status: 200 });
+    expect(metricJobs).toHaveLength(1);
   });
 
   test("that decompresses to more than OneUptime takes is 413 too: a gzip bomb is stopped", async () => {

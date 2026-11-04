@@ -232,10 +232,20 @@ export interface FirehoseReply {
   body: JSONObject;
 }
 
+// How long a delivery that holds its body back waits for its answer.
+const ANSWER_BEFORE_BODY_MS: number = 3_000;
+// The pieces a delivery sent without a length is written in.
+const CHUNK_BYTES: number = 64 * 1024;
+
 /*
  * Sends one delivery the way Firehose does: POST, application/json, the
  * request id, the stream's ARN and the access key in their headers, the
  * body gzipped unless told not to.
+ *
+ * declaredLength sends the headers alone, saying the body is that long, and
+ * holds the body back: the answer must come before it, within
+ * ANSWER_BEFORE_BODY_MS. chunked sends the body without a length, in pieces,
+ * as a sender that streams it would.
  */
 export async function sendFirehoseDelivery(data: {
   port: number;
@@ -246,14 +256,19 @@ export async function sendFirehoseDelivery(data: {
   body: Buffer | JSONObject;
   gzip?: boolean | undefined;
   headers?: Record<string, string> | undefined;
+  declaredLength?: number | undefined;
+  chunked?: boolean | undefined;
 }): Promise<FirehoseReply> {
   const raw: Buffer = Buffer.isBuffer(data.body)
     ? data.body
     : Buffer.from(JSON.stringify(data.body), "utf8");
   const payload: Buffer = data.gzip === false ? raw : zlib.gzipSync(raw);
+  const isHeldBack: boolean = data.declaredLength !== undefined;
   const headers: Record<string, string> = {
     "Content-Type": "application/json",
-    "Content-Length": String(payload.length),
+    ...(data.chunked
+      ? { "Transfer-Encoding": "chunked" }
+      : { "Content-Length": String(data.declaredLength ?? payload.length) }),
     "X-Amz-Firehose-Protocol-Version": "1.0",
     "X-Amz-Firehose-Request-Id": data.requestId,
     ...(data.gzip === false ? {} : { "Content-Encoding": "gzip" }),
@@ -269,6 +284,25 @@ export async function sendFirehoseDelivery(data: {
       resolve: (reply: FirehoseReply) => void,
       reject: (error: Error) => void,
     ) => {
+      let isSettled: boolean = false;
+      let heldBackTimer: ReturnType<typeof setTimeout> | undefined = undefined;
+
+      const settle: (outcome: () => void) => void = (
+        outcome: () => void,
+      ): void => {
+        if (isSettled) {
+          return;
+        }
+
+        isSettled = true;
+
+        if (heldBackTimer) {
+          clearTimeout(heldBackTimer);
+        }
+
+        outcome();
+      };
+
       const request: http.ClientRequest = http.request(
         {
           host: "127.0.0.1",
@@ -293,17 +327,57 @@ export async function sendFirehoseDelivery(data: {
               body = {};
             }
 
-            resolve({
-              status: response.statusCode || 0,
-              headers: response.headers,
-              text,
-              body,
+            settle(() => {
+              resolve({
+                status: response.statusCode || 0,
+                headers: response.headers,
+                text,
+                body,
+              });
             });
+
+            if (isHeldBack) {
+              // The body it held back is never sent.
+              request.destroy();
+            }
           });
         },
       );
 
-      request.on("error", reject);
+      request.on("error", (error: Error) => {
+        settle(() => {
+          reject(error);
+        });
+      });
+
+      if (isHeldBack) {
+        heldBackTimer = setTimeout(() => {
+          settle(() => {
+            reject(
+              new Error(
+                `No answer within ${ANSWER_BEFORE_BODY_MS} ms while the body was held back.`,
+              ),
+            );
+          });
+          request.destroy();
+        }, ANSWER_BEFORE_BODY_MS);
+        request.flushHeaders();
+        return;
+      }
+
+      if (data.chunked) {
+        for (
+          let offset: number = 0;
+          offset < payload.length;
+          offset += CHUNK_BYTES
+        ) {
+          request.write(payload.subarray(offset, offset + CHUNK_BYTES));
+        }
+
+        request.end();
+        return;
+      }
+
       request.end(payload);
     },
   );
