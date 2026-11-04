@@ -15,6 +15,33 @@ OpenStack answers differently by release, network backend and deployment tool, a
 | `instance-metrics.sh` | After the drills, boots `ou-burner`, which spins on its CPU, writes to its disk and sends packets, and records what both sources say about it, the idle `ou-running` and the shut-off `ou-stopped`, at the same moments, every 30 seconds for six minutes. |
 | `stop-agent.sh` | Stops the agent, keeps its logs, and fails if the collector exported nothing. |
 
+## Real deployments, and the guides followed on them
+
+The rest of this page is about DevStack. These deploy what customers run, and follow the guide for it with the guide's own commands: `gh workflow run test.openstack-e2e.yaml --ref <branch> -f kolla_aio=true`, or `-f osa_aio=true`. Each takes hours and most of a runner, so neither runs on a schedule.
+
+| Script | What it does |
+| --- | --- |
+| `kolla-aio.sh`, `osa-aio.sh` | Deploy an all-in-one of that tool, as its quick start says. What differs from its defaults is in the script, each with its reason. |
+| `kolla-guide.sh`, `osa-guide.sh` | Follow its guide, one part at a time. Every block after `follow` is the guide's own text: `OpenStackDeploymentGuides.test.ts` fails when one and the guide differ. |
+| `guide-follow.sh` | What following any guide takes: running a block with its placeholders filled in and a person's answers on its standard input. |
+| `fake-oneuptime.py`, `collector-sink.yaml` | The OneUptime those commands name: it serves the install scripts from this checkout, hands OTLP to a real collector that decodes and keeps it, and keeps each webhook. It proves what reaches OneUptime, not what OneUptime does with it. |
+| `live-oneuptime.py` | That part, with `-f live_oneuptime=true`: a real OneUptime started from its test images, sent what a real agent and a real Alertmanager sent, and read back through its API. |
+
+The artifact is `openstack-recording-kolla-aio` or `openstack-recording-osa-aio`:
+
+```
+guide/commands.log            every command the guide says, what it printed and how it exited
+guide/problems.txt            what did not go as the guide says
+guide/<part>/otlp/metrics.json  what the agent really sent, decoded, per way of running it
+guide/<part>/otlp/logs.json     the same for the logs profile
+kolla/ or osa/                what was deployed, how long each step took, and the tool's own files
+healthy/                      record.sh's scene: each API, and each exporter (see below)
+control-plane/                each exporter under the cloud, as the tool's Prometheus reads it
+alertmanager/webhook-*.json   what its Alertmanager posted, byte for byte
+```
+
+`import-guide-recording.py` keeps what the tests replay.
+
 ## What comes out
 
 The workflow uploads an artifact per matrix entry, `openstack-recording-<name>`:

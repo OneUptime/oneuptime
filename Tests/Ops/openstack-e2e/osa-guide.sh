@@ -156,6 +156,7 @@ stands_on() {
   local phase="stands-on" rabbit status=0
   log "What the cloud stands on: RabbitMQ"
   sudo tee -a /etc/openstack_deploy/user_variables.yml >/dev/null <<'GUIDE'
+# /etc/openstack_deploy/user_variables.yml
 rabbitmq_plugins:
   - name: rabbitmq_management,rabbitmq_prometheus
     state: enabled
@@ -166,6 +167,7 @@ GUIDE
 
   log "What the cloud stands on: HAProxy"
   sed -e "s/<an address the agent can reach>/$OSA_MANAGEMENT_ADDRESS/" <<'GUIDE' | sudo tee -a /etc/openstack_deploy/user_variables.yml >/dev/null
+# /etc/openstack_deploy/user_variables.yml
 haproxy_stats_enabled: true
 haproxy_stats_prometheus_enabled: true
 haproxy_stats_bind_address: <an address the agent can reach>

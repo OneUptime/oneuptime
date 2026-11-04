@@ -34,6 +34,10 @@ on:
         description: Only deploy an all-in-one OpenStack-Ansible and follow the guide for it, command by command
         type: boolean
         default: false
+      live_oneuptime:
+        description: Only start a live OneUptime from its test images, and send it what real deployments sent
+        type: boolean
+        default: false
   schedule:
     - cron: "23 3 * * 1"
   pull_request:
@@ -49,10 +53,58 @@ permissions:
 # so neither cancels the other. Nor does a run that only records traces, or that follows a
 # deployment tool's guide: each of those deploys something else entirely.
 concurrency:
-  group: ${{ github.workflow }}-${{ github.event.pull_request.number || github.ref }}-${{ inputs.kolla_aio && 'kolla' || inputs.osa_aio && 'osa' || inputs.control_plane_only && 'control-plane' || inputs.traces_only && 'traces' || 'all' }}
+  group: ${{ github.workflow }}-${{ github.event.pull_request.number || github.ref }}-${{ inputs.kolla_aio && 'kolla' || inputs.osa_aio && 'osa' || inputs.live_oneuptime && 'live' || inputs.control_plane_only && 'control-plane' || inputs.traces_only && 'traces' || 'all' }}
   cancel-in-progress: true
 
 jobs:
+  # A live OneUptime, started from its test images as the E2E jobs start it, sent what real
+  # deployments sent: the replay tests hold the same things over a database in memory.
+  live-oneuptime:
+    name: a live OneUptime, sent what real deployments sent
+    if: ${{ inputs.live_oneuptime }}
+    runs-on: ubuntu-24.04
+    timeout-minutes: 60
+    steps:
+      - uses: actions/checkout@v4
+      - uses: ./.github/actions/free-disk-space
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 26
+      - uses: ./.github/actions/setup-gomplate
+      - name: Preinstall
+        run: npm run prerun
+      - name: Start OneUptime
+        run: |
+          set -euo pipefail
+          export $(grep -v '^#' config.env | xargs)
+          export APP_TAG=test
+          source ./Scripts/GHA/retry.sh
+          retry_registry_read "Pulling the stack's images" docker compose -f docker-compose.yml pull
+          docker compose -f docker-compose.yml up --remove-orphans -d
+          npm run status-check
+          docker image inspect "oneuptime/app:test" --format 'Built {{.Created}}, {{json .Config.Labels}}' || true
+          bash ./Tests/Scripts/status-check.sh http://localhost
+      - name: Send it what was recorded, and read back what it did
+        env:
+          OUTPUT_DIR: ${{ runner.temp }}/recording
+          ONEUPTIME_URL: http://localhost
+        run: python3 -I Tests/Ops/openstack-e2e/live-oneuptime.py
+      - name: Keep what the containers said
+        if: always()
+        run: |
+          mkdir -p "${RUNNER_TEMP}/recording/containers"
+          export $(grep -v '^#' config.env | xargs)
+          docker compose -f docker-compose.yml ps -a >"${RUNNER_TEMP}/recording/containers/ps.txt" 2>&1 || true
+          docker compose -f docker-compose.yml logs --no-color --tail 3000 app >"${RUNNER_TEMP}/recording/containers/app.log" 2>&1 || true
+      - name: Upload the recording
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: openstack-recording-live-oneuptime
+          path: ${{ runner.temp }}/recording
+          if-no-files-found: warn
+          retention-days: 30
+
   # Every agent's collector config through the real collector, which the "Ops Config Test"
   # workflow also does, but never gets to when master moves faster than it runs.
   validate-collector-configs:
@@ -255,7 +307,7 @@ jobs:
   # Kolla-Ansible pins: a DevStack has one of each, so it cannot lose a node or quorum.
   record-control-plane:
     name: control plane clusters
-    if: ${{ !inputs.logs_only && !inputs.kolla_aio && !inputs.osa_aio }}
+    if: ${{ !inputs.logs_only && !inputs.kolla_aio && !inputs.osa_aio && !inputs.live_oneuptime }}
     runs-on: ubuntu-24.04
     timeout-minutes: 90
     steps:
@@ -277,7 +329,7 @@ jobs:
 
   record:
     name: ${{ matrix.name }}
-    if: ${{ !inputs.control_plane_only && !inputs.kolla_aio && !inputs.osa_aio }}
+    if: ${{ !inputs.control_plane_only && !inputs.kolla_aio && !inputs.osa_aio && !inputs.live_oneuptime }}
     runs-on: ubuntu-24.04
     # Half an hour more on the two entries that drill what a cloud stands on.
     timeout-minutes: 180
