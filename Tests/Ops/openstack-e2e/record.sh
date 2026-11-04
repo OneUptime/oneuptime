@@ -21,7 +21,7 @@ set -euo pipefail
 SCENE="${1:?usage: record.sh <scene>}"
 OUTPUT_DIR="${OUTPUT_DIR:-out}"
 EXPORTER_URL="${EXPORTER_URL:-http://127.0.0.1:9180}"
-EXPORTER_CLOUD="${EXPORTER_CLOUD:-devstack-admin}"
+EXPORTER_CLOUD="${EXPORTER_CLOUD:-RegionOne}"
 # A second exporter, at the last non-alpha release, recorded beside the first so
 # a metric that differs between them is seen rather than discovered later.
 EXPORTER_STABLE_URL="${EXPORTER_STABLE_URL:-}"

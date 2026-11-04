@@ -70,9 +70,10 @@ for project in ou-payments ou-research; do
   # admin needs a role on the project to create resources in it.
   openstack role add --project "$project" --user admin member >/dev/null
 done
-# Low enough that the estate itself comes close, so quota series have
-# something to say.
-openstack quota set --instances 4 --cores 8 --ram 4096 ou-payments
+# Instances low enough that the estate itself comes close, so quota series have
+# something to say. Memory high enough for ou.impossible: quota is checked before
+# scheduling, and the failure wanted here is the scheduler's.
+openstack quota set --instances 4 --cores 8 --ram 2097152 ou-payments
 openstack quota set --instances 20 --cores 40 --ram 40960 ou-research
 
 log "Flavors"
@@ -81,7 +82,7 @@ openstack flavor show ou.tiny >/dev/null 2>&1 \
 # No hypervisor can hold this one, so an instance of it fails with Nova's
 # "No valid host" and its fault message: the failure operators see most.
 openstack flavor show ou.impossible >/dev/null 2>&1 \
-  || openstack flavor create --vcpus 4096 --ram 1048576 --disk 1 ou.impossible >/dev/null
+  || openstack flavor create --vcpus 1 --ram 1048576 --disk 1 ou.impossible >/dev/null
 
 log "Image"
 IMAGE="$(openstack image list --status active -f value -c Name | grep -i cirros | head -1)"

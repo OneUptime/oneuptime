@@ -49,9 +49,12 @@ jobs:
           - name: flamingo-ovn
             branch: stable/2025.2
             conf_overrides: ""
+          # An unmaintained release's branches were renamed, and its DevStack still
+          # asks for them by the old name.
           - name: epoxy-ovn
             branch: unmaintained/2025.1
-            conf_overrides: ""
+            conf_overrides: |
+              TARGET_BRANCH=unmaintained/2025.1
           # ML2/OVS reports the DHCP, L3 and OVS agents OVN does not have, and
           # the product must read both.
           - name: gazpacho-ovs

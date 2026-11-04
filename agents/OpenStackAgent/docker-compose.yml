@@ -15,9 +15,9 @@ services:
       # The name this cloud has in OneUptime. Keep it stable: changing it later
       # registers a brand-new cloud.
       - OPENSTACK_CLOUD_NAME=${OPENSTACK_CLOUD_NAME:-openstack}
-      # The clouds.yaml entries to read, one per region, in square brackets so
-      # the collector reads a list, e.g. [region-one,region-two].
-      - OPENSTACK_EXPORTER_CLOUDS=${OPENSTACK_EXPORTER_CLOUDS:-[oneuptime]}
+      # The clouds.yaml entries to read, one per region and named for the region,
+      # in square brackets so the collector reads a list: [RegionOne,RegionTwo].
+      - OPENSTACK_EXPORTER_CLOUDS=${OPENSTACK_EXPORTER_CLOUDS:-[RegionOne]}
       # host:port of the exporter (no scheme). The default is the service below.
       - OPENSTACK_EXPORTER_ADDRESS=${OPENSTACK_EXPORTER_ADDRESS:-openstack-exporter:9180}
     restart: unless-stopped

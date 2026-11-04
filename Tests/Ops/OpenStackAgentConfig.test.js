@@ -89,6 +89,27 @@ describe("the OpenStack agent's collector config", () => {
     }
   });
 
+  test("says which service and region each series is from, which the exporter does not", () => {
+    for (const job of jobs) {
+      expect(job.static_configs[0].labels.openstack_service).toBe(
+        job.params.include_services[0],
+      );
+      expect(job.relabel_configs).toEqual(
+        expect.arrayContaining([
+          expect.objectContaining({
+            source_labels: ["__param_cloud"],
+            target_label: "openstack_region",
+          }),
+        ]),
+      );
+    }
+    const statements = JSON.stringify(
+      config.processors["transform/openstack-identity"],
+    );
+    expect(statements).toContain('attributes[\\"openstack_region\\"]');
+    expect(statements).toContain("delete_key");
+  });
+
   test("stamps the cloud and never registers a phantom Service", () => {
     const attributes = config.processors.resource.attributes;
     expect(attributes).toEqual(
