@@ -1,7 +1,8 @@
 import "@testing-library/jest-dom";
 import React from "react";
 import { cleanup, render, screen, within } from "@testing-library/react";
-import { afterEach, describe, expect, test } from "@jest/globals";
+import { afterEach, beforeAll, describe, expect, test } from "@jest/globals";
+import { loadMarkdownEditor } from "../../../../UI/Components/Markdown.tsx/LazyMarkdownEditor";
 import BasicForm from "../../../../UI/Components/Forms/BasicForm";
 import FormField from "../../../../UI/Components/Forms/Fields/FormField";
 import Field from "../../../../UI/Components/Forms/Types/Field";
@@ -20,6 +21,10 @@ import { JSONObject } from "../../../../Types/JSON";
 interface TestEntity extends JSONObject {
   description?: string;
 }
+
+beforeAll(async () => {
+  await loadMarkdownEditor();
+});
 
 afterEach(() => {
   cleanup();

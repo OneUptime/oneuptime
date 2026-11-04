@@ -1,6 +1,11 @@
 import { afterEach, describe, expect, test } from "@jest/globals";
 import { act, cleanup, renderHook } from "@testing-library/react";
-import { LazyLibrary, useLazyLibrary } from "../../../UI/Utils/LazyLibrary";
+import {
+  LazyLibrary,
+  LazyLibraryLoad,
+  useLazyLibrary,
+  useLazyLibraryLoad,
+} from "../../../UI/Utils/LazyLibrary";
 
 /*
  * A library a page loads the first time something on it needs it, instead
@@ -244,5 +249,147 @@ describe("useLazyLibrary", () => {
     await load.arrive();
 
     expect(result.current).toBe(LIBRARY);
+  });
+});
+
+/*
+ * For a component that cannot draw without the library, and so must say when
+ * it cannot have it: a form's code editor, Markdown editor or file picker.
+ */
+describe("useLazyLibraryLoad", () => {
+  test("has no library and no error while the library loads, then the library", async () => {
+    const load: ControlledLoad = controlledLoad();
+
+    const { result } = renderHook(() => {
+      return useLazyLibraryLoad(load.library, true);
+    });
+
+    expect(result.current).toEqual({ library: null, error: null });
+
+    await load.arrive();
+
+    expect(result.current).toEqual({ library: LIBRARY, error: null });
+  });
+
+  test("says why the library could not load", async () => {
+    const load: ControlledLoad = controlledLoad();
+
+    const { result } = renderHook(() => {
+      return useLazyLibraryLoad(load.library, true);
+    });
+
+    await load.fail();
+
+    expect(result.current.library).toBeNull();
+    expect(result.current.error).toEqual(
+      new Error("The file could not be fetched"),
+    );
+  });
+
+  test("says it as an error, whatever the load was refused with", async () => {
+    const library: LazyLibrary<Library> = new LazyLibrary<Library>(
+      (): Promise<Library> => {
+        return Promise.reject("The network went away");
+      },
+    );
+
+    const { result } = renderHook(() => {
+      return useLazyLibraryLoad(library, true);
+    });
+
+    await act(async () => {
+      await new Promise((resolve: (value: unknown) => void) => {
+        setTimeout(resolve, 0);
+      });
+    });
+
+    expect(result.current.error).toEqual(new Error("The network went away"));
+  });
+
+  test("loads nothing and says nothing while the component does not need it", async () => {
+    const load: ControlledLoad = controlledLoad();
+
+    const { result } = renderHook(() => {
+      return useLazyLibraryLoad(load.library, false);
+    });
+
+    expect(result.current).toEqual({ library: null, error: null });
+    expect(load.loads()).toBe(0);
+  });
+
+  test("a component drawn after a failed load starts over: it asks again and has no error", async () => {
+    const load: ControlledLoad = controlledLoad();
+
+    renderHook(() => {
+      return useLazyLibraryLoad(load.library, true);
+    });
+    await load.fail();
+
+    const { result } = renderHook(() => {
+      return useLazyLibraryLoad(load.library, true);
+    });
+
+    expect(load.loads()).toBe(2);
+    expect(result.current).toEqual({ library: null, error: null });
+
+    await load.arrive();
+
+    expect(result.current).toEqual({ library: LIBRARY, error: null });
+  });
+
+  test("a failure is forgotten when the component stops needing the library, and it asks again when it needs it again", async () => {
+    const load: ControlledLoad = controlledLoad();
+
+    const { result, rerender } = renderHook(
+      (props: { isNeeded: boolean }): LazyLibraryLoad<Library> => {
+        return useLazyLibraryLoad(load.library, props.isNeeded);
+      },
+      { initialProps: { isNeeded: true } },
+    );
+
+    await load.fail();
+
+    expect(result.current.error).not.toBeNull();
+
+    rerender({ isNeeded: false });
+
+    expect(result.current).toEqual({ library: null, error: null });
+
+    rerender({ isNeeded: true });
+
+    expect(result.current).toEqual({ library: null, error: null });
+    expect(load.loads()).toBe(2);
+
+    await load.arrive();
+
+    expect(result.current).toEqual({ library: LIBRARY, error: null });
+  });
+
+  test("a load that ends after the component has gone sets nothing", async () => {
+    const load: ControlledLoad = controlledLoad();
+
+    const { result, unmount } = renderHook(() => {
+      return useLazyLibraryLoad(load.library, true);
+    });
+
+    unmount();
+
+    await load.fail();
+
+    expect(result.current).toEqual({ library: null, error: null });
+  });
+
+  test("once it has loaded, it is the library from the first frame, with no error", async () => {
+    const load: ControlledLoad = controlledLoad();
+    const loading: Promise<Library> = load.library.load();
+    await load.arrive();
+    await loading;
+
+    const { result } = renderHook(() => {
+      return useLazyLibraryLoad(load.library, true);
+    });
+
+    expect(result.current).toEqual({ library: LIBRARY, error: null });
+    expect(load.loads()).toBe(1);
   });
 });
