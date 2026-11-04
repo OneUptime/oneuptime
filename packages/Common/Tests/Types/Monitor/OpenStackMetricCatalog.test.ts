@@ -75,8 +75,14 @@ const DOCS: string = readRepoFile(
   "openstack-monitor.md",
 );
 
+// The agent's exporter only: the compose file also starts one with most reads turned off.
+const AGENT_EXPORTER: string = COMPOSE.slice(
+  COMPOSE.indexOf("\n  openstack-exporter:\n"),
+  COMPOSE.indexOf("\n  openstack-database-exporter:\n"),
+);
+
 const DISABLED_METRICS: Array<string> = Array.from(
-  COMPOSE.matchAll(/^\s*- --disable-metric=(\S+)\s*$/gm),
+  AGENT_EXPORTER.matchAll(/^\s*- --disable-metric=(\S+)\s*$/gm),
 ).map((match: RegExpMatchArray): string => {
   return match[1]!;
 });

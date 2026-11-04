@@ -2322,9 +2322,14 @@ describe("the exporter", () => {
     });
     await cloud.close();
 
-    expect(run.output).toContain("The exporter's log shows:");
-    expect(run.output).toContain("Authentication failed: 401 Unauthorized");
-    expect(run.output).not.toContain("No suitable endpoint");
+    // The stub answers every container's log with this file, so only section 2 is the exporter's.
+    const section = run.output.slice(
+      run.output.indexOf("── 2."),
+      run.output.indexOf("── 3."),
+    );
+    expect(section).toContain("The exporter's log shows:");
+    expect(section).toContain("Authentication failed: 401 Unauthorized");
+    expect(section).not.toContain("No suitable endpoint");
   });
 
   test("an exporter that cannot be reached says so", async () => {

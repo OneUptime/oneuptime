@@ -88,8 +88,8 @@ const AGENT_FILES: Array<AgentFilesPin> = [
     kind: AgentKind.OpenStackAgent,
     directory: "OpenStackAgent",
     files: ["docker-compose.yml", "otel-collector-config.yaml"],
-    version: "0.161.0",
-    digest: "ed84f492b2559e99faf9bf37baec160b8f3274dbb8146a5c3a80f754305e6777",
+    version: "0.161.2",
+    digest: "2ddf080eab841ee6620f6aedbc0130e1827162626a712549fb712dea31369532",
   },
   {
     kind: AgentKind.CephAgent,
