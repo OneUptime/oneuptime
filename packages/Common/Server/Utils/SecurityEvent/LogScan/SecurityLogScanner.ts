@@ -32,6 +32,10 @@ import SecurityRequestTrace from "../RequestTrace/SecurityRequestTrace";
 import SecurityEventStoreOnce, {
   SharedRecordGroup,
 } from "../SecurityEventStoreOnce";
+import SecurityLogCases, {
+  LOG_THREATS_PER_SCAN_LIMIT,
+  SecurityLogThreatsResult,
+} from "../../SecurityCase/SecurityLogCases";
 
 /*
  * "Your logs" (SecurityLogSource): every minute, for each project that
@@ -62,6 +66,11 @@ import SecurityEventStoreOnce, {
  * span and session - followed into the trace before the event is stored
  * (RequestTrace/SecurityRequestTrace.ts), so it is stored knowing what the
  * app answered and how far an attack got.
+ *
+ * A threat a security product wrote in the logs - a firewall's or an
+ * IDS's, in CEF, LEEF or its vendor's own syslog - opens a case as a
+ * connected product's alert does, from Your logs' Open Cases From Severity
+ * (SecurityCase/SecurityLogCases.ts).
  *
  * A record another way brings in too - a Microsoft Entra ID sign-in its
  * connection reads, a cloud audit record a connected cloud account's
@@ -111,6 +120,8 @@ export interface SecurityLogScanResult {
    */
   lastFoundAtByFormat: Record<string, string>;
   windows: number;
+  // Cases the threats security products wrote in the logs opened.
+  casesOpened: number;
   /*
    * The scan had fallen too far behind and skipped ahead: the logs that
    * arrived between skippedFrom and skippedTo were not read.
@@ -196,6 +207,7 @@ export default class SecurityLogScanner {
           projectId: true,
           cursor: true,
           lastScanResult: true,
+          caseMinimumSeverity: true,
         },
         sort: { _id: SortOrder.Ascending },
         props: { isRoot: true },
@@ -305,6 +317,7 @@ export default class SecurityLogScanner {
       byFormat: {},
       lastFoundAtByFormat,
       windows: 0,
+      casesOpened: 0,
       skippedBacklog: Boolean(skippedFrom),
       skippedFrom,
       skippedTo,
@@ -317,6 +330,8 @@ export default class SecurityLogScanner {
     let serviceMetadata: TelemetryServiceMetadata | null = null;
     let lastEventFoundAt: Date | null = null;
     let stopped: boolean = false;
+    // What is left of this scan's threats the case queue takes.
+    let threatDetectionsLeft: number = LOG_THREATS_PER_SCAN_LIMIT;
 
     while (OneUptimeDate.isBefore(cursor, until)) {
       const windowEnd: Date = OneUptimeDate.isBefore(
@@ -397,12 +412,13 @@ export default class SecurityLogScanner {
               projectId,
             }));
 
-          const stored: Array<NormalizedSecurityEvent> =
-            await this.storeEvents({
+          const stored: Array<NormalizedSecurityEvent> = await this.storeEvents(
+            {
               projectId,
               events,
               serviceMetadata,
-            });
+            },
+          );
 
           for (const event of stored) {
             const format: string = String(
@@ -416,6 +432,18 @@ export default class SecurityLogScanner {
 
           if (stored.length > 0) {
             lastEventFoundAt = now;
+
+            // What a security product found opens a case, as its alert through a connection does.
+            const threats: SecurityLogThreatsResult =
+              await SecurityLogCases.recordThreats({
+                projectId,
+                caseMinimumSeverity: source.caseMinimumSeverity,
+                events: stored,
+                limit: threatDetectionsLeft,
+              });
+
+            threatDetectionsLeft -= threats.detections;
+            result.casesOpened += threats.casesOpened;
           }
         }
 
@@ -534,7 +562,10 @@ export default class SecurityLogScanner {
 
             // Seen by the next way to look, before the lock is released.
             await SecurityEventService.insertJsonRows(groupRows, {
-              clickhouseSettings: { async_insert: 0, insert_distributed_sync: 1 },
+              clickhouseSettings: {
+                async_insert: 0,
+                insert_distributed_sync: 1,
+              },
             });
             rows.push(...groupRows);
           },

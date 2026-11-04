@@ -43,6 +43,17 @@ import {
   SUDO_LINES,
   WEB_LINES,
 } from "../../../../Utils/SecurityEvent/LogParsers/LogParserFixtures";
+import {
+  FORTIGATE_LINES,
+  PAN_LINES,
+} from "../../../../Utils/SecurityEvent/LogParsers/FirewallFixtures";
+import SecurityCaseIngest, {
+  SecurityDetectionSignal,
+} from "../../../../../Server/Utils/SecurityCase/SecurityCaseIngest";
+import { LOG_THREATS_PER_SCAN_LIMIT } from "../../../../../Server/Utils/SecurityCase/SecurityLogCases";
+import SecurityEntityRiskRecorder from "../../../../../Server/Utils/SecurityEvent/EntityRisk/SecurityEntityRiskRecorder";
+import { SecurityRiskFinding } from "../../../../../Server/Utils/SecurityEvent/EntityRisk/SecurityEntityRiskFindings";
+import SecurityDetectionSource from "../../../../../Types/SecurityCase/SecurityDetectionSource";
 
 const NOW: Date = new Date("2026-10-19T12:00:00.000Z");
 const UNTIL: Date = new Date(NOW.getTime() - LOG_SCAN_SETTLE_IN_SECONDS * 1000);
@@ -785,12 +796,16 @@ describe("SecurityLogScanner.scanProject", () => {
     expect(installed.updates[0]!["lastError"]).toBe("Log table unreachable");
     expect(findAll).toHaveBeenCalledWith({
       query: { projectId: PROJECT_ID, isEnabled: true },
-      // The cursor, and where the last scan stopped within its window.
+      /*
+       * The cursor, where the last scan stopped within its window, and which
+       * threats open cases.
+       */
       select: {
         _id: true,
         projectId: true,
         cursor: true,
         lastScanResult: true,
+        caseMinimumSeverity: true,
       },
       sort: { _id: SortOrder.Ascending },
       props: { isRoot: true },
@@ -964,5 +979,148 @@ describe("SecurityLogScanner.scanSource - when each kind was last found", () => 
     expect(result.byFormat).toEqual({ [SecurityLogFormat.WindowsEvents]: 1 });
     expect(installed.inserted[0]!["className"]).toBe("Authentication");
     expect(installed.inserted[0]!["productName"]).toBe("Windows");
+  });
+});
+
+/*
+ * A threat a security product wrote in the logs opens a case, as its alert
+ * through a connection does (SecurityCase/SecurityLogCases.ts): the scan
+ * hands the events it stored, with Your logs' Open Cases From Severity, and
+ * keeps one limit for the whole scan, however many pages it reads.
+ */
+describe("SecurityLogScanner.scanSource - threats open cases", () => {
+  let signals: Array<SecurityDetectionSignal>;
+  let risks: Array<SecurityRiskFinding>;
+  let ingestCalls: number;
+
+  function installCases(): void {
+    signals = [];
+    risks = [];
+    ingestCalls = 0;
+
+    jest
+      .spyOn(SecurityCaseIngest, "recordDetections")
+      .mockImplementation(async (sent: Array<SecurityDetectionSignal>) => {
+        ingestCalls++;
+        signals.push(...sent);
+        return {
+          casesOpened: 1,
+          detectionsAdded: sent.length,
+          detectionsRepeated: 0,
+        };
+      });
+    jest.spyOn(SecurityEntityRiskRecorder, "record").mockImplementation((async (
+      findings: Array<SecurityRiskFinding>,
+    ) => {
+      risks.push(...findings);
+      return { entitiesUpdated: findings.length, riskCasesRaised: 0 };
+    }) as never);
+  }
+
+  function withThreshold(
+    model: SecurityLogSource,
+    value: string | undefined,
+  ): SecurityLogSource {
+    if (value !== undefined) {
+      model.caseMinimumSeverity = value;
+    }
+
+    return model;
+  }
+
+  afterEach(() => {
+    jest.restoreAllMocks();
+  });
+
+  test("a firewall's threat at or above Open Cases From opens a case; its blocked connections and lower threats do not", async () => {
+    const startAt: Date = OneUptimeDate.addRemoveMinutes(NOW, -3);
+    install([
+      ...logs(1, startAt, 20, PAN_LINES.threatVulnerability),
+      ...logs(1, startAt, 30, PAN_LINES.trafficDeny),
+      ...logs(1, startAt, 40, FORTIGATE_LINES.virus),
+      ...logs(1, startAt, 50, SSH_LINES.failedPasswordInvalidUser),
+    ]);
+    installCases();
+
+    const result: SecurityLogScanResult = await SecurityLogScanner.scanSource(
+      withThreshold(source(startAt.toISOString()), "High"),
+    );
+
+    expect(result.eventsFound).toBe(4);
+    expect(signals).toHaveLength(1);
+    expect(signals[0]).toMatchObject({
+      projectId: PROJECT_ID,
+      source: SecurityDetectionSource.ConnectedProduct,
+      fingerprint: "logs:panos:012801000000:THREAT:7000001234",
+      title: "Apache Log4j Remote Code Execution Vulnerability — 203.0.113.7",
+      severity: "Critical",
+    });
+    // Both threats add risk; the Medium one below the threshold too.
+    expect(risks).toHaveLength(2);
+    expect(result.casesOpened).toBe(1);
+  });
+
+  test("Never - an empty threshold - opens none, and a source read without it opens none either", async () => {
+    const startAt: Date = OneUptimeDate.addRemoveMinutes(NOW, -3);
+    install(logs(2, startAt, 20, PAN_LINES.threatVulnerability));
+    installCases();
+
+    const never: SecurityLogScanResult = await SecurityLogScanner.scanSource(
+      withThreshold(source(startAt.toISOString()), ""),
+    );
+    const unread: SecurityLogScanResult = await SecurityLogScanner.scanSource(
+      source(startAt.toISOString()),
+    );
+
+    expect(signals).toEqual([]);
+    expect(never.casesOpened).toBe(0);
+    expect(unread.casesOpened).toBe(0);
+    expect(never.eventsFound).toBe(2);
+  });
+
+  test("one limit for the whole scan, across its pages", async () => {
+    const startAt: Date = OneUptimeDate.addRemoveMinutes(NOW, -3);
+    // Ten a second, from a second after the cursor: every one inside the window.
+    install(
+      logs(
+        LOG_SCAN_PAGE_SIZE + 300,
+        OneUptimeDate.addRemoveSeconds(startAt, 1),
+        0.1,
+        PAN_LINES.threatSpyware,
+      ),
+    );
+    installCases();
+
+    const result: SecurityLogScanResult = await SecurityLogScanner.scanSource(
+      withThreshold(source(startAt.toISOString()), "High"),
+    );
+
+    expect(result.eventsFound).toBe(LOG_SCAN_PAGE_SIZE + 300);
+    expect(signals).toHaveLength(LOG_THREATS_PER_SCAN_LIMIT);
+    // The first page sent the limit; the second sent nothing more.
+    expect(ingestCalls).toBe(1);
+    expect(result.casesOpened).toBe(1);
+  });
+
+  test("cases that cannot be opened never fail the scan or hold its cursor back", async () => {
+    const startAt: Date = OneUptimeDate.addRemoveMinutes(NOW, -3);
+    const installed: Installed = install(
+      logs(1, startAt, 20, PAN_LINES.threatVulnerability),
+    );
+    jest
+      .spyOn(SecurityCaseIngest, "recordDetections")
+      .mockRejectedValue(new Error("queue unavailable"));
+    jest
+      .spyOn(SecurityEntityRiskRecorder, "record")
+      .mockResolvedValue({ entitiesUpdated: 0, riskCasesRaised: 0 } as never);
+
+    const result: SecurityLogScanResult = await SecurityLogScanner.scanSource(
+      withThreshold(source(startAt.toISOString()), "High"),
+    );
+
+    expect(result.eventsFound).toBe(1);
+    expect(result.casesOpened).toBe(0);
+    expect(installed.updates[0]!["cursor"]).toBe(UNTIL.toISOString());
+    expect(installed.updates[0]!["lastError"]).toBeNull();
   });
 });

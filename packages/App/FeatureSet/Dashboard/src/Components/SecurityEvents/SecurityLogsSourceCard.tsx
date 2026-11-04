@@ -3,6 +3,7 @@ import {
   SECURITY_LOG_FORMAT_TEXTS,
 } from "./SecurityConnectionsCopy";
 import SecurityLogLineCheck from "./SecurityLogLineCheck";
+import SecurityLogsCaseSeverity from "./SecurityLogsCaseSeverity";
 import SecurityLogSource from "Common/Models/DatabaseModels/SecurityLogSource";
 import OneUptimeDate from "Common/Types/Date";
 import IconProp from "Common/Types/Icon/IconProp";
@@ -171,6 +172,7 @@ export const readProjectSecurityLogSource: () => Promise<SecurityLogSource | nul
         lastEventFoundAt: true,
         lastScanResult: true,
         lastError: true,
+        caseMinimumSeverity: true,
       },
       sort: {},
     });
@@ -238,7 +240,9 @@ export const getYourLogsStatusLines: (data: {
  * security event - nothing to install, nothing to send twice
  * (Server/Utils/SecurityEvent/LogScan/SecurityLogScanner.ts). The kinds are
  * listed by where they come from, each with what the checks last found of
- * it, and a line can be checked by hand before any arrives.
+ * it, and a line can be checked by hand before any arrives. While it is on,
+ * "Open cases from" says which threats security products write in the logs
+ * open a case (SecurityLogsCaseSeverity).
  *
  * The switch saves when it is flipped. The project has no record until the
  * first time it is turned on, so the first flip creates it; whoever may not
@@ -490,6 +494,16 @@ const SecurityLogsSourceCard: FunctionComponent = (): ReactElement => {
               },
             )}
           </p>
+        ) : (
+          <></>
+        )}
+
+        {isOn && source?.id ? (
+          <SecurityLogsCaseSeverity
+            key={source.id.toString()}
+            sourceId={source.id}
+            initialValue={source.caseMinimumSeverity}
+          />
         ) : (
           <></>
         )}

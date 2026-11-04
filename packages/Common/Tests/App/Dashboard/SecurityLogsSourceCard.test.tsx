@@ -25,6 +25,12 @@ import SecurityLogsSourceCard, {
   readFoundByFormat,
   readScanProgress,
 } from "../../../../App/FeatureSet/Dashboard/src/Components/SecurityEvents/SecurityLogsSourceCard";
+import {
+  SECURITY_LOGS_CASE_SEVERITY_TEST_ID,
+  getYourLogsCaseSeverityChoice,
+  getYourLogsCaseSeverityOptions,
+  getYourLogsCaseSeverityWrite,
+} from "../../../../App/FeatureSet/Dashboard/src/Components/SecurityEvents/SecurityLogsCaseSeverity";
 import SecurityLogSource from "../../../Models/DatabaseModels/SecurityLogSource";
 import HTTPResponse from "../../../Types/API/HTTPResponse";
 import OneUptimeDate from "../../../Types/Date";
@@ -626,5 +632,253 @@ describe("readScanProgress", () => {
         skippedTo: "2026-10-18T12:00:00.000Z",
       }).skipped,
     ).toBeNull();
+  });
+});
+
+/*
+ * "Open cases from" on Your logs: which threats security products write in
+ * the logs open a case, as a connection's Open Cases From says for its
+ * alerts. Shown while Your logs is on; it saves the moment it is picked.
+ */
+describe("Your logs - Open cases from", () => {
+  function row(): HTMLElement {
+    return screen.getByTestId(`${SECURITY_LOGS_CASE_SEVERITY_TEST_ID}-row`);
+  }
+
+  function box(): HTMLElement {
+    return within(row()).getByRole("combobox", { hidden: true });
+  }
+
+  function shown(): string {
+    return row().querySelector(".ou-select__single-value")?.textContent || "";
+  }
+
+  function offered(): Array<string> {
+    fireEvent.keyDown(box(), { key: "ArrowDown", code: "ArrowDown" });
+
+    const labels: Array<string> = screen
+      .queryAllByRole("option")
+      .map((option: HTMLElement): string => {
+        return (option.textContent || "").trim();
+      });
+
+    fireEvent.keyDown(box(), { key: "Escape", code: "Escape" });
+
+    return labels;
+  }
+
+  async function pick(label: string): Promise<void> {
+    fireEvent.keyDown(box(), { key: "ArrowDown", code: "ArrowDown" });
+
+    const option: HTMLElement = screen.getByRole("option", { name: label });
+
+    await act(async () => {
+      fireEvent.mouseDown(option);
+      fireEvent.click(option);
+    });
+  }
+
+  function writes(): Array<unknown> {
+    return (ModelAPI.updateById as unknown as jest.Mock).mock.calls.map(
+      (call: Array<unknown>): unknown => {
+        return (call[0] as { data: unknown }).data;
+      },
+    );
+  }
+
+  test("off, or never turned on, it is not shown: there is nothing to open cases from", async () => {
+    await renderCard();
+
+    expect(
+      screen.queryByTestId(`${SECURITY_LOGS_CASE_SEVERITY_TEST_ID}-row`),
+    ).toBeNull();
+
+    cleanup();
+    stored = [source({ isEnabled: false, caseMinimumSeverity: "High" })];
+    await renderCard();
+
+    expect(
+      screen.queryByTestId(`${SECURITY_LOGS_CASE_SEVERITY_TEST_ID}-row`),
+    ).toBeNull();
+  });
+
+  test("on: it shows what Your logs has, named for the reader, with what it does", async () => {
+    stored = [source({ caseMinimumSeverity: "High" })];
+    await renderCard();
+
+    expect(
+      screen.getByRole("combobox", { name: "Open cases from" }),
+    ).toBeInTheDocument();
+    expect(shown()).toBe("High and above");
+    expect(offered()).toEqual([
+      "Critical only",
+      "High and above",
+      "Medium and above",
+      "Low and above",
+      "Never - keep them as events only",
+    ]);
+    expect(
+      screen.getByTestId(`${SECURITY_LOGS_CASE_SEVERITY_TEST_ID}-description`),
+    ).toHaveTextContent(
+      "Threats your firewalls and security products write in your logs - in CEF, LEEF, or Palo Alto Networks, FortiGate and Cisco ASA syslog - open security cases from this severity, grouped by user, host or address.",
+    );
+    // The card reads the threshold with the rest of Your logs.
+    expect(
+      (
+        (ModelAPI.getList as unknown as jest.Mock).mock.calls[0]![0] as {
+          select: Record<string, boolean>;
+        }
+      ).select["caseMinimumSeverity"],
+    ).toBe(true);
+  });
+
+  test("an empty threshold is Never; Critical is Critical only", async () => {
+    stored = [source({ caseMinimumSeverity: "" })];
+    await renderCard();
+
+    expect(shown()).toBe("Never - keep them as events only");
+
+    cleanup();
+    stored = [source({ caseMinimumSeverity: "Critical" })];
+    await renderCard();
+
+    expect(shown()).toBe("Critical only");
+  });
+
+  test("picking a severity saves that column alone, at once, and says Saved", async () => {
+    stored = [source({ caseMinimumSeverity: "High" })];
+    await renderCard();
+
+    await pick("Medium and above");
+
+    await waitFor(() => {
+      expect(
+        screen.getByTestId(`${SECURITY_LOGS_CASE_SEVERITY_TEST_ID}-status`),
+      ).toHaveTextContent("Saved");
+    });
+    expect(writes()).toEqual([{ caseMinimumSeverity: "Medium" }]);
+    expect(
+      (
+        (ModelAPI.updateById as unknown as jest.Mock).mock.calls[0]![0] as {
+          id: ObjectID;
+        }
+      ).id.toString(),
+    ).toBe(SOURCE_ID.toString());
+    expect(shown()).toBe("Medium and above");
+  });
+
+  test("Never saves the empty value: the threats stay events", async () => {
+    stored = [source({ caseMinimumSeverity: "High" })];
+    await renderCard();
+
+    await pick("Never - keep them as events only");
+
+    await waitFor(() => {
+      expect(writes()).toEqual([{ caseMinimumSeverity: "" }]);
+    });
+  });
+
+  test("a pick the server refuses goes back to what Your logs has, with the reason", async () => {
+    stored = [source({ caseMinimumSeverity: "High" })];
+    await renderCard();
+    jest
+      .spyOn(ModelAPI, "updateById")
+      .mockRejectedValue(new Error("You need Security Admin to change this."));
+
+    await pick("Low and above");
+
+    expect(
+      await screen.findByTestId(`${SECURITY_LOGS_CASE_SEVERITY_TEST_ID}-error`),
+    ).toHaveTextContent("You need Security Admin to change this.");
+    expect(shown()).toBe("High and above");
+  });
+
+  test("whoever may not change it sees it locked, still showing the value, and nothing is saved", async () => {
+    stored = [source({ caseMinimumSeverity: "High" })];
+    jest.spyOn(PermissionGate, "check").mockReturnValue({
+      isAllowed: false,
+      disabledReason: "You need Security Admin to change this.",
+    });
+    await act(async () => {
+      render(<SecurityLogsSourceCard />);
+    });
+    await waitFor(() => {
+      expect(
+        screen.getByTestId(`${SECURITY_LOGS_CASE_SEVERITY_TEST_ID}-row`),
+      ).toBeInTheDocument();
+    });
+
+    expect(box()).toBeDisabled();
+    expect(shown()).toBe("High and above");
+    expect(offered()).toEqual([]);
+    expect(
+      screen.getAllByText("You need Security Admin to change this.").length,
+    ).toBeGreaterThan(0);
+    expect(ModelAPI.updateById).not.toHaveBeenCalled();
+  });
+
+  test("turned on for the first time, it shows the High the new record starts with", async () => {
+    jest
+      .spyOn(ModelAPI, "create")
+      .mockImplementation(async (data: { model: unknown }) => {
+        const created: SecurityLogSource = data.model as SecurityLogSource;
+        // The column's default, as Postgres writes it.
+        stored = [
+          source({
+            isEnabled: created.isEnabled === true,
+            caseMinimumSeverity: "High",
+          }),
+        ];
+        return new HTTPResponse(200, {}, {}) as never;
+      });
+    await renderCard();
+
+    expect(
+      screen.queryByTestId(`${SECURITY_LOGS_CASE_SEVERITY_TEST_ID}-row`),
+    ).toBeNull();
+
+    await flip();
+
+    await waitFor(() => {
+      expect(shown()).toBe("High and above");
+    });
+    // The switch's create sends no threshold of its own.
+    expect(
+      (
+        (ModelAPI.create as unknown as jest.Mock).mock.calls[0]![0] as {
+          model: SecurityLogSource;
+        }
+      ).model.caseMinimumSeverity,
+    ).toBeUndefined();
+  });
+});
+
+describe("Your logs - Open cases from, as read and written", () => {
+  test("the stored value is the choice; empty is Never, and Never writes empty", () => {
+    expect(getYourLogsCaseSeverityChoice("High")).toBe("High");
+    expect(getYourLogsCaseSeverityChoice("")).toBe("Never");
+    expect(getYourLogsCaseSeverityChoice(null)).toBe("Never");
+    expect(getYourLogsCaseSeverityChoice(undefined)).toBe("Never");
+    expect(getYourLogsCaseSeverityChoice("  ")).toBe("Never");
+    expect(getYourLogsCaseSeverityWrite("Never")).toBe("");
+    expect(getYourLogsCaseSeverityWrite("Low")).toBe("Low");
+  });
+
+  test("a value written through the API stays offered, as it is, while Your logs has it", () => {
+    expect(
+      getYourLogsCaseSeverityOptions("Informational").map(
+        (option: { label: string; isUserContent?: boolean | undefined }) => {
+          return [option.label, Boolean(option.isUserContent)];
+        },
+      ),
+    ).toEqual([
+      ["Critical only", false],
+      ["High and above", false],
+      ["Medium and above", false],
+      ["Low and above", false],
+      ["Never - keep them as events only", false],
+      ["Informational", true],
+    ]);
+    expect(getYourLogsCaseSeverityOptions("High")).toHaveLength(5);
   });
 });

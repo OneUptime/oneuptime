@@ -9,6 +9,7 @@ import CiscoAsaLogParser, {
   CiscoAsaKind,
   readAsaEndpoint,
   readCiscoAsaMessage,
+  readThreatDetectionName,
 } from "../../../../Utils/SecurityEvent/LogParsers/CiscoAsaLogParser";
 import SecurityLogParser, {
   matchesSecurityLogPrefilter,
@@ -213,6 +214,77 @@ describe("CiscoAsaLogParser - what becomes a security event", () => {
     );
   });
 
+  test("a threat-detection finding is named the same whichever host it is about", () => {
+    const rest: string =
+      "Current burst rate is 200 per second, max configured rate is 100; Current average rate is 120 per second, max configured rate is 80; Cumulative total count is 72000";
+
+    // An address's dots are no sentence's end: the name never stops at "Host 203".
+    expect(only(ASA_LINES.attackingHost)).toMatchObject({
+      ruleName: "Threat detection: host is attacking",
+      principalIp: "203.0.113.7",
+      targetIp: "",
+      message: "Threat detection: host is attacking from 203.0.113.7",
+    });
+    expect(
+      only(`%ASA-4-733101: Host 198.51.100.9 is attacking. ${rest}`).ruleName,
+    ).toBe(only(ASA_LINES.attackingHost).ruleName);
+
+    // A host that is targeted is the target, not the attacker.
+    expect(
+      only(`%ASA-4-733101: Host 192.0.2.5 is targeted. ${rest}`),
+    ).toMatchObject({
+      ruleName: "Threat detection: host is targeted",
+      principalIp: "",
+      targetIp: "192.0.2.5",
+      message: "Threat detection: host is targeted to 192.0.2.5",
+    });
+    expect(
+      only(`%ASA-4-733101: Subnet 203.0.113.0 is attacking. ${rest}`),
+    ).toMatchObject({
+      ruleName: "Threat detection: subnet is attacking",
+      principalIp: "203.0.113.0",
+    });
+
+    expect(only(ASA_LINES.shunned)).toMatchObject({
+      ruleName: "Threat detection: host added to the shun list",
+      principalIp: "203.0.113.7",
+      targetIp: "",
+    });
+
+    expect(
+      only(
+        "%ASA-4-733104: TCP Intercept SYN flood attack detected to 192.0.2.10/80 (real 10.0.0.10/80). Average rate of 400 SYNs/sec exceeded the threshold of 300.",
+      ),
+    ).toMatchObject({
+      className: "Detection Finding",
+      ruleName:
+        "Threat detection: TCP Intercept SYN flood, average rate exceeded",
+      targetIp: "192.0.2.10",
+      targetPort: 80,
+    });
+    expect(
+      only(
+        "%ASA-4-733105: TCP Intercept SYN flood attack detected to 192.0.2.11/443 (real 10.0.0.11/443). Burst rate of 250 SYNs/sec exceeded the threshold of 200.",
+      ),
+    ).toMatchObject({
+      ruleName:
+        "Threat detection: TCP Intercept SYN flood, burst rate exceeded",
+      targetIp: "192.0.2.11",
+      targetPort: 443,
+    });
+
+    // The scanning category is the first sentence, as the ASA writes it.
+    expect(
+      readThreatDetectionName(
+        "733100",
+        "[ Port Scan] drop rate-2 exceeded. Current burst rate is 3 per second",
+      ),
+    ).toBe("Threat detection: [ Port Scan] drop rate-2 exceeded");
+    expect(
+      readThreatDetectionName("733100", "[ Scanning] drop rate-1 exceeded"),
+    ).toBe("Threat detection: [ Scanning] drop rate-1 exceeded");
+  });
+
   test("sign-ins, failed or not, with the user and address each message gives", () => {
     expect(only(ASA_LINES.aaaRejected)).toMatchObject({
       className: "Authentication",
@@ -241,7 +313,8 @@ describe("CiscoAsaLogParser - what becomes a security event", () => {
       statusName: "Failure",
       principalUser: "admin",
       principalIp: "203.0.113.7",
-      message: "Failed management sign-in for admin from 203.0.113.7 on the ASA",
+      message:
+        "Failed management sign-in for admin from 203.0.113.7 on the ASA",
     });
     expect(only(ASA_LINES.managementPermitted).statusName).toBe("Success");
     expect(only(ASA_LINES.userAuthFailed)).toMatchObject({

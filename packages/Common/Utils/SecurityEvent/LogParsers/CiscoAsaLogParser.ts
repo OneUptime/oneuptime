@@ -380,7 +380,8 @@ function afterLabel(text: string, label: string): string {
     .filter((index: number): boolean => {
       return index !== -1;
     });
-  const end: number = separators.length > 0 ? Math.min(...separators) : text.length;
+  const end: number =
+    separators.length > 0 ? Math.min(...separators) : text.length;
   const value: string = text.slice(start, end).trim();
 
   return value.length > MAX_TOKEN_LENGTH ? "" : value;
@@ -430,6 +431,31 @@ interface ConnectionParts {
 }
 
 const NO_ENDPOINT: AsaEndpoint = { interface: "", ip: "", port: 0 };
+
+/*
+ * A threat-detection message's name, the same whichever host it is about:
+ * its first sentence names an address ("Host 203.0.113.7 is attacking."),
+ * which would make every attacker a rule of its own, and an address's dots
+ * are no sentence's end.
+ */
+export function readThreatDetectionName(id: string, text: string): string {
+  switch (id) {
+    case "733101":
+      return `Threat detection: ${wordAt(text, 0).toLowerCase() === "subnet" ? "subnet" : "host"} ${text.indexOf(" is targeted") !== -1 ? "is targeted" : "is attacking"}`;
+    case "733102":
+      return "Threat detection: host added to the shun list";
+    case "733104":
+      return "Threat detection: TCP Intercept SYN flood, average rate exceeded";
+    case "733105":
+      return "Threat detection: TCP Intercept SYN flood, burst rate exceeded";
+    default: {
+      // "[ Scanning] drop rate-1 exceeded. Current burst rate is ..."
+      const end: number = text.indexOf(". ");
+
+      return `Threat detection: ${cutText(end === -1 ? text : text.slice(0, end), 120)}`;
+    }
+  }
+}
 
 // Who and where of a denied connection, as each message words it.
 function readConnection(message: CiscoAsaMessage): ConnectionParts {
@@ -557,7 +583,8 @@ export default class CiscoAsaLogParser {
       productName: message.productName,
       ruleId: message.id,
     };
-    const device: string = message.productName === CISCO_FTD_PRODUCT_NAME ? "FTD" : "ASA";
+    const device: string =
+      message.productName === CISCO_FTD_PRODUCT_NAME ? "FTD" : "ASA";
 
     switch (message.kind) {
       case CiscoAsaKind.Denied:
@@ -615,19 +642,29 @@ export default class CiscoAsaLogParser {
       case CiscoAsaKind.Finding: {
         const isBotnet: boolean = message.id.startsWith("338");
         const isIps: boolean = message.id.startsWith("4000");
-        const threatLevel: string = afterLabel(text, "threat-level: ").toLowerCase();
+        const threatLevel: string = afterLabel(
+          text,
+          "threat-level: ",
+        ).toLowerCase();
         const severity: OcsfSeverity =
           (isBotnet ? THREAT_LEVELS.get(threatLevel) : undefined) ||
           LEVEL_SEVERITIES[message.level] ||
           OcsfSeverity.Medium;
         const from: AsaEndpoint = readAsaEndpoint(wordAfter(text, " from "));
         const to: AsaEndpoint = readAsaEndpoint(wordAfter(text, " to "));
-        const attacker: string = readRemoteIpAddress(
-          from.ip ||
-            wordAfter(text, "Host ") ||
+        // "Host 203.0.113.7 is attacking" names the attacker; "... is targeted", the target.
+        const isTargeted: boolean =
+          message.id === "733101" && text.indexOf(" is targeted") !== -1;
+        const named: string = readRemoteIpAddress(
+          wordAfter(text, "Host ") ||
+            wordAfter(text, "Subnet ") ||
             wordAfter(text, "adds host ") ||
             "",
         );
+        const attacker: string =
+          readRemoteIpAddress(from.ip) || (isTargeted ? "" : named);
+        const target: AsaEndpoint =
+          to.ip || !isTargeted ? to : { interface: "", ip: named, port: 0 };
         const name: string = isIps
           ? cutText(
               text.indexOf(" from ") > 0
@@ -637,7 +674,7 @@ export default class CiscoAsaLogParser {
             )
           : isBotnet
             ? `Botnet traffic filter: ${afterLabel(text, "category: ") || "blacklisted traffic"}`
-            : `Threat detection: ${cutText(text.split(".")[0] || text, 120)}`;
+            : readThreatDetectionName(message.id, text);
         const dropped: boolean =
           text.toLowerCase().indexOf("dropped") !== -1 ||
           text.toLowerCase().indexOf("shun") !== -1;
@@ -652,11 +689,11 @@ export default class CiscoAsaLogParser {
           activityName: "Create",
           statusName: dropped ? "Blocked" : "Detected",
           severity,
-          message: `${name}${attacker ? ` from ${attacker}` : ""}${to.ip ? ` to ${to.ip}${to.port ? `:${to.port}` : ""}` : ""}`,
+          message: `${name}${attacker ? ` from ${attacker}` : ""}${target.ip ? ` to ${target.ip}${target.port ? `:${target.port}` : ""}` : ""}`,
           ruleName: name,
           principalIp: attacker,
-          targetIp: to.ip,
-          targetPort: to.port,
+          targetIp: target.ip,
+          targetPort: target.port,
           attributes,
         });
       }
