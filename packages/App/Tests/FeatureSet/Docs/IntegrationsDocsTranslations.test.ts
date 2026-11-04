@@ -71,14 +71,15 @@ import { describe, expect, it } from "@jest/globals";
 /*
  * Docs overhaul task 28a: the Integrations Overview and the Zabbix, Jira,
  * PagerDuty, Opsgenie, ServiceNow and Microsoft Dynamics 365 pages, in
- * every docs language; and task 28b: the Prometheus Alertmanager, Grafana
- * and Datadog pages, and the Google SecOps, Microsoft Sentinel, Microsoft
- * Defender XDR and CrowdStrike Falcon connection pages; and task 28c: the
- * Splunk Enterprise Security, Elastic Security, AWS Security Hub and Okta
- * System Log connection pages, and the GitHub, GitLab, Discord and
+ * every docs language; and task 28b: the Prometheus Alertmanager, Grafana,
+ * Datadog and New Relic pages, and the Google SecOps, Microsoft Sentinel,
+ * Microsoft Defender XDR and CrowdStrike Falcon connection pages; and task
+ * 28c: the Splunk Enterprise Security, Elastic Security, AWS Security Hub and
+ * Okta System Log connection pages, and the GitHub, GitLab, Discord and
  * Telegram pages. IntegrationsDocsFacts, AlertingIntegrationsDocsFacts,
- * SecurityConnectionsDocsFacts, SplunkElasticAwsOktaDocsFacts and
- * IssueAndChatIntegrationsDocsFacts hold the English pages to the product;
+ * AlertingToolTemplateDocsFacts, SecurityConnectionsDocsFacts,
+ * SplunkElasticAwsOktaDocsFacts and IssueAndChatIntegrationsDocsFacts hold
+ * the English pages to the product;
  * this suite holds each translation to its English page:
  *
  *   - line for line: the same number of lines, each heading, table row,
@@ -137,6 +138,7 @@ const WIDEST_DIAGRAM_LINE: Record<string, number> = {
   "integrations/prometheus-alertmanager": 22,
   "integrations/grafana": 23,
   "integrations/datadog": 22,
+  "integrations/new-relic": 22,
   "integrations/google-secops": 23,
   "integrations/microsoft-sentinel": 22,
   "integrations/microsoft-defender-xdr": 22,
