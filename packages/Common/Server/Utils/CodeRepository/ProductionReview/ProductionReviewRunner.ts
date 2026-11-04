@@ -33,6 +33,7 @@ import ProductionReviewComposer, {
 } from "./ProductionReviewComposer";
 import { GitHubCheckRunWritten } from "../GitHub/GitHubCheckRuns";
 import { ChangedCode, readChangedCode } from "./ProductionReviewDiff";
+import ProductionReviewDataImpact from "./ProductionReviewDataImpact";
 import ProductionReviewFindings, {
   ProductionReviewFindingsResult,
 } from "./ProductionReviewFindings";
@@ -65,8 +66,10 @@ import {
   PRODUCTION_REVIEW_LIMITS,
   ProductionReviewAiNoteCode,
   ProductionReviewPosting,
+  ProductionReviewDataImpactJSON,
   ProductionReviewPointJSON,
   ProductionReviewReport,
+  ProductionReviewSection,
   ProductionReviewTrigger,
   ProductionReviewUtil,
 } from "../../../../Types/CodeRepository/ProductionReview";
@@ -386,6 +389,31 @@ export default class ProductionReviewRunner {
         now,
       });
 
+    /*
+     * The watched tables its migrations and dbt models change: read whether
+     * or not the repository serves a service, since a table is read by
+     * services of other repositories too.
+     */
+    let dataImpact: Array<ProductionReviewDataImpactJSON> = [];
+
+    try {
+      dataImpact = await ProductionReviewDataImpact.find({
+        projectId,
+        files,
+        serviceIds: scope.services.map(
+          (service: CodeAgentScopedService): string => {
+            return service.id;
+          },
+        ),
+        now,
+      });
+    } catch (error) {
+      logger.error(
+        `Production review: the data the pull request changes could not be read: ${error instanceof Error ? error.message : String(error)}`,
+      );
+      findings.unreadSections.push(ProductionReviewSection.Data);
+    }
+
     const report: ProductionReviewReport = {
       pullRequest: {
         number: pullRequestNumber,
@@ -414,6 +442,7 @@ export default class ProductionReviewRunner {
       ),
       codeFileCount: changed.codeFileCount,
       ...findings,
+      dataImpact,
       points: [],
       posting: ProductionReviewPosting.None,
     };

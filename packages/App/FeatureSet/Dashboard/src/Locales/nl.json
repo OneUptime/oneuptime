@@ -41854,5 +41854,20 @@
   "Write a Check from a Sentence": "Een controle schrijven vanuit een zin",
   "Write the Check": "Controle schrijven",
   "ClickHouse": "ClickHouse",
-  "Databricks": "Databricks"
+  "Databricks": "Databricks",
+  "Changes the dbt model that builds {{table}}": "Wijzigt het dbt-model dat {{table}} bouwt",
+  "Changes the type of column {{column}} of {{table}}": "Wijzigt het type van kolom {{column}} van {{table}}",
+  "Data products": "Dataproducten",
+  "Data this change touches": "Gegevens die deze wijziging raakt",
+  "Drops column {{column}} of {{table}}": "Verwijdert kolom {{column}} van {{table}}",
+  "Drops {{table}}": "Verwijdert {{table}}",
+  "In {{path}}": "In {{path}}",
+  "Names the column in {{count}} queries of the last day": "Noemt de kolom in {{count}} query's van de afgelopen dag",
+  "Nothing watched depends on it yet": "Nog niets bewaakts hangt ervan af",
+  "Reads and writes it": "Leest en schrijft hem",
+  "Reads it": "Leest hem",
+  "Renames column {{column}} of {{table}} to {{newName}}": "Hernoemt kolom {{column}} van {{table}} naar {{newName}}",
+  "Renames {{table}} to {{newName}}": "Hernoemt {{table}} naar {{newName}}",
+  "Tables built from it": "Tabellen die eruit worden gebouwd",
+  "Writes it": "Schrijft hem"
 }
