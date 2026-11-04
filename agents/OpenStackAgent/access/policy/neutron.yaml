@@ -8,4 +8,6 @@
 "get_agent": "role:admin or role:oneuptime_monitoring"
 "get_network_ip_availability": "role:admin or role:oneuptime_monitoring"
 "get_l3-routers": "role:admin or role:oneuptime_monitoring"
+"get_l3-agents": "role:admin or role:oneuptime_monitoring"
 "get_dhcp-agents": "role:admin or role:oneuptime_monitoring"
+"get_dhcp-networks": "role:admin or role:oneuptime_monitoring"

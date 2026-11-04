@@ -5,8 +5,8 @@
 # OpenStack product is tested on what this estate makes a real cloud answer,
 # so it holds one of everything worth telling apart: instances running, shut
 # off and failed, volumes available, attached and in error, a network with a
-# router and floating IPs, two projects to own them, a host in two aggregates and
-# an image stuck on its way to being usable.
+# router and floating IPs, two projects to own them, a host in two aggregates, an
+# image stuck on its way to being usable and an instance booted from a volume.
 #
 # Idempotent enough to run twice on one cloud, because a step that fails
 # half-way on a CI runner is cheaper to run again than a DevStack is to
@@ -187,6 +187,23 @@ openstack subnet show ou-research-subnet >/dev/null 2>&1 \
 openstack server show ou-research-1 >/dev/null 2>&1 \
   || openstack server create --flavor ou.tiny --image "$IMAGE" --network ou-research-net ou-research-1 >/dev/null
 wait_for_server ou-research-1 ACTIVE ou-research
+
+log "An instance booted from a volume: Nova says it has no image at all"
+boot_from_volume() {
+  openstack volume show ou-boot-volume >/dev/null 2>&1 \
+    || openstack volume create --image "$IMAGE" --size 1 ou-boot-volume >/dev/null \
+    || return 1
+  wait_for_volume ou-boot-volume available ou-research || return 1
+  openstack server show ou-from-volume >/dev/null 2>&1 \
+    || openstack server create --flavor ou.tiny --volume ou-boot-volume --network ou-research-net \
+      ou-from-volume >/dev/null \
+    || return 1
+  wait_for_server ou-from-volume ACTIVE ou-research
+}
+# Worth having and not worth a run: an estate without it still records everything else.
+if OS_PROJECT_NAME=admin openstack volume service list >/dev/null 2>&1; then
+  boot_from_volume || echo "No instance booted from a volume on this cloud: leaving it out." >&2
+fi
 unset OS_PROJECT_NAME
 
 log "The estate"
