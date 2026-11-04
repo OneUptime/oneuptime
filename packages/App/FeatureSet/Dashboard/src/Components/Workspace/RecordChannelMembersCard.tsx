@@ -52,7 +52,7 @@ import RouteMap, { RouteUtil } from "../../Utils/RouteMap";
 import {
   ASK_TO_BE_ADDED,
   AddOutcomeSentence,
-  CHANNEL_STATE_TEXT,
+  ChannelProductText,
   ChannelViewerPrompt,
   PEOPLE_COUNT,
   RECORD_CHANNEL_TEXT,
@@ -61,9 +61,12 @@ import {
   canAddPeopleTo,
   getAddOutcomeSentences,
   getCardTitle,
+  getChannelIcon,
   getChannelLabel,
+  getChannelProductText,
+  getChannelStateText,
   getFoldedCount,
-  getLinksToChannelsOfCard,
+  getOpenChannelText,
   getPeopleInChannelUserIds,
   getPickNotices,
   getShownPeople,
@@ -81,12 +84,13 @@ import useRecordChannelMembers, {
  *
  * Shown on an incident's, alert's, episode's or scheduled maintenance
  * event's page when a workspace notification rule made it a channel of its
- * own (the page already knows: its Open in Slack button). For each channel:
- * its name, opening it; whether it is private; the people in it, the viewer
- * first; and, for somebody who may edit the record, Join channel and Add
- * people - the OneUptime app invites them, so a private channel everybody
- * left can be entered again without a Slack admin. A Microsoft Teams
- * channel says who can open it instead (RecordChannelMembers).
+ * own (the page already knows: its Open in Slack or Open in Mattermost
+ * button). For each channel: its name, opening it; whether it is private; the
+ * people in it, the viewer first; and, for somebody who may edit the record,
+ * Join channel and Add people - the OneUptime app or bot invites them, so a
+ * private channel everybody left can be entered again without an admin of the
+ * workspace. A Microsoft Teams channel says who can open it instead
+ * (RecordChannelMembers).
  */
 
 /*
@@ -211,7 +215,14 @@ const ChannelSection: FunctionComponent<ChannelSectionProps> = (
 ): ReactElement => {
   const translator: Translator = useTranslator();
   const channel: WorkspaceRecordChannel = props.channel;
-  const isSlack: boolean = channel.workspaceType === WorkspaceType.Slack;
+  const isTeams: boolean =
+    channel.workspaceType === WorkspaceType.MicrosoftTeams;
+  const isMattermost: boolean =
+    channel.workspaceType === WorkspaceType.Mattermost;
+  const productText: ChannelProductText = getChannelProductText(
+    channel.workspaceType,
+  );
+  const openChannelText: string = getOpenChannelText(channel.workspaceType);
 
   const [isUnfolded, setIsUnfolded] = useState<boolean>(false);
   const [isJoining, setIsJoining] = useState<boolean>(false);
@@ -313,6 +324,7 @@ const ChannelSection: FunctionComponent<ChannelSectionProps> = (
         userIds: [viewerUserId],
       });
       const sentences: Array<AddOutcomeSentence> = getAddOutcomeSentences({
+        workspaceType: channel.workspaceType,
         answer: answer,
         viewerUserId: viewerUserId,
       });
@@ -347,6 +359,7 @@ const ChannelSection: FunctionComponent<ChannelSectionProps> = (
     );
 
     return getPickNotices({
+      workspaceType: channel.workspaceType,
       answer: answer,
       viewerUserId: viewerUserId,
       teamName: isTeam ? option.name : undefined,
@@ -374,7 +387,7 @@ const ChannelSection: FunctionComponent<ChannelSectionProps> = (
     meta.push(
       translator.translateText(RECORD_CHANNEL_TEXT.privateChannel) || "",
     );
-  } else if (channel.isPrivate === false && isSlack) {
+  } else if (channel.isPrivate === false && !isTeams) {
     meta.push(
       translator.translateText(RECORD_CHANNEL_TEXT.publicChannel) || "",
     );
@@ -385,8 +398,10 @@ const ChannelSection: FunctionComponent<ChannelSectionProps> = (
     meta.push(translator.translatePlural(PEOPLE_COUNT, channel.peopleCount));
   }
 
-  const stateText: string | undefined =
-    CHANNEL_STATE_TEXT[channel.state as keyof typeof CHANNEL_STATE_TEXT];
+  const stateText: string | undefined = getChannelStateText(
+    channel.workspaceType,
+    channel.state,
+  );
 
   const teamsText: string =
     channel.isPrivate === true
@@ -399,21 +414,30 @@ const ChannelSection: FunctionComponent<ChannelSectionProps> = (
           : translator.translateText(RECORD_CHANNEL_TEXT.teamsTeamUnknown) || ""
         : translator.translateText(RECORD_CHANNEL_TEXT.teamsUnknown) || "";
 
+  // User Settings > Workspace, where somebody connects their own account.
   const connectRoute: Route = RouteUtil.populateRouteParams(
-    RouteMap[PageMap.USER_SETTINGS_SLACK_INTEGRATION] as Route,
+    RouteMap[
+      isMattermost
+        ? PageMap.USER_SETTINGS_MATTERMOST_INTEGRATION
+        : PageMap.USER_SETTINGS_SLACK_INTEGRATION
+    ] as Route,
   ).addQueryParams({
     [CONNECT_ACCOUNT_QUERY_PARAM]: CONNECT_ACCOUNT_QUERY_VALUE,
   });
 
-  // Project Settings > Workspace > Slack, where Slack is connected again.
-  const projectSlackRoute: Route = RouteUtil.populateRouteParams(
-    RouteMap[PageMap.SETTINGS_SLACK_INTEGRATION] as Route,
+  // Project Settings > Workspace, where the project is connected again.
+  const connectProjectRoute: Route = RouteUtil.populateRouteParams(
+    RouteMap[
+      isMattermost
+        ? PageMap.SETTINGS_MATTERMOST_INTEGRATION
+        : PageMap.SETTINGS_SLACK_INTEGRATION
+    ] as Route,
   );
 
-  // "... by typing /invite @OneUptime.", with the command shown as one.
+  // Slack's "... by typing /invite @OneUptime.", with the command shown as one.
   const unreachableHint: { before: string; command: string; after: string } =
     splitAtSlackInviteCommand(
-      translator.translateText(RECORD_CHANNEL_TEXT.unreachableHint) || "",
+      translator.translateText(productText.unreachableHint) || "",
     );
 
   return (
@@ -425,7 +449,7 @@ const ChannelSection: FunctionComponent<ChannelSectionProps> = (
       <div className="flex items-start gap-3">
         <span className="flex h-9 w-9 flex-shrink-0 items-center justify-center rounded-lg bg-gray-50 ring-1 ring-inset ring-gray-200">
           <Icon
-            icon={isSlack ? IconProp.Slack : IconProp.MicrosoftTeams}
+            icon={getChannelIcon(channel.workspaceType)}
             className="h-5 w-5"
           />
         </span>
@@ -436,11 +460,7 @@ const ChannelSection: FunctionComponent<ChannelSectionProps> = (
               target="_blank"
               rel="noopener noreferrer"
               data-testid="record-channel-name"
-              title={
-                translator.translateText(
-                  isSlack ? "Open in Slack" : "Open in Microsoft Teams",
-                ) || undefined
-              }
+              title={translator.translateText(openChannelText) || undefined}
               className="inline-flex max-w-full items-start gap-1 rounded text-sm font-semibold text-gray-900 hover:text-indigo-600 focus:outline-none focus-visible:ring-2 focus-visible:ring-indigo-500"
             >
               {/* A channel's name is long: it wraps rather than hide its end. */}
@@ -557,10 +577,11 @@ const ChannelSection: FunctionComponent<ChannelSectionProps> = (
           )}
           {channel.state === WorkspaceChannelState.NotConnected && (
             <div data-testid="record-channel-connect-project">
-              <Link to={projectSlackRoute} className={STATE_ACTION_CLASS_NAME}>
-                {translator.translateText(
-                  RECORD_CHANNEL_TEXT.connectProjectSlack,
-                )}
+              <Link
+                to={connectProjectRoute}
+                className={STATE_ACTION_CLASS_NAME}
+              >
+                {translator.translateText(productText.connectProject)}
               </Link>
             </div>
           )}
@@ -576,12 +597,12 @@ const ChannelSection: FunctionComponent<ChannelSectionProps> = (
         </p>
       )}
 
-      {prompt === ChannelViewerPrompt.JoinInSlack && (
+      {prompt === ChannelViewerPrompt.JoinInWorkspace && (
         <p
-          data-testid="record-channel-join-in-slack"
+          data-testid="record-channel-join-in-workspace"
           className="mt-3 text-sm text-gray-600"
         >
-          {translator.translateText(RECORD_CHANNEL_TEXT.publicJoinInSlack)}
+          {translator.translateText(productText.publicJoin)}
         </p>
       )}
 
@@ -590,12 +611,12 @@ const ChannelSection: FunctionComponent<ChannelSectionProps> = (
           data-testid="record-channel-connect"
           className="mt-3 text-sm text-gray-600"
         >
-          {translator.translateText(RECORD_CHANNEL_TEXT.notFound)}{" "}
+          {translator.translateText(productText.notFound)}{" "}
           <Link
             to={connectRoute}
             className="font-medium text-indigo-600 hover:text-indigo-700"
           >
-            {translator.translateText(RECORD_CHANNEL_TEXT.connectSlack)}
+            {translator.translateText(productText.connectAccount)}
           </Link>
         </p>
       )}
@@ -625,7 +646,7 @@ const ChannelSection: FunctionComponent<ChannelSectionProps> = (
                 }`}
               >
                 {sentenceOf(sentence)}
-                {!sentence.isProblem && isSlack && channel.url && (
+                {!sentence.isProblem && !isTeams && channel.url && (
                   <>
                     {" "}
                     <a
@@ -636,9 +657,7 @@ const ChannelSection: FunctionComponent<ChannelSectionProps> = (
                       data-testid="record-channel-open-after-join"
                       className="rounded font-medium text-indigo-600 hover:text-indigo-700 focus:outline-none focus-visible:ring-2 focus-visible:ring-indigo-500"
                     >
-                      {translator.translateText(
-                        RECORD_CHANNEL_TEXT.openInSlack,
-                      )}
+                      {translator.translateText(openChannelText)}
                     </a>
                   </>
                 )}
@@ -735,9 +754,7 @@ const RecordChannelMembersCard: FunctionComponent<ComponentProps> = (
   props: ComponentProps,
 ): ReactElement | null => {
   const translator: Translator = useTranslator();
-  const links: Array<WorkspaceChannelLink> = getLinksToChannelsOfCard(
-    props.links,
-  );
+  const links: Array<WorkspaceChannelLink> = props.links;
 
   // A new channel - created a moment after the record - is read again.
   const readKey: string = links
