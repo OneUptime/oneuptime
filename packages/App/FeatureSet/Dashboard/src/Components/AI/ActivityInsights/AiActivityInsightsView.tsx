@@ -1473,6 +1473,7 @@ function ActivityCard(props: {
   const trust: string | null = describeFindingsTrust(totals);
   const verification: string | null = describeFixVerification(
     insights.fixOutcomes,
+    translator,
   );
   const fixTaskOutcomes: AiActivityInsights["fixTaskOutcomes"] =
     insights.fixTaskOutcomes;

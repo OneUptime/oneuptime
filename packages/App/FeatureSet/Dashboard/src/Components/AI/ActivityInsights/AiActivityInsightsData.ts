@@ -29,11 +29,13 @@ import { Gray500, Red500, Yellow500 } from "Common/Types/BrandColors";
 import IconProp from "Common/Types/Icon/IconProp";
 import { JSONObject } from "Common/Types/JSON";
 import {
+  getGlobalTranslator,
   translatableTerm,
   translatePlural,
   translateTemplate,
   translateTerm,
   translationKey,
+  Translator,
 } from "Common/UI/Utils/TranslateTemplate";
 
 /*
@@ -2158,20 +2160,26 @@ export function getFixApprovalPlaces(
     );
 }
 
-// How applied fixes' verification went, or null when nothing was verified.
+/*
+ * How applied fixes' verification went, or null when nothing was verified:
+ * in the reader's language, its counts in the language's own digits, as
+ * Where fixes were approved under it writes its counts (a template does not
+ * format a number on its own).
+ */
 export function describeFixVerification(
   outcomes: AiActivityFixOutcomes,
+  translator: Translator = getGlobalTranslator(),
 ): string | null {
   if (outcomes.verified + outcomes.failed + outcomes.verifying <= 0) {
     return null;
   }
 
-  return translateTemplate(
+  return translator.translateTemplate(
     "Verification: {{verified}} resolved the problem, {{failed}} did not, {{verifying}} still being checked.",
     {
-      verified: outcomes.verified,
-      failed: outcomes.failed,
-      verifying: outcomes.verifying,
+      verified: translator.formatNumber(outcomes.verified),
+      failed: translator.formatNumber(outcomes.failed),
+      verifying: translator.formatNumber(outcomes.verifying),
     },
   );
 }

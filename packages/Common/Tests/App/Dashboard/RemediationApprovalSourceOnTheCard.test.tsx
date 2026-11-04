@@ -19,6 +19,7 @@ import AiActivityInsightsView from "../../../../App/FeatureSet/Dashboard/src/Com
 import {
   AI_INSIGHTS_FIX_APPROVAL_PLACES_TITLE,
   AiInsightsFixApprovalPlace,
+  describeFixVerification,
   getFixApprovalPlaces,
   parseAiActivityInsights,
 } from "../../../../App/FeatureSet/Dashboard/src/Components/AI/ActivityInsights/AiActivityInsightsData";
@@ -306,6 +307,42 @@ describe("AI Insights: where fixes were approved", () => {
       verification.compareDocumentPosition(places) &
         Node.DOCUMENT_POSITION_FOLLOWING,
     ).toBeTruthy();
+  });
+
+  /*
+   * The UI review: the verification line right over the places was English
+   * on every translated page, and wrote its counts in Latin digits under a
+   * list that writes them in the language's own.
+   */
+  test("the verification line over them reads in the reader's language, its counts in the language's digits", () => {
+    const fixes: AiActivityFixOutcomes = {
+      ...outcomes({ dashboard: 1, slack: 3, microsoftTeams: 2 }),
+      verified: 4,
+      failed: 1,
+      verifying: 1,
+    };
+    const persian: Translator = translatorFor("fa");
+    const line: string | null = describeFixVerification(fixes, persian);
+    const PERSIAN_DIGITS: RegExp = /[۰-۹]/;
+    const LATIN_DIGITS: RegExp = /[0-9]/;
+
+    expect(line).toBe(
+      persian.translateTemplate(
+        "Verification: {{verified}} resolved the problem, {{failed}} did not, {{verifying}} still being checked.",
+        { verified: "۴", failed: "۱", verifying: "۱" },
+      ),
+    );
+    expect(line).toMatch(PERSIAN_DIGITS);
+    expect(line).not.toMatch(LATIN_DIGITS);
+    expect(line).not.toContain("Verification");
+
+    // German says it in German; English reads as it always has.
+    expect(describeFixVerification(fixes, translatorFor("de"))).toBe(
+      "Verifizierung: 4 haben das Problem behoben, 1 nicht, 1 werden noch geprüft.",
+    );
+    expect(describeFixVerification(fixes, translatorFor("en"))).toBe(
+      "Verification: 4 resolved the problem, 1 did not, 1 still being checked.",
+    );
   });
 
   test("no list while every fix was approved on the card", () => {
