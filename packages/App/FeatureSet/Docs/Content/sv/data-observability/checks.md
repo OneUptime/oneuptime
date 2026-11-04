@@ -1,6 +1,6 @@
 # Kontroller och avstämningar
 
-Tabellhälsa visar om en tabell ändras. En **kontroll** visar om det den innehåller är rätt, en **avstämning** visar om två kopior av data stämmer överens, och **dbt:s tester** rapporterar om de tabeller som dbt bygger. Var och en körs där databasens insamling körs, av OneUptime eller av dess sond, och bara ett tal lämnar databasen, om inte ett egenhostat projekt väljer att spara ett maskerat urval av felaktiga rader.
+Tabellhälsa visar om en tabell ändras. En **kontroll** visar om det den innehåller är rätt, en **avstämning** visar om två kopior av data stämmer överens, och **dbt:s tester** rapporterar om de tabeller som dbt bygger. Var och en körs där databasens insamling körs, av OneUptime eller av dess sond, och bara ett tal lämnar databasen, om inte ett projekt väljer att spara ett maskerat urval av felaktiga rader.
 
 ## Kontroller
 
@@ -52,7 +52,9 @@ En kontroll konkurrerar med din applikation om databasen, och i ett datavaruhus 
 
 ## Felaktiga rader
 
-Ett tal säger att något är fel; några rader säger vad. I ett egenhostat OneUptime sparar **Spara felaktiga rader** under **Inställningar** upp till 20 av de rader som en kontroll av typen Failing Rows, Invalid Percent, Format Mismatch Percent eller Orphan Count hittade, och **Rader som misslyckas** på kontrollen visar dem. Känsliga kolumner maskeras där raden läses, utifrån vad Datasäkerhet hittade i dem eller deras namn, så det som lämnar databasen, eller en sond, är redan maskerat. OneUptime Cloud sparar inga.
+Ett tal säger att något är fel; några rader säger vad. **Spara felaktiga rader** under **Inställningar** sparar upp till 20 av de rader som en kontroll av typen Failing Rows, Invalid Percent, Format Mismatch Percent eller Orphan Count hittade, och **Rader som misslyckas** på kontrollen visar dem. Inställningen är av tills du slår på den. Känsliga kolumner maskeras där raden läses, utifrån vad Datasäkerhet hittade i dem eller deras namn, så det som lämnar databasen, eller en sond, är redan maskerat. En känslig kolumn som ingen skanning har hittat och vars namn inte avslöjar den sparas som den är.
+
+Raderna lagras i OneUptime: på OneUptimes servrar med OneUptime Cloud och på dina egna med en egenhostad installation. Alla som kan läsa projektets kontroller kan se dem. En kontroll sparar bara raderna från sin senaste körning, och när du stänger av **Spara felaktiga rader** raderas det som varje kontroll har sparat.
 
 ## Kontroller i en fil
 

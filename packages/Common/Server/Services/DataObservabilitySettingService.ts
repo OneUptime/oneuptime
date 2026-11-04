@@ -1,9 +1,10 @@
-import { IsBillingEnabled } from "../EnvironmentConfig";
+import DataCheckService from "./DataCheckService";
 import ProjectReferencesService from "./ProjectReferencesService";
 import Model from "../../Models/DatabaseModels/DataObservabilitySetting";
 import CreateBy from "../Types/Database/CreateBy";
 import UpdateBy from "../Types/Database/UpdateBy";
 import { OnCreate, OnUpdate } from "../Types/Database/Hooks";
+import QueryHelper from "../Types/Database/QueryHelper";
 import CaptureSpan from "../Utils/Telemetry/CaptureSpan";
 import BadDataException from "../../Types/Exception/BadDataException";
 import ObjectID from "../../Types/ObjectID";
@@ -21,7 +22,6 @@ export const BYTES_IN_A_GIGABYTE: number = 1024 * 1024 * 1024;
 // What checkValues reads of a create or an update, as whatever was sent.
 export interface DataObservabilitySettingValues {
   maxGigabytesScannedPerCheck?: unknown;
-  keepFailingRows?: unknown;
 }
 
 export class Service extends ProjectReferencesService<Model> {
@@ -42,13 +42,6 @@ export class Service extends ProjectReferencesService<Model> {
     ) {
       throw new BadDataException(
         `The most a check may read is a whole number of GB from ${MIN_GIGABYTES_SCANNED_PER_CHECK} to ${MAX_GIGABYTES_SCANNED_PER_CHECK}.`,
-      );
-    }
-
-    // Rows would leave the customer's network for OneUptime's: never on Cloud.
-    if (data.keepFailingRows === true && IsBillingEnabled) {
-      throw new BadDataException(
-        "OneUptime Cloud keeps no rows of your tables. Failing rows can be kept on a self-hosted install.",
       );
     }
   }
@@ -75,6 +68,38 @@ export class Service extends ProjectReferencesService<Model> {
     );
 
     return { updateBy, carryForward: undefined };
+  }
+
+  /*
+   * A project keeps failing rows only while it chooses to: turning that off
+   * deletes what its checks kept, there and then. If that fails, so does the
+   * save, as the setting says they are gone.
+   */
+  @CaptureSpan()
+  protected override async onUpdateSuccess(
+    onUpdate: OnUpdate<Model>,
+    updatedItemIds: Array<ObjectID>,
+  ): Promise<OnUpdate<Model>> {
+    const data: { keepFailingRows?: unknown } = onUpdate.updateBy
+      .data as unknown as { keepFailingRows?: unknown };
+
+    if (data.keepFailingRows !== false || updatedItemIds.length === 0) {
+      return onUpdate;
+    }
+
+    const settings: Array<Model> = await this.findBy({
+      query: { _id: QueryHelper.any(updatedItemIds) },
+      select: { projectId: true },
+      limit: updatedItemIds.length,
+      skip: 0,
+      props: { isRoot: true },
+    });
+
+    for (const setting of settings) {
+      await DataCheckService.clearFailingRowsOfProject(setting.projectId!);
+    }
+
+    return onUpdate;
   }
 
   /*

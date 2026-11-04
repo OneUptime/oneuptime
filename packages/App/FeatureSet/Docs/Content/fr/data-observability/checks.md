@@ -1,6 +1,6 @@
 # Contrôles et rapprochements
 
-La santé des tables dit si une table change. Un **contrôle** dit si ce qu'elle contient est juste, un **rapprochement** dit si deux copies des données concordent, et les **tests de dbt** rendent compte des tables que dbt construit. Chacun s'exécute là où s'exécute la collecte de la base de données, chez OneUptime ou sur sa sonde, et seul un nombre quitte la base de données, sauf si un projet auto-hébergé choisit de conserver un échantillon masqué des lignes en échec.
+La santé des tables dit si une table change. Un **contrôle** dit si ce qu'elle contient est juste, un **rapprochement** dit si deux copies des données concordent, et les **tests de dbt** rendent compte des tables que dbt construit. Chacun s'exécute là où s'exécute la collecte de la base de données, chez OneUptime ou sur sa sonde, et seul un nombre quitte la base de données, sauf si un projet choisit de conserver un échantillon masqué des lignes en échec.
 
 ## Contrôles
 
@@ -52,7 +52,9 @@ Un contrôle se dispute la base de données avec votre application, et sur un en
 
 ## Lignes en échec
 
-Un nombre dit que quelque chose ne va pas ; quelques lignes disent quoi. Sur un OneUptime auto-hébergé, **Conserver les Failing Rows** sous **Paramètres** conserve jusqu'à 20 des lignes qu'a trouvées un contrôle Failing Rows, Invalid Percent, Format Mismatch Percent ou Orphan Count, et **Lignes en échec** sur le contrôle les affiche. Les colonnes sensibles sont masquées à l'endroit où la ligne est lue, d'après ce que Sécurité des données y a trouvé ou d'après leurs noms, de sorte que ce qui quitte la base de données, ou une sonde, est déjà masqué. OneUptime Cloud n'en conserve aucune.
+Un nombre dit que quelque chose ne va pas ; quelques lignes disent quoi. **Conserver les Failing Rows** sous **Paramètres** conserve jusqu'à 20 des lignes qu'a trouvées un contrôle Failing Rows, Invalid Percent, Format Mismatch Percent ou Orphan Count, et **Lignes en échec** sur le contrôle les affiche. Ce réglage reste désactivé tant que vous ne l'activez pas. Les colonnes sensibles sont masquées à l'endroit où la ligne est lue, d'après ce que Sécurité des données y a trouvé ou d'après leurs noms, de sorte que ce qui quitte la base de données, ou une sonde, est déjà masqué. Une colonne sensible qu'aucune analyse n'a trouvée et dont le nom ne la trahit pas est conservée telle quelle.
+
+Les lignes sont stockées dans OneUptime : sur les serveurs de OneUptime avec OneUptime Cloud, et sur les vôtres avec une installation auto-hébergée. Toute personne autorisée à lire les contrôles du projet peut les voir. Un contrôle ne conserve que les lignes de sa dernière exécution, et désactiver **Conserver les Failing Rows** supprime ce que chaque contrôle avait conservé.
 
 ## Des contrôles dans un fichier
 

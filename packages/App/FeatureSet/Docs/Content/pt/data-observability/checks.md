@@ -1,6 +1,6 @@
 # Verificações e reconciliações
 
-A saúde das tabelas diz se uma tabela muda. Uma **verificação** diz se o que ela contém está certo, uma **reconciliação** diz se duas cópias dos dados batem, e os **testes do dbt** informam sobre as tabelas que o dbt constrói. Cada uma roda onde a coleta do banco de dados roda, pelo OneUptime ou pela sonda dele, e só um número sai do banco de dados, a menos que um projeto auto-hospedado escolha guardar uma amostra mascarada das linhas com falha.
+A saúde das tabelas diz se uma tabela muda. Uma **verificação** diz se o que ela contém está certo, uma **reconciliação** diz se duas cópias dos dados batem, e os **testes do dbt** informam sobre as tabelas que o dbt constrói. Cada uma roda onde a coleta do banco de dados roda, pelo OneUptime ou pela sonda dele, e só um número sai do banco de dados, a menos que um projeto escolha guardar uma amostra mascarada das linhas com falha.
 
 ## Verificações
 
@@ -52,7 +52,9 @@ Uma verificação compete com a sua aplicação pelo banco de dados e, em um war
 
 ## Linhas com falha
 
-Um número diz que algo está errado; algumas linhas dizem o quê. Em um OneUptime auto-hospedado, **Guardar Failing Rows**, em **Configurações**, guarda até 20 das linhas que uma verificação Failing Rows, Invalid Percent, Format Mismatch Percent ou Orphan Count encontrou, e **Linhas com falha** na verificação as mostra. As colunas sensíveis são mascaradas onde a linha é lida, pelo que a Segurança de dados encontrou nelas ou pelos nomes delas, então o que sai do banco de dados, ou de uma sonda, já está mascarado. O OneUptime Cloud não guarda nenhuma.
+Um número diz que algo está errado; algumas linhas dizem o quê. **Guardar Failing Rows**, em **Configurações**, guarda até 20 das linhas que uma verificação Failing Rows, Invalid Percent, Format Mismatch Percent ou Orphan Count encontrou, e **Linhas com falha** na verificação as mostra. Fica desativado até você ativá-lo. As colunas sensíveis são mascaradas onde a linha é lida, pelo que a Segurança de dados encontrou nelas ou pelos nomes delas, então o que sai do banco de dados, ou de uma sonda, já está mascarado. Uma coluna sensível que nenhuma varredura encontrou e cujo nome não a denuncia é guardada como está.
+
+As linhas ficam armazenadas no OneUptime: nos servidores do OneUptime no OneUptime Cloud, e nos seus em uma instalação auto-hospedada. Quem pode ler as verificações do projeto pode vê-las. Uma verificação guarda apenas as linhas da última execução, e desativar **Guardar Failing Rows** exclui o que cada verificação guardou.
 
 ## Verificações em um arquivo
 

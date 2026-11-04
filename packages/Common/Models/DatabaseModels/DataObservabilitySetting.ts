@@ -24,7 +24,8 @@ import { Column, Entity, Index, JoinColumn, ManyToOne } from "typeorm";
  * made with these defaults the first time anything asks for it: how much one
  * check may read where the warehouse bills by bytes, whether checks wait
  * when a database is busy, and whether a failing check keeps a sample of the
- * rows that broke it (off, and never on OneUptime Cloud: rows stay home).
+ * rows that broke it (off until the project turns it on: the rows are then
+ * stored in OneUptime, on Cloud as on a self-hosted install).
  */
 const readPermissions: Array<Permission> = [
   Permission.ProjectOwner,
@@ -175,7 +176,7 @@ export default class DataObservabilitySetting extends BaseModel {
     canReadOnRelationQuery: true,
     title: "Keep Failing Rows",
     description:
-      "A failing check keeps up to 20 of the rows that broke it, with sensitive columns masked. Self-hosted installs only.",
+      "A failing check keeps up to 20 of the rows that broke it, with sensitive columns masked. They are stored in OneUptime. Turning this off deletes them.",
     defaultValue: false,
     isDefaultValueColumn: true,
   })

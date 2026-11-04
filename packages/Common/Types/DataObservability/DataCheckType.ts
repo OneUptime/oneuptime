@@ -4,8 +4,8 @@
  * Each check reads one number from a table - per segment when it has one -
  * and writes it as the oneuptime.data.check.value metric, so it is charted,
  * baselined and alerted on like every other metric. Only that number leaves
- * the database, unless a self-hosted project chose to keep a masked sample of
- * failing rows (DataObservabilitySetting).
+ * the database, unless the project chose to keep a masked sample of failing
+ * rows (DataObservabilitySetting).
  */
 export enum DataCheckType {
   // Percent of rows whose column is empty (NULL).

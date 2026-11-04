@@ -7,7 +7,6 @@ import ErrorMessage from "Common/UI/Components/ErrorMessage/ErrorMessage";
 import FormFieldSchemaType from "Common/UI/Components/Forms/Types/FormFieldSchemaType";
 import CardModelDetail from "Common/UI/Components/ModelDetail/CardModelDetail";
 import FieldType from "Common/UI/Components/Types/FieldType";
-import { BILLING_ENABLED } from "Common/UI/Config";
 import API from "Common/UI/Utils/API/API";
 import ModelAPI from "Common/UI/Utils/ModelAPI/ModelAPI";
 import ProjectUtil from "Common/UI/Utils/Project";
@@ -22,7 +21,8 @@ import React, {
  * How Data Observability treats this project's databases. A project has one
  * settings row, made with every default the first time anything asks for it:
  * the page may be opened before any collection ran, so it does the same.
- * Keeping failing rows is a self-hosted choice: OneUptime Cloud keeps none.
+ * Failing rows are kept only once someone here turns that on, on OneUptime
+ * Cloud as on a self-hosted install, and turning it off deletes them.
  */
 async function readSettingId(projectId: ObjectID): Promise<ObjectID | null> {
   const result: ListResult<DataObservabilitySetting> =
@@ -124,16 +124,12 @@ const DataObservabilitySettingsPage: FunctionComponent<
           fieldType: FormFieldSchemaType.Toggle,
           required: false,
         },
-        ...(BILLING_ENABLED
-          ? []
-          : [
-              {
-                field: { keepFailingRows: true },
-                title: "Keep Failing Rows",
-                fieldType: FormFieldSchemaType.Toggle,
-                required: false,
-              },
-            ]),
+        {
+          field: { keepFailingRows: true },
+          title: "Keep Failing Rows",
+          fieldType: FormFieldSchemaType.Toggle,
+          required: false,
+        },
       ]}
       modelDetailProps={{
         showDetailsInNumberOfColumns: 1,
@@ -151,15 +147,11 @@ const DataObservabilitySettingsPage: FunctionComponent<
             title: "Wait When a Database Is Busy",
             fieldType: FieldType.Boolean,
           },
-          ...(BILLING_ENABLED
-            ? []
-            : [
-                {
-                  field: { keepFailingRows: true },
-                  title: "Keep Failing Rows",
-                  fieldType: FieldType.Boolean,
-                },
-              ]),
+          {
+            field: { keepFailingRows: true },
+            title: "Keep Failing Rows",
+            fieldType: FieldType.Boolean,
+          },
         ],
       }}
     />

@@ -43327,7 +43327,7 @@
   "No pipeline yet. Send OpenLineage events, Fivetran or Airbyte webhooks, or traces from a scheduled job: each job appears with its first run.": "パイプラインはまだありません。OpenLineage のイベント、Fivetran か Airbyte の Webhook、またはスケジュールジョブのトレースを送ると、各ジョブが最初の実行とともに表示されます。",
   "Metabase, Superset, Tableau, Looker and Power BI dashboards, and Hightouch and Census syncs, read every hour, so a table's alerts list what is built on it.": "Metabase、Superset、Tableau、Looker、Power BI のダッシュボードと、Hightouch、Census の同期を 1 時間ごとに読み取り、テーブルのアラートにそのテーブルを基にしたものを一覧表示します。",
   "A column that says when each row was written, such as updated_at. The table's last change is then its newest value, not what the database's catalog says. The login needs to read this column.": "各行が書き込まれた時刻を示す列です（例: updated_at）。テーブルの最終変更は、データベースのカタログの値ではなく、この列の最新の値になります。ログインにはこの列を読み取る権限が必要です。",
-  "A failing check keeps up to 20 of the rows that broke it, with sensitive columns masked. Self-hosted installs only.": "失敗したチェックは、原因となった行を最大 20 件保持し、機密性の高い列はマスクされます。セルフホスト環境のみ。",
+  "A failing check keeps up to 20 of the rows that broke it, with sensitive columns masked. They are stored in OneUptime. Turning this off deletes them.": "失敗したチェックは、原因となった行を最大 20 件保持し、機密性の高い列はマスクされます。行は OneUptime に保存されます。オフにすると削除されます。",
   "A few of the rows the last run found failing. Columns that hold sensitive data are masked.": "前回の実行で失敗と判定された行の一部です。機密データを含む列はマスクされます。",
   "A storage path has no columns: only its objects' names, sizes and times are read.": "ストレージパスには列がありません。オブジェクトの名前、サイズ、時刻のみを読み取ります。",
   "A storage path has no rows to check. It is watched by when its newest object landed, how many objects it holds and their size.": "ストレージパスにはチェックする行がありません。最新のオブジェクトが届いた時刻、オブジェクト数、サイズで監視されます。",

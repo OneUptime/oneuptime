@@ -242,7 +242,7 @@ Add one, add them all, or dismiss one for good.
 
 **Segment By** runs a check once per value of a column, such as a tenant or a region: one series and one alert each, for the largest 100 segments. A segmented Row Count alerts when one tenant stops sending data.
 
-Checks run with the database's collection, by OneUptime or by its probe, every 15 minutes, hour, 6 hours or day. Each runs as one aggregate statement in a read-only transaction with a statement timeout: only the number leaves the database, unless a self-hosted project chooses to keep a masked sample of failing rows. The value is written as \`oneuptime.data.check.value\`, with \`oneuptime.data.check.id\`, \`oneuptime.data.check.name\` and \`oneuptime.data.check.segment\`.
+Checks run with the database's collection, by OneUptime or by its probe, every 15 minutes, hour, 6 hours or day. Each runs as one aggregate statement in a read-only transaction with a statement timeout: only the number leaves the database, unless a project chooses to keep a masked sample of failing rows. The value is written as \`oneuptime.data.check.value\`, with \`oneuptime.data.check.id\`, \`oneuptime.data.check.name\` and \`oneuptime.data.check.segment\`.
 
 Set **Alert When** to alert on a check:
 - **Unusually High** or **Unusually Low** compares each value with its own learned baseline for that hour of the week.
@@ -254,7 +254,7 @@ Saving the check makes a Metrics monitor for it, as you, with your permissions. 
 
 Three things keep a check's cost in hand. **Sample Percent** reads a share of the rows, for a check that reads a rate. **Most a Check May Read (GB)**, under **Settings**, stops a check on BigQuery or Athena before it reads more than that. **Wait When a Database Is Busy**, also there, leaves due checks for the next collection when a PostgreSQL, MySQL or SQL Server database looks busy.
 
-On a self-hosted OneUptime, **Keep Failing Rows** under **Settings** keeps up to 20 failing rows of a check, with sensitive columns masked before they leave the database. OneUptime Cloud keeps none.
+**Keep Failing Rows** under **Settings** keeps up to 20 failing rows of a check, with sensitive columns masked before they leave the database. It is off until you turn it on. The rows are stored in OneUptime, on OneUptime's servers on OneUptime Cloud and on your own on a self-hosted install, and turning it off deletes them.
 
 Keep checks in a file in your repository, and apply them from CI with \`oneuptime data-checks apply checks.yaml\`. Run it with \`--dry-run\` on a pull request. A mistake anywhere in the file applies nothing. See the documentation for the file's format.
 

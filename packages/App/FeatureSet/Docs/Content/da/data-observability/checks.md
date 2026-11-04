@@ -1,6 +1,6 @@
 # Kontroller og afstemninger
 
-Tabellernes tilstand viser, om en tabel ændrer sig. Et **tjek** viser, om det, den indeholder, er korrekt, en **afstemning** viser, om to kopier af dataene stemmer overens, og **dbt's tests** rapporterer om de tabeller, dbt bygger. Hver af dem kører, hvor databasens indsamling kører, af OneUptime eller af dens sonde, og kun et tal forlader databasen, medmindre et selvhostet projekt vælger at gemme en maskeret stikprøve af fejlende rækker.
+Tabellernes tilstand viser, om en tabel ændrer sig. Et **tjek** viser, om det, den indeholder, er korrekt, en **afstemning** viser, om to kopier af dataene stemmer overens, og **dbt's tests** rapporterer om de tabeller, dbt bygger. Hver af dem kører, hvor databasens indsamling kører, af OneUptime eller af dens sonde, og kun et tal forlader databasen, medmindre et projekt vælger at gemme en maskeret stikprøve af fejlende rækker.
 
 ## Tjek
 
@@ -52,7 +52,9 @@ Et tjek konkurrerer med din applikation om databasen, og på et datavarehus, der
 
 ## Fejlende rækker
 
-Et tal siger, at noget er galt; nogle få rækker siger hvad. På en selvhostet OneUptime gemmer **Gem fejlende rækker** under **Indstillinger** op til 20 af de rækker, som et Failing Rows-, Invalid Percent-, Format Mismatch Percent- eller Orphan Count-tjek fandt, og **Fejlende rækker** på tjekket viser dem. Følsomme kolonner maskeres, hvor rækken læses, efter hvad Datasikkerhed fandt i dem eller efter deres navne, så det, der forlader databasen eller en sonde, allerede er maskeret. OneUptime Cloud gemmer ingen.
+Et tal siger, at noget er galt; nogle få rækker siger hvad. **Gem fejlende rækker** under **Indstillinger** gemmer op til 20 af de rækker, som et Failing Rows-, Invalid Percent-, Format Mismatch Percent- eller Orphan Count-tjek fandt, og **Fejlende rækker** på tjekket viser dem. Indstillingen er slået fra, indtil du slår den til. Følsomme kolonner maskeres, hvor rækken læses, efter hvad Datasikkerhed fandt i dem eller efter deres navne, så det, der forlader databasen eller en sonde, allerede er maskeret. En følsom kolonne, som ingen scanning har fundet, og hvis navn ikke afslører den, gemmes, som den er.
+
+Rækkerne gemmes i OneUptime: på OneUptimes servere med OneUptime Cloud og på dine egne med en selvhostet installation. Alle, der kan læse projektets tjek, kan se dem. Et tjek gemmer kun rækkerne fra sin seneste kørsel, og når du slår **Gem fejlende rækker** fra, slettes det, som hvert tjek har gemt.
 
 ## Tjek i en fil
 

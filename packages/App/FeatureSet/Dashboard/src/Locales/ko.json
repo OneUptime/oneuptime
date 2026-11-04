@@ -43327,7 +43327,7 @@
   "No pipeline yet. Send OpenLineage events, Fivetran or Airbyte webhooks, or traces from a scheduled job: each job appears with its first run.": "아직 파이프라인이 없습니다. OpenLineage 이벤트, Fivetran 또는 Airbyte 웹훅, 예약 작업의 트레이스를 보내면 각 작업이 첫 실행과 함께 나타납니다.",
   "Metabase, Superset, Tableau, Looker and Power BI dashboards, and Hightouch and Census syncs, read every hour, so a table's alerts list what is built on it.": "Metabase, Superset, Tableau, Looker, Power BI 대시보드와 Hightouch, Census 동기화를 매시간 읽어, 테이블 알림에 그 테이블을 기반으로 한 항목을 표시합니다.",
   "A column that says when each row was written, such as updated_at. The table's last change is then its newest value, not what the database's catalog says. The login needs to read this column.": "각 행이 기록된 시각을 나타내는 열(예: updated_at)입니다. 그러면 테이블의 마지막 변경은 데이터베이스 카탈로그가 알려 주는 값이 아니라 이 열의 가장 최신 값이 됩니다. 로그인이 이 열을 읽을 수 있어야 합니다.",
-  "A failing check keeps up to 20 of the rows that broke it, with sensitive columns masked. Self-hosted installs only.": "실패한 검사는 문제를 일으킨 행을 최대 20개까지 보관하며, 민감한 열은 마스킹됩니다. 셀프 호스팅 설치에서만 사용할 수 있습니다.",
+  "A failing check keeps up to 20 of the rows that broke it, with sensitive columns masked. They are stored in OneUptime. Turning this off deletes them.": "실패한 검사는 문제를 일으킨 행을 최대 20개까지 보관하며, 민감한 열은 마스킹됩니다. 이 행은 OneUptime에 저장됩니다. 이 설정을 끄면 삭제됩니다.",
   "A few of the rows the last run found failing. Columns that hold sensitive data are masked.": "마지막 실행에서 실패로 확인된 행 중 일부입니다. 민감한 데이터가 있는 열은 마스킹됩니다.",
   "A storage path has no columns: only its objects' names, sizes and times are read.": "스토리지 경로에는 열이 없습니다. 객체의 이름, 크기, 시각만 읽습니다.",
   "A storage path has no rows to check. It is watched by when its newest object landed, how many objects it holds and their size.": "스토리지 경로에는 검사할 행이 없습니다. 가장 최신 객체가 도착한 시점, 객체 수, 크기로 감시합니다.",
