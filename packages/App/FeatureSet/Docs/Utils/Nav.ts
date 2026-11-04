@@ -985,6 +985,46 @@ const DocsNav: NavGroup[] = [
     ],
   },
   /*
+   * Data Observability is its own product beside Data Security: whether the
+   * data in a project's databases and warehouses is fresh, right and
+   * whole, where it comes from, and who relies on it. The Dashboard's Data
+   * Observability pages link to its overview.
+   */
+  {
+    title: "Data Observability",
+    section: "Observability",
+    links: [
+      {
+        title: "Data Observability Overview",
+        url: "/docs/data-observability/index",
+      },
+      {
+        title: "Connect a Database",
+        url: "/docs/data-observability/connect",
+      },
+      {
+        title: "Table Health",
+        url: "/docs/data-observability/table-health",
+      },
+      {
+        title: "Checks and Reconciliations",
+        url: "/docs/data-observability/checks",
+      },
+      {
+        title: "Lineage and Pipelines",
+        url: "/docs/data-observability/lineage-and-pipelines",
+      },
+      {
+        title: "Data Products",
+        url: "/docs/data-observability/data-products",
+      },
+      {
+        title: "OneUptime AI and the API",
+        url: "/docs/data-observability/ai-and-api",
+      },
+    ],
+  },
+  /*
    * RUM is its own product surface in the dashboard (Resources → Real User
    * Monitoring) with applications, rules, clients and session replay — not
    * just one more "how to send telemetry from X" recipe — so it gets its own

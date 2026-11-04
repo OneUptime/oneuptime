@@ -162,6 +162,7 @@ Den fungerar i GitHub-, GitLab-, Forgejo- och Gitea-repositorier. GitHub meddela
 | **Tunga funktioner** | Den ändrade kodens funktioner som tar en del av tjänsternas profiler den senaste timmen. |
 | **Incidenter** | Tjänsternas incidenter från de senaste 30 dagarna som fortfarande är öppna, eller vars grundorsak eller efteranalys nämner den ändrade koden. Aldrig en privat incident. |
 | **Driftsättningar** | Tjänsternas driftsättningar från de senaste 7 dagarna som OneUptime misstänker för en regression. |
+| **Data** | De bevakade tabeller som dess migreringar och dbt-modeller tar bort, byter namn på eller ändrar typ för, med de tjänster vars frågor det senaste dygnet använder en ändrad kolumn, tabellerna som byggs av dem och deras dataprodukter. |
 
 När produktionen visar något läser OneUptime AI det bredvid diffen och lägger till **Vad du bör hålla koll på**: några korta punkter som var och en vilar på fakta. Det sker med projektets standard-LLM-leverantör, om inte **LLM-leverantör för produktionsgranskning** under **Fler inställningar** på repositoriets sida **Inställningar** väljer en annan av projektets leverantörer eller en global. Det körs bara medan AI är påslaget för projektet, högst 10 gånger om dagen för en pull request och 100 för ett repository, och mäts som varje AI-anrop; fakta läses varje gång utan det. När produktionen inte visar något om ändringen publicerar OneUptime ingen kommentar.
 

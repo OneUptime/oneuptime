@@ -147,7 +147,7 @@ OneUptime همچنین هر استقرار را خودش وارسی می‌کن�
 
 ویژگی‌هایی که نامشان با `oneuptime.` آغاز می‌شود متعلق به خود OneUptime هستند و از آنچه یک خط لوله می‌فرستد حذف می‌شوند. هر تغییری که یک خط لوله ثبت می‌کند این را در `oneuptime.change.source` می‌گوید، که مقدارش `api` است.
 
-تغییری که از یک حساب ابری خوانده می‌شود، حساب و منبع را با نام‌های OpenTelemetry، یعنی `cloud.provider`، `cloud.account.id`، `cloud.region` و `cloud.resource_id`، نام می‌برد و عملیات را در `oneuptime.cloud.operation`، اجراکنندهٔ آن را در `oneuptime.cloud.actor`، شکست خوردن یا نخوردنش را در `oneuptime.change.status` و حساب ابری‌اش را در `oneuptime.cloud_account.id` نگه می‌دارد.
+تغییری که از یک حساب ابری خوانده می‌شود، حساب و منبع را با نام‌های OpenTelemetry، یعنی `cloud.provider`، `cloud.account.id`، `cloud.region` و `cloud.resource_id`، نام می‌برد و عملیات را در `oneuptime.cloud.operation`، اجراکنندهٔ آن را در `oneuptime.cloud.actor`، شکست خوردن یا نخوردنش را در `oneuptime.change.status` و حساب ابری‌اش را در `oneuptime.cloud_account.id` نگه می‌دارد. تغییری که OneUptime AI از طریق یک عامل هوش مصنوعی ابری داده است، این را در `oneuptime.change.made_by` می‌گوید، که `oneuptime-ai` است، و کار عامل را در `oneuptime.runner_job.id`، اصلاح آن را در `oneuptime.auto_remediation_suggestion.id`، اجرای هوش مصنوعی‌ای را که آن را برنامه‌ریزی کرد در `oneuptime.ai_run.id`، اینکه خود اصلاح بود یا بازگردانی آن را در `oneuptime.ai.step` (`fix` یا `rollback`)، و حادثه یا هشداری را که رفع کرد در `oneuptime.incident.id` یا `oneuptime.alert.id` نام می‌برد.
 
 ### محدودیت‌ها
 

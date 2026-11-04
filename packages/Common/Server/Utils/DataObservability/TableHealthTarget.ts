@@ -9,6 +9,15 @@ import {
   SnowflakeConnection,
 } from "./SnowflakeSqlApi";
 import { BigQueryConnection, readBigQueryConnection } from "./BigQueryApi";
+import {
+  ClickHouseConnection,
+  readClickHouseConnection,
+} from "./ClickHouseHttpApi";
+import {
+  DatabricksConnection,
+  readDatabricksConnection,
+} from "./DatabricksApi";
+import { AthenaConnection, readAthenaConnection } from "./AthenaApi";
 
 /*
  * WHICH DATABASE A COLLECTION READ: ITS NAME, HOST AND PORT.
@@ -128,6 +137,51 @@ export function readConnectionTarget(
       return {
         databaseName: readName(snowflake.database),
         host: readName(getSnowflakeHost(snowflake.account)),
+        port: 443,
+      };
+    } catch {
+      return null;
+    }
+  }
+
+  // ClickHouse's: its host and port, and the database when the connection names one.
+  if (connection.engine === "clickhouse") {
+    try {
+      const clickhouse: ClickHouseConnection = readClickHouseConnection(value);
+
+      return {
+        databaseName: readName(clickhouse.database),
+        host: readName(clickhouse.host),
+        port: readPort(clickhouse.port),
+      };
+    } catch {
+      return null;
+    }
+  }
+
+  // Databricks': the workspace and the catalog, as OpenLineage and dbt name them. Never the token.
+  if (connection.engine === "databricks") {
+    try {
+      const databricks: DatabricksConnection = readDatabricksConnection(value);
+
+      return {
+        databaseName: readName(databricks.catalog),
+        host: readName(databricks.host),
+        port: 443,
+      };
+    } catch {
+      return null;
+    }
+  }
+
+  // Athena's: the Glue database, and the Region's Athena endpoint, as OpenLineage names it. Never the keys.
+  if (connection.engine === "athena") {
+    try {
+      const athena: AthenaConnection = readAthenaConnection(value);
+
+      return {
+        databaseName: readName(athena.database),
+        host: readName(`athena.${athena.region}.amazonaws.com`),
         port: 443,
       };
     } catch {

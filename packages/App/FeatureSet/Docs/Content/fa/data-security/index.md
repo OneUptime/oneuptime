@@ -66,10 +66,10 @@ flowchart TB
 
 | کجا | مخازن | نمونه‌های محتوا |
 | --- | --- | --- |
-| AWS | AWS S3 Bucket, AWS RDS Instance, AWS Aurora Cluster, AWS RDS Snapshot, AWS DynamoDB Table, AWS Redshift Cluster, AWS DocumentDB Cluster, AWS OpenSearch Domain, AWS ElastiCache Cluster, AWS EFS File System | AWS S3 Bucket |
+| AWS | AWS S3 Bucket, AWS RDS Instance, AWS Aurora Cluster, AWS RDS Snapshot, AWS DynamoDB Table, AWS Redshift Cluster, AWS DocumentDB Cluster, AWS OpenSearch Domain, AWS ElastiCache Cluster, AWS EFS File System, Amazon Athena | AWS S3 Bucket |
 | Azure | Azure Storage Account, Azure SQL Database, Azure Cosmos DB Account, Azure PostgreSQL Server, Azure MySQL Server | Azure Storage Account |
 | Google Cloud | Google Cloud Storage Bucket, Google Cloud SQL Instance, Google BigQuery Dataset, Google Firestore Database, Google Spanner Instance, Google Bigtable Instance | Google Cloud Storage Bucket, Google BigQuery Dataset |
-| پایگاه‌های داده‌ای که خودتان اجرا می‌کنید | PostgreSQL, MySQL, MongoDB, SQL Server, Oracle, Redis, Elasticsearch, Snowflake | PostgreSQL, MySQL |
+| پایگاه‌های داده‌ای که خودتان اجرا می‌کنید | PostgreSQL, MySQL, MongoDB, SQL Server, Oracle, Redis, Elasticsearch, Snowflake, ClickHouse, Databricks | PostgreSQL, MySQL |
 | OneUptime | لاگ‌ها، ترِیس‌ها، استثناها، بازپخش‌های نشست، گفتگوهای هوش مصنوعی | لاگ‌ها، ترِیس‌ها، استثناها، بازپخش‌های نشست، گفتگوهای هوش مصنوعی |
 
 هر مخزن بررسی‌هایی را می‌گیرد که به گونهٔ آن مربوط‌اند. مخزنی که نمی‌توان از محتوایش نمونه برداشت همچنان بررسی می‌شود: یک باکت عمومی یا یک پایگاه دادهٔ رمزگذاری‌نشده، هر چه در خود داشته باشد، یک مشکل است.

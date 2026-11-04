@@ -312,7 +312,11 @@ describe("matching a dbt table to a watched one", () => {
   test("a warehouse OneUptime does not read, or another database, matches nothing", () => {
     const orders: DbtTable = manifest().tables.get("model.jaffle_shop.orders")!;
 
-    expect(getDbtDataset("databricks", orders)).toBe(null);
+    expect(getDbtDataset("trino", orders)).toBe(null);
+    expect(getDbtDataset("databricks", orders)).toEqual({
+      namespace: "databricks://",
+      name: "jaffle.public.orders_v2",
+    });
     expect(getDbtDataset("snowflake", orders)).toEqual({
       namespace: "snowflake://",
       name: "jaffle.public.orders_v2",
@@ -329,6 +333,16 @@ describe("matching a dbt table to a watched one", () => {
         schema: "shop",
       }),
     ).toEqual({ namespace: "mysql://", name: "shop.orders_v2" });
+  });
+
+  test("ClickHouse's schema is its database too", () => {
+    expect(
+      getDbtDataset("clickhouse", {
+        ...manifest().tables.get("model.jaffle_shop.orders")!,
+        database: null,
+        schema: "analytics",
+      }),
+    ).toEqual({ namespace: "clickhouse://", name: "analytics.orders_v2" });
   });
 });
 

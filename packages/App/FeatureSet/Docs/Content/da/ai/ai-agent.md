@@ -162,6 +162,7 @@ Den virker i GitHub-, GitLab-, Forgejo- og Gitea-repositorier. GitHub giver OneU
 | **Tunge funktioner** | Den ændrede kodes funktioner, der tager en del af tjenesternes profiler i den seneste time. |
 | **Hændelser** | Tjenesternes hændelser fra de seneste 30 dage, der stadig er åbne, eller hvis grundlæggende årsag eller postmortem nævner den ændrede kode. Aldrig en privat hændelse. |
 | **Udrulninger** | Tjenesternes udrulninger fra de seneste 7 dage, som OneUptime mistænker for en regression. |
+| **Data** | De overvågede tabeller, som dens migreringer og dbt-modeller fjerner, omdøber eller ændrer typen af, med de tjenester, hvis forespørgsler det seneste døgn bruger en ændret kolonne, de tabeller, der bygges af dem, og deres dataprodukter. |
 
 Når produktionen viser noget, læser OneUptime AI det ved siden af diffen og tilføjer **Hvad du skal holde øje med**: nogle få korte punkter, der hver bygger på fakta. Det sker med projektets standard-LLM-udbyder, medmindre **LLM-udbyder til produktionsgennemgang** under **Yderligere indstillinger** på repositoriets side **Indstillinger** vælger en anden af projektets udbydere eller en global. Det kører kun, mens AI er slået til for projektet, højst 10 gange om dagen for en pull request og 100 for et repositorie, og måles som ethvert AI-kald; fakta læses hver gang uden det. Når produktionen ikke viser noget om ændringen, slår OneUptime ingen kommentar op.
 

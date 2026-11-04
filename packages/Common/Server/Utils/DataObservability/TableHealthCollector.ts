@@ -32,6 +32,12 @@ import BigQueryApi, {
   BigQueryConnection,
   readBigQueryConnection,
 } from "./BigQueryApi";
+import ClickHouseHttpApi, {
+  ClickHouseConnection,
+  readClickHouseConnection,
+} from "./ClickHouseHttpApi";
+import DatabricksApi, { readDatabricksConnection } from "./DatabricksApi";
+import AthenaApi, { readAthenaConnection } from "./AthenaApi";
 import { JSONObject } from "../../../Types/JSON";
 import {
   DataCheckRunResult,
@@ -39,6 +45,14 @@ import {
   PlannedDataCheck,
   readCheckRows,
 } from "./DataCheckResults";
+import {
+  CollectedJobSpend,
+  MAX_SPEND_JOBS,
+  MAX_WRITTEN_TABLES_PER_JOB,
+  nameJob,
+  readTeamOfTag,
+  SPEND_WINDOW_IN_HOURS,
+} from "../../../Types/DataObservability/DataWarehouseSpend";
 
 /*
  * EVERY TABLE OF A DATABASE, FROM ITS CATALOG, WITHOUT READING A ROW.
@@ -67,6 +81,16 @@ import {
  *    last update and last read, with their counters, where the login has VIEW
  *    DATABASE STATE, since the server started (sys.dm_os_sys_info).
  *    INFORMATION_SCHEMA.COLUMNS gives the columns.
+ *
+ *  - ClickHouse: system.tables gives rows and bytes; system.parts each
+ *    MergeTree table's block numbers, which only an insert moves, as its
+ *    write counter; system.part_log, where the server keeps one, the time
+ *    of each insert. system.columns gives the columns.
+ *  - Databricks: Unity Catalog's REST API gives every table, view and
+ *    column, and each Delta table's last commit, with no SQL warehouse.
+ *  - Amazon Athena: the Glue Data Catalog's API gives every table and view
+ *    of a Glue database, its columns and statistics, and each Iceberg
+ *    table's last commit.
  *
  * Each engine also says which tables feed which, where it can (lineage
  * with no pipeline to report it): a view's tables from its definition
@@ -215,6 +239,11 @@ export interface TableHealthSnapshot {
   lineage?: Array<CollectedLineageEdge> | undefined;
   // True when every view's definition was read, so a view edge not reported is gone.
   isViewLineageComplete?: boolean | undefined;
+  /*
+   * What the warehouse spent on each job over the last day, read once an
+   * hour; unset when it was not read this time.
+   */
+  spend?: Array<CollectedJobSpend> | undefined;
 }
 
 export interface TableHealthCollectOptions {
@@ -276,11 +305,22 @@ const NO_LINEAGE: LineageRead = {
   warnings: [],
 };
 
+interface SpendRead {
+  jobs: Array<CollectedJobSpend>;
+  warnings: Array<string>;
+  // Whether spend was read this time: a job not in a read list ran in none of the last day.
+  isRead: boolean;
+}
+
+const NO_SPEND: SpendRead = { jobs: [], warnings: [], isRead: false };
+
 interface CatalogSession {
   readonly engine: DatabaseEngine;
   read(options: TableHealthCollectOptions): Promise<CatalogRead>;
   // Which tables feed which, as the engine shows it; one that cannot say has none.
   readLineage?(options: TableHealthCollectOptions): Promise<LineageRead>;
+  // What the warehouse spent on each job over the last day: once an hour, where it bills by use.
+  readSpend?(options: TableHealthCollectOptions): Promise<SpendRead>;
   // One data check's aggregate, read-only and bounded like every catalog read.
   readAggregate(
     sql: string,
@@ -1816,6 +1856,87 @@ class SnowflakeCatalog implements CatalogSession {
     };
   }
 
+  /*
+   * Once an hour, on the connection's warehouse: each job's runs, failures
+   * and credits over the last day, and the tables it wrote where the
+   * account keeps ACCESS_HISTORY. ACCOUNT_USAGE needs IMPORTED PRIVILEGES
+   * on the SNOWFLAKE database.
+   */
+  public async readSpend(
+    options: TableHealthCollectOptions,
+  ): Promise<SpendRead> {
+    if (readLookback(options) <= 0) {
+      return NO_SPEND;
+    }
+
+    const warnings: Array<string> = [];
+    let rows: Array<Record<string, unknown>>;
+
+    try {
+      rows = await this.api.query({
+        statement: buildSnowflakeSpendQuery(true),
+        bindings: [this.database],
+        useWarehouse: true,
+      });
+    } catch (attributionError) {
+      try {
+        rows = await this.api.query({
+          statement: buildSnowflakeSpendQuery(false),
+          bindings: [this.database],
+          useWarehouse: true,
+        });
+        warnings.push(
+          `Credits per job were left out (QUERY_ATTRIBUTION_HISTORY could not be read): ${describeError(attributionError).slice(0, 200)}`,
+        );
+      } catch (error) {
+        return {
+          ...NO_SPEND,
+          warnings: [
+            `Warehouse spend was left out (SNOWFLAKE.ACCOUNT_USAGE needs IMPORTED PRIVILEGES on the SNOWFLAKE database): ${describeError(error).slice(0, 200)}`,
+          ],
+        };
+      }
+    }
+
+    const written: Map<
+      string,
+      Array<{ schema: string; table: string }>
+    > = new Map();
+
+    try {
+      for (const row of await this.api.query({
+        statement: SNOWFLAKE_WRITTEN_TABLES_QUERY,
+        bindings: [this.database],
+        useWarehouse: true,
+      })) {
+        const table: { schema: string; table: string } | null =
+          readSnowflakeObjectName(row["object_name"], this.database);
+        const jobKey: string = String(row["job_key"] ?? "");
+
+        if (table && jobKey) {
+          written.set(jobKey, [...(written.get(jobKey) || []), table]);
+        }
+      }
+    } catch {
+      // ACCESS_HISTORY is Snowflake Enterprise's: without it a job writes no table we know of.
+    }
+
+    return {
+      jobs: rows
+        .map((row: Record<string, unknown>): CollectedJobSpend | null => {
+          return readSpendRow(
+            row,
+            written.get(String(row["job_key"] ?? "")) || [],
+          );
+        })
+        .filter((job: CollectedJobSpend | null): job is CollectedJobSpend => {
+          return job !== null;
+        }),
+      warnings,
+      isRead: true,
+    };
+  }
+
   public async close(): Promise<void> {
     // Each statement is its own request: nothing is held open.
   }
@@ -1825,6 +1946,174 @@ class SnowflakeCatalog implements CatalogSession {
 const BIGQUERY_LOCATION: RegExp = /^[a-z0-9-]{2,40}$/;
 // A query job runs for six hours at most, so one ending in a window began at most this long before it.
 const BIGQUERY_LONGEST_JOB_IN_SECONDS: number = 6 * 60 * 60;
+
+// A Snowflake object name, DB.SCHEMA.TABLE, as a table of the store's database.
+export function readSnowflakeObjectName(
+  objectName: unknown,
+  database: string,
+): { schema: string; table: string } | null {
+  const parts: Array<string> = String(objectName ?? "")
+    .split(".")
+    .map((part: string): string => {
+      return part.replace(/^"|"$/g, "");
+    });
+
+  if (
+    parts.length !== 3 ||
+    !parts.every(Boolean) ||
+    parts[0]!.toUpperCase() !== database.toUpperCase()
+  ) {
+    return null;
+  }
+
+  return { schema: parts[1]!, table: parts[2]! };
+}
+
+/*
+ * Snowflake's spend over the last day, a job (a parameterized query) a
+ * row: its runs and failures from QUERY_HISTORY, its compute credits from
+ * QUERY_ATTRIBUTION_HISTORY, read back 30 hours since it fills in late.
+ */
+export function buildSnowflakeSpendQuery(withAttribution: boolean): string {
+  return `WITH q AS (
+      SELECT query_id, query_parameterized_hash AS job_key, query_tag, query_type, user_name,
+        warehouse_name, execution_status, end_time
+      FROM SNOWFLAKE.ACCOUNT_USAGE.QUERY_HISTORY
+      WHERE end_time > DATEADD('hour', -${SPEND_WINDOW_IN_HOURS}, CURRENT_TIMESTAMP())
+        AND warehouse_name IS NOT NULL
+        AND query_parameterized_hash IS NOT NULL
+        AND UPPER(database_name) = UPPER(?)
+    )${
+      withAttribution
+        ? `, a AS (
+      SELECT query_id, credits_attributed_compute AS credits
+      FROM SNOWFLAKE.ACCOUNT_USAGE.QUERY_ATTRIBUTION_HISTORY
+      WHERE start_time > DATEADD('hour', -${SPEND_WINDOW_IN_HOURS + 6}, CURRENT_TIMESTAMP())
+    )`
+        : ""
+    }
+    SELECT q.job_key, ANY_VALUE(q.query_tag) AS query_tag, ANY_VALUE(q.query_type) AS query_type,
+      ANY_VALUE(q.user_name) AS user_name, ANY_VALUE(q.warehouse_name) AS warehouse_name,
+      COUNT(*) AS runs, COUNT_IF(q.execution_status = 'FAIL') AS failed_runs,
+      ${withAttribution ? "SUM(a.credits)" : "NULL"} AS credits,
+      DATEDIFF('second', MAX(q.end_time), CURRENT_TIMESTAMP()) AS seconds_since_last_run
+    FROM q${withAttribution ? " LEFT JOIN a ON a.query_id = q.query_id" : ""}
+    GROUP BY q.job_key
+    ORDER BY credits DESC NULLS LAST, runs DESC
+    LIMIT ${MAX_SPEND_JOBS}`;
+}
+
+// The tables each job wrote, from ACCESS_HISTORY (Snowflake Enterprise).
+export const SNOWFLAKE_WRITTEN_TABLES_QUERY: string = `SELECT q.query_parameterized_hash AS job_key,
+    f.value:"objectName"::string AS object_name
+  FROM SNOWFLAKE.ACCOUNT_USAGE.ACCESS_HISTORY h,
+    LATERAL FLATTEN(input => h.objects_modified) f,
+    SNOWFLAKE.ACCOUNT_USAGE.QUERY_HISTORY q
+  WHERE q.query_id = h.query_id
+    AND h.query_start_time > DATEADD('hour', -${SPEND_WINDOW_IN_HOURS}, CURRENT_TIMESTAMP())
+    AND q.end_time > DATEADD('hour', -${SPEND_WINDOW_IN_HOURS}, CURRENT_TIMESTAMP())
+    AND f.value:"objectDomain"::string = 'Table'
+    AND UPPER(q.database_name) = UPPER(?)
+  GROUP BY 1, 2
+  LIMIT 5000`;
+
+// A spend row as a job: named without its query's text.
+export function readSpendRow(
+  row: Record<string, unknown>,
+  written: Array<{ schema: string; table: string }>,
+): CollectedJobSpend | null {
+  const jobKey: string = String(row["job_key"] ?? "").slice(0, 200);
+
+  if (!jobKey) {
+    return null;
+  }
+
+  const tag: string | null = row["query_tag"] ? String(row["query_tag"]) : null;
+  const user: string | null = row["user_name"]
+    ? String(row["user_name"]).slice(0, MAX_SEEN_BY_LENGTH)
+    : null;
+  const firstWritten: { schema: string; table: string } | undefined =
+    written[0];
+  const credits: number | null =
+    row["credits"] === null || row["credits"] === undefined
+      ? null
+      : Number(row["credits"]);
+  const bytesBilled: number | null = readCount(row["bytes_billed"]);
+
+  return {
+    jobKey,
+    name: nameJob({
+      tag: row["tag"] ? String(row["tag"]) : tag,
+      queryType: row["query_type"] ? String(row["query_type"]) : null,
+      writtenTable: firstWritten
+        ? `${firstWritten.schema}.${firstWritten.table}`
+        : null,
+      user,
+    }),
+    user,
+    warehouse: row["warehouse_name"]
+      ? String(row["warehouse_name"]).slice(0, MAX_IDENTIFIER_LENGTH)
+      : null,
+    team: row["team"]
+      ? String(row["team"]).slice(0, MAX_IDENTIFIER_LENGTH)
+      : readTeamOfTag(tag),
+    runs: readCount(row["runs"]) || 0,
+    failedRuns: readCount(row["failed_runs"]) || 0,
+    credits:
+      credits !== null && Number.isFinite(credits) && credits >= 0
+        ? credits
+        : null,
+    bytesBilled,
+    writtenTables: written.slice(0, MAX_WRITTEN_TABLES_PER_JOB),
+    secondsSinceLastRun: readCount(row["seconds_since_last_run"]),
+  };
+}
+
+/*
+ * BigQuery's spend over the last day, a job (a query, its literals left
+ * out) a row: its runs, failures and bytes billed from the jobs view of
+ * the dataset's project and location, for jobs that wrote or read a table
+ * of the dataset; null when the location cannot be named.
+ */
+export function buildBigQuerySpendQuery(
+  connection: Pick<BigQueryConnection, "projectId" | "dataset" | "location">,
+): { statement: string; params: Array<string> } | null {
+  const location: string = (connection.location || "US").toLowerCase();
+
+  if (!BIGQUERY_LOCATION.test(location)) {
+    return null;
+  }
+
+  return {
+    statement: `SELECT COALESCE(j.query_info.query_hashes.normalized_literals, j.job_id) AS job_key,
+        ANY_VALUE((SELECT l.value FROM UNNEST(j.labels) AS l WHERE l.key = 'team' LIMIT 1)) AS team,
+        ANY_VALUE((SELECT l.value FROM UNNEST(j.labels) AS l WHERE l.key = 'job' LIMIT 1)) AS tag,
+        ANY_VALUE(j.statement_type) AS query_type,
+        ANY_VALUE(j.user_email) AS user_name,
+        ANY_VALUE(j.reservation_id) AS warehouse_name,
+        COUNT(*) AS runs,
+        COUNTIF(j.error_result IS NOT NULL) AS failed_runs,
+        SUM(j.total_bytes_billed) AS bytes_billed,
+        ANY_VALUE(IF(j.destination_table.dataset_id = ?, j.destination_table.table_id, NULL)) AS written_table,
+        TIMESTAMP_DIFF(CURRENT_TIMESTAMP(), MAX(j.end_time), SECOND) AS seconds_since_last_run
+      FROM \`${connection.projectId}\`.\`region-${location}\`.INFORMATION_SCHEMA.JOBS AS j
+      WHERE j.creation_time > TIMESTAMP_SUB(CURRENT_TIMESTAMP(), INTERVAL ${SPEND_WINDOW_IN_HOURS + 6} HOUR)
+        AND j.end_time > TIMESTAMP_SUB(CURRENT_TIMESTAMP(), INTERVAL ${SPEND_WINDOW_IN_HOURS} HOUR)
+        AND j.job_type = 'QUERY'
+        AND j.statement_type != 'SCRIPT'
+        AND (j.destination_table.dataset_id = ?
+          OR EXISTS(SELECT 1 FROM UNNEST(j.referenced_tables) AS r WHERE r.project_id = ? AND r.dataset_id = ?))
+      GROUP BY 1
+      ORDER BY bytes_billed DESC
+      LIMIT ${MAX_SPEND_JOBS}`,
+    params: [
+      connection.dataset,
+      connection.dataset,
+      connection.projectId,
+      connection.dataset,
+    ],
+  };
+}
 
 /*
  * The query that reads a dataset's lineage from the jobs view of its
@@ -2025,8 +2314,1183 @@ class BigQueryCatalog implements CatalogSession {
     };
   }
 
+  /*
+   * Once an hour: each job of the last day that wrote or read a table of
+   * the dataset, with its runs, failures and bytes billed, from the jobs
+   * view (BigQuery Resource Viewer sees every user's).
+   */
+  public async readSpend(
+    options: TableHealthCollectOptions,
+  ): Promise<SpendRead> {
+    const query: { statement: string; params: Array<string> } | null =
+      readLookback(options) > 0
+        ? buildBigQuerySpendQuery(this.connection)
+        : null;
+
+    if (!query) {
+      return NO_SPEND;
+    }
+
+    try {
+      const rows: Array<Record<string, unknown>> = await this.api.query(query);
+
+      return {
+        jobs: rows
+          .map((row: Record<string, unknown>): CollectedJobSpend | null => {
+            const table: string = String(row["written_table"] ?? "");
+
+            return readSpendRow(
+              row,
+              table ? [{ schema: this.connection.dataset, table }] : [],
+            );
+          })
+          .filter((job: CollectedJobSpend | null): job is CollectedJobSpend => {
+            return job !== null;
+          }),
+        warnings: [],
+        isRead: true,
+      };
+    } catch (error) {
+      return {
+        ...NO_SPEND,
+        warnings: [
+          `Warehouse spend was left out (INFORMATION_SCHEMA.JOBS needs the BigQuery Resource Viewer role): ${describeError(error).slice(0, 200)}`,
+        ],
+      };
+    }
+  }
+
   public async close(): Promise<void> {
     // Each query is its own request: nothing is held open.
+  }
+}
+
+// The server's own databases: never a store's tables.
+const CLICKHOUSE_SYSTEM_DATABASES: string = `('system', 'INFORMATION_SCHEMA', 'information_schema')`;
+
+// Table engines whose rows live somewhere else: a foreign table, read through.
+const CLICKHOUSE_FOREIGN_ENGINES: ReadonlySet<string> = new Set([
+  "MySQL",
+  "PostgreSQL",
+  "MaterializedPostgreSQL",
+  "MongoDB",
+  "Redis",
+  "SQLite",
+  "JDBC",
+  "ODBC",
+  "S3",
+  "S3Queue",
+  "URL",
+  "HDFS",
+  "AzureBlobStorage",
+  "AzureQueue",
+  "Kafka",
+  "RabbitMQ",
+  "NATS",
+  "Iceberg",
+  "IcebergS3",
+  "IcebergAzure",
+  "IcebergHDFS",
+  "IcebergLocal",
+  "DeltaLake",
+  "DeltaLakeS3",
+  "DeltaLakeAzure",
+  "Hudi",
+  "Hive",
+]);
+
+// A system.tables row's kind; a materialized view's inner table and a dictionary are no asset.
+export function readClickHouseKind(
+  engine: unknown,
+  name: unknown,
+): DataAssetKind | null {
+  const tableEngine: string = String(engine ?? "");
+
+  if (String(name ?? "").startsWith(".inner") || tableEngine === "Dictionary") {
+    return null;
+  }
+
+  if (tableEngine === "View" || tableEngine === "LiveView") {
+    return DataAssetKind.View;
+  }
+
+  if (tableEngine === "MaterializedView") {
+    return DataAssetKind.MaterializedView;
+  }
+
+  return CLICKHOUSE_FOREIGN_ENGINES.has(tableEngine)
+    ? DataAssetKind.ForeignTable
+    : DataAssetKind.Table;
+}
+
+// One part of a ClickHouse name as a statement writes it: bare, or in backticks or double quotes.
+const CLICKHOUSE_NAME_PART: string =
+  '(?:`(?:[^`\\\\]|\\\\.)+`|"(?:[^"\\\\]|\\\\.)+"|[A-Za-z_][A-Za-z0-9_$]*)';
+const CLICKHOUSE_INSERT_TARGET: RegExp = new RegExp(
+  `^\\s*INSERT\\s+INTO\\s+(?:TABLE\\s+)?(${CLICKHOUSE_NAME_PART}(?:\\s*\\.\\s*${CLICKHOUSE_NAME_PART})?)`,
+  "i",
+);
+const CLICKHOUSE_VIEW_TARGET: RegExp = new RegExp(
+  `^\\s*CREATE\\s+MATERIALIZED\\s+VIEW\\s+${CLICKHOUSE_NAME_PART}(?:\\s*\\.\\s*${CLICKHOUSE_NAME_PART})?(?:\\s+ON\\s+CLUSTER\\s+\\S+)?\\s+TO\\s+(${CLICKHOUSE_NAME_PART}(?:\\s*\\.\\s*${CLICKHOUSE_NAME_PART})?)`,
+  "i",
+);
+
+function unquoteClickHouseName(part: string): string {
+  const trimmed: string = part.trim();
+
+  if (
+    (trimmed.startsWith("`") && trimmed.endsWith("`")) ||
+    (trimmed.startsWith('"') && trimmed.endsWith('"'))
+  ) {
+    return trimmed.slice(1, -1).replace(/\\(.)/g, "$1");
+  }
+
+  return trimmed;
+}
+
+// "db.table", "`db`.`table`" or "table" (in the database a query ran in), as its two parts.
+export function readClickHouseName(
+  value: string,
+  currentDatabase: string,
+): { schema: string; table: string } | null {
+  const parts: Array<string> =
+    value.match(new RegExp(CLICKHOUSE_NAME_PART, "g")) || [];
+
+  if (parts.length === 1) {
+    return currentDatabase
+      ? { schema: currentDatabase, table: unquoteClickHouseName(parts[0]!) }
+      : null;
+  }
+
+  if (parts.length === 2) {
+    return {
+      schema: unquoteClickHouseName(parts[0]!),
+      table: unquoteClickHouseName(parts[1]!),
+    };
+  }
+
+  return null;
+}
+
+// The table an INSERT wrote: INSERT INTO [TABLE] db.table ...
+export function readInsertTarget(
+  query: string,
+  currentDatabase: string,
+): { schema: string; table: string } | null {
+  const match: RegExpMatchArray | null = query.match(CLICKHOUSE_INSERT_TARGET);
+
+  return match ? readClickHouseName(match[1]!, currentDatabase) : null;
+}
+
+// The table a materialized view writes to: CREATE MATERIALIZED VIEW db.view TO db.table ...
+export function readMaterializedViewTarget(
+  definition: string,
+  viewDatabase: string,
+): { schema: string; table: string } | null {
+  const match: RegExpMatchArray | null = definition.match(
+    CLICKHOUSE_VIEW_TARGET,
+  );
+
+  return match ? readClickHouseName(match[1]!, viewDatabase) : null;
+}
+
+/*
+ * The query log's INSERTs that read other tables, as lineage: each query
+ * (one row per normalized query) wrote the table its INSERT names, and
+ * read every other table it touched. "tables" holds db.table names.
+ */
+export function readClickHouseInsertLineage(
+  rows: Array<Record<string, unknown>>,
+): Array<CollectedLineageEdge> {
+  const edges: Array<CollectedLineageEdge> = [];
+
+  for (const row of rows) {
+    const target: { schema: string; table: string } | null = readInsertTarget(
+      String(row["query_text"] ?? ""),
+      String(row["current_database"] ?? ""),
+    );
+
+    if (!target) {
+      continue;
+    }
+
+    const tables: Array<unknown> = Array.isArray(row["tables"])
+      ? (row["tables"] as Array<unknown>)
+      : [];
+
+    for (const name of tables) {
+      const text: string = String(name ?? "");
+      const dot: number = text.indexOf(".");
+
+      if (dot <= 0) {
+        continue;
+      }
+
+      const edge: CollectedLineageEdge | null = readLineageRow(
+        {
+          upstream_schema: text.slice(0, dot),
+          upstream_table: text.slice(dot + 1),
+          downstream_schema: target.schema,
+          downstream_table: target.table,
+          seconds_since_seen: row["seconds_since_seen"],
+          seen_by: row["seen_by"],
+        },
+        DataAssetLineageSource.QueryHistory,
+      );
+
+      if (edge) {
+        edges.push(edge);
+      }
+    }
+  }
+
+  return edges.slice(0, MAX_LINEAGE_EDGES_PER_COLLECTION);
+}
+
+/*
+ * ClickHouse, over its HTTP interface (ClickHouseHttpApi): system.tables
+ * gives every table and view with its rows and bytes; system.parts each
+ * MergeTree table's block numbers, which only an insert moves (a merge
+ * keeps them), so their sum is the table's write counter; system.part_log,
+ * where the server keeps it, the time of each insert; system.columns the
+ * columns. The query log, once an hour, says which tables were read, and
+ * which INSERT ... SELECT read one table to write another; a materialized
+ * view's source tables and its TO table are lineage from its definition.
+ * Names are quoted with backticks and values bound as query parameters.
+ */
+class ClickHouseCatalog implements CatalogSession {
+  public readonly engine: DatabaseEngine = "clickhouse";
+  private readonly api: ClickHouseHttpApi;
+  private readonly database: string | null;
+
+  private constructor(api: ClickHouseHttpApi, database: string | null) {
+    this.api = api;
+    this.database = database;
+  }
+
+  public static async open(
+    connectionString: string,
+  ): Promise<ClickHouseCatalog> {
+    const connection: ClickHouseConnection =
+      readClickHouseConnection(connectionString);
+    const session: ClickHouseCatalog = new ClickHouseCatalog(
+      new ClickHouseHttpApi({ connection }),
+      connection.database,
+    );
+
+    // A login that cannot read the server's catalog cannot collect.
+    await session.api.query({ statement: "SELECT 1 AS reachable" });
+
+    return session;
+  }
+
+  public async readAggregate(
+    sql: string,
+    params: Array<string>,
+  ): Promise<Array<Record<string, unknown>>> {
+    return await this.api.query({ statement: sql, params });
+  }
+
+  // The databases read: the connection's one, or every one but the server's own.
+  private databaseFilter(column: string): {
+    sql: string;
+    params: Array<string>;
+  } {
+    return this.database
+      ? { sql: `${column} = {p1:String}`, params: [this.database] }
+      : { sql: `${column} NOT IN ${CLICKHOUSE_SYSTEM_DATABASES}`, params: [] };
+  }
+
+  public async read(options: TableHealthCollectOptions): Promise<CatalogRead> {
+    const warnings: Array<string> = [];
+    const filter: { sql: string; params: Array<string> } =
+      this.databaseFilter("t.database");
+    const tablesSql: (withParts: boolean) => string = (
+      withParts: boolean,
+    ): string => {
+      return `SELECT t.database AS table_schema, t.name AS table_name, t.engine AS engine,
+          t.total_rows AS total_rows, t.total_bytes AS total_bytes
+          ${withParts ? ", p.table AS parts_table, p.write_count AS write_count" : ""}
+        FROM system.tables AS t
+        ${
+          withParts
+            ? `LEFT JOIN (
+            SELECT database, table, sum(partition_max) AS write_count
+            FROM (
+              SELECT database, table, partition_id, max(max_block_number) AS partition_max
+              FROM system.parts
+              WHERE active
+              GROUP BY database, table, partition_id
+            )
+            GROUP BY database, table
+          ) AS p ON p.database = t.database AND p.table = t.name`
+            : ""
+        }
+        WHERE ${filter.sql} AND t.is_temporary = 0
+        ORDER BY t.database, t.name
+        LIMIT ${options.maxTables}`;
+    };
+    let rows: Array<Record<string, unknown>>;
+
+    try {
+      rows = await this.api.query({
+        statement: tablesSql(true),
+        params: filter.params,
+      });
+    } catch (error) {
+      rows = await this.api.query({
+        statement: tablesSql(false),
+        params: filter.params,
+      });
+      warnings.push(
+        `Inserts are seen by a table's rows alone (system.parts could not be read): ${describeError(error).slice(0, 200)}`,
+      );
+    }
+
+    const insertedAgo: Map<string, number> = new Map();
+
+    // When the server keeps a part log, the time of each table's last insert.
+    try {
+      const partLogFilter: { sql: string; params: Array<string> } =
+        this.databaseFilter("database");
+
+      for (const row of await this.api.query({
+        statement: `SELECT database AS table_schema, table AS table_name,
+            dateDiff('second', max(event_time), now()) AS seconds_since_change
+          FROM system.part_log
+          WHERE event_date >= yesterday() AND event_type = 'NewPart' AND ${partLogFilter.sql}
+          GROUP BY database, table`,
+        params: partLogFilter.params,
+      })) {
+        const seconds: number | null = readCount(row["seconds_since_change"]);
+
+        if (seconds !== null) {
+          insertedAgo.set(
+            keyOf(
+              String(row["table_schema"] ?? ""),
+              String(row["table_name"] ?? ""),
+            ),
+            seconds,
+          );
+        }
+      }
+    } catch {
+      // Most servers keep no part log: the write counter says when a table changed.
+    }
+
+    const readAgo: Map<string, number> = await this.readTimes(
+      options,
+      warnings,
+    );
+    const tables: Array<RawTable> = [];
+
+    for (const row of rows) {
+      const schema: string = readText(
+        row["table_schema"],
+        MAX_IDENTIFIER_LENGTH,
+      );
+      const name: string = readText(row["table_name"], MAX_IDENTIFIER_LENGTH);
+      const kind: DataAssetKind | null = readClickHouseKind(
+        row["engine"],
+        name,
+      );
+
+      if (!kind || !schema || !name) {
+        continue;
+      }
+
+      const key: string = keyOf(schema, name);
+      const hasParts: boolean =
+        readText(row["parts_table"], MAX_IDENTIFIER_LENGTH).length > 0;
+      const holdsRows: boolean =
+        kind === DataAssetKind.Table || kind === DataAssetKind.MaterializedView;
+
+      tables.push({
+        schema,
+        name,
+        kind,
+        estimatedRows: holdsRows ? readCount(row["total_rows"]) : null,
+        sizeInBytes: holdsRows ? readCount(row["total_bytes"]) : null,
+        writeCount: hasParts ? readCount(row["write_count"]) : null,
+        secondsSinceChange: insertedAgo.get(key) ?? null,
+        readCount: null,
+        secondsSinceRead: readAgo.get(key) ?? null,
+      });
+    }
+
+    let columns: Array<RawColumn> = [];
+
+    try {
+      const columnFilter: { sql: string; params: Array<string> } =
+        this.databaseFilter("database");
+
+      columns = (
+        await this.api.query({
+          statement: `SELECT database AS table_schema, table AS table_name, name AS column_name,
+              type AS data_type, position AS ordinal_position,
+              if(startsWith(type, 'Nullable(') OR startsWith(type, 'LowCardinality(Nullable('), 'YES', 'NO') AS is_nullable
+            FROM system.columns
+            WHERE ${columnFilter.sql}
+            ORDER BY database, table, position
+            LIMIT ${options.maxColumns}`,
+          params: columnFilter.params,
+        })
+      )
+        .map((row: Record<string, unknown>): RawColumn | null => {
+          return readColumnRow(row);
+        })
+        .filter((column: RawColumn | null): column is RawColumn => {
+          return column !== null;
+        });
+    } catch (error) {
+      warnings.push(
+        `Columns were left out (system.columns could not be read): ${describeError(error).slice(0, 200)}`,
+      );
+    }
+
+    return { tables, columns, warnings, secondsSinceStatsReset: null };
+  }
+
+  /*
+   * How long ago each table was last read, from the query log: only when
+   * this collection reads query history (once an hour), back to the last
+   * read, and never OneUptime's own reads.
+   */
+  private async readTimes(
+    options: TableHealthCollectOptions,
+    warnings: Array<string>,
+  ): Promise<Map<string, number>> {
+    const lookback: number = readLookback(options);
+    const times: Map<string, number> = new Map();
+
+    if (lookback <= 0) {
+      return times;
+    }
+
+    try {
+      for (const row of await this.api.query({
+        statement: `SELECT full_name, dateDiff('second', max(event_time), now()) AS seconds_since_read
+          FROM system.query_log
+          ARRAY JOIN tables AS full_name
+          WHERE event_date >= toDate(now() - INTERVAL ${lookback} SECOND)
+            AND event_time > now() - INTERVAL ${lookback} SECOND
+            AND type = 'QueryFinish' AND query_kind = 'Select' AND user != currentUser()
+          GROUP BY full_name
+          LIMIT ${MAX_TABLES_PER_COLLECTION * 2}`,
+      })) {
+        const name: string = String(row["full_name"] ?? "");
+        const dot: number = name.indexOf(".");
+        const seconds: number | null = readCount(row["seconds_since_read"]);
+
+        if (dot > 0 && seconds !== null) {
+          times.set(keyOf(name.slice(0, dot), name.slice(dot + 1)), seconds);
+        }
+      }
+    } catch (error) {
+      warnings.push(
+        `When each table was last read was left out (system.query_log could not be read): ${describeError(error).slice(0, 200)}`,
+      );
+    }
+
+    return times;
+  }
+
+  /*
+   * A materialized view's lineage from its definition - every table it
+   * reads (their dependencies_table) feeds it, and it feeds its TO table -
+   * read every collection; INSERT ... SELECT from the query log once an
+   * hour.
+   */
+  public async readLineage(
+    options: TableHealthCollectOptions,
+  ): Promise<LineageRead> {
+    const views: LineageRead = await readViewLineage(
+      async (): Promise<Array<Record<string, unknown>>> => {
+        const filter: { sql: string; params: Array<string> } =
+          this.databaseFilter("database");
+        const edges: Array<Record<string, unknown>> = [];
+
+        for (const row of await this.api.query({
+          statement: `SELECT database, name, dependencies_database, dependencies_table
+            FROM system.tables
+            WHERE ${filter.sql} AND length(dependencies_table) > 0
+            LIMIT ${MAX_LINEAGE_EDGES_PER_COLLECTION}`,
+          params: filter.params,
+        })) {
+          const databases: Array<unknown> = Array.isArray(
+            row["dependencies_database"],
+          )
+            ? (row["dependencies_database"] as Array<unknown>)
+            : [];
+          const dependents: Array<unknown> = Array.isArray(
+            row["dependencies_table"],
+          )
+            ? (row["dependencies_table"] as Array<unknown>)
+            : [];
+
+          dependents.forEach((dependent: unknown, index: number) => {
+            edges.push({
+              upstream_schema: row["database"],
+              upstream_table: row["name"],
+              downstream_schema: databases[index] ?? row["database"],
+              downstream_table: dependent,
+            });
+          });
+        }
+
+        for (const row of await this.api.query({
+          statement: `SELECT database, name, substring(create_table_query, 1, 4000) AS definition
+            FROM system.tables
+            WHERE ${filter.sql} AND engine = 'MaterializedView'
+            LIMIT ${MAX_LINEAGE_EDGES_PER_COLLECTION}`,
+          params: filter.params,
+        })) {
+          const target: { schema: string; table: string } | null =
+            readMaterializedViewTarget(
+              String(row["definition"] ?? ""),
+              String(row["database"] ?? ""),
+            );
+
+          if (target) {
+            edges.push({
+              upstream_schema: row["database"],
+              upstream_table: row["name"],
+              downstream_schema: target.schema,
+              downstream_table: target.table,
+            });
+          }
+        }
+
+        return edges;
+      },
+    );
+    const lookback: number = readLookback(options);
+
+    if (lookback <= 0) {
+      return views;
+    }
+
+    try {
+      const rows: Array<Record<string, unknown>> = await this.api.query({
+        statement: `SELECT any(substring(query, 1, 2000)) AS query_text, any(tables) AS tables,
+            any(current_database) AS current_database, argMax(user, event_time) AS seen_by,
+            dateDiff('second', max(event_time), now()) AS seconds_since_seen
+          FROM system.query_log
+          WHERE event_date >= toDate(now() - INTERVAL ${lookback} SECOND)
+            AND event_time > now() - INTERVAL ${lookback} SECOND
+            AND type = 'QueryFinish' AND query_kind = 'Insert' AND length(tables) > 1
+          GROUP BY normalized_query_hash
+          ORDER BY seconds_since_seen
+          LIMIT ${MAX_LINEAGE_EDGES_PER_COLLECTION}`,
+      });
+
+      return {
+        ...views,
+        edges: [...views.edges, ...readClickHouseInsertLineage(rows)],
+      };
+    } catch (error) {
+      return {
+        ...views,
+        warnings: [
+          ...views.warnings,
+          `Lineage from query history was left out (system.query_log could not be read): ${describeError(error).slice(0, 200)}`,
+        ],
+      };
+    }
+  }
+
+  public async close(): Promise<void> {
+    // Each statement is its own request: nothing is held open.
+  }
+}
+
+// A Unity Catalog table type, as a data asset kind.
+export function readDatabricksKind(tableType: unknown): DataAssetKind | null {
+  switch (String(tableType ?? "").toUpperCase()) {
+    case "VIEW":
+    case "METRIC_VIEW":
+      return DataAssetKind.View;
+    case "MATERIALIZED_VIEW":
+      return DataAssetKind.MaterializedView;
+    case "FOREIGN":
+      return DataAssetKind.ForeignTable;
+    case "":
+      return null;
+    default:
+      // MANAGED, EXTERNAL, STREAMING_TABLE and the shallow clones hold rows.
+      return DataAssetKind.Table;
+  }
+}
+
+/*
+ * A Unity Catalog TableInfo as a table and its columns. Delta's last
+ * commit (delta.lastCommitTimestamp, delta.lastUpdateVersion) says when the
+ * table changed; the statistics ANALYZE keeps say its rows and size. A
+ * view's dependencies are lineage from its definition.
+ */
+export function readDatabricksTable(
+  info: JSONObject,
+  now: Date,
+): {
+  table: RawTable;
+  columns: Array<RawColumn>;
+  viewSources: Array<{ database: string; schema: string; table: string }>;
+} | null {
+  const schema: string = readText(info["schema_name"], MAX_IDENTIFIER_LENGTH);
+  const name: string = readText(info["name"], MAX_IDENTIFIER_LENGTH);
+  const kind: DataAssetKind | null = readDatabricksKind(info["table_type"]);
+
+  if (!schema || !name || !kind) {
+    return null;
+  }
+
+  const properties: JSONObject =
+    info["properties"] && typeof info["properties"] === "object"
+      ? (info["properties"] as JSONObject)
+      : {};
+  const lastCommitAt: number | null = readCount(
+    properties["delta.lastCommitTimestamp"],
+  );
+  const holdsRows: boolean = kind !== DataAssetKind.View;
+  const columns: Array<RawColumn> = (
+    Array.isArray(info["columns"]) ? (info["columns"] as Array<unknown>) : []
+  )
+    .map((value: unknown, index: number): RawColumn | null => {
+      const column: JSONObject =
+        value && typeof value === "object" ? (value as JSONObject) : {};
+      const columnName: string = readText(
+        column["name"],
+        MAX_COLUMN_NAME_LENGTH,
+      );
+      const position: number | null = readCount(column["position"]);
+
+      return columnName
+        ? {
+            schema,
+            table: name,
+            column: {
+              name: columnName,
+              dataType: readText(
+                column["type_text"] ?? column["type_name"],
+                MAX_COLUMN_TYPE_LENGTH,
+              )
+                .trim()
+                .toLowerCase(),
+              isNullable: column["nullable"] !== false,
+              // Unity Catalog counts from 0.
+              position: (position ?? index) + 1,
+            },
+          }
+        : null;
+    })
+    .filter((column: RawColumn | null): column is RawColumn => {
+      return column !== null;
+    });
+  const dependencies: Array<unknown> = Array.isArray(
+    (info["view_dependencies"] as JSONObject | undefined)?.["dependencies"],
+  )
+    ? ((info["view_dependencies"] as JSONObject)[
+        "dependencies"
+      ] as Array<unknown>)
+    : [];
+  const viewSources: Array<{
+    database: string;
+    schema: string;
+    table: string;
+  }> = [];
+
+  for (const dependency of dependencies) {
+    const fullName: string = String(
+      (
+        (dependency as JSONObject | null)?.["table"] as JSONObject | undefined
+      )?.["table_full_name"] ?? "",
+    );
+    const parts: Array<string> = fullName.split(".");
+
+    if (parts.length === 3 && parts.every(Boolean)) {
+      viewSources.push({
+        database: parts[0]!,
+        schema: parts[1]!,
+        table: parts[2]!,
+      });
+    }
+  }
+
+  return {
+    table: {
+      schema,
+      name,
+      kind,
+      estimatedRows: holdsRows
+        ? readCount(properties["spark.sql.statistics.numRows"])
+        : null,
+      sizeInBytes: holdsRows
+        ? readCount(properties["spark.sql.statistics.totalSize"])
+        : null,
+      writeCount: holdsRows
+        ? readCount(properties["delta.lastUpdateVersion"])
+        : null,
+      secondsSinceChange:
+        holdsRows && lastCommitAt !== null
+          ? Math.max(0, Math.floor((now.getTime() - lastCommitAt) / 1000))
+          : null,
+      readCount: null,
+      secondsSinceRead: null,
+    },
+    columns,
+    viewSources,
+  };
+}
+
+/*
+ * The table lineage system table's rows for a catalog, read three ways:
+ * a row with both tables, the downstream one the catalog's, is an edge; a
+ * row writing a table of the catalog says when it was last written; a row
+ * reading one says when it was last read.
+ */
+export function readDatabricksLineageRows(
+  rows: Array<Record<string, unknown>>,
+  catalog: string,
+): {
+  edges: Array<CollectedLineageEdge>;
+  writtenAgo: Map<string, number>;
+  readAgo: Map<string, number>;
+} {
+  const edges: Array<CollectedLineageEdge> = [];
+  const writtenAgo: Map<string, number> = new Map();
+  const readAgo: Map<string, number> = new Map();
+  const keep: (
+    map: Map<string, number>,
+    key: string,
+    seconds: number,
+  ) => void = (
+    map: Map<string, number>,
+    key: string,
+    seconds: number,
+  ): void => {
+    const known: number | undefined = map.get(key);
+
+    if (known === undefined || seconds < known) {
+      map.set(key, seconds);
+    }
+  };
+  const sameCatalog: (value: unknown) => boolean = (
+    value: unknown,
+  ): boolean => {
+    return String(value ?? "").toLowerCase() === catalog.toLowerCase();
+  };
+
+  for (const row of rows) {
+    const seconds: number | null = readCount(row["seconds_since_seen"]);
+    const sourceTable: string = String(row["source_table"] ?? "");
+    const targetTable: string = String(row["target_table"] ?? "");
+
+    if (seconds === null) {
+      continue;
+    }
+
+    if (sourceTable && sameCatalog(row["source_catalog"])) {
+      keep(
+        readAgo,
+        keyOf(String(row["source_schema"] ?? ""), sourceTable),
+        seconds,
+      );
+    }
+
+    if (!targetTable || !sameCatalog(row["target_catalog"])) {
+      continue;
+    }
+
+    keep(
+      writtenAgo,
+      keyOf(String(row["target_schema"] ?? ""), targetTable),
+      seconds,
+    );
+
+    if (!sourceTable) {
+      continue;
+    }
+
+    const edge: CollectedLineageEdge | null = readLineageRow(
+      {
+        upstream_database: sameCatalog(row["source_catalog"])
+          ? null
+          : row["source_catalog"],
+        upstream_schema: row["source_schema"],
+        upstream_table: sourceTable,
+        downstream_schema: row["target_schema"],
+        downstream_table: targetTable,
+        seconds_since_seen: seconds,
+        seen_by: row["seen_by"],
+      },
+      DataAssetLineageSource.QueryHistory,
+    );
+
+    if (edge && edges.length < MAX_LINEAGE_EDGES_PER_COLLECTION) {
+      edges.push(edge);
+    }
+  }
+
+  return { edges, writtenAgo, readAgo };
+}
+
+/*
+ * The table lineage query: every row of the window with a table of the
+ * catalog at either end, one per pair of tables, OneUptime's own reads
+ * left out. Only the catalog is a value; the window is a whole number.
+ */
+export function buildDatabricksLineageQuery(lookbackInSeconds: number): string {
+  const days: number = Math.ceil(lookbackInSeconds / 86_400) + 1;
+
+  return `SELECT source_table_catalog AS source_catalog, source_table_schema AS source_schema,
+      source_table_name AS source_table, target_table_catalog AS target_catalog,
+      target_table_schema AS target_schema, target_table_name AS target_table,
+      CAST(unix_timestamp(current_timestamp()) - unix_timestamp(MAX(event_time)) AS BIGINT) AS seconds_since_seen,
+      MAX_BY(created_by, event_time) AS seen_by
+    FROM system.access.table_lineage
+    WHERE event_date >= DATE_SUB(CURRENT_DATE(), ${days})
+      AND event_time > TIMESTAMPADD(SECOND, -${lookbackInSeconds}, CURRENT_TIMESTAMP())
+      AND (source_table_catalog = :catalog OR target_table_catalog = :catalog)
+      AND created_by <> current_user()
+    GROUP BY 1, 2, 3, 4, 5, 6
+    ORDER BY seconds_since_seen
+    LIMIT ${MAX_LINEAGE_EDGES_PER_COLLECTION}`;
+}
+
+/*
+ * Databricks, a Unity Catalog catalog at a time (DatabricksApi): its
+ * schemas, tables, views and columns from Unity Catalog's REST API, with
+ * no SQL warehouse - so a collection costs no compute - and each Delta
+ * table's last commit from its properties. Once an hour, on the
+ * connection's SQL warehouse, the table lineage system table says which
+ * tables fed which, when a table was last written where its properties do
+ * not say, and when each was last read. A data check runs on the
+ * warehouse too, its names in backticks and its values bound by name.
+ */
+class DatabricksCatalog implements CatalogSession {
+  public readonly engine: DatabaseEngine = "databricks";
+  private readonly api: DatabricksApi;
+  private viewEdges: Array<CollectedLineageEdge> = [];
+  private historyEdges: Array<CollectedLineageEdge> = [];
+  private isCatalogComplete: boolean = false;
+  private lineageWarnings: Array<string> = [];
+
+  private constructor(api: DatabricksApi) {
+    this.api = api;
+  }
+
+  public static async open(
+    connectionString: string,
+  ): Promise<DatabricksCatalog> {
+    const session: DatabricksCatalog = new DatabricksCatalog(
+      new DatabricksApi({
+        connection: readDatabricksConnection(connectionString),
+      }),
+    );
+
+    await session.api.getCatalog();
+
+    return session;
+  }
+
+  public async readAggregate(
+    sql: string,
+    params: Array<string>,
+  ): Promise<Array<Record<string, unknown>>> {
+    return await this.api.query({ statement: sql, params });
+  }
+
+  public async read(options: TableHealthCollectOptions): Promise<CatalogRead> {
+    const warnings: Array<string> = [];
+    const now: Date = new Date();
+    const tables: Array<RawTable> = [];
+    const columns: Array<RawColumn> = [];
+    const schemas: Array<string> = (await this.api.listSchemas())
+      .filter((schema: string) => {
+        return schema.toLowerCase() !== "information_schema";
+      })
+      .sort();
+    let isComplete: boolean = true;
+
+    this.viewEdges = [];
+
+    for (const schema of schemas) {
+      if (tables.length >= options.maxTables) {
+        isComplete = false;
+        break;
+      }
+
+      let infos: Array<JSONObject>;
+
+      try {
+        infos = await this.api.listTables(
+          schema,
+          options.maxTables - tables.length,
+        );
+      } catch (error) {
+        isComplete = false;
+        warnings.push(
+          `The tables of ${schema} were left out: ${describeError(error).slice(0, 200)}`,
+        );
+        continue;
+      }
+
+      for (const info of infos) {
+        const read: ReturnType<typeof readDatabricksTable> =
+          readDatabricksTable(info, now);
+
+        if (!read) {
+          continue;
+        }
+
+        tables.push(read.table);
+
+        for (const column of read.columns) {
+          if (columns.length < options.maxColumns) {
+            columns.push(column);
+          }
+        }
+
+        for (const source of read.viewSources) {
+          const edge: CollectedLineageEdge | null = readLineageRow(
+            {
+              upstream_database:
+                source.database.toLowerCase() === this.api.catalog.toLowerCase()
+                  ? null
+                  : source.database,
+              upstream_schema: source.schema,
+              upstream_table: source.table,
+              downstream_schema: read.table.schema,
+              downstream_table: read.table.name,
+            },
+            DataAssetLineageSource.ViewDefinition,
+          );
+
+          if (edge) {
+            this.viewEdges.push(edge);
+          }
+        }
+      }
+    }
+
+    this.isCatalogComplete = isComplete;
+    this.historyEdges = [];
+    this.lineageWarnings = [];
+
+    const lookback: number = readLookback(options);
+
+    if (lookback > 0 && !this.api.warehouseId) {
+      this.lineageWarnings.push(
+        "Lineage from query history, and when each table was last read, need a SQL warehouse in the Databricks connection.",
+      );
+    } else if (lookback > 0) {
+      try {
+        const lineage: ReturnType<typeof readDatabricksLineageRows> =
+          readDatabricksLineageRows(
+            await this.api.query({
+              statement: buildDatabricksLineageQuery(lookback),
+              namedParams: { catalog: this.api.catalog },
+            }),
+            this.api.catalog,
+          );
+
+        this.historyEdges = lineage.edges;
+
+        for (const table of tables) {
+          const key: string = keyOf(table.schema, table.name);
+          const written: number | undefined = lineage.writtenAgo.get(key);
+
+          if (table.secondsSinceChange === null && written !== undefined) {
+            table.secondsSinceChange = written;
+          }
+
+          table.secondsSinceRead = lineage.readAgo.get(key) ?? null;
+        }
+      } catch (error) {
+        this.lineageWarnings.push(
+          `Lineage from query history was left out (system.access.table_lineage needs SELECT on the system.access schema): ${describeError(error).slice(0, 200)}`,
+        );
+      }
+    }
+
+    return {
+      tables: tables.slice(0, options.maxTables),
+      columns,
+      warnings,
+      secondsSinceStatsReset: null,
+    };
+  }
+
+  // Read with the catalog (read): views' dependencies always, query history once an hour.
+  public async readLineage(): Promise<LineageRead> {
+    return {
+      edges: [...this.viewEdges, ...this.historyEdges].slice(
+        0,
+        MAX_LINEAGE_EDGES_PER_COLLECTION,
+      ),
+      isViewLineageComplete: this.isCatalogComplete,
+      warnings: this.lineageWarnings,
+    };
+  }
+
+  public async close(): Promise<void> {
+    // Each call is its own request: nothing is held open.
+  }
+}
+
+// A Glue table's kind: a view, else a table (Iceberg, Hive-style or governed).
+export function readGlueKind(tableType: unknown): DataAssetKind {
+  return String(tableType ?? "").toUpperCase() === "VIRTUAL_VIEW"
+    ? DataAssetKind.View
+    : DataAssetKind.Table;
+}
+
+/*
+ * A Glue table as a table and its columns. An Iceberg table's every commit
+ * updates its Glue table (its metadata location), so its UpdateTime is when
+ * it last changed; a Hive-style table's is only when its definition did,
+ * so it says no change. Rows and size come from the statistics a crawler
+ * or ANALYZE keeps.
+ */
+export function readGlueTable(
+  info: JSONObject,
+  now: Date,
+): { table: RawTable; columns: Array<RawColumn> } | null {
+  const name: string = readText(info["Name"], MAX_IDENTIFIER_LENGTH);
+  const schema: string = readText(info["DatabaseName"], MAX_IDENTIFIER_LENGTH);
+
+  if (!name || !schema) {
+    return null;
+  }
+
+  const kind: DataAssetKind = readGlueKind(info["TableType"]);
+  const parameters: JSONObject =
+    info["Parameters"] && typeof info["Parameters"] === "object"
+      ? (info["Parameters"] as JSONObject)
+      : {};
+  const isIceberg: boolean =
+    String(parameters["table_type"] ?? "").toUpperCase() === "ICEBERG" ||
+    Boolean(parameters["metadata_location"]);
+  const updatedAt: number = Number(info["UpdateTime"]);
+  const storage: JSONObject =
+    info["StorageDescriptor"] && typeof info["StorageDescriptor"] === "object"
+      ? (info["StorageDescriptor"] as JSONObject)
+      : {};
+  const columns: Array<RawColumn> = [
+    ...(Array.isArray(storage["Columns"])
+      ? (storage["Columns"] as Array<unknown>)
+      : []),
+    ...(Array.isArray(info["PartitionKeys"])
+      ? (info["PartitionKeys"] as Array<unknown>)
+      : []),
+  ]
+    .map((value: unknown, index: number): RawColumn | null => {
+      const column: JSONObject =
+        value && typeof value === "object" ? (value as JSONObject) : {};
+      const columnName: string = readText(
+        column["Name"],
+        MAX_COLUMN_NAME_LENGTH,
+      );
+
+      return columnName
+        ? {
+            schema,
+            table: name,
+            column: {
+              name: columnName,
+              dataType: readText(column["Type"], MAX_COLUMN_TYPE_LENGTH)
+                .trim()
+                .toLowerCase(),
+              isNullable: true,
+              position: index + 1,
+            },
+          }
+        : null;
+    })
+    .filter((column: RawColumn | null): column is RawColumn => {
+      return column !== null;
+    });
+  const holdsRows: boolean = kind === DataAssetKind.Table;
+
+  return {
+    table: {
+      schema,
+      name,
+      kind,
+      estimatedRows: holdsRows
+        ? readCount(parameters["numRows"] ?? parameters["recordCount"])
+        : null,
+      sizeInBytes: holdsRows ? readCount(parameters["totalSize"]) : null,
+      writeCount: null,
+      secondsSinceChange:
+        holdsRows && isIceberg && Number.isFinite(updatedAt) && updatedAt > 0
+          ? Math.max(0, Math.floor(now.getTime() / 1000 - updatedAt))
+          : null,
+      readCount: null,
+      secondsSinceRead: null,
+    },
+    columns,
+  };
+}
+
+/*
+ * Amazon Athena, a Glue database at a time (AthenaApi): its tables and
+ * views, their columns, statistics and - for Iceberg - last commit, from
+ * the Glue Data Catalog's API, which reads no data and costs nothing. A
+ * data check runs as an Athena query in the connection's workgroup, its
+ * names in double quotes and its values written in as quoted strings.
+ */
+class AthenaCatalog implements CatalogSession {
+  public readonly engine: DatabaseEngine = "athena";
+  private readonly api: AthenaApi;
+
+  private constructor(api: AthenaApi) {
+    this.api = api;
+  }
+
+  public static async open(connectionString: string): Promise<AthenaCatalog> {
+    const session: AthenaCatalog = new AthenaCatalog(
+      new AthenaApi({ connection: readAthenaConnection(connectionString) }),
+    );
+
+    await session.api.getDatabase();
+
+    return session;
+  }
+
+  public async readAggregate(
+    sql: string,
+    params: Array<string>,
+  ): Promise<Array<Record<string, unknown>>> {
+    return await this.api.query({ statement: sql, params });
+  }
+
+  public async read(options: TableHealthCollectOptions): Promise<CatalogRead> {
+    const now: Date = new Date();
+    const tables: Array<RawTable> = [];
+    const columns: Array<RawColumn> = [];
+
+    for (const info of await this.api.listTables(options.maxTables)) {
+      const read: ReturnType<typeof readGlueTable> = readGlueTable(info, now);
+
+      if (!read) {
+        continue;
+      }
+
+      tables.push(read.table);
+
+      for (const column of read.columns) {
+        if (columns.length < options.maxColumns) {
+          columns.push(column);
+        }
+      }
+    }
+
+    return { tables, columns, warnings: [], secondsSinceStatsReset: null };
+  }
+
+  public async close(): Promise<void> {
+    // Each call is its own request: nothing is held open.
   }
 }
 
@@ -2046,6 +3510,12 @@ async function openCatalog(
       return await MySqlCatalog.open(connection.connectionString);
     case "sqlserver":
       return await SqlServerCatalog.open(connection.connectionString);
+    case "clickhouse":
+      return await ClickHouseCatalog.open(connection.connectionString);
+    case "databricks":
+      return await DatabricksCatalog.open(connection.connectionString);
+    case "athena":
+      return await AthenaCatalog.open(connection.connectionString);
     default:
       throw new Error(
         `Data Observability cannot collect ${String(connection.engine)} databases yet.`,
@@ -2204,6 +3674,20 @@ export async function collectTableHealth(
       };
     }
 
+    // Spend is extra too: a warehouse that cannot say it never fails the collection.
+    let spend: SpendRead = NO_SPEND;
+
+    try {
+      spend = catalog.readSpend ? await catalog.readSpend(options) : NO_SPEND;
+    } catch (error) {
+      spend = {
+        ...NO_SPEND,
+        warnings: [
+          `Warehouse spend was left out: ${describeError(error).slice(0, 200)}`,
+        ],
+      };
+    }
+
     const checkResults: Array<DataCheckRunResult> = [];
 
     // Each check on its own: one that cannot run never stops the others.
@@ -2235,17 +3719,20 @@ export async function collectTableHealth(
         engine: connection.engine,
         read: {
           ...read,
-          warnings: [...read.warnings, ...lineage.warnings].map(
-            (warning: string) => {
-              return sanitizeErrorMessage(new Error(warning), secrets);
-            },
-          ),
+          warnings: [
+            ...read.warnings,
+            ...lineage.warnings,
+            ...spend.warnings,
+          ].map((warning: string) => {
+            return sanitizeErrorMessage(new Error(warning), secrets);
+          }),
         },
         options,
         collectedAt,
         lineage,
       }),
       target: readConnectionTarget(connection),
+      ...(spend.isRead ? { spend: spend.jobs.slice(0, MAX_SPEND_JOBS) } : {}),
       ...(options.checks && options.checks.length > 0 ? { checkResults } : {}),
     };
   } catch (error) {

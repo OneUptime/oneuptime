@@ -92,8 +92,12 @@ async function openList(page: Page, query: string = ""): Promise<void> {
   ).toBeVisible();
 }
 
-// A day as a list writes it: "Oct 19", or "Oct 19, 2025" for another year's.
-const DECLARED_DAY: RegExp = /^\S+ \d{1,2}(,? \d{4})?$/;
+/*
+ * A day as a German list writes it, the Dashboard writing dates in the
+ * reader's language (followLanguageForDates): "19. Okt.", or "19. Okt.
+ * 2025" for another year's.
+ */
+const GERMAN_DECLARED_DAY: RegExp = /^\d{1,2}\. \S+( \d{4})?$/;
 
 function row(page: Page, title: string): Locator {
   return page
@@ -547,7 +551,7 @@ test.describe("Incidents -> Postmortems", () => {
     expect(await tableOverflow(page)).toBeLessThanOrEqual(0);
     await expect(
       row(page, "Payments webhook delays").locator("td").nth(6),
-    ).toHaveText(DECLARED_DAY);
+    ).toHaveText(GERMAN_DECLARED_DAY);
 
     await screenshot(page, "list-german");
   });

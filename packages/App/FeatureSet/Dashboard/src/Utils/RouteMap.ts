@@ -975,6 +975,8 @@ export const DataObservabilityRoutePath: Dictionary<string> = {
   [PageMap.DATA_OBSERVABILITY_PIPELINE_VIEW_RECOMMENDATIONS]: `pipelines/${RouteParams.ModelID}/recommendations`,
   [PageMap.DATA_OBSERVABILITY_DATA_PRODUCTS]: "data-products",
   [PageMap.DATA_OBSERVABILITY_RECONCILIATIONS]: "reconciliations",
+  [PageMap.DATA_OBSERVABILITY_BI_DASHBOARDS]: "bi-dashboards",
+  [PageMap.DATA_OBSERVABILITY_SPEND]: "spend",
   [PageMap.DATA_OBSERVABILITY_DATA_PRODUCT_VIEW]: `data-products/${RouteParams.ModelID}`,
   [PageMap.DATA_OBSERVABILITY_DATA_PRODUCT_VIEW_SETTINGS]: `data-products/${RouteParams.ModelID}/settings`,
   [PageMap.DATA_OBSERVABILITY_DATA_PRODUCT_VIEW_DELETE]: `data-products/${RouteParams.ModelID}/delete`,
@@ -7953,6 +7955,18 @@ const RouteMap: Dictionary<Route> = {
   [PageMap.DATA_OBSERVABILITY_RECONCILIATIONS]: new Route(
     `/dashboard/${RouteParams.ProjectID}/data-observability/${
       DataObservabilityRoutePath[PageMap.DATA_OBSERVABILITY_RECONCILIATIONS]
+    }`,
+  ),
+
+  [PageMap.DATA_OBSERVABILITY_BI_DASHBOARDS]: new Route(
+    `/dashboard/${RouteParams.ProjectID}/data-observability/${
+      DataObservabilityRoutePath[PageMap.DATA_OBSERVABILITY_BI_DASHBOARDS]
+    }`,
+  ),
+
+  [PageMap.DATA_OBSERVABILITY_SPEND]: new Route(
+    `/dashboard/${RouteParams.ProjectID}/data-observability/${
+      DataObservabilityRoutePath[PageMap.DATA_OBSERVABILITY_SPEND]
     }`,
   ),
 

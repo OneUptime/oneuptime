@@ -5,6 +5,7 @@ import { JSONObject, JSONValue } from "Common/Types/JSON";
 import ObjectID from "Common/Types/ObjectID";
 import {
   DATA_OBSERVABILITY_API_ROUTES,
+  DataObservabilityBiSyncResponse,
   DataObservabilityCheckAlertResponse,
   DataObservabilityCheckSuggestion,
   DataObservabilityConnectStoreRequest,
@@ -13,7 +14,9 @@ import {
   DataObservabilityDataProductSyncResponse,
   DataObservabilityOverview,
   DataObservabilityReconciliationSyncResponse,
+  DataObservabilitySpendSummary,
   DataObservabilityStoreSummary,
+  DataObservabilityTableDashboard,
 } from "Common/Types/DataObservability/DataObservabilityApiTypes";
 import { APP_API_URL } from "Common/UI/Config";
 import API from "Common/UI/Utils/API/API";
@@ -156,6 +159,36 @@ export default class DataObservabilityApi {
       dataAssetId: dataAssetId.toString(),
       sentence,
     })) as unknown as DataObservabilityCheckSuggestion;
+  }
+
+  // Reads a BI tool's dashboards now, and says how it went.
+  public static async syncBiConnection(
+    dataBiConnectionId: ObjectID,
+  ): Promise<DataObservabilityBiSyncResponse> {
+    return (await post(
+      DATA_OBSERVABILITY_API_ROUTES.biSync(dataBiConnectionId.toString()),
+    )) as unknown as DataObservabilityBiSyncResponse;
+  }
+
+  // What the project's warehouses spent over the last day.
+  public static async getSpendSummary(): Promise<DataObservabilitySpendSummary> {
+    return (await post(
+      DATA_OBSERVABILITY_API_ROUTES.spendSummary,
+    )) as unknown as DataObservabilitySpendSummary;
+  }
+
+  // The dashboards built on a table, and on the tables built from it.
+  public static async getTableDashboards(
+    dataAssetId: ObjectID,
+  ): Promise<Array<DataObservabilityTableDashboard>> {
+    const response: JSONObject = (await post(
+      DATA_OBSERVABILITY_API_ROUTES.tableDashboards,
+      { dataAssetId: dataAssetId.toString() },
+    )) as JSONObject;
+
+    return (Array.isArray(response["dashboards"])
+      ? response["dashboards"]
+      : []) as unknown as Array<DataObservabilityTableDashboard>;
   }
 
   public static async runCheckNow(dataCheckId: ObjectID): Promise<void> {

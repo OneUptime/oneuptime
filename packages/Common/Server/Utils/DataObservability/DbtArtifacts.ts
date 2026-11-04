@@ -390,14 +390,18 @@ const ADAPTER_SCHEMES: Readonly<Record<string, string>> = {
   redshift: "redshift",
   snowflake: "snowflake",
   bigquery: "bigquery",
+  clickhouse: "clickhouse",
+  databricks: "databricks",
+  athena: "awsathena",
 };
 
 /*
  * The table as an OpenLineage dataset names it, for DatasetMatching: the
  * engine from the adapter, and the database, schema and table from the
  * node. dbt does not know the host, so a table is matched only when one
- * watched database of that engine has its database's name. MySQL's schema
- * is its database.
+ * watched database of that engine has its database's name. MySQL's and
+ * ClickHouse's schema is their database; Databricks' database is its
+ * catalog.
  */
 export function getDbtDataset(
   adapterType: string | null,
@@ -411,7 +415,7 @@ export function getDbtDataset(
     return null;
   }
 
-  if (scheme === "mysql") {
+  if (scheme === "mysql" || scheme === "clickhouse") {
     return {
       namespace: `${scheme}://`,
       name: `${table.schema}.${table.relation}`,
