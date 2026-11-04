@@ -269,7 +269,11 @@ export default class DataObservabilityAPI extends BaseAPI<
     this.post(
       DATA_OBSERVABILITY_API_ROUTES.tableFreshness,
       READ_PERMISSIONS,
-      async (projectId: ObjectID, req: ExpressRequest) => {
+      async (
+        projectId: ObjectID,
+        req: ExpressRequest,
+        props: DatabaseCommonInteractionProps,
+      ) => {
         const body: JSONObject = (req.body || {}) as JSONObject;
         const reference: string =
           typeof body["table"] === "string" ? body["table"].trim() : "";
@@ -287,10 +291,12 @@ export default class DataObservabilityAPI extends BaseAPI<
           projectId,
           reference,
         )) {
+          // Its alerts as the person who asked may see them (DataTableAnswer).
           const answer: DataTableAnswer | null = await DataTableAnswerer.answer(
             projectId,
             table.id!,
             now,
+            props,
           );
 
           if (answer) {

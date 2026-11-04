@@ -16,7 +16,7 @@ import AutoRemediationSuggestion from "../../../../Models/DatabaseModels/AutoRem
 import ExternalMcpServer from "../../../../Models/DatabaseModels/ExternalMcpServer";
 import Project from "../../../../Models/DatabaseModels/Project";
 import Runner from "../../../../Models/DatabaseModels/Runner";
-import { AddFixApprovalSourceAndRunbookTrackRecord1808992550000 } from "../../../../Server/Infrastructure/Postgres/SchemaMigrations/1808992550000-AddFixApprovalSourceAndRunbookTrackRecord";
+import { AddFixApprovalSourceAndRunbookTrackRecord1808992590000 } from "../../../../Server/Infrastructure/Postgres/SchemaMigrations/1808992590000-AddFixApprovalSourceAndRunbookTrackRecord";
 import {
   AiRemediationCommandPlanUtil,
   AiRemediationCommandPolicyVerdict,
@@ -433,11 +433,11 @@ describe("the migration", () => {
         queries.push(sql);
       },
     };
-    const migration: AddFixApprovalSourceAndRunbookTrackRecord1808992550000 =
-      new AddFixApprovalSourceAndRunbookTrackRecord1808992550000();
+    const migration: AddFixApprovalSourceAndRunbookTrackRecord1808992590000 =
+      new AddFixApprovalSourceAndRunbookTrackRecord1808992590000();
 
     expect(migration.name).toBe(
-      "AddFixApprovalSourceAndRunbookTrackRecord1808992550000",
+      "AddFixApprovalSourceAndRunbookTrackRecord1808992590000",
     );
 
     await migration.up(runner as never);
@@ -471,10 +471,10 @@ describe("the migration", () => {
     );
 
     expect(index).toContain(
-      'import { AddFixApprovalSourceAndRunbookTrackRecord1808992550000 } from "./1808992550000-AddFixApprovalSourceAndRunbookTrackRecord";',
+      'import { AddFixApprovalSourceAndRunbookTrackRecord1808992590000 } from "./1808992590000-AddFixApprovalSourceAndRunbookTrackRecord";',
     );
     expect(index).toContain(
-      "  AddFixApprovalSourceAndRunbookTrackRecord1808992550000,\n",
+      "  AddFixApprovalSourceAndRunbookTrackRecord1808992590000,\n",
     );
   });
 });

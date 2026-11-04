@@ -28,6 +28,7 @@ import SecurityEventConnectionFormModal, {
   connectionTestDisabledReason,
   connectionTestNeedsSecretsMessage,
   fieldTypeFor,
+  getConnectionStepFields,
   readSecurityEventConnectionForm,
   removeSecretFieldName,
   secretFieldName,
@@ -2362,5 +2363,254 @@ describe("the connection's case threshold", () => {
         true,
       ),
     ).not.toHaveProperty("caseMinimumSeverity");
+  });
+});
+
+/*
+ * Microsoft Sentinel, Defender XDR and Entra ID read a tenant in the Azure
+ * public cloud unless told otherwise, so the Connection step folds Cloud
+ * under More fields, last, with the public cloud picked - and the folded
+ * line says so when a connection is in another one.
+ */
+describe("SecurityEventConnectionFormModal (a Microsoft connection's Cloud)", () => {
+  beforeEach((): void => {
+    mockTransport();
+  });
+
+  afterEach((): void => {
+    cleanup();
+    jest.restoreAllMocks();
+  });
+
+  function foldedItems(): Array<string> {
+    return within(dialog())
+      .getAllByTestId("folded-section-item")
+      .map((item: HTMLElement): string => {
+        return `${item.textContent}:${item.getAttribute("data-item-set")}`;
+      });
+  }
+
+  function moreFields(): HTMLElement {
+    return within(dialog()).getByRole("button", { name: /^More fields/ });
+  }
+
+  async function openMoreFields(): Promise<void> {
+    if (moreFields().getAttribute("aria-expanded") !== "true") {
+      await act(async (): Promise<void> => {
+        fireEvent.click(moreFields());
+      });
+    }
+  }
+
+  function entraConnection(cloud: string): SecurityEventConnection {
+    const connection: SecurityEventConnection = new SecurityEventConnection();
+    connection._id = CONNECTION_ID;
+    connection.name = "Contoso Entra";
+    connection.provider = SecurityEventConnectorProvider.MicrosoftEntraId;
+    connection.config = {
+      tenantId: "b3c1b5fc-828c-45fa-a1e1-10d74f6d6e9c",
+      clientId: "00001111-aaaa-2222-bbbb-3333cccc4444",
+      cloud,
+    };
+    connection.pollIntervalInMinutes = 5;
+    connection.isEnabled = true;
+    connection.alertingOnly = false;
+    connection.caseMinimumSeverity = "High";
+    return connection;
+  }
+
+  test.each([
+    "Microsoft Entra ID",
+    "Microsoft Sentinel",
+    "Microsoft Defender XDR",
+  ])(
+    "%s: Cloud waits under More fields, the public cloud picked",
+    async (title: string): Promise<void> => {
+      await renderModal();
+      await chooseProvider(title);
+      await next();
+
+      expect(activeStep()).toBe("Connection");
+      expect(moreFields()).toHaveAttribute("aria-expanded", "false");
+      expect(foldedItems()).toEqual(["Cloud:false"]);
+      // Folded, the step asks only for what every connection needs.
+      expect(
+        screen.queryByRole("combobox", { name: /^Cloud/ }),
+      ).not.toBeInTheDocument();
+
+      await openMoreFields();
+
+      const cloud: HTMLElement = screen.getByRole("combobox", {
+        name: /^Cloud/,
+      });
+
+      expect(cloud).toBeVisible();
+      // The public cloud is what the dropdown shows as picked.
+      expect(
+        cloud
+          .closest(".ou-select__control")
+          ?.querySelector(".ou-select__single-value")?.textContent,
+      ).toBe("Azure public cloud");
+    },
+  );
+
+  test("Entra ID in another cloud: picked under More fields, named on the folded line, and saved", async (): Promise<void> => {
+    const user: UserEvent = userEvent.setup({ delay: null });
+    await renderModal();
+    await chooseProvider("Microsoft Entra ID");
+    await next();
+    fill(/^Directory \(tenant\) ID/, "b3c1b5fc-828c-45fa-a1e1-10d74f6d6e9c");
+    fill(/^Application \(client\) ID/, "00001111-aaaa-2222-bbbb-3333cccc4444");
+    await openMoreFields();
+
+    await user.click(screen.getByRole("combobox", { name: /^Cloud/ }));
+    const listbox: HTMLElement = await screen.findByRole("listbox");
+
+    expect(
+      within(listbox)
+        .getAllByRole("option")
+        .map((option: HTMLElement): string => {
+          return option.textContent || "";
+        }),
+    ).toEqual([
+      "Azure public cloud",
+      "Azure public cloud, Microsoft 365 GCC",
+      "Azure Government (US), GCC High",
+      "Azure Government (US), DoD",
+    ]);
+
+    await user.click(
+      within(listbox).getByRole("option", {
+        name: "Azure Government (US), DoD",
+      }),
+    );
+
+    // Folded again, the line says the cloud is set, and to what.
+    await act(async (): Promise<void> => {
+      fireEvent.click(moreFields());
+    });
+    expect(foldedItems()).toEqual(["Cloud: Azure Government (US), DoD:true"]);
+
+    await next();
+    expect(activeStep()).toBe("Credentials");
+    fireEvent.change(screen.getByLabelText(/^Client secret/), {
+      target: { value: "entra-secret-synthetic" },
+    });
+    await next();
+    expect(activeStep()).toBe("Polling");
+    fill(/^Name/, "Contoso Entra");
+    await act(async (): Promise<void> => {
+      fireEvent.click(footerButton("Create connection"));
+    });
+
+    await waitFor((): void => {
+      expect(ModelAPI.create).toHaveBeenCalledTimes(1);
+    });
+    const created: { model: SecurityEventConnection } = jest.mocked(
+      ModelAPI.create,
+    ).mock.calls[0]?.[0] as { model: SecurityEventConnection };
+
+    expect(created.model.config).toMatchObject({
+      tenantId: "b3c1b5fc-828c-45fa-a1e1-10d74f6d6e9c",
+      clientId: "00001111-aaaa-2222-bbbb-3333cccc4444",
+      cloud: "dod",
+    });
+  });
+
+  test("editing a connection in Azure Government says so on the folded line; one in the public cloud does not", async (): Promise<void> => {
+    await renderModal({ connection: entraConnection("usgov") });
+
+    expect(activeStep()).toBe("Connection");
+    expect(foldedItems()).toEqual([
+      "Cloud: Azure Government (US), GCC High:true",
+    ]);
+
+    cleanup();
+    await renderModal({ connection: entraConnection("public") });
+
+    expect(foldedItems()).toEqual(["Cloud:false"]);
+  });
+
+  test("the background and app sign-ins option is asked with the connection's other options, off", async (): Promise<void> => {
+    await renderModal();
+    await chooseProvider("Microsoft Entra ID");
+    await next();
+    fill(/^Directory \(tenant\) ID/, "b3c1b5fc-828c-45fa-a1e1-10d74f6d6e9c");
+    fill(/^Application \(client\) ID/, "00001111-aaaa-2222-bbbb-3333cccc4444");
+
+    // Not a setting of the Connection step.
+    expect(
+      screen.queryByRole("switch", { name: /^Background and app sign-ins/ }),
+    ).not.toBeInTheDocument();
+
+    await next();
+    fireEvent.change(screen.getByLabelText(/^Client secret/), {
+      target: { value: "entra-secret-synthetic" },
+    });
+    await next();
+    expect(activeStep()).toBe("Polling");
+
+    const option: HTMLElement = screen.getByRole("switch", {
+      name: /^Background and app sign-ins/,
+    });
+
+    expect(option).toHaveAttribute("aria-checked", "false");
+  });
+});
+
+describe("getConnectionStepFields", () => {
+  test("a product's settings in the catalog's order, the folded ones last, its options left to the last step", () => {
+    const entra: SecurityEventConnectorDefinition =
+      getSecurityEventConnectorDefinition(
+        SecurityEventConnectorProvider.MicrosoftEntraId,
+      )!;
+
+    expect(
+      getConnectionStepFields(entra).map((field: ConnectorField): string => {
+        return field.key;
+      }),
+    ).toEqual(["tenantId", "clientId", "cloud"]);
+
+    // A folded setting written first in the catalog still comes last.
+    const reordered: SecurityEventConnectorDefinition = {
+      ...entra,
+      configFields: [
+        entra.configFields.find((field: ConnectorField): boolean => {
+          return field.key === "cloud";
+        })!,
+        ...entra.configFields.filter((field: ConnectorField): boolean => {
+          return field.key !== "cloud";
+        }),
+      ],
+    };
+
+    expect(
+      getConnectionStepFields(reordered).map(
+        (field: ConnectorField): string => {
+          return field.key;
+        },
+      ),
+    ).toEqual(["tenantId", "clientId", "cloud"]);
+  });
+
+  test("a product with nothing folded keeps every setting where the catalog has it", () => {
+    const okta: SecurityEventConnectorDefinition =
+      getSecurityEventConnectorDefinition(
+        SecurityEventConnectorProvider.OktaSystemLog,
+      )!;
+
+    expect(
+      getConnectionStepFields(okta).map((field: ConnectorField): string => {
+        return field.key;
+      }),
+    ).toEqual(
+      okta.configFields
+        .filter((field: ConnectorField): boolean => {
+          return !field.isOption;
+        })
+        .map((field: ConnectorField): string => {
+          return field.key;
+        }),
+    );
   });
 });

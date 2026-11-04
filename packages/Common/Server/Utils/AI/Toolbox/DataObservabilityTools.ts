@@ -80,10 +80,17 @@ export const GetDataTableFreshnessTool: ObservabilityTool = {
     const answers: Array<DataTableAnswer> = [];
 
     for (const table of tables) {
+      /*
+       * Its alerts as the caller may see them: a person's - in Ask AI, an
+       * investigation's thread, Slack or Microsoft Teams - their own; a run
+       * of OneUptime's own, read as root, none that is private
+       * (DataTableAnswer).
+       */
       const answer: DataTableAnswer | null = await DataTableAnswerer.answer(
         ctx.projectId,
         table.id!,
         now,
+        ctx.props,
       );
 
       if (answer) {

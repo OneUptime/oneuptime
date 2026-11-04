@@ -4,11 +4,13 @@ import {
   HOST_COLLECTOR_FILESYSTEM_EXCLUSION,
   HostCollectorHostFeatures,
   UNKNOWN_HOST_FEATURES,
+  WINDOWS_SECURITY_TOOL_CHANNELS,
   getHostCollectorDefaultConfig,
   hostCollectorHostFeaturesFromText,
   hostCollectorHostFeaturesToText,
   readHostCollectorHostFeatures,
 } from "../../../Utils/HostCollector/HostCollectorDefaultConfig";
+import { WINDOWS_PROVIDERS } from "../../../Utils/SecurityEvent/LogParsers/WindowsEventLogParser";
 import {
   HOST_COLLECTOR_EXPORTER_ENDPOINT,
   HOST_COLLECTOR_INGESTION_KEY_REFERENCE,
@@ -322,7 +324,7 @@ describe("Linux reads what the host has", () => {
 });
 
 describe("Windows and macOS", () => {
-  test("Windows reads the System, Application and Security logs and its services", () => {
+  test("Windows reads the System, Application and Security logs, the security tools' logs and its services", () => {
     const config: ParsedConfig = parse(
       getHostCollectorDefaultConfig(HostCollectorOsType.Windows),
     );
@@ -330,7 +332,10 @@ describe("Windows and macOS", () => {
     expect(Object.keys(config.receivers).sort()).toEqual([
       "host_metrics",
       "windows_event_log/application",
+      "windows_event_log/defender",
+      "windows_event_log/powershell",
       "windows_event_log/security",
+      "windows_event_log/sysmon",
       "windows_event_log/system",
       "windows_service",
     ]);
@@ -338,6 +343,61 @@ describe("Windows and macOS", () => {
       "windows_event_log/system",
       "windows_event_log/application",
       "windows_event_log/security",
+      "windows_event_log/sysmon",
+      "windows_event_log/defender",
+      "windows_event_log/powershell",
+    ]);
+  });
+
+  /*
+   * Sysmon, Defender and PowerShell's own logs are where an attack on a
+   * Windows host shows (process launches, a disabled antivirus, encoded
+   * commands), but a host may have none of them: a channel that does not
+   * exist stops the whole collector unless the receiver ignores it, so each
+   * of them does - and the three always-there logs never do, so a broken
+   * Security log still says so.
+   */
+  test("Sysmon, Defender and PowerShell are read where the host has them, without stopping the collector where it has not", () => {
+    const config: ParsedConfig = parse(
+      getHostCollectorDefaultConfig(HostCollectorOsType.Windows),
+    );
+
+    expect(config.receivers["windows_event_log/sysmon"]).toEqual({
+      channel: "Microsoft-Windows-Sysmon/Operational",
+      start_at: "end",
+      ignore_channel_errors: true,
+    });
+    expect(config.receivers["windows_event_log/defender"]).toEqual({
+      channel: "Microsoft-Windows-Windows Defender/Operational",
+      start_at: "end",
+      ignore_channel_errors: true,
+    });
+    expect(config.receivers["windows_event_log/powershell"]).toEqual({
+      channel: "Microsoft-Windows-PowerShell/Operational",
+      start_at: "end",
+      ignore_channel_errors: true,
+    });
+
+    for (const always of ["system", "application", "security"]) {
+      expect(
+        config.receivers[`windows_event_log/${always}`] as Record<
+          string,
+          unknown
+        >,
+      ).not.toHaveProperty("ignore_channel_errors");
+    }
+
+    // The same names the parser reads them by (WindowsEventLogParser).
+    expect(
+      WINDOWS_SECURITY_TOOL_CHANNELS.map(
+        (tool: { channel: string }): string => {
+          return tool.channel.split("/")[0]!;
+        },
+      ),
+    ).toEqual([
+      WINDOWS_PROVIDERS.sysmon,
+      WINDOWS_PROVIDERS.defender,
+      WINDOWS_PROVIDERS.powerShell,
     ]);
   });
 

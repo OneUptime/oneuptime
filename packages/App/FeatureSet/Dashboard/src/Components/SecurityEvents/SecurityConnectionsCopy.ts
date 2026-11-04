@@ -2,6 +2,7 @@ import SecurityLogFormat, {
   SecurityLogFormatGroup,
 } from "Common/Types/SecurityEvent/SecurityLogFormat";
 import {
+  ENTRA_BACKGROUND_SIGN_INS_KEY,
   GOOGLE_WORKSPACE_DRIVE_KEY,
   MICROSOFT_365_AUDIT_KEY,
 } from "Common/Types/SecurityEvent/Connectors/SecurityEventConnectorCatalog";
@@ -79,6 +80,24 @@ export const SECURITY_LOG_FORMAT_TEXTS: Record<
     title: translationKey("LEEF"),
     description: translationKey(
       "The same from products that send Log Event Extended Format, as many do for IBM QRadar.",
+    ),
+  },
+  [SecurityLogFormat.PaloAlto]: {
+    title: translationKey("Palo Alto Networks"),
+    description: translationKey(
+      "Threats, blocked connections, GlobalProtect and administrator sign-ins, and configuration changes from PAN-OS's own syslog.",
+    ),
+  },
+  [SecurityLogFormat.FortiGate]: {
+    title: translationKey("Fortinet FortiGate"),
+    description: translationKey(
+      "IPS and antivirus findings, denied traffic, VPN and administrator sign-ins, and configuration changes from FortiGate's own syslog.",
+    ),
+  },
+  [SecurityLogFormat.CiscoAsa]: {
+    title: translationKey("Cisco ASA"),
+    description: translationKey(
+      "Denied connections, threat detection and IPS findings, VPN and administrator sign-ins, and commands from Cisco ASA and Firepower Threat Defense.",
     ),
   },
   [SecurityLogFormat.WebAttack]: {
@@ -277,6 +296,12 @@ export const SECURITY_EVENT_CONNECTION_OPTION_TEXTS: Record<
       "Closing a security case closes its Google SecOps alerts too, with the case's verdict and closing note. The connection's service account needs the Chronicle API Editor role.",
     ),
   },
+  [ENTRA_BACKGROUND_SIGN_INS_KEY]: {
+    title: translationKey("Background and app sign-ins"),
+    description: translationKey(
+      "Also import failed sign-ins apps make in the background: non-interactive user sign-ins and service principal sign-ins.",
+    ),
+  },
   [MICROSOFT_365_AUDIT_KEY]: {
     title: translationKey("Microsoft 365 audit log"),
     description: translationKey(
@@ -290,3 +315,18 @@ export const SECURITY_EVENT_CONNECTION_OPTION_TEXTS: Record<
     ),
   },
 };
+
+/*
+ * The Cloud options of the Microsoft connections, in the connector
+ * catalog's words: the form's dropdown draws each option through the
+ * locales. The Azure public cloud and Azure Government (US) are labels of
+ * the AI connections' form too; these put Microsoft Entra ID's Microsoft 365
+ * GCC, GCC High and DoD clouds in the locale files with them.
+ */
+export const SECURITY_EVENT_CONNECTION_CLOUD_TEXTS: Array<string> = [
+  translationKey("Azure public cloud"),
+  translationKey("Azure Government (US)"),
+  translationKey("Azure public cloud, Microsoft 365 GCC"),
+  translationKey("Azure Government (US), GCC High"),
+  translationKey("Azure Government (US), DoD"),
+];
