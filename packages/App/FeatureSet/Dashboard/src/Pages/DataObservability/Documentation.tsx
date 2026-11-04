@@ -80,6 +80,8 @@ GRANT USAGE ON DATABASE ANALYTICS TO ROLE ONEUPTIME_READER;
 GRANT USAGE ON ALL SCHEMAS IN DATABASE ANALYTICS TO ROLE ONEUPTIME_READER;
 GRANT REFERENCES ON ALL TABLES IN DATABASE ANALYTICS TO ROLE ONEUPTIME_READER;
 GRANT USAGE ON WAREHOUSE CHECKS_WH TO ROLE ONEUPTIME_READER;
+-- Warehouse spend reads SNOWFLAKE.ACCOUNT_USAGE.
+GRANT IMPORTED PRIVILEGES ON DATABASE SNOWFLAKE TO ROLE ONEUPTIME_READER;
 -- Checks read rows: SELECT on the tables they check.
 CREATE USER ONEUPTIME_READER DEFAULT_ROLE = ONEUPTIME_READER RSA_PUBLIC_KEY = 'MIIBIjANBgkqh...';
 GRANT ROLE ONEUPTIME_READER TO USER ONEUPTIME_READER;
@@ -315,6 +317,12 @@ Every engine counts the reads of each table in its own statistics:
 Each collection compares the counter with the last one kept, so a table's **Last Read** is known to the hour, and so is the time since which it has had none. A counter of 0 at a table's first collection means it has not been read since the engine's statistics started, so an unused table shows as unused from the start, not after months of watching. A read seen in a service's database spans counts too.
 
 **Unused Tables** lists the tables nobody has read for 90 days, biggest first, with when each was last written: a table still written but never read costs its writes and its storage. The Overview shows how many there are and what they hold. Views keep no counters of their own, so they are never listed. When the database login cannot read the counters, a table's last read is not known.
+
+## Warehouse spend
+
+Once an hour, with each warehouse's collection, OneUptime reads what Snowflake and BigQuery spent over the last day, job by job: Snowflake's compute credits from \`QUERY_ATTRIBUTION_HISTORY\` (with \`IMPORTED PRIVILEGES\` on the \`SNOWFLAKE\` database, run on the connection's warehouse), and BigQuery's bytes billed from its jobs view (with **BigQuery Resource Viewer**). A job is one query run again and again - Snowflake's parameterized query, BigQuery's query with its literals left out - named by its query tag or label, or by what it does and the table it writes, and never by its query's text.
+
+**Warehouse Spend** shows the day's credits and bytes billed, by team (the \`team\` in a job's query tag or label, else whoever runs it), the tables whose writes cost the most (a job's spend shared among the tables it writes, where Snowflake's ACCESS_HISTORY or BigQuery's destination table says which), the jobs that failed, and what goes to jobs that write only tables nobody has read for 90 days.
 
 ## One issue per cause
 

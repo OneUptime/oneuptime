@@ -63,6 +63,7 @@ import DataCheckService from "../Services/DataCheckService";
 import { isValidProbeConnectionVariable } from "../Utils/DataSecurity/DataSecurityProbeScan";
 import { DATA_OBSERVABILITY_KINDS } from "../Utils/DataObservability/DataObservabilityEngines";
 import DataBiSync from "../Utils/DataObservability/Bi/DataBiSync";
+import DataWarehouseSpendSummary from "../Utils/DataObservability/DataWarehouseSpendSummary";
 import DataTableDashboards from "../Utils/DataObservability/Bi/DataTableDashboards";
 import DataBiConnection from "../../Models/DatabaseModels/DataBiConnection";
 import DataBiConnectionService from "../Services/DataBiConnectionService";
@@ -321,6 +322,17 @@ export default class DataObservabilityAPI extends BaseAPI<
 
         return (await DataBiSync.syncConnection(
           connection.id,
+        )) as unknown as JSONObject;
+      },
+    );
+
+    this.post(
+      DATA_OBSERVABILITY_API_ROUTES.spendSummary,
+      READ_PERMISSIONS,
+      async (projectId: ObjectID) => {
+        return (await DataWarehouseSpendSummary.read(
+          projectId,
+          OneUptimeDate.getCurrentDate(),
         )) as unknown as JSONObject;
       },
     );

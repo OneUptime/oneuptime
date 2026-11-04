@@ -14,6 +14,7 @@ import EnableMCP from "../../Types/Database/EnableMCP";
 import EnableWorkflow from "../../Types/Database/EnableWorkflow";
 import TableColumn from "../../Types/Database/TableColumn";
 import TableColumnType from "../../Types/Database/TableColumnType";
+import { getDecimalDatabaseTransformer } from "../../Types/Database/DecimalColumnTransformer";
 import TableMetadata from "../../Types/Database/TableMetadata";
 import TenantColumn from "../../Types/Database/TenantColumn";
 import { PlanType } from "../../Types/Billing/SubscriptionPlan";
@@ -453,6 +454,36 @@ export default class DataAsset extends BaseModel {
     transformer: bigNumberTransformer,
   })
   public sizeInBytes?: number = undefined;
+
+  @ColumnAccessControl(serverWrittenColumnAccess)
+  @TableColumn({
+    type: TableColumnType.Number,
+    required: false,
+    title: "Write Credits (24h)",
+    description:
+      "Snowflake credits the jobs that write the table spent in the last day, a job's shared among the tables it writes.",
+  })
+  @Column({
+    type: ColumnType.Decimal,
+    nullable: true,
+    transformer: getDecimalDatabaseTransformer(),
+  })
+  public writeCredits?: number = undefined;
+
+  @ColumnAccessControl(serverWrittenColumnAccess)
+  @TableColumn({
+    type: TableColumnType.BigNumber,
+    required: false,
+    title: "Write Bytes Billed (24h)",
+    description:
+      "BigQuery bytes billed for the jobs that write the table in the last day, a job's shared among the tables it writes.",
+  })
+  @Column({
+    type: ColumnType.BigNumber,
+    nullable: true,
+    transformer: bigNumberTransformer,
+  })
+  public writeBytesBilled?: number = undefined;
 
   @ColumnAccessControl(serverWrittenColumnAccess)
   @TableColumn({

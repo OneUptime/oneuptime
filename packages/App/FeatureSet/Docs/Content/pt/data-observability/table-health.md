@@ -60,6 +60,12 @@ Cada mecanismo que conta leituras diz quando cada tabela foi lida pela última v
 
 **Tabelas não utilizadas** lista as tabelas que ninguém leu em 90 dias, das maiores para as menores, com quando cada uma foi escrita pela última vez: uma tabela que ainda recebe escritas, mas nunca é lida, custa as escritas e o armazenamento dela. Um contador em 0 na primeira coleta de uma tabela significa que ela não foi lida desde que as estatísticas do mecanismo começaram, então uma tabela não utilizada aparece como não utilizada desde o início.
 
+## Gasto do warehouse
+
+A cada hora, a Observabilidade de dados lê quanto cada warehouse do Snowflake e do BigQuery gastou no último dia, job por job: os créditos de computação do Snowflake, de `QUERY_ATTRIBUTION_HISTORY`, e os bytes faturados do BigQuery, da sua visão de jobs, que exige **BigQuery Resource Viewer**. Um job é uma consulta executada repetidamente, nomeada pela tag de consulta ou label, ou pelo que faz e pela tabela que escreve: nunca pelo texto da consulta.
+
+**Gasto do warehouse** mostra os totais por equipe (o `team` na tag ou no label de um job, senão quem o executa), as tabelas cujas escritas custam mais, os jobs que falharam e o que vai para jobs que só escrevem tabelas que ninguém leu em 90 dias.
+
 ## Serviços que usam cada tabela
 
 A aba **Serviços** de uma tabela lista os serviços vistos escrevendo nela e lendo dela, com as instruções que cada um executou, as chamadas e falhas dele na última hora, e quando foi visto pela última vez. Ela vem dos spans de banco de dados que os seus serviços já enviam com OpenTelemetry: um span de cliente com `db.system.name`, `db.namespace` e `db.collection.name`. Nada a mais para instalar.

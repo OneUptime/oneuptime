@@ -72,6 +72,13 @@ const DataObservabilitySideMenu: FunctionComponent = (): ReactElement => {
         />
         <SideMenuItem
           link={{
+            title: "Warehouse Spend",
+            to: routeOf(PageMap.DATA_OBSERVABILITY_SPEND),
+          }}
+          icon={IconProp.Billing}
+        />
+        <SideMenuItem
+          link={{
             title: "Schema Changes",
             to: routeOf(PageMap.DATA_OBSERVABILITY_SCHEMA_CHANGES),
           }}

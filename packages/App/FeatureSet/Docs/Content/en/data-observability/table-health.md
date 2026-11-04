@@ -60,6 +60,12 @@ Every engine that counts reads says when each table was last read: PostgreSQL's 
 
 **Unused Tables** lists the tables nobody has read for 90 days, biggest first, with when each was last written: a table still written but never read costs its writes and its storage. A counter of 0 at a table's first collection means it has not been read since the engine's statistics started, so an unused table shows as unused from the start.
 
+## Warehouse spend
+
+Once an hour, Data Observability reads what each Snowflake and BigQuery warehouse spent over the last day, job by job: Snowflake's compute credits, from `QUERY_ATTRIBUTION_HISTORY`, and BigQuery's bytes billed, from its jobs view, which needs **BigQuery Resource Viewer**. A job is one query run again and again, named by its query tag or label, or by what it does and the table it writes: never by its query's text.
+
+**Warehouse Spend** shows the totals by team (the `team` in a job's query tag or label, else whoever runs it), the tables whose writes cost the most, the jobs that failed, and what goes to jobs that write only tables nobody has read for 90 days.
+
 ## Services that use each table
 
 A table's **Services** tab lists the services seen writing and reading it, with the statements each ran, its calls and failures in the last hour, and when it was last seen. It comes from the database spans your services already send with OpenTelemetry: a client span with `db.system.name`, `db.namespace` and `db.collection.name`. Nothing extra to install.

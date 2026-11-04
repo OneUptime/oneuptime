@@ -14,6 +14,7 @@ import {
   DataObservabilityDataProductSyncResponse,
   DataObservabilityOverview,
   DataObservabilityReconciliationSyncResponse,
+  DataObservabilitySpendSummary,
   DataObservabilityStoreSummary,
   DataObservabilityTableDashboard,
 } from "Common/Types/DataObservability/DataObservabilityApiTypes";
@@ -167,6 +168,13 @@ export default class DataObservabilityApi {
     return (await post(
       DATA_OBSERVABILITY_API_ROUTES.biSync(dataBiConnectionId.toString()),
     )) as unknown as DataObservabilityBiSyncResponse;
+  }
+
+  // What the project's warehouses spent over the last day.
+  public static async getSpendSummary(): Promise<DataObservabilitySpendSummary> {
+    return (await post(
+      DATA_OBSERVABILITY_API_ROUTES.spendSummary,
+    )) as unknown as DataObservabilitySpendSummary;
   }
 
   // The dashboards built on a table, and on the tables built from it.
