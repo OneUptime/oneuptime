@@ -360,7 +360,8 @@ helm upgrade my-oneuptime oneuptime/oneuptime -f values.yaml
 These change how OneUptime behaves after the upgrade, and most need no
 action. Read them if you use custom roles or API keys built from single
 permissions, custom incident, alert or maintenance states, Terraform or the
-API, SSO, or the Slack and Microsoft Teams apps.
+API, SSO, or the Slack and Microsoft Teams apps, or if your server has no
+working mail server.
 
 :::details Read the other changes in 14
 - **OTLP ingest acknowledges a batch only after the queue accepts it.** 13

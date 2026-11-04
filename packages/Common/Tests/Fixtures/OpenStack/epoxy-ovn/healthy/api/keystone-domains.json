@@ -1,0 +1,1 @@
+{"domains": [{"id": "default", "name": "Default", "description": "The default domain", "enabled": true, "tags": [], "options": {}, "links": {"self": "https://openstack.example/identity/v3/domains/default"}}], "links": {"next": null, "self": "https://openstack.example/identity/v3/domains", "previous": null}}

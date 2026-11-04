@@ -143,6 +143,40 @@ export const PROXMOX_RECOMMENDATION_CATEGORIES: Array<AlertTemplateCategory> = [
   },
 ];
 
+// OpenStack.
+export const OPENSTACK_TEMPLATE_CATEGORIES: Array<AlertTemplateCategory> = [
+  {
+    category: "Availability",
+    label: "Availability",
+    icon: IconProp.Heartbeat,
+  },
+  {
+    category: "Control Plane",
+    label: "Control Plane",
+    icon: IconProp.Settings,
+  },
+  {
+    category: "Compute",
+    label: "Compute",
+    icon: IconProp.ServerStack,
+  },
+  {
+    category: "Network",
+    label: "Network",
+    icon: IconProp.Globe,
+  },
+  {
+    category: "Storage",
+    label: "Storage",
+    icon: IconProp.Database,
+  },
+  {
+    category: "Projects",
+    label: "Projects",
+    icon: IconProp.Folder,
+  },
+];
+
 // VMware.
 export const VMWARE_TEMPLATE_CATEGORIES: Array<AlertTemplateCategory> = [
   {
@@ -293,6 +327,7 @@ export const ALERT_TEMPLATE_CATEGORIES_BY_RESOURCE_TYPE: Partial<
     KUBERNETES_RECOMMENDATION_CATEGORIES,
   [MonitorRecommendationResourceType.Proxmox]:
     PROXMOX_RECOMMENDATION_CATEGORIES,
+  [MonitorRecommendationResourceType.OpenStack]: OPENSTACK_TEMPLATE_CATEGORIES,
   [MonitorRecommendationResourceType.VMware]: VMWARE_TEMPLATE_CATEGORIES,
   [MonitorRecommendationResourceType.Ceph]: CEPH_TEMPLATE_CATEGORIES,
   [MonitorRecommendationResourceType.StorageArray]:

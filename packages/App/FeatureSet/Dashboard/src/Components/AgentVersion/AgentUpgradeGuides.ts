@@ -29,6 +29,12 @@ import {
   getProxmoxAgentUpgradeCommand,
 } from "../../Pages/Proxmox/Utils/DocumentationMarkdown";
 import {
+  OPENSTACK_AGENT_RECREATE_COMMAND,
+  getOpenStackAgentDownloadCommand,
+  getOpenStackAgentNativeUpgradeCommand,
+  getOpenStackAgentUpgradeCommand,
+} from "../../Pages/OpenStack/Utils/DocumentationMarkdown";
+import {
   CEPH_AGENT_RECREATE_COMMAND,
   getCephAgentDownloadCommand,
   getCephAgentUpgradeCommand,
@@ -738,6 +744,13 @@ export function getAgentUpgradeGuide(
         upgrade: getProxmoxAgentUpgradeCommand(oneuptimeUrl),
         download: getProxmoxAgentDownloadCommand(oneuptimeUrl),
         recreate: PROXMOX_AGENT_RECREATE_COMMAND,
+      });
+    case AgentKind.OpenStackAgent:
+      return getInstallScriptAgentGuide({
+        upgrade: getOpenStackAgentUpgradeCommand(oneuptimeUrl),
+        download: getOpenStackAgentDownloadCommand(oneuptimeUrl),
+        recreate: OPENSTACK_AGENT_RECREATE_COMMAND,
+        withoutDocker: getOpenStackAgentNativeUpgradeCommand(oneuptimeUrl),
       });
     case AgentKind.CephAgent:
       return getInstallScriptAgentGuide({

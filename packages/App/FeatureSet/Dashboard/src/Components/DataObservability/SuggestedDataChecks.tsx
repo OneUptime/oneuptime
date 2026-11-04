@@ -17,6 +17,7 @@ import {
   SuggestionTable,
 } from "Common/Types/DataObservability/DataCheckSuggestions";
 import { DEFAULT_DATA_CHECK_INTERVAL_IN_MINUTES } from "Common/Types/DataObservability/DataCheckType";
+import { DataColumnSensitivity } from "Common/Types/DataObservability/DataColumnSensitivity";
 import { getDataTableKey } from "Common/Types/DataObservability/DataObservabilityMetric";
 import IconProp from "Common/Types/Icon/IconProp";
 import ObjectID from "Common/Types/ObjectID";
@@ -71,10 +72,11 @@ const SuggestedDataChecks: FunctionComponent<ComponentProps> = (
     let isCurrent: boolean = true;
 
     const read: () => Promise<void> = async (): Promise<void> => {
-      const [checks, tables, dismissals]: [
+      const [checks, tables, dismissals, sensitiveColumns]: [
         ListResult<DataCheck>,
         ListResult<DataAsset>,
         Array<RecommendationDismissal>,
+        Array<DataColumnSensitivity>,
       ] = await Promise.all([
         ModelAPI.getList<DataCheck>({
           modelType: DataCheck,
@@ -99,6 +101,12 @@ const SuggestedDataChecks: FunctionComponent<ComponentProps> = (
           resourceId: props.dataAssetId,
           recommendationType: RecommendationType.DataCheck,
         }),
+        // Extra to the suggestions: without it the others are still offered.
+        DataObservabilityApi.getTableSensitivity(props.dataAssetId).catch(
+          (): Array<DataColumnSensitivity> => {
+            return [];
+          },
+        ),
       ]);
 
       if (!isCurrent) {
@@ -134,6 +142,7 @@ const SuggestedDataChecks: FunctionComponent<ComponentProps> = (
               return dismissal.recommendationId || "";
             },
           ),
+          sensitiveColumns,
         }),
       );
     };

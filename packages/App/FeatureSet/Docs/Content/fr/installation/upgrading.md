@@ -193,7 +193,7 @@ helm upgrade my-oneuptime oneuptime/oneuptime -f values.yaml
 
 ### Autres changements en 14
 
-Ces changements modifient le comportement de OneUptime après la mise à niveau, et la plupart ne demandent rien de votre part. Lisez-les si vous utilisez des rôles personnalisés ou des clés d'API composés d'autorisations individuelles, des états personnalisés d'incident, d'alerte ou de maintenance, Terraform ou l'API, le SSO, ou les applications Slack et Microsoft Teams.
+Ces changements modifient le comportement de OneUptime après la mise à niveau, et la plupart ne demandent rien de votre part. Lisez-les si vous utilisez des rôles personnalisés ou des clés d'API composés d'autorisations individuelles, des états personnalisés d'incident, d'alerte ou de maintenance, Terraform ou l'API, le SSO, ou les applications Slack et Microsoft Teams, ou si votre serveur n'a pas de serveur de messagerie fonctionnel.
 
 :::details Lire les autres changements en 14
 - **L'ingestion OTLP n'acquitte un lot qu'une fois que la file d'attente l'a accepté.** La 13 répondait `200` d'abord et mettait en file ensuite, si bien qu'un lot refusé par la file était perdu en silence. La 14 répond plutôt `503` avec `Telemetry queue unavailable. Please retry.`, et le point de terminaison gRPC renvoie `UNAVAILABLE` ; les deux peuvent être réessayés, et les exportateurs réessaient. Cela concerne les journaux, les métriques, les traces et les profils. Aucune action n'est nécessaire, mais les nouvelles tentatives côté exportateur et la contre-pression de la file deviennent visibles là où les données disparaissaient – utile à savoir si vous dimensionnez la capacité d'ingestion.

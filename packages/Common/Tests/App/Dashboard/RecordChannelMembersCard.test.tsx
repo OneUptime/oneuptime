@@ -123,10 +123,12 @@ const TEAMS_LINK: WorkspaceChannelLink = {
   url: TEAMS_URL,
 };
 
+const MATTERMOST_URL: string = "https://chat.example.com/acme/channels/inc-42";
+
 const MATTERMOST_LINK: WorkspaceChannelLink = {
   workspaceType: WorkspaceType.Mattermost,
   channelName: "inc-42",
-  url: "https://chat.example.com/acme/channels/inc-42",
+  url: MATTERMOST_URL,
 };
 
 function person(
@@ -171,6 +173,26 @@ function teamsChannel(
     peopleCount: 0,
     viewer: WorkspaceChannelViewerStatus.NotFound,
     teamName: "Ops",
+    ...overrides,
+  };
+}
+
+function mattermostChannel(
+  overrides: Partial<WorkspaceRecordChannel> = {},
+): WorkspaceRecordChannel {
+  return {
+    channelId: "mm0inc42000000000000000000",
+    workspaceType: WorkspaceType.Mattermost,
+    name: "inc-42",
+    url: MATTERMOST_URL,
+    isPrivate: true,
+    state: WorkspaceChannelState.Members,
+    people: [
+      person("mm0bob", "Bob Jones", BOB),
+      person("mm0sam", "Sam from Support"),
+    ],
+    peopleCount: 2,
+    viewer: WorkspaceChannelViewerStatus.NotIn,
     ...overrides,
   };
 }
@@ -360,33 +382,65 @@ describe("whether there is a card at all", () => {
   });
 
   /*
-   * OneUptime does not read who is in a Mattermost channel yet: its button is
-   * in the page's header, and the card neither shows a loader that goes away
-   * nor calls the channel a Slack one while it loads.
+   * The card used to leave Mattermost's channels out: a record with only one
+   * showed a loader titled Slack Channel that went away. It reads them now,
+   * and calls them Mattermost's while it does.
    */
-  test("a record whose channels are all in Mattermost has no card, and the page asks nothing more", async () => {
+  test("a record whose channels are all in Mattermost has the card, by Mattermost's name while it loads too", async () => {
+    readAnswer({ channels: [mattermostChannel()], canAddPeople: true });
     renderCard({ links: [MATTERMOST_LINK] });
 
-    expect(screen.queryByTestId("record-channel-members-card")).toBeNull();
-
-    await act(async () => {
-      await Promise.resolve();
-    });
-
-    expect(screen.queryByTestId("record-channel-members-card")).toBeNull();
-    expect(sent).toEqual([]);
-  });
-
-  test("channels in Slack and Mattermost: the card is the Slack channel's, loading or not", async () => {
-    readAnswer({ channels: [slackChannel()], canAddPeople: true });
-    renderCard({ links: [SLACK_LINK, MATTERMOST_LINK] });
-
-    expect(screen.getByText("Slack Channel")).toBeInTheDocument();
+    expect(screen.getByText("Mattermost Channel")).toBeInTheDocument();
+    expect(screen.queryByText("Slack Channel")).toBeNull();
 
     await card();
 
-    expect(screen.getByText("Slack Channel")).toBeInTheDocument();
+    expect(screen.getByText("Mattermost Channel")).toBeInTheDocument();
     expect(requestsOf("GET").length).toBe(1);
+  });
+
+  test("channels in Slack and Mattermost: one card that lists them both, as Chat Channels, loading or not", async () => {
+    readAnswer({
+      channels: [slackChannel(), mattermostChannel()],
+      canAddPeople: true,
+    });
+    renderCard({ links: [SLACK_LINK, MATTERMOST_LINK] });
+
+    expect(screen.getByText("Chat Channels")).toBeInTheDocument();
+
+    const element: HTMLElement = await card();
+
+    expect(screen.getByText("Chat Channels")).toBeInTheDocument();
+    expect(
+      within(element)
+        .getAllByTestId("record-channel-name")
+        .map((name: HTMLElement) => {
+          return name.textContent;
+        }),
+    ).toEqual(["#inc-42", "inc-42"]);
+    expect(requestsOf("GET").length).toBe(1);
+  });
+
+  test("channels in Microsoft Teams and Mattermost: Chat Channels too", async () => {
+    readAnswer({
+      channels: [teamsChannel(), mattermostChannel()],
+      canAddPeople: true,
+    });
+    renderCard({ links: [TEAMS_LINK, MATTERMOST_LINK] });
+
+    const element: HTMLElement = await card();
+
+    expect(screen.getByText("Chat Channels")).toBeInTheDocument();
+    expect(
+      within(element)
+        .getAllByTestId("record-channel")
+        .map((section: HTMLElement) => {
+          return section.getAttribute("data-channel-state");
+        }),
+    ).toEqual([
+      WorkspaceChannelState.ManagedInTeams,
+      WorkspaceChannelState.Members,
+    ]);
   });
 
   test("a record with a channel reads who is in it, at its own route, with the project", async () => {
@@ -945,7 +999,7 @@ describe("what somebody without Join channel is told", () => {
     renderCard({});
 
     expect(
-      within(await card()).getByTestId("record-channel-join-in-slack"),
+      within(await card()).getByTestId("record-channel-join-in-workspace"),
     ).toHaveTextContent(
       "You're not in this channel. It's public: open it in Slack to join.",
     );
@@ -968,7 +1022,7 @@ describe("what somebody without Join channel is told", () => {
 
     for (const [isPrivate, testId] of [
       [true, "record-channel-ask"],
-      [false, "record-channel-join-in-slack"],
+      [false, "record-channel-join-in-workspace"],
     ] as Array<[boolean, string]>) {
       readAnswer({
         channels: [slackChannel({ isPrivate })],
@@ -1258,6 +1312,479 @@ describe("Microsoft Teams channels", () => {
       WorkspaceChannelState.Members,
       WorkspaceChannelState.ManagedInTeams,
     ]);
+  });
+});
+
+describe("Mattermost channels", () => {
+  function renderMattermost(data: {
+    channel?: WorkspaceRecordChannel;
+    canAddPeople?: boolean;
+  }): { onChanged: MockFunction } {
+    readAnswer({
+      channels: [data.channel || mattermostChannel()],
+      canAddPeople: data.canAddPeople ?? true,
+    });
+
+    return renderCard({ links: [MATTERMOST_LINK] });
+  }
+
+  test("names the channel as a link to it on the project's server, says it is private and how many are in it, and lists them", async () => {
+    renderMattermost({});
+
+    const element: HTMLElement = await card();
+    const name: HTMLElement = within(element).getByTestId(
+      "record-channel-name",
+    );
+
+    // By its name: Mattermost writes no # in front.
+    expect(name).toHaveTextContent(/^inc-42$/);
+    expect(name).toHaveAttribute("href", MATTERMOST_URL);
+    expect(name).toHaveAttribute("title", "Open in Mattermost");
+    expect(name).toHaveAttribute("target", "_blank");
+    expect(name).toHaveAttribute("rel", "noopener noreferrer");
+
+    expect(
+      within(element).getByTestId("record-channel-meta"),
+    ).toHaveTextContent("Private channel · 2 people");
+    expect(
+      within(element)
+        .getAllByTestId("record-channel-person-name")
+        .map((person: HTMLElement) => {
+          return person.textContent;
+        }),
+    ).toEqual(["Bob Jones", "Sam from Support"]);
+    expect(
+      within(element).getByTestId("record-channel-join"),
+    ).toBeInTheDocument();
+    expect(
+      within(element).getByTestId("record-channel-add-people"),
+    ).toBeInTheDocument();
+  });
+
+  test("a public channel says so", async () => {
+    renderMattermost({ channel: mattermostChannel({ isPrivate: false }) });
+
+    expect(
+      within(await card()).getByTestId("record-channel-meta"),
+    ).toHaveTextContent("Public channel · 2 people");
+  });
+
+  test("Join channel has the bot add the viewer, then points at the channel, on the project's server", async () => {
+    renderMattermost({});
+    addAnswers = [
+      {
+        results: [
+          {
+            userId: VIEWER,
+            name: "Alice Smith",
+            outcome: WorkspaceChannelAddOutcome.Added,
+          },
+        ],
+      },
+    ];
+
+    const element: HTMLElement = await card();
+
+    lastRead = {
+      channels: [
+        mattermostChannel({
+          people: [
+            { ...person("mm0alice", "Alice Smith", VIEWER), isViewer: true },
+            person("mm0bob", "Bob Jones", BOB),
+          ],
+          viewer: WorkspaceChannelViewerStatus.In,
+        }),
+      ],
+      canAddPeople: true,
+    };
+
+    fireEvent.click(within(element).getByTestId("record-channel-join"));
+
+    expect(
+      await within(element).findByText("You're in the channel now."),
+    ).toBeInTheDocument();
+
+    expect(requestsOf("POST")[0]!.data).toEqual({
+      channelId: "mm0inc42000000000000000000",
+      userIds: [VIEWER],
+      teamIds: [],
+    });
+
+    // The card read who is in it again.
+    await waitFor(() => {
+      expect(requestsOf("GET").length).toBe(2);
+      expect(
+        within(element).getByTestId("record-channel-person-you"),
+      ).toBeInTheDocument();
+    });
+
+    const open: HTMLElement = within(element).getByRole("link", {
+      name: "Open in Mattermost",
+    });
+
+    expect(open).toHaveAttribute("href", MATTERMOST_URL);
+    expect(open).toHaveAttribute(
+      "data-testid",
+      "record-channel-open-after-join",
+    );
+    expect(document.activeElement).toBe(open);
+    expect(within(element).queryByText("Open in Slack")).toBeNull();
+  });
+
+  test("OneUptime cannot find the viewer in Mattermost: Connect Mattermost account, to their own Mattermost settings", async () => {
+    renderMattermost({
+      channel: mattermostChannel({
+        viewer: WorkspaceChannelViewerStatus.NotFound,
+      }),
+    });
+
+    const element: HTMLElement = await card();
+    const connect: HTMLElement = within(element).getByTestId(
+      "record-channel-connect",
+    );
+
+    expect(connect).toHaveTextContent(
+      "OneUptime can't find your Mattermost account, so it can't add you.",
+    );
+    expect(
+      within(connect).getByText("Connect Mattermost account").closest("a"),
+    ).toHaveAttribute(
+      "href",
+      `/dashboard/${PROJECT_ID}/user-settings/mattermost-integration?connectAccount=true`,
+    );
+    expect(within(element).queryByTestId("record-channel-join")).toBeNull();
+    expect(
+      within(element).getByTestId("record-channel-add-people"),
+    ).toBeInTheDocument();
+  });
+
+  test("a public channel, without permission: open it in Mattermost to join", async () => {
+    renderMattermost({
+      channel: mattermostChannel({ isPrivate: false }),
+      canAddPeople: false,
+    });
+
+    expect(
+      within(await card()).getByTestId("record-channel-join-in-workspace"),
+    ).toHaveTextContent(
+      "You're not in this channel. It's public: open it in Mattermost to join.",
+    );
+  });
+
+  test("a private channel, without permission: who to ask, and no buttons", async () => {
+    renderMattermost({ canAddPeople: false });
+
+    const element: HTMLElement = await card();
+
+    expect(within(element).getByTestId("record-channel-ask")).toHaveTextContent(
+      "You're not in this channel. Ask someone who can edit this incident to add you.",
+    );
+    expect(within(element).queryByTestId("record-channel-join")).toBeNull();
+    expect(
+      within(element).queryByTestId("record-channel-add-people"),
+    ).toBeNull();
+  });
+
+  test("archived: named so, its people listed, and no buttons", async () => {
+    renderMattermost({
+      channel: mattermostChannel({ state: WorkspaceChannelState.Archived }),
+    });
+
+    const element: HTMLElement = await card();
+
+    expect(
+      within(element).getByTestId("record-channel-meta"),
+    ).toHaveTextContent("Archived · 2 people");
+    expect(
+      within(element).getByTestId("record-channel-state"),
+    ).toHaveTextContent(
+      "This channel is archived. Unarchive it in Mattermost to add people.",
+    );
+    expect(within(element).getAllByTestId("record-channel-person").length).toBe(
+      2,
+    );
+    expect(within(element).queryByTestId("record-channel-join")).toBeNull();
+    expect(
+      within(element).queryByTestId("record-channel-add-people"),
+    ).toBeNull();
+  });
+
+  test("out of OneUptime's sight: what happened, and who can let the bot back in, with no Slack command", async () => {
+    renderMattermost({
+      channel: mattermostChannel({
+        state: WorkspaceChannelState.Unreachable,
+        people: [],
+        peopleCount: 0,
+        isPrivate: null,
+        viewer: WorkspaceChannelViewerStatus.NotFound,
+      }),
+    });
+
+    const state: HTMLElement = within(await card()).getByTestId(
+      "record-channel-state",
+    );
+
+    expect(state).toHaveTextContent(
+      "OneUptime can't see this channel. It was deleted, or OneUptime's bot was removed from it.",
+    );
+    expect(
+      within(state).getByTestId("record-channel-unreachable-hint"),
+    ).toHaveTextContent(
+      /^If it's still there, someone in it can add the bot back in Mattermost\.$/,
+    );
+    expect(state.querySelector("code")).toBeNull();
+    expect(screen.queryByTestId("record-channel-people")).toBeNull();
+  });
+
+  test("a public channel the bot left says it is public, and offers nothing it would have to join for", async () => {
+    renderMattermost({
+      channel: mattermostChannel({
+        state: WorkspaceChannelState.Unreachable,
+        people: [],
+        peopleCount: 0,
+        isPrivate: false,
+        viewer: WorkspaceChannelViewerStatus.NotFound,
+      }),
+    });
+
+    const element: HTMLElement = await card();
+
+    expect(
+      within(element).getByTestId("record-channel-meta"),
+    ).toHaveTextContent(/^Public channel$/);
+    expect(within(element).queryByTestId("record-channel-join")).toBeNull();
+    expect(
+      within(element).queryByTestId("record-channel-add-people"),
+    ).toBeNull();
+  });
+
+  test("Mattermost not answering: Try again reads again", async () => {
+    renderMattermost({
+      channel: mattermostChannel({
+        state: WorkspaceChannelState.Unavailable,
+        people: [],
+        peopleCount: 0,
+      }),
+    });
+
+    const element: HTMLElement = await card();
+
+    expect(
+      within(element).getByTestId("record-channel-state"),
+    ).toHaveTextContent("Mattermost didn't answer. Try again in a minute.");
+
+    fireEvent.click(within(element).getByTestId("record-channel-try-again"));
+
+    await waitFor(() => {
+      expect(requestsOf("GET").length).toBe(2);
+    });
+  });
+
+  test("Mattermost's connection gone: Connect Mattermost, to the project's Mattermost settings", async () => {
+    renderMattermost({
+      channel: mattermostChannel({
+        state: WorkspaceChannelState.NotConnected,
+        people: [],
+        peopleCount: 0,
+      }),
+    });
+
+    const state: HTMLElement = within(await card()).getByTestId(
+      "record-channel-state",
+    );
+
+    expect(state).toHaveTextContent(
+      "Mattermost isn't connected to this project.",
+    );
+    expect(
+      within(state).getByRole("link", { name: "Connect Mattermost" }),
+    ).toHaveAttribute(
+      "href",
+      `/dashboard/${PROJECT_ID}/settings/mattermost-integration`,
+    );
+  });
+
+  test("a join that turns out archived says so in Mattermost's words", async () => {
+    renderMattermost({});
+    addAnswers = [
+      { channelState: WorkspaceChannelState.Archived, results: [] },
+    ];
+
+    const element: HTMLElement = await card();
+
+    fireEvent.click(within(element).getByTestId("record-channel-join"));
+
+    expect(
+      await within(element).findByText(
+        "This channel is archived. Unarchive it in Mattermost to add people.",
+      ),
+    ).toBeInTheDocument();
+  });
+
+  test("a join refused says so in Mattermost's words, and leaves Join channel there", async () => {
+    renderMattermost({});
+    addAnswers = [
+      {
+        results: [
+          {
+            userId: VIEWER,
+            name: "Alice Smith",
+            outcome: WorkspaceChannelAddOutcome.NotInTeam,
+          },
+        ],
+      },
+    ];
+
+    const element: HTMLElement = await card();
+
+    fireEvent.click(within(element).getByTestId("record-channel-join"));
+
+    expect(await within(element).findByRole("alert")).toHaveTextContent(
+      "You're not in the Mattermost team this project is connected to, so OneUptime can't add you.",
+    );
+    expect(
+      within(element).queryByTestId("record-channel-open-after-join"),
+    ).toBeNull();
+    expect(
+      within(element).getByTestId("record-channel-join"),
+    ).toBeInTheDocument();
+  });
+
+  test("Add people adds a person into its channel, and says what the pick came to in Mattermost's words", async () => {
+    renderMattermost({});
+    addAnswers = [
+      {
+        results: [
+          {
+            userId: CAROL,
+            name: "Carol Lee",
+            outcome: WorkspaceChannelAddOutcome.Added,
+          },
+        ],
+      },
+      {
+        results: [
+          {
+            userId: DAN,
+            name: "Dan Brown",
+            outcome: WorkspaceChannelAddOutcome.NotFound,
+          },
+        ],
+      },
+    ];
+
+    const element: HTMLElement = await card();
+
+    fireEvent.click(within(element).getByTestId("record-channel-add-people"));
+
+    const dialog: HTMLElement = await screen.findByRole("dialog", {
+      name: "Add people",
+    });
+
+    await within(dialog).findAllByRole("option");
+
+    fireEvent.click(within(dialog).getByRole("option", { name: /Carol Lee/ }));
+
+    expect(
+      await within(dialog).findByTestId("people-search-notice-done"),
+    ).toHaveTextContent(/^Added Carol Lee\.$/);
+    expect(requestsOf("POST")[0]!.data).toEqual({
+      channelId: "mm0inc42000000000000000000",
+      userIds: [CAROL],
+      teamIds: [],
+    });
+
+    fireEvent.click(within(dialog).getByRole("option", { name: /Dan Brown/ }));
+
+    expect(await within(dialog).findByRole("alert")).toHaveTextContent(
+      "OneUptime can't find Dan Brown in Mattermost: their account isn't connected, and OneUptime can't see a Mattermost account with their email address. Ask them to connect Mattermost in User Settings.",
+    );
+  });
+
+  test("Add people into a team's people: who is outside the Mattermost team is named in one sentence", async () => {
+    renderMattermost({});
+    addAnswers = [
+      {
+        results: [
+          {
+            userId: CAROL,
+            name: "Carol Lee",
+            outcome: WorkspaceChannelAddOutcome.NotInTeam,
+          },
+          {
+            userId: DAN,
+            name: "Dan Brown",
+            outcome: WorkspaceChannelAddOutcome.NotInTeam,
+          },
+        ],
+      },
+    ];
+
+    const element: HTMLElement = await card();
+
+    fireEvent.click(within(element).getByTestId("record-channel-add-people"));
+
+    const dialog: HTMLElement = await screen.findByRole("dialog", {
+      name: "Add people",
+    });
+
+    await within(dialog).findAllByRole("option");
+
+    fireEvent.click(within(dialog).getByRole("option", { name: /Platform/ }));
+
+    expect(await within(dialog).findByRole("alert")).toHaveTextContent(
+      "Carol Lee and Dan Brown aren't in the Mattermost team this project is connected to, so OneUptime can't add them.",
+    );
+  });
+
+  test("the people in it are left out of the Add people list, by their OneUptime account", async () => {
+    renderMattermost({});
+
+    const element: HTMLElement = await card();
+
+    fireEvent.click(within(element).getByTestId("record-channel-add-people"));
+
+    const dialog: HTMLElement = await screen.findByRole("dialog", {
+      name: "Add people",
+    });
+
+    await within(dialog).findAllByRole("option");
+
+    expect(
+      within(dialog)
+        .getAllByRole("option")
+        .map((option: HTMLElement) => {
+          return option.getAttribute("data-id");
+        }),
+    ).toEqual([VIEWER, CAROL, DAN, PLATFORM]);
+  });
+
+  test("a card with channels in both products says each channel's state in its own product's words", async () => {
+    readAnswer({
+      channels: [
+        slackChannel({
+          state: WorkspaceChannelState.Unavailable,
+          people: [],
+          peopleCount: 0,
+        }),
+        mattermostChannel({
+          state: WorkspaceChannelState.Unavailable,
+          people: [],
+          peopleCount: 0,
+        }),
+      ],
+      canAddPeople: true,
+    });
+    renderCard({ links: [SLACK_LINK, MATTERMOST_LINK] });
+
+    const states: Array<string | null> = within(await card())
+      .getAllByTestId("record-channel-state")
+      .map((state: HTMLElement) => {
+        return state.textContent;
+      });
+
+    expect(states[0]).toContain("Slack didn't answer.");
+    expect(states[1]).toContain("Mattermost didn't answer.");
   });
 });
 

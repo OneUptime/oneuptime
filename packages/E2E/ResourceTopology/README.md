@@ -2,8 +2,8 @@
 
 An offline harness for every resource's Topology page and the master
 Topology that links into them: a vCenter, a Kubernetes cluster, a host, a
-Docker and a Podman host, a Docker Swarm, Proxmox and Ceph cluster and a
-storage array (`packages/App/FeatureSet/Dashboard/src/Pages/*/View/Topology.tsx`,
+Docker and a Podman host, a Docker Swarm, Proxmox and Ceph cluster, an OpenStack
+cloud and a storage array (`packages/App/FeatureSet/Dashboard/src/Pages/*/View/Topology.tsx`,
 drawn by `Components/ResourceTopology`), each inside its production product
 layout and side menu, and Topology → Infrastructure
 (`Pages/Topology/TopologyPage.tsx`). It bundles the production pages with
@@ -21,7 +21,8 @@ that is not effective, a swapping and a contended virtual machine and two
 nearly full datastores; a cluster of five namespaces and six nodes with a
 deployment that has no ready replica and a node that is not ready; a host whose services
 are called from elsewhere and call a database and a failing payments
-service; and a few troubled parts in each of the other six. Open incidents
+service; an OpenStack cloud with a stopped nova-compute and instances of two
+projects on that host; and a few troubled parts in each of the other six. Open incidents
 and alerts are linked to the resources the way monitors link them, with the
 series labels that name the part.
 

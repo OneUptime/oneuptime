@@ -30,6 +30,7 @@ export enum AffectedResourceKind {
   DockerHost = "DockerHost",
   PodmanHost = "PodmanHost",
   ProxmoxCluster = "ProxmoxCluster",
+  OpenStackCloud = "OpenStackCloud",
   VMwareVCenter = "VMwareVCenter",
   CephCluster = "CephCluster",
   StorageArray = "StorageArray",

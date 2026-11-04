@@ -136,7 +136,7 @@ ENV_ARGS=(
   # The OpenStack agent: its prometheus receiver asks one exporter for each
   # clouds.yaml entry, so the clouds are a list and the exporter a host:port.
   -e "OPENSTACK_CLOUD_NAME=validate-only"
-  -e "OPENSTACK_EXPORTER_CLOUDS=[region-one,region-two]"
+  -e "OPENSTACK_EXPORTER_CLOUDS=[RegionOne,RegionTwo]"
   -e "OPENSTACK_EXPORTER_ADDRESS=openstack-exporter:9180"
   # The Storage Array Agent (a prometheus receiver scraping a FlashArray's
   # native endpoint, or Pure's exporter sidecars). The prometheus receiver

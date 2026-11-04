@@ -1,5 +1,6 @@
 import CaptureSpan from "../../../Utils/Telemetry/CaptureSpan";
 import ActiveMonitoringMeteredPlanType from "./ActiveMonitoringMeteredPlan";
+import WatchedTableMeteredPlanType from "./WatchedTableMeteredPlan";
 import ServerMeteredPlan from "./ServerMeteredPlan";
 import TelemetryMeteredPlanType from "./TelemetryMeteredPlan";
 import BadDataException from "../../../../Types/Exception/BadDataException";
@@ -21,6 +22,9 @@ const TELEMETRY_UNIT_COST_IN_USD: number =
 
 export const ActiveMonitoringMeteredPlan: ActiveMonitoringMeteredPlanType =
   new ActiveMonitoringMeteredPlanType();
+
+export const WatchedTableMeteredPlan: WatchedTableMeteredPlanType =
+  new WatchedTableMeteredPlanType();
 
 export const LogDataIngestMeteredPlan: TelemetryMeteredPlanType =
   new TelemetryMeteredPlanType({
@@ -87,6 +91,7 @@ export const SecurityEventsDataIngestMeteredPlan: TelemetryMeteredPlanType =
 
 const AllMeteredPlans: Array<ServerMeteredPlan> = [
   ActiveMonitoringMeteredPlan,
+  WatchedTableMeteredPlan,
   LogDataIngestMeteredPlan,
   MetricsDataIngestMeteredPlan,
   TracesDataIngestMetredPlan,
@@ -114,6 +119,8 @@ export class MeteredPlanUtil {
       return SecurityEventsDataIngestMeteredPlan;
     } else if (productType === ProductType.ActiveMonitoring) {
       return ActiveMonitoringMeteredPlan;
+    } else if (productType === ProductType.WatchedTables) {
+      return WatchedTableMeteredPlan;
     }
 
     throw new BadDataException(`Unknown product type ${productType}`);

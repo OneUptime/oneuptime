@@ -145,6 +145,7 @@ Templates read the past 5 minutes unless the table says otherwise. A criteria fi
 - **Count and state templates use Max**, so one collection that shows the condition trips them: packet errors, ballooning, swapping, red and yellow status, hosts that are not effective, congestion.
 - **Host Not Responding uses Max and fires at 0:** a running ESXi host always uses memory, so one collection that reports memory in use is a host that answers, and only a window in which none did fires it.
 - **Every template groups by the object's own identity attribute**, so one incident fires per affected object, and the incident names it. The exception is **vCenter Stopped Reporting**, which watches the whole vCenter: when data stops, the other templates have nothing to compare and keep their last status, so this is the one that tells you.
+- **Datacenter count templates recover when their series is gone:** the receiver records a count only for the states that exist, so the last red host turning green leaves no series, and their recovery criteria count a missing series as 0. With no series left in any datacenter, they recover only if `vcenter.datacenter.cpu.limit` arrived in the same window, so a vCenter that stopped reporting closes nothing.
 - **Thresholds are pinned to their unit** (`%`, `ms`, `us`), so they keep their meaning whatever unit a chart shows.
 
 ## Collected Metrics

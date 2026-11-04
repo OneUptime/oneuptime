@@ -49,12 +49,12 @@ READS = [
     ("network", "security groups", "/v2.0/security-groups", "security_groups", {}),
     ("network", "ports", "/v2.0/ports?limit=1000", "ports", {}),
     ("network", "quotas", "/v2.0/quotas", "quotas", {}),
-    ("volumev3", "volumes, all projects", "/volumes/detail?all_tenants=1&limit=1000", "volumes", VOLUME_VERSION),
-    ("volumev3", "services", "/os-services", "services", VOLUME_VERSION),
-    ("volumev3", "pools", "/scheduler-stats/get_pools?detail=true", "pools", VOLUME_VERSION),
-    ("volumev3", "snapshots, all projects", "/snapshots/detail?all_tenants=1&limit=1000", "snapshots", VOLUME_VERSION),
-    ("volumev3", "backups, all projects", "/backups/detail?all_tenants=1&limit=1000", "backups", VOLUME_VERSION),
-    ("volumev3", "volume types", "/types", "volume_types", VOLUME_VERSION),
+    ("block-storage", "volumes, all projects", "/volumes/detail?all_tenants=1&limit=1000", "volumes", VOLUME_VERSION),
+    ("block-storage", "services", "/os-services", "services", VOLUME_VERSION),
+    ("block-storage", "pools", "/scheduler-stats/get_pools?detail=true", "pools", VOLUME_VERSION),
+    ("block-storage", "snapshots, all projects", "/snapshots/detail?all_tenants=1&limit=1000", "snapshots", VOLUME_VERSION),
+    ("block-storage", "backups, all projects", "/backups/detail?all_tenants=1&limit=1000", "backups", VOLUME_VERSION),
+    ("block-storage", "volume types", "/types", "volume_types", VOLUME_VERSION),
     ("image", "images", "/v2/images?limit=1000", "images", {}),
     ("load-balancer", "load balancers", "/v2/lbaas/loadbalancers", "loadbalancers", {}),
     ("load-balancer", "amphorae", "/v2/octavia/amphorae", "amphorae", {}),
@@ -63,18 +63,37 @@ READS = [
 
 # Writes a monitoring credential must be refused. Each creates something small
 # if it wrongly succeeds, on a throwaway cloud, and the run fails if one does.
-WRITES = [
-    ("compute", "create a flavor", "POST", "/flavors",
-     {"flavor": {"name": "ou-write-check", "ram": 64, "vcpus": 1, "disk": 0}}, COMPUTE_VERSION),
-    ("compute", "create an aggregate", "POST", "/os-aggregates",
-     {"aggregate": {"name": "ou-write-check"}}, COMPUTE_VERSION),
-    ("network", "create a network", "POST", "/v2.0/networks",
-     {"network": {"name": "ou-write-check"}}, {}),
-    ("volumev3", "create a volume", "POST", "/volumes",
-     {"volume": {"size": 1, "name": "ou-write-check"}}, VOLUME_VERSION),
-    ("identity", "create a project", "POST", "/v3/projects",
-     {"project": {"name": "ou-write-check"}}, {}),
-]
+#
+# The ones an ordinary project member can do matter most. Cinder ships with
+# enforce_new_defaults off, and there any role on a project can create that project's
+# volumes, `reader` included. Only asking is how anyone finds out.
+def writes():
+    flavor = os.environ.get("OU_WRITE_FLAVOR_ID", "")
+    image = os.environ.get("OU_WRITE_IMAGE_ID", "")
+    external = os.environ.get("OU_WRITE_EXTERNAL_NETWORK_ID", "")
+    return [
+        ("compute", "create a flavor", "POST", "/flavors",
+         {"flavor": {"name": "ou-write-check", "ram": 64, "vcpus": 1, "disk": 0}}, COMPUTE_VERSION),
+        ("compute", "create an aggregate", "POST", "/os-aggregates",
+         {"aggregate": {"name": "ou-write-check"}}, COMPUTE_VERSION),
+        ("compute", "boot an instance", "POST", "/servers",
+         {"server": {"name": "ou-write-check", "flavorRef": flavor, "imageRef": image, "networks": "none"}},
+         COMPUTE_VERSION),
+        ("network", "create a network", "POST", "/v2.0/networks",
+         {"network": {"name": "ou-write-check"}}, {}),
+        ("network", "create a router", "POST", "/v2.0/routers",
+         {"router": {"name": "ou-write-check"}}, {}),
+        ("network", "create a security group", "POST", "/v2.0/security-groups",
+         {"security_group": {"name": "ou-write-check"}}, {}),
+        ("network", "take a floating IP", "POST", "/v2.0/floatingips",
+         {"floatingip": {"floating_network_id": external}}, {}),
+        ("block-storage", "create a volume", "POST", "/volumes",
+         {"volume": {"size": 1, "name": "ou-write-check"}}, VOLUME_VERSION),
+        ("image", "create an image", "POST", "/v2/images",
+         {"name": "ou-write-check", "disk_format": "raw", "container_format": "bare"}, {}),
+        ("identity", "create a project", "POST", "/v3/projects",
+         {"project": {"name": "ou-write-check"}}, {}),
+    ]
 
 
 def request(url, token, method="GET", body=None, headers=None):
@@ -102,7 +121,24 @@ def endpoints_from_env():
         for endpoint in service.get("Endpoints") or service.get("endpoints") or []:
             if endpoint.get("interface") == "public":
                 found[kind] = endpoint["url"].rstrip("/")
+    # A current catalog calls Cinder block-storage, an older one volumev3.
+    if "block-storage" not in found and "volumev3" in found:
+        found["block-storage"] = found["volumev3"]
     return found
+
+
+# Why it was refused, in the service's own words, which often name the rule.
+def reason_of(text):
+    try:
+        parsed = json.loads(text)
+    except ValueError:
+        return text[:200]
+    if not isinstance(parsed, dict):
+        return ""
+    for value in parsed.values():
+        if isinstance(value, dict) and value.get("message"):
+            return str(value["message"])[:200]
+    return str(parsed.get("message") or parsed.get("detail") or "")[:200]
 
 
 def count_of(text, key):
@@ -144,10 +180,12 @@ def main():
                 "seesAll": status == 200
                 and (admin_count is None or count is None or count >= admin_count),
             }
+            if status != 200:
+                row["results"][name]["reason"] = reason_of(text)
         matrix["reads"].append(row)
 
     failures = []
-    for service, label, method, path, body, headers in WRITES:
+    for service, label, method, path, body, headers in writes():
         base = endpoints.get(service)
         if not base:
             continue
@@ -155,10 +193,13 @@ def main():
         for name, token in tokens:
             if name == admin_name:
                 continue
-            status, _ = request(base + path, token, method=method, body=body, headers=headers)
-            row["results"][name] = {"status": status}
+            status, text = request(base + path, token, method=method, body=body, headers=headers)
+            row["results"][name] = {"status": status, "wrote": status in (200, 201, 202)}
+            if status not in (200, 201, 202):
+                row["results"][name]["reason"] = reason_of(text)
             # Only the credentials we would tell a customer to use must never
-            # write. A plain member is expected to be able to make a network.
+            # write. What a plain reader or member can do is the cloud's own business,
+            # and is recorded for the docs to say.
             if name.startswith("monitoring") and status in (200, 201, 202):
                 failures.append(f"{name} could {label} (HTTP {status})")
         matrix["writes"].append(row)
@@ -179,6 +220,10 @@ def main():
     for row in matrix["writes"]:
         print(f"write {row['service']}: {row['write']:<30}" + " ".join(
             f"{n}={row['results'][n]['status']}" for n in row["results"]))
+    for row in matrix["reads"]:
+        for name in names:
+            if name.startswith("monitoring") and row["results"][name].get("reason"):
+                print(f"{name} refused {row['service']}: {row['read']}: {row['results'][name]['reason']}")
 
     if failures:
         print("\n".join(failures), file=sys.stderr)

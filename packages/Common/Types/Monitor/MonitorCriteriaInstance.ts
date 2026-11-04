@@ -72,6 +72,18 @@ export default class MonitorCriteriaInstance extends DatabaseProperty {
   }
 
   /*
+   * A criteria opens records when it is switched on to open alerts or
+   * incidents and has at least one to open.
+   */
+  public static opensRecords(criteria: MonitorCriteriaInstanceType): boolean {
+    return (
+      (Boolean(criteria.createIncidents) &&
+        (criteria.incidents || []).length > 0) ||
+      (Boolean(criteria.createAlerts) && (criteria.alerts || []).length > 0)
+    );
+  }
+
+  /*
    * Keyword the out-of-the-box criteria for the two incoming monitor types
    * (Incoming Request and Incoming Email) look for in the payload body.
    *

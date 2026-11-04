@@ -1,3 +1,4 @@
+import { normalizeWatchedPaths } from "../../Types/DataObservability/StoragePaths";
 import ProjectReferencesService from "./ProjectReferencesService";
 import Model from "../../Models/DatabaseModels/DataStore";
 import DataStoreFeedService from "./DataStoreFeedService";
@@ -257,6 +258,10 @@ export class Service extends ProjectReferencesService<Model> {
       data["connectionString"] = Service.readConnectionString(
         data["connectionString"],
       );
+    }
+
+    if (data["watchedPaths"] !== undefined) {
+      data["watchedPaths"] = normalizeWatchedPaths(data["watchedPaths"]);
     }
 
     if (data["name"] !== undefined) {

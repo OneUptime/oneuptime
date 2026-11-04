@@ -14,6 +14,7 @@ import IoTFleet from "Common/Models/DatabaseModels/IoTFleet";
 import KubernetesCluster from "Common/Models/DatabaseModels/KubernetesCluster";
 import NetworkDevice from "Common/Models/DatabaseModels/NetworkDevice";
 import PodmanHost from "Common/Models/DatabaseModels/PodmanHost";
+import OpenStackCloud from "Common/Models/DatabaseModels/OpenStackCloud";
 import ProxmoxCluster from "Common/Models/DatabaseModels/ProxmoxCluster";
 import ServerlessFunction from "Common/Models/DatabaseModels/ServerlessFunction";
 import VMwareVCenter from "Common/Models/DatabaseModels/VMwareVCenter";
@@ -279,6 +280,14 @@ const RESOURCE_PAGES: Record<AIResourceType, ResourcePageDefinition> = {
         detailPage: PageMap.PROXMOX_CLUSTER_VIEW_STORAGE_DETAIL,
       },
     ],
+  },
+  // A part's page reads as its cloud (AI_RESOURCE_SUBRESOURCE_KINDS).
+  [AIResourceType.OpenStackCloud]: {
+    listPage: PageMap.OPENSTACK_CLOUDS,
+    detailPage: PageMap.OPENSTACK_CLOUD_VIEW,
+    modelType: OpenStackCloud,
+    noun: translationKey("OpenStack cloud"),
+    subresources: [],
   },
   [AIResourceType.VMwareVCenter]: {
     listPage: PageMap.VMWARE_VCENTERS,

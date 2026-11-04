@@ -9,7 +9,7 @@ Legen Sie unter **Data Observability > Datenprodukte** ein Datenprodukt an: Gebe
 - **Aktuell bis zu einer Tageszeit (UTC):** Die Daten jedes Tages kommen an diesem Tag bis zu dieser Uhrzeit an. Ab dieser Uhrzeit muss sich jede Tabelle an diesem Tag geändert haben; bis dahin gilt die Ladung von gestern. Eine Ladung, die immer eine halbe Stunde zu spät kommt, ist jeden Tag für diese halbe Stunde verspätet.
 - **Ein maximales Alter:** Die letzte Änderung jeder Tabelle darf nicht älter sein als dieser Wert.
 
-Alle fünf Minuten werden die Tabellen jedes Produkts gegen sein SLA geprüft. Das Produkt ist **Late**, sobald eine seiner Tabellen es ist, und seine Daten haben den Stand der ältesten letzten Änderung unter ihnen. Es schreibt `oneuptime.data.product.late_tables` und `oneuptime.data.product.data_age`, sodass Sie die Aktualität aller Produkte nebeneinander darstellen können.
+Alle fünf Minuten werden die Tabellen jedes Produkts gegen sein SLA geprüft. Das Produkt ist **Verspätet**, sobald eine seiner Tabellen es ist, und seine Daten haben den Stand der ältesten letzten Änderung unter ihnen. Es schreibt `oneuptime.data.product.late_tables` und `oneuptime.data.product.data_age`, sodass Sie die Aktualität aller Produkte nebeneinander darstellen können.
 
 ## Auf Statusseiten
 

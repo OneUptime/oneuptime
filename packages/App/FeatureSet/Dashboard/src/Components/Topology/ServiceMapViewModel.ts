@@ -792,6 +792,8 @@ const SHORT_NOUNS: Record<string, [string, string]> = {
   [EntityType.DockerHost]: ["Docker host", "Docker hosts"],
   [EntityType.PodmanHost]: ["Podman host", "Podman hosts"],
   [EntityType.ProxmoxGuest]: ["guest", "guests"],
+  [EntityType.OpenStackHypervisor]: ["hypervisor", "hypervisors"],
+  [EntityType.OpenStackInstance]: ["instance", "instances"],
   [EntityType.VMwareVirtualMachine]: ["VM", "VMs"],
 };
 

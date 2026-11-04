@@ -193,7 +193,7 @@ helm upgrade my-oneuptime oneuptime/oneuptime -f values.yaml
 
 ### 14 中的其他变更
 
-这些变更会改变升级后 OneUptime 的行为，大多数不需要你做任何事。如果你使用由单项权限组成的自定义角色或 API 密钥、事件、警报或维护的自定义状态、Terraform 或 API、SSO，或者 Slack 和 Microsoft Teams 应用，请阅读它们。
+这些变更会改变升级后 OneUptime 的行为，大多数不需要你做任何事。如果你使用由单项权限组成的自定义角色或 API 密钥、事件、警报或维护的自定义状态、Terraform 或 API、SSO，或者 Slack 和 Microsoft Teams 应用，或者你的服务器没有可用的邮件服务器，请阅读它们。
 
 :::details 阅读 14 中的其他变更
 - **OTLP 接收只在队列接受批次之后才确认该批次。** 13 先响应 `200`，之后才入队，因此被队列拒绝的批次会悄悄丢失。14 改为响应 `503` 并附带 `Telemetry queue unavailable. Please retry.`，gRPC 端点返回 `UNAVAILABLE`；两者都可以重试，导出器也会重试。这适用于日志、指标、追踪和性能剖析数据。你无需做任何事，但以前数据会消失的地方，现在能看到导出器的重试和队列的背压——如果你在规划接收容量，这一点值得了解。

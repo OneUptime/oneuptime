@@ -212,9 +212,9 @@ describe("TelemetryFacetSidebar hides empty resource facets", () => {
     }
     view.rerender(sidebarElement({ facetData: allEmpty }));
 
-    // One per catalog type (fourteen, Databases and Storage Arrays included).
+    // One per catalog type (fifteen, Databases and Storage Arrays included).
     const count: number = RESOURCE_FACET_CATALOG.length;
-    expect(count).toBe(14);
+    expect(count).toBe(15);
     expect(footer()).toHaveTextContent(`${count} empty filters hidden`);
   });
 

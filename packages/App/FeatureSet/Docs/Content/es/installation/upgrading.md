@@ -193,7 +193,7 @@ helm upgrade my-oneuptime oneuptime/oneuptime -f values.yaml
 
 ### Otros cambios en la 14
 
-Estos cambios modifican cómo se comporta OneUptime después de la actualización, y la mayoría no requieren nada por su parte. Léalos si usa roles personalizados o claves de API formados por permisos sueltos, estados propios de incidentes, alertas o mantenimientos, Terraform o la API, SSO, o las aplicaciones de Slack y Microsoft Teams.
+Estos cambios modifican cómo se comporta OneUptime después de la actualización, y la mayoría no requieren nada por su parte. Léalos si usa roles personalizados o claves de API formados por permisos sueltos, estados propios de incidentes, alertas o mantenimientos, Terraform o la API, SSO, o las aplicaciones de Slack y Microsoft Teams, o si su servidor no tiene un servidor de correo que funcione.
 
 :::details Leer los demás cambios de la 14
 - **La ingesta OTLP confirma un lote solo cuando la cola lo ha aceptado.** La 13 respondía primero `200` y encolaba después, así que un lote que la cola rechazaba se perdía en silencio. La 14 responde en su lugar `503` con `Telemetry queue unavailable. Please retry.`, y el endpoint gRPC devuelve `UNAVAILABLE`; ambos se pueden reintentar, y los exportadores reintentan. Esto se aplica a registros, métricas, trazas y perfiles. No hace falta hacer nada, pero los reintentos de los exportadores y la contrapresión de la cola son ahora visibles donde antes desaparecían datos – conviene saberlo si dimensiona la capacidad de ingesta.

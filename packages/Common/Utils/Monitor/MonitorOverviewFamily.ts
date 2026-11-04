@@ -109,6 +109,7 @@ export default class MonitorOverviewFamilyUtil {
       case MonitorType.Podman:
       case MonitorType.DockerSwarm:
       case MonitorType.Proxmox:
+      case MonitorType.OpenStack:
       case MonitorType.VMware:
       case MonitorType.Ceph:
       case MonitorType.StorageArray:

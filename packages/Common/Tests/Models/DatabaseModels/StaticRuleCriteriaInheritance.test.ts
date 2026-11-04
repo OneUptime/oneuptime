@@ -52,6 +52,8 @@ const STATIC_MATCH_CRITERIA_RULE_MODEL_NAMES: Array<string> = [
   "OnCallDutyPolicyOwnerRule",
   "OnCallDutyPolicyScheduleLabelRule",
   "OnCallDutyPolicyScheduleOwnerRule",
+  "OpenStackCloudLabelRule",
+  "OpenStackCloudOwnerRule",
   "PodmanHostLabelRule",
   "PodmanHostOwnerRule",
   "ProxmoxClusterLabelRule",
@@ -120,8 +122,8 @@ function getRegisteredModelType(modelName: string): ModelType {
 
 describe("static match-criteria rule model inheritance", () => {
   it("keeps the explicit model inventory complete and duplicate-free", () => {
-    expect(STATIC_MATCH_CRITERIA_RULE_MODEL_NAMES).toHaveLength(86);
-    expect(new Set(STATIC_MATCH_CRITERIA_RULE_MODEL_NAMES).size).toBe(86);
+    expect(STATIC_MATCH_CRITERIA_RULE_MODEL_NAMES).toHaveLength(88);
+    expect(new Set(STATIC_MATCH_CRITERIA_RULE_MODEL_NAMES).size).toBe(88);
   });
 
   it.each(STATIC_MATCH_CRITERIA_RULE_MODEL_NAMES)(

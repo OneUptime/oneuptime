@@ -11,6 +11,8 @@
 
 import PageSEOConfig, { PageSEOData } from "./PageSEO";
 import Pricing, { PricingPlans } from "./Pricing";
+import { WatchedTablePricingConfig } from "Common/Server/EnvironmentConfig";
+import { describeWatchedTablePricing } from "Common/Types/Billing/PayAsYouGoPricing";
 import { ResellersPageContent } from "./Resellers";
 import {
   AirGappedPageContent,
@@ -549,6 +551,10 @@ export function generatePricingMarkdown(
   lines.push("");
   lines.push(
     "> OneUptime pricing starts free. Paid plans are priced per user per month. Telemetry (logs, metrics, traces) is billed on usage at $0.10/GB ingested. Self-hosting the open-source platform is free.",
+  );
+  lines.push("");
+  lines.push(
+    `Data Observability: ${describeWatchedTablePricing(WatchedTablePricingConfig)}. Views are free.`,
   );
   lines.push("");
   lines.push("| Plan | Price (monthly billing) | Price (yearly billing) |");

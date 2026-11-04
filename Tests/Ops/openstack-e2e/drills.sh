@@ -84,6 +84,36 @@ any_network_agent_down() {
   fi
 }
 
+# Why a service will not change state is in its unit and its config, and the job's
+# runner is gone by the time anyone reads the failure.
+explain() {
+  local unit="$1"
+  sudo systemctl status --no-pager --lines=5 "$unit" 2>&1 | sed 's/^/  /' >&2 || true
+  sudo grep -hE '^(report_interval|service_down_time|agent_down_time)' \
+    /etc/nova/nova.conf /etc/nova/nova-cpu.conf /etc/cinder/cinder.conf /etc/neutron/neutron.conf 2>/dev/null \
+    | sort -u | sed 's/^/  /' >&2 || true
+}
+
+# Stop a service, record the scene once the API says it is down, and start it again.
+# One that goes wrong is reported at the end instead of costing the drills after it.
+FAILED=()
+drill() {
+  local scene="$1" unit="$2" what="$3" state="$4"
+  echo "--- $what ($unit stopped)"
+  sudo systemctl stop "$unit"
+  if wait_until "$what" down 60 "$state"; then
+    record "$scene"
+  else
+    explain "$unit"
+    FAILED+=("$scene")
+  fi
+  sudo systemctl start "$unit"
+  wait_until "$what" up 60 "$state" || {
+    explain "$unit"
+    FAILED+=("$scene: it did not come back")
+  }
+}
+
 echo "Drilling on host $HOST"
 record healthy
 
@@ -92,39 +122,19 @@ openstack compute service set --disable --disable-reason "OneUptime drill: plann
 record compute-disabled
 openstack compute service set --enable "$HOST" nova-compute
 
-echo "--- nova-compute stopped"
-sudo systemctl stop devstack@n-cpu.service
-wait_until "nova-compute on $HOST" down 60 compute_state
-record compute-down
-sudo systemctl start devstack@n-cpu.service
-wait_until "nova-compute on $HOST" up 60 compute_state
+drill compute-down devstack@n-cpu.service "nova-compute on $HOST" compute_state
 
 if UNIT="$(network_agent_unit)"; then
-  echo "--- Neutron agent stopped ($UNIT)"
-  sudo systemctl stop "$UNIT"
-  wait_until "a Neutron agent" down 60 any_network_agent_down
-  record network-agent-down
-  sudo systemctl start "$UNIT"
-  wait_until "every Neutron agent" up 60 any_network_agent_down
+  drill network-agent-down "$UNIT" "a Neutron agent" any_network_agent_down
 else
   echo "No Neutron agent unit found on this cloud: skipping that drill." >&2
 fi
 
 if unit_exists devstack@c-vol.service; then
-  echo "--- cinder-volume stopped"
-  sudo systemctl stop devstack@c-vol.service
-  wait_until "cinder-volume" down 60 volume_state
-  record volume-service-down
-  sudo systemctl start devstack@c-vol.service
-  wait_until "cinder-volume" up 60 volume_state
+  drill volume-service-down devstack@c-vol.service "cinder-volume" volume_state
 fi
 
-echo "--- nova-scheduler stopped"
-sudo systemctl stop devstack@n-sch.service
-wait_until "nova-scheduler" down 60 scheduler_state
-record scheduler-down
-sudo systemctl start devstack@n-sch.service
-wait_until "nova-scheduler" up 60 scheduler_state
+drill scheduler-down devstack@n-sch.service "nova-scheduler" scheduler_state
 
 echo "--- Nova's API stopped"
 sudo systemctl stop devstack@n-api.service
@@ -134,3 +144,8 @@ sudo systemctl start devstack@n-api.service
 wait_until "Nova's API" up 24 bash -c 'openstack compute service list >/dev/null 2>&1 && echo up'
 
 record recovered
+
+if [ "${#FAILED[@]}" -gt 0 ]; then
+  printf 'A drill did not go as planned: %s\n' "${FAILED[@]}" >&2
+  exit 1
+fi

@@ -7,7 +7,7 @@ import UserNotificationSetting from "../../../../Models/DatabaseModels/UserNotif
 import ColumnType from "../../../../Types/Database/ColumnType";
 import SchemaMigrations from "../../../../Server/Infrastructure/Postgres/SchemaMigrations/Index";
 import { AddUserMattermostIndexesAndKeys1808992680000 } from "../../../../Server/Infrastructure/Postgres/SchemaMigrations/1808992680000-AddUserMattermostIndexesAndKeys";
-import { AddUserNotificationSettingAlertByMattermost1808992690000 } from "../../../../Server/Infrastructure/Postgres/SchemaMigrations/1808992690000-AddUserNotificationSettingAlertByMattermost";
+import { AddUserNotificationSettingAlertByMattermost1808992950000 } from "../../../../Server/Infrastructure/Postgres/SchemaMigrations/1808992950000-AddUserNotificationSettingAlertByMattermost";
 
 /*
  * THE MIGRATION FOR THE MATTERMOST COLUMN OF NOTIFICATION SETTINGS.
@@ -23,7 +23,7 @@ import { AddUserNotificationSettingAlertByMattermost1808992690000 } from "../../
  * model describe the same column, and that it runs after what it builds on.
  */
 
-const MIGRATION_TIMESTAMP: string = "1808992690000";
+const MIGRATION_TIMESTAMP: string = "1808992950000";
 const MIGRATION_NAME: string = "AddUserNotificationSettingAlertByMattermost";
 const MIGRATION_CLASS_NAME: string = `${MIGRATION_NAME}${MIGRATION_TIMESTAMP}`;
 
@@ -66,8 +66,8 @@ function typeOrmColumn(propertyName: string): ColumnMetadataArgs | undefined {
   );
 }
 
-function newMigration(): AddUserNotificationSettingAlertByMattermost1808992690000 {
-  return new AddUserNotificationSettingAlertByMattermost1808992690000();
+function newMigration(): AddUserNotificationSettingAlertByMattermost1808992950000 {
+  return new AddUserNotificationSettingAlertByMattermost1808992950000();
 }
 
 describe("running it", () => {
@@ -138,13 +138,13 @@ describe("the migration runs", () => {
     );
     expect(index).toContain(`${MIGRATION_CLASS_NAME},`);
     expect(SchemaMigrations).toContain(
-      AddUserNotificationSettingAlertByMattermost1808992690000,
+      AddUserNotificationSettingAlertByMattermost1808992950000,
     );
   });
 
   test("its declared name is its class name", () => {
     expect(newMigration().name).toBe(MIGRATION_CLASS_NAME);
-    expect(AddUserNotificationSettingAlertByMattermost1808992690000.name).toBe(
+    expect(AddUserNotificationSettingAlertByMattermost1808992950000.name).toBe(
       MIGRATION_CLASS_NAME,
     );
   });
@@ -159,7 +159,7 @@ describe("the migration runs", () => {
 
   test("its timestamp sorts after every migration registered before it", () => {
     const position: number = SchemaMigrations.indexOf(
-      AddUserNotificationSettingAlertByMattermost1808992690000,
+      AddUserNotificationSettingAlertByMattermost1808992950000,
     );
 
     expect(position).toBeGreaterThan(-1);
@@ -183,7 +183,7 @@ describe("the migration runs", () => {
   test("runs after the migrations that made Mattermost a notification method", () => {
     expect(
       SchemaMigrations.indexOf(
-        AddUserNotificationSettingAlertByMattermost1808992690000,
+        AddUserNotificationSettingAlertByMattermost1808992950000,
       ),
     ).toBeGreaterThan(
       SchemaMigrations.indexOf(AddUserMattermostIndexesAndKeys1808992680000),

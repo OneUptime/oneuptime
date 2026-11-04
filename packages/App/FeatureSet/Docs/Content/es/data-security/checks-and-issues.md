@@ -1,10 +1,10 @@
 # Comprobaciones y problemas de Seguridad de datos
 
-Seguridad de datos ejecuta 33 comprobaciones en cada almacén, en nueve grupos. Una comprobación lee lo que se sabe de un almacén (cómo está configurado, qué se encontró en él, quién puede acceder a él, dónde está) y el resultado es que se supera, que falla o que no se puede saber. Una comprobación que falla abre un problema en ese almacén, y el problema se cierra solo en cuanto la comprobación se supera. Esta página enumera cada comprobación, cómo se calculan la gravedad y la puntuación de riesgo de un problema, y qué le pasa a un problema a lo largo de su vida.
+Seguridad de datos ejecuta 34 comprobaciones en cada almacén, en nueve grupos. Una comprobación lee lo que se sabe de un almacén (cómo está configurado, qué se encontró en él, quién puede acceder a él, dónde está) y el resultado es que se supera, que falla o que no se puede saber. Una comprobación que falla abre un problema en ese almacén, y el problema se cierra solo en cuanto la comprobación se supera. Esta página enumera cada comprobación, cómo se calculan la gravedad y la puntuación de riesgo de un problema, y qué le pasa a un problema a lo largo de su vida.
 
 :::cards
 - [Cómo decide una comprobación](#cómo-decide-una-comprobación): Se supera, falla o no se puede saber, y lo grave que es un fallo.
-- [Cada comprobación](#cada-comprobación): Las 33, con lo que comprueba cada una y cómo corregirlo.
+- [Cada comprobación](#cada-comprobación): Las 34, con lo que comprueba cada una y cómo corregirlo.
 - [Puntuación de riesgo](#puntuación-de-riesgo): Cómo se ordenan los problemas dentro de una gravedad.
 - [Qué le pasa a un problema](#qué-le-pasa-a-un-problema): Abierto, resuelto, aceptado, no es un problema.
 - [Corrígelo desde aquí](#corrígelo-desde-aquí): Cierra una exposición, o activa una protección que falta, con un clic.
@@ -87,6 +87,7 @@ La gravedad se da para datos Restringidos, Confidenciales, Internos y Públicos,
 | Las contraseñas se guardan en texto plano (`plaintext-passwords`) | Todos los almacenes salvo la telemetría | Un campo de contraseña contiene valores que no son hashes de contraseña (bcrypt, argon2, scrypt o PBKDF2). | Crítica / Crítica / Crítica / Crítica | Aplica hash a las contraseñas con bcrypt, scrypt o argon2, migra las guardadas y haz que cada cuenta restablezca su contraseña. |
 | Se copiaron datos de producción en un almacén que no es de producción (`production-data-in-non-production`) | Todos los almacenes salvo la telemetría | Los valores encontrados en un almacén de producción también se encontraron aquí, en un almacén de desarrollo, pruebas o staging. | Alta / Media / — / — | Sustituye la copia por datos enmascarados o sintéticos, y elimina los datos reales del almacén que no es de producción. |
 | Datos sensibles que nadie ha usado en 90 días (`stale-sensitive-data`) | Todos los almacenes salvo la telemetría | El almacén contiene datos sensibles y no ha tenido lecturas ni escrituras en 90 días. | Media / Baja / — / — | Confirma que los datos ya no se necesitan, y después archívalos con una fecha de retención, o elimínalos. |
+| Una columna nueva contiene datos personales (`new-personal-data-column`) | Todos los almacenes salvo la telemetría | Una columna añadida en los últimos 14 días tiene un nombre que indica que contiene datos personales. | Alta / Alta / Media / Media | Confirma que la columna debería contener estos datos y registra por qué. Si no debería, elimínala o deja de escribir en ella. |
 | Este almacén sensible no tiene propietario (`no-owner`) | Todos los almacenes | El almacén contiene datos sensibles y no tiene propietario. | Media / Baja / — / — | Añade un propietario en la página **Propietarios** del almacén, o una regla del propietario que coincida con sus etiquetas. |
 
 ### Telemetría

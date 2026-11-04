@@ -265,6 +265,26 @@ export interface ProductionReviewDataDashboardJSON {
   url?: string | undefined;
 }
 
+// One of a table's checks, read on its staging copy, beside what it last read in production.
+export interface ProductionReviewDataStagingCheckJSON {
+  name: string;
+  production: number | null;
+  staging: number | null;
+  // Why it could not be read there.
+  error?: string | undefined;
+}
+
+// How a changed table's copy on staging differs from production.
+export interface ProductionReviewDataStagingJSON {
+  storeName: string;
+  productionRows: number | null;
+  stagingRows: number | null;
+  columnDifferences: Array<string>;
+  // False when only a probe can reach the store: its checks could not be run from here.
+  areChecksRun: boolean;
+  checks: Array<ProductionReviewDataStagingCheckJSON>;
+}
+
 // One watched table a migration or a dbt model changes, and what depends on it.
 export interface ProductionReviewDataImpactJSON {
   dataAssetId: string;
@@ -284,6 +304,8 @@ export interface ProductionReviewDataImpactJSON {
   dataProducts: Array<ProductionReviewDataProductJSON>;
   // Unset on a review made before BI tools were read.
   dashboards?: Array<ProductionReviewDataDashboardJSON> | undefined;
+  // How its copy on staging differs, when it has one.
+  staging?: ProductionReviewDataStagingJSON | null | undefined;
 }
 
 export interface ProductionReviewPointJSON {

@@ -1,5 +1,5 @@
 import { generatePricingMarkdown } from "../Utils/AIDiscovery";
-import Pricing from "../Utils/Pricing";
+import Pricing, { getWatchedTablePricingContent } from "../Utils/Pricing";
 import { getPageSEO, PageSEOData } from "../Utils/PageSEO";
 import ejs from "ejs";
 import { markupAsSpaces } from "../../Common/Tests/Helpers/HtmlText";
@@ -23,6 +23,7 @@ describe("Rendered notification pricing", () => {
       path.join(VIEWS_ROOT, "pricing.ejs"),
       {
         pricing: Pricing,
+        watchedTables: getWatchedTablePricingContent(),
         enableGoogleTagManager: false,
         seo: { ...seo, fullCanonicalUrl: "https://oneuptime.com/pricing" },
         homeUrl: "https://oneuptime.com",

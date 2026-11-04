@@ -1,6 +1,9 @@
+import { DataObservabilityQuality } from "Common/Types/DataObservability/DataAlertFeedback";
 import PageComponentProps from "../PageComponentProps";
 import AppLink from "../../Components/AppLink/AppLink";
 import ConnectDatabaseModal from "../../Components/DataObservability/ConnectDatabaseModal";
+import DataSourceSuggestionsCard from "../../Components/DataObservability/DataSourceSuggestionsCard";
+import WatchedTablesCost from "../../Components/DataObservability/WatchedTablesCost";
 import DataObservabilityApi from "../../Components/DataObservability/DataObservabilityApi";
 import {
   formatOverdue,
@@ -16,6 +19,7 @@ import {
   DataObservabilityOverview,
   DataObservabilityOverviewAsset,
   DataObservabilityOverviewChange,
+  DataObservabilitySourceSuggestion,
   DataObservabilityStoreSummary,
 } from "Common/Types/DataObservability/DataObservabilityApiTypes";
 import IconProp from "Common/Types/Icon/IconProp";
@@ -44,10 +48,16 @@ import React, {
  * lately, and whether every database is being collected. A project with no
  * database yet sees how to connect one, in one click.
  */
+// A share, or a dash until there is anything to measure.
+function formatPercent(value: number | null): string {
+  return value === null ? "-" : `${value}%`;
+}
+
 const DataObservabilityOverviewPage: FunctionComponent<
   PageComponentProps
 > = (): ReactElement => {
   const translator: Translator = useTranslator();
+  const [quality, setQuality] = useState<DataObservabilityQuality | null>(null);
   const [overview, setOverview] = useState<DataObservabilityOverview | null>(
     null,
   );
@@ -55,6 +65,9 @@ const DataObservabilityOverviewPage: FunctionComponent<
   const [isLoading, setIsLoading] = useState<boolean>(true);
   const [readCount, setReadCount] = useState<number>(0);
   const [isConnecting, setIsConnecting] = useState<boolean>(false);
+  const [suggestion, setSuggestion] = useState<
+    DataObservabilitySourceSuggestion | undefined
+  >(undefined);
   const hasLoaded: React.MutableRefObject<boolean> = useRef<boolean>(false);
 
   useEffect(() => {
@@ -66,6 +79,11 @@ const DataObservabilityOverviewPage: FunctionComponent<
       try {
         const result: DataObservabilityOverview =
           await DataObservabilityApi.getOverview();
+        // Extra to the Overview: without it, the rest still shows.
+        const measures: DataObservabilityQuality | null =
+          await DataObservabilityApi.getQuality().catch(() => {
+            return null;
+          });
 
         if (!isCurrent) {
           return;
@@ -74,6 +92,7 @@ const DataObservabilityOverviewPage: FunctionComponent<
         hasLoaded.current = true;
         setError("");
         setOverview(result);
+        setQuality(measures);
       } catch (err) {
         if (isCurrent && !hasLoaded.current) {
           setError(API.getFriendlyMessage(err));
@@ -111,6 +130,7 @@ const DataObservabilityOverviewPage: FunctionComponent<
 
   const connectModal: ReactElement = isConnecting ? (
     <ConnectDatabaseModal
+      suggestion={suggestion}
       onClose={() => {
         setIsConnecting(false);
       }}
@@ -136,13 +156,14 @@ const DataObservabilityOverviewPage: FunctionComponent<
       <>
         <Card
           title="Watch your data, not just your services"
-          description="Connect a database and every table in it is watched from the first minute: its rows, size, last change and columns. Only the catalog is read, never a row, and no threshold has to be set."
+          description="Connect a database and every table in it is watched from the first minute: its rows, size, last change and columns. Only the catalog is read, so no value leaves the database, and no threshold has to be set."
           buttons={[
             {
               title: "Connect a Database",
               buttonStyle: ButtonStyleType.PRIMARY,
               icon: IconProp.Add,
               onClick: () => {
+                setSuggestion(undefined);
                 setIsConnecting(true);
               },
             },
@@ -161,7 +182,7 @@ const DataObservabilityOverviewPage: FunctionComponent<
           <ul className="list-disc space-y-1 px-6 pb-6 text-sm text-gray-600">
             <li>
               {translator.translateText(
-                "PostgreSQL, MySQL, MariaDB and SQL Server, connected by OneUptime or by a probe inside your network.",
+                "PostgreSQL, MySQL, MariaDB, SQL Server, Oracle, MongoDB and the major warehouses, connected by OneUptime or by a probe inside your network.",
               )}
             </li>
             <li>
@@ -176,6 +197,12 @@ const DataObservabilityOverviewPage: FunctionComponent<
             </li>
           </ul>
         </Card>
+        <DataSourceSuggestionsCard
+          onConnect={(chosen: DataObservabilitySourceSuggestion) => {
+            setSuggestion(chosen);
+            setIsConnecting(true);
+          }}
+        />
         {connectModal}
       </>
     );
@@ -183,6 +210,36 @@ const DataObservabilityOverviewPage: FunctionComponent<
 
   return (
     <div className="space-y-5">
+      {quality && quality.issueCount > 0 ? (
+        <EventStatBar columns={4} ariaLabel="How well it is working">
+          <EventStatTile
+            label="Useful Issues a Week"
+            value={translator.formatNumber(quality.usefulIssuesPerWeek)}
+            icon={IconProp.CheckCircle}
+            description={`Issues someone acted on or called useful, less those called noise, over the last ${quality.windowInDays} days.`}
+          />
+          <EventStatTile
+            label="Precision"
+            value={formatPercent(quality.precisionPercent)}
+            icon={IconProp.Filter}
+            description="The share of issues not marked expected or not an issue."
+          />
+          <EventStatTile
+            label="Caught First"
+            value={formatPercent(quality.caughtFirstPercent)}
+            icon={IconProp.Bolt}
+            description="The share of problems people reported that OneUptime had already raised."
+          />
+          <EventStatTile
+            label="Cause Found"
+            value={formatPercent(quality.causeFoundPercent)}
+            icon={IconProp.Search}
+            description="The share of answered issues whose likely cause was the real one."
+          />
+        </EventStatBar>
+      ) : (
+        <></>
+      )}
       <EventStatBar columns={4} ariaLabel="Data health">
         <EventStatTile
           label="Tables Watched"
@@ -219,6 +276,7 @@ const DataObservabilityOverviewPage: FunctionComponent<
           }
         />
       </EventStatBar>
+      <WatchedTablesCost />
 
       {overview.unusedAssetCount > 0 ? (
         <Card

@@ -1,6 +1,6 @@
 # Controles en reconciliaties
 
-Tabelgezondheid zegt of een tabel verandert. Een **controle** zegt of wat ze bevat klopt, een **reconciliatie** zegt of twee kopieën van de gegevens overeenkomen, en de **tests van dbt** rapporteren over de tabellen die dbt bouwt. Elk daarvan draait waar de verzamelronde van de database draait, door OneUptime of door haar sonde, en alleen een getal verlaat ooit de database.
+Tabelgezondheid zegt of een tabel verandert. Een **controle** zegt of wat ze bevat klopt, een **reconciliatie** zegt of twee kopieën van de gegevens overeenkomen, en de **tests van dbt** rapporteren over de tabellen die dbt bouwt. Elk daarvan draait waar de verzamelronde van de database draait, door OneUptime of door haar sonde, en alleen een getal verlaat de database, tenzij een zelf gehost project ervoor kiest een gemaskeerde steekproef van mislukte rijen te bewaren.
 
 ## Controles
 
@@ -13,16 +13,17 @@ Voeg een controle toe op het tabblad **Controles** van een tabel:
 | **Distinct Count** | Hoeveel verschillende waarden de kolom bevat |
 | **Minimum**, **Maximum**, **Gemiddelde**, **Som** | Van een numerieke kolom (een Som over nul rijen is 0) |
 | **Invalid Percent** | Percentage waarden buiten een lijst die je opgeeft |
-| **Format Mismatch Percent** | Percentage waarden die niet overeenkomen met een reguliere expressie (elke engine behalve SQL Server) |
+| **Format Mismatch Percent** | Percentage waarden die niet in een door jou gekozen formaat staan, zoals Email, UUID of Country Code, of die niet overeenkomen met een reguliere expressie van jou (elke engine behalve SQL Server) |
 | **Orphan Count** | Rijen waarvan de waarde geen tegenhanger heeft in de kolom van een andere tabel |
-| **Row Count** | Rijen in de tabel, het nuttigst met **Segment By** |
+| **Row Count** | Rijen in de tabel, het nuttigst met **Segmenteren op** |
 | **Aangepaste SQL** | Het getal dat een eigen alleen-lezen SELECT teruggeeft, met de naam `value` (bij MongoDB dat van een aggregatiepijplijn) |
+| **Mislukte rijen** | Hoeveel rijen één alleen-lezen SELECT van jou teruggeeft: de rijen die niet zouden moeten bestaan. 0 is gezond (bij MongoDB de documenten waarmee een pipeline eindigt) |
 
 Elke controle draait elke 15 minuten, elk uur, elke 6 uur of elke dag, als één aggregatiestatement in een alleen-lezen transactie met een statement-time-out. Haar waarde wordt geschreven als `oneuptime.data.check.value`, met `oneuptime.data.check.id`, `oneuptime.data.check.name` en `oneuptime.data.check.segment`.
 
 ## Voorgestelde controles
 
-**Suggested Checks** op hetzelfde tabblad biedt de controles aan waar de kolommen van een tabel om vragen, alleen op basis van hun namen en typen: een id is uniek, een `customer_id` heeft een bijbehorende rij in `customers`, een e-mailadres ziet eruit als een e-mailadres, een bedrag is niet negatief, een status houdt zijn gebruikelijke waarden, en een tabel die per tenant is opgesplitst, wordt per tenant geteld. Voeg er een toe, voeg ze allemaal toe, of wijs er een voorgoed af.
+**Voorgestelde controles** op hetzelfde tabblad biedt de controles aan waar de kolommen van een tabel om vragen, alleen op basis van hun namen en typen: een id is uniek, een `customer_id` heeft een bijbehorende rij in `customers`, een e-mailadres ziet eruit als een e-mailadres, een bedrag is niet negatief, een status houdt zijn gebruikelijke waarden, en een tabel die per tenant is opgesplitst, wordt per tenant geteld. Een kolom waarvan Gegevensbeveiliging weet dat ze een e-mailadres, telefoonnummer of IP-adres bevat, moet in dat formaat staan, hoe ze ook heet. Voeg er een toe, voeg ze allemaal toe, of wijs er een voorgoed af.
 
 ## Een controle vanuit een zin
 
@@ -30,16 +31,70 @@ Elke controle draait elke 15 minuten, elk uur, elke 6 uur of elke dag, als één
 
 ## Segmenten
 
-**Segment By** voert een controle één keer per waarde van een kolom uit, zoals een tenant of een regio: één reeks en één waarschuwing per waarde, voor de 100 grootste segmenten. Een gesegmenteerde Row Count waarschuwt wanneer één tenant geen gegevens meer stuurt terwijl de andere gewoon doorgaan.
+**Segmenteren op** voert een controle één keer per waarde van een kolom uit, zoals een tenant of een regio: één reeks en één waarschuwing per waarde, voor de 100 grootste segmenten. Een gesegmenteerde Row Count waarschuwt wanneer één tenant geen gegevens meer stuurt terwijl de andere gewoon doorgaan.
 
 ## Waarschuwingen op een controle
 
-Stel **Alert When** in om op een controle te waarschuwen:
+Stel **Waarschuwen wanneer** in om op een controle te waarschuwen:
 
 - **Unusually High** of **Unusually Low** vergelijkt elke waarde met haar eigen geleerde basislijn voor dat uur van de week.
 - **Boven** of **Onder** vergelijkt haar met een drempel.
 
 Bij het opslaan van de controle wordt er een metrics-monitor voor gemaakt, op jouw naam en met jouw machtigingen. Als je de voorwaarde wist, wordt de monitor verwijderd.
+
+## Wat een controle kost
+
+Een controle concurreert met je applicatie om de database, en op een warehouse dat afrekent op wat een query leest, kost ze geld. Drie dingen houden dat in de hand:
+
+- **Steekproefpercentage** leest een deel van de rijen in plaats van alle, voor een controle die een ratio leest: Null Percent, Gemiddelde, Invalid Percent en Format Mismatch Percent. De meeste engines slaan hele pagina's van de tabel over; MySQL, Redshift, ClickHouse en MongoDB lezen nog steeds elke rij, en worden het werk op de rest bespaard. Een view kan het weigeren, en de controle meldt dat.
+- **Maximaal te lezen door een controle (GB)**, onder **Instellingen**, stopt een controle op BigQuery of Athena voordat ze meer dan zoveel gigabyte leest. Het is 10 totdat je het wijzigt.
+- **Wachten wanneer een database druk is**, onder **Instellingen**, laat verschuldigde controles tot de volgende verzamelronde liggen wanneer een PostgreSQL-, MySQL- of SQL Server-database druk lijkt. Het staat aan totdat je het uitzet, en de database meldt wanneer controles hebben gewacht.
+
+## Mislukte rijen
+
+Een getal zegt dat er iets mis is; een paar rijen zeggen wat. Op een zelf gehoste OneUptime bewaart **Mislukte rijen bewaren** onder **Instellingen** maximaal 20 van de rijen die een controle Failing Rows, Invalid Percent, Format Mismatch Percent of Orphan Count vond, en **Mislukte rijen** op de controle toont ze. Gevoelige kolommen worden gemaskeerd op de plek waar de rij wordt gelezen, op basis van wat Gegevensbeveiliging erin vond of van hun namen, dus wat de database of een sonde verlaat, is al gemaskeerd. OneUptime Cloud bewaart er geen.
+
+## Controles in een bestand
+
+Met de hand geschreven controles lopen uit de pas met de code die de tabellen wijzigt. Bewaar ze in je repository, beoordeeld in dezelfde pull request:
+
+```yaml
+checks:
+  - name: Orders have a total
+    table: public.orders
+    type: Null Percent
+    column: total
+    every: 60
+    alert: { when: Above, threshold: 1 }
+  - name: Emails look right
+    table: public.customers
+    database: Orders database
+    type: Format Mismatch Percent
+    column: email
+    format: Email
+    sample_percent: 10
+  - name: Orders have a customer
+    table: public.orders
+    type: Orphan Count
+    column: customer_id
+    references: public.customers.id
+  - name: No negative totals
+    table: public.orders
+    type: Failing Rows
+    query: SELECT id FROM orders WHERE total < 0
+    alert: { when: Above, threshold: 0 }
+```
+
+Pas het toe vanuit CI met de [OneUptime CLI](/docs/cli/index) en een API-sleutel:
+
+```bash
+oneuptime data-checks apply checks.yaml --dry-run
+oneuptime data-checks apply checks.yaml --prune
+```
+
+Een controle is dezelfde controle als ze dezelfde naam heeft op dezelfde tabel, dus een bestand twee keer toepassen verandert niets. Een fout ergens in het bestand past niets toe en eindigt met een foutmelding, dus draai `--dry-run` op de pull request en pas toe bij het mergen. Met `--prune` wordt een controle die een eerdere apply maakte en die het bestand niet meer noemt, verwijderd. Een controle die je met de hand hebt toegevoegd nooit. Een controle uit een bestand meldt dat op haar rij, en de volgende apply overschrijft wat met de hand is gewijzigd.
+
+De sleutels zijn `name`, `table`, `database`, `type`, `column`, `segment`, `accepted_values`, `format`, `pattern`, `references`, `query`, `sample_percent`, `every`, `alert`, `description` en `enabled`.
 
 ## Reconciliaties
 
@@ -60,7 +115,7 @@ Een kopie die volgens een planning wordt geladen, loopt achter op haar bron: ver
 
 ## dbt-tests
 
-Na een dbt-build stuurt `oneuptime dbt upload` de artefacten van het project (zie [Lineage en pipelines](/docs/data-observability/lineage-and-pipelines)). Elke test van een bewaakte tabel verschijnt dan op het tabblad **Controles** ervan, met het laatste resultaat en de rijen die de test als falend vond. Kies **Alert on Failures** zodat een falende test een waarschuwing opent.
+Na een dbt-build stuurt `oneuptime dbt upload` de artefacten van het project (zie [Lineage en pipelines](/docs/data-observability/lineage-and-pipelines)). Elke test van een bewaakte tabel verschijnt dan op het tabblad **Controles** ervan, met het laatste resultaat en de rijen die de test als falend vond. Kies **Waarschuwen bij mislukkingen** zodat een falende test een waarschuwing opent.
 
 ## Volgende stappen
 

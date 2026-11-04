@@ -40,6 +40,7 @@ import {
 import { getPodmanBreadcrumbs } from "../../../../App/FeatureSet/Dashboard/src/Utils/Breadcrumbs/PodmanBreadcrumbs";
 import { getProfilesBreadcrumbs } from "../../../../App/FeatureSet/Dashboard/src/Utils/Breadcrumbs/ProfilesBreadcrumbs";
 import { getProxmoxBreadcrumbs } from "../../../../App/FeatureSet/Dashboard/src/Utils/Breadcrumbs/ProxmoxBreadcrumbs";
+import { getOpenStackBreadcrumbs } from "../../../../App/FeatureSet/Dashboard/src/Utils/Breadcrumbs/OpenStackBreadcrumbs";
 import { getRumBreadcrumbs } from "../../../../App/FeatureSet/Dashboard/src/Utils/Breadcrumbs/RumBreadcrumbs";
 import { getRunbooksBreadcrumbs } from "../../../../App/FeatureSet/Dashboard/src/Utils/Breadcrumbs/RunbooksBreadcrumbs";
 import { getScheduleMaintenanceBreadcrumbs } from "../../../../App/FeatureSet/Dashboard/src/Utils/Breadcrumbs/ScheduledMaintenanceBreadcrumbs";
@@ -100,6 +101,7 @@ const TRAIL_GETTERS: Dictionary<BreadcrumbGetter> = {
   DockerRoutePath: getDockerBreadcrumbs,
   PodmanRoutePath: getPodmanBreadcrumbs,
   ProxmoxRoutePath: getProxmoxBreadcrumbs,
+  OpenStackRoutePath: getOpenStackBreadcrumbs,
   VMwareRoutePath: getVMwareBreadcrumbs,
   IoTRoutePath: getIoTBreadcrumbs,
   DockerSwarmRoutePath: getDockerSwarmBreadcrumbs,

@@ -198,6 +198,7 @@ import KubernetesResourceAPI from "Common/Server/API/KubernetesResourceAPI";
 import KubernetesClusterAiAccessAPI from "Common/Server/API/KubernetesClusterAiAccessAPI";
 import ResourceAiAccessAPI from "Common/Server/API/ResourceAiAccessAPI";
 import ProxmoxResourceAPI from "Common/Server/API/ProxmoxResourceAPI";
+import OpenStackResourceAPI from "Common/Server/API/OpenStackResourceAPI";
 import HostAPI from "Common/Server/API/HostAPI";
 import VMwareResourceAPI from "Common/Server/API/VMwareResourceAPI";
 import IoTDeviceAPI from "Common/Server/API/IoTDeviceAPI";
@@ -430,6 +431,9 @@ import KubernetesClusterLabelRuleService, {
 import ProxmoxClusterOwnerRuleService, {
   Service as ProxmoxClusterOwnerRuleServiceType,
 } from "Common/Server/Services/ProxmoxClusterOwnerRuleService";
+import OpenStackCloudOwnerRuleService, {
+  Service as OpenStackCloudOwnerRuleServiceType,
+} from "Common/Server/Services/OpenStackCloudOwnerRuleService";
 import VMwareVCenterOwnerRuleService, {
   Service as VMwareVCenterOwnerRuleServiceType,
 } from "Common/Server/Services/VMwareVCenterOwnerRuleService";
@@ -443,6 +447,9 @@ import DockerSwarmClusterOwnerRuleService, {
 import ProxmoxClusterLabelRuleService, {
   Service as ProxmoxClusterLabelRuleServiceType,
 } from "Common/Server/Services/ProxmoxClusterLabelRuleService";
+import OpenStackCloudLabelRuleService, {
+  Service as OpenStackCloudLabelRuleServiceType,
+} from "Common/Server/Services/OpenStackCloudLabelRuleService";
 import VMwareVCenterLabelRuleService, {
   Service as VMwareVCenterLabelRuleServiceType,
 } from "Common/Server/Services/VMwareVCenterLabelRuleService";
@@ -754,6 +761,24 @@ import DataWarehouseJobService, {
 import DataReconciliationService, {
   Service as DataReconciliationServiceType,
 } from "Common/Server/Services/DataReconciliationService";
+import DataIssueReportService, {
+  Service as DataIssueReportServiceType,
+} from "Common/Server/Services/DataIssueReportService";
+import DataAssetOwnerUserService, {
+  Service as DataAssetOwnerUserServiceType,
+} from "Common/Server/Services/DataAssetOwnerUserService";
+import DataAssetOwnerTeamService, {
+  Service as DataAssetOwnerTeamServiceType,
+} from "Common/Server/Services/DataAssetOwnerTeamService";
+import DataAssetOwnerRuleService, {
+  Service as DataAssetOwnerRuleServiceType,
+} from "Common/Server/Services/DataAssetOwnerRuleService";
+import DataAssetLabelRuleService, {
+  Service as DataAssetLabelRuleServiceType,
+} from "Common/Server/Services/DataAssetLabelRuleService";
+import DataObservabilitySettingService, {
+  Service as DataObservabilitySettingServiceType,
+} from "Common/Server/Services/DataObservabilitySettingService";
 import DataAssetLineageService, {
   Service as DataAssetLineageServiceType,
 } from "Common/Server/Services/DataAssetLineageService";
@@ -946,6 +971,12 @@ import PodmanResourceService, {
 import ProxmoxClusterService, {
   Service as ProxmoxClusterServiceType,
 } from "Common/Server/Services/ProxmoxClusterService";
+import OpenStackCloudService, {
+  Service as OpenStackCloudServiceType,
+} from "Common/Server/Services/OpenStackCloudService";
+import OpenStackCloudConnectionTestService, {
+  Service as OpenStackCloudConnectionTestServiceType,
+} from "Common/Server/Services/OpenStackCloudConnectionTestService";
 import VMwareVCenterService, {
   Service as VMwareVCenterServiceType,
 } from "Common/Server/Services/VMwareVCenterService";
@@ -964,6 +995,9 @@ import StorageArrayService, {
 import ProxmoxClusterOwnerTeamService, {
   Service as ProxmoxClusterOwnerTeamServiceType,
 } from "Common/Server/Services/ProxmoxClusterOwnerTeamService";
+import OpenStackCloudOwnerTeamService, {
+  Service as OpenStackCloudOwnerTeamServiceType,
+} from "Common/Server/Services/OpenStackCloudOwnerTeamService";
 import VMwareVCenterOwnerTeamService, {
   Service as VMwareVCenterOwnerTeamServiceType,
 } from "Common/Server/Services/VMwareVCenterOwnerTeamService";
@@ -976,6 +1010,9 @@ import DockerSwarmClusterOwnerTeamService, {
 import ProxmoxClusterOwnerUserService, {
   Service as ProxmoxClusterOwnerUserServiceType,
 } from "Common/Server/Services/ProxmoxClusterOwnerUserService";
+import OpenStackCloudOwnerUserService, {
+  Service as OpenStackCloudOwnerUserServiceType,
+} from "Common/Server/Services/OpenStackCloudOwnerUserService";
 import VMwareVCenterOwnerUserService, {
   Service as VMwareVCenterOwnerUserServiceType,
 } from "Common/Server/Services/VMwareVCenterOwnerUserService";
@@ -1514,10 +1551,12 @@ import PodmanHostLabelRule from "Common/Models/DatabaseModels/PodmanHostLabelRul
 import KubernetesClusterOwnerRule from "Common/Models/DatabaseModels/KubernetesClusterOwnerRule";
 import KubernetesClusterLabelRule from "Common/Models/DatabaseModels/KubernetesClusterLabelRule";
 import ProxmoxClusterOwnerRule from "Common/Models/DatabaseModels/ProxmoxClusterOwnerRule";
+import OpenStackCloudOwnerRule from "Common/Models/DatabaseModels/OpenStackCloudOwnerRule";
 import VMwareVCenterOwnerRule from "Common/Models/DatabaseModels/VMwareVCenterOwnerRule";
 import IoTFleetOwnerRule from "Common/Models/DatabaseModels/IoTFleetOwnerRule";
 import DockerSwarmClusterOwnerRule from "Common/Models/DatabaseModels/DockerSwarmClusterOwnerRule";
 import ProxmoxClusterLabelRule from "Common/Models/DatabaseModels/ProxmoxClusterLabelRule";
+import OpenStackCloudLabelRule from "Common/Models/DatabaseModels/OpenStackCloudLabelRule";
 import VMwareVCenterLabelRule from "Common/Models/DatabaseModels/VMwareVCenterLabelRule";
 import IoTFleetLabelRule from "Common/Models/DatabaseModels/IoTFleetLabelRule";
 import DockerSwarmClusterLabelRule from "Common/Models/DatabaseModels/DockerSwarmClusterLabelRule";
@@ -1616,14 +1655,18 @@ import PodmanHostOwnerTeam from "Common/Models/DatabaseModels/PodmanHostOwnerTea
 import PodmanHostOwnerUser from "Common/Models/DatabaseModels/PodmanHostOwnerUser";
 import PodmanResource from "Common/Models/DatabaseModels/PodmanResource";
 import ProxmoxCluster from "Common/Models/DatabaseModels/ProxmoxCluster";
+import OpenStackCloud from "Common/Models/DatabaseModels/OpenStackCloud";
+import OpenStackCloudConnectionTest from "Common/Models/DatabaseModels/OpenStackCloudConnectionTest";
 import VMwareVCenter from "Common/Models/DatabaseModels/VMwareVCenter";
 import IoTFleet from "Common/Models/DatabaseModels/IoTFleet";
 import DockerSwarmCluster from "Common/Models/DatabaseModels/DockerSwarmCluster";
 import ProxmoxClusterOwnerTeam from "Common/Models/DatabaseModels/ProxmoxClusterOwnerTeam";
+import OpenStackCloudOwnerTeam from "Common/Models/DatabaseModels/OpenStackCloudOwnerTeam";
 import VMwareVCenterOwnerTeam from "Common/Models/DatabaseModels/VMwareVCenterOwnerTeam";
 import IoTFleetOwnerTeam from "Common/Models/DatabaseModels/IoTFleetOwnerTeam";
 import DockerSwarmClusterOwnerTeam from "Common/Models/DatabaseModels/DockerSwarmClusterOwnerTeam";
 import ProxmoxClusterOwnerUser from "Common/Models/DatabaseModels/ProxmoxClusterOwnerUser";
+import OpenStackCloudOwnerUser from "Common/Models/DatabaseModels/OpenStackCloudOwnerUser";
 import VMwareVCenterOwnerUser from "Common/Models/DatabaseModels/VMwareVCenterOwnerUser";
 import IoTFleetOwnerUser from "Common/Models/DatabaseModels/IoTFleetOwnerUser";
 import DockerSwarmClusterOwnerUser from "Common/Models/DatabaseModels/DockerSwarmClusterOwnerUser";
@@ -1831,6 +1874,12 @@ import DataBiConnection from "Common/Models/DatabaseModels/DataBiConnection";
 import DataDashboard from "Common/Models/DatabaseModels/DataDashboard";
 import DataWarehouseJob from "Common/Models/DatabaseModels/DataWarehouseJob";
 import DataReconciliation from "Common/Models/DatabaseModels/DataReconciliation";
+import DataIssueReport from "Common/Models/DatabaseModels/DataIssueReport";
+import DataAssetOwnerUser from "Common/Models/DatabaseModels/DataAssetOwnerUser";
+import DataAssetOwnerTeam from "Common/Models/DatabaseModels/DataAssetOwnerTeam";
+import DataAssetOwnerRule from "Common/Models/DatabaseModels/DataAssetOwnerRule";
+import DataAssetLabelRule from "Common/Models/DatabaseModels/DataAssetLabelRule";
+import DataObservabilitySetting from "Common/Models/DatabaseModels/DataObservabilitySetting";
 import DataAssetLineage from "Common/Models/DatabaseModels/DataAssetLineage";
 import DataAlert from "Common/Models/DatabaseModels/DataAlert";
 import SecurityEntityCriticality from "Common/Models/DatabaseModels/SecurityEntityCriticality";
@@ -1919,9 +1968,13 @@ import PodmanHostFeedService, {
   Service as PodmanHostFeedServiceType,
 } from "Common/Server/Services/PodmanHostFeedService";
 import ProxmoxClusterFeed from "Common/Models/DatabaseModels/ProxmoxClusterFeed";
+import OpenStackCloudFeed from "Common/Models/DatabaseModels/OpenStackCloudFeed";
 import ProxmoxClusterFeedService, {
   Service as ProxmoxClusterFeedServiceType,
 } from "Common/Server/Services/ProxmoxClusterFeedService";
+import OpenStackCloudFeedService, {
+  Service as OpenStackCloudFeedServiceType,
+} from "Common/Server/Services/OpenStackCloudFeedService";
 import VMwareVCenterFeed from "Common/Models/DatabaseModels/VMwareVCenterFeed";
 import VMwareVCenterFeedService, {
   Service as VMwareVCenterFeedServiceType,
@@ -2634,6 +2687,14 @@ const BaseAPIFeatureSet: FeatureSet = {
       ).getRouter(),
     );
 
+    app.use(
+      `/${APP_NAME.toLocaleLowerCase()}`,
+      new BaseAPI<OpenStackCloudFeed, OpenStackCloudFeedServiceType>(
+        OpenStackCloudFeed,
+        OpenStackCloudFeedService,
+      ).getRouter(),
+    );
+
     // VMware vCenter feed
     app.use(
       `/${APP_NAME.toLocaleLowerCase()}`,
@@ -3243,6 +3304,14 @@ const BaseAPIFeatureSet: FeatureSet = {
 
     app.use(
       `/${APP_NAME.toLocaleLowerCase()}`,
+      new BaseAPI<OpenStackCloudOwnerRule, OpenStackCloudOwnerRuleServiceType>(
+        OpenStackCloudOwnerRule,
+        OpenStackCloudOwnerRuleService,
+      ).getRouter(),
+    );
+
+    app.use(
+      `/${APP_NAME.toLocaleLowerCase()}`,
       new BaseAPI<VMwareVCenterOwnerRule, VMwareVCenterOwnerRuleServiceType>(
         VMwareVCenterOwnerRule,
         VMwareVCenterOwnerRuleService,
@@ -3273,6 +3342,14 @@ const BaseAPIFeatureSet: FeatureSet = {
       new BaseAPI<ProxmoxClusterLabelRule, ProxmoxClusterLabelRuleServiceType>(
         ProxmoxClusterLabelRule,
         ProxmoxClusterLabelRuleService,
+      ).getRouter(),
+    );
+
+    app.use(
+      `/${APP_NAME.toLocaleLowerCase()}`,
+      new BaseAPI<OpenStackCloudLabelRule, OpenStackCloudLabelRuleServiceType>(
+        OpenStackCloudLabelRule,
+        OpenStackCloudLabelRuleService,
       ).getRouter(),
     );
 
@@ -3755,6 +3832,11 @@ const BaseAPIFeatureSet: FeatureSet = {
     app.use(
       `/${APP_NAME.toLocaleLowerCase()}`,
       new ProxmoxResourceAPI().getRouter(),
+    );
+
+    app.use(
+      `/${APP_NAME.toLocaleLowerCase()}`,
+      new OpenStackResourceAPI().getRouter(),
     );
 
     app.use(
@@ -4659,6 +4741,54 @@ const BaseAPIFeatureSet: FeatureSet = {
         DataReconciliation,
         DataReconciliationService,
       ).getRouter(),
+    );
+
+    app.use(
+      `/${APP_NAME.toLocaleLowerCase()}`,
+      new BaseAPI<DataIssueReport, DataIssueReportServiceType>(
+        DataIssueReport,
+        DataIssueReportService,
+      ).getRouter(),
+    );
+
+    app.use(
+      `/${APP_NAME.toLocaleLowerCase()}`,
+      new BaseAPI<DataAssetOwnerUser, DataAssetOwnerUserServiceType>(
+        DataAssetOwnerUser,
+        DataAssetOwnerUserService,
+      ).getRouter(),
+    );
+
+    app.use(
+      `/${APP_NAME.toLocaleLowerCase()}`,
+      new BaseAPI<DataAssetOwnerTeam, DataAssetOwnerTeamServiceType>(
+        DataAssetOwnerTeam,
+        DataAssetOwnerTeamService,
+      ).getRouter(),
+    );
+
+    app.use(
+      `/${APP_NAME.toLocaleLowerCase()}`,
+      new BaseAPI<DataAssetOwnerRule, DataAssetOwnerRuleServiceType>(
+        DataAssetOwnerRule,
+        DataAssetOwnerRuleService,
+      ).getRouter(),
+    );
+
+    app.use(
+      `/${APP_NAME.toLocaleLowerCase()}`,
+      new BaseAPI<DataAssetLabelRule, DataAssetLabelRuleServiceType>(
+        DataAssetLabelRule,
+        DataAssetLabelRuleService,
+      ).getRouter(),
+    );
+
+    app.use(
+      `/${APP_NAME.toLocaleLowerCase()}`,
+      new BaseAPI<
+        DataObservabilitySetting,
+        DataObservabilitySettingServiceType
+      >(DataObservabilitySetting, DataObservabilitySettingService).getRouter(),
     );
 
     app.use(
@@ -5648,6 +5778,25 @@ const BaseAPIFeatureSet: FeatureSet = {
 
     app.use(
       `/${APP_NAME.toLocaleLowerCase()}`,
+      new BaseAPI<OpenStackCloud, OpenStackCloudServiceType>(
+        OpenStackCloud,
+        OpenStackCloudService,
+      ).getRouter(),
+    );
+
+    app.use(
+      `/${APP_NAME.toLocaleLowerCase()}`,
+      new BaseAPI<
+        OpenStackCloudConnectionTest,
+        OpenStackCloudConnectionTestServiceType
+      >(
+        OpenStackCloudConnectionTest,
+        OpenStackCloudConnectionTestService,
+      ).getRouter(),
+    );
+
+    app.use(
+      `/${APP_NAME.toLocaleLowerCase()}`,
       new BaseAPI<VMwareVCenter, VMwareVCenterServiceType>(
         VMwareVCenter,
         VMwareVCenterService,
@@ -5675,6 +5824,14 @@ const BaseAPIFeatureSet: FeatureSet = {
       new BaseAPI<ProxmoxClusterOwnerTeam, ProxmoxClusterOwnerTeamServiceType>(
         ProxmoxClusterOwnerTeam,
         ProxmoxClusterOwnerTeamService,
+      ).getRouter(),
+    );
+
+    app.use(
+      `/${APP_NAME.toLocaleLowerCase()}`,
+      new BaseAPI<OpenStackCloudOwnerTeam, OpenStackCloudOwnerTeamServiceType>(
+        OpenStackCloudOwnerTeam,
+        OpenStackCloudOwnerTeamService,
       ).getRouter(),
     );
 
@@ -5710,6 +5867,14 @@ const BaseAPIFeatureSet: FeatureSet = {
       new BaseAPI<ProxmoxClusterOwnerUser, ProxmoxClusterOwnerUserServiceType>(
         ProxmoxClusterOwnerUser,
         ProxmoxClusterOwnerUserService,
+      ).getRouter(),
+    );
+
+    app.use(
+      `/${APP_NAME.toLocaleLowerCase()}`,
+      new BaseAPI<OpenStackCloudOwnerUser, OpenStackCloudOwnerUserServiceType>(
+        OpenStackCloudOwnerUser,
+        OpenStackCloudOwnerUserService,
       ).getRouter(),
     );
 

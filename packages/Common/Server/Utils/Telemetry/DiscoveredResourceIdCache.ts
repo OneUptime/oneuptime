@@ -94,7 +94,7 @@ export interface DiscoveredResourceKind {
 
 export type DiscoveredResourceKindName =
   | "KubernetesCluster"
-  | "ProxmoxCluster"
+  | "ProxmoxCluster" | "OpenStackCloud"
   | "VMwareVCenter"
   | "IoTFleet"
   | "DockerSwarmCluster"
@@ -128,6 +128,13 @@ export const DiscoveredResourceKinds: Readonly<
   ProxmoxCluster: {
     tableName: "ProxmoxCluster",
     namespace: "proxmox-cluster-id",
+    identityColumn: "name",
+    expiresInSeconds: ONE_DAY_IN_SECONDS,
+    storesId: true,
+  },
+  OpenStackCloud: {
+    tableName: "OpenStackCloud",
+    namespace: "openstack-cloud-id",
     identityColumn: "name",
     expiresInSeconds: ONE_DAY_IN_SECONDS,
     storesId: true,

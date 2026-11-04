@@ -401,7 +401,9 @@ describe("DashboardTemplates editorial invariants (all templates)", () => {
      * Deliberate second views differ in at least one of the three —
      * "Worst Response Time" (Max) beside "Avg Response Time" (Avg) on the
      * SLO template, or a Value tile and a Chart of the same series — so the
-     * triple, not the metric name alone, is what has to be unique.
+     * triple, not the metric name alone, is what has to be unique. A filter
+     * is part of what the series is: OpenStack's Placement puts vCPUs and
+     * memory on one metric name, told apart only by `resourcetype`.
      */
     test("no template prints the same component family, metric and aggregation twice", (): void => {
       const loadedTemplates: Array<LoadedTemplate> = loadAllTemplates();
@@ -424,9 +426,12 @@ describe("DashboardTemplates editorial invariants (all templates)", () => {
 
           seriesChecked++;
 
+          const filter: string = filterData["attributes"]
+            ? `/${JSON.stringify(filterData["attributes"])}`
+            : "";
           const triple: string = `${component.componentType}/${String(
             filterData["metricName"],
-          )}/${String(filterData["aggegationType"])}`;
+          )}/${String(filterData["aggegationType"])}${filter}`;
           const existing: string | undefined = seenTriples.get(triple);
 
           if (existing) {

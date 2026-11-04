@@ -268,6 +268,12 @@ const ALL_KNOWN_TEST_ROUTES: ReadonlyArray<KnownTestRoute> = [
     why: "A probe reports the vCenter connection test it ran, as the probe the test names; sends nobody a message.",
   },
   {
+    file: "packages/App/FeatureSet/Telemetry/API/ProbeIngest/OpenStackCollection.ts",
+    path: "/probe/openstack/test",
+    rule: "check",
+    why: "A probe reports the cloud connection test it ran, as the probe the test names; sends nobody a message.",
+  },
+  {
     file: "ee/Server/AuditLogExport/API/AuditLogExportAPI.ts",
     path: "/audit-log-export/test",
     rule: "check",

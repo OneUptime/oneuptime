@@ -397,8 +397,8 @@ class User extends UserModel {
    * The latest sign-in link emailed to this account (Types/Accounts/
    * MagicLink): the hash of its token, never the token, which is only ever
    * mailed - like resetPasswordToken. Cleared by the sign-in that uses it,
-   * by a password reset and by a new email address, and replaced by the
-   * next link asked for.
+   * by a new password and by a new email address, and replaced by the next
+   * link asked for.
    */
   @ColumnAccessControl({
     create: [],

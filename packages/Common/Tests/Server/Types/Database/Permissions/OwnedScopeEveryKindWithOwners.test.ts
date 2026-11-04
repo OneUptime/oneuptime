@@ -1110,6 +1110,7 @@ const NAMES_A_KIND_AS_IT_IS: Record<string, string> = {
   "SmsLog.onCallDutyPolicySchedule": LOGS_A_NOTIFICATION,
   "TelegramLog.onCallDutyPolicySchedule": LOGS_A_NOTIFICATION,
   "UserOnCallShiftReminderLog.onCallDutyPolicySchedule": LOGS_A_NOTIFICATION,
+  "OpenStackCloudConnectionTest.probe": PICKS_A_PROBE,
   "VMwareVCenterConnectionTest.probe": PICKS_A_PROBE,
   "WebhookLog.onCallDutyPolicySchedule": LOGS_A_NOTIFICATION,
   "WhatsAppLog.onCallDutyPolicySchedule": LOGS_A_NOTIFICATION,

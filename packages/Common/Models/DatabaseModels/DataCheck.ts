@@ -1,3 +1,4 @@
+import { JSONObject } from "../../Types/JSON";
 import DataAsset from "./DataAsset";
 import Monitor from "./Monitor";
 import Project from "./Project";
@@ -353,6 +354,38 @@ export default class DataCheck extends BaseModel {
   @TableColumn({
     type: TableColumnType.ShortText,
     required: false,
+    title: "Format",
+    description:
+      "For Format Mismatch Percent: a format everyone wants, instead of writing the pattern.",
+    example: "Email",
+  })
+  @Column({
+    type: ColumnType.ShortText,
+    length: ColumnLength.ShortText,
+    nullable: true,
+  })
+  public formatPreset?: string = undefined;
+
+  @ColumnAccessControl(editableColumnAccess)
+  @TableColumn({
+    type: TableColumnType.Number,
+    required: false,
+    title: "Sample Percent",
+    description:
+      "Read this percent of the table's rows instead of all of them, for a check that reads a rate.",
+    example: "10",
+  })
+  @Column({
+    type: ColumnType.Decimal,
+    nullable: true,
+    transformer: getDecimalDatabaseTransformer(),
+  })
+  public samplePercent?: number = undefined;
+
+  @ColumnAccessControl(editableColumnAccess)
+  @TableColumn({
+    type: TableColumnType.ShortText,
+    required: false,
     title: "Referenced Table",
     description:
       "For Orphan Count: the table the column refers to, as schema.table.",
@@ -427,6 +460,24 @@ export default class DataCheck extends BaseModel {
     default: true,
   })
   public isEnabled?: boolean = undefined;
+
+  @ColumnAccessControl(serverWrittenColumnAccess)
+  @TableColumn({
+    type: TableColumnType.Boolean,
+    required: true,
+    computed: true,
+    title: "Managed by File",
+    description:
+      "Whether the check came from a file in a repository (oneuptime data-checks apply).",
+    defaultValue: false,
+    isDefaultValueColumn: true,
+  })
+  @Column({
+    type: ColumnType.Boolean,
+    nullable: false,
+    default: false,
+  })
+  public isManagedByFile?: boolean = undefined;
 
   @ColumnAccessControl(editableColumnAccess)
   @TableColumn({
@@ -577,6 +628,21 @@ export default class DataCheck extends BaseModel {
     transformer: getDecimalDatabaseTransformer(),
   })
   public lastValue?: number = undefined;
+
+  @ColumnAccessControl(serverWrittenColumnAccess)
+  @TableColumn({
+    type: TableColumnType.JSON,
+    required: false,
+    computed: true,
+    title: "Failing Rows",
+    description:
+      "A masked sample of the rows the last run found failing, when the project keeps them.",
+  })
+  @Column({
+    type: ColumnType.JSON,
+    nullable: true,
+  })
+  public failingRowsSample?: Array<JSONObject> = undefined;
 
   @ColumnAccessControl(serverWrittenColumnAccess)
   @TableColumn({

@@ -37,7 +37,11 @@ import "ejs";
 // xmlbuilder imports removed (handled inside Sitemap util)
 import OSSFriends, { OSSFriend, OSSCategory } from "./Utils/OSSFriends";
 import Reviews, { AllReviews, Review } from "./Utils/Reviews";
-import Pricing, { PricingCategory, PricingPlans } from "./Utils/Pricing";
+import Pricing, {
+  getWatchedTablePricingContent,
+  PricingCategory,
+  PricingPlans,
+} from "./Utils/Pricing";
 import {
   generateLlmsTxt,
   generateLlmsFullTxt,
@@ -410,6 +414,7 @@ const HomeFeatureSet: FeatureSet = {
         res.json({
           plans: PricingPlans,
           telemetryIngestPricePerGB: "$0.10",
+          watchedTablePricing: getWatchedTablePricingContent(),
           featureMatrix: Pricing,
         });
       },
@@ -669,6 +674,7 @@ const HomeFeatureSet: FeatureSet = {
       );
       res.render(`${ViewsPath}/pricing`, {
         pricing,
+        watchedTables: getWatchedTablePricingContent(),
         enableGoogleTagManager: GoogleTagManagerEnabled,
         seo,
         // The line under the plans naming OneUptime Cloud's marketplace listings.

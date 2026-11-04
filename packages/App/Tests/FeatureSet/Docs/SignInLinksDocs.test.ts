@@ -11,7 +11,11 @@ import {
   strayMarkers,
   toLatinDigits,
 } from "./DocsTranslationChecks";
-import { flattened, otherChangesItems } from "./UpgradingDocsNotes";
+import {
+  flattened,
+  otherChangesItems,
+  sectionAtEnglishPlace,
+} from "./UpgradingDocsNotes";
 import { slugifyMarkdownHeading } from "Common/Server/Types/MarkdownSlugify";
 import { MAGIC_LINK_EXPIRY_MINUTES } from "Common/Types/Accounts/MagicLink";
 import { SSO_REQUIRED_SIGN_IN_MESSAGE } from "Common/Types/SSO/SignInMethods";
@@ -37,11 +41,13 @@ import path from "path";
  *     the sign-in page's option after the upgrade, and one with no working
  *     mail server offers it all the same. It names the switch and links to
  *     that section. Its neighbours in the list are not pinned: nothing it says
- *     depends on them, and the next note can go beside it;
- *   - Global SSO's troubleshooting entry on the server's refusal while SSO is
- *     required, which lists an emailed link among the sign-ins it explains.
- *     MagicLinkLogin (the server) and LoginMagicLink (the page a link opens)
- *     hold the refusal itself;
+ *     depends on them, and the next note can go beside it. The paragraph above
+ *     the list tells a server with no working mail server to read it;
+ *   - Global SSO's Enforcing SSO bullets and its troubleshooting entry on the
+ *     server's refusal while SSO is required, which list an emailed link among
+ *     what the page leaves out and the server refuses. MagicLinkLogin (the
+ *     server) and LoginMagicLink (the page a link opens) hold the refusal
+ *     itself;
  *   - every translation carries all of it in the English places, with that
  *     language's labels. The Hardening Guide is English in every language, so
  *     its line is too, and only its link follows the language's heading.
@@ -87,27 +93,56 @@ const ADMIN_DASHBOARD_BREADCRUMB: string = "breadcrumbs.adminDashboard";
 const UPGRADE_NOTE_LEAD: string =
   "**The sign-in page offers an emailed sign-in link, even with no working mail server.**";
 
+const UPGRADE_LIST_HEADING: string = "Other changes in 14";
+
+const ENFORCING_SSO: string = "Enforcing SSO";
+const OFFERS_ONLY_SSO: string = "- The sign-in page offers only SSO:";
+const REFUSES: string = "- OneUptime refuses a password,";
+
 /*
- * How each translation's Global SSO entry names an emailed link: the words of
+ * How each translation's Global SSO page names an emailed link: the words of
  * its own heading for the section, so a reader meets one name for it.
  */
 const EMAILED_LINK: Record<string, string> = {
-  da: "et link sendt på e-mail",
-  de: "einem per E-Mail gesendeten Link",
-  es: "un enlace enviado por correo",
+  da: "link sendt på e-mail",
+  de: "per E-Mail gesendeten Link",
+  es: "enlace enviado por correo",
   fa: "لینک ارسال‌شده به ایمیل",
-  fr: "un lien envoyé par e-mail",
-  hi: "ईमेल किए गए लिंक",
-  it: "un link inviato via e-mail",
+  fr: "lien envoyé par e-mail",
+  hi: "लिंक",
+  it: "link inviato via e-mail",
   ja: "メールで届いたリンク",
   ko: "이메일로 받은 링크",
-  nl: "een gemailde link",
-  no: "en lenke på e-post",
-  pt: "um link enviado por e-mail",
+  nl: "gemailde link",
+  no: "lenke på e-post",
+  pt: "link enviado por e-mail",
   ru: "по ссылке из письма",
-  sv: "en länk via e-post",
+  sv: "länk via e-post",
   "zh-CN": "电子邮件链接",
   "zh-TW": "電子郵件連結",
+};
+
+/*
+ * How each translation's upgrade guide names a mail server, in the note and in
+ * the paragraph that sends its readers to the note.
+ */
+const MAIL_SERVER: Record<string, string> = {
+  da: "mailserver",
+  de: "Mailserver",
+  es: "servidor de correo",
+  fa: "سرور ایمیل",
+  fr: "serveur de messagerie",
+  hi: "मेल सर्वर",
+  it: "server di posta",
+  ja: "メールサーバー",
+  ko: "메일 서버",
+  nl: "mailserver",
+  no: "e-postserver",
+  pt: "servidor de e-mail",
+  ru: "почтового сервера",
+  sv: "e-postserver",
+  "zh-CN": "邮件服务器",
+  "zh-TW": "郵件伺服器",
 };
 
 const REQUIRE_IT_BULLET: string = "- **Require it.**";
@@ -255,6 +290,44 @@ function upgradeGuidePath(language: string): Array<string> {
     drawn(ADMIN_DASHBOARD, language, ADMIN_DASHBOARD_BREADCRUMB),
     ...settingsPath(language),
   ];
+}
+
+// The paragraph above the fold of the "Other changes in 14" list.
+function upgradeListIntro(language: string): string {
+  const section: string = sectionAtEnglishPlace(language, UPGRADE_LIST_HEADING);
+
+  return flattened(section.slice(0, section.indexOf(":::details ")));
+}
+
+// The bullets of Global SSO's Enforcing SSO section in a language.
+function enforcingBullets(language: string): Array<string> {
+  const headings: Array<DocsHeading> = headingsOf(GLOBAL_SSO, language);
+  const at: number = headingsOf(GLOBAL_SSO, "en").findIndex(
+    (heading: DocsHeading): boolean => {
+      return heading.text === ENFORCING_SSO;
+    },
+  );
+
+  return readPage(language, GLOBAL_SSO)
+    .split("\n")
+    .slice(
+      (headings[at] as DocsHeading).line - 1,
+      (headings[at + 1] as DocsHeading).line - 1,
+    )
+    .filter((line: string): boolean => {
+      return line.startsWith("- ");
+    });
+}
+
+// A language's Enforcing SSO bullet in the place of the English one with this opening.
+function enforcingBullet(language: string, englishOpening: string): string {
+  const at: number = enforcingBullets("en").findIndex(
+    (bullet: string): boolean => {
+      return bullet.startsWith(englishOpening);
+    },
+  );
+
+  return enforcingBullets(language)[at] as string;
 }
 
 // The Global SSO entry a sign-in refused while SSO is required opens, by its title.
@@ -435,10 +508,28 @@ describe("the upgrade note, in English", () => {
     expect(linksOf(note)).toEqual([sectionLink("en")]);
     expect(inlineCode(note)).toEqual([]);
   });
+
+  it("is what the paragraph above the list sends a server with no working mail server to read", () => {
+    expect(upgradeListIntro("en")).toContain(
+      "or the Slack and Microsoft Teams apps, or if your server has no working mail server.",
+    );
+  });
 });
 
-describe("Global SSO's troubleshooting entry on the refusal, in English", () => {
-  it("lists an emailed link among the sign-ins it explains", () => {
+describe("the Global SSO page on the refusal, in English", () => {
+  it("Enforcing SSO lists an emailed link among what the page leaves out", () => {
+    expect(enforcingBullet("en", OFFERS_ONLY_SSO)).toContain(
+      "and no password, passkey, emailed link, Google or Microsoft sign-in, or sign-up.",
+    );
+  });
+
+  it("Enforcing SSO lists an emailed link among what the server refuses, with the server's message", () => {
+    expect(enforcingBullet("en", REFUSES)).toContain(
+      `OneUptime refuses a password, a passkey, an emailed link, a Google or Microsoft sign-in and a sign-up with "${SSO_REQUIRED_SIGN_IN_MESSAGE}"`,
+    );
+  });
+
+  it("the troubleshooting entry lists an emailed link among the sign-ins it explains", () => {
     expect(ssoEntry("en")).toContain(
       "this was a sign-in with a password, a passkey, an emailed link, Google or Microsoft, or a sign-up.",
     );
@@ -549,10 +640,28 @@ describe.each(TRANSLATED_LANGUAGES)("in %s", (language: string) => {
     expect(await strayMarkers(`# Title\n${note}`, language)).toEqual([]);
   });
 
-  it("Global SSO's troubleshooting entry lists an emailed link, in the words of this language's section", () => {
+  it("the paragraph above the list names a mail server as the upgrade note does", () => {
+    const words: string = MAIL_SERVER[language] as string;
+
+    expect(upgradeListIntro(language)).toContain(words);
+    expect(note).toContain(words);
+  });
+
+  it("the Global SSO page lists an emailed link in the words of this language's section, wherever it lists what is refused", () => {
     const words: string = EMAILED_LINK[language] as string;
 
     expect(sectionHeading(language).text).toContain(words);
-    expect(ssoEntry(language)).toContain(words);
+
+    for (const place of [
+      enforcingBullet(language, OFFERS_ONLY_SSO),
+      enforcingBullet(language, REFUSES),
+      ssoEntry(language),
+    ]) {
+      expect({ words, place, listed: place.includes(words) }).toEqual({
+        words,
+        place,
+        listed: true,
+      });
+    }
   });
 });

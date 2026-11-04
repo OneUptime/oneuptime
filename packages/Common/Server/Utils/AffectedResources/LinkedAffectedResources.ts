@@ -54,6 +54,7 @@ export enum LinkedAffectedResourceType {
   DockerHost = "DockerHost",
   PodmanHost = "PodmanHost",
   ProxmoxCluster = "ProxmoxCluster",
+  OpenStackCloud = "OpenStackCloud",
   VMwareVCenter = "VMwareVCenter",
   CephCluster = "CephCluster",
   StorageArray = "StorageArray",
@@ -149,6 +150,12 @@ export const LINKED_AFFECTED_RESOURCE_RELATIONS: ReadonlyArray<LinkedAffectedRes
       type: LinkedAffectedResourceType.ProxmoxCluster,
       label: "Proxmox Cluster",
       dashboardRoute: "proxmox",
+    },
+    {
+      column: "openStackClouds",
+      type: LinkedAffectedResourceType.OpenStackCloud,
+      label: "OpenStack Cloud",
+      dashboardRoute: "openstack",
     },
     {
       column: "vmwareVCenters",

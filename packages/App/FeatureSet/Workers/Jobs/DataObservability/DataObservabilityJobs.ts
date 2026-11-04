@@ -13,12 +13,18 @@ import {
   queueTableUsageDiscovery,
 } from "Common/Server/Utils/DataObservability/DataObservabilityJobs";
 import TableUsageDiscovery from "Common/Server/Utils/DataObservability/TableUsageDiscovery";
+import TraceJobDiscovery from "Common/Server/Utils/DataObservability/TraceJobDiscovery";
 import OneUptimeDate from "Common/Types/Date";
 import {
+  EVERY_DAY,
   EVERY_FIFTEEN_MINUTE,
   EVERY_FIVE_MINUTE,
   EVERY_HOUR,
 } from "Common/Utils/CronTime";
+import { IsBillingEnabled } from "Common/Server/EnvironmentConfig";
+import DataStoreService from "Common/Server/Services/DataStoreService";
+import logger from "Common/Server/Utils/Logger";
+import { WatchedTableMeteredPlan } from "Common/Server/Types/Billing/MeteredPlan/AllMeteredPlans";
 import { JSONObject } from "Common/Types/JSON";
 import ObjectID from "Common/Types/ObjectID";
 
@@ -94,6 +100,53 @@ JobDictionary.setTimeoutInMs(
 // How long one project's discovery may run: one ClickHouse read, then its writes.
 const DISCOVER_TABLE_USAGE_TIMEOUT_IN_MS: number = 5 * 60 * 1000;
 
+/*
+ * The tables each project has under watch, counted for the bill, which charges
+ * nothing for them until the plan has a price (WatchedTableMeteredPlan).
+ */
+RunCron(
+  "DataObservability:CountWatchedTables",
+  {
+    schedule: EVERY_DAY,
+    runOnStartup: false,
+    timeoutInMS: 30 * 60 * 1000,
+  },
+  async () => {
+    if (!IsBillingEnabled) {
+      return;
+    }
+
+    const projectIds: Map<string, ObjectID> = new Map();
+
+    /*
+     * Every project with a store, archived or not: one that stopped watching
+     * everything still has to report that it now owes nothing.
+     */
+    for (const store of await DataStoreService.findAllBy({
+      query: {},
+      select: { projectId: true },
+      props: { isRoot: true },
+    })) {
+      if (store.projectId) {
+        projectIds.set(store.projectId.toString(), store.projectId);
+      }
+    }
+
+    for (const projectId of projectIds.values()) {
+      try {
+        await WatchedTableMeteredPlan.reportQuantityToBillingProvider(
+          projectId,
+        );
+      } catch (error) {
+        logger.error(
+          `Data Observability: could not count the watched tables of project ${projectId.toString()}.`,
+        );
+        logger.error(error);
+      }
+    }
+  },
+);
+
 RunCron(
   "DataObservability:DiscoverTableUsageForProjects",
   {
@@ -115,6 +168,10 @@ JobDictionary.setJobFunction(
 
     if (projectId) {
       await TableUsageDiscovery.discoverProject({
+        projectId,
+        now: OneUptimeDate.getCurrentDate(),
+      });
+      await TraceJobDiscovery.discoverProject({
         projectId,
         now: OneUptimeDate.getCurrentDate(),
       });

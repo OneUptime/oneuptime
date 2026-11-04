@@ -592,6 +592,7 @@ describe("Criteria filter defaults", () => {
       MonitorType.Podman,
       MonitorType.DockerSwarm,
       MonitorType.Proxmox,
+      MonitorType.OpenStack,
       MonitorType.VMware,
       MonitorType.Ceph,
       MonitorType.IoTDevice,
@@ -639,7 +640,7 @@ describe("Criteria filter defaults", () => {
           })
           .sort(),
       );
-      expect(metricOnly.length).toBe(10);
+      expect(metricOnly.length).toBe(11);
     });
 
     test.each([
@@ -758,6 +759,7 @@ describe("Criteria filter defaults", () => {
       MonitorType.Podman,
       MonitorType.DockerSwarm,
       MonitorType.Proxmox,
+      MonitorType.OpenStack,
       MonitorType.VMware,
       MonitorType.Ceph,
     ])(
@@ -870,6 +872,7 @@ describe("Criteria filter defaults", () => {
       MonitorType.Podman,
       MonitorType.DockerSwarm,
       MonitorType.Proxmox,
+      MonitorType.OpenStack,
       MonitorType.VMware,
       MonitorType.Ceph,
     ])("%s is metric-only", (monitorType: MonitorType) => {

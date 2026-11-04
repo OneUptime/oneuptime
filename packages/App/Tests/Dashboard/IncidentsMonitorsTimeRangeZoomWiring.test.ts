@@ -39,6 +39,7 @@ const STEP_FORMS: Array<[string, string]> = [
   ["Docker Swarm", "DockerSwarmMonitor/DockerSwarmMonitorStepForm.tsx"],
   ["Podman", "PodmanMonitor/PodmanMonitorStepForm.tsx"],
   ["Proxmox", "ProxmoxMonitor/ProxmoxMonitorStepForm.tsx"],
+  ["OpenStack", "OpenStackMonitor/OpenStackMonitorStepForm.tsx"],
   ["VMware", "VMwareMonitor/VMwareMonitorStepForm.tsx"],
   ["Ceph", "CephMonitor/CephMonitorStepForm.tsx"],
   ["IoT", "IoTMonitor/IoTMonitorStepForm.tsx"],

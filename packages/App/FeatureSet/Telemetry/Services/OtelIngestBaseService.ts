@@ -6,6 +6,7 @@ import KubernetesClusterService from "Common/Server/Services/KubernetesClusterSe
 import DockerHostService from "Common/Server/Services/DockerHostService";
 import PodmanHostService from "Common/Server/Services/PodmanHostService";
 import ProxmoxClusterService from "Common/Server/Services/ProxmoxClusterService";
+import OpenStackCloudService from "Common/Server/Services/OpenStackCloudService";
 import VMwareVCenterService from "Common/Server/Services/VMwareVCenterService";
 import IoTFleetService from "Common/Server/Services/IoTFleetService";
 import { stampStoredIoTFleetName } from "../Utils/StoredIoTFleetName";
@@ -639,6 +640,12 @@ export default abstract class OtelIngestBaseService {
           name: identity,
         });
         break;
+      case "OpenStackCloud":
+        row = await OpenStackCloudService.findOrCreateByName({
+          projectId: projectId,
+          name: identity,
+        });
+        break;
       case "VMwareVCenter":
         row = await VMwareVCenterService.findOrCreateByName({
           projectId: projectId,
@@ -1118,6 +1125,7 @@ export default abstract class OtelIngestBaseService {
     podmanHostId?: ObjectID | null;
     kubernetesClusterId?: ObjectID | null;
     proxmoxClusterId?: ObjectID | null;
+    openStackCloudId?: ObjectID | null;
     vmwareVCenterId?: ObjectID | null;
     cephClusterId?: ObjectID | null;
     storageArrayId?: ObjectID | null;
@@ -1309,6 +1317,7 @@ export default abstract class OtelIngestBaseService {
     podmanHostId?: ObjectID | null;
     kubernetesClusterId?: ObjectID | null;
     proxmoxClusterId?: ObjectID | null;
+    openStackCloudId?: ObjectID | null;
     vmwareVCenterId?: ObjectID | null;
     cephClusterId?: ObjectID | null;
     storageArrayId?: ObjectID | null;
@@ -1401,6 +1410,17 @@ export default abstract class OtelIngestBaseService {
         serviceName: clusterName ? `proxmox/${clusterName}` : "Proxmox Cluster",
         resourceId: data.proxmoxClusterId,
         primaryEntityType: ServiceType.ProxmoxCluster,
+        projectId: data.projectId,
+      });
+    }
+
+    if (data.openStackCloudId) {
+      const cloudName: string | null =
+        this.getOpenStackCloudNameFromAttributes(data.attributes);
+      return await OTelIngestService.buildResourceMetadataForNonService({
+        serviceName: cloudName ? `openstack/${cloudName}` : "OpenStack Cloud",
+        resourceId: data.openStackCloudId,
+        primaryEntityType: ServiceType.OpenStackCloud,
         projectId: data.projectId,
       });
     }
@@ -1969,6 +1989,12 @@ export default abstract class OtelIngestBaseService {
     return this.getStringAttribute(attributes, "proxmox.cluster.name");
   }
 
+  protected static getOpenStackCloudNameFromAttributes(
+    attributes: JSONArray,
+  ): string | null {
+    return this.getStringAttribute(attributes, "openstack.cloud.name");
+  }
+
   protected static async autoDiscoverProxmoxCluster(data: {
     projectId: ObjectID;
     attributes: JSONArray;
@@ -1988,6 +2014,28 @@ export default abstract class OtelIngestBaseService {
       projectId: data.projectId,
       attributes: data.attributes,
       clusterName: clusterName,
+    });
+  }
+
+  protected static async autoDiscoverOpenStackCloud(data: {
+    projectId: ObjectID;
+    attributes: JSONArray;
+  }): Promise<ObjectID | null> {
+    const cloudName: string | null = this.readDiscoveryMatch({
+      resource: "OpenStack cloud",
+      read: (): string | null => {
+        return this.getOpenStackCloudNameFromAttributes(data.attributes);
+      },
+    });
+
+    if (!cloudName) {
+      return null;
+    }
+
+    return await this.discoverMatchedOpenStackCloud({
+      projectId: data.projectId,
+      attributes: data.attributes,
+      cloudName: cloudName,
     });
   }
 
@@ -2054,6 +2102,69 @@ export default abstract class OtelIngestBaseService {
     }
   }
 
+  @CaptureSpan({ name: "OtelIngestBaseService.autoDiscoverOpenStackCloud" })
+  private static async discoverMatchedOpenStackCloud(data: {
+    projectId: ObjectID;
+    attributes: JSONArray;
+    cloudName: string;
+  }): Promise<ObjectID | null> {
+    /*
+     * Fences armed below, released by the catch block. See
+     * releaseMaintenanceFences.
+     */
+    const armedFences: Array<MaintenanceFence> = [];
+    try {
+      const cloudIdStr: string | null =
+        await this.resolveDiscoveredResourceId({
+          kindName: "OpenStackCloud",
+          projectId: data.projectId,
+          identity: data.cloudName,
+        });
+
+      if (!cloudIdStr) {
+        return null;
+      }
+
+      /*
+       * Same fence rationale as the Kubernetes path — skip the
+       * per-batch maintenance UPDATE + label upsert when we
+       * already ran it within the fence window.
+       */
+      const liveIdStr: string | null = await this.maintainDiscoveredResource({
+        kind: DiscoveredResourceKinds.OpenStackCloud,
+        id: cloudIdStr,
+        fenceScope: "openstack-cloud",
+        armedFences: armedFences,
+        heartbeat: async (
+          cloudId: ObjectID,
+        ): Promise<ResourceHeartbeatResult> => {
+          const agentVersion: string | null = this.getStringAttribute(
+            data.attributes,
+            "oneuptime.agent.version",
+          );
+          return await OpenStackCloudService.updateLastSeen(cloudId, {
+            agentVersion: agentVersion || undefined,
+          });
+        },
+        promoteLabels: async (cloudId: ObjectID): Promise<void> => {
+          await this.promoteOneuptimeLabelsToOpenStackCloud({
+            projectId: data.projectId,
+            openStackCloudId: cloudId,
+            attributes: data.attributes,
+          });
+        },
+      });
+
+      return liveIdStr ? new ObjectID(liveIdStr) : null;
+    } catch (err) {
+      await this.releaseMaintenanceFences(armedFences);
+      logger.error(
+        "Error auto-discovering OpenStack cloud: " + (err as Error).message,
+      );
+      return null;
+    }
+  }
+
   /*
    * Promote `oneuptime.label.<dim>=<val>` resource attributes into
    * project labels and attach them to the discovered Proxmox
@@ -2088,6 +2199,39 @@ export default abstract class OtelIngestBaseService {
     } catch (err) {
       logger.warn(
         `Proxmox cluster label promotion failed for ${data.proxmoxClusterId.toString()}: ${
+          err instanceof Error ? err.message : String(err)
+        }`,
+      );
+    }
+  }
+
+  protected static async promoteOneuptimeLabelsToOpenStackCloud(data: {
+    projectId: ObjectID;
+    openStackCloudId: ObjectID;
+    attributes: JSONArray;
+  }): Promise<void> {
+    try {
+      const labelNames: Array<string> = extractOneuptimeLabelNames(
+        data.attributes,
+      );
+      if (labelNames.length === 0) {
+        return;
+      }
+      const labelIds: Array<ObjectID> =
+        await LabelService.findOrCreateLabelsByNames({
+          projectId: data.projectId,
+          labelNames,
+        });
+      if (labelIds.length === 0) {
+        return;
+      }
+      await OpenStackCloudService.attachLabels({
+        openStackCloudId: data.openStackCloudId,
+        labelIds,
+      });
+    } catch (err) {
+      logger.warn(
+        `OpenStack cloud label promotion failed for ${data.openStackCloudId.toString()}: ${
           err instanceof Error ? err.message : String(err)
         }`,
       );
@@ -5633,7 +5777,8 @@ export default abstract class OtelIngestBaseService {
   private static readonly HOST_PROXMOX_LINK_CACHE_NAMESPACE: string =
     "host-proxmox-guest-link";
   private static readonly HOST_PROXMOX_LINK_CACHE_EXPIRY_SECONDS: number =
-    24 * 60 * 60; // 1 day
+    24 * 60 * 60;
+
 
   /**
    * WI-17 ingest heuristic: a Host whose hostIdentifier

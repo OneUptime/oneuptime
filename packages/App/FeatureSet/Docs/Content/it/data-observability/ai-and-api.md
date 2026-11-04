@@ -4,9 +4,12 @@ OneUptime AI conosce i tuoi dati: indaga su un avviso sui dati partendo da chi s
 
 ## OneUptime AI
 
-- **Indagini sugli avvisi relativi ai dati.** Quando OneUptime AI indaga su un avviso relativo a una tabella, una pipeline o un database, parte da ciò che gli sta accanto: la freschezza e gli avvisi aperti della tabella, l'avviso di cui è conseguenza, le esecuzioni delle pipeline che la scrivono dal giorno prima (un'esecuzione non riuscita con il suo errore, oppure l'esecuzione che non è mai arrivata), i servizi che la scrivono con le loro scritture non riuscite, i loro deploy e le altre modifiche, e le tabelle da cui viene costruita. Indica l'esecuzione, il deploy o la tabella a monte che ha causato l'avviso. Vedi [AI SRE](/docs/ai/ai-sre).
+- **Indagini sugli avvisi relativi ai dati.** Quando OneUptime AI indaga su un avviso relativo a una tabella, una pipeline o un database, parte da ciò che gli sta accanto: la freschezza e gli avvisi aperti della tabella, l'avviso di cui è conseguenza, le esecuzioni delle pipeline che la scrivono dal giorno prima (un'esecuzione non riuscita con il suo errore, oppure l'esecuzione che non è mai arrivata), i servizi che la scrivono con le loro scritture non riuscite, i loro deploy e le altre modifiche, le tabelle da cui viene costruita e le colonne che sono cambiate. Indica l'esecuzione, il deploy o la tabella a monte che ha causato l'avviso. Vedi [AI SRE](/docs/ai/ai-sre).
 - **Questa tabella è aggiornata?** Chiedilo in [Chiedi all'IA](/docs/ai/ask-ai), Slack o Microsoft Teams: «la tabella orders è aggiornata?». La risposta indica la freschezza della tabella secondo il suo ritmo, quando è cambiata l'ultima volta, i suoi avvisi aperti, le ultime esecuzioni di chi la scrive e i prodotti di dati di cui fa parte. A un nome condiviso da più database viene data una risposta per ciascuno, così a nessuno viene detto che la tabella sbagliata è aggiornata.
 - **Un controllo da una frase.** Nella scheda **Controlli** di una tabella, **Scrivi un controllo da una frase** trasforma una regola in un controllo SQL personalizzato nel SQL del tuo motore. Vedi [Controlli e riconciliazioni](/docs/data-observability/checks).
+
+- **Deriva lenta.** Le righe di una tabella, o il valore di un controllo, che si spostano di un quinto o più in una settimana, troppo lentamente per qualsiasi avviso, arrivano in Insight IA come un punto da guardare. Non chiama nessuno.
+- **Dati obsoleti dietro le app AI.** Un servizio che chiama un modello e legge anche una tabella è il consumatore AI di quella tabella. Quando una tabella di questo tipo va in ritardo, la pagina **Conversazioni** del prodotto AI lo dice: un'app che risponde con dati vecchi non mostra nulla di sbagliato nei propri trace.
 
 Ognuna di queste funzioni richiede che OneUptime AI sia attivo per il progetto, e agisce con le autorizzazioni della persona che chiede.
 
@@ -29,9 +32,10 @@ Funziona con un accesso di sola lettura, e risponde come la persona o la chiave 
 | `POST /telemetry/fivetran/v1/webhook/<ingestion key ID>` | I webhook di sincronizzazione di Fivetran | La chiave di acquisizione, come segreto di firma di Fivetran |
 | `POST /telemetry/airbyte/v1/webhook/<ingestion key>` | I webhook di sincronizzazione di Airbyte | La chiave di acquisizione nell'URL |
 | `POST /api/data-observability/tables/freshness` | La freschezza di una tabella, come la restituisce lo strumento MCP, con `{ "table": "public.orders" }` | Una chiave API |
+| `POST /api/data-observability/checks/apply` | Fa corrispondere i controlli del progetto a un file, come fa `oneuptime data-checks apply`, con `{ "manifest": "...", "isDryRun": true, "shouldPrune": false }` | Una chiave API |
 | `GET /api/data-observability/data-products/<data product ID>/badge?token=<badge token>` | Il badge «data as of» di un prodotto di dati | Il token proprio del badge |
 
-Tabelle, controlli, riconciliazioni, pipeline e prodotti di dati sono anche normali risorse dell'[API](/docs/api-reference/api-reference), che si leggono e si modificano con una chiave API che abbia le autorizzazioni corrispondenti.
+Tabelle, controlli, riconciliazioni, pipeline, prodotti di dati, connessioni BI e job del warehouse sono anche normali risorse dell'[API](/docs/api-reference/api-reference), che si leggono e si modificano con una chiave API che abbia le autorizzazioni corrispondenti, e del server MCP e dei workflow.
 
 ## Metriche
 
