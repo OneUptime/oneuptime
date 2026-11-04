@@ -265,8 +265,7 @@ jest.mock("Common/Server/Services/MailService", () => {
     __esModule: true,
     default: {
       sendMail: (...args: Array<unknown>): Promise<void> => {
-        sendMail(...args);
-        return Promise.resolve();
+        return Promise.resolve(sendMail(...args) as undefined);
       },
     },
   };
@@ -971,6 +970,16 @@ describe("POST /send-magic-link", () => {
     expect(sendEmptySuccessResponse).toHaveBeenCalledTimes(1);
     expect(sendMail).not.toHaveBeenCalled();
     expect(row!["magicLinkToken"]).toBeNull();
+  });
+
+  it("answers the same when the email cannot be sent: a server with no working mail server tells nobody", async () => {
+    sendMail.mockRejectedValueOnce(new Error("Global SMTP Config not found"));
+
+    const answer: Answer = await askForLink();
+
+    expect(answer.error).toBeNull();
+    expect(sendEmptySuccessResponse).toHaveBeenCalledTimes(1);
+    expect(sendMail).toHaveBeenCalledTimes(1);
   });
 
   it("while the server requires SSO, sends nothing to anyone but a master admin", async () => {

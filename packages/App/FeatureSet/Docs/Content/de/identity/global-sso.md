@@ -162,7 +162,7 @@ Jede Antwort Ihres Identitätsanbieters gilt für genau eine Anmeldung, und nur 
 :::
 
 :::details "This server requires single sign-on (SSO). Sign in with SSO instead."
-Die ganze Instanz verlangt SSO, und dies war eine Anmeldung mit Passwort, Passkey, Google oder Microsoft oder eine Registrierung. Melden Sie sich stattdessen über eine der SSO-Schaltflächen der Anmeldeseite an. Ein Master-Admin meldet sich mit seinem Passwort unter `/accounts/admin-login` an; damit sich alle wieder mit Passwort anmelden können, schaltet er **SSO für die Anmeldung erfordern** auf **Single Sign-On** aus.
+Die ganze Instanz verlangt SSO, und dies war eine Anmeldung mit Passwort, Passkey, einem per E-Mail gesendeten Link, Google oder Microsoft oder eine Registrierung. Melden Sie sich stattdessen über eine der SSO-Schaltflächen der Anmeldeseite an. Ein Master-Admin meldet sich mit seinem Passwort unter `/accounts/admin-login` an; damit sich alle wieder mit Passwort anmelden können, schaltet er **SSO für die Anmeldung erfordern** auf **Single Sign-On** aus.
 :::
 
 ## Nächste Schritte

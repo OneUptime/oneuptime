@@ -17,7 +17,11 @@ import HTTPErrorResponse from "../../../Types/API/HTTPErrorResponse";
 import HTTPResponse from "../../../Types/API/HTTPResponse";
 import Route from "../../../Types/API/Route";
 import { JSONObject } from "../../../Types/JSON";
-import { SignInMethods } from "../../../Types/SSO/SignInMethods";
+import {
+  SignInMethods,
+  SSO_REQUIRED_SIGN_IN_MESSAGE,
+} from "../../../Types/SSO/SignInMethods";
+import SsoProviderType from "../../../Types/SSO/SsoProviderType";
 import { MAGIC_LINK_EXPIRY_MINUTES } from "../../../Types/Accounts/MagicLink";
 import LoginUtil from "../../../UI/Utils/Login";
 import Navigation from "../../../UI/Utils/Navigation";
@@ -46,7 +50,9 @@ import english from "../../../../App/FeatureSet/Accounts/src/Locales/en.json";
  *    authentication then gives its second factor on the same page, the
  *    steps sending the token again where a password sign-in sends the
  *    password. A link the server refuses is dropped from the tab and a new
- *    one offered; one that could not be checked is kept.
+ *    one offered; one that could not be checked is kept. While the server
+ *    is known to require SSO, the page is the single sign-on page instead: a
+ *    link only meets the server's refusal on a page that did not know yet.
  *
  * The real pages are rendered with the real English locale; the server is
  * stood in at the API boundary, and what the server says it offers is set
@@ -107,6 +113,19 @@ const TAKES_LINKS: SignInMethods = {
 const TAKES_NO_LINKS: SignInMethods = {
   ...TAKES_LINKS,
   isMagicLinkLoginEnabled: false,
+};
+
+const REQUIRES_SSO: SignInMethods = {
+  ...TAKES_NO_LINKS,
+  isSsoRequired: true,
+  ssoProviders: [
+    {
+      type: SsoProviderType.GlobalSSO,
+      id: "22222222-2222-4222-8222-222222222222",
+      name: "Okta",
+      description: "",
+    },
+  ],
 };
 
 const strings: typeof english.login.magicLink = english.login.magicLink;
@@ -369,6 +388,33 @@ describe("the page a sign-in link opens", () => {
       "/accounts/magic-link",
     );
     expect(storedToken()).toBeNull();
+    expect(loginCalls).toEqual([]);
+  });
+
+  test("a link pressed after the server came to require SSO is refused in the server's words, which the docs quote", async () => {
+    answers["/login-with-magic-link"] = (): HTTPErrorResponse => {
+      return refusal(400, SSO_REQUIRED_SIGN_IN_MESSAGE);
+    };
+
+    await renderLinkPage();
+    await pressSignIn();
+
+    expect(
+      await screen.findByTestId("magic-link-login-error"),
+    ).toHaveTextContent(SSO_REQUIRED_SIGN_IN_MESSAGE);
+    expect(screen.queryByTestId("magic-link-login-submit")).toBeNull();
+    expect(loginCalls).toEqual([]);
+  });
+
+  test("a link opened once the server requires SSO draws the single sign-on page: nothing to press, no refusal, and nothing posted", async () => {
+    signInMethodsForTest = REQUIRES_SSO;
+
+    await renderLinkPage();
+
+    expect(screen.getAllByTestId("sso-provider")).toHaveLength(1);
+    expect(screen.queryByTestId("magic-link-login-submit")).toBeNull();
+    expect(screen.queryByTestId("magic-link-login-error")).toBeNull();
+    expect(posted).toEqual([]);
     expect(loginCalls).toEqual([]);
   });
 

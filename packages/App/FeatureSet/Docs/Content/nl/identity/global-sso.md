@@ -162,7 +162,7 @@ Met elk antwoord van uw identiteitsprovider wordt maar één keer aangemeld, en 
 :::
 
 :::details "This server requires single sign-on (SSO). Sign in with SSO instead."
-De hele instantie verplicht SSO, en dit was een aanmelding met een wachtwoord, een passkey, Google of Microsoft, of een registratie. Meld u in plaats daarvan aan met een van de SSO-knoppen op de aanmeldpagina. Een master-admin meldt zich met zijn wachtwoord aan op `/accounts/admin-login`; om iedereen weer met een wachtwoord te laten aanmelden, zet hij **SSO vereisen voor inloggen** uit op **Single sign-on**.
+De hele instantie verplicht SSO, en dit was een aanmelding met een wachtwoord, een passkey, een gemailde link, Google of Microsoft, of een registratie. Meld u in plaats daarvan aan met een van de SSO-knoppen op de aanmeldpagina. Een master-admin meldt zich met zijn wachtwoord aan op `/accounts/admin-login`; om iedereen weer met een wachtwoord te laten aanmelden, zet hij **SSO vereisen voor inloggen** uit op **Single sign-on**.
 :::
 
 ## Volgende stappen

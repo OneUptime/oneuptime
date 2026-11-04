@@ -162,7 +162,7 @@ flowchart TB
 :::
 
 :::details "This server requires single sign-on (SSO). Sign in with SSO instead."
-整个实例要求使用 SSO，而这是一次使用密码、通行密钥、Google 或 Microsoft 的登录，或是一次注册。请改用登录页面上的某个 SSO 按钮登录。主管理员在 `/accounts/admin-login` 用密码登录；要让所有人重新可以用密码登录，请在 **单点登录** 上关闭 **登录时要求使用 SSO**。
+整个实例要求使用 SSO，而这是一次使用密码、通行密钥、电子邮件链接、Google 或 Microsoft 的登录，或是一次注册。请改用登录页面上的某个 SSO 按钮登录。主管理员在 `/accounts/admin-login` 用密码登录；要让所有人重新可以用密码登录，请在 **单点登录** 上关闭 **登录时要求使用 SSO**。
 :::
 
 ## 后续步骤
