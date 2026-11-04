@@ -12,7 +12,7 @@ flowchart TB
 
 :::cards
 - [Votre profil](#votre-profil): Votre nom, votre adresse e-mail, votre fuseau horaire et votre photo.
-- [Se connecter en sécurité](#se-connecter-en-sécurité): Votre mot de passe, vos clés d'accès et l'authentification à deux facteurs.
+- [Se connecter en sécurité](#se-connecter-en-sécurité): Votre mot de passe, les liens de connexion, vos clés d'accès et l'authentification à deux facteurs.
 - [Vos projets](#vos-projets): Changer de projet, en créer un et accepter des invitations.
 - [Paramètres utilisateur](#ce-que-chaque-projet-garde-pour-vous): Comment OneUptime vous joint dans chaque projet.
 :::
@@ -63,7 +63,7 @@ Dépliez **Sécurité** dans le menu latéral de **Profil utilisateur**. La sect
 | --- | --- |
 | **Gestion des mots de passe** | Définir un nouveau mot de passe. |
 | **Passkeys** | Se connecter sans mot de passe, avec votre empreinte digitale, votre visage, le verrouillage de votre écran ou une clé de sécurité. |
-| **Two-factor authentication** | Demander une deuxième étape après votre mot de passe : un code issu d'une application, ou une clé de sécurité. |
+| **Two-factor authentication** | Demander une deuxième étape après votre mot de passe ou un lien envoyé par e-mail : un code issu d'une application, ou une clé de sécurité. |
 
 ### Changer votre mot de passe
 
@@ -83,9 +83,24 @@ Dépliez **Sécurité** dans le menu latéral de **Profil utilisateur**. La sect
 
 La prochaine fois, choisissez **Se connecter avec une clé d’accès** sur la page de connexion.
 
+### Se connecter avec un lien envoyé par e-mail
+
+Vous pouvez vous connecter avec un lien au lieu de votre mot de passe. Il n'y a rien à configurer.
+
+:::steps
+1. Sur la page de connexion, choisissez **M'envoyer un lien de connexion**.
+2. Saisissez votre adresse e-mail et cliquez sur **M'envoyer un lien de connexion**. La page affiche alors **Consultez vos e-mails**.
+3. Ouvrez le lien dans l'e-mail et cliquez sur **Se connecter**.
+:::
+
+Le lien fonctionne une seule fois, pendant 15 minutes, et un lien plus récent le remplace. Vous pouvez l'ouvrir sur un autre appareil, et la connexion se fait alors sur celui-ci. Si vous utilisez l'authentification à deux facteurs, OneUptime demande toujours votre deuxième étape.
+
+> [!NOTE]
+> Les administrateurs principaux d'une installation auto-hébergée peuvent désactiver les liens de connexion avec **Autoriser la connexion avec un lien envoyé par e-mail**, sous **Admin Dashboard > Paramètres > Authentification**. Les liens déjà envoyés ne fonctionnent alors plus. Tant que le serveur exige le SSO, la page de connexion ne propose que le SSO.
+
 ### Activer l'authentification à deux facteurs
 
-L'authentification à deux facteurs s'applique quand vous vous connectez avec votre mot de passe. Ajoutez d'abord une deuxième étape, puis activez-la.
+L'authentification à deux facteurs s'applique quand vous vous connectez avec votre mot de passe ou un lien envoyé par e-mail. Ajoutez d'abord une deuxième étape, puis activez-la.
 
 :::steps
 ### Ajouter une application d'authentification
@@ -98,7 +113,7 @@ La première fois que vous ajoutez une application, une clé ou une clé d'accè
 
 ### L'activer
 
-En haut de la page, cliquez sur **Activer l'authentification à deux facteurs** et confirmez. La carte indique maintenant **Activé**. Dès votre prochaine connexion avec un mot de passe, OneUptime vous demande votre deuxième étape.
+En haut de la page, cliquez sur **Activer l'authentification à deux facteurs** et confirmez. La carte indique maintenant **Activé**. Dès votre prochaine connexion avec un mot de passe ou un lien envoyé par e-mail, OneUptime vous demande votre deuxième étape.
 :::
 
 > [!TIP]
