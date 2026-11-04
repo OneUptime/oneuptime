@@ -69,7 +69,7 @@ The Network menu keeps what you open every day in view: **Overview**, **Devices*
 | **Topology** | **Device Topology**, **Endpoints**, **Latency Matrix**, **Site Links**, **Device Links** |
 | **Rules** | **Auto Import Rules**, **Site Assignment Rules**, **Owner Rules**, **Label Rules**, **Link Rules** |
 | **Settings** | **Alert Policies**, **SNMP Credentials**, **Device Roles**, **Site Types**, **Address Names**, **OID Collection Templates** |
-| **Advanced** | **Archived Devices** |
+| **Advanced** | **SNMP Walk**, **Archived Devices** |
 
 ## Adding a Network Device
 
@@ -154,7 +154,7 @@ Each action is one dialog and one save for the whole selection, and every device
 
 When an action finishes, it lists how many devices changed, which failed and why — a device your role may not edit, a list over its limit — and which it did not change and why: a device already in that site or role, or one the vendor template leaves alone.
 
-The other bulk actions are covered where they belong: **Set OID Collection Template** under [OID Collection Templates](#oid-collection-templates), **Set SNMP Credential Profile**, **Switch to Probe Polling** and **Create Ping Monitors** under [In bulk](#in-bulk), and **Shorten Names to Hostname** under [How discovered devices are named](#how-discovered-devices-are-named).
+The other bulk actions are covered where they belong: **Set OID Collection Template** under [OID Collection Templates](#oid-collection-templates), **SNMP Walk** under [Walking Many Devices at Once](#walking-many-devices-at-once), **Set SNMP Credential Profile**, **Switch to Probe Polling** and **Create Ping Monitors** under [In bulk](#in-bulk), and **Shorten Names to Hostname** under [How discovered devices are named](#how-discovered-devices-are-named).
 
 ## What a Poll Actually Does
 
@@ -397,6 +397,21 @@ Each row says where its OID is known: a value a vendor health template collects,
 **Download**, beside the walk's summary, saves what the walk read as a file: **snmpwalk text (.txt)**, one OID a line as `snmpwalk -On` prints it, which every SNMP tool and vendor support desk reads, or **CSV spreadsheet (.csv)**, with each OID's name, MIB, type and value. The file holds every OID the walk read, continued walks included, whatever the filter shows, and is named after the device, the subtree and the time it was saved. Anyone who can read the device's last walk can download it.
 
 A walk that fails says why, and what to check: a device that does not answer (SNMP off, UDP 161 blocked or, on v1 and v2c, a wrong community string, which an agent ignores without a word), an SNMPv3 user, password or protocol the device refused, or a part of the tree the credentials' SNMP view leaves out. A walk that stops part of the way keeps what it read. Walking needs the **Create Network Device Diagnostic** permission and a probe recent enough to walk SNMP: with an older probe, the page asks you to update it.
+
+### Walking Many Devices at Once
+
+When one value matters across a fleet, such as the CPU of every router or the temperature of every switch at a site, walk the devices together instead of one device page at a time. Select them on the **Devices** list, by ticking rows or selecting every device the filters match, and use **SNMP Walk** in **Bulk Actions**. Or press **Compare with other devices** in an OID's menu on a device's own **SNMP Walk** page: the page opens with that device picked and that OID to start at, and you add the rest. The page is also under **Network → Advanced → SNMP Walk**, where you pick devices one by one or every device with a label.
+
+Each device is walked the way its own page walks it: by its own probe, with the SNMP credentials OneUptime holds for it (v1, v2c or v3, from the device, its credential profile or its site), at most 1,000 OIDs a device. Up to 50 devices are walked at a time. Start at one OID to check that value on every device, or at a subtree to compare what the devices expose under it. Each device's answer shows as it lands, and the page waits up to five minutes for the slowest probe.
+
+The results list every OID any device answered, one OID a row:
+
+- **Answered by** says how many of the devices whose walk reached the OID answer it, and opens on each device's own value. A device whose walk stopped at its limit before the OID is never counted as a device without it.
+- A value every device reads the same is shown once; numbers that differ are shown as the lowest and the highest, and text that differs as how many different values there are.
+- **Only OIDs some devices do not answer**, beside the filter, keeps only the OIDs part of the fleet does not have.
+- **Collect on 12 devices** adds the OID to every device that answers it and does not collect it yet, as **Collect** does on one device: once per device, never twice, and a device that refuses, because its list is full for example, is named with the reason while the others go ahead. When those devices are linked to an OID Collection Template, the row's menu can add the OID to the template instead, for every device that uses it.
+
+Above the results, every device that was not walked in full is listed with the reason and what to fix: no probe, no SNMP credentials, refused credentials, no answer, or no report from its probe. A device's name opens its own **SNMP Walk** page on this walk of it, where **Continue walking** reads further and **Alert on it** starts a monitor. **Download CSV** saves every OID of every device in one file, with the device's name in its first column. The page's address keeps the devices and the OID, so a reload or a shared link opens the same walk, and the walks are kept for two days.
 
 ### SNMP Tables
 

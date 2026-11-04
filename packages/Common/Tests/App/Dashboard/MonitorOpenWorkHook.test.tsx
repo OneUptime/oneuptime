@@ -95,16 +95,6 @@ function createDeferred<T>(): Deferred<T> {
   return { promise: promise, resolve: resolve };
 }
 
-/*
- * Rejections are made by an async function, so they are native promises.
- * The UI telemetry in the import graph loads zone.js, whose Promise reports
- * a rejection as unhandled when a native await subscribes to it a tick
- * later, which would fill the log with false alarms.
- */
-async function rejectWith(error: unknown): Promise<never> {
-  throw error;
-}
-
 function buildIncidentState(id: string): IncidentState {
   const state: IncidentState = new IncidentState();
   state._id = id;
@@ -471,7 +461,7 @@ describe("useMonitorOpenWork", () => {
 
   test("one side failing does not hide the other", async () => {
     listResponses.set(Incident, () => {
-      return rejectWith(new Error("Incidents are unavailable."));
+      return Promise.reject(new Error("Incidents are unavailable."));
     });
     alertStatesSpy.mockImplementation((): Promise<unknown> => {
       return Promise.resolve([buildAlertState(ALERT_STATE_ID)]);
@@ -487,9 +477,7 @@ describe("useMonitorOpenWork", () => {
   });
 
   test("a failed state lookup is an error for that side", async () => {
-    alertStatesSpy.mockImplementation((): Promise<unknown> => {
-      return rejectWith(new Error("States are unavailable."));
-    });
+    alertStatesSpy.mockRejectedValue(new Error("States are unavailable."));
 
     const { result } = renderOpenWork();
     await flush();
@@ -509,7 +497,7 @@ describe("useMonitorOpenWork", () => {
     expect(requestsFor(Incident)).toHaveLength(1);
 
     listResponses.set(Incident, () => {
-      return rejectWith(new Error("Network error."));
+      return Promise.reject(new Error("Network error."));
     });
     rerender({ monitorId: MONITOR_ID, refreshToken: 2 });
     await flush();
@@ -630,7 +618,7 @@ describe("useMonitorOwners", () => {
 
   test("a failed half shows the owners the other half names, and records the failure", async () => {
     listResponses.set(MonitorOwnerTeam, () => {
-      return rejectWith(new Error("Teams are unavailable."));
+      return Promise.reject(new Error("Teams are unavailable."));
     });
 
     const { result } = renderOwners();
@@ -650,7 +638,7 @@ describe("useMonitorOwners", () => {
       return Promise.resolve(listOf([]));
     });
     listResponses.set(MonitorOwnerTeam, () => {
-      return rejectWith(new Error("Teams are unavailable."));
+      return Promise.reject(new Error("Teams are unavailable."));
     });
 
     const { result } = renderOwners();
@@ -663,10 +651,10 @@ describe("useMonitorOwners", () => {
 
   test("both halves failing is an error with no owners", async () => {
     listResponses.set(MonitorOwnerUser, () => {
-      return rejectWith(new Error("Users are unavailable."));
+      return Promise.reject(new Error("Users are unavailable."));
     });
     listResponses.set(MonitorOwnerTeam, () => {
-      return rejectWith(new Error("Teams are unavailable."));
+      return Promise.reject(new Error("Teams are unavailable."));
     });
 
     const { result } = renderOwners();
@@ -684,7 +672,7 @@ describe("useMonitorOwners", () => {
     expect(result.current.owners.value).toHaveLength(2);
 
     listResponses.set(MonitorOwnerTeam, () => {
-      return rejectWith(new Error("Teams are unavailable."));
+      return Promise.reject(new Error("Teams are unavailable."));
     });
     rerender({ monitorId: MONITOR_ID, refreshToken: 1 });
     await flush();

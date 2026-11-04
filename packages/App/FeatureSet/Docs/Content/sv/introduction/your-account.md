@@ -12,7 +12,7 @@ flowchart TB
 
 :::cards
 - [Din profil](#din-profil): Ditt namn, din e-postadress, din tidszon och din bild.
-- [Logga in säkert](#logga-in-säkert): Ditt lösenord, passnycklar och tvåfaktorsautentisering.
+- [Logga in säkert](#logga-in-säkert): Ditt lösenord, inloggningslänkar, passnycklar och tvåfaktorsautentisering.
 - [Dina projekt](#dina-projekt): Byt projekt, skapa ett och acceptera inbjudningar.
 - [Användarinställningar](#det-som-varje-projekt-sparar-åt-dig): Hur OneUptime når dig i varje projekt.
 :::
@@ -63,7 +63,7 @@ Fäll ut **Säkerhet** i sidomenyn i **Användarprofil**. Avsnittet har tre sido
 | --- | --- |
 | **Lösenordshantering** | Ange ett nytt lösenord. |
 | **Passkeys** | Logga in utan lösenord, med ditt fingeravtryck, ditt ansikte, skärmlåset eller en säkerhetsnyckel. |
-| **Two-factor authentication** | Kräv ett andra steg efter lösenordet: en kod från en app, eller en säkerhetsnyckel. |
+| **Two-factor authentication** | Kräv ett andra steg efter lösenordet eller en länk via e-post: en kod från en app, eller en säkerhetsnyckel. |
 
 ### Byt lösenord
 
@@ -83,9 +83,24 @@ Fäll ut **Säkerhet** i sidomenyn i **Användarprofil**. Avsnittet har tre sido
 
 Nästa gång väljer du **Logga in med en passnyckel** på inloggningssidan.
 
+### Logga in med en länk via e-post
+
+Du kan logga in med en länk i stället för ditt lösenord. Det finns inget att ställa in.
+
+:::steps
+1. Välj **Skicka en inloggningslänk till mig** på inloggningssidan.
+2. Ange din e-postadress och klicka på **Skicka en inloggningslänk till mig**. Sidan visar sedan **Kolla din e-post**.
+3. Öppna länken i e-postmeddelandet och klicka på **Logga in**.
+:::
+
+Länken fungerar en gång, i 15 minuter, och en nyare länk ersätter den. Du kan öppna den på en annan enhet, och då är du inloggad där. Om du använder tvåfaktorsautentisering ber OneUptime fortfarande om ditt andra steg.
+
+> [!NOTE]
+> Huvudadministratörer för en självhostad installation kan stänga av inloggningslänkar med **Låt personer logga in med en länk via e-post**, under **Admin Dashboard > Inställningar > Autentisering**. Länkar som redan har skickats slutar då fungera. Så länge servern kräver SSO erbjuder inloggningssidan bara SSO.
+
 ### Slå på tvåfaktorsautentisering
 
-Tvåfaktorsautentisering gäller när du loggar in med ditt lösenord. Lägg först till ett andra steg, och slå sedan på den.
+Tvåfaktorsautentisering gäller när du loggar in med ditt lösenord eller en länk via e-post. Lägg först till ett andra steg, och slå sedan på den.
 
 :::steps
 ### Lägg till en autentiseringsapp
@@ -98,7 +113,7 @@ Första gången du lägger till en app, en nyckel eller en passnyckel visar OneU
 
 ### Slå på den
 
-Klicka på **Enable two-factor authentication** högst upp på sidan och bekräfta. Kortet visar nu **Aktiverad**. Från din nästa inloggning med lösenord ber OneUptime om ditt andra steg.
+Klicka på **Enable two-factor authentication** högst upp på sidan och bekräfta. Kortet visar nu **Aktiverad**. Från din nästa inloggning med lösenord eller en länk via e-post ber OneUptime om ditt andra steg.
 :::
 
 > [!TIP]
@@ -149,7 +164,7 @@ I inloggningens andra steg väljer du **Förlorat åtkomsten till din autentiser
 :::
 
 :::details Inloggningen ber mig vänta innan jag provar en annan kod
-Efter fem felaktiga koder i rad väntar varje nästa kod innan den kontrolleras: en minut, sedan två, sedan fyra och så vidare, upp till en timme. OneUptime räknar felaktiga koder för ditt konto var de än anges, skickar ett e-postmeddelande till dig när väntetiderna börjar och börjar räkna om när du anger en rätt kod. Vänta och försök igen, logga in med en säkerhetsnyckel, eller välj **Förlorat åtkomsten till din autentiseringsapp?** och ange en reservkod. Om det inte var du som angav de koderna känner någon till ditt lösenord: återställ det med **Glömt lösenord?** på inloggningssidan, vilket också avslutar väntan.
+Efter fem felaktiga koder i rad väntar varje nästa kod innan den kontrolleras: en minut, sedan två, sedan fyra och så vidare, upp till en timme. OneUptime räknar felaktiga koder för ditt konto var de än anges, skickar ett e-postmeddelande till dig när väntetiderna börjar och börjar räkna om när du anger en rätt kod. Vänta och försök igen, logga in med en säkerhetsnyckel, eller välj **Förlorat åtkomsten till din autentiseringsapp?** och ange en reservkod. Om det inte var du som angav de koderna känner någon till ditt lösenord eller kan läsa din e-post, och e-postmeddelandet som OneUptime skickade till dig talar om vilket. Om någon kan läsa din e-post ändrar du först lösenordet till ditt e-postkonto och tar bort all vidarebefordran som du inte själv har ställt in: ett nytt OneUptime-lösenord räcker inte för att hindra dem från att be om en ny inloggningslänk. Återställ sedan ditt lösenord med **Glömt lösenord?** på inloggningssidan, vilket avslutar väntan och gör varje inloggningslänk som redan skickats ogiltig.
 :::
 
 :::details Tiderna i instrumentpanelen är en timme fel

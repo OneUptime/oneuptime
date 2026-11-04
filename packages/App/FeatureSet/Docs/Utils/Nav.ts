@@ -1316,6 +1316,10 @@ const DocsNav: NavGroup[] = [
         url: "/docs/integrations/datadog",
       },
       {
+        title: "New Relic",
+        url: "/docs/integrations/new-relic",
+      },
+      {
         title: "Huntress",
         url: "/docs/integrations/huntress",
       },

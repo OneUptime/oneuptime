@@ -675,6 +675,13 @@ function everySurface(): Array<Surface> {
       refusal: IDENTITY_RATE_LIMITED_MESSAGE,
       namesAccount: false,
     }),
+    // A sign-in with a link carries its token, never an address.
+    identitySurface(IdentityRateLimitBucket.MagicLink, {
+      perResource: 150,
+      perClient: 150,
+      refusal: IDENTITY_RATE_LIMITED_MESSAGE,
+      namesAccount: false,
+    }),
     identitySurface(IdentityRateLimitBucket.VerificationEmailResend, {
       perResource: 20,
       perClient: 20,

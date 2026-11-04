@@ -162,7 +162,7 @@ Ogni risposta del tuo provider di identità fa accedere una sola volta, e solo n
 :::
 
 :::details "This server requires single sign-on (SSO). Sign in with SSO instead."
-L'intera istanza richiede l'SSO, e questo era un accesso con password, passkey, Google o Microsoft, oppure una registrazione. Accedi invece con uno dei pulsanti SSO della pagina di accesso. Un amministratore principale accede con la sua password su `/accounts/admin-login`; per permettere di nuovo a tutti l'accesso con password, disattiva **Richiedi l'SSO per l'accesso** su **Single sign-on**.
+L'intera istanza richiede l'SSO, e questo era un accesso con password, passkey, un link inviato via e-mail, Google o Microsoft, oppure una registrazione. Accedi invece con uno dei pulsanti SSO della pagina di accesso. Un amministratore principale accede con la sua password su `/accounts/admin-login`; per permettere di nuovo a tutti l'accesso con password, disattiva **Richiedi l'SSO per l'accesso** su **Single sign-on**.
 :::
 
 ## Passaggi successivi

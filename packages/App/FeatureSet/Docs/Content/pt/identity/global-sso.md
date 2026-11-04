@@ -162,7 +162,7 @@ Cada resposta do seu provedor de identidade faz o login uma única vez, e só no
 :::
 
 :::details "This server requires single sign-on (SSO). Sign in with SSO instead."
-A instância inteira exige SSO, e este foi um login com senha, chave de acesso, Google ou Microsoft, ou um cadastro. Faça login com um dos botões de SSO da página de login. Um administrador mestre faz login com a senha em `/accounts/admin-login`; para que todos voltem a fazer login com senha, ele desliga **Exigir SSO para login** em **Login único**.
+A instância inteira exige SSO, e este foi um login com senha, chave de acesso, um link enviado por e-mail, Google ou Microsoft, ou um cadastro. Faça login com um dos botões de SSO da página de login. Um administrador mestre faz login com a senha em `/accounts/admin-login`; para que todos voltem a fazer login com senha, ele desliga **Exigir SSO para login** em **Login único**.
 :::
 
 ## Próximos passos

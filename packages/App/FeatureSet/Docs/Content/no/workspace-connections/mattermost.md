@@ -50,7 +50,7 @@ Legg til boten i teamet OneUptime skal publisere i, slik du ville lagt til en pe
 
 ### Koble til prosjektet
 
-Gå til **Prosjektinnstillinger** > **Arbeidsområde** > **Mattermost** i OneUptime, og klikk på **Koble til Mattermost**. Skriv inn adressen til serveren din, for eksempel `https://chat.example.com`, og tilgangstokenet til boten. OneUptime sjekker tokenet mot serveren din før den lagrer noe. Hvis boten er i mer enn ett team, spør OneUptime hvilket den skal publisere i.
+Gå til **Prosjektinnstillinger** > **Arbeidsområde** > **Mattermost** i OneUptime, og klikk på **Koble til Mattermost**. Skriv inn adressen til serveren din, for eksempel `https://chat.example.com`, og tilgangstokenet til boten. OneUptime sjekker tokenet mot serveren din før den lagrer noe. Hvis boten er i mer enn ett team, spør OneUptime hvilket den skal publisere i. Til et workspace er koblet til, inneholder seksjonen **Arbeidsområde** i menyene Hendelser, Varsler, Planlagt vedlikehold, Monitorer og Vakttjeneste **Koble til et arbeidsområde**, som også fører hit.
 
 ### Legg til en varslingsregel
 
@@ -84,6 +84,8 @@ En kanal som en regel oppretter, får navn etter posten sin: hendelse INC-42 få
 For å publisere i en eksisterende kanal skriver du inn navnet slik det står i adressen til kanalen, for eksempel `incidents` for `chat.example.com/team/channels/incidents`, eller visningsnavnet. OneUptime blir selv med i en offentlig kanal første gang den publiserer der. Legg til boten i en privat kanal i Mattermost før en regel publiserer i den.
 
 Folk blir med i kanalen til en regel gjennom Mattermost-kontoen de har koblet til, eller ellers gjennom Mattermost-kontoen med e-postadressen deres, når serveren din viser e-postadresser til boten (**System Console** > **Site Configuration** > **Users and Teams** > **Show Email Address**). OneUptime nevner dem den ikke kunne legge til, i én melding i kanalen, med en lenke for å koble til kontoen.
+
+En hendelse, et varsel, en episode eller en planlagt vedlikeholdshendelse med sin egen kanal har **Åpne i Mattermost** øverst på siden sin i OneUptime, ved siden av tilstandsknappene. Den åpner kanalen i en ny fane, på Mattermost-serveren din. En post med to egne kanaler viser begge under knappen. En post som også har kanaler i Slack eller Microsoft Teams, har i stedet én knapp, **Åpne kanal**, som viser alle. De eksisterende kanalene reglene dine publiserer i, tilbys ikke.
 
 **Testregel** i en regels rad publiserer en testmelding for den regelen i kanalene den nevner, slik den gjør for Slack.
 

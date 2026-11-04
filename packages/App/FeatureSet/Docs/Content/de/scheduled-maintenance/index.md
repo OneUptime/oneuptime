@@ -56,7 +56,7 @@ Ankündigungen werden unter [Abonnenten & Ankündigungen](/docs/status-pages/sub
 | ------------- | -------------------------------------------------------------------------------------------------------------------------- |
 | **Übersicht** | **Alle Ereignisse** und **Laufende Ereignisse**, dessen Abzeichen die gerade laufenden Ereignisse zählt.                     |
 | **Kalender** | **Wartungskalender**: jedes Ereignis in einem Monat, einer Woche oder einem Tag, neben den Kalendern von außerhalb des Projekts, die Sie hinzufügen. |
-| **Arbeitsbereich** | **Slack**, **Microsoft Teams** und **Mattermost**, je nachdem, was das Projekt verbunden hat, oder **Slack oder Teams verbinden**, wenn es keines hat. |
+| **Arbeitsbereich** | **Slack**, **Microsoft Teams** und **Mattermost**, je nachdem, was das Projekt verbunden hat, oder **Arbeitsbereich verbinden**, wenn es keines hat. |
 | **Regeln**    | **Eigentümerregeln**, **Runbook-Regeln**, **Beschriftungsregeln**, **Erinnerungsregeln**.                                   |
 | **Einstellungen** | **Ereignisstatus**, **Ereignis-Vorlagen**, **Notiz-Vorlagen**, **Benutzerdefinierte Felder**, **Messungen**, **Kalendereinstellungen**, **Nummerierung**. |
 

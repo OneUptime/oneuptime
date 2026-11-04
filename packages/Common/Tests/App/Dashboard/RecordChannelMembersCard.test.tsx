@@ -123,6 +123,12 @@ const TEAMS_LINK: WorkspaceChannelLink = {
   url: TEAMS_URL,
 };
 
+const MATTERMOST_LINK: WorkspaceChannelLink = {
+  workspaceType: WorkspaceType.Mattermost,
+  channelName: "inc-42",
+  url: "https://chat.example.com/acme/channels/inc-42",
+};
+
 function person(
   key: string,
   name: string,
@@ -351,6 +357,36 @@ describe("whether there is a card at all", () => {
 
     expect(screen.queryByTestId("record-channel-members-card")).toBeNull();
     expect(sent).toEqual([]);
+  });
+
+  /*
+   * OneUptime does not read who is in a Mattermost channel yet: its button is
+   * in the page's header, and the card neither shows a loader that goes away
+   * nor calls the channel a Slack one while it loads.
+   */
+  test("a record whose channels are all in Mattermost has no card, and the page asks nothing more", async () => {
+    renderCard({ links: [MATTERMOST_LINK] });
+
+    expect(screen.queryByTestId("record-channel-members-card")).toBeNull();
+
+    await act(async () => {
+      await Promise.resolve();
+    });
+
+    expect(screen.queryByTestId("record-channel-members-card")).toBeNull();
+    expect(sent).toEqual([]);
+  });
+
+  test("channels in Slack and Mattermost: the card is the Slack channel's, loading or not", async () => {
+    readAnswer({ channels: [slackChannel()], canAddPeople: true });
+    renderCard({ links: [SLACK_LINK, MATTERMOST_LINK] });
+
+    expect(screen.getByText("Slack Channel")).toBeInTheDocument();
+
+    await card();
+
+    expect(screen.getByText("Slack Channel")).toBeInTheDocument();
+    expect(requestsOf("GET").length).toBe(1);
   });
 
   test("a record with a channel reads who is in it, at its own route, with the project", async () => {

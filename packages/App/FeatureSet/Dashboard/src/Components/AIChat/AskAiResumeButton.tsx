@@ -13,10 +13,10 @@ export interface ComponentProps {
 
 /*
  * The way back into a conversation the person stepped out of while Ask AI
- * was still answering: closing the dialog to look at the page loses
- * nothing, and this says when the answer is ready. Shown only then - while
- * an answer is being written, and once it came in until it is read - under
- * side panels and dialogs, where nothing else of the app floats: the
+ * was still answering: closing the panel to give the page the whole window
+ * loses nothing, and this says when the answer is ready. Shown only then -
+ * while an answer is being written, and once it came in until it is read -
+ * under side panels and dialogs, where nothing else of the app floats: the
  * bottom corner the new version notice leaves free, and on a phone, where
  * that notice spans the whole foot of the screen, just under the header.
  */

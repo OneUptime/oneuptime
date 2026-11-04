@@ -67,6 +67,7 @@
     "forgotPassword": "Esqueceu a senha?",
     "signInWithSso": "Entrar com SSO",
     "signInWithMicrosoft": "Entrar com a Microsoft",
+    "emailSignInLink": "Enviar link de acesso por e-mail",
     "noAccountPrompt": "Não tem uma conta?",
     "registerLink": "Registrar-se.",
     "twoFactor": {
@@ -114,6 +115,15 @@
       "generate": "Gerar códigos de backup",
       "skip": "Pular por enquanto",
       "generateFailed": "Nenhum código de backup foi retornado. Tente novamente em Perfil do usuário > Autenticação de dois fatores."
+    },
+    "magicLink": {
+      "title": "Concluir o acesso",
+      "subtitle": "Use o botão abaixo para concluir o acesso com o link do seu e-mail.",
+      "submit": "Entrar",
+      "noLink": "Esta página precisa do link de acesso do seu e-mail. Abra o link novamente ou solicite um novo.",
+      "turnedOff": "Os links de acesso estão desativados neste servidor. Entre com seu e-mail e senha.",
+      "requestNewLink": "Enviar um novo link por e-mail",
+      "backToSignIn": "Voltar para o login"
     }
   },
   "register": {
@@ -147,6 +157,17 @@
     "successMessage": "Enviamos o link de redefinição de senha para o seu e-mail. Não esqueça de verificar a pasta de spam.",
     "submitButton": "Enviar link de redefinição",
     "rememberPasswordPrompt": "Lembra da sua senha?",
+    "loginLink": "Entrar."
+  },
+  "magicLink": {
+    "title": "Entrar com um link",
+    "subtitle": "Informe seu e-mail e enviaremos um link para você entrar. Não é preciso senha.",
+    "submitButton": "Enviar link de acesso",
+    "sentTitle": "Verifique seu e-mail",
+    "sent": "Se {{email}} tiver uma conta, um link de acesso está a caminho. Ele funciona uma vez e expira em {{minutes}} minutos.",
+    "notReceived": "Não está na caixa de entrada? Verifique a pasta de spam ou confira se digitou o endereço com que se cadastrou.",
+    "sendAnother": "Enviar outro link",
+    "knowPasswordPrompt": "Sabe sua senha?",
     "loginLink": "Entrar."
   },
   "resetPassword": {

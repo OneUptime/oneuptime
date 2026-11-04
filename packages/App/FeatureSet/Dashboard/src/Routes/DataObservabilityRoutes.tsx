@@ -7,6 +7,9 @@ import RouteMap, {
   DataObservabilityRoutePath,
   RouteUtil,
 } from "../Utils/RouteMap";
+import { getDeveloperDocsRoutes } from "../Components/DeveloperDocs/DeveloperDocsRoutes";
+import { DeveloperDocsScope } from "../Components/DeveloperDocs/DeveloperDocsPages";
+import DataProduct from "Common/Models/DatabaseModels/DataProduct";
 import Route from "Common/Types/API/Route";
 import React, { FunctionComponent, ReactElement } from "react";
 import { Route as PageRoute, Routes } from "react-router-dom";
@@ -469,6 +472,12 @@ const DataObservabilityRoutes: FunctionComponent<ComponentProps> = (
             />
           }
         />
+
+        {getDeveloperDocsRoutes({
+          modelType: DataProduct,
+          scope: DeveloperDocsScope.View,
+          props,
+        })}
       </PageRoute>
 
       <PageRoute

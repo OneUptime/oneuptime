@@ -1970,12 +1970,19 @@ describe("Docker Compose, against the compose files and scripts", () => {
     expect(adminText("pages.settings.authentication.signUpSwitchTitle")).toBe(
       "Let people sign up",
     );
+    expect(readSource("adminAuthentication")).toContain(
+      't("pages.settings.authentication.magicLinkSwitchTitle")',
+    );
+    expect(
+      adminText("pages.settings.authentication.magicLinkSwitchTitle"),
+    ).toBe("Let people sign in with an emailed link");
     expect(readSource("adminProbes")).toContain('t("common.disconnected")');
     expect(adminText("common.disconnected")).toBe("Disconnected");
 
     for (const words of [
       "**Settings > Authentication**",
       "**Let people sign up**",
+      "**Let people sign in with an emailed link**",
       "**Settings > Notifications > Emails**",
       "**Settings > Monitoring > Global Probes**",
     ]) {

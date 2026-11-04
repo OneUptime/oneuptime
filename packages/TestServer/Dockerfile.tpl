@@ -1,4 +1,4 @@
-# syntax=docker/dockerfile:1.7
+# syntax=docker/dockerfile:1.19
 #
 # OneUptime-test-server-api Dockerfile
 #
@@ -59,7 +59,8 @@ RUN mkdir /usr/src
 WORKDIR /usr/src/Common
 COPY ./packages/Common/package*.json /usr/src/Common/
 RUN --mount=type=cache,target=/tmp/npm npm ci --prefer-offline
-COPY ./packages/Common /usr/src/Common
+# Common without its tests, which no image runs (see packages/Probe/Dockerfile.tpl).
+COPY --exclude=Tests ./packages/Common /usr/src/Common
 
 
 

@@ -144,7 +144,7 @@ Ett ärende som öppnats från Google SecOps-larm stänger dem också i Google S
 
 ## Ärendeprioriteter och ärendestatusar
 
-Varje projekt har sina egna ärendeprioriteter och ärendestatusar, under **Produkter → Säkerhetshändelser → Inställningar → Ärendeprioriteter** och **Ärendestatusar**. Byt namn och färg på dem, dra dem i en annan ordning och lägg till egna, till exempel en status "Triage" eller en prioritet "Nödläge" ovanför **Kritisk**. Ett nytt namn syns överallt på en gång: i kön, på ärendesidorna och översikten, i aviseringar, i Slack och Microsoft Teams och i playbook-meddelanden.
+Varje projekt har sina egna ärendeprioriteter och ärendestatusar, under **Produkter → Säkerhetshändelser → Inställningar → Ärendeprioriteter** och **Ärendestatusar**. Byt namn och färg på dem, dra dem i en annan ordning och lägg till egna, till exempel en status "Triage" eller en prioritet "Nödläge" ovanför **Kritisk**. Ett nytt namn syns överallt på en gång: i kön, på ärendesidorna och översikten, i aviseringar, i Slack, Microsoft Teams och Mattermost och i playbook-meddelanden.
 
 Några är inbyggda, eftersom OneUptime läser vad de betyder. De kan byta namn och färg men inte tas bort eller arkiveras, och de behåller sin ordning:
 
@@ -157,7 +157,7 @@ Några är inbyggda, eftersom OneUptime läser vad de betyder. De kan byta namn 
 | Prioriteterna Critical, High, Medium, Low och Informational | En detektion öppnar sitt ärende med prioriteten för sin allvarlighetsgrad, och ett ärende som någon öppnar börjar på Medium |
 
 - Var en status står avgör vad ett ärende i den räknas som, som kolumnen **Räknas som** visar: från den kvitterade statusen och nedåt som kvitterat, från den begränsade statusen och nedåt som begränsat, från den stängda statusen och nedåt som stängt. En status du lägger till hamnar strax ovanför den stängda statusen, och när du flyttar ett ärende till en status som stänger det får du först ange en bedömning.
-- En prioritets plats är hur brådskande den är, den mest brådskande först: **För ärenden med minst**, valen för aviseringar och reglerna för Slack och Microsoft Teams läser den här ordningen. En prioritet du lägger till hamnar sist, och kolumnen **Detekteringens allvarlighetsgrad** visar vilka detektioner som öppnar sina ärenden med varje inbyggd prioritet.
+- En prioritets plats är hur brådskande den är, den mest brådskande först: **För ärenden med minst**, valen för aviseringar och reglerna för Slack, Microsoft Teams och Mattermost läser den här ordningen. En prioritet du lägger till hamnar sist, och kolumnen **Detekteringens allvarlighetsgrad** visar vilka detektioner som öppnar sina ärenden med varje inbyggd prioritet.
 
 För att sluta använda en egen status eller prioritet använder du **Arkivera** på dess rad. Ingen kan välja den igen, och API:t, Terraform och MCP avvisar den, men ärendena som har den behåller den, och du kan fortfarande filtrera på den. Arkiverade värden listas i den hopfällda sektionen **Arkiverade ärendestatusar** eller **Arkiverade ärendeprioriteter** under tabellen, där **Avarkivera** tar tillbaka ett. **Ta bort** avvisas så länge ärenden har värdet eller en playbook körs från prioriteten.
 
@@ -232,9 +232,9 @@ Valen följer projektets ärendeprioriteter, under deras egna namn: det här är
 
 WhatsApp-meddelanden skickas inte för säkerhetsärenden. En push-avisering öppnar ärendet i appen OneUptime On-Call (1.7.0 eller senare), där du kan godkänna eller avvisa ett väntande playbook-steg, ta ärendet och stänga det. Dess länk öppnar ärendet i webbläsaren.
 
-### Posta i kanaler i Slack och Microsoft Teams
+### Posta i kanaler i Slack, Microsoft Teams och Mattermost
 
-För att posta i en kanal lägger du till en regel under **Produkter → Säkerhetshändelser → Arbetsyta → Slack** (eller **Microsoft Teams**). När inget av dem är anslutet är avsnittets enda post **Anslut Slack eller Teams**. En regel anger vilka kanaler den postar i (och, i Microsoft Teams, vilka chattar) och, om du vill, vilka ärenden den gäller:
+För att posta i en kanal lägger du till en regel under **Produkter → Säkerhetshändelser → Arbetsyta → Slack** (eller **Microsoft Teams** eller **Mattermost**). När inget av dem är anslutet är avsnittets enda post **Anslut en arbetsyta**. En regel anger vilka kanaler den postar i (och, i Microsoft Teams, vilka chattar) och, om du vill, vilka ärenden den gäller:
 
 | Villkor | Matchar på |
 | --- | --- |

@@ -21,7 +21,8 @@ import WorkspaceChannelLinkUtil, {
  * GET /workspace-channel-link/<record type>/<record id>
  *
  * The links behind an incident's, alert's, episode's or scheduled
- * maintenance event's "Open in Slack" / "Open in Microsoft Teams" button:
+ * maintenance event's "Open in Slack", "Open in Microsoft Teams" or "Open in
+ * Mattermost" button:
  * { links: [{ workspaceType, channelName, url }] }, empty when the record has
  * no channel of its own (WorkspaceChannelLinks).
  *

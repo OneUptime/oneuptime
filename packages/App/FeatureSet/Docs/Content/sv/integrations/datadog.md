@@ -1,9 +1,10 @@
 # Datadog
 
-Skicka larm från [Datadog](https://www.datadoghq.com)-monitorer till OneUptime, så att varje larm blir en incident som larmar ditt jourteam och löses när Datadog-monitorn har återhämtat sig. Datadog skickar sina larm genom sin [Webhooks-integration](https://docs.datadoghq.com/integrations/webhooks/), så det finns inget att installera på någon av sidorna.
+Skicka larm från [Datadog](https://www.datadoghq.com)-monitorer till OneUptime, så att vart och ett blir en incident eller ett larm, larmar ditt jourteam när det är brådskande och löses när Datadog-monitorn har återhämtat sig. Datadog skickar sina larm genom sin [Webhooks-integration](https://docs.datadoghq.com/integrations/webhooks/), så det finns inget att installera på någon av sidorna.
 
 :::cards
-- [Välj hur OneUptime tar emot larm](#välj-hur-oneuptime-tar-emot-larm): En Incoming Request-monitor eller ett eget arbetsflöde.
+- [Välj hur OneUptime tar emot larm](#välj-hur-oneuptime-tar-emot-larm): En arbetsflödesmall eller en Incoming Request-monitor.
+- [Börja från mallen](#börja-från-mallen): Välj vem som ska larmas, kopiera URL:en och se vad varje larm gör.
 - [Ta emot larm med en monitor](#ta-emot-larm-med-en-monitor): En incident per larm, löst vid återhämtning.
 - [Konfigurera Datadog](#konfigurera-datadog): En webhook och de monitorer som aviserar den.
 - [Felsökning](#felsökning): När larm inte kommer fram eller incidenter förblir öppna.
@@ -16,8 +17,9 @@ flowchart TB
     monitor["En Datadog-monitor<br/>byter tillstånd"] --> mention["Dess meddelande<br/>nämner webhooken"]
     mention --> post["Webhooken postar<br/>din nyttolast"]
     post --> transition{"transition"}
-    transition -->|"Triggered"| open["Incident öppnad,<br/>jouren larmad"]
+    transition -->|"Triggered"| open["Incident öppnad,<br/>P1 och P2 larmade"]
     transition -->|"Recovered"| resolve["Incident löst"]
+    transition -->|"Warn, No Data"| note["Privat anteckning<br/>på incidenten"]
 ```
 
 En Datadog-monitor aviserar de webhooks som dess meddelande nämner när den byter tillstånd: när den utlöses, varnar, återhämtar sig eller saknar data. Webhookens JSON-kropp skriver du själv, utifrån Datadogs [mallvariabler](https://docs.datadoghq.com/integrations/webhooks/#usage), så den här guiden ger dig en som namnger varje larm och säger vad som hände med det.
@@ -25,7 +27,7 @@ En Datadog-monitor aviserar de webhooks som dess meddelande nämner när den byt
 ## Innan du börjar
 
 - Ett Datadog-konto där du kan konfigurera integrationer och redigera monitorer.
-- I OneUptime behörighet att skapa monitorer, eller arbetsflöden om du väljer den vägen.
+- I OneUptime behörighet att skapa arbetsflöden, eller monitorer om du väljer den vägen. På OneUptime Cloud behöver arbetsflöden planen **Growth** eller högre.
 
 ## Välj hur OneUptime tar emot larm
 
@@ -33,10 +35,54 @@ Konfigurera OneUptime först: det ger dig den URL som Datadog skickar till.
 
 | Väg | Använd den när |
 | --- | --- |
-| En Incoming Request-monitor (rekommenderas) | Du vill att varje larm ska bli en incident som larmar jouren och löses när Datadog-monitorn har återhämtat sig. Det finns inget att bygga. |
-| Ett arbetsflöde med en Webhook-utlösare | Du behöver egen logik: filtrera larm, forma om dem eller anropa andra system först. Ett arbetsflöde deklarerar en incident för varje larm som det får, och löser den inte vid återhämtning. |
+| Arbetsflödesmallen (rekommenderas) | Du vill ha varje larm som en incident eller ett larm med en allvarlighetsgrad som följer monitorns prioritet, med jouren larmad för P1 och P2, med varningar noterade på den och löst vid återhämtning. Det finns inget att bygga. |
+| En Incoming Request-monitor | Du vill ha incidenter utan ett arbetsflöde, på vilken plan som helst, och en monitor vars status följer Datadog. |
 
 Båda får samma JSON från samma webhook, så du kan börja med det ena och byta senare genom att ändra en URL i Datadog.
+
+## Börja från mallen
+
+Dialogen **Skapa ett arbetsflöde** har två Datadog-mallar, under **Datadog** i kategorilistan: **Declare an incident when a Datadog monitor triggers**, och **Create an alert when a Datadog monitor triggers** för larm. Båda gör samma sak, var och en med sin egen sorts post.
+
+:::steps
+1. Gå till **Arbetsflöden** och klicka på **Skapa arbetsflöde**. Under **Eller börja från en mall** väljer du **Datadog** i kategorilistan, klickar på **Declare an incident when a Datadog monitor triggers**, eller **Create an alert when a Datadog monitor triggers**, och klickar på **Använd den här mallen**.
+2. Under **Who to page for P1 and P2 monitors** väljer du de jourpolicyer som ska larmas, eller ingen för att inte larma någon, och klickar på **Skapa arbetsflöde**. Arbetsflödet öppnas i **Byggare**, avstängt.
+3. Klicka på utlösaren **Webhook**, sedan på **Kopiera URL**, och spara URL:en till Datadog.
+4. Slå på **Aktiverad** högst upp i **Byggare**. Ett arbetsflöde som är avstängt svarar Datadog med `400`.
+:::
+
+Sedan [konfigurerar du Datadog](#konfigurera-datadog) att skicka sina larm till den URL:en. Arbetsflödets steg `read-event-1` öppnas med samma inställningar, för när du kommer tillbaka till det i **Byggare**.
+
+### Vad arbetsflödet gör
+
+Efter utlösaren **Webhook** läser steget **Check With JavaScript** `read-event-1` den `transition` som Datadog skickar, och **Incident From Another Tool**, eller **Alert From Another Tool** i larmmallen, gör det den betyder, utifrån larmets cykelnyckel. Datadog behåller nyckeln från det att ett larm utlöses tills det återhämtar sig, och nästa gång det utlöses är nyckeln ny, så varje gång får en egen incident. Incidenten behåller nyckeln i sitt anpassade fält `datadogAlertCycleKey`.
+
+| Transition | Vad arbetsflödet gör |
+| --- | --- |
+| `Triggered`, `Re-Triggered` | Deklarerar en incident med titeln `Datadog: <monitor>`, med den allvarlighetsgrad som monitorns prioritet motsvarar, utanför dina statussidor. Beskrivningen länkar till larmet i Datadog och visar prioriteten, värden, omfånget och monitorns meddelande. En avisering för ett larm som redan har sin incident öppnar ingen andra och larmar ingen igen. |
+| `Recovered` | Löser larmets incident, om den inte redan är löst. Varför står på dess tidslinje. |
+| `Warn`, `Re-Warn`, `No Data`, `Re-No Data` | Lägger till en privat anteckning på larmets incident, som säger vilket tillstånd monitorn har nu. |
+| `Renotify` | Ingenting: larmet är fortfarande öppet. |
+
+En varning eller en återhämtning för ett larm utan incident ändrar ingenting. Allt annat, till exempel en begäran från ett annat verktyg, lämnas orört: `read-event-1` tar **No**, och körningens **Steg** säger varför. Inget går tillbaka till Datadog: det löser sina egna larm när signalen återhämtar sig, och det är det som löser incidenten.
+
+### Prioriteter och larmning
+
+En ny incident larmar de jourpolicyer du valde när dess monitor är P1 eller P2, eller saknar prioritet. P3, P4 och P5 öppnar en incident och larmar ingen. I ett nytt projekt kopplas prioriteterna till dessa allvarlighetsgrader för incidenter och larm:
+
+| Datadog-prioritet | Incident | Larm | Jour |
+| --- | --- | --- | --- |
+| P1 | Critical Incident | High | Larmad |
+| P2 | Critical Incident | High | Larmad |
+| Ingen prioritet | Critical Incident | High | Larmad |
+| P3 | Major Incident | Low | Inte larmad |
+| P4 | Minor Incident | Low | Inte larmad |
+| P5 | Minor Incident | Low | Inte larmad |
+
+Med egna allvarlighetsgrader går P1, P2 och ingen prioritet till din allvarligaste, P3 till den mittersta, och P4 och P5 till din minst allvarliga.
+
+- För att koppla en prioritet till en av dina efter namn, redigera `SEVERITY_BY_NAME` i steget `read-event-1`, till exempel `{ P3: 'Minor Incident' }`.
+- För att larma även för P3, ställ in **Compare with** i steget `if-page-1` **If / Else** på `3`.
 
 ## Ta emot larm med en monitor
 
@@ -101,10 +147,13 @@ Nyttolasten nedan sätter `alert_key` till Datadog-monitorns ID och taggarna fö
   ```json
   {
     "alert_key": "$ALERT_ID $ALERT_SCOPE",
+    "alert_cycle_key": "$ALERT_CYCLE_KEY",
     "transition": "$ALERT_TRANSITION",
+    "alert_priority": "$ALERT_PRIORITY",
     "title": "$EVENT_TITLE",
     "body": "$TEXT_ONLY_MSG",
     "host": "$HOSTNAME",
+    "scope": "$ALERT_SCOPE",
     "priority": "$PRIORITY",
     "link": "$LINK"
   }
@@ -119,69 +168,39 @@ Lägg till `@webhook-oneuptime` i monitorns aviseringsmeddelande i varje Datadog
 | --- | --- |
 | `$ALERT_ID` | ID:t för den Datadog-monitor som larmade. |
 | `$ALERT_SCOPE` | Taggarna för den grupp som larmade, som `host:web-1`. |
+| `$ALERT_CYCLE_KEY` | Ett ID som förblir detsamma från det att ett larm utlöses tills det återhämtar sig. |
 | `$ALERT_TRANSITION` | Vad som hände: `Triggered`, `Re-Triggered`, `Warn`, `Recovered`, `No Data` eller `Renotify`, bland annat. |
+| `$ALERT_PRIORITY` | Prioriteten för Datadog-monitorn, `P1` till `P5`, eller ingenting för en monitor utan prioritet. |
 | `$EVENT_TITLE` | Händelsens titel, som `[Triggered] High CPU`. |
 | `$TEXT_ONLY_MSG` | Monitorns meddelande, utan Markdown. |
 | `$LINK` | En länk till händelsen i Datadog. |
 
+En nyttolast fungerar för båda vägarna: mallen går på `alert_cycle_key` och `alert_priority`, och monitorn på `alert_key`. Behåll dem alla, så kan du byta senare genom att bara ändra URL:en.
+
 ## Testa det
 
-Skicka ett larm till OneUptime, så som Datadog skulle göra:
+Skicka ett larm till den URL du kopierade, som Datadog skulle göra:
 
 ```bash
-curl -X POST "https://oneuptime.com/heartbeat/<secret key>" \
+curl -X POST "<url>" \
   -H "Content-Type: application/json" \
   -d '{
     "alert_key": "1234 host:web-1",
+    "alert_cycle_key": "7151157925468446720",
     "transition": "Triggered",
+    "alert_priority": "P1",
     "title": "[Triggered] High CPU",
     "body": "CPU is above 90% on web-1.",
     "host": "web-1",
+    "scope": "host:web-1",
     "priority": "normal",
     "link": "https://app.datadoghq.com/event/event?id=1"
   }'
 ```
 
-En incident öppnas med titeln `[Triggered] High CPU`. Skicka samma begäran med `transition` satt till `Recovered`, så löses incidenten.
+Med mallen öppnas en incident med titeln `Datadog: High CPU`, och de jourpolicyer du valde larmas. Med monitorn öppnas en incident med titeln `[Triggered] High CPU`. Skicka samma begäran med `transition` inställd på `Recovered`, så löses incidenten.
 
-Testa sedan från Datadog: öppna en monitor som nämner webhooken, klicka på **Test Notifications** och skicka dess avisering **Alert**. Titta på OneUptime-monitorns tidslinje för att se att den kom fram.
-
-## Ta emot larm med ett arbetsflöde
-
-Använd ett [arbetsflöde](/docs/workflows/index) när du behöver egna steg mellan Datadog och incidenten.
-
-:::steps
-### Skapa arbetsflödet
-
-Gå till **Arbetsflöden**, klicka på **Skapa arbetsflöde** och sedan på **Börja från grunden**. Ge det namnet `Datadog alerts` och klicka på **Skapa arbetsflöde**.
-
-### Lägg till Webhook-utlösaren
-
-Klicka på det streckade blocket **Välj vad som startar det här arbetsflödet** och välj **Webhook**. Klicka på utlösaren, sedan på **Kopiera URL**, och använd den URL:en i webhooken i Datadog.
-
-### Kontrollera att monitorn är utlöst
-
-Klicka på **Lägg till komponent**, lägg till ett block **If / Else** och anslut utlösarens punkt **Out** till det. Ställ in **Value to check** på `{{local.components.webhook-1.returnValues.request-body.transition}}`, **Comparison** på **is equal to** och **Compare with** på `Triggered`.
-
-### Deklarera incidenten
-
-Lägg till ett block **Create One Incident** och anslut sidan **Yes** av blocket **If / Else** till det. Välj under **Incident Template** en mall som ställer in allvarlighetsgraden och de jourpolicyer som ska larmas (se [Incidentmallar](/docs/incidents/settings#incidentmallar)). Ange under **JSON Object** vad som kommer från Datadog:
-
-```json
-{
-  "title": "{{local.components.webhook-1.returnValues.request-body.title}}",
-  "description": "{{local.components.webhook-1.returnValues.request-body.body}}\nDatadog: {{local.components.webhook-1.returnValues.request-body.link}}"
-}
-```
-
-Utan en mall måste **JSON Object** också innehålla `incidentSeverityId`, ID:t för en av projektets incidentallvarlighetsgrader.
-
-### Slå på arbetsflödet
-
-Slå på **Aktiverad** överst i **Byggare**. Ett arbetsflöde som är avstängt svarar Datadog med `400`.
-:::
-
-Varje avisering `Triggered` deklarerar en ny incident. En återhämtning tar sidan **No** av blocket **If / Else**, där ingenting är anslutet, så körningen slutar där. Använd monitorn för en incident per larm som löses vid återhämtning.
+Testa sedan från Datadog: öppna en monitor som nämner webhooken, klicka på **Test Notifications** och skicka dess avisering **Alert**. För att se att den kom fram öppnar du arbetsflödets **Loggar → Körningar**, eller OneUptime-monitorns tidslinje.
 
 ## Felsökning
 
@@ -191,9 +210,23 @@ Varje avisering `Triggered` deklarerar en ny incident. En återhämtning tar sid
 - Ett arbetsflöde som är avstängt svarar `400`. Slå på **Aktiverad** överst i dess **Byggare**.
 :::
 
+:::details Arbetsflödet körs, men öppnar ingenting
+Öppna körningen i **Loggar → Körningar**. Posten `read-event-1` under dess **Steg** säger varför den tog **No**.
+
+- `Datadog named no alert cycle key`: lägg till `"alert_cycle_key": "$ALERT_CYCLE_KEY"` i webhookens nyttolast i Datadog.
+- `Datadog named no transition`: lägg till `"transition": "$ALERT_TRANSITION"` i webhookens nyttolast i Datadog.
+:::
+
+:::details Jouren larmas inte
+- Bara P1- och P2-monitorer och monitorer utan prioritet larmar. Se [Prioriteter och larmning](#prioriteter-och-larmning).
+- En avisering för ett larm som redan har sin incident larmar ingen igen.
+- Om ingen valdes i dialogen **Skapa ett arbetsflöde** har arbetsflödet inget steg som larmar.
+:::
+
 :::details Incidenter skapas men löses aldrig
 - Datadog-monitorn måste också avisera webhooken om sina återhämtningar. Ett meddelande som nämner webhooken bara för larm, inuti ett villkor, skickar ingen återhämtning.
-- Kriteriets incident behöver **Lös incident automatiskt**, under **Fler fält**.
+- Med mallen: öppna återhämtningens körning i **Loggar → Körningar**: dess sista steg säger varför. Återhämtningens `alert_cycle_key` måste vara larmets, så behåll `$ALERT_CYCLE_KEY` som den är i nyttolasten.
+- Med monitorn behöver kriteriets incident **Lös incident automatiskt**, under **Fler fält**.
 - **Value that means recovered** måste vara exakt `Recovered`. Jämförelsen är skiftlägeskänslig.
 - Återhämtningens `alert_key` måste vara larmets: behåll `$ALERT_ID $ALERT_SCOPE` som det står i nyttolasten.
 :::
@@ -203,19 +236,21 @@ Datadog fyller bara i de variabler som gäller för händelsen. Skicka en testav
 :::
 
 :::details Alla larm från en monitor slås ihop till en incident
-Varje grupp behöver sin egen `alert_key`. Kontrollera att nyttolasten bygger den från både `$ALERT_ID` och `$ALERT_SCOPE`, och att grupperingssökvägen är `requestBody.alert_key`.
+Med monitorn behöver varje grupp sin egen `alert_key`. Kontrollera att nyttolasten sätter den från både `$ALERT_ID` och `$ALERT_SCOPE`, och att grupperingssökvägen är `requestBody.alert_key`.
 :::
 
 ## Säkerhet
 
-- **Behandla URL:en som ett lösenord.** Alla som har den kan öppna incidenter. Om den läcker återställer du den: **Återställ hemlig nyckel för inkommande begäran** på monitorns sida **Inställningar**, eller **Återställ URL** i arbetsflödets **Webhook**-utlösare. Uppdatera sedan webhookens **URL** i Datadog.
+- **Behandla URL:en som ett lösenord.** Alla som har den kan öppna incidenter. Om den läcker återställer du den: **Återställ URL** i arbetsflödets **Webhook**-utlösare, eller **Återställ hemlig nyckel för inkommande begäran** på monitorns sida **Inställningar**. Uppdatera sedan webhookens **URL** i Datadog.
+- **Länkar går till Datadog.** Mallen länkar ett larm bara på en Datadog-webbplats, vad en begäran än säger, och skriver det Datadog skickade som text.
 - **Egenvärdad?** Datadog skickar webhooks från internet, så din OneUptime måste kunna nås därifrån över HTTPS.
 
 ## Nästa steg
 
 :::cards
+- [Arbetsflödesmallar](/docs/workflows/authoring): Skapa ett arbetsflöde från en mall och ändra det i Byggare.
 - [Övervakning av inkommande förfrågningar](/docs/monitor/incoming-request-monitor): Varje inställning för den monitor som tar emot dina larm.
-- [Prometheus Alertmanager](/docs/integrations/prometheus-alertmanager): Samma konfiguration, för Alertmanager.
+- [New Relic](/docs/integrations/new-relic): Samma mall, för New Relic-ärenden.
 - [Eskaleringsregler](/docs/on-call/escalation-rules): Bestäm vem en jourpolicy larmar, och när.
 - [Översikt över integrationer](/docs/integrations/index): De andra verktyg som du kan ansluta.
 :::

@@ -67,6 +67,7 @@
     "forgotPassword": "Glemt adgangskode?",
     "signInWithSso": "Log ind med SSO",
     "signInWithMicrosoft": "Log ind med Microsoft",
+    "emailSignInLink": "Send mig et login-link",
     "noAccountPrompt": "Har du ikke en konto?",
     "registerLink": "Registrer.",
     "twoFactor": {
@@ -114,6 +115,15 @@
       "generate": "Generer backup-koder",
       "skip": "Spring over for nu",
       "generateFailed": "Der blev ikke returneret nogen backup-koder. Prøv venligst igen fra Brugerprofil > Tofaktorgodkendelse."
+    },
+    "magicLink": {
+      "title": "Fuldfør login",
+      "subtitle": "Brug knappen nedenfor for at fuldføre login med linket fra din e-mail.",
+      "submit": "Log ind",
+      "noLink": "Denne side kræver login-linket fra din e-mail. Åbn linket igen, eller bed om et nyt.",
+      "turnedOff": "Login-links er slået fra på denne server. Log ind med din e-mail og adgangskode.",
+      "requestNewLink": "Send mig et nyt link",
+      "backToSignIn": "Tilbage til login"
     }
   },
   "register": {
@@ -147,6 +157,17 @@
     "successMessage": "Vi har sendt linket til nulstilling af adgangskode til din e-mail. Glem ikke at tjekke spam.",
     "submitButton": "Send link til nulstilling",
     "rememberPasswordPrompt": "Husker du din adgangskode?",
+    "loginLink": "Log ind."
+  },
+  "magicLink": {
+    "title": "Log ind med et link",
+    "subtitle": "Indtast din e-mailadresse, så sender vi dig et link, der logger dig ind. Ingen adgangskode nødvendig.",
+    "submitButton": "Send mig et login-link",
+    "sentTitle": "Tjek din e-mail",
+    "sent": "Hvis {{email}} har en konto, er et login-link på vej. Det virker én gang og udløber om {{minutes}} minutter.",
+    "notReceived": "Ikke i din indbakke? Tjek din spam-mappe, eller sørg for, at du har skrevet den adresse, du tilmeldte dig med.",
+    "sendAnother": "Send et nyt link",
+    "knowPasswordPrompt": "Kender du din adgangskode?",
     "loginLink": "Log ind."
   },
   "resetPassword": {

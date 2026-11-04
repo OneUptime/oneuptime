@@ -327,36 +327,6 @@ const bulkActionCallbacks: BulkActionCallbacksFactoryFunction = (
   };
 };
 
-type InActFunction = (work: () => Promise<void> | void) => Promise<void>;
-
-/*
- * `await act(...)` with a hand-attached continuation.
- *
- * act() returns a bare thenable and then, two microtasks later, warns if
- * nothing has called its `then` yet. A plain `await` only attaches that handler
- * on the next microtask, and zone.js - loaded here through the page's
- * dependencies, and it patches Promise - lands the check first. The result is
- * an "act without await" warning on every call that IS awaited, which is
- * exactly the warning a reader of a sequencing test must be able to trust.
- * Calling `then` directly enters the scope's continuation there and then.
- */
-const inAct: InActFunction = (
-  work: () => Promise<void> | void,
-): Promise<void> => {
-  const actScope: Promise<void> = act(async () => {
-    await work();
-  });
-
-  return new Promise<void>(
-    (
-      resolve: (value: void | PromiseLike<void>) => void,
-      reject: (reason: unknown) => void,
-    ): void => {
-      actScope.then(resolve, reject);
-    },
-  );
-};
-
 type ClickAddToProjectFunction = (
   callbacks: BulkActionCallbackMocks,
 ) => Promise<void>;
@@ -364,8 +334,8 @@ type ClickAddToProjectFunction = (
 const clickAddToProject: ClickAddToProjectFunction = async (
   callbacks: BulkActionCallbackMocks,
 ): Promise<void> => {
-  await inAct(() => {
-    return bulkActionTitled(ADD_TO_PROJECT_TITLE_KEY).onClick(callbacks);
+  await act(async () => {
+    await bulkActionTitled(ADD_TO_PROJECT_TITLE_KEY).onClick(callbacks);
   });
 };
 
@@ -382,7 +352,7 @@ const submitPicker: SubmitPickerFunction = async (
     throw new Error("The picker was never rendered.");
   }
 
-  await inAct(() => {
+  await act(async () => {
     picker.onSubmit(selection);
   });
 };
@@ -396,7 +366,7 @@ const closePicker: ClosePickerFunction = async (): Promise<void> => {
     throw new Error("The picker was never rendered.");
   }
 
-  await inAct(() => {
+  await act(async () => {
     picker.onClose();
   });
 };
@@ -692,7 +662,7 @@ describe("Admin > Users > Add to Project bulk action", () => {
 
       const picker: CapturedModalProps | null = capturedModalProps;
 
-      await inAct(() => {
+      await act(async () => {
         picker?.onClose();
       });
 
@@ -863,7 +833,7 @@ describe("Admin > Users > Add to Project bulk action", () => {
       });
       expect(callbacks.onBulkActionEnd).not.toHaveBeenCalled();
 
-      await inAct(async () => {
+      await act(async () => {
         firstCreate.finish();
 
         await waitFor(() => {

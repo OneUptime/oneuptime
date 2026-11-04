@@ -63,8 +63,8 @@ import ModelAPI from "../../../UI/Utils/ModelAPI/ModelAPI";
 import { StateListType } from "../../../Utils/StateOrder";
 
 /*
- * Open in Slack / Open in Microsoft Teams in a record page's header - the
- * Datadog "Open Slack" button: the channel where the incident is being
+ * Open in Slack / Open in Microsoft Teams / Open in Mattermost in a record
+ * page's header - the Datadog "Open Slack" button: the channel where the incident is being
  * worked, one click from its page. A workspace with one channel is a link
  * that opens it in a new tab; one with several is a menu of them; a record
  * with none shows nothing. The page asks the server for the links, looks
@@ -78,6 +78,9 @@ const SECOND_SLACK_URL: string =
   "https://slack.com/app_redirect?channel=C0999ZZZZ&team=T0123ABCD";
 const TEAMS_URL: string =
   "https://teams.microsoft.com/l/channel/19%3Aabc%40thread.tacv2/Incident%2042?groupId=3f2a1b4c-5d6e-4f70-8a9b-0c1d2e3f4a5b";
+
+const MATTERMOST_URL: string =
+  "https://chat.example.com/acme/channels/incident-42";
 
 const SLACK_LINK: WorkspaceChannelLink = {
   workspaceType: WorkspaceType.Slack,
@@ -93,6 +96,12 @@ const TEAMS_LINK: WorkspaceChannelLink = {
   workspaceType: WorkspaceType.MicrosoftTeams,
   channelName: "Incident 42",
   url: TEAMS_URL,
+};
+
+const MATTERMOST_LINK: WorkspaceChannelLink = {
+  workspaceType: WorkspaceType.Mattermost,
+  channelName: "incident-42",
+  url: MATTERMOST_URL,
 };
 
 const RECORD_ID: ObjectID = new ObjectID(
@@ -193,6 +202,84 @@ describe("the buttons a record's links make", () => {
     });
   });
 
+  test("one Mattermost channel: a link straight to it, on the project's own server", () => {
+    const [action] = getOpenInChatActions([MATTERMOST_LINK]);
+
+    expect(action).toMatchObject({
+      id: "open-in-mattermost",
+      label: "Open in Mattermost",
+      icon: IconProp.Mattermost,
+      href: MATTERMOST_URL,
+      tooltip: "incident-42",
+    });
+    expect(action!.menuItems).toBeUndefined();
+
+    action!.onClick();
+    expect(windowOpen).toHaveBeenCalledWith(
+      MATTERMOST_URL,
+      "_blank",
+      "noopener,noreferrer",
+    );
+  });
+
+  test("two Mattermost channels: one Open in Mattermost listing both", () => {
+    const second: WorkspaceChannelLink = {
+      ...MATTERMOST_LINK,
+      channelName: "sre-war-room",
+      url: "https://chat.example.com/acme/channels/sre-war-room",
+    };
+    const actions: Array<EventPanelAction> = getOpenInChatActions([
+      MATTERMOST_LINK,
+      second,
+    ]);
+
+    expect(actions).toHaveLength(1);
+    expect(actions[0]!.id).toBe("open-in-mattermost");
+    expect(actions[0]!.href).toBeUndefined();
+    expect(
+      actions[0]!.menuItems!.map((item: EventPanelMenuItem) => {
+        return item.label;
+      }),
+    ).toEqual(["incident-42", "sre-war-room"]);
+  });
+
+  test("Mattermost beside Slack and Teams: one Open channel menu, Mattermost's last", () => {
+    const actions: Array<EventPanelAction> = getOpenInChatActions([
+      MATTERMOST_LINK,
+      TEAMS_LINK,
+      SLACK_LINK,
+    ]);
+
+    expect(actions).toHaveLength(1);
+    expect(actions[0]!.id).toBe("open-channel");
+    expect(
+      actions[0]!.menuItems!.map((item: EventPanelMenuItem) => {
+        return [item.label, item.icon];
+      }),
+    ).toEqual([
+      ["Slack · #incident-42-checkout", IconProp.Slack],
+      ["Microsoft Teams · Incident 42", IconProp.MicrosoftTeams],
+      ["Mattermost · incident-42", IconProp.Mattermost],
+    ]);
+
+    actions[0]!.menuItems![2]!.onClick();
+    expect(windowOpen).toHaveBeenCalledWith(
+      MATTERMOST_URL,
+      "_blank",
+      "noopener,noreferrer",
+    );
+  });
+
+  test("Mattermost beside one other workspace is a menu too: two buttons never fit", () => {
+    expect(
+      getOpenInChatActions([SLACK_LINK, MATTERMOST_LINK]).map(
+        (action: EventPanelAction) => {
+          return action.id;
+        },
+      ),
+    ).toEqual(["open-channel"]);
+  });
+
   test("Slack and Teams: one Open channel menu, each channel under its product's name and logo, Slack first", () => {
     const actions: Array<EventPanelAction> = getOpenInChatActions([
       TEAMS_LINK,
@@ -287,6 +374,20 @@ describe("in the header", () => {
     // A link, so the page's own click handler never runs instead of it.
     fireEvent.click(link);
     expect(windowOpen).not.toHaveBeenCalled();
+  });
+
+  test("one Mattermost channel is a link beside the state buttons too, with its product's logo", () => {
+    renderPanel(getOpenInChatActions([MATTERMOST_LINK]));
+
+    const link: HTMLElement = within(getActionGroup()).getByRole("link", {
+      name: "Open in Mattermost",
+    });
+
+    expect(link).toHaveAttribute("href", MATTERMOST_URL);
+    expect(link).toHaveAttribute("target", "_blank");
+    expect(link).toHaveAttribute("rel", "noopener noreferrer");
+    expect(link).toHaveAttribute("id", "open-in-mattermost");
+    expect(link.querySelector("svg")).not.toBeNull();
   });
 
   test("the link names its channel when pointed at", async () => {
@@ -388,6 +489,32 @@ describe("in the header", () => {
     );
   });
 
+  test("channels in Mattermost and Slack: the Open channel menu opens the Mattermost one", () => {
+    renderPanel(getOpenInChatActions([MATTERMOST_LINK, SLACK_LINK]));
+
+    fireEvent.click(
+      within(getActionGroup()).getByRole("button", { name: "Open channel" }),
+    );
+
+    const choices: Array<HTMLElement> = within(
+      screen.getByRole("menu"),
+    ).getAllByRole("menuitem");
+
+    expect(
+      choices.map((choice: HTMLElement) => {
+        return choice.textContent?.trim();
+      }),
+    ).toEqual(["Slack · #incident-42-checkout", "Mattermost · incident-42"]);
+
+    fireEvent.click(choices[1]!);
+
+    expect(windowOpen).toHaveBeenCalledWith(
+      MATTERMOST_URL,
+      "_blank",
+      "noopener,noreferrer",
+    );
+  });
+
   test("a disabled header shows the button but does not open anything", () => {
     renderPanel(getOpenInChatActions([SLACK_LINK]), {
       isDisabled: true,
@@ -428,6 +555,9 @@ describe("in the header", () => {
     ).toBeNull();
     expect(
       screen.queryByRole("button", { name: "Open in Microsoft Teams" }),
+    ).toBeNull();
+    expect(
+      screen.queryByRole("button", { name: "Open in Mattermost" }),
     ).toBeNull();
     expect(screen.queryByRole("button", { name: "Open channel" })).toBeNull();
   });
@@ -507,6 +637,41 @@ describe("asking the server", () => {
         recordId: RECORD_ID,
       }),
     ).toEqual([SLACK_LINK]);
+  });
+
+  test("keeps a Mattermost channel's link, whichever server it is on, and nothing else of Mattermost's", async () => {
+    const onItsOwnServer: WorkspaceChannelLink = {
+      ...MATTERMOST_LINK,
+      channelName: "on-a-path",
+      url: "http://10.0.0.5:8065/mattermost/acme/channels/on-a-path",
+    };
+
+    answerWith([
+      MATTERMOST_LINK,
+      onItsOwnServer,
+      {
+        workspaceType: WorkspaceType.Mattermost,
+        channelName: "js",
+        url: "javascript:alert(1)//acme/channels/js",
+      },
+      {
+        workspaceType: WorkspaceType.Mattermost,
+        channelName: "a user name in front of the host",
+        url: "https://chat.example.com@evil.example/acme/channels/x",
+      },
+      {
+        workspaceType: WorkspaceType.Mattermost,
+        channelName: "not a channel",
+        url: "https://evil.example/login",
+      },
+    ]);
+
+    expect(
+      await fetchChannelLinks({
+        recordType: WorkspaceChannelRecordType.Incident,
+        recordId: RECORD_ID,
+      }),
+    ).toEqual([MATTERMOST_LINK, onItsOwnServer]);
   });
 
   test("an answer that is not a success is an error, not 'no channel'", async () => {

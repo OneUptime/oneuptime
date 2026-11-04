@@ -50,7 +50,7 @@ Ajoutez le bot à l'équipe dans laquelle OneUptime doit publier, comme vous ajo
 
 ### Connecter le projet
 
-Dans OneUptime, allez dans **Paramètres du projet** > **Espace de travail** > **Mattermost** et cliquez sur **Se connecter avec Mattermost**. Saisissez l'adresse de votre serveur, par exemple `https://chat.example.com`, et le jeton d'accès du bot. OneUptime vérifie le jeton auprès de votre serveur avant de conserver quoi que ce soit. Si le bot fait partie de plus d'une équipe, OneUptime vous demande dans laquelle publier.
+Dans OneUptime, allez dans **Paramètres du projet** > **Espace de travail** > **Mattermost** et cliquez sur **Se connecter avec Mattermost**. Saisissez l'adresse de votre serveur, par exemple `https://chat.example.com`, et le jeton d'accès du bot. OneUptime vérifie le jeton auprès de votre serveur avant de conserver quoi que ce soit. Si le bot fait partie de plus d'une équipe, OneUptime vous demande dans laquelle publier. Tant qu'aucun espace de travail n'est connecté, la section **Espace de travail** des menus Incidents, Alertes, Maintenance planifiée, Moniteurs et Astreinte contient **Connecter un espace de travail**, qui mène aussi ici.
 
 ### Ajouter une règle de notification
 
@@ -84,6 +84,8 @@ Un canal qu'une règle crée porte le nom de son enregistrement : l'incident INC
 Pour publier dans un canal existant, saisissez son nom tel qu'il apparaît dans son adresse, par exemple `incidents` pour `chat.example.com/team/channels/incidents`, ou son nom d'affichage. OneUptime rejoint de lui-même un canal public la première fois qu'il y publie. Ajoutez le bot à un canal privé dans Mattermost avant qu'une règle n'y publie.
 
 Les personnes rejoignent le canal d'une règle par le compte Mattermost qu'elles ont connecté, ou sinon par le compte Mattermost associé à leur adresse e-mail, quand votre serveur montre les adresses e-mail au bot (**System Console** > **Site Configuration** > **Users and Teams** > **Show Email Address**). OneUptime nomme les personnes qu'il n'a pas pu ajouter dans un seul message dans le canal, avec un lien pour connecter leur compte.
+
+Un incident, une alerte, un épisode ou un événement de maintenance planifiée qui a son propre canal affiche **Ouvrir dans Mattermost** dans l'en-tête de sa page dans OneUptime, à côté de ses boutons d'état. Ce bouton ouvre ce canal dans un nouvel onglet, sur votre serveur Mattermost. Un enregistrement qui a deux canaux à lui les liste tous les deux sous le bouton. Un enregistrement qui a aussi des canaux dans Slack ou Microsoft Teams a à la place un seul bouton **Ouvrir le canal**, qui les liste tous. Les canaux existants où vos règles publient ne sont pas proposés.
 
 **Tester la règle** sur la ligne d'une règle publie un message de test pour cette règle dans les canaux qu'elle nomme, comme pour Slack.
 

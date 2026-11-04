@@ -14,10 +14,10 @@ import {
 import EventName from "../../../../App/FeatureSet/Dashboard/src/Utils/EventName";
 
 /*
- * How the Dashboard opens Ask AI: one dialog, and one event every way in
+ * How the Dashboard opens Ask AI: one panel, and one event every way in
  * sends (AskAiEvents). A plain toggle opens or closes it; a prompt opens a
  * new conversation with the question unsent; a conversation id opens that
- * conversation. And the chat's own address, which opens the dialog over
+ * conversation. And the chat's own address, which opens the panel beside
  * the page the person came from (Pages/AICopilot).
  */
 
@@ -142,7 +142,7 @@ describe("openAskAi and toggleAskAi", () => {
     expect(heard).toEqual([{ isToggle: true, request: {} }]);
   });
 
-  test("a request made before the dialog listens waits for it, and is taken once", () => {
+  test("a request made before the panel listens waits for it, and is taken once", () => {
     GlobalEvents.removeEventListener(EventName.AI_CHAT_TOGGLE, listener);
 
     openAskAi({ prompt: "What changed?" });

@@ -50,7 +50,7 @@ Adicione o bot à equipe em que o OneUptime deve publicar, como você adicionari
 
 ### Conectar o projeto
 
-No OneUptime, vá para **Configurações do projeto** > **Espaço de trabalho** > **Mattermost** e clique em **Conectar ao Mattermost**. Informe o endereço do seu servidor, como `https://chat.example.com`, e o token de acesso do bot. O OneUptime verifica o token com o seu servidor antes de guardar qualquer coisa. Se o bot estiver em mais de uma equipe, o OneUptime pergunta em qual delas publicar.
+No OneUptime, vá para **Configurações do projeto** > **Espaço de trabalho** > **Mattermost** e clique em **Conectar ao Mattermost**. Informe o endereço do seu servidor, como `https://chat.example.com`, e o token de acesso do bot. O OneUptime verifica o token com o seu servidor antes de guardar qualquer coisa. Se o bot estiver em mais de uma equipe, o OneUptime pergunta em qual delas publicar. Enquanto nenhum workspace estiver conectado, a seção **Espaço de trabalho** dos menus Incidentes, Alertas, Manutenção programada, Monitores e Plantão contém **Conectar um espaço de trabalho**, que também leva até aqui.
 
 ### Adicionar uma regra de notificação
 
@@ -84,6 +84,8 @@ Um canal que uma regra cria recebe o nome do seu registro: o incidente INC-42 re
 Para publicar em um canal existente, informe o nome dele como aparece no endereço do canal, como `incidents` para `chat.example.com/team/channels/incidents`, ou o nome de exibição dele. O OneUptime entra sozinho em um canal público na primeira vez que publica nele. Adicione o bot a um canal privado no Mattermost antes que uma regra publique nele.
 
 As pessoas entram no canal de uma regra pela conta do Mattermost que conectaram, ou então pela conta do Mattermost que tem o endereço de e-mail delas, quando o seu servidor mostra endereços de e-mail ao bot (**System Console** > **Site Configuration** > **Users and Teams** > **Show Email Address**). O OneUptime nomeia quem não conseguiu adicionar em uma única mensagem no canal, com um link para conectar a conta.
+
+Um incidente, alerta, episódio ou evento de manutenção agendada com um canal próprio tem **Abrir no Mattermost** no cabeçalho da sua página no OneUptime, ao lado dos botões de estado. Ele abre esse canal em uma nova aba, no seu servidor do Mattermost. Um registro com dois canais próprios lista os dois sob o botão. Um registro que também tem canais no Slack ou no Microsoft Teams tem, em vez disso, um único botão **Abrir canal**, que lista todos eles. Os canais existentes em que as suas regras publicam não são oferecidos.
 
 **Regra de teste** na linha de uma regra publica uma mensagem de teste dessa regra nos canais que ela indica, como faz para o Slack.
 

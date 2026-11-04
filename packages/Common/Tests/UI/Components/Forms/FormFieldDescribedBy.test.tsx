@@ -17,7 +17,8 @@ import {
   within,
 } from "@testing-library/react";
 import * as React from "react";
-import { afterEach, describe, expect, test } from "@jest/globals";
+import { afterEach, beforeAll, describe, expect, test } from "@jest/globals";
+import { loadAllFormFieldControls } from "../../../../UI/Components/Forms/Fields/FormFieldControls";
 
 /*
  * A FIELD'S HELP DESCRIBES ITS CONTROL.
@@ -146,6 +147,10 @@ function renderField(
     />,
   );
 }
+
+beforeAll(async () => {
+  await loadAllFormFieldControls();
+});
 
 afterEach(() => {
   cleanup();

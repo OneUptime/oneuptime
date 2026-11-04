@@ -13664,7 +13664,7 @@ test.describe("links and quotes in a note", () => {
 
 /*
  * ---------------------------------------------------------------------------
- * Open in Slack / Open in Microsoft Teams
+ * Open in Slack / Open in Microsoft Teams / Open in Mattermost
  * ---------------------------------------------------------------------------
  *
  * A record a workspace notification rule made a channel for has a button in
@@ -13675,8 +13675,10 @@ test.describe("links and quotes in a note", () => {
 
 const SLACK_CHANNEL_URL: string =
   "https://slack.com/app_redirect?channel=C0ACME0001&team=T0ACMECOM";
+const MATTERMOST_CHANNEL_URL: string =
+  "https://chat.acme-commerce.example/acme/channels/incident-1042-checkout-latency";
 
-test.describe("Open in Slack / Microsoft Teams", () => {
+test.describe("Open in Slack / Microsoft Teams / Mattermost", () => {
   test("no channel, no button", async ({ page }: { page: Page }) => {
     await openReady(page, INCIDENT_PAGE);
 
@@ -13738,6 +13740,99 @@ test.describe("Open in Slack / Microsoft Teams", () => {
       "3f2a1b4c-5d6e-4f70-8a9b-0c1d2e3f4a5b",
     );
     await expect(teams).toHaveAttribute("rel", "noopener noreferrer");
+  });
+
+  /*
+   * Mattermost is a server of the customer's own: the link is on the server
+   * the project was connected to. OneUptime does not read who is in its
+   * channels, so a record with only a Mattermost channel has no channel card.
+   */
+  test("a Mattermost channel is a link to the project's own server, and has no channel card", async ({
+    page,
+  }: {
+    page: Page;
+  }) => {
+    await openReady(page, INCIDENT_PAGE, "channels=mattermost");
+
+    const mattermost: Locator = heroActions(page).getByRole("link", {
+      name: "Open in Mattermost",
+    });
+
+    await expect(mattermost).toHaveAttribute("href", MATTERMOST_CHANNEL_URL);
+    await expect(mattermost).toHaveAttribute("target", "_blank");
+    await expect(mattermost).toHaveAttribute("rel", "noopener noreferrer");
+
+    await mattermost.hover();
+    await expect(
+      page
+        .locator("[data-tippy-root]")
+        .getByText("incident-1042-checkout-latency", { exact: true }),
+    ).toBeVisible();
+    await page.mouse.move(0, 0);
+    await screenshotElement(hero(page), "incident-hero-open-in-mattermost");
+
+    await expect(page.getByTestId("record-channel-members-card")).toHaveCount(
+      0,
+    );
+    expect(
+      await apiRequestsTo(
+        page,
+        `/workspace-channel-members/incident/${INCIDENT_ID}`,
+      ),
+    ).toHaveLength(0);
+  });
+
+  test("channels in Slack and Mattermost: one Open channel that lists them, and the card is Slack's", async ({
+    page,
+  }: {
+    page: Page;
+  }) => {
+    await page
+      .context()
+      .route(
+        "https://chat.acme-commerce.example/**",
+        async (route: PlaywrightRoute) => {
+          await route.fulfill({
+            status: 200,
+            contentType: "text/plain",
+            body: "Mattermost",
+          });
+        },
+      );
+    await openReady(page, INCIDENT_PAGE, "channels=mattermost,slack");
+
+    await expect(heroActions(page).getByRole("link")).toHaveCount(0);
+
+    await heroActions(page)
+      .getByRole("button", { name: "Open channel" })
+      .click();
+
+    const menu: Locator = page.getByRole("menu");
+    await expect(menu.getByRole("menuitem")).toHaveText([
+      "Slack · #incident-1042-checkout-latency",
+      "Mattermost · incident-1042-checkout-latency",
+    ]);
+    await screenshotElement(
+      hero(page),
+      "incident-hero-open-channel-mattermost",
+    );
+
+    await expect(page.getByTestId("record-channel-members-card")).toHaveCount(
+      1,
+    );
+    await expect(
+      page.getByText("Slack Channel", { exact: true }),
+    ).toBeVisible();
+
+    const opened: Promise<Page> = page.context().waitForEvent("page");
+    await menu
+      .getByRole("menuitem", {
+        name: "Mattermost · incident-1042-checkout-latency",
+      })
+      .click();
+    const tab: Page = await opened;
+    await expect(tab).toHaveURL(MATTERMOST_CHANNEL_URL);
+    await tab.close();
   });
 
   /*
@@ -20904,7 +20999,7 @@ test.describe("the AI card in two steps: Investigation, then Remediation (block 
       remediation.getByTestId("remediation-approval-note"),
     ).toHaveCount(0);
     await expect(
-      remediation.getByRole("button", { name: "Dismiss" }),
+      remediation.getByRole("button", { name: "Dismiss fix" }),
     ).toHaveCount(0);
     await remediation
       .getByRole("button", { name: "Review and approve" })
@@ -21609,9 +21704,9 @@ test.describe("a busy incident's fixes, step by step (?fixes=many)", () => {
      * Review and approve, are all it offers until its plan is open.
      */
     await expect(kubectl.getByRole("button")).toHaveCount(2);
-    await expect(kubectl.getByRole("button", { name: "Dismiss" })).toHaveCount(
-      0,
-    );
+    await expect(
+      kubectl.getByRole("button", { name: "Dismiss fix" }),
+    ).toHaveCount(0);
     await expect(kubectl.getByTestId("remediation-approval-note")).toHaveCount(
       0,
     );
@@ -21650,7 +21745,7 @@ test.describe("a busy incident's fixes, step by step (?fixes=many)", () => {
       kubectl.getByTestId("remediation-approve-button"),
     );
     const dismiss: Box = await documentBox(
-      kubectl.getByRole("button", { name: "Dismiss" }),
+      kubectl.getByRole("button", { name: "Dismiss fix" }),
     );
     // Under the commands: what approving does, then Approve & Run and Dismiss.
     expect(note.y).toBeGreaterThan(details.y + details.height - 1);
@@ -21776,7 +21871,7 @@ test.describe("a busy incident's fixes, step by step (?fixes=many)", () => {
     ).toBe(true);
     await page.keyboard.press("Tab");
     await expect(
-      kubectl.getByRole("button", { name: "Dismiss" }),
+      kubectl.getByRole("button", { name: "Dismiss fix" }),
     ).toBeFocused();
 
     await toggle.focus();
@@ -22103,5 +22198,375 @@ test("the report's verdict fits a 320px phone: its two answers share the row, in
       false,
     );
   }
+  await expectNoSidewaysScroll(page, { tolerance: 1 });
+});
+
+/*
+ * ---------------------------------------------------------------------------
+ * #5519's follow-ups (part 1): what an investigation says it hurts, first;
+ * how a runbook went before, over its Approve & Run; where a fix was
+ * approved; Dismiss fix, the step's own words, which asks what approving
+ * asks; a dry run's time in the reader's language; and an App Platforms
+ * environment named as one in the run's activity. Kept to five page loads:
+ * Event Overview's halves are near their groups' time.
+ * ---------------------------------------------------------------------------
+ */
+
+// The Dashboard's words in a language, as the page draws them.
+async function dashboardWords(
+  language: string,
+): Promise<Record<string, string>> {
+  return JSON.parse(
+    await fs.readFile(
+      path.resolve(
+        __dirname,
+        "../../App/FeatureSet/Dashboard/src/Locales",
+        `${language}.json`,
+      ),
+      "utf8",
+    ),
+  ) as Record<string, string>;
+}
+
+// A template's words with its values set in.
+function filledIn(template: string, values: Record<string, string>): string {
+  let text: string = template;
+  for (const name of Object.keys(values)) {
+    text = text.split(`{{${name}}}`).join(values[name]!);
+  }
+  return text;
+}
+
+// An element's words as read, without the marks that set a name apart.
+async function readWords(locator: Locator): Promise<string> {
+  return ((await locator.textContent()) || "")
+    .replace(/[⁦-⁩]/g, "")
+    .replace(/\s+/g, " ")
+    .trim();
+}
+
+const DRY_RUN_WOULD_RUN: string =
+  "Dry run {{time}}: this change would run. Nothing was changed.";
+
+test.describe("what an investigation says it hurts, first (?impact=on)", () => {
+  function impactSection(page: Page): Locator {
+    return investigationStep(page).getByTestId("investigation-report-impact");
+  }
+
+  async function openImpact(page: Page, query: string): Promise<Locator> {
+    await open(page, INCIDENT_PATH, query);
+    await showFullReport(page);
+
+    const section: Locator = impactSection(page);
+    await expect(section).toBeVisible({ timeout: 30000 });
+    return section;
+  }
+
+  // Each line's mark, then its bold label: the line's first words.
+  async function markAndLabel(
+    page: Page,
+    line: Locator,
+  ): Promise<{ mark: Box; label: Box }> {
+    const [mark, label]: Array<Box> = await documentBoxes(page, [
+      line.locator("svg").first(),
+      line.locator("strong").first(),
+    ]);
+    return { mark: mark!, label: label! };
+  }
+
+  test("at 1280px: right under the summary, before the root cause - the users, the services and the SLOs, a line each with its mark and how it was worked out, cited", async ({
+    page,
+  }: {
+    page: Page;
+  }) => {
+    await page.setViewportSize({ width: 1280, height: 900 });
+    const section: Locator = await openImpact(page, "impact=on");
+
+    await expect(section.getByRole("heading", { level: 3 })).toHaveText(
+      "Impact",
+    );
+    const lines: Locator = section.getByTestId("investigation-impact-line");
+    await expect(lines).toHaveCount(3);
+    expect(
+      await lines.evaluateAll(
+        (elements: Array<Element>): Array<string | null> => {
+          return elements.map((element: Element): string | null => {
+            return element.getAttribute("data-aspect");
+          });
+        },
+      ),
+    ).toEqual(["Users", "Services", "Slos"]);
+    await expect(lines.nth(0)).toContainText(
+      "Users: about 1,240 of 9,800 checkout requests took over 2 s or failed between 17:58 and 18:11 UTC",
+    );
+    await expect(lines.nth(1)).toContainText(
+      "Services: checkout-api, and the storefront, which calls it for every checkout",
+    );
+    await expect(lines.nth(2)).toContainText(
+      "SLOs: Checkout latency is At Risk",
+    );
+    // How the count was worked out is cited: it opens its evidence.
+    await expect(
+      lines.nth(0).getByRole("button", { name: /^Citation C7:/ }),
+    ).toBeVisible();
+
+    // A mark before each line's label, level with its first line.
+    for (let index: number = 0; index < 3; index++) {
+      const { mark, label } = await markAndLabel(page, lines.nth(index));
+      expect(mark.x + mark.width).toBeLessThanOrEqual(label.x);
+      expect(Math.abs(centreOf(mark) - centreOf(label))).toBeLessThanOrEqual(3);
+    }
+
+    // Said first: right under the summary, before the root cause.
+    const headings: Array<string> = await investigationStep(page)
+      .getByRole("heading", { level: 3 })
+      .allTextContents();
+    expect(headings.indexOf("Impact")).toBe(headings.indexOf("Summary") + 1);
+    expect(headings.indexOf("Most likely root cause")).toBeGreaterThan(
+      headings.indexOf("Impact"),
+    );
+
+    await expectNoSidewaysScroll(page, { tolerance: 1 });
+    await screenshotElement(section, "investigation-impact-1280");
+  });
+
+  test("on a Persian phone in dark: each English line reads left to right, its mark at its left, inside the card - and a cloud fix's dry run says when in Persian", async ({
+    page,
+  }: {
+    page: Page;
+  }) => {
+    await page.setViewportSize({ width: 390, height: 844 });
+    const persian: Record<string, string> = await dashboardWords("fa");
+    const section: Locator = await openImpact(
+      page,
+      "impact=on&cloudfix=would-run&lang=fa&dir=auto&theme=dark",
+    );
+
+    const lines: Locator = section.getByTestId("investigation-impact-line");
+    await expect(lines).toHaveCount(3);
+    for (let index: number = 0; index < 3; index++) {
+      await expect(lines.nth(index)).toHaveAttribute("dir", "ltr");
+      const { mark, label } = await markAndLabel(page, lines.nth(index));
+      expect(mark.x).toBeLessThan(label.x);
+    }
+
+    const [stepBox, sectionBox]: Array<Box> = await documentBoxes(page, [
+      investigationStep(page),
+      section,
+    ]);
+    expect(sectionBox!.x).toBeGreaterThanOrEqual(stepBox!.x);
+    expect(sectionBox!.x + sectionBox!.width).toBeLessThanOrEqual(
+      stepBox!.x + stepBox!.width + 1,
+    );
+    await expectNoSidewaysScroll(page, { tolerance: 1 });
+    await screenshotElement(section, "investigation-impact-390-fa-dark");
+
+    // Dry-run two minutes ago: Persian's words, in its own digits.
+    await openEveryFix(page);
+    const headline: Locator = remediationStep(page).getByTestId(
+      "remediation-dry-run-headline",
+    );
+    await expect
+      .poll(() => {
+        return readWords(headline);
+      })
+      .toBe(filledIn(persian[DRY_RUN_WOULD_RUN]!, { time: "۲ دقیقه پیش" }));
+  });
+});
+
+test.describe("a runbook's record, where a fix was approved, and Dismiss fix (?fixes=runbook)", () => {
+  const RUNBOOK_PROPOSAL_ID: string = uuid("93000000", 8);
+  const DISMISS_REFUSED: string =
+    "You do not have permission to dismiss this fix. Dismissing a fix needs the same permission as approving one: starting runbook executions in this project.";
+
+  // The runbook that waits: "Restart checkout-api pods".
+  function runbookFix(page: Page): Locator {
+    return remediationStep(page)
+      .getByTestId("remediation-fix")
+      .filter({ hasText: "Restart checkout-api pods" });
+  }
+
+  // The kubectl fix on prod-eu-west-1 Maya Chen approved in Slack.
+  function slackApprovedFix(page: Page): Locator {
+    return remediationStep(page)
+      .getByTestId("remediation-fix")
+      .filter({ hasText: "prod-eu-west-1" });
+  }
+
+  function approvalTitle(fix: Locator): Locator {
+    return fix
+      .locator("[data-testid='remediation-fix-step'][data-step='approval']")
+      .getByTestId("remediation-fix-step-title");
+  }
+
+  async function openRunbookFixes(page: Page, query: string): Promise<void> {
+    await open(page, INCIDENT_PATH, query);
+    await expect(
+      runbookFix(page).getByTestId("remediation-runbook-track-record"),
+    ).toBeVisible({ timeout: 30000 });
+  }
+
+  test("at 1280px: the runbook says how it went before, over Approve & Run; the fix approved in Slack says so; Dismiss fix dismisses the runbook", async ({
+    page,
+  }: {
+    page: Page;
+  }) => {
+    await page.setViewportSize({ width: 1280, height: 900 });
+    await openRunbookFixes(page, "fixes=runbook");
+
+    const runbook: Locator = runbookFix(page);
+    const record: Locator = runbook.getByTestId(
+      "remediation-runbook-track-record",
+    );
+    await expect(
+      record.getByTestId("remediation-command-track-record"),
+    ).toHaveAttribute("data-tone", "Mixed");
+    await expect(
+      record.getByTestId("remediation-command-track-record-text"),
+    ).toHaveText("Worked 2 of the 3 times it ran here before");
+
+    // The incidents it ran for, each a link to its page; the one it did not fix in red.
+    const runs: Locator = record.getByTestId("remediation-track-record-run");
+    await expect(runs).toHaveText(["#1036", "#1029", "#1017"]);
+    expect(
+      await runs.evaluateAll((elements: Array<Element>): Array<string> => {
+        return elements.map((element: Element): string => {
+          return element.getAttribute("href") || "";
+        });
+      }),
+    ).toEqual([incidentPath(1036), incidentPath(1029), incidentPath(1017)]);
+    await expect(runs.nth(1)).toHaveAttribute("title", "Didn't work here");
+
+    // Over what approving does, which is right over Approve & Run.
+    const [recordBox, noteBox, approveBox]: Array<Box> = await documentBoxes(
+      page,
+      [
+        record,
+        runbook.getByTestId("remediation-approval-note"),
+        runbook.getByTestId("remediation-approve-button"),
+      ],
+    );
+    expect(recordBox!.y + recordBox!.height).toBeLessThanOrEqual(noteBox!.y);
+    expect(noteBox!.y + noteBox!.height).toBeLessThanOrEqual(approveBox!.y);
+
+    // Where the other fix was approved, beside who approved it.
+    await expect
+      .poll(() => {
+        return readWords(approvalTitle(slackApprovedFix(page)));
+      })
+      .toBe("Approved by Maya Chen in Slack");
+
+    await expectNoSidewaysScroll(page, { tolerance: 1 });
+    await page.mouse.move(0, 0);
+    await screenshotElement(
+      remediationStep(page),
+      "remediation-runbook-track-record-1280",
+    );
+
+    // Dismiss fix: a fix is dismissed, never hidden.
+    const dismiss: Locator = runbook.getByTestId("remediation-dismiss-button");
+    await expect(dismiss).toHaveText("Dismiss fix");
+    await dismiss.click();
+
+    await expect(runbook.getByTestId("remediation-fix-status")).toHaveText(
+      "Dismissed",
+      { timeout: 30000 },
+    );
+    const posts: Array<RecordedApiRequest> = await apiRequestsTo(
+      page,
+      "/auto-remediation/dismiss",
+    );
+    expect(posts).toHaveLength(1);
+    expect(posts[0]!.method).toBe("POST");
+    expect(posts[0]!.body).toEqual({ suggestionId: RUNBOOK_PROPOSAL_ID });
+    // Decided: how it went before is no longer what anyone weighs.
+    await expect(record).toHaveCount(0);
+  });
+
+  test("on a German phone in dark: the record, where the fix was approved and Dismiss fix in German - never its Hide - a refusal of it in German, and a dry run's time", async ({
+    page,
+  }: {
+    page: Page;
+  }) => {
+    await page.setViewportSize({ width: 390, height: 844 });
+    const german: Record<string, string> = await dashboardWords("de");
+    await openRunbookFixes(
+      page,
+      "fixes=runbook&cloudfix=would-run&fail=dismiss&lang=de&theme=dark",
+    );
+
+    const runbook: Locator = runbookFix(page);
+    await expect(
+      runbook.getByTestId("remediation-command-track-record-text"),
+    ).toHaveText(
+      filledIn(
+        german["Worked {{worked}} of the {{count}} times it ran here before"]!,
+        { worked: "2", count: "3" },
+      ),
+    );
+    await expect
+      .poll(() => {
+        return readWords(approvalTitle(slackApprovedFix(page)));
+      })
+      .toBe(
+        filledIn(german["Approved by {{name}} in Slack"]!, {
+          name: "Maya Chen",
+        }),
+      );
+
+    // Dismiss fix, never German's Hide, whatever the shared Dismiss reads.
+    const dismiss: Locator = runbook.getByTestId("remediation-dismiss-button");
+    await expect(dismiss).toHaveText(german["Dismiss fix"]!);
+    expect(german["Dismiss fix"]).not.toBe(german["Hide"]);
+
+    // Refused for want of the permission approving asks: why, in German.
+    await dismiss.click();
+    const refusal: Locator = runbook.getByTestId("remediation-action-error");
+    await expect(refusal).toContainText(
+      german["Could not save your action: the fix was not dismissed"]!,
+      { timeout: 30000 },
+    );
+    await expect(refusal).toContainText(german[DISMISS_REFUSED]!);
+    // Still waiting, its record and all.
+    await expect(
+      runbook.getByTestId("remediation-runbook-track-record"),
+    ).toBeVisible();
+
+    // The cloud fix's dry run, two minutes ago, as German says it.
+    await openEveryFix(page);
+    await expect
+      .poll(() => {
+        return readWords(
+          remediationStep(page).getByTestId("remediation-dry-run-headline"),
+        );
+      })
+      .toBe(filledIn(german[DRY_RUN_WOULD_RUN]!, { time: "vor 2 Minuten" }));
+
+    await expectNoSidewaysScroll(page, { tolerance: 1 });
+    await page.mouse.move(0, 0);
+    await screenshotElement(
+      remediationStep(page),
+      "remediation-runbook-fixes-390-de-dark",
+    );
+  });
+});
+
+test("an App Platforms environment is named as one in the run's activity, beside a cloud resource (?linked=cloud)", async ({
+  page,
+}: {
+  page: Page;
+}) => {
+  await page.setViewportSize({ width: 390, height: 900 });
+  await open(page, INCIDENT_PATH, "ai=running&linked=cloud");
+  await expect(liveInvestigation(page)).toBeVisible({ timeout: 30000 });
+
+  await expect
+    .poll(async () => {
+      return (await stepTexts(page)).slice(0, 2);
+    })
+    .toEqual([
+      "Starting investigation",
+      "Read 2 open or recent alerts on Cloud environment checkout-web (Production), Cloud resource checkout-api and Service checkout-api",
+    ]);
   await expectNoSidewaysScroll(page, { tolerance: 1 });
 });

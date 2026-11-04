@@ -6243,8 +6243,9 @@ const BaseAPIFeatureSet: FeatureSet = {
     app.use(`/${APP_NAME.toLocaleLowerCase()}`, OnCallScheduleTimelineAPI);
 
     /*
-     * The links behind a record's Open in Slack / Open in Microsoft Teams
-     * button (/workspace-channel-link/<record type>/<id>). Session-only; the
+     * The links behind a record's Open in Slack, Open in Microsoft Teams or
+     * Open in Mattermost button
+     * (/workspace-channel-link/<record type>/<id>). Session-only; the
      * record is read with the caller's own permissions first.
      */
     app.use(`/${APP_NAME.toLocaleLowerCase()}`, WorkspaceChannelLinkAPI);

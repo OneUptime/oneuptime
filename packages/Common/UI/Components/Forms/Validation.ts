@@ -18,11 +18,11 @@ import {
   JSONSyntaxCheckResult,
   checkJSONSyntax,
 } from "../../../Types/Workflow/TemplateSyntax";
+import type { YamlSyntaxCheckResult } from "../../../Types/Code/YamlSyntax";
 import {
-  YamlSyntaxCheckResult,
-  checkYamlSyntax,
-  describeYamlSyntaxError,
-} from "../../../Types/Code/YamlSyntax";
+  YamlSyntaxCheck,
+  getLoadedYamlSyntaxCheck,
+} from "../CodeEditor/YamlSyntaxLoader";
 import { Logger } from "../../Utils/Logger";
 import {
   getPeoplePickerValueKeys,
@@ -372,6 +372,11 @@ export default class Validation {
    * trip to hear "bad indentation on line 4" is a poor way to find out. Like
    * validateJSONSyntax this takes the raw value rather than the stringified
    * `content`, and defers to checkYamlSyntax for what it declines to judge.
+   *
+   * The parser is a file of its own, which arrives with the YAML editor
+   * (LazyYamlEditor), so nothing typed goes unchecked. Until then the field
+   * holds only what the form opened with, which the server judges again if
+   * the form is saved before it has arrived.
    */
   public static validateYAMLSyntax<T extends GenericObject>(
     value: JSONValue | undefined,
@@ -381,7 +386,14 @@ export default class Validation {
       return null;
     }
 
-    const result: YamlSyntaxCheckResult = checkYamlSyntax(value);
+    const yamlSyntaxCheck: YamlSyntaxCheck | null = getLoadedYamlSyntaxCheck();
+
+    if (!yamlSyntaxCheck) {
+      return null;
+    }
+
+    const result: YamlSyntaxCheckResult =
+      yamlSyntaxCheck.checkYamlSyntax(value);
 
     if (result.isValid) {
       return null;
@@ -389,7 +401,7 @@ export default class Validation {
 
     return translateValidationMessage(FormValidationMessage.InvalidYaml, {
       field: fieldTerm(field.title, field.name as string),
-      parserMessage: describeYamlSyntaxError(result),
+      parserMessage: yamlSyntaxCheck.describeYamlSyntaxError(result),
     });
   }
 

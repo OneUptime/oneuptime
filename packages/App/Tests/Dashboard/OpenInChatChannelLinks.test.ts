@@ -20,10 +20,11 @@ import {
 } from "../../FeatureSet/Dashboard/src/Components/Workspace/ChannelLinks";
 
 /*
- * The rules behind a record page's "Open in Slack" / "Open in Microsoft
- * Teams" buttons: one button per workspace the record has a channel in,
- * Slack first; a channel named as people write it; and a new record's page
- * looking again for a channel a rule is still creating, then stopping.
+ * The rules behind a record page's "Open in Slack", "Open in Microsoft Teams"
+ * and "Open in Mattermost" buttons: one button per workspace the record has a
+ * channel in, Slack first; a channel named as people write it; and a new
+ * record's page looking again for a channel a rule is still creating, then
+ * stopping.
  */
 
 const slack: (name: string, channel?: string) => WorkspaceChannelLink = (
@@ -47,6 +48,16 @@ const teams: (name: string) => WorkspaceChannelLink = (
   };
 };
 
+const mattermost: (name: string) => WorkspaceChannelLink = (
+  name: string,
+): WorkspaceChannelLink => {
+  return {
+    workspaceType: WorkspaceType.Mattermost,
+    channelName: name,
+    url: `https://chat.example.com/acme/channels/${name}`,
+  };
+};
+
 describe("one button per workspace", () => {
   test("no channel, no button", () => {
     expect(getChannelLinkGroups([])).toEqual([]);
@@ -65,10 +76,27 @@ describe("one button per workspace", () => {
     ).toEqual([WorkspaceType.Slack, WorkspaceType.MicrosoftTeams]);
   });
 
+  test("Mattermost after Slack and Microsoft Teams, whatever order the channels came in", () => {
+    expect(
+      getChannelLinkGroups([
+        mattermost("inc-42"),
+        teams("Incident 42"),
+        slack("incident-42"),
+      ]).map((group: ChannelLinkGroup) => {
+        return group.workspaceType;
+      }),
+    ).toEqual([
+      WorkspaceType.Slack,
+      WorkspaceType.MicrosoftTeams,
+      WorkspaceType.Mattermost,
+    ]);
+  });
+
   test("each button says where it goes and carries its product's icon", () => {
-    const [slackGroup, teamsGroup] = getChannelLinkGroups([
+    const [slackGroup, teamsGroup, mattermostGroup] = getChannelLinkGroups([
       slack("incident-42"),
       teams("Incident 42"),
+      mattermost("inc-42"),
     ]);
 
     expect(slackGroup!.label).toBe("Open in Slack");
@@ -78,6 +106,26 @@ describe("one button per workspace", () => {
     expect(teamsGroup!.label).toBe("Open in Microsoft Teams");
     expect(teamsGroup!.label).toBe(CHANNEL_LINK_TEXT.openInMicrosoftTeams);
     expect(teamsGroup!.icon).toBe(IconProp.MicrosoftTeams);
+
+    expect(mattermostGroup!.label).toBe("Open in Mattermost");
+    expect(mattermostGroup!.label).toBe(CHANNEL_LINK_TEXT.openInMattermost);
+    expect(mattermostGroup!.icon).toBe(IconProp.Mattermost);
+  });
+
+  test("each button has an id of its own", () => {
+    expect(
+      getChannelLinkGroups([
+        slack("incident-42"),
+        teams("Incident 42"),
+        mattermost("inc-42"),
+      ]).map((group: ChannelLinkGroup) => {
+        return group.actionId;
+      }),
+    ).toEqual([
+      "open-in-slack",
+      "open-in-microsoft-teams",
+      "open-in-mattermost",
+    ]);
   });
 
   test("a record with two Slack channels gets one Open in Slack holding both, in order", () => {
@@ -106,6 +154,20 @@ describe("one button per workspace", () => {
     ).toEqual(["Open in Microsoft Teams"]);
   });
 
+  test("only Mattermost: a Mattermost button alone, holding every channel", () => {
+    const groups: Array<ChannelLinkGroup> = getChannelLinkGroups([
+      mattermost("inc-42"),
+      mattermost("sre-war-room"),
+    ]);
+
+    expect(
+      groups.map((group: ChannelLinkGroup) => {
+        return group.label;
+      }),
+    ).toEqual(["Open in Mattermost"]);
+    expect(groups[0]!.links).toHaveLength(2);
+  });
+
   test("a workspace with no button of its own is left out", () => {
     expect(
       getChannelLinkGroups([
@@ -127,12 +189,15 @@ describe("a channel as people write it", () => {
     [slack(""), "#channel"],
     [teams("Incident 42 - checkout"), "Incident 42 - checkout"],
     [teams(" "), "Channel"],
+    [mattermost("inc-42"), "inc-42"],
+    [{ ...mattermost("x"), channelName: "  inc-42  " }, "inc-42"],
+    [{ ...mattermost("x"), channelName: " " }, "Channel"],
   ])("%p reads %p", (link: WorkspaceChannelLink, expected: string) => {
     expect(getChannelLinkLabel(link)).toBe(expected);
   });
 });
 
-describe("a menu that mixes Slack and Teams", () => {
+describe("a menu that mixes workspaces", () => {
   test("names each channel's product first, by the product's own name", () => {
     expect(getWorkspaceName(WorkspaceType.Slack)).toBe("Slack");
     expect(getWorkspaceName(WorkspaceType.MicrosoftTeams)).toBe(
@@ -143,6 +208,10 @@ describe("a menu that mixes Slack and Teams", () => {
     );
     expect(getChannelLinkMenuLabel(teams("Incident 42"))).toBe(
       "Microsoft Teams · Incident 42",
+    );
+    expect(getWorkspaceName(WorkspaceType.Mattermost)).toBe("Mattermost");
+    expect(getChannelLinkMenuLabel(mattermost("inc-42"))).toBe(
+      "Mattermost · inc-42",
     );
   });
 

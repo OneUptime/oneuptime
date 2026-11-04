@@ -155,7 +155,7 @@ describe("Ask AI", () => {
 
   it("opens from the header's Ask AI button and Ctrl/Cmd + I, but leaves the keys to a text box being typed in", () => {
     const header: string = dashboardSource("Components/Header/AskAI.tsx");
-    const dialog: string = dashboardSource("Components/AIChat/AskAiDialog.tsx");
+    const dialog: string = dashboardSource("Components/AIChat/AskAiPanel.tsx");
     const anyPage: string = rowStartingWith(open, "Any page").join(" | ");
 
     expect(header).toContain('name="Ask AI"');
@@ -203,11 +203,11 @@ describe("Ask AI", () => {
   });
 
   /*
-   * Products → AI → Chat, and a conversation's own address, open the dialog
-   * over the page the person was on (Pages/AICopilot passes the browser
+   * Products → AI → Chat, and a conversation's own address, open the panel
+   * beside the page the person was on (Pages/AICopilot passes the browser
    * back to it), not a second, full-page design.
    */
-  it("opens from the products menu over the page you were on, a conversation at an address of its own", () => {
+  it("opens from the products menu beside the page you were on, a conversation at an address of its own", () => {
     const items: string = dashboardSource("Utils/NavigationItems.tsx");
     const routes: string = flat(dashboardSource("Utils/RouteMap.ts"));
     const address: string = dashboardSource("Pages/AICopilot/AICopilot.tsx");
@@ -222,33 +222,43 @@ describe("Ask AI", () => {
     expect(address).toContain("openAskAi({");
     expect(address).toContain("Navigation.goBack();");
     expect(rowStartingWith(open, "The products menu")[1]).toContain(
-      `Open ${bold("Products → AI → Chat")}. Ask AI opens over the page you were on. Each conversation has its own address`,
+      `Open ${bold("Products → AI → Chat")}. Ask AI opens beside the page you were on. Each conversation has its own address`,
     );
   });
 
   /*
-   * A dialog in the middle of the screen, a full-screen sheet on a phone;
-   * Esc or a click beside it goes back to the page; the conversation is
-   * kept; and an answer still being written when it closed says when it
-   * is ready (AskAiResumeButton).
+   * Docked at the side of the window, the page making room for it; a sheet
+   * over the page where there is no room for both, the whole screen on a
+   * phone; its edge drags; Esc or Ask AI again gives the page the window
+   * back; the conversation is kept; and an answer still being written when it
+   * closed says when it is ready (AskAiResumeButton).
    */
-  it("opens as a dialog over the page, and closing it loses nothing", () => {
-    const dialog: string = dashboardSource("Components/AIChat/AskAiDialog.tsx");
+  it("opens beside the page, which makes room for it, and closing it loses nothing", () => {
+    const panel: string = dashboardSource("Components/AIChat/AskAiPanel.tsx");
+    const layout: string = dashboardSource(
+      "Components/AIChat/AskAiPanelLayout.ts",
+    );
+    const dock: string = readRepoFile("Common/UI/Utils/PageDock.ts");
     const resume: string = dashboardSource(
       "Components/AIChat/AskAiResumeButton.tsx",
     );
     const said: string = flat(englishSection(ASK_AI, "## Open Ask AI"));
 
-    expect(dialog).toContain('role="dialog"');
-    expect(dialog).toContain('aria-modal="true"');
-    expect(dialog).toContain("sm:items-center");
-    expect(dialog).toContain("h-[100dvh] w-full");
-    expect(dialog).toContain('event.key === "Escape"');
-    expect(dialog).toContain("onClick={onBackdropClick}");
-    expect(dialog).toContain("<AskAiResumeButton");
+    expect(panel).toContain(
+      "usePageDock(props.isDocked ? props.width : null);",
+    );
+    expect(dock).toContain("padding-inline-end");
+    expect(panel).toContain("<AskAiResizeHandle");
+    expect(panel).toContain(
+      'role={props.isDocked ? "complementary" : "dialog"}',
+    );
+    expect(layout).toContain("ASK_AI_DOCK_MIN_WINDOW_WIDTH: number = 1024");
+    expect(panel).toContain('"inset-0 sm:start-auto sm:w-[28rem]');
+    expect(panel).toContain('event.key === "Escape"');
+    expect(panel).toContain("<AskAiResumeButton");
     expect(resume).toContain('translator.translateText("Ask AI has answered")');
     expect(said).toContain(
-      "Ask AI opens in the middle of the screen, over the page you were on, and on a phone it fills the screen. Press `Esc`, or click beside it, to go back to the page. The conversation stays where you left it: open Ask AI again to carry on. If you close it while it is still answering, a reminder in the corner says when the answer is ready, and opens it.",
+      "Ask AI opens at the side of the window, and the page makes room for it: nothing is hidden behind it, so you can keep working on the page, move to other pages and ask again. Drag its edge to make it wider or narrower. Press `Esc` in it, or click **Ask AI** again, to give the page the whole window back. With it open, `Ctrl` + `I` (`Cmd` + `I` on a Mac) goes from the page to the box you type in, and from there closes it. The conversation stays where you left it: open Ask AI again to carry on. If you close it while it is still answering, a reminder in the corner says when the answer is ready, and opens it. On a tablet or a phone, where there is no room for both, it opens over the page, and on a phone it fills the screen.",
     );
   });
 
@@ -476,7 +486,7 @@ describe("Ask AI", () => {
       '(data["defaultProviderId"] as string) || undefined',
     );
     // Only when there is a choice: one provider draws no picker at all.
-    expect(dashboardSource("Components/AIChat/AskAiDialog.tsx")).toContain(
+    expect(dashboardSource("Components/AIChat/AskAiPanel.tsx")).toContain(
       "chat.providers.length > 1 ? (",
     );
     expect(steering).toContain(
@@ -504,7 +514,7 @@ describe("Ask AI", () => {
 
   // The history: All conversations in the header, the last three on the start.
   it("keeps every conversation a click away, and the last three on the start", () => {
-    const dialog: string = dashboardSource("Components/AIChat/AskAiDialog.tsx");
+    const dialog: string = dashboardSource("Components/AIChat/AskAiPanel.tsx");
     const start: string = dashboardSource("Components/AIChat/ChatHomeView.tsx");
     const steering: string = flat(
       englishSection(ASK_AI, "## Steering a conversation"),

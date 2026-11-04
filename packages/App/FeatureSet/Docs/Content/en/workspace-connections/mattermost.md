@@ -50,7 +50,7 @@ Add the bot to the team OneUptime should post in, as you would add a person: **M
 
 ### Connect the project
 
-In OneUptime, go to **Project Settings** > **Workspace** > **Mattermost** and click **Connect with Mattermost**. Enter your server's address, such as `https://chat.example.com`, and the bot's access token. OneUptime checks the token with your server before it keeps anything. If the bot is in more than one team, OneUptime asks which one to post in.
+In OneUptime, go to **Project Settings** > **Workspace** > **Mattermost** and click **Connect with Mattermost**. Enter your server's address, such as `https://chat.example.com`, and the bot's access token. OneUptime checks the token with your server before it keeps anything. If the bot is in more than one team, OneUptime asks which one to post in. Until a workspace is connected, the **Workspace** section of the Incidents, Alerts, Scheduled Maintenance, Monitors and On-Call menus holds **Connect a workspace**, which leads here too.
 
 ### Add a notification rule
 
@@ -84,6 +84,8 @@ A channel a rule creates is named after its record: incident INC-42 gets `inc-42
 To post to an existing channel, enter its name as it appears in its address, such as `incidents` for `chat.example.com/team/channels/incidents`, or its display name. OneUptime joins a public channel by itself the first time it posts there. Add the bot to a private channel in Mattermost before a rule posts to it.
 
 People join a rule's channel by the Mattermost account they connected, or else by the Mattermost account with their email address, when your server shows email addresses to the bot (**System Console** > **Site Configuration** > **Users and Teams** > **Show Email Address**). OneUptime names whoever it could not add in one message in the channel, with a link to connect their account.
+
+An incident, alert, episode or scheduled maintenance event with a channel of its own has **Open in Mattermost** in the header of its page in OneUptime, beside its state buttons. It opens that channel in a new tab, on your Mattermost server. A record with two channels of its own lists both under the button. A record that also has channels in Slack or Microsoft Teams has one **Open channel** button instead, which lists them all. The existing channels your rules post to are not offered.
 
 **Test Rule** on a rule's row posts a test message for that rule to the channels it names, as it does for Slack.
 

@@ -98,6 +98,8 @@ describe("nick-fields/retry steps", () => {
       "docker-build-runner",
       "docker-build-kubernetes-ai-agent",
       "docker-build-resource-ai-agent",
+      "docker-build-kubernetes-cost-agent",
+      "docker-build-kubernetes-log-tailer",
       "docker-build-test-server",
     ]);
   });

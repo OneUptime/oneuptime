@@ -210,7 +210,7 @@ jest.mock(
  */
 const PAGES_SEARCH_LEAVES_OUT: Readonly<Partial<Record<PageMap, string>>> = {
   /*
-   * "Connect Slack or Teams": shown while a project has no chat tool yet.
+   * "Connect a workspace": shown while a project has no chat tool yet.
    * Search offers Project Settings > Slack and Microsoft Teams, where a
    * workspace is connected, and each product's own Slack and Microsoft
    * Teams pages instead.

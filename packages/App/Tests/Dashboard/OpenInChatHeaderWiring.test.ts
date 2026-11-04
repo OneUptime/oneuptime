@@ -4,9 +4,10 @@ import path from "path";
 import { WorkspaceChannelRecordType } from "Common/Types/Workspace/WorkspaceChannelLink";
 
 /*
- * Open in Slack / Open in Microsoft Teams in the header of every page whose
- * record a workspace notification rule makes a channel for: incidents,
- * alerts, both kinds of episode and scheduled maintenance events. The page
+ * Open in Slack / Open in Microsoft Teams / Open in Mattermost in the header
+ * of every page whose record a workspace notification rule makes a channel
+ * for: incidents, alerts, both kinds of episode and scheduled maintenance
+ * events. The page
  * asks for the record's links (useRecordChannelLinks) and hands them to its
  * header as actions beside the state buttons (getOpenInChatActions); the
  * server answers at the route the client builds.
@@ -226,7 +227,7 @@ describe("the header renders them as links", () => {
     );
   });
 
-  test("channels in both Slack and Teams share one Open channel menu", () => {
+  test("channels in more than one workspace share one Open channel menu", () => {
     const hook: string = readDashboard(
       "Components/Workspace/useRecordChannelLinks.ts",
     );
@@ -246,10 +247,57 @@ describe("the header renders them as links", () => {
     expect(hook).toContain(
       'window.open(url, "_blank", "noopener,noreferrer");',
     );
-    expect(hook).toContain(
-      'group.workspaceType === WorkspaceType.Slack ? "open-in-slack" : "open-in-microsoft-teams"',
+    expect(hook).toContain("id: group.actionId,");
+  });
+
+  test("every workspace with channels has a button of its own: its id, its words and its logo", () => {
+    const links: string = readDashboard("Components/Workspace/ChannelLinks.ts");
+
+    for (const button of [
+      'workspaceType: WorkspaceType.Slack, actionId: "open-in-slack", label: CHANNEL_LINK_TEXT.openInSlack, icon: IconProp.Slack,',
+      'workspaceType: WorkspaceType.MicrosoftTeams, actionId: "open-in-microsoft-teams", label: CHANNEL_LINK_TEXT.openInMicrosoftTeams, icon: IconProp.MicrosoftTeams,',
+      'workspaceType: WorkspaceType.Mattermost, actionId: "open-in-mattermost", label: CHANNEL_LINK_TEXT.openInMattermost, icon: IconProp.Mattermost,',
+    ]) {
+      expect(links).toContain(button);
+    }
+
+    // The words are a key the locale files translate.
+    expect(links).toContain(
+      'openInMattermost: translationKey("Open in Mattermost"),',
     );
   });
+});
+
+describe("Open in Mattermost in every Dashboard language", () => {
+  const LOCALES_DIRECTORY: string = path.join(DASHBOARD_SRC, "Locales");
+  const LOCALES: Array<string> = fs
+    .readdirSync(LOCALES_DIRECTORY)
+    .filter((file: string) => {
+      return file.endsWith(".json");
+    })
+    .sort();
+
+  test("there are seventeen", () => {
+    expect(LOCALES).toHaveLength(17);
+  });
+
+  test.each(LOCALES)(
+    "%s words it as it words Open in Slack, with the product's own name",
+    (file: string) => {
+      const locale: Record<string, string> = JSON.parse(
+        fs.readFileSync(path.join(LOCALES_DIRECTORY, file), "utf8"),
+      ) as Record<string, string>;
+      const label: string | undefined = locale["Open in Mattermost"];
+
+      expect(label).toBe(
+        locale["Open in Slack"]!.replace("Slack", "Mattermost"),
+      );
+
+      if (file !== "en.json") {
+        expect(label).not.toBe("Open in Mattermost");
+      }
+    },
+  );
 });
 
 describe("the client asks where the server answers", () => {

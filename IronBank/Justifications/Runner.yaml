@@ -1,5 +1,5 @@
-# The findings in the Iron Bank image of the Runner (IronBank/Runner) that OneUptime
-# has justified in VAT (vat.dso.mil), with the text it gave there.
+# The findings in the Iron Bank image of the Runner (IronBank/Runner) that
+# OneUptime justifies, with the text to give for each in VAT (vat.dso.mil).
 #
 # The Iron Bank Preflight workflow scans the image it builds and lists every
 # finding that is neither in Iron Bank's base image nor here as new: it needs a

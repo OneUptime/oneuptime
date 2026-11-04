@@ -162,7 +162,7 @@ flowchart TB
 :::
 
 :::details "This server requires single sign-on (SSO). Sign in with SSO instead."
-整個執行個體要求使用 SSO，而這是一次使用密碼、密碼金鑰、Google 或 Microsoft 的登入，或是一次註冊。請改用登入頁面上的某個 SSO 按鈕登入。主管理員在 `/accounts/admin-login` 用密碼登入；若要讓所有人重新可以用密碼登入，請在 **單一登入** 上關閉 **登入時要求使用 SSO**。
+整個執行個體要求使用 SSO，而這是一次使用密碼、密碼金鑰、電子郵件連結、Google 或 Microsoft 的登入，或是一次註冊。請改用登入頁面上的某個 SSO 按鈕登入。主管理員在 `/accounts/admin-login` 用密碼登入；若要讓所有人重新可以用密碼登入，請在 **單一登入** 上關閉 **登入時要求使用 SSO**。
 :::
 
 ## 後續步驟

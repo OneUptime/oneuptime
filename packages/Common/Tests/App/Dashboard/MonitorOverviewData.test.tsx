@@ -162,16 +162,6 @@ function createDeferred<T>(): Deferred<T> {
   return { promise: promise, resolve: resolve, reject: reject };
 }
 
-/*
- * Rejections are made by an async function, so they are native promises.
- * The UI telemetry in the import graph loads zone.js, whose Promise reports
- * a rejection as unhandled when a native await subscribes to it a tick
- * later, which would fill the log with false alarms.
- */
-async function rejectWith(error: unknown): Promise<never> {
-  throw error;
-}
-
 function secondsFromNow(seconds: number): Date {
   return new Date(NOW.getTime() + seconds * 1000);
 }
@@ -427,7 +417,7 @@ beforeEach(() => {
   getItemSpy = jest.spyOn(ModelAPI, "getItem");
   getItemSpy.mockImplementation((...args: Array<unknown>): Promise<unknown> => {
     if (server.monitorError) {
-      return rejectWith(server.monitorError);
+      return Promise.reject(server.monitorError);
     }
 
     const request: ItemRequest = args[0] as ItemRequest;
@@ -445,7 +435,7 @@ beforeEach(() => {
         : server.probeError;
 
       if (failure) {
-        return rejectWith(failure);
+        return Promise.reject(failure);
       }
 
       const respond: () => unknown = (): unknown => {
@@ -469,7 +459,7 @@ beforeEach(() => {
 
     if (request.modelType === MonitorStatusTimeline) {
       if (server.statusRowsError) {
-        return rejectWith(server.statusRowsError);
+        return Promise.reject(server.statusRowsError);
       }
 
       return Promise.resolve(listOf(server.statusRows));
@@ -481,7 +471,7 @@ beforeEach(() => {
   analyticsGetListSpy = jest.spyOn(AnalyticsModelAPI, "getList");
   analyticsGetListSpy.mockImplementation((): Promise<unknown> => {
     if (server.logError) {
-      return rejectWith(server.logError);
+      return Promise.reject(server.logError);
     }
 
     return Promise.resolve(listOf(server.logs));
@@ -628,9 +618,7 @@ describe("useMonitorOverviewData: the first load", () => {
   });
 
   test("a rejected refresh-status still loads", async () => {
-    apiGetSpy.mockImplementation(() => {
-      return rejectWith(new Error("refresh-status is down"));
-    });
+    apiGetSpy.mockRejectedValue(new Error("refresh-status is down"));
 
     const { result } = await renderLoaded();
 

@@ -8,8 +8,9 @@ import { beforeAll, describe, expect, it, test } from "@jest/globals";
 /*
  * THE SECURITY EMAILS SAY WHERE THE REQUEST BEHIND THEM CAME FROM.
  *
- * A password reset, a changed password, a status page's sign-in link, a
- * single sign-on to confirm, wrong two factor codes, a spent backup code:
+ * A password reset, a changed password, a sign-in link for an account or a
+ * status page, a single sign-on to confirm, wrong two factor codes, a spent
+ * backup code:
  * each of these emails goes out because of a request somebody else could
  * have made, so each says when, from which IP address, roughly where and on
  * which device (issue #5599) - the time in a row of its own, the rest
@@ -82,6 +83,7 @@ const REQUEST_CARD_EMAILS: Array<[string, string, string | null]> = [
   ["StatusPageForgotPassword", "Requested at:", "Details of the request:"],
   ["StatusPagePasswordChanged", "Changed at:", null],
   ["StatusPageMagicLink", "Requested at:", "Details of the request:"],
+  ["MagicLink", "Requested at:", "Details of the request:"],
   ["ConfirmProjectSsoSignIn", "Signed in at:", "Details of the sign-in:"],
 ];
 

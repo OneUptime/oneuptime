@@ -162,7 +162,7 @@ Chaque réponse de votre fournisseur d'identité ne connecte qu'une seule fois, 
 :::
 
 :::details "This server requires single sign-on (SSO). Sign in with SSO instead."
-Toute l'instance exige le SSO, et il s'agissait d'une connexion avec un mot de passe, une clé d'accès, Google ou Microsoft, ou d'une inscription. Connectez-vous plutôt avec l'un des boutons SSO de la page de connexion. Un administrateur principal se connecte avec son mot de passe à `/accounts/admin-login` ; pour que tout le monde puisse de nouveau se connecter avec un mot de passe, il désactive **Exiger le SSO pour la connexion** sur **Authentification unique**.
+Toute l'instance exige le SSO, et il s'agissait d'une connexion avec un mot de passe, une clé d'accès, un lien envoyé par e-mail, Google ou Microsoft, ou d'une inscription. Connectez-vous plutôt avec l'un des boutons SSO de la page de connexion. Un administrateur principal se connecte avec son mot de passe à `/accounts/admin-login` ; pour que tout le monde puisse de nouveau se connecter avec un mot de passe, il désactive **Exiger le SSO pour la connexion** sur **Authentification unique**.
 :::
 
 ## Étapes suivantes

@@ -180,17 +180,6 @@ async function overview(
   });
 }
 
-/*
- * A request that fails once the caller is waiting on it, as a network error
- * does (an already-rejected promise is reported as unhandled by the test
- * environment before Promise.all takes it).
- */
-function failLater(message: string): Promise<never> {
-  return Promise.resolve().then((): never => {
-    throw new Error(message);
-  });
-}
-
 function onlyRow(
   services: Array<MessageQueueServiceRow>,
 ): MessageQueueServiceRow {
@@ -756,7 +745,7 @@ describe("the groups' queries", () => {
         (request as { aggregateBy: { groupBy?: unknown } }).aggregateBy.groupBy,
       );
       return grouped
-        ? failLater("cards down")
+        ? Promise.reject(new Error("cards down"))
         : Promise.resolve(
             store.aggregate(request as Parameters<typeof store.aggregate>[0]),
           );
@@ -774,7 +763,7 @@ describe("the groups' queries", () => {
         ? Promise.resolve(
             store.aggregate(request as Parameters<typeof store.aggregate>[0]),
           )
-        : failLater("tiles down");
+        : Promise.reject(new Error("tiles down"));
     });
 
     const cardsOnly: MessageQueueSpanOverview = await overview(key, "aws_sqs");

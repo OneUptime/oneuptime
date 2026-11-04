@@ -144,7 +144,7 @@ Un dossier ouvert à partir d'alertes Google SecOps les ferme aussi dans Google 
 
 ## Priorités et statuts des dossiers
 
-Chaque projet a ses propres priorités et statuts de dossier, sous **Produits → Événements de sécurité → Paramètres → Priorités des dossiers** et **Statuts des dossiers**. Renommez-les, changez leur couleur, faites-les glisser dans un autre ordre et ajoutez les vôtres, comme un statut « Triage » ou une priorité « Urgence » au-dessus de **Critique**. Un nouveau nom s'affiche partout à la fois : dans la file, sur les pages des dossiers et la vue d'ensemble, dans les notifications, dans Slack et Microsoft Teams, et dans les messages des playbooks.
+Chaque projet a ses propres priorités et statuts de dossier, sous **Produits → Événements de sécurité → Paramètres → Priorités des dossiers** et **Statuts des dossiers**. Renommez-les, changez leur couleur, faites-les glisser dans un autre ordre et ajoutez les vôtres, comme un statut « Triage » ou une priorité « Urgence » au-dessus de **Critique**. Un nouveau nom s'affiche partout à la fois : dans la file, sur les pages des dossiers et la vue d'ensemble, dans les notifications, dans Slack, Microsoft Teams et Mattermost, et dans les messages des playbooks.
 
 Certains sont prédéfinis, car OneUptime lit ce qu'ils signifient. On peut les renommer et changer leur couleur, mais pas les supprimer ni les archiver, et ils gardent leur ordre :
 
@@ -157,7 +157,7 @@ Certains sont prédéfinis, car OneUptime lit ce qu'ils signifient. On peut les 
 | Les priorités Critique, Élevé, Medium, Low et Informatifs | Une détection ouvre son dossier à la priorité de sa gravité, et un dossier ouvert par quelqu'un commence à Medium |
 
 - L'emplacement d'un statut décide de ce que compte un dossier qui s'y trouve, comme le montre la colonne **Compte comme** : à partir du statut pris en charge, pris en charge ; à partir du statut confiné, confiné ; à partir du statut fermé, fermé. Un statut que vous ajoutez se place juste au-dessus du statut fermé, et faire passer un dossier dans un statut qui le ferme demande d'abord un verdict.
-- Le rang d'une priorité indique son urgence, la plus urgente en premier : **Pour les dossiers d'au moins**, les choix de notification et les règles Slack et Microsoft Teams lisent cet ordre. Une priorité que vous ajoutez se place à la fin, et la colonne **Gravité de la détection** indique quelles détections ouvrent leurs dossiers à chaque priorité prédéfinie.
+- Le rang d'une priorité indique son urgence, la plus urgente en premier : **Pour les dossiers d'au moins**, les choix de notification et les règles Slack, Microsoft Teams et Mattermost lisent cet ordre. Une priorité que vous ajoutez se place à la fin, et la colonne **Gravité de la détection** indique quelles détections ouvrent leurs dossiers à chaque priorité prédéfinie.
 
 Pour ne plus utiliser un statut ou une priorité à vous, utilisez **Archiver** sur sa ligne. Plus personne ne peut le choisir, et l'API, Terraform et MCP le refusent, mais les dossiers qui l'ont le gardent, et vous pouvez toujours filtrer dessus. Les valeurs archivées sont listées dans la section repliée **Statuts de dossier archivés** ou **Priorités de dossier archivées** sous le tableau, où **Désarchiver** en rétablit une. **Supprimer** est refusé tant que des dossiers ont la valeur ou qu'un playbook part de la priorité.
 
@@ -232,9 +232,9 @@ Les choix suivent les priorités de dossier du projet, sous leurs propres noms :
 
 Aucun message WhatsApp n'est envoyé pour les dossiers de sécurité. Une notification push ouvre le dossier dans l'application OneUptime On-Call (1.7.0 ou ultérieure), où vous pouvez approuver ou rejeter une étape de playbook en attente, prendre le dossier en charge et le fermer. Son lien ouvre le dossier dans le navigateur.
 
-### Publier dans des canaux Slack et Microsoft Teams
+### Publier dans des canaux Slack, Microsoft Teams et Mattermost
 
-Pour publier dans un canal, ajoutez une règle sous **Produits → Événements de sécurité → Espace de travail → Slack** (ou **Microsoft Teams**). Quand ni l'un ni l'autre n'est connecté, la seule entrée de la section est **Connecter Slack ou Teams**. Une règle nomme les canaux où publier (et, dans Microsoft Teams, les conversations) et, si vous le souhaitez, les dossiers qu'elle concerne :
+Pour publier dans un canal, ajoutez une règle sous **Produits → Événements de sécurité → Espace de travail → Slack** (ou **Microsoft Teams** ou **Mattermost**). Si aucun n'est connecté, la seule entrée de la section est **Connecter un espace de travail**. Une règle nomme les canaux où publier (et, dans Microsoft Teams, les conversations) et, si vous le souhaitez, les dossiers qu'elle concerne :
 
 | Condition | Correspond à |
 | --- | --- |

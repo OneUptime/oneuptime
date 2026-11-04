@@ -288,6 +288,8 @@ import { WidenThingNameColumns1808992530000 } from "./1808992530000-WidenThingNa
 import { AddDataCheckReconciliationIndex1808992540000 } from "./1808992540000-AddDataCheckReconciliationIndex";
 import { AddSecurityLogSourceCaseMinimumSeverity1808992580000 } from "./1808992580000-AddSecurityLogSourceCaseMinimumSeverity";
 import { AddCloudConnectionStreams1808992600000 } from "./1808992600000-AddCloudConnectionStreams";
+import { AddMagicLinkLogin1808992650000 } from "./1808992650000-AddMagicLinkLogin";
+import { AddFixApprovalSourceAndRunbookTrackRecord1808992660000 } from "./1808992660000-AddFixApprovalSourceAndRunbookTrackRecord";
 import { AddConfigurableRuleCriteria1792500000000 } from "./1792500000000-AddConfigurableRuleCriteria";
 import { AddGoogleSecOpsDiagnostics1792300000000 } from "./1792300000000-AddGoogleSecOpsDiagnostics";
 import { AddIncomingCallPolicyPhoneNumbers1792600000000 } from "./1792600000000-AddIncomingCallPolicyPhoneNumbers";
@@ -887,7 +889,7 @@ import { AddSeverityAndStateToNotificationEmailRollup1791900000000 } from "./179
 import { AddVMwareTables1792000000000 } from "./1792000000000-AddVMwareTables";
 import { AddGitHubCommandSettingsToCodeRepository1792100000000 } from "./1792100000000-AddGitHubCommandSettingsToCodeRepository";
 import { TwilioAuthTokenEncryptedColumn1801800000000 } from "./1801800000000-TwilioAuthTokenEncryptedColumn";
-import { AddDataAssetOwnersAndFeedback1808992620000 } from "./1808992620000-AddDataAssetOwnersAndFeedback";
+import { AddDataAssetOwnersAndFeedback1808992670000 } from "./1808992670000-AddDataAssetOwnersAndFeedback";
 
 export default [
   InitialMigration,
@@ -1779,5 +1781,7 @@ export default [
   AddDataCheckReconciliationIndex1808992540000,
   AddSecurityLogSourceCaseMinimumSeverity1808992580000,
   AddCloudConnectionStreams1808992600000,
-  AddDataAssetOwnersAndFeedback1808992620000,
+  AddMagicLinkLogin1808992650000,
+  AddFixApprovalSourceAndRunbookTrackRecord1808992660000,
+  AddDataAssetOwnersAndFeedback1808992670000,
 ];

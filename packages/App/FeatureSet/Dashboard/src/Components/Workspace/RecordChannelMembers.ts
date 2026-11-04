@@ -1,4 +1,7 @@
-import { WorkspaceChannelRecordType } from "Common/Types/Workspace/WorkspaceChannelLink";
+import {
+  WorkspaceChannelLink,
+  WorkspaceChannelRecordType,
+} from "Common/Types/Workspace/WorkspaceChannelLink";
 import {
   WorkspaceChannelAddAnswer,
   WorkspaceChannelAddOutcome,
@@ -290,6 +293,24 @@ export const ASK_TO_BE_ADDED: Record<WorkspaceChannelRecordType, string> = {
     "You're not in this channel. Ask someone who can edit this event to add you.",
   ),
 };
+
+/*
+ * The page's links to the channels the card can read. OneUptime reads who is
+ * in a Slack or Microsoft Teams channel (WorkspaceChannelMembers). A
+ * Mattermost channel has its button in the page's header and no card, so a
+ * record whose channels are all in Mattermost asks for nothing and shows no
+ * card, rather than a loading one that goes away.
+ */
+export function getLinksToChannelsOfCard(
+  links: Array<WorkspaceChannelLink>,
+): Array<WorkspaceChannelLink> {
+  return links.filter((link: WorkspaceChannelLink) => {
+    return (
+      link.workspaceType === WorkspaceType.Slack ||
+      link.workspaceType === WorkspaceType.MicrosoftTeams
+    );
+  });
+}
 
 /*
  * The card's title: the product the record's channels are in, by name, or
