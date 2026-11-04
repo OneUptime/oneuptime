@@ -42118,5 +42118,20 @@
   "Write a Check from a Sentence": "用一句話撰寫檢查",
   "Write the Check": "撰寫檢查",
   "ClickHouse": "ClickHouse",
-  "Databricks": "Databricks"
+  "Databricks": "Databricks",
+  "Changes the dbt model that builds {{table}}": "變更建置 {{table}} 的 dbt 模型",
+  "Changes the type of column {{column}} of {{table}}": "變更 {{table}} 的欄位 {{column}} 的類型",
+  "Data products": "資料產品",
+  "Data this change touches": "此變更涉及的資料",
+  "Drops column {{column}} of {{table}}": "刪除 {{table}} 的欄位 {{column}}",
+  "Drops {{table}}": "刪除 {{table}}",
+  "In {{path}}": "位於 {{path}}",
+  "Names the column in {{count}} queries of the last day": "在過去一天的 {{count}} 個查詢中引用了該欄位",
+  "Nothing watched depends on it yet": "目前還沒有受監控的對象依賴它",
+  "Reads and writes it": "讀取並寫入它",
+  "Reads it": "讀取它",
+  "Renames column {{column}} of {{table}} to {{newName}}": "將 {{table}} 的欄位 {{column}} 重新命名為 {{newName}}",
+  "Renames {{table}} to {{newName}}": "將 {{table}} 重新命名為 {{newName}}",
+  "Tables built from it": "由它建置的資料表",
+  "Writes it": "寫入它"
 }

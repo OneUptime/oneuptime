@@ -42118,5 +42118,20 @@
   "Write a Check from a Sentence": "Написать проверку по фразе",
   "Write the Check": "Написать проверку",
   "ClickHouse": "ClickHouse",
-  "Databricks": "Databricks"
+  "Databricks": "Databricks",
+  "Changes the dbt model that builds {{table}}": "Меняет модель dbt, которая строит {{table}}",
+  "Changes the type of column {{column}} of {{table}}": "Меняет тип столбца {{column}} таблицы {{table}}",
+  "Data products": "Продукты данных",
+  "Data this change touches": "Данные, которые затрагивает это изменение",
+  "Drops column {{column}} of {{table}}": "Удаляет столбец {{column}} таблицы {{table}}",
+  "Drops {{table}}": "Удаляет {{table}}",
+  "In {{path}}": "В {{path}}",
+  "Names the column in {{count}} queries of the last day": "Упоминает столбец в {{count}} запросах за последние сутки",
+  "Nothing watched depends on it yet": "Пока ничего из отслеживаемого от него не зависит",
+  "Reads and writes it": "Читает и пишет",
+  "Reads it": "Читает",
+  "Renames column {{column}} of {{table}} to {{newName}}": "Переименовывает столбец {{column}} таблицы {{table}} в {{newName}}",
+  "Renames {{table}} to {{newName}}": "Переименовывает {{table}} в {{newName}}",
+  "Tables built from it": "Таблицы, построенные из неё",
+  "Writes it": "Пишет"
 }

@@ -103,6 +103,22 @@ export enum ProductionReviewSection {
   Profiles = "Profiles",
   Incidents = "Incidents",
   Deploys = "Deploys",
+  // The watched tables a migration or a dbt model changes (Data Observability).
+  Data = "Data",
+}
+
+/*
+ * What a pull request does to a table Data Observability watches, read from
+ * its migrations and its dbt models (ProductionReviewDataImpact).
+ */
+export enum ProductionReviewDataChange {
+  DropTable = "DropTable",
+  RenameTable = "RenameTable",
+  DropColumn = "DropColumn",
+  RenameColumn = "RenameColumn",
+  AlterColumn = "AlterColumn",
+  // A dbt model's SQL changed: what it builds is rebuilt differently.
+  ChangeModel = "ChangeModel",
 }
 
 // Why a review has no AI read.
@@ -212,7 +228,54 @@ export interface ProductionReviewDeployJSON {
   impact: string;
 }
 
-// One thing OneUptime AI says to watch, read from the facts above.
+/*
+ * One thing OneUptime AI says to watch, read from the facts above.
+ * A service seen using a table the change touches, from its database spans.
+ */
+export interface ProductionReviewDataServiceJSON {
+  serviceId?: string | undefined;
+  name: string;
+  reads: boolean;
+  writes: boolean;
+  /*
+   * Its queries of the last day that name the changed column: set only for
+   * a column change, and only when its spans carry their statements.
+   */
+  columnQueryCount?: number | undefined;
+  lastSeenAt?: string | undefined;
+}
+
+export interface ProductionReviewDataTableJSON {
+  dataAssetId: string;
+  // schema.table, as the database names it.
+  table: string;
+}
+
+export interface ProductionReviewDataProductJSON {
+  dataProductId: string;
+  name: string;
+  owner?: string | undefined;
+}
+
+// One watched table a migration or a dbt model changes, and what depends on it.
+export interface ProductionReviewDataImpactJSON {
+  dataAssetId: string;
+  table: string;
+  storeName: string;
+  change: ProductionReviewDataChange;
+  // The column dropped, renamed or retyped.
+  column?: string | undefined;
+  // The name a rename gives the table or the column.
+  newName?: string | undefined;
+  // The migration or model file that does it.
+  path: string;
+  services: Array<ProductionReviewDataServiceJSON>;
+  // The tables built from it (its lineage), the nearest first.
+  downstreamTables: Array<ProductionReviewDataTableJSON>;
+  downstreamCount: number;
+  dataProducts: Array<ProductionReviewDataProductJSON>;
+}
+
 export interface ProductionReviewPointJSON {
   text: string;
 }
@@ -256,6 +319,12 @@ export interface ProductionReviewReport {
   hotFunctions: Array<ProductionReviewHotFunctionJSON>;
   incidents: ProductionReviewIncidentsJSON;
   suspectDeploys: Array<ProductionReviewDeployJSON>;
+  /*
+   * The watched tables its migrations and dbt models change, with the
+   * services, tables and data products that depend on them. Unset on a
+   * review made before Data Observability read pull requests.
+   */
+  dataImpact?: Array<ProductionReviewDataImpactJSON> | undefined;
   // What OneUptime AI says to watch; empty without an AI read.
   points: Array<ProductionReviewPointJSON>;
   aiNote?: ProductionReviewAiNote | undefined;
@@ -293,6 +362,7 @@ export interface ProductionReviewSummaryJSON {
   hotFunctionCount: number;
   incidentCount: number;
   suspectDeployCount: number;
+  dataImpactCount?: number | undefined;
   headSha: string;
   reviewedAt: string;
   posting: ProductionReviewPosting;
@@ -332,6 +402,7 @@ export const PRODUCTION_REVIEW_LIMITS: {
   maxHotFunctions: number;
   maxIncidents: number;
   maxSuspectDeploys: number;
+  maxDataImpacts: number;
   maxServices: number;
   maxPoints: number;
   // The longest text of each kind a report holds.
@@ -358,6 +429,7 @@ export const PRODUCTION_REVIEW_LIMITS: {
   maxHotFunctions: 8,
   maxIncidents: 5,
   maxSuspectDeploys: 3,
+  maxDataImpacts: 10,
   maxServices: 8,
   maxPoints: 4,
   maxNameLength: 120,
@@ -430,9 +502,10 @@ export class ProductionReviewUtil {
   /*
    * Whether production says something about this change: what it throws,
    * runs or spends in the changed code, an incident that names it or is
-   * open on its services, or a recent deploy of them OneUptime suspects.
-   * How busy a service is, on its own, is not: every change to a service
-   * would be commented on.
+   * open on its services, a recent deploy of them OneUptime suspects, or
+   * a watched table its migrations or dbt models change. How busy a
+   * service is, on its own, is not: every change to a service would be
+   * commented on.
    */
   public static hasSignal(
     report: Pick<
@@ -442,6 +515,7 @@ export class ProductionReviewUtil {
       | "hotFunctions"
       | "incidents"
       | "suspectDeploys"
+      | "dataImpact"
     >,
   ): boolean {
     return (
@@ -454,7 +528,8 @@ export class ProductionReviewUtil {
           return Boolean(incident.mentions);
         },
       ) ||
-      report.suspectDeploys.length > 0
+      report.suspectDeploys.length > 0 ||
+      (report.dataImpact || []).length > 0
     );
   }
 
@@ -480,6 +555,7 @@ export class ProductionReviewUtil {
       incidentCount: ProductionReviewUtil.getNotableIncidents(report.incidents)
         .length,
       suspectDeployCount: report.suspectDeploys.length,
+      dataImpactCount: (report.dataImpact || []).length,
       headSha: report.pullRequest.headSha,
       reviewedAt: report.reviewedAt,
       posting: report.posting,

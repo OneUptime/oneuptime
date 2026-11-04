@@ -42118,5 +42118,20 @@
   "Write a Check from a Sentence": "Skriv en sjekk fra en setning",
   "Write the Check": "Skriv sjekken",
   "ClickHouse": "ClickHouse",
-  "Databricks": "Databricks"
+  "Databricks": "Databricks",
+  "Changes the dbt model that builds {{table}}": "Endrer dbt-modellen som bygger {{table}}",
+  "Changes the type of column {{column}} of {{table}}": "Endrer typen til kolonnen {{column}} i {{table}}",
+  "Data products": "Dataprodukter",
+  "Data this change touches": "Data denne endringen berører",
+  "Drops column {{column}} of {{table}}": "Fjerner kolonnen {{column}} fra {{table}}",
+  "Drops {{table}}": "Fjerner {{table}}",
+  "In {{path}}": "I {{path}}",
+  "Names the column in {{count}} queries of the last day": "Nevner kolonnen i {{count}} spørringer det siste døgnet",
+  "Nothing watched depends on it yet": "Ingenting overvåket avhenger av den ennå",
+  "Reads and writes it": "Leser og skriver den",
+  "Reads it": "Leser den",
+  "Renames column {{column}} of {{table}} to {{newName}}": "Gir kolonnen {{column}} i {{table}} nytt navn: {{newName}}",
+  "Renames {{table}} to {{newName}}": "Gir {{table}} nytt navn: {{newName}}",
+  "Tables built from it": "Tabeller bygget av den",
+  "Writes it": "Skriver den"
 }

@@ -42118,5 +42118,20 @@
   "Write a Check from a Sentence": "文からチェックを作成",
   "Write the Check": "チェックを作成",
   "ClickHouse": "ClickHouse",
-  "Databricks": "Databricks"
+  "Databricks": "Databricks",
+  "Changes the dbt model that builds {{table}}": "{{table}} を構築する dbt モデルを変更します",
+  "Changes the type of column {{column}} of {{table}}": "{{table}} の列 {{column}} の型を変更します",
+  "Data products": "データプロダクト",
+  "Data this change touches": "この変更が触れるデータ",
+  "Drops column {{column}} of {{table}}": "{{table}} の列 {{column}} を削除します",
+  "Drops {{table}}": "{{table}} を削除します",
+  "In {{path}}": "{{path}} 内",
+  "Names the column in {{count}} queries of the last day": "過去 1 日の {{count}} 件のクエリでこの列を参照しています",
+  "Nothing watched depends on it yet": "まだ監視対象で依存しているものはありません",
+  "Reads and writes it": "読み取りと書き込みを行います",
+  "Reads it": "読み取ります",
+  "Renames column {{column}} of {{table}} to {{newName}}": "{{table}} の列 {{column}} の名前を {{newName}} に変更します",
+  "Renames {{table}} to {{newName}}": "{{table}} の名前を {{newName}} に変更します",
+  "Tables built from it": "これから構築されるテーブル",
+  "Writes it": "書き込みます"
 }

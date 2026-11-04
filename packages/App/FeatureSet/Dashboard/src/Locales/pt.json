@@ -42118,5 +42118,20 @@
   "Write a Check from a Sentence": "Escrever uma verificação a partir de uma frase",
   "Write the Check": "Escrever a verificação",
   "ClickHouse": "ClickHouse",
-  "Databricks": "Databricks"
+  "Databricks": "Databricks",
+  "Changes the dbt model that builds {{table}}": "Altera o modelo dbt que constrói {{table}}",
+  "Changes the type of column {{column}} of {{table}}": "Altera o tipo da coluna {{column}} de {{table}}",
+  "Data products": "Produtos de dados",
+  "Data this change touches": "Dados que esta mudança afeta",
+  "Drops column {{column}} of {{table}}": "Remove a coluna {{column}} de {{table}}",
+  "Drops {{table}}": "Remove {{table}}",
+  "In {{path}}": "Em {{path}}",
+  "Names the column in {{count}} queries of the last day": "Cita a coluna em {{count}} consultas do último dia",
+  "Nothing watched depends on it yet": "Nada monitorado depende dela ainda",
+  "Reads and writes it": "Lê e escreve nela",
+  "Reads it": "Lê",
+  "Renames column {{column}} of {{table}} to {{newName}}": "Renomeia a coluna {{column}} de {{table}} para {{newName}}",
+  "Renames {{table}} to {{newName}}": "Renomeia {{table}} para {{newName}}",
+  "Tables built from it": "Tabelas construídas a partir dela",
+  "Writes it": "Escreve nela"
 }

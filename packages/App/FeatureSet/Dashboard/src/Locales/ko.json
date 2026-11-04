@@ -42118,5 +42118,20 @@
   "Write a Check from a Sentence": "문장으로 검사 작성",
   "Write the Check": "검사 작성",
   "ClickHouse": "ClickHouse",
-  "Databricks": "Databricks"
+  "Databricks": "Databricks",
+  "Changes the dbt model that builds {{table}}": "{{table}}을(를) 빌드하는 dbt 모델을 변경합니다",
+  "Changes the type of column {{column}} of {{table}}": "{{table}}의 열 {{column}} 유형을 변경합니다",
+  "Data products": "데이터 제품",
+  "Data this change touches": "이 변경이 건드리는 데이터",
+  "Drops column {{column}} of {{table}}": "{{table}}의 열 {{column}}을(를) 삭제합니다",
+  "Drops {{table}}": "{{table}}을(를) 삭제합니다",
+  "In {{path}}": "{{path}}에서",
+  "Names the column in {{count}} queries of the last day": "지난 하루 동안 {{count}}개의 쿼리에서 이 열을 사용합니다",
+  "Nothing watched depends on it yet": "아직 이에 의존하는 모니터링 대상이 없습니다",
+  "Reads and writes it": "읽고 씁니다",
+  "Reads it": "읽습니다",
+  "Renames column {{column}} of {{table}} to {{newName}}": "{{table}}의 열 {{column}} 이름을 {{newName}}(으)로 바꿉니다",
+  "Renames {{table}} to {{newName}}": "{{table}} 이름을 {{newName}}(으)로 바꿉니다",
+  "Tables built from it": "이것으로 빌드되는 테이블",
+  "Writes it": "씁니다"
 }

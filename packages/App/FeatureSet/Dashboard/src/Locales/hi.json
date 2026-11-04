@@ -42118,5 +42118,20 @@
   "Write a Check from a Sentence": "एक वाक्य से चेक लिखें",
   "Write the Check": "चेक लिखें",
   "ClickHouse": "ClickHouse",
-  "Databricks": "Databricks"
+  "Databricks": "Databricks",
+  "Changes the dbt model that builds {{table}}": "{{table}} बनाने वाला dbt मॉडल बदलता है",
+  "Changes the type of column {{column}} of {{table}}": "{{table}} के कॉलम {{column}} का प्रकार बदलता है",
+  "Data products": "डेटा प्रोडक्ट",
+  "Data this change touches": "वह डेटा जिसे यह बदलाव छूता है",
+  "Drops column {{column}} of {{table}}": "{{table}} का कॉलम {{column}} हटाता है",
+  "Drops {{table}}": "{{table}} हटाता है",
+  "In {{path}}": "{{path}} में",
+  "Names the column in {{count}} queries of the last day": "पिछले दिन की {{count}} क्वेरी में कॉलम का नाम लेता है",
+  "Nothing watched depends on it yet": "अभी तक कुछ भी निगरानी में इस पर निर्भर नहीं है",
+  "Reads and writes it": "इसे पढ़ता और लिखता है",
+  "Reads it": "इसे पढ़ता है",
+  "Renames column {{column}} of {{table}} to {{newName}}": "{{table}} के कॉलम {{column}} का नाम बदलकर {{newName}} करता है",
+  "Renames {{table}} to {{newName}}": "{{table}} का नाम बदलकर {{newName}} करता है",
+  "Tables built from it": "इससे बनी टेबल",
+  "Writes it": "इसे लिखता है"
 }

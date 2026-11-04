@@ -42118,5 +42118,20 @@
   "Write a Check from a Sentence": "نوشتن بررسی از یک جمله",
   "Write the Check": "نوشتن بررسی",
   "ClickHouse": "ClickHouse",
-  "Databricks": "Databricks"
+  "Databricks": "Databricks",
+  "Changes the dbt model that builds {{table}}": "مدل dbt را که {{table}} را می‌سازد تغییر می‌دهد",
+  "Changes the type of column {{column}} of {{table}}": "نوع ستون {{column}} از {{table}} را تغییر می‌دهد",
+  "Data products": "محصولات داده",
+  "Data this change touches": "داده‌ای که این تغییر به آن دست می‌زند",
+  "Drops column {{column}} of {{table}}": "ستون {{column}} از {{table}} را حذف می‌کند",
+  "Drops {{table}}": "{{table}} را حذف می‌کند",
+  "In {{path}}": "در {{path}}",
+  "Names the column in {{count}} queries of the last day": "ستون را در {{count}} پرس‌وجوی روز گذشته نام می‌برد",
+  "Nothing watched depends on it yet": "هنوز هیچ چیز پایش‌شده‌ای به آن وابسته نیست",
+  "Reads and writes it": "آن را می‌خواند و می‌نویسد",
+  "Reads it": "آن را می‌خواند",
+  "Renames column {{column}} of {{table}} to {{newName}}": "ستون {{column}} از {{table}} را به {{newName}} تغییر نام می‌دهد",
+  "Renames {{table}} to {{newName}}": "{{table}} را به {{newName}} تغییر نام می‌دهد",
+  "Tables built from it": "جدول‌هایی که از آن ساخته می‌شوند",
+  "Writes it": "آن را می‌نویسد"
 }
