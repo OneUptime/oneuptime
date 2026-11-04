@@ -36,6 +36,7 @@ import DataPipelineRecommendationsPage from "../Pages/DataPipeline/View/Recommen
 import DataObservabilityDataProductsPage from "../Pages/DataObservability/DataProducts";
 import DataObservabilityReconciliationsPage from "../Pages/DataObservability/Reconciliations";
 import DataObservabilityBiDashboardsPage from "../Pages/DataObservability/BiDashboards";
+import DataObservabilitySpendPage from "../Pages/DataObservability/Spend";
 import DataProductViewLayout from "../Pages/DataProduct/View/Layout";
 import DataProductOverviewPage from "../Pages/DataProduct/View/Overview";
 import DataProductSettingsPage from "../Pages/DataProduct/View/Settings";
@@ -144,6 +145,11 @@ const DataObservabilityRoutes: FunctionComponent<ComponentProps> = (
               {...props}
               pageRoute={pageRoute}
             />
+          );
+        })}
+        {page(PageMap.DATA_OBSERVABILITY_SPEND, (pageRoute: Route) => {
+          return (
+            <DataObservabilitySpendPage {...props} pageRoute={pageRoute} />
           );
         })}
         {page(PageMap.DATA_OBSERVABILITY_CHECKS, (pageRoute: Route) => {

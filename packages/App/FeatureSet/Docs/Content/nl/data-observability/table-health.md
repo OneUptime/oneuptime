@@ -60,6 +60,12 @@ Elke engine die leesacties telt, zegt wanneer elke tabel voor het laatst is gele
 
 **Ongebruikte tabellen** toont de tabellen die 90 dagen door niemand zijn gelezen, de grootste eerst, met wanneer er voor het laatst naar elke tabel is geschreven: een tabel waarnaar nog wordt geschreven maar die nooit wordt gelezen, kost haar schrijfacties en haar opslag. Een teller van 0 bij de eerste verzamelronde van een tabel betekent dat ze niet is gelezen sinds de statistieken van de engine begonnen, dus een ongebruikte tabel wordt vanaf het begin als ongebruikt getoond.
 
+## Warehouse-uitgaven
+
+Elk uur leest Data-observability wat elke Snowflake- en BigQuery-warehouse de afgelopen dag heeft uitgegeven, job voor job: de compute-credits van Snowflake, uit `QUERY_ATTRIBUTION_HISTORY`, en de gefactureerde bytes van BigQuery, uit de jobsweergave, waarvoor **BigQuery Resource Viewer** nodig is. Een job is één query die steeds opnieuw draait, genoemd naar zijn query-tag of label, of naar wat hij doet en de tabel die hij schrijft: nooit naar de tekst van de query.
+
+**Warehouse-uitgaven** toont de totalen per team (het `team` in de query-tag of het label van een job, anders wie hem uitvoert), de tabellen waarvan het schrijven het meest kost, de mislukte jobs en wat er gaat naar jobs die alleen tabellen schrijven die al 90 dagen niemand heeft gelezen.
+
 ## Services die elke tabel gebruiken
 
 Het tabblad **Services** van een tabel toont de services waarvan is gezien dat ze naar de tabel schrijven of eruit lezen, met de statements die elke service uitvoerde, haar aanroepen en fouten in het laatste uur, en wanneer ze voor het laatst is gezien. Het komt uit de databasespans die je services al met OpenTelemetry versturen: een clientspan met `db.system.name`, `db.namespace` en `db.collection.name`. Er hoeft niets extra te worden geïnstalleerd.

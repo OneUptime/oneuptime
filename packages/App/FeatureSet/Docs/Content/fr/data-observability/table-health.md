@@ -60,6 +60,12 @@ Chaque moteur qui compte les lectures indique quand chaque table a été lue pou
 
 **Tables inutilisées** liste les tables que personne n'a lues depuis 90 jours, les plus volumineuses en premier, avec le moment où chacune a été écrite pour la dernière fois : une table toujours écrite mais jamais lue coûte ses écritures et son stockage. Un compteur à 0 lors de la première collecte d'une table signifie qu'elle n'a pas été lue depuis le démarrage des statistiques du moteur : une table inutilisée apparaît donc comme inutilisée dès le départ.
 
+## Dépenses d'entrepôt
+
+Toutes les heures, l'Observabilité des données lit ce que chaque entrepôt Snowflake et BigQuery a dépensé le dernier jour, tâche par tâche : les crédits de calcul de Snowflake, depuis `QUERY_ATTRIBUTION_HISTORY`, et les octets facturés de BigQuery, depuis sa vue des tâches, qui demande **BigQuery Resource Viewer**. Une tâche est une requête exécutée encore et encore, nommée par son tag de requête ou son label, ou par ce qu'elle fait et la table qu'elle écrit : jamais par le texte de sa requête.
+
+**Dépenses d'entrepôt** montre les totaux par équipe (le `team` du tag ou du label d'une tâche, sinon qui l'exécute), les tables dont les écritures coûtent le plus, les tâches en échec et ce qui va aux tâches qui n'écrivent que des tables que personne n'a lues depuis 90 jours.
+
 ## Services qui utilisent chaque table
 
 L'onglet **Services** d'une table liste les services vus en train de l'écrire et de la lire, avec les instructions que chacun a exécutées, ses appels et ses échecs de la dernière heure, et le moment où il a été vu pour la dernière fois. Il s'appuie sur les spans de base de données que vos services envoient déjà avec OpenTelemetry : un span client avec `db.system.name`, `db.namespace` et `db.collection.name`. Rien de plus à installer.

@@ -283,6 +283,7 @@ import { AddSecurityHuntRunHistory1808992040000 } from "./1808992040000-AddSecur
 import { AddDataProducts1808992100000 } from "./1808992100000-AddDataProducts";
 import { AddDataReconciliations1808992200000 } from "./1808992200000-AddDataReconciliations";
 import { AddDataBiDashboards1808992300000 } from "./1808992300000-AddDataBiDashboards";
+import { AddDataWarehouseSpend1808992400000 } from "./1808992400000-AddDataWarehouseSpend";
 import { AddSecurityLogSourceCaseMinimumSeverity1808992500000 } from "./1808992500000-AddSecurityLogSourceCaseMinimumSeverity";
 import { AddConfigurableRuleCriteria1792500000000 } from "./1792500000000-AddConfigurableRuleCriteria";
 import { AddGoogleSecOpsDiagnostics1792300000000 } from "./1792300000000-AddGoogleSecOpsDiagnostics";
@@ -1769,5 +1770,6 @@ export default [
   AddDataProducts1808992100000,
   AddDataReconciliations1808992200000,
   AddDataBiDashboards1808992300000,
+  AddDataWarehouseSpend1808992400000,
   AddSecurityLogSourceCaseMinimumSeverity1808992500000,
 ];
