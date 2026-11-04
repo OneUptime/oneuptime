@@ -50,7 +50,7 @@ OneUptime 不需要在自己的伺服器上為 Mattermost 做任何設定：每�
 
 ### 連接專案
 
-在 OneUptime 中，前往 **專案設定** > **工作區** > **Mattermost**，按一下 **連線 Mattermost**。輸入您伺服器的網址（例如 `https://chat.example.com`）和機器人的存取權杖。OneUptime 會先向您的伺服器驗證權杖，然後才儲存任何內容。如果機器人屬於多個團隊，OneUptime 會詢問要在哪個團隊中發布。
+在 OneUptime 中，前往 **專案設定** > **工作區** > **Mattermost**，按一下 **連線 Mattermost**。輸入您伺服器的網址（例如 `https://chat.example.com`）和機器人的存取權杖。OneUptime 會先向您的伺服器驗證權杖，然後才儲存任何內容。如果機器人屬於多個團隊，OneUptime 會詢問要在哪個團隊中發布。在連接工作區之前，事件、警示、排定維護、監測器和待命選單的 **工作區** 區段中有 **連線工作區**，它同樣會帶您來到這裡。
 
 ### 新增通知規則
 

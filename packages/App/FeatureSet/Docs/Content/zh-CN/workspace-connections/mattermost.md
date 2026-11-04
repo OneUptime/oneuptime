@@ -50,7 +50,7 @@ OneUptime 无需在自己的服务器上为 Mattermost 做任何设置：每个�
 
 ### 连接项目
 
-在 OneUptime 中，前往 **项目设置** > **工作区** > **Mattermost**，点击 **连接 Mattermost**。输入您服务器的地址（例如 `https://chat.example.com`）和机器人的访问令牌。OneUptime 会先向您的服务器验证令牌，然后才保存任何内容。如果机器人属于多个团队，OneUptime 会询问要在哪个团队中发布。
+在 OneUptime 中，前往 **项目设置** > **工作区** > **Mattermost**，点击 **连接 Mattermost**。输入您服务器的地址（例如 `https://chat.example.com`）和机器人的访问令牌。OneUptime 会先向您的服务器验证令牌，然后才保存任何内容。如果机器人属于多个团队，OneUptime 会询问要在哪个团队中发布。在连接工作区之前，事件、警报、计划维护、监视器和值班菜单的 **工作区** 部分中有 **连接工作区**，它同样会带您来到这里。
 
 ### 添加通知规则
 

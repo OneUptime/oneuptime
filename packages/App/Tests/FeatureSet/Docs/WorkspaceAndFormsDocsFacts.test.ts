@@ -178,11 +178,17 @@ const BUILDING: string = "forms/building";
 const SHARING: string = "forms/sharing-and-security";
 const INCIDENT_FEED: string = "incidents/notes-owners-and-feed";
 
+/*
+ * The pages that spell out rules, summaries and saved notes. Mattermost's
+ * sends people to Slack's for rules and has none of those sections, so it is
+ * not one of them.
+ */
 const CHAT_PAGES: ReadonlyArray<string> = [SLACK, TEAMS];
 
 // The pages that name the entry a project with nothing connected sees.
 const CONNECT_ENTRY_PAGES: ReadonlyArray<string> = [
   ...CHAT_PAGES,
+  MATTERMOST,
   "alerts/index",
   "incidents/index",
   "on-call/index",
@@ -490,13 +496,22 @@ describe("Slack and Microsoft Teams, against the Dashboard and the server", () =
     expect(CONNECT_PAGE.test(userSettings)).toBe(false);
 
     for (const page of CHAT_PAGES) {
-      const markdown: string = englishPage(page);
-
-      expect(markdown).toContain(
-        "the **Workspace** section of the Incidents, Alerts, Scheduled Maintenance, Monitors and On-Call menus holds **Connect a workspace**",
-      );
-      expect(markdown).toContain(
+      expect(englishPage(page)).toContain(
         "The **Workspace** section lists only the chat workspaces your project has connected",
+      );
+    }
+  });
+
+  it("says in the step that connects the project that the connect entry leads there too, on each chat workspace's page", () => {
+    const steps: Array<[string, string]> = [
+      [SLACK, "Install OneUptime in your Slack workspace"],
+      [TEAMS, "Grant admin consent"],
+      [MATTERMOST, "Connect the project"],
+    ];
+
+    for (const [page, step] of steps) {
+      expect(section(englishPage(page), 3, step)).toContain(
+        "Until a workspace is connected, the **Workspace** section of the Incidents, Alerts, Scheduled Maintenance, Monitors and On-Call menus holds **Connect a workspace**, which leads here too.",
       );
     }
   });
