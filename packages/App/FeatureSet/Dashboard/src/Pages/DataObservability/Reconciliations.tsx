@@ -232,7 +232,7 @@ const DataObservabilityReconciliationsPage: FunctionComponent<
           description:
             "Two copies of the same data, kept honest: one measure of two tables, in one database or two, compared once both are read, with an alert when they drift beyond the tolerance.",
         }}
-        noItemsMessage="No reconciliation yet. Create one to compare a table with its copy - orders in the application's database and in the warehouse - and be told when they drift apart."
+        noItemsMessage="No reconciliation yet. Create one to compare a table with its copy, such as orders in the app's database and the warehouse, and hear when they drift."
         formSteps={[
           { title: "Reconciliation", id: "reconciliation" },
           { title: "Source", id: "source" },

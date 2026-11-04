@@ -99,7 +99,7 @@ const DataObservabilityDataProductsPage: FunctionComponent<
           description:
             "The tables people rely on, grouped as they know them - a dashboard's, a report's, an AI agent's - each with an owner, its consumers and a freshness SLA, on status pages and tracked as an SLO.",
         }}
-        noItemsMessage="No data product yet. Create one for the tables a dashboard or a report reads, with the time its data must land by, and its consumers can see whether it is fresh without asking."
+        noItemsMessage="No data product yet. Create one for the tables a dashboard or report reads, with when their data must land: its consumers then see if it is fresh."
         formSteps={DATA_PRODUCT_FORM_STEPS}
         formFields={getDataProductFormFields()}
         onCreateSuccess={syncProduct}

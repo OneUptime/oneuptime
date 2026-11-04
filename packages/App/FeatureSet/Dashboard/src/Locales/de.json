@@ -41747,7 +41747,7 @@
   "No SLO yet": "Noch kein SLO",
   "No consumers named": "No consumers named",
   "No daily deadline": "No daily deadline",
-  "No data product yet. Create one for the tables a dashboard or a report reads, with the time its data must land by, and its consumers can see whether it is fresh without asking.": "No data product yet. Create one for the tables a dashboard or a report reads, with the time its data must land by, and its consumers can see whether it is fresh without asking.",
+  "No data product yet. Create one for the tables a dashboard or report reads, with when their data must land: its consumers then see if it is fresh.": "Noch kein Datenprodukt. Erstellen Sie eines für die Tabellen, die ein Dashboard oder Bericht liest, mit dem Zeitpunkt, zu dem ihre Daten da sein müssen: Seine Nutzer sehen dann, ob es aktuell ist.",
   "No monitor yet": "Noch kein Monitor",
   "None of the data product's tables is watched any more.": "None of the data product's tables is watched any more.",
   "Not seen changing yet": "Noch keine Änderung gesehen",
@@ -41768,7 +41768,7 @@
   "Status Page and SLO": "Statusseite und SLO",
   "The data product is saved, but its monitor and SLO could not be brought in step: {{reason}}": "The data product is saved, but its monitor and SLO could not be brought in step: {{reason}}",
   "The data product is saved, but its monitor and SLO could not be set up: {{reason}}": "The data product is saved, but its monitor and SLO could not be set up: {{reason}}",
-  "The data product's monitor is the product on a status page: Degraded while a table is late, with an incident that reaches the page's subscribers. Its SLO tracks the SLA over 30 days, with fast and slow burn-rate alerts.": "The data product's monitor is the product on a status page: Degraded while a table is late, with an incident that reaches the page's subscribers. Its SLO tracks the SLA over 30 days, with fast and slow burn-rate alerts.",
+  "The data product's monitor shows it on a status page: Degraded while a table is late, with an incident its subscribers hear of. Its SLO tracks the SLA over 30 days, with fast and slow burn-rate alerts.": "Der Monitor des Datenprodukts zeigt es auf einer Statusseite: Beeinträchtigt, solange eine Tabelle verspätet ist, mit einem Vorfall, von dem ihre Abonnenten erfahren. Sein SLO verfolgt das SLA über 30 Tage, mit schnellen und langsamen Burn-Rate-Warnungen.",
   "The data product's tables, the one that changed longest ago first: the product's data is as of it.": "The data product's tables, the one that changed longest ago first: the product's data is as of it.",
   "The data product's tables. Add them in its Settings.": "The data product's tables. Add them in its Settings.",
   "The share of the time the data must be on time, which the product's SLO tracks over 30 days: 99 allows about 7 hours late a month.": "The share of the time the data must be on time, which the product's SLO tracks over 30 days: 99 allows about 7 hours late a month.",
@@ -41803,7 +41803,7 @@
   "How far apart the two may be before they have drifted: 0 means they must agree exactly.": "How far apart the two may be before they have drifted: 0 means they must agree exactly.",
   "How often both sides are read and compared, with their databases' collections.": "How often both sides are read and compared, with their databases' collections.",
   "In Step": "Im Einklang",
-  "No reconciliation yet. Create one to compare a table with its copy - orders in the application's database and in the warehouse - and be told when they drift apart.": "No reconciliation yet. Create one to compare a table with its copy - orders in the application's database and in the warehouse - and be told when they drift apart.",
+  "No reconciliation yet. Create one to compare a table with its copy, such as orders in the app's database and the warehouse, and hear when they drift.": "Noch kein Abgleich. Erstellen Sie einen, um eine Tabelle mit ihrer Kopie zu vergleichen, etwa Bestellungen in der Datenbank der App und im Warehouse, und erfahren Sie, wenn sie auseinanderlaufen.",
   "One measure of two tables - rows, a sum, distinct values, a query's number - compared, in one database or two, with a tolerance, and an alert when they drift.": "One measure of two tables - rows, a sum, distinct values, a query's number - compared, in one database or two, with a tolerance, and an alert when they drift.",
   "Orders: app vs warehouse": "Orders: app vs warehouse",
   "Percent": "Prozent",
@@ -41838,5 +41838,9 @@
   "What is measured of the table: its rows, a column's sum or distinct values, or a number your own query returns.": "What is measured of the table: its rows, a column's sum or distinct values, or a number your own query returns.",
   "Why the two must agree, and what to do when they do not.": "Why the two must agree, and what to do when they do not.",
   "amount": "amount",
-  "{{source}} against {{target}}, within {{tolerance}}": "{{source}} gegen {{target}}, innerhalb von {{tolerance}}"
+  "{{source}} against {{target}}, within {{tolerance}}": "{{source}} gegen {{target}}, innerhalb von {{tolerance}}",
+  "About": "Betrifft",
+  "Caused Upstream": "Vorgelagerte Ursache",
+  "Written By": "Geschrieben von",
+  "Changes Around It": "Änderungen um diese Zeit"
 }

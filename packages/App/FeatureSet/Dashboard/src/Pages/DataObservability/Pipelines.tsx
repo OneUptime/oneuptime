@@ -197,6 +197,7 @@ const DataObservabilityPipelinesPage: FunctionComponent<
           buttons: [
             {
               title: "Connect Fivetran or Airbyte",
+              phoneTitle: "Connect",
               buttonStyle: ButtonStyleType.NORMAL,
               icon: IconProp.Add,
               onClick: () => {

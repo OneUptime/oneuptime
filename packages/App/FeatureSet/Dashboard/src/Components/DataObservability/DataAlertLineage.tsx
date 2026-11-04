@@ -19,7 +19,7 @@ import AnalyticsModelAPI, {
 } from "Common/UI/Utils/AnalyticsModelAPI/AnalyticsModelAPI";
 import ModelAPI from "Common/UI/Utils/ModelAPI/ModelAPI";
 import ProjectUtil from "Common/UI/Utils/Project";
-import { Translator } from "Common/UI/Utils/TranslateTemplate";
+import { Translator, translationKey } from "Common/UI/Utils/TranslateTemplate";
 import useTranslator from "Common/UI/Utils/UseTranslator";
 import React, {
   Fragment,
@@ -302,12 +302,12 @@ const DataAlertLineage: FunctionComponent<ComponentProps> = (
         >
           <dl className="space-y-4 px-6 pb-6 text-sm text-gray-700">
             <div>
-              {label("About")}
+              {label(translationKey("About"))}
               <dd className="mt-1">{subject(own)}</dd>
             </div>
             {own.causeAlertId ? (
               <div>
-                {label("Caused Upstream")}
+                {label(translationKey("Caused Upstream"))}
                 <dd className="mt-1 space-y-1">
                   <AppLink
                     to={alertRoute(own.causeAlertId)}
@@ -327,7 +327,7 @@ const DataAlertLineage: FunctionComponent<ComponentProps> = (
             )}
             {writers.length > 0 ? (
               <div>
-                {label("Written By")}
+                {label(translationKey("Written By"))}
                 <dd className="mt-1 space-y-1">
                   {writers.map((usage: DataAssetUsage) => {
                     return (
@@ -372,7 +372,7 @@ const DataAlertLineage: FunctionComponent<ComponentProps> = (
             )}
             {writers.length > 0 && changes ? (
               <div>
-                {label("Changes Around It")}
+                {label(translationKey("Changes Around It"))}
                 <dd className="mt-1 space-y-1">
                   {changes.length > 0 ? (
                     changes.map((change: ChangeEvent) => {
