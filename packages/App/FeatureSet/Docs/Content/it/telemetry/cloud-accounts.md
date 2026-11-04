@@ -321,7 +321,7 @@ Un criterio dell'organizzazione, `iam.disableServiceAccountKeyCreation`, può vi
 :::
 
 :::details Non compare nessuna risorsa
-La prima lettura elenca ogni risorsa dell'account, che segnali metriche o no. Se una connessione non funziona, **View error** in **Cloud → Collega** dice perché la sua ultima lettura non è riuscita.
+La prima lettura elenca ogni risorsa dell'account, che segnali metriche o no. Se una connessione non funziona, **Visualizza errore** in **Cloud → Collega** dice perché la sua ultima lettura non è riuscita.
 :::
 
 :::details Mancano alcuni account dell'organizzazione

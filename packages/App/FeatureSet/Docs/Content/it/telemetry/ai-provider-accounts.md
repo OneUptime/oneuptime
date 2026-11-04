@@ -49,7 +49,7 @@ In **Test**, fai clic su **Testa la connessione**. OneUptime legge l'utilizzo de
 Fai clic su **Collega**. La prima lettura parte entro un minuto e porta gli ultimi 30 giorni.
 :::
 
-Gli account collegati compaiono sotto i riquadri, con il loro **Stato** e la loro **Ultima lettura**. **Leggi ora** legge subito, **Test** ricontrolla le impostazioni salvate, **Disattiva** smette di leggere e tiene ciò che è stato letto, e **Modifica** cambia le impostazioni: un segreto lasciato vuoto mantiene quello salvato. **View error** mostra perché una lettura non è riuscita, senza alcun segreto.
+Gli account collegati compaiono sotto i riquadri, con il loro **Stato** e la loro **Ultima lettura**. **Leggi ora** legge subito, **Test** ricontrolla le impostazioni salvate, **Disattiva** smette di leggere e tiene ciò che è stato letto, e **Modifica** cambia le impostazioni: un segreto lasciato vuoto mantiene quello salvato. **Visualizza errore** mostra perché una lettura non è riuscita, senza alcun segreto.
 
 ## Cosa offre ogni provider
 

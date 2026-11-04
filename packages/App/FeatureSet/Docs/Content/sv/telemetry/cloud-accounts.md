@@ -321,7 +321,7 @@ En organisationsprincip, `iam.disableServiceAccountKeyCreation`, kan förbjuda n
 :::
 
 :::details Inga resurser visas
-Den första läsningen listar varje resurs i kontot, oavsett om den rapporterar mätvärden eller inte. Om en anslutning inte fungerar säger **View error** under **Moln → Anslut** varför dess senaste läsning misslyckades.
+Den första läsningen listar varje resurs i kontot, oavsett om den rapporterar mätvärden eller inte. Om en anslutning inte fungerar säger **Visa fel** under **Moln → Anslut** varför dess senaste läsning misslyckades.
 :::
 
 :::details Några av organisationens konton saknas

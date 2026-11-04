@@ -321,7 +321,7 @@ Een organisatiebeleid, `iam.disableServiceAccountKeyCreation`, kan sleutels voor
 :::
 
 :::details Er verschijnen geen resources
-De eerste leesbeurt toont elke resource van het account, of die nu metrieken meldt of niet. Als een koppeling niet werkt, zegt **View error** onder **Cloud → Koppelen** waarom de laatste leesbeurt mislukte.
+De eerste leesbeurt toont elke resource van het account, of die nu metrieken meldt of niet. Als een koppeling niet werkt, zegt **Fout bekijken** onder **Cloud → Koppelen** waarom de laatste leesbeurt mislukte.
 :::
 
 :::details Sommige accounts van de organisatie ontbreken

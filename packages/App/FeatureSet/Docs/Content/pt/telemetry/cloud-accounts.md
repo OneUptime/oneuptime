@@ -321,7 +321,7 @@ Uma política da organização, `iam.disableServiceAccountKeyCreation`, pode pro
 :::
 
 :::details Nenhum recurso aparece
-A primeira leitura lista cada recurso da conta, informe ele métricas ou não. Se uma conexão não estiver funcionando, **View error** em **Nuvem → Conectar** diz por que a última leitura dela falhou.
+A primeira leitura lista cada recurso da conta, informe ele métricas ou não. Se uma conexão não estiver funcionando, **Ver erro** em **Nuvem → Conectar** diz por que a última leitura dela falhou.
 :::
 
 :::details Faltam algumas contas da organização
