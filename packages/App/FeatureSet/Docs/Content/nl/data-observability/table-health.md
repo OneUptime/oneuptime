@@ -85,6 +85,8 @@ Het tabblad **Eigenaren** van een tabel noemt de mensen en teams waartoe ze beho
 
 Je zou dit niet honderden keren moeten hoeven doen. **Eigenaarsregels** en **Labelregels** gelden voor elke tabel zodra ze voor het eerst verschijnt, gekoppeld op haar labels, of op een reguliere expressie op haar naam, schema of database: alles in `finance` gaat naar het financeteam, en alles met de naam `*_pii` krijgt een label.
 
+Een machtiging beperkt tot `Owned` bereikt alleen de tabellen waarvan de houder of diens teams eigenaar zijn, met hun controles, activiteit en gemelde problemen. Eigenaar zijn van een database maakt je geen eigenaar van de tabellen: gebruik een eigenaarsregel om een hele database aan een team te geven.
+
 ## Wanneer een waarschuwing opent
 
 De waarschuwing van een tabel heeft een kaart **Gegevens** die zegt waarom het waarschijnlijk is gebeurd, gerangschikt: een waarschuwing stroomopwaarts, een mislukte uitvoering, een deploy van een service die ernaar schrijft, haar mislukte schrijfacties, een kolom die is gewijzigd, de database zelf of de server waarop ze draait. Daaronder staat wat ervan afhangt: tabellen verderop in haar herkomst, dashboards, services en de mensen die ze beheren.

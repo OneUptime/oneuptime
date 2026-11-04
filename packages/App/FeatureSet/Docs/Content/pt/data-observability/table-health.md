@@ -85,6 +85,8 @@ A aba **Proprietários** de uma tabela nomeia as pessoas e equipes a quem ela pe
 
 Você não deveria ter que fazer isso centenas de vezes. As **Regras de proprietário** e as **Regras de Rótulos** valem para cada tabela quando ela aparece pela primeira vez, associadas pelos rótulos dela, ou por uma expressão regular sobre o nome, o esquema ou o banco de dados: tudo em `finance` vai para a equipe de finanças, e tudo chamado `*_pii` recebe um rótulo.
 
+Uma permissão limitada a `Owned` alcança apenas as tabelas de que seu titular ou as equipes dele são proprietários, com as verificações, a atividade e os problemas relatados delas. Ser proprietário de um banco de dados não torna alguém proprietário das tabelas dele: use uma regra de proprietários para entregar um banco de dados inteiro a uma equipe.
+
 ## Quando um alerta é aberto
 
 O alerta de uma tabela tem um cartão **Dados** que diz por que ele provavelmente aconteceu, em ordem de probabilidade: um alerta a montante, uma execução com falha, uma implantação de um serviço que escreve nela, as escritas dela que falham, uma coluna que mudou, o próprio banco de dados ou o servidor em que ele roda. Abaixo está o que depende dela: tabelas a jusante na linhagem, painéis, serviços e as pessoas que são proprietárias deles.

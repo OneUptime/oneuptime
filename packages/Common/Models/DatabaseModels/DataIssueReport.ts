@@ -5,6 +5,7 @@ import BaseModel from "./DatabaseBaseModel/DatabaseBaseModel";
 import Route from "../../Types/API/Route";
 import { PlanType } from "../../Types/Billing/SubscriptionPlan";
 import ColumnAccessControl from "../../Types/Database/AccessControl/ColumnAccessControl";
+import OwnedThrough from "../../Types/Database/AccessControl/OwnedThrough";
 import TableAccessControl from "../../Types/Database/AccessControl/TableAccessControl";
 import TableBillingAccessControl from "../../Types/Database/AccessControl/TableBillingAccessControl";
 import ColumnLength from "../../Types/Database/ColumnLength";
@@ -74,6 +75,7 @@ const serverWrittenColumnAccess: {
 })
 @TenantColumn("projectId")
 @CrudApiEndpoint(new Route("/data-issue-report"))
+@OwnedThrough("dataAssetId", DataAsset)
 @Entity({
   name: "DataIssueReport",
 })

@@ -85,6 +85,8 @@ En tabells flik **Ägare** namnger de personer och team den tillhör, och en tab
 
 Du ska inte behöva göra det hundratals gånger. **Ägarregler** och **Etikettregler** gäller för varje tabell när den först dyker upp, matchade på dess etiketter, eller på ett reguljärt uttryck för dess namn, schema eller databas: allt i `finance` går till ekonomiteamet, och allt som heter `*_pii` får en etikett.
 
+En behörighet begränsad till `Owned` når bara de tabeller som dess innehavare eller innehavarens team äger, med deras kontroller, aktivitet och rapporterade problem. Att äga en databas gör dig inte till ägare av dess tabeller: använd en ägarregel för att ge ett team en hel databas.
+
 ## När ett larm öppnas
 
 Ett tabellarm har ett kort **Data** som säger varför det troligast hände, rangordnat: ett larm uppströms, en misslyckad körning, en driftsättning av en tjänst som skriver till den, dess misslyckade skrivningar, en kolumn som ändrades, databasen själv eller servern den körs på. Under det står vad som beror på den: tabeller nedåt i dess härkomst, instrumentpaneler, tjänster och de personer som äger dem.

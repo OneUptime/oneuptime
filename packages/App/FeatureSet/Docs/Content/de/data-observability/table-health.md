@@ -85,6 +85,8 @@ Der Tab **Eigentümer** einer Tabelle nennt die Personen und Teams, denen sie ge
 
 Das sollten Sie nicht hunderte Male tun müssen. **Eigentümerregeln** und **Beschriftungsregeln** gelten für jede Tabelle, sobald sie zum ersten Mal erscheint, zugeordnet nach ihren Beschriftungen oder nach einem regulären Ausdruck auf ihren Namen, ihr Schema oder ihre Datenbank: Alles in `finance` geht an das Finanzteam, und alles mit dem Namen `*_pii` bekommt eine Beschriftung.
 
+Eine auf `Owned` beschränkte Berechtigung erreicht nur die Tabellen, die ihrem Inhaber oder dessen Teams gehören, sowie deren Prüfungen, Aktivität und gemeldete Probleme. Wer eine Datenbank besitzt, besitzt damit nicht ihre Tabellen: Mit einer Eigentümerregel geben Sie einem Team eine ganze Datenbank.
+
 ## Wenn eine Warnung sich öffnet
 
 Die Warnung einer Tabelle hat eine Karte **Daten**, die sagt, warum es am wahrscheinlichsten passiert ist, nach Rang geordnet: eine vorgelagerte Warnung, ein fehlgeschlagener Lauf, ein Deployment eines Dienstes, der in sie schreibt, ihre fehlschlagenden Schreibvorgänge, eine Spalte, die sich geändert hat, die Datenbank selbst oder der Server, auf dem sie läuft. Darunter steht, was von ihr abhängt: Tabellen in ihrer Lineage, Dashboards, Dienste und die Personen, denen sie gehören.

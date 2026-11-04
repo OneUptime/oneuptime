@@ -85,6 +85,8 @@ A table's **Owners** tab names the people and teams it belongs to, and a table's
 
 You should not have to do this hundreds of times. **Owner Rules** and **Label Rules** apply to every table as it first appears, matched by its labels, or by a regular expression on its name, schema or database: everything in `finance` goes to the finance team, and everything named `*_pii` gets a label.
 
+A permission scoped to `Owned` reaches only the tables its holder or their teams own, with those tables' checks, activity and reported problems. Owning a database does not make someone an owner of its tables: use an owner rule to give a team a whole database.
+
 ## When an alert opens
 
 A table's alert has a **Data** card that says why it most likely happened, ranked: an alert upstream, a failed run, a deploy of a service that writes it, its failing writes, a column that changed, the database itself or the server it runs on. Below that is what depends on it: tables down its lineage, dashboards, services and the people who own them.

@@ -192,7 +192,7 @@ A backfill or a migration should page nobody. Name the database under **Data Obs
 
 ## Owners and labels
 
-A table's **Owners** tab names the people and teams it belongs to, and a table's alert goes to them; with none, to the owners of its database. **Owner Rules** and **Label Rules** apply to every table as it first appears, matched by its labels, or by a regular expression on its name, schema or database.
+A table's **Owners** tab names the people and teams it belongs to, and a table's alert goes to them; with none, to the owners of its database. **Owner Rules** and **Label Rules** apply to every table as it first appears, matched by its labels, or by a regular expression on its name, schema or database. A permission scoped to \`Owned\` reaches only the tables its holder or their teams own, with those tables' checks, activity and reported problems. Owning a database does not make someone an owner of its tables: use an owner rule to give a team a whole database.
 
 ## When an alert opens
 

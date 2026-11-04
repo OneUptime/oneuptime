@@ -85,6 +85,8 @@ En tabels fane **Ejere** nævner de personer og teams, den tilhører, og en tabe
 
 Du bør ikke skulle gøre det hundredvis af gange. **Ejerregler** og **Etiketregler** gælder for hver tabel, når den første gang vises, matchet efter dens etiketter eller efter et regulært udtryk på dens navn, skema eller database: alt i `finance` går til finansteamet, og alt med navnet `*_pii` får en etiket.
 
+En tilladelse begrænset til `Owned` når kun de tabeller, som dens indehaver eller dennes teams ejer, med deres tjek, aktivitet og rapporterede problemer. At eje en database gør dig ikke til ejer af dens tabeller: brug en ejerregel til at give et team en hel database.
+
 ## Når en advarsel åbnes
 
 En tabels advarsel har et **Data**-kort, der siger, hvorfor det mest sandsynligt skete, rangeret: en advarsel opstrøms, en mislykket kørsel, en udrulning af en tjeneste, der skriver til den, dens mislykkede skrivninger, en kolonne, der er ændret, databasen selv eller den server, den kører på. Under det står, hvad der afhænger af den: tabeller nedstrøms i dens afstamning, dashboards, tjenester og de personer, der ejer dem.

@@ -85,6 +85,8 @@ La pestaña **Propietarios** de una tabla indica las personas y los equipos a lo
 
 No deberías tener que hacerlo cientos de veces. Las **Reglas del propietario** y las **Reglas de etiquetas** se aplican a cada tabla cuando aparece por primera vez, según sus etiquetas, o según una expresión regular sobre su nombre, esquema o base de datos: todo lo que esté en `finance` va al equipo de finanzas, y todo lo que se llame `*_pii` recibe una etiqueta.
 
+Un permiso limitado a `Owned` solo alcanza las tablas de las que son propietarios su titular o sus equipos, con sus comprobaciones, su actividad y los problemas notificados. Ser propietario de una base de datos no te hace propietario de sus tablas: usa una regla de propietarios para asignar una base de datos entera a un equipo.
+
 ## Cuando se abre una alerta
 
 La alerta de una tabla tiene una tarjeta **Datos** que dice por qué ocurrió con más probabilidad, ordenado: una alerta anterior, una ejecución fallida, un despliegue de un servicio que escribe en ella, sus escrituras fallidas, una columna que cambió, la propia base de datos o el servidor en el que se ejecuta. Debajo está lo que depende de ella: tablas más abajo en su linaje, paneles, servicios y las personas que son sus propietarias.
