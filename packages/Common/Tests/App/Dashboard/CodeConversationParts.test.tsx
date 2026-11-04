@@ -1539,6 +1539,28 @@ describe("live: what keeps up on its own, and what arrives", () => {
     ]) {
       expect(earlier.className.split(" ")).toContain(className);
     }
+    // Its chevron points up, at what it opens, above the steps' marks.
+    expect(earlier.querySelector("svg")).not.toBeNull();
+  });
+
+  /*
+   * Showing the earlier steps removes the button that was pressed: with
+   * nothing to hold it, the focus fell to the top of the page.
+   */
+  test("Show earlier steps hands the focus to the steps it opened", async () => {
+    draw(
+      <CodeTaskSteps isLive={true} steps={steps(8, CodeTaskStepKind.Read)} />,
+    );
+
+    const earlier: HTMLElement = screen.getByTestId("code-task-steps-earlier");
+    earlier.focus();
+    await userEvent.keyboard("{Enter}");
+
+    expect(screen.queryByTestId("code-task-steps-earlier")).toBeNull();
+    expect(screen.getAllByTestId("code-task-step")).toHaveLength(8);
+    const list: HTMLElement = screen.getByTestId("code-task-steps-list");
+    expect(document.activeElement).toBe(list);
+    expect(list).toHaveAttribute("tabindex", "-1");
   });
 
   test("a person's words, and OneUptime's own, keep the direction they were written in (dir=auto)", () => {

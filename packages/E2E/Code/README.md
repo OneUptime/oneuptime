@@ -85,9 +85,13 @@ The suite drives the pages the way a person does, on a laptop and on a phone:
   Stop, Try again, a failed turn and why, a task OneUptime started from an
   exception, a turn's Log and back, and the trail;
 - each step reaching the page as it is announced (`?live=1`): read as its
-  turn's new steps, never the whole task until the turn is done; a turn
+  turn's new steps, never the whole task until the turn is done, rising
+  into place, in a conversation a screen reader follows as a log; a turn
   seen from queued to done; a reader at the end of the page keeping the
   newest step in view, and one who scrolled up left where they are; a
+  long reply that ends the turn read from its first line, not its end
+  (`?ai=long`); the turn's time counting, and a turn no Runner picks up
+  saying what to check, with nothing announced (Playwright's clock); a
   turn's Log reading its record again as each step is announced;
 - a turn's Log: the Turn picker of a task of more than one turn, its record
   said to be the turn's, each step's words on a line of their own on a

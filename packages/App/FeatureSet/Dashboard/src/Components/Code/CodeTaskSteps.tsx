@@ -110,6 +110,23 @@ const CodeTaskSteps: FunctionComponent<ComponentProps> = (
     drawnUpToRef.current = Math.max(drawnUpToRef.current ?? -1, lastSequence);
   });
 
+  // The steps' list, which Show earlier steps hands the focus to.
+  const listRef: React.RefObject<HTMLOListElement> =
+    useRef<HTMLOListElement>(null);
+  const shouldFocusListRef: MutableRefObject<boolean> = useRef<boolean>(false);
+
+  /*
+   * Showing the earlier steps removes the button that was pressed. Focus
+   * goes to the list it opened, or a keyboard reader is dropped at the top
+   * of the page - as the AI investigation's Show earlier messages does.
+   */
+  useEffect(() => {
+    if (isOpen && shouldFocusListRef.current) {
+      shouldFocusListRef.current = false;
+      listRef.current?.focus({ preventScroll: true });
+    }
+  }, [isOpen]);
+
   if (props.steps.length === 0) {
     return <></>;
   }
@@ -207,10 +224,16 @@ const CodeTaskSteps: FunctionComponent<ComponentProps> = (
               type="button"
               data-testid="code-task-steps-earlier"
               onClick={() => {
+                shouldFocusListRef.current = true;
                 setIsOpen(true);
               }}
-              className={`${STEPS_BUTTON_CLASS_NAME} mb-1`}
+              className={`${STEPS_BUTTON_CLASS_NAME} mb-1 inline-flex items-center gap-2`}
             >
+              {/* Above the steps' marks, its words above theirs. */}
+              <Icon
+                icon={IconProp.ChevronUp}
+                className="h-3.5 w-3.5 flex-shrink-0"
+              />
               {translator.translatePlural(
                 {
                   one: "Show {{count}} earlier step",
@@ -222,7 +245,12 @@ const CodeTaskSteps: FunctionComponent<ComponentProps> = (
           ) : (
             <></>
           )}
-          <ol className="space-y-1">
+          <ol
+            ref={listRef}
+            tabIndex={-1}
+            data-testid="code-task-steps-list"
+            className="space-y-1 focus:outline-none"
+          >
             {shownSteps.map((step: CodeTaskStepJSON) => {
               const isArrived: boolean = isArrivedStep({
                 sequence: step.sequence,
