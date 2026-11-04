@@ -21,6 +21,11 @@ import path from "path";
  * the same language's Dashboard words it: the two dashboards say a shared
  * string alike.
  *
+ * The page around them is shared too - its skip link and side menu, a
+ * record's details, its ID and copy buttons, the card's ⋯ ("More
+ * options"), the error page - and so are the plurals' one forms: without
+ * "{{count}} results_one" a German list of one row said "1 Ergebnisse".
+ *
  * The Custom Channels page (ee/AdminDashboard/CustomChannels) said its own
  * words in English too; they are entries now, and its test dialog's title is
  * one sentence ("Send test: {{name}}").
@@ -86,6 +91,18 @@ const SHARED_COMPONENTS: ReadonlyArray<string> = [
   "Button",
   "Loader",
   "EmptyState",
+  // The page around the lists, and a record's details.
+  "Page",
+  "MasterPage",
+  "SideMenu",
+  "MoreMenu",
+  "ModelDetail",
+  "ObjectID",
+  "HiddenText",
+  "CopyableButton",
+  "LongText",
+  "StatusBubble",
+  "Error",
 ];
 
 // The row strings every Admin list's dialogs and its row menu draw.
@@ -131,32 +148,54 @@ function sourceFiles(directory: string): Array<string> {
   return files.sort();
 }
 
-function stringsOf(files: Array<string>): Array<string> {
-  const strings: Set<string> = new Set<string>();
+function entriesOf(files: Array<string>): Array<ExtractedString> {
+  const entries: Array<ExtractedString> = [];
 
   for (const file of files) {
     const relative: string = path.relative(REPOSITORY_ROOT, file);
 
-    for (const entry of scanSourceText(
-      relative,
-      fs.readFileSync(file, "utf8"),
-      {
+    entries.push(
+      ...(scanSourceText(relative, fs.readFileSync(file, "utf8"), {
         kind: "ui",
-      },
-    ).strings as Array<ExtractedString>) {
-      strings.add(entry.text);
-    }
+      }).strings as Array<ExtractedString>),
+    );
   }
 
-  return Array.from(strings);
+  return entries;
 }
 
-const SHARED_STRINGS: Array<string> = stringsOf(
-  SHARED_COMPONENTS.flatMap((component: string): Array<string> => {
+function stringsOf(files: Array<string>): Array<string> {
+  return Array.from(
+    new Set<string>(
+      entriesOf(files).map((entry: ExtractedString): string => {
+        return entry.text;
+      }),
+    ),
+  );
+}
+
+const SHARED_FILES: Array<string> = SHARED_COMPONENTS.flatMap(
+  (component: string): Array<string> => {
     return sourceFiles(
       path.join(REPOSITORY_ROOT, "packages/Common/UI/Components", component),
     );
-  }),
+  },
+);
+
+const SHARED_STRINGS: Array<string> = stringsOf(SHARED_FILES);
+
+/*
+ * A shared plural's one form, under its key plus "_one", with its English:
+ * "{{count}} results_one" is "{{count}} result".
+ */
+const SHARED_ONE_FORMS: Map<string, string> = new Map<string, string>(
+  entriesOf(SHARED_FILES)
+    .filter((entry: ExtractedString): boolean => {
+      return entry.pluralOne !== undefined;
+    })
+    .map((entry: ExtractedString): [string, string] => {
+      return [`${entry.text}_one`, entry.pluralOne as string];
+    }),
 );
 
 const ADMIN_ENGLISH: Locale = readLocale(ADMIN_LOCALES, "en");
@@ -201,22 +240,58 @@ describe("the Admin Dashboard's shared strings", () => {
     expect(missing).toEqual([]);
   });
 
+  test("every shared plural has its one form, in English the plural's own", () => {
+    // Some: a scan that read no plural would pass otherwise.
+    expect(SHARED_ONE_FORMS.size).toBeGreaterThan(5);
+    expect(SHARED_ONE_FORMS.get("{{count}} results_one")).toBe(
+      "{{count}} result",
+    );
+
+    const wrong: Array<string> = Array.from(SHARED_ONE_FORMS.entries())
+      .filter(([key, english]: [string, string]): boolean => {
+        return ADMIN_ENGLISH[key] !== english;
+      })
+      .map(([key]: [string, string]): string => {
+        return key;
+      });
+
+    expect(wrong).toEqual([]);
+  });
+
+  test("the page's own shared strings are among them: the ⋯ menu, the side menu, a record's ID", () => {
+    for (const text of [
+      "More options",
+      "Main navigation",
+      "Skip to main content",
+      "Click to copy",
+      "Copy to clipboard",
+      "Item not found",
+    ]) {
+      expect({ text, shared: SHARED_STRINGS.includes(text) }).toEqual({
+        text,
+        shared: true,
+      });
+    }
+  });
+
   test.each(LANGUAGES)(
     "%s says the shared strings as its Dashboard does",
     (language: string) => {
       const admin: Locale = readLocale(ADMIN_LOCALES, language);
       const dashboard: Locale = readLocale(DASHBOARD_LOCALES, language);
-      const apart: Array<string> = [...SHARED_STRINGS, ...ROW_STRINGS].filter(
-        (text: string): boolean => {
-          const worded: unknown = dashboard[text];
+      const apart: Array<string> = [
+        ...SHARED_STRINGS,
+        ...ROW_STRINGS,
+        ...Array.from(SHARED_ONE_FORMS.keys()),
+      ].filter((text: string): boolean => {
+        const worded: unknown = dashboard[text];
 
-          return (
-            typeof worded === "string" &&
-            worded !== DASHBOARD_ENGLISH[text] &&
-            admin[text] !== worded
-          );
-        },
-      );
+        return (
+          typeof worded === "string" &&
+          worded !== DASHBOARD_ENGLISH[text] &&
+          admin[text] !== worded
+        );
+      });
 
       expect({ language, apart }).toEqual({ language, apart: [] });
     },
