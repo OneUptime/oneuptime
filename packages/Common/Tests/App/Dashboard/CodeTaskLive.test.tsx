@@ -166,6 +166,8 @@ import useCodeTaskLive, {
 } from "../../../../App/FeatureSet/Dashboard/src/Components/Code/UseCodeTaskLive";
 import useFollowLatest, {
   FOLLOW_LATEST_SLACK_PX,
+  FOLLOW_LATEST_START_GAP_PX,
+  getFollowTarget,
   isScrolledToEnd,
 } from "../../../../App/FeatureSet/Dashboard/src/Components/Code/UseFollowLatest";
 import { CodeTaskResponse } from "../../../../App/FeatureSet/Dashboard/src/Components/Code/CodeApi";
@@ -582,6 +584,54 @@ describe("a task's conversation while AI works", () => {
     expect(request.eventType).toBe(ModelEventType.Update);
     expect(request.tenantId.toString()).toBe(PROJECT_ID);
     expect(request.modelId?.toString()).toBe(TASK_ID);
+  });
+
+  /*
+   * The UI review: a reader who hears the page rather than sees it is told
+   * what the others watch come in - each step, and the reply - as Ask AI's
+   * conversation tells it.
+   */
+  test("is a log a screen reader follows: each step as it arrives, and the reply", async () => {
+    getTaskMock.mockResolvedValue(working() as never);
+    getTurnProgressMock.mockResolvedValue(
+      progress({
+        steps: [step(2, CodeTaskStepKind.Ran, "npm test")],
+      }) as never,
+    );
+
+    draw(<CodeTaskConversation {...PAGE_PROPS} />);
+    await screen.findByTestId("code-task-header");
+
+    const log: HTMLElement = screen.getByRole("log", { name: "Conversation" });
+    expect(log).toBe(screen.getByTestId("code-task-turns"));
+    expect(log).toHaveAttribute("aria-live", "polite");
+    // What is added is said; a step folded away out of the six is not.
+    expect(log).toHaveAttribute("aria-relevant", "additions");
+
+    await act(async () => {
+      announce();
+    });
+
+    await waitFor(() => {
+      expect(stepSubjects()).toHaveLength(3);
+    });
+    expect(log).toContainElement(
+      screen.getAllByTestId("code-task-step")[2] as HTMLElement,
+    );
+  });
+
+  test("the task's title is someone's words, read the way they are written", async () => {
+    getTaskMock.mockResolvedValue(working() as never);
+
+    draw(<CodeTaskConversation {...PAGE_PROPS} />);
+
+    const title: HTMLElement = await screen.findByTestId("code-task-title");
+    const isolate: Element | null = title.querySelector("bdi");
+    expect(isolate).not.toBeNull();
+    expect(isolate).toHaveTextContent(
+      "Retry charges when the gateway times out",
+    );
+    expect(isolate).toHaveAttribute("dir", "ltr");
   });
 
   test("an old link to one of its replies listens to the task's room, which hears every turn", async () => {
@@ -1020,6 +1070,19 @@ describe("a turn's Log while AI works", () => {
     expect(logReads(postSpy)).toEqual([REPLY_ID, REPLY_ID]);
   });
 
+  test("a step's words are set apart in their own direction: on a Persian page isExpired( keeps its bracket at its end", async () => {
+    jest.spyOn(API, "post").mockResolvedValue(logAnswer("isExpired(") as never);
+
+    drawLog(`?turn=${REPLY_ID}`);
+
+    const words: HTMLElement = await screen.findByText("isExpired(");
+    expect(words.tagName).toBe("BDI");
+    expect(words).toHaveAttribute("dir", "ltr");
+    expect(
+      words.closest("[data-testid='code-task-log-entry-message']"),
+    ).not.toBeNull();
+  });
+
   test("says its steps show as they happen, not every five seconds", async () => {
     jest
       .spyOn(API, "post")
@@ -1303,7 +1366,8 @@ describe("useFollowLatest: the newest step stays in view for a reader at the end
     scroller.scrollHeight = 1240;
     rerender({ growthKey: "1:a:Working:3", isLive: true });
 
-    expect(scroller.scrollTop).toBe(1240);
+    // The page's end: as far down as it scrolls.
+    expect(scroller.scrollTop).toBe(1240 - 800);
   });
 
   test("a reader who scrolled up to read is left where they are", () => {
@@ -1322,12 +1386,148 @@ describe("useFollowLatest: the newest step stays in view for a reader at the end
     scrollTo(200);
     scroller.scrollHeight = 1600;
     rerender({ growthKey: "1:a:Done:2:1", isLive: false });
-    expect(scroller.scrollTop).toBe(1600);
+    expect(scroller.scrollTop).toBe(1600 - 800);
 
     // Done and read again (someone else's change): nothing moves.
     scroller.scrollHeight = 2000;
     rerender({ growthKey: "1:a:Done:2:1:x", isLive: false });
-    expect(scroller.scrollTop).toBe(1600);
+    expect(scroller.scrollTop).toBe(800);
+  });
+
+  /*
+   * The UI review: a reply that ends the turn comes in at once, and a long
+   * one ran past the window - followed to the end of the page, the reader
+   * saw its pull request and had to scroll back up for its first words.
+   */
+  test("where a following page goes: its end - and once the turn ends, never past the reply's first line", () => {
+    expect(FOLLOW_LATEST_START_GAP_PX).toBe(24);
+
+    // While AI works the newest step is watched: the end.
+    expect(
+      getFollowTarget({
+        scrollHeight: 3000,
+        clientHeight: 800,
+        latestStartTop: null,
+      }),
+    ).toBe(2200);
+    // A reply that fits under its first line: the end, the box with it.
+    expect(
+      getFollowTarget({
+        scrollHeight: 3000,
+        clientHeight: 800,
+        latestStartTop: 2600,
+        headerHeight: 64,
+      }),
+    ).toBe(2200);
+    // A long one: its first line under the sticky header, with room above.
+    expect(
+      getFollowTarget({
+        scrollHeight: 3000,
+        clientHeight: 800,
+        latestStartTop: 1500,
+        headerHeight: 64,
+      }),
+    ).toBe(1500 - 64 - 24);
+    // Never above the page's top, never past its end.
+    expect(
+      getFollowTarget({
+        scrollHeight: 3000,
+        clientHeight: 800,
+        latestStartTop: 30,
+        headerHeight: 64,
+      }),
+    ).toBe(0);
+    expect(
+      getFollowTarget({
+        scrollHeight: 600,
+        clientHeight: 800,
+        latestStartTop: null,
+      }),
+    ).toBe(0);
+  });
+
+  describe("with the reply's first line to keep in view", () => {
+    let replyTop: number = 0;
+    const reply: HTMLElement = document.createElement("li");
+
+    reply.getBoundingClientRect = (): DOMRect => {
+      return {
+        top: replyTop,
+        bottom: replyTop + 1400,
+        left: 0,
+        right: 600,
+        width: 600,
+        height: 1400,
+        x: 0,
+        y: replyTop,
+        toJSON: (): JSONObject => {
+          return {};
+        },
+      } as DOMRect;
+    };
+
+    function followReply(initial: { growthKey: string; isLive: boolean }): {
+      rerender: (next: { growthKey: string; isLive: boolean }) => void;
+    } {
+      return renderHook(
+        (props: { growthKey: string; isLive: boolean }) => {
+          useFollowLatest({
+            ...props,
+            getLatestStart: (): Element => {
+              return reply;
+            },
+          });
+        },
+        { initialProps: initial },
+      );
+    }
+
+    beforeEach(() => {
+      replyTop = 0;
+      document.documentElement.style.setProperty("--app-header-height", "64px");
+    });
+
+    afterEach(() => {
+      document.documentElement.style.removeProperty("--app-header-height");
+    });
+
+    test("a long reply that ends the turn is read from its first line, under the sticky header", () => {
+      const { rerender } = followReply({
+        growthKey: "1:a:Working:5",
+        isLive: true,
+      });
+
+      // Watching at the end while AI works.
+      scrollTo(200);
+
+      // The reply comes, 300 pixels down the window and 1,400 tall.
+      replyTop = 300;
+      scroller.scrollHeight = 2400;
+      rerender({ growthKey: "1:a:Done:0:1", isLive: false });
+
+      expect(scroller.scrollTop).toBe(
+        200 + 300 - 64 - FOLLOW_LATEST_START_GAP_PX,
+      );
+
+      // Reading it, not at the end: someone else's change pulls nothing.
+      scroller.scrollHeight = 2600;
+      rerender({ growthKey: "1:a:Done:0:1:x", isLive: false });
+      expect(scroller.scrollTop).toBe(412);
+    });
+
+    test("while AI works the newest step is followed, wherever the reply began", () => {
+      const { rerender } = followReply({
+        growthKey: "1:a:Working:5",
+        isLive: true,
+      });
+
+      scrollTo(200);
+      replyTop = -900;
+      scroller.scrollHeight = 2400;
+      rerender({ growthKey: "1:a:Working:6", isLive: true });
+
+      expect(scroller.scrollTop).toBe(2400 - 800);
+    });
   });
 
   test("a page that grew while the reader was not following is no longer at its end for the next step", () => {

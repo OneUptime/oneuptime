@@ -4681,6 +4681,23 @@ test.describe("a turn's steps reach the page as AI takes them", () => {
     );
     await expect(page.getByTestId("code-task-step")).toHaveCount(6);
 
+    /*
+     * It rises into place, as Ask AI's answers do; the steps that were
+     * there when the page opened never move. A screen reader is told of
+     * it: the conversation is a log.
+     */
+    await expect(page.getByTestId("code-task-step").last()).toHaveAttribute(
+      "data-step-arrived",
+      "true",
+    );
+    await expect(page.locator("[data-step-arrived='true']")).toHaveCount(1);
+    await expect(
+      page
+        .getByRole("log", { name: "Conversation" })
+        .getByTestId("code-task-step")
+        .last(),
+    ).toContainText("Read test/coupons/case-6.test.ts");
+
     const after: Recorded = await recorded(page);
     // Its turn's new steps, from the last one the page had...
     expect(after.progressReads).toEqual([
@@ -4849,6 +4866,124 @@ test.describe("a turn's steps reach the page as AI takes them", () => {
     await expect(
       page.getByText("test/coupons/case-6.test.ts").first(),
     ).toBeVisible({ timeout: 2500 });
+  });
+
+  /*
+   * The UI review: a reply comes in whole when its turn ends, and a long
+   * one - what changed, how it was tested, what to check - runs past the
+   * window. Followed to the end of the page, the reader who watched the
+   * steps saw its pull request and had to scroll back up for its first
+   * words. The task's first reply is drawn already, so the reply's own
+   * Markdown is drawn the moment it comes, as on any task after its first
+   * turn.
+   */
+  test("a long reply that ends the turn is read from its first line, not found by scrolling back up", async ({
+    page,
+  }: {
+    page: Page;
+  }) => {
+    await page.setViewportSize({
+      width: page.viewportSize()!.width,
+      height: 560,
+    });
+    await openTask(page, TASK.retries, "live=1&ai=long");
+    await composerInput(page).fill("Make the retry's backoff configurable.");
+    await sendButton(page).click();
+    await expect(page.getByTestId("code-turn-working")).toContainText(
+      "Waiting for a Runner to pick this up…",
+    );
+
+    await work(page, TASK.retries);
+    await expect(page.getByTestId("code-task-step")).toHaveCount(2, {
+      timeout: 1500,
+    });
+    await work(page, TASK.retries);
+    await expect(page.getByTestId("code-task-step")).toHaveCount(5, {
+      timeout: 1500,
+    });
+
+    // At the end of the page, watching the steps.
+    await page.evaluate((): void => {
+      window.scrollTo(0, document.documentElement.scrollHeight);
+    });
+    await expect
+      .poll(async () => {
+        const position: { scrollY: number; maxScrollY: number } =
+          await scrollPosition(page);
+        return position.maxScrollY - position.scrollY;
+      })
+      .toBeLessThanOrEqual(1);
+
+    await work(page, TASK.retries);
+    const reply: Locator = turnReplies(page).last();
+    await expect(reply).toHaveAttribute("data-turn-state", "Done", {
+      timeout: 1500,
+    });
+    await expect(reply.getByTestId("code-turn-summary")).toContainText(
+      "Worth checking before you merge",
+    );
+
+    // The reply's first line is in view, at the top of the window...
+    await expect(
+      reply.getByText("OneUptime AI", { exact: true }),
+    ).toBeInViewport();
+    await expect(reply.getByTestId("code-turn-summary")).toBeInViewport();
+    await expect
+      .poll(async () => {
+        return await reply.evaluate((element: Element): number => {
+          return Math.round(element.getBoundingClientRect().top);
+        });
+      })
+      .toBeGreaterThanOrEqual(0);
+
+    // ...and the page was not followed to its end: the reply runs on below.
+    const position: { scrollY: number; maxScrollY: number } =
+      await scrollPosition(page);
+    expect(position.maxScrollY - position.scrollY).toBeGreaterThan(100);
+
+    // The reply rose into place as it came.
+    await expect(reply.getByTestId("code-turn-body")).toHaveAttribute(
+      "data-turn-ended-in-view",
+      "true",
+    );
+  });
+
+  /*
+   * The UI review: the page reads only what is new while AI works, so
+   * nothing drew the turn again through a long quiet step - its time stood
+   * still at "2 minutes so far", and a turn no Runner picked up never said
+   * what to check. Each now keeps its own clock.
+   */
+  test("with nothing announced, the turn's time keeps counting, and a turn no Runner picks up says what to check", async ({
+    page,
+  }: {
+    page: Page;
+  }, testInfo: TestInfo) => {
+    test.skip(isPhone(testInfo), "width-independent");
+    await page.clock.install();
+    await openTask(page, TASK.working, "live=1");
+
+    const duration: Locator = page.getByTestId("code-turn-duration").last();
+    await expect(duration).toHaveText("2 minutes so far");
+
+    // A test suite runs for four minutes: no step, no read of the task.
+    await page.clock.runFor(4 * 60 * 1000);
+    await expect(duration).toHaveText("6 minutes so far");
+    expect((await recorded(page)).reads.task).toBe(1);
+
+    // A request nobody picks up, and nothing announced while it waits.
+    await openRepository(page, REPOSITORY.checkout, "live=1");
+    await composerInput(page).fill("Add a retry to the gateway");
+    await sendButton(page).click();
+    await expect(page.getByTestId("code-turn-working")).toContainText(
+      "Waiting for a Runner to pick this up…",
+    );
+    await expect(page.getByTestId("code-turn-slow-queue")).toHaveCount(0);
+
+    await page.clock.runFor(6 * 60 * 1000);
+    await expect(page.getByTestId("code-turn-slow-queue")).toContainText(
+      "Taking longer than usual? Check that this repository's Runner is online in its Settings.",
+    );
   });
 });
 

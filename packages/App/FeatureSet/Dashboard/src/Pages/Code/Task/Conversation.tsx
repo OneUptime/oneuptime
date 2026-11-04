@@ -54,6 +54,7 @@ import Link from "Common/Types/Link";
 import ObjectID from "Common/Types/ObjectID";
 import ErrorMessage from "Common/UI/Components/ErrorMessage/ErrorMessage";
 import Icon from "Common/UI/Components/Icon/Icon";
+import IsolatedText from "Common/UI/Components/IsolatedText/IsolatedText";
 import LinkComponent from "Common/UI/Components/Link/Link";
 import PageLoader from "Common/UI/Components/Loader/PageLoader";
 import { usePageBreadcrumbLinks } from "Common/UI/Components/Page/Page";
@@ -133,6 +134,9 @@ const CodeTaskConversation: FunctionComponent<
   const [isAskingAgain, setIsAskingAgain] = useState<boolean>(false);
   const bottomRef: React.RefObject<HTMLDivElement> =
     useRef<HTMLDivElement>(null);
+  // The conversation's turns: its last item is the latest turn's reply.
+  const turnsRef: React.RefObject<HTMLOListElement> =
+    useRef<HTMLOListElement>(null);
 
   // The task as shown, for a read that merges into it.
   const dataRef: React.MutableRefObject<CodeTaskResponse | null> =
@@ -238,6 +242,10 @@ const CodeTaskConversation: FunctionComponent<
   useFollowLatest({
     growthKey: data ? getConversationGrowthKey(data.turns) : "",
     isLive: isWorking,
+    // A reply that ends the turn is read from its first line.
+    getLatestStart: (): Element | null => {
+      return turnsRef.current?.lastElementChild || null;
+    },
   });
 
   // Code > the repository > Task #42, once the task's repository is known.
@@ -527,7 +535,8 @@ const CodeTaskConversation: FunctionComponent<
               data-testid="code-task-title"
               className="mt-2 break-words text-xl font-semibold leading-7 text-gray-900"
             >
-              {title}
+              {/* Words someone wrote, read the way they are written. */}
+              <IsolatedText text={title} />
             </h1>
           </div>
 
@@ -653,8 +662,17 @@ const CodeTaskConversation: FunctionComponent<
         <></>
       )}
 
+      {/*
+        A log, as Ask AI's conversation is: a screen reader says each step
+        as it arrives, and the reply when the turn ends - what a reader who
+        sees the page watches come in.
+      */}
       <ol
+        ref={turnsRef}
         data-testid="code-task-turns"
+        role="log"
+        aria-live="polite"
+        aria-relevant="additions"
         aria-label={translator.translateText("Conversation")}
         className="mt-6 space-y-6"
       >

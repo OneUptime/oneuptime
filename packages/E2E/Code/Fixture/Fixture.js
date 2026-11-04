@@ -72,7 +72,8 @@
  *                       repository and task answers with it
  *   - ai=ask            a new turn ends asking the person something;
  *                       ai=fail ends failed; ai=stall keeps working until
- *                       it is stopped
+ *                       it is stopped; ai=long ends with a reply of a few
+ *                       paragraphs and lists, longer than a short window
  *   - pace=<ms>         how long a new turn stays in each stage before the
  *                       next read moves it on (default 1000, so a task is
  *                       seen queued first and then moves one stage a poll)
@@ -2463,6 +2464,24 @@ function workingPullRequestOf(task) {
   return null;
 }
 
+/*
+ * ai=long: a reply as long as AI's often are - what changed, how it was
+ * tested and what to check - taller than a short window, so a reader who
+ * watched the steps comes to its first line, not its end.
+ */
+const LONG_REPLY = [
+  "Done. Charges now time out after **5 seconds**, and a charge that times out is retried once with a jittered backoff.",
+  "**What changed**",
+  "- `PaymentClient` reads its timeout from `PAYMENT_GATEWAY_TIMEOUT_MS`, 5,000 by default.",
+  "- A charge that times out is retried once, 200 to 400 ms later. A refund never is, so it cannot be paid out twice.",
+  "- Each retry is logged with the charge's id and how long the first attempt took.",
+  "**Tests**",
+  "- `npm test -- payments` passes: 48 tests, 6 of them new.",
+  "- The new ones cover a gateway that answers in time, one that times out once and then answers, and one that never answers.",
+  "**Worth checking before you merge**",
+  "The checkout page waits up to 15 seconds for a charge. With one retry the worst case is now about 10.4 seconds, inside that wait - but a shorter wait on the page would cut a retried charge off.",
+].join("\n\n");
+
 // One stage of a turn the fixture's AI is working on.
 function advance(task, current, isAskedBySpec) {
   // live=1: the AI moves only when the spec says (work), as announced.
@@ -2532,7 +2551,9 @@ function advance(task, current, isAskedBySpec) {
   };
   current.outcome = {
     summary:
-      "Done. The gateway call now times out after **5 seconds**, and the tests pass.",
+      aiParam === "long"
+        ? LONG_REPLY
+        : "Done. The gateway call now times out after **5 seconds**, and the tests pass.",
     filesChanged: [
       {
         path: "src/payments/client.ts",

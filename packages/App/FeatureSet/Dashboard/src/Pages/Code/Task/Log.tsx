@@ -36,6 +36,7 @@ import CodeBlock from "Common/UI/Components/CodeBlock/CodeBlock";
 import EmptyState from "Common/UI/Components/EmptyState/EmptyState";
 import ErrorMessage from "Common/UI/Components/ErrorMessage/ErrorMessage";
 import Icon from "Common/UI/Components/Icon/Icon";
+import IsolatedText from "Common/UI/Components/IsolatedText/IsolatedText";
 import PageLoader from "Common/UI/Components/Loader/PageLoader";
 import Pill from "Common/UI/Components/Pill/Pill";
 import { APP_API_URL } from "Common/UI/Config";
@@ -323,9 +324,18 @@ const LogEntryRow: FunctionComponent<{
             isFailureEntry(entry) ? "text-red-600" : "text-gray-700"
           }`}
         >
-          {entry.llmProvider
-            ? describeRuleLlmProviderActivity(entry.llmProvider, translator)
-            : entry.message || translator.translateText("(no message)")}
+          {/*
+            What the Runner wrote - a path, a search, a command - read the
+            way it is written: on a Persian page "isExpired(" keeps its
+            bracket at its end.
+          */}
+          {entry.llmProvider ? (
+            describeRuleLlmProviderActivity(entry.llmProvider, translator)
+          ) : entry.message ? (
+            <IsolatedText text={entry.message} />
+          ) : (
+            translator.translateText("(no message)")
+          )}
         </span>
         {entry.durationInMs !== undefined ? (
           <span className="ml-auto shrink-0 text-xs text-gray-400">
