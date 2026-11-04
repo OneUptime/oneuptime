@@ -72,9 +72,7 @@ const AI_RUN_ID: ObjectID = new ObjectID(
 const INCIDENT_ID: ObjectID = new ObjectID(
   "5e7a1b30-0000-4000-8000-000000000022",
 );
-const ALERT_ID: ObjectID = new ObjectID(
-  "5e7a1b30-0000-4000-8000-000000000023",
-);
+const ALERT_ID: ObjectID = new ObjectID("5e7a1b30-0000-4000-8000-000000000023");
 
 const ACCOUNT: string = "123456789012";
 const SERVICE_ARN: string = `arn:aws:ecs:us-east-1:${ACCOUNT}:service/prod/checkout-api`;

@@ -207,7 +207,9 @@ describe("estimateCloudAiAgentMonthlyCost", () => {
       `--cpu ${CLOUD_AI_AGENT_SIZES[CloudProvider.GCP].vcpu} --memory ${CLOUD_AI_AGENT_SIZES[CloudProvider.GCP].memoryGiB * 1024}Mi `,
     );
     // The VM priced is the VM the command makes.
-    expect(gcpVm).toContain(`--machine-type ${GCP_CLOUD_AI_AGENT_MACHINE_TYPE} `);
+    expect(gcpVm).toContain(
+      `--machine-type ${GCP_CLOUD_AI_AGENT_MACHINE_TYPE} `,
+    );
     expect(gcpVm).toContain(
       `--boot-disk-size ${GCP_CLOUD_AI_AGENT_BOOT_DISK_GB}GB --boot-disk-type ${GCP_CLOUD_AI_AGENT_BOOT_DISK_TYPE}`,
     );

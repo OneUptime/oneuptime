@@ -83,10 +83,7 @@ function text(value: unknown): string | null {
   return read ? read : null;
 }
 
-function numberLabel(
-  withPrefix: unknown,
-  plain: unknown,
-): string | null {
+function numberLabel(withPrefix: unknown, plain: unknown): string | null {
   return (
     text(withPrefix) ||
     (typeof plain === "number" && Number.isFinite(plain) ? `#${plain}` : null)
@@ -147,8 +144,7 @@ export function describeCloudAiChangeSubject(data: {
   fix: CloudAiChangeFix | null;
 }): CloudAiChangeSubject | null {
   const fix: CloudAiChangeFix | null = data.fix;
-  const words: (typeof CLOUD_AI_CHANGE_SUBJECTS)["fix"] = data.change
-    .isRollback
+  const words: (typeof CLOUD_AI_CHANGE_SUBJECTS)["fix"] = data.change.isRollback
     ? CLOUD_AI_CHANGE_SUBJECTS.rollback
     : CLOUD_AI_CHANGE_SUBJECTS.fix;
   const incidentId: string | null =

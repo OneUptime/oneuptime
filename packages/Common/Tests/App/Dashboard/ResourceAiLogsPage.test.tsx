@@ -950,9 +950,11 @@ describe("a link to one fix's entry", () => {
 
     const fixes: Array<HTMLElement> = screen.getAllByTestId("ai-logs-fix");
 
-    expect(fixes.map((fix: HTMLElement): string => {
-      return fix.id;
-    })).toEqual([
+    expect(
+      fixes.map((fix: HTMLElement): string => {
+        return fix.id;
+      }),
+    ).toEqual([
       getResourceAiLogsFixAnchor(FIX_ID),
       getResourceAiLogsFixAnchor(SECOND_FIX_ID),
     ]);

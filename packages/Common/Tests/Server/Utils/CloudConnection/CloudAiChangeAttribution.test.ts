@@ -84,9 +84,7 @@ const AI_RUN_ID: ObjectID = new ObjectID(
 const INCIDENT_ID: ObjectID = new ObjectID(
   "5e7a1b30-0000-4000-8000-000000000022",
 );
-const ALERT_ID: ObjectID = new ObjectID(
-  "5e7a1b30-0000-4000-8000-000000000023",
-);
+const ALERT_ID: ObjectID = new ObjectID("5e7a1b30-0000-4000-8000-000000000023");
 
 function jobId(index: number): ObjectID {
   return new ObjectID(
@@ -792,7 +790,9 @@ describe("a stored job, as a change is matched to it", () => {
 });
 
 describe("reading what a batch of one account's changes is attributed with", () => {
-  let findAgent: SpyInstance<typeof ResourceAiAgentService.findAgentForResource>;
+  let findAgent: SpyInstance<
+    typeof ResourceAiAgentService.findAgentForResource
+  >;
   let findJobs: SpyInstance<typeof RunnerJobService.findBy>;
   let findSuggestions: SpyInstance<
     typeof AutoRemediationSuggestionService.findBy
@@ -927,10 +927,12 @@ describe("reading what a batch of one account's changes is attributed with", () 
     const attribution: CloudAiChangeAttribution = await read([awsChange()]);
 
     expect(
-      attribution.match({
-        change: awsChange(),
-        resourceRowId: SERVICE_ROW_ID.toString(),
-      })?.job?.jobId.toString(),
+      attribution
+        .match({
+          change: awsChange(),
+          resourceRowId: SERVICE_ROW_ID.toString(),
+        })
+        ?.job?.jobId.toString(),
     ).toBe(jobId(1).toString());
   });
 

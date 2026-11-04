@@ -317,18 +317,16 @@ export function pickCloudAiChangeJob(data: {
       return true;
     }
 
-    return data.change.resources.some(
-      (resource: { id: string }): boolean => {
-        return Boolean(
-          job.targetId &&
-            isSameCloudResourceId(
-              data.change.provider as string as CloudCatalogProvider,
-              resource.id,
-              job.targetId,
-            ),
-        );
-      },
-    );
+    return data.change.resources.some((resource: { id: string }): boolean => {
+      return Boolean(
+        job.targetId &&
+          isSameCloudResourceId(
+            data.change.provider as string as CloudCatalogProvider,
+            resource.id,
+            job.targetId,
+          ),
+      );
+    });
   };
 
   const onTarget: Array<CloudAiChangeJob> = running.filter(namesTarget);
@@ -573,7 +571,9 @@ export default class CloudAiChangeAttributionReader {
         if (
           row.autoRemediationSuggestionId &&
           !suggestionIds.some((id: ObjectID): boolean => {
-            return id.toString() === row.autoRemediationSuggestionId!.toString();
+            return (
+              id.toString() === row.autoRemediationSuggestionId!.toString()
+            );
           })
         ) {
           suggestionIds.push(row.autoRemediationSuggestionId);

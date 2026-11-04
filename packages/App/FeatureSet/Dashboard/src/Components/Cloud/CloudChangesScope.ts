@@ -116,7 +116,10 @@ export function readCloudAiChange(change: {
     alertId: readId(attributes, ChangeEventAttribute.AlertId),
     isRollback:
       attributes[ChangeEventAttribute.AiStep] === CloudAiChangeStep.Rollback,
-    cloudAccountId: readId(attributes, ChangeEventAttribute.CloudAccountRecordId),
+    cloudAccountId: readId(
+      attributes,
+      ChangeEventAttribute.CloudAccountRecordId,
+    ),
   };
 }
 

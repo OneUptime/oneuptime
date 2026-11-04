@@ -462,13 +462,21 @@ describe("the dialog's pieces", () => {
       `gcloud logging read 'resource.type="gce_instance" AND jsonPayload.container.name="/oneuptime-ai-agent"' --freshness 30m --limit 100 --format "value(jsonPayload.data)"`,
     );
     expect(
-      getCloudAiAgentLogsCommand(CloudProvider.GCP, "compute-engine", "my-project"),
+      getCloudAiAgentLogsCommand(
+        CloudProvider.GCP,
+        "compute-engine",
+        "my-project",
+      ),
     ).toBe(
       `gcloud logging read 'resource.type="gce_instance" AND jsonPayload.container.name="/oneuptime-ai-agent"' --project my-project --freshness 30m --limit 100 --format "value(jsonPayload.data)"`,
     );
     // A project id the shell would read is never written into it.
     expect(
-      getCloudAiAgentLogsCommand(CloudProvider.GCP, "compute-engine", "$(reboot)"),
+      getCloudAiAgentLogsCommand(
+        CloudProvider.GCP,
+        "compute-engine",
+        "$(reboot)",
+      ),
     ).not.toContain("reboot");
   });
 });
@@ -482,7 +490,9 @@ describe("the dialog's pieces", () => {
 describe("where a Google Cloud agent runs", () => {
   const PROJECT: string = "my-project";
 
-  function gcpPosture(details: Record<string, string | null>): ResourceAiAgentPosture {
+  function gcpPosture(
+    details: Record<string, string | null>,
+  ): ResourceAiAgentPosture {
     return {
       resourceType: AiResourceType.GoogleCloudProject,
       resourceIdentifier: PROJECT,

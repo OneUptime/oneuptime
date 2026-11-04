@@ -21,8 +21,10 @@ import {
   AutoRemediationDecisionReason,
   AutoRemediationDecisionStage,
 } from "../../../Types/AutoRemediation/AutoRemediationDecision";
-import { KubernetesAiAccessGapCode } from "../../../Types/Kubernetes/KubernetesClusterAiAccess";
-import { KubernetesAiRemediationMode } from "../../../Types/Kubernetes/KubernetesClusterAiAccess";
+import {
+  KubernetesAiAccessGapCode,
+  KubernetesAiRemediationMode,
+} from "../../../Types/Kubernetes/KubernetesClusterAiAccess";
 import AiResourceType from "../../../Types/ResourceAiAgent/AiResourceType";
 import {
   ResourceAiAccessGapCode,
@@ -245,9 +247,11 @@ function installSpies(data: {
       }
 
       let release: () => void = (): void => {};
-      const released: Promise<void> = new Promise<void>((resolve: () => void) => {
-        release = resolve;
-      });
+      const released: Promise<void> = new Promise<void>(
+        (resolve: () => void) => {
+          release = resolve;
+        },
+      );
 
       held.set(args.key, { released, release });
 
@@ -383,7 +387,11 @@ describe("which decisions waited for an AI agent", () => {
       "ai_agent_unreachable_resource",
       false,
     ],
-    ["the agent may not change anything", "remediation_write_access_missing", false],
+    [
+      "the agent may not change anything",
+      "remediation_write_access_missing",
+      false,
+    ],
     ["no LLM provider", "llm_provider_missing", false],
   ])(
     "a NotReady entry because %s: %s waits for the agent: %s",
@@ -403,7 +411,10 @@ describe("which decisions waited for an AI agent", () => {
     const entries: JSONArray = [
       AutoRemediationDecisionHelper.toJSON({
         ...ACCOUNT_AGENT_MISSING,
-        gaps: [gap("remediation_write_access_missing"), gap("ai_agent_offline")],
+        gaps: [
+          gap("remediation_write_access_missing"),
+          gap("ai_agent_offline"),
+        ],
       }),
     ] as JSONArray;
 

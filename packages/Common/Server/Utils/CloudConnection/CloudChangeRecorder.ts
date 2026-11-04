@@ -252,8 +252,7 @@ export function buildCloudChangeEntry(data: {
       }
 
       if (job.incidentId) {
-        attributes[ChangeEventAttribute.IncidentId] =
-          job.incidentId.toString();
+        attributes[ChangeEventAttribute.IncidentId] = job.incidentId.toString();
       } else if (job.alertId) {
         attributes[ChangeEventAttribute.AlertId] = job.alertId.toString();
       }

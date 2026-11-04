@@ -747,9 +747,7 @@ function readSetup(
       ? GCP_CLOUD_AI_AGENT_DEFAULT_HOST
       : options.gcpHost;
 
-  if (
-    !(GCP_CLOUD_AI_AGENT_HOSTS as ReadonlyArray<unknown>).includes(gcpHost)
-  ) {
+  if (!(GCP_CLOUD_AI_AGENT_HOSTS as ReadonlyArray<unknown>).includes(gcpHost)) {
     return "Pick where the Google Cloud agent runs: a small VM, or Cloud Run.";
   }
 

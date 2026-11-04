@@ -2395,7 +2395,10 @@ describe("Google Cloud on Cloud Run: the command", () => {
       flag(
         callsTo(
           run(
-            getGcpCloudAiAgentSetupCommand({ ...GCP_RUN, region: "europe-west4" }),
+            getGcpCloudAiAgentSetupCommand({
+              ...GCP_RUN,
+              region: "europe-west4",
+            }),
           ),
           "gcloud",
           "run",
@@ -2767,12 +2770,22 @@ describe("Google Cloud on its VM: the command", () => {
 
     expect(
       flag(
-        callsTo(shell, "gcloud", "compute", "networks", "subnets", "create")[0]!,
+        callsTo(
+          shell,
+          "gcloud",
+          "compute",
+          "networks",
+          "subnets",
+          "create",
+        )[0]!,
         "--region",
       ),
     ).toBe("europe-west4");
     expect(
-      flag(callsTo(shell, "gcloud", "compute", "zones", "list")[0]!, "--filter"),
+      flag(
+        callsTo(shell, "gcloud", "compute", "zones", "list")[0]!,
+        "--filter",
+      ),
     ).toBe("region:europe-west4");
     expect(
       flag(
@@ -2898,8 +2911,12 @@ sleep() {
         .map((call: string): Array<string> => {
           return call.split("\u001f").slice(0, -1);
         }),
-      agentEnv: fs.existsSync(envFile) ? fs.readFileSync(envFile, "utf8") : null,
-      left: fs.existsSync(runDirectory) ? fs.readdirSync(runDirectory).sort() : [],
+      agentEnv: fs.existsSync(envFile)
+        ? fs.readFileSync(envFile, "utf8")
+        : null,
+      left: fs.existsSync(runDirectory)
+        ? fs.readdirSync(runDirectory).sort()
+        : [],
       status: shell.status ?? -1,
     };
   }
@@ -3026,7 +3043,12 @@ describe("Google Cloud on its VM: the key reader", () => {
     token?: { status: number; body: unknown };
     secret?: { status: number; body: unknown };
   }): Promise<Read> {
-    const read: Read = { printed: "", errors: [], exitCode: null, requests: [] };
+    const read: Read = {
+      printed: "",
+      errors: [],
+      exitCode: null,
+      requests: [],
+    };
     const fakeFetch: (
       url: string,
       init: { headers: Record<string, string> },
@@ -3074,12 +3096,13 @@ describe("Google Cloud on its VM: the key reader", () => {
     };
 
     // eslint-disable-next-line no-new-func
-    new Function("fetch", "process", "console", "Buffer", GCP_CLOUD_AI_AGENT_KEY_READER)(
-      fakeFetch,
-      fakeProcess,
-      fakeConsole,
-      Buffer,
-    );
+    new Function(
+      "fetch",
+      "process",
+      "console",
+      "Buffer",
+      GCP_CLOUD_AI_AGENT_KEY_READER,
+    )(fakeFetch, fakeProcess, fakeConsole, Buffer);
 
     await new Promise<void>((resolve: () => void) => {
       setTimeout(resolve, 20);
@@ -3568,7 +3591,10 @@ describe("quoting", () => {
 
     // The VM's startup script is one here-document of the command, whole.
     expect(
-      heredocBody(gcpVm, `cat > ${GCP_CLOUD_AI_AGENT_STARTUP_FILE} <<'STARTUP'`),
+      heredocBody(
+        gcpVm,
+        `cat > ${GCP_CLOUD_AI_AGENT_STARTUP_FILE} <<'STARTUP'`,
+      ),
     ).toEqual(startup.split("\n"));
     expect(
       gcpVm.split("\n").filter((line: string): boolean => {

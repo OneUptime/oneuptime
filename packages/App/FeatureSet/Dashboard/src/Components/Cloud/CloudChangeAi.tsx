@@ -211,9 +211,9 @@ export const CloudChangeAiLine: FunctionComponent<CloudChangeAiLineProps> = (
  * cloud's own audit log names under it (the agent's role session), on one
  * line, whole on hover.
  */
-export const CloudChangeAiActor: FunctionComponent<{ actor: string }> = (props: {
+export const CloudChangeAiActor: FunctionComponent<{
   actor: string;
-}): ReactElement => {
+}> = (props: { actor: string }): ReactElement => {
   return (
     <div
       className="min-w-0 max-w-[14rem] text-sm"
