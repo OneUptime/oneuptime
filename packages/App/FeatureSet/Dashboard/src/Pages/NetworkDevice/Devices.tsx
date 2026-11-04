@@ -96,6 +96,7 @@ import useBulkShortenDeviceNames from "../../Components/NetworkDevice/useBulkSho
 import useBulkSiteActions from "../../Components/NetworkDevice/useBulkSiteActions";
 import useBulkDeviceRoleActions from "../../Components/NetworkDevice/useBulkDeviceRoleActions";
 import useBulkApplyVendorTemplate from "../../Components/NetworkDevice/useBulkApplyVendorTemplate";
+import useBulkSnmpWalk from "../../Components/NetworkDevice/useBulkSnmpWalk";
 import UnboundDevicesBanner from "../../Components/NetworkDevice/UnboundDevicesBanner";
 import { isDifferentText } from "../../Components/NetworkDevice/DeviceDetailText";
 import OidTemplateElement from "../../Components/NetworkDevice/OidTemplateElement";
@@ -775,6 +776,14 @@ const NetworkDevices: FunctionComponent<
   } = useBulkApplyVendorTemplate();
 
   /*
+   * Walking the selection at once (issue #5548): every router, or every
+   * device at a site, opened on the Network's SNMP Walk page to compare
+   * what they answer and collect an OID on all of them. It changes nothing
+   * on the devices, so it asks nothing first and has no modal.
+   */
+  const { bulkActions: snmpWalkBulkActions } = useBulkSnmpWalk();
+
+  /*
    * The probe the create form starts on before a site is picked.
    *
    * A probe is REQUIRED to register a device — nothing polls one without it —
@@ -1068,6 +1077,7 @@ const NetworkDevices: FunctionComponent<
             ...ownerBulkActions,
             ...vendorTemplateBulkActions,
             ...oidTemplateBulkActions,
+            ...snmpWalkBulkActions,
             ...snmpCredentialProfileBulkActions,
             ...switchToProbePollingBulkActions,
             ...createPingMonitorBulkActions,

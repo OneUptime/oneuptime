@@ -23,8 +23,8 @@ Iron Bank's onboarding team picks the final Repo1 paths; keep each manifest's
 already in Iron Bank, and [values.yaml](values.yaml) runs them from Registry1
 with OneUptime's four images ("Installing from Registry1" below).
 
-[Justifications](Justifications) is not pushed to Repo1. It records, per
-project, the findings OneUptime has justified in VAT.
+[Justifications](Justifications) is not pushed to Repo1. It holds, per project,
+the findings OneUptime justifies, with the text to give for each in VAT.
 
 ## How the images are built
 
@@ -202,8 +202,8 @@ For each project:
    finding as answered.
 3. Push the contents of `repo1/` to a feature branch of the Repo1 project, and
    open a merge request to `development`. Iron Bank's pipeline runs on it.
-   Justify anything its scans add in VAT, then add the `Status::Review` label
-   to the project's issue.
+   Give VAT the text in `Justifications/<Project>.yaml`, justify anything its
+   scans add, then add the `Status::Review` label to the project's issue.
 4. Iron Bank's Container Hardening Team reviews the image and the
    justifications. Once the image is merged to `master`, Iron Bank publishes it
    at `registry1.dso.mil/ironbank/oneuptime/<image>:<version>`.

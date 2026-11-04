@@ -28,6 +28,7 @@ import {
   toWalkRoot,
   translateSnmpWalkServerMessage,
 } from "./SnmpWalkViewModel";
+import { getMultiDeviceSnmpWalkRoute } from "./MultiDeviceSnmpWalkRoute";
 import { formatRelativeTime } from "../Home/HomeRelativeTime";
 import PageMap from "../../Utils/PageMap";
 import RouteMap, { RouteUtil } from "../../Utils/RouteMap";
@@ -77,6 +78,7 @@ import Input from "Common/UI/Components/Input/Input";
 import Link from "Common/UI/Components/Link/Link";
 import Loader, { LoaderType } from "Common/UI/Components/Loader/Loader";
 import API from "Common/UI/Utils/API/API";
+import Navigation from "Common/UI/Utils/Navigation";
 import ModelAPI, { ListResult } from "Common/UI/Utils/ModelAPI/ModelAPI";
 import { Translator } from "Common/UI/Utils/TranslateTemplate";
 import useTranslator from "Common/UI/Utils/UseTranslator";
@@ -1299,6 +1301,21 @@ const SnmpWalkCard: FunctionComponent<ComponentProps> = (
                 },
                 getAlertRoute: props.canCreateMonitor
                   ? getAlertRoute
+                  : undefined,
+                /*
+                 * Found the OID here; now walk it on the rest of the fleet
+                 * (issue #5548): the Network's SNMP Walk page, on the OID,
+                 * with this device picked - for whoever may walk.
+                 */
+                onCompareWithOtherDevices: props.canWalk
+                  ? (row: SnmpWalkRow) => {
+                      Navigation.navigate(
+                        getMultiDeviceSnmpWalkRoute({
+                          deviceIds: [props.networkDeviceId.toString()],
+                          startOid: row.oid,
+                        }),
+                      );
+                    }
                   : undefined,
               }}
             />
