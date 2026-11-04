@@ -5,11 +5,11 @@ import { MigrationInterface, QueryRunner } from "typeorm";
  * (UserMattermost, a pointer at the member's connected Mattermost account,
  * created verified) and the notification-rule and on-call timeline columns that
  * let rules route pages to it. The new columns' indexes and foreign keys are
- * built online, in AddUserMattermostIndexesAndKeys1808992620000, because those
+ * built online, in AddUserMattermostIndexesAndKeys1808992680000, because those
  * two tables already exist and are written all the time.
  */
-export class AddUserMattermost1808992610000 implements MigrationInterface {
-  public name: string = "AddUserMattermost1808992610000";
+export class AddUserMattermost1808992670000 implements MigrationInterface {
+  public name: string = "AddUserMattermost1808992670000";
 
   public async up(queryRunner: QueryRunner): Promise<void> {
     await queryRunner.query(

@@ -67,6 +67,7 @@
     "forgotPassword": "Glömt lösenord?",
     "signInWithSso": "Logga in med SSO",
     "signInWithMicrosoft": "Logga in med Microsoft",
+    "emailSignInLink": "Skicka en inloggningslänk till mig",
     "noAccountPrompt": "Har du inget konto?",
     "registerLink": "Registrera dig.",
     "twoFactor": {
@@ -114,6 +115,15 @@
       "generate": "Generera reservkoder",
       "skip": "Hoppa över tills vidare",
       "generateFailed": "Inga reservkoder returnerades. Försök igen från Användarprofil > Tvåfaktorsautentisering."
+    },
+    "magicLink": {
+      "title": "Slutför inloggningen",
+      "subtitle": "Använd knappen nedan för att slutföra inloggningen med länken från din e-post.",
+      "submit": "Logga in",
+      "noLink": "Den här sidan behöver inloggningslänken från din e-post. Öppna länken igen eller be om en ny.",
+      "turnedOff": "Inloggningslänkar är avstängda på den här servern. Logga in med din e-postadress och ditt lösenord.",
+      "requestNewLink": "Skicka en ny länk till mig",
+      "backToSignIn": "Tillbaka till inloggningen"
     }
   },
   "register": {
@@ -147,6 +157,17 @@
     "successMessage": "Vi har skickat länken för återställning av lösenord till din e-post. Glöm inte att kontrollera skräpposten.",
     "submitButton": "Skicka länk för återställning",
     "rememberPasswordPrompt": "Kommer du ihåg ditt lösenord?",
+    "loginLink": "Logga in."
+  },
+  "magicLink": {
+    "title": "Logga in med en länk",
+    "subtitle": "Ange din e-postadress så skickar vi en länk som loggar in dig. Inget lösenord behövs.",
+    "submitButton": "Skicka en inloggningslänk till mig",
+    "sentTitle": "Kolla din e-post",
+    "sent": "Om {{email}} har ett konto är en inloggningslänk på väg. Den fungerar en gång och slutar gälla om {{minutes}} minuter.",
+    "notReceived": "Inte i inkorgen? Kolla skräppostmappen eller se till att du skrev adressen du registrerade dig med.",
+    "sendAnother": "Skicka en ny länk",
+    "knowPasswordPrompt": "Kan du ditt lösenord?",
     "loginLink": "Logga in."
   },
   "resetPassword": {

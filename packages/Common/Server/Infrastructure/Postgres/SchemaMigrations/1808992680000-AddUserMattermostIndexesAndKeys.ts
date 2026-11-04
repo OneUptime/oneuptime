@@ -2,7 +2,7 @@ import OnlineDdl from "../OnlineDdl";
 import { MigrationInterface, QueryRunner } from "typeorm";
 
 /*
- * Moved out of AddUserMattermost1808992610000. UserNotificationRule and
+ * Moved out of AddUserMattermost1808992670000. UserNotificationRule and
  * UserOnCallLogTimeline already exist and every page writes them, so the
  * indexes on their new "userMattermostId" columns are built online, and the
  * foreign keys to "UserMattermost" are added NOT VALID and then validated,
@@ -10,10 +10,10 @@ import { MigrationInterface, QueryRunner } from "typeorm";
  * validation finds nothing to refuse. Safe to run again after a stop part way:
  * an index or key that is already there is left as it is.
  */
-export class AddUserMattermostIndexesAndKeys1808992620000
+export class AddUserMattermostIndexesAndKeys1808992680000
   implements MigrationInterface
 {
-  public name: string = "AddUserMattermostIndexesAndKeys1808992620000";
+  public name: string = "AddUserMattermostIndexesAndKeys1808992680000";
 
   // CREATE INDEX CONCURRENTLY runs outside a transaction.
   public transaction: boolean = false;

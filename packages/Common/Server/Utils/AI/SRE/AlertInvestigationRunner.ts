@@ -26,6 +26,7 @@ import {
   AutonomousBudgetStatus,
 } from "../../../Services/AIService";
 import AIInvestigationEngine from "./AIInvestigationEngine";
+import AIMemory from "./AIMemory";
 import AIInvestigationQueue from "./InvestigationQueue";
 import AIConfidenceSignal, { ConfidenceSignal } from "./ConfidenceSignal";
 import FixFromIncidentTaskTrigger from "./FixFromIncidentTaskTrigger";
@@ -51,6 +52,7 @@ import DataAlertContext from "../../DataObservability/DataAlertContext";
 import LinkedInfrastructureContext, {
   LinkedInfrastructure,
 } from "./LinkedInfrastructureContext";
+import InvestigationImpactContext from "./InvestigationImpactContext";
 import RecentChangesContext, { RecentChanges } from "./RecentChangesContext";
 import InvestigationRuleWait from "./InvestigationRuleWait";
 import { getInvestigationWaitUntil } from "../../../../Types/AI/InvestigationRuleWait";
@@ -357,7 +359,22 @@ export default class AIAlertInvestigationRunner {
 
       subjectStartedAt = contextData.alert.createdAt;
 
-      contextSummary = this.buildAlertSummary(contextData, promptOmissions);
+      /*
+       * Recurrence memory, as an incident's investigation has it: the
+       * project's resolved alerts of the same monitor (its series first) or
+       * labels, with what caused them and the fix OneUptime AI made when it
+       * was verified, so a recurrence names the fix that worked last time.
+       * Never a private alert. Enrichment only: it answers "" on any error.
+       */
+      const priorCasesContext: string =
+        await AIMemory.getPriorSimilarAlertsContext({
+          projectId,
+          currentAlertId: alertId,
+        });
+
+      contextSummary =
+        this.buildAlertSummary(contextData, promptOmissions) +
+        priorCasesContext;
 
       /*
        * The infrastructure the alert is linked to - hosts, container hosts,
@@ -383,6 +400,24 @@ export default class AIAlertInvestigationRunner {
       } catch (error) {
         logger.error(
           `AI: could not read the linked infrastructure of alert ${alertId.toString()}; investigating it without it: ${error}`,
+        );
+      }
+
+      /*
+       * What the alert's users rely on, for the report's Impact section:
+       * the SLOs linked to it or counting its monitor, as their evaluation
+       * last measured them (InvestigationImpactContext). Enrichment only.
+       */
+      try {
+        contextSummary += InvestigationImpactContext.buildContextSection(
+          await InvestigationImpactContext.readForAlert({
+            projectId,
+            alertId,
+          }),
+        );
+      } catch (error) {
+        logger.error(
+          `AI: could not read the SLOs that count alert ${alertId.toString()}; investigating it without them: ${error}`,
         );
       }
 

@@ -1,7 +1,7 @@
 {
   "baseline": {
-    "keys": 42106,
-    "untranslated": 12175
+    "keys": 42282,
+    "untranslated": 12060
   },
   "sameAsEnglish": [
     "0 (kiss-o'-death {{kissCode}})",
@@ -142,6 +142,9 @@
     "INP 540 ms",
     "Images",
     "In / Out",
+    "In Microsoft Teams",
+    "In OneUptime",
+    "In Slack",
     "In quorum",
     "Incident",
     "Incident {{number}}",

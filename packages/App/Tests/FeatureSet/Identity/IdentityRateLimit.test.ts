@@ -621,6 +621,13 @@ describe("the credential routes have a limiter in front of the handler", () => {
      * ResendVerificationEmail.test.ts for the bucket and the ordering.
      */
     ["/resend-verification-email"],
+
+    /*
+     * Not a guessing oracle either -- its credential is a sign-in link's
+     * token, a server-minted random UUID -- but anonymous, and every request
+     * looks its token up. Limited on a bucket of its own (MagicLink).
+     */
+    ["/login-with-magic-link"],
   ])("%s runs middleware before its handler", (uri: string) => {
     expect(mockRouter.matchAll("post", uri).length).toBeGreaterThan(1);
   });
@@ -644,15 +651,18 @@ describe("the credential routes have a limiter in front of the handler", () => {
    * credential. Both are fine; silence is not.
    *
    * The routes listed below take no password and no second factor. They are
-   * not unlimited in any dangerous sense -- /signup and /forgot-password sit
-   * behind the captcha, /verify-email, /reset-password and /refresh-token
-   * carry a server-minted single-use token, and /logout revokes rather than
-   * grants -- but none of them is a guessing oracle against a stored
-   * credential, which is what IdentityRateLimit exists to bound.
+   * not unlimited in any dangerous sense -- /signup, /forgot-password and
+   * /send-magic-link sit behind the captcha and count the mail they send
+   * per caller and per address (PublicMessageRateLimit), /verify-email,
+   * /reset-password and /refresh-token carry a server-minted single-use
+   * token, and /logout revokes rather than grants -- but none of them is a
+   * guessing oracle against a stored credential, which is what
+   * IdentityRateLimit exists to bound.
    */
   const ROUTES_THAT_ACCEPT_NO_CREDENTIAL: Array<string> = [
     "/signup",
     "/forgot-password",
+    "/send-magic-link",
     "/verify-email",
     "/reset-password",
     "/refresh-token",

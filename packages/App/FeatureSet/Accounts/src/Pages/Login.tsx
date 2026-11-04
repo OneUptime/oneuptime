@@ -1,5 +1,6 @@
 import {
   LOGIN_API_URL,
+  MAGIC_LINK_LOGIN_API_URL,
   PASSKEY_LOGIN_API_URL,
   PASSKEY_LOGIN_OPTIONS_API_URL,
   VERIFY_TOTP_AUTH_API_URL,
@@ -66,6 +67,11 @@ import ComponentLoader from "Common/UI/Components/ComponentLoader/ComponentLoade
 import QRCodeElement from "Common/UI/Components/QR/QR";
 import PageLoader from "Common/UI/Components/Loader/PageLoader";
 import { SSO_REQUIRED_SIGN_IN_MESSAGE } from "Common/Types/SSO/SignInMethods";
+import {
+  MAGIC_LINK_ROUTE,
+  MAGIC_LINK_TOKEN_FIELD,
+} from "Common/Types/Accounts/MagicLink";
+import SensitiveUrlToken from "Common/UI/Utils/SensitiveUrlToken";
 import LoginWithSsoPage from "./LoginWithSSO";
 import SessionEndedNotice from "../Components/SessionEndedNotice/SessionEndedNotice";
 import { SignInMethodsRead, useSignInMethods } from "../Utils/SignInMethods";
@@ -163,7 +169,25 @@ export interface ComponentProps {
    * it is the sign-in page as everyone sees it.
    */
   isMasterAdminSignIn?: boolean | undefined;
+
+  /*
+   * The page a sign-in link opens, /accounts/magic-link-login
+   * (Common/Types/Accounts/MagicLink): in
+   * place of the password form, one button that signs in with the link. The
+   * rest of the page is the sign-in page's own - the two factor challenge,
+   * a forced enrolment and the backup codes - so a sign-in begun with a
+   * link finishes exactly as one begun with a password, its steps sending
+   * the link's token again where a password sign-in sends the password.
+   */
+  isMagicLinkSignIn?: boolean | undefined;
 }
+
+export const MAGIC_LINK_SIGN_IN_OPTION_TEST_ID: string = "magic-link-login";
+export const MAGIC_LINK_SIGN_IN_BUTTON_TEST_ID: string =
+  "magic-link-login-submit";
+export const MAGIC_LINK_SIGN_IN_ERROR_TEST_ID: string =
+  "magic-link-login-error";
+export const MAGIC_LINK_NEW_LINK_TEST_ID: string = "magic-link-login-new-link";
 
 const LoginPage: (props: ComponentProps) => JSX.Element = (
   props: ComponentProps,
@@ -187,6 +211,40 @@ const LoginPage: (props: ComponentProps) => JSX.Element = (
     Boolean(props.isMasterAdminSignIn) && isSsoRequired;
 
   /*
+   * Whether this server takes sign-in links (Common/Types/Accounts/
+   * MagicLink): the sign-in page offers "Email me a sign-in link" only when
+   * the server said so. Not on the master admins' page, which is the
+   * password form alone.
+   */
+  const isMagicLinkLoginOffered: boolean =
+    Boolean(signInMethodsRead.signInMethods?.isMagicLinkLoginEnabled) &&
+    !isMasterAdminPasswordPage;
+
+  /*
+   * On the page a sign-in link opens: the link's token, read once - "" when
+   * the tab has none, or once the server has refused it. By the time the
+   * page draws, it is out of the address bar (SensitiveUrlToken).
+   */
+  const [magicLinkToken, setMagicLinkToken] = React.useState<string>(
+    (): string => {
+      return props.isMagicLinkSignIn ? SensitiveUrlToken.read() : "";
+    },
+  );
+  const [isMagicLinkLoading, setIsMagicLinkLoading] =
+    React.useState<boolean>(false);
+  const [magicLinkError, setMagicLinkError] = React.useState<string>("");
+
+  /*
+   * A server that says it takes no sign-in links - turned off by a master
+   * admin. Only when it said so: an answer that could not be read leaves the
+   * button, and the server decides.
+   */
+  const isMagicLinkTurnedOff: boolean =
+    Boolean(props.isMagicLinkSignIn) &&
+    signInMethodsRead.signInMethods !== null &&
+    !signInMethodsRead.signInMethods.isMagicLinkLoginEnabled;
+
+  /*
    * A visitor who is already signed in is sent on to the Dashboard -- once,
    * as the page mounts. Not on every render: a sign-in on this page stores
    * the user and navigates to the Dashboard itself (LoginUtil.login), the
@@ -195,6 +253,11 @@ const LoginPage: (props: ComponentProps) => JSX.Element = (
    */
   React.useEffect(() => {
     if (UserUtil.isLoggedIn()) {
+      // Somebody already signed in has no use for a sign-in link.
+      if (props.isMagicLinkSignIn) {
+        SensitiveUrlToken.clear();
+      }
+
       Navigation.navigate(DASHBOARD_URL);
     }
   }, []);
@@ -525,6 +588,144 @@ const LoginPage: (props: ComponentProps) => JSX.Element = (
       token: miscData ? miscData["token"] : undefined,
     });
   };
+
+  type ContinueSignInFunction = (
+    value: User | JSONObject,
+    miscData: JSONObject | undefined,
+  ) => void;
+
+  /*
+   * Takes a sign-in on from what its first step answered - the password
+   * form's, or a sign-in link's: to a forced enrolment, to the two factor
+   * challenge, or, for an account with neither, signed in.
+   */
+  const continueSignIn: ContinueSignInFunction = (
+    value: User | JSONObject,
+    miscData: JSONObject | undefined,
+  ): void => {
+    /*
+     * Checked BEFORE the two-factor-method lists below, and the
+     * order is load-bearing rather than stylistic. A user being
+     * forced to enrol has ZERO methods set up, so that condition
+     * is false for them -- putting this second would let control
+     * fall straight through to login() and a redirect into a
+     * dashboard the server never authorised, with no session
+     * behind it.
+     */
+    if (miscData && miscData["twoFactorEnrolmentRequired"]) {
+      setTotpEnrolment({
+        twoFactorAuthId: miscData["twoFactorAuthId"] as string,
+        twoFactorOtpUrl: miscData["twoFactorOtpUrl"] as string,
+      });
+      return;
+    }
+
+    if (
+      miscData &&
+      ((((miscData as JSONObject)["totpAuthList"] as JSONArray)?.length || 0) >
+        0 ||
+        (((miscData as JSONObject)["webAuthnList"] as JSONArray)?.length || 0) >
+          0)
+    ) {
+      const totpAuthList: Array<UserTotpAuth> = UserTotpAuth.fromJSONArray(
+        (miscData as JSONObject)["totpAuthList"] as JSONArray,
+        UserTotpAuth,
+      );
+      const webAuthnList: Array<UserWebAuthn> = UserWebAuthn.fromJSONArray(
+        (miscData as JSONObject)["webAuthnList"] as JSONArray,
+        UserWebAuthn,
+      );
+      setTotpAuthList(totpAuthList);
+      setWebAuthnList(webAuthnList);
+      /*
+       * Absent means "the server could not count them", which is
+       * not the same as zero -- see `isKnownToHaveNoBackupCodes`.
+       */
+      const reportedBackupCodeCount: unknown = miscData["backupCodeCount"];
+
+      setBackupCodeCount(
+        typeof reportedBackupCodeCount === "number"
+          ? reportedBackupCodeCount
+          : null,
+      );
+      setShowTwoFactorAuth(true);
+      return;
+    }
+
+    login(value as User, miscData as JSONObject);
+  };
+
+  type SignInWithMagicLinkFunction = () => Promise<void>;
+
+  /*
+   * The one click the page a sign-in link opens asks for. Opening the link
+   * signs nobody in: mail filters that open every link in an email to scan
+   * it - and some run the page's script while they do - would otherwise
+   * spend the link before its owner ever saw it, and a link works once.
+   *
+   * The server answers as /login does. For an account with two factor
+   * authentication the challenge follows on this page, and its steps send
+   * the link's token where a password sign-in sends the password (the
+   * server spends the link only once the whole sign-in succeeds), and the
+   * address the server answered with: what the steps' limits count, and
+   * what a security key's challenge is asked for.
+   *
+   * A link the server refuses - used, expired, replaced by a newer one,
+   * turned off - is dropped from the tab, and the page offers a new one. One
+   * that could not be checked (the server could not be reached) is kept, so
+   * pressing Sign In again still works.
+   */
+  const signInWithMagicLink: SignInWithMagicLinkFunction =
+    async (): Promise<void> => {
+      setIsMagicLinkLoading(true);
+      setMagicLinkError("");
+
+      try {
+        const response: HTTPResponse<JSONObject> | HTTPErrorResponse =
+          await API.post<JSONObject>({
+            url: MAGIC_LINK_LOGIN_API_URL,
+            data: {
+              data: {
+                [MAGIC_LINK_TOKEN_FIELD]: magicLinkToken,
+              },
+            },
+          });
+
+        if (response instanceof HTTPErrorResponse) {
+          // Refused for what the link is: it will not work again.
+          if (response.statusCode >= 400 && response.statusCode < 500) {
+            SensitiveUrlToken.clear();
+            setMagicLinkToken("");
+          }
+
+          setMagicLinkError(API.getFriendlyMessage(response));
+          setIsMagicLinkLoading(false);
+          return;
+        }
+
+        const user: User = User.fromJSON(
+          response.data as JSONObject,
+          User,
+        ) as User;
+
+        setInitialValues({
+          email: user.email?.toString() || "",
+          [MAGIC_LINK_TOKEN_FIELD]: magicLinkToken,
+        });
+
+        /*
+         * The page holds the token for the steps still to come; the tab
+         * keeps no other copy of it.
+         */
+        SensitiveUrlToken.clear();
+
+        continueSignIn(user, getMiscData(response));
+      } catch (error) {
+        setMagicLinkError(API.getFriendlyMessage(error));
+      }
+
+      setIsMagicLinkLoading(false);
+    };
 
   type SignInWithPasskeyFunction = () => Promise<void>;
 
@@ -907,6 +1108,21 @@ const LoginPage: (props: ComponentProps) => JSX.Element = (
     window.URL.revokeObjectURL(url);
   };
 
+  /*
+   * Why the page a sign-in link opens cannot sign anybody in, when it
+   * cannot: the server takes no sign-in links now, or the tab has no link
+   * (opened without one, or one the server refused, whose reason is shown
+   * instead).
+   */
+  const magicLinkCannotSignInMessage: string | null = isMagicLinkTurnedOff
+    ? t("login.magicLink.turnedOff")
+    : !magicLinkToken && !magicLinkError
+      ? t("login.magicLink.noLink")
+      : null;
+
+  const canSignInWithMagicLink: boolean =
+    Boolean(magicLinkToken) && !isMagicLinkTurnedOff;
+
   if (signInMethodsRead.isReading) {
     return <PageLoader isVisible={true} />;
   }
@@ -966,29 +1182,48 @@ const LoginPage: (props: ComponentProps) => JSX.Element = (
           </>
         )}
 
-        {!pendingLogin && !showTwoFactorAuth && !totpEnrolment && (
-          <>
-            <h2 className="mt-4 sm:mt-6 text-center text-xl sm:text-2xl tracking-tight text-gray-900">
-              {isMasterAdminPasswordPage
-                ? t("adminLogin.title")
-                : t("login.title")}
-            </h2>
-            {/*
-             * Balanced: on a phone the line breaks in the middle of the
-             * list rather than leaving its last word, "passkey", alone.
-             */}
-            <p className="mt-2 text-center text-sm text-gray-600 px-2 sm:px-0 text-balance">
-              {isMasterAdminPasswordPage
-                ? t("adminLogin.subtitle")
-                : t("login.subtitle")}
-            </p>
-            {/*
-             * Why they were signed out, when the server ended their
-             * session: its length or idle timeout was reached.
-             */}
-            <SessionEndedNotice className="mt-6 text-start" />
-          </>
-        )}
+        {!pendingLogin &&
+          !showTwoFactorAuth &&
+          !totpEnrolment &&
+          props.isMagicLinkSignIn && (
+            <>
+              <h2 className="mt-4 sm:mt-6 text-center text-xl sm:text-2xl tracking-tight text-gray-900">
+                {t("login.magicLink.title")}
+              </h2>
+              {canSignInWithMagicLink && (
+                <p className="mt-2 text-balance text-center text-sm text-gray-600 px-2 sm:px-0">
+                  {t("login.magicLink.subtitle")}
+                </p>
+              )}
+            </>
+          )}
+
+        {!pendingLogin &&
+          !showTwoFactorAuth &&
+          !totpEnrolment &&
+          !props.isMagicLinkSignIn && (
+            <>
+              <h2 className="mt-4 sm:mt-6 text-center text-xl sm:text-2xl tracking-tight text-gray-900">
+                {isMasterAdminPasswordPage
+                  ? t("adminLogin.title")
+                  : t("login.title")}
+              </h2>
+              {/*
+               * Balanced: on a phone the line breaks in the middle of the
+               * list rather than leaving its last word, "passkey", alone.
+               */}
+              <p className="mt-2 text-center text-sm text-gray-600 px-2 sm:px-0 text-balance">
+                {isMasterAdminPasswordPage
+                  ? t("adminLogin.subtitle")
+                  : t("login.subtitle")}
+              </p>
+              {/*
+               * Why they were signed out, when the server ended their
+               * session: its length or idle timeout was reached.
+               */}
+              <SessionEndedNotice className="mt-6 text-start" />
+            </>
+          )}
 
         {!pendingLogin && showTwoFactorAuth && (
           <>
@@ -1173,354 +1408,371 @@ const LoginPage: (props: ComponentProps) => JSX.Element = (
             </div>
           )}
 
-          {!pendingLogin && !showTwoFactorAuth && !totpEnrolment && (
-            <>
-              {/*
-               * The password form comes first, and its "Login" is the page's
-               * one filled button: it is how most people sign in. Under it,
-               * an "or" divider and the other ways in, as normal buttons as
-               * wide and as tall as Login, outlined where Login is filled:
-               * single sign-on, Google and Microsoft where this server offers
-               * them, and a passkey, last (SignInOptionStyle). Passkeys used to open the
-               * card in a tinted panel of their own, which pushed the form
-               * people came for below the fold on a phone; after that, the
-               * other ways in were centred text links, which read as small
-               * print rather than as choices.
-               *
-               * While a passkey attempt runs, the form is paused, and looks
-               * it: disabled, faded, and out of the pointer's reach, its
-               * links, the divider, the single sign-on, Google and Microsoft
-               * buttons and any captcha included. A bright Login that does nothing
-               * when clicked reads as broken, and a link that leaves the page
-               * while the server is finishing the sign-in would throw that
-               * sign-in away. Cancel, outside the form, brings it back. (The
-               * keyboard can still reach the form's links, as it always
-               * could: a fieldset does not disable links.)
-               */}
-              <fieldset
-                disabled={isPasskeyLoading}
-                className="transition-opacity disabled:pointer-events-none disabled:opacity-50 motion-reduce:transition-none"
-              >
-                <ModelForm<User>
-                  modelType={User}
-                  id="login-form"
-                  name="Login"
-                  disableAutofocus={true}
-                  initialValues={formStartValues}
-                  fields={loginFields}
-                  createOrUpdateApiUrl={apiUrl}
-                  formType={FormType.Create}
-                  submitButtonText={t("login.submitButton")}
-                  onBeforeCreate={(data: User, miscDataProps: JSONObject) => {
-                    if (passkeyInProgress.current) {
-                      throw new Error(t("login.passkey.inProgress"));
-                    }
-                    setPasskeyError("");
-                    /*
-                     * What an attempt said is over once the form is used.
-                     * What this browser cannot do stays said, next to the
-                     * option it leaves unavailable.
-                     */
-                    if (isPasskeySupported) {
-                      setPasskeyNotice(null);
-                    }
-                    if (isCaptchaEnabled) {
-                      const captchaToken: string | undefined = (
-                        miscDataProps["captchaToken"] as string | undefined
-                      )
-                        ?.toString()
-                        .trim();
+          {/*
+           * THE PAGE A SIGN-IN LINK OPENS (Common/Types/Accounts/MagicLink):
+           * one button in place of the password form, which signs in with the
+           * link the tab was opened with (signInWithMagicLink). When the tab
+           * has no link that works - none, or one the server refused - it says
+           * why, and offers a new link instead.
+           */}
+          {!pendingLogin &&
+            !showTwoFactorAuth &&
+            !totpEnrolment &&
+            props.isMagicLinkSignIn && (
+              <div className="space-y-4">
+                {(magicLinkError || magicLinkCannotSignInMessage) && (
+                  <Alert
+                    type={AlertType.DANGER}
+                    title={magicLinkError || magicLinkCannotSignInMessage || ""}
+                    dataTestId={MAGIC_LINK_SIGN_IN_ERROR_TEST_ID}
+                  />
+                )}
 
-                      if (!captchaToken) {
-                        throw new Error(t("captcha.errorOnSignIn"));
+                {canSignInWithMagicLink && (
+                  <Button
+                    title={t("login.magicLink.submit")}
+                    buttonStyle={ButtonStyleType.PRIMARY}
+                    isLoading={isMagicLinkLoading}
+                    disabled={isMagicLinkLoading}
+                    dataTestId={MAGIC_LINK_SIGN_IN_BUTTON_TEST_ID}
+                    style={{ width: "100%", marginInlineStart: "0px" }}
+                    onClick={() => {
+                      void signInWithMagicLink();
+                    }}
+                  />
+                )}
+
+                {/*
+                 * A new link, drawn as the sign-in page draws its other ways
+                 * in: an outlined button, as wide as the card.
+                 */}
+                {!canSignInWithMagicLink && !isMagicLinkTurnedOff && (
+                  <SignInOptionLink
+                    to={new Route(`/accounts/${MAGIC_LINK_ROUTE}`)}
+                    id={MAGIC_LINK_NEW_LINK_TEST_ID}
+                    dataTestId={MAGIC_LINK_NEW_LINK_TEST_ID}
+                    icon={IconProp.Email}
+                    title={t("login.magicLink.requestNewLink")}
+                  />
+                )}
+              </div>
+            )}
+
+          {!pendingLogin &&
+            !showTwoFactorAuth &&
+            !totpEnrolment &&
+            !props.isMagicLinkSignIn && (
+              <>
+                {/*
+                 * The password form comes first, and its "Login" is the page's
+                 * one filled button: it is how most people sign in. Under it,
+                 * an "or" divider and the other ways in, as normal buttons as
+                 * wide and as tall as Login, outlined where Login is filled:
+                 * single sign-on, Google and Microsoft where this server offers
+                 * them, and a passkey, last (SignInOptionStyle). Passkeys used to open the
+                 * card in a tinted panel of their own, which pushed the form
+                 * people came for below the fold on a phone; after that, the
+                 * other ways in were centred text links, which read as small
+                 * print rather than as choices.
+                 *
+                 * While a passkey attempt runs, the form is paused, and looks
+                 * it: disabled, faded, and out of the pointer's reach, its
+                 * links, the divider, the single sign-on, Google and Microsoft
+                 * buttons and any captcha included. A bright Login that does nothing
+                 * when clicked reads as broken, and a link that leaves the page
+                 * while the server is finishing the sign-in would throw that
+                 * sign-in away. Cancel, outside the form, brings it back. (The
+                 * keyboard can still reach the form's links, as it always
+                 * could: a fieldset does not disable links.)
+                 */}
+                <fieldset
+                  disabled={isPasskeyLoading}
+                  className="transition-opacity disabled:pointer-events-none disabled:opacity-50 motion-reduce:transition-none"
+                >
+                  <ModelForm<User>
+                    modelType={User}
+                    id="login-form"
+                    name="Login"
+                    disableAutofocus={true}
+                    initialValues={formStartValues}
+                    fields={loginFields}
+                    createOrUpdateApiUrl={apiUrl}
+                    formType={FormType.Create}
+                    submitButtonText={t("login.submitButton")}
+                    onBeforeCreate={(data: User, miscDataProps: JSONObject) => {
+                      if (passkeyInProgress.current) {
+                        throw new Error(t("login.passkey.inProgress"));
+                      }
+                      setPasskeyError("");
+                      /*
+                       * What an attempt said is over once the form is used.
+                       * What this browser cannot do stays said, next to the
+                       * option it leaves unavailable.
+                       */
+                      if (isPasskeySupported) {
+                        setPasskeyNotice(null);
+                      }
+                      if (isCaptchaEnabled) {
+                        const captchaToken: string | undefined = (
+                          miscDataProps["captchaToken"] as string | undefined
+                        )
+                          ?.toString()
+                          .trim();
+
+                        if (!captchaToken) {
+                          throw new Error(t("captcha.errorOnSignIn"));
+                        }
+
+                        miscDataProps["captchaToken"] = captchaToken;
+                        setShouldResetCaptcha(true);
                       }
 
-                      miscDataProps["captchaToken"] = captchaToken;
-                      setShouldResetCaptcha(true);
-                    }
-
-                    setInitialValues(User.toJSON(data, User));
-                    return Promise.resolve(data);
-                  }}
-                  onSubmitError={(message: string) => {
-                    /*
-                     * The server came to require SSO after this page read
-                     * that it did not (or could not read it): read again,
-                     * and the page offers SSO in place of this form.
-                     */
-                    if (
-                      message === SSO_REQUIRED_SIGN_IN_MESSAGE &&
-                      !props.isMasterAdminSignIn
-                    ) {
-                      signInMethodsRead.readAgain();
-                    }
-                  }}
-                  onLoadingChange={(loading: boolean) => {
-                    setIsPasswordLoading(loading);
-                    if (!isCaptchaEnabled) {
-                      return;
-                    }
-
-                    if (!loading && shouldResetCaptcha) {
-                      setShouldResetCaptcha(false);
-                      handleCaptchaReset();
-                    }
-                  }}
-                  onSuccess={(
-                    value: User | JSONObject,
-                    miscData: JSONObject | undefined,
-                  ) => {
-                    /*
-                     * Checked BEFORE the two-factor-method lists below, and the
-                     * order is load-bearing rather than stylistic. A user being
-                     * forced to enrol has ZERO methods set up, so that condition
-                     * is false for them -- putting this second would let control
-                     * fall straight through to login() and a redirect into a
-                     * dashboard the server never authorised, with no session
-                     * behind it.
-                     */
-                    if (miscData && miscData["twoFactorEnrolmentRequired"]) {
-                      setTotpEnrolment({
-                        twoFactorAuthId: miscData["twoFactorAuthId"] as string,
-                        twoFactorOtpUrl: miscData["twoFactorOtpUrl"] as string,
-                      });
-                      return;
-                    }
-
-                    if (
-                      miscData &&
-                      ((((miscData as JSONObject)["totpAuthList"] as JSONArray)
-                        ?.length || 0) > 0 ||
-                        (((miscData as JSONObject)["webAuthnList"] as JSONArray)
-                          ?.length || 0) > 0)
-                    ) {
-                      const totpAuthList: Array<UserTotpAuth> =
-                        UserTotpAuth.fromJSONArray(
-                          (miscData as JSONObject)["totpAuthList"] as JSONArray,
-                          UserTotpAuth,
-                        );
-                      const webAuthnList: Array<UserWebAuthn> =
-                        UserWebAuthn.fromJSONArray(
-                          (miscData as JSONObject)["webAuthnList"] as JSONArray,
-                          UserWebAuthn,
-                        );
-                      setTotpAuthList(totpAuthList);
-                      setWebAuthnList(webAuthnList);
+                      setInitialValues(User.toJSON(data, User));
+                      return Promise.resolve(data);
+                    }}
+                    onSubmitError={(message: string) => {
                       /*
-                       * Absent means "the server could not count them", which is
-                       * not the same as zero -- see `isKnownToHaveNoBackupCodes`.
+                       * The server came to require SSO after this page read
+                       * that it did not (or could not read it): read again,
+                       * and the page offers SSO in place of this form.
                        */
-                      const reportedBackupCodeCount: unknown = (
-                        miscData as JSONObject
-                      )["backupCodeCount"];
-
-                      setBackupCodeCount(
-                        typeof reportedBackupCodeCount === "number"
-                          ? reportedBackupCodeCount
-                          : null,
-                      );
-                      setShowTwoFactorAuth(true);
-                      return;
-                    }
-
-                    login(value as User, miscData as JSONObject);
-                  }}
-                  maxPrimaryButtonWidth={true}
-                  footer={
-                    /*
-                     * The other ways in that leave this page: single sign-on,
-                     * and Google and Microsoft where this server offers them.
-                     * Inside the fieldset, so a passkey attempt pauses them
-                     * with the form; the passkey option, last, follows the
-                     * fieldset.
-                     */
-                    <div data-testid="sign-in-options">
-                      <LabelledDivider
-                        label={t("common.or")}
-                        className="my-5"
-                        dataTestId="sign-in-options-divider"
-                      />
-                      <div className="space-y-3">
-                        <SignInOptionLink
-                          to={new Route("/accounts/sso")}
-                          id="sso-login"
-                          dataTestId="sso-login"
-                          icon={IconProp.ShieldCheck}
-                          title={t("login.signInWithSso")}
-                        />
-                        {/*
-                         * Not on the master admins' page: while the server
-                         * requires SSO, Google and Microsoft sign nobody in.
-                         */}
-                        {GoogleSignInClientId && !isMasterAdminPasswordPage ? (
-                          <GoogleSignInButton
-                            title={t("common.continueWithGoogle")}
-                          />
-                        ) : (
-                          <></>
-                        )}
-                        {MicrosoftSignInClientId &&
-                        !isMasterAdminPasswordPage ? (
-                          <MicrosoftSignInButton
-                            title={t("login.signInWithMicrosoft")}
-                          />
-                        ) : (
-                          <></>
-                        )}
-                      </div>
-                    </div>
-                  }
-                />
-              </fieldset>
-
-              {/*
-               * THE PASSKEY OPTION: the last of the other ways in, a button
-               * like the single sign-on one above it, not a panel over the
-               * form. Outside the fieldset above on purpose: the fieldset is
-               * disabled while a passkey attempt runs, and this button, its
-               * words saying what the attempt waits for, and its Cancel have
-               * to stay at full strength.
-               *
-               * Everything an attempt says - the device prompt, a cancel, a
-               * timeout, an error - appears right here, under the control
-               * that was clicked. "New to passkeys?" appears with those
-               * messages: it is for somebody whose attempt did not sign them
-               * in, typically because they have no passkey yet, and nobody
-               * else needs it on the page.
-               *
-               * A browser that cannot use passkeys (no WebAuthn, or a page
-               * not served over HTTPS) still shows the option, and says why
-               * it cannot work here when it is clicked: somebody whose only
-               * way in is a passkey learns to switch browsers, and nobody
-               * else reads a sentence about it on every visit. Once it has
-               * said so, it is drawn as unavailable (isPasskeyUnavailable).
-               */}
-              {/*
-               * Not on the master admins' page, which is the password form
-               * alone: a passkey is no SSO either, and the page is their way
-               * in when the rest are closed.
-               */}
-              {!isMasterAdminPasswordPage && (
-                <div
-                  className="mt-3 text-center text-sm"
-                  data-testid="passkey-option"
-                >
-                  <button
-                    type="button"
-                    id="passkey-login"
-                    data-testid="passkey-login"
-                    disabled={isPasskeyLoading || isPasswordLoading}
-                    /*
-                     * Not `disabled`: the option keeps the focus it was given
-                     * when it explained itself.
-                     */
-                    aria-disabled={isPasskeyUnavailable || undefined}
-                    onClick={() => {
-                      if (!isPasskeyUnavailable) {
-                        void signInWithPasskey();
+                      if (
+                        message === SSO_REQUIRED_SIGN_IN_MESSAGE &&
+                        !props.isMasterAdminSignIn
+                      ) {
+                        signInMethodsRead.readAgain();
                       }
                     }}
-                    className={getSignInOptionClassName(passkeyOptionState)}
-                  >
-                    <SignInOptionLabel
-                      icon={
-                        <Icon
-                          icon={
-                            isPasskeyLoading
-                              ? IconProp.Spinner
-                              : IconProp.Fingerprint
-                          }
-                          className={`${SIGN_IN_OPTION_ICON_CLASS}${
-                            isPasskeyLoading ? " animate-spin" : ""
-                          }`}
-                          data-testid={
-                            isPasskeyLoading
-                              ? "passkey-login-spinner"
-                              : "passkey-login-fingerprint"
-                          }
-                        />
+                    onLoadingChange={(loading: boolean) => {
+                      setIsPasswordLoading(loading);
+                      if (!isCaptchaEnabled) {
+                        return;
                       }
-                      title={t(
-                        passkeyStageText
-                          ? passkeyStageText.option
-                          : isPasskeySupported &&
-                              (passkeyError || passkeyNotice)
-                            ? "login.passkey.tryAgain"
-                            : "login.passkey.signIn",
-                      )}
-                    />
-                  </button>
-                  <div role="status" aria-live="polite" aria-atomic="true">
-                    {passkeyStageText && (
+
+                      if (!loading && shouldResetCaptcha) {
+                        setShouldResetCaptcha(false);
+                        handleCaptchaReset();
+                      }
+                    }}
+                    onSuccess={(
+                      value: User | JSONObject,
+                      miscData: JSONObject | undefined,
+                    ) => {
+                      continueSignIn(value, miscData);
+                    }}
+                    maxPrimaryButtonWidth={true}
+                    footer={
                       /*
-                       * Only the device prompt needs a line of its own; while
-                       * preparing and verifying, the button already says the
-                       * same words, so the line is there for screen readers.
+                       * The other ways in that leave this page: single sign-on,
+                       * and Google and Microsoft where this server offers them.
+                       * Inside the fieldset, so a passkey attempt pauses them
+                       * with the form; the passkey option, last, follows the
+                       * fieldset.
                        */
-                      <p
-                        className={
-                          passkeyStage === "prompt"
-                            ? "mt-2 text-balance text-gray-600"
-                            : "sr-only"
-                        }
-                      >
-                        {t(passkeyStageText.status)}
-                      </p>
-                    )}
-                    {passkeyNotice && (
-                      <p
-                        className="mt-2 text-balance text-gray-600"
-                        data-testid="passkey-notice"
-                      >
-                        {t(passkeyNotice)}
-                      </p>
-                    )}
-                  </div>
-                  {(passkeyStage === "preparing" ||
-                    passkeyStage === "prompt") && (
+                      <div data-testid="sign-in-options">
+                        <LabelledDivider
+                          label={t("common.or")}
+                          className="my-5"
+                          dataTestId="sign-in-options-divider"
+                        />
+                        <div className="space-y-3">
+                          <SignInOptionLink
+                            to={new Route("/accounts/sso")}
+                            id="sso-login"
+                            dataTestId="sso-login"
+                            icon={IconProp.ShieldCheck}
+                            title={t("login.signInWithSso")}
+                          />
+                          {/*
+                           * Not on the master admins' page: while the server
+                           * requires SSO, Google and Microsoft sign nobody in.
+                           */}
+                          {GoogleSignInClientId &&
+                          !isMasterAdminPasswordPage ? (
+                            <GoogleSignInButton
+                              title={t("common.continueWithGoogle")}
+                            />
+                          ) : (
+                            <></>
+                          )}
+                          {MicrosoftSignInClientId &&
+                          !isMasterAdminPasswordPage ? (
+                            <MicrosoftSignInButton
+                              title={t("login.signInWithMicrosoft")}
+                            />
+                          ) : (
+                            <></>
+                          )}
+                          {/*
+                           * A sign-in link emailed to the account, where this
+                           * server takes them (Common/Types/Accounts/MagicLink):
+                           * the address, then the link, on a page of its own.
+                           */}
+                          {isMagicLinkLoginOffered ? (
+                            <SignInOptionLink
+                              to={new Route(`/accounts/${MAGIC_LINK_ROUTE}`)}
+                              id={MAGIC_LINK_SIGN_IN_OPTION_TEST_ID}
+                              dataTestId={MAGIC_LINK_SIGN_IN_OPTION_TEST_ID}
+                              icon={IconProp.Email}
+                              title={t("login.emailSignInLink")}
+                            />
+                          ) : (
+                            <></>
+                          )}
+                        </div>
+                      </div>
+                    }
+                  />
+                </fieldset>
+
+                {/*
+                 * THE PASSKEY OPTION: the last of the other ways in, a button
+                 * like the single sign-on one above it, not a panel over the
+                 * form. Outside the fieldset above on purpose: the fieldset is
+                 * disabled while a passkey attempt runs, and this button, its
+                 * words saying what the attempt waits for, and its Cancel have
+                 * to stay at full strength.
+                 *
+                 * Everything an attempt says - the device prompt, a cancel, a
+                 * timeout, an error - appears right here, under the control
+                 * that was clicked. "New to passkeys?" appears with those
+                 * messages: it is for somebody whose attempt did not sign them
+                 * in, typically because they have no passkey yet, and nobody
+                 * else needs it on the page.
+                 *
+                 * A browser that cannot use passkeys (no WebAuthn, or a page
+                 * not served over HTTPS) still shows the option, and says why
+                 * it cannot work here when it is clicked: somebody whose only
+                 * way in is a passkey learns to switch browsers, and nobody
+                 * else reads a sentence about it on every visit. Once it has
+                 * said so, it is drawn as unavailable (isPasskeyUnavailable).
+                 */}
+                {/*
+                 * Not on the master admins' page, which is the password form
+                 * alone: a passkey is no SSO either, and the page is their way
+                 * in when the rest are closed.
+                 */}
+                {!isMasterAdminPasswordPage && (
+                  <div
+                    className="mt-3 text-center text-sm"
+                    data-testid="passkey-option"
+                  >
                     <button
                       type="button"
-                      data-testid="cancel-passkey-login"
-                      onClick={cancelPasskeySignIn}
-                      className={`mt-2 text-gray-500 hover:text-gray-700 hover:underline ${QUIET_CONTROL_FOCUS}`}
+                      id="passkey-login"
+                      data-testid="passkey-login"
+                      disabled={isPasskeyLoading || isPasswordLoading}
+                      /*
+                       * Not `disabled`: the option keeps the focus it was given
+                       * when it explained itself.
+                       */
+                      aria-disabled={isPasskeyUnavailable || undefined}
+                      onClick={() => {
+                        if (!isPasskeyUnavailable) {
+                          void signInWithPasskey();
+                        }
+                      }}
+                      className={getSignInOptionClassName(passkeyOptionState)}
                     >
-                      {t("common.cancel")}
+                      <SignInOptionLabel
+                        icon={
+                          <Icon
+                            icon={
+                              isPasskeyLoading
+                                ? IconProp.Spinner
+                                : IconProp.Fingerprint
+                            }
+                            className={`${SIGN_IN_OPTION_ICON_CLASS}${
+                              isPasskeyLoading ? " animate-spin" : ""
+                            }`}
+                            data-testid={
+                              isPasskeyLoading
+                                ? "passkey-login-spinner"
+                                : "passkey-login-fingerprint"
+                            }
+                          />
+                        }
+                        title={t(
+                          passkeyStageText
+                            ? passkeyStageText.option
+                            : isPasskeySupported &&
+                                (passkeyError || passkeyNotice)
+                              ? "login.passkey.tryAgain"
+                              : "login.passkey.signIn",
+                        )}
+                      />
                     </button>
-                  )}
-                  {passkeyError && (
-                    /*
-                     * The same alert the form shows at the top of the card for
-                     * a wrong password: one look for "that did not work",
-                     * wherever it happened.
-                     */
-                    <Alert
-                      type={AlertType.DANGER}
-                      title={passkeyError}
-                      className="mt-3 text-start"
-                      dataTestId="passkey-error"
-                    />
-                  )}
-                  {isPasskeySupported &&
-                    !isPasskeyLoading &&
-                    (passkeyNotice || passkeyError) && (
-                      <details
-                        className="mt-2 text-gray-600"
-                        data-testid="passkey-help"
-                      >
-                        <summary
-                          className={`mx-auto w-fit cursor-pointer text-indigo-500 hover:text-indigo-900 hover:underline ${QUIET_CONTROL_FOCUS}`}
+                    <div role="status" aria-live="polite" aria-atomic="true">
+                      {passkeyStageText && (
+                        /*
+                         * Only the device prompt needs a line of its own; while
+                         * preparing and verifying, the button already says the
+                         * same words, so the line is there for screen readers.
+                         */
+                        <p
+                          className={
+                            passkeyStage === "prompt"
+                              ? "mt-2 text-balance text-gray-600"
+                              : "sr-only"
+                          }
                         >
-                          {t("login.passkey.helpTitle")}
-                        </summary>
-                        <p className="mt-2 rounded-lg bg-gray-50 px-3 py-2 text-start leading-6">
-                          {t("login.passkey.help")}
+                          {t(passkeyStageText.status)}
                         </p>
-                      </details>
+                      )}
+                      {passkeyNotice && (
+                        <p
+                          className="mt-2 text-balance text-gray-600"
+                          data-testid="passkey-notice"
+                        >
+                          {t(passkeyNotice)}
+                        </p>
+                      )}
+                    </div>
+                    {(passkeyStage === "preparing" ||
+                      passkeyStage === "prompt") && (
+                      <button
+                        type="button"
+                        data-testid="cancel-passkey-login"
+                        onClick={cancelPasskeySignIn}
+                        className={`mt-2 text-gray-500 hover:text-gray-700 hover:underline ${QUIET_CONTROL_FOCUS}`}
+                      >
+                        {t("common.cancel")}
+                      </button>
                     )}
-                </div>
-              )}
-            </>
-          )}
+                    {passkeyError && (
+                      /*
+                       * The same alert the form shows at the top of the card for
+                       * a wrong password: one look for "that did not work",
+                       * wherever it happened.
+                       */
+                      <Alert
+                        type={AlertType.DANGER}
+                        title={passkeyError}
+                        className="mt-3 text-start"
+                        dataTestId="passkey-error"
+                      />
+                    )}
+                    {isPasskeySupported &&
+                      !isPasskeyLoading &&
+                      (passkeyNotice || passkeyError) && (
+                        <details
+                          className="mt-2 text-gray-600"
+                          data-testid="passkey-help"
+                        >
+                          <summary
+                            className={`mx-auto w-fit cursor-pointer text-indigo-500 hover:text-indigo-900 hover:underline ${QUIET_CONTROL_FOCUS}`}
+                          >
+                            {t("login.passkey.helpTitle")}
+                          </summary>
+                          <p className="mt-2 rounded-lg bg-gray-50 px-3 py-2 text-start leading-6">
+                            {t("login.passkey.help")}
+                          </p>
+                        </details>
+                      )}
+                  </div>
+                )}
+              </>
+            )}
 
           {!pendingLogin &&
             showTwoFactorAuth &&
@@ -1905,7 +2157,8 @@ const LoginPage: (props: ComponentProps) => JSX.Element = (
             !selectedWebAuthn &&
             !totpEnrolment &&
             !isUsingBackupCode &&
-            !isMasterAdminPasswordPage && (
+            !isMasterAdminPasswordPage &&
+            !props.isMagicLinkSignIn && (
               <div className="text-muted mb-0 text-gray-500 text-sm sm:text-base">
                 {t("login.noAccountPrompt")}{" "}
                 <Link
@@ -1913,6 +2166,24 @@ const LoginPage: (props: ComponentProps) => JSX.Element = (
                   className="text-indigo-500 hover:text-indigo-900 cursor-pointer"
                 >
                   {t("login.registerLink")}
+                </Link>
+              </div>
+            )}
+
+          {/*
+           * The way back from the page a sign-in link opens, to every other
+           * way of signing in.
+           */}
+          {!pendingLogin &&
+            !showTwoFactorAuth &&
+            !totpEnrolment &&
+            props.isMagicLinkSignIn && (
+              <div className="text-muted mb-0 text-gray-500 text-sm sm:text-base">
+                <Link
+                  to={new Route("/accounts/login")}
+                  className="text-indigo-500 hover:text-indigo-900 cursor-pointer"
+                >
+                  {t("login.magicLink.backToSignIn")}
                 </Link>
               </div>
             )}

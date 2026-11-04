@@ -30,8 +30,10 @@ import { getJestSpyOn } from "../../Spy";
  *
  *   - Settings > Authentication: "Let people sign up" (on while
  *     GlobalConfig.disableSignup is false, saying under it that nobody signs
- *     up while SSO is required) and "Let users create projects" (on while
- *     disableUserProjectCreation is false);
+ *     up while SSO is required), "Let people sign in with an emailed link"
+ *     (on while disableMagicLinkLogin is false, saying under it that the
+ *     sign-in page offers SSO alone while SSO is required) and "Let users
+ *     create projects" (on while disableUserProjectCreation is false);
  *   - Settings > Single Sign-On: "Require SSO for Login" (asks, red, before
  *     it turns on), under the providers it depends on - it was the card
  *     between the two above;
@@ -157,6 +159,8 @@ jest.mock(
 
 import AuthenticationSettings from "../../../../App/FeatureSet/AdminDashboard/src/Pages/Settings/Authentication/Index";
 import {
+  MAGIC_LINK_SSO_REQUIRED_TEST_ID,
+  MAGIC_LINK_SWITCH_TEST_ID,
   PROJECT_CREATION_SWITCH_TEST_ID,
   SIGN_UP_SSO_REQUIRED_TEST_ID,
   SIGN_UP_SWITCH_TEST_ID,
@@ -373,7 +377,7 @@ afterEach(() => {
 });
 
 describe("Settings > Authentication", () => {
-  test("is two switches, in order: sign up, project creation", async () => {
+  test("is three switches, in order: sign up, sign-in links, project creation", async () => {
     await renderPage(<AuthenticationSettings />);
 
     const switches: Array<string> = screen
@@ -385,6 +389,7 @@ describe("Settings > Authentication", () => {
     // Require SSO for Login is on Settings > Single Sign-On now.
     expect(switches).toEqual([
       SIGN_UP_SWITCH_TEST_ID,
+      MAGIC_LINK_SWITCH_TEST_ID,
       PROJECT_CREATION_SWITCH_TEST_ID,
     ]);
     expect(screen.queryByText(REQUIRE_SSO_COPY.switchTitle)).toBeNull();
@@ -400,10 +405,17 @@ describe("Settings > Authentication", () => {
         name: en("pages.settings.authentication.projectCreationSwitchTitle"),
       }),
     ).toBe(switchFor(PROJECT_CREATION_SWITCH_TEST_ID));
+    expect(
+      screen.getByRole("switch", {
+        name: en("pages.settings.authentication.magicLinkSwitchTitle"),
+      }),
+    ).toBe(switchFor(MAGIC_LINK_SWITCH_TEST_ID));
 
     for (const text of [
       en("pages.settings.authentication.signUpCardTitle"),
       en("pages.settings.authentication.signUpCardDescription"),
+      en("pages.settings.authentication.magicLinkCardTitle"),
+      en("pages.settings.authentication.magicLinkCardDescription"),
       en("pages.settings.authentication.projectCreationCardTitle"),
       en("pages.settings.authentication.projectCreationCardDescription"),
     ]) {
@@ -425,6 +437,7 @@ describe("Settings > Authentication", () => {
     });
 
     expect(reads.sort()).toEqual([
+      "disableMagicLinkLogin,requireSsoForLogin",
       "disableSignup,requireSsoForLogin",
       "disableUserProjectCreation",
     ]);
@@ -543,6 +556,102 @@ describe("Settings > Authentication", () => {
         en("pages.settings.authentication.projectCreationSwitchOffDescription"),
       ),
     ).toBeInTheDocument();
+  });
+
+  test("a server that never set it takes sign-in links", async () => {
+    await renderPage(<AuthenticationSettings />);
+
+    expect(switchFor(MAGIC_LINK_SWITCH_TEST_ID)).toHaveAttribute(
+      "aria-checked",
+      "true",
+    );
+    expect(
+      screen.getByText(
+        en("pages.settings.authentication.magicLinkSwitchOnDescription"),
+      ),
+    ).toBeInTheDocument();
+  });
+
+  test("turning sign-in links off saves disableMagicLinkLogin: true at once, with no dialog, and says links already sent stop working", async () => {
+    await renderPage(<AuthenticationSettings />);
+
+    const control: HTMLElement = switchFor(MAGIC_LINK_SWITCH_TEST_ID);
+
+    await press(control);
+
+    expect(screen.queryByRole("dialog")).toBeNull();
+    expect(updateCalls()).toHaveLength(1);
+    expect(updateCalls()[0]!.modelType).toBe(GlobalConfig);
+    expect(updateCalls()[0]!.id.toString()).toBe(ZERO_ID);
+    expect(updateCalls()[0]!.data).toEqual({ disableMagicLinkLogin: true });
+    expect(control).toHaveAttribute("aria-checked", "false");
+
+    const offSentence: string = en(
+      "pages.settings.authentication.magicLinkSwitchOffDescription",
+    );
+
+    expect(screen.getByText(offSentence)).toBeInTheDocument();
+    expect(offSentence).toContain("Links already sent stop working");
+  });
+
+  test("a server with sign-in links off shows the switch off, and turning them on saves disableMagicLinkLogin: false", async () => {
+    stored[storedKey("GlobalConfig", ZERO_ID)] = {
+      disableMagicLinkLogin: true,
+    };
+
+    await renderPage(<AuthenticationSettings />);
+
+    const control: HTMLElement = switchFor(MAGIC_LINK_SWITCH_TEST_ID);
+
+    expect(control).toHaveAttribute("aria-checked", "false");
+
+    await press(control);
+
+    expect(updateCalls()[0]!.data).toEqual({ disableMagicLinkLogin: false });
+    expect(control).toHaveAttribute("aria-checked", "true");
+  });
+
+  test("the switch's words say that two factor authentication still applies, and how long a link works", async () => {
+    const onSentence: string = en(
+      "pages.settings.authentication.magicLinkSwitchOnDescription",
+    );
+
+    expect(onSentence).toContain("Two factor authentication still applies");
+    expect(onSentence).toContain("15 minutes");
+  });
+
+  test("while the server requires SSO, Sign-In Links says the sign-in page offers SSO alone", async () => {
+    stored[storedKey("GlobalConfig", ZERO_ID)] = { requireSsoForLogin: true };
+
+    await renderPage(<AuthenticationSettings />);
+
+    expect(
+      screen.getByTestId(MAGIC_LINK_SSO_REQUIRED_TEST_ID),
+    ).toHaveTextContent(
+      en("pages.settings.authentication.magicLinkWhileSsoRequired"),
+    );
+  });
+
+  test("while it does not, Sign-In Links says nothing more", async () => {
+    await renderPage(<AuthenticationSettings />);
+
+    expect(screen.queryByTestId(MAGIC_LINK_SSO_REQUIRED_TEST_ID)).toBeNull();
+  });
+
+  test("in German, Sign-In Links is German", async () => {
+    await renderPage(<AuthenticationSettings />, { locale: "de" });
+
+    const germanTitle: string = nested(
+      GERMAN,
+      "pages.settings.authentication.magicLinkSwitchTitle",
+    );
+
+    expect(germanTitle).not.toBe(
+      en("pages.settings.authentication.magicLinkSwitchTitle"),
+    );
+    expect(screen.getByRole("switch", { name: germanTitle })).toBe(
+      switchFor(MAGIC_LINK_SWITCH_TEST_ID),
+    );
   });
 
   test("a refused save moves the switch back and says why", async () => {
