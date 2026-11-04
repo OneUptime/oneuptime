@@ -1977,6 +1977,7 @@ describe("the OpenTelemetry collector pin", () => {
     "agents/CephAgent/docker-compose.yml",
     "agents/OpenStackAgent/docker-compose.yml",
     "agents/OpenStackAgent/docker-compose.traces.yml",
+    "agents/OpenStackAgent/docker-compose.logs.yml",
     // The journald wrapper image the Proxmox README and guide build.
     "agents/ProxmoxAgent/README.md",
     "packages/App/FeatureSet/Dashboard/src/Pages/Proxmox/Utils/DocumentationMarkdown.ts",
@@ -2076,6 +2077,7 @@ describe("the OpenTelemetry collector pin", () => {
       "agents/CephAgent/docker-compose.yml",
       "agents/OpenStackAgent/docker-compose.yml",
       "agents/OpenStackAgent/docker-compose.traces.yml",
+      "agents/OpenStackAgent/docker-compose.logs.yml",
       "agents/StorageArrayAgent/docker-compose.yml",
     ]) {
       const compose = yaml.load(read(file));
@@ -2093,6 +2095,163 @@ describe("the OpenTelemetry collector pin", () => {
   });
 
   /*
+   * The pipelines that can send something to OneUptime without the stamp. What
+   * counts is what leaves the collector. A pipeline that only hands its data to
+   * other pipelines through connectors sends nothing itself, so it is fine exactly
+   * when every pipeline it feeds is. One with any other exporter must stamp for
+   * itself, because that way out skips the pipeline it also feeds, and a connector
+   * nothing reads leaves nothing to vouch for it. The collector refuses a loop of
+   * connectors, so this does too rather than calling one stamped.
+   */
+  function pipelinesThatSendUnstamped(config) {
+    const pipelines = config.service.pipelines;
+    const connectors = Object.keys(config.connectors || {});
+
+    const isStamped = (name, walked) => {
+      const pipeline = pipelines[name];
+      if ((pipeline.processors || []).includes("resource")) {
+        return true;
+      }
+      const exporters = pipeline.exporters || [];
+      if (walked.includes(name) || exporters.length === 0) {
+        return false;
+      }
+      return exporters.every((exporter) => {
+        if (!connectors.includes(exporter)) {
+          return false;
+        }
+        const fed = Object.keys(pipelines).filter((other) => {
+          return (pipelines[other].receivers || []).includes(exporter);
+        });
+        return (
+          fed.length > 0 &&
+          fed.every((other) => {
+            return isStamped(other, [...walked, name]);
+          })
+        );
+      });
+    };
+
+    return Object.keys(pipelines).filter((name) => {
+      return !isStamped(name, []);
+    });
+  }
+
+  test("a pipeline goes without the stamp only if all it sends reaches one that stamps", () => {
+    const stamps = {
+      receivers: ["forward/in"],
+      processors: ["resource"],
+      exporters: ["otlphttp"],
+    };
+    const forwards = {
+      receivers: ["prometheus"],
+      processors: ["memory_limiter"],
+      exporters: ["forward/in"],
+    };
+    const connectors = { "forward/in": {} };
+
+    // The first case is the rule's whole point, and what it has always caught.
+    expect(
+      pipelinesThatSendUnstamped({
+        service: {
+          pipelines: { metrics: { ...stamps, processors: ["batch"] } },
+        },
+      }),
+    ).toEqual(["metrics"]);
+    expect(
+      pipelinesThatSendUnstamped({
+        connectors,
+        service: { pipelines: { metrics: stamps, increases: forwards } },
+      }),
+    ).toEqual([]);
+    // Through two connectors, which is still one way out.
+    expect(
+      pipelinesThatSendUnstamped({
+        connectors: { ...connectors, "forward/first": {} },
+        service: {
+          pipelines: {
+            metrics: stamps,
+            second: {
+              ...forwards,
+              receivers: ["forward/first"],
+            },
+            first: { ...forwards, exporters: ["forward/first"] },
+          },
+        },
+      }),
+    ).toEqual([]);
+    // Forwarding is no excuse when the pipeline it feeds does not stamp either.
+    expect(
+      pipelinesThatSendUnstamped({
+        connectors,
+        service: {
+          pipelines: {
+            metrics: { ...stamps, processors: ["batch"] },
+            increases: forwards,
+          },
+        },
+      }),
+    ).toEqual(["metrics", "increases"]);
+    // One pipeline it feeds stamps and another does not: the second is a way out.
+    expect(
+      pipelinesThatSendUnstamped({
+        connectors,
+        service: {
+          pipelines: {
+            metrics: stamps,
+            other: { ...stamps, processors: ["batch"] },
+            increases: forwards,
+          },
+        },
+      }),
+    ).toEqual(["other", "increases"]);
+    // Forwarding and also sending: what it sends directly never reaches the stamp.
+    expect(
+      pipelinesThatSendUnstamped({
+        connectors,
+        service: {
+          pipelines: {
+            metrics: stamps,
+            increases: { ...forwards, exporters: ["forward/in", "otlphttp"] },
+          },
+        },
+      }),
+    ).toEqual(["increases"]);
+    // A name that looks like a connector and is not declared as one is an exporter.
+    expect(
+      pipelinesThatSendUnstamped({
+        service: { pipelines: { metrics: stamps, increases: forwards } },
+      }),
+    ).toEqual(["increases"]);
+    // A connector nothing reads, an exporter list nothing fills, and a loop.
+    expect(
+      pipelinesThatSendUnstamped({
+        connectors,
+        service: { pipelines: { increases: forwards } },
+      }),
+    ).toEqual(["increases"]);
+    expect(
+      pipelinesThatSendUnstamped({
+        service: { pipelines: { metrics: { processors: ["batch"] } } },
+      }),
+    ).toEqual(["metrics"]);
+    expect(
+      pipelinesThatSendUnstamped({
+        connectors,
+        service: {
+          pipelines: {
+            a: {
+              receivers: ["forward/in"],
+              processors: [],
+              exporters: ["forward/in"],
+            },
+          },
+        },
+      }),
+    ).toEqual(["a"]);
+  });
+
+  /*
    * These agents are the stock collector plus a config, so the config is
    * what tells OneUptime the agent's version: it must stamp exactly the pin
    * the compose file beside it runs, or the version sign on the resource's
@@ -2104,6 +2263,8 @@ describe("the OpenTelemetry collector pin", () => {
     ["CephAgent", "otel-collector-config.yaml"],
     ["OpenStackAgent", "otel-collector-config.yaml"],
     ["OpenStackAgent", "otel-collector-traces.yaml"],
+    ["OpenStackAgent", "otel-collector-logs-files.yaml"],
+    ["OpenStackAgent", "otel-collector-logs-journald.yaml"],
     ["VMwareAgent", "otel-collector-config.yaml"],
     ["StorageArrayAgent", "otel-collector-config.yaml"],
     ["StorageArrayAgent", "otel-collector-config.flasharray-exporter.yaml"],
@@ -2132,10 +2293,8 @@ describe("the OpenTelemetry collector pin", () => {
           pinsIn(`agents/${agent}/docker-compose.yml`)[0],
         ),
       }).toEqual({ file, isOfThePin: true });
-      // Every pipeline runs the processor that stamps it.
-      for (const pipeline of Object.values(config.service.pipelines)) {
-        expect(pipeline.processors).toContain("resource");
-      }
+      // Everything that leaves the collector has passed the processor that stamps it.
+      expect(pipelinesThatSendUnstamped(config)).toEqual([]);
     },
   );
 });
