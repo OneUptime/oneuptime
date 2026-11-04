@@ -117,6 +117,12 @@ function runbookFix(
   });
 }
 
+// What the step asks ModelAPI.getList for: the model and the columns it reads.
+interface ListCallArgs {
+  modelType: unknown;
+  select: JSONObject;
+}
+
 let getListSpy: ReturnType<typeof jest.spyOn>;
 let postSpy: ReturnType<typeof jest.spyOn>;
 let served: Array<AutoRemediationSuggestion> = [];
@@ -319,14 +325,14 @@ describe("a runbook that waits for approval", () => {
     await renderStep([runbookFix()]);
 
     const select: JSONObject | undefined = (
-      getListSpy.mock.calls as Array<Array<JSONObject>>
+      getListSpy.mock.calls as Array<Array<ListCallArgs>>
     )
-      .map((call: Array<JSONObject>): JSONObject => {
+      .map((call: Array<ListCallArgs>): ListCallArgs => {
         return call[0]!;
       })
-      .find((args: JSONObject): boolean => {
-        return args["modelType"] === AutoRemediationSuggestion;
-      })?.["select"] as JSONObject | undefined;
+      .find((args: ListCallArgs): boolean => {
+        return args.modelType === AutoRemediationSuggestion;
+      })?.select;
 
     expect(select?.["runbookTrackRecord"]).toBe(true);
     expect(select?.["approvedFrom"]).toBe(true);
