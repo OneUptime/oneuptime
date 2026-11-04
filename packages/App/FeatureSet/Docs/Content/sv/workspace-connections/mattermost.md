@@ -6,6 +6,7 @@ Anslut OneUptime till din Mattermost-server för att publicera incidenter, larm,
 - [Anslut Mattermost](#anslut-mattermost): Skapa ett botkonto för OneUptime och anslut sedan projektet med dess token.
 - [Anslut ditt eget konto](#anslut-ditt-eget-mattermost-konto): Länka ditt Mattermost-konto till ditt OneUptime-konto.
 - [Aviseringsregler](#aviseringsregler): Bestäm vilka händelser som publiceras var, och vilka som får en egen kanal.
+- [Vem som är i en posts kanal](#vem-som-är-i-en-posts-kanal): Se vem som är med, gå med och lägg till personer, från postens sida.
 - [Agera från Mattermost](#agera-på-incidenter-larm-och-händelser-från-mattermost): Knapparna i OneUptimes meddelanden.
 - [Nätverk och egen drift](#nätverk-och-egen-drift): Vad varje server måste kunna nå.
 :::
@@ -103,6 +104,22 @@ En incident, ett larm, en episod eller en schemalagd underhållshändelse med en
 
 OneUptimes meddelanden aviserar ingen genom det de citerar: ett namn eller en beskrivning som innehåller `@channel`, `@here` eller `@someone` visas så som det är skrivet och pingar ingen.
 
+## Vem som är i en posts kanal
+
+En incident, ett larm, en episod eller en schemalagd underhållshändelse med en egen Mattermost-kanal har kortet **Mattermost-kanal** på sin sida i OneUptime. Kortet visar kanalen, som en länk som öppnar den på din Mattermost-server, om den är privat och vem som är med i den, du först. Från kortet, utan en Mattermost-administratör:
+
+- **Gå med i kanalen** lägger till dig när du inte är med i kanalen.
+- **Lägg till personer** öppnar en lista över projektets personer och team: välj en person för att lägga till personen, eller ett team för att lägga till alla i det.
+
+OneUptimes bot lägger till dem, på samma sätt som den lägger till personerna i en regels kanal. Boten stannar kvar i kanalerna den skapar, så det här fungerar även för en privat kanal som alla har lämnat. En post som också har kanaler i Slack eller Microsoft Teams visar alla på ett enda kort **Chattkanaler**.
+
+- **Vem som får lägga till personer.** Den som får redigera posten: **Projektägare**, **Projektadministratör**, **Projektmedlem**, **Incidentadministratör** och **Incidentmedlem** för en incident, eller **Edit Incident** i en anpassad roll, och samma behörighet för ett larm, en episod eller en händelse (till exempel **Edit Alert**). Alla andra ser vem som är med i kanalen och hur de kommer in.
+- **Vem som kan läggas till.** Någon som OneUptime hittar i Mattermost, via det konto personen har anslutit eller annars via e-postadressen, när din server visar e-postadresser för boten, och som är med i det team projektet är anslutet till. Ett gästkonto i det teamet kan också läggas till: Mattermost låter en kanals medlemmar lägga till gäster. Kortet nämner vilka det inte kunde lägga till, och varför.
+- **Vad som registreras.** Vem som lades till, och av vem, i postens flöde (**Kanalmedlem tillagd**) och under **Projektinställningar** > **Aviseringar** > **Aviseringsloggar**, på fliken **Arbetsyta**.
+- **En arkiverad kanal.** Kortet visar fortfarande vem som är med i den, och lägger inte till någon förrän kanalen har återställts från arkivet i Mattermost.
+- **En kanal som boten har tagits bort från.** Mattermost visar en kanals personer bara för någon som är med i den, även för en offentlig kanal, så kortet säger att det inte kan se kanalen. Någon i kanalen kan lägga till boten igen i Mattermost. OneUptime går också själv med i en offentlig kanal igen nästa gång det publicerar där.
+- **Att ta bort någon.** OneUptime lägger bara till: ta bort någon från kanalen i Mattermost.
+
 ## Agera på incidenter, larm och händelser från Mattermost
 
 OneUptimes meddelanden har knappar, och en meny **More actions** för det som färre behöver. Var och en agerar som dig, med dina behörigheter i projektet, och svarar i ett meddelande som bara du ser.
@@ -139,3 +156,5 @@ Varje knapp som OneUptime publicerar bär en signatur, som kontrolleras när kna
 | **The bot is not a member of the private Mattermost channel** | Lägg till boten i kanalen i Mattermost. |
 | En knapp gör ingenting, eller Mattermost säger att åtgärden inte kunde slutföras | Mattermost kan inte nå OneUptime. Se [Nätverk och egen drift](#nätverk-och-egen-drift). |
 | Inget direktmeddelande med din länk kommer fram | Kontrollera användarnamnet, och att boten är med i ett team som du är med i. |
+| Kanalkortet säger att OneUptime inte kan se kanalen | Kanalen har tagits bort, eller så har boten tagits bort från den. Om den finns kvar kan någon i kanalen lägga till boten igen i Mattermost. |
+| Kanalkortet säger att någon inte är med i Mattermost-teamet | Lägg till personen i Mattermost i det team projektet är anslutet till, och lägg sedan till personen igen. |

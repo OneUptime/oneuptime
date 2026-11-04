@@ -6,6 +6,7 @@ Koppel OneUptime aan je Mattermost-server om incidenten, waarschuwingen, episode
 - [Mattermost koppelen](#mattermost-koppelen): Maak een botaccount voor OneUptime aan en koppel daarna het project met zijn token.
 - [Je eigen account koppelen](#je-eigen-mattermost-account-koppelen): Koppel je Mattermost-account aan je OneUptime-account.
 - [Meldingsregels](#meldingsregels): Bepaal welke gebeurtenissen waar worden geplaatst, en welke een eigen kanaal krijgen.
+- [Wie er in het kanaal van een record zit](#wie-er-in-het-kanaal-van-een-record-zit): Zie wie erin zit, neem deel en voeg mensen toe, vanaf de pagina van het record.
 - [Handelen vanuit Mattermost](#handelen-op-incidenten-waarschuwingen-en-gebeurtenissen-vanuit-mattermost): De knoppen in de berichten van OneUptime.
 - [Netwerk en zelf hosten](#netwerk-en-zelf-hosten): Wat elke server moet kunnen bereiken.
 :::
@@ -103,6 +104,22 @@ Een incident, waarschuwing, episode of geplande onderhoudsgebeurtenis met een ei
 
 De berichten van OneUptime sturen niemand een melding via wat ze citeren: een naam of een beschrijving met `@channel`, `@here` of `@someone` wordt getoond zoals die is geschreven, en pingt niemand.
 
+## Wie er in het kanaal van een record zit
+
+Een incident, waarschuwing, episode of geplande onderhoudsgebeurtenis met een eigen Mattermost-kanaal heeft een kaart **Mattermost-kanaal** op zijn pagina in OneUptime. De kaart toont het kanaal, als link die het op je Mattermost-server opent, of het privé is en wie erin zit, jij eerst. Vanaf de kaart, zonder Mattermost-beheerder:
+
+- **Deelnemen aan kanaal** voegt jou toe, als je niet in het kanaal zit.
+- **Mensen toevoegen** opent een lijst van de mensen en teams van het project: kies iemand om die toe te voegen, of een team om iedereen erin toe te voegen.
+
+De bot van OneUptime voegt ze toe, zoals hij de mensen van het kanaal van een regel toevoegt. De bot blijft in de kanalen die hij aanmaakt, dus dit werkt ook voor een privékanaal dat iedereen heeft verlaten. Een record dat ook kanalen in Slack of Microsoft Teams heeft, toont ze allemaal op één kaart **Chatkanalen**.
+
+- **Wie mensen mag toevoegen.** Wie het record mag bewerken: **Projecteigenaar**, **Projectbeheerder**, **Projectlid**, **Incidentbeheerder** en **Incidentlid** voor een incident, of **Edit Incident** in een aangepaste rol, en dezelfde toestemming voor een waarschuwing, een episode of een gebeurtenis (bijvoorbeeld **Edit Alert**). Ieder ander ziet wie er in het kanaal zit, en hoe je erin komt.
+- **Wie kan worden toegevoegd.** Iemand die OneUptime in Mattermost vindt, via het account dat diegene heeft gekoppeld of anders via het e-mailadres, als je server e-mailadressen aan de bot toont, en die in het team zit waaraan het project is gekoppeld. Ook een gastaccount in dat team kan worden toegevoegd: Mattermost laat de leden van een kanaal gasten toevoegen. De kaart noemt wie hij niet kon toevoegen, en waarom.
+- **Wat wordt vastgelegd.** Wie is toegevoegd, en door wie, in de feed van het record (**Kanaallid toegevoegd**) en in **Projectinstellingen** > **Meldingen** > **Meldingslogboeken**, op het tabblad **Werkruimte**.
+- **Een gearchiveerd kanaal.** De kaart toont nog steeds wie erin zit, en voegt niemand toe totdat het kanaal in Mattermost uit het archief is gehaald.
+- **Een kanaal waaruit de bot is verwijderd.** Mattermost toont de mensen van een kanaal alleen aan iemand die erin zit, ook bij een openbaar kanaal, dus de kaart zegt dat hij het kanaal niet kan zien. Iemand in het kanaal kan de bot weer toevoegen in Mattermost. OneUptime gaat ook vanzelf weer in een openbaar kanaal zitten zodra het daar weer iets plaatst.
+- **Iemand eruit halen.** OneUptime voegt alleen toe: haal iemand in Mattermost uit het kanaal.
+
 ## Handelen op incidenten, waarschuwingen en gebeurtenissen vanuit Mattermost
 
 De berichten van OneUptime hebben knoppen, en een menu **More actions** voor wat minder mensen nodig hebben. Elk ervan handelt als jou, met jouw rechten in het project, en antwoordt in een bericht dat alleen jij ziet.
@@ -139,3 +156,5 @@ Elke knop die OneUptime plaatst, draagt een handtekening, die wordt gecontroleer
 | **The bot is not a member of the private Mattermost channel** | Voeg de bot in Mattermost toe aan het kanaal. |
 | Een knop doet niets, of Mattermost zegt dat het de actie niet kon voltooien | Mattermost kan OneUptime niet bereiken. Zie [Netwerk en zelf hosten](#netwerk-en-zelf-hosten). |
 | Er komt geen direct bericht met je link aan | Controleer de gebruikersnaam, en of de bot in een team zit waarin jij ook zit. |
+| De kanaalkaart zegt dat OneUptime het kanaal niet kan zien | Het kanaal is verwijderd, of de bot is eruit verwijderd. Als het nog bestaat, kan iemand in het kanaal de bot weer toevoegen in Mattermost. |
+| De kanaalkaart zegt dat iemand niet in het Mattermost-team zit | Voeg diegene in Mattermost toe aan het team waaraan het project is gekoppeld, en voeg diegene daarna opnieuw toe. |

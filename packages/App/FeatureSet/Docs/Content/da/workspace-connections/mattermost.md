@@ -6,6 +6,7 @@ Forbind OneUptime med din Mattermost-server for at slå hændelser, advarsler, e
 - [Forbind Mattermost](#forbind-mattermost): Opret en botkonto til OneUptime, og forbind derefter projektet med dens token.
 - [Forbind din egen konto](#forbind-din-egen-mattermost-konto): Knyt din Mattermost-konto til din OneUptime-konto.
 - [Notifikationsregler](#notifikationsregler): Bestem, hvilke begivenheder der slås op hvor, og hvilke der får deres egen kanal.
+- [Hvem der er i en posts kanal](#hvem-der-er-i-en-posts-kanal): Se, hvem der er i den, deltag, og tilføj personer, fra postens side.
 - [Handl fra Mattermost](#handl-på-hændelser-advarsler-og-begivenheder-fra-mattermost): Knapperne i OneUptimes beskeder.
 - [Netværk og selvhosting](#netværk-og-selvhosting): Hvad hver server skal kunne nå.
 :::
@@ -103,6 +104,22 @@ En hændelse, advarsel, episode eller planlagt vedligeholdelse med sin egen kana
 
 OneUptimes beskeder underretter ingen gennem det, de citerer: et navn eller en beskrivelse, der indeholder `@channel`, `@here` eller `@someone`, vises, som det er skrevet, og pinger ingen.
 
+## Hvem der er i en posts kanal
+
+En hændelse, advarsel, episode eller planlagt vedligeholdelse med sin egen Mattermost-kanal har kortet **Mattermost-kanal** på sin side i OneUptime. Kortet viser kanalen, som et link, der åbner den på din Mattermost-server, om den er privat, og hvem der er i den, dig først. Fra kortet, uden en Mattermost-administrator:
+
+- **Deltag i kanal** tilføjer dig, når du ikke er i kanalen.
+- **Tilføj personer** åbner en liste over projektets personer og teams: vælg en person for at tilføje personen, eller et team for at tilføje alle i det.
+
+OneUptimes bot tilføjer dem, ligesom den tilføjer personerne i en regels kanal. Botten bliver i de kanaler, den opretter, så det virker også for en privat kanal, som alle har forladt. En post, der også har kanaler i Slack eller Microsoft Teams, viser dem alle på ét kort **Chatkanaler**.
+
+- **Hvem der må tilføje personer.** Den, der må redigere posten: **Projektejer**, **Projektadministrator**, **Projektmedlem**, **Hændelsesadministrator** og **Hændelsesmedlem** for en hændelse, eller **Edit Incident** i en brugerdefineret rolle, og den samme tilladelse for en advarsel, en episode eller en begivenhed (for eksempel **Edit Alert**). Alle andre ser, hvem der er i kanalen, og hvordan de kommer ind.
+- **Hvem der kan tilføjes.** En person, OneUptime kan finde i Mattermost, via den konto, personen har forbundet, eller ellers via e-mailadressen, når din server viser e-mailadresser til botten, og som er i det team, projektet er forbundet med. En gæstekonto i det team kan også tilføjes: Mattermost lader en kanals medlemmer tilføje gæster. Kortet nævner dem, det ikke kunne tilføje, og hvorfor.
+- **Hvad der registreres.** Hvem der blev tilføjet, og af hvem, i postens feed (**Kanalmedlem tilføjet**) og under **Projektindstillinger** > **Notifikationer** > **Notifikationslogs** på fanen **Arbejdsområde**.
+- **En arkiveret kanal.** Kortet viser stadig, hvem der er i den, og tilføjer ingen, før kanalen er gendannet fra arkivet i Mattermost.
+- **En kanal, botten er fjernet fra.** Mattermost viser kun en kanals personer til nogen, der er i den, også for en offentlig kanal, så kortet siger, at det ikke kan se kanalen. En i kanalen kan tilføje botten igen i Mattermost. OneUptime deltager også selv i en offentlig kanal igen, næste gang det slår op der.
+- **At fjerne nogen.** OneUptime tilføjer kun: fjern nogen fra kanalen i Mattermost.
+
 ## Handl på hændelser, advarsler og begivenheder fra Mattermost
 
 OneUptimes beskeder har knapper og en menu **More actions** til det, færre har brug for. Hver af dem handler som dig, med dine rettigheder i projektet, og svarer i en besked, kun du kan se.
@@ -139,3 +156,5 @@ Hver knap, OneUptime slår op, bærer en signatur, der kontrolleres, når der tr
 | **The bot is not a member of the private Mattermost channel** | Føj botten til kanalen i Mattermost. |
 | En knap gør intet, eller Mattermost siger, at den ikke kunne fuldføre handlingen | Mattermost kan ikke nå OneUptime. Se [Netværk og selvhosting](#netværk-og-selvhosting). |
 | Der kommer ingen direkte besked med dit link | Tjek brugernavnet, og at botten er i et team, du er med i. |
+| Kanalkortet siger, at OneUptime ikke kan se kanalen | Kanalen er slettet, eller botten er fjernet fra den. Hvis den stadig findes, kan en i kanalen tilføje botten igen i Mattermost. |
+| Kanalkortet siger, at en person ikke er i Mattermost-teamet | Tilføj personen i Mattermost til det team, projektet er forbundet med, og tilføj vedkommende derefter igen. |

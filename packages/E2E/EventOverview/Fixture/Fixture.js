@@ -169,12 +169,13 @@
  *            case that declared it, the open cases naming a host and the
  *            cluster it affects, or both. Left out, Security Events has
  *            nothing to say about any incident here, and no card is drawn.
- *   ?channels= the record's own Slack / Microsoft Teams channels, as
- *            GET /workspace-channel-link answers them (the header's Open in
- *            Slack / Open in Microsoft Teams): a comma list of slack (one
- *            Slack channel), slack2 (a second one), teams (one Teams
- *            channel). None by default: no button, and no channel card.
- *   ?members= who is in those Slack channels, as
+ *   ?channels= the record's own Slack / Microsoft Teams / Mattermost channels,
+ *            as GET /workspace-channel-link answers them (the header's Open in
+ *            Slack / Open in Microsoft Teams / Open in Mattermost): a comma
+ *            list of slack (one Slack channel), slack2 (a second one), teams
+ *            (one Teams channel), mattermost (one Mattermost channel). None by
+ *            default: no button, and no channel card.
+ *   ?members= who is in those Slack and Mattermost channels, as
  *            GET /workspace-channel-members answers it for the channel card:
  *            some (default: Sam, Jordan and Priya, who is in Slack only;
  *            the viewer is not in it), in (the viewer is), empty (everybody
@@ -7441,10 +7442,14 @@ function initialChannelPeople() {
   }
 }
 
-// The people in each Slack channel, as the card's adds change them.
+// A Mattermost id: 26 lowercase letters and digits.
+const MATTERMOST_CHANNEL_ID = "c0acme0mattermost000000001";
+
+// The people in each Slack and Mattermost channel, as the card's adds change them.
 const channelPeopleById = {
   C0ACME0001: initialChannelPeople(),
   C0ACME0002: initialChannelPeople(),
+  [MATTERMOST_CHANNEL_ID]: initialChannelPeople(),
 };
 
 const SLACK_CHANNEL_IDS_BY_NAME = {
@@ -7464,12 +7469,7 @@ function channelStateOf() {
 
 function channelMembers(url) {
   const route = url.split("/workspace-channel-members/")[1];
-  // The server reads who is in a Slack or Teams channel, not a Mattermost one.
-  const links = channelLinks(`/workspace-channel-link/${route}`).filter(
-    (link) => {
-      return link.workspaceType !== WorkspaceType.Mattermost;
-    },
-  );
+  const links = channelLinks(`/workspace-channel-link/${route}`);
   const state = channelStateOf();
 
   const channels = links.map((link) => {
@@ -7489,7 +7489,9 @@ function channelMembers(url) {
     }
 
     const channelId =
-      SLACK_CHANNEL_IDS_BY_NAME[link.channelName] || "C0ACME0001";
+      link.workspaceType === WorkspaceType.Mattermost
+        ? MATTERMOST_CHANNEL_ID
+        : SLACK_CHANNEL_IDS_BY_NAME[link.channelName] || "C0ACME0001";
     const listed = state === "members" || state === "archived";
     const inChannel = listed ? channelPeopleById[channelId] : [];
     const viewerId = people.maya.id.toString();
@@ -7499,7 +7501,7 @@ function channelMembers(url) {
 
     return {
       channelId,
-      workspaceType: WorkspaceType.Slack,
+      workspaceType: link.workspaceType,
       name: link.channelName,
       url: link.url,
       isPrivate: listed ? membersMode !== "readonly-public" : null,
@@ -7566,7 +7568,7 @@ function addToChannel(body) {
     });
     const name = member ? member.name.toString() : "Someone";
 
-    // Nobody in Slack has their email address (?unknown=, Alex by default).
+    // Nobody in the workspace has their email address (?unknown=, Alex by default).
     const memberKey = Object.keys(people).find((key) => {
       return people[key] === member;
     });

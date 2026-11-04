@@ -26,7 +26,9 @@ import WorkspaceNotificationLogService from "../../../../../Server/Services/Work
 import WorkspaceProjectAuthTokenService from "../../../../../Server/Services/WorkspaceProjectAuthTokenService";
 import WorkspaceUserAuthTokenService from "../../../../../Server/Services/WorkspaceUserAuthTokenService";
 import logger from "../../../../../Server/Utils/Logger";
+import SSRFProtection from "../../../../../Server/Utils/SSRFProtection";
 import ProjectMembership from "../../../../../Server/Utils/TeamMember/ProjectMembership";
+import MattermostConnection from "../../../../../Server/Utils/Workspace/Mattermost/MattermostConnection";
 import MicrosoftTeamsUtil from "../../../../../Server/Utils/Workspace/MicrosoftTeams/MicrosoftTeams";
 import { WorkspaceChannel } from "../../../../../Server/Utils/Workspace/WorkspaceBase";
 import HTTPErrorResponse from "../../../../../Types/API/HTTPErrorResponse";
@@ -44,18 +46,21 @@ import { mdText } from "../../../../../Utils/Markdown/FeedMarkdown";
 import { jest } from "@jest/globals";
 
 /*
- * A PROJECT WITH SLACK (AND MICROSOFT TEAMS) CONNECTED, AN INCIDENT, AN
- * ALERT, TWO EPISODES AND A SCHEDULED MAINTENANCE EVENT WITH CHANNELS OF
- * THEIR OWN, AND THE PEOPLE AROUND THEM - DRIVEN THROUGH THE REAL
- * WorkspaceChannelMembers, SlackChannelMembers AND THE REAL NOTIFICATION LOG
- * WRITER.
+ * A PROJECT WITH SLACK (AND MICROSOFT TEAMS, AND MATTERMOST) CONNECTED, AN
+ * INCIDENT, AN ALERT, TWO EPISODES AND A SCHEDULED MAINTENANCE EVENT WITH
+ * CHANNELS OF THEIR OWN, AND THE PEOPLE AROUND THEM - DRIVEN THROUGH THE REAL
+ * WorkspaceChannelMembers, SlackChannelMembers, MattermostUtil AND THE REAL
+ * NOTIFICATION LOG WRITER.
  *
  * Everything between the record's page asking and an HTTP request to Slack's
- * Web API is the real code. The database is in memory (the records and
- * their channels, who may read and edit them, the project's members and
- * teams, the connected Slack accounts, the Notification Logs rows and the
- * feed entries), Valkey is a map, and Slack is a fake workspace that
- * records every request and answers as Slack does.
+ * Web API or a Mattermost server is the real code. The database is in memory
+ * (the records and their channels, who may read and edit them, the project's
+ * members and teams, the connected accounts, the Notification Logs rows and
+ * the feed entries), Valkey is a map, and Slack and Mattermost are fakes that
+ * record every request and answer as each does. The fake Mattermost server
+ * follows that server's own code (api4/channel.go, app/channel.go): what it
+ * refuses, with the status and error id it refuses with, and what it does not
+ * refuse - an archived channel takes people.
  */
 
 export const PROJECT_ID: ObjectID = new ObjectID(
@@ -259,6 +264,138 @@ export function teamsChannel(
 export const TEAMS_TEAM_ID: string = "c4000000-0000-4000-8000-0000000000a1";
 export const TEAMS_TENANT_ID: string = "c4000000-0000-4000-8000-0000000000a2";
 
+// A Mattermost id of a readable name: 26 lowercase letters and digits.
+function mattermostId(name: string): string {
+  return name.padEnd(26, "0");
+}
+
+export const MATTERMOST_SERVER: string = "https://chat.acme.test";
+export const MATTERMOST_TEAM_ID: string = mattermostId("teamacme");
+export const MATTERMOST_TEAM_NAME: string = "acme";
+export const MATTERMOST_BOT_ID: string = mattermostId("botoneuptime");
+
+export const MM_ALICE: string = mattermostId("alice");
+export const MM_BOB: string = mattermostId("bob");
+export const MM_CAROL: string = mattermostId("carol");
+export const MM_ERIN: string = mattermostId("erin");
+export const MM_GINA: string = mattermostId("gina");
+export const MM_OSCAR: string = mattermostId("oscar");
+export const MM_MALLORY: string = mattermostId("mallory");
+export const MM_SAM: string = mattermostId("sam");
+export const MM_NICK: string = mattermostId("nick");
+export const MM_STATUSBOT: string = mattermostId("statusbot");
+export const MM_GONE: string = mattermostId("gone");
+
+export const MM_INC42: string = mattermostId("channelinc42");
+export const MM_ALT7: string = mattermostId("channelalt7");
+export const MM_IE3: string = mattermostId("channelie3");
+export const MM_AE5: string = mattermostId("channelae5");
+export const MM_SM5: string = mattermostId("channelsm5");
+
+// The Mattermost accounts people connected to OneUptime, in this project.
+export const MATTERMOST_CONNECTED: Dictionary<string> = {
+  [ALICE.toString()]: MM_ALICE,
+  [BOB.toString()]: MM_BOB,
+  [ERIN.toString()]: MM_ERIN,
+  [GINA.toString()]: MM_GINA,
+  [OSCAR.toString()]: MM_OSCAR,
+  [MALLORY.toString()]: MM_MALLORY,
+};
+
+// An account on the fake Mattermost server, as GET /users tells it.
+export interface MattermostAccount {
+  id: string;
+  username: string;
+  firstName?: string | undefined;
+  lastName?: string | undefined;
+  nickname?: string | undefined;
+  email: string;
+  isBot?: boolean | undefined;
+  isGuest?: boolean | undefined;
+  // Deactivated: Mattermost keeps it in the channels it was in.
+  isDeactivated?: boolean | undefined;
+  // Not in the team the project is connected to.
+  isOutsideTeam?: boolean | undefined;
+}
+
+export const MATTERMOST_ACCOUNTS: Array<MattermostAccount> = [
+  {
+    id: MM_ALICE,
+    username: "alice",
+    firstName: "Alice",
+    lastName: "S.",
+    email: "alice@acme.test",
+  },
+  { id: MM_BOB, username: "bob", email: "bob@acme.test" },
+  {
+    id: MM_CAROL,
+    username: "carol",
+    firstName: "Carol",
+    email: "carol@acme.test",
+  },
+  { id: MM_ERIN, username: "erin", email: "erin@acme.test" },
+  { id: MM_GINA, username: "gina", email: "gina@partner.test", isGuest: true },
+  { id: MM_OSCAR, username: "oscar", email: "oscar@acme.test" },
+  { id: MM_MALLORY, username: "mal", email: "mallory@acme.test" },
+  // On the server, and no OneUptime user.
+  {
+    id: MM_SAM,
+    username: "sam",
+    firstName: "Sam",
+    lastName: "from Support",
+    email: "sam@acme.test",
+  },
+  { id: MM_NICK, username: "nick", nickname: "Nicky", email: "nick@acme.test" },
+  { id: MATTERMOST_BOT_ID, username: "oneuptime", email: "", isBot: true },
+  { id: MM_STATUSBOT, username: "statusbot", email: "", isBot: true },
+  {
+    id: MM_GONE,
+    username: "gone",
+    email: "gone@acme.test",
+    isDeactivated: true,
+  },
+];
+
+// A channel on the fake Mattermost server.
+export interface MattermostChannelState {
+  id: string;
+  name: string;
+  // "O" for a public channel, "P" for a private one.
+  type: string;
+  isArchived: boolean;
+  members: Array<string>;
+}
+
+export interface MattermostRequest {
+  method: string;
+  path: string;
+  query?: Dictionary<string> | undefined;
+  body?: JSONObject | undefined;
+}
+
+export function mattermostChannel(
+  id: string,
+  name: string,
+): NotificationRuleWorkspaceChannel {
+  return {
+    id: id,
+    name: name,
+    workspaceType: WorkspaceType.Mattermost,
+    notificationRuleId: "c4000000-0000-4000-8000-0000000000f3",
+  };
+}
+
+// What Mattermost answers when it refuses.
+function mattermostRefusal(status: number, errorId: string): HTTPErrorResponse {
+  return new HTTPErrorResponse(
+    status,
+    { id: errorId, message: `Refused: ${errorId}`, status_code: status },
+    {},
+  );
+}
+
+const MATTERMOST_NO_PERMISSION: string = "api.context.permissions.app_error";
+
 // The values a QueryHelper.any / in operator holds.
 export function valuesOf(operator: unknown): Array<string> {
   if (Array.isArray(operator)) {
@@ -309,6 +446,7 @@ export default class ChannelMembersWorld {
 
   public slackConnected: boolean = true;
   public teamsConnected: boolean = true;
+  public mattermostConnected: boolean = true;
 
   // Each record's stored channels.
   public recordChannels: Record<WorkspaceChannelRecordType, unknown> = {
@@ -399,6 +537,78 @@ export default class ChannelMembersWorld {
   // Microsoft Graph: each Teams channel's membershipType, or an error.
   public teamsMembershipTypes: Dictionary<string | Error> = {};
 
+  // The fake Mattermost server's channels.
+  public mattermostChannels: Dictionary<MattermostChannelState> = {
+    [MM_INC42]: {
+      id: MM_INC42,
+      name: "inc-42",
+      type: "P",
+      isArchived: false,
+      members: [MATTERMOST_BOT_ID, MM_BOB, MM_SAM],
+    },
+    [MM_ALT7]: {
+      id: MM_ALT7,
+      name: "alt-7",
+      type: "O",
+      isArchived: false,
+      members: [MATTERMOST_BOT_ID],
+    },
+    [MM_IE3]: {
+      id: MM_IE3,
+      name: "ie-3",
+      type: "O",
+      isArchived: false,
+      members: [MATTERMOST_BOT_ID],
+    },
+    [MM_AE5]: {
+      id: MM_AE5,
+      name: "ae-5",
+      type: "O",
+      isArchived: false,
+      members: [MATTERMOST_BOT_ID],
+    },
+    [MM_SM5]: {
+      id: MM_SM5,
+      name: "sm-5",
+      type: "O",
+      isArchived: false,
+      members: [MATTERMOST_BOT_ID],
+    },
+  };
+
+  public mattermostAccounts: Array<MattermostAccount> = MATTERMOST_ACCOUNTS.map(
+    (account: MattermostAccount) => {
+      return { ...account };
+    },
+  );
+
+  // Show Email Address, in the server's settings.
+  public mattermostShowsEmails: boolean = true;
+  // Show Full Name, in the server's settings.
+  public mattermostShowsFullNames: boolean = true;
+  // The bot's token, revoked in Mattermost.
+  public mattermostTokenRevoked: boolean = false;
+  // A channel row's connection that cannot be read.
+  public mattermostAuthTokenBroken: boolean = false;
+  // The bot was removed from the team.
+  public mattermostBotOutsideTeam: boolean = false;
+  // A request answered with a status and an error id: "POST /api/v4/channels/x/members".
+  public mattermostRefuses: Dictionary<{ status: number; errorId: string }> =
+    {};
+  // Adding one account answered with a status and an error id.
+  public mattermostInviteRefusals: Dictionary<{
+    status: number;
+    errorId: string;
+  }> = {};
+  // Requests that never get an answer: the server is down.
+  public mattermostDown: boolean = false;
+  // A server that answers every page of a list with its first page.
+  public mattermostRepeatsItsFirstPage: boolean = false;
+  // The team's name in addresses, as the connection keeps it.
+  public mattermostTeamName: string = MATTERMOST_TEAM_NAME;
+
+  public mattermostRequests: Array<MattermostRequest> = [];
+
   public slackRequests: Array<SlackRequest> = [];
   public feedEntries: Array<FeedEntry> = [];
   public logRows: Array<WorkspaceNotificationLog> = [];
@@ -441,6 +651,201 @@ export default class ChannelMembersWorld {
           users: String(body["users"]),
         };
       },
+    );
+  }
+
+  // The Mattermost requests sent, in order: "GET /api/v4/channels/x".
+  public mattermostCalls(): Array<string> {
+    return this.mattermostRequests.map((request: MattermostRequest) => {
+      return `${request.method} ${request.path}`;
+    });
+  }
+
+  // Who was added to which Mattermost channel, the bot's own join among them.
+  public mattermostAdds(): Array<{ channel: string; user: string }> {
+    return this.mattermostRequests
+      .filter((request: MattermostRequest) => {
+        return request.method === "POST";
+      })
+      .map((request: MattermostRequest) => {
+        return {
+          channel: request.path.split("/")[4] || "",
+          user: String(request.body?.["user_id"]),
+        };
+      });
+  }
+
+  private mattermostUser(account: MattermostAccount): JSONObject {
+    return {
+      id: account.id,
+      username: account.username,
+      nickname: account.nickname || "",
+      first_name: this.mattermostShowsFullNames ? account.firstName || "" : "",
+      last_name: this.mattermostShowsFullNames ? account.lastName || "" : "",
+      delete_at: account.isDeactivated ? 1700000000000 : 0,
+      roles: account.isGuest ? "system_guest" : "system_user",
+      ...(account.isBot ? { is_bot: true } : {}),
+      ...(this.mattermostShowsEmails && account.email
+        ? { email: account.email }
+        : {}),
+    };
+  }
+
+  /*
+   * A Mattermost server, as its handlers answer. Whoever is asking is the bot,
+   * so "has permission" is whether the bot is in the channel.
+   */
+  private answerMattermost(
+    request: MattermostRequest,
+  ): HTTPResponse<JSONObject> | HTTPErrorResponse {
+    this.mattermostRequests.push(request);
+
+    if (this.mattermostDown) {
+      throw new Error("connect ECONNREFUSED");
+    }
+
+    if (this.mattermostTokenRevoked) {
+      return mattermostRefusal(401, "api.context.session_expired.app_error");
+    }
+
+    const refused: { status: number; errorId: string } | undefined =
+      this.mattermostRefuses[`${request.method} ${request.path}`];
+
+    if (refused) {
+      return mattermostRefusal(refused.status, refused.errorId);
+    }
+
+    const ok: (
+      data: JSONObject | Array<JSONObject>,
+    ) => HTTPResponse<JSONObject> = (
+      data: JSONObject | Array<JSONObject>,
+    ): HTTPResponse<JSONObject> => {
+      return new HTTPResponse<JSONObject>(200, data as JSONObject, {});
+    };
+
+    const segments: Array<string> = request.path.split("/");
+    const channelId: string = segments[4] || "";
+    const channel: MattermostChannelState | undefined =
+      this.mattermostChannels[channelId];
+
+    if (request.method === "GET" && request.path === "/api/v4/users") {
+      const listed: MattermostChannelState | undefined =
+        this.mattermostChannels[request.query?.["in_channel"] || ""];
+
+      if (!listed || !listed.members.includes(MATTERMOST_BOT_ID)) {
+        return mattermostRefusal(403, MATTERMOST_NO_PERMISSION);
+      }
+
+      const perPage: number = Number(request.query?.["per_page"]);
+      const start: number = this.mattermostRepeatsItsFirstPage
+        ? 0
+        : Number(request.query?.["page"]) * perPage;
+
+      return ok(
+        listed.members
+          .map((id: string) => {
+            return this.mattermostAccounts.find(
+              (account: MattermostAccount) => {
+                return account.id === id;
+              },
+            );
+          })
+          .filter((account: MattermostAccount | undefined) => {
+            return Boolean(account);
+          })
+          .slice(start, start + perPage)
+          .map((account: MattermostAccount | undefined) => {
+            return this.mattermostUser(account!);
+          }),
+      );
+    }
+
+    if (request.method === "GET" && segments[3] === "users") {
+      if (!this.mattermostShowsEmails) {
+        return mattermostRefusal(
+          403,
+          "api.user.get_user_by_email.permissions.app_error",
+        );
+      }
+
+      const email: string = decodeURIComponent(segments[5] || "").toLowerCase();
+      const account: MattermostAccount | undefined =
+        this.mattermostAccounts.find((candidate: MattermostAccount) => {
+          return Boolean(email) && candidate.email.toLowerCase() === email;
+        });
+
+      return account
+        ? ok(this.mattermostUser(account))
+        : mattermostRefusal(404, "app.user.missing_account.const");
+    }
+
+    if (!channel) {
+      return mattermostRefusal(404, "app.channel.get.existing.app_error");
+    }
+
+    const isBotIn: boolean = channel.members.includes(MATTERMOST_BOT_ID);
+
+    if (request.method === "GET") {
+      // A public channel is the team's to read; a private one only its people's.
+      if (channel.type === "O" ? this.mattermostBotOutsideTeam : !isBotIn) {
+        return mattermostRefusal(403, MATTERMOST_NO_PERMISSION);
+      }
+
+      return ok({
+        id: channel.id,
+        name: channel.name,
+        display_name: channel.name,
+        type: channel.type,
+        team_id: MATTERMOST_TEAM_ID,
+        delete_at: channel.isArchived ? 1700000000000 : 0,
+      });
+    }
+
+    const userId: string = String(request.body?.["user_id"]);
+    const isSelf: boolean = userId === MATTERMOST_BOT_ID;
+
+    // A public channel the bot may join; anything else takes being in it.
+    if (!isBotIn && !(isSelf && channel.type === "O")) {
+      return mattermostRefusal(403, MATTERMOST_NO_PERMISSION);
+    }
+
+    const personal: { status: number; errorId: string } | undefined =
+      this.mattermostInviteRefusals[userId];
+
+    if (personal) {
+      return mattermostRefusal(personal.status, personal.errorId);
+    }
+
+    // Somebody in it already is answered as somebody added.
+    if (!channel.members.includes(userId)) {
+      const account: MattermostAccount | undefined =
+        this.mattermostAccounts.find((candidate: MattermostAccount) => {
+          return candidate.id === userId;
+        });
+
+      if (!account) {
+        return mattermostRefusal(404, "app.user.missing_account.const");
+      }
+
+      if (account.isDeactivated) {
+        return mattermostRefusal(
+          403,
+          "app.channel.add_member.deleted_user.app_error",
+        );
+      }
+
+      if (account.isOutsideTeam) {
+        return mattermostRefusal(404, "app.team.get_member.missing.app_error");
+      }
+
+      // A guest in the team is taken, and so is anybody into an archived channel.
+      channel.members.push(userId);
+    }
+
+    return new HTTPResponse<JSONObject>(
+      201,
+      { channel_id: channel.id, user_id: userId },
+      {},
     );
   }
 
@@ -628,7 +1033,25 @@ export default class ChannelMembersWorld {
     auth.projectId = PROJECT_ID;
     auth.workspaceType = workspaceType;
 
-    if (workspaceType === WorkspaceType.Slack) {
+    if (workspaceType === WorkspaceType.Mattermost) {
+      auth.authToken = this.mattermostAuthTokenBroken
+        ? "not-a-connection"
+        : MattermostConnection.toAuthToken({
+            serverUrl: MATTERMOST_SERVER,
+            accessToken: "mattermostbottoken",
+            teamId: MATTERMOST_TEAM_ID,
+            botUserId: MATTERMOST_BOT_ID,
+          });
+      auth.workspaceProjectId = MATTERMOST_TEAM_ID;
+      auth.miscData = {
+        serverUrl: MATTERMOST_SERVER,
+        teamId: MATTERMOST_TEAM_ID,
+        teamName: this.mattermostTeamName,
+        teamDisplayName: "Acme",
+        botUserId: MATTERMOST_BOT_ID,
+        botUsername: "oneuptime",
+      } as never;
+    } else if (workspaceType === WorkspaceType.Slack) {
       auth.authToken = "xoxb-acme";
       auth.workspaceProjectId = SLACK_TEAM_ID;
       auth.miscData = {
@@ -690,12 +1113,40 @@ export default class ChannelMembersWorld {
       return undefined;
     }) as never);
 
-    // Slack's Web API.
+    // The address a Mattermost server was connected with: never a real call.
+    jest
+      .spyOn(SSRFProtection, "validateWebhookTargetIsSafe")
+      .mockImplementation((async (): Promise<void> => {
+        return undefined;
+      }) as never);
+
+    // A Mattermost server's GET calls.
+    jest.spyOn(API, "get").mockImplementation((async (data: {
+      url: { toString: () => string };
+      params?: Dictionary<string>;
+    }): Promise<HTTPResponse<JSONObject> | HTTPErrorResponse> => {
+      return this.answerMattermost({
+        method: "GET",
+        path: data.url.toString().replace(MATTERMOST_SERVER, ""),
+        ...(data.params ? { query: data.params } : {}),
+      });
+    }) as never);
+
+    // Slack's Web API, and a Mattermost server's POST calls.
     jest.spyOn(API, "post").mockImplementation((async (data: {
       url: { toString: () => string };
       data: JSONObject;
     }): Promise<HTTPResponse<JSONObject> | HTTPErrorResponse> => {
       const url: string = data.url.toString();
+
+      if (url.startsWith(MATTERMOST_SERVER)) {
+        return this.answerMattermost({
+          method: "POST",
+          path: url.replace(MATTERMOST_SERVER, ""),
+          body: data.data,
+        });
+      }
+
       const method: string = url.split("/api/")[1] || "";
       const body: JSONObject = { ...(data.data || {}) };
 
@@ -885,12 +1336,30 @@ export default class ChannelMembersWorld {
             : null;
         }
 
+        if (data.workspaceType === WorkspaceType.Mattermost) {
+          return this.mattermostConnected
+            ? this.projectAuth(WorkspaceType.Mattermost)
+            : null;
+        }
+
         return this.teamsConnected
           ? this.projectAuth(WorkspaceType.MicrosoftTeams)
           : null;
       }) as never);
 
-    // Each person's own Slack account, in this project.
+    // Each person's own account in the workspace, in this project.
+    const connectedIn: (workspaceType: WorkspaceType) => Dictionary<string> = (
+      workspaceType: WorkspaceType,
+    ): Dictionary<string> => {
+      if (workspaceType === WorkspaceType.Slack) {
+        return CONNECTED;
+      }
+
+      return workspaceType === WorkspaceType.Mattermost
+        ? MATTERMOST_CONNECTED
+        : {};
+    };
+
     jest
       .spyOn(WorkspaceUserAuthTokenService, "findOneBy")
       .mockImplementation((async (data: {
@@ -900,12 +1369,12 @@ export default class ChannelMembersWorld {
           projectId: ObjectID;
         };
       }): Promise<WorkspaceUserAuthToken | null> => {
-        const slackUserId: string | undefined =
-          CONNECTED[data.query.userId.toString()];
+        const accountId: string | undefined = connectedIn(
+          data.query.workspaceType,
+        )[data.query.userId.toString()];
 
         if (
-          !slackUserId ||
-          data.query.workspaceType !== WorkspaceType.Slack ||
+          !accountId ||
           data.query.projectId.toString() !== PROJECT_ID.toString()
         ) {
           return null;
@@ -913,7 +1382,7 @@ export default class ChannelMembersWorld {
 
         const row: WorkspaceUserAuthToken = new WorkspaceUserAuthToken();
         row.userId = data.query.userId;
-        row.workspaceUserId = slackUserId;
+        row.workspaceUserId = accountId;
         return row;
       }) as never);
 
@@ -926,23 +1395,20 @@ export default class ChannelMembersWorld {
           projectId: ObjectID;
         };
       }): Promise<Array<WorkspaceUserAuthToken>> => {
-        if (
-          data.query.workspaceType !== WorkspaceType.Slack ||
-          data.query.projectId.toString() !== PROJECT_ID.toString()
-        ) {
+        if (data.query.projectId.toString() !== PROJECT_ID.toString()) {
           return [];
         }
 
         const wanted: Array<string> = valuesOf(data.query.workspaceUserId);
 
-        return Object.entries(CONNECTED)
-          .filter(([, slackUserId]: [string, string]) => {
-            return wanted.includes(slackUserId);
+        return Object.entries(connectedIn(data.query.workspaceType))
+          .filter(([, accountId]: [string, string]) => {
+            return wanted.includes(accountId);
           })
-          .map(([userId, slackUserId]: [string, string]) => {
+          .map(([userId, accountId]: [string, string]) => {
             const row: WorkspaceUserAuthToken = new WorkspaceUserAuthToken();
             row.userId = new ObjectID(userId);
-            row.workspaceUserId = slackUserId;
+            row.workspaceUserId = accountId;
             return row;
           });
       }) as never);

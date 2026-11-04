@@ -365,10 +365,11 @@ owners list names Teams locked with why.
 - **Open in Slack / Microsoft Teams / Mattermost**: no button without a channel (the page still
   asks, for its record); with `?channels=slack` a link in the hero opening in a new tab without
   an opener, the channel named when pointed at; with `teams` a link on teams.microsoft.com with
-  its team; with `mattermost` a link on the project's own Mattermost server, and no channel card;
+  its team; with `mattermost` a link on the project's own Mattermost server, and a channel card
+  that lists who is in the channel and adds people, in Mattermost's words;
   with `slack,slack2` one Open in Slack menu listing both channels, each opening in a new tab;
   with `slack,teams` or `slack,mattermost` one Open channel menu naming each product, so a created
-  incident's title keeps its room at 1280px; the alert, scheduled maintenance and both episode
+  incident's title keeps its room at 1280px, and one Chat Channels card; the alert, scheduled maintenance and both episode
   pages too; `?fail=channel-links` hiding the buttons with nothing broken; a phone with all three.
 - **An incident call's transcript** (`?calls=`, `?transcriptFetch=`): while OneUptime waits to
   get Zoom's transcript by itself the card says so, Get and Add staying; once it stopped, Zoom's
