@@ -149,6 +149,10 @@ ENV_ARGS=(
   -e "OPENSTACK_LIBVIRT_HEALTH_TARGETS=[10.0.0.21:9177]"
   -e "OPENSTACK_CONTROL_PLANE_REGION=RegionOne"
   -e "OPENSTACK_SINGLE_CLOUD_EXPORTER_TARGETS=[10.0.0.254:9198]"
+  # Its traces profile, which runs on each machine whose services are traced.
+  -e "OPENSTACK_REGION_NAME=RegionOne"
+  -e "OPENSTACK_NODE_NAME=validate-only"
+  -e "OPENSTACK_TRACES_LISTEN_ADDRESS=127.0.0.1:4318"
   # The Storage Array Agent (a prometheus receiver scraping a FlashArray's
   # native endpoint, or Pure's exporter sidecars). The prometheus receiver
   # parses the scrape target and the TLS flag (an unquoted boolean), and the
@@ -227,6 +231,10 @@ for agent in DockerAgent PodmanAgent DockerSwarmAgent VMwareAgent ProxmoxAgent C
   cp "${REPO_ROOT}/agents/${agent}/otel-collector-config.yaml" "${WORK_DIR}/${agent}.yaml"
   validate "${agent}" "${WORK_DIR}/${agent}.yaml"
 done
+
+# The OpenStack agent's optional traces profile, a config of its own.
+cp "${REPO_ROOT}/agents/OpenStackAgent/otel-collector-traces.yaml" "${WORK_DIR}/OpenStackAgent-traces.yaml"
+validate "OpenStackAgent / traces" "${WORK_DIR}/OpenStackAgent-traces.yaml"
 
 # The Storage Array Agent ships one config per way of reading an array:
 # docker-compose.yml mounts the one STORAGE_ARRAY_COLLECTOR_CONFIG names (the

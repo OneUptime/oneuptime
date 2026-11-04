@@ -1,0 +1,78 @@
+# The OpenStack agent's optional traces profile: one of these on each controller and
+# compute node whose services you want traced. `install-traces.sh` installs it, and it
+# stays off until you ask for it, because OSProfiler only sends a span for a request
+# signed with your HMAC key: nothing arrives here otherwise.
+#
+# It sits on the machine because OSProfiler's OTLP driver can only post plain HTTP (it
+# turns any scheme it is given into http), and what it posts can hold what a service was
+# handed. So it listens on this machine alone, takes that out, and forwards the rest over
+# TLS. OneUptime names the spans and joins them to the cloud when they arrive
+# (Common/Utils/OpenStack/OpenStackTraces): this file only gets them there safely, and says
+# which cloud and machine they came from.
+receivers:
+  otlp:
+    protocols:
+      http:
+        # 127.0.0.1:4318 unless you change it. docker-compose.traces.yml listens on every
+        # address in its container and publishes the port on this machine's loopback.
+        endpoint: ${env:OPENSTACK_TRACES_LISTEN_ADDRESS}
+
+processors:
+  memory_limiter:
+    check_interval: 5s
+    limit_mib: 256
+    spike_limit_mib: 64
+  # What a traced call was handed and what it answered, written out as Python would print
+  # it: the driver copies them straight into the span. An instance's build arguments hold
+  # its admin password and user data, and a volume's connection info can hold its storage
+  # credentials. A SQL statement's values are in db.params; the statement keeps only
+  # placeholders, so it stays. OneUptime removes these on arrival too, for a span that came
+  # some other way.
+  attributes/what-a-call-was-handed:
+    actions:
+      - key: args
+        action: delete
+      - key: kwargs
+        action: delete
+      - key: result
+        action: delete
+      - key: db.params
+        action: delete
+  # Which cloud, region and machine each span is from: the driver says none of them.
+  # OneUptime files a span under the cloud by `openstack.cloud.name`, so keep it the name
+  # the cloud's agent uses. Keep the driver's service.name: it is the one thing that says
+  # which service this is, and OneUptime turns it into the name operators know.
+  resource:
+    attributes:
+      - key: openstack.cloud.name
+        value: ${env:OPENSTACK_CLOUD_NAME}
+        action: upsert
+      - key: openstack.region.name
+        value: ${env:OPENSTACK_REGION_NAME}
+        action: upsert
+      - key: openstack.node.name
+        value: ${env:OPENSTACK_NODE_NAME}
+        action: upsert
+      # Shown as the agent version, with a sign when a newer one is out. The collector
+      # image docker-compose.traces.yml pins, its last number raised when these files
+      # change on that collector.
+      - key: oneuptime.agent.version
+        value: "0.161.0"
+        action: upsert
+  batch:
+    timeout: 5s
+    send_batch_size: 1024
+    send_batch_max_size: 4096
+
+exporters:
+  otlphttp:
+    endpoint: ${env:ONEUPTIME_URL}/otlp
+    headers:
+      x-oneuptime-token: ${env:ONEUPTIME_TELEMETRY_INGESTION_KEY}
+
+service:
+  pipelines:
+    traces:
+      receivers: [otlp]
+      processors: [memory_limiter, attributes/what-a-call-was-handed, resource, batch]
+      exporters: [otlphttp]

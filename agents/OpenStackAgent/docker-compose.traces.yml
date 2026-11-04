@@ -1,0 +1,42 @@
+services:
+  # The OpenStack agent's optional traces profile, with Docker: one of these on each
+  # controller and compute node whose services you want traced. Nothing else in this
+  # folder runs there, which is why it has a compose file of its own. install-traces.sh
+  # writes its .env.
+  oneuptime-openstack-traces:
+    # Upstream collector, pinned, the same as docker-compose.yml. There is no image of
+    # our own: the profile is entirely defined by otel-collector-traces.yaml, and that
+    # config reports this pin as the agent's version. Bump them together;
+    # Tests/Ops/validate-collector-configs.sh validates the config against this version.
+    image: otel/opentelemetry-collector-contrib:0.161.0
+    container_name: oneuptime-openstack-traces
+    # It takes spans from this machine and talks to OneUptime, and needs nothing else.
+    read_only: true
+    cap_drop:
+      - ALL
+    security_opt:
+      - no-new-privileges:true
+    volumes:
+      - ./otel-collector-traces.yaml:/etc/otelcol-contrib/config.yaml:ro
+    # On this machine's loopback alone, because OSProfiler's driver posts plain HTTP and
+    # what it posts is not for the network. A service in a container of its own, as on
+    # OpenStack-Ansible, cannot reach this loopback: set OPENSTACK_TRACES_PUBLISH_ADDRESS
+    # to an address only this machine's containers can reach, not one the network can.
+    ports:
+      - "${OPENSTACK_TRACES_PUBLISH_ADDRESS:-127.0.0.1}:4318:4318"
+    environment:
+      - ONEUPTIME_URL=${ONEUPTIME_URL}
+      - ONEUPTIME_TELEMETRY_INGESTION_KEY=${ONEUPTIME_TELEMETRY_INGESTION_KEY}
+      # The name this cloud has in OneUptime: the one its agent reports under.
+      - OPENSTACK_CLOUD_NAME=${OPENSTACK_CLOUD_NAME:-openstack}
+      # The region this machine serves, and this machine's name.
+      - OPENSTACK_REGION_NAME=${OPENSTACK_REGION_NAME:-RegionOne}
+      - OPENSTACK_NODE_NAME=${OPENSTACK_NODE_NAME}
+      # Inside the container. The ports above are what decide who can reach it.
+      - OPENSTACK_TRACES_LISTEN_ADDRESS=0.0.0.0:4318
+    restart: unless-stopped
+    logging:
+      driver: json-file
+      options:
+        max-size: "10m"
+        max-file: "3"

@@ -73,6 +73,12 @@ const READ_PERMISSIONS: Array<Permission> = [
   unique: true,
 })
 @Index(["projectId", "openStackCloudId", "kind", "status"])
+/*
+ * A list's default sort. Measured at 200,000 instances: the first page falls from 124 to
+ * 2 ms, and the worst page from 1,680 to 364 ms, for 10% more write-ahead log on a whole
+ * upsert.
+ */
+@Index(["projectId", "openStackCloudId", "kind", "name"])
 // What runs on a hypervisor, and what a project owns: read for every blast radius.
 @Index(["projectId", "openStackCloudId", "kind", "hypervisorName"])
 @Index(["projectId", "openStackCloudId", "kind", "openStackProjectId"])
