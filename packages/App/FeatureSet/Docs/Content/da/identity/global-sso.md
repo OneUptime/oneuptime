@@ -162,7 +162,7 @@ Hvert svar fra din identitetsudbyder logger kun ind én gang og kun inden for f�
 :::
 
 :::details "This server requires single sign-on (SSO). Sign in with SSO instead."
-Hele instansen kræver SSO, og dette var et login med adgangskode, adgangsnøgle, Google eller Microsoft eller en tilmelding. Log i stedet ind med en af SSO-knapperne på loginsiden. En master-admin logger ind med sin adgangskode på `/accounts/admin-login`; for at lade alle logge ind med adgangskode igen slår vedkommende **Kræv SSO til login** fra på **Single sign-on**.
+Hele instansen kræver SSO, og dette var et login med adgangskode, adgangsnøgle, et link sendt på e-mail, Google eller Microsoft eller en tilmelding. Log i stedet ind med en af SSO-knapperne på loginsiden. En master-admin logger ind med sin adgangskode på `/accounts/admin-login`; for at lade alle logge ind med adgangskode igen slår vedkommende **Kræv SSO til login** fra på **Single sign-on**.
 :::
 
 ## Næste trin
