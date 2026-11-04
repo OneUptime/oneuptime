@@ -57,7 +57,8 @@ const PAGES = [
     // 2026-11-03: 1,264,535 bytes.
     // 2026-11-03: 1,119,050 bytes, loading the reader's language only (#5614).
     // 2026-11-03: 923,776 bytes, loading what it does not draw with where it is used (#5619).
-    ceiling: 920 * KIB,
+    // 2026-11-04: 827,785 bytes, loading code, Markdown and file fields only for a form that has one (#5619).
+    ceiling: 820 * KIB,
   },
   {
     frontend: "Accounts",
@@ -66,7 +67,8 @@ const PAGES = [
     // 2026-11-03: 1,260,250 bytes.
     // 2026-11-03: 1,114,772 bytes, loading the reader's language only (#5614).
     // 2026-11-03: 929,191 bytes, loading what it does not draw with where it is used (#5619).
-    ceiling: 925 * KIB,
+    // 2026-11-04: 833,296 bytes, loading code, Markdown and file fields only for a form that has one (#5619).
+    ceiling: 830 * KIB,
   },
   {
     frontend: "StatusPage",
@@ -75,7 +77,8 @@ const PAGES = [
     // 2026-11-03: 1,362,136 bytes.
     // 2026-11-03: 1,271,934 bytes, loading the reader's language only (#5614).
     // 2026-11-03: 1,101,030 bytes, loading what it does not draw with where it is used (#5619).
-    ceiling: 1095 * KIB,
+    // 2026-11-04: 1,010,054 bytes, loading code, Markdown and file fields only for a form that has one (#5619).
+    ceiling: 1005 * KIB,
   },
   {
     frontend: "PublicDashboard",
@@ -83,7 +86,8 @@ const PAGES = [
     route: "src/Pages/AllPages.tsx",
     // 2026-11-03: 1,961,449 bytes.
     // 2026-11-03: 1,839,798 bytes, loading what it does not draw with where it is used (#5619).
-    ceiling: 1830 * KIB,
+    // 2026-11-04: 1,762,778 bytes, loading code, Markdown and file fields only for a form that has one (#5619).
+    ceiling: 1755 * KIB,
   },
 ];
 
