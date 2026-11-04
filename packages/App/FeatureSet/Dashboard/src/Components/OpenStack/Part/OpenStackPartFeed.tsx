@@ -14,7 +14,7 @@ import PermissionGate, {
   ModelAction,
   PermissionGateResult,
 } from "Common/UI/Utils/PermissionGate";
-import { Translator } from "Common/UI/Utils/TranslateTemplate";
+import { Translator, translationKey } from "Common/UI/Utils/TranslateTemplate";
 import useTranslator from "Common/UI/Utils/UseTranslator";
 import { OPENSTACK_CLOUD_LOG_ATTRIBUTE } from "Common/Utils/OpenStack/OpenStackLogs";
 import { OpenStackEventAttribute } from "Common/Utils/OpenStack/OpenStackNotifications";
@@ -22,6 +22,7 @@ import {
   OpenStackPartLogFacts,
   getOpenStackPartAuditAttributes,
   getOpenStackPartChangeAttributes,
+  isOpenStackAuditReadAction,
 } from "Common/Utils/OpenStack/OpenStackPartLogFacts";
 import { OpenStackAuditAttribute } from "Common/Utils/SecurityEvent/LogParsers/OpenStackAuditLogParser";
 import { ChangeEventAttribute } from "Common/Utils/Telemetry/ChangeEventFields";
@@ -52,6 +53,47 @@ const FEED_WINDOW_IN_DAYS: number = 30;
 const WHO_MINUTES_BEFORE: number = 15;
 const WHO_MINUTES_AFTER: number = 5;
 const WHO_ROWS: number = 10;
+
+/*
+ * What the audit filter calls each thing a person does to a part, as a person would say it.
+ * Anything else is written as the filter wrote it, without the update/ it starts with.
+ */
+const AUDIT_ACTION_WORDS: Readonly<Record<string, string>> = {
+  create: translationKey("created it"),
+  update: translationKey("changed it"),
+  delete: translationKey("deleted it"),
+  "update/os-start": translationKey("started it"),
+  "update/os-stop": translationKey("stopped it"),
+  "update/reboot": translationKey("rebooted it"),
+  "update/rebuild": translationKey("rebuilt it"),
+  "update/pause": translationKey("paused it"),
+  "update/unpause": translationKey("unpaused it"),
+  "update/suspend": translationKey("suspended it"),
+  "update/resume": translationKey("resumed it"),
+  "update/lock": translationKey("locked it"),
+  "update/unlock": translationKey("unlocked it"),
+  "update/shelve": translationKey("shelved it"),
+  "update/unshelve": translationKey("unshelved it"),
+  "update/rescue": translationKey("rescued it"),
+  "update/unrescue": translationKey("took it out of rescue"),
+  "update/resize": translationKey("resized it"),
+  "update/confirmResize": translationKey("confirmed its resize"),
+  "update/revertResize": translationKey("reverted its resize"),
+  "update/migrate": translationKey("migrated it"),
+  "update/os-migrateLive": translationKey("live migrated it"),
+  "update/os-resetState": translationKey("reset its state"),
+  "update/createImage": translationKey("made an image of it"),
+};
+
+function getAuditActionWords(action: string, translator: Translator): string {
+  const words: string | undefined = AUDIT_ACTION_WORDS[action];
+
+  if (words) {
+    return translator.translateText(words);
+  }
+
+  return action.startsWith("update/") ? action.slice("update/".length) : action;
+}
 
 function readText(attributes: unknown, key: string): string {
   const value: unknown =
@@ -258,16 +300,24 @@ export const OpenStackWhoChangedThis: FunctionComponent<ComponentProps> = (
           });
 
         for (const event of events.data) {
+          const action: string = readText(
+            event.attributes,
+            OpenStackAuditAttribute.Action,
+          );
+
+          if (isOpenStackAuditReadAction(action)) {
+            continue;
+          }
+
           found.push({
             key: `audit-${event._id?.toString()}`,
             time: event.time ? new Date(event.time) : null,
             who:
               event.principalUser ||
               readText(event.attributes, OpenStackAuditAttribute.InitiatorId),
-            what:
-              readText(event.attributes, OpenStackAuditAttribute.Action) ||
-              event.message ||
-              "",
+            what: action
+              ? getAuditActionWords(action, translator)
+              : event.message || "",
             failed: event.statusName === "Failure",
           });
         }

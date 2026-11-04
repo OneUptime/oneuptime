@@ -8,6 +8,8 @@ import {
 } from "../../../../Types/SecurityEvent/DetectionRuleLibrary";
 import OcsfSeverity from "../../../../Types/SecurityEvent/OcsfSeverity";
 import SigmaRule from "../../../../Types/SecurityEvent/SigmaRule";
+import { DetectionRuleDefinition } from "../../../../Types/SecurityEvent/SigmaCorrelation";
+import SigmaRuleSetParser from "../../../../Utils/SecurityEvent/Sigma/SigmaRuleSetParser";
 import SecurityLogFormat, {
   SECURITY_LOG_FORMAT_ATTRIBUTE,
 } from "../../../../Types/SecurityEvent/SecurityLogFormat";
@@ -16,11 +18,15 @@ import OpenStackAuditLogParser, {
   OPENSTACK_AUDIT_PREFILTER_WORDS,
   OpenStackAuditAttribute,
   OpenStackAuditSignal,
+  describeOpenStackPart,
   describeOpenStackProject,
+  describeOpenStackUser,
   isOpenStackPortInRule,
   isOpenStackRuleOpenToWorld,
   readOpenStackAuditNotification,
+  readOpenStackPartOfPath,
 } from "../../../../Utils/SecurityEvent/LogParsers/OpenStackAuditLogParser";
+import { OpenStackResourceKind } from "../../../../Types/OpenStack/OpenStackResourceKind";
 import SecurityLogParser, {
   matchesSecurityLogPrefilter,
 } from "../../../../Utils/SecurityEvent/LogParsers/SecurityLogParser";
@@ -32,9 +38,9 @@ import { sigmaRuleMatchesEvent } from "./SigmaTestMatcher";
 /*
  * Who did what in a cloud, from its audit trail.
  *
- * HAND-WRITTEN FIXTURES, from Keystone's and keystonemiddleware's documented CADF events.
- * OpenStackRecordedLogs.test.ts reads what the services really sent, and proves the same thing
- * on those: no credential gets through.
+ * HAND-WRITTEN FIXTURES, in the shape of what real clouds recorded, for what a recording cannot
+ * say: every shape a field can come in. OpenStackAuditRecordings.test.ts reads what the services
+ * really sent, and proves the same things on those.
  */
 
 const CLOUD_ATTRIBUTES: JSONObject = {
@@ -46,6 +52,8 @@ const PASSWORD_HASH: string = "PARTIAL-PASSWORD-HASH-MUST-NOT-STAY";
 const USER_ID: string = "0123456789abcdef0123456789abcdef";
 const PROJECT_ID: string = "fedcba9876543210fedcba9876543210";
 const ROLE_ID: string = "aaaabbbbccccddddeeeeffff00001111";
+const INSTANCE_ID: string = "bcee0abb-08c3-430a-9a53-cce3284714eb";
+const VOLUME_ID: string = "0a188b56-1c4a-4a19-9340-8cc48f11774e";
 
 function cadf(
   eventType: string,
@@ -217,6 +225,66 @@ describe("a role grant", () => {
     );
   });
 
+  test("its target is the project, and not the UUID the event makes up", () => {
+    const event: NormalizedSecurityEvent = one(grant);
+
+    expect(event.attributes[OpenStackAuditAttribute.TargetId]).toBe(PROJECT_ID);
+    expect(event.attributes[OpenStackAuditAttribute.TargetType]).toBe(
+      "project",
+    );
+    expect(event.attributes[OpenStackAuditAttribute.PartId]).toBe(PROJECT_ID);
+    expect(event.attributes[OpenStackAuditAttribute.PartKind]).toBe(
+      OpenStackResourceKind.Project,
+    );
+  });
+
+  test("names the project for a case, and the user it has only an ID for", () => {
+    const event: NormalizedSecurityEvent = one(
+      cadf("identity.role_assignment.created", {
+        outcome: "success",
+        role: ROLE_ID,
+        project: PROJECT_ID,
+        user: USER_ID,
+      }),
+    );
+
+    expect(event.observables).toContain(describeOpenStackProject(PROJECT_ID));
+    expect(event.observables).toContain(describeOpenStackUser(USER_ID));
+    expect(event.observables).not.toContain(USER_ID);
+  });
+
+  test("handed down to a domain's projects says so", () => {
+    const event: NormalizedSecurityEvent = one(
+      cadf("identity.role_assignment.created", {
+        outcome: "success",
+        role: ROLE_ID,
+        domain: "domain-id",
+        user: "u",
+        inherited_to_projects: true,
+      }),
+    );
+
+    expect(event.message).toBe(
+      `alice granted role ${ROLE_ID} to u on domain domain-id, and every project under it`,
+    );
+    expect(event.attributes[OpenStackAuditAttribute.TargetType]).toBe("domain");
+  });
+
+  test("on the system says so", () => {
+    const event: NormalizedSecurityEvent = one(
+      cadf("identity.role_assignment.created", {
+        outcome: "success",
+        role: ROLE_ID,
+        user: "u",
+      }),
+    );
+
+    expect(event.message).toBe(
+      `alice granted role ${ROLE_ID} to u on the system`,
+    );
+    expect(event.attributes[OpenStackAuditAttribute.TargetType]).toBe("system");
+  });
+
   test("taken away says so", () => {
     const event: NormalizedSecurityEvent = one(
       cadf("identity.role_assignment.deleted", {
@@ -286,6 +354,20 @@ describe("a change to Keystone's records", () => {
     );
   });
 
+  test("a trust is named as Keystone's extension does not, and is worth attention", () => {
+    const event: NormalizedSecurityEvent = one(
+      cadf("identity.OS-TRUST:trust.created", {
+        action: "created.OS-TRUST:trust",
+        outcome: "success",
+        resource_info: "trust-id",
+      }),
+    );
+
+    expect(event.severityName).toBe(OcsfSeverity.Medium);
+    expect(event.message).toBe("alice created trust trust-id");
+    expect(event.targetResource).toBe("trust trust-id");
+  });
+
   test("a user's change is an account change, and names the account", () => {
     const event: NormalizedSecurityEvent = one(
       cadf("identity.user.updated", {
@@ -307,35 +389,136 @@ describe("a change to Keystone's records", () => {
 });
 
 describe("a call through the audit filter", () => {
+  // As a cloud whose endpoints have no port of their own records it.
   function call(payload: JSONObject): JSONObject {
     return cadf("audit.http.response", {
-      target: {
-        typeURI: "service/compute/servers/action",
-        id: "server-id",
-        name: "nova",
+      target: { typeURI: "unknown", id: "unknown", name: "unknown" },
+      initiator: {
+        typeURI: "service/security/account/user",
+        id: USER_ID,
+        name: "alice",
+        project_id: PROJECT_ID,
+        host: { address: "203.0.113.7", agent: "openstacksdk/4.4.1" },
+        credential: { token: "***", identity_status: "Confirmed" },
       },
-      requestPath: "/v2.1/servers/server-id/action?secret=dont-keep",
+      observer: { id: "target" },
+      requestPath: `/compute/v2.1/servers/${INSTANCE_ID}/action?secret=dont-keep`,
       ...payload,
     });
   }
 
-  test("that changed something says so", () => {
+  test("that changed something says who did what, to which part", () => {
     const event: NormalizedSecurityEvent = one(
-      call({ action: "update", outcome: "success" }),
+      call({ action: "update/os-stop", outcome: "success" }),
     );
 
-    expect(event.activityName).toBe("update");
+    expect(event.activityName).toBe("update/os-stop");
     expect(event.statusName).toBe("Success");
     expect(event.principalUser).toBe("alice");
-    expect(event.attributes[OpenStackAuditAttribute.TargetId]).toBe(
-      "server-id",
+    expect(event.principalIp).toBe("203.0.113.7");
+    expect(event.message).toBe(
+      `alice update/os-stop on ${describeOpenStackPart(
+        OpenStackResourceKind.Instance,
+        INSTANCE_ID,
+      )}`,
+    );
+    expect(event.attributes[OpenStackAuditAttribute.PartId]).toBe(INSTANCE_ID);
+    expect(event.attributes[OpenStackAuditAttribute.PartKind]).toBe(
+      OpenStackResourceKind.Instance,
     );
     expect(event.attributes[OpenStackAuditAttribute.ProjectId]).toBe(
       PROJECT_ID,
     );
     expect(event.targetResource).toBe(
-      `project ${PROJECT_ID} service/compute/servers/action`,
+      `project ${PROJECT_ID} instance ${INSTANCE_ID}`,
     );
+  });
+
+  test("names the project and the part for a case", () => {
+    const event: NormalizedSecurityEvent = one(
+      call({ action: "delete", outcome: "success" }),
+    );
+
+    expect(event.observables).toContain(describeOpenStackProject(PROJECT_ID));
+    expect(event.observables).toContain(`instance ${INSTANCE_ID}`);
+  });
+
+  test("what pyCADF does not know is not kept as if it did", () => {
+    const event: NormalizedSecurityEvent = one(
+      call({ action: "update", outcome: "success" }),
+    );
+
+    expect(event.attributes[OpenStackAuditAttribute.TargetType]).toBeUndefined();
+    expect(event.attributes[OpenStackAuditAttribute.TargetId]).toBeUndefined();
+    expect(event.attributes[OpenStackAuditAttribute.TargetName]).toBeUndefined();
+    expect(event.message).not.toContain("unknown");
+  });
+
+  test("with nobody behind it says someone, and names nobody", () => {
+    const event: NormalizedSecurityEvent = one(
+      call({
+        action: "update",
+        outcome: "success",
+        initiator: {
+          id: "unknown",
+          name: "unknown",
+          project_id: "unknown",
+          host: { address: "203.0.113.7" },
+        },
+      }),
+    );
+
+    expect(event.principalUser).toBe("");
+    expect(event.message).toContain("Someone update on instance");
+    expect(event.attributes[OpenStackAuditAttribute.ProjectId]).toBeUndefined();
+    expect(event.targetResource).toBe(`instance ${INSTANCE_ID}`);
+  });
+
+  test("on a path with no part in it says the path", () => {
+    const event: NormalizedSecurityEvent = one(
+      call({
+        action: "create",
+        outcome: "success",
+        requestPath: "/compute/v2.1/servers",
+      }),
+    );
+
+    expect(event.message).toBe("alice create on /compute/v2.1/servers");
+    expect(event.attributes[OpenStackAuditAttribute.PartId]).toBeUndefined();
+  });
+
+  test("where the catalog was found says the target's type, when no part is in the path", () => {
+    const event: NormalizedSecurityEvent = one(
+      call({
+        action: "create",
+        outcome: "success",
+        requestPath: "/networking/v2.0/ports",
+        target: {
+          typeURI: "service/network/ports",
+          id: "service-id",
+          name: "neutron",
+        },
+      }),
+    );
+
+    expect(event.message).toBe("alice create on service/network/ports");
+    expect(event.attributes[OpenStackAuditAttribute.TargetId]).toBe(
+      "service-id",
+    );
+  });
+
+  test("a part the inventory has no row for is still named, with no kind", () => {
+    const event: NormalizedSecurityEvent = one(
+      call({
+        action: "update",
+        outcome: "success",
+        requestPath: `/networking/v2.0/ports/${VOLUME_ID}`,
+      }),
+    );
+
+    expect(event.message).toBe(`alice update on port ${VOLUME_ID}`);
+    expect(event.attributes[OpenStackAuditAttribute.PartId]).toBe(VOLUME_ID);
+    expect(event.attributes[OpenStackAuditAttribute.PartKind]).toBeUndefined();
   });
 
   test("keeps its path without its query string, which can hold anything", () => {
@@ -344,7 +527,7 @@ describe("a call through the audit filter", () => {
     );
 
     expect(event.attributes[OpenStackAuditAttribute.RequestPath]).toBe(
-      "/v2.1/servers/server-id/action",
+      `/compute/v2.1/servers/${INSTANCE_ID}/action`,
     );
     expect(JSON.stringify(event)).not.toContain("dont-keep");
   });
@@ -356,6 +539,19 @@ describe("a call through the audit filter", () => {
     );
   });
 
+  test("a read that found nothing is no event: every lookup by name is one", () => {
+    expect(
+      parse(
+        call({
+          action: "read",
+          outcome: "failure",
+          reason: { reasonCode: "404", reasonType: "HTTP" },
+          requestPath: "/compute/v2.1/servers/ou-log-vm",
+        }),
+      ),
+    ).toEqual([]);
+  });
+
   test.each(["401", "403"])(
     "a read refused with %s is what someone probing a cloud looks like",
     (code: string) => {
@@ -363,16 +559,44 @@ describe("a call through the audit filter", () => {
         call({
           action: "read/list",
           outcome: "failure",
-          reason: { reasonCode: code, reasonType: "Forbidden" },
+          reason: { reasonCode: code, reasonType: "HTTP" },
+          requestPath: "/compute/v2.1/servers/detail",
         }),
       );
 
       expect(event.severityName).toBe(OcsfSeverity.Medium);
       expect(event.message).toBe(
-        `alice was refused read/list on service/compute/servers/action (${code})`,
+        `alice was refused read/list on /compute/v2.1/servers/detail (${code})`,
       );
     },
   );
+
+  test("a change refused says what it was refused on", () => {
+    const event: NormalizedSecurityEvent = one(
+      call({
+        action: "update/os-migrateLive",
+        outcome: "failure",
+        reason: { reasonCode: "403", reasonType: "HTTP" },
+      }),
+    );
+
+    expect(event.statusName).toBe("Failure");
+    expect(event.message).toBe(
+      `alice was refused update/os-migrateLive on instance ${INSTANCE_ID} (403)`,
+    );
+  });
+
+  test("what the services tell one another is nobody's doing", () => {
+    expect(
+      parse(
+        call({
+          action: "update",
+          outcome: "success",
+          requestPath: "/compute/v2.1/os-server-external-events",
+        }),
+      ),
+    ).toEqual([]);
+  });
 
   test("the request half of a call says nothing: the response has how it went", () => {
     expect(
@@ -387,6 +611,126 @@ describe("a call through the audit filter", () => {
 
   test("with no outcome yet says nothing", () => {
     expect(parse(call({ action: "update", outcome: "pending" }))).toEqual([]);
+  });
+});
+
+describe("the part a path names", () => {
+  test.each([
+    [
+      `/compute/v2.1/servers/${INSTANCE_ID}`,
+      "instance",
+      OpenStackResourceKind.Instance,
+      INSTANCE_ID,
+    ],
+    [
+      `/v2.1/servers/${INSTANCE_ID}/action`,
+      "instance",
+      OpenStackResourceKind.Instance,
+      INSTANCE_ID,
+    ],
+    // A volume detached from an instance is about the instance first.
+    [
+      `/compute/v2.1/servers/${INSTANCE_ID}/os-volume_attachments/${VOLUME_ID}`,
+      "instance",
+      OpenStackResourceKind.Instance,
+      INSTANCE_ID,
+    ],
+    // A project's ID in a path is no part, and has no dashes.
+    [
+      `/v3/${PROJECT_ID}/volumes/${VOLUME_ID}/action`,
+      "volume",
+      OpenStackResourceKind.Volume,
+      VOLUME_ID,
+    ],
+    [
+      `/volume/v3/snapshots/${VOLUME_ID}`,
+      "snapshot",
+      OpenStackResourceKind.Snapshot,
+      VOLUME_ID,
+    ],
+    [
+      `/volume/v3/backups/${VOLUME_ID}`,
+      "backup",
+      OpenStackResourceKind.Backup,
+      VOLUME_ID,
+    ],
+    [
+      `/v2/images/${VOLUME_ID}/file`,
+      "image",
+      OpenStackResourceKind.Image,
+      VOLUME_ID,
+    ],
+    [
+      `/networking/v2.0/networks/${VOLUME_ID}`,
+      "network",
+      OpenStackResourceKind.Network,
+      VOLUME_ID,
+    ],
+    [
+      `/networking/v2.0/subnets/${VOLUME_ID}`,
+      "subnet",
+      OpenStackResourceKind.Subnet,
+      VOLUME_ID,
+    ],
+    [
+      `/networking/v2.0/routers/${VOLUME_ID}/add_router_interface`,
+      "router",
+      OpenStackResourceKind.Router,
+      VOLUME_ID,
+    ],
+    [
+      `/networking/v2.0/floatingips/${VOLUME_ID}`,
+      "floating IP",
+      OpenStackResourceKind.FloatingIp,
+      VOLUME_ID,
+    ],
+    [`/networking/v2.0/ports/${VOLUME_ID}`, "port", undefined, VOLUME_ID],
+    [
+      `/networking/v2.0/security-groups/${VOLUME_ID}`,
+      "security group",
+      undefined,
+      VOLUME_ID,
+    ],
+    [
+      `/compute/v2.1/os-services/${VOLUME_ID}`,
+      "compute service",
+      undefined,
+      VOLUME_ID,
+    ],
+  ])(
+    "%s",
+    (
+      path: string,
+      noun: string,
+      kind: OpenStackResourceKind | undefined,
+      id: string,
+    ) => {
+      const part: ReturnType<typeof readOpenStackPartOfPath> =
+        readOpenStackPartOfPath(path);
+
+      expect(part?.noun).toBe(noun);
+      expect(part?.kind).toBe(kind);
+      expect(part?.id).toBe(id);
+    },
+  );
+
+  test.each([
+    "",
+    "/",
+    "/compute/v2.1/servers",
+    "/compute/v2.1/servers/detail",
+    "/compute/v2.1/servers/ou-log-vm",
+    "/compute/v2.1/os-server-external-events",
+    `/compute/v2.1/flavors/${VOLUME_ID}`,
+    `/${VOLUME_ID}`,
+  ])("%j names none", (path: string) => {
+    expect(readOpenStackPartOfPath(path)).toBeNull();
+  });
+
+  test("however many words a path holds, it is read once", () => {
+    const words: string = "/servers".repeat(100000);
+
+    expect(readOpenStackPartOfPath(words)).toBeNull();
   });
 });
 
@@ -485,6 +829,116 @@ describe("a security group opened to the world", () => {
     expect(event.attributes[OpenStackAuditAttribute.Signal]).toBe(
       OpenStackAuditSignal.SecurityGroupOpen,
     );
+    expect(event.message).toContain("for icmp");
+    expect(event.targetPort).toBe(0);
+  });
+
+  test("ICMP with no numbers at all says so, and not port null", () => {
+    const event: NormalizedSecurityEvent = one(
+      rule({ protocol: "icmp", port_range_min: null, port_range_max: null }),
+    );
+
+    expect(event.message).toContain("for icmp");
+    expect(event.message).not.toContain("null");
+  });
+
+  test.each(["udp", "sctp", "dccp", "udplite", "6", "17", "33", "132", "136"])(
+    "%s's numbers are ports",
+    (protocol: string) => {
+      const event: NormalizedSecurityEvent = one(
+        rule({ protocol, port_range_min: 53, port_range_max: 3389 }),
+      );
+
+      expect(event.attributes[OpenStackAuditAttribute.Signal]).toBe(
+        OpenStackAuditSignal.SecurityGroupOpenSensitive,
+      );
+    },
+  );
+
+  test("one number of the two is that port, and never null", () => {
+    expect(one(rule({ port_range_max: null })).message).toContain("on port 22");
+    expect(one(rule({ port_range_min: null })).message).toContain("on port 22");
+  });
+
+  test("any protocol at all, with no ports, is every port", () => {
+    const event: NormalizedSecurityEvent = one(
+      rule({ protocol: null, port_range_min: null, port_range_max: null }),
+    );
+
+    expect(event.attributes[OpenStackAuditAttribute.Signal]).toBe(
+      OpenStackAuditSignal.SecurityGroupOpenSensitive,
+    );
+    expect(event.message).toContain("on every port");
+  });
+
+  test("names the project for a case", () => {
+    expect(one(rule({})).observables).toContain(
+      describeOpenStackProject(PROJECT_ID),
+    );
+  });
+
+  test("who did it, by ID where a cloud's lines give no name", () => {
+    const event: NormalizedSecurityEvent = one(rule({}), {
+      ...CLOUD_ATTRIBUTES,
+      "openstack.user_id": USER_ID,
+    });
+
+    expect(event.principalUser).toBe(USER_ID);
+    expect(event.observables).toContain(describeOpenStackUser(USER_ID));
+    expect(event.message).toContain(`${USER_ID} opened security group`);
+  });
+
+  describe("several in one notification, as a list of rules makes", () => {
+    function bulk(rules: Array<JSONObject>): JSONObject {
+      return {
+        event_type: "security_group_rule.create.end",
+        message_id: "m-bulk",
+        timestamp: "2026-10-30 10:00:00.000000",
+        payload: { security_group_rules: rules },
+      };
+    }
+
+    const OPEN: JSONObject = {
+      security_group_id: "group-id",
+      project_id: PROJECT_ID,
+      direction: "ingress",
+      protocol: "tcp",
+      remote_ip_prefix: "0.0.0.0/0",
+      port_range_min: 6379,
+      port_range_max: 6379,
+    };
+
+    test("each is an event of its own, with an ID of its own", () => {
+      const events: Array<NormalizedSecurityEvent> = parse(
+        bulk([OPEN, { ...OPEN, port_range_min: 3306, port_range_max: 3306 }]),
+      );
+
+      expect(events).toHaveLength(2);
+      expect(events[0]?.eventUid).toBe("openstack-audit:m-bulk:0");
+      expect(events[1]?.eventUid).toBe("openstack-audit:m-bulk:1");
+      expect(events[0]?.targetPort).toBe(6379);
+      expect(events[1]?.targetPort).toBe(3306);
+    });
+
+    test("only those open to the world are events", () => {
+      expect(
+        parse(
+          bulk([
+            { ...OPEN, remote_ip_prefix: "10.0.0.0/8" },
+            OPEN,
+            { ...OPEN, direction: "egress" },
+          ]),
+        ),
+      ).toHaveLength(1);
+    });
+
+    test.each([[[]], [[null, 1, "x"]]])("%j makes none", (rules: unknown) => {
+      expect(parse(bulk(rules as Array<JSONObject>))).toEqual([]);
+    });
+
+    test("a notification of a great many is held to a number", () => {
+      expect(parse(bulk(new Array(1000).fill(OPEN))).length).toBe(200);
+    });
   });
 
   test.each([
@@ -523,7 +977,7 @@ describe("a security group opened to the world", () => {
   );
 });
 
-describe("an image published", () => {
+describe("an image that is public", () => {
   function image(type: string, visibility: string): JSONObject {
     return {
       event_type: type,
@@ -539,23 +993,30 @@ describe("an image published", () => {
     };
   }
 
-  test.each(["image.create", "image.update", "image.activate"])(
-    "%s, made public, says so",
-    (type: string) => {
-      const event: NormalizedSecurityEvent = one(image(type, "public"), {
-        ...CLOUD_ATTRIBUTES,
-        "openstack.user_name": "alice",
-      });
+  test.each([
+    ["image.create", "created"],
+    ["image.update", "changed"],
+    ["image.activate", "activated"],
+  ])("%s says what was done, and no more than it knows", (type: string, verb: string) => {
+    const event: NormalizedSecurityEvent = one(image(type, "public"), {
+      ...CLOUD_ATTRIBUTES,
+      "openstack.user_name": "alice",
+    });
 
-      expect(event.message).toBe("alice made image golden public");
-      expect(event.attributes[OpenStackAuditAttribute.Signal]).toBe(
-        OpenStackAuditSignal.ImagePublic,
-      );
-      expect(event.attributes[OpenStackAuditAttribute.ProjectId]).toBe(
-        PROJECT_ID,
-      );
-    },
-  );
+    expect(event.message).toBe(`alice ${verb} public image golden`);
+    expect(event.attributes[OpenStackAuditAttribute.Signal]).toBe(
+      OpenStackAuditSignal.ImagePublic,
+    );
+    expect(event.attributes[OpenStackAuditAttribute.ProjectId]).toBe(
+      PROJECT_ID,
+    );
+    expect(event.attributes[OpenStackAuditAttribute.PartId]).toBe("image-id");
+    expect(event.attributes[OpenStackAuditAttribute.PartKind]).toBe(
+      OpenStackResourceKind.Image,
+    );
+    expect(event.observables).toContain(describeOpenStackProject(PROJECT_ID));
+    expect(event.observables).toContain("image golden");
+  });
 
   test.each(["private", "shared", "community"])(
     "%s is not published",
@@ -722,7 +1183,7 @@ describe("the log scan", () => {
 });
 
 describe("the rule library's detections", () => {
-  function rule(title: string): SigmaRule {
+  function entryOf(title: string): DetectionRuleLibraryEntry {
     const entry: DetectionRuleLibraryEntry | undefined =
       DETECTION_RULE_LIBRARY.find(
         (candidate: DetectionRuleLibraryEntry): boolean => {
@@ -734,7 +1195,65 @@ describe("the rule library's detections", () => {
       throw new Error(`No library rule titled ${title}`);
     }
 
-    return SigmaRuleParser.parse(entry.sigmaRuleYaml);
+    return entry;
+  }
+
+  function rule(title: string): SigmaRule {
+    return SigmaRuleParser.parse(entryOf(title).sigmaRuleYaml);
+  }
+
+  /*
+   * What a new_value rule reads: its base rule, and which of its fields must be new for which
+   * group. CorrelationQueries does this in ClickHouse: this is the same thing in a loop, over
+   * a run of events, each window one event.
+   */
+  function newValuesOf(
+    title: string,
+    events: Array<NormalizedSecurityEvent>,
+  ): Array<NormalizedSecurityEvent> {
+    const definition: DetectionRuleDefinition = SigmaRuleSetParser.parse(
+      entryOf(title).sigmaRuleYaml,
+    );
+
+    if (definition.kind !== "correlation") {
+      throw new Error(`${title} is no correlation`);
+    }
+
+    const base: SigmaRule = definition.steps[0]?.rule as SigmaRule;
+    const groupBy: Array<string> = definition.correlation.groupBy;
+    const field: string = definition.correlation.condition.fields[0] as string;
+    const seen: Set<string> = new Set();
+    const read: (event: NormalizedSecurityEvent, key: string) => string = (
+      event: NormalizedSecurityEvent,
+      key: string,
+    ): string => {
+      const column: unknown = (event as unknown as JSONObject)[key];
+
+      return String(
+        typeof column === "string" ? column : event.attributes[key] || "",
+      );
+    };
+
+    return events.filter((event: NormalizedSecurityEvent): boolean => {
+      if (!sigmaRuleMatchesEvent(base, event)) {
+        return false;
+      }
+
+      const key: string = [
+        ...groupBy.map((group: string): string => {
+          return read(event, group);
+        }),
+        read(event, field),
+      ].join("|");
+
+      if (seen.has(key)) {
+        return false;
+      }
+
+      seen.add(key);
+
+      return true;
+    });
   }
 
   const FAILED: JSONObject = cadf("identity.authenticate", {
@@ -779,7 +1298,7 @@ describe("the rule library's detections", () => {
     );
   }
 
-  test("every OpenStack rule reads only the attributes the parser keeps", () => {
+  test("every OpenStack rule reads only what the parser keeps", () => {
     const rules: Array<DetectionRuleLibraryEntry> =
       DETECTION_RULE_LIBRARY.filter(
         (entry: DetectionRuleLibraryEntry): boolean => {
@@ -797,7 +1316,7 @@ describe("the rule library's detections", () => {
         expect(kept).toContain(match[0]);
       }
 
-      if (entry.groupByField) {
+      if (entry.groupByField?.startsWith("openstack.")) {
         expect(kept).toContain(entry.groupByField);
       }
     }
@@ -815,6 +1334,16 @@ describe("the rule library's detections", () => {
     ).toBe(false);
   });
 
+  test("the burst takes ten, from one address", () => {
+    const entry: DetectionRuleLibraryEntry = entryOf(
+      "OpenStack failed logins burst",
+    );
+
+    expect(entry.matchCountThreshold).toBe(10);
+    expect(entry.groupByField).toBe(OpenStackAuditAttribute.InitiatorAddress);
+    expect(entry.evaluationIntervalInMinutes).toBe(5);
+  });
+
   test("a role granted on a protected project fires, by the project's name", () => {
     const granted: SigmaRule = rule(
       "OpenStack role granted on a protected project",
@@ -829,9 +1358,39 @@ describe("the rule library's detections", () => {
     );
   });
 
-  test("an application credential fires on being created", () => {
-    const created: SigmaRule = rule("OpenStack application credential created");
+  test("a role taken away from a protected project is no grant", () => {
+    const event: NormalizedSecurityEvent = one(
+      cadf("identity.role_assignment.deleted", {
+        outcome: "success",
+        role: ROLE_ID,
+        project: PROJECT_ID,
+        user: "u",
+      }),
+    );
 
+    event.attributes[OpenStackAuditAttribute.ProjectName] = "admin";
+
+    expect(
+      sigmaRuleMatchesEvent(
+        rule("OpenStack role granted on a protected project"),
+        event,
+      ),
+    ).toBe(false);
+  });
+
+  test("a grant groups by the project as a case names it", () => {
+    expect(
+      entryOf("OpenStack role granted on a protected project").groupByField,
+    ).toBe("targetResource");
+  });
+
+  test("an application credential fires on being created, by whoever made it", () => {
+    const entry: DetectionRuleLibraryEntry = entryOf(
+      "OpenStack application credential created",
+    );
+    const created: SigmaRule = SigmaRuleParser.parse(entry.sigmaRuleYaml);
+
+    expect(entry.groupByField).toBe("principalUser");
     expect(
       sigmaRuleMatchesEvent(
         created,
@@ -875,51 +1434,132 @@ describe("the rule library's detections", () => {
     ).toBe(false);
   });
 
-  test("an image made public fires", () => {
-    expect(
-      sigmaRuleMatchesEvent(
-        rule("OpenStack public image published"),
-        one({
-          event_type: "image.update",
-          payload: { id: "i", name: "golden", visibility: "public" },
-        }),
-      ),
-    ).toBe(true);
+  describe("an image seen public for the first time", () => {
+    const TITLE: string = "OpenStack public image published";
+
+    function image(
+      type: string,
+      visibility: string,
+      id: string = "image-id",
+    ): NormalizedSecurityEvent {
+      return OpenStackAuditLogParser.parse(
+        logLine(
+          JSON.stringify({
+            event_type: type,
+            message_id: `m-${id}-${type}`,
+            payload: { id, name: id, owner: PROJECT_ID, visibility },
+          }),
+          CLOUD_ATTRIBUTES,
+        ),
+      )[0] as NormalizedSecurityEvent;
+    }
+
+    test("fires, whichever of Glance's events says it first", () => {
+      expect(
+        newValuesOf(TITLE, [image("image.create", "public")]),
+      ).toHaveLength(1);
+      expect(
+        newValuesOf(TITLE, [image("image.update", "public")]),
+      ).toHaveLength(1);
+    });
+
+    test("fires once for one image's whole upload", () => {
+      expect(
+        newValuesOf(TITLE, [
+          image("image.create", "public"),
+          image("image.update", "public"),
+          image("image.activate", "public"),
+          image("image.update", "public"),
+        ]),
+      ).toHaveLength(1);
+    });
+
+    test("stays quiet on an edit to an image known to be public", () => {
+      const first: NormalizedSecurityEvent = image("image.update", "public");
+      const edit: NormalizedSecurityEvent = image("image.update", "public");
+
+      expect(newValuesOf(TITLE, [first, edit])).toEqual([first]);
+    });
+
+    test("each image on its own", () => {
+      expect(
+        newValuesOf(TITLE, [
+          image("image.create", "public", "one"),
+          image("image.create", "public", "two"),
+        ]),
+      ).toHaveLength(2);
+    });
   });
 
-  test("the admin account's sign-in is what a new address is looked for on", () => {
-    const entry: DetectionRuleLibraryEntry | undefined =
-      DETECTION_RULE_LIBRARY.find(
-        (candidate: DetectionRuleLibraryEntry): boolean => {
-          return (
-            candidate.title ===
-            "OpenStack admin credential used from a new address"
-          );
-        },
+  describe("the admin account from a new address", () => {
+    const TITLE: string = "OpenStack admin credential used from a new address";
+
+    function signIn(
+      address: string,
+      username: string = "admin",
+    ): NormalizedSecurityEvent {
+      return one(
+        cadf("identity.authenticate", {
+          outcome: "success",
+          initiator: { id: "hash", username, host: { address } },
+        }),
       );
+    }
 
-    expect(entry?.sigmaRuleYaml).toContain("type: new_value");
-    expect(entry?.sigmaRuleYaml).toContain(
-      `field: ${OpenStackAuditAttribute.InitiatorAddress}`,
-    );
+    function apiCall(address: string): NormalizedSecurityEvent {
+      return one(
+        cadf("audit.http.response", {
+          action: "update",
+          outcome: "success",
+          requestPath: `/compute/v2.1/servers/${INSTANCE_ID}`,
+          initiator: {
+            id: USER_ID,
+            name: "admin",
+            project_id: PROJECT_ID,
+            host: { address },
+          },
+        }),
+      );
+    }
 
-    const signIn: NormalizedSecurityEvent = one(
-      cadf("identity.authenticate", {
-        outcome: "success",
-        initiator: {
-          id: "hash",
-          username: "admin",
-          host: { address: "203.0.113.7" },
-        },
-      }),
-    );
+    test("fires on the first time from an address, and not the next", () => {
+      const first: NormalizedSecurityEvent = signIn("203.0.113.7");
 
-    expect(signIn.attributes[OpenStackAuditAttribute.InitiatorName]).toBe(
-      "admin",
-    );
-    expect(signIn.attributes[OpenStackAuditAttribute.InitiatorAddress]).toBe(
-      "203.0.113.7",
-    );
+      expect(newValuesOf(TITLE, [first, signIn("203.0.113.7")])).toEqual([
+        first,
+      ]);
+    });
+
+    test("a second address fires again", () => {
+      expect(
+        newValuesOf(TITLE, [signIn("203.0.113.7"), signIn("203.0.113.8")]),
+      ).toHaveLength(2);
+    });
+
+    test("with sign-ins opted out, a call through the audit filter still says it", () => {
+      expect(newValuesOf(TITLE, [apiCall("203.0.113.7")])).toHaveLength(1);
+    });
+
+    test("anyone else is no one's business here", () => {
+      expect(newValuesOf(TITLE, [signIn("203.0.113.7", "alice")])).toEqual([]);
+    });
+
+    test("a login that failed is the burst's, and used nothing", () => {
+      expect(
+        newValuesOf(TITLE, [
+          one(
+            cadf("identity.authenticate", {
+              outcome: "failure",
+              initiator: {
+                id: "hash",
+                username: "admin",
+                host: { address: "203.0.113.7" },
+              },
+            }),
+          ),
+        ]),
+      ).toEqual([]);
+    });
   });
 });
 
