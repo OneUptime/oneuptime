@@ -332,20 +332,27 @@ test.describe("a busy cloud", () => {
   }) => {
     await openOverview(page);
 
+    // By what it says: the last one is still there for a moment, fading out.
+    const tooltipSaying: (text: string) => Locator = (
+      text: string,
+    ): Locator => {
+      return page.getByRole("tooltip").filter({ hasText: text });
+    };
+
     await page.getByRole("button", { name: "About Health" }).hover();
-    await expect(page.getByRole("tooltip")).toContainText(
-      "A service someone disabled on purpose never counts against it",
-    );
+    await expect(
+      tooltipSaying(
+        "A service someone disabled on purpose never counts against it",
+      ),
+    ).toBeVisible();
 
     await page.getByRole("button", { name: "About Data status" }).hover();
-    await expect(page.getByRole("tooltip")).toContainText(
-      "Whether this cloud's data is reaching OneUptime",
-    );
+    await expect(
+      tooltipSaying("Whether this cloud's data is reaching OneUptime"),
+    ).toBeVisible();
 
     await page.getByRole("button", { name: "About vCPUs allocated" }).hover();
-    await expect(page.getByRole("tooltip")).toContainText(
-      "not how busy the hosts are",
-    );
+    await expect(tooltipSaying("not how busy the hosts are")).toBeVisible();
   });
 
   test("the Services card has what is down first, and each row opens its service", async ({

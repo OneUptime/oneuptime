@@ -99,7 +99,7 @@ const ADVICE: Record<
   [OpenStackCollectionErrorCode.InvalidAddress]: {
     title: "The auth URL is not valid",
     nextStep:
-      "Enter Keystone's address over HTTPS, such as https://keystone.example.com:5000/v3.",
+      "Enter Keystone's address over HTTPS, such as https://keystone.example.com:5000/v3. For a cloud whose APIs only speak plain HTTP, turn on TLS, or use the OpenStack agent.",
   },
   [OpenStackCollectionErrorCode.AddressNotAllowed]: {
     title: "OneUptime does not connect to this address",
@@ -144,7 +144,7 @@ const ADVICE: Record<
   [OpenStackCollectionErrorCode.InsecureEndpoint]: {
     title: "The catalog names a plain HTTP endpoint",
     nextStep:
-      "A token is never sent unencrypted. Put the endpoint behind TLS, pick another endpoint interface, or use the OpenStack agent for this cloud.",
+      "A credential's token is never sent unencrypted. Turn on TLS for that API, pick another endpoint interface, or use the OpenStack agent for this cloud.",
   },
   [OpenStackCollectionErrorCode.NotKeystone]: {
     title: "This address is not Keystone",

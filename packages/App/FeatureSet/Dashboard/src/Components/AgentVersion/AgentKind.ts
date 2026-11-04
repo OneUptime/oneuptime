@@ -187,7 +187,12 @@ export const PROXMOX_AGENT_VERSION: string = "0.161.1";
  * old files reports 0.161.0 and is told to upgrade.
  */
 export const PROXMOX_AGENT_COLLECTOR_VERSION: string = "0.161.0";
-export const OPENSTACK_AGENT_VERSION: string = "0.161.0";
+/*
+ * The version the OpenStack agent reports. Its files changed on the same collector -
+ * 0.161.1, real per-instance usage read from libvirt or Ceilometer when asked - so an
+ * agent still running the old files reports 0.161.0 and is told to upgrade.
+ */
+export const OPENSTACK_AGENT_VERSION: string = "0.161.1";
 export const CEPH_AGENT_VERSION: string = "0.161.0";
 export const VMWARE_AGENT_VERSION: string = "0.161.0";
 export const STORAGE_ARRAY_AGENT_VERSION: string = "0.161.0";

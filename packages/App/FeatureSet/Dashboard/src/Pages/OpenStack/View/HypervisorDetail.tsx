@@ -17,7 +17,9 @@ import TranslatedSentence from "Common/UI/Components/TranslatedSentence/Translat
 import { Translator, translationKey } from "Common/UI/Utils/TranslateTemplate";
 import useTranslator from "Common/UI/Utils/UseTranslator";
 import React, { FunctionComponent, ReactElement } from "react";
-import GoldenMetricTile from "../../../Components/Infrastructure/GoldenMetricTile";
+import GoldenMetricTile, {
+  GoldenMetricTileProps,
+} from "../../../Components/Infrastructure/GoldenMetricTile";
 import ResourceMetricsTab from "../../../Components/Infrastructure/ResourceMetricsTab";
 import { OpenStackInstanceList } from "../../../Components/OpenStack/OpenStackLists";
 import {
@@ -56,8 +58,8 @@ import {
   fetchOpenStackRows,
 } from "../Utils/OpenStackPartData";
 import {
-  OPENSTACK_ALLOCATION_TITLES,
   OPENSTACK_HYPERVISOR_ALERT_TEMPLATE_IDS,
+  OpenStackAllocationKey,
   OpenStackAllocationLine,
   formatOpenStackAllocationRatio,
   getOpenStackAllocationLines,
@@ -82,23 +84,6 @@ const LOST_NOTICE: string = translationKey(
 );
 
 const NOT_REPORTED: string = translationKey("Not reported");
-
-function allocationDescription(key: OpenStackAllocationLine["key"]): string {
-  switch (key) {
-    case "vcpu":
-      return translationKey(
-        "vCPUs Placement has promised to instances here, out of what it will promise: (total - reserved) x allocation ratio. This is what is promised, not how busy the host is.",
-      );
-    case "memory":
-      return translationKey(
-        "Memory Placement has promised to instances here, out of what it will promise: (total - reserved) x allocation ratio. An instance holds its flavor's memory whether it uses it or not.",
-      );
-    default:
-      return translationKey(
-        "Local disk Placement has promised to instances here, out of what it will promise: (total - reserved) x allocation ratio. An instance holds its flavor's disk whether it fills it or not.",
-      );
-  }
-}
 
 function formatLine(line: OpenStackAllocationLine, value: number): string {
   return line.key === "vcpu"
@@ -172,6 +157,55 @@ const HypervisorOverview: FunctionComponent<{
 
   const lines: Array<OpenStackAllocationLine> =
     getOpenStackAllocationLines(row);
+
+  /*
+   * What a tile of what is allocated reads now. Always allocated, never CPU, because this
+   * is what is promised and not load. Each tile's title and words are written out on the
+   * tile itself, where the string extract reads them.
+   */
+  const getAllocationReading: (
+    key: OpenStackAllocationKey,
+  ) => Pick<
+    GoldenMetricTileProps,
+    "value" | "sublabel" | "percent" | "tone"
+  > = (
+    key: OpenStackAllocationKey,
+  ): Pick<GoldenMetricTileProps, "value" | "sublabel" | "percent" | "tone"> => {
+    const line: OpenStackAllocationLine = lines.find(
+      (candidate: OpenStackAllocationLine): boolean => {
+        return candidate.key === key;
+      },
+    ) as OpenStackAllocationLine;
+    const amount: string = formatOpenStackAmount({
+      taken: line.taken,
+      capacity: line.capacity,
+      format: (value: number): string => {
+        return formatLine(line, value);
+      },
+    });
+    const ratio: string = formatOpenStackAllocationRatio(line.ratio);
+
+    return {
+      value: line.percent === null ? "—" : `${Math.round(line.percent)}%`,
+      sublabel: !amount
+        ? NOT_REPORTED
+        : line.isLastKnown
+          ? translator.translateTemplate("{{amount}}, last known", { amount })
+          : ratio
+            ? translator.translateTemplate("{{amount}}, ratio {{ratio}}", {
+                amount,
+                ratio,
+              })
+            : amount,
+      // A last known number is not a gauge of what is left: no bar.
+      percent: line.isLastKnown ? null : line.percent,
+      tone: line.isLastKnown
+        ? undefined
+        : line.isOverLine
+          ? "warning"
+          : "positive",
+    };
+  };
   const zone: string = row.availabilityZone || "";
   const aggregates: Array<string> = parseOpenStackAggregates(row);
 
@@ -298,63 +332,27 @@ const HypervisorOverview: FunctionComponent<{
         className="mb-6 grid grid-cols-1 gap-4 sm:grid-cols-2 xl:grid-cols-4"
         data-testid="openstack-hypervisor-tiles"
       >
-        {lines.map((line: OpenStackAllocationLine): ReactElement => {
-          const amount: string = formatOpenStackAmount({
-            taken: line.taken,
-            capacity: line.capacity,
-            format: (value: number): string => {
-              return formatLine(line, value);
-            },
-          });
-          const ratio: string = formatOpenStackAllocationRatio(line.ratio);
-          return (
-            <GoldenMetricTile
-              key={line.key}
-              title={OPENSTACK_ALLOCATION_TITLES[line.key]}
-              icon={
-                line.key === "vcpu"
-                  ? IconProp.ChartBar
-                  : line.key === "memory"
-                    ? IconProp.SquareStack
-                    : IconProp.Database
-              }
-              iconColor={
-                line.key === "vcpu"
-                  ? "blue"
-                  : line.key === "memory"
-                    ? "violet"
-                    : "amber"
-              }
-              value={
-                line.percent === null ? "—" : `${Math.round(line.percent)}%`
-              }
-              sublabel={
-                !amount
-                  ? NOT_REPORTED
-                  : line.isLastKnown
-                    ? translator.translateTemplate("{{amount}}, last known", {
-                        amount,
-                      })
-                    : ratio
-                      ? translator.translateTemplate(
-                          "{{amount}}, ratio {{ratio}}",
-                          { amount, ratio },
-                        )
-                      : amount
-              }
-              // A last known number is not a gauge of what is left: no bar.
-              percent={line.isLastKnown ? null : line.percent}
-              tone={
-                line.isLastKnown
-                  ? undefined
-                  : line.isOverLine
-                    ? "warning"
-                    : "positive"
-              }
-              description={allocationDescription(line.key)}
-            />
-          );
-        })}
+        <GoldenMetricTile
+          title="vCPUs allocated"
+          icon={IconProp.ChartBar}
+          iconColor="blue"
+          description="vCPUs Placement has promised to instances here, out of what it will promise: (total - reserved) x allocation ratio. This is what is promised, not how busy the host is."
+          {...getAllocationReading("vcpu")}
+        />
+        <GoldenMetricTile
+          title="Memory allocated"
+          icon={IconProp.SquareStack}
+          iconColor="violet"
+          description="Memory Placement has promised to instances here, out of what it will promise: (total - reserved) x allocation ratio. An instance holds its flavor's memory whether it uses it or not."
+          {...getAllocationReading("memory")}
+        />
+        <GoldenMetricTile
+          title="Local disk allocated"
+          icon={IconProp.Database}
+          iconColor="amber"
+          description="Local disk Placement has promised to instances here, out of what it will promise: (total - reserved) x allocation ratio. An instance holds its flavor's disk whether it fills it or not."
+          {...getAllocationReading("disk")}
+        />
         <GoldenMetricTile
           title="Instances"
           icon={IconProp.Cube}

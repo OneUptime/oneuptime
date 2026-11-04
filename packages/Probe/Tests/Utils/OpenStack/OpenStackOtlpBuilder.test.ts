@@ -767,7 +767,7 @@ describe("Neutron", () => {
             ipVersion: 6,
             cidr: "2001:db8::/64",
             subnetName: "v6",
-            totalIps: 18446744073709551614,
+            totalIps: 2 ** 64,
             usedIps: 4,
           },
         ],

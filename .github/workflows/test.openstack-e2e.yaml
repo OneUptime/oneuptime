@@ -13,6 +13,15 @@ name: OpenStack E2E
 # Path-filtered, so it must not be a required check.
 on:
   workflow_dispatch:
+    inputs:
+      logs_only:
+        description: Only record service logs, notifications and audit events, which skips what takes the rest of the time
+        type: boolean
+        default: false
+      control_plane_only:
+        description: Only record what RabbitMQ, Galera, Memcached, HAProxy and OVN say when they break, which takes no DevStack
+        type: boolean
+        default: false
   schedule:
     - cron: "23 3 * * 1"
   pull_request:
@@ -24,15 +33,43 @@ on:
 permissions:
   contents: read
 
+# The control plane's own run takes no DevStack and has nothing to do with a full one,
+# so neither cancels the other.
 concurrency:
-  group: ${{ github.workflow }}-${{ github.event.pull_request.number || github.ref }}
+  group: ${{ github.workflow }}-${{ github.event.pull_request.number || github.ref }}-${{ inputs.control_plane_only && 'control-plane' || 'all' }}
   cancel-in-progress: true
 
 jobs:
+  # Real clusters of what a cloud stands on, in containers, with the exporters
+  # Kolla-Ansible pins: a DevStack has one of each, so it cannot lose a node or quorum.
+  record-control-plane:
+    name: control plane clusters
+    if: ${{ !inputs.logs_only }}
+    runs-on: ubuntu-24.04
+    timeout-minutes: 90
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Break each one, and record what it says
+        run: bash Tests/Ops/openstack-e2e/control-plane-clusters.sh
+        env:
+          OUTPUT_DIR: ${{ runner.temp }}/recording
+
+      - name: Upload the recordings
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: openstack-recording-control-plane
+          path: ${{ runner.temp }}/recording
+          if-no-files-found: warn
+          retention-days: 30
+
   record:
     name: ${{ matrix.name }}
+    if: ${{ !inputs.control_plane_only }}
     runs-on: ubuntu-24.04
-    timeout-minutes: 120
+    # Half an hour more on the two entries that drill what a cloud stands on.
+    timeout-minutes: 180
     strategy:
       fail-fast: false
       matrix:
@@ -46,6 +83,7 @@ jobs:
           - name: gazpacho-ovn
             branch: stable/2026.1
             conf_overrides: ""
+            control_plane: true
           - name: flamingo-ovn
             branch: stable/2025.2
             conf_overrides: ""
@@ -59,6 +97,7 @@ jobs:
           # the product must read both.
           - name: gazpacho-ovs
             branch: stable/2026.1
+            control_plane: true
             enabled_services: "-ovn-controller,-ovn-northd,-ovs-vswitchd,-ovsdb-server,-q-ovn-metadata-agent,-q-ovn-agent,q-agt,q-dhcp,q-l3,q-meta"
             conf_overrides: |
               Q_AGENT=openvswitch
@@ -75,9 +114,16 @@ jobs:
           enabled_services: ${{ matrix.enabled_services }}
           # OpenStack's own default. DevStack waits 2 minutes between heartbeats and
           # calls a service down after 12, which outlasts every drill's wait.
+          # Ceilometer only for its polling agent and the exporter it holds, from 2025.1:
+          # what it says about an instance is recorded, and nothing is stored here. Its
+          # polling interval is a minute rather than five so a run sees several.
           conf_overrides: |
             NOVA_SERVICE_REPORT_INTERVAL=10
             CINDER_SERVICE_REPORT_INTERVAL=10
+            enable_plugin ceilometer https://opendev.org/openstack/ceilometer ${{ matrix.branch }}
+            disable_service ceilometer-acentral ceilometer-anotification
+            CEILOMETER_BACKENDS=none
+            CEILOMETER_PIPELINE_INTERVAL=60
             ${{ matrix.conf_overrides }}
           # Its workaround replaces containerd with runc, which stops Docker, and
           # the agent's exporter and collector run in Docker. Kuryr is not used here.
@@ -95,27 +141,80 @@ jobs:
       - name: Build the estate
         run: bash Tests/Ops/openstack-e2e/estate.sh
 
+      # On its own, as the access matrix is: losing a source of VM metrics costs that
+      # recording, not the drills.
+      - name: Start what reports real VM metrics
+        if: ${{ !inputs.logs_only }}
+        continue-on-error: true
+        run: bash Tests/Ops/openstack-e2e/start-instance-metrics.sh
+        env:
+          OUTPUT_DIR: ${{ runner.temp }}/recording
+
+      # Before the agent starts, so its collector reads them from its first scrape.
+      - name: Start the exporters of what the cloud stands on
+        if: ${{ !inputs.logs_only && matrix.control_plane }}
+        continue-on-error: true
+        run: bash Tests/Ops/openstack-e2e/control-plane-cloud.sh start
+        env:
+          OUTPUT_DIR: ${{ runner.temp }}/recording
+
       - name: Start the agent's exporter and collector
+        if: ${{ !inputs.logs_only }}
         run: bash Tests/Ops/openstack-e2e/start-agent.sh
         env:
           OUTPUT_DIR: ${{ runner.temp }}/recording
+          OPENSTACK_LIBVIRT_EXPORTER_TARGETS: "[127.0.0.1:9177]"
+          OPENSTACK_CEILOMETER_EXPORTER_TARGETS: "[127.0.0.1:9101]"
+          OPENSTACK_RABBITMQ_TARGETS: ${{ matrix.control_plane && '[127.0.0.1:15692]' || '[]' }}
+          OPENSTACK_MARIADB_TARGETS: ${{ matrix.control_plane && '[127.0.0.1:9104]' || '[]' }}
+          OPENSTACK_MEMCACHED_TARGETS: ${{ matrix.control_plane && '[127.0.0.1:9150]' || '[]' }}
+          OPENSTACK_NETWORK_EXPORTER_TARGETS: ${{ matrix.control_plane && '[127.0.0.1:1981]' || '[]' }}
+          OPENSTACK_LIBVIRT_HEALTH_TARGETS: ${{ matrix.control_plane && '[127.0.0.1:9177]' || '[]' }}
 
       # On its own, so that a problem here still leaves the drills recorded. It takes
       # its policy files back off when it ends, whichever way it ends.
       - name: Least privilege, tested on the real policies
+        if: ${{ !inputs.logs_only }}
         continue-on-error: true
         run: bash Tests/Ops/openstack-e2e/access-matrix.sh
         env:
           OUTPUT_DIR: ${{ runner.temp }}/recording
 
       - name: Record the failure drills
+        if: ${{ !inputs.logs_only }}
         run: bash Tests/Ops/openstack-e2e/drills.sh
         env:
           OUTPUT_DIR: ${{ runner.temp }}/recording
           EXPORTER_STABLE_URL: http://127.0.0.1:9181
 
+      # After the drills, so the scenes they recorded hold the estate they always held.
+      - name: Record real VM metrics from both sources
+        if: ${{ !inputs.logs_only }}
+        continue-on-error: true
+        run: bash Tests/Ops/openstack-e2e/instance-metrics.sh
+        env:
+          OUTPUT_DIR: ${{ runner.temp }}/recording
+
+      # What the cloud does when what it stands on goes away. After the rest, because it
+      # takes the whole cloud down more than once, and on its own, so that a problem here
+      # still leaves everything else recorded.
+      - name: Stop what the cloud stands on, and record what falls
+        if: ${{ !inputs.logs_only && matrix.control_plane }}
+        continue-on-error: true
+        run: bash Tests/Ops/openstack-e2e/control-plane-cloud.sh drills
+        env:
+          OUTPUT_DIR: ${{ runner.temp }}/recording
+
+      # Last, because it changes every service's config and breaks things of its own, and
+      # on its own, so that a problem here still leaves the drills recorded.
+      - name: Record service logs, notifications and audit events
+        continue-on-error: true
+        run: bash Tests/Ops/openstack-e2e/logs-record.sh
+        env:
+          OUTPUT_DIR: ${{ runner.temp }}/recording
+
       - name: Stop the agent and keep what it exported
-        if: always()
+        if: ${{ always() && !inputs.logs_only }}
         run: bash Tests/Ops/openstack-e2e/stop-agent.sh
         env:
           OUTPUT_DIR: ${{ runner.temp }}/recording

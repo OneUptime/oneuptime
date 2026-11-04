@@ -7,6 +7,7 @@ import KubernetesCluster from "./KubernetesCluster";
 import Label from "./Label";
 import Project from "./Project";
 import ProxmoxCluster from "./ProxmoxCluster";
+import OpenStackCloud from "./OpenStackCloud";
 import User from "./User";
 import BaseModel from "./DatabaseBaseModel/DatabaseBaseModel";
 import Route from "../../Types/API/Route";
@@ -992,6 +993,71 @@ export default class Host extends BaseModel {
     transformer: ObjectID.getDatabaseTransformer(),
   })
   public proxmoxClusterId?: ObjectID = undefined;
+
+  @ColumnAccessControl({
+    create: [],
+    read: [
+      Permission.ProjectOwner,
+      Permission.ProjectAdmin,
+      Permission.ProjectMember,
+      Permission.Viewer,
+      Permission.SettingsAdmin,
+      Permission.SettingsMember,
+      Permission.SettingsViewer,
+      Permission.ReadHost,
+    ],
+    update: [],
+  })
+  @TableColumn({
+    manyToOneRelationColumn: "openStackCloudId",
+    type: TableColumnType.Entity,
+    modelType: OpenStackCloud,
+    title: "OpenStack Cloud",
+    description:
+      "Optional link to the OpenStack cloud this host belongs to: it is one of the cloud's hypervisors, or it runs inside one of its instances. Linked at ingest when exactly one part of a cloud in the same project matches. Best effort, and never overwrites a value already set.",
+  })
+  @ManyToOne(
+    () => {
+      return OpenStackCloud;
+    },
+    {
+      eager: false,
+      nullable: true,
+      onDelete: "SET NULL",
+      orphanedRowAction: "nullify",
+    },
+  )
+  @JoinColumn({ name: "openStackCloudId" })
+  public openStackCloud?: OpenStackCloud = undefined;
+
+  @ColumnAccessControl({
+    create: [],
+    read: [
+      Permission.ProjectOwner,
+      Permission.ProjectAdmin,
+      Permission.ProjectMember,
+      Permission.Viewer,
+      Permission.SettingsAdmin,
+      Permission.SettingsMember,
+      Permission.SettingsViewer,
+      Permission.ReadHost,
+    ],
+    update: [],
+  })
+  // A hypervisor's blast radius reads hosts by this.
+  @Index()
+  @TableColumn({
+    type: TableColumnType.ObjectID,
+    title: "OpenStack Cloud ID",
+    description:
+      "Optional FK to the OpenStack cloud this host belongs to, as a hypervisor or as a guest.",
+  })
+  @Column({
+    type: ColumnType.ObjectID,
+    nullable: true,
+    transformer: ObjectID.getDatabaseTransformer(),
+  })
+  public openStackCloudId?: ObjectID = undefined;
 
   @ColumnAccessControl({
     create: [

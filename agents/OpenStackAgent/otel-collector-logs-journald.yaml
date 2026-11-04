@@ -1,0 +1,157 @@
+# The OpenStack agent's optional logs profile for a deployment that logs to the
+# systemd journal: OpenStack-Ansible, and DevStack. One of these runs on each
+# controller and compute node, beside the agent that watches the cloud, and it
+# only reads. `install-logs.sh` installs it. OneUptime parses what it sends when
+# the record arrives (Common/Utils/OpenStack/OpenStackLogs): this file only gets
+# each record there whole, and says which cloud and node it came from.
+extensions:
+  # Where the journal's cursor is kept, so a restart goes on from the same line
+  # rather than losing what was written while it was down.
+  file_storage:
+    directory: ${env:OPENSTACK_LOGS_STATE_DIRECTORY}
+
+receivers:
+  journald:
+    # Which units to read, as a list in square brackets. The installer's default
+    # names every OpenStack service's units and nothing else on the machine.
+    units: ${env:OPENSTACK_LOGS_UNITS}
+    # Every line. A service that writes to its standard output reports every line
+    # as priority info, so this filter could not tell DEBUG from anything anyway.
+    # OneUptime's drop filters decide what is kept, where they can be changed.
+    priority: debug
+    start_at: end
+    storage: file_storage
+    # OpenStack-Ansible runs its services in LXC containers, and passes their
+    # journals through to the host under /var/log/journal.
+    merge: true
+    # journalctl writes a line holding a control character as a list of bytes.
+    # DevStack colours its lines, so without this every one would arrive as numbers.
+    convert_message_bytes: true
+    operators:
+      - type: move
+        if: 'body._SYSTEMD_UNIT != nil'
+        from: body._SYSTEMD_UNIT
+        to: attributes["journald.unit"]
+      # A container's name, on a host that passes its containers' journals through.
+      - type: move
+        if: 'body._HOSTNAME != nil'
+        from: body._HOSTNAME
+        to: attributes["journald.hostname"]
+      - type: move
+        if: 'body._PID != nil'
+        from: body._PID
+        to: attributes["process.pid"]
+      - type: move
+        if: 'body.SYSLOG_IDENTIFIER != nil'
+        from: body.SYSLOG_IDENTIFIER
+        to: attributes["journald.identifier"]
+      - type: move
+        if: 'body.PRIORITY != nil'
+        from: body.PRIORITY
+        to: attributes["journald.priority"]
+      # What oslo.log's own journal handler says beside the line, with use_journal
+      # on, as OpenStack-Ansible sets it. Each of these is only there when it does.
+      - type: move
+        if: 'body.LOGGER_NAME != nil'
+        from: body.LOGGER_NAME
+        to: attributes["journald.logger_name"]
+      - type: move
+        if: 'body.LOGGER_LEVEL != nil'
+        from: body.LOGGER_LEVEL
+        to: attributes["journald.logger_level"]
+      - type: move
+        if: 'body.REQUEST_ID != nil'
+        from: body.REQUEST_ID
+        to: attributes["journald.request_id"]
+      - type: move
+        if: 'body.GLOBAL_REQUEST_ID != nil'
+        from: body.GLOBAL_REQUEST_ID
+        to: attributes["journald.global_request_id"]
+      - type: move
+        if: 'body.PROJECT_ID != nil'
+        from: body.PROJECT_ID
+        to: attributes["journald.project_id"]
+      - type: move
+        if: 'body.PROJECT_NAME != nil'
+        from: body.PROJECT_NAME
+        to: attributes["journald.project_name"]
+      - type: move
+        if: 'body.USER_ID != nil'
+        from: body.USER_ID
+        to: attributes["journald.user_id"]
+      - type: move
+        if: 'body.USER_NAME != nil'
+        from: body.USER_NAME
+        to: attributes["journald.user_name"]
+      - type: move
+        if: 'body.EXCEPTION_INFO != nil'
+        from: body.EXCEPTION_INFO
+        to: attributes["journald.exception_info"]
+      - type: move
+        from: body.MESSAGE
+        to: body
+        on_error: send_quiet
+      # A stack trace is one record. oslo.log writes it one line at a time, each with
+      # a prefix of its own and no [request] context, and a service's workers share a
+      # unit, so lines are only joined within one process of one unit.
+      - type: add
+        if: 'attributes["journald.unit"] != nil and attributes["process.pid"] != nil'
+        field: attributes["openstack.log.stream"]
+        value: 'EXPR(attributes["journald.unit"] + "/" + attributes["process.pid"])'
+      - type: recombine
+        combine_field: body
+        combine_with: "\n"
+        source_identifier: attributes["openstack.log.stream"]
+        # oslo.log's own journal handler sends each record whole, so nothing joins it.
+        is_first_entry: 'attributes["journald.logger_name"] != nil or not ((body matches "^(?:\\x1b\\[[0-9;]*m)*(?:\\d{4}-\\d{2}-\\d{2} \\d{2}:\\d{2}:\\d{2}\\.\\d{3} \\d+ )?(?:ERROR|TRACE|CRITICAL) [A-Za-z0-9_.-]+ " and not (body matches "^(?:\\x1b\\[[0-9;]*m)*(?:\\d{4}-\\d{2}-\\d{2} \\d{2}:\\d{2}:\\d{2}\\.\\d{3} \\d+ )?[A-Z]+ [A-Za-z0-9_.-]+ (?:\\x1b\\[[0-9;]*m)*\\[(?:\\x1b\\[[0-9;]*m)*(?:-|None|req-)")) or body matches "^(?:[ \\t]+\\S|Traceback \\(most recent call last\\):|[A-Za-z_][A-Za-z0-9_.]*(?:Error|Exception|Timeout|Refused|Failure)(?:: |$))")'
+        force_flush_period: 2s
+        max_batch_size: 500
+        max_log_size: 256KiB
+      - type: remove
+        field: attributes["openstack.log.stream"]
+        on_error: send_quiet
+
+processors:
+  # Which cloud and machine each record is from. OneUptime files a record under the
+  # cloud by `openstack.cloud.name`, so keep it the name the cloud's agent uses.
+  resource:
+    attributes:
+      - key: openstack.cloud.name
+        value: ${env:OPENSTACK_CLOUD_NAME}
+        action: upsert
+      - key: openstack.node.name
+        value: ${env:OPENSTACK_NODE_NAME}
+        action: upsert
+      # Shown as the agent version, with a sign when a newer one is out. The collector
+      # release install-logs.sh pins, its last number raised when these files change.
+      - key: oneuptime.agent.version
+        value: "0.161.0"
+        action: upsert
+      # OneUptime routes a batch by service.name first, so one here would register a
+      # phantom Service instead of reaching the cloud.
+      - key: service.name
+        action: delete
+      - key: service.instance.id
+        action: delete
+  batch:
+    timeout: 5s
+    send_batch_size: 1024
+    send_batch_max_size: 4096
+  memory_limiter:
+    check_interval: 5s
+    limit_mib: 256
+    spike_limit_mib: 64
+
+exporters:
+  otlphttp:
+    endpoint: ${env:ONEUPTIME_URL}/otlp
+    headers:
+      x-oneuptime-token: ${env:ONEUPTIME_TELEMETRY_INGESTION_KEY}
+
+service:
+  extensions: [file_storage]
+  pipelines:
+    logs:
+      receivers: [journald]
+      processors: [memory_limiter, resource, batch]
+      exporters: [otlphttp]

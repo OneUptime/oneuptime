@@ -830,13 +830,18 @@ export default class MonitorAlert {
           });
 
           // What a part of an OpenStack cloud takes with it, and whose that is.
-          alert.description = await OpenStackAlertContext.addToDescription({
-            description: alert.description,
-            projectId: input.monitor.projectId!,
-            clouds: alert.openStackClouds,
-            seriesLabels: seriesLabels,
-            monitorSteps: input.monitor.monitorSteps,
-          });
+          const description: string | undefined =
+            await OpenStackAlertContext.addToDescription({
+              description: alert.description,
+              projectId: input.monitor.projectId!,
+              clouds: alert.openStackClouds,
+              seriesLabels: seriesLabels,
+              monitorSteps: input.monitor.monitorSteps,
+            });
+
+          if (description !== undefined) {
+            alert.description = description;
+          }
 
           /*
            * On-call policies and labels from the criteria. AlertService

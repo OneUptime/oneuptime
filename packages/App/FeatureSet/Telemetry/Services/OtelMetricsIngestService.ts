@@ -95,6 +95,7 @@ import {
   finishOpenStackBatch,
   isOpenStackSnapshotDatapoint,
 } from "Common/Server/Utils/Telemetry/OpenStackSnapshotScan";
+import OpenStackInstanceMetricsIngest from "Common/Server/Utils/Telemetry/OpenStackInstanceMetricsIngest";
 import VMwareResourceService, {
   ParsedVMwareResource,
   VMwareResourceLatestMetric,
@@ -1347,6 +1348,19 @@ export default class OtelMetricsIngestService extends OtelIngestBaseService {
               proxmoxClusterId,
               resourceMetric: resourceMetric as JSONObject,
               reports: proxmoxSilentNodeReports,
+            });
+          }
+
+          /*
+           * What libvirt's or Ceilometer's exporter says about an instance, in the one shape
+           * the pages and templates read, appended before the rows are built for the same
+           * reason as above.
+           */
+          if (openStackCloudId) {
+            await OpenStackInstanceMetricsIngest.normalizeEnvelope({
+              projectId,
+              openStackCloudId,
+              envelope: resourceMetric as JSONObject,
             });
           }
 

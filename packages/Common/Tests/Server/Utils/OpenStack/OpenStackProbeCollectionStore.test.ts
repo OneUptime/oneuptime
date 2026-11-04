@@ -369,7 +369,9 @@ describe("claiming clouds", () => {
       props: { isRoot: true },
     });
     expect(
-      Object.keys(fake.findByCalls[0]?.["select"] as object).sort(),
+      Object.keys(
+        fake.findByCalls[0]?.["select"] as Record<string, unknown>,
+      ).sort(),
     ).toEqual(
       [
         "_id",
@@ -773,9 +775,9 @@ describe("a report", () => {
     });
 
     expect(outcome).toMatchObject({ accepted: true, isCurrent: false });
-    expect(Object.keys(fake.updates[0]?.data as object)).toEqual([
-      "lastCollectionAt",
-    ]);
+    expect(
+      Object.keys(fake.updates[0]?.data as Record<string, unknown>),
+    ).toEqual(["lastCollectionAt"]);
   });
 
   test("a cloud with no version yet is version 0", async () => {

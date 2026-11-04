@@ -134,26 +134,26 @@ function toDatapoint(series: Series): JSONObject {
 }
 
 function toRow(entry: OpenStackResourceBufferEntry): OpenStackResource {
-  const row: OpenStackResource = new OpenStackResource();
-  row.kind = entry.kind;
-  row.externalId = entry.externalId;
-  row.name = entry.name || undefined;
-  row.regionName = entry.regionName || undefined;
-  row.availabilityZone = entry.availabilityZone || undefined;
-  row.hypervisorName = entry.hypervisorName || undefined;
-  row.openStackProjectId = entry.openStackProjectId || undefined;
-  row.status = entry.status || undefined;
-  row.adminState = entry.adminState || undefined;
-  row.disabledReason = entry.disabledReason || undefined;
-  row.vcpuCapacity = entry.vcpuCapacity ?? undefined;
-  row.vcpuAllocated = entry.vcpuAllocated ?? undefined;
-  row.memoryCapacityBytes = entry.memoryCapacityBytes ?? undefined;
-  row.memoryAllocatedBytes = entry.memoryAllocatedBytes ?? undefined;
-  row.diskCapacityBytes = entry.diskCapacityBytes ?? undefined;
-  row.diskAllocatedBytes = entry.diskAllocatedBytes ?? undefined;
-  row.instanceCount = entry.instanceCount ?? undefined;
-  row.facts = entry.facts;
-  return row;
+  return Object.assign(new OpenStackResource(), {
+    kind: entry.kind,
+    externalId: entry.externalId,
+    name: entry.name || undefined,
+    regionName: entry.regionName || undefined,
+    availabilityZone: entry.availabilityZone || undefined,
+    hypervisorName: entry.hypervisorName || undefined,
+    openStackProjectId: entry.openStackProjectId || undefined,
+    status: entry.status || undefined,
+    adminState: entry.adminState || undefined,
+    disabledReason: entry.disabledReason || undefined,
+    vcpuCapacity: entry.vcpuCapacity ?? undefined,
+    vcpuAllocated: entry.vcpuAllocated ?? undefined,
+    memoryCapacityBytes: entry.memoryCapacityBytes ?? undefined,
+    memoryAllocatedBytes: entry.memoryAllocatedBytes ?? undefined,
+    diskCapacityBytes: entry.diskCapacityBytes ?? undefined,
+    diskAllocatedBytes: entry.diskAllocatedBytes ?? undefined,
+    instanceCount: entry.instanceCount ?? undefined,
+    facts: entry.facts,
+  });
 }
 
 class Scene {
@@ -165,7 +165,9 @@ class Scene {
     const buffer: Map<string, OpenStackResourceBufferEntry> = new Map();
     for (const series of this.series) {
       const datapoint: JSONObject = toDatapoint(series);
-      if (isOpenStackSnapshotDatapoint({ metricName: series.name, datapoint })) {
+      if (
+        isOpenStackSnapshotDatapoint({ metricName: series.name, datapoint })
+      ) {
         bufferOpenStackSnapshotMetric({
           metricName: series.name,
           datapoint,
@@ -773,94 +775,101 @@ describe.each(RELEASES)("the exporter's 1.7.0, on %s", (release: string) => {
  * walks it. This is the one place a change to the collector config can break the scan
  * without either's own tests noticing.
  */
-describe.each(DRILLED_RELEASES)("what the collector exports, on %s", (release: string) => {
-  const otlp: JSONObject = JSON.parse(
-    fs.readFileSync(path.join(FIXTURES, release, "otlp.json"), "utf8"),
-  ) as JSONObject;
+describe.each(DRILLED_RELEASES)(
+  "what the collector exports, on %s",
+  (release: string) => {
+    const otlp: JSONObject = JSON.parse(
+      fs.readFileSync(path.join(FIXTURES, release, "otlp.json"), "utf8"),
+    ) as JSONObject;
 
-  const buffer: Map<string, OpenStackResourceBufferEntry> = new Map();
-  const resourceAttributes: Array<JSONObject> = [];
-  for (const resourceMetrics of otlp["resourceMetrics"] as Array<JSONObject>) {
-    resourceAttributes.push(
-      ...(((resourceMetrics["resource"] as JSONObject)[
-        "attributes"
-      ] as Array<JSONObject>) || []),
-    );
-    for (const scope of resourceMetrics["scopeMetrics"] as Array<JSONObject>) {
-      for (const metric of scope["metrics"] as Array<JSONObject>) {
-        const data: JSONObject =
-          (metric["gauge"] as JSONObject) ||
-          (metric["sum"] as JSONObject) ||
-          ({} as JSONObject);
-        for (const datapoint of (data["dataPoints"] as Array<JSONObject>) ||
-          []) {
-          const metricName: string = metric["name"] as string;
-          if (isOpenStackSnapshotDatapoint({ metricName, datapoint })) {
-            bufferOpenStackSnapshotMetric({ metricName, datapoint, buffer });
+    const buffer: Map<string, OpenStackResourceBufferEntry> = new Map();
+    const resourceAttributes: Array<JSONObject> = [];
+    for (const resourceMetrics of otlp[
+      "resourceMetrics"
+    ] as Array<JSONObject>) {
+      resourceAttributes.push(
+        ...(((resourceMetrics["resource"] as JSONObject)[
+          "attributes"
+        ] as Array<JSONObject>) || []),
+      );
+      for (const scope of resourceMetrics[
+        "scopeMetrics"
+      ] as Array<JSONObject>) {
+        for (const metric of scope["metrics"] as Array<JSONObject>) {
+          const data: JSONObject =
+            (metric["gauge"] as JSONObject) ||
+            (metric["sum"] as JSONObject) ||
+            ({} as JSONObject);
+          for (const datapoint of (data["dataPoints"] as Array<JSONObject>) ||
+            []) {
+            const metricName: string = metric["name"] as string;
+            if (isOpenStackSnapshotDatapoint({ metricName, datapoint })) {
+              bufferOpenStackSnapshotMetric({ metricName, datapoint, buffer });
+            }
           }
         }
       }
     }
-  }
-  const rows: Array<OpenStackResource> = finishOpenStackBatch(
-    buffer.values(),
-  ).map(toRow);
+    const rows: Array<OpenStackResource> = finishOpenStackBatch(
+      buffer.values(),
+    ).map(toRow);
 
-  const attribute = (key: string): JSONObject | undefined => {
-    return resourceAttributes.find((candidate: JSONObject) => {
-      return candidate["key"] === key;
-    });
-  };
-
-  test("stamps the cloud and the agent's version on every export", () => {
-    expect(attribute("openstack.cloud.name")?.["value"]).toEqual({
-      stringValue: "devstack",
-    });
-    expect(attribute("oneuptime.agent.version")).toBeDefined();
-    // Discovery is by the cloud's name, and these would make it a service's.
-    expect(attribute("service.name")).toBeUndefined();
-    expect(attribute("service.instance.id")).toBeUndefined();
-  });
-
-  test("says which region and service each read is from", () => {
-    const apis: Array<OpenStackResource> = rows.filter(
-      (row: OpenStackResource) => {
-        return row.kind === OpenStackResourceKind.Api;
-      },
-    );
-    expect(
-      apis
-        .map((row: OpenStackResource) => {
-          return row.name;
-        })
-        .sort(),
-    ).toEqual([
-      "compute",
-      "identity",
-      "image",
-      "network",
-      "placement",
-      "volume",
-    ]);
-    for (const api of apis) {
-      expect(api.regionName).toBe("RegionOne");
-      expect(api.status).toBe("up");
-      expect(api.facts?.["scrapeFailed"]).toBe(false);
-      expect(api.facts?.["vouchedAt"]).toBeTruthy();
-    }
-  });
-
-  test("carries the estate", () => {
-    const named = (kind: OpenStackResourceKind, name: string): boolean => {
-      return rows.some((row: OpenStackResource) => {
-        return row.kind === kind && row.name === name;
+    const attribute = (key: string): JSONObject | undefined => {
+      return resourceAttributes.find((candidate: JSONObject) => {
+        return candidate["key"] === key;
       });
     };
-    expect(named(OpenStackResourceKind.Instance, "ou-running")).toBe(true);
-    expect(named(OpenStackResourceKind.Volume, "ou-vol-used")).toBe(true);
-    expect(named(OpenStackResourceKind.Network, "public")).toBe(true);
-    expect(named(OpenStackResourceKind.Router, "ou-router")).toBe(true);
-    expect(named(OpenStackResourceKind.Service, "nova-compute")).toBe(true);
-    expect(named(OpenStackResourceKind.Project, "ou-payments")).toBe(true);
-  });
-});
+
+    test("stamps the cloud and the agent's version on every export", () => {
+      expect(attribute("openstack.cloud.name")?.["value"]).toEqual({
+        stringValue: "devstack",
+      });
+      expect(attribute("oneuptime.agent.version")).toBeDefined();
+      // Discovery is by the cloud's name, and these would make it a service's.
+      expect(attribute("service.name")).toBeUndefined();
+      expect(attribute("service.instance.id")).toBeUndefined();
+    });
+
+    test("says which region and service each read is from", () => {
+      const apis: Array<OpenStackResource> = rows.filter(
+        (row: OpenStackResource) => {
+          return row.kind === OpenStackResourceKind.Api;
+        },
+      );
+      expect(
+        apis
+          .map((row: OpenStackResource) => {
+            return row.name;
+          })
+          .sort(),
+      ).toEqual([
+        "compute",
+        "identity",
+        "image",
+        "network",
+        "placement",
+        "volume",
+      ]);
+      for (const api of apis) {
+        expect(api.regionName).toBe("RegionOne");
+        expect(api.status).toBe("up");
+        expect(api.facts?.["scrapeFailed"]).toBe(false);
+        expect(api.facts?.["vouchedAt"]).toBeTruthy();
+      }
+    });
+
+    test("carries the estate", () => {
+      const named = (kind: OpenStackResourceKind, name: string): boolean => {
+        return rows.some((row: OpenStackResource) => {
+          return row.kind === kind && row.name === name;
+        });
+      };
+      expect(named(OpenStackResourceKind.Instance, "ou-running")).toBe(true);
+      expect(named(OpenStackResourceKind.Volume, "ou-vol-used")).toBe(true);
+      expect(named(OpenStackResourceKind.Network, "public")).toBe(true);
+      expect(named(OpenStackResourceKind.Router, "ou-router")).toBe(true);
+      expect(named(OpenStackResourceKind.Service, "nova-compute")).toBe(true);
+      expect(named(OpenStackResourceKind.Project, "ou-payments")).toBe(true);
+    });
+  },
+);

@@ -138,6 +138,17 @@ ENV_ARGS=(
   -e "OPENSTACK_CLOUD_NAME=validate-only"
   -e "OPENSTACK_EXPORTER_CLOUDS=[RegionOne,RegionTwo]"
   -e "OPENSTACK_EXPORTER_ADDRESS=openstack-exporter:9180"
+  # What it reads of what the cloud stands on, one list per thing. Each is empty until
+  # someone names its targets, so these say the shape a target can take, with its own
+  # region and without one.
+  -e "OPENSTACK_RABBITMQ_TARGETS=[10.0.0.11:15692,RegionTwo@10.1.0.11:15692]"
+  -e "OPENSTACK_MARIADB_TARGETS=[10.0.0.11:9104]"
+  -e "OPENSTACK_MEMCACHED_TARGETS=[10.0.0.11:9150]"
+  -e "OPENSTACK_HAPROXY_TARGETS=[10.0.0.11:9101]"
+  -e "OPENSTACK_NETWORK_EXPORTER_TARGETS=[10.0.0.11:1981]"
+  -e "OPENSTACK_LIBVIRT_HEALTH_TARGETS=[10.0.0.21:9177]"
+  -e "OPENSTACK_CONTROL_PLANE_REGION=RegionOne"
+  -e "OPENSTACK_SINGLE_CLOUD_EXPORTER_TARGETS=[10.0.0.254:9198]"
   # The Storage Array Agent (a prometheus receiver scraping a FlashArray's
   # native endpoint, or Pure's exporter sidecars). The prometheus receiver
   # parses the scrape target and the TLS flag (an unquoted boolean), and the
