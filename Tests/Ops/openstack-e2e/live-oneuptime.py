@@ -351,8 +351,10 @@ def main():
     steps = alertmanager_monitor_steps(online, offline, severity)
     for recording, firing, resolved in alertmanager_recordings():
         say(f"\nWhat Alertmanager posted, in {recording}")
-        expected = json.loads(firing)["commonLabels"]
-        title = f"{expected['alertname']} on {expected['instance']}"
+        notification = json.loads(firing)
+        expected = notification["commonLabels"]
+        # The page's template, and what tells this alert's incident from another's.
+        title = f"{expected['alertname']} on {expected['instance']} - Fingerprint: {notification['alerts'][0]['fingerprint']}"
         monitor = make_monitor(f"Alertmanager {recording}", the_cloud, steps)
         make_monitor(f"Alertmanager {recording}, staging", other_cloud, steps)
 
