@@ -333,7 +333,8 @@ export const getSlotArrivals: (input: {
   });
 
   for (const formulaConfig of formulaConfigs) {
-    const formula: string = formulaConfig.metricFormulaData?.metricFormula || "";
+    const formula: string =
+      formulaConfig.metricFormulaData?.metricFormula || "";
 
     const arrival: MetricSeriesArrival | null = MetricSeriesArrivalUtil.combine(
       MetricFormulaEvaluator.getReferencedVariables(formula).map(

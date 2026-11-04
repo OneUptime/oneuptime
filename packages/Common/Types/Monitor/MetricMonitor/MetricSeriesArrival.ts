@@ -44,4 +44,3 @@ export default interface MetricSeriesArrival {
    */
   arrivalIntervalMs: number | null;
 }
-

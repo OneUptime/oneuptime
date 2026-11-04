@@ -144,7 +144,9 @@ describe("a series whose data arrives late, but keeps arriving", () => {
   });
 
   test("a source that delivers five minutes at once may go one and a half deliveries without anything new", () => {
-    const deliveries: (sinceNewestArrivalMs: number) => MetricWindowCoverageResult = (
+    const deliveries: (
+      sinceNewestArrivalMs: number,
+    ) => MetricWindowCoverageResult = (
       sinceNewestArrivalMs: number,
     ): MetricWindowCoverageResult => {
       return judge({
@@ -285,7 +287,10 @@ describe("what the evaluation log says about a late series", () => {
     const message: string = MetricWindowCoverage.describeWait(
       judge({
         samples: points(0, 6),
-        arrival: arrival({ sinceNewestArrivalMs: 6 * MINUTE, lagMs: 3 * MINUTE }),
+        arrival: arrival({
+          sinceNewestArrivalMs: 6 * MINUTE,
+          lagMs: 3 * MINUTE,
+        }),
       }),
     );
 
@@ -397,7 +402,9 @@ describe("a lone data point, with its arrival known", () => {
 
 describe("without arrivals, a series is judged as before", () => {
   test("lagMs is null and nothing about arrivals is said", () => {
-    const result: MetricWindowCoverageResult = judge({ samples: points(13, 15) });
+    const result: MetricWindowCoverageResult = judge({
+      samples: points(13, 15),
+    });
 
     expect(result.lagMs).toBeNull();
     expect(result.sinceNewestArrivalMs).toBeNull();
@@ -407,8 +414,8 @@ describe("without arrivals, a series is judged as before", () => {
   });
 
   test("null arrivals are no arrivals", () => {
-    expect(
-      judge({ samples: points(0, 10), arrival: null }).shortfall,
-    ).toBe(WindowCoverageShortfall.Stale);
+    expect(judge({ samples: points(0, 10), arrival: null }).shortfall).toBe(
+      WindowCoverageShortfall.Stale,
+    );
   });
 });

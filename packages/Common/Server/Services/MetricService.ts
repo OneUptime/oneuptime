@@ -860,15 +860,13 @@ export class MetricService extends AnalyticsDatabaseService<Metric> {
     statement.append(SQL`) `);
 
     if (input.attributeGroupKeys.length > 0) {
-      statement
-        .append(SQL` GROUP BY `)
-        .append(
-          input.attributeGroupKeys
-            .map((_key: string, index: number): string => {
-              return `__attr_grp_${index}`;
-            })
-            .join(", "),
-        );
+      statement.append(SQL` GROUP BY `).append(
+        input.attributeGroupKeys
+          .map((_key: string, index: number): string => {
+            return `__attr_grp_${index}`;
+          })
+          .join(", "),
+      );
     } else {
       // An empty window would otherwise read one row of zeros.
       statement.append(SQL` HAVING count() > 0`);

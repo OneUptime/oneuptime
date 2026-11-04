@@ -372,7 +372,9 @@ describe("MetricForecast.forecast", () => {
    * recent its data points' times look.
    */
   describe("with the series' arrivals known", () => {
-    const filling: (hoursAgo: number) => number = (hoursAgo: number): number => {
+    const filling: (hoursAgo: number) => number = (
+      hoursAgo: number,
+    ): number => {
       return 85 - hoursAgo / 24;
     };
 
@@ -427,8 +429,7 @@ describe("MetricForecast.forecast", () => {
         forecastArrived({ points, sinceNewestArrivalMs: 8.4 * HOUR }).state,
       ).toBe("Forecast");
       expect(
-        forecastArrived({ points, sinceNewestArrivalMs: 8.4 * HOUR + 1 })
-          .state,
+        forecastArrived({ points, sinceNewestArrivalMs: 8.4 * HOUR + 1 }).state,
       ).toBe("Stale");
     });
 
