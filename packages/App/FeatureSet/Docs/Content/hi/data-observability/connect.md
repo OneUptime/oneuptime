@@ -59,6 +59,7 @@ GRANT USAGE ON DATABASE ANALYTICS TO ROLE ONEUPTIME_READER;
 GRANT USAGE ON ALL SCHEMAS IN DATABASE ANALYTICS TO ROLE ONEUPTIME_READER;
 GRANT REFERENCES ON ALL TABLES IN DATABASE ANALYTICS TO ROLE ONEUPTIME_READER;
 GRANT USAGE ON WAREHOUSE CHECKS_WH TO ROLE ONEUPTIME_READER;
+GRANT IMPORTED PRIVILEGES ON DATABASE SNOWFLAKE TO ROLE ONEUPTIME_READER;
 CREATE USER ONEUPTIME_READER DEFAULT_ROLE = ONEUPTIME_READER RSA_PUBLIC_KEY = 'MIIBIjANBgkqh...';
 GRANT ROLE ONEUPTIME_READER TO USER ONEUPTIME_READER;
 ```
@@ -103,6 +104,12 @@ GRANT USE SCHEMA, SELECT ON SCHEMA system.access TO `oneuptime-reader`;
 ```
 
 कैटलॉग, उसके कॉलम और हर Delta टेबल का आख़िरी commit बिना किसी SQL warehouse के Unity Catalog के REST API से आते हैं, इसलिए संग्रह में कोई कंप्यूट खर्च नहीं होता। जांचें, और `system.access.table_lineage` से घंटे में एक बार लाइनेज और आख़िरी रीड, उस SQL warehouse पर चलते हैं जिसका आप नाम देते हैं; सर्विस प्रिंसिपल को उस पर **Can use** दें।
+@tab Amazon Athena
+एक Glue डेटाबेस एक डेटाबेस है। इसकी टेबल और व्यू, उनके कॉलम और आँकड़े, और हर Iceberg टेबल का आख़िरी commit Glue Data Catalog के API से आते हैं, जो कोई डेटा नहीं पढ़ता और कुछ खर्च नहीं होता। जांचें आपके बताए workgroup में Athena क्वेरी के रूप में चलती हैं। ऐसे IAM उपयोगकर्ता या भूमिका की कुंजियों से कनेक्ट करें जो `glue:GetDatabase` और `glue:GetTables` कॉल कर सके, और जांचों के लिए टेबल के डेटा तक पढ़ने की पहुँच के साथ workgroup में Athena क्वेरी चला सके:
+
+```json
+{ "region": "us-east-1", "accessKeyId": "AKIA...", "secretAccessKey": "...", "database": "analytics", "workgroup": "primary", "outputLocation": "s3://acme-athena-results/oneuptime/" }
+```
 :::
 
 ## क्या पढ़ा जाता है, और कितनी बार

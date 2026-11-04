@@ -59,6 +59,7 @@ GRANT USAGE ON DATABASE ANALYTICS TO ROLE ONEUPTIME_READER;
 GRANT USAGE ON ALL SCHEMAS IN DATABASE ANALYTICS TO ROLE ONEUPTIME_READER;
 GRANT REFERENCES ON ALL TABLES IN DATABASE ANALYTICS TO ROLE ONEUPTIME_READER;
 GRANT USAGE ON WAREHOUSE CHECKS_WH TO ROLE ONEUPTIME_READER;
+GRANT IMPORTED PRIVILEGES ON DATABASE SNOWFLAKE TO ROLE ONEUPTIME_READER;
 CREATE USER ONEUPTIME_READER DEFAULT_ROLE = ONEUPTIME_READER RSA_PUBLIC_KEY = 'MIIBIjANBgkqh...';
 GRANT ROLE ONEUPTIME_READER TO USER ONEUPTIME_READER;
 ```
@@ -103,6 +104,12 @@ GRANT USE SCHEMA, SELECT ON SCHEMA system.access TO `oneuptime-reader`;
 ```
 
 Каталог, его столбцы и последний коммит каждой таблицы Delta берутся из REST API Unity Catalog без SQL warehouse, поэтому сбор не тратит вычислительные ресурсы. Проверки, а также происхождение данных и последние чтения из `system.access.table_lineage` раз в час выполняются на SQL warehouse, который вы укажете; выдайте сервисному принципалу право **Can use** на него.
+@tab Amazon Athena
+Одна база данных Glue — это одна база данных. Её таблицы и представления, их столбцы и статистика, а также последний коммит каждой таблицы Iceberg берутся из API Glue Data Catalog, который не читает данные и ничего не стоит. Проверки выполняются как запросы Athena в указанной вами рабочей группе (workgroup). Подключайтесь с ключами пользователя или роли IAM, которым разрешено вызывать `glue:GetDatabase` и `glue:GetTables`, а для проверок — выполнять запросы Athena в рабочей группе с доступом на чтение к данным таблиц:
+
+```json
+{ "region": "us-east-1", "accessKeyId": "AKIA...", "secretAccessKey": "...", "database": "analytics", "workgroup": "primary", "outputLocation": "s3://acme-athena-results/oneuptime/" }
+```
 :::
 
 ## Что читается и как часто

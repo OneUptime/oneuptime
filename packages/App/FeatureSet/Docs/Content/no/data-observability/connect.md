@@ -59,6 +59,7 @@ GRANT USAGE ON DATABASE ANALYTICS TO ROLE ONEUPTIME_READER;
 GRANT USAGE ON ALL SCHEMAS IN DATABASE ANALYTICS TO ROLE ONEUPTIME_READER;
 GRANT REFERENCES ON ALL TABLES IN DATABASE ANALYTICS TO ROLE ONEUPTIME_READER;
 GRANT USAGE ON WAREHOUSE CHECKS_WH TO ROLE ONEUPTIME_READER;
+GRANT IMPORTED PRIVILEGES ON DATABASE SNOWFLAKE TO ROLE ONEUPTIME_READER;
 CREATE USER ONEUPTIME_READER DEFAULT_ROLE = ONEUPTIME_READER RSA_PUBLIC_KEY = 'MIIBIjANBgkqh...';
 GRANT ROLE ONEUPTIME_READER TO USER ONEUPTIME_READER;
 ```
@@ -103,6 +104,12 @@ GRANT USE SCHEMA, SELECT ON SCHEMA system.access TO `oneuptime-reader`;
 ```
 
 Katalogen, kolonnene og siste commit for hver Delta-tabell kommer fra REST API-et til Unity Catalog uten noe SQL warehouse, så innsamlingen koster ingen beregningskapasitet. Sjekker, samt avstamning og siste lesinger fra `system.access.table_lineage` én gang i timen, kjører på SQL warehouset du oppgir; gi service principalen **Can use** på det.
+@tab Amazon Athena
+Én Glue-database er én database. Tabellene og visningene, kolonnene og statistikken deres og hver Iceberg-tabells siste commit kommer fra Glue Data Catalogs API, som ikke leser data og ikke koster noe. Sjekker kjøres som Athena-spørringer i workgroupen du oppgir. Koble til med nøklene til en IAM-bruker eller -rolle som kan kalle `glue:GetDatabase` og `glue:GetTables` og for sjekker kjøre Athena-spørringer i workgroupen med lesetilgang til tabellenes data:
+
+```json
+{ "region": "us-east-1", "accessKeyId": "AKIA...", "secretAccessKey": "...", "database": "analytics", "workgroup": "primary", "outputLocation": "s3://acme-athena-results/oneuptime/" }
+```
 :::
 
 ## Hva som leses, og hvor ofte

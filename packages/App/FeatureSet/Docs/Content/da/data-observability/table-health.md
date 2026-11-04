@@ -60,6 +60,12 @@ Hver motor, der tæller læsninger, viser, hvornår hver tabel sidst blev læst:
 
 **Ubrugte tabeller** viser de tabeller, ingen har læst i 90 dage, de største først, med hvornår der sidst blev skrevet til hver: en tabel, der stadig skrives til, men aldrig læses, koster sine skrivninger og sin lagerplads. En tæller på 0 ved en tabels første indsamling betyder, at den ikke er blevet læst, siden motorens statistik startede, så en ubrugt tabel vises som ubrugt fra starten.
 
+## Lagerforbrug
+
+En gang i timen læser Dataobservabilitet, hvad hvert Snowflake- og BigQuery-lager har brugt det seneste døgn, job for job: Snowflakes compute-credits fra `QUERY_ATTRIBUTION_HISTORY` og BigQuerys fakturerede bytes fra dens jobvisning, som kræver **BigQuery Resource Viewer**. Et job er én forespørgsel, der køres igen og igen, navngivet efter dens query tag eller label eller efter, hvad den gør, og den tabel, den skriver: aldrig efter forespørgslens tekst.
+
+**Lagerforbrug** viser totalerne efter team (`team` i et jobs query tag eller label, ellers den, der kører det), de tabeller, hvis skrivninger koster mest, de job, der fejlede, og hvad der bruges på job, der kun skriver tabeller, som ingen har læst i 90 dage.
+
 ## Tjenester, der bruger hver tabel
 
 En tabels fane **Tjenester** viser de tjenester, der er set skrive til og læse fra den, med de sætninger, hver kørte, dens kald og fejl i den seneste time, og hvornår den sidst blev set. Den bygger på de databasespans, dine tjenester allerede sender med OpenTelemetry: et klientspan med `db.system.name`, `db.namespace` og `db.collection.name`. Intet ekstra at installere.
