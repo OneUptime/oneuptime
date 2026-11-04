@@ -1,9 +1,10 @@
 # Datadog
 
-[Datadog](https://www.datadoghq.com) のモニターアラートを OneUptime に送信すると、各アラートがオンコールチームを呼び出すインシデントになり、Datadog のモニターが回復すると解決されます。Datadog は [Webhooks インテグレーション](https://docs.datadoghq.com/integrations/webhooks/) を通じてアラートを送信するため、どちら側にもインストールするものはありません。
+[Datadog](https://www.datadoghq.com) のモニターアラートを OneUptime に送信すると、各アラートがインシデントまたはアラートになり、緊急の場合はオンコールチームを呼び出し、Datadog のモニターが回復すると解決されます。Datadog は [Webhooks インテグレーション](https://docs.datadoghq.com/integrations/webhooks/) を通じてアラートを送信するため、どちら側にもインストールするものはありません。
 
 :::cards
-- [OneUptime でアラートを受け取る方法を選ぶ](#oneuptime-でアラートを受け取る方法を選ぶ): 受信リクエスト モニター、または独自のワークフロー。
+- [OneUptime でアラートを受け取る方法を選ぶ](#oneuptime-でアラートを受け取る方法を選ぶ): ワークフローテンプレート、または受信リクエストモニター。
+- [テンプレートから始める](#テンプレートから始める): 呼び出す相手を選び、URL をコピーして、各アラートの動作を確認します。
 - [モニターでアラートを受け取る](#モニターでアラートを受け取る): アラートごとに 1 つのインシデント、回復時に解決。
 - [Datadog を設定する](#datadog-を設定する): Webhook と、それに通知するモニター。
 - [トラブルシューティング](#トラブルシューティング): アラートが届かない場合や、インシデントが開いたままの場合。
@@ -16,8 +17,9 @@ flowchart TB
     monitor["Datadog モニターの<br/>状態が変わる"] --> mention["メッセージが<br/>Webhook に言及"]
     mention --> post["Webhook が<br/>ペイロードを送信"]
     post --> transition{"transition"}
-    transition -->|"Triggered"| open["インシデントを<br/>作成し、<br/>オンコールを呼び出し"]
+    transition -->|"Triggered"| open["インシデントを作成し、<br/>P1 と P2 は<br/>オンコールを呼び出し"]
     transition -->|"Recovered"| resolve["インシデントを解決"]
+    transition -->|"Warn, No Data"| note["インシデントへの<br/>非公開メモ"]
 ```
 
 Datadog のモニターは、状態が変わったとき、つまり発火、警告、回復、データなしになったときに、メッセージで言及されている Webhook に通知します。Webhook の JSON 本文は Datadog の [テンプレート変数](https://docs.datadoghq.com/integrations/webhooks/#usage) を使って自分で書くため、このガイドでは各アラートに名前を付け、何が起きたかを伝える本文を用意しています。
@@ -25,7 +27,7 @@ Datadog のモニターは、状態が変わったとき、つまり発火、警
 ## 前提条件
 
 - インテグレーションを設定し、モニターを編集できる Datadog アカウント。
-- OneUptime でモニターを作成する権限。ワークフローを使う場合はワークフローを作成する権限。
+- OneUptime では、ワークフローを作成する権限、またはモニターの方法を選ぶ場合はモニターを作成する権限。OneUptime Cloud では、ワークフローに **Growth** プラン以上が必要です。
 
 ## OneUptime でアラートを受け取る方法を選ぶ
 
@@ -33,10 +35,54 @@ Datadog のモニターは、状態が変わったとき、つまり発火、警
 
 | 方法 | 使う場面 |
 | --- | --- |
-| 受信リクエスト モニター（推奨） | すべてのアラートを、オンコールを呼び出し、Datadog のモニターが回復すると解決されるインシデントにしたい場合。構築するものはありません。 |
-| Webhook トリガーを持つワークフロー | アラートの絞り込み、形の変換、先に他のシステムを呼び出すなど、独自のロジックが必要な場合。ワークフローは受け取ったアラートごとにインシデントを宣言し、回復時に解決しません。 |
+| ワークフローテンプレート (推奨) | モニターの優先度に応じた重大度で、各アラートをインシデントまたはアラートにし、P1 と P2 ではオンコールを呼び出し、警告は非公開メモに残し、回復で解決したい場合。構築するものはありません。 |
+| 受信リクエストモニター | ワークフローなしで、どのプランでもインシデントを作成し、ステータスが Datadog に従うモニターが欲しい場合。 |
 
 どちらも同じ Webhook から同じ JSON を受け取るため、一方で始めて、後から Datadog の URL を 1 つ変えるだけで切り替えられます。
+
+## テンプレートから始める
+
+**ワークフローを作成** ダイアログには、カテゴリー一覧の **Datadog** の下に 2 つの Datadog テンプレートがあります。**Declare an incident when a Datadog monitor triggers** はインシデント用、**Create an alert when a Datadog monitor triggers** はアラート用です。どちらも同じ動作で、作成するものの種類だけが違います。
+
+:::steps
+1. **ワークフロー** に移動し、**ワークフローを作成** をクリックします。**またはテンプレートから始める** で、カテゴリー一覧の **Datadog** を選び、**Declare an incident when a Datadog monitor triggers** またはアラート用の **Create an alert when a Datadog monitor triggers** をクリックして、**このテンプレートを使う** をクリックします。
+2. **Who to page for P1 and P2 monitors** で呼び出すオンコールポリシーを選び（誰も呼び出さない場合は選ばない）、**ワークフローを作成** をクリックします。ワークフローはオフの状態で **ビルダー** に開きます。
+3. **Webhook** トリガーをクリックしてから **URL をコピー** をクリックし、URL を Datadog 用に控えておきます。
+4. **ビルダー** の上部で **有効** をオンにします。オフのワークフローは Datadog に `400` で応答します。
+:::
+
+次に、その URL にアラートを送信するように [Datadog を設定します](#datadog-を設定する)。ワークフローの `read-event-1` ステップには同じ設定があらかじめ入っているため、**ビルダー** に戻ったときに参照できます。
+
+### ワークフローの動作
+
+**Webhook** トリガーの後、**Check With JavaScript** ステップ `read-event-1` が Datadog の送る `transition` を読み取り、**Incident From Another Tool**（アラートのテンプレートでは **Alert From Another Tool**）が、アラートのサイクルキーをもとにその意味どおりに処理します。Datadog はアラートが発火してから回復するまでこのキーを保持し、次に発火したときのキーは新しくなるため、そのたびに独自のインシデントができます。インシデントはキーをカスタムフィールド `datadogAlertCycleKey` に保持します。
+
+| Transition | ワークフローの動作 |
+| --- | --- |
+| `Triggered`, `Re-Triggered` | `Datadog: <monitor>` というタイトルのインシデントを、モニターの優先度に対応する重大度で宣言し、ステータスページには表示しません。説明には Datadog のアラートへのリンクと、優先度、ホスト、スコープ、モニターのメッセージを記載します。そのアラートのインシデントがすでにある通知では、新しいインシデントは作成されず、誰も再び呼び出されません。 |
+| `Recovered` | アラートのインシデントがまだ解決されていなければ解決します。理由はタイムラインに残ります。 |
+| `Warn`, `Re-Warn`, `No Data`, `Re-No Data` | モニターの現在の状態を伝える非公開メモを、アラートのインシデントに追加します。 |
+| `Renotify` | 何もしません。アラートはまだ継続中です。 |
+
+インシデントのないアラートの警告や回復では、何も変わりません。それ以外のもの (別のツールからのリクエストなど) はそのままにされ、`read-event-1` が **No** に進み、実行の **ステップ** にその理由が示されます。Datadog には何も戻りません。Datadog は信号が回復するとアラートを自分で解決し、それがインシデントの解決につながります。
+
+### 優先度と呼び出し
+
+新しいインシデントは、モニターが P1 または P2 の場合、あるいは優先度がない場合に、選んだオンコールポリシーを呼び出します。P3、P4、P5 はインシデントを作成するだけで、誰も呼び出しません。新しいプロジェクトでは、優先度は次のインシデントとアラートの重大度に対応付けられます:
+
+| Datadog の優先度 | インシデント | アラート | オンコール |
+| --- | --- | --- | --- |
+| P1 | Critical Incident | High | 呼び出す |
+| P2 | Critical Incident | High | 呼び出す |
+| 優先度なし | Critical Incident | High | 呼び出す |
+| P3 | Major Incident | Low | 呼び出さない |
+| P4 | Minor Incident | Low | 呼び出さない |
+| P5 | Minor Incident | Low | 呼び出さない |
+
+独自の重大度がある場合、P1、P2、優先度なしは最も重いものに、P3 は中間のものに、P4 と P5 は最も軽いものに対応します。
+
+- 優先度を名前で自分の重大度に対応付けるには、`read-event-1` ステップの `SEVERITY_BY_NAME` を編集します。たとえば `{ P3: 'Minor Incident' }` です。
+- P3 でも呼び出すには、`if-page-1` の **If / Else** ステップの **Compare with** を `3` にします。
 
 ## モニターでアラートを受け取る
 
@@ -101,10 +147,13 @@ Datadog で [Webhooks インテグレーションのタイル](https://app.datad
   ```json
   {
     "alert_key": "$ALERT_ID $ALERT_SCOPE",
+    "alert_cycle_key": "$ALERT_CYCLE_KEY",
     "transition": "$ALERT_TRANSITION",
+    "alert_priority": "$ALERT_PRIORITY",
     "title": "$EVENT_TITLE",
     "body": "$TEXT_ONLY_MSG",
     "host": "$HOSTNAME",
+    "scope": "$ALERT_SCOPE",
     "priority": "$PRIORITY",
     "link": "$LINK"
   }
@@ -119,69 +168,39 @@ OneUptime を通じて呼び出すべき各 Datadog モニターで、モニタ�
 | --- | --- |
 | `$ALERT_ID` | アラートを出した Datadog モニターの ID。 |
 | `$ALERT_SCOPE` | アラートを出したグループのタグ。たとえば `host:web-1`。 |
+| `$ALERT_CYCLE_KEY` | アラートが発火してから回復するまで変わらない ID。 |
 | `$ALERT_TRANSITION` | 何が起きたか。`Triggered`、`Re-Triggered`、`Warn`、`Recovered`、`No Data`、`Renotify` など。 |
+| `$ALERT_PRIORITY` | Datadog モニターの優先度。`P1` から `P5`、優先度のないモニターでは何もなし。 |
 | `$EVENT_TITLE` | イベントのタイトル。たとえば `[Triggered] High CPU`。 |
 | `$TEXT_ONLY_MSG` | Markdown を除いたモニターのメッセージ。 |
 | `$LINK` | Datadog 内のイベントへのリンク。 |
 
+1 つのペイロードで両方の方法に対応できます。テンプレートは `alert_cycle_key` と `alert_priority` を、モニターは `alert_key` を使います。すべて残しておけば、URL を変えるだけで後から切り替えられます。
+
 ## テストする
 
-Datadog と同じように、アラートを OneUptime に送信します。
+Datadog と同じように、コピーした URL にアラートを送信します:
 
 ```bash
-curl -X POST "https://oneuptime.com/heartbeat/<secret key>" \
+curl -X POST "<url>" \
   -H "Content-Type: application/json" \
   -d '{
     "alert_key": "1234 host:web-1",
+    "alert_cycle_key": "7151157925468446720",
     "transition": "Triggered",
+    "alert_priority": "P1",
     "title": "[Triggered] High CPU",
     "body": "CPU is above 90% on web-1.",
     "host": "web-1",
+    "scope": "host:web-1",
     "priority": "normal",
     "link": "https://app.datadoghq.com/event/event?id=1"
   }'
 ```
 
-`[Triggered] High CPU` というタイトルのインシデントが作成されます。`transition` を `Recovered` にして同じリクエストを送ると、インシデントが解決されます。
+テンプレートでは、`Datadog: High CPU` というタイトルのインシデントが作成され、選んだオンコールポリシーが呼び出されます。モニターでは、`[Triggered] High CPU` というタイトルのインシデントが作成されます。`transition` を `Recovered` にして同じリクエストを送ると、インシデントが解決されます。
 
-次に Datadog からテストします。Webhook に言及しているモニターを開き、**Test Notifications** をクリックして、その **Alert** 通知を送信します。届いたことを OneUptime のモニターのタイムラインで確認します。
-
-## ワークフローでアラートを受け取る
-
-Datadog とインシデントの間に独自のステップが必要な場合は、[ワークフロー](/docs/workflows/index) を使います。
-
-:::steps
-### ワークフローを作成する
-
-**ワークフロー** に移動し、**ワークフローを作成**、続いて **ゼロから作成** をクリックします。名前を `Datadog alerts` にして **ワークフローを作成** をクリックします。
-
-### Webhook トリガーを追加する
-
-破線の **このワークフローを開始するものを選択** ブロックをクリックし、**Webhook** を選びます。トリガーをクリックしてから **URL をコピー** をクリックし、その URL を Datadog の Webhook に使います。
-
-### モニターが発火したか確認する
-
-**コンポーネントを追加** をクリックして **If / Else** ブロックを追加し、トリガーの **Out** ドットをそれにつなぎます。**Value to check** を `{{local.components.webhook-1.returnValues.request-body.transition}}`、**Comparison** を **is equal to**、**Compare with** を `Triggered` に設定します。
-
-### インシデントを宣言する
-
-**Create One Incident** ブロックを追加し、**If / Else** ブロックの **Yes** 側をそれにつなぎます。**Incident Template** で、重大度と呼び出すオンコールポリシーを設定するテンプレートを選びます（[インシデントテンプレート](/docs/incidents/settings#インシデントテンプレート) を参照）。**JSON Object** で、Datadog から来る内容を設定します。
-
-```json
-{
-  "title": "{{local.components.webhook-1.returnValues.request-body.title}}",
-  "description": "{{local.components.webhook-1.returnValues.request-body.body}}\nDatadog: {{local.components.webhook-1.returnValues.request-body.link}}"
-}
-```
-
-テンプレートがない場合、**JSON Object** にはプロジェクトのインシデント重大度のいずれかの ID である `incidentSeverityId` も必要です。
-
-### ワークフローをオンにする
-
-**ビルダー** の上部で **有効** をオンにします。オフのワークフローは Datadog に `400` を返します。
-:::
-
-`Triggered` の通知はそれぞれ新しいインシデントを宣言します。回復は **If / Else** ブロックの **No** 側に進みますが、そこには何もつながっていないため、実行はそこで終わります。アラートごとに 1 つのインシデントを作成し、回復時に解決するには、モニターを使います。
+次に Datadog からテストします。Webhook に言及しているモニターを開き、**Test Notifications** をクリックして、その **Alert** 通知を送信します。届いたことを確認するには、ワークフローの **ログ → 実行履歴** か、OneUptime のモニターのタイムラインを開きます。
 
 ## トラブルシューティング
 
@@ -191,9 +210,23 @@ Datadog とインシデントの間に独自のステップが必要な場合は
 - オフのワークフローは `400` を返します。その **ビルダー** の上部で **有効** をオンにします。
 :::
 
+:::details ワークフローは実行されるが、何も作成されない
+**ログ → 実行履歴** で実行を開きます。その **ステップ** の `read-event-1` の項目に、**No** に進んだ理由が示されます。
+
+- `Datadog named no alert cycle key`: Datadog の Webhook のペイロードに `"alert_cycle_key": "$ALERT_CYCLE_KEY"` を追加します。
+- `Datadog named no transition`: Datadog の Webhook のペイロードに `"transition": "$ALERT_TRANSITION"` を追加します。
+:::
+
+:::details オンコールが呼び出されない
+- P1 と P2 のモニターと、優先度のないモニターだけが呼び出します。[優先度と呼び出し](#優先度と呼び出し) を参照してください。
+- そのインシデントがすでにあるアラートの通知は、誰も再び呼び出しません。
+- **ワークフローを作成** ダイアログで誰も選ばなかった場合、ワークフローには呼び出すステップがありません。
+:::
+
 :::details インシデントは作成されるが解決されない
 - Datadog モニターは回復も Webhook に通知する必要があります。条件ブロックの中でアラートのときだけ Webhook に言及するメッセージは、回復を送信しません。
-- 条件のインシデントには、**その他の項目** の下の **インシデントを自動解決** が必要です。
+- テンプレートでは、**ログ → 実行履歴** で回復の実行を開きます。最後のステップに理由が示されます。回復の `alert_cycle_key` はアラートのものと同じでなければならないため、ペイロードの `$ALERT_CYCLE_KEY` はそのままにしてください。
+- モニターでは、条件のインシデントに **インシデントを自動解決** が必要です。**その他の項目** の下にあります。
 - **回復を意味する値** は正確に `Recovered` でなければなりません。比較では大文字と小文字が区別されます。
 - 回復の `alert_key` はアラートのものと同じでなければなりません。ペイロードの `$ALERT_ID $ALERT_SCOPE` はそのままにしてください。
 :::
@@ -203,19 +236,21 @@ Datadog はイベントに当てはまる変数だけを埋めます。テスト
 :::
 
 :::details モニターのすべてのアラートが 1 つのインシデントにまとめられる
-各グループには独自の `alert_key` が必要です。ペイロードが `$ALERT_ID` と `$ALERT_SCOPE` の両方からそれを組み立てていること、グループ化のパスが `requestBody.alert_key` であることを確認します。
+モニターでは、各グループに独自の `alert_key` が必要です。ペイロードが `$ALERT_ID` と `$ALERT_SCOPE` の両方からそれを組み立てていること、グループ化のパスが `requestBody.alert_key` であることを確認します。
 :::
 
 ## セキュリティ
 
-- **URL はパスワードと同じように扱ってください。** URL を持っている人は誰でもインシデントを作成できます。漏えいした場合はリセットします。モニターの **設定** ページで **受信リクエストのシークレットキーをリセット**、またはワークフローの **Webhook** トリガーで **URL をリセット** を使います。その後、Datadog の Webhook の **URL** を更新します。
+- **URL はパスワードと同じように扱ってください。** URL を持つ人は誰でもインシデントを作成できます。漏れた場合はリセットします: ワークフローの **Webhook** トリガーの **URL をリセット**、またはモニターの **設定** ページの **受信リクエストのシークレットキーをリセット** です。その後、Datadog の Webhook の **URL** を更新します。
+- **リンクは Datadog を指します。** テンプレートは、リクエストの内容にかかわらず、Datadog のサイト上のアラートにだけリンクし、Datadog が送信したものはテキストとして書き込みます。
 - **セルフホスト環境の場合は？** Datadog はインターネットから Webhook を送信するため、OneUptime にはインターネットから HTTPS で到達できる必要があります。
 
 ## 次のステップ
 
 :::cards
+- [ワークフローテンプレート](/docs/workflows/authoring): テンプレートからワークフローを作成し、ビルダーで変更します。
 - [受信リクエスト モニター](/docs/monitor/incoming-request-monitor): アラートを受け取るモニターのすべての設定。
-- [Prometheus Alertmanager](/docs/integrations/prometheus-alertmanager): Alertmanager 向けの同じ設定。
+- [New Relic](/docs/integrations/new-relic): 同じテンプレートを New Relic の課題向けにしたもの。
 - [エスカレーションルール](/docs/on-call/escalation-rules): オンコールポリシーが誰をいつ呼び出すかを決めます。
 - [インテグレーションの概要](/docs/integrations/index): 接続できるその他のツール。
 :::

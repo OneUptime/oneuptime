@@ -50,10 +50,11 @@ Ognuna di queste azioni si può anche concedere singolarmente, dalla creazione d
 | Regole di rilevamento | Una regola corrisponde | **Apri un caso in caso di corrispondenza**, nel passo **In caso di corrispondenza** della regola |
 | Threat intelligence | Un evento nomina un indicatore noto | **Apri un caso in caso di corrispondenza**, nel passo **In caso di corrispondenza** del feed |
 | Prodotti collegati | Un avviso proprio del prodotto viene importato a un livello pari o superiore alla soglia della connessione | **Open Cases From** impostato su **Mai**, nel passo **Interrogazione** della connessione |
+| Prodotti di sicurezza nei tuoi log | Una minaccia che un firewall, un IDS o un prodotto per gli endpoint scrive nei tuoi log raggiunge o supera la soglia di I tuoi log | **Apri casi a partire da** impostato su **Mai**, su **I tuoi log** |
 | Rischio delle entità | Il rischio di un utente, host o indirizzo raggiunge la soglia del progetto | **Casi di rischio**, in **Impostazioni → Valutazione del rischio** |
 | Persone | Qualcuno ne apre uno da **Casi di sicurezza**, o con **Apri caso** nel pannello di un evento | Nessuna impostazione |
 
-Ogni origine apre casi per impostazione predefinita, tranne il rischio delle entità nei progetti creati prima che esistesse: lì attiva prima **Casi di rischio** ([Rischio delle entità](/docs/telemetry/security-entity-risk)). Una connessione apre casi per **Alta e superiori** a meno che tu non scelga un altro livello; gli avvisi al di sotto vengono comunque importati come eventi.
+Ogni origine apre casi per impostazione predefinita, tranne il rischio delle entità nei progetti creati prima che esistesse: lì attiva prima **Casi di rischio** ([Rischio delle entità](/docs/telemetry/security-entity-risk)). Una connessione apre casi per **Alta e superiori** a meno che tu non scelga un altro livello; gli avvisi al di sotto vengono comunque importati come eventi. **I tuoi log** fa lo stesso per le minacce nei tuoi log.
 
 ### Come vengono raggruppati i rilevamenti
 
@@ -143,7 +144,7 @@ Un caso aperto da avvisi di Google SecOps li chiude anche in Google SecOps, con 
 
 ## Priorità e stati dei casi
 
-Ogni progetto ha le sue priorità e i suoi stati dei casi, in **Prodotti → Eventi di sicurezza → Impostazioni → Priorità dei casi** e **Stati dei casi**. Rinominali, cambiane il colore, trascinali in un altro ordine e aggiungi i tuoi, come uno stato «Triage» o una priorità «Emergenza» sopra **Critico**. Un nuovo nome compare ovunque subito: nella coda, nelle pagine dei casi e nella panoramica, nelle notifiche, in Slack e Microsoft Teams e nei messaggi dei playbook.
+Ogni progetto ha le sue priorità e i suoi stati dei casi, in **Prodotti → Eventi di sicurezza → Impostazioni → Priorità dei casi** e **Stati dei casi**. Rinominali, cambiane il colore, trascinali in un altro ordine e aggiungi i tuoi, come uno stato «Triage» o una priorità «Emergenza» sopra **Critico**. Un nuovo nome compare ovunque subito: nella coda, nelle pagine dei casi e nella panoramica, nelle notifiche, in Slack, Microsoft Teams e Mattermost e nei messaggi dei playbook.
 
 Alcuni sono predefiniti, perché OneUptime legge cosa significano. Si possono rinominare e ricolorare, ma non eliminare né archiviare, e mantengono il loro ordine:
 
@@ -156,7 +157,7 @@ Alcuni sono predefiniti, perché OneUptime legge cosa significano. Si possono ri
 | Le priorità Critico, High, Medium, Low e Informativi | Un rilevamento apre il suo caso alla priorità della sua gravità, e un caso aperto da qualcuno parte da Medium |
 
 - La posizione di uno stato decide come conta un caso che vi si trova, come mostra la colonna **Conta come**: dallo stato preso in carico in giù, preso in carico; dallo stato contenuto in giù, contenuto; dallo stato chiuso in giù, chiuso. Uno stato che aggiungi va subito sopra lo stato chiuso, e spostare un caso in uno stato che lo chiude chiede prima un verdetto.
-- Il rango di una priorità è la sua urgenza, la più urgente prima: **Per casi di almeno**, le scelte delle notifiche e le regole di Slack e Microsoft Teams leggono questo ordine. Una priorità che aggiungi va in fondo, e la colonna **Gravità del rilevamento** mostra quali rilevamenti aprono i loro casi a ciascuna priorità predefinita.
+- Il rango di una priorità è la sua urgenza, la più urgente prima: **Per casi di almeno**, le scelte delle notifiche e le regole di Slack, Microsoft Teams e Mattermost leggono questo ordine. Una priorità che aggiungi va in fondo, e la colonna **Gravità del rilevamento** mostra quali rilevamenti aprono i loro casi a ciascuna priorità predefinita.
 
 Per smettere di usare uno stato o una priorità tuoi, usa **Archivia** sulla sua riga. Nessuno può più sceglierlo, e l'API, Terraform e MCP lo rifiutano, ma i casi che lo hanno lo mantengono, e puoi ancora filtrare in base a esso. I valori archiviati sono elencati nella sezione chiusa **Stati dei casi archiviati** o **Priorità dei casi archiviate** sotto la tabella, dove **Annulla archiviazione** ne ripristina uno. **Elimina** viene rifiutato finché dei casi hanno il valore o un playbook parte dalla priorità.
 
@@ -231,9 +232,9 @@ Le scelte seguono le priorità dei casi del progetto, con i loro nomi: queste so
 
 Per i casi di sicurezza non vengono inviati messaggi WhatsApp. Una notifica push apre il caso nell'app OneUptime On-Call (1.7.0 o successiva), dove puoi approvare o rifiutare un passo di playbook in attesa, prendere in carico il caso e chiuderlo. Il suo link apre il caso nel browser.
 
-### Pubblicare nei canali di Slack e Microsoft Teams
+### Pubblicare nei canali di Slack, Microsoft Teams e Mattermost
 
-Per pubblicare in un canale, aggiungi una regola in **Prodotti → Eventi di sicurezza → Area di lavoro → Slack** (o **Microsoft Teams**). Se nessuno dei due è collegato, l'unica voce della sezione è **Collega Slack o Teams**. Una regola indica i canali in cui pubblicare (e, in Microsoft Teams, le chat) e, se vuoi, i casi a cui si applica:
+Per pubblicare in un canale, aggiungi una regola in **Prodotti → Eventi di sicurezza → Area di lavoro → Slack** (o **Microsoft Teams** o **Mattermost**). Se nessuno è collegato, l'unica voce della sezione è **Collega un'area di lavoro**. Una regola indica i canali in cui pubblicare (e, in Microsoft Teams, le chat) e, se vuoi, i casi a cui si applica:
 
 | Condizione | Corrisponde a |
 | --- | --- |

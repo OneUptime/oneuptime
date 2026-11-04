@@ -621,6 +621,10 @@ const DocsNav: NavGroup[] = [
         url: "/docs/workspace-connections/microsoft-teams",
       },
       {
+        title: "Mattermost",
+        url: "/docs/workspace-connections/mattermost",
+      },
+      {
         title: "Video Calls",
         url: "/docs/workspace-connections/video-calls",
       },
@@ -865,6 +869,10 @@ const DocsNav: NavGroup[] = [
       {
         title: "Cloud Costs and Savings",
         url: "/docs/telemetry/cloud-costs",
+      },
+      {
+        title: "Stream CloudWatch Metrics and Logs",
+        url: "/docs/telemetry/cloud-streaming",
       },
     ],
   },
@@ -1318,6 +1326,10 @@ const DocsNav: NavGroup[] = [
       {
         title: "Datadog",
         url: "/docs/integrations/datadog",
+      },
+      {
+        title: "New Relic",
+        url: "/docs/integrations/new-relic",
       },
       {
         title: "Huntress",

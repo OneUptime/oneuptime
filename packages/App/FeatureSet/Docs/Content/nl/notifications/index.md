@@ -27,7 +27,7 @@ flowchart TB
 
 | Pagina | Wat erop staat | De vraag die ze beantwoordt |
 | --- | --- | --- |
-| **Meldingsmethoden** | Je e-mailadressen, telefoonnummers, WhatsApp-nummers, Telegram-, Slack- en Microsoft Teams-accounts, pushapparaten en webhooks | Waar kan OneUptime me bereiken? |
+| **Meldingsmethoden** | Je e-mailadressen, telefoonnummers, WhatsApp-nummers, Telegram-, Slack-, Microsoft Teams- en Mattermost-accounts, pushapparaten en webhooks | Waar kan OneUptime me bereiken? |
 | **Bereikbaarheidsregels** | Voor elk soort oproep en elke ernst: welke methode wordt geprobeerd en na hoe lang | Hoe word ik opgeroepen als ik dienst heb? |
 | **Meldingsinstellingen** | Voor elke gebeurtenis rond een item van jou of rond je diensten: welke kanalen worden gebruikt | Waarover hoor ik verder nog, en waar? |
 
@@ -48,9 +48,9 @@ Open **Gebruikersinstellingen**, rechts in de balk onder de bovenste balk. Het z
 | **Beleid inkomend gesprek** | **Inkomende telefoonnummers**: het nummer waarop een beleid voor inkomende gesprekken je belt |
 | **Agenda** | **Agendafeed**: je diensten in je agenda-app, en herinneringen voordat ze beginnen |
 | **Profiel** | **Aangepaste velden**: gegevens die je project aan zijn leden vraagt |
-| **Werkruimte** | **Slack** en **Microsoft Teams**: je eigen account, in elke werkruimte die het project heeft gekoppeld |
+| **Werkruimte** | **Slack**, **Microsoft Teams** en **Mattermost**: je eigen account, in elke werkruimte die het project heeft gekoppeld |
 
-**Aan de slag** en **Waarschuwingen & meldingen** zijn open; de andere secties beginnen ingeklapt, en een sectie gaat vanzelf open wanneer je op een van haar pagina's bent. **Werkruimte** verschijnt alleen als het project Slack of Microsoft Teams heeft gekoppeld.
+**Aan de slag** en **Waarschuwingen & meldingen** zijn open; de andere secties beginnen ingeklapt, en een sectie gaat vanzelf open wanneer je op een van haar pagina's bent. **Werkruimte** verschijnt alleen als het project Slack, Microsoft Teams of Mattermost heeft gekoppeld.
 
 Projecteigenaren en -beheerders kunnen je instellingen ook bekijken: onder **Gebruikers** openen ze jouw rij en de sectie **Bereikbaarheid** daarvan, met **Gereedheid**, **Meldingsmethoden** en **Bereikbaarheidsregels**. Ze kunnen daar een methode voor je toevoegen, maar de code gaat naar de methode zelf, dus alleen jij kunt hem verifiëren.
 
@@ -90,7 +90,7 @@ Elke methode die je later verifieert, krijgt dezelfde regels: een regel voor elk
 
 Een oproep kan je bereiken voor een soort en een ernst waarvoor je geen regel hebt: bijvoorbeeld een ernst die is toegevoegd nadat je lid werd. OneUptime roept je toch op, via wat je hebt geverifieerd:
 
-1. Elke gratis methode die je hebt: pushapparaten, e-mailadressen, Slack en Microsoft Teams.
+1. Elke gratis methode die je hebt: pushapparaten, e-mailadressen, Slack, Microsoft Teams en Mattermost.
 2. Heb je die niet, dan één betaalde methode, in deze volgorde: sms, een telefoongesprek, WhatsApp, Telegram. Het is de eerste die je hebt geverifieerd, op een kanaal dat het project heeft aangezet.
 3. Heb je die ook niet, dan een webhook.
 

@@ -82,6 +82,12 @@ const ALL_KNOWN_TEST_ROUTES: ReadonlyArray<KnownTestRoute> = [
     why: "Posts into a Teams chat, as a notification rule does.",
   },
   {
+    file: "packages/Common/Server/API/MattermostAPI.ts",
+    path: "/mattermost/channels/test",
+    rule: "project",
+    why: "Posts into a Mattermost channel, as a notification rule does.",
+  },
+  {
     file: "packages/App/FeatureSet/Notification/API/SMTPConfig.ts",
     path: "/test",
     rule: "project",
@@ -116,6 +122,12 @@ const ALL_KNOWN_TEST_ROUTES: ReadonlyArray<KnownTestRoute> = [
     path: "/test",
     rule: "self",
     why: "A direct message to the caller's own Teams account.",
+  },
+  {
+    file: "packages/Common/Server/API/UserMattermostAPI.ts",
+    path: "/test",
+    rule: "self",
+    why: "A direct message to the caller's own Mattermost account.",
   },
   {
     file: "packages/Common/Server/API/UserWebhookAPI.ts",

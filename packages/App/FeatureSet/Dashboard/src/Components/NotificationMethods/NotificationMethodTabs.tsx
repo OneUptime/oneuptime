@@ -1,6 +1,7 @@
 import UserCall from "./Call";
 import UserCustomChannels from "./CustomChannels";
 import UserEmail from "./Email";
+import UserMattermost from "./Mattermost";
 import UserMicrosoftTeams from "./MicrosoftTeams";
 import UserPush from "./Push";
 import PushNotificationsTurnedOff from "./PushNotificationsTurnedOff";
@@ -31,10 +32,10 @@ import { translationKey } from "Common/UI/Utils/TranslateTemplate";
  * Notification Methods, and the same page an admin opens on their own row
  * under Users.
  *
- * Slack and Microsoft Teams are only there for the workspaces the project
- * has connected. Adding either is pointing at your own account in a
+ * Slack, Microsoft Teams and Mattermost are only there for the workspaces the
+ * project has connected. Adding one is pointing at your own account in a
  * workspace the project is already connected to, so a table for a workspace
- * it never connected was one nobody could add a row to. With neither
+ * it never connected was one nobody could add a row to. With none
  * connected, the Workspace Apps tab is not there at all.
  *
  * On a first visit the page waits for that answer (a moment) rather than
@@ -55,6 +56,11 @@ export function getWorkspaceAppsTab(
         {offered.includes(WorkspaceType.Slack) ? <UserSlack /> : <></>}
         {offered.includes(WorkspaceType.MicrosoftTeams) ? (
           <UserMicrosoftTeams />
+        ) : (
+          <></>
+        )}
+        {offered.includes(WorkspaceType.Mattermost) ? (
+          <UserMattermost />
         ) : (
           <></>
         )}

@@ -10,6 +10,7 @@ import ProjectService from "../../../Server/Services/ProjectService";
 import TeamMemberService from "../../../Server/Services/TeamMemberService";
 import UserCallService from "../../../Server/Services/UserCallService";
 import UserEmailService from "../../../Server/Services/UserEmailService";
+import UserMattermostService from "../../../Server/Services/UserMattermostService";
 import UserMicrosoftTeamsService from "../../../Server/Services/UserMicrosoftTeamsService";
 import UserNotificationRuleService from "../../../Server/Services/UserNotificationRuleService";
 import UserPushService from "../../../Server/Services/UserPushService";
@@ -23,6 +24,7 @@ import Project from "../../../Models/DatabaseModels/Project";
 import User from "../../../Models/DatabaseModels/User";
 import UserCall from "../../../Models/DatabaseModels/UserCall";
 import UserEmail from "../../../Models/DatabaseModels/UserEmail";
+import UserMattermost from "../../../Models/DatabaseModels/UserMattermost";
 import UserMicrosoftTeams from "../../../Models/DatabaseModels/UserMicrosoftTeams";
 import UserPush from "../../../Models/DatabaseModels/UserPush";
 import UserSlack from "../../../Models/DatabaseModels/UserSlack";
@@ -85,6 +87,7 @@ const RAW_PHONE: string = "+14155554821";
 const RAW_TELEGRAM_HANDLE: string = "@janeops_oncall";
 const RAW_SLACK_USERNAME: string = "ops.jane.slack";
 const RAW_TEAMS_USERNAME: string = "Jane Ops (Teams)";
+const RAW_MATTERMOST_USERNAME: string = "jane.ops.mattermost";
 const RAW_WEBHOOK_NAME: string = "payments-hook";
 const RAW_DEVICE_NAME: string = "Jane's iPhone";
 
@@ -94,6 +97,7 @@ const ALL_RAW_VALUES: Array<string> = [
   RAW_TELEGRAM_HANDLE,
   RAW_SLACK_USERNAME,
   RAW_TEAMS_USERNAME,
+  RAW_MATTERMOST_USERNAME,
   RAW_WEBHOOK_NAME,
   RAW_DEVICE_NAME,
 ];
@@ -116,6 +120,7 @@ let pushFindBy: jest.SpyInstance;
 let telegramFindBy: jest.SpyInstance;
 let slackFindBy: jest.SpyInstance;
 let microsoftTeamsFindBy: jest.SpyInstance;
+let mattermostFindBy: jest.SpyInstance;
 let webhookFindBy: jest.SpyInstance;
 
 let emailCreate: jest.SpyInstance;
@@ -127,6 +132,8 @@ let slackFindOneBy: jest.SpyInstance;
 let slackDelete: jest.SpyInstance;
 let microsoftTeamsFindOneBy: jest.SpyInstance;
 let microsoftTeamsDelete: jest.SpyInstance;
+let mattermostFindOneBy: jest.SpyInstance;
+let mattermostDelete: jest.SpyInstance;
 let deletionImpact: jest.SpyInstance;
 
 function props(): DatabaseCommonInteractionProps {
@@ -198,9 +205,9 @@ function buildTelegramRow(): UserTelegram {
 }
 
 /*
- * Born verified: a UserSlack / UserMicrosoftTeams row is a pointer at the
- * owner's own OAuth workspace link, so creation is verification and there is
- * no verification-code flow for these two channels at all.
+ * Born verified: a UserSlack / UserMicrosoftTeams / UserMattermost row is a
+ * pointer at the owner's own workspace link, so creation is verification and
+ * there is no verification-code flow for these channels at all.
  */
 function buildSlackRow(): UserSlack {
   const row: UserSlack = new UserSlack();
@@ -218,6 +225,16 @@ function buildMicrosoftTeamsRow(): UserMicrosoftTeams {
   row.projectId = projectId;
   row.userId = targetUserId;
   row.microsoftTeamsUserName = RAW_TEAMS_USERNAME;
+  row.isVerified = true;
+  return row;
+}
+
+function buildMattermostRow(): UserMattermost {
+  const row: UserMattermost = new UserMattermost();
+  row._id = ObjectID.generate().toString();
+  row.projectId = projectId;
+  row.userId = targetUserId;
+  row.mattermostUserName = RAW_MATTERMOST_USERNAME;
   row.isVerified = true;
   return row;
 }
@@ -330,6 +347,9 @@ beforeEach(() => {
   microsoftTeamsFindBy = jest
     .spyOn(UserMicrosoftTeamsService, "findBy")
     .mockResolvedValue([buildMicrosoftTeamsRow()] as never);
+  mattermostFindBy = jest
+    .spyOn(UserMattermostService, "findBy")
+    .mockResolvedValue([buildMattermostRow()] as never);
   webhookFindBy = jest
     .spyOn(UserWebhookService, "findBy")
     .mockResolvedValue([buildWebhookRow()] as never);
@@ -350,6 +370,9 @@ beforeEach(() => {
   microsoftTeamsFindOneBy = jest
     .spyOn(UserMicrosoftTeamsService, "findOneBy")
     .mockResolvedValue(buildMicrosoftTeamsRow() as never);
+  mattermostFindOneBy = jest
+    .spyOn(UserMattermostService, "findOneBy")
+    .mockResolvedValue(buildMattermostRow() as never);
   jest.spyOn(UserWebhookService, "findOneBy").mockResolvedValue(null as never);
 
   emailCreate = jest
@@ -396,6 +419,10 @@ beforeEach(() => {
     .spyOn(UserMicrosoftTeamsService, "deleteOneById")
     .mockResolvedValue(undefined as never);
 
+  mattermostDelete = jest
+    .spyOn(UserMattermostService, "deleteOneById")
+    .mockResolvedValue(undefined as never);
+
   smsResend = jest
     .spyOn(UserSmsService, "resendVerificationCode")
     .mockResolvedValue(undefined as never);
@@ -428,7 +455,7 @@ describe("listing", () => {
         userId: targetUserId,
       });
 
-    expect(methods).toHaveLength(7);
+    expect(methods).toHaveLength(8);
 
     /*
      * The real maskIdentifier, not a stub, so these are the exact shapes an
@@ -449,12 +476,18 @@ describe("listing", () => {
     expect(
       viewFor(methods, ReadinessMethodType.MicrosoftTeams).maskedIdentifier,
     ).toBe(`Ja${IDENTIFIER_MASK}`);
+    expect(
+      viewFor(methods, ReadinessMethodType.Mattermost).maskedIdentifier,
+    ).toBe(`ja${IDENTIFIER_MASK}`);
 
     // Born verified: the OAuth workspace link IS the verification.
     expect(viewFor(methods, ReadinessMethodType.Slack).isVerified).toBe(true);
     expect(
       viewFor(methods, ReadinessMethodType.MicrosoftTeams).isVerified,
     ).toBe(true);
+    expect(viewFor(methods, ReadinessMethodType.Mattermost).isVerified).toBe(
+      true,
+    );
 
     /*
      * Scanned as a whole rather than field by field, so a view that grew a raw
@@ -504,6 +537,10 @@ describe("listing", () => {
     expect(teamsSelect.microsoftTeamsUserId).toBeUndefined();
     expect(teamsSelect.microsoftTeamsUserName).toBe(true);
 
+    const mattermostSelect: any = mattermostFindBy.mock.calls[0]![0].select;
+    expect(mattermostSelect.mattermostUserId).toBeUndefined();
+    expect(mattermostSelect.mattermostUserName).toBe(true);
+
     // Verification codes are live account-takeover material. Never selected.
     for (const spy of [emailFindBy, smsFindBy, callFindBy, whatsAppFindBy]) {
       const select: any = spy.mock.calls[0]![0].select;
@@ -523,6 +560,7 @@ describe("listing", () => {
       telegramFindBy,
       slackFindBy,
       microsoftTeamsFindBy,
+      mattermostFindBy,
       webhookFindBy,
     ]) {
       const call: any = spy.mock.calls[0]![0];
@@ -931,6 +969,38 @@ describe("removing", () => {
     const mail: any = mailSpy.mock.calls[0]![0];
 
     expect(mail.vars.message).toContain(`Ja${IDENTIFIER_MASK}`);
+    expectNothingRawIn(mail.vars);
+  });
+
+  test("deletes a Mattermost account through its own service", async () => {
+    const mattermostMethodId: ObjectID = ObjectID.generate();
+
+    await UserNotificationMethodAdminService.deleteMethodForUser({
+      projectId: projectId,
+      targetUserId: targetUserId,
+      actorUserId: actorUserId,
+      methodType: "Mattermost",
+      methodId: mattermostMethodId,
+      props: props(),
+    });
+
+    expect(mattermostDelete).toHaveBeenCalled();
+    expect(mattermostDelete.mock.calls[0]![0].id.toString()).toBe(
+      mattermostMethodId.toString(),
+    );
+
+    const lookup: any = mattermostFindOneBy.mock.calls[0]![0];
+    expect(lookup.query._id.toString()).toBe(mattermostMethodId.toString());
+    expect(lookup.query.projectId.toString()).toBe(projectId.toString());
+    expect(lookup.query.userId.toString()).toBe(targetUserId.toString());
+
+    await new Promise<void>((resolve: () => void): void => {
+      setTimeout(resolve, 0);
+    });
+
+    const mail: any = mailSpy.mock.calls[0]![0];
+
+    expect(mail.vars.message).toContain(`ja${IDENTIFIER_MASK}`);
     expectNothingRawIn(mail.vars);
   });
 

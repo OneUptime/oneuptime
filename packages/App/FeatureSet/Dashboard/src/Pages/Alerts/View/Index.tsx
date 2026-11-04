@@ -497,7 +497,7 @@ const AlertView: FunctionComponent<PageComponentProps> = (): ReactElement => {
     // A rule's call arrives a moment after a new alert is created.
     eventStartedAt: alertStartedAt,
   });
-  // The alert's own Slack and Teams channels: Open in Slack / Teams.
+  // The alert's own chat channels: Open in Slack / Teams / Mattermost.
   const channelLinks: Array<WorkspaceChannelLink> = useRecordChannelLinks({
     recordType: WorkspaceChannelRecordType.Alert,
     recordId: modelId,

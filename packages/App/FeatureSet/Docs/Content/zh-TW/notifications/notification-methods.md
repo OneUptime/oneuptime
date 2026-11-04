@@ -1,6 +1,6 @@
 # 通知方式
 
-通知方式是 OneUptime 在某個專案中可以聯絡你的地址：一個電子郵件地址、一個用於簡訊或電話的電話號碼、一個 WhatsApp 號碼、一個 Telegram 帳戶、你的 Slack 或 Microsoft Teams 帳戶、一支接收推播通知的手機或一個瀏覽器，或者一個 Webhook。你在 **使用者設定 → 通知方式** 中新增並驗證它們，OneUptime 就會立即開始用它們呼叫你。
+通知方式是 OneUptime 在某個專案中可以聯絡你的地址：一個電子郵件地址、一個用於簡訊或電話的電話號碼、一個 WhatsApp 號碼、一個 Telegram 帳戶、你的 Slack、Microsoft Teams 或 Mattermost 帳戶、一支接收推播通知的手機或一個瀏覽器，或者一個 Webhook。你在 **使用者設定 → 通知方式** 中新增並驗證它們，OneUptime 就會立即開始用它們呼叫你。
 
 :::cards
 - [選擇通知方式](#選擇通知方式): 每種方式需要什麼，以及如何驗證。
@@ -20,7 +20,7 @@ flowchart TB
     rules --> used["呼叫和更新<br/>可以送達它"]
 ```
 
-未驗證的方式永遠不會被使用。推播裝置、Slack、Microsoft Teams 和 Webhook 不需要驗證碼：註冊裝置或連結帳戶就能證明它屬於你，而 Webhook 不需要證明。驗證一種方式會立即為它新增你的 [預設規則](/docs/notifications/on-call-rules#一開始擁有的規則)，因此新的電話號碼會在每個嚴重程度呼叫你，直到你修改它的規則。
+未驗證的方式永遠不會被使用。推播裝置、Slack、Microsoft Teams、Mattermost 和 Webhook 不需要驗證碼：註冊裝置或連結帳戶就能證明它屬於你，而 Webhook 不需要證明。驗證一種方式會立即為它新增你的 [預設規則](/docs/notifications/on-call-rules#一開始擁有的規則)，因此新的電話號碼會在每個嚴重程度呼叫你，直到你修改它的規則。
 
 ## 選擇通知方式
 
@@ -35,10 +35,11 @@ flowchart TB
 | **用於通知的 Telegram 帳戶** | **直接聯絡** | 你的 Telegram 帳戶 | 傳送一則訊息給 OneUptime 機器人 |
 | **Slack Account for Notifications** | **工作區應用程式** | 你的 Slack 帳戶 | 將你的帳戶連結到專案的工作區 |
 | **Microsoft Teams Account for Notifications** | **工作區應用程式** | 你的 Microsoft Teams 帳戶 | 將你的帳戶連結到專案的工作區 |
+| **用於通知的 Mattermost 帳戶** | **工作區應用程式** | 你的 Mattermost 帳戶 | 將你的帳戶連結到專案的工作區 |
 | **推送通知裝置** | **推播通知** | 安裝了 OneUptime On-Call 應用程式的手機，或一個瀏覽器 | 註冊該裝置 |
 | **用於通知的 Webhook** | **Webhook** | 你自己的 HTTPS 端點 | 不需要驗證 |
 
-**工作區應用程式** 只有在專案已連線 Slack 或 Microsoft Teams 時才會顯示，而且只包含已連線的那些。簡訊、電話、WhatsApp 和 Telegram 可以在整個專案中關閉；請參閱 [為專案開啟管道](#為專案開啟管道)。
+**工作區應用程式** 只有在專案已連線 Slack、Microsoft Teams 或 Mattermost 時才會顯示，而且只包含已連線的那些。簡訊、電話、WhatsApp 和 Telegram 可以在整個專案中關閉；請參閱 [為專案開啟管道](#為專案開啟管道)。
 
 ## 新增並驗證通知方式
 
@@ -85,11 +86,13 @@ flowchart TB
 
 **輪換驗證碼** 會為尚未驗證的帳戶產生新的驗證碼，先前的 QR 碼和你開啟過的連結將會失效。在自架的 OneUptime 上，需要伺服器管理員先連接一個 Telegram 機器人，其他人才能連結帳戶。
 
-## Slack 和 Microsoft Teams
+## Slack、Microsoft Teams 和 Mattermost
 
-1. 將你自己的帳戶連結到專案的工作區： **使用者設定 → 工作區 → Slack** 或 **Microsoft Teams**。請參閱 [Slack](/docs/workspace-connections/slack) 和 [Microsoft Teams](/docs/workspace-connections/microsoft-teams)。
-2. 在 **工作區應用程式** 分頁上，點選 **Add Slack Account** 或 **Add Microsoft Teams Account**。帳戶在新增時即完成驗證。
-3. 點選其所在列的 **Send Test Message**。呼叫會以來自 OneUptime 應用程式的私人訊息形式送達。
+1. 將你自己的帳戶連結到專案的工作區： **使用者設定 → 工作區 → Slack**、 **Microsoft Teams** 或 **Mattermost**。請參閱 [Slack](/docs/workspace-connections/slack)、 [Microsoft Teams](/docs/workspace-connections/microsoft-teams) 和 [Mattermost](/docs/workspace-connections/mattermost)。
+2. 在 **工作區應用程式** 分頁上，點選 **Add Slack Account**、 **Add Microsoft Teams Account** 或 **新增 Mattermost 帳戶**。帳戶在新增時即完成驗證。
+3. 點選其所在列的 **Send Test Message**。呼叫會以來自 OneUptime 應用程式的私人訊息形式送達；在 Mattermost 中則來自專案的機器人。
+
+Mattermost 帳戶只接收你的呼叫，不接收你在 **通知設定** 中選擇的更新。
 
 ## 推播通知
 
@@ -167,7 +170,7 @@ Webhook 不需要驗證，因此新增後會立即新增其規則。私有地址
 
 ## 為專案開啟管道
 
-**SMS**、 **語音電話**、 **WhatsApp** 和 **Telegram** 在每個新專案中預設關閉，因為每則訊息都要花錢：在 OneUptime Cloud 上，費用從專案餘額中支付；如果專案的預設 Twilio 帳戶用於傳送簡訊和電話，它們會改為透過專案自己的 Twilio 帳戶傳送。郵件、推播、Slack、Microsoft Teams 和 Webhook 一律開啟。
+**SMS**、 **語音電話**、 **WhatsApp** 和 **Telegram** 在每個新專案中預設關閉，因為每則訊息都要花錢：在 OneUptime Cloud 上，費用從專案餘額中支付；如果專案的預設 Twilio 帳戶用於傳送簡訊和電話，它們會改為透過專案自己的 Twilio 帳戶傳送。郵件、推播、Slack、Microsoft Teams、Mattermost 和 Webhook 一律開啟。
 
 管道關閉期間，專案中的任何人都無法在該管道上新增通知方式：它的卡片上沒有新增按鈕，並會說明誰可以開啟它。由專案擁有者、 **帳單管理員** 或擁有 **Manage Billing** 權限的人在 **專案設定 → 通知 → 通知設定** 的 **通知管道** 卡片中開啟。專案管理員無法開啟。在自架的 OneUptime 上，簡訊和電話還需要 Twilio 帳戶或你自己營運的閘道，Telegram 還需要伺服器管理員連接的機器人；請參閱 [Twilio 整合](/docs/self-hosted/twilio-integration) 和 [簡訊與電話閘道](/docs/self-hosted/sms-and-call-gateway)。
 

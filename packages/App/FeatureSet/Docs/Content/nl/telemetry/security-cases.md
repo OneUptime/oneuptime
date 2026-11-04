@@ -50,10 +50,11 @@ Elk van deze rechten kan ook afzonderlijk worden toegekend, van het aanmaken van
 | Detectieregels | Een regel matcht | **Zaak openen bij overeenkomst**, in de stap **Bij overeenkomst** van de regel |
 | Dreigingsinformatie | Een gebeurtenis een bekende indicator noemt | **Zaak openen bij overeenkomst**, in de stap **Bij overeenkomst** van de feed |
 | Gekoppelde producten | Een eigen waarschuwing van het product op of boven de drempel van de verbinding wordt geïmporteerd | **Open Cases From** op **Nooit** gezet, in de stap **Opvragen** van de verbinding |
+| Beveiligingsproducten in je logs | Een bedreiging die een firewall, IDS of endpointproduct in je logs schrijft, ligt op of boven de drempel van Uw logboeken | **Cases openen vanaf** op **Nooit** gezet, op **Uw logboeken** |
 | Entiteitrisico | Het risico van een gebruiker, host of adres de drempel van het project haalt | **Risicozaken**, onder **Instellingen → Risicoscoring** |
 | Mensen | Iemand er een opent vanuit **Beveiligingszaken**, of met **Zaak openen** in het paneel van een gebeurtenis | Niet uit te zetten |
 
-Elke bron opent standaard zaken, behalve entiteitrisico in projecten die zijn aangemaakt voordat het bestond: zet daar eerst **Risicozaken** aan ([Entiteitrisico](/docs/telemetry/security-entity-risk)). Een verbinding opent zaken voor **Hoog en hoger**, tenzij je een ander niveau kiest; de waarschuwingen daaronder worden nog steeds als gebeurtenissen geïmporteerd.
+Elke bron opent standaard zaken, behalve entiteitrisico in projecten die zijn aangemaakt voordat het bestond: zet daar eerst **Risicozaken** aan ([Entiteitrisico](/docs/telemetry/security-entity-risk)). Een verbinding opent zaken voor **Hoog en hoger**, tenzij je een ander niveau kiest; de waarschuwingen daaronder worden nog steeds als gebeurtenissen geïmporteerd. **Uw logboeken** doet hetzelfde voor de bedreigingen in je logs.
 
 ### Hoe detecties worden gegroepeerd
 
@@ -143,7 +144,7 @@ Een zaak die uit Google SecOps-waarschuwingen is geopend, sluit die ook in Googl
 
 ## Zaakprioriteiten en zaakstatussen
 
-Elk project heeft zijn eigen zaakprioriteiten en zaakstatussen, onder **Producten → Beveiligingsgebeurtenissen → Instellingen → Zaakprioriteiten** en **Zaakstatussen**. Hernoem ze, geef ze een andere kleur, sleep ze in een andere volgorde en voeg je eigen toe, zoals een status "Triage" of een prioriteit "Noodgeval" boven **Kritiek**. Een nieuwe naam verschijnt overal tegelijk: in de wachtrij, op de zaakpagina's en het overzicht, in meldingen, in Slack en Microsoft Teams, en in playbookberichten.
+Elk project heeft zijn eigen zaakprioriteiten en zaakstatussen, onder **Producten → Beveiligingsgebeurtenissen → Instellingen → Zaakprioriteiten** en **Zaakstatussen**. Hernoem ze, geef ze een andere kleur, sleep ze in een andere volgorde en voeg je eigen toe, zoals een status "Triage" of een prioriteit "Noodgeval" boven **Kritiek**. Een nieuwe naam verschijnt overal tegelijk: in de wachtrij, op de zaakpagina's en het overzicht, in meldingen, in Slack, Microsoft Teams en Mattermost, en in playbookberichten.
 
 Sommige zijn ingebouwd, omdat OneUptime leest wat ze betekenen. Je kunt ze hernoemen en een andere kleur geven, maar niet verwijderen of archiveren, en ze houden hun volgorde:
 
@@ -156,7 +157,7 @@ Sommige zijn ingebouwd, omdat OneUptime leest wat ze betekenen. Je kunt ze herno
 | De prioriteiten Kritiek, High, Medium, Low en Informatief | Een detectie opent haar zaak met de prioriteit van haar ernst, en een zaak die iemand opent, begint op Medium |
 
 - Waar een status staat, bepaalt hoe een zaak erin telt, zoals de kolom **Telt als** laat zien: vanaf de bevestigde status omlaag als bevestigd, vanaf de ingeperkte status omlaag als ingeperkt, vanaf de gesloten status omlaag als gesloten. Een status die je toevoegt, komt net boven de gesloten status, en wie een zaak in een status zet die haar sluit, wordt eerst om een oordeel gevraagd.
-- De rang van een prioriteit is hoe dringend ze is, de dringendste eerst: **Voor zaken van minstens**, de keuzes bij meldingen en de regels voor Slack en Microsoft Teams lezen deze volgorde. Een prioriteit die je toevoegt, komt achteraan, en de kolom **Ernst van de detectie** laat zien welke detecties hun zaken met welke ingebouwde prioriteit openen.
+- De rang van een prioriteit is hoe dringend ze is, de dringendste eerst: **Voor zaken van minstens**, de keuzes bij meldingen en de regels voor Slack, Microsoft Teams en Mattermost lezen deze volgorde. Een prioriteit die je toevoegt, komt achteraan, en de kolom **Ernst van de detectie** laat zien welke detecties hun zaken met welke ingebouwde prioriteit openen.
 
 Wil je een eigen status of prioriteit niet meer gebruiken, gebruik dan **Archiveren** in de rij ervan. Niemand kan hem dan nog kiezen, en de API, Terraform en MCP weigeren hem, maar de zaken die hem hebben, houden hem, en je kunt er nog steeds op filteren. Gearchiveerde waarden staan in de ingeklapte sectie **Gearchiveerde zaakstatussen** of **Gearchiveerde zaakprioriteiten** onder de tabel, waar **Uit archief halen** er een terugzet. **Verwijderen** wordt geweigerd zolang zaken de waarde hebben of een playbook vanaf de prioriteit draait.
 
@@ -231,9 +232,9 @@ De keuzes volgen de zaakprioriteiten van het project, onder hun eigen namen: dit
 
 Voor beveiligingszaken worden geen WhatsApp-berichten verstuurd. Een pushmelding opent de zaak in de app OneUptime On-Call (1.7.0 of nieuwer), waar u een wachtende playbookstap kunt goedkeuren of afwijzen, de zaak kunt oppakken en sluiten. De link erin opent de zaak in de browser.
 
-### Plaatsen in kanalen van Slack en Microsoft Teams
+### Plaatsen in kanalen van Slack, Microsoft Teams en Mattermost
 
-Om in een kanaal te plaatsen, voeg je een regel toe onder **Producten → Beveiligingsgebeurtenissen → Werkruimte → Slack** (of **Microsoft Teams**). Is geen van beide gekoppeld, dan is de enige vermelding in dat onderdeel **Slack of Teams koppelen**. Een regel noemt de kanalen waarin hij plaatst (en, in Microsoft Teams, de chats) en, als je wilt, de zaken waarvoor hij geldt:
+Om in een kanaal te plaatsen, voeg je een regel toe onder **Producten → Beveiligingsgebeurtenissen → Werkruimte → Slack** (of **Microsoft Teams** of **Mattermost**). Is er geen gekoppeld, dan is de enige vermelding in dat onderdeel **Werkruimte koppelen**. Een regel noemt de kanalen waarin hij plaatst (en, in Microsoft Teams, de chats) en, als je wilt, de zaken waarvoor hij geldt:
 
 | Voorwaarde | Matcht op |
 | --- | --- |

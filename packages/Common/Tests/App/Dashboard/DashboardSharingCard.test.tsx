@@ -51,11 +51,6 @@ import { getJestSpyOn } from "../../Spy";
  * ones.
  */
 
-/*
- * A refused request is an async function that throws, not
- * mockRejectedValue: the card's imports load zone.js, whose patched Promise
- * reports a rejected one as unhandled although the card catches it.
- */
 const getItemMock: MockFunction = getJestMockFunction();
 const updateByIdMock: MockFunction = getJestMockFunction();
 const getListMock: MockFunction = getJestMockFunction();

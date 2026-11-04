@@ -10,6 +10,7 @@ import UserSMS from "../../Models/DatabaseModels/UserSMS";
 import UserTelegram from "../../Models/DatabaseModels/UserTelegram";
 import UserSlack from "../../Models/DatabaseModels/UserSlack";
 import UserMicrosoftTeams from "../../Models/DatabaseModels/UserMicrosoftTeams";
+import UserMattermost from "../../Models/DatabaseModels/UserMattermost";
 import UserWebhook from "../../Models/DatabaseModels/UserWebhook";
 import UserWhatsApp from "../../Models/DatabaseModels/UserWhatsApp";
 import ObjectID from "../../Types/ObjectID";
@@ -42,6 +43,7 @@ export interface NotificationMethodModels {
   userTelegrams: Array<UserTelegram>;
   userSlacks: Array<UserSlack>;
   userMicrosoftTeamsAccounts: Array<UserMicrosoftTeams>;
+  userMattermostAccounts: Array<UserMattermost>;
   userWebhooks: Array<UserWebhook>;
   /*
    * The custom channels that are on (CustomNotificationChannel): everybody's,
@@ -94,6 +96,11 @@ const NOTIFICATION_METHOD_RELATIONS: Array<NotificationMethodRelation> = [
     relationName: "userMicrosoftTeams",
     title: "Microsoft Teams",
     columns: ["microsoftTeamsUserName", "microsoftTeamsUserId"],
+  },
+  {
+    relationName: "userMattermost",
+    title: "Mattermost",
+    columns: ["mattermostUserName", "mattermostUserId"],
   },
   /*
    * Only `name` is read here. A webhook URL is a bearer credential for
@@ -240,6 +247,15 @@ export default class NotificationMethodUtil {
       );
     }
 
+    if (model instanceof UserMattermost) {
+      return (
+        "Mattermost: " +
+        (NotificationMethodUtil.readColumn(model, "mattermostUserName") ||
+          NotificationMethodUtil.readColumn(model, "mattermostUserId") ||
+          "Unknown Account")
+      );
+    }
+
     const identifier: string =
       NotificationMethodUtil.readColumn(model, "phone") ||
       NotificationMethodUtil.readColumn(model, "email") ||
@@ -262,7 +278,7 @@ export default class NotificationMethodUtil {
 
   /*
    * Maps the id chosen in the dropdown back onto the rule being created. The
-   * dropdown is single-select, so at most one of the ten foreign keys is set.
+   * dropdown is single-select, so at most one of the eleven foreign keys is set.
    * An id that matches nothing leaves the rule untouched, and the server then
    * rejects the create as having no notification method.
    */
@@ -319,6 +335,9 @@ export default class NotificationMethodUtil {
     assignById(models.userMicrosoftTeamsAccounts, (id: ObjectID) => {
       rule.userMicrosoftTeamsId = id;
     });
+    assignById(models.userMattermostAccounts, (id: ObjectID) => {
+      rule.userMattermostId = id;
+    });
     assignById(models.userWebhooks, (id: ObjectID) => {
       rule.userWebhookId = id;
     });
@@ -346,6 +365,7 @@ export default class NotificationMethodUtil {
       ...models.userTelegrams,
       ...models.userSlacks,
       ...models.userMicrosoftTeamsAccounts,
+      ...models.userMattermostAccounts,
       ...models.userWebhooks,
     ];
   }

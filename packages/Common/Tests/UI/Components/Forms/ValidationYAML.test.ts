@@ -4,7 +4,8 @@ import FormFieldSchemaType from "../../../../UI/Components/Forms/Types/FormField
 import FormValues from "../../../../UI/Components/Forms/Types/FormValues";
 import Dictionary from "../../../../Types/Dictionary";
 import { JSONObject, JSONValue } from "../../../../Types/JSON";
-import { describe, expect, test } from "@jest/globals";
+import { beforeAll, describe, expect, test } from "@jest/globals";
+import { loadYamlSyntaxCheck } from "../../../../UI/Components/CodeEditor/YamlSyntaxLoader";
 
 /*
  * The YAML twin of ValidationJSON.test.ts. Its job is the same: block Save on
@@ -62,6 +63,10 @@ const validateValue: ValidateValueFunction = (
     field || makeYAMLField(),
   );
 };
+
+beforeAll(async () => {
+  await loadYamlSyntaxCheck();
+});
 
 describe("Validation.validateYAMLSyntax — only acts on YAML fields", () => {
   test("ignores every other field type", () => {

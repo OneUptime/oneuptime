@@ -182,6 +182,7 @@ const METHOD_RULE_TYPES: Array<ComplianceRuleType> = [
   ComplianceRuleType.HasNotificationTelegramMethod,
   ComplianceRuleType.HasNotificationSlackMethod,
   ComplianceRuleType.HasNotificationMicrosoftTeamsMethod,
+  ComplianceRuleType.HasNotificationMattermostMethod,
   ComplianceRuleType.HasNotificationWebhookMethod,
 ];
 
@@ -4096,7 +4097,7 @@ describe("TeamComplianceSettingService.isSameScope", () => {
  * read back by getStoredChannels.
  */
 
-// Every subset of the nine channels, each in catalog order.
+// Every subset of the channels, each in catalog order.
 const everyChannelSubset: () => Array<
   Array<ComplianceNotificationChannel>
 > = (): Array<Array<ComplianceNotificationChannel>> => {

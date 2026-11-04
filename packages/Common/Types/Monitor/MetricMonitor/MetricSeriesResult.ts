@@ -1,5 +1,6 @@
 import AggregatedResult from "../../BaseDatabase/AggregatedResult";
 import { JSONObject } from "../../JSON";
+import MetricSeriesArrival from "./MetricSeriesArrival";
 
 /**
  * One series within a metric monitor evaluation. When a metric monitor
@@ -17,4 +18,11 @@ export default interface MetricSeriesResult {
   fingerprint: string;
   labels: JSONObject;
   aggregatedResults: Array<AggregatedResult>;
+  /*
+   * When this series' data arrived (MetricSeriesArrival), aligned with
+   * `aggregatedResults`: null for a query or formula whose arrivals were not
+   * read. Absent when none were (see MetricMonitorResponse
+   * .metricResultArrivals).
+   */
+  arrivals?: Array<MetricSeriesArrival | null> | undefined;
 }

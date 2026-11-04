@@ -182,22 +182,41 @@ auditd、syslog、Falco など、すでに収集しているセキュリティ�
 
 ### ログからセキュリティイベントを見つける
 
-**接続** の上部にある **ログ** は、すでに OneUptime に送っているログをソースにします。**ログからセキュリティイベントを見つける** を有効にすると、プロジェクトの新しいログが毎分読み取られ、そこに含まれる SSH や Windows のサインイン、sudo コマンド、クラウドの監査レコード、セキュリティ製品の CEF や LEEF のレコード、Kubernetes の監査レコード、Web 攻撃がそれぞれセキュリティイベントとして保存されます。種類ごとの内容は [セキュリティをはじめる](/docs/telemetry/security-getting-started#ログからセキュリティイベントを見つける) を参照してください。
+**接続** の上部にある **ログ** は、すでに OneUptime に送っているログをソースにします。**ログからセキュリティイベントを見つける** を有効にすると、プロジェクトの新しいログが毎分読み取られ、そこに含まれる SSH や Windows のサインイン、sudo コマンド、クラウドの監査レコード、セキュリティ製品の CEF や LEEF のレコード、Palo Alto Networks、FortiGate、Cisco ASA のファイアウォールのレコード、Kubernetes の監査レコード、Web 攻撃がそれぞれセキュリティイベントとして保存されます。種類ごとの内容は [セキュリティをはじめる](/docs/telemetry/security-getting-started#ログからセキュリティイベントを見つける) を参照してください。
 
 どの種類も、通常のログとして OneUptime に届きます。
 
 | 種類 | 送信元 |
 | --- | --- |
 | SSH サインイン、sudo | Linux マシンの journal または認証ログを [OpenTelemetry Collector](/docs/telemetry/host-otel-collector) で送信 |
-| Windows イベント | マシン上のコレクターの `windowseventlog` レシーバー、または NXLog や Winlogbeat のように各イベントを JSON で書き出すフォワーダー |
-| AWS CloudTrail | CloudWatch Logs に配信される証跡を、コレクターの `awscloudwatch` レシーバーで読み取り |
-| Google Cloud 監査ログ | Pub/Sub へのログシンクを、コレクターの `googlecloudpubsub` レシーバーで `encoding: raw_text` を指定して読み取り |
-| Azure アクティビティと Entra ID のログ | Event Hub にストリーミングする診断設定を、コレクターの `azureeventhub` レシーバーで `format: raw` を指定して読み取り |
+| Windows イベント | マシン上のコレクターの `windowseventlog` レシーバー、または NXLog や Winlogbeat のように各イベントを JSON で書き出すフォワーダー。OneUptime に追加した [ホスト](/docs/telemetry/hosts) は、Sysmon、Microsoft Defender、PowerShell があればそれらも読み取ります |
+| AWS CloudTrail | CloudWatch Logs に配信される証跡を、コレクターの `awscloudwatch` レシーバーで読み取り。**クラウド** で接続したアカウントなら [クラウド監査ログ](#クラウド-アカウントの監査ログを読み取る) |
+| Google Cloud 監査ログ | Pub/Sub へのログシンクを、コレクターの `googlecloudpubsub` レシーバーで `encoding: raw_text` を指定して読み取り。**クラウド** で接続したプロジェクトなら [クラウド監査ログ](#クラウド-アカウントの監査ログを読み取る) |
+| Azure アクティビティと Entra ID のログ | Event Hub にストリーミングする診断設定を、コレクターの `azureeventhub` レシーバーで `format: raw` を指定して読み取り。**クラウド** で接続したサブスクリプションのアクティビティ ログなら [クラウド監査ログ](#クラウド-アカウントの監査ログを読み取る) |
 | CEF、LEEF | 製品の syslog を [rsyslog](/docs/telemetry/syslog) で中継 |
+| Palo Alto Networks、FortiGate、Cisco ASA | ファイアウォール独自の syslog を [rsyslog](/docs/telemetry/syslog) で中継 |
 | Kubernetes 監査ログ | API サーバーの監査ログファイルを、コレクターの `filelog` レシーバーで読み取り |
 | Web 攻撃 | Web サーバーのアクセスログを、コレクターの `filelog` レシーバーで読み取り |
 
 **ログ** では、種類ごとに最後に見つかった時刻が表示され、**ログ行を確認** では、まだ何も届いていなくても、貼り付けた行が何になるかを確認できます。
+
+CEF や LEEF の検出結果、Palo Alto Networks、FortiGate、Cisco ASA の脅威など、セキュリティ製品がログに書き込む脅威は、接続した製品のアラートと同じように [ケース](/docs/telemetry/security-cases) を開き、そこに示されたユーザー、ホスト、アドレスのリスクを高めます。どの重大度から開くかは **ログ** の **ケースを開く重大度** で決まり、別の重大度を選ばない限り **高以上** で、**なし** にもできます。製品のサインインやブロックされた接続はイベントのまま残り、ルールで読み取れます。
+
+二つの経路で OneUptime に届くレコードは一度だけ保存されます。たとえば、接続が読み取り、Azure がログにもエクスポートする Microsoft Entra ID のサインインや、ログと接続した AWS アカウントの監査ログの両方にある CloudTrail のレコードです。
+
+### クラウド アカウントの監査ログを読み取る
+
+[**クラウド** で接続した](/docs/telemetry/cloud-accounts) AWS アカウント、Google Cloud プロジェクト、Azure サブスクリプションには、ログのパイプラインは要りません。**接続** の **OneUptime のデータ** で **クラウド監査ログ** を有効にすると、アカウントを読み取るたびに、その監査ログがセキュリティイベントとして保存されます。
+
+| クラウド | 読み取る内容 |
+| --- | --- |
+| AWS | アカウントが使う各リージョンの、何かを変更する CloudTrail の管理イベント: コンソールへのサインイン、変更、AWS が拒否した呼び出し |
+| Google Cloud | Admin Activity 監査ログ: リソースの変更、リソースにアクセスできるユーザーの変更、Google が拒否した呼び出し |
+| Azure | アクティビティ ログ: サブスクリプションでの変更、失敗した操作、Azure Policy による拒否、Defender for Cloud のアラート |
+
+- 各レコードは **ログ** がパイプラインから読み取るのと同じように読み取られるため、ルールライブラリの CloudTrail、Google Cloud、Azure のルールに一致します。
+- イベントには保存した時刻が付き、レコード自身の時刻は `oneuptime.cloud.record_time` に入ります。監査ログは数分遅れて OneUptime に届き、ルールはイベントをその時刻で読み取るためです。
+- アカウント自体の読み取りで得られるのはここまでです。データ イベント、Data Access ログ、Microsoft Entra ID のログには、引き続き **ログ** か [接続](/docs/integrations/microsoft-entra-id) が必要です。
 
 ### セキュリティ製品を接続する
 
@@ -213,7 +232,7 @@ auditd、syslog、Falco など、すでに収集しているセキュリティ�
 | Elastic Security | 検出アラートを Detection Finding として | [Elastic Security](/docs/integrations/elastic-security) |
 | AWS Security Hub | Finding を Detection Finding と Compliance Finding として | [AWS Security Hub](/docs/integrations/aws-security-hub) |
 | Okta System Log | サインイン、MFA、アカウント、ポリシーのイベント | [Okta System Log](/docs/integrations/okta) |
-| Microsoft Entra ID | サインインとディレクトリの変更、および Microsoft 365 監査ログのメール転送、共有、フィッシングの判定 | [Microsoft Entra ID](/docs/integrations/microsoft-entra-id) |
+| Microsoft Entra ID | サインイン、ディレクトリの変更、リスク検出、選んだ場合は失敗したバックグラウンドとアプリのサインイン、および Microsoft 365 監査ログのメール転送、共有、フィッシングの判定 | [Microsoft Entra ID](/docs/integrations/microsoft-entra-id) |
 | Google Workspace | サインイン、Google 自身による検出、管理者による変更とアプリへのアクセス許可、ドライブでの共有 | [Google Workspace](/docs/integrations/google-workspace) |
 
 - 製品自身のアラートのうち **Open Cases From** (別のレベルを選ばない限り **高以上**、または **なし**) 以上のものは、対象のユーザー、ホスト、アドレスごとにまとめられて [ケース](/docs/telemetry/security-cases) を開きます。
@@ -320,7 +339,7 @@ OneUptime 14.0.84 より前に保存されたイベントでは、プロセス�
 
 通知 **ハントがセキュリティイベントを検出** には、ハントとその検索、実行で見つかったイベントの数と読み取った期間が記載され、それらのイベントを表示したハントのページへのリンクが含まれます。イベント自体の内容は含まれません。全員がメールとプッシュで受け取り、 **ユーザー設定 → 通知設定** でチャネルを選べます。ほかの定期的なメールと同じく、 [メールのまとめ](/docs/emails/notification-rollup) に保留されることがあります。
 
-ハントが見つけたものを Slack または Microsoft Teams に投稿するには、 **製品 → セキュリティイベント → ワークスペース → Slack** (または **Microsoft Teams**) で、 [セキュリティケース](/docs/telemetry/security-cases#slack-と-microsoft-teams-のチャンネルに投稿する) を投稿するルールの下にある **ハントのルール** にルールを追加します。ルールでは投稿先のチャンネル (Microsoft Teams ではチャットも) と、必要に応じて対象のハントを **ハント名** で指定します。名前がテキストと一致する、テキストを含む、テキストで始まる、またはテキストで終わるハントです。スケジュールされた実行がイベントを見つけるたびに、ハント、その検索、イベントの件数と日時を、それらへのリンクとともに投稿し、イベント自体の言葉は含めません。ハントのルールは、セキュリティプレイブックを設定できるロール (Project Owner、Project Admin、Security Admin など) が設定します。
+ハントが見つけたものを Slack、Microsoft Teams、または Mattermost に投稿するには、 **製品 → セキュリティイベント → ワークスペース → Slack** (または **Microsoft Teams**、**Mattermost**) で、 [セキュリティケース](/docs/telemetry/security-cases#slackmicrosoft-teamsmattermost-のチャンネルに投稿する) を投稿するルールの下にある **ハントのルール** にルールを追加します。ルールでは投稿先のチャンネル (Microsoft Teams ではチャットも) と、必要に応じて対象のハントを **ハント名** で指定します。名前がテキストと一致する、テキストを含む、テキストで始まる、またはテキストで終わるハントです。スケジュールされた実行がイベントを見つけるたびに、ハント、その検索、イベントの件数と日時を、それらへのリンクとともに投稿し、イベント自体の言葉は含めません。ハントのルールは、セキュリティプレイブックを設定できるロール (Project Owner、Project Admin、Security Admin など) が設定します。
 
 ### イベントをケースに残す
 

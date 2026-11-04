@@ -351,6 +351,7 @@ import UserWhatsAppService from "./UserWhatsAppService";
 import UserTelegramService from "./UserTelegramService";
 import UserSlackService from "./UserSlackService";
 import UserMicrosoftTeamsService from "./UserMicrosoftTeamsService";
+import UserMattermostService from "./UserMattermostService";
 import WorkflowLogService from "./WorkflowLogService";
 import WorkflowOwnerRuleService from "./WorkflowOwnerRuleService";
 import WorkflowOwnerUserService from "./WorkflowOwnerUserService";
@@ -878,6 +879,7 @@ const services: Array<BaseService> = [
   UserTelegramService,
   UserSlackService,
   UserMicrosoftTeamsService,
+  UserMattermostService,
   UserTotpAuthService,
   UserTwoFactorBackupCodeService,
   UserWebAuthnService,

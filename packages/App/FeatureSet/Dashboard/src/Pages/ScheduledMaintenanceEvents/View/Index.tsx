@@ -529,7 +529,7 @@ const ScheduledMaintenanceView: FunctionComponent<
     resourceId: modelId,
   });
 
-  // The event's own Slack and Teams channels: Open in Slack / Teams.
+  // The event's own chat channels: Open in Slack / Teams / Mattermost.
   const channelLinks: Array<WorkspaceChannelLink> = useRecordChannelLinks({
     recordType: WorkspaceChannelRecordType.ScheduledMaintenance,
     recordId: modelId,

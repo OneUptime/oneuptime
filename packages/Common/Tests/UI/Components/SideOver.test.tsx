@@ -9,6 +9,7 @@ import SideOver, {
  * the whole suite is skipped before a single assertion runs.
  */
 import "@testing-library/jest-dom";
+import { PAGE_DOCK_END_CLASS_NAME } from "../../../UI/Utils/PageDock";
 import { resetPageScrollLockForTesting } from "../../../UI/Utils/PageScrollLock";
 import {
   fireEvent,
@@ -295,6 +296,14 @@ describe("SideOver", () => {
       expect(layer).toHaveClass("fixed", "inset-0", "pointer-events-none");
       expect(layer).toHaveClass("justify-end");
       expect(layer.firstElementChild).toHaveClass("pointer-events-auto");
+    });
+
+    test("stops short of a surface docked at the end of the window, or it would open behind it", () => {
+      renderComponent(props);
+
+      expect(screen.getByTestId("side-over-layer")).toHaveClass(
+        PAGE_DOCK_END_CLASS_NAME,
+      );
     });
 
     test("keeps a single element in the root — the vestigial backdrop divs are gone", () => {

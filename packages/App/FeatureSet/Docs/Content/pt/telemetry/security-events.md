@@ -182,22 +182,41 @@ A página **Guia de configuração**, em **Conexões**, tem esses trechos com o 
 
 ### Encontrar eventos de segurança nos seus logs
 
-O cartão **Seus logs**, no topo de **Conexões**, transforma em uma origem os logs que você já envia ao OneUptime. Com **Encontrar eventos de segurança nos seus logs** ativado, os logs novos do projeto são lidos a cada minuto, e cada login SSH ou do Windows, comando sudo, registro de auditoria de uma nuvem, registro CEF ou LEEF de um produto de segurança, registro de auditoria do Kubernetes e ataque web que eles contêm é salvo como evento de segurança. Consulte [Primeiros passos com a segurança](/docs/telemetry/security-getting-started#encontrar-eventos-de-segurança-nos-seus-logs) para saber o que cada tipo cobre.
+O cartão **Seus logs**, no topo de **Conexões**, transforma em uma origem os logs que você já envia ao OneUptime. Com **Encontrar eventos de segurança nos seus logs** ativado, os logs novos do projeto são lidos a cada minuto, e cada login SSH ou do Windows, comando sudo, registro de auditoria de uma nuvem, registro CEF ou LEEF de um produto de segurança, registro de um firewall Palo Alto Networks, FortiGate ou Cisco ASA, registro de auditoria do Kubernetes e ataque web que eles contêm é salvo como evento de segurança. Consulte [Primeiros passos com a segurança](/docs/telemetry/security-getting-started#encontrar-eventos-de-segurança-nos-seus-logs) para saber o que cada tipo cobre.
 
 Cada tipo chega ao OneUptime como logs comuns:
 
 | Tipo | Envie a partir de |
 | --- | --- |
 | Logins SSH, sudo | O journal ou o log de autenticação de uma máquina Linux, com o [OpenTelemetry Collector](/docs/telemetry/host-otel-collector) |
-| Eventos do Windows | O receptor `windowseventlog` do coletor na máquina, ou um encaminhador que grava cada evento como JSON, como NXLog ou Winlogbeat |
-| AWS CloudTrail | Uma trilha entregue ao CloudWatch Logs, lida pelo receptor `awscloudwatch` do coletor |
-| Logs de auditoria do Google Cloud | Um sink de logs para o Pub/Sub, lido pelo receptor `googlecloudpubsub` do coletor com `encoding: raw_text` |
-| Logs de atividade do Azure e do Entra ID | Uma configuração de diagnóstico que transmite para um Event Hub, lida pelo receptor `azureeventhub` do coletor com `format: raw` |
+| Eventos do Windows | O receptor `windowseventlog` do coletor na máquina, ou um encaminhador que grava cada evento como JSON, como NXLog ou Winlogbeat. Um [host](/docs/telemetry/hosts) adicionado ao OneUptime também lê Sysmon, Microsoft Defender e PowerShell onde os tem |
+| AWS CloudTrail | Uma trilha entregue ao CloudWatch Logs, lida pelo receptor `awscloudwatch` do coletor, ou, para uma conta conectada em **Nuvem**, [Logs de auditoria da nuvem](#ler-os-logs-de-auditoria-das-suas-contas-de-nuvem) |
+| Logs de auditoria do Google Cloud | Um sink de logs para o Pub/Sub, lido pelo receptor `googlecloudpubsub` do coletor com `encoding: raw_text`, ou, para um projeto conectado em **Nuvem**, [Logs de auditoria da nuvem](#ler-os-logs-de-auditoria-das-suas-contas-de-nuvem) |
+| Logs de atividade do Azure e do Entra ID | Uma configuração de diagnóstico que transmite para um Event Hub, lida pelo receptor `azureeventhub` do coletor com `format: raw`, ou, para o log de atividades de uma assinatura conectada em **Nuvem**, [Logs de auditoria da nuvem](#ler-os-logs-de-auditoria-das-suas-contas-de-nuvem) |
 | CEF, LEEF | O syslog do produto, retransmitido pelo [rsyslog](/docs/telemetry/syslog) |
+| Palo Alto Networks, FortiGate, Cisco ASA | O próprio syslog do firewall, retransmitido pelo [rsyslog](/docs/telemetry/syslog) |
 | Logs de auditoria do Kubernetes | O arquivo de log de auditoria do servidor de API, lido pelo receptor `filelog` do coletor |
 | Ataques web | O log de acesso de um servidor web, lido pelo receptor `filelog` do coletor |
 
 Em **Seus logs**, cada tipo mostra quando foi encontrado pela última vez, e **Verificar uma linha de log** mostra no que uma linha que você cola se transforma, antes que chegue alguma.
+
+Uma ameaça que um produto de segurança escreve nos seus logs, como uma detecção CEF ou LEEF ou uma ameaça do Palo Alto Networks, FortiGate ou Cisco ASA, abre um [caso](/docs/telemetry/security-cases) como o alerta de um produto conectado faz, e aumenta o risco do usuário, host ou endereço que ela cita. **Abrir casos a partir de**, em **Seus logs**, diz a partir de qual gravidade: **Alta e acima**, a menos que você escolha outra, ou **Nunca**. Os logins e as conexões bloqueadas do produto continuam sendo eventos, para as suas regras lerem.
+
+Um registro que chega ao OneUptime por dois caminhos é salvo uma única vez: um login do Microsoft Entra ID lido pela conexão dele e exportado pelo Azure para os seus logs, ou um registro do CloudTrail nos seus logs e no log de auditoria de uma conta da AWS conectada.
+
+### Ler os logs de auditoria das suas contas de nuvem
+
+Uma conta da AWS, um projeto do Google Cloud ou uma assinatura do Azure [conectados em **Nuvem**](/docs/telemetry/cloud-accounts) não precisam de nenhum pipeline de logs. Ative **Logs de auditoria da nuvem**, em **Seus dados do OneUptime** na página **Conexões**, e cada leitura da conta guarda o log de auditoria dela como eventos de segurança:
+
+| Nuvem | O que é lido |
+| --- | --- |
+| AWS | Os eventos de gerenciamento do CloudTrail que mudam algo, em cada Região que a conta usa: logins no console, mudanças e chamadas que a AWS recusou |
+| Google Cloud | O log de auditoria Admin Activity: mudanças nos recursos e em quem pode acessá-los, e chamadas que o Google recusou |
+| Azure | O log de atividades: mudanças feitas na assinatura, operações que falharam, recusas do Azure Policy e alertas do Defender for Cloud |
+
+- Cada registro é lido como **Seus logs** o lê de um pipeline, então as regras de CloudTrail, Google Cloud e Azure da biblioteca de regras correspondem a ele.
+- Um evento recebe o horário em que é salvo, com o horário do próprio registro em `oneuptime.cloud.record_time`: um log de auditoria chega ao OneUptime com minutos de atraso, e uma regra lê os eventos pelo horário deles.
+- A leitura da conta não traz mais nada: eventos de dados, logs Data Access e os logs do Microsoft Entra ID ainda precisam de **Seus logs** ou de uma [conexão](/docs/integrations/microsoft-entra-id).
 
 ### Conecte um produto de segurança
 
@@ -213,7 +232,7 @@ Em **Seus logs**, cada tipo mostra quando foi encontrado pela última vez, e **V
 | Elastic Security | Alertas de detecção, como Detection Findings | [Elastic Security](/docs/integrations/elastic-security) |
 | AWS Security Hub | Findings, como Detection e Compliance Findings | [AWS Security Hub](/docs/integrations/aws-security-hub) |
 | Okta System Log | Eventos de login, MFA, contas e políticas | [Okta System Log](/docs/integrations/okta) |
-| Microsoft Entra ID | Logins e mudanças de diretório, e do log de auditoria do Microsoft 365 o encaminhamento de e-mail, os compartilhamentos e os veredictos de phishing | [Microsoft Entra ID](/docs/integrations/microsoft-entra-id) |
+| Microsoft Entra ID | Logins, mudanças de diretório e detecções de risco, se você quiser os logins em segundo plano e de aplicativos que falharam, e do log de auditoria do Microsoft 365 o encaminhamento de e-mail, os compartilhamentos e os veredictos de phishing | [Microsoft Entra ID](/docs/integrations/microsoft-entra-id) |
 | Google Workspace | Logins, as detecções do próprio Google, mudanças de administração e acessos concedidos a aplicativos, e compartilhamentos no Drive | [Google Workspace](/docs/integrations/google-workspace) |
 
 - Os alertas do próprio produto no nível de **Open Cases From** ou acima (**Alta e acima**, a menos que você escolha outro nível, ou **Nunca**) abrem [casos](/docs/telemetry/security-cases), agrupados pelo usuário, host ou endereço de que tratam.
@@ -320,7 +339,7 @@ Cada execução agendada é guardada por 90 dias. **Histórico de execuções**,
 
 A notificação **Uma caçada encontrou eventos de segurança** nomeia a caçada e sua pesquisa, quantos eventos sua execução encontrou e a janela que ela leu, e leva à página da caçada nesses eventos; nenhuma palavra dos eventos está nela. Todos a recebem por e-mail e push, e escolhem seus canais em **Configurações do usuário → Configurações de notificação**. Como outros e-mails de rotina, ela pode ser retida em um [resumo de e-mails](/docs/emails/notification-rollup).
 
-Para publicar no Slack ou no Microsoft Teams o que as caçadas encontram, adicione uma regra a **Regras de caçadas** em **Produtos → Eventos de segurança → Espaço de trabalho → Slack** (ou **Microsoft Teams**), abaixo das regras que publicam os [casos de segurança](/docs/telemetry/security-cases#publique-em-canais-do-slack-e-do-microsoft-teams). Uma regra nomeia os canais em que publicar (e, no Microsoft Teams, os chats) e, se você quiser, as caçadas a que se aplica, por **Nome da caçada**: um nome que é o seu texto, o contém, começa ou termina com ele. Cada vez que uma execução agendada encontra eventos, ela publica a caçada, sua pesquisa, quantos eventos e quando, com um link para eles, e nenhuma das palavras próprias de um evento. Uma regra de caçadas é configurada por uma função que pode configurar playbooks de segurança, como Project Owner, Project Admin ou Security Admin.
+Para publicar no Slack, no Microsoft Teams ou no Mattermost o que as caçadas encontram, adicione uma regra a **Regras de caçadas** em **Produtos → Eventos de segurança → Espaço de trabalho → Slack** (ou **Microsoft Teams** ou **Mattermost**), abaixo das regras que publicam os [casos de segurança](/docs/telemetry/security-cases#publique-em-canais-do-slack-do-microsoft-teams-e-do-mattermost). Uma regra nomeia os canais em que publicar (e, no Microsoft Teams, os chats) e, se você quiser, as caçadas a que se aplica, por **Nome da caçada**: um nome que é o seu texto, o contém, começa ou termina com ele. Cada vez que uma execução agendada encontra eventos, ela publica a caçada, sua pesquisa, quantos eventos e quando, com um link para eles, e nenhuma das palavras próprias de um evento. Uma regra de caçadas é configurada por uma função que pode configurar playbooks de segurança, como Project Owner, Project Admin ou Security Admin.
 
 ### Guardar eventos em um caso
 

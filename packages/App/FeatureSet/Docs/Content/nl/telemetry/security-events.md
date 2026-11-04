@@ -182,22 +182,41 @@ De pagina **Installatiegids**, onder **Verbindingen**, bevat deze snippets, met 
 
 ### Beveiligingsgebeurtenissen in uw logs vinden
 
-De kaart **Uw logboeken**, boven aan **Verbindingen**, maakt van de logs die u al naar OneUptime stuurt een bron. Met **Beveiligingsgebeurtenissen in uw logboeken vinden** aan worden de nieuwe logs van het project elke minuut gelezen, en elke SSH- of Windows-aanmelding, sudo-opdracht, auditregel van een cloud, CEF- of LEEF-record van een beveiligingsproduct, Kubernetes-auditregel en webaanval daarin wordt opgeslagen als beveiligingsgebeurtenis. Zie [Aan de slag met beveiliging](/docs/telemetry/security-getting-started#beveiligingsgebeurtenissen-in-uw-logs-vinden) voor wat elke soort omvat.
+De kaart **Uw logboeken**, boven aan **Verbindingen**, maakt van de logs die u al naar OneUptime stuurt een bron. Met **Beveiligingsgebeurtenissen in uw logboeken vinden** aan worden de nieuwe logs van het project elke minuut gelezen, en elke SSH- of Windows-aanmelding, sudo-opdracht, auditregel van een cloud, CEF- of LEEF-record van een beveiligingsproduct, record van een firewall van Palo Alto Networks, FortiGate of Cisco ASA, Kubernetes-auditregel en webaanval daarin wordt opgeslagen als beveiligingsgebeurtenis. Zie [Aan de slag met beveiliging](/docs/telemetry/security-getting-started#beveiligingsgebeurtenissen-in-uw-logs-vinden) voor wat elke soort omvat.
 
 Elke soort bereikt OneUptime als gewone logs:
 
 | Soort | Stuur het vanuit |
 | --- | --- |
 | SSH-aanmeldingen, sudo | De journal of het authenticatielog van een Linux-machine, met de [OpenTelemetry Collector](/docs/telemetry/host-otel-collector) |
-| Windows-gebeurtenissen | De `windowseventlog`-receiver van de collector op de machine, of een forwarder die elke gebeurtenis als JSON schrijft, zoals NXLog of Winlogbeat |
-| AWS CloudTrail | Een trail die aan CloudWatch Logs wordt geleverd, gelezen door de `awscloudwatch`-receiver van de collector |
-| Google Cloud-auditlogs | Een log-sink naar Pub/Sub, gelezen door de `googlecloudpubsub`-receiver van de collector met `encoding: raw_text` |
-| Azure-activiteitslogs en Entra ID-logs | Een diagnostische instelling die naar een Event Hub streamt, gelezen door de `azureeventhub`-receiver van de collector met `format: raw` |
+| Windows-gebeurtenissen | De `windowseventlog`-receiver van de collector op de machine, of een forwarder die elke gebeurtenis als JSON schrijft, zoals NXLog of Winlogbeat. Een aan OneUptime toegevoegde [host](/docs/telemetry/hosts) leest ook Sysmon, Microsoft Defender en PowerShell waar hij ze heeft |
+| AWS CloudTrail | Een trail die aan CloudWatch Logs wordt geleverd, gelezen door de `awscloudwatch`-receiver van de collector, of, voor een account dat onder **Cloud** is gekoppeld, [Cloud-auditlogboeken](#de-auditlogs-van-uw-cloudaccounts-lezen) |
+| Google Cloud-auditlogs | Een log-sink naar Pub/Sub, gelezen door de `googlecloudpubsub`-receiver van de collector met `encoding: raw_text`, of, voor een project dat onder **Cloud** is gekoppeld, [Cloud-auditlogboeken](#de-auditlogs-van-uw-cloudaccounts-lezen) |
+| Azure-activiteitslogs en Entra ID-logs | Een diagnostische instelling die naar een Event Hub streamt, gelezen door de `azureeventhub`-receiver van de collector met `format: raw`, of, voor het activiteitenlogboek van een abonnement dat onder **Cloud** is gekoppeld, [Cloud-auditlogboeken](#de-auditlogs-van-uw-cloudaccounts-lezen) |
 | CEF, LEEF | De syslog van het product, doorgestuurd door [rsyslog](/docs/telemetry/syslog) |
+| Palo Alto Networks, FortiGate, Cisco ASA | De eigen syslog van de firewall, doorgestuurd door [rsyslog](/docs/telemetry/syslog) |
 | Kubernetes-auditlogs | Het auditlogbestand van de API-server, gelezen door de `filelog`-receiver van de collector |
 | Webaanvallen | Het toegangslog van een webserver, gelezen door de `filelog`-receiver van de collector |
 
 Op **Uw logboeken** zegt elke soort wanneer ze voor het laatst is gevonden, en **Een logboekregel controleren** laat zien wat een regel die u plakt wordt, nog voordat er een binnenkomt.
+
+Een bedreiging die een beveiligingsproduct in uw logs schrijft, zoals een CEF- of LEEF-bevinding of een bedreiging van Palo Alto Networks, FortiGate of Cisco ASA, opent een [zaak](/docs/telemetry/security-cases) zoals de waarschuwing van een gekoppeld product dat doet, en verhoogt het risico van de gebruiker, de host of het adres dat ze noemt. **Cases openen vanaf**, op **Uw logboeken**, bepaalt vanaf welke ernst: **Hoog en hoger**, tenzij u een andere kiest, of **Nooit**. De aanmeldingen en geblokkeerde verbindingen van het product blijven gebeurtenissen, die uw regels lezen.
+
+Een record dat OneUptime langs twee wegen bereikt, wordt één keer opgeslagen: een aanmelding bij Microsoft Entra ID die de verbinding leest en die Azure ook naar uw logs exporteert, of een CloudTrail-record in uw logs en in het auditlog van een gekoppeld AWS-account.
+
+### De auditlogs van uw cloudaccounts lezen
+
+Een AWS-account, Google Cloud-project of Azure-abonnement dat [onder **Cloud** is gekoppeld](/docs/telemetry/cloud-accounts), heeft geen logpijplijn nodig. Zet **Cloud-auditlogboeken** aan, onder **Uw OneUptime-gegevens** op **Verbindingen**, en elke leesbeurt van het account bewaart het auditlog als beveiligingsgebeurtenissen:
+
+| Cloud | Wat er wordt gelezen |
+| --- | --- |
+| AWS | De beheergebeurtenissen van CloudTrail die iets wijzigen, in elke regio die het account gebruikt: aanmeldingen bij de console, wijzigingen en aanroepen die AWS weigerde |
+| Google Cloud | Het auditlog Admin Activity: wijzigingen aan resources en aan wie ze mag bereiken, en aanroepen die Google weigerde |
+| Azure | Het activiteitenlogboek: wijzigingen in het abonnement, mislukte bewerkingen, weigeringen door Azure Policy en waarschuwingen van Defender for Cloud |
+
+- Elk record wordt gelezen zoals **Uw logboeken** het uit een pijplijn leest, zodat de CloudTrail-, Google Cloud- en Azure-regels van de regelbibliotheek erop matchen.
+- Een gebeurtenis krijgt het tijdstip waarop ze wordt opgeslagen, met de eigen tijd van het record in `oneuptime.cloud.record_time`: een auditlog bereikt OneUptime minuten te laat, en een regel leest gebeurtenissen op hun tijd.
+- De leesbeurt van het account zelf levert niets meer op: data-events, Data Access-logs en de logs van Microsoft Entra ID hebben nog steeds **Uw logboeken** of een [verbinding](/docs/integrations/microsoft-entra-id) nodig.
 
 ### Een beveiligingsproduct koppelen
 
@@ -213,7 +232,7 @@ Op **Uw logboeken** zegt elke soort wanneer ze voor het laatst is gevonden, en *
 | Elastic Security | Detectiewaarschuwingen, als Detection Findings | [Elastic Security](/docs/integrations/elastic-security) |
 | AWS Security Hub | Findings, als Detection en Compliance Findings | [AWS Security Hub](/docs/integrations/aws-security-hub) |
 | Okta System Log | Gebeurtenissen over aanmeldingen, MFA, accounts en beleid | [Okta System Log](/docs/integrations/okta) |
-| Microsoft Entra ID | Aanmeldingen en directorywijzigingen, en uit het Microsoft 365-auditlogboek het doorsturen van e-mail, delen en phishingoordelen | [Microsoft Entra ID](/docs/integrations/microsoft-entra-id) |
+| Microsoft Entra ID | Aanmeldingen, directorywijzigingen en risicodetecties, desgewenst mislukte achtergrond- en app-aanmeldingen, en uit het Microsoft 365-auditlogboek het doorsturen van e-mail, delen en phishingoordelen | [Microsoft Entra ID](/docs/integrations/microsoft-entra-id) |
 | Google Workspace | Aanmeldingen, de eigen detecties van Google, beheerwijzigingen en app-toegang, en delen in Drive | [Google Workspace](/docs/integrations/google-workspace) |
 
 - De eigen waarschuwingen van het product vanaf het niveau dat in **Open Cases From** is ingesteld (**Hoog en hoger**, tenzij je een ander niveau kiest, of **Nooit**), openen [zaken](/docs/telemetry/security-cases), gegroepeerd op de gebruiker, de host of het adres waar ze over gaan.
@@ -320,7 +339,7 @@ Elke geplande run wordt 90 dagen bewaard. **Runhistorie**, aan het eind van de r
 
 De melding **Hunt heeft beveiligingsgebeurtenissen gevonden** noemt de hunt en zijn zoekopdracht, hoeveel gebeurtenissen zijn run vond en welk venster die las, en linkt naar de pagina van de hunt op die gebeurtenissen; er staat geen woord van een gebeurtenis zelf in. Iedereen krijgt hem per e-mail en push, en kiest de kanalen onder **Gebruikersinstellingen → Meldingsinstellingen**. Net als andere routine-e-mails kan hij worden vastgehouden in een [e-mailoverzicht](/docs/emails/notification-rollup).
 
-Om wat hunts vinden in Slack of Microsoft Teams te plaatsen, voeg je een regel toe aan **Regels voor hunts** onder **Producten → Beveiligingsgebeurtenissen → Werkruimte → Slack** (of **Microsoft Teams**), onder de regels die [beveiligingszaken](/docs/telemetry/security-cases#plaatsen-in-kanalen-van-slack-en-microsoft-teams) plaatsen. Een regel noemt de kanalen waarin geplaatst wordt (en in Microsoft Teams de chats) en, als je wilt, de hunts waarvoor hij geldt, op **Naam van hunt**: een naam die jouw tekst is, die bevat, ermee begint of ermee eindigt. Telkens wanneer een geplande run gebeurtenissen vindt, plaatst hij de hunt, zijn zoekopdracht, hoeveel gebeurtenissen en wanneer, met een link ernaar, en geen van de eigen woorden van een gebeurtenis. Een huntregel wordt ingesteld door een rol die beveiligingsplaybooks mag instellen, zoals Project Owner, Project Admin of Security Admin.
+Om wat hunts vinden in Slack, Microsoft Teams of Mattermost te plaatsen, voeg je een regel toe aan **Regels voor hunts** onder **Producten → Beveiligingsgebeurtenissen → Werkruimte → Slack** (of **Microsoft Teams** of **Mattermost**), onder de regels die [beveiligingszaken](/docs/telemetry/security-cases#plaatsen-in-kanalen-van-slack-microsoft-teams-en-mattermost) plaatsen. Een regel noemt de kanalen waarin geplaatst wordt (en in Microsoft Teams de chats) en, als je wilt, de hunts waarvoor hij geldt, op **Naam van hunt**: een naam die jouw tekst is, die bevat, ermee begint of ermee eindigt. Telkens wanneer een geplande run gebeurtenissen vindt, plaatst hij de hunt, zijn zoekopdracht, hoeveel gebeurtenissen en wanneer, met een link ernaar, en geen van de eigen woorden van een gebeurtenis. Een huntregel wordt ingesteld door een rol die beveiligingsplaybooks mag instellen, zoals Project Owner, Project Admin of Security Admin.
 
 ### Gebeurtenissen bij een zaak bewaren
 

@@ -182,22 +182,41 @@ curl -X POST "https://oneuptime.com/security-events/v1/ingest" \
 
 ### 在日志中查找安全事件
 
-**连接** 顶部的 **你的日志** 会把您已经发送到 OneUptime 的日志变成一个来源。开启 **在日志中查找安全事件** 后，项目的新日志每分钟都会被读取，其中的每次 SSH 或 Windows 登录、sudo 命令、云审计记录、安全产品的 CEF 或 LEEF 记录、Kubernetes 审计记录和 Web 攻击都会存储为安全事件。各类内容的范围请参阅 [安全入门](/docs/telemetry/security-getting-started#在日志中查找安全事件)。
+**连接** 顶部的 **你的日志** 会把您已经发送到 OneUptime 的日志变成一个来源。开启 **在日志中查找安全事件** 后，项目的新日志每分钟都会被读取，其中的每次 SSH 或 Windows 登录、sudo 命令、云审计记录、安全产品的 CEF 或 LEEF 记录、Palo Alto Networks、FortiGate 或 Cisco ASA 防火墙的记录、Kubernetes 审计记录和 Web 攻击都会存储为安全事件。各类内容的范围请参阅 [安全入门](/docs/telemetry/security-getting-started#在日志中查找安全事件)。
 
 每一类都以普通日志的形式到达 OneUptime：
 
 | 类型 | 从哪里发送 |
 | --- | --- |
 | SSH 登录、sudo | Linux 机器的 journal 或认证日志，使用 [OpenTelemetry Collector](/docs/telemetry/host-otel-collector) 发送 |
-| Windows 事件 | 机器上收集器的 `windowseventlog` 接收器，或把每个事件写成 JSON 的转发器，例如 NXLog 或 Winlogbeat |
-| AWS CloudTrail | 投递到 CloudWatch Logs 的跟踪，由收集器的 `awscloudwatch` 接收器读取 |
-| Google Cloud 审计日志 | 指向 Pub/Sub 的日志接收器（sink），由收集器的 `googlecloudpubsub` 接收器以 `encoding: raw_text` 读取 |
-| Azure 活动和 Entra ID 日志 | 流式传输到 Event Hub 的诊断设置，由收集器的 `azureeventhub` 接收器以 `format: raw` 读取 |
+| Windows 事件 | 机器上收集器的 `windowseventlog` 接收器，或把每个事件写成 JSON 的转发器，例如 NXLog 或 Winlogbeat。添加到 OneUptime 的 [主机](/docs/telemetry/hosts) 还会读取它上面的 Sysmon、Microsoft Defender 和 PowerShell |
+| AWS CloudTrail | 投递到 CloudWatch Logs 的跟踪，由收集器的 `awscloudwatch` 接收器读取；对于在 **云** 下连接的账户，也可以用 [云审计日志](#读取云账户的审计日志) |
+| Google Cloud 审计日志 | 指向 Pub/Sub 的日志接收器（sink），由收集器的 `googlecloudpubsub` 接收器以 `encoding: raw_text` 读取；对于在 **云** 下连接的项目，也可以用 [云审计日志](#读取云账户的审计日志) |
+| Azure 活动和 Entra ID 日志 | 流式传输到 Event Hub 的诊断设置，由收集器的 `azureeventhub` 接收器以 `format: raw` 读取；对于在 **云** 下连接的订阅的活动日志，也可以用 [云审计日志](#读取云账户的审计日志) |
 | CEF、LEEF | 产品的 syslog，由 [rsyslog](/docs/telemetry/syslog) 转发 |
+| Palo Alto Networks、FortiGate、Cisco ASA | 防火墙自身的 syslog，由 [rsyslog](/docs/telemetry/syslog) 转发 |
 | Kubernetes 审计日志 | API 服务器的审计日志文件，由收集器的 `filelog` 接收器读取 |
 | Web 攻击 | Web 服务器的访问日志，由收集器的 `filelog` 接收器读取 |
 
 在 **你的日志** 上，每一类都会显示上次发现它的时间，**检查一行日志** 则会在任何日志到达之前，显示你粘贴的一行会变成什么。
+
+安全产品写入日志的威胁，例如 CEF 或 LEEF 的发现，或 Palo Alto Networks、FortiGate 或 Cisco ASA 的威胁，会像已连接产品的警报一样打开 [案例](/docs/telemetry/security-cases)，并提高它所指的用户、主机或地址的风险。**你的日志** 上的 **从以下级别开启案例** 决定从哪个严重程度开始：默认为 **高及以上**，你也可以选择其他级别或 **从未**。该产品的登录和被阻止的连接仍然是事件，供你的规则读取。
+
+通过两条途径到达 OneUptime 的记录只存储一次：例如由其连接读取、又由 Azure 导出到您的日志中的 Microsoft Entra ID 登录，或同时出现在您的日志和已连接 AWS 账户审计日志中的 CloudTrail 记录。
+
+### 读取云账户的审计日志
+
+[在 **云** 下连接的](/docs/telemetry/cloud-accounts) AWS 账户、Google Cloud 项目或 Azure 订阅不需要日志管道。在 **连接** 的 **你的 OneUptime 数据** 下开启 **云审计日志** 后，每次读取账户都会把它的审计日志保存为安全事件：
+
+| 云 | 读取的内容 |
+| --- | --- |
+| AWS | 账户使用的每个区域中会更改内容的 CloudTrail 管理事件：控制台登录、更改，以及被 AWS 拒绝的调用 |
+| Google Cloud | Admin Activity 审计日志：对资源及其访问权限的更改，以及被 Google 拒绝的调用 |
+| Azure | 活动日志：订阅中的更改、失败的操作、Azure Policy 的拒绝以及 Defender for Cloud 警报 |
+
+- 每条记录的读取方式与 **你的日志** 从管道读取它的方式相同，因此规则库中的 CloudTrail、Google Cloud 和 Azure 规则都能匹配它。
+- 事件以存储时的时间为时间戳，记录本身的时间保存在 `oneuptime.cloud.record_time` 中：审计日志会晚几分钟到达 OneUptime，而规则按事件的时间读取事件。
+- 账户本身的读取只带来这些：数据事件、Data Access 日志和 Microsoft Entra ID 的日志仍然需要 **你的日志** 或 [连接](/docs/integrations/microsoft-entra-id)。
 
 ### 连接安全产品
 
@@ -213,7 +232,7 @@ curl -X POST "https://oneuptime.com/security-events/v1/ingest" \
 | Elastic Security | 检测警报，作为 Detection Finding | [Elastic Security](/docs/integrations/elastic-security) |
 | AWS Security Hub | Finding，作为 Detection Finding 和 Compliance Finding | [AWS Security Hub](/docs/integrations/aws-security-hub) |
 | Okta System Log | 登录、MFA、账户和策略事件 | [Okta System Log](/docs/integrations/okta) |
-| Microsoft Entra ID | 登录和目录更改，以及 Microsoft 365 审计日志中的邮件转发、共享和钓鱼判定 | [Microsoft Entra ID](/docs/integrations/microsoft-entra-id) |
+| Microsoft Entra ID | 登录、目录更改和风险检测，可选的失败的后台和应用登录，以及 Microsoft 365 审计日志中的邮件转发、共享和钓鱼判定 | [Microsoft Entra ID](/docs/integrations/microsoft-entra-id) |
 | Google Workspace | 登录、Google 自身的检测、管理员更改和应用授权，以及云端硬盘中的共享 | [Google Workspace](/docs/integrations/google-workspace) |
 
 - 产品自身的警报，只要级别达到或高于 **Open Cases From**（默认为 **高及以上**，你也可以选择其他级别或 **从未**），就会打开 [案例](/docs/telemetry/security-cases)，并按它们涉及的用户、主机或地址分组。
@@ -320,7 +339,7 @@ curl -X POST "https://oneuptime.com/security-events/v1/ingest" \
 
 通知 **狩猎发现了安全事件** 会写明狩猎及其搜索、运行发现的事件数量和读取的时间窗口，并链接到显示这些事件的狩猎页面；其中不包含任何事件本身的内容。每个人默认通过电子邮件和推送接收，并可在 **用户设置 → 通知设置** 中选择渠道。与其他例行邮件一样，它可能会被归入 [邮件汇总](/docs/emails/notification-rollup)。
 
-要将狩猎的发现发布到 Slack 或 Microsoft Teams，请在 **产品 → 安全事件 → 工作区 → Slack**（或 **Microsoft Teams**）中，在发布[安全案例](/docs/telemetry/security-cases#发布到-slack-和-microsoft-teams-频道)的规则下方，向 **狩猎规则** 添加规则。规则指定要发布到的频道（在 Microsoft Teams 中还包括聊天），以及（如果需要）它适用的狩猎，按 **狩猎名称** 匹配：名称等于、包含、以你的文本开头或以你的文本结尾。每当计划运行发现事件时，它会发布该狩猎、其搜索、事件数量和时间，并附上指向这些事件的链接，不含事件本身的任何内容。狩猎规则由可以设置安全剧本的角色设置，例如 Project Owner、Project Admin 或 Security Admin。
+要将狩猎的发现发布到 Slack、Microsoft Teams 或 Mattermost，请在 **产品 → 安全事件 → 工作区 → Slack**（或 **Microsoft Teams**、**Mattermost**）中，在发布[安全案例](/docs/telemetry/security-cases#发布到-slackmicrosoft-teams-和-mattermost-频道)的规则下方，向 **狩猎规则** 添加规则。规则指定要发布到的频道（在 Microsoft Teams 中还包括聊天），以及（如果需要）它适用的狩猎，按 **狩猎名称** 匹配：名称等于、包含、以你的文本开头或以你的文本结尾。每当计划运行发现事件时，它会发布该狩猎、其搜索、事件数量和时间，并附上指向这些事件的链接，不含事件本身的任何内容。狩猎规则由可以设置安全剧本的角色设置，例如 Project Owner、Project Admin 或 Security Admin。
 
 ### 将事件保存到案例
 

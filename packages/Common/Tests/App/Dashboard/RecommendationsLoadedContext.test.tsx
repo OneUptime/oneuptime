@@ -326,23 +326,7 @@ describe("the database Recommendations tab renders from the loaded context", () 
 
   test("a failed probe keeps the heartbeat's answer rather than failing the tab", async () => {
     getItemMock.mockResolvedValue(databaseRow("postgresql"));
-    /*
-     * Rejected on a later tick, once the probe is awaiting it: a promise
-     * rejected before its handler attaches is reported by zone.js as
-     * unhandled, which is test noise, not the behaviour under test.
-     */
-    getAnalyticsListMock.mockImplementation((): Promise<ProbeAnswer> => {
-      return new Promise<ProbeAnswer>(
-        (
-          _resolve: (answer: ProbeAnswer) => void,
-          reject: (error: Error) => void,
-        ) => {
-          setTimeout(() => {
-            reject(new Error("ClickHouse is down"));
-          }, 0);
-        },
-      );
-    });
+    getAnalyticsListMock.mockRejectedValue(new Error("ClickHouse is down"));
 
     renderPage();
 

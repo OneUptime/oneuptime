@@ -5,6 +5,7 @@ import { CardMenuExtrasContext } from "../Card/CardMenuExtras";
 import { DetailValueContext } from "../Detail/DetailValueContext";
 import { TableCellContext } from "../Table/TableCellContext";
 import IconProp from "../../../Types/Icon/IconProp";
+import { PAGE_DOCK_END_CLASS_NAME } from "../../Utils/PageDock";
 import { usePageScrollLock } from "../../Utils/PageScrollLock";
 import React, {
   FunctionComponent,
@@ -160,10 +161,10 @@ const SideOver: FunctionComponent<ComponentProps> = (
      * z-30 clears every tier of page chrome (sticky headers and table headers
      * at z-10/z-20, map and log-viewer toolbars at z-20) while staying under
      * the app-wide overlays that must remain visible over a panel: the Ask
-     * AI dialog at z-40 (a drawer's "Explain with AI" opens it over the
+     * AI panel at z-40 (a drawer's "Explain with AI" opens it beside the
      * drawer), Modal at z-50, portalled dropdown menus at z-60.
      * Deliberately NOT z-40 — at an equal z-index document order decides,
-     * and a drawer opened after Ask AI would paint over the dialog it was
+     * and a drawer opened after Ask AI would paint over the panel it was
      * asked from.
      *
      * role="dialog" without aria-modal, because the panel genuinely is not
@@ -180,8 +181,12 @@ const SideOver: FunctionComponent<ComponentProps> = (
       role="dialog"
       data-testid="side-over"
     >
+      {/*
+       * Stops short of a surface docked at the end of the window (PageDock):
+       * pinned to the window's edge, this panel would open behind Ask AI.
+       */}
       <div
-        className="pointer-events-none fixed inset-0 flex justify-end"
+        className={`pointer-events-none fixed inset-0 ${PAGE_DOCK_END_CLASS_NAME} flex justify-end`}
         data-testid="side-over-layer"
       >
         {/*

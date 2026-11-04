@@ -1,3 +1,5 @@
+import { JSONObject } from "../JSON";
+
 /*
  * WHAT A CHANGE DID THE LAST TIMES ONEUPTIME AI MADE IT.
  *
@@ -171,6 +173,28 @@ export function parseRemediationTrackRecord(
   }
 
   return { workedCount, didNotWorkCount, runs };
+}
+
+/*
+ * A record as JSON, the shape parseRemediationTrackRecord reads back: what a
+ * suggestion keeps of the runbook it proposes (runbookTrackRecord).
+ */
+export function serializeRemediationTrackRecord(
+  record: RemediationTrackRecord,
+): JSONObject {
+  return {
+    workedCount: record.workedCount,
+    didNotWorkCount: record.didNotWorkCount,
+    runs: record.runs.map((run: RemediationTrackRecordRun): JSONObject => {
+      return {
+        subjectKind: run.subjectKind,
+        subjectId: run.subjectId,
+        ...(run.subjectNumber ? { subjectNumber: run.subjectNumber } : {}),
+        ranAt: run.ranAt,
+        outcome: run.outcome,
+      };
+    }),
+  };
 }
 
 export function getRemediationTrackRecordTone(

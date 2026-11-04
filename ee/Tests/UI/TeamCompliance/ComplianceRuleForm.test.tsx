@@ -296,7 +296,7 @@ describe("the rule form's fields", () => {
     );
   });
 
-  test("it offers all thirteen rule types, on-call rules first", () => {
+  test("it offers all fourteen rule types, on-call rules first", () => {
     const groups: Array<CardSelectOptionGroup> = getRuleTypeCardOptions();
 
     expect(
@@ -305,7 +305,7 @@ describe("the rule form's fields", () => {
       }),
     ).toEqual([
       ["On-call rules", 4],
-      ["Notification methods", 9],
+      ["Notification methods", 10],
     ]);
 
     const offered: Array<string> = groups.flatMap(
@@ -361,7 +361,7 @@ describe("the rule form's fields", () => {
         },
       ),
     );
-    expect(getChannelDropdownOptions()).toHaveLength(10);
+    expect(getChannelDropdownOptions()).toHaveLength(11);
   });
 
   /*
@@ -376,7 +376,7 @@ describe("the rule form's fields", () => {
     expect(field.dropdownModal).toBeUndefined();
   });
 
-  test("the channel options are the ten channels, in the catalog's order", () => {
+  test("the channel options are the eleven channels, in the catalog's order", () => {
     expect(
       getChannelDropdownOptions().map((option: { value: unknown }) => {
         return option.value;
@@ -390,6 +390,7 @@ describe("the rule form's fields", () => {
       ComplianceNotificationChannel.Telegram,
       ComplianceNotificationChannel.Slack,
       ComplianceNotificationChannel.MicrosoftTeams,
+      ComplianceNotificationChannel.Mattermost,
       ComplianceNotificationChannel.Webhook,
       ComplianceNotificationChannel.CustomChannel,
     ]);
@@ -406,6 +407,7 @@ describe("the rule form's fields", () => {
       "Telegram",
       "Slack",
       "Microsoft Teams",
+      "Mattermost",
       "Webhook",
       "Custom channel",
     ]);
@@ -481,9 +483,9 @@ describe("the rule form's fields", () => {
     },
   );
 
-  test("the channels are shown for the four on-call kinds and none of the nine method kinds", () => {
+  test("the channels are shown for the four on-call kinds and none of the ten method kinds", () => {
     expect(ON_CALL_RULE_TYPES).toHaveLength(4);
-    expect(METHOD_RULE_TYPES).toHaveLength(9);
+    expect(METHOD_RULE_TYPES).toHaveLength(10);
 
     for (const ruleType of ON_CALL_RULE_TYPES) {
       expect(
@@ -897,10 +899,10 @@ describe("the live preview", () => {
       );
 
       expect(preview?.title).toBe(
-        "Call, SMS, Push notification, Email, WhatsApp, Telegram, Slack, Microsoft Teams, Webhook and Custom channel for incidents",
+        "Call, SMS, Push notification, Email, WhatsApp, Telegram, Slack, Microsoft Teams, Mattermost, Webhook and Custom channel for incidents",
       );
       expect(preview?.sentence).toBe(
-        "Every member has incident on-call rules that notify them by Call, by SMS, by Push notification, by Email, by WhatsApp, by Telegram, by Slack, by Microsoft Teams, by Webhook and by Custom channel for every incident severity.",
+        "Every member has incident on-call rules that notify them by Call, by SMS, by Push notification, by Email, by WhatsApp, by Telegram, by Slack, by Microsoft Teams, by Mattermost, by Webhook and by Custom channel for every incident severity.",
       );
       expect(preview?.notes).toEqual([
         CALL_SMS_AND_TELEGRAM_NOTE,
@@ -1152,7 +1154,7 @@ describe("the live preview", () => {
       ).toEqual([WHATSAPP_NOTE]);
     });
 
-    test("Push, Email, Slack, Microsoft Teams and Webhook add no note", () => {
+    test("Push, Email, Slack, Microsoft Teams, Mattermost and Webhook add no note", () => {
       expect(
         getRulePreviewText(
           withChannels(ComplianceRuleType.HasIncidentOnCallRules, [
@@ -1160,6 +1162,7 @@ describe("the live preview", () => {
             ComplianceNotificationChannel.Email,
             ComplianceNotificationChannel.Slack,
             ComplianceNotificationChannel.MicrosoftTeams,
+            ComplianceNotificationChannel.Mattermost,
             ComplianceNotificationChannel.Webhook,
           ]),
         )?.notes,
@@ -1322,11 +1325,11 @@ describe("the live preview", () => {
 });
 
 /*
- * A new rule offers Slack and Microsoft Teams only for the workspaces the
- * project has connected; an edit, or a project whose workspaces are not
- * known, offers everything.
+ * A new rule offers Slack, Microsoft Teams and Mattermost only for the
+ * workspaces the project has connected; an edit, or a project whose workspaces
+ * are not known, offers everything.
  */
-describe("Slack and Microsoft Teams follow the project's workspaces", () => {
+describe("Slack, Microsoft Teams and Mattermost follow the project's workspaces", () => {
   const ruleTypesIn: (groups: Array<CardSelectOptionGroup>) => Array<string> = (
     groups: Array<CardSelectOptionGroup>,
   ): Array<string> => {
@@ -1360,6 +1363,17 @@ describe("Slack and Microsoft Teams follow the project's workspaces", () => {
       true,
     ],
     [ComplianceNotificationChannel.MicrosoftTeams, [], false],
+    [
+      ComplianceNotificationChannel.Mattermost,
+      [WorkspaceType.Mattermost],
+      true,
+    ],
+    [ComplianceNotificationChannel.Mattermost, [], false],
+    [
+      ComplianceNotificationChannel.Mattermost,
+      [WorkspaceType.Slack, WorkspaceType.MicrosoftTeams],
+      false,
+    ],
     [ComplianceNotificationChannel.Call, [], true],
     [ComplianceNotificationChannel.Webhook, [], true],
   ])(
@@ -1373,7 +1387,7 @@ describe("Slack and Microsoft Teams follow the project's workspaces", () => {
     },
   );
 
-  test("with nothing connected, neither Verified Slack nor Verified Microsoft Teams is a rule kind", () => {
+  test("with nothing connected, none of Verified Slack, Verified Microsoft Teams and Verified Mattermost is a rule kind", () => {
     const groups: Array<CardSelectOptionGroup> = getRuleTypeCardOptions([]);
 
     expect(
@@ -1390,6 +1404,9 @@ describe("Slack and Microsoft Teams follow the project's workspaces", () => {
     expect(ruleTypesIn(groups)).not.toContain(
       ComplianceRuleType.HasNotificationMicrosoftTeamsMethod,
     );
+    expect(ruleTypesIn(groups)).not.toContain(
+      ComplianceRuleType.HasNotificationMattermostMethod,
+    );
   });
 
   test("with Slack connected, Verified Slack is offered and Verified Microsoft Teams is not", () => {
@@ -1401,6 +1418,28 @@ describe("Slack and Microsoft Teams follow the project's workspaces", () => {
     expect(ruleTypes).not.toContain(
       ComplianceRuleType.HasNotificationMicrosoftTeamsMethod,
     );
+    expect(ruleTypes).not.toContain(
+      ComplianceRuleType.HasNotificationMattermostMethod,
+    );
+  });
+
+  test("with Mattermost connected, Verified Mattermost is offered and the other two are not", () => {
+    const ruleTypes: Array<string> = ruleTypesIn(
+      getRuleTypeCardOptions([WorkspaceType.Mattermost]),
+    );
+
+    expect(ruleTypes).toContain(
+      ComplianceRuleType.HasNotificationMattermostMethod,
+    );
+    expect(ruleTypes).not.toContain(
+      ComplianceRuleType.HasNotificationSlackMethod,
+    );
+    expect(ruleTypes).not.toContain(
+      ComplianceRuleType.HasNotificationMicrosoftTeamsMethod,
+    );
+    expect(
+      channelsIn(getChannelDropdownOptions([WorkspaceType.Mattermost])),
+    ).toContain(ComplianceNotificationChannel.Mattermost);
   });
 
   test("the channels follow the same rule, in catalog order", () => {
@@ -1422,6 +1461,7 @@ describe("Slack and Microsoft Teams follow the project's workspaces", () => {
       getChannelDropdownOptions([
         WorkspaceType.Slack,
         WorkspaceType.MicrosoftTeams,
+        WorkspaceType.Mattermost,
       ]),
     ).toEqual(getChannelDropdownOptions());
   });
@@ -1512,7 +1552,7 @@ describe("Slack and Microsoft Teams follow the project's workspaces", () => {
       );
 
       // The custom channel too, though none is on: it is everything.
-      expect(modalChannels()).toHaveLength(10);
+      expect(modalChannels()).toHaveLength(11);
     });
 
     test("create, before the project's workspaces are known: every workspace channel, nothing hidden on a guess", () => {
@@ -1529,8 +1569,8 @@ describe("Slack and Microsoft Teams follow the project's workspaces", () => {
         />,
       );
 
-      // Every channel of the nine; the custom one follows the server below.
-      expect(modalChannels()).toHaveLength(9);
+      // Every channel of the ten; the custom one follows the server below.
+      expect(modalChannels()).toHaveLength(10);
       expect(modalChannels()).toContain(ComplianceNotificationChannel.Slack);
       expect(modalChannels()).not.toContain(
         ComplianceNotificationChannel.CustomChannel,
@@ -1998,7 +2038,7 @@ describe("the custom channel in the form", () => {
         },
       ),
     );
-    expect(getChannelDropdownOptions(undefined, false)).toHaveLength(9);
+    expect(getChannelDropdownOptions(undefined, false)).toHaveLength(10);
     expect(getChannelDropdownOptions(undefined, true)).toEqual(
       getChannelDropdownOptions(),
     );
@@ -2024,7 +2064,7 @@ describe("the custom channel in the form", () => {
       },
     );
 
-    expect(titles).toHaveLength(13);
+    expect(titles).toHaveLength(14);
     expect(titles.join(" ").toLowerCase()).not.toContain("custom");
   });
 

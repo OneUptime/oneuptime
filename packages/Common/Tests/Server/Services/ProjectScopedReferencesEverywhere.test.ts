@@ -111,6 +111,7 @@ const SERVICES_WITH_ANOTHER_CHECK: Record<string, AnotherCheck> = {
   "UserCallService.ts": { kind: "owner-is-the-caller" },
   "UserEmailService.ts": { kind: "owner-is-the-caller" },
   "UserIncomingCallNumberService.ts": { kind: "owner-is-the-caller" },
+  "UserMattermostService.ts": { kind: "owner-is-the-caller" },
   "UserMicrosoftTeamsService.ts": { kind: "owner-is-the-caller" },
   "UserNotificationEmailRollupSettingService.ts": {
     kind: "owner-is-the-caller",

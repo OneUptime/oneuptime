@@ -221,7 +221,7 @@ Hver varsling kan eskaleres fra der den nådde deg:
 | --- | --- |
 | E-post | Knappen **Escalate**, deretter **Escalate** på siden den åpner |
 | SMS og WhatsApp | Lenken i meldingen åpner bekreftelsessiden, som også har **Escalate** |
-| Telegram, Slack og Microsoft Teams | Lenken "Can't take it? Escalate", deretter **Escalate** på siden den åpner |
+| Telegram, Slack, Microsoft Teams og Mattermost | Lenken "Can't take it? Escalate", deretter **Escalate** på siden den åpner |
 | Anrop | Trykk 2. Anropet sier deretter hva som skjedde |
 | Push-varsel | Trykk på det: hendelsen, varselet eller episoden åpnes i OneUptime On-Call-appen, med **Escalate** under seg |
 | OneUptime | **Eskaler** øverst i hendelsen, varselet eller episoden, etter tilstandsknappene |

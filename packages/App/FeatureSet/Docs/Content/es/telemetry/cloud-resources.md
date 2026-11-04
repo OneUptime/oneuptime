@@ -3,7 +3,7 @@
 **Recursos en la nube** lista los recursos IaaS y PaaS de sus cuentas de AWS, Azure y Google Cloud: máquinas virtuales, discos, balanceadores de carga, buckets, bases de datos gestionadas, cachés, colas, gateways de API y el resto. Cada uno tiene su propia página, con su tipo, región y cuenta, el ID que le da el proveedor, cada métrica que el proveedor publica sobre él, y propietarios y etiquetas como cualquier otro recurso de OneUptime. Los encontrará en **Nube → Todos los recursos**.
 
 > [!TIP]
-> ¿Prefieres no ejecutar un recopilador? [Conecta una cuenta en la nube](/docs/telemetry/cloud-accounts) en **Nube → Conectar**, y OneUptime lee estas métricas por sí mismo.
+> ¿Prefieres no ejecutar un recopilador? [Conecta una cuenta en la nube](/docs/telemetry/cloud-accounts) en **Nube → Conectar**, y OneUptime lee estas métricas por sí mismo. Una cuenta de AWS también puede [transmitir sus métricas y registros](/docs/telemetry/cloud-streaming) a través de Amazon Data Firehose.
 
 :::cards
 - [Conectar Azure](#conectar-azure): Leer cada recurso de una suscripción desde Azure Monitor.

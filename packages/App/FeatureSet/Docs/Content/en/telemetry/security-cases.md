@@ -50,10 +50,11 @@ Each of these can also be granted on its own, from creating a case to approving 
 | Detection rules | A rule matches | **Open a Case on Match**, on the rule's **On Match** step |
 | Threat intelligence | An event names a known indicator | **Open a Case on Match**, on the feed's **On Match** step |
 | Connected products | A product's own alert is imported at or above the connection's threshold | **Open Cases From** set to **Never**, in the connection's **Polling** step |
+| Security products in your logs | A threat a firewall, IDS or endpoint product writes in your logs is at or above Your logs' threshold | **Open cases from** set to **Never**, on **Your logs** |
 | Entity risk | A user's, host's or address's risk reaches the project's threshold | **Risk Cases**, under **Settings → Risk Scoring** |
 | People | Someone opens one from **Security Cases**, or with **Open Case** in an event's panel | None |
 
-Every source opens cases by default, except entity risk on projects created before it existed, which turn on **Risk Cases** first ([Entity Risk](/docs/telemetry/security-entity-risk)). A connection opens cases for **High and above** unless you choose another level; the alerts below it are still imported as events.
+Every source opens cases by default, except entity risk on projects created before it existed, which turn on **Risk Cases** first ([Entity Risk](/docs/telemetry/security-entity-risk)). A connection opens cases for **High and above** unless you choose another level; the alerts below it are still imported as events. **Your logs** does the same for the threats in your logs.
 
 ### How detections are grouped
 
@@ -143,7 +144,7 @@ A case opened from Google SecOps alerts closes them in Google SecOps too, with t
 
 ## Case priorities and statuses
 
-Each project keeps its own case priorities and statuses, under **Products → Security Events → Settings → Case Priorities** and **Case Statuses**. Rename them, recolor them, drag them into another order, and add your own, such as a "Triage" status or an "Emergency" priority above **Critical**. A new name shows everywhere at once: in the queue, on the case pages and the overview, in notifications, in Slack and Microsoft Teams, and in playbook messages.
+Each project keeps its own case priorities and statuses, under **Products → Security Events → Settings → Case Priorities** and **Case Statuses**. Rename them, recolor them, drag them into another order, and add your own, such as a "Triage" status or an "Emergency" priority above **Critical**. A new name shows everywhere at once: in the queue, on the case pages and the overview, in notifications, in Slack, Microsoft Teams and Mattermost, and in playbook messages.
 
 Some are built in, because OneUptime reads what they mean. They can be renamed and recolored, but not deleted or archived, and they keep their order:
 
@@ -156,7 +157,7 @@ Some are built in, because OneUptime reads what they mean. They can be renamed a
 | The Critical, High, Medium, Low and Informational priorities | A detection opens its case at the one of its severity, and a case someone opens starts at Medium |
 
 - Where a status sits decides what a case in it counts as, as the **Counts as** column shows: from the acknowledged status down, acknowledged; from the contained status down, contained; from the closed status down, closed. A status you add goes just above the closed status, and moving a case into a status that closes it asks for a verdict first.
-- A priority's rank is how urgent it is, the most urgent first: **For Cases At Least**, the notification choices and the Slack and Microsoft Teams rules read this order. A priority you add goes to the end, and the **Detection severity** column shows which detections open their cases at each built-in priority.
+- A priority's rank is how urgent it is, the most urgent first: **For Cases At Least**, the notification choices and the Slack, Microsoft Teams and Mattermost rules read this order. A priority you add goes to the end, and the **Detection severity** column shows which detections open their cases at each built-in priority.
 
 To stop using a status or priority of your own, use **Archive** on its row. Nobody can pick it again, and the API, Terraform and MCP refuse it, but the cases that have it keep it, and you can still filter by it. Archived values are listed in the folded **Archived Case Statuses** or **Archived Case Priorities** section under the table, where **Unarchive** puts one back. **Delete** is refused while cases have the value or a playbook runs from the priority.
 
@@ -231,9 +232,9 @@ The choices follow the project's case priorities, under their own names: these a
 
 WhatsApp messages are not sent for security cases. A push notification opens the case in the OneUptime On-Call app (1.7.0 or later), where you can approve or reject a waiting playbook step, take the case on and close it. Its link opens the case in the browser.
 
-### Post to Slack and Microsoft Teams channels
+### Post to Slack, Microsoft Teams and Mattermost channels
 
-To post to a channel, add a rule under **Products → Security Events → Workspace → Slack** (or **Microsoft Teams**). With neither connected, the section's one entry is **Connect Slack or Teams**. A rule names the channels to post to (and, in Microsoft Teams, the chats) and, if you want, the cases it is for:
+To post to a channel, add a rule under **Products → Security Events → Workspace → Slack** (or **Microsoft Teams**, or **Mattermost**). With none connected, the section's one entry is **Connect a workspace**. A rule names the channels to post to (and, in Microsoft Teams, the chats) and, if you want, the cases it is for:
 
 | Condition | Matches on |
 | --- | --- |

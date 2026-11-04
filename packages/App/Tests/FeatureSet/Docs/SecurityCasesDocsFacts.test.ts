@@ -37,8 +37,11 @@ import {
   STATE_SETTINGS_COPY,
   StateSettingsPageCopy,
 } from "../../../FeatureSet/Dashboard/src/Components/StateSettings/StateSettingsCopy";
+import { getNotificationRuleDestinationDescription } from "../../../FeatureSet/Dashboard/src/Components/Workspace/NotificationRuleForm/NotificationRuleCopy";
+import { canRuleCreateChannel } from "../../../FeatureSet/Dashboard/src/Components/Workspace/NotificationRuleForm/NotificationRuleOwnChannel";
 import {
   SECURITY_EVENTS_MENU,
+  SECURITY_EVENTS_WORKSPACE_PAGES,
   SecurityEventsMenuItem,
   SecurityEventsMenuSection,
 } from "../../../FeatureSet/Dashboard/src/Utils/SecurityEventsNavigation";
@@ -67,6 +70,7 @@ import SecurityCaseStatus from "Common/Models/DatabaseModels/SecurityCaseStatus"
 import SecurityPlaybook from "Common/Models/DatabaseModels/SecurityPlaybook";
 import SecurityPlaybookRun from "Common/Models/DatabaseModels/SecurityPlaybookRun";
 import SecurityProtectedEntity from "Common/Models/DatabaseModels/SecurityProtectedEntity";
+import SecurityLogSource from "Common/Models/DatabaseModels/SecurityLogSource";
 import {
   RESPONSE_TARGETS_COPY,
   RESPONSE_TARGET_DURATION_COPY,
@@ -160,6 +164,7 @@ import {
 } from "Common/Utils/SecurityCase/SecurityCaseNotificationPriority";
 import NotificationRuleEventType from "Common/Types/Workspace/NotificationRules/EventType";
 import { NotificationRuleConditionUtil } from "Common/Types/Workspace/NotificationRules/NotificationRuleCondition";
+import WorkspaceType from "Common/Types/Workspace/WorkspaceType";
 import { describe, expect, it } from "@jest/globals";
 import fs from "fs";
 import path from "path";
@@ -380,9 +385,24 @@ describe("Security Cases and Playbooks docs", () => {
       "Detection rules",
       "Threat intelligence",
       "Connected products",
+      "Security products in your logs",
       "Entity risk",
       "People",
     ]);
+
+    const rowNamed: (name: string) => Array<string> = (
+      name: string,
+    ): Array<string> => {
+      const row: Array<string> | undefined = sourceRows.find(
+        (candidate: Array<string>): boolean => {
+          return candidate[0] === name;
+        },
+      );
+
+      expect({ name, found: Boolean(row) }).toEqual({ name, found: true });
+
+      return row as Array<string>;
+    };
 
     const rules: string = flat(
       source(`${DASHBOARD}/Pages/SecurityEvents/DetectionRules.tsx`),
@@ -431,7 +451,7 @@ describe("Security Cases and Playbooks docs", () => {
     expect(riskCopy).toContain(
       'export const RISK_CASES_CARD_TITLE: string = translationKey("Risk Cases");',
     );
-    expect(sourceRows[3]?.[2]).toBe(
+    expect(rowNamed("Entity risk")[2]).toBe(
       "**Risk Cases**, under **Settings → Risk Scoring**",
     );
 
@@ -442,6 +462,39 @@ describe("Security Cases and Playbooks docs", () => {
     expect(connections).toContain('High: translationKey("High and above"),');
     expect(page).toContain(
       "A connection opens cases for **High and above** unless you choose another level",
+    );
+
+    /*
+     * Your logs opens cases from the threats security products write in the
+     * logs, with a dropdown of its own on the Your logs card: from High
+     * unless someone picks another, and Never is the empty value.
+     */
+    const yourLogs: string = flat(
+      source(
+        `${DASHBOARD}/Components/SecurityEvents/SecurityLogsCaseSeverity.tsx`,
+      ),
+    );
+    const yourLogsCard: string = flat(
+      source(
+        `${DASHBOARD}/Components/SecurityEvents/SecurityLogsSourceCard.tsx`,
+      ),
+    );
+
+    expect(rowNamed("Security products in your logs")[2]).toBe(
+      "**Open cases from** set to **Never**, on **Your logs**",
+    );
+    expect(yourLogs).toContain('{translator.translateText("Open cases from")}');
+    expect(yourLogs).toContain('High: translationKey("High and above"),');
+    expect(yourLogs).toContain(
+      '[CASE_SEVERITY_NEVER]: translationKey("Never - events only"),',
+    );
+    expect(yourLogsCard).toContain("<SecurityLogsCaseSeverity");
+    expect(
+      new SecurityLogSource().getTableColumnMetadata("caseMinimumSeverity")
+        .defaultValue,
+    ).toBe("High");
+    expect(page).toContain(
+      "**Your logs** does the same for the threats in your logs.",
     );
   });
 
@@ -1806,9 +1859,9 @@ describe("Security Cases and Playbooks docs", () => {
     }
   });
 
-  it("lists the Slack and Microsoft Teams conditions a Security Case rule offers", () => {
+  it("lists the conditions a Security Case rule offers in Slack, Microsoft Teams and Mattermost", () => {
     const conditionRows: Array<Array<string>> = rowsOf(
-      "Post to Slack and Microsoft Teams channels",
+      "Post to Slack, Microsoft Teams and Mattermost channels",
     );
     const offered: Array<string> =
       NotificationRuleConditionUtil.getCheckOnByEventType(
@@ -1823,8 +1876,58 @@ describe("Security Cases and Playbooks docs", () => {
         .sort(),
     ).toEqual([...offered].sort());
     expect(page).toContain(
-      "**Products → Security Events → Workspace → Slack** (or **Microsoft Teams**)",
+      "the notification choices and the Slack, Microsoft Teams and Mattermost rules read this order.",
     );
+    expect(page).toContain(
+      "in Slack, Microsoft Teams and Mattermost, and in playbook messages.",
+    );
+  });
+
+  it("sends people to each workspace's rules, and with none connected to the entry that connects one", () => {
+    // Each workspace the section can list, then the page that connects one.
+    expect(Object.keys(SECURITY_EVENTS_WORKSPACE_PAGES)).toEqual([
+      "slack",
+      "microsoftTeams",
+      "mattermost",
+      "connect",
+    ]);
+    expect(page).toContain(
+      "**Products → Security Events → Workspace → Slack** (or **Microsoft Teams**, or **Mattermost**). With none connected, the section's one entry is **Connect a workspace**.",
+    );
+  });
+
+  it("says a rule posts to channels, and to chats in Microsoft Teams alone, as each workspace's rule form asks", () => {
+    const destinations: Array<[WorkspaceType, string]> = [
+      [WorkspaceType.Slack, "The channels the rule posts in."],
+      [
+        WorkspaceType.MicrosoftTeams,
+        "The channels and chats the rule posts in.",
+      ],
+      [WorkspaceType.Mattermost, "The channels the rule posts in."],
+    ];
+
+    for (const [workspaceType, destination] of destinations) {
+      expect(
+        getNotificationRuleDestinationDescription({
+          eventType: NotificationRuleEventType.SecurityCase,
+          workspaceType: workspaceType,
+        }),
+      ).toBe(destination);
+    }
+
+    expect(canRuleCreateChannel(NotificationRuleEventType.SecurityCase)).toBe(
+      false,
+    );
+
+    const rules: string = section(
+      page,
+      "Post to Slack, Microsoft Teams and Mattermost channels",
+    );
+
+    expect(rules).toContain(
+      "A rule names the channels to post to (and, in Microsoft Teams, the chats)",
+    );
+    expect(rules).toContain("A security case never gets a channel of its own.");
   });
 
   it("names the API's routes as the models serve them", () => {

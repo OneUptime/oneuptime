@@ -85,11 +85,6 @@ jest.mock("../../../UI/Utils/User", () => {
   };
 });
 
-/*
- * A refused request is an async function that throws, not
- * mockRejectedValue: the card's imports load zone.js, whose patched Promise
- * reports a rejected one as unhandled although the card catches it.
- */
 const getItemMock: MockFunction = getJestMockFunction();
 const getListMock: MockFunction = getJestMockFunction();
 const updateByIdMock: MockFunction = getJestMockFunction();
@@ -600,11 +595,9 @@ describe("switching reports on", () => {
   });
 
   test("a switch the server refuses moves back, says why, and shows no schedule", async () => {
-    updateByIdMock.mockImplementation(async (): Promise<unknown> => {
-      throw new Error(
-        "Please upgrade your plan to Growth to access this feature",
-      );
-    });
+    updateByIdMock.mockRejectedValue(
+      new Error("Please upgrade your plan to Growth to access this feature"),
+    );
 
     await renderCard();
     await press();
@@ -1003,9 +996,7 @@ describe("the card", () => {
   });
 
   test("a page that cannot be read says why, and can be tried again", async () => {
-    getItemMock.mockImplementation(async (): Promise<unknown> => {
-      throw new Error("The server is not answering.");
-    });
+    getItemMock.mockRejectedValue(new Error("The server is not answering."));
 
     await act(async (): Promise<void> => {
       render(

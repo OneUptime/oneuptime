@@ -31,7 +31,7 @@ export interface ComponentProps {
  * Deleting asks once, in the row: the bin turns the row's end into Delete
  * and Cancel. One click on a bin that shows on every row a pointer passes
  * over deleted a conversation for good, with no way back. Esc (or Cancel)
- * keeps it, and leaves the dialog open; after a delete the focus moves to
+ * keeps it, and leaves the panel open; after a delete the focus moves to
  * the row that took its place.
  */
 const AskAiHistory: FunctionComponent<ComponentProps> = (
@@ -86,7 +86,7 @@ const AskAiHistory: FunctionComponent<ComponentProps> = (
       ];
     const nextId: string = next?.id?.toString() || "";
 
-    // None left: the dialog gives the focus to Back.
+    // None left: the panel gives the focus to Back.
     openButtonsRef.current.get(nextId)?.focus();
   }, [props.conversations]);
 
@@ -197,7 +197,7 @@ const AskAiHistory: FunctionComponent<ComponentProps> = (
                     aria-label={deleteLabel}
                     data-testid="ai-chat-history-confirm"
                     onKeyDown={(event: React.KeyboardEvent<HTMLDivElement>) => {
-                      // Esc keeps the conversation, and the dialog open.
+                      // Esc keeps the conversation, and the panel open.
                       if (event.key === "Escape") {
                         event.preventDefault();
                         keep(conversationId);

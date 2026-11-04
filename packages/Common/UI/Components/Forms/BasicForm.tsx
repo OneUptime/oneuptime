@@ -23,6 +23,7 @@ import { getDropdownChange } from "../Dropdown/DropdownChange";
 import ErrorMessage from "../ErrorMessage/ErrorMessage";
 import CollapsibleFormSection from "./CollapsibleFormSection";
 import FormField from "./Fields/FormField";
+import { loadFormFieldControls } from "./Fields/FormFieldControls";
 import type FormSummary from "./FormSummary";
 import Steps from "./Steps/Steps";
 import Field, { FormFieldCollapsibleSection } from "./Types/Field";
@@ -215,6 +216,16 @@ const BasicForm: ForwardRefExoticComponent<any> = forwardRef(
       formSummary,
       Boolean(props.summary?.enabled),
     );
+
+    /*
+     * The controls its fields draw with that are files of their own (a code
+     * editor, a Markdown editor, a file picker), loaded as the form is drawn:
+     * there by the time their field is, on a later step or hidden until
+     * another answer shows it.
+     */
+    useEffect(() => {
+      loadFormFieldControls(props.fields);
+    }, [props.fields]);
 
     /*
      * The form's root, marked as one scope of unsaved changes: what the

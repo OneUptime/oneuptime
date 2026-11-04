@@ -3,6 +3,7 @@ import GlobalConfigService from "../../../Server/Services/GlobalConfigService";
 import ProjectService from "../../../Server/Services/ProjectService";
 import UserCallService from "../../../Server/Services/UserCallService";
 import UserEmailService from "../../../Server/Services/UserEmailService";
+import UserMattermostService from "../../../Server/Services/UserMattermostService";
 import UserMicrosoftTeamsService from "../../../Server/Services/UserMicrosoftTeamsService";
 import UserNotificationRuleService, {
   ExecuteFallbackNotificationOptions,
@@ -157,6 +158,9 @@ beforeEach(() => {
   jest.spyOn(UserSlackService, "findOneBy").mockResolvedValue(null as never);
   jest
     .spyOn(UserMicrosoftTeamsService, "findOneBy")
+    .mockResolvedValue(null as never);
+  jest
+    .spyOn(UserMattermostService, "findOneBy")
     .mockResolvedValue(null as never);
   jest
     .spyOn(CustomNotificationChannelService, "getChannelsPagingEveryone")

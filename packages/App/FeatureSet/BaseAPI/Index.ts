@@ -132,6 +132,7 @@ import UserWhatsAppAPI from "Common/Server/API/UserWhatsAppAPI";
 import UserTelegramAPI from "Common/Server/API/UserTelegramAPI";
 import UserSlackAPI from "Common/Server/API/UserSlackAPI";
 import UserMicrosoftTeamsAPI from "Common/Server/API/UserMicrosoftTeamsAPI";
+import UserMattermostAPI from "Common/Server/API/UserMattermostAPI";
 import UserWebhookAPI from "Common/Server/API/UserWebhookAPI";
 import CustomNotificationChannelAPI from "Common/Server/API/CustomNotificationChannelAPI";
 import UserPushAPI from "Common/Server/API/UserPushAPI";
@@ -1886,6 +1887,7 @@ import ScheduledMaintenanceFeedService, {
 
 import SlackAPI from "Common/Server/API/SlackAPI";
 import MicrosoftTeamsAPI from "Common/Server/API/MicrosoftTeamsAPI";
+import MattermostAPI from "Common/Server/API/MattermostAPI";
 import GitHubAPI from "Common/Server/API/GitHubAPI";
 import VideoCallOAuthAPI from "Common/Server/API/VideoCallOAuthAPI";
 
@@ -6248,8 +6250,9 @@ const BaseAPIFeatureSet: FeatureSet = {
     app.use(`/${APP_NAME.toLocaleLowerCase()}`, OnCallScheduleTimelineAPI);
 
     /*
-     * The links behind a record's Open in Slack / Open in Microsoft Teams
-     * button (/workspace-channel-link/<record type>/<id>). Session-only; the
+     * The links behind a record's Open in Slack, Open in Microsoft Teams or
+     * Open in Mattermost button
+     * (/workspace-channel-link/<record type>/<id>). Session-only; the
      * record is read with the caller's own permissions first.
      */
     app.use(`/${APP_NAME.toLocaleLowerCase()}`, WorkspaceChannelLinkAPI);
@@ -6555,6 +6558,10 @@ const BaseAPIFeatureSet: FeatureSet = {
     app.use(`/${APP_NAME.toLocaleLowerCase()}`, new SlackAPI().getRouter());
     app.use(
       `/${APP_NAME.toLocaleLowerCase()}`,
+      new MattermostAPI().getRouter(),
+    );
+    app.use(
+      `/${APP_NAME.toLocaleLowerCase()}`,
       new MicrosoftTeamsAPI().getRouter(),
     );
     app.use(`/${APP_NAME.toLocaleLowerCase()}`, new GitHubAPI().getRouter());
@@ -6602,6 +6609,10 @@ const BaseAPIFeatureSet: FeatureSet = {
     app.use(
       `/${APP_NAME.toLocaleLowerCase()}`,
       new UserMicrosoftTeamsAPI().getRouter(),
+    );
+    app.use(
+      `/${APP_NAME.toLocaleLowerCase()}`,
+      new UserMattermostAPI().getRouter(),
     );
     app.use(
       `/${APP_NAME.toLocaleLowerCase()}`,

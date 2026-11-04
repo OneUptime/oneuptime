@@ -43,7 +43,7 @@ To forbindelser får det til at virke:
 :::steps
 ### Installér OneUptime i dit Slack-workspace
 
-Gå til **Projektindstillinger** > **Arbejdsområde** > **Slack**, og klik på **Connect with Slack**. Vælg workspacet, og giv OneUptime lov. Slack sender dig tilbage til samme side, som nu nævner det workspace, projektet er forbundet med. Indtil et workspace er forbundet, indeholder sektionen **Arbejdsområde** i menuerne Hændelser, Advarsler, Planlagt vedligeholdelse, Monitorer og Vagtordning **Forbind Slack eller Teams**, som også fører hertil.
+Gå til **Projektindstillinger** > **Arbejdsområde** > **Slack**, og klik på **Connect with Slack**. Vælg workspacet, og giv OneUptime lov. Slack sender dig tilbage til samme side, som nu nævner det workspace, projektet er forbundet med. Indtil et workspace er forbundet, indeholder sektionen **Arbejdsområde** i menuerne Hændelser, Advarsler, Planlagt vedligeholdelse, Monitorer og Vagtordning **Forbind et arbejdsområde**, som også fører hertil.
 
 ### Forbind din egen Slack-konto
 

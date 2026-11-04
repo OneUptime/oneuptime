@@ -12,7 +12,7 @@ flowchart TB
 
 :::cards
 - [Profilen din](#profilen-din): Navnet, e-posten, tidssonen og bildet ditt.
-- [Logg inn trygt](#logg-inn-trygt): Passordet ditt, passnøkler og totrinnsbekreftelse.
+- [Logg inn trygt](#logg-inn-trygt): Passordet ditt, innloggingslenker, passnøkler og totrinnsbekreftelse.
 - [Prosjektene dine](#prosjektene-dine): Bytt prosjekt, opprett et, og godta invitasjoner.
 - [Brukerinnstillinger](#det-hvert-prosjekt-tar-vare-på-for-deg): Hvordan OneUptime når deg i hvert prosjekt.
 :::
@@ -63,7 +63,7 @@ Utvid **Sikkerhet** i sidemenyen til **Brukerprofil**. Delen har tre sider.
 | --- | --- |
 | **Passordadministrasjon** | Angi et nytt passord. |
 | **Passkeys** | Logg inn uten passord, med fingeravtrykk, ansikt, skjermlås eller en sikkerhetsnøkkel. |
-| **Two-factor authentication** | Be om et andre steg etter passordet: en kode fra en app, eller en sikkerhetsnøkkel. |
+| **Two-factor authentication** | Be om et andre steg etter passordet eller en lenke på e-post: en kode fra en app, eller en sikkerhetsnøkkel. |
 
 ### Bytt passord
 
@@ -83,9 +83,24 @@ Utvid **Sikkerhet** i sidemenyen til **Brukerprofil**. Delen har tre sider.
 
 Neste gang velger du **Logg inn med en passnøkkel** på innloggingssiden.
 
+### Logg inn med en lenke på e-post
+
+Du kan logge inn med en lenke i stedet for passordet. Det er ingenting å sette opp.
+
+:::steps
+1. Velg **Send meg en innloggingslenke** på innloggingssiden.
+2. Skriv inn e-postadressen din, og klikk på **Send meg en innloggingslenke**. Siden viser deretter **Sjekk e-posten din**.
+3. Åpne lenken i e-posten, og klikk på **Logg inn**.
+:::
+
+Lenken virker én gang, i 15 minutter, og en nyere lenke erstatter den. Du kan åpne den på en annen enhet, og da er du logget inn der. Hvis du bruker totrinnsbekreftelse, ber OneUptime fortsatt om det andre steget ditt.
+
+> [!NOTE]
+> Hovedadministratorer på en selvhostet installasjon kan slå av innloggingslenker med **La folk logge inn med en lenke på e-post**, under **Admin Dashboard > Innstillinger > Autentisering**. Lenker som allerede er sendt, slutter da å virke. Så lenge serveren krever SSO, tilbyr innloggingssiden bare SSO.
+
 ### Slå på totrinnsbekreftelse
 
-Totrinnsbekreftelse gjelder når du logger inn med passordet ditt. Legg først til et andre steg, og slå den deretter på.
+Totrinnsbekreftelse gjelder når du logger inn med passordet ditt eller en lenke på e-post. Legg først til et andre steg, og slå den deretter på.
 
 :::steps
 ### Legg til en autentiseringsapp
@@ -98,7 +113,7 @@ Første gang du legger til en app, en nøkkel eller en passnøkkel, viser OneUpt
 
 ### Slå den på
 
-Øverst på siden klikker du på **Enable two-factor authentication** og bekrefter. Kortet viser nå **Aktivert**. Fra neste innlogging med passord ber OneUptime om det andre steget ditt.
+Øverst på siden klikker du på **Enable two-factor authentication** og bekrefter. Kortet viser nå **Aktivert**. Fra neste innlogging med passord eller en lenke på e-post ber OneUptime om det andre steget ditt.
 :::
 
 > [!TIP]
@@ -149,7 +164,7 @@ Ved det andre steget av innloggingen velger du **Mistet tilgangen til autentiser
 :::
 
 :::details Innloggingen ber meg vente før jeg prøver en ny kode
-Etter fem feil koder på rad venter hver neste kode før den blir sjekket: ett minutt, så to, så fire og så videre, opptil en time. OneUptime teller feil koder for kontoen din uansett hvor de skrives inn, sender deg en e-post når ventetidene begynner, og begynner å telle på nytt når du skriver inn en riktig kode. Vent og prøv igjen, logg inn med en sikkerhetsnøkkel, eller velg **Mistet tilgangen til autentiseringsappen din?** og skriv inn en reservekode. Hvis det ikke var du som skrev inn de kodene, kjenner noen passordet ditt: tilbakestill det med **Glemt passord?** på innloggingssiden, som også avslutter ventetiden.
+Etter fem feil koder på rad venter hver neste kode før den blir sjekket: ett minutt, så to, så fire og så videre, opptil en time. OneUptime teller feil koder for kontoen din uansett hvor de skrives inn, sender deg en e-post når ventetidene begynner, og begynner å telle på nytt når du skriver inn en riktig kode. Vent og prøv igjen, logg inn med en sikkerhetsnøkkel, eller velg **Mistet tilgangen til autentiseringsappen din?** og skriv inn en reservekode. Hvis det ikke var du som skrev inn de kodene, kjenner noen passordet ditt eller kan lese e-posten din, og e-posten OneUptime har sendt deg, sier hvilket av dem. Hvis de kan lese e-posten din, må du først endre passordet til e-postkontoen din og fjerne all videresending du ikke har satt opp selv: et nytt OneUptime-passord alene hindrer dem ikke i å be om en ny innloggingslenke. Tilbakestill deretter passordet ditt med **Glemt passord?** på innloggingssiden, som avslutter ventetiden og gjør enhver innloggingslenke som allerede er sendt, ugyldig.
 :::
 
 :::details Tidene i dashbordet er en time feil

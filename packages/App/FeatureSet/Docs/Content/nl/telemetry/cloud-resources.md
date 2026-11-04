@@ -3,7 +3,7 @@
 **Cloud-resources** toont de IaaS- en PaaS-resources in je AWS-, Azure- en Google Cloud-accounts: virtuele machines, schijven, load balancers, buckets, beheerde databases, caches, wachtrijen, API-gateways en de rest. Elke resource krijgt een eigen pagina, met het type, de regio en het account, het eigen ID dat de provider eraan geeft, elke metriek die de provider erover publiceert, en eigenaren en labels zoals elke andere resource in OneUptime. Je vindt ze onder **Cloud → Alle resources**.
 
 > [!TIP]
-> Liever geen collector draaien? [Koppel een cloudaccount](/docs/telemetry/cloud-accounts) onder **Cloud → Koppelen**, en OneUptime leest deze metrieken zelf.
+> Liever geen collector draaien? [Koppel een cloudaccount](/docs/telemetry/cloud-accounts) onder **Cloud → Koppelen**, en OneUptime leest deze metrieken zelf. Een AWS-account kan zijn metrieken en logboeken ook via Amazon Data Firehose [streamen](/docs/telemetry/cloud-streaming).
 
 :::cards
 - [Azure koppelen](#azure-koppelen): Elke resource in een abonnement lezen uit Azure Monitor.

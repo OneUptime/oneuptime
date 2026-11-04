@@ -1,7 +1,10 @@
 import { describe, expect, test } from "@jest/globals";
 import fs from "fs";
 import path from "path";
-import { WorkspaceChannelRecordType } from "Common/Types/Workspace/WorkspaceChannelLink";
+import {
+  WorkspaceChannelLink,
+  WorkspaceChannelRecordType,
+} from "Common/Types/Workspace/WorkspaceChannelLink";
 import {
   WorkspaceChannelAddOutcome,
   WorkspaceChannelPerson,
@@ -38,6 +41,7 @@ import {
   getCardTitle,
   getChannelLabel,
   getFoldedCount,
+  getLinksToChannelsOfCard,
   getPeopleInChannelUserIds,
   getPickNotices,
   getShownPeople,
@@ -84,6 +88,38 @@ const person: (key: string, userId?: string) => WorkspaceChannelPerson = (
 ): WorkspaceChannelPerson => {
   return { key: key, name: key, ...(userId ? { userId: userId } : {}) };
 };
+
+describe("which of the page's links the card is for", () => {
+  const SLACK_LINK: WorkspaceChannelLink = {
+    workspaceType: WorkspaceType.Slack,
+    channelName: "inc-42",
+    url: "https://slack.com/app_redirect?channel=C1&team=T1",
+  };
+  const TEAMS_LINK: WorkspaceChannelLink = {
+    workspaceType: WorkspaceType.MicrosoftTeams,
+    channelName: "inc-42",
+    url: "https://teams.microsoft.com/l/channel/x/y?groupId=g",
+  };
+  const MATTERMOST_LINK: WorkspaceChannelLink = {
+    workspaceType: WorkspaceType.Mattermost,
+    channelName: "inc-42",
+    url: "https://chat.example.com/acme/channels/inc-42",
+  };
+
+  test("Slack's and Microsoft Teams', whose people OneUptime reads", () => {
+    expect(getLinksToChannelsOfCard([SLACK_LINK, TEAMS_LINK])).toEqual([
+      SLACK_LINK,
+      TEAMS_LINK,
+    ]);
+  });
+
+  test("not Mattermost's: the header's button is what it has", () => {
+    expect(getLinksToChannelsOfCard([MATTERMOST_LINK])).toEqual([]);
+    expect(
+      getLinksToChannelsOfCard([MATTERMOST_LINK, SLACK_LINK, TEAMS_LINK]),
+    ).toEqual([SLACK_LINK, TEAMS_LINK]);
+  });
+});
 
 describe("the card's title", () => {
   test("names the product, one channel or several, and both products together", () => {

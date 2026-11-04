@@ -17,7 +17,8 @@ import { JSONObject } from "../../../../Types/JSON";
 import React, { ReactElement, ReactNode } from "react";
 import "@testing-library/jest-dom";
 import { cleanup, render, screen } from "@testing-library/react";
-import { afterEach, describe, expect, test } from "@jest/globals";
+import { afterEach, beforeAll, describe, expect, test } from "@jest/globals";
+import { loadCodeEditor } from "../../../../UI/Components/CodeEditor/LazyCodeEditor";
 
 interface TestEntity extends JSONObject {
   message?: string;
@@ -50,6 +51,10 @@ const renderField: RenderFieldFunction = (
     />,
   );
 };
+
+beforeAll(async () => {
+  await loadCodeEditor();
+});
 
 afterEach(() => {
   cleanup();

@@ -4,6 +4,7 @@ import WorkspaceNotificationLogService from "./WorkspaceNotificationLogService";
 import WorkspaceProjectAuthTokenService from "./WorkspaceProjectAuthTokenService";
 import SlackUtil from "../Utils/Workspace/Slack/Slack";
 import MicrosoftTeamsUtil from "../Utils/Workspace/MicrosoftTeams/MicrosoftTeams";
+import MattermostUtil from "../Utils/Workspace/Mattermost/Mattermost";
 import WorkspaceNotificationText from "../Utils/Workspace/WorkspaceNotificationText";
 import logger from "../Utils/Logger";
 import CaptureSpan from "../Utils/Telemetry/CaptureSpan";
@@ -20,9 +21,9 @@ import WorkspaceType, {
 
 /*
  * Delivers a OneUptime notification to ONE person as a workspace direct
- * message — the send half of the Slack / Microsoft Teams notification methods
- * (UserSlack / UserMicrosoftTeams rows created under User Settings →
- * Notification Methods).
+ * message — the send half of the Slack / Microsoft Teams / Mattermost
+ * notification methods (UserSlack / UserMicrosoftTeams / UserMattermost rows
+ * created under User Settings → Notification Methods).
  *
  * This is deliberately NOT part of the channel-oriented workspace machinery
  * (WorkspaceNotificationRuleService and friends): those post into project
@@ -39,7 +40,8 @@ export interface SendWorkspaceDirectMessageOptions {
   workspaceType: WorkspaceType;
   /*
    * Slack: the member id (U…). Microsoft Teams: the Microsoft Entra object
-   * id. Both are what the corresponding notification-method row stores.
+   * id. Mattermost: the account id. Each is what the corresponding
+   * notification-method row stores.
    */
   workspaceUserId: string;
   messageBlocks: Array<WorkspaceMessageBlock>;
@@ -47,7 +49,8 @@ export interface SendWorkspaceDirectMessageOptions {
    * What the phone's notification of the message says (Slack's top-level
    * text, the Teams card's summary). When left out it is the start of the
    * message (WorkspaceNotificationText): a page used to arrive with nothing
-   * readable in its notification.
+   * readable in its notification. A Mattermost notification shows the post's
+   * own Markdown, so nothing is handed to it.
    */
   notificationText?: string | undefined;
   /* Short plain-text form of the message, stored on the workspace log row. */
@@ -121,6 +124,12 @@ export class WorkspaceUserNotificationService extends BaseService {
           workspaceUserId: options.workspaceUserId,
           messageBlocks: options.messageBlocks,
           ...(notificationText ? { text: notificationText } : {}),
+        });
+      } else if (options.workspaceType === WorkspaceType.Mattermost) {
+        await MattermostUtil.sendDirectMessageToUser({
+          authToken: projectAuth.authToken,
+          workspaceUserId: options.workspaceUserId,
+          messageBlocks: options.messageBlocks,
         });
       } else {
         throw new BadDataException(

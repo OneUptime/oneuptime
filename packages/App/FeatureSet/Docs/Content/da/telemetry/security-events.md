@@ -182,22 +182,41 @@ Siden **Opsætningsvejledning**, under **Forbindelser**, har disse kodestykker m
 
 ### Find sikkerhedshændelser i dine logs
 
-Kortet **Dine logs**, øverst på **Forbindelser**, gør de logs, du allerede sender til OneUptime, til en kilde. Med **Find sikkerhedshændelser i dine logs** slået til læses projektets nye logs hvert minut, og hvert SSH- eller Windows-login, hver sudo-kommando, hver auditpost fra en cloud, hver CEF- eller LEEF-post fra et sikkerhedsprodukt, hver Kubernetes-auditpost og hvert webangreb i dem gemmes som en sikkerhedshændelse. Se [Kom godt i gang med sikkerhed](/docs/telemetry/security-getting-started#find-sikkerhedshændelser-i-dine-logs) for, hvad hver slags dækker.
+Kortet **Dine logs**, øverst på **Forbindelser**, gør de logs, du allerede sender til OneUptime, til en kilde. Med **Find sikkerhedshændelser i dine logs** slået til læses projektets nye logs hvert minut, og hvert SSH- eller Windows-login, hver sudo-kommando, hver auditpost fra en cloud, hver CEF- eller LEEF-post fra et sikkerhedsprodukt, hver post fra en Palo Alto Networks-, FortiGate- eller Cisco ASA-firewall, hver Kubernetes-auditpost og hvert webangreb i dem gemmes som en sikkerhedshændelse. Se [Kom godt i gang med sikkerhed](/docs/telemetry/security-getting-started#find-sikkerhedshændelser-i-dine-logs) for, hvad hver slags dækker.
 
 Hver slags når OneUptime som almindelige logs:
 
 | Slags | Send den fra |
 | --- | --- |
 | SSH-logins, sudo | En Linux-maskines journal eller auth-log, med [OpenTelemetry Collector](/docs/telemetry/host-otel-collector) |
-| Windows-hændelser | Collectorens `windowseventlog`-receiver på maskinen, eller en videresender, der skriver hver hændelse som JSON, som NXLog eller Winlogbeat |
-| AWS CloudTrail | Et trail leveret til CloudWatch Logs, læst af collectorens `awscloudwatch`-receiver |
-| Google Cloud-auditlogs | En log-sink til Pub/Sub, læst af collectorens `googlecloudpubsub`-receiver med `encoding: raw_text` |
-| Azure-aktivitetslogs og Entra ID-logs | En diagnosticeringsindstilling, der streamer til en Event Hub, læst af collectorens `azureeventhub`-receiver med `format: raw` |
+| Windows-hændelser | Collectorens `windowseventlog`-receiver på maskinen, eller en videresender, der skriver hver hændelse som JSON, som NXLog eller Winlogbeat. En [vært](/docs/telemetry/hosts), der er tilføjet i OneUptime, læser også Sysmon, Microsoft Defender og PowerShell, hvor den har dem |
+| AWS CloudTrail | Et trail leveret til CloudWatch Logs, læst af collectorens `awscloudwatch`-receiver, eller, for en konto, der er forbundet under **Cloud**, [Cloud-auditlogs](#læs-auditlogs-fra-dine-cloudkonti) |
+| Google Cloud-auditlogs | En log-sink til Pub/Sub, læst af collectorens `googlecloudpubsub`-receiver med `encoding: raw_text`, eller, for et projekt, der er forbundet under **Cloud**, [Cloud-auditlogs](#læs-auditlogs-fra-dine-cloudkonti) |
+| Azure-aktivitetslogs og Entra ID-logs | En diagnosticeringsindstilling, der streamer til en Event Hub, læst af collectorens `azureeventhub`-receiver med `format: raw`, eller, for aktivitetsloggen fra et abonnement, der er forbundet under **Cloud**, [Cloud-auditlogs](#læs-auditlogs-fra-dine-cloudkonti) |
 | CEF, LEEF | Produktets syslog, videresendt af [rsyslog](/docs/telemetry/syslog) |
+| Palo Alto Networks, FortiGate, Cisco ASA | Firewallens egen syslog, videresendt af [rsyslog](/docs/telemetry/syslog) |
 | Kubernetes-auditlogs | API-serverens auditlogfil, læst af collectorens `filelog`-receiver |
 | Webangreb | En webservers adgangslog, læst af collectorens `filelog`-receiver |
 
 På **Dine logs** viser hver slags, hvornår den sidst blev fundet, og **Tjek en loglinje** viser, hvad en linje, du indsætter, bliver til, før der kommer nogen.
+
+En trussel, som et sikkerhedsprodukt skriver i dine logs, for eksempel et CEF- eller LEEF-fund eller en trussel fra Palo Alto Networks, FortiGate eller Cisco ASA, åbner en [sag](/docs/telemetry/security-cases), som et forbundet produkts advarsel gør, og øger risikoen for den bruger, vært eller adresse, den nævner. **Åbn sager fra** på **Dine logs** angiver, fra hvilken alvorlighed: **Høj og højere**, medmindre du vælger en anden, eller **Aldrig**. Produktets logins og blokerede forbindelser forbliver hændelser, som dine regler kan læse.
+
+En post, der når OneUptime ad to veje, gemmes én gang: et Microsoft Entra ID-login, som dets forbindelse læser, og som Azure også eksporterer til dine logs, eller en CloudTrail-post i dine logs og i auditloggen for en forbundet AWS-konto.
+
+### Læs auditlogs fra dine cloudkonti
+
+En AWS-konto, et Google Cloud-projekt eller et Azure-abonnement, der er [forbundet under **Cloud**](/docs/telemetry/cloud-accounts), behøver ingen logpipeline. Slå **Cloud-auditlogs** til under **Dine OneUptime-data** på **Forbindelser**, så gemmer hver læsning af kontoen dens auditlog som sikkerhedshændelser:
+
+| Cloud | Hvad der læses |
+| --- | --- |
+| AWS | CloudTrails administrationshændelser, der ændrer noget, i hver region, kontoen bruger: logins til konsollen, ændringer og kald, som AWS afviste |
+| Google Cloud | Auditloggen Admin Activity: ændringer af ressourcer og af, hvem der må nå dem, og kald, som Google afviste |
+| Azure | Aktivitetsloggen: ændringer i abonnementet, handlinger, der mislykkedes, afvisninger fra Azure Policy og advarsler fra Defender for Cloud |
+
+- Hver post læses, som **Dine logs** læser den fra en pipeline, så regelbibliotekets CloudTrail-, Google Cloud- og Azure-regler matcher den.
+- En hændelse får tidspunktet, hvor den gemmes, med postens egen tid i `oneuptime.cloud.record_time`: En auditlog når OneUptime minutter for sent, og en regel læser hændelser efter deres tid.
+- Kontoens egen læsning giver ikke mere: datahændelser, Data Access-logs og Microsoft Entra ID's logs kræver stadig **Dine logs** eller en [forbindelse](/docs/integrations/microsoft-entra-id).
 
 ### Forbind et sikkerhedsprodukt
 
@@ -213,7 +232,7 @@ På **Dine logs** viser hver slags, hvornår den sidst blev fundet, og **Tjek en
 | Elastic Security | Detektionsadvarsler, som Detection Findings | [Elastic Security](/docs/integrations/elastic-security) |
 | AWS Security Hub | Findings, som Detection og Compliance Findings | [AWS Security Hub](/docs/integrations/aws-security-hub) |
 | Okta System Log | Begivenheder om login, MFA, konti og politikker | [Okta System Log](/docs/integrations/okta) |
-| Microsoft Entra ID | Logins og mappeændringer, og fra Microsoft 365-auditloggen videresendelse af mail, deling og phishingdomme | [Microsoft Entra ID](/docs/integrations/microsoft-entra-id) |
+| Microsoft Entra ID | Logins, mappeændringer og risikoregistreringer, hvis du vælger det mislykkede baggrunds- og app-logins, og fra Microsoft 365-auditloggen videresendelse af mail, deling og phishingdomme | [Microsoft Entra ID](/docs/integrations/microsoft-entra-id) |
 | Google Workspace | Logins, Googles egne fund, administratorændringer og app-adgang, og deling i Drev | [Google Workspace](/docs/integrations/google-workspace) |
 
 - Produktets egne advarsler på eller over **Open Cases From** (**Høj og højere**, medmindre du vælger et andet niveau, eller **Aldrig**) åbner [sager](/docs/telemetry/security-cases), grupperet efter den bruger, vært eller adresse, de handler om.
@@ -320,7 +339,7 @@ Hver planlagt kørsel gemmes i 90 dage. **Kørselshistorik**, for enden af linje
 
 Notifikationen **En hunt fandt sikkerhedsbegivenheder** nævner hunten og dens søgning, hvor mange begivenheder dens kørsel fandt, og hvilket vindue den læste, og linker til huntens side på de begivenheder; ingen af begivenhedernes egne ord står i den. Alle får den på e-mail og push og vælger dens kanaler under **Brugerindstillinger → Notifikationsindstillinger**. Ligesom andre rutinemails kan den holdes tilbage i en [e-mailsamling](/docs/emails/notification-rollup).
 
-For at slå det op, hunts finder, i Slack eller Microsoft Teams tilføjer du en regel til **Regler for hunts** under **Produkter → Sikkerhedshændelser → Arbejdsområde → Slack** (eller **Microsoft Teams**), under de regler, der slår [sikkerhedssager](/docs/telemetry/security-cases#slå-op-i-slack-og-microsoft-teams-kanaler) op. En regel angiver de kanaler, der skal slås op i (og i Microsoft Teams chattene), og, hvis du vil, de hunts, den gælder for, efter **Huntens navn**: et navn, der er din tekst, indeholder den, begynder eller slutter med den. Hver gang en planlagt kørsel finder begivenheder, slår den hunten op, dens søgning, hvor mange begivenheder og hvornår, med et link til dem, og ingen af en begivenheds egne ord. En huntregel oprettes af en rolle, der må oprette sikkerheds-playbooks, såsom Project Owner, Project Admin eller Security Admin.
+For at slå det op, hunts finder, i Slack, Microsoft Teams eller Mattermost tilføjer du en regel til **Regler for hunts** under **Produkter → Sikkerhedshændelser → Arbejdsområde → Slack** (eller **Microsoft Teams** eller **Mattermost**), under de regler, der slår [sikkerhedssager](/docs/telemetry/security-cases#slå-op-i-slack-microsoft-teams-og-mattermost-kanaler) op. En regel angiver de kanaler, der skal slås op i (og i Microsoft Teams chattene), og, hvis du vil, de hunts, den gælder for, efter **Huntens navn**: et navn, der er din tekst, indeholder den, begynder eller slutter med den. Hver gang en planlagt kørsel finder begivenheder, slår den hunten op, dens søgning, hvor mange begivenheder og hvornår, med et link til dem, og ingen af en begivenheds egne ord. En huntregel oprettes af en rolle, der må oprette sikkerheds-playbooks, såsom Project Owner, Project Admin eller Security Admin.
 
 ### Gem begivenheder på en sag
 

@@ -160,6 +160,51 @@ describe("MicrosoftEntraIdClient - tokens", () => {
     );
   });
 
+  test.each([
+    [
+      "gcc",
+      "https://login.microsoftonline.com/",
+      "https://graph.microsoft.com",
+      "https://manage-gcc.office.com",
+    ],
+    [
+      "dod",
+      "https://login.microsoftonline.us/",
+      "https://dod-graph.microsoft.us",
+      "https://manage.protection.apps.mil",
+    ],
+  ])(
+    "%s signs in, reads Graph and asks the Management API for a token at its own hosts",
+    async (
+      cloud: string,
+      loginPrefix: string,
+      graphHost: string,
+      manageHost: string,
+    ) => {
+      const api: FakeEntraApi = createFakeEntraApi({});
+      const entra: MicrosoftEntraIdClient = client(
+        api.transport,
+        cloud as MicrosoftEntraIdCloud,
+      );
+
+      await entra.getAccessToken("graph");
+      await entra.getAccessToken("manage");
+
+      expect(api.requests[0]!.url.startsWith(loginPrefix)).toBe(true);
+      expect(
+        api.requests.map((request: DataSourceHttpRequest): string => {
+          return (request.body as Dictionary<string>)["scope"] || "";
+        }),
+      ).toEqual([`${graphHost}/.default`, `${manageHost}/.default`]);
+      expect(
+        entra.buildLogUrl({ log: "signIns", startTime: START, endTime: END }),
+      ).toContain(`${graphHost}/v1.0/auditLogs/signIns`);
+      expect(entra.buildManagementUrl("subscriptions/list", {})).toContain(
+        `${manageHost}/api/v1.0/${FAKE_TENANT_ID}/activity/feed/subscriptions/list`,
+      );
+    },
+  );
+
   test("an unknown cloud is refused before anything is sent", () => {
     expect(() => {
       return client(
@@ -265,6 +310,78 @@ describe("MicrosoftEntraIdClient - Graph logs", () => {
     expect(audits.searchParams.get("$top")).toBe(
       String(MICROSOFT_ENTRA_ID_PAGE_SIZE),
     );
+  });
+
+  test("risk detections are read from Identity Protection's list, by when each was detected", () => {
+    const entra: MicrosoftEntraIdClient = client(
+      createFakeEntraApi({}).transport,
+    );
+    const url: URL = new URL(
+      entra.buildLogUrl({
+        log: "riskDetections",
+        startTime: START,
+        endTime: END,
+        pageSize: 25,
+      }),
+    );
+
+    expect(url.origin + url.pathname).toBe(
+      "https://graph.microsoft.com/v1.0/identityProtection/riskDetections",
+    );
+    expect(url.searchParams.get("$filter")).toBe(
+      "detectedDateTime ge 2026-10-30T09:00:00.000Z and detectedDateTime le 2026-10-30T09:59:59.999Z",
+    );
+  });
+
+  test("background and app sign-ins come from the beta list, the window in brackets before the kind", () => {
+    const entra: MicrosoftEntraIdClient = client(
+      createFakeEntraApi({}).transport,
+    );
+
+    for (const [log, kind] of [
+      ["nonInteractiveSignIns", "nonInteractiveUser"],
+      ["servicePrincipalSignIns", "servicePrincipal"],
+    ] as Array<["nonInteractiveSignIns" | "servicePrincipalSignIns", string]>) {
+      const url: URL = new URL(
+        entra.buildLogUrl({ log, startTime: START, endTime: END }),
+      );
+
+      expect(url.origin + url.pathname).toBe(
+        "https://graph.microsoft.com/beta/auditLogs/signIns",
+      );
+      expect(url.searchParams.get("$filter")).toBe(
+        `(createdDateTime ge 2026-10-30T09:00:00.000Z and createdDateTime le 2026-10-30T09:59:59.999Z) and signInEventTypes/any(t: t eq '${kind}')`,
+      );
+    }
+  });
+
+  test("a page of risk detections is read like any Graph page", async () => {
+    const api: FakeEntraApi = createFakeEntraApi({
+      riskDetections: [
+        {
+          id: "risk-1",
+          riskEventType: "anonymizedIPAddress",
+          detectedDateTime: "2026-10-30T09:30:00.000Z",
+        },
+        {
+          id: "risk-outside",
+          riskEventType: "anonymizedIPAddress",
+          detectedDateTime: "2026-10-30T08:30:00.000Z",
+        },
+      ],
+    });
+    const page: MicrosoftEntraIdPage = await client(api.transport).listLog({
+      log: "riskDetections",
+      startTime: START,
+      endTime: END,
+    });
+
+    expect(
+      page.records.map((record: JSONObject): unknown => {
+        return record["id"];
+      }),
+    ).toEqual(["risk-1"]);
+    expect(page.nextLink).toBeNull();
   });
 
   test("pages follow @odata.nextLink with the bearer token", async () => {

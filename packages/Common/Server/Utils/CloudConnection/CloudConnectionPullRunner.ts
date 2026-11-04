@@ -1,6 +1,10 @@
 import CloudConnection from "../../../Models/DatabaseModels/CloudConnection";
 import { CloudConnectionDefinition } from "../../../Types/CloudConnection/CloudConnectionCatalog";
 import {
+  getStreamedMetricKeys,
+  readCloudStreamSummary,
+} from "../../../Types/CloudConnection/CloudStream";
+import {
   CloudConnectionFailureKind,
   CloudConnectionReadStatus,
   CloudConnectionReadSummary,
@@ -27,6 +31,7 @@ import CloudConnectionLanes, {
 import CloudConnectionScheduler from "./CloudConnectionScheduler";
 import CloudConnectorRegistry from "./CloudConnectorRegistry";
 import CloudResourceReadingsWriter from "./CloudResourceReadings";
+import { withoutStreamedMetrics } from "./CloudStreamedMetrics";
 import {
   CloudConnectionPullState,
   CloudConnectionSettings,
@@ -51,7 +56,9 @@ import {
  *   4. keeps the resources (CloudConnectionResourceSync) - created and
  *      linked before their metrics land, so they carry the cloud's names -
  *      and hands the metrics to the metrics ingest (the importer the App
- *      gives it), exactly as a collector's cloud receiver would;
+ *      gives it), exactly as a collector's cloud receiver would - but for
+ *      the namespaces the connection's streams deliver lately
+ *      (CloudStreamedMetrics), which the stream writes instead;
  *   5. on their own slower beat, lists every resource of the accounts (the
  *      inventory) and keeps the connection's cloud accounts
  *      (CloudConnectionLanes);
@@ -173,6 +180,8 @@ export default class CloudConnectionPullRunner {
           serviceId: true,
           pullState: true,
           lastPullResult: true,
+          streamKeyCreatedAt: true,
+          streamSummary: true,
         },
         props: { isRoot: true },
       });
@@ -246,10 +255,34 @@ export default class CloudConnectionPullRunner {
           completelyListedAccounts: read.completelyListedAccounts,
         });
 
+      /*
+       * A namespace a stream delivered lately is the stream's to write: the
+       * read leaves its datapoints out of what it writes, and keeps them
+       * for the resources' readings below. Only while the connection has a
+       * stream key: once Stop streaming refuses what its streams deliver,
+       * the read writes everything again at once.
+       */
+      const streamedKeys: Set<string> = connection.streamKeyCreatedAt
+        ? getStreamedMetricKeys({
+            summary: readCloudStreamSummary(connection.streamSummary),
+            now,
+          })
+        : new Set<string>();
+      let pointsLeftToStreams: number = 0;
+
       for (const payload of read.payloads) {
+        const toWrite: { payload: JSONObject | null; leftOut: number } =
+          withoutStreamedMetrics({ payload, streamedKeys });
+
+        pointsLeftToStreams += toWrite.leftOut;
+
+        if (!toWrite.payload) {
+          continue;
+        }
+
         await dependencies.importMetrics({
           projectId: connection.projectId,
-          payload,
+          payload: toWrite.payload,
         });
       }
 
@@ -381,7 +414,7 @@ export default class CloudConnectionPullRunner {
           synced.newResources + (inventory.synced?.newResources || 0),
         archivedResources:
           synced.archivedResources + (inventory.synced?.archivedResources || 0),
-        pointsWritten: read.pointsWritten,
+        pointsWritten: Math.max(0, read.pointsWritten - pointsLeftToStreams),
         changesRecorded: changes.recorded,
         requestCount: read.requestCount,
         warnings: warnings.slice(0, 10),

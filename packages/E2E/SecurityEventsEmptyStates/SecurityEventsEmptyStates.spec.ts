@@ -54,6 +54,11 @@ const SCREENSHOTS: string = path.resolve(
   __dirname,
   "../../../output/playwright/security-events-empty-states-ui",
 );
+// The Dashboard's locale files, for the words a dropdown shows in each language.
+const DASHBOARD_LOCALES: string = path.resolve(
+  __dirname,
+  "../../App/FeatureSet/Dashboard/src/Locales",
+);
 
 /*
  * The connector catalog, in its order. Written out rather than imported so
@@ -221,7 +226,7 @@ const WAYS_IN: ReadonlyArray<WayIn> = [
 const LOGS_OPEN_ACTION: string = "Open Your logs";
 // What Your logs reads, as its card on Connections lists it.
 const LOG_FORMATS_LINE: string =
-  "SSH sign-ins · sudo · Windows events · AWS CloudTrail · Google Cloud audit logs · Azure activity and Entra ID logs · CEF · LEEF · Kubernetes audit logs · Web attacks";
+  "SSH sign-ins · sudo · Windows events · AWS CloudTrail · Google Cloud audit logs · Azure activity and Entra ID logs · CEF · LEEF · Palo Alto Networks · Fortinet FortiGate · Cisco ASA · Kubernetes audit logs · Web attacks";
 
 // Computed colours the assertions compare against.
 const WHITE_RGB: string = "rgb(255, 255, 255)";
@@ -272,12 +277,22 @@ interface FixtureState {
   latest: string;
   siem: string;
   events: string;
+  cloud: string;
+  cloudAudit: string;
   listRequests: Array<RecordedModelRequest>;
   countRequests: Array<RecordedModelRequest>;
   aggregateRequests: Array<RecordedModelRequest>;
   apiRequests: Array<RecordedApiRequest>;
   creates: Array<RecordedWrite>;
+  // Your logs' Open cases from and switch, and Your OneUptime data's switches.
+  updates: Array<RecordedUpdate>;
   unhandled: Array<UnhandledRequest>;
+}
+
+interface RecordedUpdate {
+  modelName: string;
+  id: string;
+  data: Record<string, unknown>;
 }
 
 interface Box {
@@ -307,6 +322,15 @@ interface OpenOptions {
    * now, before and never, its last check failed, or a read that fails.
    */
   logs?: "off" | "on" | "found" | "check-failed" | "fail" | undefined;
+  // A cloud account connected under Cloud, which Cloud audit logs read.
+  cloud?: "none" | "connected" | undefined;
+  /*
+   * Cloud audit logs on and not read yet, read with events found, or its
+   * last read failed.
+   */
+  cloudAudit?: "off" | "on" | "found" | "check-failed" | undefined;
+  // Every update refused by the server.
+  save?: "ok" | "fail" | undefined;
   width?: number | undefined;
   height?: number | undefined;
 }
@@ -482,6 +506,15 @@ async function open(
   }
   if (options.logs && options.logs !== "off") {
     params.set("logs", options.logs);
+  }
+  if (options.cloud && options.cloud !== "none") {
+    params.set("cloud", options.cloud);
+  }
+  if (options.cloudAudit && options.cloudAudit !== "off") {
+    params.set("cloudaudit", options.cloudAudit);
+  }
+  if (options.save === "fail") {
+    params.set("save", "fail");
   }
   const query: string = params.toString();
   await page.goto(query ? `${pathname}?${query}` : pathname);
@@ -1694,6 +1727,507 @@ test.describe("connections: your logs and your SIEM", () => {
   });
 
   /*
+   * Open cases from: once Your logs is on, which of the threats the
+   * security devices report in the logs open a security case. A project's
+   * record starts at High, as the column's default, and a level saves the
+   * moment it is picked, as the switch above it does.
+   */
+  const CASE_SEVERITY_LABELS: ReadonlyArray<string> = [
+    "Critical only",
+    "High and above",
+    "Medium and above",
+    "Low and above",
+    "Never - events only",
+  ];
+  const CASE_SEVERITY_DESCRIPTION: string =
+    "Threats your security devices report at or above this severity open security cases, grouped by user, host or address.";
+  // Your logs' record, as the fixture holds it.
+  const LOGS_SOURCE_ID: string = "90000000-0000-4000-8000-000000000001";
+
+  function caseSeverityRow(page: Page): Locator {
+    return page.getByTestId("security-logs-case-severity-row");
+  }
+
+  function caseSeverity(page: Page): Locator {
+    return page.getByRole("combobox", { name: "Open cases from" });
+  }
+
+  // The level the dropdown shows: what Your logs has.
+  function caseSeverityShown(page: Page): Locator {
+    return page
+      .getByTestId("security-logs-case-severity")
+      .locator(".ou-select__single-value");
+  }
+
+  async function pickCaseSeverity(page: Page, label: string): Promise<void> {
+    await caseSeverity(page).click();
+    await page.getByRole("option", { name: label, exact: true }).click();
+  }
+
+  // Every level, as each language the Dashboard speaks says it.
+  async function caseSeverityLabelsInEveryLanguage(): Promise<
+    Array<{ language: string; text: string }>
+  > {
+    const labels: Array<{ language: string; text: string }> = [];
+    const files: Array<string> = (await fs.readdir(DASHBOARD_LOCALES)).filter(
+      (file: string): boolean => {
+        return file.endsWith(".json");
+      },
+    );
+    expect(files).toHaveLength(17);
+    for (const file of files) {
+      const words: Record<string, unknown> = JSON.parse(
+        await fs.readFile(path.join(DASHBOARD_LOCALES, file), "utf8"),
+      ) as Record<string, unknown>;
+      for (const label of CASE_SEVERITY_LABELS) {
+        const said: unknown = words[label];
+        labels.push({
+          language: file.replace(".json", ""),
+          text: typeof said === "string" && said ? said : label,
+        });
+      }
+    }
+    return labels;
+  }
+
+  // Whether an element's words fit it, none cut short with an ellipsis.
+  async function isWhole(locator: Locator): Promise<boolean> {
+    return locator.evaluate((element: Element): boolean => {
+      return element.scrollWidth <= element.clientWidth + 1;
+    });
+  }
+
+  test("Open cases from: under the switch once Your logs is on, from High, saying which threats it is for", async ({
+    page,
+  }: {
+    page: Page;
+  }) => {
+    // Off, there is nothing to open cases from.
+    await openConnections(page, { width: 1280 });
+    await expect(logsSwitch(page)).toHaveAttribute("aria-checked", "false");
+    await expect(caseSeverityRow(page)).toHaveCount(0);
+
+    await openConnections(page, { logs: "on", width: 1280 });
+    await expect(caseSeverityShown(page)).toHaveText("High and above");
+    await expect(caseSeverity(page)).toHaveAccessibleDescription(
+      CASE_SEVERITY_DESCRIPTION,
+    );
+    const description: Locator = page.getByTestId(
+      "security-logs-case-severity-description",
+    );
+    await expect(description).toHaveText(CASE_SEVERITY_DESCRIPTION);
+
+    // After what the checks last did, before the kinds Your logs reads.
+    await expectAbove(
+      page.getByTestId("security-logs-source-status"),
+      caseSeverityRow(page),
+      "the status line above Open cases from",
+    );
+    await expectAbove(
+      caseSeverityRow(page),
+      page.getByTestId("security-log-format-groups"),
+      "Open cases from above the kinds",
+    );
+
+    // Its label beside the dropdown, and what it is for on one line under them.
+    const label: Box = await documentBox(
+      caseSeverityRow(page).getByText("Open cases from", { exact: true }),
+    );
+    const dropdown: Box = await documentBox(
+      page.getByTestId("security-logs-case-severity"),
+    );
+    expect(dropdown.x).toBeGreaterThan(label.x + label.width);
+    expect(
+      Math.abs(label.y + label.height / 2 - (dropdown.y + dropdown.height / 2)),
+    ).toBeLessThanOrEqual(2);
+    const lines: number = await description.evaluate(
+      (element: Element): number => {
+        return Math.round(
+          element.getBoundingClientRect().height /
+            parseFloat(getComputedStyle(element).lineHeight),
+        );
+      },
+    );
+    expect(lines, "the description's lines at 1280").toBe(1);
+
+    await caseSeverity(page).click();
+    const options: Locator = page.getByRole("option");
+    await expect(options).toHaveText([...CASE_SEVERITY_LABELS]);
+    await screenshot(page, "connections-your-logs-open-cases-from-menu", {
+      clip: logsCard(page),
+    });
+    await page.keyboard.press("Escape");
+    await expect(options).toHaveCount(0);
+
+    await expectNoSidewaysScroll(page, { tolerance: 1 });
+    await caseSeverityRow(page).scrollIntoViewIfNeeded();
+    await screenshot(page, "connections-your-logs-open-cases-from", {
+      clip: caseSeverityRow(page),
+    });
+  });
+
+  test("Open cases from: a level saves at once and says Saved; Never keeps the threats as events", async ({
+    page,
+  }: {
+    page: Page;
+  }) => {
+    await openConnections(page, { logs: "on", width: 1280 });
+    await expect(caseSeverityShown(page)).toHaveText("High and above");
+
+    await pickCaseSeverity(page, "Critical only");
+    await expect(
+      page.getByTestId("security-logs-case-severity-status"),
+    ).toContainText("Saved");
+    await expect(caseSeverityShown(page)).toHaveText("Critical only");
+    expect((await fixture(page)).updates).toEqual([
+      {
+        modelName: "SecurityLogSource",
+        id: LOGS_SOURCE_ID,
+        data: { caseMinimumSeverity: "Critical" },
+      },
+    ]);
+
+    // Never is the empty value: no case, and every threat still an event.
+    await pickCaseSeverity(page, "Never - events only");
+    await expect
+      .poll(async (): Promise<number> => {
+        return (await fixture(page)).updates.length;
+      })
+      .toBe(2);
+    expect((await fixture(page)).updates[1]).toEqual({
+      modelName: "SecurityLogSource",
+      id: LOGS_SOURCE_ID,
+      data: { caseMinimumSeverity: "" },
+    });
+    await expect(caseSeverityShown(page)).toHaveText("Never - events only");
+    expect(await isWhole(caseSeverityShown(page))).toBe(true);
+    // Only the level was written: the switch and the rest stay as they are.
+    expect((await fixture(page)).creates).toEqual([]);
+    await expect(logsSwitch(page)).toHaveAttribute("aria-checked", "true");
+  });
+
+  test("Open cases from: a pick the server refuses goes back, with its reason", async ({
+    page,
+  }: {
+    page: Page;
+  }) => {
+    await openConnections(page, { logs: "on", save: "fail", width: 1280 });
+    await pickCaseSeverity(page, "Low and above");
+
+    await expect(
+      page.getByTestId("security-logs-case-severity-error"),
+    ).toHaveText("This change could not be saved. Please try again.");
+    await expect(caseSeverityShown(page)).toHaveText("High and above");
+    await expect(
+      page.getByTestId("security-logs-case-severity-status"),
+    ).not.toContainText("Saved");
+  });
+
+  test("Open cases from: a viewer reads the level but cannot change it", async ({
+    page,
+  }: {
+    page: Page;
+  }) => {
+    await openConnections(page, { logs: "on", role: "viewer", width: 1280 });
+
+    await expect(caseSeverityShown(page)).toHaveText("High and above");
+    // A locked react-select hides its input; the level it shows stays.
+    await expect(
+      page.getByRole("combobox", {
+        name: "Open cases from",
+        includeHidden: true,
+      }),
+    ).toBeDisabled();
+    await expect(
+      page
+        .getByTestId("security-logs-case-severity")
+        .locator(".ou-select__control--is-disabled"),
+    ).toBeVisible();
+    await page
+      .getByTestId("security-logs-case-severity")
+      .click({ force: true });
+    await expect(page.getByRole("option")).toHaveCount(0);
+    expect((await fixture(page)).updates).toEqual([]);
+  });
+
+  test("Open cases from on a phone and in the dark: the card's width, every level whole, every word readable", async ({
+    page,
+  }: {
+    page: Page;
+  }) => {
+    await openConnections(page, { logs: "on", width: 390, height: 844 });
+    await expect(caseSeverityShown(page)).toHaveText("High and above");
+    await expectInside(
+      page.getByTestId("security-logs-case-severity"),
+      logsCard(page),
+      "the dropdown inside Your logs at 390",
+    );
+    await pickCaseSeverity(page, "Never - events only");
+    await expect(caseSeverityShown(page)).toHaveText("Never - events only");
+    expect(await isWhole(caseSeverityShown(page))).toBe(true);
+
+    /*
+     * Every level, in every language the Dashboard speaks, fits the room the
+     * dropdown has for its value here, measured in the font it is drawn in:
+     * "Never - keep them as events only" was cut after its second word in
+     * French and Russian.
+     */
+    const value: Locator = caseSeverityShown(page).getByTestId(
+      "dropdown-value-label",
+    );
+    const room: number = await caseSeverityShown(page).evaluate(
+      (element: Element): number => {
+        return element.getBoundingClientRect().width;
+      },
+    );
+    const font: string = await value.evaluate((element: Element): string => {
+      return getComputedStyle(element).font;
+    });
+    const tooWide: Array<string> = await page.evaluate(
+      (data: {
+        labels: Array<{ language: string; text: string }>;
+        font: string;
+        room: number;
+      }): Array<string> => {
+        const context: CanvasRenderingContext2D = document
+          .createElement("canvas")
+          .getContext("2d") as CanvasRenderingContext2D;
+        context.font = data.font;
+        return data.labels
+          .filter((label: { language: string; text: string }): boolean => {
+            return context.measureText(label.text).width > data.room;
+          })
+          .map((label: { language: string; text: string }): string => {
+            return `${label.language}: ${label.text}`;
+          });
+      },
+      { labels: await caseSeverityLabelsInEveryLanguage(), font, room },
+    );
+    expect(tooWide, `levels wider than ${Math.round(room)}px`).toEqual([]);
+    await expectNoSidewaysScroll(page, { tolerance: 1 });
+    await caseSeverityRow(page).scrollIntoViewIfNeeded();
+    await screenshot(page, "connections-your-logs-open-cases-from-phone", {
+      clip: caseSeverityRow(page),
+    });
+
+    await openConnections(page, { logs: "on", theme: "dark", width: 1280 });
+    await expect(caseSeverityShown(page)).toHaveText("High and above");
+    expect(
+      await lowContrastText(caseSeverityRow(page), MIN_CONTRAST),
+      "low-contrast text in the dark",
+    ).toEqual([]);
+    await caseSeverityRow(page).scrollIntoViewIfNeeded();
+    await screenshot(page, "connections-your-logs-open-cases-from-dark", {
+      clip: caseSeverityRow(page),
+    });
+  });
+
+  /*
+   * Your OneUptime data's Cloud audit logs: the audit logs of the cloud
+   * accounts connected under Cloud, read with each account's own read. With
+   * none connected the row says so, links to connecting one, and promises
+   * no first check that would have nothing to read.
+   */
+  function cloudAuditRow(page: Page): Locator {
+    return page.getByTestId("security-telemetry-source-cloud-audit");
+  }
+
+  function cloudAuditSwitch(page: Page): Locator {
+    return cloudAuditRow(page).getByRole("switch", {
+      name: /^Cloud audit logs/,
+    });
+  }
+
+  function cloudAuditNote(page: Page): Locator {
+    return page.getByTestId("security-telemetry-source-cloud-note-cloud-audit");
+  }
+
+  function cloudAuditStatus(page: Page): Locator {
+    return page.getByTestId("security-telemetry-source-status-cloud-audit");
+  }
+
+  async function cloudConnectionCounts(page: Page): Promise<number> {
+    return (await fixture(page)).countRequests.filter(
+      (request: RecordedModelRequest): boolean => {
+        return request.modelName === "CloudConnection";
+      },
+    ).length;
+  }
+
+  test("Cloud audit logs: last in Your OneUptime data; with no cloud account it says so and links to connecting one", async ({
+    page,
+  }: {
+    page: Page;
+  }) => {
+    await openConnections(page, { width: 1280 });
+
+    const rows: Locator = page
+      .getByTestId("security-telemetry-sources")
+      .getByRole("listitem");
+    await expect(rows).toHaveCount(5);
+    await expect(rows.last()).toHaveAttribute(
+      "data-testid",
+      "security-telemetry-source-cloud-audit",
+    );
+    await expect(cloudAuditRow(page)).toContainText(
+      "Changes, refused calls and AWS console sign-ins in the cloud accounts connected under Cloud, from their own audit logs.",
+    );
+    await expect(cloudAuditSwitch(page)).toHaveAttribute(
+      "aria-checked",
+      "false",
+    );
+
+    // One sentence, then the way to connect one.
+    await expect(cloudAuditNote(page)).toHaveText(
+      "No cloud account is connected yet. Connect a cloud account",
+    );
+    const link: Locator = cloudAuditNote(page).getByRole("link", {
+      name: "Connect a cloud account",
+    });
+    await expect(link).toHaveAttribute("href", `${DASHBOARD}/cloud/connect`);
+    // The project's cloud accounts were counted once, and nothing else said of them.
+    expect(await cloudConnectionCounts(page)).toBe(1);
+    await expect(
+      page.getByText("No cloud account is connected yet.", { exact: false }),
+    ).toHaveCount(1);
+    await cloudAuditRow(page).scrollIntoViewIfNeeded();
+    await screenshot(page, "connections-cloud-audit-logs-no-account", {
+      clip: cloudAuditRow(page),
+    });
+
+    await link.click();
+    await expectPath(page, `${DASHBOARD}/cloud/connect`);
+  });
+
+  test("Cloud audit logs: turned on with no cloud account, it keeps saying so and promises no first check", async ({
+    page,
+  }: {
+    page: Page;
+  }) => {
+    await openConnections(page, { width: 1280 });
+    await expect(cloudAuditNote(page)).toBeVisible();
+
+    await cloudAuditSwitch(page).click();
+    await expect(cloudAuditSwitch(page)).toHaveAttribute(
+      "aria-checked",
+      "true",
+    );
+    await expect(cloudAuditRow(page).getByRole("status")).toHaveText("Saved");
+    const creates: Array<RecordedWrite> = (await fixture(page)).creates;
+    expect(
+      creates.map((write: RecordedWrite): unknown => {
+        return [
+          write.modelName,
+          write.data?.["kind"],
+          write.data?.["isEnabled"],
+        ];
+      }),
+    ).toEqual([["SecurityTelemetrySource", "cloud-audit", true]]);
+
+    await expect(cloudAuditNote(page)).toBeVisible();
+    await expect(cloudAuditStatus(page)).toHaveCount(0);
+    await expect(cloudAuditRow(page)).not.toContainText("The first check runs");
+  });
+
+  test("Cloud audit logs with a cloud account: no note; turned on, its first check comes with the account's next read", async ({
+    page,
+  }: {
+    page: Page;
+  }) => {
+    await openConnections(page, { cloud: "connected", width: 1280 });
+    await expect
+      .poll(async (): Promise<number> => {
+        return cloudConnectionCounts(page);
+      })
+      .toBe(1);
+    await expect(cloudAuditNote(page)).toHaveCount(0);
+
+    await cloudAuditSwitch(page).click();
+    await expect(cloudAuditRow(page).getByRole("status")).toHaveText("Saved");
+    await expect(cloudAuditStatus(page)).toHaveText(
+      "The first check runs with your cloud accounts' next read, within a few minutes.",
+    );
+    await expect(cloudAuditNote(page)).toHaveCount(0);
+  });
+
+  test("Cloud audit logs read: when, and what the last read found; a failed read says why", async ({
+    page,
+  }: {
+    page: Page;
+  }) => {
+    await openConnections(page, {
+      cloud: "connected",
+      cloudAudit: "found",
+      width: 1280,
+    });
+    // Two sentences and the count, read aloud with a space between them.
+    await expect(cloudAuditStatus(page)).toHaveText(
+      "Checked 2 minutes ago. Last security event found 2 minutes ago. Found in the last check: 7",
+    );
+    expect(
+      await cloudAuditStatus(page).evaluate((element: Element): string => {
+        return element.textContent || "";
+      }),
+    ).toBe(
+      "Checked 2 minutes ago. Last security event found 2 minutes ago. Found in the last check: 7",
+    );
+    await expect(cloudAuditSwitch(page)).toHaveAttribute(
+      "aria-checked",
+      "true",
+    );
+
+    await openConnections(page, {
+      cloud: "connected",
+      cloudAudit: "check-failed",
+      width: 1280,
+    });
+    await expect(
+      page.getByTestId("security-telemetry-source-last-error-cloud-audit"),
+    ).toHaveText(
+      "The last check failed: Could not store the audit records of this read: the database did not answer in time.",
+    );
+  });
+
+  test("Cloud audit logs on a phone and in the dark: the row and its link read, and fit", async ({
+    page,
+  }: {
+    page: Page;
+  }) => {
+    await openConnections(page, { width: 390, height: 844 });
+    await expect(cloudAuditNote(page)).toBeVisible();
+    await expectInside(
+      cloudAuditNote(page),
+      cloudAuditRow(page),
+      "the note inside its row at 390",
+    );
+    await expectNoSidewaysScroll(page, { tolerance: 1 });
+    await cloudAuditRow(page).scrollIntoViewIfNeeded();
+    await screenshot(page, "connections-cloud-audit-logs-phone", {
+      clip: cloudAuditRow(page),
+    });
+
+    for (const options of [
+      { theme: "dark" as const },
+      {
+        theme: "dark" as const,
+        cloud: "connected" as const,
+        cloudAudit: "found" as const,
+      },
+    ]) {
+      await openConnections(page, { ...options, width: 1280 });
+      await expect(cloudAuditSwitch(page)).toBeVisible();
+      expect(
+        await lowContrastText(cloudAuditRow(page), MIN_CONTRAST),
+        `low-contrast text in the dark (${options.cloudAudit || "off"})`,
+      ).toEqual([]);
+    }
+    await cloudAuditRow(page).scrollIntoViewIfNeeded();
+    await screenshot(page, "connections-cloud-audit-logs-dark", {
+      clip: cloudAuditRow(page),
+    });
+  });
+
+  /*
    * The SIEMs of the destination catalog, in its order, each with the
    * first setting its Connection step asks for and the settings it folds
    * under More fields (the ones most people leave at their defaults).
@@ -2242,20 +2776,34 @@ test.describe("connections: your logs and your SIEM", () => {
   }
 
   /*
-   * Your logs lists its ten kinds by where they come from: each group one
-   * list, a kind a row, as Your OneUptime data lists its sources under it.
-   * The groups pair up side by side - Servers beside Cloud, Security
-   * devices beside Applications - where the card itself is 44rem wide, and
-   * stack below that: beside the side menu at a 768 window the card is
-   * about 370px wide, whatever the window says. Ten bordered tiles in rows
-   * of three left an empty third in two of the groups and made the card the
-   * longest on the page.
+   * Your logs lists its thirteen kinds by where they come from: each group
+   * one list, a kind a row, as Your OneUptime data lists its sources under
+   * it. Where the card itself is 44rem wide the groups flow down two
+   * newspaper columns - Servers and Cloud in the first, Security devices
+   * (its five kinds, the firewalls among them) and Applications in the
+   * second - each kept whole, and the columns end near each other; below
+   * that they stack: beside the side menu at a 768 window the card is about
+   * 370px wide, whatever the window says. Ten bordered tiles in rows of
+   * three left an empty third in two of the groups and made the card the
+   * longest on the page; a grid's rows then left half a card of nothing
+   * beside Applications once Security devices had five kinds.
    */
   const LOG_KIND_GROUPS: ReadonlyArray<{ id: string; kinds: number }> = [
     { id: "servers", kinds: 3 },
     { id: "cloud", kinds: 3 },
-    { id: "security-devices", kinds: 2 },
+    { id: "security-devices", kinds: 5 },
     { id: "applications", kinds: 2 },
+  ];
+  const LOG_KIND_COUNT: number = LOG_KIND_GROUPS.reduce(
+    (total: number, group: { kinds: number }): number => {
+      return total + group.kinds;
+    },
+    0,
+  );
+  // The groups each column holds, top to bottom, where there are two.
+  const LOG_KIND_COLUMNS: ReadonlyArray<ReadonlyArray<string>> = [
+    ["servers", "cloud"],
+    ["security-devices", "applications"],
   ];
   const LOG_KIND_LAYOUTS: ReadonlyArray<{ width: number; columns: number }> = [
     { width: 1440, columns: 2 },
@@ -2306,7 +2854,7 @@ test.describe("connections: your logs and your SIEM", () => {
   }
 
   for (const layout of LOG_KIND_LAYOUTS) {
-    test(`${layout.width}: Your logs' groups sit ${layout.columns} side by side, each kind a row of its group's list`, async ({
+    test(`${layout.width}: Your logs' groups flow down ${layout.columns} column${layout.columns === 1 ? "" : "s"}, each whole, each kind a row of its group's list`, async ({
       page,
     }: {
       page: Page;
@@ -2315,8 +2863,15 @@ test.describe("connections: your logs and your SIEM", () => {
       await expectNoSidewaysScroll(page, { tolerance: 1 });
 
       const groups: Array<LogKindGroupLayout> = await logKindGroupLayouts(page);
+      const byId: (id: string) => LogKindGroupLayout = (
+        id: string,
+      ): LogKindGroupLayout => {
+        return groups.find((group: LogKindGroupLayout): boolean => {
+          return group.id === id;
+        }) as LogKindGroupLayout;
+      };
 
-      // The groups, in order, in rows of the layout's columns.
+      // The groups, in order, for the eye and for a screen reader alike.
       expect(
         groups.map((group: LogKindGroupLayout): string => {
           return group.id;
@@ -2326,47 +2881,68 @@ test.describe("connections: your logs and your SIEM", () => {
           return group.id;
         }),
       );
-      const tops: Array<number> = groups.map(
-        (group: LogKindGroupLayout): number => {
-          return Math.round(group.group.y);
-        },
-      );
-      const perRow: Array<number> = Array.from(new Set(tops)).map(
-        (top: number): number => {
-          return tops.filter((value: number): boolean => {
-            return value === top;
-          }).length;
-        },
-      );
-      expect(perRow, `groups a row at ${layout.width}`).toEqual(
-        rowLengths(LOG_KIND_GROUPS.length, layout.columns),
-      );
 
-      for (let index: number = 1; index < groups.length; index++) {
-        const group: LogKindGroupLayout = groups[index] as LogKindGroupLayout;
-        const previous: LogKindGroupLayout = groups[
-          index - 1
-        ] as LogKindGroupLayout;
-        if (layout.columns === 2 && index % 2 === 1) {
-          // Beside its pair, the two as wide as each other.
-          expect(group.group.x).toBeGreaterThan(
-            previous.group.x + previous.group.width,
-          );
+      const columns: ReadonlyArray<ReadonlyArray<string>> =
+        layout.columns === 2
+          ? LOG_KIND_COLUMNS
+          : [
+              LOG_KIND_GROUPS.map((group: { id: string }): string => {
+                return group.id;
+              }),
+            ];
+      const width: number = (groups[0] as LogKindGroupLayout).group.width;
+
+      for (const column of columns) {
+        const first: LogKindGroupLayout = byId(column[0] as string);
+        for (let index: number = 0; index < column.length; index++) {
+          const group: LogKindGroupLayout = byId(column[index] as string);
+          // Whole in its column: a group split between two would span both.
           expect(
-            Math.abs(group.group.width - previous.group.width),
+            Math.abs(group.group.width - width),
+            `${group.id} as wide as a column at ${layout.width}`,
           ).toBeLessThanOrEqual(1);
-        } else {
-          // Under every group before it.
-          for (const above of groups.slice(0, index)) {
+          expect(
+            Math.abs(group.group.x - first.group.x),
+            `${group.id} in ${first.id}'s column at ${layout.width}`,
+          ).toBeLessThanOrEqual(1);
+          if (index > 0) {
+            const above: LogKindGroupLayout = byId(column[index - 1] as string);
             expect(
               group.group.y,
               `${group.id} under ${above.id} at ${layout.width}`,
             ).toBeGreaterThanOrEqual(above.group.y + above.group.height);
           }
-          expect(
-            Math.abs(group.group.x - (groups[0] as LogKindGroupLayout).group.x),
-          ).toBeLessThanOrEqual(1);
         }
+      }
+
+      if (layout.columns === 2) {
+        const left: LogKindGroupLayout = byId("servers");
+        const right: LogKindGroupLayout = byId("security-devices");
+        // Side by side, the second column starting where the first does.
+        expect(right.group.x).toBeGreaterThan(left.group.x + left.group.width);
+        expect(Math.abs(right.group.y - left.group.y)).toBeLessThanOrEqual(1);
+        /*
+         * And ending near each other: closer than the smallest group is
+         * tall, so no group could even them out by moving across.
+         */
+        const bottom: (ids: ReadonlyArray<string>) => number = (
+          ids: ReadonlyArray<string>,
+        ): number => {
+          const last: LogKindGroupLayout = byId(ids[ids.length - 1] as string);
+          return last.group.y + last.group.height;
+        };
+        const smallest: number = Math.min(
+          ...groups.map((group: LogKindGroupLayout): number => {
+            return group.group.height;
+          }),
+        );
+        expect(
+          Math.abs(
+            bottom(LOG_KIND_COLUMNS[0] as ReadonlyArray<string>) -
+              bottom(LOG_KIND_COLUMNS[1] as ReadonlyArray<string>),
+          ),
+          `the columns' ends at ${layout.width}`,
+        ).toBeLessThan(smallest);
       }
 
       // A kind a row: the list's whole width, each under the one before.
@@ -2393,8 +2969,8 @@ test.describe("connections: your logs and your SIEM", () => {
       const allKinds: Locator = card.locator(
         "li[data-testid^='security-log-format-']",
       );
-      await expect(allKinds).toHaveCount(10);
-      for (let index: number = 0; index < 10; index++) {
+      await expect(allKinds).toHaveCount(LOG_KIND_COUNT);
+      for (let index: number = 0; index < LOG_KIND_COUNT; index++) {
         await expectInside(
           allKinds.nth(index),
           card,
@@ -2441,6 +3017,9 @@ test.describe("connections: your logs and your SIEM", () => {
     },
     { kind: "cef", health: "found-now", text: "Found in the last check: 3" },
     { kind: "leef", health: "not-yet", text: "None found yet" },
+    { kind: "palo-alto", health: "not-yet", text: "None found yet" },
+    { kind: "fortigate", health: "not-yet", text: "None found yet" },
+    { kind: "cisco-asa", health: "not-yet", text: "None found yet" },
     { kind: "kubernetes-audit", health: "not-yet", text: "None found yet" },
     { kind: "web-attack", health: "not-yet", text: "None found yet" },
   ];
@@ -2533,6 +3112,22 @@ test.describe("connections: your logs and your SIEM", () => {
     return page.getByTestId("security-log-line-check-examples");
   }
 
+  /*
+   * The heights a menu's items come in, each rounded: one height for a menu
+   * whose every name keeps one line (the examples menu is the wide one,
+   * where 14rem broke "Azure activity and Entra ID logs" in two).
+   */
+  async function menuItemHeights(menu: Locator): Promise<Array<number>> {
+    const heights: Array<number> = await menu
+      .getByRole("menuitem")
+      .evaluateAll((items: Array<Element>): Array<number> => {
+        return items.map((item: Element): number => {
+          return Math.round(item.getBoundingClientRect().height);
+        });
+      });
+    return Array.from(new Set(heights));
+  }
+
   // What every kind is called, as Your logs and the menu name it, in order.
   const LOG_KIND_TITLES: ReadonlyArray<string> = [
     "SSH sign-ins",
@@ -2543,6 +3138,9 @@ test.describe("connections: your logs and your SIEM", () => {
     "Azure activity and Entra ID logs",
     "CEF",
     "LEEF",
+    "Palo Alto Networks",
+    "Fortinet FortiGate",
+    "Cisco ASA",
     "Kubernetes audit logs",
     "Web attacks",
   ];
@@ -2606,6 +3204,8 @@ test.describe("connections: your logs and your SIEM", () => {
     const menu: Locator = page.getByRole("menu");
     await expect(menu).toBeVisible();
     await expect(menu.getByRole("menuitem")).toHaveText([...LOG_KIND_TITLES]);
+    // Wide enough for every kind's name on one line beside its mark.
+    expect(await menuItemHeights(menu)).toHaveLength(1);
 
     // It hangs from the trigger's right edge, under it, on screen.
     const menuBox: Box = await viewportBox(menu);
@@ -2727,6 +3327,8 @@ test.describe("connections: your logs and your SIEM", () => {
     const menuBox: Box = await viewportBox(menu);
     expect(menuBox.x).toBeGreaterThanOrEqual(0);
     expect(menuBox.x + menuBox.width).toBeLessThanOrEqual(390);
+    // Wide, and still every name on one line on a phone.
+    expect(await menuItemHeights(menu)).toHaveLength(1);
 
     await menu
       .getByRole("menuitem", { name: "Windows events", exact: true })

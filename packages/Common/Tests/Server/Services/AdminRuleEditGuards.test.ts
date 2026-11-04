@@ -11,6 +11,7 @@ import UserNotificationRuleService, {
 } from "../../../Server/Services/UserNotificationRuleService";
 import UserOnCallLogService from "../../../Server/Services/UserOnCallLogService";
 import UserOnCallLogTimelineService from "../../../Server/Services/UserOnCallLogTimelineService";
+import UserMattermostService from "../../../Server/Services/UserMattermostService";
 import UserMicrosoftTeamsService from "../../../Server/Services/UserMicrosoftTeamsService";
 import UserPushService from "../../../Server/Services/UserPushService";
 import UserService from "../../../Server/Services/UserService";
@@ -213,6 +214,12 @@ const CHANNELS: Array<ChannelFixture> = [
     relationColumn: "userMicrosoftTeams",
     label: "Microsoft Teams",
     service: UserMicrosoftTeamsService as unknown as MethodServiceLike,
+  },
+  {
+    idColumn: "userMattermostId",
+    relationColumn: "userMattermost",
+    label: "Mattermost",
+    service: UserMattermostService as unknown as MethodServiceLike,
   },
   {
     idColumn: "userPushId",
@@ -895,7 +902,7 @@ describe("Administrative notification rule edit guards", () => {
   describe("R3 on create: a rule's method must belong to the rule's user", () => {
     test("the guard covers exactly the notification method columns the model declares", () => {
       /*
-       * Derived from the model rather than restated, so that a tenth channel
+       * Derived from the model rather than restated, so that an eleventh channel
        * added to UserNotificationRule and forgotten in the guard fails HERE,
        * loudly, instead of quietly becoming the one unlocked door.
        */
@@ -908,7 +915,7 @@ describe("Administrative notification rule edit guards", () => {
       });
 
       // If the derivation itself ever breaks, fail rather than pass vacuously.
-      expect(columnsOnModel).toHaveLength(9);
+      expect(columnsOnModel).toHaveLength(10);
 
       /*
        * The one method column that belongs to nobody - a custom channel, the
@@ -1831,7 +1838,7 @@ describe("Administrative notification rule edit guards", () => {
           }),
         ),
       ).rejects.toThrow(
-        "Call, SMS, WhatsApp, Telegram, Slack, Microsoft Teams, Webhook, Custom Channel, Email, or Push notification is required",
+        "Call, SMS, WhatsApp, Telegram, Slack, Microsoft Teams, Mattermost, Webhook, Custom Channel, Email, or Push notification is required",
       );
     });
 
@@ -2085,7 +2092,7 @@ describe("Administrative notification rule edit guards", () => {
           updatePayload({ patch: { userEmailId: null } }),
         ),
       ).rejects.toThrow(
-        "Call, SMS, WhatsApp, Telegram, Slack, Microsoft Teams, Webhook, Custom Channel, Email, or Push notification is required",
+        "Call, SMS, WhatsApp, Telegram, Slack, Microsoft Teams, Mattermost, Webhook, Custom Channel, Email, or Push notification is required",
       );
     });
 

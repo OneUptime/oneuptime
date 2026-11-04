@@ -456,24 +456,10 @@ describe("useTelemetryEntityNames", () => {
   });
 
   test("a rejected lookup is swallowed: map stays {} and nothing is logged", async () => {
-    /*
-     * Rejected through a deferred, after the hook has subscribed. An
-     * already-rejected promise returned from the spy trips zone.js (loaded
-     * by a transitive dependency in this jsdom environment) into logging a
-     * false "unhandled rejection": native `await` attaches its handler to
-     * a non-native thenable one job later than zone's check runs.
-     */
-    const response: Deferred<TelemetryEntityNameMap> = deferred();
-    resolveSpy.mockImplementation(() => {
-      return response.promise;
-    });
+    resolveSpy.mockRejectedValue(new Error("network down"));
 
     const { result } = renderNames({ ids: [SERVICE_ID] });
     await act(async () => {
-      await flushPromises();
-    });
-    await act(async () => {
-      response.reject(new Error("network down"));
       await flushPromises();
     });
 
@@ -498,11 +484,9 @@ describe("useTelemetryEntityNames", () => {
   });
 
   test("a map already filled survives a later failed lookup for new ids", async () => {
-    // Deferred rejection: see the zone.js note in the test above.
-    const failing: Deferred<TelemetryEntityNameMap> = deferred();
     resolveSpy.mockImplementation((args: ResolveArgs) => {
       return args.ids.includes(RUM_ID)
-        ? failing.promise
+        ? Promise.reject(new Error("forbidden"))
         : Promise.resolve(SERVICE_MAP);
     });
     const { result, rerender } = renderNames({ ids: [SERVICE_ID] });
@@ -511,10 +495,6 @@ describe("useTelemetryEntityNames", () => {
     });
     rerender({ ids: [SERVICE_ID, RUM_ID] });
     await act(async () => {
-      await flushPromises();
-    });
-    await act(async () => {
-      failing.reject(new Error("forbidden"));
       await flushPromises();
     });
     expect(consoleErrorSpy.mock.calls).toHaveLength(0);
@@ -810,14 +790,11 @@ describe("useTelemetryEntityNames — end to end through the resolver", () => {
     expect(result.current[RUM_ID]?.name).toBe("checkout-web");
 
     /*
-     * Every table now fails (thrown synchronously: see the zone.js note
-     * above about already-rejected promises), the hit has expired, and a
-     * new id makes the hook look the whole set up again.
+     * Every table now fails, the hit has expired, and a new id makes the hook
+     * look the whole set up again.
      */
     getListMock.mockReset();
-    getListMock.mockImplementation(() => {
-      throw new Error("offline");
-    });
+    getListMock.mockRejectedValue(new Error("offline"));
     nowSpy.mockReturnValue(start + 61 * 1000);
     rerender({ ids: [RUM_ID, SERVICE_ID_2] });
     await settle();

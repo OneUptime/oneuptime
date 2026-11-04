@@ -67,6 +67,17 @@ import OpenStackAlertContext, {
  */
 export const CLOUD_ENVIRONMENT_NOUN: string = "Cloud environment";
 
+/*
+ * The kind a run's activity records for an App Platforms environment
+ * (LinkedInfrastructureActivity, FollowUpCheckActivity). Its row is a
+ * CloudResource like a resource of a connected account, so the activity
+ * recorded the table's kind, and the AI card's line called an environment a
+ * "Cloud resource" - what the context and the feeds do not call it. The
+ * card words this kind as CLOUD_ENVIRONMENT_NOUN, in the reader's language
+ * (ChatActivityFeed's LINKED_RESOURCE_KIND_NOUNS).
+ */
+export const CLOUD_ENVIRONMENT_ACTIVITY_KIND: string = "CloudEnvironment";
+
 // How far before the subject an alert on its infrastructure counts.
 export const RELATED_ALERTS_LOOKBACK_MINUTES: number = 30;
 
@@ -220,16 +231,54 @@ export function describeLinkedResourceKind(
   );
 }
 
+/*
+ * Whether a linked resource is an App Platforms environment: a cloud row
+ * whose kind was read and is not a resource of a connected account. A row
+ * whose kind was not read stays a cloud resource, as it always was.
+ */
+export function isLinkedCloudEnvironment(
+  resource: Pick<LinkedInfrastructureResource, "type" | "cloudResourceKind">,
+): boolean {
+  return Boolean(
+    resource.type === LinkedAffectedResourceType.CloudResource &&
+      resource.cloudResourceKind &&
+      !isCloudResourceKindResource(resource.cloudResourceKind),
+  );
+}
+
+// The noun a linked resource is called by: its kind's, an environment's own.
+export function describeLinkedResourceNoun(
+  resource: Pick<LinkedInfrastructureResource, "type" | "cloudResourceKind">,
+): string {
+  return isLinkedCloudEnvironment(resource)
+    ? CLOUD_ENVIRONMENT_NOUN
+    : describeLinkedResourceKind(resource.type);
+}
+
+/*
+ * The kind a run's activity records for a linked resource: its kind, or
+ * CLOUD_ENVIRONMENT_ACTIVITY_KIND for an App Platforms environment.
+ */
+export function getLinkedResourceActivityKind(
+  resource: Pick<LinkedInfrastructureResource, "type" | "cloudResourceKind">,
+): string {
+  return isLinkedCloudEnvironment(resource)
+    ? CLOUD_ENVIRONMENT_ACTIVITY_KIND
+    : resource.type;
+}
+
+// The noun a kind a run's activity recorded is called by, in English.
+export function describeActivityResourceKind(kind: string): string {
+  return kind === CLOUD_ENVIRONMENT_ACTIVITY_KIND
+    ? CLOUD_ENVIRONMENT_NOUN
+    : describeLinkedResourceKind(kind as LinkedAffectedResourceType);
+}
+
 // 'Host "web-1"' - how a linked resource is named in the context.
 export function describeLinkedResource(
   resource: LinkedInfrastructureResource,
 ): string {
-  const noun: string =
-    resource.type === LinkedAffectedResourceType.CloudResource &&
-    resource.cloudResourceKind &&
-    !isCloudResourceKindResource(resource.cloudResourceKind)
-      ? CLOUD_ENVIRONMENT_NOUN
-      : describeLinkedResourceKind(resource.type);
+  const noun: string = describeLinkedResourceNoun(resource);
   const name: string = resource.name.trim();
 
   return name ? `${noun} ${JSON.stringify(name)}` : noun;
@@ -693,7 +742,11 @@ export default class LinkedInfrastructureContext {
     const activity: LinkedInfrastructureActivity = {
       resources: data.resources.map(
         (resource: LinkedInfrastructureResource) => {
-          return { kind: resource.type, name: resource.name };
+          // An App Platforms environment as what it is, not "Cloud resource".
+          return {
+            kind: getLinkedResourceActivityKind(resource),
+            name: resource.name,
+          };
         },
       ),
       alertCount: data.alerts.length,
@@ -723,9 +776,7 @@ export default class LinkedInfrastructureContext {
     const names: Array<string> = activity.resources
       .slice(0, 3)
       .map((resource: { kind: string; name: string }): string => {
-        const noun: string = describeLinkedResourceKind(
-          resource.kind as LinkedAffectedResourceType,
-        );
+        const noun: string = describeActivityResourceKind(resource.kind);
 
         return resource.name ? `${noun} ${resource.name}` : noun;
       });

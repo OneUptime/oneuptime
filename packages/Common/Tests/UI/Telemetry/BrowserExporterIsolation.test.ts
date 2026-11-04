@@ -11,6 +11,10 @@ const TELEMETRY_PATH: string = path.resolve(
   __dirname,
   "../../../UI/Utils/Telemetry/Telemetry.ts",
 );
+const SDK_PATH: string = path.resolve(
+  __dirname,
+  "../../../UI/Utils/Telemetry/BrowserTelemetrySdk.ts",
+);
 
 function codeWithoutComments(filePath: string): string {
   return fs
@@ -67,5 +71,15 @@ describe("browser exporter source isolation", () => {
 
     expect(source).not.toContain("OPENTELEMETRY_EXPORTER_OTLP_HEADERS");
     expect(source).not.toContain("OPENTELEMETRY_EXPORTER_OTLP_ENDPOINT");
+  });
+
+  test("the SDK's file reads no configuration: Telemetry.ts hands it what to send", () => {
+    const source: string = codeWithoutComments(SDK_PATH);
+
+    expect(source).not.toMatch(/from\s+"[^"]*\/Config"/);
+    expect(source).not.toContain("env(");
+    expect(source).not.toContain("OPENTELEMETRY_EXPORTER_OTLP");
+    expect(source).not.toContain("x-oneuptime-token");
+    expect(source).not.toContain("authorization");
   });
 });

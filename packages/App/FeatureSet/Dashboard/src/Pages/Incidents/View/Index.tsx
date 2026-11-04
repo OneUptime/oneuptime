@@ -525,7 +525,7 @@ const IncidentView: FunctionComponent<
     eventStartedAt: incidentStartedAt,
   });
 
-  // The incident's own Slack and Teams channels: Open in Slack / Teams.
+  // The incident's own chat channels: Open in Slack / Teams / Mattermost.
   const channelLinks: Array<WorkspaceChannelLink> = useRecordChannelLinks({
     recordType: WorkspaceChannelRecordType.Incident,
     recordId: modelId,

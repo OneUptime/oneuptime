@@ -108,6 +108,7 @@ import Metric from "Common/Models/AnalyticsModels/Metric";
 import AggregatedModel from "Common/Types/BaseDatabase/AggregatedModel";
 import MetricSeriesResult from "Common/Types/Monitor/MetricMonitor/MetricSeriesResult";
 import MetricSeriesFingerprint from "Common/Utils/Metrics/MetricSeriesFingerprint";
+import MetricSeriesArrival from "Common/Types/Monitor/MetricMonitor/MetricSeriesArrival";
 import ExceptionMonitorResponse from "Common/Types/Monitor/ExceptionMonitor/ExceptionMonitorResponse";
 import MonitorStepExceptionMonitor, {
   MonitorStepExceptionMonitorUtil,
@@ -191,6 +192,12 @@ import SortOrder from "Common/Types/BaseDatabase/SortOrder";
 import TelemetryQueueService, {
   TelemetryMonitorEvaluationJobData,
 } from "../../../Telemetry/Services/Queue/TelemetryQueueService";
+import {
+  QueryArrivals,
+  getSlotArrivals,
+  readQueryArrivals,
+  stepJudgesFreshness,
+} from "./MetricSeriesArrivals";
 
 type TelemetryMonitorResponse =
   | LogMonitorResponse
@@ -888,6 +895,12 @@ const getLaterDate: (
 export interface QueryDataPoints {
   aggregatedResult: AggregatedResult;
   completeFrom: Date | null;
+  /*
+   * When the query's series got their data (MetricSeriesArrivals), read
+   * only for a step whose criteria judge freshness and a read that looks
+   * behind; null otherwise.
+   */
+  arrivals: QueryArrivals | null;
 }
 
 /**
@@ -920,12 +933,19 @@ export const readQueryDataPoints: (input: {
   groupByAttributeKeys: Array<string>;
   groupBy: MetricQueryConfigData["metricQueryData"]["groupBy"];
   startAndEndDate: InBetween<Date>;
+  /*
+   * The step has a criteria that judges whether data is fresh
+   * (stepJudgesFreshness): the read then says when its series got their
+   * data, when it looks behind.
+   */
+  judgesFreshness?: boolean | undefined;
 }) => Promise<QueryDataPoints> = async (input: {
   query: Query<Metric>;
   aggregationType: MetricsAggregationType;
   groupByAttributeKeys: Array<string>;
   groupBy: MetricQueryConfigData["metricQueryData"]["groupBy"];
   startAndEndDate: InBetween<Date>;
+  judgesFreshness?: boolean | undefined;
 }): Promise<QueryDataPoints> => {
   const isGrouped: boolean = input.groupByAttributeKeys.length > 0;
   const limit: number = isGrouped ? GROUPED_READ_ROW_LIMIT : LIMIT_PER_PROJECT;
@@ -962,6 +982,17 @@ export const readQueryDataPoints: (input: {
       }),
       limit: limit,
     }),
+    arrivals: await readQueryArrivals({
+      query: input.query,
+      groupByAttributeKeys: input.groupByAttributeKeys,
+      aggregatedResult: aggregatedResult,
+      startAndEndDate: input.startAndEndDate,
+      judgesFreshness: Boolean(input.judgesFreshness),
+      projectId:
+        input.query.projectId instanceof ObjectID
+          ? input.query.projectId
+          : undefined,
+    }),
   };
 };
 
@@ -983,12 +1014,15 @@ const buildSeriesBreakdown: (input: {
   perQueryResults: Array<AggregatedResult>;
   attributeKeys: Array<string>;
   projectId: ObjectID;
+  // When each query's series got their data, in query order, where read.
+  perQueryArrivals?: Array<QueryArrivals | null> | undefined;
 }) => Array<MetricSeriesResult> = (input: {
   queryConfigs: Array<MetricQueryConfigData>;
   formulaConfigs: Array<MetricFormulaConfigData>;
   perQueryResults: Array<AggregatedResult>;
   attributeKeys: Array<string>;
   projectId: ObjectID;
+  perQueryArrivals?: Array<QueryArrivals | null> | undefined;
 }): Array<MetricSeriesResult> => {
   /*
    * Bucket every query's results by fingerprint first. Each query
@@ -1035,10 +1069,19 @@ const buildSeriesBreakdown: (input: {
       projectId: input.projectId,
     });
 
+    const arrivals: Array<MetricSeriesArrival | null> | undefined =
+      getSlotArrivals({
+        perQueryArrivals: input.perQueryArrivals,
+        queryConfigs: input.queryConfigs,
+        formulaConfigs: input.formulaConfigs,
+        fingerprint: fingerprint,
+      });
+
     breakdown.push({
       fingerprint,
       labels,
       aggregatedResults: seriesWithFormulas,
+      ...(arrivals ? { arrivals } : {}),
     });
   }
 
@@ -1626,6 +1669,10 @@ export const monitorMetric: MonitorMetricFunction = async (data: {
 
   const finalResult: Array<AggregatedResult> = [];
 
+  // When each query's series got their data, where that was read.
+  const perQueryArrivals: Array<QueryArrivals | null> = [];
+  const judgesFreshness: boolean = stepJudgesFreshness(data.monitorStep);
+
   // What each query was read with, for what it is judged against.
   const readAttributes: Array<Dictionary<unknown> | undefined> = [];
 
@@ -1729,6 +1776,17 @@ export const monitorMetric: MonitorMetricFunction = async (data: {
       }),
     );
 
+    perQueryArrivals.push(
+      await readQueryArrivals({
+        query: query,
+        groupByAttributeKeys: groupByAttributeKeys,
+        aggregatedResult: aggregatedResults,
+        startAndEndDate: startAndEndDate,
+        judgesFreshness: judgesFreshness,
+        projectId: data.projectId,
+      }),
+    );
+
     logger.debug("Aggregated results", {
       service: "workers",
       projectId: data.projectId.toString(),
@@ -1776,6 +1834,7 @@ export const monitorMetric: MonitorMetricFunction = async (data: {
           formulaConfigs:
             metricMonitorConfig.metricViewConfig.formulaConfigs || [],
           perQueryResults: resultsInDisplayUnit,
+          perQueryArrivals: perQueryArrivals,
           attributeKeys: groupByAttributeKeys,
           projectId: data.projectId,
         })
@@ -1809,6 +1868,11 @@ export const monitorMetric: MonitorMetricFunction = async (data: {
     metricViewConfig: metricMonitorConfig.metricViewConfig,
     startAndEndDate: startAndEndDate,
     dataCompleteFrom: dataCompleteFrom,
+    metricResultArrivals: getSlotArrivals({
+      perQueryArrivals: perQueryArrivals,
+      queryConfigs: metricMonitorConfig.metricViewConfig.queryConfigs,
+      formulaConfigs: metricMonitorConfig.metricViewConfig.formulaConfigs,
+    }),
     metricResult: resultsWithFormulas,
     queryAttributes: readAttributes,
     monitorId: data.monitorId,
@@ -2029,6 +2093,10 @@ export const monitorKubernetes: MonitorKubernetesFunction = async (data: {
 
   const finalResult: Array<AggregatedResult> = [];
 
+  // When each query's series got their data, where that was read.
+  const perQueryArrivals: Array<QueryArrivals | null> = [];
+  const judgesFreshness: boolean = stepJudgesFreshness(data.monitorStep);
+
   // What each query was read with, for what it is judged against.
   const readAttributes: Array<Dictionary<unknown> | undefined> = [];
 
@@ -2150,6 +2218,7 @@ export const monitorKubernetes: MonitorKubernetesFunction = async (data: {
       groupByAttributeKeys: groupByAttributeKeys,
       groupBy: queryConfig.metricQueryData.groupBy,
       startAndEndDate: startAndEndDate,
+      judgesFreshness: judgesFreshness,
     });
 
     const aggregatedResults: AggregatedResult = dataPoints.aggregatedResult;
@@ -2166,6 +2235,7 @@ export const monitorKubernetes: MonitorKubernetesFunction = async (data: {
     });
 
     finalResult.push(aggregatedResults);
+    perQueryArrivals.push(dataPoints.arrivals);
     /*
      * Without the pods that have finished, which only say what this window
      * reads: their earlier days are not what they hold now, and a baseline
@@ -2236,6 +2306,7 @@ export const monitorKubernetes: MonitorKubernetesFunction = async (data: {
           formulaConfigs:
             kubernetesMonitorConfig.metricViewConfig.formulaConfigs || [],
           perQueryResults: resultsInDisplayUnit,
+          perQueryArrivals: perQueryArrivals,
           attributeKeys: groupByAttributeKeys,
           projectId: data.projectId,
         })
@@ -2246,6 +2317,11 @@ export const monitorKubernetes: MonitorKubernetesFunction = async (data: {
     metricViewConfig: kubernetesMonitorConfig.metricViewConfig,
     startAndEndDate: startAndEndDate,
     dataCompleteFrom: dataCompleteFrom,
+    metricResultArrivals: getSlotArrivals({
+      perQueryArrivals: perQueryArrivals,
+      queryConfigs: kubernetesMonitorConfig.metricViewConfig.queryConfigs,
+      formulaConfigs: kubernetesMonitorConfig.metricViewConfig.formulaConfigs,
+    }),
     metricResult: resultsWithFormulas,
     queryAttributes: readAttributes,
     monitorId: data.monitorId,
@@ -2285,6 +2361,10 @@ export const monitorDocker: MonitorDockerFunction = async (data: {
     );
 
   const finalResult: Array<AggregatedResult> = [];
+
+  // When each query's series got their data, where that was read.
+  const perQueryArrivals: Array<QueryArrivals | null> = [];
+  const judgesFreshness: boolean = stepJudgesFreshness(data.monitorStep);
 
   // What each query was read with, for what it is judged against.
   const readAttributes: Array<Dictionary<unknown> | undefined> = [];
@@ -2358,6 +2438,7 @@ export const monitorDocker: MonitorDockerFunction = async (data: {
       groupByAttributeKeys: groupByAttributeKeys,
       groupBy: queryConfig.metricQueryData.groupBy,
       startAndEndDate: startAndEndDate,
+      judgesFreshness: judgesFreshness,
     });
 
     const aggregatedResults: AggregatedResult = dataPoints.aggregatedResult;
@@ -2370,6 +2451,7 @@ export const monitorDocker: MonitorDockerFunction = async (data: {
     });
 
     finalResult.push(aggregatedResults);
+    perQueryArrivals.push(dataPoints.arrivals);
     readAttributes.push(getReadAttributes(query));
   }
 
@@ -2400,6 +2482,7 @@ export const monitorDocker: MonitorDockerFunction = async (data: {
           formulaConfigs:
             dockerMonitorConfig.metricViewConfig.formulaConfigs || [],
           perQueryResults: resultsInDisplayUnit,
+          perQueryArrivals: perQueryArrivals,
           attributeKeys: groupByAttributeKeys,
           projectId: data.projectId,
         })
@@ -2410,6 +2493,11 @@ export const monitorDocker: MonitorDockerFunction = async (data: {
     metricViewConfig: dockerMonitorConfig.metricViewConfig,
     startAndEndDate: startAndEndDate,
     dataCompleteFrom: dataCompleteFrom,
+    metricResultArrivals: getSlotArrivals({
+      perQueryArrivals: perQueryArrivals,
+      queryConfigs: dockerMonitorConfig.metricViewConfig.queryConfigs,
+      formulaConfigs: dockerMonitorConfig.metricViewConfig.formulaConfigs,
+    }),
     metricResult: resultsWithFormulas,
     queryAttributes: readAttributes,
     seriesBreakdown: seriesBreakdown,
@@ -2449,6 +2537,10 @@ export const monitorHost: MonitorHostFunction = async (data: {
     );
 
   const finalResult: Array<AggregatedResult> = [];
+
+  // When each query's series got their data, where that was read.
+  const perQueryArrivals: Array<QueryArrivals | null> = [];
+  const judgesFreshness: boolean = stepJudgesFreshness(data.monitorStep);
 
   // What each query was read with, for what it is judged against.
   const readAttributes: Array<Dictionary<unknown> | undefined> = [];
@@ -2509,6 +2601,7 @@ export const monitorHost: MonitorHostFunction = async (data: {
       groupByAttributeKeys: groupByAttributeKeys,
       groupBy: queryConfig.metricQueryData.groupBy,
       startAndEndDate: startAndEndDate,
+      judgesFreshness: judgesFreshness,
     });
 
     const aggregatedResults: AggregatedResult = dataPoints.aggregatedResult;
@@ -2521,6 +2614,7 @@ export const monitorHost: MonitorHostFunction = async (data: {
     });
 
     finalResult.push(aggregatedResults);
+    perQueryArrivals.push(dataPoints.arrivals);
     readAttributes.push(getReadAttributes(query));
   }
 
@@ -2551,6 +2645,7 @@ export const monitorHost: MonitorHostFunction = async (data: {
           formulaConfigs:
             hostMonitorConfig.metricViewConfig.formulaConfigs || [],
           perQueryResults: resultsInDisplayUnit,
+          perQueryArrivals: perQueryArrivals,
           attributeKeys: groupByAttributeKeys,
           projectId: data.projectId,
         })
@@ -2581,6 +2676,11 @@ export const monitorHost: MonitorHostFunction = async (data: {
     metricViewConfig: hostMonitorConfig.metricViewConfig,
     startAndEndDate: startAndEndDate,
     dataCompleteFrom: dataCompleteFrom,
+    metricResultArrivals: getSlotArrivals({
+      perQueryArrivals: perQueryArrivals,
+      queryConfigs: hostMonitorConfig.metricViewConfig.queryConfigs,
+      formulaConfigs: hostMonitorConfig.metricViewConfig.formulaConfigs,
+    }),
     metricResult: resultsWithFormulas,
     queryAttributes: readAttributes,
     seriesBreakdown: seriesBreakdown,
@@ -2620,6 +2720,10 @@ export const monitorPodman: MonitorPodmanFunction = async (data: {
     );
 
   const finalResult: Array<AggregatedResult> = [];
+
+  // When each query's series got their data, where that was read.
+  const perQueryArrivals: Array<QueryArrivals | null> = [];
+  const judgesFreshness: boolean = stepJudgesFreshness(data.monitorStep);
 
   // What each query was read with, for what it is judged against.
   const readAttributes: Array<Dictionary<unknown> | undefined> = [];
@@ -2693,6 +2797,7 @@ export const monitorPodman: MonitorPodmanFunction = async (data: {
       groupByAttributeKeys: groupByAttributeKeys,
       groupBy: queryConfig.metricQueryData.groupBy,
       startAndEndDate: startAndEndDate,
+      judgesFreshness: judgesFreshness,
     });
 
     const aggregatedResults: AggregatedResult = dataPoints.aggregatedResult;
@@ -2705,6 +2810,7 @@ export const monitorPodman: MonitorPodmanFunction = async (data: {
     });
 
     finalResult.push(aggregatedResults);
+    perQueryArrivals.push(dataPoints.arrivals);
     readAttributes.push(getReadAttributes(query));
   }
 
@@ -2735,6 +2841,7 @@ export const monitorPodman: MonitorPodmanFunction = async (data: {
           formulaConfigs:
             podmanMonitorConfig.metricViewConfig.formulaConfigs || [],
           perQueryResults: resultsInDisplayUnit,
+          perQueryArrivals: perQueryArrivals,
           attributeKeys: groupByAttributeKeys,
           projectId: data.projectId,
         })
@@ -2745,6 +2852,11 @@ export const monitorPodman: MonitorPodmanFunction = async (data: {
     metricViewConfig: podmanMonitorConfig.metricViewConfig,
     startAndEndDate: startAndEndDate,
     dataCompleteFrom: dataCompleteFrom,
+    metricResultArrivals: getSlotArrivals({
+      perQueryArrivals: perQueryArrivals,
+      queryConfigs: podmanMonitorConfig.metricViewConfig.queryConfigs,
+      formulaConfigs: podmanMonitorConfig.metricViewConfig.formulaConfigs,
+    }),
     metricResult: resultsWithFormulas,
     queryAttributes: readAttributes,
     seriesBreakdown: seriesBreakdown,
@@ -2791,6 +2903,10 @@ export const monitorProxmox: MonitorProxmoxFunction = async (data: {
     );
 
   const finalResult: Array<AggregatedResult> = [];
+
+  // When each query's series got their data, where that was read.
+  const perQueryArrivals: Array<QueryArrivals | null> = [];
+  const judgesFreshness: boolean = stepJudgesFreshness(data.monitorStep);
 
   // What each query was read with, for what it is judged against.
   const readAttributes: Array<Dictionary<unknown> | undefined> = [];
@@ -2887,6 +3003,7 @@ export const monitorProxmox: MonitorProxmoxFunction = async (data: {
       groupByAttributeKeys: groupByAttributeKeys,
       groupBy: queryConfig.metricQueryData.groupBy,
       startAndEndDate: startAndEndDate,
+      judgesFreshness: judgesFreshness,
     });
 
     const aggregatedResults: AggregatedResult = dataPoints.aggregatedResult;
@@ -2899,6 +3016,7 @@ export const monitorProxmox: MonitorProxmoxFunction = async (data: {
     });
 
     finalResult.push(aggregatedResults);
+    perQueryArrivals.push(dataPoints.arrivals);
     readAttributes.push(getReadAttributes(query));
 
     // Fetch raw metrics to extract per-resource Proxmox context
@@ -2962,6 +3080,7 @@ export const monitorProxmox: MonitorProxmoxFunction = async (data: {
           formulaConfigs:
             proxmoxMonitorConfig.metricViewConfig.formulaConfigs || [],
           perQueryResults: resultsInDisplayUnit,
+          perQueryArrivals: perQueryArrivals,
           attributeKeys: groupByAttributeKeys,
           projectId: data.projectId,
         })
@@ -2972,6 +3091,11 @@ export const monitorProxmox: MonitorProxmoxFunction = async (data: {
     metricViewConfig: proxmoxMonitorConfig.metricViewConfig,
     startAndEndDate: startAndEndDate,
     dataCompleteFrom: dataCompleteFrom,
+    metricResultArrivals: getSlotArrivals({
+      perQueryArrivals: perQueryArrivals,
+      queryConfigs: proxmoxMonitorConfig.metricViewConfig.queryConfigs,
+      formulaConfigs: proxmoxMonitorConfig.metricViewConfig.formulaConfigs,
+    }),
     metricResult: resultsWithFormulas,
     queryAttributes: readAttributes,
     proxmoxResourceBreakdowns:
@@ -3281,6 +3405,10 @@ export const monitorVMware: MonitorVMwareFunction = async (data: {
 
   const finalResult: Array<AggregatedResult> = [];
 
+  // When each query's series got their data, where that was read.
+  const perQueryArrivals: Array<QueryArrivals | null> = [];
+  const judgesFreshness: boolean = stepJudgesFreshness(data.monitorStep);
+
   // What each query was read with, for what it is judged against.
   const readAttributes: Array<Dictionary<unknown> | undefined> = [];
 
@@ -3351,6 +3479,7 @@ export const monitorVMware: MonitorVMwareFunction = async (data: {
       groupByAttributeKeys: groupByAttributeKeys,
       groupBy: queryConfig.metricQueryData.groupBy,
       startAndEndDate: startAndEndDate,
+      judgesFreshness: judgesFreshness,
     });
 
     const aggregatedResults: AggregatedResult = dataPoints.aggregatedResult;
@@ -3363,6 +3492,7 @@ export const monitorVMware: MonitorVMwareFunction = async (data: {
     });
 
     finalResult.push(aggregatedResults);
+    perQueryArrivals.push(dataPoints.arrivals);
     readAttributes.push(getReadAttributes(query));
 
     /*
@@ -3430,6 +3560,7 @@ export const monitorVMware: MonitorVMwareFunction = async (data: {
           formulaConfigs:
             vmwareMonitorConfig.metricViewConfig.formulaConfigs || [],
           perQueryResults: resultsInDisplayUnit,
+          perQueryArrivals: perQueryArrivals,
           attributeKeys: groupByAttributeKeys,
           projectId: data.projectId,
         })
@@ -3440,6 +3571,11 @@ export const monitorVMware: MonitorVMwareFunction = async (data: {
     metricViewConfig: vmwareMonitorConfig.metricViewConfig,
     startAndEndDate: startAndEndDate,
     dataCompleteFrom: dataCompleteFrom,
+    metricResultArrivals: getSlotArrivals({
+      perQueryArrivals: perQueryArrivals,
+      queryConfigs: vmwareMonitorConfig.metricViewConfig.queryConfigs,
+      formulaConfigs: vmwareMonitorConfig.metricViewConfig.formulaConfigs,
+    }),
     metricResult: resultsWithFormulas,
     queryAttributes: readAttributes,
     vmwareResourceBreakdowns:
@@ -3479,6 +3615,10 @@ export const monitorIoT: MonitorIoTFunction = async (data: {
     );
 
   const finalResult: Array<AggregatedResult> = [];
+
+  // When each query's series got their data, where that was read.
+  const perQueryArrivals: Array<QueryArrivals | null> = [];
+  const judgesFreshness: boolean = stepJudgesFreshness(data.monitorStep);
 
   // What each query was read with, for what it is judged against.
   const readAttributes: Array<Dictionary<unknown> | undefined> = [];
@@ -3584,6 +3724,7 @@ export const monitorIoT: MonitorIoTFunction = async (data: {
       groupByAttributeKeys: groupByAttributeKeys,
       groupBy: queryConfig.metricQueryData.groupBy,
       startAndEndDate: startAndEndDate,
+      judgesFreshness: judgesFreshness,
     });
 
     const aggregatedResults: AggregatedResult = dataPoints.aggregatedResult;
@@ -3596,6 +3737,7 @@ export const monitorIoT: MonitorIoTFunction = async (data: {
     });
 
     finalResult.push(aggregatedResults);
+    perQueryArrivals.push(dataPoints.arrivals);
     readAttributes.push(getReadAttributes(query));
   }
 
@@ -3626,6 +3768,7 @@ export const monitorIoT: MonitorIoTFunction = async (data: {
           formulaConfigs:
             iotMonitorConfig.metricViewConfig.formulaConfigs || [],
           perQueryResults: resultsInDisplayUnit,
+          perQueryArrivals: perQueryArrivals,
           attributeKeys: groupByAttributeKeys,
           projectId: data.projectId,
         })
@@ -3677,6 +3820,11 @@ export const monitorIoT: MonitorIoTFunction = async (data: {
     metricViewConfig: iotMonitorConfig.metricViewConfig,
     startAndEndDate: startAndEndDate,
     dataCompleteFrom: dataCompleteFrom,
+    metricResultArrivals: getSlotArrivals({
+      perQueryArrivals: perQueryArrivals,
+      queryConfigs: iotMonitorConfig.metricViewConfig.queryConfigs,
+      formulaConfigs: iotMonitorConfig.metricViewConfig.formulaConfigs,
+    }),
     metricResult: resultsWithFormulas,
     queryAttributes: readAttributes,
     seriesBreakdown: seriesBreakdown,
@@ -3716,6 +3864,10 @@ export const monitorDockerSwarm: MonitorDockerSwarmFunction = async (data: {
     );
 
   const finalResult: Array<AggregatedResult> = [];
+
+  // When each query's series got their data, where that was read.
+  const perQueryArrivals: Array<QueryArrivals | null> = [];
+  const judgesFreshness: boolean = stepJudgesFreshness(data.monitorStep);
 
   // What each query was read with, for what it is judged against.
   const readAttributes: Array<Dictionary<unknown> | undefined> = [];
@@ -3870,6 +4022,7 @@ export const monitorDockerSwarm: MonitorDockerSwarmFunction = async (data: {
       groupByAttributeKeys: groupByAttributeKeys,
       groupBy: queryConfig.metricQueryData.groupBy,
       startAndEndDate: startAndEndDate,
+      judgesFreshness: judgesFreshness,
     });
 
     const aggregatedResults: AggregatedResult = dataPoints.aggregatedResult;
@@ -3882,6 +4035,7 @@ export const monitorDockerSwarm: MonitorDockerSwarmFunction = async (data: {
     });
 
     finalResult.push(aggregatedResults);
+    perQueryArrivals.push(dataPoints.arrivals);
     readAttributes.push(getReadAttributes(query));
 
     /*
@@ -3955,6 +4109,7 @@ export const monitorDockerSwarm: MonitorDockerSwarmFunction = async (data: {
           formulaConfigs:
             dockerSwarmMonitorConfig.metricViewConfig.formulaConfigs || [],
           perQueryResults: resultsInDisplayUnit,
+          perQueryArrivals: perQueryArrivals,
           attributeKeys: groupByAttributeKeys,
           projectId: data.projectId,
         })
@@ -3965,6 +4120,11 @@ export const monitorDockerSwarm: MonitorDockerSwarmFunction = async (data: {
     metricViewConfig: dockerSwarmMonitorConfig.metricViewConfig,
     startAndEndDate: startAndEndDate,
     dataCompleteFrom: dataCompleteFrom,
+    metricResultArrivals: getSlotArrivals({
+      perQueryArrivals: perQueryArrivals,
+      queryConfigs: dockerSwarmMonitorConfig.metricViewConfig.queryConfigs,
+      formulaConfigs: dockerSwarmMonitorConfig.metricViewConfig.formulaConfigs,
+    }),
     metricResult: resultsWithFormulas,
     queryAttributes: readAttributes,
     dockerSwarmResourceBreakdowns:
@@ -4004,6 +4164,10 @@ export const monitorCeph: MonitorCephFunction = async (data: {
     );
 
   const finalResult: Array<AggregatedResult> = [];
+
+  // When each query's series got their data, where that was read.
+  const perQueryArrivals: Array<QueryArrivals | null> = [];
+  const judgesFreshness: boolean = stepJudgesFreshness(data.monitorStep);
 
   // What each query was read with, for what it is judged against.
   const readAttributes: Array<Dictionary<unknown> | undefined> = [];
@@ -4089,6 +4253,7 @@ export const monitorCeph: MonitorCephFunction = async (data: {
       groupByAttributeKeys: groupByAttributeKeys,
       groupBy: queryConfig.metricQueryData.groupBy,
       startAndEndDate: startAndEndDate,
+      judgesFreshness: judgesFreshness,
     });
 
     const aggregatedResults: AggregatedResult = dataPoints.aggregatedResult;
@@ -4101,6 +4266,7 @@ export const monitorCeph: MonitorCephFunction = async (data: {
     });
 
     finalResult.push(aggregatedResults);
+    perQueryArrivals.push(dataPoints.arrivals);
     readAttributes.push(getReadAttributes(query));
 
     // Fetch raw metrics to extract per-resource Ceph context
@@ -4164,6 +4330,7 @@ export const monitorCeph: MonitorCephFunction = async (data: {
           formulaConfigs:
             cephMonitorConfig.metricViewConfig.formulaConfigs || [],
           perQueryResults: resultsInDisplayUnit,
+          perQueryArrivals: perQueryArrivals,
           attributeKeys: groupByAttributeKeys,
           projectId: data.projectId,
         })
@@ -4174,6 +4341,11 @@ export const monitorCeph: MonitorCephFunction = async (data: {
     metricViewConfig: cephMonitorConfig.metricViewConfig,
     startAndEndDate: startAndEndDate,
     dataCompleteFrom: dataCompleteFrom,
+    metricResultArrivals: getSlotArrivals({
+      perQueryArrivals: perQueryArrivals,
+      queryConfigs: cephMonitorConfig.metricViewConfig.queryConfigs,
+      formulaConfigs: cephMonitorConfig.metricViewConfig.formulaConfigs,
+    }),
     metricResult: resultsWithFormulas,
     queryAttributes: readAttributes,
     cephResourceBreakdowns:
@@ -4287,6 +4459,10 @@ export const monitorStorageArray: MonitorStorageArrayFunction = async (data: {
 
   const finalResult: Array<AggregatedResult> = [];
 
+  // When each query's series got their data, where that was read.
+  const perQueryArrivals: Array<QueryArrivals | null> = [];
+  const judgesFreshness: boolean = stepJudgesFreshness(data.monitorStep);
+
   // What each query was read with, for what it is judged against.
   const readAttributes: Array<Dictionary<unknown> | undefined> = [];
 
@@ -4360,6 +4536,7 @@ export const monitorStorageArray: MonitorStorageArrayFunction = async (data: {
       groupByAttributeKeys: groupByAttributeKeys,
       groupBy: queryConfig.metricQueryData.groupBy,
       startAndEndDate: startAndEndDate,
+      judgesFreshness: judgesFreshness,
     });
 
     const aggregatedResults: AggregatedResult = dataPoints.aggregatedResult;
@@ -4372,6 +4549,7 @@ export const monitorStorageArray: MonitorStorageArrayFunction = async (data: {
     });
 
     finalResult.push(aggregatedResults);
+    perQueryArrivals.push(dataPoints.arrivals);
     readAttributes.push(getReadAttributes(query));
 
     // Fetch raw metrics to extract per-object storage array context
@@ -4452,6 +4630,7 @@ export const monitorStorageArray: MonitorStorageArrayFunction = async (data: {
           formulaConfigs:
             storageArrayMonitorConfig.metricViewConfig.formulaConfigs || [],
           perQueryResults: resultsInDisplayUnit,
+          perQueryArrivals: perQueryArrivals,
           attributeKeys: groupByAttributeKeys,
           projectId: data.projectId,
         })
@@ -4462,6 +4641,11 @@ export const monitorStorageArray: MonitorStorageArrayFunction = async (data: {
     metricViewConfig: storageArrayMonitorConfig.metricViewConfig,
     startAndEndDate: startAndEndDate,
     dataCompleteFrom: dataCompleteFrom,
+    metricResultArrivals: getSlotArrivals({
+      perQueryArrivals: perQueryArrivals,
+      queryConfigs: storageArrayMonitorConfig.metricViewConfig.queryConfigs,
+      formulaConfigs: storageArrayMonitorConfig.metricViewConfig.formulaConfigs,
+    }),
     metricResult: resultsWithFormulas,
     queryAttributes: readAttributes,
     storageArrayResourceBreakdowns:

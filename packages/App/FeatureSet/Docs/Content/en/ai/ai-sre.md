@@ -36,6 +36,7 @@ An analysis that finds no cause is posted quietly, without paging anyone (see [Q
 When an investigation finishes, OneUptime AI posts a root cause analysis with these sections:
 
 - **Summary** — one or two sentences a paged engineer can read in five seconds.
+- **Impact** — who and what it hurts, and how the investigation knows: how many users or requests it hurts and since when, counted from the telemetry with what was counted (failed requests are not users), the services it reaches, and the SLOs it burns, with how much of each one's error budget is left and how fast it is burning. Each comes with its number and how it was worked out, cited, and what the data does not show is said, never guessed. The card shows it right under the summary, one line each for the users, the services and the SLOs.
 - **Most likely root cause** — the hypothesis, with only the confidence the evidence supports, each factual claim cited. If the telemetry is insufficient, the AI says so plainly and lists what it checked instead of guessing.
 - **Evidence** — the key findings that support or rule out the hypothesis, each cited.
 - **Ruled out** — the other likely causes it checked, such as a recent change, a capacity limit, a dependency or the cloud underneath, each with the cited evidence that rules it out. The card lists them one a line. An analysis that checked no other cause leaves it out.
@@ -66,9 +67,10 @@ An investigation starts from the incident or alert and from the infrastructure i
 - The infrastructure's own metrics, read the way people read them. Host metrics such as `system.cpu.utilization` and `system.memory.utilization` are reported once per state, and the states add up to 100%, so one average across them says nothing. OneUptime AI reads them one state at a time (busy CPU is user plus system), and any metric per container, per mount point or by any other attribute.
 - The containers of a Docker or Podman host: the busiest by CPU, memory or restarts, and the ones that stopped reporting. A stopped container sends nothing rather than zero, so numbers for the whole host hide it.
 - The changes recorded in the two hours before the incident or alert - deploys, Kubernetes rollouts, config changes and the fixes OneUptime ran - and which of them its services' telemetry makes suspects: a service that got measurably worse right after a change. See [Deploys and Changes](/docs/telemetry/change-events).
-- The project's resolved incidents that share the incident's monitors or labels: how each was resolved and, when OneUptime AI's fix of one was verified, what that fix ran, so a recurrence names the fix that worked last time. Private incidents are left out.
+- The SLOs linked to the incident or alert, and the SLOs that count its monitors, up to 5: each one's status, how it measures against its target, how much of its error budget is left and how fast it is burning it, which the analysis's impact reads.
+- The project's resolved incidents that share the incident's monitors or labels: how each was resolved and, when OneUptime AI's fix of one was verified, what that fix ran, so a recurrence names the fix that worked last time. Private incidents are left out. An alert's investigation reads the project's resolved alerts the same way: those of its monitor, the ones of the same host, pod or queue first, and those with its labels, with how each was resolved and the verified fix OneUptime AI made for it. Private alerts are left out.
 
-The investigation's activity on the **OneUptime AI** card says how many open or recent alerts it read, and on which resources.
+The investigation's activity on the **OneUptime AI** card says how many open or recent alerts it read, and on which resources. An App Platforms environment is named as a cloud environment.
 
 ### Checked again when a new alert opens
 
@@ -270,7 +272,7 @@ The cluster's **AI Insights** page (AI → Insights) tells you what is worth kno
 - **Other problems** — everything else AI looked into, grouped by what raised them (one monitor is one problem, however many pods or nodes it fired for), the most frequent first: how often, which namespaces, workloads, pods or nodes they hit, what the latest investigation found and suggests, what happened to the fixes AI proposed, and what your team and the grader said of the findings. A problem that came up more than once is marked **Recurring**, **New this week** or **Getting worse**.
 - **Where problems happen** — the parts of the cluster that came up the most, and in how many different problems.
 - **Spotted before anything paged** — the other open insights the detectors filed against the cluster's own telemetry.
-- **What OneUptime AI did here** — the footnote: how many investigations, fixes and commands there were and how many of them failed, investigations per day, where the fixes AI proposed ended up and whether the applied ones resolved the problem, and what went wrong with AI's own work (failed investigations, commands the agent never picked up, findings your team rejected), each with where to look.
+- **What OneUptime AI did here** — the footnote: how many investigations, fixes and commands there were and how many of them failed, investigations per day, where the fixes AI proposed ended up and whether the applied ones resolved the problem, and what went wrong with AI's own work (failed investigations, commands the agent never picked up, findings your team rejected), each with where to look. Once a fix was approved from Slack or Microsoft Teams, it also says where the fixes were approved: in OneUptime, in Slack or in Microsoft Teams.
 
 With **Enable AI** off for the project, or no LLM provider OneUptime AI can use, the page says so at the top: nothing new is investigated, so nothing new shows up.
 
@@ -423,6 +425,8 @@ Each fix reads as the steps it went through, in the order they happened, one lin
 - **What it does, in plain words.** A cloud change says it above its exact command, such as "Scale the ECS service checkout-api out to 8 tasks". The words are read from the command itself, never from what the model wrote, and the command is what runs.
 - **How the same change went before.** When OneUptime AI made the same change on the same cluster or resource for other incidents and alerts in the last 90 days, the change says how often it worked, such as "Worked all 3 times it ran here before", with a link to each incident and alert it ran for, and in red when it never worked. A change worked when verification found its fix worked; a change that never ran is not counted. The same change is the same action on the same object, whatever its numbers: a scale to 6 and a scale to 8 are one change. Private incidents and alerts are neither named nor counted.
 
+A runbook OneUptime AI proposes says the same of itself, right over **Approve & Run**: how often it worked the last times OneUptime AI ran it for other incidents and alerts here, in the last 90 days, with a link to each. OneUptime AI reads each runbook's record before it picks one, too.
+
 OneUptime AI reads the same record before it plans: when the evidence matches a fix that worked here before, it tries that fix first, and it does not propose again a change that did not work unless it says why it would work now.
 
 ### Approve or dismiss a fix from Slack or Microsoft Teams
@@ -434,6 +438,8 @@ When a fix waits for approval, its message in the incident's or alert's Slack an
 - **View in OneUptime** opens the incident or alert.
 
 A press is checked as the card's buttons are: your chat account must be connected to OneUptime, you must be allowed to approve fixes in the project and to see the incident or alert, and a fix to a cluster or resource needs permission to edit it. A fix that changed after its message was posted is refused, and nothing runs. A press after someone else approved or dismissed the fix says who did, and when. The incident's or alert's feed says who approved or dismissed it, and from which chat.
+
+Dismissing a fix needs what approving one does, on the card as in a chat: permission to start runbook executions in the project. On the card, its button is **Dismiss fix**. Once a fix is approved, its approval step on the card says where too, such as "Approved by Maya Chen in Slack".
 
 ## OneUptime AI responds first
 
@@ -459,7 +465,7 @@ The **AI** section of the Incidents and Alerts side menus opens on two pages tha
   - **What OneUptime AI found** — the few things that matter most, each with the incidents behind it and one next step: an incident that keeps coming back (how often and how much of everything that is, whether it is new this week or getting worse, when it tends to start, the monitors that raised it, what AI found and the step it suggests), a fix that did not help or waits for approval, the incidents AI did not look into and why (with the way to the setting that decides it, for whoever may change it), the service or monitor behind several different problems, what AI fixed on its own, and — when your team approved every fix AI proposed — the way to let AI apply fixes like these on its own.
   - **Other problems** — the rest of what AI looked into, grouped by the monitor that raised them (by title when there is none), the most frequent first: how often, the monitors behind them, which hosts, pods or other parts they hit, what the latest investigation found and suggests, what happened to the fixes AI proposed, and what your team and the automatic grading made of the findings.
   - **Monitors that keep failing** and **Services that keep failing** — the monitors behind, and the services affected by, the most incidents of the 30 days, investigated or not.
-  - **What OneUptime AI did here** — the footnote: how many investigations there were and how many of the incidents created in the 30 days AI investigated, the fixes and commands and how many of them failed, investigations per day, where the fixes and the fix pull requests ended up, and why AI did not investigate the others, with the way to the AI settings that decide it.
+  - **What OneUptime AI did here** — the footnote: how many investigations there were and how many of the incidents created in the 30 days AI investigated, the fixes and commands and how many of them failed, investigations per day, where the fixes and the fix pull requests ended up, and why AI did not investigate the others, with the way to the AI settings that decide it. Once a fix was approved from Slack or Microsoft Teams, it also says where the fixes were approved: in OneUptime, in Slack or in Microsoft Teams.
 
   Seeing the fix numbers needs permission to read auto-remediation suggestions; without it they are left out, not shown as zero.
 - **Logs** (**Incidents → AI → Logs**, **Alerts → AI → Logs**) — every investigation, fix, fix pull request and command, newest first, each linked to its incident or alert. An investigation's summary is its TL;DR or, when no TL;DR could be written, the summary its report opens with. Filter it to one kind, and use **Load older entries** to page back. Commands need permission to read Runner jobs and fixes permission to read auto-remediation suggestions; the page says which kinds it leaves out for your role.

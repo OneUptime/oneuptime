@@ -1785,6 +1785,27 @@ jobs:
           Tests/Server/Services/StatusPagePrivateUserMagicLinkPostgres.test.ts
           --forceExit
 
+      # Clones the migrated User and GlobalConfig tables into an isolated
+      # schema: an account's sign-in link (Types/Accounts/MagicLink) is found
+      # by its token's hash and spent once - of many requests racing with one
+      # link, exactly one spends it; an expired link, another account's, a
+      # removed account's and a token that is not the link find nothing; a
+      # newer link replaces the older; no account holds a link until one is
+      # asked for, and the server takes them until a master admin turns them
+      # off (AddMagicLinkLogin).
+      - name: Test account sign-in links on migrated Postgres
+        if: matrix.shard == 1
+        working-directory: packages/Common
+        env:
+          RUN_POSTGRES_USER_MAGIC_LINK_TESTS: "true"
+          USER_MAGIC_LINK_TEST_DATABASE_HOST: ${{ env.DATABASE_MIGRATIONS_HOST }}
+          USER_MAGIC_LINK_TEST_DATABASE_PORT: ${{ env.DATABASE_MIGRATIONS_PORT }}
+          USER_MAGIC_LINK_TEST_DATABASE_NAME: ${{ env.DATABASE_NAME }}
+        run: >-
+          node --max-old-space-size=4096 node_modules/.bin/jest --runInBand
+          Tests/Server/Services/UserMagicLinkPostgres.test.ts
+          --forceExit
+
       # Clones the migrated UserSession and GlobalConfig tables into an
       # isolated schema: a master admin's session length or idle timeout
       # (Admin Dashboard > Settings > Session Length) ends, at once and by

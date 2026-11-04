@@ -150,6 +150,7 @@ type RuleMethodColumn =
   | "userTelegramId"
   | "userSlackId"
   | "userMicrosoftTeamsId"
+  | "userMattermostId"
   | "userWebhookId"
   | "customNotificationChannelId";
 
@@ -169,6 +170,7 @@ const METHOD_COLUMNS: Array<RuleMethodColumn> = [
   "userTelegramId",
   "userSlackId",
   "userMicrosoftTeamsId",
+  "userMattermostId",
   "userWebhookId",
   "customNotificationChannelId",
 ];

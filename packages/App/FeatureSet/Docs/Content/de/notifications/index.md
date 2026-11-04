@@ -27,7 +27,7 @@ flowchart TB
 
 | Seite | Was sie enthält | Die Frage, die sie beantwortet |
 | --- | --- | --- |
-| **Benachrichtigungsmethoden** | Ihre E-Mail-Adressen, Telefonnummern, WhatsApp-Nummern, Telegram-, Slack- und Microsoft Teams-Konten, Push-Geräte und Webhooks | Wo kann OneUptime mich erreichen? |
+| **Benachrichtigungsmethoden** | Ihre E-Mail-Adressen, Telefonnummern, WhatsApp-Nummern, Telegram-, Slack-, Microsoft Teams- und Mattermost-Konten, Push-Geräte und Webhooks | Wo kann OneUptime mich erreichen? |
 | **Bereitschaftsregeln** | Für jede Art von Alarm und jeden Schweregrad: welche Methode versucht wird und nach welcher Zeit | Wie werde ich in der Bereitschaft alarmiert? |
 | **Benachrichtigungseinstellungen** | Für jedes Ereignis zu einem Datensatz, der Ihnen gehört, oder zu Ihren Schichten: welche Kanäle genutzt werden | Wovon erfahre ich sonst noch, und wo? |
 
@@ -48,9 +48,9 @@ Sie sind mit Absicht getrennt. Jeden Kanal in den **Benachrichtigungseinstellung
 | **Richtlinie für eingehende Anrufe** | **Eingehende Telefonnummern**: die Nummer, unter der eine Richtlinie für eingehende Anrufe Sie anruft |
 | **Kalender** | **Kalender-Feed**: Ihre Schichten in Ihrer Kalender-App, und Erinnerungen, bevor sie beginnen |
 | **Profil** | **Benutzerdefinierte Felder**: Angaben, die Ihr Projekt von seinen Mitgliedern erfragt |
-| **Arbeitsbereich** | **Slack** und **Microsoft Teams**: Ihr eigenes Konto, in jedem Arbeitsbereich, den das Projekt verbunden hat |
+| **Arbeitsbereich** | **Slack**, **Microsoft Teams** und **Mattermost**: Ihr eigenes Konto, in jedem Arbeitsbereich, den das Projekt verbunden hat |
 
-**Erste Schritte** und **Warnungen & Benachrichtigungen** sind geöffnet; die anderen Abschnitte starten eingeklappt, und ein Abschnitt öffnet sich von selbst, wenn Sie auf einer seiner Seiten sind. **Arbeitsbereich** erscheint nur, wenn das Projekt Slack oder Microsoft Teams verbunden hat.
+**Erste Schritte** und **Warnungen & Benachrichtigungen** sind geöffnet; die anderen Abschnitte starten eingeklappt, und ein Abschnitt öffnet sich von selbst, wenn Sie auf einer seiner Seiten sind. **Arbeitsbereich** erscheint nur, wenn das Projekt Slack, Microsoft Teams oder Mattermost verbunden hat.
 
 Projekteigentümer und Admins können Ihre Einrichtung ebenfalls ansehen: Unter **Benutzer** öffnen sie Ihre Zeile und deren Abschnitt **Bereitschaft**, mit **Einsatzbereitschaft**, **Benachrichtigungsmethoden** und **Bereitschaftsregeln**. Sie können dort eine Methode für Sie hinzufügen, aber der Code geht an die Methode selbst, sodass nur Sie sie verifizieren können.
 
@@ -90,7 +90,7 @@ Jede Methode, die Sie später verifizieren, erhält dieselben Regeln: eine Regel
 
 Ein Alarm kann Sie für eine Art und einen Schweregrad erreichen, für die Sie keine Regel haben, etwa für einen Schweregrad, der nach Ihrem Beitritt hinzugekommen ist. OneUptime alarmiert Sie trotzdem, über das, was Sie verifiziert haben:
 
-1. Jede kostenlose Methode, die Sie haben: Push-Geräte, E-Mail-Adressen, Slack und Microsoft Teams.
+1. Jede kostenlose Methode, die Sie haben: Push-Geräte, E-Mail-Adressen, Slack, Microsoft Teams und Mattermost.
 2. Wenn Sie keine davon haben, eine kostenpflichtige Methode, in dieser Reihenfolge: SMS, ein Telefonanruf, WhatsApp, Telegram. Es ist die erste, die Sie verifiziert haben, auf einem Kanal, den das Projekt eingeschaltet hat.
 3. Wenn Sie auch davon keine haben, ein Webhook.
 

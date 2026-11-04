@@ -347,7 +347,7 @@ RUN node /tmp/PruneUnreachablePackages.js \
         --package /usr/src/Common \
     && npm prune --omit=dev --offline --no-audit --no-fund \
     && node -e "require('ts-node'); require('typescript')" \
-    && rm -rf /tmp/PruneUnreachablePackages.js /usr/src/Common/Tests /usr/src/app/build /usr/src/app/Tests /usr/src/app/FeatureSet/*/node_modules
+    && rm -rf /tmp/PruneUnreachablePackages.js /usr/src/Common/Tests /usr/src/app/build /usr/src/app/Tests /usr/src/app/FeatureSet/BrowserRecorder/Tests /usr/src/app/FeatureSet/MCP/Tests /usr/src/app/FeatureSet/MobileRecorder/Tests /usr/src/app/FeatureSet/*/node_modules
 
 # ---------------------------------------------------------------------------
 # enterprise: the Enterprise Edition image (--target enterprise).
@@ -414,7 +414,7 @@ RUN node /tmp/PruneUnreachablePackages.js \
         --package /usr/src/Common \
     && npm prune --omit=dev --offline --no-audit --no-fund \
     && node -e "require('ts-node'); require('typescript')" \
-    && rm -rf /tmp/PruneUnreachablePackages.js /usr/src/Common/Tests /usr/src/app/build /usr/src/app/Tests /usr/src/app/FeatureSet/*/node_modules
+    && rm -rf /tmp/PruneUnreachablePackages.js /usr/src/Common/Tests /usr/src/app/build /usr/src/app/Tests /usr/src/app/FeatureSet/BrowserRecorder/Tests /usr/src/app/FeatureSet/MCP/Tests /usr/src/app/FeatureSet/MobileRecorder/Tests /usr/src/app/FeatureSet/*/node_modules
 
 # ---------------------------------------------------------------------------
 # community: the Community Edition image (--target community, and the default

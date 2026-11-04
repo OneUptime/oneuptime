@@ -43,7 +43,7 @@ Eine Microsoft-365-Organisation kann mit mehr als einem Projekt verbunden sein, 
 :::steps
 ### Die Administratorzustimmung erteilen
 
-Gehen Sie zu **Projekteinstellungen** > **Arbeitsbereich** > **Microsoft Teams** und klicken Sie auf **Administratorzustimmung erteilen**. Eine Administratorin oder ein Administrator von Microsoft 365 meldet sich an und erlaubt die OneUptime-App für die Organisation. Die Karte sagt dann **Administratorzustimmung abgeschlossen**. Solange kein Workspace verbunden ist, enthält der Abschnitt **Arbeitsbereich** der Menüs Vorfälle, Warnungen, Geplante Wartung, Monitore und Bereitschaft den Eintrag **Slack oder Teams verbinden**, der ebenfalls hierher führt.
+Gehen Sie zu **Projekteinstellungen** > **Arbeitsbereich** > **Microsoft Teams** und klicken Sie auf **Administratorzustimmung erteilen**. Eine Administratorin oder ein Administrator von Microsoft 365 meldet sich an und erlaubt die OneUptime-App für die Organisation. Die Karte sagt dann **Administratorzustimmung abgeschlossen**. Solange kein Workspace verbunden ist, enthält der Abschnitt **Arbeitsbereich** der Menüs Vorfälle, Warnungen, Geplante Wartung, Monitore und Bereitschaft den Eintrag **Arbeitsbereich verbinden**, der ebenfalls hierher führt.
 
 ### Ihr Konto verbinden
 

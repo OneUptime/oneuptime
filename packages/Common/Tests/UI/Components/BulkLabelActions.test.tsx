@@ -410,27 +410,6 @@ const createDeferredListResult: CreateDeferredListResultFunction =
     };
   };
 
-type ActAsyncFunction = (body: () => Promise<void>) => Promise<void>;
-
-/*
- * zone.js reschedules the microtask React's act() uses to check that its
- * thenable was awaited, so it runs before `await` gets round to attaching a
- * handler and every plain `await act(...)` is reported as un-awaited. Hooking
- * then() up synchronously answers that check in time; the scope still exits
- * exactly when act says it does.
- */
-const actAsync: ActAsyncFunction = (
-  body: () => Promise<void>,
-): Promise<void> => {
-  const scope: PromiseLike<void> = act(body) as unknown as PromiseLike<void>;
-
-  return new Promise<void>(
-    (resolve: () => void, reject: (reason: unknown) => void): void => {
-      scope.then(resolve, reject);
-    },
-  );
-};
-
 type GetUpdatedLabelIdsFunction = (callIndex: number) => Array<string>;
 
 const getUpdatedLabelIds: GetUpdatedLabelIdsFunction = (
@@ -674,15 +653,7 @@ describe("useBulkLabelActions", () => {
   });
 
   test("leaves the add dropdown empty when the label fetch fails", async () => {
-    /*
-     * Throwing from inside the call rather than handing back a promise that is
-     * already rejected (mockRejectedValue, or an equivalent Promise.reject):
-     * zone.js sees the rejection before the hook's catch is attached and
-     * prints the whole stack as a console error on every run.
-     */
-    getListMock.mockImplementation(async (): Promise<never> => {
-      throw new Error("network down");
-    });
+    getListMock.mockRejectedValue(new Error("network down"));
 
     render(<Harness items={[makeItem(ITEM_ONE_ID)]} />);
 
@@ -866,7 +837,7 @@ describe("useBulkLabelActions", () => {
     clickTrigger("Add Labels");
     await waitForModalTitle("Add Labels");
 
-    await actAsync(async (): Promise<void> => {
+    await act(async (): Promise<void> => {
       await getModalSubmit("Add Labels")({ labelIds: ["", ""] });
     });
 
@@ -999,9 +970,7 @@ describe("useBulkLabelActions", () => {
       return makeItemWithLabels(data.id.toString(), []);
     });
     // The window read fails as a whole: each item is read on its own.
-    windowReadMock.mockImplementation(async (): Promise<never> => {
-      throw new Error("The list could not be read.");
-    });
+    windowReadMock.mockRejectedValue(new Error("The list could not be read."));
 
     render(
       <Harness
@@ -1046,17 +1015,8 @@ describe("useBulkLabelActions", () => {
       data: [makeLabel(LABEL_ALPHA_ID, "Alpha")],
       count: 1,
     });
-    /*
-     * mockRejectedValue hands zone.js a rejected promise it sees before the
-     * hook attaches its catch, and it prints the whole stack as a console
-     * error on every run. Throwing from inside the call keeps CI readable.
-     */
-    getItemMock.mockImplementation(async (): Promise<never> => {
-      throw sentinel;
-    });
-    windowReadMock.mockImplementation(async (): Promise<never> => {
-      throw new Error("The list could not be read.");
-    });
+    getItemMock.mockRejectedValue(sentinel);
+    windowReadMock.mockRejectedValue(new Error("The list could not be read."));
 
     render(<Harness items={[makeItem(ITEM_ONE_ID)]} />);
 
@@ -1138,9 +1098,7 @@ describe("useBulkLabelActions", () => {
 
       return makeItemWithLabels(data.id.toString(), []);
     });
-    windowReadMock.mockImplementation(async (): Promise<never> => {
-      throw new Error("The list could not be read.");
-    });
+    windowReadMock.mockRejectedValue(new Error("The list could not be read."));
 
     render(
       <Harness
@@ -1531,13 +1489,13 @@ describe("useBulkLabelActions", () => {
      */
     const runs: Array<Promise<void>> = [];
 
-    await actAsync(async (): Promise<void> => {
+    await act(async (): Promise<void> => {
       runs.push(
         capturedActions[1]!.onClick(makeActionProps([makeItem(ITEM_ONE_ID)])),
       );
     });
 
-    await actAsync(async (): Promise<void> => {
+    await act(async (): Promise<void> => {
       runs.push(
         capturedActions[1]!.onClick(makeActionProps([makeItem(ITEM_TWO_ID)])),
       );
@@ -1548,7 +1506,7 @@ describe("useBulkLabelActions", () => {
     });
 
     // The newest selection answers first...
-    await actAsync(async (): Promise<void> => {
+    await act(async (): Promise<void> => {
       secondSelectionFetch.resolve({
         data: [
           makeItemWithLabels(ITEM_TWO_ID, [makeLabel(LABEL_BETA_ID, "Beta")]),
@@ -1559,7 +1517,7 @@ describe("useBulkLabelActions", () => {
     });
 
     // ...and the abandoned first selection lands afterwards.
-    await actAsync(async (): Promise<void> => {
+    await act(async (): Promise<void> => {
       firstSelectionFetch.resolve({
         data: [
           makeItemWithLabels(ITEM_ONE_ID, [makeLabel(LABEL_ALPHA_ID, "Alpha")]),

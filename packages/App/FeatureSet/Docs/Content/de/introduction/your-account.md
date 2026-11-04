@@ -12,7 +12,7 @@ flowchart TB
 
 :::cards
 - [Ihr Profil](#ihr-profil): Ihr Name, Ihre E-Mail-Adresse, Zeitzone und Ihr Bild.
-- [Sicher anmelden](#sicher-anmelden): Ihr Passwort, Passkeys und die Zwei-Faktor-Authentifizierung.
+- [Sicher anmelden](#sicher-anmelden): Ihr Passwort, Anmeldelinks, Passkeys und die Zwei-Faktor-Authentifizierung.
 - [Ihre Projekte](#ihre-projekte): Projekte wechseln, eines anlegen und Einladungen annehmen.
 - [Benutzereinstellungen](#was-jedes-projekt-für-sie-speichert): Wie OneUptime Sie in jedem Projekt erreicht.
 :::
@@ -63,7 +63,7 @@ Klappen Sie **Sicherheit** im Seitenmenü von **Benutzerprofil** auf. Der Abschn
 | --- | --- |
 | **Passwortverwaltung** | Ein neues Passwort festlegen. |
 | **Passkeys** | Ohne Passwort anmelden, mit Fingerabdruck, Gesicht, Bildschirmsperre oder einem Sicherheitsschlüssel. |
-| **Zwei-Faktor-Authentifizierung** | Nach dem Passwort einen zweiten Schritt verlangen: einen Code aus einer App oder einen Sicherheitsschlüssel. |
+| **Zwei-Faktor-Authentifizierung** | Nach dem Passwort oder einem per E-Mail gesendeten Link einen zweiten Schritt verlangen: einen Code aus einer App oder einen Sicherheitsschlüssel. |
 
 ### Ihr Passwort ändern
 
@@ -83,9 +83,24 @@ Klappen Sie **Sicherheit** im Seitenmenü von **Benutzerprofil** auf. Der Abschn
 
 Wählen Sie beim nächsten Mal auf der Anmeldeseite **Mit einem Passkey anmelden**.
 
+### Mit einem per E-Mail gesendeten Link anmelden
+
+Sie können sich mit einem Link statt mit Ihrem Passwort anmelden. Sie müssen dafür nichts einrichten.
+
+:::steps
+1. Wählen Sie auf der Anmeldeseite **Anmeldelink per E-Mail senden**.
+2. Geben Sie Ihre E-Mail-Adresse ein und klicken Sie auf **Anmeldelink senden**. Die Seite zeigt dann **Prüfen Sie Ihre E-Mails**.
+3. Öffnen Sie den Link in der E-Mail und klicken Sie auf **Anmelden**.
+:::
+
+Der Link funktioniert einmal, 15 Minuten lang, und ein neuerer Link ersetzt ihn. Sie können ihn auf einem anderen Gerät öffnen und sind dann dort angemeldet. Wenn Sie die Zwei-Faktor-Authentifizierung nutzen, fragt OneUptime weiterhin nach Ihrem zweiten Schritt.
+
+> [!NOTE]
+> Master-Admins einer selbst gehosteten Installation können Anmeldelinks mit **Anmeldung mit einem per E-Mail gesendeten Link erlauben** unter **Admin Dashboard > Einstellungen > Authentifizierung** ausschalten. Bereits gesendete Links funktionieren dann nicht mehr. Solange der Server SSO verlangt, bietet die Anmeldeseite nur SSO an.
+
 ### Die Zwei-Faktor-Authentifizierung einschalten
 
-Die Zwei-Faktor-Authentifizierung gilt, wenn Sie sich mit Ihrem Passwort anmelden. Fügen Sie zuerst einen zweiten Schritt hinzu, und schalten Sie sie dann ein.
+Die Zwei-Faktor-Authentifizierung gilt, wenn Sie sich mit Ihrem Passwort oder einem per E-Mail gesendeten Link anmelden. Fügen Sie zuerst einen zweiten Schritt hinzu, und schalten Sie sie dann ein.
 
 :::steps
 ### Eine Authenticator-App hinzufügen
@@ -98,7 +113,7 @@ Wenn Sie zum ersten Mal eine App, einen Schlüssel oder einen Passkey hinzufüge
 
 ### Sie einschalten
 
-Klicken Sie oben auf der Seite auf **Zwei-Faktor-Authentifizierung aktivieren** und bestätigen Sie. Die Karte zeigt nun **Aktiviert**. Ab Ihrer nächsten Anmeldung mit Passwort fragt OneUptime nach Ihrem zweiten Schritt.
+Klicken Sie oben auf der Seite auf **Zwei-Faktor-Authentifizierung aktivieren** und bestätigen Sie. Die Karte zeigt nun **Aktiviert**. Ab Ihrer nächsten Anmeldung mit Passwort oder einem per E-Mail gesendeten Link fragt OneUptime nach Ihrem zweiten Schritt.
 :::
 
 > [!TIP]
@@ -149,7 +164,7 @@ Wählen Sie beim zweiten Schritt der Anmeldung **Keinen Zugriff mehr auf Ihre Au
 :::
 
 :::details Die Anmeldung lässt mich warten, bevor ich einen weiteren Code eingeben kann
-Nach fünf falschen Codes in Folge wartet jeder weitere Code, bevor er geprüft wird: eine Minute, dann zwei, dann vier und so weiter, bis zu einer Stunde. OneUptime zählt falsche Codes für Ihr Konto, egal wo sie eingegeben werden, schickt Ihnen eine E-Mail, wenn die Wartezeiten beginnen, und zählt neu, sobald Sie einen richtigen Code eingeben. Warten Sie und versuchen Sie es erneut, melden Sie sich mit einem Sicherheitsschlüssel an, oder wählen Sie **Keinen Zugriff mehr auf Ihre Authenticator-App?** und geben Sie einen Backup-Code ein. Wenn Sie diese Codes nicht eingegeben haben, kennt jemand Ihr Passwort: Setzen Sie es mit **Passwort vergessen?** auf der Anmeldeseite zurück, das beendet auch die Wartezeit.
+Nach fünf falschen Codes in Folge wartet jeder weitere Code, bevor er geprüft wird: eine Minute, dann zwei, dann vier und so weiter, bis zu einer Stunde. OneUptime zählt falsche Codes für Ihr Konto, egal wo sie eingegeben werden, schickt Ihnen eine E-Mail, wenn die Wartezeiten beginnen, und zählt neu, sobald Sie einen richtigen Code eingeben. Warten Sie und versuchen Sie es erneut, melden Sie sich mit einem Sicherheitsschlüssel an, oder wählen Sie **Keinen Zugriff mehr auf Ihre Authenticator-App?** und geben Sie einen Backup-Code ein. Wenn Sie diese Codes nicht eingegeben haben, kennt jemand Ihr Passwort oder kann Ihre E-Mails lesen, und die E-Mail von OneUptime sagt Ihnen, was davon zutrifft. Wenn jemand Ihre E-Mails lesen kann, ändern Sie zuerst das Passwort Ihres E-Mail-Kontos und entfernen Sie jede Weiterleitung, die Sie nicht selbst eingerichtet haben: Ein neues OneUptime-Passwort allein hindert diese Person nicht daran, einen weiteren Anmeldelink anzufordern. Setzen Sie danach Ihr Passwort mit **Passwort vergessen?** auf der Anmeldeseite zurück, das beendet die Wartezeit und macht jeden bereits gesendeten Anmeldelink ungültig.
 :::
 
 :::details Die Zeiten im Dashboard weichen um eine Stunde ab

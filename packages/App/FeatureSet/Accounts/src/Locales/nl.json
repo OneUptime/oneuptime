@@ -67,6 +67,7 @@
     "forgotPassword": "Wachtwoord vergeten?",
     "signInWithSso": "Inloggen met SSO",
     "signInWithMicrosoft": "Inloggen met Microsoft",
+    "emailSignInLink": "Stuur mij een inloglink",
     "noAccountPrompt": "Hebt u geen account?",
     "registerLink": "Registreren.",
     "twoFactor": {
@@ -114,6 +115,15 @@
       "generate": "Back-upcodes genereren",
       "skip": "Voorlopig overslaan",
       "generateFailed": "Er zijn geen back-upcodes ontvangen. Probeer het opnieuw via Gebruikersprofiel > Tweefactorauthenticatie."
+    },
+    "magicLink": {
+      "title": "Inloggen voltooien",
+      "subtitle": "Gebruik de knop hieronder om het inloggen te voltooien met de link uit uw e-mail.",
+      "submit": "Inloggen",
+      "noLink": "Deze pagina heeft de inloglink uit uw e-mail nodig. Open de link opnieuw of vraag een nieuwe aan.",
+      "turnedOff": "Inloglinks zijn uitgeschakeld op deze server. Log in met uw e-mailadres en wachtwoord.",
+      "requestNewLink": "Stuur mij een nieuwe link",
+      "backToSignIn": "Terug naar inloggen"
     }
   },
   "register": {
@@ -147,6 +157,17 @@
     "successMessage": "We hebben u de wachtwoordresetlink gemaild. Vergeet niet de spammap te controleren.",
     "submitButton": "Wachtwoordresetlink verzenden",
     "rememberPasswordPrompt": "Herinnert u uw wachtwoord?",
+    "loginLink": "Inloggen."
+  },
+  "magicLink": {
+    "title": "Inloggen met een link",
+    "subtitle": "Voer uw e-mailadres in en we sturen u een link waarmee u inlogt. Geen wachtwoord nodig.",
+    "submitButton": "Stuur mij een inloglink",
+    "sentTitle": "Controleer uw e-mail",
+    "sent": "Als {{email}} een account heeft, is er een inloglink onderweg. De link werkt één keer en verloopt over {{minutes}} minuten.",
+    "notReceived": "Niet in uw inbox? Controleer uw spammap of controleer of u het adres hebt ingevoerd waarmee u zich hebt geregistreerd.",
+    "sendAnother": "Nog een link sturen",
+    "knowPasswordPrompt": "Kent u uw wachtwoord?",
     "loginLink": "Inloggen."
   },
   "resetPassword": {

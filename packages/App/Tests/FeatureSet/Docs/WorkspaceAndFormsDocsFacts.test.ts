@@ -1,4 +1,5 @@
-import { readPage } from "./DocsContentSupport";
+import { DOCS_LANGUAGES, readPage } from "./DocsContentSupport";
+import { dashboardLabel, drawnDashboardLabel } from "./DocsDashboardLabels";
 import { boldSpans, inlineCode } from "./DocsTranslationChecks";
 import FormsCopy from "../../../FeatureSet/Dashboard/src/Components/FormBuilder/FormsCopy";
 import { PublicAddressCopy } from "../../../FeatureSet/Dashboard/src/Components/CustomDomain/PublicAddressCopy";
@@ -114,6 +115,7 @@ const SOURCES: Record<string, string> = {
   notificationMethodTabs: `${DASHBOARD}/Components/NotificationMethods/NotificationMethodTabs.tsx`,
   slackNotificationMethod: `${DASHBOARD}/Components/NotificationMethods/Slack.tsx`,
   teamsNotificationMethod: `${DASHBOARD}/Components/NotificationMethods/MicrosoftTeams.tsx`,
+  mattermostNotificationMethod: `${DASHBOARD}/Components/NotificationMethods/Mattermost.tsx`,
   notificationLogsTabs: `${DASHBOARD}/Components/NotificationLogs/NotificationLogsTabs.tsx`,
   workspaceLogsTable: `${DASHBOARD}/Components/NotificationLogs/WorkspaceLogsTable.tsx`,
   incidentsSlackPage: `${DASHBOARD}/Pages/Incidents/WorkspaceConnectionSlack.tsx`,
@@ -171,12 +173,29 @@ const SOURCES: Record<string, string> = {
 
 const SLACK: string = "workspace-connections/slack";
 const TEAMS: string = "workspace-connections/microsoft-teams";
+const MATTERMOST: string = "workspace-connections/mattermost";
 const VIDEO_CALLS: string = "workspace-connections/video-calls";
 const BUILDING: string = "forms/building";
 const SHARING: string = "forms/sharing-and-security";
 const INCIDENT_FEED: string = "incidents/notes-owners-and-feed";
 
+/*
+ * The pages that spell out rules, summaries and saved notes. Mattermost's
+ * sends people to Slack's for rules and has none of those sections, so it is
+ * not one of them.
+ */
 const CHAT_PAGES: ReadonlyArray<string> = [SLACK, TEAMS];
+
+// The pages that name the entry a project with nothing connected sees.
+const CONNECT_ENTRY_PAGES: ReadonlyArray<string> = [
+  ...CHAT_PAGES,
+  MATTERMOST,
+  "alerts/index",
+  "incidents/index",
+  "on-call/index",
+  "scheduled-maintenance/index",
+  "telemetry/security-cases",
+];
 
 const HEADING: RegExp = /^(#{1,6}) (.+)$/;
 const TABLE_ROW: RegExp = /^\|.*\|$/;
@@ -404,16 +423,22 @@ function sorted(values: ReadonlyArray<string>): Array<string> {
 }
 
 describe("Slack and Microsoft Teams, against the Dashboard and the server", () => {
-  it("finds both pages, and Video Calls, under Project Settings > Workspace, as the settings menu lists them", () => {
+  it("finds the Slack, Microsoft Teams and Mattermost pages, and Video Calls, under Project Settings > Workspace, as the settings menu lists them", () => {
     expect(
       menuSectionItems(readSource("settingsSideMenu"), "Workspace"),
-    ).toEqual(["Slack", "Microsoft Teams", "Video Calls"]);
+    ).toEqual(["Slack", "Microsoft Teams", "Mattermost", "Video Calls"]);
 
     expect(englishPage(SLACK)).toContain(
       "**Project Settings** > **Workspace** > **Slack**",
     );
     expect(englishPage(TEAMS)).toContain(
       "**Project Settings** > **Workspace** > **Microsoft Teams**",
+    );
+    expect(englishPage(MATTERMOST)).toContain(
+      "**Project Settings** > **Workspace** > **Mattermost**",
+    );
+    expect(englishPage(MATTERMOST)).toContain(
+      "**User Settings** > **Workspace** > **Mattermost**",
     );
     expect(englishPage(VIDEO_CALLS)).toContain(
       "**Project Settings** > **Workspace** > **Video Calls**",
@@ -438,7 +463,8 @@ describe("Slack and Microsoft Teams, against the Dashboard and the server", () =
     expect(entryTitles).toEqual({
       Slack: "Slack",
       MicrosoftTeams: "Microsoft Teams",
-      Connect: "Connect Slack or Teams",
+      Mattermost: "Mattermost",
+      Connect: "Connect a workspace",
     });
 
     // Incidents, Alerts, Scheduled Maintenance, Monitors and On-Call send a project with nothing connected to connect one.
@@ -471,15 +497,45 @@ describe("Slack and Microsoft Teams, against the Dashboard and the server", () =
     expect(CONNECT_PAGE.test(userSettings)).toBe(false);
 
     for (const page of CHAT_PAGES) {
-      const markdown: string = englishPage(page);
-
-      expect(markdown).toContain(
-        "the **Workspace** section of the Incidents, Alerts, Scheduled Maintenance, Monitors and On-Call menus holds **Connect Slack or Teams**",
-      );
-      expect(markdown).toContain(
+      expect(englishPage(page)).toContain(
         "The **Workspace** section lists only the chat workspaces your project has connected",
       );
     }
+  });
+
+  it("says in the step that connects the project that the connect entry leads there too, on each chat workspace's page", () => {
+    const steps: Array<[string, string]> = [
+      [SLACK, "Install OneUptime in your Slack workspace"],
+      [TEAMS, "Grant admin consent"],
+      [MATTERMOST, "Connect the project"],
+    ];
+
+    for (const [page, step] of steps) {
+      expect(section(englishPage(page), 3, step)).toContain(
+        "Until a workspace is connected, the **Workspace** section of the Incidents, Alerts, Scheduled Maintenance, Monitors and On-Call menus holds **Connect a workspace**, which leads here too.",
+      );
+    }
+  });
+
+  it("quotes the connect entry on every page that names it, in every language, as that language's Dashboard draws it", () => {
+    const entry: string = "Connect a workspace";
+
+    const missing: Array<string> = DOCS_LANGUAGES.flatMap(
+      (language: string): Array<string> => {
+        return CONNECT_ENTRY_PAGES.filter((page: string): boolean => {
+          // Persian's incident pages keep the Dashboard's English names.
+          const drawn: string = page.startsWith("incidents/")
+            ? dashboardLabel(language, entry)
+            : drawnDashboardLabel(language, entry);
+
+          return !readPage(language, page).includes(`**${drawn}**`);
+        }).map((page: string): string => {
+          return `${language}/${page}`;
+        });
+      },
+    );
+
+    expect(missing).toEqual([]);
   });
 
   it("lists each product's tabs as its Slack and Microsoft Teams pages draw them", () => {
@@ -1062,6 +1118,25 @@ describe("Slack and Microsoft Teams, against the Dashboard and the server", () =
       );
       expect(steps).toContain("Click **Send Test Message** on its row.");
     }
+  });
+
+  it("adds Mattermost as a notification method on the Workspace Apps tab, and says it goes when the account does", () => {
+    const methodSource: string = readSource("mattermostNotificationMethod");
+    const page: string = englishPage(MATTERMOST);
+    const steps: string = section(page, 2, "Getting paged in Mattermost");
+
+    expect(sourceSays(methodSource, "Add Mattermost Account")).toBe(true);
+    expect(sourceSays(methodSource, "Send Test Message")).toBe(true);
+    expect(steps).toContain(
+      "Go to **User Settings** > **Notification Methods**, open the **Workspace Apps** tab and click **Add Mattermost Account**.",
+    );
+    expect(steps).toContain("Click **Send Test Message** on its row.");
+    expect(steps).toContain(
+      "Disconnecting your Mattermost account removes this method and the on-call rules that use it.",
+    );
+    expect(page).toContain(
+      "Disconnecting disconnects every member's own Mattermost account too, and removes their Mattermost notification methods and the on-call rules that use them.",
+    );
   });
 
   it("saves the reactions each page's table names as the notes it names", () => {

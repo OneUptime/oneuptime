@@ -31,7 +31,7 @@ flowchart LR
 | Afsnit | Sider | Hvor du læser mere |
 | --- | --- | --- |
 | **Grundlæggende** | **Projekt**, **Etiketter** | [Projektets detaljer](#projektets-detaljer), [Etiketter](#etiketter) |
-| **Arbejdsområde** | **Slack**, **Microsoft Teams**, **Videoopkald** | [Slack](/docs/workspace-connections/slack), [Microsoft Teams](/docs/workspace-connections/microsoft-teams), [Videoopkald](/docs/workspace-connections/video-calls) |
+| **Arbejdsområde** | **Slack**, **Microsoft Teams**, **Mattermost**, **Videoopkald** | [Slack](/docs/workspace-connections/slack), [Microsoft Teams](/docs/workspace-connections/microsoft-teams), [Mattermost](/docs/workspace-connections/mattermost), [Videoopkald](/docs/workspace-connections/video-calls) |
 | **Telemetri og APM** | **Indtagelsesnøgler**, **Dataopbevaring** | [Indtagelsesnøgler](/docs/telemetry/ingestion-keys), [Dataopbevaring](/docs/telemetry/data-retention) |
 | **Notifikationer** | **Notifikationsindstillinger**, **Notifikationslogs**, **Mobilapps** | [Notifikationer](#notifikationer) |
 | **AI** | **AI-funktioner**, **LLM-udbydere**, **Eksterne MCP-servere**, **AI-kreditter**, **AI-logs**, **MCP-server** | [LLM-udbydere](/docs/ai/llm-provider), [Eksterne MCP-servere](/docs/ai/external-mcp-servers), [MCP-server](/docs/ai/mcp-server), [AI SRE](/docs/ai/ai-sre#omkostningsstyring) |

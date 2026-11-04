@@ -162,7 +162,7 @@ ID 공급자의 각 응답으로는 한 번만 로그인할 수 있으며, 그�
 :::
 
 :::details "This server requires single sign-on (SSO). Sign in with SSO instead."
-인스턴스 전체에 SSO가 필수이고, 이번 시도는 비밀번호, 패스키, Google이나 Microsoft를 사용한 로그인이거나 가입이었습니다. 대신 로그인 페이지의 SSO 버튼 중 하나로 로그인하세요. 마스터 관리자는 `/accounts/admin-login`에서 비밀번호로 로그인하며, 모두가 다시 비밀번호로 로그인할 수 있게 하려면 **SSO**에서 **로그인에 SSO 필수**를 끕니다.
+인스턴스 전체에 SSO가 필수이고, 이번 시도는 비밀번호, 패스키, 이메일로 받은 링크, Google이나 Microsoft를 사용한 로그인이거나 가입이었습니다. 대신 로그인 페이지의 SSO 버튼 중 하나로 로그인하세요. 마스터 관리자는 `/accounts/admin-login`에서 비밀번호로 로그인하며, 모두가 다시 비밀번호로 로그인할 수 있게 하려면 **SSO**에서 **로그인에 SSO 필수**를 끕니다.
 :::
 
 ## 다음 단계

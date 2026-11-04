@@ -50,10 +50,11 @@ Cada uma dessas ações também pode ser concedida separadamente, de criar um ca
 | Regras de detecção | Uma regra corresponde | **Abrir um caso ao corresponder**, na etapa **Ao corresponder** da regra |
 | Inteligência de ameaças | Um evento cita um indicador conhecido | **Abrir um caso ao corresponder**, na etapa **Ao corresponder** do feed |
 | Produtos conectados | Um alerta do próprio produto é importado no limite da conexão ou acima dele | **Open Cases From** definido como **Nunca**, na etapa **Consulta periódica** da conexão |
+| Produtos de segurança nos seus logs | Uma ameaça que um firewall, um IDS ou um produto de endpoint escreve nos seus logs está no limite de Seus logs ou acima dele | **Abrir casos a partir de** definido como **Nunca**, em **Seus logs** |
 | Risco de entidades | O risco de um usuário, host ou endereço atinge o limite do projeto | **Casos de risco**, em **Configurações → Pontuação de risco** |
 | Pessoas | Alguém abre um em **Casos de segurança**, ou com **Abrir caso** no painel de um evento | Não há como |
 
-Todas as origens abrem casos por padrão, exceto o risco de entidades em projetos criados antes de ele existir: neles, ative primeiro **Casos de risco** ([Risco de entidades](/docs/telemetry/security-entity-risk)). Uma conexão abre casos para **Alta e acima**, a menos que você escolha outro nível; os alertas abaixo dele continuam sendo importados como eventos.
+Todas as origens abrem casos por padrão, exceto o risco de entidades em projetos criados antes de ele existir: neles, ative primeiro **Casos de risco** ([Risco de entidades](/docs/telemetry/security-entity-risk)). Uma conexão abre casos para **Alta e acima**, a menos que você escolha outro nível; os alertas abaixo dele continuam sendo importados como eventos. **Seus logs** faz o mesmo com as ameaças dos seus logs.
 
 ### Como as detecções são agrupadas
 
@@ -143,7 +144,7 @@ Um caso aberto a partir de alertas do Google SecOps também os fecha no Google S
 
 ## Prioridades e status dos casos
 
-Cada projeto tem suas próprias prioridades e status de caso, em **Produtos → Eventos de segurança → Configurações → Prioridades de casos** e **Status de casos**. Renomeie-os, mude a cor, arraste-os para outra ordem e adicione os seus, como um status "Triagem" ou uma prioridade "Emergência" acima de **Crítico**. Um nome novo aparece em todo lugar ao mesmo tempo: na fila, nas páginas dos casos e na visão geral, nas notificações, no Slack e no Microsoft Teams, e nas mensagens dos playbooks.
+Cada projeto tem suas próprias prioridades e status de caso, em **Produtos → Eventos de segurança → Configurações → Prioridades de casos** e **Status de casos**. Renomeie-os, mude a cor, arraste-os para outra ordem e adicione os seus, como um status "Triagem" ou uma prioridade "Emergência" acima de **Crítico**. Um nome novo aparece em todo lugar ao mesmo tempo: na fila, nas páginas dos casos e na visão geral, nas notificações, no Slack, no Microsoft Teams e no Mattermost, e nas mensagens dos playbooks.
 
 Alguns são predefinidos, porque o OneUptime lê o que eles significam. Eles podem ser renomeados e mudar de cor, mas não excluídos nem arquivados, e mantêm sua ordem:
 
@@ -156,7 +157,7 @@ Alguns são predefinidos, porque o OneUptime lê o que eles significam. Eles pod
 | As prioridades Crítico, High, Medium, Low e Informativos | Uma detecção abre seu caso na prioridade da sua gravidade, e um caso que alguém abre começa em Medium |
 
 - A posição de um status decide como conta um caso que está nele, como mostra a coluna **Conta como**: do status reconhecido para baixo, reconhecido; do status contido para baixo, contido; do status fechado para baixo, fechado. Um status que você adiciona fica logo acima do status fechado, e mover um caso para um status que o fecha pede um veredito antes.
-- A posição de uma prioridade é a sua urgência, a mais urgente primeiro: **Para casos de pelo menos**, as escolhas de notificação e as regras do Slack e do Microsoft Teams leem essa ordem. Uma prioridade que você adiciona vai para o fim, e a coluna **Gravidade da detecção** mostra quais detecções abrem seus casos em cada prioridade predefinida.
+- A posição de uma prioridade é a sua urgência, a mais urgente primeiro: **Para casos de pelo menos**, as escolhas de notificação e as regras do Slack, do Microsoft Teams e do Mattermost leem essa ordem. Uma prioridade que você adiciona vai para o fim, e a coluna **Gravidade da detecção** mostra quais detecções abrem seus casos em cada prioridade predefinida.
 
 Para parar de usar um status ou uma prioridade seus, use **Arquivar** na linha dele. Ninguém pode escolhê-lo de novo, e a API, o Terraform e o MCP o recusam, mas os casos que o têm o mantêm, e você ainda pode filtrar por ele. Os valores arquivados ficam listados na seção recolhida **Status de caso arquivados** ou **Prioridades de caso arquivadas** abaixo da tabela, onde **Desarquivar** traz um de volta. **Excluir** é recusado enquanto houver casos com o valor ou um playbook que parta da prioridade.
 
@@ -231,9 +232,9 @@ As escolhas seguem as prioridades de caso do projeto, com os próprios nomes: es
 
 Mensagens de WhatsApp não são enviadas para casos de segurança. Uma notificação push abre o caso no app OneUptime On-Call (1.7.0 ou posterior), onde você pode aprovar ou rejeitar uma etapa de playbook em espera, assumir o caso e fechá-lo. O link dela abre o caso no navegador.
 
-### Publique em canais do Slack e do Microsoft Teams
+### Publique em canais do Slack, do Microsoft Teams e do Mattermost
 
-Para publicar em um canal, adicione uma regra em **Produtos → Eventos de segurança → Espaço de trabalho → Slack** (ou **Microsoft Teams**). Sem nenhum dos dois conectado, a única entrada da seção é **Conectar Slack ou Teams**. Uma regra indica os canais em que publicar (e, no Microsoft Teams, os chats) e, se você quiser, os casos a que ela se aplica:
+Para publicar em um canal, adicione uma regra em **Produtos → Eventos de segurança → Espaço de trabalho → Slack** (ou **Microsoft Teams** ou **Mattermost**). Se nenhum estiver conectado, a única entrada da seção é **Conectar um espaço de trabalho**. Uma regra indica os canais em que publicar (e, no Microsoft Teams, os chats) e, se você quiser, os casos a que ela se aplica:
 
 | Condição | Corresponde a |
 | --- | --- |

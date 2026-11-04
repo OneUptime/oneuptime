@@ -8,24 +8,29 @@ import MicrosoftTeamsCloudUtil, {
 /*
  * WHERE A RECORD'S OWN CHAT CHANNEL IS.
  *
- * A workspace notification rule can create a Slack or Microsoft Teams
- * channel for an incident, an alert, an episode or a scheduled maintenance
- * event, and the record keeps the channels it got
- * (postUpdatesToWorkspaceChannels). The record's page shows "Open in Slack"
- * / "Open in Microsoft Teams" for them: one click from the incident to the
- * room where it is being worked.
+ * A workspace notification rule can create a Slack, Microsoft Teams or
+ * Mattermost channel for an incident, an alert, an episode or a scheduled
+ * maintenance event, and the record keeps the channels it got
+ * (postUpdatesToWorkspaceChannels). The record's page shows "Open in Slack",
+ * "Open in Microsoft Teams" or "Open in Mattermost" for them: one click from
+ * the incident to the room where it is being worked.
  *
  * The links are built on the server - the ids they need (the Slack
- * workspace, the Microsoft Teams tenant) are the project's connection, not
- * the browser's to read - and only ever from ids of the shape each product
- * gives, on a fixed host, so nothing a channel row holds can send the button
- * anywhere else.
+ * workspace, the Microsoft Teams tenant, the Mattermost server and team) are
+ * the project's connection, not the browser's to read - and only ever from
+ * ids of the shape each product gives, on the product's own host, so nothing
+ * a channel row holds can send the button anywhere else. Mattermost has no
+ * host of its own: its links are on the server the project was connected to
+ * (getMattermostChannelUrl, isMattermostChannelUrl).
  */
 export interface WorkspaceChannelLink {
   workspaceType: WorkspaceType;
   // The channel's name as the record stored it: "incident-42-checkout".
   channelName: string;
-  // Opens the channel in the Slack or Teams app, or in the browser.
+  /*
+   * Opens the channel in the Slack or Teams app or in the browser, or on the
+   * project's Mattermost server.
+   */
   url: string;
 }
 
@@ -53,6 +58,13 @@ const MICROSOFT_ID_PATTERN: RegExp =
   /^[0-9a-fA-F]{8}-[0-9a-fA-F]{4}-[0-9a-fA-F]{4}-[0-9a-fA-F]{4}-[0-9a-fA-F]{12}$/;
 
 const SLACK_REDIRECT_URL: string = "https://slack.com/app_redirect";
+
+/*
+ * A team's or a channel's name in Mattermost's addresses:
+ * chat.example.com/<team>/channels/<channel>. Lowercase letters, digits, "-"
+ * and "_", at most 64 characters, so it can only ever be one path segment.
+ */
+export const MATTERMOST_NAME_PATTERN: RegExp = /^[a-z0-9_-]{1,64}$/;
 
 export default class WorkspaceChannelLinkUtil {
   /*
@@ -119,6 +131,46 @@ export default class WorkspaceChannelLinkUtil {
     return url;
   }
 
+  /*
+   * Mattermost's own address of a channel, on the server the project was
+   * connected to: <server>/<team>/channels/<channel>. A server on a path
+   * keeps its path. Null unless the server is a web address with nothing but
+   * a path after its host, and the team and the channel have the shape of
+   * Mattermost's names: a channel row can only ever name a channel on that
+   * server, never another server or another page of it.
+   */
+  public static getMattermostChannelUrl(data: {
+    serverUrl: string | undefined;
+    teamName: string | undefined;
+    channelName: string | undefined;
+  }): string | null {
+    const server: URL | null = WorkspaceChannelLinkUtil.parseMattermostAddress(
+      WorkspaceChannelLinkUtil.readStoredText(data.serverUrl),
+    );
+    const teamName: string = WorkspaceChannelLinkUtil.readStoredText(
+      data.teamName,
+    );
+    const channelName: string = WorkspaceChannelLinkUtil.readStoredText(
+      data.channelName,
+    );
+
+    if (
+      !server ||
+      !MATTERMOST_NAME_PATTERN.test(teamName) ||
+      !MATTERMOST_NAME_PATTERN.test(channelName)
+    ) {
+      return null;
+    }
+
+    let serverPath: string = server.pathname;
+
+    while (serverPath.endsWith("/")) {
+      serverPath = serverPath.slice(0, -1);
+    }
+
+    return `${server.origin}${serverPath}/${teamName}/channels/${channelName}`;
+  }
+
   public static isRecordType(
     value: unknown,
   ): value is WorkspaceChannelRecordType {
@@ -142,7 +194,8 @@ export default class WorkspaceChannelLinkUtil {
 
   /*
    * The links an answer holds, keeping only well-formed ones: a known
-   * workspace, a name, and an https address on Slack's or Microsoft's host.
+   * workspace, a name, and an https address on Slack's or Microsoft's host,
+   * or the address of a Mattermost channel (isMattermostChannelUrl).
    */
   public static fromJSONArray(value: unknown): Array<WorkspaceChannelLink> {
     if (!Array.isArray(value)) {
@@ -163,7 +216,8 @@ export default class WorkspaceChannelLinkUtil {
 
       if (
         (workspaceType !== WorkspaceType.Slack &&
-          workspaceType !== WorkspaceType.MicrosoftTeams) ||
+          workspaceType !== WorkspaceType.MicrosoftTeams &&
+          workspaceType !== WorkspaceType.Mattermost) ||
         typeof channelName !== "string" ||
         typeof url !== "string" ||
         !WorkspaceChannelLinkUtil.isOnWorkspaceHost({
@@ -197,6 +251,10 @@ export default class WorkspaceChannelLinkUtil {
       return false;
     }
 
+    if (data.workspaceType === WorkspaceType.Mattermost) {
+      return WorkspaceChannelLinkUtil.isMattermostChannelUrl(parsed);
+    }
+
     if (parsed.protocol !== "https:") {
       return false;
     }
@@ -211,5 +269,66 @@ export default class WorkspaceChannelLinkUtil {
     }
 
     return false;
+  }
+
+  /*
+   * Whether an address is that of a Mattermost channel. Mattermost has no
+   * host to check it against: it is a server of the customer's own, and
+   * which one is the project's connection, which only OneUptime's server
+   * reads. So the origin is the server's to answer for: it builds the link
+   * on the connection's address, and a channel row places only a name in its
+   * path (getMattermostChannelUrl). Sending that origin with the links for
+   * the page to compare would check the answer against itself. What the page
+   * can tell on its own, it checks: a web address, with no user name in front
+   * of the host (https://chat.example.com@evil.example) and nothing after
+   * the channel, on the path of a channel.
+   */
+  private static isMattermostChannelUrl(url: URL): boolean {
+    if (!WorkspaceChannelLinkUtil.isMattermostAddress(url)) {
+      return false;
+    }
+
+    const [teamName, channelsWord, channelName] = url.pathname
+      .split("/")
+      .slice(-3);
+
+    return (
+      channelsWord === "channels" &&
+      MATTERMOST_NAME_PATTERN.test(teamName || "") &&
+      MATTERMOST_NAME_PATTERN.test(channelName || "")
+    );
+  }
+
+  // A Mattermost server's address, or null when it is not one (isMattermostAddress).
+  private static parseMattermostAddress(value: string): URL | null {
+    let parsed: URL;
+
+    try {
+      parsed = new URL(value);
+    } catch {
+      return null;
+    }
+
+    return WorkspaceChannelLinkUtil.isMattermostAddress(parsed) ? parsed : null;
+  }
+
+  /*
+   * An address on a Mattermost server. Https, or http for a server that says
+   * so (MattermostConnection.normalizeServerUrl keeps what the server was
+   * connected with), and only a host and a path.
+   */
+  private static isMattermostAddress(url: URL): boolean {
+    return (
+      (url.protocol === "https:" || url.protocol === "http:") &&
+      !url.username &&
+      !url.password &&
+      !url.search &&
+      !url.hash
+    );
+  }
+
+  // A connection and a channel row are stored JSON: what is not text is not a name.
+  private static readStoredText(value: unknown): string {
+    return typeof value === "string" ? value.trim() : "";
   }
 }

@@ -27,7 +27,7 @@ flowchart TB
 
 | Page | Ce qu'elle contient | La question à laquelle elle répond |
 | --- | --- | --- |
-| **Méthodes de notification** | Vos adresses e-mail, numéros de téléphone, numéros WhatsApp, comptes Telegram, Slack et Microsoft Teams, appareils push et webhooks | Où OneUptime peut-il me joindre ? |
+| **Méthodes de notification** | Vos adresses e-mail, numéros de téléphone, numéros WhatsApp, comptes Telegram, Slack, Microsoft Teams et Mattermost, appareils push et webhooks | Où OneUptime peut-il me joindre ? |
 | **Règles d'astreinte** | Pour chaque type d'alerte et chaque gravité, quelle méthode essayer et après combien de temps | Comment suis-je alerté pendant mon astreinte ? |
 | **Paramètres de notification** | Pour chaque événement concernant un élément dont vous êtes propriétaire ou vos permanences, quels canaux utiliser | De quoi d'autre suis-je informé, et où ? |
 
@@ -48,9 +48,9 @@ Ouvrez les **Paramètres utilisateur**, à droite de la barre située sous la ba
 | **Politique d'appels entrants** | **Numéros de téléphone entrants** : le numéro auquel une politique d'appels entrants vous appelle |
 | **Calendrier** | **Flux de calendrier** : vos permanences dans votre application de calendrier, et des rappels avant qu'elles commencent |
 | **Profil** | **Champs personnalisés** : les informations que votre projet demande à ses membres |
-| **Espace de travail** | **Slack** et **Microsoft Teams** : votre propre compte, dans chaque espace de travail que le projet a connecté |
+| **Espace de travail** | **Slack**, **Microsoft Teams** et **Mattermost** : votre propre compte, dans chaque espace de travail que le projet a connecté |
 
-**Premiers pas** et **Alertes & notifications** sont ouvertes ; les autres sections démarrent repliées, et une section s'ouvre d'elle-même quand vous êtes sur l'une de ses pages. **Espace de travail** n'apparaît que si le projet a connecté Slack ou Microsoft Teams.
+**Premiers pas** et **Alertes & notifications** sont ouvertes ; les autres sections démarrent repliées, et une section s'ouvre d'elle-même quand vous êtes sur l'une de ses pages. **Espace de travail** n'apparaît que si le projet a connecté Slack, Microsoft Teams ou Mattermost.
 
 Les propriétaires et les admins du projet peuvent aussi consulter votre configuration : dans **Utilisateurs**, ils ouvrent votre ligne et sa section **Astreinte**, avec **Disponibilité**, **Méthodes de notification** et **Règles d'astreinte**. Ils peuvent y ajouter une méthode pour vous, mais le code est envoyé à la méthode elle-même, donc vous seul pouvez la vérifier.
 
@@ -90,7 +90,7 @@ Chaque méthode que vous vérifiez ensuite reçoit les mêmes règles : une règ
 
 Une alerte peut vous parvenir pour un type et une gravité pour lesquels vous n'avez pas de règle : une gravité ajoutée après votre arrivée, par exemple. OneUptime vous alerte quand même, par ce que vous avez vérifié :
 
-1. Chaque méthode gratuite que vous avez : appareils push, adresses e-mail, Slack et Microsoft Teams.
+1. Chaque méthode gratuite que vous avez : appareils push, adresses e-mail, Slack, Microsoft Teams et Mattermost.
 2. Si vous n'en avez aucune, une seule méthode payante, dans cet ordre : SMS, appel téléphonique, WhatsApp, Telegram. C'est la première que vous avez vérifiée, sur un canal que le projet a activé.
 3. Si vous n'en avez aucune non plus, un webhook.
 

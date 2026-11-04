@@ -1180,6 +1180,8 @@ describe("the owner is told", () => {
     expect(sendTwoFactorWrongCodesEmail).toHaveBeenCalledWith({
       user: account.user,
       wrongCodesInARow: 5,
+      // The password began this sign-in (MagicLinkLogin.test.ts has the link's).
+      isMagicLinkSignIn: false,
       // Where the fifth wrong code came from (RequestOriginUtil).
       origin: {
         ipAddress: "203.0.113.50",
@@ -1397,6 +1399,7 @@ describe("a caller with the password gets no more codes checked by changing the 
     expect(sendTwoFactorWrongCodesEmail).toHaveBeenCalledWith({
       user: account.user,
       wrongCodesInARow: 5,
+      isMagicLinkSignIn: false,
       origin: expect.objectContaining({ ipAddress: expect.any(String) }),
     });
 
@@ -1423,6 +1426,7 @@ describe("a caller with the password gets no more codes checked by changing the 
     expect(sendTwoFactorWrongCodesEmail).toHaveBeenCalledWith({
       user: account.user,
       wrongCodesInARow: 5,
+      isMagicLinkSignIn: false,
       origin: expect.objectContaining({ ipAddress: expect.any(String) }),
     });
 
