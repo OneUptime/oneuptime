@@ -49,11 +49,11 @@ wait_until() {
 }
 
 # Postgres. pg_ctlcluster runs it as the postgres user.
-if ! pg_isready -q -h localhost -p 5400; then
+if ! pg_isready -q -h localhost -p 5400 -U postgres; then
   pg_ctlcluster 15 main start
 fi
 wait_until "Postgres (localhost:5400)" 60 /var/log/postgresql/ \
-  pg_isready -h localhost -p 5400
+  pg_isready -h localhost -p 5400 -U postgres
 
 # Valkey. Redis 7.0 stands in for it (see the Dockerfile).
 valkey_password="$(setting VALKEY_PASSWORD)"
