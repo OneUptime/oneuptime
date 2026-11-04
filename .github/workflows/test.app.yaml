@@ -1012,6 +1012,10 @@ jobs:
           # CI=1, its bundle built) joined it the same day, when group 1, where
           # it had been, gained Trace Detail on master: Postmortems (0.8) went
           # to group 1 to make room. About 21.3.
+          # Cloud Spend grew to 34 tests on 2026-11-04 (a resource's
+          # right-sizing, its costs read at any hour of the UTC day, an unusual
+          # day on Costs): 4.9 minutes locally with CI=1, its bundle built.
+          # Archivable Values (1.8) moved on to group 16: about 21.
           - group: 9
             workflow_builder_shard: 2/2
             suites: >-
@@ -1019,7 +1023,6 @@ jobs:
               test-resource-topology-ui
               test-runbooks-menu-ui
               test-cloud-spend-ui
-              test-archivable-values-ui
               test-dashboard-playlists-ui
           # Added on 2026-10-22 with the second half of Event Overview (about
           # 13 minutes on a slow runner) and Navigation Search from group 2
@@ -1386,6 +1389,8 @@ jobs:
           # about 20 seconds locally in Chromium and Firefox: the shared page
           # fit and box helpers held to their jobs) joined it on 2026-11-02:
           # about half a minute.
+          # Archivable Values (1.8) came from group 9 on 2026-11-04, when Cloud
+          # Spend grew there: about 21.3.
           - group: 16
             monitor_overview_shard: 2/2
             suites: >-
@@ -1393,6 +1398,7 @@ jobs:
               test-navigation-search-ui
               test-discovery-ui
               test-suite-helpers-ui
+              test-archivable-values-ui
           # Added on 2026-11-03, when the sixteen groups' run steps added up to
           # 367.1 and 364.4 minutes on the last two runs with these suites
           # (master's of 2026-11-02 23:47, 41541694087, and 14.0.102's first
