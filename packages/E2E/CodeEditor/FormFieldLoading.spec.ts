@@ -29,8 +29,8 @@ const CONTROL_FILES: RegExp =
 
 const SAVE_BUTTON_ID: string = "form-field-loading-submit-button";
 
-// A whole page's load, for what comes after the page reloads for a control.
-const AFTER_RELOAD: { timeout: number } = { timeout: 60000 };
+// A whole page's load: its first draw, and what comes after it reloads.
+const PAGE_LOAD: { timeout: number } = { timeout: 60000 };
 
 const CODE_EDITOR: string = "code-editor-placeholder";
 const YAML_EDITOR: string = "yaml-editor-placeholder";
@@ -203,7 +203,13 @@ const goToForm: GoToFormFunction = async (
   page: Page,
   scenario: string,
 ): Promise<void> => {
-  await page.goto(`/form-field-loading?scenario=${scenario}`);
+  /*
+   * Only until the page starts to come: Firefox holds the page's load event
+   * while a control's file is on its way, and these tests hold that file back.
+   */
+  await page.goto(`/form-field-loading?scenario=${scenario}`, {
+    waitUntil: "commit",
+  });
 };
 
 /*
@@ -216,10 +222,11 @@ const placeIsDrawn: PlaceIsDrawnFunction = async (
   page: Page,
   placeholder: Locator,
 ): Promise<void> => {
-  await expect(placeholder).toBeVisible();
+  await expect(placeholder).toBeVisible(PAGE_LOAD);
   await expect(placeholder.locator(".animate-pulse").first()).toHaveCSS(
     "animation-name",
     "pulse",
+    PAGE_LOAD,
   );
   await page.evaluate(async (): Promise<void> => {
     await document.fonts.ready;
@@ -373,7 +380,7 @@ test.describe("a control whose file will not arrive", () => {
     await goToForm(page, "markdown-empty");
 
     await expect(page.getByTestId("markdown-editor-toolbar")).toBeVisible(
-      AFTER_RELOAD,
+      PAGE_LOAD,
     );
 
     expect(refused).toBe(1);
@@ -395,7 +402,7 @@ test.describe("a control whose file will not arrive", () => {
     await files.refuse();
 
     await expect(page.getByText("This couldn't be loaded.")).toBeVisible(
-      AFTER_RELOAD,
+      PAGE_LOAD,
     );
     await expect(page.getByTestId(CODE_EDITOR)).toHaveAttribute(
       "data-load-state",
