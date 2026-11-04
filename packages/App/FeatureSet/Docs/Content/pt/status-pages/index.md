@@ -191,7 +191,7 @@ Escolher uma opção pede confirmação, dizendo o que muda para os visitantes, 
 
 ### Usuários privados
 
-Adicione as pessoas que podem entrar em **Páginas de status → sua página → Segurança → Usuários privados**. Há uma ação **Adicionar em massa**: cole uma lista de endereços de e-mail e cada um recebe um e-mail de convite. Os usuários privados têm seu próprio fluxo de senha esquecida e de redefinição, separado das contas do seu projeto OneUptime.
+Adicione as pessoas que podem entrar em **Páginas de status → sua página → Segurança → Usuários privados**. Há uma ação **Adicionar em massa**: cole uma lista de endereços de e-mail e cada um recebe um e-mail de convite. Os usuários privados têm seu próprio fluxo de senha esquecida e de redefinição, separado das contas do seu projeto OneUptime. Uma nova senha os desconecta em todos os dispositivos, e qualquer link de acesso ou de redefinição já enviado deixa de funcionar.
 
 **Usuários privados e senha não se somam.** Enquanto **Qualquer pessoa com a senha** for a escolha, os usuários privados não conseguem entrar (eles também digitam a senha), e a tela **Usuários privados** diz isso, com um link de volta para **Acesso**.
 

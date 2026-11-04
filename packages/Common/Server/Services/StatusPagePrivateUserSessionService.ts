@@ -12,6 +12,7 @@ import { EncryptionSecret } from "../EnvironmentConfig";
 import OneUptimeDate from "../../Types/Date";
 import Text from "../../Types/Text";
 import logger from "../Utils/Logger";
+import LIMIT_MAX from "../../Types/Database/LimitMax";
 import Exception from "../../Types/Exception/Exception";
 import BadDataException from "../../Types/Exception/BadDataException";
 import {
@@ -558,6 +559,33 @@ export class Service extends DatabaseService<Model> {
     }
 
     await this.revokeSessionById(session.id, options);
+  }
+
+  /*
+   * Ends every session of this private user, and any SSO login code of theirs
+   * not yet exchanged (a login code is a session until it is). One that already
+   * ended keeps when and why it did.
+   */
+  public async revokeAllSessionsByPrivateUserId(
+    statusPagePrivateUserId: ObjectID,
+    options?: RevokeSessionOptions,
+  ): Promise<void> {
+    await this.updateBy({
+      query: {
+        statusPagePrivateUserId: statusPagePrivateUserId,
+        isRevoked: false,
+      },
+      data: {
+        isRevoked: true,
+        revokedAt: OneUptimeDate.getCurrentDate(),
+        revokedReason: options?.reason ?? null,
+      },
+      limit: LIMIT_MAX,
+      skip: 0,
+      props: {
+        isRoot: true,
+      },
+    });
   }
 
   private async recordSuccessfulSignIn(
