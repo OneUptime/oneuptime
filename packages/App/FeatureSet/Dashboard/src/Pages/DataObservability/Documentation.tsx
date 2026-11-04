@@ -286,6 +286,13 @@ When a table goes stale, every table built from it goes stale too. Before a data
 
 The cause's **Data** card lists its **Downstream Impact**: every alert it caused. A table alert's card also shows the services that write the table, with their failed writes, and their deploys and other changes in the day before the alert.
 
+
+## OneUptime AI
+
+- **Investigations of data alerts.** When OneUptime AI investigates an alert on a table, a pipeline or a database, it reads what is next to it: the table's freshness and open alerts, the alert it is a consequence of, the runs of the pipelines that write it since the day before (a failed run with its error), the services that write it with their failed writes and their deploys and other changes, and the tables it is built from. It names the run, deploy or upstream table behind the alert.
+- **A check from a sentence.** On a table's Checks tab, **Write a Check from a Sentence** turns a rule such as "orders never have a negative total" into a Custom SQL check that counts the rows breaking it, with an alert when any do. You read the query before **Add Check** adds it, and it is held to everything any Custom SQL check is: one read-only statement, run in a read-only transaction.
+- **Is this table fresh?** Ask OneUptime AI in Ask AI, Slack or Microsoft Teams ("is the orders table fresh?"). It answers with the table's freshness by its own rhythm, when it last changed, its open alerts, its writers' latest runs and the data products it is part of. AI agents ask the same through the MCP server's \`get_data_table_freshness\` tool, before they use the data.
+
 ## Services that use each table
 
 A table's **Services** tab lists the services seen writing and reading it, with the statements each ran, its calls and failures in the last hour, and when it was last seen. It comes from the database spans your services already send with OpenTelemetry: a client span with \`db.system.name\`, \`db.namespace\` and \`db.collection.name\` (or \`db.sql.table\`, or a span named like \`INSERT orders\`). Nothing extra to install. It is updated every 15 minutes.

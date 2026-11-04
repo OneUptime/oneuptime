@@ -41842,5 +41842,15 @@
   "About": "対象",
   "Caused Upstream": "上流の原因",
   "Written By": "書き込み元",
-  "Changes Around It": "前後の変更"
+  "Changes Around It": "前後の変更",
+  "Add Check": "チェックを追加",
+  "Alerts when its value is {{condition}} {{threshold}}.": "値が {{condition}} {{threshold}} のときにアラートします。",
+  "Checked whether a table is fresh": "テーブルが新しいか確認しました",
+  "Checking whether a table is fresh": "テーブルが新しいか確認しています",
+  "Data table": "データテーブル",
+  "Orders never have a negative total": "注文の合計が負になることはない",
+  "Say a rule this table should hold to, and OneUptime AI writes the check: one read-only query that counts the rows breaking it. You read it before it is added.": "Say a rule this table should hold to, and OneUptime AI writes the check: one read-only query that counts the rows breaking it. You read it before it is added.",
+  "The rule, in a sentence": "ルールを一文で",
+  "Write a Check from a Sentence": "文からチェックを作成",
+  "Write the Check": "チェックを作成"
 }

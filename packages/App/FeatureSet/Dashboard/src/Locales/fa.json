@@ -41842,5 +41842,15 @@
   "About": "درباره",
   "Caused Upstream": "علت در بالادست",
   "Written By": "نوشته‌شده توسط",
-  "Changes Around It": "تغییرات پیرامون آن"
+  "Changes Around It": "تغییرات پیرامون آن",
+  "Add Check": "افزودن بررسی",
+  "Alerts when its value is {{condition}} {{threshold}}.": "وقتی مقدار آن {{condition}} {{threshold}} باشد هشدار می‌دهد.",
+  "Checked whether a table is fresh": "بررسی کرد که جدول تازه است یا نه",
+  "Checking whether a table is fresh": "در حال بررسی تازه بودن جدول",
+  "Data table": "جدول داده",
+  "Orders never have a negative total": "سفارش‌ها هرگز جمع منفی ندارند",
+  "Say a rule this table should hold to, and OneUptime AI writes the check: one read-only query that counts the rows breaking it. You read it before it is added.": "Say a rule this table should hold to, and OneUptime AI writes the check: one read-only query that counts the rows breaking it. You read it before it is added.",
+  "The rule, in a sentence": "قاعده، در یک جمله",
+  "Write a Check from a Sentence": "نوشتن بررسی از یک جمله",
+  "Write the Check": "نوشتن بررسی"
 }

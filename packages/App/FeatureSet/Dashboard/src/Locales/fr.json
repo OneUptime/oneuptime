@@ -41842,5 +41842,15 @@
   "About": "Concerne",
   "Caused Upstream": "Cause en amont",
   "Written By": "Écrit par",
-  "Changes Around It": "Changements à ce moment-là"
+  "Changes Around It": "Changements à ce moment-là",
+  "Add Check": "Ajouter le contrôle",
+  "Alerts when its value is {{condition}} {{threshold}}.": "Alerte quand sa valeur est {{condition}} {{threshold}}.",
+  "Checked whether a table is fresh": "A vérifié si une table est à jour",
+  "Checking whether a table is fresh": "Vérifie si une table est à jour",
+  "Data table": "Table de données",
+  "Orders never have a negative total": "Les commandes n'ont jamais un total négatif",
+  "Say a rule this table should hold to, and OneUptime AI writes the check: one read-only query that counts the rows breaking it. You read it before it is added.": "Say a rule this table should hold to, and OneUptime AI writes the check: one read-only query that counts the rows breaking it. You read it before it is added.",
+  "The rule, in a sentence": "La règle, en une phrase",
+  "Write a Check from a Sentence": "Écrire un contrôle à partir d'une phrase",
+  "Write the Check": "Écrire le contrôle"
 }

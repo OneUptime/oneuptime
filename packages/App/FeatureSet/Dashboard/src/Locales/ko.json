@@ -41842,5 +41842,15 @@
   "About": "대상",
   "Caused Upstream": "업스트림 원인",
   "Written By": "쓰는 서비스",
-  "Changes Around It": "전후 변경 사항"
+  "Changes Around It": "전후 변경 사항",
+  "Add Check": "검사 추가",
+  "Alerts when its value is {{condition}} {{threshold}}.": "값이 {{condition}} {{threshold}}일 때 알림을 보냅니다.",
+  "Checked whether a table is fresh": "테이블이 최신인지 확인함",
+  "Checking whether a table is fresh": "테이블이 최신인지 확인하는 중",
+  "Data table": "데이터 테이블",
+  "Orders never have a negative total": "주문 합계는 절대 음수가 아니다",
+  "Say a rule this table should hold to, and OneUptime AI writes the check: one read-only query that counts the rows breaking it. You read it before it is added.": "Say a rule this table should hold to, and OneUptime AI writes the check: one read-only query that counts the rows breaking it. You read it before it is added.",
+  "The rule, in a sentence": "한 문장으로 된 규칙",
+  "Write a Check from a Sentence": "문장으로 검사 작성",
+  "Write the Check": "검사 작성"
 }

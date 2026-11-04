@@ -337,6 +337,8 @@ En typisk slinga: `list_incidents` → `acknowledge_incident` → undersök med 
 
 Verktyget **`oneuptime_whoami`** returnerar projektet som dina inloggningsuppgifter hör till (dess ID och namn). För en klient som loggade in säger det också vem den är inloggad som och om den får göra ändringar. Det är ett bra första anrop för att en agent ska orientera sig, och eftersom skapandeverktyg tar `projectId` från inloggningsuppgifterna behöver agenten aldrig skicka ett projekt-ID.
 
+Verktyget **`get_data_table_freshness`** talar om för en agent om en tabell som Data Observability bevakar är färsk innan den använder datan: färsk eller sen mätt mot tabellens egen rytm, när den senast ändrades, dess öppna larm och hur den senaste körningen av varje pipeline som skriver den gick. Ange `table` som `schema.table`, bara tabellens namn eller dess ID. Det ändrar ingenting.
+
 ## Fråga efter telemetri
 
 Loggar, mätvärden, spår (spans), undantag, monitorloggar och de andra sorterna av telemetri finns som skrivskyddade verktyg `list_` och `count_` (`list_logs`, `list_metrics`, `list_spans`, `list_exception_instances`, `list_monitor_logs` och deras `count_`-tvillingar). Telemetri kommer in via OpenTelemetry, så det finns inga skapandeverktyg.
