@@ -18,8 +18,8 @@ import {
  *
  * Every check is a single aggregate over one table - grouped by a column
  * when it has a segment - so only numbers leave the database, never a row.
- * The one exception is a project's own choice: a self-hosted project can keep
- * a masked sample of failing rows (buildDataCheckSampleStatement).
+ * The one exception is a project's own choice: it can keep a masked sample of
+ * failing rows (buildDataCheckSampleStatement).
  * Names are quoted the engine's way (a name is data, never SQL); values a
  * check compares with (accepted values, a pattern) are bound parameters.
  * Custom SQL is the person's own read, wrapped so that it can only be read
@@ -541,8 +541,8 @@ function limited(data: {
 }
 
 /*
- * A few of the rows a check found failing, for a self-hosted project that chose
- * to keep them, masked where they are read (DataCheckFailingRows). A check that
+ * A few of the rows a check found failing, for a project that chose to keep
+ * them, masked where they are read (DataCheckFailingRows). A check that
  * reads a rate names the failing column alone; a query's rows are whatever it
  * selects. None on MongoDB, whose checks end in a number by construction.
  */

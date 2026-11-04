@@ -132,6 +132,8 @@ export const SOURCE_ROOTS: Array<SourceRoot> = [
   { directory: "packages/Common/Models/AnalyticsModels", kind: "models" },
   // What a failed vCenter collection means and what fixes it (VMwareCollectionError).
   { directory: "packages/Common/Types/VMware", kind: "ui" },
+  // What a failed OpenStack collection means and what fixes it (OpenStackCollectionError).
+  { directory: "packages/Common/Types/OpenStack", kind: "ui" },
   /*
    * What a case's verdicts mean, and what each playbook action does: the
    * close dialog and the step editor show them as written there.

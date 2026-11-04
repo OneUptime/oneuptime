@@ -1,0 +1,693 @@
+/*
+ * THE SECRETS AN OPENSTACK LOG LINE CAN HOLD, TAKEN OUT BEFORE IT IS STORED.
+ *
+ * OpenStack's debug logs have leaked tokens and passwords, and a Fernet token in a log
+ * is a login. So what a service wrote goes through this as it arrives, whatever rules a
+ * project has set, and nothing turns it off. It takes out:
+ *
+ *   - a Fernet token, a JWS token or a PKI token, wherever it stands, by its shape;
+ *   - the value of anything named as a secret: password, token, auth_token, secret,
+ *     X-Auth-Token, adminPass and the like, as key=value, key: value, 'key': 'value',
+ *     "key": "value", the same inside escaped JSON, and --key value;
+ *   - the password in a URL: rabbit://user:password@host, mysql+pymysql://user:password@host;
+ *   - a private key.
+ *
+ * Logs are text anyone can write into, so every step reads the line with indexOf and a
+ * loop, never a regular expression with a quantifier, and never reads a stretch twice:
+ * the time this takes is in line with the line, whatever the line holds (AGENTS.md).
+ * A value is read for at most MAX_SECRET_VALUE_LENGTH, and the search goes on from where
+ * that stopped, so a thousand opening quotes cost what one does.
+ */
+
+export const OPENSTACK_SCRUBBED_VALUE: string = "[REDACTED]";
+
+// The longest value of a named secret. A longer one is cut here, and the rest goes too.
+export const MAX_SECRET_VALUE_LENGTH: number = 8192;
+
+// What a token's shape has to reach before it counts as one.
+const MIN_TOKEN_LENGTH: number = 32;
+
+const KEY_WORDS: ReadonlyArray<string> = [
+  "password",
+  "password_hash",
+  "passwd",
+  "adminpass",
+  "admin_pass",
+  "secret",
+  "secret_key",
+  "access_key",
+  "private_key",
+  "token",
+  "authorization",
+  "credential",
+  "cookie",
+];
+
+// A word that names something secret only when what follows it can be a value.
+const VALUES_THAT_ARE_NOT_SECRETS: ReadonlyArray<string> = [
+  "none",
+  "null",
+  "true",
+  "false",
+  "***",
+  "",
+];
+
+const AUTHORIZATION_SCHEMES: ReadonlyArray<string> = [
+  "basic",
+  "bearer",
+  "token",
+  "negotiate",
+  "digest",
+];
+
+interface TextRange {
+  start: number;
+  end: number;
+}
+
+function isAsciiLetterOrDigit(code: number): boolean {
+  return (
+    (code >= 48 && code <= 57) ||
+    (code >= 65 && code <= 90) ||
+    (code >= 97 && code <= 122)
+  );
+}
+
+function isKeyCharacter(code: number): boolean {
+  // A word goes on through these: password_expires_at, token-type, secret.ref.
+  return isAsciiLetterOrDigit(code) || code === 95 || code === 45 || code === 46;
+}
+
+function isBase64UrlCharacter(code: number): boolean {
+  return isAsciiLetterOrDigit(code) || code === 95 || code === 45 || code === 61;
+}
+
+function isWhitespace(code: number): boolean {
+  return code === 32 || code === 9 || code === 10 || code === 13;
+}
+
+/*
+ * The same length as the text, so a place in one is a place in the other: lower-casing
+ * a few characters outside ASCII changes how long a string is.
+ */
+function toSameLengthLowerCase(text: string): string {
+  const lower: string = text.toLowerCase();
+
+  if (lower.length === text.length) {
+    return lower;
+  }
+
+  const parts: Array<string> = [];
+
+  for (let index: number = 0; index < text.length; index++) {
+    const code: number = text.charCodeAt(index);
+    parts.push(
+      code >= 65 && code <= 90
+        ? String.fromCharCode(code + 32)
+        : text.charAt(index),
+    );
+  }
+
+  return parts.join("");
+}
+
+function hasEscapeAt(text: string, position: number): boolean {
+  let backslashes: number = 0;
+
+  for (let index: number = position - 1; index >= 0; index--) {
+    if (text.charCodeAt(index) !== 92) {
+      break;
+    }
+    backslashes++;
+  }
+
+  return backslashes % 2 === 1;
+}
+
+// Where the value that starts at `start` ends, read for at most the longest value.
+function readValueEnd(data: {
+  text: string;
+  start: number;
+  untilLineEnd: boolean;
+}): { valueStart: number; valueEnd: number; closedAt: number } | null {
+  const { text, start } = data;
+
+  if (start >= text.length) {
+    return null;
+  }
+
+  let position: number = start;
+  let quote: string = "";
+  let escapedQuote: boolean = false;
+
+  // Python's own b'...' and u'...', in a dict a service logged as it stood.
+  if (
+    (text.charAt(position) === "b" || text.charAt(position) === "u") &&
+    (text.charAt(position + 1) === "'" || text.charAt(position + 1) === '"')
+  ) {
+    position += 1;
+  }
+
+  if (text.charAt(position) === "\\") {
+    const next: string = text.charAt(position + 1);
+    if (next === '"' || next === "'") {
+      quote = next;
+      escapedQuote = true;
+      position += 2;
+    }
+  } else if (text.charAt(position) === '"' || text.charAt(position) === "'") {
+    quote = text.charAt(position);
+    position += 1;
+  }
+
+  const limit: number = Math.min(
+    text.length,
+    position + MAX_SECRET_VALUE_LENGTH,
+  );
+
+  if (quote) {
+    let end: number = position;
+
+    while (end < limit) {
+      if (text.charAt(end) === quote) {
+        const isEscaped: boolean = hasEscapeAt(text, end);
+
+        if (escapedQuote ? isEscaped : !isEscaped) {
+          return {
+            valueStart: position,
+            valueEnd: escapedQuote ? end - 1 : end,
+            closedAt: end + 1,
+          };
+        }
+      }
+      end++;
+    }
+
+    return { valueStart: position, valueEnd: limit, closedAt: limit };
+  }
+
+  // An object or a list is not one value: what is secret inside it is found on its own.
+  if (text.charAt(position) === "{" || text.charAt(position) === "[") {
+    return null;
+  }
+
+  let end: number = position;
+
+  while (end < limit) {
+    const code: number = text.charCodeAt(end);
+
+    if (data.untilLineEnd) {
+      if (code === 10 || code === 13 || code === 34 || code === 39) {
+        break;
+      }
+    } else if (
+      isWhitespace(code) ||
+      code === 44 || // ,
+      code === 59 || // ;
+      code === 38 || // &
+      code === 41 || // )
+      code === 93 || // ]
+      code === 125 || // }
+      code === 34 || // "
+      code === 39 // '
+    ) {
+      break;
+    }
+    end++;
+  }
+
+  return { valueStart: position, valueEnd: end, closedAt: end };
+}
+
+/*
+ * What a word found in the line names, if it names a value. A word running on into
+ * another (password_expires_at, tokens) is another word, and a word with nothing to say
+ * after it is prose: "Failed to validate token (HTTP 404)".
+ */
+function readNamedValue(data: {
+  text: string;
+  lower: string;
+  wordStart: number;
+  wordEnd: number;
+  word: string;
+}): { range: TextRange | null; resumeAt: number } {
+  const { text, wordStart, wordEnd, word } = data;
+  let position: number = wordEnd;
+
+  if (position < text.length && isKeyCharacter(text.charCodeAt(position))) {
+    return { range: null, resumeAt: wordEnd };
+  }
+
+  // The key's own closing quote, escaped inside a string of JSON or not.
+  if (
+    text.charAt(position) === "\\" &&
+    (text.charAt(position + 1) === '"' || text.charAt(position + 1) === "'")
+  ) {
+    position += 2;
+  } else if (text.charAt(position) === '"' || text.charAt(position) === "'") {
+    position += 1;
+  }
+
+  let spaces: number = 0;
+
+  while (position < text.length && text.charCodeAt(position) === 32) {
+    position++;
+    spaces++;
+  }
+
+  const separator: string = text.charAt(position);
+  let valueStart: number = -1;
+
+  if (separator === "=" || separator === ":") {
+    valueStart = position + 1;
+    // Python's own => and Ruby's, as a few of these are written.
+    if (text.charAt(valueStart) === ">") {
+      valueStart += 1;
+    }
+    while (valueStart < text.length && text.charCodeAt(valueStart) === 32) {
+      valueStart++;
+    }
+  } else if (spaces > 0 && wordStart > 0 && text.charAt(wordStart - 1) === "-") {
+    // --password value, on a command a service logged.
+    valueStart = position;
+  } else {
+    return { range: null, resumeAt: wordEnd };
+  }
+
+  const read: { valueStart: number; valueEnd: number; closedAt: number } | null =
+    readValueEnd({
+      text,
+      start: valueStart,
+      untilLineEnd: word === "cookie",
+    });
+
+  if (!read) {
+    return { range: null, resumeAt: valueStart };
+  }
+
+  const value: string = text.slice(read.valueStart, read.valueEnd);
+
+  if (VALUES_THAT_ARE_NOT_SECRETS.includes(value.trim().toLowerCase())) {
+    return { range: null, resumeAt: read.closedAt };
+  }
+
+  // A scheme is no secret, and what comes after it is: Authorization: Bearer abc.
+  if (
+    word === "authorization" &&
+    AUTHORIZATION_SCHEMES.includes(value.toLowerCase()) &&
+    text.charCodeAt(read.valueEnd) === 32
+  ) {
+    const rest: { valueStart: number; valueEnd: number; closedAt: number } | null =
+      readValueEnd({
+        text,
+        start: read.valueEnd + 1,
+        untilLineEnd: false,
+      });
+
+    if (rest && rest.valueEnd > rest.valueStart) {
+      return {
+        range: { start: rest.valueStart, end: rest.valueEnd },
+        resumeAt: rest.closedAt,
+      };
+    }
+  }
+
+  if (read.valueEnd <= read.valueStart) {
+    return { range: null, resumeAt: read.closedAt };
+  }
+
+  return {
+    range: { start: read.valueStart, end: read.valueEnd },
+    resumeAt: read.closedAt,
+  };
+}
+
+function findNamedValues(data: {
+  text: string;
+  lower: string;
+  ranges: Array<TextRange>;
+}): void {
+  for (const word of KEY_WORDS) {
+    let from: number = 0;
+
+    for (;;) {
+      const at: number = data.lower.indexOf(word, from);
+
+      if (at === -1) {
+        break;
+      }
+
+      const read: { range: TextRange | null; resumeAt: number } =
+        readNamedValue({
+          text: data.text,
+          lower: data.lower,
+          wordStart: at,
+          wordEnd: at + word.length,
+          word,
+        });
+
+      if (read.range) {
+        data.ranges.push(read.range);
+      }
+
+      from = Math.max(read.resumeAt, at + word.length);
+    }
+  }
+}
+
+/*
+ * A token by its shape: its start, and at least MIN_TOKEN_LENGTH characters a token can
+ * hold. The search goes on from its end, so a line of nothing but token characters is
+ * read once.
+ */
+function findTokensByShape(data: {
+  text: string;
+  start: string;
+  isTokenCharacter: (code: number) => boolean;
+  minimumLength: number;
+  ranges: Array<TextRange>;
+}): void {
+  let from: number = 0;
+
+  for (;;) {
+    const at: number = data.text.indexOf(data.start, from);
+
+    if (at === -1) {
+      return;
+    }
+
+    let end: number = at + data.start.length;
+
+    while (
+      end < data.text.length &&
+      data.isTokenCharacter(data.text.charCodeAt(end))
+    ) {
+      end++;
+    }
+
+    if (end - at >= data.minimumLength) {
+      data.ranges.push({ start: at, end });
+    }
+
+    from = end;
+  }
+}
+
+function isJwsCharacter(code: number): boolean {
+  return isBase64UrlCharacter(code) || code === 46;
+}
+
+function isBase64Character(code: number): boolean {
+  return isBase64UrlCharacter(code) || code === 43 || code === 47;
+}
+
+/*
+ * The password of a URL: scheme://user:password@host, and each one of a bus's several
+ * hosts, rabbit://user:password@one:5672,user:password@two:5672/.
+ */
+function findUrlPasswords(text: string, ranges: Array<TextRange>): void {
+  let from: number = 0;
+
+  for (;;) {
+    const at: number = text.indexOf("://", from);
+
+    if (at === -1) {
+      return;
+    }
+
+    const limit: number = Math.min(
+      text.length,
+      at + 3 + MAX_SECRET_VALUE_LENGTH,
+    );
+    let position: number = at + 3;
+    let colon: number = -1;
+    let lastAt: number = -1;
+
+    // A password can hold an @, so it runs to the last one before the host.
+    const closeSegment: () => void = (): void => {
+      if (colon !== -1 && lastAt > colon + 1) {
+        ranges.push({ start: colon + 1, end: lastAt });
+      }
+      colon = -1;
+      lastAt = -1;
+    };
+
+    while (position < limit) {
+      const code: number = text.charCodeAt(position);
+
+      // The end of the address's first part: a path, a query, or the end of a word.
+      if (
+        code === 47 ||
+        code === 63 ||
+        code === 35 ||
+        isWhitespace(code) ||
+        code === 34 ||
+        code === 39
+      ) {
+        break;
+      }
+
+      if (code === 44) {
+        closeSegment();
+      } else if (code === 58 && colon === -1) {
+        colon = position;
+      } else if (code === 64) {
+        lastAt = position;
+      }
+
+      position++;
+    }
+
+    closeSegment();
+
+    // Read once: the next search starts where this one stopped.
+    from = Math.max(position, at + 3);
+  }
+}
+
+function findPrivateKeys(text: string, ranges: Array<TextRange>): void {
+  let from: number = 0;
+  const marker: string = "PRIVATE KEY-----";
+
+  for (;;) {
+    const at: number = text.indexOf(marker, from);
+
+    if (at === -1) {
+      return;
+    }
+
+    // Looked for just before it, so a line of nothing but these is read once.
+    const beginWindowStart: number = Math.max(from, at - 64);
+    const beginInWindow: number = text
+      .slice(beginWindowStart, at)
+      .lastIndexOf("-----BEGIN");
+    const start: number =
+      beginInWindow === -1 ? at : beginWindowStart + beginInWindow;
+    const end: number = text.indexOf("-----END", at + marker.length);
+
+    if (end === -1) {
+      ranges.push({
+        start,
+        end: Math.min(text.length, at + MAX_SECRET_VALUE_LENGTH),
+      });
+      return;
+    }
+
+    const close: number = text.indexOf(marker, end);
+    const stop: number = close === -1 ? end + 8 : close + marker.length;
+
+    ranges.push({ start, end: stop });
+    from = stop;
+  }
+}
+
+// The text with its secrets taken out. The same string when it holds none.
+export function scrubOpenStackSecrets(text: string): string {
+  if (!text) {
+    return text;
+  }
+
+  const ranges: Array<TextRange> = [];
+  const lower: string = toSameLengthLowerCase(text);
+
+  findNamedValues({ text, lower, ranges });
+  findUrlPasswords(text, ranges);
+  findPrivateKeys(text, ranges);
+  findTokensByShape({
+    text,
+    start: "gAAAA",
+    isTokenCharacter: isBase64UrlCharacter,
+    minimumLength: MIN_TOKEN_LENGTH,
+    ranges,
+  });
+  findTokensByShape({
+    text,
+    start: "eyJ",
+    isTokenCharacter: isJwsCharacter,
+    minimumLength: MIN_TOKEN_LENGTH,
+    ranges,
+  });
+  // A PKI token: long, because plenty of ordinary base64 starts this way too.
+  findTokensByShape({
+    text,
+    start: "MII",
+    isTokenCharacter: isBase64Character,
+    minimumLength: 200,
+    ranges,
+  });
+  findTokensByShape({
+    text,
+    start: "PKIZ_",
+    isTokenCharacter: isBase64Character,
+    minimumLength: MIN_TOKEN_LENGTH,
+    ranges,
+  });
+
+  if (ranges.length === 0) {
+    return text;
+  }
+
+  ranges.sort((a: TextRange, b: TextRange): number => {
+    return a.start - b.start;
+  });
+
+  const parts: Array<string> = [];
+  let position: number = 0;
+
+  for (const range of ranges) {
+    if (range.end <= position) {
+      continue;
+    }
+
+    if (range.start > position) {
+      parts.push(text.slice(position, range.start));
+      parts.push(OPENSTACK_SCRUBBED_VALUE);
+    } else if (parts.length === 0) {
+      parts.push(OPENSTACK_SCRUBBED_VALUE);
+    }
+
+    position = range.end;
+  }
+
+  parts.push(text.slice(position));
+
+  return parts.join("");
+}
+
+/*
+ * ANSI colour codes, which DevStack writes into every line. Read in one pass: an escape
+ * followed by [, digits and semicolons, and an m.
+ */
+export function stripAnsiCodes(text: string): string {
+  if (!text || text.indexOf("\u001b[") === -1) {
+    return text;
+  }
+
+  const parts: Array<string> = [];
+  let position: number = 0;
+
+  for (;;) {
+    const at: number = text.indexOf("\u001b[", position);
+
+    if (at === -1) {
+      parts.push(text.slice(position));
+      break;
+    }
+
+    parts.push(text.slice(position, at));
+
+    let end: number = at + 2;
+
+    while (end < text.length) {
+      const code: number = text.charCodeAt(end);
+
+      if ((code >= 48 && code <= 57) || code === 59) {
+        end++;
+        continue;
+      }
+      break;
+    }
+
+    // A code it does not know is left out to here and no further.
+    position = text.charAt(end) === "m" ? end + 1 : end;
+  }
+
+  return parts.join("");
+}
+
+/*
+ * A notification's or an audit event's fields with what must never be stored taken out:
+ * whatever a credential holds, what a request or response held, and an oslo.context's
+ * own copy of its token. By key, on the parsed value. Depth is bounded because a value
+ * anyone can write decides it, and a walk that recursed for each level could run out of
+ * stack on one long nesting.
+ */
+const REMOVED_KEYS: ReadonlySet<string> = new Set([
+  "attachments",
+  "credential",
+  "credentials",
+  "auth_token",
+  "token",
+  "password",
+  "adminpass",
+  "admin_pass",
+  "admin_password",
+  "secret",
+  "blob",
+  "user_data",
+  "requestpayload",
+  "responsepayload",
+  "reqpayload",
+  "respayload",
+  "request_payload",
+  "response_payload",
+  "request_body",
+  "response_body",
+]);
+
+const MAX_CLEANED_DEPTH: number = 32;
+
+export function removeOpenStackSecretFields(
+  value: unknown,
+  depth: number = 0,
+): unknown {
+  if (Array.isArray(value)) {
+    if (depth >= MAX_CLEANED_DEPTH) {
+      return [];
+    }
+
+    return value.map((item: unknown): unknown => {
+      return removeOpenStackSecretFields(item, depth + 1);
+    });
+  }
+
+  if (value && typeof value === "object") {
+    if (depth >= MAX_CLEANED_DEPTH) {
+      return {};
+    }
+
+    const cleaned: Record<string, unknown> = {};
+
+    for (const key of Object.keys(value as Record<string, unknown>)) {
+      const lower: string = key.toLowerCase();
+
+      if (
+        REMOVED_KEYS.has(lower) ||
+        lower.startsWith("_context_") ||
+        lower === "__proto__"
+      ) {
+        continue;
+      }
+
+      cleaned[key] = removeOpenStackSecretFields(
+        (value as Record<string, unknown>)[key],
+        depth + 1,
+      );
+    }
+
+    return cleaned;
+  }
+
+  return value;
+}

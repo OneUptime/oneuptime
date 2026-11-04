@@ -28,8 +28,7 @@ import OpenStackCollectionStatus from "../../../../Types/OpenStack/OpenStackColl
 /*
  * The save rules of a cloud's probe collection settings: what a create and an update must
  * carry, how they are normalized, where a saved credential may go, and what is written once
- * they are saved. The columns these write come with the phase's model, so they are read here
- * off the same plain data the hooks will be handed.
+ * they are saved. OpenStackCloudServiceConnection.test.ts holds the service's hooks to these.
  */
 
 const PROJECT_ID: ObjectID = new ObjectID(

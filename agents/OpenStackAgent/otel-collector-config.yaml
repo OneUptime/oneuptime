@@ -94,6 +94,224 @@ receivers:
                 openstack_service: image
           relabel_configs: *openstack_exporter_target
 
+  # What an instance is really doing, from whichever of these a cloud already runs:
+  # prometheus-libvirt-exporter (Kolla-Ansible runs it with KVM, on 9177) or
+  # Ceilometer's own exporter (`[polling] enable_prometheus_exporter`, from 2025.1, on
+  # 9101). Each answers for one compute node, so the targets are the compute nodes, and
+  # both lists are empty until someone names them: real per-instance series multiply
+  # fast, and whether to keep them is a choice (see "Real usage" in the docs).
+  #
+  # A receiver of its own, because these scrape the compute nodes rather than the
+  # exporter above. Only what OneUptime reads is kept, which is under half of what
+  # either says. A target's host name goes on every series as openstack_exporter_host:
+  # a domain's name is only unique on its own hypervisor.
+  prometheus/instance-metrics:
+    config:
+      scrape_configs:
+        - job_name: oneuptime-openstack-libvirt
+          scrape_interval: 60s
+          scrape_timeout: 30s
+          static_configs:
+            - targets: ${env:OPENSTACK_LIBVIRT_EXPORTER_TARGETS}
+              labels:
+                openstack_service: libvirt
+          relabel_configs: &openstack_instance_metrics_target
+            - source_labels: [__address__]
+              regex: (.+):[0-9]+
+              target_label: openstack_exporter_host
+          metric_relabel_configs:
+            - source_labels: [__name__]
+              regex: libvirt_domain_openstack_info|libvirt_domain_info_(cpu_time_seconds_total|virtual_cpus)|libvirt_domain_memory_stats_(available|usable|unused|rss)_bytes|libvirt_domain_block_stats_(read|write)_(bytes|requests|time_seconds)_total|libvirt_domain_interface_stats_(receive|transmit)_bytes_total|libvirt_domain_vcpu_delay_seconds_total|libvirt_up
+              action: keep
+        # Its readings change once a polling cycle (five minutes by default) however
+        # often it is scraped, so scraping it faster than that buys nothing.
+        - job_name: oneuptime-openstack-ceilometer
+          scrape_interval: 120s
+          scrape_timeout: 30s
+          static_configs:
+            - targets: ${env:OPENSTACK_CEILOMETER_EXPORTER_TARGETS}
+              labels:
+                openstack_service: ceilometer
+          relabel_configs: *openstack_instance_metrics_target
+          metric_relabel_configs:
+            - source_labels: [__name__]
+              regex: ceilometer_(cpu|cpu_delay|vcpus|memory_usage|memory_resident)|ceilometer_disk_device_(read|write)_(bytes|requests|latency)|ceilometer_network_(incoming|outgoing)_bytes
+              action: keep
+
+  # What the cloud stands on. Most OpenStack outages begin underneath it: a RabbitMQ
+  # partition, Galera losing quorum, an OVN database with no leader. Nothing new runs
+  # for this: each job reads an endpoint the deployment already serves, and every list
+  # is empty until someone names its targets, so a cloud that names none scrapes none.
+  #
+  #   OPENSTACK_RABBITMQ_TARGETS          RabbitMQ's Prometheus plugin, on 15692
+  #   OPENSTACK_MARIADB_TARGETS           mysqld_exporter, on 9104
+  #   OPENSTACK_MEMCACHED_TARGETS         memcached_exporter, on 9150
+  #   OPENSTACK_HAPROXY_TARGETS           HAProxy's own Prometheus exporter
+  #   OPENSTACK_NETWORK_EXPORTER_TARGETS  openstack-network-exporter, for OVN and OVS, on 1981
+  #   OPENSTACK_LIBVIRT_HEALTH_TARGETS    prometheus-libvirt-exporter, on 9177, for whether
+  #                                       libvirt answers and no per-instance series. Leave
+  #                                       it empty if OPENSTACK_LIBVIRT_EXPORTER_TARGETS names
+  #                                       the same hosts, which already reads this.
+  #
+  # Each is a list in square brackets: [10.0.0.11:15692,10.0.0.12:15692]. A target takes
+  # OPENSTACK_CONTROL_PLANE_REGION as its region, or says its own: RegionTwo@10.1.0.11:15692.
+  # Never a port for a region's name: a @ is the one separator a scrape target can hold.
+  #
+  # Every 60 seconds, which is what these endpoints are built for, and much cheaper than
+  # the APIs above: none of them makes a call anyone else notices. Only the series
+  # OneUptime reads are kept, because a mysqld_exporter alone says over a thousand, and
+  # HAProxy that again for each backend.
+  #
+  # The prometheus receiver takes `instance` off every datapoint, and the resource
+  # processor below deletes what it leaves in its place, so three RabbitMQ nodes would
+  # read as one. So a target's host name goes on every series as openstack_exporter_host.
+  prometheus/control-plane:
+    config:
+      scrape_configs:
+        - job_name: oneuptime-openstack-rabbitmq
+          scrape_interval: 60s
+          scrape_timeout: 30s
+          static_configs:
+            - targets: ${env:OPENSTACK_RABBITMQ_TARGETS}
+              labels:
+                openstack_dependency: rabbitmq
+                openstack_region: ${env:OPENSTACK_CONTROL_PLANE_REGION}
+          relabel_configs: &openstack_control_plane_target
+            - source_labels: [__address__]
+              regex: ([^@]+)@(.+)
+              target_label: openstack_region
+              replacement: $$1
+            - source_labels: [__address__]
+              regex: ([^@]+)@(.+)
+              target_label: __address__
+              replacement: $$2
+            - source_labels: [__address__]
+              regex: (.+):[0-9]+
+              target_label: openstack_exporter_host
+          metric_relabel_configs:
+            - source_labels: [__name__]
+              regex: rabbitmq_identity_info|rabbitmq_alarms_(memory_used_watermark|free_disk_space_watermark|file_descriptor_limit)|rabbitmq_process_(open_fds|max_fds|resident_memory_bytes)|rabbitmq_resident_memory_limit_bytes|rabbitmq_disk_space_available(_limit)?_bytes|rabbitmq_queue_messages(_ready|_unacked)?|rabbitmq_queue_consumers|rabbitmq_queues|rabbitmq_consumers|rabbitmq_connections|rabbitmq_erlang_uptime_seconds|erlang_vm_dist_node_state
+              action: keep
+        - job_name: oneuptime-openstack-mariadb
+          scrape_interval: 60s
+          scrape_timeout: 30s
+          static_configs:
+            - targets: ${env:OPENSTACK_MARIADB_TARGETS}
+              labels:
+                openstack_dependency: mariadb
+                openstack_region: ${env:OPENSTACK_CONTROL_PLANE_REGION}
+          relabel_configs: *openstack_control_plane_target
+          metric_relabel_configs:
+            - source_labels: [__name__]
+              regex: mysql_up|mysql_global_status_wsrep_(cluster_size|cluster_status|ready|connected|local_state|flow_control_paused|local_recv_queue)|mysql_global_variables_wsrep_desync|mysql_global_status_threads_(connected|running)|mysql_global_variables_max_connections|mysql_global_status_slow_queries|mysql_global_status_uptime
+              action: keep
+        - job_name: oneuptime-openstack-memcached
+          scrape_interval: 60s
+          scrape_timeout: 30s
+          static_configs:
+            - targets: ${env:OPENSTACK_MEMCACHED_TARGETS}
+              labels:
+                openstack_dependency: memcached
+                openstack_region: ${env:OPENSTACK_CONTROL_PLANE_REGION}
+          relabel_configs: *openstack_control_plane_target
+          metric_relabel_configs:
+            - source_labels: [__name__]
+              regex: memcached_up|memcached_current_connections|memcached_max_connections|memcached_items_evicted_total|memcached_current_bytes|memcached_limit_bytes
+              action: keep
+        - job_name: oneuptime-openstack-haproxy
+          scrape_interval: 60s
+          scrape_timeout: 30s
+          static_configs:
+            - targets: ${env:OPENSTACK_HAPROXY_TARGETS}
+              labels:
+                openstack_dependency: haproxy
+                openstack_region: ${env:OPENSTACK_CONTROL_PLANE_REGION}
+          relabel_configs: *openstack_control_plane_target
+          metric_relabel_configs:
+            - source_labels: [__name__]
+              regex: haproxy_backend_status|haproxy_server_status|haproxy_backend_active_servers|haproxy_backend_http_responses_total
+              action: keep
+            # One series per backend or server for each state it could be in. A monitor
+            # asks whether it is down or up, and planned work reads as neither: at a
+            # fraction of the series.
+            - source_labels: [__name__, state]
+              regex: haproxy_(backend|server)_status;(MAINT|DRAIN|NOLB)
+              action: drop
+        - job_name: oneuptime-openstack-network-exporter
+          scrape_interval: 60s
+          scrape_timeout: 30s
+          static_configs:
+            - targets: ${env:OPENSTACK_NETWORK_EXPORTER_TARGETS}
+              labels:
+                openstack_dependency: network
+                openstack_region: ${env:OPENSTACK_CONTROL_PLANE_REGION}
+          relabel_configs: *openstack_control_plane_target
+          metric_relabel_configs:
+            - source_labels: [__name__]
+              regex: ovs_build_info|ovs_bridge_port_count|ovn_raft_cluster_leader|ovn_raft_cluster_server_role|ovn_raft_cluster_server_status|ovn_northd_status|ovnc_encap_ip|ovnc_txn_(error|uncommitted)|ovnc_rconn_(discarded|overflow)|ovs_interface_tx_errors
+              action: keep
+        - job_name: oneuptime-openstack-libvirt-health
+          scrape_interval: 60s
+          scrape_timeout: 30s
+          static_configs:
+            - targets: ${env:OPENSTACK_LIBVIRT_HEALTH_TARGETS}
+              labels:
+                openstack_dependency: libvirt
+                openstack_region: ${env:OPENSTACK_CONTROL_PLANE_REGION}
+          relabel_configs: *openstack_control_plane_target
+          metric_relabel_configs:
+            - source_labels: [__name__]
+              regex: libvirt_up
+              action: keep
+
+  # An exporter already running in single-cloud mode, as Kolla-Ansible runs its own. It
+  # has no /probe, so it can only be asked for everything at once, on /metrics, and each
+  # read costs the cloud as much as one read of every service below. Set
+  # OPENSTACK_EXPORTER_CLOUDS=[] with it, so the per-service jobs above ask nothing.
+  #
+  # Its series get the service and region the per-service jobs would have given them.
+  # Whatever the exporter is set to read, these leave out what the bundled exporter
+  # leaves out by default: a series per port and a series per subnet are the most it says.
+  prometheus/single-cloud-exporter:
+    config:
+      scrape_configs:
+        - job_name: oneuptime-openstack-single-cloud-exporter
+          scrape_interval: 120s
+          # Under the 45 seconds Kolla's HAProxy gives this exporter.
+          scrape_timeout: 40s
+          static_configs:
+            - targets: ${env:OPENSTACK_SINGLE_CLOUD_EXPORTER_TARGETS}
+              labels:
+                openstack_region: ${env:OPENSTACK_CONTROL_PLANE_REGION}
+          metric_relabel_configs:
+            - source_labels: [__name__]
+              regex: openstack_neutron_(port|ports|ports_no_ips|ports_lb_not_active|subnets_total|subnets_used|subnets_free)
+              action: drop
+            - source_labels: [__name__]
+              regex: openstack_identity_.+
+              target_label: openstack_service
+              replacement: identity
+            - source_labels: [__name__]
+              regex: openstack_nova_.+
+              target_label: openstack_service
+              replacement: compute
+            - source_labels: [__name__]
+              regex: openstack_placement_.+
+              target_label: openstack_service
+              replacement: placement
+            - source_labels: [__name__]
+              regex: openstack_neutron_.+
+              target_label: openstack_service
+              replacement: network
+            - source_labels: [__name__]
+              regex: openstack_cinder_.+
+              target_label: openstack_service
+              replacement: volume
+            - source_labels: [__name__]
+              regex: openstack_glance_.+
+              target_label: openstack_service
+              replacement: image
+
 processors:
   # Lift what OneUptime filters on out of the exporter's labels. Monitor
   # criteria and attribute filters match on equality, and every OpenStack page
@@ -117,7 +335,7 @@ processors:
       # one is out. The collector image docker-compose.yml pins, its last number
       # raised each time these files change on that collector.
       - key: oneuptime.agent.version
-        value: "0.161.0"
+        value: "0.161.1"
         action: upsert
       # The prometheus receiver synthesizes service.name (the scrape job's name)
       # and service.instance.id on every batch. OneUptime routes batches by
@@ -128,6 +346,38 @@ processors:
         action: delete
       - key: service.instance.id
         action: delete
+  # A monitor reads one-minute buckets and cannot take the difference of two of them, so
+  # it cannot tell a counter that is climbing from one that climbed last year. So these
+  # few counters are also sent as how much each grew since the previous scrape, as the
+  # Kubernetes agent sends a container's restarts. The counters themselves are not kept
+  # apart: the metrics pipeline sends them as they are.
+  filter/control-plane-increases:
+    error_mode: ignore
+    metrics:
+      metric:
+        - 'not IsMatch(name, "^(mysql_global_status_slow_queries|memcached_items_evicted_total|haproxy_backend_http_responses_total|ovs_interface_tx_errors)$")'
+  transform/control-plane-increases:
+    error_mode: ignore
+    metric_statements:
+      - context: metric
+        statements:
+          - set(name, "mysql_slow_queries_increase") where name == "mysql_global_status_slow_queries"
+          - set(name, "memcached_items_evicted_increase") where name == "memcached_items_evicted_total"
+          - set(name, "haproxy_backend_http_responses_increase") where name == "haproxy_backend_http_responses_total"
+          - set(name, "ovs_interface_tx_errors_increase") where name == "ovs_interface_tx_errors"
+          # Both exporters leave some counters untyped, and those arrive as gauges.
+          - convert_gauge_to_sum("cumulative", true) where IsMatch(name, "_increase$")
+  cumulative_to_delta/control-plane-increases:
+    include:
+      metrics:
+        - mysql_slow_queries_increase
+        - memcached_items_evicted_increase
+        - haproxy_backend_http_responses_increase
+        - ovs_interface_tx_errors_increase
+      match_type: strict
+    initial_value: drop
+    max_staleness: 2h
+
   batch:
     timeout: 10s
     send_batch_size: 1024
@@ -142,9 +392,27 @@ exporters:
     headers:
       x-oneuptime-token: ${env:ONEUPTIME_TELEMETRY_INGESTION_KEY}
 
+connectors:
+  # From metrics/control-plane-increases, which works out the increases, into the metrics
+  # pipeline, which stamps and sends them with everything else.
+  forward/control-plane-increases: {}
+
 service:
   pipelines:
     metrics:
-      receivers: [prometheus]
+      receivers:
+        - prometheus
+        - prometheus/instance-metrics
+        - prometheus/control-plane
+        - prometheus/single-cloud-exporter
+        - forward/control-plane-increases
       processors: [memory_limiter, transform/openstack-identity, resource, batch]
       exporters: [otlphttp]
+    metrics/control-plane-increases:
+      receivers: [prometheus/control-plane]
+      processors:
+        - memory_limiter
+        - filter/control-plane-increases
+        - transform/control-plane-increases
+        - cumulative_to_delta/control-plane-increases
+      exporters: [forward/control-plane-increases]

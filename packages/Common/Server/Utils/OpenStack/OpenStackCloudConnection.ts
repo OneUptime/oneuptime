@@ -103,6 +103,7 @@ export interface SavedOpenStackConnection {
   projectId?: ObjectID | undefined;
   collectionMethod?: OpenStackCollectionMethod | undefined;
   authUrl?: string | undefined;
+  endpointInterface?: string | undefined;
   credentialKind?: string | undefined;
   applicationCredentialId?: string | undefined;
   keystoneUsername?: string | undefined;
@@ -113,6 +114,7 @@ export interface SavedOpenStackConnection {
   collectionProbeId?: ObjectID | undefined;
   collectionRegions?: Array<string> | undefined;
   collectionOptions?: OpenStackCollectionOptions | undefined;
+  collectionIntervalInMinutes?: number | undefined;
   trustedCertificateFingerprints?: Array<string> | undefined;
   presentedCertificate?: { fingerprint256?: string | undefined } | undefined;
 }
@@ -122,6 +124,7 @@ export const OPENSTACK_CONNECTION_SAVED_SELECT: Record<string, true> = {
   projectId: true,
   collectionMethod: true,
   authUrl: true,
+  endpointInterface: true,
   credentialKind: true,
   applicationCredentialId: true,
   keystoneUsername: true,
@@ -132,6 +135,7 @@ export const OPENSTACK_CONNECTION_SAVED_SELECT: Record<string, true> = {
   collectionProbeId: true,
   collectionRegions: true,
   collectionOptions: true,
+  collectionIntervalInMinutes: true,
   trustedCertificateFingerprints: true,
   presentedCertificate: true,
 };
@@ -146,6 +150,14 @@ const CREDENTIAL_IDENTITY_COLUMNS: ReadonlyArray<string> = [
   "projectName",
   "projectDomainName",
 ];
+
+/*
+ * What a credential column names. An edit form sends every column it shows or hides, and a
+ * box nobody typed in, or one emptied again, says the same as the column holding nothing.
+ */
+const readIdentity: (value: unknown) => string = (value: unknown): string => {
+  return typeof value === "string" ? value.trim() : "";
+};
 
 export default class OpenStackCloudConnection {
   // Whether a write sets any of the probe collection settings.
@@ -420,11 +432,13 @@ export default class OpenStackCloudConnection {
       CREDENTIAL_IDENTITY_COLUMNS.some((column: string): boolean => {
         return (
           update[column] !== undefined &&
-          update[column] !== (saved as unknown as DataRecord)[column]
+          readIdentity(update[column]) !==
+            readIdentity((saved as unknown as DataRecord)[column])
         );
       }) ||
       (update["credentialKind"] !== undefined &&
-        update["credentialKind"] !== saved.credentialKind);
+        readIdentity(update["credentialKind"]) !==
+          readIdentity(saved.credentialKind));
 
     if (!isSecretGiven) {
       /*
@@ -464,7 +478,8 @@ export default class OpenStackCloudConnection {
         JSON.stringify(saved.collectionRegions || []);
 
     const isInterfaceChanged: boolean =
-      update["endpointInterface"] !== undefined;
+      update["endpointInterface"] !== undefined &&
+      update["endpointInterface"] !== saved.endpointInterface;
 
     change.isCredentialChanged = isSecretGiven || isIdentityChanged;
     change.isCredentialSet = isSecretGiven ? true : null;
@@ -529,6 +544,8 @@ export default class OpenStackCloudConnection {
 
     if (
       update["collectionIntervalInMinutes"] !== undefined &&
+      update["collectionIntervalInMinutes"] !==
+        saved.collectionIntervalInMinutes &&
       !isMethodSwitched
     ) {
       change.feedLines.push(
@@ -819,11 +836,12 @@ export default class OpenStackCloudConnection {
       data["collectionOptions"] = options.options;
     }
 
+    // An empty box holds nothing: it is not a name of no characters.
     for (const column of CREDENTIAL_IDENTITY_COLUMNS) {
       const value: unknown = data[column];
 
       if (typeof value === "string") {
-        data[column] = value.trim();
+        data[column] = value.trim() || null;
       }
     }
   }

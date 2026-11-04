@@ -1,6 +1,6 @@
 # Controlli e riconciliazioni
 
-La salute delle tabelle dice se una tabella cambia. Un **controllo** dice se ciò che contiene è corretto, una **riconciliazione** dice se due copie dei dati coincidono, e i **test di dbt** riferiscono sulle tabelle che dbt costruisce. Ognuno viene eseguito dove viene eseguita la raccolta del database, da OneUptime o dalla sua sonda, e dal database esce solo un numero, a meno che un progetto self-hosted scelga di conservare un campione mascherato delle righe in errore.
+La salute delle tabelle dice se una tabella cambia. Un **controllo** dice se ciò che contiene è corretto, una **riconciliazione** dice se due copie dei dati coincidono, e i **test di dbt** riferiscono sulle tabelle che dbt costruisce. Ognuno viene eseguito dove viene eseguita la raccolta del database, da OneUptime o dalla sua sonda, e dal database esce solo un numero, a meno che un progetto scelga di conservare un campione mascherato delle righe in errore.
 
 ## Controlli
 
@@ -52,7 +52,9 @@ Un controllo compete con la tua applicazione per il database e, su un warehouse 
 
 ## Righe in errore
 
-Un numero dice che qualcosa non va; poche righe dicono cosa. Su un OneUptime self-hosted, **Conserva Failing Rows** in **Impostazioni** conserva fino a 20 delle righe trovate da un controllo Failing Rows, Invalid Percent, Format Mismatch Percent o Orphan Count, e **Righe in errore** sul controllo le mostra. Le colonne sensibili sono mascherate dove la riga viene letta, in base a ciò che Data Security vi ha trovato o ai loro nomi, quindi ciò che lascia il database, o una sonda, è già mascherato. OneUptime Cloud non ne conserva nessuna.
+Un numero dice che qualcosa non va; poche righe dicono cosa. **Conserva Failing Rows** in **Impostazioni** conserva fino a 20 delle righe trovate da un controllo Failing Rows, Invalid Percent, Format Mismatch Percent o Orphan Count, e **Righe in errore** sul controllo le mostra. È disattivato finché non lo attivi. Le colonne sensibili sono mascherate dove la riga viene letta, in base a ciò che Data Security vi ha trovato o ai loro nomi, quindi ciò che lascia il database, o una sonda, è già mascherato. Una colonna sensibile che nessuna scansione ha trovato e il cui nome non la rivela viene conservata così com'è.
+
+Le righe sono archiviate in OneUptime: sui server di OneUptime con OneUptime Cloud, e sui tuoi con un'installazione self-hosted. Chiunque possa leggere i controlli del progetto può vederle. Un controllo conserva solo le righe della sua ultima esecuzione, e disattivare **Conserva Failing Rows** elimina ciò che ogni controllo aveva conservato.
 
 ## Controlli in un file
 

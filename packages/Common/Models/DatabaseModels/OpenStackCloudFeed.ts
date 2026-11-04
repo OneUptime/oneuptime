@@ -39,6 +39,8 @@ export enum OpenStackCloudFeedEventType {
   OwnerTeamRemoved = "OwnerTeamRemoved",
   OwnerRuleExecuted = "OwnerRuleExecuted",
   LabelRuleExecuted = "LabelRuleExecuted",
+  // What the cloud's own notifications said happened to one of its parts.
+  LifecycleEvent = "LifecycleEvent",
 }
 
 @EnableDocumentation()

@@ -137,7 +137,7 @@ describe("what it refuses, and what it says instead", () => {
 
     expect(error).toContain("Use https://");
     expect(error).toContain("never sends a credential or a token unencrypted");
-    expect(error).toContain("needs the OpenStack agent");
+    expect(error).toContain("turn on TLS, or use the OpenStack agent");
   });
 
   test.each([

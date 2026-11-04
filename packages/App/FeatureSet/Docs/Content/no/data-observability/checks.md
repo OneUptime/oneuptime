@@ -1,6 +1,6 @@
 # Kontroller og avstemminger
 
-Tabellhelse sier om en tabell endres. En **sjekk** sier om det den inneholder, er riktig, en **avstemming** sier om to kopier av dataene stemmer overens, og **dbt-testene** rapporterer om tabellene dbt bygger. Hver av dem kjører der innsamlingen for databasen kjører, hos OneUptime eller på sonden, og bare et tall forlater databasen, med mindre et selvdriftet prosjekt velger å beholde et maskert utvalg av radene som feiler.
+Tabellhelse sier om en tabell endres. En **sjekk** sier om det den inneholder, er riktig, en **avstemming** sier om to kopier av dataene stemmer overens, og **dbt-testene** rapporterer om tabellene dbt bygger. Hver av dem kjører der innsamlingen for databasen kjører, hos OneUptime eller på sonden, og bare et tall forlater databasen, med mindre et prosjekt velger å beholde et maskert utvalg av radene som feiler.
 
 ## Sjekker
 
@@ -52,7 +52,9 @@ En sjekk konkurrerer med applikasjonen din om databasen, og på et datavarehus s
 
 ## Rader som feiler
 
-Et tall sier at noe er galt; noen få rader sier hva. På en selvdriftet OneUptime beholder **Behold feilaktige rader** under **Innstillinger** opptil 20 av radene en Failing Rows-, Invalid Percent-, Format Mismatch Percent- eller Orphan Count-sjekk fant, og **Rader som feiler** på sjekken viser dem. Sensitive kolonner maskeres der raden leses, ut fra det Datasikkerhet fant i dem eller ut fra navnene deres, så det som forlater databasen, eller en sonde, allerede er maskert. OneUptime Cloud beholder ingen.
+Et tall sier at noe er galt; noen få rader sier hva. **Behold feilaktige rader** under **Innstillinger** beholder opptil 20 av radene en Failing Rows-, Invalid Percent-, Format Mismatch Percent- eller Orphan Count-sjekk fant, og **Rader som feiler** på sjekken viser dem. Innstillingen er av til du slår den på. Sensitive kolonner maskeres der raden leses, ut fra det Datasikkerhet fant i dem eller ut fra navnene deres, så det som forlater databasen, eller en sonde, allerede er maskert. En sensitiv kolonne som ingen skanning har funnet, og som navnet ikke avslører, beholdes som den er.
+
+Radene lagres i OneUptime: på OneUptimes servere med OneUptime Cloud og på dine egne med en selvdriftet installasjon. Alle som kan lese prosjektets sjekker, kan se dem. En sjekk beholder bare radene fra den siste kjøringen, og når du slår av **Behold feilaktige rader**, slettes det hver sjekk har beholdt.
 
 ## Sjekker i en fil
 

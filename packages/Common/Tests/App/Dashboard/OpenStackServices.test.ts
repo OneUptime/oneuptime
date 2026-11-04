@@ -73,9 +73,14 @@ const NOW: Date = new Date("2026-11-04T12:00:00.000Z");
 const MINUTE_MS: number = 60 * 1000;
 const DAY_MINUTES: number = 24 * 60;
 
+// What a row is written with: undefined is how the database's null reads on a model.
+type RowFields = {
+  [Key in keyof OpenStackResource]?: OpenStackResource[Key] | undefined;
+};
+
 function row(
   kind: OpenStackResourceKind,
-  fields: Partial<OpenStackResource> & { facts?: JSONObject } = {},
+  fields: RowFields = {},
 ): OpenStackResource {
   const resource: OpenStackResource = new OpenStackResource();
   resource.kind = kind;

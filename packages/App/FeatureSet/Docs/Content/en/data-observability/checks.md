@@ -1,6 +1,6 @@
 # Checks and Reconciliations
 
-Table health says whether a table changes. A **check** says whether what it holds is right, a **reconciliation** says whether two copies of the data agree, and **dbt's tests** report on the tables dbt builds. Each one runs where the database's collection runs, by OneUptime or by its probe, and only a number leaves the database, unless a self-hosted project chooses to keep a masked sample of failing rows.
+Table health says whether a table changes. A **check** says whether what it holds is right, a **reconciliation** says whether two copies of the data agree, and **dbt's tests** report on the tables dbt builds. Each one runs where the database's collection runs, by OneUptime or by its probe, and only a number leaves the database, unless a project chooses to keep a masked sample of failing rows.
 
 ## Checks
 
@@ -52,7 +52,9 @@ A check competes with your application for the database, and on a warehouse that
 
 ## Failing rows
 
-A number says something is wrong; a few rows say what. On a self-hosted OneUptime, **Keep Failing Rows** under **Settings** keeps up to 20 of the rows a Failing Rows, Invalid Percent, Format Mismatch Percent or Orphan Count check found, and **Failing Rows** on the check shows them. Sensitive columns are masked where the row is read, by what Data Security found in them or by their names, so what leaves the database, or a probe, is already masked. OneUptime Cloud keeps none.
+A number says something is wrong; a few rows say what. **Keep Failing Rows** under **Settings** keeps up to 20 of the rows a Failing Rows, Invalid Percent, Format Mismatch Percent or Orphan Count check found, and **Failing Rows** on the check shows them. It is off until you turn it on. Sensitive columns are masked where the row is read, by what Data Security found in them or by their names, so what leaves the database, or a probe, is already masked. A sensitive column that no scan has found and whose name does not give it away is kept as it is.
+
+The rows are stored in OneUptime: on OneUptime's servers on OneUptime Cloud, and on your own on a self-hosted install. Anyone who can read the project's checks can see them. A check keeps only the rows of its last run, and turning **Keep Failing Rows** off deletes what every check kept.
 
 ## Checks in a file
 

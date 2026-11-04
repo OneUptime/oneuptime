@@ -177,6 +177,30 @@ def import_api(folder, scene, release_target, short, full):
             handle.write("\n".join(lines) + "\n")
 
 
+# Real VM metrics: enough scrapes in a row to cross two of Ceilometer's polling cycles from
+# the releases read at depth, and two from the others, which only show whether a name or a
+# label moved between releases. Its servers.json is what joins a domain to its hypervisor.
+INSTANCE_METRIC_SCRAPES_DEEP = 6
+INSTANCE_METRIC_SCRAPES_OTHER = 2
+
+
+def import_instance_metrics(folder, release, release_target, short, full):
+    source = os.path.join(folder, "instance-metrics")
+    if not os.path.isdir(source):
+        return
+    keep = INSTANCE_METRIC_SCRAPES_DEEP if release in DEEP_RELEASES else INSTANCE_METRIC_SCRAPES_OTHER
+    scrapes = sorted(name for name in os.listdir(source) if name.startswith("scrape-"))
+    for scrape in scrapes[:keep]:
+        for name in ("at.txt", "libvirt.prom", "ceilometer.prom"):
+            path = os.path.join(source, scrape, name)
+            if os.path.isfile(path):
+                copy_text(path, os.path.join(release_target, "instance-metrics", scrape, name), short, full)
+    for name in ("servers.json", "hypervisors.json", "status.txt"):
+        path = os.path.join(source, name)
+        if os.path.isfile(path):
+            copy_text(path, os.path.join(release_target, "instance-metrics", name), short, full)
+
+
 def import_otlp(folder, release_target, short, full):
     """One export per OpenStack service: the shape OneUptime really receives."""
     path = os.path.join(folder, "otlp", "metrics.json")
@@ -229,6 +253,7 @@ def main():
         import_exporter(folder, "healthy", target, "exporter-stable", short, full)
         if release in DEEP_RELEASES:
             import_otlp(folder, target, short, full)
+        import_instance_metrics(folder, release, target, short, full)
         access = os.path.join(folder, "access")
         for name in ("matrix-default-policy.json", "matrix.json", "matrix-access-rules.json"):
             path = os.path.join(access, name)

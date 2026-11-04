@@ -2074,18 +2074,24 @@ describe("Scheduled maintenance overview page", () => {
       await renderPage();
 
       const resources: CardProps = cardProps("Affected Resources");
-      // After the monitors and their status: the other picker and its registrations.
+      /*
+       * After the monitors and their status: the other picker, the data stores
+       * under maintenance (kept by id, so no relation), then the picker's
+       * registrations.
+       */
       const registered: Array<string> = resources.formFields
         .slice(2)
         .map((field: DetailField): string => {
           return Object.keys(field.field)[0]!;
         });
 
-      expect(registered).toEqual(
-        RELATIONS.filter((relation: string): boolean => {
-          return relation !== "monitors";
+      expect(registered).toEqual([
+        "hosts",
+        "dataStoreIds",
+        ...RELATIONS.filter((relation: string): boolean => {
+          return relation !== "monitors" && relation !== "hosts";
         }),
-      );
+      ]);
 
       const displayField: DetailField = resources.modelDetailProps.fields[0]!;
 

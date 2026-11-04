@@ -42,33 +42,51 @@ function apiWith(data: {
   return api;
 }
 
+// What the service was asked, by a stand-in that answers with these rows.
+interface Service {
+  asked: Array<JSONObject>;
+  counted: (data: JSONObject) => Promise<Array<JSONObject>>;
+}
+
+function serviceAnswering(rows: Array<JSONObject>): Service {
+  const asked: Array<JSONObject> = [];
+  return {
+    asked,
+    counted: async (data: JSONObject): Promise<Array<JSONObject>> => {
+      asked.push(data);
+      return rows;
+    },
+  };
+}
+
 afterEach(() => {
   jest.restoreAllMocks();
 });
 
 describe("what the counts route lets through", () => {
   test("a count on the list reaches the service with this cloud, and comes back as rows", async () => {
-    const counted: jest.Mock<(data: JSONObject) => Promise<Array<JSONObject>>> =
-      jest.fn(async (): Promise<Array<JSONObject>> => {
-        return [{ value: "small", regionName: "RegionOne", count: 2 }];
-      });
+    const service: Service = serviceAnswering([
+      { value: "small", regionName: "RegionOne", count: 2 },
+    ]);
     const send: unknown = jest
       .spyOn(Response, "sendJsonObjectResponse")
       .mockImplementation((() => {
         return undefined;
       }) as never);
 
-    await apiWith({ counted }).getCounts(
+    await apiWith({ counted: service.counted }).getCounts(
       { body: { kind: OpenStackResourceKind.Instance, by: "flavor" } },
       {},
     );
 
-    expect(counted).toHaveBeenCalledWith({
-      projectId: PROJECT_ID,
-      openStackCloudId: CLOUD_ID,
-      kind: OpenStackResourceKind.Instance,
-      by: "flavor",
-    });
+    expect(service.asked).toEqual([
+      {
+        projectId: PROJECT_ID,
+        openStackCloudId: CLOUD_ID,
+        kind: OpenStackResourceKind.Instance,
+        by: "flavor",
+      },
+    ]);
     expect(send).toHaveBeenCalledTimes(1);
   });
 
@@ -81,28 +99,21 @@ describe("what the counts route lets through", () => {
   ])(
     "%s is refused before anything is read",
     async (_name: string, body: JSONObject) => {
-      const counted: jest.Mock<
-        (data: JSONObject) => Promise<Array<JSONObject>>
-      > = jest.fn(async (): Promise<Array<JSONObject>> => {
-        return [];
-      });
+      const service: Service = serviceAnswering([]);
 
       await expect(
-        apiWith({ counted }).getCounts({ body }, {}),
+        apiWith({ counted: service.counted }).getCounts({ body }, {}),
       ).rejects.toThrow(BadDataException);
-      expect(counted).not.toHaveBeenCalled();
+      expect(service.asked).toEqual([]);
     },
   );
 
   test("a cloud the caller may not read stops it before anything is read", async () => {
-    const counted: jest.Mock<(data: JSONObject) => Promise<Array<JSONObject>>> =
-      jest.fn(async (): Promise<Array<JSONObject>> => {
-        return [];
-      });
+    const service: Service = serviceAnswering([]);
 
     await expect(
       apiWith({
-        counted,
+        counted: service.counted,
         resolve: async (): Promise<unknown> => {
           throw new NotAuthorizedException("You can't read this cloud");
         },
@@ -111,6 +122,6 @@ describe("what the counts route lets through", () => {
         {},
       ),
     ).rejects.toThrow(NotAuthorizedException);
-    expect(counted).not.toHaveBeenCalled();
+    expect(service.asked).toEqual([]);
   });
 });

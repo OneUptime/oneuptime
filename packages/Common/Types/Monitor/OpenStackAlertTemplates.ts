@@ -1675,8 +1675,8 @@ const volumeStuckTemplate: OpenStackAlertTemplate = {
 const projectQuotaNearlyReachedTemplate: OpenStackAlertTemplate = {
   id: "openstack-project-quota-nearly-reached",
   name: "Project Quota Nearly Reached",
-  summary: `A project has used more than ${OPENSTACK_PROJECT_QUOTA_WARNING_PERCENT}% of a quota.`,
-  description: `Alert when a project has used more than ${OPENSTACK_PROJECT_QUOTA_WARNING_PERCENT}% of its vCPU, memory, instance or volume quota for 10 minutes (openstack_nova_limits_* and openstack_cinder_limits_volume_*, used / max per project). One incident per project, and a project with no limit never fires. These series are off by default, because they read the API once per project on every collection, so this template stays quiet until you turn them on: delete the --disable-metric=nova-limits_vcpus_max and --disable-metric=cinder-limits_volume_max_gb lines from the exporter's command in docker-compose.yml, or from ExecStart in oneuptime-openstack-exporter.service without Docker, and restart the exporter. Check \`openstack limits show --absolute --project <project>\`, then raise the quota or ask its owner to free some.`,
+  summary: `A project has used ${OPENSTACK_PROJECT_QUOTA_WARNING_PERCENT}% or more of a quota.`,
+  description: `Alert when a project has used ${OPENSTACK_PROJECT_QUOTA_WARNING_PERCENT}% or more of its vCPU, memory, instance or volume quota for 10 minutes (openstack_nova_limits_* and openstack_cinder_limits_volume_*, used / max per project). One incident per project, and a project with no limit never fires. These series are off by default, because they read the API once per project on every collection, so this template stays quiet until you turn them on: delete the --disable-metric=nova-limits_vcpus_max and --disable-metric=cinder-limits_volume_max_gb lines from the exporter's command in docker-compose.yml, or from ExecStart in oneuptime-openstack-exporter.service without Docker, and restart the exporter. Check \`openstack limits show --absolute --project <project>\`, then raise the quota or ask its owner to free some.`,
   category: "Projects",
   severity: "Warning",
   getMonitorStep: (args: OpenStackAlertTemplateArgs): MonitorStep => {
@@ -1756,12 +1756,14 @@ const projectQuotaNearlyReachedTemplate: OpenStackAlertTemplate = {
         "instances_used_percent",
         "volume_gb_used_percent",
       ],
+      // At the line, as Needs attention reads it: isOpenStackQuotaAtLine.
+      filterType: FilterType.GreaterThanOrEqualTo,
       value: OPENSTACK_PROJECT_QUOTA_WARNING_PERCENT,
       words: {
-        incidentTitle: `[OpenStack] Project Quota Nearly Reached (>${OPENSTACK_PROJECT_QUOTA_WARNING_PERCENT}%)`,
+        incidentTitle: `[OpenStack] Project Quota Nearly Reached (>=${OPENSTACK_PROJECT_QUOTA_WARNING_PERCENT}%)`,
         incidentDescription: `This project has used nearly all of a quota, so its next instance or volume is about to be refused. Check openstack limits show --absolute --project for the project named above, then raise the quota or ask its owner to free some. The incident resolves on its own once it falls back.`,
-        criteriaName: `Project Quota - used > ${OPENSTACK_PROJECT_QUOTA_WARNING_PERCENT}%`,
-        criteriaDescription: `Triggers when a project has used more than ${OPENSTACK_PROJECT_QUOTA_WARNING_PERCENT}% of a quota for the whole window.`,
+        criteriaName: `Project Quota - used >= ${OPENSTACK_PROJECT_QUOTA_WARNING_PERCENT}%`,
+        criteriaDescription: `Triggers when a project has used ${OPENSTACK_PROJECT_QUOTA_WARNING_PERCENT}% or more of a quota for the whole window.`,
       },
     });
   },

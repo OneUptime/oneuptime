@@ -1,6 +1,6 @@
 # Prüfungen und Abgleiche
 
-Der Tabellenzustand sagt, ob sich eine Tabelle ändert. Eine **Prüfung** sagt, ob stimmt, was sie enthält, ein **Abgleich** sagt, ob zwei Kopien der Daten übereinstimmen, und die **Tests von dbt** berichten über die Tabellen, die dbt erstellt. Jede davon läuft dort, wo die Erfassung der Datenbank läuft, bei OneUptime oder auf ihrer Sonde, und nur eine Zahl verlässt die Datenbank, es sei denn, ein selbst gehostetes Projekt entscheidet sich, eine maskierte Stichprobe fehlerhafter Zeilen aufzubewahren.
+Der Tabellenzustand sagt, ob sich eine Tabelle ändert. Eine **Prüfung** sagt, ob stimmt, was sie enthält, ein **Abgleich** sagt, ob zwei Kopien der Daten übereinstimmen, und die **Tests von dbt** berichten über die Tabellen, die dbt erstellt. Jede davon läuft dort, wo die Erfassung der Datenbank läuft, bei OneUptime oder auf ihrer Sonde, und nur eine Zahl verlässt die Datenbank, es sei denn, ein Projekt entscheidet sich, eine maskierte Stichprobe fehlerhafter Zeilen aufzubewahren.
 
 ## Prüfungen
 
@@ -52,7 +52,9 @@ Eine Prüfung konkurriert mit Ihrer Anwendung um die Datenbank, und bei einem Wa
 
 ## Fehlerhafte Zeilen
 
-Eine Zahl sagt, dass etwas nicht stimmt; ein paar Zeilen sagen, was. Bei einem selbst gehosteten OneUptime behält **Fehlerhafte Zeilen aufbewahren** unter **Einstellungen** bis zu 20 der Zeilen, die eine Prüfung Failing Rows, Invalid Percent, Format Mismatch Percent oder Orphan Count gefunden hat, und **Fehlerhafte Zeilen** an der Prüfung zeigt sie. Sensible Spalten werden dort maskiert, wo die Zeile gelesen wird, nach dem, was die Datensicherheit in ihnen gefunden hat, oder nach ihren Namen, sodass das, was die Datenbank oder eine Sonde verlässt, bereits maskiert ist. OneUptime Cloud behält keine.
+Eine Zahl sagt, dass etwas nicht stimmt; ein paar Zeilen sagen, was. **Fehlerhafte Zeilen aufbewahren** unter **Einstellungen** behält bis zu 20 der Zeilen, die eine Prüfung Failing Rows, Invalid Percent, Format Mismatch Percent oder Orphan Count gefunden hat, und **Fehlerhafte Zeilen** an der Prüfung zeigt sie. Die Einstellung ist aus, bis Sie sie einschalten. Sensible Spalten werden dort maskiert, wo die Zeile gelesen wird, nach dem, was die Datensicherheit in ihnen gefunden hat, oder nach ihren Namen, sodass das, was die Datenbank oder eine Sonde verlässt, bereits maskiert ist. Eine sensible Spalte, die kein Scan gefunden hat und deren Name sie nicht verrät, wird unverändert aufbewahrt.
+
+Die Zeilen werden in OneUptime gespeichert: bei OneUptime Cloud auf den Servern von OneUptime, bei einer selbst gehosteten Installation auf Ihren eigenen. Wer die Prüfungen des Projekts lesen darf, kann sie sehen. Eine Prüfung behält nur die Zeilen ihres letzten Laufs, und wenn Sie **Fehlerhafte Zeilen aufbewahren** ausschalten, wird gelöscht, was jede Prüfung aufbewahrt hat.
 
 ## Prüfungen in einer Datei
 

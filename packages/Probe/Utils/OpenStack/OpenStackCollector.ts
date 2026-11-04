@@ -1,5 +1,6 @@
 import {
   OpenStackAccessCheckResult,
+  OpenStackRefusedEndpoint,
   getOpenStackAccessLevel,
   runOpenStackAccessCheck,
 } from "./OpenStackAccessCheck";
@@ -262,6 +263,24 @@ export function formatSize(bytes: number): string {
   }
 
   return `${Math.max(1, Math.round(bytes / 1024))} KiB`;
+}
+
+/*
+ * What the connection test says of a cloud whose catalog is on plain HTTP: which services,
+ * one address to check it against, and the ways out.
+ */
+function getPlainHttpMessage(
+  endpoints: ReadonlyArray<OpenStackRefusedEndpoint>,
+): string {
+  const titles: Array<string> = Array.from(
+    new Set(
+      endpoints.map((endpoint: OpenStackRefusedEndpoint): string => {
+        return OPENSTACK_SERVICE_TITLES[endpoint.service];
+      }),
+    ),
+  );
+
+  return `The catalog puts ${titles.join(", ")} on plain HTTP, such as ${endpoints[0]!.url}. A credential's token is never sent unencrypted, so the probe read none of them. Turn on TLS for these APIs, pick another endpoint interface, or use the OpenStack agent for this cloud.`;
 }
 
 function hostAndPort(address: OpenStackAddress): {
@@ -1564,6 +1583,25 @@ export default class OpenStackCollector {
         report.errorCode = classified.code;
         report.errorMessage = classified.message;
         report.presentedCertificate = classified.presentedCertificate;
+        return;
+      }
+
+      const plainHttp: Array<OpenStackRefusedEndpoint> =
+        check.refusedEndpoints.filter(
+          (endpoint: OpenStackRefusedEndpoint): boolean => {
+            return endpoint.isPlainHttp;
+          },
+        );
+
+      /*
+       * A collection reads the rest and says which went without, but a person asking whether
+       * this cloud can be collected has to hear this: a probe never sends a credential's
+       * token to these, whatever the credential may read.
+       */
+      if (plainHttp.length > 0) {
+        report.status = "Failed";
+        report.errorCode = OpenStackCollectionErrorCode.InsecureEndpoint;
+        report.errorMessage = getPlainHttpMessage(plainHttp);
         return;
       }
 

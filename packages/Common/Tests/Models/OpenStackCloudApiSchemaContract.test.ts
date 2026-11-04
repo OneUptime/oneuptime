@@ -231,13 +231,15 @@ describe("the cloud's Terraform attributes", () => {
   });
 
   test("whether one is saved is the server's to say, and no attribute a configuration sets", () => {
+    const SAVED_FLAG: RegExp = /^is\w+Set$/;
+
     expect(
       attributes
         .map((descriptor: TerraformAttributeDescriptor): string => {
           return descriptor.columnName;
         })
         .filter((columnName: string): boolean => {
-          return /^is\w+Set$/.test(columnName);
+          return SAVED_FLAG.test(columnName);
         }),
     ).toEqual([]);
   });

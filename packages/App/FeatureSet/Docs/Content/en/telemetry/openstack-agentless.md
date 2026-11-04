@@ -2,6 +2,9 @@
 
 Monitor an OpenStack cloud without installing anything: enter Keystone's address and an application credential in OneUptime, pick the probe that can reach the cloud, and the probe collects the same data the [OpenStack Agent](/docs/telemetry/openstack) would. There is no agent to install, upgrade or keep running, and no machine of its own to provision.
 
+> [!IMPORTANT]
+> A probe only speaks HTTPS to a cloud. A credential or its token is never sent over plain HTTP, and DevStack and Kolla-Ansible serve their APIs on plain HTTP by default. For such a cloud, turn on TLS for its APIs, or use the [OpenStack Agent](/docs/telemetry/openstack), which runs beside it. The connection test says so when it finds a plain HTTP address.
+
 :::cards
 - [Before you begin](#before-you-begin): A probe that reaches the APIs, and a credential.
 - [Connect a cloud](#connect-a-cloud): The address, a credential, a test and a name.
@@ -43,7 +46,7 @@ You can switch a cloud from one to the other at any time on its **Settings** pag
 
 ## Before you begin
 
-- **A probe that can reach Keystone and every service's API over HTTPS.** This is usually a [custom probe](/docs/probe/custom-probe) in the cloud's network. Keystone's catalog names where each service answers, and the probe connects to those addresses, so each has to be reachable from the probe. On OneUptime Cloud, the shared probes never receive an OpenStack credential, so add a probe of your own. On a self-hosted instance, the instance's own probes can collect too.
+- **A probe that can reach Keystone and every service's API over HTTPS.** This is usually a [custom probe](/docs/probe/custom-probe) in the cloud's network. Keystone's catalog names where each service answers, and the probe connects to those addresses, so each has to be reachable from the probe, and each has to be HTTPS. On OneUptime Cloud, the shared probes never receive an OpenStack credential, so add a probe of your own. On a self-hosted instance, the instance's own probes can collect too.
 - **A credential.** An application credential is best, because it can be limited to reading and can expire. A user name and password work too, and can do whatever their account can.
 
 OpenStack has no global read-only role, so how much the probe sees is up to the credential:
@@ -154,8 +157,12 @@ The cloud presents a certificate from its own authority. Check the fingerprint s
 The certificate was renewed, or someone is in the middle. Nothing is sent until you trust the new one. Check its fingerprint, then trust it.
 :::
 
+:::details The auth URL is not valid
+Enter Keystone's address over HTTPS, such as `https://keystone.example.com:5000/v3`. An address on plain HTTP is refused before anything is sent. For a cloud whose APIs only speak plain HTTP, turn on TLS, or use the [OpenStack Agent](/docs/telemetry/openstack).
+:::
+
 :::details The catalog names a plain HTTP endpoint
-A token is never sent unencrypted. Put the endpoint behind TLS, pick another endpoint interface, or use the [OpenStack Agent](/docs/telemetry/openstack) for this cloud. Only the service with that endpoint goes without: the others are read as usual.
+A credential's token is never sent unencrypted. Turn on TLS for that API, pick another endpoint interface, or use the [OpenStack Agent](/docs/telemetry/openstack) for this cloud. The connection test fails until each API it reads is on HTTPS. In a collection, only the service with that endpoint goes without: the others are read as usual.
 :::
 
 :::details Keystone refused the credential
@@ -179,7 +186,7 @@ Check the address and port. Keystone usually serves on 5000, or on 443 behind a 
 :::
 
 :::details The secure connection failed
-The address probably points at a port that does not speak HTTPS. Check it, and use the OpenStack Agent if the cloud's APIs only speak plain HTTP.
+The address probably points at a port that does not speak HTTPS. Check it. If the cloud's APIs only speak plain HTTP, turn on TLS, or use the OpenStack Agent.
 :::
 
 :::details OneUptime does not connect to this address

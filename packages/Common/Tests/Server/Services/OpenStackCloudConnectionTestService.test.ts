@@ -293,7 +293,7 @@ describe("onBeforeCreate: a test is checked like the connection it is about to b
     [
       "plain http",
       { authUrl: "http://keystone.example.com:5000" },
-      "Use https://. OneUptime never sends a credential or a token unencrypted. A cloud whose APIs only speak plain HTTP needs the OpenStack agent, which runs beside it.",
+      "Use https://. OneUptime never sends a credential or a token unencrypted. For a cloud whose APIs only speak plain HTTP, turn on TLS, or use the OpenStack agent, which runs beside it.",
     ],
     [
       "no probe",

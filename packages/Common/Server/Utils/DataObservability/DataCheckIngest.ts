@@ -1,7 +1,10 @@
-import { maskFailingRows } from "../../../Types/DataObservability/DataCheckFailingRows";
-import { IsBillingEnabled } from "../../EnvironmentConfig";
+import {
+  FailingRow,
+  maskFailingRows,
+} from "../../../Types/DataObservability/DataCheckFailingRows";
 import DataAsset from "../../../Models/DatabaseModels/DataAsset";
 import DataCheck from "../../../Models/DatabaseModels/DataCheck";
+import DataObservabilitySetting from "../../../Models/DatabaseModels/DataObservabilitySetting";
 import MetricType from "../../../Models/DatabaseModels/MetricType";
 import { MetricPointType } from "../../../Models/AnalyticsModels/Metric";
 import OneUptimeDate from "../../../Types/Date";
@@ -24,6 +27,7 @@ import ObjectID from "../../../Types/ObjectID";
 import ServiceType from "../../../Types/Telemetry/ServiceType";
 import DataAssetService from "../../Services/DataAssetService";
 import DataCheckService from "../../Services/DataCheckService";
+import DataObservabilitySettingService from "../../Services/DataObservabilitySettingService";
 import MetricService from "../../Services/MetricService";
 import QueryHelper from "../../Types/Database/QueryHelper";
 import logger from "../Logger";
@@ -109,6 +113,24 @@ export function buildCheckMetricRow(data: {
   } as JSONObject;
 }
 
+/*
+ * What a run leaves of a check's failing rows. A project that does not keep them
+ * keeps none, whatever a report brings and whatever an earlier run left. An
+ * empty list clears the last ones; a report silent about them leaves them.
+ */
+export function getFailingRowsToWrite(data: {
+  keepsFailingRows: boolean;
+  failingRows: Array<FailingRow> | undefined;
+}): { failingRowsSample?: Array<FailingRow> | null } {
+  if (!data.keepsFailingRows) {
+    return { failingRowsSample: null };
+  }
+
+  return data.failingRows
+    ? { failingRowsSample: maskFailingRows(data.failingRows) }
+    : {};
+}
+
 export default class DataCheckIngest {
   public static async recordResults(data: {
     store: IngestStore;
@@ -177,6 +199,11 @@ export default class DataCheckIngest {
       }),
     );
     const retentionDays: number = await MonitorMetricUtil.getRetentionDays();
+    const setting: DataObservabilitySetting =
+      await DataObservabilitySettingService.getOrCreateForProject(
+        data.store.projectId,
+      );
+    const keepsFailingRows: boolean = setting.keepFailingRows === true;
     const rows: Array<JSONObject> = [];
 
     for (const result of data.results) {
@@ -220,10 +247,10 @@ export default class DataCheckIngest {
                 : null,
             lastValue: result.values[0]?.value ?? null,
             lastSegmentCount: result.values.length,
-            // Refused on OneUptime Cloud whatever a report says. An empty list clears the last ones.
-            ...(result.failingRows && !IsBillingEnabled
-              ? { failingRowsSample: maskFailingRows(result.failingRows) }
-              : {}),
+            ...getFailingRowsToWrite({
+              keepsFailingRows,
+              failingRows: result.failingRows,
+            }),
             nextRunAt: getNextCollectionTime(
               data.collectedAt,
               check.intervalInMinutes || DEFAULT_DATA_CHECK_INTERVAL_IN_MINUTES,
