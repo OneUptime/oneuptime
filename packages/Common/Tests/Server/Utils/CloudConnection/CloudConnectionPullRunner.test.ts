@@ -760,7 +760,7 @@ describe("the namespaces the connection's streams deliver", () => {
 
   test("once streaming is stopped, the read writes everything again at once, whatever the streams delivered a minute ago", async () => {
     // Stop streaming cleared the key; the stacks still deliver, and are refused.
-    connection.streamKeyCreatedAt = undefined;
+    expect(connection.streamKeyCreatedAt).toBeUndefined();
     connection.streamSummary = {
       lastDeliveryAt: new Date(NOW.getTime() - MINUTE).toISOString(),
       metricSources: [
