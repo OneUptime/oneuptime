@@ -20,6 +20,10 @@ import MetricFormulaConfigData from "../Metrics/MetricFormulaConfigData";
 import MetricQueryConfigData from "../Metrics/MetricQueryConfigData";
 import {
   OPENSTACK_ALLOCATION_WARNING_PERCENT,
+  OPENSTACK_HYPERVISOR_CPU_SATURATED_PERCENT,
+  OPENSTACK_HYPERVISOR_MEMORY_PRESSURE_PERCENT,
+  OPENSTACK_INSTANCE_CPU_SATURATED_PERCENT,
+  OPENSTACK_INSTANCE_DISK_LATENCY_HIGH_MS,
   OPENSTACK_INSTANCE_STUCK_MINUTES,
   OPENSTACK_IP_POOL_EXHAUSTED_PERCENT,
   OPENSTACK_IP_POOL_WARNING_PERCENT,
@@ -29,6 +33,12 @@ import {
   OPENSTACK_STORAGE_POOL_WARNING_PERCENT,
   OPENSTACK_VOLUME_STUCK_MINUTES,
 } from "../OpenStack/OpenStackHealthRules";
+import {
+  OPENSTACK_INSTANCE_DEVICE_ATTRIBUTE,
+  OPENSTACK_INSTANCE_ID_ATTRIBUTE,
+  OpenStackHypervisorMetric,
+  OpenStackInstanceMetric,
+} from "../OpenStack/OpenStackInstanceMetrics";
 import {
   OPENSTACK_INSTANCE_TRANSITIONAL_STATUSES,
   OPENSTACK_VOLUME_ERROR_STATUSES,
@@ -1070,6 +1080,166 @@ const localDiskAllocationHighTemplate: OpenStackAlertTemplate =
     incidentDescription: `Placement has promised nearly all the local disk this hypervisor will give, so new instances soon fail to land on it with No valid host. This is allocation, not usage: an instance holds its flavor's disk whether it fills it or not. Check openstack hypervisor show for the hypervisor named above, then move instances away, raise its disk allocation ratio or add capacity. The incident resolves on its own once it falls back.`,
   });
 
+/*
+ * WHAT IS REALLY BUSY. Worked out at ingest from libvirt's or Ceilometer's exporter, so
+ * they mean the same whichever a cloud has, and these never fire on a cloud with neither:
+ * with no series there is nothing to compare, and the page says what to add.
+ *
+ * Fifteen minutes, because Ceilometer's readings change once a polling cycle, five minutes
+ * by default, and a window has to hold three of them.
+ */
+const INSTANCE_USAGE_WINDOW: RollingTime = RollingTime.Past15Minutes;
+const INSTANCE_USAGE_GROUP: Array<string> = [
+  REGION,
+  OPENSTACK_INSTANCE_ID_ATTRIBUTE,
+];
+const INSTANCE_DISK_GROUP: Array<string> = [
+  ...INSTANCE_USAGE_GROUP,
+  OPENSTACK_INSTANCE_DEVICE_ATTRIBUTE,
+];
+
+const NEEDS_INSTANCE_SOURCE: string =
+  "Needs libvirt's or Ceilometer's exporter to be read: without one it has nothing to compare, and stays quiet.";
+
+const hypervisorCpuSaturatedTemplate: OpenStackAlertTemplate = {
+  id: "openstack-hypervisor-cpu-saturated",
+  name: "Hypervisor CPU Saturated",
+  summary: `A hypervisor's instances use over ${OPENSTACK_HYPERVISOR_CPU_SATURATED_PERCENT}% of its CPU for 15 minutes.`,
+  description: `Alert when what a hypervisor's instances really use passes ${OPENSTACK_HYPERVISOR_CPU_SATURATED_PERCENT}% of its CPU threads for 15 minutes, read from openstack.hypervisor.instances.cpu.utilization. That is worked out at ingest against the threads Placement says it has, before any allocation ratio. This is load, not allocation: instances that hold vCPUs and do nothing add nothing to it. The hypervisor's page names the instances responsible. ${NEEDS_INSTANCE_SOURCE} Check \`openstack server list --all-projects --host <hypervisor>\`, then live-migrate the busiest instance away or lower the CPU allocation ratio.`,
+  category: "Compute",
+  severity: "Warning",
+  getMonitorStep: (args: OpenStackAlertTemplateArgs): MonitorStep => {
+    const metricAlias: string = "cpu_percent";
+
+    return buildCeilingStep({
+      args,
+      service: OpenStackServiceType.Compute,
+      rollingTime: INSTANCE_USAGE_WINDOW,
+      groupByAttributeKeys: HYPERVISOR_GROUP,
+      queries: [
+        {
+          alias: metricAlias,
+          metricName: OpenStackHypervisorMetric.InstancesCpuUtilization,
+          aggregationType: MetricsAggregationType.Max,
+        },
+      ],
+      aliases: [metricAlias],
+      value: OPENSTACK_HYPERVISOR_CPU_SATURATED_PERCENT,
+      words: {
+        incidentTitle: `[OpenStack] Hypervisor CPU Saturated (>${OPENSTACK_HYPERVISOR_CPU_SATURATED_PERCENT}%)`,
+        incidentDescription: `The instances on this hypervisor are really using nearly all of its CPU, so they are waiting for each other and everything on it is slower than its flavor says. This is load rather than what Placement has promised. The hypervisor's page names the busiest instances and which of them are being made to wait. Check openstack server list --all-projects --host for the hypervisor named above, then live-migrate the busiest instance away. The incident resolves on its own once it falls back.`,
+        criteriaName: `Hypervisor CPU Saturated - CPU > ${OPENSTACK_HYPERVISOR_CPU_SATURATED_PERCENT}%`,
+        criteriaDescription: `Triggers when a hypervisor's instances use more than ${OPENSTACK_HYPERVISOR_CPU_SATURATED_PERCENT}% of its CPU threads for the whole window.`,
+      },
+    });
+  },
+};
+
+const hypervisorMemoryPressureTemplate: OpenStackAlertTemplate = {
+  id: "openstack-hypervisor-memory-pressure",
+  name: "Hypervisor Memory Pressure",
+  summary: `A hypervisor's instances hold over ${OPENSTACK_HYPERVISOR_MEMORY_PRESSURE_PERCENT}% of its memory for 15 minutes.`,
+  description: `Alert when what a hypervisor's instances really hold passes ${OPENSTACK_HYPERVISOR_MEMORY_PRESSURE_PERCENT}% of its memory for 15 minutes, read from openstack.hypervisor.instances.memory.utilization. That is worked out at ingest against the memory Placement says it has, before any allocation ratio. This is memory in use, not memory promised, which is what Memory Allocation High reads. ${NEEDS_INSTANCE_SOURCE} Check \`openstack server list --all-projects --host <hypervisor>\`, then live-migrate an instance away before the kernel starts killing them.`,
+  category: "Compute",
+  severity: "Warning",
+  getMonitorStep: (args: OpenStackAlertTemplateArgs): MonitorStep => {
+    const metricAlias: string = "memory_percent";
+
+    return buildCeilingStep({
+      args,
+      service: OpenStackServiceType.Compute,
+      rollingTime: INSTANCE_USAGE_WINDOW,
+      groupByAttributeKeys: HYPERVISOR_GROUP,
+      queries: [
+        {
+          alias: metricAlias,
+          metricName: OpenStackHypervisorMetric.InstancesMemoryUtilization,
+          aggregationType: MetricsAggregationType.Max,
+        },
+      ],
+      aliases: [metricAlias],
+      value: OPENSTACK_HYPERVISOR_MEMORY_PRESSURE_PERCENT,
+      words: {
+        incidentTitle: `[OpenStack] Hypervisor Memory Pressure (>${OPENSTACK_HYPERVISOR_MEMORY_PRESSURE_PERCENT}%)`,
+        incidentDescription: `The instances on this hypervisor really hold nearly all of its memory, which leaves little for the host and its services. Past this the kernel swaps or kills an instance to make room. Check openstack server list --all-projects --host for the hypervisor named above, then live-migrate an instance away, and look at its memory allocation ratio if this is how it is meant to run. The incident resolves on its own once it falls back.`,
+        criteriaName: `Hypervisor Memory Pressure - held > ${OPENSTACK_HYPERVISOR_MEMORY_PRESSURE_PERCENT}%`,
+        criteriaDescription: `Triggers when a hypervisor's instances hold more than ${OPENSTACK_HYPERVISOR_MEMORY_PRESSURE_PERCENT}% of its memory for the whole window.`,
+      },
+    });
+  },
+};
+
+const instanceCpuSaturatedTemplate: OpenStackAlertTemplate = {
+  id: "openstack-instance-cpu-saturated",
+  name: "Instance CPU Saturated",
+  summary: `An instance uses over ${OPENSTACK_INSTANCE_CPU_SATURATED_PERCENT}% of its vCPUs for 15 minutes.`,
+  description: `Alert when an instance uses more than ${OPENSTACK_INSTANCE_CPU_SATURATED_PERCENT}% of its vCPUs for 15 minutes, read from openstack.instance.cpu.utilization. One incident per instance, and it names the project it belongs to, because this is usually the project's to act on. ${NEEDS_INSTANCE_SOURCE} Check \`openstack server show <instance>\` for its flavor, then resize it or look at what is running in it.`,
+  category: "Compute",
+  severity: "Warning",
+  getMonitorStep: (args: OpenStackAlertTemplateArgs): MonitorStep => {
+    const metricAlias: string = "cpu_percent";
+
+    return buildCeilingStep({
+      args,
+      service: OpenStackServiceType.Compute,
+      rollingTime: INSTANCE_USAGE_WINDOW,
+      groupByAttributeKeys: INSTANCE_USAGE_GROUP,
+      queries: [
+        {
+          alias: metricAlias,
+          metricName: OpenStackInstanceMetric.CpuUtilization,
+          aggregationType: MetricsAggregationType.Max,
+        },
+      ],
+      aliases: [metricAlias],
+      value: OPENSTACK_INSTANCE_CPU_SATURATED_PERCENT,
+      words: {
+        incidentTitle: `[OpenStack] Instance CPU Saturated (>${OPENSTACK_INSTANCE_CPU_SATURATED_PERCENT}%)`,
+        incidentDescription: `This instance has been using all of its vCPUs for a quarter of an hour, so whatever runs in it is limited by its flavor. Check openstack server show for the instance named above for its flavor, then resize it, or look at what is running inside it. If its CPU Contention is high too, its hypervisor is what is short, and moving it helps more than resizing. The incident resolves on its own once it falls back.`,
+        criteriaName: `Instance CPU Saturated - CPU > ${OPENSTACK_INSTANCE_CPU_SATURATED_PERCENT}%`,
+        criteriaDescription: `Triggers when an instance uses more than ${OPENSTACK_INSTANCE_CPU_SATURATED_PERCENT}% of its vCPUs for the whole window.`,
+      },
+    });
+  },
+};
+
+const instanceDiskLatencyHighTemplate: OpenStackAlertTemplate = {
+  id: "openstack-instance-disk-latency-high",
+  name: "Instance Disk Latency High",
+  summary: `An instance's disk takes over ${OPENSTACK_INSTANCE_DISK_LATENCY_HIGH_MS} ms per request for 15 minutes.`,
+  description: `Alert when reads or writes on one of an instance's disks take more than ${OPENSTACK_INSTANCE_DISK_LATENCY_HIGH_MS} ms on average for 15 minutes, read from openstack.instance.disk.read.latency and openstack.instance.disk.write.latency. A disk with no requests has no latency, so an idle disk never fires this. ${NEEDS_INSTANCE_SOURCE} Check \`openstack server show <instance>\` for its volumes, then the storage pool and backend behind them.`,
+  category: "Compute",
+  severity: "Warning",
+  getMonitorStep: (args: OpenStackAlertTemplateArgs): MonitorStep => {
+    return buildCeilingStep({
+      args,
+      service: OpenStackServiceType.Compute,
+      rollingTime: INSTANCE_USAGE_WINDOW,
+      groupByAttributeKeys: INSTANCE_DISK_GROUP,
+      queries: [
+        {
+          alias: "read_latency_ms",
+          metricName: OpenStackInstanceMetric.DiskReadLatency,
+          aggregationType: MetricsAggregationType.Max,
+        },
+        {
+          alias: "write_latency_ms",
+          metricName: OpenStackInstanceMetric.DiskWriteLatency,
+          aggregationType: MetricsAggregationType.Max,
+        },
+      ],
+      aliases: ["read_latency_ms", "write_latency_ms"],
+      value: OPENSTACK_INSTANCE_DISK_LATENCY_HIGH_MS,
+      words: {
+        incidentTitle: `[OpenStack] Instance Disk Latency High (>${OPENSTACK_INSTANCE_DISK_LATENCY_HIGH_MS} ms)`,
+        incidentDescription: `Reads or writes on this instance's disk have been slow for a quarter of an hour, which its users feel as a slow application however idle its CPU looks. Check openstack server show for the instance named above for its volumes, then the storage pool and the backend behind them, and whether Ceph or the array under it is degraded. The incident resolves on its own once it falls back, or once the disk stops being used.`,
+        criteriaName: `Instance Disk Latency High - latency > ${OPENSTACK_INSTANCE_DISK_LATENCY_HIGH_MS} ms`,
+        criteriaDescription: `Triggers when an instance's disk takes more than ${OPENSTACK_INSTANCE_DISK_LATENCY_HIGH_MS} ms per read or write for the whole window.`,
+      },
+    });
+  },
+};
+
 const instancesInErrorTemplate: OpenStackAlertTemplate = {
   id: "openstack-instances-in-error",
   name: "Instances in Error",
@@ -1786,6 +1956,10 @@ export function getAllOpenStackAlertTemplates(): Array<OpenStackAlertTemplate> {
     vcpuAllocationHighTemplate,
     memoryAllocationHighTemplate,
     localDiskAllocationHighTemplate,
+    hypervisorCpuSaturatedTemplate,
+    hypervisorMemoryPressureTemplate,
+    instanceCpuSaturatedTemplate,
+    instanceDiskLatencyHighTemplate,
     instancesInErrorTemplate,
     instanceStuckBuildingTemplate,
     instanceStuckTransitioningTemplate,

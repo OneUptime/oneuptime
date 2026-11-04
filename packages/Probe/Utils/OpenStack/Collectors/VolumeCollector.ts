@@ -11,11 +11,13 @@ import OpenStackServiceClient, {
   OpenStackJsonAnswer,
   OpenStackListAnswer,
 } from "../OpenStackServiceClient";
+import OpenStackReadTurns from "../OpenStackReadTurns";
 import {
   OpenStackCollectorContext,
   OpenStackProjectRef,
 } from "./OpenStackCollectorContext";
 import { JSONObject, JSONValue } from "Common/Types/JSON";
+import { OPENSTACK_PROJECT_LIMIT_READS_PER_COLLECTION } from "Common/Types/OpenStack/OpenStackScale";
 
 /*
  * Cinder: its services, pools, volumes, snapshots and backups.
@@ -192,24 +194,39 @@ async function collectProjectLimits(
     return;
   }
 
-  const limits: Array<CinderLimitsRecord> = [];
+  const idOf: (project: OpenStackProjectRef) => string = (
+    project: OpenStackProjectRef,
+  ): string => {
+    return project.id;
+  };
+
+  const turns: OpenStackReadTurns<CinderLimitsRecord> = new OpenStackReadTurns({
+    memory: context.memory,
+    memoryKey: `${context.memoryKey}/${run.regionName}/cinder-limits`,
+    now: client.now(),
+  });
 
   await run.read({
     name: "project limits",
     isInventory: false,
     run: async () => {
-      for (const project of projects) {
-        // usage=True says both what is allowed and what is used, in one call.
-        const answer: OpenStackJsonAnswer = await client.get({
-          read: "a project's limits",
-          path: `/os-quota-sets/${encodeURIComponent(project.id)}`,
-          query: { usage: "True" },
-        });
+      await turns.read({
+        items: projects,
+        limit: OPENSTACK_PROJECT_LIMIT_READS_PER_COLLECTION,
+        idOf: idOf,
+        read: async (project: OpenStackProjectRef): Promise<CinderLimitsRecord> => {
+          // usage=True says both what is allowed and what is used, in one call.
+          const answer: OpenStackJsonAnswer = await client.get({
+            read: "a project's limits",
+            path: `/os-quota-sets/${encodeURIComponent(project.id)}`,
+            query: { usage: "True" },
+          });
 
-        limits.push(toCinderLimits(project, answer.body));
-      }
+          return toCinderLimits(project, answer.body);
+        },
+      });
     },
   });
 
-  inventory.limits = limits;
+  inventory.limits = turns.getRecords({ items: projects, idOf: idOf });
 }

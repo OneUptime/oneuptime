@@ -644,6 +644,9 @@ export interface CinderPoolRecord {
   name: string | null;
   backendName: string | null;
   vendorName: string | null;
+  // What Cinder's driver says of itself: `ceph`, and where the pool is, for RBD.
+  storageProtocol: string | null;
+  locationInfo: string | null;
   freeCapacityGb: number | null;
   totalCapacityGb: number | null;
 }
@@ -655,6 +658,8 @@ export function toCinderPool(item: JSONObject): CinderPoolRecord {
     name: text(item["name"]),
     backendName: text(capabilities["volume_backend_name"]),
     vendorName: text(capabilities["vendor_name"]),
+    storageProtocol: text(capabilities["storage_protocol"]),
+    locationInfo: text(capabilities["location_info"]),
     /*
      * A backend can say "unknown" or "infinite" instead of a number, and neither is a
      * capacity to chart, so those read as nothing rather than as a full pool.
@@ -811,6 +816,11 @@ export interface OpenStackComputeInventory {
   servers?: Array<NovaServerRecord> | undefined;
   quotas?: Array<NovaQuotaRecord> | undefined;
   limits?: Array<NovaLimitsRecord> | undefined;
+  /*
+   * What Nova says instances went through since the last collection, each as the
+   * notification it would have sent: see OpenStackInstanceActions.
+   */
+  instanceActionNotifications?: Array<JSONObject> | undefined;
 }
 
 export interface OpenStackPlacementInventory {

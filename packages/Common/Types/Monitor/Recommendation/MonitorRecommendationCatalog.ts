@@ -62,6 +62,10 @@ import {
   getAllOpenStackAlertTemplates,
 } from "../OpenStackAlertTemplates";
 import {
+  OpenStackLogAlertTemplate,
+  getAllOpenStackLogAlertTemplates,
+} from "../OpenStackLogAlertTemplates";
+import {
   ProxmoxNotificationAlertTemplate,
   getAllProxmoxNotificationAlertTemplates,
 } from "../ProxmoxNotificationAlertTemplates";
@@ -442,8 +446,8 @@ function getProxmoxRecommendations(): Array<MonitorRecommendation> {
 }
 
 function getOpenStackRecommendations(): Array<MonitorRecommendation> {
-  return getAllOpenStackAlertTemplates().map(
-    (template: OpenStackAlertTemplate) => {
+  const metricRecommendations: Array<MonitorRecommendation> =
+    getAllOpenStackAlertTemplates().map((template: OpenStackAlertTemplate) => {
       return normalize({
         resourceType: MonitorRecommendationResourceType.OpenStack,
         monitorType: MonitorType.OpenStack,
@@ -459,8 +463,36 @@ function getOpenStackRecommendations(): Array<MonitorRecommendation> {
           });
         },
       });
-    },
-  );
+    });
+
+  /*
+   * What only a cloud's services say - a request no host could take, a lost message bus -
+   * are logs of the cloud once the agent's logs profile runs on its machines
+   * (OpenStackLogAlertTemplates), so their alerts are Logs monitors scoped to the cloud:
+   * offered beside the metric templates, last, under their own headings.
+   */
+  const logRecommendations: Array<MonitorRecommendation> =
+    getAllOpenStackLogAlertTemplates().map(
+      (template: OpenStackLogAlertTemplate) => {
+        return normalize({
+          resourceType: MonitorRecommendationResourceType.OpenStack,
+          monitorType: MonitorType.Logs,
+          template: template,
+          getMonitorStep: (args: MonitorRecommendationArgs) => {
+            return template.getMonitorStep({
+              cloudIdentifier: args.resourceIdentifier,
+              onlineMonitorStatusId: args.onlineMonitorStatusId,
+              offlineMonitorStatusId: args.offlineMonitorStatusId,
+              defaultIncidentSeverityId: args.defaultIncidentSeverityId,
+              defaultAlertSeverityId: args.defaultAlertSeverityId,
+              monitorName: args.monitorName,
+            });
+          },
+        });
+      },
+    );
+
+  return [...metricRecommendations, ...logRecommendations];
 }
 
 function getVMwareRecommendations(): Array<MonitorRecommendation> {
@@ -845,7 +877,8 @@ const RESOURCE_TYPE_DEFINITIONS: Array<MonitorRecommendationResourceTypeDefiniti
     },
     {
       resourceType: MonitorRecommendationResourceType.OpenStack,
-      monitorTypes: [MonitorType.OpenStack],
+      // Metric templates, and the Logs monitors over what its services say.
+      monitorTypes: [MonitorType.OpenStack, MonitorType.Logs],
       resourceLabel: "OpenStack Cloud",
       identifierFieldName: "cloudIdentifier",
       icon: IconProp.Cloud,

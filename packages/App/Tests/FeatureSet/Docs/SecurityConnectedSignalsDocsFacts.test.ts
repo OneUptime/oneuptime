@@ -133,6 +133,7 @@ const KIND_NOUNS: Readonly<Record<SecurityConnectionKind, string>> = {
   [SecurityConnectionKind.DockerHost]: "Docker host",
   [SecurityConnectionKind.PodmanHost]: "Podman host",
   [SecurityConnectionKind.KubernetesCluster]: "Kubernetes cluster",
+  [SecurityConnectionKind.OpenStackCloud]: "OpenStack cloud",
   [SecurityConnectionKind.NetworkDevice]: "network device",
   [SecurityConnectionKind.CloudResource]: "cloud resource",
   [SecurityConnectionKind.ServerlessFunction]: "serverless function",

@@ -3,6 +3,7 @@ import Navigation from "Common/UI/Utils/Navigation";
 import React, { FunctionComponent, ReactElement } from "react";
 import TraceExplorer from "../../../Components/Traces/TraceExplorer";
 import SecurityEventsInSignal from "../../../Components/SecurityEvents/SecurityEventsInSignal";
+import OpenStackTraceContextCard from "../../../Components/OpenStack/Traces/OpenStackTraceContextCard";
 
 const TraceViewPage: FunctionComponent<
   PageComponentProps
@@ -28,6 +29,8 @@ const TraceViewPage: FunctionComponent<
        * reader who may read security events.
        */}
       <SecurityEventsInSignal scope={{ traceId }} className="mb-4" />
+      {/* What it crossed and touched, for a trace from an OpenStack cloud. */}
+      <OpenStackTraceContextCard traceId={traceId} />
       <TraceExplorer traceId={traceId} highlightSpanIds={highlightSpanIds} />
     </>
   );

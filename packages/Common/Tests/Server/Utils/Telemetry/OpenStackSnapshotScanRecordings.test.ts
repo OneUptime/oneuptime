@@ -319,7 +319,10 @@ describe.each(RELEASES)("a healthy cloud, on %s", (release: string) => {
     expect(hypervisor.adminState).toBe("enabled");
     expect(hypervisor.availabilityZone).toBe("nova");
 
-    const reading = (metric: string, resource: string): number => {
+    const reading: (metric: string, resource: string) => number = (
+      metric: string,
+      resource: string,
+    ): number => {
       const found: Series | undefined = scene
         .seriesNamed(`openstack_placement_resource_${metric}`)
         .find((series: Series) => {
@@ -328,7 +331,9 @@ describe.each(RELEASES)("a healthy cloud, on %s", (release: string) => {
       expect(found).toBeDefined();
       return found!.value;
     };
-    const capacity = (resource: string): number => {
+    const capacity: (resource: string) => number = (
+      resource: string,
+    ): number => {
       return (
         (reading("total", resource) - reading("reserved", resource)) *
         reading("allocation_ratio", resource)
@@ -580,7 +585,9 @@ describe.each(RELEASES)("a healthy cloud, on %s", (release: string) => {
 
 describe.each(DRILLED_RELEASES)("a failure, on %s", (release: string) => {
   const healthy: Scene = sceneOf(release, "healthy", "exporter");
-  const newlyWrong = (scene: Scene): Array<string> => {
+  const newlyWrong: (scene: Scene) => Array<string> = (
+    scene: Scene,
+  ): Array<string> => {
     const before: Array<string> = namesIn(healthy.attention());
     return namesIn(scene.attention()).filter((name: string) => {
       return !before.includes(name);
@@ -814,7 +821,9 @@ describe.each(DRILLED_RELEASES)(
       buffer.values(),
     ).map(toRow);
 
-    const attribute = (key: string): JSONObject | undefined => {
+    const attribute: (key: string) => JSONObject | undefined = (
+      key: string,
+    ): JSONObject | undefined => {
       return resourceAttributes.find((candidate: JSONObject) => {
         return candidate["key"] === key;
       });
@@ -859,7 +868,10 @@ describe.each(DRILLED_RELEASES)(
     });
 
     test("carries the estate", () => {
-      const named = (kind: OpenStackResourceKind, name: string): boolean => {
+      const named: (kind: OpenStackResourceKind, name: string) => boolean = (
+        kind: OpenStackResourceKind,
+        name: string,
+      ): boolean => {
         return rows.some((row: OpenStackResource) => {
           return row.kind === kind && row.name === name;
         });

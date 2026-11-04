@@ -62,6 +62,7 @@ At the top of **Overview**, under what needs someone, each part shows its figure
 | AWS CloudTrail | Console sign-ins, changes made in your AWS accounts and calls AWS refused |
 | Google Cloud audit logs | Changes made in your Google Cloud projects, calls Google refused, and Google Workspace sign-ins shared with Google Cloud |
 | Azure activity and Entra ID logs | Changes made in your Azure subscriptions, Defender for Cloud alerts, and Microsoft Entra ID sign-ins and directory changes |
+| OpenStack audit trail | Failed sign-ins, role grants and changes in Keystone, what the audit filter saw of each API, security groups opened to the world and images made public |
 | CEF | Threats, blocked connections and sign-ins from firewalls, IDS, WAFs and other security products that send Common Event Format |
 | LEEF | The same from products that send Log Event Extended Format, as many do for IBM QRadar |
 | Palo Alto Networks | Threats, blocked connections, GlobalProtect and administrator sign-ins, and configuration changes from PAN-OS's own syslog |

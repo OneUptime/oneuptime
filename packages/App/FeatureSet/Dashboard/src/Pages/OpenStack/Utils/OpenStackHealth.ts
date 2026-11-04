@@ -3,6 +3,10 @@ import Route from "Common/Types/API/Route";
 import IconProp from "Common/Types/Icon/IconProp";
 import { JSONObject } from "Common/Types/JSON";
 import {
+  OpenStackCephStatusFact,
+  getOpenStackCephStatusFact,
+} from "Common/Types/OpenStack/OpenStackLinks";
+import {
   OpenStackL3AgentFact,
   OPENSTACK_ALLOCATION_WARNING_PERCENT,
   OPENSTACK_IP_POOL_WARNING_PERCENT,
@@ -38,6 +42,10 @@ import {
   mergeResourceAttentionSeverity,
   sortResourceAttention,
 } from "../../../Components/ResourcePart/ResourceAttention";
+import {
+  OPENSTACK_KIND_CONTROL_PLANE,
+  getOpenStackControlPlaneAttentionItems,
+} from "./OpenStackControlPlaneHealth";
 
 /*
  * WHAT ON AN OPENSTACK CLOUD NEEDS SOMEONE, AND HOW BAD IT IS.
@@ -111,6 +119,12 @@ export const OPENSTACK_REASON_INSTANCE_ERROR: string =
 const REASON_STUCK: string = translationKey("{{status}} for {{duration}}");
 const REASON_VOLUME_ERROR: string = translationKey("In {{status}}");
 const REASON_PERCENT_FULL: string = translationKey("{{percent}} full");
+const REASON_CEPH_ERROR: string = translationKey(
+  "Its Ceph cluster {{cluster}} reads HEALTH_ERR",
+);
+const REASON_CEPH_DEGRADED: string = translationKey(
+  "Its Ceph cluster {{cluster}} reads HEALTH_WARN",
+);
 const REASON_NO_ADDRESSES: string = translationKey("No addresses left");
 const REASON_ADDRESSES_USED: string = translationKey(
   "{{percent}} of addresses used",
@@ -207,6 +221,8 @@ const KIND_IMAGE: string = translationKey("Image");
 
 // The order Needs attention lists the kinds in, at one severity.
 export const OPENSTACK_ATTENTION_KIND_ORDER: Array<string> = [
+  // First, because what it stands on going is why the rest of the list is there.
+  OPENSTACK_KIND_CONTROL_PLANE,
   KIND_API,
   KIND_SERVICE,
   KIND_HYPERVISOR,
@@ -529,13 +545,43 @@ export function getOpenStackStoragePoolPercent(
 export function assessOpenStackStoragePool(
   row: OpenStackResource,
 ): OpenStackAssessment {
+  /*
+   * The Ceph cluster behind it, when someone confirmed which that is: a pool can read half
+   * empty and still not take a write. HEALTH_ERR is Ceph refusing something, and
+   * HEALTH_WARN is often a rebalance that clears itself.
+   */
+  const ceph: OpenStackCephStatusFact | null = getOpenStackCephStatusFact(
+    factsOf(row),
+  );
+  const cephReasons: OpenStackAssessment["reasons"] =
+    ceph && (ceph.healthStatus === 1 || ceph.healthStatus === 2)
+      ? [
+          {
+            text:
+              ceph.healthStatus === 2
+                ? REASON_CEPH_ERROR
+                : REASON_CEPH_DEGRADED,
+            values: { cluster: ceph.clusterName },
+          },
+        ]
+      : [];
+  const cephSeverity: ResourceAttentionSeverity | null =
+    ceph?.healthStatus === 2
+      ? ResourceAttentionSeverity.Critical
+      : ceph?.healthStatus === 1
+        ? ResourceAttentionSeverity.Warning
+        : null;
+
   const percent: number | null = getOpenStackStoragePoolPercent(row);
   if (percent === null || percent <= OPENSTACK_STORAGE_POOL_WARNING_PERCENT) {
-    return FINE;
+    return cephSeverity
+      ? { severity: cephSeverity, reasons: cephReasons }
+      : FINE;
   }
   return {
     severity:
-      percent > OPENSTACK_STORAGE_POOL_CRITICAL_PERCENT
+      percent > OPENSTACK_STORAGE_POOL_CRITICAL_PERCENT ||
+      cephSeverity === ResourceAttentionSeverity.Critical
         ? ResourceAttentionSeverity.Critical
         : ResourceAttentionSeverity.Warning,
     reasons: [
@@ -543,6 +589,7 @@ export function assessOpenStackStoragePool(
         text: REASON_PERCENT_FULL,
         values: { percent: formatPercent(percent) },
       },
+      ...cephReasons,
     ],
   };
 }
@@ -958,6 +1005,14 @@ export function getOpenStackAttentionItems(data: {
       route: data.routeFor?.(row),
     });
   }
+
+  items.push(
+    ...getOpenStackControlPlaneAttentionItems({
+      rows: data.rows,
+      now: data.now,
+      routeFor: data.routeFor,
+    }),
+  );
 
   return sortResourceAttention(items, OPENSTACK_ATTENTION_KIND_ORDER);
 }

@@ -20,6 +20,10 @@ import {
   getOpenStackMetricByMetricName,
   getOpenStackMetricsByCategory,
 } from "../../../Types/Monitor/OpenStackMetricCatalog";
+import {
+  OpenStackHypervisorMetric,
+  OpenStackInstanceMetric,
+} from "../../../Types/OpenStack/OpenStackInstanceMetrics";
 import { OpenStackServiceType } from "../../../Types/OpenStack/OpenStackResourceKind";
 import RollingTime from "../../../Types/RollingTime/RollingTime";
 import PlatformMetricUnitUtil from "../../../Utils/Monitor/PlatformMetricUnitUtil";
@@ -143,7 +147,11 @@ describe("OpenStackMetricCatalog", () => {
         },
       )
         .filter((metric: OpenStackMetricDefinition): boolean => {
-          return metric.onlyFromProbe !== true;
+          return (
+            metric.onlyFromProbe !== true &&
+            metric.fromInstanceSource !== true &&
+            metric.fromSummaryMode !== true
+          );
         })
         .map((metric: OpenStackMetricDefinition): string => {
           return metric.metricName;
@@ -187,10 +195,18 @@ describe("OpenStackMetricCatalog", () => {
           })
           .sort(),
       ).toEqual([
+        "openstack_cinder_pool_capacity_free_gb",
+        "openstack_cinder_pool_capacity_total_gb",
+        "openstack_cinder_up",
         "openstack_cinder_volume_gb",
         "openstack_glance_image_bytes",
+        "openstack_glance_up",
+        "openstack_identity_up",
         "openstack_neutron_floating_ip",
+        "openstack_neutron_up",
         "openstack_nova_server_status",
+        "openstack_nova_up",
+        "openstack_placement_up",
       ]);
 
       for (const metric of marked) {
@@ -207,7 +223,9 @@ describe("OpenStackMetricCatalog", () => {
       METRIC_CASES.filter((metricCase: MetricCase): boolean => {
         return (
           !OPENSTACK_RECEIVER_SERIES.includes(metricCase[0]) &&
-          metricCase[1].onlyFromProbe !== true
+          metricCase[1].onlyFromProbe !== true &&
+          metricCase[1].fromInstanceSource !== true &&
+          metricCase[1].fromSummaryMode !== true
         );
       }),
     )(
@@ -219,6 +237,27 @@ describe("OpenStackMetricCatalog", () => {
         expect(metric.service).toBe(OPENSTACK_EXPORTER_SERIES[name]!.service);
       },
     );
+
+    test("every series worked out from libvirt or Ceilometer is here, and says so", () => {
+      const named: Array<string> = METRICS.filter(
+        (metric: OpenStackMetricDefinition): boolean => {
+          return metric.fromInstanceSource === true;
+        },
+      ).map((metric: OpenStackMetricDefinition): string => {
+        expect(OPENSTACK_EXPORTER_SERIES[metric.metricName]).toBeUndefined();
+        expect(metric.description).toContain(
+          "Reported only where libvirt's or Ceilometer's exporter is read.",
+        );
+        return metric.metricName;
+      });
+
+      expect(named.sort()).toEqual(
+        [
+          ...Object.values(OpenStackInstanceMetric),
+          ...Object.values(OpenStackHypervisorMetric),
+        ].sort(),
+      );
+    });
 
     test("says what the real labels are where newer sources differ", () => {
       const runningVms: OpenStackMetricDefinition =

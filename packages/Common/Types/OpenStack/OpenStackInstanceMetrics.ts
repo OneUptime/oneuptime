@@ -31,7 +31,10 @@ export enum OpenStackInstanceMetricSource {
 }
 
 export const OPENSTACK_INSTANCE_METRIC_SOURCES: ReadonlyArray<OpenStackInstanceMetricSource> =
-  [OpenStackInstanceMetricSource.Libvirt, OpenStackInstanceMetricSource.Ceilometer];
+  [
+    OpenStackInstanceMetricSource.Libvirt,
+    OpenStackInstanceMetricSource.Ceilometer,
+  ];
 
 export enum OpenStackInstanceMetric {
   // How many of the hypervisor's CPU threads this instance is using.
@@ -61,8 +64,16 @@ export enum OpenStackInstanceMetric {
 export enum OpenStackHypervisorMetric {
   // What its instances use between them, in CPU threads. Not the host's own processes.
   InstancesCpuUsage = "openstack.hypervisor.instances.cpu.usage",
+  /*
+   * That as a share of the threads it has, before any allocation ratio. Worked out at ingest
+   * because Placement's series and these are scraped on different clocks, and a formula joins
+   * two series only on the minutes both have a reading: an alert could go on never firing.
+   */
+  InstancesCpuUtilization = "openstack.hypervisor.instances.cpu.utilization",
   // What its instances hold of its memory between them.
   InstancesMemoryResident = "openstack.hypervisor.instances.memory.resident",
+  // That as a share of the memory it has. Worked out at ingest, for the same reason.
+  InstancesMemoryUtilization = "openstack.hypervisor.instances.memory.utilization",
   // How many instances those two add up.
   InstancesReporting = "openstack.hypervisor.instances.reporting",
 }
@@ -84,7 +95,9 @@ export const OPENSTACK_INSTANCE_METRIC_UNITS: Readonly<
   [OpenStackInstanceMetric.NetworkReceiveRate]: "By/s",
   [OpenStackInstanceMetric.NetworkTransmitRate]: "By/s",
   [OpenStackHypervisorMetric.InstancesCpuUsage]: "{cpu}",
+  [OpenStackHypervisorMetric.InstancesCpuUtilization]: "%",
   [OpenStackHypervisorMetric.InstancesMemoryResident]: "By",
+  [OpenStackHypervisorMetric.InstancesMemoryUtilization]: "%",
   [OpenStackHypervisorMetric.InstancesReporting]: "{instance}",
 };
 
@@ -177,7 +190,9 @@ export function normalizeOpenStackInstanceMetricsOptions(
   const projectIds: Array<string> | null = cleanNames(raw["projectIds"]);
   const aggregates: Array<string> | null = cleanNames(raw["aggregates"]);
   if (!projectIds || !aggregates) {
-    return { error: "Name projects by their IDs and aggregates by their names." };
+    return {
+      error: "Name projects by their IDs and aggregates by their names.",
+    };
   }
   if (
     projectIds.length + aggregates.length >
@@ -199,7 +214,9 @@ export function isOpenStackInstanceMetricsOnForCloud(data: {
     return false;
   }
   if (data.options.mode === OpenStackInstanceMetricsMode.Automatic) {
-    return (data.instanceCount || 0) <= OPENSTACK_INSTANCE_METRICS_AUTOMATIC_LIMIT;
+    return (
+      (data.instanceCount || 0) <= OPENSTACK_INSTANCE_METRICS_AUTOMATIC_LIMIT
+    );
   }
   return true;
 }
@@ -307,6 +324,76 @@ export function estimateOpenStackInstanceMetricsVolume(data: {
 
 /*
  * ---------------------------------------------------------------------------
+ * The busiest instances on a hypervisor
+ * ---------------------------------------------------------------------------
+ *
+ * What the hypervisor's page and its alert both name, ranked the same way: by how many of
+ * its CPU threads each one is using, because that is what the others are short of. Waiting
+ * is said beside it, because the instance using the most is not always the one suffering.
+ */
+export interface OpenStackInstanceUsageReading {
+  instanceId: string;
+  // CPU threads in use.
+  cpuCores: number | null;
+  cpuPercent: number | null;
+  contentionPercent: number | null;
+  memoryResidentBytes: number | null;
+}
+
+export const OPENSTACK_BUSIEST_INSTANCES_SHOWN: number = 10;
+
+export function rankOpenStackInstancesByCpu(
+  readings: ReadonlyArray<OpenStackInstanceUsageReading>,
+  limit: number = OPENSTACK_BUSIEST_INSTANCES_SHOWN,
+): Array<OpenStackInstanceUsageReading> {
+  return [...readings]
+    .sort(
+      (
+        first: OpenStackInstanceUsageReading,
+        second: OpenStackInstanceUsageReading,
+      ): number => {
+        return (
+          (second.cpuCores ?? -1) - (first.cpuCores ?? -1) ||
+          (second.memoryResidentBytes ?? -1) -
+            (first.memoryResidentBytes ?? -1) ||
+          first.instanceId.localeCompare(second.instanceId)
+        );
+      },
+    )
+    .slice(0, limit);
+}
+
+/*
+ * One reading per instance, from a value per instance of each series. An instance that
+ * reported any of them is in the list: one with no CPU reading yet still holds its memory.
+ */
+export function mergeOpenStackInstanceUsage(data: {
+  cpuCores: ReadonlyMap<string, number>;
+  cpuPercent: ReadonlyMap<string, number>;
+  contentionPercent: ReadonlyMap<string, number>;
+  memoryResidentBytes: ReadonlyMap<string, number>;
+}): Array<OpenStackInstanceUsageReading> {
+  const ids: Set<string> = new Set<string>([
+    ...data.cpuCores.keys(),
+    ...data.cpuPercent.keys(),
+    ...data.contentionPercent.keys(),
+    ...data.memoryResidentBytes.keys(),
+  ]);
+  return Array.from(ids).map(
+    (instanceId: string): OpenStackInstanceUsageReading => {
+      return {
+        instanceId,
+        cpuCores: data.cpuCores.get(instanceId) ?? null,
+        cpuPercent: data.cpuPercent.get(instanceId) ?? null,
+        contentionPercent: data.contentionPercent.get(instanceId) ?? null,
+        memoryResidentBytes: data.memoryResidentBytes.get(instanceId) ?? null,
+      };
+    },
+  );
+}
+
+/*
+ * ---------------------------------------------------------------------------
  * Which instance a kubernetes node, a guest's own agent or a service is
  * ---------------------------------------------------------------------------
  */
@@ -314,10 +401,10 @@ export function estimateOpenStackInstanceMetricsVolume(data: {
 const INSTANCE_UUID: RegExp =
   /[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}/i;
 
-export function isOpenStackInstanceId(value: string | null | undefined): boolean {
-  return Boolean(
-    value && value.length === 36 && INSTANCE_UUID.test(value),
-  );
+export function isOpenStackInstanceId(
+  value: string | null | undefined,
+): boolean {
+  return Boolean(value && value.length === 36 && INSTANCE_UUID.test(value));
 }
 
 /*
@@ -353,9 +440,59 @@ export function findOpenStackDeviceAfterInstanceId(
 export function getOpenStackInstanceIdOfProviderId(
   providerId: string | null | undefined,
 ): string | null {
-  const match: RegExpExecArray | null =
-    /^openstack:\/\/[^/]*\/([0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12})$/i.exec(
-      (providerId || "").trim(),
-    );
+  const providerIdFormat: RegExp =
+    /^openstack:\/\/[^/]*\/([0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12})$/i;
+  const match: RegExpExecArray | null = providerIdFormat.exec(
+    (providerId || "").trim(),
+  );
   return match ? match[1]!.toLowerCase() : null;
+}
+
+const BYTES_PER_MIB: number = 1024 * 1024;
+
+export interface OpenStackHypervisorCapacity {
+  cores: number | null;
+  memoryBytes: number | null;
+}
+
+/*
+ * What a hypervisor really has, as Placement says, before any allocation ratio. An older row
+ * has only what Placement will promise, which divided by its ratio comes to nearly the same.
+ * A page and an alert measure against this one answer, so they can't disagree about a line.
+ */
+export function getOpenStackHypervisorCapacity(data: {
+  facts: JSONObject | null | undefined;
+  vcpuCapacity?: number | null | undefined;
+  memoryCapacityBytes?: number | null | undefined;
+}): OpenStackHypervisorCapacity {
+  const facts: JSONObject = data.facts || {};
+  const totals: JSONObject =
+    (facts["resourceTotals"] as JSONObject | undefined) || {};
+  const ratios: JSONObject =
+    (facts["allocationRatios"] as JSONObject | undefined) || {};
+  const beforeRatio: (
+    capacity: number | null | undefined,
+    resource: string,
+  ) => number | null = (
+    capacity: number | null | undefined,
+    resource: string,
+  ): number | null => {
+    if (capacity === undefined || capacity === null) {
+      return null;
+    }
+    const ratio: unknown = ratios[resource];
+    return typeof ratio === "number" && ratio > 0 ? capacity / ratio : capacity;
+  };
+  const totalCores: unknown = totals["VCPU"];
+  const totalMemory: unknown = totals["MEMORY_MB"];
+  return {
+    cores:
+      typeof totalCores === "number"
+        ? totalCores
+        : beforeRatio(data.vcpuCapacity, "VCPU"),
+    memoryBytes:
+      typeof totalMemory === "number"
+        ? totalMemory * BYTES_PER_MIB
+        : beforeRatio(data.memoryCapacityBytes, "MEMORY_MB"),
+  };
 }

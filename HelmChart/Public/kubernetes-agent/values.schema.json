@@ -345,6 +345,25 @@
       "type": "object",
       "description": "Pod log collection configuration",
       "properties": {
+        "openStack": {
+          "type": "object",
+          "description": "OpenStack's services running in this cluster (OpenStack-Helm, Atmosphere, Red Hat's distribution). With a cloud's name set, a stack trace from these namespaces stays one record and OneUptime files their logs under that OpenStack cloud. Takes daemonset log mode.",
+          "properties": {
+            "cloudName": {
+              "type": "string",
+              "description": "The name the cloud's OpenStack agent or connection has. Empty leaves pod logs as they are."
+            },
+            "namespaces": {
+              "type": "array",
+              "items": {
+                "type": "string",
+                "pattern": "^[a-z0-9]([-a-z0-9]*[a-z0-9])?$"
+              },
+              "description": "The namespaces the cloud's services run in."
+            }
+          },
+          "additionalProperties": false
+        },
         "enabled": {
           "type": "boolean"
         },

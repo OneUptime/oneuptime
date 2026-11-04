@@ -1,4 +1,8 @@
 import {
+  OpenStackInstanceActionRead,
+  readOpenStackInstanceActions,
+} from "../OpenStackInstanceActions";
+import {
   readOpenStackInstances,
   OpenStackInstanceRead,
 } from "../OpenStackInstanceReader";
@@ -17,11 +21,13 @@ import OpenStackServiceClient, {
   OpenStackJsonAnswer,
   OpenStackListAnswer,
 } from "../OpenStackServiceClient";
+import OpenStackReadTurns from "../OpenStackReadTurns";
 import {
   OpenStackCollectorContext,
   OpenStackProjectRef,
 } from "./OpenStackCollectorContext";
 import { JSONObject, JSONValue } from "Common/Types/JSON";
+import { OPENSTACK_PROJECT_LIMIT_READS_PER_COLLECTION } from "Common/Types/OpenStack/OpenStackScale";
 import { OpenStackInstanceReadMode } from "Common/Types/OpenStack/OpenStackProbeCollection";
 
 /*
@@ -38,6 +44,9 @@ export const WANTED_COMPUTE_MICROVERSION: string = "2.87";
 
 // Hypervisors page with limit and marker from here. Before it, limit is refused.
 const HYPERVISOR_PAGING_MICROVERSION: string = "2.33";
+
+// From here an instance's action list takes changes-since.
+const INSTANCE_ACTION_CHANGES_MICROVERSION: string = "2.58";
 
 function parseMicroversion(value: string): [number, number] | null {
   const parts: Array<string> = value.split(".");
@@ -347,6 +356,41 @@ export default async function collectCompute(
     }
   }
 
+  if (instances) {
+    /*
+     * What the instances that changed went through, for a cloud that cannot turn its own
+     * notifications on. It vouches for nothing, and a credential that may not read it
+     * only leaves the feed to what notifications say.
+     */
+    const stateKey: string = `${context.memoryKey}/${run.regionName}/instances`;
+    const actions: OpenStackInstanceActionRead | undefined = await run.read({
+      name: "instance actions",
+      isInventory: false,
+      isQuietWhenRefused: true,
+      run: () => {
+        return readOpenStackInstanceActions({
+          client: client,
+          memory: context.memory,
+          stateKey: `${stateKey}/actions`,
+          servers: instances.servers,
+          canAskForChanges: inventory.microversion
+            ? compareMicroversions(
+                inventory.microversion,
+                INSTANCE_ACTION_CHANGES_MICROVERSION,
+              ) >= 0
+            : false,
+          nextCursor:
+            context.memory.getInstanceState(stateKey, client.now())?.cursor ||
+            null,
+        });
+      },
+    });
+
+    if (actions) {
+      inventory.instanceActionNotifications = actions.notifications;
+    }
+  }
+
   if (context.options.collectProjectLimits) {
     await collectProjectLimits(context);
   }
@@ -371,43 +415,69 @@ async function collectProjectLimits(
     return;
   }
 
-  const quotas: Array<NovaQuotaRecord> = [];
-  const limits: Array<NovaLimitsRecord> = [];
   const ownProjectId: string | null = context.session.getToken().projectId;
+
+  const idOf: (project: OpenStackProjectRef) => string = (
+    project: OpenStackProjectRef,
+  ): string => {
+    return project.id;
+  };
+
+  const quotas: OpenStackReadTurns<NovaQuotaRecord> = new OpenStackReadTurns({
+    memory: context.memory,
+    memoryKey: `${context.memoryKey}/${run.regionName}/nova-quotas`,
+    now: client.now(),
+  });
 
   await run.read({
     name: "project quotas",
     isInventory: false,
     run: async () => {
-      for (const project of projects) {
-        const answer: OpenStackJsonAnswer = await client.get({
-          read: "a project's quotas",
-          path: `/os-quota-sets/${encodeURIComponent(project.id)}/detail`,
-        });
+      await quotas.read({
+        items: projects,
+        limit: OPENSTACK_PROJECT_LIMIT_READS_PER_COLLECTION,
+        idOf: idOf,
+        read: async (project: OpenStackProjectRef): Promise<NovaQuotaRecord> => {
+          const answer: OpenStackJsonAnswer = await client.get({
+            read: "a project's quotas",
+            path: `/os-quota-sets/${encodeURIComponent(project.id)}/detail`,
+          });
 
-        quotas.push(toNovaQuota(project, answer.body));
-      }
+          return toNovaQuota(project, answer.body);
+        },
+      });
     },
   });
 
-  inventory.quotas = quotas;
+  inventory.quotas = quotas.getRecords({ items: projects, idOf: idOf });
+
+  const limits: OpenStackReadTurns<NovaLimitsRecord> = new OpenStackReadTurns({
+    memory: context.memory,
+    memoryKey: `${context.memoryKey}/${run.regionName}/nova-limits`,
+    now: client.now(),
+  });
 
   await run.read({
     name: "project limits",
     isInventory: false,
     run: async () => {
-      for (const project of projects) {
-        const answer: OpenStackJsonAnswer = await client.get({
-          read: "a project's limits",
-          path: "/limits",
-          // A project's own limits are read without naming it.
-          query: project.id === ownProjectId ? {} : { tenant_id: project.id },
-        });
+      await limits.read({
+        items: projects,
+        limit: OPENSTACK_PROJECT_LIMIT_READS_PER_COLLECTION,
+        idOf: idOf,
+        read: async (project: OpenStackProjectRef): Promise<NovaLimitsRecord> => {
+          const answer: OpenStackJsonAnswer = await client.get({
+            read: "a project's limits",
+            path: "/limits",
+            // A project's own limits are read without naming it.
+            query: project.id === ownProjectId ? {} : { tenant_id: project.id },
+          });
 
-        limits.push(toNovaLimits(project, answer.body));
-      }
+          return toNovaLimits(project, answer.body);
+        },
+      });
     },
   });
 
-  inventory.limits = limits;
+  inventory.limits = limits.getRecords({ items: projects, idOf: idOf });
 }

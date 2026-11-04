@@ -1,3 +1,5 @@
+import { OpenStackReachAcrossProducts } from "./OpenStackLinks";
+
 /*
  * WHAT A FAILED PART TAKES WITH IT, AND WHOSE IT IS.
  *
@@ -38,6 +40,11 @@ export interface OpenStackBlastRadius {
    * page says that rather than "0 volumes".
    */
   isKnown: boolean;
+  /*
+   * What it takes with it beyond the cloud: the hosts and Kubernetes nodes its instances
+   * are, and the services on them. Only a hypervisor has one, and only when it was asked for.
+   */
+  acrossProducts?: OpenStackReachAcrossProducts | undefined;
 }
 
 export const OPENSTACK_BLAST_RADIUS_PROJECT_LIMIT: number = 50;

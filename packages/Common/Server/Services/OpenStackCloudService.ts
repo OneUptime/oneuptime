@@ -1,3 +1,8 @@
+import BadDataException from "../../Types/Exception/BadDataException";
+import {
+  OpenStackInstanceMetricsOptions,
+  normalizeOpenStackInstanceMetricsOptions,
+} from "../../Types/OpenStack/OpenStackInstanceMetrics";
 import ProjectReferencesService, {
   ProjectReferenceWrite,
 } from "./ProjectReferencesService";
@@ -204,10 +209,32 @@ export class Service extends ProjectReferencesService<Model> {
    * bound to its address, probe and certificates), and normalized in place.
    */
   @CaptureSpan()
+  /*
+   * What a cloud chose to keep, in the form ingest reads, or refused: a typo here would
+   * otherwise keep every instance's series on a cloud that chose to pay for a few.
+   */
+  private normalizeInstanceMetricsOptions(data: Record<string, unknown>): void {
+    if (!("instanceMetricsOptions" in data)) {
+      return;
+    }
+    const normalized:
+      | { options: OpenStackInstanceMetricsOptions; error?: undefined }
+      | { options?: undefined; error: string } =
+      normalizeOpenStackInstanceMetricsOptions(data["instanceMetricsOptions"]);
+    if (normalized.error !== undefined) {
+      throw new BadDataException(normalized.error);
+    }
+    data["instanceMetricsOptions"] = normalized.options;
+  }
+
   protected override async onBeforeUpdate(
     updateBy: UpdateBy<Model>,
   ): Promise<OnUpdate<Model>> {
     await super.onBeforeUpdate(updateBy);
+
+    this.normalizeInstanceMetricsOptions(
+      updateBy.data as unknown as Record<string, unknown>,
+    );
 
     if (
       !OpenStackCloudConnection.isConnectionWrite(

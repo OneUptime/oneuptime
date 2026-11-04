@@ -2157,6 +2157,173 @@ detection:
     },
 
     /*
+     * OpenStack's audit trail (OpenStackAuditLogParser), as a project's logs bring it in.
+     * Each rule reads what that parser keeps, and it keeps an allowlist.
+     */
+    {
+      id: "6e7a4f92-2d3b-4b31-9a55-1f0c8e7d4a10",
+      title: "OpenStack failed logins burst",
+      description:
+        "Ten or more failed sign-ins to Keystone from one address within five minutes: someone guessing passwords, or something using a password that has changed.",
+      category: DetectionRuleLibraryCategory.Cloud,
+      dataSource: "OpenStack audit trail",
+      dataKind: DetectionRuleDataKind.OpenStackAuditTrail,
+      evaluationIntervalInMinutes: 5,
+      groupByField: "openstack.audit.initiator_address",
+      matchCountThreshold: 10,
+      sigmaRuleYaml: `title: OpenStack failed logins burst
+id: 6e7a4f92-2d3b-4b31-9a55-1f0c8e7d4a10
+description: Many failed Keystone sign-ins from one address in a short time.
+level: medium
+tags:
+  - attack.credential_access
+  - attack.t1110
+detection:
+  selection:
+    openstack.audit.event_type: identity.authenticate
+    openstack.audit.outcome: failure
+  condition: selection
+`,
+    },
+    {
+      id: "b1d2c8a4-4e0f-4a1c-8f43-73a6d5e2c901",
+      title: "OpenStack role granted on a protected project",
+      description:
+        "A role was granted on the project that administers the cloud, or the one its services run as. Add your own protected projects to the rule's list.",
+      category: DetectionRuleLibraryCategory.Cloud,
+      dataSource: "OpenStack audit trail",
+      dataKind: DetectionRuleDataKind.OpenStackAuditTrail,
+      evaluationIntervalInMinutes: 5,
+      groupByField: "openstack.audit.project_name",
+      matchCountThreshold: 1,
+      sigmaRuleYaml: `title: OpenStack role granted on a protected project
+id: b1d2c8a4-4e0f-4a1c-8f43-73a6d5e2c901
+description: A role was granted on a project that holds the cloud's own administration.
+level: high
+tags:
+  - attack.privilege_escalation
+  - attack.persistence
+  - attack.t1098
+detection:
+  selection:
+    openstack.audit.event_type: identity.role_assignment.created
+    openstack.audit.project_name:
+      - admin
+      - service
+  condition: selection
+`,
+    },
+    {
+      id: "c94e1b77-8a26-4d57-b2f1-0ea3f6d81c22",
+      title: "OpenStack admin credential used from a new address",
+      description:
+        "The admin account signed in to Keystone from an address it had not used in thirty days. If it is not someone you know, its password is somewhere it should not be.",
+      category: DetectionRuleLibraryCategory.Cloud,
+      dataSource: "OpenStack audit trail",
+      dataKind: DetectionRuleDataKind.OpenStackAuditTrail,
+      evaluationIntervalInMinutes: 15,
+      matchCountThreshold: 1,
+      sigmaRuleYaml: `title: OpenStack admin credential used from a new address
+id: c94e1b77-8a26-4d57-b2f1-0ea3f6d81c22
+description: The first Keystone sign-in of the admin account from an address in thirty days.
+level: high
+tags:
+  - attack.initial_access
+  - attack.t1078
+correlation:
+  type: new_value
+  rules:
+    - openstack_admin_sign_in
+  group-by:
+    - openstack.audit.initiator_name
+  timespan: 30d
+  condition:
+    field: openstack.audit.initiator_address
+---
+title: OpenStack admin sign-in
+name: openstack_admin_sign_in
+detection:
+  selection:
+    openstack.audit.event_type: identity.authenticate
+    openstack.audit.outcome: success
+    openstack.audit.initiator_name: admin
+  condition: selection
+`,
+    },
+    {
+      id: "0a5d3e68-71f2-4c8b-a9d4-6b2f1e0c7d35",
+      title: "OpenStack application credential created",
+      description:
+        "Someone made an application credential. Keystone's notification names the credential and not whether it is unrestricted, which is the kind that can make more of itself: openstack application credential show says.",
+      category: DetectionRuleLibraryCategory.Cloud,
+      dataSource: "OpenStack audit trail",
+      dataKind: DetectionRuleDataKind.OpenStackAuditTrail,
+      evaluationIntervalInMinutes: 5,
+      groupByField: "openstack.audit.initiator_id",
+      matchCountThreshold: 1,
+      sigmaRuleYaml: `title: OpenStack application credential created
+id: 0a5d3e68-71f2-4c8b-a9d4-6b2f1e0c7d35
+description: A Keystone application credential was created.
+level: medium
+tags:
+  - attack.persistence
+  - attack.t1098.001
+detection:
+  selection:
+    openstack.audit.event_type: identity.application_credential.created
+  condition: selection
+`,
+    },
+    {
+      id: "f7b2e94c-3a68-4e1d-b05f-92c7d1a4e680",
+      title: "OpenStack security group opened to the world",
+      description:
+        "A security group rule lets anyone on the internet reach a sensitive port: SSH, RDP, a database or a cache. Every instance in that group is now open on it.",
+      category: DetectionRuleLibraryCategory.Cloud,
+      dataSource: "OpenStack audit trail",
+      dataKind: DetectionRuleDataKind.OpenStackAuditTrail,
+      evaluationIntervalInMinutes: 5,
+      groupByField: "openstack.audit.target_id",
+      matchCountThreshold: 1,
+      sigmaRuleYaml: `title: OpenStack security group opened to the world
+id: f7b2e94c-3a68-4e1d-b05f-92c7d1a4e680
+description: A security group rule opened a sensitive port to any address.
+level: high
+tags:
+  - attack.defense_evasion
+  - attack.t1562.007
+detection:
+  selection:
+    openstack.audit.signal: security-group-open-sensitive
+  condition: selection
+`,
+    },
+    {
+      id: "2d8c6f13-9be4-47a0-8c1d-e5f30a7b9246",
+      title: "OpenStack public image published",
+      description:
+        "An image was made public, so every project in the cloud can boot from it. A public image holds whatever its owner left in it, and everyone trusts what it runs.",
+      category: DetectionRuleLibraryCategory.Cloud,
+      dataSource: "OpenStack audit trail",
+      dataKind: DetectionRuleDataKind.OpenStackAuditTrail,
+      evaluationIntervalInMinutes: 5,
+      groupByField: "openstack.audit.target_id",
+      matchCountThreshold: 1,
+      sigmaRuleYaml: `title: OpenStack public image published
+id: 2d8c6f13-9be4-47a0-8c1d-e5f30a7b9246
+description: A Glance image was made public.
+level: medium
+tags:
+  - attack.resource_development
+  - attack.t1608
+detection:
+  selection:
+    openstack.audit.signal: image-public
+  condition: selection
+`,
+    },
+
+    /*
      * Your OneUptime data (SecurityTelemetrySource): the rest of what the
      * project already sends OneUptime - traces, network flows, the audit
      * log, session replays. Each source names what it found in the event's

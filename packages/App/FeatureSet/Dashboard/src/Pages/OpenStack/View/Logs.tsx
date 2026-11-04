@@ -24,6 +24,11 @@ import Query from "Common/Types/BaseDatabase/Query";
 import Log from "Common/Models/AnalyticsModels/Log";
 import ProjectUtil from "Common/UI/Utils/Project";
 import { keyForOpenStackCloud } from "Common/Utils/Telemetry/EntityKey";
+import {
+  OPENSTACK_REQUEST_QUERY_PARAM,
+  OPENSTACK_REQUEST_TIME_QUERY_PARAM,
+} from "Common/Utils/OpenStack/OpenStackRequestTrail";
+import OpenStackRequestTrail from "../../../Components/OpenStack/OpenStackRequestTrail";
 
 const OpenStackCloudLogs: FunctionComponent<
   PageComponentProps
@@ -91,6 +96,28 @@ const OpenStackCloudLogs: FunctionComponent<
     return <ErrorMessage message="Cloud not found." />;
   }
 
+  // One request across every service, when a log line or an instance's page opened one.
+  const followedRequest: string | null = Navigation.getQueryStringByName(
+    OPENSTACK_REQUEST_QUERY_PARAM,
+  );
+
+  if (followedRequest) {
+    const at: string | null = Navigation.getQueryStringByName(
+      OPENSTACK_REQUEST_TIME_QUERY_PARAM,
+    );
+    const atDate: Date | null = at ? new Date(at) : null;
+
+    return (
+      <OpenStackRequestTrail
+        key={followedRequest}
+        openStackCloudId={modelId}
+        cloudName={cloud.name}
+        rootId={followedRequest}
+        at={atDate && !isNaN(atDate.getTime()) ? atDate : null}
+      />
+    );
+  }
+
   return (
     <Fragment>
       {/*
@@ -128,7 +155,7 @@ const OpenStackCloudLogs: FunctionComponent<
         }}
         showFilters={true}
         enableRealtime={true}
-        noLogsMessage="The OpenStack agent sends metrics only for now. Logs appear here when you send OpenTelemetry logs with this cloud's openstack.cloud.name resource attribute."
+        noLogsMessage="No logs from this cloud yet. They appear once the agent's logs profile runs on its controllers and compute nodes: the OpenStack guide says how."
       />
     </Fragment>
   );

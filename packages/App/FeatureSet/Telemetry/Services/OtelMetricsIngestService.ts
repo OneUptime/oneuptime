@@ -33,6 +33,7 @@ import CaptureSpan from "Common/Server/Utils/Telemetry/CaptureSpan";
 import MetricType from "Common/Models/DatabaseModels/MetricType";
 import MetricCatalog from "../Utils/MetricCatalog";
 import MetricsQueueService from "./Queue/MetricsQueueService";
+import ProductType from "Common/Types/MeteredPlan/ProductType";
 import { DiscoveredResourceKinds } from "Common/Server/Utils/Telemetry/DiscoveredResourceIdCache";
 import { ResourceHeartbeatResult } from "Common/Server/Utils/Telemetry/ResourceHeartbeat";
 import OtelIngestBaseService, {
@@ -85,6 +86,7 @@ import CephResourceService, {
 } from "Common/Server/Services/CephResourceService";
 import ProxmoxClusterService from "Common/Server/Services/ProxmoxClusterService";
 import OpenStackCloudService from "Common/Server/Services/OpenStackCloudService";
+import OpenStackEventRecorder from "Common/Server/Utils/OpenStack/OpenStackEventRecorder";
 import OpenStackResourceService, {
   OpenStackInventorySummary,
   ParsedOpenStackResource,
@@ -93,9 +95,14 @@ import {
   OpenStackResourceBufferEntry,
   bufferOpenStackSnapshotMetric,
   finishOpenStackBatch,
+  getOpenStackHostsToReconcile,
+  isOpenStackDatapointKept,
   isOpenStackSnapshotDatapoint,
 } from "Common/Server/Utils/Telemetry/OpenStackSnapshotScan";
 import OpenStackInstanceMetricsIngest from "Common/Server/Utils/Telemetry/OpenStackInstanceMetricsIngest";
+import OpenStackSummaryMode, {
+  OpenStackSummaryChoice,
+} from "Common/Server/Utils/Telemetry/OpenStackSummaryMode";
 import VMwareResourceService, {
   ParsedVMwareResource,
   VMwareResourceLatestMetric,
@@ -1364,6 +1371,12 @@ export default class OtelMetricsIngestService extends OtelIngestBaseService {
             });
           }
 
+          // Past a stated size a cloud keeps its rows and counts, and no series per instance.
+          const openStackSummary: OpenStackSummaryChoice | null =
+            openStackCloudId
+              ? await OpenStackSummaryMode.readChoice(openStackCloudId)
+              : null;
+
           /*
            * The same pure gate autoDiscoverDatabaseServer ran: it names the
            * rows, and its endpoint keys them when no row claimed the batch
@@ -2070,6 +2083,18 @@ export default class OtelMetricsIngestService extends OtelIngestBaseService {
                             resourceBuffer: vmwareResourceMetricsBuffer,
                             vcenterBuffer: vmwareVCenterSnapshotBuffer,
                           });
+                        }
+
+                        // Its row was folded above. The series is what this may leave out.
+                        if (
+                          openStackSummary?.isSummaryMode &&
+                          !isOpenStackDatapointKept({
+                            metricName,
+                            datapoint: datapoint as JSONObject,
+                            keptProjectIds: openStackSummary.keptProjectIds,
+                          })
+                        ) {
+                          continue;
                         }
 
                         /*
@@ -3974,6 +3999,28 @@ export default class OtelMetricsIngestService extends OtelIngestBaseService {
    * affect ClickHouse ingest.
    */
   /*
+   * The counts a cloud in summary mode keeps in place of a series per instance, through the same
+   * ingest as everything else, so its bill and retention are the cloud's. Best effort: the rows
+   * are already written, and the next round says the same.
+   */
+  private static async writeOpenStackSummarySeries(data: {
+    projectId: ObjectID;
+    openStackCloudId: ObjectID;
+  }): Promise<void> {
+    const resourceMetrics: JSONArray | null =
+      await OpenStackSummaryMode.getSeriesIfDue(data);
+
+    if (resourceMetrics) {
+      await MetricsQueueService.addMetricIngestJob({
+        projectId: data.projectId,
+        body: { resourceMetrics: resourceMetrics },
+        headers: {},
+        productType: ProductType.Metrics,
+      } as unknown as TelemetryRequest);
+    }
+  }
+
+  /*
    * Write what one batch said about each OpenStack cloud, then recount the cloud
    * from its inventory. A batch only ever holds one service of one region, so its
    * own counts would flip with every scrape. A failure here costs one snapshot of
@@ -3985,9 +4032,9 @@ export default class OtelMetricsIngestService extends OtelIngestBaseService {
   }): Promise<void> {
     for (const [cloudIdStr, byKey] of data.resourceBuffer) {
       try {
-        const resources: Array<ParsedOpenStackResource> = finishOpenStackBatch(
-          byKey.values(),
-        ).map((finished: OpenStackResourceBufferEntry) => {
+        const finishedEntries: Array<OpenStackResourceBufferEntry> =
+          finishOpenStackBatch(byKey.values());
+        const resources: Array<ParsedOpenStackResource> = finishedEntries.map((finished: OpenStackResourceBufferEntry) => {
           return {
             kind: finished.kind,
             externalId: finished.externalId,
@@ -4021,16 +4068,47 @@ export default class OtelMetricsIngestService extends OtelIngestBaseService {
               resources,
             });
 
+            await OpenStackResourceService.reconcileHypervisorStates({
+              projectId: data.projectId,
+              openStackCloudId,
+              shortHostNames: getOpenStackHostsToReconcile(finishedEntries),
+            });
+
+            // A part this scrape just told the inventory about may have an event waiting.
+            await OpenStackEventRecorder.applyPendingStateChanges({
+              projectId: data.projectId,
+              cloudId: openStackCloudId,
+            });
+
+            /*
+             * A large cloud arrives in many batches, and each would recount every row. Its
+             * numbers do not change that fast, and the heartbeat still says it is reporting.
+             */
+            if (!OpenStackSummaryMode.isRecountDue(openStackCloudId)) {
+              await OpenStackCloudService.updateLastSeen(openStackCloudId);
+              return;
+            }
+
             const summary: OpenStackInventorySummary =
               await OpenStackResourceService.getInventorySummary({
                 projectId: data.projectId,
                 openStackCloudId,
               });
 
+            OpenStackSummaryMode.noteRecount(
+              openStackCloudId,
+              summary.instanceCount,
+            );
+
             await OpenStackCloudService.updateLastSeen(
               openStackCloudId,
               summary,
             );
+
+            await this.writeOpenStackSummarySeries({
+              projectId: data.projectId,
+              openStackCloudId,
+            });
           },
         });
       } catch (err) {

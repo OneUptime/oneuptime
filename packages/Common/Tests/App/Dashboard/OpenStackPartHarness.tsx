@@ -486,6 +486,12 @@ export function resetServer(): void {
             projectIds: server.domainProjects[String(body["domainId"])] || [],
           },
         };
+      case "host-of-machine": {
+        // The server's rule, which OpenStackAcrossProducts.test.ts holds: one host or none.
+        const hosts: Array<Record<string, unknown>> =
+          server.records["Host"] || [];
+        return { data: { host: hosts.length === 1 ? hosts[0] : null } };
+      }
       default:
         return { data: {} };
     }

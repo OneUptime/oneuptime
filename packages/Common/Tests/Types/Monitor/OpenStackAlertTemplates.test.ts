@@ -39,6 +39,10 @@ import SeriesLabelDisplay from "../../../Types/Monitor/SeriesContext/SeriesLabel
 import ObjectID from "../../../Types/ObjectID";
 import {
   OPENSTACK_ALLOCATION_WARNING_PERCENT,
+  OPENSTACK_HYPERVISOR_CPU_SATURATED_PERCENT,
+  OPENSTACK_HYPERVISOR_MEMORY_PRESSURE_PERCENT,
+  OPENSTACK_INSTANCE_CPU_SATURATED_PERCENT,
+  OPENSTACK_INSTANCE_DISK_LATENCY_HIGH_MS,
   OPENSTACK_INSTANCE_STUCK_MINUTES,
   OPENSTACK_IP_POOL_EXHAUSTED_PERCENT,
   OPENSTACK_IP_POOL_WARNING_PERCENT,
@@ -48,6 +52,7 @@ import {
   OPENSTACK_STORAGE_POOL_WARNING_PERCENT,
   OPENSTACK_VOLUME_STUCK_MINUTES,
 } from "../../../Types/OpenStack/OpenStackHealthRules";
+import { OPENSTACK_INSTANCE_METRIC_JOBS } from "../../../Types/OpenStack/OpenStackInstanceMetrics";
 import {
   OPENSTACK_INSTANCE_TRANSITIONAL_STATUSES,
   OPENSTACK_VOLUME_ERROR_STATUSES,
@@ -220,7 +225,7 @@ function windowMinutesOf(step: MonitorStep): number {
 function scrapeIntervalsInSeconds(): Record<string, number> {
   const intervals: Record<string, number> = {};
   const jobs: RegExp =
-    /job_name:\s*oneuptime-openstack-(\w+)[\s\S]*?scrape_interval:\s*(\d+)s/g;
+    /job_name:\s*oneuptime-openstack-(\w+)\s*\n[\s\S]*?scrape_interval:\s*(\d+)s/g;
 
   for (const match of COLLECTOR_CONFIG.matchAll(jobs)) {
     intervals[match[1]!] = Number(match[2]);
@@ -239,7 +244,20 @@ function serviceOf(query: MetricQueryConfigData): OpenStackServiceType {
     return job as OpenStackServiceType;
   }
 
-  return OPENSTACK_EXPORTER_SERIES[metricNameOf(query)]!.service;
+  return getOpenStackMetricByMetricName(metricNameOf(query))!.service;
+}
+
+/*
+ * How often a query's value can really change. A series worked out from libvirt's or
+ * Ceilometer's exporter is as slow as the slower of those: Ceilometer's polling cycle,
+ * five minutes by default, whatever its scrape job says.
+ */
+const CEILOMETER_POLLING_SECONDS: number = 300;
+
+function intervalSecondsOf(query: MetricQueryConfigData): number {
+  return getOpenStackMetricByMetricName(metricNameOf(query))?.fromInstanceSource
+    ? CEILOMETER_POLLING_SECONDS
+    : INTERVALS[serviceOf(query)]!;
 }
 
 const AGGREGATION_EXCEPTIONS: Readonly<Record<string, string>> = {
@@ -371,6 +389,22 @@ const THRESHOLDS: Readonly<
   "openstack-project-quota-nearly-reached": {
     filterType: FilterType.GreaterThanOrEqualTo,
     value: OPENSTACK_PROJECT_QUOTA_WARNING_PERCENT,
+  },
+  "openstack-hypervisor-cpu-saturated": {
+    filterType: FilterType.GreaterThan,
+    value: OPENSTACK_HYPERVISOR_CPU_SATURATED_PERCENT,
+  },
+  "openstack-hypervisor-memory-pressure": {
+    filterType: FilterType.GreaterThan,
+    value: OPENSTACK_HYPERVISOR_MEMORY_PRESSURE_PERCENT,
+  },
+  "openstack-instance-cpu-saturated": {
+    filterType: FilterType.GreaterThan,
+    value: OPENSTACK_INSTANCE_CPU_SATURATED_PERCENT,
+  },
+  "openstack-instance-disk-latency-high": {
+    filterType: FilterType.GreaterThan,
+    value: OPENSTACK_INSTANCE_DISK_LATENCY_HIGH_MS,
   },
 };
 
@@ -541,6 +575,22 @@ const SCENES: Readonly<Record<string, Scene>> = {
     breached: { vcpus_used: 95, vcpus_limit: 100 },
     healthy: { vcpus_used: 10, vcpus_limit: 100 },
   },
+  "openstack-hypervisor-cpu-saturated": {
+    breached: { cpu_percent: 95 },
+    healthy: { cpu_percent: 25 },
+  },
+  "openstack-hypervisor-memory-pressure": {
+    breached: { memory_percent: 93.75 },
+    healthy: { memory_percent: 6.25 },
+  },
+  "openstack-instance-cpu-saturated": {
+    breached: { cpu_percent: 99 },
+    healthy: { cpu_percent: 40 },
+  },
+  "openstack-instance-disk-latency-high": {
+    breached: { read_latency_ms: 120, write_latency_ms: 4 },
+    healthy: { read_latency_ms: 2, write_latency_ms: 4 },
+  },
 };
 
 // The scene's values for every minute of the window, and the anchor's.
@@ -636,7 +686,7 @@ function statusesOf(id: string): Array<string> {
 function longestIntervalMinutesOf(step: MonitorStep): number {
   return Math.max(
     ...queriesOf(step).map((query: MetricQueryConfigData): number => {
-      return INTERVALS[serviceOf(query)]! / 60;
+      return intervalSecondsOf(query) / 60;
     }),
   );
 }
@@ -665,6 +715,10 @@ describe("OpenStack alert templates: the rules every template passes", () => {
         "vCPU Allocation High",
         "Memory Allocation High",
         "Local Disk Allocation High",
+        "Hypervisor CPU Saturated",
+        "Hypervisor Memory Pressure",
+        "Instance CPU Saturated",
+        "Instance Disk Latency High",
         "Instances in Error",
         "Instance Stuck Building",
         "Instance Stuck Transitioning",
@@ -858,9 +912,13 @@ describe("OpenStack alert templates: the rules every template passes", () => {
 
   describe("reads a window of at least three collections of what it reads", () => {
     test("every service's job was read from the agent's config", () => {
-      expect(Object.keys(INTERVALS).sort()).toEqual(
-        Object.values(OpenStackServiceType).sort(),
-      );
+      // Others read compute nodes and what runs under the APIs: only these are what is asked.
+      for (const service of Object.values(OpenStackServiceType)) {
+        expect(INTERVALS[service]).toBeGreaterThan(0);
+      }
+      for (const job of OPENSTACK_INSTANCE_METRIC_JOBS) {
+        expect(INTERVALS[job]).toBeGreaterThan(0);
+      }
     });
 
     test.each(TEMPLATE_CASES)(
@@ -877,7 +935,7 @@ describe("OpenStack alert templates: the rules every template passes", () => {
           expect({
             query: aliasOf(query),
             collections:
-              (windowMinutesOf(step) * 60) / INTERVALS[serviceOf(query)]! >= 3,
+              (windowMinutesOf(step) * 60) / intervalSecondsOf(query) >= 3,
           }).toEqual({ query: aliasOf(query), collections: true });
         }
       },
@@ -1170,7 +1228,8 @@ describe("OpenStack alert templates: the rules every template passes", () => {
           }
 
           const labels: Array<string> = [
-            ...OPENSTACK_EXPORTER_SERIES[metricName]!.labels,
+            ...(OPENSTACK_EXPORTER_SERIES[metricName]?.labels ||
+              getOpenStackMetricByMetricName(metricName)!.identityAttributes),
             OPENSTACK_REGION_ATTRIBUTE,
             "openstack_service",
           ];
@@ -1466,7 +1525,8 @@ describe("OpenStack alert templates: the rules every template passes", () => {
           expect(getOpenStackMetricByMetricName(metricName)).toBeDefined();
           expect(
             Boolean(OPENSTACK_EXPORTER_SERIES[metricName]) ||
-              OPENSTACK_RECEIVER_SERIES.includes(metricName),
+              OPENSTACK_RECEIVER_SERIES.includes(metricName) ||
+              getOpenStackMetricByMetricName(metricName)!.fromInstanceSource,
           ).toBe(true);
         }
       },

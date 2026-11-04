@@ -181,6 +181,7 @@ describe("what a write of these settings is", () => {
         "projectId",
         "collectionMethod",
         "authUrl",
+        "endpointInterface",
         "credentialKind",
         "applicationCredentialId",
         "keystoneUsername",
@@ -191,6 +192,7 @@ describe("what a write of these settings is", () => {
         "collectionProbeId",
         "collectionRegions",
         "collectionOptions",
+        "collectionIntervalInMinutes",
         "trustedCertificateFingerprints",
         "presentedCertificate",
       ].sort(),
@@ -487,6 +489,16 @@ describe("updating a cloud's settings", () => {
     expect(change.feedLines.join(" ")).toContain("every 5 minutes");
   });
 
+  test("the same interval is not a change, and is not said to be: an edit sends what it shows", async () => {
+    const { change } = await update(
+      { collectionIntervalInMinutes: 5 },
+      probeCloud({ collectionIntervalInMinutes: 5 }),
+    );
+
+    expect(change.isConnectionChanged).toBe(false);
+    expect(change.feedLines).toEqual([]);
+  });
+
   test("an empty secret means keep the saved one: the form sends its empty field", async () => {
     const { change, data } = await update(
       { credentialSecret: "", collectionIntervalInMinutes: 5 },
@@ -615,6 +627,101 @@ describe("updating a cloud's settings", () => {
     );
 
     expect(change.isCredentialChanged).toBe(false);
+  });
+
+  describe("what an edit form sends beside a saved secret", () => {
+    test.each([[""], ["   "], [null]])(
+      "the other kind's boxes holding %j are no new credential, and hold nothing",
+      async (box: string | null) => {
+        const { change, data } = await update(
+          {
+            keystoneUsername: box,
+            userDomainName: box,
+            projectName: box,
+            projectDomainName: box,
+            collectionIntervalInMinutes: 5,
+          },
+          probeCloud({
+            keystoneUsername: null as unknown as undefined,
+            userDomainName: null as unknown as undefined,
+            projectName: null as unknown as undefined,
+            projectDomainName: null as unknown as undefined,
+          }),
+        );
+
+        expect(change.isCredentialChanged).toBe(false);
+        expect(change.isCredentialSet).toBeNull();
+        expect(change.isConnectionChanged).toBe(false);
+        expect(data["keystoneUsername"]).toBeNull();
+        expect(data["userDomainName"]).toBeNull();
+        expect(data["projectName"]).toBeNull();
+        expect(data["projectDomainName"]).toBeNull();
+      },
+    );
+
+    test("the same, when the saved row reads as never having had them", async () => {
+      const { change } = await update(
+        { keystoneUsername: "", projectName: null },
+        probeCloud(),
+      );
+
+      expect(change.isCredentialChanged).toBe(false);
+    });
+
+    test("a password cloud's application credential box is no new credential either", async () => {
+      const { change } = await update(
+        {
+          credentialKind: "password",
+          applicationCredentialId: "",
+          keystoneUsername: "reader",
+          projectName: "monitoring",
+        },
+        probeCloud({
+          credentialKind: "password",
+          applicationCredentialId: null as unknown as undefined,
+          keystoneUsername: "reader",
+          projectName: "monitoring",
+        }),
+      );
+
+      expect(change.isCredentialChanged).toBe(false);
+    });
+
+    test("a kind nobody has written yet is no change of kind", async () => {
+      const { change } = await update(
+        { credentialKind: null, collectionIntervalInMinutes: 5 },
+        probeCloud({ credentialKind: null as unknown as undefined }),
+      );
+
+      expect(change.isCredentialChanged).toBe(false);
+    });
+
+    test("emptying a name that was saved is a new credential, and asks for the secret", async () => {
+      await expect(
+        update(
+          { userDomainName: "" },
+          probeCloud({
+            credentialKind: "password",
+            keystoneUsername: "reader",
+            userDomainName: "Example",
+            projectName: "monitoring",
+          }),
+        ),
+      ).rejects.toThrow("Enter the credential's secret again");
+    });
+
+    test("moving to the other kind with no secret asks for it", async () => {
+      await expect(
+        update(
+          {
+            credentialKind: "password",
+            keystoneUsername: "reader",
+            projectName: "monitoring",
+          },
+          probeCloud(),
+        ),
+      ).rejects.toThrow("Enter the credential's secret again");
+    });
   });
 
   test("a new secret may go with any address, because it was given for it", async () => {
@@ -812,6 +919,15 @@ describe("updating a cloud's settings", () => {
     );
 
     expect(change.isConnectionChanged).toBe(true);
+  });
+
+  test("the same interface is not a change: an edit sends what it shows", async () => {
+    const { change } = await update(
+      { endpointInterface: "public" },
+      probeCloud({ endpointInterface: "public" }),
+    );
+
+    expect(change.isConnectionChanged).toBe(false);
   });
 
   test("the options are held to what a probe knows, and said when they change", async () => {

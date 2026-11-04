@@ -96,10 +96,14 @@ export const OPENSTACK_HYPERVISOR_ALERT_TEMPLATE_IDS: Array<string> = [
   "openstack-vcpu-allocation-high",
   "openstack-memory-allocation-high",
   "openstack-local-disk-allocation-high",
+  "openstack-hypervisor-cpu-saturated",
+  "openstack-hypervisor-memory-pressure",
 ];
 
 export const OPENSTACK_INSTANCE_ALERT_TEMPLATE_IDS: Array<string> = [
   "openstack-instances-in-error",
+  "openstack-instance-cpu-saturated",
+  "openstack-instance-disk-latency-high",
   "openstack-instance-stuck-building",
   "openstack-instance-stuck-transitioning",
   "openstack-instance-stuck-in-verify-resize",

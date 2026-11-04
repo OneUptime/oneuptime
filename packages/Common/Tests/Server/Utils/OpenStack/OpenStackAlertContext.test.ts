@@ -545,3 +545,118 @@ describe("an owner rule on a project assigns its team", () => {
     expect(rule.incidentDescriptionPattern).toContain(OU_PAYMENTS);
   });
 });
+
+describe("what an alert on a hypervisor says beyond the cloud", () => {
+  function contextWith(
+    fields: Partial<OpenStackAlertContextResult>,
+  ): OpenStackAlertContextResult {
+    return {
+      radius: null,
+      projectId: null,
+      projectName: null,
+      domainId: null,
+      partKind: OpenStackResourceKind.Hypervisor,
+      ...fields,
+    };
+  }
+
+  test("it lists the hosts, Kubernetes clusters and services it takes with it", () => {
+    const text: string = OpenStackAlertContext.toMarkdown(
+      contextWith({
+        radius: {
+          ...getEmptyOpenStackBlastRadius(),
+          instanceCount: 3,
+          acrossProducts: {
+            hostCount: 2,
+            hosts: [],
+            kubernetesNodeCount: 2,
+            kubernetesNodes: [],
+            kubernetesClusters: [{ id: "c", name: "prod", nodeCount: 2 }],
+            serviceCount: 1,
+            services: [{ id: "s", name: "checkout" }],
+          },
+        },
+      }),
+    );
+    expect(text).toContain(
+      "**Beyond the cloud:** 2 hosts, 2 Kubernetes nodes in 1 cluster, 1 service.",
+    );
+    expect(text).toContain("Kubernetes cluster prod: 2 nodes");
+    expect(text).toContain("Service checkout");
+  });
+
+  test("a hypervisor with nothing beyond the cloud says nothing about it", () => {
+    expect(
+      OpenStackAlertContext.toMarkdown(
+        contextWith({
+          radius: {
+            ...getEmptyOpenStackBlastRadius(),
+            instanceCount: 3,
+            acrossProducts: {
+              hostCount: 0,
+              hosts: [],
+              kubernetesNodeCount: 0,
+              kubernetesNodes: [],
+              kubernetesClusters: [],
+              serviceCount: 0,
+              services: [],
+            },
+          },
+        }),
+      ),
+    ).not.toContain("Beyond the cloud");
+  });
+
+  test("a name somebody typed can't write markdown into the description", () => {
+    const text: string = OpenStackAlertContext.toMarkdown(
+      contextWith({
+        radius: {
+          ...getEmptyOpenStackBlastRadius(),
+          acrossProducts: {
+            hostCount: 0,
+            hosts: [],
+            kubernetesNodeCount: 0,
+            kubernetesNodes: [],
+            kubernetesClusters: [],
+            serviceCount: 1,
+            services: [{ id: "s", name: "**bold**" }],
+          },
+        },
+      }),
+    );
+    expect(text).not.toContain("Service **bold**");
+  });
+
+  test("a hypervisor over a line names the instances responsible", () => {
+    const text: string = OpenStackAlertContext.toMarkdown(
+      contextWith({
+        busiestInstances: [
+          {
+            instanceId: "a1b2",
+            name: "burner",
+            cpuCores: 3.91,
+            cpuPercent: 97,
+            contentionPercent: 22.4,
+            memoryResidentBytes: 1,
+          },
+        ],
+      }),
+    );
+    expect(text).toContain("**Using the most of it:**");
+    expect(text).toContain("burner: 3.9 CPU threads, waiting 22% of its time");
+    expect(text).toContain("`a1b2`");
+  });
+
+  test("an instance series' own id names the instance", () => {
+    expect(
+      getOpenStackPartOfSeries({
+        "openstack.region.name": "RegionOne",
+        "openstack.instance.id": "a1b2",
+      }),
+    ).toEqual(
+      expect.arrayContaining([
+        { kind: OpenStackResourceKind.Instance, externalId: "a1b2" },
+      ]),
+    );
+  });
+});

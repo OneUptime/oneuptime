@@ -136,6 +136,10 @@ curl -X POST http://localhost:9093/-/reload
 
 The route keeps Alertmanager's timing defaults. It waits `30s` before it sends a new group (`group_wait`), `5m` before it sends a group again with new alerts in it (`group_interval`), and `4h` before it repeats a notification that has not changed (`repeat_interval`).
 
+## On an OpenStack cloud
+
+An Incoming Request monitor's own settings name no cloud, so its incidents would reach **Incidents** and not the cloud. Open the monitor's **Overview → Linked Resources** and add the OpenStack cloud: each incident is then on that cloud's **Incidents** page as well. [OpenStack by Deployment Tool](/docs/telemetry/openstack-deployment-tools) has the receiver for each tool that runs an Alertmanager, in the place that tool reads it from.
+
 ## Test it
 
 Send OneUptime a notification of two firing alerts, as Alertmanager would:

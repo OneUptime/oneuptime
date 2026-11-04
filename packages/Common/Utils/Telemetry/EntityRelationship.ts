@@ -46,6 +46,15 @@ const RULES: Record<string, EntityRelationshipType> = {
   [`${EntityType.ServiceInstance}|${EntityType.Service}`]:
     EntityRelationshipType.InstanceOf,
   [`${EntityType.Service}|${EntityType.Host}`]: EntityRelationshipType.HostedOn,
+  /*
+   * Only ever said on purpose: nothing a service sends carries these two, so a service
+   * can't claim them by co-occurring. It takes a host linked to its part of a cloud
+   * (OpenStackAcrossProducts.reconcilePlacementInTopology).
+   */
+  [`${EntityType.Service}|${EntityType.OpenStackInstance}`]:
+    EntityRelationshipType.HostedOn,
+  [`${EntityType.Service}|${EntityType.OpenStackHypervisor}`]:
+    EntityRelationshipType.HostedOn,
   [`${EntityType.Service}|${EntityType.KubernetesPod}`]:
     EntityRelationshipType.RunsOn,
   [`${EntityType.Container}|${EntityType.KubernetesPod}`]:

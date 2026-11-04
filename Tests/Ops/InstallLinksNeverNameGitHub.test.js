@@ -73,21 +73,23 @@ function agentsWithTheFallback() {
   const allowed = {};
 
   for (const entry of INSTALL_SCRIPTS) {
-    const script = path.join(
-      REPO_ROOT,
-      entry.sourceDirectory,
-      entry.script || "",
-    );
+    // An agent's optional profile can have an installer of its own, served beside install.sh.
+    const scripts = (entry.files || []).filter((file) => {
+      return file === entry.script || file.endsWith(".sh");
+    });
 
-    if (
-      entry.script &&
-      entry.sourceDirectory.startsWith("agents/") &&
-      fs.readFileSync(script, "utf8").includes("fetch_agent_file()")
-    ) {
-      allowed[`${entry.sourceDirectory}/${entry.script}`] = {
-        times: 1,
-        reason: OLDER_ONEUPTIME_FALLBACK,
-      };
+    for (const file of scripts) {
+      if (
+        entry.sourceDirectory.startsWith("agents/") &&
+        fs
+          .readFileSync(path.join(REPO_ROOT, entry.sourceDirectory, file), "utf8")
+          .includes("fetch_agent_file()")
+      ) {
+        allowed[`${entry.sourceDirectory}/${file}`] = {
+          times: 1,
+          reason: OLDER_ONEUPTIME_FALLBACK,
+        };
+      }
     }
   }
 
@@ -231,6 +233,7 @@ describe("downloads from GitHub's copy of the repository", () => {
       "agents/DatabaseAgent/install.sh",
       "agents/DockerSwarmAgent/install.sh",
       "agents/HostAIAgent/install.sh",
+      "agents/OpenStackAgent/install-logs.sh",
       "agents/OpenStackAgent/install.sh",
       "agents/ProxmoxAgent/install.sh",
       "agents/StorageArrayAgent/install.sh",

@@ -206,6 +206,18 @@ export const INSTALL_SCRIPTS: ReadonlyArray<InstallScriptEntry> = [
       "access/policy/neutron.yaml",
       "access/policy/nova.yaml",
       "access/policy/placement.yaml",
+      "control-plane-targets.py",
+      // The optional logs profile, on each controller and compute node.
+      "install-logs.sh",
+      "docker-compose.logs.yml",
+      "otel-collector-logs-files.yaml",
+      "otel-collector-logs-journald.yaml",
+      "systemd/oneuptime-openstack-logs-native.service",
+      // The optional traces profile, on each machine whose services are traced.
+      "install-traces.sh",
+      "docker-compose.traces.yml",
+      "otel-collector-traces.yaml",
+      "systemd/oneuptime-openstack-traces-native.service",
       TROUBLESHOOT_SCRIPT_FILE,
     ],
   },

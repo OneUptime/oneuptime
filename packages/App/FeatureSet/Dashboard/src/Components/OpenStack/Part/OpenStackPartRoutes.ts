@@ -1,6 +1,10 @@
 import OpenStackResource from "Common/Models/DatabaseModels/OpenStackResource";
 import Route from "Common/Types/API/Route";
 import ObjectID from "Common/Types/ObjectID";
+import {
+  OpenStackDependency,
+  getOpenStackDependencyOfRow,
+} from "Common/Types/OpenStack/OpenStackControlPlane";
 import { OpenStackResourceKind } from "Common/Types/OpenStack/OpenStackResourceKind";
 import PageMap from "../../../Utils/PageMap";
 import RouteMap, { RouteUtil } from "../../../Utils/RouteMap";
@@ -36,6 +40,8 @@ export interface OpenStackPartRoutes {
   getNetworkAgentsRoute: () => Route;
   getNetworkAgentRoute: (externalId: string) => Route;
   getServicesRoute: () => Route;
+  getControlPlaneRoute: () => Route;
+  getDependencyRoute: (dependency: OpenStackDependency) => Route;
   // For Needs attention, whatever kind of row needs it.
   routeFor: (row: OpenStackResource) => Route | undefined;
   getIncidentRoute: (incidentId: ObjectID) => Route;
@@ -167,9 +173,29 @@ export function getOpenStackPartRoutes(
     getServicesRoute: (): Route => {
       return ofCloud(PageMap.OPENSTACK_CLOUD_VIEW_SERVICES);
     },
+    getControlPlaneRoute: (): Route => {
+      return ofCloud(PageMap.OPENSTACK_CLOUD_VIEW_CONTROL_PLANE);
+    },
+    getDependencyRoute: (dependency: OpenStackDependency): Route => {
+      return ofPart(
+        PageMap.OPENSTACK_CLOUD_VIEW_CONTROL_PLANE_DEPENDENCY,
+        dependency,
+      );
+    },
     routeFor: (row: OpenStackResource): Route | undefined => {
       if (!row.externalId) {
         return undefined;
+      }
+      // One machine of what the cloud stands on is read on the page of the whole of it.
+      if (row.kind === OpenStackResourceKind.ControlPlane) {
+        const dependency: OpenStackDependency | null =
+          getOpenStackDependencyOfRow(row);
+        return dependency
+          ? ofPart(
+              PageMap.OPENSTACK_CLOUD_VIEW_CONTROL_PLANE_DEPENDENCY,
+              dependency,
+            )
+          : ofCloud(PageMap.OPENSTACK_CLOUD_VIEW_CONTROL_PLANE);
       }
       /*
        * A network agent has a page of its own, which says what it serves. Every other

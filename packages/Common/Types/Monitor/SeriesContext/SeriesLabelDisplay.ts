@@ -129,6 +129,10 @@ const FriendlyLabelNames: Record<string, string> = {
    */
   "openstack.cloud.name": "OpenStack Cloud",
   "openstack.region.name": "Region",
+  // What ingest writes for a real instance's usage, and only ever means that.
+  "openstack.instance.id": "Instance",
+  "openstack.instance.source": "Source",
+  "openstack.project.id": "Project",
   openstack_service: "Service Type",
   hostname: "Host",
   service: "Service",
@@ -347,6 +351,7 @@ const LabelPriority: Record<string, number> = {
    */
   hostname: 25,
   service: 26,
+  "openstack.instance.id": 25,
   network_name: 25,
   tenant: 25,
   volume_backend_name: 28,

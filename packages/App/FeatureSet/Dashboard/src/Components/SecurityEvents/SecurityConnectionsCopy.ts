@@ -52,6 +52,12 @@ export const SECURITY_LOG_FORMAT_TEXTS: Record<
       "Changes to the cluster, shells opened in pods, secrets read and requests that were refused.",
     ),
   },
+  [SecurityLogFormat.OpenStackAudit]: {
+    title: translationKey("OpenStack audit trail"),
+    description: translationKey(
+      "Sign-ins, role grants and changes in Keystone, what changed or was refused on the other APIs, security groups opened to the world and images made public.",
+    ),
+  },
   [SecurityLogFormat.AwsCloudTrail]: {
     title: translationKey("AWS CloudTrail"),
     description: translationKey(

@@ -29,6 +29,12 @@ export enum OpenStackResourceKind {
   FloatingIp = "FloatingIp",
   Project = "Project",
   Domain = "Domain",
+  /*
+   * One machine of what the cloud stands on: a RabbitMQ node, a MariaDB one, a host's Open
+   * vSwitch. Its facts say which (OpenStackControlPlane). No OpenStack service reports these
+   * and none vouches for them, so they age out on their own: see deleteStaleForCloud.
+   */
+  ControlPlane = "ControlPlane",
 }
 
 /*

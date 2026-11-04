@@ -177,6 +177,25 @@ export const OPENSTACK_TEMPLATE_CATEGORIES: Array<AlertTemplateCategory> = [
   },
 ];
 
+/*
+ * An OpenStack cloud's Recommendations: Quick Setup's headings, then what only its
+ * services say (OpenStackLogAlertTemplates): Logs monitors, which an OpenStack monitor's
+ * Quick Setup cannot build and so never lists.
+ */
+export const OPENSTACK_RECOMMENDATION_CATEGORIES: Array<AlertTemplateCategory> = [
+  ...OPENSTACK_TEMPLATE_CATEGORIES,
+  {
+    category: "Service Logs",
+    label: "Service logs",
+    icon: IconProp.Logs,
+  },
+  {
+    category: "Events",
+    label: "Failed actions",
+    icon: IconProp.Alert,
+  },
+];
+
 // VMware.
 export const VMWARE_TEMPLATE_CATEGORIES: Array<AlertTemplateCategory> = [
   {
@@ -327,7 +346,8 @@ export const ALERT_TEMPLATE_CATEGORIES_BY_RESOURCE_TYPE: Partial<
     KUBERNETES_RECOMMENDATION_CATEGORIES,
   [MonitorRecommendationResourceType.Proxmox]:
     PROXMOX_RECOMMENDATION_CATEGORIES,
-  [MonitorRecommendationResourceType.OpenStack]: OPENSTACK_TEMPLATE_CATEGORIES,
+  [MonitorRecommendationResourceType.OpenStack]:
+    OPENSTACK_RECOMMENDATION_CATEGORIES,
   [MonitorRecommendationResourceType.VMware]: VMWARE_TEMPLATE_CATEGORIES,
   [MonitorRecommendationResourceType.Ceph]: CEPH_TEMPLATE_CATEGORIES,
   [MonitorRecommendationResourceType.StorageArray]:

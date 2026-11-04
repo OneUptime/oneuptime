@@ -6,12 +6,16 @@ The OneUptime OpenStack agent monitors an OpenStack cloud: its services and agen
 - [Choose how much it sees](#choose-how-much-the-agent-sees): OpenStack has no global read-only role, so there are three levels.
 - [Install the agent](#install-the-agent): A credential, then the install script, Docker Compose or no Docker at all.
 - [What it costs your cloud](#what-it-costs-your-cloud): What each setting reads, and how to change it.
+- [Service logs](#service-logs): Parsed, with a request followed across services.
+- [Lifecycle events](#lifecycle-events): Instance actions on the feed and on charts, from notifications or a probe.
+- [Who did what](#who-did-what): Audit trails into Security Events.
+- [By deployment tool](/docs/telemetry/openstack-deployment-tools): Kolla-Ansible, OpenStack-Ansible, OpenStack-Helm, Atmosphere, Sunbeam, Red Hat and Mirantis.
 - [Troubleshooting](#troubleshooting): A diagnostic script, and the usual problems.
 :::
 
 ## How it works
 
-The agent is two pinned upstream programs and their configuration, on one machine: [openstack-exporter](https://github.com/openstack-exporter/openstack-exporter) reads the cloud's APIs and turns them into `openstack_*` series, and an OpenTelemetry Collector asks it for one OpenStack service at a time, stamps every series with the cloud and region it came from, and sends them to OneUptime. Nothing runs on your controllers or compute nodes.
+The agent is two pinned upstream programs and their configuration, on one machine: [openstack-exporter](https://github.com/openstack-exporter/openstack-exporter) reads the cloud's APIs and turns them into `openstack_*` series, and an OpenTelemetry Collector asks it for one OpenStack service at a time, stamps every series with the cloud and region it came from, and sends them to OneUptime. Nothing runs on your controllers or compute nodes, unless you add the optional [logs profile](#service-logs), which reads their logs.
 
 ```mermaid title="From a cloud to OneUptime"
 flowchart TB
@@ -281,7 +285,9 @@ The same questions, the same check with Keystone and the same files. Each releas
 Run one agent per cloud: moving off a Docker install, run `docker compose down` first, or every metric arrives twice.
 :::
 
-Already run openstack-exporter, say the one Kolla-Ansible deploys? Point the agent at it, and the bundled one never starts: `OPENSTACK_EXPORTER_ADDRESS=10.0.0.5:9180 bash install.sh`, or leave `COMPOSE_PROFILES` out of `.env` and set `OPENSTACK_EXPORTER_ADDRESS` there. It must run with `--multi-cloud`, its `clouds.yaml` needs an entry named for each region, and it should turn off what the bundled one turns off: see [What it costs your cloud](#what-it-costs-your-cloud). Use an address the agent's container can reach: `localhost` is the container itself.
+Already run openstack-exporter with `--multi-cloud`? Point the agent at it, and the bundled one never starts: `OPENSTACK_EXPORTER_ADDRESS=10.0.0.5:9180 bash install.sh`, or leave `COMPOSE_PROFILES` out of `.env` and set `OPENSTACK_EXPORTER_ADDRESS` there. Its `clouds.yaml` needs an entry named for each region, and it should turn off what the bundled one turns off: see [What it costs your cloud](#what-it-costs-your-cloud). Use an address the agent's container can reach: `localhost` is the container itself.
+
+Kolla-Ansible's exporter runs without `--multi-cloud`, so it has no `/probe`, and it is pinned to a release that says less. [Use the exporter you already run](/docs/telemetry/openstack-deployment-tools#use-the-exporter-you-already-run) says how to read it, and exactly what the pages go without. [OpenStack by Deployment Tool](/docs/telemetry/openstack-deployment-tools) has the rest of each tool's steps.
 
 ### Check the agent is running
 
@@ -318,6 +324,16 @@ The install script writes these to `/opt/oneuptime-openstack-agent/.env`; a Dock
 | `OPENSTACK_CA_FILE` | No | A PEM file with the certificate authority of a cloud that has its own. The install script keeps a copy as `ca.pem` next to `clouds.yaml`. |
 | `OPENSTACK_EXPORTER_USER` | No | The `uid:gid` the exporter's container runs as, which must own `clouds.yaml`. Defaults to `65532:65532`. |
 | `COMPOSE_PROFILES` | Bundled exporter | `openstack-exporter` starts the bundled exporter. |
+| `OPENSTACK_LIBVIRT_EXPORTER_TARGETS` | No | The compute nodes to read [real usage](#real-usage) from through `prometheus-libvirt-exporter`, in square brackets, such as `[compute-01:9177,compute-02:9177]`. Defaults to none. |
+| `OPENSTACK_CEILOMETER_EXPORTER_TARGETS` | No | The same through Ceilometer's own exporter, such as `[compute-01:9101]`. Defaults to none. |
+| `OPENSTACK_SINGLE_CLOUD_EXPORTER_TARGETS` | No | An exporter already running without `--multi-cloud`, such as Kolla-Ansible's: `[10.0.0.254:9198]`. See [Use the exporter you already run](/docs/telemetry/openstack-deployment-tools#use-the-exporter-you-already-run). |
+| `OPENSTACK_RABBITMQ_TARGETS` | No | RabbitMQ's Prometheus plugin on each node, for [what the cloud stands on](/docs/monitor/openstack-monitor#what-the-cloud-stands-on): `[10.0.0.11:15692,10.0.0.12:15692]`. Defaults to none. |
+| `OPENSTACK_MARIADB_TARGETS` | No | mysqld_exporter beside each MariaDB node, usually on `9104`. Defaults to none. |
+| `OPENSTACK_MEMCACHED_TARGETS` | No | memcached_exporter beside each Memcached, usually on `9150`. Defaults to none. |
+| `OPENSTACK_HAPROXY_TARGETS` | No | HAProxy's own Prometheus exporter. Defaults to none. |
+| `OPENSTACK_NETWORK_EXPORTER_TARGETS` | No | openstack-network-exporter on each node, for OVN and Open vSwitch, usually on `1981`. Defaults to none. |
+| `OPENSTACK_LIBVIRT_HEALTH_TARGETS` | No | prometheus-libvirt-exporter on each compute node, usually on `9177`, for whether libvirt answers and nothing per instance. Defaults to none. |
+| `OPENSTACK_CONTROL_PLANE_REGION` | No | The region of a target above that does not say its own. A target can: `RegionTwo@10.1.0.11:15692`. Defaults to the first region. |
 
 The install script also reads the credential from the environment, to skip its questions: `OPENSTACK_APPLICATION_CREDENTIAL_ID` and `OPENSTACK_APPLICATION_CREDENTIAL_SECRET`, or `OPENSTACK_USERNAME`, `OPENSTACK_PASSWORD`, `OPENSTACK_PROJECT_NAME`, `OPENSTACK_USER_DOMAIN_NAME` and `OPENSTACK_PROJECT_DOMAIN_NAME`. They have names of their own rather than the `OS_*` ones an openrc file sets, so an admin's sourced openrc never becomes the agent's credential without anyone being asked. An application credential is better than a username and password: it can be limited to reading and can expire.
 
@@ -383,6 +399,55 @@ Three open upstream issues shape all this, and the project has also [asked for m
 - [Issue 540](https://github.com/openstack-exporter/openstack-exporter/issues/540): an unscoped port list can saturate Neutron. So the per-port series are off, and the diagnostic script asks for one small page of ports.
 - [Issue 244](https://github.com/openstack-exporter/openstack-exporter/issues/244): scrapes time out on larger clouds. So intervals are minutes rather than seconds, each with a timeout under it. If `openstack_*_up` goes missing for one service on a large cloud, raise that job's interval and timeout before anything else.
 
+## Real usage
+
+Nova and Placement say what is promised on a hypervisor, not what is busy: an idle instance holds all of its vCPUs. So nothing in OneUptime calls those numbers usage. To see what is really busy, point the agent at whichever of these your cloud already runs. The OpenTelemetry Collector has no libvirt receiver of its own.
+
+| Source | Where it runs | Turn it on |
+| --- | --- | --- |
+| [`prometheus-libvirt-exporter`](https://github.com/inovex/prometheus-libvirt-exporter) | Port 9177 on each compute node. Kolla-Ansible runs it when Prometheus and KVM are on. | Set `OPENSTACK_LIBVIRT_EXPORTER_TARGETS=[compute-01:9177,compute-02:9177]` |
+| Ceilometer's own exporter, from 2025.1 | Port 9101 on each compute node, beside its polling agent. | In `ceilometer.conf`, under `[polling]`, set `enable_prometheus_exporter = true`, `prometheus_listen_addresses` to an address the agent can reach, and `batch_size` higher than the most instances on one node. Then set `OPENSTACK_CEILOMETER_EXPORTER_TARGETS=[compute-01:9101]` |
+
+After changing either, run `docker compose up -d`. Each exporter speaks for one compute node, so name every node you want read.
+
+OneUptime turns both into one set of series as they arrive, beside the originals: `openstack.instance.*` for each instance, by its UUID, and `openstack.hypervisor.instances.*` for what a hypervisor's instances add up to. The [OpenStack monitor](/docs/monitor/openstack-monitor#collected-metrics) lists them. So pages and alerts mean the same thing whichever source a cloud has:
+
+| What it reads | libvirt | Ceilometer |
+| --- | --- | --- |
+| CPU in use | How much CPU time passed, over the time between two readings | The same, from a cumulative number in nanoseconds |
+| CPU waiting, what the guest calls steal | `libvirt_domain_vcpu_delay_seconds_total` | `ceilometer_cpu_delay`, on releases that have it. Others show no reading |
+| Memory in use | What the guest's balloon driver says: available less usable | `ceilometer_memory_usage`, which is the same sum. Without a balloon driver neither has this, and it is left out rather than guessed |
+| Memory on the hypervisor | `libvirt_domain_memory_stats_rss_bytes` | `ceilometer_memory_resident` |
+| Disk and network | Rates per disk and interface, and latency as the time requests took over how many there were | The same |
+
+Ceilometer's readings only change once a polling cycle, five minutes by default, however often they are read. A rate is worked out between the moments a reading changed, so it doesn't read 0, 0, then five times the truth, and a reading that didn't change adds no data. A reading that hasn't changed for 11 minutes reads 0. A counter that goes backwards has restarted, after an instance rebooted or moved, and counts from zero. `libvirt_domain_info_memory_usage_bytes` is not read as usage: it is the size of the balloon, which on an idle instance is its flavor's memory.
+
+An instance's page shows CPU, memory, disk and network beside its flavor's size. A hypervisor's page shows what its instances use, measured against what it has before any allocation ratio, and names the busiest. Past a line it says which instances are responsible, and which are being made to wait. Without a source each page says so, and what to add. Where OneUptime's [host agent](/docs/telemetry/hosts) runs on a hypervisor, its page reads that machine's own CPU, memory, disk and network from there, which includes the host's own processes.
+
+Four [alert templates](/docs/monitor/openstack-monitor#pre-built-alert-templates) read these: **Hypervisor CPU Saturated**, **Hypervisor Memory Pressure**, **Instance CPU Saturated** and **Instance Disk Latency High**. Without a source they stay quiet.
+
+### What it costs
+
+Per-instance series multiply fast, so keeping them is a choice, under the cloud's **Settings**, in **Real usage per instance**:
+
+| Choice | What it keeps |
+| --- | --- |
+| Automatic, the default | Every instance while the cloud has 500 or fewer, and none past that |
+| Every instance | Every instance, at any size |
+| Only the projects and aggregates I choose | The instances of those projects, and those on the hypervisors of those aggregates |
+| None | No instance's series |
+
+An instance not kept loses its original series too, so the choice stops the whole cost, and it still counts towards its hypervisor's totals, which are five series per hypervisor whatever you choose. The agent's scrape jobs keep only what OneUptime reads of each exporter.
+
+What one instance costs, with two vCPUs, one disk and one network interface:
+
+| Source | Series per instance | Rows per hour | Rows per month, 100 instances | Rows per month, 1,000 instances |
+| --- | --- | --- | --- | --- |
+| `prometheus-libvirt-exporter`, read every minute | 30 | 1,800 | 131,400,000 | 1,314,000,000 |
+| Ceilometer's exporter, read every 2 minutes and polled every 5 | 26 | 546 | 39,858,000 | 398,580,000 |
+
+Each further disk adds 12 series to either, and each further interface 4. Each further vCPU adds 1 from libvirt. The agent's collector holds these in memory on their way out, so a large cloud may want more than its default 512 MiB.
+
 ## Projects and domains
 
 A cloud holds many tenants, so OneUptime keeps track of whose everything is.
@@ -427,6 +492,240 @@ A part's blast radius is what it takes with it, by count and by project:
 A part's page shows it. An alert or incident on the part says it in its description, such as "3 instances in 2 projects", with their names.
 
 Two things cannot be drawn, because neither the exporter nor a probe says them: which network an instance is on, and which pool holds a volume. The map says so, and a storage pool's blast radius says it cannot tell rather than answering none.
+
+## Joined up with the rest of OneUptime
+
+An incident rarely stays in OpenStack. A pod is slow because its node's instance sits on a full hypervisor whose volumes sit on a degraded Ceph pool. Each of those reports to OneUptime on its own, and these are the joins. No link is made on a guess: a name that matches two parts links to neither.
+
+| What | Links to | How |
+| --- | --- | --- |
+| A [host](/docs/telemetry/hosts) running OneUptime's agent on a compute node | Its hypervisor | By name, where exactly one host and one hypervisor match. A short name matches a full one, and two full names in different domains are two machines |
+| A host inside a guest | Its instance | Its `host.id` is the instance's UUID, which the collector's `nova` resource detector reports. Put it first, so it wins over `system`: `detectors: [nova, system, env]`. Leave `host.name` to `system` with `nova: { resource_attributes: { host.name: { enabled: false } } }`, or the host's name changes to the instance's |
+| A Kubernetes node | Its instance | Its `spec.providerID`, `openstack:///<uuid>` or `openstack://<region>/<uuid>`, which `openstack-cloud-controller-manager` sets |
+| A service | The instance or hypervisor it runs on | The host its telemetry names |
+| A Cinder storage pool | Its Ceph cluster | See below |
+
+Each page links to the next: a host, a Kubernetes node and a service say where they run, an instance says what it also is, and [Infrastructure](/docs/telemetry/topology) draws a linked host's services under their instance. A link is made once and left alone. It is checked every five minutes until it can be made, and is never written over.
+
+When a hypervisor fails, its blast radius goes on past the cloud, and an alert's description and OneUptime AI read the same answer: the machine itself, the hosts and Kubernetes nodes its instances are, the clusters those are in, and the services on those hosts. Services reached through a Kubernetes pod are not in it yet. An investigation that starts at a slow service can walk down to its hypervisor.
+
+### A storage pool and Ceph
+
+What each source says about a pool decides how it links:
+
+| Source | What it says | What happens |
+| --- | --- | --- |
+| A [probe](/docs/telemetry/openstack-agentless) at the Full view level | Cinder's RBD driver names the Ceph cluster's fsid and pool in `location_info` | It links on its own, when one [Ceph cluster](/docs/telemetry/ceph) here reports that fsid. A Ceph cluster reports it only with `ceph.cluster.fsid` set in its agent's config |
+| The agent's exporter | The pool's name, its backend's name and its vendor, which reads `Open Source` for LVM and RBD alike | Nothing says it is on Ceph. A Ceph pool of the same name in exactly one cluster is offered, for someone to confirm once on the pool's page. With no such match they can choose a cluster, or say it isn't on Ceph |
+
+Once linked, the pool's page says how its cluster reads, and `HEALTH_WARN` or `HEALTH_ERR` appears in the cloud's **Needs attention**. A suggestion nobody confirmed raises nothing. Only the Full view credential can see pools at all: see [Choose how much the agent sees](#choose-how-much-the-agent-sees).
+
+## Service logs
+
+The agent above reads a cloud's APIs from outside. Why an instance failed to build is somewhere else: in `nova-api`, `nova-conductor`, `nova-scheduler`, `nova-compute`, Neutron and Cinder, on several machines. An optional logs profile sends those lines to OneUptime, parsed, with a stack trace as one record. Unlike the agent, it runs on the cloud's own controllers and compute nodes, and it only reads.
+
+:::cards
+- [Install the logs profile](#install-the-logs-profile): One command per machine, or a chart value.
+- [Follow a request](#follow-a-request): From an instance's page to its scheduler line in two clicks.
+- [Log alerts](#log-alerts): The failures every operator knows by their words.
+- [What it keeps and costs](#what-it-keeps-and-costs): The filters it starts with, and what they save.
+- [Secrets](#secrets-in-logs): What never gets stored, and how that is done.
+:::
+
+### Install the logs profile
+
+Where a cloud's services log depends on what deployed it:
+
+| Deployed with | Where its services log | What to run |
+| --- | --- | --- |
+| Kolla-Ansible | Files in `/var/log/kolla`, in the `kolla_logs` Docker volume | `install-logs.sh files` on each node. A container that can read those files and nothing else |
+| OpenStack-Ansible | The journal, its containers' passed through to the host | `install-logs.sh journald` on each host. A systemd service in the `systemd-journal` group |
+| DevStack | The journal, under `devstack@*` units | `install-logs.sh journald` |
+| OpenStack-Helm, Atmosphere, Red Hat's distribution | Pods | The [Kubernetes agent](/docs/telemetry/kubernetes-agent), with the chart values below |
+
+```bash
+curl -fsSLO https://oneuptime.com/install/openstack-agent/install-logs.sh
+sudo bash install-logs.sh
+```
+
+With no argument the script looks at the machine, and asks if it cannot tell. It asks for your OneUptime URL, the ingestion key and the cloud's name, which must be the name the cloud has in OneUptime. Every answer also works as an environment variable, so a run across a fleet asks nothing: `ONEUPTIME_URL`, `ONEUPTIME_TELEMETRY_INGESTION_KEY`, `OPENSTACK_CLOUD_NAME`, `OPENSTACK_NODE_NAME` and `OPENSTACK_LOGS_PROFILE`. Running it again is the upgrade, and keeps every answer.
+
+| Variable | What it is for |
+| --- | --- |
+| `OPENSTACK_NODE_NAME` | This machine's name, which a hypervisor's and a service's pages read logs by. Defaults to the machine's own |
+| `OPENSTACK_LOGS_DIRECTORY` | Where Kolla-Ansible's logs are, if not in its usual Docker volume |
+| `OPENSTACK_LOGS_TIMEZONE` | The zone oslo.log writes its times in. Defaults to `UTC` |
+| `OPENSTACK_LOGS_UNITS` | The journal's units to read, in square brackets. Defaults to every OpenStack service's |
+
+The files profile reads OpenStack's services by name, so RabbitMQ, MariaDB, HAProxy and libvirt in the same folder are left alone. A collector restarted later goes on from the line it had reached.
+
+On a cluster, name the cloud in the Kubernetes agent's values, with the namespaces its services run in. Pods in those namespaces then have their stack traces joined, and their logs go under the cloud as well as the cluster. This takes the agent's DaemonSet log mode: the log tailer the restricted presets use does not read it.
+
+```yaml title="values.yaml"
+logs:
+  openStack:
+    cloudName: my-cloud
+    namespaces:
+      - openstack
+```
+
+### Follow a request
+
+Every line OneUptime reads has its level, service, machine, request, user, project and instance as attributes, however the service was configured: oslo.log's default format, DevStack's journal format, `use_json`, and `use_journal` are all read as the same thing. So:
+
+- An instance's **Logs** tab shows what names its UUID, starting with the requests those lines belong to, the failed ones first. A hypervisor's shows what came from that machine, and a service's its own.
+- Any line that has a request ID says **Follow request**, which opens that request on the cloud's Logs page: every line holding its ID or its global ID, across every service, in time order.
+
+The services join when the one calling them sends a global request ID. Nova sends one to Neutron, Cinder and Glance, and something you wrote may not. So the page says which services joined, and names those that wrote other requests' lines in the same moments, which OneUptime can't tell took part or not.
+
+### Log alerts
+
+The cloud's **Recommendations** page offers these beside the other [alert templates](/docs/monitor/openstack-monitor#what-the-services-say):
+
+| Alert | Fires on |
+| --- | --- |
+| **No Valid Host** | `No valid host was found` |
+| **RabbitMQ Connection Lost** | `AMQP server on <host> is unreachable`, or `MessagingTimeout` |
+| **Database Connection Lost** | `DBConnectionError`, or MySQL's `Lost connection` and `Can't connect` |
+| **Too Many Errors from a Service** | One service on one machine writing many `ERROR` lines |
+| **Token Validation Failing** | Tokens Keystone gave out being refused: what a controller whose Fernet keys differ from the others looks like |
+
+### What it keeps and costs
+
+A cloud writes a great deal nobody reads. The first time a project's OpenStack logs arrive, it gets these as [drop filters](/docs/telemetry/drop-filters-and-scrub-rules), where they can be counted, changed or turned off. Turned off, they stay off.
+
+| Filter | What it drops | What it costs you |
+| --- | --- | --- |
+| **OpenStack: DEBUG lines** | Every `DEBUG` line. On a cloud with `debug = True` that is most of what it writes, and it is where its secrets have leaked | The detail you turn `debug` on to read. Turn this off while you debug a service |
+| **OpenStack: health checks** | A load balancer asking each API for `/` or `/healthcheck`: a line every few seconds, per API, per controller | Nothing a person reads. The same line from a person looks the same |
+| **OpenStack: routine notifications** | `metrics.update`, and every `*.exists` and `*.usage`. See [Lifecycle events](#lifecycle-events) | Nothing that says anything changed. Turn this off to keep every notification |
+
+These filters match only what OneUptime read from a cloud's logs, so nothing else in a project is touched.
+
+### Secrets in logs
+
+OpenStack's debug logs have leaked tokens and passwords, and a Fernet token in a log is a login. Before a cloud's line is stored, whatever rules a project has set, OneUptime takes out Fernet, JWS and PKI tokens by their shape, the value of anything named as a secret (`password`, `token`, `X-Auth-Token`, `adminPass`, and the like), the password in a URL such as a `transport_url`, and private keys. Nothing turns this off. Four [scrub rules](/docs/telemetry/drop-filters-and-scrub-rules) cover the same shapes on a project's other logs, such as a pod's with no cloud named. Those are yours to change.
+
+## Lifecycle events
+
+"What changed just before this?" is the first question in any incident, and OpenStack says so through its notifications: instances migrated, a hypervisor disabled, a volume detached. Those go to a message bus nobody reads, and attaching a consumer to a production RabbitMQ is a risk operators rightly refuse. So OneUptime asks for no consumer. oslo.messaging's `log` driver writes each notification as JSON, with passwords masked, to the service's own log, and the [logs profile](#install-the-logs-profile) carries it.
+
+Each one becomes:
+
+- A line on the part's **Feed**, and on the cloud's.
+- A marker on the part's charts, and a suspect when OneUptime AI investigates an incident on it.
+- The real time a part's state changed, rather than when the next collection noticed.
+- For what failed, **Instance Action Failed** and **Scheduling Failed** alerts, each with the reason it gives.
+
+### Turn on notifications
+
+Each service takes the same setting, and Nova one more, because it defaults to `unversioned`:
+
+```ini title="nova.conf"
+[oslo_messaging_notifications]
+driver = log
+
+[notifications]
+notification_format = versioned
+```
+
+Set `driver = log` in `neutron.conf`, `cinder.conf` and `glance-api.conf` too. Each service needs a restart to read it, and what that takes depends on what deployed it:
+
+| Deployed with | Where it goes | What restarts it |
+| --- | --- | --- |
+| Kolla-Ansible | `/etc/kolla/config/global.conf` for every service, and `/etc/kolla/config/nova.conf` for Nova's own | `kolla-ansible reconfigure -i <inventory> -t nova,neutron,cinder,glance` |
+| OpenStack-Ansible | `nova_nova_conf_overrides`, `neutron_neutron_conf_overrides`, `cinder_cinder_conf_overrides` and `glance_glance_api_conf_overrides` in `user_variables.yml` | `openstack-ansible openstack.osa.nova`, and the same for each service |
+| OpenStack-Helm | `conf.nova.oslo_messaging_notifications.driver` and `conf.nova.notifications.notification_format` in the chart's values, and the same for each service's chart | `helm upgrade`, which restarts the pods whose configuration changed |
+| DevStack | Each service's file in `/etc`. `iniset` does it | `sudo systemctl restart "devstack@n-*" "devstack@q-*" "devstack@c-*" "devstack@g-*"` |
+
+A cloud that sends these to Ceilometer too can name two: `driver` can be set more than once.
+
+### Without notifications
+
+A cloud whose configuration isn't yours to change can still have failed actions. A [probe](/docs/telemetry/openstack-agentless) reads `os-instance-actions` for the instances that changed since it last looked, and says each thing as the notification Nova would have sent, with the reason Nova gives. It costs one call per instance that changed, a few per collection at most, and a quiet cloud none at all. It stays quiet once a cloud's own notifications arrive, so nothing is said twice.
+
+Nova keeps these only per instance, and with no record that changed nothing brings one up. A failed volume attach can leave its instance as it was, so a probe can't see it. Notifications can.
+
+### What is kept
+
+Three levels of event, as the [drop filter](#what-it-keeps-and-costs) reads them:
+
+| Level | What | Where it goes |
+| --- | --- | --- |
+| Routine | `metrics.update`, `*.exists` and `*.usage`, which say nothing happened | Dropped, one setting away from kept. Kept, they are logs and go nowhere else |
+| Trail | Steps on the way: `*.start`, a port updated while an instance boots, `instance.update` | Logs, to follow a request by |
+| Change | Something happened | Logs, the feed, chart markers and OneUptime AI |
+
+## Who did what
+
+Security teams need to know who changed what in a cloud: role grants, failed logins and admin actions. OpenStack can write all of it, and it goes the same way as everything above: to the logs, with no bus. OneUptime reads it as a source of [Security Events](/docs/telemetry/security-events).
+
+### Turn on Keystone's audit trail
+
+```ini title="keystone.conf"
+[DEFAULT]
+notification_format = cadf
+notification_opt_out = identity.authenticate.success
+notification_opt_out = identity.authenticate.pending
+
+[oslo_messaging_notifications]
+driver = log
+```
+
+Name `notification_opt_out` yourself. Keystone's documentation says failed logins are left out by default, and its code's default leaves them in. Naming the two above sends failed logins, and not one line per token, whichever a release does.
+
+### Turn on the audit filter
+
+Keystone's notifications cover identity. For who did what through Nova, Neutron, Cinder and Glance, keystonemiddleware's audit filter records each call. It goes in the service's paste file, after `authtoken` and its context in each pipeline, with a map file from pyCADF's `etc/pycadf`:
+
+```ini title="api-paste.ini"
+[filter:audit]
+paste.filter_factory = keystonemiddleware.audit:filter_factory
+audit_map_file = /etc/nova/nova_api_audit_map.conf
+```
+
+```ini title="nova.conf"
+[audit_middleware_notifications]
+driver = log
+```
+
+| Deployed with | Where it goes |
+| --- | --- |
+| Kolla-Ansible | Its config tasks copy `keystone-paste.ini` from `/etc/kolla/config/keystone/`, and no other service's paste file. For the others, mount your file over the one in the image with `nova_api_extra_volumes` and its like. Keystone's own [notifications](#turn-on-keystones-audit-trail) need none of this |
+| OpenStack-Ansible | `nova_api_paste_ini_overrides`, `neutron_api_paste_ini_overrides`, `cinder_api_paste_ini_overrides` and `glance_glance_api_paste_ini_overrides` in `user_variables.yml`, with the `audit_middleware_notifications` section in each service's conf overrides |
+| OpenStack-Helm | `conf.paste` in each chart's values, with `conf.<service>.audit_middleware_notifications.driver` |
+
+An audit log is mostly reads, and a read says nothing unless it was refused. So OneUptime keeps what changed something, and what was refused, which is what someone probing a cloud looks like.
+
+### What reaches Security Events
+
+| What | Who, what, and on what |
+| --- | --- |
+| A login, failed or not | Who, from which address, against Keystone |
+| A role granted or taken | Who, which role, to whom, on which project or domain |
+| A change to Keystone's records | Who, which change, and which project, user or application credential |
+| A call through the audit filter | Who, which action, on what, and whether it was refused |
+| A security group opened to the world | Who, which group, which project, and the sensitive port it opened |
+| An image made public | Who, which image, and whose it was |
+
+A project is named from the cloud's inventory where OneUptime knows it, so a case reads `project payments` and not an ID. Keystone's users aren't in the inventory, because the access the agent asks for leaves them out on purpose. A user is named when the event itself names them, and by ID otherwise.
+
+The cloud's page says what Security Events found about it, a case names the cloud, and each part's page has **Who changed this**: who did what around the moment its state last changed. It reads the audit trail, and a notification's own actor without one, and it isn't there when neither says anything.
+
+These six [detections](/docs/telemetry/security-events) come from the rule library:
+
+| Detection | What it says |
+| --- | --- |
+| **OpenStack failed logins burst** | Ten or more failed sign-ins from one address in five minutes |
+| **OpenStack role granted on a protected project** | A role given on `admin` or `service`. Add your own projects to the rule's list. It reads a project's name, so it needs the cloud's inventory |
+| **OpenStack admin credential used from a new address** | The `admin` account signing in from an address it has not used in thirty days |
+| **OpenStack application credential created** | One was made. Keystone's notification holds only its ID, so whether it is unrestricted can't be told from here, and this fires on every one and says so. `openstack application credential show` says |
+| **OpenStack security group opened to the world** | `0.0.0.0/0`, `::/0` or no address at all, inbound, on a sensitive port or every port |
+| **OpenStack public image published** | An image made public |
+
+### What is never stored
+
+A CADF event can hold what should not be kept: its initiator's credential holds part of a token, an invalid password's attachment holds part of its hash, and an API request can hold anything. OneUptime keeps a list of named fields, and nothing else of an event, so what a new release adds stays out until someone reads it and adds it. A request path keeps no query string. Request and response bodies stay off: the audit filter does not write them, and they would not be kept if it did. Audit records keep [Security Events'](/docs/telemetry/security-events) own retention, and a line goes through a project's log scrub rules before it is read.
 
 ## Run as a systemd service
 

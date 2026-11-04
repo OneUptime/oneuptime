@@ -197,6 +197,8 @@ data:
       # Exclude always wins over include.
       {{- $podLogInclude := include "kubernetes-agent.namespaceRulePatterns" (dict "root" . "action" "include" "scope" "podLogs") | fromJsonArray }}
       {{- $podLogExclude := include "kubernetes-agent.namespaceRulePatterns" (dict "root" . "action" "exclude" "scope" "podLogs") | fromJsonArray }}
+      {{- $openStack := (.Values.logs).openStack | default dict }}
+      {{- $openStackCloud := $openStack.cloudName | default "" }}
       filelog:
         include:
           {{- if $podLogInclude }}
@@ -344,13 +346,41 @@ data:
           # This mirrors the recombine operator the Docker agent already ships.
           - type: recombine
             id: recombine-multiline
-            output: move-stream
+            output: {{ if $openStackCloud }}openstack-route{{ else }}move-stream{{ end }}
             combine_field: body
             combine_with: "\n"
             is_first_entry: 'body matches "^[^\\s\\}\\)\\]]"'
             source_identifier: attributes["log.file.path"]
             force_flush_period: 5s
             max_log_size: 1048576
+          {{- if $openStackCloud }}
+          # OpenStack's services, on a cluster that runs them (OpenStack-Helm,
+          # Atmosphere, Red Hat's distribution). oslo.log writes a stack trace one
+          # line at a time, each with a prefix of its own, which the step above
+          # takes for new records, so this joins them. And these records say which
+          # cloud they are of: OneUptime parses them when they arrive, and files
+          # them under the cloud with this name. Pods in other namespaces skip it.
+          - type: router
+            id: openstack-route
+            routes:
+              - output: openstack-recombine
+                expr: 'attributes.namespace in {{ $openStack.namespaces | default (list "openstack") | toJson }}'
+            default: move-stream
+          - type: recombine
+            id: openstack-recombine
+            output: openstack-cloud-name
+            combine_field: body
+            combine_with: "\n"
+            is_first_entry: 'not ((body matches "^(?:\\x1b\\[[0-9;]*m)*(?:\\d{4}-\\d{2}-\\d{2} \\d{2}:\\d{2}:\\d{2}\\.\\d{3} \\d+ )?(?:ERROR|TRACE|CRITICAL) [A-Za-z0-9_.-]+ " and not (body matches "^(?:\\x1b\\[[0-9;]*m)*(?:\\d{4}-\\d{2}-\\d{2} \\d{2}:\\d{2}:\\d{2}\\.\\d{3} \\d+ )?[A-Z]+ [A-Za-z0-9_.-]+ (?:\\x1b\\[[0-9;]*m)*\\[(?:\\x1b\\[[0-9;]*m)*(?:-|None|req-)")) or body matches "^(?:[ \\t]+\\S|Traceback \\(most recent call last\\):|[A-Za-z_][A-Za-z0-9_.]*(?:Error|Exception|Timeout|Refused|Failure)(?:: |$))")'
+            source_identifier: attributes["log.file.path"]
+            force_flush_period: 5s
+            max_log_size: 1048576
+          - type: add
+            id: openstack-cloud-name
+            field: resource["openstack.cloud.name"]
+            value: {{ $openStackCloud | quote }}
+            output: move-stream
+          {{- end }}
           - type: move
             id: move-stream
             from: attributes.stream

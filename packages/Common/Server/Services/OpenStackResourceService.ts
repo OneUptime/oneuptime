@@ -241,10 +241,32 @@ const COUNT_COLUMNS: Record<OpenStackCountBy, string> = {
 };
 
 const UPSERT_BATCH_SIZE: number = 500;
+
+/*
+ * How long a row nothing has changed on can go without being rewritten: at most this, and never
+ * more than a third of the stale window. Rewriting every row of a large cloud on every scrape
+ * is most of what a scrape costs Postgres: on 200,000 unchanged rows, 313 MiB of WAL against
+ * 11 MiB (measured: OpenStackScalePostgres).
+ *
+ * What holds this inside the stale rule. The sweep deletes a row whose lastSeenAt is older than
+ * the window before the time its service last answered. A read skips a row only when the row's
+ * lastSeenAt is within this of the read, so straight after any read a live row is at most this far
+ * behind it. The next read's `up` can land before that read's own rows, which adds one scrape
+ * interval. A scrape interval longer than this never skips anything, and is exactly the exposure
+ * rewriting every row had. Otherwise the two add up to at most twice this, which a third of the
+ * window keeps inside it at any window the setting allows, down to its minimum.
+ */
+const MAX_ROW_TOUCH_INTERVAL_IN_SECONDS: number = 5 * 60;
+const STALE_DELETE_BATCH_SIZE: number = 5000;
+// How far ahead of this server a cloud's clock may be before its dates are refused.
+const MAX_STATE_CHANGE_CLOCK_SKEW_IN_MS: number = 10 * 60 * 1000;
 const ATTENTION_ROWS_PER_KIND: number = 100;
 const STALE_DELETE_WARN_THRESHOLD: number = 1000;
 const DEFAULT_STALE_MINUTES: number = 15;
 const MINIMUM_STALE_MINUTES: number = 5;
+
+// A row of a list read in order of its ID, whatever else it is filtered by.
+const OPENSTACK_ROWS_PER_READ: number = 1000;
 
 const UPSERT_COLUMNS: ReadonlyArray<string> = [
   "projectId",
@@ -302,6 +324,18 @@ function toIntParam(value: number | null): number | null {
   return value === null ? null : Math.trunc(value);
 }
 
+/*
+ * When a part changed state, by what names it: its own id, or for a worker, its binary
+ * and host. See recordStateChanges.
+ */
+export interface OpenStackStateChange {
+  kind: OpenStackResourceKind;
+  externalId: string;
+  binary: string;
+  host: string;
+  at: Date;
+}
+
 export class Service extends DatabaseService<Model> {
   public constructor() {
     super(Model);
@@ -317,6 +351,16 @@ export class Service extends DatabaseService<Model> {
    * `facts` merges key by key for the same reason. `stateChangedAt` moves only when
    * the status or admin state really changes, and that is what the time-based rules
    * read: how long a volume has been `attaching`, or a service disabled.
+   *
+   * Capped by construction: at most UPSERT_BATCH_SIZE rows a statement, each statement a
+   * transaction of its own, so no writer holds a large cloud's rows for long. Always in the
+   * same order, so two batches that overlap wait for each other rather than deadlock.
+   *
+   * A row that would come out exactly as it stands, and was seen within the touch interval,
+   * is not rewritten (getRowTouchIntervalInSeconds has why that is safe). So lastSeenAt says
+   * "seen at this time or later", which is all the stale rule and a part page's "last report"
+   * want of it. One thing the guard above gives up for that: a state that flapped between two
+   * scrapes whose batches crossed can read the older state until the next scrape.
    */
   @CaptureSpan()
   public async bulkUpsert(data: {
@@ -328,8 +372,8 @@ export class Service extends DatabaseService<Model> {
       return;
     }
 
-    const resources: Array<ParsedOpenStackResource> = data.resources.map(
-      (resource: ParsedOpenStackResource) => {
+    const resources: Array<ParsedOpenStackResource> = data.resources
+      .map((resource: ParsedOpenStackResource) => {
         const sanitized: ParsedOpenStackResource = sanitize(resource);
         if (sanitized.externalId !== resource.externalId) {
           logger.warn(
@@ -337,8 +381,14 @@ export class Service extends DatabaseService<Model> {
           );
         }
         return sanitized;
-      },
-    );
+      })
+      .sort((first: ParsedOpenStackResource, second: ParsedOpenStackResource) => {
+        const a: string = `${first.kind}/${first.externalId}`;
+        const b: string = `${second.kind}/${second.externalId}`;
+        return a < b ? -1 : a > b ? 1 : 0;
+      });
+
+    const touchInterval: number = this.getRowTouchIntervalInSeconds();
 
     for (let i: number = 0; i < resources.length; i += UPSERT_BATCH_SIZE) {
       const chunk: Array<ParsedOpenStackResource> = resources.slice(
@@ -397,6 +447,13 @@ export class Service extends DatabaseService<Model> {
         return `"${column}" = COALESCE(EXCLUDED."${column}", "OpenStackResource"."${column}")`;
       };
 
+      // What coalesce would really change: a null never does.
+      const isNewValue: (column: string) => string = (
+        column: string,
+      ): string => {
+        return `(EXCLUDED."${column}" IS NOT NULL AND EXCLUDED."${column}" IS DISTINCT FROM "OpenStackResource"."${column}")`;
+      };
+
       const sql: string = `
         INSERT INTO "OpenStackResource" (${quoted})
         VALUES ${valueFragments.join(", ")}
@@ -418,7 +475,12 @@ export class Service extends DatabaseService<Model> {
                 AND EXCLUDED."status" IS DISTINCT FROM "OpenStackResource"."status")
               OR (EXCLUDED."adminState" IS NOT NULL
                 AND EXCLUDED."adminState" IS DISTINCT FROM "OpenStackResource"."adminState")
-            THEN EXCLUDED."lastSeenAt"
+            THEN CASE
+              -- An event since the last scrape already said when: see recordStateChanges.
+              WHEN "OpenStackResource"."stateChangedAt" > "OpenStackResource"."lastSeenAt"
+              THEN "OpenStackResource"."stateChangedAt"
+              ELSE EXCLUDED."lastSeenAt"
+            END
             ELSE COALESCE("OpenStackResource"."stateChangedAt", EXCLUDED."stateChangedAt")
           END,
           ${coalesce("vcpuCapacity")},
@@ -433,10 +495,185 @@ export class Service extends DatabaseService<Model> {
           "lastSeenAt" = EXCLUDED."lastSeenAt",
           "updatedAt" = now()
         WHERE EXCLUDED."lastSeenAt" >= "OpenStackResource"."lastSeenAt"
+          AND (
+            "OpenStackResource"."lastSeenAt" < EXCLUDED."lastSeenAt" - INTERVAL '${touchInterval} seconds'
+            OR ${isNewValue("name")}
+            OR ${isNewValue("regionName")}
+            OR ${isNewValue("availabilityZone")}
+            OR ${isNewValue("hypervisorName")}
+            OR ${isNewValue("openStackProjectId")}
+            OR ${isNewValue("status")}
+            OR ${isNewValue("adminState")}
+            OR (EXCLUDED."adminState" IS NOT NULL
+              AND EXCLUDED."disabledReason" IS DISTINCT FROM "OpenStackResource"."disabledReason")
+            OR ${isNewValue("vcpuCapacity")}
+            OR ${isNewValue("vcpuAllocated")}
+            OR ${isNewValue("memoryCapacityBytes")}
+            OR ${isNewValue("memoryAllocatedBytes")}
+            OR ${isNewValue("diskCapacityBytes")}
+            OR ${isNewValue("diskAllocatedBytes")}
+            OR ${isNewValue("instanceCount")}
+            OR ("OpenStackResource"."stateChangedAt" IS NULL
+              AND EXCLUDED."stateChangedAt" IS NOT NULL)
+            -- An event said when since the last write: the next scrape closes that gap as ever.
+            OR "OpenStackResource"."stateChangedAt" > "OpenStackResource"."lastSeenAt"
+            -- A key set to null is a change too: it is how a fact that went away says so.
+            OR (COALESCE("OpenStackResource"."facts", '{}'::jsonb) || EXCLUDED."facts")
+              IS DISTINCT FROM "OpenStackResource"."facts"
+          )
       `;
 
       await this.getRepository().manager.query(sql, params);
     }
+  }
+
+  /**
+   * When parts really changed state, from what the cloud's own notifications say, where
+   * a scrape could only say when it noticed. Returns the changes that matched no row
+   * that exists: a part the scrape has not reported yet, which OpenStackEventRecorder
+   * tries again after the next scrape.
+   *
+   * An event only ever moves a date forward, so one arriving late cannot undo a newer one.
+   * The exception is a row a scrape dated in the same round, whose date is the scrape's
+   * and never the real one: the event's is better, so long as it is close enough to be
+   * about the same change. A scrape in turn leaves alone a date an event set since the
+   * scrape before (bulkUpsert), so the two cannot take turns overwriting each other.
+   */
+  @CaptureSpan()
+  public async recordStateChanges(data: {
+    projectId: ObjectID;
+    openStackCloudId: ObjectID;
+    changes: Array<OpenStackStateChange>;
+  }): Promise<Array<OpenStackStateChange>> {
+    const now: number = Date.now();
+    const usable: Array<OpenStackStateChange> = data.changes.filter(
+      (change: OpenStackStateChange): boolean => {
+        // A date from a clock that is ahead would hold every later change back.
+        return (
+          !Number.isNaN(change.at.getTime()) &&
+          change.at.getTime() <= now + MAX_STATE_CHANGE_CLOCK_SKEW_IN_MS
+        );
+      },
+    );
+    const byId: Array<OpenStackStateChange> = usable.filter(
+      (change: OpenStackStateChange): boolean => {
+        return Boolean(change.externalId);
+      },
+    );
+    const services: Array<OpenStackStateChange> = usable.filter(
+      (change: OpenStackStateChange): boolean => {
+        return !change.externalId && Boolean(change.binary && change.host);
+      },
+    );
+    const unmatched: Array<OpenStackStateChange> = [];
+
+    if (byId.length > 0) {
+      const rows: Array<JSONObject> = (await this.getRepository().manager.query(
+        `
+        SELECT DISTINCT ON (part."kind", part."externalId") part."kind", part."externalId"
+        FROM "OpenStackResource" AS part
+        JOIN unnest($3::text[], $4::text[]) AS change("kind", "externalId")
+          ON part."kind" = change."kind" AND part."externalId" = change."externalId"
+        WHERE part."projectId" = $1 AND part."openStackCloudId" = $2
+        `,
+        [
+          data.projectId.toString(),
+          data.openStackCloudId.toString(),
+          byId.map((change: OpenStackStateChange): string => {
+            return change.kind;
+          }),
+          byId.map((change: OpenStackStateChange): string => {
+            return change.externalId;
+          }),
+        ],
+      )) as Array<JSONObject>;
+      const found: Set<string> = new Set(
+        rows.map((row: JSONObject): string => {
+          return `${row["kind"]}/${row["externalId"]}`;
+        }),
+      );
+
+      await this.getRepository().manager.query(
+        `
+        UPDATE "OpenStackResource" AS part
+        SET "stateChangedAt" = change."at", "updatedAt" = now()
+        FROM unnest($3::text[], $4::text[], $5::timestamptz[])
+          AS change("kind", "externalId", "at")
+        WHERE part."projectId" = $1 AND part."openStackCloudId" = $2
+          AND part."kind" = change."kind" AND part."externalId" = change."externalId"
+          AND (
+            part."stateChangedAt" IS NULL
+            OR part."stateChangedAt" < change."at"
+            OR (
+              part."stateChangedAt" = part."lastSeenAt"
+              AND change."at" > part."stateChangedAt" - interval '10 minutes'
+            )
+          )
+        `,
+        [
+          data.projectId.toString(),
+          data.openStackCloudId.toString(),
+          byId.map((change: OpenStackStateChange): string => {
+            return change.kind;
+          }),
+          byId.map((change: OpenStackStateChange): string => {
+            return change.externalId;
+          }),
+          byId.map((change: OpenStackStateChange): string => {
+            return change.at.toISOString();
+          }),
+        ],
+      );
+
+      for (const change of byId) {
+        if (!found.has(`${change.kind}/${change.externalId}`)) {
+          unmatched.push(change);
+        }
+      }
+    }
+
+    if (services.length > 0) {
+      /*
+       * A worker's id holds its region, which a notification does not say, so it is
+       * found by its binary and host, which Nova's service list and its notifications
+       * both write the same way.
+       */
+      await this.getRepository().manager.query(
+        `
+        UPDATE "OpenStackResource" AS part
+        SET "stateChangedAt" = change."at", "updatedAt" = now()
+        FROM unnest($3::text[], $4::text[], $5::timestamptz[])
+          AS change("binary", "host", "at")
+        WHERE part."projectId" = $1 AND part."openStackCloudId" = $2
+          AND part."kind" = '${OpenStackResourceKind.Service}'
+          AND part."name" = change."binary"
+          AND part."facts"->>'host' = change."host"
+          AND (
+            part."stateChangedAt" IS NULL
+            OR part."stateChangedAt" < change."at"
+            OR (
+              part."stateChangedAt" = part."lastSeenAt"
+              AND change."at" > part."stateChangedAt" - interval '10 minutes'
+            )
+          )
+        `,
+        [
+          data.projectId.toString(),
+          data.openStackCloudId.toString(),
+          services.map((change: OpenStackStateChange): string => {
+            return change.binary;
+          }),
+          services.map((change: OpenStackStateChange): string => {
+            return change.host;
+          }),
+          services.map((change: OpenStackStateChange): string => {
+            return change.at.toISOString();
+          }),
+        ],
+      );
+    }
+
+    return unmatched;
   }
 
   /**
@@ -865,9 +1102,21 @@ export class Service extends DatabaseService<Model> {
         params: [],
         whole: true,
       },
+      // How many of a cluster are left is what decides how bad one down is, as for workers.
+      {
+        kind: OpenStackResourceKind.ControlPlane,
+        where: "TRUE",
+        params: [],
+        whole: true,
+      },
       {
         kind: OpenStackResourceKind.StoragePool,
-        where: `"diskAllocatedBytes" * 100 > "diskCapacityBytes" * ${OPENSTACK_STORAGE_POOL_WARNING_PERCENT}`,
+        /*
+         * Past the line, or on a Ceph cluster someone linked it to, which is what can say
+         * a half-empty pool is in trouble: the API adds that cluster's health to these rows.
+         */
+        where: `("diskAllocatedBytes" * 100 > "diskCapacityBytes" * ${OPENSTACK_STORAGE_POOL_WARNING_PERCENT}
+          OR "facts" ? 'cephLink' OR "facts" ? 'cephFsid')`,
         params: [],
       },
       {
@@ -1924,6 +2173,190 @@ export class Service extends DatabaseService<Model> {
   }
 
   /**
+   * A cloud's own rows, in order of their IDs, from after the one a read stopped at: for what
+   * walks a whole kind, such as an export. One unique index serves any depth, so the last page of
+   * 200,000 costs what the first does, where an OFFSET reads everything before it.
+   */
+  @CaptureSpan()
+  public async getRowsAfter(data: {
+    projectId: ObjectID;
+    openStackCloudId: ObjectID;
+    kind: OpenStackResourceKind;
+    afterExternalId?: string | null | undefined;
+    regionName?: string | null | undefined;
+    status?: string | null | undefined;
+    limit?: number | undefined;
+  }): Promise<{ rows: Array<JSONObject>; nextExternalId: string | null }> {
+    const limit: number = Math.min(
+      Math.max(1, data.limit || OPENSTACK_ROWS_PER_READ),
+      OPENSTACK_ROWS_PER_READ,
+    );
+    const params: Array<unknown> = [
+      data.projectId.toString(),
+      data.openStackCloudId.toString(),
+      data.kind,
+    ];
+    const conditions: Array<string> = [];
+
+    if (data.afterExternalId) {
+      params.push(data.afterExternalId);
+      conditions.push(`AND "externalId" > $${params.length}`);
+    }
+    if (data.regionName) {
+      params.push(data.regionName);
+      conditions.push(`AND "regionName" = $${params.length}`);
+    }
+    if (data.status) {
+      params.push(data.status);
+      conditions.push(`AND "status" = $${params.length}`);
+    }
+
+    const rows: Array<JSONObject> = (
+      (await this.getRepository().manager.query(
+        `SELECT ${ROW_COLUMNS} FROM "OpenStackResource"
+         WHERE "projectId" = $1 AND "openStackCloudId" = $2 AND "kind" = $3
+           AND "deletedAt" IS NULL ${conditions.join(" ")}
+         ORDER BY "externalId" ASC
+         LIMIT ${limit + 1}`,
+        params,
+      )) as Array<JSONObject>
+    ).map(toRowWithNumbers);
+
+    const page: Array<JSONObject> = rows.slice(0, limit);
+
+    return {
+      rows: page,
+      nextExternalId:
+        rows.length > limit
+          ? String(page[page.length - 1]?.["externalId"])
+          : null,
+    };
+  }
+
+  /**
+   * How many instances there are by status and by project, in each region, for the series a cloud
+   * in summary mode keeps in place of one per instance. Grouped on the server, so a cloud of any
+   * size costs one read over its instances' rows.
+   */
+  @CaptureSpan()
+  public async getInstanceCounts(data: {
+    projectId: ObjectID;
+    openStackCloudId: ObjectID;
+  }): Promise<{
+    byStatus: Array<{
+      regionName: string | null;
+      status: string | null;
+      count: number;
+    }>;
+    byProject: Array<{
+      regionName: string | null;
+      openStackProjectId: string;
+      count: number;
+    }>;
+  }> {
+    const params: Array<unknown> = [
+      data.projectId.toString(),
+      data.openStackCloudId.toString(),
+    ];
+    const byStatus: Array<{
+      regionName: string | null;
+      status: string | null;
+      count: string;
+    }> = await this.getRepository().manager.query(
+      `SELECT "regionName", "status", COUNT(*)::text AS "count"
+       FROM "OpenStackResource"
+       WHERE "projectId" = $1 AND "openStackCloudId" = $2
+         AND "kind" = '${OpenStackResourceKind.Instance}' AND "deletedAt" IS NULL
+       GROUP BY "regionName", "status"`,
+      params,
+    );
+    const byProject: Array<{
+      regionName: string | null;
+      openStackProjectId: string;
+      count: string;
+    }> = await this.getRepository().manager.query(
+      `SELECT "regionName", "openStackProjectId", COUNT(*)::text AS "count"
+       FROM "OpenStackResource"
+       WHERE "projectId" = $1 AND "openStackCloudId" = $2
+         AND "kind" = '${OpenStackResourceKind.Instance}' AND "deletedAt" IS NULL
+         AND "openStackProjectId" IS NOT NULL
+       GROUP BY "regionName", "openStackProjectId"`,
+      params,
+    );
+
+    return {
+      byStatus: byStatus.map((row: (typeof byStatus)[number]) => {
+        return {
+          regionName: row.regionName,
+          status: row.status,
+          count: Number.parseInt(row.count, 10),
+        };
+      }),
+      byProject: byProject.map((row: (typeof byProject)[number]) => {
+        return {
+          regionName: row.regionName,
+          openStackProjectId: row.openStackProjectId,
+          count: Number.parseInt(row.count, 10),
+        };
+      }),
+    };
+  }
+
+  /**
+   * A hypervisor's state is its nova-compute's. The fold joins them when one batch holds both, and
+   * a collector that sends a large scrape in several batches can part them: a hypervisor's numbers
+   * in one and its service in another. So this does the same join for those hosts from the rows
+   * (the batch has just written both), and changes only what differs. Hosts by short name.
+   */
+  @CaptureSpan()
+  public async reconcileHypervisorStates(data: {
+    projectId: ObjectID;
+    openStackCloudId: ObjectID;
+    shortHostNames: Array<string>;
+  }): Promise<void> {
+    if (data.shortHostNames.length === 0) {
+      return;
+    }
+
+    const shortName: (column: string) => string = (column: string): string => {
+      return `(CASE WHEN ${column} ~ '^[0-9.]+$' OR ${column} LIKE '%:%' THEN ${column} ELSE split_part(${column}, '.', 1) END)`;
+    };
+
+    await this.getRepository().manager.query(
+      `UPDATE "OpenStackResource" AS host
+       SET "status" = service."status",
+           "adminState" = service."adminState",
+           "disabledReason" = service."disabledReason",
+           "availabilityZone" = COALESCE(host."availabilityZone", service."availabilityZone"),
+           "stateChangedAt" = CASE
+             WHEN host."status" IS DISTINCT FROM service."status"
+               OR host."adminState" IS DISTINCT FROM service."adminState"
+             THEN COALESCE(service."stateChangedAt", service."lastSeenAt")
+             ELSE host."stateChangedAt"
+           END,
+           "updatedAt" = now()
+       FROM "OpenStackResource" AS service
+       WHERE host."projectId" = $1 AND host."openStackCloudId" = $2
+         AND host."kind" = '${OpenStackResourceKind.Hypervisor}'
+         AND service."projectId" = $1 AND service."openStackCloudId" = $2
+         AND service."kind" = '${OpenStackResourceKind.Service}'
+         AND service."name" = 'nova-compute'
+         AND service."regionName" IS NOT DISTINCT FROM host."regionName"
+         AND ${shortName(`service."facts"->>'host'`)} = ${shortName(`host."hypervisorName"`)}
+         AND ${shortName(`host."hypervisorName"`)} = ANY($3::text[])
+         AND (host."status" IS DISTINCT FROM service."status"
+           OR host."adminState" IS DISTINCT FROM service."adminState"
+           OR host."disabledReason" IS DISTINCT FROM service."disabledReason"
+           OR (host."availabilityZone" IS NULL AND service."availabilityZone" IS NOT NULL))`,
+      [
+        data.projectId.toString(),
+        data.openStackCloudId.toString(),
+        data.shortHostNames,
+      ],
+    );
+  }
+
+  /**
    * How long a row may go unseen after its service's last good scrape. Three times
    * the slowest scrape interval (5 minutes) by default; OPENSTACK_INVENTORY_STALE_MINUTES
    * overrides it, for a cloud scraped more slowly.
@@ -1936,6 +2369,17 @@ export class Service extends DatabaseService<Model> {
       return DEFAULT_STALE_MINUTES;
     }
     return Math.max(MINIMUM_STALE_MINUTES, parsed);
+  }
+
+  /*
+   * How long an unchanged row can go without being rewritten: see
+   * MAX_ROW_TOUCH_INTERVAL_IN_SECONDS for why a third of the window is always safe.
+   */
+  public getRowTouchIntervalInSeconds(): number {
+    return Math.min(
+      MAX_ROW_TOUCH_INTERVAL_IN_SECONDS,
+      Math.floor((this.getStaleWindowInMinutes() * 60) / 3),
+    );
   }
 
   /**
@@ -1953,8 +2397,12 @@ export class Service extends DatabaseService<Model> {
    * that fails alone (a policy change takes one list away) looks like those parts
    * going, after the window. The access check is what tells those two apart.
    *
-   * Runs one small DELETE per region and service, so even a large cloud's sweep
-   * touches an index range rather than holding a long transaction.
+   * A service whose rows are sent in turns says how long a turn takes, and its rows get that
+   * much longer: a row that has not changed comes round that often, and has not gone.
+   *
+   * Runs small DELETEs per region and service, at most STALE_DELETE_BATCH_SIZE rows each and
+   * each a transaction of its own, so even a region's worth of rows going at once never holds
+   * a long transaction, and every other writer gets a turn between them.
    */
   @CaptureSpan()
   public async deleteStaleForCloud(data: {
@@ -1965,8 +2413,10 @@ export class Service extends DatabaseService<Model> {
       regionName: string | null;
       name: string | null;
       vouchedAt: string | null;
+      refreshCycleMinutes: string | null;
     }> = await this.getRepository().manager.query(
-      `SELECT "regionName", "name", "facts"->>'vouchedAt' AS "vouchedAt"
+      `SELECT "regionName", "name", "facts"->>'vouchedAt' AS "vouchedAt",
+              "facts"->>'refreshCycleMinutes' AS "refreshCycleMinutes"
        FROM "OpenStackResource"
        WHERE "projectId" = $1 AND "openStackCloudId" = $2
          AND "kind" = '${OpenStackResourceKind.Api}'
@@ -1991,9 +2441,11 @@ export class Service extends DatabaseService<Model> {
       if (isNaN(vouchedAt.getTime())) {
         continue;
       }
+      const refreshCycleInMinutes: number =
+        Number.parseFloat(api.refreshCycleMinutes || "0") || 0;
       const cutoff: Date = OneUptimeDate.addRemoveMinutes(
         vouchedAt,
-        -staleWindowInMinutes,
+        -(staleWindowInMinutes + refreshCycleInMinutes),
       );
 
       const kinds: ReadonlyArray<OpenStackResourceKind> =
@@ -2034,18 +2486,70 @@ export class Service extends DatabaseService<Model> {
         continue;
       }
 
-      const result: unknown = await this.getRepository().manager.query(
+      for (;;) {
+        const result: unknown = await this.getRepository().manager.query(
+          `DELETE FROM "OpenStackResource"
+           WHERE "_id" IN (
+             SELECT "_id" FROM "OpenStackResource"
+             WHERE "projectId" = $1 AND "openStackCloudId" = $2
+               AND "lastSeenAt" < $3
+               ${regionClause}
+               AND ("kind" = ANY($4::text[]) ${familyClause})
+             LIMIT ${STALE_DELETE_BATCH_SIZE}
+           )`,
+          params,
+        );
+
+        // The Postgres driver returns [rows, affected] for DELETE.
+        const deleted: number =
+          Array.isArray(result) && typeof result[1] === "number"
+            ? result[1]
+            : 0;
+
+        affected += deleted;
+
+        if (deleted < STALE_DELETE_BATCH_SIZE) {
+          break;
+        }
+      }
+    }
+
+    /*
+     * No OpenStack service vouches for what a cloud stands on, because none reports it. So a
+     * machine of it is gone when the agent has gone on reporting without it: someone stopped
+     * naming that target. A target that is down still reports, through its `up` of 0, so
+     * this never takes one that has only failed. An agent that stopped moves nothing, and
+     * removes nothing.
+     */
+    const reporting: Array<{ newest: Date | null }> =
+      await this.getRepository().manager.query(
+        `SELECT MAX("lastSeenAt") AS "newest"
+         FROM "OpenStackResource"
+         WHERE "projectId" = $1 AND "openStackCloudId" = $2
+           AND "kind" = ANY($3::text[])`,
+        [
+          data.projectId.toString(),
+          data.openStackCloudId.toString(),
+          [OpenStackResourceKind.Api, OpenStackResourceKind.ControlPlane],
+        ],
+      );
+    if (reporting[0]?.newest) {
+      const gone: unknown = await this.getRepository().manager.query(
         `DELETE FROM "OpenStackResource"
          WHERE "projectId" = $1 AND "openStackCloudId" = $2
-           AND "lastSeenAt" < $3
-           ${regionClause}
-           AND ("kind" = ANY($4::text[]) ${familyClause})`,
-        params,
+           AND "kind" = '${OpenStackResourceKind.ControlPlane}'
+           AND "lastSeenAt" < $3`,
+        [
+          data.projectId.toString(),
+          data.openStackCloudId.toString(),
+          OneUptimeDate.addRemoveMinutes(
+            new Date(reporting[0].newest),
+            -staleWindowInMinutes,
+          ),
+        ],
       );
-
-      // The Postgres driver returns [rows, affected] for DELETE.
-      if (Array.isArray(result) && typeof result[1] === "number") {
-        affected += result[1];
+      if (Array.isArray(gone) && typeof gone[1] === "number") {
+        affected += gone[1];
       }
     }
 

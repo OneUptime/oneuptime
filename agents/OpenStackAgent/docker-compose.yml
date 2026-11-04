@@ -39,6 +39,16 @@ services:
       # An exporter already running in single-cloud mode, such as Kolla-Ansible's. Set
       # OPENSTACK_EXPORTER_CLOUDS=[] with it: README.md says what it costs.
       - OPENSTACK_SINGLE_CLOUD_EXPORTER_TARGETS=${OPENSTACK_SINGLE_CLOUD_EXPORTER_TARGETS:-[]}
+      # Which services this agent reads, for the largest clouds: compute|placement on one
+      # agent, the rest on another. Everything, unless you share them out.
+      - OPENSTACK_AGENT_SERVICES=${OPENSTACK_AGENT_SERVICES:-.*}
+      # The collector holds a whole scrape in memory. Raise it past tens of thousands of instances.
+      - OPENSTACK_AGENT_MEMORY_LIMIT_MIB=${OPENSTACK_AGENT_MEMORY_LIMIT_MIB:-512}
+      # The largest clouds' path, read from the databases: see openstack-database-exporter below.
+      - OPENSTACK_DATABASE_EXPORTER_TARGETS=${OPENSTACK_DATABASE_EXPORTER_TARGETS:-[]}
+      - OPENSTACK_DATABASE_EXPORTER_HOST_SUFFIX=${OPENSTACK_DATABASE_EXPORTER_HOST_SUFFIX:-}
+      - OPENSTACK_WORKER_STATE_CLOUDS=${OPENSTACK_WORKER_STATE_CLOUDS:-[]}
+      - OPENSTACK_WORKER_STATE_EXPORTER_ADDRESS=${OPENSTACK_WORKER_STATE_EXPORTER_ADDRESS:-openstack-worker-state-exporter:9180}
     restart: unless-stopped
     logging:
       driver: json-file
@@ -102,6 +112,79 @@ services:
       # to ./ca.pem, sets OPENSTACK_CA_FILE=./ca.pem and names it in clouds.yaml
       # (`cacert: /etc/openstack/ca.pem`). Without one, nothing is mounted here
       # that anything reads.
+      - ${OPENSTACK_CA_FILE:-/dev/null}:/etc/openstack/ca.pem:ro
+    restart: unless-stopped
+    logging:
+      driver: json-file
+      options:
+        max-size: "10m"
+        max-file: "3"
+
+  # The largest clouds' path, offered past 1,500 hypervisors or 100,000 instances, where the APIs
+  # cannot be scraped in time. COMPOSE_PROFILES=openstack-database-exporter starts it. It reads
+  # each service's database with a read-only account, and has no credential for any API. Each
+  # URL is oslo.db's form, such as mysql+pymysql://oneuptime:secret@db.example:3306/nova, and
+  # one left empty is a service it leaves alone. It has no secret on a command line, and its
+  # port is never published.
+  #
+  # One exporter reads one region and one Nova cell. README.md says what it needs and what it
+  # does not cover.
+  openstack-database-exporter:
+    image: ghcr.io/vexxhost/openstack-database-exporter:v1.2.0@sha256:cae2c794f14f84f697d802a60b866ce69a99ebcffade7dd5e6e0e46f44457508
+    container_name: oneuptime-openstack-database-exporter
+    profiles: ["openstack-database-exporter"]
+    user: "65532:65532"
+    read_only: true
+    cap_drop:
+      - ALL
+    security_opt:
+      - no-new-privileges:true
+    environment:
+      - NOVA_DATABASE_URL=${NOVA_DATABASE_URL:-}
+      - NOVA_API_DATABASE_URL=${NOVA_API_DATABASE_URL:-}
+      - PLACEMENT_DATABASE_URL=${PLACEMENT_DATABASE_URL:-}
+      - NEUTRON_DATABASE_URL=${NEUTRON_DATABASE_URL:-}
+      - CINDER_DATABASE_URL=${CINDER_DATABASE_URL:-}
+      - GLANCE_DATABASE_URL=${GLANCE_DATABASE_URL:-}
+      - KEYSTONE_DATABASE_URL=${KEYSTONE_DATABASE_URL:-}
+    restart: unless-stopped
+    logging:
+      driver: json-file
+      options:
+        max-size: "10m"
+        max-file: "3"
+
+  # What the database exporter cannot say: whether each Nova worker is alive, and how full each
+  # storage pool is. The same pinned openstack-exporter, with every other read of Nova and Cinder
+  # off and nothing else asked of it, so each scrape is one small list and one login.
+  openstack-worker-state-exporter:
+    image: ghcr.io/openstack-exporter/openstack-exporter:2.0.0-alpha@sha256:2a864f41db28a1656a5034e8a17831fb37986e8856fd3f5361586a05f928950a
+    container_name: oneuptime-openstack-worker-state-exporter
+    profiles: ["openstack-database-exporter"]
+    user: "${OPENSTACK_EXPORTER_USER:-65532:65532}"
+    read_only: true
+    cap_drop:
+      - ALL
+    security_opt:
+      - no-new-privileges:true
+    command:
+      - --multi-cloud
+      - --os-client-config=/etc/openstack/clouds.yaml
+      - --disable-metric=nova-flavors
+      - --disable-metric=nova-availability_zones
+      - --disable-metric=nova-security_groups
+      - --disable-metric=nova-total_vms
+      - --disable-metric=nova-current_workload
+      - --disable-metric=nova-quota_cores
+      - --disable-metric=nova-limits_vcpus_max
+      - --disable-metric=nova-server_local_gb
+      - --disable-metric=cinder-volumes
+      - --disable-metric=cinder-snapshots
+      - --disable-metric=cinder-backups
+      - --disable-metric=cinder-agent_state
+      - --disable-metric=cinder-limits_volume_max_gb
+    volumes:
+      - ./clouds.yaml:/etc/openstack/clouds.yaml:ro
       - ${OPENSTACK_CA_FILE:-/dev/null}:/etc/openstack/ca.pem:ro
     restart: unless-stopped
     logging:

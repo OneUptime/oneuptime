@@ -2,6 +2,7 @@ import CloudResource from "../../../../Models/DatabaseModels/CloudResource";
 import DockerHost from "../../../../Models/DatabaseModels/DockerHost";
 import Host from "../../../../Models/DatabaseModels/Host";
 import KubernetesCluster from "../../../../Models/DatabaseModels/KubernetesCluster";
+import OpenStackCloud from "../../../../Models/DatabaseModels/OpenStackCloud";
 import Monitor from "../../../../Models/DatabaseModels/Monitor";
 import NetworkDevice from "../../../../Models/DatabaseModels/NetworkDevice";
 import PodmanHost from "../../../../Models/DatabaseModels/PodmanHost";
@@ -52,6 +53,7 @@ import CloudResourceService from "../../../Services/CloudResourceService";
 import DockerHostService from "../../../Services/DockerHostService";
 import HostService from "../../../Services/HostService";
 import KubernetesClusterService from "../../../Services/KubernetesClusterService";
+import OpenStackCloudService from "../../../Services/OpenStackCloudService";
 import MonitorService from "../../../Services/MonitorService";
 import NetworkDeviceService from "../../../Services/NetworkDeviceService";
 import PodmanHostService from "../../../Services/PodmanHostService";
@@ -155,6 +157,10 @@ export const LOG_RESOURCE_KINDS: ReadonlyArray<{
   {
     serviceType: ServiceType.KubernetesCluster,
     kind: SecurityConnectionKind.KubernetesCluster,
+  },
+  {
+    serviceType: ServiceType.OpenStackCloud,
+    kind: SecurityConnectionKind.OpenStackCloud,
   },
   {
     serviceType: ServiceType.NetworkDevice,
@@ -604,6 +610,37 @@ export default class SecurityConnectedRecords {
             lookups,
             collector,
             exactReason: SecurityConnectionReason.ClusterName,
+            allowShortName: false,
+          });
+        }),
+      // A cloud by its openstack.cloud.name, which an audit event names it by, whole.
+      collector
+        .read(SecurityConnectionKind.OpenStackCloud, async () => {
+          return await OpenStackCloudService.findBy({
+            query: {
+              projectId,
+              name: QueryHelper.findWithSameTextAnyOf(lookups.hostNames),
+            } as never,
+            select: { _id: true, name: true },
+            limit: MAX_ROWS_PER_READ,
+            skip: 0,
+            props,
+          });
+        })
+        .then((clouds: Array<OpenStackCloud> | null) => {
+          this.addNameMatches({
+            kind: SecurityConnectionKind.OpenStackCloud,
+            rows: (clouds || []).map((cloud: OpenStackCloud): NamedRow => {
+              return {
+                id: cloud.id!.toString(),
+                name: cloud.name || "",
+                identity: cloud.name || undefined,
+                names: [cloud.name],
+              };
+            }),
+            lookups,
+            collector,
+            exactReason: SecurityConnectionReason.CloudName,
             allowShortName: false,
           });
         }),
@@ -1651,6 +1688,24 @@ export default class SecurityConnectedRecords {
               ...(row.clusterIdentifier
                 ? { identity: row.clusterIdentifier }
                 : {}),
+            };
+          },
+        );
+      case SecurityConnectionKind.OpenStackCloud:
+        return (
+          await OpenStackCloudService.findBy({
+            query: query as never,
+            select: { _id: true, name: true },
+            ...common,
+          })
+        ).map(
+          (
+            row: OpenStackCloud,
+          ): { id: string; name: string; identity?: string } => {
+            return {
+              id: row.id!.toString(),
+              name: row.name || "",
+              ...(row.name ? { identity: row.name } : {}),
             };
           },
         );

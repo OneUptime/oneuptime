@@ -20,6 +20,8 @@ import PositiveNumber from "../../../../Types/PositiveNumber";
 import {
   ChangeEventAttribute,
   ChangeEventFields,
+  ChangeEventSource,
+  ChangeEventStatus,
   describeChangeEventFields,
   readChangeEventFields,
 } from "../../../../Utils/Telemetry/ChangeEventFields";
@@ -419,6 +421,71 @@ export function orderChangesForSubject(
   });
 }
 
+/*
+ * An OpenStack change has no service whose spans could show it hurt anything: its own
+ * events say what happened. One is a suspect when it is on the same part the subject is
+ * about, or when it failed on the cloud the subject is about: the part and the outcome
+ * are what the notification's own fields say, and never its words.
+ */
+export function assessOpenStackChange(data: {
+  change: RecentChange;
+  // The part the subject is about, by its row's id: a worker's holds its region.
+  subjectPartId: string | null;
+}): ChangeImpact | null {
+  const { change, subjectPartId } = data;
+
+  if (
+    change.fields.source !== ChangeEventSource.OpenStack ||
+    change.relation !== ChangeRelation.Linked
+  ) {
+    return null;
+  }
+
+  const partId: string = change.fields.cloudResourceId || "";
+
+  if (
+    partId &&
+    subjectPartId &&
+    (subjectPartId === partId || subjectPartId.endsWith(`/${partId}`))
+  ) {
+    return {
+      verdict: ChangeImpactVerdict.Suspect,
+      reasons: ["it happened to the part this is about"],
+      newExceptionTypes: [],
+    };
+  }
+
+  if (change.fields.status === ChangeEventStatus.Failed) {
+    return {
+      verdict: ChangeImpactVerdict.Suspect,
+      reasons: ["it failed on the cloud this is about"],
+      newExceptionTypes: [],
+    };
+  }
+
+  return null;
+}
+
+function markOpenStackSuspects(data: {
+  changes: Array<RecentChange>;
+  linked: LinkedInfrastructure | null;
+}): void {
+  const subjectPartId: string | null =
+    data.linked?.openStack?.partExternalId || null;
+
+  for (const change of data.changes) {
+    const impact: ChangeImpact | null = assessOpenStackChange({
+      change,
+      subjectPartId,
+    });
+
+    if (impact) {
+      change.impact = impact;
+      change.notCheckedReason = undefined;
+    }
+  }
+}
+
 // Suspects first, keeping the order otherwise.
 export function suspectsFirst(
   changes: Array<RecentChange>,
@@ -486,6 +553,17 @@ export default class RecentChangesContext {
         return resource.id;
       });
 
+    // A cloud's parts change all day: the one the subject is about must not be crowded out.
+    const linkedOpenStackCloudIds: Array<string> = (
+      data.linked?.resources || []
+    )
+      .filter((resource: { type: LinkedAffectedResourceType }): boolean => {
+        return resource.type === LinkedAffectedResourceType.OpenStackCloud;
+      })
+      .map((resource: { id: string }): string => {
+        return resource.id;
+      });
+
     /*
      * Their clouds' activity logs, read there and then: the regular read is
      * up to its interval away, and CloudTrail delivers late
@@ -501,7 +579,12 @@ export default class RecentChangesContext {
     }
 
     const reads: Array<Array<ChangeEvent>> = await Promise.all(
-      getRecentChangeScopes({ linkedCloudResourceIds }).map(
+      getRecentChangeScopes({
+        linkedCloudResourceIds: [
+          ...linkedCloudResourceIds,
+          ...linkedOpenStackCloudIds,
+        ],
+      }).map(
         (scope: {
           query: JSONObject;
           limit: number;
@@ -574,6 +657,8 @@ export default class RecentChangesContext {
       lookahead,
       now,
     });
+
+    markOpenStackSuspects({ changes: listed, linked: data.linked });
 
     return {
       subjectKind: data.subjectKind,

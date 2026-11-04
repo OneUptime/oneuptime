@@ -22,10 +22,10 @@ import path from "path";
 
 /*
  * telemetry/openstack-agentless.md, in English for now, against the product: the limits the
- * probe keeps to, and the messages a failure shows. Markdown is not compiled, so this reads
- * the page and the constants the probe and the server use: a limit changed or a message
- * reworded fails here, instead of leaving the page describing a product that is no longer
- * there. The buttons and the card have their test once the dashboard has them.
+ * probe keeps to, the messages a failure shows and what it tells a person to click. Markdown
+ * is not compiled, so this reads the page, the constants the probe and the server use and the
+ * Dashboard's own files: a limit changed, a message reworded or a button renamed fails here,
+ * instead of leaving the page describing a product that is no longer there.
  */
 
 const PAGE: string = fs.readFileSync(
@@ -226,6 +226,113 @@ describe("the troubleshooting section", () => {
     expect(TITLES).toContain(
       OpenStackCollectionErrorUtil.getAdvice(code).title,
     );
+  });
+});
+
+describe("what it tells a person to click", () => {
+  const DASHBOARD: string = path.resolve(
+    __dirname,
+    "../../../FeatureSet/Dashboard/src",
+  );
+
+  function dashboardFile(file: string): string {
+    return fs.readFileSync(path.join(DASHBOARD, file), "utf8");
+  }
+
+  const CLOUDS_LIST: string = dashboardFile("Pages/OpenStack/Clouds.tsx");
+  const TEST_PANEL: string = dashboardFile(
+    "Components/OpenStack/OpenStackConnectionTestPanel.tsx",
+  );
+  const FORM: string = dashboardFile(
+    "Components/OpenStack/OpenStackConnectionFormModal.tsx",
+  );
+  const SETTINGS_CARD: string = dashboardFile(
+    "Components/OpenStack/OpenStackDataCollectionCard.tsx",
+  );
+  const OVERVIEW_CARD: string = dashboardFile(
+    "Components/OpenStack/OpenStackCollectionStatusCard.tsx",
+  );
+  const VIEW: string = dashboardFile(
+    "Components/OpenStack/OpenStackProbeCollectionView.ts",
+  );
+  const OPTIONS: string = dashboardFile(
+    "Components/OpenStack/OpenStackConnectionFields.tsx",
+  );
+
+  it.each([
+    ["Connect Cloud", CLOUDS_LIST],
+    ["Connect Cloud", FORM],
+    ["Test connection", TEST_PANEL],
+    ["Trust this certificate", TEST_PANEL],
+    ["Collect With a Probe", SETTINGS_CARD],
+    ["Use the OpenStack Agent", SETTINGS_CARD],
+    ["Edit Connection", SETTINGS_CARD],
+  ])("**%s** is a button the page has", (button: string, source: string) => {
+    expect(PAGE).toContain(`**${button}**`);
+    expect(source).toContain(`"${button}"`);
+  });
+
+  it("says the Data Collection card is on the cloud's Overview and its Settings page", () => {
+    expect(PAGE).toContain("**Data Collection**");
+    expect(OVERVIEW_CARD).toContain('title="Data Collection"');
+    expect(SETTINGS_CARD).toContain('title="Data Collection"');
+    expect(dashboardFile("Pages/OpenStack/View/Index.tsx")).toContain(
+      "<OpenStackCollectionStatusCard modelId={modelId} />",
+    );
+    expect(dashboardFile("Pages/OpenStack/View/Settings.tsx")).toContain(
+      "<OpenStackDataCollectionCard modelId={modelId} />",
+    );
+  });
+
+  it("reads the card's words as the card says them", () => {
+    for (const word of ["Checking", "Collecting"]) {
+      expect(PAGE).toContain(`**${word}**`);
+      expect(VIEW).toContain(`"${word}"`);
+    }
+  });
+
+  it("names each option as the card does, with what it costs", () => {
+    expect(row("Project limits")).toContain("Four calls per project");
+    expect(OPTIONS).toContain('translateText("Project limits")');
+    expect(OPTIONS).toContain("Costs four API calls per project");
+
+    expect(row("Ports")).toContain(
+      "An unscoped list of ports can saturate Neutron on a large cloud",
+    );
+    expect(OPTIONS).toContain('translateText("Ports")');
+    expect(OPTIONS).toContain(
+      "An unscoped list of ports can saturate Neutron on a large cloud",
+    );
+  });
+});
+
+describe("plain HTTP", () => {
+  it("is said up front: a probe never sends a credential over it", () => {
+    const callout: number = PAGE.indexOf(
+      "A probe only speaks HTTPS to a cloud.",
+    );
+
+    expect(callout).toBeGreaterThanOrEqual(0);
+    // Before the first section, so nobody gets as far as a credential first.
+    expect(callout).toBeLessThan(PAGE.indexOf("\n## "));
+    expect(PAGE).toContain(
+      "A credential or its token is never sent over plain HTTP",
+    );
+    expect(PAGE).toContain("turn on TLS for its APIs");
+    expect(PAGE).toContain("The connection test says so");
+  });
+
+  it("is refused in the words the page says", () => {
+    expect(
+      OpenStackCollectionErrorUtil.getAdvice(
+        OpenStackCollectionErrorCode.InsecureEndpoint,
+      ).nextStep,
+    ).toContain("Turn on TLS");
+    expect(
+      OpenStackCollectionErrorUtil.getAdvice(
+        OpenStackCollectionErrorCode.InsecureEndpoint,
+      ).nextStep,
+    ).toContain("use the OpenStack agent");
   });
 });
 

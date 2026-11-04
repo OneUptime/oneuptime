@@ -16,9 +16,34 @@ import FeedMarkdown, {
   MarkdownText,
   mdText,
 } from "../../../Utils/Markdown/FeedMarkdown";
+import {
+  OPENSTACK_HYPERVISOR_ATTRIBUTE,
+  OPENSTACK_INSTANCE_ID_ATTRIBUTE,
+  OpenStackHypervisorMetric,
+  OpenStackInstanceMetric,
+  OpenStackInstanceUsageReading,
+  mergeOpenStackInstanceUsage,
+  rankOpenStackInstancesByCpu,
+} from "../../../Types/OpenStack/OpenStackInstanceMetrics";
+import {
+  OpenStackLinkedService,
+  OpenStackReachAcrossProducts,
+  describeOpenStackReachAcrossProducts,
+  isOpenStackReachEmpty,
+} from "../../../Types/OpenStack/OpenStackLinks";
+import AggregatedResult from "../../../Types/BaseDatabase/AggregatedResult";
+import AggregatedModel from "../../../Types/BaseDatabase/AggregatedModel";
+import AggregationInterval from "../../../Types/BaseDatabase/AggregationInterval";
+import AggregationType from "../../../Types/BaseDatabase/AggregationType";
+import InBetween from "../../../Types/BaseDatabase/InBetween";
+import OneUptimeDate from "../../../Types/Date";
+import MetricService from "../../Services/MetricService";
+import OpenStackCloudService from "../../Services/OpenStackCloudService";
 import OpenStackResourceService from "../../Services/OpenStackResourceService";
+import QueryHelper from "../../Types/Database/QueryHelper";
 import logger from "../Logger";
 import { OPENSTACK_API_UP_METRIC_NAMES } from "../Telemetry/OpenStackSnapshotScan";
+import OpenStackAcrossProducts from "./OpenStackAcrossProducts";
 
 /*
  * WHAT AN ALERT OR INCIDENT ON A PART OF AN OPENSTACK CLOUD TAKES WITH IT, AND WHOSE IT IS.
@@ -99,7 +124,9 @@ export function getOpenStackPartOfSeries(
   }
 
   const id: string | null =
-    readLabel(labels, "uuid") || readLabel(labels, "id");
+    readLabel(labels, "uuid") ||
+    readLabel(labels, "id") ||
+    readLabel(labels, OPENSTACK_INSTANCE_ID_ATTRIBUTE);
   if (id) {
     parts.push(
       { kind: OpenStackResourceKind.Router, externalId: id },
@@ -202,7 +229,28 @@ export interface OpenStackAlertContextResult {
   projectName: string | null;
   domainId: string | null;
   partKind: OpenStackResourceKind | null;
+  // Its row's id, when the series names a part with a row.
+  partExternalId?: string | undefined;
+  /*
+   * On a hypervisor that has passed a line on what its instances really use, the instances
+   * responsible, with how long each is waiting where the source says.
+   */
+  busiestInstances?: Array<OpenStackBusyInstance> | undefined;
 }
+
+// One of a hypervisor's instances, by the name people know it by.
+export interface OpenStackBusyInstance extends OpenStackInstanceUsageReading {
+  name: string | null;
+}
+
+// A monitor on a hypervisor's real load is the one that names its instances.
+const HYPERVISOR_USAGE_METRICS: ReadonlyArray<string> = Object.values(
+  OpenStackHypervisorMetric,
+);
+
+const BUSIEST_INSTANCES_IN_AN_ALERT: number = 5;
+// As long as the templates' own window, so what is named is what fired it.
+const BUSIEST_INSTANCES_WINDOW_MINUTES: number = 15;
 
 export default class OpenStackAlertContext {
   public static async read(data: {
@@ -248,6 +296,7 @@ export default class OpenStackAlertContext {
       }
 
       result.partKind = candidate.kind;
+      result.partExternalId = candidate.externalId;
       result.projectId = result.projectId || part.openStackProjectId || null;
       result.radius = await OpenStackResourceService.getBlastRadius({
         projectId: data.projectId,
@@ -261,6 +310,44 @@ export default class OpenStackAlertContext {
           facts: part.facts,
         },
       });
+      /*
+       * Beyond the cloud: best effort on its own, so a Kubernetes or Host read that fails
+       * leaves the alert with what the cloud itself said.
+       */
+      try {
+        const reach: OpenStackReachAcrossProducts | null =
+          await OpenStackAcrossProducts.getReachOfPart({
+            projectId: data.projectId,
+            openStackCloudId: data.openStackCloudId,
+            part: {
+              kind: candidate.kind,
+              name: part.name,
+              regionName: part.regionName,
+              hypervisorName: part.hypervisorName,
+              facts: part.facts,
+            },
+          });
+        if (reach && result.radius) {
+          result.radius.acrossProducts = reach;
+        }
+      } catch (error) {
+        logger.warn(
+          `Could not read what an OpenStack part reaches beyond the cloud: ${error instanceof Error ? error.message : String(error)}`,
+        );
+      }
+      if (
+        candidate.kind === OpenStackResourceKind.Hypervisor &&
+        part.hypervisorName &&
+        (data.metricNames || []).some((name: string): boolean => {
+          return HYPERVISOR_USAGE_METRICS.includes(name);
+        })
+      ) {
+        result.busiestInstances = await this.readBusiestInstances({
+          projectId: data.projectId,
+          openStackCloudId: data.openStackCloudId,
+          hypervisorName: part.hypervisorName,
+        });
+      }
       break;
     }
 
@@ -284,6 +371,131 @@ export default class OpenStackAlertContext {
     }
 
     return result;
+  }
+
+  // Never in the way: an alert with no names beside it still fires, and its page has them.
+  public static async readBusiestInstances(data: {
+    projectId: ObjectID;
+    openStackCloudId: ObjectID;
+    hypervisorName: string;
+  }): Promise<Array<OpenStackBusyInstance>> {
+    try {
+      const cloud: OpenStackCloud | null =
+        await OpenStackCloudService.findOneById({
+          id: data.openStackCloudId,
+          select: { name: true },
+          props: { isRoot: true },
+        });
+      if (!cloud?.name) {
+        return [];
+      }
+      const endDate: Date = OneUptimeDate.getCurrentDate();
+      const startDate: Date = OneUptimeDate.addRemoveMinutes(
+        endDate,
+        -BUSIEST_INSTANCES_WINDOW_MINUTES,
+      );
+      const readSeries: (
+        metricName: OpenStackInstanceMetric,
+      ) => Promise<Map<string, number>> = async (
+        metricName: OpenStackInstanceMetric,
+      ): Promise<Map<string, number>> => {
+        const series: AggregatedResult = await MetricService.aggregateBy({
+          query: {
+            projectId: data.projectId,
+            name: metricName,
+            time: new InBetween<Date>(startDate, endDate),
+            attributes: {
+              "resource.openstack.cloud.name": cloud.name as string,
+              [OPENSTACK_HYPERVISOR_ATTRIBUTE]: data.hypervisorName,
+            },
+          } as never,
+          aggregationType: AggregationType.Avg,
+          aggregateColumnName: "value",
+          aggregationTimestampColumnName: "time",
+          aggregationInterval: AggregationInterval.Total,
+          startTimestamp: startDate,
+          endTimestamp: endDate,
+          groupByAttributeKeys: [OPENSTACK_INSTANCE_ID_ATTRIBUTE],
+          limit: 1000,
+          skip: 0,
+          props: { isRoot: true },
+        });
+        const values: Map<string, number> = new Map();
+        for (const point of (series.data || []) as Array<AggregatedModel>) {
+          const attributes: JSONObject =
+            (point["attributes"] as unknown as JSONObject | undefined) || {};
+          const instanceId: unknown =
+            attributes[OPENSTACK_INSTANCE_ID_ATTRIBUTE];
+          const value: number = Number(point["value"]);
+          if (typeof instanceId === "string" && Number.isFinite(value)) {
+            values.set(instanceId, value);
+          }
+        }
+        return values;
+      };
+
+      const [cpuCores, cpuPercent, contentionPercent, memoryResidentBytes]: [
+        Map<string, number>,
+        Map<string, number>,
+        Map<string, number>,
+        Map<string, number>,
+      ] = await Promise.all([
+        readSeries(OpenStackInstanceMetric.CpuUsage),
+        readSeries(OpenStackInstanceMetric.CpuUtilization),
+        readSeries(OpenStackInstanceMetric.CpuContention),
+        readSeries(OpenStackInstanceMetric.MemoryResident),
+      ]);
+
+      const busiest: Array<OpenStackInstanceUsageReading> =
+        rankOpenStackInstancesByCpu(
+          mergeOpenStackInstanceUsage({
+            cpuCores,
+            cpuPercent,
+            contentionPercent,
+            memoryResidentBytes,
+          }),
+          BUSIEST_INSTANCES_IN_AN_ALERT,
+        );
+
+      const rows: Array<OpenStackResource> =
+        busiest.length > 0
+          ? await OpenStackResourceService.findBy({
+              query: {
+                projectId: data.projectId,
+                openStackCloudId: data.openStackCloudId,
+                kind: OpenStackResourceKind.Instance,
+                externalId: QueryHelper.any(
+                  busiest.map(
+                    (reading: OpenStackInstanceUsageReading): string => {
+                      return reading.instanceId;
+                    },
+                  ),
+                ),
+              },
+              select: { externalId: true, name: true },
+              limit: busiest.length,
+              skip: 0,
+              props: { isRoot: true },
+            })
+          : [];
+
+      return busiest.map(
+        (reading: OpenStackInstanceUsageReading): OpenStackBusyInstance => {
+          return {
+            ...reading,
+            name:
+              rows.find((row: OpenStackResource): boolean => {
+                return row.externalId === reading.instanceId;
+              })?.name || null,
+          };
+        },
+      );
+    } catch (error) {
+      logger.warn(
+        `Could not name a hypervisor's busiest instances: ${error instanceof Error ? error.message : String(error)}`,
+      );
+      return [];
+    }
   }
 
   /*
@@ -328,6 +540,50 @@ export default class OpenStackAlertContext {
       if (projectLines.length > 0) {
         sections.push(FeedMarkdown.bulletList(projectLines));
       }
+    }
+
+    const reach: OpenStackReachAcrossProducts | null | undefined =
+      radius?.acrossProducts;
+    if (reach && !isOpenStackReachEmpty(reach)) {
+      const lines: Array<MarkdownText> = [
+        ...reach.kubernetesClusters.map(
+          (cluster: { name: string; nodeCount: number }): MarkdownText => {
+            return mdText`Kubernetes cluster ${cluster.name}: ${cluster.nodeCount} ${cluster.nodeCount === 1 ? "node" : "nodes"}`;
+          },
+        ),
+        ...reach.services.map(
+          (service: OpenStackLinkedService): MarkdownText => {
+            return mdText`Service ${service.name}`;
+          },
+        ),
+      ];
+      sections.push(
+        mdText`**Beyond the cloud:** ${describeOpenStackReachAcrossProducts(reach)}.`,
+      );
+      if (lines.length > 0) {
+        sections.push(FeedMarkdown.bulletList(lines));
+      }
+    }
+
+    if (context.busiestInstances && context.busiestInstances.length > 0) {
+      sections.push(mdText`**Using the most of it:**`);
+      sections.push(
+        FeedMarkdown.bulletList(
+          context.busiestInstances.map(
+            (instance: OpenStackBusyInstance): MarkdownText => {
+              const cores: string =
+                instance.cpuCores === null
+                  ? "no CPU reading"
+                  : `${instance.cpuCores.toFixed(1)} CPU threads`;
+              const waiting: string =
+                instance.contentionPercent === null
+                  ? ""
+                  : `, waiting ${Math.round(instance.contentionPercent)}% of its time`;
+              return mdText`${instance.name || instance.instanceId}: ${cores}${waiting} (OpenStack instance ${FeedMarkdown.code(instance.instanceId)})`;
+            },
+          ),
+        ),
+      );
     }
 
     return sections.length > 0
