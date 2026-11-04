@@ -42426,7 +42426,7 @@
   "Saves up to {{amount}} a month, at its cost over the last 30 days: its bill also holds its storage, which stays the same.": "Sparar upp till {{amount}} i månaden, utifrån kostnaden de senaste 30 dagarna: fakturan omfattar också lagringen, som förblir densamma.",
   "What it would save is not known yet: its cloud's bill does not name it.": "Besparingen är inte känd ännu: molnets faktura nämner den inte.",
   "Alert On Unusual Days": "Larma vid ovanliga dagar",
-  "Also alert the day after a day that costs far more than usual: a service at twice its usual day, or an account at one and a half times.": "Larma också dagen efter en dag som kostar långt mer än vanligt: en tjänst till det dubbla av sin vanliga dag, eller ett konto till en och en halv gång.",
+  "Also alert, the next day, when a day costs far more than usual: a service at twice its usual day, or an account at one and a half times.": "Larma också dagen efter en dag som kostar långt mer än vanligt: en tjänst till det dubbla av sin vanliga dag, eller ett konto till en och en halv gång.",
   "Days of the last two weeks that cost far more than usual: a service at twice its usual day, or a whole account at one and a half times.": "Dagar de senaste två veckorna som kostade långt mer än vanligt: en tjänst till det dubbla av sin vanliga dag, eller ett helt konto till en och en halv gång.",
   "The whole account": "Hela kontot",
   "Unusual days": "Ovanliga dagar",

@@ -424,7 +424,7 @@ const CloudBudgets: FunctionComponent<
           required: false,
           defaultValue: true,
           description:
-            "Also alert the day after a day that costs far more than usual: a service at twice its usual day, or an account at one and a half times.",
+            "Also alert, the next day, when a day costs far more than usual: a service at twice its usual day, or an account at one and a half times.",
         },
         {
           field: { alertSeverity: true },

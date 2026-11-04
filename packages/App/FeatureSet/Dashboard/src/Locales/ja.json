@@ -42426,7 +42426,7 @@
   "Saves up to {{amount}} a month, at its cost over the last 30 days: its bill also holds its storage, which stays the same.": "過去 30 日間のコストから見て、月に最大 {{amount}} 節約できます。請求にはストレージも含まれ、その分は変わりません。",
   "What it would save is not known yet: its cloud's bill does not name it.": "節約額はまだわかりません。クラウドの請求にこのリソースの名前がありません。",
   "Alert On Unusual Days": "通常と異なる日にアラート",
-  "Also alert the day after a day that costs far more than usual: a service at twice its usual day, or an account at one and a half times.": "通常よりはるかに高くついた日があれば、その翌日にもアラートを出します。サービスは通常の日の 2 倍、アカウントは 1.5 倍が目安です。",
+  "Also alert, the next day, when a day costs far more than usual: a service at twice its usual day, or an account at one and a half times.": "通常よりはるかに高くついた日があれば、その翌日にもアラートを出します。サービスは通常の日の 2 倍、アカウントは 1.5 倍が目安です。",
   "Days of the last two weeks that cost far more than usual: a service at twice its usual day, or a whole account at one and a half times.": "直近 2 週間のうち、通常よりはるかに高くついた日です。サービスは通常の日の 2 倍、アカウント全体は 1.5 倍が目安です。",
   "The whole account": "アカウント全体",
   "Unusual days": "通常と異なる日",

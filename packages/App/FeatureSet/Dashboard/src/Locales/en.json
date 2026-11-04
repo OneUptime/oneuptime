@@ -42426,7 +42426,7 @@
   "Saves up to {{amount}} a month, at its cost over the last 30 days: its bill also holds its storage, which stays the same.": "Saves up to {{amount}} a month, at its cost over the last 30 days: its bill also holds its storage, which stays the same.",
   "What it would save is not known yet: its cloud's bill does not name it.": "What it would save is not known yet: its cloud's bill does not name it.",
   "Alert On Unusual Days": "Alert On Unusual Days",
-  "Also alert the day after a day that costs far more than usual: a service at twice its usual day, or an account at one and a half times.": "Also alert the day after a day that costs far more than usual: a service at twice its usual day, or an account at one and a half times.",
+  "Also alert, the next day, when a day costs far more than usual: a service at twice its usual day, or an account at one and a half times.": "Also alert, the next day, when a day costs far more than usual: a service at twice its usual day, or an account at one and a half times.",
   "Days of the last two weeks that cost far more than usual: a service at twice its usual day, or a whole account at one and a half times.": "Days of the last two weeks that cost far more than usual: a service at twice its usual day, or a whole account at one and a half times.",
   "The whole account": "The whole account",
   "Unusual days": "Unusual days",

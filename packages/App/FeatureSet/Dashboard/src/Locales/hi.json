@@ -42426,7 +42426,7 @@
   "Saves up to {{amount}} a month, at its cost over the last 30 days: its bill also holds its storage, which stays the same.": "पिछले 30 दिनों की लागत के हिसाब से हर महीने {{amount}} तक की बचत: इसके बिल में इसका स्टोरेज भी है, जो वैसा ही रहता है।",
   "What it would save is not known yet: its cloud's bill does not name it.": "बचत अभी पता नहीं है: इसके क्लाउड के बिल में इसका नाम नहीं है।",
   "Alert On Unusual Days": "असामान्य दिनों पर अलर्ट",
-  "Also alert the day after a day that costs far more than usual: a service at twice its usual day, or an account at one and a half times.": "किसी दिन का खर्च सामान्य से बहुत ज़्यादा हो, तो अगले दिन भी अलर्ट दें: किसी सेवा का अपने सामान्य दिन का दोगुना, या किसी खाते का डेढ़ गुना।",
+  "Also alert, the next day, when a day costs far more than usual: a service at twice its usual day, or an account at one and a half times.": "किसी दिन का खर्च सामान्य से बहुत ज़्यादा हो, तो अगले दिन भी अलर्ट दें: किसी सेवा का अपने सामान्य दिन का दोगुना, या किसी खाते का डेढ़ गुना।",
   "Days of the last two weeks that cost far more than usual: a service at twice its usual day, or a whole account at one and a half times.": "पिछले दो हफ़्तों के वे दिन जिनका खर्च सामान्य से बहुत ज़्यादा रहा: किसी सेवा का अपने सामान्य दिन का दोगुना, या पूरे खाते का डेढ़ गुना।",
   "The whole account": "पूरा खाता",
   "Unusual days": "असामान्य दिन",

@@ -42426,7 +42426,7 @@
   "Saves up to {{amount}} a month, at its cost over the last 30 days: its bill also holds its storage, which stays the same.": "Economiza até {{amount}} por mês, pelo custo dos últimos 30 dias: a fatura também inclui o armazenamento, que continua igual.",
   "What it would save is not known yet: its cloud's bill does not name it.": "A economia ainda não é conhecida: a fatura da nuvem não cita este recurso pelo nome.",
   "Alert On Unusual Days": "Alertar em dias incomuns",
-  "Also alert the day after a day that costs far more than usual: a service at twice its usual day, or an account at one and a half times.": "Alertar também no dia seguinte a um dia que custa muito mais que o normal: um serviço com o dobro do seu dia habitual, ou uma conta com uma vez e meia.",
+  "Also alert, the next day, when a day costs far more than usual: a service at twice its usual day, or an account at one and a half times.": "Alertar também no dia seguinte a um dia que custa muito mais que o normal: um serviço com o dobro do seu dia habitual, ou uma conta com uma vez e meia.",
   "Days of the last two weeks that cost far more than usual: a service at twice its usual day, or a whole account at one and a half times.": "Dias das últimas duas semanas que custaram muito mais que o normal: um serviço com o dobro do seu dia habitual, ou uma conta inteira com uma vez e meia.",
   "The whole account": "A conta inteira",
   "Unusual days": "Dias incomuns",

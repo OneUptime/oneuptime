@@ -42426,7 +42426,7 @@
   "Saves up to {{amount}} a month, at its cost over the last 30 days: its bill also holds its storage, which stays the same.": "Sparer op til {{amount}} om måneden ud fra prisen de seneste 30 dage: regningen dækker også lagringen, som forbliver den samme.",
   "What it would save is not known yet: its cloud's bill does not name it.": "Besparelsen kendes endnu ikke: cloudens regning nævner den ikke.",
   "Alert On Unusual Days": "Advar ved usædvanlige dage",
-  "Also alert the day after a day that costs far more than usual: a service at twice its usual day, or an account at one and a half times.": "Advar også dagen efter en dag, der koster langt mere end normalt: en tjeneste til det dobbelte af sin normale dag eller en konto til halvanden gang.",
+  "Also alert, the next day, when a day costs far more than usual: a service at twice its usual day, or an account at one and a half times.": "Advar også dagen efter en dag, der koster langt mere end normalt: en tjeneste til det dobbelte af sin normale dag eller en konto til halvanden gang.",
   "Days of the last two weeks that cost far more than usual: a service at twice its usual day, or a whole account at one and a half times.": "Dage i de seneste to uger, der kostede langt mere end normalt: en tjeneste til det dobbelte af sin normale dag eller en hel konto til halvanden gang.",
   "The whole account": "Hele kontoen",
   "Unusual days": "Usædvanlige dage",

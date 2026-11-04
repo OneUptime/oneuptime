@@ -42426,7 +42426,7 @@
   "Saves up to {{amount}} a month, at its cost over the last 30 days: its bill also holds its storage, which stays the same.": "با هزینهٔ ۳۰ روز گذشته، تا {{amount}} در ماه صرفه‌جویی می‌شود: صورت‌حساب آن فضای ذخیره‌سازی‌اش را هم دارد که تغییری نمی‌کند.",
   "What it would save is not known yet: its cloud's bill does not name it.": "صرفه‌جویی آن هنوز معلوم نیست: صورت‌حساب ابرش نام آن را نمی‌آورد.",
   "Alert On Unusual Days": "هشدار برای روزهای غیرعادی",
-  "Also alert the day after a day that costs far more than usual: a service at twice its usual day, or an account at one and a half times.": "همچنین روز بعد از روزی که هزینه‌اش بسیار بیشتر از معمول بوده هشدار بده: سرویسی با دو برابر روز معمولش، یا حسابی با یک و نیم برابر.",
+  "Also alert, the next day, when a day costs far more than usual: a service at twice its usual day, or an account at one and a half times.": "همچنین روز بعد از روزی که هزینه‌اش بسیار بیشتر از معمول بوده هشدار بده: سرویسی با دو برابر روز معمولش، یا حسابی با یک و نیم برابر.",
   "Days of the last two weeks that cost far more than usual: a service at twice its usual day, or a whole account at one and a half times.": "روزهای دو هفته گذشته که هزینه‌شان بسیار بیشتر از معمول بوده: سرویسی با دو برابر روز معمولش، یا کل یک حساب با یک و نیم برابر.",
   "The whole account": "کل حساب",
   "Unusual days": "روزهای غیرعادی",

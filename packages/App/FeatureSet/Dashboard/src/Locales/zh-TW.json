@@ -42426,7 +42426,7 @@
   "Saves up to {{amount}} a month, at its cost over the last 30 days: its bill also holds its storage, which stays the same.": "按過去 30 天的費用計算，每月最多可節省 {{amount}}：其帳單還包含儲存費用，這部分不變。",
   "What it would save is not known yet: its cloud's bill does not name it.": "尚不知道可節省多少：其雲端的帳單中沒有單獨列出它。",
   "Alert On Unusual Days": "異常日發出警示",
-  "Also alert the day after a day that costs far more than usual: a service at twice its usual day, or an account at one and a half times.": "某天的成本遠高於平常時，也會在隔天發出警示：服務達到平常一天的兩倍，或帳戶達到一倍半。",
+  "Also alert, the next day, when a day costs far more than usual: a service at twice its usual day, or an account at one and a half times.": "某天的成本遠高於平常時，也會在隔天發出警示：服務達到平常一天的兩倍，或帳戶達到一倍半。",
   "Days of the last two weeks that cost far more than usual: a service at twice its usual day, or a whole account at one and a half times.": "過去兩週中成本遠高於平常的日子：服務達到平常一天的兩倍，或整個帳戶達到一倍半。",
   "The whole account": "整個帳戶",
   "Unusual days": "異常日",

@@ -42426,7 +42426,7 @@
   "Saves up to {{amount}} a month, at its cost over the last 30 days: its bill also holds its storage, which stays the same.": "Экономит до {{amount}} в месяц, исходя из затрат за последние 30 дней: в счёт входит и хранилище, которое не изменится.",
   "What it would save is not known yet: its cloud's bill does not name it.": "Экономия пока неизвестна: в счёте облака этот ресурс не указан отдельно.",
   "Alert On Unusual Days": "Оповещать о необычных днях",
-  "Also alert the day after a day that costs far more than usual: a service at twice its usual day, or an account at one and a half times.": "Также оповещать на следующий день после дня, который обошёлся намного дороже обычного: сервис — вдвое дороже своего обычного дня, аккаунт — в полтора раза.",
+  "Also alert, the next day, when a day costs far more than usual: a service at twice its usual day, or an account at one and a half times.": "Также оповещать на следующий день после дня, который обошёлся намного дороже обычного: сервис — вдвое дороже своего обычного дня, аккаунт — в полтора раза.",
   "Days of the last two weeks that cost far more than usual: a service at twice its usual day, or a whole account at one and a half times.": "Дни последних двух недель, которые обошлись намного дороже обычного: сервис — вдвое дороже своего обычного дня, весь аккаунт — в полтора раза.",
   "The whole account": "Весь аккаунт",
   "Unusual days": "Необычные дни",
