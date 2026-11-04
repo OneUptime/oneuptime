@@ -295,6 +295,7 @@ const PROSE_LEADS: Record<string, Array<string>> = {
     "Count and state templates use Max",
     "Host Not Responding uses Max and fires at 0:",
     "Every template groups by the object's own identity attribute",
+    "Datacenter count templates recover when their series is gone:",
     "Thresholds are pinned to their unit",
     "microseconds",
     "A host is saturated:",

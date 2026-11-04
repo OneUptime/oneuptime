@@ -351,6 +351,15 @@ export default interface MetricMonitorResponse {
    * `metricResult` as before.
    */
   seriesBreakdown?: Array<MetricSeriesResult> | undefined;
+  /*
+   * Whether the resource an infrastructure monitor watches sent its heartbeat
+   * in this window (ResourceHeartbeat). The worker reads it only for a grouped
+   * check with no series at all, on a step with a criteria that counts a
+   * missing series as zero: such a check cannot say by itself whether every
+   * series is gone or nothing arrived (GroupedSeriesGone). Absent when it was
+   * not read or could not be, which is never taken for a yes.
+   */
+  resourceStillReporting?: boolean | undefined;
   /**
    * The unit each referenced metric's stored values are in, keyed by
    * lowercased metric name. Loaded once when the monitor data is fetched.

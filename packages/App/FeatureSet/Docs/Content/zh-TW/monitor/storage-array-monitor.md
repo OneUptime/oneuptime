@@ -103,7 +103,7 @@ Pure 把多個數值放在 **一個** 指標名稱上，並用一個標籤區分
 | `purefa_host_connectivity_info` | `status`，並帶有 `details` | 一台主機 |
 | `purefa_drive_capacity_bytes` | `component_status`(值為磁碟機的容量) | 一個磁碟機 |
 
-篩選到某個不良狀態的序列只在有物件處於該狀態時才存在，因此沒有序列就表示健康。這就是為什麼 **Max 大於 0 時觸發、為 0 時復原** 是適合它們的形式，範本也是這樣建構的：它們的復原條件把缺少的序列計為零。
+篩選到某個不良狀態的序列只在有物件處於該狀態時才存在，因此沒有序列就表示健康。這就是為什麼 **Max 大於 0 時觸發、為 0 時復原** 是適合它們的形式，範本也是這樣建構的：它們的復原條件把缺少的序列計為零。當完全沒有序列時，這類範本只有在同一時間視窗內收到 `purefa_info` 或 `purefb_info` 才會復原，因此已停止回報的陣列不會關閉任何內容。
 
 在監測器篩選器和分組鍵中，代理程式的屬性以 `resource.` 開頭(`resource.storage.array.name`、`resource.storage.system`)，而 Pure 自己的標籤不以它開頭(`name`、`host`、`component_name`、`dimension`、`space`、`severity`)。
 

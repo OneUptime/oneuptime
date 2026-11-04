@@ -145,6 +145,7 @@ Os modelos leem os últimos 5 minutos, a menos que a tabela diga outra coisa. Um
 - **Os modelos de contagem e de estado usam Max**, então uma única coleta que mostre a condição os dispara: erros de pacotes, ballooning, swapping, status vermelho e amarelo, hosts não efetivos, congestionamento.
 - **Host Not Responding usa Max e dispara em 0:** um host ESXi em execução sempre usa memória, então uma coleta que informa memória em uso é um host que responde, e só uma janela em que nenhuma informou o dispara.
 - **Todo modelo agrupa pelo atributo de identidade do próprio objeto**, então um incidente dispara por objeto afetado, e o incidente o nomeia. A exceção é **vCenter Stopped Reporting**, que observa o vCenter inteiro: quando os dados param, os outros modelos não têm nada para comparar e mantêm o último status, então é este que avisa você.
+- **Os modelos de contagem por datacenter recuperam quando sua série desaparece:** o receptor registra uma contagem apenas para os estados que existem, então quando o último host vermelho fica verde não resta nenhuma série, e seus critérios de recuperação contam uma série ausente como 0. Quando nenhum datacenter tem mais uma série, eles só recuperam se `vcenter.datacenter.cpu.limit` tiver chegado na mesma janela, então um vCenter que parou de reportar não fecha nada.
 - **Os limites ficam fixados na sua unidade** (`%`, `ms`, `us`), então mantêm o seu significado seja qual for a unidade que um gráfico mostre.
 
 ## Métricas coletadas

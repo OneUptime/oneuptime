@@ -145,6 +145,7 @@ Las plantillas leen los últimos 5 minutos salvo que la tabla diga otra cosa. Un
 - **Las plantillas de recuento y de estado usan Max**, así que una sola recogida que muestre la condición las dispara: errores de paquetes, ballooning, swapping, estado rojo y amarillo, hosts no efectivos, congestión.
 - **Host Not Responding usa Max y se activa en 0:** un host ESXi en marcha siempre usa memoria, así que una recogida que informa de memoria en uso es un host que responde, y solo una ventana en la que ninguna lo hizo la activa.
 - **Cada plantilla agrupa por el atributo de identidad propio del objeto**, así que se dispara un incidente por cada objeto afectado, y el incidente lo nombra. La excepción es **vCenter Stopped Reporting**, que vigila todo el vCenter: cuando los datos dejan de llegar, las demás plantillas no tienen nada que comparar y mantienen su último estado, así que esta es la que le avisa.
+- **Las plantillas de recuento de datacenter se recuperan cuando su serie desaparece:** el receptor registra un recuento solo para los estados que existen, así que cuando el último host rojo pasa a verde no queda ninguna serie, y sus criterios de recuperación cuentan una serie ausente como 0. Si ningún datacenter conserva una serie, solo se recuperan si `vcenter.datacenter.cpu.limit` llegó en la misma ventana, de modo que un vCenter que dejó de informar no cierra nada.
 - **Los umbrales están fijados en su unidad** (`%`, `ms`, `us`), así que conservan su significado sea cual sea la unidad que muestre un gráfico.
 
 ## Métricas recogidas

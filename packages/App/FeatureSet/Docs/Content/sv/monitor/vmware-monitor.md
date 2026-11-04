@@ -145,6 +145,7 @@ Mallarna läser de senaste 5 minuterna, om inte tabellen säger något annat. Et
 - **Antals- och tillståndsmallar använder Max**, så en enda insamling som visar tillståndet utlöser dem: paketfel, ballooning, swappning, röd och gul status, värdar som inte är effektiva, överbelastning.
 - **Host Not Responding använder Max och utlöses vid 0:** en ESXi-värd som körs använder alltid minne, så en insamling som rapporterar minne i användning är en värd som svarar, och bara ett fönster där ingen gjorde det utlöser den.
 - **Varje mall grupperar på objektets eget identitetsattribut**, så det utlöses en incident per berört objekt, och incidenten nämner det. Undantaget är **vCenter Stopped Reporting**, som bevakar hela vCenter: när data upphör har de andra mallarna inget att jämföra och behåller sin senaste status, så det är den här mallen som säger till.
+- **Räknemallar för datacenter återställs när deras serie är borta:** mottagaren registrerar ett antal bara för tillstånd som finns, så när den sista röda värden blir grön finns ingen serie kvar, och deras återställningskriterier räknar en saknad serie som 0. När inget datacenter har någon serie kvar återställs de bara om `vcenter.datacenter.cpu.limit` kom i samma fönster, så en vCenter som har slutat rapportera stänger ingenting.
 - **Tröskelvärden är låsta till sin enhet** (`%`, `ms`, `us`), så de behåller sin betydelse oavsett vilken enhet ett diagram visar.
 
 ## Insamlade mätvärden

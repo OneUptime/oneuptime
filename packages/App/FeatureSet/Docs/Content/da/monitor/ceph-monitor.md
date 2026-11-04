@@ -159,6 +159,7 @@ Skabeloner læser de seneste 5 minutter, medmindre tabellen siger andet. Et krit
 - **PG- og poolserier er pr. pool**: Der er ingen måling for hele klyngen, så disse skabeloner grupperer efter `pool_id` og åbner én hændelse pr. pool.
 - **Kapacitetsforhold** tager **Sum** af begge sider. Begge kommer fra samme hentning fra mgr'en, så resultatet er en ægte procentdel. **Inactive Placement Groups** bruger i stedet **Maksimum** pr. pool, fordi en sum ville lægge hentningerne sammen i en subtraktion.
 - **Health check-skabeloner** genopretter, når checket forsvinder: Deres genopretningskriterier tæller en manglende serie som 0.
+- **Daemon Slow Operations** har én serie pr. daemon, så når ingen daemon har en serie tilbage, er der intet at læse. Den genopretter så kun, hvis `ceph_health_status` er ankommet i samme vindue, så en stoppet agent lukker intet.
 
 Nogle alarmer har ingen skabelon. Skævt fordelte PG'er kræver statistik på tværs af serier, som kriterier ikke kan beregne. Kapacitetsprognoser kræver en vækstkurve, som klyngens dashboard tegner i stedet. Forudsigelse af diskfejl og forsinket scrubbing har ingen mgr-metrik, og NVMe-oF, RBD-spejling og cephadm kræver andre eksportører.
 
