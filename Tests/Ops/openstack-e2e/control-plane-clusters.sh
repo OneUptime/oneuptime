@@ -464,8 +464,9 @@ EOF
   docker kill ou-galera2 ou-galera3 >/dev/null
   sleep 20
   record mariadb-quorum-lost
-  galera_sql 1 "SET GLOBAL wsrep_provider_options='pc.bootstrap=YES'" \
-    || problem "Could not put galera1 back in charge"
+  # Nobody has to be put in charge: killed nodes keep their state, and the three form a
+  # primary component again once they find each other. MariaDB 11.4 also refuses
+  # wsrep_provider_options='pc.bootstrap=YES' while its provider's plugin is loaded.
   docker start ou-galera2 ou-galera3 >/dev/null
   wait_for "three Galera nodes again" 80 galera_size_is 1 3
   wait_for "galera2 in sync again" 80 galera_synced 2
@@ -499,9 +500,10 @@ drill_memcached() {
   local node address clients writer
   for node in 1 2; do
     address="$(node_address "$node")"
-    # Eight megabytes, so a few writes evict.
+    # Eight megabytes, so a few writes evict. Its default item size is kept: -I under
+    # memcached's slab_chunk_max of 512k stops it starting at all.
     docker run -d --name "ou-memcached$node" -p "$address:11211:11211" \
-      "$MEMCACHED_IMAGE" -m 8 -I 256k >/dev/null
+      "$MEMCACHED_IMAGE" -m 8 >/dev/null
     "$WORK/memcached_exporter" --memcached.address "$address:11211" \
       --web.listen-address "$address:9150" >"$RECORDING/memcached-exporter-$node.log" 2>&1 &
     add_endpoint "memcached-$node" "http://$address:9150/metrics"
