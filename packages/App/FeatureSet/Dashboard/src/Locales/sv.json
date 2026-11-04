@@ -42106,5 +42106,15 @@
   "About": "Gäller",
   "Caused Upstream": "Orsak uppströms",
   "Written By": "Skrivs av",
-  "Changes Around It": "Ändringar kring tidpunkten"
+  "Changes Around It": "Ändringar kring tidpunkten",
+  "Add Check": "Lägg till kontroll",
+  "Alerts when its value is {{condition}} {{threshold}}.": "Larmar när värdet är {{condition}} {{threshold}}.",
+  "Checked whether a table is fresh": "Kontrollerade om en tabell är färsk",
+  "Checking whether a table is fresh": "Kontrollerar om en tabell är färsk",
+  "Data table": "Datatabell",
+  "Orders never have a negative total": "Ordrar har aldrig en negativ summa",
+  "Say a rule this table should hold to, and OneUptime AI writes the check: one read-only query that counts the rows breaking it. You read it before it is added.": "Say a rule this table should hold to, and OneUptime AI writes the check: one read-only query that counts the rows breaking it. You read it before it is added.",
+  "The rule, in a sentence": "Regeln, i en mening",
+  "Write a Check from a Sentence": "Skriv en kontroll utifrån en mening",
+  "Write the Check": "Skriv kontrollen"
 }

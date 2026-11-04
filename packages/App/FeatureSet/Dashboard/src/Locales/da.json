@@ -42106,5 +42106,15 @@
   "About": "Vedrører",
   "Caused Upstream": "Årsag opstrøms",
   "Written By": "Skrevet af",
-  "Changes Around It": "Ændringer omkring tidspunktet"
+  "Changes Around It": "Ændringer omkring tidspunktet",
+  "Add Check": "Tilføj tjek",
+  "Alerts when its value is {{condition}} {{threshold}}.": "Alarmerer, når værdien er {{condition}} {{threshold}}.",
+  "Checked whether a table is fresh": "Tjekkede, om en tabel er frisk",
+  "Checking whether a table is fresh": "Tjekker, om en tabel er frisk",
+  "Data table": "Datatabel",
+  "Orders never have a negative total": "Ordrer har aldrig en negativ total",
+  "Say a rule this table should hold to, and OneUptime AI writes the check: one read-only query that counts the rows breaking it. You read it before it is added.": "Say a rule this table should hold to, and OneUptime AI writes the check: one read-only query that counts the rows breaking it. You read it before it is added.",
+  "The rule, in a sentence": "Reglen i én sætning",
+  "Write a Check from a Sentence": "Skriv et tjek ud fra en sætning",
+  "Write the Check": "Skriv tjekket"
 }

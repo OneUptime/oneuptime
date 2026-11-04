@@ -42106,5 +42106,15 @@
   "About": "Betreft",
   "Caused Upstream": "Oorzaak stroomopwaarts",
   "Written By": "Geschreven door",
-  "Changes Around It": "Wijzigingen rond dat moment"
+  "Changes Around It": "Wijzigingen rond dat moment",
+  "Add Check": "Controle toevoegen",
+  "Alerts when its value is {{condition}} {{threshold}}.": "Waarschuwt wanneer de waarde {{condition}} {{threshold}} is.",
+  "Checked whether a table is fresh": "Gecontroleerd of een tabel actueel is",
+  "Checking whether a table is fresh": "Controleert of een tabel actueel is",
+  "Data table": "Gegevenstabel",
+  "Orders never have a negative total": "Bestellingen hebben nooit een negatief totaal",
+  "Say a rule this table should hold to, and OneUptime AI writes the check: one read-only query that counts the rows breaking it. You read it before it is added.": "Say a rule this table should hold to, and OneUptime AI writes the check: one read-only query that counts the rows breaking it. You read it before it is added.",
+  "The rule, in a sentence": "De regel, in één zin",
+  "Write a Check from a Sentence": "Een controle schrijven vanuit een zin",
+  "Write the Check": "Controle schrijven"
 }

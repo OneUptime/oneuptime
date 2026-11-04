@@ -1,3 +1,4 @@
+import { DataCheckAlertCondition } from "./DataCheckType";
 /*
  * WHAT DATA OBSERVABILITY'S OWN ROUTES ANSWER (Server/API/DataObservabilityAPI).
  *
@@ -19,6 +20,8 @@ export const DATA_OBSERVABILITY_API_ROUTES: {
   dataProductBadgeReset: (dataProductId: string) => string;
   reconciliationSync: (reconciliationId: string) => string;
   reconciliationRunNow: (reconciliationId: string) => string;
+  checkSuggest: string;
+  tableFreshness: string;
 } = {
   overview: "/data-observability/overview",
   stores: "/data-observability/stores",
@@ -54,7 +57,25 @@ export const DATA_OBSERVABILITY_API_ROUTES: {
   reconciliationRunNow: (reconciliationId: string): string => {
     return `/data-observability/reconciliations/${reconciliationId}/run-now`;
   },
+  // A rule in a sentence, written as a Custom SQL check by OneUptime AI, to review.
+  checkSuggest: "/data-observability/checks/suggest",
+  // Whether a table is fresh, as one answer: what the MCP server's tool asks.
+  tableFreshness: "/data-observability/tables/freshness",
 };
+
+export interface DataObservabilityCheckSuggestRequest {
+  dataAssetId: string;
+  sentence: string;
+}
+
+// A check OneUptime AI wrote from a sentence: shown to be read, never saved by itself.
+export interface DataObservabilityCheckSuggestion {
+  name: string;
+  customSql: string;
+  alertCondition: DataCheckAlertCondition;
+  alertThreshold: number;
+  explanation: string;
+}
 
 export interface DataObservabilityReconciliationSyncResponse {
   sourceDataCheckId: string;

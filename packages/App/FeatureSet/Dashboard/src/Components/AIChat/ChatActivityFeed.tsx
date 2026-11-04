@@ -320,6 +320,7 @@ export const friendlyToolNames: { [key: string]: string } = {
   query_ai_insights: translationKey("Checking AI insights"),
   // Data Security: the stores, what to fix first, and who can reach what.
   query_data_stores: translationKey("Checking data stores"),
+  get_data_table_freshness: translationKey("Checking whether a table is fresh"),
   query_data_security_issues: translationKey("Checking data security issues"),
   query_data_store_access: translationKey(
     "Checking who can reach a data store",

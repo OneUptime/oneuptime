@@ -42106,5 +42106,15 @@
   "About": "對象",
   "Caused Upstream": "上游原因",
   "Written By": "寫入方",
-  "Changes Around It": "前後的變更"
+  "Changes Around It": "前後的變更",
+  "Add Check": "新增檢查",
+  "Alerts when its value is {{condition}} {{threshold}}.": "當其值為 {{condition}} {{threshold}} 時發出警示。",
+  "Checked whether a table is fresh": "已檢查表是否新鮮",
+  "Checking whether a table is fresh": "正在檢查表是否新鮮",
+  "Data table": "資料表",
+  "Orders never have a negative total": "訂單的總額永遠不為負",
+  "Say a rule this table should hold to, and OneUptime AI writes the check: one read-only query that counts the rows breaking it. You read it before it is added.": "Say a rule this table should hold to, and OneUptime AI writes the check: one read-only query that counts the rows breaking it. You read it before it is added.",
+  "The rule, in a sentence": "用一句話描述規則",
+  "Write a Check from a Sentence": "用一句話撰寫檢查",
+  "Write the Check": "撰寫檢查"
 }

@@ -42106,5 +42106,15 @@
   "About": "对象",
   "Caused Upstream": "上游原因",
   "Written By": "写入方",
-  "Changes Around It": "前后的变更"
+  "Changes Around It": "前后的变更",
+  "Add Check": "添加检查",
+  "Alerts when its value is {{condition}} {{threshold}}.": "当其值为 {{condition}} {{threshold}} 时告警。",
+  "Checked whether a table is fresh": "已检查表是否新鲜",
+  "Checking whether a table is fresh": "正在检查表是否新鲜",
+  "Data table": "数据表",
+  "Orders never have a negative total": "订单的总额永远不为负",
+  "Say a rule this table should hold to, and OneUptime AI writes the check: one read-only query that counts the rows breaking it. You read it before it is added.": "Say a rule this table should hold to, and OneUptime AI writes the check: one read-only query that counts the rows breaking it. You read it before it is added.",
+  "The rule, in a sentence": "用一句话描述规则",
+  "Write a Check from a Sentence": "用一句话编写检查",
+  "Write the Check": "编写检查"
 }

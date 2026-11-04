@@ -42106,5 +42106,15 @@
   "About": "Касается",
   "Caused Upstream": "Причина выше по потоку",
   "Written By": "Записывают",
-  "Changes Around It": "Изменения в это время"
+  "Changes Around It": "Изменения в это время",
+  "Add Check": "Добавить проверку",
+  "Alerts when its value is {{condition}} {{threshold}}.": "Оповещает, когда значение {{condition}} {{threshold}}.",
+  "Checked whether a table is fresh": "Проверено, актуальна ли таблица",
+  "Checking whether a table is fresh": "Проверяется, актуальна ли таблица",
+  "Data table": "Таблица данных",
+  "Orders never have a negative total": "У заказов никогда не бывает отрицательной суммы",
+  "Say a rule this table should hold to, and OneUptime AI writes the check: one read-only query that counts the rows breaking it. You read it before it is added.": "Say a rule this table should hold to, and OneUptime AI writes the check: one read-only query that counts the rows breaking it. You read it before it is added.",
+  "The rule, in a sentence": "Правило одной фразой",
+  "Write a Check from a Sentence": "Написать проверку по фразе",
+  "Write the Check": "Написать проверку"
 }
