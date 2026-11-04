@@ -1533,8 +1533,8 @@ export class Service extends DatabaseService<Model> {
         count: "volumeCount",
         byProject: await countByProject({
           kind: OpenStackResourceKind.Volume,
-          where: `"facts"->>'pool' = $3`,
-          params: [part.name || ""],
+          where: `"facts"->>'pool' = $3 AND "regionName" IS NOT DISTINCT FROM $4`,
+          params: [part.name || "", part.regionName ?? null],
         }),
       });
       const found: boolean = (counts[0]?.byProject.length || 0) > 0;
@@ -1555,11 +1555,13 @@ export class Service extends DatabaseService<Model> {
                AND volume."kind" = '${OpenStackResourceKind.Volume}'
                AND volume."deletedAt" IS NULL
                AND volume."facts"->>'pool' = $3
+               AND volume."regionName" IS NOT DISTINCT FROM $4
              GROUP BY instance."openStackProjectId"`,
             [
               data.projectId.toString(),
               data.openStackCloudId.toString(),
               part.name || "",
+              part.regionName ?? null,
             ],
           );
         counts.push({
@@ -1574,8 +1576,28 @@ export class Service extends DatabaseService<Model> {
           ),
         });
       }
-      // No volume names a pool: either it holds none, or nothing says where they are.
-      return await finish(found);
+      if (found) {
+        return await finish();
+      }
+      /*
+       * No volume names this pool. If any of the cloud's volumes names a pool, this one holds
+       * none. If none does, nothing says where they are, so it cannot tell: the agent's
+       * exporter never says, and neither does a probe whose credential Cinder won't tell.
+       */
+      const named: Array<unknown> = await this.getRepository().manager.query(
+        `SELECT 1 FROM "OpenStackResource"
+         WHERE "projectId" = $1 AND "openStackCloudId" = $2
+           AND "kind" = '${OpenStackResourceKind.Volume}' AND "deletedAt" IS NULL
+           AND "regionName" IS NOT DISTINCT FROM $3
+           AND "facts"->>'pool' IS NOT NULL
+         LIMIT 1`,
+        [
+          data.projectId.toString(),
+          data.openStackCloudId.toString(),
+          part.regionName ?? null,
+        ],
+      );
+      return await finish(named.length > 0);
     }
 
     if (part.kind === OpenStackResourceKind.Api) {

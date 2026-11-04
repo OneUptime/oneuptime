@@ -1016,6 +1016,20 @@ describe("an instance", () => {
     ).toEqual({ ipv4: "10.0.0.5", ipv6: "", isKnown: true });
   });
 
+  test("from a probe, which reads Nova's addresses, none means none", () => {
+    expect(
+      getOpenStackInstanceAddresses(
+        row({
+          facts: {
+            updatedAt: "2026-11-04T11:00:00Z",
+            addressIpv4: null,
+            addressIpv6: null,
+          },
+        }),
+      ),
+    ).toEqual({ ipv4: "", ipv6: "", isKnown: true });
+  });
+
   test("one with no hypervisor has not been placed", () => {
     expect(
       isOpenStackInstanceUnplaced({ kind: OpenStackResourceKind.Instance }),

@@ -491,7 +491,7 @@ A part's blast radius is what it takes with it, by count and by project:
 
 A part's page shows it. An alert or incident on the part says it in its description, such as "3 instances in 2 projects", with their names.
 
-Two things cannot be drawn, because neither the exporter nor a probe says them: which network an instance is on, and which pool holds a volume. The map says so, and a storage pool's blast radius says it cannot tell rather than answering none.
+The exporter does not say which network an instance is on, or which pool holds a volume, so neither is drawn for a cloud the agent collects. The map says so, and a storage pool's blast radius says it cannot tell rather than answering none. A [probe](/docs/telemetry/openstack-agentless) says which pool holds a volume, when Cinder treats its credential as an admin, and then a pool's blast radius counts its volumes and the instances they are attached to.
 
 ## Joined up with the rest of OneUptime
 
