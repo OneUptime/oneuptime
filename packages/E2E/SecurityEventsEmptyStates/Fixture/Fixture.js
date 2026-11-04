@@ -44,6 +44,19 @@
  *   ?tools=  rows: three security tools in Your security tools (TOOLS):
  *            one polling well, one whose last poll failed, one turned off -
  *            the table at its widest, for how it fits its card.
+ *   ?cloud=  none (default) | connected. How many cloud accounts the
+ *            project has connected under Cloud (CloudConnection), which
+ *            Your OneUptime data's Cloud audit logs read: none, so its row
+ *            says so and links to Connect a Cloud Account, or one.
+ *   ?cloudaudit= off (default) | on | found | check-failed: Your OneUptime
+ *            data's Cloud audit logs (CLOUD_AUDIT_*): on and not read yet,
+ *            read with security events found, or its last read failed.
+ *
+ * Your logs' Open cases from and the Cloud audit logs switch save through
+ * ModelAPI.updateById (and create, for a kind turned on the first time):
+ * each write is recorded on `updates` / `creates` and applied to the record,
+ * so the card reads it back. ?save=fail refuses every update with the
+ * server's reason (SAVE_REFUSED_MESSAGE).
  *
  * The side menu counts the open cases and the playbook runs waiting for
  * approval beside Cases and Playbook Runs; both answer 0.
@@ -74,6 +87,7 @@ import RouteMap, {
 } from "../../../App/FeatureSet/Dashboard/src/Utils/RouteMap";
 import PageMap from "../../../App/FeatureSet/Dashboard/src/Utils/PageMap";
 import SecurityEvent from "Common/Models/AnalyticsModels/SecurityEvent";
+import CloudConnection from "Common/Models/DatabaseModels/CloudConnection";
 import Project from "Common/Models/DatabaseModels/Project";
 import SecurityCase from "Common/Models/DatabaseModels/SecurityCase";
 import SecurityCasePriority from "Common/Models/DatabaseModels/SecurityCasePriority";
@@ -132,6 +146,22 @@ const logs = ["on", "found", "check-failed", "fail"].includes(
 )
   ? params.get("logs")
   : "off";
+// ?cloud=connected: one cloud account connected under Cloud; none otherwise.
+const cloud = params.get("cloud") === "connected" ? "connected" : "none";
+/*
+ * ?cloudaudit=on: Your OneUptime data's Cloud audit logs are on and not read
+ * yet; found: read two minutes ago, security events found; check-failed:
+ * the last read failed.
+ */
+const cloudAudit = ["on", "found", "check-failed"].includes(
+  params.get("cloudaudit"),
+)
+  ? params.get("cloudaudit")
+  : "off";
+// ?save=fail: the server refuses every update, with its reason.
+const isSaveRefused = params.get("save") === "fail";
+const SAVE_REFUSED_MESSAGE =
+  "This change could not be saved. Please try again.";
 
 /*
  * ?events=one's event, twenty minutes before the spec's pinned clock: a
@@ -333,11 +363,14 @@ const fixture = {
   tools,
   events,
   logs,
+  cloud,
+  cloudAudit,
   listRequests: [],
   countRequests: [],
   aggregateRequests: [],
   apiRequests: [],
   creates: [],
+  updates: [],
   unhandled: [],
   // ?latest=pending: answer the newest-event lookup now.
   resolveLatestEvent: () => {
@@ -466,6 +499,8 @@ const LOGS_ON_SOURCE = {
   projectId: new ObjectID(PROJECT_ID),
   isEnabled: true,
   lastScannedAt: new Date(NOW.getTime() - 2 * MINUTE),
+  // Open cases from: the column's default, as every new record has it.
+  caseMinimumSeverity: "High",
 };
 /*
  * ?logs=found: what the scan keeps of each kind (SecurityLogScanResult):
@@ -503,6 +538,44 @@ const logSources =
         ? [
             Object.assign({}, LOGS_ON_SOURCE, {
               lastError: LOGS_CHECK_FAILED_ERROR,
+            }),
+          ]
+        : [];
+
+/*
+ * Your OneUptime data's records: none until a kind is first turned on
+ * (ModelAPI.create below). ?cloudaudit= starts with Cloud audit logs on:
+ * not read yet, read with 7 CloudTrail events found two minutes before the
+ * pinned clock, or its last read failed (CLOUD_AUDIT_FAILED_ERROR).
+ */
+const CLOUD_AUDIT_FAILED_ERROR =
+  "Could not store the audit records of this read: the database did not answer in time.";
+const CLOUD_AUDIT_SOURCE = {
+  _id: "91000000-0000-4000-8000-000000000001",
+  projectId: new ObjectID(PROJECT_ID),
+  kind: "cloud-audit",
+  isEnabled: true,
+};
+const telemetrySources =
+  cloudAudit === "on"
+    ? [CLOUD_AUDIT_SOURCE]
+    : cloudAudit === "found"
+      ? [
+          Object.assign({}, CLOUD_AUDIT_SOURCE, {
+            lastScannedAt: new Date(NOW.getTime() - 2 * MINUTE),
+            lastEventFoundAt: new Date(NOW.getTime() - 2 * MINUTE),
+            lastScanResult: {
+              recordsRead: 412,
+              eventsFound: 7,
+              bySignal: { "aws-cloudtrail": 7 },
+            },
+          }),
+        ]
+      : cloudAudit === "check-failed"
+        ? [
+            Object.assign({}, CLOUD_AUDIT_SOURCE, {
+              lastScannedAt: new Date(NOW.getTime() - 2 * MINUTE),
+              lastError: CLOUD_AUDIT_FAILED_ERROR,
             }),
           ]
         : [];
@@ -545,6 +618,16 @@ ModelAPI.getList = async (options) => {
       limit,
     };
   }
+  if (modelName === tableName(SecurityTelemetrySource)) {
+    return {
+      data: telemetrySources.map((record) => {
+        return Object.assign(new SecurityTelemetrySource(), record);
+      }),
+      count: telemetrySources.length,
+      skip,
+      limit,
+    };
+  }
   if (modelName === tableName(SecurityEventDestination) && siem === "rows") {
     return {
       data: DESTINATIONS.map((record) => {
@@ -583,9 +666,17 @@ ModelAPI.getCount = async (options) => {
   return 0;
 };
 
-// The side menu's badge counts (CountModelSideMenuItem).
+/*
+ * The side menu's badge counts (CountModelSideMenuItem), and the cloud
+ * accounts connected under Cloud, which Your OneUptime data's Cloud audit
+ * logs read (?cloud=).
+ */
 ModelAPI.count = async (options) => {
   const modelName = tableName(options.modelType);
+  if (modelName === tableName(CloudConnection)) {
+    fixture.countRequests.push({ modelName, query: serialize(options.query) });
+    return cloud === "connected" ? 1 : 0;
+  }
   fixture.countRequests.push({
     modelName,
     badge: true,
@@ -605,11 +696,53 @@ ModelAPI.create = async (options) => {
       _id: "90000000-0000-4000-8000-000000000001",
       projectId: options.model.projectId,
       isEnabled: options.model.isEnabled === true,
+      // The column's default, as the server stores a new record.
+      caseMinimumSeverity: "High",
+    });
+    return new HTTPResponse(200, {}, {});
+  }
+  if (modelName === tableName(SecurityTelemetrySource)) {
+    telemetrySources.push({
+      _id:
+        "91000000-0000-4000-8000-00000000000" + (telemetrySources.length + 2),
+      projectId: options.model.projectId,
+      kind: options.model.kind,
+      isEnabled: options.model.isEnabled === true,
     });
     return new HTTPResponse(200, {}, {});
   }
   fixture.unhandled.push({ kind: "create", modelName });
   return { data: options.model, miscData: {} };
+};
+
+/*
+ * Your logs' Open cases from and switch, and Your OneUptime data's
+ * switches, once their record exists: recorded on `updates`, and applied
+ * to the record so the card reads it back - or, with ?save=fail, refused
+ * with the server's reason.
+ */
+ModelAPI.updateById = async (options) => {
+  const modelName = tableName(options.modelType);
+  const id = options.id?.toString();
+  fixture.updates.push({ modelName, id, data: serialize(options.data) });
+  const records =
+    modelName === tableName(SecurityLogSource)
+      ? logSources
+      : modelName === tableName(SecurityTelemetrySource)
+        ? telemetrySources
+        : null;
+  const record = (records || []).find((item) => {
+    return String(item._id) === id;
+  });
+  if (!record) {
+    fixture.unhandled.push({ kind: "updateById", modelName, id });
+    return new HTTPResponse(200, {}, {});
+  }
+  if (isSaveRefused) {
+    throw new HTTPErrorResponse(400, { message: SAVE_REFUSED_MESSAGE }, {});
+  }
+  Object.assign(record, options.data);
+  return new HTTPResponse(200, {}, {});
 };
 
 AnalyticsModelAPI.getList = async (options) => {

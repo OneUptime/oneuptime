@@ -182,22 +182,41 @@ The **Setup Guide** page, under **Connections**, has these snippets with your ow
 
 ### Find security events in your logs
 
-**Your logs**, at the top of **Connections**, turns the logs you already send OneUptime into a source. With **Find security events in your logs** on, the project's new logs are read every minute, and each SSH or Windows sign-in, sudo command, cloud audit record, security product's CEF or LEEF record, Kubernetes audit record and web attack in them is stored as a security event. See [Get Started with Security](/docs/telemetry/security-getting-started#find-security-events-in-your-logs) for what each kind covers.
+**Your logs**, at the top of **Connections**, turns the logs you already send OneUptime into a source. With **Find security events in your logs** on, the project's new logs are read every minute, and each SSH or Windows sign-in, sudo command, cloud audit record, security product's CEF or LEEF record, Palo Alto Networks, FortiGate or Cisco ASA firewall record, Kubernetes audit record and web attack in them is stored as a security event. See [Get Started with Security](/docs/telemetry/security-getting-started#find-security-events-in-your-logs) for what each kind covers.
 
 Each kind reaches OneUptime as ordinary logs:
 
 | Kind | Send it from |
 | --- | --- |
 | SSH sign-ins, sudo | A Linux machine's journal or auth log, with the [OpenTelemetry Collector](/docs/telemetry/host-otel-collector) |
-| Windows events | The collector's `windowseventlog` receiver on the machine, or a forwarder that writes each event as JSON, such as NXLog or Winlogbeat |
-| AWS CloudTrail | A trail delivered to CloudWatch Logs, read by the collector's `awscloudwatch` receiver |
-| Google Cloud audit logs | A log sink to Pub/Sub, read by the collector's `googlecloudpubsub` receiver with `encoding: raw_text` |
-| Azure activity and Entra ID logs | A diagnostic setting that streams to an Event Hub, read by the collector's `azureeventhub` receiver with `format: raw` |
+| Windows events | The collector's `windowseventlog` receiver on the machine, or a forwarder that writes each event as JSON, such as NXLog or Winlogbeat. A [host](/docs/telemetry/hosts) added to OneUptime also reads Sysmon, Microsoft Defender and PowerShell where it has them |
+| AWS CloudTrail | A trail delivered to CloudWatch Logs, read by the collector's `awscloudwatch` receiver, or, for an account connected under **Cloud**, [Cloud audit logs](#read-your-cloud-accounts-audit-logs) |
+| Google Cloud audit logs | A log sink to Pub/Sub, read by the collector's `googlecloudpubsub` receiver with `encoding: raw_text`, or, for a project connected under **Cloud**, [Cloud audit logs](#read-your-cloud-accounts-audit-logs) |
+| Azure activity and Entra ID logs | A diagnostic setting that streams to an Event Hub, read by the collector's `azureeventhub` receiver with `format: raw`, or, for a subscription's Activity Log, connected under **Cloud**, [Cloud audit logs](#read-your-cloud-accounts-audit-logs) |
 | CEF, LEEF | The product's syslog, relayed by [rsyslog](/docs/telemetry/syslog) |
+| Palo Alto Networks, FortiGate, Cisco ASA | The firewall's own syslog, relayed by [rsyslog](/docs/telemetry/syslog) |
 | Kubernetes audit logs | The API server's audit log file, read by the collector's `filelog` receiver |
 | Web attacks | A web server's access log, read by the collector's `filelog` receiver |
 
 On **Your logs**, each kind says when it was last found, and **Check a log line** shows what a line you paste becomes, before any arrives.
+
+A threat a security product writes in your logs, such as a CEF or LEEF finding or a Palo Alto Networks, FortiGate or Cisco ASA threat, opens a [case](/docs/telemetry/security-cases) as a connected product's alert does, and adds to the risk of the user, host or address it names. **Open cases from**, on **Your logs**, says from which severity: **High and above** unless you choose another, or **Never**. The product's sign-ins and blocked connections stay events, for your rules to read.
+
+A record that reaches OneUptime two ways is stored once: a Microsoft Entra ID sign-in its connection reads and Azure's export of it in your logs, or a CloudTrail record in your logs and in a connected AWS account's audit log.
+
+### Read your cloud accounts' audit logs
+
+An AWS account, Google Cloud project or Azure subscription [connected under **Cloud**](/docs/telemetry/cloud-accounts) needs no log pipeline. Turn on **Cloud audit logs**, under **Your OneUptime data** on **Connections**, and each read of the account keeps its audit log as security events:
+
+| Cloud | What is read |
+| --- | --- |
+| AWS | CloudTrail's management events that change something, in each Region the account uses: console sign-ins, changes and calls AWS refused |
+| Google Cloud | The Admin Activity audit log: changes to resources and to who may reach them, and calls Google refused |
+| Azure | The Activity Log: changes made in the subscription, operations that failed, Azure Policy refusals and Defender for Cloud alerts |
+
+- Each record is read as **Your logs** reads it from a pipeline, so the rule library's CloudTrail, Google Cloud and Azure rules match it.
+- An event is stamped when it is stored, with the record's own time in `oneuptime.cloud.record_time`: an audit log reaches OneUptime minutes late, and a rule reads events by their time.
+- The account's own read brings nothing more: data events, Data Access logs and Microsoft Entra ID's logs still take **Your logs** or a [connection](/docs/integrations/microsoft-entra-id).
 
 ### Connect a security product
 
@@ -213,7 +232,7 @@ On **Your logs**, each kind says when it was last found, and **Check a log line*
 | Elastic Security | Detection alerts, as Detection Findings | [Elastic Security](/docs/integrations/elastic-security) |
 | AWS Security Hub | Findings, as Detection and Compliance Findings | [AWS Security Hub](/docs/integrations/aws-security-hub) |
 | Okta System Log | Sign-in, MFA, account and policy events | [Okta System Log](/docs/integrations/okta) |
-| Microsoft Entra ID | Sign-ins and directory changes, and the Microsoft 365 audit log's mail forwarding, sharing and phishing verdicts | [Microsoft Entra ID](/docs/integrations/microsoft-entra-id) |
+| Microsoft Entra ID | Sign-ins, directory changes and risk detections, failed background and app sign-ins if you choose, and the Microsoft 365 audit log's mail forwarding, sharing and phishing verdicts | [Microsoft Entra ID](/docs/integrations/microsoft-entra-id) |
 | Google Workspace | Sign-ins, Google's own findings, admin changes and app grants, and Drive sharing | [Google Workspace](/docs/integrations/google-workspace) |
 
 - The product's own alerts at or above **Open Cases From** (**High and above** unless you choose another level, or **Never**) open [cases](/docs/telemetry/security-cases), grouped by the user, host or address they are about.

@@ -182,22 +182,41 @@ La pagina **Guida alla configurazione**, sotto **Connessioni**, contiene questi 
 
 ### Trovare eventi di sicurezza nei tuoi log
 
-La scheda **I tuoi log**, in cima a **Connessioni**, rende una sorgente i log che invii già a OneUptime. Con **Trova eventi di sicurezza nei tuoi log** attivo, i nuovi log del progetto vengono letti ogni minuto, e ogni accesso SSH o Windows, comando sudo, voce di audit di un cloud, record CEF o LEEF di un prodotto di sicurezza, voce di audit di Kubernetes e attacco web che contengono viene salvato come evento di sicurezza. Vedi [Primi passi con la sicurezza](/docs/telemetry/security-getting-started#trovare-eventi-di-sicurezza-nei-tuoi-log) per cosa copre ciascun tipo.
+La scheda **I tuoi log**, in cima a **Connessioni**, rende una sorgente i log che invii già a OneUptime. Con **Trova eventi di sicurezza nei tuoi log** attivo, i nuovi log del progetto vengono letti ogni minuto, e ogni accesso SSH o Windows, comando sudo, voce di audit di un cloud, record CEF o LEEF di un prodotto di sicurezza, record di un firewall Palo Alto Networks, FortiGate o Cisco ASA, voce di audit di Kubernetes e attacco web che contengono viene salvato come evento di sicurezza. Vedi [Primi passi con la sicurezza](/docs/telemetry/security-getting-started#trovare-eventi-di-sicurezza-nei-tuoi-log) per cosa copre ciascun tipo.
 
 Ogni tipo arriva a OneUptime come normali log:
 
 | Tipo | Inviarlo da |
 | --- | --- |
 | Accessi SSH, sudo | Il journal o il log di autenticazione di una macchina Linux, con l'[OpenTelemetry Collector](/docs/telemetry/host-otel-collector) |
-| Eventi Windows | Il receiver `windowseventlog` del collector sulla macchina, o un forwarder che scrive ogni evento come JSON, come NXLog o Winlogbeat |
-| AWS CloudTrail | Un trail consegnato a CloudWatch Logs, letto dal receiver `awscloudwatch` del collector |
-| Log di audit di Google Cloud | Un sink di log verso Pub/Sub, letto dal receiver `googlecloudpubsub` del collector con `encoding: raw_text` |
-| Log di attività di Azure e di Entra ID | Un'impostazione di diagnostica che trasmette a un Event Hub, letta dal receiver `azureeventhub` del collector con `format: raw` |
+| Eventi Windows | Il receiver `windowseventlog` del collector sulla macchina, o un forwarder che scrive ogni evento come JSON, come NXLog o Winlogbeat. Un [host](/docs/telemetry/hosts) aggiunto a OneUptime legge anche Sysmon, Microsoft Defender e PowerShell dove li ha |
+| AWS CloudTrail | Un trail consegnato a CloudWatch Logs, letto dal receiver `awscloudwatch` del collector, oppure, per un account collegato in **Cloud**, [Log di audit cloud](#leggere-i-log-di-audit-dei-tuoi-account-cloud) |
+| Log di audit di Google Cloud | Un sink di log verso Pub/Sub, letto dal receiver `googlecloudpubsub` del collector con `encoding: raw_text`, oppure, per un progetto collegato in **Cloud**, [Log di audit cloud](#leggere-i-log-di-audit-dei-tuoi-account-cloud) |
+| Log di attività di Azure e di Entra ID | Un'impostazione di diagnostica che trasmette a un Event Hub, letta dal receiver `azureeventhub` del collector con `format: raw`, oppure, per il log attività di una sottoscrizione collegata in **Cloud**, [Log di audit cloud](#leggere-i-log-di-audit-dei-tuoi-account-cloud) |
 | CEF, LEEF | Il syslog del prodotto, inoltrato da [rsyslog](/docs/telemetry/syslog) |
+| Palo Alto Networks, FortiGate, Cisco ASA | Il syslog del firewall stesso, inoltrato da [rsyslog](/docs/telemetry/syslog) |
 | Log di audit di Kubernetes | Il file di log di audit dell'API server, letto dal receiver `filelog` del collector |
 | Attacchi web | Il log di accesso di un server web, letto dal receiver `filelog` del collector |
 
 Su **I tuoi log**, ogni tipo indica quando è stato trovato l'ultima volta, e **Verifica una riga di log** mostra cosa diventa una riga che incolli, prima che ne arrivi una.
+
+Una minaccia che un prodotto di sicurezza scrive nei tuoi log, come un rilevamento CEF o LEEF o una minaccia di Palo Alto Networks, FortiGate o Cisco ASA, apre un [caso](/docs/telemetry/security-cases) come fa l'avviso di un prodotto collegato, e aumenta il rischio dell'utente, dell'host o dell'indirizzo che nomina. **Apri casi a partire da**, su **I tuoi log**, indica da quale gravità: **Alta e superiori** a meno che tu non ne scelga un'altra, oppure **Mai**. Gli accessi e le connessioni bloccate del prodotto restano eventi, che le tue regole leggono.
+
+Un record che raggiunge OneUptime per due vie viene salvato una sola volta: un accesso di Microsoft Entra ID letto dalla sua connessione ed esportato da Azure nei tuoi log, oppure un record CloudTrail nei tuoi log e nel log di audit di un account AWS collegato.
+
+### Leggere i log di audit dei tuoi account cloud
+
+Un account AWS, un progetto Google Cloud o una sottoscrizione Azure [collegati in **Cloud**](/docs/telemetry/cloud-accounts) non hanno bisogno di alcuna pipeline di log. Attiva **Log di audit cloud**, in **I tuoi dati OneUptime** su **Connessioni**, e ogni lettura dell'account conserva il suo log di audit come eventi di sicurezza:
+
+| Cloud | Cosa viene letto |
+| --- | --- |
+| AWS | Gli eventi di gestione di CloudTrail che modificano qualcosa, in ogni Regione usata dall'account: accessi alla console, modifiche e chiamate che AWS ha rifiutato |
+| Google Cloud | Il log di audit Admin Activity: modifiche alle risorse e a chi può raggiungerle, e chiamate che Google ha rifiutato |
+| Azure | Il log attività: modifiche nella sottoscrizione, operazioni non riuscite, rifiuti di Azure Policy e avvisi di Defender for Cloud |
+
+- Ogni record viene letto come lo legge **I tuoi log** da una pipeline, così le regole CloudTrail, Google Cloud e Azure della libreria delle regole lo riconoscono.
+- Un evento riceve l'ora in cui viene salvato, con l'ora propria del record in `oneuptime.cloud.record_time`: un log di audit raggiunge OneUptime con minuti di ritardo, e una regola legge gli eventi in base alla loro ora.
+- La lettura dell'account non porta altro: gli eventi di dati, i log Data Access e i log di Microsoft Entra ID richiedono ancora **I tuoi log** o una [connessione](/docs/integrations/microsoft-entra-id).
 
 ### Collegare un prodotto di sicurezza
 
@@ -213,7 +232,7 @@ Su **I tuoi log**, ogni tipo indica quando è stato trovato l'ultima volta, e **
 | Elastic Security | Avvisi di rilevamento, come Detection Findings | [Elastic Security](/docs/integrations/elastic-security) |
 | AWS Security Hub | Finding, come Detection e Compliance Findings | [AWS Security Hub](/docs/integrations/aws-security-hub) |
 | Okta System Log | Eventi di accesso, MFA, account e criteri | [Okta System Log](/docs/integrations/okta) |
-| Microsoft Entra ID | Accessi e modifiche alla directory, e dal log di audit di Microsoft 365 l'inoltro della posta, le condivisioni e i verdetti di phishing | [Microsoft Entra ID](/docs/integrations/microsoft-entra-id) |
+| Microsoft Entra ID | Accessi, modifiche alla directory e rilevamenti di rischio, se lo scegli gli accessi in background e delle app non riusciti, e dal log di audit di Microsoft 365 l'inoltro della posta, le condivisioni e i verdetti di phishing | [Microsoft Entra ID](/docs/integrations/microsoft-entra-id) |
 | Google Workspace | Accessi, i rilevamenti di Google, le modifiche di amministrazione e gli accessi concessi alle app, e le condivisioni in Drive | [Google Workspace](/docs/integrations/google-workspace) |
 
 - Gli avvisi propri del prodotto di livello pari o superiore a **Open Cases From** (**Alta e superiori** a meno che tu non scelga un altro livello, oppure **Mai**) aprono [casi](/docs/telemetry/security-cases), raggruppati per l'utente, l'host o l'indirizzo che riguardano.

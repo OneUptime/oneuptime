@@ -46,6 +46,7 @@ import DataTableAnswerer, {
  *  - the table: fresh or late by its own rhythm, its open alerts, the data
  *    products it is part of (DataTableAnswer);
  *  - the alert this one is a consequence of, when it is one (DataAlertCause);
+ *    a private one is not named;
  *  - the pipelines that write it, each with its runs in the window - a
  *    failed run with its error;
  *  - the services seen writing it in their database spans, with how many
@@ -55,6 +56,11 @@ import DataTableAnswerer, {
  *
  * Every read is bounded, and one that fails leaves its part out rather
  * than the investigation without the rest.
+ *
+ * Nobody in particular reads what this writes: the investigation's report
+ * goes to the alert's feed and its Slack and Microsoft Teams channels,
+ * which everyone who may see the alert reads. A private alert - seen only
+ * by its owners - is never named there, nor its title written.
  */
 
 const CHANGES_BEFORE_IN_HOURS: number = 24;
@@ -147,13 +153,19 @@ export default class DataAlertContext {
             alertNumberWithPrefix: true,
             createdAt: true,
             currentAlertState: { name: true },
+            // A private cause is not named, as in this alert's feed (DataAlertCause).
+            isPrivate: true,
           },
           props: { isRoot: true },
         }),
         null,
       );
 
-      if (cause) {
+      if (cause?.isPrivate) {
+        sections.push(
+          "- This alert is a consequence of a private alert, open on what this table is built from. Only its owners may see it, so it is not named here.",
+        );
+      } else if (cause) {
         sections.push(
           `- This alert is a consequence of ${cause.alertNumberWithPrefix || "another alert"} "${clip(cause.title, 200)}"${cause.currentAlertState?.name ? ` (${cause.currentAlertState.name})` : ""}, opened ${when(cause.createdAt, data.now)}, on what this table is built from: investigate that one first.`,
         );
@@ -163,11 +175,13 @@ export default class DataAlertContext {
     let pipelineIds: Array<ObjectID> = [];
 
     if (dataAlert.dataAssetId) {
+      // For nobody in particular: the table's alerts that are not private.
       const answer: DataTableAnswer | null = await orNothing(
         DataTableAnswerer.answer(
           data.projectId,
           dataAlert.dataAssetId,
           data.now,
+          null,
         ),
         null,
       );
