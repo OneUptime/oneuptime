@@ -90,7 +90,7 @@ Abre **Guardia** desde el menú **Productos** de la barra superior. Se abre en *
 | **Ajustes** | **Campos personalizados**, **Reglas de etiquetas** y **Reglas del propietario** |
 | **Desarrolladores** | **Terraform**, **API**, **CLI** y **Asistentes de IA**: las guardias configuradas desde código |
 
-**Políticas**, **Programaciones** y **Llamadas entrantes** están abiertas; las demás secciones empiezan plegadas, y una sección se abre sola cuando estás en una de sus páginas. **Espacio de trabajo** muestra las herramientas de chat que el proyecto ha conectado, o **Conectar Slack o Teams** si no tiene ninguna.
+**Políticas**, **Programaciones** y **Llamadas entrantes** están abiertas; las demás secciones empiezan plegadas, y una sección se abre sola cuando estás en una de sus páginas. **Espacio de trabajo** muestra las herramientas de chat que el proyecto ha conectado, o **Conectar un espacio de trabajo** si no tiene ninguna.
 
 Cuando estás de guardia para una política, la campana de arriba a la derecha lo indica. Haz clic en ella para abrir **Mis políticas de guardia**: cada política para la que estás de guardia, en todos tus proyectos, y si apareces en ella directamente, en un equipo o en una programación.
 

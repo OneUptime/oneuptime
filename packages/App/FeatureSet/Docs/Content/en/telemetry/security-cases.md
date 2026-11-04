@@ -234,7 +234,7 @@ WhatsApp messages are not sent for security cases. A push notification opens the
 
 ### Post to Slack and Microsoft Teams channels
 
-To post to a channel, add a rule under **Products → Security Events → Workspace → Slack** (or **Microsoft Teams**). With neither connected, the section's one entry is **Connect Slack or Teams**. A rule names the channels to post to (and, in Microsoft Teams, the chats) and, if you want, the cases it is for:
+To post to a channel, add a rule under **Products → Security Events → Workspace → Slack** (or **Microsoft Teams**). With neither connected, the section's one entry is **Connect a workspace**. A rule names the channels to post to (and, in Microsoft Teams, the chats) and, if you want, the cases it is for:
 
 | Condition | Matches on |
 | --- | --- |

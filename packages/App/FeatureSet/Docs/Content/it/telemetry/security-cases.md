@@ -234,7 +234,7 @@ Per i casi di sicurezza non vengono inviati messaggi WhatsApp. Una notifica push
 
 ### Pubblicare nei canali di Slack e Microsoft Teams
 
-Per pubblicare in un canale, aggiungi una regola in **Prodotti → Eventi di sicurezza → Area di lavoro → Slack** (o **Microsoft Teams**). Se nessuno dei due è collegato, l'unica voce della sezione è **Collega Slack o Teams**. Una regola indica i canali in cui pubblicare (e, in Microsoft Teams, le chat) e, se vuoi, i casi a cui si applica:
+Per pubblicare in un canale, aggiungi una regola in **Prodotti → Eventi di sicurezza → Area di lavoro → Slack** (o **Microsoft Teams**). Se nessuno dei due è collegato, l'unica voce della sezione è **Collega un'area di lavoro**. Una regola indica i canali in cui pubblicare (e, in Microsoft Teams, le chat) e, se vuoi, i casi a cui si applica:
 
 | Condizione | Corrisponde a |
 | --- | --- |

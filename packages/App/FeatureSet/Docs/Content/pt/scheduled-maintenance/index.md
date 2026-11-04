@@ -56,7 +56,7 @@ Abra **Manutenção programada** no menu **Produtos** da barra superior. A lista
 | ------------- | -------------------------------------------------------------------------------------------------------------------------- |
 | **Visão geral** | **Todos os eventos** e **Eventos em andamento**, cujo selo conta os eventos em andamento neste momento.                  |
 | **Calendário** | **Calendário de manutenção**: cada evento em um mês, uma semana ou um dia, ao lado dos calendários de fora do projeto que você adicionar. |
-| **Espaço de trabalho** | **Slack**, **Microsoft Teams** e **Mattermost**, conforme o que o projeto conectou, ou **Conectar Slack ou Teams** quando não tem nenhum. |
+| **Espaço de trabalho** | **Slack**, **Microsoft Teams** e **Mattermost**, conforme o que o projeto conectou, ou **Conectar um espaço de trabalho** quando não tem nenhum. |
 | **Regras**    | **Regras de proprietário**, **Regras de runbook**, **Regras de Rótulos**, **Regras de lembrete**.                               |
 | **Configurações** | **Estado do evento**, **Modelos de eventos**, **Modelos de notas**, **Campos personalizados**, **Medições**, **Configurações do calendário**, **Numeração**. |
 

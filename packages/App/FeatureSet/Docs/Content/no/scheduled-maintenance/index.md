@@ -56,7 +56,7 @@ Kunngjøringer beskrives på [Abonnenter og kunngjøringer](/docs/status-pages/s
 | ------------- | -------------------------------------------------------------------------------------------------------------------------- |
 | **Oversikt**  | **Alle hendelser** og **Pågående hendelser**, der merket teller hendelsene som pågår akkurat nå.                            |
 | **Kalender** | **Vedlikeholdskalender**: hver hendelse på en måned, en uke eller en dag, ved siden av kalenderne utenfor prosjektet som du legger til. |
-| **Arbeidsområde** | **Slack**, **Microsoft Teams** og **Mattermost**, avhengig av hva prosjektet har koblet til, eller **Koble til Slack eller Teams** når det ikke har noen av dem. |
+| **Arbeidsområde** | **Slack**, **Microsoft Teams** og **Mattermost**, avhengig av hva prosjektet har koblet til, eller **Koble til et arbeidsområde** når det ikke har noen av dem. |
 | **Regler**    | **Eierregler**, **Runbook-regler**, **Etikettregler**, **Påminnelsesregler**.                                                  |
 | **Innstillinger** | **Hendelsesstatus**, **Hendelsesmaler**, **Notatmaler**, **Egendefinerte felt**, **Målinger**, **Kalenderinnstillinger**, **Nummerering**.       |
 
