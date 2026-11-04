@@ -8401,6 +8401,18 @@ async function handleApi(method, options) {
     return ok(incidentSecurity(body));
   }
 
+  /*
+   * The dashboards built on a data alert's table and the tables built from
+   * it (?data=table), which its Data card lists under the table
+   * (DataObservabilityApi.getTableDashboards): none are modelled.
+   */
+  if (
+    method === "POST" &&
+    url.endsWith("/data-observability/tables/dashboards")
+  ) {
+    return ok({ dashboards: [] });
+  }
+
   // Try again on the Remediation step: decided again, or refused.
   if (method === "POST" && url.endsWith("/auto-remediation/try-again")) {
     return ok(tryAgain(body));
