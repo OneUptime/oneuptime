@@ -88,6 +88,10 @@ const RELEASES = {
     template: "packages/Probe/Dockerfile.tpl",
     stages: [null],
     fromBase: [],
+    // The release downloads with curl and this build does not, nothing in the
+    // probe runs it, and with libcurl4 it is 50 of the high and critical
+    // findings in Iron Bank's scans.
+    leftOut: ["curl"],
     // Node.js, which the release's base image (Node's) has and Iron Bank's
     // Debian image does not; the browsers Playwright downloaded; and the
     // synthetic monitors' helpers it compiled.
@@ -563,11 +567,21 @@ describe.each(Object.keys(RELEASES))(
     test("the packages the release keeps, and none it removes", () => {
       const release = packages(commands(theirs));
       const copy = packages(commands(ours));
+      const leftOut = spec.leftOut || [];
       const kept = [...release.installed].filter((pkg) => {
-        return !release.removed.has(pkg) && !spec.fromBase.includes(pkg);
+        return (
+          !release.removed.has(pkg) &&
+          !spec.fromBase.includes(pkg) &&
+          !leftOut.includes(pkg)
+        );
       });
 
       expect(kept.length).toBeGreaterThan(0);
+      expect(
+        leftOut.filter((pkg) => {
+          return copy.installed.has(pkg) || !release.installed.has(pkg);
+        }),
+      ).toEqual([]);
       expect(
         kept.filter((pkg) => {
           return !copy.installed.has(pkg);
@@ -578,6 +592,16 @@ describe.each(Object.keys(RELEASES))(
           return release.removed.has(pkg);
         }),
       ).toEqual([]);
+    });
+
+    test("what the release removes from Playwright's list of its browsers' packages, it removes too", () => {
+      const browserPurge = (list) => {
+        return commands(list).filter((command) => {
+          return /^apt-get purge /.test(command) && /libavcodec/.test(command);
+        });
+      };
+
+      expect(browserPurge(ours)).toEqual(browserPurge(theirs));
     });
 
     test("npm's settings and links, its cache directory and the CA bundle, as the release makes them", () => {
