@@ -1,8 +1,8 @@
 "use strict";
 
 /**
- * What Iron Bank will ask OneUptime about: the findings in the Iron Bank image
- * of the App that need a fix or a justification.
+ * What Iron Bank will ask OneUptime about: the findings in one of OneUptime's
+ * Iron Bank images that need a fix or a justification.
  *
  * Iron Bank scans every image it builds, and the vendor must fix or justify
  * each finding in VAT (vat.dso.mil) before the image is approved, except the
@@ -13,8 +13,9 @@
  * and sorts every finding into one of three groups:
  *
  *   inherited   the base image has it too
- *   justified   IronBank/Justifications/App.yaml has an entry for its ID (or
- *               one of its aliases) and package: OneUptime has answered it
+ *   justified   the project's IronBank/Justifications/<Project>.yaml has an
+ *               entry for its ID (or one of its aliases) and package:
+ *               OneUptime has answered it
  *   new         neither: it needs a fix in the release, or a justification
  *
  * and writes a Markdown summary (the workflow adds it to the run's summary).
@@ -25,11 +26,14 @@
  *   node Scripts/IronBank/NewFindings.js \
  *     --grype grype.json --trivy trivy.json \
  *     --base-grype base-grype.json --base-trivy base-trivy.json \
- *     --justifications justifications.json --fail-on high
+ *     --justifications justifications.json \
+ *     --justifications-source IronBank/Justifications/Probe.yaml --fail-on high
  *
  * The scanners' JSON reports are read as Grype (`-o json`) and Trivy
  * (`--format json`) write them. The justifications are the YAML file as JSON
- * (the workflow converts it with yq), so this needs nothing but Node.js.
+ * (the workflow converts it with yq), so this needs nothing but Node.js;
+ * --justifications-source names that YAML file in what this writes (the App's
+ * by default).
  */
 
 const fs = require("fs");
@@ -180,14 +184,15 @@ function merge(findings) {
 /**
  * The justifications file's entries, checked.
  * @param {Array<object>|null} entries - The YAML file as JSON
+ * @param {string} [source] - The YAML file, for the messages
  * @returns {Array<{id: string, package: string, justification: string}>}
  */
-function readJustifications(entries) {
+function readJustifications(entries, source = JUSTIFICATIONS_FILE) {
   if (entries === null || entries === undefined) {
     return [];
   }
   if (!Array.isArray(entries)) {
-    throw new Error(`${JUSTIFICATIONS_FILE} must be a list`);
+    throw new Error(`${source} must be a list`);
   }
 
   return entries.map((entry, index) => {
@@ -197,9 +202,7 @@ function readJustifications(entries) {
         typeof entry[field] !== "string" ||
         entry[field].trim() === ""
       ) {
-        throw new Error(
-          `${JUSTIFICATIONS_FILE}: entry ${index + 1} has no ${field}`,
-        );
+        throw new Error(`${source}: entry ${index + 1} has no ${field}`);
       }
     }
     return {
@@ -220,12 +223,15 @@ function justifies(justification, finding) {
 /**
  * The image's findings sorted into new, justified and inherited, most severe
  * first, and the justifications that match nothing.
- * @param {{image: Array<object>, base: Array<object>, justifications: Array<object>}} input
+ * @param {{image: Array<object>, base: Array<object>, justifications: Array<object>, justificationsSource?: string}} input
  */
 function classify(input) {
   const image = merge(input.image);
   const base = merge(input.base);
-  const justifications = readJustifications(input.justifications);
+  const justifications = readJustifications(
+    input.justifications,
+    input.justificationsSource,
+  );
   const result = { new: [], justified: [], inherited: [], unused: [] };
   const used = new Set();
 
@@ -282,10 +288,11 @@ function capitalized(word) {
 
 /**
  * @param {ReturnType<typeof classify>} result
- * @param {{title?: string, failOn?: string}} options
+ * @param {{title?: string, failOn?: string, justificationsSource?: string}} options
  * @returns {string} Markdown
  */
 function summary(result, options) {
+  const source = options.justificationsSource || JUSTIFICATIONS_FILE;
   const lines = ["## Iron Bank preflight: findings", ""];
   if (options.title) {
     lines.push(options.title, "");
@@ -294,7 +301,7 @@ function summary(result, options) {
     "| | Findings |",
     "| --- | --- |",
     `| New: need a fix in the release, or a justification in VAT | ${result.new.length} |`,
-    `| Justified in ${JUSTIFICATIONS_FILE} | ${result.justified.length} |`,
+    `| Justified in ${source} | ${result.justified.length} |`,
     `| Inherited from Iron Bank's base image (Iron Bank answers these) | ${result.inherited.length} |`,
     "",
   );
@@ -304,7 +311,7 @@ function summary(result, options) {
       "### New findings",
       "",
       "Fix each in the release, or justify it in VAT and add it, with the same text, to " +
-        `\`${JUSTIFICATIONS_FILE}\`.`,
+        `\`${source}\`.`,
       "",
       "| Severity | Finding | Package | Version | Fixed in | Found by | Where |",
       "| --- | --- | --- | --- | --- | --- | --- |",
@@ -338,7 +345,7 @@ function summary(result, options) {
     lines.push(
       "### Justifications that match nothing any more",
       "",
-      `No scanner reports these now: remove them from \`${JUSTIFICATIONS_FILE}\`.`,
+      `No scanner reports these now: remove them from \`${source}\`.`,
       "",
     );
     for (const justification of result.unused) {
@@ -378,6 +385,7 @@ function parseArgs(argv) {
     baseGrype: null,
     baseTrivy: null,
     justifications: null,
+    justificationsSource: null,
     failOn: null,
     title: null,
   };
@@ -387,6 +395,7 @@ function parseArgs(argv) {
     "--base-grype": "baseGrype",
     "--base-trivy": "baseTrivy",
     "--justifications": "justifications",
+    "--justifications-source": "justificationsSource",
     "--fail-on": "failOn",
     "--title": "title",
   };
@@ -426,6 +435,7 @@ function main(argv) {
     image: findingsOf(options.grype, options.trivy),
     base: findingsOf(options.baseGrype, options.baseTrivy),
     justifications: readJson(options.justifications),
+    justificationsSource: options.justificationsSource || undefined,
   });
 
   process.stdout.write(`${summary(result, options)}\n`);
