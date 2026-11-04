@@ -584,7 +584,7 @@ const CloudConnectionsTable: FunctionComponent<ComponentProps> = (
                 return {
                   title: "Stop streaming",
                   description: translator.translateTemplate(
-                    "Every stream key of {{name}} stops working at once: OneUptime refuses what its streams deliver, and the connection reads all its metrics on its schedule again. What the streams delivered stays.",
+                    "Every stream key of {{name}} stops working at once, and the connection reads all its metrics on its schedule again. What was delivered stays.",
                     { name: item.name || "" },
                   ),
                   submitButtonText: "Stop streaming",

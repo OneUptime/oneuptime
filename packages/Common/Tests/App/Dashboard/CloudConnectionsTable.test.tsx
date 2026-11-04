@@ -1016,7 +1016,7 @@ describe("streaming an AWS connection's metrics and logs", () => {
     expect(confirmation.submitButtonText).toBe("Stop streaming");
     expect(confirmation.submitButtonType).toBe(ButtonStyleType.DANGER);
     expect(confirmation.description).toBe(
-      "Every stream key of Production AWS stops working at once: OneUptime refuses what its streams deliver, and the connection reads all its metrics on its schedule again. What the streams delivered stays.",
+      "Every stream key of Production AWS stops working at once, and the connection reads all its metrics on its schedule again. What was delivered stays.",
     );
 
     const { container } = render(confirmation.details!);

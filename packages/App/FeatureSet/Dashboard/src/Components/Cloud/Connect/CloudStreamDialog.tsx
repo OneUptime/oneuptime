@@ -651,7 +651,7 @@ const CloudStreamDialog: FunctionComponent<ComponentProps> = (
   return (
     <Modal
       title="Stream metrics and logs"
-      description="Run one command, and Amazon Data Firehose delivers this account's CloudWatch metrics and logs to OneUptime within minutes, between the connection's reads."
+      description="Run one command, and Amazon Data Firehose delivers this account's CloudWatch metrics and logs to OneUptime within minutes, between reads."
       modalWidth={ModalWidth.Medium}
       onClose={props.onClose}
       closeButtonText={live?.state === "receiving" ? "Done" : "Close"}
