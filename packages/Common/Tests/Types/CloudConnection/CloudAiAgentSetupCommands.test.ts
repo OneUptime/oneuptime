@@ -24,13 +24,24 @@ import {
   CloudAiAgentEnvironmentVariable,
   CloudAiAgentFixesMode,
   CloudAiAgentSetupOptions,
+  GCP_CLOUD_AI_AGENT_BOOT_DISK_GB,
+  GCP_CLOUD_AI_AGENT_BOOT_DISK_TYPE,
   GCP_CLOUD_AI_AGENT_DEPLOY_ATTEMPTS,
   GCP_CLOUD_AI_AGENT_DEPLOY_RETRY_MESSAGE,
   GCP_CLOUD_AI_AGENT_DEPLOY_RETRY_SECONDS,
   GCP_CLOUD_AI_AGENT_ENV_FILE,
+  GCP_CLOUD_AI_AGENT_IMAGE_FAMILY,
+  GCP_CLOUD_AI_AGENT_IMAGE_PROJECT,
   GCP_CLOUD_AI_AGENT_KEY_FILE,
   GCP_CLOUD_AI_AGENT_KEY_FILE_END,
+  GCP_CLOUD_AI_AGENT_KEY_READER,
+  GCP_CLOUD_AI_AGENT_LOG_WRITER_ROLE,
+  GCP_CLOUD_AI_AGENT_MACHINE_TYPE,
+  GCP_CLOUD_AI_AGENT_RUN_DIRECTORY,
   GCP_CLOUD_AI_AGENT_SECRET_NAME,
+  GCP_CLOUD_AI_AGENT_STARTUP_FILE,
+  GCP_CLOUD_AI_AGENT_SUBNET_RANGE,
+  GCP_CLOUD_AI_AGENT_VM_REFUSED_MESSAGE,
   GCP_SECRET_ACCESSOR_ROLE,
   describeCloudAiAgentSetupProblem,
   getAwsCloudAiAgentSetupCommand,
@@ -46,6 +57,7 @@ import {
   getCloudAiAgentSetupCommand,
   getGcpCloudAiAgentServices,
   getGcpCloudAiAgentSetupCommand,
+  getGcpCloudAiAgentStartupScript,
 } from "../../../Types/CloudConnection/CloudAiAgentSetupCommands";
 import BadDataException from "../../../Types/Exception/BadDataException";
 import AiResourceType, {
@@ -64,6 +76,10 @@ import {
   AZURE_CLOUD_AI_AGENT_RESOURCE_GROUP,
   AZURE_CLOUD_AI_AGENT_ROLE_NAME,
   CLOUD_AI_AGENT_NAME,
+  GCP_CLOUD_AI_AGENT_DEFAULT_HOST,
+  GCP_CLOUD_AI_AGENT_HOSTS,
+  GCP_CLOUD_AI_AGENT_INSTANCE_NAME,
+  GCP_CLOUD_AI_AGENT_NETWORK_NAME,
   GCP_CLOUD_AI_AGENT_ROLE_ID,
   GCP_CLOUD_AI_AGENT_SERVICE_ACCOUNT_ID,
   GCP_CLOUD_AI_AGENT_SERVICE_NAME,
@@ -82,6 +98,7 @@ import {
   RESOURCE_AI_CLOUD_ACCOUNT_ID_ENV,
   RESOURCE_AI_CLOUD_OPERATIONS_ENV,
   RESOURCE_AI_CLOUD_REQUIRED_TAG_ENV,
+  RESOURCE_AI_GCP_HOST_ENV,
   RESOURCE_AI_PROTECTED_TARGETS_ENV,
   ResourceCommandTier,
 } from "../../../Types/ResourceAiAgent/ResourceAiAccess";
@@ -143,8 +160,17 @@ const GCP: CloudAiAgentSetupOptions = {
   provider: CloudProvider.GCP,
   accountId: GCP_PROJECT,
 };
+// Google Cloud's other host: Cloud Run with CPU always allocated.
+const GCP_RUN: CloudAiAgentSetupOptions = { ...GCP, gcpHost: "cloud-run" };
 
 const ALL_CLOUDS: Array<CloudAiAgentSetupOptions> = [AWS, AZURE, GCP];
+// Every command a person may be given: each cloud's, and Google Cloud's on both hosts.
+const ALL_COMMANDS: Array<CloudAiAgentSetupOptions> = [
+  AWS,
+  AZURE,
+  GCP,
+  GCP_RUN,
+];
 
 const REPOSITORY_DIRECTORY: string = path.resolve(__dirname, "../../../../..");
 
@@ -197,6 +223,24 @@ function environmentOf(
 
   for (const variable of getCloudAiAgentEnvironment(options)) {
     environment[variable.name] = variable.value;
+  }
+
+  return environment;
+}
+
+/*
+ * The variables a startup script gives the agent: its env file's lines,
+ * NAME=value as Docker reads them.
+ */
+function startupEnvironmentOf(startup: string): Record<string, string> {
+  const environment: Record<string, string> = {};
+
+  for (const line of heredocBody(
+    startup,
+    `cat > ${GCP_CLOUD_AI_AGENT_RUN_DIRECTORY}/agent.env <<'ENV'`,
+  )) {
+    const equals: number = line.indexOf("=");
+    environment[line.substring(0, equals)] = line.substring(equals + 1);
   }
 
   return environment;
@@ -316,9 +360,46 @@ az() {
   esac
   return 0
 }
+# The value after a flag among a call's words, or nothing.
+flag_value() {
+  wanted="$1"; shift
+  while [ "$#" -gt 0 ]; do
+    if [ "$1" = "$wanted" ]; then printf '%s' "$2"; return 0; fi
+    shift
+  done
+}
+# The file a call names after "startup-script=", copied for the test to read.
+capture_startup() {
+  for arg in "$@"; do
+    case "$arg" in
+      startup-script=*) cp "$(printf '%s' "$arg" | cut -d= -f2-)" "$CAPTURED/startup.sh" ;;
+    esac
+  done
+}
 gcloud() {
   record gcloud "$@"
   case "$1 $2 $3" in
+    "services list --project")
+      api=$(flag_value --filter "$@" | cut -d= -f2)
+      for on in $FAKE_ENABLED_APIS; do [ "$on" = "$api" ] && echo "$api"; done
+      return 0 ;;
+    "compute instances list")
+      [ -n "$FAKE_VM_ZONE" ] && echo "$FAKE_VM_ZONE"
+      return 0 ;;
+    "compute zones list")
+      echo "$(flag_value --filter "$@" | cut -d: -f2)-a"
+      return 0 ;;
+    "compute instances create")
+      capture_startup "$@"
+      return "$FAKE_VM_EXIT" ;;
+    "compute instances add-metadata")
+      capture_startup "$@"
+      return 0 ;;
+    "compute networks create"|"compute networks subnets")
+      if [ "$FAKE_EXISTS" = 1 ]; then echo "already exists" >&2; return 1; fi ;;
+    "run services list")
+      [ -n "$FAKE_RUN_REGION" ] && echo "$FAKE_RUN_REGION"
+      return 0 ;;
     "iam roles create")
       if [ "$FAKE_EXISTS" = 1 ]; then echo "ALREADY_EXISTS" >&2; return 1; fi ;;
     "iam service-accounts create")
@@ -354,6 +435,14 @@ interface Scenario {
   deployRefusals?: number | undefined;
   // The role, group, environment and service account are there already.
   exists?: boolean | undefined;
+  // Google Cloud: the APIs on in the project, and what an earlier run left.
+  enabledApis?: Array<string> | undefined;
+  // The zone of the VM an earlier run made; none when there is no VM.
+  vmZone?: string | undefined;
+  // The exit status of creating the VM (an organization policy can refuse it).
+  vmExit?: number | undefined;
+  // The region of the Cloud Run service an earlier run made.
+  runRegion?: string | undefined;
 }
 
 interface ShellRun {
@@ -368,6 +457,8 @@ interface ShellRun {
   envFile: string | null;
   // What Google Cloud's secret version was added with, byte for byte.
   secret: string | null;
+  // The VM's startup script, as the VM was given it.
+  startup: string | null;
 }
 
 const ROLE_ID: string = "aaaaaaaa-bbbb-4ccc-8ddd-eeeeeeeeeeee";
@@ -418,6 +509,10 @@ function run(command: string, scenario: Scenario = {}): ShellRun {
         FAKE_EXISTS: scenario.exists ? "1" : "0",
         FAKE_ROLE_ID: ROLE_ID,
         FAKE_PRINCIPAL: PRINCIPAL,
+        FAKE_ENABLED_APIS: (scenario.enabledApis || []).join(" "),
+        FAKE_VM_ZONE: scenario.vmZone || "",
+        FAKE_VM_EXIT: String(scenario.vmExit ?? 0),
+        FAKE_RUN_REGION: scenario.runRegion || "",
       },
     },
   );
@@ -448,6 +543,7 @@ function run(command: string, scenario: Scenario = {}): ShellRun {
     template: read(path.join(captured, "template.json")),
     envFile: read(path.join(captured, "env.yaml")),
     secret: read(path.join(captured, "secret.txt")),
+    startup: read(path.join(captured, "startup.sh")),
   };
 }
 
@@ -817,8 +913,8 @@ describe("the agent's environment", () => {
     expect(environment[CLOUD_AI_AGENT_HEALTH_HOST_ENV]).toBeUndefined();
   });
 
-  test("Google Cloud: the health server on every interface, on the PORT Cloud Run sets", () => {
-    const environment: Record<string, string> = environmentOf(GCP);
+  test("Google Cloud on Cloud Run: the health server on every interface, on the PORT Cloud Run sets", () => {
+    const environment: Record<string, string> = environmentOf(GCP_RUN);
 
     expect(environment[RESOURCE_AI_AGENT_RESOURCE_TYPE_ENV]).toBe("gcp");
     expect(environment[CLOUD_AI_AGENT_HEALTH_HOST_ENV]).toBe("0.0.0.0");
@@ -826,6 +922,22 @@ describe("the agent's environment", () => {
     expect(environment["PORT"]).toBeUndefined();
     expect(environment[RESOURCE_AI_AWS_WRITE_ROLE_ARN_ENV]).toBeUndefined();
     expect(environment["AZURE_SUBSCRIPTION_ID"]).toBeUndefined();
+    // Cloud Run says where it runs itself (K_SERVICE).
+    expect(environment[RESOURCE_AI_GCP_HOST_ENV]).toBeUndefined();
+  });
+
+  test("Google Cloud on its VM: the health server kept to itself, and where it runs said, so Change keeps it there", () => {
+    const environment: Record<string, string> = environmentOf(GCP);
+
+    expect(GCP_CLOUD_AI_AGENT_DEFAULT_HOST).toBe("compute-engine");
+    expect(environment[RESOURCE_AI_AGENT_RESOURCE_TYPE_ENV]).toBe("gcp");
+    expect(environment[RESOURCE_AI_GCP_HOST_ENV]).toBe("compute-engine");
+    expect(RESOURCE_AI_GCP_HOST_ENV).toBe("ONEUPTIME_AI_GCP_HOST");
+    expect(environment[CLOUD_AI_AGENT_HEALTH_HOST_ENV]).toBeUndefined();
+    expect(environment["PORT"]).toBeUndefined();
+    expect(environmentOf({ ...GCP, gcpHost: "compute-engine" })).toEqual(
+      environment,
+    );
   });
 
   test.each(ALL_CLOUDS)(
@@ -1890,57 +2002,101 @@ describe("Azure: the command", () => {
 // ---- Google Cloud ---------------------------------------------------------------
 
 describe("Google Cloud: the APIs", () => {
-  test("Cloud Run, IAM, Resource Manager and Secret Manager always, and the changes' own", () => {
+  test("on Cloud Run: Cloud Run, IAM, Resource Manager and Secret Manager always, and the changes' own", () => {
+    expect(getGcpCloudAiAgentServices(undefined, "cloud-run")).toEqual([
+      "run.googleapis.com",
+      "iam.googleapis.com",
+      "cloudresourcemanager.googleapis.com",
+      "secretmanager.googleapis.com",
+      "sqladmin.googleapis.com",
+      "compute.googleapis.com",
+    ]);
+    expect(
+      getGcpCloudAiAgentServices(["roll-back-service"], "cloud-run"),
+    ).toEqual([
+      "run.googleapis.com",
+      "iam.googleapis.com",
+      "cloudresourcemanager.googleapis.com",
+      "secretmanager.googleapis.com",
+    ]);
+    expect(getGcpCloudAiAgentServices(["start-instance"], "cloud-run")).toEqual(
+      [
+        "run.googleapis.com",
+        "iam.googleapis.com",
+        "cloudresourcemanager.googleapis.com",
+        "secretmanager.googleapis.com",
+        "compute.googleapis.com",
+      ],
+    );
+    expect(
+      getGcpCloudAiAgentServices(["fail-over-database"], "cloud-run"),
+    ).toEqual([
+      "run.googleapis.com",
+      "iam.googleapis.com",
+      "cloudresourcemanager.googleapis.com",
+      "secretmanager.googleapis.com",
+      "sqladmin.googleapis.com",
+    ]);
+  });
+
+  test("on its VM: Compute Engine and Cloud Logging instead of Cloud Run, then the same, each once", () => {
     expect(getGcpCloudAiAgentServices()).toEqual([
-      "run.googleapis.com",
+      "compute.googleapis.com",
+      "logging.googleapis.com",
       "iam.googleapis.com",
       "cloudresourcemanager.googleapis.com",
       "secretmanager.googleapis.com",
       "sqladmin.googleapis.com",
-      "compute.googleapis.com",
+      "run.googleapis.com",
     ]);
+    // A change of Cloud Run's turns its API on, even when the agent runs on a VM.
     expect(getGcpCloudAiAgentServices(["roll-back-service"])).toEqual([
-      "run.googleapis.com",
-      "iam.googleapis.com",
-      "cloudresourcemanager.googleapis.com",
-      "secretmanager.googleapis.com",
-    ]);
-    expect(getGcpCloudAiAgentServices(["start-instance"])).toEqual([
-      "run.googleapis.com",
-      "iam.googleapis.com",
-      "cloudresourcemanager.googleapis.com",
-      "secretmanager.googleapis.com",
       "compute.googleapis.com",
-    ]);
-    expect(getGcpCloudAiAgentServices(["fail-over-database"])).toEqual([
-      "run.googleapis.com",
+      "logging.googleapis.com",
       "iam.googleapis.com",
       "cloudresourcemanager.googleapis.com",
       "secretmanager.googleapis.com",
-      "sqladmin.googleapis.com",
+      "run.googleapis.com",
+    ]);
+    // Compute Engine is the VM's already.
+    expect(getGcpCloudAiAgentServices(["start-instance"])).toEqual([
+      "compute.googleapis.com",
+      "logging.googleapis.com",
+      "iam.googleapis.com",
+      "cloudresourcemanager.googleapis.com",
+      "secretmanager.googleapis.com",
     ]);
   });
 
-  test("every permission of every change is a service whose API is turned on", () => {
-    const services: Array<string> = getGcpCloudAiAgentServices();
-
-    for (const permission of getCloudAiAgentRolePermissions(
-      CloudProvider.GCP,
-    )) {
-      const service: string = permission.substring(0, permission.indexOf("."));
-
-      expect(services).toContain(
-        service === "cloudsql"
-          ? "sqladmin.googleapis.com"
-          : `${service}.googleapis.com`,
+  test.each(GCP_CLOUD_AI_AGENT_HOSTS)(
+    "on %s, every permission of every change is a service whose API is turned on",
+    (host: string) => {
+      const services: Array<string> = getGcpCloudAiAgentServices(
+        undefined,
+        host as "compute-engine" | "cloud-run",
       );
-    }
-  });
+
+      for (const permission of getCloudAiAgentRolePermissions(
+        CloudProvider.GCP,
+      )) {
+        const service: string = permission.substring(
+          0,
+          permission.indexOf("."),
+        );
+
+        expect(services).toContain(
+          service === "cloudsql"
+            ? "sqladmin.googleapis.com"
+            : `${service}.googleapis.com`,
+        );
+      }
+    },
+  );
 });
 
-describe("Google Cloud: the command", () => {
+describe("Google Cloud on Cloud Run: the command", () => {
   test("works in the project it was written for: every call names it", () => {
-    const command: string = getGcpCloudAiAgentSetupCommand(GCP);
+    const command: string = getGcpCloudAiAgentSetupCommand(GCP_RUN);
 
     expect(command.split("\n")[0]).toBe(`PROJECT_ID=${GCP_PROJECT}`);
 
@@ -1953,7 +2109,7 @@ describe("Google Cloud: the command", () => {
   });
 
   test("a first run turns on the APIs, makes the role, the service account and its binding, keeps the key in a secret only it may read, then deploys the service", () => {
-    const shell: ShellRun = run(getGcpCloudAiAgentSetupCommand(GCP));
+    const shell: ShellRun = run(getGcpCloudAiAgentSetupCommand(GCP_RUN));
     const role: Array<string> = callsTo(
       shell,
       "gcloud",
@@ -1981,6 +2137,8 @@ describe("Google Cloud: the command", () => {
       "gcloud secrets versions add",
       `gcloud secrets add-iam-policy-binding ${GCP_CLOUD_AI_AGENT_SECRET_NAME}`,
       `gcloud run deploy ${GCP_CLOUD_AI_AGENT_SERVICE_NAME}`,
+      // One agent per account: is there a VM an earlier run made? (No API, no VM.)
+      "gcloud services list --project",
     ]);
 
     // The key: a new version of the secret, which only the agent's service account may read.
@@ -2013,7 +2171,9 @@ describe("Google Cloud: the command", () => {
     expect(
       callsTo(shell, "gcloud", "iam", "service-accounts", "create")[0]![4],
     ).toBe(GCP_CLOUD_AI_AGENT_SERVICE_ACCOUNT_ID);
-    expect(shell.calls[0]!.slice(3, -2)).toEqual(getGcpCloudAiAgentServices());
+    expect(shell.calls[0]!.slice(3, -2)).toEqual(
+      getGcpCloudAiAgentServices(undefined, "cloud-run"),
+    );
     expect(flag(role, "--permissions")).toBe(
       getCloudAiAgentRolePermissions(CloudProvider.GCP).join(","),
     );
@@ -2030,7 +2190,7 @@ describe("Google Cloud: the command", () => {
 
   test("the service: CPU always allocated on one instance of the image, never reachable from outside, as the agent's service account", () => {
     const deploy: Array<string> = callsTo(
-      run(getGcpCloudAiAgentSetupCommand({ ...GCP, imageTag: "7.1.2" })),
+      run(getGcpCloudAiAgentSetupCommand({ ...GCP_RUN, imageTag: "7.1.2" })),
       "gcloud",
       "run",
       "deploy",
@@ -2065,7 +2225,7 @@ describe("Google Cloud: the command", () => {
 
   test("the variables reach Cloud Run exactly through a file the shell does not expand, removed after the deploy", () => {
     const options: CloudAiAgentSetupOptions = {
-      ...GCP,
+      ...GCP_RUN,
       fixesMode: "Automatic",
       enabledOperations: ["scale-out", "start-instance"],
       requiredTag: CLOUD_AI_DEFAULT_REQUIRED_TAG,
@@ -2120,7 +2280,7 @@ describe("Google Cloud: the command", () => {
     expect(GCP_CLOUD_AI_AGENT_KEY_FILE_END).toContain(" ");
     expect(() => {
       return getGcpCloudAiAgentSetupCommand({
-        ...GCP,
+        ...GCP_RUN,
         ingestionKey: GCP_CLOUD_AI_AGENT_KEY_FILE_END,
       });
     }).toThrow(BadDataException);
@@ -2133,7 +2293,7 @@ describe("Google Cloud: the command", () => {
    * seconds later, three tries in all, and the shell says why it waits.
    */
   test("a deploy Cloud Run refuses while the key's new access is on its way is tried again, 30 seconds later, saying why", () => {
-    const shell: ShellRun = run(getGcpCloudAiAgentSetupCommand(GCP), {
+    const shell: ShellRun = run(getGcpCloudAiAgentSetupCommand(GCP_RUN), {
       deployRefusals: 2,
     });
 
@@ -2155,7 +2315,7 @@ describe("Google Cloud: the command", () => {
   });
 
   test("a deploy that never works stops after three tries, waits after none but the first two, and never says the agent is starting", () => {
-    const shell: ShellRun = run(getGcpCloudAiAgentSetupCommand(GCP), {
+    const shell: ShellRun = run(getGcpCloudAiAgentSetupCommand(GCP_RUN), {
       deployExit: 1,
     });
 
@@ -2170,7 +2330,7 @@ describe("Google Cloud: the command", () => {
   });
 
   test("a deploy that works the first time waits for nothing", () => {
-    const shell: ShellRun = run(getGcpCloudAiAgentSetupCommand(GCP));
+    const shell: ShellRun = run(getGcpCloudAiAgentSetupCommand(GCP_RUN));
 
     expect(callsTo(shell, "gcloud", "run", "deploy")).toHaveLength(1);
     expect(callsTo(shell, "sleep")).toEqual([]);
@@ -2188,7 +2348,7 @@ describe("Google Cloud: the command", () => {
   });
 
   test("running it again adds a new version of the key to the secret it made the first time", () => {
-    const again: ShellRun = run(getGcpCloudAiAgentSetupCommand(GCP), {
+    const again: ShellRun = run(getGcpCloudAiAgentSetupCommand(GCP_RUN), {
       exists: true,
     });
 
@@ -2200,10 +2360,10 @@ describe("Google Cloud: the command", () => {
   });
 
   test("running it again updates the role to exactly these permissions and moves the service to a new revision", () => {
-    const first: ShellRun = run(getGcpCloudAiAgentSetupCommand(GCP));
+    const first: ShellRun = run(getGcpCloudAiAgentSetupCommand(GCP_RUN));
     const again: ShellRun = run(
       getGcpCloudAiAgentSetupCommand({
-        ...GCP,
+        ...GCP_RUN,
         enabledOperations: ["start-instance"],
       }),
       { exists: true },
@@ -2235,7 +2395,7 @@ describe("Google Cloud: the command", () => {
       flag(
         callsTo(
           run(
-            getGcpCloudAiAgentSetupCommand({ ...GCP, region: "europe-west4" }),
+            getGcpCloudAiAgentSetupCommand({ ...GCP_RUN, region: "europe-west4" }),
           ),
           "gcloud",
           "run",
@@ -2248,12 +2408,731 @@ describe("Google Cloud: the command", () => {
 
   test("has no tag condition: the agent checks the label", () => {
     const command: string = getGcpCloudAiAgentSetupCommand({
-      ...GCP,
+      ...GCP_RUN,
       requiredTag: CLOUD_AI_DEFAULT_REQUIRED_TAG,
     });
 
     expect(command).not.toContain("--condition=resource");
     expect(command).not.toContain("expression");
+  });
+});
+
+/*
+ * Google Cloud's default host: one e2-micro VM of Container-Optimized OS,
+ * in a network of its own that lets nothing in - a quarter of what Cloud
+ * Run with CPU always allocated costs, and as safe: the key stays in
+ * Secret Manager and reaches the agent at boot, never the VM's disk, its
+ * metadata or a command line; nothing can connect to the VM; it runs as the
+ * same service account with the same role.
+ */
+describe("Google Cloud on its VM: the command", () => {
+  const MEMBER: string = `${GCP_CLOUD_AI_AGENT_SERVICE_ACCOUNT_ID}@${GCP_PROJECT}.iam.gserviceaccount.com`;
+
+  test("a first run turns on the APIs, makes the role, its account and the key's secret, a network that lets nothing in, then the VM", () => {
+    const shell: ShellRun = run(getGcpCloudAiAgentSetupCommand(GCP));
+
+    expect(
+      shell.calls.map((call: Array<string>): string => {
+        return call.slice(0, 4).join(" ");
+      }),
+    ).toEqual([
+      "gcloud services enable compute.googleapis.com",
+      "gcloud iam roles create",
+      "gcloud iam service-accounts create",
+      `gcloud projects add-iam-policy-binding ${GCP_PROJECT}`,
+      `gcloud secrets create ${GCP_CLOUD_AI_AGENT_SECRET_NAME}`,
+      "gcloud secrets versions add",
+      `gcloud secrets add-iam-policy-binding ${GCP_CLOUD_AI_AGENT_SECRET_NAME}`,
+      // Its own log, written by Docker on the VM.
+      `gcloud projects add-iam-policy-binding ${GCP_PROJECT}`,
+      `gcloud compute networks create`,
+      `gcloud compute networks subnets`,
+      // No VM from an earlier run: one is made, in the region's first zone.
+      `gcloud compute instances list`,
+      `gcloud compute zones list`,
+      `gcloud compute instances create`,
+      // One agent per account: is there a Cloud Run service an earlier run made? (No API, no service.)
+      "gcloud services list --project",
+    ]);
+    expect(shell.calls[0]!.slice(3, -2)).toEqual(getGcpCloudAiAgentServices());
+    expect(shell.output).toEqual([CLOUD_AI_AGENT_STARTED_MESSAGE]);
+    // Every file it wrote is gone: the key, and the startup script.
+    expect(shell.files).toEqual([]);
+    expect(shell.secret).toBe(KEY);
+  });
+
+  test("the VM: the smallest machine, Container-Optimized OS, a small standard disk, shielded, as the agent's service account, in its own network", () => {
+    const create: Array<string> = callsTo(
+      run(getGcpCloudAiAgentSetupCommand(GCP)),
+      "gcloud",
+      "compute",
+      "instances",
+      "create",
+    )[0]!;
+
+    expect(create[4]).toBe(GCP_CLOUD_AI_AGENT_INSTANCE_NAME);
+    expect(flag(create, "--zone")).toBe("us-central1-a");
+    expect(flag(create, "--machine-type")).toBe("e2-micro");
+    expect(GCP_CLOUD_AI_AGENT_MACHINE_TYPE).toBe("e2-micro");
+    expect(flag(create, "--network")).toBe(GCP_CLOUD_AI_AGENT_NETWORK_NAME);
+    expect(flag(create, "--subnet")).toBe(GCP_CLOUD_AI_AGENT_NETWORK_NAME);
+    expect(flag(create, "--image-family")).toBe("cos-stable");
+    expect(flag(create, "--image-project")).toBe("cos-cloud");
+    expect([
+      GCP_CLOUD_AI_AGENT_IMAGE_FAMILY,
+      GCP_CLOUD_AI_AGENT_IMAGE_PROJECT,
+    ]).toEqual(["cos-stable", "cos-cloud"]);
+    expect(flag(create, "--boot-disk-size")).toBe(
+      `${GCP_CLOUD_AI_AGENT_BOOT_DISK_GB}GB`,
+    );
+    expect(GCP_CLOUD_AI_AGENT_BOOT_DISK_GB).toBe(10);
+    expect(flag(create, "--boot-disk-type")).toBe("pd-standard");
+    expect(GCP_CLOUD_AI_AGENT_BOOT_DISK_TYPE).toBe("pd-standard");
+    expect(flag(create, "--service-account")).toBe(MEMBER);
+    expect(flag(create, "--scopes")).toBe("cloud-platform");
+    for (const shielded of [
+      "--shielded-secure-boot",
+      "--shielded-vtpm",
+      "--shielded-integrity-monitoring",
+    ]) {
+      expect(create).toContain(shielded);
+    }
+    // OS Login, and no project-wide SSH key, should anyone ever open a way in.
+    expect(flag(create, "--metadata")).toBe(
+      "enable-oslogin=TRUE,block-project-ssh-keys=TRUE",
+    );
+    expect(flag(create, "--metadata-from-file")).toBe(
+      `startup-script=${GCP_CLOUD_AI_AGENT_STARTUP_FILE}`,
+    );
+    expect(create).toContain("--quiet");
+    // An external address is how it reaches OneUptime: the default, never a flag that drops it.
+    expect(create).not.toContain("--no-address");
+  });
+
+  test("its network lets nothing in: a network of its own, one small subnet, and no firewall rule at all", () => {
+    const shell: ShellRun = run(getGcpCloudAiAgentSetupCommand(GCP));
+    const network: Array<string> = callsTo(
+      shell,
+      "gcloud",
+      "compute",
+      "networks",
+      "create",
+    )[0]!;
+    const subnet: Array<string> = callsTo(
+      shell,
+      "gcloud",
+      "compute",
+      "networks",
+      "subnets",
+      "create",
+    )[0]!;
+
+    expect(network[4]).toBe(GCP_CLOUD_AI_AGENT_NETWORK_NAME);
+    expect(flag(network, "--subnet-mode")).toBe("custom");
+    expect(subnet[5]).toBe(GCP_CLOUD_AI_AGENT_NETWORK_NAME);
+    expect(flag(subnet, "--network")).toBe(GCP_CLOUD_AI_AGENT_NETWORK_NAME);
+    expect(flag(subnet, "--region")).toBe("us-central1");
+    expect(flag(subnet, "--range")).toBe(GCP_CLOUD_AI_AGENT_SUBNET_RANGE);
+    expect(GCP_CLOUD_AI_AGENT_SUBNET_RANGE).toBe("10.250.0.0/28");
+    // A VPC denies every connection in until a rule allows one: none is made.
+    expect(callsTo(shell, "gcloud", "compute", "firewall-rules")).toEqual([]);
+    expect(getGcpCloudAiAgentSetupCommand(GCP)).not.toContain("firewall");
+  });
+
+  test("its role is the same as on Cloud Run, its key's secret the same, and it may write its own log", () => {
+    const vm: ShellRun = run(getGcpCloudAiAgentSetupCommand(GCP));
+    const cloudRun: ShellRun = run(getGcpCloudAiAgentSetupCommand(GCP_RUN));
+    const bindings: Array<Array<string>> = callsTo(
+      vm,
+      "gcloud",
+      "projects",
+      "add-iam-policy-binding",
+    );
+
+    expect(callsTo(vm, "gcloud", "iam", "roles", "create")).toEqual(
+      callsTo(cloudRun, "gcloud", "iam", "roles", "create"),
+    );
+    expect(callsTo(vm, "gcloud", "secrets", "add-iam-policy-binding")).toEqual(
+      callsTo(cloudRun, "gcloud", "secrets", "add-iam-policy-binding"),
+    );
+    expect(
+      bindings.map((call: Array<string>): string => {
+        return flag(call, "--role") as string;
+      }),
+    ).toEqual([
+      `projects/${GCP_PROJECT}/roles/${GCP_CLOUD_AI_AGENT_ROLE_ID}`,
+      GCP_CLOUD_AI_AGENT_LOG_WRITER_ROLE,
+    ]);
+    expect(GCP_CLOUD_AI_AGENT_LOG_WRITER_ROLE).toBe("roles/logging.logWriter");
+    for (const binding of bindings) {
+      expect(flag(binding, "--member")).toBe(`serviceAccount:${MEMBER}`);
+      expect(binding).toContain("--condition=None");
+    }
+  });
+
+  test("the VM is given its startup script, which holds every variable but the key, and no secret at all", () => {
+    const options: CloudAiAgentSetupOptions = {
+      ...GCP,
+      fixesMode: "Automatic",
+      enabledOperations: ["reboot-instance", "start-instance"],
+      requiredTag: CLOUD_AI_DEFAULT_REQUIRED_TAG,
+      protectedTargets: [
+        `//compute.googleapis.com/projects/${GCP_PROJECT}/zones/*/instances/payments-*`,
+      ],
+    };
+    const command: string = getGcpCloudAiAgentSetupCommand(options);
+    const shell: ShellRun = run(command);
+    const startup: string = shell.startup as string;
+
+    // As written, with the here-document's last line break.
+    expect(startup).toBe(`${getGcpCloudAiAgentStartupScript(options)}\n`);
+    expect(startupEnvironmentOf(startup)).toEqual(plainEnvironmentOf(options));
+    expect(startup).not.toContain(KEY);
+    // The key is read from its secret's latest version, at every boot.
+    expect(startup).toContain(
+      `SECRET=projects/${GCP_PROJECT}/secrets/${GCP_CLOUD_AI_AGENT_SECRET_NAME}/versions/latest`,
+    );
+    // The key is still only in its own file, never on a command line.
+    expect(
+      shellLines(command).filter((line: string): boolean => {
+        return line.includes(KEY);
+      }),
+    ).toEqual([]);
+    // The startup script's file is gone once the VM read it.
+    expect(shell.files).toEqual([]);
+  });
+
+  test("running it again writes the startup script anew on the VM it made and restarts it, wherever it is; no second VM", () => {
+    const again: ShellRun = run(
+      getGcpCloudAiAgentSetupCommand({
+        ...GCP,
+        enabledOperations: ["start-instance"],
+      }),
+      { exists: true, vmZone: "us-central1-f" },
+    );
+    const metadata: Array<string> = callsTo(
+      again,
+      "gcloud",
+      "compute",
+      "instances",
+      "add-metadata",
+    )[0]!;
+    const reset: Array<string> = callsTo(
+      again,
+      "gcloud",
+      "compute",
+      "instances",
+      "reset",
+    )[0]!;
+
+    expect(callsTo(again, "gcloud", "compute", "instances", "create")).toEqual(
+      [],
+    );
+    expect(callsTo(again, "gcloud", "compute", "zones", "list")).toEqual([]);
+    expect(metadata[4]).toBe(GCP_CLOUD_AI_AGENT_INSTANCE_NAME);
+    expect(flag(metadata, "--zone")).toBe("us-central1-f");
+    expect(flag(metadata, "--metadata-from-file")).toBe(
+      `startup-script=${GCP_CLOUD_AI_AGENT_STARTUP_FILE}`,
+    );
+    expect(reset[4]).toBe(GCP_CLOUD_AI_AGENT_INSTANCE_NAME);
+    expect(flag(reset, "--zone")).toBe("us-central1-f");
+    expect(reset).toContain("--quiet");
+    // The new startup script says what the new run asked for.
+    expect(
+      startupEnvironmentOf(again.startup as string)[
+        RESOURCE_AI_CLOUD_OPERATIONS_ENV
+      ],
+    ).toBe("start-instance");
+    // The role is updated to exactly these permissions, the key versioned.
+    expect(
+      flag(
+        callsTo(again, "gcloud", "iam", "roles", "update")[0]!,
+        "--permissions",
+      ),
+    ).toBe(
+      "compute.instances.get,compute.instances.start,compute.regionOperations.get,compute.zoneOperations.get",
+    );
+    expect(callsTo(again, "gcloud", "secrets", "versions", "add")).toHaveLength(
+      1,
+    );
+    expect(again.output).toEqual([CLOUD_AI_AGENT_STARTED_MESSAGE]);
+    expect(again.files).toEqual([]);
+  });
+
+  test("a VM Google Cloud will not make (an organization policy that allows no external address) is said, with what to do, and nothing says the agent is starting", () => {
+    const refused: ShellRun = run(getGcpCloudAiAgentSetupCommand(GCP), {
+      vmExit: 1,
+      enabledApis: ["run.googleapis.com"],
+      runRegion: "us-east1",
+    });
+
+    expect(refused.output).toEqual([GCP_CLOUD_AI_AGENT_VM_REFUSED_MESSAGE]);
+    expect(GCP_CLOUD_AI_AGENT_VM_REFUSED_MESSAGE).toBe(
+      "The agent's VM could not be created. If an organization policy allows no VM an external IP address, choose Cloud Run under More fields and run the command again.",
+    );
+    for (const character of ['"', "$", "`", "\\", "!"]) {
+      expect(GCP_CLOUD_AI_AGENT_VM_REFUSED_MESSAGE).not.toContain(character);
+    }
+    // The agent that works stays: no Cloud Run service is removed for a VM that is not there.
+    expect(callsTo(refused, "gcloud", "run", "services", "delete")).toEqual([]);
+    expect(refused.files).toEqual([]);
+  });
+
+  test("one agent per account: moving from Cloud Run, the Cloud Run service an earlier run made goes once the VM runs", () => {
+    const moved: ShellRun = run(getGcpCloudAiAgentSetupCommand(GCP), {
+      enabledApis: ["run.googleapis.com"],
+      runRegion: "europe-west4",
+    });
+    const remove: Array<string> = callsTo(
+      moved,
+      "gcloud",
+      "run",
+      "services",
+      "delete",
+    )[0]!;
+
+    expect(remove[4]).toBe(GCP_CLOUD_AI_AGENT_SERVICE_NAME);
+    expect(flag(remove, "--region")).toBe("europe-west4");
+    expect(flag(remove, "--project")).toBe(GCP_PROJECT);
+    expect(remove).toContain("--quiet");
+    // Only after the VM was made.
+    const order: Array<string> = moved.calls.map(
+      (call: Array<string>): string => {
+        return call.slice(1, 4).join(" ");
+      },
+    );
+    expect(order.indexOf("run services delete")).toBeGreaterThan(
+      order.indexOf("compute instances create"),
+    );
+    expect(moved.output).toEqual([CLOUD_AI_AGENT_STARTED_MESSAGE]);
+  });
+
+  test("one agent per account: moving to Cloud Run, the VM an earlier run made goes once the service runs - and stays when the deploy fails", () => {
+    const moved: ShellRun = run(getGcpCloudAiAgentSetupCommand(GCP_RUN), {
+      enabledApis: ["compute.googleapis.com"],
+      vmZone: "us-central1-c",
+    });
+    const remove: Array<string> = callsTo(
+      moved,
+      "gcloud",
+      "compute",
+      "instances",
+      "delete",
+    )[0]!;
+
+    expect(remove[4]).toBe(GCP_CLOUD_AI_AGENT_INSTANCE_NAME);
+    expect(flag(remove, "--zone")).toBe("us-central1-c");
+    expect(flag(remove, "--project")).toBe(GCP_PROJECT);
+    expect(remove).toContain("--quiet");
+
+    const failed: ShellRun = run(getGcpCloudAiAgentSetupCommand(GCP_RUN), {
+      enabledApis: ["compute.googleapis.com"],
+      vmZone: "us-central1-c",
+      deployExit: 1,
+    });
+
+    expect(callsTo(failed, "gcloud", "compute", "instances", "delete")).toEqual(
+      [],
+    );
+  });
+
+  test("an API that is off is never listed: Cloud Shell would ask to turn it on, and read the next pasted line as the answer", () => {
+    for (const options of [GCP, GCP_RUN]) {
+      const shell: ShellRun = run(getGcpCloudAiAgentSetupCommand(options));
+
+      expect(callsTo(shell, "gcloud", "run", "services", "list")).toEqual([]);
+      // Every list it makes answers no to any question.
+      for (const call of shell.calls) {
+        if (call[2] === "list" || call[3] === "list") {
+          expect(call).toContain("--quiet");
+        }
+      }
+    }
+
+    expect(
+      callsTo(
+        run(getGcpCloudAiAgentSetupCommand(GCP_RUN)),
+        "gcloud",
+        "compute",
+        "instances",
+        "list",
+      ),
+    ).toEqual([]);
+  });
+
+  test("runs in us-central1 unless a region is given: the subnet and the zone follow it", () => {
+    const shell: ShellRun = run(
+      getGcpCloudAiAgentSetupCommand({ ...GCP, region: "europe-west4" }),
+    );
+
+    expect(
+      flag(
+        callsTo(shell, "gcloud", "compute", "networks", "subnets", "create")[0]!,
+        "--region",
+      ),
+    ).toBe("europe-west4");
+    expect(
+      flag(callsTo(shell, "gcloud", "compute", "zones", "list")[0]!, "--filter"),
+    ).toBe("region:europe-west4");
+    expect(
+      flag(
+        callsTo(shell, "gcloud", "compute", "instances", "create")[0]!,
+        "--zone",
+      ),
+    ).toBe("europe-west4-a");
+  });
+
+  test("an unknown host is refused before any command is written", () => {
+    const options: CloudAiAgentSetupOptions = {
+      ...GCP,
+      gcpHost: "kubernetes" as never,
+    };
+
+    expect(describeCloudAiAgentSetupProblem(options)).toBe(
+      "Pick where the Google Cloud agent runs: a small VM, or Cloud Run.",
+    );
+    expect(() => {
+      return getGcpCloudAiAgentSetupCommand(options);
+    }).toThrow(BadDataException);
+    expect(GCP_CLOUD_AI_AGENT_HOSTS).toEqual(["compute-engine", "cloud-run"]);
+    // The other clouds have no host to pick, and take none.
+    expect(
+      describeCloudAiAgentSetupProblem({ ...AWS, gcpHost: "cloud-run" }),
+    ).toBeNull();
+  });
+});
+
+/*
+ * The VM's startup script, run as root at every boot, against a fake
+ * docker: the image pulled until the network answers, the key read from
+ * Secret Manager in the image itself, the agent started on the VM's own
+ * network, read-only, its log in Cloud Logging - and the file that held the
+ * key gone once Docker read it.
+ */
+describe("Google Cloud on its VM: the startup script", () => {
+  const FAKE_DOCKER: string = String.raw`
+record() {
+  for arg in "$@"; do printf '%s\037' "$arg"; done >> "$CALLS"
+  printf '\036' >> "$CALLS"
+}
+docker() {
+  record docker "$@"
+  case "$1" in
+    pull)
+      PULLS=$(( $(cat "$CAPTURED/pulls" 2> /dev/null || echo 0) + 1 ))
+      echo "$PULLS" > "$CAPTURED/pulls"
+      [ "$PULLS" -gt "$FAKE_PULL_FAILURES" ]
+      return ;;
+    run)
+      case " $* " in
+        *" --entrypoint node "*) [ "$FAKE_KEY_EXIT" = 0 ] && printf '%s' "$FAKE_KEY"; return "$FAKE_KEY_EXIT" ;;
+        *" -d "*) cp "$RUN_DIRECTORY/agent.env" "$CAPTURED/agent.env"; return 0 ;;
+      esac ;;
+  esac
+  return 0
+}
+sleep() {
+  record sleep "$@"
+}
+`;
+
+  interface BootRun {
+    calls: Array<Array<string>>;
+    // The agent's env file as Docker read it, and what is left of the run directory.
+    agentEnv: string | null;
+    left: Array<string>;
+    status: number;
+  }
+
+  function boot(
+    script: string,
+    scenario: {
+      pullFailures?: number;
+      keyExit?: number;
+      key?: string;
+    } = {},
+  ): BootRun {
+    const directory: string = fs.mkdtempSync(
+      path.join(os.tmpdir(), "cloud-ai-agent-boot-"),
+    );
+    const runDirectory: string = path.join(directory, "run");
+    const captured: string = path.join(directory, "captured");
+    const calls: string = path.join(directory, "calls");
+
+    SHELL_DIRECTORIES.push(directory);
+    fs.mkdirSync(captured);
+    fs.writeFileSync(calls, "");
+
+    const shell: SpawnSyncReturns<string> = spawnSync(
+      "bash",
+      [
+        "-c",
+        `${FAKE_DOCKER}\n${script.split(GCP_CLOUD_AI_AGENT_RUN_DIRECTORY).join(runDirectory)}`,
+      ],
+      {
+        cwd: directory,
+        encoding: "utf8",
+        env: {
+          PATH: process.env["PATH"] || "/usr/bin:/bin",
+          CALLS: calls,
+          CAPTURED: captured,
+          RUN_DIRECTORY: runDirectory,
+          FAKE_PULL_FAILURES: String(scenario.pullFailures ?? 0),
+          FAKE_KEY_EXIT: String(scenario.keyExit ?? 0),
+          FAKE_KEY: scenario.key ?? KEY,
+        },
+      },
+    );
+
+    expect(shell.error).toBeUndefined();
+
+    const envFile: string = path.join(captured, "agent.env");
+
+    return {
+      calls: fs
+        .readFileSync(calls, "utf8")
+        .split("\u001e")
+        .filter((call: string): boolean => {
+          return call.length > 0;
+        })
+        .map((call: string): Array<string> => {
+          return call.split("\u001f").slice(0, -1);
+        }),
+      agentEnv: fs.existsSync(envFile) ? fs.readFileSync(envFile, "utf8") : null,
+      left: fs.existsSync(runDirectory) ? fs.readdirSync(runDirectory).sort() : [],
+      status: shell.status ?? -1,
+    };
+  }
+
+  function dockerCalls(run: BootRun, verb: string): Array<Array<string>> {
+    return run.calls.filter((call: Array<string>): boolean => {
+      return call[0] === "docker" && call[1] === verb;
+    });
+  }
+
+  const image: string = getCloudAiAgentImage();
+
+  test("pulls the image, reads the key in it, and starts the agent with it - read-only, on the VM's network, its log in Cloud Logging", () => {
+    const booted: BootRun = boot(getGcpCloudAiAgentStartupScript(GCP));
+    const runs: Array<Array<string>> = dockerCalls(booted, "run");
+    const reader: Array<string> = runs[0]!;
+    const agent: Array<string> = runs[1]!;
+
+    expect(booted.status).toBe(0);
+    expect(dockerCalls(booted, "pull")).toEqual([["docker", "pull", image]]);
+
+    // The key reader: the image's own node, the reader mounted read-only, the secret named.
+    expect(reader).toContain("--rm");
+    expect(flag(reader, "--network")).toBe("host");
+    expect(flag(reader, "--entrypoint")).toBe("node");
+    expect(flag(reader, "-v")).toMatch(/\/key\.js:\/key\.js:ro$/);
+    expect(reader.slice(-3)).toEqual([
+      image,
+      "/key.js",
+      `projects/${GCP_PROJECT}/secrets/${GCP_CLOUD_AI_AGENT_SECRET_NAME}/versions/latest`,
+    ]);
+
+    // The agent: always on, read-only, /tmp in memory, its variables from the file.
+    expect(agent).toContain("-d");
+    expect(flag(agent, "--name")).toBe(GCP_CLOUD_AI_AGENT_INSTANCE_NAME);
+    expect(flag(agent, "--restart")).toBe("unless-stopped");
+    expect(flag(agent, "--network")).toBe("host");
+    expect(agent).toContain("--read-only");
+    expect(flag(agent, "--tmpfs")).toBe("/tmp");
+    expect(flag(agent, "--log-driver")).toBe("gcplogs");
+    expect(flag(agent, "--env-file")).toMatch(/\/agent\.env$/);
+    expect(agent[agent.length - 1]).toBe(image);
+    // The one before it, by its name, goes first.
+    expect(dockerCalls(booted, "rm")).toEqual([
+      ["docker", "rm", "-f", GCP_CLOUD_AI_AGENT_INSTANCE_NAME],
+    ]);
+  });
+
+  test("the agent gets every variable and the key, in the file Docker reads - and the file is gone once it has", () => {
+    const booted: BootRun = boot(getGcpCloudAiAgentStartupScript(GCP));
+    const environment: Record<string, string> = {};
+
+    for (const line of (booted.agentEnv as string).split("\n")) {
+      if (line) {
+        const equals: number = line.indexOf("=");
+        environment[line.substring(0, equals)] = line.substring(equals + 1);
+      }
+    }
+
+    expect(environment).toEqual(environmentOf(GCP));
+    // The key never on a docker command line.
+    for (const call of booted.calls) {
+      expect(call.join(" ")).not.toContain(KEY);
+    }
+    // What is left in memory: the key reader alone.
+    expect(booted.left).toEqual(["key.js"]);
+  });
+
+  test("a network that is not up yet: the pull is tried again every 10 seconds until it works", () => {
+    const booted: BootRun = boot(getGcpCloudAiAgentStartupScript(GCP), {
+      pullFailures: 2,
+    });
+
+    expect(dockerCalls(booted, "pull")).toHaveLength(3);
+    expect(
+      booted.calls.filter((call: Array<string>): boolean => {
+        return call[0] === "sleep";
+      }),
+    ).toEqual([
+      ["sleep", "10"],
+      ["sleep", "10"],
+    ]);
+    expect(dockerCalls(booted, "run")).toHaveLength(2);
+  });
+
+  test("a key that cannot be read starts no agent, and leaves no file with the variables behind", () => {
+    const booted: BootRun = boot(getGcpCloudAiAgentStartupScript(GCP), {
+      keyExit: 1,
+    });
+
+    expect(booted.status).toBe(1);
+    expect(dockerCalls(booted, "run")).toHaveLength(1);
+    expect(booted.agentEnv).toBeNull();
+    expect(booted.left).toEqual(["key.js"]);
+  });
+
+  test("written for the VM only: Cloud Run's command has no startup script", () => {
+    expect(getGcpCloudAiAgentSetupCommand(GCP_RUN)).not.toContain(
+      GCP_CLOUD_AI_AGENT_STARTUP_FILE,
+    );
+    expect(getGcpCloudAiAgentSetupCommand(GCP)).toContain(
+      `cat > ${GCP_CLOUD_AI_AGENT_STARTUP_FILE} <<'STARTUP'`,
+    );
+  });
+});
+
+/*
+ * The key reader, run as the VM runs it (node, in the agent's image)
+ * against a fake metadata server and Secret Manager: the service account's
+ * token, then the secret's latest version, decoded, printed - and nothing
+ * printed, but a reason, when either answer fails.
+ */
+describe("Google Cloud on its VM: the key reader", () => {
+  const SECRET: string = `projects/${GCP_PROJECT}/secrets/${GCP_CLOUD_AI_AGENT_SECRET_NAME}/versions/latest`;
+
+  interface Read {
+    printed: string;
+    errors: Array<string>;
+    exitCode: number | null;
+    requests: Array<{ url: string; headers: Record<string, string> }>;
+  }
+
+  async function readKey(answers: {
+    token?: { status: number; body: unknown };
+    secret?: { status: number; body: unknown };
+  }): Promise<Read> {
+    const read: Read = { printed: "", errors: [], exitCode: null, requests: [] };
+    const fakeFetch: (
+      url: string,
+      init: { headers: Record<string, string> },
+    ) => Promise<unknown> = async (
+      url: string,
+      init: { headers: Record<string, string> },
+    ): Promise<unknown> => {
+      read.requests.push({ url, headers: init.headers });
+      const answer: { status: number; body: unknown } = url.startsWith(
+        "http://metadata.google.internal/",
+      )
+        ? answers.token || { status: 200, body: { access_token: "ya29.token" } }
+        : answers.secret || {
+            status: 200,
+            body: {
+              payload: {
+                data: Buffer.from(`${KEY}\n`, "utf8").toString("base64"),
+              },
+            },
+          };
+
+      return {
+        ok: answer.status >= 200 && answer.status < 300,
+        status: answer.status,
+        json: async (): Promise<unknown> => {
+          return answer.body;
+        },
+      };
+    };
+    const fakeProcess: unknown = {
+      argv: ["node", "/key.js", SECRET],
+      stdout: {
+        write: (text: string): void => {
+          read.printed += text;
+        },
+      },
+      exit: (code: number): void => {
+        read.exitCode = code;
+      },
+    };
+    const fakeConsole: unknown = {
+      error: (text: string): void => {
+        read.errors.push(text);
+      },
+    };
+
+    // eslint-disable-next-line no-new-func
+    new Function("fetch", "process", "console", "Buffer", GCP_CLOUD_AI_AGENT_KEY_READER)(
+      fakeFetch,
+      fakeProcess,
+      fakeConsole,
+      Buffer,
+    );
+
+    await new Promise<void>((resolve: () => void) => {
+      setTimeout(resolve, 20);
+    });
+
+    return read;
+  }
+
+  test("asks the metadata server for the token and Secret Manager for the latest version, and prints the key alone", async () => {
+    const read: Read = await readKey({});
+
+    expect(read.printed).toBe(KEY);
+    expect(read.errors).toEqual([]);
+    expect(read.exitCode).toBeNull();
+    expect(read.requests).toEqual([
+      {
+        url: "http://metadata.google.internal/computeMetadata/v1/instance/service-accounts/default/token",
+        headers: { "Metadata-Flavor": "Google" },
+      },
+      {
+        url: `https://secretmanager.googleapis.com/v1/${SECRET}:access`,
+        headers: { Authorization: "Bearer ya29.token" },
+      },
+    ]);
+  });
+
+  test("a secret it may not read prints no key, says why, and fails", async () => {
+    const read: Read = await readKey({
+      secret: { status: 403, body: { error: { message: "denied" } } },
+    });
+
+    expect(read.printed).toBe("");
+    expect(read.exitCode).toBe(1);
+    expect(read.errors.join(" ")).toContain("Secret Manager answered HTTP 403");
+  });
+
+  test("an empty secret is no key", async () => {
+    const read: Read = await readKey({
+      secret: {
+        status: 200,
+        body: { payload: { data: Buffer.from("  \n").toString("base64") } },
+      },
+    });
+
+    expect(read.printed).toBe("");
+    expect(read.exitCode).toBe(1);
+    expect(read.errors.join(" ")).toContain("holds no key");
+  });
+
+  test("holds nothing the shell it is pasted into would read: no $, no backtick, no !", () => {
+    for (const character of ["$", "`", "!"]) {
+      expect(GCP_CLOUD_AI_AGENT_KEY_READER).not.toContain(character);
+    }
   });
 });
 
@@ -2298,12 +3177,36 @@ describe("the names", () => {
         `//run.googleapis.com/projects/${GCP_PROJECT}/locations/${CLOUD_AI_AGENT_DEFAULT_REGIONS[CloudProvider.GCP]}/services/${GCP_CLOUD_AI_AGENT_SERVICE_NAME}`,
       ),
     ).toBe(true);
+    // Its VM, in whichever zone the command found for it.
+    expect(
+      protects(
+        "gcp",
+        GCP_PROJECT,
+        `//compute.googleapis.com/projects/${GCP_PROJECT}/zones/us-central1-a/instances/${GCP_CLOUD_AI_AGENT_INSTANCE_NAME}`,
+      ),
+    ).toBe(true);
+    expect(
+      protects(
+        "gcp",
+        GCP_PROJECT,
+        `//compute.googleapis.com/projects/${GCP_PROJECT}/zones/europe-west4-b/instances/${GCP_CLOUD_AI_AGENT_INSTANCE_NAME}`,
+      ),
+    ).toBe(true);
+    // Another VM is not the agent's.
+    expect(
+      protects(
+        "gcp",
+        GCP_PROJECT,
+        `//compute.googleapis.com/projects/${GCP_PROJECT}/zones/us-central1-a/instances/web-1`,
+      ),
+    ).toBe(false);
   });
 
   test("the commands use the shared names and no others of their own", () => {
     const aws: string = getAwsCloudAiAgentSetupCommand(AWS);
     const azure: string = getAzureCloudAiAgentSetupCommand(AZURE);
-    const gcp: string = getGcpCloudAiAgentSetupCommand(GCP);
+    const gcp: string = getGcpCloudAiAgentSetupCommand(GCP_RUN);
+    const gcpVm: string = getGcpCloudAiAgentSetupCommand(GCP);
 
     expect(aws).toContain(`--stack-name ${AWS_CLOUD_AI_AGENT_STACK_NAME} `);
     expect(azure).toContain(`--name ${AZURE_CLOUD_AI_AGENT_APP_NAME} `);
@@ -2320,6 +3223,24 @@ describe("the names", () => {
     expect(gcp).toContain(
       `gcloud run deploy ${GCP_CLOUD_AI_AGENT_SERVICE_NAME} `,
     );
+    expect(gcpVm).toContain(
+      `gcloud compute instances create ${GCP_CLOUD_AI_AGENT_INSTANCE_NAME} `,
+    );
+    expect(gcpVm).toContain(
+      `gcloud compute networks create ${GCP_CLOUD_AI_AGENT_NETWORK_NAME} `,
+    );
+    expect(gcpVm).toContain(
+      `gcloud compute networks subnets create ${GCP_CLOUD_AI_AGENT_NETWORK_NAME} `,
+    );
+    expect(gcpVm).toContain(
+      `gcloud iam service-accounts create ${GCP_CLOUD_AI_AGENT_SERVICE_ACCOUNT_ID} `,
+    );
+    // The VM's container is named as the VM is.
+    expect(getGcpCloudAiAgentStartupScript(GCP)).toContain(
+      `--name ${GCP_CLOUD_AI_AGENT_INSTANCE_NAME} `,
+    );
+    expect(GCP_CLOUD_AI_AGENT_INSTANCE_NAME).toBe(CLOUD_AI_AGENT_NAME);
+    expect(GCP_CLOUD_AI_AGENT_NETWORK_NAME).toBe(CLOUD_AI_AGENT_NAME);
     expect(getCloudAiAgentImage()).toBe(
       `docker.io/${RESOURCE_AI_AGENT_IMAGE_REPOSITORY}:${CLOUD_AI_AGENT_IMAGE_TAG}`,
     );
@@ -2544,8 +3465,8 @@ describe("quoting", () => {
     ],
   };
 
-  test.each(ALL_CLOUDS)(
-    "on $provider, the values reach the cloud exactly as given",
+  test.each(ALL_COMMANDS)(
+    "on $provider ($gcpHost), the values reach the cloud exactly as given",
     (options: CloudAiAgentSetupOptions) => {
       const hostile: CloudAiAgentSetupOptions = { ...options, ...HOSTILE };
       const expected: Record<string, string> = environmentOf(hostile);
@@ -2597,9 +3518,11 @@ describe("quoting", () => {
       }
 
       if (options.provider === CloudProvider.GCP) {
-        expect(yaml.load(shell.envFile as string)).toEqual(
-          plainEnvironmentOf(hostile),
-        );
+        expect(
+          options.gcpHost === "cloud-run"
+            ? yaml.load(shell.envFile as string)
+            : startupEnvironmentOf(shell.startup as string),
+        ).toEqual(plainEnvironmentOf(hostile));
         expect(shell.secret).toBe(HOSTILE.ingestionKey);
       }
 
@@ -2607,8 +3530,8 @@ describe("quoting", () => {
     },
   );
 
-  test.each(ALL_CLOUDS)(
-    "$provider's command holds nothing an interactive shell reads on its own: no history expansion, no tab, no line that starts with ^, no placeholder",
+  test.each(ALL_COMMANDS)(
+    "$provider's command ($gcpHost) holds nothing an interactive shell reads on its own: no history expansion, no tab, no line that starts with ^, no placeholder",
     (options: CloudAiAgentSetupOptions) => {
       const command: string = getCloudAiAgentSetupCommand({
         ...options,
@@ -2630,7 +3553,50 @@ describe("quoting", () => {
 
   test("each heredoc ends where it should: no line of its body is its delimiter", () => {
     const aws: string = getAwsCloudAiAgentSetupCommand({ ...AWS, ...HOSTILE });
-    const gcp: string = getGcpCloudAiAgentSetupCommand({ ...GCP, ...HOSTILE });
+    const gcp: string = getGcpCloudAiAgentSetupCommand({
+      ...GCP_RUN,
+      ...HOSTILE,
+    });
+    const gcpVm: string = getGcpCloudAiAgentSetupCommand({
+      ...GCP,
+      ...HOSTILE,
+    });
+    const startup: string = getGcpCloudAiAgentStartupScript({
+      ...GCP,
+      ...HOSTILE,
+    });
+
+    // The VM's startup script is one here-document of the command, whole.
+    expect(
+      heredocBody(gcpVm, `cat > ${GCP_CLOUD_AI_AGENT_STARTUP_FILE} <<'STARTUP'`),
+    ).toEqual(startup.split("\n"));
+    expect(
+      gcpVm.split("\n").filter((line: string): boolean => {
+        return line === "STARTUP";
+      }),
+    ).toHaveLength(1);
+    // Its own two: the agent's variables and the key reader.
+    expect(
+      heredocBody(
+        startup,
+        `cat > ${GCP_CLOUD_AI_AGENT_RUN_DIRECTORY}/agent.env <<'ENV'`,
+      ),
+    ).toHaveLength(
+      getCloudAiAgentEnvironment({ ...GCP, ...HOSTILE }).length - 1,
+    );
+    expect(
+      heredocBody(
+        startup,
+        `cat > ${GCP_CLOUD_AI_AGENT_RUN_DIRECTORY}/key.js <<'KEYJS'`,
+      ),
+    ).toEqual(GCP_CLOUD_AI_AGENT_KEY_READER.split("\n"));
+    for (const delimiter of ["ENV", "KEYJS"]) {
+      expect(
+        startup.split("\n").filter((line: string): boolean => {
+          return line === delimiter;
+        }),
+      ).toHaveLength(1);
+    }
 
     expect(
       heredocBody(
@@ -2671,7 +3637,7 @@ describe("quoting", () => {
       "The Cloud AI agent is starting. It connects to OneUptime on its own, so there is nothing to paste back.",
     );
 
-    for (const options of ALL_CLOUDS) {
+    for (const options of ALL_COMMANDS) {
       const shell: ShellRun = run(getCloudAiAgentSetupCommand(options));
 
       expect(shell.output[shell.output.length - 1]).toBe(

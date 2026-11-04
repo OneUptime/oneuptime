@@ -3,6 +3,8 @@ import {
   CLOUD_AI_AGENT_FIX_SAFE_TITLE,
   CLOUD_SHELL_NAMES,
   CloudAiAgentSetupChoices,
+  GCP_HOST_DESCRIPTIONS,
+  GCP_HOST_TITLES,
   getCloudAccountAiResourceType,
   getCloudAiAgentFixesMode,
   getCloudAiAgentLogsCommand,
@@ -22,7 +24,12 @@ import {
   getCloudAiAgentSetupCommand,
 } from "../../../Types/CloudConnection/CloudAiAgentSetupCommands";
 import AiResourceType from "../../../Types/ResourceAiAgent/AiResourceType";
-import { getCloudAiAgentOwnTargets } from "../../../Types/ResourceAiAgent/CloudAiAgentNames";
+import {
+  GCP_CLOUD_AI_AGENT_DEFAULT_HOST,
+  GCP_CLOUD_AI_AGENT_HOSTS,
+  getCloudAiAgentOwnTargets,
+} from "../../../Types/ResourceAiAgent/CloudAiAgentNames";
+import { estimateCloudAiAgentMonthlyCost } from "../../../Types/CloudConnection/CloudAiAgentCost";
 import {
   CLOUD_AI_DEFAULT_REQUIRED_TAG,
   ResourceAiAgentPosture,
@@ -71,6 +78,8 @@ describe("the one question", () => {
         enabledOperations: getCloudAiAgentChangeOperations(provider),
         protectedTargetsText: "",
         onlyTaggedResources: false,
+        // Google Cloud's agent on a small VM unless More fields says Cloud Run.
+        gcpHost: "compute-engine",
       });
       expect(getCloudAiAgentFixesMode(choices)).toBe("RequireApproval");
     }
@@ -180,7 +189,10 @@ describe("opened for an agent that connected", () => {
       protectedTargetsText:
         "*prod-db*\narn:aws:rds:us-east-1:123456789012:db:orders",
       onlyTaggedResources: true,
+      gcpHost: GCP_CLOUD_AI_AGENT_DEFAULT_HOST,
     });
+    // An AWS command takes no host.
+    expect(options(CloudProvider.AWS, choices).gcpHost).toBeUndefined();
 
     // And the command it writes keeps all of it.
     const written: CloudAiAgentSetupOptions = options(
@@ -436,8 +448,136 @@ describe("the dialog's pieces", () => {
     expect(getCloudAiAgentLogsCommand(CloudProvider.Azure)).toContain(
       "az containerapp logs show --name oneuptime-ai-agent --resource-group oneuptime-ai-agent",
     );
-    expect(getCloudAiAgentLogsCommand(CloudProvider.GCP)).toBe(
+    expect(getCloudAiAgentLogsCommand(CloudProvider.GCP, "cloud-run")).toBe(
       'gcloud run services logs read oneuptime-ai-agent --region "$(gcloud run services list --filter "metadata.name=oneuptime-ai-agent" --format "value(region)" | head -1)" --limit 100',
     );
+    // In the project the command was written for, when the dialog names it.
+    expect(
+      getCloudAiAgentLogsCommand(CloudProvider.GCP, "cloud-run", "my-project"),
+    ).toBe(
+      'gcloud run services logs read oneuptime-ai-agent --project my-project --region "$(gcloud run services list --project my-project --filter "metadata.name=oneuptime-ai-agent" --format "value(region)" | head -1)" --limit 100',
+    );
+    // On its VM: the container's log, which Docker writes to Cloud Logging.
+    expect(getCloudAiAgentLogsCommand(CloudProvider.GCP)).toBe(
+      `gcloud logging read 'resource.type="gce_instance" AND jsonPayload.container.name="/oneuptime-ai-agent"' --freshness 30m --limit 100 --format "value(jsonPayload.data)"`,
+    );
+    expect(
+      getCloudAiAgentLogsCommand(CloudProvider.GCP, "compute-engine", "my-project"),
+    ).toBe(
+      `gcloud logging read 'resource.type="gce_instance" AND jsonPayload.container.name="/oneuptime-ai-agent"' --project my-project --freshness 30m --limit 100 --format "value(jsonPayload.data)"`,
+    );
+    // A project id the shell would read is never written into it.
+    expect(
+      getCloudAiAgentLogsCommand(CloudProvider.GCP, "compute-engine", "$(reboot)"),
+    ).not.toContain("reboot");
+  });
+});
+
+/*
+ * Google Cloud's two hosts: a small VM by default, about a quarter of
+ * Cloud Run's cost, and Cloud Run for a project that allows no VM an
+ * external address. Change keeps an agent where it runs: running the
+ * command again from a connected agent never moves it.
+ */
+describe("where a Google Cloud agent runs", () => {
+  const PROJECT: string = "my-project";
+
+  function gcpPosture(details: Record<string, string | null>): ResourceAiAgentPosture {
+    return {
+      resourceType: AiResourceType.GoogleCloudProject,
+      resourceIdentifier: PROJECT,
+      allowWrites: true,
+      writeTargets: [],
+      protectedTargets: [],
+      reachable: true,
+      details: {
+        cloudProvider: "gcp",
+        cloudAccountId: PROJECT,
+        ...details,
+      },
+    };
+  }
+
+  test("a new agent runs on a small VM", () => {
+    expect(GCP_CLOUD_AI_AGENT_DEFAULT_HOST).toBe("compute-engine");
+    expect(
+      getDefaultCloudAiAgentSetupChoices({ provider: CloudProvider.GCP })
+        .gcpHost,
+    ).toBe("compute-engine");
+  });
+
+  test("Change keeps the host the agent reports", () => {
+    for (const host of GCP_CLOUD_AI_AGENT_HOSTS) {
+      expect(
+        getDefaultCloudAiAgentSetupChoices({
+          provider: CloudProvider.GCP,
+          accountId: PROJECT,
+          posture: gcpPosture({ gcpHost: host }),
+        }).gcpHost,
+      ).toBe(host);
+    }
+  });
+
+  test("an agent too old to say where it runs ran on Cloud Run, as every one did before the VM: Change never moves it", () => {
+    for (const reported of [{}, { gcpHost: null }, { gcpHost: "kubernetes" }]) {
+      expect(
+        getCloudAiAgentReportedChoices({
+          provider: CloudProvider.GCP,
+          accountId: PROJECT,
+          posture: gcpPosture(reported),
+        }).gcpHost,
+      ).toBe("cloud-run");
+    }
+  });
+
+  test("another cloud's posture says nothing of a host", () => {
+    expect(
+      "gcpHost" in
+        getCloudAiAgentReportedChoices({
+          provider: CloudProvider.AWS,
+          accountId: "123456789012",
+          posture: {
+            ...gcpPosture({ gcpHost: "cloud-run" }),
+            resourceType: AiResourceType.AwsAccount,
+          },
+        }),
+    ).toBe(false);
+  });
+
+  test("the host chosen reaches the command, which is the host's", () => {
+    for (const host of GCP_CLOUD_AI_AGENT_HOSTS) {
+      const written: CloudAiAgentSetupOptions = options(CloudProvider.GCP, {
+        ...getDefaultCloudAiAgentSetupChoices({ provider: CloudProvider.GCP }),
+        gcpHost: host,
+      });
+
+      expect(written.gcpHost).toBe(host);
+      expect(describeCloudAiAgentSetupProblem(written)).toBeNull();
+      expect(getCloudAiAgentSetupCommand(written)).toContain(
+        host === "cloud-run"
+          ? "gcloud run deploy oneuptime-ai-agent "
+          : "gcloud compute instances create oneuptime-ai-agent ",
+      );
+    }
+  });
+
+  test("More fields names each host with what it costs a month", () => {
+    expect(GCP_HOST_TITLES).toEqual({
+      "compute-engine": "A small VM",
+      "cloud-run": "Cloud Run",
+    });
+    for (const host of GCP_CLOUD_AI_AGENT_HOSTS) {
+      expect(GCP_HOST_DESCRIPTIONS[host]).toContain("about ${{usd}} a month");
+    }
+    expect(GCP_HOST_DESCRIPTIONS["cloud-run"]).toContain(
+      "For a project that allows no VM an external IP address.",
+    );
+    expect(GCP_HOST_DESCRIPTIONS["compute-engine"]).toContain(
+      "in a network of its own that lets nothing in",
+    );
+    expect(estimateCloudAiAgentMonthlyCost(CloudProvider.GCP).usd).toBe(10);
+    expect(
+      estimateCloudAiAgentMonthlyCost(CloudProvider.GCP, "cloud-run").usd,
+    ).toBe(45);
   });
 });
