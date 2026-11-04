@@ -353,6 +353,47 @@ export default class CloudConnection extends BaseModel {
   @Column({ type: ColumnType.JSON, nullable: true })
   public pullState?: JSONObject = undefined;
 
+  /*
+   * The SHA-256 of the stream key Amazon Data Firehose sends this
+   * connection's metrics and logs with, and of the key it replaced while
+   * that one still works (CloudStreamKeyHashes). The keys themselves are
+   * never stored, and even their hashes are nobody's to read: the stream
+   * key routes write this column, the ingest endpoint reads it.
+   */
+  @ColumnAccessControl({ create: [], read: [], update: [] })
+  @TableColumn({
+    type: TableColumnType.JSON,
+    required: false,
+    title: "Stream Key Hashes",
+    description:
+      "SHA-256 of the stream key Firehose sends, and of the key it replaced while that one works. Server only; never readable.",
+  })
+  @Column({ type: ColumnType.JSON, nullable: true })
+  public streamKeyHashes?: JSONObject = undefined;
+
+  @ColumnAccessControl({ create: [], read: readPermissions, update: [] })
+  @TableColumn({
+    type: TableColumnType.Date,
+    required: false,
+    title: "Stream Key Created At",
+    description:
+      "When the connection's stream key was made. Empty means it streams nothing.",
+    canReadOnRelationQuery: true,
+  })
+  @Column({ type: ColumnType.Date, nullable: true })
+  public streamKeyCreatedAt?: Date = undefined;
+
+  @ColumnAccessControl({ create: [], read: readPermissions, update: [] })
+  @TableColumn({
+    type: TableColumnType.JSON,
+    required: false,
+    title: "Stream Summary",
+    description:
+      "What the connection's Firehose streams delivered: the accounts, Regions and namespaces of metrics, the log groups, and the last delivery refused.",
+  })
+  @Column({ type: ColumnType.JSON, nullable: true })
+  public streamSummary?: JSONObject = undefined;
+
   @ColumnAccessControl({
     create: [],
     read: readPermissions,

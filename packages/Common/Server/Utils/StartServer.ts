@@ -50,6 +50,11 @@ import StartupGate from "./StartupGate";
 import { api } from "@opentelemetry/sdk-node";
 import StatusCode from "../../Types/API/StatusCode";
 import HTTPErrorResponse from "../../Types/API/HTTPErrorResponse";
+import {
+  CLOUD_STREAM_LOGS_PATH,
+  CLOUD_STREAM_METRICS_PATH,
+  CLOUD_STREAM_URL_PREFIX,
+} from "../../Types/CloudConnection/CloudStream";
 import Exception from "../../Types/Exception/Exception";
 import NotFoundException from "../../Types/Exception/NotFoundException";
 import { PromiseVoidFunction } from "../../Types/FunctionTypes";
@@ -265,6 +270,24 @@ export const isVercelLogDrainPath: (path: string) => boolean = (
   );
 };
 
+/*
+ * The Amazon Data Firehose endpoint an AWS connection streams to
+ * (/aws-firehose/v1/metrics and /logs, also under /telemetry) reads its
+ * body raw: it answers in Firehose's own contract, a body too large too,
+ * which a body parser's own refusal would not keep.
+ */
+export const isCloudStreamPath: (path: string) => boolean = (
+  path: string,
+): boolean => {
+  return [CLOUD_STREAM_METRICS_PATH, CLOUD_STREAM_LOGS_PATH].some(
+    (streamPath: string): boolean => {
+      return (
+        path === streamPath || path === `${CLOUD_STREAM_URL_PREFIX}${streamPath}`
+      );
+    },
+  );
+};
+
 const protobufBodyParserMiddleware: RequestHandler = ExpressRaw({
   type: PROTOBUF_CONTENT_TYPES,
   limit: "50mb",
@@ -285,7 +308,8 @@ app.use((req: OneUptimeRequest, res: ExpressResponse, next: NextFunction) => {
   if (
     req.path.includes("/otlp/v1/") ||
     req.path.includes("/session-replay/v1/") ||
-    isVercelLogDrainPath(req.path)
+    isVercelLogDrainPath(req.path) ||
+    isCloudStreamPath(req.path)
   ) {
     return next();
   }
@@ -325,6 +349,7 @@ app.use((req: ExpressRequest, res: ExpressResponse, next: NextFunction) => {
     req.path.includes("/otlp/v1/") ||
     req.path.includes("/session-replay/v1/") ||
     isVercelLogDrainPath(req.path) ||
+    isCloudStreamPath(req.path) ||
     headerValueToString(req.headers["content-encoding"])?.includes("gzip")
   ) {
     next();
