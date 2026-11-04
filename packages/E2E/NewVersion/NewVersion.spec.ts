@@ -327,7 +327,7 @@ test.describe("a deploy under the open tab", () => {
    * The product's own layers, with their own classes, mounted where the app
    * mounts them - inside the app, before the notice in the document - and
    * made to cover the notice: a side panel (SideOver, z-30), Ask AI
-   * (AskAiDialog, a z-40 layer whose dialog fills a phone's screen), a
+   * (AskAiPanel, a z-40 layer whose dialog fills a phone's screen), a
    * dialog (Modal, z-50), and a bar of the page's own (z-20). The notice
    * must stay under every panel a reader works in - at z-40 it drew over
    * the AI chat and over a phone's full-width side panel - and over the

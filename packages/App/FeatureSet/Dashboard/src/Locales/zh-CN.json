@@ -42427,6 +42427,7 @@
   "Connect your Mattermost account": "连接您的 Mattermost 账户",
   "Create a bot account for OneUptime in Mattermost, add it to your team, and paste its access token here.": "在 Mattermost 中为 OneUptime 创建一个机器人账号，将其添加到你的团队，然后在此粘贴它的访问令牌。",
   "Disconnect Mattermost": "断开 Mattermost",
+  "Drag to resize": "拖动以调整大小",
   "If Mattermost already has a channel with this name, OneUptime adds -2 to the end.": "如果 Mattermost 中已有同名频道，OneUptime 会在末尾加上 -2。",
   "In Mattermost, go to Integrations → Bot Accounts, add a bot for OneUptime and copy its access token. Then add the bot to your team.": "在 Mattermost 中前往“集成”→“机器人账号”，为 OneUptime 添加一个机器人并复制它的访问令牌。然后将该机器人添加到你的团队。",
   "It posts as @{{bot}} on {{server}}: what your notification rules send, a channel for each incident with its people added. Each member connects their own Mattermost account to act as themselves.": "它在 {{server}} 上以 @{{bot}} 的身份发布：你的通知规则发送的内容，以及为每个事件创建并加入相关人员的频道。每位成员连接自己的 Mattermost 账号，以本人身份操作。",
@@ -42440,6 +42441,7 @@
   "OneUptime sent a link to @{{username}} in Mattermost. Open it in this browser to finish connecting. It works once, for 15 minutes.": "OneUptime 已向 Mattermost 中的 @{{username}} 发送了一个链接。在此浏览器中打开即可完成连接。该链接仅能使用一次，有效期 15 分钟。",
   "Post incidents, alerts and scheduled maintenance to your Mattermost channels, give each incident a channel of its own, and let your team acknowledge and resolve from Mattermost.": "将事件、告警和计划维护发布到你的 Mattermost 频道，为每个事件创建专属频道，让团队直接在 Mattermost 中确认和解决。",
   "Post notifications to your Mattermost channels and act on them from Mattermost.": "将通知发布到你的 Mattermost 频道，并直接在 Mattermost 中处理。",
+  "Resize Ask AI": "调整询问 AI 的大小",
   "Send a link to your Mattermost account": "向你的 Mattermost 账号发送链接",
   "Send link": "发送链接",
   "Send link to @{{username}}": "向 @{{username}} 发送链接",
@@ -42470,5 +42472,6 @@
   "In Slack": "在 Slack 中",
   "Runbook Track Record": "运行手册的过往结果",
   "Where fixes were approved": "修复的批准位置",
-  "You do not have permission to dismiss this fix. Dismissing a fix needs the same permission as approving one: starting runbook executions in this project.": "您没有忽略此修复的权限。忽略修复所需的权限与批准修复相同：在此项目中启动运行手册执行。"
+  "You do not have permission to dismiss this fix. Dismissing a fix needs the same permission as approving one: starting runbook executions in this project.": "您没有忽略此修复的权限。忽略修复所需的权限与批准修复相同：在此项目中启动运行手册执行。",
+  "Disable Sign-In Links": "Disable Sign-In Links"
 }

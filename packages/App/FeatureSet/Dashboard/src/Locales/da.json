@@ -42427,6 +42427,7 @@
   "Connect your Mattermost account": "Forbind din Mattermost-konto",
   "Create a bot account for OneUptime in Mattermost, add it to your team, and paste its access token here.": "Opret en botkonto til OneUptime i Mattermost, føj den til dit team, og indsæt dens adgangstoken her.",
   "Disconnect Mattermost": "Afbryd forbindelsen til Mattermost",
+  "Drag to resize": "Træk for at tilpasse størrelsen",
   "If Mattermost already has a channel with this name, OneUptime adds -2 to the end.": "Hvis Mattermost allerede har en kanal med dette navn, tilføjer OneUptime -2 til sidst.",
   "In Mattermost, go to Integrations → Bot Accounts, add a bot for OneUptime and copy its access token. Then add the bot to your team.": "Gå i Mattermost til Integrationer → Botkonti, tilføj en bot til OneUptime, og kopiér dens adgangstoken. Føj derefter botten til dit team.",
   "It posts as @{{bot}} on {{server}}: what your notification rules send, a channel for each incident with its people added. Each member connects their own Mattermost account to act as themselves.": "Den sender som @{{bot}} på {{server}}: det, dine notifikationsregler sender, og en kanal til hver hændelse med dens personer tilføjet. Hvert medlem forbinder sin egen Mattermost-konto for at handle som sig selv.",
@@ -42440,6 +42441,7 @@
   "OneUptime sent a link to @{{username}} in Mattermost. Open it in this browser to finish connecting. It works once, for 15 minutes.": "OneUptime har sendt et link til @{{username}} i Mattermost. Åbn det i denne browser for at fuldføre forbindelsen. Det virker én gang i 15 minutter.",
   "Post incidents, alerts and scheduled maintenance to your Mattermost channels, give each incident a channel of its own, and let your team acknowledge and resolve from Mattermost.": "Send hændelser, alarmer og planlagt vedligeholdelse til dine Mattermost-kanaler, giv hver hændelse sin egen kanal, og lad dit team kvittere og løse dem fra Mattermost.",
   "Post notifications to your Mattermost channels and act on them from Mattermost.": "Send notifikationer til dine Mattermost-kanaler, og håndter dem direkte fra Mattermost.",
+  "Resize Ask AI": "Tilpas størrelsen på Spørg AI",
   "Send a link to your Mattermost account": "Send et link til din Mattermost-konto",
   "Send link": "Send link",
   "Send link to @{{username}}": "Send link til @{{username}}",
@@ -42470,5 +42472,6 @@
   "In Slack": "I Slack",
   "Runbook Track Record": "Runbookens tidligere resultater",
   "Where fixes were approved": "Hvor rettelser blev godkendt",
-  "You do not have permission to dismiss this fix. Dismissing a fix needs the same permission as approving one: starting runbook executions in this project.": "Du har ikke tilladelse til at afvise denne rettelse. At afvise en rettelse kræver den samme tilladelse som at godkende den: at starte runbook-kørsler i dette projekt."
+  "You do not have permission to dismiss this fix. Dismissing a fix needs the same permission as approving one: starting runbook executions in this project.": "Du har ikke tilladelse til at afvise denne rettelse. At afvise en rettelse kræver den samme tilladelse som at godkende den: at starte runbook-kørsler i dette projekt.",
+  "Disable Sign-In Links": "Disable Sign-In Links"
 }
