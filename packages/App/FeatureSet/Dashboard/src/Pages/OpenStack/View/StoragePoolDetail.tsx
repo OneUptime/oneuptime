@@ -51,12 +51,12 @@ import {
 
 /*
  * One Cinder pool: how full it is at the storage pool templates' two lines, what is free,
- * and when it fills at its recent growth. Nothing the agent collects says which pool a
- * volume is on, so this page can't list its volumes and says so, rather than reading as a
- * pool that holds none.
+ * and when it fills at its recent growth. Only a probe with a credential Cinder tells knows
+ * which pool a volume is on. Without that this page can't say what is on it and says so,
+ * rather than reading as a pool that holds none.
  */
 const VOLUMES_UNKNOWN: string = translationKey(
-  "Nothing collected says which pool a volume is on, so this page can't say which volumes are here or whose they are. openstack volume list --long shows it, with a credential that can read it.",
+  "Nothing collected says which pool a volume is on, so this page can't say which volumes are here or whose they are. A probe reads it with a credential Cinder treats as an admin, and openstack volume list --long shows it.",
 );
 
 const StoragePoolOverview: FunctionComponent<{

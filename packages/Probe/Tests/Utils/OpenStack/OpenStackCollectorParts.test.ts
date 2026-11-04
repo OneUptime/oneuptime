@@ -307,6 +307,127 @@ describe("what a record keeps of an answer", () => {
     ).not.toContain("Traceback");
   });
 
+  test.each([
+    {
+      why: "what every real cloud sends: nothing in accessIPv4, and a fixed address",
+      server: {
+        accessIPv4: "",
+        accessIPv6: "",
+        addresses: {
+          "ou-net": [
+            { version: 4, addr: "10.77.0.191", "OS-EXT-IPS:type": "fixed" },
+          ],
+        },
+      },
+      ipv4: "10.77.0.191",
+      ipv6: null,
+    },
+    {
+      why: "a floating address is the one reachable from outside, whichever comes first",
+      server: {
+        addresses: {
+          "ou-net": [
+            { version: 4, addr: "10.77.0.191", "OS-EXT-IPS:type": "fixed" },
+            { version: 4, addr: "172.24.4.33", "OS-EXT-IPS:type": "floating" },
+          ],
+        },
+      },
+      ipv4: "172.24.4.33",
+      ipv6: null,
+    },
+    {
+      why: "a floating address on any network beats a fixed one on the first",
+      server: {
+        addresses: {
+          "a-net": [
+            { version: 4, addr: "10.0.0.1", "OS-EXT-IPS:type": "fixed" },
+          ],
+          "b-net": [
+            { version: 4, addr: "172.24.4.9", "OS-EXT-IPS:type": "floating" },
+          ],
+        },
+      },
+      ipv4: "172.24.4.9",
+      ipv6: null,
+    },
+    {
+      why: "each family says its own",
+      server: {
+        addresses: {
+          "dual-net": [
+            { version: 6, addr: "fd00::5", "OS-EXT-IPS:type": "fixed" },
+            { version: 4, addr: "10.0.0.5", "OS-EXT-IPS:type": "fixed" },
+          ],
+        },
+      },
+      ipv4: "10.0.0.5",
+      ipv6: "fd00::5",
+    },
+    {
+      why: "in the networks' name order, however Nova listed them, so a series keeps its label",
+      server: {
+        addresses: {
+          "z-net": [{ version: 4, addr: "10.0.9.9" }],
+          "a-net": [{ version: 4, addr: "10.0.0.1" }],
+        },
+      },
+      ipv4: "10.0.0.1",
+      ipv6: null,
+    },
+    {
+      why: "what someone set to reach it at wins over what Nova worked out",
+      server: {
+        accessIPv4: "203.0.113.7",
+        accessIPv6: "2001:db8::7",
+        addresses: {
+          "ou-net": [
+            { version: 4, addr: "10.0.0.5" },
+            { version: 6, addr: "fd00::5" },
+          ],
+        },
+      },
+      ipv4: "203.0.113.7",
+      ipv6: "2001:db8::7",
+    },
+    {
+      why: "an instance that failed before it was placed has none",
+      server: { accessIPv4: "", accessIPv6: "", addresses: {} },
+      ipv4: null,
+      ipv6: null,
+    },
+    {
+      why: "a credential that isn't told has none",
+      server: {},
+      ipv4: null,
+      ipv6: null,
+    },
+    {
+      why: "nothing in it that reads as an address is an address",
+      server: {
+        addresses: {
+          "odd-net": "not a list",
+          "ou-net": [
+            null,
+            "10.0.0.5",
+            { version: 4 },
+            { version: 5, addr: "10.0.0.6" },
+            { addr: "10.0.0.7" },
+          ],
+        },
+      },
+      ipv4: null,
+      ipv6: null,
+    },
+  ])(
+    "its addresses: $why",
+    (data: { server: JSONObject; ipv4: string | null; ipv6: string | null }) => {
+      expect(toNovaServer({ id: "s1", ...data.server })).toMatchObject({
+        addressIpv4: data.ipv4,
+        addressIpv6: data.ipv6,
+      });
+    },
+  );
+
   test("an older Nova's flavor has an id, a newer one's a name", () => {
     expect(toNovaServer({ id: "s", flavor: { id: "1" } })?.flavorId).toBe("1");
     expect(
@@ -401,6 +522,21 @@ describe("what a record keeps of an answer", () => {
     ).toBe("s1");
     expect(toCinderVolume({ attachments: [] }).serverId).toBeNull();
     expect(toCinderVolume({}).serverId).toBeNull();
+  });
+
+  test("a volume says which pool holds it, in the words Cinder's pool list uses", () => {
+    expect(
+      toCinderVolume({
+        "os-vol-host-attr:host": "compute-01@lvmdriver-1#lvmdriver-1",
+      }).poolName,
+    ).toBe("compute-01@lvmdriver-1#lvmdriver-1");
+  });
+
+  test.each([
+    ["one not scheduled yet", { "os-vol-host-attr:host": null }],
+    ["a credential Cinder doesn't tell", {}],
+  ])("%s has no pool to name", (_why: string, volume: JSONObject) => {
+    expect(toCinderVolume(volume).poolName).toBeNull();
   });
 
   test("an image still queued has no size yet, and reads 0 as the exporter's does", () => {
