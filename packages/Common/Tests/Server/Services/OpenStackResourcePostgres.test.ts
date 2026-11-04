@@ -1428,6 +1428,44 @@ describePostgres("OpenStackResourceService on Postgres", () => {
       const result: OpenStackBlastRadius = await radius({
         kind: OpenStackResourceKind.StoragePool,
         name: "host@rbd#rbd",
+        regionName: "RegionOne",
+      });
+      expect(result.volumeCount).toBe(0);
+      expect(result.isKnown).toBe(false);
+    });
+
+    test("a pool holds nothing, when other volumes name their pools and none names it", async () => {
+      await write([
+        resource({
+          kind: OpenStackResourceKind.Volume,
+          externalId: "vol-1",
+          openStackProjectId: "payments",
+          facts: { pool: "host@lvm#lvm" },
+        }),
+      ]);
+      const result: OpenStackBlastRadius = await radius({
+        kind: OpenStackResourceKind.StoragePool,
+        name: "host@rbd#rbd",
+        regionName: "RegionOne",
+      });
+      expect(result.volumeCount).toBe(0);
+      expect(result.isKnown).toBe(true);
+    });
+
+    test("what another region's volumes name says nothing about this region's pool", async () => {
+      await write([
+        resource({
+          kind: OpenStackResourceKind.Volume,
+          externalId: "vol-1",
+          openStackProjectId: "payments",
+          regionName: "RegionTwo",
+          facts: { pool: "host@rbd#rbd" },
+        }),
+      ]);
+      const result: OpenStackBlastRadius = await radius({
+        kind: OpenStackResourceKind.StoragePool,
+        name: "host@rbd#rbd",
+        regionName: "RegionOne",
       });
       expect(result.volumeCount).toBe(0);
       expect(result.isKnown).toBe(false);
@@ -1451,9 +1489,53 @@ describePostgres("OpenStackResourceService on Postgres", () => {
       const result: OpenStackBlastRadius = await radius({
         kind: OpenStackResourceKind.StoragePool,
         name: "host@rbd#rbd",
+        regionName: "RegionOne",
       });
       expect(result.volumeCount).toBe(1);
       expect(result.isKnown).toBe(true);
+    });
+
+    test("two regions can each have a pool of one name, and each counts its own", async () => {
+      await write([
+        resource({
+          kind: OpenStackResourceKind.Volume,
+          externalId: "vol-1",
+          openStackProjectId: "payments",
+          facts: { pool: "host@rbd#rbd" },
+        }),
+        resource({
+          kind: OpenStackResourceKind.Volume,
+          externalId: "vol-2",
+          openStackProjectId: "payments",
+          regionName: "RegionTwo",
+          facts: { pool: "host@rbd#rbd" },
+        }),
+        resource({
+          kind: OpenStackResourceKind.Volume,
+          externalId: "vol-3",
+          openStackProjectId: "research",
+          regionName: "RegionTwo",
+          facts: { pool: "host@rbd#rbd" },
+        }),
+      ]);
+      expect(
+        (
+          await radius({
+            kind: OpenStackResourceKind.StoragePool,
+            name: "host@rbd#rbd",
+            regionName: "RegionOne",
+          })
+        ).volumeCount,
+      ).toBe(1);
+      expect(
+        (
+          await radius({
+            kind: OpenStackResourceKind.StoragePool,
+            name: "host@rbd#rbd",
+            regionName: "RegionTwo",
+          })
+        ).volumeCount,
+      ).toBe(2);
     });
 
     test("a region's compute API reaches that region's instances", async () => {

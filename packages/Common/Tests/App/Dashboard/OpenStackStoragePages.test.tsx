@@ -446,6 +446,30 @@ describe("a volume's page", () => {
     ).toHaveTextContent(/Not collected/);
   });
 
+  test("the pool a probe was told is one step from its page, by its row's name", async () => {
+    server.rows = [
+      volumeRow({
+        regionName: "RegionOne",
+        facts: { pool: "compute-01@lvmdriver-1#lvmdriver-1" },
+      }),
+    ];
+
+    await renderPage(OpenStackCloudVolumeDetail, PATH);
+
+    const pool: HTMLElement = await screen.findByTestId(
+      "openstack-volume-details-pool",
+    );
+
+    expect(pool).toHaveTextContent("compute-01@lvmdriver-1#lvmdriver-1");
+    expect(pool).not.toHaveTextContent(/Not collected/);
+    expect(within(pool).getByRole("link")).toHaveAttribute(
+      "href",
+      expect.stringContaining(
+        encodeURIComponent("RegionOne/compute-01@lvmdriver-1#lvmdriver-1"),
+      ),
+    );
+  });
+
   test("its alerts are the volume templates", async () => {
     server.rows = [volumeRow()];
 

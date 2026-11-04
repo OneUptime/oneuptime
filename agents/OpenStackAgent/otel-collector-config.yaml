@@ -198,6 +198,30 @@ receivers:
             - source_labels: [__name__]
               regex: rabbitmq_identity_info|rabbitmq_alarms_(memory_used_watermark|free_disk_space_watermark|file_descriptor_limit)|rabbitmq_process_(open_fds|max_fds|resident_memory_bytes)|rabbitmq_resident_memory_limit_bytes|rabbitmq_disk_space_available(_limit)?_bytes|rabbitmq_queue_messages(_ready|_unacked)?|rabbitmq_queue_consumers|rabbitmq_queues|rabbitmq_consumers|rabbitmq_connections|rabbitmq_erlang_uptime_seconds|erlang_vm_dist_node_state
               action: keep
+        # Each queue on its own, which RabbitMQ's default endpoint adds up per node, so it can
+        # say nothing of a queue with messages nobody reads while others are being read. Only
+        # those two series, and not a reply or fanout queue: each belongs to one caller or one
+        # agent and goes with it, and they are most of a cloud's queues. Its label is its own,
+        # so an `up` of 0 from a RabbitMQ too old for this endpoint reads as no node being down.
+        - job_name: oneuptime-openstack-rabbitmq-queues
+          scrape_interval: 60s
+          scrape_timeout: 30s
+          metrics_path: /metrics/detailed
+          params:
+            family: [queue_coarse_metrics, queue_consumer_count]
+          static_configs:
+            - targets: ${env:OPENSTACK_RABBITMQ_TARGETS}
+              labels:
+                openstack_dependency: rabbitmq-queues
+                openstack_region: ${env:OPENSTACK_CONTROL_PLANE_REGION}
+          relabel_configs: *openstack_control_plane_target
+          metric_relabel_configs:
+            - source_labels: [__name__]
+              regex: rabbitmq_detailed_queue_(messages_ready|consumers)
+              action: keep
+            - source_labels: [queue]
+              regex: reply_.*|.*_fanout_.*
+              action: drop
         - job_name: oneuptime-openstack-mariadb
           scrape_interval: 60s
           scrape_timeout: 30s
@@ -209,7 +233,7 @@ receivers:
           relabel_configs: *openstack_control_plane_target
           metric_relabel_configs:
             - source_labels: [__name__]
-              regex: mysql_up|mysql_global_status_wsrep_(cluster_size|cluster_status|ready|connected|local_state|flow_control_paused|local_recv_queue)|mysql_global_variables_wsrep_desync|mysql_global_status_threads_(connected|running)|mysql_global_variables_max_connections|mysql_global_status_slow_queries|mysql_global_status_uptime
+              regex: mysql_up|mysql_global_status_wsrep_(cluster_size|cluster_status|ready|connected|local_state|flow_control_paused|local_recv_queue)|mysql_global_variables_wsrep_(desync|on)|mysql_global_status_threads_(connected|running)|mysql_global_variables_max_connections|mysql_global_status_slow_queries|mysql_global_status_uptime
               action: keep
         - job_name: oneuptime-openstack-memcached
           scrape_interval: 60s
@@ -222,7 +246,7 @@ receivers:
           relabel_configs: *openstack_control_plane_target
           metric_relabel_configs:
             - source_labels: [__name__]
-              regex: memcached_up|memcached_current_connections|memcached_max_connections|memcached_items_evicted_total|memcached_current_bytes|memcached_limit_bytes
+              regex: memcached_up|memcached_current_connections|memcached_max_connections|memcached_items_evicted_total|memcached_commands_total|memcached_current_bytes|memcached_limit_bytes
               action: keep
         - job_name: oneuptime-openstack-haproxy
           scrape_interval: 60s
@@ -474,7 +498,7 @@ processors:
     error_mode: ignore
     metrics:
       metric:
-        - 'not IsMatch(name, "^(mysql_global_status_slow_queries|memcached_items_evicted_total|haproxy_backend_http_responses_total|ovs_interface_tx_errors)$")'
+        - 'not IsMatch(name, "^(mysql_global_status_slow_queries|memcached_items_evicted_total|memcached_commands_total|haproxy_backend_http_responses_total|ovs_interface_tx_errors)$")'
   transform/control-plane-increases:
     error_mode: ignore
     metric_statements:
@@ -482,6 +506,7 @@ processors:
         statements:
           - set(name, "mysql_slow_queries_increase") where name == "mysql_global_status_slow_queries"
           - set(name, "memcached_items_evicted_increase") where name == "memcached_items_evicted_total"
+          - set(name, "memcached_commands_increase") where name == "memcached_commands_total"
           - set(name, "haproxy_backend_http_responses_increase") where name == "haproxy_backend_http_responses_total"
           - set(name, "ovs_interface_tx_errors_increase") where name == "ovs_interface_tx_errors"
           # Both exporters leave some counters untyped, and those arrive as gauges.
@@ -491,6 +516,7 @@ processors:
       metrics:
         - mysql_slow_queries_increase
         - memcached_items_evicted_increase
+        - memcached_commands_increase
         - haproxy_backend_http_responses_increase
         - ovs_interface_tx_errors_increase
       match_type: strict

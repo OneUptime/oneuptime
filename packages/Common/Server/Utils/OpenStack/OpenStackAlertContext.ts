@@ -11,7 +11,10 @@ import {
   describeOpenStackBlastRadiusCounts,
   isOpenStackBlastRadiusEmpty,
 } from "../../../Types/OpenStack/OpenStackBlastRadius";
-import { OpenStackResourceKind } from "../../../Types/OpenStack/OpenStackResourceKind";
+import {
+  OpenStackResourceKind,
+  OpenStackServiceType,
+} from "../../../Types/OpenStack/OpenStackResourceKind";
 import FeedMarkdown, {
   MarkdownText,
   mdText,
@@ -222,6 +225,42 @@ export function getOpenStackProjectOfSeries(
   return readLabel(labels, "tenant_id") || readLabel(labels, "project_id");
 }
 
+/*
+ * When what failed is a whole region's API rather than one part of the region. Its radius is
+ * then every project in the region with anything there, and whoever reads it should know
+ * that this is what they are reading. Keystone is global, so its reach is the whole cloud's,
+ * whichever region's exporter said so.
+ */
+export interface OpenStackRegionWide {
+  regionName: string | null;
+  service: OpenStackServiceType;
+  isWholeCloud: boolean;
+}
+
+export function getOpenStackRegionWide(part: {
+  kind?: OpenStackResourceKind | null | undefined;
+  name?: string | null | undefined;
+  regionName?: string | null | undefined;
+}): OpenStackRegionWide | null {
+  if (
+    part.kind !== OpenStackResourceKind.Api ||
+    !part.name ||
+    !Object.values(OpenStackServiceType).includes(
+      part.name as OpenStackServiceType,
+    )
+  ) {
+    return null;
+  }
+
+  const service: OpenStackServiceType = part.name as OpenStackServiceType;
+
+  return {
+    regionName: part.regionName || null,
+    service,
+    isWholeCloud: service === OpenStackServiceType.Identity,
+  };
+}
+
 export interface OpenStackAlertContextResult {
   radius: OpenStackBlastRadius | null;
   // A project the series itself names, whether or not it has a radius.
@@ -231,6 +270,8 @@ export interface OpenStackAlertContextResult {
   partKind: OpenStackResourceKind | null;
   // Its row's id, when the series names a part with a row.
   partExternalId?: string | undefined;
+  // Set when the part is a whole region's API, which is what the radius then reads.
+  regionWide?: OpenStackRegionWide | undefined;
   /*
    * On a hypervisor that has passed a line on what its instances really use, the instances
    * responsible, with how long each is waiting where the source says.
@@ -310,6 +351,14 @@ export default class OpenStackAlertContext {
           facts: part.facts,
         },
       });
+      const regionWide: OpenStackRegionWide | null = getOpenStackRegionWide({
+        kind: candidate.kind,
+        name: part.name,
+        regionName: part.regionName,
+      });
+      if (regionWide) {
+        result.regionWide = regionWide;
+      }
       /*
        * Beyond the cloud: best effort on its own, so a Kubernetes or Host read that fails
        * leaves the alert with what the cloud itself said.
@@ -533,9 +582,20 @@ export default class OpenStackAlertContext {
         );
       }
 
-      sections.push(
-        mdText`**What this affects:** ${describeOpenStackBlastRadius(radius)}.`,
-      );
+      const regionWide: OpenStackRegionWide | undefined = context.regionWide;
+      if (regionWide?.isWholeCloud) {
+        sections.push(
+          mdText`**What this affects across the whole cloud:** ${describeOpenStackBlastRadius(radius)}.`,
+        );
+      } else if (regionWide?.regionName) {
+        sections.push(
+          mdText`**What this affects across region ${regionWide.regionName}:** ${describeOpenStackBlastRadius(radius)}.`,
+        );
+      } else {
+        sections.push(
+          mdText`**What this affects:** ${describeOpenStackBlastRadius(radius)}.`,
+        );
+      }
 
       if (projectLines.length > 0) {
         sections.push(FeedMarkdown.bulletList(projectLines));
