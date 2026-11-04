@@ -624,7 +624,8 @@ const TOPOLOGY_PAGES: Partial<Record<SecurityConnectionKind, PageMap>> = {
   [SecurityConnectionKind.PodmanHost]: PageMap.PODMAN_HOST_VIEW_TOPOLOGY,
   [SecurityConnectionKind.KubernetesCluster]:
     PageMap.KUBERNETES_CLUSTER_VIEW_TOPOLOGY,
-  [SecurityConnectionKind.OpenStackCloud]: PageMap.OPENSTACK_CLOUD_VIEW_TOPOLOGY,
+  [SecurityConnectionKind.OpenStackCloud]:
+    PageMap.OPENSTACK_CLOUD_VIEW_TOPOLOGY,
 };
 
 // A pinned window as the pages with a time picker read it from their address.

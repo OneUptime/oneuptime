@@ -423,15 +423,16 @@ export async function readOpenStackInstanceActions(data: {
   nextCursor: string | null;
 }): Promise<OpenStackInstanceActionRead> {
   const now: number = data.client.now();
-  const state: OpenStackInstanceActionState = data.memory.recall<OpenStackInstanceActionState>(
-    data.stateKey,
-    INSTANCE_STATE_IDLE_TIMEOUT_IN_MS,
-    now,
-  ) || {
-    cursor: toNovaTime(now - FIRST_READ_LOOKBACK_IN_MS),
-    later: [],
-    said: [],
-  };
+  const state: OpenStackInstanceActionState =
+    data.memory.recall<OpenStackInstanceActionState>(
+      data.stateKey,
+      INSTANCE_STATE_IDLE_TIMEOUT_IN_MS,
+      now,
+    ) || {
+      cursor: toNovaTime(now - FIRST_READ_LOOKBACK_IN_MS),
+      later: [],
+      said: [],
+    };
 
   const chosen: {
     toRead: Array<{ server: NovaServerRecord; since: string }>;
@@ -484,8 +485,7 @@ export async function readOpenStackInstanceActions(data: {
   data.memory.remember(
     data.stateKey,
     {
-      cursor:
-        data.nextCursor || toNovaTime(now - CHANGES_SINCE_OVERLAP_IN_MS),
+      cursor: data.nextCursor || toNovaTime(now - CHANGES_SINCE_OVERLAP_IN_MS),
       later: later.slice(0, MAX_SERVERS_LEFT_FOR_LATER),
       said: Array.from(said).slice(-MAX_ACTIONS_REMEMBERED),
     } as OpenStackInstanceActionState,
@@ -530,13 +530,14 @@ export function buildOpenStackInstanceActionLogs(data: {
       },
       scopeLogs: [
         {
-          scope: { name: "oneuptime-probe-openstack", version: data.scopeVersion },
+          scope: {
+            name: "oneuptime-probe-openstack",
+            version: data.scopeVersion,
+          },
           logRecords: region.notifications.map(
             (notification: JSONObject): JSONObject => {
               const failed: boolean = notification["priority"] === "ERROR";
-              const at: number = readTime(
-                text(notification["timestamp"]),
-              );
+              const at: number = readTime(text(notification["timestamp"]));
 
               return {
                 timeUnixNano: `${(Number.isNaN(at) ? data.now : at) * 1_000_000}`,

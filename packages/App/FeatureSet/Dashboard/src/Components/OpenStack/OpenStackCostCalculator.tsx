@@ -1,5 +1,7 @@
-import { OpenStackServiceType } from "Common/Types/OpenStack/OpenStackResourceKind";
-import { OPENSTACK_SERVICE_TITLES } from "Common/Types/OpenStack/OpenStackResourceKind";
+import {
+  OPENSTACK_SERVICE_TITLES,
+  OpenStackServiceType,
+} from "Common/Types/OpenStack/OpenStackResourceKind";
 import {
   OPENSTACK_DATABASE_PATH_HYPERVISOR_LIMIT,
   OPENSTACK_DATABASE_PATH_INSTANCE_LIMIT,
@@ -108,7 +110,9 @@ const OpenStackCostCalculator: FunctionComponent = (): ReactElement => {
   }): ReactElement => {
     return (
       <label className="block text-sm font-medium text-gray-700">
-        <span className="mb-1 block">{translator.translateText(data.title)}</span>
+        <span className="mb-1 block">
+          {translator.translateText(data.title)}
+        </span>
         <Input
           type={InputType.NUMBER}
           value={data.value}

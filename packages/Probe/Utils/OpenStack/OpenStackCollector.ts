@@ -89,6 +89,7 @@ import SSRFProtection, {
   ValidatedWebhookTarget,
   ValidatedWebhookTargetAddress,
 } from "Common/Server/Utils/SSRFProtection";
+import { JSONArray, JSONObject } from "Common/Types/JSON";
 import OpenStackCollectionErrorCode from "Common/Types/OpenStack/OpenStackCollectionError";
 import { OpenStackInstanceMetricsMode } from "Common/Types/OpenStack/OpenStackInstanceMetrics";
 import {
@@ -891,7 +892,10 @@ export default class OpenStackCollector {
 
     if (!isSummaryMode) {
       return {
-        gate: estimatedBytes > data.maxPayloadBytes ? NO_PER_PART_SERIES : undefined,
+        gate:
+          estimatedBytes > data.maxPayloadBytes
+            ? NO_PER_PART_SERIES
+            : undefined,
         refreshCycleInMinutes: undefined,
         isSummaryMode: false,
         estimatedBytes: estimatedBytes,

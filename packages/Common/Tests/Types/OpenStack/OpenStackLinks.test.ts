@@ -64,12 +64,12 @@ describe("whether a host's name is a hypervisor's", () => {
     [null, "compute-01", false],
     [undefined, undefined, false],
   ])("%s and %s: %s", (first: unknown, second: unknown, match: boolean) => {
-    expect(
-      isOpenStackHostNameMatch(first as string, second as string),
-    ).toBe(match);
-    expect(
-      isOpenStackHostNameMatch(second as string, first as string),
-    ).toBe(match);
+    expect(isOpenStackHostNameMatch(first as string, second as string)).toBe(
+      match,
+    );
+    expect(isOpenStackHostNameMatch(second as string, first as string)).toBe(
+      match,
+    );
   });
 
   test("a short name that fits two hypervisors in two domains links to neither", () => {
@@ -89,7 +89,9 @@ describe("what Cinder's RBD driver says of itself", () => {
 
   test("names the Ceph cluster by its fsid and the pool by its name", () => {
     expect(
-      parseOpenStackRbdLocation(`ceph:/etc/ceph/ceph.conf:${FSID}:cinder:volumes`),
+      parseOpenStackRbdLocation(
+        `ceph:/etc/ceph/ceph.conf:${FSID}:cinder:volumes`,
+      ),
     ).toEqual({ clusterName: "ceph", fsid: FSID, poolName: "volumes" });
   });
 

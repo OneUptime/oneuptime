@@ -167,7 +167,9 @@ describe("spans from OSProfiler's driver, through the real ingest", () => {
 
     insert = jest
       .spyOn(SpanService, "insertJsonRows")
-      .mockResolvedValue(undefined as never);
+      .mockResolvedValue(undefined as never) as unknown as jest.SpiedFunction<
+      typeof SpanService.insertJsonRows
+    >;
   });
 
   afterEach(async () => {
@@ -315,7 +317,9 @@ describe("spans from OSProfiler's driver, through the real ingest", () => {
   test("a first span with no parent, as 4.4.0 sends it, is a root", async () => {
     const row: JSONObject = await onlyRow(
       body({
-        spans: [driverSpan({ name: "WSGI_GET_/v2.1/servers", parentSpanId: "" })],
+        spans: [
+          driverSpan({ name: "WSGI_GET_/v2.1/servers", parentSpanId: "" }),
+        ],
       }),
     );
 

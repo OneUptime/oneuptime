@@ -32,9 +32,12 @@ export function getOpenStackHostRoute(hostId: string): Route {
 }
 
 export function getOpenStackServiceRoute(serviceId: string): Route {
-  return RouteUtil.populateRouteParams(RouteMap[PageMap.SERVICE_VIEW] as Route, {
-    modelId: new ObjectID(serviceId),
-  }) as Route;
+  return RouteUtil.populateRouteParams(
+    RouteMap[PageMap.SERVICE_VIEW] as Route,
+    {
+      modelId: new ObjectID(serviceId),
+    },
+  ) as Route;
 }
 
 export function getOpenStackKubernetesClusterRoute(clusterId: string): Route {
@@ -161,15 +164,17 @@ const OpenStackInstanceLinksCard: FunctionComponent<{
   instanceId: string;
   refreshToken?: number | undefined;
 }): ReactElement => {
-  const read: OpenStackRead<OpenStackReachAcrossProducts> = useOpenStackRead(
-    () => {
+  const read: OpenStackRead<OpenStackReachAcrossProducts> =
+    useOpenStackRead(() => {
       return fetchOpenStackReachOfInstance({
         openStackCloudId: props.openStackCloudId,
         instanceId: props.instanceId,
       });
-    },
-    [props.openStackCloudId.toString(), props.instanceId, props.refreshToken],
-  );
+    }, [
+      props.openStackCloudId.toString(),
+      props.instanceId,
+      props.refreshToken,
+    ]);
 
   if (!read.data || isOpenStackReachEmpty(read.data)) {
     return <></>;

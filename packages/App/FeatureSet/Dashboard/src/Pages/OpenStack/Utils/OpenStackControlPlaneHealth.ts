@@ -97,9 +97,7 @@ const REASON_BACKEND_DOWN: string = translationKey(
   "Backend {{backend}} has no server left",
 );
 const REASON_SERVER_DOWN: string = translationKey("Server {{server}} is down");
-const REASON_OVS_GONE: string = translationKey(
-  "Open vSwitch isn't answering",
-);
+const REASON_OVS_GONE: string = translationKey("Open vSwitch isn't answering");
 const REASON_OVN_CONTROLLER_GONE: string = translationKey(
   "ovn-controller isn't answering",
 );
@@ -548,8 +546,7 @@ export function getOpenStackControlPlaneAttentionItems(data: {
         continue;
       }
 
-      const title: string =
-        OPENSTACK_DEPENDENCY_DEFINITIONS[dependency].title;
+      const title: string = OPENSTACK_DEPENDENCY_DEFINITIONS[dependency].title;
       const findings: Array<{
         severity: ResourceAttentionSeverity;
         reason: ResourceAttentionText;

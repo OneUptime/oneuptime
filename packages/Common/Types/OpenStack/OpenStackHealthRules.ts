@@ -100,11 +100,13 @@ export function isOpenStackServiceDown(data: {
  * `compute-01.example.internal` are one machine. Anything joining the two compares
  * this. An IP address has no short form, so it is left whole.
  */
+const IPV4_ADDRESS: RegExp = /^[0-9.]+$/;
+
 export function getOpenStackShortHostName(
   hostName: string | null | undefined,
 ): string {
   const name: string = (hostName || "").trim();
-  if (/^[0-9.]+$/.test(name) || name.includes(":")) {
+  if (IPV4_ADDRESS.test(name) || name.includes(":")) {
     return name;
   }
   const dot: number = name.indexOf(".");

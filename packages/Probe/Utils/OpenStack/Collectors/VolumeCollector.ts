@@ -214,7 +214,9 @@ async function collectProjectLimits(
         items: projects,
         limit: OPENSTACK_PROJECT_LIMIT_READS_PER_COLLECTION,
         idOf: idOf,
-        read: async (project: OpenStackProjectRef): Promise<CinderLimitsRecord> => {
+        read: async (
+          project: OpenStackProjectRef,
+        ): Promise<CinderLimitsRecord> => {
           // usage=True says both what is allowed and what is used, in one call.
           const answer: OpenStackJsonAnswer = await client.get({
             read: "a project's limits",

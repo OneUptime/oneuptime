@@ -5,6 +5,21 @@ import {
   OpenStackLogAttribute,
 } from "./OpenStackLogs";
 
+interface RequestTally {
+  services: Set<string>;
+  lineCount: number;
+  failed: boolean;
+  first: number;
+  last: number;
+}
+
+interface ServiceTally {
+  hosts: Set<string>;
+  lineCount: number;
+  failed: boolean;
+  first: number;
+}
+
 /*
  * FOLLOWING ONE REQUEST ACROSS SERVICES, AND SAYING HOW FAR THAT GOT.
  *
@@ -68,16 +83,7 @@ export interface OpenStackRequestSummary {
 export function summarizeOpenStackRequests(
   rows: ReadonlyArray<OpenStackTrailRow>,
 ): Array<OpenStackRequestSummary> {
-  const byRoot: Map<
-    string,
-    {
-      services: Set<string>;
-      lineCount: number;
-      failed: boolean;
-      first: number;
-      last: number;
-    }
-  > = new Map();
+  const byRoot: Map<string, RequestTally> = new Map();
 
   for (const row of rows) {
     const rootId: string = readAttribute(
@@ -117,7 +123,7 @@ export function summarizeOpenStackRequests(
   }
 
   return Array.from(byRoot.entries())
-    .map(([rootId, known]): OpenStackRequestSummary => {
+    .map(([rootId, known]: [string, RequestTally]): OpenStackRequestSummary => {
       return {
         rootId,
         services: Array.from(known.services).sort(),
@@ -127,15 +133,13 @@ export function summarizeOpenStackRequests(
         lastAt: known.last ? new Date(known.last) : null,
       };
     })
-    .sort(
-      (a: OpenStackRequestSummary, b: OpenStackRequestSummary): number => {
-        if (a.failed !== b.failed) {
-          return a.failed ? -1 : 1;
-        }
+    .sort((a: OpenStackRequestSummary, b: OpenStackRequestSummary): number => {
+      if (a.failed !== b.failed) {
+        return a.failed ? -1 : 1;
+      }
 
-        return (b.lastAt?.getTime() || 0) - (a.lastAt?.getTime() || 0);
-      },
-    );
+      return (b.lastAt?.getTime() || 0) - (a.lastAt?.getTime() || 0);
+    });
 }
 
 export interface OpenStackRequestJoinedService {
@@ -168,10 +172,7 @@ export function joinOpenStackRequest(data: {
   requestRows: ReadonlyArray<OpenStackTrailRow>;
   windowRows: ReadonlyArray<OpenStackTrailRow>;
 }): OpenStackRequestJoin {
-  const byService: Map<
-    string,
-    { hosts: Set<string>; lineCount: number; failed: boolean; first: number }
-  > = new Map();
+  const byService: Map<string, ServiceTally> = new Map();
   let first: number = 0;
   let last: number = 0;
 
@@ -207,7 +208,7 @@ export function joinOpenStackRequest(data: {
   const joined: Array<OpenStackRequestJoinedService> = Array.from(
     byService.entries(),
   )
-    .map(([service, known]): OpenStackRequestJoinedService => {
+    .map(([service, known]: [string, ServiceTally]): OpenStackRequestJoinedService => {
       return {
         service,
         hosts: Array.from(known.hosts).sort(),

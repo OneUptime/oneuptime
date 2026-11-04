@@ -437,7 +437,9 @@ async function collectProjectLimits(
         items: projects,
         limit: OPENSTACK_PROJECT_LIMIT_READS_PER_COLLECTION,
         idOf: idOf,
-        read: async (project: OpenStackProjectRef): Promise<NovaQuotaRecord> => {
+        read: async (
+          project: OpenStackProjectRef,
+        ): Promise<NovaQuotaRecord> => {
           const answer: OpenStackJsonAnswer = await client.get({
             read: "a project's quotas",
             path: `/os-quota-sets/${encodeURIComponent(project.id)}/detail`,
@@ -465,7 +467,9 @@ async function collectProjectLimits(
         items: projects,
         limit: OPENSTACK_PROJECT_LIMIT_READS_PER_COLLECTION,
         idOf: idOf,
-        read: async (project: OpenStackProjectRef): Promise<NovaLimitsRecord> => {
+        read: async (
+          project: OpenStackProjectRef,
+        ): Promise<NovaLimitsRecord> => {
           const answer: OpenStackJsonAnswer = await client.get({
             read: "a project's limits",
             path: "/limits",

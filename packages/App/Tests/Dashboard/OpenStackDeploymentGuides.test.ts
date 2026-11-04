@@ -1,7 +1,6 @@
 import { describe, expect, test } from "@jest/globals";
 import fs from "fs";
 import path from "path";
-import yaml from "js-yaml";
 import {
   InstallScriptEntry,
   InstallScriptName,
@@ -19,7 +18,6 @@ import {
   OPENSTACK_LOGS_INSTALLER,
   OpenStackDeploymentGuide,
   OpenStackDeploymentTool,
-  OpenStackKollaExporter,
   doesOpenStackToolUseAgent,
   getOpenStackDeploymentGuide,
   resolveOpenStackDeploymentTool,
@@ -32,6 +30,28 @@ import {
   getSetupGuideCodeBlocks,
   getSetupGuideMarkdown,
 } from "../../FeatureSet/Dashboard/src/Components/SetupGuide/SetupGuide";
+
+/*
+ * js-yaml from Common/node_modules, as OpenTelemetryCollectorExampleDocs.test.ts loads it
+ * and for the same reason: Common declares js-yaml 4, App declares no YAML parser.
+ */
+interface JsYamlModule {
+  load: (text: string) => unknown;
+}
+
+/* eslint-disable @typescript-eslint/no-require-imports, @typescript-eslint/no-var-requires */
+const yaml: JsYamlModule = require(
+  path.resolve(
+    __dirname,
+    "..",
+    "..",
+    "..",
+    "Common",
+    "node_modules",
+    "js-yaml",
+  ),
+);
+/* eslint-enable @typescript-eslint/no-require-imports, @typescript-eslint/no-var-requires */
 
 /*
  * ONE QUESTION, AND EACH ANSWER TRUE FOR THAT TOOL.
@@ -53,13 +73,7 @@ const DASHBOARD_SRC: string = path.join(
   "Dashboard",
   "src",
 );
-const DOCS_DIR: string = path.join(
-  __dirname,
-  "..",
-  "..",
-  "FeatureSet",
-  "Docs",
-);
+const DOCS_DIR: string = path.join(__dirname, "..", "..", "FeatureSet", "Docs");
 
 const URL: string = "https://oneuptime.com";
 const KEY: string = "tik_secret_123";
@@ -71,7 +85,13 @@ function agentFile(...parts: Array<string>): string {
 }
 
 const DOCS_PAGE: string = fs.readFileSync(
-  path.join(DOCS_DIR, "Content", "en", "telemetry", "openstack-deployment-tools.md"),
+  path.join(
+    DOCS_DIR,
+    "Content",
+    "en",
+    "telemetry",
+    "openstack-deployment-tools.md",
+  ),
   "utf8",
 );
 
@@ -183,7 +203,12 @@ describe("How do you deploy OpenStack?", () => {
   test("the card asks it, and gives the guide the answer", () => {
     const card: string = squash(
       fs.readFileSync(
-        path.join(DASHBOARD_SRC, "Components", "OpenStack", "DocumentationCard.tsx"),
+        path.join(
+          DASHBOARD_SRC,
+          "Components",
+          "OpenStack",
+          "DocumentationCard.tsx",
+        ),
         "utf8",
       ),
     );
@@ -191,7 +216,9 @@ describe("How do you deploy OpenStack?", () => {
     expect(card).toContain('optionsLabel="How do you deploy OpenStack?"');
     expect(card).toContain("options={OPENSTACK_DEPLOYMENT_TOOLS}");
     expect(card).toContain("initialOption={DEFAULT_OPENSTACK_DEPLOYMENT_TOOL}");
-    expect(card).toContain("tool: resolveOpenStackDeploymentTool(context.option)");
+    expect(card).toContain(
+      "tool: resolveOpenStackDeploymentTool(context.option)",
+    );
     // The install question is only asked where there is an agent to install.
     expect(card).toContain("doesOpenStackToolUseAgent(tool) ?");
   });
@@ -211,7 +238,12 @@ describe("How do you deploy OpenStack?", () => {
       }),
     ).toEqual(["openstack-helm", "atmosphere", "rhoso", "mosk"]);
 
-    for (const tool of ["openstack-helm", "atmosphere", "rhoso", "mosk"] as const) {
+    for (const tool of [
+      "openstack-helm",
+      "atmosphere",
+      "rhoso",
+      "mosk",
+    ] as const) {
       const content: SetupGuideContent = setupGuideOf(tool);
 
       expect(content.prerequisites).toBeUndefined();
@@ -226,7 +258,11 @@ describe("How do you deploy OpenStack?", () => {
   });
 
   test("a tool the agent reads keeps the agent's own steps, whichever way it installs", () => {
-    for (const tool of ["kolla-ansible", "openstack-ansible", "sunbeam"] as const) {
+    for (const tool of [
+      "kolla-ansible",
+      "openstack-ansible",
+      "sunbeam",
+    ] as const) {
       for (const method of ["install-script", "docker-compose"] as const) {
         const titles: Array<string> = setupGuideOf(tool, method).steps.map(
           (step: SetupGuideStep): string => {
@@ -242,7 +278,7 @@ describe("How do you deploy OpenStack?", () => {
 });
 
 describe("each guide says plainly how far it has been tested", () => {
-  test.each(NAMED_TOOLS)("%s, on screen, and never claims more", (tool) => {
+  test.each(NAMED_TOOLS)("%s, on screen, and never claims more", (tool: OpenStackDeploymentTool) => {
     const intro: string = setupGuideOf(tool).intro as string;
 
     expect(intro).toContain("How far this guide has been tested:");
@@ -291,10 +327,7 @@ describe("what is already firing, with no agent", () => {
    * Where each tool's Alertmanager reads its receivers from, so what a guide shows parses as
    * that tool reads it, and really holds the receiver: indentation is the whole risk here.
    */
-  function receiversOf(
-    tool: OpenStackDeploymentTool,
-    config: any,
-  ): Array<any> {
+  function receiversOf(tool: OpenStackDeploymentTool, config: any): Array<any> {
     switch (tool) {
       case "openstack-helm":
         return (yaml.load(config.conf.alertmanager) as any).receivers;
@@ -310,7 +343,7 @@ describe("what is already firing, with no agent", () => {
     }
   }
 
-  test.each(WITH_ALERTMANAGER)("%s gets a first step for it", (tool) => {
+  test.each(WITH_ALERTMANAGER)("%s gets a first step for it", (tool: OpenStackDeploymentTool) => {
     const first: SetupGuideStep = setupGuideOf(tool).steps[0]!;
 
     expect(first.title).toBe("Forward what is already firing");
@@ -325,7 +358,7 @@ describe("what is already firing, with no agent", () => {
 
   test.each(WITH_ALERTMANAGER)(
     "%s shows a receiver that parses as it reads it, and posts to the monitor's URL",
-    (tool) => {
+    (tool: OpenStackDeploymentTool) => {
       const first: SetupGuideStep = setupGuideOf(tool).steps[0]!;
       const config: unknown = yaml.load(blocksIn(first.markdown)[0] as string);
       const receivers: Array<any> = receiversOf(tool, config);
@@ -340,15 +373,21 @@ describe("what is already firing, with no agent", () => {
           : receivers[0].webhook_configs[0];
 
       expect(webhook.url).toBe(`${URL}/heartbeat/<secret key>`);
-      expect(tool === "rhoso" ? webhook.sendResolved : webhook.send_resolved).toBe(
-        true,
-      );
+      expect(
+        tool === "rhoso" ? webhook.sendResolved : webhook.send_resolved,
+      ).toBe(true);
     },
   );
 
   test("the URL is the one the Alertmanager page tells a person to copy", () => {
     const page: string = fs.readFileSync(
-      path.join(DOCS_DIR, "Content", "en", "integrations", "prometheus-alertmanager.md"),
+      path.join(
+        DOCS_DIR,
+        "Content",
+        "en",
+        "integrations",
+        "prometheus-alertmanager.md",
+      ),
       "utf8",
     );
 
@@ -472,7 +511,9 @@ describe("the paths and commands each tool's own source has", () => {
 
     const osa: string = guideOf("openstack-ansible").credentialNotes.join("\n");
 
-    expect(osa).toContain("lxc-attach -n $(lxc-ls -1 | grep utility | head -n 1)");
+    expect(osa).toContain(
+      "lxc-attach -n $(lxc-ls -1 | grep utility | head -n 1)",
+    );
     expect(osa).toContain(". ~/openrc");
     expect(osa).toContain("nova_policy_overrides");
     expect(osa).toContain(
@@ -490,7 +531,7 @@ describe("the paths and commands each tool's own source has", () => {
   });
 
   test("every file a guide downloads is one OneUptime serves", () => {
-    const entry: InstallScriptEntry | undefined = getInstallScriptEntry(
+    const entry: InstallScriptEntry | null = getInstallScriptEntry(
       InstallScriptName.OpenStackAgent,
     );
 
@@ -513,7 +554,7 @@ describe("the paths and commands each tool's own source has", () => {
 
   test.each(NAMED_TOOLS)(
     "%s only names settings the agent really reads",
-    (tool) => {
+    (tool: OpenStackDeploymentTool) => {
       const compose: string = agentFile("docker-compose.yml");
 
       for (const match of ownMarkdownOf(tool).matchAll(
@@ -637,8 +678,8 @@ describe("Kolla-Ansible's own exporter, and what the pages lose on it", () => {
   });
 
   test("the guide's words for it name its setting, its port and its cost", () => {
-    const variant: string = guideOf("kolla-ansible").credentialVariants[0]!
-      .markdown;
+    const variant: string =
+      guideOf("kolla-ansible").credentialVariants[0]!.markdown;
 
     expect(variant).toContain(
       `OPENSTACK_SINGLE_CLOUD_EXPORTER_TARGETS=<kolla_internal_vip_address>:${OPENSTACK_KOLLA_EXPORTER_PORT}`,
@@ -648,9 +689,12 @@ describe("Kolla-Ansible's own exporter, and what the pages lose on it", () => {
     expect(variant).toContain(OPENSTACK_EXPORTER_170_LOSSES);
   });
 
-  test.each(OTHER_TEXTS)("%s has the same table, word for word", (_name, text) => {
-    expect(squash(text)).toContain(squash(OPENSTACK_EXPORTER_170_LOSSES));
-  });
+  test.each(OTHER_TEXTS)(
+    "%s has the same table, word for word",
+    (_name: string, text: string) => {
+      expect(squash(text)).toContain(squash(OPENSTACK_EXPORTER_170_LOSSES));
+    },
+  );
 });
 
 describe("the docs page is the guide, written down", () => {
@@ -658,7 +702,7 @@ describe("the docs page is the guide, written down", () => {
    * Everything a person can copy from a tool's guide is on the page as it stands, so a
    * command changed in one fails here until the other follows.
    */
-  test.each(NAMED_TOOLS)("every block %s shows", (tool) => {
+  test.each(NAMED_TOOLS)("every block %s shows", (tool: OpenStackDeploymentTool) => {
     const page: string = squash(DOCS_PAGE);
     const blocks: Array<string> = blocksIn(ownMarkdownOf(tool));
 

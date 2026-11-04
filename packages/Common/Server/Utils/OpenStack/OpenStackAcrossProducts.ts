@@ -464,7 +464,9 @@ export default class OpenStackAcrossProducts {
        LIMIT ${OPENSTACK_KUBERNETES_NODES_READ}`,
       [
         projectId.toString(),
-        instanceId ? `openstack://%/${escapeLike(instanceId)}` : "openstack://%",
+        instanceId
+          ? `openstack://%/${escapeLike(instanceId)}`
+          : "openstack://%",
       ],
     );
     const nodes: Array<{

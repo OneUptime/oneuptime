@@ -299,20 +299,23 @@ describe("where something in another product runs", () => {
   test.each([
     ["another cloud's provider", "aws:///us-east-1a/i-0abc"],
     ["no provider at all", null],
-  ])("a node with %s isn't on OpenStack", async (_name: string, providerId: unknown) => {
-    const findBy: unknown = jest.spyOn(OpenStackResourceService, "findBy");
-    mockQuery(KubernetesResourceService, () => {
-      return [{ providerId }];
-    });
-    await expect(
-      OpenStackAcrossProducts.getPlacementOfKubernetesNode({
-        projectId: PROJECT_ID,
-        kubernetesClusterId: ObjectID.generate(),
-        nodeName: "node-1",
-      }),
-    ).resolves.toBeNull();
-    expect(findBy).not.toHaveBeenCalled();
-  });
+  ])(
+    "a node with %s isn't on OpenStack",
+    async (_name: string, providerId: unknown) => {
+      const findBy: unknown = jest.spyOn(OpenStackResourceService, "findBy");
+      mockQuery(KubernetesResourceService, () => {
+        return [{ providerId }];
+      });
+      await expect(
+        OpenStackAcrossProducts.getPlacementOfKubernetesNode({
+          projectId: PROJECT_ID,
+          kubernetesClusterId: ObjectID.generate(),
+          nodeName: "node-1",
+        }),
+      ).resolves.toBeNull();
+      expect(findBy).not.toHaveBeenCalled();
+    },
+  );
 
   test("a service is placed through each host its telemetry names", async () => {
     mockInstanceSurroundings();
@@ -325,11 +328,9 @@ describe("where something in another product runs", () => {
     mockQuery(OpenStackResourceService, () => {
       return [];
     });
-    jest
-      .spyOn(HostService, "findOneBy")
-      .mockImplementation((async () => {
-        return null;
-      }) as never);
+    jest.spyOn(HostService, "findOneBy").mockImplementation((async () => {
+      return null;
+    }) as never);
     jest
       .spyOn(OpenStackResourceService, "findBy")
       .mockImplementation((async (data: {
@@ -347,11 +348,9 @@ describe("where something in another product runs", () => {
       serviceName: "api",
     });
     expect(
-      placements.map(
-        (one: (typeof placements)[number]): string => {
-          return one.hostName;
-        },
-      ),
+      placements.map((one: (typeof placements)[number]): string => {
+        return one.hostName;
+      }),
     ).toEqual(["web-1"]);
     expect(placements[0]!.placement.hypervisorName).toBe(HYPERVISOR);
   });
@@ -381,8 +380,7 @@ describe("what a failed hypervisor takes with it beyond the cloud", () => {
             clusterId: "cluster-2",
             clusterName: "elsewhere",
             nodeName: "node-9",
-            providerId:
-              "openstack:///ffffffff-ffff-4fff-8fff-ffffffffffff",
+            providerId: "openstack:///ffffffff-ffff-4fff-8fff-ffffffffffff",
           },
         ]
       );
@@ -390,17 +388,15 @@ describe("what a failed hypervisor takes with it beyond the cloud", () => {
     mockQuery(HostService, () => {
       return [{ name: "api" }, { name: "worker" }, { name: null }];
     });
-    jest
-      .spyOn(HostService, "findBy")
-      .mockImplementation((async (query: {
-        query: { hostId?: unknown };
-      }) => {
-        return query.query.hostId
-          ? [hostRow({ name: "web-1", hostIdentifier: "web-1" })]
-          : data?.hypervisorHosts || [
-              hostRow({ name: HYPERVISOR, hostIdentifier: HYPERVISOR }),
-            ];
-      }) as never);
+    jest.spyOn(HostService, "findBy").mockImplementation((async (query: {
+      query: { hostId?: unknown };
+    }) => {
+      return query.query.hostId
+        ? [hostRow({ name: "web-1", hostIdentifier: "web-1" })]
+        : data?.hypervisorHosts || [
+            hostRow({ name: HYPERVISOR, hostIdentifier: HYPERVISOR }),
+          ];
+    }) as never);
     const api: Service = new Service();
     api._id = ObjectID.generate().toString();
     api.name = "api";
@@ -476,9 +472,11 @@ describe("what a failed hypervisor takes with it beyond the cloud", () => {
         openStackCloudId: CLOUD_ID,
         hypervisorName: HYPERVISOR,
       });
-    expect(reach.hosts.map((host: { name: string }): string => host.name)).toEqual([
-      "web-1",
-    ]);
+    expect(
+      reach.hosts.map((host: { name: string }): string => {
+        return host.name;
+      }),
+    ).toEqual(["web-1"]);
   });
 
   test("a region's name is part of which instances those are", async () => {
@@ -540,9 +538,14 @@ describe("what a failed hypervisor takes with it beyond the cloud", () => {
     jest
       .spyOn(OpenStackResourceService, "findBy")
       .mockResolvedValue([HYPERVISOR_ROW] as never);
-    const first: jest.Mock = mockQuery(OpenStackResourceService, (sql: string) => {
-      return sql.includes("LOWER") ? [{ _id: "x" }] : [{ externalId: INSTANCE_ID }];
-    });
+    const first: jest.Mock = mockQuery(
+      OpenStackResourceService,
+      (sql: string) => {
+        return sql.includes("LOWER")
+          ? [{ _id: "x" }]
+          : [{ externalId: INSTANCE_ID }];
+      },
+    );
     const reach: OpenStackReachAcrossProducts | null =
       await OpenStackAcrossProducts.getReachOfPart({
         projectId: PROJECT_ID,
@@ -581,9 +584,11 @@ describe("a storage pool and Ceph", () => {
         healthStatus,
       },
     ] as never);
-    jest.spyOn(CephResourceService, "findBy").mockResolvedValue([
-      { cephClusterId: CEPH_ID, name: "volumes" },
-    ] as never);
+    jest
+      .spyOn(CephResourceService, "findBy")
+      .mockResolvedValue([
+        { cephClusterId: CEPH_ID, name: "volumes" },
+      ] as never);
   }
 
   test("a pool someone confirmed carries its cluster's trouble onto its row", async () => {
@@ -658,7 +663,9 @@ describe("a storage pool and Ceph", () => {
   });
 
   test("a cluster of another project is refused, and nothing is written", async () => {
-    jest.spyOn(CephClusterService, "findOneBy").mockResolvedValue(null as never);
+    jest
+      .spyOn(CephClusterService, "findOneBy")
+      .mockResolvedValue(null as never);
     const query: jest.Mock = mockQuery(OpenStackResourceService, () => {
       return [[], 0];
     });

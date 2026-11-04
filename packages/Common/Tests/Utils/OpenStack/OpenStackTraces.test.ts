@@ -340,9 +340,9 @@ describe("what a request names", () => {
       })
       .join("&");
 
-    expect(
-      readOpenStackRequestResources({ query }).length,
-    ).toBeLessThanOrEqual(8);
+    expect(readOpenStackRequestResources({ query }).length).toBeLessThanOrEqual(
+      8,
+    );
   });
 
   test("what a stored span says it touched reads back", () => {
@@ -728,7 +728,10 @@ describe("from what the client prints to the trace", () => {
   test.each([
     ["the bare ID", "4e3e0ec6-2938-40b1-8504-09eb1d4b0dee"],
     ["the whole line", "Trace ID: 4e3e0ec6-2938-40b1-8504-09eb1d4b0dee"],
-    ["with space around it", "  Trace ID: 4e3e0ec6-2938-40b1-8504-09eb1d4b0dee\n"],
+    [
+      "with space around it",
+      "  Trace ID: 4e3e0ec6-2938-40b1-8504-09eb1d4b0dee\n",
+    ],
     ["in capitals", "4E3E0EC6-2938-40B1-8504-09EB1D4B0DEE"],
     ["already as OTLP's", hex],
     [
@@ -826,9 +829,9 @@ describe("the commands that sign a request", () => {
   });
 
   test("a region a shell would read differently is quoted", () => {
-    expect(
-      getOpenStackTraceListCommand({ regionName: "Region One" }),
-    ).toBe("openstack --os-region-name 'Region One' server list");
+    expect(getOpenStackTraceListCommand({ regionName: "Region One" })).toBe(
+      "openstack --os-region-name 'Region One' server list",
+    );
   });
 });
 

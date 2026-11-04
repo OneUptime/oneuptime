@@ -204,7 +204,9 @@ const OpenStackCloudSideMenu: FunctionComponent<ComponentProps> = (
           link={{
             title: "Availability Zones",
             to: RouteUtil.populateRouteParams(
-              RouteMap[PageMap.OPENSTACK_CLOUD_VIEW_AVAILABILITY_ZONES] as Route,
+              RouteMap[
+                PageMap.OPENSTACK_CLOUD_VIEW_AVAILABILITY_ZONES
+              ] as Route,
               { modelId: props.modelId },
             ),
           }}

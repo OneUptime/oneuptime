@@ -103,20 +103,19 @@ function hostHasCloud(cloud: ObjectID | null): void {
 
 beforeEach(() => {
   cache = new Map();
-  jest
-    .spyOn(GlobalCache, "getString")
-    .mockImplementation((async (_namespace: string, key: string) => {
-      return cache.get(key) || null;
-    }) as never);
-  jest
-    .spyOn(GlobalCache, "setString")
-    .mockImplementation((async (
-      _namespace: string,
-      key: string,
-      value: string,
-    ) => {
-      cache.set(key, value);
-    }) as never);
+  jest.spyOn(GlobalCache, "getString").mockImplementation((async (
+    _namespace: string,
+    key: string,
+  ) => {
+    return cache.get(key) || null;
+  }) as never);
+  jest.spyOn(GlobalCache, "setString").mockImplementation((async (
+    _namespace: string,
+    key: string,
+    value: string,
+  ) => {
+    cache.set(key, value);
+  }) as never);
   jest
     .spyOn(OpenStackAcrossProducts, "getPlacementOfHost")
     .mockResolvedValue(PLACEMENT as never);

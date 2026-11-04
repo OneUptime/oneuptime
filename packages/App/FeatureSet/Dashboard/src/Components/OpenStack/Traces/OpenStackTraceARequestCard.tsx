@@ -15,11 +15,7 @@ import {
   getOpenStackTraceListCommand,
   readOpenStackTraceId,
 } from "Common/Utils/OpenStack/OpenStackTraces";
-import React, {
-  FunctionComponent,
-  ReactElement,
-  useState,
-} from "react";
+import React, { FunctionComponent, ReactElement, useState } from "react";
 import {
   OpenStackTraceCommandRows,
   fetchOpenStackTraceCommandRows,
@@ -111,10 +107,7 @@ const OpenStackTraceARequestCard: FunctionComponent<ComponentProps> = (
       title="Trace a request"
       description="Sign one request with your OSProfiler key and follow it across the control plane. Run these where you run openstack, as someone who can."
     >
-      <div
-        className="space-y-5 p-4"
-        data-testid="openstack-trace-a-request"
-      >
+      <div className="space-y-5 p-4" data-testid="openstack-trace-a-request">
         <CommandStep
           testId="openstack-trace-key"
           label="Give this shell the key you set in hmac_keys. It waits for you to paste it, and keeps it out of your history. Every openstack command in this shell is traced until you end it below."

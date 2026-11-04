@@ -65,7 +65,10 @@ const NUMBER_FACTS: ReadonlyMap<string, string> = new Map<string, string>([
   ["rabbitmq_connections", OPENSTACK_CONTROL_PLANE_FACTS.Connections],
   ["rabbitmq_queues", OPENSTACK_CONTROL_PLANE_FACTS.Queues],
   ["rabbitmq_consumers", OPENSTACK_CONTROL_PLANE_FACTS.Consumers],
-  ["rabbitmq_queue_messages_ready", OPENSTACK_CONTROL_PLANE_FACTS.MessagesReady],
+  [
+    "rabbitmq_queue_messages_ready",
+    OPENSTACK_CONTROL_PLANE_FACTS.MessagesReady,
+  ],
   [
     "rabbitmq_queue_messages_unacked",
     OPENSTACK_CONTROL_PLANE_FACTS.MessagesUnacknowledged,
@@ -116,7 +119,10 @@ const BOOLEAN_FACTS: ReadonlyMap<string, string> = new Map<string, string>([
     "mysql_global_status_wsrep_connected",
     OPENSTACK_CONTROL_PLANE_FACTS.Connected,
   ],
-  ["mysql_global_variables_wsrep_desync", OPENSTACK_CONTROL_PLANE_FACTS.Desynced],
+  [
+    "mysql_global_variables_wsrep_desync",
+    OPENSTACK_CONTROL_PLANE_FACTS.Desynced,
+  ],
 ]);
 
 /*

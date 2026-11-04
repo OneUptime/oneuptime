@@ -4034,29 +4034,31 @@ export default class OtelMetricsIngestService extends OtelIngestBaseService {
       try {
         const finishedEntries: Array<OpenStackResourceBufferEntry> =
           finishOpenStackBatch(byKey.values());
-        const resources: Array<ParsedOpenStackResource> = finishedEntries.map((finished: OpenStackResourceBufferEntry) => {
-          return {
-            kind: finished.kind,
-            externalId: finished.externalId,
-            name: finished.name,
-            regionName: finished.regionName,
-            availabilityZone: finished.availabilityZone,
-            hypervisorName: finished.hypervisorName,
-            openStackProjectId: finished.openStackProjectId,
-            status: finished.status,
-            adminState: finished.adminState,
-            disabledReason: finished.disabledReason,
-            vcpuCapacity: finished.vcpuCapacity,
-            vcpuAllocated: finished.vcpuAllocated,
-            memoryCapacityBytes: finished.memoryCapacityBytes,
-            memoryAllocatedBytes: finished.memoryAllocatedBytes,
-            diskCapacityBytes: finished.diskCapacityBytes,
-            diskAllocatedBytes: finished.diskAllocatedBytes,
-            instanceCount: finished.instanceCount,
-            facts: finished.facts,
-            lastSeenAt: finished.observedAt,
-          };
-        });
+        const resources: Array<ParsedOpenStackResource> = finishedEntries.map(
+          (finished: OpenStackResourceBufferEntry) => {
+            return {
+              kind: finished.kind,
+              externalId: finished.externalId,
+              name: finished.name,
+              regionName: finished.regionName,
+              availabilityZone: finished.availabilityZone,
+              hypervisorName: finished.hypervisorName,
+              openStackProjectId: finished.openStackProjectId,
+              status: finished.status,
+              adminState: finished.adminState,
+              disabledReason: finished.disabledReason,
+              vcpuCapacity: finished.vcpuCapacity,
+              vcpuAllocated: finished.vcpuAllocated,
+              memoryCapacityBytes: finished.memoryCapacityBytes,
+              memoryAllocatedBytes: finished.memoryAllocatedBytes,
+              diskCapacityBytes: finished.diskCapacityBytes,
+              diskAllocatedBytes: finished.diskAllocatedBytes,
+              instanceCount: finished.instanceCount,
+              facts: finished.facts,
+              lastSeenAt: finished.observedAt,
+            };
+          },
+        );
 
         await this.writeForDiscoveredResource({
           kind: DiscoveredResourceKinds.OpenStackCloud,

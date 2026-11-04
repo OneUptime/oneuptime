@@ -103,7 +103,15 @@ describe("what is kept", () => {
     [[null, "text", 12, {}, { scopeLogs: "x" }, { scopeLogs: [null, {}] }]],
     [[{ scopeLogs: [{ logRecords: "x" }] }]],
     [[{ scopeLogs: [{ logRecords: [] }] }]],
-    [[{ scopeLogs: [{ logRecords: [null, 1, {}, { body: "x" }, { body: {} }] }] }]],
+    [
+      [
+        {
+          scopeLogs: [
+            { logRecords: [null, 1, {}, { body: "x" }, { body: {} }] },
+          ],
+        },
+      ],
+    ],
     [[{ scopeLogs: [{ logRecords: [{ body: { stringValue: 12 } }] }] }]],
   ])("nothing of %j", (resourceLogs: unknown) => {
     expect(prepare(resourceLogs)).toEqual({ resourceLogs: [], recordCount: 0 });

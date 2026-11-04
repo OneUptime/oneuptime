@@ -82,9 +82,7 @@ jest.mock(
     return {
       __esModule: true,
       default: (props: Record<string, unknown>) => {
-        return (
-          <div data-testid="traces-viewer">{JSON.stringify(props)}</div>
-        );
+        return <div data-testid="traces-viewer">{JSON.stringify(props)}</div>;
       },
     };
   },
@@ -333,9 +331,9 @@ describe("with OSProfiler off, which is how every cloud starts", () => {
     expect(
       await screen.findByTestId("openstack-traces-off"),
     ).toBeInTheDocument();
-    expect(
-      screen.getByTestId("openstack-traces-off-notice"),
-    ).toHaveTextContent("nothing depends on them");
+    expect(screen.getByTestId("openstack-traces-off-notice")).toHaveTextContent(
+      "nothing depends on them",
+    );
     expect(screen.getByText("Turn on traces")).toBeInTheDocument();
     expect(screen.getByText("Turn OSProfiler on")).toBeInTheDocument();
     expect(
@@ -381,7 +379,9 @@ describe("a read that failed", () => {
     expect(
       await screen.findByTestId("openstack-traces-read-failed"),
     ).toBeInTheDocument();
-    expect(screen.queryByTestId("openstack-traces-off")).not.toBeInTheDocument();
+    expect(
+      screen.queryByTestId("openstack-traces-off"),
+    ).not.toBeInTheDocument();
     expect(screen.queryByText("Turn on traces")).not.toBeInTheDocument();
   });
 });
@@ -418,9 +418,9 @@ describe("with traces", () => {
     expect(notSeen).not.toHaveTextContent("nova-api");
     // No request is signed through a Neutron agent.
     expect(notSeen).not.toHaveTextContent("neutron-ovn-metadata-agent");
-    expect(
-      screen.getByTestId("openstack-traces-status"),
-    ).toHaveTextContent("no fault");
+    expect(screen.getByTestId("openstack-traces-status")).toHaveTextContent(
+      "no fault",
+    );
   });
 
   test("its list is the cloud's, by the same key a host's or a cluster's page uses", async () => {
@@ -453,7 +453,9 @@ describe("with traces", () => {
         (call.modelType as unknown as { name: string }).name === "Service";
 
       return {
-        data: isService ? [Object.assign(new (call.modelType as any)(), service)] : [],
+        data: isService
+          ? [Object.assign(new (call.modelType as any)(), service)]
+          : [],
         count: 1,
         skip: 0,
         limit: 10,
@@ -544,9 +546,9 @@ describe("Trace a request", () => {
     expect(screen.getByTestId("openstack-trace-end")).toHaveTextContent(
       "unset OS_PROFILE",
     );
-    expect(
-      screen.getByTestId("openstack-trace-a-request"),
-    ).toHaveTextContent("pip install osprofiler");
+    expect(screen.getByTestId("openstack-trace-a-request")).toHaveTextContent(
+      "pip install osprofiler",
+    );
   });
 
   test("what the client printed opens that trace", async () => {
@@ -628,7 +630,9 @@ describe("the card above a trace", () => {
     });
 
     const calls: Array<Array<unknown>> = (
-      AnalyticsModelAPI.getList as unknown as { mock: { calls: Array<Array<unknown>> } }
+      AnalyticsModelAPI.getList as unknown as {
+        mock: { calls: Array<Array<unknown>> };
+      }
     ).mock.calls;
     const query: JSONObject = (calls[0]![0] as ListQuery).query;
 
@@ -832,7 +836,10 @@ describe("which row a traced service is", () => {
 });
 
 describe("a part's Traces tab", () => {
-  function partOf(kind: OpenStackResourceKind, externalId: string): OpenStackPart {
+  function partOf(
+    kind: OpenStackResourceKind,
+    externalId: string,
+  ): OpenStackPart {
     return {
       kind,
       externalId,
@@ -858,18 +865,24 @@ describe("a part's Traces tab", () => {
     OpenStackResourceKind.FloatingIp,
     OpenStackResourceKind.Image,
     OpenStackResourceKind.Project,
-  ])("%s has one, because a request can name it", (kind: OpenStackResourceKind) => {
-    expect(hasOpenStackPartTraces({ kind }, resource({ kind }))).toBe(true);
-  });
+  ])(
+    "%s has one, because a request can name it",
+    (kind: OpenStackResourceKind) => {
+      expect(hasOpenStackPartTraces({ kind }, resource({ kind }))).toBe(true);
+    },
+  );
 
   test.each([
     OpenStackResourceKind.Hypervisor,
     OpenStackResourceKind.Flavor,
     OpenStackResourceKind.StoragePool,
     OpenStackResourceKind.Domain,
-  ])("%s has none, because nothing in a span joins to it", (kind: OpenStackResourceKind) => {
-    expect(hasOpenStackPartTraces({ kind }, resource({ kind }))).toBe(false);
-  });
+  ])(
+    "%s has none, because nothing in a span joins to it",
+    (kind: OpenStackResourceKind) => {
+      expect(hasOpenStackPartTraces({ kind }, resource({ kind }))).toBe(false);
+    },
+  );
 
   test("a service has one under the word a trace knows it by, and a Neutron agent none", () => {
     const api: OpenStackResource = resource({
@@ -925,9 +938,10 @@ describe("a part's Traces tab", () => {
     });
 
     expect(props["entityKeysFilter"]).toEqual([key]);
-    expect(
-      (props["entityKeyDisplays"] as JSONObject)[key],
-    ).toEqual({ displayKey: "Instance", displayValue: "my-instance" });
+    expect((props["entityKeyDisplays"] as JSONObject)[key]).toEqual({
+      displayKey: "Instance",
+      displayValue: "my-instance",
+    });
     // A request's own span is an entry, and what it calls may not be: every span.
     expect(props["defaultSpanType"]).toBe(TraceSpanType.All);
     expect(props["emptyMessage"]).toContain("Traces page says how");

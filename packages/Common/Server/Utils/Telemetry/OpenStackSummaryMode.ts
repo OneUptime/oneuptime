@@ -61,9 +61,8 @@ const largeClouds: InMemoryTTLCache<boolean> = new InMemoryTTLCache<boolean>(
 const recountedAt: InMemoryTTLCache<boolean> = new InMemoryTTLCache<boolean>(
   5000,
 );
-const seriesWrittenAt: InMemoryTTLCache<boolean> = new InMemoryTTLCache<boolean>(
-  5000,
-);
+const seriesWrittenAt: InMemoryTTLCache<boolean> =
+  new InMemoryTTLCache<boolean>(5000);
 
 function attribute(key: string, value: string): JSONObject {
   return { key: key, value: { stringValue: value } };
@@ -101,9 +100,7 @@ export function buildOpenStackSummaryResourceMetrics(data: {
     return {
       attributes: [
         ...labels,
-        ...(regionName
-          ? [attribute("openstack.region.name", regionName)]
-          : []),
+        ...(regionName ? [attribute("openstack.region.name", regionName)] : []),
         attribute("openstack_service", OpenStackServiceType.Compute),
       ],
       timeUnixNano: timeUnixNano,
@@ -182,7 +179,11 @@ export default class OpenStackSummaryMode {
       const cloud: OpenStackCloud | null =
         await OpenStackCloudService.findOneById({
           id: openStackCloudId,
-          select: { instanceMetricsOptions: true, instanceCount: true, name: true },
+          select: {
+            instanceMetricsOptions: true,
+            instanceCount: true,
+            name: true,
+          },
           props: { isRoot: true },
         });
       const options: OpenStackInstanceMetricsOptions =
@@ -241,7 +242,11 @@ export default class OpenStackSummaryMode {
       data.openStackCloudId,
     );
 
-    if (!choice.isSummaryMode || !choice.cloudName || seriesWrittenAt.get(key)) {
+    if (
+      !choice.isSummaryMode ||
+      !choice.cloudName ||
+      seriesWrittenAt.get(key)
+    ) {
       return null;
     }
 

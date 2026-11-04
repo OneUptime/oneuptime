@@ -52,12 +52,14 @@ function mockInventory(rows: Array<[string, string]>): void {
   jest
     .spyOn(OpenStackResourceService, "findBy")
     .mockImplementation((async () => {
-      return rows.map(([externalId, name]: [string, string]): OpenStackResource => {
-        const row: OpenStackResource = new OpenStackResource();
-        row.externalId = externalId;
-        row.name = name;
-        return row;
-      });
+      return rows.map(
+        ([externalId, name]: [string, string]): OpenStackResource => {
+          const row: OpenStackResource = new OpenStackResource();
+          row.externalId = externalId;
+          row.name = name;
+          return row;
+        },
+      );
     }) as never);
 }
 
@@ -79,7 +81,9 @@ describe("an event's project", () => {
     expect(event.attributes[OpenStackAuditAttribute.ProjectName]).toBe(
       "payments",
     );
-    expect(event.message).toBe("alice granted role r to target on project payments");
+    expect(event.message).toBe(
+      "alice granted role r to target on project payments",
+    );
     expect(event.targetResource).toBe("project payments");
     // The ID stays, for what reads it exactly.
     expect(event.attributes[OpenStackAuditAttribute.ProjectId]).toBe(
@@ -97,14 +101,18 @@ describe("an event's project", () => {
       events: [event],
     });
 
-    expect(event.attributes[OpenStackAuditAttribute.ProjectName]).toBeUndefined();
+    expect(
+      event.attributes[OpenStackAuditAttribute.ProjectName],
+    ).toBeUndefined();
     expect(event.targetResource).toBe(`project ${OPENSTACK_PROJECT}`);
   });
 
   test("a cloud it cannot find keeps its IDs", async () => {
-    jest.spyOn(OpenStackCloudService, "findBy").mockImplementation((async () => {
-      return [];
-    }) as never);
+    jest
+      .spyOn(OpenStackCloudService, "findBy")
+      .mockImplementation((async () => {
+        return [];
+      }) as never);
 
     const event: NormalizedSecurityEvent = grant();
 
@@ -113,13 +121,17 @@ describe("an event's project", () => {
       events: [event],
     });
 
-    expect(event.attributes[OpenStackAuditAttribute.ProjectName]).toBeUndefined();
+    expect(
+      event.attributes[OpenStackAuditAttribute.ProjectName],
+    ).toBeUndefined();
   });
 
   test("a read that fails loses no event, and throws nothing", async () => {
-    jest.spyOn(OpenStackCloudService, "findBy").mockImplementation((async () => {
-      throw new Error("Postgres is down");
-    }) as never);
+    jest
+      .spyOn(OpenStackCloudService, "findBy")
+      .mockImplementation((async () => {
+        throw new Error("Postgres is down");
+      }) as never);
 
     const event: NormalizedSecurityEvent = grant();
 

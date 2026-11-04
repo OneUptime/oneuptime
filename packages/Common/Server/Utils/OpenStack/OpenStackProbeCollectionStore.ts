@@ -340,8 +340,9 @@ export default class OpenStackProbeCollectionStore {
     >,
   ): OpenStackCollectionOptions | undefined {
     const instanceMetrics: OpenStackInstanceMetricsOptions | undefined =
-      normalizeOpenStackInstanceMetricsOptions(cloud.instanceMetricsOptions)
-        .options;
+      normalizeOpenStackInstanceMetricsOptions(
+        cloud.instanceMetricsOptions,
+      ).options;
 
     if (!instanceMetrics) {
       return cloud.collectionOptions || undefined;

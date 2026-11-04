@@ -563,11 +563,9 @@ export default class OpenStackResourceAPI extends BaseAPI<
     });
     const clusters: Set<string> = await this.readIdsCallerMayRead({
       service: KubernetesClusterService,
-      ids: reach.kubernetesClusters.map(
-        (cluster: { id: string }): string => {
-          return cluster.id;
-        },
-      ),
+      ids: reach.kubernetesClusters.map((cluster: { id: string }): string => {
+        return cluster.id;
+      }),
       props: data.props,
     });
 
@@ -670,11 +668,9 @@ export default class OpenStackResourceAPI extends BaseAPI<
     };
     const ids: Array<string> = Array.from(
       new Set(
-        data.rows
-          .map(clusterOf)
-          .filter((id: string | null): id is string => {
-            return Boolean(id);
-          }),
+        data.rows.map(clusterOf).filter((id: string | null): id is string => {
+          return Boolean(id);
+        }),
       ),
     );
     const visible: Set<string> = await this.readIdsCallerMayRead({
@@ -720,7 +716,9 @@ export default class OpenStackResourceAPI extends BaseAPI<
       (typeof cephClusterId !== "string" ||
         !ObjectID.isValidUUID(cephClusterId))
     ) {
-      throw new BadDataException("Choose a Ceph cluster, or say it isn't on Ceph");
+      throw new BadDataException(
+        "Choose a Ceph cluster, or say it isn't on Ceph",
+      );
     }
 
     const saved: boolean =

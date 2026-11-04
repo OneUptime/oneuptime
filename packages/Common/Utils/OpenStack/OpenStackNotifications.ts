@@ -299,9 +299,7 @@ function readReason(data: Record<string, unknown> | null): {
   const message: string =
     readFullText(holder, "exception_message") ||
     readFullText(holder, "message") ||
-    (typeof data["reason"] === "string"
-      ? readFullText(data, "reason")
-      : "") ||
+    (typeof data["reason"] === "string" ? readFullText(data, "reason") : "") ||
     (typeof data["fault"] === "string" ? readFullText(data, "fault") : "");
 
   return {
@@ -717,8 +715,8 @@ function readMovesState(data: {
 
         return Boolean(
           change &&
-          (change["old_state"] !== change["state"] ||
-            change["old_task_state"] !== change["new_task_state"]),
+            (change["old_state"] !== change["state"] ||
+              change["old_task_state"] !== change["new_task_state"]),
         );
       }
 
@@ -737,8 +735,8 @@ function readMovesState(data: {
     case OpenStackResourceKind.Service:
       return Boolean(
         fields &&
-        (typeof fields["disabled"] === "boolean" ||
-          typeof fields["forced_down"] === "boolean"),
+          (typeof fields["disabled"] === "boolean" ||
+            typeof fields["forced_down"] === "boolean"),
       );
     default:
       return false;
@@ -825,10 +823,7 @@ export function readOpenStackNotification(data: {
 
   if (isRoutineEvent(type)) {
     importance = OpenStackEventImportance.Routine;
-  } else if (
-    outcome !== OpenStackEventOutcome.Failed &&
-    isTrailEvent(type)
-  ) {
+  } else if (outcome !== OpenStackEventOutcome.Failed && isTrailEvent(type)) {
     importance = OpenStackEventImportance.Trail;
   }
 

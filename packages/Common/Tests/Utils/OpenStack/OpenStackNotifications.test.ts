@@ -164,9 +164,9 @@ describe("Nova's versioned notifications", () => {
   });
 
   test("a word it has no word for says the event's own", () => {
-    expect(eventOf(notification("instance.frobnicate.end", INSTANCE_FIELDS)).title).toBe(
-      "Instance web-1: instance.frobnicate.end",
-    );
+    expect(
+      eventOf(notification("instance.frobnicate.end", INSTANCE_FIELDS)).title,
+    ).toBe("Instance web-1: instance.frobnicate.end");
   });
 
   test("deleting moves no state: the row goes away instead", () => {
@@ -338,8 +338,11 @@ describe("what failed, and why", () => {
 
   test("a priority of error fails it, whatever its name says", () => {
     expect(
-      eventOf(notification("instance.power_off.end", INSTANCE_FIELDS, { priority: "CRITICAL" }))
-        .outcome,
+      eventOf(
+        notification("instance.power_off.end", INSTANCE_FIELDS, {
+          priority: "CRITICAL",
+        }),
+      ).outcome,
     ).toBe(OpenStackEventOutcome.Failed);
   });
 
@@ -386,19 +389,27 @@ describe("a compute service", () => {
 
   test("being enabled", () => {
     expect(
-      eventOf(notification("service.update", { ...service, disabled: false })).title,
+      eventOf(notification("service.update", { ...service, disabled: false }))
+        .title,
     ).toBe("Service nova-compute on compute-01: enabled");
   });
 
   test("being forced down", () => {
     expect(
-      eventOf(notification("service.update", { ...service, forced_down: true })).title,
+      eventOf(notification("service.update", { ...service, forced_down: true }))
+        .title,
     ).toBe("Service nova-compute on compute-01: forced down");
   });
 
   test("with no reason", () => {
     expect(
-      eventOf(notification("service.update", { binary: "nova-compute", host: "compute-01", disabled: true })).title,
+      eventOf(
+        notification("service.update", {
+          binary: "nova-compute",
+          host: "compute-01",
+          disabled: true,
+        }),
+      ).title,
     ).toBe("Service nova-compute on compute-01: disabled");
   });
 
@@ -464,7 +475,12 @@ describe("Neutron's, Cinder's and Glance's", () => {
     ["volume.attach.end", OpenStackResourceKind.Volume, "volume_id", true],
     ["volume.detach.end", OpenStackResourceKind.Volume, "volume_id", true],
     ["volume.create.end", OpenStackResourceKind.Volume, "volume_id", true],
-    ["snapshot.create.end", OpenStackResourceKind.Snapshot, "snapshot_id", false],
+    [
+      "snapshot.create.end",
+      OpenStackResourceKind.Snapshot,
+      "snapshot_id",
+      false,
+    ],
     ["backup.create.end", OpenStackResourceKind.Backup, "backup_id", false],
   ])(
     "%s",
@@ -506,7 +522,8 @@ describe("Neutron's, Cinder's and Glance's", () => {
 
   test("Nova's flavors", () => {
     expect(
-      eventOf(notification("flavor.create", { flavorid: "f1", name: "tiny" })).part,
+      eventOf(notification("flavor.create", { flavorid: "f1", name: "tiny" }))
+        .part,
     ).toEqual({
       kind: OpenStackResourceKind.Flavor,
       id: "f1",
@@ -577,7 +594,9 @@ describe("a probe's reading of an instance's actions", () => {
           display_name: "web-1",
           request_id: REQUEST,
           fault: {
-            "nova_object.data": { exception_message: "No valid host was found" },
+            "nova_object.data": {
+              exception_message: "No valid host was found",
+            },
           },
         },
         {
@@ -591,9 +610,9 @@ describe("a probe's reading of an instance's actions", () => {
     expect(event.outcome).toBe(OpenStackEventOutcome.Failed);
     expect(event.failure).toBe(OpenStackEventFailure.Scheduling);
     expect(event.publisherService).toBe("nova-api");
-    expect(event.messageId.startsWith(OPENSTACK_PROBE_ACTION_MESSAGE_PREFIX)).toBe(
-      true,
-    );
+    expect(
+      event.messageId.startsWith(OPENSTACK_PROBE_ACTION_MESSAGE_PREFIX),
+    ).toBe(true);
   });
 });
 

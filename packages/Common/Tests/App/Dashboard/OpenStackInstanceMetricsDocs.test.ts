@@ -35,17 +35,20 @@ describe("what the docs say keeping them costs", () => {
       OpenStackInstanceMetricSource.Ceilometer,
       "Ceilometer's exporter, read every 2 minutes and polled every 5",
     ],
-  ])("%s is what the code works out", (source: OpenStackInstanceMetricSource, label: string) => {
-    const one: OpenStackInstanceMetricsVolume =
-      estimateOpenStackInstanceMetricsVolume({ source, instances: 1 });
-    const hundred: OpenStackInstanceMetricsVolume =
-      estimateOpenStackInstanceMetricsVolume({ source, instances: 100 });
-    const thousand: OpenStackInstanceMetricsVolume =
-      estimateOpenStackInstanceMetricsVolume({ source, instances: 1000 });
-    expect(DOCS).toContain(
-      `| ${label} | ${one.seriesPerInstance} | ${text(one.rowsPerHour)} | ${text(hundred.rowsPerMonth)} | ${text(thousand.rowsPerMonth)} |`,
-    );
-  });
+  ])(
+    "%s is what the code works out",
+    (source: OpenStackInstanceMetricSource, label: string) => {
+      const one: OpenStackInstanceMetricsVolume =
+        estimateOpenStackInstanceMetricsVolume({ source, instances: 1 });
+      const hundred: OpenStackInstanceMetricsVolume =
+        estimateOpenStackInstanceMetricsVolume({ source, instances: 100 });
+      const thousand: OpenStackInstanceMetricsVolume =
+        estimateOpenStackInstanceMetricsVolume({ source, instances: 1000 });
+      expect(DOCS).toContain(
+        `| ${label} | ${one.seriesPerInstance} | ${text(one.rowsPerHour)} | ${text(hundred.rowsPerMonth)} | ${text(thousand.rowsPerMonth)} |`,
+      );
+    },
+  );
 
   test("the stated size is the code's", () => {
     expect(DOCS).toContain(

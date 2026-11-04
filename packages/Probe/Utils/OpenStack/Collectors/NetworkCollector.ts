@@ -363,7 +363,9 @@ async function collectL3Agents(
         items: routerIds,
         limit: OPENSTACK_PER_PART_READS_PER_COLLECTION,
         idOf: idOf,
-        read: async (routerId: string): Promise<Array<NeutronL3AgentRecord>> => {
+        read: async (
+          routerId: string,
+        ): Promise<Array<NeutronL3AgentRecord>> => {
           const answer: OpenStackListAnswer = await client.list({
             read: "a router's L3 agents",
             path: `/routers/${encodeURIComponent(routerId)}/l3-agents`,
@@ -618,7 +620,9 @@ async function collectProjectQuotas(
         items: projects,
         limit: OPENSTACK_PROJECT_LIMIT_READS_PER_COLLECTION,
         idOf: idOf,
-        read: async (project: OpenStackProjectRef): Promise<NeutronQuotaRecord> => {
+        read: async (
+          project: OpenStackProjectRef,
+        ): Promise<NeutronQuotaRecord> => {
           const answer: OpenStackJsonAnswer = await client.get({
             read: "a project's quotas",
             path: `/quotas/${encodeURIComponent(project.id)}/details.json`,

@@ -70,15 +70,11 @@ const INSTANCE_FIELDS: Record<string, unknown> = {
 };
 
 function probeAction(requestId: string = "req-1"): OpenStackRecordedEvent {
-  return recordedOf(
-    "instance.reboot.error",
-    INSTANCE_FIELDS,
-    {
-      priority: "ERROR",
-      message_id: `${OPENSTACK_PROBE_ACTION_MESSAGE_PREFIX}${INSTANCE}/${requestId}/failed`,
-      publisher_id: "nova-api",
-    },
-  );
+  return recordedOf("instance.reboot.error", INSTANCE_FIELDS, {
+    priority: "ERROR",
+    message_id: `${OPENSTACK_PROBE_ACTION_MESSAGE_PREFIX}${INSTANCE}/${requestId}/failed`,
+    publisher_id: "nova-api",
+  });
 }
 
 function entryOf(
@@ -244,18 +240,14 @@ describe("recording a batch", () => {
       .mockImplementation(async (namespace: string, key: string) => {
         return cache.get(`${namespace}/${key}`) ?? null;
       });
-    jest
-      .spyOn(GlobalCache, "getJSONObject")
-      .mockImplementation(async () => {
-        return null;
-      });
+    jest.spyOn(GlobalCache, "getJSONObject").mockImplementation(async () => {
+      return null;
+    });
     jest.spyOn(GlobalCache, "setJSON").mockImplementation(async () => {});
-    jest
-      .spyOn(GlobalCache, "incrementIfBelow")
-      .mockImplementation(async () => {
-        hourCount++;
-        return hourLimitReached ? null : hourCount;
-      });
+    jest.spyOn(GlobalCache, "incrementIfBelow").mockImplementation(async () => {
+      hourCount++;
+      return hourLimitReached ? null : hourCount;
+    });
     jest.spyOn(TelemetryFanInWriter, "submit").mockImplementation((async (
       _service: unknown,
       rows: Array<JSONObject>,
@@ -283,7 +275,9 @@ describe("recording a batch", () => {
   });
 
   test("what is worth a marker becomes a change event, a feed line and a real time", async () => {
-    await record(entryOf(recordedOf("instance.power_off.end", INSTANCE_FIELDS)));
+    await record(
+      entryOf(recordedOf("instance.power_off.end", INSTANCE_FIELDS)),
+    );
 
     expect(submitted).toHaveLength(1);
     expect(submitted[0]?.["title"]).toBe("Instance web-1: stopped");
@@ -322,7 +316,11 @@ describe("recording a batch", () => {
   test("a busy batch says the failures, then how many more", async () => {
     const events: Array<OpenStackRecordedEvent> = [];
 
-    for (let index: number = 0; index < OPENSTACK_FEED_LINES_PER_BATCH + 5; index++) {
+    for (
+      let index: number = 0;
+      index < OPENSTACK_FEED_LINES_PER_BATCH + 5;
+      index++
+    ) {
       events.push(
         recordedOf(
           "instance.power_off.end",
@@ -338,15 +336,17 @@ describe("recording a batch", () => {
     // Every one is a change event, and the feed is bounded.
     expect(submitted).toHaveLength(OPENSTACK_FEED_LINES_PER_BATCH + 5);
     expect(feedLines).toHaveLength(OPENSTACK_FEED_LINES_PER_BATCH + 1);
-    expect(String(feedLines[feedLines.length - 1]?.["feedInfoInMarkdown"])).toContain(
-      "5 more",
-    );
+    expect(
+      String(feedLines[feedLines.length - 1]?.["feedInfoInMarkdown"]),
+    ).toContain("5 more");
   });
 
   test("an hour that has said enough says no more", async () => {
     hourLimitReached = true;
 
-    await record(entryOf(recordedOf("instance.power_off.end", INSTANCE_FIELDS)));
+    await record(
+      entryOf(recordedOf("instance.power_off.end", INSTANCE_FIELDS)),
+    );
 
     expect(submitted).toHaveLength(1);
     expect(feedLines).toHaveLength(0);
@@ -367,7 +367,9 @@ describe("recording a batch", () => {
 
     unmatched = [change];
 
-    await record(entryOf(recordedOf("instance.power_off.end", INSTANCE_FIELDS)));
+    await record(
+      entryOf(recordedOf("instance.power_off.end", INSTANCE_FIELDS)),
+    );
 
     expect(setJson).toHaveBeenCalled();
     expect(JSON.stringify(setJson.mock.calls[0])).toContain(INSTANCE);
@@ -447,9 +449,11 @@ describe("recording a batch", () => {
 
   describe("when something behind it fails", () => {
     test("the change events going wrong costs the feed nothing, and throws nothing", async () => {
-      jest.spyOn(TelemetryFanInWriter, "submit").mockImplementation((async () => {
-        throw new Error("ClickHouse is down");
-      }) as never);
+      jest
+        .spyOn(TelemetryFanInWriter, "submit")
+        .mockImplementation((async () => {
+          throw new Error("ClickHouse is down");
+        }) as never);
 
       await expect(
         record(entryOf(recordedOf("instance.power_off.end", INSTANCE_FIELDS))),

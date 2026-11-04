@@ -109,7 +109,9 @@ describe("summary mode", () => {
         instanceCount: OPENSTACK_SUMMARY_MODE_INSTANCE_LIMIT + 1,
       }),
     ).toBe(true);
-    expect(isOpenStackSummaryMode({ options, instanceCount: null })).toBe(false);
+    expect(isOpenStackSummaryMode({ options, instanceCount: null })).toBe(
+      false,
+    );
     expect(
       isOpenStackSummaryMode({
         options: { mode: OpenStackInstanceMetricsMode.All },
@@ -157,14 +159,30 @@ describe("summary mode", () => {
     expect(kept({ metricName: "openstack_cinder_snapshot_gb" })).toBe(true);
   });
 
-  test.each(["ACTIVE", "SHUTOFF", "SUSPENDED", "PAUSED", "SHELVED", "SHELVED_OFFLOADED"])(
+  test.each([
+    "ACTIVE",
+    "SHUTOFF",
+    "SUSPENDED",
+    "PAUSED",
+    "SHELVED",
+    "SHELVED_OFFLOADED",
+  ])(
     "%s says nothing an alert watches, so its series goes",
     (status: string) => {
       expect(kept({ status })).toBe(false);
     },
   );
 
-  test.each(["ERROR", "BUILD", "REBUILD", "RESIZE", "VERIFY_RESIZE", "MIGRATING", "HARD_REBOOT", "UNKNOWN"])(
+  test.each([
+    "ERROR",
+    "BUILD",
+    "REBUILD",
+    "RESIZE",
+    "VERIFY_RESIZE",
+    "MIGRATING",
+    "HARD_REBOOT",
+    "UNKNOWN",
+  ])(
     "%s keeps its series, because the templates watch it and one that goes away reads as recovered",
     (status: string) => {
       expect(kept({ status })).toBe(true);
@@ -235,7 +253,9 @@ describe("summary mode", () => {
 
     expect(everything.perInstanceShare).toBeGreaterThan(0.5);
     expect(summary.perInstanceShare).toBeLessThan(0.01);
-    expect(summary.gigabytesPerDay).toBeLessThan(everything.gigabytesPerDay / 2);
+    expect(summary.gigabytesPerDay).toBeLessThan(
+      everything.gigabytesPerDay / 2,
+    );
   });
 
   test("the series a cloud in summary mode keeps per project and status are counted", () => {

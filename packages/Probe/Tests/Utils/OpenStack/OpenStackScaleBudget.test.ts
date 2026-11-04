@@ -66,10 +66,7 @@ function sceneOf(
     networkBackend?: "ovn" | "ovs" | undefined;
     job?: Partial<OpenStackCollectionJob> | undefined;
     latencyInMs?:
-      | ((
-          request: { url: string },
-          service: OpenStackServiceType,
-        ) => number)
+      | ((request: { url: string }, service: OpenStackServiceType) => number)
       | undefined;
   },
 ): Scene {
@@ -123,7 +120,9 @@ async function collectFor(scene: Scene, minutes: number): Promise<void> {
   }
 }
 
-function zeroes(requests: OpenStackRequestsByService): OpenStackRequestsByService {
+function zeroes(
+  requests: OpenStackRequestsByService,
+): OpenStackRequestsByService {
   const result: OpenStackRequestsByService = { ...requests };
 
   for (const service of Object.keys(result) as Array<OpenStackServiceType>) {
@@ -144,7 +143,10 @@ function bySize(
 const SIZES: Array<{ name: string; counts: OpenStackCloudCounts }> = bySize([
   ["10 hypervisors, 100 instances", OPENSTACK_SMALL_CLOUD],
   ["500 hypervisors, 20,000 instances", OPENSTACK_MEDIUM_CLOUD],
-  ["5,000 hypervisors, 200,000 instances, 10,000 projects", OPENSTACK_LARGE_CLOUD],
+  [
+    "5,000 hypervisors, 200,000 instances, 10,000 projects",
+    OPENSTACK_LARGE_CLOUD,
+  ],
 ]);
 
 /*
@@ -163,19 +165,14 @@ afterAll(() => {
 
 describe.each(SIZES)(
   "a cloud of $name",
-  ({
-    name,
-    counts,
-  }: {
-    name: string;
-    counts: OpenStackCloudCounts;
-  }): void => {
+  ({ name, counts }: { name: string; counts: OpenStackCloudCounts }): void => {
     test("the first hour and the one after each ask exactly what the docs say", async () => {
       const scene: Scene = sceneOf(counts);
 
       await collectFor(scene, 60);
 
-      const firstHour: OpenStackRequestsByService = scene.cloud.countsByService();
+      const firstHour: OpenStackRequestsByService =
+        scene.cloud.countsByService();
 
       expect(firstHour).toEqual(
         simulateOpenStackProbeRequests({
@@ -268,7 +265,9 @@ describe("summary mode, on the probe", () => {
     projects: 100,
   });
 
-  function serverPoints(report: OpenStackCollectionReport): Array<ReportedDatapoint> {
+  function serverPoints(
+    report: OpenStackCollectionReport,
+  ): Array<ReportedDatapoint> {
     return datapointsOf(report.resourceMetrics).filter(
       (point: ReportedDatapoint): boolean => {
         return point.metric === "openstack_nova_server_status";
@@ -590,7 +589,9 @@ describe("what is a call per thing stops growing with the cloud", () => {
       scene.cloud.requestsByRoute.get("/compute/v2.1/limits"),
     ).toBeLessThanOrEqual(OPENSTACK_PROJECT_LIMIT_READS_PER_COLLECTION);
     expect(
-      scene.cloud.requestsByRoute.get("/compute/v2.1/os-quota-sets/{project}/detail"),
+      scene.cloud.requestsByRoute.get(
+        "/compute/v2.1/os-quota-sets/{project}/detail",
+      ),
     ).toBeLessThanOrEqual(OPENSTACK_PROJECT_LIMIT_READS_PER_COLLECTION);
   }, 600000);
 });
@@ -687,7 +688,7 @@ describe("collection slows itself down when an API's latency climbs", () => {
       counts: counts,
       clock: clock,
       latencyInMs: (
-        request: { url: string },
+        _request: { url: string },
         service: OpenStackServiceType,
       ): number => {
         if (service === OpenStackServiceType.Placement) {
@@ -741,12 +742,7 @@ describe("the numbers the docs publish", () => {
 
   test.each(SIZES)(
     "the load table's row for $name is what a cloud of that size asks",
-    ({
-      counts,
-    }: {
-      name: string;
-      counts: OpenStackCloudCounts;
-    }): void => {
+    ({ counts }: { name: string; counts: OpenStackCloudCounts }): void => {
       const perMinute: OpenStackRequestsByService =
         getOpenStackProbeRequestsPerMinute(counts);
       const row: string | undefined = PAGE.split("\n").find((line: string) => {

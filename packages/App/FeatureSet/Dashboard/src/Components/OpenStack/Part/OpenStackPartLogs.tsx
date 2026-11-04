@@ -68,7 +68,9 @@ export function hasOpenStackPartLogs(
   part: OpenStackPart,
   row: OpenStackResource,
 ): boolean {
-  return getOpenStackPartLogAttributes(getOpenStackPartLogFacts(part, row)) !== null;
+  return (
+    getOpenStackPartLogAttributes(getOpenStackPartLogFacts(part, row)) !== null
+  );
 }
 
 const OpenStackInstanceRequests: FunctionComponent<{
@@ -108,7 +110,8 @@ const OpenStackInstanceRequests: FunctionComponent<{
                 return {
                   time: row.time,
                   severityText: row.severityText,
-                  attributes: (row.attributes as JSONObject | undefined) || null,
+                  attributes:
+                    (row.attributes as JSONObject | undefined) || null,
                 };
               }),
             ),

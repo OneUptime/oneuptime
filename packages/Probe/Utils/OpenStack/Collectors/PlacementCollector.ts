@@ -198,7 +198,10 @@ export default async function collectPlacement(
     }
   }
 
-  const { turn, nextCursor }: {
+  const {
+    turn,
+    nextCursor,
+  }: {
     turn: Array<PlacementProviderRecord>;
     nextCursor: number;
   } = takeReadTurn({

@@ -19,7 +19,9 @@ function formatRate(value: number | null): string {
 }
 
 function totalOf(first: number | null, second: number | null): number | null {
-  return first === null && second === null ? null : (first || 0) + (second || 0);
+  return first === null && second === null
+    ? null
+    : (first || 0) + (second || 0);
 }
 
 const OpenStackHostThroughput: FunctionComponent<{

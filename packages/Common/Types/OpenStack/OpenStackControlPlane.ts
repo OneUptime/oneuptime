@@ -309,7 +309,8 @@ export function getOpenStackKeyedFacts(
     const at: number = new Date(value).getTime();
     if (
       isNaN(seenAt) ||
-      (!isNaN(at) && seenAt - at <= OPENSTACK_KEYED_FACT_CURRENT_MINUTES * 60000)
+      (!isNaN(at) &&
+        seenAt - at <= OPENSTACK_KEYED_FACT_CURRENT_MINUTES * 60000)
     ) {
       names.push(key.substring(prefix.length));
     }
@@ -344,7 +345,9 @@ export function isOpenStackDependencyDown(data: {
       },
     );
     return answering.every((row: OpenStackControlPlaneRow): boolean => {
-      return factsOf(row)[OPENSTACK_CONTROL_PLANE_FACTS.ClusterPrimary] === false;
+      return (
+        factsOf(row)[OPENSTACK_CONTROL_PLANE_FACTS.ClusterPrimary] === false
+      );
     });
   }
 

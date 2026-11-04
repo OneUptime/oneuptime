@@ -69,24 +69,25 @@ const OpenStackHypervisorUsage: FunctionComponent<{
   const { part, row } = props;
   const hypervisorName: string = row.hypervisorName || row.name || "";
 
-  const read: OpenStackRead<UsageRead> = useOpenStackRead<UsageRead>(async () => {
-    const usage: HypervisorUsage = await fetchOpenStackHypervisorUsage({
-      cloudName: part.cloudName,
-      hypervisorName,
-    });
-    const busiest: Array<OpenStackInstanceUsageReading> =
-      rankOpenStackInstancesByCpu(usage.instances);
-    const names: Record<string, string> = await fetchOpenStackNames({
-      openStackCloudId: part.openStackCloudId,
-      kind: OpenStackResourceKind.Instance,
-      externalIds: busiest.map(
-        (reading: OpenStackInstanceUsageReading): string => {
-          return reading.instanceId;
-        },
-      ),
-    });
-    return { usage, names, busiest };
-  }, [hypervisorName, part.cloudName, part.refreshToken]);
+  const read: OpenStackRead<UsageRead> =
+    useOpenStackRead<UsageRead>(async () => {
+      const usage: HypervisorUsage = await fetchOpenStackHypervisorUsage({
+        cloudName: part.cloudName,
+        hypervisorName,
+      });
+      const busiest: Array<OpenStackInstanceUsageReading> =
+        rankOpenStackInstancesByCpu(usage.instances);
+      const names: Record<string, string> = await fetchOpenStackNames({
+        openStackCloudId: part.openStackCloudId,
+        kind: OpenStackResourceKind.Instance,
+        externalIds: busiest.map(
+          (reading: OpenStackInstanceUsageReading): string => {
+            return reading.instanceId;
+          },
+        ),
+      });
+      return { usage, names, busiest };
+    }, [hypervisorName, part.cloudName, part.refreshToken]);
 
   if (!read.data) {
     return <></>;

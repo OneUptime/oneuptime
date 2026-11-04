@@ -1695,7 +1695,14 @@ describe("classifyAccessFailure", () => {
     ["overloaded", 503, "Failing", "HTTP 503"],
     ["failing", 500, "Failing", "HTTP 500"],
     ["malformed", 200, "Failing", "HTTP 200"],
-  ] as const)(
+  ] as Array<
+    [
+      ConstructorParameters<typeof OpenStackApiError>[0]["kind"],
+      number,
+      string,
+      string,
+    ]
+  >)(
     "%s %s",
     (
       kind: ConstructorParameters<typeof OpenStackApiError>[0]["kind"],
@@ -1748,7 +1755,13 @@ describe("getOpenStackAccessLevel", () => {
     ["OwnProjectOnly", "OwnProjectOnly", "ProjectView"],
     // Nothing of its own to show for it either.
     ["Refused", "Refused", "Other"],
-  ] as const)(
+  ] as Array<
+    [
+      "ReadsEverything" | "Refused" | "OwnProjectOnly",
+      "ReadsEverything" | "OwnProjectOnly" | "Refused",
+      string,
+    ]
+  >)(
     "infrastructure %s, projects %s: %s",
     (
       infrastructure: "ReadsEverything" | "Refused" | "OwnProjectOnly",

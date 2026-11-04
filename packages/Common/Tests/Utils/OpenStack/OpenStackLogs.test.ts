@@ -276,7 +276,8 @@ describe("oslo.log's own journal handler, whose fields sit beside the line", () 
         "journald.user_id": USER,
         "journald.user_name": "admin",
         "journald.hostname": "compute-01.example.internal",
-        "journald.exception_info": "Traceback (most recent call last):\nValueError",
+        "journald.exception_info":
+          "Traceback (most recent call last):\nValueError",
       },
       body: "Failed to build",
       severityNumber: 0,
@@ -333,7 +334,9 @@ describe("the request every line of a build shares", () => {
     });
 
     expect(stamp.attributes[OpenStackLogAttribute.RequestRootId]).toBe(REQUEST);
-    expect(stamp.attributes[OpenStackLogAttribute.GlobalRequestId]).toBeUndefined();
+    expect(
+      stamp.attributes[OpenStackLogAttribute.GlobalRequestId],
+    ).toBeUndefined();
   });
 
   test("nothing when no request is named", () => {
@@ -343,7 +346,9 @@ describe("the request every line of a build shares", () => {
       severityNumber: 0,
     });
 
-    expect(stamp.attributes[OpenStackLogAttribute.RequestRootId]).toBeUndefined();
+    expect(
+      stamp.attributes[OpenStackLogAttribute.RequestRootId],
+    ).toBeUndefined();
   });
 });
 
@@ -468,12 +473,9 @@ describe("the failures every operator knows by their words", () => {
       "This is not a recognized Fernet token gAAAAA",
       OpenStackLogSignal.TokenValidationFailing,
     ],
-  ])(
-    "%s %s",
-    (level: string, text: string, signal: OpenStackLogSignal) => {
-      expect(readOpenStackLogSignal({ level, text })).toBe(signal);
-    },
-  );
+  ])("%s %s", (level: string, text: string, signal: OpenStackLogSignal) => {
+    expect(readOpenStackLogSignal({ level, text })).toBe(signal);
+  });
 
   test.each(["DEBUG", "INFO", "TRACE", "AUDIT"])(
     "a %s line mentioning one is not one",
@@ -654,7 +656,10 @@ describe("secrets, on the way through", () => {
   test.each([
     ["a Fernet token", `token gAAAAABl${"a".repeat(180)} on the line`],
     ["a password", 'POST /v3/auth/tokens {"password": "the-password"}'],
-    ["a URL's password", "transport_url=rabbit://stackrabbit:the-password@host:5672/"],
+    [
+      "a URL's password",
+      "transport_url=rabbit://stackrabbit:the-password@host:5672/",
+    ],
     ["a header", "X-Auth-Token: gAAAAABl${'a'.repeat(100)} and"],
   ])("%s does not stay", (_what: string, message: string) => {
     const stamp: OpenStackLogStamp = stampOpenStackLogRecord({

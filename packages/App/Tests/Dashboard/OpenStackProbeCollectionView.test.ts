@@ -271,7 +271,7 @@ describe("what a connection test found", () => {
     ["InfrastructureOnly", "This credential is Infrastructure only"],
     ["ProjectView", "This credential has the Project view"],
     ["Other", "This credential reads part of what monitoring needs"],
-  ] as const)(
+  ] as Array<[OpenStackConnectionTestSummary["accessLevel"], string]>)(
     "a login that worked says the access level %s in the docs' words",
     (
       accessLevel: OpenStackConnectionTestSummary["accessLevel"],

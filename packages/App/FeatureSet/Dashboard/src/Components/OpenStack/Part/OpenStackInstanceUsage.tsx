@@ -68,26 +68,27 @@ const OpenStackInstanceUsageTiles: FunctionComponent<{
   const translator: Translator = useTranslator();
   const { part, row, flavor } = props;
 
-  const read: OpenStackRead<UsageRead> = useOpenStackRead<UsageRead>(async () => {
-    const [usage, hypervisor, choice]: [
-      OpenStackInstanceUsage,
-      OpenStackHypervisorUsage | null,
-      OpenStackInstanceMetricsChoice,
-    ] = await Promise.all([
-      fetchOpenStackInstanceUsage({
-        cloudName: part.cloudName,
-        instanceId: part.externalId,
-      }),
-      row.hypervisorName
-        ? fetchOpenStackHypervisorUsage({
-            cloudName: part.cloudName,
-            hypervisorName: row.hypervisorName,
-          })
-        : Promise.resolve(null),
-      fetchOpenStackInstanceMetricsChoice(part.openStackCloudId),
-    ]);
-    return { usage, hypervisor, choice };
-  }, [part.externalId, part.cloudName, part.refreshToken]);
+  const read: OpenStackRead<UsageRead> =
+    useOpenStackRead<UsageRead>(async () => {
+      const [usage, hypervisor, choice]: [
+        OpenStackInstanceUsage,
+        OpenStackHypervisorUsage | null,
+        OpenStackInstanceMetricsChoice,
+      ] = await Promise.all([
+        fetchOpenStackInstanceUsage({
+          cloudName: part.cloudName,
+          instanceId: part.externalId,
+        }),
+        row.hypervisorName
+          ? fetchOpenStackHypervisorUsage({
+              cloudName: part.cloudName,
+              hypervisorName: row.hypervisorName,
+            })
+          : Promise.resolve(null),
+        fetchOpenStackInstanceMetricsChoice(part.openStackCloudId),
+      ]);
+      return { usage, hypervisor, choice };
+    }, [part.externalId, part.cloudName, part.refreshToken]);
 
   // A chart's own frame says when it can't read: this adds nothing but its numbers.
   if (!read.data) {
@@ -132,15 +133,16 @@ const OpenStackInstanceUsageTiles: FunctionComponent<{
         icon={IconProp.CPUChip}
         iconColor="blue"
         value={
-          usage.cpuPercent === null
-            ? "—"
-            : `${Math.round(usage.cpuPercent)}%`
+          usage.cpuPercent === null ? "—" : `${Math.round(usage.cpuPercent)}%`
         }
         sublabel={
           flavor?.vcpuCapacity
-            ? translator.translateTemplate("of {{count}} vCPUs from its flavor", {
-                count: translator.formatNumber(flavor.vcpuCapacity),
-              })
+            ? translator.translateTemplate(
+                "of {{count}} vCPUs from its flavor",
+                {
+                  count: translator.formatNumber(flavor.vcpuCapacity),
+                },
+              )
             : "of its vCPUs"
         }
         isSublabelAsWritten={Boolean(flavor?.vcpuCapacity)}

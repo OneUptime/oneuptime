@@ -29,21 +29,26 @@ export const OpenStackPlacementLines: FunctionComponent<{
     new ObjectID(placement.openStackCloudId),
   );
 
-  const row: (label: string, value: ReactElement, testId: string) => ReactElement =
-    (label: string, value: ReactElement, testId: string): ReactElement => {
-      return (
-        <div
-          key={testId}
-          className="flex flex-wrap items-center justify-between gap-2 py-1 text-sm"
-          data-testid={testId}
-        >
-          <span className="text-gray-500">
-            {translator.translateText(label)}
-          </span>
-          <span className="min-w-0">{value}</span>
-        </div>
-      );
-    };
+  const row: (
+    label: string,
+    value: ReactElement,
+    testId: string,
+  ) => ReactElement = (
+    label: string,
+    value: ReactElement,
+    testId: string,
+  ): ReactElement => {
+    return (
+      <div
+        key={testId}
+        className="flex flex-wrap items-center justify-between gap-2 py-1 text-sm"
+        data-testid={testId}
+      >
+        <span className="text-gray-500">{translator.translateText(label)}</span>
+        <span className="min-w-0">{value}</span>
+      </div>
+    );
+  };
 
   const lines: Array<ReactElement> = [
     row(

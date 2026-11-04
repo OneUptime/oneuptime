@@ -381,7 +381,10 @@ export function simulateOpenStackProbeRequests(data: {
     if (minute % slowEvery === 0) {
       // Domains, projects, regions, users and groups: Keystone pages none of them.
       count(OpenStackServiceType.Identity, 5);
-      count(OpenStackServiceType.Image, getOpenStackListRequests(counts.images));
+      count(
+        OpenStackServiceType.Image,
+        getOpenStackListRequests(counts.images),
+      );
     }
 
     const isFullRead: boolean = minute % fullEvery === 0;
@@ -469,7 +472,8 @@ export function simulateOpenStackProbeRequests(data: {
   }
 
   for (const service of Object.keys(requests) as Array<OpenStackServiceType>) {
-    requests[service] *= service === OpenStackServiceType.Identity ? 1 : counts.regions;
+    requests[service] *=
+      service === OpenStackServiceType.Identity ? 1 : counts.regions;
   }
 
   return requests;
@@ -609,8 +613,10 @@ export function getOpenStackSeriesCounts(data: {
     // Used and total per subnet.
     counts.subnets * 2 +
     (data.isOvs ? counts.routers : 0) +
-    // How many networks, subnets, routers (and how many not active), floating IPs (and how many
-    // associated and not active), security groups, and whether the API is up.
+    /*
+     * How many networks, subnets, routers (and how many not active), floating IPs (and how many
+     * associated and not active), security groups, and whether the API is up.
+     */
     8 +
     SCRAPE_SERIES_PER_READING;
 
@@ -632,8 +638,7 @@ export function getOpenStackSeriesCounts(data: {
     6 +
     SCRAPE_SERIES_PER_READING;
 
-  const image: number =
-    counts.images * 2 + 1 + 1 + SCRAPE_SERIES_PER_READING;
+  const image: number = counts.images * 2 + 1 + 1 + SCRAPE_SERIES_PER_READING;
 
   const summaryCounts: number = isSummary
     ? STATUSES_USUALLY_PRESENT + counts.projects

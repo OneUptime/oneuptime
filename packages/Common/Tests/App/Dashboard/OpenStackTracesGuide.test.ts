@@ -111,7 +111,8 @@ describe.each(TOOLS)("the guide for %s", (tool: OpenStackDeploymentTool) => {
   });
 
   test("it keeps SQL tracing off, which is the expensive part", () => {
-    const config: string = stepTitled(tool, "Turn OSProfiler on").markdown || "";
+    const config: string =
+      stepTitled(tool, "Turn OSProfiler on").markdown || "";
 
     expect(config.toLowerCase()).toMatch(/trace_sqlalchemy[:= ]+\s*false/);
     expect(config).not.toMatch(/trace_sqlalchemy[:= ]+\s*true/i);
@@ -136,11 +137,11 @@ describe.each(TOOLS)("the guide for %s", (tool: OpenStackDeploymentTool) => {
         return topic.title;
       },
     );
-    const troubleshooting: Array<string> = (
-      content.troubleshooting || []
-    ).map((topic: SetupGuideTopic): string => {
-      return topic.title;
-    });
+    const troubleshooting: Array<string> = (content.troubleshooting || []).map(
+      (topic: SetupGuideTopic): string => {
+        return topic.title;
+      },
+    );
 
     expect(advanced).toContain("What it costs");
     expect(advanced).toContain("What a span can hold");

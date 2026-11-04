@@ -1,7 +1,11 @@
 import { describe, expect, test } from "@jest/globals";
 import LogMonitorCriteria from "../../../Server/Utils/Monitor/Criteria/LogMonitorCriteria";
 import LogSeverity from "../../../Types/Log/LogSeverity";
-import { CheckOn, CriteriaFilter, FilterType } from "../../../Types/Monitor/CriteriaFilter";
+import {
+  CheckOn,
+  CriteriaFilter,
+  FilterType,
+} from "../../../Types/Monitor/CriteriaFilter";
 import LogMonitorResponse from "../../../Types/Monitor/LogMonitor/LogMonitorResponse";
 import MonitorCriteriaInstance from "../../../Types/Monitor/MonitorCriteriaInstance";
 import MonitorStep from "../../../Types/Monitor/MonitorStep";
@@ -67,7 +71,9 @@ interface Built {
 
 function build(template: OpenStackLogAlertTemplate): Built {
   const step: MonitorStep = template.getMonitorStep(
-    ARGS as unknown as Parameters<OpenStackLogAlertTemplate["getMonitorStep"]>[0],
+    ARGS as unknown as Parameters<
+      OpenStackLogAlertTemplate["getMonitorStep"]
+    >[0],
   );
   const instances: Array<MonitorCriteriaInstance> =
     step.data!.monitorCriteria.data!.monitorCriteriaInstanceArray;
@@ -143,7 +149,11 @@ describe("every template", () => {
     }
   });
 
-  test.each(ALL.map((template: OpenStackLogAlertTemplate) => [template.id, template] as const))(
+  test.each(
+    ALL.map((template: OpenStackLogAlertTemplate) => {
+      return [template.id, template] as const;
+    }),
+  )(
     "%s fires at its number and recovers below it, with nothing between",
     async (_id: string, template: OpenStackLogAlertTemplate) => {
       const built: Built = build(template);
@@ -181,7 +191,11 @@ describe("every template", () => {
     },
   );
 
-  test.each(ALL.map((template: OpenStackLogAlertTemplate) => [template.id, template] as const))(
+  test.each(
+    ALL.map((template: OpenStackLogAlertTemplate) => {
+      return [template.id, template] as const;
+    }),
+  )(
     "%s reads only this cloud's logs",
     (_id: string, template: OpenStackLogAlertTemplate) => {
       expect(build(template).logMonitor.attributes).toMatchObject({
@@ -190,7 +204,11 @@ describe("every template", () => {
     },
   );
 
-  test.each(ALL.map((template: OpenStackLogAlertTemplate) => [template.id, template] as const))(
+  test.each(
+    ALL.map((template: OpenStackLogAlertTemplate) => {
+      return [template.id, template] as const;
+    }),
+  )(
     "%s opens an alert and an incident, each resolving by itself",
     (_id: string, template: OpenStackLogAlertTemplate) => {
       const built: Built = build(template);
@@ -209,7 +227,11 @@ describe("every template", () => {
     },
   );
 
-  test.each(ALL.map((template: OpenStackLogAlertTemplate) => [template.id, template] as const))(
+  test.each(
+    ALL.map((template: OpenStackLogAlertTemplate) => {
+      return [template.id, template] as const;
+    }),
+  )(
     "%s says what it needs, and when it ends, in one sentence and a paragraph",
     (_id: string, template: OpenStackLogAlertTemplate) => {
       expect(template.summary.length).toBeGreaterThan(10);
@@ -279,7 +301,7 @@ describe("what makes each one fire", () => {
     const built: Built = byId("openstack-token-validation-failing");
 
     for (const line of [
-      "2026-10-30 10:00:00.123 1234 WARNING keystonemiddleware.auth_token [-] Identity response: {\"error\": {}} Failed to validate token",
+      '2026-10-30 10:00:00.123 1234 WARNING keystonemiddleware.auth_token [-] Identity response: {"error": {}} Failed to validate token',
       "2026-10-30 10:00:00.123 1234 WARNING keystone.server.flask.application [-] Authorization failed. This is not a recognized Fernet token gAAAA",
     ]) {
       expect(queryMatches(built.logMonitor, stampOf(line))).toBe(true);
@@ -420,12 +442,16 @@ describe("what makes each one fire", () => {
 });
 
 describe("what each one's alert says", () => {
-  test.each(ALL.map((template: OpenStackLogAlertTemplate) => [template.id, template] as const))(
+  test.each(
+    ALL.map((template: OpenStackLogAlertTemplate) => {
+      return [template.id, template] as const;
+    }),
+  )(
     "%s names the cloud, and takes no text from a log",
     (_id: string, template: OpenStackLogAlertTemplate) => {
       const built: Built = build(template);
-      const alert: { title: string; description: string } = built.unhealthy.data!
-        .alerts[0] as unknown as { title: string; description: string };
+      const alert: { title: string; description: string } = built.unhealthy
+        .data!.alerts[0] as unknown as { title: string; description: string };
 
       expect(alert.title).toContain("[OpenStack]");
       expect(alert.title).toContain("production");

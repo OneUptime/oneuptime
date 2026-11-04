@@ -211,9 +211,7 @@ export default class OpenStackServiceClient {
 
   // What its answers took on average, for the next collection to measure against.
   public getAverageAnswerInMs(): number | null {
-    return this.answerCount > 0
-      ? this.answerTimeInMs / this.answerCount
-      : null;
+    return this.answerCount > 0 ? this.answerTimeInMs / this.answerCount : null;
   }
 
   public getDeadlineAt(): number {

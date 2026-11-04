@@ -185,9 +185,12 @@ describe("following a request across services", () => {
   });
 
   test("nothing at all is nothing", () => {
-    expect(
-      joinOpenStackRequest({ requestRows: [], windowRows: [] }),
-    ).toEqual({ joined: [], notJoined: [], firstAt: null, lastAt: null });
+    expect(joinOpenStackRequest({ requestRows: [], windowRows: [] })).toEqual({
+      joined: [],
+      notJoined: [],
+      firstAt: null,
+      lastAt: null,
+    });
   });
 
   test("a line with no service of its own is still counted", () => {

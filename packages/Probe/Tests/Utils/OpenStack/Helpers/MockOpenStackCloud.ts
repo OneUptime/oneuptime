@@ -124,7 +124,10 @@ export default class MockOpenStackCloud {
     this.counts = options.counts;
     this.isOvs = options.networkBackend === "ovs";
     this.instanceTotal = options.counts.instances;
-    this.scene = loadScene(this.isOvs ? "gazpacho-ovs" : "gazpacho-ovn", "healthy");
+    this.scene = loadScene(
+      this.isOvs ? "gazpacho-ovs" : "gazpacho-ovn",
+      "healthy",
+    );
 
     const first: (file: string, key: string) => JSONObject = (
       file: string,
@@ -307,14 +310,12 @@ export default class MockOpenStackCloud {
     const now: number = this.options.clock.now();
     const asked: string | null = data.url.searchParams.get("limit");
     const ceiling: number = data.ceiling ?? FULL_LIST_CEILING;
-    const limit: number = asked
-      ? Math.min(Number(asked), ceiling)
-      : ceiling;
+    const limit: number = asked ? Math.min(Number(asked), ceiling) : ceiling;
     const marker: string | null = data.url.searchParams.get("marker");
     const fields: Array<string> = data.url.searchParams.getAll("fields");
 
     const items: Array<JSONObject> = [];
-    let at: number = marker ? indexOf(marker) + 1 : (data.start ?? 0);
+    let at: number = marker ? indexOf(marker) + 1 : data.start ?? 0;
 
     for (; at < data.total && items.length < limit; at++) {
       const made: JSONObject | null = data.make(at);
@@ -655,9 +656,11 @@ export default class MockOpenStackCloud {
       : FULL_LIST_CEILING;
     const marker: string | null = url.searchParams.get("marker");
     const after: number = marker ? indexOf(marker) : -1;
-    const remaining: Array<number> = changed.filter((index: number): boolean => {
-      return index > after;
-    });
+    const remaining: Array<number> = changed.filter(
+      (index: number): boolean => {
+        return index > after;
+      },
+    );
     const page: Array<number> = remaining.slice(0, limit);
     const items: Array<JSONObject> = page.map((index: number): JSONObject => {
       return this.serverRow(index, this.serverChanges.get(index));
@@ -891,7 +894,10 @@ export default class MockOpenStackCloud {
               floating_ip_address: `172.24.${(index >> 8) % 250}.${index % 250}`,
               project_id: projectIdOf(index % projects),
               tenant_id: projectIdOf(index % projects),
-              router_id: uuidOf("43000000", index % Math.max(this.counts.routers, 1)),
+              router_id: uuidOf(
+                "43000000",
+                index % Math.max(this.counts.routers, 1),
+              ),
               status: "ACTIVE",
             } as JSONObject;
           },
@@ -953,7 +959,10 @@ export default class MockOpenStackCloud {
         {
           agents: [
             {
-              id: uuidOf("40000000", router % Math.max(this.counts.networkAgents, 1)),
+              id: uuidOf(
+                "40000000",
+                router % Math.max(this.counts.networkAgents, 1),
+              ),
               host: hostOf(router % Math.max(this.counts.hypervisors, 1)),
               ha_state: "active",
               alive: true,
@@ -968,7 +977,10 @@ export default class MockOpenStackCloud {
     return json(404, {}, now);
   }
 
-  private routeVolume(rest: string, url: globalThis.URL): OpenStackHttpResponse {
+  private routeVolume(
+    rest: string,
+    url: globalThis.URL,
+  ): OpenStackHttpResponse {
     const now: number = this.options.clock.now();
     const projects: number = Math.max(this.counts.projects, 1);
 
@@ -982,7 +994,8 @@ export default class MockOpenStackCloud {
               (_value: unknown, index: number): JSONObject => {
                 return {
                   ...this.templates["cinderService"],
-                  binary: index % 2 === 0 ? "cinder-scheduler" : "cinder-volume",
+                  binary:
+                    index % 2 === 0 ? "cinder-scheduler" : "cinder-volume",
                   host: `controller-${index}`,
                 } as JSONObject;
               },
@@ -1064,7 +1077,9 @@ export default class MockOpenStackCloud {
               availability_zone: "nova",
               is_incremental: false,
               updated_at: "2026-11-01T00:00:00.000000",
-              "os-backup-project-attr:project_id": projectIdOf(index % projects),
+              "os-backup-project-attr:project_id": projectIdOf(
+                index % projects,
+              ),
             };
           },
         });

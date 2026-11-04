@@ -763,7 +763,9 @@ export default class LinkedInfrastructureContext {
     }
 
     lines.push(...LinkedInfrastructureContext.describeOpenStack(data));
-    lines.push(...LinkedInfrastructureContext.describeOpenStackPlacements(data));
+    lines.push(
+      ...LinkedInfrastructureContext.describeOpenStackPlacements(data),
+    );
 
     const windowStartText: string = data.windowStart.toISOString();
 

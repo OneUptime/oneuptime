@@ -1,4 +1,13 @@
-import { afterAll, afterEach, beforeAll, beforeEach, describe, expect, jest, test } from "@jest/globals";
+import {
+  afterAll,
+  afterEach,
+  beforeAll,
+  beforeEach,
+  describe,
+  expect,
+  jest,
+  test,
+} from "@jest/globals";
 import fs from "fs";
 import path from "path";
 import { DataSource } from "typeorm";
@@ -93,7 +102,10 @@ function instance(
   });
 }
 
-function computeApi(vouchedAt: Date, refreshCycleMinutes?: number): ParsedOpenStackResource {
+function computeApi(
+  vouchedAt: Date,
+  refreshCycleMinutes?: number,
+): ParsedOpenStackResource {
   return resource({
     kind: OpenStackResourceKind.Api,
     externalId: `RegionOne/${OpenStackServiceType.Compute}`,
@@ -113,14 +125,17 @@ describePostgres("the OpenStack inventory at scale, on Postgres", () => {
 
   type Row = Record<string, unknown>;
 
-  const write: (resources: Array<ParsedOpenStackResource>) => Promise<void> =
-    async (resources: Array<ParsedOpenStackResource>): Promise<void> => {
-      await OpenStackResourceService.bulkUpsert({
-        projectId: PROJECT_ID,
-        openStackCloudId: CLOUD_ID,
-        resources,
-      });
-    };
+  const write: (
+    resources: Array<ParsedOpenStackResource>,
+  ) => Promise<void> = async (
+    resources: Array<ParsedOpenStackResource>,
+  ): Promise<void> => {
+    await OpenStackResourceService.bulkUpsert({
+      projectId: PROJECT_ID,
+      openStackCloudId: CLOUD_ID,
+      resources,
+    });
+  };
 
   const rowOf: (
     kind: OpenStackResourceKind,
@@ -137,7 +152,9 @@ describePostgres("the OpenStack inventory at scale, on Postgres", () => {
     return rows[0];
   };
 
-  const lastSeenOf: (externalId: string) => Promise<number | undefined> = async (
+  const lastSeenOf: (
+    externalId: string,
+  ) => Promise<number | undefined> = async (
     externalId: string,
   ): Promise<number | undefined> => {
     const row: Row | undefined = await rowOf(
@@ -234,9 +251,19 @@ describePostgres("the OpenStack inventory at scale, on Postgres", () => {
       ["where it runs", { hypervisorName: "h-9" }, "hypervisorName", "h-9"],
       ["its zone", { availabilityZone: "az-9" }, "availabilityZone", "az-9"],
       ["its admin state", { adminState: "disabled" }, "adminState", "disabled"],
-      ["its project", { openStackProjectId: "p-9" }, "openStackProjectId", "p-9"],
+      [
+        "its project",
+        { openStackProjectId: "p-9" },
+        "openStackProjectId",
+        "p-9",
+      ],
       ["a number", { vcpuAllocated: 9 }, "vcpuAllocated", 9],
-      ["a large number", { diskCapacityBytes: 2 ** 40 }, "diskCapacityBytes", String(2 ** 40)],
+      [
+        "a large number",
+        { diskCapacityBytes: 2 ** 40 },
+        "diskCapacityBytes",
+        String(2 ** 40),
+      ],
     ] as Array<[string, Partial<ParsedOpenStackResource>, string, unknown]>)(
       "a change to %s is written at once",
       async (
@@ -275,7 +302,10 @@ describePostgres("the OpenStack inventory at scale, on Postgres", () => {
 
     test("a fact that differs is written, and only that key moves", async () => {
       await write([
-        instance("i-1", { facts: { flavorId: "a", userId: "u" }, lastSeenAt: at(0) }),
+        instance("i-1", {
+          facts: { flavorId: "a", userId: "u" },
+          lastSeenAt: at(0),
+        }),
       ]);
       await write([
         instance("i-1", { facts: { flavorId: "b" }, lastSeenAt: at(1) }),
@@ -564,9 +594,7 @@ describePostgres("the OpenStack inventory at scale, on Postgres", () => {
       expect(await lastSeenOf("i-turn")).toBeUndefined();
 
       // A cloud that left summary mode stops waiting.
-      await write([
-        instance("i-next", { lastSeenAt: at(46) }),
-      ]);
+      await write([instance("i-next", { lastSeenAt: at(46) })]);
       await write([computeApi(at(62))]);
       await sweep();
       expect(await lastSeenOf("i-next")).toBeUndefined();
@@ -613,9 +641,7 @@ describePostgres("the OpenStack inventory at scale, on Postgres", () => {
       await write(rows);
 
       expect(query).toHaveBeenCalledTimes(3);
-      expect(
-        (query.mock.calls[0]![1] as Array<unknown>).length / 24,
-      ).toBe(500);
+      expect((query.mock.calls[0]![1] as Array<unknown>).length / 24).toBe(500);
     }, 120000);
 
     test("two batches over the same rows, in opposite orders, wait for each other rather than deadlock", async () => {
@@ -685,7 +711,10 @@ describePostgres("the OpenStack inventory at scale, on Postgres", () => {
     };
 
     test("reads its nova-compute's state, by its short name, whichever batch came first", async () => {
-      await write([service("compute-01"), service("compute-02", { status: "up" })]);
+      await write([
+        service("compute-01"),
+        service("compute-02", { status: "up" }),
+      ]);
       await write([
         hypervisor("compute-01.example.org"),
         hypervisor("compute-02.example.org"),
@@ -731,9 +760,9 @@ describePostgres("the OpenStack inventory at scale, on Postgres", () => {
       });
 
       expect(
-        (await rowOf(OpenStackResourceKind.Hypervisor, "RegionTwo/compute-01"))?.[
-          "status"
-        ],
+        (
+          await rowOf(OpenStackResourceKind.Hypervisor, "RegionTwo/compute-01")
+        )?.["status"],
       ).toBeNull();
     });
   });
@@ -906,7 +935,8 @@ describePostgres("the OpenStack inventory at scale, on Postgres", () => {
       await insert({
         kind: OpenStackResourceKind.Service,
         count:
-          OPENSTACK_LARGE_CLOUD.hypervisors + OPENSTACK_LARGE_CLOUD.networkAgents,
+          OPENSTACK_LARGE_CLOUD.hypervisors +
+          OPENSTACK_LARGE_CLOUD.networkAgents,
         id: `'RegionOne/s-' || g`,
         status: `'up'`,
       });
@@ -966,17 +996,20 @@ describePostgres("the OpenStack inventory at scale, on Postgres", () => {
 
         for (let g: number = 1; g <= 20000; g++) {
           rows.push({
-            ...instance(`00000000-0000-4000-8000-${String(g).padStart(12, "0")}`, {
-              name: `Instance-${(g * 7919) % OPENSTACK_LARGE_CLOUD.instances}`,
-              status: g % 1000 === 0 ? "ERROR" : "ACTIVE",
-              openStackProjectId: `project-${g % 10000}`,
-              hypervisorName: `compute-${g % OPENSTACK_LARGE_CLOUD.hypervisors}.example.org`,
-              facts: {
-                family: "compute",
-                host: `compute-${g}`,
-                flavorId: `f${g % 40}`,
+            ...instance(
+              `00000000-0000-4000-8000-${String(g).padStart(12, "0")}`,
+              {
+                name: `Instance-${(g * 7919) % OPENSTACK_LARGE_CLOUD.instances}`,
+                status: g % 1000 === 0 ? "ERROR" : "ACTIVE",
+                openStackProjectId: `project-${g % 10000}`,
+                hypervisorName: `compute-${g % OPENSTACK_LARGE_CLOUD.hypervisors}.example.org`,
+                facts: {
+                  family: "compute",
+                  host: `compute-${g}`,
+                  flavorId: `f${g % 40}`,
+                },
               },
-            }),
+            ),
             lastSeenAt: at(minutes),
           });
         }
@@ -1000,19 +1033,29 @@ describePostgres("the OpenStack inventory at scale, on Postgres", () => {
       // A tenth is generous: it was a twenty-eighth on 200,000 rows.
       expect(unchangedBytes).toBeLessThan(touchedBytes / 10);
 
-      const time: <T>(run: () => Promise<T>, limit: number) => Promise<FastestRun<T>> =
-        async <T>(run: () => Promise<T>, limit: number): Promise<FastestRun<T>> => {
-          return await fastestRunAsync({ run: run, limitInMs: limit });
-        };
+      const time: <T>(
+        run: () => Promise<T>,
+        limit: number,
+      ) => Promise<FastestRun<T>> = async <T>(
+        run: () => Promise<T>,
+        limit: number,
+      ): Promise<FastestRun<T>> => {
+        return await fastestRunAsync({ run: run, limitInMs: limit });
+      };
 
       const summary: FastestRun<OpenStackInventorySummary> = await time(() => {
         return OpenStackResourceService.getInventorySummary(scope);
       }, 3000);
-      expect(summary.result.instanceCount).toBe(OPENSTACK_LARGE_CLOUD.instances);
+      expect(summary.result.instanceCount).toBe(
+        OPENSTACK_LARGE_CLOUD.instances,
+      );
       expect(summary.inMs).toBeLessThan(3000);
 
       const attention: FastestRun<OpenStackAttentionRows> = await time(() => {
-        return OpenStackResourceService.getAttentionRows({ ...scope, now: at(20) });
+        return OpenStackResourceService.getAttentionRows({
+          ...scope,
+          now: at(20),
+        });
       }, 3000);
       expect(attention.inMs).toBeLessThan(3000);
       expect(attention.result.totalsByKind["Instance"]).toBe(
@@ -1042,7 +1085,10 @@ describePostgres("the OpenStack inventory at scale, on Postgres", () => {
       expect(overview.inMs).toBeLessThan(6000);
 
       const topology: FastestRun<OpenStackTopologyRead> = await time(() => {
-        return OpenStackResourceService.getTopologyRead({ ...scope, now: at(20) });
+        return OpenStackResourceService.getTopologyRead({
+          ...scope,
+          now: at(20),
+        });
       }, 5000);
       expect(topology.result.isSummarized).toBe(true);
       expect(topology.inMs).toBeLessThan(5000);
@@ -1061,7 +1107,9 @@ describePostgres("the OpenStack inventory at scale, on Postgres", () => {
         inventorySummaryMs: summary.measuredInMs,
         attentionMs: attention.measuredInMs,
         attentionRows: attention.result.rows.length,
-        attentionBytes: Buffer.byteLength(JSON.stringify(attention.result.rows)),
+        attentionBytes: Buffer.byteLength(
+          JSON.stringify(attention.result.rows),
+        ),
         regionSummariesMs: regions.measuredInMs,
         topConsumersMs: consumers.measuredInMs,
         overviewMs: overview.measuredInMs,

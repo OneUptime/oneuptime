@@ -369,10 +369,7 @@ describe("what the pages go without on exporter 1.7.0", () => {
     });
 
     test.each(WHERE_IT_IS_SAID)("%s names each of them", (file: string) => {
-      const text: string = fs.readFileSync(
-        path.join(REPO_ROOT, file),
-        "utf8",
-      );
+      const text: string = fs.readFileSync(path.join(REPO_ROOT, file), "utf8");
 
       for (const name of QUIET) {
         expect(text).toContain(name);

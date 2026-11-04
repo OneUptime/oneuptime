@@ -11,7 +11,9 @@ import { JSONObject } from "Common/Types/JSON";
 import ObjectID from "Common/Types/ObjectID";
 import { getOpenStackShortHostName } from "Common/Types/OpenStack/OpenStackHealthRules";
 import { OpenStackResourceKind } from "Common/Types/OpenStack/OpenStackResourceKind";
-import AnalyticsModelAPI from "Common/UI/Utils/AnalyticsModelAPI/AnalyticsModelAPI";
+import AnalyticsModelAPI, {
+  ListResult as AnalyticsListResult,
+} from "Common/UI/Utils/AnalyticsModelAPI/AnalyticsModelAPI";
 import ModelAPI, { ListResult } from "Common/UI/Utils/ModelAPI/ModelAPI";
 import { OPENSTACK_CLOUD_LOG_ATTRIBUTE } from "Common/Utils/OpenStack/OpenStackLogs";
 import {
@@ -103,11 +105,9 @@ export function findOpenStackServiceRow(data: {
     candidates.find((row: OpenStackResource): boolean => {
       return (
         Boolean(host) &&
-        (row.externalId || "")
-          .split("/")
-          .some((word: string): boolean => {
-            return getOpenStackShortHostName(word) === host;
-          })
+        (row.externalId || "").split("/").some((word: string): boolean => {
+          return getOpenStackShortHostName(word) === host;
+        })
       );
     }) ||
     candidates[0] ||
@@ -133,7 +133,10 @@ export function readOpenStackTraceSpans(spans: ReadonlyArray<Span>): {
     cloudName =
       cloudName || readText(attributes, OPENSTACK_CLOUD_SPAN_ATTRIBUTE);
 
-    const service: string = readText(attributes, OpenStackTraceAttribute.Service);
+    const service: string = readText(
+      attributes,
+      OpenStackTraceAttribute.Service,
+    );
     const host: string = readText(attributes, OPENSTACK_NODE_SPAN_ATTRIBUTE);
 
     if (service) {
@@ -161,7 +164,9 @@ export function readOpenStackTraceSpans(spans: ReadonlyArray<Span>): {
         a: { service: string; host: string },
         b: { service: string; host: string },
       ): number => {
-        return a.service.localeCompare(b.service) || a.host.localeCompare(b.host);
+        return (
+          a.service.localeCompare(b.service) || a.host.localeCompare(b.host)
+        );
       },
     ),
     resources: Array.from(resources.values()),
@@ -188,23 +193,25 @@ async function fetchRequestsOfTrace(data: {
     return [];
   }
 
-  const result: ListResult<Log> = await AnalyticsModelAPI.getList<Log>({
-    modelType: Log,
-    query: {
-      attributes: { [OPENSTACK_CLOUD_LOG_ATTRIBUTE]: data.cloudName },
-      time: new InBetween<Date>(
-        new Date(Math.min(...times)),
-        OneUptimeDate.addRemoveSeconds(
-          new Date(Math.max(...times)),
-          LOG_WINDOW_MARGIN_IN_SECONDS,
+  const result: AnalyticsListResult<Log> = await AnalyticsModelAPI.getList<Log>(
+    {
+      modelType: Log,
+      query: {
+        attributes: { [OPENSTACK_CLOUD_LOG_ATTRIBUTE]: data.cloudName },
+        time: new InBetween<Date>(
+          new Date(Math.min(...times)),
+          OneUptimeDate.addRemoveSeconds(
+            new Date(Math.max(...times)),
+            LOG_WINDOW_MARGIN_IN_SECONDS,
+          ),
         ),
-      ),
-    } as unknown as Query<Log>,
-    select: { time: true, severityText: true, attributes: true, body: true },
-    sort: { time: SortOrder.Ascending },
-    limit: LOG_ROWS_READ,
-    skip: 0,
-  });
+      } as unknown as Query<Log>,
+      select: { time: true, severityText: true, attributes: true, body: true },
+      sort: { time: SortOrder.Ascending },
+      limit: LOG_ROWS_READ,
+      skip: 0,
+    },
+  );
 
   return joinOpenStackTraceToRequests({
     spans: data.forLogs,
@@ -226,19 +233,20 @@ async function fetchRequestsOfTrace(data: {
 export async function fetchOpenStackTraceContext(
   traceId: string,
 ): Promise<OpenStackTraceContext | null> {
-  const spanRows: ListResult<Span> = await AnalyticsModelAPI.getList<Span>({
-    modelType: Span,
-    query: {
-      traceId: traceId,
-      attributes: {
-        [OSPROFILER_SCOPE_SPAN_ATTRIBUTE]: OSPROFILER_DRIVER_SCOPE_NAME,
-      },
-    } as unknown as Query<Span>,
-    select: { startTime: true, endTime: true, attributes: true },
-    sort: { startTime: SortOrder.Ascending },
-    limit: SPANS_READ,
-    skip: 0,
-  });
+  const spanRows: AnalyticsListResult<Span> =
+    await AnalyticsModelAPI.getList<Span>({
+      modelType: Span,
+      query: {
+        traceId: traceId,
+        attributes: {
+          [OSPROFILER_SCOPE_SPAN_ATTRIBUTE]: OSPROFILER_DRIVER_SCOPE_NAME,
+        },
+      } as unknown as Query<Span>,
+      select: { startTime: true, endTime: true, attributes: true },
+      sort: { startTime: SortOrder.Ascending },
+      limit: SPANS_READ,
+      skip: 0,
+    });
 
   if (spanRows.data.length === 0) {
     return null;

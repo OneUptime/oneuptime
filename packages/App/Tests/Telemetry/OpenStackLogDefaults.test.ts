@@ -82,9 +82,9 @@ function drops(filter: OpenStackDefaultDropFilter, body: string): boolean {
 
 describe("the drop filters", () => {
   test.each(
-    OPENSTACK_DEFAULT_DROP_FILTERS.map(
-      (filter: OpenStackDefaultDropFilter) => [filter.name, filter] as const,
-    ),
+    OPENSTACK_DEFAULT_DROP_FILTERS.map((filter: OpenStackDefaultDropFilter) => {
+      return [filter.name, filter] as const;
+    }),
   )("%s parses", (_name: string, filter: OpenStackDefaultDropFilter) => {
     expect(
       compileFilter(filter.filterQuery, { emptyQueryMatches: false }).kind,
@@ -180,7 +180,9 @@ describe("the scrub rules", () => {
 
     expect(compiled).not.toBeNull();
 
-    return (compiled as ScrubRegExp)[Symbol.replace](text, "[REDACTED]");
+    return (compiled as ScrubRegExp).replace(text, () => {
+      return "[REDACTED]";
+    });
   }
 
   function ruleNamed(fragment: string): OpenStackDefaultScrubRule {
@@ -197,10 +199,10 @@ describe("the scrub rules", () => {
   }
 
   test.each(
-    OPENSTACK_DEFAULT_SCRUB_RULES.map(
-      (rule: OpenStackDefaultScrubRule) => [rule.name, rule] as const,
-    ),
-  )("%s compiles, as a project's own pattern must", (_name, rule) => {
+    OPENSTACK_DEFAULT_SCRUB_RULES.map((rule: OpenStackDefaultScrubRule) => {
+      return [rule.name, rule] as const;
+    }),
+  )("%s compiles, as a project's own pattern must", (_name: string, rule: OpenStackDefaultScrubRule) => {
     expect(compileScrubRuleCustomRegex(rule.customRegex)).not.toBeNull();
   });
 
@@ -226,17 +228,26 @@ describe("the scrub rules", () => {
   });
 
   test.each([
-    ["rabbit://stackrabbit:hunter2@host:5672/", "rabbit://stackrabbit:[REDACTED]@host:5672/"],
-    ["mysql+pymysql://root:hunter2@host/nova", "mysql+pymysql://root:[REDACTED]@host/nova"],
-    ["postgresql://u:hunter2@host/keystone", "postgresql://u:[REDACTED]@host/keystone"],
+    [
+      "rabbit://stackrabbit:hunter2@host:5672/",
+      "rabbit://stackrabbit:[REDACTED]@host:5672/",
+    ],
+    [
+      "mysql+pymysql://root:hunter2@host/nova",
+      "mysql+pymysql://root:[REDACTED]@host/nova",
+    ],
+    [
+      "postgresql://u:hunter2@host/keystone",
+      "postgresql://u:[REDACTED]@host/keystone",
+    ],
   ])("the address %s", (text: string, expected: string) => {
     expect(scrubbed(ruleNamed("URLs"), text)).toBe(expected);
   });
 
   test("an ordinary address is left", () => {
-    expect(
-      scrubbed(ruleNamed("URLs"), "http://controller:5000/v3 is up"),
-    ).toBe("http://controller:5000/v3 is up");
+    expect(scrubbed(ruleNamed("URLs"), "http://controller:5000/v3 is up")).toBe(
+      "http://controller:5000/v3 is up",
+    );
   });
 
   test.each([
@@ -260,7 +271,9 @@ describe("the scrub rules", () => {
         "rabbit://user:".repeat(10000),
         '"password": "'.repeat(10000),
       ]) {
-        compiled?.[Symbol.replace](shape, "[REDACTED]");
+        compiled?.replace(shape, () => {
+          return "[REDACTED]";
+        });
       }
 
       expect(Date.now() - startedAt).toBeLessThan(5000);
@@ -300,18 +313,18 @@ describe("adding them to a project", () => {
         return row;
       });
     }) as never);
-    jest.spyOn(LogDropFilterService, "create").mockImplementation((async (input: {
-      data: LogDropFilter;
-    }) => {
-      filters.push(input.data);
-      return input.data;
-    }) as never);
-    jest.spyOn(LogScrubRuleService, "create").mockImplementation((async (input: {
-      data: LogScrubRule;
-    }) => {
-      rules.push(input.data);
-      return input.data;
-    }) as never);
+    jest
+      .spyOn(LogDropFilterService, "create")
+      .mockImplementation((async (input: { data: LogDropFilter }) => {
+        filters.push(input.data);
+        return input.data;
+      }) as never);
+    jest
+      .spyOn(LogScrubRuleService, "create")
+      .mockImplementation((async (input: { data: LogScrubRule }) => {
+        rules.push(input.data);
+        return input.data;
+      }) as never);
 
     return { filters, rules };
   }

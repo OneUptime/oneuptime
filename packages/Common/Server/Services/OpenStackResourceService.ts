@@ -382,11 +382,13 @@ export class Service extends DatabaseService<Model> {
         }
         return sanitized;
       })
-      .sort((first: ParsedOpenStackResource, second: ParsedOpenStackResource) => {
-        const a: string = `${first.kind}/${first.externalId}`;
-        const b: string = `${second.kind}/${second.externalId}`;
-        return a < b ? -1 : a > b ? 1 : 0;
-      });
+      .sort(
+        (first: ParsedOpenStackResource, second: ParsedOpenStackResource) => {
+          const a: string = `${first.kind}/${first.externalId}`;
+          const b: string = `${second.kind}/${second.externalId}`;
+          return a < b ? -1 : a > b ? 1 : 0;
+        },
+      );
 
     const touchInterval: number = this.getRowTouchIntervalInSeconds();
 

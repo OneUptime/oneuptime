@@ -21,9 +21,7 @@ import {
   readOpenStackInstanceMetricSamples,
   removeOpenStackInstanceOriginals,
 } from "../../../../Server/Utils/Telemetry/OpenStackInstanceMetricsScan";
-import {
-  isOpenStackSnapshotDatapoint,
-} from "../../../../Server/Utils/Telemetry/OpenStackSnapshotScan";
+import { isOpenStackSnapshotDatapoint } from "../../../../Server/Utils/Telemetry/OpenStackSnapshotScan";
 import { JSONArray, JSONObject } from "../../../../Types/JSON";
 import {
   OPENSTACK_HYPERVISOR_ATTRIBUTE,
@@ -179,7 +177,8 @@ function valueOf(
   const point: JSONObject | undefined = pointsOf(decision, name).find(
     (one: JSONObject): boolean => {
       return (
-        !device || attribute(one, OPENSTACK_INSTANCE_DEVICE_ATTRIBUTE) === device
+        !device ||
+        attribute(one, OPENSTACK_INSTANCE_DEVICE_ATTRIBUTE) === device
       );
     },
   );
@@ -231,9 +230,9 @@ describe("rates", () => {
       expect(retried.rate).toBeNull();
       expect(retried.next).toEqual(second.next);
       // The next real reading is still measured from the last one.
-      expect(step(retried.next, START_MS + 2 * MINUTE_MS, 220).rate).toBeCloseTo(
-        1,
-      );
+      expect(
+        step(retried.next, START_MS + 2 * MINUTE_MS, 220).rate,
+      ).toBeCloseTo(1);
     });
 
     test("a batch that lost a race and came late changes nothing", () => {
@@ -252,9 +251,9 @@ describe("rates", () => {
         9000,
       );
       expect(later.rate).toBeNull();
-      expect(step(later.next, later.next[0] + MINUTE_MS, 9060).rate).toBeCloseTo(
-        1,
-      );
+      expect(
+        step(later.next, later.next[0] + MINUTE_MS, 9060).rate,
+      ).toBeCloseTo(1);
     });
 
     test("just inside the longest gap it is still a rate", () => {
@@ -341,7 +340,8 @@ describe("rates", () => {
       expect(quiet.rate).toBe(0);
       // And no sooner.
       expect(
-        step(first.next, START_MS + OPENSTACK_CEILOMETER_QUIET_MS - 1, 100).rate,
+        step(first.next, START_MS + OPENSTACK_CEILOMETER_QUIET_MS - 1, 100)
+          .rate,
       ).toBeNull();
     });
 
@@ -373,8 +373,11 @@ describe("rates", () => {
     test("past the longest gap it starts again", () => {
       const first: CounterStep = step(null, START_MS, 0);
       expect(
-        step(first.next, START_MS + OPENSTACK_CEILOMETER_LONGEST_GAP_MS + 1, 999)
-          .rate,
+        step(
+          first.next,
+          START_MS + OPENSTACK_CEILOMETER_LONGEST_GAP_MS + 1,
+          999,
+        ).rate,
       ).toBeNull();
     });
 
@@ -482,7 +485,9 @@ describe("what a batch from libvirt's exporter becomes", () => {
       truthOf({ cpuSeconds: 1000 }),
       truthOf({ cpuSeconds: 1090 }),
     );
-    expect(valueOf(decision, OpenStackInstanceMetric.CpuUsage)).toBeCloseTo(1.5);
+    expect(valueOf(decision, OpenStackInstanceMetric.CpuUsage)).toBeCloseTo(
+      1.5,
+    );
     expect(
       valueOf(decision, OpenStackInstanceMetric.CpuUtilization),
     ).toBeCloseTo(75);
@@ -617,9 +622,9 @@ describe("what a batch from libvirt's exporter becomes", () => {
       truthOf({}),
       truthOf({}),
     );
-    expect(
-      pointsOf(decision, OpenStackInstanceMetric.DiskReadLatency),
-    ).toEqual([]);
+    expect(pointsOf(decision, OpenStackInstanceMetric.DiskReadLatency)).toEqual(
+      [],
+    );
     expect(valueOf(decision, OpenStackInstanceMetric.DiskReadRate, "vda")).toBe(
       0,
     );
@@ -630,7 +635,9 @@ describe("what a batch from libvirt's exporter becomes", () => {
       truthOf({ cpuSeconds: 90000 }),
       truthOf({ cpuSeconds: 30 }),
     );
-    expect(valueOf(decision, OpenStackInstanceMetric.CpuUsage)).toBeCloseTo(0.5);
+    expect(valueOf(decision, OpenStackInstanceMetric.CpuUsage)).toBeCloseTo(
+      0.5,
+    );
   });
 
   test("every series names its instance, its source, its project, its hypervisor and its region", () => {
@@ -828,9 +835,7 @@ describe("a scrape the collector split across batches", () => {
       OpenStackInstanceMetric.CpuContention,
       OpenStackInstanceMetric.MemoryUsage,
     ]) {
-      expect(valueOf(b.decision, name)).toBeCloseTo(
-        valueOf(a.decision, name)!,
-      );
+      expect(valueOf(b.decision, name)).toBeCloseTo(valueOf(a.decision, name)!);
     }
     expect(
       valueOf(b.decision, OpenStackInstanceMetric.DiskReadLatency, "vda"),
@@ -851,13 +856,17 @@ describe("what a batch from Ceilometer's exporter becomes", () => {
       readOpenStackInstanceMetricSamples(envelope);
     expect(
       samples.every(
-        (sample: ReturnType<typeof readOpenStackInstanceMetricSamples>[number]) => {
+        (
+          sample: ReturnType<typeof readOpenStackInstanceMetricSamples>[number],
+        ) => {
           return sample.instanceId === BURNER_ID;
         },
       ),
     ).toBe(true);
     const devices: Array<string | null> = samples.map(
-      (sample: ReturnType<typeof readOpenStackInstanceMetricSamples>[number]) => {
+      (
+        sample: ReturnType<typeof readOpenStackInstanceMetricSamples>[number],
+      ) => {
         return sample.device;
       },
     );
@@ -1308,7 +1317,9 @@ describe("a hypervisor's totals", () => {
       pointsOf(decision, OpenStackHypervisorMetric.InstancesCpuUsage),
     ).toEqual([]);
     // Each instance's own series don't need it.
-    expect(pointsOf(decision, OpenStackInstanceMetric.CpuUsage)).toHaveLength(2);
+    expect(pointsOf(decision, OpenStackInstanceMetric.CpuUsage)).toHaveLength(
+      2,
+    );
   });
 });
 
@@ -1376,16 +1387,17 @@ describe("cost is a choice", () => {
       [BURNER_ID, { ...PLACEMENT, projectId: "chosen" }],
       [IDLE_ID, { ...PLACEMENT, projectId: "other" }],
     ]);
-    const isKept: (instance: { projectId: string | null }) => boolean = (
-      instance: { projectId: string | null },
-    ): boolean => {
+    const isKept: (instance: {
+      projectId: string | null;
+    }) => boolean = (instance: { projectId: string | null }): boolean => {
       return instance.projectId !== PROJECT_ID;
     };
     // Its series say which project it is in, so the labels decide it here.
     const text: (minute: number) => string = (minute: number): string => {
-      return libvirtText([
-        truthOf({ cpuSeconds: 1000 + minute * 60 }),
-      ]).replace(`project_id="${PROJECT_ID}"`, 'project_id="chosen"');
+      return libvirtText([truthOf({ cpuSeconds: 1000 + minute * 60 })]).replace(
+        `project_id="${PROJECT_ID}"`,
+        'project_id="chosen"',
+      );
     };
     runBatch({ text: text(0), timeMs: START_MS, states, known, isKept });
     const { decision }: Run = runBatch({
@@ -1395,7 +1407,9 @@ describe("cost is a choice", () => {
       known,
       isKept,
     });
-    expect(pointsOf(decision, OpenStackInstanceMetric.CpuUsage)).toHaveLength(1);
+    expect(pointsOf(decision, OpenStackInstanceMetric.CpuUsage)).toHaveLength(
+      1,
+    );
     expect(decision.droppedInstanceIds.size).toBe(0);
   });
 });
@@ -1445,9 +1459,9 @@ describe("the batch it hands back", () => {
       timeMs: START_MS + MINUTE_MS,
       states,
     });
-    expect(pointsOf(retried.decision, OpenStackInstanceMetric.CpuUsage)).toEqual(
-      [],
-    );
+    expect(
+      pointsOf(retried.decision, OpenStackInstanceMetric.CpuUsage),
+    ).toEqual([]);
   });
 
   test("a batch with nothing of either's isn't read at all", () => {
@@ -1512,13 +1526,22 @@ describe("the batch it hands back", () => {
 
 describe("what the agent keeps of each exporter", () => {
   const config: string = fs.readFileSync(
-    path.join(REPO_ROOT, "agents", "OpenStackAgent", "otel-collector-config.yaml"),
+    path.join(
+      REPO_ROOT,
+      "agents",
+      "OpenStackAgent",
+      "otel-collector-config.yaml",
+    ),
     "utf8",
   );
 
   function keepRegexOf(jobName: string): RegExp {
-    const job: string = config.substring(config.indexOf(`job_name: ${jobName}`));
-    const match: RegExpMatchArray | null = job.match(/regex: (\S+)\n\s+action: keep/);
+    const job: string = config.substring(
+      config.indexOf(`job_name: ${jobName}`),
+    );
+    const match: RegExpMatchArray | null = job.match(
+      /regex: (\S+)\n\s+action: keep/,
+    );
     expect(match).not.toBeNull();
     return new RegExp(`^(?:${match![1]!})$`);
   }

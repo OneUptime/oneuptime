@@ -44,9 +44,11 @@ interface ParsedLine {
   value: number;
 }
 
+const EXPOSITION_LINE: RegExp =
+  /^([a-zA-Z_:][a-zA-Z0-9_:]*)(\{.*\})?\s+(-?[0-9.e+]+)$/;
+
 function parseLine(line: string): ParsedLine | null {
-  const match: RegExpExecArray | null =
-    /^([a-zA-Z_:][a-zA-Z0-9_:]*)(\{.*\})?\s+(-?[0-9.e+]+)$/.exec(line.trim());
+  const match: RegExpExecArray | null = EXPOSITION_LINE.exec(line.trim());
 
   if (!match) {
     return null;
@@ -187,7 +189,10 @@ describe("the database exporter's series, name by name", () => {
   });
 
   test("the series they share have the same labels, but for what is written here", () => {
-    const differences: Record<string, { onlyApi: Array<string>; onlyDatabase: Array<string> }> = {};
+    const differences: Record<
+      string,
+      { onlyApi: Array<string>; onlyDatabase: Array<string> }
+    > = {};
 
     for (const name of Object.keys(api)) {
       const database: Array<string> | undefined = DATABASE_SERIES[name];
@@ -247,7 +252,9 @@ describe("the database exporter's series, name by name", () => {
 describe("what the fold makes of what it writes", () => {
   const rows: Array<OpenStackResourceBufferEntry> = foldLines(EXPOSITION);
 
-  const ofKind: (kind: OpenStackResourceKind) => Array<OpenStackResourceBufferEntry> = (
+  const ofKind: (
+    kind: OpenStackResourceKind,
+  ) => Array<OpenStackResourceBufferEntry> = (
     kind: OpenStackResourceKind,
   ): Array<OpenStackResourceBufferEntry> => {
     return rows.filter((row: OpenStackResourceBufferEntry): boolean => {

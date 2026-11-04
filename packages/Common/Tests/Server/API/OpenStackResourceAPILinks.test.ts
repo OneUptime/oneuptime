@@ -1,4 +1,11 @@
-import { afterEach, beforeEach, describe, expect, jest, test } from "@jest/globals";
+import {
+  afterEach,
+  beforeEach,
+  describe,
+  expect,
+  jest,
+  test,
+} from "@jest/globals";
 import Host from "../../../Models/DatabaseModels/Host";
 import OpenStackResourceAPI from "../../../Server/API/OpenStackResourceAPI";
 import CommonAPI from "../../../Server/API/CommonAPI";
@@ -84,11 +91,13 @@ let sent: Array<JSONObject>;
 
 beforeEach(() => {
   sent = [];
-  jest
-    .spyOn(Response, "sendJsonObjectResponse")
-    .mockImplementation(((_req: unknown, _res: unknown, body: JSONObject) => {
-      sent.push(body);
-    }) as never);
+  jest.spyOn(Response, "sendJsonObjectResponse").mockImplementation(((
+    _req: unknown,
+    _res: unknown,
+    body: JSONObject,
+  ) => {
+    sent.push(body);
+  }) as never);
   jest
     .spyOn(CommonAPI, "getDatabaseCommonInteractionProps")
     .mockResolvedValue(PROPS as never);
@@ -166,11 +175,8 @@ describe("the host that is a machine", () => {
       "a project that isn't an ID",
       { params: { resourceId: "x" }, body: { machineName: "compute-01" } },
     ],
-    [
-      "no machine",
-      { params: { resourceId: PROJECT_ID.toString() }, body: {} },
-    ],
-  ])("%s is refused before anything is read", async (_name, req) => {
+    ["no machine", { params: { resourceId: PROJECT_ID.toString() }, body: {} }],
+  ])("%s is refused before anything is read", async (_name: string, req: JSONObject) => {
     const join: unknown = jest.spyOn(
       OpenStackAcrossProducts,
       "getHostOfMachine",
@@ -186,9 +192,9 @@ describe("where a host sits in a cloud", () => {
   const request: JSONObject = { params: { resourceId: HOST_ID.toString() } };
 
   beforeEach(() => {
-    jest.spyOn(HostService, "findOneById").mockResolvedValue(
-      hostOf({ projectId: PROJECT_ID }) as never,
-    );
+    jest
+      .spyOn(HostService, "findOneById")
+      .mockResolvedValue(hostOf({ projectId: PROJECT_ID }) as never);
     jest
       .spyOn(OpenStackAcrossProducts, "getPlacementOfHost")
       .mockResolvedValue(PLACEMENT as never);
@@ -320,20 +326,22 @@ describe("a pool and Ceph", () => {
   const HIDDEN: string = ObjectID.generate().toString();
 
   function poolLinkedTo(clusterId: string): void {
-    jest.spyOn(OpenStackAcrossProducts, "getStoragePoolCephLink").mockResolvedValue({
-      link: {
-        state: "confirmed",
-        clusterId,
-        clusterName: clusterId === SEEN ? "seen" : "hidden",
-        cephPoolName: "volumes",
-      },
-      clusters: [
-        { id: SEEN, name: "seen" },
-        { id: HIDDEN, name: "hidden" },
-      ],
-      health: 2,
-      capacityUsedPercent: 91,
-    } as never);
+    jest
+      .spyOn(OpenStackAcrossProducts, "getStoragePoolCephLink")
+      .mockResolvedValue({
+        link: {
+          state: "confirmed",
+          clusterId,
+          clusterName: clusterId === SEEN ? "seen" : "hidden",
+          cephPoolName: "volumes",
+        },
+        clusters: [
+          { id: SEEN, name: "seen" },
+          { id: HIDDEN, name: "hidden" },
+        ],
+        health: 2,
+        capacityUsedPercent: 91,
+      } as never);
   }
 
   const request: JSONObject = {
@@ -448,7 +456,7 @@ describe("a pool and Ceph", () => {
   test.each<[string, JSONObject]>([
     ["no answer", { externalId: "p" }],
     ["a cluster that isn't an ID", { externalId: "p", cephClusterId: "x" }],
-  ])("%s is refused before anything is written", async (_name, body) => {
+  ])("%s is refused before anything is written", async (_name: string, body: JSONObject) => {
     jest
       .spyOn(ModelPermission, "checkUpdateQueryPermissions")
       .mockResolvedValue(undefined as never);

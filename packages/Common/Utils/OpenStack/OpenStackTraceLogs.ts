@@ -169,12 +169,15 @@ export function joinOpenStackTraceToRequests(data: {
       continue;
     }
 
-    const known: { match: OpenStackTraceRequestMatch; services: Set<string>; at: number } =
-      byRoot.get(rootId) || {
-        match: match,
-        services: new Set<string>(),
-        at: time,
-      };
+    const known: {
+      match: OpenStackTraceRequestMatch;
+      services: Set<string>;
+      at: number;
+    } = byRoot.get(rootId) || {
+      match: match,
+      services: new Set<string>(),
+      at: time,
+    };
 
     if (MATCH_ORDER.indexOf(match) < MATCH_ORDER.indexOf(known.match)) {
       known.match = match;
@@ -192,7 +195,11 @@ export function joinOpenStackTraceToRequests(data: {
     .map(
       ([rootId, known]: [
         string,
-        { match: OpenStackTraceRequestMatch; services: Set<string>; at: number },
+        {
+          match: OpenStackTraceRequestMatch;
+          services: Set<string>;
+          at: number;
+        },
       ]): OpenStackTraceRequest => {
         return {
           rootId: rootId,

@@ -1,7 +1,10 @@
 import { JSONObject, JSONValue } from "../../Types/JSON";
 import type { SpanKind } from "../../Models/AnalyticsModels/Span";
 import { OpenStackResourceKind } from "../../Types/OpenStack/OpenStackResourceKind";
-import { OPENSTACK_SCRUBBED_VALUE, scrubOpenStackSecrets } from "./OpenStackLogScrub";
+import {
+  OPENSTACK_SCRUBBED_VALUE,
+  scrubOpenStackSecrets,
+} from "./OpenStackLogScrub";
 
 /*
  * A SPAN FROM OSPROFILER'S OTLP DRIVER, READ AS IT ARRIVES.
@@ -398,7 +401,10 @@ export function normalizeOSProfilerResourceInPlace(
     "service.name",
     getOpenStackTracedServiceName({
       service: read.service,
-      cloudName: readWireAttributeText(wire, OPENSTACK_CLOUD_RESOURCE_ATTRIBUTE),
+      cloudName: readWireAttributeText(
+        wire,
+        OPENSTACK_CLOUD_RESOURCE_ATTRIBUTE,
+      ),
     }),
   );
 
@@ -525,7 +531,8 @@ export function readOpenStackRequestResources(data: {
     }
 
     const before: string = segments[index - 1] || "";
-    const kind: OpenStackResourceKind | undefined = PATH_COLLECTIONS.get(before);
+    const kind: OpenStackResourceKind | undefined =
+      PATH_COLLECTIONS.get(before);
 
     if (kind) {
       add(kind, segment);
@@ -583,9 +590,10 @@ export function readOpenStackSpanResources(
  * The words the driver's rstrip("-start") eats the end of, put back. It takes any of the
  * characters - s t a r from the end, so what ends in one of those loses it.
  */
-const DRIVER_NAME_REPAIRS: ReadonlyMap<string, string> = new Map<string, string>(
-  [["schedule", "scheduler"]],
-);
+const DRIVER_NAME_REPAIRS: ReadonlyMap<string, string> = new Map<
+  string,
+  string
+>([["schedule", "scheduler"]]);
 
 // A path with what makes it unique taken out, so the same call has the same name each time.
 export function getOpenStackPathInSpanName(path: string): string {
@@ -761,7 +769,8 @@ function readFailureMessage(events: unknown): string {
     );
 
     if (kind || message) {
-      const text: string = kind && message ? `${kind}: ${message}` : kind || message;
+      const text: string =
+        kind && message ? `${kind}: ${message}` : kind || message;
 
       return text.length > MAX_STATUS_MESSAGE_LENGTH
         ? text.slice(0, MAX_STATUS_MESSAGE_LENGTH)
@@ -852,10 +861,11 @@ export function readOSProfilerSpanInPlace(data: {
     attributes[OpenStackTraceAttribute.Component] = data.service.component;
   }
 
-  const resources: Array<OpenStackTraceResource> = readOpenStackRequestResources({
-    path: attributes[HTTP_PATH_ATTRIBUTE] as string | undefined,
-    query: attributes[HTTP_QUERY_ATTRIBUTE] as string | undefined,
-  });
+  const resources: Array<OpenStackTraceResource> =
+    readOpenStackRequestResources({
+      path: attributes[HTTP_PATH_ATTRIBUTE] as string | undefined,
+      query: attributes[HTTP_QUERY_ATTRIBUTE] as string | undefined,
+    });
 
   for (const { kind, attribute } of OPENSTACK_TRACE_RESOURCE_ATTRIBUTES) {
     const resource: OpenStackTraceResource | undefined = resources.find(
@@ -894,9 +904,7 @@ export function readOSProfilerSpanInPlace(data: {
 }
 
 // The hostname a REQUESTS_ span went to, which the driver keeps and a person may look for.
-export function readOpenStackDriverRequestHost(
-  attributes: JSONObject,
-): string {
+export function readOpenStackDriverRequestHost(attributes: JSONObject): string {
   const host: unknown = attributes[HTTP_HOSTNAME_ATTRIBUTE];
 
   return typeof host === "string" ? host : "";
@@ -918,7 +926,9 @@ export function readOpenStackDriverRequestHost(
  * is no ID in it. The client's "short trace ID" is only the low half and cannot name a
  * trace, so it is not taken.
  */
-export function readOpenStackTraceId(text: string | null | undefined): string | null {
+export function readOpenStackTraceId(
+  text: string | null | undefined,
+): string | null {
   const input: string = (text || "").slice(0, MAX_TRACE_ID_INPUT_LENGTH);
   let start: number = 0;
 

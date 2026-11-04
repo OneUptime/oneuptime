@@ -62,9 +62,9 @@ describe("the flavor", () => {
   });
 
   test("if every flavor has no disk, one of them is still the best answer", () => {
-    expect(
-      chooseOpenStackTraceFlavor([row({ name: "m1.nano" })]),
-    ).toBe("m1.nano");
+    expect(chooseOpenStackTraceFlavor([row({ name: "m1.nano" })])).toBe(
+      "m1.nano",
+    );
   });
 
   test("none, and a row with no name, leave it for the person", () => {

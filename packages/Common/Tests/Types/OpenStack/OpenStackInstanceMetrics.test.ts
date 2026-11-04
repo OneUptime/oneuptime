@@ -87,9 +87,9 @@ describe("what a cloud chose to keep", () => {
     expect(normalizeOpenStackInstanceMetricsOptions(null).options).toEqual(
       getDefaultOpenStackInstanceMetricsOptions(),
     );
-    expect(normalizeOpenStackInstanceMetricsOptions(undefined).options?.mode).toBe(
-      OpenStackInstanceMetricsMode.Automatic,
-    );
+    expect(
+      normalizeOpenStackInstanceMetricsOptions(undefined).options?.mode,
+    ).toBe(OpenStackInstanceMetricsMode.Automatic);
   });
 
   test("what is saved is cleaned, and anything else in it is dropped", () => {
@@ -113,11 +113,14 @@ describe("what a cloud chose to keep", () => {
     [{ aggregates: [1] }, "by their IDs"],
     ["automatic", "right form"],
     [[], "right form"],
-  ])("%j is refused with a sentence that says why", (value: unknown, words: string) => {
-    expect(normalizeOpenStackInstanceMetricsOptions(value).error).toContain(
-      words,
-    );
-  });
+  ])(
+    "%j is refused with a sentence that says why",
+    (value: unknown, words: string) => {
+      expect(normalizeOpenStackInstanceMetricsOptions(value).error).toContain(
+        words,
+      );
+    },
+  );
 
   test("past a stated number of selections, it says to keep all or none", () => {
     const projectIds: Array<string> = Array.from(

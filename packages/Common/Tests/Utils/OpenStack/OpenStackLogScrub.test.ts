@@ -195,9 +195,9 @@ describe("a private key", () => {
   });
 
   test("one with no end goes as far as a value can go", () => {
-    expect(
-      kept("-----BEGIN PRIVATE KEY-----\nMIIEpAIBAAKCAQEA"),
-    ).not.toContain("MIIEpAIBAAKCAQEA");
+    expect(kept("-----BEGIN PRIVATE KEY-----\nMIIEpAIBAAKCAQEA")).not.toContain(
+      "MIIEpAIBAAKCAQEA",
+    );
   });
 });
 
@@ -290,7 +290,7 @@ describe("whatever arrives, nothing named as a secret survives", () => {
     '"',
     "'",
     "\\",
-    "\\\"",
+    '\\"',
     "{",
     "}",
     "[",
@@ -315,7 +315,7 @@ describe("whatever arrives, nothing named as a secret survives", () => {
         return [index, text];
       },
     ),
-  )("generated text %i, with a marked secret on the end", (_index, text) => {
+  )("generated text %i, with a marked secret on the end", (_index: number, text: string) => {
     const result: string = kept(`${text} password="MARKED-SECRET"`);
 
     expect(typeof result).toBe("string");

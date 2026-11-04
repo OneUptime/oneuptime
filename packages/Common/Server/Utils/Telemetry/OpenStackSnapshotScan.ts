@@ -233,7 +233,10 @@ export function isOpenStackSnapshotDatapoint(data: {
   ) {
     const attributes: JSONArray =
       (data.datapoint["attributes"] as JSONArray) || [];
-    const service: string | null = getLabel(attributes, OPENSTACK_SERVICE_LABEL);
+    const service: string | null = getLabel(
+      attributes,
+      OPENSTACK_SERVICE_LABEL,
+    );
     // The agent's VM metric jobs read compute nodes: they are no OpenStack API to list.
     return service !== null && !OPENSTACK_INSTANCE_METRIC_JOBS.has(service);
   }
@@ -934,7 +937,11 @@ function foldStoragePool(data: {
   setFact(entry, "backend", getLabel(data.attributes, "volume_backend_name"));
   setFact(entry, "vendor", getLabel(data.attributes, "vendor_name"));
   // Only a probe says these, and then what links this pool to a Ceph cluster is a fact.
-  setFact(entry, "storageProtocol", getLabel(data.attributes, "storage_protocol"));
+  setFact(
+    entry,
+    "storageProtocol",
+    getLabel(data.attributes, "storage_protocol"),
+  );
   setFact(entry, "cephFsid", getLabel(data.attributes, "ceph_fsid"));
   setFact(entry, "cephPool", getLabel(data.attributes, "ceph_pool"));
   const bytes: number = data.value * BYTES_PER_GIB;

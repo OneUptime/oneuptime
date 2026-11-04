@@ -66,9 +66,8 @@ const OpenStackInstanceMetricsCard: FunctionComponent<{
   modelId: ObjectID;
 }> = (props: { modelId: ObjectID }): ReactElement => {
   const translator: Translator = useTranslator();
-  const [options, setOptions] = useState<OpenStackInstanceMetricsOptions | null>(
-    null,
-  );
+  const [options, setOptions] =
+    useState<OpenStackInstanceMetricsOptions | null>(null);
   const [isSaving, setIsSaving] = useState<boolean>(false);
   const [saveError, setSaveError] = useState<string>("");
 
@@ -153,7 +152,10 @@ const OpenStackInstanceMetricsCard: FunctionComponent<{
   const toOption: (mode: OpenStackInstanceMetricsMode) => DropdownOption = (
     mode: OpenStackInstanceMetricsMode,
   ): DropdownOption => {
-    return { label: translator.translateText(MODE_LABELS[mode]), value: mode };
+    return {
+      label: translator.translateText(MODE_LABELS[mode]) || MODE_LABELS[mode],
+      value: mode,
+    };
   };
 
   const valuesOf: (
@@ -242,7 +244,10 @@ const OpenStackInstanceMetricsCard: FunctionComponent<{
           ) : (
             <></>
           )}
-          <p className="text-gray-600" data-testid="openstack-instance-metrics-cost">
+          <p
+            className="text-gray-600"
+            data-testid="openstack-instance-metrics-cost"
+          >
             {translator.translateTemplate(
               "This cloud has {{instances}} instances. Keeping all of them costs about {{libvirt}} rows an hour from libvirt's exporter, or {{ceilometer}} from Ceilometer's. Automatic stops keeping them past {{limit}} instances.",
               {

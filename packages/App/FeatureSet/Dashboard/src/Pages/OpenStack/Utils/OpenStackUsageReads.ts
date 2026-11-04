@@ -105,9 +105,7 @@ async function readAverageByLabel(data: {
   return readings;
 }
 
-function firstOf(
-  readings: Array<{ value: number }>,
-): number | null {
+function firstOf(readings: Array<{ value: number }>): number | null {
   return readings[0]?.value ?? null;
 }
 
@@ -137,9 +135,9 @@ export async function fetchOpenStackInstanceUsage(data: {
   cloudName: string;
   instanceId: string;
 }): Promise<OpenStackInstanceUsage> {
-  const read: (metricName: OpenStackInstanceMetric) => Promise<
-    Array<{ labels: Record<string, unknown>; value: number }>
-  > = (
+  const read: (
+    metricName: OpenStackInstanceMetric,
+  ) => Promise<Array<{ labels: Record<string, unknown>; value: number }>> = (
     metricName: OpenStackInstanceMetric,
   ): Promise<Array<{ labels: Record<string, unknown>; value: number }>> => {
     return readAverageByLabel({
@@ -153,13 +151,13 @@ export async function fetchOpenStackInstanceUsage(data: {
   };
   const [cpuCores, cpuPercent, contention, memoryUsage, memoryResident]: Array<
     Array<{ labels: Record<string, unknown>; value: number }>
-  > = await Promise.all([
+  > = (await Promise.all([
     read(OpenStackInstanceMetric.CpuUsage),
     read(OpenStackInstanceMetric.CpuUtilization),
     read(OpenStackInstanceMetric.CpuContention),
     read(OpenStackInstanceMetric.MemoryUsage),
     read(OpenStackInstanceMetric.MemoryResident),
-  ]) as Array<Array<{ labels: Record<string, unknown>; value: number }>>;
+  ])) as Array<Array<{ labels: Record<string, unknown>; value: number }>>;
 
   return {
     cpuCores: firstOf(cpuCores!),
@@ -188,9 +186,9 @@ export async function fetchOpenStackHypervisorUsage(data: {
     [CLOUD_ATTRIBUTE]: data.cloudName,
     [OPENSTACK_HYPERVISOR_ATTRIBUTE]: data.hypervisorName,
   };
-  const total: (metricName: OpenStackHypervisorMetric) => Promise<
-    Array<{ labels: Record<string, unknown>; value: number }>
-  > = (
+  const total: (
+    metricName: OpenStackHypervisorMetric,
+  ) => Promise<Array<{ labels: Record<string, unknown>; value: number }>> = (
     metricName: OpenStackHypervisorMetric,
   ): Promise<Array<{ labels: Record<string, unknown>; value: number }>> => {
     return readAverageByLabel({
@@ -220,7 +218,15 @@ export async function fetchOpenStackHypervisorUsage(data: {
     return values;
   };
 
-  const [cores, memory, reporting, cpuCores, cpuPercent, contention, resident]: [
+  const [
+    cores,
+    memory,
+    reporting,
+    cpuCores,
+    cpuPercent,
+    contention,
+    resident,
+  ]: [
     Array<{ labels: Record<string, unknown>; value: number }>,
     Array<{ labels: Record<string, unknown>; value: number }>,
     Array<{ labels: Record<string, unknown>; value: number }>,
@@ -274,7 +280,7 @@ async function readHostCounter(data: {
         time: new InBetween<Date>(startDate, endDate),
         name: data.metricName,
         attributes: { "resource.host.name": data.hostIdentifier },
-      } as Query<Metric>,
+      } as unknown as Query<Metric>,
       aggregationType: AggregationType.Max,
       aggregationInterval: AggregationInterval.Minute,
       aggregateColumnName: "value",
@@ -347,7 +353,11 @@ export async function fetchOpenStackInstanceMetricsChoice(
   };
 }
 
-async function post(path: string, id: ObjectID, body?: JSONObject): Promise<JSONObject> {
+async function post(
+  path: string,
+  id: ObjectID,
+  body?: JSONObject,
+): Promise<JSONObject> {
   const response: HTTPResponse<JSONObject> | HTTPErrorResponse = await API.post(
     {
       url: URL.fromString(APP_API_URL.toString())

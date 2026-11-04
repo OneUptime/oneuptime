@@ -37,7 +37,11 @@ import {
   parseKeystoneToken,
 } from "../../../Utils/OpenStack/OpenStackKeystone";
 import OpenStackServiceClient from "../../../Utils/OpenStack/OpenStackServiceClient";
-import { COLLECTED_AT_MS, FakeClock, createFakeClock } from "./Helpers/CollectorHarness";
+import {
+  COLLECTED_AT_MS,
+  FakeClock,
+  createFakeClock,
+} from "./Helpers/CollectorHarness";
 
 /*
  * What Nova says instances went through, for a cloud that cannot turn its notifications on.
@@ -162,8 +166,10 @@ function nova(): Nova {
   };
 }
 
+const INSTANCE_ACTION_DETAIL: RegExp = /\/os-instance-actions\/[^/]+$/;
+
 function isDetail(url: globalThis.URL): boolean {
-  return /\/os-instance-actions\/[^/]+$/.test(url.pathname);
+  return INSTANCE_ACTION_DETAIL.test(url.pathname);
 }
 
 describe("an action, read", () => {
@@ -225,7 +231,10 @@ describe("an action as the notification Nova would have sent", () => {
     const message: JSONObject = toInstanceActionNotification({
       server: server(),
       action: toNovaInstanceAction(action({ message: "Error" }))!,
-      failedStep: { event: "compute_reboot_instance", details: "Reboot failed" },
+      failedStep: {
+        event: "compute_reboot_instance",
+        details: "Reboot failed",
+      },
       faultMessage: "An older reason",
     });
     const event: OpenStackEvent | null = readOpenStackNotification({ message });
@@ -242,18 +251,21 @@ describe("an action as the notification Nova would have sent", () => {
     expect(event?.hypervisor).toBe("compute-01.example.internal");
     expect(event?.title).toBe("Instance web-1: reboot failed: Reboot failed");
     expect(event?.time?.toISOString()).toBe("2026-11-04T11:49:30.000Z");
-    expect(event?.messageId.startsWith(OPENSTACK_PROBE_ACTION_MESSAGE_PREFIX)).toBe(
-      true,
-    );
+    expect(
+      event?.messageId.startsWith(OPENSTACK_PROBE_ACTION_MESSAGE_PREFIX),
+    ).toBe(true);
   });
 
   test("the instance's fault says why when the step cannot", () => {
     const event: OpenStackEvent | null = readOpenStackNotification({
       message: toInstanceActionNotification({
         server: server(),
-        action: toNovaInstanceAction(action({ action: "create", message: "Error" }))!,
+        action: toNovaInstanceAction(
+          action({ action: "create", message: "Error" }),
+        )!,
         failedStep: null,
-        faultMessage: "No valid host was found. There are not enough hosts available.",
+        faultMessage:
+          "No valid host was found. There are not enough hosts available.",
       }),
     });
 
@@ -368,7 +380,11 @@ describe("which instances are read", () => {
     const chosen: ReturnType<typeof chooseServersToRead> = choose([
       server({ id: "older", updatedAt: "2026-11-04T11:10:00Z" }),
       server({ id: "newer", updatedAt: "2026-11-04T11:30:00Z" }),
-      server({ id: "failed", status: "ERROR", updatedAt: "2026-11-04T11:05:00Z" }),
+      server({
+        id: "failed",
+        status: "ERROR",
+        updatedAt: "2026-11-04T11:05:00Z",
+      }),
     ]);
 
     expect(
@@ -441,9 +457,9 @@ describe("reading what happened", () => {
     expect(asked[0]?.pathname).toBe(
       `/v2.1/servers/${INSTANCE}/os-instance-actions`,
     );
-    expect(
-      Date.parse(asked[0]?.searchParams.get("changes-since") || ""),
-    ).toBe(Math.floor(expected / 1000) * 1000);
+    expect(Date.parse(asked[0]?.searchParams.get("changes-since") || "")).toBe(
+      Math.floor(expected / 1000) * 1000,
+    );
   });
 
   test("before 2.58 asks for all of it, and keeps only what is new", async () => {
@@ -533,7 +549,9 @@ describe("reading what happened", () => {
     expect(JSON.stringify(read.notifications[0])).not.toContain(
       "The newest reason",
     );
-    expect(JSON.stringify(read.notifications[1])).toContain("The newest reason");
+    expect(JSON.stringify(read.notifications[1])).toContain(
+      "The newest reason",
+    );
   });
 
   test("an action still running waits until its instance has no task", async () => {
@@ -554,7 +572,9 @@ describe("reading what happened", () => {
     ]);
 
     expect(finished.notifications).toHaveLength(1);
-    expect(finished.notifications[0]?.["event_type"]).toBe("instance.reboot.end");
+    expect(finished.notifications[0]?.["event_type"]).toBe(
+      "instance.reboot.end",
+    );
   });
 
   test("a failure is said even while a task is running", async () => {
@@ -759,8 +779,12 @@ describe("as OTLP logs", () => {
     expect(logs).toHaveLength(1);
 
     const resource: JSONObject = logs[0] as JSONObject;
-    const scope: JSONObject = (resource["scopeLogs"] as JSONArray)[0] as JSONObject;
-    const record: JSONObject = (scope["logRecords"] as JSONArray)[0] as JSONObject;
+    const scope: JSONObject = (
+      resource["scopeLogs"] as JSONArray
+    )[0] as JSONObject;
+    const record: JSONObject = (
+      scope["logRecords"] as JSONArray
+    )[0] as JSONObject;
 
     expect(
       ((resource["resource"] as JSONObject)["attributes"] as JSONArray)[0],
@@ -773,9 +797,9 @@ describe("as OTLP logs", () => {
     expect(record["timeUnixNano"]).toBe(
       `${Date.parse("2026-11-04T11:49:30.000Z") * 1_000_000}`,
     );
-    expect(JSON.parse((record["body"] as JSONObject)["stringValue"] as string)).toEqual(
-      message,
-    );
+    expect(
+      JSON.parse((record["body"] as JSONObject)["stringValue"] as string),
+    ).toEqual(message);
   });
 
   test("names no cloud: the server says which it is", () => {

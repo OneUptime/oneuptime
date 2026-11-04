@@ -88,7 +88,9 @@ export function getOpenStackPartLogAttributes(
       const component: string | undefined =
         COMPONENT_OF_API[(part.name || "").toLowerCase()];
 
-      return component ? { [OpenStackLogAttribute.Component]: component } : null;
+      return component
+        ? { [OpenStackLogAttribute.Component]: component }
+        : null;
     }
     default:
       return null;

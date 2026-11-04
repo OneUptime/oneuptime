@@ -182,19 +182,20 @@ export const OPENSTACK_TEMPLATE_CATEGORIES: Array<AlertTemplateCategory> = [
  * services say (OpenStackLogAlertTemplates): Logs monitors, which an OpenStack monitor's
  * Quick Setup cannot build and so never lists.
  */
-export const OPENSTACK_RECOMMENDATION_CATEGORIES: Array<AlertTemplateCategory> = [
-  ...OPENSTACK_TEMPLATE_CATEGORIES,
-  {
-    category: "Service Logs",
-    label: "Service logs",
-    icon: IconProp.Logs,
-  },
-  {
-    category: "Events",
-    label: "Failed actions",
-    icon: IconProp.Alert,
-  },
-];
+export const OPENSTACK_RECOMMENDATION_CATEGORIES: Array<AlertTemplateCategory> =
+  [
+    ...OPENSTACK_TEMPLATE_CATEGORIES,
+    {
+      category: "Service Logs",
+      label: "Service logs",
+      icon: IconProp.Logs,
+    },
+    {
+      category: "Events",
+      label: "Failed actions",
+      icon: IconProp.Alert,
+    },
+  ];
 
 // VMware.
 export const VMWARE_TEMPLATE_CATEGORIES: Array<AlertTemplateCategory> = [

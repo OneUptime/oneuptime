@@ -68,7 +68,9 @@ configure({ testIdAttribute: "data-testid" });
 const BURNER_ID: string = "a1b2c3d4-0000-4000-8000-000000000001";
 const QUIET_ID: string = "a1b2c3d4-0000-4000-8000-000000000002";
 
-function instanceRow(fields: Record<string, unknown> = {}): Record<string, unknown> {
+function instanceRow(
+  fields: Record<string, unknown> = {},
+): Record<string, unknown> {
   return {
     _id: "6c1b2a3d-4e5f-4a6b-8c7d-000000000011",
     kind: OpenStackResourceKind.Instance,
@@ -105,7 +107,10 @@ function reportFromSource(): void {
     { group: OpenStackInstanceMetricSource.Libvirt, value: 3.8 },
   ];
   server.metrics[OpenStackHypervisorMetric.InstancesMemoryResident] = [
-    { group: OpenStackInstanceMetricSource.Libvirt, value: 8 * 1024 * 1024 * 1024 },
+    {
+      group: OpenStackInstanceMetricSource.Libvirt,
+      value: 8 * 1024 * 1024 * 1024,
+    },
   ];
   server.metrics[OpenStackHypervisorMetric.InstancesReporting] = [
     { group: OpenStackInstanceMetricSource.Libvirt, value: 2 },
@@ -124,7 +129,9 @@ afterEach(() => {
   jest.restoreAllMocks();
 });
 
-async function openHypervisor(fields: Record<string, unknown> = {}): Promise<void> {
+async function openHypervisor(
+  fields: Record<string, unknown> = {},
+): Promise<void> {
   server.rows = [
     hypervisorRow(fields),
     computeServiceRow(),
@@ -304,9 +311,9 @@ describe("a hypervisor's page", () => {
         `${formatOpenStackBytes(512 * 1024)}/s out`,
       );
       // Still what is promised, on its own tiles, which none of this has changed.
-      expect(screen.getByTestId("openstack-hypervisor-tiles")).toHaveTextContent(
-        "vCPUs allocated",
-      );
+      expect(
+        screen.getByTestId("openstack-hypervisor-tiles"),
+      ).toHaveTextContent("vCPUs allocated");
     });
 
     test("an agent that reports neither says so, and is never read as nothing moving", async () => {
@@ -410,7 +417,12 @@ describe("an instance's page", () => {
   async function openInstance(
     fields: Record<string, unknown> = {},
   ): Promise<void> {
-    server.rows = [instanceRow(fields), flavorRow(), hypervisorRow(), computeServiceRow()];
+    server.rows = [
+      instanceRow(fields),
+      flavorRow(),
+      hypervisorRow(),
+      computeServiceRow(),
+    ];
     await renderPage(
       OpenStackCloudInstanceDetail,
       partPath("instances", BURNER_ID),
@@ -442,7 +454,10 @@ describe("an instance's page", () => {
       { group: OpenStackInstanceMetricSource.Libvirt, value: 1.9 },
     ];
     server.metrics[OpenStackInstanceMetric.MemoryUsage] = [
-      { group: OpenStackInstanceMetricSource.Libvirt, value: 1024 * 1024 * 1024 },
+      {
+        group: OpenStackInstanceMetricSource.Libvirt,
+        value: 1024 * 1024 * 1024,
+      },
     ];
     server.metrics[OpenStackInstanceMetric.CpuContention] = [
       { group: OpenStackInstanceMetricSource.Libvirt, value: 12 },
@@ -459,7 +474,10 @@ describe("an instance's page", () => {
 
   test("without a balloon driver, memory falls back to what it holds on its hypervisor", async () => {
     server.metrics[OpenStackInstanceMetric.MemoryResident] = [
-      { group: OpenStackInstanceMetricSource.Libvirt, value: 1024 * 1024 * 1024 },
+      {
+        group: OpenStackInstanceMetricSource.Libvirt,
+        value: 1024 * 1024 * 1024,
+      },
     ];
     await openInstance();
     expect(screen.getByTestId("openstack-instance-usage")).toHaveTextContent(
@@ -585,7 +603,10 @@ describe("a storage pool's page", () => {
         ? {
             data: {
               clusters: [
-                { id: "6c1b2a3d-4e5f-4a6b-8c7d-000000000032", name: "ceph-east" },
+                {
+                  id: "6c1b2a3d-4e5f-4a6b-8c7d-000000000032",
+                  name: "ceph-east",
+                },
               ],
               health: null,
               capacityUsedPercent: null,
@@ -639,7 +660,9 @@ describe("a storage pool's page", () => {
     expect(
       screen.getByTestId("openstack-storage-pool-ceph-suggestion"),
     ).toHaveTextContent("Is that where this pool is?");
-    expect(screen.queryByTestId("openstack-storage-pool-ceph-health")).toBeNull();
+    expect(
+      screen.queryByTestId("openstack-storage-pool-ceph-health"),
+    ).toBeNull();
 
     await act(async () => {
       fireEvent.click(screen.getByText("Yes, this is it"));
@@ -793,12 +816,12 @@ describe("another product's page", () => {
   test("a service says where it runs, through the host its telemetry names", async () => {
     jest.spyOn(API, "post").mockResolvedValue({
       data: {
-        placements: [
-          { hostName: "web-1", hostId: null, placement: PLACEMENT },
-        ],
+        placements: [{ hostName: "web-1", hostId: null, placement: PLACEMENT }],
       },
     } as never);
-    await renderIt(<OpenStackPlacementOfService serviceId={ObjectID.generate()} />);
+    await renderIt(
+      <OpenStackPlacementOfService serviceId={ObjectID.generate()} />,
+    );
     expect(screen.getByTestId("service-openstack-placement")).toHaveTextContent(
       HYPERVISOR_NAME,
     );
@@ -867,4 +890,3 @@ describe("a cloud's settings", () => {
     );
   });
 });
-

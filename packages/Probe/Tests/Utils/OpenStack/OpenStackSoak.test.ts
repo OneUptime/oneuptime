@@ -1,4 +1,11 @@
-import { afterAll, beforeAll, describe, expect, jest, test } from "@jest/globals";
+import {
+  afterAll,
+  beforeAll,
+  describe,
+  expect,
+  jest,
+  test,
+} from "@jest/globals";
 import fs from "fs";
 import path from "path";
 import { DataSource } from "typeorm";
@@ -22,7 +29,10 @@ import {
 import { JSONObject } from "Common/Types/JSON";
 import ObjectID from "Common/Types/ObjectID";
 import { OpenStackCollectionReport } from "Common/Types/OpenStack/OpenStackProbeCollection";
-import { OpenStackResourceKind, OpenStackServiceType } from "Common/Types/OpenStack/OpenStackResourceKind";
+import {
+  OpenStackResourceKind,
+  OpenStackServiceType,
+} from "Common/Types/OpenStack/OpenStackResourceKind";
 import {
   OPENSTACK_LARGE_CLOUD,
   OPENSTACK_MEDIUM_CLOUD,
@@ -35,8 +45,14 @@ import OpenStackCollector from "../../../Utils/OpenStack/OpenStackCollector";
 import OpenStackCollectorMemory from "../../../Utils/OpenStack/OpenStackCollectorMemory";
 import { splitOpenStackReport } from "../../../Utils/OpenStack/OpenStackReportParts";
 import { DEFAULT_OPENSTACK_CLOCK } from "../../../Utils/OpenStack/OpenStackServiceClient";
-import { CollectorHarness, collectionJob, createCollectorHarness } from "./Helpers/CollectorHarness";
-import MockOpenStackCloud, { MOCK_AUTH_URL } from "./Helpers/MockOpenStackCloud";
+import {
+  CollectorHarness,
+  collectionJob,
+  createCollectorHarness,
+} from "./Helpers/CollectorHarness";
+import MockOpenStackCloud, {
+  MOCK_AUTH_URL,
+} from "./Helpers/MockOpenStackCloud";
 
 /*
  * THE SOAK: the largest size held for an hour, on a real clock, with its budgets asserted.
@@ -62,8 +78,9 @@ import MockOpenStackCloud, { MOCK_AUTH_URL } from "./Helpers/MockOpenStackCloud"
  * request counts cannot: they are exact, and fail on any machine or none. Times go through
  * fastestRunAsync, which allows for how much slower than usual the machine ran.
  */
-const describeSoak: typeof describe =
-  process.env["RUN_OPENSTACK_SOAK"] === "true" ? describe : describe.skip;
+const describeSoak: typeof describe = (
+  process.env["RUN_OPENSTACK_SOAK"] === "true" ? describe : describe.skip
+) as typeof describe;
 
 const MINUTES: number = Number(process.env["OPENSTACK_SOAK_MINUTES"] || "60");
 const INTERVAL_IN_MINUTES: number = 2;
@@ -79,7 +96,9 @@ const COUNTS: OpenStackCloudCounts =
   SIZES[process.env["OPENSTACK_SOAK_SIZE"] || "large"] || OPENSTACK_LARGE_CLOUD;
 
 // A cloud is never still: this many of each change in a collection's time.
-const INSTANCES_CHANGED_PER_COLLECTION: number = Math.ceil(COUNTS.instances / 1000);
+const INSTANCES_CHANGED_PER_COLLECTION: number = Math.ceil(
+  COUNTS.instances / 1000,
+);
 
 // The stated budgets.
 const INGEST_LAG_BUDGET_IN_MS: number = INTERVAL_IN_MS;
@@ -110,7 +129,9 @@ function sleep(milliseconds: number): Promise<void> {
 }
 
 // The fold of one upload, exactly as OtelMetricsIngestService does it, without ClickHouse.
-function foldUpload(report: OpenStackCollectionReport): Array<OpenStackResourceBufferEntry> {
+function foldUpload(
+  report: OpenStackCollectionReport,
+): Array<OpenStackResourceBufferEntry> {
   const payload: OpenStackProbeMetricsPayload = OpenStackProbeMetrics.prepare({
     resourceMetrics: report.resourceMetrics,
     cloudName: "soak",
@@ -121,9 +142,12 @@ function foldUpload(report: OpenStackCollectionReport): Array<OpenStackResourceB
     for (const scope of resource["scopeMetrics"] as Array<JSONObject>) {
       for (const metric of scope["metrics"] as Array<JSONObject>) {
         const metricName: string = metric["name"] as string;
-        const gauge: JSONObject | undefined = metric["gauge"] as JSONObject | undefined;
+        const gauge: JSONObject | undefined = metric["gauge"] as
+          | JSONObject
+          | undefined;
 
-        for (const datapoint of (gauge?.["dataPoints"] || []) as Array<JSONObject>) {
+        for (const datapoint of (gauge?.["dataPoints"] ||
+          []) as Array<JSONObject>) {
           if (isOpenStackSnapshotDatapoint({ metricName, datapoint })) {
             bufferOpenStackSnapshotMetric({ metricName, datapoint, buffer });
           }
@@ -173,8 +197,11 @@ describeSoak("the largest size, held for as long as it is asked", () => {
 
     const options: Record<string, unknown> = {
       type: "postgres",
-      host: process.env["OPENSTACK_INVENTORY_TEST_DATABASE_HOST"] || "localhost",
-      port: Number(process.env["OPENSTACK_INVENTORY_TEST_DATABASE_PORT"] || "5400"),
+      host:
+        process.env["OPENSTACK_INVENTORY_TEST_DATABASE_HOST"] || "localhost",
+      port: Number(
+        process.env["OPENSTACK_INVENTORY_TEST_DATABASE_PORT"] || "5400",
+      ),
       username: process.env["DATABASE_USERNAME"] || "postgres",
       password: process.env["DATABASE_PASSWORD"] || "password",
       database:
@@ -200,7 +227,9 @@ describeSoak("the largest size, held for as long as it is asked", () => {
     await monitor.initialize();
 
     jest.spyOn(PostgresAppInstance, "isConnected").mockReturnValue(true);
-    jest.spyOn(PostgresAppInstance, "getDataSource").mockReturnValue(database);
+    jest
+      .spyOn(PostgresAppInstance, "getDataSource")
+      .mockReturnValue(database as never);
   }, 120000);
 
   afterAll(async () => {
@@ -306,16 +335,21 @@ describeSoak("the largest size, held for as long as it is asked", () => {
         // What changed since the last one, in Nova, and in Placement where it writes generations.
         const changing: Array<number> = [];
 
-        for (let offset: number = 0; offset < INSTANCES_CHANGED_PER_COLLECTION; offset++) {
-          changing.push((index * INSTANCES_CHANGED_PER_COLLECTION + offset) % COUNTS.instances);
+        for (
+          let offset: number = 0;
+          offset < INSTANCES_CHANGED_PER_COLLECTION;
+          offset++
+        ) {
+          changing.push(
+            (index * INSTANCES_CHANGED_PER_COLLECTION + offset) %
+              COUNTS.instances,
+          );
         }
 
         cloud.changeInstances(changing, index % 2 === 0 ? "SHUTOFF" : "ACTIVE");
 
-        const report: OpenStackCollectionReport = await OpenStackCollector.collect(
-          job,
-          harness.dependencies,
-        );
+        const report: OpenStackCollectionReport =
+          await OpenStackCollector.collect(job, harness.dependencies);
 
         if (report.status !== "Succeeded") {
           failures.push(
@@ -324,11 +358,13 @@ describeSoak("the largest size, held for as long as it is asked", () => {
         }
 
         const collected: number = Date.now();
-        const parts: Array<OpenStackCollectionReport> = splitOpenStackReport(report);
+        const parts: Array<OpenStackCollectionReport> =
+          splitOpenStackReport(report);
         let rowsWritten: number = 0;
 
         for (const part of parts) {
-          const finished: Array<OpenStackResourceBufferEntry> = foldUpload(part);
+          const finished: Array<OpenStackResourceBufferEntry> =
+            foldUpload(part);
 
           await OpenStackResourceService.bulkUpsert({
             ...scope,
@@ -349,10 +385,14 @@ describeSoak("the largest size, held for as long as it is asked", () => {
           writeMs: written - collected,
           lagMs: written - begun,
           uploads: parts.length,
-          payloadBytes: Buffer.byteLength(JSON.stringify(report.resourceMetrics)),
+          payloadBytes: Buffer.byteLength(
+            JSON.stringify(report.resourceMetrics),
+          ),
           datapoints: report.summary?.datapointCount || 0,
           rowsWritten: rowsWritten,
-          heapUsedMb: Math.round(process.memoryUsage().heapUsed / (1024 * 1024)),
+          heapUsedMb: Math.round(
+            process.memoryUsage().heapUsed / (1024 * 1024),
+          ),
         });
       };
 
@@ -374,6 +414,7 @@ describeSoak("the largest size, held for as long as it is asked", () => {
               .catch((error: unknown) => {
                 failures.push(`Collection ${index}: ${String(error)}`);
               })
+              // eslint-disable-next-line no-loop-func
               .finally(() => {
                 inFlight = null;
               });
@@ -432,15 +473,21 @@ describeSoak("the largest size, held for as long as it is asked", () => {
         ),
         firstCollectMs: rounds[0]?.collectMs ?? 0,
         firstWriteMs: rounds[0]?.writeMs ?? 0,
-        worstCollectMs: worst(settled.map((round: Round) => {
-          return round.collectMs;
-        })),
-        worstWriteMs: worst(settled.map((round: Round) => {
-          return round.writeMs;
-        })),
-        worstLagMs: worst(rounds.map((round: Round) => {
-          return round.lagMs;
-        })),
+        worstCollectMs: worst(
+          settled.map((round: Round) => {
+            return round.collectMs;
+          }),
+        ),
+        worstWriteMs: worst(
+          settled.map((round: Round) => {
+            return round.writeMs;
+          }),
+        ),
+        worstLagMs: worst(
+          rounds.map((round: Round) => {
+            return round.lagMs;
+          }),
+        ),
         settledLagMs: settled.map((round: Round) => {
           return round.lagMs;
         }),
@@ -453,21 +500,27 @@ describeSoak("the largest size, held for as long as it is asked", () => {
         rowsWritten: rounds.map((round: Round) => {
           return round.rowsWritten;
         }),
-        worstHeapUsedMb: worst(rounds.map((round: Round) => {
-          return round.heapUsedMb;
-        })),
+        worstHeapUsedMb: worst(
+          rounds.map((round: Round) => {
+            return round.heapUsedMb;
+          }),
+        ),
         overviewMsSamples: overviewMs,
         overviewFastestMs: overview.measuredInMs,
         overviewAdjustedMs: overview.inMs,
         overviewSlowdown: overview.slowdown,
         lockSamples: lockWaits.length,
-        lockSamplesWithAWaiter: lockWaits.filter((sample: { count: number }) => {
-          return sample.count > 0;
-        }).length,
+        lockSamplesWithAWaiter: lockWaits.filter(
+          (sample: { count: number }) => {
+            return sample.count > 0;
+          },
+        ).length,
         longestLockWaitMs: Math.round(
-          worst(lockWaits.map((sample: { longestMs: number }) => {
-            return sample.longestMs;
-          })),
+          worst(
+            lockWaits.map((sample: { longestMs: number }) => {
+              return sample.longestMs;
+            }),
+          ),
         ),
         failures: failures,
       } as unknown as JSONObject;
@@ -496,9 +549,11 @@ describeSoak("the largest size, held for as long as it is asked", () => {
 
       // No writer waited long on a lock on this table.
       expect(
-        worst(lockWaits.map((sample: { longestMs: number }) => {
-          return sample.longestMs;
-        })),
+        worst(
+          lockWaits.map((sample: { longestMs: number }) => {
+            return sample.longestMs;
+          }),
+        ),
       ).toBeLessThan(LOCK_WAIT_BUDGET_IN_MS);
 
       // The kinds are all there in the end, which says the parts all arrived.

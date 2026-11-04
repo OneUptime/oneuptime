@@ -132,7 +132,11 @@ describe("what goes in an upload, past the summary size", () => {
       true,
     );
     expect(
-      send.shouldSend("openstack_neutron_network_ip_availabilities_used", {}, 1),
+      send.shouldSend(
+        "openstack_neutron_network_ip_availabilities_used",
+        {},
+        1,
+      ),
     ).toBe(true);
   });
 
@@ -146,12 +150,16 @@ describe("what goes in an upload, past the summary size", () => {
     const metric: string = "openstack_cinder_snapshot_gb";
 
     // A snapshot in a settled state, whose turn this may or may not be.
-    expect(gate(state).shouldSend(metric, { ...labels, status: "available" }, 10)).toBe(true);
+    expect(
+      gate(state).shouldSend(metric, { ...labels, status: "available" }, 10),
+    ).toBe(true);
 
     let sentAgain: number = 0;
 
     for (let turn: number = 0; turn < 4; turn++) {
-      if (gate(state).shouldSend(metric, { ...labels, status: "available" }, 10)) {
+      if (
+        gate(state).shouldSend(metric, { ...labels, status: "available" }, 10)
+      ) {
         sentAgain++;
       }
     }
@@ -246,9 +254,12 @@ describe("what goes in an upload, past the summary size", () => {
 
   test("every part comes round within the turns, whatever its id", () => {
     const state: OpenStackRollingState = createOpenStackRollingState();
-    const ids: Array<string> = Array.from({ length: 2000 }, (_v: unknown, i: number) => {
-      return `s-${i}`;
-    });
+    const ids: Array<string> = Array.from(
+      { length: 2000 },
+      (_v: unknown, i: number) => {
+        return `s-${i}`;
+      },
+    );
     const metric: string = "openstack_neutron_subnet";
 
     // The first collection sends them all.
@@ -314,7 +325,9 @@ describe("what goes in an upload, past the summary size", () => {
       OpenStackOtlpBuilder.build([reading], "test", gate(state));
 
     const metrics: Array<JSONObject> = (
-      (second.resourceMetrics[0] as JSONObject)["scopeMetrics"] as Array<JSONObject>
+      (second.resourceMetrics[0] as JSONObject)[
+        "scopeMetrics"
+      ] as Array<JSONObject>
     )[0]!["metrics"] as Array<JSONObject>;
     const named: (name: string) => JSONObject | undefined = (
       name: string,
@@ -381,9 +394,8 @@ describe("an upload that fits", () => {
       for (const scope of entry["scopeMetrics"] as Array<JSONObject>) {
         for (const item of scope["metrics"] as Array<JSONObject>) {
           if (item["name"] === name) {
-            count += (
-              (item["gauge"] as JSONObject)["dataPoints"] as JSONArray
-            ).length;
+            count += ((item["gauge"] as JSONObject)["dataPoints"] as JSONArray)
+              .length;
           }
         }
       }

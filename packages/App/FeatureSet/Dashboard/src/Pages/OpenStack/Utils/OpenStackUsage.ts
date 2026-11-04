@@ -102,7 +102,10 @@ export function getOpenStackHypervisorLoad(data: {
   physicalCores: number | null | undefined;
   physicalMemoryBytes: number | null | undefined;
 }): OpenStackHypervisorLoad {
-  const cpuPercent: number | null = percentOf(data.cpuCores, data.physicalCores);
+  const cpuPercent: number | null = percentOf(
+    data.cpuCores,
+    data.physicalCores,
+  );
   const memoryPercent: number | null = percentOf(
     data.memoryResidentBytes,
     data.physicalMemoryBytes,

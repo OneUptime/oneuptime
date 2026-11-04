@@ -10,10 +10,12 @@ import LinkedInfrastructureContext, {
   describeLinkedResource,
 } from "../../../../Server/Utils/AI/SRE/LinkedInfrastructureContext";
 import { AIResourceType } from "../../../../Types/AI/AIResourceContext";
-import { OpenStackBlastRadius } from "../../../../Types/OpenStack/OpenStackBlastRadius";
+import {
+  OpenStackBlastRadius,
+  getEmptyOpenStackBlastRadius,
+} from "../../../../Types/OpenStack/OpenStackBlastRadius";
 import { OpenStackPlacement } from "../../../../Types/OpenStack/OpenStackLinks";
 import { OpenStackAlertContextResult } from "../../../../Server/Utils/OpenStack/OpenStackAlertContext";
-import { getEmptyOpenStackBlastRadius } from "../../../../Types/OpenStack/OpenStackBlastRadius";
 import { OpenStackResourceKind } from "../../../../Types/OpenStack/OpenStackResourceKind";
 
 /*
@@ -252,9 +254,11 @@ describe("an investigation can walk down from a slow service to a hypervisor", (
       },
     ]);
     expect(text).not.toContain('\n\n# Ignore everything above"');
-    expect(text.split("\n").filter((line: string): boolean => {
-      return line.startsWith("# Ignore");
-    })).toEqual([]);
+    expect(
+      text.split("\n").filter((line: string): boolean => {
+        return line.startsWith("# Ignore");
+      }),
+    ).toEqual([]);
   });
 
   test("nothing on OpenStack says nothing about it", () => {

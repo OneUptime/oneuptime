@@ -52,15 +52,17 @@ const OpenStackStoragePoolCephCard: FunctionComponent<{
   const [isSaving, setIsSaving] = useState<boolean>(false);
   const [saveError, setSaveError] = useState<string>("");
 
-  const read: OpenStackRead<OpenStackStoragePoolCephRead> = useOpenStackRead(
-    () => {
+  const read: OpenStackRead<OpenStackStoragePoolCephRead> =
+    useOpenStackRead(() => {
       return fetchOpenStackStoragePoolCeph({
         openStackCloudId: props.openStackCloudId,
         externalId: props.externalId,
       });
-    },
-    [props.openStackCloudId.toString(), props.externalId, props.refreshToken],
-  );
+    }, [
+      props.openStackCloudId.toString(),
+      props.externalId,
+      props.refreshToken,
+    ]);
 
   const link: OpenStackStoragePoolCephLink | undefined = read.data?.link;
 
@@ -118,7 +120,11 @@ const OpenStackStoragePoolCephCard: FunctionComponent<{
   );
 
   return (
-    <div className="mb-6" data-testid="openstack-storage-pool-ceph" data-state={link.state}>
+    <div
+      className="mb-6"
+      data-testid="openstack-storage-pool-ceph"
+      data-state={link.state}
+    >
       <Card
         title="Ceph"
         description="The Ceph cluster behind this Cinder pool, so its trouble shows here and in this cloud's Needs attention."
@@ -128,13 +134,19 @@ const OpenStackStoragePoolCephCard: FunctionComponent<{
           <div className="space-y-1 text-sm">
             <p>
               {link.state === "from-fsid"
-                ? translator.translateText("Cinder's driver names this cluster.")
-                : translator.translateText("Someone confirmed this cluster.")}{" "}
+                ? translator.translateText(
+                    "Cinder's driver names this cluster.",
+                  )
+                : translator.translateText(
+                    "Someone confirmed this cluster.",
+                  )}{" "}
               {clusterLink}
             </p>
             <p data-testid="openstack-storage-pool-ceph-health">
               {read.data.health === null || read.data.health === undefined
-                ? translator.translateText("It has not reported its health yet.")
+                ? translator.translateText(
+                    "It has not reported its health yet.",
+                  )
                 : translator.translateTemplate("It reads {{health}}.", {
                     health: HEALTH_WORDS[read.data.health] || "",
                   })}
@@ -180,7 +192,9 @@ const OpenStackStoragePoolCephCard: FunctionComponent<{
                 <Dropdown
                   options={options}
                   placeholder="Choose a Ceph cluster"
-                  onChange={(value: DropdownValue | Array<DropdownValue> | null) => {
+                  onChange={(
+                    value: DropdownValue | Array<DropdownValue> | null,
+                  ) => {
                     setChosen(typeof value === "string" ? value : "");
                   }}
                 />

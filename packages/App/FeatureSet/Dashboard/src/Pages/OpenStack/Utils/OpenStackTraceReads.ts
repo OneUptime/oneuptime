@@ -10,7 +10,9 @@ import { LIMIT_PER_PROJECT } from "Common/Types/Database/LimitMax";
 import { JSONObject } from "Common/Types/JSON";
 import ObjectID from "Common/Types/ObjectID";
 import { OpenStackResourceKind } from "Common/Types/OpenStack/OpenStackResourceKind";
-import AnalyticsModelAPI from "Common/UI/Utils/AnalyticsModelAPI/AnalyticsModelAPI";
+import AnalyticsModelAPI, {
+  ListResult as AnalyticsListResult,
+} from "Common/UI/Utils/AnalyticsModelAPI/AnalyticsModelAPI";
 import ModelAPI, { ListResult } from "Common/UI/Utils/ModelAPI/ModelAPI";
 import ProjectUtil from "Common/UI/Utils/Project";
 import {
@@ -57,22 +59,23 @@ export async function fetchOpenStackTracedServices(
   cloudName: string,
 ): Promise<OpenStackTracedServices> {
   const now: Date = OneUptimeDate.getCurrentDate();
-  const result: ListResult<Span> = await AnalyticsModelAPI.getList<Span>({
-    modelType: Span,
-    // `entityScope` is a query key of its own, which Query<Span> does not know.
-    query: {
-      startTime: new InBetween<Date>(
-        OneUptimeDate.addRemoveDays(now, -LOOK_BACK_IN_DAYS),
-        now,
-      ),
-      isEntrySpan: true,
-      entityScope: getCloudSpanScope(cloudName),
-    } as unknown as Query<Span>,
-    select: { startTime: true, traceId: true, attributes: true },
-    sort: { startTime: SortOrder.Descending },
-    limit: RECENT_SPANS_READ,
-    skip: 0,
-  });
+  const result: AnalyticsListResult<Span> =
+    await AnalyticsModelAPI.getList<Span>({
+      modelType: Span,
+      // `entityScope` is a query key of its own, which Query<Span> does not know.
+      query: {
+        startTime: new InBetween<Date>(
+          OneUptimeDate.addRemoveDays(now, -LOOK_BACK_IN_DAYS),
+          now,
+        ),
+        isEntrySpan: true,
+        entityScope: getCloudSpanScope(cloudName),
+      } as unknown as Query<Span>,
+      select: { startTime: true, traceId: true, attributes: true },
+      sort: { startTime: SortOrder.Descending },
+      limit: RECENT_SPANS_READ,
+      skip: 0,
+    });
 
   return readOpenStackTracedServices(
     result.data.map((row: Span): OpenStackTraceRow => {
@@ -103,7 +106,7 @@ export async function fetchOpenStackControlPlaneSpans(
     return { spans: [], services: [] };
   }
 
-  const [spans, services]: [ListResult<Span>, ListResult<Service>] =
+  const [spans, services]: [AnalyticsListResult<Span>, ListResult<Service>] =
     await Promise.all([
       AnalyticsModelAPI.getList<Span>({
         modelType: Span,

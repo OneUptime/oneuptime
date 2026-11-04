@@ -134,7 +134,9 @@ describe("an event as a change event", () => {
   test("names the cloud both ways a chart of it can be filtered", () => {
     expect(entry.attributes["openstack.cloud.name"]).toBe("production");
     expect(entry.attributes[OPENSTACK_CLOUD_LOG_ATTRIBUTE]).toBe("production");
-    expect(entry.attributes[ChangeEventAttribute.CloudRegion]).toBe("RegionOne");
+    expect(entry.attributes[ChangeEventAttribute.CloudRegion]).toBe(
+      "RegionOne",
+    );
   });
 
   test("says who, and in which request", () => {
@@ -198,10 +200,14 @@ describe("an event as a change event", () => {
 
   test("an empty value is left out rather than stored", () => {
     const quiet: ParsedChangeEventEntry = entryOf(
-      recordedOf("aggregate.add_host.end", { name: "rack-1" }, {
-        publisher_id: "nova-api",
-        message_id: "",
-      }),
+      recordedOf(
+        "aggregate.add_host.end",
+        { name: "rack-1" },
+        {
+          publisher_id: "nova-api",
+          message_id: "",
+        },
+      ),
     );
 
     for (const value of Object.values(quiet.attributes)) {
@@ -314,10 +320,8 @@ describe("which events a feed shows", () => {
 
   test("a limit below nothing is nothing", () => {
     expect(
-      chooseOpenStackFeedEvents(
-        [at(1, OpenStackEventOutcome.Succeeded)],
-        -1,
-      ).chosen,
+      chooseOpenStackFeedEvents([at(1, OpenStackEventOutcome.Succeeded)], -1)
+        .chosen,
     ).toEqual([]);
   });
 });

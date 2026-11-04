@@ -28,7 +28,11 @@ import {
   isOpenStackInstanceCpuSaturated,
   isOpenStackPhysicalNetworkDevice,
 } from "../../../../App/FeatureSet/Dashboard/src/Pages/OpenStack/Utils/OpenStackUsage";
-import { SeededRandom, seededRandom, shuffled } from "../../Helpers/SeededRandom";
+import {
+  SeededRandom,
+  seededRandom,
+  shuffled,
+} from "../../Helpers/SeededRandom";
 
 function row(fields: Partial<OpenStackResource>): OpenStackResource {
   return Object.assign(new OpenStackResource(), fields);
@@ -68,8 +72,9 @@ describe("what a page says when it has no usage to show", () => {
   });
 
   test("a running instance on a host that reports says what was chosen", () => {
-    const reporting: Partial<Parameters<typeof getOpenStackInstanceUsageGap>[0]> =
-      { hypervisorHasSource: true };
+    const reporting: Partial<
+      Parameters<typeof getOpenStackInstanceUsageGap>[0]
+    > = { hypervisorHasSource: true };
     expect(
       gapOf({
         ...reporting,
@@ -242,7 +247,8 @@ describe("Ceph's trouble in a cloud's Needs attention", () => {
       assessOpenStackStoragePool(pool(0, { diskAllocatedBytes: 90 })).severity,
     ).toBe(ResourceAttentionSeverity.Warning);
     expect(
-      assessOpenStackStoragePool(pool(null, { diskAllocatedBytes: 99 })).severity,
+      assessOpenStackStoragePool(pool(null, { diskAllocatedBytes: 99 }))
+        .severity,
     ).toBe(ResourceAttentionSeverity.Critical);
   });
 
@@ -277,16 +283,14 @@ describe("what a machine is moving, by its own agent", () => {
     direction: string,
     values: Array<number>,
   ): Array<OpenStackCounterPoint> {
-    return values.map(
-      (value: number, index: number): OpenStackCounterPoint => {
-        return {
-          device,
-          direction,
-          value,
-          timeMs: START_MS + index * MINUTE_MS,
-        };
-      },
-    );
+    return values.map((value: number, index: number): OpenStackCounterPoint => {
+      return {
+        device,
+        direction,
+        value,
+        timeMs: START_MS + index * MINUTE_MS,
+      };
+    });
   }
 
   test("is what a counter added over the time between its readings", () => {
@@ -372,9 +376,7 @@ describe("what a machine is moving, by its own agent", () => {
         isCounted: isOpenStackPhysicalNetworkDevice,
       }),
     ).toBeNull();
-    expect(
-      getOpenStackHostThroughput({ disk: [], network: [] }),
-    ).toEqual({
+    expect(getOpenStackHostThroughput({ disk: [], network: [] })).toEqual({
       diskReadBytesPerSecond: null,
       diskWriteBytesPerSecond: null,
       networkReceiveBytesPerSecond: null,

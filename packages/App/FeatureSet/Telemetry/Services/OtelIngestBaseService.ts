@@ -1417,8 +1417,9 @@ export default abstract class OtelIngestBaseService {
     }
 
     if (data.openStackCloudId) {
-      const cloudName: string | null =
-        this.getOpenStackCloudNameFromAttributes(data.attributes);
+      const cloudName: string | null = this.getOpenStackCloudNameFromAttributes(
+        data.attributes,
+      );
       return await OTelIngestService.buildResourceMetadataForNonService({
         serviceName: cloudName ? `openstack/${cloudName}` : "OpenStack Cloud",
         resourceId: data.openStackCloudId,
@@ -2116,12 +2117,11 @@ export default abstract class OtelIngestBaseService {
      */
     const armedFences: Array<MaintenanceFence> = [];
     try {
-      const cloudIdStr: string | null =
-        await this.resolveDiscoveredResourceId({
-          kindName: "OpenStackCloud",
-          projectId: data.projectId,
-          identity: data.cloudName,
-        });
+      const cloudIdStr: string | null = await this.resolveDiscoveredResourceId({
+        kindName: "OpenStackCloud",
+        projectId: data.projectId,
+        identity: data.cloudName,
+      });
 
       if (!cloudIdStr) {
         return null;
@@ -5791,7 +5791,6 @@ export default abstract class OtelIngestBaseService {
     "host-proxmox-guest-link";
   private static readonly HOST_PROXMOX_LINK_CACHE_EXPIRY_SECONDS: number =
     24 * 60 * 60;
-
 
   /**
    * WI-17 ingest heuristic: a Host whose hostIdentifier

@@ -272,7 +272,9 @@ const OpenStackRoutes: FunctionComponent<ComponentProps> = (
             <OpenStackCloudHypervisorDetail
               {...props}
               pageRoute={
-                RouteMap[PageMap.OPENSTACK_CLOUD_VIEW_HYPERVISOR_DETAIL] as Route
+                RouteMap[
+                  PageMap.OPENSTACK_CLOUD_VIEW_HYPERVISOR_DETAIL
+                ] as Route
               }
             />
           }
@@ -314,7 +316,9 @@ const OpenStackRoutes: FunctionComponent<ComponentProps> = (
             <OpenStackCloudAvailabilityZones
               {...props}
               pageRoute={
-                RouteMap[PageMap.OPENSTACK_CLOUD_VIEW_AVAILABILITY_ZONES] as Route
+                RouteMap[
+                  PageMap.OPENSTACK_CLOUD_VIEW_AVAILABILITY_ZONES
+                ] as Route
               }
             />
           }
@@ -328,7 +332,9 @@ const OpenStackRoutes: FunctionComponent<ComponentProps> = (
             <OpenStackCloudAvailabilityZoneDetail
               {...props}
               pageRoute={
-                RouteMap[PageMap.OPENSTACK_CLOUD_VIEW_AVAILABILITY_ZONE_DETAIL] as Route
+                RouteMap[
+                  PageMap.OPENSTACK_CLOUD_VIEW_AVAILABILITY_ZONE_DETAIL
+                ] as Route
               }
             />
           }
@@ -469,7 +475,9 @@ const OpenStackRoutes: FunctionComponent<ComponentProps> = (
             <OpenStackCloudFloatingIpDetail
               {...props}
               pageRoute={
-                RouteMap[PageMap.OPENSTACK_CLOUD_VIEW_FLOATING_IP_DETAIL] as Route
+                RouteMap[
+                  PageMap.OPENSTACK_CLOUD_VIEW_FLOATING_IP_DETAIL
+                ] as Route
               }
             />
           }
@@ -497,7 +505,9 @@ const OpenStackRoutes: FunctionComponent<ComponentProps> = (
             <OpenStackCloudNetworkAgentDetail
               {...props}
               pageRoute={
-                RouteMap[PageMap.OPENSTACK_CLOUD_VIEW_NETWORK_AGENT_DETAIL] as Route
+                RouteMap[
+                  PageMap.OPENSTACK_CLOUD_VIEW_NETWORK_AGENT_DETAIL
+                ] as Route
               }
             />
           }
@@ -566,7 +576,9 @@ const OpenStackRoutes: FunctionComponent<ComponentProps> = (
             <OpenStackCloudStoragePoolDetail
               {...props}
               pageRoute={
-                RouteMap[PageMap.OPENSTACK_CLOUD_VIEW_STORAGE_POOL_DETAIL] as Route
+                RouteMap[
+                  PageMap.OPENSTACK_CLOUD_VIEW_STORAGE_POOL_DETAIL
+                ] as Route
               }
             />
           }

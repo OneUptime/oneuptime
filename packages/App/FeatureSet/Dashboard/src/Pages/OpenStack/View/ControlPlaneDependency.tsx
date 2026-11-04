@@ -41,6 +41,7 @@ import useOpenStackRead, {
   OpenStackRead,
 } from "../../../Components/OpenStack/Part/UseOpenStackRead";
 import { useOpenStackRegion } from "../../../Components/OpenStack/OpenStackRegionContext";
+import { ResourceAttentionText } from "../../../Components/ResourcePart/ResourceAttention";
 import NeedsAttentionCard from "../../../Components/ResourcePart/NeedsAttentionCard";
 import ResourcePartAlertsCard from "../../../Components/ResourcePart/ResourcePartAlertsCard";
 import ResourcePartReadError from "../../../Components/ResourcePart/ResourcePartReadError";
@@ -232,10 +233,7 @@ function useRowFacts(): (row: OpenStackResource) => Array<string> {
       "{{value}} unacknowledged",
       OPENSTACK_CONTROL_PLANE_FACTS.MessagesUnacknowledged,
     );
-    add(
-      "Cluster of {{value}}",
-      OPENSTACK_CONTROL_PLANE_FACTS.ClusterSize,
-    );
+    add("Cluster of {{value}}", OPENSTACK_CONTROL_PLANE_FACTS.ClusterSize);
     add(
       "{{value}} connections",
       OPENSTACK_CONTROL_PLANE_FACTS.ThreadsConnected,
@@ -355,11 +353,14 @@ const OpenStackCloudControlPlaneDependency: FunctionComponent<
     definition.deeperProduct === "queues"
       ? (RouteMap[PageMap.MESSAGE_QUEUES] as Route)
       : definition.deeperProduct === "databases"
-        ? (RouteMap[PageMap.DATABASES] as Route)
+        ? (RouteMap[PageMap.DATABASE_ROOT] as Route)
         : undefined;
 
   return (
-    <div data-testid="openstack-control-plane-dependency" data-dependency={dependency}>
+    <div
+      data-testid="openstack-control-plane-dependency"
+      data-dependency={dependency}
+    >
       <div className="mb-6" data-testid="openstack-control-plane-summary">
         <Card
           title={definition.title}
@@ -377,7 +378,9 @@ const OpenStackCloudControlPlaneDependency: FunctionComponent<
         >
           <div className="space-y-2 text-sm text-gray-700">
             {summary ? (
-              <p data-testid="openstack-control-plane-line">{lineOf(summary)}</p>
+              <p data-testid="openstack-control-plane-line">
+                {lineOf(summary)}
+              </p>
             ) : (
               <></>
             )}
@@ -439,7 +442,7 @@ const OpenStackCloudControlPlaneDependency: FunctionComponent<
                 });
                 const lines: Array<string> = isCurrent
                   ? [
-                      ...own.reasons.map((reason): string => {
+                      ...own.reasons.map((reason: ResourceAttentionText): string => {
                         return translator.translateTemplate(
                           reason.text,
                           reason.values || {},

@@ -14,6 +14,7 @@ import {
   OPENSTACK_LARGE_CLOUD,
   OPENSTACK_MEDIUM_CLOUD,
   OPENSTACK_SMALL_CLOUD,
+  OpenStackCloudCounts,
   OPENSTACK_SUMMARY_MODE_INSTANCE_LIMIT,
   estimateOpenStackVolume,
   getOpenStackProbeRequestsPerMinute,
@@ -48,7 +49,7 @@ describe("the numbers behind the card", () => {
     ["small", OPENSTACK_SMALL_CLOUD],
     ["medium", OPENSTACK_MEDIUM_CLOUD],
     ["large", OPENSTACK_LARGE_CLOUD],
-  ])("a %s cloud reads what the scale module says", (_size, counts) => {
+  ])("a %s cloud reads what the scale module says", (_size: string, counts: OpenStackCloudCounts) => {
     const view: OpenStackCostView = getOpenStackCostView({
       hypervisors: counts.hypervisors,
       instances: counts.instances,
@@ -160,9 +161,9 @@ describe("what the Data Collection card says", () => {
   });
 
   test("nothing slowed down, nothing is said", () => {
-    expect(
-      getOpenStackGentlerRows(summary([service({})]), translator),
-    ).toEqual([]);
+    expect(getOpenStackGentlerRows(summary([service({})]), translator)).toEqual(
+      [],
+    );
     expect(getOpenStackGentlerRows(null, translator)).toEqual([]);
   });
 

@@ -1,4 +1,11 @@
-import { afterEach, beforeEach, describe, expect, jest, test } from "@jest/globals";
+import {
+  afterEach,
+  beforeEach,
+  describe,
+  expect,
+  jest,
+  test,
+} from "@jest/globals";
 import GlobalCache from "../../../../Server/Infrastructure/GlobalCache";
 import OpenStackCloudService from "../../../../Server/Services/OpenStackCloudService";
 import OpenStackResourceService from "../../../../Server/Services/OpenStackResourceService";
@@ -75,22 +82,21 @@ function aCloud(options?: JSONObject, instanceCount: number = 3): ObjectID {
 
 beforeEach(() => {
   store = new Map();
-  jest
-    .spyOn(GlobalCache, "getStrings")
-    .mockImplementation((async (_namespace: string, keys: Array<string>) => {
-      return keys.map((key: string): string | null => {
-        return store.get(key) || null;
-      });
-    }) as never);
-  jest
-    .spyOn(GlobalCache, "setString")
-    .mockImplementation((async (
-      _namespace: string,
-      key: string,
-      value: string,
-    ) => {
-      store.set(key, value);
-    }) as never);
+  jest.spyOn(GlobalCache, "getStrings").mockImplementation((async (
+    _namespace: string,
+    keys: Array<string>,
+  ) => {
+    return keys.map((key: string): string | null => {
+      return store.get(key) || null;
+    });
+  }) as never);
+  jest.spyOn(GlobalCache, "setString").mockImplementation((async (
+    _namespace: string,
+    key: string,
+    value: string,
+  ) => {
+    store.set(key, value);
+  }) as never);
   jest
     .spyOn(OpenStackResourceService, "findBy")
     .mockImplementation((async (data: {

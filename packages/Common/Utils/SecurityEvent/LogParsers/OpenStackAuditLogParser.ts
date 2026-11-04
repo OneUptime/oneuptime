@@ -251,7 +251,11 @@ function baseAttributes(data: {
     OpenStackAuditAttribute.ReasonCode,
     readText(reason, "reasonCode"),
   );
-  set(attributes, OpenStackAuditAttribute.Reason, readText(reason, "reasonType"));
+  set(
+    attributes,
+    OpenStackAuditAttribute.Reason,
+    readText(reason, "reasonType"),
+  );
   set(
     attributes,
     OpenStackAuditAttribute.RequestId,

@@ -299,20 +299,20 @@ export default class OpenStackInstanceMetricsIngest {
 
     const hypervisors: Map<string, HypervisorFacts> =
       await this.readHypervisors({
-      projectId: data.projectId,
-      openStackCloudId: data.openStackCloudId,
-      hypervisorNames: Array.from(
-        new Set(
-          rows
-            .map((row: OpenStackResource): string => {
-              return row.hypervisorName || "";
-            })
-            .filter((name: string): boolean => {
-              return Boolean(name);
-            }),
+        projectId: data.projectId,
+        openStackCloudId: data.openStackCloudId,
+        hypervisorNames: Array.from(
+          new Set(
+            rows
+              .map((row: OpenStackResource): string => {
+                return row.hypervisorName || "";
+              })
+              .filter((name: string): boolean => {
+                return Boolean(name);
+              }),
+          ),
         ),
-      ),
-    });
+      });
 
     const read: Set<string> = new Set();
     for (const row of rows) {

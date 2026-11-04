@@ -171,7 +171,9 @@ describe("a login", () => {
 
   test("is dated by what it says", () => {
     expect(
-      one(cadf("identity.authenticate", { outcome: "failure" })).time.toISOString(),
+      one(
+        cadf("identity.authenticate", { outcome: "failure" }),
+      ).time.toISOString(),
     ).toBe("2026-10-30T10:00:01.000Z");
   });
 
@@ -207,7 +209,9 @@ describe("a role grant", () => {
     );
     expect(event.severityName).toBe(OcsfSeverity.Medium);
     expect(event.attributes[OpenStackAuditAttribute.RoleId]).toBe(ROLE_ID);
-    expect(event.attributes[OpenStackAuditAttribute.ProjectId]).toBe(PROJECT_ID);
+    expect(event.attributes[OpenStackAuditAttribute.ProjectId]).toBe(
+      PROJECT_ID,
+    );
     expect(event.attributes[OpenStackAuditAttribute.UserId]).toBe(
       "target-user-id",
     );
@@ -241,7 +245,9 @@ describe("a role grant", () => {
     expect(event.message).toBe(
       `alice granted role ${ROLE_ID} to group group-id on domain domain-id`,
     );
-    expect(event.attributes[OpenStackAuditAttribute.DomainId]).toBe("domain-id");
+    expect(event.attributes[OpenStackAuditAttribute.DomainId]).toBe(
+      "domain-id",
+    );
     expect(event.attributes[OpenStackAuditAttribute.GroupId]).toBe("group-id");
   });
 });
@@ -257,7 +263,9 @@ describe("a change to Keystone's records", () => {
     );
 
     expect(event.activityName).toBe("created");
-    expect(event.attributes[OpenStackAuditAttribute.ProjectId]).toBe(PROJECT_ID);
+    expect(event.attributes[OpenStackAuditAttribute.ProjectId]).toBe(
+      PROJECT_ID,
+    );
     expect(event.targetResource).toBe(describeOpenStackProject(PROJECT_ID));
     expect(event.message).toBe(`alice created project ${PROJECT_ID}`);
   });
@@ -319,8 +327,12 @@ describe("a call through the audit filter", () => {
     expect(event.activityName).toBe("update");
     expect(event.statusName).toBe("Success");
     expect(event.principalUser).toBe("alice");
-    expect(event.attributes[OpenStackAuditAttribute.TargetId]).toBe("server-id");
-    expect(event.attributes[OpenStackAuditAttribute.ProjectId]).toBe(PROJECT_ID);
+    expect(event.attributes[OpenStackAuditAttribute.TargetId]).toBe(
+      "server-id",
+    );
+    expect(event.attributes[OpenStackAuditAttribute.ProjectId]).toBe(
+      PROJECT_ID,
+    );
     expect(event.targetResource).toBe(
       `project ${PROJECT_ID} service/compute/servers/action`,
     );
@@ -339,7 +351,9 @@ describe("a call through the audit filter", () => {
 
   test("a read is no event: an audit log is mostly reads", () => {
     expect(parse(call({ action: "read", outcome: "success" }))).toEqual([]);
-    expect(parse(call({ action: "read/list", outcome: "success" }))).toEqual([]);
+    expect(parse(call({ action: "read/list", outcome: "success" }))).toEqual(
+      [],
+    );
   });
 
   test.each(["401", "403"])(
@@ -420,9 +434,13 @@ describe("a security group opened to the world", () => {
       OpenStackAuditSignal.SecurityGroupOpenSensitive,
     );
     expect(event.attributes[OpenStackAuditAttribute.OpenPort]).toBe("22");
-    expect(event.attributes[OpenStackAuditAttribute.InitiatorName]).toBe("alice");
+    expect(event.attributes[OpenStackAuditAttribute.InitiatorName]).toBe(
+      "alice",
+    );
     expect(event.attributes[OpenStackAuditAttribute.TargetId]).toBe("group-id");
-    expect(event.attributes[OpenStackAuditAttribute.ProjectId]).toBe(PROJECT_ID);
+    expect(event.attributes[OpenStackAuditAttribute.ProjectId]).toBe(
+      PROJECT_ID,
+    );
     expect(event.targetResource).toBe(
       `project ${PROJECT_ID} security group group-id`,
     );
@@ -639,10 +657,10 @@ describe("what is not an audit event", () => {
   test("an identity event that is not CADF is not trusted as one", () => {
     expect(
       parse(
-        cadf(
-          "identity.authenticate",
-          { typeURI: "not-cadf", outcome: "failure" },
-        ),
+        cadf("identity.authenticate", {
+          typeURI: "not-cadf",
+          outcome: "failure",
+        }),
       ),
     ).toEqual([]);
   });
@@ -680,9 +698,9 @@ describe("the log scan", () => {
   ])("the prefilter asks for %#", (message: JSONObject) => {
     expect(matchesSecurityLogPrefilter(JSON.stringify(message))).toBe(true);
     // As oslo.messaging's log driver writes it, with spaces.
-    expect(
-      matchesSecurityLogPrefilter(JSON.stringify(message, null, 1)),
-    ).toBe(true);
+    expect(matchesSecurityLogPrefilter(JSON.stringify(message, null, 1))).toBe(
+      true,
+    );
   });
 
   test("the prefilter's words all hold what every one of them requires", () => {
@@ -697,7 +715,7 @@ describe("the log scan", () => {
   test("the rest of a cloud's lines are not asked for", () => {
     expect(
       matchesSecurityLogPrefilter(
-        '2026-10-30 10:00:00.123 1234 INFO nova.compute.manager [-] Took 3 seconds to build',
+        "2026-10-30 10:00:00.123 1234 INFO nova.compute.manager [-] Took 3 seconds to build",
       ),
     ).toBe(false);
   });
@@ -773,7 +791,9 @@ describe("the rule library's detections", () => {
     expect(rules).toHaveLength(6);
 
     for (const entry of rules) {
-      for (const match of entry.sigmaRuleYaml.matchAll(/openstack\.audit\.[a-z_]+/g)) {
+      for (const match of entry.sigmaRuleYaml.matchAll(
+        /openstack\.audit\.[a-z_]+/g,
+      )) {
         expect(kept).toContain(match[0]);
       }
 
@@ -801,7 +821,9 @@ describe("the rule library's detections", () => {
     );
 
     expect(sigmaRuleMatchesEvent(granted, protectedGrant("admin"))).toBe(true);
-    expect(sigmaRuleMatchesEvent(granted, protectedGrant("service"))).toBe(true);
+    expect(sigmaRuleMatchesEvent(granted, protectedGrant("service"))).toBe(
+      true,
+    );
     expect(sigmaRuleMatchesEvent(granted, protectedGrant("payments"))).toBe(
       false,
     );

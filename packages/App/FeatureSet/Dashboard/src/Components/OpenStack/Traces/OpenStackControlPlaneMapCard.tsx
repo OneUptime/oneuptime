@@ -43,8 +43,12 @@ const OpenStackControlPlaneMapCard: FunctionComponent<ComponentProps> = (
   const services: Array<Service> = useMemo(() => {
     return (read.data?.services || []).map((service: Service): Service => {
       const named: Service = new Service();
-      named._id = service._id;
-      named.serviceColor = service.serviceColor;
+      if (service._id) {
+        named._id = service._id;
+      }
+      if (service.serviceColor) {
+        named.serviceColor = service.serviceColor;
+      }
       named.name = withoutOpenStackCloudName({
         serviceName: service.name || "",
         cloudName: props.cloudName,

@@ -190,14 +190,18 @@ export default class OpenStackEventRecorder {
       },
     );
 
-    await this.attempt("change events", data.cloudId, async (): Promise<void> => {
-      await this.writeChangeEvents({
-        projectId: data.projectId,
-        cloudId: data.cloudId,
-        cloudName: data.entry.cloudName,
-        events: changes,
-      });
-    });
+    await this.attempt(
+      "change events",
+      data.cloudId,
+      async (): Promise<void> => {
+        await this.writeChangeEvents({
+          projectId: data.projectId,
+          cloudId: data.cloudId,
+          cloudName: data.entry.cloudName,
+          events: changes,
+        });
+      },
+    );
 
     await this.attempt("feed lines", data.cloudId, async (): Promise<void> => {
       await this.writeFeedLines({
@@ -207,13 +211,17 @@ export default class OpenStackEventRecorder {
       });
     });
 
-    await this.attempt("state changes", data.cloudId, async (): Promise<void> => {
-      await this.writeStateChanges({
-        projectId: data.projectId,
-        cloudId: data.cloudId,
-        events: events,
-      });
-    });
+    await this.attempt(
+      "state changes",
+      data.cloudId,
+      async (): Promise<void> => {
+        await this.writeStateChanges({
+          projectId: data.projectId,
+          cloudId: data.cloudId,
+          events: events,
+        });
+      },
+    );
   }
 
   /*

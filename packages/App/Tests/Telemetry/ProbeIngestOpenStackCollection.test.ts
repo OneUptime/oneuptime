@@ -353,7 +353,7 @@ interface FakeStore {
 function fakeStore(): FakeStore {
   const claimForCollection: jest.Mock = jest.fn(async () => {
     return [collectionJob()];
-  });
+  }) as unknown as jest.Mock;
   const recordCollectionReport: jest.Mock = jest.fn(
     async (): Promise<OpenStackCollectionReportOutcome> => {
       return {
@@ -363,13 +363,13 @@ function fakeStore(): FakeStore {
         isCurrent: true,
       };
     },
-  );
+  ) as unknown as jest.Mock;
   const claimPendingTests: jest.Mock = jest.fn(async () => {
     return [testJob()];
-  });
+  }) as unknown as jest.Mock;
   const recordTestReport: jest.Mock = jest.fn(async () => {
     return true;
-  });
+  }) as unknown as jest.Mock;
 
   return {
     claimForCollection: claimForCollection,

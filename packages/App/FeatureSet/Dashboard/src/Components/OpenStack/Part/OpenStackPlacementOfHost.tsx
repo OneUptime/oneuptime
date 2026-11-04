@@ -22,12 +22,10 @@ const TITLE: string = translationKey("On OpenStack");
 export const OpenStackPlacementOfHost: FunctionComponent<{
   hostId: ObjectID;
 }> = (props: { hostId: ObjectID }): ReactElement => {
-  const read: OpenStackRead<OpenStackPlacement | null> = useOpenStackRead(
-    () => {
+  const read: OpenStackRead<OpenStackPlacement | null> =
+    useOpenStackRead(() => {
       return fetchOpenStackPlacementOfHost(props.hostId);
-    },
-    [props.hostId.toString()],
-  );
+    }, [props.hostId.toString()]);
   return (
     <OpenStackPlacementCard
       testId="host-openstack-placement"
@@ -50,15 +48,13 @@ export const OpenStackPlacementOfKubernetesNode: FunctionComponent<{
   clusterId: ObjectID;
   nodeName: string;
 }> = (props: { clusterId: ObjectID; nodeName: string }): ReactElement => {
-  const read: OpenStackRead<OpenStackPlacement | null> = useOpenStackRead(
-    () => {
+  const read: OpenStackRead<OpenStackPlacement | null> =
+    useOpenStackRead(() => {
       return fetchOpenStackPlacementOfKubernetesNode({
         clusterId: props.clusterId,
         nodeName: props.nodeName,
       });
-    },
-    [props.clusterId.toString(), props.nodeName],
-  );
+    }, [props.clusterId.toString(), props.nodeName]);
   return (
     <OpenStackPlacementCard
       testId="kubernetes-node-openstack-placement"
@@ -81,8 +77,9 @@ export const OpenStackPlacementOfService: FunctionComponent<{
   const placements: Array<OpenStackServicePlacement> = read.data || [];
   return (
     <>
-      {placements.slice(0, 3).map(
-        (one: OpenStackServicePlacement): ReactElement => {
+      {placements
+        .slice(0, 3)
+        .map((one: OpenStackServicePlacement): ReactElement => {
           return (
             <OpenStackPlacementCard
               key={one.hostName}
@@ -94,8 +91,7 @@ export const OpenStackPlacementOfService: FunctionComponent<{
               placement={one.placement}
             />
           );
-        },
-      )}
+        })}
     </>
   );
 };
