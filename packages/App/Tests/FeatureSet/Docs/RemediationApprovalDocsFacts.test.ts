@@ -9,11 +9,23 @@ import {
   getViewInProductTitle,
   REMEDIATION_CHAT_WORDS,
 } from "Common/Server/Utils/AutoRemediation/RemediationChatWords";
+import { MAX_IMPACT_SLOS } from "Common/Server/Utils/AI/SRE/InvestigationImpactContext";
+import { CLOUD_ENVIRONMENT_NOUN } from "Common/Server/Utils/AI/SRE/LinkedInfrastructureContext";
 import { REMEDIATION_TRACK_RECORD_LOOKBACK_DAYS } from "Common/Types/AutoRemediation/RemediationTrackRecord";
 import { describeRemediationTrackRecord } from "Common/Types/AutoRemediation/RemediationTrackRecordWords";
 import AiResourceType from "Common/Types/ResourceAiAgent/AiResourceType";
-import { RULED_OUT_SECTION_TITLE } from "Common/Utils/AI/InvestigationReport";
+import { FIX_DISMISS_REFUSED_MESSAGE } from "Common/Types/Runbook/RunbookRunPermissions";
+import {
+  IMPACT_LINE_LABELS,
+  IMPACT_SECTION_TITLE,
+  RULED_OUT_SECTION_TITLE,
+} from "Common/Utils/AI/InvestigationReport";
 import { describeCloudChange } from "Common/Utils/AiRemediation/CloudChangeWords";
+import { AI_INSIGHTS_FIX_APPROVAL_PLACES_TITLE } from "../../../FeatureSet/Dashboard/src/Components/AI/ActivityInsights/AiActivityInsightsData";
+import {
+  REMEDIATION_FIX_DISMISS,
+  REMEDIATION_FIX_STEP_COPY,
+} from "../../../FeatureSet/Dashboard/src/Components/AutoRemediation/RemediationStepCopy";
 import { describe, expect, it } from "@jest/globals";
 
 /*
@@ -29,7 +41,12 @@ import { describe, expect, it } from "@jest/globals";
  *  - an approval from a chat is checked as the card's is, and a fix that
  *    changed since its message is refused, as the approval code does;
  *  - the Slack and Microsoft Teams pages send the reader to the AI SRE
- *    page's section on it.
+ *    page's section on it;
+ *  - #5519's follow-ups: the Impact section right after the Summary and
+ *    the SLOs an investigation reads for it, an alert's recurrence, an App
+ *    Platforms environment named as the activity names it, a runbook's
+ *    record over Approve & Run, Dismiss fix asking what approving asks, and
+ *    where a fix was approved, on its step and on AI Insights.
  *
  * AiDocsTranslations and WorkspaceAndFormsDocsTranslations hold the 16
  * translations to these English pages.
@@ -91,6 +108,88 @@ describe("what the investigation ruled out", () => {
       "verificationStatus: AutoRemediationVerificationStatus.Verified",
     );
   });
+
+  it("an alert's recurrence is read as an incident's, and a private alert never", () => {
+    const reads: string = flat(
+      englishSection(AI_SRE, "## What an investigation reads"),
+    );
+
+    expect(reads).toContain(
+      "An alert's investigation reads the project's resolved alerts the same way",
+    );
+    expect(reads).toContain("Private alerts are left out.");
+
+    const memory: string = readRepoFile(
+      "Common/Server/Utils/AI/SRE/AIMemory.ts",
+    );
+    expect(memory).toContain("alert.isPrivate === true");
+    expect(memory).toContain("readVerifiedAlertFixes");
+    expect(
+      readRepoFile("Common/Server/Utils/AI/SRE/AlertInvestigationRunner.ts"),
+    ).toContain("AIMemory.getPriorSimilarAlertsContext(");
+  });
+
+  it("names an App Platforms environment as the run's activity does", () => {
+    const reads: string = flat(
+      englishSection(AI_SRE, "## What an investigation reads"),
+    );
+
+    expect(reads).toContain(
+      `An App Platforms environment is named as a ${CLOUD_ENVIRONMENT_NOUN.toLowerCase()}.`,
+    );
+  });
+});
+
+/*
+ * What an investigation says it hurts (#5519's follow-ups): the section the
+ * persona asks for right after the Summary, its three lines, and the SLOs
+ * the investigation reads for it.
+ */
+describe("what the investigation says it hurts", () => {
+  it("is the section the persona asks for, right after the summary, a line each for the users, the services and the SLOs", () => {
+    const posts: string = flat(
+      englishSection(AI_SRE, "## What the investigation posts"),
+    );
+
+    expect(posts).toContain(
+      `${bold(IMPACT_SECTION_TITLE)} — who and what it hurts, and how the investigation knows`,
+    );
+    expect(posts.indexOf(bold("Summary"))).toBeLessThan(
+      posts.indexOf(bold(IMPACT_SECTION_TITLE)),
+    );
+    expect(posts.indexOf(bold(IMPACT_SECTION_TITLE))).toBeLessThan(
+      posts.indexOf(bold("Most likely root cause")),
+    );
+    expect(posts).toContain(
+      "one line each for the users, the services and the SLOs",
+    );
+
+    const persona: string = readRepoFile(
+      "Common/Server/Utils/AI/SRE/AIInvestigationEngine.ts",
+    );
+    expect(persona.indexOf("**Summary** —")).toBeLessThan(
+      persona.indexOf(`**${IMPACT_SECTION_TITLE}** —`),
+    );
+    for (const label of Object.values(IMPACT_LINE_LABELS)) {
+      expect(persona).toContain(`**${label}:**`);
+    }
+    expect(persona).toContain("never guess a number");
+  });
+
+  it("reads the SLOs linked to the record and those that count its monitors, as many as the context lists", () => {
+    const reads: string = flat(
+      englishSection(AI_SRE, "## What an investigation reads"),
+    );
+
+    expect(reads).toContain(
+      `the SLOs that count its monitors, up to ${MAX_IMPACT_SLOS}`,
+    );
+
+    const context: string = readRepoFile(
+      "Common/Server/Utils/AI/SRE/InvestigationImpactContext.ts",
+    );
+    expect(context).toContain("monitors: QueryHelper.inRelationArray(");
+  });
 });
 
 describe("before you approve a fix", () => {
@@ -123,6 +222,21 @@ describe("before you approve a fix", () => {
     expect(section).toContain(
       "Private incidents and alerts are neither named nor counted.",
     );
+  });
+
+  it("a runbook says how it went before, over Approve & Run, over the same window, and the planner reads it", () => {
+    expect(section).toContain(
+      `A runbook OneUptime AI proposes says the same of itself, right over ${bold("Approve & Run")}`,
+    );
+    expect(section).toContain(
+      `in the last ${REMEDIATION_TRACK_RECORD_LOOKBACK_DAYS} days, with a link to each`,
+    );
+
+    const planner: string = readRepoFile(
+      "Common/Server/Utils/AI/Remediation/RemediationPlanRunner.ts",
+    );
+    expect(planner).toContain("RUNBOOK_TRACK_RECORD_PLANNER_NOTE");
+    expect(planner).toContain("runbookTrackRecord");
   });
 });
 
@@ -158,6 +272,48 @@ describe("approving or dismissing a fix from a chat", () => {
       "expectedPlanFingerprint: data.value.fingerprint,",
     );
     expect(actions).toContain("modelType: RunbookExecution,");
+  });
+
+  it("says dismissing asks what approving does, on the card and in a chat, as the dismissal checks it", () => {
+    const section: string = flat(englishSection(AI_SRE, APPROVAL_SECTION));
+
+    expect(section).toContain(
+      "Dismissing a fix needs what approving one does, on the card as in a chat: permission to start runbook executions in the project.",
+    );
+    expect(section).toContain(
+      `On the card, its button is ${bold(REMEDIATION_FIX_DISMISS)}.`,
+    );
+    expect(REMEDIATION_FIX_DISMISS).toBe("Dismiss fix");
+
+    // The card's dismissal asks the chats' permission, and says so.
+    const approval: string = readRepoFile(
+      "Common/Server/Utils/AutoRemediation/RemediationApproval.ts",
+    );
+    expect(approval).toContain("assertCanDismissFixes(");
+    expect(FIX_DISMISS_REFUSED_MESSAGE).toContain(
+      "Dismissing a fix needs the permission approving one does: starting runbook executions in this project.",
+    );
+  });
+
+  it("quotes where a fix was approved as its approval step words it, and AI Insights counts the places", () => {
+    const section: string = flat(englishSection(AI_SRE, APPROVAL_SECTION));
+
+    expect(section).toContain(
+      `"${REMEDIATION_FIX_STEP_COPY.approvedByInSlack.replace("{{name}}", "Maya Chen")}"`,
+    );
+
+    const insights: string = flat(
+      englishSection(
+        AI_SRE,
+        "## What OneUptime AI learned, and everything it did",
+      ),
+    );
+    expect(AI_INSIGHTS_FIX_APPROVAL_PLACES_TITLE).toBe(
+      "Where fixes were approved",
+    );
+    expect(insights).toContain(
+      "Once a fix was approved from Slack or Microsoft Teams, it also says where the fixes were approved: in OneUptime, in Slack or in Microsoft Teams.",
+    );
   });
 
   it.each([SLACK, TEAMS])(
