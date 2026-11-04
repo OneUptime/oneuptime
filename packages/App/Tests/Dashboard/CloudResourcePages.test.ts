@@ -240,9 +240,10 @@ describe("Cloud Environment telemetry scope", () => {
   });
 
   /*
-   * A resource in a cloud account has the provider's metrics only, scoped
-   * by the attributes ingest recorded for it; it has no Logs, Traces or
-   * Instances pages of its own.
+   * A resource in a cloud account has the provider's metrics, scoped by
+   * the attributes ingest recorded for it, and the logs an AWS stream
+   * delivered from its log group; it has no Traces or Instances pages of
+   * its own.
    */
   test("a cloud resource's Metrics tab in Cloud scopes by its recorded attributes", () => {
     const code: string = readCode("Pages/Cloud/View/Metrics.tsx");
@@ -251,13 +252,29 @@ describe("Cloud Environment telemetry scope", () => {
     expect(code).toContain("isCloudMonitoredResourceScoped(");
     expect(code).not.toContain("isCloudResourceScoped(");
 
-    for (const tab of ["Logs", "Traces", "Instances"]) {
+    for (const tab of ["Traces", "Instances"]) {
       expect(
         fs.existsSync(
           path.join(DASHBOARD_SRC, "Pages", "Cloud", "View", `${tab}.tsx`),
         ),
       ).toBe(false);
     }
+  });
+
+  test("a cloud resource's Logs tab in Cloud asks for the logs stamped with its id, not an environment's scope", () => {
+    const code: string = readCode("Pages/Cloud/View/Logs.tsx");
+
+    expect(code).toContain("STORED_CLOUD_RESOURCE_ID_ATTRIBUTE");
+    expect(code).toContain("providerResourceId");
+    expect(code).not.toContain("getCloudResourceAttributeFilters(");
+    expect(code).toContain("SavedViewScopeKind.CloudMonitoredResource");
+    // Only a kind of resource a log group names has the tab in its menu.
+    expect(readCode("Pages/Cloud/View/Layout.tsx")).toContain(
+      "canCloudResourceHaveStreamedLogs(",
+    );
+    expect(readCode("Pages/Cloud/View/SideMenu.tsx")).toContain(
+      "props.hasStreamedLogs",
+    );
   });
 });
 
@@ -507,6 +524,7 @@ describe("Cloud breadcrumbs", () => {
 
   test.each([
     ["CLOUD_RESOURCE_VIEW_CHANGES", "Changes"],
+    ["CLOUD_RESOURCE_VIEW_LOGS", "Logs"],
     ["CLOUD_RESOURCE_VIEW_FEED", "Feed"],
     ["CLOUD_RESOURCE_VIEW_OWNERS", "Owners"],
     ["CLOUD_ARCHIVED", "Archived"],
