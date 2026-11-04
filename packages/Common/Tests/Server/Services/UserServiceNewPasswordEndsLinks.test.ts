@@ -1,8 +1,12 @@
 import { EncryptionSecret } from "../../../Server/EnvironmentConfig";
 import DatabaseConfig from "../../../Server/DatabaseConfig";
 import MailService from "../../../Server/Services/MailService";
+import TeamMemberService from "../../../Server/Services/TeamMemberService";
 import UserService from "../../../Server/Services/UserService";
 import UserSessionService from "../../../Server/Services/UserSessionService";
+import UserTotpAuthService from "../../../Server/Services/UserTotpAuthService";
+import UserTwoFactorBackupCodeService from "../../../Server/Services/UserTwoFactorBackupCodeService";
+import UserWebAuthnService from "../../../Server/Services/UserWebAuthnService";
 import logger from "../../../Server/Utils/Logger";
 import TwoFactorWrongCodes from "../../../Server/Utils/TwoFactorWrongCodes";
 import User from "../../../Models/DatabaseModels/User";
@@ -14,28 +18,40 @@ import Email from "../../../Types/Email";
 import HashedString from "../../../Types/HashedString";
 import Name from "../../../Types/Name";
 import ObjectID from "../../../Types/ObjectID";
+import PositiveNumber from "../../../Types/PositiveNumber";
 import Timezone from "../../../Types/Timezone";
+import UserAuthenticationStatus from "../../../Types/UserAuthenticationStatus";
 import { afterEach, beforeEach, describe, expect, test } from "@jest/globals";
 import { FindOperator } from "typeorm";
 
 /*
  * ---------------------------------------------------------------------------
- * A NEW PASSWORD ENDS THE ACCOUNT'S SIGN-IN LINK, HOWEVER IT IS SET.
+ * A NEW PASSWORD ENDS THE ACCOUNT'S SIGN-IN LINK AND ITS RESET LINK, HOWEVER IT
+ * IS SET.
  *
- * A sign-in link (Types/Accounts/MagicLink) stands in for the password, so it
- * cannot outlive one: somebody who holds a link when the owner changes their
- * password would still get past the first step of signing in, for up to
- * fifteen minutes, and - since the same change forgets the account's wrong two
- * factor codes - with a fresh count of wrong codes to try.
+ * Both links are bearer credentials found by their token's hash alone, and both
+ * were sent because of the password the account had then. Neither can outlive
+ * it:
  *
- * A password changes three ways: the reset link's page, the profile page and a
- * master admin's Set Password. Only the first of them is OneUptime writing as
- * root; the profile page writes as the person, and `magicLinkToken` is declared
- * `update: []`, which no person may write. So every test here runs the real
- * update path - the real permission checks, the real hooks, the real hash -
- * over rows held in memory, and a test of the hook alone would not do: a hook
- * that adds the link's columns before the column check runs ends the link in
- * that test, and refuses everybody's password change here.
+ *   - a sign-in link (Types/Accounts/MagicLink) stands in for the password:
+ *     somebody who holds one when the owner changes their password would still
+ *     get past the first step of signing in, for up to fifteen minutes, and -
+ *     since the same change forgets the account's wrong two factor codes - with
+ *     a fresh count of wrong codes to try;
+ *   - a reset link sets a password outright: somebody who holds one when the
+ *     owner changes their password would, for up to a day, be able to set
+ *     another one and sign the owner out - the password change they made to
+ *     keep that person out is what they would undo.
+ *
+ * A password changes four ways: the reset link's page, the profile page, a
+ * master admin's Set Password, and an invited person claiming their account at
+ * sign up. Only some of them are OneUptime writing as root; the profile page
+ * writes as the person, and both links' columns are declared `update: []`, which
+ * no person may write. So every test here runs the real update path - the real
+ * permission checks, the real hooks, the real hash - over rows held in memory,
+ * and a test of the hook alone would not do: a hook that adds these columns
+ * before the column check runs ends the links in that test, and refuses
+ * everybody's password change here.
  *
  * The same write against Postgres is UserMagicLinkPostgres.test.ts, and the
  * reset link's page, through its route, MagicLinkLogin.test.ts.
@@ -51,6 +67,9 @@ const UNREACHED_USER_ID: ObjectID = new ObjectID(
 );
 
 const TOKEN: string = "0b1d6a5e-3c2f-4e7a-9b8c-1d2e3f4a5b6c";
+const RESET_TOKEN: string = "2d3f8c7a-5e41-4a9c-9dae-3f4a5b6c7d8e";
+
+const ONE_DAY_IN_MILLISECONDS: number = 24 * 60 * 60 * 1000;
 
 const NEW_PASSWORD: string = "a brand new passphrase";
 
@@ -60,8 +79,14 @@ type AccountRow = Record<string, unknown>;
 let accounts: Array<AccountRow>;
 
 let linkHash: string;
+let resetLinkHash: string;
 
-function accountRow(id: ObjectID, email: string, link: string): AccountRow {
+function accountRow(
+  id: ObjectID,
+  email: string,
+  link: string,
+  resetLink: string,
+): AccountRow {
   return {
     _id: id.toString(),
     email: new Email(email),
@@ -70,8 +95,8 @@ function accountRow(id: ObjectID, email: string, link: string): AccountRow {
     passwordSalt: "the old password's salt",
     isEmailVerified: true,
     timezone: null,
-    resetPasswordToken: null,
-    resetPasswordExpires: null,
+    resetPasswordToken: resetLink,
+    resetPasswordExpires: new Date(Date.now() + ONE_DAY_IN_MILLISECONDS),
     magicLinkToken: link,
     magicLinkExpires: new Date(
       Date.now() + MAGIC_LINK_EXPIRY_MINUTES * 60 * 1000,
@@ -129,7 +154,7 @@ function read(findBy: unknown): Array<User> {
 // What happened, in order: each write, each end of sessions, each forgetting.
 let order: Array<string>;
 
-// Whether the account's link still worked when its sessions ended and its codes went.
+// Whether either of the account's links still worked when its sessions ended and its codes went.
 let linkLiveAfterTheWrite: Array<boolean>;
 
 let repositoryUpdate: jest.Mock;
@@ -154,17 +179,41 @@ function isLinkLive(id: ObjectID): boolean {
   return Boolean(account["magicLinkToken"] && account["magicLinkExpires"]);
 }
 
+function isResetLinkLive(id: ObjectID): boolean {
+  const account: AccountRow = accountOf(id);
+
+  return Boolean(
+    account["resetPasswordToken"] && account["resetPasswordExpires"],
+  );
+}
+
+// What POST /reset-password reads a link by: its token's hash, and nothing else.
+async function accountTheResetLinkFinds(): Promise<User | null> {
+  return await UserService.findOneBy({
+    query: { resetPasswordToken: resetLinkHash },
+    select: { _id: true },
+    props: { isRoot: true },
+  });
+}
+
 beforeEach(async () => {
   linkHash = await HashedString.hashValue(TOKEN, EncryptionSecret);
+  resetLinkHash = await HashedString.hashValue(RESET_TOKEN, EncryptionSecret);
 
   accounts = [
-    accountRow(USER_ID, "owner@example.com", linkHash),
-    accountRow(OTHER_USER_ID, "other@example.com", "another account's link"),
+    accountRow(USER_ID, "owner@example.com", linkHash, resetLinkHash),
+    accountRow(
+      OTHER_USER_ID,
+      "other@example.com",
+      "another account's link",
+      "another account's reset link",
+    ),
     {
       ...accountRow(
         UNREACHED_USER_ID,
         "unreached@example.com",
         "a third account's link",
+        "a third account's reset link",
       ),
       isEmailVerified: false,
     },
@@ -209,14 +258,14 @@ beforeEach(async () => {
     .spyOn(UserSessionService, "revokeAllSessionsByUserId")
     .mockImplementation(async (userId: ObjectID): Promise<void> => {
       order.push(`end sessions ${userId.toString()}`);
-      linkLiveAfterTheWrite.push(isLinkLive(userId));
+      linkLiveAfterTheWrite.push(isLinkLive(userId) || isResetLinkLive(userId));
     });
 
   jest
     .spyOn(TwoFactorWrongCodes, "forget")
     .mockImplementation(async (userId: ObjectID): Promise<void> => {
       order.push(`forget wrong codes ${userId.toString()}`);
-      linkLiveAfterTheWrite.push(isLinkLive(userId));
+      linkLiveAfterTheWrite.push(isLinkLive(userId) || isResetLinkLive(userId));
     });
 
   jest
@@ -229,6 +278,9 @@ beforeEach(async () => {
   jest.spyOn(logger, "info").mockImplementation((): void => {
     return undefined;
   });
+
+  // What the writes that verify an address go on to read: no projects to set up.
+  jest.spyOn(TeamMemberService, "findBy").mockResolvedValue([]);
 });
 
 afterEach(() => {
@@ -276,6 +328,21 @@ const WAYS_A_PASSWORD_CHANGES: Array<[string, () => Promise<unknown>]> = [
     "OneUptime itself, as the reset link's page does",
     (): Promise<unknown> => {
       return writeAs({ isRoot: true }, { password: newPassword() });
+    },
+  ],
+  [
+    "an invited person claiming their account at sign up",
+    (): Promise<unknown> => {
+      return UserService.updateOneByIdAndFetch({
+        id: USER_ID,
+        data: {
+          password: newPassword(),
+          name: new Name("Ada Lovelace"),
+          isEmailVerified: true,
+        } as never,
+        select: { email: true, _id: true },
+        props: { isRoot: true },
+      });
     },
   ],
 ];
@@ -373,23 +440,132 @@ describe("every way a password changes ends the sign-in link", () => {
   });
 });
 
+describe("every way a password changes ends the reset link", () => {
+  test.each(WAYS_A_PASSWORD_CHANGES)(
+    "%s: the reset link ends, in the very write that sets the password",
+    async (_name: string, changePassword: () => Promise<unknown>) => {
+      await changePassword();
+
+      expect(accountOf(USER_ID)["resetPasswordToken"]).toBeNull();
+      expect(accountOf(USER_ID)["resetPasswordExpires"]).toBeNull();
+
+      /*
+       * One UPDATE, so there is no instant at which the new password is
+       * stored and the old link can still replace it - and a link sent a
+       * moment before the write is on the row for it to clear.
+       */
+      expect(writes()).toHaveLength(1);
+      expect(writes()[0]!.values).toEqual(
+        expect.objectContaining({
+          password: expect.any(String),
+          resetPasswordToken: null,
+          resetPasswordExpires: null,
+        }),
+      );
+    },
+  );
+
+  test.each(WAYS_A_PASSWORD_CHANGES)(
+    "%s: the reset link no longer finds the account",
+    async (_name: string, changePassword: () => Promise<unknown>) => {
+      expect((await accountTheResetLinkFinds())?.id?.toString()).toBe(
+        USER_ID.toString(),
+      );
+
+      await changePassword();
+
+      expect(await accountTheResetLinkFinds()).toBeNull();
+    },
+  );
+
+  test("the owner's new password survives: the holder of the link has nothing left to replace it with", async () => {
+    await writeAs({ userId: USER_ID }, { password: newPassword() });
+
+    const passwordTheOwnerSet: unknown = accountOf(USER_ID)["password"];
+
+    expect(await accountTheResetLinkFinds()).toBeNull();
+    expect(accountOf(USER_ID)["password"]).toBe(passwordTheOwnerSet);
+    expect(passwordTheOwnerSet).not.toBe("the old password's hash");
+  });
+
+  test("a write that reaches several accounts ends the reset link of each, and of no other", async () => {
+    await UserService.updateBy({
+      query: { isEmailVerified: true },
+      data: { password: newPassword() } as never,
+      limit: 10,
+      skip: 0,
+      props: { isRoot: true },
+    });
+
+    expect(isResetLinkLive(USER_ID)).toBe(false);
+    expect(isResetLinkLive(OTHER_USER_ID)).toBe(false);
+    expect(isResetLinkLive(UNREACHED_USER_ID)).toBe(true);
+  });
+
+  test("an account with no reset link: the write is the same, and nothing is held against it", async () => {
+    accountOf(USER_ID)["resetPasswordToken"] = null;
+    accountOf(USER_ID)["resetPasswordExpires"] = null;
+
+    await writeAs({ userId: USER_ID }, { password: newPassword() });
+
+    expect(accountOf(USER_ID)["password"]).not.toBe("the old password's hash");
+    expect(accountOf(USER_ID)["resetPasswordToken"]).toBeNull();
+  });
+
+  test("a reset link asked for after the new password works: only the links sent before it end", async () => {
+    await writeAs({ userId: USER_ID }, { password: newPassword() });
+
+    await UserService.sendPasswordResetLink({ userId: USER_ID });
+
+    expect(isResetLinkLive(USER_ID)).toBe(true);
+    expect(accountOf(USER_ID)["resetPasswordToken"]).not.toBe(resetLinkHash);
+    expect(accountOf(USER_ID)["password"]).not.toBe("the old password's hash");
+  });
+
+  test("the admin's Authentication page stops reporting a pending link", async () => {
+    jest
+      .spyOn(UserTotpAuthService, "countBy")
+      .mockResolvedValue(new PositiveNumber(0));
+    jest
+      .spyOn(UserWebAuthnService, "countBy")
+      .mockResolvedValue(new PositiveNumber(0));
+    jest
+      .spyOn(UserTwoFactorBackupCodeService, "countUnusedForUser")
+      .mockResolvedValue(0);
+
+    const before: UserAuthenticationStatus =
+      await UserService.getAuthenticationStatus(USER_ID);
+
+    await writeAs({ userId: USER_ID }, { password: newPassword() });
+
+    const after: UserAuthenticationStatus =
+      await UserService.getAuthenticationStatus(USER_ID);
+
+    expect(before.hasPendingPasswordResetLink).toBe(true);
+    expect(after.hasPendingPasswordResetLink).toBe(false);
+  });
+});
+
 describe("only a new password ends it", () => {
   test.each([
     ["a new name", { name: new Name("Renamed") }],
     ["a time zone", { timezone: Timezone.EuropeLondon }],
   ])(
-    "%s leaves the link working",
+    "%s leaves both links working",
     async (_name: string, data: Record<string, unknown>) => {
       await writeAs({ userId: USER_ID }, data);
 
       expect(isLinkLive(USER_ID)).toBe(true);
+      expect(isResetLinkLive(USER_ID)).toBe(true);
       expect(writes()).toHaveLength(1);
       expect(writes()[0]!.values).not.toHaveProperty("magicLinkToken");
       expect(writes()[0]!.values).not.toHaveProperty("magicLinkExpires");
+      expect(writes()[0]!.values).not.toHaveProperty("resetPasswordToken");
+      expect(writes()[0]!.values).not.toHaveProperty("resetPasswordExpires");
     },
   );
 
-  test("a password write the database fails leaves the link with the old password", async () => {
+  test("a password write the database fails leaves both links with the old password", async () => {
     repositoryUpdate.mockImplementation(async (): Promise<never> => {
       throw new Error("connection lost");
     });
@@ -399,12 +575,13 @@ describe("only a new password ends it", () => {
     ).rejects.toThrow("connection lost");
 
     expect(isLinkLive(USER_ID)).toBe(true);
+    expect(isResetLinkLive(USER_ID)).toBe(true);
     expect(accountOf(USER_ID)["password"]).toBe("the old password's hash");
     expect(order).toEqual([]);
   });
 });
 
-describe("the link's columns stay OneUptime's to write", () => {
+describe("the links' columns stay OneUptime's to write", () => {
   test.each([
     [
       "store a link of their choosing",
@@ -416,6 +593,16 @@ describe("the link's columns stay OneUptime's to write", () => {
       "magicLinkExpires",
       { magicLinkExpires: new Date(2031, 0, 1) },
     ],
+    [
+      "store a reset link of their choosing",
+      "resetPasswordToken",
+      { resetPasswordToken: "chosen by them" },
+    ],
+    [
+      "keep a reset link alive for longer",
+      "resetPasswordExpires",
+      { resetPasswordExpires: new Date(2031, 0, 1) },
+    ],
   ])(
     "the owner cannot %s by sending it with a new password: nothing is written",
     async (_name: string, column: string, sent: Record<string, unknown>) => {
@@ -425,17 +612,22 @@ describe("the link's columns stay OneUptime's to write", () => {
 
       expect(writes()).toHaveLength(0);
       expect(isLinkLive(USER_ID)).toBe(true);
+      expect(isResetLinkLive(USER_ID)).toBe(true);
       expect(accountOf(USER_ID)["password"]).toBe("the old password's hash");
       expect(order).toEqual([]);
     },
   );
 
-  test("the owner cannot end a link without a new password", async () => {
-    await expect(
-      writeAs({ userId: USER_ID }, { magicLinkToken: null }),
-    ).rejects.toThrow("User is not allowed to update on magicLinkToken column");
+  test.each(["magicLinkToken", "resetPasswordToken"])(
+    "the owner cannot end a link without a new password: %s",
+    async (column: string) => {
+      await expect(
+        writeAs({ userId: USER_ID }, { [column]: null }),
+      ).rejects.toThrow(`User is not allowed to update on ${column} column`);
 
-    expect(writes()).toHaveLength(0);
-    expect(isLinkLive(USER_ID)).toBe(true);
-  });
+      expect(writes()).toHaveLength(0);
+      expect(isLinkLive(USER_ID)).toBe(true);
+      expect(isResetLinkLive(USER_ID)).toBe(true);
+    },
+  );
 });

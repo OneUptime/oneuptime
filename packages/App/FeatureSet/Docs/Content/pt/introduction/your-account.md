@@ -73,6 +73,8 @@ Expanda **Segurança** no menu lateral de **Perfil do usuário**. Ela tem três 
 3. Clique em **Atualizar Senha**.
 :::
 
+Uma nova senha desconecta todos os dispositivos da sua conta, e qualquer link de redefinição ou de acesso já enviado deixa de funcionar.
+
 ### Adicionar uma chave de acesso
 
 :::steps

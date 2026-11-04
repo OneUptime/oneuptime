@@ -1723,6 +1723,20 @@ describe("Your Account", () => {
     expect(YOUR_ACCOUNT).toContain("It must be at least 6 characters long.");
   });
 
+  it("says what a new password ends, as the write that stores one ends it", () => {
+    const userService: string = readSource(
+      COMMON_DIR,
+      "Server/Services/UserService.ts",
+    );
+
+    expect(userService).toContain("updateBy.data.resetPasswordToken = null!;");
+    expect(userService).toContain("updateBy.data.magicLinkToken = null!;");
+    expect(userService).toContain('reason: "Password changed",');
+    expect(YOUR_ACCOUNT).toContain(
+      "A new password signs every device out of your account, and any password reset link or sign-in link already sent stops working.",
+    );
+  });
+
   it("adds a passkey and signs in with one, as the profile and the sign-in page name them", () => {
     const credentials: string = dashboard(
       "Components/TwoFactorAuth/WebAuthnCredentials.tsx",

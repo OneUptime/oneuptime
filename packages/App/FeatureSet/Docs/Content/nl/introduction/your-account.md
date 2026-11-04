@@ -73,6 +73,8 @@ Klap **Beveiliging** open in het zijmenu van **Gebruikersprofiel**. De sectie he
 3. Klik op **Wachtwoord bijwerken**.
 :::
 
+Een nieuw wachtwoord meldt elk apparaat af bij uw account, en elke al verzonden resetlink of inloglink werkt niet meer.
+
 ### Een passkey toevoegen
 
 :::steps

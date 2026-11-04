@@ -73,6 +73,8 @@ Dépliez **Sécurité** dans le menu latéral de **Profil utilisateur**. La sect
 3. Cliquez sur **Mettre à jour le mot de passe**.
 :::
 
+Un nouveau mot de passe déconnecte tous les appareils de votre compte, et tout lien de réinitialisation ou de connexion déjà envoyé cesse de fonctionner.
+
 ### Ajouter une clé d'accès
 
 :::steps
