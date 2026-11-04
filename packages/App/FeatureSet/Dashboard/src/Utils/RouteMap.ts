@@ -354,7 +354,20 @@ export const OpenStackRoutePath: Dictionary<string> = {
   [PageMap.OPENSTACK_CLOUD_VIEW_STORAGE_POOL_DETAIL]: `${RouteParams.ModelID}/storage-pools/${RouteParams.SubModelID}`,
   [PageMap.OPENSTACK_CLOUD_VIEW_IMAGES]: `${RouteParams.ModelID}/images`,
   [PageMap.OPENSTACK_CLOUD_VIEW_FLAVORS]: `${RouteParams.ModelID}/flavors`,
+  [PageMap.OPENSTACK_CLOUD_VIEW_FLAVOR_DETAIL]: `${RouteParams.ModelID}/flavors/${RouteParams.SubModelID}`,
+  [PageMap.OPENSTACK_CLOUD_VIEW_AVAILABILITY_ZONES]: `${RouteParams.ModelID}/availability-zones`,
+  [PageMap.OPENSTACK_CLOUD_VIEW_AVAILABILITY_ZONE_DETAIL]: `${RouteParams.ModelID}/availability-zones/${RouteParams.SubModelID}`,
+  [PageMap.OPENSTACK_CLOUD_VIEW_AGGREGATES]: `${RouteParams.ModelID}/aggregates`,
+  [PageMap.OPENSTACK_CLOUD_VIEW_AGGREGATE_DETAIL]: `${RouteParams.ModelID}/aggregates/${RouteParams.SubModelID}`,
+  [PageMap.OPENSTACK_CLOUD_VIEW_SUBNETS]: `${RouteParams.ModelID}/subnets`,
+  [PageMap.OPENSTACK_CLOUD_VIEW_SUBNET_DETAIL]: `${RouteParams.ModelID}/subnets/${RouteParams.SubModelID}`,
+  [PageMap.OPENSTACK_CLOUD_VIEW_FLOATING_IP_DETAIL]: `${RouteParams.ModelID}/floating-ips/${RouteParams.SubModelID}`,
+  [PageMap.OPENSTACK_CLOUD_VIEW_NETWORK_AGENTS]: `${RouteParams.ModelID}/network-agents`,
+  [PageMap.OPENSTACK_CLOUD_VIEW_NETWORK_AGENT_DETAIL]: `${RouteParams.ModelID}/network-agents/${RouteParams.SubModelID}`,
+  [PageMap.OPENSTACK_CLOUD_VIEW_SNAPSHOTS]: `${RouteParams.ModelID}/snapshots`,
+  [PageMap.OPENSTACK_CLOUD_VIEW_IMAGE_DETAIL]: `${RouteParams.ModelID}/images/${RouteParams.SubModelID}`,
   [PageMap.OPENSTACK_CLOUD_VIEW_PROJECTS]: `${RouteParams.ModelID}/projects`,
+  [PageMap.OPENSTACK_CLOUD_VIEW_DOMAINS]: `${RouteParams.ModelID}/domains`,
   [PageMap.OPENSTACK_CLOUD_VIEW_PROJECT_DETAIL]: `${RouteParams.ModelID}/projects/${RouteParams.SubModelID}`,
   [PageMap.OPENSTACK_CLOUD_VIEW_INSIGHTS]: `${RouteParams.ModelID}/insights`,
   [PageMap.OPENSTACK_CLOUD_VIEW_RECOMMENDATIONS]: `${RouteParams.ModelID}/recommendations`,
@@ -4661,6 +4674,84 @@ const RouteMap: Dictionary<Route> = {
   [PageMap.OPENSTACK_CLOUD_VIEW_FLAVORS]: new Route(
     `/dashboard/${RouteParams.ProjectID}/openstack/${
       OpenStackRoutePath[PageMap.OPENSTACK_CLOUD_VIEW_FLAVORS]
+    }`,
+  ),
+
+  [PageMap.OPENSTACK_CLOUD_VIEW_FLAVOR_DETAIL]: new Route(
+    `/dashboard/${RouteParams.ProjectID}/openstack/${
+      OpenStackRoutePath[PageMap.OPENSTACK_CLOUD_VIEW_FLAVOR_DETAIL]
+    }`,
+  ),
+
+  [PageMap.OPENSTACK_CLOUD_VIEW_AVAILABILITY_ZONES]: new Route(
+    `/dashboard/${RouteParams.ProjectID}/openstack/${
+      OpenStackRoutePath[PageMap.OPENSTACK_CLOUD_VIEW_AVAILABILITY_ZONES]
+    }`,
+  ),
+
+  [PageMap.OPENSTACK_CLOUD_VIEW_AVAILABILITY_ZONE_DETAIL]: new Route(
+    `/dashboard/${RouteParams.ProjectID}/openstack/${
+      OpenStackRoutePath[PageMap.OPENSTACK_CLOUD_VIEW_AVAILABILITY_ZONE_DETAIL]
+    }`,
+  ),
+
+  [PageMap.OPENSTACK_CLOUD_VIEW_AGGREGATES]: new Route(
+    `/dashboard/${RouteParams.ProjectID}/openstack/${
+      OpenStackRoutePath[PageMap.OPENSTACK_CLOUD_VIEW_AGGREGATES]
+    }`,
+  ),
+
+  [PageMap.OPENSTACK_CLOUD_VIEW_AGGREGATE_DETAIL]: new Route(
+    `/dashboard/${RouteParams.ProjectID}/openstack/${
+      OpenStackRoutePath[PageMap.OPENSTACK_CLOUD_VIEW_AGGREGATE_DETAIL]
+    }`,
+  ),
+
+  [PageMap.OPENSTACK_CLOUD_VIEW_SUBNETS]: new Route(
+    `/dashboard/${RouteParams.ProjectID}/openstack/${
+      OpenStackRoutePath[PageMap.OPENSTACK_CLOUD_VIEW_SUBNETS]
+    }`,
+  ),
+
+  [PageMap.OPENSTACK_CLOUD_VIEW_SUBNET_DETAIL]: new Route(
+    `/dashboard/${RouteParams.ProjectID}/openstack/${
+      OpenStackRoutePath[PageMap.OPENSTACK_CLOUD_VIEW_SUBNET_DETAIL]
+    }`,
+  ),
+
+  [PageMap.OPENSTACK_CLOUD_VIEW_FLOATING_IP_DETAIL]: new Route(
+    `/dashboard/${RouteParams.ProjectID}/openstack/${
+      OpenStackRoutePath[PageMap.OPENSTACK_CLOUD_VIEW_FLOATING_IP_DETAIL]
+    }`,
+  ),
+
+  [PageMap.OPENSTACK_CLOUD_VIEW_NETWORK_AGENTS]: new Route(
+    `/dashboard/${RouteParams.ProjectID}/openstack/${
+      OpenStackRoutePath[PageMap.OPENSTACK_CLOUD_VIEW_NETWORK_AGENTS]
+    }`,
+  ),
+
+  [PageMap.OPENSTACK_CLOUD_VIEW_NETWORK_AGENT_DETAIL]: new Route(
+    `/dashboard/${RouteParams.ProjectID}/openstack/${
+      OpenStackRoutePath[PageMap.OPENSTACK_CLOUD_VIEW_NETWORK_AGENT_DETAIL]
+    }`,
+  ),
+
+  [PageMap.OPENSTACK_CLOUD_VIEW_SNAPSHOTS]: new Route(
+    `/dashboard/${RouteParams.ProjectID}/openstack/${
+      OpenStackRoutePath[PageMap.OPENSTACK_CLOUD_VIEW_SNAPSHOTS]
+    }`,
+  ),
+
+  [PageMap.OPENSTACK_CLOUD_VIEW_IMAGE_DETAIL]: new Route(
+    `/dashboard/${RouteParams.ProjectID}/openstack/${
+      OpenStackRoutePath[PageMap.OPENSTACK_CLOUD_VIEW_IMAGE_DETAIL]
+    }`,
+  ),
+
+  [PageMap.OPENSTACK_CLOUD_VIEW_DOMAINS]: new Route(
+    `/dashboard/${RouteParams.ProjectID}/openstack/${
+      OpenStackRoutePath[PageMap.OPENSTACK_CLOUD_VIEW_DOMAINS]
     }`,
   ),
 

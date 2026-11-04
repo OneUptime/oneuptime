@@ -28,6 +28,8 @@ import React, {
 } from "react";
 import OpenStackCloud from "Common/Models/DatabaseModels/OpenStackCloud";
 import { getDeveloperSideMenuSection } from "../../../Components/DeveloperDocs/DeveloperDocsMenuSection";
+import RecommendationsSideMenuItem from "../../../Components/Recommendations/RecommendationsSideMenuItem";
+import { MonitorRecommendationResourceType } from "Common/Types/Monitor/Recommendation/MonitorRecommendationTypes";
 import { DeveloperDocsScope } from "../../../Components/DeveloperDocs/DeveloperDocsPages";
 
 // From the inventory summary. A kind it doesn't count shows no badge.
@@ -129,6 +131,16 @@ const OpenStackCloudSideMenu: FunctionComponent<ComponentProps> = (
           }}
           icon={IconProp.Info}
         />
+        <SideMenuItem
+          link={{
+            title: "Topology",
+            to: RouteUtil.populateRouteParams(
+              RouteMap[PageMap.OPENSTACK_CLOUD_VIEW_TOPOLOGY] as Route,
+              { modelId: props.modelId },
+            ),
+          }}
+          icon={IconProp.FlowDiagram}
+        />
       </SideMenuSection>
 
       <SideMenuSection title="Control Plane">
@@ -178,6 +190,26 @@ const OpenStackCloudSideMenu: FunctionComponent<ComponentProps> = (
           }}
           icon={IconProp.SquareStack}
         />
+        <SideMenuItem
+          link={{
+            title: "Availability Zones",
+            to: RouteUtil.populateRouteParams(
+              RouteMap[PageMap.OPENSTACK_CLOUD_VIEW_AVAILABILITY_ZONES] as Route,
+              { modelId: props.modelId },
+            ),
+          }}
+          icon={IconProp.MapPin}
+        />
+        <SideMenuItem
+          link={{
+            title: "Aggregates",
+            to: RouteUtil.populateRouteParams(
+              RouteMap[PageMap.OPENSTACK_CLOUD_VIEW_AGGREGATES] as Route,
+              { modelId: props.modelId },
+            ),
+          }}
+          icon={IconProp.RectangleStack}
+        />
       </SideMenuSection>
 
       <SideMenuSection title="Network">
@@ -191,6 +223,16 @@ const OpenStackCloudSideMenu: FunctionComponent<ComponentProps> = (
           }}
           icon={IconProp.Globe}
           badge={counts.networks}
+        />
+        <SideMenuItem
+          link={{
+            title: "Subnets",
+            to: RouteUtil.populateRouteParams(
+              RouteMap[PageMap.OPENSTACK_CLOUD_VIEW_SUBNETS] as Route,
+              { modelId: props.modelId },
+            ),
+          }}
+          icon={IconProp.Layers}
         />
         <SideMenuItem
           link={{
@@ -213,6 +255,16 @@ const OpenStackCloudSideMenu: FunctionComponent<ComponentProps> = (
           }}
           icon={IconProp.MapPin}
           badge={counts.floatingIps}
+        />
+        <SideMenuItem
+          link={{
+            title: "Network Agents",
+            to: RouteUtil.populateRouteParams(
+              RouteMap[PageMap.OPENSTACK_CLOUD_VIEW_NETWORK_AGENTS] as Route,
+              { modelId: props.modelId },
+            ),
+          }}
+          icon={IconProp.Activity}
         />
       </SideMenuSection>
 
@@ -240,6 +292,16 @@ const OpenStackCloudSideMenu: FunctionComponent<ComponentProps> = (
         />
         <SideMenuItem
           link={{
+            title: "Snapshots and Backups",
+            to: RouteUtil.populateRouteParams(
+              RouteMap[PageMap.OPENSTACK_CLOUD_VIEW_SNAPSHOTS] as Route,
+              { modelId: props.modelId },
+            ),
+          }}
+          icon={IconProp.Archive}
+        />
+        <SideMenuItem
+          link={{
             title: "Images",
             to: RouteUtil.populateRouteParams(
               RouteMap[PageMap.OPENSTACK_CLOUD_VIEW_IMAGES] as Route,
@@ -261,6 +323,16 @@ const OpenStackCloudSideMenu: FunctionComponent<ComponentProps> = (
           }}
           icon={IconProp.Folder}
           badge={counts.projects}
+        />
+        <SideMenuItem
+          link={{
+            title: "Domains",
+            to: RouteUtil.populateRouteParams(
+              RouteMap[PageMap.OPENSTACK_CLOUD_VIEW_DOMAINS] as Route,
+              { modelId: props.modelId },
+            ),
+          }}
+          icon={IconProp.BuildingOffice}
         />
       </SideMenuSection>
 
@@ -284,6 +356,17 @@ const OpenStackCloudSideMenu: FunctionComponent<ComponentProps> = (
             ),
           }}
           icon={IconProp.Logs}
+        />
+        <RecommendationsSideMenuItem
+          link={{
+            title: "Recommendations",
+            to: RouteUtil.populateRouteParams(
+              RouteMap[PageMap.OPENSTACK_CLOUD_VIEW_RECOMMENDATIONS] as Route,
+              { modelId: props.modelId },
+            ),
+          }}
+          resourceType={MonitorRecommendationResourceType.OpenStack}
+          resourceId={props.modelId}
         />
       </SideMenuSection>
 

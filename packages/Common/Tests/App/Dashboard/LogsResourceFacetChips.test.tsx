@@ -89,6 +89,7 @@ const MODEL_NAME_BY_FACET_KEY: Record<string, string> = {
   kubernetesClusterId: "KubernetesCluster",
   dockerSwarmClusterId: "DockerSwarmCluster",
   proxmoxClusterId: "ProxmoxCluster",
+  openStackCloudId: "OpenStackCloud",
   vmwareVCenterId: "VMwareVCenter",
   cephClusterId: "CephCluster",
   storageArrayId: "StorageArray",

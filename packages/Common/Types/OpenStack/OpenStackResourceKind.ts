@@ -21,6 +21,8 @@ export enum OpenStackResourceKind {
   Volume = "Volume",
   StoragePool = "StoragePool",
   Snapshot = "Snapshot",
+  // Only a probe reports these: the exporter has no series for a volume backup.
+  Backup = "Backup",
   Network = "Network",
   Subnet = "Subnet",
   Router = "Router",
@@ -84,6 +86,7 @@ export const OPENSTACK_KINDS_BY_SERVICE: Record<
     OpenStackResourceKind.Volume,
     OpenStackResourceKind.StoragePool,
     OpenStackResourceKind.Snapshot,
+    OpenStackResourceKind.Backup,
   ],
   [OpenStackServiceType.Image]: [OpenStackResourceKind.Image],
 };
@@ -150,3 +153,11 @@ export const OPENSTACK_VOLUME_ERROR_STATUSES: ReadonlySet<string> = new Set([
   "error_extending",
   "error_managing",
 ]);
+
+/*
+ * Image statuses that are on the way to something else. pending_delete is left out:
+ * Glance holds an image there on purpose when delayed delete is on, so its length
+ * says nothing about whether anything is wrong.
+ */
+export const OPENSTACK_IMAGE_TRANSITIONAL_STATUSES: ReadonlySet<string> =
+  new Set(["queued", "saving", "uploading", "importing"]);

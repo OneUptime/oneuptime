@@ -91,6 +91,16 @@ jest.mock("../../../../Server/Services/ProxmoxClusterService", () => {
     },
   };
 });
+jest.mock("../../../../Server/Services/OpenStackCloudService", () => {
+  return {
+    __esModule: true,
+    default: {
+      findOneBy: (d: never) => {
+        return findOneBy(d);
+      },
+    },
+  };
+});
 jest.mock("../../../../Server/Services/VMwareVCenterService", () => {
   return {
     __esModule: true,
@@ -472,6 +482,64 @@ describe("a monitor's steps are bound in place", () => {
         monitorStepsJSON: bound,
       }),
     ).toBe(false);
+  });
+});
+
+describe("an OpenStack monitor follows its cloud", () => {
+  const CLOUD_ID: string = "66666666-6666-4666-8666-666666666666";
+
+  function openstackStep(config: Record<string, unknown>): MonitorStep {
+    const step: MonitorStep = new MonitorStep();
+    step.data!.id = STEP_ID;
+    (step.data as unknown as Record<string, unknown>)["openstackMonitor"] = {
+      resourceFilters: {},
+      metricViewConfig: { queryConfigs: [], formulaConfigs: [] },
+      ...config,
+    };
+    return step;
+  }
+
+  beforeEach(() => {
+    rows.push({
+      _id: CLOUD_ID,
+      projectId: PROJECT_ID.toString(),
+      name: "production",
+    });
+  });
+
+  test("its steps are bound to the cloud they name, case aside", async () => {
+    const written: MonitorSteps = stepsOf(
+      openstackStep({ cloudIdentifier: "PRODUCTION" }),
+    );
+
+    expect(
+      await InfrastructureResourceBinding.bindMonitorSteps({
+        projectId: PROJECT_ID,
+        monitorType: MonitorType.OpenStack,
+        monitorSteps: written,
+      }),
+    ).toBe(true);
+    expect(
+      configOf(written.data!.monitorStepsInstanceArray[0]!, "openstackMonitor"),
+    ).toMatchObject({ cloudIdentifier: "PRODUCTION", resourceId: CLOUD_ID });
+  });
+
+  test("a cloud renamed since the monitor was saved is followed by its id", async () => {
+    rows[rows.length - 1]!.name = "production-east";
+
+    const resolved: MonitorStep =
+      await InfrastructureResourceBinding.resolveForEvaluation({
+        projectId: PROJECT_ID,
+        monitorType: MonitorType.OpenStack,
+        monitorStep: openstackStep({
+          cloudIdentifier: "production",
+          resourceId: CLOUD_ID,
+        }),
+      });
+
+    expect(configOf(resolved, "openstackMonitor")["cloudIdentifier"]).toBe(
+      "production-east",
+    );
   });
 });
 

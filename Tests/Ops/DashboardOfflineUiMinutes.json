@@ -76,6 +76,7 @@
     "test-network-traffic-names-ui": 2.5,
     "test-new-version-ui": 1.9,
     "test-openshift-pages-ui": 2.8,
+    "test-openstack-pages-ui": 9.0,
     "test-owner-filters-ui": 1.0,
     "test-owners-on-create-ui": 1.3,
     "test-packet-capture-ui": 1.2,

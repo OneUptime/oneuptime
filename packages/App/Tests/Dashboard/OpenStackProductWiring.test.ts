@@ -91,17 +91,43 @@ const stripComments: SquashFunction = (source: string): string => {
 // Every PageMap key a page of this merge lives at, mounted and linked.
 const MOUNTED_VIEW_PAGES: ReadonlyArray<[string, string]> = [
   ["Index.tsx", "OPENSTACK_CLOUD_VIEW"],
+  ["Recommendations.tsx", "OPENSTACK_CLOUD_VIEW_RECOMMENDATIONS"],
   ["Services.tsx", "OPENSTACK_CLOUD_VIEW_SERVICES"],
+  ["ServiceDetail.tsx", "OPENSTACK_CLOUD_VIEW_SERVICE_DETAIL"],
   ["Hypervisors.tsx", "OPENSTACK_CLOUD_VIEW_HYPERVISORS"],
+  ["HypervisorDetail.tsx", "OPENSTACK_CLOUD_VIEW_HYPERVISOR_DETAIL"],
   ["Instances.tsx", "OPENSTACK_CLOUD_VIEW_INSTANCES"],
+  ["InstanceDetail.tsx", "OPENSTACK_CLOUD_VIEW_INSTANCE_DETAIL"],
+  ["AvailabilityZones.tsx", "OPENSTACK_CLOUD_VIEW_AVAILABILITY_ZONES"],
+  [
+    "AvailabilityZoneDetail.tsx",
+    "OPENSTACK_CLOUD_VIEW_AVAILABILITY_ZONE_DETAIL",
+  ],
+  ["Aggregates.tsx", "OPENSTACK_CLOUD_VIEW_AGGREGATES"],
+  ["AggregateDetail.tsx", "OPENSTACK_CLOUD_VIEW_AGGREGATE_DETAIL"],
   ["Flavors.tsx", "OPENSTACK_CLOUD_VIEW_FLAVORS"],
+  ["FlavorDetail.tsx", "OPENSTACK_CLOUD_VIEW_FLAVOR_DETAIL"],
   ["Networks.tsx", "OPENSTACK_CLOUD_VIEW_NETWORKS"],
+  ["NetworkDetail.tsx", "OPENSTACK_CLOUD_VIEW_NETWORK_DETAIL"],
+  ["Subnets.tsx", "OPENSTACK_CLOUD_VIEW_SUBNETS"],
+  ["SubnetDetail.tsx", "OPENSTACK_CLOUD_VIEW_SUBNET_DETAIL"],
   ["Routers.tsx", "OPENSTACK_CLOUD_VIEW_ROUTERS"],
+  ["RouterDetail.tsx", "OPENSTACK_CLOUD_VIEW_ROUTER_DETAIL"],
   ["FloatingIps.tsx", "OPENSTACK_CLOUD_VIEW_FLOATING_IPS"],
+  ["FloatingIpDetail.tsx", "OPENSTACK_CLOUD_VIEW_FLOATING_IP_DETAIL"],
+  ["NetworkAgents.tsx", "OPENSTACK_CLOUD_VIEW_NETWORK_AGENTS"],
+  ["NetworkAgentDetail.tsx", "OPENSTACK_CLOUD_VIEW_NETWORK_AGENT_DETAIL"],
   ["Volumes.tsx", "OPENSTACK_CLOUD_VIEW_VOLUMES"],
+  ["VolumeDetail.tsx", "OPENSTACK_CLOUD_VIEW_VOLUME_DETAIL"],
+  ["Snapshots.tsx", "OPENSTACK_CLOUD_VIEW_SNAPSHOTS"],
   ["StoragePools.tsx", "OPENSTACK_CLOUD_VIEW_STORAGE_POOLS"],
+  ["StoragePoolDetail.tsx", "OPENSTACK_CLOUD_VIEW_STORAGE_POOL_DETAIL"],
   ["Images.tsx", "OPENSTACK_CLOUD_VIEW_IMAGES"],
+  ["ImageDetail.tsx", "OPENSTACK_CLOUD_VIEW_IMAGE_DETAIL"],
   ["Projects.tsx", "OPENSTACK_CLOUD_VIEW_PROJECTS"],
+  ["ProjectDetail.tsx", "OPENSTACK_CLOUD_VIEW_PROJECT_DETAIL"],
+  ["Domains.tsx", "OPENSTACK_CLOUD_VIEW_DOMAINS"],
+  ["Topology.tsx", "OPENSTACK_CLOUD_VIEW_TOPOLOGY"],
   ["Metrics.tsx", "OPENSTACK_CLOUD_VIEW_METRICS"],
   ["Logs.tsx", "OPENSTACK_CLOUD_VIEW_LOGS"],
   ["Incidents.tsx", "OPENSTACK_CLOUD_VIEW_INCIDENTS"],
@@ -126,29 +152,10 @@ const PRODUCT_PAGES: ReadonlyArray<[Array<string>, string]> = [
 
 // Pages later issues build. Their keys stay; nothing mounts or links them yet.
 const LATER_PAGE_KEYS: ReadonlyArray<string> = [
-  "OPENSTACK_CLOUD_VIEW_TOPOLOGY",
   "OPENSTACK_CLOUD_VIEW_INSIGHTS",
-  "OPENSTACK_CLOUD_VIEW_RECOMMENDATIONS",
   "OPENSTACK_CLOUD_VIEW_AI_INSIGHTS",
   "OPENSTACK_CLOUD_VIEW_AI_LOGS",
   "OPENSTACK_CLOUD_VIEW_AI_AGENT",
-  "OPENSTACK_CLOUD_VIEW_SERVICE_DETAIL",
-  "OPENSTACK_CLOUD_VIEW_HYPERVISOR_DETAIL",
-  "OPENSTACK_CLOUD_VIEW_INSTANCE_DETAIL",
-  "OPENSTACK_CLOUD_VIEW_NETWORK_DETAIL",
-  "OPENSTACK_CLOUD_VIEW_ROUTER_DETAIL",
-  "OPENSTACK_CLOUD_VIEW_VOLUME_DETAIL",
-  "OPENSTACK_CLOUD_VIEW_STORAGE_POOL_DETAIL",
-  "OPENSTACK_CLOUD_VIEW_PROJECT_DETAIL",
-];
-
-/*
- * Written and not mounted: #5729 adds this page, and its route and menu item come
- * after. Wiring it moves it to MOUNTED_VIEW_PAGES, its key out of LATER_PAGE_KEYS,
- * and drops the two Recommendations checks below.
- */
-const VIEW_PAGES_WAITING_FOR_A_ROUTE: ReadonlyArray<string> = [
-  "Recommendations.tsx",
 ];
 
 const VIEW_PAGE_KEYS: ReadonlyArray<string> = MOUNTED_VIEW_PAGES.map(
@@ -262,6 +269,11 @@ describe("PageMap and RouteMap declare the product", () => {
     ["OPENSTACK_CLOUD_VIEW_STORAGE_POOLS", "storage-pools"],
     ["OPENSTACK_CLOUD_VIEW_IMAGES", "images"],
     ["OPENSTACK_CLOUD_VIEW_PROJECTS", "projects"],
+    ["OPENSTACK_CLOUD_VIEW_AVAILABILITY_ZONES", "availability-zones"],
+    ["OPENSTACK_CLOUD_VIEW_AGGREGATES", "aggregates"],
+    ["OPENSTACK_CLOUD_VIEW_SUBNETS", "subnets"],
+    ["OPENSTACK_CLOUD_VIEW_NETWORK_AGENTS", "network-agents"],
+    ["OPENSTACK_CLOUD_VIEW_SNAPSHOTS", "snapshots"],
   ])("%s lives at OpenStack's own word, %s", (key: string, segment: string) => {
     expect(dense(routeMap)).toContain(
       `[PageMap.${key}]:\`\${RouteParams.ModelID}/${segment}\``,
@@ -312,9 +324,7 @@ describe("every page of this merge is mounted, and nothing else is", () => {
 
   test("no page of a later issue, or of Proxmox's, is imported", () => {
     for (const page of [
-      "Topology",
       "Insights",
-      "Recommendations",
       "AI/",
       "Nodes",
       "NodeDetail",
@@ -341,8 +351,7 @@ describe("every page of this merge is mounted, and nothing else is", () => {
         return (
           file.endsWith(".tsx") &&
           file !== "Layout.tsx" &&
-          file !== "SideMenu.tsx" &&
-          !VIEW_PAGES_WAITING_FOR_A_ROUTE.includes(file)
+          file !== "SideMenu.tsx"
         );
       })
       .sort();
@@ -403,17 +412,6 @@ describe("the side menus have no dead links", () => {
     },
   );
 
-  test("no Recommendations menu item comes ahead of its route", () => {
-    for (const file of EVERY_ROUTED_FILE) {
-      const source: string = fs.readFileSync(
-        path.join(DASHBOARD_SRC, file),
-        "utf8",
-      );
-      expect(source).not.toContain("RecommendationsSideMenuItem");
-      expect(source).not.toContain("MonitorRecommendationResourceType");
-    }
-  });
-
   test("the product menu links to the list, archive, docs and rules", () => {
     const sideMenu: string = dense(
       readSource("Pages", "OpenStack", "SideMenu.tsx"),
@@ -453,7 +451,11 @@ describe("the side menus have no dead links", () => {
     );
 
     for (const key of VIEW_PAGE_KEYS) {
-      if (key === "OPENSTACK_CLOUD_VIEW_DOCUMENTATION") {
+      // The guide is linked from the Overview, and a part's page from its row.
+      if (
+        key === "OPENSTACK_CLOUD_VIEW_DOCUMENTATION" ||
+        key.endsWith("_DETAIL")
+      ) {
         continue;
       }
       expect(sideMenu).toContain(`RouteMap[PageMap.${key}]asRoute`);
@@ -477,7 +479,8 @@ describe("the side menus have no dead links", () => {
     expect(reader).toContain(
       '.addRoute("/openstack-resource/inventory-summary/")',
     );
-    expect(layout).toContain("fetchOpenStackInventorySummary(modelId)");
+    // Of the region being read, so a badge never says what a page beneath it doesn't.
+    expect(layout).toContain("fetchOpenStackInventorySummary(modelId, region)");
     for (const [summaryKey, countKey] of [
       ["serviceCount", "services"],
       ["hypervisorCount", "hypervisors"],
@@ -728,20 +731,8 @@ describe("the inventory lists read on the server", () => {
     expect(code).not.toContain("LIMIT_PER_PROJECT");
   });
 
-  test.each([
-    "Services.tsx",
-    "Hypervisors.tsx",
-    "Instances.tsx",
-    "Flavors.tsx",
-    "Networks.tsx",
-    "Routers.tsx",
-    "FloatingIps.tsx",
-    "Volumes.tsx",
-    "StoragePools.tsx",
-    "Images.tsx",
-    "Projects.tsx",
-  ])("%s lists through it, and says why it can be empty", (file: string) => {
-    const page: string = readSource("Pages", "OpenStack", "View", file);
+  test("Projects.tsx lists through it, and says why it can be empty", () => {
+    const page: string = readSource("Pages", "OpenStack", "View", "Projects.tsx");
 
     expect(page).toContain("<OpenStackResourceList");
     expect(page).toContain("emptyTitle=");
@@ -750,12 +741,72 @@ describe("the inventory lists read on the server", () => {
     expect(page).not.toContain("LIMIT_PER_PROJECT");
   });
 
+  /*
+   * A kind's list is one component, because a list on a part's page has to read the same
+   * as the page of its own: the instances on a hypervisor are the Instances list, narrowed.
+   */
+  test.each([
+    ["Hypervisors.tsx", "OpenStackHypervisorList"],
+    ["Instances.tsx", "OpenStackInstanceList"],
+    ["Flavors.tsx", "OpenStackFlavorList"],
+    ["Networks.tsx", "OpenStackNetworkList"],
+    ["Subnets.tsx", "OpenStackSubnetList"],
+    ["Routers.tsx", "OpenStackRouterList"],
+    ["FloatingIps.tsx", "OpenStackFloatingIpList"],
+    ["NetworkAgents.tsx", "OpenStackNetworkAgentList"],
+    ["Volumes.tsx", "OpenStackVolumeList"],
+    ["StoragePools.tsx", "OpenStackStoragePoolList"],
+    ["Images.tsx", "OpenStackImageList"],
+    ["Snapshots.tsx", "OpenStackSnapshotList"],
+    ["Snapshots.tsx", "OpenStackBackupList"],
+  ])(
+    "%s lists through %s, which reads on the server and says why it can be empty",
+    (file: string, listName: string) => {
+      const page: string = readSource("Pages", "OpenStack", "View", file);
+      expect(page).toContain(`<${listName}`);
+      expect(page).not.toContain("ResourceTable");
+      expect(page).not.toContain("LIMIT_PER_PROJECT");
+
+      const lists: string = readSource(
+        "Components",
+        "OpenStack",
+        "OpenStackLists.tsx",
+      );
+      const start: number = lists.indexOf(`export const ${listName}:`);
+      expect(start).toBeGreaterThan(-1);
+      const next: number = lists.indexOf("export const ", start + 1);
+      const own: string = lists.slice(start, next === -1 ? undefined : next);
+      expect(own).toContain("<OpenStackResourceList");
+      expect(own).toContain("emptyTitle=");
+      expect(own).toContain("emptyDescription=");
+    },
+  );
+
+  test("the Services page reads every service and worker at once, because it groups them", () => {
+    const page: string = readSource("Pages", "OpenStack", "View", "Services.tsx");
+    const reads: string = dense(
+      readSource("Pages", "OpenStack", "Utils", "OpenStackOverviewReads.ts"),
+    );
+
+    /*
+     * What needs someone first can't be put first in a list holding a page of it. There
+     * are few of these even on a large cloud, and one more than a read holds says so.
+     */
+    expect(page).toContain("fetchOpenStackServiceRows");
+    expect(page).toContain("getOpenStackServiceGroups");
+    expect(page).toContain('testId="openstack-services-capped"');
+    expect(reads).toContain("kind:kind");
+    expect(reads).toContain("limit:LIMIT_PER_PROJECT");
+    expect(reads).toContain("read(OpenStackResourceKind.Api)");
+    expect(reads).toContain("read(OpenStackResourceKind.Service)");
+    expect(reads).not.toContain("read(OpenStackResourceKind.Instance)");
+  });
+
   test("the Overview and the lists say allocated, never CPU or usage", () => {
     const hypervisors: string = readSource(
-      "Pages",
+      "Components",
       "OpenStack",
-      "View",
-      "Hypervisors.tsx",
+      "OpenStackLists.tsx",
     );
     const overview: string = readSource(
       "Pages",
@@ -784,21 +835,68 @@ describe("the inventory lists read on the server", () => {
     }
   });
 
-  test("the Overview shows no health verdict, and leaves a seam for it", () => {
-    const overview: string = readSource(
-      "Pages",
-      "OpenStack",
-      "View",
-      "Index.tsx",
+  test("the Overview's verdict is the rules', on the card every product uses", () => {
+    const code: string = stripComments(
+      readSource("Pages", "OpenStack", "View", "Index.tsx"),
     );
-    const code: string = stripComments(overview);
 
-    expect(code).not.toContain("Healthy");
-    expect(code).not.toContain("getResourceHealthLabel");
-    // The two places #5723 fills in, named where they go.
-    expect(overview).toContain("#5723: the health pill goes here");
-    expect(overview).toContain("#5723: Needs attention goes here");
+    expect(code).toContain("getOpenStackAttentionItems({");
+    expect(code).toContain("getOpenStackHealth(items)");
+    expect(code).toContain("<NeedsAttentionCard");
+    // Nothing on the page judges for itself: a bar's colour is the same rules' too.
+    expect(code).toContain("hasOpenStackHostPastAllocationLine(rows, kind)");
+    expect(code).toContain("getOpenStackPoolTone(fullestPoolPercent)");
   });
+
+  test("the Overview asks nothing current of a cloud that has stopped reporting", () => {
+    const code: string = dense(
+      stripComments(readSource("Pages", "OpenStack", "View", "Index.tsx")),
+    );
+
+    expect(code).toContain(
+      "constloadReads:()=>void=():void=>{if(!isConnectedRef.current){",
+    );
+  });
+
+  test("a read of a region can't land after the reader has left it", () => {
+    const code: string = dense(
+      stripComments(readSource("Pages", "OpenStack", "View", "Index.tsx")),
+    );
+
+    expect(code).toContain("sequence!==summarySequence.current");
+    expect(code).toContain("sequence===consumersSequence.current");
+    expect(code).toContain("sequence!==healthSequence.current");
+  });
+
+  test.each([
+    ["region-summaries", "OpenStackOverviewReads.ts"],
+    ["top-consumers", "OpenStackOverviewReads.ts"],
+    ["needs-attention", "OpenStackOverviewReads.ts"],
+    ["inventory-summary", "OpenStackResourceUtils.ts"],
+  ])(
+    "the Overview's read of %s is one the server answers, for a region when it's given one",
+    (route: string, reader: string) => {
+      const api: string = fs.readFileSync(
+        path.join(
+          REPO_ROOT,
+          "packages",
+          "Common",
+          "Server",
+          "API",
+          "OpenStackResourceAPI.ts",
+        ),
+        "utf8",
+      );
+
+      expect(readSource("Pages", "OpenStack", "Utils", reader)).toContain(
+        `/openstack-resource/${route}/`,
+      );
+      // Registered by name, or at the head of a path of its own.
+      expect(stripComments(api)).toMatch(
+        new RegExp(`"${route}"|/${route}/:cloudId`),
+      );
+    },
+  );
 
   test("a cloud with nothing reported shows the guide, not zeros", () => {
     const overview: string = squash(

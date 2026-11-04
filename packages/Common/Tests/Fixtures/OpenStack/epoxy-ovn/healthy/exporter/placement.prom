@@ -10,15 +10,15 @@ openstack_placement_resource_generation{hostname="compute-01.example.internal",r
 openstack_placement_resource_generation{hostname="compute-01.example.internal",resourcetype="VCPU"} 5
 # HELP openstack_placement_resource_provider_allocations resource_provider_allocations
 # TYPE openstack_placement_resource_provider_allocations gauge
-openstack_placement_resource_provider_allocations{hostname="compute-01.example.internal",resourcetype="DISK_GB",uuid="00491c38-329a-4d45-8faf-f5b9be375a5b"} 1
-openstack_placement_resource_provider_allocations{hostname="compute-01.example.internal",resourcetype="DISK_GB",uuid="09d5e149-fd80-490b-bd6c-304995bd7119"} 1
-openstack_placement_resource_provider_allocations{hostname="compute-01.example.internal",resourcetype="DISK_GB",uuid="a89bdbb3-1516-4076-9bd9-e4feca0bf28d"} 1
-openstack_placement_resource_provider_allocations{hostname="compute-01.example.internal",resourcetype="MEMORY_MB",uuid="00491c38-329a-4d45-8faf-f5b9be375a5b"} 128
-openstack_placement_resource_provider_allocations{hostname="compute-01.example.internal",resourcetype="MEMORY_MB",uuid="09d5e149-fd80-490b-bd6c-304995bd7119"} 128
-openstack_placement_resource_provider_allocations{hostname="compute-01.example.internal",resourcetype="MEMORY_MB",uuid="a89bdbb3-1516-4076-9bd9-e4feca0bf28d"} 128
-openstack_placement_resource_provider_allocations{hostname="compute-01.example.internal",resourcetype="VCPU",uuid="00491c38-329a-4d45-8faf-f5b9be375a5b"} 1
-openstack_placement_resource_provider_allocations{hostname="compute-01.example.internal",resourcetype="VCPU",uuid="09d5e149-fd80-490b-bd6c-304995bd7119"} 1
-openstack_placement_resource_provider_allocations{hostname="compute-01.example.internal",resourcetype="VCPU",uuid="a89bdbb3-1516-4076-9bd9-e4feca0bf28d"} 1
+openstack_placement_resource_provider_allocations{hostname="compute-01.example.internal",resourcetype="DISK_GB",uuid="42d4ae5a-9eee-4f49-a147-a385ecd09aa4"} 1
+openstack_placement_resource_provider_allocations{hostname="compute-01.example.internal",resourcetype="DISK_GB",uuid="8a8456c7-f991-4b0b-a755-c6a8a1ef91d2"} 1
+openstack_placement_resource_provider_allocations{hostname="compute-01.example.internal",resourcetype="DISK_GB",uuid="b48d1e47-c925-41bd-9b87-627af9a4ce59"} 1
+openstack_placement_resource_provider_allocations{hostname="compute-01.example.internal",resourcetype="MEMORY_MB",uuid="42d4ae5a-9eee-4f49-a147-a385ecd09aa4"} 128
+openstack_placement_resource_provider_allocations{hostname="compute-01.example.internal",resourcetype="MEMORY_MB",uuid="8a8456c7-f991-4b0b-a755-c6a8a1ef91d2"} 128
+openstack_placement_resource_provider_allocations{hostname="compute-01.example.internal",resourcetype="MEMORY_MB",uuid="b48d1e47-c925-41bd-9b87-627af9a4ce59"} 128
+openstack_placement_resource_provider_allocations{hostname="compute-01.example.internal",resourcetype="VCPU",uuid="42d4ae5a-9eee-4f49-a147-a385ecd09aa4"} 1
+openstack_placement_resource_provider_allocations{hostname="compute-01.example.internal",resourcetype="VCPU",uuid="8a8456c7-f991-4b0b-a755-c6a8a1ef91d2"} 1
+openstack_placement_resource_provider_allocations{hostname="compute-01.example.internal",resourcetype="VCPU",uuid="b48d1e47-c925-41bd-9b87-627af9a4ce59"} 1
 # HELP openstack_placement_resource_reserved resource_reserved
 # TYPE openstack_placement_resource_reserved gauge
 openstack_placement_resource_reserved{hostname="compute-01.example.internal",resourcetype="DISK_GB"} 0
@@ -27,7 +27,7 @@ openstack_placement_resource_reserved{hostname="compute-01.example.internal",res
 # HELP openstack_placement_resource_total resource_total
 # TYPE openstack_placement_resource_total gauge
 openstack_placement_resource_total{hostname="compute-01.example.internal",resourcetype="DISK_GB"} 144
-openstack_placement_resource_total{hostname="compute-01.example.internal",resourcetype="MEMORY_MB"} 15983
+openstack_placement_resource_total{hostname="compute-01.example.internal",resourcetype="MEMORY_MB"} 15982
 openstack_placement_resource_total{hostname="compute-01.example.internal",resourcetype="VCPU"} 4
 # HELP openstack_placement_resource_usage resource_usage
 # TYPE openstack_placement_resource_usage gauge

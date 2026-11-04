@@ -10,6 +10,11 @@ import { JSONObject } from "../../../Types/JSON";
 import ObjectID from "../../../Types/ObjectID";
 import { OpenStackBlastRadius } from "../../../Types/OpenStack/OpenStackBlastRadius";
 import {
+  OpenStackRegionSummary,
+  OpenStackTopConsumer,
+  OpenStackTopConsumers,
+} from "../../../Types/OpenStack/OpenStackOverview";
+import {
   OpenStackResourceKind,
   OpenStackServiceType,
 } from "../../../Types/OpenStack/OpenStackResourceKind";
@@ -48,6 +53,8 @@ import { DataSource } from "typeorm";
  *   - getInventorySummary counts from the rows: a service someone disabled is not
  *     down, capacity comes only from hypervisors and pools, and another cloud's or
  *     project's rows never count;
+ *   - a region reads only itself, with what is Keystone's: its summary, what needs
+ *     attention in it however much is wrong elsewhere, and who holds the most of it;
  *   - deleteStaleForCloud removes only what its own service's good scrape left
  *     behind: a failing Nova keeps its instances, a good Nova removes what it no
  *     longer reports, each region answers for itself, and each family of workers
@@ -680,6 +687,465 @@ describePostgres("OpenStackResourceService on Postgres", () => {
     });
   });
 
+  describe("a cloud's regions", () => {
+    const worker = (
+      regionName: string,
+      binary: string,
+      overrides: Partial<ParsedOpenStackResource> = {},
+    ): ParsedOpenStackResource => {
+      return resource({
+        kind: OpenStackResourceKind.Service,
+        externalId: `${regionName}/compute/c-1/${binary}`,
+        name: binary,
+        regionName,
+        status: "up",
+        adminState: "enabled",
+        facts: { family: "compute", host: "c-1" },
+        ...overrides,
+      });
+    };
+
+    const hypervisor = (
+      regionName: string,
+      host: string,
+      overrides: Partial<ParsedOpenStackResource> = {},
+    ): ParsedOpenStackResource => {
+      return resource({
+        kind: OpenStackResourceKind.Hypervisor,
+        externalId: `${regionName}/${host}`,
+        name: host,
+        regionName,
+        status: "up",
+        adminState: "enabled",
+        vcpuCapacity: 100,
+        vcpuAllocated: 40,
+        memoryCapacityBytes: 2000,
+        memoryAllocatedBytes: 500,
+        ...overrides,
+      });
+    };
+
+    const pool = (
+      regionName: string,
+      capacity: number,
+      used: number,
+    ): ParsedOpenStackResource => {
+      return resource({
+        kind: OpenStackResourceKind.StoragePool,
+        externalId: `${regionName}/rbd`,
+        name: "rbd",
+        regionName,
+        diskCapacityBytes: capacity,
+        diskAllocatedBytes: used,
+      });
+    };
+
+    const instance = (
+      externalId: string,
+      regionName: string,
+      projectId: string | null = null,
+      status: string = "ACTIVE",
+    ): ParsedOpenStackResource => {
+      return resource({
+        kind: OpenStackResourceKind.Instance,
+        externalId,
+        name: externalId,
+        regionName,
+        status,
+        openStackProjectId: projectId,
+      });
+    };
+
+    const volume = (
+      externalId: string,
+      regionName: string,
+      projectId: string,
+      size: number,
+    ): ParsedOpenStackResource => {
+      return resource({
+        kind: OpenStackResourceKind.Volume,
+        externalId,
+        regionName,
+        status: "available",
+        openStackProjectId: projectId,
+        diskCapacityBytes: size,
+      });
+    };
+
+    // Keystone's: a project and a domain belong to the cloud, and to no region of it.
+    const keystone = (
+      kind: OpenStackResourceKind,
+      externalId: string,
+      name: string,
+    ): ParsedOpenStackResource => {
+      return resource({ kind, externalId, name, regionName: null });
+    };
+
+    const TWO_REGIONS = (): Array<ParsedOpenStackResource> => {
+      return [
+        api(OpenStackServiceType.Compute),
+        api(OpenStackServiceType.Volume, { status: "down", facts: {} }),
+        api(OpenStackServiceType.Compute, { regionName: "RegionTwo" }),
+        worker("RegionOne", "nova-compute"),
+        worker("RegionOne", "nova-scheduler", { status: "down" }),
+        // Someone disabled it: planned work, and not down in either service's word.
+        worker("RegionOne", "nova-conductor", {
+          status: "down",
+          adminState: "disabled",
+        }),
+        worker("RegionOne", "neutron-l3-agent", {
+          status: "down",
+          adminState: "down",
+        }),
+        worker("RegionTwo", "nova-compute"),
+        hypervisor("RegionOne", "c-1"),
+        // Lost: its numbers are last known, and it is no capacity anyone can use.
+        hypervisor("RegionOne", "c-2", {
+          status: "down",
+          vcpuCapacity: 1000,
+          vcpuAllocated: 990,
+        }),
+        hypervisor("RegionTwo", "c-1", {
+          vcpuCapacity: 50,
+          vcpuAllocated: 10,
+          memoryCapacityBytes: 1000,
+          memoryAllocatedBytes: 100,
+        }),
+        pool("RegionOne", 10000, 2500),
+        pool("RegionTwo", 1000, 900),
+        instance("i-1", "RegionOne"),
+        instance("i-2", "RegionOne"),
+        instance("i-3", "RegionTwo"),
+        keystone(OpenStackResourceKind.Project, "p-1", "payments"),
+        keystone(OpenStackResourceKind.Domain, "d-1", "Default"),
+      ];
+    };
+
+    describe("getInventorySummary of one", () => {
+      const summaryOf = async (
+        regionName: string,
+      ): Promise<OpenStackInventorySummary> => {
+        return await OpenStackResourceService.getInventorySummary({
+          projectId: PROJECT_ID,
+          openStackCloudId: CLOUD_ID,
+          regionName,
+        });
+      };
+
+      test("counts its own rows, and none of another's", async () => {
+        await write(TWO_REGIONS());
+        const two: OpenStackInventorySummary = await summaryOf("RegionTwo");
+
+        expect(two.regionCount).toBe(1);
+        expect(two.hypervisorCount).toBe(1);
+        expect(two.instanceCount).toBe(1);
+        expect(two.serviceCount).toBe(1);
+        expect(two.downServiceCount).toBe(0);
+        expect(two.vcpuCapacity).toBe(50);
+        expect(two.vcpuAllocated).toBe(10);
+        expect(two.memoryCapacityBytes).toBe(1000);
+        expect(two.storageCapacityBytes).toBe(1000);
+        expect(two.storageUsedBytes).toBe(900);
+      });
+
+      test("keeps what is Keystone's, which belongs to all of them", async () => {
+        await write(TWO_REGIONS());
+        const two: OpenStackInventorySummary = await summaryOf("RegionTwo");
+        const one: OpenStackInventorySummary = await summaryOf("RegionOne");
+
+        expect(two.projectCount).toBe(1);
+        expect(one.projectCount).toBe(1);
+      });
+
+      test("the regions together are the cloud", async () => {
+        await write(TWO_REGIONS());
+        const whole: OpenStackInventorySummary = await summary();
+        const one: OpenStackInventorySummary = await summaryOf("RegionOne");
+        const two: OpenStackInventorySummary = await summaryOf("RegionTwo");
+
+        expect(whole.regionCount).toBe(2);
+        expect(one.hypervisorCount + two.hypervisorCount).toBe(
+          whole.hypervisorCount,
+        );
+        expect(one.instanceCount + two.instanceCount).toBe(whole.instanceCount);
+        expect(one.vcpuCapacity + two.vcpuCapacity).toBe(whole.vcpuCapacity);
+        expect(one.downServiceCount + two.downServiceCount).toBe(
+          whole.downServiceCount,
+        );
+      });
+
+      test("one nobody has reads as nothing there", async () => {
+        await write(TWO_REGIONS());
+        const none: OpenStackInventorySummary = await summaryOf("RegionNine");
+
+        expect(none.regionCount).toBe(0);
+        expect(none.hypervisorCount).toBe(0);
+        expect(none.instanceCount).toBe(0);
+        expect(none.vcpuCapacity).toBe(0);
+      });
+
+      test("a name that is a piece of SQL is a name", async () => {
+        await write(TWO_REGIONS());
+        const none: OpenStackInventorySummary = await summaryOf(
+          `RegionOne' OR '1'='1`,
+        );
+
+        expect(none.hypervisorCount).toBe(0);
+      });
+    });
+
+    describe("getRegionSummaries", () => {
+      const regions = async (
+        cloudId: ObjectID = CLOUD_ID,
+        projectId: ObjectID = PROJECT_ID,
+      ): Promise<Array<OpenStackRegionSummary>> => {
+        return await OpenStackResourceService.getRegionSummaries({
+          projectId,
+          openStackCloudId: cloudId,
+        });
+      };
+
+      test("says what each holds, in order, and what's Keystone's is none of them", async () => {
+        await write(TWO_REGIONS());
+
+        const answer: Array<OpenStackRegionSummary> = await regions();
+
+        expect(
+          answer.map((region: OpenStackRegionSummary): string => {
+            return region.regionName;
+          }),
+        ).toEqual(["RegionOne", "RegionTwo"]);
+        expect(answer[1]).toEqual({
+          regionName: "RegionTwo",
+          apiCount: 1,
+          downApiCount: 0,
+          serviceCount: 1,
+          downServiceCount: 0,
+          hypervisorCount: 1,
+          instanceCount: 1,
+          vcpuCapacity: 50,
+          vcpuAllocated: 10,
+          memoryCapacityBytes: 1000,
+          memoryAllocatedBytes: 100,
+          storageCapacityBytes: 1000,
+          storageUsedBytes: 900,
+        });
+      });
+
+      test("one disabled is not down, in Nova's word or Neutron's", async () => {
+        await write(TWO_REGIONS());
+
+        const one: OpenStackRegionSummary = (await regions())[0]!;
+
+        expect(one.serviceCount).toBe(4);
+        expect(one.downServiceCount).toBe(1);
+        expect(one.apiCount).toBe(2);
+        expect(one.downApiCount).toBe(1);
+      });
+
+      test("a lost host counts as a host, and as no capacity", async () => {
+        await write(TWO_REGIONS());
+
+        const one: OpenStackRegionSummary = (await regions())[0]!;
+
+        expect(one.hypervisorCount).toBe(2);
+        expect(one.vcpuCapacity).toBe(100);
+        expect(one.vcpuAllocated).toBe(40);
+      });
+
+      test("a cloud of one region says so, and one with nothing has none", async () => {
+        expect(await regions()).toEqual([]);
+
+        await write([api(OpenStackServiceType.Compute)]);
+
+        expect(await regions()).toHaveLength(1);
+      });
+
+      test("never counts another cloud's, or another project's", async () => {
+        await write(TWO_REGIONS(), OTHER_CLOUD_ID);
+        await write(TWO_REGIONS(), CLOUD_ID, OTHER_PROJECT_ID);
+
+        expect(await regions()).toEqual([]);
+      });
+    });
+
+    describe("getTopConsumers", () => {
+      const consumers = async (
+        regionName?: string,
+      ): Promise<OpenStackTopConsumers> => {
+        return await OpenStackResourceService.getTopConsumers({
+          projectId: PROJECT_ID,
+          openStackCloudId: CLOUD_ID,
+          regionName,
+        });
+      };
+
+      test("most first, by what Nova and Cinder hold for each project", async () => {
+        await write([
+          keystone(OpenStackResourceKind.Project, "p-1", "payments"),
+          keystone(OpenStackResourceKind.Project, "p-2", "research"),
+          instance("i-1", "RegionOne", "p-1"),
+          instance("i-2", "RegionOne", "p-2"),
+          instance("i-3", "RegionOne", "p-2"),
+          volume("v-1", "RegionOne", "p-1", 500),
+          volume("v-2", "RegionOne", "p-1", 700),
+          volume("v-3", "RegionOne", "p-2", 100),
+        ]);
+
+        const top: OpenStackTopConsumers = await consumers();
+
+        expect(top.projectsByInstances).toEqual([
+          { projectId: "p-2", name: "research", value: 2 },
+          { projectId: "p-1", name: "payments", value: 1 },
+        ]);
+        expect(top.projectsByVolumeBytes).toEqual([
+          { projectId: "p-1", name: "payments", value: 1200 },
+          { projectId: "p-2", name: "research", value: 100 },
+        ]);
+      });
+
+      test("a project Keystone hasn't named reads by its ID", async () => {
+        await write([instance("i-1", "RegionOne", "p-unknown")]);
+
+        expect((await consumers()).projectsByInstances).toEqual([
+          { projectId: "p-unknown", name: null, value: 1 },
+        ]);
+      });
+
+      test("holds no more than the card shows, whatever the cloud holds", async () => {
+        const rows: Array<ParsedOpenStackResource> = [];
+        for (let index: number = 0; index < 8; index++) {
+          rows.push(instance(`i-${index}`, "RegionOne", `p-${index}`));
+        }
+        await write(rows);
+
+        expect((await consumers()).projectsByInstances).toHaveLength(5);
+      });
+
+      test("the same count reads the same way every time", async () => {
+        await write([
+          instance("i-1", "RegionOne", "p-b"),
+          instance("i-2", "RegionOne", "p-a"),
+        ]);
+
+        expect(
+          (await consumers()).projectsByInstances.map(
+            (one: OpenStackTopConsumer): string => {
+              return one.projectId;
+            },
+          ),
+        ).toEqual(["p-a", "p-b"]);
+      });
+
+      test("reads one region's, when one is being read", async () => {
+        await write([
+          instance("i-1", "RegionOne", "p-1"),
+          instance("i-2", "RegionTwo", "p-2"),
+          instance("i-3", "RegionTwo", "p-2"),
+        ]);
+
+        expect(
+          (await consumers("RegionOne")).projectsByInstances.map(
+            (one: OpenStackTopConsumer): string => {
+              return one.projectId;
+            },
+          ),
+        ).toEqual(["p-1"]);
+      });
+
+      test("leaves out what no project holds, and reads nothing for a cloud with none", async () => {
+        await write([instance("i-1", "RegionOne")]);
+
+        expect(await consumers()).toEqual({
+          projectsByInstances: [],
+          projectsByVolumeBytes: [],
+        });
+      });
+
+      test("never reads another cloud's", async () => {
+        await write(
+          [instance("i-1", "RegionOne", "p-1")],
+          OTHER_CLOUD_ID,
+        );
+
+        expect((await consumers()).projectsByInstances).toEqual([]);
+      });
+    });
+
+    describe("getAttentionRows of one", () => {
+      const attentionOf = async (
+        regionName: string | undefined,
+        rowsPerKind?: number,
+      ): Promise<OpenStackAttentionRows> => {
+        return await OpenStackResourceService.getAttentionRows({
+          projectId: PROJECT_ID,
+          openStackCloudId: CLOUD_ID,
+          now: NOW,
+          regionName,
+          rowsPerKind,
+        });
+      };
+
+      const rowsOfKind = (
+        answer: OpenStackAttentionRows,
+        kind: OpenStackResourceKind,
+      ): Array<string> => {
+        return answer.rows
+          .filter((row: JSONObject): boolean => {
+            return row["kind"] === kind;
+          })
+          .map((row: JSONObject): string => {
+            return row["externalId"] as string;
+          })
+          .sort();
+      };
+
+      test("reads its own, and none of another's", async () => {
+        await write([
+          ...TWO_REGIONS(),
+          instance("broken-1", "RegionOne", null, "ERROR"),
+          instance("broken-2", "RegionTwo", null, "ERROR"),
+        ]);
+
+        const two: OpenStackAttentionRows = await attentionOf("RegionTwo");
+
+        expect(rowsOfKind(two, OpenStackResourceKind.Instance)).toEqual([
+          "broken-2",
+        ]);
+        expect(rowsOfKind(two, OpenStackResourceKind.Hypervisor)).toEqual([
+          "RegionTwo/c-1",
+        ]);
+        expect(rowsOfKind(two, OpenStackResourceKind.Service)).toEqual([
+          "RegionTwo/compute/c-1/nova-compute",
+        ]);
+        expect(rowsOfKind(two, OpenStackResourceKind.Api)).toEqual([]);
+      });
+
+      test("a region's list is whole, however much is wrong elsewhere", async () => {
+        const rows: Array<ParsedOpenStackResource> = [
+          instance("broken-in-two", "RegionTwo", null, "ERROR"),
+        ];
+        for (let index: number = 0; index < 8; index++) {
+          rows.push(instance(`broken-${index}`, "RegionOne", null, "ERROR"));
+        }
+        await write(rows);
+
+        const two: OpenStackAttentionRows = await attentionOf("RegionTwo", 2);
+        expect(rowsOfKind(two, OpenStackResourceKind.Instance)).toEqual([
+          "broken-in-two",
+        ]);
+        expect(two.totalsByKind[OpenStackResourceKind.Instance]).toBe(1);
+
+        // Reading the whole cloud at the same cap could have left it out.
+        const whole: OpenStackAttentionRows = await attentionOf(undefined, 2);
+        expect(rowsOfKind(whole, OpenStackResourceKind.Instance)).toHaveLength(
+          2,
+        );
+        expect(whole.totalsByKind[OpenStackResourceKind.Instance]).toBe(9);
+      });
+    });
+  });
+
   describe("getBlastRadius", () => {
     const instance = (
       id: string,
@@ -1067,6 +1533,7 @@ describePostgres("OpenStackResourceService on Postgres", () => {
       expect(found.get(OpenStackResourceKind.Router)).toEqual(["router-error"]);
       expect(found.get(OpenStackResourceKind.FloatingIp)).toEqual([
         "fip-in-use-down",
+        "fip-with-port-down",
       ]);
     });
 

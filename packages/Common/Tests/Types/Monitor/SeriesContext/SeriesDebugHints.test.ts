@@ -439,9 +439,7 @@ describe("SeriesDebugHints", () => {
     test("a hypervisor is looked up by its full name", () => {
       expect(
         openstackCommands({ hostname: "compute-01.example.internal" }),
-      ).toEqual([
-        `${REGION} hypervisor show compute-01.example.internal`,
-      ]);
+      ).toEqual([`${REGION} hypervisor show compute-01.example.internal`]);
     });
 
     test("an instance shows its fault and what was done to it", () => {

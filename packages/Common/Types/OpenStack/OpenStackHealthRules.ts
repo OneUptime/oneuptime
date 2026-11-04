@@ -1,5 +1,6 @@
 import { JSONObject, JSONValue } from "../JSON";
 import {
+  OPENSTACK_IMAGE_TRANSITIONAL_STATUSES,
   OPENSTACK_INSTANCE_TRANSITIONAL_STATUSES,
   OPENSTACK_SERVICE_STATUS_DOWN,
   OPENSTACK_VOLUME_ERROR_STATUSES,
@@ -38,6 +39,12 @@ export const OPENSTACK_PROJECT_QUOTA_WARNING_PERCENT: number = 90;
 // How long a part may sit in a state on the way to something else.
 export const OPENSTACK_INSTANCE_STUCK_MINUTES: number = 60;
 export const OPENSTACK_VOLUME_STUCK_MINUTES: number = 30;
+/*
+ * No alert template draws this one yet, so it is the one line here with nothing to
+ * agree with. An image left in queued is what a failed upload looks like: nothing ever
+ * moves it on, and instances that ask for it fail.
+ */
+export const OPENSTACK_IMAGE_STUCK_MINUTES: number = 60;
 
 /*
  * A service someone disabled is planned work, until it has been so long that
@@ -145,6 +152,21 @@ export function isOpenStackVolumeStuck(data: {
   return minutes !== null && minutes >= OPENSTACK_VOLUME_STUCK_MINUTES;
 }
 
+export function isOpenStackImageStuck(data: {
+  status?: string | null | undefined;
+  stateChangedAt?: Date | string | null | undefined;
+  now: Date;
+}): boolean {
+  if (
+    !data.status ||
+    !OPENSTACK_IMAGE_TRANSITIONAL_STATUSES.has(data.status)
+  ) {
+    return false;
+  }
+  const minutes: number | null = minutesInState(data);
+  return minutes !== null && minutes >= OPENSTACK_IMAGE_STUCK_MINUTES;
+}
+
 export function isOpenStackVolumeInError(
   status: string | null | undefined,
 ): boolean {
@@ -168,6 +190,22 @@ export function percentOf(
     return null;
   }
   return (part / whole) * 100;
+}
+
+/*
+ * Whether a project is at its quota: at OPENSTACK_PROJECT_QUOTA_WARNING_PERCENT or past
+ * it. A limit of -1 means no limit, and a limit of 0 is a project that may hold none of
+ * these on purpose, so neither is ever at anything. Compared without dividing, so 9 of
+ * 10 is exactly on the line here and in the SQL that picks the same rows.
+ */
+export function isOpenStackQuotaAtLine(data: {
+  used: number;
+  limit: number;
+}): boolean {
+  return (
+    data.limit > 0 &&
+    data.used * 100 >= data.limit * OPENSTACK_PROJECT_QUOTA_WARNING_PERCENT
+  );
 }
 
 function numberFact(facts: JSONObject | null | undefined, key: string): number | null {

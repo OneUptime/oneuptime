@@ -582,10 +582,25 @@ it reports reads everything, may be own project only, refused or not deployed, s
 which pages and alerts go without it and what to do (each policy line it suggests
 must be in `access/policy/`), says which level the answers add up to, and warns when
 the credential's own project holds things, because where Cinder has
-`enforce_new_defaults` off any role on a project can write there.
+`enforce_new_defaults` off any role on a project can write there. It replays what five
+real clouds answered each level, from `packages/Common/Tests/Fixtures/OpenStack`, and
+holds what it says of each read to the docs' table: Cinder's services and pools, which
+only level 1 reads, and Neutron's `409` on an empty project, which it reads as expected.
 It also pins the login (the credential and the token only ever on stdin, never on a command
 line), the small pages it asks for, the catalog, several regions, the exporter and
 the ownership of `clouds.yaml`, and the same script on an install without Docker.
+
+### `OpenStackAgentAccessTable.test.js`
+
+What the agent's docs say each level of access gets, against what real clouds answered.
+`openstack-e2e/access-table.py` writes the tables from the recordings in
+`packages/Common/Tests/Fixtures/OpenStack/<release>/access/`, one row per read and one
+column per level, and this fails when the table on the agent's README, its docs page or
+its in-app guide differs from what the script prints, so none is ever written from
+memory. It runs the script on recordings written in the test, for each rule that decides
+a cell, and holds the prose around the tables to the recordings: every write at level 1
+answers `401`, every write at level 2 is refused, and a plain reader created a volume
+everywhere but Hibiscus.
 
 ### `OpenStackAgentWithoutDocker.test.js`
 

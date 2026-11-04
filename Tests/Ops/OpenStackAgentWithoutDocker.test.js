@@ -1247,6 +1247,23 @@ describe("the README", () => {
     expect(text).toContain(
       "Putting the role on a real project to see its volumes and routers also lets the account write there, on a cloud where Cinder has `enforce_new_defaults` off.",
     );
+    expect(text).toContain(
+      "every write answered `403`, or `409` and `413` from quota",
+    );
+    expect(text).toContain("answers this project `409 Quota exceeded`");
+  });
+
+  test("level 2 has no policy file for Cinder, says why, and says only level 1 sees its services and pools", () => {
+    const text = section("### Level 2: Infrastructure only");
+
+    expect(readme).not.toContain("cinder.yaml");
+    expect(text).toContain("There is no file for Cinder.");
+    expect(text).toContain(
+      "That comes from Cinder's own code requiring an admin context, after policy has already passed, so no override can open them.",
+    );
+    expect(text).toContain(
+      "So this level does not see `cinder-volume` or `cinder-scheduler` state or storage pools. Only level 1 does",
+    );
   });
 
   test("level 3 says it shows no instances through the agent, and that reader may write", () => {
@@ -1258,6 +1275,9 @@ describe("the README", () => {
     );
     expect(text).toContain(
       "On a cloud where Cinder has `enforce_new_defaults` off, plain `reader` can create volumes in its project too.",
+    );
+    expect(text).toContain(
+      "On Epoxy, Flamingo and Gazpacho it did (`202`), and on Hibiscus it was refused (`403`), because DevStack only turns `enforce_new_defaults` on there. Cinder's own default is off.",
     );
   });
 
@@ -1274,6 +1294,14 @@ describe("the README", () => {
     );
     expect(text).toContain(
       "/install/openstack-agent/access/access-rules-for-cloud.py",
+    );
+    expect(text).toContain(
+      "every read answered `200` and every write `401`, on every release we record",
+    );
+    expect(text).toContain("except Keystone's users and groups, on purpose");
+    expect(text).toContain("Keystone needs nothing.");
+    expect(text).toContain(
+      "The rules also carry `volumev3`, for a Cinder configured that way.",
     );
   });
 

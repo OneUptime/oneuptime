@@ -3,6 +3,10 @@ import {
   OPENSTACK_BLAST_RADIUS_PROJECT_LIMIT,
   OpenStackBlastRadius,
   buildOpenStackBlastRadius,
+  describeOpenStackBlastRadius,
+  describeOpenStackBlastRadiusCounts,
+  getOpenStackDomainMarker,
+  getOpenStackProjectMarker,
   getEmptyOpenStackBlastRadius,
   isOpenStackBlastRadiusEmpty,
 } from "../../../Types/OpenStack/OpenStackBlastRadius";
@@ -129,5 +133,68 @@ describe("buildOpenStackBlastRadius", () => {
         ),
       ).toBe(false);
     }
+  });
+});
+
+describe("the words outside the Dashboard", () => {
+  test("says only what there is, each counted right", () => {
+    expect(
+      describeOpenStackBlastRadiusCounts({
+        instanceCount: 1,
+        volumeCount: 0,
+        routerCount: 2,
+        floatingIpCount: 1,
+      }),
+    ).toBe("1 instance, 2 routers, 1 floating IP");
+  });
+
+  test("says in how many projects, when it knows", () => {
+    expect(
+      describeOpenStackBlastRadius({
+        ...getEmptyOpenStackBlastRadius(),
+        instanceCount: 42,
+        projectCount: 7,
+      }),
+    ).toBe("42 instances in 7 projects");
+    expect(
+      describeOpenStackBlastRadius({
+        ...getEmptyOpenStackBlastRadius(),
+        instanceCount: 1,
+        projectCount: 1,
+      }),
+    ).toBe("1 instance in 1 project");
+    expect(
+      describeOpenStackBlastRadius({
+        ...getEmptyOpenStackBlastRadius(),
+        routerCount: 1,
+      }),
+    ).toBe("1 router");
+    expect(describeOpenStackBlastRadius(getEmptyOpenStackBlastRadius())).toBe(
+      "",
+    );
+  });
+
+  test("a project's domain comes with it when the inventory says", () => {
+    const radius: OpenStackBlastRadius = buildOpenStackBlastRadius({
+      counts: [
+        {
+          count: "instanceCount",
+          byProject: [
+            { projectId: "a", count: 1 },
+            { projectId: "b", count: 1 },
+          ],
+        },
+      ],
+      projectDomains: { a: "acme" },
+    });
+
+    expect(radius.projects[0]?.domainId).toBe("acme");
+    // An unknown domain is left out, rather than saying null.
+    expect("domainId" in (radius.projects[1] || {})).toBe(false);
+  });
+
+  test("the markers a rule matches hold the ID, closed", () => {
+    expect(getOpenStackProjectMarker("abc")).toBe("OpenStack project `abc`");
+    expect(getOpenStackDomainMarker("abc")).toBe("OpenStack domain `abc`");
   });
 });

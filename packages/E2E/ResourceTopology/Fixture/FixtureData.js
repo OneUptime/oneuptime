@@ -34,6 +34,7 @@ export const IDS = {
   podmanHost: uuid("35000000", 1),
   swarm: uuid("36000000", 1),
   proxmox: uuid("37000000", 1),
+  openstack: uuid("71000000", 1),
   ceph: uuid("38000000", 1),
   storageArray: uuid("39000000", 1),
   cloudAccount: uuid("3a000000", 1),
@@ -560,6 +561,7 @@ export function buildEstate(options) {
    */
   const swarmRows = [];
   const proxmoxRows = [];
+  const openstackRows = [];
   const cephRows = [];
   const storageRows = [];
 
@@ -706,6 +708,114 @@ export function buildEstate(options) {
         latestDiskBytes: (index === 0 && !isQuiet ? 880 : 400) * GIB,
         maxDiskBytes: 1000 * GIB,
       });
+    });
+
+    /*
+     * An OpenStack cloud, in the rows OpenStackSnapshotScan writes: one region, two zones,
+     * a service that names its host by the short name and a hypervisor by the full one. In
+     * az-2, compute-3's nova-compute has stopped, the drill #5730 is written around: Nova
+     * still calls its instances ACTIVE. Those instances belong to two projects.
+     */
+    const openstack = (fields) => {
+      openstackRows.push({
+        _id: nextId("4a000000"),
+        openStackCloudId: IDS.openstack,
+        regionName: "RegionOne",
+        lastSeenAt: fresh,
+        ...fields,
+      });
+    };
+    const osProjects = ["ou-payments", "ou-research"];
+    ["compute-1", "compute-2", "compute-3"].forEach((host, index) => {
+      const fullName = `${host}.example.internal`;
+      const zone = index === 2 ? "az-2" : "az-1";
+      const isDown = index === 2 && !isQuiet;
+      openstack({
+        kind: "Hypervisor",
+        externalId: `RegionOne/${fullName}`,
+        name: fullName,
+        hypervisorName: fullName,
+        availabilityZone: zone,
+        status: isDown ? "down" : "up",
+        adminState: "enabled",
+        vcpuCapacity: 64,
+        vcpuAllocated: 16 + index * 8,
+      });
+      openstack({
+        kind: "Service",
+        externalId: `RegionOne/compute/${host}/nova-compute`,
+        name: "nova-compute",
+        hypervisorName: host,
+        availabilityZone: zone,
+        status: isDown ? "down" : "up",
+        adminState: "enabled",
+        facts: { family: "compute", host },
+      });
+      for (let i = 1; i <= 3; i++) {
+        const owner = osProjects[i % 2];
+        const failed = index === 0 && i === 1 && !isQuiet;
+        openstack({
+          kind: "Instance",
+          externalId: `instance-${index}-${i}`,
+          name: `${owner}-${host}-${i}`,
+          hypervisorName: fullName,
+          availabilityZone: zone,
+          openStackProjectId: owner,
+          status: failed ? "ERROR" : "ACTIVE",
+        });
+      }
+    });
+    openstack({
+      kind: "Volume",
+      externalId: "volume-attached",
+      name: "ou-vol-used",
+      openStackProjectId: "ou-payments",
+      status: "in-use",
+      facts: { attachedToInstance: "instance-2-1" },
+    });
+    openstack({
+      kind: "Volume",
+      externalId: "volume-free",
+      name: "ou-vol-free",
+      openStackProjectId: "ou-payments",
+      status: "available",
+    });
+    openstack({
+      kind: "StoragePool",
+      externalId: "RegionOne/host@lvm#lvm",
+      name: "host@lvm#lvm",
+      diskCapacityBytes: 1000 * GIB,
+      diskAllocatedBytes: 200 * GIB,
+    });
+    openstack({
+      kind: "Network",
+      externalId: "network-public",
+      name: "public",
+      status: "ACTIVE",
+      facts: { isExternal: true, ipsTotal: 100, ipsUsed: 10 },
+    });
+    openstack({
+      kind: "Router",
+      externalId: "router-1",
+      name: "ou-router",
+      status: "ACTIVE",
+      adminState: "up",
+      openStackProjectId: "ou-payments",
+      facts: { externalNetworkId: "network-public" },
+    });
+    openstack({
+      kind: "FloatingIp",
+      externalId: "floating-1",
+      name: "203.0.113.5",
+      status: "ACTIVE",
+      openStackProjectId: "ou-payments",
+      facts: { routerId: "router-1", floatingNetworkId: "network-public" },
+    });
+    openstack({
+      kind: "Api",
+      externalId: "RegionOne/compute",
+      name: "compute",
+      status: "up",
     });
 
     const ceph = (fields) => {
@@ -1136,6 +1246,7 @@ export function buildEstate(options) {
     podmanRows: containerHostRows("podmanHostId", IDS.podmanHost),
     swarmRows,
     proxmoxRows,
+    openstackRows,
     cephRows,
     storageRows,
     cloudRows,

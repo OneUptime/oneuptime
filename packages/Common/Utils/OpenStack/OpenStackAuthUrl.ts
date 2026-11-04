@@ -222,7 +222,9 @@ export default class OpenStackAuthUrl {
       };
     }
 
-    if (VMwareVCenterAddress.isForbiddenHost(OpenStackAuthUrl.readHost(parsed))) {
+    if (
+      VMwareVCenterAddress.isForbiddenHost(OpenStackAuthUrl.readHost(parsed))
+    ) {
       return {
         code: "forbidden",
         message: `The catalog names ${url}, a loopback, link-local or cloud metadata address, which no probe connects to.`,

@@ -15,6 +15,7 @@ import OpenStackSettingsLabelRules from "../Pages/OpenStack/Settings/LabelRules"
 import OpenStackArchived from "../Pages/OpenStack/Archived";
 import OpenStackCloudOverview from "../Pages/OpenStack/View/Index";
 import OpenStackCloudServices from "../Pages/OpenStack/View/Services";
+import OpenStackCloudServiceDetail from "../Pages/OpenStack/View/ServiceDetail";
 import OpenStackCloudHypervisors from "../Pages/OpenStack/View/Hypervisors";
 import OpenStackCloudInstances from "../Pages/OpenStack/View/Instances";
 import OpenStackCloudFlavors from "../Pages/OpenStack/View/Flavors";
@@ -24,8 +25,30 @@ import OpenStackCloudFloatingIps from "../Pages/OpenStack/View/FloatingIps";
 import OpenStackCloudVolumes from "../Pages/OpenStack/View/Volumes";
 import OpenStackCloudStoragePools from "../Pages/OpenStack/View/StoragePools";
 import OpenStackCloudImages from "../Pages/OpenStack/View/Images";
+import OpenStackCloudHypervisorDetail from "../Pages/OpenStack/View/HypervisorDetail";
+import OpenStackCloudInstanceDetail from "../Pages/OpenStack/View/InstanceDetail";
+import OpenStackCloudFlavorDetail from "../Pages/OpenStack/View/FlavorDetail";
+import OpenStackCloudAvailabilityZones from "../Pages/OpenStack/View/AvailabilityZones";
+import OpenStackCloudAvailabilityZoneDetail from "../Pages/OpenStack/View/AvailabilityZoneDetail";
+import OpenStackCloudAggregates from "../Pages/OpenStack/View/Aggregates";
+import OpenStackCloudAggregateDetail from "../Pages/OpenStack/View/AggregateDetail";
+import OpenStackCloudNetworkDetail from "../Pages/OpenStack/View/NetworkDetail";
+import OpenStackCloudSubnets from "../Pages/OpenStack/View/Subnets";
+import OpenStackCloudSubnetDetail from "../Pages/OpenStack/View/SubnetDetail";
+import OpenStackCloudRouterDetail from "../Pages/OpenStack/View/RouterDetail";
+import OpenStackCloudFloatingIpDetail from "../Pages/OpenStack/View/FloatingIpDetail";
+import OpenStackCloudNetworkAgents from "../Pages/OpenStack/View/NetworkAgents";
+import OpenStackCloudNetworkAgentDetail from "../Pages/OpenStack/View/NetworkAgentDetail";
+import OpenStackCloudVolumeDetail from "../Pages/OpenStack/View/VolumeDetail";
+import OpenStackCloudStoragePoolDetail from "../Pages/OpenStack/View/StoragePoolDetail";
+import OpenStackCloudSnapshots from "../Pages/OpenStack/View/Snapshots";
+import OpenStackCloudImageDetail from "../Pages/OpenStack/View/ImageDetail";
 import OpenStackCloudProjects from "../Pages/OpenStack/View/Projects";
+import OpenStackCloudProjectDetail from "../Pages/OpenStack/View/ProjectDetail";
+import OpenStackCloudDomains from "../Pages/OpenStack/View/Domains";
+import OpenStackCloudTopology from "../Pages/OpenStack/View/Topology";
 import OpenStackCloudMetrics from "../Pages/OpenStack/View/Metrics";
+import OpenStackCloudRecommendations from "../Pages/OpenStack/View/Recommendations";
 import OpenStackCloudLogs from "../Pages/OpenStack/View/Logs";
 import OpenStackCloudIncidents from "../Pages/OpenStack/View/Incidents";
 import OpenStackCloudAlerts from "../Pages/OpenStack/View/Alerts";
@@ -152,6 +175,20 @@ const OpenStackRoutes: FunctionComponent<ComponentProps> = (
           }
         />
 
+        <PageRoute
+          path={RouteUtil.getLastPathForKey(
+            PageMap.OPENSTACK_CLOUD_VIEW_TOPOLOGY,
+          )}
+          element={
+            <OpenStackCloudTopology
+              {...props}
+              pageRoute={
+                RouteMap[PageMap.OPENSTACK_CLOUD_VIEW_TOPOLOGY] as Route
+              }
+            />
+          }
+        />
+
         {/* Control Plane */}
         <PageRoute
           path={RouteUtil.getLastPathForKey(
@@ -162,6 +199,20 @@ const OpenStackRoutes: FunctionComponent<ComponentProps> = (
               {...props}
               pageRoute={
                 RouteMap[PageMap.OPENSTACK_CLOUD_VIEW_SERVICES] as Route
+              }
+            />
+          }
+        />
+        <PageRoute
+          path={RouteUtil.getLastPathForKey(
+            PageMap.OPENSTACK_CLOUD_VIEW_SERVICE_DETAIL,
+            2,
+          )}
+          element={
+            <OpenStackCloudServiceDetail
+              {...props}
+              pageRoute={
+                RouteMap[PageMap.OPENSTACK_CLOUD_VIEW_SERVICE_DETAIL] as Route
               }
             />
           }
@@ -210,6 +261,104 @@ const OpenStackRoutes: FunctionComponent<ComponentProps> = (
           }
         />
 
+        <PageRoute
+          path={RouteUtil.getLastPathForKey(
+            PageMap.OPENSTACK_CLOUD_VIEW_HYPERVISOR_DETAIL,
+          )}
+          element={
+            <OpenStackCloudHypervisorDetail
+              {...props}
+              pageRoute={
+                RouteMap[PageMap.OPENSTACK_CLOUD_VIEW_HYPERVISOR_DETAIL] as Route
+              }
+            />
+          }
+        />
+
+        <PageRoute
+          path={RouteUtil.getLastPathForKey(
+            PageMap.OPENSTACK_CLOUD_VIEW_INSTANCE_DETAIL,
+          )}
+          element={
+            <OpenStackCloudInstanceDetail
+              {...props}
+              pageRoute={
+                RouteMap[PageMap.OPENSTACK_CLOUD_VIEW_INSTANCE_DETAIL] as Route
+              }
+            />
+          }
+        />
+
+        <PageRoute
+          path={RouteUtil.getLastPathForKey(
+            PageMap.OPENSTACK_CLOUD_VIEW_FLAVOR_DETAIL,
+          )}
+          element={
+            <OpenStackCloudFlavorDetail
+              {...props}
+              pageRoute={
+                RouteMap[PageMap.OPENSTACK_CLOUD_VIEW_FLAVOR_DETAIL] as Route
+              }
+            />
+          }
+        />
+
+        <PageRoute
+          path={RouteUtil.getLastPathForKey(
+            PageMap.OPENSTACK_CLOUD_VIEW_AVAILABILITY_ZONES,
+          )}
+          element={
+            <OpenStackCloudAvailabilityZones
+              {...props}
+              pageRoute={
+                RouteMap[PageMap.OPENSTACK_CLOUD_VIEW_AVAILABILITY_ZONES] as Route
+              }
+            />
+          }
+        />
+
+        <PageRoute
+          path={RouteUtil.getLastPathForKey(
+            PageMap.OPENSTACK_CLOUD_VIEW_AVAILABILITY_ZONE_DETAIL,
+          )}
+          element={
+            <OpenStackCloudAvailabilityZoneDetail
+              {...props}
+              pageRoute={
+                RouteMap[PageMap.OPENSTACK_CLOUD_VIEW_AVAILABILITY_ZONE_DETAIL] as Route
+              }
+            />
+          }
+        />
+
+        <PageRoute
+          path={RouteUtil.getLastPathForKey(
+            PageMap.OPENSTACK_CLOUD_VIEW_AGGREGATES,
+          )}
+          element={
+            <OpenStackCloudAggregates
+              {...props}
+              pageRoute={
+                RouteMap[PageMap.OPENSTACK_CLOUD_VIEW_AGGREGATES] as Route
+              }
+            />
+          }
+        />
+
+        <PageRoute
+          path={RouteUtil.getLastPathForKey(
+            PageMap.OPENSTACK_CLOUD_VIEW_AGGREGATE_DETAIL,
+          )}
+          element={
+            <OpenStackCloudAggregateDetail
+              {...props}
+              pageRoute={
+                RouteMap[PageMap.OPENSTACK_CLOUD_VIEW_AGGREGATE_DETAIL] as Route
+              }
+            />
+          }
+        />
+
         {/* Network */}
         <PageRoute
           path={RouteUtil.getLastPathForKey(
@@ -248,6 +397,104 @@ const OpenStackRoutes: FunctionComponent<ComponentProps> = (
               {...props}
               pageRoute={
                 RouteMap[PageMap.OPENSTACK_CLOUD_VIEW_FLOATING_IPS] as Route
+              }
+            />
+          }
+        />
+
+        <PageRoute
+          path={RouteUtil.getLastPathForKey(
+            PageMap.OPENSTACK_CLOUD_VIEW_NETWORK_DETAIL,
+          )}
+          element={
+            <OpenStackCloudNetworkDetail
+              {...props}
+              pageRoute={
+                RouteMap[PageMap.OPENSTACK_CLOUD_VIEW_NETWORK_DETAIL] as Route
+              }
+            />
+          }
+        />
+
+        <PageRoute
+          path={RouteUtil.getLastPathForKey(
+            PageMap.OPENSTACK_CLOUD_VIEW_SUBNETS,
+          )}
+          element={
+            <OpenStackCloudSubnets
+              {...props}
+              pageRoute={
+                RouteMap[PageMap.OPENSTACK_CLOUD_VIEW_SUBNETS] as Route
+              }
+            />
+          }
+        />
+
+        <PageRoute
+          path={RouteUtil.getLastPathForKey(
+            PageMap.OPENSTACK_CLOUD_VIEW_SUBNET_DETAIL,
+          )}
+          element={
+            <OpenStackCloudSubnetDetail
+              {...props}
+              pageRoute={
+                RouteMap[PageMap.OPENSTACK_CLOUD_VIEW_SUBNET_DETAIL] as Route
+              }
+            />
+          }
+        />
+
+        <PageRoute
+          path={RouteUtil.getLastPathForKey(
+            PageMap.OPENSTACK_CLOUD_VIEW_ROUTER_DETAIL,
+          )}
+          element={
+            <OpenStackCloudRouterDetail
+              {...props}
+              pageRoute={
+                RouteMap[PageMap.OPENSTACK_CLOUD_VIEW_ROUTER_DETAIL] as Route
+              }
+            />
+          }
+        />
+
+        <PageRoute
+          path={RouteUtil.getLastPathForKey(
+            PageMap.OPENSTACK_CLOUD_VIEW_FLOATING_IP_DETAIL,
+          )}
+          element={
+            <OpenStackCloudFloatingIpDetail
+              {...props}
+              pageRoute={
+                RouteMap[PageMap.OPENSTACK_CLOUD_VIEW_FLOATING_IP_DETAIL] as Route
+              }
+            />
+          }
+        />
+
+        <PageRoute
+          path={RouteUtil.getLastPathForKey(
+            PageMap.OPENSTACK_CLOUD_VIEW_NETWORK_AGENTS,
+          )}
+          element={
+            <OpenStackCloudNetworkAgents
+              {...props}
+              pageRoute={
+                RouteMap[PageMap.OPENSTACK_CLOUD_VIEW_NETWORK_AGENTS] as Route
+              }
+            />
+          }
+        />
+
+        <PageRoute
+          path={RouteUtil.getLastPathForKey(
+            PageMap.OPENSTACK_CLOUD_VIEW_NETWORK_AGENT_DETAIL,
+          )}
+          element={
+            <OpenStackCloudNetworkAgentDetail
+              {...props}
+              pageRoute={
+                RouteMap[PageMap.OPENSTACK_CLOUD_VIEW_NETWORK_AGENT_DETAIL] as Route
               }
             />
           }
@@ -294,6 +541,62 @@ const OpenStackRoutes: FunctionComponent<ComponentProps> = (
           }
         />
 
+        <PageRoute
+          path={RouteUtil.getLastPathForKey(
+            PageMap.OPENSTACK_CLOUD_VIEW_VOLUME_DETAIL,
+          )}
+          element={
+            <OpenStackCloudVolumeDetail
+              {...props}
+              pageRoute={
+                RouteMap[PageMap.OPENSTACK_CLOUD_VIEW_VOLUME_DETAIL] as Route
+              }
+            />
+          }
+        />
+
+        <PageRoute
+          path={RouteUtil.getLastPathForKey(
+            PageMap.OPENSTACK_CLOUD_VIEW_STORAGE_POOL_DETAIL,
+          )}
+          element={
+            <OpenStackCloudStoragePoolDetail
+              {...props}
+              pageRoute={
+                RouteMap[PageMap.OPENSTACK_CLOUD_VIEW_STORAGE_POOL_DETAIL] as Route
+              }
+            />
+          }
+        />
+
+        <PageRoute
+          path={RouteUtil.getLastPathForKey(
+            PageMap.OPENSTACK_CLOUD_VIEW_SNAPSHOTS,
+          )}
+          element={
+            <OpenStackCloudSnapshots
+              {...props}
+              pageRoute={
+                RouteMap[PageMap.OPENSTACK_CLOUD_VIEW_SNAPSHOTS] as Route
+              }
+            />
+          }
+        />
+
+        <PageRoute
+          path={RouteUtil.getLastPathForKey(
+            PageMap.OPENSTACK_CLOUD_VIEW_IMAGE_DETAIL,
+          )}
+          element={
+            <OpenStackCloudImageDetail
+              {...props}
+              pageRoute={
+                RouteMap[PageMap.OPENSTACK_CLOUD_VIEW_IMAGE_DETAIL] as Route
+              }
+            />
+          }
+        />
+
         {/* Tenancy */}
         <PageRoute
           path={RouteUtil.getLastPathForKey(
@@ -304,6 +607,35 @@ const OpenStackRoutes: FunctionComponent<ComponentProps> = (
               {...props}
               pageRoute={
                 RouteMap[PageMap.OPENSTACK_CLOUD_VIEW_PROJECTS] as Route
+              }
+            />
+          }
+        />
+
+        <PageRoute
+          path={RouteUtil.getLastPathForKey(
+            PageMap.OPENSTACK_CLOUD_VIEW_PROJECT_DETAIL,
+            2,
+          )}
+          element={
+            <OpenStackCloudProjectDetail
+              {...props}
+              pageRoute={
+                RouteMap[PageMap.OPENSTACK_CLOUD_VIEW_PROJECT_DETAIL] as Route
+              }
+            />
+          }
+        />
+
+        <PageRoute
+          path={RouteUtil.getLastPathForKey(
+            PageMap.OPENSTACK_CLOUD_VIEW_DOMAINS,
+          )}
+          element={
+            <OpenStackCloudDomains
+              {...props}
+              pageRoute={
+                RouteMap[PageMap.OPENSTACK_CLOUD_VIEW_DOMAINS] as Route
               }
             />
           }
@@ -381,6 +713,20 @@ const OpenStackRoutes: FunctionComponent<ComponentProps> = (
         />
 
         {/* Owners */}
+        <PageRoute
+          path={RouteUtil.getLastPathForKey(
+            PageMap.OPENSTACK_CLOUD_VIEW_RECOMMENDATIONS,
+          )}
+          element={
+            <OpenStackCloudRecommendations
+              {...props}
+              pageRoute={
+                RouteMap[PageMap.OPENSTACK_CLOUD_VIEW_RECOMMENDATIONS] as Route
+              }
+            />
+          }
+        />
+
         <PageRoute
           path={RouteUtil.getLastPathForKey(
             PageMap.OPENSTACK_CLOUD_VIEW_OWNERS,

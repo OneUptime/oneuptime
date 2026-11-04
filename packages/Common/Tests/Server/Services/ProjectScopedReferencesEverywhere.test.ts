@@ -229,6 +229,7 @@ const SERVICES_TRUSTING_SERVER_WRITES: Array<string> = [
   "OnCallDutyPolicyExecutionLogService.ts",
   "OnCallDutyPolicyFeedService.ts",
   "OnCallDutyPolicyTimeLogService.ts",
+  "OpenStackCloudFeedService.ts",
   "PodmanHostFeedService.ts",
   "ProxmoxClusterFeedService.ts",
   "PushNotificationLogService.ts",

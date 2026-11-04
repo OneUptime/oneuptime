@@ -7,8 +7,8 @@
  * reaches the server went through every quote, pipe and stdin the script uses.
  *
  * No real OpenStack answers here: the shapes the server gives are the APIs' as
- * Tests/Ops/openstack-e2e records them, and what it says of each kind of credential
- * is what #5721 says they do. `access-matrix.sh` runs the same reads on real policies.
+ * Tests/Ops/openstack-e2e records them, and "on what real clouds answered" replays what
+ * each level of access got from five real clouds, as access-matrix.sh recorded it.
  *
  * The check it exists for: OpenStack has no global read-only role, and a 200 is no
  * proof. Neutron and Cinder answer a plain reader with a 200 and only its own
@@ -29,6 +29,15 @@ const REPO_ROOT = path.resolve(__dirname, "..", "..");
 const AGENT_DIR = path.join(REPO_ROOT, "agents", "OpenStackAgent");
 const SCRIPT = path.join(AGENT_DIR, "troubleshoot.sh");
 const MATRIX = path.join(__dirname, "openstack-e2e", "access-matrix.py");
+const ACCESS_TABLE = path.join(__dirname, "openstack-e2e", "access-table.py");
+const FIXTURES = path.join(
+  REPO_ROOT,
+  "packages",
+  "Common",
+  "Tests",
+  "Fixtures",
+  "OpenStack",
+);
 const ACCESS_RULES = path.join(
   AGENT_DIR,
   "access",
@@ -182,8 +191,6 @@ const INFRA_READS = [
   "placement:resource providers",
   "network:agents",
   "network:IP availabilities",
-  "block-storage:services",
-  "block-storage:pools",
   "identity:projects",
   "identity:domains",
   "identity:services",
@@ -196,12 +203,20 @@ function fullView(read) {
 }
 
 /*
- * A plain reader, as #5721 has it: 403 for what defaults to admin and for Nova's
- * all_tenants, and a 200 with its own project from Neutron, Cinder and the rest,
- * plus what is anyone's to see: a shared network and its subnet, a public image.
+ * A plain reader, as real clouds answer one: 403 for what defaults to admin and for
+ * Nova's all_tenants, a 200 with no rows for Neutron's agents and address pools, and a
+ * 200 with its own project from Neutron, Cinder and the rest, plus what is anyone's to
+ * see: a shared network and its subnet, a public image.
  */
 function projectView(read) {
   const name = `${read.service}:${read.label}`;
+  switch (name) {
+    case "network:agents":
+    case "network:IP availabilities":
+      return { rows: [] };
+    default:
+      break;
+  }
   if (INFRA_READS.includes(name)) {
     return { status: 403 };
   }
@@ -209,6 +224,8 @@ function projectView(read) {
     case "compute:servers, all projects":
     case "compute:usage per project":
     case "network:quotas":
+    case "block-storage:services":
+    case "block-storage:pools":
     case "load-balancer:amphorae":
       return { status: 403 };
     case "network:networks":
@@ -229,13 +246,71 @@ function projectView(read) {
   }
 }
 
-// The monitoring role with the policy overrides: infrastructure, and its own project.
+/*
+ * The monitoring role with the policy overrides, on a project with zero quota:
+ * infrastructure, all of Nova, and its own project. Cinder's own code keeps its services
+ * and pools for an admin, and Neutron answers 409 when it cannot create the project's
+ * default security group.
+ */
 function infrastructureOnly(read) {
   const name = `${read.service}:${read.label}`;
-  if (INFRA_READS.includes(name)) {
+  if (name === "network:security groups") {
+    return { status: 409 };
+  }
+  if (
+    INFRA_READS.includes(name) ||
+    name === "compute:servers, all projects" ||
+    name === "compute:usage per project"
+  ) {
     return fullView(read);
   }
   return projectView(read);
+}
+
+/*
+ * What a recording says of a read, for one credential: its status and how many rows.
+ * The rows are made here, because a recording keeps only their number: on a project that
+ * holds things they are that project's, and on one that holds nothing another's. The
+ * first network is the external one and the first subnet its own, and every image on
+ * those clouds is public.
+ */
+function recorded(release, matrix, credential, onItsOwnProject) {
+  const { reads } = JSON.parse(
+    fs.readFileSync(
+      path.join(FIXTURES, release, "access", `${matrix}.json`),
+      "utf8",
+    ),
+  );
+  const owner = onItsOwnProject ? OWN_PROJECT : OTHER_PROJECT;
+  return (read) => {
+    const name = `${read.service}:${read.label}`;
+    const found = reads.find((candidate) => {
+      return (
+        candidate.service === read.service && candidate.read === read.label
+      );
+    });
+    if (!found) {
+      return { status: 404 };
+    }
+    const result = found.results[credential];
+    if (result.status !== 200) {
+      return { status: result.status };
+    }
+    return {
+      rows: Array.from({ length: result.count }, (_, index) => {
+        if (name === "network:networks") {
+          return ROW_OF[name](index ? owner : OTHER_PROJECT, !index);
+        }
+        if (name === "network:subnets") {
+          return ROW_OF[name](index ? owner : OTHER_PROJECT);
+        }
+        if (name === "image:images") {
+          return ROW_OF[name](OTHER_PROJECT, "public");
+        }
+        return ROW_OF[name] ? ROW_OF[name](owner) : { id: `row-${index}` };
+      }),
+    };
+  };
 }
 
 const SERVICE_PATH = {
@@ -852,7 +927,7 @@ describe("the reads it makes", () => {
         read.attr !== "-" &&
         ["network", "block-storage"].includes(read.service)
       ) {
-        if (read.label !== "IP availabilities") {
+        if (read.label !== "IP availabilities" && read.label !== "agents") {
           expect({ read: read.label, fix: read.fix }).toEqual({
             read: read.label,
             fix: read.service === "network" ? "code:Neutron" : "code:Cinder",
@@ -860,6 +935,24 @@ describe("the reads it makes", () => {
         }
       }
     }
+  });
+
+  test("Cinder's services and pools offer no policy line, because none opens them, and name the level that reads them", () => {
+    for (const label of ["services", "pools"]) {
+      const read = table.find((candidate) => {
+        return (
+          candidate.service === "block-storage" && candidate.label === label
+        );
+      });
+      expect(read.fix).toBe(
+        'text:Cinder\'s own code asks for an admin here, after policy has already passed, so no policy line opens it. Only a full-view credential reads it (README.md, "Level 1: Full view").',
+      );
+    }
+    expect(
+      table.filter((read) => {
+        return read.fix.startsWith("policy:cinder");
+      }),
+    ).toEqual([]);
   });
 
   test("the attribute naming a row's project is what the fake cloud's rows carry, row for row", () => {
@@ -1115,8 +1208,6 @@ describe("a plain reader, and the trap", () => {
     ["compute: services"],
     ["compute: servers, all projects"],
     ["placement: resource providers"],
-    ["network: agents"],
-    ["network: IP availabilities"],
     ["block-storage: services"],
     ["block-storage: pools"],
     ["identity: projects"],
@@ -1125,6 +1216,15 @@ describe("a plain reader, and the trap", () => {
       `▲ ${read} — refused (HTTP 403)`,
     );
   });
+
+  test.each([["network: agents"], ["network: IP availabilities"]])(
+    "%s answers 200 with no rows, which is no proof either",
+    (read) => {
+      expect(lineAbout(accessLines(run), read)).toBe(
+        `▲ ${read} — may be own project only (a 200 with nothing here to tell by)`,
+      );
+    },
+  );
 
   test.each([
     ["load-balancer: load balancers"],
@@ -1185,7 +1285,22 @@ describe("a plain reader, and the trap", () => {
       }),
     ).toEqual([
       "Goes without it: volumes in other projects on the Volumes page, and the alerts on them.",
-      'Cinder scopes this list to the credential\'s own project in its code, so no policy line opens it. To read every project: use a full-view credential (README.md, "Level 1: Full view"), or give this account a role on each project you want seen.',
+      'Cinder scopes this list to the credential\'s own project in its code, so no policy line opens it. To read every project: use a full-view credential (README.md, "Level 1: Full view"), or give this account a role on each project you want seen, which on many clouds also lets it write there.',
+    ]);
+  });
+
+  test("Cinder's services and pools say which state goes without them, and that only a full view reads it", () => {
+    const lines = accessLines(run);
+    const at = lines.findIndex((line) => {
+      return line.includes("block-storage: services — refused");
+    });
+    expect(
+      lines.slice(at + 1, at + 3).map((line) => {
+        return line.trim();
+      }),
+    ).toEqual([
+      "Goes without it: cinder-volume and cinder-scheduler state on the Services page and Needs attention, and the alerts on them.",
+      'Cinder\'s own code asks for an admin here, after policy has already passed, so no policy line opens it. Only a full-view credential reads it (README.md, "Level 1: Full view").',
     ]);
   });
 
@@ -1226,7 +1341,6 @@ describe("the monitoring role with the policy overrides", () => {
     for (const read of [
       "compute: hypervisors",
       "network: agents",
-      "block-storage: pools",
       "placement: resource providers",
     ]) {
       expect(lineAbout(lines, read)).toBe(`✔ ${read} — reads everything`);
@@ -1235,10 +1349,162 @@ describe("the monitoring role with the policy overrides", () => {
       "▲ network: routers — may be own project only (every row is in one project)",
     );
     expect(run.output).toContain(
-      "• That adds up to Infrastructure only: control-plane health and capacity, with instances, volumes and routers only where this account has a role.",
+      "• That adds up to Infrastructure only: control-plane health and capacity, and every project's instances, with volumes, networks and routers only where this account has a role. Not cinder-volume or cinder-scheduler state, or storage pools: only a full-view credential reads those.",
     );
     expect(run.status).toBe(0);
   });
+
+  test("Cinder's services and pools being refused does not move it off Infrastructure only", () => {
+    const lines = accessLines(run);
+    for (const read of ["block-storage: services", "block-storage: pools"]) {
+      expect(lineAbout(lines, read)).toBe(`▲ ${read} — refused (HTTP 403)`);
+    }
+    expect(run.output).not.toContain("falls between the three levels");
+  });
+
+  test("Neutron's 409 on the security groups of a project with zero quota is expected, never a failure to fix", () => {
+    const lines = accessLines(run);
+    const at = lines.findIndex((line) => {
+      return line.includes("network: security groups — ");
+    });
+    expect(lines[at].trim()).toBe(
+      "• network: security groups — expected on a project with zero quota (HTTP 409)",
+    );
+    expect(lines[at + 1].trim()).toBe(
+      "Neutron tries to create the project's default security group when it lists them, and zero quota does not let it, so it answers 409 Quota exceeded. That is harmless, and nothing to fix: this project holds nothing, and Neutron would only show it its own.",
+    );
+    expect(run.output).toContain("Could not ask: 0.");
+    expect(run.output).toContain("Expected on a project with zero quota: 1.");
+  });
+});
+
+/* -------------------------------------------------- what real clouds answered */
+
+describe("on what real clouds answered", () => {
+  // Their status and row counts agree across the five: access-table.py would say.
+  const RELEASE = "hibiscus-ovn";
+  const SERVICE_OF = {
+    Keystone: "identity",
+    Nova: "compute",
+    Placement: "placement",
+    Neutron: "network",
+    Cinder: "block-storage",
+    Glance: "image",
+  };
+
+  // What the doctor must say of a read, by what the docs' table says of it.
+  const DOCTOR_SAYS = {
+    all: /^✔ .* — reads everything/,
+    "own project only": /^▲ .* — may be own project only/,
+    refused: /^▲ .* — refused \(HTTP 40[13]\)$/,
+    nothing:
+      /^▲ .* — may be own project only \(a 200 with nothing here to tell by\)$/,
+    "none recorded":
+      /^▲ .* — may be own project only \(a 200 with nothing here to tell by\)$/,
+    "409, expected":
+      /^• .* — expected on a project with zero quota \(HTTP 409\)$/,
+    // A public image proves nothing of its owner, so the doctor cannot call it everything.
+    "what anyone sees":
+      /^(✔ .* — reads everything|▲ .* — may be own project only \(a 200 with nothing here to tell by\))$/,
+  };
+
+  const table = spawnSync("python3", ["-I", "-B", ACCESS_TABLE], {
+    encoding: "utf8",
+  })
+    .stdout.trim()
+    .split("\n")
+    .slice(2)
+    .map((line) => {
+      const [read, ...levels] = line
+        .slice(2, -2)
+        .split(" | ")
+        .map((cell) => {
+          return cell.trim();
+        });
+      const service = read.slice(0, read.indexOf(":"));
+      return {
+        read: `${SERVICE_OF[service]}${read.slice(read.indexOf(":"))}`,
+        levels,
+      };
+    });
+
+  const LEVELS = [
+    {
+      level: 0,
+      matrix: "matrix-access-rules",
+      credential: "monitoring-admin-get",
+      onItsOwnProject: false,
+      roles: ["admin"],
+      tokenExtra: {
+        application_credential: {
+          id: APP_ID,
+          restricted: true,
+          access_rules: [{ path: "/v2.1/servers" }],
+        },
+      },
+      verdict:
+        "✔ That adds up to Full view: hypervisors, services and capacity, and every project's instances, volumes and networks.",
+    },
+    {
+      level: 1,
+      matrix: "matrix",
+      credential: "monitoring-role",
+      onItsOwnProject: false,
+      roles: ["reader", "oneuptime_monitoring"],
+      tokenExtra: {},
+      verdict:
+        "• That adds up to Infrastructure only: control-plane health and capacity, and every project's instances, with volumes, networks and routers only where this account has a role. Not cinder-volume or cinder-scheduler state, or storage pools: only a full-view credential reads those.",
+    },
+    {
+      level: 2,
+      matrix: "matrix-default-policy",
+      credential: "reader",
+      onItsOwnProject: true,
+      roles: ["reader"],
+      tokenExtra: {},
+      verdict:
+        "• That adds up to Project view: this credential's own project, and no infrastructure. Through the agent that means no instances either: the exporter asks Nova for all projects' servers, Nova refuses, and that read fails whole. Only a OneUptime probe, collecting without this agent, lists one project's instances.",
+    },
+  ];
+
+  test("the table has a row for every read recorded", () => {
+    expect(table.length).toBeGreaterThan(25);
+  });
+
+  test.each(LEVELS)(
+    "$credential: says of each read what the docs' table says, and adds up to the right level",
+    async ({
+      level,
+      matrix,
+      credential,
+      onItsOwnProject,
+      roles,
+      tokenExtra,
+      verdict,
+    }) => {
+      const cloud = await startCloud({
+        scenario: recorded(RELEASE, matrix, credential, onItsOwnProject),
+        roles,
+        tokenExtra,
+        services: ["compute", "placement", "network", "block-storage", "image"],
+      });
+      const run = await runDoctor(cloud);
+      await cloud.close();
+
+      const lines = accessLines(run);
+      for (const { read, levels } of table) {
+        const cell = levels[level];
+        expect({ read, cell, line: lineAbout(lines, read) }).toEqual({
+          read,
+          cell,
+          line: expect.stringMatching(DOCTOR_SAYS[cell]),
+        });
+      }
+      expect(run.output).toContain(verdict);
+      expect(run.output).toContain("Could not ask: 0.");
+      expect(run.status).toBe(0);
+    },
+  );
 });
 
 /* ------------------------------------------------------- what a 200 can prove */
@@ -1361,6 +1627,21 @@ describe("the other answers", () => {
     expect(run.output).toContain(
       "so its series go missing (the others keep reporting).",
     );
+  });
+
+  test("a 409 on anything but the security groups says nothing about the credential", async () => {
+    const cloud = await startCloud({
+      scenario: (read) => {
+        return read.label === "routers" ? { status: 409 } : fullView(read);
+      },
+    });
+    const run = await runDoctor(cloud);
+    await cloud.close();
+
+    expect(lineAbout(accessLines(run), "network: routers")).toBe(
+      "▲ network: routers — could not ask (HTTP 409). That says nothing about the credential: section 4 looks at the service.",
+    );
+    expect(run.output).not.toContain("Expected on a project with zero quota");
   });
 
   test("a 401 on a credential with access rules points at the rules and service_type", async () => {

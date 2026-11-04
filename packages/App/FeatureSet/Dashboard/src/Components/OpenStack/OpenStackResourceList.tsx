@@ -1,25 +1,54 @@
 import OpenStackResource from "Common/Models/DatabaseModels/OpenStackResource";
+import Route from "Common/Types/API/Route";
+import Includes from "Common/Types/BaseDatabase/Includes";
 import Query from "Common/Types/BaseDatabase/Query";
 import Select from "Common/Types/BaseDatabase/Select";
 import SortOrder from "Common/Types/BaseDatabase/SortOrder";
+import OneUptimeDate from "Common/Types/Date";
 import ObjectID from "Common/Types/ObjectID";
-import { OpenStackResourceKind } from "Common/Types/OpenStack/OpenStackResourceKind";
+import {
+  OpenStackResourceKind,
+  OpenStackServiceType,
+} from "Common/Types/OpenStack/OpenStackResourceKind";
 import { DropdownOption } from "Common/UI/Components/Dropdown/Dropdown";
+import Link from "Common/UI/Components/Link/Link";
 import Filter from "Common/UI/Components/ModelFilter/Filter";
 import Column from "Common/UI/Components/ModelTable/Column";
 import Columns from "Common/UI/Components/ModelTable/Columns";
 import ModelTable from "Common/UI/Components/ModelTable/ModelTable";
 import FieldType from "Common/UI/Components/Types/FieldType";
-import { translateTemplate } from "Common/UI/Utils/TranslateTemplate";
+import { translateTemplate, translateText } from "Common/UI/Utils/TranslateTemplate";
 import React, {
   FunctionComponent,
   MutableRefObject,
   ReactElement,
+  useEffect,
   useMemo,
   useRef,
   useState,
 } from "react";
+import {
+  RESOURCE_COLUMN_TONE_CLASS_NAMES,
+  ResourceColumnTone,
+} from "../Infrastructure/ResourceTable";
 import { formatBytes } from "../TelemetryResource/telemetryFormat";
+import {
+  fetchOpenStackApiStates,
+  fetchOpenStackNames,
+} from "../../Pages/OpenStack/Utils/OpenStackPartData";
+import {
+  OPENSTACK_SERVICE_OF_KIND,
+  OpenStackAllocationKey,
+  OpenStackAllocationLine,
+  OpenStackApiState,
+  OpenStackEmptyWords,
+  OpenStackRowState,
+  formatOpenStackAllocationRatio,
+  getOpenStackAllocationLines,
+  getOpenStackEmptyWords,
+  getOpenStackRowState,
+  getOpenStackTimeInState,
+} from "../../Pages/OpenStack/Utils/OpenStackPartFacts";
 import {
   fetchOpenStackHypervisorOptions,
   fetchOpenStackProjectNames,
@@ -27,8 +56,29 @@ import {
   fetchOpenStackRegionOptions,
   getOpenStackFact,
 } from "../../Pages/OpenStack/Utils/OpenStackResourceUtils";
+import useResourceOwners from "../ResourceOwners/useResourceOwners";
+import { ResourceFacet } from "../ResourceOwners/ResourceFacet";
+import { ResourceAttentionText } from "../ResourcePart/ResourceAttention";
+import {
+  OPENSTACK_PROJECT_FACET_KEY,
+  OPENSTACK_STATE_FACET_KEY,
+  OpenStackStatePreset,
+  getOpenStackStateFacet,
+} from "./OpenStackListFacets";
+import {
+  OpenStackRegionState,
+  useOpenStackRegion,
+} from "./OpenStackRegionContext";
 import { OPENSTACK_STATUS_WORDS } from "./OpenStackStatus";
+import useOpenStackDomainFilter, {
+  OPENSTACK_PROJECT_OWNED_KINDS,
+  OpenStackDomainFilter,
+} from "./UseOpenStackDomainFilter";
 import OpenStackStatusCell from "./OpenStackStatusCell";
+import {
+  OpenStackPartRoutes,
+  getOpenStackPartRoutes,
+} from "./Part/OpenStackPartRoutes";
 
 /*
  * Every inventory list of an OpenStack cloud. A cloud can hold hundreds of
@@ -39,7 +89,18 @@ import OpenStackStatusCell from "./OpenStackStatusCell";
  * A page says which rows it lists, which of the standard columns and filters they
  * have, and what to say when there are none: a list a credential cannot read looks
  * empty, and only the page knows what to say about that.
+ *
+ * A column that holds nothing for every row on the page is left out rather than drawn
+ * as a column of dashes: what isn't collected (an instance's addresses, say) has no
+ * place in a list, and its own page says it isn't collected.
  */
+
+// Keystone's, rather than any one region's.
+const OPENSTACK_KINDS_IN_NO_REGION: ReadonlySet<OpenStackResourceKind> =
+  new Set<OpenStackResourceKind>([
+    OpenStackResourceKind.Project,
+    OpenStackResourceKind.Domain,
+  ]);
 
 export enum OpenStackColumn {
   Status = "status",
@@ -49,6 +110,27 @@ export enum OpenStackColumn {
   AvailabilityZone = "availabilityZone",
   Hypervisor = "hypervisor",
   Project = "project",
+  // How long since OneUptime saw its status change. Sorts on the server.
+  TimeInState = "timeInState",
+}
+
+/*
+ * A column a page adds. `hasValue` says whether a row holds anything for it: a column no
+ * row on the page holds is left out. `getLink` makes its cell a step to another part's
+ * page, by the part's name when the list can find it.
+ */
+export interface OpenStackPartLink {
+  kind: OpenStackResourceKind;
+  externalId: string;
+  // Its name when the row already knows it.
+  text?: string | undefined;
+  // What it reads when nothing names it: a flavor's own id, without its region.
+  fallbackText?: string | undefined;
+}
+
+export interface OpenStackListColumn extends Column<OpenStackResource> {
+  hasValue?: ((row: OpenStackResource) => boolean) | undefined;
+  getLink?: ((row: OpenStackResource) => OpenStackPartLink | null) | undefined;
 }
 
 export enum OpenStackFilter {
@@ -77,8 +159,22 @@ export interface ComponentProps {
   getName?: ((row: OpenStackResource) => string) | undefined;
   statusTitle?: string | undefined;
   // The columns after the name, in order. Stable: a page declares them once.
-  columns: Array<OpenStackColumn | Column<OpenStackResource>>;
+  columns: Array<OpenStackColumn | OpenStackListColumn>;
   filters: Array<OpenStackFilter>;
+  /*
+   * The chips over the list. Each is a filter on the server, kept in the address.
+   * Stable, as the columns are.
+   */
+  facets?: Array<ResourceFacet> | undefined;
+  // States the list can be asked for by name, such as stuck.
+  statePresets?: Array<OpenStackStatePreset> | undefined;
+  // What opening a row opens: the part's own page.
+  getViewRoute?: ((row: OpenStackResource) => Route | undefined) | undefined;
+  /*
+   * Asks whether the service answering for this list is up, and when it is and a kind a
+   * working cloud always has reads empty, says this credential can't list it.
+   */
+  checkAccess?: boolean | undefined;
   // A family of services' own words for what an operator can set.
   adminStateWords?: ReadonlyArray<string> | undefined;
   searchPlaceholder?: string | undefined;
@@ -91,11 +187,20 @@ export interface ComponentProps {
 const SELECT_MORE: Select<OpenStackResource> = {
   kind: true,
   externalId: true,
+  status: true,
   adminState: true,
   disabledReason: true,
+  stateChangedAt: true,
   facts: true,
   regionName: true,
+  hypervisorName: true,
   openStackProjectId: true,
+  vcpuCapacity: true,
+  vcpuAllocated: true,
+  memoryCapacityBytes: true,
+  memoryAllocatedBytes: true,
+  diskCapacityBytes: true,
+  diskAllocatedBytes: true,
 };
 
 // A word OpenStack wrote: never looked up, in the filter as in the cell.
@@ -118,7 +223,12 @@ export function getOpenStackFactColumn(data: {
   title: string;
   getText: (row: OpenStackResource) => string;
   hideOnMobile?: boolean | undefined;
-}): Column<OpenStackResource> {
+  // The colour a value at the rules' lines reads in.
+  getTone?: ((row: OpenStackResource) => ResourceColumnTone | undefined) | undefined;
+  description?: string | undefined;
+  // Off until the viewer asks for it in Customize Columns.
+  isHiddenByDefault?: boolean | undefined;
+}): OpenStackListColumn {
   return {
     id: data.id,
     field: { facts: true },
@@ -126,12 +236,130 @@ export function getOpenStackFactColumn(data: {
     type: FieldType.Element,
     disableSort: true,
     hideOnMobile: data.hideOnMobile,
+    headerTooltip: data.description,
+    isHiddenByDefault: data.isHiddenByDefault,
+    hasValue: (row: OpenStackResource): boolean => {
+      return Boolean(data.getText(row));
+    },
     getElement: (row: OpenStackResource): ReactElement => {
-      return getFactCellText(data.getText(row));
+      const tone: ResourceColumnTone | undefined = data.getTone?.(row);
+      return tone ? (
+        <span className={RESOURCE_COLUMN_TONE_CLASS_NAMES[tone]}>
+          {getFactCellText(data.getText(row))}
+        </span>
+      ) : (
+        getFactCellText(data.getText(row))
+      );
     },
     getExportValue: (row: OpenStackResource): string => {
       return data.getText(row);
     },
+  };
+}
+
+// A step to another part's page, by its name when the list can find it.
+export function getOpenStackLinkColumn(data: {
+  id: string;
+  title: string;
+  field?: Column<OpenStackResource>["field"] | undefined;
+  getLink: (row: OpenStackResource) => OpenStackPartLink | null;
+  hideOnMobile?: boolean | undefined;
+  description?: string | undefined;
+}): OpenStackListColumn {
+  return {
+    id: data.id,
+    field: data.field || { facts: true },
+    title: data.title,
+    type: FieldType.Element,
+    disableSort: true,
+    hideOnMobile: data.hideOnMobile,
+    headerTooltip: data.description,
+    hasValue: (row: OpenStackResource): boolean => {
+      return Boolean(data.getLink(row));
+    },
+    getLink: data.getLink,
+  };
+}
+
+/*
+ * What is promised on a hypervisor out of what can be: "12 of 64 (19%)". Its colour is
+ * the allocation templates' line, its ratio is Placement's, and a hypervisor Nova lost
+ * says its numbers are last known, because that is all they are.
+ */
+export function getOpenStackAllocationColumn(data: {
+  key: OpenStackAllocationKey;
+  title: string;
+  field: "vcpuAllocated" | "memoryAllocatedBytes" | "diskAllocatedBytes";
+  format: (value: number) => string;
+  hideOnMobile?: boolean | undefined;
+}): OpenStackListColumn {
+  const lineOf: (row: OpenStackResource) => OpenStackAllocationLine | undefined =
+    (row: OpenStackResource): OpenStackAllocationLine | undefined => {
+      return getOpenStackAllocationLines(row).find(
+        (line: OpenStackAllocationLine): boolean => {
+          return line.key === data.key;
+        },
+      );
+    };
+
+  const getText: (row: OpenStackResource) => string = (
+    row: OpenStackResource,
+  ): string => {
+    const line: OpenStackAllocationLine | undefined = lineOf(row);
+    return line
+      ? formatOpenStackAmount({
+          taken: line.taken,
+          capacity: line.capacity,
+          format: data.format,
+        })
+      : "";
+  };
+
+  return {
+    field: { [data.field]: true },
+    title: data.title,
+    type: FieldType.Element,
+    hideOnMobile: data.hideOnMobile,
+    hasValue: (row: OpenStackResource): boolean => {
+      return Boolean(getText(row));
+    },
+    getElement: (row: OpenStackResource): ReactElement => {
+      const line: OpenStackAllocationLine | undefined = lineOf(row);
+      const text: string = getText(row);
+      if (!line || !text) {
+        return getFactCellText("");
+      }
+      const percent: string =
+        line.percent === null ? "" : ` (${Math.round(line.percent)}%)`;
+      const ratio: string = formatOpenStackAllocationRatio(line.ratio);
+      return (
+        <div className="flex flex-col">
+          <span
+            className={
+              line.isLastKnown
+                ? "text-gray-400"
+                : line.isOverLine
+                  ? RESOURCE_COLUMN_TONE_CLASS_NAMES.warning
+                  : undefined
+            }
+          >
+            <bdi>{`${text}${percent}`}</bdi>
+          </span>
+          {line.isLastKnown ? (
+            <span className="text-xs text-gray-500">
+              {translateText("last known")}
+            </span>
+          ) : ratio ? (
+            <span className="text-xs text-gray-400">
+              {translateTemplate("ratio {{ratio}}", { ratio })}
+            </span>
+          ) : (
+            <></>
+          )}
+        </div>
+      );
+    },
+    getExportValue: getText,
   };
 }
 
@@ -173,7 +401,9 @@ export function getOpenStackAmountColumn(data: {
   capacityField: "vcpuCapacity" | "memoryCapacityBytes" | "diskCapacityBytes";
   format: (value: number) => string;
   hideOnMobile?: boolean | undefined;
-}): Column<OpenStackResource> {
+  // The colour a value at the rules' lines reads in.
+  getTone?: ((row: OpenStackResource) => ResourceColumnTone | undefined) | undefined;
+}): OpenStackListColumn {
   const getText: (row: OpenStackResource) => string = (
     row: OpenStackResource,
   ): string => {
@@ -189,8 +419,18 @@ export function getOpenStackAmountColumn(data: {
     title: data.title,
     type: FieldType.Element,
     hideOnMobile: data.hideOnMobile,
+    hasValue: (row: OpenStackResource): boolean => {
+      return Boolean(getText(row));
+    },
     getElement: (row: OpenStackResource): ReactElement => {
-      return getFactCellText(getText(row));
+      const tone: ResourceColumnTone | undefined = data.getTone?.(row);
+      return tone ? (
+        <span className={RESOURCE_COLUMN_TONE_CLASS_NAMES[tone]}>
+          {getFactCellText(getText(row))}
+        </span>
+      ) : (
+        getFactCellText(getText(row))
+      );
     },
     getExportValue: getText,
   };
@@ -202,7 +442,7 @@ export function getOpenStackSizeColumn(data: {
   field: "vcpuCapacity" | "memoryCapacityBytes" | "diskCapacityBytes";
   format: (value: number) => string;
   hideOnMobile?: boolean | undefined;
-}): Column<OpenStackResource> {
+}): OpenStackListColumn {
   const getText: (row: OpenStackResource) => string = (
     row: OpenStackResource,
   ): string => {
@@ -215,11 +455,76 @@ export function getOpenStackSizeColumn(data: {
     title: data.title,
     type: FieldType.Element,
     hideOnMobile: data.hideOnMobile,
+    hasValue: (row: OpenStackResource): boolean => {
+      return Boolean(getText(row));
+    },
     getElement: (row: OpenStackResource): ReactElement => {
       return getFactCellText(getText(row));
     },
     getExportValue: getText,
   };
+}
+
+// The rows of the standard columns that can be missing from every row of a page.
+const STANDARD_COLUMN_FIELDS: Partial<
+  Record<OpenStackColumn, keyof OpenStackResource>
+> = {
+  [OpenStackColumn.AdminState]: "adminState",
+  [OpenStackColumn.DisabledReason]: "disabledReason",
+  [OpenStackColumn.Region]: "regionName",
+  [OpenStackColumn.AvailabilityZone]: "availabilityZone",
+  [OpenStackColumn.Hypervisor]: "hypervisorName",
+  [OpenStackColumn.Project]: "openStackProjectId",
+};
+
+function isCustomColumn(
+  column: OpenStackColumn | OpenStackListColumn,
+): column is OpenStackListColumn {
+  return typeof column !== "string";
+}
+
+function columnHasValue(
+  column: OpenStackColumn | OpenStackListColumn,
+  row: OpenStackResource,
+): boolean {
+  if (isCustomColumn(column)) {
+    return column.hasValue ? column.hasValue(row) : true;
+  }
+  const field: keyof OpenStackResource | undefined =
+    STANDARD_COLUMN_FIELDS[column];
+  return field ? Boolean(row[field]) : true;
+}
+
+// A key for a page's set of columns with nothing in them, so a read that changes none of them redraws none of them.
+function getEmptyColumnKey(
+  columns: Array<OpenStackColumn | OpenStackListColumn>,
+  rows: Array<OpenStackResource>,
+): string {
+  return columns
+    .map((column: OpenStackColumn | OpenStackListColumn, index: number) => {
+      return rows.some((row: OpenStackResource): boolean => {
+        return columnHasValue(column, row);
+      })
+        ? ""
+        : `${index}`;
+    })
+    .join(",");
+}
+
+/*
+ * What a row's state column says beyond OpenStack's word. Not for an API's or a worker's
+ * row: those read their own word and nothing more, and the Services page says the rest.
+ */
+function getOpenStackListState(
+  row: OpenStackResource,
+): OpenStackRowState | null {
+  if (
+    row.kind === OpenStackResourceKind.Api ||
+    row.kind === OpenStackResourceKind.Service
+  ) {
+    return null;
+  }
+  return getOpenStackRowState(row, OneUptimeDate.getCurrentDate());
 }
 
 const OpenStackResourceList: FunctionComponent<ComponentProps> = (
@@ -234,12 +539,134 @@ const OpenStackResourceList: FunctionComponent<ComponentProps> = (
     new Set<string>(),
   );
 
+  // The same for what a row links to: an instance's flavor, a volume's instance.
+  const [partNames, setPartNames] = useState<Record<string, string>>({});
+  const askedPartIds: MutableRefObject<Set<string>> = useRef<Set<string>>(
+    new Set<string>(),
+  );
+
+  const routes: OpenStackPartRoutes = useMemo(() => {
+    return getOpenStackPartRoutes(props.openStackCloudId);
+  }, [props.openStackCloudId]);
+
+  /*
+   * A column no row on the page holds is left out. Until a page has arrived, none of the
+   * ones that can be empty are drawn, so a column never appears and then goes.
+   */
+  const [emptyColumnKey, setEmptyColumnKey] = useState<string>(
+    getEmptyColumnKey(props.columns, []),
+  );
+
   const showsProject: boolean = props.columns.includes(OpenStackColumn.Project);
+
+  const [apiState, setApiState] = useState<OpenStackApiState>("not-reported");
+
+  const serviceType: OpenStackServiceType | undefined =
+    OPENSTACK_SERVICE_OF_KIND[props.kind];
+
+  useEffect(() => {
+    if (!props.checkAccess || !serviceType) {
+      return;
+    }
+    let ignore: boolean = false;
+    fetchOpenStackApiStates(props.openStackCloudId)
+      .then((states: Record<string, OpenStackApiState>) => {
+        if (!ignore) {
+          setApiState(states[serviceType] || "not-reported");
+        }
+      })
+      .catch(() => {
+        // The page's own words for an empty list are still true.
+      });
+    // eslint-disable-next-line consistent-return
+    return () => {
+      ignore = true;
+    };
+  }, [props.checkAccess, props.openStackCloudId.toString(), serviceType]);
+
+  const facets: Array<ResourceFacet> = useMemo(() => {
+    return [
+      ...(props.statePresets && props.statePresets.length > 0
+        ? [getOpenStackStateFacet(props.statePresets)]
+        : []),
+      ...(props.facets || []),
+    ];
+  }, [props.facets, props.statePresets]);
+
+  const {
+    filterBar,
+    emptyState: facetEmptyState,
+    mergeFiltersIntoQuery,
+    facetSelections,
+    setFacetSelection,
+  } = useResourceOwners<OpenStackResource>({
+    showOwnerFacet: false,
+    showLabelsFacet: false,
+    extraFacets: facets,
+    persistKey: facets.length > 0 ? props.tableId : undefined,
+  });
+
+  const statePresetValue: string | undefined =
+    facetSelections[OPENSTACK_STATE_FACET_KEY]?.[0];
+
+  /*
+   * Worked out once for a choice of state, not on every draw: a time that moved with each
+   * draw would be a new query each time, and the table reads again for a new query.
+   */
+  const statePresetQuery: Query<OpenStackResource> = useMemo(() => {
+    const preset: OpenStackStatePreset | undefined = props.statePresets?.find(
+      (candidate: OpenStackStatePreset): boolean => {
+        return candidate.value === statePresetValue;
+      },
+    );
+    return preset ? preset.getQuery(OneUptimeDate.getCurrentDate()) : {};
+  }, [statePresetValue, props.statePresets]);
 
   const onFetchSuccess: (rows: Array<OpenStackResource>) => void = (
     rows: Array<OpenStackResource>,
   ): void => {
     props.onRowsFetched?.(rows);
+
+    setEmptyColumnKey(getEmptyColumnKey(props.columns, rows));
+
+    const idsByKind: Map<OpenStackResourceKind, Array<string>> = new Map();
+
+    for (const column of props.columns) {
+      if (!isCustomColumn(column) || !column.getLink) {
+        continue;
+      }
+      for (const row of rows) {
+        const link: OpenStackPartLink | null = column.getLink(row);
+        const key: string = link ? `${link.kind}/${link.externalId}` : "";
+        if (link && !link.text && !askedPartIds.current.has(key)) {
+          askedPartIds.current.add(key);
+          idsByKind.set(link.kind, [
+            ...(idsByKind.get(link.kind) || []),
+            link.externalId,
+          ]);
+        }
+      }
+    }
+
+    for (const [kind, externalIds] of idsByKind.entries()) {
+      fetchOpenStackNames({
+        openStackCloudId: props.openStackCloudId,
+        kind,
+        externalIds,
+      })
+        .then((names: Record<string, string>) => {
+          setPartNames((known: Record<string, string>) => {
+            const next: Record<string, string> = { ...known };
+            for (const externalId of Object.keys(names)) {
+              next[`${kind}/${externalId}`] = names[externalId] as string;
+            }
+            return next;
+          });
+        })
+        .catch(() => {
+          // Its ID stands in for its name, and is just as true.
+        });
+    }
 
     if (!showsProject) {
       return;
@@ -274,7 +701,7 @@ const OpenStackResourceList: FunctionComponent<ComponentProps> = (
       });
   };
 
-  const query: Query<OpenStackResource> = useMemo(() => {
+  const scopedQuery: Query<OpenStackResource> = useMemo(() => {
     return {
       openStackCloudId: props.openStackCloudId,
       kind: props.kind,
@@ -282,8 +709,73 @@ const OpenStackResourceList: FunctionComponent<ComponentProps> = (
     };
   }, [props.openStackCloudId, props.kind, props.query]);
 
+  /*
+   * The chips, then the state the list was asked for. A status chip beside a state chip
+   * narrows it, rather than being written over.
+   */
+  const merged: Query<OpenStackResource> = mergeFiltersIntoQuery(scopedQuery);
+  const domainFilter: OpenStackDomainFilter = useOpenStackDomainFilter({
+    openStackCloudId: props.openStackCloudId,
+    kind: props.kind,
+    chosenProjectIds: facetSelections[OPENSTACK_PROJECT_FACET_KEY],
+  });
+  const { region }: OpenStackRegionState = useOpenStackRegion();
+
+  /*
+   * A list with a Project chip has one Project filter, and it is the chip: its choices
+   * are searched on the server, so a cloud of thousands of projects can reach them all.
+   * A link that opens the list on a project lights that chip, where it can be cleared
+   * like any other, and the first read already asks for that project alone.
+   */
+  const hasProjectChip: boolean = facets.some(
+    (facet: ResourceFacet): boolean => {
+      return facet.key === OPENSTACK_PROJECT_FACET_KEY;
+    },
+  );
+  const [linkedProjectId, setLinkedProjectId] = useState<string | null>(
+    hasProjectChip && !facetSelections[OPENSTACK_PROJECT_FACET_KEY]?.length
+      ? domainFilter.initialProjectId
+      : null,
+  );
+
+  useEffect(() => {
+    if (linkedProjectId) {
+      setFacetSelection(OPENSTACK_PROJECT_FACET_KEY, [linkedProjectId]);
+      setLinkedProjectId(null);
+    }
+  }, [linkedProjectId]);
+
+  const query: Query<OpenStackResource> = {
+    // A list asked for one region keeps it, and a project is in no region at all.
+    ...(region && !OPENSTACK_KINDS_IN_NO_REGION.has(props.kind)
+      ? { regionName: region }
+      : {}),
+    ...merged,
+    ...statePresetQuery,
+    ...(statePresetQuery.status && merged.status
+      ? { status: merged.status }
+      : {}),
+    ...(linkedProjectId
+      ? { openStackProjectId: new Includes([linkedProjectId]) }
+      : {}),
+    ...domainFilter.query,
+  };
+
+  // Every list of what a project owns can be narrowed to one, whichever page draws it.
+  const filterChoices: Array<OpenStackFilter> =
+    OPENSTACK_PROJECT_OWNED_KINDS.has(props.kind) &&
+    !hasProjectChip &&
+    !props.filters.includes(OpenStackFilter.Project)
+      ? [...props.filters, OpenStackFilter.Project]
+      : props.filters;
+
+  const emptyWords: OpenStackEmptyWords | null = getOpenStackEmptyWords({
+    kind: props.kind,
+    api: apiState,
+  });
+
   const filters: Array<Filter<OpenStackResource>> = useMemo(() => {
-    return props.filters.map(
+    return filterChoices.map(
       (filter: OpenStackFilter): Filter<OpenStackResource> => {
         switch (filter) {
           case OpenStackFilter.Status:
@@ -368,12 +860,57 @@ const OpenStackResourceList: FunctionComponent<ComponentProps> = (
     };
 
     const toColumn: (
-      column: OpenStackColumn | Column<OpenStackResource>,
+      column: OpenStackColumn | OpenStackListColumn,
     ) => Column<OpenStackResource> = (
-      column: OpenStackColumn | Column<OpenStackResource>,
+      column: OpenStackColumn | OpenStackListColumn,
     ): Column<OpenStackResource> => {
-      if (typeof column !== "string") {
-        return column;
+      if (isCustomColumn(column)) {
+        const getLink:
+          | ((row: OpenStackResource) => OpenStackPartLink | null)
+          | undefined = column.getLink;
+
+        if (!getLink) {
+          return column;
+        }
+
+        const getLinkText: (link: OpenStackPartLink) => string = (
+          link: OpenStackPartLink,
+        ): string => {
+          return (
+            link.text ||
+            partNames[`${link.kind}/${link.externalId}`] ||
+            link.fallbackText ||
+            link.externalId
+          );
+        };
+
+        return {
+          ...column,
+          getElement: (row: OpenStackResource): ReactElement => {
+            const link: OpenStackPartLink | null = getLink(row);
+            if (!link) {
+              return getFactCellText("");
+            }
+            const route: Route | undefined = routes.getPartRoute(
+              link.kind,
+              link.externalId,
+            );
+            return route ? (
+              <Link
+                to={route}
+                className="text-indigo-600 hover:text-indigo-700 hover:underline"
+              >
+                <bdi>{getLinkText(link)}</bdi>
+              </Link>
+            ) : (
+              getFactCellText(getLinkText(link))
+            );
+          },
+          getExportValue: (row: OpenStackResource): string => {
+            const link: OpenStackPartLink | null = getLink(row);
+            return link ? getLinkText(link) : "";
+          },
+        };
       }
 
       switch (column) {
@@ -384,6 +921,8 @@ const OpenStackResourceList: FunctionComponent<ComponentProps> = (
             type: FieldType.Element,
             // Beside a Reason column, the reason is not said twice.
             getElement: (row: OpenStackResource): ReactElement => {
+              const state: OpenStackRowState | null =
+                getOpenStackListState(row);
               return (
                 <OpenStackStatusCell
                   kind={row.kind}
@@ -393,6 +932,12 @@ const OpenStackResourceList: FunctionComponent<ComponentProps> = (
                   isScrapeFailed={
                     getOpenStackFact(row, "scrapeFailed") === true
                   }
+                  stateChangedAt={row.stateChangedAt}
+                  now={OneUptimeDate.getCurrentDate()}
+                  label={state?.label}
+                  isOpenStackWord={state?.isOpenStackWord}
+                  tone={state?.tone}
+                  reasons={state?.reasons as Array<ResourceAttentionText>}
                   showReason={
                     !props.columns.includes(OpenStackColumn.DisabledReason)
                   }
@@ -401,6 +946,26 @@ const OpenStackResourceList: FunctionComponent<ComponentProps> = (
             },
             getExportValue: (row: OpenStackResource): string => {
               return row.status || "";
+            },
+          };
+        case OpenStackColumn.TimeInState:
+          return {
+            field: { stateChangedAt: true },
+            title: "In state for",
+            type: FieldType.Element,
+            hideOnMobile: true,
+            headerTooltip:
+              "How long since OneUptime saw its status change. A part that was already in this state when OneUptime first saw it counts from then.",
+            getElement: (row: OpenStackResource): ReactElement => {
+              return getFactCellText(
+                getOpenStackTimeInState(row, OneUptimeDate.getCurrentDate()),
+              );
+            },
+            getExportValue: (row: OpenStackResource): string => {
+              return getOpenStackTimeInState(
+                row,
+                OneUptimeDate.getCurrentDate(),
+              );
             },
           };
         case OpenStackColumn.AdminState:
@@ -435,8 +1000,30 @@ const OpenStackResourceList: FunctionComponent<ComponentProps> = (
           return {
             field: { hypervisorName: true },
             title: "Hypervisor",
-            type: FieldType.Text,
+            type: FieldType.Element,
             hideOnMobile: true,
+            getElement: (row: OpenStackResource): ReactElement => {
+              if (!row.hypervisorName) {
+                return getFactCellText("");
+              }
+              const route: Route | undefined = routes.getHypervisorRoute(
+                row.regionName,
+                row.hypervisorName,
+              );
+              return route ? (
+                <Link
+                  to={route}
+                  className="text-indigo-600 hover:text-indigo-700 hover:underline"
+                >
+                  <bdi>{row.hypervisorName}</bdi>
+                </Link>
+              ) : (
+                getFactCellText(row.hypervisorName)
+              );
+            },
+            getExportValue: (row: OpenStackResource): string => {
+              return row.hypervisorName || "";
+            },
           };
         case OpenStackColumn.Project:
           return {
@@ -445,7 +1032,23 @@ const OpenStackResourceList: FunctionComponent<ComponentProps> = (
             type: FieldType.Element,
             hideOnMobile: true,
             getElement: (row: OpenStackResource): ReactElement => {
-              return getFactCellText(getProjectText(row));
+              const text: string = getProjectText(row);
+              const route: Route | undefined = row.openStackProjectId
+                ? routes.getPartRoute(
+                    OpenStackResourceKind.Project,
+                    row.openStackProjectId,
+                  )
+                : undefined;
+              return route && text ? (
+                <Link
+                  to={route}
+                  className="text-indigo-600 hover:text-indigo-700 hover:underline"
+                >
+                  <bdi>{text}</bdi>
+                </Link>
+              ) : (
+                getFactCellText(text)
+              );
             },
             getExportValue: getProjectText,
           };
@@ -470,7 +1073,16 @@ const OpenStackResourceList: FunctionComponent<ComponentProps> = (
         },
         getExportValue: getName,
       },
-      ...props.columns.map(toColumn),
+      ...props.columns
+        .filter(
+          (
+            _column: OpenStackColumn | OpenStackListColumn,
+            index: number,
+          ): boolean => {
+            return !emptyColumnKey.split(",").includes(`${index}`);
+          },
+        )
+        .map(toColumn),
     ];
   }, [
     props.columns,
@@ -478,6 +1090,9 @@ const OpenStackResourceList: FunctionComponent<ComponentProps> = (
     props.nameTitle,
     props.statusTitle,
     projectNames,
+    partNames,
+    routes,
+    emptyColumnKey,
   ]);
 
   return (
@@ -492,15 +1107,37 @@ const OpenStackResourceList: FunctionComponent<ComponentProps> = (
       isDeleteable={false}
       isEditable={false}
       isCreateable={false}
-      isViewable={false}
+      isViewable={Boolean(props.getViewRoute)}
+      onViewPage={
+        props.getViewRoute
+          ? async (row: OpenStackResource): Promise<Route> => {
+              return (
+                props.getViewRoute?.(row) ||
+                routes.getPartListRoute(props.kind)
+              );
+            }
+          : undefined
+      }
       showRefreshButton={true}
       cardProps={{
         title: props.title,
         description: props.description,
+        ...(domainFilter.buttons.length > 0
+          ? { buttons: domainFilter.buttons }
+          : {}),
       }}
+      {...(domainFilter.initialProjectId && !hasProjectChip
+        ? {
+            initialFilterData: {
+              openStackProjectId: domainFilter.initialProjectId,
+            },
+          }
+        : {})}
+      topContent={facets.length > 0 ? filterBar : undefined}
       emptyState={{
-        title: props.emptyTitle,
-        description: props.emptyDescription,
+        ...(facets.length > 0 ? facetEmptyState : {}),
+        title: emptyWords?.title || props.emptyTitle,
+        description: emptyWords?.description || props.emptyDescription,
         hideCreateButton: true,
       }}
       searchableFields={["name", "externalId"]}

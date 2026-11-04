@@ -27,8 +27,9 @@ import { PROJECT_ID, goTo } from "./SideMenuHarness";
  *    because a cloud can hold hundreds of thousands of rows;
  *  - a row's project reads by name, from the few rows that name the page's projects;
  *  - a service someone disabled reads Disabled, with their reason, on its own row;
- *  - the Overview says what the cloud holds and what is promised, says nothing about
- *    health, and shows the setup guide instead of zeros for a cloud with no data.
+ *  - the Overview reads what is wrong from the rules, says what the cloud holds and what
+ *    is promised, asks nothing current of a cloud that has stopped reporting, and shows
+ *    the setup guide instead of zeros for a cloud with no data.
  */
 
 configure({ asyncUtilTimeout: 15000 });
@@ -175,6 +176,10 @@ const EMPTY_SUMMARY: JSONObject = Object.fromEntries(
 let summary: JSONObject | HTTPErrorResponse = FULL_SUMMARY;
 let cloud: OpenStackCloud | null = null;
 
+// What a read other than the summary answers, by a piece of its address.
+let posted: Record<string, JSONObject | HTTPErrorResponse> = {};
+let postedTo: Array<{ url: string; body: JSONObject }> = [];
+
 function cloudWith(values: Partial<OpenStackCloud>): OpenStackCloud {
   const item: OpenStackCloud = new OpenStackCloud();
   item.name = "prod-eu";
@@ -189,6 +194,8 @@ beforeEach(() => {
   };
   summary = FULL_SUMMARY;
   cloud = null;
+  posted = {};
+  postedTo = [];
   PermissionGate.clearPermissionPropsCache();
   TableFilterUrlState.resetClaimedKeys();
   window.localStorage.clear();
@@ -217,8 +224,17 @@ beforeEach(() => {
     return cloud;
   }) as never);
   jest.spyOn(API, "get").mockResolvedValue({ data: {} } as never);
-  jest.spyOn(API, "post").mockImplementation((async () => {
-    return summary instanceof HTTPErrorResponse ? summary : { data: summary };
+  jest.spyOn(API, "post").mockImplementation((async (options: any) => {
+    const url: string = options.url.toString();
+    postedTo.push({ url, body: options.data || {} });
+    const key: string | undefined = Object.keys(posted).find(
+      (piece: string): boolean => {
+        return url.includes(piece);
+      },
+    );
+    const answer: JSONObject | HTTPErrorResponse =
+      key !== undefined ? (posted[key] as JSONObject) : summary;
+    return answer instanceof HTTPErrorResponse ? answer : { data: answer };
   }) as never);
 });
 
@@ -387,101 +403,251 @@ describe("a list reads one page of one kind of one cloud", () => {
 });
 
 describe("the Services page", () => {
-  test("has a table for the APIs and one for each family, by the family's rows", async () => {
+  function worker(values: Partial<OpenStackResource>): OpenStackResource {
+    const facts: JSONObject = (values.facts as JSONObject) || {};
+    return row({
+      kind: OpenStackResourceKind.Service,
+      name: "nova-compute",
+      status: "up",
+      adminState: "enabled",
+      regionName: "RegionOne",
+      externalId: `RegionOne/${facts["family"]}/${facts["host"]}/${values.name}`,
+      ...values,
+    });
+  }
+
+  function workersRowsOf(
+    apis: Array<OpenStackResource>,
+    workers: Array<OpenStackResource>,
+  ): (call: ListCall) => Array<OpenStackResource> {
+    return (call: ListCall): Array<OpenStackResource> => {
+      if (kindOf(call) === OpenStackResourceKind.Api) {
+        return apis;
+      }
+      return kindOf(call) === OpenStackResourceKind.Service ? workers : [];
+    };
+  }
+
+  function api(name: string, status: string = "up"): OpenStackResource {
+    return row({
+      kind: OpenStackResourceKind.Api,
+      name,
+      externalId: `RegionOne/${name}`,
+      status,
+      regionName: "RegionOne",
+    });
+  }
+
+  function workerRowOn(host: string): HTMLElement {
+    return document.querySelector(
+      `[data-testid="openstack-service-worker"][data-host="${host}"]`,
+    ) as HTMLElement;
+  }
+
+  test("reads this cloud's APIs and workers whole, and says when it has none", async () => {
     await renderPage(OpenStackCloudServices, "/services");
 
-    expect(await screen.findByText("No APIs reported yet")).toBeInTheDocument();
     expect(
-      screen.getByText("No compute services reported yet"),
+      await screen.findByTestId("openstack-services-empty"),
     ).toBeInTheDocument();
-    expect(
-      screen.getByText("No network agents reported yet"),
-    ).toBeInTheDocument();
-    expect(
-      screen.getByText("No volume services reported yet"),
-    ).toBeInTheDocument();
+    expect(screen.getByText("No services reported yet")).toBeInTheDocument();
 
-    const families: Array<unknown> = tableCalls(
-      OpenStackResourceKind.Service,
-    ).map((call: ListCall): unknown => {
-      return (call.query["facts"] as JSONObject)["family"];
-    });
-
-    expect(new Set(families)).toEqual(
-      new Set(["compute", "network", "volume"]),
+    const reads: Array<ListCall> = listCalls.filter(
+      (call: ListCall): boolean => {
+        return call.modelType === OpenStackResource;
+      },
     );
+    expect(new Set(reads.map(kindOf))).toEqual(
+      new Set([OpenStackResourceKind.Api, OpenStackResourceKind.Service]),
+    );
+    for (const read of reads) {
+      expect(String(read.query["openStackCloudId"])).toBe(CLOUD_ID);
+    }
   });
 
   test("a service someone disabled reads Disabled, with their reason, and no alarm", async () => {
-    rowsFor = (call: ListCall): Array<OpenStackResource> => {
-      const family: unknown = (call.query["facts"] as JSONObject | undefined)?.[
-        "family"
-      ];
-      return family === "compute"
-        ? [
-            row({
-              _id: "6c1b2a3d-4e5f-4a6b-8c7d-9e0f1a2b3c4d",
-              kind: OpenStackResourceKind.Service,
-              name: "nova-compute",
-              externalId: "RegionOne/compute/compute-12/nova-compute",
-              status: "down",
-              adminState: "disabled",
-              disabledReason: "Hardware swap, CHG-1042",
-              regionName: "RegionOne",
-              facts: { family: "compute", host: "compute-12" },
-            }),
-            row({
-              _id: "7c1b2a3d-4e5f-4a6b-8c7d-9e0f1a2b3c4d",
-              kind: OpenStackResourceKind.Service,
-              name: "nova-compute",
-              externalId: "RegionOne/compute/compute-07/nova-compute",
-              status: "down",
-              adminState: "enabled",
-              regionName: "RegionOne",
-              facts: { family: "compute", host: "compute-07" },
-            }),
-          ]
-        : [];
-    };
+    rowsFor = workersRowsOf(
+      [api("compute")],
+      [
+        worker({
+          status: "down",
+          adminState: "disabled",
+          disabledReason: "Hardware swap, CHG-1042",
+          facts: { family: "compute", host: "compute-12" },
+        }),
+        worker({
+          status: "down",
+          facts: { family: "compute", host: "compute-07" },
+        }),
+      ],
+    );
 
     await renderPage(OpenStackCloudServices, "/services");
 
-    const disabledRow: HTMLElement = (
-      await screen.findByText("compute-12")
-    ).closest("tr") as HTMLElement;
+    await screen.findByTestId("openstack-service-group");
+
+    const disabledRow: HTMLElement = workerRowOn("compute-12");
     expect(within(disabledRow).getByText("Disabled")).toBeInTheDocument();
-    expect(within(disabledRow).getByText("disabled")).toBeInTheDocument();
+    expect(within(disabledRow).getByText(/^disabled/)).toBeInTheDocument();
     expect(
       within(disabledRow).getByText("Hardware swap, CHG-1042"),
     ).toBeInTheDocument();
     expect(disabledRow.querySelector('[data-tone="danger"]')).toBeNull();
 
-    const downRow: HTMLElement = screen
-      .getByText("compute-07")
-      .closest("tr") as HTMLElement;
+    const downRow: HTMLElement = workerRowOn("compute-07");
     expect(downRow.querySelector('[data-tone="danger"]')).not.toBeNull();
     expect(within(downRow).getByText("down")).toBeInTheDocument();
+
+    // What needs someone comes first, whichever order the rows arrived in.
+    const hosts: Array<string | null> = screen
+      .getAllByTestId("openstack-service-worker")
+      .map((element: HTMLElement): string | null => {
+        return element.getAttribute("data-host");
+      });
+    expect(hosts).toEqual(["compute-07", "compute-12"]);
   });
 
-  test("an API reads by its service's name", async () => {
-    rowsFor = (call: ListCall): Array<OpenStackResource> => {
-      return kindOf(call) === OpenStackResourceKind.Api
-        ? [
-            row({
-              _id: "6c1b2a3d-4e5f-4a6b-8c7d-9e0f1a2b3c4d",
-              kind: OpenStackResourceKind.Api,
-              name: "compute",
-              externalId: "RegionOne/compute",
-              status: "up",
-              regionName: "RegionOne",
-            }),
-          ]
-        : [];
-    };
+  test("a group of disabled workers raises nothing", async () => {
+    rowsFor = workersRowsOf(
+      [api("compute")],
+      [
+        worker({
+          status: "down",
+          adminState: "disabled",
+          stateChangedAt: new Date(),
+          facts: { family: "compute", host: "compute-12" },
+        }),
+      ],
+    );
+
+    await renderPage(OpenStackCloudServices, "/services");
+
+    expect(await screen.findByTestId("openstack-service-group")).toHaveAttribute(
+      "data-health",
+      "Healthy",
+    );
+  });
+
+  test("an API reads by its service's name, in the order of Keystone's catalog", async () => {
+    rowsFor = workersRowsOf([api("image"), api("compute"), api("identity")], []);
 
     await renderPage(OpenStackCloudServices, "/services");
 
     expect(await screen.findByText("Compute (Nova)")).toBeInTheDocument();
+    expect(
+      screen
+        .getAllByTestId("openstack-service-group")
+        .map((element: HTMLElement): string | null => {
+          return element.getAttribute("data-service");
+        }),
+    ).toEqual(["identity", "compute", "image"]);
+  });
+
+  test("Neutron's card says which backend its agents are, and its word for what an operator set", async () => {
+    rowsFor = workersRowsOf(
+      [api("network")],
+      [
+        worker({
+          name: "ovn-controller",
+          status: "down",
+          adminState: "up",
+          facts: { family: "network", host: "compute-01" },
+        }),
+      ],
+    );
+
+    await renderPage(OpenStackCloudServices, "/services");
+
+    expect(
+      await screen.findByTestId("openstack-service-group-backend"),
+    ).toHaveTextContent("OVN");
+    expect(
+      within(workerRowOn("compute-01")).getByText(/^Admin up/),
+    ).toBeInTheDocument();
+  });
+
+  test("an API that isn't answering says its workers read as they last did", async () => {
+    rowsFor = workersRowsOf(
+      [api("compute", "down")],
+      [worker({ facts: { family: "compute", host: "compute-01" } })],
+    );
+
+    await renderPage(OpenStackCloudServices, "/services");
+
+    expect(
+      await screen.findByTestId("openstack-service-group-last-known"),
+    ).toBeInTheDocument();
+  });
+
+  test("a stale record beside a live agent reads as stale, and the agent as up", async () => {
+    rowsFor = workersRowsOf(
+      [api("network")],
+      [
+        worker({
+          name: "ovn-controller",
+          adminState: "up",
+          facts: {
+            family: "network",
+            host: "compute-01",
+            staleAgentIds: ["dead-record"],
+          },
+        }),
+      ],
+    );
+
+    await renderPage(OpenStackCloudServices, "/services");
+
+    expect(
+      await screen.findByTestId("openstack-service-worker-stale"),
+    ).toHaveTextContent(/stale record/);
+    expect(workerRowOn("compute-01")).toHaveAttribute("data-status", "up");
+  });
+
+  test("an up API with nothing to list says the credential can't, only while it reports", async () => {
+    rowsFor = workersRowsOf([api("compute")], []);
+    cloud = cloudWith({
+      otelCollectorStatus: "connected",
+      lastSeenAt: new Date(),
+    });
+
+    await renderPage(OpenStackCloudServices, "/services");
+
+    expect(
+      await screen.findByText("This credential can't list compute services"),
+    ).toBeInTheDocument();
+  });
+
+  test("a cloud that has stopped reporting says so, and asks nothing of its credential", async () => {
+    rowsFor = workersRowsOf([api("compute")], []);
+    cloud = cloudWith({
+      otelCollectorStatus: "disconnected",
+      lastSeenAt: new Date("2026-11-01T00:00:00.000Z"),
+    });
+
+    await renderPage(OpenStackCloudServices, "/services");
+
+    expect(
+      await screen.findByTestId("openstack-services-quiet"),
+    ).toBeInTheDocument();
+    expect(
+      screen.queryByText("This credential can't list compute services"),
+    ).not.toBeInTheDocument();
+  });
+
+  test("a read that fails says so, and never reads as a cloud with no services", async () => {
+    jest
+      .spyOn(ModelAPI, "getList")
+      .mockRejectedValue(new Error("The inventory is unavailable") as never);
+
+    await renderPage(OpenStackCloudServices, "/services");
+
+    expect(
+      await screen.findByTestId("openstack-services-read-error"),
+    ).toBeInTheDocument();
+    expect(screen.getByText("Try again")).toBeInTheDocument();
+    expect(
+      screen.queryByTestId("openstack-services-empty"),
+    ).not.toBeInTheDocument();
   });
 });
 
@@ -493,6 +659,8 @@ describe("the Hypervisors page", () => {
     externalId: "RegionOne/compute-07",
     hypervisorName: "compute-07",
     regionName: "RegionOne",
+    status: "up",
+    adminState: "enabled",
     vcpuAllocated: 12,
     vcpuCapacity: 64,
     instanceCount: 5,
@@ -507,43 +675,25 @@ describe("the Hypervisors page", () => {
 
     await renderPage(OpenStackCloudHypervisors, "/hypervisors");
 
-    expect(await screen.findByText("12 of 64")).toBeInTheDocument();
+    expect(await screen.findByText("12 of 64 (19%)")).toBeInTheDocument();
     expect(screen.getByText("vCPUs Allocated")).toBeInTheDocument();
-    expect(screen.getByText("Memory Allocated")).toBeInTheDocument();
     expect(screen.queryByText("CPU")).not.toBeInTheDocument();
     expect(screen.queryByText(/usage/i)).not.toBeInTheDocument();
   });
 
-  test("a host whose nova-compute stopped says so beside its numbers", async () => {
+  test("a host whose nova-compute stopped reads Lost beside its last numbers, from its own row", async () => {
     rowsFor = (call: ListCall): Array<OpenStackResource> => {
-      if (kindOf(call) === OpenStackResourceKind.Hypervisor) {
-        return [row(HYPERVISOR)];
-      }
-      if (kindOf(call) === OpenStackResourceKind.Service) {
-        return [
-          row({
-            kind: OpenStackResourceKind.Service,
-            name: "nova-compute",
-            regionName: "RegionOne",
-            hypervisorName: "compute-07",
-            status: "down",
-            adminState: "enabled",
-          }),
-        ];
-      }
-      return [];
+      return kindOf(call) === OpenStackResourceKind.Hypervisor
+        ? [row({ ...HYPERVISOR, status: "down" })]
+        : [];
     };
 
     await renderPage(OpenStackCloudHypervisors, "/hypervisors");
 
-    expect(await screen.findByText("down")).toBeInTheDocument();
-
-    const lookups: Array<ListCall> = tableCalls(OpenStackResourceKind.Service);
-    expect(lookups).toHaveLength(1);
-    expect(lookups[0]!.query["name"]).toBe("nova-compute");
-    expect((lookups[0]!.query["hypervisorName"] as Includes).values).toEqual([
-      "compute-07",
-    ]);
+    expect(await screen.findByText("Lost")).toBeInTheDocument();
+    expect(screen.getAllByText("last known").length).toBeGreaterThan(0);
+    // A hypervisor's row holds its nova-compute's state: nothing to join by name.
+    expect(tableCalls(OpenStackResourceKind.Service)).toEqual([]);
   });
 });
 
@@ -562,7 +712,7 @@ describe("the Overview", () => {
     expect(screen.queryByText("0%")).not.toBeInTheDocument();
   });
 
-  test("a reporting cloud says it is connected, and nothing about health", async () => {
+  test("a reporting cloud with nothing wrong says it is connected, and Healthy", async () => {
     cloud = cloudWith({
       otelCollectorStatus: "connected",
       lastSeenAt: new Date(),
@@ -577,9 +727,164 @@ describe("the Overview", () => {
       ).getByText("Connected"),
     ).toBeInTheDocument();
     expect(screen.getByText(/Last seen/)).toBeInTheDocument();
-    expect(screen.queryByText(/^Healthy$/)).not.toBeInTheDocument();
-    expect(screen.queryByText(/^Degraded$/)).not.toBeInTheDocument();
-    expect(screen.queryByText(/^Unhealthy$/)).not.toBeInTheDocument();
+    expect(
+      await screen.findByTestId("openstack-overview-health"),
+    ).toHaveAttribute("data-health", "Healthy");
+  });
+
+  test("what is wrong reads first, by name, and turns the verdict", async () => {
+    cloud = cloudWith({
+      otelCollectorStatus: "connected",
+      lastSeenAt: new Date(),
+    });
+    posted = {
+      "needs-attention": {
+        rows: [
+          {
+            kind: OpenStackResourceKind.Api,
+            name: "compute",
+            externalId: "RegionOne/compute",
+            status: "down",
+            regionName: "RegionOne",
+            stateChangedAt: new Date().toISOString(),
+          },
+        ],
+        totalsByKind: { Api: 1 },
+      },
+    };
+
+    await renderPage(OpenStackCloudOverview, "");
+
+    expect(
+      await screen.findByTestId("openstack-overview-health"),
+    ).toHaveAttribute("data-health", "Unhealthy");
+    expect(
+      within(screen.getByTestId("openstack-needs-attention")).getByText(
+        "Compute (Nova)",
+      ),
+    ).toBeInTheDocument();
+  });
+
+  test("more of a kind than a read holds says how many, and where the rest are", async () => {
+    cloud = cloudWith({
+      otelCollectorStatus: "connected",
+      lastSeenAt: new Date(),
+    });
+    posted = {
+      "needs-attention": {
+        rows: [
+          {
+            kind: OpenStackResourceKind.Instance,
+            name: "web-01",
+            externalId: "11111111-1111-4111-8111-111111111111",
+            status: "ERROR",
+          },
+        ],
+        totalsByKind: { Instance: 340 },
+      },
+    };
+
+    await renderPage(OpenStackCloudOverview, "");
+
+    expect(
+      await screen.findByTestId("openstack-needs-attention-capped"),
+    ).toHaveTextContent("See them all");
+  });
+
+  test("a cloud that has stopped reporting asks nothing current, and has no verdict", async () => {
+    cloud = cloudWith({
+      otelCollectorStatus: "disconnected",
+      lastSeenAt: new Date("2026-11-01T00:00:00.000Z"),
+    });
+
+    await renderPage(OpenStackCloudOverview, "");
+
+    expect(
+      await screen.findByTestId("openstack-overview-health"),
+    ).toHaveAttribute("data-health", "Unknown");
+    expect(screen.getByTestId("openstack-overview-quiet")).toBeInTheDocument();
+    expect(screen.getByTestId("openstack-overview-counts")).toHaveAttribute(
+      "data-current",
+      "false",
+    );
+    expect(
+      screen.queryByTestId("openstack-needs-attention"),
+    ).not.toBeInTheDocument();
+
+    // No rule can be asked of what it said days ago, and no services are down that it knows of.
+    const asked: Array<string> = postedTo.map(
+      (one: { url: string; body: JSONObject }): string => {
+        return one.url;
+      },
+    );
+    expect(asked.length).toBeGreaterThan(0);
+    expect(
+      asked.filter((url: string): boolean => {
+        return (
+          url.includes("needs-attention") ||
+          url.includes("region-summaries") ||
+          url.includes("top-consumers")
+        );
+      }),
+    ).toEqual([]);
+    expect(screen.queryByText("2 services down")).not.toBeInTheDocument();
+
+    // A percentage days old reads as today's.
+    const tiles: HTMLElement = screen.getByTestId("openstack-overview-capacity");
+    expect(within(tiles).queryByText("62%")).not.toBeInTheDocument();
+    expect(within(tiles).getAllByText("Nothing current")).toHaveLength(5);
+  });
+
+  test("a verdict read from a list that couldn't be read is no verdict", async () => {
+    cloud = cloudWith({
+      otelCollectorStatus: "connected",
+      lastSeenAt: new Date(),
+    });
+    posted = { "needs-attention": new HTTPErrorResponse(500, {}, {}) };
+
+    await renderPage(OpenStackCloudOverview, "");
+
+    expect(
+      await screen.findByTestId("openstack-needs-attention-error"),
+    ).toBeInTheDocument();
+    expect(screen.getByTestId("openstack-overview-health")).toHaveAttribute(
+      "data-health",
+      "Unknown",
+    );
+    expect(
+      screen.queryByTestId("openstack-needs-attention"),
+    ).not.toBeInTheDocument();
+  });
+
+  test("an up API with no hypervisors to list reads as the credential, never as Healthy", async () => {
+    cloud = cloudWith({
+      otelCollectorStatus: "connected",
+      lastSeenAt: new Date(),
+    });
+    summary = { ...FULL_SUMMARY, hypervisorCount: 0, vcpuCapacity: 0 };
+    rowsFor = (call: ListCall): Array<OpenStackResource> => {
+      return kindOf(call) === OpenStackResourceKind.Api
+        ? [
+            row({
+              kind: OpenStackResourceKind.Api,
+              name: "compute",
+              externalId: "RegionOne/compute",
+              status: "up",
+              regionName: "RegionOne",
+            }),
+          ]
+        : [];
+    };
+
+    await renderPage(OpenStackCloudOverview, "");
+
+    expect(
+      await screen.findByText("This credential can't list hypervisors"),
+    ).toBeInTheDocument();
+    expect(screen.getByTestId("openstack-overview-health")).toHaveAttribute(
+      "data-health",
+      "Unknown",
+    );
   });
 
   test("a chip counts what was reported and opens its list, and a kind with none has none", async () => {
@@ -622,7 +927,7 @@ describe("the Overview", () => {
     expect(within(tiles).getByText("Memory allocated")).toBeInTheDocument();
     expect(within(tiles).getByText("Storage used")).toBeInTheDocument();
     expect(within(tiles).getByText("62%")).toBeInTheDocument();
-    expect(within(tiles).getByText("620 of 1000")).toBeInTheDocument();
+    expect(within(tiles).getByText(/^620 of 1,?000$/)).toBeInTheDocument();
   });
 
   test("no capacity reported reads as not reported, never as 0%", async () => {
@@ -648,11 +953,32 @@ describe("the Overview", () => {
 
     await renderPage(OpenStackCloudOverview, "");
 
+    const frame: HTMLElement = await screen.findByTestId(
+      "openstack-overview-summary-error",
+    );
+    expect(
+      within(frame).getByText("Couldn't read this cloud's inventory"),
+    ).toBeInTheDocument();
+    expect(within(frame).getByText("Try again")).toBeInTheDocument();
+    expect(screen.queryByText("Connect this cloud")).not.toBeInTheDocument();
+    // A tile says it couldn't read this: the cloud may be reporting fine.
+    expect(
+      within(screen.getByTestId("openstack-overview-capacity")).queryByText(
+        "Not reported yet",
+      ),
+    ).not.toBeInTheDocument();
+  });
+
+  test("a cloud that can't be read at all says so, with Try again", async () => {
+    jest
+      .spyOn(ModelAPI, "getItem")
+      .mockRejectedValue(new Error("No answer") as never);
+
+    await renderPage(OpenStackCloudOverview, "");
+
     expect(
       await screen.findByTestId("openstack-overview-read-error"),
     ).toBeInTheDocument();
-    expect(screen.getByText("Couldn't load this cloud")).toBeInTheDocument();
     expect(screen.getByText("Try again")).toBeInTheDocument();
-    expect(screen.queryByText("Connect this cloud")).not.toBeInTheDocument();
   });
 });

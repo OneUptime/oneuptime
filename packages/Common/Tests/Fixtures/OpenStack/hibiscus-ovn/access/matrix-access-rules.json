@@ -7,13 +7,13 @@
       "results": {
         "admin": {
           "status": 200,
-          "count": 7,
+          "count": 8,
           "seesAll": true
         },
         "monitoring-admin-get": {
-          "status": 401,
-          "count": null,
-          "seesAll": false
+          "status": 200,
+          "count": 8,
+          "seesAll": true
         }
       }
     },
@@ -28,9 +28,9 @@
           "seesAll": true
         },
         "monitoring-admin-get": {
-          "status": 401,
-          "count": null,
-          "seesAll": false
+          "status": 200,
+          "count": 1,
+          "seesAll": true
         }
       }
     },
@@ -45,9 +45,9 @@
           "seesAll": true
         },
         "monitoring-admin-get": {
-          "status": 401,
-          "count": null,
-          "seesAll": false
+          "status": 200,
+          "count": 1,
+          "seesAll": true
         }
       }
     },
@@ -62,9 +62,9 @@
           "seesAll": true
         },
         "monitoring-admin-get": {
-          "status": 401,
-          "count": null,
-          "seesAll": false
+          "status": 200,
+          "count": 7,
+          "seesAll": true
         }
       }
     },
@@ -79,9 +79,9 @@
           "seesAll": true
         },
         "monitoring-admin-get": {
-          "status": 401,
-          "count": null,
-          "seesAll": false
+          "status": 200,
+          "count": 7,
+          "seesAll": true
         }
       }
     },
@@ -96,9 +96,9 @@
           "seesAll": true
         },
         "monitoring-admin-get": {
-          "status": 401,
-          "count": null,
-          "seesAll": false
+          "status": 200,
+          "count": 4,
+          "seesAll": true
         }
       }
     },
@@ -113,9 +113,9 @@
           "seesAll": true
         },
         "monitoring-admin-get": {
-          "status": 401,
-          "count": null,
-          "seesAll": false
+          "status": 200,
+          "count": 4,
+          "seesAll": true
         }
       }
     },
@@ -130,9 +130,9 @@
           "seesAll": true
         },
         "monitoring-admin-get": {
-          "status": 401,
-          "count": null,
-          "seesAll": false
+          "status": 200,
+          "count": 1,
+          "seesAll": true
         }
       }
     },
@@ -147,9 +147,9 @@
           "seesAll": true
         },
         "monitoring-admin-get": {
-          "status": 401,
-          "count": null,
-          "seesAll": false
+          "status": 200,
+          "count": 0,
+          "seesAll": true
         }
       }
     },
@@ -164,9 +164,9 @@
           "seesAll": true
         },
         "monitoring-admin-get": {
-          "status": 401,
-          "count": null,
-          "seesAll": false
+          "status": 200,
+          "count": 2,
+          "seesAll": true
         }
       }
     },
@@ -181,9 +181,9 @@
           "seesAll": true
         },
         "monitoring-admin-get": {
-          "status": 401,
-          "count": null,
-          "seesAll": false
+          "status": 200,
+          "count": 12,
+          "seesAll": true
         }
       }
     },
@@ -198,9 +198,9 @@
           "seesAll": true
         },
         "monitoring-admin-get": {
-          "status": 401,
-          "count": null,
-          "seesAll": false
+          "status": 200,
+          "count": 2,
+          "seesAll": true
         }
       }
     },
@@ -215,9 +215,9 @@
           "seesAll": true
         },
         "monitoring-admin-get": {
-          "status": 401,
-          "count": null,
-          "seesAll": false
+          "status": 200,
+          "count": 1,
+          "seesAll": true
         }
       }
     },
@@ -232,9 +232,9 @@
           "seesAll": true
         },
         "monitoring-admin-get": {
-          "status": 401,
-          "count": null,
-          "seesAll": false
+          "status": 200,
+          "count": 2,
+          "seesAll": true
         }
       }
     },
@@ -249,9 +249,9 @@
           "seesAll": true
         },
         "monitoring-admin-get": {
-          "status": 401,
-          "count": null,
-          "seesAll": false
+          "status": 200,
+          "count": 4,
+          "seesAll": true
         }
       }
     },
@@ -266,9 +266,9 @@
           "seesAll": true
         },
         "monitoring-admin-get": {
-          "status": 401,
-          "count": null,
-          "seesAll": false
+          "status": 200,
+          "count": 6,
+          "seesAll": true
         }
       }
     },
@@ -283,9 +283,9 @@
           "seesAll": true
         },
         "monitoring-admin-get": {
-          "status": 401,
-          "count": null,
-          "seesAll": false
+          "status": 200,
+          "count": 2,
+          "seesAll": true
         }
       }
     },
@@ -300,9 +300,9 @@
           "seesAll": true
         },
         "monitoring-admin-get": {
-          "status": 401,
-          "count": null,
-          "seesAll": false
+          "status": 200,
+          "count": 2,
+          "seesAll": true
         }
       }
     },
@@ -317,9 +317,9 @@
           "seesAll": true
         },
         "monitoring-admin-get": {
-          "status": 401,
-          "count": null,
-          "seesAll": false
+          "status": 200,
+          "count": 4,
+          "seesAll": true
         }
       }
     },
@@ -334,9 +334,9 @@
           "seesAll": true
         },
         "monitoring-admin-get": {
-          "status": 401,
-          "count": null,
-          "seesAll": false
+          "status": 200,
+          "count": 6,
+          "seesAll": true
         }
       }
     },
@@ -351,9 +351,9 @@
           "seesAll": true
         },
         "monitoring-admin-get": {
-          "status": 401,
-          "count": null,
-          "seesAll": false
+          "status": 200,
+          "count": 14,
+          "seesAll": true
         }
       }
     },
@@ -364,13 +364,13 @@
       "results": {
         "admin": {
           "status": 200,
-          "count": 0,
+          "count": 1,
           "seesAll": true
         },
         "monitoring-admin-get": {
-          "status": 401,
-          "count": null,
-          "seesAll": false
+          "status": 200,
+          "count": 1,
+          "seesAll": true
         }
       }
     },
@@ -385,9 +385,9 @@
           "seesAll": true
         },
         "monitoring-admin-get": {
-          "status": 401,
-          "count": null,
-          "seesAll": false
+          "status": 200,
+          "count": 3,
+          "seesAll": true
         }
       }
     },
@@ -402,9 +402,9 @@
           "seesAll": true
         },
         "monitoring-admin-get": {
-          "status": 401,
-          "count": null,
-          "seesAll": false
+          "status": 200,
+          "count": 2,
+          "seesAll": true
         }
       }
     },
@@ -419,9 +419,9 @@
           "seesAll": true
         },
         "monitoring-admin-get": {
-          "status": 401,
-          "count": null,
-          "seesAll": false
+          "status": 200,
+          "count": 1,
+          "seesAll": true
         }
       }
     },
@@ -436,9 +436,9 @@
           "seesAll": true
         },
         "monitoring-admin-get": {
-          "status": 401,
-          "count": null,
-          "seesAll": false
+          "status": 200,
+          "count": 1,
+          "seesAll": true
         }
       }
     },
@@ -453,9 +453,9 @@
           "seesAll": true
         },
         "monitoring-admin-get": {
-          "status": 401,
-          "count": null,
-          "seesAll": false
+          "status": 200,
+          "count": 0,
+          "seesAll": true
         }
       }
     },
@@ -470,9 +470,9 @@
           "seesAll": true
         },
         "monitoring-admin-get": {
-          "status": 401,
-          "count": null,
-          "seesAll": false
+          "status": 200,
+          "count": 2,
+          "seesAll": true
         }
       }
     },
@@ -500,7 +500,9 @@
       "write": "create a flavor",
       "results": {
         "monitoring-admin-get": {
-          "status": 401
+          "status": 401,
+          "wrote": false,
+          "reason": "The request you have made requires authentication."
         }
       }
     },
@@ -509,7 +511,20 @@
       "write": "create an aggregate",
       "results": {
         "monitoring-admin-get": {
-          "status": 401
+          "status": 401,
+          "wrote": false,
+          "reason": "The request you have made requires authentication."
+        }
+      }
+    },
+    {
+      "service": "compute",
+      "write": "boot an instance",
+      "results": {
+        "monitoring-admin-get": {
+          "status": 401,
+          "wrote": false,
+          "reason": "The request you have made requires authentication."
         }
       }
     },
@@ -518,7 +533,42 @@
       "write": "create a network",
       "results": {
         "monitoring-admin-get": {
-          "status": 401
+          "status": 401,
+          "wrote": false,
+          "reason": "The request you have made requires authentication."
+        }
+      }
+    },
+    {
+      "service": "network",
+      "write": "create a router",
+      "results": {
+        "monitoring-admin-get": {
+          "status": 401,
+          "wrote": false,
+          "reason": "The request you have made requires authentication."
+        }
+      }
+    },
+    {
+      "service": "network",
+      "write": "create a security group",
+      "results": {
+        "monitoring-admin-get": {
+          "status": 401,
+          "wrote": false,
+          "reason": "The request you have made requires authentication."
+        }
+      }
+    },
+    {
+      "service": "network",
+      "write": "take a floating IP",
+      "results": {
+        "monitoring-admin-get": {
+          "status": 401,
+          "wrote": false,
+          "reason": "The request you have made requires authentication."
         }
       }
     },
@@ -527,7 +577,20 @@
       "write": "create a volume",
       "results": {
         "monitoring-admin-get": {
-          "status": 401
+          "status": 401,
+          "wrote": false,
+          "reason": "The request you have made requires authentication."
+        }
+      }
+    },
+    {
+      "service": "image",
+      "write": "create an image",
+      "results": {
+        "monitoring-admin-get": {
+          "status": 401,
+          "wrote": false,
+          "reason": "This server could not verify that you are authorized to access the document you requested. Either you supplied the wrong credentials (e.g., bad password), or your browser does not understand how to su"
         }
       }
     },
@@ -536,7 +599,9 @@
       "write": "create a project",
       "results": {
         "monitoring-admin-get": {
-          "status": 401
+          "status": 401,
+          "wrote": false,
+          "reason": "The request you have made requires authentication."
         }
       }
     }

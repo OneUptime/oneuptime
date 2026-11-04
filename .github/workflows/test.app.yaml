@@ -1444,6 +1444,14 @@ jobs:
               test-asset-details-ui
               test-dashboard-table-thresholds-ui
               test-value-picker-ui
+          # Added on 2026-11-04 for an OpenStack cloud's pages: its Overview, its
+          # lists and the pages of its parts, on what real clouds' exporters
+          # answered, read through the real snapshot scan, at 1280, 1024, 768 and
+          # 390 pixels, dark, German and Persian. A group of its own, because the
+          # product's pages are still joining it: no group had the room for it.
+          - group: 19
+            suites: >-
+              test-openstack-pages-ui
     steps:
       - uses: actions/checkout@v4
       # Core is the Community Edition by construction: it must build and pass
@@ -1710,6 +1718,8 @@ jobs:
             output/playwright/resource-overviews-ui/test-results
             output/playwright/proxmox-pages-ui/*.png
             output/playwright/proxmox-pages-ui/test-results
+            output/playwright/openstack-pages-ui/*.png
+            output/playwright/openstack-pages-ui/test-results
             output/playwright/kubernetes-pages-ui/*.png
             output/playwright/kubernetes-pages-ui/test-results
             output/playwright/host-pages-ui/*.png

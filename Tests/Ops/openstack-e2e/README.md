@@ -46,6 +46,8 @@ gh workflow run test.openstack-e2e.yaml --ref master
 gh run download <run id> --pattern 'openstack-recording-*' --dir /tmp/openstack-recordings
 ```
 
+The tables of what each level of access gets, on the agent's docs page, its README and its in-app guide, are written from `access/` in those fixtures. After a new recording, run `python3 access-table.py` and `python3 access-table.py --series` and paste what they print: `Tests/Ops/OpenStackAgentAccessTable.test.js` fails when a page differs.
+
 ## Why DevStack is told how often to report
 
 DevStack sets `report_interval` to 120 seconds and `service_down_time` to 720, so a stopped service stays "up" for 12 minutes. OpenStack's own defaults are 10 and 60, and that is what the workflow sets, so the drills see what a real cloud does and finish in time. DevStack also points Neutron at `policy.json`, which is why `access-matrix.sh` asks each service which file it reads.

@@ -137,7 +137,9 @@ export default class OpenStackConnectionTestStore {
     }
 
     const address: OpenStackAddressResult = OpenStackAuthUrl.normalize(
-      typeof values["authUrl"] === "string" ? (values["authUrl"] as string) : "",
+      typeof values["authUrl"] === "string"
+        ? (values["authUrl"] as string)
+        : "",
     );
 
     if (!address.address) {
@@ -158,10 +160,11 @@ export default class OpenStackConnectionTestStore {
       );
     }
 
-    const regions: { regions?: Array<string>; error?: string } =
-      OpenStackCollectionSettings.normalizeRegions(
-        values["collectionRegions"] ?? [],
-      );
+    const regions: ReturnType<
+      typeof OpenStackCollectionSettings.normalizeRegions
+    > = OpenStackCollectionSettings.normalizeRegions(
+      values["collectionRegions"] ?? [],
+    );
 
     if (regions.error) {
       throw new BadDataException(regions.error);
@@ -169,10 +172,11 @@ export default class OpenStackConnectionTestStore {
 
     values["collectionRegions"] = regions.regions;
 
-    const fingerprints: { fingerprints?: Array<string>; error?: string } =
-      OpenStackCollectionSettings.normalizeFingerprints(
-        values["trustedCertificateFingerprints"],
-      );
+    const fingerprints: ReturnType<
+      typeof OpenStackCollectionSettings.normalizeFingerprints
+    > = OpenStackCollectionSettings.normalizeFingerprints(
+      values["trustedCertificateFingerprints"],
+    );
 
     if (fingerprints.error) {
       throw new BadDataException(fingerprints.error);
@@ -187,14 +191,16 @@ export default class OpenStackConnectionTestStore {
     }
 
     await (
-      data.assertProbeCanCollect || OpenStackCloudConnection.assertProbeCanCollect
+      data.assertProbeCanCollect ||
+      OpenStackCloudConnection.assertProbeCanCollect
     )({
       probeId: data.probeId,
       projectId: data.projectId,
     });
 
     const secret: unknown = values["credentialSecret"];
-    const isSecretGiven: boolean = typeof secret === "string" && secret.length > 0;
+    const isSecretGiven: boolean =
+      typeof secret === "string" && secret.length > 0;
 
     if (data.openStackCloudId) {
       const saved: OpenStackSavedCloudForTest | null =
@@ -210,10 +216,10 @@ export default class OpenStackConnectionTestStore {
           saved: saved,
           probeId: data.probeId,
           authUrl: address.address.url,
-          fingerprints: fingerprints.fingerprints || [],
+          fingerprints: fingerprints.fingerprints,
         });
       } else {
-        OpenStackConnectionTestStore.readGivenCredential(values);
+        OpenStackConnectionTestStore.readGivenCredential(values, saved);
       }
     } else if (!isSecretGiven) {
       throw new BadDataException(
@@ -233,25 +239,17 @@ export default class OpenStackConnectionTestStore {
     }
   }
 
-  private static readGivenCredential(values: Record<string, unknown>): void {
-    const secret: string = values["credentialSecret"] as string;
-
+  // A new secret, with what names it: what the test says, then what the cloud has saved.
+  private static readGivenCredential(
+    values: Record<string, unknown>,
+    saved?: OpenStackSavedCloudForTest | undefined,
+  ): void {
     const read: ReturnType<typeof OpenStackCollectionSettings.readCredential> =
-      OpenStackCollectionSettings.readCredential(
-        typeof values["applicationCredentialId"] === "string" &&
-          values["applicationCredentialId"]
-          ? {
-              applicationCredentialId: values["applicationCredentialId"],
-              applicationCredentialSecret: secret,
-            }
-          : {
-              username: values["keystoneUsername"],
-              password: secret,
-              userDomainName: values["userDomainName"],
-              projectName: values["projectName"],
-              projectDomainName: values["projectDomainName"],
-            },
-      );
+      OpenStackCollectionSettings.readCredentialColumns({
+        written: values,
+        saved: saved,
+        secret: values["credentialSecret"] as string,
+      });
 
     if (!read.credential) {
       throw new BadDataException(read.error);

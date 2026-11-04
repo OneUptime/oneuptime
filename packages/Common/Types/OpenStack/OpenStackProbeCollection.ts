@@ -295,7 +295,8 @@ export interface OpenStackCollectionReport extends OpenStackProbeReportBase {
 }
 
 // What a probe posts after a connection test.
-export interface OpenStackConnectionTestReport extends OpenStackProbeReportBase {
+export interface OpenStackConnectionTestReport
+  extends OpenStackProbeReportBase {
   openStackCloudConnectionTestId: string;
   status: "Succeeded" | "Failed";
   summary?: OpenStackConnectionTestSummary | undefined;

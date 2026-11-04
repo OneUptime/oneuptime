@@ -11,7 +11,7 @@ openstack_placement_resource_reserved{hostname="compute-01.example.internal",res
 # HELP openstack_placement_resource_total resource_total
 # TYPE openstack_placement_resource_total gauge
 openstack_placement_resource_total{hostname="compute-01.example.internal",resourcetype="DISK_GB"} 144
-openstack_placement_resource_total{hostname="compute-01.example.internal",resourcetype="MEMORY_MB"} 15983
+openstack_placement_resource_total{hostname="compute-01.example.internal",resourcetype="MEMORY_MB"} 15982
 openstack_placement_resource_total{hostname="compute-01.example.internal",resourcetype="VCPU"} 4
 # HELP openstack_placement_resource_usage resource_usage
 # TYPE openstack_placement_resource_usage gauge

@@ -837,18 +837,19 @@ section "5. What this credential can read"
 #
 # A row's project attribute: "-" means the list is not per project, so a 200 is
 # the answer. "*" means a project's own view of it is empty, so any row proves
-# it. Otherwise a 200 proves nothing by itself: see classify_read.
+# it: Neutron answers a plain reader's list of agents with a 200 and no rows.
+# Otherwise a 200 proves nothing by itself: see classify_read.
 #
 # What to do: policy:<service>:<the line, as in access/policy/<service>.yaml>;
 # code:<service>, which scopes the list in its own code, so no policy line opens
 # it; any, which any credential may read; or text:<what to say>.
 TODAY="$(date -u +%Y-%m-%d)T00:00:00"
 
-COUNT_ALL=0; COUNT_OWN=0; COUNT_REFUSED=0; COUNT_ABSENT=0; COUNT_FAILING=0
-INFRA_READS=0; INFRA_GAPS=0; PROJECT_GAPS=0
+COUNT_ALL=0; COUNT_OWN=0; COUNT_REFUSED=0; COUNT_ABSENT=0; COUNT_FAILING=0; COUNT_EXPECTED=0
+INFRA_READS=0; INFRA_GAPS=0; PROJECT_GAPS=0; ADMIN_ONLY_GAPS=0
 
-# The answer in RESP_*, as one of all, own, refused, absent, failing, in RESULT,
-# with what it rests on in REASON.
+# The answer in RESP_*, as one of all, own, refused, absent, failing, expected, in
+# RESULT, with what it rests on in REASON.
 #
 # The trap: Neutron and Cinder answer a plain reader with a 200 and only its own
 # project, and quietly ignore all_tenants=1. So a list earns "reads everything"
@@ -864,7 +865,17 @@ classify_read() {
     401|403) RESULT="refused"; REASON=" (HTTP $RESP_CODE)"; return 0 ;;
     404) RESULT="absent"; REASON=" (HTTP 404: this cloud has no such API)"; return 0 ;;
     000) RESULT="failing"; REASON=" (no answer: $(explain_curl_exit "$RESP_EXIT"))"; return 0 ;;
-    *) RESULT="failing"; REASON=" (HTTP $RESP_CODE)"; return 0 ;;
+    *)
+      # Neutron creates a project's default security group as it lists them, and zero
+      # quota does not let it. Every level 2 credential gets this, and it is harmless.
+      if [ "$RESP_CODE" = "409" ] && [ "$key" = "security_groups" ]; then
+        RESULT="expected"
+      else
+        RESULT="failing"
+      fi
+      REASON=" (HTTP $RESP_CODE)"
+      return 0
+      ;;
   esac
   if [ "$attr" = "-" ]; then
     RESULT="all"
@@ -955,7 +966,7 @@ print_fix() {
       detail "  ${rest#*:}"
       ;;
     code:*)
-      detail "${fix#code:} scopes this list to the credential's own project in its code, so no policy line opens it. To read every project: use a full-view credential (README.md, \"Level 1: Full view\"), or give this account a role on each project you want seen."
+      detail "${fix#code:} scopes this list to the credential's own project in its code, so no policy line opens it. To read every project: use a full-view credential (README.md, \"Level 1: Full view\"), or give this account a role on each project you want seen, which on many clouds also lets it write there."
       ;;
     any)
       detail "Any credential may read this, so look at this application credential's access rules (access/application-credential-access-rules.json, fitted to this cloud by access/access-rules-for-cloud.py)."
@@ -997,12 +1008,21 @@ report_read() {
       warn "$service: $read — could not ask$REASON. That says nothing about the credential: section 4 looks at the service."
       COUNT_FAILING=$((COUNT_FAILING+1))
       ;;
+    expected)
+      info "$service: $read — expected on a project with zero quota$REASON"
+      detail "Neutron tries to create the project's default security group when it lists them, and zero quota does not let it, so it answers 409 Quota exceeded. That is harmless, and nothing to fix: this project holds nothing, and Neutron would only show it its own."
+      COUNT_EXPECTED=$((COUNT_EXPECTED+1))
+      ;;
   esac
   # What the answers add up to, from the reads each kind of access differs on.
   case "$service:$read" in
-    compute:services|compute:hypervisors|placement:*|network:agents|block-storage:services|block-storage:pools)
+    compute:services|compute:hypervisors|placement:*|network:agents)
       INFRA_READS=$((INFRA_READS+1))
       case "$RESULT" in own|refused) INFRA_GAPS=$((INFRA_GAPS+1)) ;; esac
+      ;;
+    # Only full view reads these: Cinder's own code asks for an admin.
+    block-storage:services|block-storage:pools)
+      case "$RESULT" in own|refused) ADMIN_ONLY_GAPS=$((ADMIN_ONLY_GAPS+1)) ;; esac
       ;;
     "compute:servers, all projects"|"block-storage:volumes, all projects"|network:networks|network:routers|"network:floating IPs")
       case "$RESULT" in own|refused) PROJECT_GAPS=$((PROJECT_GAPS+1)) ;; esac
@@ -1063,7 +1083,7 @@ compute|availability zones, detail|/os-availability-zone/detail|availabilityZone
 compute|flavors|/flavors/detail?is_public=None&limit=100|flavors|-|OpenStack-API-Version: compute 2.90|flavors, and how many more of one fit.|any
 compute|usage per project|/os-simple-tenant-usage?start=@TODAY@&limit=10|tenant_usages|-|OpenStack-API-Version: compute 2.90|usage per project. The agent only reads it with --disable-metric=nova-server_local_gb taken out (README.md, "What it costs").|policy:nova:"os_compute_api:os-simple-tenant-usage:list": "rule:context_is_admin or role:oneuptime_monitoring"
 placement|resource providers|/resource_providers|resource_providers|-|OpenStack-API-Version: placement 1.39|how full the cloud really is, on the capacity pages and their alerts.|policy:placement:"placement:resource_providers:list": "rule:admin_api or role:oneuptime_monitoring"
-network|agents|/v2.0/agents|agents|-|-|network agents on the Services page and Needs attention, and the alerts on them.|policy:neutron:"get_agent": "role:admin or role:oneuptime_monitoring"
+network|agents|/v2.0/agents|agents|*|-|network agents on the Services page and Needs attention, and the alerts on them.|policy:neutron:"get_agent": "role:admin or role:oneuptime_monitoring"
 network|networks|/v2.0/networks?limit=100&fields=project_id&fields=shared&fields=router:external|networks|project_id|-|networks in other projects on the Networks page.|code:Neutron
 network|subnets|/v2.0/subnets?limit=100&fields=project_id|subnets|project_id|-|subnets in other projects on the Networks page.|code:Neutron
 network|routers|/v2.0/routers?limit=100&fields=project_id|routers|project_id|-|routers in other projects on the Routers page, and the alerts on them.|code:Neutron
@@ -1073,8 +1093,8 @@ network|security groups|/v2.0/security-groups?limit=100&fields=project_id&fields
 network|ports|/v2.0/ports?limit=100&fields=project_id|ports|project_id|-|nothing by default: only the per-port series read every port, and they are off (README.md, "What it costs").|code:Neutron
 network|quotas|/v2.0/quotas|quotas|-|-|network quotas per project. The agent only reads them with --disable-metric=neutron-quota_network taken out (README.md, "What it costs").|text:Only an admin reads these: use a full-view credential (README.md, "Level 1: Full view").
 block-storage|volumes, all projects|/volumes/detail?all_tenants=1&limit=100|volumes|os-vol-tenant-attr:tenant_id|OpenStack-API-Version: volume 3.50|volumes in other projects on the Volumes page, and the alerts on them.|code:Cinder
-block-storage|services|/os-services|services|-|OpenStack-API-Version: volume 3.50|Cinder's services on the Services page and Needs attention, and the alerts on them.|policy:cinder:"volume_extension:services:index": "rule:admin_api or role:oneuptime_monitoring"
-block-storage|pools|/scheduler-stats/get_pools?detail=true|pools|-|OpenStack-API-Version: volume 3.50|storage pools, and the alerts on a filling pool.|policy:cinder:"scheduler_extension:scheduler_stats:get_pools": "rule:admin_api or role:oneuptime_monitoring"
+block-storage|services|/os-services|services|-|OpenStack-API-Version: volume 3.50|cinder-volume and cinder-scheduler state on the Services page and Needs attention, and the alerts on them.|text:Cinder's own code asks for an admin here, after policy has already passed, so no policy line opens it. Only a full-view credential reads it (README.md, "Level 1: Full view").
+block-storage|pools|/scheduler-stats/get_pools?detail=true|pools|-|OpenStack-API-Version: volume 3.50|storage pools, and the alerts on a filling pool.|text:Cinder's own code asks for an admin here, after policy has already passed, so no policy line opens it. Only a full-view credential reads it (README.md, "Level 1: Full view").
 block-storage|snapshots, all projects|/snapshots/detail?all_tenants=1&limit=100|snapshots|os-extended-snapshot-attributes:project_id|OpenStack-API-Version: volume 3.50|snapshots in other projects.|code:Cinder
 block-storage|backups, all projects|/backups/detail?all_tenants=1&limit=100|backups|os-backup-project-attr:project_id|OpenStack-API-Version: volume 3.50|backups in other projects.|code:Cinder
 block-storage|volume types|/types|volume_types|-|OpenStack-API-Version: volume 3.50|volume types.|any
@@ -1086,11 +1106,13 @@ READS
     check_project_holdings "$REGION"
   done
 
-  info "Reads everything: $COUNT_ALL. May be own project only: $COUNT_OWN. Refused: $COUNT_REFUSED. Not deployed: $COUNT_ABSENT. Could not ask: $COUNT_FAILING."
-  if [ "$INFRA_READS" -gt 0 ] && [ "$INFRA_GAPS" = 0 ] && [ "$PROJECT_GAPS" = 0 ]; then
+  EXPECTED_NOTE=""
+  [ "$COUNT_EXPECTED" = 0 ] || EXPECTED_NOTE=" Expected on a project with zero quota: $COUNT_EXPECTED."
+  info "Reads everything: $COUNT_ALL. May be own project only: $COUNT_OWN. Refused: $COUNT_REFUSED. Not deployed: $COUNT_ABSENT. Could not ask: $COUNT_FAILING.$EXPECTED_NOTE"
+  if [ "$INFRA_READS" -gt 0 ] && [ "$INFRA_GAPS" = 0 ] && [ "$PROJECT_GAPS" = 0 ] && [ "$ADMIN_ONLY_GAPS" = 0 ]; then
     pass "That adds up to Full view: hypervisors, services and capacity, and every project's instances, volumes and networks."
   elif [ "$INFRA_READS" -gt 0 ] && [ "$INFRA_GAPS" = 0 ]; then
-    info "That adds up to Infrastructure only: control-plane health and capacity, with instances, volumes and routers only where this account has a role."
+    info "That adds up to Infrastructure only: control-plane health and capacity, and every project's instances, with volumes, networks and routers only where this account has a role. Not cinder-volume or cinder-scheduler state, or storage pools: only a full-view credential reads those."
   elif [ "$INFRA_GAPS" = "$INFRA_READS" ] && [ "$COUNT_OWN" -gt 0 ]; then
     info "That adds up to Project view: this credential's own project, and no infrastructure. Through the agent that means no instances either: the exporter asks Nova for all projects' servers, Nova refuses, and that read fails whole. Only a OneUptime probe, collecting without this agent, lists one project's instances."
   else

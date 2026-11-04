@@ -74,6 +74,8 @@ export function toOpenStackInventorySummary(
 // Null when the server would not answer: the caller says so, or goes without.
 export async function fetchOpenStackInventorySummary(
   openStackCloudId: ObjectID,
+  // What one region holds, when a multi-region cloud is being read a region at a time.
+  regionName?: string | null | undefined,
 ): Promise<OpenStackInventorySummary | null> {
   const summaryUrl: URL = URL.fromString(APP_API_URL.toString())
     .addRoute("/openstack-resource/inventory-summary/")
@@ -82,7 +84,7 @@ export async function fetchOpenStackInventorySummary(
   const response: HTTPResponse<JSONObject> | HTTPErrorResponse = await API.post(
     {
       url: summaryUrl,
-      data: {},
+      data: regionName ? { regionName } : {},
       headers: {
         ...ModelAPI.getCommonHeaders(),
       },
@@ -310,55 +312,4 @@ export async function fetchOpenStackProjectNames(data: {
   }
 
   return names;
-}
-
-/*
- * The rows of nova-compute on the hypervisors a page of the list shows. Keyed by
- * region and host, because a host's name can repeat between regions.
- */
-export function getOpenStackHostKey(
-  regionName: string | null | undefined,
-  host: string | null | undefined,
-): string {
-  return `${regionName || ""}/${host || ""}`;
-}
-
-export async function fetchOpenStackComputeServices(data: {
-  openStackCloudId: ObjectID;
-  hypervisorNames: Array<string>;
-}): Promise<Record<string, OpenStackResource>> {
-  if (data.hypervisorNames.length === 0) {
-    return {};
-  }
-
-  const result: ListResult<OpenStackResource> =
-    await ModelAPI.getList<OpenStackResource>({
-      modelType: OpenStackResource,
-      query: {
-        openStackCloudId: data.openStackCloudId,
-        kind: OpenStackResourceKind.Service,
-        name: "nova-compute",
-        hypervisorName: new Includes(data.hypervisorNames),
-      },
-      // One per host per region, and the names on a page rarely repeat.
-      limit: data.hypervisorNames.length * 4,
-      skip: 0,
-      select: {
-        kind: true,
-        regionName: true,
-        hypervisorName: true,
-        status: true,
-        adminState: true,
-        disabledReason: true,
-      },
-      sort: {},
-    });
-
-  const services: Record<string, OpenStackResource> = {};
-
-  for (const row of result.data) {
-    services[getOpenStackHostKey(row.regionName, row.hypervisorName)] = row;
-  }
-
-  return services;
 }

@@ -435,6 +435,35 @@ describe.each(RELEASES)("a healthy cloud, on %s", (release: string) => {
     ]);
   });
 
+  /*
+   * The alert templates read IPv4 alone, because a /64 is 2^64 addresses: added to one, a
+   * full IPv4 pool reads as 0%. The real `public` network is dual-stack, so the rule and
+   * the page have to read the same pool the template does, or it never needs anyone.
+   */
+  test("an external network's addresses are its IPv4 pool, not its /64 too", () => {
+    const external: OpenStackResource = scene.named(
+      OpenStackResourceKind.Network,
+      "public",
+    );
+    const subnets: Array<JSONObject> = Object.values(
+      external.facts?.["ipsBySubnet"] as JSONObject,
+    ) as Array<JSONObject>;
+    const ipv4: Array<JSONObject> = subnets.filter((subnet: JSONObject) => {
+      return subnet["ipVersion"] === "4";
+    });
+    expect(ipv4.length).toBeGreaterThan(0);
+    expect(external.facts?.["ipsTotal"]).toBe(
+      ipv4.reduce((sum: number, subnet: JSONObject) => {
+        return sum + (subnet["total"] as number);
+      }, 0),
+    );
+    expect(external.facts?.["ipsUsed"]).toBe(
+      ipv4.reduce((sum: number, subnet: JSONObject) => {
+        return sum + (subnet["used"] as number);
+      }, 0),
+    );
+  });
+
   test("the router and subnets of the estate are there", () => {
     const router: OpenStackResource = scene.named(
       OpenStackResourceKind.Router,

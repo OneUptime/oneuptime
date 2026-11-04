@@ -706,14 +706,17 @@ describe("OpenStack alert templates: the rules every template passes", () => {
         "Storage",
         "Projects",
       ] as const
-    ).reduce((total: number, category: OpenStackAlertTemplateCategory): number => {
-      const templates: Array<OpenStackAlertTemplate> =
-        getOpenStackAlertTemplatesByCategory(category);
+    ).reduce(
+      (total: number, category: OpenStackAlertTemplateCategory): number => {
+        const templates: Array<OpenStackAlertTemplate> =
+          getOpenStackAlertTemplatesByCategory(category);
 
-      expect(templates.length).toBeGreaterThan(0);
+        expect(templates.length).toBeGreaterThan(0);
 
-      return total + templates.length;
-    }, 0);
+        return total + templates.length;
+      },
+      0,
+    );
 
     expect(count).toBe(TEMPLATES.length);
   });

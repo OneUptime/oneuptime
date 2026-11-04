@@ -141,11 +141,13 @@ describe("OpenStackMetricCatalog", () => {
         (metric: OpenStackMetricDefinition): boolean => {
           return !OPENSTACK_EXPORTER_SERIES[metric.metricName];
         },
-      ).filter((metric: OpenStackMetricDefinition): boolean => {
-        return metric.onlyFromProbe !== true;
-      }).map((metric: OpenStackMetricDefinition): string => {
-        return metric.metricName;
-      });
+      )
+        .filter((metric: OpenStackMetricDefinition): boolean => {
+          return metric.onlyFromProbe !== true;
+        })
+        .map((metric: OpenStackMetricDefinition): string => {
+          return metric.metricName;
+        });
 
       expect(extra.sort()).toEqual([...OPENSTACK_RECEIVER_SERIES].sort());
     });

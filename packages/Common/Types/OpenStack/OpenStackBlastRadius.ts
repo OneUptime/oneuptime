@@ -15,6 +15,8 @@ export interface OpenStackBlastRadiusProject {
   projectId: string;
   // Its name when the inventory holds its project row.
   name: string | null;
+  // Its domain, when the inventory holds its project row and that row says.
+  domainId?: string | undefined;
   instanceCount: number;
   volumeCount: number;
   routerCount: number;
@@ -70,6 +72,7 @@ export function buildOpenStackBlastRadius(data: {
     byProject: Array<{ projectId: string | null; count: number }>;
   }>;
   projectNames?: Record<string, string> | undefined;
+  projectDomains?: Record<string, string> | undefined;
   isKnown?: boolean | undefined;
 }): OpenStackBlastRadius {
   const radius: OpenStackBlastRadius = getEmptyOpenStackBlastRadius(
@@ -83,9 +86,11 @@ export function buildOpenStackBlastRadius(data: {
       if (!projectId) {
         continue;
       }
+      const domainId: string | undefined = data.projectDomains?.[projectId];
       const project: OpenStackBlastRadiusProject = projects.get(projectId) || {
         projectId,
         name: data.projectNames?.[projectId] || null,
+        ...(domainId ? { domainId } : {}),
         instanceCount: 0,
         volumeCount: 0,
         routerCount: 0,
@@ -96,7 +101,9 @@ export function buildOpenStackBlastRadius(data: {
     }
   }
 
-  const reach = (project: OpenStackBlastRadiusProject): number => {
+  const reach: (project: OpenStackBlastRadiusProject) => number = (
+    project: OpenStackBlastRadiusProject,
+  ): number => {
     return (
       project.instanceCount +
       project.volumeCount +
@@ -133,3 +140,64 @@ export function isOpenStackBlastRadiusEmpty(
     radius.floatingIpCount === 0
   );
 }
+
+function countOf(count: number, one: string, many: string): string {
+  return `${count} ${count === 1 ? one : many}`;
+}
+
+/*
+ * What a radius holds, in English, for what is read outside the Dashboard: an alert's
+ * description and OneUptime AI's starting context. "42 instances, 3 volumes in 7 projects".
+ * The Dashboard words its own in the reader's language.
+ */
+export function describeOpenStackBlastRadiusCounts(
+  counts: Pick<
+    OpenStackBlastRadius,
+    "instanceCount" | "volumeCount" | "routerCount" | "floatingIpCount"
+  >,
+): string {
+  const parts: Array<string> = [];
+  if (counts.instanceCount > 0) {
+    parts.push(countOf(counts.instanceCount, "instance", "instances"));
+  }
+  if (counts.volumeCount > 0) {
+    parts.push(countOf(counts.volumeCount, "volume", "volumes"));
+  }
+  if (counts.routerCount > 0) {
+    parts.push(countOf(counts.routerCount, "router", "routers"));
+  }
+  if (counts.floatingIpCount > 0) {
+    parts.push(countOf(counts.floatingIpCount, "floating IP", "floating IPs"));
+  }
+  return parts.join(", ");
+}
+
+export function describeOpenStackBlastRadius(
+  radius: OpenStackBlastRadius,
+): string {
+  const things: string = describeOpenStackBlastRadiusCounts(radius);
+  if (!things) {
+    return "";
+  }
+  return radius.projectCount > 0
+    ? `${things} in ${countOf(radius.projectCount, "project", "projects")}`
+    : things;
+}
+
+/*
+ * How an alert or an incident says which project and domain it reaches, by the IDs a
+ * rename never changes. An owner or label rule on one project matches this text in the
+ * description, which is what makes "this project's incidents reach this team" work with
+ * the rules every alert and incident already goes through. The closing backtick ends the
+ * match, so one ID that begins another is not mistaken for it.
+ */
+export function getOpenStackProjectMarker(projectId: string): string {
+  return `OpenStack project \`${projectId}\``;
+}
+
+export function getOpenStackDomainMarker(domainId: string): string {
+  return `OpenStack domain \`${domainId}\``;
+}
+
+export const OPENSTACK_PROJECT_MARKER_START: string = "OpenStack project `";
+export const OPENSTACK_DOMAIN_MARKER_START: string = "OpenStack domain `";

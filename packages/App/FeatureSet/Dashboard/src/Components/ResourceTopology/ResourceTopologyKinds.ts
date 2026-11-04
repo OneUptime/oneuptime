@@ -323,6 +323,102 @@ const KINDS: Record<string, ResourceTopologyKindInfo> = {
     order: 40,
   },
 
+  /*
+   * OpenStack, in the reds its master Topology entries take. The cloud's own icon is
+   * the neutral one until the trademark check (#5751).
+   */
+  "openstack.cloud": {
+    label: translationKey("OpenStack Cloud"),
+    plural: translationKey("OpenStack Clouds"),
+    icon: IconProp.Cloud,
+    color: "#dc2626",
+    order: 0,
+  },
+  "openstack.region": {
+    label: translationKey("Region"),
+    plural: translationKey("Regions"),
+    icon: IconProp.Globe,
+    color: "#b91c1c",
+    order: 5,
+  },
+  "openstack.az": {
+    label: translationKey("Availability Zone"),
+    plural: translationKey("Availability Zones"),
+    icon: IconProp.Squares,
+    color: "#dc2626",
+    order: 10,
+  },
+  "openstack.hypervisor": {
+    label: translationKey("Hypervisor"),
+    plural: translationKey("Hypervisors"),
+    icon: IconProp.ServerStack,
+    color: "#ef4444",
+    order: 20,
+  },
+  "openstack.instance": {
+    label: translationKey("Instance"),
+    plural: translationKey("Instances"),
+    icon: IconProp.Cube,
+    color: "#f87171",
+    order: 30,
+  },
+  "openstack.volume": {
+    label: translationKey("Volume"),
+    plural: translationKey("Volumes"),
+    icon: IconProp.Disc,
+    color: "#e11d48",
+    order: 40,
+  },
+  "openstack.pool": {
+    label: translationKey("Storage Pool"),
+    plural: translationKey("Storage Pools"),
+    icon: IconProp.Database,
+    color: "#be123c",
+    order: 45,
+  },
+  "openstack.network": {
+    label: translationKey("Network"),
+    plural: translationKey("Networks"),
+    icon: IconProp.Globe,
+    color: "#ea580c",
+    order: 50,
+  },
+  "openstack.subnet": {
+    label: translationKey("Subnet"),
+    plural: translationKey("Subnets"),
+    icon: IconProp.Squares,
+    color: "#f97316",
+    order: 55,
+  },
+  "openstack.router": {
+    label: translationKey("Router"),
+    plural: translationKey("Routers"),
+    icon: IconProp.Share,
+    color: "#fb923c",
+    order: 60,
+  },
+  "openstack.floatingip": {
+    label: translationKey("Floating IP"),
+    plural: translationKey("Floating IPs"),
+    icon: IconProp.MapPin,
+    color: "#f59e0b",
+    order: 65,
+  },
+  "openstack.api": {
+    label: translationKey("API"),
+    plural: translationKey("APIs"),
+    icon: IconProp.Activity,
+    color: "#9f1239",
+    order: 70,
+  },
+  "openstack.service": {
+    label: translationKey("Service"),
+    plural: translationKey("Services"),
+    icon: IconProp.Cog,
+    color: "#881337",
+    order: 75,
+  },
+
   // Ceph.
   "ceph.cluster": {
     label: translationKey("Ceph Cluster"),

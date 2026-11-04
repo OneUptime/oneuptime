@@ -6,8 +6,11 @@
 #   admin                 what there is to see
 #   reader                a plain reader on one project, with default policy
 #   monitoring-role       the oneuptime_monitoring role, with the policy overrides
-#                         in agents/OpenStackAgent/access/ applied to each service,
-#                         on a project of its own that holds nothing and has no quota
+#                         in agents/OpenStackAgent/access/ applied to each service that
+#                         has them, on a project of its own that holds nothing and has
+#                         no quota. Cinder has none: its own code asks for an admin
+#                         after policy has passed, so no override opens its services
+#                         or pools
 #   role-on-a-project     the same role on a project that holds things, for what that
 #                         adds and what it costs: nothing here must not write, but
 #                         this records whether it can

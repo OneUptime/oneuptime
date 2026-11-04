@@ -1,5 +1,6 @@
 import {
   OPENSTACK_ENDPOINT_INTERFACES,
+  OpenStackCollectionOptions,
   OpenStackCredential,
   OpenStackEndpointInterface,
 } from "../../Types/OpenStack/OpenStackProbeCollection";
@@ -32,6 +33,12 @@ export const MAX_OPENSTACK_REGION_NAME_LENGTH: number = 255;
 // A cloud can have a host per service, and each can have a certificate of its own.
 export const MAX_OPENSTACK_TRUSTED_CERTIFICATES: number = 32;
 
+/*
+ * Ports are read one list per network or project named, every collection, so this is
+ * also a bound on the calls a person can ask a cloud to take.
+ */
+export const MAX_OPENSTACK_PORT_SCOPES: number = 64;
+
 // What the rules need to know about a probe.
 export interface OpenStackCollectionProbeFacts {
   isGlobalProbe?: boolean | null | undefined;
@@ -48,6 +55,16 @@ export interface OpenStackCredentialBinding {
   endpointKey: string | null;
   probeId: string | null;
   trustedCertificateFingerprints: Array<string>;
+}
+
+// What names a credential in a cloud's columns. The secret is one column, for either kind.
+export interface OpenStackCredentialColumns {
+  credentialKind?: unknown;
+  applicationCredentialId?: unknown;
+  keystoneUsername?: unknown;
+  userDomainName?: unknown;
+  projectName?: unknown;
+  projectDomainName?: unknown;
 }
 
 export default class OpenStackCollectionSettings {
@@ -218,8 +235,7 @@ export default class OpenStackCollectionSettings {
 
     if (!username || !password || !projectName) {
       return {
-        error:
-          "A user name and password also need the project they log in to.",
+        error: "A user name and password also need the project they log in to.",
       };
     }
 
@@ -241,6 +257,54 @@ export default class OpenStackCollectionSettings {
         projectDomainName: text(data.projectDomainName) || "Default",
       },
     };
+  }
+
+  /*
+   * The credential a write gives: the one secret, and the columns that name it. What the
+   * write names decides which kind it is, then what is saved, so a new password for the
+   * saved user is that user's, and a new secret for the saved application credential is
+   * that credential's. An application credential wins when both are named: it is the
+   * better of the two, and only one is ever saved.
+   */
+  public static readCredentialColumns(data: {
+    written: OpenStackCredentialColumns;
+    saved?: OpenStackCredentialColumns | undefined;
+    secret: string;
+  }): ReturnType<typeof OpenStackCollectionSettings.readCredential> {
+    const { written, saved, secret } = data;
+
+    const isGiven: (value: unknown) => boolean = (value: unknown): boolean => {
+      return typeof value === "string" && value.trim().length > 0;
+    };
+
+    const isPassword: boolean = isGiven(written.applicationCredentialId)
+      ? false
+      : isGiven(written.keystoneUsername) || isGiven(written.projectName)
+        ? true
+        : saved?.credentialKind === "password";
+
+    if (!isPassword) {
+      return OpenStackCollectionSettings.readCredential({
+        applicationCredentialId: isGiven(written.applicationCredentialId)
+          ? written.applicationCredentialId
+          : saved?.applicationCredentialId,
+        applicationCredentialSecret: secret,
+      });
+    }
+
+    const valueOf: (column: keyof OpenStackCredentialColumns) => unknown = (
+      column: keyof OpenStackCredentialColumns,
+    ): unknown => {
+      return written[column] !== undefined ? written[column] : saved?.[column];
+    };
+
+    return OpenStackCollectionSettings.readCredential({
+      username: valueOf("keystoneUsername"),
+      password: secret,
+      userDomainName: valueOf("userDomainName"),
+      projectName: valueOf("projectName"),
+      projectDomainName: valueOf("projectDomainName"),
+    });
   }
 
   /*
@@ -285,6 +349,84 @@ export default class OpenStackCollectionSettings {
     }
 
     return { regions: regions };
+  }
+
+  /*
+   * What is read beyond the defaults, as the two switches and the ports' scopes it can
+   * be, or the sentence that says what is wrong. Anything else in it is dropped: the
+   * probe is handed this as it is, so it holds what the probe knows and nothing more.
+   */
+  public static normalizeOptions(
+    value: unknown,
+  ):
+    | { options: OpenStackCollectionOptions; error?: undefined }
+    | { error: string } {
+    if (value === null || value === undefined) {
+      return { options: {} };
+    }
+
+    if (typeof value !== "object" || Array.isArray(value)) {
+      return {
+        error: "The collection options are not in the form they should be.",
+      };
+    }
+
+    const raw: Record<string, unknown> = value as Record<string, unknown>;
+    const options: OpenStackCollectionOptions = {};
+
+    if (raw["collectPorts"] === true) {
+      options.collectPorts = true;
+    }
+
+    if (raw["collectProjectLimits"] === true) {
+      options.collectProjectLimits = true;
+    }
+
+    let scopes: number = 0;
+
+    for (const key of ["portNetworkIds", "portProjectIds"] as const) {
+      const given: unknown = raw[key];
+
+      if (given === undefined || given === null) {
+        continue;
+      }
+
+      if (!Array.isArray(given)) {
+        return { error: "Name ports' networks and projects by their IDs." };
+      }
+
+      const ids: Array<string> = [];
+
+      for (const item of given) {
+        if (typeof item !== "string") {
+          return { error: "Name ports' networks and projects by their IDs." };
+        }
+
+        const id: string = item.trim();
+
+        if (id.length > MAX_OPENSTACK_CREDENTIAL_FIELD_LENGTH) {
+          return { error: "That network or project ID is too long to be one." };
+        }
+
+        if (id && !ids.includes(id)) {
+          ids.push(id);
+        }
+      }
+
+      scopes += ids.length;
+
+      if (ids.length > 0) {
+        options[key] = ids;
+      }
+    }
+
+    if (scopes > MAX_OPENSTACK_PORT_SCOPES) {
+      return {
+        error: `Name at most ${MAX_OPENSTACK_PORT_SCOPES} networks and projects to read ports from: each is a list on every collection.`,
+      };
+    }
+
+    return { options: options };
   }
 
   /*

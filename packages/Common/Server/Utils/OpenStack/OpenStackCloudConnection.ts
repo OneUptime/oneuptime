@@ -18,7 +18,7 @@ import OpenStackCollectionMethod, {
 } from "../../../Types/OpenStack/OpenStackCollectionMethod";
 import OpenStackCollectionStatus from "../../../Types/OpenStack/OpenStackCollectionStatus";
 import {
-  DEFAULT_OPENSTACK_ENDPOINT_INTERFACE,
+  OpenStackCollectionOptions,
   OpenStackCredential,
 } from "../../../Types/OpenStack/OpenStackProbeCollection";
 import FeedMarkdown, {
@@ -112,6 +112,7 @@ export interface SavedOpenStackConnection {
   isCredentialSet?: boolean | undefined;
   collectionProbeId?: ObjectID | undefined;
   collectionRegions?: Array<string> | undefined;
+  collectionOptions?: OpenStackCollectionOptions | undefined;
   trustedCertificateFingerprints?: Array<string> | undefined;
   presentedCertificate?: { fingerprint256?: string | undefined } | undefined;
 }
@@ -130,6 +131,7 @@ export const OPENSTACK_CONNECTION_SAVED_SELECT: Record<string, true> = {
   isCredentialSet: true,
   collectionProbeId: true,
   collectionRegions: true,
+  collectionOptions: true,
   trustedCertificateFingerprints: true,
   presentedCertificate: true,
 };
@@ -206,6 +208,8 @@ export default class OpenStackCloudConnection {
         feedColor: Gray500,
       };
     }
+
+    OpenStackCloudConnection.normalizeCredential(data);
 
     // Probe collection: everything it needs, checked.
     OpenStackCloudConnection.requireProbeSettings(data, {
@@ -348,6 +352,8 @@ export default class OpenStackCloudConnection {
       return [change];
     }
 
+    OpenStackCloudConnection.normalizeCredential(update, saved);
+
     const valueOf: (column: string) => unknown = (column: string): unknown => {
       return update[column] !== undefined
         ? update[column]
@@ -457,7 +463,8 @@ export default class OpenStackCloudConnection {
       JSON.stringify(update["collectionRegions"]) !==
         JSON.stringify(saved.collectionRegions || []);
 
-    const isInterfaceChanged: boolean = update["endpointInterface"] !== undefined;
+    const isInterfaceChanged: boolean =
+      update["endpointInterface"] !== undefined;
 
     change.isCredentialChanged = isSecretGiven || isIdentityChanged;
     change.isCredentialSet = isSecretGiven ? true : null;
@@ -507,6 +514,17 @@ export default class OpenStackCloudConnection {
             : mdText`It no longer trusts a certificate of its own: each API's certificate must come from an authority the probe trusts.`,
         );
       }
+    }
+
+    if (
+      update["collectionOptions"] !== undefined &&
+      !isMethodSwitched &&
+      JSON.stringify(update["collectionOptions"]) !==
+        JSON.stringify(saved.collectionOptions || {})
+    ) {
+      change.feedLines.push(
+        mdText`What it collects beyond the defaults changed.`,
+      );
     }
 
     if (
@@ -694,15 +712,18 @@ export default class OpenStackCloudConnection {
     probeId: ObjectID | string | null | undefined;
     trustedCertificateFingerprints: Array<string> | null | undefined;
   }): OpenStackCredentialBinding {
-    const normalized: { fingerprints?: Array<string>; error?: string } =
-      OpenStackCollectionSettings.normalizeFingerprints(
-        data.trustedCertificateFingerprints || [],
-      );
+    const normalized: ReturnType<
+      typeof OpenStackCollectionSettings.normalizeFingerprints
+    > = OpenStackCollectionSettings.normalizeFingerprints(
+      data.trustedCertificateFingerprints || [],
+    );
 
     return {
       endpointKey: OpenStackAuthUrl.getEndpointKey(data.authUrl),
       probeId: data.probeId ? data.probeId.toString().toLowerCase() : null,
-      trustedCertificateFingerprints: normalized.fingerprints || [],
+      trustedCertificateFingerprints: normalized.error
+        ? []
+        : normalized.fingerprints,
     };
   }
 
@@ -745,8 +766,11 @@ export default class OpenStackCloudConnection {
     }
 
     if (data["collectionRegions"] !== undefined) {
-      const regions: { regions?: Array<string>; error?: string } =
-        OpenStackCollectionSettings.normalizeRegions(data["collectionRegions"]);
+      const regions: ReturnType<
+        typeof OpenStackCollectionSettings.normalizeRegions
+      > = OpenStackCollectionSettings.normalizeRegions(
+        data["collectionRegions"],
+      );
 
       if (regions.error) {
         throw new BadDataException(regions.error);
@@ -756,10 +780,11 @@ export default class OpenStackCloudConnection {
     }
 
     if (data["trustedCertificateFingerprints"] !== undefined) {
-      const fingerprints: { fingerprints?: Array<string>; error?: string } =
-        OpenStackCollectionSettings.normalizeFingerprints(
-          data["trustedCertificateFingerprints"],
-        );
+      const fingerprints: ReturnType<
+        typeof OpenStackCollectionSettings.normalizeFingerprints
+      > = OpenStackCollectionSettings.normalizeFingerprints(
+        data["trustedCertificateFingerprints"],
+      );
 
       if (fingerprints.error) {
         throw new BadDataException(fingerprints.error);
@@ -782,20 +807,38 @@ export default class OpenStackCloudConnection {
       data["collectionIntervalInMinutes"] = Number(interval);
     }
 
-    if (
-      typeof data["credentialSecret"] === "string" ||
-      data["applicationCredentialId"] !== undefined ||
-      data["keystoneUsername"] !== undefined
-    ) {
-      OpenStackCloudConnection.normalizeCredential(data);
+    if (data["collectionOptions"] !== undefined) {
+      const options: ReturnType<
+        typeof OpenStackCollectionSettings.normalizeOptions
+      > = OpenStackCollectionSettings.normalizeOptions(
+        data["collectionOptions"],
+      );
+
+      if (options.error) {
+        throw new BadDataException(options.error);
+      }
+
+      data["collectionOptions"] = options.options;
+    }
+
+    for (const column of CREDENTIAL_IDENTITY_COLUMNS) {
+      const value: unknown = data[column];
+
+      if (typeof value === "string") {
+        data[column] = value.trim();
+      }
     }
   }
 
   /*
-   * Which of the two kinds this write gives, by what it names. An application credential
-   * wins when both are named: it is the better of the two, and only one is ever saved.
+   * Which of the two kinds a write with a secret gives, and every column that names it.
+   * Only one kind is ever saved, so moving from one to the other clears what named the old
+   * one. A write with no secret keeps what is saved, and the credential rules see to it.
    */
-  private static normalizeCredential(data: DataRecord): void {
+  private static normalizeCredential(
+    data: DataRecord,
+    saved?: SavedOpenStackConnection | undefined,
+  ): void {
     const secret: unknown = data["credentialSecret"];
 
     if (typeof secret !== "string" || !secret) {
@@ -803,21 +846,11 @@ export default class OpenStackCloudConnection {
     }
 
     const read: ReturnType<typeof OpenStackCollectionSettings.readCredential> =
-      OpenStackCollectionSettings.readCredential(
-        typeof data["applicationCredentialId"] === "string" &&
-          data["applicationCredentialId"]
-          ? {
-              applicationCredentialId: data["applicationCredentialId"],
-              applicationCredentialSecret: secret,
-            }
-          : {
-              username: data["keystoneUsername"],
-              password: secret,
-              userDomainName: data["userDomainName"],
-              projectName: data["projectName"],
-              projectDomainName: data["projectDomainName"],
-            },
-      );
+      OpenStackCollectionSettings.readCredentialColumns({
+        written: data,
+        saved: saved,
+        secret: secret,
+      });
 
     if (!read.credential) {
       throw new BadDataException(read.error);
@@ -829,6 +862,14 @@ export default class OpenStackCloudConnection {
 
     if (credential.kind === "applicationCredential") {
       data["applicationCredentialId"] = credential.id;
+
+      if (saved?.keystoneUsername || saved?.projectName) {
+        data["keystoneUsername"] = null;
+        data["userDomainName"] = null;
+        data["projectName"] = null;
+        data["projectDomainName"] = null;
+      }
+
       return;
     }
 
@@ -836,6 +877,10 @@ export default class OpenStackCloudConnection {
     data["userDomainName"] = credential.userDomainName;
     data["projectName"] = credential.projectName;
     data["projectDomainName"] = credential.projectDomainName;
+
+    if (saved?.applicationCredentialId) {
+      data["applicationCredentialId"] = null;
+    }
   }
 
   /*
@@ -877,7 +922,3 @@ export default class OpenStackCloudConnection {
     }
   }
 }
-
-// What a new cloud's interface is when nobody picked one.
-export const DEFAULT_ENDPOINT_INTERFACE: string =
-  DEFAULT_OPENSTACK_ENDPOINT_INTERFACE;

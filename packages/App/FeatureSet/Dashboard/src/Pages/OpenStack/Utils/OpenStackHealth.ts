@@ -14,6 +14,7 @@ import {
   getOpenStackShortHostName,
   isOpenStackAdminDisabled,
   isOpenStackFloatingIpAssociated,
+  isOpenStackImageStuck,
   isOpenStackInstanceStuck,
   isOpenStackServiceDown,
   isOpenStackVolumeInError,
@@ -21,6 +22,11 @@ import {
   minutesInState,
   percentOf,
 } from "Common/Types/OpenStack/OpenStackHealthRules";
+import {
+  OpenStackProjectQuota,
+  OpenStackQuotaResource,
+  getOpenStackProjectQuotas,
+} from "Common/Types/OpenStack/OpenStackQuota";
 import { OpenStackResourceKind } from "Common/Types/OpenStack/OpenStackResourceKind";
 import { translationKey } from "Common/UI/Utils/TranslateTemplate";
 import {
@@ -48,10 +54,10 @@ import {
  *     alive agent, or with two active ones.
  *   Warning - needs a look soon:
  *     one nova-scheduler or nova-conductor down of several; a hypervisor past 90% of
- *     what Placement allows; an instance or volume in error, or stuck on its way to
- *     something else; a storage pool past 85%; an external network past 90%; a
- *     router or floating IP that should be active and is not; a service disabled for
- *     more than a week.
+ *     what Placement allows; an instance or volume in error, or an instance, volume
+ *     or image stuck on its way to something else; a storage pool past 85%; an external
+ *     network past 90%; a router or floating IP that should be active and is not; a
+ *     service disabled for more than a week.
  *
  * Three things these rules never do:
  *
@@ -84,6 +90,10 @@ const REASON_SERVICE_DOWN_WITH_INSTANCES: { one: string; other: string } = {
   one: "Down, with {{count}} instance on it",
   other: "Down, with {{count}} instances on it",
 };
+const REASON_SERVICE_DOWN_IN_PROJECTS: { one: string; other: string } = {
+  one: "In {{count}} project",
+  other: "In {{count}} projects",
+};
 const REASON_DISABLED_LONG: string = translationKey(
   "Disabled for {{days}} days",
 );
@@ -96,7 +106,8 @@ const REASON_MEMORY_ALLOCATED: string = translationKey(
 const REASON_DISK_ALLOCATED: string = translationKey(
   "{{percent}} of local disk allocated",
 );
-const REASON_INSTANCE_ERROR: string = translationKey("In ERROR");
+export const OPENSTACK_REASON_INSTANCE_ERROR: string =
+  translationKey("In ERROR");
 const REASON_STUCK: string = translationKey("{{status}} for {{duration}}");
 const REASON_VOLUME_ERROR: string = translationKey("In {{status}}");
 const REASON_PERCENT_FULL: string = translationKey("{{percent}} full");
@@ -113,6 +124,74 @@ const REASON_FLOATING_IP_NOT_ACTIVE: string = translationKey(
   "Associated, but not active",
 );
 const REASON_EVERY_DOWN: string = translationKey("Every {{service}} is down");
+/*
+ * Whole sentences, one per quota, because a sentence is translated whole. In a cloud of
+ * one region, which is most of them, naming the region says nothing.
+ */
+const REASON_QUOTA_AT_LINE: Record<
+  OpenStackQuotaResource,
+  { here: string; inRegion: string }
+> = {
+  [OpenStackQuotaResource.Instances]: {
+    here: translationKey("{{used}} of {{limit}} instances used ({{percent}})"),
+    inRegion: translationKey(
+      "{{used}} of {{limit}} instances used in {{region}} ({{percent}})",
+    ),
+  },
+  [OpenStackQuotaResource.Cores]: {
+    here: translationKey("{{used}} of {{limit}} vCPUs used ({{percent}})"),
+    inRegion: translationKey(
+      "{{used}} of {{limit}} vCPUs used in {{region}} ({{percent}})",
+    ),
+  },
+  [OpenStackQuotaResource.RamMib]: {
+    here: translationKey(
+      "{{used}} of {{limit}} MiB of memory used ({{percent}})",
+    ),
+    inRegion: translationKey(
+      "{{used}} of {{limit}} MiB of memory used in {{region}} ({{percent}})",
+    ),
+  },
+  [OpenStackQuotaResource.Gigabytes]: {
+    here: translationKey(
+      "{{used}} of {{limit}} GiB of volumes used ({{percent}})",
+    ),
+    inRegion: translationKey(
+      "{{used}} of {{limit}} GiB of volumes used in {{region}} ({{percent}})",
+    ),
+  },
+  [OpenStackQuotaResource.Networks]: {
+    here: translationKey("{{used}} of {{limit}} networks used ({{percent}})"),
+    inRegion: translationKey(
+      "{{used}} of {{limit}} networks used in {{region}} ({{percent}})",
+    ),
+  },
+  [OpenStackQuotaResource.Ports]: {
+    here: translationKey("{{used}} of {{limit}} ports used ({{percent}})"),
+    inRegion: translationKey(
+      "{{used}} of {{limit}} ports used in {{region}} ({{percent}})",
+    ),
+  },
+  [OpenStackQuotaResource.FloatingIps]: {
+    here: translationKey(
+      "{{used}} of {{limit}} floating IPs used ({{percent}})",
+    ),
+    inRegion: translationKey(
+      "{{used}} of {{limit}} floating IPs used in {{region}} ({{percent}})",
+    ),
+  },
+};
+
+// What a quota is of, as the card that lists them titles each.
+export const OPENSTACK_QUOTA_TITLES: Record<OpenStackQuotaResource, string> = {
+  [OpenStackQuotaResource.Instances]: translationKey("Instances"),
+  [OpenStackQuotaResource.Cores]: translationKey("vCPUs"),
+  [OpenStackQuotaResource.RamMib]: translationKey("Memory (MiB)"),
+  [OpenStackQuotaResource.Gigabytes]: translationKey("Volume storage (GiB)"),
+  [OpenStackQuotaResource.Networks]: translationKey("Networks"),
+  [OpenStackQuotaResource.Ports]: translationKey("Ports"),
+  [OpenStackQuotaResource.FloatingIps]: translationKey("Floating IPs"),
+};
 
 const KIND_API: string = translationKey("API");
 const KIND_SERVICE: string = translationKey("Service");
@@ -123,6 +202,8 @@ const KIND_STORAGE_POOL: string = translationKey("Storage pool");
 const KIND_NETWORK: string = translationKey("Network");
 const KIND_ROUTER: string = translationKey("Router");
 const KIND_FLOATING_IP: string = translationKey("Floating IP");
+const KIND_PROJECT: string = translationKey("Project");
+const KIND_IMAGE: string = translationKey("Image");
 
 // The order Needs attention lists the kinds in, at one severity.
 export const OPENSTACK_ATTENTION_KIND_ORDER: Array<string> = [
@@ -135,6 +216,8 @@ export const OPENSTACK_ATTENTION_KIND_ORDER: Array<string> = [
   KIND_VOLUME,
   KIND_INSTANCE,
   KIND_FLOATING_IP,
+  KIND_IMAGE,
+  KIND_PROJECT,
 ];
 
 /*
@@ -151,7 +234,8 @@ function formatPercent(percent: number): string {
   return `${Math.round(percent)}%`;
 }
 
-function formatDuration(minutes: number): string {
+// How long something has been in a state, as a reason and a list both write it.
+export function formatOpenStackDuration(minutes: number): string {
   if (minutes < 120) {
     return `${Math.round(minutes)}m`;
   }
@@ -189,6 +273,8 @@ export function assessOpenStackService(data: {
   now: Date;
   // How many instances are on this host, for a nova-compute that went down.
   instanceCount?: number | null | undefined;
+  // And whose they are, when the blast radius has been read.
+  projectCount?: number | null | undefined;
 }): OpenStackAssessment {
   const { row, now } = data;
 
@@ -230,6 +316,18 @@ export function assessOpenStackService(data: {
           values: { count: `${count}` },
           plural: { one: REASON_SERVICE_DOWN_WITH_INSTANCES.one, count },
         },
+        ...(data.projectCount
+          ? [
+              {
+                text: REASON_SERVICE_DOWN_IN_PROJECTS.other,
+                values: { count: `${data.projectCount}` },
+                plural: {
+                  one: REASON_SERVICE_DOWN_IN_PROJECTS.one,
+                  count: data.projectCount,
+                },
+              },
+            ]
+          : []),
       ],
     };
   }
@@ -286,6 +384,71 @@ export function assessOpenStackHypervisor(
   };
 }
 
+/*
+ * A host as one thing, for what draws a hypervisor rather than a list of workers. Nova's
+ * hypervisor series keep their last numbers after its nova-compute stops, so the host's
+ * state is its nova-compute's, in the rules that row has anyway: down is critical and
+ * says how many instances are on it, and disabled is planned work. Otherwise it is how
+ * full it is.
+ */
+export function assessOpenStackHost(data: {
+  hypervisor: OpenStackResource;
+  // Its nova-compute, when the inventory holds it. The hypervisor's row says the same.
+  compute?: OpenStackResource | null | undefined;
+  instanceCount?: number | null | undefined;
+  now: Date;
+}): OpenStackAssessment {
+  const { hypervisor, compute, now } = data;
+  const worker: OpenStackResource =
+    compute ||
+    Object.assign(new OpenStackResource(), {
+      kind: OpenStackResourceKind.Service,
+      name: "nova-compute",
+      status: hypervisor.status,
+      adminState: hypervisor.adminState,
+      disabledReason: hypervisor.disabledReason,
+      stateChangedAt: hypervisor.stateChangedAt,
+    });
+
+  if (
+    isOpenStackServiceDown({
+      status: worker.status,
+      adminState: worker.adminState,
+    }) ||
+    isOpenStackAdminDisabled(worker.adminState)
+  ) {
+    return assessOpenStackService({
+      row: worker,
+      now,
+      instanceCount: data.instanceCount ?? hypervisor.instanceCount,
+    });
+  }
+
+  return assessOpenStackHypervisor(hypervisor);
+}
+
+/*
+ * An instance on a host that is down. Nova still says ACTIVE, because the only thing
+ * that could tell it otherwise has stopped, and it may well be running: it is what the
+ * host's failure takes with it, so a warning, and never the critical its host already is.
+ */
+const REASON_HOST_DOWN: string = translationKey("Its hypervisor is down");
+
+export function assessOpenStackInstanceOnHost(data: {
+  row: OpenStackResource;
+  now: Date;
+  isHostDown: boolean;
+}): OpenStackAssessment {
+  const own: OpenStackAssessment = assessOpenStackInstance(data);
+  if (!data.isHostDown || data.row.status === "SHUTOFF") {
+    return own;
+  }
+  return {
+    severity: ResourceAttentionSeverity.Warning,
+    reasons: [...own.reasons, { text: REASON_HOST_DOWN }],
+  };
+}
+
 export function assessOpenStackInstance(data: {
   row: OpenStackResource;
   now: Date;
@@ -294,7 +457,7 @@ export function assessOpenStackInstance(data: {
   if (row.status === "ERROR") {
     return {
       severity: ResourceAttentionSeverity.Warning,
-      reasons: [{ text: REASON_INSTANCE_ERROR }],
+      reasons: [{ text: OPENSTACK_REASON_INSTANCE_ERROR }],
     };
   }
   if (
@@ -319,7 +482,7 @@ function stuckAssessment(row: OpenStackResource, now: Date): OpenStackAssessment
         text: REASON_STUCK,
         values: {
           status: row.status || "",
-          duration: formatDuration(minutes),
+          duration: formatOpenStackDuration(minutes),
         },
       },
     ],
@@ -475,10 +638,79 @@ export function assessOpenStackFloatingIp(
   return FINE;
 }
 
+// An image left in queued is a failed upload nothing will ever move on.
+export function assessOpenStackImage(data: {
+  row: OpenStackResource;
+  now: Date;
+}): OpenStackAssessment {
+  const { row, now } = data;
+  if (
+    isOpenStackImageStuck({
+      status: row.status,
+      stateChangedAt: row.stateChangedAt,
+      now,
+    })
+  ) {
+    return stuckAssessment(row, now);
+  }
+  return FINE;
+}
+
+/*
+ * A project at a quota: its next instance or volume is about to be refused. A warning,
+ * however far past the line, since nothing it runs now has stopped. Says nothing without
+ * quota data, which most clouds do not collect, and nothing about a reading so old that
+ * nobody is collecting it any more.
+ */
+export function assessOpenStackProject(data: {
+  row: OpenStackResource;
+  now: Date;
+}): OpenStackAssessment {
+  const quotas: Array<OpenStackProjectQuota> = getOpenStackProjectQuotas(
+    factsOf(data.row),
+    data.now,
+  );
+  const atLine: Array<OpenStackProjectQuota> = quotas.filter(
+    (quota: OpenStackProjectQuota) => {
+      return quota.isAtLine;
+    },
+  );
+
+  if (atLine.length === 0) {
+    return FINE;
+  }
+
+  const regions: Set<string> = new Set<string>(
+    quotas.map((quota: OpenStackProjectQuota): string => {
+      return quota.regionName;
+    }),
+  );
+
+  return {
+    severity: ResourceAttentionSeverity.Warning,
+    reasons: atLine.map((quota: OpenStackProjectQuota) => {
+      const sentences: { here: string; inRegion: string } =
+        REASON_QUOTA_AT_LINE[quota.resource];
+      const values: Record<string, string> = {
+        used: `${quota.used}`,
+        limit: `${quota.limit}`,
+        percent: formatPercent(quota.percent || 0),
+      };
+      return regions.size > 1
+        ? {
+            text: sentences.inRegion,
+            values: { ...values, region: quota.regionName },
+          }
+        : { text: sentences.here, values };
+    }),
+  };
+}
+
 export function assessOpenStackResource(data: {
   row: OpenStackResource;
   now: Date;
   instanceCountOnHost?: number | null | undefined;
+  projectCountOnHost?: number | null | undefined;
 }): OpenStackAssessment {
   const { row, now } = data;
   switch (row.kind) {
@@ -489,6 +721,7 @@ export function assessOpenStackResource(data: {
         row,
         now,
         instanceCount: data.instanceCountOnHost,
+        projectCount: data.projectCountOnHost,
       });
     case OpenStackResourceKind.Hypervisor:
       return assessOpenStackHypervisor(row);
@@ -504,6 +737,10 @@ export function assessOpenStackResource(data: {
       return assessOpenStackRouter(row);
     case OpenStackResourceKind.FloatingIp:
       return assessOpenStackFloatingIp(row);
+    case OpenStackResourceKind.Project:
+      return assessOpenStackProject({ row, now });
+    case OpenStackResourceKind.Image:
+      return assessOpenStackImage({ row, now });
     default:
       return FINE;
   }
@@ -519,6 +756,8 @@ const KIND_WORDS: Partial<Record<string, string>> = {
   [OpenStackResourceKind.Network]: KIND_NETWORK,
   [OpenStackResourceKind.Router]: KIND_ROUTER,
   [OpenStackResourceKind.FloatingIp]: KIND_FLOATING_IP,
+  [OpenStackResourceKind.Project]: KIND_PROJECT,
+  [OpenStackResourceKind.Image]: KIND_IMAGE,
 };
 
 function iconOf(kind: string | undefined): IconProp {
@@ -528,6 +767,8 @@ function iconOf(kind: string | undefined): IconProp {
     case OpenStackResourceKind.Volume:
     case OpenStackResourceKind.StoragePool:
       return IconProp.Database;
+    case OpenStackResourceKind.Image:
+      return IconProp.Image;
     case OpenStackResourceKind.Network:
     case OpenStackResourceKind.Router:
     case OpenStackResourceKind.FloatingIp:
@@ -535,6 +776,8 @@ function iconOf(kind: string | undefined): IconProp {
     case OpenStackResourceKind.Api:
     case OpenStackResourceKind.Service:
       return IconProp.Cog;
+    case OpenStackResourceKind.Project:
+      return IconProp.Folder;
     default:
       return IconProp.Cube;
   }
@@ -571,10 +814,17 @@ function instanceCountsByHost(
  */
 function getEveryWorkerDownItems(
   rows: Array<OpenStackResource>,
+  routeFor?: OpenStackRouteFor | undefined,
 ): Array<ResourceAttentionItem> {
   const byRegionAndWorker: Map<
     string,
-    { region: string; worker: string; up: number; down: number }
+    {
+      region: string;
+      worker: string;
+      up: number;
+      down: number;
+      first: OpenStackResource;
+    }
   > = new Map();
   for (const row of rows) {
     if (
@@ -585,13 +835,19 @@ function getEveryWorkerDownItems(
       continue;
     }
     const key: string = `${row.regionName}/${row.name}`;
-    const entry: { region: string; worker: string; up: number; down: number } =
-      byRegionAndWorker.get(key) || {
-        region: row.regionName || "",
-        worker: row.name || "",
-        up: 0,
-        down: 0,
-      };
+    const entry: {
+      region: string;
+      worker: string;
+      up: number;
+      down: number;
+      first: OpenStackResource;
+    } = byRegionAndWorker.get(key) || {
+      region: row.regionName || "",
+      worker: row.name || "",
+      up: 0,
+      down: 0,
+      first: row,
+    };
     if (row.status === "down") {
       entry.down += 1;
     } else {
@@ -613,6 +869,8 @@ function getEveryWorkerDownItems(
         reasons: [
           { text: REASON_EVERY_DOWN, values: { service: entry.worker } },
         ],
+        // One of them, since all of them are the same answer.
+        route: routeFor?.(entry.first),
       });
     }
   }
@@ -623,10 +881,22 @@ export function getOpenStackAttentionItems(data: {
   rows: Array<OpenStackResource>;
   now: Date;
   routeFor?: OpenStackRouteFor | undefined;
+  // How a part reads when its own name is not what a person calls it: an API's type.
+  nameFor?: ((row: OpenStackResource) => string) | undefined;
+  /*
+   * What a lost host takes with it, once read (POST /blast-radius). A hypervisor's own
+   * count stands in until then, and says nothing about whose they are.
+   */
+  blastRadiusFor?:
+    | ((
+        row: OpenStackResource,
+      ) => { instanceCount: number; projectCount: number } | null | undefined)
+    | undefined;
 }): Array<ResourceAttentionItem> {
   const counts: Map<string, number> = instanceCountsByHost(data.rows);
   const everyWorkerDown: Array<ResourceAttentionItem> = getEveryWorkerDownItems(
     data.rows,
+    data.routeFor,
   );
   const coveredByEveryWorkerDown: Set<string> = new Set(
     everyWorkerDown.map((item: ResourceAttentionItem) => {
@@ -644,13 +914,17 @@ export function getOpenStackAttentionItems(data: {
       continue;
     }
     const host: unknown = factsOf(row)["host"];
+    const radius: { instanceCount: number; projectCount: number } | null | undefined =
+      data.blastRadiusFor?.(row);
     const assessment: OpenStackAssessment = assessOpenStackResource({
       row,
       now: data.now,
       instanceCountOnHost:
-        typeof host === "string"
+        radius?.instanceCount ??
+        (typeof host === "string"
           ? counts.get(`${row.regionName}/${getOpenStackShortHostName(host)}`)
-          : undefined,
+          : undefined),
+      projectCountOnHost: radius?.projectCount,
     });
     if (!assessment.severity) {
       continue;
@@ -659,10 +933,15 @@ export function getOpenStackAttentionItems(data: {
       key: `${row.kind}/${row.externalId}`,
       kind: KIND_WORDS[row.kind || ""] || row.kind || "",
       icon: iconOf(row.kind),
-      name: getOpenStackDisplayName(row),
+      name: data.nameFor?.(row) || getOpenStackDisplayName(row),
       detail: getOpenStackDetail(row),
       severity: assessment.severity,
       reasons: assessment.reasons,
+      // What Nova recorded about why it failed, in its own words. Only a probe has this.
+      message:
+        typeof factsOf(row)["faultMessage"] === "string"
+          ? (factsOf(row)["faultMessage"] as string)
+          : undefined,
       route: data.routeFor?.(row),
     });
   }

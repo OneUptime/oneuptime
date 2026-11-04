@@ -9,16 +9,17 @@ openstack_identity_domains 1
 openstack_identity_groups 2
 # HELP openstack_identity_project_info project_info
 # TYPE openstack_identity_project_info gauge
-openstack_identity_project_info{description="",domain_id="default",enabled="true",id="1b1fd8bc73ed43178f7e6842fce8e7bd",is_domain="false",name="invisible_to_admin",parent_id="default",tags=""} 1
-openstack_identity_project_info{description="",domain_id="default",enabled="true",id="8106c80a027943d9bd912719628c2196",is_domain="false",name="demo",parent_id="default",tags=""} 1
-openstack_identity_project_info{description="",domain_id="default",enabled="true",id="e37252697aa04e6e914220e5198d2726",is_domain="false",name="service",parent_id="default",tags=""} 1
-openstack_identity_project_info{description="",domain_id="default",enabled="true",id="ec65e3e11e9d44d58e9626595c8ac606",is_domain="false",name="alt_demo",parent_id="default",tags=""} 1
-openstack_identity_project_info{description="Bootstrap project for initializing the cloud.",domain_id="default",enabled="true",id="9dd5547a760f4ec497b447acca289826",is_domain="false",name="admin",parent_id="default",tags=""} 1
-openstack_identity_project_info{description="OneUptime test estate",domain_id="default",enabled="true",id="1785ed5842d7419f90f2a58a0c2a107a",is_domain="false",name="ou-research",parent_id="default",tags=""} 1
-openstack_identity_project_info{description="OneUptime test estate",domain_id="default",enabled="true",id="d5463dfd87314364b31f2502ebc830c1",is_domain="false",name="ou-payments",parent_id="default",tags=""} 1
+openstack_identity_project_info{description="",domain_id="default",enabled="true",id="07703aac050d43d48ae33356bb0004da",is_domain="false",name="service",parent_id="default",tags=""} 1
+openstack_identity_project_info{description="",domain_id="default",enabled="true",id="28280252fb1f4ca8be0ac84bfabc2e36",is_domain="false",name="alt_demo",parent_id="default",tags=""} 1
+openstack_identity_project_info{description="",domain_id="default",enabled="true",id="4e3a86fd944044c3a37ff47699f73847",is_domain="false",name="demo",parent_id="default",tags=""} 1
+openstack_identity_project_info{description="",domain_id="default",enabled="true",id="7e51fd7550d9433e90007a2fe930b908",is_domain="false",name="invisible_to_admin",parent_id="default",tags=""} 1
+openstack_identity_project_info{description="Bootstrap project for initializing the cloud.",domain_id="default",enabled="true",id="3a734681e116479ea7258ba7fafeb925",is_domain="false",name="admin",parent_id="default",tags=""} 1
+openstack_identity_project_info{description="OneUptime monitoring: holds nothing",domain_id="default",enabled="true",id="63086c888b0e4b92ba732c0438d5a3cd",is_domain="false",name="ou-monitoring",parent_id="default",tags=""} 1
+openstack_identity_project_info{description="OneUptime test estate",domain_id="default",enabled="true",id="55c34b42751f49d988a10e9ec18c242b",is_domain="false",name="ou-payments",parent_id="default",tags=""} 1
+openstack_identity_project_info{description="OneUptime test estate",domain_id="default",enabled="true",id="974aee6a0f5c4ee297b120ddd224040c",is_domain="false",name="ou-research",parent_id="default",tags=""} 1
 # HELP openstack_identity_projects projects
 # TYPE openstack_identity_projects gauge
-openstack_identity_projects 7
+openstack_identity_projects 8
 # HELP openstack_identity_regions regions
 # TYPE openstack_identity_regions gauge
 openstack_identity_regions 1
@@ -27,4 +28,4 @@ openstack_identity_regions 1
 openstack_identity_up 1
 # HELP openstack_identity_users users
 # TYPE openstack_identity_users gauge
-openstack_identity_users 15
+openstack_identity_users 16

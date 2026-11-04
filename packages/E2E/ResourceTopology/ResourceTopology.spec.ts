@@ -46,6 +46,7 @@ const PAGES: Record<string, string> = {
   podman: `podman/35000000-0000-4000-8000-000000000001`,
   swarm: `docker-swarm/36000000-0000-4000-8000-000000000001`,
   proxmox: `proxmox/37000000-0000-4000-8000-000000000001`,
+  openstack: `openstack/71000000-0000-4000-8000-000000000001`,
   ceph: `ceph/38000000-0000-4000-8000-000000000001`,
   storage: `storage-arrays/39000000-0000-4000-8000-000000000001`,
   cloud: `cloud/accounts/3a000000-0000-4000-8000-000000000001`,
@@ -60,6 +61,7 @@ const ROOT_IDS: Record<string, string> = {
   podman: "host",
   swarm: "cluster",
   proxmox: "cluster",
+  openstack: "cloud",
   ceph: "cluster",
   storage: "array",
   cloud: "account",
@@ -981,6 +983,7 @@ test.describe("every resource that holds parts", () => {
     "podman",
     "swarm",
     "proxmox",
+    "openstack",
     "ceph",
     "storage",
     "cloud",
@@ -1001,6 +1004,58 @@ test.describe("every resource that holds parts", () => {
       await screenshot(page, `${product}-1280-light`);
     });
   }
+});
+
+test.describe("an OpenStack cloud with a compute service stopped", () => {
+  const HOST: string =
+    "hypervisor:RegionOne/compute-3.example.internal";
+
+  test("the host is drawn red with its instances beneath it", async ({
+    page,
+  }: {
+    page: Page;
+  }) => {
+    await openTopology(page, "openstack");
+
+    // Its way down is open by itself, because something on it needs attention.
+    const host: Locator = byTestId(page, `resource-topology-card-${HOST}`);
+    await expect(host).toBeVisible();
+    await expect(host).toContainText("compute-3");
+    await expect(host).toContainText("Down");
+    await expect(
+      byTestId(page, "resource-topology-filter-attention"),
+    ).toBeVisible();
+
+    await byTestId(page, "resource-topology-filter-attention").click();
+    await expect(
+      byTestId(page, "resource-topology-card-instance:instance-2-1"),
+    ).toBeVisible();
+    await expect(
+      byTestId(page, "resource-topology-card-instance:instance-2-1"),
+    ).toContainText("ou-research");
+
+    await screenshot(page, "openstack-host-down-1280-light");
+  });
+
+  test("names what it cannot draw, once", async ({ page }: { page: Page }) => {
+    await openTopology(page, "openstack");
+
+    await expect(byTestId(page, "resource-topology-notice-gap")).toContainText(
+      "does not say",
+    );
+  });
+
+  test("a search finds an instance by its project", async ({
+    page,
+  }: {
+    page: Page;
+  }) => {
+    await openTopology(page, "openstack");
+    await byTestId(page, "resource-topology-search").fill("ou-payments");
+    await expect(
+      byTestId(page, "resource-topology-search-result"),
+    ).toContainText("match");
+  });
 });
 
 test.describe("a tree of cards, never a box inside a box", () => {

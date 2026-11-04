@@ -7,17 +7,23 @@
       "results": {
         "admin": {
           "status": 200,
-          "count": 7,
+          "count": 8,
           "seesAll": true
         },
         "reader": {
           "status": 403,
           "count": null,
-          "seesAll": false
+          "seesAll": false,
+          "reason": "You are not authorized to perform the requested action: identity:list_projects."
         },
         "monitoring-role": {
           "status": 200,
-          "count": 7,
+          "count": 8,
+          "seesAll": true
+        },
+        "role-on-a-project": {
+          "status": 200,
+          "count": 8,
           "seesAll": true
         }
       }
@@ -35,9 +41,15 @@
         "reader": {
           "status": 403,
           "count": null,
-          "seesAll": false
+          "seesAll": false,
+          "reason": "You are not authorized to perform the requested action: identity:list_domains."
         },
         "monitoring-role": {
+          "status": 200,
+          "count": 1,
+          "seesAll": true
+        },
+        "role-on-a-project": {
           "status": 200,
           "count": 1,
           "seesAll": true
@@ -63,6 +75,11 @@
           "status": 200,
           "count": 1,
           "seesAll": true
+        },
+        "role-on-a-project": {
+          "status": 200,
+          "count": 1,
+          "seesAll": true
         }
       }
     },
@@ -79,9 +96,15 @@
         "reader": {
           "status": 403,
           "count": null,
-          "seesAll": false
+          "seesAll": false,
+          "reason": "You are not authorized to perform the requested action: identity:list_services."
         },
         "monitoring-role": {
+          "status": 200,
+          "count": 7,
+          "seesAll": true
+        },
+        "role-on-a-project": {
           "status": 200,
           "count": 7,
           "seesAll": true
@@ -101,9 +124,15 @@
         "reader": {
           "status": 403,
           "count": null,
-          "seesAll": false
+          "seesAll": false,
+          "reason": "You are not authorized to perform the requested action: identity:list_endpoints."
         },
         "monitoring-role": {
+          "status": 200,
+          "count": 7,
+          "seesAll": true
+        },
+        "role-on-a-project": {
           "status": 200,
           "count": 7,
           "seesAll": true
@@ -123,9 +152,15 @@
         "reader": {
           "status": 403,
           "count": null,
-          "seesAll": false
+          "seesAll": false,
+          "reason": "Policy doesn't allow os_compute_api:servers:detail:get_all_tenants to be performed."
         },
         "monitoring-role": {
+          "status": 200,
+          "count": 4,
+          "seesAll": true
+        },
+        "role-on-a-project": {
           "status": 200,
           "count": 4,
           "seesAll": true
@@ -145,9 +180,15 @@
         "reader": {
           "status": 403,
           "count": null,
-          "seesAll": false
+          "seesAll": false,
+          "reason": "Policy doesn't allow os_compute_api:os-services:list to be performed."
         },
         "monitoring-role": {
+          "status": 200,
+          "count": 4,
+          "seesAll": true
+        },
+        "role-on-a-project": {
           "status": 200,
           "count": 4,
           "seesAll": true
@@ -167,9 +208,15 @@
         "reader": {
           "status": 403,
           "count": null,
-          "seesAll": false
+          "seesAll": false,
+          "reason": "Policy doesn't allow os_compute_api:os-hypervisors:list-detail to be performed."
         },
         "monitoring-role": {
+          "status": 200,
+          "count": 1,
+          "seesAll": true
+        },
+        "role-on-a-project": {
           "status": 200,
           "count": 1,
           "seesAll": true
@@ -189,9 +236,15 @@
         "reader": {
           "status": 403,
           "count": null,
-          "seesAll": false
+          "seesAll": false,
+          "reason": "Policy doesn't allow os_compute_api:os-aggregates:index to be performed."
         },
         "monitoring-role": {
+          "status": 200,
+          "count": 0,
+          "seesAll": true
+        },
+        "role-on-a-project": {
           "status": 200,
           "count": 0,
           "seesAll": true
@@ -211,9 +264,15 @@
         "reader": {
           "status": 403,
           "count": null,
-          "seesAll": false
+          "seesAll": false,
+          "reason": "Policy doesn't allow os_compute_api:os-availability-zone:detail to be performed."
         },
         "monitoring-role": {
+          "status": 200,
+          "count": 2,
+          "seesAll": true
+        },
+        "role-on-a-project": {
           "status": 200,
           "count": 2,
           "seesAll": true
@@ -239,6 +298,11 @@
           "status": 200,
           "count": 12,
           "seesAll": true
+        },
+        "role-on-a-project": {
+          "status": 200,
+          "count": 12,
+          "seesAll": true
         }
       }
     },
@@ -255,9 +319,15 @@
         "reader": {
           "status": 403,
           "count": null,
-          "seesAll": false
+          "seesAll": false,
+          "reason": "Policy doesn't allow os_compute_api:os-simple-tenant-usage:list to be performed."
         },
         "monitoring-role": {
+          "status": 200,
+          "count": 2,
+          "seesAll": true
+        },
+        "role-on-a-project": {
           "status": 200,
           "count": 2,
           "seesAll": true
@@ -277,9 +347,15 @@
         "reader": {
           "status": 403,
           "count": null,
-          "seesAll": false
+          "seesAll": false,
+          "reason": ""
         },
         "monitoring-role": {
+          "status": 200,
+          "count": 1,
+          "seesAll": true
+        },
+        "role-on-a-project": {
           "status": 200,
           "count": 1,
           "seesAll": true
@@ -305,6 +381,11 @@
           "status": 200,
           "count": 2,
           "seesAll": true
+        },
+        "role-on-a-project": {
+          "status": 200,
+          "count": 2,
+          "seesAll": true
         }
       }
     },
@@ -324,6 +405,11 @@
           "seesAll": false
         },
         "monitoring-role": {
+          "status": 200,
+          "count": 1,
+          "seesAll": false
+        },
+        "role-on-a-project": {
           "status": 200,
           "count": 2,
           "seesAll": false
@@ -347,6 +433,11 @@
         },
         "monitoring-role": {
           "status": 200,
+          "count": 2,
+          "seesAll": false
+        },
+        "role-on-a-project": {
+          "status": 200,
           "count": 3,
           "seesAll": false
         }
@@ -369,6 +460,11 @@
         },
         "monitoring-role": {
           "status": 200,
+          "count": 0,
+          "seesAll": false
+        },
+        "role-on-a-project": {
+          "status": 200,
           "count": 1,
           "seesAll": false
         }
@@ -390,6 +486,11 @@
           "seesAll": true
         },
         "monitoring-role": {
+          "status": 200,
+          "count": 0,
+          "seesAll": false
+        },
+        "role-on-a-project": {
           "status": 200,
           "count": 2,
           "seesAll": true
@@ -415,6 +516,11 @@
           "status": 200,
           "count": 4,
           "seesAll": true
+        },
+        "role-on-a-project": {
+          "status": 200,
+          "count": 4,
+          "seesAll": true
         }
       }
     },
@@ -434,6 +540,12 @@
           "seesAll": false
         },
         "monitoring-role": {
+          "status": 409,
+          "count": null,
+          "seesAll": false,
+          "reason": "Quota exceeded for resources: ['security_group_rule']."
+        },
+        "role-on-a-project": {
           "status": 200,
           "count": 2,
           "seesAll": false
@@ -457,6 +569,11 @@
         },
         "monitoring-role": {
           "status": 200,
+          "count": 0,
+          "seesAll": false
+        },
+        "role-on-a-project": {
+          "status": 200,
           "count": 4,
           "seesAll": false
         }
@@ -469,18 +586,26 @@
       "results": {
         "admin": {
           "status": 200,
-          "count": 0,
+          "count": 1,
           "seesAll": true
         },
         "reader": {
           "status": 403,
           "count": null,
-          "seesAll": false
+          "seesAll": false,
+          "reason": "rule:get_quota is disallowed by policy"
         },
         "monitoring-role": {
           "status": 403,
           "count": null,
-          "seesAll": false
+          "seesAll": false,
+          "reason": "rule:get_quota is disallowed by policy"
+        },
+        "role-on-a-project": {
+          "status": 403,
+          "count": null,
+          "seesAll": false,
+          "reason": "rule:get_quota is disallowed by policy"
         }
       }
     },
@@ -501,6 +626,11 @@
         },
         "monitoring-role": {
           "status": 200,
+          "count": 0,
+          "seesAll": false
+        },
+        "role-on-a-project": {
+          "status": 200,
           "count": 3,
           "seesAll": true
         }
@@ -519,12 +649,20 @@
         "reader": {
           "status": 403,
           "count": null,
-          "seesAll": false
+          "seesAll": false,
+          "reason": "Policy doesn't allow volume_extension:services:index to be performed."
         },
         "monitoring-role": {
           "status": 403,
           "count": null,
-          "seesAll": false
+          "seesAll": false,
+          "reason": "User does not have admin privileges"
+        },
+        "role-on-a-project": {
+          "status": 403,
+          "count": null,
+          "seesAll": false,
+          "reason": "User does not have admin privileges"
         }
       }
     },
@@ -541,12 +679,20 @@
         "reader": {
           "status": 403,
           "count": null,
-          "seesAll": false
+          "seesAll": false,
+          "reason": "Policy doesn't allow scheduler_extension:scheduler_stats:get_pools to be performed."
         },
         "monitoring-role": {
           "status": 403,
           "count": null,
-          "seesAll": false
+          "seesAll": false,
+          "reason": "User does not have admin privileges\nTraceback (most recent call last):\n\n  File \"/opt/stack/data/venv/lib/python3.12/site-packages/oslo_messaging/rpc/server.py\", line 176, in _process_incoming\n    res "
+        },
+        "role-on-a-project": {
+          "status": 403,
+          "count": null,
+          "seesAll": false,
+          "reason": "User does not have admin privileges\nTraceback (most recent call last):\n\n  File \"/opt/stack/data/venv/lib/python3.12/site-packages/oslo_messaging/rpc/server.py\", line 176, in _process_incoming\n    res "
         }
       }
     },
@@ -566,6 +712,11 @@
           "seesAll": true
         },
         "monitoring-role": {
+          "status": 200,
+          "count": 0,
+          "seesAll": false
+        },
+        "role-on-a-project": {
           "status": 200,
           "count": 1,
           "seesAll": true
@@ -591,6 +742,11 @@
           "status": 200,
           "count": 0,
           "seesAll": true
+        },
+        "role-on-a-project": {
+          "status": 200,
+          "count": 0,
+          "seesAll": true
         }
       }
     },
@@ -610,6 +766,11 @@
           "seesAll": true
         },
         "monitoring-role": {
+          "status": 200,
+          "count": 2,
+          "seesAll": true
+        },
+        "role-on-a-project": {
           "status": 200,
           "count": 2,
           "seesAll": true
@@ -635,6 +796,11 @@
           "status": 200,
           "count": 1,
           "seesAll": true
+        },
+        "role-on-a-project": {
+          "status": 200,
+          "count": 1,
+          "seesAll": true
         }
       }
     }
@@ -645,10 +811,19 @@
       "write": "create a flavor",
       "results": {
         "reader": {
-          "status": 403
+          "status": 403,
+          "wrote": false,
+          "reason": "Policy doesn't allow os_compute_api:os-flavor-manage:create to be performed."
         },
         "monitoring-role": {
-          "status": 403
+          "status": 403,
+          "wrote": false,
+          "reason": "Policy doesn't allow os_compute_api:os-flavor-manage:create to be performed."
+        },
+        "role-on-a-project": {
+          "status": 403,
+          "wrote": false,
+          "reason": "Policy doesn't allow os_compute_api:os-flavor-manage:create to be performed."
         }
       }
     },
@@ -657,10 +832,40 @@
       "write": "create an aggregate",
       "results": {
         "reader": {
-          "status": 403
+          "status": 403,
+          "wrote": false,
+          "reason": "Policy doesn't allow os_compute_api:os-aggregates:create to be performed."
         },
         "monitoring-role": {
-          "status": 403
+          "status": 403,
+          "wrote": false,
+          "reason": "Policy doesn't allow os_compute_api:os-aggregates:create to be performed."
+        },
+        "role-on-a-project": {
+          "status": 403,
+          "wrote": false,
+          "reason": "Policy doesn't allow os_compute_api:os-aggregates:create to be performed."
+        }
+      }
+    },
+    {
+      "service": "compute",
+      "write": "boot an instance",
+      "results": {
+        "reader": {
+          "status": 403,
+          "wrote": false,
+          "reason": "Policy doesn't allow os_compute_api:servers:create to be performed."
+        },
+        "monitoring-role": {
+          "status": 403,
+          "wrote": false,
+          "reason": "Policy doesn't allow os_compute_api:servers:create to be performed."
+        },
+        "role-on-a-project": {
+          "status": 403,
+          "wrote": false,
+          "reason": "Policy doesn't allow os_compute_api:servers:create to be performed."
         }
       }
     },
@@ -669,10 +874,82 @@
       "write": "create a network",
       "results": {
         "reader": {
-          "status": 403
+          "status": 403,
+          "wrote": false,
+          "reason": "rule:create_network is disallowed by policy"
         },
         "monitoring-role": {
-          "status": 403
+          "status": 409,
+          "wrote": false,
+          "reason": "Quota exceeded for resources: ['network']."
+        },
+        "role-on-a-project": {
+          "status": 403,
+          "wrote": false,
+          "reason": "rule:create_network is disallowed by policy"
+        }
+      }
+    },
+    {
+      "service": "network",
+      "write": "create a router",
+      "results": {
+        "reader": {
+          "status": 403,
+          "wrote": false,
+          "reason": "rule:create_router is disallowed by policy"
+        },
+        "monitoring-role": {
+          "status": 403,
+          "wrote": false,
+          "reason": "rule:create_router is disallowed by policy"
+        },
+        "role-on-a-project": {
+          "status": 403,
+          "wrote": false,
+          "reason": "rule:create_router is disallowed by policy"
+        }
+      }
+    },
+    {
+      "service": "network",
+      "write": "create a security group",
+      "results": {
+        "reader": {
+          "status": 403,
+          "wrote": false,
+          "reason": "rule:create_security_group is disallowed by policy"
+        },
+        "monitoring-role": {
+          "status": 403,
+          "wrote": false,
+          "reason": "rule:create_security_group is disallowed by policy"
+        },
+        "role-on-a-project": {
+          "status": 403,
+          "wrote": false,
+          "reason": "rule:create_security_group is disallowed by policy"
+        }
+      }
+    },
+    {
+      "service": "network",
+      "write": "take a floating IP",
+      "results": {
+        "reader": {
+          "status": 403,
+          "wrote": false,
+          "reason": "rule:create_floatingip is disallowed by policy"
+        },
+        "monitoring-role": {
+          "status": 403,
+          "wrote": false,
+          "reason": "rule:create_floatingip is disallowed by policy"
+        },
+        "role-on-a-project": {
+          "status": 403,
+          "wrote": false,
+          "reason": "rule:create_floatingip is disallowed by policy"
         }
       }
     },
@@ -681,10 +958,40 @@
       "write": "create a volume",
       "results": {
         "reader": {
-          "status": 403
+          "status": 403,
+          "wrote": false,
+          "reason": "Policy doesn't allow volume:create to be performed."
         },
         "monitoring-role": {
-          "status": 403
+          "status": 403,
+          "wrote": false,
+          "reason": "Policy doesn't allow volume:create to be performed."
+        },
+        "role-on-a-project": {
+          "status": 403,
+          "wrote": false,
+          "reason": "Policy doesn't allow volume:create to be performed."
+        }
+      }
+    },
+    {
+      "service": "image",
+      "write": "create an image",
+      "results": {
+        "reader": {
+          "status": 403,
+          "wrote": false,
+          "reason": "You are not authorized to complete add_image action.<br /><br />\n\n\n"
+        },
+        "monitoring-role": {
+          "status": 403,
+          "wrote": false,
+          "reason": "You are not authorized to complete add_image action.<br /><br />\n\n\n"
+        },
+        "role-on-a-project": {
+          "status": 403,
+          "wrote": false,
+          "reason": "You are not authorized to complete add_image action.<br /><br />\n\n\n"
         }
       }
     },
@@ -693,10 +1000,19 @@
       "write": "create a project",
       "results": {
         "reader": {
-          "status": 403
+          "status": 403,
+          "wrote": false,
+          "reason": "You are not authorized to perform the requested action: identity:create_project."
         },
         "monitoring-role": {
-          "status": 403
+          "status": 403,
+          "wrote": false,
+          "reason": "You are not authorized to perform the requested action: identity:create_project."
+        },
+        "role-on-a-project": {
+          "status": 403,
+          "wrote": false,
+          "reason": "You are not authorized to perform the requested action: identity:create_project."
         }
       }
     }
@@ -704,6 +1020,7 @@
   "credentials": [
     "admin",
     "reader",
-    "monitoring-role"
+    "monitoring-role",
+    "role-on-a-project"
   ]
 }

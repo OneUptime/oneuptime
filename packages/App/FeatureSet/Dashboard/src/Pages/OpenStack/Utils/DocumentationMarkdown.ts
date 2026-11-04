@@ -85,10 +85,18 @@ export const OPENSTACK_EXAMPLE_REGION: string = "RegionOne";
 // The files that make up each way of giving the agent access.
 export const OPENSTACK_ACCESS_RULES_FILE: string =
   "application-credential-access-rules.json";
+// Fits those rules to the paths this cloud's own services see.
+export const OPENSTACK_ACCESS_RULES_FITTER: string =
+  "access-rules-for-cloud.py";
+export const OPENSTACK_FITTED_ACCESS_RULES_FILE: string =
+  "access-rules-for-this-cloud.json";
+/*
+ * Nothing for Cinder: its own code asks for an admin on its services and pools, after
+ * policy has already passed, so no override opens them.
+ */
 export const OPENSTACK_POLICY_FILES: ReadonlyArray<string> = [
   "nova.yaml",
   "neutron.yaml",
-  "cinder.yaml",
   "placement.yaml",
   "keystone.yaml",
 ];
@@ -99,6 +107,43 @@ export const OPENSTACK_MONITORING_ROLE: string = "oneuptime_monitoring";
 // What the guide calls the account's project and account, and the credential.
 export const OPENSTACK_MONITORING_PROJECT: string = "oneuptime-monitoring";
 export const OPENSTACK_CREDENTIAL_NAME: string = "oneuptime-agent";
+
+/*
+ * What five real clouds answered each level, as Tests/Ops/openstack-e2e/access-table.py
+ * writes it from their recordings. OpenStackAgentAccessTable.test.js fails when this
+ * differs, so it is never written from memory.
+ */
+export const OPENSTACK_ACCESS_TABLE: string = `| Read | Level 1: Full view | Level 2: Infrastructure only | Level 3: Project view |
+| --- | --- | --- | --- |
+| Keystone: projects | all | all | refused |
+| Keystone: domains | all | all | refused |
+| Keystone: regions | all | what anyone sees | what anyone sees |
+| Keystone: services | all | all | refused |
+| Keystone: endpoints | all | all | refused |
+| Nova: servers, all projects | all | all | refused |
+| Nova: services | all | all | refused |
+| Nova: hypervisors | all | all | refused |
+| Nova: aggregates | all | all | refused |
+| Nova: availability zones, detail | all | all | refused |
+| Nova: flavors | all | what anyone sees | what anyone sees |
+| Nova: usage per project | all | all | refused |
+| Placement: resource providers | all | all | refused |
+| Neutron: agents | all | all | nothing |
+| Neutron: networks | all | own project only | own project only |
+| Neutron: subnets | all | own project only | own project only |
+| Neutron: routers | all | own project only | own project only |
+| Neutron: floating IPs | all | own project only | own project only |
+| Neutron: IP availabilities | all | all | nothing |
+| Neutron: security groups | all | 409, expected | own project only |
+| Neutron: ports | all | own project only | own project only |
+| Neutron: quotas | all | refused | refused |
+| Cinder: volumes, all projects | all | own project only | own project only |
+| Cinder: services | all | refused | refused |
+| Cinder: pools | all | refused | refused |
+| Cinder: snapshots, all projects | all | own project only | own project only |
+| Cinder: backups, all projects | all | none recorded | none recorded |
+| Cinder: volume types | all | what anyone sees | what anyone sees |
+| Glance: images | all | what anyone sees | what anyone sees |`;
 
 // What the install script's step says under its command.
 export const OPENSTACK_INSTALL_READ_FIRST_NOTE: string = translationKey(
@@ -315,9 +360,9 @@ function accessFileCommand(oneuptimeUrl: string, file: string): string {
 }
 
 function getFullViewMarkdown(context: GuideContext): string {
-  return `**Recommended.** The agent sees everything: services, hypervisors, storage pools, and every project's instances, volumes, networks and routers.
+  return `**Recommended.** The agent sees everything it reads: services, hypervisors, every project's instances, volumes, networks and routers, and \`cinder-volume\` and \`cinder-scheduler\` state and storage pools, which only this level sees. It leaves out Keystone's users and groups, on purpose.
 
-This is an application credential on an account with \`admin\` on a project of its own, limited by access rules to the exact \`GET\` calls the agent makes, so it cannot write. As an admin, make the project and the account:
+This is an application credential on an account with \`admin\` on a project of its own, limited by access rules to the exact \`GET\` calls the agent makes, so it cannot write: on every release we record, every read answered \`200\` and every write \`401\`. As an admin, make the project and the account:
 
 ${codeBlock(
   "bash",
@@ -326,33 +371,41 @@ openstack user create --domain default --password-prompt ${OPENSTACK_MONITORING_
 openstack role add --project ${OPENSTACK_MONITORING_PROJECT} --user ${OPENSTACK_MONITORING_PROJECT} admin`,
 )}
 
-Then, logged in as that account on that project, make the credential:
+Then, logged in as that account on that project, make the credential. An access rule is matched against the path the service sees, and a service behind a path prefix refuses the shipped rules with a \`401\`, so these commands fit them to this cloud from its catalog first:
 
 ${codeBlock(
   "bash",
   `${accessFileCommand(context.oneuptimeUrl, OPENSTACK_ACCESS_RULES_FILE)}
+${accessFileCommand(context.oneuptimeUrl, OPENSTACK_ACCESS_RULES_FITTER)}
+openstack catalog list -f json | python3 ${OPENSTACK_ACCESS_RULES_FITTER} \\
+  ${OPENSTACK_ACCESS_RULES_FILE} > ${OPENSTACK_FITTED_ACCESS_RULES_FILE}
 openstack application credential create ${OPENSTACK_CREDENTIAL_NAME} \\
   --role admin \\
-  --access-rules "$(cat ${OPENSTACK_ACCESS_RULES_FILE})" \\
+  --access-rules "$(cat ${OPENSTACK_FITTED_ACCESS_RULES_FILE})" \\
   ${credentialExpiry(context.now)}`,
 )}
 
 - Copy the \`id\` and the \`secret\` it prints: the secret is shown only once.
 - Never add \`--unrestricted\`, which would let it make more credentials.
-- Access rules work only where each service sets \`service_type\` in its \`[keystone_authtoken]\` section and has been restarted since. Without that, the services refuse the credential with a \`401\`.
+- Access rules work only where each service sets \`service_type\` in its \`[keystone_authtoken]\` section and has been restarted since: \`compute\`, \`network\`, \`block-storage\` (the rules also carry \`volumev3\`, for a Cinder configured that way), \`image\` and \`placement\`. Keystone needs nothing. Without that, the services refuse the credential with a \`401\`.
 - If you won't change that, leave out \`--access-rules\`. That makes a plain admin application credential, which can write as well as read, so keep it as safe as an admin password.
 - It stops working when it expires. To replace it, make the second credential before you delete the first.`;
 }
 
 function getInfrastructureOnlyMarkdown(context: GuideContext): string {
-  return `No admin. The agent sees control-plane health and capacity: hypervisors, services, agents, address pools, storage pools, Placement and the project list. Instances, volumes and routers appear only for the projects the role is assigned on, and OneUptime can't see the others.
+  return `No admin. The agent sees all of Keystone's projects, domains, services and endpoints, all of Nova including every project's instances, all of Placement, and Neutron's agents and address pools. Volumes, snapshots, networks, subnets, routers, floating IPs and ports appear only for the projects the role is assigned on, so on a project that holds nothing just the shared and external ones, and OneUptime can't see the others.
 
-This is a role of its own, \`${OPENSTACK_MONITORING_ROLE}\`, with the policy overrides the agent ships. As an admin, make the role, a project and an account:
+It does not see \`cinder-volume\` or \`cinder-scheduler\` state or storage pools: Cinder's own code asks for an admin there, after policy has already passed, so no override opens them, and only **Full view** sees them.
+
+This is a role of its own, \`${OPENSTACK_MONITORING_ROLE}\`, with the policy overrides the agent ships, on a project of its own that holds nothing and has zero quota. Where Cinder has \`enforce_new_defaults\` off, which is Cinder's own default, any role on a project can create that project's volumes. With nothing to touch and no quota to make anything with, there is nothing for it to write: on every release we record, every write answered \`403\`, or \`409\` and \`413\` from quota. As an admin, make the role, the project and an account:
 
 ${codeBlock(
   "bash",
   `openstack role create ${OPENSTACK_MONITORING_ROLE}
-openstack project create --domain default ${OPENSTACK_MONITORING_PROJECT}
+openstack project create --domain default --description "OneUptime monitoring: holds nothing" ${OPENSTACK_MONITORING_PROJECT}
+openstack quota set --instances 0 --cores 0 --ram 0 --key-pairs 0 ${OPENSTACK_MONITORING_PROJECT}
+openstack quota set --volumes 0 --gigabytes 0 --snapshots 0 --backups 0 --backup-gigabytes 0 ${OPENSTACK_MONITORING_PROJECT}
+openstack quota set --networks 0 --subnets 0 --ports 0 --routers 0 --floating-ips 0 --secgroups 0 --secgroup-rules 0 ${OPENSTACK_MONITORING_PROJECT}
 openstack user create --domain default --password-prompt ${OPENSTACK_MONITORING_PROJECT}
 openstack role add --project ${OPENSTACK_MONITORING_PROJECT} --user ${OPENSTACK_MONITORING_PROJECT} ${OPENSTACK_MONITORING_ROLE}
 openstack role add --project ${OPENSTACK_MONITORING_PROJECT} --user ${OPENSTACK_MONITORING_PROJECT} reader`,
@@ -367,6 +420,8 @@ ${codeBlock(
   }).join("\n"),
 )}
 
+**To take the overrides off again, empty the file (\`{}\`) and never delete it.** On Flamingo (2025.2) and Epoxy (2025.1), oslo.policy raises on every check once a policy file it has read is gone, so that service fails every request. When the service is Keystone, it stops validating tokens and the whole cloud answers \`503\`. If it has already happened, restart the service.
+
 Then, logged in as that account on that project, make the credential and copy the \`id\` and the \`secret\` it prints:
 
 ${codeBlock(
@@ -375,11 +430,13 @@ ${codeBlock(
   ${credentialExpiry(context.now)}`,
 )}
 
-To see a project's instances, volumes and routers, assign the account a role on it.`;
+Putting the role on a real project to see its volumes and routers also lets the account write there, on a cloud where Cinder has \`enforce_new_defaults\` off. \`troubleshoot.sh\` warns when the credential's project holds things.`;
 }
 
 function getProjectViewMarkdown(context: GuideContext): string {
-  return `For a team watching its own part of a cloud someone else runs. The agent sees one project's instances, volumes, networks and routers, and no infrastructure: no hypervisors, services or storage pools.
+  return `For a team watching its own part of a cloud someone else runs. The agent sees one project's volumes, networks and routers, and no infrastructure: no hypervisors, services or storage pools.
+
+Through the agent it shows no instances at all: the exporter asks Nova for all projects' servers, Nova refuses a plain reader, and that read fails whole. Only a OneUptime probe, collecting without this agent, can list one project's instances.
 
 This is the plain \`reader\` role. Give an account the role on the project:
 
@@ -397,11 +454,20 @@ ${codeBlock(
   ${credentialExpiry(context.now)}`,
 )}
 
-Neutron and Cinder answer a reader with its own project and no error, so these lists look complete, and hold only that project.`;
+Neutron and Cinder answer a reader with its own project and no error, so these lists look complete, and hold only that project.
+
+It may be able to write. On a cloud where Cinder has \`enforce_new_defaults\` off, which is Cinder's own default, plain \`reader\` can create volumes in its project too. On Epoxy, Flamingo and Gazpacho it did, and on Hibiscus it was refused, because DevStack only turns \`enforce_new_defaults\` on there.`;
 }
+
+/*
+ * The step's place on the guide's page: a page that finds a credential can't list what a
+ * working cloud always has links straight to it, rather than to step 1 of an install done.
+ */
+export const OPENSTACK_CREDENTIAL_STEP_ANCHOR: string = "agent-credential";
 
 function getCredentialStep(context: GuideContext): SetupGuideStep {
   return {
+    anchor: OPENSTACK_CREDENTIAL_STEP_ANCHOR,
     title: "Create the agent's credential",
     description:
       "OpenStack has no global read-only role, so there is no read-only account to create. Instead, choose how much the agent should see.",
@@ -552,16 +618,17 @@ function getAccessLevelsTopic(): SetupGuideTopic {
     title: "What each level of access sees",
     summary:
       "Full view, Infrastructure only and Project view, and what each one leaves out.",
-    markdown: `OpenStack's \`reader\` role is scoped to a project everywhere except Keystone and Ironic, and hypervisors, services, agents, pools and Placement default to admin. A policy override can't open all-project lists in Cinder or Neutron, because they scope those lists in code. So what a credential can read depends on which level you choose:
+    markdown: `OpenStack's \`reader\` role is scoped to a project everywhere except Keystone and Ironic, and hypervisors, services, agents, pools and Placement default to admin. A policy override can't open all-project lists in Cinder or Neutron, because they scope those lists in code, and Cinder's own code keeps its services and storage pools for an admin. So what a credential can read depends on which level you choose. This is what five real clouds answered, on Epoxy, Flamingo, Gazpacho (OVN and OVS) and Hibiscus:
 
-| | Full view | Infrastructure only | Project view |
-|---|---|---|---|
-| **Credential** | Application credential on an admin account, limited by access rules | \`${OPENSTACK_MONITORING_ROLE}\` role with the policy overrides | Plain \`reader\` |
-| **Services and Neutron agents** | Yes | Yes | No |
-| **Hypervisors and Placement capacity** | Yes | Yes | No |
-| **Storage pools and address pools** | Yes | Yes | No |
-| **Project list** | Yes | Yes | Its own |
-| **Instances, volumes and routers** | Every project | The projects the role is on | Its own project |
+${OPENSTACK_ACCESS_TABLE}
+
+- **all**: the same rows an admin saw.
+- **own project only**: that project's rows, and anything shared or external. On a project that holds nothing, that is just the shared and external ones.
+- **refused**: a \`401\` or a \`403\`.
+- **what anyone sees**: every credential saw every row, on clouds that hold only public flavors, volume types and images. A private one in another project takes **Full view**.
+- **nothing**: a \`200\` with no rows, on a project that has networks too. It looks like it worked, and it did not.
+- **none recorded**: a \`200\` with no rows where an admin saw none either, so there was nothing to tell by.
+- **409, expected**: Neutron tries to create the project's default security group when it lists them, and zero quota does not let it, so it answers \`409 Quota exceeded\`. That is harmless, and nothing to fix.
 
 A list a credential can't read looks empty here: \`troubleshoot.sh\` says what this credential can read, and what each gap costs.`,
   };
@@ -677,7 +744,7 @@ function getCollectedDataTopic(): SetupGuideTopic {
 
 - Each service is read on its own, so a failing Nova costs only Nova's numbers, and the rest keep reporting.
 - A read never outlasts its interval, so a slow one never stacks on the next.
-- The exporter's slow metrics (quotas and limits per project, usage per server) are off.
+- Quotas and limits per project, and usage per server, are off. To turn one on, delete its \`--disable-metric\` line from the exporter's \`command\` in \`docker-compose.yml\`. The cost is one call per project per scrape. Neutron's quotas answer only **Full view**.
 - The per-port series are off: listing every port with an admin credential can saturate Neutron on a large cloud.`,
   };
 }
@@ -824,12 +891,32 @@ It needs \`sudo\` to read \`clouds.yaml\`, or it skips the credential checks. It
     },
     {
       title: "Hypervisors or services are empty",
-      markdown: `A **Project view** credential can't read them, and neither can a role without the policy overrides: Nova, Neutron, Cinder and Placement keep them for admins by default. Use **Full view**, or **Infrastructure only** with the files in \`access/policy\` merged into each service's \`policy.yaml\`. \`troubleshoot.sh\` says which reads were refused.`,
+      markdown: `A **Project view** credential can't read them, and neither can a role without the policy overrides: Nova, Neutron and Placement keep them for admins by default. Use **Full view**, or **Infrastructure only** with the files in \`access/policy\` merged into the file each service's \`[oslo_policy] policy_file\` names. \`troubleshoot.sh\` says which reads were refused.`,
     },
     {
-      title: "Instances or volumes show only one project",
+      title: "Cinder's services or storage pools are empty",
       markdown:
-        "Neutron and Cinder answer a plain `reader` with `200` and only its own project, which looks like it worked. Seeing every project takes **Full view**. With **Infrastructure only**, instances, volumes and routers appear for the projects the role is assigned on.",
+        "Only **Full view** sees `cinder-volume` and `cinder-scheduler` state and storage pools. Cinder's own code answers anything else with `403 User does not have admin privileges`, after policy has already passed, so no override opens them.",
+    },
+    {
+      title: "Volumes or routers show only one project",
+      markdown:
+        "Neutron and Cinder answer anything but an admin with `200` and only its own project, which looks like it worked. Seeing every project takes **Full view**. With **Infrastructure only**, they appear for the projects the role is assigned on, and a role on a real project can also write there on many clouds.",
+    },
+    {
+      title: "There are no instances",
+      markdown:
+        "A **Project view** credential shows no instances through the agent: the exporter asks Nova for all projects' servers, Nova refuses a plain reader, and that read fails whole. **Full view** and **Infrastructure only** both see every project's instances.",
+    },
+    {
+      title: "Security groups answer 409 Quota exceeded",
+      markdown:
+        "That is expected with **Infrastructure only**, and harmless. Neutron tries to create a project's default security group when it lists them, and a project with zero quota cannot hold one. There is nothing to fix.",
+    },
+    {
+      title: "Every service fails after a policy file was taken away",
+      markdown:
+        "On Flamingo and Epoxy, oslo.policy raises on every check once a policy file it has read is gone, and when the service is Keystone the whole cloud answers `503`. Restart the service. To take the overrides off, empty the file (`{}`) and never delete it.",
     },
     {
       title: "One service's pages are empty and the rest are fine",
@@ -837,13 +924,13 @@ It needs \`sudo\` to read \`clouds.yaml\`, or it skips the credential checks. It
     },
     {
       title: "Every read answers 401 with an access-rule credential",
-      markdown: `The services are refusing a credential limited by access rules. Each service needs \`service_type\` set for keystonemiddleware, and a restart:
+      markdown: `The services are refusing a credential limited by access rules. A service behind a path prefix refuses the shipped rules: fit them to this cloud with \`${OPENSTACK_ACCESS_RULES_FITTER}\`, as **Full view** does. And each service needs \`service_type\` set for keystonemiddleware, and a restart:
 
 ${codeBlock(
   "ini",
   `# nova.conf, for example. neutron.conf: network. glance-api.conf: image.
-# cinder.conf: block-storage, or volumev3 on an older catalog.
-# placement.conf: placement.
+# cinder.conf: block-storage. The rules also carry volumev3, for a Cinder configured that way.
+# placement.conf: placement. Keystone needs nothing.
 [keystone_authtoken]
 service_type = compute`,
 )}

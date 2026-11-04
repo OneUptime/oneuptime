@@ -585,8 +585,8 @@ describe("SeriesResourceLinker.linkSeriesResourcesToModel", () => {
       }
     }
 
-    // 12 types, and hosts get an extra query for the id stamp.
-    expect(assertedQueries).toBe(13);
+    // 13 types, and hosts get an extra query for the id stamp.
+    expect(assertedQueries).toBe(14);
   });
 
   test("does not link a resource that belongs to another project", async () => {

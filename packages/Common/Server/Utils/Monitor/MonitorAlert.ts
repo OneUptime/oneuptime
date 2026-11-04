@@ -34,6 +34,7 @@ import DataToProcess from "./DataToProcess";
 import MonitorResourceContextUtil from "./MonitorResourceContext";
 import MonitorTemplateUtil from "./MonitorTemplateUtil";
 import SeriesContextEnricher from "./SeriesContextEnricher";
+import OpenStackAlertContext from "../OpenStack/OpenStackAlertContext";
 import SeriesResourceLinker, {
   SeriesResolvedResourceIds,
 } from "./SeriesResourceLinker";
@@ -826,6 +827,15 @@ export default class MonitorAlert {
           SeriesResourceLinker.attachResolvedResources({
             model: alert,
             resolved: await getLinkedResources(),
+          });
+
+          // What a part of an OpenStack cloud takes with it, and whose that is.
+          alert.description = await OpenStackAlertContext.addToDescription({
+            description: alert.description,
+            projectId: input.monitor.projectId!,
+            clouds: alert.openStackClouds,
+            seriesLabels: seriesLabels,
+            monitorSteps: input.monitor.monitorSteps,
           });
 
           /*

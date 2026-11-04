@@ -2,6 +2,10 @@ import OneUptimeDate from "../../../Types/Date";
 import { JSONArray, JSONObject, JSONValue } from "../../../Types/JSON";
 import { getOpenStackShortHostName } from "../../../Types/OpenStack/OpenStackHealthRules";
 import {
+  OpenStackQuotaResource,
+  getOpenStackQuotaFactKey,
+} from "../../../Types/OpenStack/OpenStackQuota";
+import {
   OpenStackResourceKind,
   OpenStackServiceFamily,
   OpenStackServiceType,
@@ -54,6 +58,9 @@ export const OPENSTACK_API_UP_METRIC_NAMES: ReadonlyMap<
  * the OpenStack service they ask for, so this says which service it was.
  */
 export const OPENSTACK_SCRAPE_UP_METRIC_NAME: string = "up";
+// Beside it, how long that collection took, which is what asking that API costs.
+export const OPENSTACK_SCRAPE_DURATION_METRIC_NAME: string =
+  "scrape_duration_seconds";
 export const OPENSTACK_SERVICE_LABEL: string = "openstack_service";
 
 /*
@@ -80,9 +87,96 @@ const NETWORK_IP_METRIC_NAMES: ReadonlySet<string> = new Set([
   "openstack_neutron_network_ip_availabilities_used",
 ]);
 
+/*
+ * What a project may use and has used. Nova's and Cinder's say which number they are in
+ * their name, and Neutron's in a `type` label. None of these is in a recording yet, since
+ * the agent leaves them off, so this is written from the exporter's source and reads only
+ * the exact names and labels that source writes. Cinder has no count of a project's
+ * volumes here, only their gigabytes, so "volumes" is not a quota this can show.
+ */
+const NAMED_QUOTA_METRICS: ReadonlyMap<
+  string,
+  { resource: OpenStackQuotaResource; reading: "used" | "limit" }
+> = new Map([
+  [
+    "openstack_nova_limits_instances_used",
+    { resource: OpenStackQuotaResource.Instances, reading: "used" },
+  ],
+  [
+    "openstack_nova_limits_instances_max",
+    { resource: OpenStackQuotaResource.Instances, reading: "limit" },
+  ],
+  [
+    "openstack_nova_limits_vcpus_used",
+    { resource: OpenStackQuotaResource.Cores, reading: "used" },
+  ],
+  [
+    "openstack_nova_limits_vcpus_max",
+    { resource: OpenStackQuotaResource.Cores, reading: "limit" },
+  ],
+  [
+    "openstack_nova_limits_memory_used",
+    { resource: OpenStackQuotaResource.RamMib, reading: "used" },
+  ],
+  [
+    "openstack_nova_limits_memory_max",
+    { resource: OpenStackQuotaResource.RamMib, reading: "limit" },
+  ],
+  [
+    "openstack_cinder_limits_volume_used_gb",
+    { resource: OpenStackQuotaResource.Gigabytes, reading: "used" },
+  ],
+  [
+    "openstack_cinder_limits_volume_max_gb",
+    { resource: OpenStackQuotaResource.Gigabytes, reading: "limit" },
+  ],
+] as Array<
+  [string, { resource: OpenStackQuotaResource; reading: "used" | "limit" }]
+>);
+
+const TYPED_QUOTA_METRICS: ReadonlyMap<string, OpenStackQuotaResource> = new Map<
+  string,
+  OpenStackQuotaResource
+>([
+  ["openstack_neutron_quota_network", OpenStackQuotaResource.Networks],
+  ["openstack_neutron_quota_port", OpenStackQuotaResource.Ports],
+  ["openstack_neutron_quota_floatingip", OpenStackQuotaResource.FloatingIps],
+]);
+
+/*
+ * The labels openstack_nova_server_status carries by itself, and the ones the agent and
+ * the probe add. Anything else is a metadata key an operator asked the exporter for with
+ * --nova.metadata-extra-labels, which is what a project's labels are made of.
+ */
+const INSTANCE_STATUS_LABELS: ReadonlySet<string> = new Set([
+  "id",
+  "uuid",
+  "status",
+  "name",
+  "tenant_id",
+  "user_id",
+  "address_ipv4",
+  "address_ipv6",
+  "host_id",
+  "hypervisor_hostname",
+  "availability_zone",
+  "flavor_id",
+  "instance_libvirt",
+  "updated_at",
+  "task_state",
+  "fault_message",
+  OPENSTACK_SERVICE_LABEL,
+  OPENSTACK_REGION_ATTRIBUTE,
+  "openstack_region",
+  "instance",
+  "job",
+]);
+
 export const OPENSTACK_SNAPSHOT_METRIC_NAMES: ReadonlySet<string> = new Set([
   ...OPENSTACK_API_UP_METRIC_NAMES.keys(),
   ...PLACEMENT_RESOURCE_METRIC_NAMES,
+  ...NAMED_QUOTA_METRICS.keys(),
+  ...TYPED_QUOTA_METRICS.keys(),
   ...CINDER_POOL_METRIC_NAMES,
   ...NETWORK_IP_METRIC_NAMES,
   "openstack_nova_agent_state",
@@ -99,6 +193,7 @@ export const OPENSTACK_SNAPSHOT_METRIC_NAMES: ReadonlySet<string> = new Set([
   "openstack_nova_running_vms",
   "openstack_cinder_volume_gb",
   "openstack_cinder_snapshot_gb",
+  "openstack_cinder_backup_gb",
   "openstack_glance_image_bytes",
   "openstack_glance_image_created_at",
   "openstack_neutron_network",
@@ -122,7 +217,10 @@ export function isOpenStackSnapshotDatapoint(data: {
   metricName: string;
   datapoint: JSONObject;
 }): boolean {
-  if (data.metricName === OPENSTACK_SCRAPE_UP_METRIC_NAME) {
+  if (
+    data.metricName === OPENSTACK_SCRAPE_UP_METRIC_NAME ||
+    data.metricName === OPENSTACK_SCRAPE_DURATION_METRIC_NAME
+  ) {
     const attributes: JSONArray =
       (data.datapoint["attributes"] as JSONArray) || [];
     return getLabel(attributes, OPENSTACK_SERVICE_LABEL) !== null;
@@ -154,8 +252,18 @@ export interface OpenStackResourceBufferEntry {
    * capacity needs total, reserved and ratio together and each is its own series.
    */
   placement: Record<string, PlacementReading>;
+  /*
+   * A project's quota readings, by fact key, held until the row is finished for the same
+   * reason: its used and its limit are two series, and only the pair says anything.
+   */
+  quota?: Record<string, QuotaReading> | undefined;
   facts: JSONObject;
   observedAt: Date;
+}
+
+interface QuotaReading {
+  used?: number | undefined;
+  limit?: number | undefined;
 }
 
 interface PlacementReading {
@@ -367,6 +475,8 @@ function foldApiUp(data: {
   }
 }
 
+const AGENT_RECORDS_FACT: string = "agentRecords";
+
 const SERVICE_FAMILY_BY_METRIC: ReadonlyMap<string, OpenStackServiceFamily> =
   new Map<string, OpenStackServiceFamily>([
     ["openstack_nova_agent_state", OpenStackServiceFamily.Compute],
@@ -420,11 +530,53 @@ function foldServiceState(data: {
   setFact(entry, "family", data.family);
   setFact(entry, "host", host);
   // Which row of Neutron's agents it is: a router names the agents that hold it by this.
-  setFact(
-    entry,
-    "agentId",
-    getLabel(data.attributes, "id") || getLabel(data.attributes, "uuid"),
-  );
+  const agentId: string | null =
+    getLabel(data.attributes, "id") || getLabel(data.attributes, "uuid");
+  setFact(entry, "agentId", agentId);
+  /*
+   * Every record Neutron lists for this host and binary, held until the row is finished.
+   * On OVN a crash or a change of system-id can leave an old record beside the live one,
+   * so one row can be reported twice, and which of the two came last is not an answer.
+   */
+  if (data.family === OpenStackServiceFamily.Network && agentId) {
+    const records: JSONObject =
+      (entry.facts[AGENT_RECORDS_FACT] as JSONObject) || {};
+    records[agentId] = data.value > 0;
+    entry.facts[AGENT_RECORDS_FACT] = records;
+  }
+}
+
+/*
+ * One Neutron agent's records, once the batch has said all of them. An old record beside
+ * a live one is not an outage: the agent is up, and the row says which records are stale
+ * so a page can say so. Only when none is alive is the agent down. Written down either
+ * way, because facts merge key by key and a stale record that was cleaned up has nothing
+ * left to say so.
+ */
+function finishAgentRecords(entry: OpenStackResourceBufferEntry): void {
+  const records: JSONObject | undefined = entry.facts[AGENT_RECORDS_FACT] as
+    | JSONObject
+    | undefined;
+  if (!records) {
+    return;
+  }
+  delete entry.facts[AGENT_RECORDS_FACT];
+
+  const ids: Array<string> = Object.keys(records).sort();
+  const alive: Array<string> = ids.filter((id: string): boolean => {
+    return records[id] === true;
+  });
+  const stale: Array<string> = ids.filter((id: string): boolean => {
+    return records[id] !== true;
+  });
+
+  if (alive.length > 0 && stale.length > 0) {
+    entry.status = OPENSTACK_SERVICE_STATUS_UP;
+    entry.facts["agentId"] = alive[0] as string;
+    entry.facts["staleAgentIds"] = stale;
+    return;
+  }
+  entry.facts["staleAgentIds"] = null;
 }
 
 function foldHypervisor(data: {
@@ -451,7 +603,6 @@ function foldHypervisor(data: {
     hypervisorName: host,
     availabilityZone: getLabel(data.attributes, "availability_zone"),
   });
-  setFact(entry, "aggregates", getLabel(data.attributes, "aggregates"));
 
   if (PLACEMENT_RESOURCE_METRIC_NAMES.has(data.metricName)) {
     const resource: string | null = getLabel(data.attributes, "resourcetype");
@@ -473,6 +624,13 @@ function foldHypervisor(data: {
     entry.placement[resource] = reading;
     return;
   }
+
+  /*
+   * Only Nova's series carry this. The collector drops a label with nothing in it, so a
+   * host taken out of its last aggregate simply stops having one, and facts merge key
+   * by key: without writing that down it would stay in the aggregate for ever.
+   */
+  entry.facts["aggregates"] = getLabel(data.attributes, "aggregates");
 
   /*
    * Nova's own numbers. Placement's are preferred when both arrive, because Nova
@@ -547,6 +705,7 @@ function foldInstance(data: {
   // The name libvirt knows it by, which the VM metrics are labelled with.
   setFact(entry, "libvirtName", getLabel(data.attributes, "instance_libvirt"));
   setNativeInstanceFacts(entry, data.attributes);
+  setInstanceMetadataLabels(entry, data.attributes);
 }
 
 /*
@@ -568,6 +727,32 @@ function setNativeInstanceFacts(
   entry.facts["updatedAt"] = updatedAt;
   entry.facts["taskState"] = getLabel(attributes, "task_state");
   entry.facts["faultMessage"] = getLabel(attributes, "fault_message");
+}
+
+/*
+ * The Nova metadata an operator chose to see (--nova.metadata-extra-labels). Whatever is
+ * left of a series' labels is theirs, under the name they gave it. The fact is written
+ * whole every time, empty too, because facts merge key by key and an instance that lost
+ * a key has no label left to say so: anything less would keep the old value for good.
+ */
+function setInstanceMetadataLabels(
+  entry: OpenStackResourceBufferEntry,
+  attributes: JSONArray,
+): void {
+  const labels: JSONObject = {};
+
+  for (const attribute of attributes) {
+    const key: JSONValue = attribute["key"];
+    if (typeof key !== "string" || INSTANCE_STATUS_LABELS.has(key)) {
+      continue;
+    }
+    const value: string | null = getLabel(attributes, key);
+    if (value) {
+      labels[key] = value;
+    }
+  }
+
+  entry.facts["labels"] = labels;
 }
 
 function foldFlavor(data: {
@@ -631,7 +816,11 @@ function foldVolume(data: {
   setStatus(entry, getLabel(data.attributes, "status"), data.observedAt);
   entry.diskCapacityBytes = data.value * BYTES_PER_GIB;
   setFact(entry, "volumeType", getLabel(data.attributes, "volume_type"));
-  setFact(entry, "attachedToInstance", getLabel(data.attributes, "server_id"));
+  /*
+   * A volume that was detached loses this label, and facts merge key by key, so that
+   * is written down explicitly: it would otherwise say what held it for ever.
+   */
+  entry.facts["attachedToInstance"] = getLabel(data.attributes, "server_id");
   setBooleanFact(entry, "isBootable", getLabel(data.attributes, "bootable"));
   setFact(entry, "updatedAt", getLabel(data.attributes, "updated_at"));
 }
@@ -661,6 +850,40 @@ function foldSnapshot(data: {
   setStatus(entry, getLabel(data.attributes, "status"), data.observedAt);
   entry.diskCapacityBytes = data.value * BYTES_PER_GIB;
   setFact(entry, "volumeId", getLabel(data.attributes, "volume_id"));
+  setFact(entry, "updatedAt", getLabel(data.attributes, "updated_at"));
+}
+
+function foldBackup(data: {
+  buffer: Map<string, OpenStackResourceBufferEntry>;
+  attributes: JSONArray;
+  region: string | null;
+  value: number;
+  observedAt: Date;
+}): void {
+  const id: string | null = getLabel(data.attributes, "id");
+  if (!id) {
+    return;
+  }
+  const entry: OpenStackResourceBufferEntry = getOrCreateEntry({
+    buffer: data.buffer,
+    kind: OpenStackResourceKind.Backup,
+    externalId: id,
+    observedAt: data.observedAt,
+  });
+  setIdentity(entry, {
+    name: getLabel(data.attributes, "name"),
+    regionName: data.region,
+    availabilityZone: getLabel(data.attributes, "availability_zone"),
+    openStackProjectId: getLabel(data.attributes, "tenant_id"),
+  });
+  setStatus(entry, getLabel(data.attributes, "status"), data.observedAt);
+  entry.diskCapacityBytes = data.value * BYTES_PER_GIB;
+  setFact(entry, "volumeId", getLabel(data.attributes, "volume_id"));
+  setBooleanFact(
+    entry,
+    "isIncremental",
+    getLabel(data.attributes, "is_incremental"),
+  );
   setFact(entry, "updatedAt", getLabel(data.attributes, "updated_at"));
 }
 
@@ -811,6 +1034,10 @@ function foldIpAvailability(data: {
   if (cidr) {
     subnet["cidr"] = cidr;
   }
+  const ipVersion: string | null = getLabel(data.attributes, "ip_version");
+  if (ipVersion) {
+    subnet["ipVersion"] = ipVersion;
+  }
   subnets[subnetKey] = subnet;
   entry.facts["ipsBySubnet"] = subnets;
 }
@@ -868,10 +1095,13 @@ function foldRouter(data: {
   if (adminUp !== null) {
     entry.adminState = adminUp === "true" ? "up" : "down";
   }
-  setFact(
-    entry,
-    "externalNetworkId",
-    getLabel(data.attributes, "external_network_id"),
+  /*
+   * A router that lost its gateway loses this label, and facts merge key by key, so
+   * that is written down explicitly.
+   */
+  entry.facts["externalNetworkId"] = getLabel(
+    data.attributes,
+    "external_network_id",
   );
 }
 
@@ -975,6 +1205,40 @@ function foldProject(data: {
   setFact(entry, "tags", getLabel(data.attributes, "tags"));
 }
 
+/*
+ * One reading of what a project may use or has used. A used figure below zero means
+ * nothing, and a limit of -1 means no limit, which is kept: it is what says this project
+ * can never be at this quota.
+ */
+function foldProjectQuota(data: {
+  buffer: Map<string, OpenStackResourceBufferEntry>;
+  resource: OpenStackQuotaResource;
+  reading: "used" | "limit";
+  attributes: JSONArray;
+  region: string | null;
+  value: number;
+  observedAt: Date;
+}): void {
+  const id: string | null = getLabel(data.attributes, "tenant_id");
+  if (!id || (data.reading === "used" && data.value < 0)) {
+    return;
+  }
+  const entry: OpenStackResourceBufferEntry = getOrCreateEntry({
+    buffer: data.buffer,
+    kind: OpenStackResourceKind.Project,
+    externalId: id,
+    observedAt: data.observedAt,
+  });
+  setIdentity(entry, {
+    name: getLabel(data.attributes, "tenant"),
+    openStackProjectId: id,
+  });
+  const quota: Record<string, QuotaReading> = entry.quota || {};
+  const key: string = getOpenStackQuotaFactKey(data.resource, data.region);
+  quota[key] = { ...quota[key], [data.reading]: data.value };
+  entry.quota = quota;
+}
+
 function foldDomain(data: {
   buffer: Map<string, OpenStackResourceBufferEntry>;
   attributes: JSONArray;
@@ -1023,6 +1287,21 @@ export function bufferOpenStackSnapshotMetric(data: {
   const region: string | null = getLabel(attributes, OPENSTACK_REGION_ATTRIBUTE);
   const { metricName, buffer } = data;
 
+  if (metricName === OPENSTACK_SCRAPE_DURATION_METRIC_NAME) {
+    const service: string | null = getLabel(attributes, OPENSTACK_SERVICE_LABEL);
+    if (service) {
+      const entry: OpenStackResourceBufferEntry = getOrCreateEntry({
+        buffer,
+        kind: OpenStackResourceKind.Api,
+        externalId: regional(region, service),
+        observedAt,
+      });
+      setIdentity(entry, { name: service, regionName: region });
+      entry.facts["collectionSeconds"] = value;
+    }
+    return;
+  }
+
   if (metricName === OPENSTACK_SCRAPE_UP_METRIC_NAME) {
     const service: string | null = getLabel(attributes, OPENSTACK_SERVICE_LABEL);
     if (service) {
@@ -1070,6 +1349,41 @@ export function bufferOpenStackSnapshotMetric(data: {
     return;
   }
 
+  const namedQuota:
+    | { resource: OpenStackQuotaResource; reading: "used" | "limit" }
+    | undefined = NAMED_QUOTA_METRICS.get(metricName);
+  if (namedQuota) {
+    foldProjectQuota({
+      buffer,
+      resource: namedQuota.resource,
+      reading: namedQuota.reading,
+      attributes,
+      region,
+      value,
+      observedAt,
+    });
+    return;
+  }
+
+  const typedQuota: OpenStackQuotaResource | undefined =
+    TYPED_QUOTA_METRICS.get(metricName);
+  if (typedQuota) {
+    // Neutron says used, reserved or limit. Reserved is on its way to being used.
+    const type: string | null = getLabel(attributes, "type");
+    if (type === "used" || type === "limit") {
+      foldProjectQuota({
+        buffer,
+        resource: typedQuota,
+        reading: type,
+        attributes,
+        region,
+        value,
+        observedAt,
+      });
+    }
+    return;
+  }
+
   if (CINDER_POOL_METRIC_NAMES.has(metricName)) {
     foldStoragePool({
       buffer,
@@ -1106,6 +1420,9 @@ export function bufferOpenStackSnapshotMetric(data: {
       return;
     case "openstack_cinder_snapshot_gb":
       foldSnapshot({ buffer, attributes, region, value, observedAt });
+      return;
+    case "openstack_cinder_backup_gb":
+      foldBackup({ buffer, attributes, region, value, observedAt });
       return;
     case "openstack_glance_image_bytes":
     case "openstack_glance_image_created_at":
@@ -1163,6 +1480,10 @@ function placementCapacity(reading: PlacementReading | undefined): {
 export function finishOpenStackResource(
   entry: OpenStackResourceBufferEntry,
 ): OpenStackResourceBufferEntry {
+  if (entry.kind === OpenStackResourceKind.Service) {
+    finishAgentRecords(entry);
+  }
+
   if (entry.kind === OpenStackResourceKind.Hypervisor) {
     const vcpu: { capacity: number | null; usage: number | null } =
       placementCapacity(entry.placement["VCPU"]);
@@ -1232,16 +1553,41 @@ export function finishOpenStackResource(
     );
   }
 
+  /*
+   * Only a whole reading is written. Half of one would replace the whole one already on
+   * the row, since facts merge key by key, and a used figure alone is a share of nothing.
+   */
+  for (const key of Object.keys(entry.quota || {})) {
+    const reading: QuotaReading = entry.quota![key]!;
+    if (reading.used !== undefined && reading.limit !== undefined) {
+      entry.facts[key] = {
+        used: reading.used,
+        limit: reading.limit,
+        observedAt: entry.observedAt.toISOString(),
+      };
+    }
+  }
+
   if (entry.kind === OpenStackResourceKind.Network) {
     const subnets: JSONObject | undefined = entry.facts[
       "ipsBySubnet"
     ] as JSONObject;
     if (subnets) {
+      /*
+       * IPv4 alone when the network has any, as the alert templates read it. A /64 is
+       * 2^64 addresses, so added to one a full IPv4 pool reads as 0% and an external
+       * network out of addresses never needs anyone. Every dual-stack `public` network
+       * on a real cloud is this.
+       */
+      const all: Array<JSONObject> = Object.values(subnets) as Array<JSONObject>;
+      const ipv4: Array<JSONObject> = all.filter((subnet: JSONObject) => {
+        return subnet["ipVersion"] !== "6";
+      });
       let total: number = 0;
       let used: number = 0;
-      for (const subnet of Object.values(subnets)) {
-        total += ((subnet as JSONObject)["total"] as number) || 0;
-        used += ((subnet as JSONObject)["used"] as number) || 0;
+      for (const subnet of ipv4.length > 0 ? ipv4 : all) {
+        total += (subnet["total"] as number) || 0;
+        used += (subnet["used"] as number) || 0;
       }
       entry.facts["ipsTotal"] = total;
       entry.facts["ipsUsed"] = used;

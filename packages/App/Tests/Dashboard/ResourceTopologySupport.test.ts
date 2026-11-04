@@ -330,6 +330,7 @@ describe("links between a resource's topology and the master Topology", () => {
       EntityType.PodmanHost,
       EntityType.DockerSwarmCluster,
       EntityType.ProxmoxCluster,
+      EntityType.OpenStackCloud,
       EntityType.CephCluster,
       EntityType.StorageArray,
     ]) {
@@ -373,6 +374,29 @@ describe("links between a resource's topology and the master Topology", () => {
 
     expect(request.query["name"]).toBe("vcenter-prod");
     expect(String(request.query["projectId"])).toBe(PROJECT_ID);
+  });
+
+  test("an OpenStack cloud by the name its agent stamps", async () => {
+    getList.mockImplementation(async (): Promise<unknown> => {
+      return {
+        data: [{ _id: new ObjectID("71000000-0000-4000-8000-000000000001") }],
+      };
+    });
+
+    const link: Awaited<ReturnType<typeof Links.resolveResourceTopologyLink>> =
+      await Links.resolveResourceTopologyLink({
+        entityType: EntityType.OpenStackCloud,
+        identifyingAttributes: { "openstack.cloud.name": "prod-eu" },
+      });
+
+    expect(link?.text).toBe("Open cloud topology");
+    expect(link?.route.toString()).toContain(
+      "/openstack/71000000-0000-4000-8000-000000000001/topology",
+    );
+    const request: { query: Record<string, unknown> } = getList.mock
+      .calls[0]![0] as { query: Record<string, unknown> };
+
+    expect(request.query["name"]).toBe("prod-eu");
   });
 
   test("a Kubernetes cluster by its identifier column", async () => {

@@ -159,7 +159,7 @@ Omit the array or set it to `[]` to sync every supported step setting. Unsupport
 | Logs, Security Events, Traces, AI / LLM, Metrics, Exceptions, Profiles | `logMonitor`, `securityEventsMonitor`, `traceMonitor`, `llmMonitor`, `metricMonitor`, `exceptionMonitor`, `profileMonitor` (the monitor's whole configuration) |
 | Probe Status | `probeStatusMonitor.probeIds` |
 
-Infrastructure monitors (Kubernetes, Docker Container, Host, Podman Container, Proxmox, Docker Swarm, Ceph, Storage Array, IoT Device) offer their resource selector, filters (every type but Host), metric queries and query time window. Their names are listed in **Template sync settings** on a template of that type.
+Infrastructure monitors (Kubernetes, Docker Container, Host, Podman Container, Proxmox, OpenStack, Docker Swarm, Ceph, Storage Array, IoT Device) offer their resource selector, filters (every type but Host), metric queries and query time window. Their names are listed in **Template sync settings** on a template of that type.
 :::
 
 ## Troubleshooting

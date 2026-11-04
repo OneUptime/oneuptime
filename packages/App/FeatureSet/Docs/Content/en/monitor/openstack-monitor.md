@@ -328,6 +328,41 @@ The metrics below are the catalog the monitor form offers. **Reads** is its usua
 | `openstack_neutron_quota_security_group_rule` | `count` | Max | A project's security group rule quota. Its type label says which number this is: used, reserved or limit. _Off by default:_ delete `--disable-metric=neutron-quota_network` from the exporter. |
 | `openstack_neutron_quota_rbac_policy` | `count` | Max | A project's RBAC policy quota. Its type label says which number this is: used, reserved or limit. _Off by default:_ delete `--disable-metric=neutron-quota_network` from the exporter. |
 
+## Monitoring criteria
+
+A criteria compares one of the monitor's queries or formulas with a threshold. An OpenStack monitor's criteria have no **Filter Type**: every rule checks the metric value, with these fields.
+
+| Field | What it does |
+| --- | --- |
+| **Metric** | The query or formula to check, by its variable name. |
+| **Aggregation** | How the values in the window become one answer: **Average**, **Sum**, **Maximum Value**, **Minimum Value**, **All Values** (every value must match, over the whole window) or **Any Value** (one is enough). |
+| **Condition** | **Greater Than**, **Less Than**, **Greater Than Or Equal To**, **Less Than Or Equal To** or **Equal To** — or an anomaly condition: **Anomalously High**, **Anomalously Low** or **Anomalous**. **Has No Data** matches when the query sent nothing in the window, **Has Data** when it sent anything. **Forecast To Rise Above** and **Forecast To Fall Below** match when the metric's trend over the window will be past the threshold by the end of **Within**. |
+| **Threshold** | The value to compare with. A unit list sits beside it when the metric has a unit. Not shown for anomaly conditions. |
+| **Sensitivity** | Anomaly conditions only. **Low** (4σ), **Medium** (3σ, the default) or **High** (2σ). |
+| **Baseline Window** | Anomaly conditions only. 14 days (the default), 28, 60 or 90 days of history. |
+| **If No Data** | Under **More fields**. What happens when the window has no samples: **Ignore** (the default), **Treat As Zero** or **Trigger**. |
+
+Anomaly conditions compare each value with the same hour of the week in the baseline. They stay in a "Learning" state, and raise nothing, until the baseline window holds enough history. This monitor filters its queries by attributes, so each query, and each series of a grouped one, is compared with its own history, as far back as your metrics are kept. If that is under two weeks, a Sum, a Count or a query on a histogram stays in that state for good, and anything else is compared with every series of the metric. A percentile of a histogram always stays in that state.
+
+Some criteria to start from:
+
+- **A zone's nova-compute is down:** `openstack_nova_agent_state` filtered to `service = nova-compute`, `adminState = enabled` and `zone = nova`, Minimum, grouped by `hostname`, **Less Than** `1`, over the past 10 minutes.
+- **A host carries too many instances:** `openstack_nova_running_vms`, Maximum, grouped by `hostname`, **Greater Than** the number a host should carry.
+- **A storage pool has little space left:** `openstack_cinder_pool_capacity_free_gb`, Minimum, grouped by `name`, **Less Than** `100`.
+- **Too many instances are building at once:** `openstack_nova_server_status` filtered to `status = BUILD`, Count, grouped by `openstack.region.name`, **Greater Than** `20`.
+
+### Default criteria
+
+A monitor you do not build from a template starts with two criteria:
+
+| Order | Criteria | Matches when | Then |
+| --- | --- | --- | --- |
+| 1 | Check if _monitor name_ is offline | The first query has no data for the whole window | Marks the monitor **Offline** and declares the incident "_monitor name_ is offline", which resolves itself when the monitor recovers. |
+| 2 | Check if _monitor name_ is online | The first query has data | Marks the monitor **Operational**. |
+
+> [!IMPORTANT]
+> A value of `0` is data, so a metric that is often zero, such as restarts or errors, does not make the monitor offline. To alert on a value, start from a template or add a criteria with a threshold. When no data arrives at all and no criteria matches, the monitor keeps its status and open incidents stay open: silence is not recovery. Time OneUptime itself was not receiving is never no data: a check whose window holds it waits instead, as [When OneUptime Is Not Receiving Data](/docs/monitor/when-oneuptime-is-not-receiving) explains.
+
 ## Terraform
 
 The [OneUptime Terraform provider](/docs/terraform/monitor-steps) carries an OpenStack monitor step's configuration in the `openstack_monitor` attribute: the raw JSON of the `openstackMonitor` configuration (`cloudIdentifier`, `resourceFilters`, `metricViewConfig`, `rollingTime`).

@@ -621,7 +621,8 @@ export default class SeriesDebugHints {
         command: `${cli} ip availability show ${quoted(network)}`,
       });
       commands.push({
-        purpose: "The floating IPs taken from it, and the spare ones to release",
+        purpose:
+          "The floating IPs taken from it, and the spare ones to release",
         command: `${cli} floating ip list --network ${quoted(network)} --long`,
       });
     }
@@ -714,7 +715,8 @@ export default class SeriesDebugHints {
       case "network":
         return [
           {
-            purpose: "Whether Neutron's API answers, and which agents are alive",
+            purpose:
+              "Whether Neutron's API answers, and which agents are alive",
             command: `${cli} network agent list --long`,
           },
           {
@@ -729,7 +731,8 @@ export default class SeriesDebugHints {
       case "volume":
         return [
           {
-            purpose: "Whether Cinder's API answers, and the state of its services",
+            purpose:
+              "Whether Cinder's API answers, and the state of its services",
             command: `${cli} volume service list --long`,
           },
         ];

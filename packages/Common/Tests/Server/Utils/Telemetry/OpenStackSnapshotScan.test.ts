@@ -111,6 +111,24 @@ describe("isOpenStackSnapshotDatapoint", () => {
       }),
     ).toBe(false);
   });
+
+  test("takes a scrape's duration on the same terms: every other job has one too", () => {
+    expect(
+      isOpenStackSnapshotDatapoint({
+        metricName: "scrape_duration_seconds",
+        datapoint: datapoint({
+          value: 0.2,
+          labels: { openstack_service: "compute" },
+        }),
+      }),
+    ).toBe(true);
+    expect(
+      isOpenStackSnapshotDatapoint({
+        metricName: "scrape_duration_seconds",
+        datapoint: datapoint({ value: 0.2 }),
+      }),
+    ).toBe(false);
+  });
 });
 
 describe("an API's state", () => {
@@ -176,6 +194,39 @@ describe("an API's state", () => {
     expect(row.facts["scrapeFailed"]).toBe(false);
   });
 
+  test("how long its collection took, which says nothing about whether it is up", () => {
+    const buffer: Buffer = new Map();
+    fold(buffer, "scrape_duration_seconds", {
+      value: 0.43,
+      labels: { openstack_service: "compute" },
+    });
+    const row: OpenStackResourceBufferEntry = rowOf(
+      buffer,
+      OpenStackResourceKind.Api,
+      "RegionOne/compute",
+    );
+    expect(row.name).toBe("compute");
+    expect(row.facts["collectionSeconds"]).toBe(0.43);
+    expect(row.status).toBeNull();
+    expect(row.facts["scrapeFailed"]).toBeUndefined();
+  });
+
+  test("a failed scrape still says how long it took, on its row", () => {
+    const buffer: Buffer = new Map();
+    fold(buffer, "up", { value: 0, labels: { openstack_service: "image" } });
+    fold(buffer, "scrape_duration_seconds", {
+      value: 10,
+      labels: { openstack_service: "image" },
+    });
+    const row: OpenStackResourceBufferEntry = rowOf(
+      buffer,
+      OpenStackResourceKind.Api,
+      "RegionOne/image",
+    );
+    expect(row.status).toBe("down");
+    expect(row.facts["collectionSeconds"]).toBe(10);
+  });
+
   test("the same service in two regions is two rows", () => {
     const buffer: Buffer = new Map();
     fold(buffer, "openstack_nova_up", { value: 1, region: "RegionOne" });
@@ -239,6 +290,87 @@ describe("services and agents", () => {
     expect(row.availabilityZone).toBe("az-1");
     expect(row.hypervisorName).toBeNull();
     expect(row.facts["family"]).toBe("network");
+  });
+
+  describe("an OVN agent's stale records", () => {
+    /*
+     * A crash or a change of system-id can leave an old record beside the live one for one
+     * host and binary. Which of the two came last in a scrape is not an answer.
+     */
+    const foldRecord = (
+      buffer: Buffer,
+      id: string,
+      value: number,
+      service: string = "ovn-controller",
+    ): void => {
+      fold(buffer, "openstack_neutron_agent_state", {
+        value,
+        labels: { id, hostname: "compute-01", service, adminState: "up" },
+      });
+    };
+    const finished = (buffer: Buffer): OpenStackResourceBufferEntry => {
+      return rowOf(
+        buffer,
+        OpenStackResourceKind.Service,
+        "RegionOne/network/compute-01/ovn-controller",
+      );
+    };
+
+    test("a dead record beside a live one reads up, in either order, and names the stale one", () => {
+      for (const records of [
+        [
+          ["old", 0],
+          ["new", 1],
+        ],
+        [
+          ["new", 1],
+          ["old", 0],
+        ],
+      ] as Array<Array<[string, number]>>) {
+        const buffer: Buffer = new Map();
+        for (const [id, value] of records) {
+          foldRecord(buffer, id, value);
+        }
+        const row: OpenStackResourceBufferEntry = finished(buffer);
+        expect(row.status).toBe("up");
+        expect(row.facts["agentId"]).toBe("new");
+        expect(row.facts["staleAgentIds"]).toEqual(["old"]);
+      }
+    });
+
+    test("no record alive is an agent that is down", () => {
+      const buffer: Buffer = new Map();
+      foldRecord(buffer, "one", 0);
+      foldRecord(buffer, "two", 0);
+      const row: OpenStackResourceBufferEntry = finished(buffer);
+      expect(row.status).toBe("down");
+      expect(row.facts["staleAgentIds"]).toBeNull();
+    });
+
+    test("one record is just an agent, and says stale records are gone", () => {
+      const buffer: Buffer = new Map();
+      foldRecord(buffer, "one", 1);
+      const row: OpenStackResourceBufferEntry = finished(buffer);
+      expect(row.status).toBe("up");
+      // Written out, because facts merge key by key and a row must be able to clear.
+      expect(row.facts["staleAgentIds"]).toBeNull();
+      expect("agentRecords" in row.facts).toBe(false);
+    });
+
+    test("nothing is held in a Nova or Cinder row, where two records are two workers", () => {
+      const buffer: Buffer = new Map();
+      fold(buffer, "openstack_nova_agent_state", {
+        value: 1,
+        labels: { id: "a", hostname: "c-1", service: "nova-conductor" },
+      });
+      const row: OpenStackResourceBufferEntry = rowOf(
+        buffer,
+        OpenStackResourceKind.Service,
+        "RegionOne/compute/c-1/nova-conductor",
+      );
+      expect("agentRecords" in row.facts).toBe(false);
+      expect("staleAgentIds" in row.facts).toBe(false);
+    });
   });
 
   test("keeps Cinder's backend in the host", () => {
@@ -429,7 +561,22 @@ describe("a hypervisor's capacity", () => {
     expect(row.instanceCount).toBe(3);
     // An empty label is nothing to say, not a value.
     expect(row.availabilityZone).toBeNull();
-    expect(row.facts["aggregates"]).toBeUndefined();
+    // Written down all the same, or a host taken out of its last aggregate stays in it.
+    expect(row.facts["aggregates"]).toBeNull();
+  });
+
+  test("Placement's series say nothing about aggregates, so they leave them alone", () => {
+    const buffer: Buffer = new Map();
+    fold(buffer, "openstack_placement_resource_total", {
+      value: 8,
+      labels: { hostname: "compute-01", resourcetype: "VCPU" },
+    });
+    const row: OpenStackResourceBufferEntry = rowOf(
+      buffer,
+      OpenStackResourceKind.Hypervisor,
+      "RegionOne/compute-01",
+    );
+    expect(row.facts).not.toHaveProperty("aggregates");
   });
 
   test("a host running nothing says so, rather than saying nothing", () => {
@@ -491,6 +638,64 @@ describe("instances", () => {
       rowOf(buffer, OpenStackResourceKind.Instance, "uuid-2").status,
     ).toBe("ACTIVE");
   });
+
+  /*
+   * What only the probe's native collector can say. It always sends updated_at, and the
+   * exporter never does, which is how the scan tells the two apart.
+   */
+  describe("what only a probe knows of one", () => {
+    function instanceRow(
+      labels: LabelMap,
+      buffer: Buffer = new Map(),
+    ): OpenStackResourceBufferEntry {
+      fold(buffer, "openstack_nova_server_status", {
+        value: 4,
+        labels: { id: "uuid-3", status: "ERROR", ...labels },
+      });
+
+      return rowOf(buffer, OpenStackResourceKind.Instance, "uuid-3");
+    }
+
+    test("its task and its fault, and when it last changed", () => {
+      const row: OpenStackResourceBufferEntry = instanceRow({
+        updated_at: "2026-11-04T11:00:00Z",
+        task_state: "spawning",
+        fault_message: "No valid host was found.",
+      });
+
+      expect(row.facts["updatedAt"]).toBe("2026-11-04T11:00:00Z");
+      expect(row.facts["taskState"]).toBe("spawning");
+      expect(row.facts["faultMessage"]).toBe("No valid host was found.");
+    });
+
+    test("a task or fault that cleared is written down as gone, or it would stay for ever", () => {
+      const row: OpenStackResourceBufferEntry = instanceRow({
+        updated_at: "2026-11-04T11:00:00Z",
+      });
+
+      expect(row.facts["taskState"]).toBeNull();
+      expect(row.facts["faultMessage"]).toBeNull();
+    });
+
+    test("the exporter saying nothing of them is not the same as there being none", () => {
+      const row: OpenStackResourceBufferEntry = instanceRow({});
+
+      expect(Object.keys(row.facts)).not.toContain("updatedAt");
+      expect(Object.keys(row.facts)).not.toContain("taskState");
+      expect(Object.keys(row.facts)).not.toContain("faultMessage");
+    });
+
+    test("none of it is mistaken for metadata an operator chose to see", () => {
+      const row: OpenStackResourceBufferEntry = instanceRow({
+        updated_at: "2026-11-04T11:00:00Z",
+        task_state: "spawning",
+        fault_message: "No valid host was found.",
+        team: "payments",
+      });
+
+      expect(row.facts["labels"]).toEqual({ team: "payments" });
+    });
+  });
 });
 
 describe("storage", () => {
@@ -519,6 +724,55 @@ describe("storage", () => {
     expect(row.facts["attachedToInstance"]).toBe("uuid-1");
     expect(row.facts["volumeType"]).toBe("ceph");
     expect(row.facts["isBootable"]).toBe(true);
+  });
+
+  /*
+   * The collector drops a label with nothing in it, and facts merge key by key. Without
+   * this a volume that was detached says what held it for ever, and links to an instance
+   * that may be long gone.
+   */
+  test("a volume with no server writes that down, so a detached one stops saying it is held", () => {
+    const buffer: Buffer = new Map();
+    fold(buffer, "openstack_cinder_volume_gb", {
+      value: 10,
+      labels: { id: "vol-1", name: "spare", status: "available" },
+    });
+    const row: OpenStackResourceBufferEntry = rowOf(
+      buffer,
+      OpenStackResourceKind.Volume,
+      "vol-1",
+    );
+    expect(row.facts).toHaveProperty("attachedToInstance", null);
+  });
+
+  test("a backup is a row of its own, which only a probe sends", () => {
+    const buffer: Buffer = new Map();
+    fold(buffer, "openstack_cinder_backup_gb", {
+      value: 4,
+      labels: {
+        id: "backup-1",
+        name: "nightly",
+        status: "error",
+        tenant_id: "payments",
+        volume_id: "vol-1",
+        availability_zone: "nova",
+        is_incremental: "true",
+        updated_at: "2026-11-04T10:58:17Z",
+      },
+    });
+    const row: OpenStackResourceBufferEntry = rowOf(
+      buffer,
+      OpenStackResourceKind.Backup,
+      "backup-1",
+    );
+    expect(row.name).toBe("nightly");
+    expect(row.status).toBe("error");
+    expect(row.openStackProjectId).toBe("payments");
+    expect(row.availabilityZone).toBe("nova");
+    expect(row.diskCapacityBytes).toBe(4 * GIB);
+    expect(row.facts["volumeId"]).toBe("vol-1");
+    expect(row.facts["isIncremental"]).toBe(true);
+    expect(row.facts["updatedAt"]).toBe("2026-11-04T10:58:17Z");
   });
 
   test("a pool's used space is its total less its free", () => {

@@ -1,8 +1,0 @@
-# Lets the oneuptime_monitoring role read Cinder's services and storage pools.
-# Merge these into your /etc/cinder/policy.yaml. oslo.policy notices a changed
-# file on its own, so no restart is needed.
-# To take them off again, empty the file rather than deleting it: on Flamingo and
-# Epoxy a service fails every request once a policy file it has read is gone, until
-# it is restarted, and Keystone failing that way stops the whole cloud.
-"volume_extension:services:index": "rule:admin_api or role:oneuptime_monitoring"
-"scheduler_extension:scheduler_stats:get_pools": "rule:admin_api or role:oneuptime_monitoring"

@@ -53,6 +53,7 @@ export enum DashboardTemplateType {
   Host = "Host",
   Proxmox = "Proxmox",
   VMware = "VMware",
+  OpenStack = "OpenStack",
   Ceph = "Ceph",
   StorageArray = "StorageArray",
   DockerSwarm = "DockerSwarm",
@@ -202,6 +203,15 @@ export const DashboardTemplates: Array<DashboardTemplate> = [
     icon: IconProp.VMware,
     category: DashboardTemplateCategory.Infrastructure,
     keywords: ["vsphere", "virtualization", "vms"],
+  },
+  {
+    type: DashboardTemplateType.OpenStack,
+    name: "OpenStack Dashboard",
+    description:
+      "Each service's API and workers, what Placement has allocated on each hypervisor, storage pool capacity, how long collecting each service takes, and cloud logs.",
+    icon: IconProp.Cloud,
+    category: DashboardTemplateCategory.Infrastructure,
+    keywords: ["nova", "neutron", "cinder", "keystone", "private cloud"],
   },
   {
     type: DashboardTemplateType.Ceph,
@@ -4021,6 +4031,265 @@ function createProxmoxDashboardConfig(): DashboardViewConfig {
   };
 }
 
+function createOpenStackDashboardConfig(): DashboardViewConfig {
+  /*
+   * Layout notes:
+   *
+   * - What OpenStack's own lists say, as the Overview reads it: each service's API, then
+   *   its workers, then what has been promised. Nova and Placement report what is
+   *   promised to instances, so a chart here says "allocated" and never CPU or usage.
+   *
+   * - Nothing is a Sum. The exporter repeats every gauge on every scrape, so a sum across
+   *   the window multiplies by how many scrapes it held, the failure the audit found in
+   *   other templates. An API or a worker reads its Min, because one down in a window is
+   *   the signal and an average would hide it; what can run out reads its Max, or its Min
+   *   for what is left.
+   *
+   * - openstack-exporter's identity is in DATAPOINT labels (hostname, service, name), so
+   *   these group by them directly. Only the cloud is a resource attribute. The region is
+   *   stamped by the agent as a datapoint label too.
+   */
+  const apiTile: (data: {
+    title: string;
+    left: number;
+    metricName: string;
+  }) => DashboardBaseComponent = (data: {
+    title: string;
+    left: number;
+    metricName: string;
+  }): DashboardBaseComponent => {
+    return createValueComponent({
+      title: data.title,
+      top: 2,
+      left: data.left,
+      width: 2,
+      metricConfig: {
+        metricName: data.metricName,
+        aggregationType: MetricsAggregationType.Min,
+      },
+      trendDirection: DashboardValueTrendDirection.HigherIsBetter,
+    });
+  };
+
+  const components: Array<DashboardBaseComponent> = [
+    // Row 0: Title
+    createTextComponent({
+      text: "OpenStack Dashboard",
+      top: 0,
+      left: 0,
+      width: 12,
+      height: 1,
+      isBold: true,
+    }),
+
+    // Row 1: Section header
+    createTextComponent({
+      text: "Control plane (1 means up)",
+      top: 1,
+      left: 0,
+      width: 12,
+      height: 1,
+      isBold: true,
+    }),
+
+    // Row 2: Each API, in the order Keystone's catalog reads
+    apiTile({
+      title: "Identity API",
+      left: 0,
+      metricName: "openstack_identity_up",
+    }),
+    apiTile({
+      title: "Compute API",
+      left: 2,
+      metricName: "openstack_nova_up",
+    }),
+    apiTile({
+      title: "Placement API",
+      left: 4,
+      metricName: "openstack_placement_up",
+    }),
+    apiTile({
+      title: "Network API",
+      left: 6,
+      metricName: "openstack_neutron_up",
+    }),
+    apiTile({
+      title: "Block Storage API",
+      left: 8,
+      metricName: "openstack_cinder_up",
+    }),
+    apiTile({
+      title: "Image API",
+      left: 10,
+      metricName: "openstack_glance_up",
+    }),
+
+    // Rows 3-5: Each kind of worker, down if any one of its kind is
+    createChartComponent({
+      title: "Nova Services (lowest per binary)",
+      chartType: DashboardChartType.Line,
+      top: 3,
+      left: 0,
+      width: 6,
+      height: 3,
+      metricConfig: {
+        metricName: "openstack_nova_agent_state",
+        aggregationType: MetricsAggregationType.Min,
+        legend: "Up",
+        groupByAttributeKeys: ["service"],
+      },
+    }),
+    createChartComponent({
+      title: "Neutron Agents (lowest per binary)",
+      chartType: DashboardChartType.Line,
+      top: 3,
+      left: 6,
+      width: 6,
+      height: 3,
+      metricConfig: {
+        metricName: "openstack_neutron_agent_state",
+        aggregationType: MetricsAggregationType.Min,
+        legend: "Up",
+        groupByAttributeKeys: ["service"],
+      },
+    }),
+
+    // Rows 6-8: Cinder's workers, and what collecting each service costs
+    createChartComponent({
+      title: "Cinder Services (lowest per binary)",
+      chartType: DashboardChartType.Line,
+      top: 6,
+      left: 0,
+      width: 6,
+      height: 3,
+      metricConfig: {
+        metricName: "openstack_cinder_agent_state",
+        aggregationType: MetricsAggregationType.Min,
+        legend: "Up",
+        groupByAttributeKeys: ["service"],
+      },
+    }),
+    createChartComponent({
+      title: "Collection Time (longest per service)",
+      chartType: DashboardChartType.Line,
+      top: 6,
+      left: 6,
+      width: 6,
+      height: 3,
+      metricConfig: {
+        metricName: "scrape_duration_seconds",
+        aggregationType: MetricsAggregationType.Max,
+        legend: "Seconds",
+        legendUnit: "s",
+        groupByAttributeKeys: ["openstack_service"],
+      },
+    }),
+
+    // Row 9: Section header
+    createTextComponent({
+      text: "Capacity (what is promised, not how busy it is)",
+      top: 9,
+      left: 0,
+      width: 12,
+      height: 1,
+      isBold: true,
+    }),
+
+    // Rows 10-12: What Placement has promised out of each hypervisor
+    createChartComponent({
+      title: "vCPUs Allocated (per hypervisor)",
+      chartType: DashboardChartType.Line,
+      top: 10,
+      left: 0,
+      width: 6,
+      height: 3,
+      metricConfig: {
+        metricName: "openstack_placement_resource_usage",
+        aggregationType: MetricsAggregationType.Max,
+        attributes: { resourcetype: "VCPU" },
+        legend: "vCPUs",
+        groupByAttributeKeys: ["hostname"],
+      },
+    }),
+    createChartComponent({
+      title: "Memory Allocated (per hypervisor)",
+      chartType: DashboardChartType.Line,
+      top: 10,
+      left: 6,
+      width: 6,
+      height: 3,
+      metricConfig: {
+        metricName: "openstack_placement_resource_usage",
+        aggregationType: MetricsAggregationType.Max,
+        attributes: { resourcetype: "MEMORY_MB" },
+        legend: "Memory",
+        legendUnit: "MiB",
+        groupByAttributeKeys: ["hostname"],
+      },
+    }),
+
+    // Rows 13-15: What is left in each pool, and how many instances each host holds
+    createChartComponent({
+      title: "Storage Pool Free (per pool)",
+      chartType: DashboardChartType.Area,
+      top: 13,
+      left: 0,
+      width: 6,
+      height: 3,
+      metricConfig: {
+        metricName: "openstack_cinder_pool_capacity_free_gb",
+        aggregationType: MetricsAggregationType.Min,
+        legend: "Free",
+        legendUnit: "GiB",
+        groupByAttributeKeys: ["name"],
+      },
+    }),
+    createChartComponent({
+      title: "Running Instances (per hypervisor)",
+      chartType: DashboardChartType.Line,
+      top: 13,
+      left: 6,
+      width: 6,
+      height: 3,
+      metricConfig: {
+        metricName: "openstack_nova_running_vms",
+        aggregationType: MetricsAggregationType.Max,
+        legend: "Instances",
+        groupByAttributeKeys: ["hostname"],
+      },
+    }),
+
+    // Rows 16-18: Logs
+    createLogStreamComponent({
+      title: "OpenStack Logs",
+      top: 16,
+      left: 0,
+      width: 12,
+      height: 3,
+    }),
+  ];
+
+  const variables: Array<DashboardVariable> = [
+    createTelemetryAttributeVariable({
+      name: "cloud",
+      label: "Cloud",
+      attributeKey: "resource.openstack.cloud.name",
+    }),
+    createTelemetryAttributeVariable({
+      name: "region",
+      label: "Region",
+      attributeKey: "openstack.region.name",
+    }),
+  ];
+
+  return {
+    _type: ObjectType.DashboardViewConfig,
+    components,
+    variables,
+    heightInDashboardUnits: Math.max(DashboardSize.heightInDashboardUnits, 19),
+  };
+}
+
 function createVMwareDashboardConfig(): DashboardViewConfig {
   /*
    * Layout notes:
@@ -5179,6 +5448,8 @@ export function getTemplateConfig(
       return createProxmoxDashboardConfig();
     case DashboardTemplateType.VMware:
       return createVMwareDashboardConfig();
+    case DashboardTemplateType.OpenStack:
+      return createOpenStackDashboardConfig();
     case DashboardTemplateType.Ceph:
       return createCephDashboardConfig();
     case DashboardTemplateType.StorageArray:

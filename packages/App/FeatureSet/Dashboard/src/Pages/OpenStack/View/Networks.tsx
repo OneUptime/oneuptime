@@ -1,89 +1,141 @@
 import PageComponentProps from "../../PageComponentProps";
 import OpenStackResource from "Common/Models/DatabaseModels/OpenStackResource";
+import NotEqual from "Common/Types/BaseDatabase/NotEqual";
+import Query from "Common/Types/BaseDatabase/Query";
+import { JSONObject } from "Common/Types/JSON";
 import ObjectID from "Common/Types/ObjectID";
 import { OpenStackResourceKind } from "Common/Types/OpenStack/OpenStackResourceKind";
-import Column from "Common/UI/Components/ModelTable/Column";
+import { Translator } from "Common/UI/Utils/TranslateTemplate";
+import useTranslator from "Common/UI/Utils/UseTranslator";
 import Navigation from "Common/UI/Utils/Navigation";
-import { translateText } from "Common/UI/Utils/TranslateTemplate";
-import React, { FunctionComponent, ReactElement } from "react";
-import OpenStackResourceList, {
-  OpenStackColumn,
-  OpenStackFilter,
-  formatOpenStackAmount,
-  formatOpenStackCount,
+import React, {
+  Fragment,
+  FunctionComponent,
+  ReactElement,
+  useMemo,
+  useState,
+} from "react";
+import {
+  ADDRESSES_FREE_COLUMN,
+  OpenStackNetworkList,
+} from "../../../Components/OpenStack/OpenStackLists";
+import {
+  OpenStackListColumn,
   getOpenStackFactColumn,
 } from "../../../Components/OpenStack/OpenStackResourceList";
+import { getOpenStackForecastText } from "../../../Components/OpenStack/Part/OpenStackForecastTile";
+import OpenStackLimitedViewNotice from "../../../Components/OpenStack/Part/OpenStackLimitedViewNotice";
+import OpenStackNetworkCountsCard from "../../../Components/OpenStack/Part/OpenStackNetworkCountsCard";
+import useOpenStackCloudName from "../../../Components/OpenStack/Part/UseOpenStackCloudName";
+import useOpenStackRead, {
+  OpenStackRead,
+} from "../../../Components/OpenStack/Part/UseOpenStackRead";
 import {
-  getOpenStackFact,
-  getOpenStackFactNumber,
-  getOpenStackFactText,
-} from "../Utils/OpenStackResourceUtils";
+  countOpenStackRows,
+  fetchOpenStackNetworkForecast,
+} from "../Utils/OpenStackPartData";
+import { OpenStackForecast } from "../Utils/OpenStackPartFacts";
 
-const COLUMNS: Array<OpenStackColumn | Column<OpenStackResource>> = [
-  OpenStackColumn.Status,
-  getOpenStackFactColumn({
-    id: "addresses-used",
-    title: "Addresses Used",
-    getText: (row: OpenStackResource): string => {
-      return formatOpenStackAmount({
-        taken: getOpenStackFactNumber(row, "ipsUsed"),
-        capacity: getOpenStackFactNumber(row, "ipsTotal"),
-        format: formatOpenStackCount,
-      });
-    },
-  }),
-  getOpenStackFactColumn({
-    id: "network-type",
-    title: "Type",
-    hideOnMobile: true,
-    getText: (row: OpenStackResource): string => {
-      return getOpenStackFactText(row, "networkType");
-    },
-  }),
-  getOpenStackFactColumn({
-    id: "network-scope",
-    title: "Scope",
-    hideOnMobile: true,
-    getText: (row: OpenStackResource): string => {
-      if (getOpenStackFact(row, "isExternal") === true) {
-        return translateText("External") || "External";
-      }
-      if (getOpenStackFact(row, "isShared") === true) {
-        return translateText("Shared") || "Shared";
-      }
-      return "";
-    },
-  }),
-  OpenStackColumn.Project,
-  OpenStackColumn.Region,
-];
+/*
+ * External pools first, because those are what everyone draws from: a tenant's own network
+ * filling up is theirs to see, and an external one running out stops floating IPs and new
+ * routers for everybody. Facts are not a column the server can sort by, so the two are two
+ * lists, each paged and filtered on the server, and not one list reordered in the browser.
+ */
+function factsQuery(facts: JSONObject): Query<OpenStackResource> {
+  return { facts: facts };
+}
 
-const FILTERS: Array<OpenStackFilter> = [
-  OpenStackFilter.Status,
-  OpenStackFilter.Region,
-  OpenStackFilter.Project,
-];
+const EXTERNAL_QUERY: Query<OpenStackResource> = factsQuery({
+  isExternal: true,
+});
+// A row that doesn't say is not external: a negative filter keeps it.
+const OTHER_QUERY: Query<OpenStackResource> = factsQuery({
+  isExternal: new NotEqual("true") as never,
+});
 
 const OpenStackCloudNetworks: FunctionComponent<
   PageComponentProps
 > = (): ReactElement => {
+  const translator: Translator = useTranslator();
   const modelId: ObjectID = Navigation.getLastParamAsObjectID(1);
+  const cloudName: string = useOpenStackCloudName(modelId);
+
+  const externalCount: OpenStackRead<number> = useOpenStackRead<number>(() => {
+    return countOpenStackRows({
+      openStackCloudId: modelId,
+      kind: OpenStackResourceKind.Network,
+      query: EXTERNAL_QUERY,
+    });
+  }, [modelId.toString()]);
+
+  const [forecasts, setForecasts] = useState<Record<string, OpenStackForecast>>(
+    {},
+  );
+
+  const extraColumns: Array<OpenStackListColumn> = useMemo(() => {
+    return [
+      ADDRESSES_FREE_COLUMN,
+      getOpenStackFactColumn({
+        id: "days-until-empty",
+        title: "Days Until Empty",
+        description:
+          "When this pool runs out at its growth over the last day. It says so when there isn't enough history yet to tell.",
+        getText: (row: OpenStackResource): string => {
+          const forecast: OpenStackForecast | undefined =
+            forecasts[row.externalId || ""];
+          return forecast ? getOpenStackForecastText(forecast, translator) : "";
+        },
+      }),
+    ];
+  }, [forecasts, translator]);
+
+  const onExternalRows: (rows: Array<OpenStackResource>) => void = (
+    rows: Array<OpenStackResource>,
+  ): void => {
+    if (!cloudName) {
+      return;
+    }
+    for (const row of rows) {
+      fetchOpenStackNetworkForecast({ cloudName, network: row })
+        .then((forecast: OpenStackForecast) => {
+          setForecasts((known: Record<string, OpenStackForecast>) => {
+            return { ...known, [row.externalId || ""]: forecast };
+          });
+        })
+        .catch(() => {
+          // No column value is better than a forecast nobody can back up.
+        });
+    }
+  };
+
+  const hasExternal: boolean = (externalCount.data || 0) > 0;
 
   return (
-    <OpenStackResourceList
-      openStackCloudId={modelId}
-      kind={OpenStackResourceKind.Network}
-      tableId="openstack-networks-table"
-      title="Networks"
-      description="Every network in this cloud, and how many of its addresses are in use."
-      singularName="network"
-      pluralName="networks"
-      emptyTitle="No networks reported yet"
-      emptyDescription="These come from Neutron. Only the Full view credential sees every project's: Neutron answers any other with its own project, and no error. Addresses used need Full view or Infrastructure only."
-      columns={COLUMNS}
-      filters={FILTERS}
-      searchPlaceholder="Search by name or ID"
-    />
+    <Fragment>
+      <OpenStackLimitedViewNotice
+        openStackCloudId={modelId}
+        kind={OpenStackResourceKind.Network}
+      />
+      {hasExternal && cloudName ? (
+        <OpenStackNetworkList
+          openStackCloudId={modelId}
+          query={EXTERNAL_QUERY}
+          tableId="openstack-external-networks-table"
+          title="External Networks"
+          description="The pools floating IPs and routers draw from, and how long their addresses will last."
+          extraColumns={extraColumns}
+          onRowsFetched={onExternalRows}
+        />
+      ) : (
+        <></>
+      )}
+      <OpenStackNetworkList
+        openStackCloudId={modelId}
+        query={hasExternal ? OTHER_QUERY : undefined}
+      />
+      {cloudName ? <OpenStackNetworkCountsCard cloudName={cloudName} /> : <></>}
+    </Fragment>
   );
 };
 

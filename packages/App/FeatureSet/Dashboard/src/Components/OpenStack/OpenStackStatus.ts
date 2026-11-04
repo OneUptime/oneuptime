@@ -1,4 +1,10 @@
 import {
+  isOpenStackImageStuck,
+  isOpenStackInstanceStuck,
+  isOpenStackVolumeStuck,
+} from "Common/Types/OpenStack/OpenStackHealthRules";
+import {
+  OPENSTACK_IMAGE_TRANSITIONAL_STATUSES,
   OPENSTACK_INSTANCE_TRANSITIONAL_STATUSES,
   OPENSTACK_SERVICE_STATUS_DOWN,
   OPENSTACK_SERVICE_STATUS_UP,
@@ -21,6 +27,12 @@ import { ResourceStatusTone } from "../Infrastructure/ResourceTable";
  *    says, so it reads Disabled with the operator's reason and never as a failure.
  *  - A word this file does not know is neutral: a new OpenStack release's word is
  *    shown as it is, and is not called a failure on a guess.
+ *  - A step on its way to something else is only something to look at once it has
+ *    taken longer than the alert templates allow. A list that knows the time reads a
+ *    BUILD of two minutes as neutral and one of two hours as Stuck, which is its own
+ *    state because that is what the person scanning the list is looking for.
+ *  - A hypervisor whose nova-compute stopped reads Lost, because Nova keeps reporting
+ *    its last numbers and "down" beside them would read as a host with room.
  *
  * These are a list's tones, not health. What needs someone first is #5723's
  * OpenStackHealth, whose thresholds are the alert templates'.
@@ -33,6 +45,13 @@ export interface OpenStackStatusInput {
   disabledReason?: string | null | undefined;
   // True when the agent's last read of this API failed (facts.scrapeFailed).
   isScrapeFailed?: boolean | undefined;
+  /*
+   * When its status last changed, and the time now. A reading without them cannot
+   * tell a step taking its time from a step stuck, so it reads every step as one to
+   * look at.
+   */
+  stateChangedAt?: Date | string | null | undefined;
+  now?: Date | undefined;
 }
 
 export interface OpenStackStatusReading {
@@ -44,6 +63,8 @@ export interface OpenStackStatusReading {
   writtenReason?: string | undefined;
   // English to look up, when OneUptime says why.
   reasonKey?: string | undefined;
+  // On its way to something else for longer than the alert templates allow.
+  isStuck?: boolean | undefined;
 }
 
 export const OPENSTACK_DISABLED_LABEL: string = translationKey("Disabled");
@@ -51,6 +72,10 @@ export const OPENSTACK_DISABLED_LABEL: string = translationKey("Disabled");
 export const OPENSTACK_SCRAPE_FAILED_REASON: string = translationKey(
   "The agent's last read of this API failed.",
 );
+
+export const OPENSTACK_STUCK_LABEL: string = translationKey("Stuck");
+
+export const OPENSTACK_LOST_LABEL: string = translationKey("Lost");
 
 /*
  * Nova and Cinder say enabled and disabled, Neutron says up and down. Both mean
@@ -111,13 +136,8 @@ function imageTone(word: string): ResourceStatusTone {
   if (lower === "killed") {
     return "danger";
   }
-  return [
-    "queued",
-    "saving",
-    "uploading",
-    "importing",
-    "pending_delete",
-  ].includes(lower)
+  return OPENSTACK_IMAGE_TRANSITIONAL_STATUSES.has(lower) ||
+    lower === "pending_delete"
     ? "warning"
     : "neutral";
 }
@@ -156,11 +176,13 @@ function toneOf(
   switch (kind) {
     case OpenStackResourceKind.Api:
     case OpenStackResourceKind.Service:
+    case OpenStackResourceKind.Hypervisor:
       return serviceTone(word);
     case OpenStackResourceKind.Instance:
       return instanceTone(word);
     case OpenStackResourceKind.Volume:
     case OpenStackResourceKind.Snapshot:
+    case OpenStackResourceKind.Backup:
       return volumeTone(word);
     case OpenStackResourceKind.Image:
       return imageTone(word);
@@ -177,9 +199,44 @@ function toneOf(
   }
 }
 
+function isStuck(input: OpenStackStatusInput, word: string): boolean {
+  if (!input.now) {
+    return false;
+  }
+  const reading: {
+    status: string;
+    stateChangedAt: Date | string | null | undefined;
+    now: Date;
+  } = { status: word, stateChangedAt: input.stateChangedAt, now: input.now };
+  switch (input.kind) {
+    case OpenStackResourceKind.Instance:
+      return isOpenStackInstanceStuck(reading);
+    case OpenStackResourceKind.Volume:
+      return isOpenStackVolumeStuck(reading);
+    case OpenStackResourceKind.Image:
+      return isOpenStackImageStuck(reading);
+    default:
+      return false;
+  }
+}
+
+// A step on its way to something else, as each kind's own rule draws it.
+function isOnTheWay(kind: string | null | undefined, word: string): boolean {
+  switch (kind) {
+    case OpenStackResourceKind.Instance:
+      return OPENSTACK_INSTANCE_TRANSITIONAL_STATUSES.has(word);
+    case OpenStackResourceKind.Volume:
+      return OPENSTACK_VOLUME_TRANSITIONAL_STATUSES.has(word);
+    case OpenStackResourceKind.Image:
+      return OPENSTACK_IMAGE_TRANSITIONAL_STATUSES.has(word);
+    default:
+      return false;
+  }
+}
+
 /*
- * The reading of one row, or null for a row with no state to show: a hypervisor
- * or a storage pool reports none, and a dash says so better than a guess.
+ * The reading of one row, or null for a row with no state to show: a storage pool
+ * reports none, and a dash says so better than a guess.
  */
 export function getOpenStackStatusReading(
   input: OpenStackStatusInput,
@@ -199,9 +256,28 @@ export function getOpenStackStatusReading(
     return null;
   }
 
+  if (
+    input.kind === OpenStackResourceKind.Hypervisor &&
+    word.toLowerCase() === OPENSTACK_SERVICE_STATUS_DOWN
+  ) {
+    return { label: OPENSTACK_LOST_LABEL, tone: "danger", isOpenStackWord: false };
+  }
+
+  if (isStuck(input, word)) {
+    return {
+      label: OPENSTACK_STUCK_LABEL,
+      tone: "warning",
+      isOpenStackWord: false,
+      isStuck: true,
+    };
+  }
+
   return {
     label: word,
-    tone: toneOf(input.kind, word),
+    tone:
+      input.now && isOnTheWay(input.kind, word)
+        ? "neutral"
+        : toneOf(input.kind, word),
     isOpenStackWord: true,
     reasonKey:
       input.isScrapeFailed &&
@@ -227,6 +303,10 @@ export const OPENSTACK_STATUS_WORDS: Partial<
     OPENSTACK_SERVICE_STATUS_UP,
     OPENSTACK_SERVICE_STATUS_DOWN,
   ],
+  [OpenStackResourceKind.Hypervisor]: [
+    OPENSTACK_SERVICE_STATUS_UP,
+    OPENSTACK_SERVICE_STATUS_DOWN,
+  ],
   [OpenStackResourceKind.Instance]: [
     "ACTIVE",
     "ERROR",
@@ -247,13 +327,25 @@ export const OPENSTACK_STATUS_WORDS: Partial<
   ],
   [OpenStackResourceKind.Image]: [
     "active",
-    "queued",
-    "saving",
-    "uploading",
-    "importing",
+    ...OPENSTACK_IMAGE_TRANSITIONAL_STATUSES,
     "pending_delete",
     "deactivated",
     "killed",
+  ],
+  [OpenStackResourceKind.Snapshot]: [
+    "available",
+    "creating",
+    "deleting",
+    "restoring",
+    "error",
+    "error_deleting",
+  ],
+  [OpenStackResourceKind.Backup]: [
+    "available",
+    "creating",
+    "deleting",
+    "restoring",
+    "error",
   ],
   [OpenStackResourceKind.Network]: ["ACTIVE", "BUILD", "DOWN", "ERROR"],
   [OpenStackResourceKind.Router]: ["ACTIVE", "ALLOCATED", "DOWN", "ERROR"],

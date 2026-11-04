@@ -10,15 +10,15 @@ openstack_placement_resource_generation{hostname="compute-01.example.internal",r
 openstack_placement_resource_generation{hostname="compute-01.example.internal",resourcetype="VCPU"} 5
 # HELP openstack_placement_resource_provider_allocations resource_provider_allocations
 # TYPE openstack_placement_resource_provider_allocations gauge
-openstack_placement_resource_provider_allocations{hostname="compute-01.example.internal",resourcetype="DISK_GB",uuid="00fdd202-b38b-41a1-b580-bd868a88775e"} 1
-openstack_placement_resource_provider_allocations{hostname="compute-01.example.internal",resourcetype="DISK_GB",uuid="7bc7029a-4150-425d-a43c-70da89dbcb70"} 1
-openstack_placement_resource_provider_allocations{hostname="compute-01.example.internal",resourcetype="DISK_GB",uuid="d0e2d72d-f664-47a3-8c49-7d2c728f001c"} 1
-openstack_placement_resource_provider_allocations{hostname="compute-01.example.internal",resourcetype="MEMORY_MB",uuid="00fdd202-b38b-41a1-b580-bd868a88775e"} 128
-openstack_placement_resource_provider_allocations{hostname="compute-01.example.internal",resourcetype="MEMORY_MB",uuid="7bc7029a-4150-425d-a43c-70da89dbcb70"} 128
-openstack_placement_resource_provider_allocations{hostname="compute-01.example.internal",resourcetype="MEMORY_MB",uuid="d0e2d72d-f664-47a3-8c49-7d2c728f001c"} 128
-openstack_placement_resource_provider_allocations{hostname="compute-01.example.internal",resourcetype="VCPU",uuid="00fdd202-b38b-41a1-b580-bd868a88775e"} 1
-openstack_placement_resource_provider_allocations{hostname="compute-01.example.internal",resourcetype="VCPU",uuid="7bc7029a-4150-425d-a43c-70da89dbcb70"} 1
-openstack_placement_resource_provider_allocations{hostname="compute-01.example.internal",resourcetype="VCPU",uuid="d0e2d72d-f664-47a3-8c49-7d2c728f001c"} 1
+openstack_placement_resource_provider_allocations{hostname="compute-01.example.internal",resourcetype="DISK_GB",uuid="358ee736-ba74-40ba-a354-7ead413c5df6"} 1
+openstack_placement_resource_provider_allocations{hostname="compute-01.example.internal",resourcetype="DISK_GB",uuid="4d955c70-df91-45ae-be57-044f4bcaefec"} 1
+openstack_placement_resource_provider_allocations{hostname="compute-01.example.internal",resourcetype="DISK_GB",uuid="b7d9b739-9ad0-44e5-ad61-cdbfad9ea127"} 1
+openstack_placement_resource_provider_allocations{hostname="compute-01.example.internal",resourcetype="MEMORY_MB",uuid="358ee736-ba74-40ba-a354-7ead413c5df6"} 128
+openstack_placement_resource_provider_allocations{hostname="compute-01.example.internal",resourcetype="MEMORY_MB",uuid="4d955c70-df91-45ae-be57-044f4bcaefec"} 128
+openstack_placement_resource_provider_allocations{hostname="compute-01.example.internal",resourcetype="MEMORY_MB",uuid="b7d9b739-9ad0-44e5-ad61-cdbfad9ea127"} 128
+openstack_placement_resource_provider_allocations{hostname="compute-01.example.internal",resourcetype="VCPU",uuid="358ee736-ba74-40ba-a354-7ead413c5df6"} 1
+openstack_placement_resource_provider_allocations{hostname="compute-01.example.internal",resourcetype="VCPU",uuid="4d955c70-df91-45ae-be57-044f4bcaefec"} 1
+openstack_placement_resource_provider_allocations{hostname="compute-01.example.internal",resourcetype="VCPU",uuid="b7d9b739-9ad0-44e5-ad61-cdbfad9ea127"} 1
 # HELP openstack_placement_resource_reserved resource_reserved
 # TYPE openstack_placement_resource_reserved gauge
 openstack_placement_resource_reserved{hostname="compute-01.example.internal",resourcetype="DISK_GB"} 0

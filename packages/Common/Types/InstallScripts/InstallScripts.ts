@@ -202,7 +202,6 @@ export const INSTALL_SCRIPTS: ReadonlyArray<InstallScriptEntry> = [
       "systemd/oneuptime-openstack-exporter-native.service",
       "access/application-credential-access-rules.json",
       "access/access-rules-for-cloud.py",
-      "access/policy/cinder.yaml",
       "access/policy/keystone.yaml",
       "access/policy/neutron.yaml",
       "access/policy/nova.yaml",

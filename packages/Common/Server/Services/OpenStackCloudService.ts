@@ -4,9 +4,7 @@ import OpenStackCloudLabelRuleEngineService from "./OpenStackCloudLabelRuleEngin
 import OpenStackCloudOwnerRuleEngineService from "./OpenStackCloudOwnerRuleEngineService";
 import Model from "../../Models/DatabaseModels/OpenStackCloud";
 import Label from "../../Models/DatabaseModels/Label";
-import { OnCreate, OnDelete, OnUpdate } from "../Types/Database/Hooks";
-import CreateBy from "../Types/Database/CreateBy";
-import DeleteBy from "../Types/Database/DeleteBy";
+import { OnCreate, OnUpdate } from "../Types/Database/Hooks";
 import UpdateBy from "../Types/Database/UpdateBy";
 import OpenStackCloudFeedService from "./OpenStackCloudFeedService";
 import { OpenStackCloudFeedEventType } from "../../Models/DatabaseModels/OpenStackCloudFeed";

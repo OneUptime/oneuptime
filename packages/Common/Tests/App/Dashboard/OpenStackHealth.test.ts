@@ -209,6 +209,33 @@ describe("a service", () => {
     expect(assessed.reasons[0]?.plural?.count).toBe(42);
   });
 
+  test("says whose they are, when the blast radius has been read", () => {
+    const assessed: OpenStackAssessment = assessOpenStackService({
+      row: service({ status: "down", adminState: "enabled" }),
+      now: NOW,
+      instanceCount: 42,
+      projectCount: 7,
+    });
+    expect(assessed.reasons).toHaveLength(2);
+    expect(assessed.reasons[1]?.text).toBe("In {{count}} projects");
+    expect(assessed.reasons[1]?.values?.["count"]).toBe("7");
+    expect(assessed.reasons[1]?.plural).toEqual({
+      one: "In {{count}} project",
+      count: 7,
+    });
+  });
+
+  test("no projects known says nothing about projects", () => {
+    expect(
+      assessOpenStackService({
+        row: service({ status: "down", adminState: "enabled" }),
+        now: NOW,
+        instanceCount: 42,
+        projectCount: 0,
+      }).reasons,
+    ).toHaveLength(1);
+  });
+
   test("no instances on it is said without a count", () => {
     const assessed: OpenStackAssessment = assessOpenStackService({
       row: service({ status: "down", adminState: "enabled" }),
@@ -704,6 +731,67 @@ describe("Needs attention", () => {
     expect(items).toHaveLength(1);
     expect(items[0]?.reasons[0]?.values?.["count"]).toBe("42");
     expect(items[0]?.detail).toBe("compute-01 · RegionOne");
+  });
+
+  test("a read blast radius wins over the hypervisor's own count, and says whose", () => {
+    const down: OpenStackResource = service("nova-compute", "compute-01", "down");
+    const items: Array<ResourceAttentionItem> = getOpenStackAttentionItems({
+      rows: [
+        down,
+        row(OpenStackResourceKind.Hypervisor, {
+          externalId: "RegionOne/compute-01",
+          hypervisorName: "compute-01",
+          instanceCount: 40,
+        }),
+      ],
+      now: NOW,
+      blastRadiusFor: (candidate: OpenStackResource) => {
+        return candidate === down
+          ? { instanceCount: 42, projectCount: 7 }
+          : undefined;
+      },
+    });
+    expect(items[0]?.reasons[0]?.values?.["count"]).toBe("42");
+    expect(items[0]?.reasons[1]?.values?.["count"]).toBe("7");
+  });
+
+  test("a part reads by the name a page gives it, and its own without one", () => {
+    const api: OpenStackResource = row(OpenStackResourceKind.Api, {
+      externalId: "RegionOne/compute",
+      name: "compute",
+      status: "down",
+    });
+    expect(
+      getOpenStackAttentionItems({ rows: [api], now: NOW })[0]?.name,
+    ).toBe("compute");
+    expect(
+      getOpenStackAttentionItems({
+        rows: [api],
+        now: NOW,
+        nameFor: (): string => {
+          return "Compute (Nova)";
+        },
+      })[0]?.name,
+    ).toBe("Compute (Nova)");
+  });
+
+  test("every scheduler down is one step from one of them", () => {
+    const scheduler: OpenStackResource = service(
+      "nova-scheduler",
+      "ctl-01",
+      "down",
+    );
+    const route: Route = new Route("/services/ctl-01");
+    const items: Array<ResourceAttentionItem> = getOpenStackAttentionItems({
+      rows: [scheduler],
+      now: NOW,
+      routeFor: (candidate: OpenStackResource): Route | undefined => {
+        return candidate === scheduler ? route : undefined;
+      },
+    });
+    expect(items).toHaveLength(1);
+    expect(items[0]?.severity).toBe(CRITICAL);
+    expect(items[0]?.route).toBe(route);
   });
 
   // Seen on a real cloud: Nova's services use the short name, its hypervisors the full one.

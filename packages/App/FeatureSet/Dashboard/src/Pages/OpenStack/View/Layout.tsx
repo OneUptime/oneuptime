@@ -5,6 +5,12 @@ import {
   OpenStackInventorySummary,
   fetchOpenStackInventorySummary,
 } from "../Utils/OpenStackResourceUtils";
+import OpenStackRegionBar from "../../../Components/OpenStack/OpenStackRegionBar";
+import {
+  OpenStackRegionProvider,
+  OpenStackRegionState,
+  useOpenStackRegion,
+} from "../../../Components/OpenStack/OpenStackRegionContext";
 import SideMenu, { ResourceCounts } from "./SideMenu";
 import ObjectID from "Common/Types/ObjectID";
 import ModelPage from "Common/UI/Components/Page/ModelPage";
@@ -18,11 +24,11 @@ import React, {
 } from "react";
 import { Outlet, useParams } from "react-router-dom";
 
-const OpenStackCloudViewLayout: FunctionComponent<
-  PageComponentProps
-> = (): ReactElement => {
-  const { id } = useParams();
-  const modelId: ObjectID = new ObjectID(id || "");
+const OpenStackCloudViewBody: FunctionComponent<{ modelId: ObjectID }> = (props: {
+  modelId: ObjectID;
+}): ReactElement => {
+  const modelId: ObjectID = props.modelId;
+  const { region }: OpenStackRegionState = useOpenStackRegion();
   const path: string = Navigation.getRoutePath(RouteUtil.getRoutes());
   const [resourceCounts, setResourceCounts] = useState<
     ResourceCounts | undefined
@@ -31,10 +37,11 @@ const OpenStackCloudViewLayout: FunctionComponent<
   useEffect(() => {
     /*
      * The same counts the Overview's chips read, from the same rows the lists
-     * page through, so the side menu never disagrees with them. Supplementary:
-     * no badge is better than no page when the read fails.
+     * page through, so the side menu never disagrees with them, in the region
+     * they read. Supplementary: no badge is better than no page when the read
+     * fails.
      */
-    fetchOpenStackInventorySummary(modelId)
+    fetchOpenStackInventorySummary(modelId, region)
       .then((summary: OpenStackInventorySummary | null) => {
         if (!summary) {
           return;
@@ -52,7 +59,7 @@ const OpenStackCloudViewLayout: FunctionComponent<
         });
       })
       .catch(() => {});
-  }, []);
+  }, [region]);
 
   return (
     <ModelPage
@@ -63,8 +70,22 @@ const OpenStackCloudViewLayout: FunctionComponent<
       breadcrumbLinks={getOpenStackBreadcrumbs(path)}
       sideMenu={<SideMenu modelId={modelId} resourceCounts={resourceCounts} />}
     >
+      <OpenStackRegionBar openStackCloudId={modelId} />
       <Outlet />
     </ModelPage>
+  );
+};
+
+const OpenStackCloudViewLayout: FunctionComponent<
+  PageComponentProps
+> = (): ReactElement => {
+  const { id } = useParams();
+  const modelId: ObjectID = new ObjectID(id || "");
+
+  return (
+    <OpenStackRegionProvider openStackCloudId={modelId}>
+      <OpenStackCloudViewBody modelId={modelId} />
+    </OpenStackRegionProvider>
   );
 };
 
