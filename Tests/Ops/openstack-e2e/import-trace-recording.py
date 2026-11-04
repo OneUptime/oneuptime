@@ -9,14 +9,17 @@ import-recording.py rewrites <release>/ whole:
 
     driver/<scene>.json     what the driver sent for that scene's traces, as OTLP
     agent/<scene>.json      what the agent's traces profile would have sent for them
-    journal/<scene>.jsonl   what the services logged while that scene ran
+    native/<scene>.json     what a scene with nothing signed made, as OTLP, where one ran
+    journal/<scene>.jsonl   what the services logged for a request while that scene ran
     scenes.json             every scene: how long it took, its exit code, its Trace IDs, its spans
     summary.json            each scene's trace, service by service, with its spans and bytes
     context/                what the cloud says each instance is, and its request IDs
     versions.txt            what this release runs
     profiler-conf.txt       the [profiler] section, without the key
     key-check.txt           how many times the key was found in each recorded file
-    driver-log-lines.txt    every line a service logged about OSProfiler or its driver
+    native-summary.json     those scenes, by scope, with what each span was named
+    native-settings.txt     what was added to each API's pipeline for them
+    driver-log-lines.txt    what a service said about OSProfiler or its driver, each thing once
 
 Nothing goes in unread. A span holds what a traced call was handed, written out as Python
 would print it, and a fixture lives in a public repository. So every string in it goes through
@@ -28,6 +31,7 @@ Only the standard library. Run it with `-I`: what it reads was downloaded, and t
 folder out of Python's import path.
 """
 
+import datetime
 import gzip
 import importlib.util
 import json
@@ -51,17 +55,39 @@ WHOLE_SCENES = (
     "signed-token",
     "signed-delete",
     "signed-boot-requests",
+    "signed-boot-placement",
+    "signed-boot-whole",
+    "signed-boot-failed-whole",
+    "signed-boot-osprofiler-fix",
 )
 SAMPLED_SCENES = {"signed-boot-sql": 60}
-AGENT_SCENES = ("signed-boot", "signed-boot-failed")
+AGENT_SCENES = ("signed-boot", "signed-boot-failed", "signed-boot-whole")
 JOURNAL_SCENES = ("signed-boot", "signed-boot-failed")
+# They name no trace, and an idle minute is a lot of the same span: enough to read its shape.
+NATIVE_SCENES = {
+    "native-messaging-boot": 300,
+    "native-messaging-idle": 60,
+    "native-both-boot": 300,
+    "native-both-idle": 60,
+    "native-with-osprofiler-boot": 300,
+}
+NATIVE_SCENE_MARGIN_SECONDS = 15
 
 # What a call was handed, cut to this. Its shape is what a test reads.
 HANDED_ATTRIBUTES = ("args", "kwargs", "result", "db.params")
 HANDED_KEPT_CHARACTERS = 300
 
 MAX_JOURNAL_LINE_CHARACTERS = 2000
-DRIVER_LOG_WORDS = ("osprofiler", "OSProfiler", "profiler", "opentelemetry", "OTLP", "otlp")
+# Those that answer no request, and whose lines a request's journal has no use for.
+JOURNAL_UNITS_LEFT_OUT = (
+    "etcd",
+    "neutron-ovn-maintenance-worker",
+    "neutron-periodic-workers",
+    "q-ovn-agent",
+    "n-api-meta",
+    "ceilometer",
+)
+DRIVER_LOG_WORDS = ("osprofiler", "OSProfiler", "opentelemetry", "OTLP", "otlp")
 
 
 def load_replace_secrets():
@@ -114,8 +140,9 @@ def cut_handed(span):
                 value["stringValue"] = text[:HANDED_KEPT_CHARACTERS] + "… (cut by import-trace-recording.py)"
 
 
-def spans_of_traces(path, trace_ids, limit=None):
-    """The exports' resource blocks, holding only these traces' spans, with what they say scrubbed."""
+def spans_of_traces(path, trace_ids, limit=None, moments=None):
+    """The exports' resource blocks, holding only these traces' spans, or these moments', with
+    what they say scrubbed."""
     blocks = []
     kept = 0
     for export in read_exports(path):
@@ -125,7 +152,11 @@ def spans_of_traces(path, trace_ids, limit=None):
                 spans = [
                     span
                     for span in scope_block.get("spans", [])
-                    if span.get("traceId") in trace_ids
+                    if (
+                        moments[0] <= int(span.get("startTimeUnixNano", 0)) / 1e9 <= moments[1]
+                        if moments
+                        else span.get("traceId") in trace_ids
+                    )
                 ]
                 if limit is not None:
                     spans = spans[: max(0, limit - kept)]
@@ -151,21 +182,33 @@ def journal_lines(folder, started_at, ended_at):
         return
     for entry in READ_JSONL_GZ(path):
         at = int(entry.get("__REALTIME_TIMESTAMP", 0) or 0) / 1e6
-        if started_at <= at <= ended_at:
+        unit = entry.get("_SYSTEMD_UNIT", "")
+        if started_at <= at <= ended_at and not any(word in unit for word in JOURNAL_UNITS_LEFT_OUT):
             message = MESSAGE_OF(entry)[:MAX_JOURNAL_LINE_CHARACTERS]
+            # A line for nobody's request is no use to a test of joining a trace to its requests.
+            if "req-" not in message:
+                continue
             yield {
                 "time": at,
-                "unit": entry.get("_SYSTEMD_UNIT", ""),
+                "unit": unit,
                 "message": REPLACE_SECRETS(message),
             }
 
 
 def epoch(iso_time):
-    import datetime
-
     return datetime.datetime.strptime(iso_time, "%Y-%m-%dT%H:%M:%SZ").replace(
         tzinfo=datetime.timezone.utc
     ).timestamp()
+
+
+def same_each_time(text):
+    """A line about the driver, without the process and request that make every one its own."""
+    words = []
+    for word in text.split(" "):
+        if word.startswith("req-") or word.startswith("{{(pid="):
+            continue
+        words.append(word)
+    return " ".join(words)
 
 
 def main():
@@ -181,7 +224,7 @@ def main():
         sys.exit(f"{key_check} is not there: the rig did not finish removing its key.")
 
     shutil.rmtree(out, ignore_errors=True)
-    for name in ("driver", "agent", "journal", "context"):
+    for name in ("driver", "agent", "native", "journal", "context"):
         os.makedirs(os.path.join(out, name))
 
     with open(os.path.join(folder, "scenes.jsonl"), encoding="utf-8") as handle:
@@ -211,6 +254,21 @@ def main():
                 json.dump(document, handle)
                 handle.write("\n")
 
+    for name, limit in NATIVE_SCENES.items():
+        scene = by_name.get(name)
+        if not scene:
+            continue
+        document, kept = spans_of_traces(
+            driver_path,
+            set(),
+            limit,
+            (epoch(scene["startedAt"]) - 1, epoch(scene["endedAt"]) + NATIVE_SCENE_MARGIN_SECONDS),
+        )
+        with open(os.path.join(out, "native", f"{name}.json"), "w", encoding="utf-8") as handle:
+            json.dump(document, handle)
+            handle.write("\n")
+        print(f"{release}: {name}: {kept} spans")
+
     for name in JOURNAL_SCENES:
         scene = by_name.get(name)
         if not scene:
@@ -227,13 +285,25 @@ def main():
         if os.path.exists(path):
             for entry in READ_JSONL_GZ(path):
                 message = MESSAGE_OF(entry)
-                if any(word in message for word in DRIVER_LOG_WORDS) and "connection_string" not in message:
-                    text = REPLACE_SECRETS(message)[:400]
+                if (
+                    any(word in message for word in DRIVER_LOG_WORDS)
+                    and "connection_string" not in message
+                    and " DEBUG " not in f" {message[:40]}"
+                ):
+                    text = same_each_time(REPLACE_SECRETS(message)[:400])
                     if text not in seen:
                         seen.add(text)
                         handle.write(f"{entry.get('_SYSTEMD_UNIT', '')}: {text}\n")
 
-    for name in ("summary.json", "versions.txt", "profiler-conf.txt", "key-check.txt", "check.txt"):
+    for name in (
+        "summary.json",
+        "native-summary.json",
+        "native-settings.txt",
+        "versions.txt",
+        "profiler-conf.txt",
+        "key-check.txt",
+        "check.txt",
+    ):
         source = os.path.join(folder, name)
         if os.path.exists(source):
             with open(source, encoding="utf-8", errors="replace") as handle:
