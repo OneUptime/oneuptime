@@ -133,6 +133,11 @@ ENV_ARGS=(
   -e "PVE_EXPORTER_URL=pve-exporter:9221"
   -e "CEPH_CLUSTER_NAME=validate-only"
   -e "CEPH_MGR_ENDPOINTS=[ceph-mon-1:9283,ceph-mon-2:9283]"
+  # The OpenStack agent: its prometheus receiver asks one exporter for each
+  # clouds.yaml entry, so the clouds are a list and the exporter a host:port.
+  -e "OPENSTACK_CLOUD_NAME=validate-only"
+  -e "OPENSTACK_EXPORTER_CLOUDS=[region-one,region-two]"
+  -e "OPENSTACK_EXPORTER_ADDRESS=openstack-exporter:9180"
   # The Storage Array Agent (a prometheus receiver scraping a FlashArray's
   # native endpoint, or Pure's exporter sidecars). The prometheus receiver
   # parses the scrape target and the TLS flag (an unquoted boolean), and the
@@ -205,7 +210,7 @@ validate() {
   fi
 }
 
-for agent in DockerAgent PodmanAgent DockerSwarmAgent VMwareAgent ProxmoxAgent CephAgent; do
+for agent in DockerAgent PodmanAgent DockerSwarmAgent VMwareAgent ProxmoxAgent CephAgent OpenStackAgent; do
   # Copied into the work dir so every config is mounted from one place and the
   # bind mount cannot pick up anything else from the agent directory.
   cp "${REPO_ROOT}/agents/${agent}/otel-collector-config.yaml" "${WORK_DIR}/${agent}.yaml"

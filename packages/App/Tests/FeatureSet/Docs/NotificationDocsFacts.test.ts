@@ -579,7 +579,7 @@ describe("User Settings, where everything on these pages is", () => {
     // No page to connect one: the section is left out instead.
     expect(USER_SETTINGS_MENU_SOURCE).not.toContain("connect:");
     expect(english(REACHING_YOU)).toContain(
-      "**Workspace** shows only when the project has connected Slack or Microsoft Teams.",
+      "**Workspace** shows only when the project has connected Slack, Microsoft Teams or Mattermost.",
     );
   });
 

@@ -47,8 +47,28 @@ export interface UserGroupsWorkspaceCopy {
   turnedOffText: string;
 }
 
+/*
+ * The workspaces OneUptime keeps a user group in step with: Slack's user
+ * groups and Microsoft Teams' tags. Mattermost has neither for OneUptime to
+ * keep, so it has no card here (ScheduleUserGroupsCard).
+ */
+export type UserGroupWorkspaceType =
+  | WorkspaceType.Slack
+  | WorkspaceType.MicrosoftTeams;
+
+export const isUserGroupWorkspaceType: (
+  workspaceType: WorkspaceType,
+) => workspaceType is UserGroupWorkspaceType = (
+  workspaceType: WorkspaceType,
+): workspaceType is UserGroupWorkspaceType => {
+  return (
+    workspaceType === WorkspaceType.Slack ||
+    workspaceType === WorkspaceType.MicrosoftTeams
+  );
+};
+
 export const USER_GROUPS_COPY: Readonly<
-  Record<WorkspaceType, UserGroupsWorkspaceCopy>
+  Record<UserGroupWorkspaceType, UserGroupsWorkspaceCopy>
 > = {
   [WorkspaceType.Slack]: {
     workspaceName: "Slack",
@@ -306,12 +326,13 @@ const TEAMS_PROBLEM_TEXT: Readonly<Record<WorkspaceUserGroupProblem, string>> =
  * A refusal the workspace gave no words for: said without them, never as
  * "refused the change: ." with nothing after the colon.
  */
-const REFUSED_WITHOUT_DETAIL: Readonly<Record<WorkspaceType, string>> = {
-  [WorkspaceType.Slack]: translationKey("Slack refused the change."),
-  [WorkspaceType.MicrosoftTeams]: translationKey(
-    "Microsoft Teams refused the change.",
-  ),
-};
+const REFUSED_WITHOUT_DETAIL: Readonly<Record<UserGroupWorkspaceType, string>> =
+  {
+    [WorkspaceType.Slack]: translationKey("Slack refused the change."),
+    [WorkspaceType.MicrosoftTeams]: translationKey(
+      "Microsoft Teams refused the change.",
+    ),
+  };
 
 // The English sentence for a group's problem; null for none.
 export const getUserGroupProblemText: (
@@ -327,7 +348,7 @@ export const getUserGroupProblemText: (
       : SLACK_PROBLEM_TEXT[view.problem];
 
   if (text.includes("{{detail}}") && !view.problemDetail?.trim()) {
-    return REFUSED_WITHOUT_DETAIL[view.workspaceType];
+    return REFUSED_WITHOUT_DETAIL[view.workspaceType as UserGroupWorkspaceType];
   }
 
   return text;
@@ -347,7 +368,7 @@ const TEAMS_NOT_IN_TEAM: string = translationKey(
 
 const LEFT_OUT_TEXT: Readonly<
   Record<
-    WorkspaceType,
+    UserGroupWorkspaceType,
     Readonly<Record<WorkspaceUserGroupLeftOutReason, string>>
   >
 > = {
@@ -377,7 +398,9 @@ export const getLeftOutText: (data: {
   workspaceType: WorkspaceType;
   person: WorkspaceUserGroupLeftOutView;
 }): string => {
-  return LEFT_OUT_TEXT[data.workspaceType][data.person.reason];
+  return LEFT_OUT_TEXT[data.workspaceType as UserGroupWorkspaceType][
+    data.person.reason
+  ];
 };
 
 // The group as people type it: "@payments-oncall", "@Payments on-call".

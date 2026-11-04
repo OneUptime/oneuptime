@@ -162,10 +162,10 @@ describe("the menus the paths are held to, read from their sources", () => {
 
     expect(workspace.folded).toBe(true);
     // User Settings has no page to connect a workspace; it links your own account.
-    expect(workspace.items).toEqual(["Slack", "Microsoft Teams"]);
+    expect(workspace.items).toEqual(["Slack", "Microsoft Teams", "Mattermost"]);
   });
 
-  test("Project Settings: Slack and Microsoft Teams are in the folded Workspace section", () => {
+  test("Project Settings: Slack, Microsoft Teams and Mattermost are in the folded Workspace section", () => {
     const workspace: SettingsMenuSection = section(
       MENUS.projectSettings.sections,
       "Workspace",
@@ -173,9 +173,13 @@ describe("the menus the paths are held to, read from their sources", () => {
 
     expect(workspace.folded).toBe(true);
     expect(workspace.items).toEqual(
-      expect.arrayContaining(["Slack", "Microsoft Teams"]),
+      expect.arrayContaining(["Slack", "Microsoft Teams", "Mattermost"]),
     );
-    expect(MENUS.chatWorkspaces).toEqual(["Slack", "Microsoft Teams"]);
+    expect(MENUS.chatWorkspaces).toEqual([
+      "Slack",
+      "Microsoft Teams",
+      "Mattermost",
+    ]);
   });
 
   test("User Settings is the bar's own entry, not an item of a menu", () => {
@@ -395,9 +399,18 @@ describe("every path OneUptime writes is one a reader can follow", () => {
       "Common/Server/Utils/VideoCall/EventVideoCall.ts",
       [[PROJECT_SETTINGS, "Workspace", "Slack"]],
     ],
+    // The workspace the channel is in: Slack or Mattermost.
     [
       "Common/Server/Utils/Workspace/LiveMessages/ChannelMembersNotAddedNotice.ts",
-      [[USER_SETTINGS, "Workspace", "Slack"]],
+      [[USER_SETTINGS, "Workspace", "{value}"]],
+    ],
+    [
+      "Common/Server/API/MattermostAPI.ts",
+      [[PROJECT_SETTINGS, "Workspace", "Mattermost"]],
+    ],
+    [
+      "App/FeatureSet/Dashboard/src/Components/Mattermost/MattermostIntegration.tsx",
+      [[PROJECT_SETTINGS, "Workspace", "Mattermost"]],
     ],
   ])(
     "%s names the real way there",

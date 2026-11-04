@@ -35,11 +35,12 @@ import { useEffect, useSyncExternalStore } from "react";
 
 /*
  * The chat tools a project can connect, in the order every list of them
- * uses: Slack, then Microsoft Teams.
+ * uses: Slack, then Microsoft Teams, then Mattermost.
  */
 export const WORKSPACE_TYPES: ReadonlyArray<WorkspaceType> = [
   WorkspaceType.Slack,
   WorkspaceType.MicrosoftTeams,
+  WorkspaceType.Mattermost,
 ];
 
 export interface WorkspaceConnections {

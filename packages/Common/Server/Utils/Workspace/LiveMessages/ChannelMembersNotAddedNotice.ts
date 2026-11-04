@@ -3,15 +3,18 @@ import WorkspaceLiveMessage from "../../../../Models/DatabaseModels/WorkspaceLiv
 import URL from "../../../../Types/API/URL";
 import { LIMIT_PER_PROJECT } from "../../../../Types/Database/LimitMax";
 import ObjectID from "../../../../Types/ObjectID";
-import {
+import ConnectCallbackUtil, {
   CONNECT_ACCOUNT_QUERY_PARAM,
   CONNECT_ACCOUNT_QUERY_VALUE,
+  ConnectStartPage,
 } from "../../../../Types/Workspace/ConnectCallback";
 import WorkspaceLiveMessageKey, {
   WorkspaceLiveMessageData,
 } from "../../../../Types/Workspace/WorkspaceLiveMessageKey";
 import { WorkspacePayloadMarkdown } from "../../../../Types/Workspace/WorkspaceMessagePayload";
-import WorkspaceType from "../../../../Types/Workspace/WorkspaceType";
+import WorkspaceType, {
+  getWorkspaceTypeDisplayName,
+} from "../../../../Types/Workspace/WorkspaceType";
 import FeedMarkdown, {
   mdText,
   MarkdownText,
@@ -64,10 +67,10 @@ export interface ChannelMembersNotAddedNote {
 /*
  * "SOME PEOPLE COULD NOT BE ADDED TO THIS CHANNEL", SAID ONCE PER CHANNEL.
  *
- * OneUptime adds people to the Slack channels it creates for an incident,
- * alert or episode - the rule's people and teams, the record's owners, and
- * whoever an on-call policy pages - through the Slack account each of them
- * connected to OneUptime, or else the one with their email address.
+ * OneUptime adds people to the Slack and Mattermost channels it creates for
+ * an incident, alert or episode - the rule's people and teams, the record's
+ * owners, and whoever an on-call policy pages - through the account each of
+ * them connected to OneUptime, or else the one with their email address.
  * Somebody found neither way cannot be added. That used to be said in a
  * message of its own for every person,
  * every time OneUptime tried to add them: once when the channel was created,
@@ -93,7 +96,7 @@ export interface ChannelMembersNotAddedNote {
  * message is posted. So the channel opens on what happened, not on who is
  * missing from it.
  *
- * Slack only. OneUptime never adds people to a Microsoft Teams channel - a
+ * Slack and Mattermost only. OneUptime never adds people to a Microsoft Teams channel - a
  * standard channel is open to everyone in its team - so connecting a
  * Microsoft Teams account would not add anybody either, and the note would
  * only tell people to do something that changes nothing. What a Teams
@@ -157,7 +160,11 @@ export default class ChannelMembersNotAddedNotice {
     channels: Array<ChannelMembersNotAddedChannel>;
     userIds: Array<ObjectID>;
   }): Promise<void> {
-    if (data.workspaceType !== WorkspaceType.Slack) {
+    // The workspaces OneUptime adds people to channels in.
+    if (
+      data.workspaceType !== WorkspaceType.Slack &&
+      data.workspaceType !== WorkspaceType.Mattermost
+    ) {
       return;
     }
 
@@ -240,6 +247,7 @@ export default class ChannelMembersNotAddedNotice {
     const note: ChannelMembersNotAddedNote = await this.getNote({
       projectId: data.projectId,
       userIds: named,
+      workspaceType: data.workspaceType,
     });
 
     const messageBlock: WorkspacePayloadMarkdown = {
@@ -297,30 +305,45 @@ export default class ChannelMembersNotAddedNotice {
   public static async getNote(data: {
     projectId: ObjectID;
     userIds: Array<string>;
+    // The workspace the channel is in: Slack unless said.
+    workspaceType?: WorkspaceType | undefined;
   }): Promise<ChannelMembersNotAddedNote> {
+    const workspaceType: WorkspaceType =
+      data.workspaceType || WorkspaceType.Slack;
+    const workspaceName: string = getWorkspaceTypeDisplayName(workspaceType);
     const names: Array<string> = await this.getNames(data.userIds);
     const productName: string = ProductBrandingText.getProductName();
 
     const missing: MarkdownText =
       names.length === 1
-        ? mdText`👥 ${this.listNames(names)} could not be added to this channel: they have not connected their Slack account to ${productName} yet, and it could not be found by their email address.`
-        : mdText`👥 ${this.listNames(names)} could not be added to this channel: they have not connected their Slack accounts to ${productName} yet, and they could not be found by their email addresses.`;
+        ? mdText`👥 ${this.listNames(names)} could not be added to this channel: they have not connected their ${workspaceName} account to ${productName} yet, and it could not be found by their email address.`
+        : mdText`👥 ${this.listNames(names)} could not be added to this channel: they have not connected their ${workspaceName} accounts to ${productName} yet, and they could not be found by their email addresses.`;
 
-    let whatToDo: MarkdownText = mdText`Add them here yourself, or ask them to connect Slack in ${productName} under **User Settings → Workspace → Slack**.`;
+    let whatToDo: MarkdownText = mdText`Add them here yourself, or ask them to connect ${workspaceName} in ${productName} under **User Settings → Workspace → ${workspaceName}**.`;
 
     try {
       const dashboardUrl: URL = await DatabaseConfig.getDashboardUrl();
 
       const connectLink: string = URL.fromString(dashboardUrl.toString())
         .addRoute(
-          `/${data.projectId.toString()}/user-settings/slack-integration`,
+          `/${data.projectId.toString()}${ConnectCallbackUtil.getPagePath(
+            ConnectCallbackUtil.getProviderOfWorkspace(workspaceType),
+            ConnectStartPage.UserSettings,
+          )}`,
         )
         .addQueryParam(CONNECT_ACCOUNT_QUERY_PARAM, CONNECT_ACCOUNT_QUERY_VALUE)
         .toString();
 
-      whatToDo = mdText`Add them here yourself, or send them this link to connect in one click: [Connect Slack account](${connectLink}).`;
+      /*
+       * Slack connects an account with one sign-in; Mattermost sends the
+       * account a link to open first (MattermostAPI).
+       */
+      whatToDo =
+        workspaceType === WorkspaceType.Mattermost
+          ? mdText`Add them here yourself, or send them this link to connect their account: [Connect ${workspaceName} account](${connectLink}).`
+          : mdText`Add them here yourself, or send them this link to connect in one click: [Connect ${workspaceName} account](${connectLink}).`;
     } catch (err) {
-      logger.debug("Could not build the Slack settings link.");
+      logger.debug(`Could not build the ${workspaceName} settings link.`);
       logger.debug(err);
     }
 
@@ -334,6 +357,7 @@ export default class ChannelMembersNotAddedNotice {
   public static async getMarkdown(data: {
     projectId: ObjectID;
     userIds: Array<string>;
+    workspaceType?: WorkspaceType | undefined;
   }): Promise<string> {
     return (await this.getNote(data)).markdown;
   }

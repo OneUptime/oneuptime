@@ -56,7 +56,7 @@ Ankündigungen werden unter [Abonnenten & Ankündigungen](/docs/status-pages/sub
 | ------------- | -------------------------------------------------------------------------------------------------------------------------- |
 | **Übersicht** | **Alle Ereignisse** und **Laufende Ereignisse**, dessen Abzeichen die gerade laufenden Ereignisse zählt.                     |
 | **Kalender** | **Wartungskalender**: jedes Ereignis in einem Monat, einer Woche oder einem Tag, neben den Kalendern von außerhalb des Projekts, die Sie hinzufügen. |
-| **Arbeitsbereich** | **Slack** und **Microsoft Teams**, je nachdem, was das Projekt verbunden hat, oder **Slack oder Teams verbinden**, wenn es keines hat. |
+| **Arbeitsbereich** | **Slack**, **Microsoft Teams** und **Mattermost**, je nachdem, was das Projekt verbunden hat, oder **Slack oder Teams verbinden**, wenn es keines hat. |
 | **Regeln**    | **Eigentümerregeln**, **Runbook-Regeln**, **Beschriftungsregeln**, **Erinnerungsregeln**.                                   |
 | **Einstellungen** | **Ereignisstatus**, **Ereignis-Vorlagen**, **Notiz-Vorlagen**, **Benutzerdefinierte Felder**, **Messungen**, **Kalendereinstellungen**, **Nummerierung**. |
 
@@ -75,7 +75,7 @@ Solange ein Ereignis läuft, behandelt OneUptime den geplanten Ausfall als erwar
 - **Netzwerkstandorte und SLOs halten sich zurück.** Ein Netzwerkstandort, den das Ereignis abdeckt, rechnet seinen geplanten Ausfall den Standorten darüber nicht mehr an, und die Burn-Rate-Regeln eines SLO lösen nichts aus, solange einer seiner Monitore in Wartung ist. Siehe [Netzwerkstandorte](/docs/monitor/network-sites#geplante-wartung-für-netzwerkstandorte) und [Burn-Rate-Warnungen und -Vorfälle](/docs/slo/burn-rate-alerts#geplante-wartung).
 - **Ihre Statusseiten zeigen es.** Das Ereignis erscheint auf den gewählten Statusseiten, zuerst als bevorstehend, dann als laufend, dann als vorbei, solange **Auf Statusseite sichtbar** in seinen **Einstellungen** eingeschaltet ist, und ab seinem **Veröffentlichen am**, wenn Sie eines gewählt haben. Sobald es begonnen hat, führt auf diesen Seiten der Verfügbarkeitsverlauf jeder Ressource, auf der seine Monitore stehen, es an jedem Tag auf, den sein Zeitfenster berührt, und neben diesen Ressourcen steht „In Wartung“, solange es läuft; der Verfügbarkeitsverlauf des Monitors im Dashboard zeigt es genauso. Siehe [Verfügbarkeitsprozente und Verlaufsdiagramme](/docs/status-pages/resources-and-groups#verfügbarkeitsprozente-und-verlaufsdiagramme).
 - **Abonnenten erfahren davon.** Standardmäßig werden die Abonnenten dieser Seiten informiert, wenn es geplant wird, wenn es beginnt und wenn es endet, und vor dem Beginn erinnert, wenn Sie Erinnerungen festlegen. Siehe [Geplante Wartungsereignisse](/docs/status-pages/subscribers#geplante-wartungsereignisse).
-- **Ihr Team erfährt davon.** Seine Eigentümer werden so informiert, wie es ihre [Benachrichtigungseinstellungen](/docs/notifications/notification-settings) vorsehen, und die Slack- und Microsoft-Teams-Regeln unter **Arbeitsbereich** posten es in Ihre Kanäle.
+- **Ihr Team erfährt davon.** Seine Eigentümer werden so informiert, wie es ihre [Benachrichtigungseinstellungen](/docs/notifications/notification-settings) vorsehen, und die Slack-, Microsoft-Teams- und Mattermost-Regeln unter **Arbeitsbereich** posten es in Ihre Kanäle.
 
 ## Die Seiten eines Ereignisses
 

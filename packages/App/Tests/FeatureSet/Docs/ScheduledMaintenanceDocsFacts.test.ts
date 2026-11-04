@@ -1062,10 +1062,11 @@ describe("what an event affects", () => {
     expect(workspaceSection().items).toEqual([
       "Slack",
       "Microsoft Teams",
+      "Mattermost",
       "Connect Slack or Teams",
     ]);
     expect(affects).toContain(
-      "the Slack and Microsoft Teams rules under **Workspace** post it to your channels.",
+      "the Slack, Microsoft Teams and Mattermost rules under **Workspace** post it to your channels.",
     );
   });
 });

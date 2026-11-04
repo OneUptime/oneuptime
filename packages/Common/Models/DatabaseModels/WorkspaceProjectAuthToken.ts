@@ -133,7 +133,28 @@ export interface MicrosoftTeamsMiscData extends MiscData {
   installedTeams?: Record<string, MicrosoftTeamsInstalledTeam>; // keyed by MicrosoftTeamsInstalledTeam.id — see that type, the key is not always a Graph team id.
 }
 
-export type WorkspaceMiscData = SlackMiscData | MicrosoftTeamsMiscData;
+/*
+ * A project's Mattermost connection: the server it is on, the one team of
+ * that server OneUptime posts in, and the bot account it posts as. The
+ * bot's access token is NOT part of this - it is the row's server-only
+ * `authToken`. miscData is readable by every project Viewer, so it holds
+ * nothing that would let anyone act as the bot.
+ */
+export interface MattermostMiscData extends MiscData {
+  // The server's address, as OneUptime calls it: https://chat.example.com, with no trailing slash.
+  serverUrl: string;
+  teamId: string;
+  // The team's name in its URLs: chat.example.com/<teamName>.
+  teamName: string;
+  teamDisplayName: string;
+  botUserId: string;
+  botUsername: string;
+}
+
+export type WorkspaceMiscData =
+  | SlackMiscData
+  | MicrosoftTeamsMiscData
+  | MattermostMiscData;
 
 /*
  * Keys that older releases wrote into miscData and that must never be served

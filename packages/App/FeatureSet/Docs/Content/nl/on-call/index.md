@@ -86,7 +86,7 @@ Open **Bereikbaarheidsdienst** via het menu **Producten** in de bovenste balk. H
 | **Inkomende gesprekken** | **Beleid inkomende gesprekken**: een telefoonnummer dat overgaat bij wie dienst heeft |
 | **Geavanceerd** | **Gebruikersoverschrijvingen**, **Uitvoeringslogboeken** en **Gearchiveerde beleidsregels** |
 | **Rapporten** | **Bereikbaarheidstijd gebruiker**: hoe lang elke persoon dienst had |
-| **Werkruimte** | **Slack** en **Microsoft Teams**: regels die bereikbaarheidsgebeurtenissen in een kanaal plaatsen |
+| **Werkruimte** | **Slack**, **Microsoft Teams** en **Mattermost**: regels die bereikbaarheidsgebeurtenissen in een kanaal plaatsen |
 | **Instellingen** | **Aangepaste velden**, **Labelregels** en **Eigenaarsregels** |
 | **Ontwikkelaars** | **Terraform**, **API**, **CLI** en **AI-assistenten**: bereikbaarheid ingericht vanuit code |
 

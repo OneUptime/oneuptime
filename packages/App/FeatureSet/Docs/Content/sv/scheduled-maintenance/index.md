@@ -56,7 +56,7 @@ Meddelanden beskrivs på [Prenumeranter och meddelanden](/docs/status-pages/subs
 | ------------- | -------------------------------------------------------------------------------------------------------------------------- |
 | **Översikt**  | **Alla händelser** och **Pågående händelser**, vars märke räknar de händelser som pågår just nu.                            |
 | **Kalender** | **Underhållskalender**: varje händelse på en månad, en vecka eller en dag, bredvid de kalendrar utanför projektet som du lägger till. |
-| **Arbetsyta** | **Slack** och **Microsoft Teams**, beroende på vad projektet har anslutit, eller **Anslut Slack eller Teams** när det inte har något av dem. |
+| **Arbetsyta** | **Slack**, **Microsoft Teams** och **Mattermost**, beroende på vad projektet har anslutit, eller **Anslut Slack eller Teams** när det inte har något av dem. |
 | **Regler**    | **Ägarregler**, **Runbook-regler**, **Etikettregler**, **Påminnelseregler**.                                                  |
 | **Inställningar** | **Händelsestatus**, **Händelsemallar**, **Anteckningsmallar**, **Anpassade fält**, **Mätningar**, **Kalenderinställningar**, **Numrering**.      |
 
@@ -75,7 +75,7 @@ Medan en händelse pågår behandlar OneUptime avbrottet den planerar som vänta
 - **Nätverksplatser och SLO:er håller igen.** En nätverksplats som händelsen täcker slutar räkna sitt planerade avbrott mot platserna ovanför den, och en SLO:s regler för förbrukningstakt utlöser ingenting så länge någon av dess monitorer är under underhåll. Se [Nätverksplatser](/docs/monitor/network-sites#schemalagt-underhåll-för-nätverksplatser) och [Larm och incidenter för förbrukningstakt](/docs/slo/burn-rate-alerts#planerat-underhåll).
 - **Dina statussidor visar den.** Händelsen visas på de statussidor du har valt, först som kommande, sedan som pågående och sedan som över, så länge **Synlig på statussidan** är påslagen i dess **Inställningar**, och från dess **Publicera den** om du har valt ett. När den har startat visar upptidshistoriken på de sidorna för varje resurs som dess monitorer finns på den på varje dag som dess fönster berör, och de resurserna visar "Under underhåll" medan den pågår; monitorns upptidshistorik i instrumentpanelen visar den på samma sätt. Se [Upptidsprocent och historikdiagram](/docs/status-pages/resources-and-groups#upptidsprocent-och-historikdiagram).
 - **Prenumeranterna får höra om den.** Som standard får prenumeranterna på de sidorna veta när den schemaläggs, när den börjar och när den slutar, och en påminnelse före start om du ställer in påminnelser. Se [Schemalagda underhållshändelser](/docs/status-pages/subscribers#schemalagda-underhållshändelser).
-- **Ditt team får höra om den.** Dess ägare får veta det som deras [aviseringsinställningar](/docs/notifications/notification-settings) säger, och Slack- och Microsoft Teams-reglerna under **Arbetsyta** publicerar den i dina kanaler.
+- **Ditt team får höra om den.** Dess ägare får veta det som deras [aviseringsinställningar](/docs/notifications/notification-settings) säger, och Slack-, Microsoft Teams- och Mattermost-reglerna under **Arbetsyta** publicerar den i dina kanaler.
 
 ## En händelses egna sidor
 

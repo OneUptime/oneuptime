@@ -63,6 +63,12 @@ export default class IncidentWorkspaceMessages {
         projectId: projectId!,
       });
 
+    const mattermostBlocks: WorkspaceMessageBlock[] =
+      await SlackIncidentMessages.getIncidentCreateMessageBlocks({
+        incidentId: incidentId,
+        projectId: projectId!,
+      });
+
     return [
       {
         workspaceType: WorkspaceType.Slack,
@@ -71,6 +77,10 @@ export default class IncidentWorkspaceMessages {
       {
         workspaceType: WorkspaceType.MicrosoftTeams,
         messageBlocks: microsoftTeamsBlocks,
+      },
+      {
+        workspaceType: WorkspaceType.Mattermost,
+        messageBlocks: mattermostBlocks,
       },
     ];
   }

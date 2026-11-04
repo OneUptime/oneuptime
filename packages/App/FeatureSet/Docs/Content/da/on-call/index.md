@@ -86,7 +86,7 @@ Et projekts første politik kan gøre det allerede, når den oprettes: lad **Udl
 | **Indgående opkald** | **Indgående opkaldspolitikker**: et telefonnummer, der ringer til den, der har vagt |
 | **Avanceret** | **Brugertilsidesættelser**, **Udførelseslogs** og **Arkiverede politikker** |
 | **Rapporter** | **Brugerens vagttid**: hvor længe hver person havde vagt |
-| **Arbejdsområde** | **Slack** og **Microsoft Teams**: regler, der sender vagthændelser til en kanal |
+| **Arbejdsområde** | **Slack**, **Microsoft Teams** og **Mattermost**: regler, der sender vagthændelser til en kanal |
 | **Indstillinger** | **Brugerdefinerede felter**, **Etiketregler** og **Ejerregler** |
 | **Udvikler** | **Terraform**, **API**, **CLI** og **AI-assistenter**: vagt sat op fra kode |
 

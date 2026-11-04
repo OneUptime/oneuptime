@@ -86,7 +86,7 @@ Aprite **Reperibilità** dal menu **Prodotti** nella barra superiore. Si apre su
 | **Chiamate in entrata** | **Policy chiamate in entrata**: un numero di telefono che fa squillare chi è reperibile |
 | **Avanzato** | **Sostituzioni utente**, **Registri di esecuzione** e **Policy archiviate** |
 | **Report** | **Tempo di reperibilità dell'utente**: per quanto tempo ogni persona è stata reperibile |
-| **Area di lavoro** | **Slack** e **Microsoft Teams**: regole che pubblicano gli eventi di reperibilità in un canale |
+| **Area di lavoro** | **Slack**, **Microsoft Teams** e **Mattermost**: regole che pubblicano gli eventi di reperibilità in un canale |
 | **Impostazioni** | **Campi personalizzati**, **Regole etichette** e **Regole del proprietario** |
 | **Sviluppatori** | **Terraform**, **API**, **CLI** e **Assistenti IA**: la reperibilità configurata dal codice |
 

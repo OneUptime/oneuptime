@@ -160,7 +160,7 @@ stateDiagram-v2
 | **Overview** | **All Incidents**، **Active Incidents** و **Postmortems** — دومی نشانی قرمز با شمار حادثه‌هایی دارد که در وضعیتی بالای وضعیت برطرف‌شده‌اند، و سومی پس‌رویدادنامهٔ هر حادثه را فهرست می‌کند تا بر پایهٔ مالک، شدت یا وضعیت فیلترش کنید. |
 | **Episodes** | اپیزودهای حادثه، قابلیتی جداگانه برای گروه‌بندی با صفحه‌های خودش. |
 | **AI** | **Insights**، **Logs**، **Settings**: آنچه هوش مصنوعی OneUptime از حادثه‌های شما آموخت و هر کاری که برایشان کرد، و آنچه اجازه دارد خودش انجام دهد — همراه با قواعدی که تعیین می‌کنند کدام حادثه‌ها را بررسی و اصلاح کند. [AI SRE](/docs/ai/ai-sre) را ببینید. |
-| **Workspace** | فضاهای کاری گفتگویی که این پروژه وصل کرده: **Slack**، **Microsoft Teams** یا هر دو، هر کدام با قواعد اعلانش برای حادثه‌ها. وقتی هیچ‌کدام وصل نباشد، **Connect Slack or Teams** را نگه می‌دارد، صفحه‌ای که هر دو و چگونگی وصل کردنشان را نشان می‌دهد. |
+| **Workspace** | فضاهای کاری گفتگویی که این پروژه وصل کرده: **Slack**، **Microsoft Teams** و **Mattermost**، هر کدام با قواعد اعلانش برای حادثه‌ها. وقتی هیچ‌کدام وصل نباشد، **Connect Slack or Teams** را نگه می‌دارد، صفحه‌ای که هر سه و چگونگی وصل کردنشان را نشان می‌دهد. |
 | **Rules** | موتورهای قاعده: **Grouping Rules**، **On-Call Rules**، **Owner Rules**، **Runbook Rules**، **Privacy Rules**، **Label Rules**، **SLA Rules**، **Reminder Rules**. |
 | **Settings** | **Incident State**، **Incident Severity**، **Incident Templates**، **Note Templates**، **Postmortem Templates**، **Postmortem Statuses**، **Custom Fields**، **Incident Roles**، **Measurements**، **Linked Alerts**، **Episode Membership**، **Numbering**. |
 

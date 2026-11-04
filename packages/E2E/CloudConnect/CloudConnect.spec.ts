@@ -3608,3 +3608,452 @@ test.describe("where Google Cloud's agent runs", () => {
     });
   }
 });
+
+/*
+ * ---------------------------------------------------------------------------
+ * Streaming an AWS account's CloudWatch metrics and logs through Amazon
+ * Data Firehose, from its row: the dialog's one question and three steps
+ * (a stream key shown once, one command for AWS CloudShell, the first
+ * delivery waited for), named log groups, a refused delivery and why, and
+ * Stop streaming with the command that deletes the stacks. A function's
+ * page in Cloud gains the Logs its log group streams. ?https=1 makes the
+ * fixture a OneUptime on an HTTPS address: Firehose delivers to no other.
+ * ---------------------------------------------------------------------------
+ */
+
+const AWS_CONNECTION: string = "20000000-0000-4000-8000-000000000001";
+const NIGHTLY_EXPORT: string = "40000000-0000-4000-8000-000000000003";
+const STREAM_METRICS_URL: string =
+  "https://oneuptime.example.com/telemetry/aws-firehose/v1/metrics";
+
+interface StreamState {
+  streamKeys: Array<string>;
+  streamStops: Array<string>;
+}
+
+async function streamState(page: Page): Promise<StreamState> {
+  return (await fixture(page)) as unknown as StreamState;
+}
+
+function streamDialog(page: Page): Locator {
+  return dialog(page).getByTestId("cloud-stream");
+}
+
+// The AWS connection is the first row; its actions are in its ⋯ menu.
+async function openRowMenu(page: Page, index: number = 0): Promise<void> {
+  await page.getByTestId("row-actions-more-button").nth(index).click();
+}
+
+async function openStreaming(
+  page: Page,
+  query: string,
+  locale: Record<string, string> = {},
+): Promise<void> {
+  await open(page, query);
+  await openRowMenu(page);
+  await page
+    .getByRole("menuitem", {
+      name: wordIn(locale, "Stream metrics and logs"),
+    })
+    .click();
+  await expect(streamDialog(page)).toBeVisible();
+}
+
+function streamCommand(page: Page): Locator {
+  return streamDialog(page).getByTestId("cloud-stream-command");
+}
+
+function streamLine(page: Page): Locator {
+  return page.getByTestId("cloud-connection-stream");
+}
+
+test.describe("streaming an AWS account's metrics and logs", () => {
+  test("from the AWS row: one question, three steps, and the command waits for its key", async ({
+    page,
+  }: {
+    page: Page;
+  }) => {
+    await openStreaming(page, "state=connected&https=1");
+
+    await expect(
+      dialog(page).getByRole("heading", { name: "Stream metrics and logs" }),
+    ).toBeVisible();
+
+    // One question, three answers, metrics by default.
+    const question: Locator = streamDialog(page).getByRole("radiogroup", {
+      name: "What should it stream?",
+    });
+    await expect(question.getByRole("radio")).toHaveCount(3);
+    await expect(
+      question.getByRole("radio", { name: /^Metrics Every key metric/ }),
+    ).toHaveAttribute("aria-checked", "true");
+
+    // Three numbered steps: the key, the command, the first delivery.
+    for (const [index, title] of [
+      [1, "Make a stream key"],
+      [2, "Run this in AWS CloudShell"],
+      [3, "Wait for the first delivery"],
+    ] as Array<[number, string]>) {
+      await expect(
+        streamDialog(page).getByTestId(`setup-guide-step-${index}`),
+      ).toContainText(title);
+    }
+
+    // The command: the template, then a stack in each Region the read found.
+    await expect(streamCommand(page)).toContainText(
+      "cat > oneuptime-stream.json <<'TEMPLATE'",
+    );
+    await expect(streamCommand(page)).toContainText(STREAM_METRICS_URL);
+    await expect(streamCommand(page)).toContainText(
+      "for REGION in us-east-1 eu-west-1; do",
+    );
+    await expect(streamCommand(page)).toContainText(
+      "STREAM_KEY='<YOUR_STREAM_KEY>'",
+    );
+    await expect(
+      streamDialog(page).getByTestId("cloud-stream-needs-key"),
+    ).toBeVisible();
+    await expect(
+      streamDialog(page).getByTestId("cloud-stream-open-shell"),
+    ).toHaveAttribute("href", "https://console.aws.amazon.com/cloudshell/home");
+    await expect(
+      streamDialog(page).getByTestId("cloud-stream-live"),
+    ).toHaveAttribute("data-state", "no-key");
+    // Nothing was asked of the server yet.
+    expect((await streamState(page)).streamKeys).toEqual([]);
+
+    await expectNoSidewaysScroll(page, { tolerance: 1 });
+    await shoot(page, "stream-dialog");
+  });
+
+  test("Make a stream key: the command holds it, shown this once, and the row says the stream waits", async ({
+    page,
+  }: {
+    page: Page;
+  }) => {
+    await openStreaming(page, "state=connected&https=1");
+
+    await streamDialog(page).getByTestId("cloud-stream-make-key").click();
+
+    await expect(
+      streamDialog(page).getByTestId("cloud-stream-key-made"),
+    ).toContainText(
+      "Key made. The command below holds it, and it is shown only here",
+    );
+    await expect(streamCommand(page)).toContainText(
+      `STREAM_KEY='oucs_${AWS_CONNECTION}_`,
+    );
+    await expect(streamCommand(page)).not.toContainText("<YOUR_STREAM_KEY>");
+    await expect(
+      streamDialog(page).getByTestId("cloud-stream-needs-key"),
+    ).toHaveCount(0);
+    await expect(
+      streamDialog(page).getByTestId("cloud-stream-live"),
+    ).toHaveAttribute("data-state", "waiting");
+    expect((await streamState(page)).streamKeys).toEqual([AWS_CONNECTION]);
+
+    await expectNoSidewaysScroll(page, { tolerance: 1 });
+    await shoot(page, "stream-key-made");
+
+    // Closed: the row says the stream waits for its first delivery.
+    await dialog(page).getByTestId("modal-footer-close-button").click();
+    await expect(dialog(page)).toHaveCount(0);
+    await expect(streamLine(page)).toHaveText("Stream waiting");
+    await expect(streamLine(page)).toHaveAttribute("data-state", "waiting");
+  });
+
+  test("the first delivery: the dialog says what arrived from where, and Done", async ({
+    page,
+  }: {
+    page: Page;
+  }) => {
+    test.skip(!isDesktop(), "What it says: a desktop's.");
+
+    await openStreaming(page, "state=connected&https=1&stream=waiting");
+
+    const live: Locator = streamDialog(page).getByTestId("cloud-stream-live");
+    await expect(live).toHaveAttribute("data-state", "waiting");
+    await expect(live).toContainText("Waiting for the first delivery.");
+    // A key made before cannot be shown again: a new one, to run it again.
+    await expect(
+      streamDialog(page).getByTestId("cloud-stream-make-key"),
+    ).toHaveText("Make a new key");
+
+    // The command finished in AWS: Firehose delivers.
+    await page.evaluate(() => {
+      (
+        window as unknown as { __cloudConnectFixture: { deliver: () => void } }
+      ).__cloudConnectFixture.deliver();
+    });
+
+    // The dialog asks every five seconds: nothing to press.
+    await expect(live).toHaveAttribute("data-state", "receiving", {
+      timeout: 12000,
+    });
+    await expect(live).toContainText("Receiving. The last delivery came");
+    const sources: Locator = streamDialog(page).getByTestId(
+      "cloud-stream-sources",
+    );
+    await expect(sources).toContainText(
+      "Metrics of 12 namespaces from us-east-1",
+    );
+    await expect(sources).toContainText("Logs of 3 log groups from eu-west-1");
+    await expect(
+      dialog(page).getByTestId("modal-footer-close-button"),
+    ).toHaveText("Done");
+    await live.scrollIntoViewIfNeeded();
+    await shoot(page, "stream-receiving");
+
+    await dialog(page).getByTestId("modal-footer-close-button").click();
+    await expect(streamLine(page)).toHaveText("Streaming");
+  });
+
+  test("Metrics and logs: the log groups named go in the template, in the Region beside them", async ({
+    page,
+  }: {
+    page: Page;
+  }) => {
+    await openStreaming(page, "state=connected&https=1");
+
+    await streamDialog(page)
+      .getByRole("radio", { name: /^Metrics and logs/ })
+      .click();
+
+    const problem: Locator = streamDialog(page).getByTestId(
+      "cloud-stream-problem",
+    );
+    await expect(problem).toHaveText("Name at least one log group.");
+    await expect(streamCommand(page)).toHaveCount(0);
+    await expect(
+      streamDialog(page).getByTestId("cloud-stream-log-groups-region"),
+    ).toHaveValue("us-east-1");
+
+    await streamDialog(page)
+      .getByTestId("cloud-stream-log-groups")
+      .fill("/aws/lambda/checkout\n/aws/rds/instance/orders-db/error");
+
+    await expect(problem).toHaveCount(0);
+    await expect(streamCommand(page)).toContainText("/aws/lambda/checkout");
+    await expect(streamCommand(page)).toContainText(
+      "/aws/rds/instance/orders-db/error",
+    );
+    await expect(streamCommand(page)).toContainText(
+      "AWS::Logs::SubscriptionFilter",
+    );
+
+    await expectNoSidewaysScroll(page, { tolerance: 1 });
+    await shoot(page, "stream-logs");
+  });
+
+  test("More fields: every metric costs more and says so, and a Region AWS does not have stops the command", async ({
+    page,
+  }: {
+    page: Page;
+  }) => {
+    test.skip(!isDesktop(), "What it does: a desktop's.");
+
+    await openStreaming(page, "state=connected&https=1");
+
+    const fold: Locator = streamDialog(page).getByTestId(
+      "cloud-stream-more-fields",
+    );
+    await expect(fold).toContainText("Regions: 2");
+    await fold.getByRole("button", { name: "More fields" }).click();
+
+    await expect(streamDialog(page)).toContainText(
+      "AWS bills each metric update a stream sends, so this can cost many times more.",
+    );
+    await expect(streamCommand(page)).toContainText("IncludeFilters");
+    await streamDialog(page).getByTestId("cloud-stream-every-metric").check();
+    await expect(streamCommand(page)).not.toContainText("IncludeFilters");
+
+    await streamDialog(page)
+      .getByTestId("cloud-stream-regions")
+      .fill("us-east-1, moon-1");
+    await expect(
+      streamDialog(page).getByTestId("cloud-stream-problem"),
+    ).toHaveText(
+      "List Regions by their codes, such as us-east-1 or eu-central-1.",
+    );
+
+    // For another way: the endpoints to give each Firehose stream.
+    await expect(
+      streamDialog(page).getByTestId("cloud-stream-metrics-url"),
+    ).toContainText(STREAM_METRICS_URL);
+    await shoot(page, "stream-more-fields");
+  });
+
+  test("a refused delivery: the row says so, and the dialog says why and what to do", async ({
+    page,
+  }: {
+    page: Page;
+  }) => {
+    await open(page, "state=connected&https=1&stream=refused");
+
+    await expect(streamLine(page)).toHaveText("Stream refused");
+    await expect(streamLine(page)).toHaveAttribute(
+      "title",
+      /A delivery came with a key that is not this connection's\./,
+    );
+
+    await openRowMenu(page);
+    await page
+      .getByRole("menuitem", { name: "Stream metrics and logs" })
+      .click();
+    const live: Locator = streamDialog(page).getByTestId("cloud-stream-live");
+    await expect(live).toHaveAttribute("data-state", "refused");
+    await expect(live).toContainText(
+      "A delivery came with a key that is not this connection's.",
+    );
+    await expect(live).toContainText(
+      "Make a new key and run the command again",
+    );
+    await expectNoSidewaysScroll(page, { tolerance: 1 });
+    await live.scrollIntoViewIfNeeded();
+    await shoot(page, "stream-refused");
+  });
+
+  test("Stop streaming asks first, says what stays, and hands over the command that deletes the stacks", async ({
+    page,
+  }: {
+    page: Page;
+  }) => {
+    await open(page, "state=connected&https=1&stream=receiving");
+
+    await expect(streamLine(page)).toHaveText("Streaming");
+    await expect(streamLine(page)).toHaveAttribute(
+      "title",
+      /^Receiving\. The last delivery came /,
+    );
+    await shoot(page, "stream-list");
+
+    await openRowMenu(page);
+    await page.getByRole("menuitem", { name: "Stop streaming" }).click();
+
+    await expect(dialog(page)).toContainText(
+      "Every stream key of AWS 123456789012 stops working at once",
+    );
+    const command: Locator = dialog(page).getByTestId(
+      "cloud-connection-stop-streaming",
+    );
+    await expect(command).toContainText(
+      "The streams stay in AWS, and AWS bills them, until their stacks are deleted.",
+    );
+    await expect(command).toContainText(
+      "for REGION in us-east-1 eu-west-1; do",
+    );
+    await expect(command).toContainText(
+      'aws cloudformation delete-stack --region "$REGION" --stack-name OneUptimeStream-20000000',
+    );
+    await expectNoSidewaysScroll(page, { tolerance: 1 });
+    await shoot(page, "stream-stop");
+
+    await submit(page).click();
+    await expect(dialog(page)).toHaveCount(0);
+    expect((await streamState(page)).streamStops).toEqual([AWS_CONNECTION]);
+    // No key works: the row says nothing of a stream any more.
+    await expect(streamLine(page)).toHaveCount(0);
+  });
+
+  test("only an AWS account streams, and a OneUptime that is not on HTTPS says why it cannot", async ({
+    page,
+  }: {
+    page: Page;
+  }) => {
+    await open(page, "state=connected");
+
+    // Contoso production, the Azure subscription, is the second row.
+    await openRowMenu(page, 1);
+    await expect(page.getByRole("menuitem", { name: "Test" })).toBeVisible();
+    await expect(
+      page.getByRole("menuitem", { name: "Stream metrics and logs" }),
+    ).toHaveCount(0);
+    await page.keyboard.press("Escape");
+
+    await openRowMenu(page, 0);
+    await page
+      .getByRole("menuitem", { name: "Stream metrics and logs" })
+      .click();
+    await expect(
+      streamDialog(page).getByTestId("cloud-stream-problem"),
+    ).toContainText(
+      "Firehose delivers to https:// addresses only, and this OneUptime is not served over HTTPS.",
+    );
+    await expect(streamCommand(page)).toHaveCount(0);
+  });
+
+  test("a function's page in Cloud has its streamed Logs after Metrics; a load balancer's has none", async ({
+    page,
+  }: {
+    page: Page;
+  }) => {
+    test.skip(!isDesktop(), "The side menu beside the page: a desktop's.");
+
+    await openAccounts(
+      page,
+      `${RESOURCE_PATH}/${NIGHTLY_EXPORT}?state=connected`,
+    );
+    await expect(
+      sideMenu(page).getByRole("link", { name: "Logs", exact: true }),
+    ).toHaveAttribute("href", `${RESOURCE_PATH}/${NIGHTLY_EXPORT}/logs`);
+
+    await shoot(page, "stream-function-menu");
+
+    await openAccounts(page, `${RESOURCE_PATH}/${WEB_ALB}?state=connected`);
+    await expect(
+      sideMenu(page).getByRole("link", { name: "Metrics", exact: true }),
+    ).toBeVisible();
+    await expect(
+      sideMenu(page).getByRole("link", { name: "Logs", exact: true }),
+    ).toHaveCount(0);
+  });
+
+  test("dark and German: the dialog reads in German, and fits", async ({
+    page,
+  }: {
+    page: Page;
+  }) => {
+    await openStreaming(
+      page,
+      "state=connected&https=1&stream=receiving&theme=dark&lang=de",
+      GERMAN,
+    );
+
+    await expect(
+      streamDialog(page).getByRole("radiogroup", {
+        name: wordIn(GERMAN, "What should it stream?"),
+      }),
+    ).toBeVisible();
+    expect(wordIn(GERMAN, "What should it stream?")).not.toBe(
+      "What should it stream?",
+    );
+    await expect(
+      streamDialog(page).getByTestId("setup-guide-step-1"),
+    ).toContainText(wordIn(GERMAN, "Make a stream key"));
+    await expect(
+      streamDialog(page).getByTestId("cloud-stream-live"),
+    ).toHaveAttribute("data-state", "receiving");
+    await expectNoSidewaysScroll(page, { tolerance: 1 });
+    await shoot(page, "stream-dialog-dark-de");
+  });
+
+  test("Persian: the dialog is laid out right to left, the command left to right", async ({
+    page,
+  }: {
+    page: Page;
+  }) => {
+    await openStreaming(page, "state=connected&https=1&lang=fa", PERSIAN);
+
+    await expect(page.locator("html")).toHaveAttribute("dir", "rtl");
+    await expect(
+      streamDialog(page).getByTestId("setup-guide-step-1"),
+    ).toContainText(wordIn(PERSIAN, "Make a stream key"));
+    // Code reads left to right on every page.
+    await expect(streamCommand(page).locator("pre").first()).toHaveCSS(
+      "direction",
+      "ltr",
+    );
+    await expectNoSidewaysScroll(page, { tolerance: 1 });
+    await shoot(page, "stream-dialog-fa");
+  });
+});
