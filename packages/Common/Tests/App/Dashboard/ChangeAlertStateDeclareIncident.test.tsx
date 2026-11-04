@@ -247,17 +247,6 @@ interface AlertApiOptions {
   statesFail?: boolean | undefined;
 }
 
-/*
- * A call that throws from inside rather than a promise that is already
- * rejected: zone.js sees an eagerly rejected promise before the header's
- * catch is attached and prints its stack on every run.
- */
-type FailWithFunction = (message: string) => Promise<never>;
-
-const failWith: FailWithFunction = async (message: string): Promise<never> => {
-  throw new Error(message);
-};
-
 type RespondForAlertFunction = (options?: AlertApiOptions) => void;
 
 const respondForAlert: RespondForAlertFunction = (
@@ -268,7 +257,7 @@ const respondForAlert: RespondForAlertFunction = (
 
     if (request.modelType === AlertState) {
       if (options?.statesFail) {
-        return failWith("States are unavailable");
+        return Promise.reject(new Error("States are unavailable"));
       }
 
       return Promise.resolve(listResult(buildAlertStates()));

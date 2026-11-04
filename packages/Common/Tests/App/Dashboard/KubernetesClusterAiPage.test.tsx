@@ -410,8 +410,7 @@ function serve(
 
 /*
  * A status request that fails the way a transient 502 or a dropped
- * connection does — thrown from inside the async body, so zone.js does not
- * report a pre-built rejected promise as unhandled.
+ * connection does.
  */
 async function failStatusRequest(): Promise<HTTPResponse<JSONObject>> {
   throw new Error("Network Error");

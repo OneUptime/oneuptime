@@ -29,11 +29,6 @@ import { getJestSpyOn } from "../../Spy";
  * choice rows and its "Saved" are the real ones.
  */
 
-/*
- * A refused request is an async function that throws, not
- * mockRejectedValue: the card's imports load zone.js, whose patched Promise
- * reports a rejected one as unhandled although the card catches it.
- */
 const getItemMock: MockFunction = getJestMockFunction();
 const updateByIdMock: MockFunction = getJestMockFunction();
 
