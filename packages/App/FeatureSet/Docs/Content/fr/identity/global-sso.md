@@ -100,8 +100,8 @@ Configurer un fournisseur global n'oblige personne à l'utiliser ; la connexion 
 
 Tant que toute l'instance exige le SSO :
 
-- La page de connexion ne propose que le SSO : un bouton pour chaque fournisseur global activé, et ni mot de passe, ni clé d'accès, ni connexion Google ou Microsoft, ni inscription. Elle ne garde la recherche par e-mail, qui trouve le fournisseur propre d'un projet, que tant qu'un projet en a un.
-- OneUptime refuse un mot de passe, une clé d'accès, une connexion Google ou Microsoft et une inscription avec "This server requires single sign-on (SSO). Sign in with SSO instead." Seuls le mot de passe ou la clé d'accès d'un administrateur principal le connectent encore. On obtient son compte en se connectant avec le SSO ou par une invitation.
+- La page de connexion ne propose que le SSO : un bouton pour chaque fournisseur global activé, et ni mot de passe, ni clé d'accès, ni lien envoyé par e-mail, ni connexion Google ou Microsoft, ni inscription. Elle ne garde la recherche par e-mail, qui trouve le fournisseur propre d'un projet, que tant qu'un projet en a un.
+- OneUptime refuse un mot de passe, une clé d'accès, un lien envoyé par e-mail, une connexion Google ou Microsoft et une inscription avec "This server requires single sign-on (SSO). Sign in with SSO instead." Seuls le mot de passe ou la clé d'accès d'un administrateur principal le connectent encore. On obtient son compte en se connectant avec le SSO ou par une invitation.
 - Une personne déjà connectée avec un mot de passe se connecte avec le SSO pour ouvrir un projet. Elle arrive sur la page d'authentification unique du projet, qui propose les fournisseurs propres du projet et les fournisseurs globaux qui y connectent.
 - Les administrateurs principaux se connectent avec leur mot de passe à `/accounts/admin-login`, une adresse vers laquelle la page de connexion ne renvoie pas. La carte **Exiger le SSO** affiche l'adresse complète sous l'interrupteur, en tant que **Connexion des administrateurs principaux** : conservez-la, pour désactiver l'exigence si votre fournisseur d'identité cesse de fonctionner.
 

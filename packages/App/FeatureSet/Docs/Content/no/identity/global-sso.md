@@ -100,8 +100,8 @@ Med **Alle prosjekter** oppfyller pålogging med leverandøren SSO-kravet i alle
 
 Så lenge hele instansen krever SSO:
 
-- Påloggingssiden tilbyr bare SSO: en knapp for hver global leverandør som er slått på, og ikke passord, tilgangsnøkkel, Google- eller Microsoft-pålogging eller registrering. Den beholder oppslaget via e-post, som finner et prosjekts egen leverandør, bare så lenge et prosjekt har en.
-- OneUptime avviser et passord, en tilgangsnøkkel, en Google- eller Microsoft-pålogging og en registrering med "This server requires single sign-on (SSO). Sign in with SSO instead." Bare en master-admins passord eller tilgangsnøkkel logger fortsatt vedkommende inn. Folk får kontoen sin ved å logge inn med SSO eller gjennom en invitasjon.
+- Påloggingssiden tilbyr bare SSO: en knapp for hver global leverandør som er slått på, og ikke passord, tilgangsnøkkel, lenke på e-post, Google- eller Microsoft-pålogging eller registrering. Den beholder oppslaget via e-post, som finner et prosjekts egen leverandør, bare så lenge et prosjekt har en.
+- OneUptime avviser et passord, en tilgangsnøkkel, en lenke på e-post, en Google- eller Microsoft-pålogging og en registrering med "This server requires single sign-on (SSO). Sign in with SSO instead." Bare en master-admins passord eller tilgangsnøkkel logger fortsatt vedkommende inn. Folk får kontoen sin ved å logge inn med SSO eller gjennom en invitasjon.
 - Den som allerede er logget inn med passord, logger inn med SSO for å åpne et prosjekt. Vedkommende havner på prosjektets side for enkel pålogging, som tilbyr prosjektets egne leverandører og de globale leverandørene som logger folk inn i det.
 - Master-admins logger inn med passordet sitt på `/accounts/admin-login`, en adresse påloggingssiden ikke lenker til. Kortet **Krev SSO** viser hele adressen under bryteren som **Innlogging for hovedadministratorer**: ta vare på den, så du kan slå av kravet hvis identitetsleverandøren din slutter å virke.
 
