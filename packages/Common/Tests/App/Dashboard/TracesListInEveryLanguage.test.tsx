@@ -202,8 +202,19 @@ const GATEWAY: string = "60000000-0000-4000-8000-000000000001";
 const NOBODY: string = "60000000-0000-4000-8000-00000000dead";
 const TRACE_ID: string = "4bf92f3577b34da6a3ce929d0e0e4736";
 
-const NOW: number = Date.now();
 const MINUTE: number = 60000;
+
+/*
+ * The fixtures' times are counted back from the moment a test builds them,
+ * never from when this file loaded. A row's age ("5m ago") is worked out
+ * from the clock as the row is drawn, and this file runs for over a minute
+ * in CI (71.7 s in 14.0.104's run): a time read once at load made the
+ * five-minute-old row "6m ago" by the last languages and by the English
+ * regression test at the end.
+ */
+const minutesAgo: (minutes: number) => Date = (minutes: number): Date => {
+  return new Date(Date.now() - minutes * MINUTE);
+};
 
 const service: () => Service = (): Service => {
   return Object.assign(new Service(), {
@@ -218,6 +229,8 @@ let nextSpan: number = 0;
 const makeSpan: (overrides: Record<string, unknown>) => Span = (
   overrides: Record<string, unknown>,
 ): Span => {
+  const startTime: Date = minutesAgo(5);
+
   return Object.assign(new Span(), {
     traceId: TRACE_ID,
     spanId: `span${nextSpan++}`,
@@ -226,8 +239,8 @@ const makeSpan: (overrides: Record<string, unknown>) => Span = (
     kind: SpanKind.Server,
     statusCode: SpanStatus.Ok,
     primaryEntityId: new ObjectID(GATEWAY),
-    startTime: new Date(NOW - 5 * MINUTE),
-    endTime: new Date(NOW - 5 * MINUTE + 12),
+    startTime,
+    endTime: new Date(startTime.getTime() + 12),
     durationUnixNano: 12_000_000,
     hasException: false,
     ...overrides,
@@ -249,7 +262,7 @@ const rows: () => Array<Span> = (): Array<Span> => {
     makeSpan({
       name: "GET /inventory",
       kind: SpanKind.Client,
-      startTime: new Date(NOW - 400 * 24 * 60 * MINUTE),
+      startTime: minutesAgo(400 * 24 * 60),
     }),
     makeSpan({
       name: "",
@@ -290,19 +303,17 @@ const FACETS: Record<string, unknown> = {
   "resource.host.name": [{ value: "web-1", count: 4 }],
 };
 
-const BUCKETS: Array<Record<string, unknown>> = [
-  { time: new Date(NOW - 10 * MINUTE).toISOString(), series: "ok", count: 2 },
-  {
-    time: new Date(NOW - 10 * MINUTE).toISOString(),
-    series: "unset",
-    count: 1,
-  },
-  {
-    time: new Date(NOW - 10 * MINUTE).toISOString(),
-    series: "error",
-    count: 1,
-  },
-];
+const buckets: () => Array<Record<string, unknown>> = (): Array<
+  Record<string, unknown>
+> => {
+  const time: string = minutesAgo(10).toISOString();
+
+  return [
+    { time, series: "ok", count: 2 },
+    { time, series: "unset", count: 1 },
+    { time, series: "error", count: 1 },
+  ];
+};
 
 let listed: Array<Span> = [];
 let facets: Record<string, unknown> = FACETS;
@@ -425,7 +436,7 @@ beforeEach(() => {
     const url: string = args.url.toString();
 
     if (url.includes("/telemetry/traces/histogram")) {
-      return { data: { buckets: BUCKETS } };
+      return { data: { buckets: buckets() } };
     }
 
     if (url.includes("/telemetry/traces/facets")) {
