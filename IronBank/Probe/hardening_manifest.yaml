@@ -1,0 +1,56 @@
+# OneUptime Probe for Iron Bank: what Iron Bank's pipeline builds the
+# Dockerfile beside this with. Scripts/IronBank/PinRelease.js moves it to a
+# release, and IronBank/README.md describes the whole process.
+apiVersion: v1
+
+# Where Iron Bank publishes the image:
+# registry1.dso.mil/ironbank/oneuptime/probe. Iron Bank's onboarding team
+# picks the project's path on Repo1; keep this the same as that path.
+name: "oneuptime/probe"
+
+# The first tag is the release the Dockerfile copies.
+tags:
+  - "14.0.102"
+  - "latest"
+
+# The Iron Bank image the Dockerfile builds on: Debian 12, the Debian the
+# release is built on. renovate.json moves BASE_TAG on Repo1.
+args:
+  BASE_IMAGE: "opensource/debian/debian"
+  BASE_TAG: "12-slim"
+
+# Only the labels Iron Bank's schema allows, in printable ASCII. The
+# Dockerfile sets the release's other labels.
+labels:
+  org.opencontainers.image.title: "OneUptime Probe"
+  org.opencontainers.image.description: "OneUptime monitoring probe: runs HTTP, TCP, ping, SSL, and synthetic monitors from any location."
+  org.opencontainers.image.licenses: "Apache-2.0"
+  org.opencontainers.image.url: "https://oneuptime.com"
+  org.opencontainers.image.vendor: "OneUptime"
+  org.opencontainers.image.version: "14.0.102"
+  mil.dso.ironbank.image.keywords: "observability, monitoring, uptime, synthetic monitoring, probe"
+  mil.dso.ironbank.image.type: "opensource"
+  mil.dso.ironbank.product.name: "OneUptime"
+
+resources:
+  # The release's probe image for linux/amd64, by digest. Iron Bank's
+  # pipeline pulls it and gives it the name in `tag`, which the Dockerfile's
+  # release stage starts from.
+  - tag: "oneuptime/probe:14.0.102"
+    url: "docker://docker.io/oneuptime/probe@sha256:4b9379586b645ae9b7b9d14790ce176f4eb174ef84bb57dc6d6e729b9a3bf4ec"
+  # Microsoft's SQL Server ODBC driver for Debian 12, which the release
+  # installs from Microsoft's repository. Update it from
+  # https://packages.microsoft.com/debian/12/prod/dists/bookworm/main/binary-amd64/Packages
+  # (its Filename and SHA256).
+  - url: "https://packages.microsoft.com/debian/12/prod/pool/main/m/msodbcsql18/msodbcsql18_18.7.1.1-1_amd64.deb"
+    filename: "msodbcsql18.deb"
+    validation:
+      type: "sha256"
+      value: "f506cb3de8b34cd94e9014d247b39e9dfd7effad79edad3ab67096dc3c1b6b0e"
+
+# The engineers the onboarding request names, by their Platform One (Repo1)
+# usernames. Iron Bank's pipeline refuses a manifest until these are filled in.
+maintainers:
+  - name: "FIXME"
+    username: "FIXME"
+    email: "hello@oneuptime.com"
