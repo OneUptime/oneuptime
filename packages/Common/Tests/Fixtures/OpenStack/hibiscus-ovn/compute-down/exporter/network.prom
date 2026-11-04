@@ -1,0 +1,66 @@
+# HELP openstack_neutron_agent_state agent_state
+# TYPE openstack_neutron_agent_state gauge
+openstack_neutron_agent_state{adminState="up",availability_zone="",hostname="compute-01",id="93653c8e-030c-5856-99fb-69cd04e27f81",service="neutron-ovn-agent"} 1
+openstack_neutron_agent_state{adminState="up",availability_zone="",hostname="compute-01",id="f1fe06bd-337d-4ee0-b1df-3284823c1490",service="ovn-controller"} 1
+# HELP openstack_neutron_floating_ip floating_ip
+# TYPE openstack_neutron_floating_ip gauge
+openstack_neutron_floating_ip{floating_ip_address="172.24.4.135",floating_network_id="bc9f7148-8969-40e5-b947-f6b56335cbb4",id="4d0f6e33-4dd6-4eb6-87cf-1baa0f151137",project_id="9aee824cac87464292adffc328de1662",router_id="",status="DOWN"} 1
+openstack_neutron_floating_ip{floating_ip_address="172.24.4.231",floating_network_id="bc9f7148-8969-40e5-b947-f6b56335cbb4",id="73b64085-9d2e-4e54-b2ae-82079e3933c9",project_id="9aee824cac87464292adffc328de1662",router_id="205f8f1d-36ff-4fdb-bbdd-ca162da443b4",status="ACTIVE"} 1
+# HELP openstack_neutron_floating_ips floating_ips
+# TYPE openstack_neutron_floating_ips gauge
+openstack_neutron_floating_ips 2
+# HELP openstack_neutron_floating_ips_associated_not_active floating_ips_associated_not_active
+# TYPE openstack_neutron_floating_ips_associated_not_active gauge
+openstack_neutron_floating_ips_associated_not_active 0
+# HELP openstack_neutron_network network
+# TYPE openstack_neutron_network gauge
+openstack_neutron_network{id="75bfa8c5-ea90-431d-89b4-af14bf3ed49d",is_external="false",is_shared="false",mtu="1442",name="ou-research-net",provider_network_type="geneve",provider_physical_network="",provider_segmentation_id="62993",status="ACTIVE",subnets="f70d7e85-ca9f-4398-8389-6f8e5731deaf",tags="",tenant_id="d63a8b7cd40c4838be6b00e9a69d2935"} 0
+openstack_neutron_network{id="bc9f7148-8969-40e5-b947-f6b56335cbb4",is_external="true",is_shared="false",mtu="1500",name="public",provider_network_type="flat",provider_physical_network="public",provider_segmentation_id="",status="ACTIVE",subnets="2325571d-1232-47c2-9f9b-a7461bac5a90,bbc72772-150c-43fe-b249-c962d9deb85d",tags="",tenant_id="d8243fa30c304442988b41a1e8ba0ead"} 0
+openstack_neutron_network{id="bea4427c-8c71-432c-be57-dc67fb41bf8a",is_external="false",is_shared="false",mtu="1442",name="private",provider_network_type="geneve",provider_physical_network="",provider_segmentation_id="1859",status="ACTIVE",subnets="4490063a-1203-4111-93ee-817938f08f3e,77936b62-1620-4af1-8534-ef4acd501383",tags="",tenant_id="5e00496ff24b4636a945e5a060361b95"} 0
+openstack_neutron_network{id="ddafb257-e6a1-4fbd-9d6c-09b6ea58e9c9",is_external="false",is_shared="false",mtu="1442",name="ou-net",provider_network_type="geneve",provider_physical_network="",provider_segmentation_id="29569",status="ACTIVE",subnets="9e0acb39-d2c7-47d8-8a2d-0f58f301aba4",tags="",tenant_id="9aee824cac87464292adffc328de1662"} 0
+# HELP openstack_neutron_network_ip_availabilities_total network_ip_availabilities_total
+# TYPE openstack_neutron_network_ip_availabilities_total gauge
+openstack_neutron_network_ip_availabilities_total{cidr="10.0.0.0/26",ip_version="4",network_id="bea4427c-8c71-432c-be57-dc67fb41bf8a",network_name="private",project_id="5e00496ff24b4636a945e5a060361b95",subnet_name="private-subnet"} 61
+openstack_neutron_network_ip_availabilities_total{cidr="10.77.0.0/24",ip_version="4",network_id="ddafb257-e6a1-4fbd-9d6c-09b6ea58e9c9",network_name="ou-net",project_id="9aee824cac87464292adffc328de1662",subnet_name="ou-subnet"} 253
+openstack_neutron_network_ip_availabilities_total{cidr="10.78.0.0/24",ip_version="4",network_id="75bfa8c5-ea90-431d-89b4-af14bf3ed49d",network_name="ou-research-net",project_id="d63a8b7cd40c4838be6b00e9a69d2935",subnet_name="ou-research-subnet"} 253
+openstack_neutron_network_ip_availabilities_total{cidr="172.24.4.0/24",ip_version="4",network_id="bc9f7148-8969-40e5-b947-f6b56335cbb4",network_name="public",project_id="d8243fa30c304442988b41a1e8ba0ead",subnet_name="public-subnet"} 253
+openstack_neutron_network_ip_availabilities_total{cidr="2001:db8::/64",ip_version="6",network_id="bc9f7148-8969-40e5-b947-f6b56335cbb4",network_name="public",project_id="d8243fa30c304442988b41a1e8ba0ead",subnet_name="ipv6-public-subnet"} 1.8446744073709552e+19
+openstack_neutron_network_ip_availabilities_total{cidr="fd3e:8ade:f3d9::/64",ip_version="6",network_id="bea4427c-8c71-432c-be57-dc67fb41bf8a",network_name="private",project_id="5e00496ff24b4636a945e5a060361b95",subnet_name="ipv6-private-subnet"} 1.8446744073709552e+19
+# HELP openstack_neutron_network_ip_availabilities_used network_ip_availabilities_used
+# TYPE openstack_neutron_network_ip_availabilities_used gauge
+openstack_neutron_network_ip_availabilities_used{cidr="10.0.0.0/26",ip_version="4",network_id="bea4427c-8c71-432c-be57-dc67fb41bf8a",network_name="private",project_id="5e00496ff24b4636a945e5a060361b95",subnet_name="private-subnet"} 2
+openstack_neutron_network_ip_availabilities_used{cidr="10.77.0.0/24",ip_version="4",network_id="ddafb257-e6a1-4fbd-9d6c-09b6ea58e9c9",network_name="ou-net",project_id="9aee824cac87464292adffc328de1662",subnet_name="ou-subnet"} 4
+openstack_neutron_network_ip_availabilities_used{cidr="10.78.0.0/24",ip_version="4",network_id="75bfa8c5-ea90-431d-89b4-af14bf3ed49d",network_name="ou-research-net",project_id="d63a8b7cd40c4838be6b00e9a69d2935",subnet_name="ou-research-subnet"} 2
+openstack_neutron_network_ip_availabilities_used{cidr="172.24.4.0/24",ip_version="4",network_id="bc9f7148-8969-40e5-b947-f6b56335cbb4",network_name="public",project_id="d8243fa30c304442988b41a1e8ba0ead",subnet_name="public-subnet"} 4
+openstack_neutron_network_ip_availabilities_used{cidr="2001:db8::/64",ip_version="6",network_id="bc9f7148-8969-40e5-b947-f6b56335cbb4",network_name="public",project_id="d8243fa30c304442988b41a1e8ba0ead",subnet_name="ipv6-public-subnet"} 4
+openstack_neutron_network_ip_availabilities_used{cidr="fd3e:8ade:f3d9::/64",ip_version="6",network_id="bea4427c-8c71-432c-be57-dc67fb41bf8a",network_name="private",project_id="5e00496ff24b4636a945e5a060361b95",subnet_name="ipv6-private-subnet"} 2
+# HELP openstack_neutron_networks networks
+# TYPE openstack_neutron_networks gauge
+openstack_neutron_networks 4
+# HELP openstack_neutron_router router
+# TYPE openstack_neutron_router gauge
+openstack_neutron_router{admin_state_up="true",external_network_id="bc9f7148-8969-40e5-b947-f6b56335cbb4",id="205f8f1d-36ff-4fdb-bbdd-ca162da443b4",name="ou-router",project_id="9aee824cac87464292adffc328de1662",status="ACTIVE"} 1
+openstack_neutron_router{admin_state_up="true",external_network_id="bc9f7148-8969-40e5-b947-f6b56335cbb4",id="4a024b88-81a0-4ce7-b56f-6643c2fa0a29",name="router1",project_id="5e00496ff24b4636a945e5a060361b95",status="ACTIVE"} 1
+# HELP openstack_neutron_routers routers
+# TYPE openstack_neutron_routers gauge
+openstack_neutron_routers 2
+# HELP openstack_neutron_routers_not_active routers_not_active
+# TYPE openstack_neutron_routers_not_active gauge
+openstack_neutron_routers_not_active 0
+# HELP openstack_neutron_security_groups security_groups
+# TYPE openstack_neutron_security_groups gauge
+openstack_neutron_security_groups 6
+# HELP openstack_neutron_subnet subnet
+# TYPE openstack_neutron_subnet gauge
+openstack_neutron_subnet{cidr="10.0.0.0/26",dns_nameservers="",enable_dhcp="true",gateway_ip="10.0.0.1",id="77936b62-1620-4af1-8534-ef4acd501383",name="private-subnet",network_id="bea4427c-8c71-432c-be57-dc67fb41bf8a",tags="",tenant_id="5e00496ff24b4636a945e5a060361b95"} 1
+openstack_neutron_subnet{cidr="10.77.0.0/24",dns_nameservers="",enable_dhcp="true",gateway_ip="10.77.0.1",id="9e0acb39-d2c7-47d8-8a2d-0f58f301aba4",name="ou-subnet",network_id="ddafb257-e6a1-4fbd-9d6c-09b6ea58e9c9",tags="",tenant_id="9aee824cac87464292adffc328de1662"} 1
+openstack_neutron_subnet{cidr="10.78.0.0/24",dns_nameservers="",enable_dhcp="true",gateway_ip="10.78.0.1",id="f70d7e85-ca9f-4398-8389-6f8e5731deaf",name="ou-research-subnet",network_id="75bfa8c5-ea90-431d-89b4-af14bf3ed49d",tags="",tenant_id="d63a8b7cd40c4838be6b00e9a69d2935"} 1
+openstack_neutron_subnet{cidr="172.24.4.0/24",dns_nameservers="",enable_dhcp="false",gateway_ip="172.24.4.1",id="2325571d-1232-47c2-9f9b-a7461bac5a90",name="public-subnet",network_id="bc9f7148-8969-40e5-b947-f6b56335cbb4",tags="",tenant_id="d8243fa30c304442988b41a1e8ba0ead"} 1
+openstack_neutron_subnet{cidr="2001:db8::/64",dns_nameservers="",enable_dhcp="false",gateway_ip="2001:db8::2",id="bbc72772-150c-43fe-b249-c962d9deb85d",name="ipv6-public-subnet",network_id="bc9f7148-8969-40e5-b947-f6b56335cbb4",tags="",tenant_id="d8243fa30c304442988b41a1e8ba0ead"} 1
+openstack_neutron_subnet{cidr="fd3e:8ade:f3d9::/64",dns_nameservers="",enable_dhcp="true",gateway_ip="fd3e:8ade:f3d9::1",id="4490063a-1203-4111-93ee-817938f08f3e",name="ipv6-private-subnet",network_id="bea4427c-8c71-432c-be57-dc67fb41bf8a",tags="",tenant_id="5e00496ff24b4636a945e5a060361b95"} 1
+# HELP openstack_neutron_subnets subnets
+# TYPE openstack_neutron_subnets gauge
+openstack_neutron_subnets 6
+# HELP openstack_neutron_up up
+# TYPE openstack_neutron_up gauge
+openstack_neutron_up 1

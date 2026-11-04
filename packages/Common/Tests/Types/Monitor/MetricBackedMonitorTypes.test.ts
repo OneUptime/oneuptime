@@ -51,6 +51,7 @@ const METRIC_BACKED: Array<MonitorType> = [
   MonitorType.Podman,
   MonitorType.DockerSwarm,
   MonitorType.Proxmox,
+  MonitorType.OpenStack,
   MonitorType.VMware,
   MonitorType.Ceph,
   MonitorType.StorageArray,
@@ -120,7 +121,7 @@ afterEach(() => {
 });
 
 describe("MonitorTypeHelper - the monitor types evaluated as metric series", () => {
-  test("are the eleven the worker answers with a MetricMonitorResponse, IoT Device included", () => {
+  test("are the twelve the worker answers with a MetricMonitorResponse, IoT Device included", () => {
     expect(MonitorTypeHelper.getMetricBackedMonitorTypes()).toEqual(
       METRIC_BACKED,
     );
@@ -297,6 +298,7 @@ const NOT_COPIES: Array<ListRun & { why: string }> = [
       "Podman",
       "DockerSwarm",
       "Proxmox",
+      "OpenStack",
       "VMware",
       "Ceph",
       "StorageArray",

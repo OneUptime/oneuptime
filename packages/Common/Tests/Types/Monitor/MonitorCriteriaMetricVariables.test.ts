@@ -9,6 +9,7 @@ import {
 } from "../../../Types/Monitor/HostAlertTemplates";
 import { getAllIoTAlertTemplates } from "../../../Types/Monitor/IotAlertTemplates";
 import { getAllKubernetesAlertTemplates } from "../../../Types/Monitor/KubernetesAlertTemplates";
+import { getAllOpenStackAlertTemplates } from "../../../Types/Monitor/OpenStackAlertTemplates";
 import { getAllPodmanAlertTemplates } from "../../../Types/Monitor/PodmanAlertTemplates";
 import { getAllProxmoxAlertTemplates } from "../../../Types/Monitor/ProxmoxAlertTemplates";
 import { getAllStorageArrayAlertTemplates } from "../../../Types/Monitor/StorageArrayAlertTemplates";
@@ -42,6 +43,7 @@ import ObjectID from "../../../Types/ObjectID";
 interface UniversalTemplateArgs {
   hostIdentifier: string;
   clusterIdentifier: string;
+  cloudIdentifier: string;
   vcenterIdentifier: string;
   fleetIdentifier: string;
   arrayIdentifier: string;
@@ -68,6 +70,7 @@ function buildArgs(): UniversalTemplateArgs {
   return {
     hostIdentifier: "host-identifier-1",
     clusterIdentifier: "cluster-identifier-1",
+    cloudIdentifier: "cloud-identifier-1",
     vcenterIdentifier: "vcenter-identifier-1",
     fleetIdentifier: "fleet-identifier-1",
     arrayIdentifier: "array-identifier-1",
@@ -114,6 +117,12 @@ const RESOURCES: Array<ResourceDescriptor> = [
     subConfigKey: "proxmoxMonitor",
     templates:
       getAllProxmoxAlertTemplates() as unknown as Array<AnyAlertTemplate>,
+  },
+  {
+    name: "OpenStack",
+    subConfigKey: "openstackMonitor",
+    templates:
+      getAllOpenStackAlertTemplates() as unknown as Array<AnyAlertTemplate>,
   },
   {
     name: "VMware",

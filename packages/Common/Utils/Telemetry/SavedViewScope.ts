@@ -36,6 +36,7 @@ export enum SavedViewScopeKind {
   PodmanHost = "podman-host",
   PodmanContainer = "podman-container",
   ProxmoxCluster = "proxmox-cluster",
+  OpenStackCloud = "openstack-cloud",
   CephCluster = "ceph-cluster",
   StorageArray = "storage-array",
   VMwareVCenter = "vmware-vcenter",

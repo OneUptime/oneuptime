@@ -3,6 +3,7 @@ import KubernetesCluster from "./KubernetesCluster";
 import DockerHost from "./DockerHost";
 import PodmanHost from "./PodmanHost";
 import ProxmoxCluster from "./ProxmoxCluster";
+import OpenStackCloud from "./OpenStackCloud";
 import VMwareVCenter from "./VMwareVCenter";
 import CephCluster from "./CephCluster";
 import StorageArray from "./StorageArray";
@@ -1065,6 +1066,61 @@ export default class Monitor extends BaseModel {
     },
   })
   public proxmoxClusters?: Array<ProxmoxCluster> = undefined;
+
+  @ColumnAccessControl({
+    create: [
+      Permission.ProjectOwner,
+      Permission.ProjectAdmin,
+      Permission.ProjectMember,
+      Permission.MonitorAdmin,
+      Permission.MonitorMember,
+      Permission.CreateProjectMonitor,
+    ],
+    read: [
+      Permission.ProjectOwner,
+      Permission.ProjectAdmin,
+      Permission.ProjectMember,
+      Permission.Viewer,
+      Permission.MonitorAdmin,
+      Permission.MonitorMember,
+      Permission.MonitorViewer,
+      Permission.ReadProjectMonitor,
+    ],
+    update: [
+      Permission.ProjectOwner,
+      Permission.ProjectAdmin,
+      Permission.ProjectMember,
+      Permission.MonitorAdmin,
+      Permission.MonitorMember,
+      Permission.EditProjectMonitor,
+    ],
+  })
+  @TableColumn({
+    required: false,
+    type: TableColumnType.EntityArray,
+    modelType: OpenStackCloud,
+    title: "OpenStack Clouds",
+    description:
+      "OpenStack clouds this monitor watches. Incidents and alerts it creates are linked to them, so OneUptime AI can investigate and fix them there.",
+  })
+  @ManyToMany(
+    () => {
+      return OpenStackCloud;
+    },
+    { eager: false },
+  )
+  @JoinTable({
+    name: "MonitorOpenStackCloud",
+    inverseJoinColumn: {
+      name: "openStackCloudId",
+      referencedColumnName: "_id",
+    },
+    joinColumn: {
+      name: "monitorId",
+      referencedColumnName: "_id",
+    },
+  })
+  public openStackClouds?: Array<OpenStackCloud> = undefined;
 
   @ColumnAccessControl({
     create: [

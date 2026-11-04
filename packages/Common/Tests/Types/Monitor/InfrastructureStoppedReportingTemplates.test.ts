@@ -48,6 +48,11 @@ import {
   getAllKubernetesAlertTemplates,
   getKubernetesDefaultAlertTemplateId,
 } from "../../../Types/Monitor/KubernetesAlertTemplates";
+import {
+  getAllOpenStackAlertTemplates,
+  getOpenStackDefaultAlertTemplateId,
+} from "../../../Types/Monitor/OpenStackAlertTemplates";
+import { getOpenStackMetricByMetricName } from "../../../Types/Monitor/OpenStackMetricCatalog";
 import { getKubernetesMetricByMetricName } from "../../../Types/Monitor/KubernetesMetricCatalog";
 import {
   getAllPodmanAlertTemplates,
@@ -98,11 +103,17 @@ interface StoppedReportingCase {
   configField: keyof NonNullable<MonitorStep["data"]>;
   // Whether the type's own metric catalog offers the heartbeat metric.
   isCatalogMetric: (metricName: string) => boolean;
+  /*
+   * Set when ten minutes is too short for the heartbeat's own job: three of
+   * OpenStack's identity collections, at one every five minutes, take fifteen.
+   */
+  longerWindow?: { rollingTime: RollingTime; minutes: number };
 }
 
 const STEP_ARGS: Record<string, unknown> = {
   hostIdentifier: "host-01",
   clusterIdentifier: "cluster-01",
+  cloudIdentifier: "cloud-01",
   vcenterIdentifier: "vcenter-01",
   arrayIdentifier: "array-01",
   fleetIdentifier: "fleet-01",
@@ -179,6 +190,18 @@ const CASES: Array<StoppedReportingCase> = [
     isCatalogMetric: (metricName: string): boolean => {
       return Boolean(getProxmoxMetricByMetricName(metricName));
     },
+  },
+  {
+    type: "OpenStack",
+    templateId: "openstack-cloud-stopped-reporting",
+    templates: getAllOpenStackAlertTemplates,
+    defaultTemplateId: getOpenStackDefaultAlertTemplateId,
+    heartbeatMetric: "openstack_identity_up",
+    configField: "openstackMonitor",
+    isCatalogMetric: (metricName: string): boolean => {
+      return Boolean(getOpenStackMetricByMetricName(metricName));
+    },
+    longerWindow: { rollingTime: RollingTime.Past15Minutes, minutes: 15 },
   },
   {
     type: "VMware",
@@ -278,15 +301,19 @@ function getInstances(step: MonitorStep): Array<MonitorCriteriaInstance> {
 }
 
 const WINDOW_END_MS: number = Date.UTC(2026, 9, 30, 12, 0, 0);
-const WINDOW_MS: number = 10 * 60 * 1000;
+
+function getWindowMinutes(testCase: StoppedReportingCase): number {
+  return testCase.longerWindow?.minutes ?? 10;
+}
 
 /*
- * A response over the template's ten-minute window: `counts` holds one
- * per-minute Count per minute, ending at the window's end (oldest first).
+ * A response over the template's window: `counts` holds one per-minute Count
+ * per minute, ending at the window's end (oldest first).
  */
 function buildResponse(
   viewConfig: MetricsViewConfig,
   counts: Array<number>,
+  windowMinutes: number,
 ): MetricMonitorResponse {
   const firstMinuteMs: number = WINDOW_END_MS - counts.length * 60 * 1000;
 
@@ -295,7 +322,7 @@ function buildResponse(
     metricViewConfig: viewConfig,
     monitorId: ObjectID.generate(),
     startAndEndDate: {
-      startValue: new Date(WINDOW_END_MS - WINDOW_MS),
+      startValue: new Date(WINDOW_END_MS - windowMinutes * 60 * 1000),
       endValue: new Date(WINDOW_END_MS),
     } as NonNullable<MetricMonitorResponse["startAndEndDate"]>,
     metricResult: viewConfig.queryConfigs.map(
@@ -349,6 +376,7 @@ async function evaluate(
   const response: MetricMonitorResponse = buildResponse(
     getViewConfig(testCase, step),
     counts,
+    getWindowMinutes(testCase),
   );
   const [offline, online] = getInstances(step);
 
@@ -383,7 +411,7 @@ describe("Infrastructure Stopped Reporting templates", () => {
   );
 
   test.each(TYPE_CASES)(
-    "%s: counts its heartbeat over the whole resource for ten minutes",
+    "%s: counts its heartbeat over the whole resource for its window, ten minutes unless its job needs longer",
     (_type: string, testCase: StoppedReportingCase) => {
       const step: MonitorStep = buildStep(testCase);
       const config: { rollingTime: RollingTime } = (
@@ -391,7 +419,9 @@ describe("Infrastructure Stopped Reporting templates", () => {
       )[testCase.configField as string]!;
       const viewConfig: MetricsViewConfig = getViewConfig(testCase, step);
 
-      expect(config.rollingTime).toBe(RollingTime.Past10Minutes);
+      expect(config.rollingTime).toBe(
+        testCase.longerWindow?.rollingTime ?? RollingTime.Past10Minutes,
+      );
       expect(viewConfig.queryConfigs).toHaveLength(1);
       expect(viewConfig.formulaConfigs || []).toHaveLength(0);
 
@@ -458,10 +488,13 @@ describe("Infrastructure Stopped Reporting templates", () => {
       const random: SeededRandom = seededRandom(5407);
 
       for (let draw: number = 0; draw < 25; draw++) {
-        // Ten per-minute counts of 1 to 12 rows: any amount of data at all.
-        const counts: Array<number> = Array.from({ length: 10 }, (): number => {
-          return 1 + random(12);
-        });
+        // A per-minute count of 1 to 12 rows: any amount of data at all.
+        const counts: Array<number> = Array.from(
+          { length: getWindowMinutes(testCase) },
+          (): number => {
+            return 1 + random(12);
+          },
+        );
 
         expect(await evaluate(testCase, counts)).toEqual({
           breached: false,

@@ -892,6 +892,7 @@ import { AddVMwareTables1792000000000 } from "./1792000000000-AddVMwareTables";
 import { AddGitHubCommandSettingsToCodeRepository1792100000000 } from "./1792100000000-AddGitHubCommandSettingsToCodeRepository";
 import { TwilioAuthTokenEncryptedColumn1801800000000 } from "./1801800000000-TwilioAuthTokenEncryptedColumn";
 import { AddDataAssetOwnersAndFeedback1808992700000 } from "./1808992700000-AddDataAssetOwnersAndFeedback";
+import { AddOpenStackClouds1808992900000 } from "./1808992900000-AddOpenStackClouds";
 
 export default [
   InitialMigration,
@@ -1788,4 +1789,5 @@ export default [
   AddUserMattermost1808992670000,
   AddUserMattermostIndexesAndKeys1808992680000,
   AddDataAssetOwnersAndFeedback1808992700000,
+  AddOpenStackClouds1808992900000,
 ];

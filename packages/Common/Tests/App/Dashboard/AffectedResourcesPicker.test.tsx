@@ -449,6 +449,7 @@ describe("toItems", () => {
       dockerHosts: [],
       podmanHosts: [],
       proxmoxClusters: [],
+      openStackClouds: [],
       vmwareVCenters: [],
       cephClusters: [],
       storageArrays: [],

@@ -8,6 +8,7 @@ import IoTFleet from "Common/Models/DatabaseModels/IoTFleet";
 import KubernetesCluster from "Common/Models/DatabaseModels/KubernetesCluster";
 import PodmanHost from "Common/Models/DatabaseModels/PodmanHost";
 import ProxmoxCluster from "Common/Models/DatabaseModels/ProxmoxCluster";
+import OpenStackCloud from "Common/Models/DatabaseModels/OpenStackCloud";
 import VMwareVCenter from "Common/Models/DatabaseModels/VMwareVCenter";
 import RumApplication from "Common/Models/DatabaseModels/RumApplication";
 import Service from "Common/Models/DatabaseModels/Service";
@@ -246,6 +247,12 @@ const RESOURCE_DEFINITIONS: Array<RecommendationResourceDefinition> = [
   {
     resourceType: MonitorRecommendationResourceType.Proxmox,
     modelType: ProxmoxCluster,
+    identifierFieldName: "name",
+    displayNameFieldName: "name",
+  },
+  {
+    resourceType: MonitorRecommendationResourceType.OpenStack,
+    modelType: OpenStackCloud,
     identifierFieldName: "name",
     displayNameFieldName: "name",
   },

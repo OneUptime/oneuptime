@@ -12,6 +12,7 @@ export enum AIResourceType {
   KubernetesCluster = "KubernetesCluster",
   DockerSwarmCluster = "DockerSwarmCluster",
   ProxmoxCluster = "ProxmoxCluster",
+  OpenStackCloud = "OpenStackCloud",
   VMwareVCenter = "VMwareVCenter",
   CephCluster = "CephCluster",
   StorageArray = "StorageArray",
@@ -83,6 +84,7 @@ const RESOURCE_FACET_KEYS: Record<AIResourceType, string> = {
   [AIResourceType.KubernetesCluster]: "kubernetesClusterId",
   [AIResourceType.DockerSwarmCluster]: "dockerSwarmClusterId",
   [AIResourceType.ProxmoxCluster]: "proxmoxClusterId",
+  [AIResourceType.OpenStackCloud]: "openStackCloudId",
   [AIResourceType.VMwareVCenter]: "vmwareVCenterId",
   [AIResourceType.CephCluster]: "cephClusterId",
   [AIResourceType.StorageArray]: "storageArrayId",
@@ -185,6 +187,8 @@ export const AI_RESOURCE_SUBRESOURCE_KINDS: Readonly<
     AIResourceSubresourceKind.Guest,
     AIResourceSubresourceKind.Storage,
   ],
+  // A part's page reads as its cloud until OneUptime AI learns the parts (#5746).
+  [AIResourceType.OpenStackCloud]: [],
   [AIResourceType.VMwareVCenter]: [
     AIResourceSubresourceKind.Host,
     AIResourceSubresourceKind.VirtualMachine,

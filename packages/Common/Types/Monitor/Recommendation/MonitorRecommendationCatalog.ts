@@ -58,6 +58,10 @@ import {
   getAllProxmoxAlertTemplates,
 } from "../ProxmoxAlertTemplates";
 import {
+  OpenStackAlertTemplate,
+  getAllOpenStackAlertTemplates,
+} from "../OpenStackAlertTemplates";
+import {
   ProxmoxNotificationAlertTemplate,
   getAllProxmoxNotificationAlertTemplates,
 } from "../ProxmoxNotificationAlertTemplates";
@@ -111,6 +115,7 @@ export interface MonitorRecommendationResourceTypeDefinition {
   // The field name in the owning module's own args interface.
   identifierFieldName:
     | "clusterIdentifier"
+    | "cloudIdentifier"
     | "vcenterIdentifier"
     | "hostIdentifier"
     | "fleetIdentifier"
@@ -434,6 +439,28 @@ function getProxmoxRecommendations(): Array<MonitorRecommendation> {
     );
 
   return [...metricRecommendations, ...notificationRecommendations];
+}
+
+function getOpenStackRecommendations(): Array<MonitorRecommendation> {
+  return getAllOpenStackAlertTemplates().map(
+    (template: OpenStackAlertTemplate) => {
+      return normalize({
+        resourceType: MonitorRecommendationResourceType.OpenStack,
+        monitorType: MonitorType.OpenStack,
+        template: template,
+        getMonitorStep: (args: MonitorRecommendationArgs) => {
+          return template.getMonitorStep({
+            cloudIdentifier: args.resourceIdentifier,
+            onlineMonitorStatusId: args.onlineMonitorStatusId,
+            offlineMonitorStatusId: args.offlineMonitorStatusId,
+            defaultIncidentSeverityId: args.defaultIncidentSeverityId,
+            defaultAlertSeverityId: args.defaultAlertSeverityId,
+            monitorName: args.monitorName,
+          });
+        },
+      });
+    },
+  );
 }
 
 function getVMwareRecommendations(): Array<MonitorRecommendation> {
@@ -815,6 +842,14 @@ const RESOURCE_TYPE_DEFINITIONS: Array<MonitorRecommendationResourceTypeDefiniti
       identifierFieldName: "clusterIdentifier",
       icon: IconProp.Server,
       getRecommendations: getProxmoxRecommendations,
+    },
+    {
+      resourceType: MonitorRecommendationResourceType.OpenStack,
+      monitorTypes: [MonitorType.OpenStack],
+      resourceLabel: "OpenStack Cloud",
+      identifierFieldName: "cloudIdentifier",
+      icon: IconProp.Cloud,
+      getRecommendations: getOpenStackRecommendations,
     },
     {
       resourceType: MonitorRecommendationResourceType.VMware,

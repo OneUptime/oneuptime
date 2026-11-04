@@ -28,6 +28,7 @@ export interface AffectedResourceLists {
   dockerHosts?: Array<NamedResource> | undefined;
   podmanHosts?: Array<NamedResource> | undefined;
   proxmoxClusters?: Array<NamedResource> | undefined;
+  openStackClouds?: Array<NamedResource> | undefined;
   vmwareVCenters?: Array<NamedResource> | undefined;
   cephClusters?: Array<NamedResource> | undefined;
   storageArrays?: Array<NamedResource> | undefined;
@@ -51,6 +52,7 @@ export const AFFECTED_RESOURCE_LIST_ORDER: ReadonlyArray<
   "dockerHosts",
   "podmanHosts",
   "proxmoxClusters",
+  "openStackClouds",
   "vmwareVCenters",
   "cephClusters",
   "storageArrays",

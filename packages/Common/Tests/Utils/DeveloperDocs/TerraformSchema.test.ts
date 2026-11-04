@@ -17,6 +17,7 @@ import OnCallDutyPolicy from "../../../Models/DatabaseModels/OnCallDutyPolicy";
 import OnCallDutyPolicyEscalationRule from "../../../Models/DatabaseModels/OnCallDutyPolicyEscalationRule";
 import ScheduledMaintenance from "../../../Models/DatabaseModels/ScheduledMaintenance";
 import StatusPage from "../../../Models/DatabaseModels/StatusPage";
+import OpenStackCloud from "../../../Models/DatabaseModels/OpenStackCloud";
 import VMwareVCenter from "../../../Models/DatabaseModels/VMwareVCenter";
 import Workflow from "../../../Models/DatabaseModels/Workflow";
 import {
@@ -93,6 +94,7 @@ describe("toTerraformTypeSnakeCase (the provider's type names, StringUtils.toSna
     ["IoT Fleet", "iot_fleet"],
     ["vCenter", "vcenter"],
     ["vCenter Label Rule", "vcenter_label_rule"],
+    ["OpenStack Cloud Owner Team", "openstack_cloud_owner_team"],
     ["WhatsApp Log", "whatsapp_log"],
     ["On-Call Policy", "on_call_policy"],
     ["Status Page", "status_page"],
@@ -111,6 +113,7 @@ describe("resource type names", () => {
     [OnCallDutyPolicy, "oneuptime_on_call_policy"],
     [ScheduledMaintenance, "oneuptime_scheduled_maintenance_event"],
     [VMwareVCenter, "oneuptime_vcenter"],
+    [OpenStackCloud, "oneuptime_openstack_cloud"],
     [IoTFleet, "oneuptime_iot_fleet"],
     [DockerSwarmCluster, "oneuptime_docker_swarm_cluster"],
   ])("%p is %s", (modelType: DatabaseBaseModelType, expected: string) => {
@@ -201,7 +204,7 @@ describe("a workflow's attributes", () => {
     // isWebhookSigningSecretSet, isVCenterPasswordSet: the server's flags.
     const savedFlag: RegExp = /^is\w+Set$/;
 
-    for (const modelType of [Workflow, VMwareVCenter]) {
+    for (const modelType of [Workflow, VMwareVCenter, OpenStackCloud]) {
       expect(
         getTerraformAttributes(modelType)
           .map((descriptor: TerraformAttributeDescriptor): string => {

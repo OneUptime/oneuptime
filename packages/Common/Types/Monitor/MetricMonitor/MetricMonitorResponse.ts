@@ -95,6 +95,46 @@ export interface ProxmoxResourceBreakdown
   attributes: Dictionary<string>;
 }
 
+/*
+ * One part of an OpenStack cloud, from openstack-exporter's own labels. There is
+ * no single id label: a worker is known by its host and binary, an instance by its
+ * uuid, a network by network_id.
+ */
+export interface OpenStackAffectedResource {
+  /*
+   * The part's own id: an instance's or volume's `id`, or `router_id` or
+   * `network_id`. Never a worker's `id` or `uuid`: Cinder's is made up afresh on
+   * every collection, so it says nothing.
+   */
+  resourceId?: string | undefined;
+  // `name`, or `network_name` on the address series.
+  resourceName?: string | undefined;
+  // `hostname`, `hypervisor_hostname` on an instance, `agent_host` on a router.
+  hostName?: string | undefined;
+  // `service`: the worker's binary, such as nova-compute.
+  serviceName?: string | undefined;
+  // `openstack.region.name`, which the agent's collector stamps.
+  regionName?: string | undefined;
+  // `tenant_id`, or `project_id` on the Neutron series that say that instead.
+  projectId?: string | undefined;
+  metricValue: number;
+  /**
+   * Lowest sample seen for this part in the monitoring window — what a criteria
+   * that fires when the metric FALLS breached on. See
+   * KubernetesAffectedResource.lowestMetricValue.
+   */
+  lowestMetricValue?: number | undefined;
+}
+
+export interface OpenStackResourceBreakdown
+  extends PlatformResourceBreakdownSource {
+  cloudName: string;
+  metricName: string;
+  metricFriendlyName: string;
+  affectedResources: Array<OpenStackAffectedResource>;
+  attributes: Dictionary<string>;
+}
+
 /**
  * One vSphere object in a VMware monitor's per-series breakdown. Every
  * field except `metricValue` is an OTel RESOURCE attribute the vcenter
@@ -289,6 +329,7 @@ export default interface MetricMonitorResponse {
    */
   kubernetesResourceBreakdowns?: Array<KubernetesResourceBreakdown> | undefined;
   proxmoxResourceBreakdowns?: Array<ProxmoxResourceBreakdown> | undefined;
+  openStackResourceBreakdowns?: Array<OpenStackResourceBreakdown> | undefined;
   vmwareResourceBreakdowns?: Array<VMwareResourceBreakdown> | undefined;
   cephResourceBreakdowns?: Array<CephResourceBreakdown> | undefined;
   /*

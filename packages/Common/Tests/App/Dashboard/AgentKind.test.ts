@@ -94,6 +94,7 @@ const PINNED_COLLECTOR: Array<AgentKind> = [
   AgentKind.DatabaseAgent,
   AgentKind.HostCollector,
   AgentKind.ProxmoxAgent,
+  AgentKind.OpenStackAgent,
   AgentKind.CephAgent,
   AgentKind.VMwareAgent,
   AgentKind.StorageArrayAgent,

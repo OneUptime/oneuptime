@@ -7,6 +7,8 @@ set -uo pipefail
 
 OUTPUT_DIR="${OUTPUT_DIR:-out}"
 mkdir -p "$OUTPUT_DIR/logs"
+# Throwaway credentials, but a recording should not teach anyone to keep them.
+rm -f "$OUTPUT_DIR/clouds.yaml"
 
 for name in ou-openstack-collector ou-openstack-exporter ou-openstack-exporter-stable; do
   docker logs "$name" >"$OUTPUT_DIR/logs/$name.log" 2>&1 || true

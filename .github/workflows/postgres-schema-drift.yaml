@@ -1098,6 +1098,21 @@ jobs:
           node --max-old-space-size=4096 node_modules/.bin/jest --runInBand
           Tests/Server/Services/ProxmoxResourcePostgres.test.ts --forceExit
 
+      # Clones the migrated OpenStackResource table into an isolated schema and runs
+      # OpenStackResourceService's hand-written SQL against it: the upsert that keeps
+      # how long a part has been in its state, the rule that a failing service never
+      # empties its parts, and 500,000 rows of one cloud.
+      - name: Test the OpenStack inventory SQL on migrated Postgres
+        working-directory: packages/Common
+        env:
+          RUN_POSTGRES_OPENSTACK_INVENTORY_TESTS: "true"
+          OPENSTACK_INVENTORY_TEST_DATABASE_HOST: ${{ env.DATABASE_MIGRATIONS_HOST }}
+          OPENSTACK_INVENTORY_TEST_DATABASE_PORT: ${{ env.DATABASE_MIGRATIONS_PORT }}
+          OPENSTACK_INVENTORY_TEST_DATABASE_NAME: ${{ env.DATABASE_NAME }}
+        run: >-
+          node --max-old-space-size=4096 node_modules/.bin/jest --runInBand
+          Tests/Server/Services/OpenStackResourcePostgres.test.ts --forceExit
+
       # Clones the migrated KubernetesResource table (with its unique identity
       # index and the partial index of what needs attention) into an isolated
       # schema and runs KubernetesResourceService's hand-written SQL against
@@ -2226,6 +2241,27 @@ jobs:
         run: >-
           node --max-old-space-size=4096 node_modules/.bin/jest --runInBand
           Tests/Server/Services/VMwareProbeCollectionSqlPostgres.test.ts --forceExit
+
+      # Clones the migrated Project, Probe, OpenStackCloud and
+      # OpenStackCloudConnectionTest tables into an isolated schema and runs
+      # OpenStack probe collection's hand-written SQL: a probe claims only its
+      # own due clouds of live projects (FOR UPDATE SKIP LOCKED, the tenancy
+      # backstop, the subscription rule) and two claims never share one; a
+      # report writes only the current settings' status; a settings change
+      # bumps the settings version in one statement; and a connection test is
+      # claimed once, its secret wiped as it is handed out, answered only by
+      # its probe, and expired with the reason.
+      - name: Test OpenStack probe collection's SQL on migrated Postgres
+        if: matrix.shard == 1
+        working-directory: packages/Common
+        env:
+          RUN_POSTGRES_OPENSTACK_PROBE_COLLECTION_TESTS: "true"
+          OPENSTACK_PROBE_COLLECTION_TEST_DATABASE_HOST: ${{ env.DATABASE_MIGRATIONS_HOST }}
+          OPENSTACK_PROBE_COLLECTION_TEST_DATABASE_PORT: ${{ env.DATABASE_MIGRATIONS_PORT }}
+          OPENSTACK_PROBE_COLLECTION_TEST_DATABASE_NAME: ${{ env.DATABASE_NAME }}
+        run: >-
+          node --max-old-space-size=4096 node_modules/.bin/jest --runInBand
+          Tests/Server/Services/OpenStackProbeCollectionSqlPostgres.test.ts --forceExit
 
       # Clones the migrated InstanceReceivingPeriod table into an isolated
       # schema and runs the receiving ledger's SQL (issue #2825): heartbeats

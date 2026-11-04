@@ -259,6 +259,7 @@ const TERRAFORM_MIXED_CASE_WORDS: ReadonlyArray<string> = [
   "IoT",
   "vCenter",
   "VMware",
+  "OpenStack",
   "OAuth",
   "GitHub",
   "GitLab",

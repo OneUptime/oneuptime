@@ -77,6 +77,13 @@ export const RESOURCE_FACET_CATALOG: ReadonlyArray<ResourceFacetDefinition> = [
     icon: IconProp.Proxmox,
   },
   {
+    facetKey: "openStackCloudId",
+    serviceType: ServiceType.OpenStackCloud,
+    label: "OpenStack Cloud",
+    pluralLabel: "OpenStack Clouds",
+    icon: IconProp.Cloud,
+  },
+  {
     facetKey: "vmwareVCenterId",
     serviceType: ServiceType.VMwareVCenter,
     label: "vCenter",

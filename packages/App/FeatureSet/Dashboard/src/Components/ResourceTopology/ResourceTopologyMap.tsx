@@ -103,6 +103,18 @@ export interface ResourceTopologyArrangement {
   relationLegend?: string | undefined;
   /* Parts of the top drawn beside it: what calls it, what it calls. */
   lanes?: ResourceTopologyLanes | undefined;
+  /*
+   * Parts the first view is sure to show, with every part above them open: for a map too
+   * large to reach them by itself, which opens on what has failed.
+   */
+  reveal?: ReadonlyArray<string> | undefined;
+}
+
+/* One sentence over the map: English, kept with translationKey, its values as written. */
+export interface ResourceTopologyNotice {
+  id: string;
+  text: string;
+  values?: Record<string, string> | undefined;
 }
 
 export interface ComponentProps {
@@ -113,6 +125,8 @@ export interface ComponentProps {
   issuesArePartial?: boolean | undefined;
   /* Open incidents or alerts could not be read at all. */
   issuesAreUnreadable?: boolean | undefined;
+  /* What else a product has to say about this map. */
+  notices?: Array<ResourceTopologyNotice> | undefined;
 }
 
 type DisplayMode = "map" | "list";
@@ -365,8 +379,18 @@ const ResourceTopologyMap: FunctionComponent<ComponentProps> = (
     alwaysOpen: ReadonlySet<string> | undefined;
     reveal: ReadonlyArray<string> | undefined;
   } = useMemo(() => {
-    return getLaneViewOptions(graph, arrangement.lanes);
-  }, [graph, arrangement.lanes]);
+    const lanes: {
+      alwaysOpen: ReadonlySet<string> | undefined;
+      reveal: ReadonlyArray<string> | undefined;
+    } = getLaneViewOptions(graph, arrangement.lanes);
+
+    return arrangement.reveal
+      ? {
+          alwaysOpen: lanes.alwaysOpen,
+          reveal: [...(lanes.reveal || []), ...arrangement.reveal],
+        }
+      : lanes;
+  }, [graph, arrangement.lanes, arrangement.reveal]);
 
   /*
    * The page's font may arrive after the map is first laid out: its
@@ -859,6 +883,21 @@ const ResourceTopologyMap: FunctionComponent<ComponentProps> = (
             "warning",
           )
         : null}
+
+      {(props.notices || []).map(
+        (notice: ResourceTopologyNotice): ReactElement => {
+          return (
+            <React.Fragment key={notice.id}>
+              {renderNotice(
+                `resource-topology-notice-${notice.id}`,
+                notice.values
+                  ? translator.translateTemplate(notice.text, notice.values)
+                  : tx(notice.text, translator),
+              )}
+            </React.Fragment>
+          );
+        },
+      )}
 
       {props.issuesAreUnreadable
         ? renderNotice(

@@ -159,6 +159,11 @@ const criteriaByType: Record<string, [string, string, string]> = {
     "onCallDutyPolicyScheduleDescriptionPattern",
     "onCallDutyPolicyScheduleLabels",
   ],
+  OpenStackCloudLabelRule: [
+    "openStackCloudNamePattern",
+    "openStackCloudDescriptionPattern",
+    "openStackCloudLabels",
+  ],
   PodmanHostLabelRule: [
     "podmanHostNamePattern",
     "podmanHostDescriptionPattern",

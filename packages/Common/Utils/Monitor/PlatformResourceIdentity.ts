@@ -4,6 +4,7 @@ import {
   DockerSwarmAffectedResource,
   KubernetesAffectedResource,
   ProxmoxAffectedResource,
+  OpenStackAffectedResource,
   StorageArrayAffectedResource,
   VMwareAffectedResource,
 } from "../../Types/Monitor/MetricMonitor/MetricMonitorResponse";
@@ -17,6 +18,11 @@ export type KubernetesResourceIdentity = Omit<
 >;
 export type ProxmoxResourceIdentity = Omit<
   ProxmoxAffectedResource,
+  "metricValue" | "lowestMetricValue"
+>;
+
+export type OpenStackResourceIdentity = Omit<
+  OpenStackAffectedResource,
   "metricValue" | "lowestMetricValue"
 >;
 export type VMwareResourceIdentity = Omit<
@@ -267,6 +273,92 @@ export default class PlatformResourceIdentity {
       resourceType: series.resourceType || context.resourceType,
       scope: series.scope || context.scope,
       nodeName: series.nodeName || context.nodeName,
+    };
+  }
+
+  /*
+   * A part of an OpenStack cloud, from openstack-exporter's own labels, which spell
+   * the same thing differently series by series. A worker's `id` is not its identity
+   * (its host and binary are), and Cinder's `uuid` changes on every collection, so
+   * neither is read for one.
+   */
+  public static openstack(attributes: JSONObject): OpenStackResourceIdentity {
+    const serviceName: string | undefined =
+      PlatformResourceIdentity.readAttribute(attributes, "service");
+
+    return {
+      resourceId:
+        PlatformResourceIdentity.readAttribute(attributes, "router_id") ||
+        PlatformResourceIdentity.readAttribute(attributes, "network_id") ||
+        (serviceName
+          ? undefined
+          : PlatformResourceIdentity.readAttribute(attributes, "uuid") ||
+            PlatformResourceIdentity.readAttribute(attributes, "id")),
+      resourceName:
+        PlatformResourceIdentity.readAttribute(attributes, "name") ||
+        PlatformResourceIdentity.readAttribute(attributes, "network_name") ||
+        PlatformResourceIdentity.readAttribute(attributes, "tenant"),
+      hostName:
+        PlatformResourceIdentity.readAttribute(attributes, "hostname") ||
+        PlatformResourceIdentity.readAttribute(
+          attributes,
+          "hypervisor_hostname",
+        ) ||
+        PlatformResourceIdentity.readAttribute(attributes, "agent_host"),
+      serviceName: serviceName,
+      regionName: PlatformResourceIdentity.readAttribute(
+        attributes,
+        "openstack.region.name",
+      ),
+      projectId:
+        PlatformResourceIdentity.readAttribute(attributes, "tenant_id") ||
+        PlatformResourceIdentity.readAttribute(attributes, "project_id"),
+    };
+  }
+
+  public static openstackKey(identity: OpenStackResourceIdentity): string {
+    return [
+      identity.regionName || "",
+      identity.hostName || "",
+      identity.serviceName || "",
+      identity.resourceId || "",
+      identity.resourceName || "",
+    ].join("|");
+  }
+
+  /**
+   * A grouped OpenStack series names one part; every datapoint of it carries the
+   * same host, project and name, so the context fills what its group-by left out.
+   */
+  public static withOpenStackContext(
+    series: OpenStackResourceIdentity,
+    context: OpenStackResourceIdentity,
+  ): OpenStackResourceIdentity {
+    if (
+      !PlatformResourceIdentity.agreesOn(
+        series as JSONObject,
+        context as JSONObject,
+        [
+          "resourceId",
+          "resourceName",
+          "hostName",
+          "serviceName",
+          "regionName",
+          "projectId",
+        ],
+      )
+    ) {
+      return series;
+    }
+
+    return {
+      ...series,
+      resourceId: series.resourceId || context.resourceId,
+      resourceName: series.resourceName || context.resourceName,
+      hostName: series.hostName || context.hostName,
+      serviceName: series.serviceName || context.serviceName,
+      regionName: series.regionName || context.regionName,
+      projectId: series.projectId || context.projectId,
     };
   }
 

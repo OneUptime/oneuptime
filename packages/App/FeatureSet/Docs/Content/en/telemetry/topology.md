@@ -84,7 +84,7 @@ Click an arrow for its request rate, error rate and average latency. Between two
 
 ## Open a resource's own map
 
-A vCenter, a Kubernetes cluster, a host, a Docker or Podman host, a Docker Swarm, Proxmox or Ceph cluster and a storage array each have a **Topology** page of their own. It draws that one resource in depth, from its own inventory: what is inside what, each part coloured by how it is doing, and each open incident and alert on the part it is about.
+A vCenter, a Kubernetes cluster, a host, a Docker or Podman host, a Docker Swarm, Proxmox or Ceph cluster, an OpenStack cloud and a storage array each have a **Topology** page of their own. It draws that one resource in depth, from its own inventory: what is inside what, each part coloured by how it is doing, and each open incident and alert on the part it is about.
 
 - **Read it as a tree.** The resource is at the top, and each part's parts are drawn to its right, joined to it by a line that turns red or amber where something needs attention. Parts with trouble inside open by themselves, the round button on a part opens or closes it, and the arrow keys move through the map.
 - **Find what needs attention.** **Needs attention** keeps only the troubled parts and the path to each, and the search finds a part anywhere in the resource.

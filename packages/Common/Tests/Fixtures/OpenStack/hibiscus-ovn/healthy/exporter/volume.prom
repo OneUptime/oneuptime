@@ -1,0 +1,51 @@
+# HELP openstack_cinder_agent_state agent_state
+# TYPE openstack_cinder_agent_state gauge
+openstack_cinder_agent_state{adminState="enabled",disabledReason="",hostname="compute-01",service="cinder-scheduler",uuid="7950799b-3273-15b5-497e-ed36dabc9d12",zone="nova"} 1
+openstack_cinder_agent_state{adminState="enabled",disabledReason="",hostname="compute-01@lvmdriver-1",service="cinder-volume",uuid="23305bc5-e11a-9569-c7b0-9d3f1ba5c7d0",zone="nova"} 1
+# HELP openstack_cinder_pool_capacity_free_gb pool_capacity_free_gb
+# TYPE openstack_cinder_pool_capacity_free_gb gauge
+openstack_cinder_pool_capacity_free_gb{name="compute-01@lvmdriver-1#lvmdriver-1",vendor_name="Open Source",volume_backend_name="lvmdriver-1"} 28.5
+# HELP openstack_cinder_pool_capacity_total_gb pool_capacity_total_gb
+# TYPE openstack_cinder_pool_capacity_total_gb gauge
+openstack_cinder_pool_capacity_total_gb{name="compute-01@lvmdriver-1#lvmdriver-1",vendor_name="Open Source",volume_backend_name="lvmdriver-1"} 28.5
+# HELP openstack_cinder_snapshots snapshots
+# TYPE openstack_cinder_snapshots gauge
+openstack_cinder_snapshots 1
+# HELP openstack_cinder_up up
+# TYPE openstack_cinder_up gauge
+openstack_cinder_up 1
+# HELP openstack_cinder_volume_gb volume_gb
+# TYPE openstack_cinder_volume_gb gauge
+openstack_cinder_volume_gb{availability_zone="nova",bootable="false",id="12f5cadb-5555-41c9-ba50-59137abc5b94",name="ou-vol-bad",server_id="",status="error",tenant_id="9aee824cac87464292adffc328de1662",user_id="925ba1d4138b4a90acf70ba072086ddf",volume_type="lvmdriver-1"} 1
+openstack_cinder_volume_gb{availability_zone="nova",bootable="false",id="5d36ec28-942c-4eb1-9863-207bffbc3663",name="ou-vol-free",server_id="",status="available",tenant_id="9aee824cac87464292adffc328de1662",user_id="925ba1d4138b4a90acf70ba072086ddf",volume_type="lvmdriver-1"} 1
+openstack_cinder_volume_gb{availability_zone="nova",bootable="false",id="af48024c-9532-4dde-8639-0853510cd540",name="ou-vol-used",server_id="358ee736-ba74-40ba-a354-7ead413c5df6",status="in-use",tenant_id="9aee824cac87464292adffc328de1662",user_id="925ba1d4138b4a90acf70ba072086ddf",volume_type="lvmdriver-1"} 1
+# HELP openstack_cinder_volume_status volume_status
+# TYPE openstack_cinder_volume_status gauge
+openstack_cinder_volume_status{bootable="false",id="12f5cadb-5555-41c9-ba50-59137abc5b94",name="ou-vol-bad",server_id="",size="1",status="error",tenant_id="9aee824cac87464292adffc328de1662",volume_type="lvmdriver-1"} 9
+openstack_cinder_volume_status{bootable="false",id="5d36ec28-942c-4eb1-9863-207bffbc3663",name="ou-vol-free",server_id="",size="1",status="available",tenant_id="9aee824cac87464292adffc328de1662",volume_type="lvmdriver-1"} 1
+openstack_cinder_volume_status{bootable="false",id="af48024c-9532-4dde-8639-0853510cd540",name="ou-vol-used",server_id="358ee736-ba74-40ba-a354-7ead413c5df6",size="1",status="in-use",tenant_id="9aee824cac87464292adffc328de1662",volume_type="lvmdriver-1"} 5
+# HELP openstack_cinder_volume_status_counter volume_status_counter
+# TYPE openstack_cinder_volume_status_counter gauge
+openstack_cinder_volume_status_counter{status="attaching"} 0
+openstack_cinder_volume_status_counter{status="available"} 1
+openstack_cinder_volume_status_counter{status="awaiting-transfer"} 0
+openstack_cinder_volume_status_counter{status="backing-up"} 0
+openstack_cinder_volume_status_counter{status="creating"} 0
+openstack_cinder_volume_status_counter{status="deleting"} 0
+openstack_cinder_volume_status_counter{status="detaching"} 0
+openstack_cinder_volume_status_counter{status="downloading"} 0
+openstack_cinder_volume_status_counter{status="error"} 1
+openstack_cinder_volume_status_counter{status="error_backing-up"} 0
+openstack_cinder_volume_status_counter{status="error_deleting"} 0
+openstack_cinder_volume_status_counter{status="error_extending"} 0
+openstack_cinder_volume_status_counter{status="error_restoring"} 0
+openstack_cinder_volume_status_counter{status="extending"} 0
+openstack_cinder_volume_status_counter{status="in-use"} 1
+openstack_cinder_volume_status_counter{status="maintenance"} 0
+openstack_cinder_volume_status_counter{status="reserved"} 0
+openstack_cinder_volume_status_counter{status="restoring-backup"} 0
+openstack_cinder_volume_status_counter{status="retyping"} 0
+openstack_cinder_volume_status_counter{status="uploading"} 0
+# HELP openstack_cinder_volumes volumes
+# TYPE openstack_cinder_volumes gauge
+openstack_cinder_volumes 3
