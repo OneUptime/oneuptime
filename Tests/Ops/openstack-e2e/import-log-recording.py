@@ -37,6 +37,8 @@ RIG_SECRETS = {
     "ou-log-admin-password": "fake-admin-password",
     "ou-log-user-password": "fake-user-password",
     "ou-wrong-password": "fake-wrong-password",
+    "ou-log-credential-blob": "fake-credential-blob",
+    "ou-log-hash-secret": "fake-hash-secret",
     "secretadmin": "fakeadmin00",
     "secretdatabase": "fakedatabase00",
     "secretrabbit": "fakerabbit00",
