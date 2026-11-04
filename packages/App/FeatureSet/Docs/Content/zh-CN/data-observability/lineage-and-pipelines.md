@@ -9,7 +9,7 @@
 | **OpenLineage** | Airflow、Dagster、Spark、dbt 或 Flink 作业的每次运行，以及它读取和写入的表 |
 | **dbt** | 每个模型由什么构建而成、作为一次运行的每次构建，以及每个测试的结果 |
 | **Fivetran 和 Airbyte** | 作为其连接器一次运行的每次同步，以及它加载的原始表 |
-| **视图** | 视图由其定义所基于的表构建而成（PostgreSQL、Redshift、MySQL 8、SQL Server、ClickHouse 物化视图、Databricks） |
+| **视图** | 视图由其定义所基于的表构建而成（PostgreSQL、Redshift、MySQL 8、SQL Server、Oracle、ClickHouse 物化视图、Databricks、MongoDB） |
 | **查询历史** | 读取一个表并写入另一个表的查询（BigQuery 的作业、Redshift 的查询日志、ClickHouse 的查询日志、Databricks 的血缘表） |
 
 表的 **血缘** 标签页显示构建它的表、写入它的管道及其最新运行，以及由它构建的表。每条边都会说明它是在哪里观察到的。

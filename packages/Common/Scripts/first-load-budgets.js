@@ -56,7 +56,8 @@ const PAGES = [
     route: "src/Pages/Login.tsx",
     // 2026-11-03: 1,264,535 bytes.
     // 2026-11-03: 1,119,050 bytes, loading the reader's language only (#5614).
-    ceiling: 1120 * KIB,
+    // 2026-11-03: 923,776 bytes, loading what it does not draw with where it is used (#5619).
+    ceiling: 920 * KIB,
   },
   {
     frontend: "Accounts",
@@ -64,7 +65,8 @@ const PAGES = [
     route: "src/Pages/Register.tsx",
     // 2026-11-03: 1,260,250 bytes.
     // 2026-11-03: 1,114,772 bytes, loading the reader's language only (#5614).
-    ceiling: 1120 * KIB,
+    // 2026-11-03: 929,191 bytes, loading what it does not draw with where it is used (#5619).
+    ceiling: 925 * KIB,
   },
   {
     frontend: "StatusPage",
@@ -72,14 +74,16 @@ const PAGES = [
     route: "src/Pages/AllPages.tsx",
     // 2026-11-03: 1,362,136 bytes.
     // 2026-11-03: 1,271,934 bytes, loading the reader's language only (#5614).
-    ceiling: 1270 * KIB,
+    // 2026-11-03: 1,101,030 bytes, loading what it does not draw with where it is used (#5619).
+    ceiling: 1095 * KIB,
   },
   {
     frontend: "PublicDashboard",
     page: "a public dashboard",
     route: "src/Pages/AllPages.tsx",
     // 2026-11-03: 1,961,449 bytes.
-    ceiling: 1960 * KIB,
+    // 2026-11-03: 1,839,798 bytes, loading what it does not draw with where it is used (#5619).
+    ceiling: 1830 * KIB,
   },
 ];
 

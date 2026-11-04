@@ -16,7 +16,7 @@ Aggiungi un controllo nella scheda **Controlli** di una tabella:
 | **Format Mismatch Percent** | Percentuale di valori che non corrispondono a un'espressione regolare (tutti i motori tranne SQL Server) |
 | **Orphan Count** | Righe il cui valore non ha corrispondenza nella colonna di un'altra tabella |
 | **Row Count** | Righe nella tabella, utile soprattutto con **Segment By** |
-| **SQL personalizzato** | Il numero restituito da una tua SELECT di sola lettura, chiamato `value` |
+| **SQL personalizzato** | Il numero restituito da una tua SELECT di sola lettura, chiamato `value` (su MongoDB, quello di una pipeline di aggregazione) |
 
 Ogni controllo viene eseguito ogni 15 minuti, ogni ora, ogni 6 ore o ogni giorno, come un'unica istruzione di aggregazione in una transazione di sola lettura con un timeout per l'istruzione. Il suo valore viene scritto come `oneuptime.data.check.value`, con `oneuptime.data.check.id`, `oneuptime.data.check.name` e `oneuptime.data.check.segment`.
 
@@ -26,7 +26,7 @@ Ogni controllo viene eseguito ogni 15 minuti, ogni ora, ogni 6 ore o ogni giorno
 
 ## Un controllo da una frase
 
-**Scrivi un controllo da una frase** trasforma una regola come «gli ordini non hanno mai un totale negativo» in un controllo SQL personalizzato che conta le righe che la violano, nel SQL del tuo motore, con un avviso non appena ce n'è qualcuna. Leggi la query prima che **Aggiungi controllo** la aggiunga, ed è soggetta a tutte le regole di qualsiasi controllo SQL personalizzato. Richiede che OneUptime AI sia attivo per il progetto.
+**Scrivi un controllo da una frase** trasforma una regola come «gli ordini non hanno mai un totale negativo» in un controllo SQL personalizzato che conta le righe che la violano, nel SQL del tuo motore, con un avviso non appena ce n'è qualcuna. Leggi la query prima che **Aggiungi controllo** la aggiunga, ed è soggetta a tutte le regole di qualsiasi controllo SQL personalizzato. Richiede che OneUptime AI sia attivo per il progetto. Su MongoDB il risultato è una pipeline di aggregazione.
 
 ## Segmenti
 

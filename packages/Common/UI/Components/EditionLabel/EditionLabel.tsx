@@ -18,7 +18,6 @@ import React, {
   useMemo,
   useState,
 } from "react";
-import GlobalConfig from "../../../Models/DatabaseModels/GlobalConfig";
 import API from "../../Utils/API/API";
 import OneUptimeDate from "../../../Types/Date";
 import HTTPMethod from "../../../Types/API/HTTPMethod";
@@ -170,12 +169,27 @@ const parseLicenseStatus: ParseLicenseStatusFunction = (
 
 type PillTone = "normal" | "warning" | "alerted";
 
+/*
+ * The license, as the label reads it off the server's answer. A plain
+ * object: it used to be built as a GlobalConfig, a database model of about a
+ * hundred columns that the sign-in and sign-up pages, which draw this label,
+ * downloaded for these six (issue #5619).
+ */
+interface LicenseConfig {
+  enterpriseCompanyName?: string | undefined;
+  enterpriseLicenseKey?: string | undefined;
+  enterpriseLicenseToken?: string | undefined;
+  enterpriseLicenseExpiresAt?: Date | undefined;
+  enterpriseLicenseUserLimit?: number | undefined;
+  enterpriseLicenseCurrentUserCount?: number | undefined;
+}
+
 const EditionLabel: FunctionComponent<ComponentProps> = (
   props: ComponentProps,
 ): ReactElement => {
   const translator: Translator = useTranslator();
   const [isDialogOpen, setIsDialogOpen] = useState<boolean>(false);
-  const [globalConfig, setGlobalConfig] = useState<GlobalConfig | null>(null);
+  const [globalConfig, setGlobalConfig] = useState<LicenseConfig | null>(null);
   /*
    * The last successful license GET, as the server sent it. Handed to the
    * license details, which read their own fields (the instances, the
@@ -351,7 +365,7 @@ const EditionLabel: FunctionComponent<ComponentProps> = (
 
         const payload: JSONObject = response.data as JSONObject;
 
-        const configModel: GlobalConfig = new GlobalConfig();
+        const configModel: LicenseConfig = {};
 
         if (payload["companyName"]) {
           configModel.enterpriseCompanyName = payload["companyName"] as string;

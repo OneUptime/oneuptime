@@ -477,6 +477,12 @@ type RunResult = { nextError: unknown };
 // res.redirect: where the mobile flows send the app its deep link.
 const resRedirect: jest.Mock = jest.fn();
 
+/*
+ * The headers every flow's request carries: the browser's, as the bundled
+ * Nginx hands them on. Empty unless a test sets them.
+ */
+let requestHeaders: Record<string, string> = {};
+
 async function invoke(data: {
   router: ExpressRouter;
   method: string;
@@ -489,7 +495,7 @@ async function invoke(data: {
     params: data.params,
     body: data.body || {},
     query: data.query || {},
-    headers: {},
+    headers: requestHeaders,
     cookies: {},
     socket: { remoteAddress: "127.0.0.1" },
     get: (): undefined => {
@@ -638,6 +644,7 @@ const confirmationMail: ConfirmationMailFunction = (): {
 };
 
 beforeEach(() => {
+  requestHeaders = {};
   jest.clearAllMocks();
 
   setTestBillingEnabled(true);
@@ -817,6 +824,29 @@ describe.each(FLOWS)(
       expect(vars["signInSummary"]).toContain('"Acme <Production>"');
       expect(vars["signInSummary"]).toContain(ASSERTED_EMAIL);
       expect(vars["info"]).toBeUndefined();
+    });
+
+    /*
+     * The project's identity provider belongs to its admins, so the person
+     * this is mailed to may never have tried to sign in: the email says when,
+     * from which address and on which device the sign-in came - the browser
+     * the provider sent back (RequestOriginUtil).
+     */
+    test("says when, from which address and on which device the sign-in came", async () => {
+      requestHeaders = {
+        "x-forwarded-for": "203.0.113.7",
+        "user-agent":
+          "Mozilla/5.0 (Macintosh; Intel Mac OS X 10_15_7) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/130.0.0.0 Safari/537.36",
+      };
+
+      await flow.run({ isMobile: false });
+
+      const vars: Record<string, string> = confirmationMail().vars;
+
+      expect(vars["requestIpAddress"]).toBe("203.0.113.7");
+      expect(vars["requestDevice"]).toBe("Chrome 130 on macOS");
+      expect(vars["requestLocation"]).toBe("");
+      expect(vars["requestedAt"]!.length).toBeGreaterThan(0);
     });
 
     test("tells the person to check their email", async () => {

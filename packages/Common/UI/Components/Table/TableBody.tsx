@@ -16,7 +16,8 @@ import { getRecordIdText } from "../ObjectID/RecordIdText";
 import useTranslator from "../../Utils/UseTranslator";
 import { Translator } from "../../Utils/TranslateTemplate";
 import React, { ReactElement } from "react";
-import { Droppable, DroppableProvided } from "react-beautiful-dnd";
+import type { DroppableProvided } from "react-beautiful-dnd";
+import { DragAndDropLibrary } from "../DragAndDrop/DragAndDropLoader";
 
 export interface ComponentProps<T extends GenericObject> {
   data: Array<T>;
@@ -25,6 +26,12 @@ export interface ComponentProps<T extends GenericObject> {
   columns: Columns<T>;
   actionButtons?: undefined | Array<ActionButtonSchema<T>> | undefined;
   enableDragAndDrop?: undefined | boolean;
+  /*
+   * The drag-and-drop library, once Table has loaded it (DragAndDropLoader).
+   * Until then the rows are drawn as they will look, grips included, and
+   * do not drag.
+   */
+  dragAndDrop?: DragAndDropLibrary | null | undefined;
   dragAndDropScope?: string | undefined;
   dragDropIdField?: keyof T | undefined;
   dragDropIndexField?: keyof T | undefined;
@@ -251,6 +258,7 @@ const TableBody: TableBodyFunction = <T extends GenericObject>(
                   {...getSelectionProps(item)}
                   dragAndDropScope={props.dragAndDropScope}
                   enableDragAndDrop={props.enableDragAndDrop}
+                  dragAndDrop={props.dragAndDrop}
                   key={getRowKey(item, i)}
                   {...getDragProps(i)}
                   item={item}
@@ -291,6 +299,7 @@ const TableBody: TableBodyFunction = <T extends GenericObject>(
                 {...getSelectionProps(item)}
                 dragAndDropScope={props.dragAndDropScope}
                 enableDragAndDrop={props.enableDragAndDrop}
+                dragAndDrop={props.dragAndDrop}
                 key={getRowKey(item, i)}
                 {...getDragProps(i)}
                 item={item}
@@ -311,6 +320,10 @@ const TableBody: TableBodyFunction = <T extends GenericObject>(
     );
   };
 
+  // The list rows are dragged within, once the library is there.
+  const Droppable: DragAndDropLibrary["Droppable"] | undefined =
+    props.enableDragAndDrop ? props.dragAndDrop?.Droppable : undefined;
+
   /*
    * A table's rows draw their cells as a table does - a record's labels on
    * the row's one line, the first two and "+N"; nothing to list as a quiet
@@ -329,7 +342,7 @@ const TableBody: TableBodyFunction = <T extends GenericObject>(
             <TableColumnsInViewContext.Provider
               value={props.columnsInView || null}
             >
-              {props.enableDragAndDrop ? (
+              {Droppable ? (
                 <Droppable droppableId={props.dragAndDropScope || ""}>
                   {(provided: DroppableProvided) => {
                     return getBody(provided);

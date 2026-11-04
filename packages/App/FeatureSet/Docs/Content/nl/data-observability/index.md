@@ -1,6 +1,6 @@
 # Data-observability
 
-Data-observability bewaakt de tabellen waar je bedrijf op vertrouwt, in PostgreSQL, MySQL, SQL Server, Redshift, Snowflake, BigQuery, ClickHouse en Databricks, en vertelt je wanneer hun gegevens te laat, onvolledig, onjuist of kapot zijn, nog voordat de mensen die ze gebruiken het merken. Het leert zelf het ritme van elke tabel, leest de catalogus van elke database en nooit een rij, en koppelt elk gegevensprobleem aan de pipeline-uitvoering, de deploy of de stroomopwaartse tabel die erachter zit.
+Data-observability bewaakt de tabellen waar je bedrijf op vertrouwt, in PostgreSQL, MySQL, SQL Server, Oracle, MongoDB, Redshift, Snowflake, BigQuery, ClickHouse, Databricks en Athena, en vertelt je wanneer hun gegevens te laat, onvolledig, onjuist of kapot zijn, nog voordat de mensen die ze gebruiken het merken. Het leert zelf het ritme van elke tabel, leest de catalogus van elke database en nooit een rij, en koppelt elk gegevensprobleem aan de pipeline-uitvoering, de deploy of de stroomopwaartse tabel die erachter zit.
 
 Het beantwoordt vier vragen:
 

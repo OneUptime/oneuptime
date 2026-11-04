@@ -2191,6 +2191,21 @@
             "type": "integer",
             "minimum": 0
         },
+        "trustedGeoHeaders": {
+            "type": "object",
+            "properties": {
+                "country": {
+                    "type": "string"
+                },
+                "region": {
+                    "type": "string"
+                },
+                "city": {
+                    "type": "string"
+                }
+            },
+            "additionalProperties": false
+        },
         "onCallCalendarFeed": {
             "type": "object",
             "properties": {

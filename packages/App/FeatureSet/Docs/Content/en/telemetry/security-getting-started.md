@@ -64,10 +64,17 @@ At the top of **Overview**, under what needs someone, each part shows its figure
 | Azure activity and Entra ID logs | Changes made in your Azure subscriptions, Defender for Cloud alerts, and Microsoft Entra ID sign-ins and directory changes |
 | CEF | Threats, blocked connections and sign-ins from firewalls, IDS, WAFs and other security products that send Common Event Format |
 | LEEF | The same from products that send Log Event Extended Format, as many do for IBM QRadar |
+| Palo Alto Networks | Threats, blocked connections, GlobalProtect and administrator sign-ins, and configuration changes from PAN-OS's own syslog |
+| Fortinet FortiGate | IPS and antivirus findings, denied traffic, VPN and administrator sign-ins, and configuration changes from FortiGate's own syslog |
+| Cisco ASA | Denied connections, threat detection and IPS findings, VPN and administrator sign-ins, and commands from Cisco ASA and Firepower Threat Defense |
 | Kubernetes audit logs | Changes to the cluster, shells opened in pods, secrets read and refused requests |
 | Web attacks | Requests in a web server's access log that try SQL injection, path traversal or Log4Shell |
 
 Your logs stay as they are. Only the lines that matter for security become events: never every page a web server served, or every read of an API.
+
+A threat a security product writes in your logs, such as a CEF or LEEF finding or a FortiGate IPS finding, opens a case as a connected product's alert does. **Open cases from**, on **Your logs**, says from which severity: **High and above** unless you choose another, or **Never**.
+
+An AWS account, Google Cloud project or Azure subscription connected under **Cloud** needs no log pipeline: turn on **Cloud audit logs**, under **Your OneUptime data** on **Connections**, and its audit log is read with the account. See [Read your cloud accounts' audit logs](/docs/telemetry/security-events#read-your-cloud-accounts-audit-logs).
 
 ## Send what OneUptime finds to your SIEM
 
@@ -88,7 +95,7 @@ The case usually opens before the button answers; when the rule is still catchin
 :::
 
 :::details No security event comes from my logs
-Check that **Find security events in your logs** is on and that **Your logs** says when it last checked. Only the kinds of lines in the table above become events: a server that sends no SSH, sudo, Windows, audit, CEF, LEEF or access logs has nothing to find. Paste one of its lines into **Check a log line**, on **Your logs**, to see whether OneUptime reads it.
+Check that **Find security events in your logs** is on and that **Your logs** says when it last checked. Only the kinds of lines in the table above become events: a server that sends no SSH, sudo, Windows, audit, CEF, LEEF, firewall or access logs has nothing to find. Paste one of its lines into **Check a log line**, on **Your logs**, to see whether OneUptime reads it.
 :::
 
 :::details Overview says the last security event arrived days ago

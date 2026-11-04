@@ -159,6 +159,13 @@ const ESCALATE_KEYS: Array<string> = [
   "You are not being paged about this right now.",
   "{{names}} are still being paged.",
   "{{names}} are still being paged._one",
+  // Picking a later level than the next (fu-incidents-oncall-more).
+  "Not escalated",
+  "Escalate to",
+  "{{policy}}: escalate to",
+  "It skips {{levels}}.",
+  "The policy's levels have changed, so nothing was escalated. Escalate again to pick a level.",
+  "The page was escalated past this level",
 ];
 
 /*

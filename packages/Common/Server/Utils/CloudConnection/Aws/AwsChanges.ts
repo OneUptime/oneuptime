@@ -8,6 +8,7 @@ import {
 } from "../../LlmObservability/LlmProviderHttp";
 import LlmProviderError from "../../LlmObservability/LlmProviderError";
 import {
+  CloudAuditRecord,
   CloudChange,
   CloudConnectorCallOptions,
   CloudReadBudget,
@@ -30,7 +31,10 @@ import { AwsCredentials, awsErrorCodeOf, sendAwsRequest } from "./AwsApi";
  *   agent reporting a task's state - are left out (isAwsChangeNoise). Of
  *   CloudTrailEvent only the error code, the Region and who called
  *   (userIdentity.arn) are read: its request parameters can carry
- *   anything, and are never kept.
+ *   anything, and are never kept - unless the project's Security Events
+ *   read the account's audit log (Cloud audit logs, keepAuditRecords):
+ *   then each event's CloudTrailEvent is handed back whole, sign-ins too,
+ *   for the CloudTrail parser to judge.
  *
  *   AWS Health DescribeEvents (AWS JSON 1.1, target
  *   AWSHealth_20160804.DescribeEvents, in the partition's home Region), and
@@ -99,7 +103,7 @@ export function isAwsChangeNoise(
 }
 
 // A CloudTrailEvent document, for its error code; {} when unreadable.
-function parseTrailEvent(value: unknown): JSONObject {
+export function parseTrailEvent(value: unknown): JSONObject {
   if (typeof value !== "string" || !value.trim().startsWith("{")) {
     return {};
   }
@@ -175,8 +179,15 @@ export async function lookupAwsChanges(data: {
   end: Date;
   options: CloudConnectorCallOptions;
   budget: CloudReadBudget;
-}): Promise<{ changes: Array<CloudChange>; complete: boolean }> {
+  // Also hand back each event's CloudTrail record (CloudAuditRecord).
+  keepAuditRecords?: boolean | undefined;
+}): Promise<{
+  changes: Array<CloudChange>;
+  complete: boolean;
+  auditRecords: Array<CloudAuditRecord>;
+}> {
   const changes: Array<CloudChange> = [];
+  const auditRecords: Array<CloudAuditRecord> = [];
   let token: string = "";
 
   for (let page: number = 0; page < AWS_CHANGE_MAX_PAGES; page++) {
@@ -208,8 +219,9 @@ export async function lookupAwsChanges(data: {
     });
 
     for (const raw of readArray(answer.json["Events"])) {
+      const event: JSONObject = readObject(raw);
       const change: CloudChange | null = readAwsTrailEvent({
-        event: readObject(raw),
+        event,
         accountId: data.accountId,
         region: data.region,
       });
@@ -217,18 +229,26 @@ export async function lookupAwsChanges(data: {
       if (change) {
         changes.push(change);
       }
+
+      if (data.keepAuditRecords) {
+        const record: JSONObject = parseTrailEvent(event["CloudTrailEvent"]);
+
+        if (readText(record["eventID"])) {
+          auditRecords.push({ accountId: data.accountId, record });
+        }
+      }
     }
 
     const next: string = readText(answer.json["NextToken"]);
 
     if (!next || next === token) {
-      return { changes, complete: true };
+      return { changes, complete: true, auditRecords };
     }
 
     token = next;
   }
 
-  return { changes, complete: false };
+  return { changes, complete: false, auditRecords };
 }
 
 // AWS Health's event codes read as words: "AWS_EC2_OPERATIONAL_ISSUE" -> "EC2 operational issue".
