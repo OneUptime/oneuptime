@@ -6199,7 +6199,7 @@ test.describe("detections", () => {
       await expect(
         panel.getByTestId("rule-library-details-how-to-send"),
       ).toContainText(
-        "Send CloudTrail to OneUptime as logs and find security events in your logs.",
+        "Connect the AWS account under Cloud and turn on Cloud audit logs, or send CloudTrail to OneUptime as logs and find security events in your logs.",
       );
       await expect(
         panel.getByTestId("rule-library-details-runs"),

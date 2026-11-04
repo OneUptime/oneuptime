@@ -43,11 +43,13 @@ const readPermissions: Array<Permission> = [
 /*
  * "Your OneUptime data" as security sources: one row per project per kind
  * of telemetry beyond logs (Types/SecurityEvent/SecurityTelemetrySource) -
- * traces, network flows, the audit log, session replays. While one is on, a
+ * traces, network flows, the audit log, session replays, and the audit
+ * logs of the cloud accounts connected under Cloud. While one is on, a
  * Workers job reads what arrived of that kind for what an attack leaves in
- * it (Server/Utils/SecurityEvent/TelemetryScan) and stores each finding as
- * a security event, so the detection rules run on data the project
- * already has. "Your logs" keeps its own record (SecurityLogSource).
+ * it (Server/Utils/SecurityEvent/TelemetryScan; a cloud account's own read
+ * for cloud audit logs, Server/Utils/SecurityEvent/CloudAudit) and stores
+ * each finding as a security event, so the detection rules run on data the
+ * project already has. "Your logs" keeps its own record (SecurityLogSource).
  *
  * The scan reads what arrived since `cursor`, a window at a time; the
  * counts of the last scan are kept so the Connections page can say what it
@@ -71,7 +73,7 @@ const readPermissions: Array<Permission> = [
   pluralName: "Security Telemetry Sources",
   icon: IconProp.Signal,
   tableDescription:
-    "Whether OneUptime looks for security events in one kind of telemetry the project already sends it - traces, network flows, the audit log or session replays - and what the last look found.",
+    "Whether OneUptime looks for security events in one kind of telemetry the project already sends it - traces, network flows, the audit log, session replays or the audit logs of its connected cloud accounts - and what the last look found.",
 })
 @TableAccessControl({
   create: adminPermissions,
@@ -139,7 +141,7 @@ export default class SecurityTelemetrySource extends BaseModel {
     canReadOnRelationQuery: true,
     title: "Kind",
     description:
-      "Which telemetry this source reads: 'traces', 'network-flows', 'audit-log' or 'rum-sessions'. Fixed once created.",
+      "Which telemetry this source reads: 'traces', 'network-flows', 'audit-log', 'rum-sessions' or 'cloud-audit' (the audit logs of the cloud accounts connected under Cloud). Fixed once created.",
   })
   @Column({
     nullable: false,
