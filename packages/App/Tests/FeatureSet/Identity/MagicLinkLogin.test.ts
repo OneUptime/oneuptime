@@ -17,6 +17,7 @@ import { EncryptionSecret } from "Common/Server/EnvironmentConfig";
 import UserService from "Common/Server/Services/UserService";
 import PasswordHash from "Common/Server/Utils/PasswordHash";
 import TotpAuth from "Common/Server/Utils/TotpAuth";
+import TwoFactorWrongCodes from "Common/Server/Utils/TwoFactorWrongCodes";
 import {
   ExpressRequest,
   ExpressResponse,
@@ -343,6 +344,7 @@ jest.mock("Common/Server/Utils/JsonWebToken", () => {
 });
 
 const sendVerificationEmail: jest.Mock = jest.fn();
+const sendTwoFactorWrongCodesEmail: jest.Mock = jest.fn();
 
 jest.mock("../../../FeatureSet/Identity/Utils/AuthenticationEmail", () => {
   return {
@@ -352,7 +354,9 @@ jest.mock("../../../FeatureSet/Identity/Utils/AuthenticationEmail", () => {
         return sendVerificationEmail(...args);
       },
       sendTwoFactorBackupCodeUsedEmail: jest.fn(),
-      sendTwoFactorWrongCodesEmail: jest.fn(),
+      sendTwoFactorWrongCodesEmail: (...args: Array<unknown>): unknown => {
+        return sendTwoFactorWrongCodesEmail(...args);
+      },
       sendCompleteRegistrationEmail: jest.fn(),
     },
   };
@@ -1435,6 +1439,111 @@ describe("POST /login-with-magic-link - an account with two factor authenticatio
 
     expect(signedIn()).toBe(true);
     expect(isLinkStillStored()).toBe(false);
+  });
+
+  /*
+   * The email says something else for each: somebody who opened a link can
+   * read the mailbox, and a new password does not secure that
+   * (Templates/TwoFactorWrongCodes.hbs). What it says is
+   * TwoFactorWrongCodesEmail.test.ts, and when the count tells the owner is
+   * TwoFactorWrongCodesSignIn.test.ts.
+   */
+  describe("once wrong codes have begun the waits, the owner's email says what began the sign-in", () => {
+    const PASSWORD_FIELD: JSONObject = {
+      password: { _type: "HashedString", value: PASSWORD },
+    };
+
+    async function enterBackupCode(data: JSONObject): Promise<Answer> {
+      return await post("/verify-backup-code", {
+        data: { email: USER_EMAIL, backupCode: "aaaaa-bbbbb", ...data },
+      });
+    }
+
+    function saidASignInLinkBeganIt(): unknown {
+      expect(sendTwoFactorWrongCodesEmail).toHaveBeenCalledTimes(1);
+
+      return (
+        sendTwoFactorWrongCodesEmail.mock.calls[0]![0] as {
+          isMagicLinkSignIn: unknown;
+        }
+      ).isMagicLinkSignIn;
+    }
+
+    beforeEach(() => {
+      jest
+        .spyOn(TwoFactorWrongCodes, "shouldTellOwner")
+        .mockResolvedValue(true as never);
+      sendTwoFactorWrongCodesEmail.mockResolvedValue(undefined);
+    });
+
+    it("a wrong authenticator code after a link", async () => {
+      const app: ReturnType<typeof authenticatorApp> = authenticatorApp();
+      totpFindOneBy.mockResolvedValue(app.row);
+      await storeLink(TOKEN);
+
+      await verifyTotp({
+        magicLinkToken: TOKEN,
+        code: wrongCodeFor(app.code()),
+      });
+
+      expect(errorMessage()).toBe("Invalid code.");
+      expect(saidASignInLinkBeganIt()).toBe(true);
+    });
+
+    it("a wrong backup code after a link", async () => {
+      totpFindBy.mockResolvedValue([authenticatorApp().row]);
+      consumeCode.mockResolvedValue(false);
+      await storeLink(TOKEN);
+
+      await enterBackupCode({ magicLinkToken: TOKEN });
+
+      expect(errorMessage()).toBe("Invalid backup code.");
+      expect(saidASignInLinkBeganIt()).toBe(true);
+    });
+
+    it("a wrong authenticator code after the password", async () => {
+      const app: ReturnType<typeof authenticatorApp> = authenticatorApp();
+      totpFindOneBy.mockResolvedValue(app.row);
+
+      await verifyTotp({ ...PASSWORD_FIELD, code: wrongCodeFor(app.code()) });
+
+      expect(errorMessage()).toBe("Invalid code.");
+      expect(saidASignInLinkBeganIt()).toBe(false);
+    });
+
+    it("a wrong backup code after the password", async () => {
+      totpFindBy.mockResolvedValue([authenticatorApp().row]);
+      consumeCode.mockResolvedValue(false);
+
+      await enterBackupCode(PASSWORD_FIELD);
+
+      expect(errorMessage()).toBe("Invalid backup code.");
+      expect(saidASignInLinkBeganIt()).toBe(false);
+    });
+
+    it("the password's email, even with a link waiting unused on the account", async () => {
+      const app: ReturnType<typeof authenticatorApp> = authenticatorApp();
+      totpFindOneBy.mockResolvedValue(app.row);
+      await storeLink(TOKEN);
+
+      await verifyTotp({ ...PASSWORD_FIELD, code: wrongCodeFor(app.code()) });
+
+      expect(saidASignInLinkBeganIt()).toBe(false);
+    });
+
+    it("no email for a link that does not work: it reaches neither the count nor the owner", async () => {
+      const app: ReturnType<typeof authenticatorApp> = authenticatorApp();
+      totpFindOneBy.mockResolvedValue(app.row);
+      await storeLink(TOKEN, -1);
+
+      await verifyTotp({
+        magicLinkToken: TOKEN,
+        code: wrongCodeFor(app.code()),
+      });
+
+      expect(errorMessage()).toBe(MAGIC_LINK_INVALID_MESSAGE);
+      expect(sendTwoFactorWrongCodesEmail).not.toHaveBeenCalled();
+    });
   });
 
   it("refuses the second step once the link is spent, whatever the code", async () => {
