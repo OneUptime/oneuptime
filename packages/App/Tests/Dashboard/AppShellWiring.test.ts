@@ -168,7 +168,7 @@ describe("command palette: mounted with the always-on chrome", () => {
   });
 
   test("the palette renders beside Ask AI, ahead of the routed pages", () => {
-    const aiChatIndex: number = APP_SOURCE.indexOf("<AskAiDialog");
+    const aiChatIndex: number = APP_SOURCE.indexOf("<AskAiPanel");
     const paletteIndex: number = APP_SOURCE.indexOf("<DashboardCommandPalette");
     const routedTreeIndex: number = APP_SOURCE.indexOf("<ErrorBoundary");
 

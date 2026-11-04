@@ -42427,6 +42427,7 @@
   "Connect your Mattermost account": "حساب Mattermost خود را وصل کنید",
   "Create a bot account for OneUptime in Mattermost, add it to your team, and paste its access token here.": "در Mattermost یک حساب ربات برای OneUptime بسازید، آن را به تیم خود اضافه کنید و توکن دسترسی آن را اینجا وارد کنید.",
   "Disconnect Mattermost": "قطع اتصال Mattermost",
+  "Drag to resize": "برای تغییر اندازه بکشید",
   "If Mattermost already has a channel with this name, OneUptime adds -2 to the end.": "اگر Mattermost از پیش کانالی با این نام داشته باشد، OneUptime در انتها ‎-2 اضافه می‌کند.",
   "In Mattermost, go to Integrations → Bot Accounts, add a bot for OneUptime and copy its access token. Then add the bot to your team.": "در Mattermost به یکپارچه‌سازی‌ها ← حساب‌های ربات بروید، یک ربات برای OneUptime اضافه کنید و توکن دسترسی آن را کپی کنید. سپس ربات را به تیم خود اضافه کنید.",
   "It posts as @{{bot}} on {{server}}: what your notification rules send, a channel for each incident with its people added. Each member connects their own Mattermost account to act as themselves.": "با نام @{{bot}} در {{server}} ارسال می‌کند: آنچه قانون‌های اعلان شما می‌فرستند، و برای هر رخداد یک کانال که افرادش به آن اضافه می‌شوند. هر عضو حساب Mattermost خودش را متصل می‌کند تا با نام خودش اقدام کند.",
@@ -42440,6 +42441,7 @@
   "OneUptime sent a link to @{{username}} in Mattermost. Open it in this browser to finish connecting. It works once, for 15 minutes.": "OneUptime پیوندی برای @{{username}} در Mattermost فرستاد. برای تکمیل اتصال، آن را در همین مرورگر باز کنید. این پیوند یک بار و به مدت ۱۵ دقیقه کار می‌کند.",
   "Post incidents, alerts and scheduled maintenance to your Mattermost channels, give each incident a channel of its own, and let your team acknowledge and resolve from Mattermost.": "رخدادها، هشدارها و نگهداری‌های برنامه‌ریزی‌شده را در کانال‌های Mattermost خود ارسال کنید، برای هر رخداد کانالی جداگانه بسازید و بگذارید تیم شما از همان Mattermost آن‌ها را تأیید و حل کند.",
   "Post notifications to your Mattermost channels and act on them from Mattermost.": "اعلان‌ها را در کانال‌های Mattermost خود ارسال کنید و از همان Mattermost به آن‌ها رسیدگی کنید.",
+  "Resize Ask AI": "تغییر اندازه پرسش از هوش مصنوعی",
   "Send a link to your Mattermost account": "ارسال پیوند به حساب Mattermost شما",
   "Send link": "ارسال پیوند",
   "Send link to @{{username}}": "ارسال پیوند به @{{username}}",
@@ -42470,5 +42472,6 @@
   "In Slack": "در Slack",
   "Runbook Track Record": "نتایج پیشین رانبوک",
   "Where fixes were approved": "جایی که اصلاح‌ها تأیید شدند",
-  "You do not have permission to dismiss this fix. Dismissing a fix needs the same permission as approving one: starting runbook executions in this project.": "اجازهٔ رد کردن این اصلاح را ندارید. رد کردن یک اصلاح همان اجازه‌ای را می‌خواهد که تأیید آن: شروع اجرای رانبوک‌ها در این پروژه."
+  "You do not have permission to dismiss this fix. Dismissing a fix needs the same permission as approving one: starting runbook executions in this project.": "اجازهٔ رد کردن این اصلاح را ندارید. رد کردن یک اصلاح همان اجازه‌ای را می‌خواهد که تأیید آن: شروع اجرای رانبوک‌ها در این پروژه.",
+  "Disable Sign-In Links": "Disable Sign-In Links"
 }

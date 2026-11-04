@@ -25,16 +25,11 @@ export interface ComponentProps {
   onAsk: (question: string) => void;
   /*
    * What the user was looking at when they opened Ask AI. When attached, the
-   * suggestions are that page's own, and the composer's pill under the
-   * heading says what the question is about.
+   * suggestions are that page's own, and the composer's pill under them says
+   * what the question is about.
    */
   pageContext?: DashboardPageContext | null | undefined;
   isPageContextAttached?: boolean | undefined;
-  /*
-   * The composer, drawn under the heading: the first thing a new
-   * conversation asks for is the question, so that is where it starts.
-   */
-  composer?: ReactElement | undefined;
 }
 
 // How many recent conversations the start shows; the rest are a click away.
@@ -42,13 +37,12 @@ export const RECENT_CONVERSATIONS_SHOWN: number = 3;
 
 /*
  * The start of a conversation: one question. What it is about is said once,
- * by the composer's pill right under it ("This incident · INC-42 Checkout
- * latency above 2s") - a heading that said it again ("What would you like
- * to know about this incident?") was a second line saying the same, and a
- * sentence no language with genders could word for every kind of page.
- * With no page behind it, one sentence says where answers come from and
- * that Ask AI can act - incidents and alerts alike (#5301) - only with
- * approval.
+ * by the composer's pill under it ("This incident · INC-42 Checkout latency
+ * above 2s") - a heading that said it again ("What would you like to know
+ * about this incident?") was a second line saying the same, and a sentence no
+ * language with genders could word for every kind of page. With no page behind
+ * it, one sentence says where answers come from and that Ask AI can act -
+ * incidents and alerts alike (#5301) - only with approval.
  */
 export const HOME_HEADING: string = translationKey(
   "What would you like to know?",
@@ -59,8 +53,8 @@ export const HOME_SENTENCE: string = translationKey(
 );
 
 /*
- * The suggestions are English keys. Each chip shows its title in the
- * reader's language, says its whole question on hover, and asks it.
+ * The suggestions are English keys. Each shows its title in the reader's
+ * language, says its whole question on hover, and asks it.
  */
 const genericSuggestions: Array<SuggestedQuestion> = [
   {
@@ -88,12 +82,14 @@ const genericSuggestions: Array<SuggestedQuestion> = [
 ];
 
 /*
- * Ask AI's first step: one question in the middle, the composer right under
- * it, the page's own suggestions as quiet chips, and the last few
- * conversations to pick up again. The suggestions are the page's when Ask
- * AI was opened on a page it knows (an incident, a host, the logs), and
- * general ones otherwise - never both, which put eight cards and two
- * paragraphs between the person and the box they came to type in.
+ * Ask AI's first step, over the composer at the panel's foot: one question,
+ * the page's own suggestions as a short list to pick from - a list because the
+ * panel is narrow and a German title is long - and the last few conversations
+ * to pick up again. The suggestions are the page's when Ask AI is open on a
+ * page it knows (an incident, a host, the logs), and general ones otherwise -
+ * never both, which put eight cards and two paragraphs between the person and
+ * the box they came to type in. They follow the page as the person moves
+ * around beside the panel.
  */
 const ChatHomeView: FunctionComponent<ComponentProps> = (
   props: ComponentProps,
@@ -132,54 +128,55 @@ const ChatHomeView: FunctionComponent<ComponentProps> = (
         onClick={() => {
           props.onAsk(question);
         }}
-        className={`inline-flex max-w-full items-center gap-1.5 rounded-full border border-gray-200 bg-white px-3 py-1.5 text-xs font-medium text-gray-700 transition-colors focus:outline-none focus-visible:ring-2 focus-visible:ring-indigo-500 ${getHandDrawnButtonStateClassName(
+        className={`group flex w-full items-center gap-2.5 px-3 py-2.5 text-start text-sm font-medium text-gray-700 transition-colors focus:outline-none focus-visible:ring-2 focus-visible:ring-inset focus-visible:ring-indigo-500 ${getHandDrawnButtonStateClassName(
           {
             isLocked: props.isSending,
-            hoverClassName:
-              "hover:border-gray-300 hover:bg-gray-50 hover:text-gray-900",
+            hoverClassName: "hover:bg-gray-50 hover:text-gray-900",
           },
         )}`}
       >
         <Icon
           icon={suggestion.icon}
-          className="h-3.5 w-3.5 flex-shrink-0 text-gray-400"
+          className="h-4 w-4 flex-shrink-0 text-indigo-500"
         />
-        <span className="truncate" dir="auto">
+        <span className="min-w-0 flex-1 truncate" dir="auto">
           {translator.translateText(suggestion.title)}
         </span>
+        {/* Sent as soon as it is picked: the arrow the send button carries. */}
+        <Icon
+          icon={IconProp.ArrowUp}
+          className="h-3.5 w-3.5 flex-shrink-0 text-gray-400 opacity-0 transition-opacity duration-150 group-hover:opacity-100 group-focus-visible:opacity-100 motion-reduce:transition-none"
+        />
       </button>
     );
   };
 
   return (
     /*
-     * In the middle of the dialog when it fits (the auto margins), from the
-     * top when it does not: a phone scrolls the start, never cuts its top.
+     * In the middle of the space when it fits (the auto margins), from the
+     * top when it does not: a short window scrolls the start, never cuts its
+     * top.
      */
     <div className="flex min-h-full flex-col">
       <div
         data-testid="ai-chat-home"
-        className="ou-ai-rise mx-auto my-auto flex w-full max-w-2xl flex-col px-4 py-10 sm:px-6"
+        className="ou-ai-rise mx-auto my-auto flex w-full max-w-2xl flex-col px-4 pb-8 pt-6"
       >
-        <div className="flex flex-col items-center text-center">
-          <AskAiMark size={AskAiMarkSize.Large} />
-          <h3 className="mt-4 text-balance text-xl font-semibold tracking-tight text-gray-900">
-            {translator.translateText(HOME_HEADING)}
-          </h3>
-          {context ? (
-            <></>
-          ) : (
-            <p className="mt-1.5 max-w-md text-balance text-sm leading-6 text-gray-500">
-              {translator.translateText(HOME_SENTENCE)}
-            </p>
-          )}
-        </div>
-
-        {props.composer ? <div className="mt-6">{props.composer}</div> : <></>}
+        <AskAiMark size={AskAiMarkSize.Large} />
+        <h3 className="mt-4 text-balance text-lg font-semibold tracking-tight text-gray-900">
+          {translator.translateText(HOME_HEADING)}
+        </h3>
+        {context ? (
+          <></>
+        ) : (
+          <p className="mt-1 text-balance text-sm leading-6 text-gray-500">
+            {translator.translateText(HOME_SENTENCE)}
+          </p>
+        )}
 
         <div
           data-testid="ai-chat-suggestions"
-          className="mt-4 flex flex-wrap justify-center gap-2"
+          className="mt-5 divide-y divide-gray-100 overflow-hidden rounded-xl border border-gray-200"
         >
           {suggestions.map(renderSuggestion)}
         </div>
@@ -188,9 +185,9 @@ const ChatHomeView: FunctionComponent<ComponentProps> = (
           <section
             aria-labelledby={recentHeadingId}
             data-testid="ai-chat-recent"
-            className="mt-10"
+            className="mt-6"
           >
-            <div className="flex items-center justify-between gap-3 px-2.5">
+            <div className="flex items-center justify-between gap-3">
               <h4
                 id={recentHeadingId}
                 className="text-xs font-medium text-gray-500"
@@ -210,7 +207,7 @@ const ChatHomeView: FunctionComponent<ComponentProps> = (
                 <></>
               )}
             </div>
-            <ul role="list" className="mt-1">
+            <ul role="list" className="-mx-2.5 mt-1">
               {recentConversations.map(
                 (conversation: AIConversation): ReactElement => {
                   const conversationId: string =

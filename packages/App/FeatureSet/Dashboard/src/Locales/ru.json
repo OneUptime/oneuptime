@@ -42427,6 +42427,7 @@
   "Connect your Mattermost account": "Подключите свой аккаунт Mattermost",
   "Create a bot account for OneUptime in Mattermost, add it to your team, and paste its access token here.": "Создайте в Mattermost учётную запись бота для OneUptime, добавьте её в свою команду и вставьте сюда её токен доступа.",
   "Disconnect Mattermost": "Отключить Mattermost",
+  "Drag to resize": "Перетащите, чтобы изменить размер",
   "If Mattermost already has a channel with this name, OneUptime adds -2 to the end.": "Если в Mattermost уже есть канал с таким названием, OneUptime добавит в конце -2.",
   "In Mattermost, go to Integrations → Bot Accounts, add a bot for OneUptime and copy its access token. Then add the bot to your team.": "В Mattermost откройте «Интеграции» → «Учётные записи ботов», добавьте бота для OneUptime и скопируйте его токен доступа. Затем добавьте бота в свою команду.",
   "It posts as @{{bot}} on {{server}}: what your notification rules send, a channel for each incident with its people added. Each member connects their own Mattermost account to act as themselves.": "Он публикует от имени @{{bot}} на {{server}}: то, что отправляют ваши правила уведомлений, и канал для каждого инцидента с добавленными в него участниками. Каждый участник подключает свою учётную запись Mattermost, чтобы действовать от своего имени.",
@@ -42440,6 +42441,7 @@
   "OneUptime sent a link to @{{username}} in Mattermost. Open it in this browser to finish connecting. It works once, for 15 minutes.": "OneUptime отправил ссылку пользователю @{{username}} в Mattermost. Откройте её в этом браузере, чтобы завершить подключение. Она действует один раз в течение 15 минут.",
   "Post incidents, alerts and scheduled maintenance to your Mattermost channels, give each incident a channel of its own, and let your team acknowledge and resolve from Mattermost.": "Публикуйте инциденты, оповещения и плановые работы в каналах Mattermost, выделяйте каждому инциденту отдельный канал, и пусть ваша команда подтверждает и закрывает их прямо из Mattermost.",
   "Post notifications to your Mattermost channels and act on them from Mattermost.": "Публикуйте уведомления в каналах Mattermost и реагируйте на них прямо из Mattermost.",
+  "Resize Ask AI": "Изменить размер панели Спросить ИИ",
   "Send a link to your Mattermost account": "Отправить ссылку в вашу учётную запись Mattermost",
   "Send link": "Отправить ссылку",
   "Send link to @{{username}}": "Отправить ссылку @{{username}}",
@@ -42470,5 +42472,6 @@
   "In Slack": "В Slack",
   "Runbook Track Record": "Прошлые результаты сценария",
   "Where fixes were approved": "Где одобрены исправления",
-  "You do not have permission to dismiss this fix. Dismissing a fix needs the same permission as approving one: starting runbook executions in this project.": "У вас нет прав отклонить это исправление. Чтобы отклонить исправление, нужно то же право, что и для его одобрения: запуск выполнений сценариев в этом проекте."
+  "You do not have permission to dismiss this fix. Dismissing a fix needs the same permission as approving one: starting runbook executions in this project.": "У вас нет прав отклонить это исправление. Чтобы отклонить исправление, нужно то же право, что и для его одобрения: запуск выполнений сценариев в этом проекте.",
+  "Disable Sign-In Links": "Disable Sign-In Links"
 }

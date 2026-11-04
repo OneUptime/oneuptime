@@ -42427,6 +42427,7 @@
   "Connect your Mattermost account": "Collega il tuo account Mattermost",
   "Create a bot account for OneUptime in Mattermost, add it to your team, and paste its access token here.": "Crea un account bot per OneUptime in Mattermost, aggiungilo al tuo team e incolla qui il suo token di accesso.",
   "Disconnect Mattermost": "Scollega Mattermost",
+  "Drag to resize": "Trascina per ridimensionare",
   "If Mattermost already has a channel with this name, OneUptime adds -2 to the end.": "Se Mattermost ha già un canale con questo nome, OneUptime aggiunge -2 alla fine.",
   "In Mattermost, go to Integrations → Bot Accounts, add a bot for OneUptime and copy its access token. Then add the bot to your team.": "In Mattermost, vai su Integrazioni → Account bot, aggiungi un bot per OneUptime e copia il suo token di accesso. Poi aggiungi il bot al tuo team.",
   "It posts as @{{bot}} on {{server}}: what your notification rules send, a channel for each incident with its people added. Each member connects their own Mattermost account to act as themselves.": "Pubblica come @{{bot}} su {{server}}: ciò che inviano le tue regole di notifica e un canale per ogni incidente con le sue persone aggiunte. Ogni membro collega il proprio account Mattermost per agire a proprio nome.",
@@ -42440,6 +42441,7 @@
   "OneUptime sent a link to @{{username}} in Mattermost. Open it in this browser to finish connecting. It works once, for 15 minutes.": "OneUptime ha inviato un link a @{{username}} in Mattermost. Aprilo in questo browser per completare il collegamento. Funziona una sola volta, per 15 minuti.",
   "Post incidents, alerts and scheduled maintenance to your Mattermost channels, give each incident a channel of its own, and let your team acknowledge and resolve from Mattermost.": "Pubblica incidenti, avvisi e manutenzioni programmate nei tuoi canali Mattermost, dai a ogni incidente un canale tutto suo e lascia che il tuo team li confermi e li risolva da Mattermost.",
   "Post notifications to your Mattermost channels and act on them from Mattermost.": "Pubblica le notifiche nei tuoi canali Mattermost e gestiscile direttamente da Mattermost.",
+  "Resize Ask AI": "Ridimensiona Chiedi all'IA",
   "Send a link to your Mattermost account": "Invia un link al tuo account Mattermost",
   "Send link": "Invia link",
   "Send link to @{{username}}": "Invia il link a @{{username}}",
@@ -42470,5 +42472,6 @@
   "In Slack": "In Slack",
   "Runbook Track Record": "Storico dei risultati del runbook",
   "Where fixes were approved": "Dove sono state approvate le correzioni",
-  "You do not have permission to dismiss this fix. Dismissing a fix needs the same permission as approving one: starting runbook executions in this project.": "Non hai l'autorizzazione per ignorare questa correzione. Ignorare una correzione richiede la stessa autorizzazione che approvarla: avviare esecuzioni di runbook in questo progetto."
+  "You do not have permission to dismiss this fix. Dismissing a fix needs the same permission as approving one: starting runbook executions in this project.": "Non hai l'autorizzazione per ignorare questa correzione. Ignorare una correzione richiede la stessa autorizzazione che approvarla: avviare esecuzioni di runbook in questo progetto.",
+  "Disable Sign-In Links": "Disable Sign-In Links"
 }
