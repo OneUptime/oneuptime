@@ -114,12 +114,12 @@ const USER_SETTINGS: string = readCode("Pages/Users/View/Settings.tsx");
 const PROJECT_SUPPORT: string = readCode("Pages/Projects/View/Support.tsx");
 
 describe("Settings > Authentication", () => {
-  test("is two switch cards on the one GlobalConfig row, through the admin API, and no Edit dialog", () => {
+  test("is three switch cards on the one GlobalConfig row, through the admin API, and no Edit dialog", () => {
     expect(
       AUTHENTICATION.split("<ModelSwitchCard<GlobalConfig>").length - 1,
-    ).toBe(2);
-    expect(AUTHENTICATION.split("modelAPI={AdminModelAPI}").length - 1).toBe(2);
-    expect(AUTHENTICATION.split("modelId={globalConfigId}").length - 1).toBe(2);
+    ).toBe(3);
+    expect(AUTHENTICATION.split("modelAPI={AdminModelAPI}").length - 1).toBe(3);
+    expect(AUTHENTICATION.split("modelId={globalConfigId}").length - 1).toBe(3);
     expect(AUTHENTICATION).toContain(
       "const globalConfigId: ObjectID = ObjectID.getZeroObjectID();",
     );
@@ -127,23 +127,30 @@ describe("Settings > Authentication", () => {
     expect(AUTHENTICATION).not.toContain("editButtonText");
   });
 
-  test("sign up and project creation read on = people can, over the disable columns", () => {
+  test("sign up, sign-in links and project creation read on = people can, over the disable columns", () => {
     expect(AUTHENTICATION).toContain(
       'column="disableSignup" isInverted={true}',
+    );
+    expect(AUTHENTICATION).toContain(
+      'column="disableMagicLinkLogin" isInverted={true}',
     );
     expect(AUTHENTICATION).toContain(
       'column="disableUserProjectCreation" isInverted={true}',
     );
   });
 
-  test("in the order sign up, project creation; Require SSO is not here", () => {
+  test("in the order sign up, sign-in links, project creation; Require SSO is not here", () => {
     const signUp: number = AUTHENTICATION.indexOf('column="disableSignup"');
+    const signInLinks: number = AUTHENTICATION.indexOf(
+      'column="disableMagicLinkLogin"',
+    );
     const projects: number = AUTHENTICATION.indexOf(
       'column="disableUserProjectCreation"',
     );
 
     expect(signUp).toBeGreaterThan(-1);
-    expect(signUp).toBeLessThan(projects);
+    expect(signUp).toBeLessThan(signInLinks);
+    expect(signInLinks).toBeLessThan(projects);
     expect(AUTHENTICATION).not.toContain('column="requireSsoForLogin"');
     // Neither asks.
     expect(AUTHENTICATION).not.toContain("getConfirmation=");
@@ -157,6 +164,20 @@ describe("Settings > Authentication", () => {
     );
     expect(AUTHENTICATION).toContain(
       "translator.translateText(SIGN_UP_WHILE_SSO_REQUIRED)",
+    );
+  });
+
+  // So does Sign-In Links: the sign-in page offers SSO alone then.
+  test("Sign-In Links reads requireSsoForLogin with its own column, and says so only while it is on", () => {
+    expect(
+      AUTHENTICATION.split("select={{ requireSsoForLogin: true }}").length - 1,
+    ).toBe(2);
+    expect(
+      AUTHENTICATION.split("if (!item.requireSsoForLogin) { return null; }")
+        .length - 1,
+    ).toBe(2);
+    expect(AUTHENTICATION).toContain(
+      't("pages.settings.authentication.magicLinkWhileSsoRequired")',
     );
   });
 });
