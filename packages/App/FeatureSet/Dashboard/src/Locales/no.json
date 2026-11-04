@@ -22016,7 +22016,7 @@
   "Exceptions this service recorded in each interval. Unhandled ones were marked as escaping the operation (span) that raised them; handled ones are the rest - usually caught by your code, or not marked either way by your SDK.": "Exceptions this service recorded in each interval. Unhandled ones were marked as escaping the operation (span) that raised them; handled ones are the rest - usually caught by your code, or not marked either way by your SDK.",
   "Exceptions thrown in .NET code in each interval, including ones your code caught. Worked out from the highest running counter among instances and exception types, so it is approximate; as a tile it shows the total for the selected range.": "Exceptions thrown in .NET code in each interval, including ones your code caught. Worked out from the highest running counter among instances and exception types, so it is approximate; as a tile it shows the total for the selected range.",
   "Exceptions your app reported in each interval of the selected range.": "Exceptions your app reported in each interval of the selected range.",
-  "Explore": "Explore",
+  "Explore": "Utforsk",
   "Failing since {{time}}": "Failing since {{time}}",
   "Filter {{count}} series": "Filtrer {{count}} serier",
   "Filtered by trace": "Filtrert etter spor",

@@ -80,6 +80,9 @@ const TOOLBAR_WORDS: ReadonlyArray<string> = [
   "+{{count}} more series",
 ];
 
+// A metric's row on a Metrics tab (Components/Metrics/MetricRow): its hover link.
+const ROW_WORDS: ReadonlyArray<string> = ["Explore"];
+
 function readJson(file: string): unknown {
   return JSON.parse(fs.readFileSync(file, "utf8"));
 }
@@ -144,6 +147,7 @@ describe("the unit names", () => {
         ...RATE_PERIOD_NAMES,
         UNIT_RATE_TEMPLATE,
         ...TOOLBAR_WORDS,
+        ...ROW_WORDS,
       ].filter((key: string): boolean => {
         return (
           words[key] === ENGLISH[key] &&
