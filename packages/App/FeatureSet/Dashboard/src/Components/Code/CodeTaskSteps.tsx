@@ -5,10 +5,53 @@ import Icon from "Common/UI/Components/Icon/Icon";
 import TranslatedSentence from "Common/UI/Components/TranslatedSentence/TranslatedSentence";
 import { Translator } from "Common/UI/Utils/TranslateTemplate";
 import useTranslator from "Common/UI/Utils/UseTranslator";
-import React, { FunctionComponent, ReactElement, useState } from "react";
+import React, {
+  FunctionComponent,
+  MutableRefObject,
+  ReactElement,
+  useEffect,
+  useRef,
+  useState,
+} from "react";
 
 // While the AI works, the latest steps show; the rest fold.
 export const LIVE_STEPS_SHOWN: number = 6;
+
+/*
+ * A step that arrives while the reader watches rises into place, as Ask
+ * AI's answers do (ou-ai-rise, Theme.css): once, as it is drawn, and not at
+ * all for a reader who asks for less motion. What the list held when it was
+ * first drawn was not seen arriving, and a step drawn again - shown by Show
+ * earlier steps - never rises.
+ */
+export const ARRIVED_STEP_CLASS_NAME: string = "ou-ai-rise";
+
+/*
+ * Whether a step arrived while the reader watched: drawn while AI works,
+ * after the last step the list had drawn before (null on its first
+ * drawing).
+ */
+export const isArrivedStep: (data: {
+  sequence: number;
+  drawnUpTo: number | null;
+  isLive: boolean;
+}) => boolean = (data: {
+  sequence: number;
+  drawnUpTo: number | null;
+  isLive: boolean;
+}): boolean => {
+  return (
+    data.isLive && data.drawnUpTo !== null && data.sequence > data.drawnUpTo
+  );
+};
+
+/*
+ * The "Show 3 earlier steps" line and the finished turn's summary are
+ * buttons of one look: a quiet line that lights up under the pointer and
+ * rings under the keyboard.
+ */
+const STEPS_BUTTON_CLASS_NAME: string =
+  "-ml-1.5 rounded-md px-1.5 py-0.5 text-xs font-medium leading-5 text-gray-500 transition-colors hover:bg-gray-100 hover:text-gray-700 focus:outline-none focus-visible:ring-2 focus-visible:ring-indigo-500";
 
 export interface ComponentProps {
   steps: Array<CodeTaskStepJSON>;
@@ -46,6 +89,43 @@ const CodeTaskSteps: FunctionComponent<ComponentProps> = (
 ): ReactElement => {
   const translator: Translator = useTranslator();
   const [isOpen, setIsOpen] = useState<boolean>(false);
+
+  /*
+   * The last step the list had drawn before this drawing: a step after it
+   * arrived while the reader watched. The turn draws the list from its
+   * start, before its first step, so even its first steps are seen coming.
+   */
+  const drawnUpToRef: MutableRefObject<number | null> = useRef<number | null>(
+    null,
+  );
+  const drawnUpTo: number | null = drawnUpToRef.current;
+  const lastSequence: number = props.steps.reduce(
+    (last: number, step: CodeTaskStepJSON): number => {
+      return Math.max(last, step.sequence);
+    },
+    -1,
+  );
+
+  useEffect(() => {
+    drawnUpToRef.current = Math.max(drawnUpToRef.current ?? -1, lastSequence);
+  });
+
+  // The steps' list, which Show earlier steps hands the focus to.
+  const listRef: React.RefObject<HTMLOListElement> =
+    useRef<HTMLOListElement>(null);
+  const shouldFocusListRef: MutableRefObject<boolean> = useRef<boolean>(false);
+
+  /*
+   * Showing the earlier steps removes the button that was pressed. Focus
+   * goes to the list it opened, or a keyboard reader is dropped at the top
+   * of the page - as the AI investigation's Show earlier messages does.
+   */
+  useEffect(() => {
+    if (isOpen && shouldFocusListRef.current) {
+      shouldFocusListRef.current = false;
+      listRef.current?.focus({ preventScroll: true });
+    }
+  }, [isOpen]);
 
   if (props.steps.length === 0) {
     return <></>;
@@ -122,7 +202,7 @@ const CodeTaskSteps: FunctionComponent<ComponentProps> = (
           onClick={() => {
             setIsOpen(!isOpen);
           }}
-          className="-ml-1.5 inline-flex items-start gap-1 rounded-md px-1.5 py-0.5 text-left text-xs font-medium leading-5 text-gray-500 transition-colors hover:bg-gray-100 hover:text-gray-700 focus:outline-none focus-visible:ring-2 focus-visible:ring-indigo-500"
+          className={`${STEPS_BUTTON_CLASS_NAME} inline-flex items-start gap-1 text-left`}
         >
           {/* A summary too long for one line wraps under itself, from the left. */}
           <Icon
@@ -142,11 +222,18 @@ const CodeTaskSteps: FunctionComponent<ComponentProps> = (
           {hiddenCount > 0 ? (
             <button
               type="button"
+              data-testid="code-task-steps-earlier"
               onClick={() => {
+                shouldFocusListRef.current = true;
                 setIsOpen(true);
               }}
-              className="mb-1 text-xs font-medium text-gray-500 hover:text-gray-700"
+              className={`${STEPS_BUTTON_CLASS_NAME} mb-1 inline-flex items-center gap-2`}
             >
+              {/* Above the steps' marks, its words above theirs. */}
+              <Icon
+                icon={IconProp.ChevronUp}
+                className="h-3.5 w-3.5 flex-shrink-0"
+              />
               {translator.translatePlural(
                 {
                   one: "Show {{count}} earlier step",
@@ -158,14 +245,28 @@ const CodeTaskSteps: FunctionComponent<ComponentProps> = (
           ) : (
             <></>
           )}
-          <ol className="space-y-1">
+          <ol
+            ref={listRef}
+            tabIndex={-1}
+            data-testid="code-task-steps-list"
+            className="space-y-1 focus:outline-none"
+          >
             {shownSteps.map((step: CodeTaskStepJSON) => {
+              const isArrived: boolean = isArrivedStep({
+                sequence: step.sequence,
+                drawnUpTo,
+                isLive: props.isLive,
+              });
+
               return (
                 <li
                   key={step.sequence}
                   data-testid="code-task-step"
                   data-step-kind={step.kind}
-                  className="flex items-start gap-2 leading-5"
+                  data-step-arrived={isArrived ? "true" : undefined}
+                  className={`flex items-start gap-2 leading-5${
+                    isArrived ? ` ${ARRIVED_STEP_CLASS_NAME}` : ""
+                  }`}
                 >
                   <Icon
                     icon={

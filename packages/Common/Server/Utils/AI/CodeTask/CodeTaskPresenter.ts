@@ -12,6 +12,7 @@ import AIAgentTaskPullRequest from "../../../../Models/DatabaseModels/AIAgentTas
 import AIRun from "../../../../Models/DatabaseModels/AIRun";
 import AIRunEvent from "../../../../Models/DatabaseModels/AIRunEvent";
 import AIRunStatus from "../../../../Types/AI/AIRunStatus";
+import AIRunType from "../../../../Types/AI/AIRunType";
 import { getCodeTaskRequest } from "../../../../Types/AI/CodeFixTaskContext";
 import CodeFixTaskType, {
   CodeFixTaskTypeHelper,
@@ -29,8 +30,10 @@ import {
   CodeTaskRequest,
   CodeTaskState,
   CodeTaskStateUtil,
+  CodeTaskStepJSON,
   CodeTaskSummaryJSON,
   CodeTaskTurnJSON,
+  CodeTaskTurnProgressJSON,
 } from "../../../../Types/AI/CodeTask";
 import DatabaseCommonInteractionProps from "../../../../Types/BaseDatabase/DatabaseCommonInteractionProps";
 import SortOrder from "../../../../Types/BaseDatabase/SortOrder";
@@ -58,6 +61,17 @@ import ObjectID from "../../../../Types/ObjectID";
 
 // Steps read for one turn. The Log page has the whole trail.
 export const MAX_STEPS_PER_TURN: number = 400;
+
+// What a step is read from: never a tool's arguments or output.
+export const CODE_TASK_STEP_EVENT_SELECT: Select<AIRunEvent> = {
+  _id: true,
+  aiRunId: true,
+  sequence: true,
+  eventType: true,
+  toolName: true,
+  resultSummary: true,
+  createdAt: true,
+};
 
 export default class CodeTaskPresenter {
   @CaptureSpan()
@@ -244,6 +258,88 @@ export default class CodeTaskPresenter {
         });
       }),
     };
+  }
+
+  /*
+   * How one turn of the task stands now, with the steps it took after the
+   * step the page has (`afterSequence`; -1 for none yet) - what a
+   * conversation reads each time its working turn reports a step. Null when
+   * the run is not a turn of this task.
+   *
+   * The step the page has is read again with the new ones: a step's plain
+   * copy (CodeTaskSteps.fromEvents) is told from a new note only beside
+   * the tool line it copies.
+   */
+  @CaptureSpan()
+  public static async getTurnProgress(data: {
+    projectId: ObjectID;
+    task: AIRun;
+    runId: ObjectID;
+    afterSequence: number;
+  }): Promise<CodeTaskTurnProgressJSON | null> {
+    const isFirstTurn: boolean =
+      data.runId.toString().toLowerCase() ===
+      data.task.id!.toString().toLowerCase();
+
+    const turn: AIRun | null = await AIRunService.findOneBy({
+      query: {
+        _id: data.runId.toString(),
+        projectId: data.projectId,
+        runType: AIRunType.CodeFix,
+        ...(isFirstTurn ? {} : { codeTaskId: data.task.id! }),
+      },
+      select: {
+        _id: true,
+        status: true,
+        needsUserInput: true,
+        startedAt: true,
+      },
+      props: { isRoot: true },
+    });
+
+    if (!turn) {
+      return null;
+    }
+
+    const afterSequence: number = Math.max(-1, Math.floor(data.afterSequence));
+
+    const events: Array<AIRunEvent> = await AIRunEventService.findBy({
+      query: {
+        aiRunId: data.runId,
+        sequence: QueryHelper.greaterThanEqualTo(Math.max(0, afterSequence)),
+      },
+      select: CODE_TASK_STEP_EVENT_SELECT,
+      sort: { sequence: SortOrder.Ascending },
+      // One more than a read sends: that one says there are more.
+      limit: MAX_STEPS_PER_TURN + 1,
+      skip: 0,
+      props: { isRoot: true },
+    });
+
+    const hasMore: boolean = events.length > MAX_STEPS_PER_TURN;
+
+    const steps: Array<CodeTaskStepJSON> = CodeTaskSteps.fromEvents(
+      hasMore ? events.slice(0, MAX_STEPS_PER_TURN) : events,
+    ).filter((step: CodeTaskStepJSON): boolean => {
+      return step.sequence > afterSequence;
+    });
+
+    const status: AIRunStatus = turn.status || AIRunStatus.Queued;
+
+    const progress: CodeTaskTurnProgressJSON = {
+      runId: turn.id!.toString(),
+      status,
+      state: CodeTaskStateUtil.fromRun(turn),
+      isQueued: status === AIRunStatus.Queued,
+      steps,
+      hasMore,
+    };
+
+    if (turn.startedAt) {
+      progress.startedAt = new Date(turn.startedAt).toISOString();
+    }
+
+    return progress;
   }
 
   public static toSummary(data: {
@@ -593,15 +689,7 @@ export default class CodeTaskPresenter {
       runIds.map(async (runId: ObjectID): Promise<Array<AIRunEvent>> => {
         const newestFirst: Array<AIRunEvent> = await AIRunEventService.findBy({
           query: { aiRunId: runId },
-          select: {
-            _id: true,
-            aiRunId: true,
-            sequence: true,
-            eventType: true,
-            toolName: true,
-            resultSummary: true,
-            createdAt: true,
-          },
+          select: CODE_TASK_STEP_EVENT_SELECT,
           sort: { sequence: SortOrder.Descending },
           limit: MAX_STEPS_PER_TURN,
           skip: 0,
