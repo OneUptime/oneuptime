@@ -308,6 +308,23 @@ scene_failed_build_compute() {
   openstack image delete "ou-log-broken-$PHASE"
 }
 
+# A rebuild onto the same kind of image fails on the compute host too, but inside an action Nova
+# wraps as a whole, so it says compute.exception beside instance.rebuild.error.
+scene_failed_rebuild() {
+  export OS_PROJECT_NAME=ou-payments
+  qemu-img create -f qcow2 "$PHASE_DIR/too-big.qcow2" 20G
+  openstack image create --disk-format qcow2 --container-format bare \
+    --file "$PHASE_DIR/too-big.qcow2" "ou-log-broken-rebuild-$PHASE" >/dev/null
+  rm -f "$PHASE_DIR/too-big.qcow2"
+  openstack server create --wait --flavor ou.tiny --image "$IMAGE" --network ou-net ou-log-rebuildfail
+  remember instance_rebuild_failed "$(id_of_server ou-log-rebuildfail)"
+  openstack server rebuild --image "ou-log-broken-rebuild-$PHASE" ou-log-rebuildfail || true
+  wait_for_status ou-log-rebuildfail ERROR || true
+  record_instance_actions instance_rebuild_failed "$(id_of_server ou-log-rebuildfail)"
+  openstack server delete --wait ou-log-rebuildfail
+  openstack image delete "ou-log-broken-rebuild-$PHASE"
+}
+
 # One hypervisor has nowhere to migrate to, which is a real failure a real migration can
 # have, and resizing onto the same host goes through most of a migration's steps. Only the
 # cloud's admin may migrate, and by its ID, because an admin's own project does not hold it.
@@ -710,6 +727,7 @@ scene refused scene_refused
 scene instance-lifecycle scene_instance_lifecycle
 scene failed-build-scheduler scene_failed_build_scheduler
 scene failed-build-compute scene_failed_build_compute
+scene failed-rebuild scene_failed_rebuild
 scene migrate scene_migrate
 scene service-disabled scene_service_disabled
 scene failed-volume scene_failed_volume
