@@ -1,5 +1,18 @@
-import { getAwsStoredMetricName } from "Common/Types/Cloud/CloudKeyMetrics";
+import { storedAttributesOf } from "Common/Server/Utils/CloudConnection/CloudMetricPayload";
+import EventLoop from "Common/Server/Utils/EventLoop";
+import {
+  AWS_KEY_METRICS,
+  AwsKeyMetric,
+  AwsNamespaceKeyMetrics,
+  AwsStatistic,
+  getAwsStoredMetricName,
+} from "Common/Types/Cloud/CloudKeyMetrics";
+import {
+  CloudMonitoredResource,
+  resolveCloudMonitoredResource,
+} from "Common/Types/Cloud/CloudMonitoredResource";
 import { JSONArray, JSONObject, JSONValue } from "Common/Types/JSON";
+import OldestKeyMap from "Common/Utils/OldestKeyMap";
 import OtelPayloadDecoder from "../OtelPayloadDecoder";
 
 /*
@@ -20,12 +33,14 @@ import OtelPayloadDecoder from "../OtelPayloadDecoder";
  *     region, namespace, metric_name, dimensions, timestamp (ms), value
  *     { max, min, sum, count, p99, ... } and unit.
  *
- * Both are turned into that OpenTelemetry 1.0 shape - the one a connection's
- * own reads write their CloudWatch metrics in (CloudMetricPayload) - so a
- * streamed metric and a read one are one series, and the ingest finds the
- * resource each datapoint is about with its own resolver
- * (CloudMonitoredResource). Every resource then carries the connection's
- * telemetry service and id, as a read's do.
+ * Both are turned into that OpenTelemetry 1.0 shape, with the Namespace and
+ * Dimensions a connection's own reads write on each datapoint
+ * (CloudMetricPayload), so the ingest finds the resource each datapoint is
+ * about with its own resolver (CloudMonitoredResource). Every resource then
+ * carries the connection's telemetry service and id, as a read's do. The
+ * key metrics are then written in the read's own shape
+ * (shapeStreamedKeyMetrics, below), so a streamed key metric and a read
+ * one are one series.
  *
  * No regular expression reads a record.
  */
@@ -360,4 +375,436 @@ export function readMetricResourceFacts(
   }
 
   return facts;
+}
+
+/*
+ * THE STREAM'S KEY METRICS, IN THE SHAPE A CONNECTION'S READ WRITES THEM.
+ *
+ * A metric stream sends a summary of each minute - count, sum, minimum and
+ * maximum - for every dimension set CloudWatch has: a function's
+ * Invocations for the function, and again for each of its versions and
+ * aliases; a load balancer's RequestCount for it, and again for each of
+ * its zones. A connection's read writes each key metric (CloudKeyMetrics)
+ * as a gauge of the one statistic it reads, for each resource's own
+ * aggregate alone - the series with the fewest dimensions, never its
+ * per-zone or per-version splits. While a stream delivers a namespace the
+ * read no longer writes it (CloudStreamedMetrics), so the stream writes the
+ * key metrics as the read would:
+ *
+ *   - a gauge of the read's statistic: Average is the sum over the count,
+ *     Sum the sum, Maximum the quantile-1 value and Minimum the quantile-0
+ *     one, at the start of the minute (CloudWatch's own time for a
+ *     datapoint, as the read and the JSON format write it), in the read's
+ *     unit. A minute without an observation writes nothing;
+ *   - per resource and metric, only the series with the fewest dimensions
+ *     (several when they tie: an ElastiCache cluster's nodes), among the
+ *     delivery's and those the connection's deliveries brought in the last
+ *     hour, since one minute's series can come in two deliveries; a series
+ *     of no resource - a namespace's or an account's own total, with no
+ *     dimension that names one - is left out, as the read leaves it.
+ *
+ * So a key metric is one series of one point type whichever way it came,
+ * and a resource's charts, its monitors and its pages read it as before: a
+ * summary's value is its sum, which a gauge of an Average is not, and a
+ * resource's own aggregate counted again with its splits would double it.
+ * Every other metric (Every metric, under More fields) stays the stream's
+ * summary, every series of it: no read writes it.
+ */
+
+export interface StreamedKeyMetric {
+  statistic: AwsStatistic;
+  // The unit the read writes the metric in.
+  unit: string;
+}
+
+// Each key metric by its stored name, lower case: the statistic the read reads.
+export const STREAMED_KEY_METRICS: ReadonlyMap<string, StreamedKeyMetric> =
+  ((): Map<string, StreamedKeyMetric> => {
+    const keyMetrics: Map<string, StreamedKeyMetric> = new Map<
+      string,
+      StreamedKeyMetric
+    >();
+
+    for (const namespace of AWS_KEY_METRICS as ReadonlyArray<AwsNamespaceKeyMetrics>) {
+      for (const metric of namespace.metrics as ReadonlyArray<AwsKeyMetric>) {
+        const name: string = getAwsStoredMetricName(
+          namespace.namespace,
+          metric.metricName,
+        ).toLowerCase();
+
+        if (!keyMetrics.has(name)) {
+          keyMetrics.set(name, {
+            statistic: metric.statistic,
+            unit: metric.unit,
+          });
+        }
+      }
+    }
+
+    return keyMetrics;
+  })();
+
+// A number as OTLP/JSON writes it: a fixed64 count or a time is a string of digits.
+function readNumberLike(value: unknown): number | null {
+  if (typeof value === "number") {
+    return Number.isFinite(value) ? value : null;
+  }
+
+  if (typeof value === "string" && value.trim() !== "") {
+    const parsed: number = Number(value);
+    return Number.isFinite(parsed) ? parsed : null;
+  }
+
+  return null;
+}
+
+/*
+ * A summary datapoint's quantile, or null when it has none. Protobuf leaves
+ * out a field that is 0, so an entry without its quantile is quantile 0,
+ * and one without its value is 0.
+ */
+function readQuantileValue(point: JSONObject, quantile: number): number | null {
+  for (const raw of readArray(point["quantileValues"])) {
+    const entry: JSONObject = readObject(raw);
+    const at: number = readNumberLike(entry["quantile"]) ?? 0;
+
+    if (at === quantile) {
+      return readNumberLike(entry["value"]) ?? 0;
+    }
+  }
+
+  return null;
+}
+
+/*
+ * The value of a minute's summary for the statistic the read reads, or
+ * null when the minute holds no observation or does not say it.
+ */
+export function readStatisticValue(
+  point: JSONObject,
+  statistic: AwsStatistic,
+): number | null {
+  const count: number = readNumberLike(point["count"]) ?? 0;
+  const sum: number = readNumberLike(point["sum"]) ?? 0;
+
+  if (count <= 0) {
+    return null;
+  }
+
+  // One observation is its own minimum and maximum.
+  const single: number | null = count === 1 ? sum : null;
+
+  switch (statistic) {
+    case "Average":
+      return sum / count;
+    case "Sum":
+      return sum;
+    case "Maximum":
+      return readQuantileValue(point, 1) ?? single;
+    case "Minimum":
+      return readQuantileValue(point, 0) ?? single;
+  }
+
+  return null;
+}
+
+// How many dimensions a datapoint carries: the entries of its Dimensions kvlist.
+export function countDimensions(attributes: JSONArray): number {
+  for (const raw of attributes) {
+    const attribute: JSONObject = readObject(raw);
+
+    if (attribute["key"] !== "Dimensions") {
+      continue;
+    }
+
+    const values: JSONArray = readArray(
+      readObject(readObject(attribute["value"])["kvlistValue"])["values"],
+    );
+
+    return values.filter((value: unknown): boolean => {
+      const stringValue: unknown = readObject(readObject(value)["value"])[
+        "stringValue"
+      ];
+      return typeof stringValue === "string" && stringValue.trim() !== "";
+    }).length;
+  }
+
+  return 0;
+}
+
+// How long the fewest dimensions of a resource's series are remembered, and for how many.
+export const STREAMED_SERIES_MEMORY_MS: number = 60 * 60 * 1000;
+export const MAX_REMEMBERED_STREAMED_SERIES: number = 20_000;
+
+/*
+ * The fewest dimensions each connection's resources' key metrics came with
+ * lately, in this process: a split that comes in a delivery of its own
+ * after its resource's own aggregate is still left out.
+ */
+export class StreamedSeriesMemory {
+  private entries: OldestKeyMap<string, { dimensions: number; at: number }> =
+    new OldestKeyMap<string, { dimensions: number; at: number }>();
+
+  public get(key: string, now: Date): number | undefined {
+    const entry: { dimensions: number; at: number } | undefined =
+      this.entries.get(key);
+
+    if (!entry || now.getTime() - entry.at > STREAMED_SERIES_MEMORY_MS) {
+      return undefined;
+    }
+
+    return entry.dimensions;
+  }
+
+  /*
+   * What one delivery saw. Fewer dimensions than remembered replace them;
+   * more leave them, and their time, as they are - so a resource's own
+   * aggregate is forgotten an hour after it last came, never kept alive by
+   * its splits.
+   */
+  public note(key: string, dimensions: number, now: Date): void {
+    const remembered: number | undefined = this.get(key, now);
+
+    if (remembered !== undefined && remembered < dimensions) {
+      return;
+    }
+
+    if (this.entries.has(key)) {
+      this.entries.delete(key);
+    }
+
+    while (this.entries.size >= MAX_REMEMBERED_STREAMED_SERIES) {
+      const oldest: string | undefined = this.entries.oldestKey();
+
+      if (oldest === undefined) {
+        break;
+      }
+
+      this.entries.delete(oldest);
+    }
+
+    this.entries.set(key, { dimensions, at: now.getTime() });
+  }
+
+  public get size(): number {
+    return this.entries.size;
+  }
+
+  public clear(): void {
+    this.entries.clear();
+  }
+}
+
+export const STREAMED_SERIES_MEMORY: StreamedSeriesMemory =
+  new StreamedSeriesMemory();
+
+// Datapoints read between two yields to the event loop.
+const POINTS_PER_YIELD: number = 2000;
+
+interface KeyPointPlace {
+  // The connection, the resource and the metric: null for a resource no rule knows.
+  seriesKey: string | null;
+  dimensions: number;
+}
+
+/*
+ * One delivery's resources ({ resource, scopeMetrics }, the connection
+ * stamped on them) with their key metrics in the read's shape. Nothing
+ * given is changed: a resource that changes is a new object.
+ */
+export async function shapeStreamedKeyMetrics(data: {
+  resources: Array<JSONObject>;
+  connectionId: string;
+  now: Date;
+  memory?: StreamedSeriesMemory | undefined;
+}): Promise<Array<JSONObject>> {
+  const memory: StreamedSeriesMemory = data.memory || STREAMED_SERIES_MEMORY;
+  const places: Map<JSONObject, KeyPointPlace> = new Map<
+    JSONObject,
+    KeyPointPlace
+  >();
+  // The fewest dimensions of each resource's key metric in this delivery.
+  const deliveryFewest: Map<string, number> = new Map<string, number>();
+  let read: number = 0;
+
+  // First: which resource each key metric's datapoint is about.
+  for (const resourceMetrics of data.resources) {
+    const resourceAttributes: Array<OtlpAttribute> = readArray(
+      readObject(resourceMetrics["resource"])["attributes"],
+    ) as unknown as Array<OtlpAttribute>;
+    const storedResourceAttributes: JSONObject = storedAttributesOf(
+      resourceAttributes,
+      [],
+    ) as unknown as JSONObject;
+
+    for (const rawScope of readArray(resourceMetrics["scopeMetrics"])) {
+      for (const rawMetric of readArray(readObject(rawScope)["metrics"])) {
+        const metric: JSONObject = readObject(rawMetric);
+        const name: string = readText(metric["name"]);
+
+        if (
+          !metric["summary"] ||
+          !STREAMED_KEY_METRICS.has(name.toLowerCase())
+        ) {
+          continue;
+        }
+
+        for (const rawPoint of readArray(
+          readObject(metric["summary"])["dataPoints"],
+        )) {
+          read++;
+
+          if (read % POINTS_PER_YIELD === 0) {
+            await EventLoop.yieldToEventLoop();
+          }
+
+          const point: JSONObject = readObject(rawPoint);
+          const pointAttributes: JSONArray = readArray(point["attributes"]);
+          const resource: CloudMonitoredResource | null =
+            resolveCloudMonitoredResource({
+              metricName: name,
+              attributes: {
+                ...storedResourceAttributes,
+                ...(storedAttributesOf(
+                  [],
+                  pointAttributes as unknown as Array<OtlpAttribute>,
+                ) as unknown as JSONObject),
+              },
+            });
+          const dimensions: number = countDimensions(pointAttributes);
+          const seriesKey: string | null = resource
+            ? `${data.connectionId}|${resource.identityKey}|${name.toLowerCase()}`
+            : null;
+
+          places.set(point, { seriesKey, dimensions });
+
+          if (seriesKey) {
+            deliveryFewest.set(
+              seriesKey,
+              Math.min(
+                deliveryFewest.get(seriesKey) ?? Number.MAX_SAFE_INTEGER,
+                dimensions,
+              ),
+            );
+          }
+        }
+      }
+    }
+  }
+
+  if (places.size === 0) {
+    return data.resources;
+  }
+
+  // The fewest of this delivery's and those remembered from the last hour's.
+  const fewest: Map<string, number> = new Map<string, number>();
+
+  for (const [seriesKey, dimensions] of deliveryFewest) {
+    fewest.set(
+      seriesKey,
+      Math.min(
+        dimensions,
+        memory.get(seriesKey, data.now) ?? Number.MAX_SAFE_INTEGER,
+      ),
+    );
+  }
+
+  // Then: each key metric a gauge of its resources' own aggregates.
+  const shaped: Array<JSONObject> = [];
+
+  for (const resourceMetrics of data.resources) {
+    let isChanged: boolean = false;
+    const scopes: Array<JSONObject> = [];
+
+    for (const rawScope of readArray(resourceMetrics["scopeMetrics"])) {
+      const scope: JSONObject = readObject(rawScope);
+      const metrics: Array<JSONObject> = [];
+
+      for (const rawMetric of readArray(scope["metrics"])) {
+        const metric: JSONObject = readObject(rawMetric);
+        const name: string = readText(metric["name"]);
+        const keyMetric: StreamedKeyMetric | undefined =
+          STREAMED_KEY_METRICS.get(name.toLowerCase());
+
+        if (!metric["summary"] || !keyMetric) {
+          metrics.push(metric);
+          continue;
+        }
+
+        isChanged = true;
+
+        const dataPoints: Array<JSONObject> = [];
+
+        for (const rawPoint of readArray(
+          readObject(metric["summary"])["dataPoints"],
+        )) {
+          const point: JSONObject = readObject(rawPoint);
+          const place: KeyPointPlace | undefined = places.get(point);
+
+          /*
+           * A series of no resource (a namespace's or an account's own
+           * total), which the read never writes, or a split of a resource
+           * whose own aggregate streams.
+           */
+          if (
+            !place?.seriesKey ||
+            place.dimensions >
+              (fewest.get(place.seriesKey) ?? Number.MAX_SAFE_INTEGER)
+          ) {
+            continue;
+          }
+
+          const value: number | null = readStatisticValue(
+            point,
+            keyMetric.statistic,
+          );
+
+          if (value === null) {
+            continue;
+          }
+
+          const startTime: number | null = readNumberLike(
+            point["startTimeUnixNano"],
+          );
+          const time: JSONValue | undefined =
+            startTime && startTime > 0
+              ? point["startTimeUnixNano"]
+              : point["timeUnixNano"];
+
+          dataPoints.push({
+            ...(time !== undefined && time !== null
+              ? { startTimeUnixNano: time, timeUnixNano: time }
+              : {}),
+            asDouble: value,
+            attributes: readArray(point["attributes"]),
+          });
+        }
+
+        if (dataPoints.length > 0) {
+          metrics.push({
+            name: metric["name"] as JSONValue,
+            unit: keyMetric.unit,
+            gauge: { dataPoints: dataPoints as unknown as JSONArray },
+          });
+        }
+      }
+
+      scopes.push({ ...scope, metrics: metrics as unknown as JSONArray });
+    }
+
+    shaped.push(
+      isChanged
+        ? {
+            ...resourceMetrics,
+            scopeMetrics: scopes as unknown as JSONArray,
+          }
+        : resourceMetrics,
+    );
+  }
+
+  for (const [seriesKey, dimensions] of deliveryFewest) {
+    memory.note(seriesKey, dimensions, data.now);
+  }
+
+  return shaped;
 }

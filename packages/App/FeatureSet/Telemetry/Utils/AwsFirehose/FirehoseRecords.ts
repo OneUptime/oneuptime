@@ -14,9 +14,11 @@ import {
 } from "./CloudWatchLogs";
 import {
   MetricResourceFacts,
+  StreamedSeriesMemory,
   decodeJsonMetricRecord,
   decodeOpenTelemetryMetricRecord,
   readMetricResourceFacts,
+  shapeStreamedKeyMetrics,
   stampConnection,
 } from "./CloudWatchMetricStream";
 
@@ -38,6 +40,10 @@ import {
  * out: the rest of the delivery is taken, since Firehose would only send
  * the same record again. A delivery that decompresses to more than its
  * budget is refused whole (RangeError).
+ *
+ * The delivery's key metrics are then written as the connection's read
+ * writes them - a gauge of the read's statistic, for each resource's own
+ * aggregate - so the two are one series (shapeStreamedKeyMetrics).
  */
 
 // Records read between two yields to the event loop.
@@ -214,6 +220,8 @@ export async function decodeFirehoseRecords(data: {
   region: string;
   now: Date;
   budget: DecodeBudget;
+  // What the connection's earlier deliveries carried (tests give their own).
+  seriesMemory?: StreamedSeriesMemory | undefined;
 }): Promise<DecodedDelivery> {
   const delivery: DecodedDelivery = {
     resourceMetrics: [],
@@ -225,6 +233,7 @@ export async function decodeFirehoseRecords(data: {
     sightings: { metrics: new Map(), logs: new Map() },
   };
   const messages: Array<CloudWatchLogsMessage> = [];
+  const metricResources: Array<JSONObject> = [];
 
   for (let index: number = 0; index < data.records.length; index++) {
     if (index > 0 && index % RECORDS_PER_YIELD === 0) {
@@ -259,39 +268,52 @@ export async function decodeFirehoseRecords(data: {
     }
 
     for (const resourceMetrics of reading.resourceMetrics) {
-      const stamped: JSONObject = stampConnection({
-        resourceMetrics,
-        serviceName: data.serviceName,
-        connectionId: data.connectionId,
-      });
-      const facts: MetricResourceFacts = readMetricResourceFacts(stamped);
+      metricResources.push(
+        stampConnection({
+          resourceMetrics,
+          serviceName: data.serviceName,
+          connectionId: data.connectionId,
+        }),
+      );
+    }
+  }
 
-      if (facts.datapoints === 0) {
-        continue;
+  // The key metrics as the connection's read writes them, the whole delivery at once.
+  const shapedResources: Array<JSONObject> = await shapeStreamedKeyMetrics({
+    resources: metricResources,
+    connectionId: data.connectionId,
+    now: data.now,
+    memory: data.seriesMemory,
+  });
+
+  for (const stamped of shapedResources) {
+    const facts: MetricResourceFacts = readMetricResourceFacts(stamped);
+
+    if (facts.datapoints === 0) {
+      continue;
+    }
+
+    delivery.resourceMetrics.push({
+      resource: stamped,
+      count: facts.datapoints,
+    });
+    delivery.datapoints += facts.datapoints;
+
+    if (facts.accountId) {
+      const key: string = `${facts.accountId}|${facts.region}`;
+      const sighting:
+        | { accountId: string; region: string; namespaces: Set<string> }
+        | undefined = delivery.sightings.metrics.get(key) || {
+        accountId: facts.accountId,
+        region: facts.region,
+        namespaces: new Set<string>(),
+      };
+
+      for (const namespace of facts.namespaces) {
+        sighting.namespaces.add(namespace);
       }
 
-      delivery.resourceMetrics.push({
-        resource: stamped,
-        count: facts.datapoints,
-      });
-      delivery.datapoints += facts.datapoints;
-
-      if (facts.accountId) {
-        const key: string = `${facts.accountId}|${facts.region}`;
-        const sighting:
-          | { accountId: string; region: string; namespaces: Set<string> }
-          | undefined = delivery.sightings.metrics.get(key) || {
-          accountId: facts.accountId,
-          region: facts.region,
-          namespaces: new Set<string>(),
-        };
-
-        for (const namespace of facts.namespaces) {
-          sighting.namespaces.add(namespace);
-        }
-
-        delivery.sightings.metrics.set(key, sighting);
-      }
+      delivery.sightings.metrics.set(key, sighting);
     }
   }
 

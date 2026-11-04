@@ -46,11 +46,14 @@ import TelemetryFanInWriter, {
 } from "Common/Server/Utils/Telemetry/TelemetryFanInWriter";
 import {
   OtlpAttribute,
+  buildMetricsPayloads,
   connectionResourceAttributes,
   kvlistAttribute,
   resolveCloudResourceOf,
   stringAttribute,
 } from "Common/Server/Utils/CloudConnection/CloudMetricPayload";
+import { MetricPointType } from "Common/Models/AnalyticsModels/Metric";
+import { STREAMED_SERIES_MEMORY } from "../../FeatureSet/Telemetry/Utils/AwsFirehose/CloudWatchMetricStream";
 import {
   CloudMonitoredResource,
   buildCloudMonitoredResourceIdentifier,
@@ -82,10 +85,12 @@ import {
  * OtelLogsIngestService, their walks and row builders, with only discovery,
  * service resolution, rule loads and the writer replaced - and lands as:
  *
- *   - metric rows of a summary - count, sum, minimum and maximum - filed
- *     under the very Cloud Resource a connection's read files the same
- *     resource's polled metrics under (one row, whichever came first), in
- *     the OpenTelemetry 1.0 format and in JSON alike;
+ *   - a key metric's rows as the gauge of the statistic a connection's read
+ *     reads - one series with the read's own rows: their name, point type
+ *     and attributes - filed under the very Cloud Resource the read
+ *     files the same resource's polled metrics under, in the OpenTelemetry
+ *     1.0 format and in JSON alike; any other metric's as the stream's
+ *     summary - count, sum, minimum and maximum;
  *   - log rows carrying their resource's id (resource.cloud.resource_id,
  *     what a resource's Logs page filters on), its account and Region, the
  *     severity their message says, and - for a function - faas.name, which
@@ -171,6 +176,7 @@ beforeEach(() => {
   rowsByTarget = new Map();
   discoveredResources = [];
   serverlessAttributes = [];
+  STREAMED_SERIES_MEMORY.clear();
 
   const discoveryMethods: Array<string> = Object.getOwnPropertyNames(
     OtelIngestBaseService,
@@ -318,7 +324,7 @@ describe("streamed metrics, through the real metrics ingest", () => {
       },
     },
   ])(
-    "$format: one summary row, under the resource the read files the instance under",
+    "$format: a key metric is one gauge row of the read's statistic, under the resource the read files the instance under",
     async (example: { format: string; record: () => Buffer }) => {
       await ingest(await decode([example.record()]));
 
@@ -328,14 +334,15 @@ describe("streamed metrics, through the real metrics ingest", () => {
       expect(rows[0]).toEqual(
         expect.objectContaining({
           name: "amazonaws.com/aws/ec2/cpuutilization",
-          count: 4,
-          sum: 50,
-          // A summary's value is its sum; Avg reads sum / count.
-          value: 50,
-          summaryQuantiles: [0, 1],
-          summaryValues: [10, 20],
+          metricPointType: MetricPointType.Gauge,
+          // The Average the read reads: the minute's sum over its count, not the sum.
+          value: 12.5,
+          // At the start of its minute, as CloudWatch and the read time it.
+          time: "2026-11-04 09:59:00",
         }),
       );
+      expect(rows[0]!["count"]).toBeNull();
+      expect(rows[0]!["sum"]).toBeNull();
       expect(rows[0]!["attributes"]).toEqual(
         expect.objectContaining({
           Namespace: "AWS/EC2",
@@ -354,6 +361,129 @@ describe("streamed metrics, through the real metrics ingest", () => {
       ).toEqual([buildCloudMonitoredResourceIdentifier(polledInstance())]);
     },
   );
+
+  test("a streamed key metric and the read's are one series: its name, point type and attributes", async () => {
+    // What the connection's read writes for the instance's CPU, through the same ingest.
+    const readPayloads: Array<JSONObject> = buildMetricsPayloads([
+      {
+        resourceAttributes: [
+          ...connectionResourceAttributes({
+            serviceName: SERVICE_NAME,
+            connectionId: CONNECTION_ID,
+            cloudProvider: CloudProvider.AWS,
+          }),
+          stringAttribute("cloud.account.id", ACCOUNT_ID),
+          stringAttribute("cloud.region", REGION),
+        ],
+        metrics: [
+          {
+            name: "amazonaws.com/AWS/EC2/CPUUtilization",
+            unit: "Percent",
+            datapointSets: [
+              {
+                attributes: [
+                  stringAttribute("Namespace", "AWS/EC2"),
+                  stringAttribute("MetricName", "CPUUtilization"),
+                  kvlistAttribute("Dimensions", [
+                    stringAttribute("InstanceId", "i-0abc123def"),
+                  ]),
+                ],
+                points: [{ timeMs: MINUTE_START_MS - 300_000, value: 11 }],
+              },
+            ],
+          },
+        ],
+      },
+    ]);
+
+    await OtelMetricsIngestService.processMetricsFromQueue({
+      projectId: PROJECT_ID,
+      body: readPayloads[0]!,
+      headers: {},
+    } as unknown as TelemetryRequest);
+    await ingest(
+      await decode([
+        openTelemetryRecord([
+          openTelemetryRequest([
+            openTelemetryMetric({
+              namespace: "AWS/EC2",
+              metricName: "CPUUtilization",
+              dimensions: { InstanceId: "i-0abc123def" },
+              count: 4,
+              sum: 50,
+              min: 10,
+              max: 20,
+            }),
+          ]),
+        ]),
+      ]),
+    );
+
+    const [read, streamed] = rowsFor(MetricService) as [JSONObject, JSONObject];
+    const seriesOf: (row: JSONObject) => JSONObject = (
+      row: JSONObject,
+    ): JSONObject => {
+      const attributes: JSONObject = {
+        ...(row["attributes"] as JSONObject),
+      };
+
+      /*
+       * The service id is each ingest call's own here; the stream's ARN and
+       * the scope say which writer wrote it, never which series it is.
+       */
+      delete attributes["oneuptime.service.id"];
+      delete attributes["resource.aws.exporter.arn"];
+      delete attributes["scope.name"];
+      delete attributes["scope.version"];
+
+      return {
+        name: row["name"],
+        metricPointType: row["metricPointType"],
+        attributes,
+      };
+    };
+
+    expect(seriesOf(streamed)).toEqual(seriesOf(read));
+    expect(read["metricPointType"]).toBe(MetricPointType.Gauge);
+    expect([read["value"], streamed["value"]]).toEqual([11, 12.5]);
+  });
+
+  test("a metric that is not a key one is the stream's summary row: count, sum, minimum and maximum", async () => {
+    await ingest(
+      await decode([
+        openTelemetryRecord([
+          openTelemetryRequest([
+            openTelemetryMetric({
+              namespace: "AWS/EC2",
+              metricName: "CPUCreditBalance",
+              dimensions: { InstanceId: "i-0abc123def" },
+              unit: "1",
+              count: 5,
+              sum: 390,
+              min: 76,
+              max: 80,
+            }),
+          ]),
+        ]),
+      ]),
+    );
+
+    const rows: Array<JSONObject> = rowsFor(MetricService);
+
+    expect(rows).toHaveLength(1);
+    expect(rows[0]).toEqual(
+      expect.objectContaining({
+        name: "amazonaws.com/aws/ec2/cpucreditbalance",
+        metricPointType: MetricPointType.Summary,
+        count: 5,
+        sum: 390,
+        // A summary's value is its sum; Avg reads sum / count.
+        value: 390,
+        summaryQuantiles: [0, 1],
+        summaryValues: [76, 80],
+      }),
+    );
+  });
 });
 
 describe("streamed logs, through the real logs ingest", () => {
