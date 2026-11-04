@@ -36,7 +36,7 @@ En sond som har förlorat sin egen nätverksanslutning rapporterar inget resulta
 :::steps
 ### Börja en ny monitor
 
-Gå till **Monitorer** och klicka på **Skapa monitor**. Klicka på **Fler monitortyper** under **Monitortyp** och välj **DNS** under **DNS Monitoring**.
+Gå till **Monitorer** och klicka på **Skapa monitor**. Klicka på **Fler monitortyper** under **Monitortyp** och välj **DNS** under **DNS-övervakning**.
 
 ### Namnge den
 

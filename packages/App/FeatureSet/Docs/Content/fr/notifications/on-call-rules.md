@@ -101,7 +101,7 @@ Une gravité que votre projet ajoute plus tard reçoit des règles en quelques m
 Une alerte qui ne trouve toujours pas de règle est quand même envoyée à vos méthodes vérifiées, et vous recevez un e-mail à ce sujet ; voir [Quand aucune règle ne correspond](/docs/notifications/index#quand-aucune-règle-ne-correspond).
 
 :::details Désactiver une gravité exprès
-L'API peut enregistrer une règle de désinscription, avec `isOptOut` activé et sans méthode : vous n'êtes alors pas du tout alerté pour ce type d'alerte et cette gravité, et rien ne prend le relais. La ligne affiche **Muted - notifications turned off for this rule**, et la supprimer réactive les alertes. Une gravité ajoutée plus tard est aussi muette quand chaque règle que vous avez sur cet onglet est une désinscription.
+L'API peut enregistrer une règle de désinscription, avec `isOptOut` activé et sans méthode : vous n'êtes alors pas du tout alerté pour ce type d'alerte et cette gravité, et rien ne prend le relais. La ligne affiche **Muet : notifications désactivées pour cette règle**, et la supprimer réactive les alertes. Une gravité ajoutée plus tard est aussi muette quand chaque règle que vous avez sur cet onglet est une désinscription.
 :::
 
 :::details Désactiver le repli pour tout un projet
@@ -115,7 +115,7 @@ Les propriétaires et les admins du projet peuvent voir et modifier la même pag
 ## Dépannage
 
 :::details Mon téléphone est resté silencieux pour une alerte critique
-Vérifiez que le push de la règle est **Alerte critique** et non **Standard**, et que **Alertes critiques** est activé pour le téléphone dans **Paramètres utilisateur → Méthodes de notification**, onglet **Push Notifications**.
+Vérifiez que le push de la règle est **Alerte critique** et non **Standard**, et que **Alertes critiques** est activé pour le téléphone dans **Paramètres utilisateur → Méthodes de notification**, onglet **Notifications push**.
 :::
 
 :::details Je suis alerté deux fois pour chaque incident

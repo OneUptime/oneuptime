@@ -23,6 +23,7 @@ import DataCheckPlanner, { DataCheckPlan } from "./DataCheckPlanner";
 import {
   collectTableHealth,
   DEFAULT_COLLECT_OPTIONS,
+  getQueryHistoryLookbackInSeconds,
   TableHealthSnapshot,
 } from "./TableHealthCollector";
 import TableHealthIngest, {
@@ -124,6 +125,7 @@ export default class DataObservabilityRunner {
         cloudConnectionId: true,
         cloudAccountNumber: true,
         region: true,
+        tableHealthCollectedAt: true,
       },
       props: { isRoot: true },
     });
@@ -180,6 +182,10 @@ export default class DataObservabilityRunner {
         {
           ...DEFAULT_COLLECT_OPTIONS,
           checks: plan.planned,
+          queryHistoryLookbackInSeconds: getQueryHistoryLookbackInSeconds(
+            store.tableHealthCollectedAt,
+            OneUptimeDate.getCurrentDate(),
+          ),
           exclusions: (store.scanExclusions || []).filter(
             (exclusion: unknown): exclusion is string => {
               return typeof exclusion === "string";

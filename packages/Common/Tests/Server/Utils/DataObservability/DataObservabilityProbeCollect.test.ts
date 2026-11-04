@@ -59,12 +59,15 @@ describe("readProbeCollectWork", () => {
       exclusions: ["audit", "public.tmp"],
       // An item from a server with no due checks carries none.
       checks: [],
+      // Nor one that does not say how far back to read lineage: none this time.
+      queryHistoryLookbackInSeconds: 0,
     });
     expect(buildProbeCollectOptions(work!)).toEqual({
       maxTables: 100,
       maxColumns: 1000,
       exclusions: ["audit", "public.tmp"],
       checks: [],
+      queryHistoryLookbackInSeconds: 0,
     });
   });
 

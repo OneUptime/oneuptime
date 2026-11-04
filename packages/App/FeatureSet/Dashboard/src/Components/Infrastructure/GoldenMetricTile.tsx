@@ -3,12 +3,27 @@ import BreakableName from "Common/UI/Components/BreakableName/BreakableName";
 import Icon from "Common/UI/Components/Icon/Icon";
 import IconProp from "Common/Types/Icon/IconProp";
 import InfoTooltip from "Common/UI/Components/Tooltip/InfoTooltip";
+import HyphenatedWords from "Common/UI/Components/HyphenatedWords/HyphenatedWords";
+import { getDrawnLanguage } from "Common/UI/Components/SideMenu/SideMenuEntryState";
+import { Translator } from "Common/UI/Utils/TranslateTemplate";
+import useTranslator from "Common/UI/Utils/UseTranslator";
+import {
+  getTileTitleWordsClassName,
+  TILE_TITLE_LONG_WORDS,
+} from "../TelemetryResource/TileTitleWords";
 
 /*
  * Product-neutral golden-metric hero tile (extracted from the
  * Kubernetes cluster overview): an icon-badged stat card with an
  * optional threshold-colored progress bar. Used by the Kubernetes,
  * Proxmox, and Ceph overview pages.
+ *
+ * A page hands the tile its title, and the line under its value, as English
+ * literals ("Capacity Used", "heartbeat presence"), and the tile draws them
+ * in the reader's language, as the telemetry overviews' tiles do
+ * (ResourceOverview) and the shared components do with the English they are
+ * given (Locales/README.md, stage 2). A name the locale has no words for - a
+ * metric someone named - and a line a page worded itself read as given.
  */
 
 export type GoldenMetricTileColor =
@@ -20,10 +35,15 @@ export type GoldenMetricTileColor =
   | "sky";
 
 export interface GoldenMetricTileProps {
+  // The metric's name, as an English literal: the tile translates it.
   title: string;
   icon: IconProp;
   iconColor: GoldenMetricTileColor;
   value: string;
+  /*
+   * The line under the value: English the tile translates ("total across
+   * nodes"), or a line the page worded itself, which reads as given.
+   */
   sublabel?: string | undefined;
   /*
    * The sublabel is a value as the resource wrote it - a mount point, a
@@ -90,8 +110,39 @@ export const tileColorClasses: Record<
 const GoldenMetricTile: FunctionComponent<GoldenMetricTileProps> = (
   props: GoldenMetricTileProps,
 ): ReactElement => {
+  const translator: Translator = useTranslator();
   const colors: { bg: string; ring: string; text: string } =
     tileColorClasses[props.iconColor];
+
+  /*
+   * The title in the reader's language. A translated one says its language
+   * (lang) and breaks a word too long for a narrow tile's line where that
+   * language hyphenates it (TileTitleWords) - a German
+   * "KNOTENVERFÜGBARKEIT" in a phone's two columns - instead of running
+   * under the icon. The (i) takes the English and words its own label.
+   */
+  const title: string = translator.translateText(props.title) || props.title;
+  const titleLanguage: string | undefined = getDrawnLanguage({
+    english: props.title,
+    drawn: title,
+    language: translator.language,
+  });
+
+  /*
+   * The line under the value, too, unless it is a value as the resource
+   * wrote it (a mount point, a device), which is never looked up.
+   */
+  const sublabel: string | undefined =
+    props.sublabel && !props.isSublabelAsWritten
+      ? translator.translateText(props.sublabel) || props.sublabel
+      : props.sublabel;
+  const sublabelLanguage: string | undefined = props.isSublabelAsWritten
+    ? undefined
+    : getDrawnLanguage({
+        english: props.sublabel,
+        drawn: sublabel,
+        language: translator.language,
+      });
 
   const barColor: string = (() => {
     if (props.percent === null || props.percent === undefined) {
@@ -136,8 +187,18 @@ const GoldenMetricTile: FunctionComponent<GoldenMetricTileProps> = (
          * instead of running under the icon.
          */}
         <div className="flex min-w-0 items-center gap-1">
-          <span className="min-w-0 text-xs font-medium text-gray-500 uppercase tracking-wider hyphens-auto [overflow-wrap:anywhere]">
-            {props.title}
+          <span
+            className={`min-w-0 text-xs font-medium text-gray-500 uppercase tracking-wider ${getTileTitleWordsClassName(
+              { text: title, lang: titleLanguage },
+            )}`}
+            lang={titleLanguage}
+            data-testid="golden-metric-tile-title"
+          >
+            <HyphenatedWords
+              text={title}
+              lang={titleLanguage}
+              rule={TILE_TITLE_LONG_WORDS}
+            />
           </span>
           <InfoTooltip label={props.title} text={props.description} />
         </div>
@@ -150,17 +211,18 @@ const GoldenMetricTile: FunctionComponent<GoldenMetricTileProps> = (
       <div className="text-2xl font-semibold text-gray-900 leading-none">
         {props.value}
       </div>
-      {props.sublabel ? (
+      {sublabel ? (
         <div
           className="mt-1 text-xs text-gray-500"
           data-testid="golden-metric-tile-sublabel"
+          lang={sublabelLanguage}
         >
           {props.isSublabelAsWritten ? (
             <bdi>
-              <BreakableName text={props.sublabel} />
+              <BreakableName text={sublabel} />
             </bdi>
           ) : (
-            props.sublabel
+            sublabel
           )}
         </div>
       ) : (

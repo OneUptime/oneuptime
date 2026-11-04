@@ -149,7 +149,7 @@ ALTER SERVER ROLE ##MS_ServerStateReader## ADD MEMBER oneuptime_health;
 
 포함된 데이터베이스 사용자(모니터링하는 데이터베이스에서 `CREATE USER oneuptime_health WITH PASSWORD = '...'`로 만든, 로그인이 없는 사용자)는 S2 이상에서 `VIEW DATABASE STATE`로 동작하지만 `##MS_ServerStateReader##`에는 들어갈 수 없습니다. 서버 역할에는 로그인만 넣을 수 있기 때문입니다. 포함된 사용자를 이 역할로 옮기려면 그 사용자를 삭제하고(`DROP USER oneuptime_health;`) 위의 문을 따르세요.
 
-프로브는 Azure SQL Database를 버전이 아니라 `SERVERPROPERTY('EngineEdition')`로 인식합니다. Azure SQL Database는 실제로 무엇을 실행하든 `12.0.2000.8`을 보고하는데, 이는 SQL Server 2014로 읽히기 때문입니다. 그래서 모니터의 **Engine**에는 `Azure SQL Database 12.0.2000.8`이 표시되고, 권한 누락은 `VIEW SERVER STATE`가 아니라 항상 위의 Azure 문으로 표시됩니다.
+프로브는 Azure SQL Database를 버전이 아니라 `SERVERPROPERTY('EngineEdition')`로 인식합니다. Azure SQL Database는 실제로 무엇을 실행하든 `12.0.2000.8`을 보고하는데, 이는 SQL Server 2014로 읽히기 때문입니다. 그래서 모니터의 **엔진**에는 `Azure SQL Database 12.0.2000.8`이 표시되고, 권한 누락은 `VIEW SERVER STATE`가 아니라 항상 위의 Azure 문으로 표시됩니다.
 
 - **Azure SQL Database에서는 복제를 수집하지 않습니다.** Azure SQL Database에는 `sys.dm_hadr_database_replica_states`가 없으므로, Replication 그룹은 확인할 때마다 실패로 보고되는 대신 건너뜁니다. Azure 자체의 복제본 뷰(`sys.dm_database_replica_states`, `sys.dm_geo_replication_link_status`)는 아직 읽지 않습니다.
 - **연결은 데이터베이스 단위입니다.** `VIEW DATABASE STATE`로는 Azure SQL Database가 모니터링하는 데이터베이스의 세션만 보여 주므로, Connections는 논리 서버가 아니라 그 데이터베이스를 셉니다. 중요한 데이터베이스는 각각 모니터링하세요.
@@ -160,7 +160,7 @@ ALTER SERVER ROLE ##MS_ServerStateReader## ADD MEMBER oneuptime_health;
 :::steps
 ### 새 모니터 시작하기
 
-**모니터**로 이동해 **모니터 생성**을 클릭합니다. **모니터 유형**에서 **더 많은 모니터 유형**을 클릭하고 **Database Monitoring** 아래의 **Database Health**를 선택하거나, 검색 상자에 `health`를 입력합니다. **이름**을 입력한 다음 **다음**을 클릭합니다.
+**모니터**로 이동해 **모니터 생성**을 클릭합니다. **모니터 유형**에서 **더 많은 모니터 유형**을 클릭하고 **데이터베이스 모니터링** 아래의 **Database Health**를 선택하거나, 검색 상자에 `health`를 입력합니다. **이름**을 입력한 다음 **다음**을 클릭합니다.
 
 ### 연결 정보 입력하기
 

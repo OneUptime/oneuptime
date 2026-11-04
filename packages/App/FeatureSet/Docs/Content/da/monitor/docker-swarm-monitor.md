@@ -55,7 +55,7 @@ Klik under **Monitortype** på **Flere monitortyper**, og vælg **Docker Swarm**
 
 ### Vælg klyngen
 
-Vælg klyngen i **Docker Swarm Cluster** under **Docker Swarm Monitor Configuration**. Hver klynge, der har sendt data, er på listen. Når du har valgt, viser en linje under feltet, om der kommer data. **Tilføj Docker Swarm-klynge** åbner opsætningstrin med dine nøgler udfyldt, som venter på de første data.
+Vælg klyngen i **Docker Swarm-klynge** under **Docker Swarm Monitor Configuration**. Hver klynge, der har sendt data, er på listen. Når du har valgt, viser en linje under feltet, om der kommer data. **Tilføj Docker Swarm-klynge** åbner opsætningstrin med dine nøgler udfyldt, som venter på de første data.
 
 ### Vælg, hvad der skal overvåges
 
@@ -81,7 +81,7 @@ Klik på **Opret monitor**. OneUptime åbner monitorens side og evaluerer den hv
 
 | Felt | Fane | Hvad det gør |
 | --- | --- | --- |
-| **Docker Swarm Cluster** | Alle | Påkrævet. Afgrænser hver forespørgsel til `resource.docker.swarm.cluster.name`. En opgaves metrikker bærer `container.runtime=docker` ligesom en Docker-værts, og agenten stempler aldrig `host.name`, så monitoren filtrerer på ingen af dem. |
+| **Docker Swarm-klynge** | Alle | Påkrævet. Afgrænser hver forespørgsel til `resource.docker.swarm.cluster.name`. En opgaves metrikker bærer `container.runtime=docker` ligesom en Docker-værts, og agenten stempler aldrig `host.name`, så monitoren filtrerer på ingen af dem. |
 | **Tjenestenavn** | Custom Metric, Avanceret | Valgfri. Præcis match på `resource.docker.swarm.service.name`, tjenesten, som `docker service ls` navngiver den, f.eks. `web` (`<stack>_web` i en stack). |
 | **Nodenavn** | Custom Metric, Avanceret | Valgfri. Præcis match på `resource.docker.swarm.node.name`, nodens værtsnavn, som `docker node ls` viser det, f.eks. `swarm-node-1`. Agenten på den node stempler det fra `DOCKER_SWARM_NODE_NAME`. |
 | **Containernavn** | Custom Metric, Avanceret | Valgfri. Præcis match på `resource.container.name`. En opgaves container hedder `<service>.<slot>.<taskid>`, f.eks. `web.1.abc123`. |

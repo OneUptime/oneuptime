@@ -143,7 +143,7 @@ Om met een direct bericht te worden opgeroepen als je dienst hebt, voeg je Slack
 
 :::steps
 1. Koppel je eigen Slack-account (zie [Slack koppelen](#slack-koppelen)).
-2. Ga naar **Gebruikersinstellingen** > **Meldingsmethoden**, open het tabblad **Workspace Apps** en klik op **Add Slack Account**.
+2. Ga naar **Gebruikersinstellingen** > **Meldingsmethoden**, open het tabblad **Werkruimte-apps** en klik op **Add Slack Account**.
 3. Klik op **Send Test Message** in de rij ervan. Het bericht komt aan in je directe berichten in Slack.
 :::
 

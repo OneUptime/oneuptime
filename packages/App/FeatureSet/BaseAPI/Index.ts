@@ -614,6 +614,10 @@ import SecurityHunt from "Common/Models/DatabaseModels/SecurityHunt";
 import SecurityHuntService, {
   Service as SecurityHuntServiceType,
 } from "Common/Server/Services/SecurityHuntService";
+import SecurityHuntRun from "Common/Models/DatabaseModels/SecurityHuntRun";
+import SecurityHuntRunService, {
+  Service as SecurityHuntRunServiceType,
+} from "Common/Server/Services/SecurityHuntRunService";
 import DetectionRuleException from "Common/Models/DatabaseModels/DetectionRuleException";
 import DetectionRuleExceptionService, {
   Service as DetectionRuleExceptionServiceType,
@@ -734,6 +738,12 @@ import DataPipelineService, {
 import DataPipelineRunService, {
   Service as DataPipelineRunServiceType,
 } from "Common/Server/Services/DataPipelineRunService";
+import DataProductService, {
+  Service as DataProductServiceType,
+} from "Common/Server/Services/DataProductService";
+import DataReconciliationService, {
+  Service as DataReconciliationServiceType,
+} from "Common/Server/Services/DataReconciliationService";
 import DataAssetLineageService, {
   Service as DataAssetLineageServiceType,
 } from "Common/Server/Services/DataAssetLineageService";
@@ -1806,6 +1816,8 @@ import DataAssetUsage from "Common/Models/DatabaseModels/DataAssetUsage";
 import DataCheck from "Common/Models/DatabaseModels/DataCheck";
 import DataPipeline from "Common/Models/DatabaseModels/DataPipeline";
 import DataPipelineRun from "Common/Models/DatabaseModels/DataPipelineRun";
+import DataProduct from "Common/Models/DatabaseModels/DataProduct";
+import DataReconciliation from "Common/Models/DatabaseModels/DataReconciliation";
 import DataAssetLineage from "Common/Models/DatabaseModels/DataAssetLineage";
 import DataAlert from "Common/Models/DatabaseModels/DataAlert";
 import SecurityEntityCriticality from "Common/Models/DatabaseModels/SecurityEntityCriticality";
@@ -4247,6 +4259,15 @@ const BaseAPIFeatureSet: FeatureSet = {
       ).getRouter(),
     );
 
+    // Each scheduled run of a hunt, as its page's Run History lists them; written by OneUptime alone.
+    app.use(
+      `/${APP_NAME.toLocaleLowerCase()}`,
+      new BaseAPI<SecurityHuntRun, SecurityHuntRunServiceType>(
+        SecurityHuntRun,
+        SecurityHuntRunService,
+      ).getRouter(),
+    );
+
     app.use(
       `/${APP_NAME.toLocaleLowerCase()}`,
       new BaseAPI<ThreatIntelFeed, ThreatIntelFeedServiceType>(
@@ -4583,6 +4604,22 @@ const BaseAPIFeatureSet: FeatureSet = {
       new BaseAPI<DataPipelineRun, DataPipelineRunServiceType>(
         DataPipelineRun,
         DataPipelineRunService,
+      ).getRouter(),
+    );
+
+    app.use(
+      `/${APP_NAME.toLocaleLowerCase()}`,
+      new BaseAPI<DataProduct, DataProductServiceType>(
+        DataProduct,
+        DataProductService,
+      ).getRouter(),
+    );
+
+    app.use(
+      `/${APP_NAME.toLocaleLowerCase()}`,
+      new BaseAPI<DataReconciliation, DataReconciliationServiceType>(
+        DataReconciliation,
+        DataReconciliationService,
       ).getRouter(),
     );
 

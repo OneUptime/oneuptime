@@ -28,17 +28,17 @@ flowchart TB
 
 | 카드 | 탭 | 추가하는 것 | 인증 방식 |
 | --- | --- | --- | --- |
-| **이메일 알림용** | **Direct Contact** | 이메일 주소 | 이메일로 받는 코드 |
-| **전화번호 SMS 알림용** | **Direct Contact** | 전화번호 | SMS로 받는 코드 |
-| **통화 알림용 전화번호** | **Direct Contact** | 전화번호 | 전화로 읽어 주는 코드, SMS용으로 인증된 번호라면 필요 없음 |
-| **알림용 WhatsApp 번호** | **Direct Contact** | WhatsApp 번호 | WhatsApp으로 받는 코드 |
-| **알림을 위한 Telegram 계정** | **Direct Contact** | 내 Telegram 계정 | OneUptime 봇에 보내는 메시지 |
-| **Slack Account for Notifications** | **Workspace Apps** | 내 Slack 계정 | 프로젝트의 워크스페이스에 계정 연결 |
-| **Microsoft Teams Account for Notifications** | **Workspace Apps** | 내 Microsoft Teams 계정 | 프로젝트의 워크스페이스에 계정 연결 |
-| **푸시 알림 디바이스** | **Push Notifications** | OneUptime On-Call 앱이 설치된 휴대폰 또는 브라우저 | 디바이스 등록 |
-| **알림용 Webhook** | **Webhooks** | 자체 HTTPS 엔드포인트 | 없음 |
+| **이메일 알림용** | **직접 연락** | 이메일 주소 | 이메일로 받는 코드 |
+| **전화번호 SMS 알림용** | **직접 연락** | 전화번호 | SMS로 받는 코드 |
+| **통화 알림용 전화번호** | **직접 연락** | 전화번호 | 전화로 읽어 주는 코드, SMS용으로 인증된 번호라면 필요 없음 |
+| **알림용 WhatsApp 번호** | **직접 연락** | WhatsApp 번호 | WhatsApp으로 받는 코드 |
+| **알림을 위한 Telegram 계정** | **직접 연락** | 내 Telegram 계정 | OneUptime 봇에 보내는 메시지 |
+| **Slack Account for Notifications** | **워크스페이스 앱** | 내 Slack 계정 | 프로젝트의 워크스페이스에 계정 연결 |
+| **Microsoft Teams Account for Notifications** | **워크스페이스 앱** | 내 Microsoft Teams 계정 | 프로젝트의 워크스페이스에 계정 연결 |
+| **푸시 알림 디바이스** | **푸시 알림** | OneUptime On-Call 앱이 설치된 휴대폰 또는 브라우저 | 디바이스 등록 |
+| **알림용 Webhook** | **웹훅** | 자체 HTTPS 엔드포인트 | 없음 |
 
-**Workspace Apps**는 프로젝트가 Slack 또는 Microsoft Teams를 연결한 경우에만 표시되며, 연결한 것만 담겨 있습니다. SMS, 전화, WhatsApp, Telegram은 프로젝트 전체에서 꺼질 수 있습니다. [프로젝트에서 채널 켜기](#프로젝트에서-채널-켜기)를 참고하세요.
+**워크스페이스 앱**은 프로젝트가 Slack 또는 Microsoft Teams를 연결한 경우에만 표시되며, 연결한 것만 담겨 있습니다. SMS, 전화, WhatsApp, Telegram은 프로젝트 전체에서 꺼질 수 있습니다. [프로젝트에서 채널 켜기](#프로젝트에서-채널-켜기)를 참고하세요.
 
 ## 알림 방법 추가 및 인증
 
@@ -47,7 +47,7 @@ flowchart TB
 :::steps
 ### 알림 방법 열기
 
-**사용자 설정 → 알림 방법**으로 이동합니다. 첫 번째 탭은 **Direct Contact**입니다.
+**사용자 설정 → 알림 방법**으로 이동합니다. 첫 번째 탭은 **직접 연락**입니다.
 
 ### 연락처 추가
 
@@ -88,12 +88,12 @@ OneUptime으로 돌아와 **I've sent the message — check**를 클릭합니다
 ## Slack과 Microsoft Teams
 
 1. 내 계정을 프로젝트의 워크스페이스에 연결합니다: **사용자 설정 → 워크스페이스 → Slack** 또는 **Microsoft Teams**. [Slack](/docs/workspace-connections/slack)과 [Microsoft Teams](/docs/workspace-connections/microsoft-teams)를 참고하세요.
-2. **Workspace Apps** 탭에서 **Add Slack Account** 또는 **Add Microsoft Teams Account**를 클릭합니다. 계정은 추가되는 즉시 인증됩니다.
+2. **워크스페이스 앱** 탭에서 **Add Slack Account** 또는 **Add Microsoft Teams Account**를 클릭합니다. 계정은 추가되는 즉시 인증됩니다.
 3. 그 행의 **Send Test Message**를 클릭합니다. 호출은 OneUptime 앱의 다이렉트 메시지로 옵니다.
 
 ## 푸시 알림
 
-**Push Notifications** 탭에는 **푸시 알림 디바이스**가 나열됩니다.
+**푸시 알림** 탭에는 **푸시 알림 디바이스**가 나열됩니다.
 
 - **휴대폰.** OneUptime On-Call 앱을 설치하고, 내 OneUptime에 연결해 로그인한 뒤 알림을 허용합니다. 그러면 휴대폰이 이 목록에 저절로 추가됩니다. [앱 개요](/docs/mobile-desktop-apps/index)를 참고하세요.
 - **이 브라우저.** **디바이스 등록**을 클릭하고 **디바이스 이름**을 입력한 뒤, 브라우저가 물으면 알림을 허용합니다.
@@ -108,7 +108,7 @@ OneUptime으로 돌아와 **I've sent the message — check**를 클릭합니다
 :::steps
 ### 웹훅 추가
 
-**Webhooks** 탭에서 **웹훅 추가**를 클릭합니다. 알아볼 수 있는 **이름**, **웹훅 URL**, 그리고 **서명 시크릿(선택 사항)** 항목을 입력합니다.
+**웹훅** 탭에서 **웹훅 추가**를 클릭합니다. 알아볼 수 있는 **이름**, **웹훅 URL**, 그리고 **서명 시크릿(선택 사항)** 항목을 입력합니다.
 
 ### 테스트 전송
 

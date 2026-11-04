@@ -72,7 +72,7 @@ L'interrupteur a ajouté une règle d'astreinte pour les incidents et une pour l
 
 ### Choisir comment vous êtes joint
 
-Votre e-mail de connexion est déjà un moyen de vous joindre. Pour recevoir aussi des SMS ou des appels, ouvrez **Paramètres utilisateur** dans la barre sous la barre supérieure, allez dans **Méthodes de notification** et, dans l'onglet **Direct Contact**, ajoutez votre numéro sous **Numéros de téléphone pour les notifications SMS** ou **Numéros de téléphone pour les notifications par appel**. Cliquez sur **Vérifier** et saisissez le code que OneUptime vous envoie. Un numéro vérifié sert aussitôt aux alertes d'astreinte.
+Votre e-mail de connexion est déjà un moyen de vous joindre. Pour recevoir aussi des SMS ou des appels, ouvrez **Paramètres utilisateur** dans la barre sous la barre supérieure, allez dans **Méthodes de notification** et, dans l'onglet **Contact direct**, ajoutez votre numéro sous **Numéros de téléphone pour les notifications SMS** ou **Numéros de téléphone pour les notifications par appel**. Cliquez sur **Vérifier** et saisissez le code que OneUptime vous envoie. Un numéro vérifié sert aussitôt aux alertes d'astreinte.
 :::
 
 > [!NOTE]

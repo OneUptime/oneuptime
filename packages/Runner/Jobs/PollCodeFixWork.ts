@@ -226,13 +226,14 @@ export const executeTask: ExecuteTaskFunction = async (
     await RepositoryTokenRevocation.revokeAll();
 
     /*
-     * dispose(), not flush(): a TaskLogger starts a repeating flush timer in
-     * its constructor, and only dispose() stops it. One logger is created
-     * per task and this loop runs for the life of the container, so flushing
-     * without disposing left a live interval behind for every task the
-     * Runner had ever processed — each waking every five seconds and POSTing
-     * to the server forever, against a task that finished hours ago.
-     * dispose() flushes as well, so nothing is lost on either path.
+     * dispose(): sends every line still waiting, after those on their way,
+     * and leaves no timer behind. One logger is created per task and this
+     * loop runs for the life of the container; a TaskLogger used to start a
+     * repeating flush timer that only dispose() stopped, so a logger that
+     * was not disposed woke every five seconds, forever, for a task that
+     * finished hours ago. It now keeps a timer only while lines wait to be
+     * sent - a quarter of a second, so each step reaches the task's page as
+     * it happens - and dispose() still sends what waits.
      */
     await taskLogger.dispose();
 

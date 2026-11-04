@@ -1313,7 +1313,7 @@ describe("scanning a source tree", () => {
 });
 
 describe("the real source roots", () => {
-  test("cover the Dashboard, the shared UI, the data models, the vCenter collection errors, the security case and playbook catalogs, the AI and cloud connections' catalogs, the shared monitor helpers, the monitor type cards, the cron schedule words and its common schedules, the placeholders of a playbook's message, what is wrong with a detection rule exception, what is wrong with a watchlist or one of its values, what is wrong with a hunt or why its run could not be made, what each of the traces explorer's span types is, why Add or Delete is locked on the Global User Overrides page, what a dashboard template's chart says while it draws its fallback query, how a change OneUptime AI proposes went before, a cloud change in plain words, a Kubernetes object's status by the cluster's rules, a database's status by its engine's alert lines, a cloud resource's status by its key metrics and the kinds of saving the clouds recommend, what an AI action's approval card says and the kinds of resource it names, and how an AI remediation round reads", () => {
+  test("cover the Dashboard, the shared UI, the data models, the vCenter collection errors, the security case and playbook catalogs, the AI and cloud connections' catalogs, the shared monitor helpers, the monitor type cards, the cron schedule words and its common schedules, the placeholders of a playbook's message, what is wrong with a detection rule exception, what is wrong with a watchlist or one of its values, what is wrong with a hunt or why its run could not be made, the Hunt Library's starters, what each of the traces explorer's span types is, why Add or Delete is locked on the Global User Overrides page, what a dashboard template's chart says while it draws its fallback query, how a change OneUptime AI proposes went before, a cloud change in plain words, a Kubernetes object's status by the cluster's rules, a database's status by its engine's alert lines, a cloud resource's status by its key metrics and the kinds of saving the clouds recommend, what an AI action's approval card says and the kinds of resource it names, how an AI remediation round reads, and the curated metrics' names", () => {
     expect(
       SOURCE_ROOTS.map((root: { directory: string; kind: string }) => {
         return `${root.kind} ${root.directory}`;
@@ -1350,6 +1350,7 @@ describe("the real source roots", () => {
       "ui packages/Common/Types/SecurityEvent/SecurityWatchlistFilter.ts",
       // What is wrong with a hunt, and why its scheduled run could not be made.
       "ui packages/Common/Types/SecurityEvent/SecurityHunt.ts",
+      "ui packages/Common/Types/SecurityEvent/SecurityHuntLibrary.ts",
       // What each span type is - its marked sentences, not its choices' names.
       "keys packages/Common/Types/Telemetry/TraceSpanType.ts",
       // Why Add or Delete is locked on the Global User Overrides page.
@@ -1380,6 +1381,15 @@ describe("the real source roots", () => {
       "keys packages/Common/Types/AI/AiAffectedResources.ts",
       // How an AI remediation round reads on the Remediation step.
       "keys packages/Common/Types/AutoRemediation/RemediationRoundName.ts",
+      /*
+       * The curated metrics' names: a database's engine charts, a queue's
+       * Broker health, the storage array, Proxmox and Ceph metric pickers.
+       */
+      "keys packages/Common/Types/DatabaseServer/DatabaseServerMetricCatalog.ts",
+      "keys packages/Common/Types/MessageQueue/MessageQueueMetricCatalog.ts",
+      "keys packages/Common/Types/Monitor/StorageArrayMetricCatalog.ts",
+      "keys packages/Common/Types/Monitor/ProxmoxMetricCatalog.ts",
+      "keys packages/Common/Types/Monitor/CephMetricCatalog.ts",
     ]);
   });
 

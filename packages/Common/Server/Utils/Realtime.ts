@@ -283,11 +283,28 @@ export default abstract class Realtime {
       throw new BadDataException("tenantId is not an id");
     }
 
+    /*
+     * One record, for a page that shows only it (a task's conversation):
+     * its own room hears every change of that record, and of no other.
+     * Optional; when sent it must be an id.
+     */
+    const modelId: unknown = data["modelId"];
+
+    if (
+      modelId !== undefined &&
+      modelId !== null &&
+      (typeof modelId !== "string" || !ObjectID.isValidUUID(modelId))
+    ) {
+      logger.error("modelId is not an id", socketLogAttributes);
+      throw new BadDataException("modelId is not an id");
+    }
+
     return {
       eventType: data["eventType"] as ModelEventType,
       modelType: data["modelType"] as DatabaseType,
       modelName: data["modelName"] as string,
       tenantId: data["tenantId"] as string,
+      ...(typeof modelId === "string" ? { modelId: modelId } : {}),
     };
   }
 
@@ -466,11 +483,14 @@ export default abstract class Realtime {
      */
     RealtimeSessions.begin(socket, session);
 
+    /*
+     * A record's own room when the page asked for one record, else the
+     * model's room for that kind of change.
+     */
     const roomId: string = data.modelId
-      ? RealtimeUtil.getRoomId(
+      ? RealtimeUtil.getRecordRoomId(
           data.tenantId,
           data.modelName,
-          ModelEventType.Create,
           data.modelId,
         )
       : RealtimeUtil.getRoomId(data.tenantId, data.modelName, data.eventType);
@@ -511,12 +531,14 @@ export default abstract class Realtime {
       await this.init();
     }
 
-    const roomId: string = RealtimeUtil.getRoomId(
-      data.tenantId,
-      data.modelName,
-      data.eventType,
-      data.modelId,
-    );
+    // The room the join took: a record's own, or the model's for the kind.
+    const roomId: string = data.modelId
+      ? RealtimeUtil.getRecordRoomId(
+          data.tenantId,
+          data.modelName,
+          data.modelId,
+        )
+      : RealtimeUtil.getRoomId(data.tenantId, data.modelName, data.eventType);
 
     logger.debug(`Leaving room with ID: ${roomId}`, stopLogAttributes);
     // leave this room.
@@ -871,10 +893,9 @@ export default abstract class Realtime {
     const listening: Array<ListeningSocket> = await this.fetchListeningSockets([
       RealtimeUtil.getRoomId(data.tenantId, data.tableName, data.eventType),
       ...data.modelIds.map((modelId: string): string => {
-        return RealtimeUtil.getRoomId(
+        return RealtimeUtil.getRecordRoomId(
           data.tenantId,
           data.tableName,
-          ModelEventType.Create,
           modelId,
         );
       }),
@@ -1045,12 +1066,7 @@ export default abstract class Realtime {
     for (const modelId of modelIds) {
       recordRoomIds.set(
         modelId,
-        RealtimeUtil.getRoomId(
-          batch.tenantId,
-          batch.tableName,
-          ModelEventType.Create,
-          modelId,
-        ),
+        RealtimeUtil.getRecordRoomId(batch.tenantId, batch.tableName, modelId),
       );
     }
 

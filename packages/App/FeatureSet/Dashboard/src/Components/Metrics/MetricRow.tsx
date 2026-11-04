@@ -7,6 +7,7 @@ import React, {
 import MetricType from "Common/Models/DatabaseModels/MetricType";
 import Service from "Common/Models/DatabaseModels/Service";
 import ValueFormatter from "Common/Utils/ValueFormatter";
+import { getUnitNameInLanguage } from "Common/UI/Components/Charts/Utils/UnitNames";
 import OneUptimeDate from "Common/Types/Date";
 import MetricSparkline, { SparklinePoint } from "./MetricSparkline";
 import ObjectID from "Common/Types/ObjectID";
@@ -43,7 +44,11 @@ export interface MetricRowProps {
   restrictServicesToIds?: ReadonlyArray<string> | undefined;
   // Appended to the value, e.g. "/s" when the host charts a rate.
   valueSuffix?: string | undefined;
-  // One short line under the value saying what the number is.
+  /*
+   * One short line under the value saying what the number is. A key
+   * ("average of series") is said in the reader's language; a caption the
+   * host has said already is drawn as given.
+   */
   valueCaption?: string | undefined;
   /*
    * The unit the value is in, when the host knows the metric's declared
@@ -99,8 +104,10 @@ const MetricRow: FunctionComponent<MetricRowProps> = (
   const formatterOptions: { metricName: string } = {
     metricName: metric.name || "",
   };
-  const readableUnit: string = ValueFormatter.getReadableUnit(
+  // The unit's name in the reader's language ("Millisekunden").
+  const readableUnit: string = getUnitNameInLanguage(
     rawUnit,
+    translator,
     formatterOptions,
   );
 
@@ -201,7 +208,8 @@ const MetricRow: FunctionComponent<MetricRowProps> = (
                 data-testid="metric-row-value-caption"
                 className="mt-0.5 text-[10px] text-gray-400"
               >
-                {props.valueCaption}
+                {translator.translateText(props.valueCaption) ||
+                  props.valueCaption}
               </div>
             )}
           </div>

@@ -56,7 +56,7 @@ Jede Zeile zeigt außerdem, wie viele Benutzer die Ausnahme im gewählten Zeitra
 
 ### Festlegen, was als Problem zählt
 
-**Probleme**, der Standard, blendet Benutzerfehler und erwartete Ablehnungen aus, sodass die Liste zeigt, was eine Korrektur braucht. **User errors** zeigt nur diese, und **Alle** zeigt jede Ausnahme.
+**Probleme**, der Standard, blendet Benutzerfehler und erwartete Ablehnungen aus, sodass die Liste zeigt, was eine Korrektur braucht. **Benutzerfehler** zeigt nur diese, und **Alle** zeigt jede Ausnahme.
 
 ### Suchen und filtern
 

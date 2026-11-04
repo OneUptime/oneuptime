@@ -139,7 +139,7 @@ localStorage.setItem("oneuptime.sessionReplay.debug", "true");
 // then reload the page
 ```
 
-De pagina **Gezondheid** van de applicatie, in de sectie **Sessieherhaling**, en het paneel **Test your installation** op **Replay Policy** controleren de sleutel, de lijsten met toegestane origins en het beleid vanaf de serverkant, en zeggen waarom er niets binnenkomt. De browserconsole geeft je de helft die de server niet kan zien.
+De pagina **Gezondheid** van de applicatie, in de sectie **Sessieherhaling**, en het paneel **Test your installation** op **Herhalingsbeleid** controleren de sleutel, de lijsten met toegestane origins en het beleid vanaf de serverkant, en zeggen waarom er niets binnenkomt. De browserconsole geeft je de helft die de server niet kan zien.
 
 Met het standaardbeleid verstuurt een recorder ongeveer elke 15 seconden een chunk terwijl de gebruiker met de pagina bezig is. Een inactief tabblad heeft niets te versturen, dus klik eerst of beweeg de muis; als er daarna geen chunk-verzoek is, gaat er iets mis. Als de app alleen _On error or frustration_ uploadt, is stilte te verwachten tot er iets misgaat. Roep `OneUptimeReplay.captureSession()` aan om een upload te forceren en het pad toch te testen.
 

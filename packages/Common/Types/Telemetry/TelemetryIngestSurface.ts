@@ -37,6 +37,12 @@ enum TelemetryIngestSurface {
    * a page's.
    */
   DbtArtifacts = "dbt-artifacts",
+  /*
+   * Fivetran's and Airbyte's sync webhooks (POST /fivetran/v1/webhook/<key
+   * id> and /airbyte/v1/webhook/<key>): each sync a pipeline run. Server
+   * keys only: a tool's servers send them, never a page.
+   */
+  SyncWebhooks = "sync-webhooks",
   SecurityEvents = "security-events",
   Grpc = "grpc",
   Mqtt = "mqtt",
@@ -139,6 +145,7 @@ const INGEST_SURFACE_READABLE_NAMES: Record<TelemetryIngestSurface, string> = {
   [TelemetryIngestSurface.ChangeEvents]: "change event ingest",
   [TelemetryIngestSurface.OpenLineage]: "OpenLineage event ingest",
   [TelemetryIngestSurface.DbtArtifacts]: "dbt artifacts upload",
+  [TelemetryIngestSurface.SyncWebhooks]: "Fivetran and Airbyte sync webhooks",
   [TelemetryIngestSurface.SecurityEvents]: "security event ingest",
   [TelemetryIngestSurface.Grpc]: "gRPC ingest",
   [TelemetryIngestSurface.Mqtt]: "MQTT ingest",

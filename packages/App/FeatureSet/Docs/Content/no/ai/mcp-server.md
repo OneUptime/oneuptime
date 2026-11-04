@@ -337,6 +337,8 @@ En typisk sløyfe: `list_incidents` → `acknowledge_incident` → undersøk med
 
 Verktøyet **`oneuptime_whoami`** returnerer prosjektet påloggingsdetaljene dine hører til (ID og navn). For en klient som logget inn, sier det også hvem den er logget inn som, og om den kan gjøre endringer. Det er et godt første kall for at en agent skal finne fotfeste, og siden opprettingsverktøy tar `projectId` fra påloggingsdetaljene, trenger agenten aldri å sende en prosjekt-ID.
 
+Verktøyet **`get_data_table_freshness`** forteller en agent om en tabell som Data Observability overvåker er fersk før den bruker dataene: fersk eller forsinket målt mot tabellens egen rytme, når den sist ble endret, de åpne varslene, og hvordan den siste kjøringen av hver pipeline som skriver den gikk. Oppgi `table` som `schema.table`, bare tabellens navn eller ID-en. Det endrer ingenting.
+
 ## Spørre etter telemetri
 
 Logger, målinger, spor (spans), unntak, monitorlogger og de andre typene telemetri kommer som skrivebeskyttede verktøy `list_` og `count_` (`list_logs`, `list_metrics`, `list_spans`, `list_exception_instances`, `list_monitor_logs` og `count_`-tvillingene deres). Telemetri kommer inn gjennom OpenTelemetry, så det finnes ingen opprettingsverktøy.

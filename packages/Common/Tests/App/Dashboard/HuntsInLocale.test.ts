@@ -2,9 +2,28 @@ import { describe, expect, test } from "@jest/globals";
 import fs from "fs";
 import path from "path";
 import * as HuntsCopy from "../../../../App/FeatureSet/Dashboard/src/Components/SecurityEvents/Hunts/HuntsCopy";
+import { HUNT_DATA_STATUS_SENTENCES } from "../../../../App/FeatureSet/Dashboard/src/Components/SecurityEvents/Hunts/HuntLibraryTable";
+import {
+  APPLIES_TO_ALL_ANSWERS,
+  APPLIES_TO_MATCHING_ANSWERS,
+  NOTIFICATION_RULES_CARD_DESCRIPTIONS,
+  NOTIFICATION_RULES_CARD_TITLES,
+  NOTIFICATION_RULE_CONDITIONS_DESCRIPTIONS,
+  NOTIFICATION_RULE_CONDITIONS_TITLES,
+  NO_CONDITIONS_SENTENCES,
+  RULE_PLURAL_NAMES,
+  RULE_SINGULAR_NAMES,
+} from "../../../../App/FeatureSet/Dashboard/src/Components/Workspace/NotificationRuleForm/NotificationRuleCopy";
 import BaseModel from "../../../Models/DatabaseModels/DatabaseBaseModel/DatabaseBaseModel";
 import SecurityHunt from "../../../Models/DatabaseModels/SecurityHunt";
+import SecurityHuntRun from "../../../Models/DatabaseModels/SecurityHuntRun";
 import SecurityCaseEvidence from "../../../Models/DatabaseModels/SecurityCaseEvidence";
+import {
+  SECURITY_HUNT_LIBRARY,
+  SecurityHuntLibraryEntry,
+} from "../../../Types/SecurityEvent/SecurityHuntLibrary";
+import NotificationRuleEventType from "../../../Types/Workspace/NotificationRules/EventType";
+import { NotificationRuleConditionCheckOn } from "../../../Types/Workspace/NotificationRules/NotificationRuleCondition";
 import { SECURITY_CASE_EVENTS_ADD_REASONS } from "../../../Types/SecurityCase/SecurityCaseEventEvidence";
 import {
   SECURITY_HUNT_MESSAGES,
@@ -175,12 +194,50 @@ const SETTINGS_WORDS: Array<string> = [
   "Notify me when a scheduled hunt that names me, or a team I am on, finds security events.",
 ];
 
+// The Hunt Library's starters, named and described in each reader's words.
+const LIBRARY_WORDS: Array<string> = SECURITY_HUNT_LIBRARY.flatMap(
+  (entry: SecurityHuntLibraryEntry): Array<string> => {
+    return [entry.title, entry.description];
+  },
+);
+
+// A Security Hunt rule's words, on the Security Events Slack and Teams pages.
+const HUNT_RULE_WORDS: Array<string> = [
+  NOTIFICATION_RULE_CONDITIONS_TITLES,
+  NOTIFICATION_RULE_CONDITIONS_DESCRIPTIONS,
+  APPLIES_TO_ALL_ANSWERS,
+  APPLIES_TO_MATCHING_ANSWERS,
+  RULE_SINGULAR_NAMES,
+  RULE_PLURAL_NAMES,
+  NOTIFICATION_RULES_CARD_TITLES,
+  NOTIFICATION_RULES_CARD_DESCRIPTIONS,
+  NO_CONDITIONS_SENTENCES,
+]
+  .map(
+    (
+      words: Partial<Record<NotificationRuleEventType, string>>,
+    ): string | undefined => {
+      return words[NotificationRuleEventType.SecurityHunt];
+    },
+  )
+  .concat([
+    NOTIFICATION_RULES_CARD_TITLES[NotificationRuleEventType.SecurityCase],
+    NotificationRuleConditionCheckOn.SecurityHuntName,
+  ])
+  .filter((text: string | undefined): text is string => {
+    return Boolean(text);
+  });
+
 const SENTENCES: Array<string> = Array.from(
   new Set([
     ...COPY_SENTENCES,
     ...MESSAGES,
     ...SETTINGS_WORDS,
+    ...LIBRARY_WORDS,
+    ...HUNT_RULE_WORDS,
+    ...Object.values(HUNT_DATA_STATUS_SENTENCES),
     ...modelTexts(new SecurityHunt()),
+    ...modelTexts(new SecurityHuntRun()),
     // The kept event's own columns on a case's evidence.
     ...modelTexts(new SecurityCaseEvidence(), [
       "eventUid",

@@ -85,7 +85,7 @@ flowchart TB
     Registered --> Gone --> Marked --> Open --> Renewed
 ```
 
-A Expo dá um celular como perdido quando o aplicativo foi removido dele, ou quando o token push dele não é mais válido. O celular não é excluído: **Configurações do usuário → Métodos de notificação**, na aba **Push Notifications**, o mostra como **Não está recebendo notificações**, e a linha do tempo de plantão de um acionamento que não chegou a ele diz por quê. Os seus outros celulares e métodos de notificação são acionados como sempre.
+A Expo dá um celular como perdido quando o aplicativo foi removido dele, ou quando o token push dele não é mais válido. O celular não é excluído: **Configurações do usuário → Métodos de notificação**, na aba **Notificações push**, o mostra como **Não está recebendo notificações**, e a linha do tempo de plantão de um acionamento que não chegou a ele diz por quê. Os seus outros celulares e métodos de notificação são acionados como sempre.
 
 O aplicativo registra o celular sempre que abre, quando você entra, e quando você volta a ele, no máximo uma vez a cada cinco minutos. O registro pede de novo o token push à Expo, o que o renova, e o celular volta a receber acionamentos com as regras que tinha.
 
@@ -124,7 +124,7 @@ As chaves de acesso precisam que o endereço do seu OneUptime comece com `https:
 
 :::details Nenhuma notificação no celular
 - Verifique se o celular permite as notificações do OneUptime On-Call, e se o Não Perturbe ou um Foco não as está retendo.
-- Em **Configurações do usuário → Métodos de notificação**, aba **Push Notifications**, verifique se o celular aparece na lista, e envie a ele uma **Notificação de teste**.
+- Em **Configurações do usuário → Métodos de notificação**, aba **Notificações push**, verifique se o celular aparece na lista, e envie a ele uma **Notificação de teste**.
 - Se ele está marcado como **Não está recebendo notificações**, abra o aplicativo estando conectado: veja [Quando um celular precisa se registrar de novo](#quando-um-celular-precisa-se-registrar-de-novo).
 - Verifique as suas regras de plantão em **Configurações do usuário → Regras de Plantão**: elas decidem quais acionamentos chegam a qual método.
 - Num OneUptime auto-hospedado, verifique se o servidor chega ao relay push dele: veja [Notificações push](/docs/self-hosted/push-notifications#acesso-de-rede).
@@ -145,7 +145,7 @@ Instale a partir de uma página do painel depois de entrar, por `https://`, no E
 :::
 
 :::details Nenhuma notificação no desktop
-Registre o navegador em **Configurações do usuário → Métodos de notificação**, aba **Push Notifications**, com **Registrar Dispositivo**, permita as notificações quando for perguntado, e verifique as configurações de notificação do próprio computador. Um OneUptime auto-hospedado precisa das chaves VAPID dele para as notificações do navegador.
+Registre o navegador em **Configurações do usuário → Métodos de notificação**, aba **Notificações push**, com **Registrar Dispositivo**, permita as notificações quando for perguntado, e verifique as configurações de notificação do próprio computador. Um OneUptime auto-hospedado precisa das chaves VAPID dele para as notificações do navegador.
 :::
 
 ## Obter ajuda

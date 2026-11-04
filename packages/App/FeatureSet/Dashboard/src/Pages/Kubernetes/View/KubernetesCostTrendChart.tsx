@@ -2,6 +2,9 @@ import React, { FunctionComponent, ReactElement } from "react";
 import InBetween from "Common/Types/BaseDatabase/InBetween";
 import ErrorMessage from "Common/UI/Components/ErrorMessage/ErrorMessage";
 import LineChartElement from "Common/UI/Components/Charts/Line/LineChart";
+import { withTranslatedSeriesNames } from "Common/UI/Components/Charts/Utils/SeriesNames";
+import { Translator } from "Common/UI/Utils/TranslateTemplate";
+import useTranslator from "Common/UI/Utils/UseTranslator";
 import SeriesPoint from "Common/UI/Components/Charts/Types/SeriesPoints";
 import ChartCurve from "Common/UI/Components/Charts/Types/ChartCurve";
 import XAxisType from "Common/UI/Components/Charts/Types/XAxis/XAxisType";
@@ -60,6 +63,8 @@ export interface ComponentProps {
 const KubernetesCostTrendChart: FunctionComponent<ComponentProps> = (
   props: ComponentProps,
 ): ReactElement => {
+  // The line's name in the reader's words, in its tooltip.
+  const translator: Translator = useTranslator();
   const pageZoom: ChartTimeRangeZoomContextValue | null =
     useChartTimeRangeZoom();
 
@@ -148,7 +153,7 @@ const KubernetesCostTrendChart: FunctionComponent<ComponentProps> = (
 
     return (
       <LineChartElement
-        data={series}
+        data={withTranslatedSeriesNames(series, translator)}
         xAxis={xAxis}
         yAxis={yAxis}
         curve={ChartCurve.MONOTONE}

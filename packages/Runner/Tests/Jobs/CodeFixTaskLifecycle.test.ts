@@ -7,11 +7,13 @@
  * are pinned here, both of which are invisible in a short-lived test run and
  * only show up on a Runner that has been up for days:
  *
- *   - A TaskLogger starts a repeating flush timer in its CONSTRUCTOR, and one
- *     logger is created per task. Only dispose() stops that timer; the loop
- *     used to call flush(). So every task the Runner ever processed left a
- *     live interval behind, each waking every five seconds forever and
- *     POSTing to the server on behalf of a run that finished hours ago.
+ *   - One TaskLogger is created per task. It used to start a repeating
+ *     flush timer in its CONSTRUCTOR that only dispose() stopped, and the
+ *     loop used to call flush(): every task the Runner ever processed left
+ *     a live interval behind, each waking every five seconds forever and
+ *     POSTing to the server on behalf of a run that finished hours ago. A
+ *     logger now keeps a timer only while lines wait to be sent, and the
+ *     loop still disposes it.
  *   - The repository access token is registered with the redactor for the
  *     duration of a run. It has to be forgotten afterwards: this Runner goes
  *     on to serve other repositories.
@@ -148,17 +150,16 @@ describe("executeTask lifecycle", () => {
   });
 
   /*
-   * The other half of the contract, on TaskLogger itself: dispose() must
-   * actually stop the repeating timer. flush() alone does not — which is the
-   * whole reason the loop leaked one live interval per task, each waking
-   * every five seconds for the remaining life of the container and POSTing
-   * on behalf of a run that finished hours ago.
+   * The other half of the contract, on TaskLogger itself: a logger with
+   * nothing to send keeps no timer at all, and dispose() sends what waits
+   * at once and leaves none behind - so neither a logger that is never
+   * disposed nor one that is wakes for a run that finished.
    */
-  test("dispose stops TaskLogger's repeating flush timer for good", async () => {
+  test("an idle TaskLogger keeps no timer: nothing fires until a line is written", async () => {
     /*
      * Real timers on a short interval, not jest's fake ones: this jest
      * version cannot install fake timers on the Node the Runner ships with,
-     * and a leaked interval is a real-clock problem anyway.
+     * and a leaked timer is a real-clock problem anyway.
      */
     const logger: TaskLogger = new TaskLogger({
       taskId: task.id,
@@ -168,13 +169,40 @@ describe("executeTask lifecycle", () => {
     const flushSpy: jest.SpyInstance = jest.spyOn(logger, "flush");
 
     try {
-      await sleep(150);
-      expect(flushSpy.mock.calls.length).toBeGreaterThanOrEqual(1);
+      // Several send delays of real time with nothing written: no wake-up.
+      await sleep(200);
+      expect(flushSpy).not.toHaveBeenCalled();
 
+      // A line is sent once its delay has passed, and then nothing more.
+      await logger.info("cloned the repository");
+      await sleep(150);
+      expect(flushSpy).toHaveBeenCalledTimes(1);
+
+      await sleep(150);
+      expect(flushSpy).toHaveBeenCalledTimes(1);
+    } finally {
+      flushSpy.mockRestore();
+      await logger.dispose();
+    }
+  });
+
+  test("dispose sends a waiting line at once and leaves no timer behind", async () => {
+    const logger: TaskLogger = new TaskLogger({
+      taskId: task.id,
+      flushIntervalMs: 40,
+    });
+
+    const flushSpy: jest.SpyInstance = jest.spyOn(logger, "flush");
+
+    try {
+      await logger.info("ran npm test");
+
+      // Before the line's delay is up: dispose sends it now...
       await logger.dispose();
       const callsAfterDispose: number = flushSpy.mock.calls.length;
+      expect(callsAfterDispose).toBe(1);
 
-      // Several more interval periods of real time: nothing may fire again.
+      // ...and the timer the line set never fires afterwards.
       await sleep(200);
 
       expect(flushSpy.mock.calls.length).toBe(callsAfterDispose);

@@ -256,10 +256,10 @@ Et topic navngives ens fra begge sider: spans rapporterer dets ARN eller dets na
 
 | Metrik | Vises som | Type |
 | --- | --- | --- |
-| `amazonaws.com/aws/sns/numberofmessagespublished` (JSON-stream: `numberofmessagespublished`) | Messages published | Antal pr. periode |
-| `amazonaws.com/aws/sns/numberofnotificationsdelivered` (JSON-stream: `numberofnotificationsdelivered`) | Notifications delivered | Antal pr. periode |
-| `amazonaws.com/aws/sns/numberofnotificationsfailed` (JSON-stream: `numberofnotificationsfailed`) | Notifications failed | Antal pr. periode |
-| `amazonaws.com/aws/sns/numberofnotificationsredriventodlq` (JSON-stream: `numberofnotificationsredriventodlq`) | Redriven to dead-letter queue | Antal pr. periode |
+| `amazonaws.com/aws/sns/numberofmessagespublished` (JSON-stream: `numberofmessagespublished`) | Udgivne beskeder | Antal pr. periode |
+| `amazonaws.com/aws/sns/numberofnotificationsdelivered` (JSON-stream: `numberofnotificationsdelivered`) | Leverede notifikationer | Antal pr. periode |
+| `amazonaws.com/aws/sns/numberofnotificationsfailed` (JSON-stream: `numberofnotificationsfailed`) | Mislykkede notifikationer | Antal pr. periode |
+| `amazonaws.com/aws/sns/numberofnotificationsredriventodlq` (JSON-stream: `numberofnotificationsredriventodlq`) | Omdirigeret til dead-letter-kø | Antal pr. periode |
 
 ### Amazon SQS
 
@@ -345,12 +345,12 @@ En dead-letter-kø er en almindelig SQS-kø med egne metrikker, så den er en k�
 
 | Metrik | Vises som | Type |
 | --- | --- | --- |
-| `amazonaws.com/aws/sqs/approximatenumberofmessagesvisible` (JSON-stream: `approximatenumberofmessagesvisible`) | Messages visible | Gauge |
-| `amazonaws.com/aws/sqs/approximateageofoldestmessage` (JSON-stream: `approximateageofoldestmessage`) | Oldest message age | Gauge |
-| `amazonaws.com/aws/sqs/approximatenumberofmessagesnotvisible` (JSON-stream: `approximatenumberofmessagesnotvisible`) | Messages in flight | Gauge |
-| `amazonaws.com/aws/sqs/numberofmessagessent` (JSON-stream: `numberofmessagessent`) | Messages sent | Antal pr. periode |
-| `amazonaws.com/aws/sqs/numberofmessagesreceived` (JSON-stream: `numberofmessagesreceived`) | Messages received | Antal pr. periode |
-| `amazonaws.com/aws/sqs/numberofmessagesdeleted` (JSON-stream: `numberofmessagesdeleted`) | Messages deleted | Antal pr. periode |
+| `amazonaws.com/aws/sqs/approximatenumberofmessagesvisible` (JSON-stream: `approximatenumberofmessagesvisible`) | Synlige beskeder | Gauge |
+| `amazonaws.com/aws/sqs/approximateageofoldestmessage` (JSON-stream: `approximateageofoldestmessage`) | Alder på ældste besked | Gauge |
+| `amazonaws.com/aws/sqs/approximatenumberofmessagesnotvisible` (JSON-stream: `approximatenumberofmessagesnotvisible`) | Beskeder undervejs | Gauge |
+| `amazonaws.com/aws/sqs/numberofmessagessent` (JSON-stream: `numberofmessagessent`) | Sendte beskeder | Antal pr. periode |
+| `amazonaws.com/aws/sqs/numberofmessagesreceived` (JSON-stream: `numberofmessagesreceived`) | Modtagne beskeder | Antal pr. periode |
+| `amazonaws.com/aws/sqs/numberofmessagesdeleted` (JSON-stream: `numberofmessagesdeleted`) | Slettede beskeder | Antal pr. periode |
 
 ### Apache ActiveMQ
 
@@ -384,14 +384,14 @@ Brokerens metrikker slutter sig til den kø, som dens JMS-klienters spans har op
 
 | Metrik | Vises som | Type |
 | --- | --- | --- |
-| `activemq.message.queue.size` | Queue size | Gauge |
-| `activemq.message.current` | Queue size (legacy names) | Gauge |
-| `activemq.message.enqueued` | Enqueued | Tæller, vist pr. sekund |
-| `activemq.message.dequeued` | Dequeued | Tæller, vist pr. sekund |
-| `activemq.message.expired` | Expired | Tæller, vist pr. sekund |
-| `activemq.consumer.count` | Consumers | Gauge |
-| `activemq.message.enqueue.average_duration` | Average time in queue | Gauge |
-| `activemq.message.wait_time.avg` | Average time in queue (legacy names) | Gauge |
+| `activemq.message.queue.size` | Køstørrelse | Gauge |
+| `activemq.message.current` | Køstørrelse (gamle navne) | Gauge |
+| `activemq.message.enqueued` | Sat i kø | Tæller, vist pr. sekund |
+| `activemq.message.dequeued` | Taget ud af kø | Tæller, vist pr. sekund |
+| `activemq.message.expired` | Udløbet | Tæller, vist pr. sekund |
+| `activemq.consumer.count` | Forbrugere | Gauge |
+| `activemq.message.enqueue.average_duration` | Gennemsnitlig tid i kø | Gauge |
+| `activemq.message.wait_time.avg` | Gennemsnitlig tid i kø (gamle navne) | Gauge |
 
 ### Apache Kafka
 
@@ -434,10 +434,10 @@ For en klynge med SASL eller TLS skal du fjerne kommentaren fra `auth` og `tls`.
 
 | Metrik | Vises som | Type |
 | --- | --- | --- |
-| `kafka.consumer_group.lag_sum` | Consumer lag | Gauge |
-| `kafka.consumer_group.lag` | Partition lag | Gauge |
-| `kafka.consumer_group.offset_sum` | Consumed | Tæller, vist pr. sekund |
-| `kafka.partition.current_offset` | Produced | Tæller, vist pr. sekund |
+| `kafka.consumer_group.lag_sum` | Forbrugerforsinkelse | Gauge |
+| `kafka.consumer_group.lag` | Partitionsforsinkelse | Gauge |
+| `kafka.consumer_group.offset_sum` | Forbrugt | Tæller, vist pr. sekund |
+| `kafka.partition.current_offset` | Produceret | Tæller, vist pr. sekund |
 
 ### Apache Pulsar
 
@@ -486,11 +486,11 @@ service:
 
 | Metrik | Vises som | Type |
 | --- | --- | --- |
-| `pulsar_msg_backlog` | Backlog | Gauge |
-| `pulsar_subscription_back_log` | Subscription backlog | Gauge |
-| `pulsar_storage_backlog_age_seconds` | Backlog age | Gauge |
-| `pulsar_in_messages_total` | Messages in | Tæller, vist pr. sekund |
-| `pulsar_out_messages_total` | Messages out | Tæller, vist pr. sekund |
+| `pulsar_msg_backlog` | Efterslæb | Gauge |
+| `pulsar_subscription_back_log` | Abonnementets efterslæb | Gauge |
+| `pulsar_storage_backlog_age_seconds` | Efterslæbets alder | Gauge |
+| `pulsar_in_messages_total` | Beskeder ind | Tæller, vist pr. sekund |
+| `pulsar_out_messages_total` | Beskeder ud | Tæller, vist pr. sekund |
 
 ### Apache RocketMQ
 
@@ -536,10 +536,10 @@ Dette er RocketMQ 5's indbyggede exporter. RocketMQ 4 har ingen; den separate `r
 
 | Metrik | Vises som | Type |
 | --- | --- | --- |
-| `rocketmq_consumer_lag_messages` | Consumer lag | Gauge |
-| `rocketmq_consumer_ready_messages` | Ready messages | Gauge |
-| `rocketmq_send_to_dlq_messages_total` | Sent to dead-letter queue | Tæller, vist pr. sekund |
-| `rocketmq_messages_in_total` | Messages in | Tæller, vist pr. sekund |
+| `rocketmq_consumer_lag_messages` | Forbrugerforsinkelse | Gauge |
+| `rocketmq_consumer_ready_messages` | Klar-beskeder | Gauge |
+| `rocketmq_send_to_dlq_messages_total` | Sendt til dead-letter-kø | Tæller, vist pr. sekund |
+| `rocketmq_messages_in_total` | Beskeder ind | Tæller, vist pr. sekund |
 
 ### Azure Event Grid
 
@@ -642,12 +642,12 @@ Azure Monitor har ingen consumer-lag-metrik for Event Hubs: dens `ConsumerLag` f
 
 | Metrik | Vises som | Type |
 | --- | --- | --- |
-| `azure_incomingmessages_total` | Incoming messages | Antal pr. periode |
-| `azure_outgoingmessages_total` | Outgoing messages | Antal pr. periode |
-| `azure_servererrors_total` | Server errors | Antal pr. periode |
-| `azure_usererrors_total` | User errors | Antal pr. periode |
-| `azure_quotaexceedederrors_total` | Quota exceeded errors | Antal pr. periode |
-| `azure_throttledrequests_total` | Throttled requests | Antal pr. periode |
+| `azure_incomingmessages_total` | Indgående beskeder | Antal pr. periode |
+| `azure_outgoingmessages_total` | Udgående beskeder | Antal pr. periode |
+| `azure_servererrors_total` | Serverfejl | Antal pr. periode |
+| `azure_usererrors_total` | Brugerfejl | Antal pr. periode |
+| `azure_quotaexceedederrors_total` | Fejl ved overskredet kvote | Antal pr. periode |
+| `azure_throttledrequests_total` | Begrænsede anmodninger | Antal pr. periode |
 
 ### Azure Service Bus
 
@@ -711,15 +711,15 @@ service:
 
 | Metrik | Vises som | Type |
 | --- | --- | --- |
-| `azure_activemessages_average` | Active messages | Gauge |
-| `azure_deadletteredmessages_average` | Dead-lettered messages | Gauge |
-| `azure_incomingmessages_total` | Incoming messages | Antal pr. periode |
-| `azure_outgoingmessages_total` | Outgoing messages | Antal pr. periode |
-| `azure_completemessage_total` | Completed messages | Antal pr. periode |
-| `azure_abandonmessage_total` | Abandoned messages | Antal pr. periode |
-| `azure_servererrors_total` | Server errors | Antal pr. periode |
-| `azure_usererrors_total` | User errors | Antal pr. periode |
-| `azure_throttledrequests_total` | Throttled requests | Antal pr. periode |
+| `azure_activemessages_average` | Aktive beskeder | Gauge |
+| `azure_deadletteredmessages_average` | Beskeder i dead-letter | Gauge |
+| `azure_incomingmessages_total` | Indgående beskeder | Antal pr. periode |
+| `azure_outgoingmessages_total` | Udgående beskeder | Antal pr. periode |
+| `azure_completemessage_total` | Fuldførte beskeder | Antal pr. periode |
+| `azure_abandonmessage_total` | Opgivne beskeder | Antal pr. periode |
+| `azure_servererrors_total` | Serverfejl | Antal pr. periode |
+| `azure_usererrors_total` | Brugerfejl | Antal pr. periode |
+| `azure_throttledrequests_total` | Begrænsede anmodninger | Antal pr. periode |
 
 ### BullMQ
 
@@ -837,11 +837,11 @@ service:
 
 | Metrik | Vises som | Type |
 | --- | --- | --- |
-| `pubsub.googleapis.com/subscription/num_undelivered_messages` | Undelivered messages | Gauge |
-| `pubsub.googleapis.com/subscription/oldest_unacked_message_age` | Oldest unacked message age | Gauge |
-| `pubsub.googleapis.com/subscription/dead_letter_message_count` | Dead-lettered messages | Antal pr. periode |
-| `pubsub.googleapis.com/subscription/ack_message_count` | Acknowledged messages | Antal pr. periode |
-| `pubsub.googleapis.com/topic/send_request_count` | Publish requests | Antal pr. periode |
+| `pubsub.googleapis.com/subscription/num_undelivered_messages` | Ikke-leverede beskeder | Gauge |
+| `pubsub.googleapis.com/subscription/oldest_unacked_message_age` | Alder på ældste ubekræftede besked | Gauge |
+| `pubsub.googleapis.com/subscription/dead_letter_message_count` | Beskeder i dead-letter | Antal pr. periode |
+| `pubsub.googleapis.com/subscription/ack_message_count` | Bekræftede beskeder | Antal pr. periode |
+| `pubsub.googleapis.com/topic/send_request_count` | Udgivelsesanmodninger | Antal pr. periode |
 
 ### JMS
 
@@ -936,12 +936,12 @@ service:
 
 | Metrik | Vises som | Type |
 | --- | --- | --- |
-| `rabbitmq.message.current` | Queue depth | Gauge |
-| `rabbitmq.message.published` | Published | Tæller, vist pr. sekund |
-| `rabbitmq.message.delivered` | Delivered | Tæller, vist pr. sekund |
-| `rabbitmq.message.acknowledged` | Acknowledged | Tæller, vist pr. sekund |
-| `rabbitmq.message.dropped` | Dropped | Tæller, vist pr. sekund |
-| `rabbitmq.consumer.count` | Consumers | Gauge |
+| `rabbitmq.message.current` | Kødybde | Gauge |
+| `rabbitmq.message.published` | Udgivet | Tæller, vist pr. sekund |
+| `rabbitmq.message.delivered` | Leveret | Tæller, vist pr. sekund |
+| `rabbitmq.message.acknowledged` | Bekræftet | Tæller, vist pr. sekund |
+| `rabbitmq.message.dropped` | Kasseret | Tæller, vist pr. sekund |
+| `rabbitmq.consumer.count` | Forbrugere | Gauge |
 
 ## Advarsler
 

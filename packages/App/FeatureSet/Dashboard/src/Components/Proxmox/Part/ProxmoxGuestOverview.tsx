@@ -328,7 +328,7 @@ const ProxmoxGuestOverview: FunctionComponent<ComponentProps> = (
         ) : (
           <>
             <GoldenMetricTile
-              title={tx("CPU")}
+              title="CPU"
               icon={IconProp.CPUChip}
               iconColor="blue"
               value={formatPercent(cpu)}
@@ -345,7 +345,7 @@ const ProxmoxGuestOverview: FunctionComponent<ComponentProps> = (
               description={PROXMOX_METRIC_DESCRIPTIONS.guestCpu}
             />
             <GoldenMetricTile
-              title={tx("Memory")}
+              title="Memory"
               icon={IconProp.SquareStack}
               iconColor="violet"
               value={formatPercent(memoryPercent)}
@@ -362,7 +362,7 @@ const ProxmoxGuestOverview: FunctionComponent<ComponentProps> = (
               description={PROXMOX_METRIC_DESCRIPTIONS.guestMemory}
             />
             <GoldenMetricTile
-              title={tx("Disk")}
+              title="Disk"
               icon={IconProp.Database}
               iconColor="amber"
               value={
@@ -387,7 +387,7 @@ const ProxmoxGuestOverview: FunctionComponent<ComponentProps> = (
           </>
         )}
         <GoldenMetricTile
-          title={tx("Last Backup")}
+          title="Last Backup"
           icon={IconProp.Archive}
           iconColor="emerald"
           value={backupValue}

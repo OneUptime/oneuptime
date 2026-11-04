@@ -52,7 +52,7 @@ Under **Handling** beholder du **Forkast** for å kaste hver post som stemmer, e
 Filteret begynner å forkaste innen ett minutt. For å lagre det uten å forkaste noe ennå slår du av **Aktivert** under **Avansert** før du oppretter det.
 
 > [!WARNING]
-> En forkastet post kan ikke hentes tilbake. Hold spørringen til et filter smal, og følg med på **Dropped**-telleren etter at du har opprettet det.
+> En forkastet post kan ikke hentes tilbake. Hold spørringen til et filter smal, og følg med på **Forkastet**-telleren etter at du har opprettet det.
 
 Et filter kan teste disse feltene, og alle attributter med **Custom Attribute...**:
 
@@ -131,7 +131,7 @@ Hash:   Payment failed for [HASHED:8c87b489]
 
 ## Se hva et filter forkastet
 
-Listen **Drop-filtre** viser for hvert filter **Dropped**-telleren og når det sist forkastet noe, **Last Dropped**. **Nothing dropped yet** betyr at det aldri har truffet. Et filters egen side viser det samme under **Aktivitet**, oppdatert innen ett minutt etter en forkasting. Kortet **Filterbetingelser** viser hva det velger, og du kan endre betingelsene der.
+Listen **Drop-filtre** viser for hvert filter **Forkastet**-telleren og når det sist forkastet noe, **Last Dropped**. **Nothing dropped yet** betyr at det aldri har truffet. Et filters egen side viser det samme under **Aktivitet**, oppdatert innen ett minutt etter en forkasting. Kortet **Filterbetingelser** viser hva det velger, og du kan endre betingelsene der.
 
 ## Feilsøking
 
@@ -140,7 +140,7 @@ Listen **Drop-filtre** viser for hvert filter **Dropped**-telleren og når det s
 :::
 
 :::details Logger jeg ventet, mangler
-Se på **Dropped**-telleren og tidspunktet for **Last Dropped** for hvert drop-filter. Slå av **Aktivert** på det du mistenker, og de neste loggene kommer inn igjen.
+Se på **Forkastet**-telleren og tidspunktet for **Last Dropped** for hvert drop-filter. Slå av **Aktivert** på det du mistenker, og de neste loggene kommer inn igjen.
 :::
 
 :::details En egendefinert scrub-regel sier Maskerer ingenting

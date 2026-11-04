@@ -206,6 +206,14 @@ export const AI_DETECTION_RULE_DRAFT_FEATURE: string =
   "AI Detection Rule Draft";
 
 /*
+ * The LlmLog feature name for writing a data check from a rule in a sentence
+ * (DataCheckFromSentence): one request, started by a person on a table's
+ * Checks tab and answered while they wait. Not autonomous, like a detection
+ * rule's draft.
+ */
+export const AI_DATA_CHECK_DRAFT_FEATURE: string = "AI Data Check Draft";
+
+/*
  * The pre-rename values of the six labels that carried the "Sentinel" codename.
  * These are NOT written by anything any more — they exist only so the daily
  * budget keeps counting rows that ALREADY carry them:

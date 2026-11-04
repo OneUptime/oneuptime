@@ -100,7 +100,7 @@
     "test-runbooks-menu-ui": 0.4,
     "test-security-cases-detections-ui": 9.0,
     "test-security-events-empty-states-ui": 3.4,
-    "test-security-hunts-ui": 1.1,
+    "test-security-hunts-ui": 2.0,
     "test-security-operations-ui": 20.9,
     "test-shared-ui-ui": 4.1,
     "test-side-by-side-pages-ui": 1.0,

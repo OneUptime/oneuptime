@@ -174,6 +174,7 @@ export const SECURITY_HUNT_MESSAGES: {
   tooManyHunts: { message: string };
   scheduleNeedsPerson: { message: string };
   oneHuntAtATime: { message: string };
+  unknownLibraryHunt: { message: string };
 } = {
   enterName: { message: "Enter a name for the hunt." },
   nameTooLong: { message: "A hunt's name is at most 100 characters." },
@@ -213,6 +214,10 @@ export const SECURITY_HUNT_MESSAGES: {
   },
   oneHuntAtATime: {
     message: "Change the search or the schedule of one hunt at a time.",
+  },
+  // A hunt saved as one of the Hunt Library's names a starter the library has.
+  unknownLibraryHunt: {
+    message: "This hunt is not one the Hunt Library offers.",
   },
 };
 
@@ -540,3 +545,44 @@ export const SECURITY_HUNT_RUN_ERRORS: {
       "Its search reads a watchlist this project no longer has. Open the hunt to fix its search.",
   },
 };
+
+/*
+ * RUN HISTORY.
+ *
+ * Every scheduled run that read events is kept as a row of its own
+ * (SecurityHuntRun): when it ran, the window of events it searched, how
+ * many its search found - or why it could not be made. A hunt's page lists
+ * them, newest first (Run History), each run that found something with the
+ * way to show what it found.
+ *
+ * A run with nothing new to read yet (its window empty) is no run: it read
+ * nothing, and nothing is kept.
+ *
+ * The rows are kept SECURITY_HUNT_RUN_RETENTION_IN_DAYS: long enough to
+ * answer "what did this hunt find last month", short enough that an hourly
+ * hunt - 24 runs a day - does not grow without bound.
+ */
+export const SECURITY_HUNT_RUN_RETENTION_IN_DAYS: number = 90;
+
+// What one run came to, as its row in the history says it.
+export enum SecurityHuntRunResult {
+  // Its search found events in its window.
+  Found = "found",
+  // It searched its window and found nothing.
+  NothingFound = "nothing-found",
+  // It could not be made (its error says why); its window is searched again.
+  Failed = "failed",
+}
+
+export function getSecurityHuntRunResult(run: {
+  eventCount?: number | undefined | null;
+  error?: string | undefined | null;
+}): SecurityHuntRunResult {
+  if (run.error) {
+    return SecurityHuntRunResult.Failed;
+  }
+
+  return (run.eventCount || 0) > 0
+    ? SecurityHuntRunResult.Found
+    : SecurityHuntRunResult.NothingFound;
+}

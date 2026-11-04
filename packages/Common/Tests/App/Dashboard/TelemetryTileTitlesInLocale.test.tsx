@@ -378,7 +378,7 @@ describe("a golden-metric tile", () => {
     },
   );
 
-  test("Japanese words the loading line; German keeps the English one whole", () => {
+  test("Japanese and German word the loading line, the name in it in their words", () => {
     renderTiles("ja", [tile("Page loads", { loading: true })]);
     expect(screen.getByRole("status")).toHaveTextContent(
       "ページ読み込みを読み込み中",
@@ -386,8 +386,23 @@ describe("a golden-metric tile", () => {
     cleanup();
 
     renderTiles("de", [tile("Page loads", { loading: true })]);
-    expect(screen.getByRole("status")).toHaveTextContent("Loading Page loads");
-    expect(screen.getByRole("status")).not.toHaveTextContent("Seitenaufrufe");
+    expect(screen.getByRole("status")).toHaveTextContent(
+      `Wird geladen: ${drawn("de", "Page loads")}`,
+    );
+    expect(screen.getByRole("status")).not.toHaveTextContent("Loading");
+  });
+
+  /*
+   * "Loading {{itemsName}}" was English in fifteen languages (#5310's
+   * reviewer), so a loading tile's status read "Loading Seitenaufrufe"'s
+   * English sentence around an English name. Every language words it now,
+   * in a form that holds any name a tile has, one or many.
+   */
+  test.each(LANGUAGES)("%s words the loading line", (language: string) => {
+    expect(drawn(language, "Loading {{itemsName}}")).not.toBe(
+      "Loading {{itemsName}}",
+    );
+    expect(drawn(language, "Loading {{itemsName}}")).toContain("{{itemsName}}");
   });
 
   test.each(LANGUAGES)(

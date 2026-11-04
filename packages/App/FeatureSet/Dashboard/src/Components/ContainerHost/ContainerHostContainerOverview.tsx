@@ -248,11 +248,11 @@ const ContainerHostContainerOverview: FunctionComponent<ComponentProps> = (
           data-testid="container-host-container-tiles"
         >
           <GoldenMetricTile
-            title={tx("CPU")}
+            title="CPU"
             icon={IconProp.CPUChip}
             iconColor="sky"
             value={formatPercent(cpuPercent)}
-            sublabel={tx("of one CPU core")}
+            sublabel="of one CPU core"
             percent={cpuPercent === null ? null : Math.min(100, cpuPercent)}
             tone={
               cpuPercent === null
@@ -262,7 +262,7 @@ const ContainerHostContainerOverview: FunctionComponent<ComponentProps> = (
             description={CONTAINER_HOST_METRIC_DESCRIPTIONS.containerCpuTile}
           />
           <GoldenMetricTile
-            title={tx("Memory")}
+            title="Memory"
             icon={IconProp.SquareStack}
             iconColor="violet"
             value={formatPercent(memoryPercent)}
@@ -285,7 +285,7 @@ const ContainerHostContainerOverview: FunctionComponent<ComponentProps> = (
             description={CONTAINER_HOST_METRIC_DESCRIPTIONS.containerMemoryTile}
           />
           <GoldenMetricTile
-            title={tx("Restarts")}
+            title="Restarts"
             icon={IconProp.Refresh}
             iconColor="amber"
             value={restarts === null ? "—" : translator.formatNumber(restarts)}
@@ -301,7 +301,7 @@ const ContainerHostContainerOverview: FunctionComponent<ComponentProps> = (
             }
           />
           <GoldenMetricTile
-            title={tx("Last Started")}
+            title="Last Started"
             icon={IconProp.Clock}
             iconColor="emerald"
             value={

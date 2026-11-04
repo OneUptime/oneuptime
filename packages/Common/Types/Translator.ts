@@ -797,6 +797,17 @@ const LIST_SEPARATORS: Record<string, string> = {
 };
 
 /*
+ * What a language puts between two items of a list with no "and" or "or":
+ * ", " in most, "، " in Persian, "、" in Japanese and Chinese. For a list
+ * drawn item by item (IsolatedTextList), which formatList cannot join.
+ */
+export const getListSeparator: (language: string | undefined) => string = (
+  language: string | undefined,
+): string => {
+  return LIST_SEPARATORS[getBaseLanguage(language)] || ", ";
+};
+
+/*
  * Names listed with the language's own separator and no "and" or "or": "a, b,
  * c", "a、b、c". For a list that says what is left out rather than a clause.
  */
@@ -807,9 +818,7 @@ export const formatList: (
   names: ReadonlyArray<string>,
   translator: Translator,
 ): string => {
-  return names.join(
-    LIST_SEPARATORS[getBaseLanguage(translator.language)] || ", ",
-  );
+  return names.join(getListSeparator(translator.language));
 };
 
 /*

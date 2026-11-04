@@ -256,10 +256,10 @@ Een topic heet aan beide kanten hetzelfde: spans rapporteren zijn ARN of zijn na
 
 | Metric | Getoond als | Type |
 | --- | --- | --- |
-| `amazonaws.com/aws/sns/numberofmessagespublished` (JSON-stream: `numberofmessagespublished`) | Messages published | Aantal per periode |
-| `amazonaws.com/aws/sns/numberofnotificationsdelivered` (JSON-stream: `numberofnotificationsdelivered`) | Notifications delivered | Aantal per periode |
-| `amazonaws.com/aws/sns/numberofnotificationsfailed` (JSON-stream: `numberofnotificationsfailed`) | Notifications failed | Aantal per periode |
-| `amazonaws.com/aws/sns/numberofnotificationsredriventodlq` (JSON-stream: `numberofnotificationsredriventodlq`) | Redriven to dead-letter queue | Aantal per periode |
+| `amazonaws.com/aws/sns/numberofmessagespublished` (JSON-stream: `numberofmessagespublished`) | Gepubliceerde berichten | Aantal per periode |
+| `amazonaws.com/aws/sns/numberofnotificationsdelivered` (JSON-stream: `numberofnotificationsdelivered`) | Afgeleverde meldingen | Aantal per periode |
+| `amazonaws.com/aws/sns/numberofnotificationsfailed` (JSON-stream: `numberofnotificationsfailed`) | Mislukte meldingen | Aantal per periode |
+| `amazonaws.com/aws/sns/numberofnotificationsredriventodlq` (JSON-stream: `numberofnotificationsredriventodlq`) | Omgeleid naar de dead-letterwachtrij | Aantal per periode |
 
 ### Amazon SQS
 
@@ -345,12 +345,12 @@ Een dead-letterwachtrij is een gewone SQS-wachtrij met eigen metrics, dus in One
 
 | Metric | Getoond als | Type |
 | --- | --- | --- |
-| `amazonaws.com/aws/sqs/approximatenumberofmessagesvisible` (JSON-stream: `approximatenumberofmessagesvisible`) | Messages visible | Gauge |
-| `amazonaws.com/aws/sqs/approximateageofoldestmessage` (JSON-stream: `approximateageofoldestmessage`) | Oldest message age | Gauge |
-| `amazonaws.com/aws/sqs/approximatenumberofmessagesnotvisible` (JSON-stream: `approximatenumberofmessagesnotvisible`) | Messages in flight | Gauge |
-| `amazonaws.com/aws/sqs/numberofmessagessent` (JSON-stream: `numberofmessagessent`) | Messages sent | Aantal per periode |
-| `amazonaws.com/aws/sqs/numberofmessagesreceived` (JSON-stream: `numberofmessagesreceived`) | Messages received | Aantal per periode |
-| `amazonaws.com/aws/sqs/numberofmessagesdeleted` (JSON-stream: `numberofmessagesdeleted`) | Messages deleted | Aantal per periode |
+| `amazonaws.com/aws/sqs/approximatenumberofmessagesvisible` (JSON-stream: `approximatenumberofmessagesvisible`) | Zichtbare berichten | Gauge |
+| `amazonaws.com/aws/sqs/approximateageofoldestmessage` (JSON-stream: `approximateageofoldestmessage`) | Leeftijd van het oudste bericht | Gauge |
+| `amazonaws.com/aws/sqs/approximatenumberofmessagesnotvisible` (JSON-stream: `approximatenumberofmessagesnotvisible`) | Berichten onderweg | Gauge |
+| `amazonaws.com/aws/sqs/numberofmessagessent` (JSON-stream: `numberofmessagessent`) | Verzonden berichten | Aantal per periode |
+| `amazonaws.com/aws/sqs/numberofmessagesreceived` (JSON-stream: `numberofmessagesreceived`) | Ontvangen berichten | Aantal per periode |
+| `amazonaws.com/aws/sqs/numberofmessagesdeleted` (JSON-stream: `numberofmessagesdeleted`) | Verwijderde berichten | Aantal per periode |
 
 ### Apache ActiveMQ
 
@@ -384,14 +384,14 @@ De metrics van de broker sluiten aan bij de wachtrij die de spans van zijn JMS-c
 
 | Metric | Getoond als | Type |
 | --- | --- | --- |
-| `activemq.message.queue.size` | Queue size | Gauge |
-| `activemq.message.current` | Queue size (legacy names) | Gauge |
-| `activemq.message.enqueued` | Enqueued | Teller, per seconde weergegeven |
-| `activemq.message.dequeued` | Dequeued | Teller, per seconde weergegeven |
-| `activemq.message.expired` | Expired | Teller, per seconde weergegeven |
-| `activemq.consumer.count` | Consumers | Gauge |
-| `activemq.message.enqueue.average_duration` | Average time in queue | Gauge |
-| `activemq.message.wait_time.avg` | Average time in queue (legacy names) | Gauge |
+| `activemq.message.queue.size` | Wachtrijgrootte | Gauge |
+| `activemq.message.current` | Wachtrijgrootte (oude namen) | Gauge |
+| `activemq.message.enqueued` | In wachtrij geplaatst | Teller, per seconde weergegeven |
+| `activemq.message.dequeued` | Uit wachtrij gehaald | Teller, per seconde weergegeven |
+| `activemq.message.expired` | Verlopen | Teller, per seconde weergegeven |
+| `activemq.consumer.count` | Consumenten | Gauge |
+| `activemq.message.enqueue.average_duration` | Gemiddelde tijd in wachtrij | Gauge |
+| `activemq.message.wait_time.avg` | Gemiddelde tijd in wachtrij (oude namen) | Gauge |
 
 ### Apache Kafka
 
@@ -434,10 +434,10 @@ Haal voor een cluster met SASL of TLS het commentaar weg bij `auth` en `tls`. De
 
 | Metric | Getoond als | Type |
 | --- | --- | --- |
-| `kafka.consumer_group.lag_sum` | Consumer lag | Gauge |
-| `kafka.consumer_group.lag` | Partition lag | Gauge |
-| `kafka.consumer_group.offset_sum` | Consumed | Teller, per seconde weergegeven |
-| `kafka.partition.current_offset` | Produced | Teller, per seconde weergegeven |
+| `kafka.consumer_group.lag_sum` | Consumentenachterstand | Gauge |
+| `kafka.consumer_group.lag` | Partitieachterstand | Gauge |
+| `kafka.consumer_group.offset_sum` | Geconsumeerd | Teller, per seconde weergegeven |
+| `kafka.partition.current_offset` | Geproduceerd | Teller, per seconde weergegeven |
 
 ### Apache Pulsar
 
@@ -486,11 +486,11 @@ service:
 
 | Metric | Getoond als | Type |
 | --- | --- | --- |
-| `pulsar_msg_backlog` | Backlog | Gauge |
-| `pulsar_subscription_back_log` | Subscription backlog | Gauge |
-| `pulsar_storage_backlog_age_seconds` | Backlog age | Gauge |
-| `pulsar_in_messages_total` | Messages in | Teller, per seconde weergegeven |
-| `pulsar_out_messages_total` | Messages out | Teller, per seconde weergegeven |
+| `pulsar_msg_backlog` | Achterstand | Gauge |
+| `pulsar_subscription_back_log` | Achterstand van het abonnement | Gauge |
+| `pulsar_storage_backlog_age_seconds` | Leeftijd van de achterstand | Gauge |
+| `pulsar_in_messages_total` | Berichten in | Teller, per seconde weergegeven |
+| `pulsar_out_messages_total` | Berichten uit | Teller, per seconde weergegeven |
 
 ### Apache RocketMQ
 
@@ -536,10 +536,10 @@ Dit is de ingebouwde exporter van RocketMQ 5. RocketMQ 4 heeft er geen; de apart
 
 | Metric | Getoond als | Type |
 | --- | --- | --- |
-| `rocketmq_consumer_lag_messages` | Consumer lag | Gauge |
-| `rocketmq_consumer_ready_messages` | Ready messages | Gauge |
-| `rocketmq_send_to_dlq_messages_total` | Sent to dead-letter queue | Teller, per seconde weergegeven |
-| `rocketmq_messages_in_total` | Messages in | Teller, per seconde weergegeven |
+| `rocketmq_consumer_lag_messages` | Consumentenachterstand | Gauge |
+| `rocketmq_consumer_ready_messages` | Gereedstaande berichten | Gauge |
+| `rocketmq_send_to_dlq_messages_total` | Naar de dead-letterwachtrij verzonden | Teller, per seconde weergegeven |
+| `rocketmq_messages_in_total` | Berichten in | Teller, per seconde weergegeven |
 
 ### Azure Event Grid
 
@@ -642,12 +642,12 @@ Azure Monitor heeft geen consumer-lagmetric voor Event Hubs: zijn `ConsumerLag` 
 
 | Metric | Getoond als | Type |
 | --- | --- | --- |
-| `azure_incomingmessages_total` | Incoming messages | Aantal per periode |
-| `azure_outgoingmessages_total` | Outgoing messages | Aantal per periode |
-| `azure_servererrors_total` | Server errors | Aantal per periode |
-| `azure_usererrors_total` | User errors | Aantal per periode |
-| `azure_quotaexceedederrors_total` | Quota exceeded errors | Aantal per periode |
-| `azure_throttledrequests_total` | Throttled requests | Aantal per periode |
+| `azure_incomingmessages_total` | Inkomende berichten | Aantal per periode |
+| `azure_outgoingmessages_total` | Uitgaande berichten | Aantal per periode |
+| `azure_servererrors_total` | Serverfouten | Aantal per periode |
+| `azure_usererrors_total` | Gebruikersfouten | Aantal per periode |
+| `azure_quotaexceedederrors_total` | Fouten door overschreden quotum | Aantal per periode |
+| `azure_throttledrequests_total` | Beperkte aanvragen | Aantal per periode |
 
 ### Azure Service Bus
 
@@ -711,15 +711,15 @@ service:
 
 | Metric | Getoond als | Type |
 | --- | --- | --- |
-| `azure_activemessages_average` | Active messages | Gauge |
-| `azure_deadletteredmessages_average` | Dead-lettered messages | Gauge |
-| `azure_incomingmessages_total` | Incoming messages | Aantal per periode |
-| `azure_outgoingmessages_total` | Outgoing messages | Aantal per periode |
-| `azure_completemessage_total` | Completed messages | Aantal per periode |
-| `azure_abandonmessage_total` | Abandoned messages | Aantal per periode |
-| `azure_servererrors_total` | Server errors | Aantal per periode |
-| `azure_usererrors_total` | User errors | Aantal per periode |
-| `azure_throttledrequests_total` | Throttled requests | Aantal per periode |
+| `azure_activemessages_average` | Actieve berichten | Gauge |
+| `azure_deadletteredmessages_average` | Berichten in dead-letter | Gauge |
+| `azure_incomingmessages_total` | Inkomende berichten | Aantal per periode |
+| `azure_outgoingmessages_total` | Uitgaande berichten | Aantal per periode |
+| `azure_completemessage_total` | Voltooide berichten | Aantal per periode |
+| `azure_abandonmessage_total` | Verlaten berichten | Aantal per periode |
+| `azure_servererrors_total` | Serverfouten | Aantal per periode |
+| `azure_usererrors_total` | Gebruikersfouten | Aantal per periode |
+| `azure_throttledrequests_total` | Beperkte aanvragen | Aantal per periode |
 
 ### BullMQ
 
@@ -837,11 +837,11 @@ service:
 
 | Metric | Getoond als | Type |
 | --- | --- | --- |
-| `pubsub.googleapis.com/subscription/num_undelivered_messages` | Undelivered messages | Gauge |
-| `pubsub.googleapis.com/subscription/oldest_unacked_message_age` | Oldest unacked message age | Gauge |
-| `pubsub.googleapis.com/subscription/dead_letter_message_count` | Dead-lettered messages | Aantal per periode |
-| `pubsub.googleapis.com/subscription/ack_message_count` | Acknowledged messages | Aantal per periode |
-| `pubsub.googleapis.com/topic/send_request_count` | Publish requests | Aantal per periode |
+| `pubsub.googleapis.com/subscription/num_undelivered_messages` | Niet-afgeleverde berichten | Gauge |
+| `pubsub.googleapis.com/subscription/oldest_unacked_message_age` | Leeftijd van het oudste onbevestigde bericht | Gauge |
+| `pubsub.googleapis.com/subscription/dead_letter_message_count` | Berichten in dead-letter | Aantal per periode |
+| `pubsub.googleapis.com/subscription/ack_message_count` | Bevestigde berichten | Aantal per periode |
+| `pubsub.googleapis.com/topic/send_request_count` | Publicatieverzoeken | Aantal per periode |
 
 ### JMS
 
@@ -936,12 +936,12 @@ service:
 
 | Metric | Getoond als | Type |
 | --- | --- | --- |
-| `rabbitmq.message.current` | Queue depth | Gauge |
-| `rabbitmq.message.published` | Published | Teller, per seconde weergegeven |
-| `rabbitmq.message.delivered` | Delivered | Teller, per seconde weergegeven |
-| `rabbitmq.message.acknowledged` | Acknowledged | Teller, per seconde weergegeven |
-| `rabbitmq.message.dropped` | Dropped | Teller, per seconde weergegeven |
-| `rabbitmq.consumer.count` | Consumers | Gauge |
+| `rabbitmq.message.current` | Wachtrijdiepte | Gauge |
+| `rabbitmq.message.published` | Gepubliceerd | Teller, per seconde weergegeven |
+| `rabbitmq.message.delivered` | Afgeleverd | Teller, per seconde weergegeven |
+| `rabbitmq.message.acknowledged` | Bevestigd | Teller, per seconde weergegeven |
+| `rabbitmq.message.dropped` | Verworpen | Teller, per seconde weergegeven |
+| `rabbitmq.consumer.count` | Consumenten | Gauge |
 
 ## Waarschuwingen
 

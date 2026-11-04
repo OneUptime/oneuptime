@@ -117,11 +117,20 @@ export function getSeriesTableKey(
  * The feed line of an alert that started acknowledged, its cause open
  * upstream. The cause's title is placed as text (mdText): a table or check
  * name is the project's own words, and its Markdown stays words.
+ *
+ * A private cause is never named. Its owners alone may see it, and anyone
+ * who may read this alert reads this line, so the line says only that a
+ * private alert is the cause.
  */
 export function describeConsequence(cause: {
   title: string;
   alertNumberWithPrefix: string | null;
+  isPrivate: boolean;
 }): string {
+  if (cause.isPrivate) {
+    return mdText`**Caused upstream.** A private alert is open on what this alert's table or pipeline is built from, so this alert started acknowledged: nobody is paged twice for one problem. It recovers on its own once its data does.`.toString();
+  }
+
   const name: string = cause.alertNumberWithPrefix
     ? `${cause.alertNumberWithPrefix} ${cause.title}`
     : cause.title;
@@ -262,6 +271,8 @@ export default class DataAlertCause {
         title: true,
         alertNumberWithPrefix: true,
         alertEpisodeId: true,
+        // A private cause is not named in its consequences' feeds.
+        isPrivate: true,
       },
       sort: { createdAt: SortOrder.Ascending },
       props: { isRoot: true },
@@ -322,6 +333,7 @@ export default class DataAlertCause {
       feedInfoInMarkdown: describeConsequence({
         title: data.cause.title || "",
         alertNumberWithPrefix: data.cause.alertNumberWithPrefix || null,
+        isPrivate: Boolean(data.cause.isPrivate),
       }),
     });
 

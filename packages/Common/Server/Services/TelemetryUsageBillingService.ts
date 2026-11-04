@@ -70,7 +70,7 @@ import PayAsYouGoBillingService, {
 /*
  * Primary entity types whose telemetry rows are never billed as ingested
  * volume. Monitor telemetry is billed via the Active Monitoring plan, and
- * Alert / Incident / SLO / Data Store rows are OneUptime's own operational
+ * Alert / Incident / SLO / Data Observability rows are OneUptime's own operational
  * data written into the project's metric tables: an SLO evaluation posts its
  * oneuptime.slo.* readings every few minutes, and Data Observability its
  * oneuptime.data.table.* readings for every table it watches. Billing those
@@ -85,6 +85,8 @@ export const TELEMETRY_BILLING_EXCLUDED_ENTITY_TYPES: ReadonlyArray<ServiceType>
     ServiceType.ServiceLevelObjective,
     ServiceType.DataStore,
     ServiceType.DataPipeline,
+    ServiceType.DataProduct,
+    ServiceType.DataReconciliation,
   ];
 
 export type IsTelemetryBillingExcludedEntityTypeFunction = (

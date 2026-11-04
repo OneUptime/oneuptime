@@ -16,7 +16,7 @@ OneUptime으로 흔한 세 가지 환경을 처음부터 끝까지 모니터링�
 flowchart TB
     Device["방화벽, 스위치 또는<br/>액세스 포인트"]
     Probe["프로브"]
-    Snmp["벤더 템플릿:<br/>헬스 OID와 SNMP 테이블"]
+    Snmp["벤더 템플릿:<br/>상태 OID와 SNMP 테이블"]
     Syslog["Syslog: 로그 파이프라인,<br/>로그 모니터, 기록 규칙"]
     Monitor["권장 알림이 있는<br/>Network Device 모니터"]
     Incident["인시던트와 알림"]
@@ -29,7 +29,7 @@ flowchart TB
     Syslog --> Incident
 ```
 
-- 장비마다 하나의 [네트워크 디바이스](/docs/monitor/network-device-monitor). 도달할 수 있는 프로브가 폴링하며, 알맞은 헬스 OID와 [SNMP 테이블](/docs/monitor/network-device-monitor#snmp-테이블)을 가져오는 벤더 템플릿을 씁니다.
+- 장비마다 하나의 [네트워크 디바이스](/docs/monitor/network-device-monitor). 도달할 수 있는 프로브가 폴링하며, 알맞은 상태 OID와 [SNMP 테이블](/docs/monitor/network-device-monitor#snmp-테이블)을 가져오는 벤더 템플릿을 씁니다.
 - 알림을 위한 디바이스마다 하나의 Network Device 모니터. 디바이스 페이지에서 만들면, 정상이 무엇인지 아는 테이블마다 행별 알림 하나를 포함한 [권장 알림](/docs/monitor/network-device-monitor#권장-알림-팩)이 채워집니다. 여러 디바이스에는 [알림 정책](/docs/monitor/network-device-monitor#알림-정책)이 모든 디바이스에 모니터를 하나씩 유지합니다.
 - 벤더가 로그로만 보고하는 것을 위해: 프로브로 보내는 syslog(OneUptime이 알아서 [네트워크 이벤트](/docs/monitor/network-events)로 읽습니다), 터널이나 게이트웨이마다 한 번씩 알리는 [Group By를 쓰는 로그 모니터](/docs/monitor/logs-monitor#그룹별-알림group-by), 그 로그의 숫자를 차트로 그리는 [로그 기록 규칙](/docs/telemetry/log-recording-rules).
 
@@ -74,7 +74,7 @@ Sophos가 active로 보고하는 터널은 보안 연결(SA)이 올라와 있다
 1. 프로브의 syslog 수신기는 기본적으로 켜져 있습니다. 포트 5140에서 UDP와 TCP로 수신 대기하며(`PROBE_SYSLOG_RECEIVER_PORT`로 바꿀 수 있음), 프로브가 Docker에서 실행되면 포트를 게시하세요. 메시지는 호스트 이름이나 **기타 주소** 중 하나가 보낸 쪽의 주소인 네트워크 디바이스에 매칭되며, 디바이스의 **이벤트** 페이지와 **로그** 페이지에 나타납니다.
 2. 방화벽의 **System services → Log settings**에서 프로브와 그 포트를 가리키는 syslog 서버를 추가하고, IPsec과 게이트웨이에 대한 **Event** 로그 유형과 **SD-WAN** 로그 유형을 체크하세요. SLA 로그는 체크할 때까지 꺼져 있습니다.
 3. 파싱할 것은 없습니다. OneUptime이 방화벽의 `key=value` 필드를 `sophos.*` 속성으로 읽고, 거기서 터널, 게이트웨이, SD-WAN SLA 변화, 장애 조치, 로그인을 [네트워크 이벤트](/docs/monitor/network-events)로 읽어 냅니다. 디바이스의 **로그** 페이지에서 로그를 열면 사용 중인 SFOS 버전이 만드는 정확한 속성 이름을 볼 수 있습니다.
-4. 디바이스의 **이벤트** 페이지에서 **알림 만들기**를 클릭하고 알림을 고릅니다. 내용이 채워진 [로그 모니터](/docs/monitor/logs-monitor)가 열리며, 터널이나 게이트웨이마다 따로 알리도록 **Group by Attributes**가, 방화벽이 복구를 보고하면 각 알림이 닫히도록 **해결 기준 속성**이 설정되어 있습니다. 아래 행이 시작하기 좋은 세 가지입니다.
+4. 디바이스의 **이벤트** 페이지에서 **알림 만들기**를 클릭하고 알림을 고릅니다. 내용이 채워진 [로그 모니터](/docs/monitor/logs-monitor)가 열리며, 터널이나 게이트웨이마다 따로 알리도록 **그룹화 기준 속성**이, 방화벽이 복구를 보고하면 각 알림이 닫히도록 **해결 기준 속성**이 설정되어 있습니다. 아래 행이 시작하기 좋은 세 가지입니다.
 5. SD-WAN 품질을 차트로 그립니다. SD-WAN 로깅이 켜져 있으면 방화벽은 프로필과 게이트웨이마다 SLA 요약(`latency`, `jitter`, `packet_loss`)을 씁니다. **로그 → 설정 → 기록 규칙**에서 숫자마다 규칙을 하나씩 만드세요. 예를 들어 `sophos.gw_name`과 `sophos.profile_name`으로 그룹화한 `sophos.latency`의 평균입니다. 그런 다음 결과를 차트로 그리거나, 게이트웨이로 그룹화하는 [Metrics 모니터](/docs/monitor/metrics-monitor)로 알림을 거세요. [로그 기록 규칙](/docs/telemetry/log-recording-rules)에서 이 예시를 차례로 설명합니다.
 :::
 

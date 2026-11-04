@@ -337,6 +337,8 @@ Een typische lus: `list_incidents` → `acknowledge_incident` → onderzoeken me
 
 De tool **`oneuptime_whoami`** geeft het project terug waartoe je inloggegevens behoren (de ID en de naam). Voor een client die zich heeft aangemeld, zegt hij ook als wie hij is aangemeld en of hij wijzigingen mag aanbrengen. Het is een goede eerste aanroep voor een agent om zich te oriënteren, en omdat aanmaaktools `projectId` uit de inloggegevens halen, hoeft de agent nooit een project-ID mee te geven.
 
+De tool **`get_data_table_freshness`** vertelt een agent of een tabel die Data Observability bewaakt actueel is voordat hij de gegevens gebruikt: actueel of te laat volgens het eigen ritme van de tabel, wanneer die voor het laatst veranderde, de open waarschuwingen, en hoe de laatste run ging van elke pipeline die de tabel schrijft. Geef `table` op als `schema.table`, alleen de naam van de tabel of de ID. Hij verandert niets.
+
 ## Telemetrie opvragen
 
 Logs, metrieken, traces (spans), uitzonderingen, monitorlogs en de andere soorten telemetrie komen als alleen-lezen-tools `list_` en `count_` (`list_logs`, `list_metrics`, `list_spans`, `list_exception_instances`, `list_monitor_logs` en hun `count_`-tegenhangers). Telemetrie komt binnen via OpenTelemetry, dus er zijn geen aanmaaktools.

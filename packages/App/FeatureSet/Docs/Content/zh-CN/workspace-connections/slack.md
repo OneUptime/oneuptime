@@ -143,7 +143,7 @@ flowchart TB
 
 :::steps
 1. 连接您自己的 Slack 账户（请参阅 [连接 Slack](#连接-slack) ）。
-2. 前往 **用户设置** > **通知方式**，打开 **Workspace Apps** 标签页，然后点击 **Add Slack Account**。
+2. 前往 **用户设置** > **通知方式**，打开 **工作区应用** 标签页，然后点击 **Add Slack Account**。
 3. 在其所在行点击 **Send Test Message**。消息会发送到您的 Slack 私信。
 :::
 
