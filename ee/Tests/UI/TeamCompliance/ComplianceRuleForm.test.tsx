@@ -1363,7 +1363,11 @@ describe("Slack, Microsoft Teams and Mattermost follow the project's workspaces"
       true,
     ],
     [ComplianceNotificationChannel.MicrosoftTeams, [], false],
-    [ComplianceNotificationChannel.Mattermost, [WorkspaceType.Mattermost], true],
+    [
+      ComplianceNotificationChannel.Mattermost,
+      [WorkspaceType.Mattermost],
+      true,
+    ],
     [ComplianceNotificationChannel.Mattermost, [], false],
     [
       ComplianceNotificationChannel.Mattermost,
