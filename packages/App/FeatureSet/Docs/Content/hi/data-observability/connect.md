@@ -104,12 +104,32 @@ GRANT USE SCHEMA, SELECT ON SCHEMA system.access TO `oneuptime-reader`;
 ```
 
 कैटलॉग, उसके कॉलम और हर Delta टेबल का आख़िरी commit बिना किसी SQL warehouse के Unity Catalog के REST API से आते हैं, इसलिए संग्रह में कोई कंप्यूट खर्च नहीं होता। जांचें, और `system.access.table_lineage` से घंटे में एक बार लाइनेज और आख़िरी रीड, उस SQL warehouse पर चलते हैं जिसका आप नाम देते हैं; सर्विस प्रिंसिपल को उस पर **Can use** दें।
+@tab Oracle
+```sql
+CREATE USER oneuptime_reader IDENTIFIED BY "...";
+GRANT CREATE SESSION TO oneuptime_reader;
+GRANT READ ON sales.orders TO oneuptime_reader;
+GRANT SELECT_CATALOG_ROLE TO oneuptime_reader;
+```
+
+Oracle अपने ही प्रोटोकॉल से पढ़ा जाता है, कोई Oracle क्लाइंट इंस्टॉल किए बिना: `oracle://oneuptime_reader:...@orders-db.internal:1521/ORCLPDB1`। लॉगिन वे टेबल देखता है जिन्हें वह पढ़ सकता है: निगरानी वाली हर टेबल पर `READ` दें, जिससे वह उन्हें क्वेरी कर सके पर कभी लॉक या बदल न सके। `SELECT_CATALOG_ROLE` से OneUptime हर टेबल का आकार पढ़ता है, और `ALL_TAB_MODIFICATIONS` हर टेबल के पिछले आँकड़ों के बाद के inserts, updates और deletes, और वह आख़िरी बार कब बदली, बताता है।
 @tab Amazon Athena
 एक Glue डेटाबेस एक डेटाबेस है। इसकी टेबल और व्यू, उनके कॉलम और आँकड़े, और हर Iceberg टेबल का आख़िरी commit Glue Data Catalog के API से आते हैं, जो कोई डेटा नहीं पढ़ता और कुछ खर्च नहीं होता। जांचें आपके बताए workgroup में Athena क्वेरी के रूप में चलती हैं। ऐसे IAM उपयोगकर्ता या भूमिका की कुंजियों से कनेक्ट करें जो `glue:GetDatabase` और `glue:GetTables` कॉल कर सके, और जांचों के लिए टेबल के डेटा तक पढ़ने की पहुँच के साथ workgroup में Athena क्वेरी चला सके:
 
 ```json
 { "region": "us-east-1", "accessKeyId": "AKIA...", "secretAccessKey": "...", "database": "analytics", "workgroup": "primary", "outputLocation": "s3://acme-athena-results/oneuptime/" }
 ```
+@tab MongoDB
+```javascript
+use admin
+db.createUser({
+  user: "oneuptime_reader",
+  pwd: "...",
+  roles: [{ role: "readAnyDatabase", db: "admin" }]
+})
+```
+
+MongoDB उसके अपने ड्राइवर से पढ़ा जाता है: `mongodb+srv://oneuptime_reader:...@cluster0.example.mongodb.net/`, या replica set के होस्ट के साथ `mongodb://`। पाथ में दिया गया डेटाबेस ही अकेला निगरानी में रहता है; उसके बिना, लॉगिन जिन डेटाबेस को पढ़ सकता है वे सब निगरानी में रहते हैं, और `readAnyDatabase` की जगह `{ role: "read", db: "orders" }` उसे एक तक सीमित करता है। हर कलेक्शन के दस्तावेज़, आकार और राइट `$collStats` से आते हैं, और उसे आखिरी दस्तावेज़ कब मिला, यह उसकी सबसे नई `_id` से। उसके फ़ील्ड उसके वैलिडेटर की JSON स्कीमा से आते हैं, नहीं तो उसके 100 सबसे नए दस्तावेज़ों के फ़ील्ड के नाम और प्रकार से, जो डेटाबेस के अंदर ही निकाले जाते हैं ताकि कोई मान बाहर न जाए। जहाँ secondary हो, दस्तावेज़ वहीं पढ़े जाते हैं, और कस्टम जांच JSON में एक एग्रीगेशन पाइपलाइन है।
 :::
 
 ## क्या पढ़ा जाता है, और कितनी बार

@@ -16,7 +16,7 @@ Añade una comprobación en la pestaña **Comprobaciones** de una tabla:
 | **Format Mismatch Percent** | Porcentaje de valores que no coinciden con una expresión regular (todos los motores salvo SQL Server) |
 | **Orphan Count** | Filas cuyo valor no tiene correspondencia en la columna de otra tabla |
 | **Número de filas** | Filas de la tabla, sobre todo útil con **Segment By** |
-| **SQL personalizado** | El número que devuelve un SELECT tuyo de solo lectura, llamado `value` |
+| **SQL personalizado** | El número que devuelve un SELECT tuyo de solo lectura, llamado `value` (en MongoDB, el de un pipeline de agregación) |
 
 Cada comprobación se ejecuta cada 15 minutos, cada hora, cada 6 horas o cada día, como una única sentencia de agregación en una transacción de solo lectura con un tiempo de espera de sentencia. Su valor se escribe como `oneuptime.data.check.value`, con `oneuptime.data.check.id`, `oneuptime.data.check.name` y `oneuptime.data.check.segment`.
 

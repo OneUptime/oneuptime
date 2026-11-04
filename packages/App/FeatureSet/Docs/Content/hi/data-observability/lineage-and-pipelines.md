@@ -9,7 +9,7 @@
 | **OpenLineage** | Airflow, Dagster, Spark, dbt या Flink जॉब का हर रन, और वे टेबल जिन्हें उसने पढ़ा और लिखा |
 | **dbt** | हर मॉडल किससे बनता है, हर बिल्ड एक रन के रूप में, और हर टेस्ट का नतीजा |
 | **Fivetran और Airbyte** | हर सिंक उसके कनेक्टर के रन के रूप में, और वे रॉ टेबल जिन्हें वह लोड करता है |
-| **व्यू** | व्यू उन टेबल से बनता है जिन पर वह परिभाषित है (PostgreSQL, Redshift, MySQL 8, SQL Server, ClickHouse के materialized व्यू, Databricks) |
+| **व्यू** | व्यू उन टेबल से बनता है जिन पर वह परिभाषित है (PostgreSQL, Redshift, MySQL 8, SQL Server, Oracle, ClickHouse के materialized व्यू, Databricks, MongoDB) |
 | **क्वेरी इतिहास** | ऐसी क्वेरी जिसने एक टेबल पढ़ी और दूसरी में लिखा (BigQuery के jobs, Redshift का क्वेरी लॉग, ClickHouse का क्वेरी लॉग, Databricks की लाइनेज टेबल) |
 
 किसी टेबल का **वंशावली** टैब वे टेबल दिखाता है जिनसे वह बनती है, उसमें लिखने वाली पाइपलाइन उनके नवीनतम रन के साथ, और उससे बनी टेबल। हर कड़ी बताती है कि वह कहां देखी गई।

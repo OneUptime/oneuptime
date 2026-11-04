@@ -16,7 +16,7 @@
 | **Format Mismatch Percent** | 正規表現に一致しない値の割合 (SQL Server 以外のすべてのエンジン) |
 | **Orphan Count** | 値が、別のテーブルの列に一致するものを持たない行 |
 | **行数** | テーブルの行数。 **Segment By** と組み合わせると特に役立ちます |
-| **カスタム SQL** | 自分で書いた読み取り専用の SELECT 1 つが返す、 `value` という名前の数値 |
+| **カスタム SQL** | 自分で書いた読み取り専用の SELECT 1 つが返す、 `value` という名前の数値 (MongoDB では集計パイプラインが返す数値) |
 
 各チェックは、15 分、1 時間、6 時間、または 1 日ごとに、ステートメントのタイムアウト付きの読み取り専用トランザクションの中で、1 つの集計ステートメントとして実行されます。その値は `oneuptime.data.check.value` として、 `oneuptime.data.check.id`、`oneuptime.data.check.name`、`oneuptime.data.check.segment` とともに書き込まれます。
 

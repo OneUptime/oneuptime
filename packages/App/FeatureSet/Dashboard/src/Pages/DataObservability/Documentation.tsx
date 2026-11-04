@@ -118,6 +118,15 @@ GRANT USE SCHEMA, SELECT ON SCHEMA system.access TO \`oneuptime-reader\`;
 -- Checks read rows: SELECT on the tables they check. And CAN USE on the SQL warehouse.
 \`\`\`
 
+Oracle: connect with \`oracle://oneuptime_reader:...@orders-db.internal:1521/ORCLPDB1\`, or JSON \`{ "user", "password", "connectString" }\`. It is read over Oracle's own protocol, with no Oracle client to install. The login sees the tables it may read: grant \`READ\` on each one to watch (it can query them, never lock or change them). \`SELECT_CATALOG_ROLE\` lets OneUptime read every table's size; without it, only the login's own tables have one. \`ALL_TAB_MODIFICATIONS\` says each table's inserts, updates and deletes since its last statistics, and when it last changed.
+
+\`\`\`sql
+CREATE USER oneuptime_reader IDENTIFIED BY "...";
+GRANT CREATE SESSION TO oneuptime_reader;
+GRANT READ ON sales.orders TO oneuptime_reader;
+GRANT SELECT_CATALOG_ROLE TO oneuptime_reader;
+\`\`\`
+
 Amazon Athena: one Glue database is a database. Its tables and views, their columns and statistics, and each Iceberg table's last commit come from the Glue Data Catalog's API, which reads no data and costs nothing; checks run as Athena queries in the workgroup you name. Connect with the keys of an IAM user or role that may read the Glue database and run Athena queries:
 
 \`\`\`json
@@ -125,6 +134,19 @@ Amazon Athena: one Glue database is a database. Its tables and views, their colu
 \`\`\`
 
 It needs \`glue:GetDatabase\` and \`glue:GetTables\` on the database and its tables, and for checks \`athena:StartQueryExecution\`, \`athena:GetQueryExecution\`, \`athena:GetQueryResults\` and \`athena:StopQueryExecution\` on the workgroup, with read access to the tables' S3 data and write access to the output location.
+
+MongoDB: connect with its connection string - \`mongodb+srv://oneuptime_reader:...@cluster0.example.mongodb.net/\`, or \`mongodb://\` with a replica set's hosts. A database in the path is the only one watched; without one, every database the login may read is. Each collection's documents, size and writes come from \`$collStats\`, and when it last took a document from its newest \`_id\`. Its fields come from its validator's JSON schema, or else from the names and types of its 100 newest documents' fields, worked out in the database so no value leaves it. Documents are read on a secondary where there is one. A view's source collection is lineage, and a custom check is an aggregation pipeline, as JSON.
+
+\`\`\`javascript
+use admin
+db.createUser({
+  user: "oneuptime_reader",
+  pwd: "...",
+  roles: [{ role: "readAnyDatabase", db: "admin" }]
+})
+\`\`\`
+
+To watch one database only, grant \`{ role: "read", db: "orders" }\` in place of \`readAnyDatabase\`.
 
 ## Metrics every table writes
 

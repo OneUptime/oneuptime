@@ -256,6 +256,8 @@ const SCHEME_KINDS: Readonly<Record<string, DataStoreKind>> = {
   clickhouse: DataStoreKind.ClickHouse,
   databricks: DataStoreKind.Databricks,
   awsathena: DataStoreKind.AwsAthena,
+  oracle: DataStoreKind.Oracle,
+  mongodb: DataStoreKind.MongoDb,
 };
 
 /*
@@ -303,8 +305,12 @@ export function parseDatasetName(
       : null;
   }
 
-  // MySQL's and ClickHouse's schema is their database: db.table.
-  if (kind === DataStoreKind.MySql || kind === DataStoreKind.ClickHouse) {
+  // MySQL's, ClickHouse's and MongoDB's schema is their database: db.table.
+  if (
+    kind === DataStoreKind.MySql ||
+    kind === DataStoreKind.ClickHouse ||
+    kind === DataStoreKind.MongoDb
+  ) {
     return parts.length === 2
       ? {
           kind,

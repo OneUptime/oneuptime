@@ -104,12 +104,32 @@ En katalog i Unity Catalog är en databas. Anslut med ett tjänsthuvudnamn, elle
 ```
 
 Katalogen, dess kolumner och varje Delta-tabells senaste commit kommer från Unity Catalogs REST-API utan något SQL-warehouse, så insamlingen kostar ingen beräkningskapacitet. Kontroller, samt härkomst och senaste läsningar från `system.access.table_lineage` en gång i timmen, körs i det SQL-warehouse som du anger; ge tjänsthuvudnamnet **Can use** på det.
+@tab Oracle
+```sql
+CREATE USER oneuptime_reader IDENTIFIED BY "...";
+GRANT CREATE SESSION TO oneuptime_reader;
+GRANT READ ON sales.orders TO oneuptime_reader;
+GRANT SELECT_CATALOG_ROLE TO oneuptime_reader;
+```
+
+Oracle läses över sitt eget protokoll, utan någon Oracle-klient att installera: `oracle://oneuptime_reader:...@orders-db.internal:1521/ORCLPDB1`. Inloggningen ser de tabeller den får läsa: ge `READ` på varje tabell som ska bevakas, vilket låter den fråga mot dem men aldrig låsa eller ändra dem. `SELECT_CATALOG_ROLE` låter OneUptime läsa varje tabells storlek, och `ALL_TAB_MODIFICATIONS` ger varje tabells inserts, updates och deletes sedan dess senaste statistik, och när den senast ändrades.
 @tab Amazon Athena
 En Glue-databas är en databas. Dess tabeller och vyer, deras kolumner och statistik och varje Iceberg-tabells senaste commit kommer från Glue Data Catalogs API, som inte läser några data och inte kostar något. Kontroller körs som Athena-frågor i den workgroup du anger. Anslut med nycklarna för en IAM-användare eller -roll som får anropa `glue:GetDatabase` och `glue:GetTables` och för kontroller köra Athena-frågor i workgroupen med läsåtkomst till tabellernas data:
 
 ```json
 { "region": "us-east-1", "accessKeyId": "AKIA...", "secretAccessKey": "...", "database": "analytics", "workgroup": "primary", "outputLocation": "s3://acme-athena-results/oneuptime/" }
 ```
+@tab MongoDB
+```javascript
+use admin
+db.createUser({
+  user: "oneuptime_reader",
+  pwd: "...",
+  roles: [{ role: "readAnyDatabase", db: "admin" }]
+})
+```
+
+MongoDB läses med sin egen drivrutin: `mongodb+srv://oneuptime_reader:...@cluster0.example.mongodb.net/` eller `mongodb://` med ett replica sets värdar. En databas i sökvägen är den enda som bevakas; utan en bevakas varje databas som inloggningen får läsa, och `{ role: "read", db: "orders" }` i stället för `readAnyDatabase` begränsar den till en. Varje samlings dokument, storlek och skrivningar kommer från `$collStats`, och när den senast fick ett dokument från dess nyaste `_id`. Dess fält kommer från validatorns JSON-schema, annars från namnen och typerna på fälten i dess 100 nyaste dokument, beräknade i databasen så att inget värde lämnar den. Dokument läses på en sekundär där det finns en, och en anpassad kontroll är en aggregeringspipeline som JSON.
 :::
 
 ## Vad som läses, och hur ofta

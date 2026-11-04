@@ -16,7 +16,7 @@
 | **Format Mismatch Percent** | 정규식과 일치하지 않는 값의 비율(SQL Server를 제외한 모든 엔진) |
 | **Orphan Count** | 값이 다른 테이블의 열에서 일치하는 값을 찾지 못하는 행 |
 | **Row Count** | 테이블의 행 수. **Segment By** 와 함께 쓸 때 가장 유용합니다 |
-| **사용자 지정 SQL** | 직접 작성한 읽기 전용 SELECT 하나가 `value` 라는 이름으로 반환하는 숫자 |
+| **사용자 지정 SQL** | 직접 작성한 읽기 전용 SELECT 하나가 `value` 라는 이름으로 반환하는 숫자 (MongoDB에서는 집계 파이프라인이 반환하는 숫자) |
 
 각 검사는 15분, 1시간, 6시간 또는 하루마다, 문 시간 제한이 있는 읽기 전용 트랜잭션 안에서 집계 문 하나로 실행됩니다. 그 값은 `oneuptime.data.check.id`, `oneuptime.data.check.name`, `oneuptime.data.check.segment` 와 함께 `oneuptime.data.check.value` 로 기록됩니다.
 

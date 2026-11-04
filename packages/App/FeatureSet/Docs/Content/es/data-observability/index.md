@@ -1,6 +1,6 @@
 # Observabilidad de datos
 
-Observabilidad de datos vigila las tablas de las que depende tu empresa, en PostgreSQL, MySQL, SQL Server, Redshift, Snowflake, BigQuery, ClickHouse y Databricks, y te avisa cuando sus datos llegan tarde, faltan, son incorrectos o están rotos, antes de que lo noten las personas que los usan. Aprende por sí sola el ritmo de cada tabla, lee el catálogo de cada base de datos y nunca una fila, y vincula cada problema de datos con la ejecución del pipeline, el despliegue o la tabla de origen que hay detrás.
+Observabilidad de datos vigila las tablas de las que depende tu empresa, en PostgreSQL, MySQL, SQL Server, Oracle, MongoDB, Redshift, Snowflake, BigQuery, ClickHouse, Databricks y Athena, y te avisa cuando sus datos llegan tarde, faltan, son incorrectos o están rotos, antes de que lo noten las personas que los usan. Aprende por sí sola el ritmo de cada tabla, lee el catálogo de cada base de datos y nunca una fila, y vincula cada problema de datos con la ejecución del pipeline, el despliegue o la tabla de origen que hay detrás.
 
 Responde a cuatro preguntas:
 

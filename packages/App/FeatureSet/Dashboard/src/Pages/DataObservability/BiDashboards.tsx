@@ -144,7 +144,7 @@ const BiDashboardsPage: FunctionComponent<
             field: { credentials: true },
             title: "Credentials",
             description:
-              "JSON that may read its dashboards: Metabase an API key, Superset a user, Tableau a personal access token, Looker an API client, Power BI a service principal. Encrypted, and never shown again.",
+              "JSON with what may read its dashboards: an API key, a user, a token or a service principal, as the tool asks. Encrypted, and never shown again.",
             fieldType: FormFieldSchemaType.Password,
             required: true,
             placeholder: DATA_BI_TOOL_CREDENTIALS[DataBiTool.Metabase],

@@ -16,7 +16,7 @@ Ajoutez un contrôle dans l'onglet **Vérifications** d'une table :
 | **Format Mismatch Percent** | Pourcentage de valeurs qui ne correspondent pas à une expression régulière (tous les moteurs sauf SQL Server) |
 | **Orphan Count** | Lignes dont la valeur n'a aucune correspondance dans la colonne d'une autre table |
 | **Row Count** | Lignes de la table, surtout utile avec **Segment By** |
-| **SQL personnalisé** | Le nombre que renvoie l'un de vos SELECT en lecture seule, nommé `value` |
+| **SQL personnalisé** | Le nombre que renvoie l'un de vos SELECT en lecture seule, nommé `value` (sur MongoDB, celui d'un pipeline d'agrégation) |
 
 Chaque contrôle s'exécute toutes les 15 minutes, toutes les heures, toutes les 6 heures ou tous les jours, sous la forme d'une seule instruction d'agrégation dans une transaction en lecture seule avec un délai d'expiration d'instruction. Sa valeur est écrite comme `oneuptime.data.check.value`, avec `oneuptime.data.check.id`, `oneuptime.data.check.name` et `oneuptime.data.check.segment`.
 

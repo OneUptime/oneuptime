@@ -9,7 +9,7 @@
 | **OpenLineage** | Airflow、Dagster、Spark、dbt、Flink のジョブのすべての実行と、その実行が読み書きしたテーブル |
 | **dbt** | 各モデルが何から作られているか、1 回の実行としての各ビルド、そして各テストの結果 |
 | **Fivetran と Airbyte** | コネクターの 1 回の実行としての各同期と、その同期がロードする生のテーブル |
-| **ビュー** | ビューは、その定義に使われているテーブルから作られます (PostgreSQL、Redshift、MySQL 8、SQL Server、ClickHouse のマテリアライズドビュー、Databricks) |
+| **ビュー** | ビューは、その定義に使われているテーブルから作られます (PostgreSQL、Redshift、MySQL 8、SQL Server、Oracle、ClickHouse のマテリアライズドビュー、Databricks、MongoDB) |
 | **クエリ履歴** | あるテーブルを読み取り、別のテーブルに書き込んだクエリ (BigQuery のジョブ、Redshift のクエリログ、ClickHouse のクエリログ、Databricks のリネージテーブル) |
 
 テーブルの **リネージ** タブには、そのテーブルの作成元のテーブル、そのテーブルに書き込むパイプラインとその最新の実行、そしてそのテーブルから作られるテーブルが表示されます。各エッジには、それがどこで確認されたかが示されます。

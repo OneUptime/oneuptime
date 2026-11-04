@@ -1,6 +1,6 @@
 # 数据可观测性
 
-数据可观测性会监视你的公司所依赖的表——无论它们位于 PostgreSQL、MySQL、SQL Server、Redshift、Snowflake、BigQuery、ClickHouse 还是 Databricks 中——并在使用这些数据的人察觉之前，告诉你哪些数据延迟、缺失、错误或损坏。它会自行学习每个表的节奏，只读取每个数据库的目录而从不读取任何一行，并把每个数据问题关联到其背后的管道运行、部署或上游表。
+数据可观测性会监视你的公司所依赖的表——无论它们位于 PostgreSQL、MySQL、SQL Server、Oracle、MongoDB、Redshift、Snowflake、BigQuery、ClickHouse、Databricks 还是 Athena 中——并在使用这些数据的人察觉之前，告诉你哪些数据延迟、缺失、错误或损坏。它会自行学习每个表的节奏，只读取每个数据库的目录而从不读取任何一行，并把每个数据问题关联到其背后的管道运行、部署或上游表。
 
 它能解答四个疑问：
 

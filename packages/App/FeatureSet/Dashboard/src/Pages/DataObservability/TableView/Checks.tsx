@@ -54,6 +54,7 @@ const TableChecksPage: FunctionComponent<
         dataAssetId={dataAssetId}
         columns={columns}
         refreshToggle={String(addedCount)}
+        dataStoreKind={dataAsset?.dataStoreKind}
       />
       {dataAsset?.dbtNode ? <DbtTestTable dataAssetId={dataAssetId} /> : <></>}
     </div>
