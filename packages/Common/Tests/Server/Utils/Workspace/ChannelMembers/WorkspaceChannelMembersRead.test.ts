@@ -7,7 +7,9 @@ import {
   test,
 } from "@jest/globals";
 import WorkspaceChannelMembers, {
+  WORKSPACE_CHANNEL_MEMBERS_READ_LIMIT,
   WORKSPACE_CHANNEL_NAME_LOOKUP_LIMIT,
+  WORKSPACE_CHANNEL_PEOPLE_LISTED_LIMIT,
 } from "../../../../../Server/Utils/Workspace/WorkspaceChannelMembers";
 import NotFoundException from "../../../../../Types/Exception/NotFoundException";
 import { JSONObject } from "../../../../../Types/JSON";
@@ -27,10 +29,22 @@ import ChannelMembersWorld, {
   CAROL,
   DAN,
   INCIDENT_ID,
+  MATTERMOST_BOT_ID,
+  MATTERMOST_SERVER,
+  MM_ALICE,
+  MM_ALT7,
+  MM_BOB,
+  MM_CAROL,
+  MM_GONE,
+  MM_INC42,
+  MM_NICK,
+  MM_SAM,
+  MM_STATUSBOT,
   RECORD_IDS,
   SLACK_TEAM_ID,
   TEAMS_TEAM_ID,
   TEAMS_TENANT_ID,
+  mattermostChannel,
   slackChannel,
   teamsChannel,
 } from "./ChannelMembersWorld";
@@ -44,8 +58,9 @@ import ChannelMembersWorld, {
  * assistance from a Slack workspace admin?" The record's page first shows
  * the record's channels and the people in them, and whether the person
  * looking is one of them. Driven through the real WorkspaceChannelMembers
- * and SlackChannelMembers against a fake Slack workspace (ChannelMembersWorld),
- * with every request Slack is sent asserted.
+ * and SlackChannelMembers against a fake Slack workspace, and the real
+ * MattermostUtil against a fake Mattermost server (ChannelMembersWorld), with
+ * every request each is sent asserted.
  */
 
 let world: ChannelMembersWorld;
@@ -508,6 +523,475 @@ describe("Microsoft Teams channels", () => {
       [WorkspaceType.Slack, WorkspaceChannelState.Members],
       [WorkspaceType.MicrosoftTeams, WorkspaceChannelState.ManagedInTeams],
     ]);
+  });
+});
+
+describe("the people in a record's Mattermost channel", () => {
+  const INCIDENT_CHANNEL_URL: string = `${MATTERMOST_SERVER}/acme/channels/inc-42`;
+
+  beforeEach(() => {
+    world.recordChannels[WorkspaceChannelRecordType.Incident] = [
+      mattermostChannel(MM_INC42, "inc-42"),
+    ];
+  });
+
+  test("a private incident channel everybody left: nobody is listed, the viewer is not in it, and they may add people", async () => {
+    world.mattermostChannels[MM_INC42]!.members = [MATTERMOST_BOT_ID];
+
+    const answer: WorkspaceRecordChannels = await read();
+
+    expect(answer.canAddPeople).toBe(true);
+    expect(answer.channels).toEqual([
+      {
+        channelId: MM_INC42,
+        workspaceType: WorkspaceType.Mattermost,
+        name: "inc-42",
+        url: INCIDENT_CHANNEL_URL,
+        isPrivate: true,
+        state: WorkspaceChannelState.Members,
+        people: [],
+        peopleCount: 0,
+        viewer: WorkspaceChannelViewerStatus.NotIn,
+      },
+    ]);
+  });
+
+  test("names each person: OneUptime's name for a connected account, Mattermost's for anybody else, the viewer first", async () => {
+    world.mattermostChannels[MM_INC42]!.members = [
+      MATTERMOST_BOT_ID,
+      MM_SAM,
+      MM_BOB,
+      MM_ALICE,
+    ];
+
+    const channel: WorkspaceRecordChannel = (await read()).channels[0]!;
+
+    expect(channel.people).toEqual([
+      {
+        key: MM_ALICE,
+        name: "Alice Smith",
+        userId: ALICE.toString(),
+        hasProfilePicture: true,
+        isViewer: true,
+      },
+      { key: MM_BOB, name: "Bob Jones", userId: BOB.toString() },
+      { key: MM_SAM, name: "Sam from Support" },
+    ]);
+    expect(channel.peopleCount).toBe(3);
+    expect(channel.viewer).toBe(WorkspaceChannelViewerStatus.In);
+  });
+
+  test("a nickname stands in for a name, and a username for a server that hides full names", async () => {
+    world.mattermostChannels[MM_INC42]!.members = [
+      MATTERMOST_BOT_ID,
+      MM_SAM,
+      MM_NICK,
+    ];
+
+    expect(names((await read()).channels[0]!)).toEqual([
+      "Nicky",
+      "Sam from Support",
+    ]);
+
+    world.mattermostShowsFullNames = false;
+
+    expect(names((await read()).channels[0]!)).toEqual(["Nicky", "sam"]);
+  });
+
+  test("an account that is not connected but has a project member's email address is that member, when the server shows it", async () => {
+    world.mattermostChannels[MM_INC42]!.members = [MATTERMOST_BOT_ID, MM_CAROL];
+
+    // Carol's OneUptime email differs from Mattermost's in case only.
+    expect((await read()).channels[0]!.people).toEqual([
+      { key: MM_CAROL, name: "Carol Lee", userId: CAROL.toString() },
+    ]);
+
+    world.mattermostShowsEmails = false;
+
+    expect((await read()).channels[0]!.people).toEqual([
+      { key: MM_CAROL, name: "Carol" },
+    ]);
+  });
+
+  test("bots - OneUptime's own among them - and deactivated accounts, which Mattermost keeps in its channels, are not people", async () => {
+    world.mattermostChannels[MM_INC42]!.members = [
+      MATTERMOST_BOT_ID,
+      MM_STATUSBOT,
+      MM_GONE,
+      MM_BOB,
+    ];
+
+    const channel: WorkspaceRecordChannel = (await read()).channels[0]!;
+
+    expect(names(channel)).toEqual(["Bob Jones"]);
+    expect(channel.peopleCount).toBe(1);
+  });
+
+  test("asks Mattermost exactly what it needs: the channel, and who is in it with their names, in one call", async () => {
+    await read();
+
+    expect(world.mattermostRequests).toEqual([
+      { method: "GET", path: `/api/v4/channels/${MM_INC42}` },
+      {
+        method: "GET",
+        path: "/api/v4/users",
+        query: { in_channel: MM_INC42, page: "0", per_page: "200" },
+      },
+    ]);
+    expect(world.slackRequests).toEqual([]);
+  });
+
+  test("reads a big channel page by page, and no further than the limit", async () => {
+    const everybody: Array<string> = Array.from(
+      { length: WORKSPACE_CHANNEL_MEMBERS_READ_LIMIT + 50 },
+      (_: unknown, index: number) => {
+        const id: string = String(index).padStart(26, "p");
+
+        world.mattermostAccounts.push({
+          id: id,
+          username: `person${index}`,
+          email: "",
+        });
+
+        return id;
+      },
+    );
+
+    world.mattermostChannels[MM_INC42]!.members = [
+      MATTERMOST_BOT_ID,
+      ...everybody,
+    ];
+
+    const channel: WorkspaceRecordChannel = (await read()).channels[0]!;
+
+    expect(
+      world.mattermostRequests
+        .filter((request: { path: string }) => {
+          return request.path === "/api/v4/users";
+        })
+        .map((request: { query?: { page?: string } | undefined }) => {
+          return request.query?.page;
+        }),
+    ).toEqual(["0", "1", "2", "3", "4"]);
+    expect(channel.peopleCount).toBe(WORKSPACE_CHANNEL_MEMBERS_READ_LIMIT - 1);
+    expect(channel.people.length).toBe(WORKSPACE_CHANNEL_PEOPLE_LISTED_LIMIT);
+  });
+
+  test("a server that keeps answering the same page holds nobody up: its pages are counted", async () => {
+    const page: Array<string> = Array.from(
+      { length: 200 },
+      (_: unknown, index: number) => {
+        const id: string = String(index).padStart(26, "s");
+
+        world.mattermostAccounts.push({
+          id: id,
+          username: `same${index}`,
+          email: "",
+        });
+
+        return id;
+      },
+    );
+
+    world.mattermostChannels[MM_INC42]!.members = page;
+    world.mattermostChannels[MM_INC42]!.members.push(MATTERMOST_BOT_ID);
+    world.mattermostRepeatsItsFirstPage = true;
+
+    const channel: WorkspaceRecordChannel = (await read()).channels[0]!;
+
+    expect(
+      world.mattermostRequests.filter((request: { path: string }) => {
+        return request.path === "/api/v4/users";
+      }).length,
+    ).toBe(Math.ceil(WORKSPACE_CHANNEL_MEMBERS_READ_LIMIT / 200));
+    expect(channel.peopleCount).toBe(200);
+  });
+
+  describe("whether the person looking is in it", () => {
+    test("a viewer with a connected account", async () => {
+      world.mattermostChannels[MM_INC42]!.members.push(MM_ALICE);
+
+      expect((await read()).channels[0]!.viewer).toBe(
+        WorkspaceChannelViewerStatus.In,
+      );
+      expect(
+        world.mattermostCalls().filter((call: string) => {
+          return call.includes("/users/email/");
+        }),
+      ).toEqual([]);
+    });
+
+    test("a viewer who never connected is found by their email address", async () => {
+      world.viewer = CAROL;
+
+      expect((await read()).channels[0]!.viewer).toBe(
+        WorkspaceChannelViewerStatus.NotIn,
+      );
+      expect(world.mattermostCalls()).toContain(
+        "GET /api/v4/users/email/Carol%40Acme.test",
+      );
+
+      world.mattermostChannels[MM_INC42]!.members.push(MM_CAROL);
+
+      const again: WorkspaceRecordChannel = (await read()).channels[0]!;
+
+      expect(again.viewer).toBe(WorkspaceChannelViewerStatus.In);
+      expect(again.people[0]).toEqual({
+        key: MM_CAROL,
+        name: "Carol Lee",
+        userId: CAROL.toString(),
+        isViewer: true,
+      });
+    });
+
+    test("nobody on the server has their email address, or the server does not show them: not found", async () => {
+      world.viewer = DAN;
+
+      expect((await read()).channels[0]!.viewer).toBe(
+        WorkspaceChannelViewerStatus.NotFound,
+      );
+
+      world.viewer = CAROL;
+      world.mattermostShowsEmails = false;
+
+      const channel: WorkspaceRecordChannel = (await read()).channels[0]!;
+
+      expect(channel.viewer).toBe(WorkspaceChannelViewerStatus.NotFound);
+      expect(channel.state).toBe(WorkspaceChannelState.Members);
+    });
+
+    test("an account deactivated is nobody", async () => {
+      world.viewer = CAROL;
+      world.mattermostAccounts.find((account: { id: string }) => {
+        return account.id === MM_CAROL;
+      })!.isDeactivated = true;
+
+      expect((await read()).channels[0]!.viewer).toBe(
+        WorkspaceChannelViewerStatus.NotFound,
+      );
+    });
+
+    test("a project API key looks at it as nobody: not found, and may not add people", async () => {
+      world.isApiKey = true;
+
+      const answer: WorkspaceRecordChannels = await read();
+
+      expect(answer.canAddPeople).toBe(false);
+      expect(answer.channels[0]!.viewer).toBe(
+        WorkspaceChannelViewerStatus.NotFound,
+      );
+    });
+  });
+
+  describe("what each state means for Mattermost", () => {
+    test("archived: Mattermost keeps its people and still lists them, and it is named as such", async () => {
+      world.mattermostChannels[MM_INC42]!.isArchived = true;
+
+      const channel: WorkspaceRecordChannel = (await read()).channels[0]!;
+
+      expect(channel.state).toBe(WorkspaceChannelState.Archived);
+      expect(names(channel)).toEqual(["Bob Jones", "Sam from Support"]);
+      expect(channel.isPrivate).toBe(true);
+    });
+
+    test("a private channel the bot was removed from is refused (403): out of sight, and the stored link stays", async () => {
+      world.mattermostChannels[MM_INC42]!.members = [MM_BOB];
+
+      expect((await read()).channels[0]!).toEqual({
+        channelId: MM_INC42,
+        workspaceType: WorkspaceType.Mattermost,
+        name: "inc-42",
+        url: INCIDENT_CHANNEL_URL,
+        isPrivate: null,
+        state: WorkspaceChannelState.Unreachable,
+        people: [],
+        peopleCount: 0,
+        viewer: WorkspaceChannelViewerStatus.NotFound,
+      });
+      expect(world.mattermostCalls()).toEqual([
+        `GET /api/v4/channels/${MM_INC42}`,
+      ]);
+    });
+
+    /*
+     * Unlike Slack, Mattermost lists a public channel's people only for
+     * somebody in it. Looking at a page must not make the bot join: joining
+     * writes in the channel.
+     */
+    test("a public channel the bot left is out of sight too, says it is public, and the bot does not join just because somebody looked", async () => {
+      world.recordChannels[WorkspaceChannelRecordType.Incident] = [
+        mattermostChannel(MM_ALT7, "alt-7"),
+      ];
+      world.mattermostChannels[MM_ALT7]!.members = [MM_BOB];
+
+      const channel: WorkspaceRecordChannel = (await read()).channels[0]!;
+
+      expect(channel.state).toBe(WorkspaceChannelState.Unreachable);
+      expect(channel.isPrivate).toBe(false);
+      expect(channel.url).toBe(`${MATTERMOST_SERVER}/acme/channels/alt-7`);
+      expect(world.mattermostAdds()).toEqual([]);
+      expect(world.mattermostChannels[MM_ALT7]!.members).toEqual([MM_BOB]);
+    });
+
+    test("a channel deleted for good is out of sight, as Mattermost answers 404", async () => {
+      delete world.mattermostChannels[MM_INC42];
+
+      expect((await read()).channels[0]!.state).toBe(
+        WorkspaceChannelState.Unreachable,
+      );
+    });
+
+    test("a bot removed from the team cannot read a public channel either", async () => {
+      world.recordChannels[WorkspaceChannelRecordType.Incident] = [
+        mattermostChannel(MM_ALT7, "alt-7"),
+      ];
+      world.mattermostBotOutsideTeam = true;
+
+      expect((await read()).channels[0]!.state).toBe(
+        WorkspaceChannelState.Unreachable,
+      );
+    });
+
+    test("an id of the wrong shape is no channel of Mattermost's: nothing is asked with it", async () => {
+      world.recordChannels[WorkspaceChannelRecordType.Incident] = [
+        mattermostChannel("../../users/me", "inc-42"),
+      ];
+
+      expect((await read()).channels[0]!.state).toBe(
+        WorkspaceChannelState.Unreachable,
+      );
+      expect(
+        world.mattermostCalls().filter((call: string) => {
+          return call.includes("/channels/");
+        }),
+      ).toEqual([]);
+    });
+
+    test("Mattermost disconnected from the project: not connected, and nothing is asked", async () => {
+      world.mattermostConnected = false;
+
+      const channel: WorkspaceRecordChannel = (await read()).channels[0]!;
+
+      expect(channel.state).toBe(WorkspaceChannelState.NotConnected);
+      expect(channel.url).toBeUndefined();
+      expect(world.mattermostRequests).toEqual([]);
+    });
+
+    test("a connection OneUptime cannot read: not connected", async () => {
+      world.mattermostAuthTokenBroken = true;
+
+      expect((await read()).channels[0]!.state).toBe(
+        WorkspaceChannelState.NotConnected,
+      );
+      expect(world.mattermostRequests).toEqual([]);
+    });
+
+    test("a token Mattermost no longer takes (401): not connected", async () => {
+      world.mattermostTokenRevoked = true;
+
+      expect((await read()).channels[0]!.state).toBe(
+        WorkspaceChannelState.NotConnected,
+      );
+    });
+
+    test.each([
+      [500, "app.channel.get.find.app_error"],
+      [429, "api.context.rate_limited"],
+    ] as Array<[number, string]>)(
+      "Mattermost answering %i: unavailable, to ask again later",
+      async (status: number, errorId: string) => {
+        world.mattermostRefuses[`GET /api/v4/channels/${MM_INC42}`] = {
+          status: status,
+          errorId: errorId,
+        };
+
+        expect((await read()).channels[0]!.state).toBe(
+          WorkspaceChannelState.Unavailable,
+        );
+
+        world.mattermostRefuses = {
+          "GET /api/v4/users": { status: status, errorId: errorId },
+        };
+
+        const channel: WorkspaceRecordChannel = (await read()).channels[0]!;
+
+        expect(channel.state).toBe(WorkspaceChannelState.Unavailable);
+        expect(channel.isPrivate).toBe(true);
+      },
+    );
+
+    test("a server that does not answer at all: unavailable, and the page still gets its answer", async () => {
+      world.mattermostDown = true;
+
+      expect((await read()).channels[0]!.state).toBe(
+        WorkspaceChannelState.Unavailable,
+      );
+    });
+  });
+
+  test("its link goes by the name it has now, should somebody have renamed it since the record stored it", async () => {
+    world.mattermostChannels[MM_INC42]!.name = "inc-42-renamed";
+
+    const channel: WorkspaceRecordChannel = (await read()).channels[0]!;
+
+    expect(channel.url).toBe(`${MATTERMOST_SERVER}/acme/channels/inc-42-renamed`);
+    // As the record stored it, like the header's button.
+    expect(channel.name).toBe("inc-42");
+  });
+
+  test("a connection without its team's name still lists the channel, without a link", async () => {
+    world.mattermostTeamName = "";
+
+    const channel: WorkspaceRecordChannel = (await read()).channels[0]!;
+
+    expect(channel.url).toBeUndefined();
+    expect(channel.state).toBe(WorkspaceChannelState.Members);
+  });
+
+  test("a record with channels in all three: Slack's, then Teams', then Mattermost's, each as its product tells it", async () => {
+    world.recordChannels[WorkspaceChannelRecordType.Incident] = [
+      mattermostChannel(MM_INC42, "inc-42"),
+      teamsChannel("19:acme@thread.tacv2", "inc-42", TEAMS_TEAM_ID),
+      slackChannel("C0INC42", "inc-42"),
+    ];
+
+    const channels: Array<WorkspaceRecordChannel> = (await read()).channels;
+
+    expect(
+      channels.map((channel: WorkspaceRecordChannel) => {
+        return [channel.workspaceType, channel.state, channel.peopleCount];
+      }),
+    ).toEqual([
+      [WorkspaceType.Slack, WorkspaceChannelState.Members, 2],
+      [WorkspaceType.MicrosoftTeams, WorkspaceChannelState.ManagedInTeams, 0],
+      [WorkspaceType.Mattermost, WorkspaceChannelState.Members, 2],
+    ]);
+  });
+
+  test("one product down does not take the others' channels with it", async () => {
+    world.recordChannels[WorkspaceChannelRecordType.Incident] = [
+      slackChannel("C0INC42", "inc-42"),
+      mattermostChannel(MM_INC42, "inc-42"),
+    ];
+    world.mattermostDown = true;
+
+    expect(
+      (await read()).channels.map((channel: WorkspaceRecordChannel) => {
+        return channel.state;
+      }),
+    ).toEqual([
+      WorkspaceChannelState.Members,
+      WorkspaceChannelState.Unavailable,
+    ]);
+  });
+
+  test("a channel stored twice is listed once", async () => {
+    world.recordChannels[WorkspaceChannelRecordType.Incident] = [
+      mattermostChannel(MM_INC42, "inc-42"),
+      mattermostChannel(MM_INC42, "inc-42"),
+    ];
+
+    expect((await read()).channels.length).toBe(1);
   });
 });
 

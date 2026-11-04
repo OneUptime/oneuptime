@@ -430,6 +430,52 @@ describe("MattermostUtil: calls to the Mattermost server", () => {
       ).toBe(true);
     });
 
+    test("an account's email address and whether it was deactivated are read when Mattermost says", async () => {
+      on(
+        "GET",
+        `/api/v4/users/${ALICE_ID}`,
+        ok({
+          id: ALICE_ID,
+          username: "alice",
+          email: " alice@example.com ",
+          delete_at: 1700000000000,
+        }),
+      );
+      on(
+        "GET",
+        `/api/v4/users/${BOB_ID}`,
+        ok({ id: BOB_ID, username: "bob", delete_at: 0 }),
+      );
+
+      expect(
+        await MattermostUtil.getUser({
+          authToken: AUTH_TOKEN,
+          userId: ALICE_ID,
+        }),
+      ).toEqual({
+        id: ALICE_ID,
+        username: "alice",
+        displayName: "",
+        isBot: false,
+        isGuest: false,
+        email: "alice@example.com",
+        isDeactivated: true,
+      });
+      // A server that hides email addresses leaves it out; nothing is made up.
+      expect(
+        await MattermostUtil.getUser({
+          authToken: AUTH_TOKEN,
+          userId: BOB_ID,
+        }),
+      ).toEqual({
+        id: BOB_ID,
+        username: "bob",
+        displayName: "",
+        isBot: false,
+        isGuest: false,
+      });
+    });
+
     test("a username is read for a message, and none on a failure", async () => {
       on(
         "GET",
@@ -691,6 +737,320 @@ describe("MattermostUtil: calls to the Mattermost server", () => {
 
       expect(lookups).toHaveLength(1);
       expect(adds).toEqual([{ user_id: ALICE_ID }, { user_id: BOB_ID }]);
+    });
+
+    describe("who is in a channel", () => {
+      test("asks for its people with their names, in one call a page", async () => {
+        on(
+          "GET",
+          "/api/v4/users",
+          ok([
+            {
+              id: ALICE_ID,
+              username: "alice",
+              first_name: "Alice",
+              last_name: "Smith",
+              email: "alice@example.com",
+            },
+            { id: BOT_ID, username: "oneuptime", is_bot: true },
+          ]),
+        );
+
+        expect(
+          await MattermostUtil.getChannelMembers({
+            authToken: AUTH_TOKEN,
+            channelId: PRIVATE_CHANNEL_ID,
+            max: 1000,
+          }),
+        ).toEqual([
+          {
+            id: ALICE_ID,
+            username: "alice",
+            displayName: "Alice Smith",
+            isBot: false,
+            isGuest: false,
+            email: "alice@example.com",
+          },
+          {
+            id: BOT_ID,
+            username: "oneuptime",
+            displayName: "",
+            isBot: true,
+            isGuest: false,
+          },
+        ]);
+        expect(calls).toHaveLength(1);
+        expect(calls[0]!.path).toBe("/api/v4/users");
+        expect(calls[0]!.args.params).toEqual({
+          in_channel: PRIVATE_CHANNEL_ID,
+          page: "0",
+          per_page: "200",
+        });
+        expect(calls[0]!.args.headers["Authorization"]).toBe(
+          `Bearer ${ACCESS_TOKEN}`,
+        );
+        expect(calls[0]!.args.options.doNotFollowRedirects).toBe(true);
+      });
+
+      test("reads page by page until a page is short, and no further than `max`", async () => {
+        const page: (from: number, length: number) => Array<JSONObject> = (
+          from: number,
+          length: number,
+        ): Array<JSONObject> => {
+          return Array.from(
+            { length: length },
+            (_: unknown, index: number) => {
+              return {
+                id: String(from + index).padStart(26, "u"),
+                username: `user${from + index}`,
+              };
+            },
+          );
+        };
+
+        on("GET", "/api/v4/users", (call: ServerCall) => {
+          return ok(
+            call.args.params?.["page"] === "0" ? page(0, 200) : page(200, 3),
+          );
+        });
+
+        expect(
+          await MattermostUtil.getChannelMembers({
+            authToken: AUTH_TOKEN,
+            channelId: PRIVATE_CHANNEL_ID,
+            max: 1000,
+          }),
+        ).toHaveLength(203);
+        expect(calls).toHaveLength(2);
+
+        calls.length = 0;
+
+        const limited: Array<MattermostUser> =
+          await MattermostUtil.getChannelMembers({
+            authToken: AUTH_TOKEN,
+            channelId: PRIVATE_CHANNEL_ID,
+            max: 50,
+          });
+
+        expect(limited).toHaveLength(50);
+        expect(calls).toHaveLength(1);
+      });
+
+      test("a server that repeats a page cannot hold a read: at most max / 200 pages are asked for", async () => {
+        const page: Array<JSONObject> = Array.from(
+          { length: 200 },
+          (_: unknown, index: number) => {
+            return {
+              id: String(index).padStart(26, "u"),
+              username: `user${index}`,
+            };
+          },
+        );
+
+        on("GET", "/api/v4/users", ok(page));
+
+        expect(
+          await MattermostUtil.getChannelMembers({
+            authToken: AUTH_TOKEN,
+            channelId: PRIVATE_CHANNEL_ID,
+            max: 1000,
+          }),
+        ).toHaveLength(200);
+        expect(calls).toHaveLength(5);
+      });
+
+      test("an entry OneUptime cannot read is left out", async () => {
+        on(
+          "GET",
+          "/api/v4/users",
+          ok([
+            { id: ALICE_ID, username: "alice" },
+            { id: "not an id", username: "mallory" },
+            null as unknown as JSONObject,
+          ]),
+        );
+
+        expect(
+          (
+            await MattermostUtil.getChannelMembers({
+              authToken: AUTH_TOKEN,
+              channelId: PRIVATE_CHANNEL_ID,
+              max: 1000,
+            })
+          ).map((member: MattermostUser) => {
+            return member.id;
+          }),
+        ).toEqual([ALICE_ID]);
+      });
+
+      test("an answer that is not a list is refused, rather than taken for nobody", async () => {
+        on("GET", "/api/v4/users", ok({ message: "Not a list" }));
+
+        await expect(
+          MattermostUtil.getChannelMembers({
+            authToken: AUTH_TOKEN,
+            channelId: PRIVATE_CHANNEL_ID,
+            max: 1000,
+          }),
+        ).rejects.toBeInstanceOf(BadDataException);
+      });
+
+      test("a channel id is checked before anything is asked with it", async () => {
+        for (const channelId of [
+          "../../users/me",
+          "short",
+          `${PRIVATE_CHANNEL_ID}?in_team=x`,
+          "",
+        ]) {
+          await expect(
+            MattermostUtil.getChannelMembers({
+              authToken: AUTH_TOKEN,
+              channelId: channelId,
+              max: 1000,
+            }),
+          ).rejects.toThrow("The Mattermost channel id is not valid.");
+        }
+
+        expect(calls).toHaveLength(0);
+      });
+
+      test("the server's address is held to what OneUptime may reach, before the token goes anywhere", async () => {
+        on("GET", "/api/v4/users", ok([]));
+
+        await MattermostUtil.getChannelMembers({
+          authToken: AUTH_TOKEN,
+          channelId: PRIVATE_CHANNEL_ID,
+          max: 1000,
+        });
+
+        expect(ssrfSpy).toHaveBeenCalledWith(
+          SERVER,
+          expect.objectContaining({ allowPrivateNetworkTargets: true }),
+        );
+      });
+
+      test("a bot that is not in the channel is refused, a public channel's too", async () => {
+        on(
+          "GET",
+          "/api/v4/users",
+          refused(
+            403,
+            "api.context.permissions.app_error",
+            "You do not have the appropriate permissions.",
+          ),
+        );
+
+        await expect(
+          MattermostUtil.getChannelMembers({
+            authToken: AUTH_TOKEN,
+            channelId: PUBLIC_CHANNEL_ID,
+            max: 1000,
+          }),
+        ).rejects.toBeInstanceOf(MattermostRequestError);
+      });
+    });
+
+    test("an archived channel is read as one", async () => {
+      on(
+        "GET",
+        `/api/v4/channels/${PRIVATE_CHANNEL_ID}`,
+        ok({
+          ...channel(PRIVATE_CHANNEL_ID, "inc-42", "P"),
+          delete_at: 1700000000000,
+        }),
+      );
+      on(
+        "GET",
+        `/api/v4/channels/${PUBLIC_CHANNEL_ID}`,
+        ok({ ...channel(PUBLIC_CHANNEL_ID, "inc-43", "O"), delete_at: 0 }),
+      );
+
+      expect(
+        (
+          await MattermostUtil.getChannel({
+            authToken: AUTH_TOKEN,
+            channelId: PRIVATE_CHANNEL_ID,
+          })
+        ).isArchived,
+      ).toBe(true);
+      expect(
+        (
+          await MattermostUtil.getChannel({
+            authToken: AUTH_TOKEN,
+            channelId: PUBLIC_CHANNEL_ID,
+          })
+        ).isArchived,
+      ).toBeUndefined();
+    });
+
+    describe("what a refusal says", () => {
+      const error: (status: number, id: string) => MattermostRequestError = (
+        status: number,
+        id: string,
+      ): MattermostRequestError => {
+        return new MattermostRequestError({
+          message: "Refused",
+          statusCode: status,
+          errorId: id,
+        });
+      };
+
+      test("an account outside the team, on this server and an older one, and removed from it", () => {
+        for (const refusal of [
+          error(404, "app.team.get_member.missing.app_error"),
+          error(404, "store.sql_team.get_member.missing.app_error"),
+          error(
+            400,
+            "api.channel.add_user.to.channel.failed.deleted.app_error",
+          ),
+        ]) {
+          expect(MattermostUtil.isNotInTeamError(refusal)).toBe(true);
+          expect(MattermostUtil.isAccountGoneError(refusal)).toBe(false);
+        }
+      });
+
+      test("an account that does not exist, on this server and an older one, and deactivated", () => {
+        for (const refusal of [
+          error(404, "app.user.missing_account.const"),
+          error(404, "store.sql_user.missing_account.const"),
+          error(403, "app.channel.add_member.deleted_user.app_error"),
+        ]) {
+          expect(MattermostUtil.isAccountGoneError(refusal)).toBe(true);
+          expect(MattermostUtil.isNotInTeamError(refusal)).toBe(false);
+        }
+      });
+
+      test("a channel that is gone is neither", () => {
+        const gone: MattermostRequestError = error(
+          404,
+          "app.channel.get.existing.app_error",
+        );
+
+        expect(MattermostUtil.isNotInTeamError(gone)).toBe(false);
+        expect(MattermostUtil.isAccountGoneError(gone)).toBe(false);
+        expect(MattermostUtil.isNotFoundError(gone)).toBe(true);
+      });
+
+      test("a token it no longer takes", () => {
+        expect(
+          MattermostUtil.isUnauthorizedError(
+            error(401, "api.context.session_expired.app_error"),
+          ),
+        ).toBe(true);
+        expect(MattermostUtil.isUnauthorizedError(error(403, "x"))).toBe(false);
+        expect(MattermostUtil.isUnauthorizedError(new Error("x"))).toBe(false);
+      });
+
+      test("down, its rate limit, or no answer at all: it could not answer now", () => {
+        expect(MattermostUtil.isUnavailableError(error(500, "x"))).toBe(true);
+        expect(MattermostUtil.isUnavailableError(error(503, "x"))).toBe(true);
+        expect(MattermostUtil.isUnavailableError(error(429, "x"))).toBe(true);
+        expect(MattermostUtil.isUnavailableError(new Error("ETIMEDOUT"))).toBe(
+          true,
+        );
+        expect(MattermostUtil.isUnavailableError(error(403, "x"))).toBe(false);
+        expect(MattermostUtil.isUnavailableError(error(400, "x"))).toBe(false);
+      });
     });
 
     test("whether somebody is in a channel: a membership, or not found", async () => {

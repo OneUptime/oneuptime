@@ -8,14 +8,14 @@ import WorkspaceType from "./WorkspaceType";
 /*
  * WHO IS IN A RECORD'S OWN CHAT CHANNEL, AND ADDING PEOPLE TO IT.
  *
- * A workspace notification rule can create a Slack or Microsoft Teams
- * channel for an incident, an alert, an episode or a scheduled maintenance
- * event, and it invites the record's people as they join the record. People
- * still leave channels, a rule can leave somebody out, and a private Slack
- * channel that everybody has left can only be entered again through an
- * invitation from someone still in it: the OneUptime app, which created it
- * and stays in it. So the record's page shows its channels and who is in
- * them, and lets a member who may edit the record add people through the
+ * A workspace notification rule can create a Slack, Microsoft Teams or
+ * Mattermost channel for an incident, an alert, an episode or a scheduled
+ * maintenance event, and it invites the record's people as they join the
+ * record. People still leave channels, a rule can leave somebody out, and a
+ * private channel that everybody has left can only be entered again through
+ * an invitation from someone still in it: the OneUptime app or bot, which
+ * created it and stays in it. So the record's page shows its channels and who
+ * is in them, and lets a member who may edit the record add people through the
  * app - themselves (Join channel) or anybody in the project.
  *
  * What the page and the server say to each other, in one place: the route,
@@ -36,19 +36,23 @@ export const WORKSPACE_CHANNEL_MEMBERS_ADD_PATH: string = "add";
 
 // What OneUptime could tell about a channel.
 export enum WorkspaceChannelState {
-  // Slack answered: the people in it are listed.
+  // The workspace answered: the people in it are listed.
   Members = "members",
-  // Slack: archived. Its people are still listed; nobody can join it.
+  /*
+   * Archived. Its people are still listed, and OneUptime adds nobody to it.
+   * Slack refuses to, while Mattermost would take them without a word.
+   */
   Archived = "archived",
   /*
-   * Slack: OneUptime cannot see the channel any more. It was deleted, or it
-   * is private and the OneUptime app was removed from it - Slack answers the
-   * two alike.
+   * OneUptime cannot see the channel any more. It was deleted, or the app or
+   * bot was removed from it: Slack answers the two alike for a private channel.
+   * Mattermost lists a channel's people only for somebody in it, so a public
+   * channel the bot was removed from is out of sight there too.
    */
   Unreachable = "unreachable",
-  // The project's Slack connection is gone.
+  // The project's connection to the workspace is gone, or no longer works.
   NotConnected = "not-connected",
-  // Slack did not answer (an outage, its rate limit): ask again later.
+  // The workspace did not answer (an outage, its rate limit): ask again later.
   Unavailable = "unavailable",
   /*
    * Microsoft Teams: who can open the channel is the team's (a standard
@@ -86,7 +90,10 @@ export interface WorkspaceRecordChannel {
   workspaceType: WorkspaceType;
   // As the record stored it: "inc-42".
   name: string;
-  // Opens it in the Slack or Teams app, or in the browser (WorkspaceChannelLink).
+  /*
+   * Opens it in the Slack or Teams app or in the browser, or on the project's
+   * Mattermost server (WorkspaceChannelLink).
+   */
   url?: string | undefined;
   // Null when OneUptime cannot tell.
   isPrivate: boolean | null;
@@ -117,11 +124,19 @@ export enum WorkspaceChannelAddOutcome {
   NotFound = "not-found",
   // Not a member of the project: OneUptime adds only its members.
   NotProjectMember = "not-project-member",
-  // A guest of the workspace, whom Slack does not let the app add here.
+  /*
+   * Mattermost: an account outside the team the project is connected to, and
+   * only the team's people can be in its channels.
+   */
+  NotInTeam = "not-in-team",
+  /*
+   * Slack: a guest of the workspace, whom Slack does not let the app add here.
+   * Mattermost lets a guest in the team be added, so it never answers this.
+   */
   Guest = "guest",
-  // Slack was busy or down: try again.
+  // The workspace was busy or down: try again.
   TryAgain = "try-again",
-  // Slack refused, for a reason of its own.
+  // The workspace refused, for a reason of its own.
   Refused = "refused",
 }
 
@@ -134,8 +149,8 @@ export interface WorkspaceChannelAddResult {
 export interface WorkspaceChannelAddAnswer {
   /*
    * Set when the channel itself could take nobody (archived, out of
-   * OneUptime's sight, the connection gone, Slack down): then nobody was
-   * tried, and `results` is empty.
+   * OneUptime's sight, the connection gone, the workspace down): then nobody
+   * was tried, and `results` is empty.
    */
   channelState?: WorkspaceChannelState | undefined;
   results: Array<WorkspaceChannelAddResult>;
