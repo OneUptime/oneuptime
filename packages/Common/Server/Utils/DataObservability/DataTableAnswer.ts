@@ -13,6 +13,7 @@ import {
 } from "../../../Types/DataObservability/DataAssetFreshness";
 import ObjectID from "../../../Types/ObjectID";
 import AlertService from "../../Services/AlertService";
+import AlertStateService from "../../Services/AlertStateService";
 import DataAlertService from "../../Services/DataAlertService";
 import DataAssetLineageService from "../../Services/DataAssetLineageService";
 import DataAssetService from "../../Services/DataAssetService";
@@ -328,15 +329,26 @@ export default class DataTableAnswerer {
       .filter((id: ObjectID | undefined): id is ObjectID => {
         return Boolean(id);
       });
+    /*
+     * Its alerts still open: in a state the project's states do not count
+     * as resolved (Common/Utils/ResolvedState) - so one moved on to a state
+     * placed after Resolved, such as "Closed", is over too, flagged or not.
+     */
     const alertRows: Array<Alert> =
       alertIds.length > 0
         ? await AlertService.findBy({
-            query: { projectId, _id: QueryHelper.any(alertIds) },
+            query: {
+              projectId,
+              _id: QueryHelper.any(alertIds),
+              currentAlertStateId: QueryHelper.any(
+                await AlertStateService.getUnresolvedAlertStateIds(projectId),
+              ),
+            },
             select: {
               _id: true,
               title: true,
               alertNumberWithPrefix: true,
-              currentAlertState: { name: true, isResolvedState: true },
+              currentAlertState: { name: true },
             },
             sort: { createdAt: SortOrder.Descending },
             limit: alertIds.length,
@@ -380,9 +392,7 @@ export default class DataTableAnswerer {
       isDropped: asset.isDropped === true,
       openAlerts: alertRows
         .filter((alert: Alert) => {
-          return Boolean(
-            alert.id && alert.currentAlertState?.isResolvedState !== true,
-          );
+          return Boolean(alert.id);
         })
         .slice(0, MAX_LISTED)
         .map((alert: Alert) => {
