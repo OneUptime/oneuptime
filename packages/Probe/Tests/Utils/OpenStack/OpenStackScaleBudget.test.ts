@@ -234,8 +234,9 @@ describe.each(SIZES)(
         const series: {
           fast: number;
           slow: number;
-        } = getOpenStackSeriesCounts({ counts: counts });
+        } = getOpenStackSeriesCounts({ counts: counts, flavorsAnswered: 0 });
 
+        // A first collection has asked Placement nothing yet: see OpenStackAllocationCandidates.
         expect(report.summary?.datapointCount).toBe(series.fast + series.slow);
       }
 

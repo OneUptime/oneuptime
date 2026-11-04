@@ -9,6 +9,14 @@ import {
   OpenStackHypervisorMetric,
   OpenStackInstanceMetric,
 } from "../OpenStack/OpenStackInstanceMetrics";
+import {
+  OPENSTACK_CAPACITY_ALLOCATED_SERIES,
+  OPENSTACK_CAPACITY_CAN_LOSE_A_HOST_SERIES,
+  OPENSTACK_CAPACITY_DAYS_UNTIL_FULL_SERIES,
+  OPENSTACK_CAPACITY_FLAVOR_FITS_SERIES,
+  OPENSTACK_CAPACITY_SERIES_LABELS,
+  OPENSTACK_CAPACITY_TOTAL_SERIES,
+} from "../OpenStack/OpenStackCapacitySeries";
 import { OpenStackServiceType } from "../OpenStack/OpenStackResourceKind";
 import { translationKey } from "../Translator";
 
@@ -20,7 +28,8 @@ export type OpenStackMetricCategory =
   | "Storage"
   | "Images"
   | "Identity"
-  | "Projects";
+  | "Projects"
+  | "Capacity";
 
 export interface OpenStackMetricDefinition {
   id: string;
@@ -63,6 +72,11 @@ export interface OpenStackMetricDefinition {
    * (OpenStackScale), in place of a series per instance. Nothing collects these.
    */
   fromSummaryMode?: boolean;
+  /*
+   * Written by OneUptime itself, from a cloud's rows, for every cloud that reports (see
+   * OpenStackCapacitySeries). Nothing collects these either.
+   */
+  fromCapacity?: boolean;
   unit?: string;
 }
 
@@ -364,6 +378,83 @@ const openStackMetricCatalog: Array<OpenStackMetricDefinition> = [
     unit: "count",
   }),
   metric({
+    metricName: OPENSTACK_CAPACITY_ALLOCATED_SERIES,
+    friendlyName: translationKey("Capacity Allocated"),
+    description:
+      "What is allocated of something that fills up: a zone's resource class, an external network's IPv4 addresses or a storage pool's bytes (capacity_scope and capacity_name say which, and resourcetype what). Counts what lost and disabled hosts hold, because those instances exist. This is allocation, not load. OneUptime writes this from the cloud's rows.",
+    category: "Capacity",
+    defaultAggregation: MetricsAggregationType.Max,
+    service: OpenStackServiceType.Placement,
+    identityAttributes: OPENSTACK_CAPACITY_SERIES_LABELS,
+    fromCapacity: true,
+  }),
+  metric({
+    metricName: OPENSTACK_CAPACITY_TOTAL_SERIES,
+    friendlyName: translationKey("Capacity Total"),
+    description:
+      "What can be allocated of it, from the hosts that can give: (total - reserved) x allocation ratio, for a zone. OneUptime writes this from the cloud's rows.",
+    category: "Capacity",
+    defaultAggregation: MetricsAggregationType.Max,
+    service: OpenStackServiceType.Placement,
+    identityAttributes: OPENSTACK_CAPACITY_SERIES_LABELS,
+    fromCapacity: true,
+  }),
+  metric({
+    metricName: OPENSTACK_CAPACITY_DAYS_UNTIL_FULL_SERIES,
+    friendlyName: translationKey("Capacity Days Until Full"),
+    description:
+      "How many days until it is full, at its growth over the last week, and 0 when it is. No series with too little history to tell, or when it isn't growing. OneUptime works this out from the cloud's rows.",
+    category: "Capacity",
+    defaultAggregation: MetricsAggregationType.Max,
+    service: OpenStackServiceType.Placement,
+    identityAttributes: OPENSTACK_CAPACITY_SERIES_LABELS,
+    fromCapacity: true,
+    unit: "d",
+  }),
+  metric({
+    metricName: OPENSTACK_CAPACITY_FLAVOR_FITS_SERIES,
+    friendlyName: translationKey("Flavor Room"),
+    description:
+      "How many more of a flavor fit, counted host by host, in each region. source says whether Placement answered or inventories were added up. Only flavors someone can ask for, and none too large for every host. OneUptime writes this from the cloud's rows.",
+    category: "Capacity",
+    defaultAggregation: MetricsAggregationType.Max,
+    service: OpenStackServiceType.Placement,
+    identityAttributes: ["flavor_id", "flavor", "source"],
+    fromCapacity: true,
+    unit: "count",
+  }),
+  metric({
+    metricName: OPENSTACK_CAPACITY_CAN_LOSE_A_HOST_SERIES,
+    friendlyName: translationKey("Zone Can Lose a Host"),
+    description:
+      "1 when a zone could lose its largest host and still fit what runs on it, and 0 when it couldn't, per resource class. No series for a zone of one host, or with a host someone disabled. OneUptime writes this from the cloud's rows.",
+    category: "Capacity",
+    defaultAggregation: MetricsAggregationType.Min,
+    service: OpenStackServiceType.Placement,
+    identityAttributes: ["availability_zone", "resourcetype"],
+    fromCapacity: true,
+  }),
+  metric({
+    metricName: "openstack_placement_flavor_fits",
+    friendlyName: translationKey("Placement Flavor Fits"),
+    description:
+      "How many more of a flavor Placement says would fit, counted host by host, from GET /allocation_candidates: one series for the region and one for each zone and aggregate (scope and scope_name). Read in turns, a few flavors a collection, and sent as last read in between. Only a probe asks this.",
+    category: "Compute",
+    defaultAggregation: MetricsAggregationType.Max,
+    service: OpenStackServiceType.Placement,
+    identityAttributes: [
+      "flavor_id",
+      "flavor",
+      "scope",
+      "scope_name",
+      "asked_at",
+      "hosts_with_room",
+      "is_capped",
+    ],
+    onlyFromProbe: true,
+    unit: "count",
+  }),
+  metric({
     metricName: "openstack_placement_resource_provider_allocations",
     friendlyName: translationKey("Placement Allocations per Instance"),
     description:
@@ -561,6 +652,12 @@ const openStackMetricCatalog: Array<OpenStackMetricDefinition> = [
     defaultAggregation: MetricsAggregationType.Max,
     service: OpenStackServiceType.Compute,
     identityAttributes: ["id", "name", "vcpus", "ram", "disk", "is_public"],
+    probeOnlyAttributes: [
+      "placement_resources",
+      "placement_required",
+      "placement_forbidden",
+      "is_disabled",
+    ],
     unit: "count",
   }),
   metric({

@@ -150,7 +150,8 @@ describe("OpenStackMetricCatalog", () => {
           return (
             metric.onlyFromProbe !== true &&
             metric.fromInstanceSource !== true &&
-            metric.fromSummaryMode !== true
+            metric.fromSummaryMode !== true &&
+            metric.fromCapacity !== true
           );
         })
         .map((metric: OpenStackMetricDefinition): string => {
@@ -225,7 +226,8 @@ describe("OpenStackMetricCatalog", () => {
           !OPENSTACK_RECEIVER_SERIES.includes(metricCase[0]) &&
           metricCase[1].onlyFromProbe !== true &&
           metricCase[1].fromInstanceSource !== true &&
-          metricCase[1].fromSummaryMode !== true
+          metricCase[1].fromSummaryMode !== true &&
+          metricCase[1].fromCapacity !== true
         );
       }),
     )(

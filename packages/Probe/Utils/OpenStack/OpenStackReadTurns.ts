@@ -78,6 +78,10 @@ export default class OpenStackReadTurns<TRecord> {
     }
   }
 
+  public getRecord(id: string): TRecord | undefined {
+    return this.state.records.get(id);
+  }
+
   // Everything known of these, read this time or not. What has gone is forgotten here.
   public getRecords<TItem>(data: {
     items: ReadonlyArray<TItem>;

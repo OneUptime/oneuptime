@@ -39,6 +39,8 @@ export interface ComponentProps {
   forecast: OpenStackForecast | null;
   // What it says of its own value, in the (i).
   description: string;
+  // How much history the forecast read. A part's page reads a day.
+  windowHours?: number | undefined;
 }
 
 const OpenStackForecastTile: FunctionComponent<ComponentProps> = (
@@ -63,7 +65,7 @@ const OpenStackForecastTile: FunctionComponent<ComponentProps> = (
                 one: "until full, at the last {{count}} hour's growth",
                 other: "until full, at the last {{count}} hours' growth",
               },
-              OPENSTACK_FORECAST_WINDOW_HOURS,
+              props.windowHours ?? OPENSTACK_FORECAST_WINDOW_HOURS,
             )
           : undefined
       }

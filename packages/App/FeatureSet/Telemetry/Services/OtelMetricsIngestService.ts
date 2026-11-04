@@ -96,6 +96,7 @@ import {
   bufferOpenStackSnapshotMetric,
   finishOpenStackBatch,
   getOpenStackHostsToReconcile,
+  getOpenStackHostsWithPartReadings,
   isOpenStackDatapointKept,
   isOpenStackSnapshotDatapoint,
 } from "Common/Server/Utils/Telemetry/OpenStackSnapshotScan";
@@ -4074,6 +4075,13 @@ export default class OtelMetricsIngestService extends OtelIngestBaseService {
               projectId: data.projectId,
               openStackCloudId,
               shortHostNames: getOpenStackHostsToReconcile(finishedEntries),
+            });
+
+            await OpenStackResourceService.reconcileHypervisorCapacity({
+              projectId: data.projectId,
+              openStackCloudId,
+              hypervisorNames:
+                getOpenStackHostsWithPartReadings(finishedEntries),
             });
 
             // A part this scrape just told the inventory about may have an event waiting.

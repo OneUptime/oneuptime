@@ -264,6 +264,11 @@ function comparableRow(entry: OpenStackResourceBufferEntry): JSONObject {
     "vouchedAt",
     // How long one collection took: its own reading on each path.
     "collectionSeconds",
+    // What a flavor's extra specs say, which the exporter leaves behind.
+    "placementResources",
+    "placementRequired",
+    "placementForbidden",
+    "isDisabled",
   ]) {
     delete facts[key];
   }
@@ -931,6 +936,7 @@ describe("the catalogue says who collects what", () => {
     expect(onlyFromProbe).toEqual([
       "openstack_cinder_backup_gb",
       "openstack_cinder_snapshot_gb",
+      "openstack_placement_flavor_fits",
     ]);
   });
 });
