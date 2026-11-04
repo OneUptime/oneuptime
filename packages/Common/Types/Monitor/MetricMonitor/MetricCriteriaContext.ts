@@ -200,6 +200,14 @@ export default interface MetricCriteriaContext {
    */
   windowWait?: MetricWindowWait | undefined;
   /**
+   * How late the series' data arrives - each data point's arrival at
+   * OneUptime after the time it measures (MetricSeriesArrival.lagMs) - when
+   * an "All Values" or forecast criteria judged it with its arrivals and the
+   * lag is worth saying (MetricWindowCoverage.isNotableLag). Its window was
+   * judged as far as its data reaches. Absent otherwise.
+   */
+  dataLagMs?: number | undefined;
+  /**
    * Fingerprint of the specific series this context represents when the
    * monitor is configured for per-series alerting. Undefined for
    * traditional whole-monitor evaluation.

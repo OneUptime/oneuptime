@@ -1,0 +1,10 @@
+# Lets the oneuptime_monitoring role read Placement's capacity data, which is how
+# OneUptime says how full a cloud really is. Merge these into your
+# /etc/placement/policy.yaml. oslo.policy notices a changed file on its own, so no
+# restart is needed.
+"placement:resource_providers:list": "rule:admin_api or role:oneuptime_monitoring"
+"placement:resource_providers:show": "rule:admin_api or role:oneuptime_monitoring"
+"placement:resource_providers:inventories:list": "rule:admin_api or role:oneuptime_monitoring"
+"placement:resource_providers:inventories:show": "rule:admin_api or role:oneuptime_monitoring"
+"placement:resource_providers:usages": "rule:admin_api or role:oneuptime_monitoring"
+"placement:resource_providers:aggregates:list": "rule:admin_api or role:oneuptime_monitoring"

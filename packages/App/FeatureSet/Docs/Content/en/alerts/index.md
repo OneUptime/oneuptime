@@ -59,7 +59,7 @@ Open **Alerts** from the **Products** menu in the top bar. The alerts list is at
 | **Alerts**    | **All Alerts** and **Active Alerts**, whose red badge counts the alerts that are not resolved yet.                          |
 | **Episodes** | **All Episodes** and **Active Episodes**: related alerts grouped into one problem to work on. |
 | **AI**        | **Insights**, **Logs** and **Settings**: what OneUptime AI learned from your alerts, everything it did, and what it may do. |
-| **Workspace** | **Slack** and **Microsoft Teams**, whichever the project has connected, or **Connect Slack or Teams** when it has neither. |
+| **Workspace** | **Slack**, **Microsoft Teams** and **Mattermost**, whichever the project has connected, or **Connect Slack or Teams** when it has none. |
 | **Rules**     | **Grouping Rules**, **On-Call Rules**, **Incident Rules**, **Owner Rules**, **Runbook Rules**, **Privacy Rules**, **Label Rules**, **Reminder Rules**. |
 | **Settings**  | **Alert State**, **Alert Severity**, **Note Templates**, **Custom Fields**, **Measurements**, **Episode Membership**, **Numbering**.                |
 

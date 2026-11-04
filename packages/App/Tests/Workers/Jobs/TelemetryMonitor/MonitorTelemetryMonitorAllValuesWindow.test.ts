@@ -27,6 +27,9 @@ import { MonitorStepVMwareMonitorUtil } from "Common/Types/Monitor/MonitorStepVM
 import { MonitorStepCephMonitorUtil } from "Common/Types/Monitor/MonitorStepCephMonitor";
 import { MonitorStepStorageArrayMonitorUtil } from "Common/Types/Monitor/MonitorStepStorageArrayMonitor";
 import { MonitorStepIoTMonitorUtil } from "Common/Types/Monitor/MonitorStepIoTMonitor";
+import MonitorCriteria from "Common/Types/Monitor/MonitorCriteria";
+import MonitorCriteriaInstance from "Common/Types/Monitor/MonitorCriteriaInstance";
+import MetricSeriesArrival from "Common/Types/Monitor/MetricMonitor/MetricSeriesArrival";
 import { afterEach, beforeEach, describe, expect, test } from "@jest/globals";
 
 /*
@@ -72,7 +75,11 @@ jest.mock("Common/Server/Utils/Monitor/MonitorResource", () => {
 jest.mock("Common/Server/Services/MetricService", () => {
   return {
     __esModule: true,
-    default: { aggregateBy: jest.fn(), findBy: jest.fn() },
+    default: {
+      aggregateBy: jest.fn(),
+      findBy: jest.fn(),
+      readSeriesArrivals: jest.fn(),
+    },
   };
 });
 
@@ -116,7 +123,10 @@ jest.mock("Common/Server/Utils/Logger", () => {
 
 import MonitorService from "Common/Server/Services/MonitorService";
 import MonitorResourceUtil from "Common/Server/Utils/Monitor/MonitorResource";
-import MetricService from "Common/Server/Services/MetricService";
+import MetricService, {
+  MetricSeriesArrivalRow,
+} from "Common/Server/Services/MetricService";
+import logger from "Common/Server/Utils/Logger";
 import MetricTypeService from "Common/Server/Services/MetricTypeService";
 import HostService from "Common/Server/Services/HostService";
 import IoTFleetService from "Common/Server/Services/IoTFleetService";
@@ -150,6 +160,8 @@ const monitorResource: jest.Mock =
 const metricAggregateBy: jest.Mock =
   MetricService.aggregateBy as unknown as jest.Mock;
 const metricFindBy: jest.Mock = MetricService.findBy as unknown as jest.Mock;
+const metricReadSeriesArrivals: jest.Mock =
+  MetricService.readSeriesArrivals as unknown as jest.Mock;
 const metricTypeFindBy: jest.Mock =
   MetricTypeService.findBy as unknown as jest.Mock;
 const expectedHosts: jest.Mock =
@@ -332,7 +344,40 @@ function seriesRows(input: {
  *     the window's start - "late-steady" to five minutes before its end,
  *     "late-stopped" to nine minutes before it.
  */
-type StoreShape = "steady-and-fresh" | "cut" | "slow-fleet" | "late";
+type StoreShape =
+  | "steady-and-fresh"
+  | "cut"
+  | "slow-fleet"
+  | "late"
+  | "all-stopped"
+  | "clock-behind";
+
+/*
+ * How long after its own time each series' row arrives (its createdAt),
+ * for the arrivals the worker reads (#4912's follow-up):
+ *   - "late-steady" and "late-stopped" are late by design, five minutes;
+ *   - "skewed", of the "clock-behind" shape, is a collector whose clock runs
+ *     three minutes behind: one row a minute to three minutes before the
+ *     window's end, each arriving as it is sent;
+ *   - "gone-a" and "gone-b", of the "all-stopped" shape, sent what they read
+ *     as they read it, up to six minutes before the end, and then stopped.
+ * Every other row arrives as it is taken.
+ */
+function arrivalLagMs(name: string): number {
+  if (name === "late-steady" || name === "late-stopped") {
+    return 5 * MINUTE;
+  }
+
+  if (name === "skewed") {
+    return 3 * MINUTE;
+  }
+
+  if (name.startsWith("gone-")) {
+    return 30 * SECOND;
+  }
+
+  return 0;
+}
 
 /*
  * One row a minute, the newest first, from `lagMinutes` before the end of
@@ -371,6 +416,19 @@ function storedRows(input: {
     ].sort((a: { timeMs: number }, b: { timeMs: number }) => {
       return b.timeMs - a.timeMs;
     });
+  }
+
+  if (input.shape === "all-stopped") {
+    return [
+      ...lateRows({ name: "gone-a", window: input.window, lagMinutes: 6 }),
+      ...lateRows({ name: "gone-b", window: input.window, lagMinutes: 6 }),
+    ].sort((a: { timeMs: number }, b: { timeMs: number }) => {
+      return b.timeMs - a.timeMs;
+    });
+  }
+
+  if (input.shape === "clock-behind") {
+    return lateRows({ name: "skewed", window: input.window, lagMinutes: 3 });
   }
 
   if (input.shape === "slow-fleet") {
@@ -487,11 +545,100 @@ function givenStore(shape: StoreShape): void {
       return { data };
     },
   );
+
+  /*
+   * When each series' rows arrived: every row's own time plus its series'
+   * lag (arrivalLagMs), folded per series as readSeriesArrivals folds them.
+   */
+  metricReadSeriesArrivals.mockImplementation(
+    async (args: unknown): Promise<Array<MetricSeriesArrivalRow>> => {
+      const read: {
+        query: { time: { startValue: unknown; endValue: unknown } };
+      } = args as {
+        query: { time: { startValue: unknown; endValue: unknown } };
+      };
+      const bySeries: Map<
+        string,
+        Array<{ timeMs: number; arrivedMs: number }>
+      > = new Map();
+
+      for (const row of storedRows({
+        window: windowOf(read.query.time),
+        shape: storeShape,
+      })) {
+        const rows: Array<{ timeMs: number; arrivedMs: number }> =
+          bySeries.get(row.name) || [];
+        rows.push({
+          timeMs: row.timeMs,
+          arrivedMs: row.timeMs + arrivalLagMs(row.name),
+        });
+        bySeries.set(row.name, rows);
+      }
+
+      return Array.from(bySeries.entries()).map(
+        ([name, rows]: [
+          string,
+          Array<{ timeMs: number; arrivedMs: number }>,
+        ]): MetricSeriesArrivalRow => {
+          const newestPoint: { timeMs: number; arrivedMs: number } =
+            rows.reduce(
+              (
+                newest: { timeMs: number; arrivedMs: number },
+                row: { timeMs: number; arrivedMs: number },
+              ) => {
+                return row.timeMs > newest.timeMs ? row : newest;
+              },
+            );
+          const arrivals: Array<number> = rows.map(
+            (row: { arrivedMs: number }) => {
+              // createdAt is kept to the second.
+              return Math.floor(row.arrivedMs / SECOND) * SECOND;
+            },
+          );
+
+          return {
+            attributes: { [SERIES_KEY]: name },
+            aggregates: {
+              newestArrivalMs: Math.max(...arrivals),
+              oldestArrivalMs: Math.min(...arrivals),
+              arrivalMinuteCount: new Set(
+                arrivals.map((arrivedMs: number) => {
+                  return Math.floor(arrivedMs / MINUTE);
+                }),
+              ).size,
+              newestPointArrivalMs:
+                Math.floor(newestPoint.arrivedMs / SECOND) * SECOND,
+              newestPointTimeMs: newestPoint.timeMs,
+            },
+          };
+        },
+      );
+    },
+  );
+}
+
+/*
+ * A step whose criteria judge whether data is fresh - "All Values > 0" - so
+ * the worker reads its series' arrivals when they look behind. stepFor's
+ * steps keep the default criteria, which judge no freshness.
+ */
+function judgingFreshness(step: MonitorStep): MonitorStep {
+  const instance: MonitorCriteriaInstance = new MonitorCriteriaInstance();
+  instance.data = {
+    ...instance.data!,
+    filters: [JSON.parse(JSON.stringify(ALL_VALUES_ABOVE_ZERO))],
+  };
+
+  const criteria: MonitorCriteria = new MonitorCriteria();
+  criteria.data = { monitorCriteriaInstanceArray: [instance] };
+
+  return step.setMonitorCriteria(criteria);
 }
 
 // Runs one check of the monitor and hands back the worker's response.
 async function checkOnce(
   monitorType: MonitorType,
+  step: MonitorStep = stepFor(monitorType),
 ): Promise<MetricMonitorResponse> {
   findOneById.mockResolvedValue({
     id: monitorId,
@@ -499,7 +646,7 @@ async function checkOnce(
     projectId,
     monitorType,
     monitorSteps: {
-      data: { monitorStepsInstanceArray: [stepFor(monitorType)] },
+      data: { monitorStepsInstanceArray: [step] },
     },
   });
 
@@ -543,6 +690,7 @@ beforeEach(() => {
   monitorResource.mockReset().mockResolvedValue({});
   metricAggregateBy.mockReset();
   metricFindBy.mockReset();
+  metricReadSeriesArrivals.mockReset().mockResolvedValue([]);
   metricTypeFindBy.mockReset().mockResolvedValue([]);
   expectedHosts.mockReset().mockResolvedValue([]);
   iotFleetFindOneBy.mockReset().mockResolvedValue(null);
@@ -739,6 +887,218 @@ describe("every metric-backed monitor type: All Values waits for a series to cov
 
       expect(byName["late-stopped"]).toContain(
         "Waiting for 15 minutes of data: no new data point for the last 8 minutes.",
+      );
+
+      if (monitorType === MonitorType.Metrics) {
+        expect(byName["late-steady"]).toBe("fires");
+      } else {
+        expect(byName["late-steady"]).toContain(
+          "Waiting for 15 minutes of data: no new data point for the last 4 minutes.",
+        );
+      }
+    },
+  );
+});
+
+/*
+ * #4912's follow-ups (#5281, #5437): a series' lag and staleness from when
+ * its rows arrived (createdAt). For a step whose criteria judge freshness,
+ * the worker reads when each series of a query that looks behind got its
+ * data (MetricService.readSeriesArrivals), and every metric-backed monitor
+ * type judges a series that still arrives as late - as far as its data
+ * reaches - and one whose data stopped arriving as stale. Driven through the
+ * queue entry point, as above, for every type MonitorTypeHelper lists.
+ */
+describe("every metric-backed monitor type: a series' lag and staleness, from when its data arrived", () => {
+  const types: Array<MonitorType> =
+    MonitorTypeHelper.getMetricBackedMonitorTypes();
+
+  test.each(types)(
+    "%s: data that arrives late fires while it keeps arriving; a series whose data stopped waits, by how long nothing has arrived",
+    async (monitorType: MonitorType) => {
+      givenStore("late");
+
+      const response: MetricMonitorResponse = await checkOnce(
+        monitorType,
+        judgingFreshness(stepFor(monitorType)),
+      );
+      const byName: Record<string, string> = await verdicts(
+        monitorType,
+        response,
+        ["late-steady", "late-stopped"],
+      );
+
+      expect(metricReadSeriesArrivals).toHaveBeenCalled();
+      // The infrastructure monitors waited on it before (see above).
+      expect(byName["late-steady"]).toBe("fires");
+      // Four minutes since its last row arrived; nine since its newest data point.
+      expect(byName["late-stopped"]).toContain(
+        "Waiting for 15 minutes of data: no new data point for the last 4 minutes.",
+      );
+    },
+  );
+
+  test.each(types)(
+    "%s: a collector whose clock runs three minutes behind is late, not stopped - it fires",
+    async (monitorType: MonitorType) => {
+      givenStore("clock-behind");
+
+      const response: MetricMonitorResponse = await checkOnce(
+        monitorType,
+        judgingFreshness(stepFor(monitorType)),
+      );
+
+      expect(await verdicts(monitorType, response, ["skewed"])).toEqual({
+        skewed: "fires",
+      });
+
+      // Its incident says how late its data arrives.
+      const evaluations: Array<MetricSeriesEvaluationResult> =
+        await MetricMonitorCriteria.evaluateAllSeries({
+          dataToProcess: response as DataToProcess,
+          criteriaFilter: JSON.parse(JSON.stringify(ALL_VALUES_ABOVE_ZERO)),
+          monitorStep: stepFor(monitorType),
+        });
+      // createdAt is kept to the second: three minutes, less a part of one.
+      expect(evaluations[0]!.context.dataLagMs).toBeGreaterThan(
+        3 * MINUTE - SECOND,
+      );
+      expect(evaluations[0]!.context.dataLagMs).toBeLessThanOrEqual(3 * MINUTE);
+    },
+  );
+
+  /*
+   * Every series stopped at once - the agent or the exporter went away. The
+   * infrastructure monitors waited on it before, judged against now; a
+   * Metrics monitor judged its series against its own newest data point,
+   * which they all reached, and so went on judging the window up to where
+   * they stopped. With their arrivals, every type waits.
+   */
+  test.each(types)(
+    "%s: when every series stops at once, the window is not judged off their last readings",
+    async (monitorType: MonitorType) => {
+      givenStore("all-stopped");
+
+      const before: Record<string, string> = await verdicts(
+        monitorType,
+        await checkOnce(monitorType),
+        ["gone-a", "gone-b"],
+      );
+
+      monitorResource.mockClear();
+
+      const after: Record<string, string> = await verdicts(
+        monitorType,
+        await checkOnce(monitorType, judgingFreshness(stepFor(monitorType))),
+        ["gone-a", "gone-b"],
+      );
+
+      if (monitorType === MonitorType.Metrics) {
+        expect(before).toEqual({ "gone-a": "fires", "gone-b": "fires" });
+      } else {
+        expect(before["gone-a"]).toContain("no new data point");
+      }
+
+      for (const name of ["gone-a", "gone-b"]) {
+        expect({ name, verdict: after[name] }).toEqual({
+          name,
+          verdict: expect.stringContaining(
+            "Waiting for 15 minutes of data: no new data point for the last 5 minutes.",
+          ),
+        });
+      }
+    },
+  );
+
+  test.each(types)(
+    "%s: the response carries each series' arrivals beside its data points",
+    async (monitorType: MonitorType) => {
+      givenStore("late");
+
+      const response: MetricMonitorResponse = await checkOnce(
+        monitorType,
+        judgingFreshness(stepFor(monitorType)),
+      );
+      const steady: MetricSeriesArrival | null | undefined =
+        response.seriesBreakdown?.find((series: { labels: JSONObject }) => {
+          return series.labels[SERIES_KEY] === "late-steady";
+        })?.arrivals?.[0];
+
+      expect(steady).toEqual({
+        sinceNewestArrivalMs: expect.any(Number),
+        lagMs: expect.any(Number),
+        arrivalIntervalMs: expect.any(Number),
+      });
+      // Five minutes late, less the part of a second createdAt drops.
+      expect(steady!.lagMs).toBeGreaterThan(5 * MINUTE - SECOND);
+      expect(steady!.lagMs).toBeLessThanOrEqual(5 * MINUTE);
+      // One row a minute.
+      expect(steady!.arrivalIntervalMs).toBeGreaterThan(55 * SECOND);
+      expect(steady!.arrivalIntervalMs).toBeLessThan(65 * SECOND);
+      // Read right after its newest row arrived: under a few seconds.
+      expect(steady!.sinceNewestArrivalMs).toBeLessThan(5 * SECOND);
+      // A grouped monitor's whole-result arrivals say nothing.
+      expect(response.metricResultArrivals).toBeUndefined();
+    },
+  );
+
+  test.each(types)(
+    "%s: a monitor whose data keeps up reads no arrivals",
+    async (monitorType: MonitorType) => {
+      givenStore("steady-and-fresh");
+
+      const response: MetricMonitorResponse = await checkOnce(
+        monitorType,
+        judgingFreshness(stepFor(monitorType)),
+      );
+
+      expect(metricReadSeriesArrivals).not.toHaveBeenCalled();
+      expect(response.metricResultArrivals).toBeUndefined();
+      for (const series of response.seriesBreakdown || []) {
+        expect(series.arrivals).toBeUndefined();
+      }
+      // And judges as before.
+      expect(await verdicts(monitorType, response)).toEqual({
+        steady: "fires",
+        fresh: expect.stringContaining(
+          "Waiting for 15 minutes of data: 1 of 15 minutes so far.",
+        ),
+      });
+    },
+  );
+
+  test.each(types)(
+    "%s: a step whose criteria judge no freshness reads no arrivals, however far behind",
+    async (monitorType: MonitorType) => {
+      givenStore("late");
+
+      await checkOnce(monitorType);
+
+      expect(metricReadSeriesArrivals).not.toHaveBeenCalled();
+    },
+  );
+
+  test.each(types)(
+    "%s: arrivals that cannot be read leave the series judged as before, and say so in the log",
+    async (monitorType: MonitorType) => {
+      givenStore("late");
+      metricReadSeriesArrivals.mockRejectedValue(new Error("timeout"));
+      (logger.error as unknown as jest.Mock).mockClear();
+
+      const response: MetricMonitorResponse = await checkOnce(
+        monitorType,
+        judgingFreshness(stepFor(monitorType)),
+      );
+      const byName: Record<string, string> = await verdicts(
+        monitorType,
+        response,
+        ["late-steady", "late-stopped"],
+      );
+
+      expect(response.seriesBreakdown?.[0]?.arrivals).toBeUndefined();
+      expect(logger.error).toHaveBeenCalledWith(
+        "Could not read when the metric monitor's data arrived; its series are judged by their data points' times alone.",
+        expect.objectContaining({ service: "workers" }),
       );
 
       if (monitorType === MonitorType.Metrics) {

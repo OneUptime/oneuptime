@@ -10,7 +10,9 @@ import User from "../../../Models/DatabaseModels/User";
 import URL from "../../../Types/API/URL";
 import SortOrder from "../../../Types/BaseDatabase/SortOrder";
 import ObjectID from "../../../Types/ObjectID";
-import WorkspaceType from "../../../Types/Workspace/WorkspaceType";
+import WorkspaceType, {
+  getWorkspaceTypeDisplayName,
+} from "../../../Types/Workspace/WorkspaceType";
 import WorkspaceNoteReactionUtil, {
   WorkspaceNoteType,
 } from "../../../Types/Workspace/WorkspaceNoteReaction";
@@ -130,11 +132,9 @@ const RECORD_TITLES: Record<WorkspaceEventType, string> = {
 const TIMELINE_READ_LIMIT: number = 1000;
 
 export default class WorkspaceActionAnswers {
-  // "Slack", "Microsoft Teams".
+  // "Slack", "Microsoft Teams", "Mattermost".
   public static getWorkspaceName(workspaceType: WorkspaceType): string {
-    return workspaceType === WorkspaceType.MicrosoftTeams
-      ? "Microsoft Teams"
-      : "Slack";
+    return getWorkspaceTypeDisplayName(workspaceType);
   }
 
   // The Connect button's title: "Connect Slack account".

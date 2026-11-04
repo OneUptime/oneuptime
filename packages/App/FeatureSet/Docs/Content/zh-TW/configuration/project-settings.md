@@ -31,7 +31,7 @@ flowchart LR
 | 區段 | 頁面 | 詳細閱讀 |
 | --- | --- | --- |
 | **基礎** | **專案**、**標籤** | [專案詳細資訊](#專案詳細資訊)、[標籤](#標籤) |
-| **工作區** | **Slack**、**Microsoft Teams**、**視訊通話** | [Slack](/docs/workspace-connections/slack)、[Microsoft Teams](/docs/workspace-connections/microsoft-teams)、[視訊通話](/docs/workspace-connections/video-calls) |
+| **工作區** | **Slack**、**Microsoft Teams**、**Mattermost**、**視訊通話** | [Slack](/docs/workspace-connections/slack)、[Microsoft Teams](/docs/workspace-connections/microsoft-teams)、[Mattermost](/docs/workspace-connections/mattermost)、[視訊通話](/docs/workspace-connections/video-calls) |
 | **遙測與 APM** | **擷取金鑰**、**資料保留** | [擷取金鑰](/docs/telemetry/ingestion-keys)、[資料保留](/docs/telemetry/data-retention) |
 | **通知** | **通知設定**、**通知日誌**、**行動應用程式** | [通知](#通知) |
 | **人工智慧** | **AI 功能**、**LLM 提供商**、**外部 MCP 伺服器**、**AI 點數**、**AI 日誌**、**MCP 伺服器** | [LLM 提供者](/docs/ai/llm-provider)、[外部 MCP 伺服器](/docs/ai/external-mcp-servers)、[MCP 伺服器](/docs/ai/mcp-server)、[AI SRE](/docs/ai/ai-sre#成本控制) |

@@ -1916,6 +1916,18 @@ python3 -m unittest discover -s Tests/Ops/agent-ebpf-e2e/tests -v
 
 See [its README](agent-ebpf-e2e/README.md) for what it checks and how to run it.
 
+### `openstack-e2e/`
+
+Not part of `npm test`: it deploys a real OpenStack with DevStack, builds a known
+estate on it, breaks it in the ways that page operators and records what its APIs
+and openstack-exporter answer, for the OpenStack product's tests to replay. It
+needs a machine it can give over to DevStack, and runs in its own workflow,
+"OpenStack E2E", by hand, once a week, and when the agent or the rig changes.
+`OpenStackAgentConfig.test.js` (in `npm test`) checks its scripts parse, and the
+agent's files.
+
+See [its README](openstack-e2e/README.md) for what it records and how to use it.
+
 ## Utils
 
 `Utils/DockerfileTemplate.js` renders a `Dockerfile.tpl` for production or

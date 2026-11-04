@@ -86,7 +86,7 @@ Ouvrez **Astreinte** depuis le menu **Produits** de la barre supérieure. Il s'o
 | **Appels entrants** | **Politiques d'appels entrants** : un numéro de téléphone qui fait sonner la personne d'astreinte |
 | **Avancé** | **Remplacements d'utilisateur**, **Journaux d'exécution** et **Politiques archivées** |
 | **Rapports** | **Temps d'astreinte de l'utilisateur** : combien de temps chaque personne a été d'astreinte |
-| **Espace de travail** | **Slack** et **Microsoft Teams** : des règles qui publient les événements d'astreinte dans un canal |
+| **Espace de travail** | **Slack**, **Microsoft Teams** et **Mattermost** : des règles qui publient les événements d'astreinte dans un canal |
 | **Paramètres** | **Champs personnalisés**, **Règles d'étiquettes** et **Règles de propriétaire** |
 | **Développeurs** | **Terraform**, **API**, **CLI** et **Assistants IA** : l'astreinte configurée par le code |
 

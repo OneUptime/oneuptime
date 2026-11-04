@@ -1,0 +1,20 @@
+# Lets the oneuptime_monitoring role make the reads the OpenStack agent needs from
+# Nova, and nothing else: each rule keeps Nova's own default and adds the role.
+# Merge these into your /etc/nova/policy.yaml. oslo.policy notices a changed file
+# on its own, so no restart is needed.
+"os_compute_api:os-hypervisors:list": "rule:context_is_admin or role:oneuptime_monitoring"
+"os_compute_api:os-hypervisors:list-detail": "rule:context_is_admin or role:oneuptime_monitoring"
+"os_compute_api:os-hypervisors:show": "rule:context_is_admin or role:oneuptime_monitoring"
+"os_compute_api:os-hypervisors:statistics": "rule:context_is_admin or role:oneuptime_monitoring"
+"os_compute_api:os-services:list": "rule:context_is_admin or role:oneuptime_monitoring"
+"os_compute_api:os-aggregates:index": "rule:context_is_admin or role:oneuptime_monitoring"
+"os_compute_api:os-aggregates:show": "rule:context_is_admin or role:oneuptime_monitoring"
+"os_compute_api:os-availability-zone:detail": "rule:context_is_admin or role:oneuptime_monitoring"
+"os_compute_api:servers:index:get_all_tenants": "rule:context_is_admin or role:oneuptime_monitoring"
+"os_compute_api:servers:detail:get_all_tenants": "rule:context_is_admin or role:oneuptime_monitoring"
+"os_compute_api:servers:show:host_status": "rule:context_is_admin or role:oneuptime_monitoring"
+"os_compute_api:os-extended-server-attributes": "rule:context_is_admin or role:oneuptime_monitoring"
+"os_compute_api:os-simple-tenant-usage:list": "rule:context_is_admin or role:oneuptime_monitoring"
+"os_compute_api:limits:other_project": "rule:context_is_admin or role:oneuptime_monitoring"
+"os_compute_api:os-instance-actions:list": "rule:context_is_admin or rule:project_reader_api or role:oneuptime_monitoring"
+"os_compute_api:os-instance-actions:show": "rule:context_is_admin or rule:project_reader_api or role:oneuptime_monitoring"
