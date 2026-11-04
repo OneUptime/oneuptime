@@ -1,0 +1,10 @@
+# Lets the oneuptime_monitoring role name a cloud's projects, domains and service
+# catalog. It reads no users, credentials or role assignments. Merge these into
+# your /etc/keystone/policy.yaml. oslo.policy notices a changed file on its own,
+# so no restart is needed.
+"identity:list_projects": "rule:admin_required or role:oneuptime_monitoring"
+"identity:get_project": "rule:admin_required or role:oneuptime_monitoring"
+"identity:list_domains": "rule:admin_required or role:oneuptime_monitoring"
+"identity:get_domain": "rule:admin_required or role:oneuptime_monitoring"
+"identity:list_services": "rule:admin_required or role:oneuptime_monitoring"
+"identity:list_endpoints": "rule:admin_required or role:oneuptime_monitoring"

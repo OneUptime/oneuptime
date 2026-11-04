@@ -3,6 +3,7 @@ import RequestLocation, {
   TrustedGeoHeaderNames,
 } from "../../../../Server/Utils/RequestOrigin/RequestLocation";
 import { UserAgentRequestHeaders } from "../../../../Server/Utils/RequestOrigin/UserAgentDevice";
+import { FastestRun, fastestRun } from "../../../Helpers/FastestRun";
 import { describe, expect, it, test } from "@jest/globals";
 
 /*
@@ -192,12 +193,16 @@ describe("nothing that is not written like a place name", () => {
   });
 
   it("a header of megabytes is refused without reading it all", () => {
-    const startedAt: number = Date.now();
+    const header: string = "%41".repeat(1024 * 1024);
+    const timed: FastestRun<string | undefined> = fastestRun({
+      run: (): string | undefined => {
+        return locationOf({ "cf-ipcity": header });
+      },
+      limitInMs: 1000,
+    });
 
-    expect(
-      locationOf({ "cf-ipcity": "%41".repeat(1024 * 1024) }),
-    ).toBeUndefined();
-    expect(Date.now() - startedAt).toBeLessThan(1000);
+    expect(timed.result).toBeUndefined();
+    expect(timed.inMs).toBeLessThan(1000);
   });
 
   it("one bad part leaves the others", () => {

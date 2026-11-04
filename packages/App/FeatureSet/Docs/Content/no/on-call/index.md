@@ -86,7 +86,7 @@ Den første retningslinjen i et prosjekt kan gjøre dette allerede når den oppr
 | **Innkommende anrop** | **Retningslinjer for innkommende anrop**: et telefonnummer som ringer til den som har vakt |
 | **Avansert** | **Brukeroverstyringer**, **Utførelseslogger** og **Arkiverte retningslinjer** |
 | **Rapporter** | **Brukerens vakttid**: hvor lenge hver person hadde vakt |
-| **Arbeidsområde** | **Slack** og **Microsoft Teams**: regler som legger ut vakthendelser i en kanal |
+| **Arbeidsområde** | **Slack**, **Microsoft Teams** og **Mattermost**: regler som legger ut vakthendelser i en kanal |
 | **Innstillinger** | **Egendefinerte felt**, **Etikettregler** og **Eierregler** |
 | **Utvikler** | **Terraform**, **API**, **CLI** og **AI-assistenter**: vakt satt opp fra kode |
 

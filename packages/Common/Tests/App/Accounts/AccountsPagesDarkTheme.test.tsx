@@ -54,6 +54,7 @@ let mockSignInMethods: SignInMethods = {
   isSsoRequired: false,
   ssoProviders: [],
   hasProjectSsoProviders: false,
+  isMagicLinkLoginEnabled: false,
 };
 
 jest.mock("../../../../App/FeatureSet/Accounts/src/Utils/SignInMethods", () => {
@@ -237,6 +238,7 @@ beforeEach(() => {
     isSsoRequired: false,
     ssoProviders: [],
     hasProjectSsoProviders: false,
+    isMagicLinkLoginEnabled: false,
   };
   loginAnswer = {};
   secondStepAnswer = { token: "session-token" };
@@ -473,6 +475,7 @@ describe("single sign-on", () => {
       isSsoRequired: true,
       ssoProviders: PROVIDERS,
       hasProjectSsoProviders: true,
+      isMagicLinkLoginEnabled: false,
     };
     draw(<LoginPage />, "/accounts/login");
 
@@ -485,6 +488,7 @@ describe("single sign-on", () => {
       isSsoRequired: true,
       ssoProviders: [PROVIDERS[0]!],
       hasProjectSsoProviders: false,
+      isMagicLinkLoginEnabled: false,
     };
     draw(<LoginPage />, "/accounts/login");
 

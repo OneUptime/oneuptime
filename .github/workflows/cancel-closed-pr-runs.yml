@@ -70,6 +70,7 @@ jobs:
           - MobileApp Test
           - Nginx Test
           - OpenAPI Spec Generation
+          - OpenStack E2E
           - Ops Config Test
           - Postgres Schema Drift
           - Probe Test

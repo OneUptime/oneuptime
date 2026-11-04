@@ -59,6 +59,7 @@ const SecurityEventsSideMenu: FunctionComponent = (): ReactElement => {
       slack: PageMap.SECURITY_EVENTS_WORKSPACE_CONNECTION_SLACK,
       microsoftTeams:
         PageMap.SECURITY_EVENTS_WORKSPACE_CONNECTION_MICROSOFT_TEAMS,
+      mattermost: PageMap.SECURITY_EVENTS_WORKSPACE_CONNECTION_MATTERMOST,
       connect: PageMap.SECURITY_EVENTS_WORKSPACE_CONNECTIONS,
     });
 

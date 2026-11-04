@@ -48,9 +48,9 @@ Sie sind mit Absicht getrennt. Jeden Kanal in den **Benachrichtigungseinstellung
 | **Richtlinie für eingehende Anrufe** | **Eingehende Telefonnummern**: die Nummer, unter der eine Richtlinie für eingehende Anrufe Sie anruft |
 | **Kalender** | **Kalender-Feed**: Ihre Schichten in Ihrer Kalender-App, und Erinnerungen, bevor sie beginnen |
 | **Profil** | **Benutzerdefinierte Felder**: Angaben, die Ihr Projekt von seinen Mitgliedern erfragt |
-| **Arbeitsbereich** | **Slack** und **Microsoft Teams**: Ihr eigenes Konto, in jedem Arbeitsbereich, den das Projekt verbunden hat |
+| **Arbeitsbereich** | **Slack**, **Microsoft Teams** und **Mattermost**: Ihr eigenes Konto, in jedem Arbeitsbereich, den das Projekt verbunden hat |
 
-**Erste Schritte** und **Warnungen & Benachrichtigungen** sind geöffnet; die anderen Abschnitte starten eingeklappt, und ein Abschnitt öffnet sich von selbst, wenn Sie auf einer seiner Seiten sind. **Arbeitsbereich** erscheint nur, wenn das Projekt Slack oder Microsoft Teams verbunden hat.
+**Erste Schritte** und **Warnungen & Benachrichtigungen** sind geöffnet; die anderen Abschnitte starten eingeklappt, und ein Abschnitt öffnet sich von selbst, wenn Sie auf einer seiner Seiten sind. **Arbeitsbereich** erscheint nur, wenn das Projekt Slack, Microsoft Teams oder Mattermost verbunden hat.
 
 Projekteigentümer und Admins können Ihre Einrichtung ebenfalls ansehen: Unter **Benutzer** öffnen sie Ihre Zeile und deren Abschnitt **Bereitschaft**, mit **Einsatzbereitschaft**, **Benachrichtigungsmethoden** und **Bereitschaftsregeln**. Sie können dort eine Methode für Sie hinzufügen, aber der Code geht an die Methode selbst, sodass nur Sie sie verifizieren können.
 

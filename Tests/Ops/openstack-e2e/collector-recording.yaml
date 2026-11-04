@@ -1,0 +1,12 @@
+# Merged over the agent's real otel-collector-config.yaml by start-agent.sh:
+# the same receivers and processors, with a file in place of OneUptime, so the
+# recording is exactly what would have been sent.
+exporters:
+  file/recording:
+    path: /recording/metrics.json
+    format: json
+
+service:
+  pipelines:
+    metrics:
+      exporters: [file/recording]

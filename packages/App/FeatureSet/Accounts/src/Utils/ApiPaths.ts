@@ -103,6 +103,25 @@ export const FORGOT_PASSWORD_API_URL: URL = URL.fromURL(IDENTITY_URL).addRoute(
   new Route("/forgot-password"),
 );
 
+/*
+ * Emails a sign-in link to the address given (Common/Types/Accounts/
+ * MagicLink). It answers the same whether or not that address has an
+ * account, so the page that asks says "if".
+ */
+export const SEND_MAGIC_LINK_API_URL: URL = URL.fromURL(IDENTITY_URL).addRoute(
+  new Route("/send-magic-link"),
+);
+
+/*
+ * The first step of a sign-in begun with a sign-in link: the link's token in
+ * place of the email and password. It answers as /login does - a session, or
+ * the two factor challenge or enrolment, whose steps then carry the token
+ * again where a password sign-in carries the password.
+ */
+export const MAGIC_LINK_LOGIN_API_URL: URL = URL.fromURL(IDENTITY_URL).addRoute(
+  new Route("/login-with-magic-link"),
+);
+
 export const VERIFY_EMAIL_API_URL: URL = URL.fromURL(IDENTITY_URL).addRoute(
   new Route("/verify-email"),
 );

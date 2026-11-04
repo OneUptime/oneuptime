@@ -1,0 +1,26 @@
+{
+  "baseBranches": ["development"],
+  "automerge": false,
+  "enabledManagers": ["regex"],
+  "packageRules": [
+    {
+      "matchDatasources": ["docker"],
+      "matchPackageNames": [
+        "registry1.dso.mil/ironbank/opensource/debian/debian"
+      ],
+      "matchUpdateTypes": ["major"],
+      "enabled": false
+    }
+  ],
+  "regexManagers": [
+    {
+      "fileMatch": ["^hardening_manifest\\.yaml$", "^Dockerfile$"],
+      "matchStrings": [
+        "BASE_TAG: \"(?<currentValue>[^\"\\s]+)\"",
+        "ARG BASE_TAG=(?<currentValue>\\S+)"
+      ],
+      "depNameTemplate": "registry1.dso.mil/ironbank/opensource/debian/debian",
+      "datasourceTemplate": "docker"
+    }
+  ]
+}

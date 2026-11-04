@@ -86,7 +86,7 @@ Open **On-Call Duty** from the **Products** menu in the top bar. It opens on **O
 | **Incoming Calls** | **Incoming Call Policies**: a phone number that rings whoever is on call |
 | **Advanced** | **User Overrides**, **Execution Logs** and **Archived Policies** |
 | **Reports** | **User On Call Time**: how long each person was on call |
-| **Workspace** | **Slack** and **Microsoft Teams**: rules that post on-call events to a channel |
+| **Workspace** | **Slack**, **Microsoft Teams** and **Mattermost**: rules that post on-call events to a channel |
 | **Settings** | **Custom Fields**, **Label Rules** and **Owner Rules** |
 | **Developer** | **Terraform**, **API**, **CLI** and **AI Assistants**: on-call set up from code |
 

@@ -8,46 +8,90 @@ image has to be rebuilt by Iron Bank's own pipeline from a project on Repo1
 has to be fixed or justified in VAT (vat.dso.mil), its vulnerability tracker.
 
 Each folder here holds exactly the files of one of OneUptime's Iron Bank
-projects:
+projects. Together they are the four OneUptime images the Helm chart runs; the
+worker and the telemetry writer run the App's image.
 
-| Folder | Image | Repo1 project |
-| --- | --- | --- |
-| [App](App) | the App, Enterprise Edition | `dsop/oneuptime/app` (Iron Bank's onboarding team picks the final path) |
+| Folder | Image | Copies the release's | Iron Bank base image | Repo1 project |
+| --- | --- | --- | --- | --- |
+| [App](App) | the App, Enterprise Edition | `oneuptime/app:enterprise-<version>` | `opensource/nodejs/nodejs26`: Node.js 26, Alpine 3.24 | `dsop/oneuptime/app` |
+| [Ingress](Ingress) | the nginx ingress | `oneuptime/nginx:<version>` | `opensource/nginx/nginx-alpine`: nginx 1.30, Alpine 3.24 | `dsop/oneuptime/ingress` |
+| [Runner](Runner) | the runner | `oneuptime/runner:<version>` | `opensource/nodejs/debian/nodejs`: Node.js 26, Debian 13 | `dsop/oneuptime/runner` |
+| [Probe](Probe) | the probe | `oneuptime/probe:<version>` | `opensource/debian/debian`: Debian 12 | `dsop/oneuptime/probe` |
 
-[Justifications](Justifications) is not pushed to Repo1. It records the
-findings OneUptime has justified in VAT.
+Iron Bank's onboarding team picks the final Repo1 paths; keep each manifest's
+`name` the same as its path. PostgreSQL, ClickHouse, Valkey and kubectl are
+already in Iron Bank, so the chart can run those from Registry1 as they are.
 
-## How the image is built
+[Justifications](Justifications) is not pushed to Repo1. It holds, per project,
+the findings OneUptime justifies, with the text to give for each in VAT.
 
-Iron Bank builds `App/Dockerfile` without internet access. The image must start
-from one of Iron Bank's own images, and anything else the build reads must be a
-resource that `hardening_manifest.yaml` pins by digest or checksum. Iron Bank's
-pipeline can still reach Alpine's package repositories through its proxy.
+## How the images are built
 
-So the App is not built from source here. The manifest pins the Enterprise
-Edition image of a OneUptime release (`oneuptime/app:enterprise-<version>` on
-Docker Hub, linux/amd64) by digest. The Dockerfile copies its `/usr/src` onto
-Iron Bank's Node.js 26 image (`ironbank/opensource/nodejs/nodejs26`). It
-installs `bash`, `curl` and the PostgreSQL clients that backups use, and sets
-the release's environment, user and start command again. Both images are
-Node.js 26 on Alpine 3.24, so the native modules the release built load
-unchanged. `Tests/Ops/IronBankApp.test.js` holds the Dockerfile to the
-enterprise stage of `packages/App/Dockerfile.tpl`. When the App's Dockerfile
-changes what its image sets, that suite says what to change here.
+Iron Bank builds each project's Dockerfile without internet access. The image
+must start from one of Iron Bank's own images, and anything else the build
+reads must be a resource that `hardening_manifest.yaml` pins by digest or
+checksum. Iron Bank's pipeline can still reach Alpine's and Debian's package
+repositories through its proxy.
 
-Only the Enterprise Edition is on Iron Bank, as a "commercial" image. Production
-use of it needs an Enterprise license (`ee/LICENSE`). Without one it runs a
-14-day trial, for evaluation. After that, SCIM and audit logging stop and
-enterprise configuration becomes read-only, while core monitoring carries on.
-Activating a license turns the enterprise features back on without a restart.
+So nothing is built from source here. Each manifest pins its image of a
+OneUptime release (linux/amd64, on Docker Hub) by digest. Each Dockerfile
+copies what that image adds onto an Iron Bank base image of the same
+distribution. It then installs the same Alpine or Debian packages and sets the
+release's environment, user, entrypoint and start command again. Because the
+distributions match, what the release compiled runs unchanged.
 
-`Scripts/IronBank/PinRelease.js` moves the project to another release. It
+`/usr/src` is copied from a `shipped` stage: the release with its test
+directories (`/usr/src/Common/Tests`, `/usr/src/app/Tests`) removed, so that no
+layer of the image carries them. No image runs its tests, and one of Common's
+test fixtures (an SVG data URI with a script in it) is what ClamAV calls
+phishing. Iron Bank's pipeline fails an image on any ClamAV detection.
+`Tests/Ops/IronBankApp.test.js` and `IronBankProjects.test.js` hold each
+Dockerfile to the Dockerfile its release is built from
+(`packages/<Service>/Dockerfile.tpl`). When one of those changes what its image
+sets, those suites say what to change here.
+
+- **App.** It copies `/usr/src` and installs `bash`, `curl` and the PostgreSQL
+  clients that backups use. Only the Enterprise Edition is on Iron Bank, as a
+  "commercial" image. Production use of it needs an Enterprise license
+  (`ee/LICENSE`). Without one it runs a 14-day trial, for evaluation. After
+  that, SCIM and audit logging stop and enterprise configuration becomes
+  read-only, while core monitoring carries on. Activating a license turns the
+  enterprise features back on without a restart.
+- **Ingress.** It copies the nginx configuration, the certificate sidecar in
+  `/usr/src` and the Node.js that runs it. Iron Bank's nginx image already has
+  nginx 1.30's modules, `njs` included, so this adds only `libxml2`, which
+  `njs` links.
+- **Runner.** It copies `/usr/src`, kubectl (which the release downloads and
+  checks against its sha256) and the release's CA certificates.
+- **Probe.** It copies `/usr/src`, the Node.js that runs it, the Chromium and
+  Firefox that Playwright downloaded, and the synthetic monitors' native
+  helpers. Playwright's own `install-deps` installs the browsers' libraries.
+  Microsoft's ODBC Driver 18 for SQL Server comes from Microsoft's repository,
+  which Iron Bank's pipeline cannot reach. So the manifest pins its package by
+  URL and sha256. Update both values from Microsoft's
+  [package index](https://packages.microsoft.com/debian/12/prod/dists/bookworm/main/binary-amd64/Packages).
+
+### Running as root
+
+Iron Bank asks for a justification for an image that runs as root. The App and
+the runner run as `node`. The ingress and the probe run as root, as their
+releases do:
+
+- **Ingress:** its start script renders nginx's configuration into
+  `/etc/nginx/conf.d` and provisions certificates, then starts nginx, whose
+  worker processes run as the `nginx` user, as with the official nginx image.
+- **Probe:** ping, traceroute and tcpdump open raw sockets.
+
+`Scripts/IronBank/lint.sh` accepts root for those two only, and the workflow
+lists them.
+
+`Scripts/IronBank/PinRelease.js` moves a project to another release. It
 updates the tag, the version label, the resource's digest, the release stage,
 `APP_VERSION`, `GIT_SHA` and the revision label together, from the release's
 image on Docker Hub:
 
 ```bash
-node Scripts/IronBank/PinRelease.js --version 14.0.101
+node Scripts/IronBank/PinRelease.js --project Probe --version 14.0.102
 ```
 
 ## What CI does: the Iron Bank Preflight workflow
@@ -55,8 +99,8 @@ node Scripts/IronBank/PinRelease.js --version 14.0.101
 [`.github/workflows/iron-bank.yml`](../.github/workflows/iron-bank.yml) runs
 daily, on pull requests that change `IronBank/` or `Scripts/IronBank/`, and by
 hand (Actions → Iron Bank Preflight → Run workflow, optionally with a
-version). It does to the project what Iron Bank will do, so the findings are
-known before a merge request reaches Repo1:
+version). It runs one job per project, and does to each what Iron Bank will
+do, so the findings are known before a merge request reaches Repo1:
 
 1. Pins the project to the latest published release, or the one asked for. On
    a pull request, it instead checks that the committed pin matches the release
@@ -67,19 +111,24 @@ known before a merge request reaches Repo1:
 4. With Registry1 credentials, it also:
    - fetches the manifest's resources as Iron Bank's pipeline does;
    - builds the image on Iron Bank's base image with the manifest's labels;
-   - checks it is the Enterprise Edition;
-   - boots it with PostgreSQL, ClickHouse and Valkey
-     (`Tests/Ops/AppImageRuntime.test.js`);
+   - for the App, checks it is the Enterprise Edition and boots it with
+     PostgreSQL, ClickHouse and Valkey (`Tests/Ops/AppImageRuntime.test.js`);
+   - for the others, runs their smoke tests (`Scripts/IronBank/smoke_test.sh`):
+     nginx loads its configuration, the runner's tools run, the probe's SQL
+     Server driver and browsers work;
    - scans the image and its base image with Grype and Trivy, and its files
      with ClamAV.
 5. Writes the findings into the run's summary (`Scripts/IronBank/NewFindings.js`).
    Each finding is sorted into one of three groups:
    - **inherited**: the base image has it too, so Iron Bank answers for it;
-   - **justified**: it is in `Justifications/App.yaml`;
+   - **justified**: it is in `Justifications/<Project>.yaml`;
    - **new**: it needs a fix in the release, or a justification.
 
-   A new high or critical finding fails the run. The run uploads an artifact,
-   `iron-bank-app-<version>`, holding `repo1/` (the files to push) and
+   A new high or critical finding fails the App's and the ingress's jobs. The
+   runner's and the probe's report theirs with a warning for now, because they
+   have hundreds to work through: remove `report_only` from the workflow's
+   matrix once they are dealt with. Each job uploads an artifact,
+   `iron-bank-<Project>-<version>`, holding `repo1/` (the files to push) and
    `scans/` (the reports).
 
 Registry1 credentials are two repository secrets, `REGISTRY1_USERNAME` and
@@ -90,23 +139,25 @@ Bank emails the credentials. Without the secrets, the workflow runs steps 1 to
 
 ## Shipping a release to Iron Bank
 
-1. Take the `iron-bank-app-<version>` artifact of a green run for the release.
-   The daily run checks the latest release; run the workflow by hand for
-   another one.
+For each project:
+
+1. Take the `iron-bank-<Project>-<version>` artifact of a green run for the
+   release. The daily run checks the latest release; run the workflow by hand
+   for another one.
 2. Fix or justify every new finding. A justification is written in VAT. Add
-   the same text to `Justifications/App.yaml`, so later runs count the finding
-   as answered.
+   the same text to `Justifications/<Project>.yaml`, so later runs count the
+   finding as answered.
 3. Push the contents of `repo1/` to a feature branch of the Repo1 project, and
    open a merge request to `development`. Iron Bank's pipeline runs on it.
-   Justify anything its scans add in VAT, then add the `Status::Review` label
-   to the project's issue.
+   Give VAT the text in `Justifications/<Project>.yaml`, justify anything its
+   scans add, then add the `Status::Review` label to the project's issue.
 4. Iron Bank's Container Hardening Team reviews the image and the
    justifications. Once the image is merged to `master`, Iron Bank publishes it
-   at `registry1.dso.mil/ironbank/oneuptime/app:<version>`.
+   at `registry1.dso.mil/ironbank/oneuptime/<image>:<version>`.
 
-The base image's tag (`BASE_TAG`) moves on Repo1 through Renovate
-(`App/renovate.json`). When Renovate moves it, update it here too:
-`IronBankApp.test.js` expects the Dockerfile and the manifest to agree.
+Each base image's tag (`BASE_TAG`) moves on Repo1 through Renovate (each
+project's `renovate.json`). When Renovate moves it, update it here too:
+`IronBankProjects.test.js` expects the Dockerfile and the manifest to agree.
 
 ## Onboarding, once
 
@@ -120,19 +171,20 @@ The base image's tag (`BASE_TAG`) moves on Repo1 through Renovate
      Platform One username);
    - a **Government point of contact**: a DoD military or civilian user (not a
      contractor) who will use or support OneUptime and can validate the mission
-     need. This person does not have to fund it.
+     need. This person does not have to fund it, but Iron Bank requires one: they
+     give the initial approval, and are the one requesting the onboarding
+     ([dccscr #6531](https://repo1.dso.mil/dsop/dccscr/-/work_items/6531)).
 
    It also asks for commitments: public images and scan results, updates on
    the day of each release, timely justifications, and builds and runs without
    internet access.
 3. Iron Bank's onboarding team creates the project on Repo1, emails the
-   contacts, and assigns an initial issue to the engineers. Its own
-   onboarding checklist (the dccscr "Onboarding" template) lists a quote that
-   is "completed and signed" before the project is created. Ask Iron Bank what
-   it covers.
-4. Replace the `FIXME` maintainers in `App/hardening_manifest.yaml` with those
-   engineers' names and Repo1 usernames. Iron Bank's pipeline refuses the
-   manifest until then, and `lint.sh` warns about it.
+   contacts, and assigns an initial issue to the engineers. Its onboarding
+   checklist (the dccscr "Onboarding" template) mentions a quote, but Iron Bank
+   says there is currently no cost to onboard or host an application (same
+   issue).
+4. Keep the maintainers in each `hardening_manifest.yaml` the same as the
+   engineers the onboarding request names, by their Repo1 usernames.
 5. Push the first feature branch. Then open a "VAT Pipeline Access Request" in
    dccscr: the pipeline fails at lint until the onboarding team approves the
    project.

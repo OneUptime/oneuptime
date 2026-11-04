@@ -39,6 +39,7 @@ import {
   attachConnectorFetchSummary,
 } from "../../../../../Server/Utils/SecurityEvent/Connectors/Types";
 import SecurityEventDedupe from "../../../../../Server/Utils/SecurityEvent/SecurityEventDedupe";
+import { SECURITY_EVENT_PRODUCT_LOCK_NAMESPACE } from "../../../../../Server/Utils/SecurityEvent/SecurityEventStoreOnce";
 import ThreatIntelEnricher from "../../../../../Server/Utils/SecurityEvent/ThreatIntel/ThreatIntelEnricher";
 import OneUptimeDate from "../../../../../Types/Date";
 import BadDataException from "../../../../../Types/Exception/BadDataException";
@@ -4545,5 +4546,182 @@ describe("SecurityEventConnectionPoller - Google SecOps connections", () => {
     expect(findCheck(result, "failure").name).toBe(
       "Read detections from Google SecOps",
     );
+  });
+});
+
+/*
+ * A product another way stores too - Microsoft Entra ID, which "Your logs"
+ * reads from Azure's export - is looked up and inserted under the
+ * product's own lock, the one Your logs takes around the same records
+ * (SecurityEventStoreOnce), so a record both read is stored once. Other
+ * products keep the one source lock they had.
+ */
+describe("SecurityEventConnectionPoller.executeConnection - records another way stores too", () => {
+  const ENTRA: SecurityEventConnectorProvider =
+    SecurityEventConnectorProvider.MicrosoftEntraId;
+  const ENTRA_SETTINGS: SecurityConnectorSettings = {
+    provider: ENTRA,
+    config: {
+      tenantId: "b3c1b5fc-828c-45fa-a1e1-10d74f6d6e9c",
+      clientId: "00001111-aaaa-2222-bbbb-3333cccc4444",
+    },
+    secrets: { clientSecret: "entra-secret-synthetic" },
+    alertingOnly: false,
+  };
+
+  function entraOverrides(fake: FakeConnector): PollerOverrides {
+    return {
+      connector: { ...fake.connector, provider: ENTRA },
+      settings: ENTRA_SETTINGS,
+    };
+  }
+
+  function recordOrder(): Array<string> {
+    const order: Array<string> = [];
+
+    getJestSpyOn(Semaphore, "lock").mockImplementation((async (data: {
+      namespace: string;
+    }) => {
+      order.push(`lock:${data.namespace}`);
+      return { namespace: data.namespace };
+    }) as never);
+    getJestSpyOn(Semaphore, "release").mockImplementation((async (mutex: {
+      namespace: string;
+    }) => {
+      order.push(`release:${mutex.namespace}`);
+    }) as never);
+    getJestSpyOn(
+      SecurityEventDedupe,
+      "findExistingEventUids",
+    ).mockImplementation((async () => {
+      order.push("look-up");
+      return existingUids;
+    }) as never);
+    getJestSpyOn(SecurityEventService, "insertJsonRows").mockImplementation(
+      (async (rows: Array<JSONObject>) => {
+        order.push("insert");
+        insertedRows.push(...rows);
+      }) as never,
+    );
+
+    return order;
+  }
+
+  test("an Entra ID poll looks up and inserts under the product's lock, inside its source lock", async () => {
+    const order: Array<string> = recordOrder();
+    const fake: FakeConnector = makeFakeConnector({
+      fetch: makeFetchResult([makeEvent("entra:signin:1")]),
+    });
+
+    await SecurityEventConnectionPoller.executeConnection(
+      makeConnection({ provider: ENTRA, name: "Contoso Entra" }),
+      { type: "poll" },
+      entraOverrides(fake),
+    );
+
+    expect(order).toEqual([
+      `lock:${SECURITY_EVENT_SOURCE_LOCK_NAMESPACE}`,
+      `lock:${SECURITY_EVENT_PRODUCT_LOCK_NAMESPACE}`,
+      "look-up",
+      "insert",
+      `release:${SECURITY_EVENT_PRODUCT_LOCK_NAMESPACE}`,
+      `release:${SECURITY_EVENT_SOURCE_LOCK_NAMESPACE}`,
+    ]);
+    expect(Semaphore.lock).toHaveBeenCalledWith(
+      expect.objectContaining({
+        namespace: SECURITY_EVENT_PRODUCT_LOCK_NAMESPACE,
+        key: `${PROJECT_ID.toString()}:${ENTRA}`,
+      }),
+    );
+    expect(insertedRows).toHaveLength(1);
+  });
+
+  test("a record Your logs stored first is a duplicate, not stored again", async () => {
+    recordOrder();
+    existingUids = new Set(["entra:signin:1"]);
+    const fake: FakeConnector = makeFakeConnector({
+      fetch: makeFetchResult([
+        makeEvent("entra:signin:1"),
+        makeEvent("entra:signin:2"),
+      ]),
+    });
+
+    const result: SecurityEventConnectionRunResult =
+      await SecurityEventConnectionPoller.executeConnection(
+        makeConnection({ provider: ENTRA, name: "Contoso Entra" }),
+        { type: "poll" },
+        entraOverrides(fake),
+      );
+
+    expect(
+      insertedRows.map((row: JSONObject): unknown => {
+        return row["eventUid"];
+      }),
+    ).toEqual(["entra:signin:2"]);
+    expect(result.duplicateCount).toBe(1);
+  });
+
+  test("a poll of a product only its connection stores takes no product lock", async () => {
+    const order: Array<string> = recordOrder();
+    const fake: FakeConnector = makeFakeConnector({
+      fetch: makeFetchResult([makeEvent("evt-1")]),
+    });
+
+    await SecurityEventConnectionPoller.executeConnection(
+      makeConnection(),
+      { type: "poll" },
+      overridesFor(fake),
+    );
+
+    expect(order).toEqual([
+      `lock:${SECURITY_EVENT_SOURCE_LOCK_NAMESPACE}`,
+      "look-up",
+      "insert",
+      `release:${SECURITY_EVENT_SOURCE_LOCK_NAMESPACE}`,
+    ]);
+  });
+
+  test("an Entra ID poll that cannot take the product lock still stores, looked up first", async () => {
+    const order: Array<string> = [];
+
+    getJestSpyOn(Semaphore, "lock").mockImplementation((async (data: {
+      namespace: string;
+    }) => {
+      if (data.namespace === SECURITY_EVENT_PRODUCT_LOCK_NAMESPACE) {
+        throw new Error("lock busy");
+      }
+
+      order.push(`lock:${data.namespace}`);
+      return { namespace: data.namespace };
+    }) as never);
+    getJestSpyOn(
+      SecurityEventDedupe,
+      "findExistingEventUids",
+    ).mockImplementation((async () => {
+      order.push("look-up");
+      return new Set<string>();
+    }) as never);
+    getJestSpyOn(SecurityEventService, "insertJsonRows").mockImplementation(
+      (async (rows: Array<JSONObject>) => {
+        order.push("insert");
+        insertedRows.push(...rows);
+      }) as never,
+    );
+    const fake: FakeConnector = makeFakeConnector({
+      fetch: makeFetchResult([makeEvent("entra:signin:1")]),
+    });
+
+    await SecurityEventConnectionPoller.executeConnection(
+      makeConnection({ provider: ENTRA, name: "Contoso Entra" }),
+      { type: "poll" },
+      entraOverrides(fake),
+    );
+
+    expect(order).toEqual([
+      `lock:${SECURITY_EVENT_SOURCE_LOCK_NAMESPACE}`,
+      "look-up",
+      "insert",
+    ]);
+    expect(insertedRows).toHaveLength(1);
   });
 });

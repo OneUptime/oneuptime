@@ -28,7 +28,7 @@ Jira や Dynamics 365 のような双方向のインテグレーションは、�
 | 方法 | 最適な用途 | 例 |
 | --- | --- | --- |
 | 組み込みの接続 | OneUptime が自ら接続するツール。フォームに入力するだけで、構築するものはありません。 | [Slack](/docs/workspace-connections/slack)、[Microsoft Teams](/docs/workspace-connections/microsoft-teams)、[セキュリティイベント](/docs/telemetry/security-events) の接続 |
-| ワークフローテンプレート | 双方向で同期を保つチケットツール、監視の障害、セキュリティインシデントレポート、チャットメッセージ。テンプレートを選び、いくつかの設定を入力します。 | [Jira](/docs/integrations/jira)、[Microsoft Dynamics 365](/docs/integrations/microsoft-dynamics-365)、[Huntress](/docs/integrations/huntress)、[Zabbix](/docs/integrations/zabbix) |
+| ワークフローテンプレート | 双方向で同期を保つチケットツール、監視の障害、セキュリティインシデントレポート、チャットメッセージ。テンプレートを選び、いくつかの設定を入力します。 | [Jira](/docs/integrations/jira)、[Microsoft Dynamics 365](/docs/integrations/microsoft-dynamics-365)、[Huntress](/docs/integrations/huntress)、[Zabbix](/docs/integrations/zabbix)、[Datadog](/docs/integrations/datadog)、[New Relic](/docs/integrations/new-relic) |
 | 受信リクエストモニター | Webhook を送信するアラートツール。ワークフローなしで、アラートごとに個別のインシデントが作成され、オンコールが呼び出され、アラートが回復すると解決されます。 | [Zabbix](/docs/integrations/zabbix)、[Prometheus Alertmanager](/docs/integrations/prometheus-alertmanager)、[Grafana](/docs/integrations/grafana) |
 | 自分で構築するワークフロー | Webhook または REST API を持つあらゆるツールと、独自のロジック。 | [PagerDuty](/docs/integrations/pagerduty)、[Opsgenie](/docs/integrations/opsgenie)、[ServiceNow](/docs/integrations/servicenow) |
 
@@ -43,7 +43,8 @@ Jira や Dynamics 365 のような双方向のインテグレーションは、�
 | [Zabbix](/docs/integrations/zabbix) | 双方向 | Zabbix の障害をインシデントまたはアラートにし、回復すると解決し、OneUptime から障害を確認済みにしたりクローズしたりします。 |
 | [Prometheus Alertmanager](/docs/integrations/prometheus-alertmanager) | インバウンド | Alertmanager の通知をインシデントにします。 |
 | [Grafana](/docs/integrations/grafana) | インバウンド | Grafana のアラートをインシデントにします。 |
-| [Datadog](/docs/integrations/datadog) | インバウンド | Datadog モニターのアラートをインシデントにします。 |
+| [Datadog](/docs/integrations/datadog) | インバウンド | Datadog モニターのアラートをインシデントまたはアラートにし、回復すると解決します。 |
+| [New Relic](/docs/integrations/new-relic) | インバウンド | New Relic の課題をインシデントまたはアラートにし、課題がクローズされると解決します。 |
 
 ### セキュリティツール
 
@@ -133,7 +134,7 @@ URL が唯一の認証情報なので、パスワードと同じように扱っ�
 5. **ワークフローを実行** をクリックし、**インシデント** でインシデントを選んで実行します。テスト実行でも実際にリクエストが送信されます。その後、**有効** をオンにします。
 :::
 
-ツールが別の形のデータを必要とする場合は、2 つのブロックの間に [Run Custom JavaScript](/docs/workflows/components#custom-code) ブロックを追加します。Zendesk、New Relic、AWS (SNS 経由)、StatusCake など、その他すべてのツールでも手順は同じで、変わるのは URL と本文だけです。
+ツールが別の形のデータを必要とする場合は、2 つのブロックの間に [Run Custom JavaScript](/docs/workflows/components#custom-code) ブロックを追加します。Zendesk、AWS (SNS 経由)、StatusCake など、その他すべてのツールでも手順は同じで、変わるのは URL と本文だけです。
 
 ## 認証情報を安全に保つ
 

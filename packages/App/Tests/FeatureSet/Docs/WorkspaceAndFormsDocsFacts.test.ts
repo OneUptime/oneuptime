@@ -171,6 +171,7 @@ const SOURCES: Record<string, string> = {
 
 const SLACK: string = "workspace-connections/slack";
 const TEAMS: string = "workspace-connections/microsoft-teams";
+const MATTERMOST: string = "workspace-connections/mattermost";
 const VIDEO_CALLS: string = "workspace-connections/video-calls";
 const BUILDING: string = "forms/building";
 const SHARING: string = "forms/sharing-and-security";
@@ -404,16 +405,22 @@ function sorted(values: ReadonlyArray<string>): Array<string> {
 }
 
 describe("Slack and Microsoft Teams, against the Dashboard and the server", () => {
-  it("finds both pages, and Video Calls, under Project Settings > Workspace, as the settings menu lists them", () => {
+  it("finds the Slack, Microsoft Teams and Mattermost pages, and Video Calls, under Project Settings > Workspace, as the settings menu lists them", () => {
     expect(
       menuSectionItems(readSource("settingsSideMenu"), "Workspace"),
-    ).toEqual(["Slack", "Microsoft Teams", "Video Calls"]);
+    ).toEqual(["Slack", "Microsoft Teams", "Mattermost", "Video Calls"]);
 
     expect(englishPage(SLACK)).toContain(
       "**Project Settings** > **Workspace** > **Slack**",
     );
     expect(englishPage(TEAMS)).toContain(
       "**Project Settings** > **Workspace** > **Microsoft Teams**",
+    );
+    expect(englishPage(MATTERMOST)).toContain(
+      "**Project Settings** > **Workspace** > **Mattermost**",
+    );
+    expect(englishPage(MATTERMOST)).toContain(
+      "**User Settings** > **Workspace** > **Mattermost**",
     );
     expect(englishPage(VIDEO_CALLS)).toContain(
       "**Project Settings** > **Workspace** > **Video Calls**",
@@ -438,6 +445,7 @@ describe("Slack and Microsoft Teams, against the Dashboard and the server", () =
     expect(entryTitles).toEqual({
       Slack: "Slack",
       MicrosoftTeams: "Microsoft Teams",
+      Mattermost: "Mattermost",
       Connect: "Connect Slack or Teams",
     });
 

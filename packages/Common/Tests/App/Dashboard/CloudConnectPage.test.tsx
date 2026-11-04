@@ -281,9 +281,9 @@ describe("the page", () => {
       "cloud-connect-collector-note",
     );
 
-    expect(note).toHaveTextContent(
-      "Already run an OpenTelemetry Collector, or need CloudWatch Metric Streams?",
-    );
+    expect(note).toHaveTextContent("Already run an OpenTelemetry Collector?");
+    // Streaming is the connections' own now: no Metric Streams by hand.
+    expect(note).not.toHaveTextContent("Metric Streams");
     expect(note.querySelector("a")!.getAttribute("href")).toMatch(
       /\/telemetry\/cloud-resources$/,
     );
@@ -464,6 +464,32 @@ describe("saving", () => {
     await waitFor(() => {
       expect(getListSpy.mock.calls.length).toBeGreaterThan(readsBefore);
     });
+  });
+
+  test("a new AWS connection hears that it can stream its metrics and logs; another cloud does not", async () => {
+    await openPage();
+
+    await act(async () => {
+      fireEvent.click(screen.getByTestId("cloud-connection-tile-aws"));
+    });
+    await act(async () => {
+      fireEvent.click(screen.getByText("Save the connection"));
+    });
+
+    expect(screen.getByTestId("cloud-connect-saved")).toHaveTextContent(
+      "Connected. The first read starts within a minute; resources appear under All Resources as it finds them. For metrics within minutes, and CloudWatch Logs, choose Stream metrics and logs in its row.",
+    );
+
+    await act(async () => {
+      fireEvent.click(screen.getByTestId("cloud-connection-tile-gcp"));
+    });
+    await act(async () => {
+      fireEvent.click(screen.getByText("Save the connection"));
+    });
+
+    expect(screen.getByTestId("cloud-connect-saved")).not.toHaveTextContent(
+      "Stream metrics and logs",
+    );
   });
 
   test("an edit from the list: the form is the connection's, and saving says it is read again", async () => {

@@ -1,9 +1,10 @@
 # Datadog
 
-Envoyez les alertes des moniteurs [Datadog](https://www.datadoghq.com) à OneUptime, pour que chaque alerte devienne un incident qui prévient votre équipe d'astreinte et soit résolu quand le moniteur Datadog se rétablit. Datadog envoie ses alertes par son [intégration Webhooks](https://docs.datadoghq.com/integrations/webhooks/), il n'y a donc rien à installer d'un côté comme de l'autre.
+Envoyez les alertes des moniteurs [Datadog](https://www.datadoghq.com) à OneUptime, pour que chacune devienne un incident ou une alerte, prévienne votre équipe d'astreinte quand elle est urgente et soit résolue quand le moniteur Datadog se rétablit. Datadog envoie ses alertes par son [intégration Webhooks](https://docs.datadoghq.com/integrations/webhooks/), il n'y a donc rien à installer d'un côté comme de l'autre.
 
 :::cards
-- [Choisir comment OneUptime reçoit les alertes](#choisir-comment-oneuptime-reçoit-les-alertes): Un moniteur de requêtes entrantes, ou un workflow à vous.
+- [Choisir comment OneUptime reçoit les alertes](#choisir-comment-oneuptime-reçoit-les-alertes): Un modèle de workflow, ou un moniteur de requêtes entrantes.
+- [Partir du modèle](#partir-du-modèle): Choisissez qui prévenir, copiez l'URL et voyez ce que fait chaque alerte.
 - [Recevoir les alertes avec un moniteur](#recevoir-les-alertes-avec-un-moniteur): Un incident par alerte, résolu au rétablissement.
 - [Configurer Datadog](#configurer-datadog): Un webhook, et les moniteurs qui le préviennent.
 - [Dépannage](#dépannage): Quand les alertes n'arrivent pas, ou que les incidents restent ouverts.
@@ -16,8 +17,9 @@ flowchart TB
     monitor["Un moniteur Datadog<br/>change d'état"] --> mention["Son message cite<br/>le webhook"]
     mention --> post["Le webhook envoie<br/>votre charge utile"]
     post --> transition{"transition"}
-    transition -->|"Triggered"| open["Incident ouvert,<br/>astreinte prévenue"]
+    transition -->|"Triggered"| open["Incident ouvert,<br/>P1 et P2 prévenus"]
     transition -->|"Recovered"| resolve["Incident résolu"]
+    transition -->|"Warn, No Data"| note["Note privée<br/>sur l'incident"]
 ```
 
 Un moniteur Datadog prévient les webhooks que cite son message quand il change d'état : quand il se déclenche, avertit, se rétablit ou n'a pas de données. Vous écrivez vous-même le corps JSON du webhook, à partir des [variables de modèle](https://docs.datadoghq.com/integrations/webhooks/#usage) de Datadog, ce guide vous en donne donc un qui nomme chaque alerte et dit ce qui lui est arrivé.
@@ -25,7 +27,7 @@ Un moniteur Datadog prévient les webhooks que cite son message quand il change 
 ## Avant de commencer
 
 - Un compte Datadog où vous pouvez configurer des intégrations et modifier des moniteurs.
-- Dans OneUptime, le droit de créer des moniteurs, ou des workflows si vous prenez cette voie.
+- Dans OneUptime, le droit de créer des workflows, ou des moniteurs si vous prenez cette voie. Sur OneUptime Cloud, les workflows demandent l'offre **Growth** ou supérieure.
 
 ## Choisir comment OneUptime reçoit les alertes
 
@@ -33,10 +35,54 @@ Configurez d'abord OneUptime : il vous donne l'URL à laquelle Datadog envoie.
 
 | Façon | Utilisez-la quand |
 | --- | --- |
-| Un moniteur de requêtes entrantes (recommandé) | Vous voulez que chaque alerte devienne un incident qui prévient l'astreinte et soit résolu quand le moniteur Datadog se rétablit. Il n'y a rien à construire. |
-| Un workflow avec un déclencheur Webhook | Il vous faut une logique propre : filtrer les alertes, les remanier ou appeler d'abord d'autres systèmes. Un workflow déclare un incident pour chaque alerte qu'il reçoit, et ne le résout pas au rétablissement. |
+| Le modèle de workflow (recommandé) | Vous voulez chaque alerte comme un incident ou une alerte à une gravité tirée de la priorité du moniteur, avec l'astreinte prévenue pour P1 et P2, les avertissements notés dessus, et résolue au rétablissement. Il n'y a rien à construire. |
+| Un moniteur de requêtes entrantes | Vous voulez des incidents sans workflow, avec n'importe quelle offre, et un moniteur dont le statut suit Datadog. |
 
 Les deux reçoivent le même JSON du même webhook, vous pouvez donc commencer par l'un et changer plus tard en modifiant une URL dans Datadog.
+
+## Partir du modèle
+
+La boîte de dialogue **Créer un flux de travail** propose deux modèles Datadog, sous **Datadog** dans sa liste de catégories : **Declare an incident when a Datadog monitor triggers**, et **Create an alert when a Datadog monitor triggers** pour les alertes. Les deux font la même chose, chacun avec son propre type d'enregistrement.
+
+:::steps
+1. Allez dans **Flux de travail** et cliquez sur **Créer un flux de travail**. Sous **Ou partir d'un modèle**, choisissez **Datadog** dans la liste de catégories, cliquez sur **Declare an incident when a Datadog monitor triggers**, ou sur **Create an alert when a Datadog monitor triggers**, puis sur **Utiliser ce modèle**.
+2. Sous **Who to page for P1 and P2 monitors**, choisissez les politiques d'astreinte à prévenir, ou aucune pour ne prévenir personne, et cliquez sur **Créer un flux de travail**. Le workflow s'ouvre dans le **Constructeur**, désactivé.
+3. Cliquez sur le déclencheur **Webhook**, puis sur **Copier l'URL**, et gardez l'URL pour Datadog.
+4. Activez **Activé** en haut du **Constructeur**. Un workflow désactivé répond à Datadog par `400`.
+:::
+
+Ensuite, [configurez Datadog](#configurer-datadog) pour qu'il envoie ses alertes à cette URL. L'étape `read-event-1` du workflow s'ouvre avec la même configuration, pour quand vous y reviendrez dans le **Constructeur**.
+
+### Ce que fait le workflow
+
+Après le déclencheur **Webhook**, l'étape **Check With JavaScript** `read-event-1` lit la `transition` qu'envoie Datadog, et **Incident From Another Tool**, ou **Alert From Another Tool** dans le modèle des alertes, fait ce qu'elle signifie, d'après la clé de cycle de l'alerte. Datadog garde cette clé depuis le moment où une alerte se déclenche jusqu'à son rétablissement, et la fois suivante où elle se déclenche, la clé est nouvelle : chaque fois a donc son propre incident. L'incident garde la clé dans son champ personnalisé `datadogAlertCycleKey`.
+
+| Transition | Ce que fait le workflow |
+| --- | --- |
+| `Triggered`, `Re-Triggered` | Déclare un incident intitulé `Datadog: <monitor>`, à la gravité à laquelle correspond la priorité du moniteur, tenu à l'écart de vos pages de statut. Sa description renvoie à l'alerte dans Datadog, et indique la priorité, l'hôte, le périmètre et le message du moniteur. Une notification pour une alerte qui a déjà son incident n'en ouvre pas un second, et ne prévient plus personne. |
+| `Recovered` | Résout l'incident de l'alerte, sauf s'il est déjà résolu. La raison figure dans sa chronologie. |
+| `Warn`, `Re-Warn`, `No Data`, `Re-No Data` | Ajoute une note privée à l'incident de l'alerte, disant quel est maintenant l'état du moniteur. |
+| `Renotify` | Rien : l'alerte est toujours ouverte. |
+
+Un avertissement ou un rétablissement pour une alerte sans incident ne change rien. Tout le reste, comme une requête d'un autre outil, est laissé tel quel : `read-event-1` prend **No**, et les **Étapes** de l'exécution disent pourquoi. Rien ne repart vers Datadog : il résout lui-même ses alertes quand le signal se rétablit, et c'est ce qui résout l'incident.
+
+### Priorités et astreinte
+
+Un nouvel incident prévient les politiques d'astreinte que vous avez choisies quand son moniteur est P1 ou P2, ou n'a pas de priorité. P3, P4 et P5 ouvrent un incident et ne préviennent personne. Dans un nouveau projet, les priorités correspondent à ces gravités d'incident et d'alerte :
+
+| Priorité Datadog | Incident | Alerte | Astreinte |
+| --- | --- | --- | --- |
+| P1 | Critical Incident | High | Prévenue |
+| P2 | Critical Incident | High | Prévenue |
+| Sans priorité | Critical Incident | High | Prévenue |
+| P3 | Major Incident | Low | Non prévenue |
+| P4 | Minor Incident | Low | Non prévenue |
+| P5 | Minor Incident | Low | Non prévenue |
+
+Avec vos propres gravités, P1, P2 et l'absence de priorité vont à la plus grave, P3 à celle du milieu, et P4 et P5 à la moins grave.
+
+- Pour faire correspondre une priorité à l'une de vos gravités par son nom, modifiez `SEVERITY_BY_NAME` dans l'étape `read-event-1`, par exemple `{ P3: 'Minor Incident' }`.
+- Pour prévenir aussi pour P3, mettez **Compare with** de l'étape `if-page-1` **If / Else** à `3`.
 
 ## Recevoir les alertes avec un moniteur
 
@@ -101,10 +147,13 @@ Dans Datadog, ouvrez la [tuile de l'intégration Webhooks](https://app.datadoghq
   ```json
   {
     "alert_key": "$ALERT_ID $ALERT_SCOPE",
+    "alert_cycle_key": "$ALERT_CYCLE_KEY",
     "transition": "$ALERT_TRANSITION",
+    "alert_priority": "$ALERT_PRIORITY",
     "title": "$EVENT_TITLE",
     "body": "$TEXT_ONLY_MSG",
     "host": "$HOSTNAME",
+    "scope": "$ALERT_SCOPE",
     "priority": "$PRIORITY",
     "link": "$LINK"
   }
@@ -119,69 +168,39 @@ Dans chaque moniteur Datadog qui doit prévenir par OneUptime, ajoutez `@webhook
 | --- | --- |
 | `$ALERT_ID` | L'ID du moniteur Datadog qui a alerté. |
 | `$ALERT_SCOPE` | Les tags du groupe qui a alerté, par exemple `host:web-1`. |
+| `$ALERT_CYCLE_KEY` | Un ID qui reste le même depuis le moment où une alerte se déclenche jusqu'à son rétablissement. |
 | `$ALERT_TRANSITION` | Ce qui s'est passé : `Triggered`, `Re-Triggered`, `Warn`, `Recovered`, `No Data` ou `Renotify`, entre autres. |
+| `$ALERT_PRIORITY` | La priorité du moniteur Datadog, de `P1` à `P5`, ou rien pour un moniteur qui n'en a pas. |
 | `$EVENT_TITLE` | Le titre de l'événement, par exemple `[Triggered] High CPU`. |
 | `$TEXT_ONLY_MSG` | Le message du moniteur, sans Markdown. |
 | `$LINK` | Un lien vers l'événement dans Datadog. |
 
+Une même charge utile sert dans les deux cas : le modèle se fie à `alert_cycle_key` et `alert_priority`, et le moniteur à `alert_key`. Gardez-les tous, et vous pourrez changer plus tard en modifiant l'URL seule.
+
 ## Tester
 
-Envoyez à OneUptime une alerte, comme le ferait Datadog :
+Envoyez une alerte à l'URL que vous avez copiée, comme le ferait Datadog :
 
 ```bash
-curl -X POST "https://oneuptime.com/heartbeat/<secret key>" \
+curl -X POST "<url>" \
   -H "Content-Type: application/json" \
   -d '{
     "alert_key": "1234 host:web-1",
+    "alert_cycle_key": "7151157925468446720",
     "transition": "Triggered",
+    "alert_priority": "P1",
     "title": "[Triggered] High CPU",
     "body": "CPU is above 90% on web-1.",
     "host": "web-1",
+    "scope": "host:web-1",
     "priority": "normal",
     "link": "https://app.datadoghq.com/event/event?id=1"
   }'
 ```
 
-Un incident s'ouvre, intitulé `[Triggered] High CPU`. Envoyez la même requête avec `transition` sur `Recovered`, et l'incident est résolu.
+Avec le modèle, un incident s'ouvre, intitulé `Datadog: High CPU`, et les politiques d'astreinte que vous avez choisies sont prévenues. Avec le moniteur, un incident s'ouvre, intitulé `[Triggered] High CPU`. Envoyez la même requête avec `transition` sur `Recovered`, et l'incident est résolu.
 
-Testez ensuite depuis Datadog : ouvrez un moniteur qui cite le webhook, cliquez sur **Test Notifications** et envoyez sa notification **Alert**. Consultez la chronologie du moniteur OneUptime pour voir qu'elle est arrivée.
-
-## Recevoir les alertes avec un workflow
-
-Utilisez un [workflow](/docs/workflows/index) quand il vous faut vos propres étapes entre Datadog et l'incident.
-
-:::steps
-### Créer le workflow
-
-Allez dans **Flux de travail**, cliquez sur **Créer un flux de travail**, puis sur **Partir de zéro**. Nommez-le `Datadog alerts` et cliquez sur **Créer un flux de travail**.
-
-### Ajouter le déclencheur Webhook
-
-Cliquez sur le bloc en pointillés **Choisissez ce qui démarre ce flux de travail** et choisissez **Webhook**. Cliquez sur le déclencheur, puis sur **Copier l'URL**, et utilisez cette URL dans le webhook de Datadog.
-
-### Vérifier que le moniteur s'est déclenché
-
-Cliquez sur **Ajouter un composant**, ajoutez un bloc **If / Else** et reliez-y le point **Out** du déclencheur. Réglez **Value to check** sur `{{local.components.webhook-1.returnValues.request-body.transition}}`, **Comparison** sur **is equal to** et **Compare with** sur `Triggered`.
-
-### Déclarer l'incident
-
-Ajoutez un bloc **Create One Incident** et reliez-y le côté **Yes** du bloc **If / Else**. Dans **Incident Template**, choisissez un modèle qui fixe la gravité et les politiques d'astreinte à prévenir (voir [Modèles d'incident](/docs/incidents/settings#modèles-dincident)). Dans **JSON Object**, indiquez ce qui vient de Datadog :
-
-```json
-{
-  "title": "{{local.components.webhook-1.returnValues.request-body.title}}",
-  "description": "{{local.components.webhook-1.returnValues.request-body.body}}\nDatadog: {{local.components.webhook-1.returnValues.request-body.link}}"
-}
-```
-
-Sans modèle, **JSON Object** doit aussi contenir `incidentSeverityId`, l'ID de l'une des gravités d'incident du projet.
-
-### Activer le workflow
-
-Activez **Activé** en haut du **Constructeur**. Un workflow désactivé répond à Datadog par `400`.
-:::
-
-Chaque notification `Triggered` déclare un nouvel incident. Un rétablissement prend le côté **No** du bloc **If / Else**, où rien n'est relié, l'exécution s'arrête donc là. Pour un incident par alerte, résolu au rétablissement, utilisez le moniteur.
+Testez ensuite depuis Datadog : ouvrez un moniteur qui cite le webhook, cliquez sur **Test Notifications** et envoyez sa notification **Alert**. Pour voir qu'elle est arrivée, ouvrez les **Journaux → Exécutions** du workflow, ou la chronologie du moniteur OneUptime.
 
 ## Dépannage
 
@@ -191,9 +210,23 @@ Chaque notification `Triggered` déclare un nouvel incident. Un rétablissement 
 - Un workflow désactivé répond `400`. Activez **Activé** en haut de son **Constructeur**.
 :::
 
+:::details Le workflow s'exécute, mais n'ouvre rien
+Ouvrez l'exécution dans **Journaux → Exécutions**. L'entrée `read-event-1` de ses **Étapes** dit pourquoi il a pris **No**.
+
+- `Datadog named no alert cycle key` : ajoutez `"alert_cycle_key": "$ALERT_CYCLE_KEY"` à la charge utile du webhook dans Datadog.
+- `Datadog named no transition` : ajoutez `"transition": "$ALERT_TRANSITION"` à la charge utile du webhook dans Datadog.
+:::
+
+:::details L'astreinte n'est pas prévenue
+- Seuls les moniteurs P1 et P2 et les moniteurs sans priorité préviennent. Voir [Priorités et astreinte](#priorités-et-astreinte).
+- Une notification pour une alerte qui a déjà son incident ne prévient plus personne.
+- Si personne n'est choisi dans la boîte de dialogue **Créer un flux de travail**, le workflow n'a aucune étape qui prévienne.
+:::
+
 :::details Les incidents s'ouvrent mais ne sont jamais résolus
 - Le moniteur Datadog doit aussi prévenir le webhook de ses rétablissements. Un message qui ne cite le webhook que pour les alertes, dans une condition, n'envoie aucun rétablissement.
-- L'incident du critère a besoin de **Résoudre automatiquement l'incident**, sous **Plus de champs**.
+- Avec le modèle, ouvrez l'exécution du rétablissement dans **Journaux → Exécutions** : sa dernière étape dit pourquoi. L'`alert_cycle_key` du rétablissement doit être celui de l'alerte, laissez donc `$ALERT_CYCLE_KEY` tel quel dans la charge utile.
+- Avec le moniteur, l'incident du critère a besoin de **Résoudre automatiquement l'incident**, sous **Plus de champs**.
 - **Value that means recovered** doit valoir exactement `Recovered`. La comparaison respecte la casse.
 - L'`alert_key` du rétablissement doit être celui de l'alerte : laissez `$ALERT_ID $ALERT_SCOPE` tel quel dans la charge utile.
 :::
@@ -203,19 +236,21 @@ Datadog ne remplit que les variables qui s'appliquent à l'événement. Envoyez 
 :::
 
 :::details Toutes les alertes d'un moniteur finissent dans un seul incident
-Chaque groupe a besoin de son propre `alert_key`. Vérifiez que la charge utile le compose à partir de `$ALERT_ID` et de `$ALERT_SCOPE`, et que le chemin de regroupement est `requestBody.alert_key`.
+Avec le moniteur, chaque groupe a besoin de son propre `alert_key`. Vérifiez que la charge utile le compose à partir de `$ALERT_ID` et de `$ALERT_SCOPE`, et que le chemin de regroupement est `requestBody.alert_key`.
 :::
 
 ## Sécurité
 
-- **Traitez l'URL comme un mot de passe.** Quiconque la possède peut ouvrir des incidents. Si elle fuit, réinitialisez-la : **Réinitialiser la clé secrète des requêtes entrantes** sur la page **Paramètres** du moniteur, ou **Réinitialiser l'URL** dans le déclencheur **Webhook** du workflow. Mettez ensuite à jour l'**URL** du webhook dans Datadog.
+- **Traitez l'URL comme un mot de passe.** Quiconque la possède peut ouvrir des incidents. Si elle fuit, réinitialisez-la : **Réinitialiser l'URL** dans le déclencheur **Webhook** du workflow, ou **Réinitialiser la clé secrète des requêtes entrantes** sur la page **Paramètres** du moniteur. Mettez ensuite à jour l'**URL** du webhook dans Datadog.
+- **Les liens mènent à Datadog.** Le modèle ne renvoie à une alerte que sur un site Datadog, quoi que dise une requête, et écrit ce que Datadog a envoyé comme du texte.
 - **Auto-hébergé ?** Datadog envoie ses webhooks depuis Internet, votre OneUptime doit donc y être joignable en HTTPS.
 
 ## Étapes suivantes
 
 :::cards
+- [Modèles de workflow](/docs/workflows/authoring): Créez un workflow à partir d'un modèle, et modifiez-le dans le Constructeur.
 - [Surveillance des requêtes entrantes](/docs/monitor/incoming-request-monitor): Chaque paramètre du moniteur qui reçoit vos alertes.
-- [Prometheus Alertmanager](/docs/integrations/prometheus-alertmanager): La même configuration, pour Alertmanager.
+- [New Relic](/docs/integrations/new-relic): Le même modèle, pour les problèmes New Relic.
 - [Règles d'escalade](/docs/on-call/escalation-rules): Décider qui une politique d'astreinte prévient, et quand.
 - [Présentation des intégrations](/docs/integrations/index): Les autres outils que vous pouvez connecter.
 :::

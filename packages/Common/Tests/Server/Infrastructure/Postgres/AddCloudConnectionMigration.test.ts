@@ -1,6 +1,7 @@
 import OnlineDdl from "../../../../Server/Infrastructure/Postgres/OnlineDdl";
 import { AddCloudConnection1805400000000 } from "../../../../Server/Infrastructure/Postgres/SchemaMigrations/1805400000000-AddCloudConnection";
 import { AddCloudResourceCloudConnectionIndexAndKey1805450000000 } from "../../../../Server/Infrastructure/Postgres/SchemaMigrations/1805450000000-AddCloudResourceCloudConnectionIndexAndKey";
+import { AddCloudConnectionStreams1808992600000 } from "../../../../Server/Infrastructure/Postgres/SchemaMigrations/1808992600000-AddCloudConnectionStreams";
 import SchemaMigrations from "../../../../Server/Infrastructure/Postgres/SchemaMigrations/Index";
 import CloudConnection from "../../../../Models/DatabaseModels/CloudConnection";
 import CloudResource from "../../../../Models/DatabaseModels/CloudResource";
@@ -24,6 +25,10 @@ import { afterEach, describe, expect, jest, test } from "@jest/globals";
  * rewrites nothing, and its index and foreign key are built online, in a
  * migration of their own outside a transaction, on a table ingest writes
  * all the time.
+ *
+ * Later migrations add columns to "CloudConnection" (the streams' key,
+ * when it was made and what they delivered): together with the table they
+ * must give exactly the columns the model declares.
  */
 
 const TABLE_MIGRATION: string = "AddCloudConnection1805400000000";
@@ -40,6 +45,18 @@ const MIGRATIONS: Array<MigrationClass> = [
   AddCloudConnection1805400000000,
   AddCloudResourceCloudConnectionIndexAndKey1805450000000,
 ];
+
+// Every later migration that adds a column to "CloudConnection", oldest first.
+const COLUMN_MIGRATIONS: Array<MigrationClass> = [
+  AddCloudConnectionStreams1808992600000,
+];
+
+const MIGRATIONS_FOLDER: string = path.join(
+  __dirname,
+  "../../../../Server/Infrastructure/Postgres/SchemaMigrations",
+);
+
+const ADDED_COLUMN: RegExp = /^ALTER TABLE "CloudConnection" ADD "([^"]+)"/;
 
 async function record(
   migration: MigrationInterface,
@@ -124,6 +141,25 @@ function quotedNamesAfter(
     .sort();
 }
 
+// The columns the given migrations' up adds to "CloudConnection", in order.
+async function addedColumnsOf(
+  migrations: Array<MigrationClass>,
+): Promise<Array<string>> {
+  const columns: Array<string> = [];
+
+  for (const migration of migrations) {
+    for (const statement of await record(new migration(), "up")) {
+      const match: RegExpMatchArray | null = statement.match(ADDED_COLUMN);
+
+      if (match) {
+        columns.push(match[1]!);
+      }
+    }
+  }
+
+  return columns;
+}
+
 afterEach(() => {
   jest.restoreAllMocks();
 });
@@ -178,19 +214,95 @@ describe("the cloud connection migrations", () => {
     }
   });
 
-  test("create the connections table with exactly the columns the model declares", async () => {
+  test("create the connections table, with the columns later migrations add, as exactly the columns the model declares", async () => {
     const statements: Array<string> = await record(
       new AddCloudConnection1805400000000(),
       "up",
     );
     const createTable: string = statements[0]!;
+    const added: Array<string> = await addedColumnsOf(COLUMN_MIGRATIONS);
 
     expect(createTable).toContain('CREATE TABLE "CloudConnection"');
-    expect(columnsOf(createTable).sort()).toEqual(
+    expect([...columnsOf(createTable), ...added].sort()).toEqual(
       storedColumnsOf(getTableColumns(new CloudConnection())).sort(),
     );
     // A new connection is read as soon as it is saved.
     expect(createTable).toContain('"isEnabled" boolean NOT NULL DEFAULT true');
+  });
+
+  test("later migrations add each column once, none the table already has", async () => {
+    const createTable: string = (
+      await record(new AddCloudConnection1805400000000(), "up")
+    )[0]!;
+    const added: Array<string> = await addedColumnsOf(COLUMN_MIGRATIONS);
+
+    expect(added.length).toBeGreaterThan(0);
+    expect(new Set(added).size).toBe(added.length);
+    expect(
+      added.filter((column: string): boolean => {
+        return columnsOf(createTable).includes(column);
+      }),
+    ).toEqual([]);
+  });
+
+  test("a later column is nullable with no default, so adding it rewrites nothing", async () => {
+    for (const migration of COLUMN_MIGRATIONS) {
+      const adds: Array<string> = (await record(new migration(), "up")).filter(
+        (statement: string): boolean => {
+          return ADDED_COLUMN.test(statement);
+        },
+      );
+
+      expect(adds.length).toBeGreaterThan(0);
+
+      for (const statement of adds) {
+        expect(statement).not.toContain("NOT NULL");
+        expect(statement).not.toContain("DEFAULT");
+      }
+    }
+  });
+
+  test("down drops every column a later migration adds", async () => {
+    for (const migration of COLUMN_MIGRATIONS) {
+      const dropped: Array<string> = (await record(new migration(), "down"))
+        .map((statement: string): string | null => {
+          const match: RegExpMatchArray | null = statement.match(
+            /^ALTER TABLE "CloudConnection" DROP COLUMN "([^"]+)"/,
+          );
+
+          return match ? match[1]! : null;
+        })
+        .filter((column: string | null): column is string => {
+          return column !== null;
+        });
+
+      expect(dropped.sort()).toEqual(
+        (await addedColumnsOf([migration])).sort(),
+      );
+    }
+  });
+
+  test("every migration file that adds a column to the connections table is listed here, oldest first", () => {
+    const files: Array<string> = fs
+      .readdirSync(MIGRATIONS_FOLDER)
+      .filter((file: string): boolean => {
+        return /^\d{13}-.+\.ts$/.test(file);
+      })
+      .filter((file: string): boolean => {
+        const source: string = fs.readFileSync(
+          path.join(MIGRATIONS_FOLDER, file),
+          "utf8",
+        );
+
+        return /ALTER TABLE "CloudConnection" ADD "/.test(source);
+      })
+      .sort();
+
+    expect(
+      files.map((file: string): number => {
+        return parseInt(file.slice(0, 13), 10);
+      }),
+    ).toEqual(COLUMN_MIGRATIONS.map(timestampOf));
   });
 
   test("keep the credentials in one column the model encrypts, never empty", async () => {

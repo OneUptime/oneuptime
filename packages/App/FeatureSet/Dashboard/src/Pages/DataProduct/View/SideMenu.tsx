@@ -1,5 +1,8 @@
 import PageMap from "../../../Utils/PageMap";
 import RouteMap, { RouteUtil } from "../../../Utils/RouteMap";
+import { getDeveloperSideMenuSection } from "../../../Components/DeveloperDocs/DeveloperDocsMenuSection";
+import { DeveloperDocsScope } from "../../../Components/DeveloperDocs/DeveloperDocsPages";
+import DataProduct from "Common/Models/DatabaseModels/DataProduct";
 import Route from "Common/Types/API/Route";
 import IconProp from "Common/Types/Icon/IconProp";
 import ObjectID from "Common/Types/ObjectID";
@@ -12,7 +15,10 @@ export interface ComponentProps {
   modelId: ObjectID;
 }
 
-// One data product's pages: whether it is fresh, its settings, and deleting it.
+/*
+ * One data product's pages: whether it is fresh, its settings, its
+ * Developer pages and, last, deleting it.
+ */
 const DataProductViewSideMenu: FunctionComponent<ComponentProps> = (
   props: ComponentProps,
 ): ReactElement => {
@@ -40,6 +46,13 @@ const DataProductViewSideMenu: FunctionComponent<ComponentProps> = (
           icon={IconProp.Settings}
         />
       </SideMenuSection>
+
+      {getDeveloperSideMenuSection({
+        modelType: DataProduct,
+        scope: DeveloperDocsScope.View,
+        modelId: props.modelId,
+      })}
+
       <SideMenuSection title="Advanced">
         <SideMenuItem
           link={{

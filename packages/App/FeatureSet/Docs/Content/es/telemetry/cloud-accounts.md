@@ -8,6 +8,7 @@ Conecta una cuenta de AWS, una suscripción de Azure o un proyecto de Google Clo
 - [Google Cloud](#google-cloud): Una cuenta de servicio con seis roles de solo lectura.
 - [Qué lee OneUptime](#qué-lee-oneuptime): Recursos, métricas, cambios, eventos de estado y costos, con qué frecuencia y cuánto cuesta leerlos.
 - [Costos y ahorros en la nube](/docs/telemetry/cloud-costs): Cuánto cuesta cada cuenta, las formas de gastar menos y presupuestos que alertan.
+- [Transmitir métricas y registros de CloudWatch](/docs/telemetry/cloud-streaming): Cada métrica en minutos, y CloudWatch Logs, a través de Amazon Data Firehose.
 - [Seguridad de datos](#seguridad-de-datos): Lo que la conexión permite leer a Seguridad de datos, y lo que añade cada nivel al comando.
 - [Permitir que la IA corrija problemas](#permitir-que-la-ia-corrija-problemas): Un comando más, y OneUptime AI puede corregir lo que encuentra.
 :::
@@ -268,7 +269,7 @@ Un comando de un nivel inferior sustituye la política de AWS por la de ese nive
 | Se lee cada | 10 minutos | 5 minutos | 5 minutos |
 | Un recurso eliminado | Se archiva cuando una enumeración completa ya no lo incluye | Se archiva cuando una enumeración completa ya no lo incluye | Se archiva cuando una enumeración completa ya no lo incluye |
 
-Cada lectura retoma donde se detuvo la anterior, así que cada punto de datos y cada cambio se escribe una sola vez. La primera lectura de una conexión nueva empieza en menos de un minuto y retrocede una hora para las métricas y 2 horas para los cambios; tras una pausa, una lectura retrocede como máximo 6 horas. Un recurso que solo informa métricas, y que ninguna enumeración incluye, se archiva tras 7 días sin métricas. Los costos se leen dos veces al día, y las formas de gastar menos una vez al día.
+Cada lectura retoma donde se detuvo la anterior, así que cada punto de datos y cada cambio se escribe una sola vez. Con **Registros de auditoría de la nube** activado en Eventos de seguridad, las mismas lecturas guardan también los registros de auditoría de las cuentas como [eventos de seguridad](/docs/telemetry/security-events#leer-los-registros-de-auditoría-de-sus-cuentas-en-la-nube). La primera lectura de una conexión nueva empieza en menos de un minuto y retrocede una hora para las métricas y 2 horas para los cambios; tras una pausa, una lectura retrocede como máximo 6 horas. Un recurso que solo informa métricas, y que ninguna enumeración incluye, se archiva tras 7 días sin métricas. Los costos se leen dos veces al día, y las formas de gastar menos una vez al día.
 
 Las llamadas que hace OneUptime se facturan a tu cuenta en la nube, a los precios de tu nube. Enumerar recursos, leer cambios y eventos de estado, leer las formas de gastar menos y leer los costos de Azure no cuesta nada; leer métricas sí, y también leer los costos de AWS y de Google Cloud. La prueba estima el coste de lo que encuentra, y leer con menos frecuencia cuesta menos: cambia **Frecuencia de lectura de métricas** en **Más campos**.
 

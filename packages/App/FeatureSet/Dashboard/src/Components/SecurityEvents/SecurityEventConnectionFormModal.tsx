@@ -63,6 +63,41 @@ const pollingAdvancedSection: FormFieldCollapsibleSection<JSONObject> =
   getAdvancedFormSection<JSONObject>();
 
 /*
+ * The product's settings most people leave as they are
+ * (ConnectorField.isAdvanced: a Microsoft connection's Cloud, which is the
+ * public cloud for nearly every tenant), folded under More fields at the end
+ * of the Connection step, after what the product cannot be reached without.
+ * Folded, the line names a value set otherwise ("Cloud: Azure Government
+ * (US)").
+ */
+const connectionAdvancedSection: FormFieldCollapsibleSection<JSONObject> =
+  getAdvancedFormSection<JSONObject>();
+
+/*
+ * A provider's settings in the order the Connection step asks them: its own
+ * options (isOption) go to the last step, and what is folded under More
+ * fields (isAdvanced) comes after everything else.
+ */
+export function getConnectionStepFields(
+  definition: SecurityEventConnectorDefinition,
+): Array<ConnectorField> {
+  const settings: Array<ConnectorField> = definition.configFields.filter(
+    (field: ConnectorField): boolean => {
+      return !field.isOption;
+    },
+  );
+
+  return [
+    ...settings.filter((field: ConnectorField): boolean => {
+      return !field.isAdvanced;
+    }),
+    ...settings.filter((field: ConnectorField): boolean => {
+      return Boolean(field.isAdvanced);
+    }),
+  ];
+}
+
+/*
  * Every provider's fields live in ONE form and are shown or hidden by the
  * selected provider. Several providers share field keys (tenantId,
  * clientId, clientSecret...), so the form name is namespaced per provider
@@ -686,12 +721,13 @@ const SecurityEventConnectionFormModal: FunctionComponent<ComponentProps> = (
 
   for (const definition of definitions) {
     if (!credentialsOnly) {
-      // The product's settings; its options are asked with the connection's other options.
-      definition.configFields
-        .filter((field: ConnectorField): boolean => {
-          return !field.isOption;
-        })
-        .forEach((field: ConnectorField, index: number): void => {
+      /*
+       * The product's settings, what most people leave as it is folded under
+       * More fields last; its options are asked with the connection's other
+       * options.
+       */
+      getConnectionStepFields(definition).forEach(
+        (field: ConnectorField, index: number): void => {
           fields.push({
             field: { [configFieldName(definition.provider, field.key)]: true },
             title: field.title,
@@ -702,6 +738,19 @@ const SecurityEventConnectionFormModal: FunctionComponent<ComponentProps> = (
             ...(field.placeholder ? { placeholder: field.placeholder } : {}),
             disableSpellCheck: true,
             showIf: isSelected(definition),
+            ...(field.isAdvanced
+              ? {
+                  collapsibleSection: connectionAdvancedSection,
+                  /*
+                   * The catalog's default (the public cloud): the fold reads
+                   * it as nobody's setting, and a value set otherwise as one.
+                   */
+                  ...(typeof field.defaultValue === "string" ||
+                  typeof field.defaultValue === "number"
+                    ? { defaultValue: field.defaultValue }
+                    : {}),
+                }
+              : {}),
             ...(index === 0
               ? {
                   sectionTitle: `${definition.title} settings`,
@@ -726,7 +775,8 @@ const SecurityEventConnectionFormModal: FunctionComponent<ComponentProps> = (
                 }
               : {}),
           });
-        });
+        },
+      );
     }
 
     definition.secretFields.forEach(

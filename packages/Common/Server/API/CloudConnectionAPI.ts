@@ -1,5 +1,6 @@
 import CloudConnection from "../../Models/DatabaseModels/CloudConnection";
 import DatabaseCommonInteractionProps from "../../Types/BaseDatabase/DatabaseCommonInteractionProps";
+import { CloudProvider } from "../../Types/Cloud/CloudPlatform";
 import { CloudConnectionAwsRoleSetup } from "../../Types/CloudConnection/CloudConnectionSetupCommands";
 import { CloudConnectionTestResult } from "../../Types/CloudConnection/CloudConnectionTest";
 import BadDataException from "../../Types/Exception/BadDataException";
@@ -48,9 +49,19 @@ import CommonAPI from "./CommonAPI";
  *        an AWS role, the principal a role must trust, and the project's
  *        external id - what the IAM role command is written from.
  *
- * All three are for whoever may edit connections (project owners and
+ *   POST /cloud-connection/:connectionId/stream-key
+ *     -> { streamKey, createdAt, previousKeyWorksUntil }: a new key the
+ *        AWS connection's Firehose streams send its metrics and logs with
+ *        (CloudStream). Answered this once: only its SHA-256 is kept. The
+ *        key it replaces keeps working for a day.
+ *
+ *   POST /cloud-connection/:connectionId/stop-streaming
+ *     -> every stream key of the connection stops working.
+ *
+ * All of them are for whoever may edit connections (project owners and
  * admins): a test signs in to a cloud account with its credential, a read
- * imports, and the role setup is the first step of making one.
+ * imports, the role setup is the first step of making one, and a stream
+ * key writes into the project.
  */
 export default class CloudConnectionAPI extends BaseAPI<
   CloudConnection,
@@ -194,6 +205,55 @@ export default class CloudConnectionAPI extends BaseAPI<
       },
     );
 
+    this.router.post(
+      `${basePath}/:connectionId/stream-key`,
+      UserMiddleware.getUserMiddleware,
+      UserMiddleware.requireUserAuthentication,
+      async (req: ExpressRequest, res: ExpressResponse, next: NextFunction) => {
+        try {
+          const target: { connectionId: ObjectID; projectId: ObjectID } =
+            await this.readStreamConnection(req);
+
+          const created: {
+            streamKey: string;
+            createdAt: Date;
+            previousKeyWorksUntil: Date | null;
+          } = await CloudConnectionService.createStreamKey({
+            connectionId: target.connectionId,
+            now: new Date(),
+          });
+
+          return Response.sendJsonObjectResponse(req, res, {
+            streamKey: created.streamKey,
+            createdAt: created.createdAt.toISOString(),
+            previousKeyWorksUntil: created.previousKeyWorksUntil
+              ? created.previousKeyWorksUntil.toISOString()
+              : null,
+          });
+        } catch (error) {
+          next(error);
+        }
+      },
+    );
+
+    this.router.post(
+      `${basePath}/:connectionId/stop-streaming`,
+      UserMiddleware.getUserMiddleware,
+      UserMiddleware.requireUserAuthentication,
+      async (req: ExpressRequest, res: ExpressResponse, next: NextFunction) => {
+        try {
+          const target: { connectionId: ObjectID; projectId: ObjectID } =
+            await this.readStreamConnection(req);
+
+          await CloudConnectionService.stopStreaming(target.connectionId);
+
+          return Response.sendJsonObjectResponse(req, res, { stopped: true });
+        } catch (error) {
+          next(error);
+        }
+      },
+    );
+
     this.router.get(
       `${basePath}/aws-role-setup`,
       UserMiddleware.getUserMiddleware,
@@ -222,6 +282,44 @@ export default class CloudConnectionAPI extends BaseAPI<
         }
       },
     );
+  }
+
+  /*
+   * The AWS connection a stream route is for: the project's own, never one
+   * the body names.
+   */
+  private async readStreamConnection(
+    req: ExpressRequest,
+  ): Promise<{ connectionId: ObjectID; projectId: ObjectID }> {
+    const props: DatabaseCommonInteractionProps =
+      await CommonAPI.getDatabaseCommonInteractionProps(req);
+    const projectId: ObjectID =
+      CommonAPI.assertAuthenticatedProjectMember(props);
+    this.assertCanOperate(props);
+
+    const connectionId: string | undefined = req.params["connectionId"];
+
+    if (!connectionId || !ObjectID.isValidUUID(connectionId)) {
+      throw new BadDataException("A valid connection ID is required.");
+    }
+
+    const connection: CloudConnection | null = await this.service.findOneBy({
+      query: { _id: connectionId, projectId },
+      select: { _id: true, projectId: true, provider: true },
+      props,
+    });
+    CommonAPI.assertResourceBelongsToProject({
+      resourceProjectId: connection?.projectId,
+      projectId,
+    });
+
+    if (connection?.provider !== CloudProvider.AWS) {
+      throw new BadDataException(
+        "Only AWS connections stream metrics and logs through Amazon Data Firehose.",
+      );
+    }
+
+    return { connectionId: new ObjectID(connectionId), projectId };
   }
 
   private assertCanOperate(props: DatabaseCommonInteractionProps): void {
