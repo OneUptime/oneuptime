@@ -59,10 +59,103 @@ export const MAX_WINDOWS_FIELD_VALUE_LENGTH: number = 4096;
 const MAX_DEPTH: number = 8;
 
 /*
+ * Layouts many events share: the account an event names, then who changed
+ * it (4722 and the rest), and a group's member, then the group.
+ */
+const ACCOUNT_THEN_SUBJECT: ReadonlyArray<string> = [
+  "TargetUserName",
+  "TargetDomainName",
+  "TargetSid",
+  "SubjectUserSid",
+  "SubjectUserName",
+  "SubjectDomainName",
+  "SubjectLogonId",
+  "PrivilegeList",
+];
+
+const GROUP_MEMBER_CHANGE: ReadonlyArray<string> = [
+  "MemberName",
+  "MemberSid",
+  ...ACCOUNT_THEN_SUBJECT,
+];
+
+// Who did it, as most Security events open.
+const SUBJECT: ReadonlyArray<string> = [
+  "SubjectUserSid",
+  "SubjectUserName",
+  "SubjectDomainName",
+  "SubjectLogonId",
+];
+
+// A scheduled task's events (4698-4702): the task, and its XML.
+const SCHEDULED_TASK: ReadonlyArray<string> = [
+  ...SUBJECT,
+  "TaskName",
+  "TaskContent",
+  "ClientProcessStartKey",
+  "ClientProcessId",
+  "ParentProcessId",
+  "RpcCallClientLocality",
+  "FQDN",
+];
+
+/*
+ * Microsoft Defender's detections (1116 to 1119), each field under the name
+ * its EventData gives it, spaces and all, as the readers read them.
+ */
+const DEFENDER_DETECTION: ReadonlyArray<string> = [
+  "Product Name",
+  "Product Version",
+  "Detection ID",
+  "Detection Time",
+  "Unused",
+  "Unused2",
+  "Threat ID",
+  "Threat Name",
+  "Severity ID",
+  "Severity Name",
+  "Category ID",
+  "Category Name",
+  "FWLink",
+  "Status Code",
+  "Status Description",
+  "State",
+  "Source ID",
+  "Source Name",
+  "Process Name",
+  "Detection User",
+  "Unused3",
+  "Path",
+  "Origin ID",
+  "Origin Name",
+  "Execution ID",
+  "Execution Name",
+  "Type ID",
+  "Type Name",
+  "Pre Execution Status",
+  "Action ID",
+  "Action Name",
+  "Unused4",
+  "Error Code",
+  "Error Description",
+  "Unused5",
+  "Post Clean Status",
+  "Additional Actions ID",
+  "Additional Actions String",
+  "Remediation User",
+  "Unused6",
+  "Security intelligence Version",
+  "Engine Version",
+];
+
+/*
  * The fields Fluent Bit's winevtlog input sends by position only
- * (StringInserts), named in the order Windows writes them, for the events
- * that matter most and change least: a sign-in, a failed one, a process.
- * Later versions of an event add fields at the end, never before.
+ * (StringInserts), named in the order Windows writes them, for every event
+ * the Windows parser reads a field of (WindowsEventLogParser) whose fields
+ * are not already named param1, param2... as Windows writes them (7040).
+ * Later versions of an event add fields at the end, never before - but for
+ * Sysmon's process creation, whose OriginalFileName came in between
+ * (STRING_INSERT_MINIMUM_COUNTS).
  */
 export const STRING_INSERT_FIELDS: ReadonlyMap<
   string,
@@ -137,7 +230,273 @@ export const STRING_INSERT_FIELDS: ReadonlyMap<
     "ParentProcessName",
     "MandatoryLabel",
   ],
+  "microsoft-windows-security-auditing:4648": [
+    ...SUBJECT,
+    "LogonGuid",
+    "TargetUserName",
+    "TargetDomainName",
+    "TargetLogonGuid",
+    "TargetServerName",
+    "TargetInfo",
+    "ProcessId",
+    "ProcessName",
+    "IpAddress",
+    "IpPort",
+  ],
+  "microsoft-windows-security-auditing:4697": [
+    ...SUBJECT,
+    "ServiceName",
+    "ServiceFileName",
+    "ServiceType",
+    "ServiceStartType",
+    "ServiceAccount",
+  ],
+  "microsoft-windows-security-auditing:4698": SCHEDULED_TASK,
+  "microsoft-windows-security-auditing:4699": SCHEDULED_TASK,
+  "microsoft-windows-security-auditing:4700": SCHEDULED_TASK,
+  "microsoft-windows-security-auditing:4701": SCHEDULED_TASK,
+  "microsoft-windows-security-auditing:4702": [
+    ...SUBJECT,
+    "TaskName",
+    "TaskContentNew",
+    "ClientProcessStartKey",
+    "ClientProcessId",
+    "ParentProcessId",
+    "RpcCallClientLocality",
+    "FQDN",
+  ],
+  "microsoft-windows-security-auditing:4719": [
+    ...SUBJECT,
+    "CategoryId",
+    "SubcategoryId",
+    "SubcategoryGuid",
+    "AuditPolicyChanges",
+  ],
+  "microsoft-windows-security-auditing:4720": [
+    ...ACCOUNT_THEN_SUBJECT,
+    "SamAccountName",
+    "DisplayName",
+    "UserPrincipalName",
+    "HomeDirectory",
+    "HomePath",
+    "ScriptPath",
+    "ProfilePath",
+    "UserWorkstations",
+    "PasswordLastSet",
+    "AccountExpires",
+    "PrimaryGroupId",
+    "AllowedToDelegateTo",
+    "OldUacValue",
+    "NewUacValue",
+    "UserAccountControl",
+    "UserParameters",
+    "SidHistory",
+    "LogonHours",
+  ],
+  "microsoft-windows-security-auditing:4722": ACCOUNT_THEN_SUBJECT,
+  "microsoft-windows-security-auditing:4723": ACCOUNT_THEN_SUBJECT,
+  "microsoft-windows-security-auditing:4724": ACCOUNT_THEN_SUBJECT,
+  "microsoft-windows-security-auditing:4725": ACCOUNT_THEN_SUBJECT,
+  "microsoft-windows-security-auditing:4726": ACCOUNT_THEN_SUBJECT,
+  "microsoft-windows-security-auditing:4728": GROUP_MEMBER_CHANGE,
+  "microsoft-windows-security-auditing:4729": GROUP_MEMBER_CHANGE,
+  "microsoft-windows-security-auditing:4732": GROUP_MEMBER_CHANGE,
+  "microsoft-windows-security-auditing:4733": GROUP_MEMBER_CHANGE,
+  "microsoft-windows-security-auditing:4740": ACCOUNT_THEN_SUBJECT,
+  "microsoft-windows-security-auditing:4756": GROUP_MEMBER_CHANGE,
+  "microsoft-windows-security-auditing:4757": GROUP_MEMBER_CHANGE,
+  "microsoft-windows-security-auditing:4767": ACCOUNT_THEN_SUBJECT,
+  "microsoft-windows-security-auditing:4771": [
+    "TargetUserName",
+    "TargetSid",
+    "ServiceName",
+    "TicketOptions",
+    "Status",
+    "PreAuthType",
+    "IpAddress",
+    "IpPort",
+    "CertIssuerName",
+    "CertSerialNumber",
+    "CertThumbprint",
+  ],
+  "microsoft-windows-security-auditing:4781": [
+    "OldTargetUserName",
+    "NewTargetUserName",
+    "TargetDomainName",
+    "TargetSid",
+    ...SUBJECT,
+    "PrivilegeList",
+  ],
+  // A log cleared: UserData's LogFileCleared, in its order.
+  "microsoft-windows-eventlog:1102": SUBJECT,
+  "microsoft-windows-eventlog:104": [
+    "SubjectUserName",
+    "SubjectDomainName",
+    "Channel",
+    "BackupPath",
+  ],
+  "service control manager:7045": [
+    "ServiceName",
+    "ImagePath",
+    "ServiceType",
+    "StartType",
+    "AccountName",
+  ],
+  "microsoft-windows-powershell:4104": [
+    "MessageNumber",
+    "MessageTotal",
+    "ScriptBlockText",
+    "ScriptBlockId",
+    "Path",
+  ],
+  "microsoft-windows-windows defender:1116": DEFENDER_DETECTION,
+  "microsoft-windows-windows defender:1117": DEFENDER_DETECTION,
+  "microsoft-windows-windows defender:1118": DEFENDER_DETECTION,
+  "microsoft-windows-windows defender:1119": DEFENDER_DETECTION,
+  "microsoft-windows-windows defender:5007": [
+    "Product Name",
+    "Product Version",
+    "Old Value",
+    "New Value",
+  ],
+  // Sysmon's, as schema 4.90 (Sysmon 15) writes them.
+  "microsoft-windows-sysmon:1": [
+    "RuleName",
+    "UtcTime",
+    "ProcessGuid",
+    "ProcessId",
+    "Image",
+    "FileVersion",
+    "Description",
+    "Product",
+    "Company",
+    "OriginalFileName",
+    "CommandLine",
+    "CurrentDirectory",
+    "User",
+    "LogonGuid",
+    "LogonId",
+    "TerminalSessionId",
+    "IntegrityLevel",
+    "Hashes",
+    "ParentProcessGuid",
+    "ParentProcessId",
+    "ParentImage",
+    "ParentCommandLine",
+    "ParentUser",
+  ],
+  "microsoft-windows-sysmon:3": [
+    "RuleName",
+    "UtcTime",
+    "ProcessGuid",
+    "ProcessId",
+    "Image",
+    "User",
+    "Protocol",
+    "Initiated",
+    "SourceIsIpv6",
+    "SourceIp",
+    "SourceHostname",
+    "SourcePort",
+    "SourcePortName",
+    "DestinationIsIpv6",
+    "DestinationIp",
+    "DestinationHostname",
+    "DestinationPort",
+    "DestinationPortName",
+  ],
+  "microsoft-windows-sysmon:8": [
+    "RuleName",
+    "UtcTime",
+    "SourceProcessGuid",
+    "SourceProcessId",
+    "SourceImage",
+    "TargetProcessGuid",
+    "TargetProcessId",
+    "TargetImage",
+    "NewThreadId",
+    "StartAddress",
+    "StartModule",
+    "StartFunction",
+    "SourceUser",
+    "TargetUser",
+  ],
+  "microsoft-windows-sysmon:10": [
+    "RuleName",
+    "UtcTime",
+    "SourceProcessGUID",
+    "SourceProcessId",
+    "SourceThreadId",
+    "SourceImage",
+    "TargetProcessGUID",
+    "TargetProcessId",
+    "TargetImage",
+    "GrantedAccess",
+    "CallTrace",
+    "SourceUser",
+    "TargetUser",
+  ],
+  "microsoft-windows-sysmon:11": [
+    "RuleName",
+    "UtcTime",
+    "ProcessGuid",
+    "ProcessId",
+    "Image",
+    "TargetFilename",
+    "CreationUtcTime",
+    "User",
+  ],
+  "microsoft-windows-sysmon:13": [
+    "RuleName",
+    "EventType",
+    "UtcTime",
+    "ProcessGuid",
+    "ProcessId",
+    "Image",
+    "TargetObject",
+    "Details",
+    "User",
+  ],
+  "microsoft-windows-sysmon:22": [
+    "RuleName",
+    "UtcTime",
+    "ProcessGuid",
+    "ProcessId",
+    "QueryName",
+    "QueryStatus",
+    "QueryResults",
+    "Image",
+    "User",
+  ],
 });
+
+/*
+ * The fewest inserts a record must have for its layout to apply: Sysmon's
+ * process creation gained OriginalFileName in the middle (Sysmon 10, schema
+ * 4.21), so one with fewer than its 22 fields predates it, and its fields
+ * stay param1, param2... rather than be named one place off.
+ */
+export const STRING_INSERT_MINIMUM_COUNTS: ReadonlyMap<string, number> =
+  lookupTable({
+    "microsoft-windows-sysmon:1": 22,
+  });
+
+// The names a record's positional fields take, or none for no layout of its own.
+export function getStringInsertNames(data: {
+  provider: string;
+  eventId: number;
+  insertCount: number;
+}): ReadonlyArray<string> {
+  const key: string = `${data.provider.trim().toLowerCase()}:${data.eventId}`;
+  const names: ReadonlyArray<string> | undefined =
+    STRING_INSERT_FIELDS.get(key);
+
+  if (!names || data.insertCount < (STRING_INSERT_MINIMUM_COUNTS.get(key) || 1)) {
+    return [];
+  }
+
+  return names;
+}
 
 function cap(value: string): string {
   return value.length > MAX_WINDOWS_FIELD_VALUE_LENGTH
@@ -513,8 +872,11 @@ function fromShipperJson(body: JSONObject): WindowsEventRecord | null {
   const inserts: unknown = body["StringInserts"];
 
   if (Array.isArray(inserts)) {
-    const names: ReadonlyArray<string> =
-      STRING_INSERT_FIELDS.get(`${provider.toLowerCase()}:${eventId}`) || [];
+    const names: ReadonlyArray<string> = getStringInsertNames({
+      provider,
+      eventId,
+      insertCount: inserts.length,
+    });
 
     inserts
       .slice(0, MAX_WINDOWS_EVENT_FIELDS)
