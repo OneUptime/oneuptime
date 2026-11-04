@@ -32,6 +32,6 @@
 ## अगले कदम
 
 :::cards
-- [टेबल की सेहत](/docs/data-observability/table-health): हर टेबल की ताज़गी कैसे सीखी जाती है।
+- [टेबल का स्वास्थ्य](/docs/data-observability/table-health): हर टेबल की ताज़गी कैसे सीखी जाती है।
 - [OneUptime AI और API](/docs/data-observability/ai-and-api): AI एजेंटों को किसी प्रोडक्ट की टेबल का उपयोग करने से पहले उन्हें जांचने दें।
 :::

@@ -131,6 +131,6 @@ Unity Catalog のカタログ 1 つが 1 つのデータベースです。サー
 ## 次のステップ
 
 :::cards
-- [テーブルの健全性](/docs/data-observability/table-health): 各収集がすべてのテーブルについて把握すること、そして推奨されるアラート。
+- [テーブルのヘルス](/docs/data-observability/table-health): 各収集がすべてのテーブルについて把握すること、そして推奨されるアラート。
 - [チェックと照合](/docs/data-observability/checks): テーブルの中身に対するルール。
 :::
