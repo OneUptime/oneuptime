@@ -5,8 +5,10 @@ import {
   CodeTaskContextInput,
   CodeTaskListKind,
   CodeTaskRepositoryJSON,
+  CodeTaskStepJSON,
   CodeTaskSummaryJSON,
   CodeTaskTurnJSON,
+  CodeTaskTurnProgressJSON,
 } from "Common/Types/AI/CodeTask";
 import HTTPErrorResponse from "Common/Types/API/HTTPErrorResponse";
 import HTTPResponse from "Common/Types/API/HTTPResponse";
@@ -154,6 +156,36 @@ export default class CodeApi {
       canSeeChanges: data["canSeeChanges"] === true,
       canReadLogContent: data["canReadLogContent"] === true,
       blocker: (data["blocker"] as unknown as CodeTaskBlocker | null) || null,
+    };
+  }
+
+  /*
+   * How a turn AI is working on stands now, and the steps it took after
+   * the last one the page shows (afterSequence; -1 for none): what a
+   * task's conversation reads as each step happens (CodeTaskLive).
+   */
+  public static async getTurnProgress(data: {
+    taskId: string;
+    runId: string;
+    afterSequence: number;
+  }): Promise<CodeTaskTurnProgressJSON> {
+    const response: JSONObject = await CodeApi.post(
+      `/progress/${data.taskId}`,
+      { runId: data.runId, afterSequence: data.afterSequence },
+    );
+
+    return {
+      runId: (response["runId"] as string) || data.runId,
+      status: (response["status"] as string) || "",
+      state: response["state"] as CodeTaskTurnProgressJSON["state"],
+      isQueued: response["isQueued"] === true,
+      ...(typeof response["startedAt"] === "string"
+        ? { startedAt: response["startedAt"] }
+        : {}),
+      steps: Array.isArray(response["steps"])
+        ? (response["steps"] as unknown as Array<CodeTaskStepJSON>)
+        : [],
+      hasMore: response["hasMore"] === true,
     };
   }
 
