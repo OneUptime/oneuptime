@@ -1878,6 +1878,9 @@ describe("Security Cases and Playbooks docs", () => {
     expect(page).toContain(
       "the notification choices and the Slack, Microsoft Teams and Mattermost rules read this order.",
     );
+    expect(page).toContain(
+      "in Slack, Microsoft Teams and Mattermost, and in playbook messages.",
+    );
   });
 
   it("sends people to each workspace's rules, and with none connected to the entry that connects one", () => {
