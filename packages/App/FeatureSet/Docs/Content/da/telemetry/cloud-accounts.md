@@ -320,7 +320,7 @@ En organisationspolitik, `iam.disableServiceAccountKeyCreation`, kan forbyde nø
 :::
 
 :::details Der vises ingen ressourcer
-Den første læsning viser hver ressource i kontoen, uanset om den rapporterer metrikker. Hvis en forbindelse ikke virker, siger **View error** under **Cloud → Forbind**, hvorfor dens seneste læsning mislykkedes.
+Den første læsning viser hver ressource i kontoen, uanset om den rapporterer metrikker. Hvis en forbindelse ikke virker, siger **Vis fejl** under **Cloud → Forbind**, hvorfor dens seneste læsning mislykkedes.
 :::
 
 :::details Nogle af organisationens konti mangler
