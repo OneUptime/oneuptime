@@ -257,6 +257,26 @@ export const REMEDIATION_FIX_HIDE_DETAILS: string =
   translationKey("Hide details");
 
 /*
+ * What declines a fix that waits for approval, or one still being worked
+ * out: a key of its own. The shared "Dismiss" reads as each language's word
+ * for Hide since #5512 - a notice put away - and declining a fix is not
+ * hiding it: it is never run, and the fix says it was dismissed. Each
+ * language words it as its "Dismissed" status does, which is what pressing
+ * it leaves the fix showing.
+ */
+export const REMEDIATION_FIX_DISMISS: string = translationKey("Dismiss fix");
+
+/*
+ * The server's refusal of Dismiss fix, word for word
+ * (Types/Runbook/RunbookRunPermissions' FIX_DISMISS_REFUSED_MESSAGE), so it
+ * reads in the reader's language under the buttons: dismissing asks what
+ * approving asks, as the fix's Slack and Microsoft Teams buttons do.
+ */
+export const REMEDIATION_FIX_DISMISS_REFUSED: string = translationKey(
+  "You do not have permission to dismiss this fix. Dismissing a fix needs the permission approving one does: starting runbook executions in this project.",
+);
+
+/*
  * A FIX, STEP BY STEP (issue #5598): "Ideally it should be in steps where
  * you have step by step sections on what AI did and why, and when I expand
  * the step - it shows me more context into why, commands ran, outputs."
@@ -283,6 +303,11 @@ export const REMEDIATION_FIX_STEP_COPY: {
   cannotBeApproved: string;
   approved: string;
   approvedBy: string;
+  // Approved from the fix's chat message, said beside who approved it.
+  approvedInSlack: string;
+  approvedByInSlack: string;
+  approvedInTeams: string;
+  approvedByInTeams: string;
   approvedAutomatically: string;
   dismissed: string;
   dismissedBy: string;
@@ -330,6 +355,10 @@ export const REMEDIATION_FIX_STEP_COPY: {
   cannotBeApproved: translationKey("Approval blocked"),
   approved: translationKey("Approved"),
   approvedBy: translationKey("Approved by {{name}}"),
+  approvedInSlack: translationKey("Approved in Slack"),
+  approvedByInSlack: translationKey("Approved by {{name}} in Slack"),
+  approvedInTeams: translationKey("Approved in Microsoft Teams"),
+  approvedByInTeams: translationKey("Approved by {{name}} in Microsoft Teams"),
   approvedAutomatically: translationKey("Approved automatically"),
   dismissed: translationKey("Dismissed, so nothing ran"),
   dismissedBy: translationKey("Dismissed by {{name}}"),

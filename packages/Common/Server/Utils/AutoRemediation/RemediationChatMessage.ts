@@ -14,7 +14,9 @@ import {
 } from "../../../Types/AutoRemediation/ExternalMcpToolCallPlan";
 import {
   getRemediationTrackRecordTone,
+  parseRemediationTrackRecord,
   RemediationTrackRecord,
+  RemediationTrackRecordRun,
   RemediationTrackRecordTone,
 } from "../../../Types/AutoRemediation/RemediationTrackRecord";
 import { KubectlCommandTier } from "../../../Types/Kubernetes/KubernetesClusterAiAccess";
@@ -44,7 +46,7 @@ import FeedMarkdown, {
 import { MessageBlocksByWorkspaceType } from "../../Services/WorkspaceNotificationRuleService";
 import AlertService from "../../Services/AlertService";
 import IncidentService from "../../Services/IncidentService";
-import { describeRemediationTrackRecordLine } from "../../../Types/AutoRemediation/RemediationTrackRecordWords";
+import { describeRemediationTrackRecord } from "../../../Types/AutoRemediation/RemediationTrackRecordWords";
 import logger from "../Logger";
 import SlackActionType from "../Workspace/Slack/Actions/ActionTypes";
 import { getRemediationPlanFingerprint } from "./RemediationPlanFingerprint";
@@ -92,7 +94,25 @@ export interface RemediationChatFix {
   mcpToolCallPlan?: ExternalMcpToolCallPlan | null | undefined;
   runbookId?: ObjectID | undefined;
   runbookName?: string | undefined;
+  /*
+   * How the runbook a Runbook fix proposes went the last times OneUptime
+   * AI ran it as a fix here (the suggestion's runbookTrackRecord).
+   */
+  runbookTrackRecord?: RemediationTrackRecord | undefined;
   verificationWindowMinutes?: number | undefined;
+}
+
+/*
+ * The pages of the incidents and alerts a fix's track records name, by
+ * getTrackRecordRunKey: what each name in a record's line links to
+ * (getTrackRecordRunLinks). A run whose page could not be built is named
+ * without a link.
+ */
+export type TrackRecordRunLinks = Map<string, URL>;
+
+// The key a run's page is kept under: its kind and its incident's or alert's id.
+export function getTrackRecordRunKey(run: RemediationTrackRecordRun): string {
+  return `${run.subjectKind}:${run.subjectId.toLowerCase()}`;
 }
 
 // A button's value: the fix, and the fingerprint of what it ran then.
@@ -169,6 +189,35 @@ export function describeChangeTier(
  * What a change runs on: 'cluster "prod-eu-west-1"', 'AWS account "prod"',
  * or nothing for a Runner's command.
  */
+/*
+ * A track record's line in a chat: its mark, its sentence and the incidents
+ * and alerts it names, each a link to its page in OneUptime when one was
+ * built - '✅ Worked both times it ran here before ([INC-41](...),
+ * [#305](...)).' - as the AI card links them.
+ */
+export function describeTrackRecordLine(
+  record: RemediationTrackRecord,
+  links?: TrackRecordRunLinks | undefined,
+): MarkdownText {
+  const mark: string = TRACK_RECORD_MARKS[getRemediationTrackRecordTone(record)];
+  const sentence: string = describeRemediationTrackRecord(record);
+  const named: Array<MarkdownText> = record.runs
+    .filter((run: RemediationTrackRecordRun): boolean => {
+      return Boolean(run.subjectNumber);
+    })
+    .map((run: RemediationTrackRecordRun): MarkdownText => {
+      const url: URL | undefined = links?.get(getTrackRecordRunKey(run));
+
+      return url
+        ? FeedMarkdown.link(run.subjectNumber || "", url.toString())
+        : mdText`${run.subjectNumber || ""}`;
+    });
+
+  return named.length > 0
+    ? mdText`${mark} ${sentence} (${FeedMarkdown.join(named, ", ")}).`
+    : mdText`${mark} ${sentence}.`;
+}
+
 export function describeChangeTarget(
   command: AiRemediationCommand,
 ): string | null {
@@ -247,8 +296,64 @@ export default class RemediationChatMessage {
       ),
       runbookId: suggestion.runbookId,
       runbookName: suggestion.runbookNameSnapshot,
+      runbookTrackRecord: parseRemediationTrackRecord(
+        suggestion.runbookTrackRecord,
+      ),
       verificationWindowMinutes: suggestion.verificationWindowMinutes,
     };
+  }
+
+  /*
+   * The page of every incident and alert the fix's track records name - a
+   * change's, its runbook's - built once each, so the names in a record's
+   * line are links (describeTrackRecordLine). Empty when there are none; a
+   * page that cannot be built is left out, and its name stays text.
+   */
+  public static async getTrackRecordRunLinks(
+    fix: RemediationChatFix,
+  ): Promise<TrackRecordRunLinks> {
+    const links: TrackRecordRunLinks = new Map<string, URL>();
+    const runs: Array<RemediationTrackRecordRun> = [
+      ...(fix.commandPlan?.commands || []).flatMap(
+        (command: AiRemediationCommand): Array<RemediationTrackRecordRun> => {
+          return command.trackRecord?.runs || [];
+        },
+      ),
+      ...(fix.runbookTrackRecord?.runs || []),
+    ];
+
+    for (const run of runs) {
+      const key: string = getTrackRecordRunKey(run);
+
+      if (
+        links.has(key) ||
+        !run.subjectNumber ||
+        !ObjectID.isValidUUID(run.subjectId)
+      ) {
+        continue;
+      }
+
+      try {
+        links.set(
+          key,
+          run.subjectKind === "incident"
+            ? await IncidentService.getIncidentLinkInDashboard(
+                fix.projectId,
+                new ObjectID(run.subjectId),
+              )
+            : await AlertService.getAlertLinkInDashboard(
+                fix.projectId,
+                new ObjectID(run.subjectId),
+              ),
+        );
+      } catch (error) {
+        logger.error(
+          `RemediationChatMessage: could not build the link of a track record's run: ${error}`,
+        );
+      }
+    }
+
+    return links;
   }
 
   // The fingerprint of what the fix runs, read as approving reads it.
@@ -279,6 +384,8 @@ export default class RemediationChatMessage {
       withDetails: boolean;
       // Slack's when not given.
       workspaceType?: WorkspaceType | undefined;
+      // The pages a track record's names link to (getTrackRecordRunLinks).
+      runLinks?: TrackRecordRunLinks | undefined;
     },
   ): Array<MarkdownText> {
     const workspaceType: WorkspaceType =
@@ -294,6 +401,7 @@ export default class RemediationChatMessage {
             command,
             withDetails: options.withDetails,
             workspaceType,
+            runLinks: options.runLinks,
           });
         },
       );
@@ -320,18 +428,35 @@ export default class RemediationChatMessage {
       ];
     }
 
-    return [mdText`Runbook **${capped(fix.runbookName || "Runbook", 200)}**`];
+    const runbook: MarkdownText = mdText`Runbook **${capped(fix.runbookName || "Runbook", 200)}**`;
+
+    // How the runbook went the last times it ran, on a line of its own.
+    return fix.runbookTrackRecord
+      ? [
+          FeedMarkdown.join(
+            [
+              runbook,
+              describeTrackRecordLine(fix.runbookTrackRecord, options.runLinks),
+            ],
+            getChatLineBreak(workspaceType),
+          ),
+        ]
+      : [runbook];
   }
 
   // The changes as one Slack Markdown text: a change a paragraph.
   public static describeChanges(
     fix: RemediationChatFix,
-    options: { withDetails: boolean },
+    options: {
+      withDetails: boolean;
+      runLinks?: TrackRecordRunLinks | undefined;
+    },
   ): MarkdownText {
     return FeedMarkdown.join(
       RemediationChatMessage.describeChangeParts(fix, {
         withDetails: options.withDetails,
         workspaceType: WorkspaceType.Slack,
+        runLinks: options.runLinks,
       }),
       "\n\n",
     );
@@ -382,6 +507,7 @@ export default class RemediationChatMessage {
     command: AiRemediationCommand;
     withDetails: boolean;
     workspaceType: WorkspaceType;
+    runLinks?: TrackRecordRunLinks | undefined;
   }): MarkdownText {
     const { command, withDetails } = data;
 
@@ -413,9 +539,7 @@ export default class RemediationChatMessage {
     const record: RemediationTrackRecord | undefined = command.trackRecord;
 
     if (record) {
-      lines.push(
-        mdText`${TRACK_RECORD_MARKS[getRemediationTrackRecordTone(record)]} ${describeRemediationTrackRecordLine(record)}`,
-      );
+      lines.push(describeTrackRecordLine(record, data.runLinks));
     }
 
     return FeedMarkdown.join(lines, getChatLineBreak(data.workspaceType));
@@ -459,6 +583,8 @@ export default class RemediationChatMessage {
     subjectTitle?: string | undefined;
     // Slack's when not given.
     workspaceType?: WorkspaceType | undefined;
+    // The pages a track record's names link to (getTrackRecordRunLinks).
+    runLinks?: TrackRecordRunLinks | undefined;
   }): Array<MarkdownText> {
     const window: number = data.fix.verificationWindowMinutes || 15;
     const product: string = ProductBrandingText.getProductName();
@@ -476,6 +602,7 @@ export default class RemediationChatMessage {
       ...RemediationChatMessage.describeChangeParts(data.fix, {
         withDetails: true,
         workspaceType: data.workspaceType,
+        runLinks: data.runLinks,
       }),
       mdText`Approving runs exactly what is shown, under your name. ${watched}`,
     ];
@@ -487,6 +614,7 @@ export default class RemediationChatMessage {
     // "Incident INC-42", "Alert #305".
     subjectName: string;
     subjectTitle?: string | undefined;
+    runLinks?: TrackRecordRunLinks | undefined;
   }): MarkdownText {
     return FeedMarkdown.join(
       RemediationChatMessage.describeApprovalParts({
@@ -500,15 +628,27 @@ export default class RemediationChatMessage {
   /*
    * What a fix's message lists before its buttons, in a chat's blocks:
    * Slack's one text of every change; a text block a change in Microsoft
-   * Teams (getChatLineBreak). Nothing for a runbook: the message above the
-   * buttons names it already, and its dialog names it again.
+   * Teams (getChatLineBreak). For a runbook only how it went before, when
+   * it ran before: the message above the buttons names it already, and its
+   * dialog names it again.
    */
   private static getChangeBlocks(
     fix: RemediationChatFix,
     workspaceType: WorkspaceType,
+    runLinks: TrackRecordRunLinks,
   ): Array<WorkspacePayloadMarkdown> {
     if (fix.suggestionType === AutoRemediationSuggestionType.Runbook) {
-      return [];
+      return fix.runbookTrackRecord
+        ? [
+            {
+              _type: "WorkspacePayloadMarkdown",
+              text: describeTrackRecordLine(
+                fix.runbookTrackRecord,
+                runLinks,
+              ).toString(),
+            },
+          ]
+        : [];
     }
 
     const parts: Array<MarkdownText> =
@@ -516,8 +656,14 @@ export default class RemediationChatMessage {
         ? RemediationChatMessage.describeChangeParts(fix, {
             withDetails: false,
             workspaceType,
+            runLinks,
           })
-        : [RemediationChatMessage.describeChanges(fix, { withDetails: false })];
+        : [
+            RemediationChatMessage.describeChanges(fix, {
+              withDetails: false,
+              runLinks,
+            }),
+          ];
 
     return parts
       .map((part: MarkdownText): string => {
@@ -549,6 +695,8 @@ export default class RemediationChatMessage {
 
       const viewUrl: URL | null =
         await RemediationChatMessage.getSubjectUrl(fix);
+      const runLinks: TrackRecordRunLinks =
+        await RemediationChatMessage.getTrackRecordRunLinks(fix);
 
       const buttons: Array<WorkspaceMessagePayloadButton> = [
         {
@@ -589,7 +737,11 @@ export default class RemediationChatMessage {
       return [WorkspaceType.Slack, WorkspaceType.MicrosoftTeams].map(
         (workspaceType: WorkspaceType): MessageBlocksByWorkspaceType => {
           const blocks: Array<WorkspaceMessageBlock> = [
-            ...RemediationChatMessage.getChangeBlocks(fix, workspaceType),
+            ...RemediationChatMessage.getChangeBlocks(
+              fix,
+              workspaceType,
+              runLinks,
+            ),
             buttonsBlock,
             note,
           ];
@@ -616,6 +768,8 @@ export default class RemediationChatMessage {
     commandPlan?: AiRemediationCommandPlan | undefined;
     mcpToolCallPlan?: ExternalMcpToolCallPlan | undefined;
     runbook?: { id?: ObjectID | null | undefined; name?: string | undefined };
+    // How the runbook went the last times it ran (RemediationPlanRunner).
+    runbookTrackRecord?: RemediationTrackRecord | undefined;
   }): Promise<Array<MessageBlocksByWorkspaceType>> {
     if (!data.suggestion.id || !data.suggestion.projectId) {
       return [];
@@ -637,6 +791,7 @@ export default class RemediationChatMessage {
       mcpToolCallPlan: data.mcpToolCallPlan,
       runbookId: data.runbook?.id || undefined,
       runbookName: data.runbook?.name,
+      runbookTrackRecord: data.runbookTrackRecord,
       verificationWindowMinutes: data.suggestion.verificationWindowMinutes,
     });
   }

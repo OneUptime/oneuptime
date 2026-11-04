@@ -3,6 +3,7 @@ import {
   AI_ACTIVITY_INSIGHTS_RECURRING_ATTENTION_MIN,
   AiActivityCoverage,
   AiActivityFinding,
+  AiActivityFixApprovalSources,
   AiActivityFixOutcomes,
   AiActivityFixTaskOutcomes,
   AiActivityHotspot,
@@ -561,6 +562,11 @@ export function parseAiActivityInsights(
       : {}),
   };
 
+  // Where the approved fixes were approved, when the server counted it.
+  const approvedFrom: JSONObject | null = isObject(fixOutcomes["approvedFrom"])
+    ? fixOutcomes["approvedFrom"]
+    : null;
+
   const readFixOutcomes: AiActivityFixOutcomes = {
     total: readCount(fixOutcomes["total"]),
     planning: readCount(fixOutcomes["planning"]),
@@ -572,6 +578,15 @@ export function parseAiActivityInsights(
     verified: readCount(fixOutcomes["verified"]),
     failed: readCount(fixOutcomes["failed"]),
     verifying: readCount(fixOutcomes["verifying"]),
+    ...(approvedFrom
+      ? {
+          approvedFrom: {
+            dashboard: readCount(approvedFrom["dashboard"]),
+            slack: readCount(approvedFrom["slack"]),
+            microsoftTeams: readCount(approvedFrom["microsoftTeams"]),
+          },
+        }
+      : {}),
   };
 
   return {
@@ -2094,6 +2109,47 @@ export function getFixSegments(
   ].filter((segment: AiInsightsFixSegment): boolean => {
     return segment.value > 0;
   });
+}
+
+/*
+ * Where the window's approved fixes were approved - in OneUptime (the AI
+ * card), in Slack, in Microsoft Teams - as the Fixes section lists it: one
+ * row a place that approved any, most first, or none at all until a fix
+ * was approved from a chat (the card is where every fix was approved
+ * before the chats could, so a list of the card alone says nothing new).
+ */
+export interface AiInsightsFixApprovalPlace {
+  label: string;
+  count: number;
+}
+
+export const AI_INSIGHTS_FIX_APPROVAL_PLACES_TITLE: string = translationKey(
+  "Where fixes were approved",
+);
+
+export function getFixApprovalPlaces(
+  outcomes: AiActivityFixOutcomes,
+): Array<AiInsightsFixApprovalPlace> {
+  const sources: AiActivityFixApprovalSources | undefined =
+    outcomes.approvedFrom;
+
+  if (!sources || sources.slack + sources.microsoftTeams <= 0) {
+    return [];
+  }
+
+  return [
+    { label: translationKey("In OneUptime"), count: sources.dashboard },
+    { label: translationKey("In Slack"), count: sources.slack },
+    { label: translationKey("In Microsoft Teams"), count: sources.microsoftTeams },
+  ]
+    .filter((place: AiInsightsFixApprovalPlace): boolean => {
+      return place.count > 0;
+    })
+    .sort(
+      (a: AiInsightsFixApprovalPlace, b: AiInsightsFixApprovalPlace): number => {
+        return b.count - a.count;
+      },
+    );
 }
 
 // How applied fixes' verification went, or null when nothing was verified.

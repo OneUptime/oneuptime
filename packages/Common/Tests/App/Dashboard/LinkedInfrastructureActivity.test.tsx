@@ -48,6 +48,12 @@ const LOCALES: string = path.resolve(
 const SERVER_KIND_ENTRY: RegExp =
   /type: LinkedAffectedResourceType\.(\w+),[^{}]*?noun: "([^"]*)"/g;
 
+// The activity kind and the noun of an App Platforms environment, as written.
+const SERVER_ENVIRONMENT_KIND: RegExp =
+  /export const CLOUD_ENVIRONMENT_ACTIVITY_KIND: string = "([^"]*)";/;
+const SERVER_ENVIRONMENT_NOUN: RegExp =
+  /export const CLOUD_ENVIRONMENT_NOUN: string = "([^"]*)";/;
+
 function serverKindNouns(): Array<{ kind: string; noun: string }> {
   const source: string = fs.readFileSync(
     path.resolve(
@@ -235,6 +241,85 @@ describe("describeLinkedInfrastructure", () => {
       ),
     ).toBe("No open or recent alerts on Cloud resource web-alb");
   });
+
+  /*
+   * An App Platforms environment is recorded as a kind of its own
+   * (LinkedInfrastructureContext's CLOUD_ENVIRONMENT_ACTIVITY_KIND), and
+   * named as the context names it: before #5519's follow-up the line said
+   * "Cloud resource checkout · us-east-1" of a place apps run.
+   */
+  test("an App Platforms environment has the server's own noun", () => {
+    const source: string = fs.readFileSync(
+      path.resolve(
+        __dirname,
+        "../../../Server/Utils/AI/SRE/LinkedInfrastructureContext.ts",
+      ),
+      "utf8",
+    );
+    const kind: string | undefined = SERVER_ENVIRONMENT_KIND.exec(source)?.[1];
+    const noun: string | undefined = SERVER_ENVIRONMENT_NOUN.exec(source)?.[1];
+
+    expect(kind).toBe("CloudEnvironment");
+    expect(noun).toBe("Cloud environment");
+    expect(LINKED_RESOURCE_KIND_NOUNS[kind!]).toBe(noun);
+
+    expect(
+      describeLinkedInfrastructure(
+        activity({
+          alertCount: 0,
+          resources: [
+            { kind: "CloudEnvironment", name: "checkout · us-east-1" },
+            { kind: "CloudResource", name: "orders-db" },
+          ],
+        }),
+      ),
+    ).toBe(
+      "No open or recent alerts on Cloud environment checkout · us-east-1 and Cloud resource orders-db",
+    );
+    expect(
+      describeFollowUpCheck(
+        followUp({
+          resourceKind: "CloudEnvironment",
+          resourceName: "checkout · us-east-1",
+        }),
+      ),
+    ).toBe(
+      "Checking again: alert #12 opened on Cloud environment checkout · us-east-1 after the first analysis",
+    );
+  });
+
+  test.each(LANGUAGES)(
+    "%s names an App Platforms environment its own way, apart from a cloud resource",
+    (language: string) => {
+      const translator: Translator = translatorFor(language);
+      const environment: string = translator.translateText(
+        "Cloud environment",
+      ) as string;
+      const resource: string = translator.translateText(
+        "Cloud resource",
+      ) as string;
+
+      expect(environment).not.toBe("Cloud environment");
+      expect(environment).not.toBe(resource);
+
+      const line: string = describeLinkedInfrastructure(
+        activity({
+          alertCount: 0,
+          resources: [{ kind: "CloudEnvironment", name: "checkout" }],
+        }),
+        translator,
+      );
+
+      expect(line).toContain(environment);
+      expect(line).not.toContain(resource);
+      expect(
+        describeFollowUpCheck(
+          followUp({ resourceKind: "CloudEnvironment", resourceName: "checkout" }),
+          translator,
+        ),
+      ).toContain(environment);
+    },
+  );
 
   test("a cloud resource is named in the reader's language", () => {
     for (const language of LANGUAGES) {

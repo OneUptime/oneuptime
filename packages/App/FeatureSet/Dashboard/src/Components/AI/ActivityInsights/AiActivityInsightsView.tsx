@@ -3,6 +3,7 @@ import RouteMap, { RouteUtil } from "../../../Utils/RouteMap";
 import { SettingsAction, getSettingsAction } from "../InvestigationNotStarted";
 import {
   AI_INSIGHTS_FINDING_LABEL,
+  AI_INSIGHTS_FIX_APPROVAL_PLACES_TITLE,
   AI_INSIGHTS_FIXES_HIDDEN_NOTE,
   AI_INSIGHTS_FROM_REPORT_NOTE,
   AI_INSIGHTS_NEXT_STEP_LABEL,
@@ -11,6 +12,7 @@ import {
   AiInsightBadge,
   AiInsightLook,
   AiInsightWordingContext,
+  AiInsightsFixApprovalPlace,
   AiInsightsFixSegment,
   describeCoverage,
   describeFindingsTrust,
@@ -30,6 +32,7 @@ import {
   describeTrendDay,
   describeTrendWeeks,
   getActivityHealthNotes,
+  getFixApprovalPlaces,
   getFixSegments,
   getFixTaskSegments,
   getInsightBadge,
@@ -41,6 +44,7 @@ import {
 import {
   AiActivityCoverage,
   AiActivityFinding,
+  AiActivityFixOutcomes,
   AiActivityHotspot,
   AiActivityInsight,
   AiActivityInsightKind,
@@ -1284,6 +1288,50 @@ function FixSegmentsBar(props: {
   );
 }
 
+/*
+ * Where the window's approved fixes were approved, one row a place, as the
+ * coverage lists why the others were not investigated: the place, then how
+ * many. Nothing until a fix was approved from Slack or Microsoft Teams.
+ */
+function FixApprovalPlaces(props: {
+  outcomes: AiActivityFixOutcomes;
+}): ReactElement {
+  const translator: Translator = useTranslator();
+  const places: Array<AiInsightsFixApprovalPlace> = getFixApprovalPlaces(
+    props.outcomes,
+  );
+
+  if (places.length === 0) {
+    return <></>;
+  }
+
+  return (
+    <div className="mt-3" data-testid="ai-insights-fix-approval-places">
+      <p className="text-xs font-medium text-gray-500">
+        {translator.translateText(AI_INSIGHTS_FIX_APPROVAL_PLACES_TITLE)}
+      </p>
+      <ul className="mt-1 divide-y divide-gray-100">
+        {places.map((place: AiInsightsFixApprovalPlace): ReactElement => {
+          return (
+            <li
+              key={place.label}
+              className="flex items-center justify-between gap-3 py-1.5 text-sm"
+              data-testid="ai-insights-fix-approval-place"
+            >
+              <span className="text-gray-600">
+                {translator.translateText(place.label)}
+              </span>
+              <span className="font-medium text-gray-900">
+                {translator.formatNumber(place.count)}
+              </span>
+            </li>
+          );
+        })}
+      </ul>
+    </div>
+  );
+}
+
 // Where a note on AI's own work sends the reader.
 function getHealthTarget(
   note: AiActivityHealthNote,
@@ -1605,6 +1653,7 @@ function ActivityCard(props: {
                 ) : (
                   <></>
                 )}
+                <FixApprovalPlaces outcomes={insights.fixOutcomes} />
               </Fragment>
             )}
             {fixTaskOutcomes && fixTaskOutcomes.total > 0 ? (
