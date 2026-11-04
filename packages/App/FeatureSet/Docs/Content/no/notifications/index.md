@@ -48,9 +48,9 @@ De er atskilt med vilje. Å slå på alle kanaler i **Varselinnstillinger** tilk
 | **Retningslinjer for innkommende anrop** | **Innkommende telefonnumre**: nummeret en policy for innkommende anrop ringer deg på |
 | **Kalender** | **Kalenderfeed**: vaktene dine i kalenderappen din, og påminnelser før de starter |
 | **Profil** | **Egendefinerte felt**: opplysninger prosjektet ditt ber medlemmene om |
-| **Arbeidsområde** | **Slack** og **Microsoft Teams**: din egen konto, i hvert arbeidsområde prosjektet har koblet til |
+| **Arbeidsområde** | **Slack**, **Microsoft Teams** og **Mattermost**: din egen konto, i hvert arbeidsområde prosjektet har koblet til |
 
-**Kom i gang** og **Varsler og notifikasjoner** er åpne; de andre seksjonene starter sammenslått, og en seksjon åpner seg selv når du er på en av sidene dens. **Arbeidsområde** vises bare når prosjektet har koblet til Slack eller Microsoft Teams.
+**Kom i gang** og **Varsler og notifikasjoner** er åpne; de andre seksjonene starter sammenslått, og en seksjon åpner seg selv når du er på en av sidene dens. **Arbeidsområde** vises bare når prosjektet har koblet til Slack, Microsoft Teams eller Mattermost.
 
 Prosjekteiere og administratorer kan også se oppsettet ditt: Under **Brukere** åpner de raden din og seksjonen **Vakt** i den, med **Beredskap**, **Varselmetoder** og **Vaktregler**. De kan legge til en metode for deg der, men koden går til selve metoden, så bare du kan verifisere den.
 

@@ -1,6 +1,6 @@
 # Microsoft Entra ID
 
-Importeer de aanmeldingen en directorywijzigingen van [Microsoft Entra ID](https://learn.microsoft.com/en-us/entra/identity/) in de beveiligingsgebeurtenissen van OneUptime en, als je wilt, de activiteit van Exchange, SharePoint, OneDrive en Teams uit het [Microsoft 365-auditlogboek](https://learn.microsoft.com/en-us/purview/audit-log-activities). Daar doorzoek je ze naast je logs, traces en metrics, correleer je ze met elke andere bron en roep je de dienst op voor wat ertoe doet. OneUptime leest ze met een app-registratie die jij maakt, en verandert niets in je tenant.
+Importeer de aanmeldingen, directorywijzigingen en risicodetecties van [Microsoft Entra ID](https://learn.microsoft.com/en-us/entra/identity/) in de beveiligingsgebeurtenissen van OneUptime en, als je wilt, de aanmeldingen die apps op de achtergrond doen en de activiteit van Exchange, SharePoint, OneDrive en Teams uit het [Microsoft 365-auditlogboek](https://learn.microsoft.com/en-us/purview/audit-log-activities). Daar doorzoek je ze naast je logs, traces en metrics, correleer je ze met elke andere bron en roep je de dienst op voor wat ertoe doet. OneUptime leest ze met een app-registratie die jij maakt, en verandert niets in je tenant.
 
 :::cards
 - [De verbinding instellen](#de-verbinding-instellen): Een app-registratie, haar machtigingen en het formulier van de verbinding.
@@ -19,15 +19,15 @@ flowchart TB
     list --> event["Elke gebeurtenis<br/>wordt opgeslagen als<br/>OCSF-gebeurtenis<br/>van haar soort"]
 ```
 
-Elke minuut pollt OneUptime elke ingeschakelde verbinding waarvan het pollinterval is verstreken. Een poll meldt zich als je app-registratie aan bij Microsoft Entra ID en leest, in deze volgorde, de directorywijzigingen ([List directoryAudits](https://learn.microsoft.com/en-us/graph/api/directoryaudit-list)) en de aanmeldingen ([List signIns](https://learn.microsoft.com/en-us/graph/api/signin-list)) die sinds de vorige poll zijn vastgelegd, en daarna, als de optie **Microsoft 365-auditlogboek** aanstaat, de nieuwe inhoud van het auditlogboek ([Office 365 Management Activity API](https://learn.microsoft.com/en-us/office/office-365-management-api/office-365-management-activity-api-reference)). Elk record wordt opgeslagen als een [OCSF](https://schema.ocsf.io/)-gebeurtenis: een aanmelding als een gebeurtenis Authentication, een toegewezen rol als een gebeurtenis User Access Management, een phishingoordeel als een Detection Finding.
+Elke minuut pollt OneUptime elke ingeschakelde verbinding waarvan het pollinterval is verstreken. Een poll meldt zich als je app-registratie aan bij Microsoft Entra ID en leest, in deze volgorde, de directorywijzigingen ([List directoryAudits](https://learn.microsoft.com/en-us/graph/api/directoryaudit-list)) en de aanmeldingen ([List signIns](https://learn.microsoft.com/en-us/graph/api/signin-list)) die sinds de vorige poll zijn vastgelegd, daarna de risicodetecties van Identity Protection ([List riskDetections](https://learn.microsoft.com/en-us/graph/api/riskdetection-list)), daarna, als de optie **Achtergrond- en app-aanmeldingen** aanstaat, de achtergrond- en app-aanmeldingen en, als de optie **Microsoft 365-auditlogboek** aanstaat, de nieuwe inhoud van het auditlogboek ([Office 365 Management Activity API](https://learn.microsoft.com/en-us/office/office-365-management-api/office-365-management-activity-api-reference)). Elk record wordt opgeslagen als een [OCSF](https://schema.ocsf.io/)-gebeurtenis: een aanmelding als een gebeurtenis Authentication, een toegewezen rol als een gebeurtenis User Access Management, een risicodetectie of een phishingoordeel als een Detection Finding.
 
 ## Voordat je begint
 
 - In OneUptime de rol Project Owner, Project Admin of Security Admin. Security Member en Security Viewer zien verbindingen en hun runhistorie, maar kunnen ze niet wijzigen.
-- Voor aanmeldingen: Microsoft Entra ID P1 of P2, die in Microsoft 365 E3, E5 en Business Premium zitten: Microsoft Graph geeft aanmeldingen alleen aan zulke tenants. Directorywijzigingen worden in elke tenant gelezen.
+- Voor aanmeldingen en risicodetecties: Microsoft Entra ID P1 of P2, die in Microsoft 365 E3, E5 en Business Premium zitten: Microsoft Graph geeft ze alleen aan zulke tenants, en P2 geeft de details van elke risicodetectie. Directorywijzigingen worden in elke tenant gelezen.
 - Een Entra-rol die toepassingen mag registreren, zoals Toepassingsbeheerder, en een Globale beheerder of Beheerder met bevoorrechte rol om beheerderstoestemming te verlenen.
 - Voor het Microsoft 365-auditlogboek: auditing ingeschakeld voor de tenant, wat standaard zo is: in de [Microsoft Purview-portal](https://purview.microsoft.com) mag **Audit** geen **Start recording user and admin activity** aanbieden.
-- Uitgaand HTTPS van de OneUptime-app en -workers naar `login.microsoftonline.com`, `graph.microsoft.com` en `manage.office.com`, of naar `login.microsoftonline.us`, `graph.microsoft.us` en `manage.office365.us` voor Azure Government.
+- Uitgaand HTTPS van de OneUptime-app en -workers naar `login.microsoftonline.com`, `graph.microsoft.com` en `manage.office.com`, met `manage-gcc.office.com` in plaats daarvan voor Microsoft 365 GCC, of naar `login.microsoftonline.us`, `graph.microsoft.us` en `manage.office365.us` voor GCC High, en `login.microsoftonline.us`, `dod-graph.microsoft.us` en `manage.protection.apps.mil` voor DoD.
 
 ## De verbinding instellen
 
@@ -42,7 +42,7 @@ De verbinding meldt zich aan met de [OAuth 2.0-flow voor clientreferenties](http
 
 ### Hem de logboeken laten lezen
 
-1. Ga naar **API permissions → Add a permission → Microsoft Graph → Application permissions**, kies `AuditLog.Read.All` en selecteer **Add permissions**. Microsoft documenteert dat zijn lijst met aanmeldingen ook om `Directory.Read.All` kan vragen: voeg die toe als aanmeldingen met `403` worden geweigerd nadat de toestemming is verleend.
+1. Ga naar **API permissions → Add a permission → Microsoft Graph → Application permissions**, kies `AuditLog.Read.All` en, voor risicodetecties, `IdentityRiskEvent.Read.All`, en selecteer **Add permissions**. Microsoft documenteert dat zijn lijst met aanmeldingen ook om `Directory.Read.All` kan vragen: voeg die toe als aanmeldingen met `403` worden geweigerd nadat de toestemming is verleend.
 2. Voeg voor het Microsoft 365-auditlogboek een tweede machtiging toe: **Add a permission → Office 365 Management APIs → Application permissions**, en dan `ActivityFeed.Read`.
 3. Om playbooks gebruikers te laten uitschakelen, inschakelen en afmelden (zie [Inperking](/docs/telemetry/security-cases#inperking)), voeg je op dezelfde manier `User.Read.All`, `User.EnableDisableAccount.All` en `User.RevokeSessions.All` toe. Microsoft laat het account van een beheerder alleen wijzigen door een app die ook de rol Privileged Authentication Administrator heeft.
 4. Selecteer **Grant admin consent for** je tenant en bevestig. De status van elke machtiging moet **Granted** zijn: zonder toestemming wordt elke leesactie geweigerd met `403`.
@@ -53,7 +53,7 @@ Ga naar **Certificates & secrets → Client secrets → New client secret**, kie
 
 ### De verbinding toevoegen in OneUptime
 
-Open **Producten → Beveiligingsgebeurtenissen → Verbindingen** (`/dashboard/{projectId}/security-events/connections`), klik op **Verbinding toevoegen**, kies **Microsoft Entra ID** onder **Identiteit** en klik op **Volgende**. Vul de instellingen uit de tabel hieronder in, klik op **Volgende** en plak de waarde van het geheim in **Clientgeheim**. Zet in de stap **Opvragen** **Microsoft 365-auditlogboek** aan om dat ook te lezen.
+Open **Producten → Beveiligingsgebeurtenissen → Verbindingen** (`/dashboard/{projectId}/security-events/connections`), klik op **Verbinding toevoegen**, kies **Microsoft Entra ID** onder **Identiteit** en klik op **Volgende**. Vul de instellingen uit de tabel hieronder in, klik op **Volgende** en plak de waarde van het geheim in **Clientgeheim**. Zet in de stap **Opvragen** **Achtergrond- en app-aanmeldingen** of **Microsoft 365-auditlogboek** aan om die ook te lezen. Een tenant buiten de openbare Azure-cloud kiest zijn **Cloud** onder **Meer velden**, in de stap met instellingen.
 
 ### Testen voordat je opslaat
 
@@ -63,8 +63,9 @@ Klik op **Deze instellingen testen** onder **Testen voor het opslaan**. De test 
 | Instelling | Waar je haar vindt |
 | --- | --- |
 | **Directory-ID (tenant)** | De pagina **Overview** van de app. De GUID van de tenant, of een geverifieerd domein zoals `contoso.onmicrosoft.com`. Met **Microsoft 365-auditlogboek** aan de GUID: de Management API noemt een tenant alleen daarbij. |
-| **Applicatie-ID (client)** | De pagina **Overview** van de app. De GUID van de app die `AuditLog.Read.All` heeft. |
-| **Cloud** | **Openbare Azure-cloud**, of **Azure Government (VS)** voor GCC High (`login.microsoftonline.us`, `graph.microsoft.us` en `manage.office365.us`). |
+| **Applicatie-ID (client)** | De pagina **Overview** van de app. De GUID van de app die `AuditLog.Read.All` en `IdentityRiskEvent.Read.All` heeft. |
+| **Cloud** | Onder **Meer velden**, **Openbare Azure-cloud**, tenzij je een andere kiest: **Openbare Azure-cloud, Microsoft 365 GCC** voor GCC, **Azure Government (VS), GCC High** voor GCC High, of **Azure Government (VS), DoD** voor DoD. |
+| **Achtergrond- en app-aanmeldingen** | Optioneel, standaard uit. Aan leest elke poll ook de aanmeldingen die apps op de achtergrond voor mensen doen en die van service-principals zelf, uit de bèta-aanmeldingslijst van Microsoft Graph, en importeert de mislukte. |
 | **Microsoft 365-auditlogboek** | Optioneel, standaard uit. Aan leest elke poll ook het Microsoft 365-auditlogboek. De app heeft `ActivityFeed.Read` nodig. |
 | **Clientgeheim** | De **Value** van het geheim. Het wordt versleuteld, nooit door de API teruggegeven en nooit meer getoond. Vervang het met **Inloggegevens bijwerken** op de verbinding. |
 
@@ -80,6 +81,8 @@ Elke gebeurtenis heeft leverancier `Microsoft` en product `Microsoft Entra ID`. 
 | Een aanmelding die wacht op een tweede stap, zoals MFA (`50074`, `50076`) of een vraag om het wachtwoord te wijzigen | Authentication (`3002`), status `Interrupted` | Informational: een stap, geen fout |
 | Een aanmelding die mislukte, met de reden en foutcode van Entra | Authentication (`3002`), status `Failure` | Low |
 | Een aanmelding die Identity Protection als middel of hoog risico beoordeelde | Authentication (`3002`) | Medium of High |
+| Een risico dat Identity Protection detecteerde, zoals een anoniem IP-adres of een gelekte referentie | Detection Finding (`2004`) | Het risiconiveau ervan; Critical voor een gebruiker die bevestigd gecompromitteerd is |
+| Een mislukte achtergrond- of app-aanmelding, met **Achtergrond- en app-aanmeldingen** aan | Authentication (`3002`), status `Failure` | Low |
 | Een gewijzigde gebruiker, groep of rol, naar haar categorie | Account Change (`3001`), Group Management (`3006`), User Access Management (`3005`), of Entity Management (`3004`) voor de rest | Medium voor een bevoorrechte rol, zoals Global Administrator; Low voor een wijziging die mislukte |
 
 Met **Microsoft 365-auditlogboek** aan worden de records waarop een beveiligingsteam handelt eruit geïmporteerd, en de rest, zoals een geopend bestand of een gelezen e-mail, alleen geteld:
@@ -96,22 +99,22 @@ Met **Microsoft 365-auditlogboek** aan worden de records waarop een beveiligings
 
 Het eigen onderhoud van Exchange, dat onder zijn systeemaccount draait, blijft buiten beschouwing tenzij het e-mail doorstuurt. Elke gebeurtenis houdt het volledige record, afgevlakt tot sleutels met punten zoals `status.errorCode` of `Parameters.ForwardTo`, zodat een regel elk veld leest onder de naam die Microsoft eraan geeft. De regels in de bibliotheek voor Entra ID lezen ze zoals ze hier worden geïmporteerd.
 
-Dezelfde aanmeldingen en directorywijzigingen kunnen OneUptime ook als logs bereiken, geëxporteerd door een diagnostische instelling van Azure en gelezen door [Uw logboeken](/docs/telemetry/security-events#beveiligingsgebeurtenissen-in-uw-logs-vinden). Elk record krijgt langs beide wegen dezelfde gebeurtenis-ID, maar een record dat langs beide wegen wordt gelezen, wordt twee keer opgeslagen: lees Entra ID langs één weg.
+Dezelfde aanmeldingen, directorywijzigingen en risicodetecties kunnen OneUptime ook als logs bereiken, geëxporteerd door een diagnostische instelling van Azure en gelezen door [Uw logboeken](/docs/telemetry/security-events#beveiligingsgebeurtenissen-in-uw-logs-vinden). Elk record krijgt langs beide wegen dezelfde gebeurtenis-ID, en een record dat langs beide wegen wordt gelezen, wordt één keer opgeslagen, door de weg die het als eerste leest.
 
 ## Hoe pollen werkt
 
-- **Records worden gelezen op het moment waarop Entra ID ze vastlegde**, `activityDateTime` voor een wijziging en `createdDateTime` voor een aanmelding.
+- **Records worden gelezen op het moment waarop Entra ID ze vastlegde**, `activityDateTime` voor een wijziging, `createdDateTime` voor een aanmelding en `detectedDateTime` voor een risicodetectie.
 - **De eerste poll kijkt 24 uur terug**, zodat een nieuwe verbinding meteen haar recente records toont.
 - **Elke volgende poll begint 30 minuten voor de opgeslagen cursor.** Microsoft documenteert dat beide logboeken minuten te laat binnenkomen, dus de overlap leest een laat record bij de volgende poll, en duplicaten worden binnen het project op record-ID weggelaten.
 - **Een poll leest hooguit 24 uur voorbij de cursor.** Een verbinding waarvan de cursor achterliep, haalt de achterstand in met een reeks vensters van 24 uur.
 - **Een tenant zonder Microsoft Entra ID P1 of P2** importeert zijn directorywijzigingen, en de controle **Read sign-ins** van elke run waarschuwt dat aanmeldingen niet zijn gelezen.
 - **Een mislukte run verandert niets.** Na een netwerkfout, of een foutstatus van Graph, blijven de cursor en de vensterlengte zoals ze waren, en leest de volgende poll hetzelfde venster opnieuw. De enige uitzondering is een verzoek dat een time-out kreeg: de cursor blijft staan, maar het volgende venster is half zo lang, omdat een venster dat te zwaar is om op tijd te beantwoorden bij elke poging een time-out zou krijgen.
 
-Het Microsoft 365-auditlogboek wordt gelezen op het moment waarop Microsoft elke inhoudsblob beschikbaar maakte, een dag tegelijk, en niet verder terug dan de 7 dagen die Microsoft het bewaart. De eerste poll abonneert de app op `Audit.Exchange`, `Audit.SharePoint` en `Audit.General`, en Microsoft maakt de eerste records van een nieuw abonnement binnen 12 uur beschikbaar. Het auditlogboek houdt de logboeken van Entra ID nooit tegen: een ontbrekende machtiging is een waarschuwing en het venster schuift door, terwijl een storing aan de kant van Microsoft, zoals `HTTP 503`, de run **Gedeeltelijk** maakt zodat het venster opnieuw wordt gelezen.
+Het Microsoft 365-auditlogboek wordt gelezen op het moment waarop Microsoft elke inhoudsblob beschikbaar maakte, een dag tegelijk, en niet verder terug dan de 7 dagen die Microsoft het bewaart. De eerste poll abonneert de app op `Audit.Exchange`, `Audit.SharePoint` en `Audit.General`, en Microsoft maakt de eerste records van een nieuw abonnement binnen 12 uur beschikbaar. Het auditlogboek houdt de logboeken van Entra ID nooit tegen: een ontbrekende machtiging is een waarschuwing en het venster schuift door, terwijl een storing aan de kant van Microsoft, zoals `HTTP 503`, de run **Gedeeltelijk** maakt zodat het venster opnieuw wordt gelezen. Risicodetecties en achtergrond- en app-aanmeldingen gedragen zich hetzelfde: ze houden de aanmeldingen en directorywijzigingen nooit tegen.
 
 ### Wanneer een venster meer bevat dan één poll kan lezen
 
-Elk logboek heeft een eigen budget: 10 pagina's van 500 directorywijzigingen, 20 pagina's van 500 aanmeldingen en, voor het Microsoft 365-auditlogboek, 120 verzoeken en 10.000 records. Een poll stopt na 4 minuten. Als een budget een logboek stopt voor het einde van zijn venster, is de run **Gedeeltelijk**, en noemt de waarschuwing het logboek en het budget. Microsoft Graph toont de nieuwste records eerst, dus OneUptime verkort het venster in plaats van de cursor voorbij records te zetten die het nooit bereikte:
+Elk logboek heeft een eigen budget: 10 pagina's van 500 directorywijzigingen, 20 pagina's van 500 aanmeldingen, 4 pagina's van 500 risicodetecties, 10 pagina's van 500 van elke soort achtergrondaanmelding en, voor het Microsoft 365-auditlogboek, 120 verzoeken en 10.000 records. Een poll stopt na 4 minuten. Als een budget een logboek stopt voor het einde van zijn venster, is de run **Gedeeltelijk**, en noemt de waarschuwing het logboek en het budget. Microsoft Graph toont de nieuwste records eerst, dus OneUptime verkort het venster in plaats van de cursor voorbij records te zetten die het nooit bereikte:
 
 1. **Verkleinen.** De volgende poll leest een venster dat half zo lang is, vanaf hetzelfde beginpunt, en blijft halveren tot een venster volledig wordt gelezen, tot één minuut. De waarschuwing van de run zegt het: `This window holds more records than one poll can read; the next poll reads a {n} minute window from the same starting point.` Records die al uit het langere venster zijn geïmporteerd, worden als duplicaten overgeslagen.
 2. **Weer groeien.** Nadat een venster volledig is gelezen, gaat de cursor naar het einde ervan, en is het volgende venster weer twee keer zo lang, tot 24 uur.
@@ -138,6 +141,8 @@ Klik op **Diagnose** bij een verbinding om haar recente runs te zien en er met d
 | **Authenticate with Microsoft Entra** | Entra ID geeft de app een token voor Microsoft Graph, in de cloud die je koos. |
 | **Read sign-ins** | Aanmeldingen van de afgelopen 24 uur kunnen worden gelezen. Een waarschuwing, geen fout, in een tenant zonder P1 of P2. |
 | **Read directory changes** | Directorywijzigingen van de afgelopen 24 uur kunnen worden gelezen. |
+| **Read risk detections** | Risicodetecties van Identity Protection van de afgelopen 24 uur kunnen worden gelezen. Een waarschuwing, geen fout, zonder de machtiging of de licentie. |
+| **Read background and app sign-ins** | Alleen met de optie aan: de bèta-aanmeldingslijst van Microsoft Graph antwoordt voor beide soorten. |
 | **Read the Microsoft 365 audit log** | Alleen met de optie aan: de Management API antwoordt, en op welke inhoudstypen de app is geabonneerd. |
 | **Records available to import** | Hoeveel aanmeldingen en directorywijzigingen de afgelopen 24 uur bevatten, elk maximaal 500, dus `500+` betekent meer. Geen enkele is een waarschuwing. |
 | **Background workers**, **Poll scheduler**, **Security event storage** | De kant van OneUptime zelf: een proces neemt de jobs van de Worker-wachtrij af, de poll-job draait elke minuut en de opslag van beveiligingsgebeurtenissen antwoordt. |
@@ -157,6 +162,11 @@ De **Laatste fout** van de verbinding bewaart de volledige foutmelding, met refe
 :::details Laatste fout zegt `sign-ins request failed (HTTP 403)` of `audit logs request failed (HTTP 403)`
 - Foutcode `Authorization_RequestDenied`: de app mist `AuditLog.Read.All`, of de toestemming is niet verleend. Verleen beheerderstoestemming, wacht een paar minuten en test opnieuw. Verleen voor aanmeldingen ook `Directory.Read.All`.
 - Foutcode `Authentication_RequestFromNonPremiumTenantOrB2CTenant`: de tenant heeft geen Microsoft Entra ID P1 of P2. Directorywijzigingen worden nog steeds geïmporteerd.
+:::
+
+:::details Risicodetecties worden niet gelezen
+- `risk detections request failed (HTTP 403)`: de app mist `IdentityRiskEvent.Read.All`, of de toestemming is niet verleend. Aanmeldingen en directorywijzigingen worden nog steeds geïmporteerd.
+- Foutcode `Authentication_RequestFromNonPremiumTenantOrB2CTenant`: de tenant heeft geen Microsoft Entra ID P1 of P2.
 :::
 
 :::details Het Microsoft 365-auditlogboek wordt niet gelezen

@@ -185,6 +185,41 @@ describe("PinRelease.js", () => {
     );
   });
 
+  test("checks no edition on the images that have none (the ingress, the runner, the probe)", () => {
+    const unlabelled = config({ config: { Labels: {} } });
+
+    expect(
+      PinRelease.releaseEnvironment(
+        unlabelled,
+        "14.0.101",
+        PinRelease.PROJECTS.Probe,
+      ),
+    ).toEqual({ gitSha: COMMIT });
+    expect(() => {
+      return PinRelease.releaseEnvironment(unlabelled, "14.0.101");
+    }).toThrow("unlabelled edition");
+  });
+
+  test("pins the project it is asked for, in its own folder", () => {
+    expect(
+      PinRelease.parseArgs(["--project", "Probe", "--version", "14.0.101"]),
+    ).toEqual(
+      expect.objectContaining({
+        project: "Probe",
+        directory: expect.stringMatching(/IronBank[/\\]Probe$/),
+      }),
+    );
+    expect(PinRelease.parseArgs(["--version", "14.0.101"]).project).toBe("App");
+    expect(() => {
+      return PinRelease.parseArgs([
+        "--project",
+        "Website",
+        "--version",
+        "14.0.101",
+      ]);
+    }).toThrow();
+  });
+
   test("takes only a release version on its command line", () => {
     expect(PinRelease.parseArgs(["--version", "14.0.101", "--check"])).toEqual(
       expect.objectContaining({ version: "14.0.101", check: true }),

@@ -488,7 +488,7 @@ describe("a fix on the Remediation step", () => {
      */
     expect(actions).toHaveClass("[&>button]:w-auto");
     expect(within(actions).getByText("Approve & Run")).toBeInTheDocument();
-    expect(within(actions).getByText("Dismiss")).toBeInTheDocument();
+    expect(within(actions).getByText("Dismiss fix")).toBeInTheDocument();
 
     expect(
       within(ran).queryByTestId("remediation-fix-actions"),

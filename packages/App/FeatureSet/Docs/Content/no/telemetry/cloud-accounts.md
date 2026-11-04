@@ -8,6 +8,7 @@ Koble til en AWS-konto, et Azure-abonnement eller et Google Cloud-prosjekt fra d
 - [Google Cloud](#google-cloud): En tjenestekonto med seks roller som bare kan lese.
 - [Hva OneUptime leser](#hva-oneuptime-leser): Ressurser, målinger, endringer, helsehendelser og kostnader, hvor ofte, og hva det koster å lese dem.
 - [Skykostnader og besparelser](/docs/telemetry/cloud-costs): Hva hver konto koster, måtene å bruke mindre på og budsjetter som varsler.
+- [Strøm CloudWatch-målinger og -logger](/docs/telemetry/cloud-streaming): Hver måling innen minutter, og CloudWatch Logs, via Amazon Data Firehose.
 - [Datasikkerhet](#datasikkerhet): Hva tilkoblingen lar Datasikkerhet lese, og hva hvert nivå legger til i kommandoen.
 - [La AI rette problemer](#la-ai-rette-problemer): Én kommando til, så kan OneUptime AI rette det den finner.
 :::
@@ -268,7 +269,7 @@ Kommandoen for et lavere nivå erstatter AWS-policyen med den lavere. **Av** leg
 | Leses hvert | 10. minutt | 5. minutt | 5. minutt |
 | En slettet ressurs | Arkiveres når en fullstendig liste ikke lenger har den | Arkiveres når en fullstendig liste ikke lenger har den | Arkiveres når en fullstendig liste ikke lenger har den |
 
-Hver lesing fortsetter der den forrige stoppet, så hvert datapunkt og hver endring skrives én gang. En ny tilkoblings første lesing starter innen ett minutt og går en time tilbake for målinger og 2 timer tilbake for endringer; etter en pause går en lesing høyst 6 timer tilbake. En ressurs som bare rapporterer målinger, og som ingen liste har, arkiveres etter 7 dager uten målinger. Kostnader leses to ganger om dagen, og måtene å bruke mindre på én gang om dagen.
+Hver lesing fortsetter der den forrige stoppet, så hvert datapunkt og hver endring skrives én gang. Med **Skyrevisjonslogger** slått på i Sikkerhetshendelser tar de samme lesingene også vare på kontoenes revisjonslogger som [sikkerhetshendelser](/docs/telemetry/security-events#les-revisjonsloggene-til-skykontoene-dine). En ny tilkoblings første lesing starter innen ett minutt og går en time tilbake for målinger og 2 timer tilbake for endringer; etter en pause går en lesing høyst 6 timer tilbake. En ressurs som bare rapporterer målinger, og som ingen liste har, arkiveres etter 7 dager uten målinger. Kostnader leses to ganger om dagen, og måtene å bruke mindre på én gang om dagen.
 
 Kallene OneUptime gjør, faktureres skykontoen din, til skyens priser. Å liste ressurser, lese endringer og helsehendelser, lese måtene å bruke mindre på og lese Azures kostnader koster ingenting; å lese målinger gjør det, og det samme gjør det å lese kostnadene til AWS og Google Cloud. Testen anslår kostnaden for det den finner, og å lese sjeldnere koster mindre: Endre **Intervall for lesing av målinger** under **Flere felt**.
 
@@ -320,7 +321,7 @@ En organisasjonspolicy, `iam.disableServiceAccountKeyCreation`, kan forby nøkle
 :::
 
 :::details Ingen ressurser vises
-Den første lesingen lister hver ressurs i kontoen, enten den rapporterer målinger eller ikke. Hvis en tilkobling ikke virker, sier **View error** under **Sky → Koble til** hvorfor den siste lesingen mislyktes.
+Den første lesingen lister hver ressurs i kontoen, enten den rapporterer målinger eller ikke. Hvis en tilkobling ikke virker, sier **Vis feil** under **Sky → Koble til** hvorfor den siste lesingen mislyktes.
 :::
 
 :::details Noen av organisasjonens kontoer mangler

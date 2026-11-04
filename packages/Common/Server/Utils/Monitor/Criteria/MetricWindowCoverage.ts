@@ -2,6 +2,7 @@ import AggregateModel from "../../../../Types/BaseDatabase/AggregatedModel";
 import AggregationIntervalUtil from "../../../../Types/BaseDatabase/AggregationIntervalUtil";
 import OneUptimeDate from "../../../../Types/Date";
 import MetricMonitorResponse from "../../../../Types/Monitor/MetricMonitor/MetricMonitorResponse";
+import MetricSeriesArrival from "../../../../Types/Monitor/MetricMonitor/MetricSeriesArrival";
 import WindowCoverage, {
   WindowCoverageResult,
   WindowCoverageShortfall,
@@ -37,11 +38,24 @@ export interface MetricWindowCoverageResult extends WindowCoverageResult {
    * inside the window, not at either edge of it - was taken to cover it.
    */
   isLoneDataPoint: boolean;
+  /*
+   * How late the series' data arrives (MetricSeriesArrival.lagMs), when its
+   * arrivals were read; null when they were not. Its freshness was then
+   * judged by when its data last arrived.
+   */
+  lagMs: number | null;
 }
 
 const MINUTE_IN_MS: number = 60 * 1000;
 const HOUR_IN_MS: number = 60 * MINUTE_IN_MS;
 const DAY_IN_MS: number = 24 * HOUR_IN_MS;
+
+/*
+ * How late a series' data must arrive before the evaluation says so: past
+ * what an ordinary pipeline adds (a collector's batch, the ingest queue), and
+ * at least one data point - a day's buckets are not late by a few minutes.
+ */
+export const NOTABLE_DATA_LAG_MS: number = 2 * MINUTE_IN_MS;
 
 /**
  * Whether one metric series' data points cover its monitor's window: what
@@ -60,10 +74,19 @@ const DAY_IN_MS: number = 24 * HOUR_IN_MS;
  *
  * So a brand-new series - a new deployment, host or container - waits until
  * it has data for the whole window, and so does one that was gone and came
- * back, one with a hole of more than one missing point, and one whose
- * newest point is stale: too far before the end of the window or - for a
- * monitor whose data may all arrive late - before the monitor's newest
- * data point.
+ * back, one with a hole of more than one missing point, and one whose data
+ * went stale.
+ *
+ * Stale is judged by when the series' data last arrived, when the worker read
+ * that (MetricSeriesArrival: each metric row's createdAt): a series is stale
+ * once nothing of it has arrived for one and a half times its cadence - or
+ * how often its data arrives, for a source that delivers it in batches.
+ * Until then it is late, not stopped - a source late by design, a collector
+ * whose clock runs behind - and its window is judged as far as its data
+ * reaches. Without arrivals (none of the monitor's data looked behind, or
+ * they could not be read), stale is judged by its data points' own times: too
+ * far before the end of the window or - for a monitor whose data may all
+ * arrive late - before the monitor's newest data point.
  */
 export default class MetricWindowCoverage {
   /*
@@ -172,6 +195,11 @@ export default class MetricWindowCoverage {
      * end of the window.
      */
     monitorNewestDataPointMs?: number | null | undefined;
+    /*
+     * When the series' data arrived, when the worker read it: its freshness
+     * is then judged by that alone, and monitorNewestDataPointMs is not read.
+     */
+    arrival?: MetricSeriesArrival | null | undefined;
   }): MetricWindowCoverageResult {
     const dataPointMs: number = MetricWindowCoverage.getDataPointMs(
       input.window,
@@ -213,6 +241,8 @@ export default class MetricWindowCoverage {
         ? input.window.completeFromMs
         : input.window.startMs;
 
+    const arrival: MetricSeriesArrival | null = input.arrival || null;
+
     const coverage: WindowCoverageResult = WindowCoverage.judge({
       windowStartMs: windowStartMs,
       windowEndMs: input.window.endMs,
@@ -222,14 +252,21 @@ export default class MetricWindowCoverage {
       holesBreakCoverage: true,
       /*
        * Where the monitor's data reaches - its newest data point's bucket
-       * end - when its data may all arrive late. Against that, a series
-       * whose data stopped while the others' kept coming is still stale;
-       * one that is merely as late as all of them is not.
+       * end - when its data may all arrive late and its arrivals are not
+       * known. Against that, a series whose data stopped while the others'
+       * kept coming is still stale; one that is merely as late as all of
+       * them is not.
        */
       freshAsOfMs:
-        typeof input.monitorNewestDataPointMs === "number"
+        !arrival && typeof input.monitorNewestDataPointMs === "number"
           ? input.monitorNewestDataPointMs + dataPointMs
           : undefined,
+      arrival: arrival
+        ? {
+            sinceNewestArrivalMs: arrival.sinceNewestArrivalMs,
+            arrivalIntervalMs: arrival.arrivalIntervalMs,
+          }
+        : undefined,
     });
 
     const result: MetricWindowCoverageResult = {
@@ -241,6 +278,7 @@ export default class MetricWindowCoverage {
       intervalMs: intervalMs,
       isCutByRowLimit: input.window.completeFromMs !== null,
       isLoneDataPoint: false,
+      lagMs: arrival ? Math.max(0, arrival.lagMs) : null,
     };
 
     /*
@@ -308,8 +346,9 @@ export default class MetricWindowCoverage {
     let progress: string;
 
     if (coverage.shortfall === WindowCoverageShortfall.Stale) {
+      // Since its data last arrived, when that is known.
       progress = `no new data point for the last ${MetricWindowCoverage.describeDuration(
-        coverage.sinceNewestReadingMs || 0,
+        coverage.sinceNewestArrivalMs ?? coverage.sinceNewestReadingMs ?? 0,
       )}`;
     } else {
       const coveredMs: number =
@@ -340,7 +379,44 @@ export default class MetricWindowCoverage {
       )} time range could be read: it holds more data points than one check reads.`;
     }
 
+    /*
+     * A late series fills its window late: say why it has got no further.
+     * A stale one has stopped, which its own sentence says.
+     */
+    if (
+      coverage.shortfall !== WindowCoverageShortfall.Stale &&
+      coverage.lagMs !== null &&
+      MetricWindowCoverage.isNotableLag({
+        lagMs: coverage.lagMs,
+        dataPointMs: coverage.dataPointMs,
+      })
+    ) {
+      message += ` ${MetricWindowCoverage.describeLag(coverage.lagMs)}`;
+    }
+
     return message;
+  }
+
+  /*
+   * Whether a series' data arrives late enough to say so: at least
+   * NOTABLE_DATA_LAG_MS, and at least one data point.
+   */
+  public static isNotableLag(input: {
+    lagMs: number | null | undefined;
+    dataPointMs: number;
+  }): boolean {
+    return (
+      typeof input.lagMs === "number" &&
+      Number.isFinite(input.lagMs) &&
+      input.lagMs >= Math.max(NOTABLE_DATA_LAG_MS, input.dataPointMs)
+    );
+  }
+
+  // "Its data arrives about 12 minutes late."
+  public static describeLag(lagMs: number): string {
+    return `Its data arrives about ${MetricWindowCoverage.describeDuration(
+      lagMs,
+    )} late.`;
   }
 
   /*

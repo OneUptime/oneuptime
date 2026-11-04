@@ -313,9 +313,17 @@ async function openEditDialog(locale: Locale = ENGLISH): Promise<HTMLElement> {
   return screen.getByTestId("modal");
 }
 
-function stepTitles(dialog: HTMLElement): Array<string> {
+/*
+ * The step list, by its name in the page's language: the Admin Dashboard's
+ * locales word the shared form's "Progress" since 2807833b3d5, so a German
+ * reader's screen reader announces "Fortschritt".
+ */
+function stepTitles(
+  dialog: HTMLElement,
+  locale: Locale = ENGLISH,
+): Array<string> {
   const progress: HTMLElement = within(dialog).getByRole("navigation", {
-    name: "Progress",
+    name: text(locale, "Progress"),
   });
 
   return within(progress)
@@ -871,8 +879,9 @@ describe("Admin > Settings > Email > Host Settings", () => {
 
     await waitForField(dialog, "smtp.server.com");
 
-    const titles: Array<string> = stepTitles(dialog);
+    const titles: Array<string> = stepTitles(dialog, GERMAN);
 
+    expect(text(GERMAN, "Progress")).toBe("Fortschritt");
     expect(text(GERMAN, "Sender")).toBe("Absender");
     expect(titles[0]).toContain(text(GERMAN, "Server"));
     expect(titles[1]).toContain("Absender");

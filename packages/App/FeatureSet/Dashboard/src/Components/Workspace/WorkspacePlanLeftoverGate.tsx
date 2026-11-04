@@ -13,8 +13,8 @@ import ProjectUtil from "Common/UI/Utils/Project";
 import React, { FunctionComponent, ReactElement, ReactNode } from "react";
 
 /*
- * A product's Slack or Microsoft Teams page (Incidents, Alerts, Scheduled
- * Maintenance, On-Call Duty, Monitors). Notification rules and summaries
+ * A product's Slack, Microsoft Teams or Mattermost page (Incidents, Alerts,
+ * Scheduled Maintenance, On-Call Duty, Monitors). Notification rules and summaries
  * are sold on the Growth plan, and they keep posting after a project drops
  * below it: a rule posts to its channels, a summary keeps going out. So
  * below the plan the page is the plan note (PlanLeftoverPage) with the

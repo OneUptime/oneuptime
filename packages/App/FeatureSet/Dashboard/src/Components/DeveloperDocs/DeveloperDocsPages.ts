@@ -497,6 +497,15 @@ export const DEVELOPER_DOCS_PARENT_PAGES: ReadonlyArray<DeveloperDocsParentPage>
       scope: DeveloperDocsScope.View,
       tableName: "InventoryItem",
     },
+    /*
+     * Data Observability: a data product, which people make - its tables,
+     * who uses them and its freshness SLA - and so can keep as code.
+     */
+    {
+      pageKey: PageMap.DATA_OBSERVABILITY_DATA_PRODUCT_VIEW,
+      scope: DeveloperDocsScope.View,
+      tableName: "DataProduct",
+    },
   ];
 
 /*

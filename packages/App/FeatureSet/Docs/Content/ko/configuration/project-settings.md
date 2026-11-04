@@ -31,7 +31,7 @@ flowchart LR
 | 섹션 | 페이지 | 자세히 읽기 |
 | --- | --- | --- |
 | **기본** | **프로젝트**, **레이블** | [프로젝트 세부 정보](#프로젝트-세부-정보), [레이블](#레이블) |
-| **워크스페이스** | **Slack**, **Microsoft Teams**, **화상 통화** | [Slack](/docs/workspace-connections/slack), [Microsoft Teams](/docs/workspace-connections/microsoft-teams), [화상 통화](/docs/workspace-connections/video-calls) |
+| **워크스페이스** | **Slack**, **Microsoft Teams**, **Mattermost**, **화상 통화** | [Slack](/docs/workspace-connections/slack), [Microsoft Teams](/docs/workspace-connections/microsoft-teams), [Mattermost](/docs/workspace-connections/mattermost), [화상 통화](/docs/workspace-connections/video-calls) |
 | **텔레메트리 및 APM** | **수집 키**, **데이터 보존** | [수집 키](/docs/telemetry/ingestion-keys), [데이터 보존](/docs/telemetry/data-retention) |
 | **알림** | **알림 설정**, **알림 로그**, **모바일 앱** | [알림](#알림) |
 | **AI** | **AI 기능**, **LLM 공급자**, **외부 MCP 서버**, **AI 크레딧**, **AI 로그**, **MCP 서버** | [LLM 공급자](/docs/ai/llm-provider), [외부 MCP 서버](/docs/ai/external-mcp-servers), [MCP 서버](/docs/ai/mcp-server), [AI SRE](/docs/ai/ai-sre#비용-관리) |

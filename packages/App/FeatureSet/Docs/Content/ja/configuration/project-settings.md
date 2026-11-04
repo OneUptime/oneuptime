@@ -31,7 +31,7 @@ flowchart LR
 | セクション | ページ | 詳しい説明 |
 | --- | --- | --- |
 | **基本** | **プロジェクト**、**ラベル** | [プロジェクトの詳細](#プロジェクトの詳細)、[ラベル](#ラベル) |
-| **ワークスペース** | **Slack**、**Microsoft Teams**、**ビデオ通話** | [Slack](/docs/workspace-connections/slack)、[Microsoft Teams](/docs/workspace-connections/microsoft-teams)、[ビデオ通話](/docs/workspace-connections/video-calls) |
+| **ワークスペース** | **Slack**、**Microsoft Teams**、**Mattermost**、**ビデオ通話** | [Slack](/docs/workspace-connections/slack)、[Microsoft Teams](/docs/workspace-connections/microsoft-teams)、[Mattermost](/docs/workspace-connections/mattermost)、[ビデオ通話](/docs/workspace-connections/video-calls) |
 | **テレメトリと APM** | **取り込みキー**、**データ保持** | [取り込みキー](/docs/telemetry/ingestion-keys)、[データ保持](/docs/telemetry/data-retention) |
 | **通知** | **通知設定**、**通知ログ**、**モバイルアプリ** | [通知](#通知) |
 | **AI** | **AI 機能**、**LLM プロバイダー**、**外部 MCP サーバー**、**AI クレジット**、**AI ログ**、**MCP サーバー** | [LLM プロバイダー](/docs/ai/llm-provider)、[外部 MCP サーバー](/docs/ai/external-mcp-servers)、[MCP サーバー](/docs/ai/mcp-server)、[AI SRE](/docs/ai/ai-sre#コスト管理) |

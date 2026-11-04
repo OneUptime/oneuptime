@@ -64,10 +64,17 @@ O cartão **Seus logs**, no topo de **Conexões**, não precisa de instalação.
 | Logs de atividade do Azure e do Entra ID | Mudanças feitas nas suas assinaturas do Azure, alertas do Defender for Cloud, e logins e mudanças de diretório do Microsoft Entra ID |
 | CEF | Ameaças, conexões bloqueadas e logins de firewalls, IDS, WAFs e outros produtos de segurança que enviam Common Event Format |
 | LEEF | O mesmo dos produtos que enviam Log Event Extended Format, como muitos fazem para o IBM QRadar |
+| Palo Alto Networks | Ameaças, conexões bloqueadas, logins do GlobalProtect e de administradores, e alterações de configuração do próprio syslog do PAN-OS |
+| Fortinet FortiGate | Detecções de IPS e antivírus, tráfego negado, logins de VPN e de administradores, e alterações de configuração do próprio syslog do FortiGate |
+| Cisco ASA | Conexões negadas, detecções de ameaças e do IPS, logins de VPN e de administradores, e comandos do Cisco ASA e do Firepower Threat Defense |
 | Logs de auditoria do Kubernetes | Mudanças no cluster, shells abertos em pods, secrets lidos e requisições recusadas |
 | Ataques web | Requisições no log de acesso de um servidor web que tentam injeção de SQL, path traversal ou Log4Shell |
 
 Seus logs continuam como estão. Só as linhas que importam para a segurança viram eventos: nunca cada página que um servidor web serviu, nem cada leitura de uma API.
+
+Uma ameaça que um produto de segurança escreve nos seus logs, como uma detecção CEF ou LEEF ou uma detecção de IPS de um FortiGate, abre um caso como o alerta de um produto conectado faz. **Abrir casos a partir de**, em **Seus logs**, diz a partir de qual gravidade: **Alta e acima**, a menos que você escolha outra, ou **Nunca**.
+
+Uma conta da AWS, um projeto do Google Cloud ou uma assinatura do Azure conectados em **Nuvem** não precisam de nenhum pipeline de logs: ative **Logs de auditoria da nuvem**, em **Seus dados do OneUptime** na página **Conexões**, e o log de auditoria é lido junto com a conta. Consulte [Ler os logs de auditoria das suas contas de nuvem](/docs/telemetry/security-events#ler-os-logs-de-auditoria-das-suas-contas-de-nuvem).
 
 ## Enviar ao seu SIEM o que o OneUptime encontra
 
@@ -88,7 +95,7 @@ Normalmente o caso abre antes de o botão responder; quando a regra ainda está 
 :::
 
 :::details Nenhum evento de segurança vem dos meus logs
-Verifique se **Encontrar eventos de segurança nos seus logs** está ativado e se o cartão **Seus logs** mostra quando foi a última verificação. Só os tipos de linha da tabela acima viram eventos: um servidor que não envia logs de SSH, sudo, Windows, auditoria, CEF, LEEF ou de acesso não tem nada a encontrar. Cole uma das linhas dele em **Verificar uma linha de log**, em **Seus logs**, para ver se o OneUptime a lê.
+Verifique se **Encontrar eventos de segurança nos seus logs** está ativado e se o cartão **Seus logs** mostra quando foi a última verificação. Só os tipos de linha da tabela acima viram eventos: um servidor que não envia logs de SSH, sudo, Windows, auditoria, CEF, LEEF, firewall ou de acesso não tem nada a encontrar. Cole uma das linhas dele em **Verificar uma linha de log**, em **Seus logs**, para ver se o OneUptime a lê.
 :::
 
 :::details A Visão geral diz que o último evento de segurança chegou há dias

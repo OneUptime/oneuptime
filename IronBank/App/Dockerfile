@@ -33,6 +33,14 @@ ARG BASE_TAG=26.13.0-npm12-yarn4-slim
 # pulls it by digest and gives it this name before it builds.
 FROM oneuptime/app:enterprise-14.0.102 AS release
 
+# The release without its tests, which no image runs: one of Common's test
+# fixtures (an SVG data URI with a script in it) is what ClamAV calls
+# phishing, and Iron Bank's pipeline fails an image on any ClamAV detection.
+# Removed in a stage of its own, so that no layer of this image carries them.
+FROM release AS shipped
+USER root
+RUN rm -rf /usr/src/Common/Tests /usr/src/app/Tests
+
 FROM ${BASE_REGISTRY}/${BASE_IMAGE}:${BASE_TAG}
 
 USER root
@@ -44,17 +52,21 @@ USER root
 # set per PostgreSQL major a server may run, as the release's enterprise stage
 # installs them. Iron Bank's pipeline reaches Alpine's package repositories
 # through its proxy and nothing else, so everything that is not an Alpine
-# package comes from the release. /tmp/npm is npm's cache, writable by the node
-# user, as in the release: the Helm chart's migrate job runs `npm run migrate`.
+# package comes from the release. libatomic: Iron Bank's Node.js image copies
+# node out of Node's official image without it, and node does not start
+# without libatomic.so.1 (the release's base image is Node's, which has it).
+# /tmp/npm is npm's cache, writable by the node user, as in the release: the
+# Helm chart's migrate job runs `npm run migrate`.
 RUN apk upgrade --no-cache \
     && apk add --no-cache bash curl \
+    && apk add --no-cache libatomic \
     && apk add --no-cache postgresql16-client postgresql17-client postgresql18-client \
     && mkdir /tmp/npm \
     && chmod 2777 /tmp/npm \
     && chown 1000:1000 /tmp/npm \
     && npm config set cache /tmp/npm --global
 
-COPY --from=release /usr/src /usr/src
+COPY --from=shipped /usr/src /usr/src
 
 # The release's labels that Iron Bank's schema does not let
 # hardening_manifest.yaml carry. Scripts/GHA/check_app_image_edition.sh reads

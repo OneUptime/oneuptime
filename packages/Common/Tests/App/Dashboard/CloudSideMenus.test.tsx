@@ -100,7 +100,7 @@ describe("a cloud resource's menu", () => {
       "Developer",
       "Advanced",
     ]);
-    // A resource has the provider's metrics only.
+    // The provider's metrics; no Logs for a kind no log group names.
     expect(linksIn("Observability")).toEqual([
       { title: "Metrics", href: `${RESOURCE_PATH}/metrics` },
       { title: "Feed", href: `${RESOURCE_PATH}/feed` },
@@ -134,6 +134,22 @@ describe("a cloud resource's menu", () => {
     for (const href of hrefsInMenu()) {
       expect(href.startsWith(RESOURCE_PATH)).toBe(true);
     }
+  });
+
+  test("a resource a log group names - a function, a database - has its streamed Logs after Metrics", async () => {
+    goTo(RESOURCE_PATH);
+    await renderMenu(
+      <CloudResourceViewSideMenu
+        modelId={new ObjectID(RESOURCE_ID)}
+        hasStreamedLogs={true}
+      />,
+    );
+
+    expect(linksIn("Observability")).toEqual([
+      { title: "Metrics", href: `${RESOURCE_PATH}/metrics` },
+      { title: "Logs", href: `${RESOURCE_PATH}/logs` },
+      { title: "Feed", href: `${RESOURCE_PATH}/feed` },
+    ]);
   });
 });
 

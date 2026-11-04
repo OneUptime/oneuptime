@@ -46,11 +46,14 @@ export enum DetectionRuleDataKind {
   WindowsEvents = "windows-events",
   // sudo's log lines, which "Your logs" reads.
   SudoLogs = "sudo-logs",
-  // AWS CloudTrail records, which "Your logs" reads.
+  /*
+   * AWS CloudTrail records, which "Your logs" reads, and Cloud audit logs
+   * read from an AWS account connected under Cloud.
+   */
   AwsCloudTrail = "aws-cloudtrail",
-  // Google Cloud's audit logs, which "Your logs" reads.
+  // Google Cloud's audit logs: "Your logs", or a project connected under Cloud.
   GoogleCloudAuditLogs = "google-cloud-audit-logs",
-  // The Azure Activity Log, which "Your logs" reads.
+  // The Azure Activity Log: "Your logs", or a subscription connected under Cloud.
   AzureActivityLog = "azure-activity-log",
   // Connections between hosts: firewalls, flow logs, IDS (OCSF Network Activity).
   NetworkActivity = "network-activity",

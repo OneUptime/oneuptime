@@ -21,12 +21,13 @@ import React, { FunctionComponent, ReactElement } from "react";
 /*
  * The pages behind the Workspace menus.
  *
- * - A product's Workspace page, listed while nothing is connected: Slack and
- *   Microsoft Teams side by side, which is connected, and one step for each.
- * - A product's Slack and Microsoft Teams pages: the notification rules once
- *   the workspace is connected; while it is not, a button to the place that
- *   connects it instead of a path to retype ("Please go to Project Settings >
- *   Workspace Connections > Slack").
+ * - A product's Workspace page, listed while nothing is connected: Slack,
+ *   Microsoft Teams and Mattermost side by side, which is connected, and one
+ *   step for each.
+ * - A product's Slack, Microsoft Teams and Mattermost pages: the notification
+ *   rules once the workspace is connected; while it is not, a button to the
+ *   place that connects it instead of a path to retype ("Please go to
+ *   Project Settings > Workspace Connections > Slack").
  *
  * All of them read the store the side menu reads, so a page and its menu
  * agree and the server is asked once.
@@ -105,17 +106,23 @@ import {
   WORKSPACE_CONNECTIONS_PAGE_COPY,
   WORKSPACE_CONNECTION_COPY,
 } from "../../../../App/FeatureSet/Dashboard/src/Components/Workspace/WorkspaceConnectionCopy";
+import AlertsWorkspaceConnectionMattermost from "../../../../App/FeatureSet/Dashboard/src/Pages/Alerts/WorkspaceConnectionMattermost";
 import AlertsWorkspaceConnectionMicrosoftTeams from "../../../../App/FeatureSet/Dashboard/src/Pages/Alerts/WorkspaceConnectionMicrosoftTeams";
 import AlertsWorkspaceConnectionSlack from "../../../../App/FeatureSet/Dashboard/src/Pages/Alerts/WorkspaceConnectionSlack";
+import IncidentsWorkspaceConnectionMattermost from "../../../../App/FeatureSet/Dashboard/src/Pages/Incidents/WorkspaceConnectionMattermost";
 import IncidentsWorkspaceConnectionMicrosoftTeams from "../../../../App/FeatureSet/Dashboard/src/Pages/Incidents/WorkspaceConnectionMicrosoftTeams";
 import IncidentsWorkspaceConnectionSlack from "../../../../App/FeatureSet/Dashboard/src/Pages/Incidents/WorkspaceConnectionSlack";
+import MonitorWorkspaceConnectionMattermost from "../../../../App/FeatureSet/Dashboard/src/Pages/Monitor/WorkspaceConnectionMattermost";
 import MonitorWorkspaceConnectionMicrosoftTeams from "../../../../App/FeatureSet/Dashboard/src/Pages/Monitor/WorkspaceConnectionMicrosoftTeams";
 import MonitorWorkspaceConnectionSlack from "../../../../App/FeatureSet/Dashboard/src/Pages/Monitor/WorkspaceConnectionSlack";
+import OnCallDutyWorkspaceConnectionMattermost from "../../../../App/FeatureSet/Dashboard/src/Pages/OnCallDuty/WorkspaceConnectionMattermost";
 import OnCallDutyWorkspaceConnectionMicrosoftTeams from "../../../../App/FeatureSet/Dashboard/src/Pages/OnCallDuty/WorkspaceConnectionMicrosoftTeams";
 import OnCallDutyWorkspaceConnectionSlack from "../../../../App/FeatureSet/Dashboard/src/Pages/OnCallDuty/WorkspaceConnectionSlack";
 import PageComponentProps from "../../../../App/FeatureSet/Dashboard/src/Pages/PageComponentProps";
+import ScheduledMaintenanceWorkspaceConnectionMattermost from "../../../../App/FeatureSet/Dashboard/src/Pages/ScheduledMaintenanceEvents/WorkspaceConnectionMattermost";
 import ScheduledMaintenanceWorkspaceConnectionMicrosoftTeams from "../../../../App/FeatureSet/Dashboard/src/Pages/ScheduledMaintenanceEvents/WorkspaceConnectionMicrosoftTeams";
 import ScheduledMaintenanceWorkspaceConnectionSlack from "../../../../App/FeatureSet/Dashboard/src/Pages/ScheduledMaintenanceEvents/WorkspaceConnectionSlack";
+import SecurityEventsWorkspaceConnectionMattermost from "../../../../App/FeatureSet/Dashboard/src/Pages/SecurityEvents/WorkspaceConnectionMattermost";
 import SecurityEventsWorkspaceConnectionMicrosoftTeams from "../../../../App/FeatureSet/Dashboard/src/Pages/SecurityEvents/WorkspaceConnectionMicrosoftTeams";
 import SecurityEventsWorkspaceConnectionSlack from "../../../../App/FeatureSet/Dashboard/src/Pages/SecurityEvents/WorkspaceConnectionSlack";
 import PageMap from "../../../../App/FeatureSet/Dashboard/src/Utils/PageMap";
@@ -180,6 +187,7 @@ describe("the Workspace page: which is connected, and the next step for each", (
           microsoftTeamsPage={
             PageMap.INCIDENTS_WORKSPACE_CONNECTION_MICROSOFT_TEAMS
           }
+          mattermostPage={PageMap.INCIDENTS_WORKSPACE_CONNECTION_MATTERMOST}
         />,
       );
     });
@@ -197,6 +205,7 @@ describe("the Workspace page: which is connected, and the next step for each", (
   test.each([
     [WorkspaceType.Slack, "slack"],
     [WorkspaceType.MicrosoftTeams, "microsoft-teams"],
+    [WorkspaceType.Mattermost, "mattermost"],
   ])(
     "%s's tile shows its official logo, connected or not",
     async (workspaceType: WorkspaceType, logo: string) => {
@@ -231,7 +240,7 @@ describe("the Workspace page: which is connected, and the next step for each", (
     ).toBeInTheDocument();
   });
 
-  test("shows Slack, then Microsoft Teams, each with what it does", async () => {
+  test("shows Slack, then Microsoft Teams, then Mattermost, each with what it does", async () => {
     connect();
     await renderOverview();
 
@@ -246,6 +255,7 @@ describe("the Workspace page: which is connected, and the next step for each", (
     ).toEqual([
       "workspace-connection-Slack",
       "workspace-connection-MicrosoftTeams",
+      "workspace-connection-Mattermost",
     ]);
     expect(
       within(tile(WorkspaceType.Slack)).getByText(
@@ -257,15 +267,21 @@ describe("the Workspace page: which is connected, and the next step for each", (
         WORKSPACE_CONNECTION_COPY[WorkspaceType.MicrosoftTeams].description,
       ),
     ).toBeInTheDocument();
+    expect(
+      within(tile(WorkspaceType.Mattermost)).getByText(
+        WORKSPACE_CONNECTION_COPY[WorkspaceType.Mattermost].description,
+      ),
+    ).toBeInTheDocument();
   });
 
-  test("nothing connected: both say Not connected and link to where they are connected", async () => {
+  test("nothing connected: each says Not connected and links to where it is connected", async () => {
     connect();
     await renderOverview();
 
     for (const workspaceType of [
       WorkspaceType.Slack,
       WorkspaceType.MicrosoftTeams,
+      WorkspaceType.Mattermost,
     ]) {
       expect(tile(workspaceType)).toHaveAttribute("data-connected", "false");
       expect(
@@ -285,6 +301,14 @@ describe("the Workspace page: which is connected, and the next step for each", (
     ).toHaveAttribute(
       "href",
       routeFor(PageMap.SETTINGS_MICROSOFT_TEAMS_INTEGRATION),
+    );
+    expect(
+      within(tile(WorkspaceType.Mattermost)).getByRole("link", {
+        name: "Connect Mattermost →",
+      }),
+    ).toHaveAttribute(
+      "href",
+      routeFor(PageMap.SETTINGS_MATTERMOST_INTEGRATION),
     );
   });
 
@@ -316,7 +340,35 @@ describe("the Workspace page: which is connected, and the next step for each", (
     ).toBeInTheDocument();
   });
 
-  test("both connected: both link to this product's own pages", async () => {
+  test("Mattermost connected: Mattermost says Connected and links to this product's Mattermost page", async () => {
+    connect(WorkspaceType.Mattermost);
+    await renderOverview();
+
+    expect(tile(WorkspaceType.Mattermost)).toHaveAttribute(
+      "data-connected",
+      "true",
+    );
+    expect(
+      within(tile(WorkspaceType.Mattermost)).getByText("Connected"),
+    ).toBeInTheDocument();
+    expect(
+      within(tile(WorkspaceType.Mattermost)).getByRole("link", {
+        name: "Set up notifications →",
+      }),
+    ).toHaveAttribute(
+      "href",
+      routeFor(PageMap.INCIDENTS_WORKSPACE_CONNECTION_MATTERMOST),
+    );
+
+    for (const workspaceType of [
+      WorkspaceType.Slack,
+      WorkspaceType.MicrosoftTeams,
+    ]) {
+      expect(tile(workspaceType)).toHaveAttribute("data-connected", "false");
+    }
+  });
+
+  test("Slack and Microsoft Teams connected: Mattermost alone says Not connected", async () => {
     connect(WorkspaceType.Slack, WorkspaceType.MicrosoftTeams);
     await renderOverview();
 
@@ -328,12 +380,49 @@ describe("the Workspace page: which is connected, and the next step for each", (
       "href",
       routeFor(PageMap.INCIDENTS_WORKSPACE_CONNECTION_MICROSOFT_TEAMS),
     );
+    expect(screen.getAllByText("Not connected")).toHaveLength(1);
+    expect(
+      within(tile(WorkspaceType.Mattermost)).getByText("Not connected"),
+    ).toBeInTheDocument();
+  });
+
+  test("all connected: each links to this product's own pages", async () => {
+    connect(
+      WorkspaceType.Slack,
+      WorkspaceType.MicrosoftTeams,
+      WorkspaceType.Mattermost,
+    );
+    await renderOverview();
+
+    const productPages: Array<[WorkspaceType, PageMap]> = [
+      [WorkspaceType.Slack, PageMap.INCIDENTS_WORKSPACE_CONNECTION_SLACK],
+      [
+        WorkspaceType.MicrosoftTeams,
+        PageMap.INCIDENTS_WORKSPACE_CONNECTION_MICROSOFT_TEAMS,
+      ],
+      [
+        WorkspaceType.Mattermost,
+        PageMap.INCIDENTS_WORKSPACE_CONNECTION_MATTERMOST,
+      ],
+    ];
+
+    for (const [workspaceType, page] of productPages) {
+      expect(
+        within(tile(workspaceType)).getByRole("link", {
+          name: "Set up notifications →",
+        }),
+      ).toHaveAttribute("href", routeFor(page));
+    }
     expect(screen.queryByText("Not connected")).not.toBeInTheDocument();
   });
 
   // Security Events > Workspace, as its routes mount it.
   test("Security Events' page sends each connected workspace to the security cases' rules", async () => {
-    connect(WorkspaceType.Slack, WorkspaceType.MicrosoftTeams);
+    connect(
+      WorkspaceType.Slack,
+      WorkspaceType.MicrosoftTeams,
+      WorkspaceType.Mattermost,
+    );
 
     await act(async () => {
       render(
@@ -341,6 +430,9 @@ describe("the Workspace page: which is connected, and the next step for each", (
           slackPage={PageMap.SECURITY_EVENTS_WORKSPACE_CONNECTION_SLACK}
           microsoftTeamsPage={
             PageMap.SECURITY_EVENTS_WORKSPACE_CONNECTION_MICROSOFT_TEAMS
+          }
+          mattermostPage={
+            PageMap.SECURITY_EVENTS_WORKSPACE_CONNECTION_MATTERMOST
           }
         />,
       );
@@ -361,6 +453,14 @@ describe("the Workspace page: which is connected, and the next step for each", (
     ).toHaveAttribute(
       "href",
       routeFor(PageMap.SECURITY_EVENTS_WORKSPACE_CONNECTION_MICROSOFT_TEAMS),
+    );
+    expect(
+      within(tile(WorkspaceType.Mattermost)).getByRole("link", {
+        name: "Set up notifications →",
+      }),
+    ).toHaveAttribute(
+      "href",
+      routeFor(PageMap.SECURITY_EVENTS_WORKSPACE_CONNECTION_MATTERMOST),
     );
   });
 
@@ -430,7 +530,7 @@ describe("the Workspace page: which is connected, and the next step for each", (
   });
 });
 
-describe("a product's Slack or Microsoft Teams page", () => {
+describe("a product's Slack, Microsoft Teams or Mattermost page", () => {
   interface WorkspacePage {
     name: string;
     Page: FunctionComponent<PageComponentProps>;
@@ -513,6 +613,43 @@ describe("a product's Slack or Microsoft Teams page", () => {
       workspaceType: WorkspaceType.MicrosoftTeams,
       firstEventType: NotificationRuleEventType.SecurityCase,
     },
+    // Each product's Mattermost page: the same rules, for Mattermost.
+    {
+      name: "Incidents > Mattermost",
+      Page: IncidentsWorkspaceConnectionMattermost,
+      workspaceType: WorkspaceType.Mattermost,
+      firstEventType: NotificationRuleEventType.Incident,
+    },
+    {
+      name: "Alerts > Mattermost",
+      Page: AlertsWorkspaceConnectionMattermost,
+      workspaceType: WorkspaceType.Mattermost,
+      firstEventType: NotificationRuleEventType.Alert,
+    },
+    {
+      name: "Scheduled Maintenance > Mattermost",
+      Page: ScheduledMaintenanceWorkspaceConnectionMattermost,
+      workspaceType: WorkspaceType.Mattermost,
+      firstEventType: NotificationRuleEventType.ScheduledMaintenance,
+    },
+    {
+      name: "Monitors > Mattermost",
+      Page: MonitorWorkspaceConnectionMattermost,
+      workspaceType: WorkspaceType.Mattermost,
+      firstEventType: NotificationRuleEventType.Monitor,
+    },
+    {
+      name: "On-Call > Mattermost",
+      Page: OnCallDutyWorkspaceConnectionMattermost,
+      workspaceType: WorkspaceType.Mattermost,
+      firstEventType: NotificationRuleEventType.OnCallDutyPolicy,
+    },
+    {
+      name: "Security Events > Mattermost",
+      Page: SecurityEventsWorkspaceConnectionMattermost,
+      workspaceType: WorkspaceType.Mattermost,
+      firstEventType: NotificationRuleEventType.SecurityCase,
+    },
   ];
 
   const PAGE_CASES: Array<[string, WorkspacePage]> = PAGES.map(
@@ -569,6 +706,11 @@ describe("a product's Slack or Microsoft Teams page", () => {
       "Security Events > Microsoft Teams",
       SecurityEventsWorkspaceConnectionMicrosoftTeams,
       WorkspaceType.MicrosoftTeams,
+    ],
+    [
+      "Security Events > Mattermost",
+      SecurityEventsWorkspaceConnectionMattermost,
+      WorkspaceType.Mattermost,
     ],
   ] as Array<[string, FunctionComponent<PageComponentProps>, WorkspaceType]>)(
     "%s: the security case rules, then the hunt rules, both in sight",
@@ -716,10 +858,33 @@ describe("a product's Slack or Microsoft Teams page", () => {
   );
 
   test("the monitor, on-call and security case pages have no reaction tips: nothing there is saved as a note", async () => {
-    for (const page of PAGES.slice(6)) {
+    for (const page of PAGES.slice(6, 12)) {
       connect(page.workspaceType);
       await renderPage(page);
 
+      expect(screen.queryByTestId("reaction-notes-tips")).toBeNull();
+      cleanup();
+    }
+  });
+
+  // OneUptime does not read Mattermost reactions, so no page promises it does.
+  test("the Mattermost pages have no reaction tips", async () => {
+    const mattermostPages: Array<WorkspacePage> = PAGES.filter(
+      (page: WorkspacePage): boolean => {
+        return page.workspaceType === WorkspaceType.Mattermost;
+      },
+    );
+
+    expect(mattermostPages).toHaveLength(6);
+
+    for (const page of mattermostPages) {
+      connect(page.workspaceType);
+      await renderPage(page);
+
+      // Security Events holds two kinds of rule, a card each.
+      expect(
+        screen.getAllByTestId("notification-rules").length,
+      ).toBeGreaterThan(0);
       expect(screen.queryByTestId("reaction-notes-tips")).toBeNull();
       cleanup();
     }
@@ -784,6 +949,7 @@ describe("the 'not connected' state", () => {
       WorkspaceType.MicrosoftTeams,
       PageMap.SETTINGS_MICROSOFT_TEAMS_INTEGRATION,
     ],
+    [WorkspaceType.Mattermost, PageMap.SETTINGS_MATTERMOST_INTEGRATION],
   ])(
     "%s: the button goes to its Project Settings page, where it is connected",
     (workspaceType: WorkspaceType, settingsPage: string) => {
@@ -798,6 +964,7 @@ describe("the 'not connected' state", () => {
   test.each([
     [WorkspaceType.Slack, "slack"],
     [WorkspaceType.MicrosoftTeams, "microsoft-teams"],
+    [WorkspaceType.Mattermost, "mattermost"],
   ])(
     "%s: shows the workspace's official logo above its title, not a grey glyph",
     (workspaceType: WorkspaceType, logo: string) => {
@@ -837,14 +1004,21 @@ describe("the 'not connected' state", () => {
           <WorkspaceConnectionGate workspaceType={WorkspaceType.MicrosoftTeams}>
             <div data-testid="teams-body" />
           </WorkspaceConnectionGate>
+          <WorkspaceConnectionGate workspaceType={WorkspaceType.Mattermost}>
+            <div data-testid="mattermost-body" />
+          </WorkspaceConnectionGate>
         </>,
       );
     });
 
     expect(screen.getByTestId("slack-body")).toBeInTheDocument();
     expect(screen.queryByTestId("teams-body")).not.toBeInTheDocument();
+    expect(screen.queryByTestId("mattermost-body")).not.toBeInTheDocument();
     expect(
       screen.getByText("Microsoft Teams is not connected yet!"),
+    ).toBeInTheDocument();
+    expect(
+      screen.getByText("Mattermost is not connected yet!"),
     ).toBeInTheDocument();
   });
 });
@@ -861,6 +1035,7 @@ describe("one answer for the page and its menu", () => {
             microsoftTeamsPage={
               PageMap.ALERTS_WORKSPACE_CONNECTION_MICROSOFT_TEAMS
             }
+            mattermostPage={PageMap.ALERTS_WORKSPACE_CONNECTION_MATTERMOST}
           />
           <WorkspaceConnectionGate workspaceType={WorkspaceType.MicrosoftTeams}>
             <div data-testid="teams-body" />

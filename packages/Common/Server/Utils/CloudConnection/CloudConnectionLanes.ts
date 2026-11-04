@@ -1,4 +1,5 @@
 import CloudAccount from "../../../Models/DatabaseModels/CloudAccount";
+import SecurityTelemetrySource from "../../../Models/DatabaseModels/SecurityTelemetrySource";
 import {
   CLOUD_COSTS_INTERVAL_MS,
   CLOUD_SAVINGS_INTERVAL_MS,
@@ -15,8 +16,12 @@ import { CloudProvider } from "../../../Types/Cloud/CloudPlatform";
 import { CloudConnectionFailureKind } from "../../../Types/CloudConnection/CloudConnectionTest";
 import LIMIT_MAX from "../../../Types/Database/LimitMax";
 import { JSONObject } from "../../../Types/JSON";
+import OneUptimeDate from "../../../Types/Date";
 import ObjectID from "../../../Types/ObjectID";
 import CloudAccountService from "../../Services/CloudAccountService";
+import CloudAuditSecurityEvents, {
+  CloudAuditStoreOutcome,
+} from "../SecurityEvent/CloudAudit/CloudAuditSecurityEvents";
 import LlmProviderError from "../LlmObservability/LlmProviderError";
 import logger from "../Logger";
 import CloudBudgetEvaluator from "./CloudBudgetEvaluator";
@@ -68,7 +73,11 @@ import {
  *     provider's health events about them, and keeps them as change events
  *     (CloudChangeRecorder) - every read, after the inventory, so a change
  *     to a resource the inventory just listed is tied to it. Changes that
- *     cannot be written are read again next time: the cursors go back;
+ *     cannot be written are read again next time: the cursors go back.
+ *     While the project's Security Events read its cloud audit logs, the
+ *     same read keeps every audit record it brought in as a security event
+ *     too (SecurityEvent/CloudAudit/CloudAuditSecurityEvents), and records
+ *     that cannot be stored are read again the same way;
  *   - keeps the connection's cloud accounts (CloudAccount): one row for
  *     each account it reaches, with the name its cloud gives it, when it
  *     was last listed in full, and its resources counted.
@@ -100,6 +109,9 @@ export const CLOUD_LANE_MIN_TIME_MS: number = 20 * 1000;
 
 export const CHANGES_NOT_SAVED_WARNING: string =
   "Some changes could not be saved this time: they are read again on the next read.";
+
+export const AUDIT_RECORDS_NOT_SAVED_WARNING: string =
+  "The audit logs could not be kept as security events this time: they are read again on the next read.";
 
 /*
  * What reading the accounts' costs may take, each time it is due: a few
@@ -140,6 +152,8 @@ export interface CloudChangesLaneOutcome {
   warnings: Array<string>;
   // Change events written.
   recorded: number;
+  // Security events the audit records made, while Cloud audit logs are on.
+  securityEventsStored?: number | undefined;
 }
 
 export interface CloudCostsLaneOutcome {
@@ -384,6 +398,9 @@ export default class CloudConnectionLanes {
     const snapshot: CloudChangeWindowSnapshot = snapshotChangeWindow(
       data.state,
     );
+    // Security Events' Cloud audit logs: whether this read keeps its records.
+    const auditSource: SecurityTelemetrySource | null =
+      await CloudAuditSecurityEvents.findEnabledSource(data.projectId);
 
     try {
       const result: CloudChangesResult = await data.connector.readChanges(
@@ -399,6 +416,7 @@ export default class CloudConnectionLanes {
           state: data.state,
           connectionId: data.connectionId.toString(),
           budget,
+          keepAuditRecords: auditSource !== null,
         },
       );
 
@@ -423,9 +441,48 @@ export default class CloudConnectionLanes {
         warnings.push(CHANGES_NOT_SAVED_WARNING);
       }
 
+      let securityEventsStored: number | undefined = undefined;
+
+      if (auditSource) {
+        try {
+          const stored: CloudAuditStoreOutcome =
+            await CloudAuditSecurityEvents.store({
+              projectId: data.projectId,
+              provider: data.provider,
+              connectionId: data.connectionId,
+              source: auditSource,
+              records: result.auditRecords || [],
+              // Stamped as they are stored, so a scheduled rule reads them.
+              now: OneUptimeDate.getCurrentDate(),
+            });
+
+          securityEventsStored = stored.eventsFound;
+        } catch (error) {
+          /*
+           * Read the same stretch again: the changes written stay seen and
+           * are not written twice, and the records stored are found stored.
+           */
+          restoreChangeWindow({
+            state: data.state,
+            snapshot,
+            unwrittenEventIds: [],
+          });
+          warnings.push(
+            `${AUDIT_RECORDS_NOT_SAVED_WARNING} ${
+              error instanceof Error ? error.message : String(error)
+            }`,
+          );
+        }
+      }
+
       forgetStalePlaces(data.state, data.now);
 
-      return { ran: true, warnings, recorded: outcome.recorded };
+      return {
+        ran: true,
+        warnings,
+        recorded: outcome.recorded,
+        ...(securityEventsStored !== undefined ? { securityEventsStored } : {}),
+      };
     } catch (error) {
       // Nothing this read brought in was written: it is read again.
       restoreChangeWindow({ state: data.state, snapshot });

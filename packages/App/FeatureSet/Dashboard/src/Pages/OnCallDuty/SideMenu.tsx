@@ -35,6 +35,7 @@ const DashboardSideMenu: () => JSX.Element = (): ReactElement => {
     useWorkspaceSideMenuSection({
       slack: PageMap.ON_CALL_DUTY_WORKSPACE_CONNECTION_SLACK,
       microsoftTeams: PageMap.ON_CALL_DUTY_WORKSPACE_CONNECTION_MICROSOFT_TEAMS,
+      mattermost: PageMap.ON_CALL_DUTY_WORKSPACE_CONNECTION_MATTERMOST,
       connect: PageMap.ON_CALL_DUTY_WORKSPACE_CONNECTIONS,
     });
 

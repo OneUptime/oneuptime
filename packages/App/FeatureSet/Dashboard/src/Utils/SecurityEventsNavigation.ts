@@ -399,6 +399,7 @@ export const SECURITY_EVENTS_MENU: Array<SecurityEventsMenuSection> = [
 export interface SecurityEventsWorkspacePages {
   slack: PageMap;
   microsoftTeams: PageMap;
+  mattermost: PageMap;
   // The page a project with nothing connected is sent to.
   connect: PageMap;
 }
@@ -408,6 +409,7 @@ export const SECURITY_EVENTS_WORKSPACE_SECTION_TITLE: string = "Workspace";
 export const SECURITY_EVENTS_WORKSPACE_PAGES: SecurityEventsWorkspacePages = {
   slack: PageMap.SECURITY_EVENTS_WORKSPACE_CONNECTION_SLACK,
   microsoftTeams: PageMap.SECURITY_EVENTS_WORKSPACE_CONNECTION_MICROSOFT_TEAMS,
+  mattermost: PageMap.SECURITY_EVENTS_WORKSPACE_CONNECTION_MATTERMOST,
   connect: PageMap.SECURITY_EVENTS_WORKSPACE_CONNECTIONS,
 };
 
@@ -415,9 +417,9 @@ export const SECURITY_EVENTS_WORKSPACE_PAGES: SecurityEventsWorkspacePages = {
 export const SECURITY_EVENTS_WORKSPACE_SECTION_BEFORE: string = "Connections";
 
 /*
- * The kinds of rule the Slack and Microsoft Teams pages hold, a card each,
- * one under the other: the rules that post security cases, then the rules
- * that post what hunts find.
+ * The kinds of rule the Slack, Microsoft Teams and Mattermost pages hold, a
+ * card each, one under the other: the rules that post security cases, then
+ * the rules that post what hunts find.
  */
 export const SECURITY_EVENTS_WORKSPACE_EVENT_TYPES: ReadonlyArray<NotificationRuleEventType> =
   [
@@ -426,9 +428,9 @@ export const SECURITY_EVENTS_WORKSPACE_EVENT_TYPES: ReadonlyArray<NotificationRu
   ];
 
 /*
- * Where each Workspace page is, as its breadcrumbs say it. Slack and
- * Microsoft Teams are named as their entries are; the page that connects
- * either shows both, so it is the section's own page, named once.
+ * Where each Workspace page is, as its breadcrumbs say it. Slack, Microsoft
+ * Teams and Mattermost are named as their entries are; the page that
+ * connects one shows them all, so it is the section's own page, named once.
  */
 const WORKSPACE_PAGE_TRAILS: Array<[PageMap, Array<string>]> = [
   [
@@ -444,12 +446,16 @@ const WORKSPACE_PAGE_TRAILS: Array<[PageMap, Array<string>]> = [
     ],
   ],
   [
+    SECURITY_EVENTS_WORKSPACE_PAGES.mattermost,
+    ["Security Events", SECURITY_EVENTS_WORKSPACE_SECTION_TITLE, "Mattermost"],
+  ],
+  [
     SECURITY_EVENTS_WORKSPACE_PAGES.connect,
     ["Security Events", SECURITY_EVENTS_WORKSPACE_SECTION_TITLE],
   ],
 ];
 
-// The Workspace section's pages: Slack, Microsoft Teams, and the one that connects either.
+// The Workspace section's pages: Slack, Microsoft Teams, Mattermost, and the one that connects one.
 export function getSecurityEventsWorkspacePages(): Array<PageMap> {
   return WORKSPACE_PAGE_TRAILS.map(
     ([page]: [PageMap, Array<string>]): PageMap => {

@@ -1415,6 +1415,7 @@ describe("the OpenTelemetry collector pin", () => {
     // Pinned since the agents report their version (they ran :latest).
     "agents/ProxmoxAgent/docker-compose.yml",
     "agents/CephAgent/docker-compose.yml",
+    "agents/OpenStackAgent/docker-compose.yml",
     // The journald wrapper image the Proxmox README and guide build.
     "agents/ProxmoxAgent/README.md",
     "packages/App/FeatureSet/Dashboard/src/Pages/Proxmox/Utils/DocumentationMarkdown.ts",
@@ -1505,13 +1506,14 @@ describe("the OpenTelemetry collector pin", () => {
     expect(isFilesVersionOf("0.161", "0.161.0")).toBe(false);
   });
 
-  test("the Swarm, VMware, Database, Proxmox, Ceph and Storage Array compose files run the pinned collector", () => {
+  test("the Swarm, VMware, Database, Proxmox, Ceph, OpenStack and Storage Array compose files run the pinned collector", () => {
     for (const file of [
       "agents/DockerSwarmAgent/docker-compose.yml",
       "agents/VMwareAgent/docker-compose.yml",
       "agents/DatabaseAgent/docker-compose.yml",
       "agents/ProxmoxAgent/docker-compose.yml",
       "agents/CephAgent/docker-compose.yml",
+      "agents/OpenStackAgent/docker-compose.yml",
       "agents/StorageArrayAgent/docker-compose.yml",
     ]) {
       const compose = yaml.load(read(file));
@@ -1538,6 +1540,7 @@ describe("the OpenTelemetry collector pin", () => {
   test.each([
     ["ProxmoxAgent", "otel-collector-config.yaml"],
     ["CephAgent", "otel-collector-config.yaml"],
+    ["OpenStackAgent", "otel-collector-config.yaml"],
     ["VMwareAgent", "otel-collector-config.yaml"],
     ["StorageArrayAgent", "otel-collector-config.yaml"],
     ["StorageArrayAgent", "otel-collector-config.flasharray-exporter.yaml"],

@@ -1,3 +1,4 @@
+import AutoRemediationApprovalSource from "../../Types/AutoRemediation/AutoRemediationApprovalSource";
 import AutoRemediationExecutionMode from "../../Types/AutoRemediation/AutoRemediationExecutionMode";
 import AutoRemediationSuggestionStatus from "../../Types/AutoRemediation/AutoRemediationSuggestionStatus";
 import AutoRemediationVerificationStatus from "../../Types/AutoRemediation/AutoRemediationVerificationStatus";
@@ -36,6 +37,8 @@ export interface SuggestionTransitionSet {
   runbookExecutionId?: string | undefined;
   approvedByUserId?: string | undefined;
   approvedAt?: Date | undefined;
+  // Where the person approved it: the AI card, Slack or Microsoft Teams.
+  approvedFrom?: AutoRemediationApprovalSource | undefined;
   dismissedByUserId?: string | undefined;
   dismissedAt?: Date | undefined;
   verificationStatus?: AutoRemediationVerificationStatus | undefined;
@@ -46,6 +49,12 @@ export interface SuggestionTransitionSet {
    * the query-builder update stores it as-is.
    */
   commandPlan?: JSONObject | undefined;
+  /*
+   * How the runbook a Runbook suggestion proposes went the last times
+   * OneUptime AI ran it (RemediationTrackRecord as plain JSON), set when it
+   * is proposed. jsonb, stored as-is, like commandPlan.
+   */
+  runbookTrackRecord?: JSONObject | undefined;
 }
 
 // What the outcome verifier may set when a verification concludes.

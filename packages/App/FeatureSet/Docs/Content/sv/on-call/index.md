@@ -86,7 +86,7 @@ Ett projekts första policy kan göra det redan när den skapas: låt **Utlös d
 | **Inkommande samtal** | **Inkommande samtalspolicyer**: ett telefonnummer som ringer till den som har jour |
 | **Avancerad** | **Användaråsidosättningar**, **Exekveringsloggar** och **Arkiverade policyer** |
 | **Rapporter** | **Användarens jourtid**: hur länge varje person hade jour |
-| **Arbetsyta** | **Slack** och **Microsoft Teams**: regler som publicerar jourhändelser i en kanal |
+| **Arbetsyta** | **Slack**, **Microsoft Teams** och **Mattermost**: regler som publicerar jourhändelser i en kanal |
 | **Inställningar** | **Anpassade fält**, **Etikettregler** och **Ägarregler** |
 | **Utvecklare** | **Terraform**, **API**, **CLI** och **AI-assistenter**: jour konfigurerad från kod |
 
