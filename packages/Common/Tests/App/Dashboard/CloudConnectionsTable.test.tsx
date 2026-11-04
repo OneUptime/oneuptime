@@ -32,8 +32,12 @@ import { MemoryRouter } from "react-router-dom";
  *     and how many resources its last read found, as the way to them, with
  *     the first two regions and how many more;
  *   - its actions: View error only while it is not working, Read now and
- *     Turn off while it is on, Turn on while it is off, Test, Edit - each
- *     greyed, with why, without the right to change connections;
+ *     Turn off while it is on, Turn on while it is off, Test, Edit, and on
+ *     an AWS connection Stream metrics and logs - and Stop streaming once
+ *     it has a key, asked first, with the command that deletes the stacks -
+ *     each greyed, with why, without the right to change connections;
+ *   - an AWS connection with a stream key says how streaming is doing under
+ *     how it is read;
  *   - Read now queues a read, and the row says it is reading - Read now
  *     put away - until the connection's last read time moves, asked of the
  *     one connection now and then, when the list loads again by itself; it
@@ -71,6 +75,8 @@ import { CloudConnectionFailureKind } from "../../../Types/CloudConnection/Cloud
 import OneUptimeDate from "../../../Types/Date";
 import { JSONObject } from "../../../Types/JSON";
 import ObjectID from "../../../Types/ObjectID";
+import { CloudStreamRefusalReason } from "../../../Types/CloudConnection/CloudStream";
+import { ButtonStyleType } from "../../../UI/Components/Button/Button";
 import API from "../../../UI/Utils/API/API";
 import ModelAPI from "../../../UI/Utils/ModelAPI/ModelAPI";
 import { PermissionGateResult } from "../../../UI/Utils/PermissionGate";
@@ -85,7 +91,20 @@ interface CapturedAction {
   tooltip?: string;
   isVisible?: (item: CloudConnection) => boolean;
   getDisabledReason?: (item: CloudConnection) => string | undefined;
-  onClick: (item: CloudConnection, done: () => void) => void | Promise<void>;
+  getConfirmation?: (item: CloudConnection) =>
+    | {
+        title: string;
+        description: string | React.ReactElement;
+        submitButtonText: string;
+        submitButtonType?: ButtonStyleType | undefined;
+        details?: React.ReactElement | undefined;
+      }
+    | undefined;
+  onClick: (
+    item: CloudConnection,
+    done: () => void,
+    onError?: (error: Error) => void,
+  ) => void | Promise<void>;
 }
 
 interface CapturedColumn {
@@ -224,7 +243,7 @@ function drawCell(title: string, item: CloudConnection): HTMLElement {
 }
 
 describe("what the list reads", () => {
-  test("this project's connections, with what the list shows - never credentials or read state", () => {
+  test("this project's connections, with what the list shows - never credentials, read state or stream key hashes", () => {
     renderTable();
 
     const props: Record<string, unknown> = tableProps();
@@ -242,6 +261,9 @@ describe("what the list reads", () => {
         "lastPulledAt",
         "lastSuccessfulPullAt",
         "provider",
+        // When its stream key was made, and what its streams delivered.
+        "streamKeyCreatedAt",
+        "streamSummary",
       ],
     );
     expect(props["isDeleteable"]).toBe(true);
@@ -562,7 +584,15 @@ describe("its actions", () => {
   test("without the right to change connections, every change is greyed and says why", () => {
     renderTable({ isAllowed: false, disabledReason: "Read only." });
 
-    for (const title of ["Read now", "Turn on", "Test", "Turn off", "Edit"]) {
+    for (const title of [
+      "Read now",
+      "Turn on",
+      "Test",
+      "Stream metrics and logs",
+      "Stop streaming",
+      "Turn off",
+      "Edit",
+    ]) {
       expect(action(title).disabled).toBe(true);
       expect(action(title).tooltip).toBe("Read only.");
     }
@@ -893,5 +923,254 @@ describe("its actions", () => {
     });
 
     expect(onEdit).toHaveBeenCalledWith(item);
+  });
+});
+
+describe("streaming an AWS connection's metrics and logs", () => {
+  const STREAM_KEY_MADE_AT: Date = new Date("2026-11-01T09:00:00.000Z");
+
+  function minutesAgo(minutes: number): string {
+    return new Date(Date.now() - minutes * 60 * 1000).toISOString();
+  }
+
+  test("only an AWS connection streams; Stop streaming only once it has a key", () => {
+    renderTable();
+
+    const aws: CloudConnection = connection();
+    const streaming: CloudConnection = connection({
+      streamKeyCreatedAt: STREAM_KEY_MADE_AT,
+    });
+    const azure: CloudConnection = connection({
+      provider: CloudProvider.Azure,
+      streamKeyCreatedAt: STREAM_KEY_MADE_AT,
+    });
+
+    expect(action("Stream metrics and logs").isVisible!(aws)).toBe(true);
+    expect(action("Stream metrics and logs").isVisible!(streaming)).toBe(true);
+    expect(action("Stream metrics and logs").isVisible!(azure)).toBe(false);
+    expect(
+      action("Stream metrics and logs").isVisible!(
+        connection({ provider: CloudProvider.GCP }),
+      ),
+    ).toBe(false);
+    expect(action("Stop streaming").isVisible!(aws)).toBe(false);
+    expect(action("Stop streaming").isVisible!(streaming)).toBe(true);
+    expect(action("Stop streaming").isVisible!(azure)).toBe(false);
+    // Neither is the row's button: Read now stays it.
+    expect(
+      splitActionButtons<CloudConnection>({
+        actionButtons: tableProps()["actionButtons"] as Array<
+          ActionButtonSchema<CloudConnection>
+        >,
+        item: streaming,
+      }).primary?.button.title,
+    ).toBe("Read now");
+  });
+
+  test("Stream metrics and logs opens the dialog on the connection, and closing it reads the list again", async () => {
+    renderTable();
+
+    const toggleBefore: unknown = tableProps()["refreshToggle"];
+    const done: MockFunction = getJestMockFunction();
+
+    await act(async () => {
+      await action("Stream metrics and logs").onClick(connection(), done);
+    });
+
+    expect(done).toHaveBeenCalledTimes(1);
+    expect(screen.getByTestId("cloud-stream")).toBeInTheDocument();
+    expect(screen.getByRole("dialog")).toHaveTextContent(
+      "Stream metrics and logs",
+    );
+
+    await act(async () => {
+      within(screen.getByTestId("modal-footer"))
+        .getByRole("button", { name: "Close" })
+        .click();
+    });
+
+    expect(screen.queryByTestId("cloud-stream")).not.toBeInTheDocument();
+    // What the dialog saw arrive is in the row too.
+    expect(tableProps()["refreshToggle"]).not.toBe(toggleBefore);
+  });
+
+  test("Stop streaming asks first, says what stays, and hands over the command that deletes the stacks", () => {
+    renderTable();
+
+    const confirmation: ReturnType<
+      NonNullable<CapturedAction["getConfirmation"]>
+    > = action("Stop streaming").getConfirmation!(
+      connection({
+        streamKeyCreatedAt: STREAM_KEY_MADE_AT,
+        lastPullResult: readResult({
+          resourceCount: 3,
+          regions: [
+            { region: "us-east-1", count: 2 },
+            { region: "eu-west-1", count: 1 },
+          ],
+        }),
+      }),
+    )!;
+
+    expect(confirmation.title).toBe("Stop streaming");
+    expect(confirmation.submitButtonText).toBe("Stop streaming");
+    expect(confirmation.submitButtonType).toBe(ButtonStyleType.DANGER);
+    expect(confirmation.description).toBe(
+      "Every stream key of Production AWS stops working at once: OneUptime refuses what its streams deliver, and the connection reads all its metrics on its schedule again. What the streams delivered stays.",
+    );
+
+    const { container } = render(confirmation.details!);
+
+    expect(container).toHaveTextContent(
+      "The streams stay in AWS, and AWS bills them, until their stacks are deleted. To delete them, run this in AWS CloudShell:",
+    );
+
+    const code: string = container.querySelector("pre code")?.textContent || "";
+
+    expect(code).toContain("aws cloudformation delete-stack");
+    expect(code).toContain("OneUptimeStream-20000000");
+    expect(code).toContain("us-east-1");
+    expect(code).toContain("eu-west-1");
+  });
+
+  test("Stop streaming stops every key of the connection, and the list reads again", async () => {
+    renderTable();
+
+    const toggleBefore: unknown = tableProps()["refreshToggle"];
+    const done: MockFunction = getJestMockFunction();
+    const onError: MockFunction = getJestMockFunction();
+
+    await act(async () => {
+      await action("Stop streaming").onClick(
+        connection({ streamKeyCreatedAt: STREAM_KEY_MADE_AT }),
+        done,
+        onError,
+      );
+    });
+
+    expect(postSpy).toHaveBeenCalledTimes(1);
+    expect(postSpy.mock.calls[0]![0].url.toString()).toMatch(
+      new RegExp(`/cloud-connection/${CONNECTION_ID}/stop-streaming$`),
+    );
+    expect(done).toHaveBeenCalledTimes(1);
+    expect(onError).not.toHaveBeenCalled();
+    expect(tableProps()["refreshToggle"]).not.toBe(toggleBefore);
+  });
+
+  test("Stop streaming that is refused says why in its own dialog", async () => {
+    postSpy.mockRejectedValue(
+      new Error(
+        "Project owners and project administrators can connect, test and read cloud accounts.",
+      ),
+    );
+    renderTable();
+
+    const done: MockFunction = getJestMockFunction();
+    const onError: MockFunction = getJestMockFunction();
+
+    await act(async () => {
+      await action("Stop streaming").onClick(
+        connection({ streamKeyCreatedAt: STREAM_KEY_MADE_AT }),
+        done,
+        onError,
+      );
+    });
+
+    expect(done).toHaveBeenCalledTimes(1);
+    expect(onError).toHaveBeenCalledTimes(1);
+    expect((onError.mock.calls[0]![0] as Error).message).toBe(
+      "Project owners and project administrators can connect, test and read cloud accounts.",
+    );
+  });
+
+  test("its status says how streaming is doing - and nothing of it before a key", () => {
+    renderTable();
+
+    const read: Partial<CloudConnection> = {
+      lastPulledAt: READ_AT,
+      lastSuccessfulPullAt: READ_AT,
+    };
+
+    expect(
+      within(drawCell("Status", connection(read))).queryByTestId(
+        "cloud-connection-stream",
+      ),
+    ).not.toBeInTheDocument();
+    // Not AWS: never a stream line, whatever is stored.
+    expect(
+      within(
+        drawCell(
+          "Status",
+          connection({
+            ...read,
+            provider: CloudProvider.Azure,
+            streamKeyCreatedAt: STREAM_KEY_MADE_AT,
+          }),
+        ),
+      ).queryByTestId("cloud-connection-stream"),
+    ).not.toBeInTheDocument();
+
+    const cases: Array<[string, JSONObject | undefined, string, string]> = [
+      ["waiting", undefined, "waiting", "Stream waiting"],
+      [
+        "receiving",
+        { lastDeliveryAt: minutesAgo(1) },
+        "receiving",
+        "Streaming",
+      ],
+      ["quiet", { lastDeliveryAt: minutesAgo(30) }, "quiet", "Stream quiet"],
+      [
+        "refused",
+        {
+          lastDeliveryAt: minutesAgo(30),
+          lastRefusal: {
+            reason: CloudStreamRefusalReason.WrongKey,
+            at: minutesAgo(1),
+          },
+        },
+        "refused",
+        "Stream refused",
+      ],
+    ];
+
+    for (const [name, summary, state, label] of cases) {
+      const line: HTMLElement = within(
+        drawCell(
+          "Status",
+          connection({
+            ...read,
+            streamKeyCreatedAt: STREAM_KEY_MADE_AT,
+            ...(summary ? { streamSummary: summary } : {}),
+          }),
+        ),
+      ).getByTestId("cloud-connection-stream");
+
+      expect({ name, state: line.getAttribute("data-state") }).toEqual({
+        name,
+        state,
+      });
+      expect(line).toHaveTextContent(label);
+    }
+
+    // Why, on hover.
+    const refused: HTMLElement = within(
+      drawCell(
+        "Status",
+        connection({
+          ...read,
+          streamKeyCreatedAt: STREAM_KEY_MADE_AT,
+          streamSummary: {
+            lastRefusal: {
+              reason: CloudStreamRefusalReason.TurnedOff,
+              at: minutesAgo(1),
+            },
+          },
+        }),
+      ),
+    ).getByTestId("cloud-connection-stream");
+
+    expect(refused.getAttribute("title")).toContain(
+      "This connection is turned off.",
+    );
   });
 });
