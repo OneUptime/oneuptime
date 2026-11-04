@@ -14,3 +14,12 @@ answered in the page.
   `after-changes-fa-390`, `after-ai-logs-linked-fix-1280` and
   `after-gcp-more-fields-390` from the suite's own run (`CI=1 npx playwright
   test --config playwright.cloud-connect-ui.config.ts`).
+- `review-*`: after the UI review, from the same fixture at 2x (Inter
+  loaded): an account's Changes at 1280 (English, German, dark) and 390
+  (English, Persian) - who made a change and who approved it in By, what it
+  was for and its AI Logs under what changed, a rollback with no approver -
+  and Google Cloud's dialog with Cloud Run picked (its cost line says
+  project). `review-remediation-agent-not-connected` is the Event Overview
+  fixture's Remediation step at `?state=created&fixing=cluster-agent-not-connected`
+  (`CI=1 npx playwright test --config playwright.event-overview-ui.config.ts
+  -g cluster-agent-not-connected`).
