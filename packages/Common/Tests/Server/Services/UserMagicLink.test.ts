@@ -42,7 +42,11 @@ function storedUser(expires: Date | undefined): User {
   user.email = new Email("ada@example.com");
   user.isEmailVerified = true;
   user.enableTwoFactorAuth = false;
-  user.magicLinkExpires = expires;
+
+  if (expires) {
+    user.magicLinkExpires = expires;
+  }
+
   return user;
 }
 

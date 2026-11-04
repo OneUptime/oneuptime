@@ -225,12 +225,13 @@ beforeEach(() => {
   jest
     .spyOn(API, "post")
     .mockImplementation(
-      async (options: {
-        url?: { toString: () => string } | undefined;
-        data?: JSONObject | undefined;
-      }): Promise<HTTPResponse<JSONObject> | HTTPErrorResponse> => {
+      async (
+        options: Parameters<typeof API.post>[0],
+      ): Promise<HTTPResponse<JSONObject> | HTTPErrorResponse> => {
         const url: string = options.url?.toString() || "";
-        const data: JSONObject = (options.data?.["data"] as JSONObject) || {};
+        const data: JSONObject =
+          ((options.data as JSONObject | undefined)?.["data"] as JSONObject) ||
+          {};
 
         posted.push({ url: url, data: data });
 
