@@ -108,10 +108,21 @@ const BiDashboardsPage: FunctionComponent<
             "Metabase, Superset, Tableau, Looker and Power BI: their dashboards, and the tables behind them, read every hour, so a table's alerts list the dashboards built on it.",
         }}
         noItemsMessage="No BI tool yet. Add one, with credentials that may read its dashboards, and a late table's alert names the dashboards people open on it."
+        /*
+         * Five rows on Add, four on Edit (the tool stays as it is), so the
+         * form walks two steps (LongFormStepsGuard): the tool, then how
+         * OneUptime reads it - as Connect a Database walks the database,
+         * then its connection.
+         */
+        formSteps={[
+          { title: "BI Tool", id: "tool" },
+          { title: "Connection", id: "connection" },
+        ]}
         formFields={[
           {
             field: { name: true },
             title: "Name",
+            stepId: "tool",
             description: "What the BI tool is called here.",
             fieldType: FormFieldSchemaType.Text,
             required: true,
@@ -120,6 +131,7 @@ const BiDashboardsPage: FunctionComponent<
           {
             field: { tool: true },
             title: "Tool",
+            stepId: "tool",
             description: "Which BI tool it is.",
             fieldType: FormFieldSchemaType.Dropdown,
             dropdownOptions: TOOL_OPTIONS,
@@ -129,6 +141,7 @@ const BiDashboardsPage: FunctionComponent<
           {
             field: { baseUrl: true },
             title: "Address",
+            stepId: "connection",
             description:
               "The tool's own address, such as https://metabase.acme.com. Power BI needs none.",
             fieldType: FormFieldSchemaType.URL,
@@ -143,6 +156,7 @@ const BiDashboardsPage: FunctionComponent<
           {
             field: { credentials: true },
             title: "Credentials",
+            stepId: "connection",
             description:
               "JSON with what may read its dashboards: an API key, a user, a token or a service principal, as the tool asks. Encrypted, and never shown again.",
             fieldType: FormFieldSchemaType.Password,
@@ -152,6 +166,7 @@ const BiDashboardsPage: FunctionComponent<
           {
             field: { isEnabled: true },
             title: "Enabled",
+            stepId: "connection",
             description: "Read its dashboards every hour.",
             fieldType: FormFieldSchemaType.Toggle,
             required: false,
