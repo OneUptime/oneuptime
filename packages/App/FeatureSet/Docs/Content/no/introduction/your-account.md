@@ -73,6 +73,8 @@ Utvid **Sikkerhet** i sidemenyen til **Brukerprofil**. Delen har tre sider.
 3. Klikk på **Oppdater passord**.
 :::
 
+Et nytt passord logger alle enheter ut av kontoen din, og enhver tilbakestillingslenke eller innloggingslenke som allerede er sendt, slutter å virke.
+
 ### Legg til en passnøkkel
 
 :::steps

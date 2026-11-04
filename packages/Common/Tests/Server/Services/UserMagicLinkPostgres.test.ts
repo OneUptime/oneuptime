@@ -33,9 +33,10 @@ import { DataSource } from "typeorm";
  *     account and a token that is not the link find nothing and spend
  *     nothing;
  *   - a newer link replaces the older one;
- *   - a new password ends the account's link in the write that stores it,
- *     however it is set and by whom, through the real update path - and no
- *     other account's link, and a link asked for afterwards works;
+ *   - a new password ends the account's link, and its password reset link, in
+ *     the write that stores it, however it is set and by whom, through the real
+ *     update path - and no other account's, and a link asked for afterwards
+ *     works;
  *   - no account holds a link until one is asked for, and the server takes
  *     sign-in links until a master admin turns them off - the one that
  *     existed before the column too.
@@ -309,7 +310,54 @@ describePostgres("an account's sign-in links against Postgres", () => {
 
   describe("a new password", () => {
     const otherToken: string = "3e4f9d8b-6f52-4bad-8ebf-4a5b6c7d8e9f";
+    const resetToken: string = "4f5a0e9c-7a63-4cbe-9fca-5b6c7d8e9fa0";
+    const otherResetToken: string = "5a6b1fad-8b74-4dcf-afdb-6c7d8e9fa0b1";
     const newPassword: string = "a brand new passphrase";
+
+    // An account's stored reset link: the hash of `value`, live for a day.
+    const storeResetLink: (
+      value: string,
+      accountId?: ObjectID,
+    ) => Promise<void> = async (
+      value: string,
+      accountId?: ObjectID,
+    ): Promise<void> => {
+      await query(
+        `UPDATE "${schema}"."User" SET "resetPasswordToken" = $1, "resetPasswordExpires" = NOW() + interval '1 day' WHERE "_id" = $2`,
+        [await hashOf(value), (accountId || userId).toString()],
+      );
+    };
+
+    const storedResetLink: (accountId?: ObjectID) => Promise<{
+      resetPasswordToken: string | null;
+      resetPasswordExpires: Date | null;
+    }> = async (
+      accountId?: ObjectID,
+    ): Promise<{
+      resetPasswordToken: string | null;
+      resetPasswordExpires: Date | null;
+    }> => {
+      const rows: Array<{
+        resetPasswordToken: string | null;
+        resetPasswordExpires: Date | null;
+      }> = await query(
+        `SELECT "resetPasswordToken", "resetPasswordExpires" FROM "${schema}"."User" WHERE "_id" = $1`,
+        [(accountId || userId).toString()],
+      );
+
+      return rows[0]!;
+    };
+
+    // What POST /reset-password reads a link by: its token's hash, and nothing else.
+    const accountTheResetLinkFinds: (
+      value: string,
+    ) => Promise<User | null> = async (value: string): Promise<User | null> => {
+      return await UserService.findOneBy({
+        query: { resetPasswordToken: await hashOf(value) },
+        select: { _id: true },
+        props: { isRoot: true },
+      });
+    };
 
     const writeNewPasswordAs: (
       props: DatabaseCommonInteractionProps,
@@ -363,11 +411,28 @@ describePostgres("an account's sign-in links against Postgres", () => {
           return writeNewPasswordAs({ isRoot: true });
         },
       ],
+      [
+        "an invited person claiming their account at sign up",
+        (): Promise<unknown> => {
+          return UserService.updateOneByIdAndFetch({
+            id: userId,
+            data: { password: new HashedString(newPassword) } as never,
+            select: { _id: true, email: true },
+            props: { isRoot: true },
+          });
+        },
+      ],
     ])(
-      "set by %s ends the account's link with the write that stores it, and no other account's",
+      "set by %s ends the account's links with the write that stores it, and no other account's",
       async (_name: string, changePassword: () => Promise<unknown>) => {
         await storeLink(token, 15);
         await storeLink(otherToken, 15, otherUserId);
+        await storeResetLink(resetToken);
+        await storeResetLink(otherResetToken, otherUserId);
+
+        expect(
+          (await accountTheResetLinkFinds(resetToken))?.id?.toString(),
+        ).toBe(userId.toString());
 
         await changePassword();
 
@@ -386,10 +451,21 @@ describePostgres("an account's sign-in links against Postgres", () => {
         });
         expect(await find(token)).toBeNull();
         expect(await consume(token)).toBe(false);
+        expect(await storedResetLink()).toEqual({
+          resetPasswordToken: null,
+          resetPasswordExpires: null,
+        });
+        expect(await accountTheResetLinkFinds(resetToken)).toBeNull();
 
         expect((await storedRow(otherUserId)).magicLinkToken).toBe(
           await hashOf(otherToken),
         );
+        expect((await storedResetLink(otherUserId)).resetPasswordToken).toBe(
+          await hashOf(otherResetToken),
+        );
+        expect(
+          (await accountTheResetLinkFinds(otherResetToken))?.id?.toString(),
+        ).toBe(otherUserId.toString());
       },
     );
 
@@ -403,8 +479,44 @@ describePostgres("an account's sign-in links against Postgres", () => {
       expect(await consume(otherToken)).toBe(true);
     });
 
-    test("another change to the account leaves the link working", async () => {
+    test("a reset link asked for after it works", async () => {
+      await storeResetLink(resetToken);
+      expect(await writeNewPasswordAs({ userId: userId })).toBe(1);
+
+      await storeResetLink(otherResetToken);
+
+      expect(await accountTheResetLinkFinds(resetToken)).toBeNull();
+      expect(
+        (await accountTheResetLinkFinds(otherResetToken))?.id?.toString(),
+      ).toBe(userId.toString());
+    });
+
+    test("the owner still may not write a link's columns: a new password sent with one is refused whole", async () => {
+      await storeResetLink(resetToken);
+      const before: unknown = await storedPassword();
+
+      await expect(
+        UserService.updateOneById({
+          id: userId,
+          data: {
+            password: new HashedString(newPassword),
+            resetPasswordToken: "chosen by them",
+          } as never,
+          props: { userId: userId },
+        }),
+      ).rejects.toThrow(
+        "User is not allowed to update on resetPasswordToken column",
+      );
+
+      expect(await storedPassword()).toEqual(before);
+      expect((await storedResetLink()).resetPasswordToken).toBe(
+        await hashOf(resetToken),
+      );
+    });
+
+    test("another change to the account leaves the links working", async () => {
       await storeLink(token, 15);
+      await storeResetLink(resetToken);
 
       expect(
         await UserService.updateOneById({
@@ -416,6 +528,9 @@ describePostgres("an account's sign-in links against Postgres", () => {
 
       expect((await storedRow()).magicLinkToken).toBe(await hashOf(token));
       expect(await find(token)).not.toBeNull();
+      expect((await accountTheResetLinkFinds(resetToken))?.id?.toString()).toBe(
+        userId.toString(),
+      );
     });
   });
 });

@@ -73,6 +73,8 @@ Fäll ut **Säkerhet** i sidomenyn i **Användarprofil**. Avsnittet har tre sido
 3. Klicka på **Uppdatera lösenord**.
 :::
 
+Ett nytt lösenord loggar ut alla enheter från ditt konto, och varje återställningslänk eller inloggningslänk som redan skickats slutar fungera.
+
 ### Lägg till en passnyckel
 
 :::steps

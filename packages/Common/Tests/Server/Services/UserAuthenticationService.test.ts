@@ -781,13 +781,17 @@ describe("UserService -- master-admin authentication management", () => {
       expect(password.toString()).toBe(VALID_PASSWORD);
     });
 
-    test("clears any outstanding reset link in the SAME update", async () => {
+    test("writes the password alone: the write's own hook ends the links", async () => {
       /*
        * A link mailed five minutes before the admin intervened must not still
        * be redeemable afterwards -- whoever holds it could set the password
-       * again, undoing the intervention. Doing it as a second statement would
-       * leave a window where the new password is live and the old link still
-       * works; doing it in the same update means there is no such window.
+       * again, undoing the intervention. That is true of every new password,
+       * so it is the write's own hook that ends them, in this same UPDATE
+       * (UserServiceNewPasswordEndsLinks.test.ts runs the real write): one rule
+       * in one place, rather than one each writer has to remember. The profile
+       * page has no route of its own to remember it in, which is how a reset
+       * link came to outlive a password changed there. The next test holds this
+       * write to going through the hooks.
        */
       resolveUser(buildUser({ id: userId, email: "user@example.com" }));
 
@@ -797,15 +801,9 @@ describe("UserService -- master-admin authentication management", () => {
       });
 
       expect(updateOneByIdSpy).toHaveBeenCalledTimes(1);
-
-      const data: any = updateOneByIdSpy.mock.calls[0][0].data;
-
-      // Present as keys, or the column is left untouched rather than cleared.
-      expect(Object.keys(data)).toContain("resetPasswordToken");
-      expect(Object.keys(data)).toContain("resetPasswordExpires");
-
-      expect(data.resetPasswordToken).toBeFalsy();
-      expect(data.resetPasswordExpires).toBeFalsy();
+      expect(Object.keys(updateOneByIdSpy.mock.calls[0][0].data)).toEqual([
+        "password",
+      ]);
     });
 
     test("updates the row that was found, as root, WITHOUT ignoring hooks", async () => {
