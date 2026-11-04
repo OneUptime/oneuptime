@@ -573,6 +573,64 @@ describe("query_security_playbooks", () => {
     );
   });
 
+  test("a step that waits on several results says each, with and or or, and a Stop step says why it stops", () => {
+    const step: (
+      id: string,
+      action: SecurityPlaybookActionType,
+      config: Record<string, unknown>,
+      runIf?: unknown,
+    ) => Record<string, unknown> = (
+      id: string,
+      action: SecurityPlaybookActionType,
+      config: Record<string, unknown>,
+      runIf?: unknown,
+    ): Record<string, unknown> => {
+      return {
+        id,
+        action,
+        config,
+        requiresApproval: false,
+        continueOnFailure: false,
+        onlyIfThreatIntelMatched: false,
+        ...(runIf ? { runIf } : {}),
+      };
+    };
+
+    expect(
+      describePlaybookSteps([
+        step("s1", SecurityPlaybookActionType.CheckThreatIntel, {}),
+        step("s2", SecurityPlaybookActionType.LookUpEntityActivity, {}),
+        step(
+          "s3",
+          SecurityPlaybookActionType.StopRun,
+          { reason: "Nothing to contain" },
+          {
+            match: "All",
+            conditions: [
+              { stepId: "s1", outcome: "Found Nothing" },
+              { stepId: "s2", outcome: "Found Nothing" },
+            ],
+          },
+        ),
+        step(
+          "s4",
+          SecurityPlaybookActionType.AddCaseNote,
+          { note: "Look closer." },
+          {
+            match: "Any",
+            conditions: [
+              { stepId: "s1", outcome: "Found" },
+              { stepId: "s2", outcome: "Found" },
+            ],
+          },
+        ),
+        step("s5", SecurityPlaybookActionType.StopRun, {}),
+      ]),
+    ).toBe(
+      "Check entities against threat intel, then Look up entity activity, then Stop the run (only if step 1 found nothing known-bad and step 2 found no activity; because: Nothing to contain), then Add a note (only if step 1 found a known-bad entity or step 2 found activity), then Stop the run",
+    );
+  });
+
   test("steps that cannot be read say so instead of failing every playbook", () => {
     expect(describePlaybookSteps("not json")).toBe(
       "(its steps could not be read)",

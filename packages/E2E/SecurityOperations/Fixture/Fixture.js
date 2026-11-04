@@ -309,6 +309,7 @@ import SecurityPlaybookRunStatus, {
 } from "Common/Types/SecurityPlaybook/SecurityPlaybookRunStatus";
 import SecurityPlaybookTrigger from "Common/Types/SecurityPlaybook/SecurityPlaybookTrigger";
 import {
+  SecurityPlaybookConditionMatch,
   SecurityPlaybookStepOutcome,
   evaluateSecurityPlaybookStepCondition,
 } from "Common/Types/SecurityPlaybook/SecurityPlaybookStepCondition";
@@ -368,6 +369,13 @@ const hasRealTimeRule = !isEmpty && params.get("realtime") === "1";
  * Google Workspace, each with its undo on the run card.
  */
 const hasBranchingRuns = hasHistory && params.get("branching") === "1";
+/*
+ * ?stopping=1: Stop When Nothing Is Known, a playbook whose Stop step waits
+ * on two lookups (all of them) and whose last step waits on either (any
+ * one), and its run on CASE-139 that stopped there: the steps after it
+ * say where the run stopped.
+ */
+const hasStoppingRun = hasHistory && params.get("stopping") === "1";
 /*
  * ?ai=off: the project's Enable AI is off. Every AI part of Security reads
  * it (useAiOffered) and draws nothing; the AI settings page says AI is off.
@@ -2263,6 +2271,165 @@ if (hasBranchingRuns) {
     startedAt: ago(1 * HOUR),
     completedAt: ago(55 * MINUTE),
     createdAt: ago(1 * HOUR),
+  });
+}
+
+/*
+ * ---------------------------------------------------------------------------
+ * A playbook with a Stop step (?stopping=1): Stop When Nothing Is Known
+ * looks the user up in threat intel and in their activity, stops when
+ * neither found anything, and otherwise leaves tasks, and a note when
+ * either found something. It ran once on CASE-139, and stopped.
+ * ---------------------------------------------------------------------------
+ */
+const STOPPING_STEPS = [
+  {
+    id: "step-stop-intel",
+    action: SecurityPlaybookActionType.CheckThreatIntel,
+    config: {},
+    requiresApproval: false,
+    continueOnFailure: false,
+    onlyIfThreatIntelMatched: false,
+  },
+  {
+    id: "step-stop-activity",
+    action: SecurityPlaybookActionType.LookUpEntityActivity,
+    config: { lookbackInHours: 24 },
+    requiresApproval: false,
+    continueOnFailure: false,
+    onlyIfThreatIntelMatched: false,
+  },
+  {
+    id: "step-stop-stop",
+    action: SecurityPlaybookActionType.StopRun,
+    config: { reason: "Nothing known-bad and no activity: nothing to contain" },
+    requiresApproval: false,
+    continueOnFailure: false,
+    onlyIfThreatIntelMatched: false,
+    runIf: {
+      match: SecurityPlaybookConditionMatch.All,
+      conditions: [
+        {
+          stepId: "step-stop-intel",
+          outcome: SecurityPlaybookStepOutcome.FoundNothing,
+        },
+        {
+          stepId: "step-stop-activity",
+          outcome: SecurityPlaybookStepOutcome.FoundNothing,
+        },
+      ],
+    },
+  },
+  {
+    id: "step-stop-tasks",
+    action: SecurityPlaybookActionType.AddCaseTasks,
+    config: { tasks: ["Confirm the sign-in with the user"] },
+    requiresApproval: false,
+    continueOnFailure: false,
+    onlyIfThreatIntelMatched: false,
+  },
+  {
+    id: "step-stop-note",
+    action: SecurityPlaybookActionType.AddCaseNote,
+    config: { note: "Threat intel or the user's activity found something." },
+    requiresApproval: false,
+    continueOnFailure: false,
+    onlyIfThreatIntelMatched: false,
+    runIf: {
+      match: SecurityPlaybookConditionMatch.Any,
+      conditions: [
+        {
+          stepId: "step-stop-intel",
+          outcome: SecurityPlaybookStepOutcome.Found,
+        },
+        {
+          stepId: "step-stop-activity",
+          outcome: SecurityPlaybookStepOutcome.Found,
+        },
+      ],
+    },
+  },
+];
+
+if (hasStoppingRun) {
+  insert(SecurityPlaybook, {
+    _id: ID.playbook(6),
+    name: "Stop When Nothing Is Known",
+    description:
+      "Looks the user up in threat intel and in their activity, and stops when neither found anything; otherwise leaves the analyst a task.",
+    isEnabled: true,
+    trigger: SecurityPlaybookTrigger.CaseOpened,
+    steps: STOPPING_STEPS,
+    runCount: 1,
+    lastRunAt: ago(2 * HOUR),
+    createdAt: ago(6 * DAY),
+  });
+
+  const at = (minutes) => {
+    return ago(2 * HOUR - minutes * MINUTE).toISOString();
+  };
+
+  // Neither lookup found anything: the run stopped at step 3.
+  insert(SecurityPlaybookRun, {
+    _id: ID.run(8),
+    securityCaseId: new ObjectID(ID.case(139)),
+    securityCase: make(SecurityCase, {
+      _id: ID.case(139),
+      caseNumberWithPrefix: formatSecurityCaseNumber(139),
+      title: "Impossible travel for k.morgan@acme-commerce.example",
+    }),
+    securityPlaybookId: new ObjectID(ID.playbook(6)),
+    playbookName: "Stop When Nothing Is Known",
+    trigger: SecurityPlaybookTrigger.CaseOpened,
+    status: SecurityPlaybookRunStatus.Succeeded,
+    steps: STOPPING_STEPS,
+    stepResults: [
+      {
+        stepId: "step-stop-intel",
+        action: SecurityPlaybookActionType.CheckThreatIntel,
+        status: SecurityPlaybookStepStatus.Succeeded,
+        found: false,
+        message: "No entity matched an indicator.",
+        startedAt: at(0),
+        completedAt: at(0.2),
+      },
+      {
+        stepId: "step-stop-activity",
+        action: SecurityPlaybookActionType.LookUpEntityActivity,
+        status: SecurityPlaybookStepStatus.Succeeded,
+        found: false,
+        message: "No security events for the case's entities in 24 hours.",
+        startedAt: at(0.3),
+        completedAt: at(0.5),
+      },
+      {
+        stepId: "step-stop-stop",
+        action: SecurityPlaybookActionType.StopRun,
+        status: SecurityPlaybookStepStatus.Succeeded,
+        message: "Nothing known-bad and no activity: nothing to contain",
+        startedAt: at(0.6),
+        completedAt: at(0.6),
+      },
+      {
+        stepId: "step-stop-tasks",
+        action: SecurityPlaybookActionType.AddCaseTasks,
+        status: SecurityPlaybookStepStatus.Skipped,
+        message: "Skipped: the run stopped at step 3.",
+        completedAt: at(0.6),
+      },
+      {
+        stepId: "step-stop-note",
+        action: SecurityPlaybookActionType.AddCaseNote,
+        status: SecurityPlaybookStepStatus.Skipped,
+        message: "Skipped: the run stopped at step 3.",
+        completedAt: at(0.6),
+      },
+    ],
+    currentStepIndex: STOPPING_STEPS.length,
+    threatIntelMatched: false,
+    startedAt: ago(2 * HOUR),
+    completedAt: ago(2 * HOUR - 1 * MINUTE),
+    createdAt: ago(2 * HOUR),
   });
 }
 

@@ -306,11 +306,12 @@ Ein deaktiviertes Playbook läuft weder von selbst noch per Hand.
 | Automatisieren | Run a workflow | Startet einen OneUptime-Workflow mit dem Fall als Eingabe |
 | Automatisieren | Run a runbook | Startet eines Ihrer OneUptime-Runbooks mit dem Fall als Eingaben |
 | Automatisieren | Fix the code with AI | Bittet OneUptime AI um einen Pull Request, der die Ausnahmen behebt, die die Anfragen des Falls ausgelöst haben |
+| Ablaufsteuerung | Ausführung stoppen | Beendet die Ausführung dort als erledigt: Die Schritte danach laufen nicht |
 
 Ein Playbook hat höchstens 25 Schritte. Sie laufen der Reihe nach, jeder, sobald der vorige fertig ist. Jeder Schritt kann außerdem:
 
 - **Genehmigung erforderlich**: die Ausführung vor dem Schritt anhalten, bis jemand ihn am Fall genehmigt. Die acht Schritte, die jemanden aussperren, halten immer an, es sei denn, ein Security Admin schaltet das ab. **Run a runbook**, **Post a status page announcement** und die beiden Datenspeicher-Schritte beginnen mit eingeschalteter Genehmigung, denn sie führen Befehle auf Ihren Systemen aus, sprechen zu Ihren Kunden oder ändern die Einstellungen einer Cloud; wer den Schritt hinzufügt, kann sie abschalten.
-- **Diesen Schritt ausführen**: **Immer** oder nur nach einem Ergebnis eines Schritts davor, etwa wenn **Entitäten mit Threat Intel abgleichen** eine bekannt bösartige Entität findet; siehe [Nach dem Ergebnis eines Schritts verzweigen](#nach-dem-ergebnis-eines-schritts-verzweigen).
+- **Diesen Schritt ausführen**: **Immer** oder nur nach Ergebnissen von Schritten davor, etwa wenn **Entitäten mit Threat Intel abgleichen** eine bekannt bösartige Entität findet; siehe [Nach dem Ergebnis eines Schritts verzweigen](#nach-dem-ergebnis-eines-schritts-verzweigen).
 - **Bei Fehler weitermachen**: den nächsten Schritt ausführen, auch wenn dieser fehlschlägt. Ist die Option aus, beendet ein fehlgeschlagener Schritt die Ausführung. Die Option liegt unter **Weitere Felder**, zusammen mit **Diesen Schritt ausführen**.
 
 ### Nach dem Ergebnis eines Schritts verzweigen
@@ -324,6 +325,12 @@ Ein Playbook hat höchstens 25 Schritte. Sie laufen der Reihe nach, jeder, sobal
 | Jeder andere Schritt | Erfolgreich, und fehlgeschlagen, wenn bei ihm **Bei Fehler weitermachen** an ist |
 
 Zwei Schritte, die auf entgegengesetzte Ergebnisse desselben Schritts warten, sind ein Wenn und ein Sonst: einen Benutzer nur sperren, wenn Threat Intel ihn kennt, und sonst eine Aufgabe hinzufügen, die Anmeldung mit ihm zu bestätigen. Endet der Schritt, auf den gewartet wird, anders, wird der wartende Schritt übersprungen, und die Ausführung sagt darunter, warum; ebenso ein Schritt, der auf einen übersprungenen wartet. Die Karte eines Schritts sagt, worauf er wartet, und ein Schritt, auf den ein anderer wartet, lässt sich weder unter ihn verschieben noch löschen, bis jener anders läuft. Die Vorlage **Bekannt bösartige Indikatoren eskalieren** hebt Priorität und Status eines Falls nur bei einem Threat-Intel-Treffer an, und ein Schritt, der mit dem alten Threat-Intel-Schalter gespeichert wurde, behält ihn als **Nur wenn eine frühere Threat-Intel-Prüfung eine bekannt bösartige Entität gefunden hat**.
+
+Ein Schritt kann auf bis zu fünf Ergebnisse warten: Wählen Sie jedes in **Diesen Schritt ausführen**, und **Wann ausführen** fragt, wie sie gelesen werden, **Wenn alle davon eingetreten sind** oder **Wenn eines davon eingetreten ist**. Sperren Sie einen Benutzer nur, wenn Threat Intel ihn kennt und seine Aktivität gefunden wurde, oder alarmieren Sie die Rufbereitschaft, wenn eine der beiden Abfragen etwas gefunden hat. Ein Schritt, der auf alle seine Ergebnisse wartet, kann nicht auf zwei Ergebnisse desselben Schritts warten, etwa gefunden und nichts gefunden, da keine Ausführung beide hat.
+
+### Die Ausführung stoppen
+
+**Ausführung stoppen** unter **Ablaufsteuerung** beendet die Ausführung dort, wo sie ist, als erledigt: Die Schritte danach werden übersprungen und sagen jeweils, wo die Ausführung gestoppt hat, und die Ausführung ist erfolgreich. Mit **Diesen Schritt ausführen** stoppt er nur nach einem Ergebnis: stoppen, wenn Threat Intel nichts bekannt Bösartiges gefunden hat, und sonst die Eindämmungsschritte darunter laufen lassen. Was Sie unter **Grund für den Stopp** schreiben, wird in der Zeitachse des Falls genannt, wenn die Ausführung dort stoppt. Er hat nichts zu genehmigen und schlägt nie fehl, daher hat er weder **Genehmigung erforderlich** noch **Bei Fehler weitermachen**, und kein Schritt kann auf ihn warten. Einer, der immer läuft, beendet jede Ausführung und kann daher nur der letzte Schritt sein.
 
 ### Reagieren mit OneUptime
 
@@ -394,7 +401,7 @@ Jede Ausführung wird an ihrem Fall und unter **Produkte → Sicherheitsereignis
 | In der Warteschlange | Wartet auf einen Worker |
 | Wird ausgeführt | Führt ihre Schritte aus |
 | Wartet auf Genehmigung | Vor einem Schritt angehalten, der eine Genehmigung braucht |
-| Erfolgreich | Jeder Schritt lief oder wurde übersprungen |
+| Erfolgreich | Jeder Schritt lief oder wurde übersprungen, oder ein Schritt **Ausführung stoppen** hat sie beendet |
 | Fehlgeschlagen | Ein Schritt ist fehlgeschlagen, und die Ausführung wurde beendet |
 | Abgebrochen | Jemand hat sie abgebrochen oder einen Schritt abgelehnt |
 
@@ -454,6 +461,10 @@ Im Fall geht es um keinen Benutzer und keinen Host, etwa nur um eine Adresse, od
 
 :::details Ein Schritt, der erst nach einem anderen läuft, wurde übersprungen
 Der Schritt, auf den er wartet, hat anders geendet oder wurde selbst übersprungen: Er fand etwa nichts bekannt Bösartiges, wo der Schritt auf eine bekannt bösartige Entität wartet. Öffnen Sie die Ausführung am Fall: Der übersprungene Schritt sagt, auf welchen Schritt er gewartet hat und worauf. Um das zu ändern, bearbeiten Sie den Schritt und öffnen **Weitere Felder**.
+:::
+
+:::details Eine Ausführung endete vor ihren letzten Schritten
+Ein Schritt **Ausführung stoppen** lief: Das Ergebnis, auf das er wartet, ist eingetreten, oder er läuft immer. Öffnen Sie die Ausführung am Fall: Die Schritte danach sagen, wo die Ausführung gestoppt hat, und der Stopp-Schritt sagt, warum, wenn Sie ihm einen Grund gegeben haben. Um zu ändern, wann er stoppt, bearbeiten Sie den Schritt und öffnen **Weitere Felder**.
 :::
 
 :::details Ein Status oder eine Priorität lässt sich nicht löschen oder archivieren

@@ -21,6 +21,7 @@ import {
   RunStepRow,
   UNDO_BUTTON_TITLES,
   getRunStepRows,
+  getRunStoppedBefore,
   getSkippedRunIf,
 } from "./SecurityPlaybookRunStepRows";
 import SecurityPlaybookStepFlag from "./SecurityPlaybookStepFlag";
@@ -176,9 +177,15 @@ const SecurityPlaybookRunSteps: FunctionComponent<ComponentProps> = (
             row,
             translator,
           });
-          const detail: string | undefined = skippedRunIf
-            ? undefined
-            : row.result?.error || row.result?.message;
+          // Skipped because a Stop step before it ended the run: where.
+          const stoppedBefore: RunStepRow | undefined = getRunStoppedBefore({
+            rows,
+            row,
+          });
+          const detail: string | undefined =
+            skippedRunIf || stoppedBefore
+              ? undefined
+              : row.result?.error || row.result?.message;
           // A skipped step never got as far as asking anyone.
           const showsApproval: boolean =
             row.requiresApproval &&
@@ -241,6 +248,25 @@ const SecurityPlaybookRunSteps: FunctionComponent<ComponentProps> = (
                       text={skippedRunIf}
                       isTranslated={true}
                       dataTestId={`security-playbook-run-step-${row.index}-run-if`}
+                    />
+                  </div>
+                ) : (
+                  <></>
+                )}
+                {stoppedBefore ? (
+                  <div className="mt-1.5">
+                    <SecurityPlaybookStepFlag
+                      icon={IconProp.StopCircle}
+                      text={translator.translateTemplate(
+                        "The run stopped at step {{number}}",
+                        {
+                          number: translator.formatNumber(
+                            stoppedBefore.index + 1,
+                          ),
+                        },
+                      )}
+                      isTranslated={true}
+                      dataTestId={`security-playbook-run-step-${row.index}-stopped`}
                     />
                   </div>
                 ) : (

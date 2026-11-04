@@ -11,16 +11,28 @@ import {
 import {
   ENTITY_ACTIVITY_LOOKBACK_DEFAULT_HOURS,
   SecurityPlaybookStep,
+  doesStepWaitOn,
   getStepsWaitingOn,
   normalizeSecurityPlaybookStepConfig,
 } from "Common/Types/SecurityPlaybook/SecurityPlaybookStep";
 import {
+  SecurityPlaybookConditionMatch,
   SecurityPlaybookStepCondition,
+  SecurityPlaybookStepRunIf,
+  buildSecurityPlaybookStepRunIf,
   describeSecurityPlaybookStepOutcome,
+  getSecurityPlaybookConditionMatch,
+  getSecurityPlaybookStepConditions,
   getSecurityPlaybookStepOutcomes,
+  isSecurityPlaybookConditionMatch,
   isSecurityPlaybookStepOutcome,
 } from "Common/Types/SecurityPlaybook/SecurityPlaybookStepCondition";
-import { Translator, translationKey } from "Common/UI/Utils/TranslateTemplate";
+import {
+  ComposedValue,
+  Translator,
+  composedValue,
+  translationKey,
+} from "Common/UI/Utils/TranslateTemplate";
 
 /*
  * A playbook step as the step dialog edits it, and back. The dialog is one
@@ -108,6 +120,7 @@ const PLAIN_KEYS_BY_ACTION: Record<
     "notifySubscribers",
   ],
   [SecurityPlaybookActionType.FixWithAi]: [],
+  [SecurityPlaybookActionType.StopRun]: ["reason"],
 };
 
 export function getStepConfigKeys(
@@ -189,12 +202,15 @@ const ID_KEYS: ReadonlySet<string> = new Set<string>([
 const SWITCH_KEYS: ReadonlySet<string> = new Set<string>(["notifySubscribers"]);
 
 /*
- * RUN THIS STEP: always, or only after an earlier step's result - the one
- * picker a step's branch is set with. Its value is "always", the legacy
- * "only if threat intel matched" of a step saved before branching, or the
- * earlier step and the result it waits on (encodeRunIf).
+ * RUN THIS STEP: always, or only after earlier steps' results - the one
+ * picker a step's branch is set with, which takes several. Its value is
+ * the list of results it waits on (encodeRunIf each: the earlier step and
+ * the result), or the legacy "only if threat intel matched" of a step saved
+ * before branching; nothing picked is always. With two or more, RUN WHEN
+ * says whether all of them must have happened, or any one.
  */
 export const RUN_IF_KEY: string = "runIf";
+export const RUN_IF_MATCH_KEY: string = "runIfMatch";
 export const RUN_ALWAYS: string = "always";
 export const RUN_IF_THREAT_INTEL_MATCHED: string = "threat-intel-matched";
 const RUN_IF_PREFIX: string = "after:";
@@ -223,16 +239,55 @@ export function decodeRunIf(
     : undefined;
 }
 
-// What a step runs after, as Run This Step holds it.
-export function getRunIfFormValue(step: SecurityPlaybookStep): string {
-  if (step.runIf) {
-    return encodeRunIf(step.runIf);
+// What a step runs after, as Run This Step holds it: nothing for a step that always runs.
+export function getRunIfFormValue(step: SecurityPlaybookStep): Array<string> {
+  const conditions: Array<SecurityPlaybookStepCondition> =
+    getSecurityPlaybookStepConditions(step.runIf);
+
+  if (conditions.length > 0) {
+    return conditions.map(encodeRunIf);
   }
 
-  return step.onlyIfThreatIntelMatched
-    ? RUN_IF_THREAT_INTEL_MATCHED
-    : RUN_ALWAYS;
+  return step.onlyIfThreatIntelMatched ? [RUN_IF_THREAT_INTEL_MATCHED] : [];
 }
+
+/*
+ * Run This Step's value as the form hands it back - a list of choices, one
+ * choice, or Always (what an older form, or a cleared one, holds) - as the
+ * choices picked.
+ */
+export function readRunIfFormValues(value: unknown): Array<string> {
+  return readFormIdList(value).filter((choice: string): boolean => {
+    return choice !== RUN_ALWAYS;
+  });
+}
+
+// How a step reads the results it waits on, as Run When holds it.
+export function getRunIfMatchFormValue(
+  step: SecurityPlaybookStep,
+): SecurityPlaybookConditionMatch {
+  return getSecurityPlaybookConditionMatch(step.runIf);
+}
+
+// Whether the form's step waits on two results or more: Run When is asked then.
+export function waitsOnSeveralResults(values: JSONObject): boolean {
+  return (
+    getSecurityPlaybookStepConditions(
+      readRunIfChoices(readRunIfFormValues(values[RUN_IF_KEY]), undefined),
+    ).length > 1
+  );
+}
+
+/*
+ * RUN WHEN's two choices: every result picked, or any one of them. A step
+ * that waits on one result needs neither.
+ */
+export const RUN_WHEN_ALL_LABEL: string = translationKey(
+  "When all of them happened",
+);
+export const RUN_WHEN_ANY_LABEL: string = translationKey(
+  "When any one of them happened",
+);
 
 /*
  * The sentence each result reads as in Run This Step, with the step's
@@ -255,6 +310,43 @@ export const RUN_IF_OPTION_TEMPLATES: Readonly<Record<string, string>> = {
   "found no activity": translationKey(
     "Only if step {{number}} ({{title}}) found no activity",
   ),
+};
+
+/*
+ * A result as a clause of a longer sentence, for a step that waits on
+ * several: "step 1 found a known-bad entity and step 2 succeeded".
+ */
+export const RUN_IF_CLAUSE_TEMPLATES: Readonly<Record<string, string>> = {
+  succeeded: translationKey("step {{number}} succeeded"),
+  failed: translationKey("step {{number}} failed"),
+  "found a known-bad entity": translationKey(
+    "step {{number}} found a known-bad entity",
+  ),
+  "found nothing known-bad": translationKey(
+    "step {{number}} found nothing known-bad",
+  ),
+  "found activity": translationKey("step {{number}} found activity"),
+  "found no activity": translationKey("step {{number}} found no activity"),
+};
+
+/*
+ * What a step that waits on several results says, by how it reads them and
+ * how many: "Only if step 1 found a known-bad entity and step 2
+ * succeeded". Sentences of their own, so each language joins its clauses
+ * as it joins clauses, never as it lists names. Four or five read as three,
+ * the first ones together.
+ */
+export const RUN_IF_SEVERAL_TEMPLATES: Readonly<
+  Record<SecurityPlaybookConditionMatch, Readonly<Record<2 | 3, string>>>
+> = {
+  [SecurityPlaybookConditionMatch.All]: {
+    2: translationKey("Only if {{first}} and {{second}}"),
+    3: translationKey("Only if {{first}}, {{second}} and {{third}}"),
+  },
+  [SecurityPlaybookConditionMatch.Any]: {
+    2: translationKey("Only if {{first}} or {{second}}"),
+    3: translationKey("Only if {{first}}, {{second}} or {{third}}"),
+  },
 };
 
 // ...and on the step's card, where the steps are numbered above it.
@@ -306,12 +398,13 @@ export interface RunIfOption {
 }
 
 /*
- * What Run This Step offers a step: always, then each result of each step
- * before it - found or found nothing for a step that looks something up,
- * succeeded otherwise, and failed for one that carries on when it fails -
- * in the order the steps run. A step saved with the legacy "only if threat
- * intel matched", or one whose condition no longer fits, keeps what it has
- * as an option, so opening it never changes it.
+ * What Run This Step offers a step: each result of each step before it -
+ * found or found nothing for a step that looks something up, succeeded
+ * otherwise, and failed for one that carries on when it fails - in the
+ * order the steps run; picking none is Always. A step that stops the run
+ * has no result to wait on: nothing after it runs. A step saved with the
+ * legacy "only if threat intel matched", or one whose condition no longer
+ * fits, keeps what it has as an option, so opening it never changes it.
  */
 export function getRunIfOptions(data: {
   earlierSteps: ReadonlyArray<SecurityPlaybookStep>;
@@ -319,13 +412,7 @@ export function getRunIfOptions(data: {
   translator: Translator;
 }): Array<RunIfOption> {
   const { translator } = data;
-  const options: Array<RunIfOption> = [
-    {
-      value: RUN_ALWAYS,
-      label: translator.translateText(RUN_ALWAYS_LABEL) || RUN_ALWAYS_LABEL,
-      isInPageDirection: true,
-    },
-  ];
+  const options: Array<RunIfOption> = [];
 
   data.earlierSteps.forEach(
     (earlier: SecurityPlaybookStep, index: number): void => {
@@ -347,27 +434,25 @@ export function getRunIfOptions(data: {
     },
   );
 
-  const current: string | undefined = data.step
-    ? getRunIfFormValue(data.step)
-    : undefined;
+  const current: Array<string> = data.step ? getRunIfFormValue(data.step) : [];
 
-  if (
-    current &&
-    current !== RUN_ALWAYS &&
-    !options.some((option: RunIfOption): boolean => {
-      return option.value === current;
-    })
-  ) {
-    options.push({
-      value: current,
-      label:
-        current === RUN_IF_THREAT_INTEL_MATCHED
-          ? translator.translateText(RUN_IF_THREAT_INTEL_MATCHED_LABEL) ||
-            RUN_IF_THREAT_INTEL_MATCHED_LABEL
-          : translator.translateText(RUN_IF_MISSING_STEP_LABEL) ||
-            RUN_IF_MISSING_STEP_LABEL,
-      isInPageDirection: true,
-    });
+  for (const value of current) {
+    if (
+      !options.some((option: RunIfOption): boolean => {
+        return option.value === value;
+      })
+    ) {
+      options.push({
+        value,
+        label:
+          value === RUN_IF_THREAT_INTEL_MATCHED
+            ? translator.translateText(RUN_IF_THREAT_INTEL_MATCHED_LABEL) ||
+              RUN_IF_THREAT_INTEL_MATCHED_LABEL
+            : translator.translateText(RUN_IF_MISSING_STEP_LABEL) ||
+              RUN_IF_MISSING_STEP_LABEL,
+        isInPageDirection: true,
+      });
+    }
   }
 
   return options;
@@ -384,8 +469,10 @@ export interface NumberedStep {
 
 /*
  * What a step's card says of when it runs - "Only if step 1 found a
- * known-bad entity" - or nothing for a step that always runs. The run card
- * says the same under a step it skipped for it (getSkippedRunIf).
+ * known-bad entity", or for several results "Only if step 1 found a
+ * known-bad entity and step 2 succeeded" ("or" for a step that runs on any
+ * one) - or nothing for a step that always runs. The run card says the
+ * same under a step it skipped for it (getSkippedRunIf).
  */
 export function describeRunIf(data: {
   step: Pick<SecurityPlaybookStep, "runIf" | "onlyIfThreatIntelMatched">;
@@ -393,29 +480,96 @@ export function describeRunIf(data: {
   translator: Translator;
 }): string {
   const { step, translator } = data;
-  const condition: SecurityPlaybookStepCondition | undefined = step.runIf;
+  const conditions: Array<SecurityPlaybookStepCondition> =
+    getSecurityPlaybookStepConditions(step.runIf);
 
-  if (condition) {
-    const index: number = data.steps.findIndex(
-      (candidate: NumberedStep): boolean => {
-        return candidate.id === condition.stepId;
-      },
-    );
-    const earlier: NumberedStep | undefined = data.steps[index];
+  if (conditions.length > 0) {
+    // Each result by the step it names, as numbered now.
+    const named: Array<{ index: number; earlier: NumberedStep } | null> =
+      conditions.map(
+        (
+          condition: SecurityPlaybookStepCondition,
+        ): { index: number; earlier: NumberedStep } | null => {
+          const index: number = data.steps.findIndex(
+            (candidate: NumberedStep): boolean => {
+              return candidate.id === condition.stepId;
+            },
+          );
+          const earlier: NumberedStep | undefined = data.steps[index];
 
-    if (!earlier) {
+          return earlier ? { index, earlier } : null;
+        },
+      );
+
+    if (named.includes(null)) {
       return (
         translator.translateText(RUN_IF_MISSING_STEP_LABEL) ||
         RUN_IF_MISSING_STEP_LABEL
       );
     }
 
-    return translator.translateTemplate(
-      RUN_IF_FLAG_TEMPLATES[
-        describeSecurityPlaybookStepOutcome(earlier.action, condition.outcome)
-      ] || RUN_IF_FLAG_TEMPLATES["succeeded"]!,
-      { number: translator.formatNumber(index + 1) },
-    );
+    const outcomeOf: (position: number) => string = (
+      position: number,
+    ): string => {
+      return describeSecurityPlaybookStepOutcome(
+        named[position]!.earlier.action,
+        conditions[position]!.outcome,
+      );
+    };
+
+    if (conditions.length === 1) {
+      return translator.translateTemplate(
+        RUN_IF_FLAG_TEMPLATES[outcomeOf(0)] ||
+          RUN_IF_FLAG_TEMPLATES["succeeded"]!,
+        { number: translator.formatNumber(named[0]!.index + 1) },
+      );
+    }
+
+    // Each clause, in the language the sentence is read in.
+    const clauseAt: (positions: Array<number>) => ComposedValue = (
+      positions: Array<number>,
+    ): ComposedValue => {
+      return composedValue((sentenceTranslator: Translator): string => {
+        return positions
+          .map((position: number): string => {
+            return sentenceTranslator.translateTemplate(
+              RUN_IF_CLAUSE_TEMPLATES[outcomeOf(position)] ||
+                RUN_IF_CLAUSE_TEMPLATES["succeeded"]!,
+              {
+                number: sentenceTranslator.formatNumber(
+                  named[position]!.index + 1,
+                ),
+              },
+            );
+          })
+          .join(", ");
+      });
+    };
+    const templates: Readonly<Record<2 | 3, string>> =
+      RUN_IF_SEVERAL_TEMPLATES[getSecurityPlaybookConditionMatch(step.runIf)];
+    const last: number = conditions.length - 1;
+
+    if (conditions.length === 2) {
+      return translator.translateTemplate(templates[2], {
+        first: clauseAt([0]),
+        second: clauseAt([1]),
+      });
+    }
+
+    // Three, or the first ones together and the last two.
+    return translator.translateTemplate(templates[3], {
+      first: clauseAt(
+        conditions
+          .slice(0, last - 1)
+          .map(
+            (_condition: SecurityPlaybookStepCondition, position: number) => {
+              return position;
+            },
+          ),
+      ),
+      second: clauseAt([last - 1]),
+      third: clauseAt([last]),
+    });
   }
 
   return step.onlyIfThreatIntelMatched
@@ -432,26 +586,56 @@ export function describeRunIf(data: {
  */
 export function describeRunIfFormValue(data: {
   value: unknown;
+  match?: unknown;
   earlierSteps: ReadonlyArray<NumberedStep>;
   translator: Translator;
 }): string | null {
-  const text: string = readFormId(data.value);
+  const choices: Array<string> = readRunIfFormValues(data.value);
 
-  if (!text || text === RUN_ALWAYS) {
+  if (choices.length === 0) {
     return null;
   }
 
-  const runIf: SecurityPlaybookStepCondition | undefined = decodeRunIf(text);
+  const runIf: SecurityPlaybookStepRunIf | undefined = readRunIfChoices(
+    choices,
+    data.match,
+  );
 
   return (
     describeRunIf({
       step: {
-        onlyIfThreatIntelMatched: text === RUN_IF_THREAT_INTEL_MATCHED,
+        onlyIfThreatIntelMatched: choices.includes(RUN_IF_THREAT_INTEL_MATCHED),
         ...(runIf ? { runIf } : {}),
       },
       steps: data.earlierSteps,
       translator: data.translator,
     }) || null
+  );
+}
+
+// The results the choices of Run This Step name, read as Run When says.
+export function readRunIfChoices(
+  choices: ReadonlyArray<string>,
+  match: unknown,
+): SecurityPlaybookStepRunIf | undefined {
+  const conditions: Array<SecurityPlaybookStepCondition> = [];
+
+  for (const choice of choices) {
+    const condition: SecurityPlaybookStepCondition | undefined =
+      decodeRunIf(choice);
+
+    if (condition) {
+      conditions.push(condition);
+    }
+  }
+
+  const readMatch: string = readFormId(match);
+
+  return buildSecurityPlaybookStepRunIf(
+    conditions,
+    isSecurityPlaybookConditionMatch(readMatch)
+      ? readMatch
+      : SecurityPlaybookConditionMatch.All,
   );
 }
 
@@ -481,11 +665,11 @@ export function getStepMoveBlock(data: {
     return undefined;
   }
 
-  // Up: past the step it waits on. Down: past a step that waits on it.
+  // Up: past a step it waits on. Down: past a step that waits on it.
   const [upper, lower]: [SecurityPlaybookStep, SecurityPlaybookStep] =
     direction === -1 ? [neighbour, step] : [step, neighbour];
 
-  if (lower.runIf?.stepId !== upper.id) {
+  if (!doesStepWaitOn(lower, upper.id)) {
     return undefined;
   }
 
@@ -533,6 +717,7 @@ export function stepToFormValues(step: SecurityPlaybookStep): JSONObject {
     requiresApproval: step.requiresApproval,
     continueOnFailure: step.continueOnFailure,
     [RUN_IF_KEY]: getRunIfFormValue(step),
+    [RUN_IF_MATCH_KEY]: getRunIfMatchFormValue(step),
   };
 
   for (const key of getStepConfigKeys(step.action)) {
@@ -572,7 +757,8 @@ export function getNewStepFormValues(
     [STEP_ACTION_KEY]: action,
     requiresApproval: doesActionNeedApprovalByDefault(definition),
     continueOnFailure: false,
-    [RUN_IF_KEY]: RUN_ALWAYS,
+    [RUN_IF_KEY]: [],
+    [RUN_IF_MATCH_KEY]: SecurityPlaybookConditionMatch.All,
     ...(action === SecurityPlaybookActionType.LookUpEntityActivity
       ? { lookbackInHours: ENTITY_ACTIVITY_LOOKBACK_DEFAULT_HOURS }
       : {}),
@@ -634,18 +820,22 @@ export function formValuesToStep(data: {
 
   const definition: SecurityPlaybookActionDefinition | undefined =
     getSecurityPlaybookAction(action);
+  const stopsTheRun: boolean = action === SecurityPlaybookActionType.StopRun;
   const runIfValue: JSONValue | undefined = data.values[RUN_IF_KEY];
-  const runIf: SecurityPlaybookStepCondition | undefined =
-    decodeRunIf(runIfValue);
+  const choices: Array<string> = readRunIfFormValues(runIfValue);
+  const runIf: SecurityPlaybookStepRunIf | undefined = readRunIfChoices(
+    choices,
+    data.values[RUN_IF_MATCH_KEY],
+  );
   /*
    * The legacy "only if threat intel matched" stays only while Run This
-   * Step still holds it - or, from a caller that has no Run This Step, the
-   * switch it used to be.
+   * Step still holds it alone - results picked beside it take its place -
+   * or, from a caller that has no Run This Step, the switch it used to be.
    */
   const onlyIfThreatIntelMatched: boolean =
     runIfValue === undefined || runIfValue === null
       ? data.values["onlyIfThreatIntelMatched"] === true
-      : readFormId(runIfValue) === RUN_IF_THREAT_INTEL_MATCHED;
+      : !runIf && choices.includes(RUN_IF_THREAT_INTEL_MATCHED);
 
   return {
     id: data.stepId || ObjectID.generate().toString(),
@@ -655,8 +845,10 @@ export function formValuesToStep(data: {
       rawConfig,
       `Step ${data.index + 1} (${definition?.title || action})`,
     ),
-    requiresApproval: data.values["requiresApproval"] === true,
-    continueOnFailure: data.values["continueOnFailure"] === true,
+    // A Stop step has nothing to approve and cannot fail: neither switch is offered.
+    requiresApproval: !stopsTheRun && data.values["requiresApproval"] === true,
+    continueOnFailure:
+      !stopsTheRun && data.values["continueOnFailure"] === true,
     onlyIfThreatIntelMatched,
     ...(runIf ? { runIf } : {}),
   };

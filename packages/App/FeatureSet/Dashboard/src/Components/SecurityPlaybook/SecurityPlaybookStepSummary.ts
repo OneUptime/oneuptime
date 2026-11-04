@@ -317,6 +317,19 @@ export function summarizeSecurityPlaybookStep(
           "A pull request for each exception the case's requests threw",
         ) || ""
       );
+    case SecurityPlaybookActionType.StopRun: {
+      // Why it stops, in the playbook's own words - or what stopping does.
+      const reason: string = text(config, "reason")
+        .slice(0, 200)
+        .replace(/\s+/g, " ")
+        .trim();
+
+      if (reason) {
+        return reason.length > 80 ? `${reason.slice(0, 80)}…` : reason;
+      }
+
+      return translator.translateText("The steps after it do not run") || "";
+    }
     case SecurityPlaybookActionType.BlockDataStorePublicAccess:
       return (
         translator.translateText(

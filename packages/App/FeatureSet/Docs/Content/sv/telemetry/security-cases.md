@@ -306,11 +306,12 @@ En inaktiverad playbook körs varken av sig själv eller manuellt.
 | Automatisering | Run a workflow | Startar ett OneUptime-arbetsflöde med ärendet som indata |
 | Automatisering | Run a runbook | Startar en av dina OneUptime-runbooks med ärendet som indata |
 | Automatisering | Fix the code with AI | Ber OneUptime AI om en pull request som åtgärdar undantagen som ärendets förfrågningar orsakade |
+| Flödeskontroll | Stoppa körningen | Avslutar körningen där som klar: stegen efter det körs inte |
 
 En playbook har högst 25 steg. De körs i ordning, vart och ett när det föregående är klart. Varje steg har också de här inställningarna:
 
 - **Kräver godkännande**: stoppar körningen före steget tills någon godkänner det i ärendet. För de åtta stegen som stänger ute någon är den alltid påslagen, om inte en Security Admin slår av den. **Run a runbook**, **Post a status page announcement** och de två datalagerstegen börjar med godkännande påslaget, eftersom de kör kommandon på era system, vänder sig till era kunder eller ändrar ett molns inställningar; den som lägger till steget kan slå av det.
-- **Kör det här steget**: **Alltid**, eller bara efter ett resultat av ett steg före det, till exempel att **Kontrollera entiteter mot hotinformation** hittar en känd skadlig entitet; se [Förgrena efter ett stegs resultat](#förgrena-efter-ett-stegs-resultat).
+- **Kör det här steget**: **Alltid**, eller bara efter resultat av steg före det, till exempel att **Kontrollera entiteter mot hotinformation** hittar en känd skadlig entitet; se [Förgrena efter ett stegs resultat](#förgrena-efter-ett-stegs-resultat).
 - **Fortsätt om det misslyckas**: kör nästa steg även om det här misslyckas. Är den avstängd stoppar ett misslyckat steg körningen. Den finns under **Fler fält**, tillsammans med **Kör det här steget**.
 
 ### Förgrena efter ett stegs resultat
@@ -324,6 +325,12 @@ En playbook har högst 25 steg. De körs i ordning, vart och ett när det föreg
 | Alla andra steg | Lyckades, och misslyckades när det har **Fortsätt om det misslyckas** påslaget |
 
 Två steg som väntar på motsatta resultat av samma steg är ett om och ett annars: stäng bara av en användare när hotinformationen känner till hen, och lägg annars till en uppgift om att bekräfta inloggningen med hen. När steget som det väntas på slutar på ett annat sätt hoppas det väntande steget över, och körningen anger varför under det; detsamma gäller ett steg som väntar på ett steg som hoppades över. Ett stegs kort visar vad det väntar på, och ett steg som ett annat väntar på kan inte flyttas under det eller tas bort förrän det andra körs på ett annat sätt. Mallen **Eskalera kända skadliga indikatorer** höjer ett ärendes prioritet och status bara vid träff i hotinformation, och ett steg som sparades med den gamla brytaren för hotinformation behåller den som **Bara om en tidigare kontroll mot hotinformation hittade en känd skadlig entitet**.
+
+Ett steg kan vänta på upp till fem resultat: välj vart och ett i **Kör det här steget**, och **Kör när** frågar hur de läses, **När alla har inträffat** eller **När något av dem har inträffat**. Stäng av en användare bara när hotinformationen känner till hen och hens aktivitet hittades, eller larma jouren när någon av de två sökningarna hittade något. Ett steg som väntar på alla sina resultat kan inte vänta på två resultat av samma steg, till exempel hittade och hittade inget, eftersom ingen körning har båda.
+
+### Stoppa körningen
+
+**Stoppa körningen**, under **Flödeskontroll**, avslutar körningen där den är, som klar: stegen efter det hoppas över och anger var för sig var körningen stoppade, och körningen lyckas. Med **Kör det här steget** stoppar det bara efter ett resultat: stoppa när hotinformationen inte hittade något känt skadligt, och låt annars begränsningsstegen under det köras. Det du skriver i **Anledning till stopp** anges på ärendets tidslinje när körningen stoppar där. Det har inget att godkänna och misslyckas aldrig, så det har varken **Kräver godkännande** eller **Fortsätt om det misslyckas**, och inget steg kan vänta på det. Ett som alltid körs avslutar varje körning och kan därför bara vara det sista steget.
 
 ### Agera genom OneUptime
 
@@ -394,7 +401,7 @@ Varje körning listas, steg för steg, i sitt ärende och under **Produkter → 
 | Queued | Väntar på en worker |
 | Running | Kör sina steg |
 | Waiting for Approval | Stoppad före ett steg som kräver godkännande |
-| Succeeded | Varje steg kördes eller hoppades över |
+| Succeeded | Varje steg kördes eller hoppades över, eller ett steg **Stoppa körningen** avslutade den |
 | Failed | Ett steg misslyckades och körningen stoppades |
 | Cancelled | Någon avbröt den eller avvisade ett steg |
 
@@ -454,6 +461,10 @@ Kontrollera att den är aktiverad, att dess inställning **Utlösare** passar (C
 
 :::details Ett steg som bara körs efter ett annat hoppades över
 Steget som det väntar på slutade på ett annat sätt eller hoppades själv över: det hittade till exempel inget känt skadligt där steget väntar på en känd skadlig entitet. Öppna körningen i ärendet: det överhoppade steget anger vilket steg det väntade på och vilket resultat. Om du vill ändra det redigerar du steget och öppnar **Fler fält**.
+:::
+
+:::details En körning slutade före sina sista steg
+Ett steg **Stoppa körningen** kördes: resultatet det väntar på kom, eller det körs alltid. Öppna körningen i ärendet: stegen efter det anger var körningen stoppade, och stoppsteget anger varför om du gav det en anledning. Om du vill ändra när det stoppar redigerar du steget och öppnar **Fler fält**.
 :::
 
 :::details En status eller prioritet går inte att ta bort eller arkivera

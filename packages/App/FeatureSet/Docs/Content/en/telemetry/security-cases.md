@@ -306,11 +306,12 @@ A disabled playbook runs neither by itself nor by hand.
 | Automate | Run a workflow | Starts a OneUptime workflow with the case as its input |
 | Automate | Run a runbook | Starts one of your OneUptime runbooks with the case as its inputs |
 | Automate | Fix the code with AI | Asks OneUptime AI for a pull request that fixes the exceptions the case's requests threw |
+| Flow control | Stop the run | Ends the run there, as done: the steps after it do not run |
 
 A playbook has at most 25 steps. They run in order, each once the one before it is done. Every step can also:
 
 - **Needs Approval**: stop the run before the step until someone approves it on the case. The eight steps that cut someone off always do, unless a Security Admin turns it off. **Run a runbook**, **Post a status page announcement** and the two data store steps start with it on, since they run commands on your systems, speak to your customers or change a cloud's settings; whoever adds the step can turn it off.
-- **Run This Step**: **Always**, or only after a result of a step before it, such as **Check entities against threat intel** finding a known-bad entity; see [Branch on a step's result](#branch-on-a-steps-result).
+- **Run This Step**: **Always**, or only after results of steps before it, such as **Check entities against threat intel** finding a known-bad entity; see [Branch on a step's result](#branch-on-a-steps-result).
 - **Carry On If It Fails**: run the next step even if this one fails. Off, a failed step stops the run. It waits under **More fields**, with **Run This Step**.
 
 ### Branch on a step's result
@@ -324,6 +325,12 @@ A playbook has at most 25 steps. They run in order, each once the one before it 
 | Any other step | Succeeded, and failed when it has **Carry On If It Fails** on |
 
 Two steps that wait on opposite results of one step are an if and an else: suspend a user only when threat intel knows them, and otherwise add a task to confirm the sign-in with them. When the step waited on ends another way, the step that waits is skipped, and the run says why under it; so is a step that waits on one that was skipped. A step's card says what it waits on, and a step that another waits on can't be moved below it or deleted until that one runs another way. The **Escalate Known-Bad Indicators** template raises a case's priority and status only when threat intel matched, and a step saved with the old threat intel switch keeps it as **Only if an earlier threat intel check found a known-bad entity**.
+
+A step can wait on up to five results: pick each in **Run This Step**, and **Run When** asks how they are read, **When all of them happened** or **When any one of them happened**. Suspend a user only when threat intel knows them and their activity was found, or page on-call when either lookup found something. A step that waits on all of its results can't wait on two results of one step, such as found and found nothing, since no run has both.
+
+### Stop the run
+
+**Stop the run**, under **Flow control**, ends the run where it is, as done: the steps after it are skipped, each saying where the run stopped, and the run succeeds. With **Run This Step**, it stops only after a result: stop when threat intel found nothing known-bad, and let the containment steps below it run otherwise. What you write in **Why It Stops** is said on the case's timeline when the run stops there. It has nothing to approve and never fails, so it has neither **Needs Approval** nor **Carry On If It Fails**, and no step can wait on it. One that always runs ends every run, so it can only be the last step.
 
 ### Responding through OneUptime
 
@@ -394,7 +401,7 @@ Every run is listed on its case and under **Products → Security Events → Pla
 | Queued | Waiting for a worker |
 | Running | Running its steps |
 | Waiting for Approval | Held before a step that needs approval |
-| Succeeded | Every step ran, or was skipped |
+| Succeeded | Every step ran or was skipped, or a **Stop the run** step ended it |
 | Failed | A step failed and the run stopped |
 | Cancelled | Someone cancelled it, or rejected a step |
 
@@ -454,6 +461,10 @@ The case is about no user or host, only an address for example, or every user or
 
 :::details A step that runs only after another was skipped
 The step it waits on ended another way, or was skipped itself: it found nothing known-bad, say, where the step waits for a known-bad entity. Open the run on the case: the skipped step says which step it waited on, and for what. To change it, edit the step and open **More fields**.
+:::
+
+:::details A run ended before its last steps
+A **Stop the run** step ran: the result it waits on came, or it runs always. Open the run on the case: the steps after it say where the run stopped, and the Stop step says why when you gave it a reason. To change when it stops, edit the step and open **More fields**.
 :::
 
 :::details A status or priority can't be deleted or archived

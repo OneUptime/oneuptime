@@ -306,11 +306,12 @@ En deaktiveret playbook kører hverken af sig selv eller manuelt.
 | Automate | Run a workflow | Starter et OneUptime-workflow med sagen som input |
 | Automate | Run a runbook | Starter en af dine OneUptime-runbooks med sagen som input |
 | Automate | Fix the code with AI | Beder OneUptime AI om en pull request, der retter de undtagelser, sagens anmodninger udløste |
+| Flow control | Stop kørslen | Afslutter kørslen der som udført: trinnene efter det kører ikke |
 
 En playbook har højst 25 trin. De kører i rækkefølge, hvert trin, når det foregående er færdigt. Hvert trin kan også:
 
 - **Kræver godkendelse**: stoppe kørslen før trinnet, indtil nogen godkender det på sagen. De otte trin, der lukker nogen ude, stopper altid kørslen, medmindre en Security Admin slår det fra. **Run a runbook**, **Post a status page announcement** og de to datalagertrin starter med godkendelse slået til, fordi de kører kommandoer på jeres systemer, taler til jeres kunder eller ændrer en clouds indstillinger; den, der tilføjer trinnet, kan slå det fra.
-- **Kør dette trin**: **Altid**, eller kun efter et resultat af et tidligere trin, f.eks. at **Tjek entiteter mod trusselsinformation** finder en kendt ondsindet entitet; se [Forgren efter et trins resultat](#forgren-efter-et-trins-resultat).
+- **Kør dette trin**: **Altid**, eller kun efter resultater af tidligere trin, f.eks. at **Tjek entiteter mod trusselsinformation** finder en kendt ondsindet entitet; se [Forgren efter et trins resultat](#forgren-efter-et-trins-resultat).
 - **Fortsæt, hvis det mislykkes**: køre det næste trin, selv om dette mislykkes. Er den slået fra, stopper et mislykket trin kørslen. Den findes under **Flere felter** sammen med **Kør dette trin**.
 
 ### Forgren efter et trins resultat
@@ -324,6 +325,12 @@ En playbook har højst 25 trin. De kører i rækkefølge, hvert trin, når det f
 | Ethvert andet trin | Lykkedes, og mislykkedes, når det har **Fortsæt, hvis det mislykkes** slået til |
 
 To trin, der venter på modsatte resultater af det samme trin, er et hvis og et ellers: suspender kun en bruger, når trusselsinformationen kender vedkommende, og tilføj ellers en opgave om at bekræfte login med vedkommende. Når det trin, der ventes på, ender på en anden måde, springes det ventende trin over, og kørslen fortæller under det hvorfor; det samme gælder et trin, der venter på et, der blev sprunget over. Et trins kort viser, hvad det venter på, og et trin, som et andet venter på, kan ikke flyttes ned under det eller slettes, før det andet kører på en anden måde. Skabelonen **Eskalér kendte ondsindede indikatorer** hæver kun en sags prioritet og status ved træf i trusselsinformation, og et trin, der er gemt med den gamle kontakt for trusselsinformation, beholder den som **Kun hvis et tidligere tjek af trusselsinformation fandt en kendt ondsindet entitet**.
+
+Et trin kan vente på op til fem resultater: Vælg hvert af dem i **Kør dette trin**, og **Kør når** spørger, hvordan de læses, **Når alle er sket** eller **Når et af dem er sket**. Suspendér kun en bruger, når trusselsinformationen kender vedkommende, og deres aktivitet blev fundet, eller tilkald vagten, når et af de to opslag fandt noget. Et trin, der venter på alle sine resultater, kan ikke vente på to resultater af samme trin, f.eks. fundet og intet fundet, da ingen kørsel har begge.
+
+### Stop kørslen
+
+**Stop kørslen**, under **Flowstyring**, afslutter kørslen, hvor den er, som udført: Trinnene efter det springes over, og hvert af dem fortæller, hvor kørslen stoppede, og kørslen lykkes. Med **Kør dette trin** stopper det kun efter et resultat: stop, når trusselsinformationen ikke fandt noget kendt ondsindet, og lad ellers inddæmningstrinnene under det køre. Det, du skriver i **Grund til stop**, nævnes på sagens tidslinje, når kørslen stopper der. Det har intet at godkende og mislykkes aldrig, så det har hverken **Kræver godkendelse** eller **Fortsæt, hvis det mislykkes**, og intet trin kan vente på det. Et, der altid kører, afslutter hver kørsel og kan derfor kun være det sidste trin.
 
 ### Reaktion gennem OneUptime
 
@@ -394,7 +401,7 @@ Hver kørsel vises på sin sag og under **Produkter → Sikkerhedshændelser →
 | Queued | Venter på en worker |
 | Kører | Kører sine trin |
 | Waiting for Approval | Holdt tilbage før et trin, der kræver godkendelse |
-| Lykkedes | Alle trin kørte eller blev sprunget over |
+| Lykkedes | Alle trin kørte eller blev sprunget over, eller et trin **Stop kørslen** afsluttede den |
 | Mislykkedes | Et trin mislykkedes, og kørslen stoppede |
 | Annulleret | Nogen annullerede den eller afviste et trin |
 
@@ -454,6 +461,10 @@ Sagen handler ikke om nogen bruger eller vært, f.eks. kun om en adresse, eller 
 
 :::details Et trin, der kun kører efter et andet, blev sprunget over
 Det trin, det venter på, endte på en anden måde eller blev selv sprunget over: Det fandt f.eks. intet kendt ondsindet, hvor trinnet venter på en kendt ondsindet entitet. Åbn kørslen på sagen: Det oversprungne trin fortæller, hvilket trin det ventede på, og hvilket resultat. For at ændre det skal du redigere trinnet og åbne **Flere felter**.
+:::
+
+:::details En kørsel sluttede før sine sidste trin
+Et trin **Stop kørslen** kørte: Det resultat, det venter på, kom, eller det kører altid. Åbn kørslen på sagen: Trinnene efter det fortæller, hvor kørslen stoppede, og stoptrinnet fortæller hvorfor, hvis du gav det en grund. For at ændre, hvornår det stopper, skal du redigere trinnet og åbne **Flere felter**.
 :::
 
 :::details En status eller prioritet kan ikke slettes eller arkiveres

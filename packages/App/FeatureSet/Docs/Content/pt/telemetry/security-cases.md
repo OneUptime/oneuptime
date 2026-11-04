@@ -306,11 +306,12 @@ Um playbook desabilitado não roda nem sozinho nem manualmente.
 | Automação | Run a workflow | Inicia um fluxo de trabalho do OneUptime com o caso como entrada |
 | Automação | Run a runbook | Inicia um dos seus runbooks do OneUptime com o caso como entrada |
 | Automação | Fix the code with AI | Pede ao OneUptime AI um pull request que corrija as exceções lançadas pelas requisições do caso |
+| Controle de fluxo | Parar a execução | Encerra a execução ali, como concluída: as etapas seguintes não rodam |
 
 Um playbook tem no máximo 25 etapas. Elas rodam em ordem, cada uma depois que a anterior termina. Cada etapa também pode:
 
 - **Requer aprovação**: parar a execução antes da etapa até que alguém a aprove no caso. As oito etapas que cortam o acesso de alguém sempre param a execução, a menos que um Security Admin desative essa opção. **Run a runbook**, **Post a status page announcement** e as duas etapas de repositório de dados começam com a aprovação ativada, porque executam comandos nos seus sistemas, falam com os seus clientes ou mudam as configurações de uma nuvem; quem adiciona a etapa pode desativá-la.
-- **Executar esta etapa**: **Sempre**, ou só depois de um resultado de uma etapa anterior, como **Verificar as entidades na inteligência de ameaças** encontrar uma entidade sabidamente maliciosa; veja [Ramificar pelo resultado de uma etapa](#ramificar-pelo-resultado-de-uma-etapa).
+- **Executar esta etapa**: **Sempre**, ou só depois de resultados de etapas anteriores, como **Verificar as entidades na inteligência de ameaças** encontrar uma entidade sabidamente maliciosa; veja [Ramificar pelo resultado de uma etapa](#ramificar-pelo-resultado-de-uma-etapa).
 - **Continuar se falhar**: rodar a próxima etapa mesmo que esta falhe. Desativado, uma etapa com falha interrompe a execução. Fica em **Mais campos**, junto com **Executar esta etapa**.
 
 ### Ramificar pelo resultado de uma etapa
@@ -324,6 +325,12 @@ Um playbook tem no máximo 25 etapas. Elas rodam em ordem, cada uma depois que a
 | Qualquer outra etapa | Teve sucesso, e falhou quando tem **Continuar se falhar** ativado |
 
 Duas etapas que esperam resultados opostos de uma mesma etapa são um se e um senão: suspender um usuário só quando a inteligência de ameaças o conhece e, senão, adicionar uma tarefa para confirmar o login com ele. Quando a etapa esperada termina de outro jeito, a etapa que espera é pulada, e a execução diz o motivo embaixo dela; o mesmo vale para uma etapa que espera por uma que foi pulada. O cartão de uma etapa diz pelo que ela espera, e uma etapa pela qual outra espera não pode ser movida para baixo dela nem excluída até que essa outra rode de outro jeito. O modelo **Escalonar indicadores maliciosos conhecidos** sobe a prioridade e o status de um caso só quando houve correspondência de inteligência de ameaças, e uma etapa salva com a antiga opção de inteligência de ameaças a mantém como **Somente se uma verificação anterior de inteligência de ameaças encontrou uma entidade sabidamente maliciosa**.
+
+Uma etapa pode esperar até cinco resultados: escolha cada um em **Executar esta etapa**, e **Executar quando** pergunta como lê-los, **Quando todos aconteceram** ou **Quando qualquer um deles aconteceu**. Suspender um usuário só quando a inteligência de ameaças o conhece e a atividade dele foi encontrada, ou acionar o plantão quando qualquer uma das duas consultas encontrou algo. Uma etapa que espera todos os seus resultados não pode esperar dois resultados de uma mesma etapa, como encontrou e não encontrou nada, já que nenhuma execução tem os dois.
+
+### Parar a execução
+
+**Parar a execução**, em **Controle de fluxo**, encerra a execução onde ela está, como concluída: as etapas seguintes são puladas, cada uma dizendo onde a execução parou, e a execução é bem-sucedida. Com **Executar esta etapa**, ela para só depois de um resultado: parar quando a inteligência de ameaças não encontrou nada sabidamente malicioso e, caso contrário, deixar rodar as etapas de contenção abaixo dela. O que você escrever em **Motivo da parada** é informado na linha do tempo do caso quando a execução para ali. Ela não tem nada para aprovar e nunca falha, então não tem **Requer aprovação** nem **Continuar se falhar**, e nenhuma etapa pode esperar por ela. Uma que roda sempre encerra toda execução, então só pode ser a última etapa.
 
 ### Respondendo com o OneUptime
 
@@ -394,7 +401,7 @@ Cada execução aparece no caso dela e em **Produtos → Eventos de segurança �
 | Queued | Aguardando um worker |
 | Em execução | Executando as etapas dela |
 | Waiting for Approval | Parada antes de uma etapa que precisa de aprovação |
-| Bem-sucedido | Todas as etapas rodaram, ou foram puladas |
+| Bem-sucedido | Todas as etapas rodaram, ou foram puladas, ou uma etapa **Parar a execução** a encerrou |
 | Falhou | Uma etapa falhou e a execução parou |
 | Cancelado | Alguém a cancelou, ou rejeitou uma etapa |
 
@@ -454,6 +461,10 @@ O caso não trata de nenhum usuário ou host, só de um endereço, por exemplo, 
 
 :::details Uma etapa que só roda depois de outra foi pulada
 A etapa pela qual ela espera terminou de outro jeito, ou foi pulada também: não encontrou nada sabidamente malicioso, por exemplo, quando a etapa espera uma entidade sabidamente maliciosa. Abra a execução no caso: a etapa pulada diz por qual etapa esperava, e por qual resultado. Para mudar isso, edite a etapa e abra **Mais campos**.
+:::
+
+:::details Uma execução terminou antes das últimas etapas
+Uma etapa **Parar a execução** rodou: o resultado pelo qual ela espera veio, ou ela roda sempre. Abra a execução no caso: as etapas seguintes dizem onde a execução parou, e a etapa de parada diz por quê, se você deu um motivo a ela. Para mudar quando ela para, edite a etapa e abra **Mais campos**.
 :::
 
 :::details Um status ou uma prioridade não pode ser excluído nem arquivado

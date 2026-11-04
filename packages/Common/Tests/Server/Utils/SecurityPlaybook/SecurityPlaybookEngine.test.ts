@@ -27,7 +27,10 @@ import SecurityPlaybookRunStatus, {
   SecurityPlaybookStepStatus,
 } from "../../../../Types/SecurityPlaybook/SecurityPlaybookRunStatus";
 import { SecurityPlaybookStep } from "../../../../Types/SecurityPlaybook/SecurityPlaybookStep";
-import { SecurityPlaybookStepOutcome } from "../../../../Types/SecurityPlaybook/SecurityPlaybookStepCondition";
+import {
+  SecurityPlaybookConditionMatch,
+  SecurityPlaybookStepOutcome,
+} from "../../../../Types/SecurityPlaybook/SecurityPlaybookStepCondition";
 import {
   SecurityPlaybookApprovalDecision,
   SecurityPlaybookStepResult,
@@ -1023,5 +1026,296 @@ describe("SecurityPlaybookEngine: a step that waits on an earlier step's result"
     await SecurityPlaybookEngine.executeRun(RUN_ID);
 
     expect(state.stepResults[0]!.found).toBeUndefined();
+  });
+});
+
+/*
+ * SEVERAL RESULTS: a step that waits on two lookups runs on all of them, or
+ * on any one, as it says.
+ */
+describe("SecurityPlaybookEngine: a step that waits on several earlier results", () => {
+  function lookedUp(found: boolean): void {
+    outcomes.push({
+      status: SecurityPlaybookStepStatus.Succeeded,
+      summary: found ? mdText`Found it.` : mdText`Found nothing.`,
+      found,
+    });
+  }
+
+  function twoLookupsThenNote(
+    match: SecurityPlaybookConditionMatch,
+  ): Array<SecurityPlaybookStep> {
+    const check: SecurityPlaybookStep = step(
+      SecurityPlaybookActionType.CheckThreatIntel,
+    );
+    const activity: SecurityPlaybookStep = step(
+      SecurityPlaybookActionType.LookUpEntityActivity,
+    );
+
+    return [
+      check,
+      activity,
+      step(SecurityPlaybookActionType.AddCaseNote, {
+        runIf: {
+          match,
+          conditions: [
+            { stepId: check.id, outcome: SecurityPlaybookStepOutcome.Found },
+            {
+              stepId: activity.id,
+              outcome: SecurityPlaybookStepOutcome.Found,
+            },
+          ],
+        },
+      }),
+    ];
+  }
+
+  test("on any one, it runs when one of them found something", async () => {
+    lookedUp(false);
+    lookedUp(true);
+    useRun(twoLookupsThenNote(SecurityPlaybookConditionMatch.Any));
+
+    await SecurityPlaybookEngine.executeRun(RUN_ID);
+
+    expect(executed).toEqual([
+      SecurityPlaybookActionType.CheckThreatIntel,
+      SecurityPlaybookActionType.LookUpEntityActivity,
+      SecurityPlaybookActionType.AddCaseNote,
+    ]);
+    expect(state.status).toBe(SecurityPlaybookRunStatus.Succeeded);
+  });
+
+  test("on all of them, it is skipped when one found nothing, saying both", async () => {
+    lookedUp(false);
+    lookedUp(true);
+    useRun(twoLookupsThenNote(SecurityPlaybookConditionMatch.All));
+
+    await SecurityPlaybookEngine.executeRun(RUN_ID);
+
+    expect(executed).toEqual([
+      SecurityPlaybookActionType.CheckThreatIntel,
+      SecurityPlaybookActionType.LookUpEntityActivity,
+    ]);
+    expect(state.stepResults[2]!.status).toBe(
+      SecurityPlaybookStepStatus.Skipped,
+    );
+    expect(state.stepResults[2]!.message).toBe(
+      "Skipped: it runs only if step 1 (Check entities against threat intel) found a known-bad entity and step 2 (Look up entity activity) found activity.",
+    );
+  });
+
+  test("on all of them, it runs when every one found something", async () => {
+    lookedUp(true);
+    lookedUp(true);
+    useRun(twoLookupsThenNote(SecurityPlaybookConditionMatch.All));
+
+    await SecurityPlaybookEngine.executeRun(RUN_ID);
+
+    expect(executed).toHaveLength(3);
+    expect(state.stepResults[2]!.status).toBe(
+      SecurityPlaybookStepStatus.Succeeded,
+    );
+  });
+});
+
+/*
+ * STOP THE RUN: a Stop step that runs ends the run there, as done; one
+ * whose condition does not hold is skipped like any other step.
+ */
+describe("SecurityPlaybookEngine: a Stop step", () => {
+  const REASON: string = "Nothing known to threat intel, so nothing to contain";
+
+  // Check threat intel; stop when it found nothing; else suspend and note.
+  function stopUnlessFound(
+    stopExtra: Partial<SecurityPlaybookStep> = {},
+  ): Array<SecurityPlaybookStep> {
+    const check: SecurityPlaybookStep = step(
+      SecurityPlaybookActionType.CheckThreatIntel,
+    );
+
+    return [
+      check,
+      step(SecurityPlaybookActionType.StopRun, {
+        config: { reason: REASON },
+        runIf: {
+          stepId: check.id,
+          outcome: SecurityPlaybookStepOutcome.FoundNothing,
+        },
+        ...stopExtra,
+      }),
+      step(SecurityPlaybookActionType.SuspendOktaUser, RUNS_WITHOUT_APPROVAL),
+      step(SecurityPlaybookActionType.AddCaseNote),
+    ];
+  }
+
+  function checkFound(found: boolean): void {
+    outcomes.push({
+      status: SecurityPlaybookStepStatus.Succeeded,
+      summary: found ? mdText`1 is known-bad.` : mdText`None is known-bad.`,
+      found,
+      ...(found ? { threatIntelMatched: true } : {}),
+    });
+  }
+
+  test("that runs, it ends the run there, as done: nothing after it acts, and each step after it says where the run stopped", async () => {
+    checkFound(false);
+    useRun(stopUnlessFound());
+
+    await SecurityPlaybookEngine.executeRun(RUN_ID);
+
+    // The Stop step is the engine's own: no action runs for it.
+    expect(executed).toEqual([SecurityPlaybookActionType.CheckThreatIntel]);
+    expect(spies.selectTargets).not.toHaveBeenCalled();
+    expect(state.status).toBe(SecurityPlaybookRunStatus.Succeeded);
+    expect(state.completedAt).toBeInstanceOf(Date);
+    expect(state.errorMessage).toBeUndefined();
+    expect(state.currentStepIndex).toBe(4);
+    expect(
+      state.stepResults.map((result: SecurityPlaybookStepResult) => {
+        return [result.status, result.message];
+      }),
+    ).toEqual([
+      [SecurityPlaybookStepStatus.Succeeded, "None is known-bad."],
+      [SecurityPlaybookStepStatus.Succeeded, REASON],
+      [
+        SecurityPlaybookStepStatus.Skipped,
+        "Skipped: the run stopped at step 2.",
+      ],
+      [
+        SecurityPlaybookStepStatus.Skipped,
+        "Skipped: the run stopped at step 2.",
+      ],
+    ]);
+    expect(state.stepResults[1]!.startedAt).toBeDefined();
+    expect(state.stepResults[1]!.completedAt).toBeDefined();
+
+    // The case is told where and why - and never that the run finished all its steps.
+    const last: { eventType: string; markdown: string } =
+      feedItems[feedItems.length - 1]!;
+
+    expect(last.eventType).toBe(SecurityCaseFeedEventType.PlaybookRun);
+    expect(last.markdown).toBe(
+      `🏁 Playbook **Triage** stopped at step 2: ${REASON}`,
+    );
+    expect(
+      feedItems.some((item: { markdown: string }): boolean => {
+        return item.markdown.includes("finished");
+      }),
+    ).toBe(false);
+  });
+
+  test("whose condition does not hold, it is skipped, and the run goes on to the end", async () => {
+    checkFound(true);
+    useRun(stopUnlessFound());
+
+    await SecurityPlaybookEngine.executeRun(RUN_ID);
+
+    expect(executed).toEqual([
+      SecurityPlaybookActionType.CheckThreatIntel,
+      SecurityPlaybookActionType.SuspendOktaUser,
+      SecurityPlaybookActionType.AddCaseNote,
+    ]);
+    expect(state.stepResults[1]!.status).toBe(
+      SecurityPlaybookStepStatus.Skipped,
+    );
+    expect(state.stepResults[1]!.message).toBe(
+      "Skipped: it runs only if step 1 (Check entities against threat intel) found nothing known-bad.",
+    );
+    expect(state.status).toBe(SecurityPlaybookRunStatus.Succeeded);
+    expect(feedItems[feedItems.length - 1]!.markdown).toContain(
+      "finished: 3 steps ran, 1 skipped",
+    );
+  });
+
+  test("without a reason, the case reads that the run stopped where the playbook says to", async () => {
+    useRun([
+      step(SecurityPlaybookActionType.AddCaseNote),
+      step(SecurityPlaybookActionType.StopRun),
+    ]);
+
+    await SecurityPlaybookEngine.executeRun(RUN_ID);
+
+    expect(executed).toEqual([SecurityPlaybookActionType.AddCaseNote]);
+    expect(state.stepResults[1]!.status).toBe(
+      SecurityPlaybookStepStatus.Succeeded,
+    );
+    expect(state.stepResults[1]!.message).toBeUndefined();
+    expect(feedItems[feedItems.length - 1]!.markdown).toBe(
+      "🏁 Playbook **Triage** stopped at step 2, as it says to.",
+    );
+  });
+
+  test("saved asking for approval, it still never waits: it does nothing to approve", async () => {
+    checkFound(false);
+    useRun(
+      stopUnlessFound({ requiresApproval: true, continueOnFailure: true }),
+    );
+
+    await SecurityPlaybookEngine.executeRun(RUN_ID);
+
+    expect(state.status).toBe(SecurityPlaybookRunStatus.Succeeded);
+    expect(state.stepResults[1]!.status).toBe(
+      SecurityPlaybookStepStatus.Succeeded,
+    );
+    expect(
+      spies.enqueue.mock.calls.some((call: Array<unknown>): boolean => {
+        return call[2] === SECURITY_CASE_NOTIFICATION_JOB;
+      }),
+    ).toBe(false);
+  });
+
+  test("on a run carried on from an approval, it stops at its own turn", async () => {
+    const steps: Array<SecurityPlaybookStep> = [
+      step(SecurityPlaybookActionType.SuspendOktaUser, {
+        requiresApproval: true,
+      }),
+      step(SecurityPlaybookActionType.StopRun),
+    ];
+    const results: Array<SecurityPlaybookStepResult> =
+      buildPendingStepResults(steps);
+    results[0]!.approval = {
+      decision: SecurityPlaybookApprovalDecision.Approved,
+      decidedByUserId: "u1",
+      decidedAt: "2026-11-04T10:00:00.000Z",
+    };
+
+    useRun(steps, { stepResults: results, currentStepIndex: 0 });
+
+    await SecurityPlaybookEngine.executeRun(RUN_ID);
+
+    expect(executed).toEqual([SecurityPlaybookActionType.SuspendOktaUser]);
+    expect(state.status).toBe(SecurityPlaybookRunStatus.Succeeded);
+    expect(state.stepResults[1]!.status).toBe(
+      SecurityPlaybookStepStatus.Succeeded,
+    );
+  });
+
+  test("a run somebody cancelled before its turn keeps its Cancelled", async () => {
+    useRun([
+      step(SecurityPlaybookActionType.AddCaseNote),
+      step(SecurityPlaybookActionType.StopRun),
+    ]);
+
+    getJestSpyOn(SecurityPlaybookActions, "execute").mockImplementation(
+      async () => {
+        state.status = SecurityPlaybookRunStatus.Cancelled;
+        return {
+          status: SecurityPlaybookStepStatus.Succeeded,
+          summary: mdText`Done.`,
+        } as never;
+      },
+    );
+
+    await SecurityPlaybookEngine.executeRun(RUN_ID);
+
+    expect(state.status).toBe(SecurityPlaybookRunStatus.Cancelled);
+    expect(state.stepResults[1]!.status).toBe(
+      SecurityPlaybookStepStatus.Pending,
+    );
+    expect(
+      feedItems.some((item: { markdown: string }): boolean => {
+        return item.markdown.includes("stopped at step");
+      }),
+    ).toBe(false);
   });
 });

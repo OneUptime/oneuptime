@@ -24,11 +24,21 @@ import {
 import { ocsfSeverityFromId } from "../../../../Types/SecurityEvent/OcsfSeverity";
 import {
   SecurityPlaybookStep,
+  StopRunConfig,
   doesStepNeedApproval,
   parseSecurityPlaybookSteps,
 } from "../../../../Types/SecurityPlaybook/SecurityPlaybookStep";
-import { getSecurityPlaybookAction } from "../../../../Types/SecurityPlaybook/SecurityPlaybookAction";
-import { describeSecurityPlaybookStepOutcome } from "../../../../Types/SecurityPlaybook/SecurityPlaybookStepCondition";
+import {
+  SecurityPlaybookActionType,
+  getSecurityPlaybookAction,
+} from "../../../../Types/SecurityPlaybook/SecurityPlaybookAction";
+import {
+  SecurityPlaybookConditionMatch,
+  SecurityPlaybookStepCondition,
+  describeSecurityPlaybookStepOutcome,
+  getSecurityPlaybookConditionMatch,
+  getSecurityPlaybookStepConditions,
+} from "../../../../Types/SecurityPlaybook/SecurityPlaybookStepCondition";
 import FeedMarkdown from "../../../../Utils/Markdown/FeedMarkdown";
 import IncidentService from "../../../Services/IncidentService";
 import SecurityCaseNoteService from "../../../Services/SecurityCaseNoteService";
@@ -888,16 +898,45 @@ export function describePlaybookSteps(steps: unknown): string {
       const title: string =
         getSecurityPlaybookAction(step.action)?.title || step.action;
       const notes: Array<string> = [];
-      const waitedOn: number = step.runIf
-        ? parsed.findIndex((candidate: SecurityPlaybookStep): boolean => {
-            return candidate.id === step.runIf?.stepId;
-          })
-        : -1;
+      // Each result it waits on that the playbook still holds.
+      const clauses: Array<string> = getSecurityPlaybookStepConditions(
+        step.runIf,
+      )
+        .map((condition: SecurityPlaybookStepCondition): string => {
+          const waitedOn: number = parsed.findIndex(
+            (candidate: SecurityPlaybookStep): boolean => {
+              return candidate.id === condition.stepId;
+            },
+          );
 
-      if (step.runIf && waitedOn >= 0) {
+          return waitedOn >= 0
+            ? `step ${waitedOn + 1} ${describeSecurityPlaybookStepOutcome(parsed[waitedOn]!.action, condition.outcome)}`
+            : "";
+        })
+        .filter((clause: string): boolean => {
+          return clause.length > 0;
+        });
+
+      if (clauses.length > 0) {
         notes.push(
-          `only if step ${waitedOn + 1} ${describeSecurityPlaybookStepOutcome(parsed[waitedOn]!.action, step.runIf.outcome)}`,
+          `only if ${clauses.join(
+            getSecurityPlaybookConditionMatch(step.runIf) ===
+              SecurityPlaybookConditionMatch.Any
+              ? " or "
+              : " and ",
+          )}`,
         );
+      }
+
+      // A step that ends the run, and why it says.
+      if (step.action === SecurityPlaybookActionType.StopRun) {
+        const reason: string = (
+          (step.config as unknown as StopRunConfig).reason || ""
+        ).trim();
+
+        if (reason) {
+          notes.push(`because: ${reason}`);
+        }
       }
 
       if (step.onlyIfThreatIntelMatched) {

@@ -69,6 +69,8 @@ const CONTAIN_PLAYBOOK_PATH: string = `${PRODUCT}/playbooks/24000000-0000-4000-8
 const KNOWN_BAD_PLAYBOOK_PATH: string = `${PRODUCT}/playbooks/24000000-0000-4000-8000-000000000002`;
 // Contain Risky Sign-ins (the fixture's ?branching=1): an if and an else on threat intel.
 const BRANCHING_PLAYBOOK_PATH: string = `${PRODUCT}/playbooks/24000000-0000-4000-8000-000000000005`;
+// Stop When Nothing Is Known (the fixture's ?stopping=1): a Stop step on two lookups.
+const STOPPING_PLAYBOOK_PATH: string = `${PRODUCT}/playbooks/24000000-0000-4000-8000-000000000006`;
 // The runs held for an approval keep the runs page's old address.
 const RUNS_PATH: string = `${PRODUCT}/playbook-runs`;
 const ALL_RUNS_PATH: string = `${PRODUCT}/playbook-runs/all`;
@@ -220,6 +222,8 @@ interface OpenOptions {
   realtime?: boolean;
   // A playbook that branches, and its two runs on CASE-139 (the fixture's ?branching=1).
   branching?: boolean;
+  // A playbook with a Stop step, and its run that stopped (the fixture's ?stopping=1).
+  stopping?: boolean;
   // Case numbers, comma separated, whose every change the server refuses.
   refuse?: string;
   // ATT&CK Coverage's address: the view, and the tactic it opens on.
@@ -369,6 +373,9 @@ async function open(
   }
   if (options.branching) {
     params.set("branching", "1");
+  }
+  if (options.stopping) {
+    params.set("stopping", "1");
   }
   const query: string = params.toString();
   await page.goto(query ? `${pathname}?${query}` : pathname);
@@ -5129,10 +5136,11 @@ test.describe("playbooks", () => {
   /*
    * Run This Step is the one picker a branch is set with: under More fields
    * (most steps always run), each result of each step before it a choice,
-   * worded as the step's card words it. Picking Always lets the step run
-   * whatever came before it, and the card's line goes.
+   * worded as the step's card words it. Several can be picked; with none
+   * picked it reads Always, the step runs whatever came before it, and the
+   * card's line goes.
    */
-  test("Run This Step waits under More fields, offers each result of the steps before it, and Always lets a step run whatever came before", async ({
+  test("Run This Step waits under More fields, offers each result of the steps before it, and with none picked a step runs whatever came before", async ({
     page,
   }: {
     page: Page;
@@ -5156,13 +5164,11 @@ test.describe("playbooks", () => {
       name: /^Run This Step/,
     });
     await expect(runIf).toBeVisible();
-    await expect(
-      dialog
-        .locator(".ou-select__single-value")
-        .filter({ hasText: "Only if step 1" }),
-    ).toHaveText(
+    await expect(dialog.locator(".ou-select__multi-value__label")).toHaveText([
       "Only if step 1 (Check entities against threat intel) found a known-bad entity",
-    );
+    ]);
+    // One result: nothing more to ask.
+    await expect(dialog.getByText("Run When")).toHaveCount(0);
     await expect(
       dialog.getByText("Carry On If It Fails").first(),
     ).toBeVisible();
@@ -5170,18 +5176,23 @@ test.describe("playbooks", () => {
       fullPage: false,
     });
 
-    // Always, then each result of each step before it: two, for a lookup.
+    // Each other result of each step before it: two, for a lookup.
     await runIf.click();
     await expect(page.locator(".ou-select__option")).toHaveText([
-      "Always",
-      "Only if step 1 (Check entities against threat intel) found a known-bad entity",
       "Only if step 1 (Check entities against threat intel) found nothing known-bad",
       "Only if step 2 (Set the priority) succeeded",
     ]);
-    await page
-      .locator(".ou-select__option", { hasText: "Always" })
-      .first()
+    await page.keyboard.press("Escape");
+
+    // Its result removed, it reads Always.
+    await dialog
+      .getByRole("button", {
+        name: "Remove Only if step 1 (Check entities against threat intel) found a known-bad entity",
+      })
       .click();
+    await expect(dialog.locator(".ou-select__placeholder")).toHaveText(
+      "Always",
+    );
     await expect(dialog.getByTestId("modal-footer-submit-button")).toHaveText(
       "Save Step",
     );
@@ -5223,6 +5234,220 @@ test.describe("playbooks", () => {
     }>;
     expect(steps[2]!.runIf).toBeUndefined();
     expect(steps[1]!.runIf).toBeDefined();
+  });
+
+  /*
+   * Run This Step takes several results: with two picked, Run When asks
+   * whether the step waits for all of them or runs on any one. Saved as any
+   * one, the step's card says both results with "or", and the playbook saves
+   * them as a group.
+   */
+  test("two results picked ask Run When, and a step saved to run on any one says both on its card", async ({
+    page,
+  }: {
+    page: Page;
+  }) => {
+    await open(page, KNOWN_BAD_PLAYBOOK_PATH);
+    await expect(page.getByTestId("security-playbook-step-2")).toBeVisible({
+      timeout: 30000,
+    });
+    await page.getByRole("button", { name: "Step 3 actions" }).click();
+    await page.getByRole("menuitem", { name: "Edit Step" }).click();
+
+    const dialog: Locator = page.getByRole("dialog").first();
+    await dialog.getByRole("button", { name: /More fields/ }).click();
+    await dialog.getByRole("combobox", { name: /^Run This Step/ }).click();
+    await page
+      .locator(".ou-select__option", {
+        hasText: "Only if step 2 (Set the priority) succeeded",
+      })
+      .click();
+
+    const all: Locator = dialog.getByRole("radio", {
+      name: "When all of them happened",
+    });
+    const any: Locator = dialog.getByRole("radio", {
+      name: "When any one of them happened",
+    });
+    await expect(dialog.getByText("Run When")).toBeVisible();
+    await expect(all).toBeChecked();
+    await any.check();
+    await screenshot(page, "playbook-run-when-desktop", { fullPage: false });
+
+    await dialog.getByTestId("modal-footer-submit-button").click();
+    await expect(page.getByRole("dialog")).toHaveCount(0);
+    await expect(
+      page.getByTestId("security-playbook-step-2-run-if"),
+    ).toHaveText("Only if step 1 found a known-bad entity or step 2 succeeded");
+
+    const saved: Array<{ data: Record<string, unknown> }> = await page.evaluate(
+      (): Array<{ data: Record<string, unknown> }> => {
+        return JSON.parse(
+          JSON.stringify(
+            (
+              window as unknown as {
+                __securityOperationsFixture: {
+                  updates: Array<{
+                    modelName: string;
+                    data: Record<string, unknown>;
+                  }>;
+                };
+              }
+            ).__securityOperationsFixture.updates.filter(
+              (update: { modelName: string }): boolean => {
+                return update.modelName === "SecurityPlaybook";
+              },
+            ),
+          ),
+        );
+      },
+    );
+    expect(saved).toHaveLength(1);
+    const steps: Array<{ id: string; runIf?: Record<string, unknown> }> =
+      saved[0]!.data["steps"] as Array<{
+        id: string;
+        runIf?: Record<string, unknown>;
+      }>;
+    expect(steps[2]!.runIf).toEqual({
+      match: "Any",
+      conditions: [
+        { stepId: steps[0]!.id, outcome: "Found" },
+        { stepId: steps[1]!.id, outcome: "Succeeded" },
+      ],
+    });
+  });
+
+  /*
+   * A Stop step is picked like any other, under Flow control, the picker's
+   * last group. Its dialog asks why it stops - and neither Needs Approval
+   * nor Carry On If It Fails, which it cannot use - and its card says why.
+   */
+  test("Stop the run is picked under Flow control, asks why it stops and nothing it cannot use, and its card says why", async ({
+    page,
+  }: {
+    page: Page;
+  }) => {
+    await open(page, KNOWN_BAD_PLAYBOOK_PATH);
+    await expect(page.getByTestId("security-playbook-step-2")).toBeVisible({
+      timeout: 30000,
+    });
+    await page.getByRole("button", { name: "Add Step" }).click();
+
+    const dialog: Locator = page.getByRole("dialog").first();
+    await expect(dialog.getByText("Flow control")).toBeVisible();
+    await dialog.getByText("Stop the run", { exact: true }).click();
+    await dialog.getByRole("button", { name: "Next", exact: true }).click();
+
+    const why: Locator = dialog.getByRole("textbox", { name: /Why It Stops/ });
+    await expect(why).toBeVisible();
+    await expect(dialog.getByText("Needs Approval")).toHaveCount(0);
+    const moreFields: Locator = dialog.getByRole("button", {
+      name: /More fields/,
+    });
+    await expect(moreFields).toContainText("Run This Step");
+    await expect(moreFields).not.toContainText("Carry On If It Fails");
+
+    await why.fill("Nothing known-bad: nothing to contain");
+    await moreFields.click();
+    await dialog.getByRole("combobox", { name: /^Run This Step/ }).click();
+    await page
+      .locator(".ou-select__option", {
+        hasText:
+          "Only if step 1 (Check entities against threat intel) found nothing known-bad",
+      })
+      .click();
+    await screenshot(page, "playbook-stop-step-desktop", { fullPage: false });
+    await dialog.getByTestId("modal-footer-submit-button").click();
+    await expect(page.getByRole("dialog")).toHaveCount(0);
+
+    const card: Locator = page.getByTestId("security-playbook-step-3");
+    await expect(card).toContainText("Stop the run");
+    await expect(card).toContainText("Nothing known-bad: nothing to contain");
+    await expect(
+      page.getByTestId("security-playbook-step-3-run-if"),
+    ).toHaveText("Only if step 1 found nothing known-bad");
+    await expect(card).not.toContainText("Needs approval");
+  });
+
+  /*
+   * A playbook with a Stop step (the fixture's ?stopping=1): Stop When
+   * Nothing Is Known stops when neither lookup found anything - all of two
+   * results - and notes when either found something - any one. Each card
+   * says it, and its run that stopped says where: the steps after the Stop
+   * step each say the run stopped there, in the reader's language, and the
+   * run's folded line says it ended there, as the playbook says.
+   */
+  test("a playbook with a Stop step says what each step waits on, and its run says where it stopped", async ({
+    page,
+  }: {
+    page: Page;
+  }) => {
+    await open(page, STOPPING_PLAYBOOK_PATH, { stopping: true });
+    await expect(page.getByTestId("security-playbook-step-4")).toBeVisible({
+      timeout: 30000,
+    });
+
+    await expect(
+      page.getByTestId("security-playbook-step-2-run-if"),
+    ).toHaveText(
+      "Only if step 1 found nothing known-bad and step 2 found no activity",
+    );
+    await expect(page.getByTestId("security-playbook-step-2")).toContainText(
+      "Nothing known-bad and no activity: nothing to contain",
+    );
+    await expect(
+      page.getByTestId("security-playbook-step-4-run-if"),
+    ).toHaveText(
+      "Only if step 1 found a known-bad entity or step 2 found activity",
+    );
+
+    const run: Locator = page.getByTestId("security-playbook-run-card").first();
+    await expect(run.getByTestId("security-playbook-run-summary")).toHaveText(
+      "Ended at step 3 of 5, as the playbook says",
+    );
+    await run.getByTestId("security-playbook-run-steps-toggle").click();
+    for (const index of [3, 4]) {
+      await expect(
+        run.getByTestId(`security-playbook-run-step-${index}-stopped`),
+      ).toHaveText("The run stopped at step 3");
+      await expect(
+        run.getByTestId(`security-playbook-run-step-${index}-run-if`),
+      ).toHaveCount(0);
+    }
+    await expect(page.getByText(/Skipped: the run stopped/)).toHaveCount(0);
+    await screenshot(page, "playbook-stopped-run-desktop");
+
+    // In German, as the German Dashboard words it.
+    await open(page, STOPPING_PLAYBOOK_PATH, { stopping: true, lang: "de" });
+    await expect(
+      page.getByTestId("security-playbook-step-2-run-if"),
+    ).toHaveText(
+      "Nur wenn Schritt 1 nichts bekannt Bösartiges gefunden hat und Schritt 2 keine Aktivität gefunden hat",
+      { timeout: 30000 },
+    );
+    const germanRun: Locator = page
+      .getByTestId("security-playbook-run-card")
+      .first();
+    await expect(
+      germanRun.getByTestId("security-playbook-run-summary"),
+    ).toHaveText("Bei Schritt 3 von 5 beendet, wie das Playbook es vorsieht");
+    await germanRun.getByTestId("security-playbook-run-steps-toggle").click();
+    await expect(
+      germanRun.getByTestId("security-playbook-run-step-3-stopped"),
+    ).toHaveText("Die Ausführung wurde bei Schritt 3 gestoppt");
+
+    // On a phone, nothing runs off the side.
+    await open(page, STOPPING_PLAYBOOK_PATH, { stopping: true, width: 390 });
+    await expect(page.getByTestId("security-playbook-step-4")).toBeVisible({
+      timeout: 30000,
+    });
+    await page
+      .getByTestId("security-playbook-run-card")
+      .first()
+      .getByTestId("security-playbook-run-steps-toggle")
+      .click();
+    await expectNoSidewaysScroll(page, { tolerance: 1 });
+    await screenshot(page, "playbook-stopped-run-phone");
   });
 
   /*
@@ -7271,7 +7496,9 @@ test.describe("detection rules and threat intel", () => {
         "How often the rule runs, in minutes. In real time, a rule that counts reads windows this long and fires at most once in each.",
       ),
     ).toBeVisible();
-    await expect(dialog(page).getByText(/regular expression \(\|re\), which only runs/)).toHaveCount(0);
+    await expect(
+      dialog(page).getByText(/regular expression \(\|re\), which only runs/),
+    ).toHaveCount(0);
     await screenshot(page, "detection-rule-real-time-counting-desktop", {
       fullPage: false,
     });

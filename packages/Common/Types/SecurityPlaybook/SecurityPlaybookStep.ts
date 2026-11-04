@@ -13,9 +13,13 @@ import {
   isSecurityPlaybookActionType,
 } from "./SecurityPlaybookAction";
 import {
+  SecurityPlaybookConditionMatch,
   SecurityPlaybookStepCondition,
   SecurityPlaybookStepOutcome,
+  SecurityPlaybookStepRunIf,
+  getSecurityPlaybookConditionMatch,
   getSecurityPlaybookFinds,
+  getSecurityPlaybookStepConditions,
   getSecurityPlaybookStepOutcomes,
   readSecurityPlaybookStepCondition,
 } from "./SecurityPlaybookStepCondition";
@@ -31,9 +35,9 @@ import {
  *  - continueOnFailure: a failed step does not stop the steps after it.
  *  - runIf: the step runs only after an earlier step's result - it
  *    succeeded or failed, or, for a step that looks something up, it found
- *    something or found nothing - and is skipped otherwise
- *    (SecurityPlaybookStepCondition). Two steps waiting on opposite
- *    results of one step are an if and an else.
+ *    something or found nothing - or after several, all of them or any one,
+ *    and is skipped otherwise (SecurityPlaybookStepCondition). Two steps
+ *    waiting on opposite results of one step are an if and an else.
  *  - onlyIfThreatIntelMatched: the step runs only when any earlier Check
  *    Threat Intel step of the same run found a known-bad entity. What
  *    playbooks saved before runIf branch with; still honoured, and still
@@ -56,8 +60,8 @@ export interface SecurityPlaybookStep {
   requiresApproval: boolean;
   continueOnFailure: boolean;
   onlyIfThreatIntelMatched: boolean;
-  // Runs only after this result of an earlier step; always when absent.
-  runIf?: SecurityPlaybookStepCondition | undefined;
+  // Runs only after this result of an earlier step, or these; always when absent.
+  runIf?: SecurityPlaybookStepRunIf | undefined;
   approvalTurnedOff?: SecurityPlaybookApprovalTurnedOff | undefined;
 }
 
@@ -176,6 +180,14 @@ export interface RunRunbookConfig {
 }
 
 /*
+ * Stop the run: why, in a sentence of the playbook's own, said on the case
+ * when the run stops there ("Nothing known-bad: nothing to contain").
+ */
+export interface StopRunConfig {
+  reason?: string | undefined;
+}
+
+/*
  * Posted as written: nothing of the case is put into it, so nothing about
  * an investigation reaches a public page unless somebody wrote it there.
  */
@@ -202,6 +214,8 @@ export const ENTITY_ACTIVITY_LOOKBACK_MAX_HOURS: number = 720;
 export const ENTITY_ACTIVITY_LOOKBACK_DEFAULT_HOURS: number = 24;
 // A status page announcement's title is a short text column.
 export const ANNOUNCEMENT_TITLE_MAX_LENGTH: number = 100;
+// What a Stop step says on the case when the run stops there: a sentence.
+export const SECURITY_PLAYBOOK_STOP_REASON_MAX_LENGTH: number = 500;
 
 // An http(s) URL with a host: what a webhook step can post to.
 const WEBHOOK_URL: RegExp = /^https?:\/\/[^\s/?#]+[^\s]*$/i;
@@ -623,6 +637,18 @@ export function normalizeSecurityPlaybookStepConfig(
       };
     }
 
+    case SecurityPlaybookActionType.StopRun: {
+      const reason: string = readText(rawConfig, "reason");
+
+      if (reason.length > SECURITY_PLAYBOOK_STOP_REASON_MAX_LENGTH) {
+        throw new BadDataException(
+          `${label}: say why it stops in at most ${SECURITY_PLAYBOOK_STOP_REASON_MAX_LENGTH} characters.`,
+        );
+      }
+
+      return reason ? { reason } : {};
+    }
+
     // Nothing to set: each reads what it acts on from the case.
     case SecurityPlaybookActionType.PreserveEvidence:
     case SecurityPlaybookActionType.FixWithAi:
@@ -756,14 +782,18 @@ export function parseSecurityPlaybookSteps(
     const isDisruptive: boolean = Boolean(
       getSecurityPlaybookAction(action)?.isDisruptive,
     );
-    const requiresApproval: boolean = isDisruptive
-      ? step["requiresApproval"] !== false
-      : step["requiresApproval"] === true;
+    // A step that stops the run does nothing to approve, and cannot fail.
+    const stopsTheRun: boolean = action === SecurityPlaybookActionType.StopRun;
+    const requiresApproval: boolean = stopsTheRun
+      ? false
+      : isDisruptive
+        ? step["requiresApproval"] !== false
+        : step["requiresApproval"] === true;
     const approvalTurnedOff: SecurityPlaybookApprovalTurnedOff | undefined =
       isDisruptive && !requiresApproval
         ? readApprovalTurnedOff(step["approvalTurnedOff"])
         : undefined;
-    const runIf: SecurityPlaybookStepCondition | undefined =
+    const runIf: SecurityPlaybookStepRunIf | undefined =
       readSecurityPlaybookStepCondition(step["runIf"], label);
 
     return {
@@ -775,7 +805,7 @@ export function parseSecurityPlaybookSteps(
         label,
       ),
       requiresApproval,
-      continueOnFailure: step["continueOnFailure"] === true,
+      continueOnFailure: !stopsTheRun && step["continueOnFailure"] === true,
       onlyIfThreatIntelMatched: step["onlyIfThreatIntelMatched"] === true,
       ...(runIf ? { runIf } : {}),
       ...(approvalTurnedOff ? { approvalTurnedOff } : {}),
@@ -783,10 +813,22 @@ export function parseSecurityPlaybookSteps(
   });
 }
 
+// Whether a step waits on this step's result, among any it waits on.
+export function doesStepWaitOn(
+  step: Pick<SecurityPlaybookStep, "runIf">,
+  stepId: string,
+): boolean {
+  return getSecurityPlaybookStepConditions(step.runIf).some(
+    (condition: SecurityPlaybookStepCondition): boolean => {
+      return condition.stepId === stepId;
+    },
+  );
+}
+
 /*
- * The steps a step's own result is waited on by: every later step whose
- * condition names it. What keeps it from being deleted, or moved below one
- * of them.
+ * The steps a step's own result is waited on by: every later step with a
+ * condition that names it. What keeps it from being deleted, or moved
+ * below one of them.
  */
 export function getStepsWaitingOn(
   steps: ReadonlyArray<SecurityPlaybookStep>,
@@ -795,7 +837,7 @@ export function getStepsWaitingOn(
   const waiting: Array<{ index: number; step: SecurityPlaybookStep }> = [];
 
   steps.forEach((step: SecurityPlaybookStep, index: number): void => {
-    if (step.runIf?.stepId === stepId) {
+    if (doesStepWaitOn(step, stepId)) {
       waiting.push({ index, step });
     }
   });
@@ -805,10 +847,13 @@ export function getStepsWaitingOn(
 
 /*
  * THE BRANCHING RULE, checked across the whole list when a playbook is
- * saved: a step waits only on a step before it, on a result that step can
- * have - found or found nothing for one that looks something up, succeeded
- * otherwise - and on its failure only when that step carries on past one.
- * Throws a message that names the step and says what to change. Runs
+ * saved, for every result a step waits on: a step waits only on a step
+ * before it, on a result that step can have - found or found nothing for
+ * one that looks something up, succeeded otherwise - on its failure only
+ * when that step carries on past one, and never on a step that stops the
+ * run, after which nothing runs. A step waiting on all of its results never
+ * waits on two results of one step, and a Stop step that always runs is the
+ * last. Throws a message that names the step and says what to change. Runs
  * already under way keep the steps they started with, which the engine
  * reads as they are (evaluateSecurityPlaybookStepCondition).
  */
@@ -816,52 +861,115 @@ export function assertSecurityPlaybookStepConditions(
   steps: ReadonlyArray<SecurityPlaybookStep>,
 ): void {
   steps.forEach((step: SecurityPlaybookStep, index: number): void => {
-    const condition: SecurityPlaybookStepCondition | undefined = step.runIf;
+    const conditions: Array<SecurityPlaybookStepCondition> =
+      getSecurityPlaybookStepConditions(step.runIf);
 
-    if (!condition) {
-      return;
+    for (const condition of conditions) {
+      assertStepCondition({ steps, step, index, condition });
     }
 
-    const label: string = stepLabel(index, step.action);
-    const waitedOn: number = steps.findIndex(
-      (candidate: SecurityPlaybookStep): boolean => {
-        return candidate.id === condition.stepId;
-      },
-    );
-
-    if (waitedOn < 0) {
-      throw new BadDataException(
-        `${label}: the step it runs after is no longer in the playbook. Choose again when it runs.`,
-      );
-    }
-
-    if (waitedOn >= index) {
-      throw new BadDataException(
-        waitedOn === index
-          ? `${label}: a step cannot run after its own result. Choose an earlier step.`
-          : `${label}: it runs after step ${waitedOn + 1}, which comes after it. Move it below step ${waitedOn + 1}, or choose again when it runs.`,
-      );
-    }
-
-    const earlier: SecurityPlaybookStep = steps[waitedOn]!;
-    const earlierTitle: string =
-      getSecurityPlaybookAction(earlier.action)?.title || earlier.action;
-
+    /*
+     * A Stop step that always runs ends every run where it is: a step after
+     * it would never run.
+     */
     if (
-      condition.outcome === SecurityPlaybookStepOutcome.Failed &&
-      !earlier.continueOnFailure
+      step.action === SecurityPlaybookActionType.StopRun &&
+      conditions.length === 0 &&
+      !step.onlyIfThreatIntelMatched &&
+      index < steps.length - 1
     ) {
       throw new BadDataException(
-        `${label}: it runs only if step ${waitedOn + 1} (${earlierTitle}) fails, but a failed step ${waitedOn + 1} stops the run. Turn on Carry On If It Fails for step ${waitedOn + 1}, or choose again when this step runs.`,
+        `${stepLabel(index, step.action)}: it always stops the run, so the steps after it would never run. Make it run only after an earlier step's result, or move it to the end.`,
       );
     }
 
-    if (!getSecurityPlaybookStepOutcomes(earlier).includes(condition.outcome)) {
-      throw new BadDataException(
-        getSecurityPlaybookFinds(earlier.action)
-          ? `${label}: step ${waitedOn + 1} (${earlierTitle}) looks something up, so it finds something or finds nothing. Choose one of those.`
-          : `${label}: step ${waitedOn + 1} (${earlierTitle}) does not look anything up, so it can only succeed or fail. Choose one of those.`,
-      );
+    /*
+     * Waiting on all of two results of one step - it found something and
+     * found nothing - is waiting on what never happens.
+     */
+    if (
+      getSecurityPlaybookConditionMatch(step.runIf) ===
+      SecurityPlaybookConditionMatch.All
+    ) {
+      const firstClash: SecurityPlaybookStepCondition | undefined =
+        conditions.find((condition: SecurityPlaybookStepCondition): boolean => {
+          return conditions.some(
+            (other: SecurityPlaybookStepCondition): boolean => {
+              return (
+                other.stepId === condition.stepId &&
+                other.outcome !== condition.outcome
+              );
+            },
+          );
+        });
+
+      if (firstClash) {
+        const waitedOn: number = steps.findIndex(
+          (candidate: SecurityPlaybookStep): boolean => {
+            return candidate.id === firstClash.stepId;
+          },
+        );
+
+        throw new BadDataException(
+          `${stepLabel(index, step.action)}: it waits on two results of step ${waitedOn + 1}, which one run never has together. Choose one of them, or run it when any of its results happened.`,
+        );
+      }
     }
   });
+}
+
+function assertStepCondition(data: {
+  steps: ReadonlyArray<SecurityPlaybookStep>;
+  step: SecurityPlaybookStep;
+  index: number;
+  condition: SecurityPlaybookStepCondition;
+}): void {
+  const { steps, step, index, condition } = data;
+  const label: string = stepLabel(index, step.action);
+  const waitedOn: number = steps.findIndex(
+    (candidate: SecurityPlaybookStep): boolean => {
+      return candidate.id === condition.stepId;
+    },
+  );
+
+  if (waitedOn < 0) {
+    throw new BadDataException(
+      `${label}: the step it runs after is no longer in the playbook. Choose again when it runs.`,
+    );
+  }
+
+  if (waitedOn >= index) {
+    throw new BadDataException(
+      waitedOn === index
+        ? `${label}: a step cannot run after its own result. Choose an earlier step.`
+        : `${label}: it runs after step ${waitedOn + 1}, which comes after it. Move it below step ${waitedOn + 1}, or choose again when it runs.`,
+    );
+  }
+
+  const earlier: SecurityPlaybookStep = steps[waitedOn]!;
+  const earlierTitle: string =
+    getSecurityPlaybookAction(earlier.action)?.title || earlier.action;
+
+  if (earlier.action === SecurityPlaybookActionType.StopRun) {
+    throw new BadDataException(
+      `${label}: step ${waitedOn + 1} (${earlierTitle}) ends the run when it runs, so no step after it can wait on it. Choose another step.`,
+    );
+  }
+
+  if (
+    condition.outcome === SecurityPlaybookStepOutcome.Failed &&
+    !earlier.continueOnFailure
+  ) {
+    throw new BadDataException(
+      `${label}: it runs only if step ${waitedOn + 1} (${earlierTitle}) fails, but a failed step ${waitedOn + 1} stops the run. Turn on Carry On If It Fails for step ${waitedOn + 1}, or choose again when this step runs.`,
+    );
+  }
+
+  if (!getSecurityPlaybookStepOutcomes(earlier).includes(condition.outcome)) {
+    throw new BadDataException(
+      getSecurityPlaybookFinds(earlier.action)
+        ? `${label}: step ${waitedOn + 1} (${earlierTitle}) looks something up, so it finds something or finds nothing. Choose one of those.`
+        : `${label}: step ${waitedOn + 1} (${earlierTitle}) does not look anything up, so it can only succeed or fail. Choose one of those.`,
+    );
+  }
 }

@@ -12,7 +12,7 @@ import {
   parseSecurityPlaybookSteps,
 } from "Common/Types/SecurityPlaybook/SecurityPlaybookStep";
 import {
-  SecurityPlaybookStepCondition,
+  SecurityPlaybookStepRunIf,
   evaluateSecurityPlaybookStepCondition,
 } from "Common/Types/SecurityPlaybook/SecurityPlaybookStepCondition";
 import {
@@ -48,8 +48,8 @@ export interface RunStepRow {
   icon: IconProp;
   result: SecurityPlaybookStepResult | undefined;
   requiresApproval: boolean;
-  // The earlier step's result it ran only after (Run This Step), if any.
-  runIf?: SecurityPlaybookStepCondition | undefined;
+  // The earlier steps' results it ran only after (Run This Step), if any.
+  runIf?: SecurityPlaybookStepRunIf | undefined;
 }
 
 const STEP_STATUSES: Array<string> = Object.values(SecurityPlaybookStepStatus);
@@ -159,6 +159,11 @@ export function getSkippedRunIf(data: {
     return undefined;
   }
 
+  // Skipped because a Stop step ended the run first, not for its condition.
+  if (getRunStoppedBefore(data)) {
+    return undefined;
+  }
+
   const steps: Array<NumberedStep> = data.rows.map(
     (candidate: RunStepRow): NumberedStep => {
       return { id: candidate.stepId, action: candidate.action };
@@ -205,6 +210,33 @@ export function getSkippedRunIf(data: {
   );
 }
 
+// A Stop step that ran: the run ended there, as done.
+function isRunEndingStop(row: RunStepRow): boolean {
+  return (
+    row.action === SecurityPlaybookActionType.StopRun &&
+    row.result?.status === SecurityPlaybookStepStatus.Succeeded
+  );
+}
+
+/*
+ * The Stop step that ended the run before a step the run skipped for it:
+ * its row, so the card says where, in the reader's language - where the
+ * run's own message is the server's English. Undefined for a step that
+ * ran, and for one skipped for a reason of its own.
+ */
+export function getRunStoppedBefore(data: {
+  rows: ReadonlyArray<RunStepRow>;
+  row: RunStepRow;
+}): RunStepRow | undefined {
+  if (data.row.result?.status !== SecurityPlaybookStepStatus.Skipped) {
+    return undefined;
+  }
+
+  return data.rows.find((candidate: RunStepRow): boolean => {
+    return candidate.index < data.row.index && isRunEndingStop(candidate);
+  });
+}
+
 /*
  * The targets the step a run waits on asks the approver about, the way the
  * approval shows them: the ones to tick or untick, and the protected ones
@@ -238,8 +270,8 @@ export function getApprovalTargets(run: {
 
 /*
  * A run in one line, for a list of runs that shows each run's steps only on
- * request: how far it got, and the step it stopped at when one failed or was
- * turned down.
+ * request: how far it got, the step it stopped at when one failed or was
+ * turned down, and the Stop step that ended it, as done, when one did.
  */
 export interface RunStepsSummary {
   total: number;
@@ -247,6 +279,8 @@ export interface RunStepsSummary {
   done: number;
   // The first step that failed or was rejected, which ended the run.
   stoppedAt: RunStepRow | undefined;
+  // The Stop step that ended the run, as done.
+  endedAt: RunStepRow | undefined;
 }
 
 const DONE_STEP_STATUSES: ReadonlyArray<string> = [
@@ -270,6 +304,7 @@ export function summarizeRunSteps(
     stoppedAt: rows.find((row: RunStepRow): boolean => {
       return STOPPING_STEP_STATUSES.includes(row.result?.status || "");
     }),
+    endedAt: rows.find(isRunEndingStop),
   };
 }
 

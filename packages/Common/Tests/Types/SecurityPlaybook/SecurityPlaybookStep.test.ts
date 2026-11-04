@@ -24,15 +24,20 @@ import {
   DefenderIsolationType,
   SECURITY_PLAYBOOK_MAX_STEPS,
   SECURITY_PLAYBOOK_MAX_TASKS_PER_STEP,
+  SECURITY_PLAYBOOK_STOP_REASON_MAX_LENGTH,
   SECURITY_PLAYBOOK_TASK_MAX_LENGTH,
   SecurityPlaybookStep,
   assertSecurityPlaybookStepConditions,
   doesStepNeedApproval,
+  doesStepWaitOn,
   getStepsWaitingOn,
   parseSecurityPlaybookSteps,
   readTaskLines,
 } from "../../../Types/SecurityPlaybook/SecurityPlaybookStep";
-import { SecurityPlaybookStepOutcome } from "../../../Types/SecurityPlaybook/SecurityPlaybookStepCondition";
+import {
+  SecurityPlaybookConditionMatch,
+  SecurityPlaybookStepOutcome,
+} from "../../../Types/SecurityPlaybook/SecurityPlaybookStepCondition";
 import {
   DATA_EXPOSURE_TEMPLATE_KEY,
   SECURITY_PLAYBOOK_TEMPLATE_DEFINITIONS,
@@ -989,6 +994,305 @@ describe("a step that waits on an earlier step's result", () => {
     expect(() => {
       assertSecurityPlaybookStepConditions(parsed);
     }).not.toThrow();
+  });
+});
+
+/*
+ * SEVERAL RESULTS ON SAVE: a step may wait on two or more earlier results,
+ * all of them or any one, each held to the branching rule.
+ */
+describe("a step that waits on several earlier results", () => {
+  function steps(
+    ...list: Array<Record<string, unknown>>
+  ): Array<SecurityPlaybookStep> {
+    return parseSecurityPlaybookSteps(list);
+  }
+
+  const CHECK: Record<string, unknown> = step(
+    SecurityPlaybookActionType.CheckThreatIntel,
+    {},
+    { id: "check" },
+  );
+  const ACTIVITY: Record<string, unknown> = step(
+    SecurityPlaybookActionType.LookUpEntityActivity,
+    {},
+    { id: "activity" },
+  );
+
+  function paging(runIf: unknown): Record<string, unknown> {
+    return step(
+      SecurityPlaybookActionType.AddCaseNote,
+      { note: "Escalating" },
+      { id: "page", runIf },
+    );
+  }
+
+  test("keeps every result and how they are read, and passes the branching rule", () => {
+    const parsed: Array<SecurityPlaybookStep> = steps(
+      CHECK,
+      ACTIVITY,
+      paging({
+        match: "Any",
+        conditions: [
+          { stepId: "check", outcome: "Found" },
+          { stepId: "activity", outcome: "Found" },
+        ],
+      }),
+    );
+
+    expect(parsed[2]!.runIf).toEqual({
+      match: SecurityPlaybookConditionMatch.Any,
+      conditions: [
+        { stepId: "check", outcome: SecurityPlaybookStepOutcome.Found },
+        { stepId: "activity", outcome: SecurityPlaybookStepOutcome.Found },
+      ],
+    });
+    expect(() => {
+      assertSecurityPlaybookStepConditions(parsed);
+    }).not.toThrow();
+
+    // As the JSON text a step list is posted as, too.
+    expect(
+      parseSecurityPlaybookSteps(
+        JSON.stringify([CHECK, ACTIVITY, parsed[2]]),
+      )[2]!.runIf,
+    ).toEqual(parsed[2]!.runIf);
+  });
+
+  test("each result is held to the rule, the refusal naming the step and the result's step", () => {
+    expect(() => {
+      assertSecurityPlaybookStepConditions(
+        steps(
+          CHECK,
+          paging({
+            match: "All",
+            conditions: [
+              { stepId: "check", outcome: "Found" },
+              { stepId: "later", outcome: "Succeeded" },
+            ],
+          }),
+          step(
+            SecurityPlaybookActionType.AddCaseNote,
+            { note: "n" },
+            { id: "later" },
+          ),
+        ),
+      );
+    }).toThrow(
+      "Step 2 (Add a note): it runs after step 3, which comes after it. Move it below step 3, or choose again when it runs.",
+    );
+
+    expect(() => {
+      assertSecurityPlaybookStepConditions(
+        steps(
+          CHECK,
+          ACTIVITY,
+          paging({
+            match: "Any",
+            conditions: [
+              { stepId: "check", outcome: "Found" },
+              { stepId: "activity", outcome: "Succeeded" },
+            ],
+          }),
+        ),
+      );
+    }).toThrow(
+      "Step 3 (Add a note): step 2 (Look up entity activity) looks something up, so it finds something or finds nothing. Choose one of those.",
+    );
+  });
+
+  test("all of two results of one step never happen together, and are refused; any one of them is an always-after", () => {
+    const both: Array<Record<string, unknown>> = [
+      { stepId: "check", outcome: "Found" },
+      { stepId: "check", outcome: "Found Nothing" },
+    ];
+
+    expect(() => {
+      assertSecurityPlaybookStepConditions(
+        steps(CHECK, paging({ match: "All", conditions: both })),
+      );
+    }).toThrow(
+      "Step 2 (Add a note): it waits on two results of step 1, which one run never has together. Choose one of them, or run it when any of its results happened.",
+    );
+
+    expect(() => {
+      assertSecurityPlaybookStepConditions(
+        steps(CHECK, paging({ match: "Any", conditions: both })),
+      );
+    }).not.toThrow();
+  });
+
+  test("the steps waiting on a step include the ones that wait on it among others", () => {
+    const parsed: Array<SecurityPlaybookStep> = steps(
+      CHECK,
+      ACTIVITY,
+      paging({
+        match: "All",
+        conditions: [
+          { stepId: "check", outcome: "Found" },
+          { stepId: "activity", outcome: "Found Nothing" },
+        ],
+      }),
+    );
+
+    expect(doesStepWaitOn(parsed[2]!, "check")).toBe(true);
+    expect(doesStepWaitOn(parsed[2]!, "activity")).toBe(true);
+    expect(doesStepWaitOn(parsed[2]!, "page")).toBe(false);
+    expect(doesStepWaitOn(parsed[0]!, "check")).toBe(false);
+    expect(
+      getStepsWaitingOn(parsed, "activity").map(
+        (waiting: { index: number }): number => {
+          return waiting.index;
+        },
+      ),
+    ).toEqual([2]);
+  });
+});
+
+/*
+ * STOP THE RUN: a step that ends the run there, as done - with a condition,
+ * only after an earlier result.
+ */
+describe("Stop the run", () => {
+  test("keeps a reason, trimmed, and nothing else; none is a Stop step that says nothing", () => {
+    expect(
+      parseOne(SecurityPlaybookActionType.StopRun, {
+        reason: "  Nothing known-bad: nothing to contain.  ",
+        note: "dropped",
+      }).config,
+    ).toEqual({ reason: "Nothing known-bad: nothing to contain." });
+
+    for (const config of [{}, { reason: "" }, { reason: "   " }]) {
+      expect(
+        parseOne(SecurityPlaybookActionType.StopRun, config).config,
+      ).toEqual({});
+    }
+  });
+
+  test(`says why in at most ${SECURITY_PLAYBOOK_STOP_REASON_MAX_LENGTH} characters`, () => {
+    expect(
+      parseOne(SecurityPlaybookActionType.StopRun, {
+        reason: "r".repeat(SECURITY_PLAYBOOK_STOP_REASON_MAX_LENGTH),
+      }).config,
+    ).toEqual({ reason: "r".repeat(SECURITY_PLAYBOOK_STOP_REASON_MAX_LENGTH) });
+
+    expectRejected(
+      SecurityPlaybookActionType.StopRun,
+      { reason: "r".repeat(SECURITY_PLAYBOOK_STOP_REASON_MAX_LENGTH + 1) },
+      /^Step 1 \(Stop the run\): say why it stops in at most 500 characters\.$/,
+    );
+  });
+
+  test("never waits for approval, and never carries on: it does nothing to approve, and cannot fail", () => {
+    const parsed: SecurityPlaybookStep = parseSecurityPlaybookSteps([
+      step(
+        SecurityPlaybookActionType.StopRun,
+        {},
+        { requiresApproval: true, continueOnFailure: true },
+      ),
+    ])[0]!;
+
+    expect(parsed.requiresApproval).toBe(false);
+    expect(parsed.continueOnFailure).toBe(false);
+    expect(doesStepNeedApproval(parsed)).toBe(false);
+  });
+
+  test("is the run's own flow control: inside OneUptime, never disruptive, acting on nothing", () => {
+    const definition: SecurityPlaybookActionDefinition | undefined =
+      getSecurityPlaybookAction(SecurityPlaybookActionType.StopRun);
+
+    expect(definition?.category).toBe(
+      SecurityPlaybookActionCategory.FlowControl,
+    );
+    expect(definition?.title).toBe("Stop the run");
+    expect(definition?.isDisruptive).toBe(false);
+    expect(definition?.connectionProvider).toBeUndefined();
+    expect(definition?.entityType).toBeUndefined();
+    expect(actsOnSecurityEntities(definition)).toBe(false);
+    expect(doesActionNeedApprovalByDefault(definition)).toBe(false);
+    expect(
+      getSecurityPlaybookUndoAction(SecurityPlaybookActionType.StopRun),
+    ).toBeUndefined();
+    // The picker's last group.
+    expect(
+      SECURITY_PLAYBOOK_ACTION_CATEGORIES[
+        SECURITY_PLAYBOOK_ACTION_CATEGORIES.length - 1
+      ],
+    ).toBe(SecurityPlaybookActionCategory.FlowControl);
+  });
+
+  const CHECK: Record<string, unknown> = step(
+    SecurityPlaybookActionType.CheckThreatIntel,
+    {},
+    { id: "check" },
+  );
+  const NOTE: Record<string, unknown> = step(
+    SecurityPlaybookActionType.AddCaseNote,
+    { note: "n" },
+    { id: "note" },
+  );
+
+  function stop(extra: Record<string, unknown> = {}): Record<string, unknown> {
+    return step(
+      SecurityPlaybookActionType.StopRun,
+      {},
+      { id: "stop", ...extra },
+    );
+  }
+
+  test("a Stop step that waits on a result may sit anywhere: the steps after it run when it does not", () => {
+    expect(() => {
+      assertSecurityPlaybookStepConditions(
+        parseSecurityPlaybookSteps([
+          CHECK,
+          stop({ runIf: { stepId: "check", outcome: "Found Nothing" } }),
+          NOTE,
+        ]),
+      );
+    }).not.toThrow();
+
+    // ...as may one saved with the legacy threat intel switch.
+    expect(() => {
+      assertSecurityPlaybookStepConditions(
+        parseSecurityPlaybookSteps([
+          CHECK,
+          stop({ onlyIfThreatIntelMatched: true }),
+          NOTE,
+        ]),
+      );
+    }).not.toThrow();
+  });
+
+  test("a Stop step that always runs is the last: the steps after it would never run", () => {
+    expect(() => {
+      assertSecurityPlaybookStepConditions(
+        parseSecurityPlaybookSteps([CHECK, NOTE, stop()]),
+      );
+    }).not.toThrow();
+
+    expect(() => {
+      assertSecurityPlaybookStepConditions(
+        parseSecurityPlaybookSteps([CHECK, stop(), NOTE]),
+      );
+    }).toThrow(
+      "Step 2 (Stop the run): it always stops the run, so the steps after it would never run. Make it run only after an earlier step's result, or move it to the end.",
+    );
+  });
+
+  test("no step waits on a Stop step: when it runs, nothing after it does", () => {
+    for (const outcome of ["Succeeded", "Failed", "Found"]) {
+      expect(() => {
+        assertSecurityPlaybookStepConditions(
+          parseSecurityPlaybookSteps([
+            CHECK,
+            stop({ runIf: { stepId: "check", outcome: "Found Nothing" } }),
+            { ...NOTE, runIf: { stepId: "stop", outcome } },
+          ]),
+        );
+      }).toThrow(
+        "Step 3 (Add a note): step 2 (Stop the run) ends the run when it runs, so no step after it can wait on it. Choose another step.",
+      );
+    }
   });
 });
 
