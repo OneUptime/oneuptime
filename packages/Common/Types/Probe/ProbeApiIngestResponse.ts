@@ -37,9 +37,11 @@ export interface MatchedCriteriaResult {
   criteriaId: string;
   rootCause: string;
   /**
-   * The series this criteria matched. Empty is impossible here — a
-   * criteria with no matching series is not recorded as matched for a
-   * grouped monitor.
+   * The series this criteria matched. A criteria with no matching series
+   * is not recorded as matched for a grouped monitor, with one exception:
+   * a recovery criteria that counts a missing series as zero, once every
+   * series is gone (GroupedSeriesGone). It has no series to name, and opens
+   * nothing.
    */
   perSeriesMatches: Array<PerSeriesCriteriaMatch>;
 }

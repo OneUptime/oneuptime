@@ -80,7 +80,7 @@ export default class CriteriaInEffect {
       return false;
     }
 
-    if (CriteriaInEffect.opensRecords(criteria)) {
+    if (MonitorCriteriaInstance.opensRecords(criteria)) {
       if (!this.readOpenRecords) {
         return false;
       }
@@ -110,20 +110,6 @@ export default class CriteriaInEffect {
     }
 
     return false;
-  }
-
-  /*
-   * A criteria opens records when it is switched on to open alerts or
-   * incidents and has at least one to open.
-   */
-  private static opensRecords(
-    criteria: NonNullable<MonitorCriteriaInstance["data"]>,
-  ): boolean {
-    return (
-      (Boolean(criteria.createIncidents) &&
-        (criteria.incidents || []).length > 0) ||
-      (Boolean(criteria.createAlerts) && (criteria.alerts || []).length > 0)
-    );
   }
 
   private static async readOpenRecordsOf(

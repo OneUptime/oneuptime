@@ -22,6 +22,7 @@ import IoTFleetService from "Common/Server/Services/IoTFleetService";
 import IoTFleet from "Common/Models/DatabaseModels/IoTFleet";
 import logger, { LogAttributes } from "Common/Server/Utils/Logger";
 import MonitorResourceUtil from "Common/Server/Utils/Monitor/MonitorResource";
+import GroupedSeriesGone from "Common/Server/Utils/Monitor/GroupedSeriesGone";
 import ReceivingCoverage, {
   TelemetryEvaluationPlan,
 } from "Common/Server/Utils/Telemetry/ReceivingCoverage";
@@ -188,6 +189,7 @@ import {
   readQueryArrivals,
   stepJudgesFreshness,
 } from "./MetricSeriesArrivals";
+import { readResourceStillReporting } from "./ResourceStillReporting";
 
 type TelemetryMonitorResponse =
   | LogMonitorResponse
@@ -434,6 +436,29 @@ export const processTelemetryMonitorEvaluationFromQueue: (
     projectId: monitor.projectId!,
     evaluateUntil: plan.isIngestBehind ? plan.evaluateUntil : undefined,
   });
+
+  /*
+   * A grouped check with no series cannot say by itself whether every series
+   * is gone or nothing arrived at all, and a criteria that counts a missing
+   * series as zero matches only on the first (GroupedSeriesGone). The
+   * resource's heartbeat over the same window tells them apart.
+   */
+  if (
+    GroupedSeriesGone.needsResourceReport({
+      monitorType: monitor.monitorType,
+      monitorStep,
+      dataToProcess: response,
+    })
+  ) {
+    const metricResponse: MetricMonitorResponse =
+      response as MetricMonitorResponse;
+
+    metricResponse.resourceStillReporting = await readResourceStillReporting({
+      monitorStep,
+      projectId: monitor.projectId!,
+      startAndEndDate: metricResponse.startAndEndDate,
+    });
+  }
 
   await MonitorResourceUtil.monitorResource(response);
 };

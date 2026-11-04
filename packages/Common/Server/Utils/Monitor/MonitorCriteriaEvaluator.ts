@@ -31,6 +31,10 @@ import MetricMonitorCriteria, {
   MetricSeriesEvaluationResult,
 } from "./Criteria/MetricMonitorCriteria";
 import CriteriaInEffect from "./CriteriaInEffect";
+import GroupedSeriesGone, {
+  GROUPED_SERIES_GONE_MET_NOTE,
+  GROUPED_SERIES_GONE_NOT_MET_MESSAGE,
+} from "./GroupedSeriesGone";
 import MetricWindowCoverage from "./Criteria/MetricWindowCoverage";
 import TraceMonitorCriteria from "./Criteria/TraceMonitorCriteria";
 import ExceptionMonitorCriteria from "./Criteria/ExceptionMonitorCriteria";
@@ -581,17 +585,36 @@ export default class MonitorCriteriaEvaluator {
        * one unattributed whole-monitor alert that then blocked every
        * real per-host alert. Skip the criteria instead and let the next
        * one decide.
+       *
+       * Unless every series is gone: a recovery criteria that counts a
+       * missing series as zero then holds, opens nothing and has no series
+       * to name (GroupedSeriesGone). Matching is what closes the records of
+       * the series that went, and puts the monitor back on its status.
        */
-      if (
+      const namesNoSeries: boolean =
         fanOutAcrossCriteria &&
         perSeriesMatches.length === 0 &&
-        !judgesWholeMonitor
-      ) {
+        !judgesWholeMonitor;
+
+      const isMetWithNoSeries: boolean =
+        namesNoSeries &&
+        GroupedSeriesGone.isCriteriaMet({
+          monitorType: input.monitor.monitorType,
+          criteriaInstance: criteriaInstance,
+          dataToProcess: input.dataToProcess,
+        });
+
+      if (namesNoSeries && !isMetWithNoSeries) {
         criteriaResult.met = false;
-        criteriaResult.message =
-          "Criteria was not met: no single series satisfied it. " +
-          "This monitor raises one alert per series, so a criteria that " +
-          "only holds across different series combined does not fire.";
+        criteriaResult.message = GroupedSeriesGone.isWaitingForResource({
+          monitorType: input.monitor.monitorType,
+          criteriaInstance: criteriaInstance,
+          dataToProcess: input.dataToProcess,
+        })
+          ? GROUPED_SERIES_GONE_NOT_MET_MESSAGE
+          : "Criteria was not met: no single series satisfied it. " +
+            "This monitor raises one alert per series, so a criteria that " +
+            "only holds across different series combined does not fire.";
 
         input.evaluationSummary.events.push({
           type: "criteria-not-met",
@@ -658,6 +681,15 @@ ${contextBlock}
       if (incomingRequestGrouping?.rootCauseNote) {
         renderedRootCause = mdText`${renderedRootCause}
 ${incomingRequestGrouping.rootCauseNote}
+`;
+      }
+
+      // Why a grouped criteria matched with no series to name.
+      if (isMetWithNoSeries) {
+        criteriaResult.message = `${criteriaResult.message} ${GROUPED_SERIES_GONE_MET_NOTE}`;
+
+        renderedRootCause = mdText`${renderedRootCause}
+**Series**: ${GROUPED_SERIES_GONE_MET_NOTE}
 `;
       }
 

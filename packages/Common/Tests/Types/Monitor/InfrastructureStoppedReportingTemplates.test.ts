@@ -70,6 +70,7 @@ import {
   getVMwareDefaultAlertTemplateId,
 } from "../../../Types/Monitor/VMwareAlertTemplates";
 import { getVMwareMetricByMetricName } from "../../../Types/Monitor/VMwareMetricCatalog";
+import ResourceHeartbeatUtil from "../../../Utils/Monitor/ResourceHeartbeat";
 
 /*
  * "<Resource> Stopped Reporting", one per infrastructure type, and the
@@ -484,6 +485,21 @@ describe("Infrastructure Stopped Reporting templates", () => {
         breached: false,
         healthy: false,
       });
+    },
+  );
+
+  /*
+   * A grouped check with no series asks the same series whether the resource
+   * still reports (GroupedSeriesGone), so the two cannot mean different things
+   * by "the resource stopped reporting".
+   */
+  test.each(TYPE_CASES)(
+    "%s: the heartbeat a grouped check reads is the one this template counts",
+    (_type: string, testCase: StoppedReportingCase) => {
+      expect(
+        ResourceHeartbeatUtil.getForMonitorStep(buildStep(testCase))
+          ?.metricNames,
+      ).toContain(testCase.heartbeatMetric);
     },
   );
 
