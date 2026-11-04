@@ -53,6 +53,20 @@ Webhookene deres sier når hver synkronisering starter og slutter. **Pipelines >
 
 En Fivetran-synkronisering som planlegges på nytt fordi et API har nådd frekvensgrensen sin, ender som **Omplanlagt**: ikke en feil, så den tilkaller ingen.
 
+## Dashbord i BI-verktøy
+
+Den virkelige følgen av dårlige data er dashbordet noen åpner. Under **BI-dashbord** legger du til BI-verktøyene dine med legitimasjon som kan lese dashbordene deres. Hver time leser Dataobserverbarhet hvert dashbord og tabellene bak det, matcher hver tabell med en overvåket tabell og viser dashbordene som er bygget på en tabell, og på tabellene som bygges av den, på fanen **Opphav**, på varslene og i Production Review.
+
+| Verktøy | Legitimasjon |
+| --- | --- |
+| **Metabase** | `{ "apiKey": "mb_..." }` |
+| **Superset** | `{ "username": "...", "password": "..." }` |
+| **Tableau** | `{ "tokenName": "...", "tokenSecret": "...", "site": "acme" }` |
+| **Looker** | `{ "clientId": "...", "clientSecret": "..." }` |
+| **Power BI** | `{ "tenantId": "...", "clientId": "...", "clientSecret": "..." }`, en tjenestekontohaver (service principal) som kan bruke Power BIs administrator-API-er |
+
+Bare dashbordenes navn og lenker, og tabellene de spør mot, leses: aldri dataene deres.
+
 ## Pipelines
 
 Hver jobb, hvert dbt-prosjekt og hver synkronisering vises under **Pipelines**, med kjøringene sine: når hver startet og sluttet, hvor lang tid den tok, og feilen fra en mislykket kjøring. Etter fem kjøringer har hver pipeline lært av sine egne kjøringer hvor lang tid en kjøring vanligvis tar, og hvor lenge det går mellom kjøringene etter tidsplanen. Siden for en pipeline anbefaler tre monitorer:

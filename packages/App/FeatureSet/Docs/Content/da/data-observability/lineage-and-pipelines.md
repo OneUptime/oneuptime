@@ -53,6 +53,20 @@ Deres webhooks fortæller, hvornår hver synkronisering starter og slutter. **Pi
 
 En Fivetran-synkronisering, der omplanlægges ved et API's hastighedsgrænse, ender som **Omplanlagt**: ikke en fejl, så den tilkalder ingen.
 
+## Dashboards i BI-værktøjer
+
+Den reelle følge af dårlige data er det dashboard, nogen åbner. Under **BI-dashboards** tilføjer du dine BI-værktøjer med legitimationsoplysninger, der må læse deres dashboards. Hver time læser Dataobservabilitet hvert dashboard og tabellerne bag det, matcher hver tabel med en overvåget tabel og viser de dashboards, der er bygget på en tabel og på de tabeller, der bygges af den, på dens fane **Afstamning**, på dens alarmer og i Production Review.
+
+| Værktøj | Legitimationsoplysninger |
+| --- | --- |
+| **Metabase** | `{ "apiKey": "mb_..." }` |
+| **Superset** | `{ "username": "...", "password": "..." }` |
+| **Tableau** | `{ "tokenName": "...", "tokenSecret": "...", "site": "acme" }` |
+| **Looker** | `{ "clientId": "...", "clientSecret": "..." }` |
+| **Power BI** | `{ "tenantId": "...", "clientId": "...", "clientSecret": "..." }`, en service principal, der må bruge Power BI's administrator-API'er |
+
+Kun dashboards' navne og links og de tabeller, de forespørger, læses: aldrig deres data.
+
 ## Pipelines
 
 Hvert job, dbt-projekt og hver synkronisering vises under **Pipelines**, med sine kørsler: hvornår hver startede og sluttede, hvor lang tid den tog, og fejlen for en mislykket kørsel. Efter fem kørsler lærer hver pipeline af sine egne kørsler, hvor lang tid en kørsel plejer at tage, og hvor lang tid der går mellem kørslerne efter dens tidsplan. En pipelines side anbefaler tre monitorer:

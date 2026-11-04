@@ -257,6 +257,14 @@ export interface ProductionReviewDataProductJSON {
   owner?: string | undefined;
 }
 
+// A BI dashboard built on a table the change touches, or on one built from it.
+export interface ProductionReviewDataDashboardJSON {
+  dataDashboardId: string;
+  name: string;
+  tool: string;
+  url?: string | undefined;
+}
+
 // One watched table a migration or a dbt model changes, and what depends on it.
 export interface ProductionReviewDataImpactJSON {
   dataAssetId: string;
@@ -274,6 +282,8 @@ export interface ProductionReviewDataImpactJSON {
   downstreamTables: Array<ProductionReviewDataTableJSON>;
   downstreamCount: number;
   dataProducts: Array<ProductionReviewDataProductJSON>;
+  // Unset on a review made before BI tools were read.
+  dashboards?: Array<ProductionReviewDataDashboardJSON> | undefined;
 }
 
 export interface ProductionReviewPointJSON {

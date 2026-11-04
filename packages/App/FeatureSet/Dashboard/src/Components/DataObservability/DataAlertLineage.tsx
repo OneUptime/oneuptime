@@ -1,4 +1,5 @@
 import AppLink from "../AppLink/AppLink";
+import TableDashboards from "./TableDashboards";
 import PageMap from "../../Utils/PageMap";
 import RouteMap, { RouteUtil } from "../../Utils/RouteMap";
 import ChangeEvent from "Common/Models/AnalyticsModels/ChangeEvent";
@@ -409,6 +410,11 @@ const DataAlertLineage: FunctionComponent<ComponentProps> = (
             )}
           </dl>
         </Card>
+      ) : (
+        <Fragment />
+      )}
+      {own?.dataAssetId ? (
+        <TableDashboards dataAssetId={own.dataAssetId} hideWhenEmpty={true} />
       ) : (
         <Fragment />
       )}

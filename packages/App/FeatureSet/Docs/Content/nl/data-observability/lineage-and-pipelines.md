@@ -53,6 +53,20 @@ Hun webhooks zeggen wanneer elke synchronisatie begint en eindigt. **Pipelines >
 
 Een Fivetran-synchronisatie die bij de rate limit van een API opnieuw wordt gepland, eindigt als **Opnieuw gepland**: geen fout, dus ze roept niemand op.
 
+## Dashboards in BI-tools
+
+De echte impact van slechte gegevens is het dashboard dat iemand opent. Voeg onder **BI-dashboards** je BI-tools toe met inloggegevens die hun dashboards mogen lezen. Elk uur leest Data-observability elk dashboard en de tabellen erachter, koppelt elke tabel aan een bewaakte tabel en toont de dashboards die op een tabel, en op de tabellen die eruit worden gebouwd, zijn gebouwd op het tabblad **Herkomst**, bij de waarschuwingen en in Production Review.
+
+| Tool | Inloggegevens |
+| --- | --- |
+| **Metabase** | `{ "apiKey": "mb_..." }` |
+| **Superset** | `{ "username": "...", "password": "..." }` |
+| **Tableau** | `{ "tokenName": "...", "tokenSecret": "...", "site": "acme" }` |
+| **Looker** | `{ "clientId": "...", "clientSecret": "..." }` |
+| **Power BI** | `{ "tenantId": "...", "clientId": "...", "clientSecret": "..." }`, een service principal die de beheer-API's van Power BI mag gebruiken |
+
+Alleen de namen en links van dashboards en de tabellen die ze opvragen worden gelezen: nooit hun gegevens.
+
 ## Pipelines
 
 Elke job, elk dbt-project en elke synchronisatie verschijnt onder **Pipelines**, met de uitvoeringen: wanneer elke uitvoering begon en eindigde, hoe lang ze duurde, en de fout van een mislukte uitvoering. Na vijf uitvoeringen leert elke pipeline uit zijn eigen uitvoeringen hoe lang een uitvoering gewoonlijk duurt en hoeveel tijd er volgens zijn planning tussen twee uitvoeringen zit. De pagina van een pipeline beveelt drie monitoren aan:

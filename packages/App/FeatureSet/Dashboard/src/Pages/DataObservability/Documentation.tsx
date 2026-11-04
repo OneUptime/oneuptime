@@ -261,6 +261,20 @@ A pipeline is named as the tool names the connector or connection, under \`fivet
 
 A Fivetran connector loads the schema of its destination that is named after it. When exactly one watched database has that schema, its tables record the connector as their writer: a table that goes stale points at the sync that should have loaded it, and a failed sync's alert is the cause of the tables' alerts (see One issue per cause). Airbyte names no tables.
 
+## Dashboards in BI tools
+
+The real impact of bad data is the dashboard someone opens. Under **BI Dashboards**, add your BI tools with credentials that may read their dashboards:
+
+| Tool | Credentials (JSON) |
+| --- | --- |
+| **Metabase** | \`{ "apiKey": "mb_..." }\` (or a user's \`username\` and \`password\`) |
+| **Superset** | \`{ "username": "...", "password": "..." }\` |
+| **Tableau** | \`{ "tokenName": "...", "tokenSecret": "...", "site": "acme" }\`, a personal access token |
+| **Looker** | \`{ "clientId": "...", "clientSecret": "..." }\`, an API client |
+| **Power BI** | \`{ "tenantId": "...", "clientId": "...", "clientSecret": "..." }\`, a service principal allowed to use Power BI's admin APIs |
+
+Every hour, and when a tool is added or you choose **Read Now**, OneUptime reads each dashboard and the tables behind it: a card's table and a native question's SQL (Metabase), a dataset's table or a virtual dataset's SQL (Superset), the Metadata API's upstream tables (Tableau), each tile's explore (Looker), and each report's dataset (Power BI, from a workspace scan). Each table is matched to a watched one by its database, schema and name; a name that still fits two watched tables is left unmatched. A table's **Lineage** tab, its alerts' **Data** card and Production Review list the dashboards built on it, and on the tables built from it. Only names and links are read, never a dashboard's data.
+
 ## Lineage the databases say
 
 Lineage does not need a pipeline that sends OpenLineage. Each database says some of it itself, and OneUptime reads it with the database's collection:

@@ -53,6 +53,20 @@ Ihre Webhooks melden, wann jeder Sync beginnt und endet. **Pipelines > Fivetran 
 
 Ein Fivetran-Sync, der wegen des Rate Limits einer API neu angesetzt wird, endet als **Neu geplant**: kein Fehlschlag, also alarmiert er niemanden.
 
+## Dashboards in BI-Tools
+
+Die eigentliche Folge schlechter Daten ist das Dashboard, das jemand öffnet. Fügen Sie unter **BI-Dashboards** Ihre BI-Tools mit Zugangsdaten hinzu, die deren Dashboards lesen dürfen. Jede Stunde liest Data Observability jedes Dashboard und die Tabellen dahinter, ordnet jede Tabelle einer überwachten zu und zeigt die Dashboards, die auf einer Tabelle und auf den daraus erstellten Tabellen aufbauen, auf ihrem Tab **Datenherkunft**, an ihren Alarmen und im Production Review.
+
+| Tool | Zugangsdaten |
+| --- | --- |
+| **Metabase** | `{ "apiKey": "mb_..." }` |
+| **Superset** | `{ "username": "...", "password": "..." }` |
+| **Tableau** | `{ "tokenName": "...", "tokenSecret": "...", "site": "acme" }` |
+| **Looker** | `{ "clientId": "...", "clientSecret": "..." }` |
+| **Power BI** | `{ "tenantId": "...", "clientId": "...", "clientSecret": "..." }`, ein Service Principal, der die Admin-APIs von Power BI verwenden darf |
+
+Gelesen werden nur die Namen und Links der Dashboards und die Tabellen, die sie abfragen: nie ihre Daten.
+
 ## Pipelines
 
 Jeder Job, jedes dbt-Projekt und jeder Sync erscheint unter **Pipelines**, mit seinen Läufen: wann jeder begann und endete, wie lange er dauerte und der Fehler eines fehlgeschlagenen Laufs. Jede Pipeline lernt nach fünf Läufen aus ihren eigenen Läufen, wie lange ein Lauf üblicherweise dauert und wie viel Zeit nach ihrem Zeitplan zwischen zwei Läufen vergeht. Die Seite einer Pipeline empfiehlt drei Monitore:
