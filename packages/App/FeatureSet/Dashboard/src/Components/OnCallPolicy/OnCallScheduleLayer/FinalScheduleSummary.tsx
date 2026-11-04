@@ -3,6 +3,7 @@ import { getUserAvatarStyle, getUserInitials } from "./LayerUserColors";
 import HandOffTimes from "./HandOffTimes";
 import {
   formatDurationFromSeconds,
+  formatHeadlineHandOffInstant,
   formatRelativeStart,
   formatShiftDuration,
   formatShiftInstant,
@@ -52,6 +53,15 @@ const MAX_SHOWN_GAPS: number = 3;
  */
 export const SECTION_LABEL_CLASS_NAME: string =
   ON_CALL_SECTION_LABEL_CLASS_NAME;
+
+/*
+ * How far off the headline cards' hand-off is - "(1h left)", "(in 1
+ * hour)" - kept whole: a phone broke it as "(in 1" / "hour)". It goes to
+ * the next line as one piece, after a plain space, with no margin to
+ * indent that line.
+ */
+export const HEADLINE_RELATIVE_TIME_CLASS_NAME: string =
+  "whitespace-nowrap text-gray-400";
 
 export const UPCOMING_HAND_OFFS_LIST_CLASS_NAME: string =
   "divide-y divide-gray-100 rounded-lg border border-gray-200 bg-white";
@@ -340,9 +350,16 @@ const FinalScheduleSummary: FunctionComponent<ComponentProps> = (
             </div>
             <div className="text-xs text-gray-500">
               {translator.translateTemplate("Until {{time}}", {
-                time: formatShiftInstant(current.end, props.timezone),
-              })}
-              <span className="ml-1 text-gray-400">
+                time: formatHeadlineHandOffInstant(
+                  current.end,
+                  props.timezone,
+                  props.now,
+                ),
+              })}{" "}
+              <span
+                className={HEADLINE_RELATIVE_TIME_CLASS_NAME}
+                data-testid="on-call-now-time-left"
+              >
                 {translator.translateTemplate("({{duration}} left)", {
                   duration: formatShiftDuration(props.now, current.end),
                 })}
@@ -384,9 +401,16 @@ const FinalScheduleSummary: FunctionComponent<ComponentProps> = (
             </div>
             <div className="text-xs text-gray-500">
               {translator.translateTemplate("Starts {{time}}", {
-                time: formatShiftInstant(next.start, props.timezone),
-              })}
-              <span className="ml-1 text-gray-400">
+                time: formatHeadlineHandOffInstant(
+                  next.start,
+                  props.timezone,
+                  props.now,
+                ),
+              })}{" "}
+              <span
+                className={HEADLINE_RELATIVE_TIME_CLASS_NAME}
+                data-testid="up-next-starts-in"
+              >
                 ({formatRelativeStart(next.start, props.now)})
               </span>
             </div>

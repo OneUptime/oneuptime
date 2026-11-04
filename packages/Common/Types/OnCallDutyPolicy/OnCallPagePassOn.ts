@@ -733,6 +733,20 @@ export const ON_CALL_PAGE_LEVEL_NOT_AVAILABLE_SENTENCE: string =
   "The policy's levels have changed, so nothing was escalated. Escalate again to pick a level.";
 
 /*
+ * What the Escalate page a message's link opens says as it asks again,
+ * because the level picked was not there to page. The levels as they are
+ * now are right under it, the next one picked - so it says to pick one,
+ * never to press Escalate to get to them: pressing it as it stands pages
+ * the next level.
+ */
+export const ON_CALL_PAGE_LEVELS_CHANGED_PICK_AGAIN_NOTICE: string =
+  "The policy's levels have changed, so nothing was escalated. Pick a level and escalate again.";
+
+// The same, when one level is left after the person's: nothing to pick.
+export const ON_CALL_PAGE_LEVELS_CHANGED_NOTICE: string =
+  "The policy's levels have changed, so nothing was escalated.";
+
+/*
  * The levels a preview offers to page (levelChoices), each once and in
  * order; none when it offers none. A level whose place or id cannot be
  * read is left out.

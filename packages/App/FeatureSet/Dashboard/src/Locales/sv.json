@@ -42139,5 +42139,6 @@
   "Not escalated": "Inte eskalerat",
   "The page was escalated past this level": "Den här nivån hoppades över vid eskaleringen",
   "The policy's levels have changed, so nothing was escalated. Escalate again to pick a level.": "Policyns nivåer har ändrats, så inget eskalerades. Eskalera igen för att välja en nivå.",
-  "{{policy}}: escalate to": "{{policy}}: eskalera till"
+  "{{policy}}: escalate to": "{{policy}}: eskalera till",
+  "no one next": "ingen nästa"
 }

@@ -693,8 +693,17 @@ describe("picking the level, with two or more after theirs", () => {
   const PICK_SENTENCE: string =
     "This will immediately page the level you pick, without waiting. You will not be paged again for this incident.";
 
-  const NOT_AVAILABLE: string =
-    "The policy's levels have changed, so nothing was escalated. Escalate again to pick a level.";
+  /*
+   * Why the page asks again, above the levels as they are now: pick one
+   * again - never "Escalate again to pick a level", which on this page
+   * would have the person press Escalate with the next level picked.
+   */
+  const PICK_AGAIN: string =
+    "The policy's levels have changed, so nothing was escalated. Pick a level and escalate again.";
+
+  // With one level left after theirs there is nothing to pick.
+  const LEVELS_CHANGED: string =
+    "The policy's levels have changed, so nothing was escalated.";
 
   function withLevels(): OnCallPassOnResult {
     return {
@@ -838,12 +847,54 @@ describe("picking the level, with two or more after theirs", () => {
     expect(path).toBe(
       "/usr/src/Common/Server/Views/PassOnUserOnCallNotification.ejs",
     );
-    expect(variables["notice"]).toBe(NOT_AVAILABLE);
+    expect(variables["notice"]).toBe(PICK_AGAIN);
     // Read again: the levels as they are now.
     expect(previewSpy).toHaveBeenCalledTimes(1);
     expect(variables["levelChoices"]).toEqual(LEVELS);
     // The same link's token: one more press escalates.
     expect(variables["pageToken"]).toBe(token);
+  });
+
+  test("asked again with one level left after theirs, it says only what happened", async () => {
+    passOnSpy.mockResolvedValue({
+      passedOn: false,
+      refusal: OnCallPassOnRefusal.LevelNotAvailable,
+    } as OnCallPassOnAnswer);
+    previewSpy.mockResolvedValue({
+      passedOn: false,
+      result: {
+        ...withLevels(),
+        ruleCount: 2,
+        levelChoices: [
+          { escalationRuleId: LEVEL_2_ID, order: 2, name: "Platform leads" },
+        ],
+      },
+    });
+
+    await call({
+      method: "POST",
+      uri: `${BASE}/pass-on/:itemId`,
+      body: { pageToken: VALID_TOKEN(), escalationRuleId: LEVEL_3_ID },
+    });
+
+    const { variables } = rendered();
+
+    expect(variables["notice"]).toBe(LEVELS_CHANGED);
+    expect(variables["levelChoices"]).toBeUndefined();
+    // What one more press does, as the page says it with nothing to pick.
+    expect(variables["message"]).toBe(
+      `This will immediately page Platform leads (${kept("Level 2 of 2")}), without waiting. You will not be paged again for this incident.`,
+    );
+  });
+
+  test("a page opened from the link, not asked again, says no notice", async () => {
+    await call({
+      method: "GET",
+      uri: `${BASE}/pass-on-page/:itemId`,
+      query: { pageToken: VALID_TOKEN() },
+    });
+
+    expect(rendered().variables["notice"]).toBeUndefined();
   });
 
   test("a value that is no level escalates nothing, and asks again", async () => {
@@ -858,7 +909,7 @@ describe("picking the level, with two or more after theirs", () => {
       });
 
       expect(passOnSpy).not.toHaveBeenCalled();
-      expect(rendered().variables["notice"]).toBe(NOT_AVAILABLE);
+      expect(rendered().variables["notice"]).toBe(PICK_AGAIN);
     }
   });
 

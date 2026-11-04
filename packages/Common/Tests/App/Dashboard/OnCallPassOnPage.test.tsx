@@ -732,6 +732,13 @@ describe("the dialog's lines, in the maintainer's order", () => {
   const STOPS: string =
     "Nobody else is left to page: paging stops, and somebody needs to take it.";
 
+  /*
+   * Each page's own line says which page it is about - its run - so a page
+   * that asks which level to page draws its levels right above it. The
+   * line that the person is not paged again is about no one page.
+   */
+  const RUN: string = page({}).executionLogId;
+
   test.each(RECORDS)(
     "asking about a $recordType: what escalating does, then that you are not paged again for it",
     ({ recordType, notPagedAgain }: RecordWords) => {
@@ -741,6 +748,7 @@ describe("the dialog's lines, in the maintainer's order", () => {
         {
           text: "This will immediately page second (Level 2 of 3), without waiting.",
           isWarning: false,
+          executionLogId: RUN,
         },
         { text: notPagedAgain, isWarning: false },
       ]);
@@ -755,7 +763,7 @@ describe("the dialog's lines, in the maintainer's order", () => {
         OnCallPageRecordType.Incident,
       ),
     ).toEqual([
-      { text: STOPS, isWarning: true },
+      { text: STOPS, isWarning: true, executionLogId: RUN },
       {
         text: "You will not be paged again for this incident.",
         isWarning: false,
@@ -777,10 +785,11 @@ describe("the dialog's lines, in the maintainer's order", () => {
         OnCallPageRecordType.Alert,
       ),
     ).toEqual([
-      { text: `Database: ${STOPS}`, isWarning: true },
+      { text: `Database: ${STOPS}`, isWarning: true, executionLogId: RUN },
       {
         text: "Critical: This will immediately page Platform leads (Level 2 of 3), without waiting.",
         isWarning: false,
+        executionLogId: RUN,
       },
       { text: "You will not be paged again for this alert.", isWarning: false },
     ]);

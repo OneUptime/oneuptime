@@ -244,6 +244,26 @@ describe("the Execution Timeline's row for a level skipped by escalating", () =>
     ).not.toBeInTheDocument();
     expect(screen.queryByText("-")).not.toBeInTheDocument();
   });
+
+  /*
+   * The shared Icon draws a div, which a span cannot hold: the chip is a
+   * div, as the column's other chips about nobody are, so the markup is
+   * valid and the icon sits in the chip's line.
+   */
+  test("is a div that holds its icon validly: no div inside a span", () => {
+    drawSentTo(levelLine(ON_CALL_LEVEL_SKIPPED_BY_ESCALATION_TIMELINE_MESSAGE));
+
+    const row: HTMLElement = screen.getByTestId(
+      "on-call-timeline-level-skipped-by-escalation",
+    );
+
+    expect(row.tagName).toBe("DIV");
+    expect(row.querySelector("svg")).not.toBeNull();
+
+    for (const span of Array.from(row.querySelectorAll("span"))) {
+      expect(span.querySelector("div")).toBeNull();
+    }
+  });
 });
 
 describe("the other rows about nobody read as before", () => {

@@ -897,6 +897,11 @@ function perPage<T>(
  * What the dialog says before escalating: the person's own pages about it,
  * each with the level picked for it (`picks`; the next level without one),
  * and what that level skips.
+ *
+ * Beside a second policy's page, a sentence names its policy - "Payments:
+ * This will immediately page ..." - unless the page asks which level to
+ * page: its sentence is drawn right under its own levels, whose label names
+ * the policy already ("Payments: escalate to").
  */
 export function describePassOnPreview(
   pages: Array<OnCallOpenPage>,
@@ -920,7 +925,9 @@ export function describePassOnPreview(
       return skips ? `${sentence} ${skips}` : sentence;
     },
     (page: OnCallOpenPage): string => {
-      return page.preview.policyName;
+      return getPassOnLevelChoices(page).length > 0
+        ? ""
+        : page.preview.policyName;
     },
     translator,
   );
@@ -1014,10 +1021,15 @@ export function isRecordTakenMeanwhile(
  * paged (isOnCallPassOnPagingStopped) - a warning, drawn apart and first.
  * Nobody is on the record then, and the person reading may decide to take
  * it after all.
+ *
+ * Before escalating, a page's own sentence says which page it is about (its
+ * run, executionLogId): a page that asks which level to page draws its
+ * levels right above it, so each pick sits over what it does.
  */
 export interface PassOnDialogLine {
   text: string;
   isWarning: boolean;
+  executionLogId?: string | undefined;
 }
 
 // Warnings first, the rest in their order.
@@ -1071,6 +1083,7 @@ export function getPassOnQuestionLines(
       return {
         text: text,
         isWarning: Boolean(page && isOnCallPassOnPagingStopped(page.preview)),
+        ...(page ? { executionLogId: page.executionLogId } : {}),
       };
     }),
     notPagedAgain(translator, recordType),

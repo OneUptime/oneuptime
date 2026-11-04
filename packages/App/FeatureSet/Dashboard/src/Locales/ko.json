@@ -42139,5 +42139,6 @@
   "Not escalated": "에스컬레이션하지 않았습니다",
   "The page was escalated past this level": "에스컬레이션으로 이 단계를 건너뛰었습니다",
   "The policy's levels have changed, so nothing was escalated. Escalate again to pick a level.": "정책의 레벨이 바뀌어 아무것도 에스컬레이션하지 않았습니다. 다시 에스컬레이션하여 레벨을 선택해 주세요.",
-  "{{policy}}: escalate to": "{{policy}}: 에스컬레이션 대상"
+  "{{policy}}: escalate to": "{{policy}}: 에스컬레이션 대상",
+  "no one next": "다음 사람 없음"
 }

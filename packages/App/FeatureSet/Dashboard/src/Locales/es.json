@@ -42139,5 +42139,6 @@
   "Not escalated": "No escalado",
   "The page was escalated past this level": "Este nivel se omitió al escalar",
   "The policy's levels have changed, so nothing was escalated. Escalate again to pick a level.": "Los niveles de la política cambiaron, así que no se escaló nada. Vuelve a escalar para elegir un nivel.",
-  "{{policy}}: escalate to": "{{policy}}: escalar a"
+  "{{policy}}: escalate to": "{{policy}}: escalar a",
+  "no one next": "sin siguiente"
 }

@@ -351,14 +351,18 @@ const ExecutionLogTimelineTable: FunctionComponent<ComponentProps> = (
                 );
               }
 
-              // A level skipped for a later one, picked by the person escalating.
+              /*
+               * A level skipped for a later one, picked by the person
+               * escalating. A div, as the other chips of this column are:
+               * the Icon draws a div, which a span cannot hold.
+               */
               if (
                 isOnCallLevelSkippedByEscalationMessage(
                   item["statusMessage"] as string | undefined,
                 )
               ) {
                 return (
-                  <span
+                  <div
                     data-testid="on-call-timeline-level-skipped-by-escalation"
                     className="inline-flex max-w-full items-center gap-1.5 rounded-md bg-gray-50 px-2 py-1 text-xs font-medium text-gray-700 ring-1 ring-inset ring-gray-200"
                   >
@@ -371,7 +375,7 @@ const ExecutionLogTimelineTable: FunctionComponent<ComponentProps> = (
                         LEVEL_SKIPPED_BY_ESCALATION_LABEL,
                       )}
                     </span>
-                  </span>
+                  </div>
                 );
               }
 

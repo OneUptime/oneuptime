@@ -691,11 +691,6 @@ export class Service extends OnCallDutyPolicyChildService<Model> {
   }
 
   /*
-   * A rule that paged nobody because everybody it names passed the run's
-   * page on: nobody is on it, and nobody may come on call in it, so there
-   * is nothing to wait for - and nothing to say about the level itself.
-   */
-  /*
    * A level a run did not page because the person escalating picked a later
    * one (OnCallPagePassOn's level choice): its line on the run's timeline. It
    * names nobody, and says the page was escalated past the level
@@ -735,6 +730,11 @@ export class Service extends OnCallDutyPolicyChildService<Model> {
     );
   }
 
+  /*
+   * A rule that paged nobody because everybody it names passed the run's
+   * page on: nobody is on it, and nobody may come on call in it, so there
+   * is nothing to wait for - and nothing to say about the level itself.
+   */
   public static isEveryTargetPassedOn(outcome: OnCallPagingOutcome): boolean {
     return (
       outcome.paged.length === 0 &&

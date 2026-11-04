@@ -468,7 +468,7 @@ describe("picking the level", () => {
 
   test("why it asks again is drawn apart, under what escalating does, as the warning is", () => {
     const notice: string =
-      "The policy's levels have changed, so nothing was escalated. Escalate again to pick a level.";
+      "The policy's levels have changed, so nothing was escalated. Pick a level and escalate again.";
     const html: string = render(PASS_ON_VIEW, {
       ...PASS_ON_PAGE,
       levelChoices: LEVELS,
@@ -499,6 +499,91 @@ describe("picking the level", () => {
   test("without a notice, none is drawn", () => {
     expect(render(PASS_ON_VIEW, PASS_ON_PAGE)).not.toContain("pass-on-notice");
   });
+});
+
+/*
+ * What the page is about - Severity, State, Project - read at three in the
+ * morning: each label in its own case, as the Dashboard's on-call labels
+ * read since #5412's review, never letter-spaced capitals that shout over
+ * the values they label. The same partial draws them on the acknowledge
+ * page, the Escalate page and the message after either.
+ */
+describe("the record's details on these pages", () => {
+  const DETAILS: Array<Record<string, unknown>> = [
+    { label: "Severity", value: "Critical", color: "#dc2626" },
+    { label: "State", value: "Created", color: "#ef4444" },
+    { label: "Project", value: "Payments", color: "" },
+  ];
+
+  // Each label's class attribute, as the page draws it.
+  function labelClassesOf(html: string): Array<string> {
+    return html
+      .split("<dt")
+      .slice(1)
+      .map((after: string): string => {
+        const classStart: number = after.indexOf('class="') + 'class="'.length;
+
+        return after.slice(classStart, after.indexOf('"', classStart));
+      });
+  }
+
+  test.each([
+    [
+      "the acknowledge page",
+      ACKNOWLEDGE_VIEW,
+      { ...ACKNOWLEDGE_BASE, details: DETAILS },
+    ],
+    [
+      "the Escalate page",
+      PASS_ON_VIEW,
+      {
+        title: "Escalate Incident INC-42?",
+        message: "This will immediately page Platform leads.",
+        passOnText: "Escalate",
+        passOnFormUrl: FORM_URL,
+        pageTokenParam: "pageToken",
+        pageToken: TOKEN,
+        acknowledgeText: "Acknowledge Incident instead",
+        acknowledgeUrl:
+          "https://oneuptime.example.com/api/user-notification-log-timeline/acknowledge/1",
+        resourceTitle: "Checkout is down",
+        details: DETAILS,
+      },
+    ],
+  ])(
+    "%s labels them in their own case",
+    (_page: string, view: string, variables: Record<string, unknown>) => {
+      const html: string = render(view, variables);
+      const classes: Array<string> = labelClassesOf(html);
+
+      expect(classes).toHaveLength(3);
+
+      for (const className of classes) {
+        const tokens: Array<string> = className.split(" ");
+
+        expect(tokens).not.toContain("uppercase");
+        expect(
+          tokens.filter((token: string): boolean => {
+            return token.startsWith("tracking-");
+          }),
+        ).toEqual([]);
+        // Small and grey beside the value, in both themes.
+        expect(tokens).toEqual(
+          expect.arrayContaining([
+            "text-xs",
+            "text-gray-500",
+            "dark:text-slate-400",
+          ]),
+        );
+      }
+
+      const text: string = htmlAsText(html);
+
+      for (const label of ["Severity", "State", "Project"]) {
+        expect(text).toContain(label);
+      }
+    },
+  );
 });
 
 describe("the templates themselves", () => {

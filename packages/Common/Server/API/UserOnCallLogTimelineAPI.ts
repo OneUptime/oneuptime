@@ -42,6 +42,8 @@ import {
   ON_CALL_PAGE_ALREADY_ESCALATED_TITLE,
   ON_CALL_PAGE_CALL_PASS_ON_DIGIT,
   ON_CALL_PAGE_ESCALATE_TO_LABEL,
+  ON_CALL_PAGE_LEVELS_CHANGED_NOTICE,
+  ON_CALL_PAGE_LEVELS_CHANGED_PICK_AGAIN_NOTICE,
   ON_CALL_PAGE_NOTHING_TO_ESCALATE_TITLE,
   ON_CALL_PAGE_NOT_ESCALATED_TITLE,
   ON_CALL_PAGE_PASS_ON_LEVEL_PARAM,
@@ -753,7 +755,7 @@ export default class UserNotificationLogTimelineAPI extends BaseAPI<
               pageToken: String(
                 (req.body as JSONObject)[ON_CALL_PAGE_LINK_TOKEN_PARAM],
               ),
-              notice: getOnCallPassOnRefusalSentence(answer),
+              isAskingAgain: true,
             });
           }
 
@@ -904,8 +906,11 @@ export default class UserNotificationLogTimelineAPI extends BaseAPI<
   /*
    * The page a message's Escalate link opens: what escalating would do, and
    * the form that does it - with the levels to pick from, when there are
-   * two or more after the person's. `notice` is why it asks again: the
-   * level picked was not there to page.
+   * two or more after the person's. `isAskingAgain`: the level picked was
+   * not there to page, and the page says so above the levels as they are
+   * now - to pick one again where it offers levels (pressing Escalate as
+   * it stands would page the next level), or only what happened where it
+   * has one level left to page.
    */
   private async renderPassOnQuestion(data: {
     req: ExpressRequest;
@@ -914,7 +919,7 @@ export default class UserNotificationLogTimelineAPI extends BaseAPI<
     timelineItem: UserOnCallLogTimeline;
     record: NotificationRecord;
     pageToken: string;
-    notice?: string | undefined;
+    isAskingAgain?: boolean | undefined;
   }): Promise<void> {
     const record: NotificationRecord = data.record;
 
@@ -944,6 +949,12 @@ export default class UserNotificationLogTimelineAPI extends BaseAPI<
       recordNoun: record.notificationType,
     });
 
+    const notice: string | undefined = data.isAskingAgain
+      ? wording.levelChoices
+        ? ON_CALL_PAGE_LEVELS_CHANGED_PICK_AGAIN_NOTICE
+        : ON_CALL_PAGE_LEVELS_CHANGED_NOTICE
+      : undefined;
+
     return Response.render(
       data.req,
       data.res,
@@ -952,7 +963,7 @@ export default class UserNotificationLogTimelineAPI extends BaseAPI<
         title: `${ESCALATE} ${record.labelInSentence}?`,
         message: wording.explanation,
         ...(wording.warning ? { warning: wording.warning } : {}),
-        ...(data.notice ? { notice: data.notice } : {}),
+        ...(notice ? { notice: notice } : {}),
         ...(wording.levelChoices
           ? { levelChoices: wording.levelChoices as unknown as JSONObject }
           : {}),

@@ -11,7 +11,7 @@ import React, {
 import ReadinessDot, { ReadinessUnknownDot } from "../Readiness/ReadinessDot";
 import StatTile, { StatTileGrid } from "../Readiness/StatTile";
 import {
-  NO_ONE_NEXT_LABEL,
+  NO_ONE_NEXT_IN_CHIP_LABEL,
   NO_ONE_NEXT_TOOLTIP,
 } from "./EscalationRuleReadiness";
 import {
@@ -388,7 +388,7 @@ const EscalationSummary: FunctionComponent<ComponentProps> = (
                         data-testid="escalation-summary-no-one-next"
                         className="whitespace-nowrap font-semibold"
                       >
-                        {translator.translateText(NO_ONE_NEXT_LABEL)}
+                        {translator.translateText(NO_ONE_NEXT_IN_CHIP_LABEL)}
                       </span>
                     </>
                   ) : (

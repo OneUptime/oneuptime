@@ -116,6 +116,7 @@ import LayersPreview, {
   getFinalScheduleCalendarView,
 } from "../../../../App/FeatureSet/Dashboard/src/Components/OnCallPolicy/OnCallScheduleLayer/LayersPreview";
 import {
+  HEADLINE_RELATIVE_TIME_CLASS_NAME,
   SECTION_LABEL_CLASS_NAME,
   UPCOMING_HAND_OFFS_LIST_CLASS_NAME,
 } from "../../../../App/FeatureSet/Dashboard/src/Components/OnCallPolicy/OnCallScheduleLayer/FinalScheduleSummary";
@@ -127,6 +128,7 @@ import { getLayerPreviewEvents } from "../../../../App/FeatureSet/Dashboard/src/
 import { HAND_OFF_MOMENT_CLASS_NAME } from "../../../../App/FeatureSet/Dashboard/src/Components/OnCallPolicy/OnCallScheduleLayer/HandOffTimes";
 import {
   formatHandOffInstant,
+  formatHeadlineHandOffInstant,
   formatShiftInstant,
 } from "../../../../App/FeatureSet/Dashboard/src/Components/OnCallPolicy/OnCallScheduleLayer/LayerSummary";
 import { SCHEDULE_FINAL_SCHEDULE_DESCRIPTION } from "../../../../App/FeatureSet/Dashboard/src/Components/OnCallPolicy/OnCallScheduleLayer/ScheduleOverviewCopy";
@@ -759,6 +761,86 @@ describe("a hand-off row", () => {
 
     expect(full).toContain("2026");
     expect(full).toContain("UTC");
+  });
+});
+
+/*
+ * THE HEADLINE CARDS' HAND-OFF: "On call right now - Until Wed, Nov 4,
+ * 9:00 AM GMT (1h left)", "Up next - Starts Wed, Nov 11, 9:00 AM GMT (in 1
+ * week)". The card's first moments keep the zone - the one place the card
+ * says it before the hand-offs listed under them - and, like the list's
+ * moments, leave the year out while it is this year: "Until Wed, Nov 4,
+ * 2026, 9:00 AM GMT (1h left)" put "GMT (1h left)" on a line of its own on
+ * a phone, and "(in 1 hour)" broke inside its brackets.
+ */
+describe("the headline cards' hand-off", () => {
+  // The year a clock in London reads now: the cards' moments are that year's.
+  function thisYearInLondon(): string {
+    return new Intl.DateTimeFormat("en-GB", {
+      timeZone: "Europe/London",
+      year: "numeric",
+    }).format(OneUptimeDate.getCurrentDate());
+  }
+
+  test("each keeps its zone, leaves this year out, and keeps how far off it is whole", async () => {
+    answerReads({ overrides: [], attachedPolicyIds: [POLICY_ID] });
+
+    renderPreview();
+    await waitForPreview();
+
+    for (const testId of ["on-call-now-time-left", "up-next-starts-in"]) {
+      const relative: HTMLElement = screen.getByTestId(testId);
+      const line: HTMLElement = relative.parentElement as HTMLElement;
+      const moment: string = (line.textContent || "")
+        .replace(relative.textContent || "", "")
+        .trim();
+
+      // "Until ..." / "Starts ...", with the zone: GMT or BST in London.
+      expect(moment).toMatch(ZONE_ABBREVIATION);
+      // A weekly rotation's next hand-off is days away: never this year's year.
+      expect({
+        testId,
+        moment,
+        hasYear: moment.includes(thisYearInLondon()),
+      }).toEqual({ testId, moment, hasYear: false });
+
+      // "(1h left)" or "(in 1 week)": one piece, after a plain space.
+      expect(relative.className).toBe(HEADLINE_RELATIVE_TIME_CLASS_NAME);
+      expect(relative.className.split(" ")).toContain("whitespace-nowrap");
+      expect(relative.className.split(" ")).not.toContain("ml-1");
+      expect(relative.previousSibling?.textContent?.endsWith(" ")).toBe(true);
+    }
+  });
+
+  test("a moment of this year leaves its year out, but never its zone; one of another year keeps both", () => {
+    const now: Date = new Date("2026-11-04T09:00:00Z");
+    const thisYear: string = formatHeadlineHandOffInstant(
+      new Date("2026-11-11T09:00:00Z"),
+      "Europe/London",
+      now,
+    );
+
+    expect(thisYear).not.toContain("2026");
+    expect(thisYear).toMatch(ZONE_ABBREVIATION);
+    // The list's moment of the same instant: the same, without the zone.
+    expect(
+      thisYear.startsWith(
+        formatHandOffInstant(
+          new Date("2026-11-11T09:00:00Z"),
+          "Europe/London",
+          now,
+        ),
+      ),
+    ).toBe(true);
+
+    const nextYear: string = formatHeadlineHandOffInstant(
+      new Date("2027-01-04T09:00:00Z"),
+      "Europe/London",
+      now,
+    );
+
+    expect(nextYear).toContain("2027");
+    expect(nextYear).toMatch(ZONE_ABBREVIATION);
   });
 });
 

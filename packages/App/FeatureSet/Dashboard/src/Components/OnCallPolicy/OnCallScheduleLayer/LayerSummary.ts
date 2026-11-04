@@ -285,6 +285,27 @@ export function formatHandOffInstant(
 }
 
 /*
+ * The hand-off a Final schedule's headline card names - "Until Wed, Nov 4,
+ * 9:00 AM GMT", "Starts Wed, Nov 11, 9:00 AM GMT" - with its zone, the one
+ * the card says before the list of hand-offs under it, and like the list's
+ * moments without the year while it is this year: "Until Wed, Nov 4, 2026,
+ * 9:00 AM GMT (1h left)" put "GMT (1h left)" on a line of its own on a
+ * phone.
+ */
+export function formatHeadlineHandOffInstant(
+  date: Date,
+  timezone: string | undefined,
+  now: Date,
+): string {
+  return OneUptimeDate.getDateAsFormattedStringInTimezone({
+    date,
+    timezone,
+    showWeekday: true,
+    hideYear: OneUptimeDate.isSameYearInTimezone(date, now, timezone),
+  });
+}
+
+/*
  * Compact human duration from a raw seconds count, e.g. "24h", "8h 30m",
  * "5d 12h", "45m".
  *

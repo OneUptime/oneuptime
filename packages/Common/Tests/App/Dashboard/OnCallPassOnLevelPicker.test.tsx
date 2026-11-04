@@ -50,6 +50,7 @@ import {
   passOnPages,
 } from "../../../../App/FeatureSet/Dashboard/src/Components/OnCallPolicy/PassOn/PassOnPage";
 import usePassOnPage, {
+  PASS_ON_LEVELS_LABEL_CLASS_NAME,
   PassOnPageControls,
 } from "../../../../App/FeatureSet/Dashboard/src/Components/OnCallPolicy/PassOn/usePassOnPage";
 import HTTPErrorResponse from "../../../Types/API/HTTPErrorResponse";
@@ -279,6 +280,36 @@ describe("the words where a level is picked", () => {
     expect(describePassOnSkippedLevels([], 4, ENGLISH)).toBe("");
   });
 
+  test("beside a second policy, a sentence names its policy - unless it is drawn under that policy's own levels", () => {
+    const withLevels: OnCallOpenPage = page();
+    const withoutLevels: OnCallOpenPage = page(
+      {
+        policyName: "Database",
+        levelChoices: [LEVEL_3],
+        rule: { order: 3, name: "DBA leads" },
+      },
+      OTHER_RUN_ID,
+    );
+
+    expect(describePassOnPreview([withLevels, withoutLevels], ENGLISH)).toEqual(
+      [
+        "This will immediately page Platform leads (Level 2 of 4), without waiting.",
+        "Database: This will immediately page DBA leads (Level 3 of 4), without waiting.",
+      ],
+    );
+
+    // Each line says which page it is about, for its levels to go above it.
+    expect(
+      getPassOnQuestionLines(
+        [withLevels, withoutLevels],
+        ENGLISH,
+        OnCallPageRecordType.Incident,
+      ).map((line: { executionLogId?: string | undefined }) => {
+        return line.executionLogId;
+      }),
+    ).toEqual([RUN_ID, OTHER_RUN_ID, undefined]);
+  });
+
   test("the sentence follows the pick, and says what it skips", () => {
     expect(describePassOnPreview([page()], ENGLISH)).toEqual([
       "This will immediately page Platform leads (Level 2 of 4), without waiting.",
@@ -308,6 +339,8 @@ describe("the words where a level is picked", () => {
       {
         text: "This will immediately page DBA leads (Level 3 of 4), without waiting. It skips Platform leads (Level 2 of 4).",
         isWarning: false,
+        // The page it is about: its levels go right above it.
+        executionLogId: RUN_ID,
       },
       {
         text: "You will not be paged again for this incident.",
@@ -778,6 +811,129 @@ describe("in a record's header", () => {
       warning.compareDocumentPosition(levels) &
         Node.DOCUMENT_POSITION_FOLLOWING,
     ).toBeTruthy();
+  });
+
+  /*
+   * Two policies paging the person, each with levels to pick from: each
+   * policy's levels sit right over that policy's sentence - pick, then what
+   * it does - rather than all the levels over all the sentences, where the
+   * second sentence had to be matched to the second group by its policy's
+   * name. Under its own levels a sentence names no policy: the levels'
+   * label already does.
+   */
+  test("two policies paging them: each policy's levels right above its own sentence", async () => {
+    getAnswers.push(
+      pagedAbout([
+        page(),
+        page(
+          {
+            policyName: "Database",
+            levelChoices: [LEVEL_3, LEVEL_4],
+            rule: { order: 3, name: "DBA leads" },
+          },
+          OTHER_RUN_ID,
+        ),
+      ]),
+    );
+
+    await openDialog();
+
+    const picks: Array<HTMLElement> =
+      screen.getAllByTestId("pass-on-level-pick");
+
+    expect(picks).toHaveLength(2);
+    expect(
+      within(picks[0]!).getByRole("radiogroup", {
+        name: "Payments: escalate to",
+      }),
+    ).toBeInTheDocument();
+    expect(
+      within(picks[1]!).getByRole("radiogroup", {
+        name: "Database: escalate to",
+      }),
+    ).toBeInTheDocument();
+
+    // Each block: its levels, then its sentence - and nothing else.
+    for (const pick of picks) {
+      expect(pick.children).toHaveLength(2);
+      expect(pick.children[0]).toHaveAttribute("data-testid", "pass-on-levels");
+      expect(pick.children[1]!.tagName).toBe("P");
+    }
+
+    expect((picks[0]!.children[1]!.textContent || "").trim()).toBe(
+      "This will immediately page Platform leads (Level 2 of 4), without waiting.",
+    );
+    expect((picks[1]!.children[1]!.textContent || "").trim()).toBe(
+      "This will immediately page DBA leads (Level 3 of 4), without waiting.",
+    );
+
+    // The second policy's levels stand a little apart from the first's.
+    expect(picks[0]!.className.split(" ")).not.toContain("pt-2");
+    expect(picks[1]!.className.split(" ")).toContain("pt-2");
+
+    expect(dialogLines()).toEqual([
+      "This will immediately page Platform leads (Level 2 of 4), without waiting.",
+      "This will immediately page DBA leads (Level 3 of 4), without waiting.",
+      "You will not be paged again for this incident.",
+    ]);
+
+    // A pick changes its own policy's sentence, under it.
+    fireEvent.click(
+      within(picks[1]!).getByLabelText("Level 4 of 4") as HTMLInputElement,
+    );
+
+    const picked: Array<HTMLElement> =
+      screen.getAllByTestId("pass-on-level-pick");
+
+    expect((picked[1]!.children[1]!.textContent || "").trim()).toBe(
+      "This will immediately page Level 4 of 4, without waiting. It skips DBA leads (Level 3 of 4).",
+    );
+    expect((picked[0]!.children[1]!.textContent || "").trim()).toBe(
+      "This will immediately page Platform leads (Level 2 of 4), without waiting.",
+    );
+  });
+
+  test("beside a policy with levels to pick, one without names its policy in its sentence", async () => {
+    getAnswers.push(
+      pagedAbout([
+        page(),
+        page(
+          {
+            policyName: "Database",
+            levelChoices: [LEVEL_3],
+            rule: { order: 3, name: "DBA leads" },
+          },
+          OTHER_RUN_ID,
+        ),
+      ]),
+    );
+
+    await openDialog();
+
+    expect(screen.getAllByTestId("pass-on-level-pick")).toHaveLength(1);
+    expect(dialogLines()).toEqual([
+      "This will immediately page Platform leads (Level 2 of 4), without waiting.",
+      "Database: This will immediately page DBA leads (Level 3 of 4), without waiting.",
+      "You will not be paged again for this incident.",
+    ]);
+  });
+
+  /*
+   * "Escalate to" is the question the radios answer: drawn as a form's
+   * field label is (FieldLabel: medium, grey-700), not in the radios' own
+   * grey-900, where it read as one more of them.
+   */
+  test("the levels' label is drawn as a form's field label", async () => {
+    getAnswers.push(pagedAbout([page()]));
+
+    await openDialog();
+
+    expect(PASS_ON_LEVELS_LABEL_CLASS_NAME).toBe(
+      "text-sm font-medium text-gray-700",
+    );
+    expect(screen.getByTestId("pass-on-levels-label").className).toBe(
+      PASS_ON_LEVELS_LABEL_CLASS_NAME,
+    );
   });
 
   test("the picks of the dialog are a page's own: PassOnLevelPicks by run", () => {

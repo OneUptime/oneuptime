@@ -55,9 +55,14 @@ export interface ComponentProps {
  * A name on two lines splits where the lines come out even (text-wrap:
  * balance): "Verified methods / (1 unverified)", never "Verified methods (1
  * / unverified)" with the bracket torn from its word.
+ *
+ * A word wider than a phone's tile - German's "Eskalationsstufen",
+ * "Wiederholungen" - is hyphenated in the page's language (hyphens-auto;
+ * the page's lang is the reader's) rather than torn at the tile's edge as
+ * "Eskalationsstuf / en".
  */
 export const STAT_TILE_LABEL_CLASS_NAME: string =
-  "break-words text-balance text-xs leading-snug text-gray-500";
+  "break-words hyphens-auto text-balance text-xs leading-snug text-gray-500";
 
 /*
  * A tile reads its own width (a container) to place its icon. Beside the

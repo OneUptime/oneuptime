@@ -42139,5 +42139,6 @@
   "Not escalated": "Не эскалировано",
   "The page was escalated past this level": "Этот уровень пропущен при эскалации",
   "The policy's levels have changed, so nothing was escalated. Escalate again to pick a level.": "Уровни политики изменились, поэтому ничего не эскалировано. Эскалируйте ещё раз, чтобы выбрать уровень.",
-  "{{policy}}: escalate to": "{{policy}}: эскалировать на"
+  "{{policy}}: escalate to": "{{policy}}: эскалировать на",
+  "no one next": "следующего нет"
 }

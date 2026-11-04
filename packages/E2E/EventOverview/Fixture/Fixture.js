@@ -781,6 +781,7 @@ const PASS_ON_MODES = [
   "two",
   "levels",
   "levels-gone",
+  "levels-two",
 ];
 const passOnMode = PASS_ON_MODES.includes(params.get("passOn"))
   ? params.get("passOn")
@@ -8321,30 +8322,55 @@ const LATER_LEVELS = [
   },
 ];
 
+/*
+ * ?passOn=levels-two: the second policy paging the viewer, Payments
+ * escalation, has levels of its own after the viewer's - one with a name
+ * as long as people give them.
+ */
+const PAYMENTS_POLICY = "Payments escalation";
+const PAYMENTS_LATER_LEVELS = [
+  {
+    escalationRuleId: uuid("74100000", 2),
+    order: 2,
+    name: "Payments on-call",
+    paged: ["Lee Wong"],
+  },
+  {
+    escalationRuleId: uuid("74100000", 3),
+    order: 3,
+    name: "Payments platform engineering managers, EU and US regions",
+    paged: ["Ana Lopez"],
+  },
+];
+
 // levels-gone: DBA leads was deleted while the dialog asked.
 let isDbaLevelGone = false;
 
-function laterLevels() {
+function laterLevels(policyName) {
+  if (policyName === PAYMENTS_POLICY) {
+    return PAYMENTS_LATER_LEVELS;
+  }
+
   return LATER_LEVELS.filter((level) => {
     return !(isDbaLevelGone && level.order === 3);
   });
 }
 
 function levelsResult(isPreview, policyName, pickedLevel) {
-  const level = pickedLevel || laterLevels()[0];
+  const level = pickedLevel || laterLevels(policyName)[0];
 
   return {
     isPreview,
     isDirectPage: false,
     policyName,
     stillPagedNames: [],
-    ruleCount: 4,
+    ruleCount: policyName === PAYMENTS_POLICY ? 3 : 4,
     outcome: "NextRulePaged",
     rule: { order: level.order, name: level.name },
     pagedNames: isPreview ? [] : level.paged,
     ...(isPreview
       ? {
-          levelChoices: laterLevels().map((choice) => {
+          levelChoices: laterLevels(policyName).map((choice) => {
             return {
               escalationRuleId: choice.escalationRuleId,
               order: choice.order,
@@ -8357,7 +8383,11 @@ function levelsResult(isPreview, policyName, pickedLevel) {
 }
 
 function passOnResult(isPreview, policyName) {
-  if (passOnMode === "levels" || passOnMode === "levels-gone") {
+  if (
+    passOnMode === "levels" ||
+    passOnMode === "levels-gone" ||
+    passOnMode === "levels-two"
+  ) {
     return levelsResult(isPreview, policyName);
   }
 
@@ -8421,8 +8451,8 @@ function openPassOnPages(recordType, recordId) {
   }
 
   const policies =
-    passOnMode === "two"
-      ? ["Checkout on-call", "Payments escalation"]
+    passOnMode === "two" || passOnMode === "levels-two"
+      ? ["Checkout on-call", PAYMENTS_POLICY]
       : ["Checkout on-call"];
 
   return policies.map((policyName, index) => {
@@ -8489,8 +8519,13 @@ function passOnAnswers(recordType, recordId, body) {
    * ?passOn=levels: the level the POST picked for the page's run, or the
    * next. levels-gone: a later level picked is no longer offered - the
    * first time - and nothing is escalated; the page is still paging.
+   * levels-two: each policy's page pages the level picked for its own run.
    */
-  if (passOnMode === "levels" || passOnMode === "levels-gone") {
+  if (
+    passOnMode === "levels" ||
+    passOnMode === "levels-gone" ||
+    passOnMode === "levels-two"
+  ) {
     const escalateTo = (body && body.escalateTo) || {};
     const pickedId = escalateTo[pages[0].executionLogId];
 
@@ -8499,18 +8534,19 @@ function passOnAnswers(recordType, recordId, body) {
       return [{ passedOn: false, refusal: "LevelNotAvailable" }];
     }
 
-    const picked = laterLevels().find((level) => {
-      return level.escalationRuleId === pickedId;
-    });
-
     passedOnRecords.add(`${recordType}:${recordId}`);
 
-    return [
-      {
+    return pages.map((page) => {
+      const policyName = page.preview.policyName;
+      const picked = laterLevels(policyName).find((level) => {
+        return level.escalationRuleId === escalateTo[page.executionLogId];
+      });
+
+      return {
         passedOn: true,
-        result: levelsResult(false, pages[0].preview.policyName, picked),
-      },
-    ];
+        result: levelsResult(false, policyName, picked),
+      };
+    });
   }
 
   if (passOnMode === "acknowledged") {

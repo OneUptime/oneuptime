@@ -14732,6 +14732,118 @@ test.describe("Escalate to a level the person picks", () => {
       "escalate-dialog-levels-dark-mobile",
     );
   });
+
+  /*
+   * ?passOn=levels-two: two policies page the viewer about the record, each
+   * with levels of its own after theirs - Payments escalation's Level 3 named
+   * at length. Each policy's levels sit right over that policy's sentence,
+   * which names no policy (the levels' label does), and on a phone a level's
+   * name that wraps keeps its radio whole, by its first line.
+   */
+  test("two policies: each policy's levels over its own sentence, and a long level's radio whole on a phone", async ({
+    page,
+  }: {
+    page: Page;
+  }) => {
+    await page.setViewportSize({ width: 390, height: 844 });
+    await openReady(
+      page,
+      INCIDENT_PAGE,
+      "paged=incident&state=created&passOn=levels-two",
+    );
+
+    await escalateButton(page).click();
+
+    const picks: Locator =
+      escalateDialog(page).getByTestId("pass-on-level-pick");
+
+    await expect(picks).toHaveCount(2);
+    await expect(
+      picks.nth(0).getByRole("radiogroup", {
+        name: "Checkout on-call: escalate to",
+      }),
+    ).toBeVisible();
+    await expect(
+      picks.nth(1).getByRole("radiogroup", {
+        name: "Payments escalation: escalate to",
+      }),
+    ).toBeVisible();
+    await expect(picks.nth(0).locator("p")).toHaveText(
+      "This will immediately page Platform leads (Level 2 of 4), without waiting.",
+    );
+    await expect(picks.nth(1).locator("p")).toHaveText(
+      "This will immediately page Payments on-call (Level 2 of 3), without waiting.",
+    );
+
+    const longLevel: Locator = picks
+      .nth(1)
+      .getByLabel(
+        "Payments platform engineering managers, EU and US regions (Level 3 of 3)",
+      );
+
+    await longLevel.check();
+
+    await expect(picks.nth(1).locator("p")).toHaveText(
+      "This will immediately page Payments platform engineering managers, EU and US regions (Level 3 of 3), without waiting. It skips Payments on-call (Level 2 of 3).",
+    );
+    // The first policy's sentence is its own, and stays as it was.
+    await expect(picks.nth(0).locator("p")).toHaveText(
+      "This will immediately page Platform leads (Level 2 of 4), without waiting.",
+    );
+
+    /*
+     * The long name wraps onto two lines beside its radio, which keeps its
+     * 16 pixels and sits by the name's first line - not squeezed to a dot
+     * halfway down both. Read once Tailwind has styled the dialog.
+     */
+    const label: Locator = picks
+      .nth(1)
+      .locator("label")
+      .filter({ hasText: "Payments platform engineering managers" });
+
+    await expect
+      .poll(
+        async (): Promise<string> => {
+          const [radio, text] = await boxesInOneFrame([longLevel, label]);
+          const lines: number = Math.round(text!.height / 24);
+
+          return JSON.stringify({
+            width: Math.round(radio!.width),
+            height: Math.round(radio!.height),
+            byFirstLine:
+              radio!.y >= text!.y && radio!.y + radio!.height <= text!.y + 24,
+            lines: lines,
+          });
+        },
+        { timeout: 10000 },
+      )
+      .toBe(
+        JSON.stringify({ width: 16, height: 16, byFirstLine: true, lines: 2 }),
+      );
+
+    await expectNoSidewaysScroll(page, { tolerance: 1 });
+    await screenshotElement(escalateDialog(page), "escalate-dialog-levels-two");
+
+    await escalateDialog(page)
+      .getByTestId("modal-footer-submit-button")
+      .click();
+
+    await expect(escalateDialog(page).getByTestId("modal-title")).toHaveText(
+      "Incident escalated",
+    );
+    expect(await dialogLines(page, "pass-on-answer")).toEqual([
+      "Checkout on-call: The policy is now paging Platform leads (Level 2 of 4): Sam Lee and Priya Patel.",
+      "Payments escalation: The policy is now paging Payments platform engineering managers, EU and US regions (Level 3 of 3): Ana Lopez.",
+      NOT_PAGED_AGAIN,
+    ]);
+
+    // Only the later level picked is sent, for its own run.
+    const posts: Array<RecordedApiRequest> = await passOnPosts(page);
+    expect(posts).toHaveLength(1);
+    expect(posts[0]!.body).toEqual({
+      escalateTo: { [uuid("73000000", 2)]: uuid("74100000", 3) },
+    });
+  });
 });
 
 /*
