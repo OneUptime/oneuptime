@@ -99,7 +99,7 @@ Når en tabell blir utdatert, blir hver tabell som er bygget fra den, også utda
 - Det starter som **bekreftet**, så ingen tilkalles to ganger for ett problem, og det løser seg av seg selv når dataene er i orden igjen.
 - Feeden og **Data**-kortet sier hvilket varsel som forårsaket det, og det blir med i episoden til årsaken.
 
-**Data**-kortet til årsaken viser **Downstream Impact**: hvert varsel den forårsaket. Kortet for et tabellvarsel viser også tjenestene som skriver til tabellen, med de mislykkede skrivingene deres, og utrullingene og andre endringer deres i døgnet før varselet.
+**Data**-kortet til årsaken viser **Påvirkning nedstrøms**: hvert varsel den forårsaket. Kortet for et tabellvarsel viser også tjenestene som skriver til tabellen, med de mislykkede skrivingene deres, og utrullingene og andre endringer deres i døgnet før varselet.
 
 ## Før en endring slås sammen
 

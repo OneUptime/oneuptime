@@ -92,7 +92,6 @@ function readId(value: unknown): string | null {
     : null;
 }
 
-// What a data monitor's metric queries are scoped to; null for any other monitor.
 // What a data monitor measures: the metric its query reads.
 export function getDataAlertMetricName(
   monitorSteps: MonitorSteps | undefined | null,
@@ -111,6 +110,7 @@ export function getDataAlertMetricName(
   return null;
 }
 
+// What a data monitor's metric queries are scoped to; null for any other monitor.
 export function getDataAlertScope(
   monitorSteps: MonitorSteps | undefined | null,
 ): DataAlertScope | null {

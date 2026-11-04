@@ -99,7 +99,7 @@ Cuando una tabla se queda desactualizada, todas las tablas construidas a partir 
 - Empieza en estado **Reconocido**, para que nadie reciba dos avisos por un mismo problema, y se recupera sola en cuanto sus datos se recuperan.
 - Su feed y su tarjeta **Datos** indican qué alerta la causó, y se une al episodio de la causa.
 
-La tarjeta **Datos** de la causa enumera su **Downstream Impact**: todas las alertas que causó. La tarjeta de una alerta de tabla también muestra los servicios que escriben en la tabla, con sus escrituras fallidas, y sus despliegues y otros cambios en el día anterior a la alerta.
+La tarjeta **Datos** de la causa enumera su **Impacto aguas abajo**: todas las alertas que causó. La tarjeta de una alerta de tabla también muestra los servicios que escriben en la tabla, con sus escrituras fallidas, y sus despliegues y otros cambios en el día anterior a la alerta.
 
 ## Antes de que se fusione un cambio
 

@@ -15,7 +15,7 @@ Alleen de catalogus wordt gelezen, en bij MongoDB de veldnamen van de nieuwste d
 
 ## Actualiteit
 
-Het **ritme** van een tabel is hoe vaak ze gewoonlijk verandert, geleerd uit de tijd tussen haar wijzigingen. Een tabel die ruim voorbij haar ritme gaat, wordt getoond als **Late**, op haar pagina en in **Tabellen**, en schrijft hoe ver ze erover is. Haar actualiteit is bekend zodra ze twee keer is gewijzigd: een tabel die elk uur wordt geladen, is binnen enkele uren geleerd, een tabel die elke nacht wordt geladen, binnen enkele dagen.
+Het **ritme** van een tabel is hoe vaak ze gewoonlijk verandert, geleerd uit de tijd tussen haar wijzigingen. Een tabel die ruim voorbij haar ritme gaat, wordt getoond als **Te laat**, op haar pagina en in **Tabellen**, en schrijft hoe ver ze erover is. Haar actualiteit is bekend zodra ze twee keer is gewijzigd: een tabel die elk uur wordt geladen, is binnen enkele uren geleerd, een tabel die elke nacht wordt geladen, binnen enkele dagen.
 
 Een view heeft geen eigen rijen, dus haar actualiteit is die van haar bronnen: zie [Lineage en pipelines](/docs/data-observability/lineage-and-pipelines).
 
@@ -29,7 +29,7 @@ Een catalogus kan zeggen dat een tabel is gewijzigd terwijl alleen het huishoude
 
 ## Aanbevolen waarschuwingen
 
-Kies op **Databases** de optie **Recommended Alerts** voor een database. Elke aanbeveling is één metrics-monitor voor de hele database die één keer per tabel waarschuwt, zodat ook een tabel die later wordt aangemaakt, wordt bewaakt:
+Kies op **Databases** de optie **Aanbevolen waarschuwingen** voor een database. Elke aanbeveling is één metrics-monitor voor de hele database die één keer per tabel waarschuwt, zodat ook een tabel die later wordt aangemaakt, wordt bewaakt:
 
 | Waarschuwing | Gaat af wanneer |
 | --- | --- |

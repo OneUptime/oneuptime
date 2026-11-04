@@ -9,10 +9,10 @@ Dataobservabilitet læser hver database med et login, der kun læser dens katalo
 
 ## Vælg, hvem der forbinder
 
-Under **Dataobservabilitet > Databaser** vælger du **Connect a Database** og derefter:
+Under **Dataobservabilitet > Databaser** vælger du **Forbind en database** og derefter:
 
-- **OneUptime connects**: indsæt en forbindelsesstreng. Den gemmes krypteret, bruges kun af OneUptimes workers og vises aldrig igen.
-- **A probe in my network connects**: vælg en af dine sonder, og angiv navnet på den miljøvariabel på sonden, der indeholder forbindelsesstrengen, f.eks. `ORDERS_DB_URL`. Forbindelsesstrengen forlader aldrig dit netværk. Se [Brugerdefinerede sonder](/docs/probe/custom-probe).
+- **OneUptime forbinder**: indsæt en forbindelsesstreng. Den gemmes krypteret, bruges kun af OneUptimes workers og vises aldrig igen.
+- **En sonde i mit netværk forbinder**: vælg en af dine sonder, og angiv navnet på den miljøvariabel på sonden, der indeholder forbindelsesstrengen, f.eks. `ORDERS_DB_URL`. Forbindelsesstrengen forlader aldrig dit netværk. Se [Brugerdefinerede sonder](/docs/probe/custom-probe).
 
 En database, der allerede er forbundet til Datasikkerhed, overvåges også, uden at du skal forbinde noget, og det samme gælder hvert BigQuery-datasæt, som din [cloudforbindelse](/docs/telemetry/cloud-accounts) har fundet.
 

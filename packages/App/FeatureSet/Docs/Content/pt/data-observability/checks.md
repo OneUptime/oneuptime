@@ -15,15 +15,15 @@ Adicione uma verificação na aba **Verificações** de uma tabela:
 | **Invalid Percent** | Porcentagem de valores fora de uma lista que você informa |
 | **Format Mismatch Percent** | Porcentagem de valores que não estão em um formato que você escolhe, como Email, UUID ou Country Code, ou que não correspondem a uma expressão regular sua (todos os mecanismos, exceto o SQL Server) |
 | **Orphan Count** | Linhas cujo valor não tem correspondência na coluna de outra tabela |
-| **Row Count** | Linhas na tabela, mais útil com **Segment By** |
+| **Row Count** | Linhas na tabela, mais útil com **Segmentar por** |
 | **SQL personalizado** | O número que um SELECT somente leitura seu retorna, chamado `value` (no MongoDB, o de um pipeline de agregação) |
-| **Failing Rows** | Quantas linhas um SELECT somente leitura seu retorna: as linhas que não deveriam existir. 0 é saudável (no MongoDB, os documentos em que um pipeline termina) |
+| **Linhas com falha** | Quantas linhas um SELECT somente leitura seu retorna: as linhas que não deveriam existir. 0 é saudável (no MongoDB, os documentos em que um pipeline termina) |
 
 Cada verificação roda a cada 15 minutos, hora, 6 horas ou dia, como uma única instrução de agregação em uma transação somente leitura com um tempo limite de instrução. O valor dela é gravado como `oneuptime.data.check.value`, com `oneuptime.data.check.id`, `oneuptime.data.check.name` e `oneuptime.data.check.segment`.
 
 ## Verificações sugeridas
 
-**Suggested Checks**, na mesma aba, oferece as verificações que as colunas de uma tabela pedem, só a partir dos nomes e tipos delas: um id é único, um `customer_id` tem uma linha correspondente em `customers`, um e-mail tem formato de e-mail, um valor não é negativo, um status mantém os seus valores habituais, e uma tabela dividida por tenant é contada por tenant. Uma coluna que a Segurança de dados sabe que contém um endereço de e-mail, um número de telefone ou um endereço IP é mantida nesse formato, qualquer que seja o nome dela. Adicione uma, adicione todas ou descarte uma de vez.
+**Verificações sugeridas**, na mesma aba, oferece as verificações que as colunas de uma tabela pedem, só a partir dos nomes e tipos delas: um id é único, um `customer_id` tem uma linha correspondente em `customers`, um e-mail tem formato de e-mail, um valor não é negativo, um status mantém os seus valores habituais, e uma tabela dividida por tenant é contada por tenant. Uma coluna que a Segurança de dados sabe que contém um endereço de e-mail, um número de telefone ou um endereço IP é mantida nesse formato, qualquer que seja o nome dela. Adicione uma, adicione todas ou descarte uma de vez.
 
 ## Uma verificação a partir de uma frase
 
@@ -31,11 +31,11 @@ Cada verificação roda a cada 15 minutos, hora, 6 horas ou dia, como uma única
 
 ## Segmentos
 
-**Segment By** roda uma verificação uma vez por valor de uma coluna, como um tenant ou uma região: uma série e um alerta para cada um, para os 100 maiores segmentos. Uma Row Count segmentada alerta quando um tenant para de enviar dados enquanto os outros continuam.
+**Segmentar por** roda uma verificação uma vez por valor de uma coluna, como um tenant ou uma região: uma série e um alerta para cada um, para os 100 maiores segmentos. Uma Row Count segmentada alerta quando um tenant para de enviar dados enquanto os outros continuam.
 
 ## Alertas sobre uma verificação
 
-Defina **Alert When** para alertar sobre uma verificação:
+Defina **Gerar alerta quando** para alertar sobre uma verificação:
 
 - **Unusually High** ou **Unusually Low** compara cada valor com a sua própria linha de base aprendida para aquela hora da semana.
 - **Acima de** ou **Abaixo de** o compara com um limite.
@@ -52,7 +52,7 @@ Uma verificação compete com a sua aplicação pelo banco de dados e, em um war
 
 ## Linhas com falha
 
-Um número diz que algo está errado; algumas linhas dizem o quê. Em um OneUptime auto-hospedado, **Guardar Failing Rows**, em **Configurações**, guarda até 20 das linhas que uma verificação Failing Rows, Invalid Percent, Format Mismatch Percent ou Orphan Count encontrou, e **Failing Rows** na verificação as mostra. As colunas sensíveis são mascaradas onde a linha é lida, pelo que a Segurança de dados encontrou nelas ou pelos nomes delas, então o que sai do banco de dados, ou de uma sonda, já está mascarado. O OneUptime Cloud não guarda nenhuma.
+Um número diz que algo está errado; algumas linhas dizem o quê. Em um OneUptime auto-hospedado, **Guardar Failing Rows**, em **Configurações**, guarda até 20 das linhas que uma verificação Failing Rows, Invalid Percent, Format Mismatch Percent ou Orphan Count encontrou, e **Linhas com falha** na verificação as mostra. As colunas sensíveis são mascaradas onde a linha é lida, pelo que a Segurança de dados encontrou nelas ou pelos nomes delas, então o que sai do banco de dados, ou de uma sonda, já está mascarado. O OneUptime Cloud não guarda nenhuma.
 
 ## Verificações em um arquivo
 
@@ -115,7 +115,7 @@ Uma cópia carregada em um agendamento fica atrás da sua origem: compare, com S
 
 ## Testes do dbt
 
-Depois de um build do dbt, `oneuptime dbt upload` envia os artefatos do projeto (veja [Linhagem e pipelines](/docs/data-observability/lineage-and-pipelines)). Cada teste de uma tabela observada passa então a aparecer na aba **Verificações** dela, com o último resultado e as linhas que ele encontrou falhando. Escolha **Alert on Failures** para que um teste que falha abra um alerta.
+Depois de um build do dbt, `oneuptime dbt upload` envia os artefatos do projeto (veja [Linhagem e pipelines](/docs/data-observability/lineage-and-pipelines)). Cada teste de uma tabela observada passa então a aparecer na aba **Verificações** dela, com o último resultado e as linhas que ele encontrou falhando. Escolha **Alertar em falhas** para que um teste que falha abra um alerta.
 
 ## Próximos passos
 

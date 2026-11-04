@@ -9,10 +9,10 @@ Osservabilità dei dati legge ogni database con un utente che legge solo il suo 
 
 ## Scegliere chi si collega
 
-In **Osservabilità dei dati > Database**, scegli **Connect a Database**, poi:
+In **Osservabilità dei dati > Database**, scegli **Collega un database**, poi:
 
-- **OneUptime connects**: incolla una stringa di connessione. Viene salvata cifrata, usata solo dai worker di OneUptime e non viene mai più mostrata.
-- **A probe in my network connects**: scegli una delle tue sonde e indica la variabile d'ambiente sulla sonda che contiene la stringa di connessione, ad esempio `ORDERS_DB_URL`. La stringa di connessione non lascia mai la tua rete. Vedi [Sonde personalizzate](/docs/probe/custom-probe).
+- **OneUptime si collega**: incolla una stringa di connessione. Viene salvata cifrata, usata solo dai worker di OneUptime e non viene mai più mostrata.
+- **Una sonda nella mia rete si collega**: scegli una delle tue sonde e indica la variabile d'ambiente sulla sonda che contiene la stringa di connessione, ad esempio `ORDERS_DB_URL`. La stringa di connessione non lascia mai la tua rete. Vedi [Sonde personalizzate](/docs/probe/custom-probe).
 
 Anche un database già collegato per Sicurezza dei dati viene sorvegliato, senza nulla da collegare, e così ogni dataset BigQuery trovato dalla tua [connessione cloud](/docs/telemetry/cloud-accounts).
 

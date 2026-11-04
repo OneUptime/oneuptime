@@ -15,7 +15,7 @@ Nur der Katalog wird gelesen, und bei MongoDB die Feldnamen der neuesten Dokumen
 
 ## Aktualität
 
-Der **Rhythmus** einer Tabelle gibt an, wie oft sie sich üblicherweise ändert, gelernt aus der Zeit zwischen ihren Änderungen. Eine Tabelle, die ihren Rhythmus deutlich überschreitet, erscheint als **Late**, auf ihrer Seite und unter **Tabellen**, und schreibt, wie weit sie darüber liegt. Ihre Aktualität ist bekannt, sobald sie sich zweimal geändert hat: Eine stündlich geladene Tabelle ist innerhalb von Stunden gelernt, eine nächtlich geladene innerhalb von Tagen.
+Der **Rhythmus** einer Tabelle gibt an, wie oft sie sich üblicherweise ändert, gelernt aus der Zeit zwischen ihren Änderungen. Eine Tabelle, die ihren Rhythmus deutlich überschreitet, erscheint als **Verspätet**, auf ihrer Seite und unter **Tabellen**, und schreibt, wie weit sie darüber liegt. Ihre Aktualität ist bekannt, sobald sie sich zweimal geändert hat: Eine stündlich geladene Tabelle ist innerhalb von Stunden gelernt, eine nächtlich geladene innerhalb von Tagen.
 
 Eine View enthält keine eigenen Zeilen, also ist ihre Aktualität die ihrer Quellen: siehe [Lineage und Pipelines](/docs/data-observability/lineage-and-pipelines).
 
@@ -29,7 +29,7 @@ Ein Katalog kann sagen, dass sich eine Tabelle geändert hat, obwohl sich nur ih
 
 ## Empfohlene Warnungen
 
-Wählen Sie unter **Datenbanken** für eine Datenbank **Recommended Alerts**. Jede Empfehlung ist ein einziger Metrik-Monitor für die ganze Datenbank, der einmal pro Tabelle warnt, sodass auch eine später angelegte Tabelle überwacht wird:
+Wählen Sie unter **Datenbanken** für eine Datenbank **Empfohlene Warnungen**. Jede Empfehlung ist ein einziger Metrik-Monitor für die ganze Datenbank, der einmal pro Tabelle warnt, sodass auch eine später angelegte Tabelle überwacht wird:
 
 | Warnung | Löst aus, wenn |
 | --- | --- |

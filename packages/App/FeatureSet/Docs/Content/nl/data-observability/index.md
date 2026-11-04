@@ -49,15 +49,15 @@ flowchart TB
 :::steps
 ### Koppel een database
 
-Open **Data Observability**, ga naar **Databases** en kies **Connect a Database**. Kies de engine en geef een alleen-lezen verbindingsreeks op, of de naam van de omgevingsvariabele waaruit je sonde die leest. [Een database koppelen](/docs/data-observability/connect) toont de login van elke engine.
+Open **Data Observability**, ga naar **Databases** en kies **Een database koppelen**. Kies de engine en geef een alleen-lezen verbindingsreeks op, of de naam van de omgevingsvariabele waaruit je sonde die leest. [Een database koppelen](/docs/data-observability/connect) toont de login van elke engine.
 
 ### Bekijk de tabellen
 
-Binnen vijf minuten verschijnen de tabellen onder **Tabellen**, elk met haar rijen, grootte en het moment van de laatste wijziging. De actualiteit van een tabel is bekend zodra ze twee keer is gewijzigd: **Fresh** zolang ze haar ritme houdt, **Late** zodra ze het mist.
+Binnen vijf minuten verschijnen de tabellen onder **Tabellen**, elk met haar rijen, grootte en het moment van de laatste wijziging. De actualiteit van een tabel is bekend zodra ze twee keer is gewijzigd: **Vers** zolang ze haar ritme houdt, **Te laat** zodra ze het mist.
 
 ### Voeg de aanbevolen waarschuwingen toe
 
-Kies op **Databases** de optie **Recommended Alerts** voor de database, en voeg de waarschuwingen toe die je wilt: een tabel die te laat is, een tabel waarvan de rijen sterk dalen of ongewoon laag uitvallen, een tabel waarvan de kolommen veranderen, en een database die niet meer rapporteert. Elk is een gewone monitor: on-call, eigenaren, onderhoudsvensters en statuspagina's werken zoals bij elke andere.
+Kies op **Databases** de optie **Aanbevolen waarschuwingen** voor de database, en voeg de waarschuwingen toe die je wilt: een tabel die te laat is, een tabel waarvan de rijen sterk dalen of ongewoon laag uitvallen, een tabel waarvan de kolommen veranderen, en een database die niet meer rapporteert. Elk is een gewone monitor: on-call, eigenaren, onderhoudsvensters en statuspagina's werken zoals bij elke andere.
 :::
 
 ## Volgende stappen

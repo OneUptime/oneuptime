@@ -15,7 +15,7 @@ Solo se lee el catálogo y, en MongoDB, los nombres de campo de los documentos m
 
 ## Frescura
 
-El **ritmo** de una tabla es la frecuencia con la que suele cambiar, aprendida a partir del tiempo entre sus cambios. Una tabla que supera con creces su ritmo aparece como **Late**, en su página y en **Tablas**, e indica cuánto lo ha superado. Su frescura se conoce en cuanto ha cambiado dos veces: una tabla que se carga cada hora se aprende en unas horas, una que se carga cada noche en unos días.
+El **ritmo** de una tabla es la frecuencia con la que suele cambiar, aprendida a partir del tiempo entre sus cambios. Una tabla que supera con creces su ritmo aparece como **Con retraso**, en su página y en **Tablas**, e indica cuánto lo ha superado. Su frescura se conoce en cuanto ha cambiado dos veces: una tabla que se carga cada hora se aprende en unas horas, una que se carga cada noche en unos días.
 
 Una vista no tiene filas propias, así que su frescura es la de sus fuentes: consulta [Linaje y pipelines](/docs/data-observability/lineage-and-pipelines).
 
@@ -29,7 +29,7 @@ Un catálogo puede decir que una tabla cambió cuando solo cambió su mantenimie
 
 ## Alertas recomendadas
 
-En **Bases de datos**, elige **Recommended Alerts** para una base de datos. Cada recomendación es un único monitor de métricas para toda la base de datos que alerta una vez por tabla, de modo que también se vigila una tabla creada más tarde:
+En **Bases de datos**, elige **Alertas recomendadas** para una base de datos. Cada recomendación es un único monitor de métricas para toda la base de datos que alerta una vez por tabla, de modo que también se vigila una tabla creada más tarde:
 
 | Alerta | Se dispara cuando |
 | --- | --- |

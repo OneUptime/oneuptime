@@ -99,7 +99,7 @@ Veraltet eine Tabelle, veralten auch alle Tabellen, die aus ihr erstellt werden.
 - Sie beginnt im Zustand **Bestätigt**, sodass niemand für ein Problem zweimal alarmiert wird, und erholt sich von selbst, sobald ihre Daten es tun.
 - Ihr Feed und ihre Karte **Daten** sagen, welche Warnung sie verursacht hat, und sie schließt sich der Episode der Ursache an.
 
-Die Karte **Daten** der Ursache listet ihren **Downstream Impact** auf: jede Warnung, die sie verursacht hat. Die Karte einer Tabellenwarnung zeigt außerdem die Dienste, die in die Tabelle schreiben, mit ihren fehlgeschlagenen Schreibvorgängen sowie ihren Deployments und anderen Änderungen am Tag vor der Warnung.
+Die Karte **Daten** der Ursache listet ihren **Auswirkung auf nachgelagerte Daten** auf: jede Warnung, die sie verursacht hat. Die Karte einer Tabellenwarnung zeigt außerdem die Dienste, die in die Tabelle schreiben, mit ihren fehlgeschlagenen Schreibvorgängen sowie ihren Deployments und anderen Änderungen am Tag vor der Warnung.
 
 ## Bevor eine Änderung gemergt wird
 

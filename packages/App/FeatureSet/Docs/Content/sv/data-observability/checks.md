@@ -15,15 +15,15 @@ Lägg till en kontroll på en tabells flik **Kontroller**:
 | **Invalid Percent** | Procentandel värden utanför en lista som du anger |
 | **Format Mismatch Percent** | Procentandel värden som inte har ett format som du väljer, till exempel Email, UUID eller Country Code, eller som inte matchar ett reguljärt uttryck som du anger (alla motorer utom SQL Server) |
 | **Orphan Count** | Rader vars värde saknar motsvarighet i en annan tabells kolumn |
-| **Row Count** | Rader i tabellen, mest användbart med **Segment By** |
+| **Row Count** | Rader i tabellen, mest användbart med **Segmentera efter** |
 | **Anpassad SQL** | Talet som en egen SELECT med enbart läsbehörighet returnerar, med namnet `value` (i MongoDB en aggregeringspipelines) |
-| **Failing Rows** | Hur många rader en egen SELECT med enbart läsbehörighet returnerar: de rader som inte borde finnas. 0 är friskt (i MongoDB de dokument som en pipeline slutar i) |
+| **Rader som misslyckas** | Hur många rader en egen SELECT med enbart läsbehörighet returnerar: de rader som inte borde finnas. 0 är friskt (i MongoDB de dokument som en pipeline slutar i) |
 
 Varje kontroll körs var 15:e minut, varje timme, var 6:e timme eller varje dag, som en enda aggregerande sats i en transaktion med enbart läsbehörighet och en tidsgräns för satsen. Dess värde skrivs som `oneuptime.data.check.value`, med `oneuptime.data.check.id`, `oneuptime.data.check.name` och `oneuptime.data.check.segment`.
 
 ## Föreslagna kontroller
 
-**Suggested Checks** på samma flik erbjuder de kontroller som en tabells kolumner kräver, utifrån enbart deras namn och typer: ett id är unikt, ett `customer_id` har en matchande rad i `customers`, en e-postadress ser ut som en, ett belopp är inte negativt, en status behåller sina vanliga värden, och en tabell som är uppdelad per tenant räknas per tenant. En kolumn som Datasäkerhet vet innehåller en e-postadress, ett telefonnummer eller en IP-adress hålls till det formatet, oavsett vad den heter. Lägg till en, lägg till alla, eller avfärda en för gott.
+**Föreslagna kontroller** på samma flik erbjuder de kontroller som en tabells kolumner kräver, utifrån enbart deras namn och typer: ett id är unikt, ett `customer_id` har en matchande rad i `customers`, en e-postadress ser ut som en, ett belopp är inte negativt, en status behåller sina vanliga värden, och en tabell som är uppdelad per tenant räknas per tenant. En kolumn som Datasäkerhet vet innehåller en e-postadress, ett telefonnummer eller en IP-adress hålls till det formatet, oavsett vad den heter. Lägg till en, lägg till alla, eller avfärda en för gott.
 
 ## En kontroll utifrån en mening
 
@@ -31,11 +31,11 @@ Varje kontroll körs var 15:e minut, varje timme, var 6:e timme eller varje dag,
 
 ## Segment
 
-**Segment By** kör en kontroll en gång per värde i en kolumn, till exempel en tenant eller en region: en serie och ett larm för vart och ett, för de 100 största segmenten. En segmenterad Row Count larmar när en tenant slutar skicka data medan de andra fortsätter.
+**Segmentera efter** kör en kontroll en gång per värde i en kolumn, till exempel en tenant eller en region: en serie och ett larm för vart och ett, för de 100 största segmenten. En segmenterad Row Count larmar när en tenant slutar skicka data medan de andra fortsätter.
 
 ## Larm på en kontroll
 
-Ställ in **Alert When** för att larma på en kontroll:
+Ställ in **Larma när** för att larma på en kontroll:
 
 - **Unusually High** eller **Unusually Low** jämför varje värde med dess egen inlärda baslinje för den timmen i veckan.
 - **Över** eller **Under** jämför det med ett tröskelvärde.
@@ -52,7 +52,7 @@ En kontroll konkurrerar med din applikation om databasen, och i ett datavaruhus 
 
 ## Felaktiga rader
 
-Ett tal säger att något är fel; några rader säger vad. I ett egenhostat OneUptime sparar **Spara felaktiga rader** under **Inställningar** upp till 20 av de rader som en kontroll av typen Failing Rows, Invalid Percent, Format Mismatch Percent eller Orphan Count hittade, och **Failing Rows** på kontrollen visar dem. Känsliga kolumner maskeras där raden läses, utifrån vad Datasäkerhet hittade i dem eller deras namn, så det som lämnar databasen, eller en sond, är redan maskerat. OneUptime Cloud sparar inga.
+Ett tal säger att något är fel; några rader säger vad. I ett egenhostat OneUptime sparar **Spara felaktiga rader** under **Inställningar** upp till 20 av de rader som en kontroll av typen Failing Rows, Invalid Percent, Format Mismatch Percent eller Orphan Count hittade, och **Rader som misslyckas** på kontrollen visar dem. Känsliga kolumner maskeras där raden läses, utifrån vad Datasäkerhet hittade i dem eller deras namn, så det som lämnar databasen, eller en sond, är redan maskerat. OneUptime Cloud sparar inga.
 
 ## Kontroller i en fil
 
@@ -115,7 +115,7 @@ En kopia som laddas enligt ett schema ligger efter sin källa: jämför med anpa
 
 ## dbt-tester
 
-Efter en dbt-build skickar `oneuptime dbt upload` projektets artefakter (se [Härkomst och pipelines](/docs/data-observability/lineage-and-pipelines)). Varje test av en övervakad tabell visas sedan på dess flik **Kontroller**, med det senaste resultatet och de rader som testet fann felaktiga. Välj **Alert on Failures** för att ett test som inte går igenom ska öppna ett larm.
+Efter en dbt-build skickar `oneuptime dbt upload` projektets artefakter (se [Härkomst och pipelines](/docs/data-observability/lineage-and-pipelines)). Varje test av en övervakad tabell visas sedan på dess flik **Kontroller**, med det senaste resultatet och de rader som testet fann felaktiga. Välj **Larma vid fel** för att ett test som inte går igenom ska öppna ett larm.
 
 ## Nästa steg
 

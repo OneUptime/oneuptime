@@ -49,15 +49,15 @@ flowchart TB
 :::steps
 ### Koble til en database
 
-Åpne **Dataobserverbarhet**, gå til **Databaser** og velg **Connect a Database**. Velg databasemotoren, og oppgi en skrivebeskyttet tilkoblingsstreng, eller navnet på miljøvariabelen sonden din leser den fra. [Koble til en database](/docs/data-observability/connect) viser brukeren hver databasemotor trenger.
+Åpne **Dataobserverbarhet**, gå til **Databaser** og velg **Koble til en database**. Velg databasemotoren, og oppgi en skrivebeskyttet tilkoblingsstreng, eller navnet på miljøvariabelen sonden din leser den fra. [Koble til en database](/docs/data-observability/connect) viser brukeren hver databasemotor trenger.
 
 ### Se tabellene
 
-Innen fem minutter vises tabellene under **Tabeller**, hver med rader, størrelse og når den sist ble endret. Aktualiteten til en tabell er kjent når den har endret seg to ganger: **Fresh** så lenge den holder rytmen, **Late** når den bryter den.
+Innen fem minutter vises tabellene under **Tabeller**, hver med rader, størrelse og når den sist ble endret. Aktualiteten til en tabell er kjent når den har endret seg to ganger: **Fersk** så lenge den holder rytmen, **Sen** når den bryter den.
 
 ### Legg til de anbefalte varslene
 
-Under **Databaser** velger du **Recommended Alerts** for databasen og legger til dem du vil ha: en tabell som er forsinket, en der antall rader faller kraftig eller er uvanlig lavt, en der kolonnene endres, og en database som slutter å rapportere. Hver av dem er en vanlig monitor: vakt, eiere, vedlikeholdsvinduer og statussider fungerer som for alle andre.
+Under **Databaser** velger du **Anbefalte varsler** for databasen og legger til dem du vil ha: en tabell som er forsinket, en der antall rader faller kraftig eller er uvanlig lavt, en der kolonnene endres, og en database som slutter å rapportere. Hver av dem er en vanlig monitor: vakt, eiere, vedlikeholdsvinduer og statussider fungerer som for alle andre.
 :::
 
 ## Neste steg

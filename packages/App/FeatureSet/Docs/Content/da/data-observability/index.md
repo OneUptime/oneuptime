@@ -49,15 +49,15 @@ flowchart TB
 :::steps
 ### Forbind en database
 
-Åbn **Dataobservabilitet**, gå til **Databaser**, og vælg **Connect a Database**. Vælg motoren, og angiv en skrivebeskyttet forbindelsesstreng eller navnet på den miljøvariabel, din sonde læser den fra. [Forbind en database](/docs/data-observability/connect) viser login for hver motor.
+Åbn **Dataobservabilitet**, gå til **Databaser**, og vælg **Forbind en database**. Vælg motoren, og angiv en skrivebeskyttet forbindelsesstreng eller navnet på den miljøvariabel, din sonde læser den fra. [Forbind en database](/docs/data-observability/connect) viser login for hver motor.
 
 ### Se dens tabeller
 
-Inden for fem minutter vises dens tabeller under **Tabeller**, hver med sine rækker, sin størrelse og tidspunktet for den seneste ændring. En tabels aktualitet kendes, når den har ændret sig to gange: **Fresh**, så længe den holder sin rytme, **Late**, når den misser den.
+Inden for fem minutter vises dens tabeller under **Tabeller**, hver med sine rækker, sin størrelse og tidspunktet for den seneste ændring. En tabels aktualitet kendes, når den har ændret sig to gange: **Frisk**, så længe den holder sin rytme, **Forsinket**, når den misser den.
 
 ### Tilføj de anbefalede advarsler
 
-Vælg **Recommended Alerts** for databasen under **Databaser**, og tilføj dem, du vil have: en tabel, der er forsinket, en, hvis rækker falder kraftigt eller er usædvanligt få, en, hvis kolonner ændrer sig, og en database, der holder op med at rapportere. Hver er en almindelig monitor: vagtordning, ejere, vedligeholdelsesvinduer og statussider fungerer som for enhver anden.
+Vælg **Anbefalede advarsler** for databasen under **Databaser**, og tilføj dem, du vil have: en tabel, der er forsinket, en, hvis rækker falder kraftigt eller er usædvanligt få, en, hvis kolonner ændrer sig, og en database, der holder op med at rapportere. Hver er en almindelig monitor: vagtordning, ejere, vedligeholdelsesvinduer og statussider fungerer som for enhver anden.
 :::
 
 ## Næste trin

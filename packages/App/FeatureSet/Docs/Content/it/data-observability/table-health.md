@@ -15,7 +15,7 @@ Viene letto solo il catalogo, e su MongoDB i nomi dei campi dei documenti più r
 
 ## Freschezza
 
-Il **ritmo** di una tabella è la frequenza con cui cambia di solito, appresa dal tempo che passa tra una modifica e l'altra. Una tabella che va ben oltre il suo ritmo compare come **Late**, sulla sua pagina e in **Tabelle**, e scrive di quanto lo ha superato. La sua freschezza è nota non appena è cambiata due volte: una tabella caricata ogni ora viene appresa in poche ore, una caricata ogni notte in pochi giorni.
+Il **ritmo** di una tabella è la frequenza con cui cambia di solito, appresa dal tempo che passa tra una modifica e l'altra. Una tabella che va ben oltre il suo ritmo compare come **In ritardo**, sulla sua pagina e in **Tabelle**, e scrive di quanto lo ha superato. La sua freschezza è nota non appena è cambiata due volte: una tabella caricata ogni ora viene appresa in poche ore, una caricata ogni notte in pochi giorni.
 
 Una vista non contiene righe proprie, quindi la sua freschezza è quella delle sue origini: vedi [Lineage e pipeline](/docs/data-observability/lineage-and-pipelines).
 
@@ -29,7 +29,7 @@ Un catalogo può dire che una tabella è cambiata quando è cambiata solo la sua
 
 ## Avvisi consigliati
 
-In **Database**, scegli **Recommended Alerts** per un database. Ogni raccomandazione è un unico monitor di metriche per l'intero database che avvisa una volta per tabella, così anche una tabella creata in seguito viene sorvegliata:
+In **Database**, scegli **Avvisi consigliati** per un database. Ogni raccomandazione è un unico monitor di metriche per l'intero database che avvisa una volta per tabella, così anche una tabella creata in seguito viene sorvegliata:
 
 | Avviso | Scatta quando |
 | --- | --- |

@@ -9,10 +9,10 @@ A Observabilidade de dados lê cada banco de dados com um login que só lê o ca
 
 ## Escolha quem se conecta
 
-Em **Observabilidade de dados > Bancos de dados**, escolha **Connect a Database** e depois:
+Em **Observabilidade de dados > Bancos de dados**, escolha **Conectar um banco de dados** e depois:
 
-- **OneUptime connects**: cole uma string de conexão. Ela é armazenada criptografada, usada apenas pelos workers do OneUptime e nunca mais é exibida.
-- **A probe in my network connects**: escolha uma das suas sondas e informe o nome da variável de ambiente, na sonda, que contém a string de conexão, como `ORDERS_DB_URL`. A string de conexão nunca sai da sua rede. Veja [Sondas personalizadas](/docs/probe/custom-probe).
+- **O OneUptime conecta**: cole uma string de conexão. Ela é armazenada criptografada, usada apenas pelos workers do OneUptime e nunca mais é exibida.
+- **Uma sonda na minha rede conecta**: escolha uma das suas sondas e informe o nome da variável de ambiente, na sonda, que contém a string de conexão, como `ORDERS_DB_URL`. A string de conexão nunca sai da sua rede. Veja [Sondas personalizadas](/docs/probe/custom-probe).
 
 Um banco de dados já conectado para a Segurança de dados também é observado, sem nada para conectar, assim como cada dataset do BigQuery que a sua [conexão de nuvem](/docs/telemetry/cloud-accounts) encontrou.
 

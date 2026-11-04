@@ -49,15 +49,15 @@ flowchart TB
 :::steps
 ### Eine Datenbank verbinden
 
-Öffnen Sie **Data Observability**, gehen Sie zu **Datenbanken** und wählen Sie **Connect a Database**. Wählen Sie die Engine und geben Sie eine schreibgeschützte Verbindungszeichenfolge an oder den Namen der Umgebungsvariable, aus der Ihre Sonde sie liest. [Eine Datenbank verbinden](/docs/data-observability/connect) zeigt das Login jeder Engine.
+Öffnen Sie **Data Observability**, gehen Sie zu **Datenbanken** und wählen Sie **Datenbank verbinden**. Wählen Sie die Engine und geben Sie eine schreibgeschützte Verbindungszeichenfolge an oder den Namen der Umgebungsvariable, aus der Ihre Sonde sie liest. [Eine Datenbank verbinden](/docs/data-observability/connect) zeigt das Login jeder Engine.
 
 ### Ihre Tabellen ansehen
 
-Innerhalb von fünf Minuten erscheinen ihre Tabellen unter **Tabellen**, jede mit ihren Zeilen, ihrer Größe und dem Zeitpunkt ihrer letzten Änderung. Die Aktualität einer Tabelle ist bekannt, sobald sie sich zweimal geändert hat: **Fresh**, solange sie ihren Rhythmus einhält, **Late**, sobald sie ihn verpasst.
+Innerhalb von fünf Minuten erscheinen ihre Tabellen unter **Tabellen**, jede mit ihren Zeilen, ihrer Größe und dem Zeitpunkt ihrer letzten Änderung. Die Aktualität einer Tabelle ist bekannt, sobald sie sich zweimal geändert hat: **Aktuell**, solange sie ihren Rhythmus einhält, **Verspätet**, sobald sie ihn verpasst.
 
 ### Die empfohlenen Warnungen hinzufügen
 
-Wählen Sie unter **Datenbanken** für die Datenbank **Recommended Alerts** und fügen Sie die gewünschten hinzu: eine Tabelle, die verspätet ist, eine, deren Zeilen stark fallen oder ungewöhnlich niedrig liegen, eine, deren Spalten sich ändern, und eine Datenbank, die nicht mehr meldet. Jede ist ein gewöhnlicher Monitor: Bereitschaft, Eigentümer, Wartungsfenster und Statusseiten funktionieren wie bei jedem anderen.
+Wählen Sie unter **Datenbanken** für die Datenbank **Empfohlene Warnungen** und fügen Sie die gewünschten hinzu: eine Tabelle, die verspätet ist, eine, deren Zeilen stark fallen oder ungewöhnlich niedrig liegen, eine, deren Spalten sich ändern, und eine Datenbank, die nicht mehr meldet. Jede ist ein gewöhnlicher Monitor: Bereitschaft, Eigentümer, Wartungsfenster und Statusseiten funktionieren wie bei jedem anderen.
 :::
 
 ## Nächste Schritte

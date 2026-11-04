@@ -99,7 +99,7 @@ Quando una tabella smette di essere aggiornata, ogni tabella costruita a partire
 - Parte nello stato **Riconosciuto**, così nessuno viene chiamato due volte per lo stesso problema, e si risolve da solo non appena i suoi dati tornano a posto.
 - Il suo feed e il suo riquadro **Dati** indicano quale avviso lo ha causato, e si unisce all'episodio della causa.
 
-Il riquadro **Dati** della causa elenca il suo **Downstream Impact**: ogni avviso che ha causato. Il riquadro di un avviso su una tabella mostra anche i servizi che scrivono la tabella, con le loro scritture non riuscite, e i loro deploy e le altre modifiche nel giorno precedente l'avviso.
+Il riquadro **Dati** della causa elenca il suo **Impatto a valle**: ogni avviso che ha causato. Il riquadro di un avviso su una tabella mostra anche i servizi che scrivono la tabella, con le loro scritture non riuscite, e i loro deploy e le altre modifiche nel giorno precedente l'avviso.
 
 ## Prima che una modifica venga unita
 

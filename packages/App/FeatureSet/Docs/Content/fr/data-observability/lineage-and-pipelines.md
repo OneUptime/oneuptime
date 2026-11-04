@@ -99,7 +99,7 @@ Quand une table devient obsolète, chaque table construite à partir d'elle le d
 - Elle démarre à l'état **Pris en compte**, pour que personne ne soit prévenu deux fois pour un même problème, et se rétablit d'elle-même dès que ses données se rétablissent.
 - Son fil d'activité et sa carte **Données** indiquent quelle alerte l'a causée, et elle rejoint l'épisode de la cause.
 
-La carte **Données** de la cause liste son **Downstream Impact** : chaque alerte qu'elle a causée. La carte d'une alerte de table montre aussi les services qui écrivent dans la table, avec leurs écritures en échec, ainsi que leurs déploiements et autres changements dans la journée précédant l'alerte.
+La carte **Données** de la cause liste son **Impact en aval** : chaque alerte qu'elle a causée. La carte d'une alerte de table montre aussi les services qui écrivent dans la table, avec leurs écritures en échec, ainsi que leurs déploiements et autres changements dans la journée précédant l'alerte.
 
 ## Avant qu'un changement ne soit fusionné
 

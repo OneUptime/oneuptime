@@ -49,15 +49,15 @@ flowchart TB
 :::steps
 ### Conecta una base de datos
 
-Abre **Observabilidad de datos**, ve a **Bases de datos** y elige **Connect a Database**. Elige el motor y proporciona una cadena de conexión de solo lectura, o el nombre de la variable de entorno de la que la lee tu sonda. [Conectar una base de datos](/docs/data-observability/connect) muestra el usuario de cada motor.
+Abre **Observabilidad de datos**, ve a **Bases de datos** y elige **Conectar una base de datos**. Elige el motor y proporciona una cadena de conexión de solo lectura, o el nombre de la variable de entorno de la que la lee tu sonda. [Conectar una base de datos](/docs/data-observability/connect) muestra el usuario de cada motor.
 
 ### Revisa sus tablas
 
-En menos de cinco minutos sus tablas aparecen en **Tablas**, cada una con sus filas, su tamaño y cuándo cambió por última vez. La frescura de una tabla se conoce en cuanto ha cambiado dos veces: **Fresh** mientras mantiene su ritmo, **Late** en cuanto lo pierde.
+En menos de cinco minutos sus tablas aparecen en **Tablas**, cada una con sus filas, su tamaño y cuándo cambió por última vez. La frescura de una tabla se conoce en cuanto ha cambiado dos veces: **Actualizada** mientras mantiene su ritmo, **Con retraso** en cuanto lo pierde.
 
 ### Añade las alertas recomendadas
 
-En **Bases de datos**, elige **Recommended Alerts** para la base de datos y añade las que quieras: una tabla que llega tarde, una cuyas filas caen bruscamente o son inusualmente pocas, una cuyas columnas cambian y una base de datos que deja de informar. Cada una es un monitor normal: la guardia, los propietarios, las ventanas de mantenimiento y las páginas de estado funcionan como con cualquier otro.
+En **Bases de datos**, elige **Alertas recomendadas** para la base de datos y añade las que quieras: una tabla que llega tarde, una cuyas filas caen bruscamente o son inusualmente pocas, una cuyas columnas cambian y una base de datos que deja de informar. Cada una es un monitor normal: la guardia, los propietarios, las ventanas de mantenimiento y las páginas de estado funcionan como con cualquier otro.
 :::
 
 ## Próximos pasos

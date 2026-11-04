@@ -15,15 +15,15 @@ Tilføj et tjek på en tabels fane **Tjek**:
 | **Invalid Percent** | Procentdel af værdier uden for en liste, du angiver |
 | **Format Mismatch Percent** | Procentdel af værdier, der ikke har et format, du vælger, f.eks. Email, UUID eller Country Code, eller som ikke matcher et regulært udtryk af din egen (alle motorer undtagen SQL Server) |
 | **Orphan Count** | Rækker, hvis værdi ikke har noget match i en anden tabels kolonne |
-| **Row Count** | Rækker i tabellen, mest nyttigt med **Segment By** |
+| **Row Count** | Rækker i tabellen, mest nyttigt med **Opdel efter** |
 | **Brugerdefineret SQL** | Det tal, som en skrivebeskyttet SELECT af din egen returnerer, med navnet `value` (i MongoDB en aggregeringspipelines) |
-| **Failing Rows** | Hvor mange rækker én skrivebeskyttet SELECT af din egen returnerer: de rækker, der ikke burde findes. 0 er sundt (i MongoDB de dokumenter, en pipeline ender i) |
+| **Fejlende rækker** | Hvor mange rækker én skrivebeskyttet SELECT af din egen returnerer: de rækker, der ikke burde findes. 0 er sundt (i MongoDB de dokumenter, en pipeline ender i) |
 
 Hvert tjek kører hvert 15. minut, hver time, hver 6. time eller hver dag som én aggregerende sætning i en skrivebeskyttet transaktion med en tidsgrænse for sætningen. Dets værdi skrives som `oneuptime.data.check.value`, med `oneuptime.data.check.id`, `oneuptime.data.check.name` og `oneuptime.data.check.segment`.
 
 ## Foreslåede tjek
 
-**Suggested Checks** på samme fane tilbyder de tjek, som en tabels kolonner kalder på, alene ud fra deres navne og typer: et id er unikt, et `customer_id` har en matchende række i `customers`, en e-mailadresse ligner en e-mailadresse, et beløb er ikke negativt, en status beholder sine sædvanlige værdier, og en tabel, der er opdelt efter tenant, tælles pr. tenant. En kolonne, som Datasikkerhed ved indeholder en e-mailadresse, et telefonnummer eller en IP-adresse, holdes til det format, uanset hvad den hedder. Tilføj et, tilføj dem alle, eller afvis et for altid.
+**Foreslåede kontroller** på samme fane tilbyder de tjek, som en tabels kolonner kalder på, alene ud fra deres navne og typer: et id er unikt, et `customer_id` har en matchende række i `customers`, en e-mailadresse ligner en e-mailadresse, et beløb er ikke negativt, en status beholder sine sædvanlige værdier, og en tabel, der er opdelt efter tenant, tælles pr. tenant. En kolonne, som Datasikkerhed ved indeholder en e-mailadresse, et telefonnummer eller en IP-adresse, holdes til det format, uanset hvad den hedder. Tilføj et, tilføj dem alle, eller afvis et for altid.
 
 ## Et tjek ud fra en sætning
 
@@ -31,11 +31,11 @@ Hvert tjek kører hvert 15. minut, hver time, hver 6. time eller hver dag som é
 
 ## Segmenter
 
-**Segment By** kører et tjek én gang pr. værdi i en kolonne, f.eks. en tenant eller en region: én serie og én advarsel for hver, for de 100 største segmenter. En segmenteret Row Count advarer, når én tenant holder op med at sende data, mens de andre fortsætter.
+**Opdel efter** kører et tjek én gang pr. værdi i en kolonne, f.eks. en tenant eller en region: én serie og én advarsel for hver, for de 100 største segmenter. En segmenteret Row Count advarer, når én tenant holder op med at sende data, mens de andre fortsætter.
 
 ## Advarsler på et tjek
 
-Indstil **Alert When** for at advare på et tjek:
+Indstil **Advar, når** for at advare på et tjek:
 
 - **Unusually High** eller **Unusually Low** sammenligner hver værdi med dens egen lærte basislinje for den time på ugen.
 - **Over** eller **Under** sammenligner den med en tærskel.
@@ -52,7 +52,7 @@ Et tjek konkurrerer med din applikation om databasen, og på et datavarehus, der
 
 ## Fejlende rækker
 
-Et tal siger, at noget er galt; nogle få rækker siger hvad. På en selvhostet OneUptime gemmer **Gem fejlende rækker** under **Indstillinger** op til 20 af de rækker, som et Failing Rows-, Invalid Percent-, Format Mismatch Percent- eller Orphan Count-tjek fandt, og **Failing Rows** på tjekket viser dem. Følsomme kolonner maskeres, hvor rækken læses, efter hvad Datasikkerhed fandt i dem eller efter deres navne, så det, der forlader databasen eller en sonde, allerede er maskeret. OneUptime Cloud gemmer ingen.
+Et tal siger, at noget er galt; nogle få rækker siger hvad. På en selvhostet OneUptime gemmer **Gem fejlende rækker** under **Indstillinger** op til 20 af de rækker, som et Failing Rows-, Invalid Percent-, Format Mismatch Percent- eller Orphan Count-tjek fandt, og **Fejlende rækker** på tjekket viser dem. Følsomme kolonner maskeres, hvor rækken læses, efter hvad Datasikkerhed fandt i dem eller efter deres navne, så det, der forlader databasen eller en sonde, allerede er maskeret. OneUptime Cloud gemmer ingen.
 
 ## Tjek i en fil
 
@@ -115,7 +115,7 @@ En kopi, der indlæses efter en tidsplan, halter efter sin kilde: sammenlign med
 
 ## dbt-tests
 
-Efter et dbt-build sender `oneuptime dbt upload` projektets artefakter (se [Afstamning og pipelines](/docs/data-observability/lineage-and-pipelines)). Hver test af en overvåget tabel vises derefter på dens fane **Tjek**, med dens seneste resultat og de rækker, den fandt fejlende. Vælg **Alert on Failures** for at få en fejlende test til at åbne en advarsel.
+Efter et dbt-build sender `oneuptime dbt upload` projektets artefakter (se [Afstamning og pipelines](/docs/data-observability/lineage-and-pipelines)). Hver test af en overvåget tabel vises derefter på dens fane **Tjek**, med dens seneste resultat og de rækker, den fandt fejlende. Vælg **Advar ved fejl** for at få en fejlende test til at åbne en advarsel.
 
 ## Næste trin
 

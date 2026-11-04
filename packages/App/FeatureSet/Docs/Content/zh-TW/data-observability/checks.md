@@ -15,15 +15,15 @@
 | **Invalid Percent** | 不在你提供的清單中的值所占的百分比 |
 | **Format Mismatch Percent** | 不是你所選格式（例如 Email、UUID 或 Country Code）的值，或不符合你的規則運算式的值所占的百分比（SQL Server 以外的所有引擎） |
 | **Orphan Count** | 其值在另一個資料表的欄中找不到相符項目的列 |
-| **Row Count** | 資料表中的列數，搭配 **Segment By** 使用最有用 |
+| **Row Count** | 資料表中的列數，搭配 **分群依據** 使用最有用 |
 | **自訂 SQL** | 你的一個唯讀 SELECT 所傳回、名為 `value` 的數字（在 MongoDB 中為聚合管線傳回的數字） |
-| **Failing Rows** | 你的一個唯讀 SELECT 傳回多少列：那些不該存在的列。0 表示健康（在 MongoDB 中為管線最後得到的文件） |
+| **失敗的資料列** | 你的一個唯讀 SELECT 傳回多少列：那些不該存在的列。0 表示健康（在 MongoDB 中為管線最後得到的文件） |
 
 每個檢查每 15 分鐘、每小時、每 6 小時或每天執行一次，作為一個彙總陳述式，在設有陳述式逾時的唯讀交易中執行。它的值會寫入為 `oneuptime.data.check.value`，並帶有 `oneuptime.data.check.id`、`oneuptime.data.check.name` 和 `oneuptime.data.check.segment`。
 
 ## 建議的檢查
 
-同一個索引標籤上的 **Suggested Checks** 會只根據欄的名稱和類型，提供資料表的欄所需要的檢查：id 是唯一的、`customer_id` 在 `customers` 中有相符的列、電子郵件看起來像電子郵件、金額不是負數、狀態保持其通常的值，以及依租用戶拆分的資料表依租用戶計數。資料安全得知保存電子郵件地址、電話號碼或 IP 位址的欄，無論它叫什麼名稱，都會依該格式檢查。你可以新增一個、全部新增，或永久隱藏某一個。
+同一個索引標籤上的 **建議的檢查** 會只根據欄的名稱和類型，提供資料表的欄所需要的檢查：id 是唯一的、`customer_id` 在 `customers` 中有相符的列、電子郵件看起來像電子郵件、金額不是負數、狀態保持其通常的值，以及依租用戶拆分的資料表依租用戶計數。資料安全得知保存電子郵件地址、電話號碼或 IP 位址的欄，無論它叫什麼名稱，都會依該格式檢查。你可以新增一個、全部新增，或永久隱藏某一個。
 
 ## 用一句話撰寫檢查
 
@@ -31,11 +31,11 @@
 
 ## 區段
 
-**Segment By** 會針對某一欄的每個值（例如租用戶或區域）各執行一次檢查：最大的 100 個區段各有一個序列和一個警示。分區段的 Row Count 檢查會在某個租用戶停止傳送資料、而其他租用戶仍持續傳送時發出警示。
+**分群依據** 會針對某一欄的每個值（例如租用戶或區域）各執行一次檢查：最大的 100 個區段各有一個序列和一個警示。分區段的 Row Count 檢查會在某個租用戶停止傳送資料、而其他租用戶仍持續傳送時發出警示。
 
 ## 檢查的警示
 
-設定 **Alert When** 以針對檢查發出警示：
+設定 **警示條件** 以針對檢查發出警示：
 
 - **Unusually High** 或 **Unusually Low** 會把每個值與它自己在每週該時段學習到的基準線進行比較。
 - **高於** 或 **低於** 會把它與閾值進行比較。
@@ -52,7 +52,7 @@
 
 ## 失敗的資料列
 
-數字說明有地方出錯；幾列資料則說明是哪裡。在自行代管的 OneUptime 上，**設定** 下的 **保留 Failing Rows** 會保留 Failing Rows、Invalid Percent、Format Mismatch Percent 或 Orphan Count 檢查找到的最多 20 列，檢查上的 **Failing Rows** 會顯示它們。敏感欄位在讀取該列的地方就會被遮蔽，依資料安全在其中找到的內容或依其名稱，因此離開資料庫或探測器的內容已經是遮蔽過的。OneUptime Cloud 不保留任何資料列。
+數字說明有地方出錯；幾列資料則說明是哪裡。在自行代管的 OneUptime 上，**設定** 下的 **保留 Failing Rows** 會保留 Failing Rows、Invalid Percent、Format Mismatch Percent 或 Orphan Count 檢查找到的最多 20 列，檢查上的 **失敗的資料列** 會顯示它們。敏感欄位在讀取該列的地方就會被遮蔽，依資料安全在其中找到的內容或依其名稱，因此離開資料庫或探測器的內容已經是遮蔽過的。OneUptime Cloud 不保留任何資料列。
 
 ## 檔案中的檢查
 
@@ -115,7 +115,7 @@ oneuptime data-checks apply checks.yaml --prune
 
 ## dbt 測試
 
-dbt 建置完成後，`oneuptime dbt upload` 會傳送專案的建置成品（請參閱 [血緣與管線](/docs/data-observability/lineage-and-pipelines)）。之後，受監看資料表的每個測試都會顯示在該資料表的 **檢查** 索引標籤上，並附上它的最新結果和它找到的失敗列。選擇 **Alert on Failures**，即可讓失敗的測試開啟一個警示。
+dbt 建置完成後，`oneuptime dbt upload` 會傳送專案的建置成品（請參閱 [血緣與管線](/docs/data-observability/lineage-and-pipelines)）。之後，受監看資料表的每個測試都會顯示在該資料表的 **檢查** 索引標籤上，並附上它的最新結果和它找到的失敗列。選擇 **失敗時發出警示**，即可讓失敗的測試開啟一個警示。
 
 ## 後續步驟
 
