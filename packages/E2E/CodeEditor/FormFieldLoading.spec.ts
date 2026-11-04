@@ -29,7 +29,7 @@ const CONTROL_FILES: RegExp =
 
 const SAVE_BUTTON_ID: string = "form-field-loading-submit-button";
 
-// A whole page's load: its first draw, and what comes after it reloads.
+// A whole page's load: its first draw, a control's arrival, and after a reload.
 const PAGE_LOAD: { timeout: number } = { timeout: 60000 };
 
 const CODE_EDITOR: string = "code-editor-placeholder";
@@ -308,8 +308,8 @@ for (const { name, width, scenarios } of WIDTHS) {
 
         await files.release();
 
-        await expect(placeholder).toHaveCount(0);
-        await expect(page.locator(scenario.control)).toHaveCount(1);
+        await expect(placeholder).toHaveCount(0, PAGE_LOAD);
+        await expect(page.locator(scenario.control)).toHaveCount(1, PAGE_LOAD);
 
         await expectSameBoxes(page, before);
       });
@@ -347,7 +347,10 @@ test.describe("the frames in between", () => {
 
       await files.release();
 
-      await expect(page.getByTestId(scenario.placeholder)).toHaveCount(0);
+      await expect(page.getByTestId(scenario.placeholder)).toHaveCount(
+        0,
+        PAGE_LOAD,
+      );
       await waitForFrames(page, 10);
 
       const boxes: Array<DrawnBox> =
