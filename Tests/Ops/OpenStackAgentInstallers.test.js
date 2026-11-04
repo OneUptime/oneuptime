@@ -329,21 +329,43 @@ function newerUpstream() {
 }
 
 // The variables a script's ENV_NAMES list names.
-function envNames(script) {
-  const match = script.match(/^ENV_NAMES="([^"]+)"$/m);
+function namesListed(script, list) {
+  const match = script.match(new RegExp(`^${list}="([^"]+)"$`, "m"));
   expect(match).not.toBeNull();
   return match[1].replace(/\\\n/g, " ").split(/\s+/).filter(Boolean);
 }
 
-// The variables the heredoc that writes .env sets, in order.
-function writtenNames(script) {
+// ENV_NAMES names two lists of its own, which the script writes in loops.
+function envNames(script) {
+  return namesListed(script, "ENV_NAMES").flatMap((name) => {
+    return name.startsWith("$") ? namesListed(script, name.slice(1)) : [name];
+  });
+}
+
+// What the heredoc that writes .env holds, a line each.
+function heredocLines(script) {
   const heredoc = script.match(
     /cat > "\$ENV_FILE" <<ENVEOF\n([\s\S]*?)\nENVEOF/,
   );
   expect(heredoc).not.toBeNull();
-  return heredoc[1].split("\n").map((line) => {
+  return heredoc[1].split("\n");
+}
+
+// The variables that write .env, in order: the heredoc's, then the loops'.
+function writtenNames(script) {
+  const heredoc = heredocLines(script).map((line) => {
     return line.split("=")[0];
   });
+  for (const list of ["TARGET_LIST_NAMES", "VERY_LARGE_CLOUD_NAMES"]) {
+    expect(script).toContain(
+      `for name in $${list}; do\n`,
+    );
+  }
+  return [
+    ...heredoc,
+    ...namesListed(script, "TARGET_LIST_NAMES"),
+    ...namesListed(script, "VERY_LARGE_CLOUD_NAMES"),
+  ];
 }
 
 // Every ${VAR} docker-compose.yml interpolates ($$ is a literal $).
@@ -441,6 +463,18 @@ describe("agents/OpenStackAgent/install.sh, a fresh install", () => {
       OPENSTACK_EXPORTER_USER: "1000:1000",
       OPENSTACK_CA_FILE: "''",
       COMPOSE_PROFILES: "'openstack-exporter'",
+      // The first region named, for a target that does not say its own.
+      OPENSTACK_CONTROL_PLANE_REGION: "'RegionOne'",
+      OPENSTACK_SINGLE_CLOUD_EXPORTER_TARGETS: "'[]'",
+      // Never asked for: whoever knows where these run names them by hand.
+      OPENSTACK_RABBITMQ_TARGETS: "'[]'",
+      OPENSTACK_MARIADB_TARGETS: "'[]'",
+      OPENSTACK_MEMCACHED_TARGETS: "'[]'",
+      OPENSTACK_HAPROXY_TARGETS: "'[]'",
+      OPENSTACK_NETWORK_EXPORTER_TARGETS: "'[]'",
+      OPENSTACK_LIBVIRT_HEALTH_TARGETS: "'[]'",
+      OPENSTACK_LIBVIRT_EXPORTER_TARGETS: "'[]'",
+      OPENSTACK_CEILOMETER_EXPORTER_TARGETS: "'[]'",
     });
     expect(mode(path.join(run.installDir, ".env"))).toBe(0o600);
     expect(run.output).not.toContain("reusing it");
@@ -1761,6 +1795,16 @@ describe("install.sh, as the upgrade", () => {
       OPENSTACK_EXPORTER_USER: "1000:1000",
       OPENSTACK_CA_FILE: "",
       COMPOSE_PROFILES: "openstack-exporter",
+      OPENSTACK_CONTROL_PLANE_REGION: "RegionOne",
+      OPENSTACK_SINGLE_CLOUD_EXPORTER_TARGETS: "[]",
+      OPENSTACK_RABBITMQ_TARGETS: "[]",
+      OPENSTACK_MARIADB_TARGETS: "[]",
+      OPENSTACK_MEMCACHED_TARGETS: "[]",
+      OPENSTACK_HAPROXY_TARGETS: "[]",
+      OPENSTACK_NETWORK_EXPORTER_TARGETS: "[]",
+      OPENSTACK_LIBVIRT_HEALTH_TARGETS: "[]",
+      OPENSTACK_LIBVIRT_EXPORTER_TARGETS: "[]",
+      OPENSTACK_CEILOMETER_EXPORTER_TARGETS: "[]",
     });
   });
 
@@ -2170,16 +2214,27 @@ describe("agents/OpenStackAgent/install.sh, statically", () => {
   });
 
   test("quotes every value but the validated one for what reads the file", () => {
-    const heredoc = script.match(
-      /cat > "\$ENV_FILE" <<ENVEOF\n([\s\S]*?)\nENVEOF/,
-    )[1];
+    const lines = heredocLines(script);
+    const inLoops = [
+      ...namesListed(script, "TARGET_LIST_NAMES"),
+      ...namesListed(script, "VERY_LARGE_CLOUD_NAMES"),
+    ];
     for (const name of envNames(script)) {
+      if (inLoops.includes(name)) {
+        continue;
+      }
       const line =
         name === "OPENSTACK_EXPORTER_USER"
           ? `${name}=$${name}`
           : `${name}=$(env_value "$${name}")`;
-      expect(heredoc.split("\n")).toContain(line);
+      expect(lines).toContain(line);
     }
+    // Both loops write what they name the same way, quoted.
+    expect(
+      script.match(
+        /printf '%s=%s\\n' "\$name" "\$\(env_value "\$\{!name\}"\)" >> "\$ENV_FILE"/g,
+      ),
+    ).toHaveLength(2);
   });
 
   test("reads an existing .env back with the helper VMware's installer uses", () => {
