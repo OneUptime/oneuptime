@@ -164,9 +164,9 @@ describe("what reading it brings with it", () => {
     const loaded: Array<string> = [];
 
     jest.isolateModules(() => {
-      jest.doMock("@opentelemetry/context-zone", () => {
-        loaded.push("@opentelemetry/context-zone");
-        return { ZoneContextManager: class {} };
+      jest.doMock("@opentelemetry/sdk-trace-web", () => {
+        loaded.push("@opentelemetry/sdk-trace-web");
+        return { WebTracerProvider: class {} };
       });
       jest.doMock("../../../UI/Utils/Telemetry/Telemetry", () => {
         loaded.push("UI/Utils/Telemetry/Telemetry");
