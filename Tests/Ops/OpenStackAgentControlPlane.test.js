@@ -267,6 +267,10 @@ describe("the collector's jobs for what the cloud stands on", () => {
 
   const JOBS = {
     "oneuptime-openstack-rabbitmq": ["rabbitmq", "OPENSTACK_RABBITMQ_TARGETS"],
+    "oneuptime-openstack-rabbitmq-queues": [
+      "rabbitmq-queues",
+      "OPENSTACK_RABBITMQ_TARGETS",
+    ],
     "oneuptime-openstack-mariadb": ["mariadb", "OPENSTACK_MARIADB_TARGETS"],
     "oneuptime-openstack-memcached": ["memcached", "OPENSTACK_MEMCACHED_TARGETS"],
     "oneuptime-openstack-haproxy": ["haproxy", "OPENSTACK_HAPROXY_TARGETS"],
@@ -301,6 +305,64 @@ describe("the collector's jobs for what the cloud stands on", () => {
       expect(staticConfig.labels.openstack_region).toBe(
         "${env:OPENSTACK_CONTROL_PLANE_REGION}",
       );
+    }
+  });
+
+  test("reads each queue from RabbitMQ's detailed endpoint, and only what an alert compares", () => {
+    const job = jobNamed("oneuptime-openstack-rabbitmq-queues");
+
+    expect(job.metrics_path).toBe("/metrics/detailed");
+    expect(job.params.family).toEqual([
+      "queue_coarse_metrics",
+      "queue_consumer_count",
+    ]);
+
+    const [keep, drop] = job.metric_relabel_configs;
+
+    expect(keep.regex).toBe("rabbitmq_detailed_queue_(messages_ready|consumers)");
+    expect(drop.action).toBe("drop");
+    expect(drop.source_labels).toEqual(["queue"]);
+
+    for (const [queue, dropped] of [
+      ["reply_8c1f0e0b5a2d4d0c9e1f", true],
+      ["scheduler_fanout_1f0e0b5a2d4d", true],
+      ["compute.runnervm48cm3", false],
+      ["conductor", false],
+    ]) {
+      expect(new RegExp(`^(?:${drop.regex})$`).test(queue)).toBe(dropped);
+    }
+  });
+
+  test("a RabbitMQ too old for that endpoint reads as no node being down", () => {
+    const job = jobNamed("oneuptime-openstack-rabbitmq-queues");
+
+    // Its `up` carries its own word, and only `rabbitmq` is a dependency a row is kept for.
+    expect(job.static_configs[0].labels.openstack_dependency).toBe(
+      "rabbitmq-queues",
+    );
+  });
+
+  test("the rig starts the collector with everything its config reads", () => {
+    const rig = fs.readFileSync(
+      path.join(__dirname, "openstack-e2e", "control-plane-clusters.sh"),
+      "utf8",
+    );
+    const start = rig.slice(rig.indexOf("start_collector() {"));
+    const given = start.slice(0, start.indexOf("\n}\n"));
+    const read = new Set(
+      Array.from(
+        agentFile("otel-collector-config.yaml").matchAll(/\$\{env:(\w+)\}/g),
+      ).map((match) => {
+        return match[1];
+      }),
+    );
+
+    expect(read.size).toBeGreaterThan(5);
+    for (const variable of read) {
+      expect({ variable, given: given.includes(`${variable}=`) }).toEqual({
+        variable,
+        given: true,
+      });
     }
   });
 
