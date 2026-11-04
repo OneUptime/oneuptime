@@ -613,6 +613,28 @@ describe("what the recordings show, as the pages say it", () => {
       "load-balancer: load balancers",
       "load-balancer: amphorae",
       "baremetal: nodes",
+      // The rest of what the rig asks where a cloud runs it. services-<group>/access-check
+      // holds what those clouds answered, which is not a release's and not in these tables.
+      "load-balancer: pools",
+      "load-balancer: load balancers, as the exporter asks",
+      "load-balancer: amphorae, as the exporter asks",
+      "baremetal: conductors",
+      "orchestration: stacks, as the exporter asks",
+      "orchestration: stacks, all projects",
+      "orchestration: services",
+      "container-infra: clusters",
+      "container-infra: services",
+      "sharev2: shares, all projects",
+      "sharev2: services",
+      "sharev2: pools",
+      "dns: zones, all projects",
+      "dns: zones, own project",
+      "key-manager: secrets",
+      "key-manager: orders",
+      "object-store: own account",
+      "database: instances, as the exporter asks",
+      "database: instances, own project",
+      "metric: status",
     ]);
     for (const file of [README, DOCS_PAGE]) {
       expect(read(file)).toContain(
