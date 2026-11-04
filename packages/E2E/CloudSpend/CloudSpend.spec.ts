@@ -104,11 +104,27 @@ interface Recorded {
 const pageErrors: Map<Page, Array<string>> = new Map();
 const outsideRequests: Map<Page, Array<string>> = new Map();
 
+/*
+ * CLOUD_SPEND_CLOCK=2026-03-01T00:30:00Z runs every test with the page's
+ * clock started at that time (it then runs on as a clock does), so the
+ * whole suite can be run at any hour of any day - the fixture's figures
+ * are made up from the page's own now.
+ */
+const SUITE_CLOCK: string = process.env["CLOUD_SPEND_CLOCK"] || "";
+
 test.beforeEach(async ({ page }: { page: Page }) => {
   const errors: Array<string> = [];
   const outside: Array<string> = [];
   pageErrors.set(page, errors);
   outsideRequests.set(page, outside);
+
+  if (SUITE_CLOCK) {
+    const time: Date = new Date(SUITE_CLOCK);
+    expect(Number.isNaN(time.getTime()), "CLOUD_SPEND_CLOCK is a time").toBe(
+      false,
+    );
+    await page.clock.install({ time });
+  }
 
   page.on("pageerror", (error: Error) => {
     errors.push(String(error));
@@ -1321,6 +1337,79 @@ test.describe("Costs", () => {
     await expectNoSidewaysScroll(page);
     await screenshot(page, "cloud-costs-390");
   });
+});
+
+/*
+ * ---------------------------------------------------------------------------
+ * At any hour of the UTC day
+ * ---------------------------------------------------------------------------
+ *
+ * The costs are read twice a day and a cloud reports today late, so the
+ * last read may have been made before midnight - on a month's first day,
+ * in last month. The pages still agree: the month the Overview says it
+ * cost is Costs' first tile and its breakdown's total, and an account's
+ * month is its Costs' - just after midnight UTC as at noon.
+ */
+test.describe("at any hour of the UTC day", () => {
+  for (const clock of [
+    { name: "00:30 UTC on a month's first day", time: "2026-03-01T00:30:00Z" },
+    { name: "12:00 UTC the same day", time: "2026-03-01T12:00:00Z" },
+  ]) {
+    test(`${clock.name}: the Overview's month is Costs' and its breakdown's, and an account's month its Costs'`, async ({
+      page,
+    }: {
+      page: Page;
+    }) => {
+      const time: Date = new Date(clock.time);
+      // The suite's own clock (CLOUD_SPEND_CLOCK) is moved, not installed twice.
+      if (SUITE_CLOCK) {
+        await page.clock.setSystemTime(time);
+      } else {
+        await page.clock.install({ time });
+      }
+
+      await page.setViewportSize(LAPTOP);
+      await open(page, CLOUD);
+      // The page runs on the clock: the fixture made its figures from it.
+      expect(
+        await page.evaluate((): string => {
+          return new Date().toISOString().slice(0, 13);
+        }),
+      ).toBe(clock.time.slice(0, 13));
+
+      const overviewSpend: string = await tileValue(
+        page,
+        "cloud-overview-strip",
+        "spend",
+      );
+      const accountSpend: string = (
+        (await page
+          .getByTestId("cloud-accounts-card-row")
+          .filter({ hasText: "web-prod" })
+          .getByTestId("cloud-accounts-card-spend")
+          .locator(".tabular-nums")
+          .textContent()) || ""
+      ).trim();
+      expect(amountOf(overviewSpend)).toBeGreaterThan(0);
+      expect(amountOf(accountSpend)).toBeGreaterThan(0);
+
+      await open(page, COSTS);
+      expect(await tileValue(page, "cloud-costs-strip", "spend")).toBe(
+        overviewSpend,
+      );
+      expect(await dailyBars(page)).toEqual({
+        finished: 29,
+        partlyReported: 1,
+      });
+      await expect(breakdownTotal(page)).toHaveText(`${overviewSpend} in all`);
+
+      await open(page, WEB_PROD_COSTS);
+      expect(await tileValue(page, "cloud-costs-strip", "spend")).toBe(
+        accountSpend,
+      );
+      await expect(breakdownTotal(page)).toHaveText(`${accountSpend} in all`);
+    });
+  }
 });
 
 /*

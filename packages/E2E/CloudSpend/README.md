@@ -55,6 +55,14 @@ App Platforms environments with four apps in the accounts.
 | `?lang=de`, `?lang=fa` | German, Persian (right to left)                          |
 | `?theme=dark`          | Dark                                                     |
 
+The figures are made up from the page's own clock, and the accounts' costs
+read two hours before it, but never before today's start (a read made before
+midnight would end at yesterday while every page sums today's rows). To run
+the whole suite at another hour, start the page's clock there:
+`CLOUD_SPEND_CLOCK=2026-03-01T00:30:00Z npm run test-cloud-spend-ui`. The
+suite's own "at any hour of the UTC day" tests run at 00:30 and 12:00 UTC on a
+month's first day.
+
 Every read is recorded on `window.__cloudSpendFixture` (`listRequests`,
 `countRequests`, `itemRequests`, `aggregateRequests`, `creates`, `updates`
 and `unhandled`); the spec fails on anything in `unhandled`.

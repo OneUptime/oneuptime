@@ -322,6 +322,15 @@ for (const [accountRow, billed] of Object.entries(BILLED)) {
   });
 }
 
+/*
+ * When the accounts' costs were last read: two hours ago, but never before
+ * today's start. A summary read across midnight would end at yesterday -
+ * or, on a month's first day, at last month - while every page sums
+ * today's rows too, so between 00:00 and 02:00 UTC the Overview's month
+ * and Costs' breakdown would tell two different months.
+ */
+const COSTS_READ_AT = new Date(Math.max(LOADED_AT - 2 * HOUR, today.getTime()));
+
 // An account's summary, as the server writes it after a read of its costs.
 function costSummaryOf(accountRow) {
   const dailyTotals = new Map();
@@ -346,7 +355,7 @@ function costSummaryOf(accountRow) {
     dailyTotals,
     monthServices,
     currency: BILLED[accountRow].currency,
-    now: new Date(LOADED_AT - 2 * HOUR),
+    now: COSTS_READ_AT,
   });
 }
 
@@ -528,7 +537,7 @@ function notRead(state, message) {
     projectedMonth: 0,
     last30Days: 0,
     topServices: [],
-    readAt: new Date(LOADED_AT - 2 * HOUR).toISOString(),
+    readAt: COSTS_READ_AT.toISOString(),
   };
 }
 
