@@ -42624,5 +42624,6 @@
   "From a file": "Desde un archivo",
   "Problem Reported": "Problema informado",
   "SELECT * FROM orders WHERE total < 0": "SELECT * FROM orders WHERE total < 0",
-  "[{ \"$match\": { \"total\": { \"$lt\": 0 } } }]": "[{ \"$match\": { \"total\": { \"$lt\": 0 } } }]"
+  "[{ \"$match\": { \"total\": { \"$lt\": 0 } } }]": "[{ \"$match\": { \"total\": { \"$lt\": 0 } } }]",
+  "Microsoft Teams isn't connected to this project.": "Microsoft Teams no está conectado a este proyecto."
 }

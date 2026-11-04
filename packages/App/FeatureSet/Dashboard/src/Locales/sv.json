@@ -42624,5 +42624,6 @@
   "From a file": "Från en fil",
   "Problem Reported": "Problem rapporterat",
   "SELECT * FROM orders WHERE total < 0": "SELECT * FROM orders WHERE total < 0",
-  "[{ \"$match\": { \"total\": { \"$lt\": 0 } } }]": "[{ \"$match\": { \"total\": { \"$lt\": 0 } } }]"
+  "[{ \"$match\": { \"total\": { \"$lt\": 0 } } }]": "[{ \"$match\": { \"total\": { \"$lt\": 0 } } }]",
+  "Microsoft Teams isn't connected to this project.": "Microsoft Teams är inte anslutet till det här projektet."
 }

@@ -36,6 +36,8 @@ import {
   PEOPLE_COUNT,
   RECORD_CHANNEL_TEXT,
   SHOW_MORE_PEOPLE,
+  TEAMS_CHANNEL_STATE_TEXT,
+  TEAMS_CHANNEL_TEXT,
   UNNAMED_PEOPLE,
   canAddPeopleTo,
   getAddOutcomeSentences,
@@ -286,6 +288,39 @@ describe("the product a channel is in", () => {
     );
   });
 
+  test("a Microsoft Teams channel whose project lost its connection is told so in Teams' words, and where to connect it", () => {
+    expect(
+      getChannelStateText(
+        WorkspaceType.MicrosoftTeams,
+        WorkspaceChannelState.NotConnected,
+      ),
+    ).toBe("Microsoft Teams isn't connected to this project.");
+    expect(
+      getChannelProductText(WorkspaceType.MicrosoftTeams).connectProject,
+    ).toBe("Connect Microsoft Teams");
+  });
+
+  test("Slack and Mattermost keep their own words for a lost connection", () => {
+    expect(
+      getChannelStateText(
+        WorkspaceType.Slack,
+        WorkspaceChannelState.NotConnected,
+      ),
+    ).toBe("Slack isn't connected to this project.");
+    expect(getChannelProductText(WorkspaceType.Slack).connectProject).toBe(
+      "Connect Slack",
+    );
+    expect(
+      getChannelStateText(
+        WorkspaceType.Mattermost,
+        WorkspaceChannelState.NotConnected,
+      ),
+    ).toBe("Mattermost isn't connected to this project.");
+    expect(getChannelProductText(WorkspaceType.Mattermost).connectProject).toBe(
+      "Connect Mattermost",
+    );
+  });
+
   test("the hint for a channel the bot was taken out of holds no command: the bot's name is the server's", () => {
     expect(
       splitAtSlackInviteCommand(MATTERMOST_CHANNEL_TEXT.unreachableHint),
@@ -398,24 +433,22 @@ describe("what the viewer is offered", () => {
       ).toBe(false);
     }
 
-    expect(
-      prompt(
-        {
-          workspaceType: WorkspaceType.MicrosoftTeams,
-          state: WorkspaceChannelState.ManagedInTeams,
-        },
-        true,
-      ),
-    ).toBe(ChannelViewerPrompt.None);
-    expect(
-      canAddPeopleTo({
-        channel: channel({
-          workspaceType: WorkspaceType.MicrosoftTeams,
-          state: WorkspaceChannelState.ManagedInTeams,
-        }),
-        canAddPeople: true,
-      }),
-    ).toBe(false);
+    // Both states a Teams channel reaches; the server never finds its viewer.
+    for (const state of [
+      WorkspaceChannelState.ManagedInTeams,
+      WorkspaceChannelState.NotConnected,
+    ]) {
+      const teams: Partial<WorkspaceRecordChannel> = {
+        workspaceType: WorkspaceType.MicrosoftTeams,
+        state: state,
+        viewer: WorkspaceChannelViewerStatus.NotFound,
+      };
+
+      expect(prompt(teams, true)).toBe(ChannelViewerPrompt.None);
+      expect(
+        canAddPeopleTo({ channel: channel(teams), canAddPeople: true }),
+      ).toBe(false);
+    }
   });
 
   test("Add people only for somebody who may add people, into a Slack channel that takes them", () => {
@@ -1242,6 +1275,8 @@ describe("the card's words in every Dashboard language", () => {
         },
       ),
       ...Object.values(MATTERMOST_ADD_PROBLEM_TEXT_FOR_SEVERAL),
+      ...Object.values(TEAMS_CHANNEL_TEXT),
+      ...Object.values(TEAMS_CHANNEL_STATE_TEXT),
       // Lists two or three names, as the grouped sentences fill {{names}}.
       "{{first}} and {{second}}",
       "{{first}}, {{second}} and {{third}}",
