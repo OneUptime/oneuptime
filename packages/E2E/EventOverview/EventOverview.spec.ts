@@ -14786,6 +14786,18 @@ test.describe("Escalate to a level the person picks", () => {
     await expect(picks.nth(1).locator("p")).toHaveText(
       "This will immediately page Payments platform engineering managers, EU and US regions (Level 3 of 3), without waiting. It skips Payments on-call (Level 2 of 3).",
     );
+    // A screen reader hears it too: each group is described by its sentence.
+    await expect(
+      picks.nth(1).getByRole("radiogroup", {
+        name: "Payments escalation: escalate to",
+      }),
+    ).toHaveAccessibleDescription(
+      "This will immediately page Payments platform engineering managers, EU and US regions (Level 3 of 3), without waiting. It skips Payments on-call (Level 2 of 3).",
+    );
+    await expect(picks.nth(1).locator("p")).toHaveAttribute(
+      "aria-live",
+      "polite",
+    );
     // The first policy's sentence is its own, and stays as it was.
     await expect(picks.nth(0).locator("p")).toHaveText(
       "This will immediately page Platform leads (Level 2 of 4), without waiting.",

@@ -77,6 +77,17 @@ interface LoadedPages {
 }
 
 /*
+ * The id of the sentence under a page's levels: the levels' group is
+ * described by it, and it is announced as it changes with the pick, so a
+ * screen reader hears what the level picked does - "This will immediately
+ * page DBA leads (Level 3 of 4), without waiting. It skips Platform leads
+ * (Level 2 of 4)." - as a sighted reader sees it change.
+ */
+export function getPassOnLevelSentenceId(executionLogId: string): string {
+  return `pass-on-levels-sentence-${executionLogId}`;
+}
+
+/*
  * The dialog's text: a warning first when escalating leaves nobody being
  * paged (PassOnDialogLine), then each sentence as a paragraph of its own.
  *
@@ -116,6 +127,11 @@ function dialogText(
     <div className="space-y-3" data-testid={testId}>
       {[...warnings, ...sentences].map(
         (line: PassOnDialogLine, index: number) => {
+          // A page's levels go right above its own sentence.
+          const picker: ReactElement | undefined = pickerFor
+            ? pickerFor(line)
+            : undefined;
+
           const drawn: ReactElement = line.isWarning ? (
             <Alert
               key={index}
@@ -124,7 +140,16 @@ function dialogText(
               dataTestId="pass-on-warning"
             />
           ) : (
-            <p key={index} className="text-pretty">
+            <p
+              key={index}
+              className="text-pretty"
+              {...(picker && line.executionLogId
+                ? {
+                    id: getPassOnLevelSentenceId(line.executionLogId),
+                    "aria-live": "polite" as const,
+                  }
+                : {})}
+            >
               {getPassOnLinePieces(line.text, kept).map(
                 (piece: PassOnLinePiece, pieceIndex: number) => {
                   return piece.keepTogether ? (
@@ -144,11 +169,6 @@ function dialogText(
               )}
             </p>
           );
-
-          // A page's levels go right above its own sentence.
-          const picker: ReactElement | undefined = pickerFor
-            ? pickerFor(line)
-            : undefined;
 
           if (picker) {
             picksDrawn++;
@@ -214,6 +234,7 @@ function levelPicker(data: {
       <Radio
         className=""
         ariaLabelledby={labelId}
+        ariaDescribedby={getPassOnLevelSentenceId(page.executionLogId)}
         dataTestId="pass-on-levels-options"
         options={choices.map((choice: OnCallPassOnLevelChoice) => {
           return {

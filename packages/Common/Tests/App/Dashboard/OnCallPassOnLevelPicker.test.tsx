@@ -52,6 +52,7 @@ import {
 import usePassOnPage, {
   PASS_ON_LEVELS_LABEL_CLASS_NAME,
   PassOnPageControls,
+  getPassOnLevelSentenceId,
 } from "../../../../App/FeatureSet/Dashboard/src/Components/OnCallPolicy/PassOn/usePassOnPage";
 import HTTPErrorResponse from "../../../Types/API/HTTPErrorResponse";
 import HTTPResponse from "../../../Types/API/HTTPResponse";
@@ -624,6 +625,62 @@ describe("in a record's header", () => {
       levels.compareDocumentPosition(sentence) &
         Node.DOCUMENT_POSITION_FOLLOWING,
     ).toBeTruthy();
+  });
+
+  /*
+   * A screen reader hears what the level picked does, as a sighted reader
+   * sees it under the levels: the group is described by its sentence, and
+   * the sentence is announced as the pick changes it.
+   */
+  test("the levels are described by the sentence under them, announced as the pick changes it", async () => {
+    getAnswers.push(pagedAbout([page()]));
+
+    await openDialog();
+
+    const group: HTMLElement = screen.getByRole("radiogroup", {
+      name: "Escalate to",
+    });
+    const sentence: HTMLElement | null = document.getElementById(
+      getPassOnLevelSentenceId(RUN_ID),
+    );
+
+    /*
+     * The group is described by the sentence (read by id: jsdom's
+     * accessible-name walk puts a space at each kept-together span, where
+     * a browser does not).
+     */
+    expect(sentence).not.toBeNull();
+    expect(sentence!.tagName).toBe("P");
+    expect(sentence).toHaveAttribute("aria-live", "polite");
+    expect(group.getAttribute("aria-describedby")).toBe(
+      getPassOnLevelSentenceId(RUN_ID),
+    );
+    expect(sentence!.textContent).toBe(
+      "This will immediately page Platform leads (Level 2 of 4), without waiting.",
+    );
+
+    fireEvent.click(screen.getByLabelText("DBA leads (Level 3 of 4)"));
+
+    // The same sentence, now the pick's: announced as it changes.
+    const picked: HTMLElement | null = document.getElementById(
+      getPassOnLevelSentenceId(RUN_ID),
+    );
+
+    expect(picked).toBe(sentence);
+    expect(picked!.textContent).toBe(
+      "This will immediately page DBA leads (Level 3 of 4), without waiting. It skips Platform leads (Level 2 of 4).",
+    );
+
+    // Only a sentence under levels is announced: the line after it is not.
+    const lines: Array<HTMLElement> = Array.from(
+      screen.getByTestId("pass-on-preview").querySelectorAll("p"),
+    );
+
+    expect(
+      lines.map((line: HTMLElement): string | null => {
+        return line.getAttribute("aria-live");
+      }),
+    ).toEqual(["polite", null]);
   });
 
   test("picking a later level changes the sentence, and says what it skips", async () => {
