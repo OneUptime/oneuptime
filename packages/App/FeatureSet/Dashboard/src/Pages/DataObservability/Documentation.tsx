@@ -144,7 +144,7 @@ Table health says whether a table changes. A **check** says whether what it hold
 | **Null Percent** | Percent of rows whose column is empty |
 | **Duplicate Percent** | Percent of values that repeat another row's |
 | **Distinct Count** | How many different values the column holds |
-| **Minimum**, **Maximum**, **Average** | Of a numeric column |
+| **Minimum**, **Maximum**, **Average**, **Sum** | Of a numeric column (a Sum of no rows is 0) |
 | **Invalid Percent** | Percent of values outside a list you give |
 | **Format Mismatch Percent** | Percent of values that do not match a regular expression (PostgreSQL and MySQL) |
 | **Orphan Count** | Rows whose value has no match in another table's column |
@@ -169,6 +169,26 @@ Set **Alert When** to alert on a check:
 - **Above** or **Below** compares it with a threshold.
 
 Saving the check makes a Metrics monitor for it, as you, with your permissions. Clearing the condition removes the monitor.
+
+
+## Reconciliations
+
+Copies drift: the warehouse has fewer orders than the application's database, or a migration lost rows. A reconciliation compares one measure of two tables, in one database or two:
+- **Row Count**
+- **Sum** of a column
+- **Distinct Count** of a column
+- **Custom SQL**: a read-only query that returns one number, named \`value\`.
+
+It has a tolerance, an **Absolute** amount or a **Percent** of the source's value. Create one under **Reconciliations**.
+
+Each side is read by a data check of its own, which the reconciliation makes and keeps, with its database's collection: by OneUptime, or by the database's probe. A reconciliation can therefore compare a PostgreSQL table in your network with its copy in Snowflake or BigQuery. Its checks show on each table's Checks tab and are changed only from the reconciliation.
+
+The two values are compared once both have been read within 15 minutes of each other, and both sides are then scheduled to be read together again. A reconciliation writes:
+- \`oneuptime.data.reconciliation.drifted\`: 1 when the two have drifted beyond the tolerance, 0 when they agree. Its monitor reads this, and alerts when they drift.
+- \`oneuptime.data.reconciliation.difference\`: the target's value less the source's.
+- \`oneuptime.data.reconciliation.difference_percent\`: the difference as a percentage of the source's value.
+
+A side whose check fails says why. A copy that is loaded on a schedule lags its source: compare a measure both have settled on, such as rows older than an hour, with Custom SQL, or allow for the lag in the tolerance.
 
 ## Pipelines and lineage, from OpenLineage
 

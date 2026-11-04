@@ -11,6 +11,7 @@ import {
   DataObservabilityDataProductBadgeResetResponse,
   DataObservabilityDataProductSyncResponse,
   DataObservabilityOverview,
+  DataObservabilityReconciliationSyncResponse,
   DataObservabilityStoreSummary,
 } from "Common/Types/DataObservability/DataObservabilityApiTypes";
 import { APP_API_URL } from "Common/UI/Config";
@@ -121,6 +122,28 @@ export default class DataObservabilityApi {
       )
       .addQueryParam("token", badgeToken)
       .toString();
+  }
+
+  // Makes the reconciliation's two checks and its monitor match it, as the person who saved it.
+  public static async syncReconciliation(
+    reconciliationId: ObjectID,
+  ): Promise<DataObservabilityReconciliationSyncResponse> {
+    return (await post(
+      DATA_OBSERVABILITY_API_ROUTES.reconciliationSync(
+        reconciliationId.toString(),
+      ),
+    )) as unknown as DataObservabilityReconciliationSyncResponse;
+  }
+
+  // Reads both sides at their stores' very next collections, together.
+  public static async runReconciliationNow(
+    reconciliationId: ObjectID,
+  ): Promise<void> {
+    await post(
+      DATA_OBSERVABILITY_API_ROUTES.reconciliationRunNow(
+        reconciliationId.toString(),
+      ),
+    );
   }
 
   public static async runCheckNow(dataCheckId: ObjectID): Promise<void> {

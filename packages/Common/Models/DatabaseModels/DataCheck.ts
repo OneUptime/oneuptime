@@ -42,7 +42,9 @@ import { Column, Entity, Index, JoinColumn, ManyToOne } from "typeorm";
  * as one aggregate statement in a read-only transaction, per segment when
  * it has one (a tenant, a region), its result written as the
  * oneuptime.data.check.value metric. Its alert, when it has one, is an
- * ordinary Metrics monitor over that metric (monitorId).
+ * ordinary Metrics monitor over that metric (monitorId). A check can also
+ * read one side of a reconciliation, which makes and keeps it
+ * (dataReconciliationId).
  */
 const readPermissions: Array<Permission> = [
   Permission.ProjectOwner,
@@ -494,6 +496,27 @@ export default class DataCheck extends BaseModel {
     transformer: ObjectID.getDatabaseTransformer(),
   })
   public monitorId?: ObjectID = undefined;
+
+  /*
+   * An id, not a relation: the reconciliation refers to its checks, and a
+   * relation each way would make the two models need each other first.
+   */
+  @ColumnAccessControl(serverWrittenColumnAccess)
+  @Index()
+  @TableColumn({
+    type: TableColumnType.ObjectID,
+    required: false,
+    computed: true,
+    title: "Data Reconciliation ID",
+    description:
+      "For a check that reads one side of a reconciliation: the reconciliation's ID. Such a check is changed only from its reconciliation.",
+  })
+  @Column({
+    type: ColumnType.ObjectID,
+    nullable: true,
+    transformer: ObjectID.getDatabaseTransformer(),
+  })
+  public dataReconciliationId?: ObjectID = undefined;
 
   @ColumnAccessControl(serverWrittenColumnAccess)
   @TableColumn({
