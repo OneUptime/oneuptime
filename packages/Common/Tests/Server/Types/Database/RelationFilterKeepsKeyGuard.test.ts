@@ -49,6 +49,7 @@ const RELATIONS_NAMED_AS_THEIR_OWN_KEY: ReadonlyArray<string> = [
   "UserCall.user",
   "UserEmail.user",
   "UserIncomingCallNumber.user",
+  "UserMattermost.user",
   "UserMicrosoftTeams.user",
   "UserNotificationRule.user",
   "UserNotificationSetting.user",

@@ -782,6 +782,7 @@ describe("planLoads", () => {
     [ComplianceNotificationChannel.Email, undefined],
     [ComplianceNotificationChannel.Slack, undefined],
     [ComplianceNotificationChannel.MicrosoftTeams, undefined],
+    [ComplianceNotificationChannel.Mattermost, undefined],
     [ComplianceNotificationChannel.Webhook, undefined],
   ])(
     "%s: the project switch read is %s",
@@ -1103,6 +1104,11 @@ describe("method rules", () => {
       "No verified Microsoft Teams account configured for notifications",
     ],
     [
+      ComplianceRuleType.HasNotificationMattermostMethod,
+      ComplianceNotificationChannel.Mattermost,
+      "No verified Mattermost account configured for notifications",
+    ],
+    [
       ComplianceRuleType.HasNotificationWebhookMethod,
       ComplianceNotificationChannel.Webhook,
       "No webhook configured for notifications",
@@ -1121,7 +1127,7 @@ describe("method rules", () => {
     expect(Object.keys(METHOD_RULE_FAILURE_REASONS)).not.toContain(
       ComplianceNotificationChannel.CustomChannel,
     );
-    expect(METHOD_RULES).toHaveLength(9);
+    expect(METHOD_RULES).toHaveLength(10);
   });
 
   test.each(METHOD_RULES)(
@@ -1581,7 +1587,7 @@ describe("on-call rules for one channel", () => {
   });
 
   /*
-   * The runtime checks the owner of ALL nine of a rule's methods before it
+   * The runtime checks the owner of ALL ten of a rule's methods before it
    * sends anything, and refuses the whole rule when any one is somebody
    * else's (UserNotificationRuleService.executeNotificationRuleItem). A Call
    * rule on Ada's own verified phone that also names Grace's email therefore
@@ -3721,6 +3727,7 @@ describe("evaluate - rule warnings", () => {
                 ComplianceNotificationChannel.Email,
                 ComplianceNotificationChannel.Slack,
                 ComplianceNotificationChannel.MicrosoftTeams,
+                ComplianceNotificationChannel.Mattermost,
                 ComplianceNotificationChannel.Webhook,
               ],
             }),

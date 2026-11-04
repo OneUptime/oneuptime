@@ -357,6 +357,9 @@ describe("rule presentation", () => {
     expect(getChannelLabel(ComplianceNotificationChannel.MicrosoftTeams)).toBe(
       "Microsoft Teams",
     );
+    expect(getChannelLabel(ComplianceNotificationChannel.Mattermost)).toBe(
+      "Mattermost",
+    );
     expect(getChannelLabel(null)).toBe("Any channel");
     expect(getChannelLabel(undefined)).toBe("Any channel");
   });
@@ -1808,10 +1811,11 @@ describe("rule warnings", () => {
       false,
     ],
     [
-      "Slack, Microsoft Teams and Webhook",
+      "Slack, Microsoft Teams, Mattermost and Webhook",
       [
         ComplianceNotificationChannel.Slack,
         ComplianceNotificationChannel.MicrosoftTeams,
+        ComplianceNotificationChannel.Mattermost,
         ComplianceNotificationChannel.Webhook,
       ],
       false,

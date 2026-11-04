@@ -1,6 +1,7 @@
 import TeamMemberService from "../../../Server/Services/TeamMemberService";
 import UserCallService from "../../../Server/Services/UserCallService";
 import UserEmailService from "../../../Server/Services/UserEmailService";
+import UserMattermostService from "../../../Server/Services/UserMattermostService";
 import UserMicrosoftTeamsService from "../../../Server/Services/UserMicrosoftTeamsService";
 import UserNotificationRuleService from "../../../Server/Services/UserNotificationRuleService";
 import UserPushService from "../../../Server/Services/UserPushService";
@@ -157,6 +158,12 @@ const NOT_PUSH_CHANNELS: Array<ChannelFixture> = [
     relationColumn: "userMicrosoftTeams",
     label: "Microsoft Teams",
     service: UserMicrosoftTeamsService as unknown as MethodServiceLike,
+  },
+  {
+    idColumn: "userMattermostId",
+    relationColumn: "userMattermost",
+    label: "Mattermost",
+    service: UserMattermostService as unknown as MethodServiceLike,
   },
   {
     idColumn: "userWebhookId",
@@ -617,7 +624,7 @@ describe("UserNotificationRuleService - repeating until acknowledged", () => {
         ruleService().onBeforeCreate(
           createPayload({ columns: { repeatEveryMinutes: 5 } }),
         ),
-        "Call, SMS, WhatsApp, Telegram, Slack, Microsoft Teams, Webhook, Custom Channel, Email, or Push notification is required",
+        "Call, SMS, WhatsApp, Telegram, Slack, Microsoft Teams, Mattermost, Webhook, Custom Channel, Email, or Push notification is required",
       );
     });
 
@@ -957,7 +964,7 @@ describe("UserNotificationRuleService - repeating until acknowledged", () => {
           ruleService().onBeforeUpdate(
             updatePayload({ patch: { userPush: null } }),
           ),
-          "Call, SMS, WhatsApp, Telegram, Slack, Microsoft Teams, Webhook, Custom Channel, Email, or Push notification is required",
+          "Call, SMS, WhatsApp, Telegram, Slack, Microsoft Teams, Mattermost, Webhook, Custom Channel, Email, or Push notification is required",
         );
       });
 

@@ -1,0 +1,209 @@
+import CreateBy from "../Types/Database/CreateBy";
+import DeleteBy from "../Types/Database/DeleteBy";
+import { OnCreate, OnDelete } from "../Types/Database/Hooks";
+import DatabaseService from "./DatabaseService";
+import UserNotificationRuleService, {
+  NotificationDeletionImpact,
+  NotificationMethodChannel,
+} from "./UserNotificationRuleService";
+import WorkspaceProjectAuthTokenService from "./WorkspaceProjectAuthTokenService";
+import WorkspaceUserAuthTokenService from "./WorkspaceUserAuthTokenService";
+import logger from "../Utils/Logger";
+import LIMIT_MAX from "../../Types/Database/LimitMax";
+import BadDataException from "../../Types/Exception/BadDataException";
+import { JSONObject } from "../../Types/JSON";
+import ObjectID from "../../Types/ObjectID";
+import WorkspaceType from "../../Types/Workspace/WorkspaceType";
+import WorkspaceProjectAuthToken from "../../Models/DatabaseModels/WorkspaceProjectAuthToken";
+import WorkspaceUserAuthToken from "../../Models/DatabaseModels/WorkspaceUserAuthToken";
+import Model from "../../Models/DatabaseModels/UserMattermost";
+import CaptureSpan from "../Utils/Telemetry/CaptureSpan";
+import ProductBrandingText from "../Utils/ProductBrandingText";
+
+export class Service extends DatabaseService<Model> {
+  public constructor() {
+    super(Model);
+  }
+
+  @CaptureSpan()
+  protected override async onBeforeDelete(
+    deleteBy: DeleteBy<Model>,
+  ): Promise<OnDelete<Model>> {
+    // The methods the delete removes, and the delete held to them.
+    const itemsToDelete: Array<Model> = await this.findRowsAndHoldDeleteToThem(
+      deleteBy,
+      {
+        _id: true,
+        projectId: true,
+      },
+    );
+
+    for (const item of itemsToDelete) {
+      await UserNotificationRuleService.deleteBy({
+        query: {
+          userMattermostId: item.id!,
+          projectId: item.projectId!,
+        },
+        limit: LIMIT_MAX,
+        skip: 0,
+        props: {
+          isRoot: true,
+        },
+      });
+    }
+
+    return {
+      deleteBy,
+      carryForward: null,
+    };
+  }
+
+  /**
+   * What this user would lose if this Mattermost account were deleted. Ask
+   * BEFORE calling delete; nothing here refuses anything.
+   *
+   * The hook directly above deletes every UserNotificationRule that points at
+   * this account, and the foreign key is onDelete: "CASCADE" so the rows would
+   * go even if it did not.
+   */
+  @CaptureSpan()
+  public async getDeletionImpact(data: {
+    itemId: ObjectID;
+    projectId: ObjectID;
+  }): Promise<NotificationDeletionImpact> {
+    return UserNotificationRuleService.getNotificationMethodDeletionImpact({
+      projectId: data.projectId,
+      methodType: NotificationMethodChannel.Mattermost,
+      methodId: data.itemId,
+    });
+  }
+
+  /*
+   * A Mattermost notification method is a POINTER at the user's existing
+   * workspace link, not a hand-typed address: the Mattermost account id is
+   * resolved from the user's own WorkspaceUserAuthToken and never accepted
+   * from the request. That is why creation IS verification — only the one-use
+   * link the bot sent that account in a direct message writes the auth-token
+   * row (MattermostAPI), which already proved the person holds the account.
+   */
+  @CaptureSpan()
+  protected override async onBeforeCreate(
+    createBy: CreateBy<Model>,
+  ): Promise<OnCreate<Model>> {
+    if (!createBy.props.isRoot && createBy.data.isVerified) {
+      throw new BadDataException("isVerified cannot be set to true");
+    }
+
+    if (!createBy.props.isRoot && createBy.data.mattermostUserId) {
+      throw new BadDataException("mattermostUserId cannot be set directly");
+    }
+
+    if (!createBy.props.isRoot && createBy.data.mattermostUserName) {
+      throw new BadDataException("mattermostUserName cannot be set directly");
+    }
+
+    if (!createBy.data.projectId || !createBy.data.userId) {
+      throw new BadDataException("projectId and userId are required");
+    }
+
+    const projectId: ObjectID = new ObjectID(
+      createBy.data.projectId.toString(),
+    );
+    const userId: ObjectID = new ObjectID(createBy.data.userId.toString());
+
+    /*
+     * One workspace link per (user, project) means a second row would be an
+     * exact duplicate of the first.
+     */
+    const existingCount: number = (
+      await this.countBy({
+        query: {
+          projectId: projectId,
+          userId: userId,
+        },
+        props: {
+          isRoot: true,
+        },
+      })
+    ).toNumber();
+
+    if (existingCount > 0) {
+      throw new BadDataException(
+        "Mattermost is already added as a notification method for this project.",
+      );
+    }
+
+    const projectAuth: WorkspaceProjectAuthToken | null =
+      await WorkspaceProjectAuthTokenService.getProjectAuth({
+        projectId: projectId,
+        workspaceType: WorkspaceType.Mattermost,
+      });
+
+    if (!projectAuth || !projectAuth.authToken) {
+      throw new BadDataException(
+        "This project is not connected to Mattermost. Please ask a project admin to connect Mattermost in Project Settings > Workspace > Mattermost.",
+      );
+    }
+
+    const userAuth: WorkspaceUserAuthToken | null =
+      await WorkspaceUserAuthTokenService.getUserAuth({
+        projectId: projectId,
+        userId: userId,
+        workspaceType: WorkspaceType.Mattermost,
+      });
+
+    if (!userAuth || !userAuth.workspaceUserId) {
+      throw new BadDataException(
+        `Your Mattermost account is not connected to ${ProductBrandingText.getProductName()} in this project yet. Connect it under User Settings > Workspace > Mattermost, then add it here.`,
+      );
+    }
+
+    createBy.data.mattermostUserId = userAuth.workspaceUserId;
+    createBy.data.isVerified = true;
+
+    /* Display label only — captured when the user linked their account. */
+    const username: string | undefined = (
+      userAuth.miscData as JSONObject | undefined
+    )?.["username"] as string | undefined;
+
+    if (username) {
+      createBy.data.mattermostUserName = username;
+    }
+
+    return {
+      createBy,
+      carryForward: null,
+    };
+  }
+
+  @CaptureSpan()
+  protected override async onCreateSuccess(
+    _onCreate: OnCreate<Model>,
+    createdItem: Model,
+  ): Promise<Model> {
+    /*
+     * The row is born verified (creation is gated on the live workspace
+     * link), so default on-call rules are seeded at create time — same as
+     * webhooks.
+     */
+    if (createdItem.projectId && createdItem.userId && createdItem.id) {
+      try {
+        await UserNotificationRuleService.addDefaultNotificationRulesForVerifiedMethod(
+          {
+            projectId: createdItem.projectId,
+            userId: createdItem.userId,
+            notificationMethod: {
+              userMattermostId: createdItem.id,
+            },
+          },
+        );
+      } catch (err) {
+        logger.error(err);
+      }
+    }
+
+    return createdItem;
+  }
+}
+
+export default new Service();

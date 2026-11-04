@@ -353,6 +353,7 @@ describe("every path OneUptime writes is one a reader can follow", () => {
       "App/FeatureSet/Notification/Templates/Partials/UnsubscribeOwnerEmail.hbs",
       "App/FeatureSet/Dashboard/src/Components/NotificationMethods/Slack.tsx",
       "App/FeatureSet/Dashboard/src/Components/NotificationMethods/MicrosoftTeams.tsx",
+      "App/FeatureSet/Dashboard/src/Components/NotificationMethods/Mattermost.tsx",
       "App/FeatureSet/Dashboard/src/Components/NotificationMethods/Telegram.tsx",
       "Common/Server/Services/UserOnCallLogService.ts",
       "Common/Server/Services/UserSlackService.ts",
@@ -378,6 +379,10 @@ describe("every path OneUptime writes is one a reader can follow", () => {
       [[USER_SETTINGS, "Workspace", "Microsoft Teams"]],
     ],
     [
+      "App/FeatureSet/Dashboard/src/Components/NotificationMethods/Mattermost.tsx",
+      [[USER_SETTINGS, "Workspace", "Mattermost"]],
+    ],
+    [
       "Common/Server/Services/UserSlackService.ts",
       [
         [PROJECT_SETTINGS, "Workspace", "Slack"],
@@ -389,6 +394,13 @@ describe("every path OneUptime writes is one a reader can follow", () => {
       [
         [PROJECT_SETTINGS, "Workspace", "Microsoft Teams"],
         [USER_SETTINGS, "Workspace", "Microsoft Teams"],
+      ],
+    ],
+    [
+      "Common/Server/Services/UserMattermostService.ts",
+      [
+        [PROJECT_SETTINGS, "Workspace", "Mattermost"],
+        [USER_SETTINGS, "Workspace", "Mattermost"],
       ],
     ],
     [

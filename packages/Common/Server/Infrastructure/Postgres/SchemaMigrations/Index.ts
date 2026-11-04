@@ -290,6 +290,8 @@ import { AddSecurityLogSourceCaseMinimumSeverity1808992580000 } from "./18089925
 import { AddCloudConnectionStreams1808992600000 } from "./1808992600000-AddCloudConnectionStreams";
 import { AddMagicLinkLogin1808992650000 } from "./1808992650000-AddMagicLinkLogin";
 import { AddFixApprovalSourceAndRunbookTrackRecord1808992660000 } from "./1808992660000-AddFixApprovalSourceAndRunbookTrackRecord";
+import { AddUserMattermost1808992670000 } from "./1808992670000-AddUserMattermost";
+import { AddUserMattermostIndexesAndKeys1808992680000 } from "./1808992680000-AddUserMattermostIndexesAndKeys";
 import { AddConfigurableRuleCriteria1792500000000 } from "./1792500000000-AddConfigurableRuleCriteria";
 import { AddGoogleSecOpsDiagnostics1792300000000 } from "./1792300000000-AddGoogleSecOpsDiagnostics";
 import { AddIncomingCallPolicyPhoneNumbers1792600000000 } from "./1792600000000-AddIncomingCallPolicyPhoneNumbers";
@@ -889,7 +891,7 @@ import { AddSeverityAndStateToNotificationEmailRollup1791900000000 } from "./179
 import { AddVMwareTables1792000000000 } from "./1792000000000-AddVMwareTables";
 import { AddGitHubCommandSettingsToCodeRepository1792100000000 } from "./1792100000000-AddGitHubCommandSettingsToCodeRepository";
 import { TwilioAuthTokenEncryptedColumn1801800000000 } from "./1801800000000-TwilioAuthTokenEncryptedColumn";
-import { AddDataAssetOwnersAndFeedback1808992670000 } from "./1808992670000-AddDataAssetOwnersAndFeedback";
+import { AddDataAssetOwnersAndFeedback1808992700000 } from "./1808992700000-AddDataAssetOwnersAndFeedback";
 
 export default [
   InitialMigration,
@@ -1783,5 +1785,7 @@ export default [
   AddCloudConnectionStreams1808992600000,
   AddMagicLinkLogin1808992650000,
   AddFixApprovalSourceAndRunbookTrackRecord1808992660000,
-  AddDataAssetOwnersAndFeedback1808992670000,
+  AddUserMattermost1808992670000,
+  AddUserMattermostIndexesAndKeys1808992680000,
+  AddDataAssetOwnersAndFeedback1808992700000,
 ];

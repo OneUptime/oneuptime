@@ -27,7 +27,7 @@ flowchart TB
 
 | Sida | Vad den innehåller | Frågan den besvarar |
 | --- | --- | --- |
-| **Aviseringsmetoder** | Dina e-postadresser, telefonnummer, WhatsApp-nummer, Telegram-, Slack- och Microsoft Teams-konton, push-enheter och webhooks | Var kan OneUptime nå mig? |
+| **Aviseringsmetoder** | Dina e-postadresser, telefonnummer, WhatsApp-nummer, Telegram-, Slack-, Microsoft Teams- och Mattermost-konton, push-enheter och webhooks | Var kan OneUptime nå mig? |
 | **Jourregler** | För varje typ av larm och varje allvarlighetsgrad: vilken metod som provas och efter hur lång tid | Hur larmas jag när jag har jour? |
 | **Aviseringsinställningar** | För varje händelse om något du äger eller om dina jourpass: vilka kanaler som används | Vad mer får jag veta om, och var? |
 
@@ -90,7 +90,7 @@ Varje metod som du verifierar senare får samma regler: en regel för varje allv
 
 Ett larm kan nå dig för en typ och en allvarlighetsgrad som du inte har någon regel för, till exempel en allvarlighetsgrad som lades till efter att du gick med. OneUptime larmar dig ändå, via det du har verifierat:
 
-1. Varje kostnadsfri metod du har: push-enheter, e-postadresser, Slack och Microsoft Teams.
+1. Varje kostnadsfri metod du har: push-enheter, e-postadresser, Slack, Microsoft Teams och Mattermost.
 2. Har du ingen av dem, en betald metod, i den här ordningen: SMS, ett telefonsamtal, WhatsApp, Telegram. Det är den första som du har verifierat, på en kanal som projektet har slagit på.
 3. Har du ingen av dem heller, en webhook.
 

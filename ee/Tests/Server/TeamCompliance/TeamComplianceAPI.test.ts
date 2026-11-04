@@ -26,6 +26,7 @@ import TeamService from "Common/Server/Services/TeamService";
 import UserCallService from "Common/Server/Services/UserCallService";
 import UserEmailService from "Common/Server/Services/UserEmailService";
 import UserMicrosoftTeamsService from "Common/Server/Services/UserMicrosoftTeamsService";
+import UserMattermostService from "Common/Server/Services/UserMattermostService";
 import UserNotificationRuleService from "Common/Server/Services/UserNotificationRuleService";
 import UserPushService from "Common/Server/Services/UserPushService";
 import UserService from "Common/Server/Services/UserService";
@@ -323,6 +324,7 @@ let userWhatsAppFindBy: jest.SpyInstance;
 let userTelegramFindBy: jest.SpyInstance;
 let userSlackFindBy: jest.SpyInstance;
 let userMicrosoftTeamsFindBy: jest.SpyInstance;
+let userMattermostFindBy: jest.SpyInstance;
 let userWebhookFindBy: jest.SpyInstance;
 let notificationRuleFindBy: jest.SpyInstance;
 let incidentSeverityFindBy: jest.SpyInstance;
@@ -352,6 +354,7 @@ function everyFindBySpy(): Array<jest.SpyInstance> {
     userTelegramFindBy,
     userSlackFindBy,
     userMicrosoftTeamsFindBy,
+    userMattermostFindBy,
     userWebhookFindBy,
     notificationRuleFindBy,
     incidentSeverityFindBy,
@@ -453,6 +456,9 @@ beforeEach(() => {
     .mockResolvedValue([] as never);
   userMicrosoftTeamsFindBy = jest
     .spyOn(UserMicrosoftTeamsService, "findBy")
+    .mockResolvedValue([] as never);
+  userMattermostFindBy = jest
+    .spyOn(UserMattermostService, "findBy")
     .mockResolvedValue([] as never);
   userWebhookFindBy = jest
     .spyOn(UserWebhookService, "findBy")
@@ -601,6 +607,7 @@ interface StubRule {
   userTelegramId?: ObjectID | undefined;
   userSlackId?: ObjectID | undefined;
   userMicrosoftTeamsId?: ObjectID | undefined;
+  userMattermostId?: ObjectID | undefined;
   userWhatsAppId?: ObjectID | undefined;
   userWebhookId?: ObjectID | undefined;
   // The custom channel (#5332) a rule pages through, instead of a method.
@@ -1278,7 +1285,7 @@ describe("GET /team/compliance-status/:teamId - the compliance status", () => {
 
     await readCompliance();
 
-    // The one rule read is readiness's, and it selects none of the nine columns.
+    // The one rule read is readiness's, and it selects none of the ten columns.
     expect(notificationRuleFindBy).toHaveBeenCalledTimes(1);
 
     const call: CapturedFindBy = firstCall(notificationRuleFindBy);
@@ -1291,6 +1298,7 @@ describe("GET /team/compliance-status/:teamId - the compliance status", () => {
       "userTelegramId",
       "userSlackId",
       "userMicrosoftTeamsId",
+      "userMattermostId",
       "userWhatsAppId",
       "userWebhookId",
     ]) {
@@ -1866,6 +1874,7 @@ describe("GET /team/compliance-status/:teamId - the compliance status", () => {
       "userCallId",
       "userEmail",
       "userId",
+      "userMattermost",
       "userMicrosoftTeams",
       "userPush",
       "userSlack",

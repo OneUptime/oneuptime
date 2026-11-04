@@ -27,7 +27,7 @@ flowchart TB
 
 | Página | Lo que contiene | La pregunta que responde |
 | --- | --- | --- |
-| **Métodos de notificación** | Tus direcciones de correo, números de teléfono, números de WhatsApp, cuentas de Telegram, Slack y Microsoft Teams, dispositivos push y webhooks | ¿Dónde puede contactarme OneUptime? |
+| **Métodos de notificación** | Tus direcciones de correo, números de teléfono, números de WhatsApp, cuentas de Telegram, Slack, Microsoft Teams y Mattermost, dispositivos push y webhooks | ¿Dónde puede contactarme OneUptime? |
 | **Reglas de guardia** | Para cada tipo de aviso y cada gravedad, qué método probar y después de cuánto tiempo | ¿Cómo me avisan mientras estoy de guardia? |
 | **Ajustes de notificaciones** | Para cada evento sobre un registro que es tuyo o sobre tus turnos, qué canales usar | ¿De qué más me entero, y dónde? |
 
@@ -90,7 +90,7 @@ Cada método que verifiques después recibe las mismas reglas: una regla para ca
 
 Un aviso puede llegarte para un tipo y una gravedad para los que no tienes regla: por ejemplo, una gravedad añadida después de que te unieras. OneUptime te avisa igualmente, por lo que tienes verificado:
 
-1. Cada método gratuito que tengas: dispositivos push, direcciones de correo, Slack y Microsoft Teams.
+1. Cada método gratuito que tengas: dispositivos push, direcciones de correo, Slack, Microsoft Teams y Mattermost.
 2. Si no tienes ninguno, un método de pago, en este orden: SMS, una llamada, WhatsApp, Telegram. Es el primero que tengas verificado, en un canal que el proyecto ha activado.
 3. Si tampoco tienes ninguno de esos, un webhook.
 

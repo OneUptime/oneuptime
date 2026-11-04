@@ -221,7 +221,7 @@ Varje larm kan eskaleras därifrån det nådde dig:
 | --- | --- |
 | E-post | Knappen **Escalate**, sedan **Escalate** på sidan den öppnar |
 | SMS och WhatsApp | Länken i meddelandet öppnar bekräftelsesidan, som också har **Escalate** |
-| Telegram, Slack och Microsoft Teams | Länken "Can't take it? Escalate", sedan **Escalate** på sidan den öppnar |
+| Telegram, Slack, Microsoft Teams och Mattermost | Länken "Can't take it? Escalate", sedan **Escalate** på sidan den öppnar |
 | Telefonsamtal | Tryck 2. Samtalet säger sedan vad som hände |
 | Pushnotis | Tryck på den: incidenten, larmet eller episoden öppnas i OneUptime On-Call-appen, med **Escalate** under sig |
 | OneUptime | **Eskalera** högst upp i incidenten, larmet eller episoden, efter dess tillståndsknappar |

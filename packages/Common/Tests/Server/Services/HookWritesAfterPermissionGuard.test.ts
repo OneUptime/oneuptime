@@ -94,6 +94,7 @@ const ALLOWED_HOOK_WRITES: Record<string, string> = {
   "TeamService.ts#onBeforeDelete": CASCADE_REASON,
   "UserCallService.ts#onBeforeDelete": CASCADE_REASON,
   "UserEmailService.ts#onBeforeDelete": CASCADE_REASON,
+  "UserMattermostService.ts#onBeforeDelete": CASCADE_REASON,
   "UserMicrosoftTeamsService.ts#onBeforeDelete": CASCADE_REASON,
   "UserSlackService.ts#onBeforeDelete": CASCADE_REASON,
   "UserSmsService.ts#onBeforeDelete": CASCADE_REASON,

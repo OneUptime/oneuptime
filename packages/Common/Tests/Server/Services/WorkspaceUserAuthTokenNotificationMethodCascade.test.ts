@@ -1,6 +1,7 @@
 import WorkspaceUserAuthTokenService from "../../../Server/Services/WorkspaceUserAuthTokenService";
 import UserSlackService from "../../../Server/Services/UserSlackService";
 import UserMicrosoftTeamsService from "../../../Server/Services/UserMicrosoftTeamsService";
+import UserMattermostService from "../../../Server/Services/UserMattermostService";
 import WorkspaceUserAuthToken from "../../../Models/DatabaseModels/WorkspaceUserAuthToken";
 import ObjectID from "../../../Types/ObjectID";
 import LIMIT_MAX from "../../../Types/Database/LimitMax";
@@ -13,8 +14,8 @@ import {
 
 /*
  * Disconnecting a workspace account takes the notification methods pointing at
- * it down too — deliberately. A UserSlack / UserMicrosoftTeams row is a
- * pointer at the WorkspaceUserAuthToken being deleted here, and the two
+ * it down too — deliberately. A UserSlack / UserMicrosoftTeams / UserMattermost
+ * row is a pointer at the WorkspaceUserAuthToken being deleted here, and the two
  * possible stale states are not equivalent:
  *
  *   - Method row kept: rules keep selecting it, every page becomes an Error
@@ -25,8 +26,8 @@ import {
  *
  * The second is the designed failure mode, so the cascade below is what keeps
  * a disconnect from becoming a silent unpageable responder. Pinned per
- * workspace type, because deleting a Slack link must not touch the Teams
- * method and vice versa.
+ * workspace type, because deleting a link to one workspace must not touch the
+ * method of another.
  */
 
 const PROJECT_ID: ObjectID = new ObjectID(
@@ -64,6 +65,7 @@ describe("WorkspaceUserAuthTokenService.onBeforeDelete - notification method cas
   let findTokens: jest.SpyInstance;
   let deleteSlack: jest.SpyInstance;
   let deleteTeams: jest.SpyInstance;
+  let deleteMattermost: jest.SpyInstance;
 
   beforeEach(() => {
     findTokens = jest
@@ -76,6 +78,10 @@ describe("WorkspaceUserAuthTokenService.onBeforeDelete - notification method cas
 
     deleteTeams = jest
       .spyOn(UserMicrosoftTeamsService, "deleteBy")
+      .mockResolvedValue([] as never);
+
+    deleteMattermost = jest
+      .spyOn(UserMattermostService, "deleteBy")
       .mockResolvedValue([] as never);
 
     // The tokens a teammate may delete: those the same read reaches.
@@ -127,12 +133,41 @@ describe("WorkspaceUserAuthTokenService.onBeforeDelete - notification method cas
 
     expect(deleteTeams).toHaveBeenCalledTimes(1);
     expect(deleteSlack).not.toHaveBeenCalled();
+    expect(deleteMattermost).not.toHaveBeenCalled();
   });
 
-  test("a bulk delete spanning both workspace types cascades each row to its own channel", async () => {
+  test("deleting a Mattermost link deletes the user's UserMattermost rows for that project - and nothing else", async () => {
+    findTokens.mockResolvedValue([tokenRow(WorkspaceType.Mattermost)] as never);
+
+    await callOnBeforeDelete({
+      query: { _id: TOKEN_ID },
+      props: { isRoot: true },
+    });
+
+    expect(deleteMattermost).toHaveBeenCalledTimes(1);
+    const arg: {
+      query: { projectId: ObjectID; userId: ObjectID };
+      limit: number;
+      props: { isRoot: boolean };
+    } = deleteMattermost.mock.calls[0][0] as {
+      query: { projectId: ObjectID; userId: ObjectID };
+      limit: number;
+      props: { isRoot: boolean };
+    };
+    expect(arg.query.projectId.toString()).toBe(PROJECT_ID.toString());
+    expect(arg.query.userId.toString()).toBe(USER_ID.toString());
+    expect(arg.limit).toBe(LIMIT_MAX);
+    expect(arg.props.isRoot).toBe(true);
+
+    expect(deleteSlack).not.toHaveBeenCalled();
+    expect(deleteTeams).not.toHaveBeenCalled();
+  });
+
+  test("a bulk delete spanning every workspace type cascades each row to its own channel", async () => {
     findTokens.mockResolvedValue([
       tokenRow(WorkspaceType.Slack),
       tokenRow(WorkspaceType.MicrosoftTeams),
+      tokenRow(WorkspaceType.Mattermost),
     ] as never);
 
     await callOnBeforeDelete({
@@ -142,6 +177,7 @@ describe("WorkspaceUserAuthTokenService.onBeforeDelete - notification method cas
 
     expect(deleteSlack).toHaveBeenCalledTimes(1);
     expect(deleteTeams).toHaveBeenCalledTimes(1);
+    expect(deleteMattermost).toHaveBeenCalledTimes(1);
   });
 
   test("a teammate's tokens are read among those they may delete, as root, and only those cascade", async () => {

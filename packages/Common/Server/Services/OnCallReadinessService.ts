@@ -21,6 +21,7 @@ import UserSmsService from "./UserSmsService";
 import UserTelegramService from "./UserTelegramService";
 import UserSlackService from "./UserSlackService";
 import UserMicrosoftTeamsService from "./UserMicrosoftTeamsService";
+import UserMattermostService from "./UserMattermostService";
 import UserWebhookService from "./UserWebhookService";
 import UserWhatsAppService from "./UserWhatsAppService";
 import InMemoryTTLCache from "../Infrastructure/InMemoryTTLCache";
@@ -63,6 +64,7 @@ import UserSMS from "../../Models/DatabaseModels/UserSMS";
 import UserTelegram from "../../Models/DatabaseModels/UserTelegram";
 import UserSlack from "../../Models/DatabaseModels/UserSlack";
 import UserMicrosoftTeams from "../../Models/DatabaseModels/UserMicrosoftTeams";
+import UserMattermost from "../../Models/DatabaseModels/UserMattermost";
 import UserWebhook from "../../Models/DatabaseModels/UserWebhook";
 import UserWhatsApp from "../../Models/DatabaseModels/UserWhatsApp";
 
@@ -143,6 +145,7 @@ export enum ReadinessMethodType {
   Telegram = "Telegram",
   Slack = "Slack",
   MicrosoftTeams = "Microsoft Teams",
+  Mattermost = "Mattermost",
   Webhook = "Webhook",
   // A custom channel (CustomNotificationChannel): CUSTOM_CHANNEL_METHOD_LABEL.
   CustomChannel = "Custom Channel",
@@ -474,6 +477,7 @@ const METHOD_DISPLAY_ORDER: Array<ReadinessMethodType> = [
   ReadinessMethodType.Email,
   ReadinessMethodType.Slack,
   ReadinessMethodType.MicrosoftTeams,
+  ReadinessMethodType.Mattermost,
   ReadinessMethodType.CustomChannel,
   ReadinessMethodType.SMS,
   ReadinessMethodType.Call,
@@ -2455,6 +2459,40 @@ export default class OnCallReadinessService {
       },
     });
 
+    await this.readEveryPage<UserMattermost>({
+      description: "Mattermost notification methods",
+      projectId: projectId,
+      completeness: completeness,
+      service: UserMattermostService,
+      query: {
+        projectId: projectId,
+        userId: new Includes(userIds),
+      },
+      /*
+       * The username only — never mattermostUserId. The account id is the
+       * addressable target the bot sends to; the username is the human-facing
+       * label, and it is the one a user can recognise as theirs.
+       */
+      select: {
+        _id: true,
+        userId: true,
+        mattermostUserName: true,
+        isVerified: true,
+      },
+      consumePage: (rows: Array<UserMattermost>): void => {
+        for (const row of rows) {
+          addMethod(row, {
+            methodType: ReadinessMethodType.Mattermost,
+            maskedIdentifier: maskIdentifier(
+              row.mattermostUserName,
+              MaskedIdentifierKind.Handle,
+            ),
+            isVerified: Boolean(row.isVerified),
+          });
+        }
+      },
+    });
+
     await this.readEveryPage<UserWebhook>({
       description: "webhook notification methods",
       projectId: projectId,
@@ -3166,6 +3204,10 @@ export default class OnCallReadinessService {
 
     if (has(ReadinessMethodType.MicrosoftTeams)) {
       zeroCost.push(ReadinessMethodType.MicrosoftTeams);
+    }
+
+    if (has(ReadinessMethodType.Mattermost)) {
+      zeroCost.push(ReadinessMethodType.Mattermost);
     }
 
     // Only a channel that pages everyone, as the fallback itself uses only those.

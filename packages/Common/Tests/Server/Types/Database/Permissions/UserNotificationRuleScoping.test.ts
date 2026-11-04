@@ -1,6 +1,7 @@
 import TeamMember from "../../../../../Models/DatabaseModels/TeamMember";
 import UserCall from "../../../../../Models/DatabaseModels/UserCall";
 import UserEmail from "../../../../../Models/DatabaseModels/UserEmail";
+import UserMattermost from "../../../../../Models/DatabaseModels/UserMattermost";
 import UserMicrosoftTeams from "../../../../../Models/DatabaseModels/UserMicrosoftTeams";
 import UserNotificationRule from "../../../../../Models/DatabaseModels/UserNotificationRule";
 import UserPush from "../../../../../Models/DatabaseModels/UserPush";
@@ -157,7 +158,7 @@ type ModelTypeUnderTest = { new (): BaseModel };
 
 /*
  * The nine channels a rule can fire through. They are nine copies of one
- * decorator shape, so every method assertion runs against all nine rather than
+ * decorator shape, so every method assertion runs against all ten rather than
  * against a representative one - a widening applied to one of them is exactly
  * the kind of thing that survives review.
  */
@@ -170,16 +171,17 @@ const NOTIFICATION_METHOD_MODELS: Array<ModelTypeUnderTest> = [
   UserTelegram,
   UserSlack,
   UserMicrosoftTeams,
+  UserMattermost,
   UserWebhook,
 ];
 
 /*
  * Every model that makes up a user's on-call notification configuration.
  *
- * All ten behave identically for a plain member, which is what the first
+ * All eleven behave identically for a plain member, which is what the first
  * group asserts over this list. They diverge only in what an ADMINISTRATOR
  * sees, so the admin-facing groups below name UserNotificationRule separately
- * and iterate NOTIFICATION_METHOD_MODELS for the nine that stay closed.
+ * and iterate NOTIFICATION_METHOD_MODELS for the ten that stay closed.
  */
 const NOTIFICATION_CONFIG_MODELS: Array<ModelTypeUnderTest> = [
   UserNotificationRule,

@@ -27,7 +27,7 @@ flowchart TB
 
 | Page | What it holds | The question it answers |
 | --- | --- | --- |
-| **Notification Methods** | Your email addresses, phone numbers, WhatsApp numbers, Telegram, Slack and Microsoft Teams accounts, push devices and webhooks | Where can OneUptime reach me? |
+| **Notification Methods** | Your email addresses, phone numbers, WhatsApp numbers, Telegram, Slack, Microsoft Teams and Mattermost accounts, push devices and webhooks | Where can OneUptime reach me? |
 | **On-Call Rules** | For each kind of page and each severity, which method to try and after how long | How am I paged while I am on call? |
 | **Notification Settings** | For each event about a record you own or about your shifts, which channels to use | What else do I hear about, and where? |
 
@@ -90,7 +90,7 @@ Every method you verify later gets the same rules: a rule for every severity, se
 
 A page can reach you for a kind and severity you have no rule for: a severity added after you joined, say. OneUptime still pages you, on what you have verified:
 
-1. Every free method you have: push devices, email addresses, Slack and Microsoft Teams.
+1. Every free method you have: push devices, email addresses, Slack, Microsoft Teams and Mattermost.
 2. If you have none of those, one paid method, in this order: SMS, a phone call, WhatsApp, Telegram. It is the first one you have verified, on a channel the project has turned on.
 3. If you have none of those either, a webhook.
 

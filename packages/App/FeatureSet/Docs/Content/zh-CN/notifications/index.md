@@ -27,7 +27,7 @@ flowchart TB
 
 | 页面 | 包含的内容 | 回答的问题 |
 | --- | --- | --- |
-| **通知方式** | 你的邮箱地址、电话号码、WhatsApp 号码、Telegram、Slack 和 Microsoft Teams 账户、推送设备和 Webhook | OneUptime 可以通过哪里联系到我？ |
+| **通知方式** | 你的邮箱地址、电话号码、WhatsApp 号码、Telegram、Slack、Microsoft Teams 和 Mattermost 账户、推送设备和 Webhook | OneUptime 可以通过哪里联系到我？ |
 | **值班规则** | 针对每种呼叫和每个严重级别，尝试哪种通知方式，以及多久之后尝试 | 我值班时如何被呼叫？ |
 | **通知设置** | 针对与你拥有的记录或你的班次相关的每个通知项，使用哪些渠道 | 我还会收到哪些消息，在哪里收到？ |
 
@@ -90,7 +90,7 @@ flowchart TB
 
 呼叫可能以你没有规则的类型和严重级别送达你，例如在你加入后新增的严重级别。OneUptime 仍然会通过你已验证的方式呼叫你：
 
-1. 你拥有的所有免费方式：推送设备、邮箱地址、Slack 和 Microsoft Teams。
+1. 你拥有的所有免费方式：推送设备、邮箱地址、Slack、Microsoft Teams 和 Mattermost。
 2. 如果这些都没有，则按以下顺序选择一种付费方式：短信、电话、WhatsApp、Telegram。它是你已验证、且位于项目已开启渠道上的第一种。
 3. 如果这些也都没有，则使用 Webhook。
 

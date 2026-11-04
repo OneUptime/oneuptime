@@ -744,6 +744,7 @@ describe("what a new member starts with", () => {
       "Common/Server/Utils/TelegramBotUpdates.ts",
       "Common/Server/Services/UserSlackService.ts",
       "Common/Server/Services/UserMicrosoftTeamsService.ts",
+      "Common/Server/Services/UserMattermostService.ts",
       "Common/Server/Services/UserWebhookService.ts",
     ];
 
@@ -865,6 +866,7 @@ describe("when a page finds no rule", () => {
       "Email",
       "Slack",
       "Microsoft Teams",
+      "Mattermost",
       "SMS",
       "Call",
       "WhatsApp",
@@ -891,7 +893,7 @@ describe("when a page finds no rule", () => {
     );
 
     expect(page).toContain(
-      "1. Every free method you have: push devices, email addresses, Slack and Microsoft Teams.",
+      "1. Every free method you have: push devices, email addresses, Slack, Microsoft Teams and Mattermost.",
     );
     expect(page).toContain(
       "in this order: SMS, a phone call, WhatsApp, Telegram. It is the first one you have verified, on a channel the project has turned on.",
@@ -983,6 +985,7 @@ describe("notification methods", () => {
     { component: "Telegram", tab: "Direct Contact" },
     { component: "Slack", tab: "Workspace Apps" },
     { component: "MicrosoftTeams", tab: "Workspace Apps" },
+    { component: "Mattermost", tab: "Workspace Apps" },
     { component: "Push", tab: "Push Notifications" },
     { component: "Webhook", tab: "Webhooks" },
   ];
@@ -1176,7 +1179,7 @@ describe("notification methods", () => {
     );
   });
 
-  it("adds Slack and Microsoft Teams accounts verified, from an account linked to the workspace", () => {
+  it("adds Slack, Microsoft Teams and Mattermost accounts verified, from an account linked to the workspace", () => {
     for (const [name, button, service] of [
       ["Slack", "Add Slack Account", "UserSlackService"],
       [
@@ -1184,6 +1187,7 @@ describe("notification methods", () => {
         "Add Microsoft Teams Account",
         "UserMicrosoftTeamsService",
       ],
+      ["Mattermost", "Add Mattermost Account", "UserMattermostService"],
     ] as Array<[string, string, string]>) {
       expect(component(name)).toContain(`title: "${button}"`);
       expect(component(name)).toContain('title: "Send Test Message"');

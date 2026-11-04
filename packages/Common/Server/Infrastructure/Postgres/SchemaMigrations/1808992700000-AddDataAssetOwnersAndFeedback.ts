@@ -4,8 +4,8 @@ import { MigrationInterface, QueryRunner } from "typeorm";
  * Table owners and rules, feedback on data alerts, problems people report,
  * column lineage, storage paths, and the check options that came with them.
  */
-export class AddDataAssetOwnersAndFeedback1808992670000 implements MigrationInterface {
-    public name: string = 'AddDataAssetOwnersAndFeedback1808992670000';
+export class AddDataAssetOwnersAndFeedback1808992700000 implements MigrationInterface {
+    public name: string = 'AddDataAssetOwnersAndFeedback1808992700000';
 
     public async up(queryRunner: QueryRunner): Promise<void> {
         await queryRunner.query(`CREATE TABLE "DataIssueReport" ("_id" uuid NOT NULL DEFAULT uuid_generate_v4(), "createdAt" TIMESTAMP WITH TIME ZONE NOT NULL DEFAULT now(), "updatedAt" TIMESTAMP WITH TIME ZONE NOT NULL DEFAULT now(), "deletedAt" TIMESTAMP WITH TIME ZONE, "version" integer NOT NULL, "projectId" uuid NOT NULL, "dataAssetId" uuid NOT NULL, "note" character varying(500) NOT NULL, "wasCaughtFirst" boolean NOT NULL DEFAULT false, "createdByUserId" uuid, CONSTRAINT "PK_7a15b5906a7fbeb2c93ddfb04ba" PRIMARY KEY ("_id"))`);
