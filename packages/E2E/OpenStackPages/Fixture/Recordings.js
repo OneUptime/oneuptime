@@ -14,6 +14,9 @@
  * read, so a stopped Nova API's says nothing of Nova's workers, hypervisors or instances,
  * and the rows OneUptime holds for them stay as they were. Without them a page could never
  * be asked what it says about a last-known row, which is what that failure is about.
+ *
+ * "hibiscus-ovn/access/reader" is what the exporter answered that credential on a healthy
+ * cloud, for each level of access the docs describe (Tests/Ops/openstack-e2e/access-matrix.sh).
  */
 import RECORDINGS from "openstack-recordings";
 import {
@@ -169,7 +172,11 @@ function onTopOf(earlierRows, laterRows) {
 function readScene(name, data) {
   const files = RECORDINGS[name];
   const buffer = new Map();
-  for (const text of Object.values(files)) {
+  for (const [file, text] of Object.entries(files)) {
+    // A service this cloud doesn't run answers nothing at all, so its series never existed.
+    if (data.without && file === `${data.without}.prom`) {
+      continue;
+    }
     for (const series of parsePrometheusText(text)) {
       const datapoint = toDatapoint(series, data.region, data.loadedAt);
       if (
@@ -195,7 +202,9 @@ export function rowsFromRecording(name, data) {
     );
   }
   const healthy = `${name.split("/")[0]}/healthy`;
-  return name !== healthy && hasRecording(healthy)
+  // A credential's answers are all there ever was: it never could read the rest.
+  const isItsOwnWhole = name === healthy || name.includes("/access/");
+  return !isItsOwnWhole && hasRecording(healthy)
     ? onTopOf(readScene(healthy, data), readScene(name, data))
     : readScene(name, data);
 }

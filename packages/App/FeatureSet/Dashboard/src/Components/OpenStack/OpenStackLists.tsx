@@ -253,13 +253,14 @@ export const OpenStackInstanceList: FunctionComponent<OpenStackListProps> = (
       emptyTitle={props.emptyTitle || "No instances reported yet"}
       emptyDescription={
         props.emptyDescription ||
-        "These come from Nova. Only the Full view credential sees every project's. With Infrastructure only or Project view, only the projects it has a role on are listed."
+        "These come from Nova. The Full view and Infrastructure only credentials see every project's."
       }
       columns={INSTANCE_COLUMNS}
       filters={[]}
       facets={facets}
       statePresets={OPENSTACK_INSTANCE_STATE_PRESETS}
       getViewRoute={routes.routeFor}
+      checkAccess={!props.query}
       searchPlaceholder="Search by name or ID"
     />
   );
@@ -1065,7 +1066,7 @@ export const OpenStackStoragePoolList: FunctionComponent<OpenStackListProps> = (
       emptyTitle={props.emptyTitle || "No storage pools reported yet"}
       emptyDescription={
         props.emptyDescription ||
-        "These come from Cinder's scheduler, which takes the Full view or Infrastructure only credential. A Project view credential can't list storage pools."
+        "These come from Cinder's scheduler, which only the Full view credential reads: Cinder's own code asks for an admin, whatever the policy says."
       }
       nameTitle="Pool"
       statusTitle="State"

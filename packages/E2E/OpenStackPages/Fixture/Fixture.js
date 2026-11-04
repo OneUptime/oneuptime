@@ -12,6 +12,9 @@
  *   ?recording= <release>/<scene>: what that real cloud's exporter answered, through
  *               the real snapshot scan (Recordings.js), e.g. gazpacho-ovs/compute-down.
  *               Wins over ?estate=.
+ *               "<release>/access/<level>" is what its exporter answered each credential:
+ *               reader, monitoring-role or monitoring-admin-get.
+ *   ?without=   compute, network, volume...: with a recording, a service this cloud doesn't run
  *   ?collector= disconnected: the agent stopped reporting ?quiet= ago (default 3 days)
  *   ?quiet=     how long ago the agent last reported: minutes, e.g. 4320
  *   ?access=    project: the credential is Project view, so it can list no services,
@@ -244,6 +247,7 @@ const estate = buildEstate(
       ? rowsFromRecording(RECORDING, {
           region: REGION_ONE,
           loadedAt: IS_CONNECTED ? LOADED_AT - MINUTE : LOADED_AT - QUIET_FOR,
+          without: params.get("without") || "",
         })
       : null,
     isConnected: IS_CONNECTED,
