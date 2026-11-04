@@ -23,6 +23,16 @@ import MonitorStepKubernetesMonitor, {
 import MonitorStepMetricMonitor, {
   MonitorStepMetricMonitorUtil,
 } from "../../../Types/Monitor/MonitorStepMetricMonitor";
+import MonitorStepOpenStackMonitor, {
+  MonitorStepOpenStackMonitorUtil,
+  OPENSTACK_CLOUD_RESOURCE_ATTRIBUTE,
+  OPENSTACK_REGION_ATTRIBUTE,
+  OpenStackResourceFilters,
+  alignOpenStackSeriesLabels,
+  getOpenStackFilterAttributes,
+  getOpenStackGroupByKeysForMetric,
+} from "../../../Types/Monitor/MonitorStepOpenStackMonitor";
+import AggregatedResult from "../../../Types/BaseDatabase/AggregatedResult";
 import MonitorStepPodmanMonitor, {
   MonitorStepPodmanMonitorUtil,
 } from "../../../Types/Monitor/MonitorStepPodmanMonitor";
@@ -262,6 +272,267 @@ describe("Infrastructure MonitorStep utils", () => {
           MonitorStepProxmoxMonitorUtil.toJSON(monitor),
         ),
       ).toEqual(monitor);
+    });
+  });
+
+  describe("MonitorStepOpenStackMonitorUtil", () => {
+    test("getDefault has no resource filters", () => {
+      const def: MonitorStepOpenStackMonitor =
+        MonitorStepOpenStackMonitorUtil.getDefault();
+
+      expect(def.cloudIdentifier).toBe("");
+      expect(def.resourceFilters).toEqual({});
+    });
+
+    test("getDefault's window holds three of the agent's slowest collections", () => {
+      /*
+       * Identity and image are collected every 5 minutes, so a hand-built
+       * monitor on anything shorter holds too few of them for "All Values".
+       */
+      expect(MonitorStepOpenStackMonitorUtil.getDefault().rollingTime).toBe(
+        RollingTime.Past15Minutes,
+      );
+    });
+
+    test("round-trips a monitor narrowed by every filter", () => {
+      const monitor: MonitorStepOpenStackMonitor = {
+        cloudIdentifier: "prod",
+        resourceFilters: {
+          regionName: "RegionOne",
+          availabilityZone: "nova",
+          hypervisorName: "compute-01.example.internal",
+          serviceName: "nova-compute",
+          projectId: "4f2d",
+        },
+        metricViewConfig: { queryConfigs: [], formulaConfigs: [] },
+        rollingTime: RollingTime.Past10Minutes,
+      };
+      expect(
+        MonitorStepOpenStackMonitorUtil.fromJSON(
+          MonitorStepOpenStackMonitorUtil.toJSON(monitor),
+        ),
+      ).toEqual(monitor);
+    });
+
+    test("reads through the attributes the agent stamps", () => {
+      expect(OPENSTACK_CLOUD_RESOURCE_ATTRIBUTE).toBe(
+        "resource.openstack.cloud.name",
+      );
+      expect(OPENSTACK_REGION_ATTRIBUTE).toBe("openstack.region.name");
+    });
+
+    describe("getOpenStackFilterAttributes", () => {
+      test("no filter reads every series", () => {
+        expect(
+          getOpenStackFilterAttributes({
+            resourceFilters: {},
+            seriesLabels: ["hostname", "service", "zone"],
+          }),
+        ).toEqual({});
+        expect(
+          getOpenStackFilterAttributes({
+            resourceFilters: undefined,
+            seriesLabels: undefined,
+          }),
+        ).toEqual({});
+      });
+
+      test("the region applies to every series, whatever its labels", () => {
+        expect(
+          getOpenStackFilterAttributes({
+            resourceFilters: { regionName: "RegionOne" },
+            seriesLabels: [],
+          }),
+        ).toEqual({ "openstack.region.name": "RegionOne" });
+      });
+
+      test("each filter uses the spelling the series has", () => {
+        const resourceFilters: {
+          availabilityZone: string;
+          hypervisorName: string;
+          projectId: string;
+        } = {
+          availabilityZone: "nova",
+          hypervisorName: "compute-01",
+          projectId: "4f2d",
+        };
+
+        // A hypervisor's own series.
+        expect(
+          getOpenStackFilterAttributes({
+            resourceFilters,
+            seriesLabels: ["aggregates", "availability_zone", "hostname"],
+          }),
+        ).toEqual({ availability_zone: "nova", hostname: "compute-01" });
+
+        // Nova's workers say `zone`, not `availability_zone`.
+        expect(
+          getOpenStackFilterAttributes({
+            resourceFilters,
+            seriesLabels: ["hostname", "service", "zone"],
+          }),
+        ).toEqual({ zone: "nova", hostname: "compute-01" });
+
+        // An instance says which hypervisor it is on, and whose it is.
+        expect(
+          getOpenStackFilterAttributes({
+            resourceFilters,
+            seriesLabels: [
+              "availability_zone",
+              "hypervisor_hostname",
+              "tenant_id",
+            ],
+          }),
+        ).toEqual({
+          availability_zone: "nova",
+          hypervisor_hostname: "compute-01",
+          tenant_id: "4f2d",
+        });
+
+        // A floating IP says project_id.
+        expect(
+          getOpenStackFilterAttributes({
+            resourceFilters,
+            seriesLabels: ["floating_ip_address", "project_id"],
+          }),
+        ).toEqual({ project_id: "4f2d" });
+      });
+
+      test("a filter that is not text, or is only spaces, is no filter", () => {
+        // Step JSON is not schema-checked: the API or an import can write these.
+        expect(
+          getOpenStackFilterAttributes({
+            resourceFilters: {
+              regionName: "  ",
+              availabilityZone: 7,
+              hypervisorName: { name: "compute-01" },
+              serviceName: "",
+            } as unknown as OpenStackResourceFilters,
+            seriesLabels: ["availability_zone", "hostname", "service"],
+          }),
+        ).toEqual({});
+      });
+
+      test("a filter is read without the spaces around it", () => {
+        expect(
+          getOpenStackFilterAttributes({
+            resourceFilters: {
+              regionName: " RegionOne ",
+              serviceName: " nova-compute ",
+            },
+            seriesLabels: ["service"],
+          }),
+        ).toEqual({
+          "openstack.region.name": "RegionOne",
+          service: "nova-compute",
+        });
+      });
+
+      test("a filter does not empty a series without its label", () => {
+        expect(
+          getOpenStackFilterAttributes({
+            resourceFilters: { projectId: "4f2d", serviceName: "nova-compute" },
+            seriesLabels: [],
+          }),
+        ).toEqual({});
+      });
+
+      test("a series the catalogue does not know takes each filter's first label", () => {
+        expect(
+          getOpenStackFilterAttributes({
+            resourceFilters: {
+              availabilityZone: "nova",
+              hypervisorName: "compute-01",
+              serviceName: "nova-compute",
+              projectId: "4f2d",
+            },
+            seriesLabels: undefined,
+          }),
+        ).toEqual({
+          availability_zone: "nova",
+          hostname: "compute-01",
+          service: "nova-compute",
+          tenant_id: "4f2d",
+        });
+      });
+    });
+
+    describe("lining up series that name a label differently", () => {
+      test("openstack_neutron_network is grouped by its own label", () => {
+        expect(
+          getOpenStackGroupByKeysForMetric({
+            metricName: "openstack_neutron_network",
+            groupByAttributeKeys: [
+              "openstack.region.name",
+              "network_id",
+              "network_name",
+            ],
+          }),
+        ).toEqual(["openstack.region.name", "id", "name"]);
+      });
+
+      test("any other series keeps the keys it was given", () => {
+        const keys: Array<string> = ["network_id", "network_name"];
+
+        expect(
+          getOpenStackGroupByKeysForMetric({
+            metricName: "openstack_neutron_network_ip_availabilities_used",
+            groupByAttributeKeys: keys,
+          }),
+        ).toEqual(keys);
+      });
+
+      test("its rows then carry the common label, and keep their own", () => {
+        const result: AggregatedResult = {
+          data: [
+            {
+              timestamp: new Date(),
+              value: 1,
+              attributes: { id: "net-1", name: "public" },
+            },
+            // A row with no attributes at all is left alone.
+            { timestamp: new Date(), value: 1 },
+          ],
+        } as unknown as AggregatedResult;
+
+        const aligned: AggregatedResult = alignOpenStackSeriesLabels({
+          metricName: "openstack_neutron_network",
+          aggregatedResult: result,
+        });
+
+        expect(
+          (aligned.data[0] as unknown as { attributes: unknown }).attributes,
+        ).toEqual({
+          id: "net-1",
+          name: "public",
+          network_id: "net-1",
+          network_name: "public",
+        });
+        expect(
+          (aligned.data[1] as unknown as { attributes?: unknown }).attributes,
+        ).toBeUndefined();
+      });
+
+      test("any other series' rows are not touched", () => {
+        const result: AggregatedResult = {
+          data: [
+            {
+              timestamp: new Date(),
+              value: 1,
+              attributes: { network_id: "net-1" },
+            },
+          ],
+        } as unknown as AggregatedResult;
+
+        expect(
+          (
+            alignOpenStackSeriesLabels({
+              metricName: "openstack_neutron_network_ip_availabilities_used",
+              aggregatedResult: result,
+            }).data[0] as unknown as { attributes: unknown }
+          ).attributes,
+        ).toEqual({ network_id: "net-1" });
+      });
     });
   });
 

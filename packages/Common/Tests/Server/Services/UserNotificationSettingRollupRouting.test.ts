@@ -7,6 +7,7 @@ import TelegramService from "../../../Server/Services/TelegramService";
 import UserCallService from "../../../Server/Services/UserCallService";
 import UserEmailService from "../../../Server/Services/UserEmailService";
 import UserMicrosoftTeamsService from "../../../Server/Services/UserMicrosoftTeamsService";
+import UserMattermostService from "../../../Server/Services/UserMattermostService";
 import UserNotificationEmailRollupItemService from "../../../Server/Services/UserNotificationEmailRollupItemService";
 import UserNotificationEmailRollupSettingService from "../../../Server/Services/UserNotificationEmailRollupSettingService";
 import UserNotificationSettingService from "../../../Server/Services/UserNotificationSettingService";
@@ -26,6 +27,7 @@ import logger from "../../../Server/Utils/Logger";
 import UserCall from "../../../Models/DatabaseModels/UserCall";
 import UserEmail from "../../../Models/DatabaseModels/UserEmail";
 import UserMicrosoftTeams from "../../../Models/DatabaseModels/UserMicrosoftTeams";
+import UserMattermost from "../../../Models/DatabaseModels/UserMattermost";
 import UserNotificationEmailRollupItem from "../../../Models/DatabaseModels/UserNotificationEmailRollupItem";
 import UserNotificationSetting from "../../../Models/DatabaseModels/UserNotificationSetting";
 import UserSlack from "../../../Models/DatabaseModels/UserSlack";
@@ -59,21 +61,21 @@ import URL from "../../../Types/API/URL";
 /*
  * sendUserNotification's email branch now runs through EmailRollupWriter
  * instead of calling MailService directly. That single line is the whole
- * feature, and it sits above eight other delivery channels. What breaks in
+ * feature, and it sits above nine other delivery channels. What breaks in
  * production if the behaviour pinned here regresses:
  *
  *   1. A DEFERRED EMAIL SILENCES THE OTHER CHANNELS. Holding an email back
  *      must hold back the EMAIL, and nothing else. SMS, call, push, WhatsApp,
- *      Telegram, Slack, Microsoft Teams and webhook are separate opt-ins that
- *      a user may be relying on precisely because email is noisy; if a
- *      deferral suppressed them the feature would be dropping notifications,
- *      not batching them.
+ *      Telegram, Slack, Microsoft Teams, Mattermost and webhook are separate
+ *      opt-ins that a user may be relying on precisely because email is noisy;
+ *      if a deferral suppressed them the feature would be dropping
+ *      notifications, not batching them.
  *
  *   2. THE ENVELOPE GETS MUTATED. The Telegram fallback body and the Slack /
- *      Microsoft Teams markdown are both synthesised from
+ *      Microsoft Teams / Mattermost markdown are both synthesised from
  *      data.emailEnvelope.subject AFTER the email branch has run. A writer
  *      that reused the envelope object to stash a truncated or brace-stripped
- *      subject would silently rewrite three other channels' messages.
+ *      subject would silently rewrite four other channels' messages.
  *
  *   3. ONE ADDRESS TAKES DOWN THE REST. The call the writer replaced was
  *      fire-and-forget, so a failure for one verified address could not affect
@@ -120,6 +122,7 @@ function allChannelsOn(): UserNotificationSetting {
     alertByTelegram: true,
     alertBySlack: true,
     alertByMicrosoftTeams: true,
+    alertByMattermost: true,
     alertByWebhook: true,
   } as unknown as UserNotificationSetting;
 }
@@ -409,6 +412,11 @@ describe("UserNotificationSettingService.sendUserNotification - rollup routing",
         microsoftTeamsUserId: "entra-object-id-1",
       } as unknown as UserMicrosoftTeams,
     ] as never);
+    jest.spyOn(UserMattermostService, "findBy").mockResolvedValue([
+      {
+        mattermostUserId: "pbxk4yq3wfgnxbk1t8h6y7o5ca",
+      } as unknown as UserMattermost,
+    ] as never);
     sendDm = jest
       .spyOn(WorkspaceUserNotificationService, "sendDirectMessageToUser")
       .mockResolvedValue(undefined as never);
@@ -477,8 +485,8 @@ describe("UserNotificationSettingService.sendUserNotification - rollup routing",
       expect(sendPush).toHaveBeenCalledTimes(1);
       expect(sendWhatsApp).toHaveBeenCalledTimes(1);
       expect(sendTelegram).toHaveBeenCalledTimes(1);
-      // One Slack DM and one Microsoft Teams DM.
-      expect(sendDm).toHaveBeenCalledTimes(2);
+      // One Slack DM, one Microsoft Teams DM and one Mattermost DM.
+      expect(sendDm).toHaveBeenCalledTimes(3);
       expect(sendWebhook).toHaveBeenCalledTimes(1);
     });
 
@@ -493,14 +501,19 @@ describe("UserNotificationSettingService.sendUserNotification - rollup routing",
         .calls[0]?.[0] as TelegramMessage;
       expect(telegram.body).toContain(SUBJECT);
 
-      const workspaceBlocks: Array<WorkspaceMessageBlock> = (
-        sendDm.mock.calls[0]?.[0] as {
-          messageBlocks: Array<WorkspaceMessageBlock>;
-        }
-      ).messageBlocks;
-      expect((workspaceBlocks[0] as WorkspacePayloadMarkdown).text).toContain(
-        SUBJECT,
-      );
+      // Slack, Microsoft Teams and Mattermost alike.
+      expect(sendDm).toHaveBeenCalledTimes(3);
+
+      for (const call of sendDm.mock.calls) {
+        const workspaceBlocks: Array<WorkspaceMessageBlock> = (
+          call[0] as {
+            messageBlocks: Array<WorkspaceMessageBlock>;
+          }
+        ).messageBlocks;
+        expect((workspaceBlocks[0] as WorkspacePayloadMarkdown).text).toContain(
+          SUBJECT,
+        );
+      }
 
       const webhookPayload: JSONObject = (
         sendWebhook.mock.calls[0]?.[0] as { payload: JSONObject }
@@ -615,7 +628,7 @@ describe("UserNotificationSettingService.sendUserNotification - rollup routing",
       expect(sendPush).toHaveBeenCalledTimes(1);
       expect(sendTelegram).toHaveBeenCalledTimes(1);
       expect(sendWhatsApp).toHaveBeenCalledTimes(1);
-      expect(sendDm).toHaveBeenCalledTimes(2);
+      expect(sendDm).toHaveBeenCalledTimes(3);
       expect(sendWebhook).toHaveBeenCalledTimes(1);
       expect(loggerError).toHaveBeenCalledTimes(1);
     });
@@ -742,13 +755,13 @@ describe("UserNotificationSettingService.sendUserNotification - rollup routing",
       expect(sendOrRollup).toHaveBeenCalledTimes(3);
       expect(loggerError).toHaveBeenCalledTimes(1);
 
-      // The eight non-email channels below the loop still ran.
+      // The nine non-email channels below the loop still ran.
       expect(sendSms).toHaveBeenCalledTimes(1);
       expect(makeCall).toHaveBeenCalledTimes(1);
       expect(sendPush).toHaveBeenCalledTimes(1);
       expect(sendWhatsApp).toHaveBeenCalledTimes(1);
       expect(sendTelegram).toHaveBeenCalledTimes(1);
-      expect(sendDm).toHaveBeenCalledTimes(2);
+      expect(sendDm).toHaveBeenCalledTimes(3);
       expect(sendWebhook).toHaveBeenCalledTimes(1);
     });
   });

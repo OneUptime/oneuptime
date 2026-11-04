@@ -193,6 +193,7 @@ import DockerMonitorStepForm from "../../../../App/FeatureSet/Dashboard/src/Comp
 import DockerSwarmMonitorStepForm from "../../../../App/FeatureSet/Dashboard/src/Components/Form/Monitor/DockerSwarmMonitor/DockerSwarmMonitorStepForm";
 import PodmanMonitorStepForm from "../../../../App/FeatureSet/Dashboard/src/Components/Form/Monitor/PodmanMonitor/PodmanMonitorStepForm";
 import ProxmoxMonitorStepForm from "../../../../App/FeatureSet/Dashboard/src/Components/Form/Monitor/ProxmoxMonitor/ProxmoxMonitorStepForm";
+import OpenStackMonitorStepForm from "../../../../App/FeatureSet/Dashboard/src/Components/Form/Monitor/OpenStackMonitor/OpenStackMonitorStepForm";
 import VMwareMonitorStepForm from "../../../../App/FeatureSet/Dashboard/src/Components/Form/Monitor/VMwareMonitor/VMwareMonitorStepForm";
 import CephMonitorStepForm from "../../../../App/FeatureSet/Dashboard/src/Components/Form/Monitor/CephMonitor/CephMonitorStepForm";
 import IoTMonitorStepForm from "../../../../App/FeatureSet/Dashboard/src/Components/Form/Monitor/IoTMonitor/IoTMonitorStepForm";
@@ -226,6 +227,9 @@ import MonitorStepPodmanMonitor, {
 import MonitorStepProxmoxMonitor, {
   MonitorStepProxmoxMonitorUtil,
 } from "../../../Types/Monitor/MonitorStepProxmoxMonitor";
+import MonitorStepOpenStackMonitor, {
+  MonitorStepOpenStackMonitorUtil,
+} from "../../../Types/Monitor/MonitorStepOpenStackMonitor";
 import MonitorStepVMwareMonitor, {
   MonitorStepVMwareMonitorUtil,
 } from "../../../Types/Monitor/MonitorStepVMwareMonitor";
@@ -502,6 +506,23 @@ const FORM_CASES: Array<FormCase> = [
         <ProxmoxMonitorStepForm
           monitorStepProxmoxMonitor={step as MonitorStepProxmoxMonitor}
           onChange={onChange as (step: MonitorStepProxmoxMonitor) => void}
+        />
+      );
+    },
+  },
+  {
+    name: "OpenStack",
+    metricName: "form.openstack.cpu",
+    opensOnAdvancedTab: true,
+    initial: stepFor(
+      MonitorStepOpenStackMonitorUtil.getDefault(),
+      "form.openstack.cpu",
+    ),
+    renderForm: (step: FormStep, onChange: (step: FormStep) => void) => {
+      return (
+        <OpenStackMonitorStepForm
+          monitorStepOpenStackMonitor={step as MonitorStepOpenStackMonitor}
+          onChange={onChange as (step: MonitorStepOpenStackMonitor) => void}
         />
       );
     },

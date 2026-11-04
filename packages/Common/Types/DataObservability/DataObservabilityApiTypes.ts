@@ -1,3 +1,4 @@
+import { WatchedTablePricing } from "../Billing/PayAsYouGoPricing";
 import { DataCheckAlertCondition } from "./DataCheckType";
 /*
  * WHAT DATA OBSERVABILITY'S OWN ROUTES ANSWER (Server/API/DataObservabilityAPI).
@@ -25,6 +26,8 @@ export const DATA_OBSERVABILITY_API_ROUTES: {
   alertExplanation: (alertId: string) => string;
   alertFeedback: (alertId: string) => string;
   quality: string;
+  watchedTables: string;
+  storeWatch: (dataStoreId: string) => string;
   tableFreshness: string;
   biSync: (dataBiConnectionId: string) => string;
   tableDashboards: string;
@@ -47,6 +50,11 @@ export const DATA_OBSERVABILITY_API_ROUTES: {
   },
   // How well Data Observability is working for the project.
   quality: "/data-observability/quality",
+  watchedTables: "/data-observability/watched-tables",
+  // Starts or stops reading a database: one nobody watches costs nothing.
+  storeWatch: (dataStoreId: string): string => {
+    return `/data-observability/stores/${dataStoreId}/watch`;
+  },
   stores: "/data-observability/stores",
   connectStore: "/data-observability/stores/connect",
   // The databases the project knows of that nobody has connected.
@@ -94,7 +102,6 @@ export const DATA_OBSERVABILITY_API_ROUTES: {
   },
   // The dashboards built on a table, and on the tables built from it.
   tableDashboards: "/data-observability/tables/dashboards",
-  // What the project's warehouses spent over the last day: by team, by table, and where it is wasted.
   // What Data Security knows each of a table's columns holds.
   tableSensitivity: "/data-observability/tables/sensitivity",
   // The errors in the services that write a table, naming it.
@@ -108,6 +115,7 @@ export const DATA_OBSERVABILITY_API_ROUTES: {
   storagePathsSave: (dataStoreId: string): string => {
     return `/data-observability/storage-paths/${dataStoreId}`;
   },
+  // What the project's warehouses spent over the last day: by team, by table, and where it is wasted.
   spendSummary: "/data-observability/spend/summary",
 };
 
@@ -196,6 +204,19 @@ export enum DataObservabilityCollector {
   OneUptime = "OneUptime",
   // A probe in the customer's network, with the connection string in its environment.
   Probe = "Probe",
+}
+
+// How many tables a project watches, and what they cost it.
+export interface DataObservabilityWatchedTables {
+  // False where nothing is billed, as on a self-hosted install: there is nothing to say.
+  isBilled: boolean;
+  // True once the install has named a price. Before that, the cost is only what it would be.
+  isCharging: boolean;
+  tableCount: number;
+  monthlyCostInUSD: number;
+  pricing: WatchedTablePricing;
+  // False for a project with no way to pay that has used its free tables.
+  canAddTables: boolean;
 }
 
 export interface DataObservabilityStoreSummary {

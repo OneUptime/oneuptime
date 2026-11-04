@@ -218,7 +218,7 @@ OneUptime berättar för personer om fem saker som händer i ett ärende. Ingen 
 
 ### Välj vad du får veta
 
-Var och en väljer själv, under **Användarinställningar → Aviseringsinställningar → Säkerhet**: kanalerna för varje avisering (e-post, SMS, samtal, push, Telegram, Slack, Microsoft Teams eller webhook) och, under **Nytt säkerhetsärende**, från vilken prioritet de aviseras:
+Var och en väljer själv, under **Användarinställningar → Aviseringsinställningar → Säkerhet**: kanalerna för varje avisering (e-post, SMS, samtal, push, Telegram, Slack, Microsoft Teams, Mattermost eller webhook) och, under **Nytt säkerhetsärende**, från vilken prioritet de aviseras:
 
 | Val | Aviserar om ärenden med |
 | --- | --- |

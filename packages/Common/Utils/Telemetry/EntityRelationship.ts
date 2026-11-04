@@ -78,9 +78,15 @@ const RULES: Record<string, EntityRelationshipType> = {
     EntityRelationshipType.MemberOf,
   [`${EntityType.ProxmoxNode}|${EntityType.ProxmoxCluster}`]:
     EntityRelationshipType.MemberOf,
+  [`${EntityType.OpenStackHypervisor}|${EntityType.OpenStackCloud}`]:
+    EntityRelationshipType.MemberOf,
   [`${EntityType.ProxmoxGuest}|${EntityType.ProxmoxNode}`]:
     EntityRelationshipType.RunsOn,
+  [`${EntityType.OpenStackInstance}|${EntityType.OpenStackHypervisor}`]:
+    EntityRelationshipType.RunsOn,
   [`${EntityType.ProxmoxGuest}|${EntityType.ProxmoxCluster}`]:
+    EntityRelationshipType.MemberOf,
+  [`${EntityType.OpenStackInstance}|${EntityType.OpenStackCloud}`]:
     EntityRelationshipType.MemberOf,
   /*
    * VMware vSphere topology. Only the six child → parent pairs below are

@@ -60,6 +60,12 @@ Em até cinco minutos as tabelas dele aparecem em **Tabelas**, cada uma com as s
 Em **Bancos de dados**, escolha **Alertas recomendados** para o banco de dados e adicione os que você quiser: uma tabela atrasada, uma cujas linhas caem bruscamente ou ficam anormalmente baixas, uma cujas colunas mudam, e um banco de dados que para de reportar. Cada um é um monitor comum: plantão, proprietários, janelas de manutenção e páginas de status funcionam como em qualquer outro.
 :::
 
+## Quanto custa
+
+No OneUptime Cloud, as primeiras 100 tabelas de um projeto são gratuitas. Cada tabela seguinte custa US$ 1 por mês, e US$ 0,25 acima de 1.000. As views são gratuitas, assim como as tabelas de um banco de dados que você deixar de monitorar. Uma verificação com alerta é cobrada como um monitor ativo. **Bancos de dados** e **Visão geral** mostram quantas tabelas seu projeto monitora e quanto elas custam, e [Preços](https://oneuptime.com/pricing) tem uma calculadora.
+
+Uma instalação auto-hospedada do OneUptime não paga nada pelas tabelas.
+
 ## Próximos passos
 
 :::cards

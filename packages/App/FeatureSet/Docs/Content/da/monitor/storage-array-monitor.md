@@ -103,7 +103,7 @@ Flere serier bærer deres tilstand i en **label**, med en værdi, der altid er 1
 | `purefa_host_connectivity_info` | `status`, med `details` | Vært |
 | `purefa_drive_capacity_bytes` | `component_status` (værdien er drevets kapacitet) | Drev |
 
-En serie, der er filtreret til en dårlig tilstand, findes kun, så længe noget er i den tilstand, så ingen serie betyder sundt. Derfor er **Max over 0 udløser og 0 genopretter** den rigtige form for dem, og sådan er skabelonerne bygget: deres genopretningskriterier tæller en manglende serie som nul.
+En serie, der er filtreret til en dårlig tilstand, findes kun, så længe noget er i den tilstand, så ingen serie betyder sundt. Derfor er **Max over 0 udløser og 0 genopretter** den rigtige form for dem, og sådan er skabelonerne bygget: deres genopretningskriterier tæller en manglende serie som nul. Når der slet ingen serier er tilbage, genopretter sådan en skabelon kun, hvis `purefa_info` eller `purefb_info` er ankommet i samme vindue, så et array, der er holdt op med at rapportere, lukker intet.
 
 I monitorfiltre og grupperingsnøgler begynder agentens attributter med `resource.` (`resource.storage.array.name`, `resource.storage.system`), mens Pures egne labels ikke gør (`name`, `host`, `component_name`, `dimension`, `space`, `severity`).
 

@@ -9,6 +9,7 @@ import { getAllIoTAlertTemplates } from "../../../Types/Monitor/IotAlertTemplate
 import { getAllKubernetesAlertTemplates } from "../../../Types/Monitor/KubernetesAlertTemplates";
 import { getAllKubernetesEventAlertTemplates } from "../../../Types/Monitor/KubernetesEventAlertTemplates";
 import { getAllOpenShiftAlertTemplates } from "../../../Types/Monitor/OpenShiftAlertTemplates";
+import { getAllOpenStackAlertTemplates } from "../../../Types/Monitor/OpenStackAlertTemplates";
 import { getAllPodmanAlertTemplates } from "../../../Types/Monitor/PodmanAlertTemplates";
 import { getAllProxmoxAlertTemplates } from "../../../Types/Monitor/ProxmoxAlertTemplates";
 import { getAllProxmoxNotificationAlertTemplates } from "../../../Types/Monitor/ProxmoxNotificationAlertTemplates";
@@ -87,6 +88,11 @@ const CATALOGS: Array<Catalog> = [
     ],
   },
   {
+    name: "OpenStack",
+    resourceType: MonitorRecommendationResourceType.OpenStack,
+    templates: getAllOpenStackAlertTemplates(),
+  },
+  {
     name: "VMware",
     resourceType: MonitorRecommendationResourceType.VMware,
     templates: getAllVMwareAlertTemplates(),
@@ -120,6 +126,7 @@ const NUMBER: RegExp = /-?\d+(?:\.\d+)?/g;
 const STEP_ARGS: Record<string, unknown> = {
   hostIdentifier: "host-01",
   clusterIdentifier: "cluster-01",
+  cloudIdentifier: "cloud-01",
   vcenterIdentifier: "vcenter-01",
   arrayIdentifier: "array-01",
   fleetIdentifier: "fleet-01",

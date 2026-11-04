@@ -33,8 +33,9 @@ import ObjectID from "../ObjectID";
  *     it, so two tabs, or a link opened twice, cannot both sign in;
  *   - it works for MAGIC_LINK_EXPIRY_MINUTES, and each new link replaces the
  *     last, so only the latest email's link works;
- *   - a new email address for the account ends it, and so does a password
- *     reset (UserService);
+ *   - a new email address for the account ends it, and so does a new
+ *     password, however it is set: a reset, the profile page or a master
+ *     admin's Set Password (UserService);
  *   - asking for one says nothing about whether an account exists: the
  *     answer is the same either way, and the request is counted per caller
  *     and per address (PublicMessageRateLimit) before the address is looked

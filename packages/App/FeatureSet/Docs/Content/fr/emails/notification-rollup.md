@@ -70,7 +70,7 @@ Jamais retardé, et jamais décompté :
 | Abonnés des pages de statut | Chaque e-mail que votre page de statut envoie à vos propres abonnés |
 | Violations de SLA | Un incident dont vous êtes propriétaire qui dépasse son délai SLA de réponse ou de résolution |
 
-Seul l'e-mail est concerné. Les SMS, appels téléphoniques, notifications push, WhatsApp, Telegram, Slack, Microsoft Teams et webhooks sont distribués immédiatement, exactement comme avant — y compris pour les notifications dont l'e-mail a été retenu.
+Seul l'e-mail est concerné. Les SMS, appels téléphoniques, notifications push, WhatsApp, Telegram, Slack, Microsoft Teams, Mattermost et webhooks sont distribués immédiatement, exactement comme avant — y compris pour les notifications dont l'e-mail a été retenu.
 
 ## Limites
 
@@ -105,7 +105,7 @@ Ce qu'il ne touche **pas** :
 
 - **Les notifications que vous recevez.** C'est le réglage par type d'événement et par canal sous **Paramètres utilisateur → Paramètres de notification**, sur la page voisine. Le regroupement et cet interrupteur ne changent que le nombre d'e-mails dans lesquels ces notifications sont réunies.
 - **Les alertes d'astreinte et les e-mails de garde**, **les e-mails de sécurité du compte**, **les e-mails de facturation**, les avertissements de santé de l'instance et les e-mails aux abonnés des pages de statut. Rien de tout cela n'est jamais regroupé, donc désactiver le regroupement n'y change rien — voir [Ce qui n'est jamais regroupé](#ce-qui-nest-jamais-regroupé).
-- **Tous les autres canaux.** Les SMS, appels, push, WhatsApp, Telegram, Slack, Microsoft Teams et webhooks sont déjà immédiats.
+- **Tous les autres canaux.** Les SMS, appels, push, WhatsApp, Telegram, Slack, Microsoft Teams, Mattermost et webhooks sont déjà immédiats.
 
 ## Réduire encore
 

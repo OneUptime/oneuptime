@@ -159,6 +159,7 @@ Templates read the past 5 minutes unless the table says otherwise. A criteria fi
 - **PG and pool series are per pool**: there is no cluster-wide gauge, so those templates group by `pool_id` and open one incident per pool.
 - **Capacity ratios** take the **Sum** of both sides. Both come from the same mgr scrape, so the result is a true percentage. **Inactive Placement Groups** uses **Maximum** per pool instead, because a sum would add up scrapes in a subtraction.
 - **Health-check templates** recover when the check clears: their recovery criteria count a missing series as 0.
+- **Daemon Slow Operations** has one series per daemon, so once no daemon has a series left there is nothing to read. It then recovers only if `ceph_health_status` arrived in the same window, so a stopped agent closes nothing.
 
 Some alerts have no template. PG imbalance needs cross-series statistics criteria cannot compute. Capacity forecasting needs a growth fit, which the cluster's dashboard draws instead. Disk failure prediction and scrub staleness have no mgr metric, and NVMe-oF, RBD mirroring and cephadm need other exporters.
 

@@ -15,6 +15,7 @@ import PushNotificationService from "./PushNotificationService";
 import UserTelegramService from "./UserTelegramService";
 import UserSlackService from "./UserSlackService";
 import UserMicrosoftTeamsService from "./UserMicrosoftTeamsService";
+import UserMattermostService from "./UserMattermostService";
 import UserWebhookService from "./UserWebhookService";
 import UserWhatsAppService from "./UserWhatsAppService";
 import WebhookService from "./WebhookService";
@@ -47,6 +48,7 @@ import UserSMS from "../../Models/DatabaseModels/UserSMS";
 import UserTelegram from "../../Models/DatabaseModels/UserTelegram";
 import UserSlack from "../../Models/DatabaseModels/UserSlack";
 import UserMicrosoftTeams from "../../Models/DatabaseModels/UserMicrosoftTeams";
+import UserMattermost from "../../Models/DatabaseModels/UserMattermost";
 import UserWebhook from "../../Models/DatabaseModels/UserWebhook";
 import UserWhatsApp from "../../Models/DatabaseModels/UserWhatsApp";
 import WorkspaceType from "../../Types/Workspace/WorkspaceType";
@@ -155,6 +157,7 @@ export type NotificationSettingChannel =
   | "alertByTelegram"
   | "alertBySlack"
   | "alertByMicrosoftTeams"
+  | "alertByMattermost"
   | "alertByWebhook"
   | "alertByCustomChannel";
 
@@ -167,6 +170,7 @@ export const SLA_BREACH_CHANNELS: ReadonlyArray<NotificationSettingChannel> = [
   "alertByTelegram",
   "alertBySlack",
   "alertByMicrosoftTeams",
+  "alertByMattermost",
   "alertByWebhook",
   "alertByCustomChannel",
 ];
@@ -250,6 +254,7 @@ export class Service extends DatabaseService<UserNotificationSetting> {
           alertByTelegram: true,
           alertBySlack: true,
           alertByMicrosoftTeams: true,
+          alertByMattermost: true,
           alertByCall: true,
           alertByPush: true,
           alertByWebhook: true,
@@ -600,14 +605,16 @@ export class Service extends DatabaseService<UserNotificationSetting> {
 
       if (
         notificationSettings.alertBySlack ||
-        notificationSettings.alertByMicrosoftTeams
+        notificationSettings.alertByMicrosoftTeams ||
+        notificationSettings.alertByMattermost
       ) {
         /*
-         * Slack and Microsoft Teams share one derived message: callers hand
-         * this method channel payloads for the older channels only, so the
-         * workspace body is synthesised from the email subject + SMS body the
-         * same way the Telegram fallback body is. Standard markdown — Slack
-         * slackifies it and Teams renders it into an adaptive card.
+         * Slack, Microsoft Teams and Mattermost share one derived message:
+         * callers hand this method channel payloads for the older channels
+         * only, so the workspace body is synthesised from the email subject +
+         * SMS body the same way the Telegram fallback body is. Standard
+         * markdown — Slack slackifies it, Teams renders it into an adaptive
+         * card and Mattermost posts it as it is.
          */
         const subject: string = data.emailEnvelope.subject || "";
         const smsBody: string = data.smsMessage.message || "";
@@ -707,6 +714,50 @@ export class Service extends DatabaseService<UserNotificationSetting> {
                 projectId: data.projectId,
                 workspaceType: WorkspaceType.MicrosoftTeams,
                 workspaceUserId: userMicrosoftTeams.microsoftTeamsUserId,
+                messageBlocks: messageBlocks,
+                messageSummary: subject || smsBody,
+                userId: data.userId,
+                incidentId: data.incidentId,
+                alertId: data.alertId,
+                alertEpisodeId: data.alertEpisodeId,
+                incidentEpisodeId: data.incidentEpisodeId,
+                teamId: data.teamId,
+                onCallPolicyId: data.onCallPolicyId,
+                onCallPolicyEscalationRuleId: data.onCallPolicyEscalationRuleId,
+                onCallScheduleId: data.onCallScheduleId,
+              }).catch((err: Error) => {
+                logger.error(err);
+              });
+            }
+          }
+
+          if (notificationSettings.alertByMattermost) {
+            const userMattermostAccounts: Array<UserMattermost> =
+              await UserMattermostService.findBy({
+                query: {
+                  userId: data.userId,
+                  projectId: data.projectId,
+                  isVerified: true,
+                },
+                select: {
+                  mattermostUserId: true,
+                },
+                limit: LIMIT_PER_PROJECT,
+                skip: 0,
+                props: {
+                  isRoot: true,
+                },
+              });
+
+            for (const userMattermost of userMattermostAccounts) {
+              if (!userMattermost.mattermostUserId) {
+                continue;
+              }
+
+              WorkspaceUserNotificationService.sendDirectMessageToUser({
+                projectId: data.projectId,
+                workspaceType: WorkspaceType.Mattermost,
+                workspaceUserId: userMattermost.mattermostUserId,
                 messageBlocks: messageBlocks,
                 messageSummary: subject || smsBody,
                 userId: data.userId,
@@ -1323,6 +1374,7 @@ export class Service extends DatabaseService<UserNotificationSetting> {
           alertByTelegram: true,
           alertBySlack: true,
           alertByMicrosoftTeams: true,
+          alertByMattermost: true,
           alertByWebhook: true,
           alertByCustomChannel: true,
         },

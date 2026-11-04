@@ -9,6 +9,7 @@ import Incident from "../../../Models/DatabaseModels/Incident";
 import IoTFleet from "../../../Models/DatabaseModels/IoTFleet";
 import KubernetesCluster from "../../../Models/DatabaseModels/KubernetesCluster";
 import NetworkDevice from "../../../Models/DatabaseModels/NetworkDevice";
+import OpenStackCloud from "../../../Models/DatabaseModels/OpenStackCloud";
 import PodmanHost from "../../../Models/DatabaseModels/PodmanHost";
 import ProxmoxCluster from "../../../Models/DatabaseModels/ProxmoxCluster";
 import ServerlessFunction from "../../../Models/DatabaseModels/ServerlessFunction";
@@ -68,6 +69,7 @@ const KIND_MODELS: Record<AiAffectedResourceKind, { new (): BaseModel }> = {
   [AiAffectedResourceKind.KubernetesCluster]: KubernetesCluster,
   [AiAffectedResourceKind.DockerSwarmCluster]: DockerSwarmCluster,
   [AiAffectedResourceKind.ProxmoxCluster]: ProxmoxCluster,
+  [AiAffectedResourceKind.OpenStackCloud]: OpenStackCloud,
   [AiAffectedResourceKind.VMwareVCenter]: VMwareVCenter,
   [AiAffectedResourceKind.CephCluster]: CephCluster,
   [AiAffectedResourceKind.StorageArray]: StorageArray,

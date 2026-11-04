@@ -21,6 +21,16 @@ import LinkedAffectedResources, {
 } from "../../AffectedResources/LinkedAffectedResources";
 import CaptureSpan from "../../Telemetry/CaptureSpan";
 import { isCloudResourceKindResource } from "../../../../Types/Cloud/CloudResourceKind";
+import { JSONObject } from "../../../../Types/JSON";
+import {
+  OpenStackBlastRadiusProject,
+  describeOpenStackBlastRadius,
+  describeOpenStackBlastRadiusCounts,
+  isOpenStackBlastRadiusEmpty,
+} from "../../../../Types/OpenStack/OpenStackBlastRadius";
+import OpenStackAlertContext, {
+  OpenStackAlertContextResult,
+} from "../../OpenStack/OpenStackAlertContext";
 
 /*
  * AI SRE - the infrastructure an incident or alert is linked to, and the
@@ -123,6 +133,11 @@ export const LINKED_INFRASTRUCTURE_KINDS: ReadonlyArray<{
     noun: "Proxmox cluster",
   },
   {
+    type: LinkedAffectedResourceType.OpenStackCloud,
+    aiResourceType: AIResourceType.OpenStackCloud,
+    noun: "OpenStack cloud",
+  },
+  {
     type: LinkedAffectedResourceType.VMwareVCenter,
     aiResourceType: AIResourceType.VMwareVCenter,
     noun: "VMware vCenter",
@@ -199,6 +214,8 @@ export interface LinkedInfrastructure {
   windowStart: Date;
   // When the alerts were read: the window's end.
   readAt: Date;
+  // What the subject takes with it on an OpenStack cloud, and whose that is.
+  openStack?: OpenStackAlertContextResult | undefined;
 }
 
 // The noun a kind of linked resource is called by.
@@ -373,12 +390,14 @@ export default class LinkedInfrastructureContext {
     projectId: ObjectID;
     incidentId: ObjectID;
   }): Promise<LinkedInfrastructure | null> {
-    const incident: { createdAt?: Date | undefined } | null =
-      await IncidentService.findOneBy({
-        query: { _id: data.incidentId.toString(), projectId: data.projectId },
-        select: { _id: true, createdAt: true },
-        props: { isRoot: true },
-      });
+    const incident: {
+      createdAt?: Date | undefined;
+      seriesLabels?: JSONObject | undefined;
+    } | null = await IncidentService.findOneBy({
+      query: { _id: data.incidentId.toString(), projectId: data.projectId },
+      select: { _id: true, createdAt: true, seriesLabels: true },
+      props: { isRoot: true },
+    });
 
     if (!incident?.createdAt) {
       return null;
@@ -393,12 +412,19 @@ export default class LinkedInfrastructureContext {
         }),
       );
 
-    return await LinkedInfrastructureContext.readAlertsFor({
-      projectId: data.projectId,
-      subjectKind: "incident",
-      subjectCreatedAt: incident.createdAt,
-      resources,
-    });
+    return {
+      ...(await LinkedInfrastructureContext.readAlertsFor({
+        projectId: data.projectId,
+        subjectKind: "incident",
+        subjectCreatedAt: incident.createdAt,
+        resources,
+      })),
+      openStack: await LinkedInfrastructureContext.readOpenStack({
+        projectId: data.projectId,
+        resources,
+        seriesLabels: incident.seriesLabels,
+      }),
+    };
   }
 
   // The alert twin of readForIncident; the alert itself is never listed.
@@ -409,7 +435,7 @@ export default class LinkedInfrastructureContext {
   }): Promise<LinkedInfrastructure | null> {
     const alert: Alert | null = await AlertService.findOneBy({
       query: { _id: data.alertId.toString(), projectId: data.projectId },
-      select: { _id: true, createdAt: true },
+      select: { _id: true, createdAt: true, seriesLabels: true },
       props: { isRoot: true },
     });
 
@@ -426,13 +452,51 @@ export default class LinkedInfrastructureContext {
         }),
       );
 
-    return await LinkedInfrastructureContext.readAlertsFor({
-      projectId: data.projectId,
-      subjectKind: "alert",
-      subjectCreatedAt: alert.createdAt,
-      resources,
-      excludeAlertId: data.alertId,
-    });
+    return {
+      ...(await LinkedInfrastructureContext.readAlertsFor({
+        projectId: data.projectId,
+        subjectKind: "alert",
+        subjectCreatedAt: alert.createdAt,
+        resources,
+        excludeAlertId: data.alertId,
+      })),
+      openStack: await LinkedInfrastructureContext.readOpenStack({
+        projectId: data.projectId,
+        resources,
+        seriesLabels: alert.seriesLabels as JSONObject | undefined,
+      }),
+    };
+  }
+
+  /*
+   * What the series a subject is about takes with it on the OpenStack cloud it is linked
+   * to. A read that fails leaves the rest of the context as it is: this is one more thing
+   * to know, not the thing an investigation stands on.
+   */
+  private static async readOpenStack(data: {
+    projectId: ObjectID;
+    resources: Array<LinkedInfrastructureResource>;
+    seriesLabels: JSONObject | undefined;
+  }): Promise<OpenStackAlertContextResult | undefined> {
+    const cloud: LinkedInfrastructureResource | undefined = data.resources.find(
+      (resource: LinkedInfrastructureResource): boolean => {
+        return resource.type === LinkedAffectedResourceType.OpenStackCloud;
+      },
+    );
+
+    if (!cloud || !data.seriesLabels) {
+      return undefined;
+    }
+
+    try {
+      return await OpenStackAlertContext.read({
+        projectId: data.projectId,
+        openStackCloudId: new ObjectID(cloud.id),
+        seriesLabels: data.seriesLabels,
+      });
+    } catch {
+      return undefined;
+    }
   }
 
   /*
@@ -570,6 +634,8 @@ export default class LinkedInfrastructureContext {
       );
     }
 
+    lines.push(...LinkedInfrastructureContext.describeOpenStack(data));
+
     const windowStartText: string = data.windowStart.toISOString();
 
     lines.push("");
@@ -602,6 +668,61 @@ export default class LinkedInfrastructureContext {
     );
 
     return lines.join("\n");
+  }
+
+  /*
+   * "This incident's part takes 3 instances in 2 projects with it", and whose they are.
+   * Project names are a tenant's own words, so each goes in as a field.
+   */
+  private static describeOpenStack(data: LinkedInfrastructure): Array<string> {
+    const lines: Array<string> = [];
+    const context: OpenStackAlertContextResult | undefined = data.openStack;
+
+    if (!context) {
+      return lines;
+    }
+
+    if (context.projectId) {
+      const name: string = PromptText.field(
+        context.projectName || context.projectId,
+        { maxLength: 200 },
+      );
+      lines.push(
+        `It is about OpenStack project ${JSON.stringify(name)} (id: ${context.projectId}).`,
+      );
+    }
+
+    if (context.radius && !context.radius.isKnown) {
+      lines.push(
+        "What was collected from this cloud does not say what this part holds, so do not read that as nothing.",
+      );
+    } else if (context.radius && !isOpenStackBlastRadiusEmpty(context.radius)) {
+      lines.push(
+        `What this part takes with it: ${describeOpenStackBlastRadius(context.radius)}.`,
+      );
+      for (const project of context.radius.projects) {
+        lines.push(
+          `- ${LinkedInfrastructureContext.describeOpenStackProject(project)}`,
+        );
+      }
+      if (context.radius.projectCount > context.radius.projects.length) {
+        lines.push(
+          `- and ${context.radius.projectCount - context.radius.projects.length} more projects`,
+        );
+      }
+    }
+
+    return lines.length > 0 ? ["", ...lines] : lines;
+  }
+
+  private static describeOpenStackProject(
+    project: OpenStackBlastRadiusProject,
+  ): string {
+    const name: string = PromptText.field(project.name || project.projectId, {
+      maxLength: 200,
+    });
+
+    return `OpenStack project ${JSON.stringify(name)} (id: ${project.projectId}): ${describeOpenStackBlastRadiusCounts(project)}`;
   }
 
   /*

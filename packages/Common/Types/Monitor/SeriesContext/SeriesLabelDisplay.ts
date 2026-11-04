@@ -116,6 +116,32 @@ const FriendlyLabelNames: Record<string, string> = {
   storage: "Storage",
 
   /*
+   * --- OpenStack ---
+   *
+   * openstack-exporter's own labels, which the shipped templates group by, and
+   * the two the agent's collector adds. `name` and `id` are shared with other
+   * types and named below.
+   *
+   * These names are read for every monitor type, and a monitor of someone's own
+   * metrics can group by `tenant_id` or `uuid` and mean anything by them. So they
+   * say what the label says, and not "Project" or "Instance", which is only what
+   * they mean here.
+   */
+  "openstack.cloud.name": "OpenStack Cloud",
+  "openstack.region.name": "Region",
+  openstack_service: "Service Type",
+  hostname: "Host",
+  service: "Service",
+  uuid: "UUID",
+  router_id: "Router ID",
+  network_id: "Network ID",
+  network_name: "Network",
+  volume_type: "Volume Type",
+  volume_backend_name: "Backend",
+  tenant: "Tenant",
+  tenant_id: "Tenant ID",
+
+  /*
    * --- VMware ---
    *
    * The OTel `vcenter` receiver stamps identity as RESOURCE attributes
@@ -314,6 +340,21 @@ const LabelPriority: Record<string, number> = {
   "proxmox.vm.name": 25,
   vmid: 25,
   /*
+   * OpenStack: the part that breached, by the name people know it by, then the
+   * region that scopes it. `uuid`, `network_id` and `tenant_id` keep the default
+   * and so sit after it: they are there for the commands. A router has no other
+   * name on its series, so its id is the name.
+   */
+  hostname: 25,
+  service: 26,
+  network_name: 25,
+  tenant: 25,
+  volume_backend_name: 28,
+  volume_type: 45,
+  "openstack.region.name": 60,
+  openstack_service: 25,
+  router_id: 25,
+  /*
    * VMware: the object that breached first (VM / template / datastore /
    * resource pool / NIC-or-disk instance), then the host it runs on, then
    * the cluster, datacenter and vCenter that merely scope it. The instance
@@ -400,6 +441,7 @@ const LabelPriority: Record<string, number> = {
   "k8s.cluster.name": 80,
   "docker.swarm.cluster.name": 80,
   "proxmox.cluster.name": 80,
+  "openstack.cloud.name": 80,
   "ceph.cluster.name": 80,
   "storage.array.name": 80,
   "storage.system": 85,
@@ -461,7 +503,7 @@ export default class SeriesLabelDisplay {
    * "Pod", "Container", "Node" - or, for a key nobody registered, a
    * best-effort prettified form of the key itself. An unknown key is
    * still far more useful spelled out than dropped: a user who groups
-   * by `tenant_id` should see "Tenant Id: acme", not silence.
+   * by `customer_id` should see "Customer Id: acme", not silence.
    */
   public static getFriendlyLabelName(key: string): string {
     const normalized: string = SeriesLabelDisplay.normalizeKey(key);

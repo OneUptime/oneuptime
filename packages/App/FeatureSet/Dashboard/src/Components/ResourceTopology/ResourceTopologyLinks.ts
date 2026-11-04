@@ -10,6 +10,7 @@ import CephCluster from "Common/Models/DatabaseModels/CephCluster";
 import DockerSwarmCluster from "Common/Models/DatabaseModels/DockerSwarmCluster";
 import Host from "Common/Models/DatabaseModels/Host";
 import KubernetesCluster from "Common/Models/DatabaseModels/KubernetesCluster";
+import OpenStackCloud from "Common/Models/DatabaseModels/OpenStackCloud";
 import ProxmoxCluster from "Common/Models/DatabaseModels/ProxmoxCluster";
 import StorageArray from "Common/Models/DatabaseModels/StorageArray";
 import VMwareVCenter from "Common/Models/DatabaseModels/VMwareVCenter";
@@ -83,6 +84,14 @@ export const RESOURCE_TOPOLOGY_PRODUCTS: ReadonlyArray<ResourceTopologyProduct> 
       linkText: translationKey("Open cluster topology"),
       modelType: ProxmoxCluster,
       identityAttribute: "proxmox.cluster.name",
+      identityColumn: "name",
+    },
+    {
+      entityType: EntityType.OpenStackCloud,
+      page: PageMap.OPENSTACK_CLOUD_VIEW_TOPOLOGY,
+      linkText: translationKey("Open cloud topology"),
+      modelType: OpenStackCloud,
+      identityAttribute: "openstack.cloud.name",
       identityColumn: "name",
     },
     {

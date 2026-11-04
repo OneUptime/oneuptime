@@ -53,6 +53,7 @@ import {
  */
 interface RecommendationMonitorStepConfig {
   clusterIdentifier?: string | undefined;
+  cloudIdentifier?: string | undefined;
   vcenterIdentifier?: string | undefined;
   hostIdentifier?: string | undefined;
   fleetIdentifier?: string | undefined;
@@ -416,6 +417,7 @@ export default class MonitorRecommendationUtil {
 
     const resourceIdentifier: string =
       config.clusterIdentifier ||
+      config.cloudIdentifier ||
       config.vcenterIdentifier ||
       config.hostIdentifier ||
       config.fleetIdentifier ||
@@ -497,6 +499,7 @@ export default class MonitorRecommendationUtil {
       "dockerSwarmMonitor",
       "podmanMonitor",
       "proxmoxMonitor",
+      "openstackMonitor",
       "vmwareMonitor",
       "cephMonitor",
       "storageArrayMonitor",

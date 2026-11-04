@@ -114,6 +114,36 @@ describe("infrastructure resource context validation", () => {
     },
   );
 
+  test("OpenStack clouds reuse the telemetry catalog's facet and label", () => {
+    expect(getAIResourceDefinition(AIResourceType.OpenStackCloud)).toEqual(
+      expect.objectContaining({
+        type: AIResourceType.OpenStackCloud,
+        facetKey: "openStackCloudId",
+        serviceType: ServiceType.OpenStackCloud,
+        label: "OpenStack Cloud",
+        pluralLabel: "OpenStack Clouds",
+      }),
+    );
+  });
+
+  test.each([
+    { kind: AIResourceSubresourceKind.Instance, key: "vm-1" },
+    { kind: AIResourceSubresourceKind.Host, key: "compute-1" },
+    { kind: AIResourceSubresourceKind.Volume },
+  ])(
+    "an OpenStack cloud names no part yet - %p is refused rather than widened",
+    (subresource: JSONObject) => {
+      expect(
+        AIChatPageContextHelper.sanitize(
+          resource({
+            resourceType: AIResourceType.OpenStackCloud,
+            subresource,
+          }),
+        ),
+      ).toBeUndefined();
+    },
+  );
+
   test("Storage arrays reuse the telemetry catalog's facet and label", () => {
     expect(getAIResourceDefinition(AIResourceType.StorageArray)).toEqual(
       expect.objectContaining({

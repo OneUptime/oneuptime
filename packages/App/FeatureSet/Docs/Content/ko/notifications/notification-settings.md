@@ -18,7 +18,7 @@ flowchart TB
     setting -->|"모두 꺼짐"| nothing["아무것도 보내지 않음"]
 ```
 
-- 각 행은 이벤트이고 각 열은 채널입니다: 이메일, SMS, 전화, 푸시, WhatsApp, Telegram, Slack과 Microsoft Teams, 그리고 Webhook. Slack과 Microsoft Teams는 프로젝트가 연결한 경우에만 열로 나타납니다.
+- 각 행은 이벤트이고 각 열은 채널입니다: 이메일, SMS, 전화, 푸시, WhatsApp, Telegram, Slack, Microsoft Teams, Mattermost, Webhook. Slack, Microsoft Teams, Mattermost는 프로젝트가 연결한 경우에만 열로 나타납니다.
 - 켜진 채널은 이 프로젝트에서 그 채널에 있는 인증된 알림 방법 하나가 아니라 모두에게 보냅니다.
 - 켜져 있어도 뒤에 인증된 알림 방법이 없는 채널은 아무것도 보내지 않습니다. **Your setup checklist**의 **Staying informed**에서 이를 알려 줍니다.
 - 소식은 레코드의 소유자에게 갑니다. 소유자로 지정된 사람과 소유자 팀의 멤버입니다. 레코드에 소유자가 없으면 대신 프로젝트 소유자에게 갑니다. 소유자로 추가되었다는 이벤트는 추가된 사람에게만 갑니다.

@@ -12,6 +12,7 @@ import KubernetesCluster from "../../../Models/DatabaseModels/KubernetesCluster"
 import NetworkDevice from "../../../Models/DatabaseModels/NetworkDevice";
 import PodmanHost from "../../../Models/DatabaseModels/PodmanHost";
 import ProxmoxCluster from "../../../Models/DatabaseModels/ProxmoxCluster";
+import OpenStackCloud from "../../../Models/DatabaseModels/OpenStackCloud";
 import Service from "../../../Models/DatabaseModels/Service";
 import StorageArray from "../../../Models/DatabaseModels/StorageArray";
 import VMwareVCenter from "../../../Models/DatabaseModels/VMwareVCenter";
@@ -53,6 +54,7 @@ export const AFFECTED_RESOURCE_MODELS: Readonly<
   [AiAffectedResourceKind.KubernetesCluster]: KubernetesCluster,
   [AiAffectedResourceKind.DockerSwarmCluster]: DockerSwarmCluster,
   [AiAffectedResourceKind.ProxmoxCluster]: ProxmoxCluster,
+  [AiAffectedResourceKind.OpenStackCloud]: OpenStackCloud,
   [AiAffectedResourceKind.VMwareVCenter]: VMwareVCenter,
   [AiAffectedResourceKind.CephCluster]: CephCluster,
   [AiAffectedResourceKind.StorageArray]: StorageArray,

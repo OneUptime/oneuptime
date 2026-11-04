@@ -1,0 +1,48 @@
+# openstack-exporter without Docker: the upstream release, run by systemd with
+# the flags docker-compose.yml gives it. `install.sh --without-docker` installs
+# it as /etc/systemd/system/oneuptime-openstack-exporter.service. Not installed
+# when you bring your own exporter (OPENSTACK_EXPORTER_ADDRESS).
+[Unit]
+Description=OneUptime OpenStack Agent (openstack-exporter, without Docker)
+Documentation=https://oneuptime.com/docs/telemetry/openstack
+After=network-online.target
+Wants=network-online.target
+
+[Service]
+Type=simple
+# Gentle by default, because monitoring must never be what takes a cloud down. Each
+# read left out here is left out on purpose, as docker-compose.yml leaves it out, and
+# by name: --disable-slow-metrics also takes the image list the product's Images page
+# reads with one call. Naming a series that reads the others turns them all off.
+#  - nova-quota_cores, nova-limits_vcpus_max, nova-server_local_gb,
+#    neutron-quota_network and cinder-limits_volume_max_gb: one call per project, on
+#    each scrape;
+#  - neutron-ports, neutron-port, neutron-ports_no_ips and neutron-ports_lb_not_active:
+#    every port in the cloud, which can saturate Neutron (openstack-exporter issue 540);
+#  - neutron-subnets_total: many series saying what the address pools already say;
+#  - nova-security_groups: Nova no longer has this route, so it only fills the log.
+# README.md says what each one gives up, and how to turn it on. It answers on this
+# machine alone: the only thing that asks it is the collector beside it.
+ExecStart=/opt/oneuptime-openstack-agent/openstack-exporter --multi-cloud --os-client-config=/opt/oneuptime-openstack-agent/clouds.yaml --web.listen-address=127.0.0.1:9180 --disable-metric=nova-quota_cores --disable-metric=nova-limits_vcpus_max --disable-metric=nova-server_local_gb --disable-metric=neutron-quota_network --disable-metric=cinder-limits_volume_max_gb --disable-metric=neutron-ports --disable-metric=neutron-port --disable-metric=neutron-ports_no_ips --disable-metric=neutron-ports_lb_not_active --disable-metric=neutron-subnets_total --disable-metric=nova-security_groups
+Restart=always
+RestartSec=10
+TimeoutStopSec=30
+# A system user of its own, not a throwaway one: clouds.yaml holds the credential,
+# is readable by its owner alone, and a file needs an owner that lasts.
+User=oneuptime-openstack
+Group=oneuptime-openstack
+CapabilityBoundingSet=
+NoNewPrivileges=yes
+ProtectSystem=strict
+ProtectHome=yes
+PrivateTmp=yes
+PrivateDevices=yes
+ProtectKernelTunables=yes
+ProtectKernelModules=yes
+ProtectControlGroups=yes
+RestrictNamespaces=yes
+RestrictRealtime=yes
+LockPersonality=yes
+
+[Install]
+WantedBy=multi-user.target

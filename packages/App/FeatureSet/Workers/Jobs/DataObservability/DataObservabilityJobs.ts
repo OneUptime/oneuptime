@@ -21,9 +21,8 @@ import {
   EVERY_FIVE_MINUTE,
   EVERY_HOUR,
 } from "Common/Utils/CronTime";
-import DataAsset from "Common/Models/DatabaseModels/DataAsset";
 import { IsBillingEnabled } from "Common/Server/EnvironmentConfig";
-import DataAssetService from "Common/Server/Services/DataAssetService";
+import DataStoreService from "Common/Server/Services/DataStoreService";
 import logger from "Common/Server/Utils/Logger";
 import { WatchedTableMeteredPlan } from "Common/Server/Types/Billing/MeteredPlan/AllMeteredPlans";
 import { JSONObject } from "Common/Types/JSON";
@@ -119,17 +118,17 @@ RunCron(
 
     const projectIds: Map<string, ObjectID> = new Map();
 
-    for (const asset of await DataAssetService.findBy({
-      query: { isDropped: false },
+    /*
+     * Every project with a store, archived or not: one that stopped watching
+     * everything still has to report that it now owes nothing.
+     */
+    for (const store of await DataStoreService.findAllBy({
+      query: {},
       select: { projectId: true },
-      skip: 0,
-      limit: 50_000,
       props: { isRoot: true },
     })) {
-      const projectId: ObjectID | undefined = (asset as DataAsset).projectId;
-
-      if (projectId) {
-        projectIds.set(projectId.toString(), projectId);
+      if (store.projectId) {
+        projectIds.set(store.projectId.toString(), store.projectId);
       }
     }
 

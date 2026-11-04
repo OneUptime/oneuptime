@@ -103,7 +103,7 @@ Verschillende reeksen dragen hun toestand in een **label**, met een waarde die a
 | `purefa_host_connectivity_info` | `status`, met `details` | Host |
 | `purefa_drive_capacity_bytes` | `component_status` (de waarde is de capaciteit van de schijf) | Schijf |
 
-Een reeks die gefilterd is op een slechte toestand bestaat alleen zolang iets in die toestand is, dus geen reeks betekent gezond. Daarom is **Max boven 0 gaat af en 0 herstelt** de juiste vorm ervoor, en zo zijn de templates gebouwd: hun herstelcriteria tellen een ontbrekende reeks als nul.
+Een reeks die gefilterd is op een slechte toestand bestaat alleen zolang iets in die toestand is, dus geen reeks betekent gezond. Daarom is **Max boven 0 gaat af en 0 herstelt** de juiste vorm ervoor, en zo zijn de templates gebouwd: hun herstelcriteria tellen een ontbrekende reeks als nul. Als er helemaal geen reeks meer over is, herstelt zo'n template alleen als `purefa_info` of `purefb_info` in hetzelfde venster is binnengekomen, zodat een array die niet meer rapporteert niets sluit.
 
 In monitorfilters en groeperingssleutels beginnen de attributen van de agent met `resource.` (`resource.storage.array.name`, `resource.storage.system`), terwijl de eigen labels van Pure dat niet doen (`name`, `host`, `component_name`, `dimension`, `space`, `severity`).
 

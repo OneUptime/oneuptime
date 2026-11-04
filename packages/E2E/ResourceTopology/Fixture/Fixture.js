@@ -54,6 +54,8 @@ import SwarmLayout from "../../../App/FeatureSet/Dashboard/src/Pages/DockerSwarm
 import SwarmTopology from "../../../App/FeatureSet/Dashboard/src/Pages/DockerSwarm/View/Topology";
 import ProxmoxLayout from "../../../App/FeatureSet/Dashboard/src/Pages/Proxmox/View/Layout";
 import ProxmoxTopology from "../../../App/FeatureSet/Dashboard/src/Pages/Proxmox/View/Topology";
+import OpenStackLayout from "../../../App/FeatureSet/Dashboard/src/Pages/OpenStack/View/Layout";
+import OpenStackTopology from "../../../App/FeatureSet/Dashboard/src/Pages/OpenStack/View/Topology";
 import CephLayout from "../../../App/FeatureSet/Dashboard/src/Pages/Ceph/View/Layout";
 import CephTopology from "../../../App/FeatureSet/Dashboard/src/Pages/Ceph/View/Topology";
 import StorageArrayLayout from "../../../App/FeatureSet/Dashboard/src/Pages/StorageArray/View/Layout";
@@ -282,6 +284,15 @@ const alerts =
           proxmoxClusters: [{ _id: IDS.proxmox }],
           seriesLabels: { id: "qemu/113" },
         }),
+        alert({
+          title: "[OpenStack] nova-compute down",
+          openStackClouds: [{ _id: IDS.openstack }],
+          seriesLabels: {
+            hostname: "compute-3",
+            service: "nova-compute",
+            "openstack.region.name": "RegionOne",
+          },
+        }),
       ]
     : [];
 
@@ -444,6 +455,15 @@ const store = {
     },
   ],
   ProxmoxResource: estate.proxmoxRows,
+  OpenStackCloud: [
+    {
+      _id: IDS.openstack,
+      name: "prod-eu",
+      lastSeenAt: fresh,
+      isArchived: false,
+    },
+  ],
+  OpenStackResource: estate.openstackRows,
   CephCluster: [
     {
       _id: IDS.ceph,
@@ -503,6 +523,7 @@ const INVENTORY_TABLES = new Set([
   "PodmanResource",
   "DockerSwarmResource",
   "ProxmoxResource",
+  "OpenStackResource",
   "CephResource",
   "StorageArrayResource",
   "CloudResource",
@@ -683,6 +704,42 @@ async function handleApi(method, options) {
   }
 
   // Every product layout asks for its side menu's counts.
+  /*
+   * A cloud's map, through the server's read: a small estate is read whole, as a real one
+   * up to the stated size is.
+   */
+  if (
+    method === "POST" &&
+    parsed.pathname.includes("/openstack-resource/topology/")
+  ) {
+    if (failuresLeft > 0) {
+      failuresLeft--;
+      return new HTTPErrorResponse(500, { message: "Could not read this." }, {});
+    }
+    const rows = estate.openstackRows;
+    const hosts = {};
+    const totalsByKind = {};
+    for (const row of rows) {
+      totalsByKind[row.kind] = (totalsByKind[row.kind] || 0) + 1;
+      if (row.kind === "Instance" && row.hypervisorName) {
+        hosts[row.hypervisorName] = (hosts[row.hypervisorName] || 0) + 1;
+      }
+    }
+    return ok({
+      rows,
+      totalsByKind,
+      instancesByHost: Object.keys(hosts).map((hypervisorName) => {
+        return {
+          regionName: "RegionOne",
+          hypervisorName,
+          instanceCount: hosts[hypervisorName],
+        };
+      }),
+      isSummarized: false,
+      projectNames: {},
+    });
+  }
+
   if (method === "POST" && parsed.pathname.includes("/inventory-summary/")) {
     return ok({});
   }
@@ -838,6 +895,12 @@ const PRODUCTS = [
     ProxmoxTopology,
     PageMap.PROXMOX_CLUSTER_VIEW,
     PageMap.PROXMOX_CLUSTER_VIEW_TOPOLOGY,
+  ],
+  [
+    OpenStackLayout,
+    OpenStackTopology,
+    PageMap.OPENSTACK_CLOUD_VIEW,
+    PageMap.OPENSTACK_CLOUD_VIEW_TOPOLOGY,
   ],
   [
     CephLayout,

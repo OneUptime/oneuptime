@@ -145,6 +145,7 @@ Malene leser de siste 5 minuttene, med mindre tabellen sier noe annet. Et kriter
 - **Antalls- og tilstandsmaler bruker Max**, så én innsamling som viser tilstanden, utløser dem: pakkefeil, ballooning, swapping, rød og gul status, verter som ikke er effektive, overbelastning.
 - **Host Not Responding bruker Max og utløses ved 0:** en ESXi-vert som kjører, bruker alltid minne, så én innsamling som rapporterer minne i bruk, er en vert som svarer, og bare et vindu der ingen gjorde det, utløser den.
 - **Hver mal grupperer på objektets eget identitetsattributt**, så det utløses én hendelse per berørt objekt, og hendelsen nevner det. Unntaket er **vCenter Stopped Reporting**, som overvåker hele vCenteret: når data stopper, har de andre malene ingenting å sammenligne og beholder sin siste status, så det er denne som sier fra.
+- **Datasenter-tellemaler gjenoppretter når serien deres er borte:** mottakeren registrerer bare et antall for tilstander som finnes, så når den siste røde verten blir grønn, er det ingen serie igjen, og gjenopprettingskriteriene deres teller en manglende serie som 0. Når ingen datasentre har en serie igjen, gjenoppretter de bare hvis `vcenter.datacenter.cpu.limit` kom i samme vindu, så en vCenter som har sluttet å rapportere, lukker ingenting.
 - **Terskler er låst i enheten sin** (`%`, `ms`, `us`), så de beholder betydningen sin uansett hvilken enhet en graf viser.
 
 ## Innsamlede metrikker

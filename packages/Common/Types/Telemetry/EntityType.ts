@@ -35,8 +35,11 @@ enum EntityType {
    * collector configs — see Internal/Roadmap/ProxmoxCephProducts.md §1.
    */
   ProxmoxCluster = "proxmox.cluster",
+  OpenStackCloud = "openstack.cloud",
   ProxmoxNode = "proxmox.node",
+  OpenStackHypervisor = "openstack.hypervisor",
   ProxmoxGuest = "proxmox.guest",
+  OpenStackInstance = "openstack.instance",
   CephCluster = "ceph.cluster",
   /*
    * Storage arrays (Pure Storage FlashArray / FlashBlade today) are

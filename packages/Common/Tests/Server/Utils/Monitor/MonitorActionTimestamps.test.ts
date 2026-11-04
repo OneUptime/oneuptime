@@ -287,6 +287,7 @@ describe.each(ENTITY_KINDS)(
           kubernetesClusterIds: [],
           serviceIds: [],
           proxmoxClusterIds: [],
+          openStackCloudIds: [],
           vmwareVCenterIds: [],
           cephClusterIds: [],
           dockerSwarmClusterIds: [],

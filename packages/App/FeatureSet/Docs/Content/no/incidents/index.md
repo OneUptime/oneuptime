@@ -67,7 +67,7 @@ Arbeidsflyter åpner også hendelser: [Huntress](/docs/integrations/huntress)-ar
 
 Ved opprettelsen kjører OneUptime automatiseringen du har satt opp: personvernregler, eierregler, etikettregler, vaktregler og runbook-regler. Alle vaktpolicyer som er knyttet til hendelsen — for hånd, fra en mal eller lagt til av en vaktregel som samsvarer — kjøres parallelt.
 
-Eierne får beskjed via kanalene hver av dem har slått på under **Brukerinnstillinger → Varselinnstillinger**: e-post, SMS, taleanrop, push, WhatsApp, Telegram, Slack, Microsoft Teams eller webhook. Har en hendelse ingen eiere i det hele tatt, går varselet til prosjektets eiere i stedet for å gå tapt.
+Eierne får beskjed via kanalene hver av dem har slått på under **Brukerinnstillinger → Varselinnstillinger**: e-post, SMS, taleanrop, push, WhatsApp, Telegram, Slack, Microsoft Teams, Mattermost eller webhook. Har en hendelse ingen eiere i det hele tatt, går varselet til prosjektets eiere i stedet for å gå tapt.
 
 Er hendelsen synlig på en statusside, og er varsler til abonnenter slått på, får abonnentene også beskjed: abonnentene på hver statusside som viser en av monitorene, eller bare dem på sidene du har begrenset den til. Se [Én statusside per målgruppe](/docs/status-pages/one-status-page-per-audience) for å gi hver målgruppe sin egen statusside.
 

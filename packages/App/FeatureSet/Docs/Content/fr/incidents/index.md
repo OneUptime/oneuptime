@@ -67,7 +67,7 @@ Les workflows ouvrent aussi des incidents : le workflow [Huntress](/docs/integra
 
 À la création, OneUptime exécute l'automatisation que vous avez configurée : règles de confidentialité, règles de propriétaire, règles d'étiquettes, règles d'astreinte et règles de runbook. Toutes les politiques d'astreinte rattachées à l'incident — à la main, depuis un modèle, ou ajoutées par une règle d'astreinte qui correspond — sont exécutées en parallèle.
 
-Les propriétaires sont notifiés sur les canaux que chacun a activés dans **Paramètres utilisateur → Paramètres de notification** : e-mail, SMS, appel vocal, push, WhatsApp, Telegram, Slack, Microsoft Teams ou webhook. Si un incident n'a aucun propriétaire, la notification se rabat sur les propriétaires du projet au lieu d'être perdue.
+Les propriétaires sont notifiés sur les canaux que chacun a activés dans **Paramètres utilisateur → Paramètres de notification** : e-mail, SMS, appel vocal, push, WhatsApp, Telegram, Slack, Microsoft Teams, Mattermost ou webhook. Si un incident n'a aucun propriétaire, la notification se rabat sur les propriétaires du projet au lieu d'être perdue.
 
 Si l'incident est visible sur une page de statut et que les notifications aux abonnés sont activées, les abonnés sont prévenus aussi : les abonnés de chaque page de statut qui liste l'un de ses moniteurs, ou seulement ceux des pages auxquelles vous l'avez limité. Voir [Une page de statut par public](/docs/status-pages/one-status-page-per-audience) pour donner à chaque public sa propre page de statut.
 

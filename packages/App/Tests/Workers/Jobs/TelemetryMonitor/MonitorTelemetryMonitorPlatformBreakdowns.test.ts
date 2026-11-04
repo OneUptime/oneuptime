@@ -37,6 +37,7 @@ import {
 } from "Common/Types/Monitor/MonitorStepKubernetesMonitor";
 import { MonitorStepHostMonitorUtil } from "Common/Types/Monitor/MonitorStepHostMonitor";
 import { MonitorStepProxmoxMonitorUtil } from "Common/Types/Monitor/MonitorStepProxmoxMonitor";
+import { MonitorStepOpenStackMonitorUtil } from "Common/Types/Monitor/MonitorStepOpenStackMonitor";
 import { MonitorStepVMwareMonitorUtil } from "Common/Types/Monitor/MonitorStepVMwareMonitor";
 import { MonitorStepCephMonitorUtil } from "Common/Types/Monitor/MonitorStepCephMonitor";
 import { MonitorStepDockerSwarmMonitorUtil } from "Common/Types/Monitor/MonitorStepDockerSwarmMonitor";
@@ -95,6 +96,7 @@ import {
   monitorKubernetes,
   monitorMetric,
   monitorPodman,
+  monitorOpenStack,
   monitorProxmox,
   monitorVMware,
 } from "../../../../FeatureSet/Workers/Jobs/TelemetryMonitor/MonitorTelemetryMonitor";
@@ -1551,6 +1553,26 @@ describe("lowestMetricValue across every platform", () => {
       attributes: { id: "node/pve1" },
       breakdowns: (response: MetricMonitorResponse) => {
         return response.proxmoxResourceBreakdowns;
+      },
+    },
+    {
+      name: "OpenStack",
+      monitor: monitorOpenStack,
+      step: (): MonitorStep => {
+        const step: MonitorStep = new MonitorStep();
+        step.setOpenStackMonitor({
+          ...MonitorStepOpenStackMonitorUtil.getDefault(),
+          cloudIdentifier: "c",
+          metricViewConfig: {
+            queryConfigs: [queryConfig({ alias: "a", metricName: "m" })],
+            formulaConfigs: [],
+          },
+        });
+        return step;
+      },
+      attributes: { hostname: "compute-01", service: "nova-compute" },
+      breakdowns: (response: MetricMonitorResponse) => {
+        return response.openStackResourceBreakdowns;
       },
     },
     {

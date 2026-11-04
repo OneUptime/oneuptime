@@ -39,6 +39,7 @@ const FLEET_ID: string = "9a8b7c6d-5e4f-4321-8fed-cba987654321";
 const NEWLY_FILTERABLE_KEYS: Array<string> = [
   "dockerSwarmClusterId",
   "proxmoxClusterId",
+  "openStackCloudId",
   "vmwareVCenterId",
   "cephClusterId",
   "storageArrayId",
@@ -88,7 +89,7 @@ describe("ResourceEntityFacet", () => {
       expect([...RESOURCE_ENTITY_FACET_KEYS]).toEqual([
         ...RESOURCE_FACET_CATALOG_KEYS,
       ]);
-      expect(RESOURCE_ENTITY_FACET_KEYS).toHaveLength(14);
+      expect(RESOURCE_ENTITY_FACET_KEYS).toHaveLength(15);
     });
 
     test("the non-Service group is a copy, not the catalog's own array", () => {

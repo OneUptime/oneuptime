@@ -159,6 +159,7 @@ Mallar läser de senaste 5 minuterna om inte tabellen säger något annat. Ett k
 - **PG- och poolserier finns per pool**: Det finns inget mått för hela klustret, så de mallarna grupperar efter `pool_id` och öppnar en incident per pool.
 - **Kapacitetskvoter** tar **Summa** av båda sidor. Båda kommer från samma hämtning från mgr:n, så resultatet blir en riktig procentsats. **Inactive Placement Groups** använder i stället **Maximum** per pool, eftersom en summa skulle lägga ihop hämtningar i en subtraktion.
 - **Health check-mallar** återställs när checken försvinner: Deras återställningskriterier räknar en saknad serie som 0.
+- **Daemon Slow Operations** har en serie per daemon, så när ingen daemon har någon serie kvar finns det inget att läsa. Den återställs då bara om `ceph_health_status` kom i samma fönster, så en stoppad agent stänger ingenting.
 
 Vissa larm har ingen mall. Ojämnt fördelade PG:er kräver statistik över flera serier som kriterier inte kan beräkna. Kapacitetsprognoser kräver en tillväxtkurva, som klustrets instrumentpanel ritar i stället. Förutsägelse av diskfel och eftersläpande scrubbing har inget mätvärde i mgr:n, och NVMe-oF, RBD-spegling och cephadm kräver andra exportörer.
 

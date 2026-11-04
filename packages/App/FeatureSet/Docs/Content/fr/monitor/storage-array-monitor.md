@@ -103,7 +103,7 @@ Plusieurs séries portent leur état dans un **label**, avec une valeur toujours
 | `purefa_host_connectivity_info` | `status`, avec `details` | Hôte |
 | `purefa_drive_capacity_bytes` | `component_status` (la valeur est la capacité du disque) | Disque |
 
-Une série filtrée sur un mauvais état n'existe que tant que quelque chose est dans cet état, donc l'absence de série signifie que tout va bien. C'est pourquoi **Max au-dessus de 0 déclenche et 0 rétablit** est la bonne forme pour elles, et c'est ainsi que sont construits les modèles : leurs critères de rétablissement comptent une série absente comme zéro.
+Une série filtrée sur un mauvais état n'existe que tant que quelque chose est dans cet état, donc l'absence de série signifie que tout va bien. C'est pourquoi **Max au-dessus de 0 déclenche et 0 rétablit** est la bonne forme pour elles, et c'est ainsi que sont construits les modèles : leurs critères de rétablissement comptent une série absente comme zéro. Quand il ne reste plus aucune série, un tel modèle ne se rétablit que si `purefa_info` ou `purefb_info` est arrivé dans la même fenêtre, si bien qu'une baie qui ne rapporte plus ne ferme rien.
 
 Dans les filtres du moniteur et les clés de regroupement, les attributs de l'agent commencent par `resource.` (`resource.storage.array.name`, `resource.storage.system`), alors que les propres labels de Pure non (`name`, `host`, `component_name`, `dimension`, `space`, `severity`).
 

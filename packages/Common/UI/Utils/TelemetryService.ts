@@ -172,6 +172,7 @@ export default class TelemetryServiceUtil {
       [ServiceType.PodmanHost]: translationKey("Podman host telemetry"),
       [ServiceType.KubernetesCluster]: translationKey("Kubernetes telemetry"),
       [ServiceType.ProxmoxCluster]: translationKey("Proxmox Cluster"),
+      [ServiceType.OpenStackCloud]: translationKey("OpenStack Cloud"),
       [ServiceType.CephCluster]: translationKey("Ceph Cluster"),
       [ServiceType.StorageArray]: translationKey("Storage Array"),
       [ServiceType.VMwareVCenter]: translationKey("vCenter"),

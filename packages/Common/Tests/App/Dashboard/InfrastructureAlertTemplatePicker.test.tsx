@@ -39,6 +39,7 @@ import {
   getAllPodmanAlertTemplates,
 } from "../../../Types/Monitor/PodmanAlertTemplates";
 import { getAllProxmoxAlertTemplates } from "../../../Types/Monitor/ProxmoxAlertTemplates";
+import { getAllOpenStackAlertTemplates } from "../../../Types/Monitor/OpenStackAlertTemplates";
 import {
   StorageArrayAlertTemplate,
   getAllStorageArrayAlertTemplates,
@@ -63,6 +64,7 @@ import PodmanTemplatePicker from "../../../../App/FeatureSet/Dashboard/src/Compo
 import DockerSwarmTemplatePicker from "../../../../App/FeatureSet/Dashboard/src/Components/Form/Monitor/DockerSwarmMonitor/DockerSwarmTemplatePicker";
 import KubernetesTemplatePicker from "../../../../App/FeatureSet/Dashboard/src/Components/Form/Monitor/KubernetesMonitor/KubernetesTemplatePicker";
 import ProxmoxTemplatePicker from "../../../../App/FeatureSet/Dashboard/src/Components/Form/Monitor/ProxmoxMonitor/ProxmoxTemplatePicker";
+import OpenStackTemplatePicker from "../../../../App/FeatureSet/Dashboard/src/Components/Form/Monitor/OpenStackMonitor/OpenStackTemplatePicker";
 import VMwareTemplatePicker from "../../../../App/FeatureSet/Dashboard/src/Components/Form/Monitor/VMwareMonitor/VMwareTemplatePicker";
 import CephTemplatePicker from "../../../../App/FeatureSet/Dashboard/src/Components/Form/Monitor/CephMonitor/CephTemplatePicker";
 import StorageArrayTemplatePicker from "../../../../App/FeatureSet/Dashboard/src/Components/Form/Monitor/StorageArrayMonitor/StorageArrayTemplatePicker";
@@ -168,6 +170,23 @@ const PICKER_CASES: Array<PickerCase> = [
       "High Availability",
       "Backup",
       "Replication",
+    ],
+  },
+  {
+    name: "OpenStack",
+    templates: getAllOpenStackAlertTemplates(),
+    render: (onTemplateSelected: MockFunction): void => {
+      render(
+        <OpenStackTemplatePicker onTemplateSelected={onTemplateSelected} />,
+      );
+    },
+    headings: [
+      "Availability",
+      "Control Plane",
+      "Compute",
+      "Network",
+      "Storage",
+      "Projects",
     ],
   },
   {

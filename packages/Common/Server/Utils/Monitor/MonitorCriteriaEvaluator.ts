@@ -31,6 +31,10 @@ import MetricMonitorCriteria, {
   MetricSeriesEvaluationResult,
 } from "./Criteria/MetricMonitorCriteria";
 import CriteriaInEffect from "./CriteriaInEffect";
+import GroupedSeriesGone, {
+  GROUPED_SERIES_GONE_MET_NOTE,
+  GROUPED_SERIES_GONE_NOT_MET_MESSAGE,
+} from "./GroupedSeriesGone";
 import MetricWindowCoverage from "./Criteria/MetricWindowCoverage";
 import TraceMonitorCriteria from "./Criteria/TraceMonitorCriteria";
 import ExceptionMonitorCriteria from "./Criteria/ExceptionMonitorCriteria";
@@ -115,7 +119,9 @@ import MetricMonitorResponse, {
   KubernetesAffectedResource,
   KubernetesResourceBreakdown,
   ProxmoxAffectedResource,
+  OpenStackAffectedResource,
   ProxmoxResourceBreakdown,
+  OpenStackResourceBreakdown,
   VMwareAffectedResource,
   VMwareResourceBreakdown,
   CephAffectedResource,
@@ -138,6 +144,9 @@ import MonitorStepHostMonitor from "../../../Types/Monitor/MonitorStepHostMonito
 import MonitorStepPodmanMonitor from "../../../Types/Monitor/MonitorStepPodmanMonitor";
 import MonitorStepIoTMonitor from "../../../Types/Monitor/MonitorStepIoTMonitor";
 import MonitorStepProxmoxMonitor from "../../../Types/Monitor/MonitorStepProxmoxMonitor";
+import MonitorStepOpenStackMonitor, {
+  OpenStackResourceFilters,
+} from "../../../Types/Monitor/MonitorStepOpenStackMonitor";
 import MonitorStepVMwareMonitor from "../../../Types/Monitor/MonitorStepVMwareMonitor";
 import MonitorStepCephMonitor from "../../../Types/Monitor/MonitorStepCephMonitor";
 import MonitorStepStorageArrayMonitor, {
@@ -147,6 +156,7 @@ import MonitorStepDockerSwarmMonitor from "../../../Types/Monitor/MonitorStepDoc
 import MetricValueFormatter from "../../../Utils/Monitor/MetricValueFormatter";
 import { getKubernetesMetricByMetricName } from "../../../Types/Monitor/KubernetesMetricCatalog";
 import { getProxmoxMetricByMetricName } from "../../../Types/Monitor/ProxmoxMetricCatalog";
+import { getOpenStackMetricByMetricName } from "../../../Types/Monitor/OpenStackMetricCatalog";
 import { getVMwareMetricByMetricName } from "../../../Types/Monitor/VMwareMetricCatalog";
 import { getCephMetricByMetricName } from "../../../Types/Monitor/CephMetricCatalog";
 import { getStorageArrayMetric } from "../../../Types/Monitor/StorageArrayMetricCatalog";
@@ -162,6 +172,7 @@ import PlatformResourceIdentity, {
   DockerSwarmResourceIdentity,
   KubernetesResourceIdentity,
   ProxmoxResourceIdentity,
+  OpenStackResourceIdentity,
   StorageArrayResourceIdentity,
   VMwareResourceIdentity,
 } from "../../../Utils/Monitor/PlatformResourceIdentity";
@@ -228,6 +239,7 @@ interface MatchHistoryContext {
 type PlatformName =
   | "kubernetes"
   | "proxmox"
+  | "openstack"
   | "vmware"
   | "dockerSwarm"
   | "ceph"
@@ -581,17 +593,36 @@ export default class MonitorCriteriaEvaluator {
        * one unattributed whole-monitor alert that then blocked every
        * real per-host alert. Skip the criteria instead and let the next
        * one decide.
+       *
+       * Unless every series is gone: a recovery criteria that counts a
+       * missing series as zero then holds, opens nothing and has no series
+       * to name (GroupedSeriesGone). Matching is what closes the records of
+       * the series that went, and puts the monitor back on its status.
        */
-      if (
+      const namesNoSeries: boolean =
         fanOutAcrossCriteria &&
         perSeriesMatches.length === 0 &&
-        !judgesWholeMonitor
-      ) {
+        !judgesWholeMonitor;
+
+      const isMetWithNoSeries: boolean =
+        namesNoSeries &&
+        GroupedSeriesGone.isCriteriaMet({
+          monitorType: input.monitor.monitorType,
+          criteriaInstance: criteriaInstance,
+          dataToProcess: input.dataToProcess,
+        });
+
+      if (namesNoSeries && !isMetWithNoSeries) {
         criteriaResult.met = false;
-        criteriaResult.message =
-          "Criteria was not met: no single series satisfied it. " +
-          "This monitor raises one alert per series, so a criteria that " +
-          "only holds across different series combined does not fire.";
+        criteriaResult.message = GroupedSeriesGone.isWaitingForResource({
+          monitorType: input.monitor.monitorType,
+          criteriaInstance: criteriaInstance,
+          dataToProcess: input.dataToProcess,
+        })
+          ? GROUPED_SERIES_GONE_NOT_MET_MESSAGE
+          : "Criteria was not met: no single series satisfied it. " +
+            "This monitor raises one alert per series, so a criteria that " +
+            "only holds across different series combined does not fire.";
 
         input.evaluationSummary.events.push({
           type: "criteria-not-met",
@@ -658,6 +689,15 @@ ${contextBlock}
       if (incomingRequestGrouping?.rootCauseNote) {
         renderedRootCause = mdText`${renderedRootCause}
 ${incomingRequestGrouping.rootCauseNote}
+`;
+      }
+
+      // Why a grouped criteria matched with no series to name.
+      if (isMetWithNoSeries) {
+        criteriaResult.message = `${criteriaResult.message} ${GROUPED_SERIES_GONE_MET_NOTE}`;
+
+        renderedRootCause = mdText`${renderedRootCause}
+**Series**: ${GROUPED_SERIES_GONE_MET_NOTE}
 `;
       }
 
@@ -1978,6 +2018,10 @@ ${incomingRequestGrouping.rootCauseNote}
       return MonitorCriteriaEvaluator.buildProxmoxRootCauseContext(input);
     }
 
+    if (input.monitor.monitorType === MonitorType.OpenStack) {
+      return MonitorCriteriaEvaluator.buildOpenStackRootCauseContext(input);
+    }
+
     // Handle VMware monitors with vCenter resource context
     if (input.monitor.monitorType === MonitorType.VMware) {
       return MonitorCriteriaEvaluator.buildVMwareRootCauseContext(input);
@@ -3065,6 +3109,8 @@ ${incomingRequestGrouping.rootCauseNote}
         return getKubernetesMetricByMetricName(input.metricName)?.friendlyName;
       case "proxmox":
         return getProxmoxMetricByMetricName(input.metricName)?.friendlyName;
+      case "openstack":
+        return getOpenStackMetricByMetricName(input.metricName)?.friendlyName;
       case "vmware":
         return getVMwareMetricByMetricName(input.metricName)?.friendlyName;
       case "dockerSwarm":
@@ -4678,6 +4724,20 @@ ${incomingRequestGrouping.rootCauseNote}
     return resource.resourceType || resource.scope || "Resource";
   }
 
+  private static getOpenStackAffectedResourceKind(
+    resource: OpenStackResourceIdentity,
+  ): string {
+    if (resource.serviceName) {
+      return "Service";
+    }
+
+    if (resource.hostName && !resource.resourceId && !resource.resourceName) {
+      return "Hypervisor";
+    }
+
+    return "Resource";
+  }
+
   /*
    * One Proxmox resource as an "Affected Resources" list item: its kind,
    * its name next to its `qemu/100`-style id, and the node it runs on.
@@ -4875,6 +4935,256 @@ ${incomingRequestGrouping.rootCauseNote}
                   : MonitorCriteriaEvaluator.getProxmoxAffectedResourceEntry({
                       resource: row.identity,
                       clusterName: clusterName,
+                      value:
+                        MonitorCriteriaEvaluator.renderAffectedRowValue(row),
+                    });
+              },
+            ),
+        }),
+      );
+      renderedBreakdownList = true;
+    }
+
+    // Metric results summary (fallback context when no list rendered)
+    if (
+      !renderedBreakdownList &&
+      metricResponse.metricResult &&
+      metricResponse.metricResult.length > 0
+    ) {
+      const resultDetails: Array<MarkdownText> = [];
+
+      for (const result of metricResponse.metricResult) {
+        if (result.data && result.data.length > 0) {
+          resultDetails.push(
+            mdText`- ${result.data.length} metric data point(s) returned`,
+          );
+        }
+      }
+
+      if (resultDetails.length > 0) {
+        sections.push(
+          mdText`\n\n**Metric Summary**\n${FeedMarkdown.join(resultDetails, "\n")}`,
+        );
+      }
+    }
+
+    return sections.length > 0 ? FeedMarkdown.join(sections, "\n") : null;
+  }
+
+  /*
+   * One part of an OpenStack cloud as an "Affected Resources" list item: what it is,
+   * its name next to its id, and where it sits.
+   */
+  private static getOpenStackAffectedResourceEntry(input: {
+    resource: OpenStackResourceIdentity;
+    cloudName: string;
+    value: MarkdownValue;
+  }): AffectedResourceListEntry {
+    const resource: OpenStackResourceIdentity = input.resource;
+
+    let kind: string =
+      MonitorCriteriaEvaluator.getOpenStackAffectedResourceKind(resource);
+    let name: MarkdownText = AffectedResourceList.codeWithId({
+      name: resource.serviceName || resource.resourceName,
+      id: resource.resourceId,
+    });
+
+    if (name.isEmpty() && resource.hostName) {
+      name = AffectedResourceList.code(resource.hostName);
+    }
+
+    if (name.isEmpty() && resource.regionName) {
+      kind = "Region";
+      name = AffectedResourceList.code(resource.regionName);
+    }
+
+    if (name.isEmpty()) {
+      // Nothing narrower than the cloud: a series for all of it.
+      kind = "Cloud";
+      name = AffectedResourceList.code(input.cloudName);
+    }
+
+    const details: Array<AffectedResourceListDetail> = [];
+
+    // A hypervisor's own row would only repeat its name as "Host: …".
+    if (resource.hostName && kind !== "Hypervisor") {
+      details.push({
+        label: "Host",
+        value: AffectedResourceList.code(resource.hostName),
+      });
+    }
+
+    if (resource.regionName && kind !== "Region") {
+      details.push({
+        label: "Region",
+        value: AffectedResourceList.code(resource.regionName),
+      });
+    }
+
+    if (resource.projectId) {
+      details.push({
+        label: "Project",
+        value: AffectedResourceList.code(resource.projectId),
+      });
+    }
+
+    return {
+      kind: kind,
+      name: name,
+      value: input.value,
+      details: details,
+    };
+  }
+
+  private static buildOpenStackRootCauseContext(input: {
+    dataToProcess: DataToProcess;
+    monitorStep: MonitorStep;
+    monitor: Monitor;
+    criteriaInstance?: MonitorCriteriaInstance | undefined;
+    perSeriesMatches?: Array<PerSeriesCriteriaMatch> | undefined;
+  }): MarkdownText | null {
+    const metricResponse: MetricMonitorResponse =
+      input.dataToProcess as MetricMonitorResponse;
+
+    const openstackMonitor: MonitorStepOpenStackMonitor | undefined =
+      input.monitorStep.data?.openstackMonitor;
+
+    const target: CriteriaMetricTarget | null =
+      MonitorCriteriaEvaluator.resolveCriteriaMetricTarget({
+        criteriaInstance: input.criteriaInstance,
+        monitorStep: input.monitorStep,
+        metricResponse: metricResponse,
+      });
+
+    const breakdown: OpenStackResourceBreakdown | undefined =
+      MonitorCriteriaEvaluator.selectPlatformBreakdown({
+        breakdowns: metricResponse.openStackResourceBreakdowns,
+        target: target,
+      });
+
+    const cloudName: string =
+      breakdown?.cloudName || openstackMonitor?.cloudIdentifier || "Unknown";
+
+    const sections: Array<MarkdownText> = [];
+
+    if (openstackMonitor || breakdown) {
+      const cloudDetails: Array<MarkdownText> = [];
+      cloudDetails.push(mdText`- Cloud: ${cloudName}`);
+      cloudDetails.push(
+        ...MonitorCriteriaEvaluator.describeCriteriaMetric({
+          platform: "openstack",
+          target: target,
+          breakdown: breakdown,
+          fallbackMetricName: openstackMonitor?.metricViewConfig
+            ?.queryConfigs?.[0]?.metricQueryData?.filterData?.metricName as
+            | string
+            | undefined,
+        }),
+      );
+
+      const filters: OpenStackResourceFilters | undefined =
+        openstackMonitor?.resourceFilters;
+
+      if (filters?.regionName) {
+        cloudDetails.push(mdText`- Region Filter: ${filters.regionName}`);
+      }
+
+      if (filters?.availabilityZone) {
+        cloudDetails.push(
+          mdText`- Availability Zone Filter: ${filters.availabilityZone}`,
+        );
+      }
+
+      if (filters?.hypervisorName) {
+        cloudDetails.push(
+          mdText`- Hypervisor Filter: ${filters.hypervisorName}`,
+        );
+      }
+
+      if (filters?.serviceName) {
+        cloudDetails.push(mdText`- Service Filter: ${filters.serviceName}`);
+      }
+
+      if (filters?.projectId) {
+        cloudDetails.push(mdText`- Project Filter: ${filters.projectId}`);
+      }
+
+      sections.push(
+        mdText`**OpenStack Cloud Details**\n${FeedMarkdown.join(cloudDetails, "\n")}`,
+      );
+    }
+
+    // Affected resources: a ranked list of kind, name and where it sits.
+    let renderedBreakdownList: boolean = false;
+
+    /*
+     * The parts the matched criteria breached, worst first, top 10 - not simply
+     * the non-zero rows: a worker is down at 0, so the zero rows are the ones to
+     * name.
+     */
+    const rows: Array<PlatformAffectedRow<OpenStackResourceIdentity>> | null =
+      MonitorCriteriaEvaluator.getPlatformAffectedRows<
+        OpenStackResourceIdentity,
+        OpenStackAffectedResource
+      >({
+        platform: "openstack",
+        perSeriesMatches: input.perSeriesMatches,
+        namesObject: (identity: OpenStackResourceIdentity): boolean => {
+          return Boolean(
+            identity.resourceId ||
+              identity.resourceName ||
+              identity.hostName ||
+              identity.regionName,
+          );
+        },
+        metricResponse: metricResponse,
+        monitorStep: input.monitorStep,
+        target: target,
+        breakdown: breakdown,
+        breach: MonitorCriteriaEvaluator.getAffectedResourceBreachPredicate({
+          criteriaInstance: input.criteriaInstance,
+        }),
+        toIdentity: PlatformResourceIdentity.openstack,
+        withContext: PlatformResourceIdentity.withOpenStackContext,
+      });
+
+    /*
+     * Skip the list when no row carries any identity label
+     * (a series for the whole cloud): it would add nothing.
+     */
+    const hasIdentity: boolean = (rows || []).some(
+      (row: PlatformAffectedRow<OpenStackResourceIdentity>) => {
+        return Boolean(
+          row.seriesLabels ||
+            row.identity.resourceId ||
+            row.identity.resourceName ||
+            row.identity.hostName ||
+            row.identity.regionName,
+        );
+      },
+    );
+
+    if (rows && rows.length > 0 && hasIdentity) {
+      sections.push(
+        AffectedResourceList.render({
+          heading: "Affected Resources",
+          overflowNoun: "affected resources",
+          totalCount: rows.length,
+          entries: rows
+            .slice(0, AffectedResourceList.MAX_ENTRIES)
+            .map(
+              (
+                row: PlatformAffectedRow<OpenStackResourceIdentity>,
+              ): AffectedResourceListEntry => {
+                return row.seriesLabels
+                  ? MonitorCriteriaEvaluator.getSeriesLabelEntry({
+                      labels: row.seriesLabels,
+                      value:
+                        MonitorCriteriaEvaluator.renderAffectedRowValue(row),
+                    })
+                  : MonitorCriteriaEvaluator.getOpenStackAffectedResourceEntry({
+                      resource: row.identity,
+                      cloudName: cloudName,
                       value:
                         MonitorCriteriaEvaluator.renderAffectedRowValue(row),
                     });

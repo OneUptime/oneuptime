@@ -281,15 +281,27 @@ describe("the code the docs describe", () => {
     ).toContain("await TwoFactorWrongCodes.forget(user.id!);");
   });
 
-  it("ends a sign-in link already sent on a password reset", () => {
+  it("ends a sign-in link already sent on a new password, and a reset writes one with the hooks that end it", () => {
+    const userService: string = source("Common/Server/Services/UserService.ts");
+    const newPassword: string = userService.slice(
+      userService.indexOf("protected override async onUpdatePermitted("),
+    );
+
+    expect(newPassword.slice(0, newPassword.indexOf("\n  }\n"))).toContain(
+      "updateBy.data.magicLinkToken = null!;",
+    );
+
     const signIn: string = source(
       "App/FeatureSet/Identity/API/Authentication.ts",
     );
     const reset: string = signIn.slice(signIn.indexOf('"/reset-password"'));
-
-    expect(reset.slice(0, reset.indexOf('"/refresh-token"'))).toContain(
-      "magicLinkToken: null!",
+    const resetRoute: string = reset.slice(
+      0,
+      reset.indexOf('"/refresh-token"'),
     );
+
+    expect(resetRoute).toContain("password: user.password!,");
+    expect(resetRoute).not.toContain("ignoreHooks");
   });
 
   it("tells the owner in the email which of the two it was", () => {

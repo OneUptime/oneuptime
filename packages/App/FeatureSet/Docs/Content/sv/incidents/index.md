@@ -67,7 +67,7 @@ Arbetsflöden öppnar också incidenter: arbetsflödet för [Huntress](/docs/int
 
 När incidenten skapas kör OneUptime den automatisering du har konfigurerat: sekretessregler, ägarregler, etikettregler, jourregler och runbook-regler. Alla jourpolicyer som är kopplade till incidenten — för hand, från en mall eller tillagda av en jourregel som matchar — körs parallellt.
 
-Ägarna meddelas via de kanaler som var och en av dem har slagit på under **Användarinställningar → Aviseringsinställningar**: e-post, sms, röstsamtal, push, WhatsApp, Telegram, Slack, Microsoft Teams eller webhook. Har en incident inga ägare alls går aviseringen till projektets ägare i stället för att försvinna.
+Ägarna meddelas via de kanaler som var och en av dem har slagit på under **Användarinställningar → Aviseringsinställningar**: e-post, sms, röstsamtal, push, WhatsApp, Telegram, Slack, Microsoft Teams, Mattermost eller webhook. Har en incident inga ägare alls går aviseringen till projektets ägare i stället för att försvinna.
 
 Är incidenten synlig på en statussida och är aviseringar till prenumeranter påslagna, får prenumeranterna också veta: prenumeranterna på varje statussida som visar någon av dess monitorer, eller bara de på sidorna du har begränsat den till. Se [En statussida per målgrupp](/docs/status-pages/one-status-page-per-audience) för att ge varje målgrupp en egen statussida.
 

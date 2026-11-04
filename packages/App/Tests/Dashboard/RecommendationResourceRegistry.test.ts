@@ -95,6 +95,7 @@ const EXPECTED_IDENTIFIER_FIELD: Record<
   [MonitorRecommendationResourceType.Podman]: "hostIdentifier",
   [MonitorRecommendationResourceType.DockerSwarm]: "name",
   [MonitorRecommendationResourceType.Proxmox]: "name",
+  [MonitorRecommendationResourceType.OpenStack]: "name",
   [MonitorRecommendationResourceType.VMware]: "name",
   [MonitorRecommendationResourceType.Ceph]: "name",
   [MonitorRecommendationResourceType.StorageArray]: "name",

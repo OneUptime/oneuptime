@@ -92,8 +92,6 @@ flowchart TB
 2. 在 **工作区应用** 选项卡上，点击 **Add Slack Account**、 **Add Microsoft Teams Account** 或 **添加 Mattermost 账户**。账户在添加时即完成验证。
 3. 点击其所在行的 **Send Test Message**。呼叫会以来自 OneUptime 应用的私信形式送达；在 Mattermost 中则来自项目的机器人。
 
-Mattermost 账户只接收你的呼叫，不接收你在 **通知设置** 中选择的更新。
-
 ## 推送通知
 
 **推送通知** 选项卡列出了你的 **推送通知设备**。

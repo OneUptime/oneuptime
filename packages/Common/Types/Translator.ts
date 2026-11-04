@@ -235,6 +235,7 @@ const PROPER_NOUNS: Array<string> = [
   "Podman",
   "Prometheus",
   "Proxmox",
+  "OpenStack",
   "Slack",
   "Swarm",
   "Telegram",

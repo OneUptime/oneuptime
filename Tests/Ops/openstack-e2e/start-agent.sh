@@ -19,6 +19,9 @@ EXPORTER_IMAGE="$(grep -E '^[[:space:]]*image:[[:space:]]*ghcr.io/openstack-expo
 COLLECTOR_IMAGE="$(grep -E '^[[:space:]]*image:[[:space:]]*otel/opentelemetry-collector-contrib' "$AGENT_DIR/docker-compose.yml" | head -1 | awk '{print $2}')"
 EXPORTER_STABLE_IMAGE="${EXPORTER_STABLE_IMAGE:-ghcr.io/openstack-exporter/openstack-exporter:1.7.0}"
 
+# The same goes for what it is told to leave out: one flag per word, on purpose.
+EXPORTER_FLAGS="$(grep -E '^[[:space:]]*- --disable-metric=' "$AGENT_DIR/docker-compose.yml" | sed -E 's/^[[:space:]]*- //' | tr '\n' ' ')"
+
 [ -n "$EXPORTER_IMAGE" ] && [ -n "$COLLECTOR_IMAGE" ] || {
   echo "Could not read the agent's image pins from $AGENT_DIR/docker-compose.yml" >&2
   exit 1
@@ -27,15 +30,18 @@ EXPORTER_STABLE_IMAGE="${EXPORTER_STABLE_IMAGE:-ghcr.io/openstack-exporter/opens
 mkdir -p "$OUTPUT_DIR/otlp"
 chmod 0777 "$OUTPUT_DIR/otlp"
 
-# DevStack's clouds.yaml is the credential: its admin cloud on this runner.
-CLOUDS_FILE=/etc/openstack/clouds.yaml
+# DevStack's admin cloud is the credential on this runner. The agent names each
+# clouds.yaml entry for its region, because the exporter's series do not say which
+# region they are from, so the same is done here.
+REGION="${OPENSTACK_REGION:-RegionOne}"
+CLOUDS_FILE="$(cd "$OUTPUT_DIR" && pwd)/clouds.yaml"
+sudo sed "s/^\( *\)devstack-admin:/\1$REGION:/" /etc/openstack/clouds.yaml | sudo tee "$CLOUDS_FILE" >/dev/null
 sudo chmod a+r "$CLOUDS_FILE"
 
 docker run -d --name ou-openstack-exporter --network host \
   -v "$CLOUDS_FILE:/etc/openstack/clouds.yaml:ro" \
   "$EXPORTER_IMAGE" --multi-cloud --web.listen-address=:9180 --os-client-config=/etc/openstack/clouds.yaml \
-  --disable-slow-metrics --disable-metric=neutron-ports --disable-metric=neutron-port \
-  --disable-metric=neutron-ports_no_ips --disable-metric=neutron-ports_lb_not_active
+  $EXPORTER_FLAGS
 
 docker run -d --name ou-openstack-exporter-stable --network host \
   -v "$CLOUDS_FILE:/etc/openstack/clouds.yaml:ro" \
@@ -48,14 +54,14 @@ docker run -d --name ou-openstack-collector --network host \
   -e ONEUPTIME_URL=http://127.0.0.1:9 \
   -e ONEUPTIME_TELEMETRY_INGESTION_KEY=recording \
   -e OPENSTACK_CLOUD_NAME=devstack \
-  -e OPENSTACK_EXPORTER_CLOUDS='[devstack-admin]' \
+  -e OPENSTACK_EXPORTER_CLOUDS="[$REGION]" \
   -e OPENSTACK_EXPORTER_ADDRESS=127.0.0.1:9180 \
   "$COLLECTOR_IMAGE" --config=/etc/otelcol-contrib/config.yaml --config=/etc/otelcol-contrib/recording.yaml
 
 # The exporter answers once it is listening. Keystone's answer is the real test,
 # and a scrape of the identity service exercises it.
 for attempt in $(seq 1 30); do
-  if curl -fsS --max-time 60 "http://127.0.0.1:9180/probe?cloud=devstack-admin&include_services=identity" | grep -q '^openstack_identity_up'; then
+  if curl -fsS --max-time 60 "http://127.0.0.1:9180/probe?cloud=$REGION&include_services=identity" | grep -q '^openstack_identity_up'; then
     echo "The exporter reads the cloud."
     exit 0
   fi
