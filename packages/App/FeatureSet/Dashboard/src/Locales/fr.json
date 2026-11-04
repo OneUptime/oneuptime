@@ -42116,5 +42116,7 @@
   "Say a rule this table should hold to, and OneUptime AI writes the check: one read-only query that counts the rows breaking it. You read it before it is added.": "Say a rule this table should hold to, and OneUptime AI writes the check: one read-only query that counts the rows breaking it. You read it before it is added.",
   "The rule, in a sentence": "La règle, en une phrase",
   "Write a Check from a Sentence": "Écrire un contrôle à partir d'une phrase",
-  "Write the Check": "Écrire le contrôle"
+  "Write the Check": "Écrire le contrôle",
+  "ClickHouse": "ClickHouse",
+  "Databricks": "Databricks"
 }

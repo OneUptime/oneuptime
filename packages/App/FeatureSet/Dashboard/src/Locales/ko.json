@@ -42116,5 +42116,7 @@
   "Say a rule this table should hold to, and OneUptime AI writes the check: one read-only query that counts the rows breaking it. You read it before it is added.": "Say a rule this table should hold to, and OneUptime AI writes the check: one read-only query that counts the rows breaking it. You read it before it is added.",
   "The rule, in a sentence": "한 문장으로 된 규칙",
   "Write a Check from a Sentence": "문장으로 검사 작성",
-  "Write the Check": "검사 작성"
+  "Write the Check": "검사 작성",
+  "ClickHouse": "ClickHouse",
+  "Databricks": "Databricks"
 }

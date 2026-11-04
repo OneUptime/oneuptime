@@ -41,6 +41,8 @@ export enum DataStoreKind {
   Redis = "Redis",
   Elasticsearch = "Elasticsearch",
   Snowflake = "Snowflake",
+  ClickHouse = "ClickHouse",
+  Databricks = "Databricks",
   TelemetryLogs = "Logs",
   TelemetryTraces = "Traces",
   TelemetryExceptions = "Exceptions",
@@ -184,6 +186,8 @@ export const DATA_STORE_KINDS: ReadonlyArray<DataStoreKindInfo> = [
   kind(K.Redis, P.SelfManaged, F.Cache),
   kind(K.Elasticsearch, P.SelfManaged, F.Search),
   kind(K.Snowflake, P.SelfManaged, F.Warehouse),
+  kind(K.ClickHouse, P.SelfManaged, F.Warehouse),
+  kind(K.Databricks, P.SelfManaged, F.Warehouse),
   kind(K.TelemetryLogs, P.OneUptime, F.Telemetry, {
     contentScannable: true,
     icon: IconProp.Logs,

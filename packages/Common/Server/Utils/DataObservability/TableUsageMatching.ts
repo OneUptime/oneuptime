@@ -87,6 +87,8 @@ const EXTRA_SYSTEM_KINDS: Readonly<Record<string, DataStoreKind>> = {
   snowflake: DataStoreKind.Snowflake,
   bigquery: DataStoreKind.GcpBigQueryDataset,
   "gcp.bigquery": DataStoreKind.GcpBigQueryDataset,
+  clickhouse: DataStoreKind.ClickHouse,
+  databricks: DataStoreKind.Databricks,
 };
 
 // The schema a table is in when a statement names it alone.

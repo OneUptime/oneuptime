@@ -9,8 +9,9 @@ import { getDatabaseEngineOfKind } from "../../../../Server/Utils/DataSecurity/D
 
 /*
  * Data Observability collects every database Data Security samples, and
- * the warehouses Data Security does not sample - Amazon Redshift and
- * Snowflake: its own mapping is left as it is.
+ * the warehouses Data Security does not sample - Amazon Redshift,
+ * Snowflake, BigQuery, ClickHouse and Databricks: its own mapping is left
+ * as it is.
  */
 
 describe("DataObservabilityEngines", () => {
@@ -22,6 +23,8 @@ describe("DataObservabilityEngines", () => {
       DataStoreKind.AwsRedshiftCluster,
       DataStoreKind.Snowflake,
       DataStoreKind.GcpBigQueryDataset,
+      DataStoreKind.ClickHouse,
+      DataStoreKind.Databricks,
     ]);
   });
 
@@ -38,6 +41,12 @@ describe("DataObservabilityEngines", () => {
     expect(getCollectorEngineOfKind(DataStoreKind.GcpBigQueryDataset)).toBe(
       "bigquery",
     );
+    expect(getCollectorEngineOfKind(DataStoreKind.ClickHouse)).toBe(
+      "clickhouse",
+    );
+    expect(getCollectorEngineOfKind(DataStoreKind.Databricks)).toBe(
+      "databricks",
+    );
     expect(getCollectorEngineOfKind(DataStoreKind.AwsS3Bucket)).toBe(null);
   });
 
@@ -49,10 +58,14 @@ describe("DataObservabilityEngines", () => {
     expect(getDatabaseEngineOfKind(DataStoreKind.GcpBigQueryDataset)).toBe(
       null,
     );
+    expect(getDatabaseEngineOfKind(DataStoreKind.ClickHouse)).toBe(null);
+    expect(getDatabaseEngineOfKind(DataStoreKind.Databricks)).toBe(null);
   });
 
   test("a probe's snapshot may come from any engine collected", () => {
     expect(isCollectorEngine("redshift")).toBe(true);
+    expect(isCollectorEngine("clickhouse")).toBe(true);
+    expect(isCollectorEngine("databricks")).toBe(true);
     expect(isCollectorEngine("postgresql")).toBe(true);
     expect(isCollectorEngine("db2")).toBe(false);
     expect(isCollectorEngine(undefined)).toBe(false);
