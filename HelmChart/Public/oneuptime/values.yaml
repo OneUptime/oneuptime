@@ -1424,6 +1424,26 @@ instanceCheckIn:
 # 0 ignores X-Forwarded-For entirely and uses the connecting address.
 trustedProxyHops: 1
 
+# Security emails - a password reset, a changed password, wrong two factor
+# codes, a backup code used - say when, from which IP address and on which
+# device and browser the request came. They also say roughly where ("Berlin,
+# Germany") once you name the request headers your CDN or load balancer writes
+# the visitor's location into. Empty, the default, names no place.
+#
+# Name only headers a proxy in front of OneUptime always writes itself,
+# replacing whatever the visitor sent. Any other header is the visitor's own
+# writing: whoever asks for someone's password reset could choose the place
+# their email shows.
+#
+# Behind Cloudflare, with "Add visitor location headers" turned on in its
+# Managed Transforms: cf-ipcountry, cf-region and cf-ipcity. Behind
+# CloudFront: cloudfront-viewer-country, cloudfront-viewer-country-region-name
+# and cloudfront-viewer-city.
+trustedGeoHeaders:
+  country: ""
+  region: ""
+  city: ""
+
 # On-call calendar feeds: people subscribe Google Calendar / Outlook / Apple
 # Calendar to their on-call shifts through a secret .ics URL
 # (https://<host>/api/on-call-calendar/user/<token>/shifts.ics).

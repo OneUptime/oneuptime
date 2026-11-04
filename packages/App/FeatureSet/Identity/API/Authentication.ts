@@ -34,6 +34,7 @@ import SortOrder from "Common/Types/BaseDatabase/SortOrder";
 import { JSONObject, ObjectType } from "Common/Types/JSON";
 import HashedString from "Common/Types/HashedString";
 import Name from "Common/Types/Name";
+import RequestOrigin from "Common/Types/RequestOrigin";
 import ObjectID from "Common/Types/ObjectID";
 import { getSignupPasswordValidationError } from "Common/Types/Password";
 import DatabaseConfig from "Common/Server/DatabaseConfig";
@@ -52,6 +53,7 @@ import AccessTokenService from "Common/Server/Services/AccessTokenService";
 import EmailVerificationTokenService from "Common/Server/Services/EmailVerificationTokenService";
 import MailService from "Common/Server/Services/MailService";
 import ProductBrandingText from "Common/Server/Utils/ProductBrandingText";
+import RequestOriginUtil from "Common/Server/Utils/RequestOrigin/RequestOriginUtil";
 import SsoRequiredSignIn from "Common/Server/Utils/SsoRequiredSignIn";
 import UserService from "Common/Server/Services/UserService";
 import UserTotpAuthService from "Common/Server/Services/UserTotpAuthService";
@@ -1076,6 +1078,7 @@ router.post(
           name: true,
           email: true,
           isMasterAdmin: true,
+          timezone: true,
         },
         props: {
           isRoot: true,
@@ -1143,6 +1146,16 @@ router.post(
           vars: {
             homeURL: new URL(httpProtocol, host).toString(),
             tokenVerifyUrl: tokenVerifyUrl,
+            /*
+             * When, from where and on which device the reset was asked for,
+             * in the owner's own time zone. Anybody who knows the address can
+             * ask, so this is how its owner tells their own request from a
+             * stranger's (RequestOriginUtil).
+             */
+            ...RequestOriginUtil.getEmailVars({
+              origin: RequestOriginUtil.fromRequest(req),
+              timezone: alreadySavedUser.timezone,
+            }),
           },
         }).catch((err: Error) => {
           logger.error(err, getLogAttributesFromRequest(req as RequestLike));
@@ -1911,27 +1924,19 @@ router.post(
         },
         props: {
           isRoot: true,
+          /*
+           * The write's own hook mails the owner "Your password was changed"
+           * (UserService.onUpdateSuccess), as it does for every change of a
+           * password, and says from where with this. This route used to mail
+           * it as well, so every reset sent the owner the same email twice.
+           */
+          requestOrigin: RequestOriginUtil.fromRequest(req),
         },
       });
 
       // Revoke all active sessions for this user on password reset
       await UserSessionService.revokeAllSessionsByUserId(alreadySavedUser.id!, {
         reason: "Password reset",
-      });
-
-      const host: Hostname = await DatabaseConfig.getHost();
-      const httpProtocol: Protocol = await DatabaseConfig.getHttpProtocol();
-
-      MailService.sendMail({
-        toEmail: alreadySavedUser.email!,
-        subject: "Password Changed.",
-        isSubjectLiteral: true,
-        templateType: EmailTemplateType.PasswordChanged,
-        vars: {
-          homeURL: new URL(httpProtocol, host).toString(),
-        },
-      }).catch((err: Error) => {
-        logger.error(err, getLogAttributesFromRequest(req as RequestLike));
       });
 
       logger.info(
@@ -2524,6 +2529,9 @@ const tellOwnerAboutWrongCode: TellOwnerAboutWrongCodeFunction = async (data: {
   check: TwoFactorCodeCheck;
 }): Promise<void> => {
   try {
+    // Read while the request is open: the count below is awaited first.
+    const origin: RequestOrigin = RequestOriginUtil.fromRequest(data.req);
+
     const shouldTellOwner: boolean = await TwoFactorWrongCodes.shouldTellOwner({
       userId: data.user.id!,
       wrongCodesInARow: data.check.wrongCodesInARow,
@@ -2541,6 +2549,7 @@ const tellOwnerAboutWrongCode: TellOwnerAboutWrongCodeFunction = async (data: {
     AuthenticationEmail.sendTwoFactorWrongCodesEmail({
       user: data.user,
       wrongCodesInARow: data.check.wrongCodesInARow,
+      origin: origin,
     }).catch((err: Error) => {
       logger.error(err, getLogAttributesFromRequest(data.req as RequestLike));
     });
@@ -3162,7 +3171,13 @@ const login: LoginFunction = async (options: {
            * NOT theirs: it goes to the address on the account rather than to
            * the browser holding the code, so a stolen list produces an email
            * the real owner receives.
+           *
+           * Where the code was spent from is read now, while the request is
+           * still open: the chain below may run after its connection closes.
            */
+          const backupCodeRequestOrigin: RequestOrigin =
+            RequestOriginUtil.fromRequest(req);
+
           UserTwoFactorBackupCodeService.countUnusedForUser({
             userId: alreadySavedUser.id!,
           })
@@ -3178,6 +3193,7 @@ const login: LoginFunction = async (options: {
               await AuthenticationEmail.sendTwoFactorBackupCodeUsedEmail({
                 user: alreadySavedUser,
                 remainingCodeCount: remainingBackupCodeCount,
+                origin: backupCodeRequestOrigin,
               });
             })
             .catch((err: Error) => {
@@ -3380,6 +3396,7 @@ const login: LoginFunction = async (options: {
               TwoFactorBackupCodeNotification.notifyCodesCreated({
                 userId: alreadySavedUser.id!,
                 codeCount: mintedCodes.length,
+                origin: RequestOriginUtil.fromRequest(req),
               });
             }
           } catch (backupCodeError) {

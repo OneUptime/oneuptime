@@ -12,6 +12,7 @@ import {
   NextFunction,
 } from "Common/Server/Utils/Express";
 import { JSONObject } from "Common/Types/JSON";
+import EmailTemplateType from "Common/Types/Email/EmailTemplateType";
 import Email from "Common/Types/Email";
 import ObjectID from "Common/Types/ObjectID";
 import HashedString from "Common/Types/HashedString";
@@ -259,14 +260,19 @@ type InvokeResult = {
   nextError: Exception | null;
 };
 
-type InvokeFunction = (uri: string, body: unknown) => Promise<InvokeResult>;
+type InvokeFunction = (
+  uri: string,
+  body: unknown,
+  headers?: Record<string, string> | undefined,
+) => Promise<InvokeResult>;
 
 const invoke: InvokeFunction = async (
   uri: string,
   body: unknown,
+  headers?: Record<string, string> | undefined,
 ): Promise<InvokeResult> => {
   const handler: RouteHandler = mockRouter.match("post", uri);
-  const req: ExpressRequest = buildRequest(body);
+  const req: ExpressRequest = buildRequest(body, { headers: headers });
   const res: ExpressResponse = buildResponse();
 
   let nextError: Exception | null = null;
@@ -480,6 +486,55 @@ describe("Status page invite mints a redeemable, hashed reset token", () => {
     expect(result.nextError).toBeNull();
     expect(sendEmptySuccessResponse).toHaveBeenCalledTimes(1);
     expect(row.password).toBe(NEW_PASSWORD);
+  });
+
+  it("the password changed email says when, from which address and on which device", async () => {
+    const token: string | null = await invite();
+
+    sendMail.mockClear();
+
+    await invoke(
+      "/reset-password",
+      {
+        data: {
+          statusPageId: STATUS_PAGE_ID,
+          resetPasswordToken: token,
+          password: { _type: "HashedString", value: NEW_PASSWORD },
+        },
+      },
+      {
+        "x-forwarded-for": "203.0.113.7",
+        "user-agent":
+          "Mozilla/5.0 (Windows NT 10.0; Win64; x64; rv:132.0) Gecko/20100101 Firefox/132.0",
+      },
+    );
+
+    const changed: Array<{
+      templateType: EmailTemplateType;
+      vars: Record<string, string>;
+    }> = sendMail.mock.calls
+      .map((call: Array<unknown>) => {
+        return call[0] as {
+          templateType: EmailTemplateType;
+          vars: Record<string, string>;
+        };
+      })
+      .filter(
+        (mail: {
+          templateType: EmailTemplateType;
+          vars: Record<string, string>;
+        }): boolean => {
+          return (
+            mail.templateType === EmailTemplateType.StatusPagePasswordChanged
+          );
+        },
+      );
+
+    expect(changed).toHaveLength(1);
+    expect(changed[0]!.vars["requestIpAddress"]).toBe("203.0.113.7");
+    expect(changed[0]!.vars["requestDevice"]).toBe("Firefox 132 on Windows");
+    expect(changed[0]!.vars["requestLocation"]).toBe("");
+    expect(changed[0]!.vars["requestedAt"]).toContain("UTC");
   });
 
   it("spends the invite link, so it cannot be replayed", async () => {
