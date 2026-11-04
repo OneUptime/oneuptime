@@ -34,7 +34,7 @@ flowchart LR
 | OneUptime AI का चलाया सुधार | कोई AI एजेंट ऐसी कमांड का नतीजा रिपोर्ट करता है जो कुछ बदलती है, जैसे `kubectl rollout restart` | `oneuptime-ai` |
 | रनबुक | OneUptime की चलाई कोई रनबुक शुरू होने के बाद पूरी होती है, विफल होती है, या रद्द की जाती है | `runbook` |
 | क्लाउड बदलाव | किसी कनेक्ट किए गए क्लाउड खाते का गतिविधि लॉग कोई बदलाव दर्ज करता है: AWS CloudTrail, Azure का गतिविधि लॉग या Google Cloud का Admin Activity ऑडिट लॉग | `cloud` |
-| प्रदाता इवेंट | क्लाउड प्रदाता खाते के बारे में कोई हेल्थ इवेंट प्रकाशित करता है: AWS Health, Azure Service Health या Resource Health, या Google Cloud Service Health | `cloud-health` |
+| प्रदाता इवेंट | क्लाउड प्रदाता खाते के बारे में कोई स्वास्थ्य इवेंट प्रकाशित करता है: AWS Health, Azure Service Health या Resource Health, या Google Cloud Service Health | `cloud-health` |
 
 - **कोई सेवा जो पहला संस्करण रिपोर्ट करती है, वह उसकी बेसलाइन है, डिप्लॉय नहीं।** महीनों से चल रही कोई सेवा उस पल डिप्लॉय नहीं होती जब OneUptime उसकी टेलीमेट्री पाना शुरू करता है।
 - **पिछले 30 दिनों में देखे गए किसी संस्करण पर रोलबैक रिकॉर्ड नहीं होता,** क्योंकि वह संस्करण नया नहीं है। OneUptime AI जो रोलबैक चलाता है, वह सुधार के रूप में रिकॉर्ड होता है।
@@ -50,7 +50,7 @@ OTEL_RESOURCE_ATTRIBUTES="service.version=2.3.1,deployment.environment.name=prod
 
 ऐप डिप्लॉय के लिए ऐप का किसी [प्रबंधित ऐप प्लेटफ़ॉर्म](/docs/telemetry/cloud-environments#ऐप-और-डिप्लॉय) पर चलना ज़रूरी है। यह ऐप के परिवेश के तहत दर्ज होता है और परिवेश के चार्ट और ऐप के अपने चार्ट पर दिखता है, और वहाँ ऐप के पहले चलाए किसी रिविज़न पर रोलबैक भी दर्ज होता है।
 
-क्लाउड बदलाव या प्रदाता इवेंट के लिए एक [कनेक्ट किया गया क्लाउड खाता](/docs/telemetry/cloud-accounts) चाहिए। हर एक उस क्लाउड संसाधन से जुड़ता है जिसका वह नाम लेता है, जब OneUptime उस संसाधन की सूची रखता हो, और उस संसाधन के चार्ट पर दिखाया जाता है। उसका प्रकार ऑपरेशन से तय होता है: जब ऑपरेशन का नाम ऐसा कहे तो `deployment`, `scaling` या `rollback`, नहीं तो `config-change`, और हेल्थ इवेंट के लिए `provider-event`। जिन चार्ट को किसी संसाधन तक फ़िल्टर नहीं किया गया, उनमें क्लाउड खाते का गतिविधि लॉग नहीं दिखता, ताकि कोई व्यस्त खाता आपके डिप्लॉय को दबा न दे; प्रदाता के हेल्थ इवेंट उन पर बने रहते हैं।
+क्लाउड बदलाव या प्रदाता इवेंट के लिए एक [कनेक्ट किया गया क्लाउड खाता](/docs/telemetry/cloud-accounts) चाहिए। हर एक उस क्लाउड संसाधन से जुड़ता है जिसका वह नाम लेता है, जब OneUptime उस संसाधन की सूची रखता हो, और उस संसाधन के चार्ट पर दिखाया जाता है। उसका प्रकार ऑपरेशन से तय होता है: जब ऑपरेशन का नाम ऐसा कहे तो `deployment`, `scaling` या `rollback`, नहीं तो `config-change`, और स्वास्थ्य इवेंट के लिए `provider-event`। जिन चार्ट को किसी संसाधन तक फ़िल्टर नहीं किया गया, उनमें क्लाउड खाते का गतिविधि लॉग नहीं दिखता, ताकि कोई व्यस्त खाता आपके डिप्लॉय को दबा न दे; प्रदाता के स्वास्थ्य इवेंट उन पर बने रहते हैं।
 
 ## पाइपलाइन से डिप्लॉय रिकॉर्ड करें
 
@@ -147,7 +147,7 @@ OneUptime AI ने जो सुधार पुल रिक्वेस्ट
 
 जिन एट्रिब्यूट के नाम `oneuptime.` से शुरू होते हैं, वे OneUptime के अपने हैं और पाइपलाइन जो भेजती है उसमें से हटा दिए जाते हैं। पाइपलाइन जो भी बदलाव रिकॉर्ड करती है, वह `oneuptime.change.source` में यह बताता है, जिसका मान `api` होता है।
 
-किसी क्लाउड खाते से पढ़ा गया बदलाव खाते और संसाधन को OpenTelemetry के नामों `cloud.provider`, `cloud.account.id`, `cloud.region` और `cloud.resource_id` से बताता है, और ऑपरेशन को `oneuptime.cloud.operation` में, उसे चलाने वाले को `oneuptime.cloud.actor` में, वह विफल हुआ या नहीं, इसे `oneuptime.change.status` में, और उसके क्लाउड खाते को `oneuptime.cloud_account.id` में रखता है।
+किसी क्लाउड खाते से पढ़ा गया बदलाव खाते और संसाधन को OpenTelemetry के नामों `cloud.provider`, `cloud.account.id`, `cloud.region` और `cloud.resource_id` से बताता है, और ऑपरेशन को `oneuptime.cloud.operation` में, उसे चलाने वाले को `oneuptime.cloud.actor` में, वह विफल हुआ या नहीं, इसे `oneuptime.change.status` में, OneUptime में संसाधन के नाम को `oneuptime.cloud.resource_name` में, और उसके क्लाउड खाते को `oneuptime.cloud_account.id` में रखता है। उसका शीर्षक अंग्रेज़ी में सहेजा जाता है, जैसा API और OneUptime AI उसे पढ़ते हैं, और हर पेज इन्हीं से उसे पढ़ने वाले की भाषा में लिखता है। क्लाउड AI एजेंट के ज़रिए OneUptime AI का किया गया बदलाव यह `oneuptime.change.made_by` में बताता है, जो `oneuptime-ai` होता है, और एजेंट का जॉब `oneuptime.runner_job.id` में, उसका सुधार `oneuptime.auto_remediation_suggestion.id` में, उसे योजनाबद्ध करने वाला AI रन `oneuptime.ai_run.id` में, वह सुधार था या उसका रोलबैक `oneuptime.ai.step` (`fix` या `rollback`) में, और उसने जिस घटना या अलर्ट को ठीक किया वह `oneuptime.incident.id` या `oneuptime.alert.id` में बताता है।
 
 ### सीमाएँ
 
@@ -165,5 +165,5 @@ OneUptime AI ने जो सुधार पुल रिक्वेस्ट
 - [AI SRE](/docs/ai/ai-sre): जांच क्या पढ़ती है, और जो पाती है उसे कैसे सुधारती है।
 - [कमांड संदर्भ](/docs/cli/command-reference): CLI की हर कमांड।
 - [OpenTelemetry](/docs/telemetry/open-telemetry): अपनी सेवाओं की टेलीमेट्री, उनके संस्करणों के साथ, भेजें।
-- [क्लाउड खाता कनेक्ट करें](/docs/telemetry/cloud-accounts): आपके AWS, Azure और Google Cloud खातों के बदलाव और हेल्थ इवेंट।
+- [क्लाउड खाता कनेक्ट करें](/docs/telemetry/cloud-accounts): आपके AWS, Azure और Google Cloud खातों के बदलाव और स्वास्थ्य इवेंट।
 :::

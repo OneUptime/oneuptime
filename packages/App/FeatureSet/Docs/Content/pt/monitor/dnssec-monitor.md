@@ -50,7 +50,7 @@ Uma assinatura com menos de um dia restante já conta como quebrada, então voc�
 :::steps
 ### Começar um monitor novo
 
-Vá em **Monitores** e clique em **Criar monitor**. Em **Tipo de monitor**, clique em **Mais tipos de monitor** e escolha **DNSSEC** em **DNS Monitoring**.
+Vá em **Monitores** e clique em **Criar monitor**. Em **Tipo de monitor**, clique em **Mais tipos de monitor** e escolha **DNSSEC** em **Monitoramento de DNS**.
 
 ### Dar um nome a ele
 

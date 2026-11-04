@@ -41,7 +41,7 @@ Il server è senza stato: non emette id di sessione e ogni richiesta è indipend
 - **Manutenzione programmata**: creare e gestire eventi di manutenzione.
 - **Telemetria**: interrogare log, metriche, tracce, eccezioni, log dei monitor, eventi di sicurezza e altro, in sola lettura.
 
-Ci sono strumenti per creare, leggere, elencare, aggiornare, eliminare e contare per 44 tipi di record, strumenti per elencare e contare per 9 tipi di telemetria, e strumenti pensati per la risposta agli incidenti. Gli strumenti in sola lettura hanno `readOnlyHint`, ogni strumento che modifica qualcosa ha `destructiveHint` e solo gli strumenti delle pagine di stato pubbliche hanno `openWorldHint`, così un client può eseguire da solo le chiamate in sola lettura e chiederti conferma prima di qualsiasi modifica. Una chiamata a uno strumento fallita torna come risultato dello strumento (`isError: true`) con uno `statusCode`, i dettagli e un suggerimento, non come errore del protocollo MCP, così l'agente può leggere l'errore e correggersi.
+Ci sono strumenti per creare, leggere, elencare, aggiornare, eliminare e contare per 45 tipi di record, strumenti per elencare e contare per 9 tipi di telemetria, e strumenti pensati per la risposta agli incidenti. Gli strumenti in sola lettura hanno `readOnlyHint`, ogni strumento che modifica qualcosa ha `destructiveHint` e solo gli strumenti delle pagine di stato pubbliche hanno `openWorldHint`, così un client può eseguire da solo le chiamate in sola lettura e chiederti conferma prima di qualsiasi modifica. Una chiamata a uno strumento fallita torna come risultato dello strumento (`isError: true`) con uno `statusCode`, i dettagli e un suggerimento, non come errore del protocollo MCP, così l'agente può leggere l'errore e correggersi.
 
 ## Prima di iniziare
 
@@ -337,6 +337,8 @@ Un ciclo tipico: `list_incidents` → `acknowledge_incident` → indagare con `l
 
 Lo strumento **`oneuptime_whoami`** restituisce il progetto a cui appartengono le tue credenziali (il suo ID e il suo nome). Per un client che ha effettuato l'accesso, dice anche con quale utente è collegato e se può apportare modifiche. È una buona prima chiamata perché un agente si orienti, e poiché gli strumenti di creazione prendono `projectId` dalle credenziali, l'agente non deve mai passare un ID di progetto.
 
+Lo strumento **`get_data_table_freshness`** dice a un agente se una tabella che Data Observability sorveglia è aggiornata prima che ne usi i dati: aggiornata o in ritardo rispetto al ritmo della tabella stessa, quando è cambiata l'ultima volta, i suoi alert aperti e com'è andata l'ultima esecuzione di ogni pipeline che la scrive. Passa `table` come `schema.table`, solo il nome della tabella o il suo ID. Non modifica nulla.
+
 ## Interrogare la telemetria
 
 Log, metriche, tracce (span), eccezioni, log dei monitor e gli altri tipi di telemetria sono disponibili come strumenti `list_` e `count_` in sola lettura (`list_logs`, `list_metrics`, `list_spans`, `list_exception_instances`, `list_monitor_logs` e i loro gemelli `count_`). La telemetria arriva tramite OpenTelemetry, quindi non ci sono strumenti di creazione.
@@ -484,7 +486,7 @@ Il server MCP è senza stato: non emette né traccia id di sessione, quindi ogni
 | Etichette | Label |
 | Sicurezza | Security Case, Security Case Evidence, Security Case Note, Security Case Priority, Security Case Status, Security Case Task, Security Detection, Security Playbook |
 | Sicurezza dei dati | Data Store, Data Store Finding, Data Store Access Entry, Data Security Identity, Data Flow, Data Security Issue, Data Security Scan, Data Security Setting, Check Setting, Custom Data Type, Residency Rule |
-| Osservabilità dei dati | Data Asset |
+| Osservabilità dei dati | Data Asset, Data Check |
 
 | Area | Telemetria con soli strumenti per elencare e contare |
 | --- | --- |

@@ -38,7 +38,7 @@ Le bac à sable n'est pas Node.js : il n'y a ni `require`, ni `process`, ni `fet
 :::steps
 ### Commencer un nouveau moniteur
 
-Allez dans **Moniteurs** et cliquez sur **Créer un moniteur**. Sous **Type de moniteur**, cliquez sur **Plus de types de moniteurs** et choisissez **Custom JavaScript Code** sous **Synthetic Monitoring**, ou tapez `script` dans le champ de recherche. Saisissez un **Nom**, puis cliquez sur **Suivant**.
+Allez dans **Moniteurs** et cliquez sur **Créer un moniteur**. Sous **Type de moniteur**, cliquez sur **Plus de types de moniteurs** et choisissez **Custom JavaScript Code** sous **Surveillance synthétique**, ou tapez `script` dans le champ de recherche. Saisissez un **Nom**, puis cliquez sur **Suivant**.
 
 ### Ajouter le script
 

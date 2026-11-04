@@ -76,9 +76,9 @@ JavaScript अभिव्यक्तियाँ Website, API, Incoming Reques
 | `queryError` | क्वेरी की त्रुटि, अगर कोई थी। | `string` |
 | `isOnline` | क्या डेटाबेस तक पहुंचा जा सका और क्वेरी सफल हुई। | `boolean` |
 
-### डेटाबेस हेल्थ मॉनिटर
+### डेटाबेस स्वास्थ्य मॉनिटर
 
-`isOnline`, `engineVersion`, `connectionError`, `collectedGroups`, `unavailableGroups` और `metrics`। डेटाबेस हेल्थ मॉनिटर पेज पर [JavaScript अभिव्यक्ति के वेरिएबल](/docs/monitor/database-health-monitor#javascript-एक्सप्रेशन-वेरिएबल) देखें।
+`isOnline`, `engineVersion`, `connectionError`, `collectedGroups`, `unavailableGroups` और `metrics`। डेटाबेस स्वास्थ्य मॉनिटर पेज पर [JavaScript अभिव्यक्ति के वेरिएबल](/docs/monitor/database-health-monitor#javascript-एक्सप्रेशन-वेरिएबल) देखें।
 
 ### आने वाले ईमेल मॉनिटर
 
@@ -123,7 +123,7 @@ JavaScript अभिव्यक्तियाँ Website, API, Incoming Reques
 {{scalarValue}} > 50 || {{executionTimeInMs}} > 2000
 ```
 
-डेटाबेस हेल्थ मॉनिटर के लिए, पूरे `metrics` ऑब्जेक्ट में इंडेक्स करके एक मेट्रिक पढ़ें — सीरीज़ के नामों में बिंदु होते हैं, इसलिए वे ब्रेसेस के अंदर नहीं जा सकते:
+डेटाबेस स्वास्थ्य मॉनिटर के लिए, पूरे `metrics` ऑब्जेक्ट में इंडेक्स करके एक मेट्रिक पढ़ें — सीरीज़ के नामों में बिंदु होते हैं, इसलिए वे ब्रेसेस के अंदर नहीं जा सकते:
 
 ```javascript
 {{metrics}}['oneuptime.monitor.database.connections.used.percent'] > 90

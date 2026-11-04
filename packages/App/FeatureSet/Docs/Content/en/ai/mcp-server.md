@@ -41,7 +41,7 @@ The server is stateless: it issues no session ids, and every request stands on i
 - **Scheduled maintenance**: create and manage maintenance events.
 - **Telemetry**: query logs, metrics, traces, exceptions, monitor logs, security events and more, read-only.
 
-There are create, get, list, update, delete and count tools for 44 kinds of record, list and count tools for 9 kinds of telemetry, and tools made for incident response. Read-only tools carry `readOnlyHint`, every tool that changes something carries `destructiveHint`, and only the public status page tools carry `openWorldHint`, so a client can run read-only calls on its own and ask you before any change. A failed tool call comes back as a tool result (`isError: true`) with a `statusCode`, the details and a suggestion, not as an MCP protocol error, so the agent can read the failure and correct itself.
+There are create, get, list, update, delete and count tools for 45 kinds of record, list and count tools for 9 kinds of telemetry, and tools made for incident response. Read-only tools carry `readOnlyHint`, every tool that changes something carries `destructiveHint`, and only the public status page tools carry `openWorldHint`, so a client can run read-only calls on its own and ask you before any change. A failed tool call comes back as a tool result (`isError: true`) with a `statusCode`, the details and a suggestion, not as an MCP protocol error, so the agent can read the failure and correct itself.
 
 ## Before you begin
 
@@ -337,6 +337,8 @@ A typical loop: `list_incidents` → `acknowledge_incident` → investigate with
 
 The **`oneuptime_whoami`** tool returns the project your credentials belong to (its ID and name). For a client that signed in, it also says who it is signed in as and whether it may make changes. It is a good first call for an agent to find its bearings, and since create tools take `projectId` from the credentials, the agent never has to pass a project ID.
 
+The **`get_data_table_freshness`** tool tells an agent whether a table Data Observability watches is fresh, before it uses the data: fresh or late by the table's own rhythm, when it last changed, its open alerts, and how the latest run of each pipeline that writes it went. Pass `table` as `schema.table`, the table's name alone, or its ID. It changes nothing.
+
 ## Querying Telemetry
 
 Logs, metrics, traces (spans), exceptions, monitor logs and the other kinds of telemetry come as read-only `list_` and `count_` tools (`list_logs`, `list_metrics`, `list_spans`, `list_exception_instances`, `list_monitor_logs` and their `count_` twins). Telemetry arrives through OpenTelemetry, so there are no create tools.
@@ -484,7 +486,7 @@ The MCP server is stateless: it neither issues nor tracks session ids, so every 
 | Labels | Label |
 | Security | Security Case, Security Case Evidence, Security Case Note, Security Case Priority, Security Case Status, Security Case Task, Security Detection, Security Playbook |
 | Data security | Data Store, Data Store Finding, Data Store Access Entry, Data Security Identity, Data Flow, Data Security Issue, Data Security Scan, Data Security Setting, Check Setting, Custom Data Type, Residency Rule |
-| Data observability | Data Asset |
+| Data observability | Data Asset, Data Check |
 
 | Area | Telemetry with list and count tools only |
 | --- | --- |

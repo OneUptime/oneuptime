@@ -1412,6 +1412,20 @@ values are set. Secrets can come from an existing Kubernetes secret.
 {{- end }}
 
 {{/*
+  The headers a CDN or load balancer in front writes the visitor's country,
+  region and city into, which security emails read to say roughly where a
+  request came from. Empty, the default, reads none.
+*/}}
+- name: TRUSTED_GEO_COUNTRY_HEADER
+  value: {{ default "" (($.Values.trustedGeoHeaders).country) | quote }}
+
+- name: TRUSTED_GEO_REGION_HEADER
+  value: {{ default "" (($.Values.trustedGeoHeaders).region) | quote }}
+
+- name: TRUSTED_GEO_CITY_HEADER
+  value: {{ default "" (($.Values.trustedGeoHeaders).city) | quote }}
+
+{{/*
   On-call calendar feeds: the kill switch and the fixed-window rate limits for
   the token-in-URL .ics routes. `default` is safe on the limits because 0 is
   not a valid value for any of them (the app falls back to its default too).

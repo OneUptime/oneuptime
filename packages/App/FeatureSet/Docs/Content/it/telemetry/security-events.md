@@ -38,6 +38,7 @@ Apri **Prodotti → Eventi di sicurezza**, sotto **Sicurezza**. Il suo menu ha u
 | **Tutti i casi** | Casi di sicurezza | Ogni caso, aperto o chiuso |
 | **Eventi** | Eventi | Cercare e filtrare ogni evento, e aprirne uno per vedere tutti i suoi campi |
 | **Cacce** | Eventi | Ricerche salvate da Eventi, riaperte con un clic o eseguite secondo una pianificazione che avvisa le persone quando trovano qualcosa |
+| **Libreria di cacce** | Eventi | Cacce pronte da provare in Eventi o da aggiungere alle tue cacce, ciascuna con gli eventi che legge e se arrivano |
 | **Campagne** | Eventi | Ogni indirizzo che ha inviato richieste di attacco, e se qualcuna delle sue richieste è passata |
 | **Rischio delle entità** | Eventi | Ogni utente, host e indirizzo, valutato in base a ciò che è stato trovato questa settimana, i più a rischio per primi |
 | **Correla** | Eventi | Un grafo degli eventi che condividono un host, un utente o un indirizzo IP |
@@ -286,6 +287,14 @@ In **Eventi**, cerca e filtra finché l'elenco mostra ciò che cerchi, poi apri 
 
 La pagina di una caccia è la sua ricerca, aperta nell'esploratore degli eventi. Cambia lì la ricerca o i filtri, e l'intestazione della caccia offre **Salva modifiche** e **Annulla modifiche**. **Modifica** cambia il suo nome, la sua ricerca, fin dove guarda indietro, la sua pianificazione e chi avvisa, e **Elimina caccia** è nel suo menu. Da Security Member in su si possono salvare, modificare ed eliminare cacce, e un Security Viewer può aprirle.
 
+Una caccia salvata con filtri dalla barra laterale di Eventi li mostra in **Modifica** sotto **Filtri**, come li disegna Eventi, ciascuno con una x per toglierlo. Aggiungi filtri sulla pagina della caccia, dalla barra laterale.
+
+### Partire dalla libreria di cacce
+
+**Eventi → Libreria di cacce** elenca cacce pronte per ciò che i team di sicurezza cercano più spesso, come gli accessi non riusciti, PowerShell codificato, l'account root di AWS e le shell aperte nei pod Kubernetes. Ciascuna mostra cosa trova, la sua ricerca come la scriveresti in **Eventi** e se arrivano gli eventi che legge, come fa la **Libreria di regole** per le sue regole. Restringile per **Categoria di caccia**, **Dati** e **Stato**, oppure cercale.
+
+**Provalo** apre la ricerca in **Eventi**, sulla finestra della caccia, e non salva nulla. **Aggiungi** la salva subito come una delle cacce del progetto, con nome e descrizione nella tua lingua e senza pianificazione, come ogni nuova caccia. Poi indica **Aggiunto**, e **Apri** la apre, dove puoi darle una pianificazione.
+
 ### Eseguire una caccia secondo una pianificazione
 
 | Pianificazione | Viene eseguita |
@@ -303,9 +312,15 @@ Un'esecuzione non apre alcun caso e non solleva alcun avviso: scrivi ciò che de
 
 Una caccia pianificata viene eseguita con la persona che per ultima ha impostato la sua pianificazione, cambiato la sua ricerca o l'ha salvata con **Modifica**. Una chiave API non può impostare una pianificazione. Quando quella persona lascia il progetto o non può più leggere gli eventi di sicurezza, la caccia lo segnala: apri **Modifica** e salvala per eseguirla a tuo nome.
 
+### Cronologia delle esecuzioni
+
+Ogni esecuzione pianificata viene conservata per 90 giorni. **Cronologia delle esecuzioni**, alla fine della riga che dice cosa hanno trovato le esecuzioni di una caccia, le elenca dalla più recente: quando è stata eseguita ciascuna e gli eventi che ha cercato, poi quanti ne ha trovati, con **Mostrali** per aprire quegli eventi sulla pagina della caccia; che non ha trovato nulla; oppure perché non è stata eseguita. Chi può aprire una caccia può leggerne le esecuzioni.
+
 ### Chi viene avvisato
 
 La notifica **Una caccia ha trovato eventi di sicurezza** nomina la caccia e la sua ricerca, quanti eventi ha trovato la sua esecuzione e la finestra che ha letto, e rimanda alla pagina della caccia su quegli eventi; non contiene alcuna parola degli eventi. Tutti la ricevono via email e push, e ne scelgono i canali in **Impostazioni utente → Impostazioni notifiche**. Come le altre email di routine, può essere trattenuta in un [riepilogo email](/docs/emails/notification-rollup).
+
+Per pubblicare su Slack o Microsoft Teams ciò che trovano le cacce, aggiungi una regola a **Regole delle cacce** in **Prodotti → Eventi di sicurezza → Area di lavoro → Slack** (o **Microsoft Teams**), sotto le regole che pubblicano i [casi di sicurezza](/docs/telemetry/security-cases#pubblicare-nei-canali-di-slack-e-microsoft-teams). Una regola indica i canali in cui pubblicare (e, in Microsoft Teams, le chat) e, se vuoi, le cacce a cui si applica, per **Nome della caccia**: un nome che è il tuo testo, lo contiene, inizia o finisce con esso. Ogni volta che un'esecuzione pianificata trova eventi, pubblica la caccia, la sua ricerca, quanti eventi e quando, con un link a essi, e nessuna delle parole proprie di un evento. Una regola delle cacce la configura un ruolo che può configurare playbook di sicurezza, come Project Owner, Project Admin o Security Admin.
 
 ### Conservare eventi su un caso
 
@@ -313,7 +328,7 @@ Seleziona eventi in **Eventi** o nella pagina di una caccia e scegli **Azioni di
 
 OneUptime rilegge ogni evento come te e lo conserva com'era nella pagina **Prove** del caso, così il caso continua a mostrarlo quando la conservazione dell'evento termina. Un evento che non puoi leggere non viene conservato, e uno che il caso conserva già resta com'è. Un evento trovato da una caccia nomina la caccia, e **Visualizza evento** lo apre com'è stato conservato.
 
-Le cacce hanno la stessa API REST del resto di OneUptime, in `/security-hunt`, e `POST /security-case-evidence/add-events` conserva eventi su un caso. Vedi il [riferimento API](/docs/api-reference/api-reference).
+Le cacce hanno la stessa API REST del resto di OneUptime, in `/security-hunt`, e `POST /security-case-evidence/add-events` conserva eventi su un caso. Le esecuzioni di una caccia si leggono in `/security-hunt-run`. Vedi il [riferimento API](/docs/api-reference/api-reference).
 
 ## Regole di rilevamento
 

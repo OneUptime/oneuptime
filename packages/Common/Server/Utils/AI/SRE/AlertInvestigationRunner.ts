@@ -47,6 +47,7 @@ import { ResourceAiAccessStatus } from "../../../../Types/ResourceAiAgent/Resour
 import ResourceAiAccessService from "../../../Services/ResourceAiAccessService";
 import ResourceAccessContext from "../ResourceAccess/ResourceAccessContext";
 import NetworkTransceiverContext from "./NetworkTransceiverContext";
+import DataAlertContext from "../../DataObservability/DataAlertContext";
 import LinkedInfrastructureContext, {
   LinkedInfrastructure,
 } from "./LinkedInfrastructureContext";
@@ -474,6 +475,24 @@ export default class AIAlertInvestigationRunner {
       } catch (error) {
         logger.error(
           `AI: could not read transceivers for alert ${alertId.toString()}; investigating it without them: ${error}`,
+        );
+      }
+
+      /*
+       * A data alert's table, the pipelines and services that write it and
+       * what it is built from (DataAlertContext): the failed run, the
+       * writer's deploy or the stale upstream table most often behind it.
+       * Enrichment only.
+       */
+      try {
+        contextSummary += await DataAlertContext.buildContextSection({
+          projectId,
+          alertId,
+          now: OneUptimeDate.getCurrentDate(),
+        });
+      } catch (error) {
+        logger.error(
+          `AI: could not read the data context of alert ${alertId.toString()}; investigating it without it: ${error}`,
         );
       }
     } catch (error) {

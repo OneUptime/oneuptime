@@ -1,9 +1,9 @@
 # Canaux de notification personnalisés
 
-Un canal personnalisé envoie les alertes d'astreinte à un service que vous exploitez : l'application de votre entreprise, un système de pager ou une passerelle qui contrôle ce qui sort de votre réseau. Vous l'ajoutez une seule fois, pour tout le serveur, et chacun peut être alerté par ce canal sans rien configurer. Dans l'Admin Dashboard, ils s'appellent **Custom Channels**.
+Un canal personnalisé envoie les alertes d'astreinte à un service que vous exploitez : l'application de votre entreprise, un système de pager ou une passerelle qui contrôle ce qui sort de votre réseau. Vous l'ajoutez une seule fois, pour tout le serveur, et chacun peut être alerté par ce canal sans rien configurer. Dans l'Admin Dashboard, ils s'appellent **Canaux personnalisés**.
 
 > [!NOTE]
-> Les canaux personnalisés font partie de l'[édition Enterprise d'OneUptime](/docs/self-hosted/enterprise) et nécessitent une licence Enterprise qui les inclut. La Community Edition n'a pas de page **Custom Channels** et n'envoie rien à un canal. Voir [Sans licence](#sans-licence).
+> Les canaux personnalisés font partie de l'[édition Enterprise d'OneUptime](/docs/self-hosted/enterprise) et nécessitent une licence Enterprise qui les inclut. La Community Edition n'a pas de page **Canaux personnalisés** et n'envoie rien à un canal. Voir [Sans licence](#sans-licence).
 
 :::cards
 - [Ajouter un canal](#ajouter-un-canal): Un nom, une URL et un secret de signature.
@@ -31,18 +31,18 @@ Lorsqu'une politique d'astreinte alerte quelqu'un et que sa règle d'astreinte u
 
 ## Ajouter un canal
 
-1. Dans l'Admin Dashboard, ouvrez **Paramètres**, puis **Notifications > Custom Channels** dans le menu latéral (**Notifications** est replié au départ), et sélectionnez **Add**.
+1. Dans l'Admin Dashboard, ouvrez **Paramètres**, puis **Notifications > Canaux personnalisés** dans le menu latéral (**Notifications** est replié au départ), et sélectionnez **Add**.
 2. À l'étape **Channel**, renseignez :
    - **Nom** : ce que les personnes voient dans leurs méthodes de notification et leurs règles d'astreinte, par exemple `CorpoApp`.
    - **Webhook URL** : l'adresse où OneUptime envoie chaque alerte. Elle peut se trouver sur votre réseau privé.
-   - **Signing Secret** : OneUptime en génère un pour vous. Copiez-le dans votre service, qui vérifie chaque requête avec ce secret. Vous pouvez le revoir en modifiant le canal.
-3. À l'étape **Delivery**, enregistrez, puis sélectionnez **Send test** pour envoyer à votre service une [requête de test](#requêtes-de-test).
+   - **Secret de signature** : OneUptime en génère un pour vous. Copiez-le dans votre service, qui vérifie chaque requête avec ce secret. Vous pouvez le revoir en modifiant le canal.
+3. À l'étape **Delivery**, enregistrez, puis sélectionnez **Envoyer un test** pour envoyer à votre service une [requête de test](#requêtes-de-test).
 
 À l'étape **Delivery**, **Page everyone through this channel** est activé. OneUptime ajoute alors le canal aux règles d'astreinte de chacun dans chaque projet, ainsi qu'aux règles de tous ceux qui rejoignent un projet plus tard, et s'en sert pour joindre un intervenant qui n'a aucune règle pour ce qui s'est déclenché. Désactivez-le pour laisser chacun ajouter le canal à ses règles.
 
-Les personnes voient le canal sous **Paramètres utilisateur**, puis **Méthodes de notification**, puis **Custom Channels**, avec un bouton **Send test**, et le choisissent dans leurs règles d'astreinte sous le nom `Custom Channel: CorpoApp`. Elles n'ont rien à configurer : votre service apprend à qui chaque alerte est destinée.
+Les personnes voient le canal sous **Paramètres utilisateur**, puis **Méthodes de notification**, puis **Canaux personnalisés**, avec un bouton **Envoyer un test**, et le choisissent dans leurs règles d'astreinte sous le nom `Custom Channel: CorpoApp`. Elles n'ont rien à configurer : votre service apprend à qui chaque alerte est destinée.
 
-Pour arrêter les envois sans modifier les règles de qui que ce soit, modifiez le canal et désactivez **Activé**. Les alertes qui lui auraient été envoyées sont enregistrées dans le journal d'astreinte comme non envoyées. Supprimer un canal supprime toutes les règles d'astreinte qui l'utilisent.
+Pour arrêter les envois sans modifier les règles de qui que ce soit, choisissez **Désactiver** dans le menu ⋯ du canal, ou modifiez le canal et désactivez **Activé** ; **Activer** dans le même menu le réactive. Les alertes qui lui auraient été envoyées sont enregistrées dans le journal d'astreinte comme non envoyées. Supprimer un canal supprime toutes les règles d'astreinte qui l'utilisent.
 
 ## Ce que reçoit votre service
 
@@ -149,7 +149,7 @@ La réponse dit ce qui s'est passé, en mots que votre application peut afficher
 
 ## Autres notifications
 
-Les alertes ne sont pas les seules notifications que reçoivent les personnes : OneUptime les prévient aussi quand un incident dont elles sont propriétaires change d'état, quand une note est publiée, quand leur permanence d'astreinte commence, et plus encore. Chacun choisit où va chacune d'elles dans **Paramètres utilisateur > Paramètres de notification**, qui a une colonne **Custom Channels** tant qu'un canal est activé. Elle est désactivée pour tout le monde jusqu'à ce que chacun l'active.
+Les alertes ne sont pas les seules notifications que reçoivent les personnes : OneUptime les prévient aussi quand un incident dont elles sont propriétaires change d'état, quand une note est publiée, quand leur permanence d'astreinte commence, et plus encore. Chacun choisit où va chacune d'elles dans **Paramètres utilisateur > Paramètres de notification**, qui a une colonne **Canaux personnalisés** tant qu'un canal est activé. Elle est désactivée pour tout le monde jusqu'à ce que chacun l'active.
 
 Une notification part vers chaque canal activé, en une requête par canal, avec `event` défini sur `notification` :
 
@@ -186,7 +186,7 @@ Le résultat de chaque tentative figure dans le journal d'astreinte de la person
 
 ## Requêtes de test
 
-**Send test**, sur la page de l'Admin Dashboard ou dans les méthodes de notification d'une personne, envoie une requête avec `event` défini sur `test`, la personne qui a appuyé comme `user`, et `notificationId`, `record` et `actions` définis sur `null`. Servez-vous-en pour essayer votre service avant qu'une vraie alerte n'arrive.
+**Envoyer un test**, sur la page de l'Admin Dashboard ou dans les méthodes de notification d'une personne, envoie une requête avec `event` défini sur `test`, la personne qui a appuyé comme `user`, et `notificationId`, `record` et `actions` définis sur `null`. Servez-vous-en pour essayer votre service avant qu'une vraie alerte n'arrive.
 
 ## Sans licence
 
@@ -194,6 +194,7 @@ Les canaux personnalisés fonctionnent pendant l'essai de 14 jours de l'édition
 
 - **Rien n'est envoyé à un canal personnalisé.** Une alerte qui y serait partie est enregistrée dans le journal d'astreinte de la personne comme non envoyée, tout comme un test.
 - **Les canaux ne sont plus proposés.** Ils disparaissent des méthodes de notification, des règles d'astreinte et des paramètres de notification des personnes, et la disponibilité d'astreinte et le repli cessent de les compter.
+- **La conformité des équipes ne vérifie pas les canaux personnalisés.** Une règle de conformité d'équipe qui exige un canal personnalisé affiche **Non vérifié**, et les membres ne sont pas vérifiés à ce sujet tant qu'aucun canal personnalisé ne peut transmettre une alerte.
 - **La page est en lecture seule.** Vous pouvez voir et supprimer des canaux, mais pas en ajouter ni les modifier, et personne ne peut diriger une règle ou un paramètre de notification vers l'un d'eux.
 - **Rien n'est supprimé.** Les canaux, ainsi que les règles d'astreinte et les paramètres qui les utilisent, sont conservés.
 

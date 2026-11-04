@@ -43,7 +43,7 @@ La relecture de session est activée par défaut. Ses réglages se trouvent à t
 
 | Où | Ce qu'on y trouve |
 | --- | --- |
-| La page **Replay Policy** de l'application | La politique (enregistrement, masquage, consentement, traçage et limites), un résumé **État de l'enregistrement**, la carte **Ce que contient un enregistrement**, le panneau **Test your installation** et **Record a specific user's next session**. |
+| La page **Politique de relecture** de l'application | La politique (enregistrement, masquage, consentement, traçage et limites), un résumé **État de l'enregistrement**, la carte **Ce que contient un enregistrement**, le panneau **Test your installation** et **Record a specific user's next session**. |
 | La page **Santé** de l'application | Si les enregistrements arrivent, et pourquoi pas quand ils n'arrivent pas. Voir [Santé de l'enregistrement](#santé-de-lenregistrement). |
 | **Surveillance des utilisateurs réels → Paramètres → Relecture de session** | L'interrupteur de tout le projet qui arrête toutes les applications d'un coup, et une liste en lecture seule de la politique de chaque application. |
 
@@ -290,7 +290,7 @@ copy(JSON.stringify(OneUptimeReplay.getDiagnostics(), null, 2));
 
 ## Confidentialité
 
-**Le masquage a lieu à la capture, sur l'appareil de l'utilisateur final, avant tout envoi.** Le serveur ne reçoit jamais ce qui a été masqué : une décision de masquage ne peut donc pas être annulée après coup, ni appliquée rétroactivement. Sur le web, ce qui est masqué dépend du mode ; React Native envoie toujours la maquette structurelle plus stricte décrite dans [Confidentialité et masquage dans React Native](#confidentialité-et-masquage-dans-react-native). La carte **Ce que contient un enregistrement** de la page **Replay Policy** de l'application reformule ces décisions en phrases simples pour ce que vous avez configuré.
+**Le masquage a lieu à la capture, sur l'appareil de l'utilisateur final, avant tout envoi.** Le serveur ne reçoit jamais ce qui a été masqué : une décision de masquage ne peut donc pas être annulée après coup, ni appliquée rétroactivement. Sur le web, ce qui est masqué dépend du mode ; React Native envoie toujours la maquette structurelle plus stricte décrite dans [Confidentialité et masquage dans React Native](#confidentialité-et-masquage-dans-react-native). La carte **Ce que contient un enregistrement** de la page **Politique de relecture** de l'application reformule ces décisions en phrases simples pour ce que vous avez configuré.
 
 Les réglages de confidentialité de la politique, sous le nom que leur donne **Modifier la politique** :
 
@@ -333,7 +333,7 @@ La relecture de session fonctionne d'emblée avec une liste d'origines autorisé
 Votre jeton d'ingestion est livré au client — dans le JavaScript de la page ou dans le binaire mobile — il y a donc deux barrières, et elles se combinent :
 
 - **Sur la clé.** Créez la clé d'ingestion avec **Navigateur** comme **Type de clé**. Pour le web, listez ses **Origines autorisées** (`https://app.example.com`, ou `https://*.example.com` pour un niveau de sous-domaine). Pour React Native, ajoutez l'identité exacte de l'application sous la forme `app://com.example.storefront`. Donnez aussi à la clé une date **Expire le** : un jeton copié cesse alors de fonctionner à une date que vous avez choisie plutôt que jamais.
-- **Sur l'application.** **Replay Policy → Origines autorisées** restreint qui peut écrire des enregistrements dans cette application, quelle que soit la clé présentée. Ajoutez-y les mêmes origines web et les identités mobiles `app://` exactes.
+- **Sur l'application.** **Politique de relecture → Origines autorisées** restreint qui peut écrire des enregistrements dans cette application, quelle que soit la clé présentée. Ajoutez-y les mêmes origines web et les identités mobiles `app://` exactes.
 
 Une entrée `app://` est le préfixe littéral suivi de l'id d'application Android ou de l'identifiant de bundle iOS normalisé fourni comme `mobileAppIdentifier`. La comparaison ne tient pas compte de la casse, après suppression des espaces et mise en minuscules d'un identifiant reverse-DNS valide. Les identités mobiles n'acceptent **pas** de caractères génériques : `app://*.example.com` est invalide. Le SDK mobile n'envoie pas d'`Origin` de navigateur ; il envoie son type d'enregistreur et l'identité de l'application dans des en-têtes dédiés. Si une requête porte bien une vraie `Origin`, cette origine l'emporte toujours — les en-têtes mobiles ne peuvent jamais servir à contourner la vérification de l'origine du navigateur.
 
@@ -370,7 +370,7 @@ Les valeurs masquées ne conservent pas la longueur. Un champ masqué est un esp
 <div class="oneuptime-ignore">...</div>
 ```
 
-Vous pouvez aussi ajouter des **Sélecteurs de masquage supplémentaires** et des **Sélecteurs de blocage** sur la page **Replay Policy** de votre application, sans modifier votre balisage. Avec le mode de masquage par défaut, ce sont les principaux outils pour protéger un contenu que votre balisage ne déclare pas sensible.
+Vous pouvez aussi ajouter des **Sélecteurs de masquage supplémentaires** et des **Sélecteurs de blocage** sur la page **Politique de relecture** de votre application, sans modifier votre balisage. Avec le mode de masquage par défaut, ce sont les principaux outils pour protéger un contenu que votre balisage ne déclare pas sensible.
 
 ### Ce que portent vos propres requêtes
 
@@ -387,7 +387,7 @@ tracestate:  oneuptime=sid:<32 hex session id>;p:<16 hex parent id>
 - **Ce qu'il relie.** Un span, un journal ou une exception du backend qui nomme l'utilisateur (un attribut `enduser.id`, une adresse e-mail dans une ligne de journal) n'est plus qu'à un clic de l'enregistrement, même avec **Capturer l'identité de l'utilisateur final** désactivé : cet interrupteur décide de ce que stocke l'enregistrement, pas de ce que journalise votre backend. Si les enregistrements ne doivent pas pouvoir être reliés à l'identité de l'utilisateur, désactivez aussi **Propagation des traces de même origine**.
 - **Qui peut l'affirmer.** Comme tout contexte de trace, le membre est écrit par le client. Quelqu'un qui connaîtrait un id de session pourrait l'envoyer à votre API et faire ranger les spans de ses propres requêtes sous cette session. Les ids de session sont des valeurs aléatoires de 128 bits : il lui faudrait d'abord l'id. Il en va de même pour la trace qu'un client nomme : une requête qui envoie un `traceparent` pour une trace qu'elle connaît, à côté du membre de sa propre session, amène les lignes backend de cette trace dans le rail de sa session et dans le périmètre de l'effacement de cette session. L'effacement ne retire une trace en entier que lorsqu'elle appartient aux seules sessions effacées ; d'une trace partagée avec d'autres sessions, il ne retire que les lignes marquées des ids effacés (voir [Effacer des sessions](#effacer-des-sessions)).
 
-Désactivez-le par application avec **Propagation des traces de même origine** sur la page **Replay Policy** ; voir [Désactiver la liaison automatique](#désactiver-la-liaison-automatique).
+Désactivez-le par application avec **Propagation des traces de même origine** sur la page **Politique de relecture** ; voir [Désactiver la liaison automatique](#désactiver-la-liaison-automatique).
 
 ### Consentement
 
@@ -438,7 +438,7 @@ Si vous hébergez OneUptime vous-même, utilisez plutôt votre propre hôte.
 
 Un autre détail voisin de la CSP, qui concerne les feuilles de style plutôt que votre politique : l'enregistreur ne peut stocker qu'une feuille de style qu'il peut lire. Une feuille de style d'une autre origine n'est lisible que si son serveur envoie un en-tête `Access-Control-Allow-Origin` qui autorise votre site **et** si votre `<link>` porte `crossorigin="anonymous"`. Sinon, l'enregistrement ne garde que son adresse, et la lecture la charge depuis cette adresse dans le navigateur de la personne qui regarde ; voir [Images, styles et polices pendant la lecture](#images-styles-et-polices-pendant-la-lecture). N'ajoutez l'attribut qu'une fois l'en-tête en place : `crossorigin` sans l'en-tête fait refuser la feuille de style par votre propre page.
 
-Utilisez le panneau **Test your installation** de la page **Replay Policy** de l'application pour confirmer, côté serveur, le jeton, les interrupteurs de la politique et les listes d'origines autorisées. Il ne peut pas vérifier votre CSP : une CSP est un en-tête que votre propre site envoie à vos propres visiteurs, et rien côté serveur ne la voit jamais. Un blocage CSP n'y apparaît qu'indirectement : `script-src` bloque l'enregistreur, donc la ligne _Recorder loaded on your site_ du panneau reste en attente ; `connect-src` bloque l'envoi, donc cette ligne passe tandis que la ligne de l'enregistrement reçu, en dessous, reste en attente. Dans les deux cas, la console du navigateur sur la page bloquée journalise le refus, et c'est la seule preuve positive.
+Utilisez le panneau **Test your installation** de la page **Politique de relecture** de l'application pour confirmer, côté serveur, le jeton, les interrupteurs de la politique et les listes d'origines autorisées. Il ne peut pas vérifier votre CSP : une CSP est un en-tête que votre propre site envoie à vos propres visiteurs, et rien côté serveur ne la voit jamais. Un blocage CSP n'y apparaît qu'indirectement : `script-src` bloque l'enregistreur, donc la ligne _Recorder loaded on your site_ du panneau reste en attente ; `connect-src` bloque l'envoi, donc cette ligne passe tandis que la ligne de l'enregistrement reçu, en dessous, reste en attente. Dans les deux cas, la console du navigateur sur la page bloquée journalise le refus, et c'est la seule preuve positive.
 
 ## Corréler avec le reste de votre télémétrie
 
@@ -466,7 +466,7 @@ Les onglets **Journaux**, **Traces** et **Erreurs** du lecteur listent alors ces
 
 ### API sur une autre origine
 
-Une requête vers une autre origine ne reçoit rien par défaut : ajouter un en-tête quelconque transforme une requête cross-origin simple en requête avec pré-requête, et une API qui n'autorise pas l'en-tête se mettrait à échouer parce que vous avez installé un enregistreur. Pour en lier une, ajoutez son origine à **Origines de propagation des traces** sur la page **Replay Policy**, à l'étape **Performances et traçage** de **Modifier la politique**. Ne listez qu'une origine dont l'API autorise `traceparent` dans `Access-Control-Allow-Headers` ; c'est toute la raison pour laquelle il s'agit d'une liste d'autorisation explicite.
+Une requête vers une autre origine ne reçoit rien par défaut : ajouter un en-tête quelconque transforme une requête cross-origin simple en requête avec pré-requête, et une API qui n'autorise pas l'en-tête se mettrait à échouer parce que vous avez installé un enregistreur. Pour en lier une, ajoutez son origine à **Origines de propagation des traces** sur la page **Politique de relecture**, à l'étape **Performances et traçage** de **Modifier la politique**. Ne listez qu'une origine dont l'API autorise `traceparent` dans `Access-Control-Allow-Headers` ; c'est toute la raison pour laquelle il s'agit d'une liste d'autorisation explicite.
 
 Les requêtes vers une origine listée ne reçoivent qu'un `traceparent`, sans `tracestate` et donc sans id de session, et la télémétrie de leur backend est rapprochée de l'enregistrement **par id de trace**, grâce aux ids de trace que l'enregistrement a observés. Les requêtes qui portent déjà un `traceparent`, et les appels `fetch` faits avec un objet `Request` plutôt qu'une URL, ne sont pas modifiés sur ce chemin.
 
@@ -519,7 +519,7 @@ Une trace que votre backend jette alors n'atteint jamais OneUptime, donc elle n'
 
 ### Désactiver la liaison automatique
 
-**Propagation des traces de même origine**, sur la page **Replay Policy** à côté de **Origines de propagation des traces**, est activé par défaut pour chaque application. Désactivé, l'enregistreur n'ajoute plus rien aux requêtes de même origine à partir du chargement de page suivant, et **Origines de propagation des traces** continue de fonctionner comme avant, pour chaque origine qu'elle liste. Si vous y aviez listé votre propre origine (les anciennes versions de cette page le conseillaient), retirez-la aussi, sinon vos propres requêtes continuent de recevoir un `traceparent`. Avec les diagnostics activés, l'enregistreur dit lequel s'applique à son démarrage : `same-origin-propagation`, avec `enabled` et une `reason` (voir [Dépannage de la relecture de session](/docs/rum/session-replay-troubleshooting#codes)).
+**Propagation des traces de même origine**, sur la page **Politique de relecture** à côté de **Origines de propagation des traces**, est activé par défaut pour chaque application. Désactivé, l'enregistreur n'ajoute plus rien aux requêtes de même origine à partir du chargement de page suivant, et **Origines de propagation des traces** continue de fonctionner comme avant, pour chaque origine qu'elle liste. Si vous y aviez listé votre propre origine (les anciennes versions de cette page le conseillaient), retirez-la aussi, sinon vos propres requêtes continuent de recevoir un `traceparent`. Avec les diagnostics activés, l'enregistreur dit lequel s'applique à son démarrage : `same-origin-propagation`, avec `enabled` et une `reason` (voir [Dépannage de la relecture de session](/docs/rum/session-replay-troubleshooting#codes)).
 
 ### Redirections vers une autre origine
 
@@ -572,7 +572,7 @@ Un processeur de spans marque chaque span de l'id qui était actuel à son déma
 
 ### Où sont les liens
 
-Une exception dans le tableau de bord affiche une carte **Watch what the user saw** quand un enregistrement existe pour une session qui a rencontré cette erreur, et ouvre le lecteur dix secondes avant l'exception avec l'onglet Errors sélectionné. Les détails d'un span proposent **Regarder la session à ce span** ; les détails d'une ligne de journal proposent **View session replay** au moment de la ligne quand le journal lui-même porte l'id de session, et un journal lié par id de trace atteint l'enregistrement par sa trace. Dans l'autre sens, chaque ligne réseau, de journal, de trace et d'erreur du lecteur renvoie vers la vue de la trace, l'explorateur de journaux limité à la session à ce moment, ou le groupe d'exceptions.
+Une exception dans le tableau de bord affiche une carte **Voir ce que l'utilisateur a vu** quand un enregistrement existe pour une session qui a rencontré cette erreur, et ouvre le lecteur dix secondes avant l'exception avec l'onglet Errors sélectionné. Les détails d'un span proposent **Regarder la session à ce span** ; les détails d'une ligne de journal proposent **View session replay** au moment de la ligne quand le journal lui-même porte l'id de session, et un journal lié par id de trace atteint l'enregistrement par sa trace. Dans l'autre sens, chaque ligne réseau, de journal, de trace et d'erreur du lecteur renvoie vers la vue de la trace, l'explorateur de journaux limité à la session à ce moment, ou le groupe d'exceptions.
 
 ## Regarder une session
 
@@ -589,7 +589,7 @@ Chaque ligne affiche :
 | **Durée** | Durée, pages, clics et part d'inactivité (« idle 40% »). Les compteurs ne s'affichent qu'une fois mesurés ; une session pas encore finalisée affiche « counting ». |
 | **Signaux** | Erreurs, clics de rage / morts / d'erreur, rage de rechargement, traces, groupes d'exceptions et _Slow_ (un budget de performance s'est déclenché). Chaque badge ouvre le lecteur sur l'onglet correspondant du rail. Une session finalisée sans rien à signaler affiche _Clean_ ; une session pas encore finalisée, _Not counted yet_. |
 | **Enregistrement** | Un badge qui dit honnêtement s'il y a des images à regarder, plus la raison du déclencheur (« Always-on », « Sampled (25%) », « Error », « Frustration », « Slow page », « Manual »). |
-| **Actions** | **Watch** est le bouton de la ligne. Son menu **⋯** propose **Afficher l'ID**, l'ID complet de la session à copier, et, quand la session a eu une erreur, **Watch from first error**, qui ouvre le lecteur à la première erreur avec l'onglet Errors sélectionné. **Watch** n'est proposé que là où des images existent ; sinon la ligne affiche _Signals only_. Cliquez n'importe où sur une ligne pour l'ouvrir ; Cmd/Ctrl-clic ouvre un nouvel onglet. **View journey**, dans le menu **⋯**, montre les pages de la session dans l'ordre dans User Flows. |
+| **Actions** | **Regarder** est le bouton de la ligne. Son menu **⋯** propose **Afficher l'ID**, l'ID complet de la session à copier, et, quand la session a eu une erreur, **Watch from first error**, qui ouvre le lecteur à la première erreur avec l'onglet Errors sélectionné. **Regarder** n'est proposé que là où des images existent ; sinon la ligne affiche _Signals only_. Cliquez n'importe où sur une ligne pour l'ouvrir ; Cmd/Ctrl-clic ouvre un nouvel onglet. **View journey**, dans le menu **⋯**, montre les pages de la session dans l'ordre dans User Flows. |
 
 Les états du badge Enregistrement :
 
@@ -684,7 +684,7 @@ Chaque contrôle est gardé dans l'URL : une carte est donc un lien que vous pou
 
 **Un utilisateur ou une session.** **Filter by user or session ID** réduit toute la page à une personne ou une session, afin que l'activité de personne d'autre ne s'y mêle. Le champ s'ouvre sur les personnes vues dans la plage, et `Enter` recherche ce que vous saisissez, ce qui trouve aussi quiconque n'est pas dans la liste : la référence d'un utilisateur, `user:<reference>` pour une référence qui ressemble à un id de session, un id de session complet ou `id:<sessionId>`, ou `visitor:<id>` pour un navigateur. **View journey**, dans le menu **⋯** d'une ligne de la page Utilisateurs ou de la liste des sessions, ouvre la même vue sur la plage de cette page. **Show all users** revient à tout le monde, et **See all their journeys** élargit d'une session à la personne à qui elle appartient.
 
-**Journeys** liste une ligne par session, la plus récente d'abord : quand elle a commencé, combien de temps elle a duré, sur quoi, et ses nombres d'erreurs et de frustration, puis ses pages dans l'ordre de **Landing page** à **Exit page**. Une page en ambre avec une flèche est un retour sur une page que la session avait déjà vue, un point rouge marque une page avec une erreur, et un point ambre une page avec un signal de frustration. **Watch** ouvre l'enregistrement ; une session sans enregistrement l'indique. Une session de plus de 100 pages est coupée là, l'indique et ne nomme aucune page de sortie. Les tuiles, la carte et les tableaux en dessous fonctionnent comme toujours, sur ces seules sessions.
+**Journeys** liste une ligne par session, la plus récente d'abord : quand elle a commencé, combien de temps elle a duré, sur quoi, et ses nombres d'erreurs et de frustration, puis ses pages dans l'ordre de **Landing page** à **Exit page**. Une page en ambre avec une flèche est un retour sur une page que la session avait déjà vue, un point rouge marque une page avec une erreur, et un point ambre une page avec un signal de frustration. **Regarder** ouvre l'enregistrement ; une session sans enregistrement l'indique. Une session de plus de 100 pages est coupée là, l'indique et ne nomme aucune page de sortie. Les tuiles, la carte et les tableaux en dessous fonctionnent comme toujours, sur ces seules sessions.
 
 L'URL ne porte jamais de référence. Elle porte `userKey`, la clé pseudonyme sous laquelle la personne est stockée, ou `visitor`, ou `sessionId`. Seul un rôle qui peut lire l'identité de l'utilisateur final peut rechercher une référence ; tout autre rôle en est informé au lieu de recevoir une réponse sur tout le monde, et peut toujours choisir la personne dans la liste, sous un nom masqué. Une personne est reconnue comme par les filtres de la liste des sessions : les sessions enregistrées avant `identify()` sont donc atteintes par l'id de visiteur.
 
@@ -781,12 +781,12 @@ Appuyez sur `?` dans le lecteur pour cette liste. Les raccourcis ne se déclench
 
 ## Santé de l'enregistrement
 
-La page **Santé** de l'application, dans la section **Relecture de session** de son menu latéral, répond côté serveur à la question « est-ce que quelque chose est enregistré, et sinon, pourquoi ? », et la page **Replay Policy** reprend son diagnostic d'une ligne au-dessus de la politique. Le diagnostic nomme une cause, la chiffre et propose une action ; il ne dit jamais « disconnected » sans raison. Les états, dans l'ordre où ils sont vérifiés :
+La page **Santé** de l'application, dans la section **Relecture de session** de son menu latéral, répond côté serveur à la question « est-ce que quelque chose est enregistré, et sinon, pourquoi ? », et la page **Politique de relecture** reprend son diagnostic d'une ligne au-dessus de la politique. Le diagnostic nomme une cause, la chiffre et propose une action ; il ne dit jamais « disconnected » sans raison. Les états, dans l'ordre où ils sont vérifiés :
 
 | État | Ce qu'il signifie | Que faire |
 | --- | --- | --- |
 | `disabled-project` | L'interrupteur principal de tout le projet est désactivé. | Activez-le sous **Surveillance des utilisateurs réels → Paramètres → Relecture de session**. |
-| `disabled-app` | La relecture de session est désactivée pour cette application. | Activez-la sous **Replay Policy**. |
+| `disabled-app` | La relecture de session est désactivée pour cette application. | Activez-la sous **Politique de relecture**. |
 | `budget-paused` | Le budget mensuel de l'application ou la limite quotidienne d'octets du déploiement est épuisé ; les enregistreurs actifs ont reçu l'ordre de s'arrêter. | Augmentez le budget, ou attendez le jour / mois suivant. Mettez en place des [alertes de budget de stockage](#alertes-de-budget-de-stockage) pour en être averti avant que cela arrive. |
 | `refusing` | Des envois arrivent et sont refusés — le diagnostic donne la raison principale et le nombre sur les dernières 24 heures, par exemple `origin-not-allowed` (212 envois depuis une origine absente de vos origines autorisées) ou `not-sampled`. | Suivez la raison : modifiez les origines autorisées, augmentez le pourcentage d'échantillonnage, etc. |
 | `never-loaded` | Aucun navigateur n'a jamais récupéré la politique de cette application. La balise script n'est pas sur la page, ou l'identifiant ne correspond pas. | Le guide d'installation de la page **Documentation** de l'application, dans sa section **Relecture de session**, vous guide pas à pas. |
@@ -811,7 +811,7 @@ Les deux budgets de stockage — la limite d'envoi quotidienne du projet et le *
 | **Session Replay Monthly Budget Nearly Spent** | Avertissement | L'application a utilisé 80 % de son budget mensuel. |
 | **Session Replay Monthly Budget Spent** | Critique | Le budget mensuel de l'application est épuisé : ses enregistreurs ont reçu l'ordre de s'arrêter jusqu'au 1er du mois suivant (UTC) ou jusqu'à ce que le budget soit augmenté. |
 
-Tant que la relecture de session est activée pour l'application, la paire quotidienne est proposée dès que l'application a enregistré une relecture, et la paire mensuelle dès qu'elle a aussi un **Budget mensuel (Go)** sur sa page **Replay Policy** ; s'il en manque une sur une application où vous utilisez la relecture de session, l'onglet dit pourquoi. Dès que la paire quotidienne est proposée, **Configurer des alertes** dans le panneau **Storage budget** de la page **Santé** ouvre l'onglet filtré sur les alertes de budget, y compris celles que vous avez déjà créées. Chacune de celles que vous créez est un moniteur de métriques ordinaire sur l'application, et l'incident et l'alerte qu'il ouvre disent quoi faire. Pour faire durer un budget, baissez le **Pourcentage d'échantillonnage**, n'envoyez que _On error or frustration_ ou restreignez les **Origines autorisées** dans **Replay Policy** — chacun arrête un envoi avant qu'il soit compté — ou augmentez le **Budget mensuel (Go)**. La limite quotidienne ne peut pas être augmentée depuis le tableau de bord ; sur une installation auto-hébergée, c'est `SESSION_REPLAY_MAX_BYTES_PER_PROJECT_PER_DAY` (voir [Notes pour l'auto-hébergement](#notes-pour-lauto-hébergement)).
+Tant que la relecture de session est activée pour l'application, la paire quotidienne est proposée dès que l'application a enregistré une relecture, et la paire mensuelle dès qu'elle a aussi un **Budget mensuel (Go)** sur sa page **Politique de relecture** ; s'il en manque une sur une application où vous utilisez la relecture de session, l'onglet dit pourquoi. Dès que la paire quotidienne est proposée, **Configurer des alertes** dans le panneau **Storage budget** de la page **Santé** ouvre l'onglet filtré sur les alertes de budget, y compris celles que vous avez déjà créées. Chacune de celles que vous créez est un moniteur de métriques ordinaire sur l'application, et l'incident et l'alerte qu'il ouvre disent quoi faire. Pour faire durer un budget, baissez le **Pourcentage d'échantillonnage**, n'envoyez que _On error or frustration_ ou restreignez les **Origines autorisées** dans **Politique de relecture** — chacun arrête un envoi avant qu'il soit compté — ou augmentez le **Budget mensuel (Go)**. La limite quotidienne ne peut pas être augmentée depuis le tableau de bord ; sur une installation auto-hébergée, c'est `SESSION_REPLAY_MAX_BYTES_PER_PROJECT_PER_DAY` (voir [Notes pour l'auto-hébergement](#notes-pour-lauto-hébergement)).
 
 **Un seul moniteur quotidien couvre le projet.** La limite quotidienne appartient au projet, pas à une application : toutes ses applications la consomment ensemble, et chaque application qui enregistre porte le chiffre du projet ; la paire quotidienne est donc proposée sur chacune d'elles, et un moniteur quotidien sur l'une quelconque d'entre elles les couvre toutes. Créez la paire quotidienne sur une seule application, une qui garde la relecture de session activée (son moniteur ne voit que les points écrits pour cette application), et écartez les cartes quotidiennes des autres ; sinon une journée épuisée déclenche une alerte par application. La paire mensuelle est propre à chaque application : créez-la partout où vous fixez un budget.
 
@@ -840,7 +840,7 @@ La paire quotidienne ne porte que `projectId` : son chiffre est celui du projet,
 
 - Aucun envoi n'a encore été compté aujourd'hui, ou ce mois-ci pour la paire mensuelle — par exemple entre 00:00 UTC et le premier envoi de la journée.
 - Les compteurs d'utilisation ne peuvent pas être lus depuis Valkey. Un chiffre inconnu n'est jamais écrit comme 0, de même que la page Santé affiche **inconnu** plutôt que 0. Les alertes ouvertes se résolvent dès que leur fenêtre ne contient plus de point, et se rouvrent, en notifiant de nouveau, quand les compteurs peuvent être lus et que le budget est toujours au-dessus du seuil.
-- La relecture de session est désactivée pour l'application (**Replay Policy**) ou pour tout le projet (**Surveillance des utilisateurs réels → Paramètres → Relecture de session**).
+- La relecture de session est désactivée pour l'application (**Politique de relecture**) ou pour tout le projet (**Surveillance des utilisateurs réels → Paramètres → Relecture de session**).
 - L'application n'a jamais enregistré de relecture.
 - L'application n'a pas de budget mensuel : rien n'est compté sur un budget qui n'est pas défini, donc il n'y a pas du tout de paire mensuelle. Retirer le budget fait taire ses moniteurs mensuels, et le chiffre mensuel ne compte que les envois faits pendant qu'un budget est défini : un budget défini pour la première fois en milieu de mois compte à partir de ce moment, pas du 1er, tandis qu'un budget retiré puis redéfini dans le même mois reprend le compte antérieur de ce mois.
 
@@ -859,7 +859,7 @@ La paire quotidienne ne porte que `projectId` : son chiffre est celui du projet,
 
 ## Déclencheurs de capture sur la performance
 
-Avec le déclencheur _Always_ par défaut, chaque session échantillonnée est envoyée : ces budgets ne changent donc rien à ce qui est enregistré — ils marquent seulement, sur la chronologie et dans l'onglet **Perf**, les événements qui les ont dépassés. Quand le déclencheur est _On error or frustration_, ils étendent les déclencheurs aux sessions qui ont simplement été *lentes*. Réglez-les sur la page **Replay Policy**, à l'étape **Performances et traçage** de **Modifier la politique** :
+Avec le déclencheur _Always_ par défaut, chaque session échantillonnée est envoyée : ces budgets ne changent donc rien à ce qui est enregistré — ils marquent seulement, sur la chronologie et dans l'onglet **Perf**, les événements qui les ont dépassés. Quand le déclencheur est _On error or frustration_, ils étendent les déclencheurs aux sessions qui ont simplement été *lentes*. Réglez-les sur la page **Politique de relecture**, à l'étape **Performances et traçage** de **Modifier la politique** :
 
 | Budget | Se déclenche quand | Point de départ suggéré |
 | --- | --- | --- |
@@ -888,7 +888,7 @@ Quand un client nommé signale un problème que vous ne pouvez pas reproduire, a
 :::steps
 ### Ouvrir la politique
 
-Ouvrez la page **Replay Policy** de l'application et trouvez **Record a specific user's next session**.
+Ouvrez la page **Politique de relecture** de l'application et trouvez **Record a specific user's next session**.
 
 ### Armer la cible
 
@@ -1069,7 +1069,7 @@ Avec le déclencheur _Always_ par défaut, une page qui fonctionne envoie un fra
 
 Deux choses vous disent lequel des deux vous avez sous les yeux :
 
-- **Côté serveur**, la page **Santé** de l'application (voir [Santé de l'enregistrement](#santé-de-lenregistrement)) et le panneau **Test your installation** de **Replay Policy**.
+- **Côté serveur**, la page **Santé** de l'application (voir [Santé de l'enregistrement](#santé-de-lenregistrement)) et le panneau **Test your installation** de **Politique de relecture**.
 - **Côté navigateur**, les diagnostics propres à l'enregistreur. Activez-les et rechargez :
 
   ```js

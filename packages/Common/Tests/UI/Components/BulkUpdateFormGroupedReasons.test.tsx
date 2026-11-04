@@ -3,9 +3,11 @@ import { fireEvent, render, screen, within } from "@testing-library/react";
 import "@testing-library/jest-dom";
 import * as React from "react";
 import BulkUpdateForm, {
+  BULK_RESULT_NAMES_SHOWN,
   BulkActionButtonSchema,
   BulkActionOnClickProps,
   BulkItemGroup,
+  getBulkResultNamesShown,
   groupItemsByReason,
 } from "../../../UI/Components/BulkUpdate/BulkUpdateForm";
 import {
@@ -303,6 +305,132 @@ describe("BulkUpdateForm: what was not done, grouped by why", () => {
     ).toHaveLength(1);
     expect(timesSaid(unchanged, "Already archived.")).toBe(1);
     expect(within(unchanged).getAllByRole("listitem")).toHaveLength(6);
+  });
+});
+
+/*
+ * A run of thousands that one reason refused - Add in Bulk past a plan's
+ * limit on subscribers - listed every name before the reason, so the one
+ * thing to act on sat below a box of addresses nobody scrolls through. A
+ * group lists its first names, says how many more it holds, then why.
+ */
+describe("a long group's names", () => {
+  function names(count: number): Array<string> {
+    return Array.from({ length: count }, (_value: unknown, index: number) => {
+      return `customer.${index + 1}@example.com`;
+    });
+  }
+
+  test("are all listed up to one more than the first eight - never 'and 1 more'", () => {
+    expect(BULK_RESULT_NAMES_SHOWN).toBe(8);
+    expect(getBulkResultNamesShown(names(1))).toEqual(names(1));
+    expect(getBulkResultNamesShown(names(8))).toEqual(names(8));
+    expect(getBulkResultNamesShown(names(9))).toEqual(names(9));
+  });
+
+  test("are the first eight, in the order they ran, past that", () => {
+    expect(getBulkResultNamesShown(names(10))).toEqual(names(8));
+    expect(getBulkResultNamesShown(names(1900))).toEqual(names(8));
+  });
+
+  test("leave the names they are handed as they were", () => {
+    const handed: Array<string> = names(30);
+    getBulkResultNamesShown(handed);
+    expect(handed).toEqual(names(30));
+  });
+});
+
+describe("BulkUpdateForm: a reason forty items share", () => {
+  const PLAN_LIMIT: string =
+    "You have reached the maximum allowed subscriber limit for the free plan.";
+
+  const FORTY: Array<Row> = Array.from(
+    { length: 40 },
+    (_value: unknown, index: number): Row => {
+      return { _id: `s${index + 1}`, name: `Subscriber ${index + 1}` };
+    },
+  );
+
+  test("lists the first eight names, counts the other thirty-two, then says why once", async () => {
+    renderAndRun(
+      actionRunning(async (): Promise<BulkItemOutcome> => {
+        throw new Error(PLAN_LIMIT);
+      }),
+      FORTY,
+    );
+
+    await screen.findByText("Completed");
+
+    // The count says all forty.
+    expect(screen.getByText("40 Status Pages failed")).toBeInTheDocument();
+
+    const group: HTMLElement = within(
+      screen.getByTestId("bulk-action-failed-items"),
+    ).getByTestId("bulk-action-failed-items-group");
+
+    expect(
+      within(group)
+        .getAllByRole("listitem")
+        .map((item: HTMLElement): string => {
+          return item.textContent || "";
+        }),
+    ).toEqual(
+      FORTY.slice(0, 8).map((row: Row): string => {
+        return `Status Page: ${row.name}`;
+      }),
+    );
+
+    const more: HTMLElement = within(group).getByTestId(
+      "bulk-action-failed-items-more",
+    );
+    expect(more).toHaveTextContent("and 32 more");
+
+    // Said once, right after the count of the rest.
+    const reason: HTMLElement = within(group).getByText(PLAN_LIMIT);
+    expect(timesSaid(group, PLAN_LIMIT)).toBe(1);
+    expect(
+      more.compareDocumentPosition(reason) & Node.DOCUMENT_POSITION_FOLLOWING,
+    ).toBeTruthy();
+    expect(group).not.toHaveTextContent("Subscriber 9");
+  });
+
+  test("lists all nine of nine, with nothing more to count", async () => {
+    renderAndRun(
+      actionRunning(async (): Promise<BulkItemOutcome> => {
+        throw new Error(PLAN_LIMIT);
+      }),
+      FORTY.slice(0, 9),
+    );
+
+    await screen.findByText("Completed");
+
+    const group: HTMLElement = within(
+      screen.getByTestId("bulk-action-failed-items"),
+    ).getByTestId("bulk-action-failed-items-group");
+
+    expect(within(group).getAllByRole("listitem")).toHaveLength(9);
+    expect(
+      within(group).queryByTestId("bulk-action-failed-items-more"),
+    ).toBeNull();
+  });
+
+  test("counts the rest of a long group of items left alone the same way", async () => {
+    renderAndRun(
+      actionRunning(async (): Promise<BulkItemOutcome> => {
+        return bulkItemUnchanged("Already archived.");
+      }),
+      FORTY,
+    );
+
+    await screen.findByText("Completed");
+
+    const unchanged: HTMLElement = screen.getByTestId(
+      "bulk-action-unchanged-items",
+    );
+    expect(within(unchanged).getAllByRole("listitem")).toHaveLength(8);
+    expect(
+      within(unchanged).getByTestId("bulk-action-unchanged-items-more"),
+    ).toHaveTextContent("and 32 more");
   });
 });
 

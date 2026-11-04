@@ -65,6 +65,7 @@ import {
   QueryDataStoreAccessTool,
   QueryDataStoresTool,
 } from "./DataSecurityTools";
+import { GetDataTableFreshnessTool } from "./DataObservabilityTools";
 import { GetChangeDetailsTool } from "./ChangeTools";
 import { BaselineAnomalyTool, QueryMetricsTool } from "./MetricTools";
 import { GetTraceTool, QueryTracesTool } from "./TraceTools";
@@ -103,6 +104,7 @@ import {
   ChangeIncidentSeverityTool,
 } from "./AIActionTools";
 import AIChatPermissionMode from "../../../../Types/AI/AIChatPermissionMode";
+import { AIToolRefusal } from "../../../../Types/AI/AIChatTypes";
 
 export interface ToolCallOutcome {
   success: boolean;
@@ -113,6 +115,13 @@ export interface ToolCallOutcome {
   textForLlm: string;
   result?: ToolExecutionResult | undefined;
   errorMessage?: string | undefined;
+  /*
+   * Why the call was refused, when it was: the person may not make it, a
+   * team blocks it, the plan does not include it, or it is not theirs to
+   * make here. A refused call is never tried again; the run's activity says
+   * it was not done, and why.
+   */
+  refusal?: AIToolRefusal | undefined;
 }
 
 const TOOL_EXECUTION_TIMEOUT_MS: number = 45 * 1000;
@@ -178,6 +187,12 @@ export default class AIToolbox {
     QueryDataStoresTool,
     QueryDataSecurityIssuesTool,
     QueryDataStoreAccessTool,
+    /*
+     * Data Observability: whether a watched table is fresh, its open alerts
+     * and its writers' latest runs - also how Slack and Microsoft Teams
+     * answer "is the orders table fresh?" (DataObservabilityTools).
+     */
+    GetDataTableFreshnessTool,
     TopExceptionsTool,
     SearchLogsTool,
     SearchSecurityEventsTool,
@@ -405,6 +420,7 @@ export default class AIToolbox {
         success: false,
         textForLlm: `Error: ${data.name} can only run inside the single project this request is authorized for. Answer with the data you already have.`,
         errorMessage: `Permission denied for tool: ${data.name} (the request is not scoped to this project)`,
+        refusal: AIToolRefusal.NotAllowed,
       };
     }
 
@@ -437,6 +453,7 @@ export default class AIToolbox {
           success: false,
           textForLlm: `Error: ${data.name} changes the project, and only runs inside the project the request is for. Answer with the data you already have.`,
           errorMessage: `Permission denied for tool: ${data.name} (the request is not for this project)`,
+          refusal: AIToolRefusal.NotAllowed,
         };
       }
 
@@ -444,6 +461,7 @@ export default class AIToolbox {
         success: false,
         textForLlm: `Error: ${data.name} changes the project, and only runs for a signed-in person who asked for it. Answer with the data you already have.`,
         errorMessage: `Permission denied for tool: ${data.name} (no signed-in person to act as)`,
+        refusal: AIToolRefusal.NotAllowed,
       };
     }
 
@@ -452,6 +470,7 @@ export default class AIToolbox {
         success: false,
         textForLlm: this.describePermissionRefusal(tool, data.ctx, data.args),
         errorMessage: `Permission denied for tool: ${data.name}`,
+        refusal: this.getPermissionRefusal(tool, data.ctx, data.args),
       };
     }
 
@@ -491,6 +510,10 @@ export default class AIToolbox {
           success: false,
           textForLlm: `Refused: ${data.name} was not allowed for the current user. ${message} Do not retry it. Tell the user plainly that it was not done, and why.`,
           errorMessage: message,
+          refusal:
+            error instanceof PaymentRequiredException
+              ? AIToolRefusal.Plan
+              : AIToolRefusal.NotAllowed,
         };
       }
 
@@ -523,6 +546,36 @@ export default class AIToolbox {
   // Whether the request is a user's, not OneUptime's own.
   private static hasPerson(ctx: ToolContext): boolean {
     return Boolean(ctx.props.userId) && !ctx.props.isRoot;
+  }
+
+  /*
+   * Why the gate refused the person a tool, for the run's activity: a team's
+   * block, when they hold a permission of the first list they fall short of
+   * and a block takes it away (as describePermissionRefusal tells the
+   * model), else their role.
+   */
+  private static getPermissionRefusal(
+    tool: ObservabilityTool,
+    ctx: ToolContext,
+    args: JSONObject,
+  ): AIToolRefusal {
+    const held: HeldPermissions = CallerPermission.getHeld(ctx.props);
+    const groups: Array<Array<Permission>> = tool.getRequiredPermissionGroups
+      ? tool.getRequiredPermissionGroups(args)
+      : [tool.requiredPermissions];
+    const missing: Array<Permission> | undefined = groups.find(
+      (group: Array<Permission>): boolean => {
+        return !HeldPermissionsUtil.holdsAnyOf(held, group, {
+          labelledBlocksRefuse: true,
+        });
+      },
+    );
+
+    return missing &&
+      missing.length > 0 &&
+      HeldPermissionsUtil.isGrantedAny(held, missing)
+      ? AIToolRefusal.TeamBlock
+      : AIToolRefusal.Permission;
   }
 
   /*

@@ -149,6 +149,14 @@ function matchesRaw(stored: unknown, operator: FindOperator<unknown>): boolean {
     );
   }
 
+  // SQL's != never matches an empty value either (QueryHelper.notEquals).
+  match = sql.match(/^\((?:c|LOWER\(c\)) != :(\w+)\)$/);
+  if (match) {
+    return (
+      storedText !== null && storedText !== normalize(parameters[match[1]!])
+    );
+  }
+
   match = sql.match(/^\(c IN \(:\.\.\.(\w+)\)\)$/);
   if (match) {
     return storedText !== null && listOf(match[1]!).includes(storedText);

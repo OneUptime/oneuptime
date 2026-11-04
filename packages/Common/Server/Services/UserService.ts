@@ -17,6 +17,7 @@ import DatabaseService from "./DatabaseService";
 import EmailVerificationTokenService from "./EmailVerificationTokenService";
 import MailService from "./MailService";
 import ProductBrandingText from "../Utils/ProductBrandingText";
+import RequestOriginUtil from "../Utils/RequestOrigin/RequestOriginUtil";
 import TeamMemberService from "./TeamMemberService";
 import UserNotificationRuleService from "./UserNotificationRuleService";
 import UserNotificationSettingService from "./UserNotificationSettingService";
@@ -527,6 +528,8 @@ export class Service extends DatabaseService<Model> {
         {
           _id: true,
           email: true,
+          // "Your password was changed" says when in the owner's own zone.
+          timezone: true,
         },
       );
 
@@ -910,7 +913,13 @@ export class Service extends DatabaseService<Model> {
          */
         await TwoFactorWrongCodes.forget(user.id!);
 
-        // password changed, send password changed mail
+        /*
+         * Password changed: tell the owner, with when, and from where when a
+         * request made the change - the reset link's page or the profile
+         * page (requestOrigin, set from the request by the route or
+         * CommonAPI). A server admin's Set Password carries none, so its
+         * email says when alone.
+         */
         MailService.sendMail({
           toEmail: user.email!,
           subject: "Password Changed.",
@@ -918,6 +927,15 @@ export class Service extends DatabaseService<Model> {
           templateType: EmailTemplateType.PasswordChanged,
           vars: {
             homeURL: new URL(httpProtocol, host).toString(),
+            forgotPasswordUrl: new URL(
+              httpProtocol,
+              host,
+              new Route(AccountsRoute.toString()).addRoute("/forgot-password"),
+            ).toString(),
+            ...RequestOriginUtil.getEmailVars({
+              origin: onUpdate.updateBy.props.requestOrigin,
+              timezone: user.timezone,
+            }),
           },
         }).catch((err: Error) => {
           logger.error(err, { userId: user.id?.toString() } as LogAttributes);

@@ -647,18 +647,22 @@ describe("TelemetryIngest browser ingestion key guard", () => {
 
     test("a browser key is refused 403 on every other surface, naming the surface and pointing at a server key", async () => {
       /*
-       * Thirteen infrastructure / build-time pipes (the Vercel log drain
+       * Fourteen infrastructure / build-time pipes (the Vercel log drain
        * among them: Vercel's servers send it, never a browser; a
-       * scheduler's OpenLineage events; and a dbt build's artifacts), the three
+       * scheduler's OpenLineage events; a dbt build's artifacts; and
+       * Fivetran's and Airbyte's sync webhooks), the three
        * identity registrations (the Kubernetes agent Runner, the
        * Kubernetes AI agent and the resource AI agents), which mint cluster
        * or infrastructure credentials and must never be reachable with a key
        * scraped off a page, and the supervisor of a host OneUptime manages,
        * which is sent the config the host runs.
        */
-      expect(BROWSER_DISALLOWED_SURFACES.length).toBe(17);
+      expect(BROWSER_DISALLOWED_SURFACES.length).toBe(18);
       expect(BROWSER_DISALLOWED_SURFACES).toContain(
         TelemetryIngestSurface.OpenLineage,
+      );
+      expect(BROWSER_DISALLOWED_SURFACES).toContain(
+        TelemetryIngestSurface.SyncWebhooks,
       );
       expect(BROWSER_DISALLOWED_SURFACES).toContain(
         TelemetryIngestSurface.DbtArtifacts,

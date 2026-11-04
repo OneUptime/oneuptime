@@ -1,4 +1,12 @@
+import CloudConnection from "../../../Models/DatabaseModels/CloudConnection";
 import DataStore from "../../../Models/DatabaseModels/DataStore";
+import { DataStoreKind } from "../../../Types/DataSecurity/DataStoreKind";
+import CloudConnectionService from "../../Services/CloudConnectionService";
+import {
+  CloudConnectionSettings,
+  readCloudSetting,
+} from "../CloudConnection/CloudConnectorTypes";
+import { buildBigQueryConnectionString } from "./BigQueryApi";
 import OneUptimeDate from "../../../Types/Date";
 import Includes from "../../../Types/BaseDatabase/Includes";
 import ObjectID from "../../../Types/ObjectID";
@@ -6,15 +14,16 @@ import DataStoreService from "../../Services/DataStoreService";
 import QueryHelper from "../../Types/Database/QueryHelper";
 import logger from "../Logger";
 import {
-  getDatabaseEngineOfKind,
-  PROBE_SCANNABLE_KINDS,
-} from "../DataSecurity/DataSecurityProbeScan";
+  DATA_OBSERVABILITY_KINDS,
+  getCollectorEngineOfKind,
+} from "./DataObservabilityEngines";
 import { TABLE_HEALTH_CLAIM_IN_MINUTES } from "./DataObservabilityProbeCollect";
 import DataCheckIngest from "./DataCheckIngest";
 import DataCheckPlanner, { DataCheckPlan } from "./DataCheckPlanner";
 import {
   collectTableHealth,
   DEFAULT_COLLECT_OPTIONS,
+  getQueryHistoryLookbackInSeconds,
   TableHealthSnapshot,
 } from "./TableHealthCollector";
 import TableHealthIngest, {
@@ -43,7 +52,7 @@ export default class DataObservabilityRunner {
       query: {
         isArchived: false,
         isTableHealthEnabled: true,
-        kind: new Includes([...PROBE_SCANNABLE_KINDS]),
+        kind: new Includes([...DATA_OBSERVABILITY_KINDS]),
         connectionString: QueryHelper.notNull(),
         scanProbeId: QueryHelper.isNull(),
         nextTableHealthCollectionAt: QueryHelper.lessThanEqualToOrNull(now),
@@ -53,6 +62,26 @@ export default class DataObservabilityRunner {
       limit,
       props: { isRoot: true },
     });
+
+    // BigQuery datasets a Google Cloud connection found: collected with its service account.
+    if (stores.length < limit) {
+      stores.push(
+        ...(await DataStoreService.findBy({
+          query: {
+            isArchived: false,
+            isTableHealthEnabled: true,
+            kind: DataStoreKind.GcpBigQueryDataset,
+            connectionString: QueryHelper.isNull(),
+            cloudConnectionId: QueryHelper.notNull(),
+            nextTableHealthCollectionAt: QueryHelper.lessThanEqualToOrNull(now),
+          },
+          select: { _id: true, projectId: true },
+          skip: 0,
+          limit: limit - stores.length,
+          props: { isRoot: true },
+        })),
+      );
+    }
 
     const claimed: Array<{ projectId: ObjectID; dataStoreId: ObjectID }> = [];
 
@@ -93,6 +122,10 @@ export default class DataObservabilityRunner {
         scanProbeId: true,
         isTableHealthEnabled: true,
         isArchived: true,
+        cloudConnectionId: true,
+        cloudAccountNumber: true,
+        region: true,
+        tableHealthCollectedAt: true,
       },
       props: { isRoot: true },
     });
@@ -110,18 +143,26 @@ export default class DataObservabilityRunner {
       return null;
     }
 
-    const engine: ReturnType<typeof getDatabaseEngineOfKind> =
-      getDatabaseEngineOfKind(store.kind);
+    const engine: ReturnType<typeof getCollectorEngineOfKind> =
+      getCollectorEngineOfKind(store.kind);
 
     if (!engine) {
       return null;
     }
 
-    if (!store.connectionString) {
+    const connectionString: string | null =
+      store.connectionString ||
+      (engine === "bigquery"
+        ? await this.readCloudBigQueryConnection(projectId, store)
+        : null);
+
+    if (!connectionString) {
       await TableHealthIngest.recordFailure({
         storeId: store.id,
         error:
-          "No connection string is saved on this store. Save one, or have a probe collect it with an environment variable.",
+          engine === "bigquery"
+            ? "This dataset's Google Cloud connection is off, gone, or holds no service account key. Turn it on, or save a connection on the store."
+            : "No connection string is saved on this store. Save one, or have a probe collect it with an environment variable.",
       });
       return null;
     }
@@ -137,10 +178,14 @@ export default class DataObservabilityRunner {
 
     try {
       snapshot = await collectTableHealth(
-        { engine, connectionString: store.connectionString },
+        { engine, connectionString },
         {
           ...DEFAULT_COLLECT_OPTIONS,
           checks: plan.planned,
+          queryHistoryLookbackInSeconds: getQueryHistoryLookbackInSeconds(
+            store.tableHealthCollectedAt,
+            OneUptimeDate.getCurrentDate(),
+          ),
           exclusions: (store.scanExclusions || []).filter(
             (exclusion: unknown): exclusion is string => {
               return typeof exclusion === "string";
@@ -181,5 +226,55 @@ export default class DataObservabilityRunner {
     });
 
     return result;
+  }
+
+  /*
+   * A dataset a Google Cloud connection found, as BigQueryApi connects to
+   * it: its project, its name, its location, and the connection's own
+   * service account - read here for this collection and kept nowhere.
+   */
+  private static async readCloudBigQueryConnection(
+    projectId: ObjectID,
+    store: DataStore,
+  ): Promise<string | null> {
+    if (!store.cloudConnectionId || !store.cloudAccountNumber || !store.name) {
+      return null;
+    }
+
+    const connection: CloudConnection | null =
+      await CloudConnectionService.findOneBy({
+        query: { _id: store.cloudConnectionId, projectId },
+        select: {
+          _id: true,
+          projectId: true,
+          provider: true,
+          isEnabled: true,
+          config: true,
+          secrets: true,
+        },
+        props: { isRoot: true },
+      });
+
+    if (!connection || connection.isEnabled === false) {
+      return null;
+    }
+
+    const settings: CloudConnectionSettings =
+      await CloudConnectionService.getConnectorSettings(connection);
+    const serviceAccountJson: string = readCloudSetting(
+      settings.secrets,
+      "serviceAccountJson",
+    );
+
+    if (!serviceAccountJson) {
+      return null;
+    }
+
+    return buildBigQueryConnectionString({
+      projectId: store.cloudAccountNumber,
+      dataset: store.name,
+      location: store.region || null,
+      serviceAccountJson,
+    });
   }
 }

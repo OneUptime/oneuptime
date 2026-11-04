@@ -101,6 +101,7 @@ oneuptime resources
 | `oneuptime context list`, `use`, `current`, `delete` | 列出、切換、顯示和刪除已儲存的情境 | [驗證](/docs/cli/authentication#情境) |
 | `oneuptime whoami` | 顯示下一個命令將使用的 URL 和 API 金鑰，加上 `--check` 時還會顯示 OneUptime 是否接受該金鑰 | [驗證](/docs/cli/authentication#檢查-cli-將使用什麼) |
 | `oneuptime deploy` | 為圖表和 OneUptime AI 記錄一次部署或其他變更 | [部署與變更](/docs/telemetry/change-events) |
+| `oneuptime dbt upload` | 在建置之後把 dbt 專案的產物傳送到資料可觀測性 | [命令參考](/docs/cli/command-reference#oneuptime-dbt-upload) |
 | `oneuptime <resource> list`, `get`, `create`, `update`, `delete`, `count` | 處理一種記錄 | [資源操作](/docs/cli/resource-operations) |
 | `oneuptime <resource> fields` | 列出資源的欄位以及設定它們的旗標 | [資源操作](/docs/cli/resource-operations#檢視資源的欄位) |
 | `oneuptime <resource> acknowledge`, `resolve`, `start`, `end`, `add-note` | 對事件、警示和排定維護執行儀表板按鈕所做的動作 | [資源操作](/docs/cli/resource-operations#確認解決和新增備註) |

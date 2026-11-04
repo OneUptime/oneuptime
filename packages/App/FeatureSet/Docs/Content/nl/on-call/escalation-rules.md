@@ -228,6 +228,8 @@ Elke oproep kunt u escaleren vanaf de plek waar hij u bereikte:
 
 Elke manier behalve het telefoongesprek vraagt het eerst en vertelt wat er gaat gebeuren, zoals "This will immediately page Platform leads (Level 2 of 3), without waiting."; in een telefoongesprek is op 2 drukken het antwoord. Alleen wie wordt opgeroepen, kan de oproep escaleren: de knop in OneUptime verschijnt alleen voor diegene, en de link in een bericht escaleert alleen de oproep waarover het bericht ging, voor de persoon naar wie het ging, gedurende 7 dagen.
 
+Met twee of meer niveaus na het uwe vragen OneUptime en de pagina's die de links van een bericht openen ook welk niveau u wilt oproepen, onder **Escaleren naar**, met het volgende niveau gekozen. Laat het zo om zoals altijd het volgende niveau op te roepen, of kies een later niveau om dat in plaats daarvan meteen op te roepen: de niveaus ertussen worden overgeslagen, en het beleid gaat verder vanaf het niveau dat u koos. Een telefoongesprek en de app OneUptime On-Call roepen het volgende niveau op.
+
 Wat er daarna gebeurt, hangt af van wie er nog meer wordt opgeroepen:
 
 - Anderen op hetzelfde niveau worden nog opgeroepen: het beleid wacht op hen, zoals eerst. Het gaat verder wanneer de wachttijd van het niveau verstrijkt, of zodra de laatste van hen de oproep ook escaleert.
@@ -238,7 +240,7 @@ Een oproep escaleren bevestigt hem niet: het incident of de waarschuwing wacht n
 
 Een oproep die een workflow rechtstreeks naar mensen stuurt, heeft geen niveaus: als u hem escaleert, wordt u niet meer opgeroepen, en zodra iedereen die hij opriep hem heeft geëscaleerd, stopt het oproepen.
 
-Elke keer dat een oproep wordt geëscaleerd, wordt dat vastgelegd. De **Tijdlijn van de uitvoering** markeert de regel van de persoon als **Geëscaleerd**, de feed van het incident zegt "Alex Kim escalated the page from on-call policy Payments at Level 1 of 3.", het bericht van de uitvoering in Slack en Microsoft Teams vermeldt dat diegene hem heeft geëscaleerd, en de **Bereikbaarheidslogboeken** van diegene tonen de oproep als **Geëscaleerd**.
+Elke keer dat een oproep wordt geëscaleerd, wordt dat vastgelegd. De **Tijdlijn van de uitvoering** markeert de regel van de persoon als **Geëscaleerd**, de feed van het incident zegt "Alex Kim escalated the page from on-call policy Payments at Level 1 of 3.", het bericht van de uitvoering in Slack en Microsoft Teams vermeldt dat diegene hem heeft geëscaleerd, en de **Bereikbaarheidslogboeken** van diegene tonen de oproep als **Geëscaleerd**. Een niveau dat voor een later niveau is overgeslagen, staat in de **Tijdlijn van de uitvoering** als **Overgeslagen**, en de feed zegt "On-call policy Payments skipped Platform leads (Level 2 of 3): the page was escalated past it."
 
 ## Regels bewerken, herordenen en verwijderen
 

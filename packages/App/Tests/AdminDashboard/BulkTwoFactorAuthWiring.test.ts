@@ -23,10 +23,11 @@ import nodePath from "path";
  *  - `await API.post(...)` without an `instanceof HTTPErrorResponse` check
  *    resolves an error response rather than rejecting, so every failure would be
  *    reported to the admin as a success;
- *  - a `throw` in the per-user catch, a `Promise.all` in place of the loop, or a
- *    missing `onBulkActionEnd()` each leave the shared progress modal's Close
- *    button disabled forever, with the table selection never cleared and no way
- *    out but a page reload;
+ *  - the run goes through the shared runner (runBulkAction), which opens the
+ *    progress dialog, names each user that failed with why, ends the action in
+ *    a `finally` and lets Stop start no more users. A loop of the page's own
+ *    lost all of that once already: no Stop, no time left, and a missed
+ *    `onBulkActionEnd()` left the dialog's Close disabled forever;
  *  - and a confirm string interpolated under `count` rather than `userCount`
  *    makes i18next treat the lookup as a PLURAL-KEY lookup and go looking for
  *    `..._one` / `..._other` siblings this locale set does not define, so the
@@ -166,35 +167,14 @@ function countOccurrences(source: string, needle: string): number {
   return source.split(needle).length - 1;
 }
 
-/*
- * The index one past the end of the balanced block that follows `marker`, so a
- * caller can assert that some other statement sits after the whole of it.
- * `indexOf(block)` is searched from the marker rather than from zero because
- * the loop body's `try`/`catch` shapes repeat verbatim in the sibling actions.
- */
-function endIndexOfBlockAfter(source: string, marker: string): number {
-  const markerIndex: number = source.indexOf(marker);
-
-  if (markerIndex === -1) {
-    throw new Error(`Marker not found in source: ${marker}`);
-  }
-
-  const block: string = blockAfter(source, marker);
-
-  return source.indexOf(block, markerIndex) + block.length;
-}
-
 /* The declaration, not either of the two call sites in the bulkActions array. */
 const ACTION_MARKER: string = "const getBulkSetTwoFactorAuthRequiredAction";
 
 const actionBlock: string = blockAfter(usersPageSource, ACTION_MARKER);
 const onClickBody: string = blockAfter(actionBlock, "onClick: async (");
-const loopBlock: string = blockAfter(
-  onClickBody,
-  "for (const user of totalItems)",
-);
-const tryBlock: string = blockAfter(loopBlock, "try {");
-const catchBlock: string = blockAfter(loopBlock, "} catch (err)");
+// The options the run is handed, and the step it runs for each user.
+const runBlock: string = blockAfter(onClickBody, "runBulkAction<User>(");
+const stepBlock: string = blockAfter(runBlock, "step: async (user: User)");
 const bulkActionsBlock: string = blockAfter(usersPageSource, "bulkActions=");
 const routeBuilderBlock: string = blockAfter(
   usersPageSource,
@@ -277,18 +257,16 @@ describe("Bulk two factor auth action extraction", () => {
     expect(actionBlock).toContain("isRequired");
   });
 
-  test("the onClick body, its loop and the loop's try/catch were located", () => {
+  test("the onClick body, its run and the run's step were located", () => {
     expect(onClickBody.length).toBeGreaterThan(100);
     expect(onClickBody).toContain("onClickProps");
-    expect(loopBlock.length).toBeGreaterThan(100);
-    expect(loopBlock).toContain("API.post");
-    expect(tryBlock).toContain("API.post");
-    expect(catchBlock).toContain("failedItems.push(");
+    expect(runBlock).toContain("actionProps:");
+    expect(runBlock).toContain("step:");
+    expect(stepBlock).toContain("API.post");
 
-    /* The loop is inside the onClick, not something found further down the file. */
-    expect(onClickBody).toContain(loopBlock);
-    expect(loopBlock).toContain(tryBlock);
-    expect(loopBlock).toContain(catchBlock);
+    /* The run is inside the onClick, not something found further down the file. */
+    expect(onClickBody).toContain(runBlock);
+    expect(runBlock).toContain(stepBlock);
   });
 
   test("the bulkActions array and the route builder were located", () => {
@@ -440,137 +418,65 @@ describe("Bulk two factor auth action registration", () => {
 });
 
 describe("Bulk two factor auth action run", () => {
-  test("the run opens the progress modal before it does anything else", () => {
+  test("runs through the shared runner, with the click it was handed", () => {
     /*
-     * `onBulkActionStart` is what puts the shared progress modal on screen and
-     * flips `actionInProgress`. Calling it late - after the first request, or
-     * from inside the loop - means the admin watches an unresponsive menu while
-     * users are already being signed out, and calling it inside the loop resets
-     * the progress report to "nothing done yet" on every iteration.
-     *
-     * Bounded to this action's own onClick, because the three sibling bulk
-     * actions on this page all call it correctly at the top of theirs.
+     * runBulkAction is what opens the progress dialog, counts the users down,
+     * says how long is left, names each failure and ends the action in a
+     * `finally` - and what lets Stop start no more users. Handed the click
+     * itself, it reports to the dialog that click opened.
      */
-    expect(countOccurrences(onClickBody, "onBulkActionStart()")).toBe(1);
-
-    /*
-     * And it is the first statement, after the one destructure that has to
-     * precede it because it is where the callback comes from.
-     */
-    expect(onClickBody).toMatch(
-      /^\{\s*const \{[^}]*\}\s*=\s*onClickProps;\s*onBulkActionStart\(\);/,
-    );
-
-    expect(onClickBody.indexOf("onBulkActionStart()")).toBeLessThan(
-      onClickBody.indexOf("for (const user of totalItems)"),
-    );
+    expect(countOccurrences(onClickBody, "runBulkAction<User>(")).toBe(1);
+    expect(onClickBody).toMatch(/^\{\s*await runBulkAction<User>\(/);
+    expect(runBlock).toMatch(/actionProps:\s*onClickProps,/);
   });
 
-  test("the run ends the bulk action even when every user fails", () => {
+  test("starts, reports and ends nothing by hand", () => {
     /*
-     * Until `onBulkActionEnd` runs, BulkUpdateForm leaves `actionInProgress`
-     * true: the progress modal keeps showing the spinner copy, its Close button
-     * stays disabled, and because the table only clears the selection and
-     * refetches when that modal is closed, the admin's only way out is a page
-     * reload.
-     *
-     * The failure path is the one that matters. A per-user failure must not be
-     * able to skip this call, so the assertions are: exactly one call exists in
-     * this body, it sits after the whole loop rather than inside it, and it is
-     * an unconditional statement rather than something guarded by a "did
-     * everything succeed" test.
+     * A second start resets the dialog's report, a report of the page's own
+     * fights the runner's, and an end of its own re-enables Close while users
+     * are still being signed out - so the action leaves all three to the run.
      */
-    expect(countOccurrences(onClickBody, "onBulkActionEnd()")).toBe(1);
-
-    const afterLoop: string = onClickBody.slice(
-      endIndexOfBlockAfter(onClickBody, "for (const user of totalItems)"),
-    );
-
-    expect(afterLoop).toMatch(/^\s*onBulkActionEnd\(\);\s*\}$/);
-
-    /*
-     * The other half of "reachable on failure": nothing in the per-user catch
-     * leaves the loop. A `throw` or a `return` there would abandon the run at
-     * the first user whose request failed, with the progress modal stuck open
-     * and the remaining users neither attempted nor reported.
-     */
-    expect(catchBlock).not.toMatch(/\bthrow\b/);
-    expect(catchBlock).not.toMatch(/\breturn\b/);
-    expect(catchBlock).not.toMatch(/\bbreak\b/);
-  });
-
-  test("the users are handled one at a time", () => {
-    /*
-     * Sequential on purpose. Each POST revokes the user's sessions and writes
-     * the requirement, and firing a two-hundred-user selection at the API at
-     * once is a self-inflicted burst that the rate limiter answers with
-     * failures the admin then has to sort out by hand. It is also what makes
-     * the progress report meaningful: the counts below are read straight off
-     * the arrays this loop mutates in order.
-     */
-    expect(onClickBody).toContain("for (const user of totalItems)");
-    expect(onClickBody).toContain("await API.post<JSONObject>(");
+    expect(onClickBody).not.toContain("onBulkActionStart");
+    expect(onClickBody).not.toContain("onProgressInfo");
+    expect(onClickBody).not.toContain("onBulkActionEnd");
+    expect(onClickBody).not.toMatch(/\bfor\s*\(/);
     expect(onClickBody).not.toMatch(/Promise\s*\.\s*all/);
-    expect(onClickBody).not.toMatch(/Promise\s*\.\s*allSettled/);
-    expect(onClickBody).not.toMatch(/\.map\(/);
   });
 
-  test("the user leaves the in-progress list before the request goes out", () => {
+  test("several users at once, as Block and Unblock, and Stop can stop it", () => {
     /*
-     * `inProgressItems` is what the progress bar reads as "still queued". Doing
-     * the splice after the await would leave the user the admin is watching
-     * counted as queued for the whole round trip, and - on the last user - the
-     * run would finish with one name still sitting in the in-progress list.
+     * Each request writes one user's requirement and signs that user out,
+     * nothing another user's request reads, so the runner's several at once
+     * is safe - and is what keeps a two-hundred-user selection from taking
+     * two hundred round trips end to end. The Concurrency ledger
+     * (Common/Tests/UI/BulkActionConcurrencyLedger) holds the same choice,
+     * with why.
      */
-    const spliceIndex: number = loopBlock.indexOf("inProgressItems.splice(");
-    const postIndex: number = loopBlock.indexOf("API.post");
+    expect(runBlock).toMatch(/concurrency:\s*BULK_ACTION_CONCURRENCY,/);
+    expect(runBlock).not.toContain("isStoppable: false");
+  });
 
-    expect(spliceIndex).toBeGreaterThan(-1);
+  test("a user without an id fails before any request goes out", () => {
+    const idCheckIndex: number = stepBlock.indexOf("if (!user.id)");
+    const postIndex: number = stepBlock.indexOf("API.post");
+
+    expect(idCheckIndex).toBeGreaterThan(-1);
     expect(postIndex).toBeGreaterThan(-1);
-    expect(spliceIndex).toBeLessThan(postIndex);
+    expect(idCheckIndex).toBeLessThan(postIndex);
+    expect(stepBlock).toMatch(
+      /if \(!user\.id\)\s*\{\s*throw new BadDataException\("User ID not found"\);\s*\}/,
+    );
   });
 
-  test("progress is reported once per user, after the failure is recorded", () => {
+  test("a user's failure is thrown to the runner, which names it, never swallowed", () => {
     /*
-     * The report has to sit after the catch, not inside the try: reporting from
-     * the try means a user whose request failed never advances the progress
-     * bar, so a selection where every request fails shows a bar frozen at zero
-     * until the run ends and then jumps straight to a list of failures.
-     *
-     * Once per iteration, too. A second call inside the try would report the
-     * same user twice, and the progress bar counts successes plus failures
-     * against the total.
+     * The runner records a step that throws as that user's failure, with
+     * API.getFriendlyMessage of the error - the name and the reason the
+     * dialog lists. A try/catch in the step that swallowed it would count
+     * the user as changed: the worst possible report for a security control.
      */
-    expect(countOccurrences(loopBlock, "onProgressInfo(")).toBe(1);
-    expect(tryBlock).not.toContain("onProgressInfo");
-    expect(catchBlock).not.toContain("onProgressInfo");
-
-    expect(loopBlock.indexOf("onProgressInfo(")).toBeGreaterThan(
-      endIndexOfBlockAfter(loopBlock, "} catch (err)"),
-    );
-
-    /* And it reports the four arrays the loop actually maintains. */
-    expect(loopBlock).toContain("totalItems: totalItems");
-    expect(loopBlock).toContain("failed: failedItems");
-    expect(loopBlock).toContain("successItems: successItems");
-    expect(loopBlock).toContain("inProgressItems: inProgressItems");
-  });
-
-  test("a failed user is collected and named, not thrown", () => {
-    /*
-     * An admin who selected two hundred users needs to be told WHICH ones did
-     * not take. Rethrowing abandons the run at the first failure and tells them
-     * nothing about the rest; pushing a row with the friendly message is what
-     * puts the user's name and the reason in the progress modal's failure list.
-     */
-    expect(catchBlock).toMatch(
-      /failedItems\.push\(\s*\{\s*item:\s*user,\s*failedMessage:\s*API\.getFriendlyMessage\(err\),\s*\}\s*\);/,
-    );
-
-    /* The catch is that push and nothing else - no swallow, no early exit. */
-    expect(catchBlock).toMatch(
-      /^\{\s*failedItems\.push\(\s*\{\s*item:\s*user,\s*failedMessage:\s*API\.getFriendlyMessage\(err\),\s*\}\s*\);\s*\}$/,
-    );
+    expect(stepBlock).not.toMatch(/\bcatch\b/);
+    expect(stepBlock).not.toMatch(/\breturn\b/);
   });
 });
 
@@ -617,31 +523,37 @@ describe("Bulk two factor auth action endpoint", () => {
   test("an error response is not counted as a success", () => {
     /*
      * `API.post` RESOLVES an `HTTPErrorResponse` rather than rejecting on a
-     * non-2xx. A bare `await` therefore falls straight through to
-     * `successItems.push(user)`, and the admin is shown a progress modal
-     * reporting every user as done while the server rejected all of them -
-     * the worst possible outcome for a security control, because it is
+     * non-2xx. A step that just awaited it would resolve, and the runner
+     * counts a step that resolves as a user changed: the admin would be shown
+     * every user done while the server rejected all of them - the worst
+     * possible outcome for a security control, because it is
      * indistinguishable from success.
      */
-    expect(actionBlock).toMatch(
+    expect(stepBlock).toMatch(
       /if \(response instanceof HTTPErrorResponse\)\s*\{\s*throw response;\s*\}/,
     );
 
     /*
-     * The check is before the success is recorded, not after it.
+     * The check reads the response the post answered with, so it comes after
+     * the post - and it is the step's last statement, so nothing after it can
+     * resolve the step first.
      *
      * Both needles are floored at -1 first. `indexOf` answers -1 for a string
      * that is not there, and -1 is less than every real index, so an ordering
      * comparison on a needle that has GONE is satisfied by its absence - the
      * exact shape this test exists to reject.
      */
-    expect(
-      tryBlock.indexOf("response instanceof HTTPErrorResponse"),
-    ).toBeGreaterThan(-1);
-    expect(tryBlock.indexOf("successItems.push(user)")).toBeGreaterThan(-1);
-    expect(
-      tryBlock.indexOf("response instanceof HTTPErrorResponse"),
-    ).toBeLessThan(tryBlock.indexOf("successItems.push(user)"));
+    const postIndex: number = stepBlock.indexOf("await API.post<JSONObject>(");
+    const checkIndex: number = stepBlock.indexOf(
+      "response instanceof HTTPErrorResponse",
+    );
+
+    expect(postIndex).toBeGreaterThan(-1);
+    expect(checkIndex).toBeGreaterThan(-1);
+    expect(postIndex).toBeLessThan(checkIndex);
+    expect(stepBlock).toMatch(
+      /if \(response instanceof HTTPErrorResponse\)\s*\{\s*throw response;\s*\}\s*\}$/,
+    );
   });
 
   test("there is no bulk reset", () => {

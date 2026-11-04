@@ -41,7 +41,7 @@ Der Server ist zustandslos: Er vergibt keine Sitzungs-IDs, und jede Anfrage steh
 - **Geplante Wartung**: Wartungsereignisse anlegen und verwalten.
 - **Telemetrie**: Logs, Metriken, Traces, Ausnahmen, Monitor-Logs, Sicherheitsereignisse und mehr abfragen, nur lesend.
 
-Es gibt Tools zum Anlegen, Abrufen, Auflisten, Aktualisieren, Löschen und Zählen für 44 Arten von Datensätzen, Tools zum Auflisten und Zählen für 9 Arten von Telemetrie und Tools speziell für die Vorfallreaktion. Nur lesende Tools tragen `readOnlyHint`, jedes Tool, das etwas ändert, trägt `destructiveHint`, und nur die Tools für öffentliche Statusseiten tragen `openWorldHint`, sodass ein Client nur lesende Aufrufe selbstständig ausführen und Sie vor jeder Änderung fragen kann. Ein fehlgeschlagener Tool-Aufruf kommt als Tool-Ergebnis zurück (`isError: true`) mit einem `statusCode`, den Details und einem Vorschlag, nicht als MCP-Protokollfehler, sodass der Agent den Fehler lesen und sich selbst korrigieren kann.
+Es gibt Tools zum Anlegen, Abrufen, Auflisten, Aktualisieren, Löschen und Zählen für 45 Arten von Datensätzen, Tools zum Auflisten und Zählen für 9 Arten von Telemetrie und Tools speziell für die Vorfallreaktion. Nur lesende Tools tragen `readOnlyHint`, jedes Tool, das etwas ändert, trägt `destructiveHint`, und nur die Tools für öffentliche Statusseiten tragen `openWorldHint`, sodass ein Client nur lesende Aufrufe selbstständig ausführen und Sie vor jeder Änderung fragen kann. Ein fehlgeschlagener Tool-Aufruf kommt als Tool-Ergebnis zurück (`isError: true`) mit einem `statusCode`, den Details und einem Vorschlag, nicht als MCP-Protokollfehler, sodass der Agent den Fehler lesen und sich selbst korrigieren kann.
 
 ## Bevor Sie beginnen
 
@@ -337,6 +337,8 @@ Ein typischer Ablauf: `list_incidents` → `acknowledge_incident` → mit `list_
 
 Das Tool **`oneuptime_whoami`** gibt das Projekt zurück, zu dem Ihre Zugangsdaten gehören (seine ID und seinen Namen). Für einen angemeldeten Client sagt es auch, als wer er angemeldet ist und ob er Änderungen vornehmen darf. Es ist ein guter erster Aufruf, damit ein Agent sich orientiert, und da Tools zum Anlegen `projectId` aus den Zugangsdaten nehmen, muss der Agent nie eine Projekt-ID übergeben.
 
+Das Tool **`get_data_table_freshness`** sagt einem Agenten, ob eine Tabelle, die Data Observability überwacht, aktuell ist, bevor er ihre Daten verwendet: aktuell oder verspätet gemessen am eigenen Rhythmus der Tabelle, wann sie sich zuletzt geändert hat, ihre offenen Alerts und wie der letzte Lauf jeder Pipeline verlief, die sie schreibt. Übergeben Sie `table` als `schema.table`, nur den Namen der Tabelle oder ihre ID. Es ändert nichts.
+
 ## Telemetrie abfragen
 
 Logs, Metriken, Traces (Spans), Ausnahmen, Monitor-Logs und die anderen Arten von Telemetrie gibt es als nur lesende Tools `list_` und `count_` (`list_logs`, `list_metrics`, `list_spans`, `list_exception_instances`, `list_monitor_logs` und ihre `count_`-Gegenstücke). Telemetrie kommt über OpenTelemetry herein, daher gibt es keine Tools zum Anlegen.
@@ -484,7 +486,7 @@ Der MCP-Server ist zustandslos: Er vergibt und verfolgt keine Sitzungs-IDs, soda
 | Labels | Label |
 | Sicherheit | Security Case, Security Case Evidence, Security Case Note, Security Case Priority, Security Case Status, Security Case Task, Security Detection, Security Playbook |
 | Datensicherheit | Data Store, Data Store Finding, Data Store Access Entry, Data Security Identity, Data Flow, Data Security Issue, Data Security Scan, Data Security Setting, Check Setting, Custom Data Type, Residency Rule |
-| Datenbeobachtbarkeit | Data Asset |
+| Datenbeobachtbarkeit | Data Asset, Data Check |
 
 | Bereich | Telemetrie, nur mit Tools zum Auflisten und Zählen |
 | --- | --- |

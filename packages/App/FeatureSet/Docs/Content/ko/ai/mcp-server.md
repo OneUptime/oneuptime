@@ -41,7 +41,7 @@ flowchart TB
 - **예정된 유지 관리**: 유지 관리 이벤트를 만들고 관리합니다.
 - **텔레메트리**: 로그, 메트릭, 트레이스, 예외, 모니터 로그, 보안 이벤트 등을 조회합니다(읽기 전용).
 
-44가지 레코드에 대한 생성, 조회, 목록, 업데이트, 삭제, 개수 도구와 9가지 텔레메트리에 대한 목록과 개수 도구, 그리고 인시던트 대응을 위한 도구가 있습니다. 읽기 전용 도구에는 `readOnlyHint` 가, 무언가를 바꾸는 모든 도구에는 `destructiveHint` 가, 공개 상태 페이지 도구에만 `openWorldHint` 가 붙어 있어 클라이언트는 읽기 전용 호출은 스스로 실행하고 무언가를 바꾸기 전에는 사용자에게 물어볼 수 있습니다. 실패한 도구 호출은 MCP 프로토콜 오류가 아니라 `statusCode`, 세부 정보, 제안이 담긴 도구 결과(`isError: true`)로 돌아오므로, 에이전트는 실패 내용을 읽고 스스로 바로잡을 수 있습니다.
+45가지 레코드에 대한 생성, 조회, 목록, 업데이트, 삭제, 개수 도구와 9가지 텔레메트리에 대한 목록과 개수 도구, 그리고 인시던트 대응을 위한 도구가 있습니다. 읽기 전용 도구에는 `readOnlyHint` 가, 무언가를 바꾸는 모든 도구에는 `destructiveHint` 가, 공개 상태 페이지 도구에만 `openWorldHint` 가 붙어 있어 클라이언트는 읽기 전용 호출은 스스로 실행하고 무언가를 바꾸기 전에는 사용자에게 물어볼 수 있습니다. 실패한 도구 호출은 MCP 프로토콜 오류가 아니라 `statusCode`, 세부 정보, 제안이 담긴 도구 결과(`isError: true`)로 돌아오므로, 에이전트는 실패 내용을 읽고 스스로 바로잡을 수 있습니다.
 
 ## 시작하기 전에
 
@@ -337,6 +337,8 @@ curl https://oneuptime.com/mcp/tools
 
 **`oneuptime_whoami`** 도구는 자격 증명이 속한 프로젝트(ID와 이름)를 반환합니다. 로그인한 클라이언트라면 누구로 로그인했는지, 변경할 수 있는지도 알려 줍니다. 에이전트가 상황을 파악하기에 좋은 첫 호출이며, 생성 도구는 자격 증명에서 `projectId` 를 가져오므로 에이전트가 프로젝트 ID를 넘길 필요가 없습니다.
 
+**`get_data_table_freshness`** 도구는 에이전트가 데이터를 사용하기 전에 Data Observability가 감시하는 테이블이 최신인지 알려 줍니다. 테이블 자체의 주기에 비춰 최신인지 지연되었는지, 마지막으로 변경된 시각, 열린 알림, 그리고 그 테이블에 쓰는 각 파이프라인의 최근 실행 결과입니다. `table`에는 `schema.table`, 테이블 이름만, 또는 ID를 전달합니다. 아무것도 변경하지 않습니다.
+
 ## 텔레메트리 조회하기
 
 로그, 메트릭, 트레이스(스팬), 예외, 모니터 로그 등의 텔레메트리는 읽기 전용 `list_` 및 `count_` 도구로 제공됩니다(`list_logs`, `list_metrics`, `list_spans`, `list_exception_instances`, `list_monitor_logs` 와 각각의 `count_` 짝). 텔레메트리는 OpenTelemetry로 들어오므로 생성 도구는 없습니다.
@@ -484,7 +486,7 @@ MCP 서버는 상태를 저장하지 않습니다. 세션 ID를 발급하지도 
 | 레이블 | Label |
 | 보안 | Security Case, Security Case Evidence, Security Case Note, Security Case Priority, Security Case Status, Security Case Task, Security Detection, Security Playbook |
 | 데이터 보안 | Data Store, Data Store Finding, Data Store Access Entry, Data Security Identity, Data Flow, Data Security Issue, Data Security Scan, Data Security Setting, Check Setting, Custom Data Type, Residency Rule |
-| 데이터 옵저버빌리티 | Data Asset |
+| 데이터 옵저버빌리티 | Data Asset, Data Check |
 
 | 분야 | 목록과 개수 도구만 있는 텔레메트리 |
 | --- | --- |

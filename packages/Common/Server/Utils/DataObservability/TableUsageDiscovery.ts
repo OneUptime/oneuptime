@@ -11,7 +11,10 @@ import {
   DataAssetAccessKind,
   MAX_OPERATIONS_PER_USAGE,
 } from "../../../Types/DataObservability/DataAssetUsage";
-import { DataStoreKind } from "../../../Types/DataSecurity/DataStoreKind";
+import {
+  DataAssetReadTracking,
+  noteObservedRead,
+} from "../../../Types/DataObservability/DataAssetReads";
 import { JSONObject } from "../../../Types/JSON";
 import ObjectID from "../../../Types/ObjectID";
 import ServiceType from "../../../Types/Telemetry/ServiceType";
@@ -30,6 +33,7 @@ import {
 import { getClickhouseDatabaseName } from "../AnalyticsDatabase/ClusterConfig";
 import logger from "../Logger";
 import { readTableHealthTarget, TableHealthTarget } from "./TableHealthTarget";
+import { DATA_OBSERVABILITY_KINDS } from "./DataObservabilityEngines";
 import {
   matchSpanTableUsage,
   SpanTableUsageRow,
@@ -166,7 +170,7 @@ export function buildTableUsageStatement(data: {
   since: Date;
   until: Date;
 }): Statement {
-  const statement: Statement = SQL`SELECT serviceId, dbSystem, dbNamespace, serverAddress, collection, operation, count() AS callCount, countIf(statusCode = 2) AS errorCount, max(startTime) AS lastSeenAt FROM (SELECT primaryEntityId AS serviceId, lower(multiIf(attributes['db.system.name'] != '', attributes['db.system.name'], attributes['db.system'])) AS dbSystem, multiIf(attributes['db.namespace'] != '', attributes['db.namespace'], attributes['db.name']) AS dbNamespace, multiIf(attributes['server.address'] != '', attributes['server.address'], attributes['net.peer.name']) AS serverAddress, multiIf(attributes['db.collection.name'] != '', attributes['db.collection.name'], attributes['db.sql.table'] != '', attributes['db.sql.table'], match(name, ${{
+  const statement: Statement = SQL`SELECT serviceId, dbSystem, dbNamespace, serverAddress, collection, operation, count() AS callCount, countIf(statusCode = 2) AS errorCount, max(startTime) AS lastSeenAt FROM (SELECT primaryEntityId AS serviceId, lower(multiIf(attributes['db.system.name'] != '', attributes['db.system.name'], attributes['db.system'])) AS dbSystem, multiIf(attributes['db.namespace'] != '', attributes['db.namespace'], attributes['db.name']) AS dbNamespace, multiIf(attributes['server.address'] != '', attributes['server.address'], attributes['net.peer.name']) AS serverAddress, multiIf(attributes['db.collection.name'] != '', attributes['db.collection.name'], attributes['db.sql.table'] != '', attributes['db.sql.table'], attributes['db.mongodb.collection'] != '', attributes['db.mongodb.collection'], match(name, ${{
     type: TableColumnType.Text,
     value: NAMED_STATEMENT_PATTERN,
   }}), splitByChar(' ', name)[2], '') AS collection, multiIf(attributes['db.operation.name'] != '', attributes['db.operation.name'], attributes['db.operation'] != '', attributes['db.operation'], splitByChar(' ', name)[1]) AS operation, statusCode, startTime FROM `;
@@ -273,11 +277,7 @@ export default class TableUsageDiscovery {
         projectId,
         isArchived: false,
         isTableHealthEnabled: true,
-        kind: new Includes([
-          DataStoreKind.PostgreSql,
-          DataStoreKind.MySql,
-          DataStoreKind.SqlServer,
-        ]),
+        kind: new Includes([...DATA_OBSERVABILITY_KINDS]),
       },
       select: { _id: true, kind: true, tableHealthTarget: true },
       skip: 0,
@@ -471,6 +471,8 @@ export default class TableUsageDiscovery {
       }
     }
 
+    await this.noteReads(data.projectId, data.drafts);
+
     await DataAssetUsageService.deleteBy({
       query: {
         projectId: data.projectId,
@@ -482,5 +484,68 @@ export default class TableUsageDiscovery {
       skip: 0,
       props: { isRoot: true },
     });
+  }
+
+  /*
+   * A table a service was seen reading was read then: its last read moves
+   * up, so a table only spans read is never called unused (DataAssetReads).
+   */
+  private static async noteReads(
+    projectId: ObjectID,
+    drafts: Array<UsageDraft>,
+  ): Promise<void> {
+    const lastReads: Map<string, Date> = new Map();
+
+    for (const draft of drafts) {
+      if (draft.accessKind !== DataAssetAccessKind.Read) {
+        continue;
+      }
+
+      const known: Date | undefined = lastReads.get(draft.dataAssetId);
+
+      if (!known || draft.lastSeenAt > known) {
+        lastReads.set(draft.dataAssetId, draft.lastSeenAt);
+      }
+    }
+
+    const ids: Array<string> = Array.from(lastReads.keys());
+
+    for (let start: number = 0; start < ids.length; start += 500) {
+      const assets: Array<DataAsset> = await DataAssetService.findBy({
+        query: {
+          projectId,
+          _id: QueryHelper.any(ids.slice(start, start + 500)),
+        },
+        select: { _id: true, lastReadAt: true, unreadSince: true },
+        limit: 500,
+        skip: 0,
+        props: { isRoot: true },
+      });
+
+      for (const asset of assets) {
+        const tracking: DataAssetReadTracking = noteObservedRead(
+          {
+            readCount: null,
+            lastReadAt: asset.lastReadAt
+              ? OneUptimeDate.fromString(asset.lastReadAt)
+              : null,
+            unreadSince: asset.unreadSince
+              ? OneUptimeDate.fromString(asset.unreadSince)
+              : null,
+          },
+          lastReads.get(asset.id!.toString())!,
+        );
+
+        if (tracking.isChanged) {
+          await DataAssetService.updateColumnsByIdWithoutHooks({
+            id: asset.id!,
+            data: {
+              lastReadAt: tracking.state.lastReadAt,
+              unreadSince: tracking.state.unreadSince,
+            } as never,
+          });
+        }
+      }
+    }
   }
 }

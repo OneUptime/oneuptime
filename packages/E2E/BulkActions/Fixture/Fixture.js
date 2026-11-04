@@ -4,7 +4,10 @@
  * Enable and Disable on the Workflows and Monitors lists, and Unsubscribe on
  * a status page's Email Subscribers - and for the Admin Dashboard's
  * Enterprise Licenses list, its row Delete and its bulk Change Expiry Date
- * and Delete.
+ * and Delete. And for the runs that go through the shared bulk runner and
+ * its progress dialog (fu-bulk-actions): the Admin Dashboard's Users list's
+ * Require Two Factor Auth and Add to Project, and a status page's Add in
+ * Bulk.
  *
  * Only the ModelAPI/API data boundary and the synthetic user's permission
  * snapshot are replaced. The pages, their ModelTable (the bulk bar, the
@@ -19,18 +22,27 @@
  *   - page=licenses     the Admin Dashboard's Enterprise Licenses (served
  *                       under /admin/, with billing on, as OneUptime Cloud
  *                       runs it); a master admin is signed in
+ *   - page=users        the Admin Dashboard's Users list (under /admin/),
+ *                       whose Require Two Factor Auth posts to each user's
+ *                       set-two-factor-auth-required and whose Add to Project
+ *                       creates a team membership each
  *   - role=viewer       a member who may read the lists but not change them
  *                       (Viewer); the default is a project owner
  *   - refuse=<ids>      records (comma-separated ids) whose update or delete
  *                       the server refuses, as it refuses one the member's
  *                       label-scoped permission does not cover
- *   - lang=de|ja        the Dashboard's (or the Admin Dashboard's) German or
- *                       Japanese words
+ *   - lang=de|ja|fa     the Dashboard's (or the Admin Dashboard's) German,
+ *                       Japanese or Persian words (Persian right to left)
  *   - theme=dark        dark mode (read by server.js's page)
+ *   - hold=1            every create and two-factor post waits until the
+ *                       spec lets it through (window.__fixture.releaseAll),
+ *                       so a run can be seen, and stopped, while it goes on
  *
- * Every update is recorded on `window.__fixture.updates` and every delete
- * on `window.__fixture.deletes`, so the specs check what the page sent as
- * well as what it drew.
+ * Every update is recorded on `window.__fixture.updates`, every delete on
+ * `window.__fixture.deletes`, every create on `window.__fixture.creates`
+ * and every two-factor post on `window.__fixture.posts` - with the most of
+ * each in flight at once (`window.__fixture.highWater`) - so the specs
+ * check what the page sent as well as what it drew.
  */
 import "Common/UI/Styles/Theme.css";
 import React from "react";
@@ -42,12 +54,14 @@ import {
   useParams,
 } from "react-router-dom";
 import i18next from "i18next";
+import { followLanguageForDates } from "Common/UI/Utils/DateDisplayLanguage";
 import { initReactI18next } from "react-i18next";
 import WorkflowsPage from "../../../App/FeatureSet/Dashboard/src/Pages/Workflow/Workflows";
 import MonitorsPage from "../../../App/FeatureSet/Dashboard/src/Pages/Monitor/Monitors";
 import EmailSubscribersPage from "../../../App/FeatureSet/Dashboard/src/Pages/StatusPages/View/EmailSubscribers";
 // The Admin Dashboard's shell, which renders the Enterprise screen where it is.
 import EnterpriseLicensesPage from "../../../App/FeatureSet/AdminDashboard/src/Pages/EnterpriseLicenses/Index";
+import AdminUsersPage from "../../../App/FeatureSet/AdminDashboard/src/Pages/Users/Index";
 import Workflow from "Common/Models/DatabaseModels/Workflow";
 import Monitor from "Common/Models/DatabaseModels/Monitor";
 import MonitorStatus from "Common/Models/DatabaseModels/MonitorStatus";
@@ -55,6 +69,9 @@ import StatusPage from "Common/Models/DatabaseModels/StatusPage";
 import StatusPageSubscriber from "Common/Models/DatabaseModels/StatusPageSubscriber";
 import EnterpriseLicense from "Common/Models/DatabaseModels/EnterpriseLicense";
 import GlobalConfig from "Common/Models/DatabaseModels/GlobalConfig";
+import UserModel from "Common/Models/DatabaseModels/User";
+import Project from "Common/Models/DatabaseModels/Project";
+import Team from "Common/Models/DatabaseModels/Team";
 import MonitorType from "Common/Types/Monitor/MonitorType";
 import Color from "Common/Types/Color";
 import Email from "Common/Types/Email";
@@ -73,16 +90,19 @@ import User from "Common/UI/Utils/User";
 import PermissionUtil from "Common/UI/Utils/Permission";
 import DE from "../../../App/FeatureSet/Dashboard/src/Locales/de.json";
 import JA from "../../../App/FeatureSet/Dashboard/src/Locales/ja.json";
+import FA from "../../../App/FeatureSet/Dashboard/src/Locales/fa.json";
 import ADMIN_EN from "../../../App/FeatureSet/AdminDashboard/src/Locales/en.json";
 import ADMIN_DE from "../../../App/FeatureSet/AdminDashboard/src/Locales/de.json";
 import ADMIN_JA from "../../../App/FeatureSet/AdminDashboard/src/Locales/ja.json";
+import ADMIN_FA from "../../../App/FeatureSet/AdminDashboard/src/Locales/fa.json";
 
 const PROJECT_ID = "10000000-0000-4000-8000-000000000001";
 const USER_ID = "80000000-0000-4000-8000-000000000001";
 const STATUS_PAGE_ID = "30000000-0000-4000-8000-000000000001";
 const params = new URLSearchParams(window.location.search);
 const page = params.get("page") || "workflows";
-const isAdmin = page === "licenses";
+const isAdmin = page === "licenses" || page === "users";
+const isHeld = params.get("hold") === "1";
 const role = params.get("role") || "owner";
 const refused = (params.get("refuse") || "")
   .split(",")
@@ -90,7 +110,7 @@ const refused = (params.get("refuse") || "")
     return id.trim().toLowerCase();
   })
   .filter(Boolean);
-const language = ["de", "ja"].includes(params.get("lang"))
+const language = ["de", "ja", "fa"].includes(params.get("lang"))
   ? params.get("lang")
   : "en";
 
@@ -107,6 +127,16 @@ const REFUSALS = {
     "You do not have permission to update this Status Page Subscriber.",
   EnterpriseLicense: "Enterprise License not found.",
 };
+
+/*
+ * The server's words when it refuses a create or a two-factor post: a
+ * subscriber already on the page, a user already in the team, a user gone.
+ */
+const CREATE_REFUSALS = {
+  StatusPageSubscriber: "You are already subscribed to this status page.",
+  TeamMember: "This user has already been invited to this team.",
+};
+const TWO_FACTOR_REFUSAL = "User not found.";
 
 function workflow(id, name, description, isEnabled) {
   const record = new Workflow();
@@ -286,16 +316,115 @@ const globalConfig = new GlobalConfig();
 globalConfig._id = ObjectID.getZeroObjectID().toString();
 globalConfig.enterpriseLicenseExpiryReminderDays = 30;
 
+function user(id, name, email) {
+  const record = new UserModel();
+  record._id = id;
+  record.name = name;
+  record.email = new Email(email);
+  record.isEmailVerified = true;
+  record.lastActive = new Date("2026-11-01T09:00:00.000Z");
+  record.createdAt = new Date("2026-06-01T09:00:00.000Z");
+  return record;
+}
+
+// An installation's people: enough for a run to be watched as it goes.
+const users = [
+  ["Ada Lovelace", "ada@example.com"],
+  ["Grace Hopper", "grace@example.com"],
+  ["Alan Turing", "alan@example.com"],
+  ["Katherine Johnson", "katherine@example.com"],
+  ["Edsger Dijkstra", "edsger@example.com"],
+  ["Barbara Liskov", "barbara@example.com"],
+  ["Donald Knuth", "donald@example.com"],
+  ["Margaret Hamilton", "margaret@example.com"],
+].map(([name, email], index) => {
+  return user(
+    `81000000-0000-4000-8000-${String(index + 1).padStart(12, "0")}`,
+    name,
+    email,
+  );
+});
+
+function project(id, name) {
+  const record = new Project();
+  record._id = id;
+  record.name = name;
+  return record;
+}
+
+const projects = [
+  project("90000000-0000-4000-8000-000000000001", "Payments"),
+  project("90000000-0000-4000-8000-000000000002", "Search"),
+];
+
+function team(id, projectId, name) {
+  const record = new Team();
+  record._id = id;
+  record.projectId = new ObjectID(projectId);
+  record.name = name;
+  return record;
+}
+
+const teams = [
+  team("91000000-0000-4000-8000-000000000001", projects[0]._id, "Members"),
+  team("91000000-0000-4000-8000-000000000002", projects[0]._id, "Owners"),
+  team("91000000-0000-4000-8000-000000000003", projects[1]._id, "Members"),
+];
+
 function serialize(value) {
   return JSON.parse(JSON.stringify(value || {}));
+}
+
+/*
+ * A request held (?hold=1) waits on its own gate until the spec lets every
+ * held request through: window.__fixture.releaseAll().
+ */
+const heldGates = [];
+
+function waitIfHeld() {
+  if (!isHeld) {
+    return Promise.resolve();
+  }
+
+  return new Promise((resolve) => {
+    heldGates.push(resolve);
+  });
 }
 
 window.__fixture = {
   listRequests: [],
   updates: [],
   deletes: [],
+  creates: [],
+  posts: [],
   refused: [],
+  inFlight: { creates: 0, posts: 0 },
+  highWater: { creates: 0, posts: 0 },
+  held: () => {
+    return heldGates.length;
+  },
+  releaseAll: () => {
+    heldGates.splice(0).forEach((resolve) => {
+      resolve();
+    });
+  },
 };
+
+// What a request is doing while it runs: how many of its kind at once.
+async function inFlight(kind, work) {
+  window.__fixture.inFlight[kind] += 1;
+  window.__fixture.highWater[kind] = Math.max(
+    window.__fixture.highWater[kind],
+    window.__fixture.inFlight[kind],
+  );
+
+  try {
+    await waitIfHeld();
+    return await work();
+  } finally {
+    window.__fixture.inFlight[kind] -= 1;
+  }
+}
 
 function idOf(value) {
   return value ? value.toString().toLowerCase() : "";
@@ -378,6 +507,10 @@ const RECORDS = {
   StatusPageSubscriber: subscribers,
   EnterpriseLicense: licenses,
   GlobalConfig: [globalConfig],
+  User: users,
+  Project: projects,
+  Team: teams,
+  TeamMember: [],
 };
 
 if (isAdmin) {
@@ -548,11 +681,95 @@ ModelAPI.deleteItem = async (options) => {
   records.splice(index, 1);
 };
 
+/*
+ * One create, as Add to Project and Add in Bulk send them: recorded, and
+ * kept - unless the server refuses it (?refuse= holds the value it is
+ * refused for: a subscriber's address or URL, a membership's user id).
+ */
+// A model's columns as text: an address, a URL and an id as written.
+function plain(model) {
+  const columns = {};
+
+  for (const [key, value] of Object.entries(model || {})) {
+    if (value === undefined || value === null || key.startsWith("_")) {
+      continue;
+    }
+
+    if (typeof value === "function" || Array.isArray(value)) {
+      continue;
+    }
+
+    const text = typeof value === "object" ? value.toString() : value;
+
+    // A model's own bookkeeping, not a column it writes.
+    if (text === "[object Object]") {
+      continue;
+    }
+
+    columns[key] = text;
+  }
+
+  return columns;
+}
+
+ModelAPI.create = async (options) => {
+  const tableName = new options.modelType().tableName;
+  const data = plain(options.model);
+
+  return await inFlight("creates", async () => {
+    window.__fixture.creates.push({ tableName, data });
+
+    const refusedFor = [
+      data.subscriberEmail,
+      data.subscriberWebhook,
+      data.userId,
+    ]
+      .filter(Boolean)
+      .map(idOf);
+
+    if (
+      refusedFor.some((value) => {
+        return refused.includes(value);
+      })
+    ) {
+      window.__fixture.refused.push(refusedFor[0]);
+      throw new Error(CREATE_REFUSALS[tableName] || "Not allowed.");
+    }
+
+    const record = options.model;
+    record._id = ObjectID.generate().toString();
+    (RECORDS[tableName] || (RECORDS[tableName] = [])).push(record);
+
+    return { data: record };
+  });
+};
+
 API.get = async () => {
   return { data: { data: [], count: 0 } };
 };
-API.post = async () => {
-  return { data: { data: [], count: 0 } };
+
+const TWO_FACTOR_ROUTE =
+  /\/user\/([0-9a-f-]{36})\/set-two-factor-auth-required$/;
+
+API.post = async (options) => {
+  const route = String(options.url ? options.url.toString() : "");
+  const match = route.match(TWO_FACTOR_ROUTE);
+
+  if (!match) {
+    return { data: { data: [], count: 0 } };
+  }
+
+  return await inFlight("posts", async () => {
+    const userId = match[1].toLowerCase();
+    window.__fixture.posts.push({ userId, data: serialize(options.data) });
+
+    if (refused.includes(userId)) {
+      window.__fixture.refused.push(userId);
+      throw new Error(TWO_FACTOR_REFUSAL);
+    }
+
+    return { data: {} };
+  });
 };
 
 /*
@@ -571,6 +788,7 @@ await i18next.use(initReactI18next).init(
           en: { translation: ADMIN_EN },
           de: { translation: ADMIN_DE },
           ja: { translation: ADMIN_JA },
+          fa: { translation: ADMIN_FA },
         },
         interpolation: { escapeValue: false },
       }
@@ -581,13 +799,18 @@ await i18next.use(initReactI18next).init(
           en: { translation: {} },
           de: { translation: DE },
           ja: { translation: JA },
+          fa: { translation: FA },
         },
         interpolation: { escapeValue: false },
         keySeparator: false,
         nsSeparator: false,
       },
 );
+// Dates in the reader's language ("vor 2 Stunden"), as Utils/i18n.ts sets them.
+followLanguageForDates(i18next);
 document.documentElement.lang = language;
+// Persian reads right to left, as the Dashboard sets it for that language.
+document.documentElement.dir = language === "fa" ? "rtl" : "ltr";
 
 const PAGES = {
   workflows: { component: WorkflowsPage, trail: ["Workflows"] },
@@ -600,7 +823,19 @@ const PAGES = {
     component: EnterpriseLicensesPage,
     trail: ["Admin Dashboard", "Settings", "Enterprise Licenses"],
   },
+  users: {
+    component: AdminUsersPage,
+    trail: ["Admin Dashboard", "Users"],
+  },
 };
+
+/*
+ * The project the page is working in, for the pages that write in it (Add
+ * in Bulk stamps every subscriber with it).
+ */
+const currentProject = new Project();
+currentProject._id = PROJECT_ID;
+currentProject.name = "Acme";
 
 function Fixture() {
   Navigation.setNavigateHook(useNavigate());
@@ -621,7 +856,7 @@ function Fixture() {
       </div>
       <Page
         pageRoute={Navigation.getCurrentRoute()}
-        currentProject={null}
+        currentProject={page === "subscribers" ? currentProject : null}
         hasPaymentMethod={true}
       />
     </main>

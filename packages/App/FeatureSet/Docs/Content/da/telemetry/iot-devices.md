@@ -289,7 +289,7 @@ OneUptime genkender disse `iot_*`-metriknavne. Send kun dem, der giver mening fo
 ## Kontrollér, at flåden vises
 
 1. Kontrollér, at enheden, gatewayens collector eller MQTT-klienten sender uden fejl: kig efter eksportfejl og HTTP-svar `401` eller `422` i dens logs eller en forbindelse, der afvises med returkode 4.
-2. Åbn **Produkter → Infrastruktur → IoT → All Fleets**. Flåden vises under sit navn inden for et minuts tid efter dens første målinger.
+2. Åbn **Produkter → Infrastruktur → IoT → Alle flåder**. Flåden vises under sit navn inden for et minuts tid efter dens første målinger.
 3. Åbn flådens side **Enheder**. Hver enhed, du har sendt, bør være opført med sit seneste batteri, signal, temperatur, CPU, hukommelse og status oppe eller nede.
 4. Åbn flådens side **Metrikker** for at vise en hvilken som helst af `iot_*`-serierne i en graf.
 

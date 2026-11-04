@@ -34,7 +34,7 @@ flowchart TB
 ## Før du begynner
 
 - **Få enhetene dine til å sende data.** [Veiledningen for IoT-enheter](/docs/telemetry/iot-devices) viser hvordan du sender metrikker med en OpenTelemetry-SDK eller -Collector, eller over MQTT.
-- **Sjekk at flåten er registrert.** Den vises under **Produkter → Infrastruktur → IoT → All Fleets**, oppkalt etter `iot.fleet.name` som enhetene sender.
+- **Sjekk at flåten er registrert.** Den vises under **Produkter → Infrastruktur → IoT → Alle flåter**, oppkalt etter `iot.fleet.name` som enhetene sender.
 - **Registrer enhetene du forventer**, under flåtens **Enhetsregister**, for å få beskjed når en blir taus: se [Offline-deteksjon](#offline-deteksjon).
 
 ## Opprett en IoT-enhetsmonitor
@@ -50,7 +50,7 @@ Klikk på **Flere monitortyper** under **Monitortype**, og velg **IoT-enhet** un
 
 ### Velg flåten
 
-Velg flåten i **IoT Fleet** under **IoT Monitor Configuration**. Hver flåte som har sendt data, står i listen. Når du har valgt, viser en linje under feltet om det kommer data. **Legg til IoT-flåte** åpner oppsettstrinn med nøklene dine fylt inn, som venter på de første dataene.
+Velg flåten i **IoT-flåte** under **IoT Monitor Configuration**. Hver flåte som har sendt data, står i listen. Når du har valgt, viser en linje under feltet om det kommer data. **Legg til IoT-flåte** åpner oppsettstrinn med nøklene dine fylt inn, som venter på de første dataene.
 
 ### Velg hva som skal overvåkes
 
@@ -76,7 +76,7 @@ Klikk på **Opprett monitor**. OneUptime åpner monitorens side og evaluerer den
 
 | Felt | Fane | Hva det gjør |
 | --- | --- | --- |
-| **IoT Fleet** | Alle | Påkrevd. Begrenser hver spørring til `resource.iot.fleet.name`. |
+| **IoT-flåte** | Alle | Påkrevd. Begrenser hver spørring til `resource.iot.fleet.name`. |
 | **Device ID** | Custom Metric, Avansert | Valgfritt. Én enhet, via `device.id`, som `sensor-001`. |
 | **Enhetstype** | Custom Metric, Avansert | Valgfritt. Enhetene som rapporterer denne `iot.device.type`, som `sensor` eller `gateway`. |
 | **IoT Metric** | Custom Metric | Én metrikk fra [katalogen](#innsamlede-metrikker). |

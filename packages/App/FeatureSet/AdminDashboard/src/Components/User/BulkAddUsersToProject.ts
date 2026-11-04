@@ -2,37 +2,18 @@ import AdminModelAPI from "../../Utils/ModelAPI";
 import ObjectID from "Common/Types/ObjectID";
 import TeamMember from "Common/Models/DatabaseModels/TeamMember";
 import User from "Common/Models/DatabaseModels/User";
-import API from "Common/UI/Utils/API/API";
-
-export interface BulkAddUsersToProjectFailure {
-  user: User;
-  failedMessage: string;
-}
-
-/*
- * The running tally, emitted after every user so the bulk progress modal can
- * count down. `inProgressUsers` are the ones not attempted yet, which is what
- * the shared progress bar subtracts from.
- */
-export interface BulkAddUsersToProjectProgress {
-  totalUsers: Array<User>;
-  inProgressUsers: Array<User>;
-  succeededUsers: Array<User>;
-  failedUsers: Array<BulkAddUsersToProjectFailure>;
-}
-
-export type BulkAddUsersToProjectResult = BulkAddUsersToProjectProgress;
-
-export type OnBulkAddUsersToProjectProgress = (
-  progress: BulkAddUsersToProjectProgress,
-) => void;
+import { BulkActionOnClickProps } from "Common/UI/Components/BulkUpdate/BulkUpdateForm";
+import {
+  BulkActionRunResult,
+  runBulkAction,
+} from "Common/UI/Components/BulkUpdate/BulkActionRunner";
 
 export type CreateTeamMemberFunction = (
   teamMember: TeamMember,
 ) => Promise<void>;
 
-export interface BulkAddUsersToProjectOptions {
-  users: Array<User>;
+export interface AddUserToProjectOptions {
+  user: User;
   projectId: ObjectID;
   teamId: ObjectID;
   /*
@@ -41,7 +22,18 @@ export interface BulkAddUsersToProjectOptions {
    * each user is invited and accepts for themselves.
    */
   hasAcceptedInvitation?: boolean | undefined;
-  onProgress?: OnBulkAddUsersToProjectProgress | undefined;
+  createTeamMember?: CreateTeamMemberFunction | undefined;
+}
+
+export interface BulkAddUsersToProjectOptions {
+  /*
+   * The bulk action's click: the selected users, and the shared progress
+   * dialog the run reports to - its counts, the time left and Stop.
+   */
+  actionProps: BulkActionOnClickProps<User>;
+  projectId: ObjectID;
+  teamId: ObjectID;
+  hasAcceptedInvitation?: boolean | undefined;
   createTeamMember?: CreateTeamMemberFunction | undefined;
 }
 
@@ -54,37 +46,19 @@ const createTeamMemberWithModelAPI: CreateTeamMemberFunction = async (
   });
 };
 
-/**
- * Creates one team membership per selected user, in the order they were
- * selected.
- *
- * Sequential on purpose. Each create runs the project's seat accounting
- * (TeamMemberService.onBeforeCreate reads paymentProviderSubscriptionSeats
- * against seatLimit), so concurrent creates would race that check and could
- * take a project past its seat limit.
- *
- * One user failing does not stop the rest: the whole point of the bulk action
- * is that a project a few of the selected users are already on should not
- * block adding the others. Failures are collected per user and reported next
- * to the name they belong to.
+/*
+ * The selection, each user once, in the order they were selected. A
+ * selection that somehow carries a duplicate would otherwise report the
+ * second attempt as an "already invited" failure the admin did nothing to
+ * cause.
  */
-export const bulkAddUsersToProject: (
-  options: BulkAddUsersToProjectOptions,
-) => Promise<BulkAddUsersToProjectResult> = async (
-  options: BulkAddUsersToProjectOptions,
-): Promise<BulkAddUsersToProjectResult> => {
-  const createTeamMember: CreateTeamMemberFunction =
-    options.createTeamMember || createTeamMemberWithModelAPI;
-
-  /*
-   * The same user can only be counted once. A selection that somehow carries a
-   * duplicate would otherwise report the second attempt as an "already invited"
-   * failure that the admin did nothing to cause.
-   */
-  const users: Array<User> = [];
+export const getUsersToAdd: (users: Array<User>) => Array<User> = (
+  users: Array<User>,
+): Array<User> => {
+  const usersToAdd: Array<User> = [];
   const seenUserIds: Set<string> = new Set<string>();
 
-  for (const user of options.users) {
+  for (const user of users) {
     const userId: string | undefined = user.id?.toString();
 
     if (userId && seenUserIds.has(userId)) {
@@ -95,69 +69,74 @@ export const bulkAddUsersToProject: (
       seenUserIds.add(userId);
     }
 
-    users.push(user);
+    usersToAdd.push(user);
   }
 
-  const progress: BulkAddUsersToProjectProgress = {
-    totalUsers: users,
-    inProgressUsers: [...users],
-    succeededUsers: [],
-    failedUsers: [],
-  };
+  return usersToAdd;
+};
 
-  const emitProgress: () => void = (): void => {
-    /*
-     * Every array is copied. The receiver holds these across renders, and the
-     * loop keeps mutating its own, so handing out a live reference would let
-     * an earlier report change under a caller that had already read it.
-     */
-    options.onProgress?.({
-      totalUsers: [...progress.totalUsers],
-      inProgressUsers: [...progress.inProgressUsers],
-      succeededUsers: [...progress.succeededUsers],
-      failedUsers: [...progress.failedUsers],
-    });
-  };
+// One user's membership of the picked team. Throws when it is not created.
+export const addUserToProject: (
+  options: AddUserToProjectOptions,
+) => Promise<void> = async (
+  options: AddUserToProjectOptions,
+): Promise<void> => {
+  if (!options.user.id) {
+    throw new Error("User ID not found.");
+  }
 
-  for (const user of users) {
-    progress.inProgressUsers.shift();
+  const teamMember: TeamMember = new TeamMember();
+  teamMember.userId = options.user.id;
+  teamMember.teamId = options.teamId;
 
-    try {
-      if (!user.id) {
-        throw new Error("User ID not found.");
-      }
+  /*
+   * projectId has to be set explicitly. A master admin sends no tenant
+   * header, so nothing else on the way to the server can fill in the
+   * project column - same reason the single-user form sets it by hand.
+   */
+  teamMember.projectId = options.projectId;
+  teamMember.hasAcceptedInvitation = Boolean(options.hasAcceptedInvitation);
 
-      const teamMember: TeamMember = new TeamMember();
-      teamMember.userId = user.id;
-      teamMember.teamId = options.teamId;
+  await (options.createTeamMember || createTeamMemberWithModelAPI)(teamMember);
+};
 
-      /*
-       * projectId has to be set explicitly. A master admin sends no tenant
-       * header, so nothing else on the way to the server can fill in the
-       * project column - same reason the single-user form sets it by hand.
-       */
-      teamMember.projectId = options.projectId;
-      teamMember.hasAcceptedInvitation = Boolean(options.hasAcceptedInvitation);
-
-      await createTeamMember(teamMember);
-
-      progress.succeededUsers.push(user);
-    } catch (err) {
-      progress.failedUsers.push({
+/**
+ * Creates one team membership per selected user, in the order they were
+ * selected, through the shared bulk runner (runBulkAction): the progress
+ * dialog counts the users down, says how long is left, and Stop starts no
+ * more of them.
+ *
+ * One user at a time, on purpose. Each create runs the project's seat
+ * accounting (TeamMemberService.onBeforeCreate reads
+ * paymentProviderSubscriptionSeats against seatLimit), so creates at once
+ * would race that check and could take a project past its seat limit.
+ *
+ * One user failing does not stop the rest: the whole point of the bulk
+ * action is that a project a few of the selected users are already on should
+ * not block adding the others. The runner reports each failure next to the
+ * name it belongs to.
+ */
+export const bulkAddUsersToProject: (
+  options: BulkAddUsersToProjectOptions,
+) => Promise<BulkActionRunResult<User>> = async (
+  options: BulkAddUsersToProjectOptions,
+): Promise<BulkActionRunResult<User>> => {
+  return await runBulkAction<User>({
+    actionProps: {
+      ...options.actionProps,
+      items: getUsersToAdd(options.actionProps.items),
+    },
+    concurrency: 1,
+    step: async (user: User): Promise<void> => {
+      await addUserToProject({
         user: user,
-        failedMessage: API.getFriendlyMessage(err),
+        projectId: options.projectId,
+        teamId: options.teamId,
+        hasAcceptedInvitation: options.hasAcceptedInvitation,
+        createTeamMember: options.createTeamMember,
       });
-    }
-
-    emitProgress();
-  }
-
-  return {
-    totalUsers: [...progress.totalUsers],
-    inProgressUsers: [...progress.inProgressUsers],
-    succeededUsers: [...progress.succeededUsers],
-    failedUsers: [...progress.failedUsers],
-  };
+    },
+  });
 };
 
 export default bulkAddUsersToProject;

@@ -29,6 +29,19 @@
 
 {{> InfoBlock plainInfo=expiryNote}}
 
+{{!--
+  Where the sign-in came from (Partials/RequestOriginFields.hbs): the
+  browser the identity provider sent back to OneUptime.
+--}}
+{{#if requestedAt}}
+{{> InfoBlock info="Details of the sign-in:"}}
+
+{{> DetailBoxStart this }}
+{{> DetailBoxField title="Signed in at:" plainText=requestedAt }}
+{{> RequestOriginFields this }}
+{{> DetailBoxEnd this }}
+{{/if}}
+
 {{> InfoBlock plainInfo=(concat "If you weren't expecting this, you can safely ignore this email. This project's single sign-on cannot sign in to your " (brandName) " account unless the button above is used.")}}
 
 {{> SupportBlock this }}

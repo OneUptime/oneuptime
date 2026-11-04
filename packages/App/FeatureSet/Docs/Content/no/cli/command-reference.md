@@ -6,7 +6,7 @@ Hver kommando i CLI-en `oneuptime`, med argumentene, alternativene og standardve
 - [Globale alternativer](#globale-alternativer): Alternativene hver kommando tar.
 - [Innlogging og kontekster](#innlogging-og-kontekster): login og context-kommandoene.
 - [Ressurskommandoer](#ressurskommandoer): Operasjonene, feltene og handlingene til hver ressurs.
-- [Andre kommandoer](#andre-kommandoer): deploy, whoami, resources, version og help.
+- [Andre kommandoer](#andre-kommandoer): deploy, dbt upload, whoami, resources, version og help.
 :::
 
 ## Kommandoene
@@ -19,6 +19,8 @@ flowchart LR
     O --> R["incident, monitor<br/>og hver ressurs"]
     R --> R1["list<br/>get<br/>create<br/>update<br/>delete<br/>count<br/>fields"]
     R --> R2["acknowledge<br/>resolve<br/>start<br/>end<br/>add-note"]
+    O --> D["dbt"]
+    D --> D1["upload"]
     O --> U["deploy<br/>whoami<br/>resources<br/>version<br/>help"]
 ```
 
@@ -303,6 +305,22 @@ oneuptime deploy [--service <name>] [--service-version <version>] [--previous-ve
 | `--type <type>` | Nei | Typen endring, for eksempel `config-change` eller `rollback` | `deployment` |
 | `--time <time>` | Nei | Når det skjedde, for eksempel `2026-10-19T10:00:00Z` | Nå |
 | `--attribute <key=value...>` | Nei | Flere attributter, som `key=value`, ett eller flere | |
+| `--ingestion-key <key>` | Nei | En telemetri-inntaksnøkkel til prosjektet | `ONEUPTIME_TELEMETRY_INGESTION_KEY` |
+
+### `oneuptime dbt upload`
+
+Sender artefaktene til et dbt-prosjekt etter et bygg, fra CI eller en dbt Cloud-jobb, til Dataobserverbarhet. Modellene vises på tabellene de bygger, med opphavet sitt, testene vises ved siden av OneUptimes sjekker og kan utløse varsler, og hvert bygg er en kjøring av prosjektets pipeline. Den leser `manifest.json` og `run_results.json` fra målmappen til dbt, sender bare det Dataobserverbarhet leser av dem, og skriver med en telemetri-inntaksnøkkel, ikke en API-nøkkel. Siden Dokumentasjon under Dataobserverbarhet i dashbordet ditt viser den i en CI-jobb.
+
+```bash
+oneuptime dbt upload [--target-path <dir>] [--manifest <file>] [--run-results <file>] [--project <name>] [--ingestion-key <key>]
+```
+
+| Alternativ | Påkrevd | Hva det er | Standard |
+| --- | --- | --- | --- |
+| `--target-path <dir>` | Nei | Mappen dbt skrev artefaktene sine til | `target` |
+| `--manifest <file>` | Nei | Manifestet som sendes | `manifest.json` i målmappen |
+| `--run-results <file>` | Nei | Kjøringsresultatene som sendes | `run_results.json` i målmappen |
+| `--project <name>` | Nei | Navnet på dbt-prosjektet, bare nødvendig når ikke noe manifest sendes | Manifestets prosjekt |
 | `--ingestion-key <key>` | Nei | En telemetri-inntaksnøkkel til prosjektet | `ONEUPTIME_TELEMETRY_INGESTION_KEY` |
 
 ### `oneuptime whoami`

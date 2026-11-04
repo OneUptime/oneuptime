@@ -40,7 +40,7 @@ Em um critério, em **Ações**, ative **Quando os filtros corresponderem, decla
 
 ### Escrever o título
 
-Digite o título em **Título do Incidente** ou **Título do alerta**, por exemplo `{{monitorName}} is down`. **Learn about dynamic templates**, ao lado, abre **Dynamic Template Variables**: cada variável que o tipo deste monitor tem, com o que ela contém. Clique em uma variável para copiá-la.
+Digite o título em **Título do Incidente** ou **Título do alerta**, por exemplo `{{monitorName}} is down`. **Saiba mais sobre modelos dinâmicos**, ao lado, abre **Variáveis dinâmicas de modelo**: cada variável que o tipo deste monitor tem, com o que ela contém. Clique em uma variável para copiá-la.
 
 ### Escrever a descrição e as notas de remediação
 
@@ -445,6 +445,7 @@ Os nomes de série em `metrics` contêm pontos, como `oneuptime.monitor.database
 | `provider` | O tipo de página de status: Atlassian Statuspage, incident.io, RSS ou Atom. | `string` |
 | `componentGroup` | O grupo de componentes que o monitor observa, se observa um. | `string` |
 | `componentName` | Os componentes que o monitor observa, separados por vírgulas, se escolheu algum. | `string` |
+| `componentNames` | Os mesmos componentes como lista, para repetir uma linha para cada um com `{{#each componentNames}}`. | `Array<string>` |
 | `isOnline` | Se a página de status respondeu. | `boolean` |
 | `responseTimeInMs` | Quanto tempo a página de status levou para responder, em milissegundos. | `number` |
 | `failureCause` | Por que a verificação falhou, quando falhou. | `string` |
@@ -565,7 +566,7 @@ SNMP walk: {{responseTimeInMs}} ms
 ## Solução de problemas
 
 :::details O título mostra o marcador, com chaves e tudo
-O caminho não leva a um valor nesta verificação. Confira o nome da variável e as maiúsculas nas tabelas acima, ou abra **Learn about dynamic templates** no critério: ele lista as variáveis do tipo deste monitor. Um caminho dentro do corpo de uma resposta ou de uma requisição precisa corresponder ao corpo como foi enviado, e `[*]` e índices negativos como `[-1]` não leem nada: use `[0]` ou `[last]`.
+O caminho não leva a um valor nesta verificação. Confira o nome da variável e as maiúsculas nas tabelas acima, ou abra **Saiba mais sobre modelos dinâmicos** no critério: ele lista as variáveis do tipo deste monitor. Um caminho dentro do corpo de uma resposta ou de uma requisição precisa corresponder ao corpo como foi enviado, e `[*]` e índices negativos como `[-1]` não leem nada: use `[0]` ou `[last]`.
 :::
 
 :::details Um valor aparece como JSON

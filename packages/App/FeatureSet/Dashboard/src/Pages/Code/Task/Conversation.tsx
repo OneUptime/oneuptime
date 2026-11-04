@@ -25,6 +25,14 @@ import CodeTaskTurn, {
 } from "../../../Components/Code/CodeTaskTurn";
 import CodeHostMark from "../../../Components/Code/CodeHostMark";
 import {
+  getConversationGrowthKey,
+  getLastStepSequence,
+  getLiveTurn,
+  mergeTurnProgress,
+} from "../../../Components/Code/CodeTaskLive";
+import useCodeTaskLive from "../../../Components/Code/UseCodeTaskLive";
+import useFollowLatest from "../../../Components/Code/UseFollowLatest";
+import {
   CodePullRequestCopy,
   getPullRequestCopy,
   opensPullRequests,
@@ -39,17 +47,20 @@ import {
   CodeTaskContextInput,
   CodeTaskState,
   CodeTaskTurnJSON,
+  CodeTaskTurnProgressJSON,
 } from "Common/Types/AI/CodeTask";
 import IconProp from "Common/Types/Icon/IconProp";
 import Link from "Common/Types/Link";
 import ObjectID from "Common/Types/ObjectID";
 import ErrorMessage from "Common/UI/Components/ErrorMessage/ErrorMessage";
 import Icon from "Common/UI/Components/Icon/Icon";
+import IsolatedText from "Common/UI/Components/IsolatedText/IsolatedText";
 import LinkComponent from "Common/UI/Components/Link/Link";
 import PageLoader from "Common/UI/Components/Loader/PageLoader";
 import { usePageBreadcrumbLinks } from "Common/UI/Components/Page/Page";
 import API from "Common/UI/Utils/API/API";
 import Navigation from "Common/UI/Utils/Navigation";
+import ProjectUtil from "Common/UI/Utils/Project";
 import { Translator } from "Common/UI/Utils/TranslateTemplate";
 import useTranslator from "Common/UI/Utils/UseTranslator";
 import React, {
@@ -61,9 +72,6 @@ import React, {
   useRef,
   useState,
 } from "react";
-
-// While AI works, the conversation reads itself again this often.
-export const CODE_TASK_POLL_MS: number = 3000;
 
 /*
  * The branch a task works from: the one picked when it was asked (kept on
@@ -105,8 +113,11 @@ const STICKY_FADE_STYLE: React.CSSProperties = {
  * each one a new turn of the same task, on the same branch and pull
  * request.
  *
- * While AI works the page reads itself again every few seconds, and the box
- * waits (with Stop beside it); a person who may only read the repository
+ * While AI works the box waits (with Stop beside it), and each step shows as
+ * AI takes it: the server announces every change of the task's turns, and
+ * the page reads the working turn's new steps at once - the whole task once
+ * the turn is done (CodeTaskLive). A reader at the end of the page keeps
+ * the newest step in view. A person who may only read the repository
  * reads, and is told why they cannot reply.
  */
 const CodeTaskConversation: FunctionComponent<
@@ -123,12 +134,38 @@ const CodeTaskConversation: FunctionComponent<
   const [isAskingAgain, setIsAskingAgain] = useState<boolean>(false);
   const bottomRef: React.RefObject<HTMLDivElement> =
     useRef<HTMLDivElement>(null);
+  // The conversation's turns: its last item is the latest turn's reply.
+  const turnsRef: React.RefObject<HTMLOListElement> =
+    useRef<HTMLOListElement>(null);
+
+  // The task as shown, for a read that merges into it.
+  const dataRef: React.MutableRefObject<CodeTaskResponse | null> =
+    useRef<CodeTaskResponse | null>(null);
+  dataRef.current = data;
+
+  /*
+   * Each read is numbered as it starts: an answer that arrives after a
+   * later read started is not the page's any more (that read's is).
+   */
+  const readRef: React.MutableRefObject<number> = useRef<number>(0);
 
   const load: () => Promise<void> = useCallback(async (): Promise<void> => {
+    const read: number = ++readRef.current;
+
     try {
-      setData(await CodeApi.getTask(taskId));
+      const response: CodeTaskResponse = await CodeApi.getTask(taskId);
+
+      if (read !== readRef.current) {
+        return;
+      }
+
+      setData(response);
       setError(null);
     } catch (err) {
+      if (read !== readRef.current) {
+        return;
+      }
+
       setError(API.getFriendlyMessage(err));
     }
   }, [taskId]);
@@ -139,23 +176,77 @@ const CodeTaskConversation: FunctionComponent<
     });
   }, [load]);
 
+  /*
+   * What changed since the page last read: the working turn's new steps,
+   * or - once it is done, or on a turn the page does not show yet - the
+   * whole task again.
+   */
+  const refreshLive: () => Promise<void> =
+    useCallback(async (): Promise<void> => {
+      const current: CodeTaskResponse | null = dataRef.current;
+      const turn: CodeTaskTurnJSON | null = current
+        ? getLiveTurn({ recipe: current.task.recipe, turns: current.turns })
+        : null;
+
+      if (!current || !turn) {
+        await load();
+        return;
+      }
+
+      const read: number = ++readRef.current;
+      let progress: CodeTaskTurnProgressJSON;
+
+      try {
+        progress = await CodeApi.getTurnProgress({
+          taskId,
+          runId: turn.runId,
+          afterSequence: getLastStepSequence(turn),
+        });
+      } catch {
+        // Kept as it is: the next announcement, or read, tries again.
+        return;
+      }
+
+      if (read !== readRef.current || !dataRef.current) {
+        return;
+      }
+
+      const merged: CodeTaskResponse | null = mergeTurnProgress(
+        dataRef.current,
+        progress,
+      );
+
+      if (!merged) {
+        await load();
+        return;
+      }
+
+      if (merged !== dataRef.current) {
+        setData(merged);
+      }
+    }, [taskId, load]);
+
   const isWorking: boolean = data?.task.state === CodeTaskState.Working;
 
-  useEffect(() => {
-    if (!isWorking) {
-      return;
-    }
+  useCodeTaskLive({
+    projectId: ProjectUtil.getCurrentProjectId(),
+    /*
+     * Every turn of the task is announced in the task's own room - the
+     * task's id as read, which an old link to one of its replies leads to.
+     */
+    recordId: data?.task.id || taskId,
+    isWorking,
+    refresh: refreshLive,
+  });
 
-    const interval: ReturnType<typeof setInterval> = setInterval(() => {
-      load().catch(() => {
-        // handled inside load
-      });
-    }, CODE_TASK_POLL_MS);
-
-    return () => {
-      clearInterval(interval);
-    };
-  }, [isWorking, load]);
+  useFollowLatest({
+    growthKey: data ? getConversationGrowthKey(data.turns) : "",
+    isLive: isWorking,
+    // A reply that ends the turn is read from its first line.
+    getLatestStart: (): Element | null => {
+      return turnsRef.current?.lastElementChild || null;
+    },
+  });
 
   // Code > the repository > Task #42, once the task's repository is known.
   const breadcrumbs: Array<Link> | null = useMemo(() => {
@@ -444,7 +535,8 @@ const CodeTaskConversation: FunctionComponent<
               data-testid="code-task-title"
               className="mt-2 break-words text-xl font-semibold leading-7 text-gray-900"
             >
-              {title}
+              {/* Words someone wrote, read the way they are written. */}
+              <IsolatedText text={title} />
             </h1>
           </div>
 
@@ -570,8 +662,17 @@ const CodeTaskConversation: FunctionComponent<
         <></>
       )}
 
+      {/*
+        A log, as Ask AI's conversation is: a screen reader says each step
+        as it arrives, and the reply when the turn ends - what a reader who
+        sees the page watches come in.
+      */}
       <ol
+        ref={turnsRef}
         data-testid="code-task-turns"
+        role="log"
+        aria-live="polite"
+        aria-relevant="additions"
         aria-label={translator.translateText("Conversation")}
         className="mt-6 space-y-6"
       >

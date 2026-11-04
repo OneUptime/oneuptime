@@ -347,6 +347,7 @@ describe("the CLI as its sources define it", () => {
         "version",
         "help",
         "deploy",
+        "dbt upload",
         `${RESOURCE} list`,
         `${RESOURCE} update`,
         `${RESOURCE} count`,
@@ -356,6 +357,26 @@ describe("the CLI as its sources define it", () => {
         `${RESOURCE} add-note`,
       ]),
     );
+
+    /*
+     * Each register function buildProgram calls is read, dbt's among them,
+     * with a default its file's constant gives as the constant's value.
+     */
+    expect(readCliSource("Program.ts")).toContain(
+      "  registerDbtCommands(program);",
+    );
+    expect(readCliSource("Commands/DbtCommands.ts")).toContain(
+      'export const DEFAULT_DBT_TARGET_PATH: string = "target";',
+    );
+    expect(
+      readInvocation(
+        ["dbt", "upload", "--ingestion-key", "x"],
+        program,
+        resources,
+      ).command.options.find((option: CliOption): boolean => {
+        return option.flags === "--target-path <dir>";
+      })?.defaultValue,
+    ).toBe("target");
     expect(
       program.globalOptions.map((option: CliOption): string => {
         return option.flags;

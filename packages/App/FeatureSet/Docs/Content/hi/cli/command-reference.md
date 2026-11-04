@@ -6,7 +6,7 @@
 - [ग्लोबल विकल्प](#ग्लोबल-विकल्प): वे विकल्प जो हर कमांड लेती है।
 - [लॉगिन और कॉन्टेक्स्ट](#लॉगिन-और-कॉन्टेक्स्ट): login और context कमांड।
 - [संसाधन कमांड](#संसाधन-कमांड): हर संसाधन के संचालन, फ़ील्ड और कार्रवाइयाँ।
-- [अन्य कमांड](#अन्य-कमांड): deploy, whoami, resources, version और help।
+- [अन्य कमांड](#अन्य-कमांड): deploy, dbt upload, whoami, resources, version और help।
 :::
 
 ## कमांड
@@ -19,6 +19,8 @@ flowchart LR
     O --> R["incident, monitor<br/>और हर संसाधन"]
     R --> R1["list<br/>get<br/>create<br/>update<br/>delete<br/>count<br/>fields"]
     R --> R2["acknowledge<br/>resolve<br/>start<br/>end<br/>add-note"]
+    O --> D["dbt"]
+    D --> D1["upload"]
     O --> U["deploy<br/>whoami<br/>resources<br/>version<br/>help"]
 ```
 
@@ -303,6 +305,22 @@ oneuptime deploy [--service <name>] [--service-version <version>] [--previous-ve
 | `--type <type>` | नहीं | बदलाव का प्रकार, जैसे `config-change` या `rollback` | `deployment` |
 | `--time <time>` | नहीं | यह कब हुआ, जैसे `2026-10-19T10:00:00Z` | अभी |
 | `--attribute <key=value...>` | नहीं | और एट्रिब्यूट, `key=value` के रूप में, एक या ज़्यादा | |
+| `--ingestion-key <key>` | नहीं | प्रोजेक्ट की एक टेलीमेट्री इंजेशन कुंजी | `ONEUPTIME_TELEMETRY_INGESTION_KEY` |
+
+### `oneuptime dbt upload`
+
+किसी बिल्ड के बाद, CI या किसी dbt Cloud जॉब से, किसी dbt प्रोजेक्ट के आर्टिफ़ैक्ट डेटा अवलोकनीयता को भेजती है। उसके मॉडल उन टेबल पर अपनी वंशावली के साथ दिखते हैं जिन्हें वे बनाते हैं, उसके टेस्ट OneUptime की जाँचों के बगल में दिखते हैं और अलर्ट बना सकते हैं, और हर बिल्ड प्रोजेक्ट की पाइपलाइन का एक रन होता है। यह dbt के टार्गेट फ़ोल्डर से `manifest.json` और `run_results.json` पढ़ती है, उनमें से सिर्फ़ वही भेजती है जो डेटा अवलोकनीयता पढ़ती है, और API कुंजी से नहीं, बल्कि टेलीमेट्री इंजेशन कुंजी से लिखती है। आपके डैशबोर्ड में डेटा अवलोकनीयता का दस्तावेज़ीकरण पेज इसे एक CI जॉब में दिखाता है।
+
+```bash
+oneuptime dbt upload [--target-path <dir>] [--manifest <file>] [--run-results <file>] [--project <name>] [--ingestion-key <key>]
+```
+
+| विकल्प | ज़रूरी | यह क्या है | डिफ़ॉल्ट |
+| --- | --- | --- | --- |
+| `--target-path <dir>` | नहीं | वह फ़ोल्डर जिसमें dbt ने अपने आर्टिफ़ैक्ट लिखे | `target` |
+| `--manifest <file>` | नहीं | भेजा जाने वाला मैनिफ़ेस्ट | टार्गेट फ़ोल्डर में `manifest.json` |
+| `--run-results <file>` | नहीं | भेजे जाने वाले रन के नतीजे | टार्गेट फ़ोल्डर में `run_results.json` |
+| `--project <name>` | नहीं | dbt प्रोजेक्ट का नाम, जिसकी ज़रूरत तभी है जब कोई मैनिफ़ेस्ट न भेजा जाए | मैनिफ़ेस्ट का प्रोजेक्ट |
 | `--ingestion-key <key>` | नहीं | प्रोजेक्ट की एक टेलीमेट्री इंजेशन कुंजी | `ONEUPTIME_TELEMETRY_INGESTION_KEY` |
 
 ### `oneuptime whoami`

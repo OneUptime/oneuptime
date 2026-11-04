@@ -18,6 +18,11 @@ import {
   isBreakingColumnChange,
   readDataAssetColumns,
 } from "../../../Types/DataObservability/DataAssetColumn";
+import {
+  DataAssetReadState,
+  DataAssetReadTracking,
+  trackDataAssetReads,
+} from "../../../Types/DataObservability/DataAssetReads";
 import { doesDataAssetKindHoldRows } from "../../../Types/DataObservability/DataAssetKind";
 import {
   DATA_OBSERVABILITY_METRICS,
@@ -41,6 +46,8 @@ import DataAssetService from "../../Services/DataAssetService";
 import DataStoreService from "../../Services/DataStoreService";
 import MetricService from "../../Services/MetricService";
 import logger from "../Logger";
+import CollectedLineage from "./CollectedLineage";
+import DataWarehouseSpendIngest from "./DataWarehouseSpendIngest";
 import MonitorMetricUtil from "../Monitor/MonitorMetricUtil";
 import TelemetryUtil from "../Telemetry/Telemetry";
 import {
@@ -110,11 +117,14 @@ export interface PreviousAssetState {
   updateIntervalInSeconds: number | null;
   writeCount: number | null;
   isDropped: boolean;
+  // When it was last read, and since when it has had none (DataAssetReads).
+  reads?: DataAssetReadState | undefined;
 }
 
 export interface AssetPlan {
   lastChangedAt: Date | null;
   updateIntervalInSeconds: number | null;
+  reads: DataAssetReadState;
   columns: Array<DataAssetColumn> | null;
   columnChanges: Array<DataAssetColumnChange>;
   collectionState: JSONObject;
@@ -132,8 +142,11 @@ export interface TableHealthIngestResult {
   metricRows: number;
 }
 
-function readStoredWriteCount(state: JSONObject | undefined): number | null {
-  const value: unknown = state?.["writeCount"];
+function readStoredCount(
+  state: JSONObject | undefined,
+  key: "writeCount" | "readCount",
+): number | null {
+  const value: unknown = state?.[key];
 
   return typeof value === "number" && Number.isFinite(value) && value >= 0
     ? value
@@ -160,8 +173,17 @@ export function toPreviousAssetState(asset: DataAsset): PreviousAssetState {
       typeof asset.updateIntervalInSeconds === "number"
         ? asset.updateIntervalInSeconds
         : null,
-    writeCount: readStoredWriteCount(asset.collectionState),
+    writeCount: readStoredCount(asset.collectionState, "writeCount"),
     isDropped: asset.isDropped === true,
+    reads: {
+      readCount: readStoredCount(asset.collectionState, "readCount"),
+      lastReadAt: asset.lastReadAt
+        ? OneUptimeDate.fromString(asset.lastReadAt)
+        : null,
+      unreadSince: asset.unreadSince
+        ? OneUptimeDate.fromString(asset.unreadSince)
+        : null,
+    },
   };
 }
 
@@ -175,19 +197,38 @@ export function detectChangeTime(
   table: CollectedTable,
   collectedAt: Date,
 ): Date | null {
+  const counterMoved: boolean =
+    previous !== null &&
+    table.writeCount !== null &&
+    previous.writeCount !== null &&
+    table.writeCount > previous.writeCount;
+
   if (table.secondsSinceChange !== null) {
-    return new Date(collectedAt.getTime() - table.secondsSinceChange * 1000);
+    const changeAt: Date = new Date(
+      collectedAt.getTime() - table.secondsSinceChange * 1000,
+    );
+
+    /*
+     * A time that only inserts move (MongoDB's newest ObjectId) misses an
+     * update: a write counter that moved while the time stood still says
+     * the table changed since the last collection.
+     */
+    if (
+      counterMoved &&
+      previous?.lastChangedAt &&
+      changeAt.getTime() <= previous.lastChangedAt.getTime()
+    ) {
+      return collectedAt;
+    }
+
+    return changeAt;
   }
 
   if (!previous) {
     return null;
   }
 
-  if (
-    table.writeCount !== null &&
-    previous.writeCount !== null &&
-    table.writeCount > previous.writeCount
-  ) {
+  if (counterMoved) {
     return collectedAt;
   }
 
@@ -195,6 +236,16 @@ export function detectChangeTime(
     table.estimatedRows !== null &&
     previous.rowCount !== null &&
     table.estimatedRows !== previous.rowCount
+  ) {
+    return collectedAt;
+  }
+
+  // An engine with no write counter (Redshift, Snowflake): its bytes moved.
+  if (
+    table.writeCount === null &&
+    table.sizeInBytes !== null &&
+    previous.sizeInBytes !== null &&
+    table.sizeInBytes !== previous.sizeInBytes
   ) {
     return collectedAt;
   }
@@ -236,6 +287,8 @@ export function planAssetUpdate(
   previous: PreviousAssetState | null,
   table: CollectedTable,
   collectedAt: Date,
+  // How long the engine's counters have counted for (TableHealthSnapshot).
+  secondsSinceStatsReset?: number | null | undefined,
 ): AssetPlan {
   const changeAt: Date | null = detectChangeTime(previous, table, collectedAt);
   const previousChangeAt: Date | null = previous?.lastChangedAt || null;
@@ -265,9 +318,19 @@ export function planAssetUpdate(
       ? diffDataAssetColumns(previous.columns, table.columns)
       : [];
 
+  const reads: DataAssetReadTracking = trackDataAssetReads({
+    previous: previous?.reads || null,
+    readCount: table.readCount,
+    secondsSinceRead: table.secondsSinceRead,
+    secondsSinceStatsReset,
+    collectedAt,
+  });
+
   const collectionState: JSONObject = {
     // A counter that went down was reset: the next collection compares with the new value.
     writeCount: table.writeCount,
+    // The read counter as of the last read kept, to the hour (DataAssetReads).
+    readCount: reads.state.readCount,
     columnsKnown: table.columns !== null,
   };
 
@@ -283,11 +346,13 @@ export function planAssetUpdate(
     (lastChangedAt?.getTime() ?? null) !==
       (previousChangeAt?.getTime() ?? null) ||
     updateIntervalInSeconds !== previous.updateIntervalInSeconds ||
-    table.writeCount !== previous.writeCount;
+    table.writeCount !== previous.writeCount ||
+    reads.isChanged;
 
   return {
     lastChangedAt,
     updateIntervalInSeconds,
+    reads: reads.state,
     columns: table.columns,
     columnChanges,
     collectionState,
@@ -507,6 +572,8 @@ export default class TableHealthIngest {
         updateIntervalInSeconds: true,
         collectionState: true,
         isDropped: true,
+        lastReadAt: true,
+        unreadSince: true,
       },
       props: { isRoot: true },
     });
@@ -522,6 +589,8 @@ export default class TableHealthIngest {
     const retentionDays: number = await MonitorMetricUtil.getRetentionDays();
     const metricRows: Array<JSONObject> = [];
     const seenKeys: Set<string> = new Set();
+    // The store's watched tables after this collection, by key: what lineage resolves against.
+    const assetIdByKey: Map<string, ObjectID> = new Map();
 
     for (const table of snapshot.tables) {
       const key: string = getDataTableKey(table.schema, table.name);
@@ -537,7 +606,12 @@ export default class TableHealthIngest {
         const previous: PreviousAssetState | null = known
           ? toPreviousAssetState(known)
           : null;
-        const plan: AssetPlan = planAssetUpdate(previous, table, collectedAt);
+        const plan: AssetPlan = planAssetUpdate(
+          previous,
+          table,
+          collectedAt,
+          snapshot.secondsSinceStatsReset,
+        );
         let assetId: ObjectID;
 
         if (!known || !previous) {
@@ -574,6 +648,8 @@ export default class TableHealthIngest {
             });
           }
         }
+
+        assetIdByKey.set(key, assetId);
 
         for (const metric of getTableMetricValues({
           table,
@@ -629,6 +705,58 @@ export default class TableHealthIngest {
 
     await this.writeMetricRows(store.projectId, metricRows);
     result.metricRows = metricRows.length;
+
+    if (snapshot.lineage) {
+      // A cut table list leaves tables out that are still there.
+      if (!snapshot.isComplete) {
+        for (const asset of existing) {
+          if (
+            asset.id &&
+            asset.assetKey &&
+            !asset.isDropped &&
+            !assetIdByKey.has(asset.assetKey)
+          ) {
+            assetIdByKey.set(asset.assetKey, asset.id);
+          }
+        }
+      }
+
+      // Lineage is extra: one that cannot be kept never fails the collection.
+      try {
+        await CollectedLineage.record({
+          projectId: store.projectId,
+          engine: snapshot.engine,
+          databaseName: snapshot.target?.databaseName || null,
+          lineage: snapshot.lineage,
+          isViewLineageComplete: snapshot.isViewLineageComplete === true,
+          assetIdByKey,
+          collectedAt,
+        });
+      } catch (error) {
+        logger.error(
+          `Data Observability: could not record the lineage of store ${store.id.toString()}`,
+        );
+        logger.error(error);
+      }
+    }
+
+    // Spend is extra too: what cannot be kept never fails the collection.
+    if (snapshot.spend) {
+      try {
+        await DataWarehouseSpendIngest.record({
+          projectId: store.projectId,
+          dataStoreId: store.id,
+          spend: snapshot.spend,
+          assetIdByKey,
+          collectedAt,
+        });
+      } catch (error) {
+        logger.error(
+          `Data Observability: could not record the spend of store ${store.id.toString()}`,
+        );
+        logger.error(error);
+      }
+    }
 
     await DataStoreService.updateColumnsByIdWithoutHooks({
       id: store.id,
@@ -708,6 +836,14 @@ export default class TableHealthIngest {
       asset.lastChangedAt = plan.lastChangedAt;
     }
 
+    if (plan.reads.lastReadAt) {
+      asset.lastReadAt = plan.reads.lastReadAt;
+    }
+
+    if (plan.reads.unreadSince) {
+      asset.unreadSince = plan.reads.unreadSince;
+    }
+
     const created: DataAsset = await DataAssetService.create({
       data: asset,
       props: { isRoot: true },
@@ -740,6 +876,8 @@ export default class TableHealthIngest {
       sizeInBytes: table.sizeInBytes as number,
       lastChangedAt: plan.lastChangedAt as Date,
       updateIntervalInSeconds: plan.updateIntervalInSeconds as number,
+      lastReadAt: plan.reads.lastReadAt as Date,
+      unreadSince: plan.reads.unreadSince as Date,
       assetKind: table.kind,
     };
 

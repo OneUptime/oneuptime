@@ -1096,6 +1096,8 @@ describe("where alerts come from", () => {
       "Common/Server/Services/NetworkSiteService.ts",
       "Common/Server/Utils/SecurityEvent/SecurityEventAlerting.ts",
       "Common/Server/Services/OnCallPageService.ts",
+      // Ask AI's create_alert (#5301), listed since #5315's follow-up.
+      "Common/Server/Utils/AI/Toolbox/AlertWriteTools.ts",
     ]) {
       expect({
         creator,
@@ -1109,6 +1111,7 @@ describe("where alerts come from", () => {
       "(/docs/telemetry/security-events)",
       "(/docs/workspace-connections/slack#paging-someone-from-slack)",
       "(/docs/workflows/components#paging)",
+      "(/docs/ai/ask-ai)",
     ]) {
       expect(sources).toContain(link);
     }

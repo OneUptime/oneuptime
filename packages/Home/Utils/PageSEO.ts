@@ -794,6 +794,39 @@ export const PageSEOConfig: Record<string, PageSEOData> = {
     },
   },
 
+  "/product/data-observability": {
+    title: "Data Observability | Freshness & Lineage | OneUptime",
+    description:
+      "Know your data is fresh before anyone asks: table freshness, volume and schema changes for PostgreSQL, MySQL, SQL Server, Oracle, MongoDB, Redshift, Snowflake, BigQuery, ClickHouse, Databricks and Athena, with checks, lineage, pipelines and data products. Open source.",
+    canonicalPath: "/product/data-observability",
+    twitterCard: "summary_large_image",
+    pageType: "product",
+    breadcrumbs: [
+      { name: "Home", url: "/" },
+      { name: "Products", url: "/#products" },
+      { name: "Data Observability", url: "/product/data-observability" },
+    ],
+    softwareApplication: {
+      name: "OneUptime Data Observability",
+      applicationCategory: "DeveloperApplication",
+      operatingSystem: "Web, Cloud",
+      description:
+        "Watch the tables your company relies on: freshness learned from each table's own rhythm, volume and schema changes, checks and reconciliations, lineage from pipelines and query history, and data products with freshness SLAs.",
+      features: [
+        "PostgreSQL, MySQL, SQL Server, Oracle, MongoDB, Redshift, Snowflake, BigQuery, ClickHouse, Databricks and Athena",
+        "Reads only the catalog - never a row",
+        "Freshness learned from each table's own rhythm",
+        "Volume, schema change and unused table detection",
+        "Checks, suggested checks and reconciliations between copies",
+        "Lineage from OpenLineage, dbt, Fivetran, Airbyte, views and query history",
+        "One issue per cause, downstream alerts acknowledged",
+        "Data products with freshness SLAs on status pages and as SLOs",
+        "Private networks through a probe",
+        "Open source",
+      ],
+    },
+  },
+
   "/product/ceph": {
     title: "Ceph Monitoring | Cluster Health, OSDs & Pools | OneUptime",
     description:

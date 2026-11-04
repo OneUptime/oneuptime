@@ -40,7 +40,7 @@ flowchart TB
 
 ### 제목 작성
 
-**인시던트 제목** 또는 **경고 제목** 에 제목을 입력합니다. 예를 들면 `{{monitorName}} is down` 입니다. 옆에 있는 **Learn about dynamic templates** 를 열면 **Dynamic Template Variables** 가 표시됩니다. 이 모니터 유형의 모든 변수와 각 변수에 담긴 내용입니다. 변수를 클릭하면 복사됩니다.
+**인시던트 제목** 또는 **경고 제목** 에 제목을 입력합니다. 예를 들면 `{{monitorName}} is down` 입니다. 옆에 있는 **동적 템플릿 알아보기** 를 열면 **동적 템플릿 변수** 가 표시됩니다. 이 모니터 유형의 모든 변수와 각 변수에 담긴 내용입니다. 변수를 클릭하면 복사됩니다.
 
 ### 설명과 해결 노트 작성
 
@@ -445,6 +445,7 @@ Alerts for payments:
 | `provider` | 상태 페이지의 종류: Atlassian Statuspage, incident.io, RSS 또는 Atom. | `string` |
 | `componentGroup` | 모니터가 지켜보는 구성 요소 그룹(있는 경우). | `string` |
 | `componentName` | 모니터가 지켜보는 구성 요소(고른 경우, 쉼표로 구분). | `string` |
+| `componentNames` | 같은 구성 요소의 목록. `{{#each componentNames}}`로 각각 한 줄씩 반복할 수 있습니다. | `Array<string>` |
 | `isOnline` | 상태 페이지가 응답했는지 여부. | `boolean` |
 | `responseTimeInMs` | 상태 페이지가 응답하는 데 걸린 시간(밀리초). | `number` |
 | `failureCause` | 검사가 실패했을 때 그 이유. | `string` |
@@ -565,7 +566,7 @@ SNMP walk: {{responseTimeInMs}} ms
 ## 문제 해결
 
 :::details 제목에 자리표시자가 중괄호까지 그대로 표시됨
-이 검사에서는 경로가 값에 닿지 않습니다. 변수의 이름과 대소문자를 위 표와 비교하거나, 기준에서 **Learn about dynamic templates** 를 여세요. 이 모니터 유형의 변수가 나열됩니다. 응답이나 요청 본문 안의 경로는 보낸 그대로의 본문과 일치해야 하며, `[*]` 와 `[-1]` 같은 음수 인덱스는 아무것도 읽지 않습니다. `[0]` 또는 `[last]` 를 사용하세요.
+이 검사에서는 경로가 값에 닿지 않습니다. 변수의 이름과 대소문자를 위 표와 비교하거나, 기준에서 **동적 템플릿 알아보기** 를 여세요. 이 모니터 유형의 변수가 나열됩니다. 응답이나 요청 본문 안의 경로는 보낸 그대로의 본문과 일치해야 하며, `[*]` 와 `[-1]` 같은 음수 인덱스는 아무것도 읽지 않습니다. `[0]` 또는 `[last]` 를 사용하세요.
 :::
 
 :::details 값이 JSON으로 표시됨

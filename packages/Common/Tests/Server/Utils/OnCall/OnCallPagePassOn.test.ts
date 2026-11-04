@@ -733,7 +733,11 @@ describe("a direct page", () => {
 describe("what passing it on would do, asked first", () => {
   test("the next rule, for the only person on the rule - and nothing changes", async () => {
     world.addRule({ order: 1, users: [ANA] });
-    world.addRule({ order: 2, name: "Managers", users: [BOB] });
+    const managers: OnCallDutyPolicyEscalationRule = world.addRule({
+      order: 2,
+      name: "Managers",
+      users: [BOB],
+    });
     await world.startRun();
 
     const preview: OnCallPassOnAnswer = await world.preview(ANA);
@@ -749,6 +753,14 @@ describe("what passing it on would do, asked first", () => {
         pagedNames: [],
         stillPagedNames: [],
         ruleCount: 2,
+        // The levels escalating may page: here only the next one.
+        levelChoices: [
+          {
+            escalationRuleId: managers.id!.toString(),
+            order: 2,
+            name: "Managers",
+          },
+        ],
       },
     });
     expect(getOnCallPassOnSentence(preview.result!)).toBe(

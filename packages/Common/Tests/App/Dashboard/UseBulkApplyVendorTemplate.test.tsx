@@ -34,8 +34,10 @@ import getJestMockFunction, { MockFunction } from "../../MockType";
  *     and locked for anyone who may not edit devices;
  *   - the dialog starts on "Match each device's vendor" and lists every
  *     vendor template after it;
- *   - Apply re-reads the selection (a page per hundred) and decides every
- *     device again from what it holds NOW;
+ *   - Apply re-reads the selection fifty devices at a time, each window
+ *     just before its devices are written (BulkReadAhead, one list request
+ *     a window, one read per device only when a window's request fails),
+ *     and decides every device again from what it holds NOW;
  *   - only the list that grows is written, merged into what the device has;
  *     a device that needs nothing costs no request;
  *   - every device left alone is listed with its reason, and a refused write
@@ -56,6 +58,7 @@ jest.mock("react-i18next", () => {
 });
 
 const getListMock: MockFunction = getJestMockFunction();
+const getItemMock: MockFunction = getJestMockFunction();
 const updateByIdMock: MockFunction = getJestMockFunction();
 const permissionCheckMock: MockFunction = getJestMockFunction();
 
@@ -65,6 +68,9 @@ jest.mock("../../../UI/Utils/ModelAPI/ModelAPI", () => {
     default: {
       getList: (...args: Array<any>) => {
         return getListMock(...args);
+      },
+      getItem: (...args: Array<any>) => {
+        return getItemMock(...args);
       },
       updateById: (...args: Array<any>) => {
         return updateByIdMock(...args);
@@ -107,11 +113,12 @@ import useBulkApplyVendorTemplate, {
   APPLY_VENDOR_TEMPLATE_ACTION_TITLE,
   APPLY_VENDOR_TEMPLATE_CONCURRENCY,
   BulkApplyVendorTemplateResult,
+  DEVICE_NOT_READABLE_MESSAGE,
   VENDOR_TEMPLATE_DEVICE_SELECT,
   VENDOR_TEMPLATE_MONITOR_BACKED_REASON,
   VENDOR_TEMPLATE_NOT_IDENTIFIED_REASON,
 } from "../../../../App/FeatureSet/Dashboard/src/Components/NetworkDevice/useBulkApplyVendorTemplate";
-import { DEVICE_NOT_READABLE_MESSAGE } from "../../../../App/FeatureSet/Dashboard/src/Components/NetworkDevice/BulkDeviceReader";
+import { BULK_READ_WINDOW_SIZE } from "../../../UI/Components/BulkUpdate/BulkReadAhead";
 import {
   BulkActionButtonSchema,
   BulkActionFailed,
@@ -224,11 +231,18 @@ let gateResults: Record<
 const onBulkActionStartMock: MockFunction = getJestMockFunction();
 const onBulkActionEndMock: MockFunction = getJestMockFunction();
 
+/*
+ * The run's Stop, as the progress dialog hands it over: a test that stops
+ * the run part-way aborts it.
+ */
+let stopController: AbortController = new AbortController();
+
 function makeActionProps(
   items: Array<NetworkDevice>,
 ): BulkActionOnClickProps<NetworkDevice> {
   return {
     items: items,
+    stopSignal: stopController.signal,
     onProgressInfo: (info: ProgressInfo<NetworkDevice>): void => {
       progressSnapshots.push({
         successIds: info.successItems.map((item: NetworkDevice): string => {
@@ -371,12 +385,36 @@ function writes(): Array<{ id: string; data: Record<string, any> }> {
   });
 }
 
+// The ids each list request asked for, in the order the requests were made.
+function windowsAskedFor(): Array<Array<string>> {
+  return getListMock.mock.calls.map((call: Array<any>): Array<string> => {
+    return (call[0].query._id as Includes).values.map(
+      (value: unknown): string => {
+        return String(value);
+      },
+    );
+  });
+}
+
+function makeDevices(count: number): Array<NetworkDevice> {
+  return Array.from({ length: count }, (_value: unknown, index: number) => {
+    return makeDevice({ index: index + 1, sysObjectId: CNMATRIX_OID });
+  });
+}
+
+function idsOf(devices: Array<NetworkDevice>): Array<string> {
+  return devices.map((device: NetworkDevice): string => {
+    return device._id!;
+  });
+}
+
 describe("useBulkApplyVendorTemplate", () => {
   beforeEach(() => {
     progressSnapshots = [];
     capturedActions = [];
     gateResults = {};
     serverDevices = new Map();
+    stopController = new AbortController();
 
     permissionCheckMock.mockImplementation(
       (
@@ -406,6 +444,13 @@ describe("useBulkApplyVendorTemplate", () => {
               return Boolean(device);
             }) as Array<NetworkDevice>,
         };
+      },
+    );
+
+    // A device read on its own: what the server holds, or null (404).
+    getItemMock.mockImplementation(
+      async (request: any): Promise<NetworkDevice | null> => {
+        return serverDevices.get(request.id.toString()) || null;
       },
     );
 
@@ -530,7 +575,7 @@ describe("useBulkApplyVendorTemplate", () => {
   });
 
   describe("applying", () => {
-    test("re-reads the selection, a page at a time, for exactly what the merge needs", async () => {
+    test("re-reads the selection in one list request a window, for exactly what the merge needs", async () => {
       const devices: Array<NetworkDevice> = [
         makeDevice({ index: 1, sysObjectId: CNMATRIX_OID }),
         makeDevice({ index: 2, sysObjectId: CNMATRIX_OID }),
@@ -541,18 +586,22 @@ describe("useBulkApplyVendorTemplate", () => {
       await applyAndWait();
 
       expect(getListMock).toHaveBeenCalledTimes(1);
+      // No device was read on its own: the window's answer held them all.
+      expect(getItemMock).not.toHaveBeenCalled();
 
       const request: any = (getListMock.mock.calls[0] as Array<any>)[0];
       expect(request.modelType).toBe(NetworkDevice);
-      expect(
-        (request.query._id as Includes).values.map((value: unknown) => {
-          return String(value);
-        }),
-      ).toEqual([deviceId(1), deviceId(2)]);
+      expect(windowsAskedFor()).toEqual([[deviceId(1), deviceId(2)]]);
       expect(request.select).toEqual({
         ...VENDOR_TEMPLATE_DEVICE_SELECT,
         _id: true,
       });
+      // In the project the page works in, as the table reads its rows.
+      expect(request.query.projectId.toString()).toBe(
+        "11111111-1111-4111-8111-111111111111",
+      );
+      expect(request.limit).toBe(2);
+      expect(request.skip).toBe(0);
       expect(request.select).toEqual(
         expect.objectContaining({
           snmpOids: true,
@@ -726,7 +775,7 @@ describe("useBulkApplyVendorTemplate", () => {
       expect(snapshot.failedMessages[0]).toContain("limit of 200");
     });
 
-    test("a device the re-read does not return fails on its own", async () => {
+    test("a device the re-read does not return fails on its own, and is not asked for again", async () => {
       const devices: Array<NetworkDevice> = [
         makeDevice({ index: 1, sysObjectId: CNMATRIX_OID }),
         makeDevice({ index: 2, sysObjectId: CNMATRIX_OID }),
@@ -741,12 +790,58 @@ describe("useBulkApplyVendorTemplate", () => {
       expect(snapshot.successIds).toEqual([deviceId(1)]);
       expect(snapshot.failedIds).toEqual([deviceId(2)]);
       expect(snapshot.failedMessages).toEqual([DEVICE_NOT_READABLE_MESSAGE]);
+      // The window answered without it: it is gone, not unread.
+      expect(getItemMock).not.toHaveBeenCalled();
+      expect(
+        writes().map((write: { id: string }) => {
+          return write.id;
+        }),
+      ).toEqual([deviceId(1)]);
     });
 
-    test("a re-read that fails fails its devices with the reason, and writes nothing", async () => {
+    test(`reads ${BULK_READ_WINDOW_SIZE} devices a list request: 120 devices are three requests, in selection order`, async () => {
+      const devices: Array<NetworkDevice> = makeDevices(120);
+      serve(devices);
+
+      await openDialog(devices);
+      await applyAndWait();
+
+      expect(BULK_READ_WINDOW_SIZE).toBe(50);
+      expect(windowsAskedFor()).toEqual([
+        idsOf(devices.slice(0, 50)),
+        idsOf(devices.slice(50, 100)),
+        idsOf(devices.slice(100)),
+      ]);
+      expect(getItemMock).not.toHaveBeenCalled();
+      expect(updateByIdMock).toHaveBeenCalledTimes(120);
+      expect(lastSnapshot().successIds).toEqual(idsOf(devices));
+    });
+
+    test("a window is read only when the run reaches it: a run stopped in the first reads no other", async () => {
+      const devices: Array<NetworkDevice> = makeDevices(120);
+      serve(devices);
+
+      // Stop is pressed as the first device is written.
+      updateByIdMock.mockImplementation(async (): Promise<void> => {
+        stopController.abort();
+      });
+
+      await openDialog(devices);
+      await applyAndWait();
+
+      expect(windowsAskedFor()).toEqual([idsOf(devices.slice(0, 50))]);
+      // The devices already started finish; no other is begun.
+      expect(updateByIdMock.mock.calls.length).toBeLessThanOrEqual(
+        APPLY_VENDOR_TEMPLATE_CONCURRENCY,
+      );
+    });
+
+    test("a window whose read fails reads each of its devices on its own, and they are still written", async () => {
       const devices: Array<NetworkDevice> = [
         makeDevice({ index: 1, sysObjectId: CNMATRIX_OID }),
+        makeDevice({ index: 2, sysObjectId: CISCO_OID }),
       ];
+      serve(devices);
 
       getListMock.mockImplementation(async (): Promise<never> => {
         throw new Error("The connection was interrupted.");
@@ -755,9 +850,86 @@ describe("useBulkApplyVendorTemplate", () => {
       await openDialog(devices);
       await applyAndWait();
 
+      // The window's one request, then one read each.
+      expect(getListMock).toHaveBeenCalledTimes(1);
+      expect(
+        getItemMock.mock.calls.map((call: Array<any>): string => {
+          return call[0].id.toString();
+        }),
+      ).toEqual([deviceId(1), deviceId(2)]);
+      // Each read asks for what the merge needs, of a network device.
+      for (const call of getItemMock.mock.calls as Array<Array<any>>) {
+        expect(call[0].modelType).toBe(NetworkDevice);
+        expect(call[0].select).toEqual(VENDOR_TEMPLATE_DEVICE_SELECT);
+      }
+
+      const byId: Map<string, Record<string, any>> = new Map(
+        writes().map((write: { id: string; data: Record<string, any> }) => {
+          return [write.id, write.data];
+        }),
+      );
+      expect(byId.get(deviceId(1))!["snmpOids"]).toEqual(CNMATRIX.oids);
+      expect(byId.get(deviceId(2))!["snmpOids"]).toEqual(CISCO.oids);
+      expect(lastSnapshot().successIds).toEqual([deviceId(1), deviceId(2)]);
+      expect(lastSnapshot().failedIds).toEqual([]);
+    });
+
+    test("a device whose own read fails as well fails with the reason, and nothing is written to it", async () => {
+      const devices: Array<NetworkDevice> = [
+        makeDevice({ index: 1, sysObjectId: CNMATRIX_OID }),
+        makeDevice({ index: 2, sysObjectId: CNMATRIX_OID }),
+      ];
+      serve(devices);
+
+      getListMock.mockImplementation(async (): Promise<never> => {
+        throw new Error("The connection was interrupted.");
+      });
+
+      getItemMock.mockImplementation(
+        async (request: any): Promise<NetworkDevice | null> => {
+          if (request.id.toString() === deviceId(2)) {
+            throw new Error("The connection was interrupted again.");
+          }
+
+          return serverDevices.get(request.id.toString()) || null;
+        },
+      );
+
+      await openDialog(devices);
+      await applyAndWait();
+
+      expect(
+        writes().map((write: { id: string }) => {
+          return write.id;
+        }),
+      ).toEqual([deviceId(1)]);
+
+      const snapshot: Snapshot = lastSnapshot();
+      expect(snapshot.successIds).toEqual([deviceId(1)]);
+      expect(snapshot.failedIds).toEqual([deviceId(2)]);
+      expect(snapshot.failedMessages).toEqual([
+        "The connection was interrupted again.",
+      ]);
+    });
+
+    test("a device its own read cannot find, after the window's read failed, fails as not readable", async () => {
+      const devices: Array<NetworkDevice> = [
+        makeDevice({ index: 1, sysObjectId: CNMATRIX_OID }),
+      ];
+      // Deleted since the list loaded: the read on its own answers 404 (null).
+      serve([]);
+
+      getListMock.mockImplementation(async (): Promise<never> => {
+        throw new Error("The connection was interrupted.");
+      });
+
+      await openDialog(devices);
+      await applyAndWait();
+
+      expect(getItemMock).toHaveBeenCalledTimes(1);
       expect(updateByIdMock).not.toHaveBeenCalled();
       expect(lastSnapshot().failedMessages).toEqual([
-        "The connection was interrupted.",
+        DEVICE_NOT_READABLE_MESSAGE,
       ]);
     });
 

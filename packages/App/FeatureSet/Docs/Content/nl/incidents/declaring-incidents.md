@@ -284,7 +284,7 @@ Vanaf dan is het incident live: het telt mee voor de badge **Actieve incidenten*
 
 ### Al bevestigd of opgelost gemeld
 
-Een latere **Initiële status** kiezen — op het formulier, via de **Initiële incidentstatus** van een sjabloon, of met `currentIncidentStateId` vanuit de API, Terraform of een workflow — legt een incident vast dat iemand al afhandelt, of dat al voorbij is. Het wordt niet behandeld als een nieuwe noodsituatie:
+Een latere **Initiële status** kiezen — op het formulier, via de **Initiële incidentstatus** van een sjabloon, met `currentIncidentStateId` vanuit de API, Terraform of een workflow, of door [AI vragen](/docs/ai/ask-ai) om een al bevestigd of opgelost incident te vragen — legt een incident vast dat iemand al afhandelt, of dat al voorbij is. Het wordt niet behandeld als een nieuwe noodsituatie:
 
 ```mermaid title="Wat een nieuw incident in gang zet, naar de status waarin het begint"
 flowchart TB

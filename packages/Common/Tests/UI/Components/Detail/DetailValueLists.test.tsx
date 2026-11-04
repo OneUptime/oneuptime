@@ -693,7 +693,9 @@ describe("values sit on the value's line, level with the values beside them", ()
       },
     ]);
 
-    const badge: HTMLElement = within(fieldNamed("Severity")).getByText("High");
+    const badge: HTMLElement = within(fieldNamed("Severity"))
+      .getByText("High")
+      .closest('[data-dropdown-value-badge="true"]') as HTMLElement;
 
     expect(badge).toHaveAttribute("data-dropdown-value-badge", "true");
     expect(badge).toHaveClass(DETAIL_VALUE_BADGE_CLASS_NAME);
@@ -710,9 +712,11 @@ describe("values sit on the value's line, level with the values beside them", ()
       },
     ]);
 
-    expect(within(fieldNamed("Severity")).getByText("retired")).toHaveClass(
-      DETAIL_VALUE_BADGE_CLASS_NAME,
-    );
+    expect(
+      within(fieldNamed("Severity"))
+        .getByText("retired")
+        .closest('[data-dropdown-value-badge="true"]'),
+    ).toHaveClass(DETAIL_VALUE_BADGE_CLASS_NAME);
   });
 
   test("a related record is that badge too", () => {
@@ -724,15 +728,19 @@ describe("values sit on the value's line, level with the values beside them", ()
       },
     ]);
 
-    expect(within(fieldNamed("Owner")).getByText("Payments team")).toHaveClass(
-      DETAIL_VALUE_BADGE_CLASS_NAME,
-    );
+    expect(
+      within(fieldNamed("Owner"))
+        .getByText("Payments team")
+        .closest('[data-dropdown-value-badge="true"]'),
+    ).toHaveClass(DETAIL_VALUE_BADGE_CLASS_NAME);
   });
 
   test("a badge drawn anywhere else - a table's cell - keeps its own alignment", () => {
     render(<DropdownValueBadge label="High" />);
 
-    expect(screen.getByText("High")).not.toHaveClass("align-top");
+    expect(
+      screen.getByText("High").closest('[data-dropdown-value-badge="true"]'),
+    ).not.toHaveClass("align-top");
   });
 
   test("a yes/no is a pill as tall as the value's line, top to top with it", () => {

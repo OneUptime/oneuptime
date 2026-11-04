@@ -41,7 +41,7 @@ flowchart TB
 - **定期メンテナンス**: メンテナンスイベントを作成・管理します。
 - **テレメトリ**: ログ、メトリクス、トレース、例外、モニターログ、セキュリティイベントなどを照会します(読み取り専用)。
 
-44 種類のレコードについて作成・取得・一覧・更新・削除・件数のツールがあり、9 種類のテレメトリについて一覧と件数のツールがあり、インシデント対応用のツールもあります。読み取り専用のツールには `readOnlyHint` が、何かを変更するすべてのツールには `destructiveHint` が、公開ステータスページのツールにだけ `openWorldHint` が付くため、クライアントは読み取り専用の呼び出しを自分で実行し、何かを変更する前にはあなたに確認できます。失敗したツール呼び出しは、MCP プロトコルのエラーではなく、`statusCode`、詳細、提案を含むツールの結果(`isError: true`)として返るため、エージェントは失敗を読んで自分で修正できます。
+45 種類のレコードについて作成・取得・一覧・更新・削除・件数のツールがあり、9 種類のテレメトリについて一覧と件数のツールがあり、インシデント対応用のツールもあります。読み取り専用のツールには `readOnlyHint` が、何かを変更するすべてのツールには `destructiveHint` が、公開ステータスページのツールにだけ `openWorldHint` が付くため、クライアントは読み取り専用の呼び出しを自分で実行し、何かを変更する前にはあなたに確認できます。失敗したツール呼び出しは、MCP プロトコルのエラーではなく、`statusCode`、詳細、提案を含むツールの結果(`isError: true`)として返るため、エージェントは失敗を読んで自分で修正できます。
 
 ## 始める前に
 
@@ -337,6 +337,8 @@ curl https://oneuptime.com/mcp/tools
 
 **`oneuptime_whoami`** ツールは、認証情報が属するプロジェクト(その ID と名前)を返します。サインインしたクライアントの場合は、誰としてサインインしているか、変更を加えられるかどうかも示します。エージェントが状況を把握するための最初の呼び出しに適しており、作成ツールは `projectId` を認証情報から取るため、エージェントがプロジェクト ID を渡す必要はありません。
 
+**`get_data_table_freshness`** ツールは、Data Observability が監視しているテーブルのデータをエージェントが使う前に、そのテーブルが新しいかどうかを伝えます。テーブル自身のリズムに対して新しいか遅れているか、最後に変更された時刻、未解決のアラート、そのテーブルに書き込む各パイプラインの最新の実行結果です。`table` には `schema.table`、テーブル名のみ、または ID を渡します。何も変更しません。
+
 ## テレメトリを照会する
 
 ログ、メトリクス、トレース(スパン)、例外、モニターログなどのテレメトリは、読み取り専用の `list_` と `count_` のツールとして提供されます(`list_logs`、`list_metrics`、`list_spans`、`list_exception_instances`、`list_monitor_logs` と、それぞれの `count_` の対)。テレメトリは OpenTelemetry で届くため、作成ツールはありません。
@@ -484,7 +486,7 @@ MCP サーバーはステートレスで、セッション ID の発行も追跡
 | ラベル | Label |
 | セキュリティ | Security Case, Security Case Evidence, Security Case Note, Security Case Priority, Security Case Status, Security Case Task, Security Detection, Security Playbook |
 | データセキュリティ | Data Store, Data Store Finding, Data Store Access Entry, Data Security Identity, Data Flow, Data Security Issue, Data Security Scan, Data Security Setting, Check Setting, Custom Data Type, Residency Rule |
-| データオブザーバビリティ | Data Asset |
+| データオブザーバビリティ | Data Asset, Data Check |
 
 | 分野 | 一覧と件数のツールだけがあるテレメトリ |
 | --- | --- |

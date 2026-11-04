@@ -495,14 +495,14 @@ describe("the Log's own words, for the record it shows", () => {
 
     drawLog();
 
-    const message: HTMLElement = await screen.findByText(
-      "read src/checkout.ts",
-    );
+    const words: HTMLElement = await screen.findByText("read src/checkout.ts");
 
-    expect(message).toHaveAttribute(
-      "data-testid",
-      "code-task-log-entry-message",
-    );
+    // The Runner's words, set apart in the direction they are written in.
+    expect(words.tagName).toBe("BDI");
+    const message: HTMLElement = words.closest(
+      "[data-testid='code-task-log-entry-message']",
+    ) as HTMLElement;
+    expect(message).not.toBeNull();
     expect(message.className).toContain("max-sm:order-last");
     expect(message.className).toContain("max-sm:basis-full");
     expect(message.className).toContain("truncate");

@@ -160,7 +160,7 @@ La sonde reconnaît Azure SQL Database à `SERVERPROPERTY('EngineEdition')` plut
 :::steps
 ### Commencer un nouveau moniteur
 
-Allez dans **Moniteurs** et cliquez sur **Créer un moniteur**. Sous **Type de moniteur**, cliquez sur **Plus de types de moniteurs** et choisissez **Santé de la base de données** sous **Database Monitoring**, ou tapez `health` dans le champ de recherche. Saisissez un **Nom**, puis cliquez sur **Suivant**.
+Allez dans **Moniteurs** et cliquez sur **Créer un moniteur**. Sous **Type de moniteur**, cliquez sur **Plus de types de moniteurs** et choisissez **Santé de la base de données** sous **Surveillance des bases de données**, ou tapez `health` dans le champ de recherche. Saisissez un **Nom**, puis cliquez sur **Suivant**.
 
 ### Saisir les informations de connexion
 

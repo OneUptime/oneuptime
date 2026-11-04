@@ -21,10 +21,13 @@ import {
   OnCallOpenPage,
   OnCallPageRecordType,
   OnCallPassOnAnswer,
+  OnCallPassOnLevelChoice,
   OnCallPassOnOutcome,
   OnCallPassOnRefusal,
   OnCallPassOnResult,
   OnCallPassOnRule,
+  findOnCallPassOnLevelChoice,
+  getOnCallPassOnLevelChoices,
 } from "../../../Types/OnCallDutyPolicy/OnCallPagePassOn";
 import UserNotificationExecutionStatus from "../../../Types/UserNotification/UserNotificationExecutionStatus";
 import UserNotificationStatus from "../../../Types/UserNotification/UserNotificationStatus";
@@ -78,6 +81,15 @@ import { isOnCallPageAgainRun } from "../../../Types/OnCallDutyPolicy/OnCallAckn
  * claims it, so it moves on once. Everybody marks first and looks second, so
  * when two people on one rule pass at the same moment, the later of the two
  * looks sees both and moves the run on.
+ *
+ * Which level it moves on to is the next, unless the person picked a later
+ * one of the levels their preview offered (levelChoices): then the run pages
+ * that level, and the levels between are skipped. A level picked that is no
+ * longer offered - the policy's levels changed since - is refused before
+ * anything is marked (LevelNotAvailable), so the person can pick again. A
+ * level picked when escalating pages no level at once - somebody else on
+ * the level is still paged, or the run has moved on already - changes
+ * nothing: the run goes on as it is, and the answer says so.
  */
 
 // A run, read with everything passing on and moving the run on need.
@@ -215,6 +227,11 @@ export default class OnCallPagePassOn {
     userId: ObjectID;
     executionLogId: ObjectID;
     viaUserOnCallLogTimelineId?: ObjectID | undefined;
+    /*
+     * A later level to page instead of the next: one of the levels the
+     * person's preview offered (levelChoices). None, the next level.
+     */
+    toEscalationRuleId?: ObjectID | undefined;
   }): Promise<OnCallPassOnAnswer> {
     const read: ReadStateResult = await this.readState(data);
 
@@ -223,6 +240,26 @@ export default class OnCallPagePassOn {
     }
 
     const state: PassOnState = read.state;
+
+    /*
+     * A level picked that is not offered any more is refused before
+     * anything changes: the person is still paged, and picks again.
+     */
+    if (
+      data.toEscalationRuleId &&
+      !this.isLevelStillOffered({
+        preview: await this.predict({
+          userId: data.userId,
+          run: state.run,
+        }),
+        escalationRuleId: data.toEscalationRuleId,
+      })
+    ) {
+      return {
+        passedOn: false,
+        refusal: OnCallPassOnRefusal.LevelNotAvailable,
+      };
+    }
 
     logger.debug(
       `User ${data.userId.toString()} passes on their page in execution log ${data.executionLogId.toString()}.`,
@@ -271,12 +308,67 @@ export default class OnCallPagePassOn {
     const result: OnCallPassOnResult = await this.carryOut({
       prediction: prediction,
       run: state.run,
+      toRuleId: this.getPickedLevelId({
+        prediction: prediction,
+        escalationRuleId: data.toEscalationRuleId,
+      }),
     });
 
     return {
       passedOn: true,
       result: result,
     };
+  }
+
+  /*
+   * Whether a level picked to page is one escalating can page: one of the
+   * levels the preview offers. A preview that pages no level at once - the
+   * run waits for somebody else on the level, has moved on, or stops - offers
+   * none to pick, and the level picked does not apply: it is not refused.
+   */
+  private static isLevelStillOffered(data: {
+    preview: OnCallPassOnResult;
+    escalationRuleId: ObjectID;
+  }): boolean {
+    if (data.preview.outcome !== OnCallPassOnOutcome.NextRulePaged) {
+      return true;
+    }
+
+    return Boolean(
+      findOnCallPassOnLevelChoice(
+        getOnCallPassOnLevelChoices(data.preview),
+        data.escalationRuleId.toString(),
+      ),
+    );
+  }
+
+  /*
+   * The level to page instead of the next, as the person picked it: when
+   * escalating pages a level now and the one picked is a later level than
+   * the next. None otherwise - the next level is paged as it always was.
+   */
+  private static getPickedLevelId(data: {
+    prediction: OnCallPassOnResult;
+    escalationRuleId: ObjectID | undefined;
+  }): ObjectID | undefined {
+    if (
+      !data.escalationRuleId ||
+      data.prediction.outcome !== OnCallPassOnOutcome.NextRulePaged
+    ) {
+      return undefined;
+    }
+
+    const choices: Array<OnCallPassOnLevelChoice> = getOnCallPassOnLevelChoices(
+      data.prediction,
+    );
+    const picked: OnCallPassOnLevelChoice | undefined =
+      findOnCallPassOnLevelChoice(choices, data.escalationRuleId.toString());
+
+    if (!picked || picked === choices[0]) {
+      return undefined;
+    }
+
+    return new ObjectID(picked.escalationRuleId);
   }
 
   /*
@@ -327,6 +419,12 @@ export default class OnCallPagePassOn {
   /*
    * Passes on every page a person can pass on about one record, and says
    * what came of each. None at all is one answer: not paged.
+   *
+   * `escalateTo` is the level picked for a page, by its run (execution log
+   * id to escalation rule id): a page it does not name pages its next level.
+   * A page whose level picked is not offered any more is not escalated, and
+   * says so beside the others (LevelNotAvailable): the person asked for
+   * something that did not happen.
    */
   @CaptureSpan()
   public static async passOnForRecord(data: {
@@ -334,6 +432,7 @@ export default class OnCallPagePassOn {
     projectId: ObjectID;
     recordType: OnCallPageRecordType;
     recordId: ObjectID;
+    escalateTo?: Record<string, ObjectID> | undefined;
   }): Promise<Array<OnCallPassOnAnswer>> {
     const answers: Array<OnCallPassOnAnswer> = [];
     const refusals: Array<OnCallPassOnAnswer> = [];
@@ -342,6 +441,10 @@ export default class OnCallPagePassOn {
       const answer: OnCallPassOnAnswer = await this.passOn({
         userId: data.userId,
         executionLogId: executionLogId,
+        toEscalationRuleId: this.getLevelPickedFor({
+          escalateTo: data.escalateTo,
+          executionLogId: executionLogId,
+        }),
       });
 
       if (answer.passedOn) {
@@ -351,13 +454,22 @@ export default class OnCallPagePassOn {
       }
     }
 
+    const levelsNotAvailable: Array<OnCallPassOnAnswer> = refusals.filter(
+      (answer: OnCallPassOnAnswer): boolean => {
+        return answer.refusal === OnCallPassOnRefusal.LevelNotAvailable;
+      },
+    );
+
     if (answers.length > 0) {
-      return answers;
+      return [...answers, ...levelsNotAvailable];
     }
 
-    // Nothing passed on: why, once - the most telling reason first.
+    /*
+     * Nothing passed on: why, once - the most telling reason first. A level
+     * picked that was not there is the one the person can act on.
+     */
     if (refusals.length > 0) {
-      return [refusals[0]!];
+      return [levelsNotAvailable[0] || refusals[0]!];
     }
 
     return [
@@ -366,6 +478,28 @@ export default class OnCallPagePassOn {
         refusal: OnCallPassOnRefusal.NotPaged,
       },
     ];
+  }
+
+  // The level picked for one run's page, from `escalateTo`; none, the next.
+  private static getLevelPickedFor(data: {
+    escalateTo?: Record<string, ObjectID> | undefined;
+    executionLogId: ObjectID;
+  }): ObjectID | undefined {
+    if (!data.escalateTo) {
+      return undefined;
+    }
+
+    const runKey: string = data.executionLogId.toString().toLowerCase();
+
+    for (const [executionLogId, escalationRuleId] of Object.entries(
+      data.escalateTo,
+    )) {
+      if (executionLogId.trim().toLowerCase() === runKey) {
+        return escalationRuleId;
+      }
+    }
+
+    return undefined;
   }
 
   // The runs about a record that may still have a page of the person's.
@@ -796,6 +930,26 @@ export default class OnCallPagePassOn {
         ...base,
         outcome: OnCallPassOnOutcome.NextRulePaged,
         rule: this.toRule(nextRule),
+        /*
+         * Every level after the person's, the next one first: the levels
+         * escalating may page (OnCallPassOnLevelChoice).
+         */
+        levelChoices: rules
+          .filter((rule: OnCallDutyPolicyEscalationRule): boolean => {
+            return (
+              Boolean(rule.id) &&
+              typeof rule.order === "number" &&
+              rule.order > (run.lastExecutedEscalationRuleOrder || 0)
+            );
+          })
+          .map(
+            (rule: OnCallDutyPolicyEscalationRule): OnCallPassOnLevelChoice => {
+              return {
+                escalationRuleId: rule.id!.toString(),
+                ...this.toRule(rule),
+              };
+            },
+          ),
       };
     }
 
@@ -828,10 +982,17 @@ export default class OnCallPagePassOn {
   private static async carryOut(data: {
     prediction: OnCallPassOnResult;
     run: OnCallDutyPolicyExecutionLog;
+    // A later level to page than the next, picked by the person.
+    toRuleId?: ObjectID | undefined;
   }): Promise<OnCallPassOnResult> {
+    /*
+     * What it did, not what it may do: the levels it could have picked
+     * from are no part of the answer.
+     */
     const prediction: OnCallPassOnResult = {
       ...data.prediction,
       isPreview: false,
+      levelChoices: undefined,
     };
     const run: OnCallDutyPolicyExecutionLog = data.run;
     const isRunPaging: boolean = PAGING_RUN_STATUSES.includes(
@@ -854,7 +1015,11 @@ export default class OnCallPagePassOn {
       case OnCallPassOnOutcome.NextRulePaged:
       case OnCallPassOnOutcome.PolicyStartedAgain:
       default:
-        return await this.moveOn({ prediction: prediction, run: run });
+        return await this.moveOn({
+          prediction: prediction,
+          run: run,
+          toRuleId: data.toRuleId,
+        });
     }
   }
 
@@ -865,11 +1030,13 @@ export default class OnCallPagePassOn {
   private static async moveOn(data: {
     prediction: OnCallPassOnResult;
     run: OnCallDutyPolicyExecutionLog;
+    toRuleId?: ObjectID | undefined;
   }): Promise<OnCallPassOnResult> {
     const advanced: OnCallEscalationAdvanceResult =
       await OnCallEscalationAdvance.advance({
         run: data.run,
         now: OneUptimeDate.getCurrentDate(),
+        toRuleId: data.toRuleId,
       });
 
     switch (advanced.kind) {

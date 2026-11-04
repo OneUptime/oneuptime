@@ -13,6 +13,12 @@ enum NotificationRuleEventType {
    * channel of its own.
    */
   SecurityCase = "Security Case",
+  /*
+   * A hunt's finds: posted to the channels and chats its rules name each
+   * time a scheduled run of the hunt finds security events
+   * (SecurityHuntNotifications). A hunt gets no channel of its own.
+   */
+  SecurityHunt = "Security Hunt",
 }
 
 export default NotificationRuleEventType;

@@ -28,8 +28,9 @@ import { AwsCredentials, awsErrorCodeOf, sendAwsRequest } from "./AwsApi";
  *   Only events that change something are asked for, and the ones that are
  *   machinery rather than a change - signing in, assuming a role, an ECS
  *   agent reporting a task's state - are left out (isAwsChangeNoise). Of
- *   CloudTrailEvent only the error code and the caller's type are read:
- *   its request parameters can carry anything, and are never kept.
+ *   CloudTrailEvent only the error code, the Region and who called
+ *   (userIdentity.arn) are read: its request parameters can carry
+ *   anything, and are never kept.
  *
  *   AWS Health DescribeEvents (AWS JSON 1.1, target
  *   AWSHealth_20160804.DescribeEvents, in the partition's home Region), and
@@ -148,6 +149,8 @@ export function readAwsTrailEvent(data: {
     eventId,
     operation: awsOperationOf(eventSource, eventName),
     actor: readText(data.event["Username"]),
+    actorIdentity:
+      readText(readObject(trail["userIdentity"])["arn"]) || undefined,
     resources: readArray(data.event["Resources"])
       .map((raw: unknown) => {
         const resource: JSONObject = readObject(raw);

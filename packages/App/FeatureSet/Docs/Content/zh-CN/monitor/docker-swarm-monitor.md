@@ -55,7 +55,7 @@ flowchart TB
 
 ### 选择集群
 
-在 **Docker Swarm Monitor Configuration** 下，从 **Docker Swarm Cluster** 中选择集群。发送过数据的每个集群都在列表中。选好后，字段下方的一行会显示是否有数据到达。**添加 Docker Swarm 集群** 会打开已填好你的密钥的设置步骤，并等待第一批数据。
+在 **Docker Swarm Monitor Configuration** 下，从 **Docker Swarm 集群** 中选择集群。发送过数据的每个集群都在列表中。选好后，字段下方的一行会显示是否有数据到达。**添加 Docker Swarm 集群** 会打开已填好你的密钥的设置步骤，并等待第一批数据。
 
 ### 选择要监控的内容
 
@@ -81,7 +81,7 @@ flowchart TB
 
 | 字段 | 选项卡 | 作用 |
 | --- | --- | --- |
-| **Docker Swarm Cluster** | 全部 | 必填。把每个查询限定在 `resource.docker.swarm.cluster.name`。任务的指标和 Docker 主机的指标一样带有 `container.runtime=docker`，而代理从不打上 `host.name`，所以监视器对这两者都不过滤。 |
+| **Docker Swarm 集群** | 全部 | 必填。把每个查询限定在 `resource.docker.swarm.cluster.name`。任务的指标和 Docker 主机的指标一样带有 `container.runtime=docker`，而代理从不打上 `host.name`，所以监视器对这两者都不过滤。 |
 | **服务名称** | Custom Metric、高级 | 可选。与 `resource.docker.swarm.service.name` 完全匹配，即 `docker service ls` 显示的服务名称，例如 `web`（在栈中为 `<stack>_web`）。 |
 | **节点名称** | Custom Metric、高级 | 可选。与 `resource.docker.swarm.node.name` 完全匹配，即 `docker node ls` 显示的节点主机名，例如 `swarm-node-1`。该节点上的代理根据 `DOCKER_SWARM_NODE_NAME` 打上它。 |
 | **容器名称** | Custom Metric、高级 | 可选。与 `resource.container.name` 完全匹配。任务的容器命名为 `<service>.<slot>.<taskid>`，例如 `web.1.abc123`。 |

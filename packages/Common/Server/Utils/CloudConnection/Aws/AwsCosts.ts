@@ -234,8 +234,12 @@ export function getAwsSavingKind(actionType: string): CloudSavingKind {
   }
 }
 
-// An action as people say it: "MigrateToGraviton" -> "Migrate to Graviton".
-const AWS_SAVING_ACTIONS: Record<string, string> = {
+/*
+ * An action as people say it: "MigrateToGraviton" -> "Migrate to Graviton".
+ * Each is one of CLOUD_SAVING_ACTION_WORDS (Types/Cloud/CloudCost), which
+ * the Dashboard draws in the reader's language.
+ */
+export const AWS_SAVING_ACTIONS: Record<string, string> = {
   Rightsize: "Rightsize",
   ScaleIn: "Scale in",
   Stop: "Stop",

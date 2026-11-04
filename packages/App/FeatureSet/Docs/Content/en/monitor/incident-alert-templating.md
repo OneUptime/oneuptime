@@ -445,6 +445,7 @@ The series names in `metrics` contain dots, such as `oneuptime.monitor.database.
 | `provider` | The kind of status page: Atlassian Statuspage, incident.io, RSS or Atom. | `string` |
 | `componentGroup` | The component group the monitor watches, if it watches one. | `string` |
 | `componentName` | The components the monitor watches, separated by commas, if any are chosen. | `string` |
+| `componentNames` | The same components as a list, to repeat a line for each of them with `{{#each componentNames}}`. | `Array<string>` |
 | `isOnline` | Whether the status page answered. | `boolean` |
 | `responseTimeInMs` | How long the status page took to answer, in milliseconds. | `number` |
 | `failureCause` | Why the check failed, when it did. | `string` |

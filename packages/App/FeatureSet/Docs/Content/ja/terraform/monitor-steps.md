@@ -317,7 +317,7 @@ criteria = [
 | ドメイン | `Domain Expires In Days`、`Domain Is Expired`、`Domain Registrar`、`Domain Name Server` |
 | DNSSEC | `DNSSEC Chain Is Valid`、`DNSSEC DS Record Exists At Parent`、`DNSSEC Signature Expires In Days` |
 | SQL クエリ | `SQL Is Online`、`SQL Query Row Count`、`SQL Query Scalar Value` |
-| データベースの健全性 | `Database Is Online`、`Database Metric` (系列を指定する JSON を `database_monitor_options` に書きます。例: `jsonencode({ metricType = "oneuptime.monitor.database.connections.used.percent" })`)、`Database Collection Error` |
+| データベースのヘルス | `Database Is Online`、`Database Metric` (系列を指定する JSON を `database_monitor_options` に書きます。例: `jsonencode({ metricType = "oneuptime.monitor.database.connections.used.percent" })`)、`Database Collection Error` |
 | 外部ステータスページ | `External Status Page Is Online`、`External Status Page Active Incidents`、`External Status Page Component Status` |
 | NTP | `NTP Is Online`、`NTP Is Synchronized`、`NTP Stratum`、`NTP Clock Offset (in ms)`、`NTP Response Time (in ms)`、`NTP Root Dispersion (in ms)` (`NTP Is Online` と `NTP Is Synchronized` は `value` を取りません) |
 | ネットワーク機器 (SNMP) | `SNMP Device Is Online` (ping または SNMP に応答する)、`SNMP Walk Is Succeeding` (応答するがウォークできないときは false)、`SNMP OID Value` (SNMP のフィルターは `snmp_monitor_options` に JSON を受け付けます) |

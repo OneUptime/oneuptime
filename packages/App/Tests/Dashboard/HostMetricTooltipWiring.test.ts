@@ -38,8 +38,11 @@ const TOOLTIP_IMPORT: string =
   'import InfoTooltip from "Common/UI/Components/Tooltip/InfoTooltip";';
 const REFERENCE_PATTERN: RegExp = /HOST_METRIC_DESCRIPTIONS\.([A-Za-z]+)/g;
 const TITLE_ATTRIBUTE: RegExp = /title="([^"]+)"/;
-// A tile's title, in the reader's words: title={tx("CPU")}.
-const TRANSLATED_TITLE_ATTRIBUTE: RegExp = /title=\{tx\("([^"]+)"\)\}/;
+/*
+ * A tile's title, as the page hands it: English (title="CPU"), which the
+ * tile draws in the reader's words (GoldenMetricTile).
+ */
+const TRANSLATED_TITLE_ATTRIBUTE: RegExp = /title="([^"]+)"/;
 const TITLE_PROPERTY: RegExp = /title: "([^"]+)"/;
 const DESCRIPTION_ATTRIBUTE: RegExp =
   /description=\{HOST_METRIC_DESCRIPTIONS\.([A-Za-z]+)\}/;

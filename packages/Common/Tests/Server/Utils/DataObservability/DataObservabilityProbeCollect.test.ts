@@ -59,12 +59,15 @@ describe("readProbeCollectWork", () => {
       exclusions: ["audit", "public.tmp"],
       // An item from a server with no due checks carries none.
       checks: [],
+      // Nor one that does not say how far back to read lineage: none this time.
+      queryHistoryLookbackInSeconds: 0,
     });
     expect(buildProbeCollectOptions(work!)).toEqual({
       maxTables: 100,
       maxColumns: 1000,
       exclusions: ["audit", "public.tmp"],
       checks: [],
+      queryHistoryLookbackInSeconds: 0,
     });
   });
 
@@ -72,7 +75,7 @@ describe("readProbeCollectWork", () => {
     expect(
       readProbeCollectWork({
         dataStoreId: "x",
-        engine: "oracle",
+        engine: "redis",
         probeConnectionVariable: "DB",
       }),
     ).toBeNull();
@@ -117,25 +120,36 @@ describe("readTableHealthSnapshot", () => {
 
   test("reads a well-formed snapshot", () => {
     const snapshot: TableHealthSnapshot | null = readTableHealthSnapshot(
-      snapshotOf([
-        {
-          schema: "public",
-          name: "orders",
-          kind: DataAssetKind.Table,
-          estimatedRows: "1000",
-          sizeInBytes: 8192,
-          writeCount: 3,
-          secondsSinceChange: null,
-          columns: [
-            { name: "id", dataType: "bigint", isNullable: false, position: 1 },
-          ],
-        },
-      ]),
+      snapshotOf(
+        [
+          {
+            schema: "public",
+            name: "orders",
+            kind: DataAssetKind.Table,
+            estimatedRows: "1000",
+            sizeInBytes: 8192,
+            writeCount: 3,
+            secondsSinceChange: null,
+            readCount: "120",
+            columns: [
+              {
+                name: "id",
+                dataType: "bigint",
+                isNullable: false,
+                position: 1,
+              },
+            ],
+          },
+        ],
+        { secondsSinceStatsReset: 86400 },
+      ),
       NOW,
     );
 
     expect(snapshot?.isComplete).toBe(true);
     expect(snapshot?.collectedAt).toBe("2026-11-03T11:59:00.000Z");
+    // How long the engine's read counters have counted for.
+    expect(snapshot?.secondsSinceStatsReset).toBe(86400);
     expect(snapshot?.tables[0]).toEqual({
       schema: "public",
       name: "orders",
@@ -144,6 +158,8 @@ describe("readTableHealthSnapshot", () => {
       sizeInBytes: 8192,
       writeCount: 3,
       secondsSinceChange: null,
+      readCount: 120,
+      secondsSinceRead: null,
       columns: [
         { name: "id", dataType: "bigint", isNullable: false, position: 1 },
       ],

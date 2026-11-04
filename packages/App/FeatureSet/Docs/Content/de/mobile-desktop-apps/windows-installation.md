@@ -55,7 +55,7 @@ Die App zeigt Benachrichtigungen über ihren Browser, sobald Sie den Browser in 
 
 :::steps
 ### Ihre Push-Geräte öffnen
-Öffnen Sie in der App **Benutzereinstellungen → Benachrichtigungsmethoden** und den Tab **Push Notifications**.
+Öffnen Sie in der App **Benutzereinstellungen → Benachrichtigungsmethoden** und den Tab **Push-Benachrichtigungen**.
 
 ### Diesen Browser registrieren
 Klicken Sie auf **Gerät registrieren**, behalten Sie im Feld **Gerätename** den Vorschlag, etwa `Edge on Windows`, oder ändern Sie ihn, und klicken Sie erneut auf **Gerät registrieren**. Wenn der Browser fragt, ob OneUptime Benachrichtigungen anzeigen darf, wählen Sie **Zulassen**.
@@ -83,7 +83,7 @@ Es gibt nichts zu aktualisieren. Die App lädt das Dashboard bei jedem Öffnen v
 
 Windows führt die App auch unter **Einstellungen → Apps → Installierte Apps**, wo **Deinstallieren** sie ebenfalls entfernt.
 
-Die Deinstallation der App meldet ihren Browser nicht ab: Er bekommt weiter Benachrichtigungen. Um sie zu beenden, löschen Sie den Browser unter **Benutzereinstellungen → Benachrichtigungsmethoden** auf dem Tab **Push Notifications** mit **Löschen**.
+Die Deinstallation der App meldet ihren Browser nicht ab: Er bekommt weiter Benachrichtigungen. Um sie zu beenden, löschen Sie den Browser unter **Benutzereinstellungen → Benachrichtigungsmethoden** auf dem Tab **Push-Benachrichtigungen** mit **Löschen**.
 
 ## Fehlerbehebung
 
@@ -92,7 +92,7 @@ Die Deinstallation der App meldet ihren Browser nicht ab: Er bekommt weiter Bena
 :::
 
 :::details Es erscheinen keine Benachrichtigungen
-- Prüfen Sie unter **Benutzereinstellungen → Benachrichtigungsmethoden** auf dem Tab **Push Notifications**, dass dieser Browser aufgeführt ist, und senden Sie ihm eine **Testbenachrichtigung**.
+- Prüfen Sie unter **Benutzereinstellungen → Benachrichtigungsmethoden** auf dem Tab **Push-Benachrichtigungen**, dass dieser Browser aufgeführt ist, und senden Sie ihm eine **Testbenachrichtigung**.
 - Öffnen Sie in Windows **Einstellungen → System → Benachrichtigungen**: Benachrichtigungen müssen an sein, auch für den Browser, und „Nicht stören“ aus. Windows 10 nennt die Seite „Benachrichtigungen und Aktionen“.
 - Blockiert der Browser Benachrichtigungen für OneUptime, klicken Sie auf das Symbol links in der Adressleiste, erlauben Sie Benachrichtigungen für die Website und registrieren Sie den Browser erneut.
 - Bei einem selbst gehosteten OneUptime sagt der Dialog **Gerät registrieren**, wenn der Server keine VAPID-Schlüssel hat.
