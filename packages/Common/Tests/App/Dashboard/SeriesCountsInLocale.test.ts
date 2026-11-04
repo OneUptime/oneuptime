@@ -101,9 +101,7 @@ describe("a metric chart's counts of series", () => {
   test("are plurals whose English reads 'series' for one and many alike", () => {
     const english: Translator = translatorFor("en");
 
-    expect(english.translatePlural(SERIES_COUNT_TEMPLATE, 1)).toBe(
-      "1 series",
-    );
+    expect(english.translatePlural(SERIES_COUNT_TEMPLATE, 1)).toBe("1 series");
     expect(english.translatePlural(SERIES_COUNT_TEMPLATE, 12)).toBe(
       "12 series",
     );
@@ -184,9 +182,7 @@ describe("a metric chart's counts of series", () => {
       expect(translator.translatePlural(FILTER_SERIES_TEMPLATE, 1)).toBe(
         filterOne,
       );
-      expect(translator.translatePlural(MORE_SERIES_TEMPLATE, 1)).toBe(
-        moreOne,
-      );
+      expect(translator.translatePlural(MORE_SERIES_TEMPLATE, 1)).toBe(moreOne);
     },
   );
 

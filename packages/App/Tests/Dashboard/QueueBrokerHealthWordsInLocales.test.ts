@@ -22,10 +22,7 @@ import path from "path";
  * sameAsEnglish list: Danish and Norwegian "Sum").
  */
 
-const DASHBOARD: string = path.resolve(
-  __dirname,
-  "../../FeatureSet/Dashboard",
-);
+const DASHBOARD: string = path.resolve(__dirname, "../../FeatureSet/Dashboard");
 const REPOSITORY_ROOT: string = path.resolve(__dirname, "../../../..");
 
 const FILES: ReadonlyArray<string> = [
