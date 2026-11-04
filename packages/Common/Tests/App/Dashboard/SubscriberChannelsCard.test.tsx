@@ -31,11 +31,6 @@ import { getJestSpyOn } from "../../Spy";
  * stubbed; the card, its rows and the switches are the real ones.
  */
 
-/*
- * A refused request is an async function that throws, not
- * mockRejectedValue: the card's imports load zone.js, whose patched Promise
- * reports a rejected one as unhandled although the card catches it.
- */
 const getItemMock: MockFunction = getJestMockFunction();
 const updateByIdMock: MockFunction = getJestMockFunction();
 
@@ -518,11 +513,9 @@ describe("flipping a switch", () => {
   });
 
   test("a refused save moves the switch back, and says why under it", async () => {
-    updateByIdMock.mockImplementation(async (): Promise<unknown> => {
-      throw new Error(
-        "Please upgrade your plan to Scale to access this feature",
-      );
-    });
+    updateByIdMock.mockRejectedValue(
+      new Error("Please upgrade your plan to Scale to access this feature"),
+    );
 
     await renderCard();
     await loaded();
@@ -569,9 +562,9 @@ describe("flipping a switch", () => {
   });
 
   test("a project without SMS turned on hears it from the server, under the SMS row", async () => {
-    updateByIdMock.mockImplementation(async (): Promise<unknown> => {
-      throw new Error(STATUS_PAGE_SMS_SUBSCRIPTIONS_SMS_OFF_MESSAGE);
-    });
+    updateByIdMock.mockRejectedValue(
+      new Error(STATUS_PAGE_SMS_SUBSCRIPTIONS_SMS_OFF_MESSAGE),
+    );
 
     await renderCard();
     await loaded();

@@ -2,11 +2,12 @@ import EventName from "../../Utils/EventName";
 import { JSONObject } from "Common/Types/JSON";
 import ObjectID from "Common/Types/ObjectID";
 import GlobalEvents from "Common/UI/Utils/GlobalEvents";
+import { useSyncExternalStore } from "react";
 
 /*
  * How the rest of the Dashboard opens Ask AI.
  *
- * Ask AI is one dialog, mounted once for the whole app (AskAiDialog). Every
+ * Ask AI is one panel, mounted once for the whole app (AskAiPanel). Every
  * way in - the header's Ask AI, Ctrl/Cmd + I, the command palette, an
  * "Explain with AI" or "Ask about this case" on a page, the chat's own
  * address under Products -> AI -> Chat - reaches it through the
@@ -18,8 +19,8 @@ import GlobalEvents from "Common/UI/Utils/GlobalEvents";
  *     composer, unsent, so the person reads it first;
  *   - a conversationId: open it on that conversation.
  *
- * A request is also kept until the dialog reads it, so one made before the
- * dialog is listening (the chat's address, opened on its own) is not lost.
+ * A request is also kept until the panel reads it, so one made before the
+ * panel is listening (the chat's address, opened on its own) is not lost.
  */
 export interface AskAiRequest {
   // A question for the composer of a new conversation, left unsent.
@@ -27,8 +28,8 @@ export interface AskAiRequest {
   // The conversation to open.
   conversationId?: string | undefined;
   /*
-   * The chat's own address asked, and is passing the browser on to the
-   * page underneath: that navigation is not the person leaving the dialog.
+   * The chat's own address asked, and is passing the browser on to the page
+   * it is opened beside: that navigation is not the person leaving the panel.
    */
   isForwarded?: boolean | undefined;
 }
@@ -56,11 +57,45 @@ export function toggleAskAi(): void {
   GlobalEvents.dispatchEvent(EventName.AI_CHAT_TOGGLE);
 }
 
-// The request made before the dialog read it, once.
+// The request made before the panel read it, once.
 export function takePendingAskAiRequest(): AskAiRequest | null {
   const request: AskAiRequest | null = pendingRequest;
   pendingRequest = null;
   return request;
+}
+
+/*
+ * Whether Ask AI is open, for what draws a way to it: open beside the page, the
+ * header's Ask AI reads as pressed, and pressing it again closes the panel.
+ */
+let isAskAiOpen: boolean = false;
+const openStateListeners: Set<() => void> = new Set();
+
+export function publishIsAskAiOpen(isOpen: boolean): void {
+  if (isAskAiOpen === isOpen) {
+    return;
+  }
+
+  isAskAiOpen = isOpen;
+
+  for (const listener of openStateListeners) {
+    listener();
+  }
+}
+
+export function useIsAskAiOpen(): boolean {
+  return useSyncExternalStore(
+    (listener: () => void): (() => void) => {
+      openStateListeners.add(listener);
+
+      return () => {
+        openStateListeners.delete(listener);
+      };
+    },
+    (): boolean => {
+      return isAskAiOpen;
+    },
+  );
 }
 
 function readText(detail: Record<string, unknown>, key: string): string {

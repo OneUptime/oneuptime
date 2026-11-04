@@ -665,7 +665,7 @@ describe("the Incidents menu, as the maintainer drew it", () => {
       linksIn("Workspace").map((link: MenuLink): string => {
         return link.title;
       }),
-    ).toEqual(["Connect Slack or Teams"]);
+    ).toEqual(["Connect a workspace"]);
   });
 });
 

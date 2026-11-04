@@ -50,7 +50,7 @@ OneUptime 不需要在自己的伺服器上為 Mattermost 做任何設定：每�
 
 ### 連接專案
 
-在 OneUptime 中，前往 **專案設定** > **工作區** > **Mattermost**，按一下 **連線 Mattermost**。輸入您伺服器的網址（例如 `https://chat.example.com`）和機器人的存取權杖。OneUptime 會先向您的伺服器驗證權杖，然後才儲存任何內容。如果機器人屬於多個團隊，OneUptime 會詢問要在哪個團隊中發布。
+在 OneUptime 中，前往 **專案設定** > **工作區** > **Mattermost**，按一下 **連線 Mattermost**。輸入您伺服器的網址（例如 `https://chat.example.com`）和機器人的存取權杖。OneUptime 會先向您的伺服器驗證權杖，然後才儲存任何內容。如果機器人屬於多個團隊，OneUptime 會詢問要在哪個團隊中發布。在連接工作區之前，事件、警示、排定維護、監測器和待命選單的 **工作區** 區段中有 **連線工作區**，它同樣會帶您來到這裡。
 
 ### 新增通知規則
 
@@ -96,6 +96,8 @@ Mattermost 沒有可供 OneUptime 將您導向過去的登入頁面，因此 One
 若要發布到現有頻道，請輸入其網址中顯示的名稱，例如 `chat.example.com/team/channels/incidents` 中的 `incidents`，或輸入其顯示名稱。OneUptime 第一次在公開頻道發布時會自行加入。在規則向私人頻道發布之前，請先在 Mattermost 中將機器人新增到該頻道。
 
 人員會透過其已連接的 Mattermost 帳戶加入規則的頻道；否則，當您的伺服器向機器人顯示電子郵件地址時（ **System Console** > **Site Configuration** > **Users and Teams** > **Show Email Address** ），會透過使用其電子郵件地址的 Mattermost 帳戶加入。OneUptime 會在頻道中用一則訊息列出它無法加入的所有人，並附上連接其帳戶的連結。
+
+擁有專屬頻道的事件、警示、片段或排定維護事件，會在其 OneUptime 頁面標題的狀態按鈕旁顯示 **在 Mattermost 中開啟**。它會在新分頁中開啟您的 Mattermost 伺服器上的該頻道。擁有兩個專屬頻道的紀錄會在按鈕下列出這兩個頻道。同時在 Slack 或 Microsoft Teams 中有頻道的紀錄，會改為只顯示一個 **開啟頻道** 按鈕，列出所有頻道。不會提供您的規則所發布到的現有頻道。
 
 規則所在列的 **測試規則** 會將該規則的測試訊息發布到它指定的頻道，與 Slack 中一樣。
 

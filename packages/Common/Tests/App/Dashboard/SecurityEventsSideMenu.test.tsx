@@ -704,7 +704,7 @@ describe("Security Events side menu: the Workspace section", () => {
 
     expect(linksIn("Workspace")).toEqual([
       {
-        title: "Connect Slack or Teams",
+        title: "Connect a workspace",
         href: routeFor(PageMap.SECURITY_EVENTS_WORKSPACE_CONNECTIONS),
       },
     ]);
@@ -742,7 +742,7 @@ describe("Security Events side menu: the Workspace section", () => {
     await renderSecurityMenu();
 
     expect(isExpanded("Workspace")).toBe(true);
-    expect(activeLinkTitles()).toEqual(["Connect Slack or Teams"]);
+    expect(activeLinkTitles()).toEqual(["Connect a workspace"]);
   });
 
   test("opens with a click", async () => {

@@ -144,7 +144,7 @@ En sag, der er åbnet fra Google SecOps-advarsler, lukker dem også i Google Sec
 
 ## Sagsprioriteter og sagsstatusser
 
-Hvert projekt har sine egne sagsprioriteter og sagsstatusser, under **Produkter → Sikkerhedshændelser → Indstillinger → Sagsprioriteter** og **Sagsstatusser**. Omdøb dem, giv dem en anden farve, træk dem i en anden rækkefølge, og tilføj dine egne, f.eks. en status "Triage" eller en prioritet "Nødsituation" over **Kritisk**. Et nyt navn vises alle steder på én gang: i køen, på sagssiderne og oversigten, i notifikationer, i Slack og Microsoft Teams og i playbook-beskeder.
+Hvert projekt har sine egne sagsprioriteter og sagsstatusser, under **Produkter → Sikkerhedshændelser → Indstillinger → Sagsprioriteter** og **Sagsstatusser**. Omdøb dem, giv dem en anden farve, træk dem i en anden rækkefølge, og tilføj dine egne, f.eks. en status "Triage" eller en prioritet "Nødsituation" over **Kritisk**. Et nyt navn vises alle steder på én gang: i køen, på sagssiderne og oversigten, i notifikationer, i Slack, Microsoft Teams og Mattermost og i playbook-beskeder.
 
 Nogle er indbyggede, fordi OneUptime læser, hvad de betyder. De kan omdøbes og få en anden farve, men ikke slettes eller arkiveres, og de beholder deres rækkefølge:
 
@@ -157,7 +157,7 @@ Nogle er indbyggede, fordi OneUptime læser, hvad de betyder. De kan omdøbes og
 | Prioriteterne Kritisk, High, Medium, Low og Til orientering | En detektion åbner sin sag med prioriteten for sin alvorlighed, og en sag, som nogen åbner, starter på Medium |
 
 - Hvor en status står, afgør, hvad en sag i den tæller som, som kolonnen **Tæller som** viser: fra den kvitterede status og ned som kvitteret, fra den inddæmmede status og ned som inddæmmet, fra den lukkede status og ned som lukket. En status, du tilføjer, kommer lige over den lukkede status, og når du flytter en sag til en status, der lukker den, bliver du først bedt om en konklusion.
-- En prioritets plads er dens hastegrad, den mest presserende først: **For sager af mindst**, valgene for notifikationer og reglerne for Slack og Microsoft Teams læser denne rækkefølge. En prioritet, du tilføjer, kommer sidst, og kolonnen **Detekteringens alvorlighed** viser, hvilke detektioner der åbner deres sager med hver indbygget prioritet.
+- En prioritets plads er dens hastegrad, den mest presserende først: **For sager af mindst**, valgene for notifikationer og reglerne for Slack, Microsoft Teams og Mattermost læser denne rækkefølge. En prioritet, du tilføjer, kommer sidst, og kolonnen **Detekteringens alvorlighed** viser, hvilke detektioner der åbner deres sager med hver indbygget prioritet.
 
 For at holde op med at bruge en status eller prioritet, du selv har lavet, skal du bruge **Arkiver** i dens række. Ingen kan vælge den igen, og API'et, Terraform og MCP afviser den, men de sager, der har den, beholder den, og du kan stadig filtrere på den. Arkiverede værdier står i den foldede sektion **Arkiverede sagsstatusser** eller **Arkiverede sagsprioriteter** under tabellen, hvor **Fjern fra arkiv** henter en tilbage. **Slet** afvises, så længe sager har værdien, eller en playbook kører fra prioriteten.
 
@@ -232,9 +232,9 @@ Valgene følger projektets sagsprioriteter under deres egne navne: dette er et n
 
 Der sendes ingen WhatsApp-beskeder for sikkerhedssager. En push-notifikation åbner sagen i OneUptime On-Call-appen (1.7.0 eller nyere), hvor du kan godkende eller afvise et playbook-trin, der venter, tage sagen og lukke den. Dens link åbner sagen i browseren.
 
-### Slå op i Slack- og Microsoft Teams-kanaler
+### Slå op i Slack-, Microsoft Teams- og Mattermost-kanaler
 
-For at slå op i en kanal tilføjer du en regel under **Produkter → Sikkerhedshændelser → Arbejdsområde → Slack** (eller **Microsoft Teams**). Er ingen af dem forbundet, er sektionens eneste punkt **Forbind Slack eller Teams**. En regel angiver de kanaler, den slår op i (og i Microsoft Teams chattene), og, hvis du vil, de sager, den gælder for:
+For at slå op i en kanal tilføjer du en regel under **Produkter → Sikkerhedshændelser → Arbejdsområde → Slack** (eller **Microsoft Teams** eller **Mattermost**). Er ingen af dem forbundet, er sektionens eneste punkt **Forbind et arbejdsområde**. En regel angiver de kanaler, den slår op i (og i Microsoft Teams chattene), og, hvis du vil, de sager, den gælder for:
 
 | Betingelse | Matcher på |
 | --- | --- |

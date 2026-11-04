@@ -50,7 +50,7 @@ Fügen Sie den Bot dem Team hinzu, in dem OneUptime posten soll, so wie Sie eine
 
 ### Das Projekt verbinden
 
-Gehen Sie in OneUptime zu **Projekteinstellungen** > **Arbeitsbereich** > **Mattermost** und klicken Sie auf **Mit Mattermost verbinden**. Geben Sie die Adresse Ihres Servers ein, etwa `https://chat.example.com`, und das Zugriffstoken des Bots. OneUptime prüft das Token bei Ihrem Server, bevor es irgendetwas speichert. Ist der Bot in mehr als einem Team, fragt OneUptime, in welchem es posten soll.
+Gehen Sie in OneUptime zu **Projekteinstellungen** > **Arbeitsbereich** > **Mattermost** und klicken Sie auf **Mit Mattermost verbinden**. Geben Sie die Adresse Ihres Servers ein, etwa `https://chat.example.com`, und das Zugriffstoken des Bots. OneUptime prüft das Token bei Ihrem Server, bevor es irgendetwas speichert. Ist der Bot in mehr als einem Team, fragt OneUptime, in welchem es posten soll. Solange kein Workspace verbunden ist, enthält der Abschnitt **Arbeitsbereich** der Menüs Vorfälle, Warnungen, Geplante Wartung, Monitore und Bereitschaft den Eintrag **Arbeitsbereich verbinden**, der ebenfalls hierher führt.
 
 ### Eine Benachrichtigungsregel hinzufügen
 
@@ -96,6 +96,8 @@ Ein Kanal, den eine Regel anlegt, wird nach seinem Datensatz benannt: Vorfall IN
 Um in einem bestehenden Kanal zu posten, geben Sie seinen Namen so ein, wie er in seiner Adresse steht, etwa `incidents` für `chat.example.com/team/channels/incidents`, oder seinen Anzeigenamen. Einem öffentlichen Kanal tritt OneUptime beim ersten Posten selbst bei. Fügen Sie den Bot in Mattermost einem privaten Kanal hinzu, bevor eine Regel dorthin postet.
 
 Personen treten dem Kanal einer Regel über das Mattermost-Konto bei, das sie verbunden haben, oder sonst über das Mattermost-Konto mit ihrer E-Mail-Adresse, wenn Ihr Server dem Bot E-Mail-Adressen zeigt (**System Console** > **Site Configuration** > **Users and Teams** > **Show Email Address**). Wen OneUptime nicht hinzufügen konnte, nennt es in einer einzigen Nachricht im Kanal, mit einem Link, um das eigene Konto zu verbinden.
+
+Ein Vorfall, eine Warnung, eine Episode oder ein geplantes Wartungsereignis mit einem eigenen Kanal hat im Kopf seiner Seite in OneUptime, neben den Statusschaltflächen, **In Mattermost öffnen**. Das öffnet diesen Kanal in einem neuen Tab, auf Ihrem Mattermost-Server. Ein Datensatz mit zwei eigenen Kanälen listet beide unter der Schaltfläche. Ein Datensatz, der auch Kanäle in Slack oder Microsoft Teams hat, hat stattdessen eine Schaltfläche **Kanal öffnen**, die sie alle auflistet. Die bestehenden Kanäle, in die Ihre Regeln posten, werden nicht angeboten.
 
 **Regel testen** in der Zeile einer Regel postet eine Testnachricht für diese Regel in die Kanäle, die sie nennt, wie bei Slack.
 

@@ -80,7 +80,11 @@ const HeaderIconDropdownButton: FunctionComponent<ComponentProps> = (
         <button
           type="button"
           title={tooltip}
-          className={`flex items-center rounded-lg border border-gray-200 bg-gray-50 hover:bg-white hover:border-gray-300 hover:shadow-sm active:bg-gray-100 focus:outline-none focus:ring-2 focus:ring-indigo-500 focus:ring-offset-1 transition-all duration-150 ${sizeClassName}`}
+          className={`flex items-center rounded-lg border hover:bg-white hover:border-gray-300 hover:shadow-sm active:bg-gray-100 focus:outline-none focus:ring-2 focus:ring-indigo-500 focus:ring-offset-1 transition-all duration-150 ${
+            props.isPressed
+              ? "border-indigo-200 bg-indigo-50"
+              : "border-gray-200 bg-gray-50"
+          } ${sizeClassName}`}
           id={hasDropdown ? "user-menu-button" : undefined}
           aria-expanded={hasDropdown ? isDropdownVisible : undefined}
           aria-haspopup={hasDropdown ? "true" : undefined}

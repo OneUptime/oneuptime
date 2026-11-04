@@ -12,7 +12,7 @@ flowchart TB
 
 :::cards
 - [Profilen din](#profilen-din): Navnet, e-posten, tidssonen og bildet ditt.
-- [Logg inn trygt](#logg-inn-trygt): Passordet ditt, passnøkler og totrinnsbekreftelse.
+- [Logg inn trygt](#logg-inn-trygt): Passordet ditt, innloggingslenker, passnøkler og totrinnsbekreftelse.
 - [Prosjektene dine](#prosjektene-dine): Bytt prosjekt, opprett et, og godta invitasjoner.
 - [Brukerinnstillinger](#det-hvert-prosjekt-tar-vare-på-for-deg): Hvordan OneUptime når deg i hvert prosjekt.
 :::
@@ -63,7 +63,7 @@ Utvid **Sikkerhet** i sidemenyen til **Brukerprofil**. Delen har tre sider.
 | --- | --- |
 | **Passordadministrasjon** | Angi et nytt passord. |
 | **Passkeys** | Logg inn uten passord, med fingeravtrykk, ansikt, skjermlås eller en sikkerhetsnøkkel. |
-| **Two-factor authentication** | Be om et andre steg etter passordet: en kode fra en app, eller en sikkerhetsnøkkel. |
+| **Two-factor authentication** | Be om et andre steg etter passordet eller en lenke på e-post: en kode fra en app, eller en sikkerhetsnøkkel. |
 
 ### Bytt passord
 
@@ -83,9 +83,24 @@ Utvid **Sikkerhet** i sidemenyen til **Brukerprofil**. Delen har tre sider.
 
 Neste gang velger du **Logg inn med en passnøkkel** på innloggingssiden.
 
+### Logg inn med en lenke på e-post
+
+Du kan logge inn med en lenke i stedet for passordet. Det er ingenting å sette opp.
+
+:::steps
+1. Velg **Send meg en innloggingslenke** på innloggingssiden.
+2. Skriv inn e-postadressen din, og klikk på **Send meg en innloggingslenke**. Siden viser deretter **Sjekk e-posten din**.
+3. Åpne lenken i e-posten, og klikk på **Logg inn**.
+:::
+
+Lenken virker én gang, i 15 minutter, og en nyere lenke erstatter den. Du kan åpne den på en annen enhet, og da er du logget inn der. Hvis du bruker totrinnsbekreftelse, ber OneUptime fortsatt om det andre steget ditt.
+
+> [!NOTE]
+> Hovedadministratorer på en selvhostet installasjon kan slå av innloggingslenker med **La folk logge inn med en lenke på e-post**, under **Admin Dashboard > Innstillinger > Autentisering**. Lenker som allerede er sendt, slutter da å virke. Så lenge serveren krever SSO, tilbyr innloggingssiden bare SSO.
+
 ### Slå på totrinnsbekreftelse
 
-Totrinnsbekreftelse gjelder når du logger inn med passordet ditt. Legg først til et andre steg, og slå den deretter på.
+Totrinnsbekreftelse gjelder når du logger inn med passordet ditt eller en lenke på e-post. Legg først til et andre steg, og slå den deretter på.
 
 :::steps
 ### Legg til en autentiseringsapp
@@ -98,7 +113,7 @@ Første gang du legger til en app, en nøkkel eller en passnøkkel, viser OneUpt
 
 ### Slå den på
 
-Øverst på siden klikker du på **Enable two-factor authentication** og bekrefter. Kortet viser nå **Aktivert**. Fra neste innlogging med passord ber OneUptime om det andre steget ditt.
+Øverst på siden klikker du på **Enable two-factor authentication** og bekrefter. Kortet viser nå **Aktivert**. Fra neste innlogging med passord eller en lenke på e-post ber OneUptime om det andre steget ditt.
 :::
 
 > [!TIP]

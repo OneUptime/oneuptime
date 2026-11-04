@@ -15,7 +15,7 @@ import HTTPResponse from "../../../Types/API/HTTPResponse";
 import { JSONObject } from "../../../Types/JSON";
 import ObjectID from "../../../Types/ObjectID";
 import GlobalEvents from "../../../UI/Utils/GlobalEvents";
-import AskAiDialog from "../../../../App/FeatureSet/Dashboard/src/Components/AIChat/AskAiDialog";
+import AskAiPanel from "../../../../App/FeatureSet/Dashboard/src/Components/AIChat/AskAiPanel";
 import EventName from "../../../../App/FeatureSet/Dashboard/src/Utils/EventName";
 
 /*
@@ -201,7 +201,7 @@ function respondWithProviders(data: ProvidersResponse): void {
 async function openAskAi(): Promise<void> {
   render(
     <MemoryRouter>
-      <AskAiDialog />
+      <AskAiPanel />
     </MemoryRouter>,
   );
 

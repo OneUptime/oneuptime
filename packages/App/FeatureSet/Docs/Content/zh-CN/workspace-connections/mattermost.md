@@ -50,7 +50,7 @@ OneUptime 无需在自己的服务器上为 Mattermost 做任何设置：每个�
 
 ### 连接项目
 
-在 OneUptime 中，前往 **项目设置** > **工作区** > **Mattermost**，点击 **连接 Mattermost**。输入您服务器的地址（例如 `https://chat.example.com`）和机器人的访问令牌。OneUptime 会先向您的服务器验证令牌，然后才保存任何内容。如果机器人属于多个团队，OneUptime 会询问要在哪个团队中发布。
+在 OneUptime 中，前往 **项目设置** > **工作区** > **Mattermost**，点击 **连接 Mattermost**。输入您服务器的地址（例如 `https://chat.example.com`）和机器人的访问令牌。OneUptime 会先向您的服务器验证令牌，然后才保存任何内容。如果机器人属于多个团队，OneUptime 会询问要在哪个团队中发布。在连接工作区之前，事件、警报、计划维护、监视器和值班菜单的 **工作区** 部分中有 **连接工作区**，它同样会带您来到这里。
 
 ### 添加通知规则
 
@@ -96,6 +96,8 @@ Mattermost 没有可供 OneUptime 将您引导过去的登录页面，因此 One
 要发布到现有频道，请输入其网址中显示的名称，例如 `chat.example.com/team/channels/incidents` 中的 `incidents`，或输入其显示名称。OneUptime 第一次在公开频道发布时会自行加入。在规则向私密频道发布之前，请先在 Mattermost 中将机器人添加到该频道。
 
 人员通过其已连接的 Mattermost 账户加入规则的频道；否则，当您的服务器向机器人显示电子邮件地址时（ **System Console** > **Site Configuration** > **Users and Teams** > **Show Email Address** ），通过使用其电子邮件地址的 Mattermost 账户加入。OneUptime 会在频道中用一条消息列出它无法添加的所有人，并附上连接其账户的链接。
+
+拥有专属频道的事件、警报、片段或计划维护事件，会在其 OneUptime 页面标题的状态按钮旁显示 **在 Mattermost 中打开**。它会在新标签页中打开您的 Mattermost 服务器上的该频道。拥有两个专属频道的记录会在按钮下列出这两个频道。同时在 Slack 或 Microsoft Teams 中有频道的记录，会改为只显示一个 **打开频道** 按钮，列出所有频道。不会提供您的规则所发布到的现有频道。
 
 规则所在行的 **测试规则** 会将该规则的测试消息发布到它指定的频道，与 Slack 中一样。
 

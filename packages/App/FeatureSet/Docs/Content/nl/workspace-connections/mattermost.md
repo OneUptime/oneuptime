@@ -50,7 +50,7 @@ Voeg de bot toe aan het team waarin OneUptime moet plaatsen, zoals je een persoo
 
 ### Het project koppelen
 
-Ga in OneUptime naar **Projectinstellingen** > **Werkruimte** > **Mattermost** en klik op **Koppelen met Mattermost**. Vul het adres van je server in, zoals `https://chat.example.com`, en het toegangstoken van de bot. OneUptime controleert het token bij je server voordat het iets bewaart. Zit de bot in meer dan één team, dan vraagt OneUptime in welk team het moet plaatsen.
+Ga in OneUptime naar **Projectinstellingen** > **Werkruimte** > **Mattermost** en klik op **Koppelen met Mattermost**. Vul het adres van je server in, zoals `https://chat.example.com`, en het toegangstoken van de bot. OneUptime controleert het token bij je server voordat het iets bewaart. Zit de bot in meer dan één team, dan vraagt OneUptime in welk team het moet plaatsen. Zolang er geen workspace is gekoppeld, bevat de sectie **Werkruimte** van de menu's Incidenten, Waarschuwingen, Gepland onderhoud, Monitoren en Bereikbaarheidsdienst **Werkruimte koppelen**, dat ook hierheen leidt.
 
 ### Een meldingsregel toevoegen
 
@@ -96,6 +96,8 @@ Een kanaal dat een regel aanmaakt, krijgt de naam van zijn record: incident INC-
 Om in een bestaand kanaal te plaatsen, vul je de naam in zoals die in het adres van het kanaal staat, zoals `incidents` voor `chat.example.com/team/channels/incidents`, of de weergavenaam. OneUptime treedt zelf toe tot een openbaar kanaal de eerste keer dat het daar plaatst. Voeg de bot in Mattermost toe aan een privékanaal voordat een regel erin plaatst.
 
 Mensen worden lid van het kanaal van een regel via het Mattermost-account dat ze hebben gekoppeld, of anders via het Mattermost-account met hun e-mailadres, als je server e-mailadressen aan de bot toont (**System Console** > **Site Configuration** > **Users and Teams** > **Show Email Address**). OneUptime noemt wie het niet kon toevoegen in één bericht in het kanaal, met een link om hun account te koppelen.
+
+Een incident, waarschuwing, episode of geplande onderhoudsgebeurtenis met een eigen kanaal heeft **Openen in Mattermost** in de kop van zijn pagina in OneUptime, naast de statusknoppen. Die opent dat kanaal in een nieuw tabblad, op je Mattermost-server. Een record met twee eigen kanalen toont ze allebei onder de knop. Een record dat ook kanalen in Slack of Microsoft Teams heeft, heeft in plaats daarvan één knop **Kanaal openen**, die ze allemaal toont. De bestaande kanalen waarin je regels posten, worden niet aangeboden.
 
 **Testregel** in de rij van een regel plaatst een testbericht voor die regel in de kanalen die hij noemt, zoals bij Slack.
 

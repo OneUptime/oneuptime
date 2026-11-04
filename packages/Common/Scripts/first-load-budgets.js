@@ -58,7 +58,8 @@ const PAGES = [
     // 2026-11-03: 1,119,050 bytes, loading the reader's language only (#5614).
     // 2026-11-03: 923,776 bytes, loading what it does not draw with where it is used (#5619).
     // 2026-11-04: 883,196 bytes, loading browser telemetry only where it is configured (#5619).
-    ceiling: 880 * KIB,
+    // 2026-11-04: 786,737 bytes, loading code, Markdown and file fields only for a form that has one (#5619).
+    ceiling: 780 * KIB,
   },
   {
     frontend: "Accounts",
@@ -68,7 +69,8 @@ const PAGES = [
     // 2026-11-03: 1,114,772 bytes, loading the reader's language only (#5614).
     // 2026-11-03: 929,191 bytes, loading what it does not draw with where it is used (#5619).
     // 2026-11-04: 887,494 bytes, loading browser telemetry only where it is configured (#5619).
-    ceiling: 885 * KIB,
+    // 2026-11-04: 791,036 bytes, loading code, Markdown and file fields only for a form that has one (#5619).
+    ceiling: 785 * KIB,
   },
   {
     frontend: "StatusPage",
@@ -78,7 +80,8 @@ const PAGES = [
     // 2026-11-03: 1,271,934 bytes, loading the reader's language only (#5614).
     // 2026-11-03: 1,101,030 bytes, loading what it does not draw with where it is used (#5619).
     // 2026-11-04: 1,059,516 bytes, loading browser telemetry only where it is configured (#5619).
-    ceiling: 1055 * KIB,
+    // 2026-11-04: 967,395 bytes, loading code, Markdown and file fields only for a form that has one (#5619).
+    ceiling: 960 * KIB,
   },
   {
     frontend: "PublicDashboard",
@@ -87,7 +90,8 @@ const PAGES = [
     // 2026-11-03: 1,961,449 bytes.
     // 2026-11-03: 1,839,798 bytes, loading what it does not draw with where it is used (#5619).
     // 2026-11-04: 1,807,182 bytes, loading browser telemetry only where it is configured (#5619).
-    ceiling: 1790 * KIB,
+    // 2026-11-04: 1,720,563 bytes, loading code, Markdown and file fields only for a form that has one (#5619).
+    ceiling: 1710 * KIB,
   },
 ];
 

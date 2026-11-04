@@ -767,7 +767,8 @@ const threadMode = THREAD_MODES.includes(params.get("thread"))
   : "empty";
 /*
  * The record's own chat channels (?channels=), each link built by the real
- * WorkspaceChannelLink rules from ids of the shapes Slack and Teams give.
+ * WorkspaceChannelLink rules from ids of the shapes Slack and Teams give and
+ * the names of the shape Mattermost gives.
  */
 const channelModes = new Set(
   (params.get("channels") || "").split(",").filter((value) => value.length > 0),
@@ -7321,6 +7322,8 @@ function cancelThreadRun(body) {
 const SLACK_TEAM_ID = "T0ACMECOM";
 const TEAMS_TEAM_ID = "3f2a1b4c-5d6e-4f70-8a9b-0c1d2e3f4a5b";
 const TEAMS_TENANT_ID = "a1b2c3d4-e5f6-4a7b-8c9d-0e1f2a3b4c5d";
+const MATTERMOST_SERVER_URL = "https://chat.acme-commerce.example";
+const MATTERMOST_TEAM_NAME = "acme";
 
 function channelLinks(url) {
   const [recordType] = url.split("/workspace-channel-link/")[1].split("/");
@@ -7364,6 +7367,18 @@ function channelLinks(url) {
         tenantId: TEAMS_TENANT_ID,
         teamId: TEAMS_TEAM_ID,
         channelId: "19:acme0001acme0001acme0001acme0001@thread.tacv2",
+        channelName: name,
+      }),
+    });
+  }
+
+  if (channelModes.has("mattermost")) {
+    links.push({
+      workspaceType: WorkspaceType.Mattermost,
+      channelName: name,
+      url: WorkspaceChannelLinkUtil.getMattermostChannelUrl({
+        serverUrl: MATTERMOST_SERVER_URL,
+        teamName: MATTERMOST_TEAM_NAME,
         channelName: name,
       }),
     });
@@ -7449,7 +7464,12 @@ function channelStateOf() {
 
 function channelMembers(url) {
   const route = url.split("/workspace-channel-members/")[1];
-  const links = channelLinks(`/workspace-channel-link/${route}`);
+  // The server reads who is in a Slack or Teams channel, not a Mattermost one.
+  const links = channelLinks(`/workspace-channel-link/${route}`).filter(
+    (link) => {
+      return link.workspaceType !== WorkspaceType.Mattermost;
+    },
+  );
   const state = channelStateOf();
 
   const channels = links.map((link) => {

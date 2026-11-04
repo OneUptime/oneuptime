@@ -760,19 +760,8 @@ describe("picking a site fills in the site's default probe", () => {
    * permanent for the life of the page.
    */
   test("a failed lookup leaves the box alone and is not cached as an answer", async () => {
-    /*
-     * Rejected from a timer rather than immediately, so the handler is
-     * attached before the rejection happens and the run does not log a
-     * spurious unhandled-rejection warning for a case that is handled.
-     */
     mockGetItem = (): Promise<unknown> => {
-      return new Promise<unknown>(
-        (_resolve: (value: unknown) => void, reject: (err: Error) => void) => {
-          setTimeout(() => {
-            reject(new Error("Network error"));
-          }, 0);
-        },
-      );
+      return Promise.reject(new Error("Network error"));
     };
 
     const props: CapturedTableProps = await renderDevicesPage();

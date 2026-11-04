@@ -115,11 +115,12 @@ COPY ./packages/Nginx /usr/src/app
 RUN npm run compile
 
 # Leave in /usr/src only what the sidecar runs: the packages its imports reach
-# (see the script's header), without Common's tests or the type-check's output
-# (ts-node runs Index.ts). npm's download cache stays behind in this stage.
+# (see the script's header), without Common's and the sidecar's tests or the
+# type-check's output (ts-node runs Index.ts). npm's download cache stays behind
+# in this stage.
 COPY ./Scripts/Docker/PruneUnreachablePackages.js /tmp/PruneUnreachablePackages.js
 RUN node /tmp/PruneUnreachablePackages.js --entry /usr/src/app/Index.ts --package /usr/src/Common \
-    && rm -rf /tmp/PruneUnreachablePackages.js /usr/src/Common/Tests /usr/src/app/build \
+    && rm -rf /tmp/PruneUnreachablePackages.js /usr/src/Common/Tests /usr/src/app/build /usr/src/app/Tests \
     && chmod +x /usr/src/app/run.sh
 
 # ---------------------------------------------------------------------------

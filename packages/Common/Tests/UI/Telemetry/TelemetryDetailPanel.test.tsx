@@ -6,6 +6,7 @@ import TelemetryDetailPanel, {
   TelemetryDetailPanelProps,
   TelemetryDetailPanelTab,
 } from "../../../UI/Components/TelemetryViewer/components/TelemetryDetailPanel";
+import { PAGE_DOCK_END_CLASS_NAME } from "../../../UI/Utils/PageDock";
 import getJestMockFunction, { MockFunction } from "../../MockType";
 
 const tabs: Array<TelemetryDetailPanelTab> = [
@@ -295,7 +296,18 @@ describe("TelemetryDetailPanel width", () => {
       name: "Session details",
     });
 
-    expect(dialog).toHaveClass("fixed", "right-0", "w-[38rem]", "max-w-full");
+    expect(dialog).toHaveClass("fixed", "w-[38rem]", "max-w-full");
+  });
+
+  it("stops short of a surface docked at the end of the window, or it would open behind it", () => {
+    render(<TelemetryDetailPanel {...makeProps()} />);
+
+    const dialog: HTMLElement = screen.getByRole("dialog", {
+      name: "Session details",
+    });
+
+    expect(dialog).toHaveClass(PAGE_DOCK_END_CLASS_NAME);
+    expect(dialog).not.toHaveClass("right-0");
   });
 
   it("uses a caller's width classes in place of the default, cap included", () => {

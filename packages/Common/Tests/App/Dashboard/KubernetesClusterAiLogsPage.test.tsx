@@ -253,11 +253,7 @@ function httpError(statusCode: number, message: string): Answer {
   };
 }
 
-/*
- * A request that fails the way a dropped connection does. Thrown from inside
- * the async body rather than returned as a pre-built rejected promise, so no
- * unhandled rejection is reported between construction and the await.
- */
+// A request that fails the way a dropped connection does.
 function networkError(): Answer {
   return async (): Promise<HTTPResponse<JSONObject>> => {
     throw new Error("Network Error");

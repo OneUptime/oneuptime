@@ -228,19 +228,6 @@ const respondWith: (status: TeamComplianceStatusJSON) => never = (
   return { data: status } as never;
 };
 
-/*
- * A failing call, as a native async function: a rejection built here by
- * mockRejectedValue is a zone.js promise (the Telemetry util loads zone.js)
- * that zone reports as unhandled even though the page catches it.
- */
-const failWith: (message: string) => () => Promise<never> = (
-  message: string,
-): (() => Promise<never>) => {
-  return async (): Promise<never> => {
-    throw new Error(message);
-  };
-};
-
 let apiGet: jest.SpyInstance;
 
 const renderPage: (status?: TeamComplianceStatusJSON) => Promise<void> = async (
@@ -361,7 +348,7 @@ describe("reading the status", () => {
   });
 
   test("a first read that fails shows the error, not an endless skeleton", async () => {
-    apiGet.mockImplementation(failWith("boom"));
+    apiGet.mockRejectedValue(new Error("boom"));
     jest.spyOn(API, "getFriendlyMessage").mockReturnValue("Compliance is down");
 
     render(<TeamViewCompliance {...PAGE_PROPS} />);
@@ -373,7 +360,7 @@ describe("reading the status", () => {
   });
 
   test("retrying after a failed first read loads the page", async () => {
-    apiGet.mockImplementationOnce(failWith("boom"));
+    apiGet.mockRejectedValueOnce(new Error("boom"));
     jest.spyOn(API, "getFriendlyMessage").mockReturnValue("Compliance is down");
 
     render(<TeamViewCompliance {...PAGE_PROPS} />);
@@ -404,7 +391,7 @@ describe("reading the status", () => {
   test("Refresh reads again; a failure keeps the last results and says so", async () => {
     await renderPage();
 
-    apiGet.mockImplementationOnce(failWith("boom"));
+    apiGet.mockRejectedValueOnce(new Error("boom"));
     jest.spyOn(API, "getFriendlyMessage").mockReturnValue("Compliance is down");
 
     await act(async () => {
@@ -425,7 +412,7 @@ describe("reading the status", () => {
   test("a successful refresh after a failure clears the error", async () => {
     await renderPage();
 
-    apiGet.mockImplementationOnce(failWith("boom"));
+    apiGet.mockRejectedValueOnce(new Error("boom"));
     jest.spyOn(API, "getFriendlyMessage").mockReturnValue("Compliance is down");
 
     await act(async () => {
@@ -624,7 +611,7 @@ describe("reloading, when reads overlap", () => {
     const olderRead: Deferred<never> = deferred<never>();
     apiGet
       .mockReturnValueOnce(olderRead.promise)
-      .mockImplementationOnce(failWith("boom"));
+      .mockRejectedValueOnce(new Error("boom"));
 
     const settled: Array<boolean> = [];
 
@@ -2156,7 +2143,7 @@ describe("pausing and resuming a rule", () => {
 
     jest.spyOn(ModelAPI, "updateById").mockResolvedValue({} as never);
     jest.spyOn(API, "getFriendlyMessage").mockReturnValue("Compliance is down");
-    apiGet.mockImplementationOnce(failWith("boom"));
+    apiGet.mockRejectedValueOnce(new Error("boom"));
 
     await act(async () => {
       fireEvent.click(ruleSwitch("Verified email"));
@@ -2228,7 +2215,7 @@ describe("pausing and resuming a rule", () => {
     mockPermissions = EDITOR;
     await renderPage();
 
-    jest.spyOn(ModelAPI, "updateById").mockImplementation(failWith("nope"));
+    jest.spyOn(ModelAPI, "updateById").mockRejectedValue(new Error("nope"));
     jest.spyOn(API, "getFriendlyMessage").mockReturnValue("Permission denied");
 
     await act(async () => {
@@ -3277,7 +3264,7 @@ describe("deleting a rule", () => {
     mockPermissions = EDITOR;
     await renderPage();
 
-    jest.spyOn(ModelAPI, "deleteItem").mockImplementation(failWith("nope"));
+    jest.spyOn(ModelAPI, "deleteItem").mockRejectedValue(new Error("nope"));
     jest.spyOn(API, "getFriendlyMessage").mockReturnValue("Rule is locked");
 
     fireEvent.click(
@@ -3449,7 +3436,7 @@ describe("an empty team: recommended rules", () => {
   test("when the severities cannot be read, the form opens with none preselected", async () => {
     await renderPage(buildStatus());
 
-    jest.spyOn(ModelAPI, "getList").mockImplementation(failWith("422"));
+    jest.spyOn(ModelAPI, "getList").mockRejectedValue(new Error("422"));
 
     await act(async () => {
       fireEvent.click(

@@ -31,11 +31,10 @@ export interface ComponentProps {
   menuAlign?: "left" | "right" | undefined;
   /*
    * Which side of the button the menu opens on. Defaults to "top", for a
-   * composer at the foot of its surface. Ask AI's start draws the composer
-   * near the top of the dialog, where a menu opening upwards would be cut
-   * off by the dialog's edge: there it asks for "bottom". Either way the
-   * menu opens on the other side when it would not fit on the one asked
-   * for and fits better there (MenuSide).
+   * composer at the foot of its surface. A composer near the top of its
+   * surface asks for "bottom", where a menu opening upwards would be cut off
+   * by the surface's edge. Either way the menu opens on the other side when
+   * it would not fit on the one asked for and fits better there (MenuSide).
    */
   menuSide?: MenuSide | undefined;
 }
@@ -94,7 +93,7 @@ const PermissionModePicker: FunctionComponent<ComponentProps> = (
     };
     /*
      * Escape closes the menu and hands focus back to the button it came
-     * from - and only the menu: the key is marked as spent, so the dialog
+     * from - and only the menu: the key is marked as spent, so the panel
      * the picker sits in (Ask AI) does not close with it.
      */
     const onKeyDown: (event: KeyboardEvent) => void = (
@@ -118,7 +117,12 @@ const PermissionModePicker: FunctionComponent<ComponentProps> = (
     AIChatPermissionModeHelper.getOptions();
 
   return (
-    <div className="relative" ref={containerRef}>
+    /*
+     * Not `relative`: the menu is placed against the composer's row of
+     * controls (ChatInput), which has room for all of it however far along
+     * the row this button is.
+     */
+    <div ref={containerRef}>
       <button
         ref={buttonRef}
         type="button"
@@ -157,9 +161,9 @@ const PermissionModePicker: FunctionComponent<ComponentProps> = (
           role="menu"
           aria-label={translator.translateText("AI permissions")}
           data-menu-side={menuSide}
-          className={`absolute z-50 w-72 max-w-[calc(100vw-2rem)] overflow-hidden rounded-xl border border-gray-200 bg-white shadow-lg ${
+          className={`absolute z-50 w-72 max-w-full overflow-hidden rounded-xl border border-gray-200 bg-white shadow-lg ${
             menuSide === "bottom" ? "top-full mt-2" : "bottom-full mb-2"
-          } ${props.menuAlign === "left" ? "left-0" : "right-0"}`}
+          } ${props.menuAlign === "left" ? "left-2" : "right-2"}`}
         >
           <div className="border-b border-gray-100 px-3 py-2 text-[11px] font-medium uppercase tracking-wide text-gray-400">
             {translator.translateText("AI permissions")}
