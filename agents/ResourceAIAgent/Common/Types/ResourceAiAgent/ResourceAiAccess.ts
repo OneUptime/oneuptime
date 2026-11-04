@@ -202,6 +202,14 @@ export const RESOURCE_AI_AWS_WRITE_ROLE_ARN_ENV: string =
   "ONEUPTIME_AI_AWS_WRITE_ROLE_ARN";
 export const RESOURCE_AI_PROTECTED_TARGETS_ENV: string =
   "ONEUPTIME_AI_PROTECTED_TARGETS";
+/*
+ * Google Cloud only: where the agent runs, as its setup command started it
+ * (GcpCloudAiAgentHost). The VM's startup script sets compute-engine; Cloud
+ * Run says so itself (K_SERVICE). The agent reports it with its posture
+ * (details.gcpHost), so running the command again from Change keeps the
+ * agent where it is.
+ */
+export const RESOURCE_AI_GCP_HOST_ENV: string = "ONEUPTIME_AI_GCP_HOST";
 
 // The tag a team may require on every resource AI changes.
 export const CLOUD_AI_DEFAULT_REQUIRED_TAG: string = "oneuptime-ai=allow";

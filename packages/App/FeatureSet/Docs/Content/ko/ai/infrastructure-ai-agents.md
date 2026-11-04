@@ -152,7 +152,7 @@ AWS 계정, Azure 구독 또는 Google Cloud 프로젝트에는 에이전트를 
 | -------------------- | ------------------ | ------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------ |
 | AWS 계정 | AWS CloudShell | ECS Fargate 태스크 하나를 실행하는 CloudFormation 스택 `oneuptime-ai-agent`. 태스크 역할은 쓰기 역할 `OneUptimeAiAgentWrite` 만 맡을 수 있으며, 이 역할이 켜진 변경의 권한을 가집니다. 연결에 쓰는 키는 Secrets Manager 에 보관되며, ECS만 읽습니다. |
 | Azure 구독 | Azure Cloud Shell | 리소스 그룹 `oneuptime-ai-agent` 의 Container App `oneuptime-ai-agent`. 그 관리 ID는 구독에 대해 켜진 변경의 권한을 가진 사용자 지정 역할을 가집니다. 연결에 쓰는 키는 Container Apps 시크릿으로 보관됩니다. |
-| Google Cloud 프로젝트 | Google Cloud Shell | CPU가 항상 할당된 Cloud Run 서비스 `oneuptime-ai-agent`. 서비스 계정 `oneuptime-ai-agent` 로 실행되며, 이 서비스 계정은 프로젝트에 대해 켜진 변경의 권한을 가진 사용자 지정 역할을 가집니다. 연결에 쓰는 키는 Secret Manager 에 보관되며, 그 서비스 계정만 읽을 수 있습니다. |
+| Google Cloud 프로젝트 | Google Cloud Shell | Container-Optimized OS에서 실행되는 `e2-micro` 유형의 Compute Engine VM `oneuptime-ai-agent`. 방화벽 규칙이 없는 전용 네트워크에 있어 아무것도 연결할 수 없습니다. 서비스 계정 `oneuptime-ai-agent` 로 실행되며, 이 서비스 계정은 프로젝트에 대해 켜진 변경의 권한을 가진 사용자 지정 역할을 가집니다. 연결에 쓰는 키는 Secret Manager 에 보관되며, 그 서비스 계정만 읽을 수 있습니다. VM은 시작할 때마다 키를 읽고, 디스크나 메타데이터에 절대 저장하지 않습니다. **추가 필드**의 **에이전트 실행 위치**에서 대신 CPU가 항상 할당된 Cloud Run 서비스를 선택할 수 있으며, VM에 외부 IP 주소를 허용하지 않는 프로젝트용입니다. |
 
 명령은 작성된 대상 계정에서만 작동합니다. AWS에서는 다른 계정에 로그인한 셸에서 아무것도 만들지 않으며, Azure와 Google Cloud 명령은 호출할 때마다 구독이나 프로젝트를 지정합니다. 명령은 `ONEUPTIME_AI_INVESTIGATION=true`, 답에 따른 `ONEUPTIME_AI_FIXES`, `ONEUPTIME_AI_ALLOW_WRITES=true`, 그리고 작성된 대상 계정을 가리키는 `ONEUPTIME_AI_CLOUD_ACCOUNT_ID` 를 설정합니다. 에이전트는 클라우드가 알려 주는 소속 계정으로 등록하며 OneUptime에 계정을 추가하는 일은 절대 없습니다. 명령과 다른 계정에서 시작하면 거부되며, 명령의 대상 계정 페이지에 그 이유가 표시됩니다. 프로젝트의 어떤 연결도 읽지 않는 계정에서 시작해도 거부되며, 로그에 그렇게 기록됩니다.
 
@@ -459,7 +459,7 @@ AI 에이전트 페이지에 무엇이 표시되든, 에이전트 자체는 쓰�
 - **데이터베이스 서버:** 에이전트 자신의 세션.
 - **호스트:** 모든 OneUptime 유닛(호스트 AI 에이전트 자신의 유닛을 포함한 `oneuptime-*`), OpenTelemetry 수집기(`otelcol-contrib.service`, `otelcol.service`), 에이전트가 실행되는 Docker 엔진(`docker.service`, `docker.socket`, `containerd.service`), 그리고 에이전트 자신의 프로세스와 그 위의 프로세스.
 - **Proxmox:** 에이전트는 자신이 어느 게스트에서 실행되는지 알 수 없습니다. 같은 클러스터의 VM이나 컨테이너에서 실행된다면 그 VMID를 `ONEUPTIME_AI_PROTECTED_TARGETS` 에 넣으세요. VMware의 에이전트 VM도 마찬가지입니다.
-- **클라우드 계정:** 설정 명령이 만든 모든 것. AWS에서는 `oneuptime-ai-agent` 스택, 그 ECS 클러스터와 서비스, `OneUptimeAiAgentTask` 와 `OneUptimeAiAgentWrite` 역할, Azure에서는 `oneuptime-ai-agent` 리소스 그룹, Google Cloud에서는 `oneuptime-ai-agent` Cloud Run 서비스와 서비스 계정.
+- **클라우드 계정:** 설정 명령이 만든 모든 것. AWS에서는 `oneuptime-ai-agent` 스택, 그 ECS 클러스터와 서비스, `OneUptimeAiAgentTask` 와 `OneUptimeAiAgentWrite` 역할, Azure에서는 `oneuptime-ai-agent` 리소스 그룹, Google Cloud에서는 `oneuptime-ai-agent` VM 또는 Cloud Run 서비스와 그 서비스 계정.
 
 ## 자격 증명과 최소 권한
 
@@ -473,7 +473,7 @@ AI 에이전트 페이지에 무엇이 표시되든, 에이전트 자체는 쓰�
 | Ceph 클러스터 | 에이전트 전용 클라이언트 `client.oneuptime-ai` 의 키링과 최소한의 `ceph.conf` 를 `/etc/ceph` 에 마운트(`CEPH_CLIENT_ID`, `CEPH_CONF`, `CEPH_KEYRING`) | `mon 'allow r' mgr 'allow r' osd 'allow r'` — 관리자 키링은 절대 사용하지 않음 | 읽기 caps에 더해 필요한 수정만을 위한 `allow command` 항목(Ceph 에이전트의 README에 목록이 있음) |
 | 데이터베이스 서버 | `DATABASE_USERNAME` / `DATABASE_PASSWORD`(수집기의 로그인) 또는 설정된 경우 `ONEUPTIME_AI_DATABASE_USERNAME` / `ONEUPTIME_AI_DATABASE_PASSWORD`. `DATABASE_ENDPOINT` 와 TLS 설정 | 수집기의 모니터링 로그인(PostgreSQL에서는 `pg_monitor`) | 다른 세션에 신호를 보낼 수 있는 에이전트 전용 로그인: `pg_signal_backend`(PostgreSQL), `CONNECTION_ADMIN`(MySQL 8), `+client\|kill`(Redis ACL), `killop` 작업(MongoDB) |
 | 호스트 | 없음. 호스트의 네임스페이스에서 root로 특권 실행됨 | `ONEUPTIME_AI_ALLOW_WRITES` 는 설정하지 않음 | `ONEUPTIME_AI_WRITE_TARGETS` 에 AI가 변경할 수 있는 유닛을 지정 |
-| 클라우드 계정 | 실행되는 곳의 ID. AWS에서는 ECS 태스크의 역할이며, `ONEUPTIME_AI_AWS_WRITE_ROLE_ARN` 의 쓰기 역할만 맡을 수 있음. Azure에서는 Container App의 관리 ID, Google Cloud에서는 Cloud Run 서비스의 서비스 계정 | 없음. OneUptime이 읽기 전용 연결을 통해 계정을 읽음 | 설정 명령이 작성하는 역할: 켜진 변경의 권한과 그 변경에 필요한 읽기만, 그 밖에는 없음. AWS에서는 변경마다 그 리소스 하나에 대한 그 변경 하나만 허용하는 세션 정책과 함께 `OneUptimeAiAgentWrite` 를 맡음 |
+| 클라우드 계정 | 실행되는 곳의 ID. AWS에서는 ECS 태스크의 역할이며, `ONEUPTIME_AI_AWS_WRITE_ROLE_ARN` 의 쓰기 역할만 맡을 수 있음. Azure에서는 Container App의 관리 ID, Google Cloud에서는 VM 또는 Cloud Run 서비스가 실행되는 서비스 계정 | 없음. OneUptime이 읽기 전용 연결을 통해 계정을 읽음 | 설정 명령이 작성하는 역할: 켜진 변경의 권한과 그 변경에 필요한 읽기만, 그 밖에는 없음. AWS에서는 변경마다 그 리소스 하나에 대한 그 변경 하나만 허용하는 세션 정책과 함께 `OneUptimeAiAgentWrite` 를 맡음 |
 
 수집기의 README에는 정확한 명령이 있습니다. Proxmox 수정용 토큰을 위한 `pveum` 명령([ProxmoxAgent](https://github.com/OneUptime/oneuptime/tree/master/agents/ProxmoxAgent)), vSphere 수정용 역할([VMwareAgent](https://github.com/OneUptime/oneuptime/tree/master/agents/VMwareAgent)), Ceph의 읽기용과 수정용 caps([CephAgent](https://github.com/OneUptime/oneuptime/tree/master/agents/CephAgent)), 엔진별 데이터베이스 권한([DatabaseAgent](https://github.com/OneUptime/oneuptime/tree/master/agents/DatabaseAgent))입니다. 클라우드 AI 에이전트의 역할은 설정 명령이 작성합니다. 변경을 끄고 명령을 다시 실행하면 그 권한이 역할에서 빠집니다.
 
@@ -522,7 +522,7 @@ docker exec oneuptime-docker-ai-agent wget -qO- http://127.0.0.1:3877/status
 
 리소스의 컨테이너 이름을 사용하세요: `oneuptime-docker-ai-agent`, `oneuptime-podman-ai-agent`(`docker` 대신 `podman` 사용), `oneuptime-docker-swarm-ai-agent`, `oneuptime-proxmox-ai-agent`, `oneuptime-vmware-ai-agent`, `oneuptime-ceph-ai-agent`, `oneuptime-host-ai-agent`. 데이터베이스 에이전트의 서비스에는 고정된 컨테이너 이름이 없으므로 `/opt/oneuptime-database-agent` 에서 `docker compose logs --tail=100 oneuptime-database-ai-agent` 와 `docker compose exec oneuptime-database-ai-agent wget -qO- http://127.0.0.1:3877/status` 를 사용하세요. 호스트 AI 에이전트는 호스트의 네트워크를 쓰므로 `curl -s http://127.0.0.1:3877/status` 가 호스트에서 바로 동작합니다.
 
-클라우드 AI 에이전트는 클라우드에서 실행되므로 `exec` 할 컨테이너가 없습니다. 로그는 클라우드 셸에서 `aws logs tail /oneuptime/oneuptime-ai-agent --since 30m`, `az containerapp logs show --name oneuptime-ai-agent --resource-group oneuptime-ai-agent --tail 100` 또는 `gcloud run services logs read oneuptime-ai-agent --region "$(gcloud run services list --filter "metadata.name=oneuptime-ai-agent" --format "value(region)" | head -1)" --limit 100` 명령으로 읽고, 상태는 계정의 **AI 에이전트** 페이지에서 확인합니다. 이 페이지에도 같은 명령이 표시됩니다.
+클라우드 AI 에이전트는 클라우드에서 실행되므로 `exec` 할 컨테이너가 없습니다. 로그는 클라우드 셸에서 `aws logs tail /oneuptime/oneuptime-ai-agent --since 30m`, `az containerapp logs show --name oneuptime-ai-agent --resource-group oneuptime-ai-agent --tail 100` 또는 `gcloud logging read 'resource.type="gce_instance" AND jsonPayload.container.name="/oneuptime-ai-agent"' --freshness 30m --limit 100 --format "value(jsonPayload.data)"` (Cloud Run에서는 `gcloud run services logs read oneuptime-ai-agent --region "$(gcloud run services list --filter "metadata.name=oneuptime-ai-agent" --format "value(region)" | head -1)" --limit 100`) 명령으로 읽고, 상태는 계정의 **AI 에이전트** 페이지에서 확인합니다. 이 페이지에도 같은 명령이 표시됩니다.
 
 설정이 빠져 있어도 에이전트는 충돌하지 않습니다. 정상 상태로 계속 실행되면서 무엇이 빠졌는지 로그와 `/status` 에 알리고 그 밖에는 아무것도 하지 않으므로, 컨테이너가 반복해서 다시 시작되는 일은 없습니다.
 

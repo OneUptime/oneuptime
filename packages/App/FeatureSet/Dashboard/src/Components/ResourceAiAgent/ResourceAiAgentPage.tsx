@@ -130,6 +130,7 @@ import AutomaticRemediationNote from "../AiAccess/AutomaticRemediationNote";
 import CloudAiAgentSetupModal from "../Cloud/CloudAiAgentSetupModal";
 import {
   getCloudAiAgentLogsCommand,
+  getCloudAiAgentReportedChoices,
   readCloudProvider,
 } from "../Cloud/CloudAiAgentSetup";
 import CloudAccount from "Common/Models/DatabaseModels/CloudAccount";
@@ -1672,7 +1673,19 @@ const ResourceAiAgentPage: FunctionComponent<ComponentProps> = (
                 language="bash"
                 code={
                   cloudProvider
-                    ? getCloudAiAgentLogsCommand(cloudProvider)
+                    ? /*
+                       * Where the agent last said it runs (a Google Cloud
+                       * agent on its VM or on Cloud Run), in its account.
+                       */
+                      getCloudAiAgentLogsCommand(
+                        cloudProvider,
+                        getCloudAiAgentReportedChoices({
+                          provider: cloudProvider,
+                          accountId: props.cloudAccount?.accountId || "",
+                          posture: agent?.posture,
+                        }).gcpHost,
+                        props.cloudAccount?.accountId || undefined,
+                      )
                     : getResourceAiAgentLogsCommand(descriptor.resourceType)
                 }
               />

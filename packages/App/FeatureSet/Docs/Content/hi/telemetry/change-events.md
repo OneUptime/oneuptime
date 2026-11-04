@@ -147,7 +147,7 @@ OneUptime AI ने जो सुधार पुल रिक्वेस्ट
 
 जिन एट्रिब्यूट के नाम `oneuptime.` से शुरू होते हैं, वे OneUptime के अपने हैं और पाइपलाइन जो भेजती है उसमें से हटा दिए जाते हैं। पाइपलाइन जो भी बदलाव रिकॉर्ड करती है, वह `oneuptime.change.source` में यह बताता है, जिसका मान `api` होता है।
 
-किसी क्लाउड खाते से पढ़ा गया बदलाव खाते और संसाधन को OpenTelemetry के नामों `cloud.provider`, `cloud.account.id`, `cloud.region` और `cloud.resource_id` से बताता है, और ऑपरेशन को `oneuptime.cloud.operation` में, उसे चलाने वाले को `oneuptime.cloud.actor` में, वह विफल हुआ या नहीं, इसे `oneuptime.change.status` में, और उसके क्लाउड खाते को `oneuptime.cloud_account.id` में रखता है।
+किसी क्लाउड खाते से पढ़ा गया बदलाव खाते और संसाधन को OpenTelemetry के नामों `cloud.provider`, `cloud.account.id`, `cloud.region` और `cloud.resource_id` से बताता है, और ऑपरेशन को `oneuptime.cloud.operation` में, उसे चलाने वाले को `oneuptime.cloud.actor` में, वह विफल हुआ या नहीं, इसे `oneuptime.change.status` में, और उसके क्लाउड खाते को `oneuptime.cloud_account.id` में रखता है। क्लाउड AI एजेंट के ज़रिए OneUptime AI का किया गया बदलाव यह `oneuptime.change.made_by` में बताता है, जो `oneuptime-ai` होता है, और एजेंट का जॉब `oneuptime.runner_job.id` में, उसका सुधार `oneuptime.auto_remediation_suggestion.id` में, उसे योजनाबद्ध करने वाला AI रन `oneuptime.ai_run.id` में, वह सुधार था या उसका रोलबैक `oneuptime.ai.step` (`fix` या `rollback`) में, और उसने जिस घटना या अलर्ट को ठीक किया वह `oneuptime.incident.id` या `oneuptime.alert.id` में बताता है।
 
 ### सीमाएँ
 

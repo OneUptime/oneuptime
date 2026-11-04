@@ -147,7 +147,7 @@ Les champs de premier niveau sont stockés comme attributs sous les noms OpenTel
 
 Les attributs dont le nom commence par `oneuptime.` appartiennent à OneUptime et sont retirés de ce qu'un pipeline envoie. Chaque changement qu'un pipeline enregistre l'indique dans `oneuptime.change.source`, qui vaut `api`.
 
-Un changement lu dans un compte cloud nomme le compte et la ressource sous les noms d'OpenTelemetry, `cloud.provider`, `cloud.account.id`, `cloud.region` et `cloud.resource_id`, et garde l'opération dans `oneuptime.cloud.operation`, qui l'a lancée dans `oneuptime.cloud.actor`, si elle a échoué dans `oneuptime.change.status` et son compte cloud dans `oneuptime.cloud_account.id`.
+Un changement lu dans un compte cloud nomme le compte et la ressource sous les noms d'OpenTelemetry, `cloud.provider`, `cloud.account.id`, `cloud.region` et `cloud.resource_id`, et garde l'opération dans `oneuptime.cloud.operation`, qui l'a lancée dans `oneuptime.cloud.actor`, si elle a échoué dans `oneuptime.change.status` et son compte cloud dans `oneuptime.cloud_account.id`. Une modification faite par OneUptime AI via un agent IA cloud l'indique dans `oneuptime.change.made_by`, qui vaut `oneuptime-ai`, et nomme la tâche de l'agent dans `oneuptime.runner_job.id`, sa correction dans `oneuptime.auto_remediation_suggestion.id`, l'exécution IA qui l'a planifiée dans `oneuptime.ai_run.id`, s'il s'agissait de la correction ou de son annulation dans `oneuptime.ai.step` (`fix` ou `rollback`), et l'incident ou l'alerte corrigé dans `oneuptime.incident.id` ou `oneuptime.alert.id`.
 
 ### Limites
 

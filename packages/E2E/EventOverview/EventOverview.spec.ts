@@ -19043,6 +19043,67 @@ test.describe("a cluster whose Fixes are off (?fixing=cluster-fixes-off)", () =>
 });
 
 /*
+ * A cluster whose Fixes are on but whose Kubernetes AI agent never
+ * connected (?fixing=cluster-agent-not-connected, #5367's follow-up): the
+ * agent connecting makes OneUptime AI decide again about an open record
+ * (AutoRemediationRuleEngineService.onAgentConnected), so under what to do
+ * - a step that ends in a helm command - the line says so, on a line of
+ * its own. Resolved, it promises nothing.
+ */
+test("a cluster whose AI agent never connected: open, OneUptime AI tries again once it connects; resolved, nothing is promised (?fixing=cluster-agent-not-connected)", async ({
+  page,
+}: {
+  page: Page;
+}) => {
+  const INSTALL_STEP: string =
+    "Install the Kubernetes AI agent: helm upgrade --install kubernetes-agent oneuptime/kubernetes-agent --set aiAgent.enabled=true";
+
+  await open(
+    page,
+    INCIDENT_PATH,
+    "state=created&fixing=cluster-agent-not-connected",
+  );
+
+  const line: Locator = remediationCard(page).getByTestId(
+    "remediation-decision-line",
+  );
+  await expect(line).toHaveCount(1, { timeout: 30000 });
+  await expect(line.getByTestId("remediation-decision-text")).toHaveText(
+    'Fixes are on for cluster "staging-us-east-1", but OneUptime AI cannot apply them yet.',
+  );
+  const whatToDo: Locator = line.getByTestId("remediation-decision-what-to-do");
+  await expect(whatToDo).toContainText(`What to do: ${INSTALL_STEP}`);
+  const next: Locator = line.getByTestId(
+    "remediation-decision-what-happens-next",
+  );
+  await expect(next).toHaveText(
+    "Once its AI agent connects, OneUptime AI tries again.",
+  );
+  // On a line of its own, under the command: never glued to its end.
+  const [step, after] = await boxesInOneFrame([
+    whatToDo.locator("dd").first(),
+    next,
+  ]);
+  expect(after!.y).toBeGreaterThanOrEqual(step!.y + step!.height - 1);
+  await page.mouse.move(0, 0);
+  await screenshotElement(
+    remediationCard(page),
+    "remediation-cluster-agent-not-connected-open",
+  );
+
+  await open(page, INCIDENT_PATH, "fixing=cluster-agent-not-connected");
+  await expect(
+    remediationCard(page)
+      .getByTestId("remediation-decision-line")
+      .getByTestId("remediation-decision-what-to-do"),
+  ).toContainText(INSTALL_STEP, { timeout: 30000 });
+  await expect(
+    remediationCard(page).getByTestId("remediation-decision-what-happens-next"),
+  ).toHaveCount(0);
+  await expect(remediationCard(page)).not.toContainText("tries again");
+});
+
+/*
  * #5413's follow-up: the AI-off one line folded an open record's
  * Remediation step away, so a fixing switch turned on since had no Try
  * again. Open, with the switch on now, the card is drawn whole.

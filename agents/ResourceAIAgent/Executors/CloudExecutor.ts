@@ -45,6 +45,8 @@ import {
 import AiResourceType from "../Common/Types/ResourceAiAgent/AiResourceType";
 import {
   CloudAiAgentProvider,
+  GCP_CLOUD_AI_AGENT_HOSTS,
+  GcpCloudAiAgentHost,
   getCloudAiAgentOwnTargets,
 } from "../Common/Types/ResourceAiAgent/CloudAiAgentNames";
 import {
@@ -54,6 +56,7 @@ import {
   RESOURCE_AI_AWS_WRITE_ROLE_ARN_ENV,
   RESOURCE_AI_CLOUD_OPERATIONS_ENV,
   RESOURCE_AI_CLOUD_REQUIRED_TAG_ENV,
+  RESOURCE_AI_GCP_HOST_ENV,
   ResourceCommandTier,
 } from "../Common/Types/ResourceAiAgent/ResourceAiAccess";
 import {
@@ -1144,6 +1147,8 @@ export default class CloudExecutor implements ResourceExecutor {
       details["azureSubscriptionName"] = probe.subscriptionName;
       details["azureSubscriptionState"] = probe.subscriptionState;
       details["azureIdentity"] = this.azure.describeIdentity();
+      // The Activity Log's caller of the agent's changes (CloudAiChangeAttribution).
+      details["azurePrincipalId"] = this.azure.principalId();
       reachable = probe.reachable;
       reachError = probe.reachError;
     } else if (this.gcp) {
@@ -1154,6 +1159,7 @@ export default class CloudExecutor implements ResourceExecutor {
 
       details["gcpProjectNumber"] = probe.projectNumber;
       details["gcpServiceAccount"] = probe.serviceAccount;
+      details["gcpHost"] = this.gcpHost();
       reachable = probe.reachable;
       reachError = probe.reachError;
     }
@@ -1172,6 +1178,27 @@ export default class CloudExecutor implements ResourceExecutor {
       details,
       protectedTargets: this.getProtectedTargets(),
     };
+  }
+
+  /*
+   * Where a Google Cloud agent runs, as its setup command started it: on
+   * Cloud Run (which says so itself: K_SERVICE) or on its own VM (whose
+   * startup script says so: ONEUPTIME_AI_GCP_HOST), so the command written
+   * from Change keeps it there. Null when neither says: an agent a team
+   * runs its own way.
+   */
+  private gcpHost(): GcpCloudAiAgentHost | null {
+    if ((this.options.env["K_SERVICE"] || "").trim()) {
+      return "cloud-run";
+    }
+
+    const host: string = (this.options.env[RESOURCE_AI_GCP_HOST_ENV] || "")
+      .trim()
+      .toLowerCase();
+
+    return (GCP_CLOUD_AI_AGENT_HOSTS as ReadonlyArray<string>).includes(host)
+      ? (host as GcpCloudAiAgentHost)
+      : null;
   }
 
   // "a,b,c" within the posture's string limit, cut at a comma.
