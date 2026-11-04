@@ -21,17 +21,17 @@
     Not exploitable here. GHSA-g3hv-75wg-m249 is a denial of service that needs
     an attacker-supplied glob pattern and optimizationLevel 2 or higher, which
     runs firstPhasePreProcess. The App takes no glob pattern from a user or the
-    network, and OneUptime's code does not import minimatch. The 3.1.5 and 5.1.9
-    copies are flagged by version range only: they contain neither
-    firstPhasePreProcess nor optimizationLevel. The 9.x and 10.x copies default
+    network, and OneUptime's code does not import minimatch. Copies at 3.1.5 and
+    5.1.9 are flagged by version range only: they contain neither
+    firstPhasePreProcess nor optimizationLevel. Copies at 9.x and 10.x default
     to optimizationLevel 1; glob raises it to 2, and OneUptime reaches no glob
     call that would use them: its TypeORM data source passes classes, not the
     path strings TypeORM would glob, and its only use of archiver appends
-    in-memory data to a zip. The other copies are never loaded by the server:
-    nodemon's and jest's (development dependencies), those of the front-end
-    builds under FeatureSet/*/node_modules, and npm's own, used only to start
-    the server and run its migrations. The first patched release, 11.0.1, is a
-    major-version change for every copy here.
+    in-memory data to a zip. Any other copy is never loaded by the server: a
+    development dependency's (nodemon, jest), a front-end build's (under
+    FeatureSet/*/node_modules), or npm's own, used only to start the server and
+    run its migrations. The first patched release, 11.0.1, is a major-version
+    change for every copy here.
 - id: CVE-2026-118773
   package: glob
   justification: >-
@@ -41,10 +41,9 @@
     archiver-utils' file helpers, the only copies the App's server could reach,
     call glob.sync with no signal, and OneUptime reaches neither: its TypeORM
     data source passes classes, not path strings, and its only use of archiver
-    appends in-memory data to a zip. The other copies are never loaded by the
-    server: test-exclude's (a development dependency), the BrowserRecorder
-    front-end build's, and npm's own, used only to start the server and run its
-    migrations.
+    appends in-memory data to a zip. Any other copy is never loaded by the
+    server: a development dependency's (test-exclude), a front-end build's, or
+    npm's own, used only to start the server and run its migrations.
 - id: CVE-2026-93753
   package: deepmerge
   justification: >-
@@ -53,6 +52,6 @@
     server's only path to it is @sendgrid/helpers, which merges only for a
     message that sets a dynamic template; OneUptime's SendGrid provider sends
     to, from, subject, text, html and attachments, and never a template ID or
-    dynamic template data. The other copies are never loaded by the server:
-    jest-config's (a development dependency) and the BrowserRecorder front-end
-    build's. No patched release exists.
+    dynamic template data. Any other copy is never loaded by the server: a
+    development dependency's (jest-config) or a front-end build's. No patched
+    release exists.

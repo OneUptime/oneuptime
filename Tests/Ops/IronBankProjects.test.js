@@ -12,8 +12,10 @@
  *     workflow's matrix name the same projects, the same release images, and
  *     the same two that run as root;
  *   - its files are in git; its base image is the one its manifest's args
- *     name; it pins one release everywhere, as PinRelease.js moves it; its
- *     manifest's labels are ones Iron Bank's schema allows; its other
+ *     name; it pins one release everywhere, as PinRelease.js moves it, and the
+ *     Helm values (IronBank/values.yaml) run that release under the name Iron
+ *     Bank will publish it; its manifest's labels are ones Iron Bank's schema
+ *     allows; its other
  *     resources (the probe's ODBC driver) are pinned by checksum and copied
  *     by the Dockerfile, which copies nothing else from its build context; its
  *     RUN instructions fetch nothing but Alpine or Debian packages; and its
@@ -57,6 +59,8 @@ const ROOT = ["Ingress", "Probe"];
 
 // Their new high and critical findings warn for now; the others' fail the job.
 const REPORT_ONLY = ["Runner", "Probe"];
+
+const helmValuesText = read("IronBank/values.yaml");
 
 /*
  * The Dockerfile each image's release is built from, its shipped stages (by
@@ -255,6 +259,7 @@ describe.each(NAMES)("IronBank/%s follows Iron Bank's rules", (name) => {
     const current = {
       manifest: project.manifestText,
       dockerfile: project.dockerfileText,
+      values: helmValuesText,
     };
     const next = {
       version: "99.1.2",
@@ -293,6 +298,15 @@ describe.each(NAMES)("IronBank/%s follows Iron Bank's rules", (name) => {
       expect.objectContaining({
         "org.opencontainers.image.revision": next.gitSha,
       }),
+    );
+    expect(yaml.load(pinned.values).image.overrides[release.helmKey]).toBe(
+      `registry1.dso.mil/ironbank/${manifest.name}:99.1.2`,
+    );
+  });
+
+  test("the Helm values run it as Iron Bank will publish it", () => {
+    expect(yaml.load(helmValuesText).image.overrides[release.helmKey]).toBe(
+      `registry1.dso.mil/ironbank/${manifest.name}:${version}`,
     );
   });
 
