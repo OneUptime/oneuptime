@@ -21,7 +21,9 @@ import { FIREHOSE_SCOPE_NAME, OtlpAttribute } from "./CloudWatchMetricStream";
  *     "logEvents": [ { "id": "...", "timestamp": 1704067200000, "message": "..." } ] }
  *
  * A CONTROL_MESSAGE is CloudWatch Logs checking that the destination is
- * there - when a subscription is made - and carries no event. A stream that
+ * there - when a subscription is made - and its one event is that check
+ * ("CWL CONTROL MESSAGE: Checking health of destination Firehose."), no
+ * log line: it is counted, never stored. A stream that
  * decompresses its records itself (Firehose's own CloudWatch Logs
  * decompression) delivers the same document uncompressed, and more than
  * one may follow each other in one record: all of it is read.

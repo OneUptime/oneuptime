@@ -2,6 +2,7 @@ import EventLoop from "Common/Server/Utils/EventLoop";
 import { isAwsRegion } from "Common/Types/Cloud/AwsRegionCode";
 import { JSONObject } from "Common/Types/JSON";
 import {
+  CLOUDWATCH_LOGS_DATA_MESSAGE,
   CloudWatchLogsMessage,
   DecodeBudget,
   LogGroupFacts,
@@ -239,7 +240,11 @@ export async function decodeFirehoseRecords(data: {
 
     if (reading.kind === "logs") {
       for (const message of reading.messages) {
-        if (message.logEvents.length === 0) {
+        // CloudWatch Logs checking the stream is there: one event, no log line.
+        if (
+          message.messageType !== CLOUDWATCH_LOGS_DATA_MESSAGE ||
+          message.logEvents.length === 0
+        ) {
           delivery.controlMessages++;
           continue;
         }

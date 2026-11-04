@@ -92,8 +92,9 @@ function readPercentile(key: string): number | null {
 
   const value: number = Number(key.slice(1));
 
+  // 99.9 / 100 is 0.9990000000000001 in binary: written as the decimal it is.
   return Number.isFinite(value) && value > 0 && value < 100
-    ? value / 100
+    ? Number((value / 100).toFixed(10))
     : null;
 }
 
