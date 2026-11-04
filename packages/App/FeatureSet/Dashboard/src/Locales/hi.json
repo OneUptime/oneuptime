@@ -27863,7 +27863,6 @@
   "{{step}} passes on only the ID: the record is already gone.": "{{step}} सिर्फ़ ID आगे भेजता है: रिकॉर्ड पहले ही हट चुका है।",
   "“{{key}}” goes more than one related record deep.": "\"{{key}}\" एक से ज़्यादा जुड़े हुए रिकॉर्ड की गहराई तक जाता है।",
   "“{{key}}” has an unexpected value.": "\"{{key}}\" का मान अनपेक्षित है।",
-  "“{{key}}” passes on the whole related record. Pick the fields of it the next steps need.": "\"{{key}}\" पूरा जुड़ा हुआ रिकॉर्ड आगे भेजता है। उसमें से वे फ़ील्ड चुनें जिनकी अगले चरणों को ज़रूरत है।",
   "Not passed on": "आगे नहीं भेजे जाते",
   "Pick at least one field.": "कम से कम एक फ़ील्ड चुनें।",
   "Pick one from the list, or paste its ID.": "सूची से कोई एक चुनें, या उसकी ID पेस्ट करें।",
@@ -43718,5 +43717,7 @@
   "This address is not Keystone": "This address is not Keystone",
   "This cloud is too large to collect from a probe": "This cloud is too large to collect from a probe",
   "This probe may not collect this cloud": "This probe may not collect this cloud",
-  "Issues someone acted on or called useful, less those called noise, over the last {{days}} days.": "पिछले {{days}} दिनों में वे समस्याएं जिन पर किसी ने कार्रवाई की या जिन्हें उपयोगी बताया, शोर बताई गई समस्याओं को घटाकर।"
+  "Issues someone acted on or called useful, less those called noise, over the last {{days}} days.": "पिछले {{days}} दिनों में वे समस्याएं जिन पर किसी ने कार्रवाई की या जिन्हें उपयोगी बताया, शोर बताई गई समस्याओं को घटाकर।",
+  "\"{{argument}}\" reads {{field}} from \"{{step}}\", but that step does not pass it on, so it is empty here. Add it to the {{setting}} of that step.": "\"{{argument}}\" reads {{field}} from \"{{step}}\", but that step does not pass it on, so it is empty here. Add it to the {{setting}} of that step.",
+  "“{{key}}” passes on only the ID of the related record. Pick the fields of it the next steps need.": "\"{{key}}\" जुड़े हुए रिकॉर्ड की केवल ID आगे भेजता है। उसमें से वे फ़ील्ड चुनें जिनकी अगले चरणों को ज़रूरत है।"
 }

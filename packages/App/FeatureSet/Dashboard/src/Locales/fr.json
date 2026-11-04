@@ -27863,7 +27863,6 @@
   "{{step}} passes on only the ID: the record is already gone.": "{{step}} ne transmet que l'ID : l'élément n'existe déjà plus.",
   "“{{key}}” goes more than one related record deep.": "« {{key}} » va plus loin qu'un seul enregistrement lié.",
   "“{{key}}” has an unexpected value.": "« {{key}} » a une valeur inattendue.",
-  "“{{key}}” passes on the whole related record. Pick the fields of it the next steps need.": "« {{key}} » transmet tout l'enregistrement lié. Choisissez-en les champs dont les étapes suivantes ont besoin.",
   "Not passed on": "Non transmis",
   "Pick at least one field.": "Choisissez au moins un champ.",
   "Pick one from the list, or paste its ID.": "Choisissez-en un dans la liste, ou collez son ID.",
@@ -43718,5 +43717,7 @@
   "This address is not Keystone": "This address is not Keystone",
   "This cloud is too large to collect from a probe": "This cloud is too large to collect from a probe",
   "This probe may not collect this cloud": "This probe may not collect this cloud",
-  "Issues someone acted on or called useful, less those called noise, over the last {{days}} days.": "Problèmes traités ou jugés utiles par quelqu'un, moins ceux jugés comme du bruit, au cours des {{days}} derniers jours."
+  "Issues someone acted on or called useful, less those called noise, over the last {{days}} days.": "Problèmes traités ou jugés utiles par quelqu'un, moins ceux jugés comme du bruit, au cours des {{days}} derniers jours.",
+  "\"{{argument}}\" reads {{field}} from \"{{step}}\", but that step does not pass it on, so it is empty here. Add it to the {{setting}} of that step.": "\"{{argument}}\" reads {{field}} from \"{{step}}\", but that step does not pass it on, so it is empty here. Add it to the {{setting}} of that step.",
+  "“{{key}}” passes on only the ID of the related record. Pick the fields of it the next steps need.": "« {{key}} » ne transmet que l'ID de l'enregistrement lié. Choisissez-en les champs dont les étapes suivantes ont besoin."
 }

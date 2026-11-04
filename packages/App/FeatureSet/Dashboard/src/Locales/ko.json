@@ -27863,7 +27863,6 @@
   "{{step}} passes on only the ID: the record is already gone.": "{{step}}은(는) ID만 전달합니다. 레코드는 이미 삭제되었습니다.",
   "“{{key}}” goes more than one related record deep.": "\"{{key}}\"은(는) 관련 레코드를 두 단계 이상 거슬러 갑니다.",
   "“{{key}}” has an unexpected value.": "\"{{key}}\"의 값이 예상과 다릅니다.",
-  "“{{key}}” passes on the whole related record. Pick the fields of it the next steps need.": "\"{{key}}\"은(는) 관련 레코드 전체를 전달합니다. 다음 단계에 필요한 필드를 선택하세요.",
   "Not passed on": "전달되지 않는 필드",
   "Pick at least one field.": "필드를 하나 이상 선택하세요.",
   "Pick one from the list, or paste its ID.": "목록에서 선택하거나 ID를 붙여넣으세요.",
@@ -43718,5 +43717,7 @@
   "This address is not Keystone": "This address is not Keystone",
   "This cloud is too large to collect from a probe": "This cloud is too large to collect from a probe",
   "This probe may not collect this cloud": "This probe may not collect this cloud",
-  "Issues someone acted on or called useful, less those called noise, over the last {{days}} days.": "지난 {{days}}일 동안 누군가 조치했거나 유용하다고 표시한 문제에서 노이즈로 표시된 문제를 뺀 수입니다."
+  "Issues someone acted on or called useful, less those called noise, over the last {{days}} days.": "지난 {{days}}일 동안 누군가 조치했거나 유용하다고 표시한 문제에서 노이즈로 표시된 문제를 뺀 수입니다.",
+  "\"{{argument}}\" reads {{field}} from \"{{step}}\", but that step does not pass it on, so it is empty here. Add it to the {{setting}} of that step.": "\"{{argument}}\" reads {{field}} from \"{{step}}\", but that step does not pass it on, so it is empty here. Add it to the {{setting}} of that step.",
+  "“{{key}}” passes on only the ID of the related record. Pick the fields of it the next steps need.": "\"{{key}}\"은(는) 관련 레코드의 ID만 전달합니다. 다음 단계에 필요한 필드를 선택하세요."
 }

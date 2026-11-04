@@ -767,6 +767,227 @@ describe("lintWorkflowGraph — references", () => {
   });
 });
 
+/*
+ * A setting reading a field of a record that its step does not pass on. A chip
+ * says so once its step is opened, and a run warns about it; a workflow written
+ * by hand or through the API may never have that step opened in the builder.
+ */
+describe("lintWorkflowGraph — a record's field its step does not pass on", () => {
+  const selectArgument: Argument = {
+    id: "select",
+    name: "Fields to pass on",
+    description: "",
+    type: ComponentInputType.Select,
+    required: true,
+  };
+
+  const recordReturnValue: ReturnValue = {
+    id: "model",
+    name: "Alert",
+    description: "",
+    type: ComponentInputType.BaseModel,
+    required: false,
+  };
+
+  const recordsReturnValue: ReturnValue = {
+    id: "models",
+    name: "Alerts",
+    description: "",
+    type: ComponentInputType.BaseModelArray,
+    required: false,
+  };
+
+  const SELECT: JSONObject = {
+    title: true,
+    monitor: { name: true },
+    alertSeverity: true,
+    customFields: true,
+  };
+
+  type LintFunction = (
+    message: unknown,
+    options?: {
+      select?: unknown | undefined;
+      returnValue?: ReturnValue | undefined;
+      metadataId?: string | undefined;
+    },
+  ) => WorkflowLintResult;
+
+  const lint: LintFunction = (
+    message: unknown,
+    options: {
+      select?: unknown | undefined;
+      returnValue?: ReturnValue | undefined;
+      metadataId?: string | undefined;
+    } = {},
+  ): WorkflowLintResult => {
+    const record: LintGraphNode = makeNode({
+      nodeId: "n1",
+      componentId: "alert-on-create-1",
+      componentType: ComponentType.Trigger,
+      args: [selectArgument],
+      returnValues: [options.returnValue || recordReturnValue],
+      values: { select: (options.select || SELECT) as JSONObject },
+    });
+
+    if (options.metadataId) {
+      record.data.metadataId = options.metadataId;
+    }
+
+    return lintWorkflowGraph({
+      nodes: [
+        record,
+        makeNode({
+          nodeId: "n2",
+          componentId: "slack-1",
+          args: [textArgument],
+          values: { message: message as string },
+        }),
+      ],
+      edges: [{ source: "n1", target: "n2" }],
+    });
+  };
+
+  const MODEL: string = "local.components.alert-on-create-1.returnValues.model";
+
+  const issuesOf: (result: WorkflowLintResult) => Array<WorkflowLintIssue> = (
+    result: WorkflowLintResult,
+  ): Array<WorkflowLintIssue> => {
+    return result.issues.filter((issue: WorkflowLintIssue): boolean => {
+      return issue.rule === WorkflowLintRule.ReferenceToFieldNotPassedOn;
+    });
+  };
+
+  test("warns on the step reading it, saying what to add and where", () => {
+    const result: WorkflowLintResult = lint(
+      `Monitor: {{${MODEL}.currentAlertState.name}}`,
+    );
+
+    expect(issuesOf(result)).toHaveLength(1);
+    expect(issuesOf(result)[0]).toEqual(
+      expect.objectContaining({
+        severity: WorkflowLintSeverity.Warning,
+        nodeId: "n2",
+        argumentId: "message",
+        message:
+          '"Message" reads currentAlertState.name from "alert-on-create-1", but that step does not pass it on, so it is empty here. Add it to the Fields to pass on of that step.',
+      }),
+    );
+  });
+
+  test("it is a warning, so the workflow can still be turned on", () => {
+    const result: WorkflowLintResult = lint(`{{${MODEL}.description}}`);
+
+    expect(result.errorCount).toBe(0);
+    expect(result.warningCount).toBe(1);
+  });
+
+  test("a related record's field it does not name", () => {
+    expect(issuesOf(lint(`{{${MODEL}.monitor.description}}`))).toHaveLength(1);
+  });
+
+  test("once for each reference to one", () => {
+    expect(
+      issuesOf(lint(`{{${MODEL}.description}} {{${MODEL}.rootCause}}`)),
+    ).toHaveLength(2);
+  });
+
+  test("in a setting kept as an object", () => {
+    expect(
+      issuesOf(lint({ "X-Note": `{{${MODEL}.description}}` })),
+    ).toHaveLength(1);
+  });
+
+  test("a field of an item of the records a step returns", () => {
+    const result: WorkflowLintResult = lint(
+      "{{local.components.alert-on-create-1.returnValues.models[0].description}}",
+      { returnValue: recordsReturnValue },
+    );
+
+    expect(issuesOf(result)).toHaveLength(1);
+    expect(issuesOf(result)[0]?.message).toContain("reads description from");
+  });
+
+  test("On Delete passes on nothing but the ID", () => {
+    expect(
+      issuesOf(lint(`{{${MODEL}.title}}`, { metadataId: "alert-on-delete" })),
+    ).toHaveLength(1);
+    expect(
+      issuesOf(lint(`{{${MODEL}._id}}`, { metadataId: "alert-on-delete" })),
+    ).toEqual([]);
+  });
+
+  test.each([
+    ["a field it passes on", `{{${MODEL}.title}}`],
+    ["the record's ID", `{{${MODEL}._id}}`],
+    ["a related record's field it names", `{{${MODEL}.monitor.name}}`],
+    ["a related record's ID", `{{${MODEL}.monitor._id}}`],
+    ["the related record itself", `{{${MODEL}.monitor}}`],
+    ["a related record it passes on whole", `{{${MODEL}.alertSeverity.name}}`],
+    ["a key inside a JSON field", `{{${MODEL}.customFields.Impact}}`],
+    ["the whole record", `{{${MODEL}}}`],
+    ["plain text", "no reference here"],
+  ])("says nothing about %s", (_name: string, message: string) => {
+    expect(lint(message).issues).toEqual([]);
+  });
+
+  test("says nothing about what a list says of itself", () => {
+    expect(
+      lint(
+        "{{local.components.alert-on-create-1.returnValues.models.length}}",
+        { returnValue: recordsReturnValue },
+      ).issues,
+    ).toEqual([]);
+  });
+
+  test("says nothing when Fields to pass on cannot be read", () => {
+    expect(
+      issuesOf(lint(`{{${MODEL}.description}}`, { select: "{not json" })),
+    ).toEqual([]);
+  });
+
+  test("says nothing about a value that is no record: a body has any field", () => {
+    expect(
+      issuesOf(
+        lint(
+          "{{local.components.alert-on-create-1.returnValues.response-body.owner.name}}",
+          { returnValue: bodyReturnValue },
+        ),
+      ),
+    ).toEqual([]);
+  });
+
+  test("a loop's own names cannot be told from here", () => {
+    expect(
+      issuesOf(
+        lint(`{{#each ${MODEL}.labels}}{{name}} {{description}}{{/each}}`),
+      ),
+    ).toEqual([]);
+  });
+
+  test("a step that reads its own record says that, and nothing else", () => {
+    const result: WorkflowLintResult = lintWorkflowGraph({
+      nodes: [
+        makeNode({
+          nodeId: "n1",
+          componentId: "alert-find-one-1",
+          args: [selectArgument, textArgument],
+          returnValues: [recordReturnValue],
+          values: {
+            select: SELECT,
+            message:
+              "{{local.components.alert-find-one-1.returnValues.model.description}}",
+          },
+          componentType: ComponentType.Trigger,
+        }),
+      ],
+      edges: [],
+    });
+
+    expect(rulesOf(result)).toEqual([WorkflowLintRule.SelfReference]);
+  });
+});
+
 describe("lintWorkflowGraph — roll-up", () => {
   test("combines several messages for one node onto one line each", () => {
     const trigger: LintGraphNode = makeTrigger("n1", "manual-1");
