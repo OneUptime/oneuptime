@@ -37,7 +37,9 @@ const read = (file) => {
 };
 
 describe("the OpenStack agent's collector config", () => {
-  const config = yaml.load(read(path.join(AGENT, "otel-collector-config.yaml")));
+  const config = yaml.load(
+    read(path.join(AGENT, "otel-collector-config.yaml")),
+  );
   const jobs = config.receivers.prometheus.config.scrape_configs;
   const includeServicesOf = (job) => {
     return job.params.include_services;
@@ -150,16 +152,32 @@ describe("the OpenStack agent's compose file", () => {
   });
 
   test("keeps the exporter gentle by default", () => {
-    expect(exporter.command).toEqual(
-      expect.arrayContaining([
-        "--multi-cloud",
-        "--disable-slow-metrics",
-        "--disable-metric=neutron-ports",
-        "--disable-metric=neutron-port",
-        "--disable-metric=neutron-ports_no_ips",
-        "--disable-metric=neutron-ports_lb_not_active",
-      ]),
-    );
+    expect(exporter.command).toContain("--multi-cloud");
+    expect(
+      exporter.command.filter((flag) => {
+        return flag.startsWith("--disable");
+      }),
+    ).toEqual([
+      // One call per project, on each scrape.
+      "--disable-metric=nova-quota_cores",
+      "--disable-metric=nova-limits_vcpus_max",
+      "--disable-metric=nova-server_local_gb",
+      "--disable-metric=neutron-quota_network",
+      "--disable-metric=cinder-limits_volume_max_gb",
+      // Every port in the cloud, which can saturate Neutron (issue 540).
+      "--disable-metric=neutron-ports",
+      "--disable-metric=neutron-port",
+      "--disable-metric=neutron-ports_no_ips",
+      "--disable-metric=neutron-ports_lb_not_active",
+      // Many series saying what the address pools already say.
+      "--disable-metric=neutron-subnets_total",
+      // A route Nova no longer has, which only fills the exporter's log.
+      "--disable-metric=nova-security_groups",
+    ]);
+  });
+
+  test("leaves each read out by name: --disable-slow-metrics also takes the image list the Images page reads", () => {
+    expect(exporter.command).not.toContain("--disable-slow-metrics");
   });
 
   test("mounts the credential read-only", () => {
@@ -193,11 +211,7 @@ describe("the access the agent asks for", () => {
   test("application credential access rules only ever read", () => {
     const rules = JSON.parse(
       read(
-        path.join(
-          AGENT,
-          "access",
-          "application-credential-access-rules.json",
-        ),
+        path.join(AGENT, "access", "application-credential-access-rules.json"),
       ),
     );
     expect(rules.length).toBeGreaterThan(0);
@@ -271,17 +285,29 @@ describe("the recording rig", () => {
     const script = read(path.join(RIG, "start-agent.sh"));
     expect(script).toContain('"$AGENT_DIR/docker-compose.yml"');
     expect(script).toContain("otel-collector-config.yaml");
-    // The exporter is started as the compose file starts it.
+    // The exporter is started as the compose file starts it: the flags are read
+    // from that file, so run the line that reads them and see what it reads.
     const compose = yaml.load(read(path.join(AGENT, "docker-compose.yml")));
-    for (const flag of compose.services["openstack-exporter"].command) {
-      if (flag.startsWith("--disable")) {
-        expect(script).toContain(flag);
-      }
-    }
+    const flags = compose.services["openstack-exporter"].command.filter(
+      (flag) => {
+        return flag.startsWith("--disable");
+      },
+    );
+    const line = script.match(/^EXPORTER_FLAGS=.*$/m);
+    expect(line).not.toBeNull();
+    expect(script).toMatch(/^\s+\$EXPORTER_FLAGS$/m);
+    const readFlags = childProcess.execFileSync(
+      "bash",
+      ["-c", `${line[0]}\nprintf '%s' "$EXPORTER_FLAGS"`],
+      { env: { ...process.env, AGENT_DIR: AGENT }, encoding: "utf8" },
+    );
+    expect(readFlags.trim().split(" ")).toEqual(flags);
   });
 
   test("the recording only replaces where the data goes", () => {
-    const recording = yaml.load(read(path.join(RIG, "collector-recording.yaml")));
+    const recording = yaml.load(
+      read(path.join(RIG, "collector-recording.yaml")),
+    );
     expect(recording.service.pipelines.metrics).toEqual({
       exporters: ["file/recording"],
     });
