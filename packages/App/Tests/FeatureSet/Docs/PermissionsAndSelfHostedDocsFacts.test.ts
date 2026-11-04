@@ -138,6 +138,7 @@ const SOURCES: Record<string, string> = {
   statusPageEmailLogo: `${COMMON_SERVER}/Utils/StatusPage/StatusPageEmailLogo.ts`,
   statusPageCarriedLogo: `${COMMON_SERVER}/Utils/StatusPage/StatusPageCarriedLogo.ts`,
   emailCarriedLogos: `${COMMON_SERVER}/Utils/Mail/EmailCarriedLogos.ts`,
+  emailLogoImage: `${COMMON_SERVER}/Utils/Mail/EmailLogoImage.ts`,
   notificationMailService:
     "packages/App/FeatureSet/Notification/Services/MailService.ts",
   notificationIndex: "packages/App/FeatureSet/Notification/Index.ts",
@@ -2510,12 +2511,18 @@ describe("Architecture, against the compose file and the chart", () => {
     ).toBe(true);
   });
 
-  it("says a logo you upload travels inside the email too, when it is a PNG, JPEG or GIF of up to 512 KB", () => {
+  /*
+   * #5459 carried a PNG, JPEG or GIF of up to 512 KB, and a status page's
+   * SVG, WebP or larger logo kept its address. Now a status page's logo of
+   * any of five types is made into an image for the email's header
+   * (EmailLogoImage), and the page says so.
+   */
+  it("says a logo you upload travels inside the email too: your own as a PNG, JPEG or GIF, a status page's as any of five types, made for the header", () => {
     expect(page).toContain(
-      "A logo you upload yourself, such as your own or a status page's, travels inside the email too when it is a PNG, JPEG or GIF of up to 512 KB.",
+      "A logo you upload yourself travels inside the email too: your own logo when it is a PNG, JPEG or GIF, and a status page's logo when it is a PNG, JPEG, GIF, WebP or SVG, which OneUptime makes into an image sized for the email's header.",
     );
 
-    // The types and the size the page names are the ones an email carries.
+    // An email carries the types every mail client draws, and no larger file than this.
     const carriedLogos: string = readSource("emailCarriedLogos");
 
     expect(carriedLogos).toContain(
@@ -2525,7 +2532,19 @@ describe("Architecture, against the compose file and the chart", () => {
       'CARRIED_LOGO_TYPES:ReadonlyArray<InlineImageMimeType>=["image/png","image/jpeg","image/gif",];',
     );
 
-    // Both logos are carried as every email goes out: the installation's own, and a status page's.
+    // The installation's own logo goes only when it is one of those types.
+    expect(readSource("emailBranding")).toContain(
+      'if (branding?.logoUrl && branding.isLogoEmailSafe === true) {',
+    );
+
+    // A status page's logo is made from exactly the five types the page names.
+    const logoImage: string = readSource("emailLogoImage").split(WHITESPACE).join("");
+
+    expect(logoImage).toContain(
+      'exportenumEmailLogoSourceType{Png="png",Jpeg="jpeg",Gif="gif",Webp="webp",Svg="svg",}',
+    );
+
+    // Both logos are carried as every email goes out, each made for the header that draws it.
     expect(readSource("notificationMailService")).toContain(
       "await EmailCarriedLogos.carry(",
     );
@@ -2535,14 +2554,27 @@ describe("Architecture, against the compose file and the chart", () => {
     expect(readSource("notificationIndex")).toContain(
       "return StatusPageCarriedLogo.readAddress(address);",
     );
-    expect(readSource("statusPageCarriedLogo")).toContain(
-      "return toCarriedLogo(logo?.file, STATUS_PAGE_LOGO_ATTACHMENT_NAME);",
+
+    const statusPageReader: string = readSource("statusPageCarriedLogo")
+      .split(WHITESPACE)
+      .join("");
+
+    expect(statusPageReader).toContain(
+      "awaitEmailLogoImage.carriedLogoOf({bytes:logo?.file,name:STATUS_PAGE_LOGO_ATTACHMENT_NAME,box:STATUS_PAGE_EMAIL_LOGO_BOX,",
+    );
+    expect(readSource("emailBranding").split(WHITESPACE).join("")).toContain(
+      "box:PRODUCT_EMAIL_LOGO_BOX,",
     );
   });
 
-  it("says any other image you upload is shown from your OneUptime URL, as the emails build it", () => {
+  it("says any other image you upload is shown from your OneUptime URL, as the emails build it, and so is an SVG logo whose words are text", () => {
     expect(page).toContain(
-      "Any other image you upload is shown from your OneUptime URL, which the people who read those emails need to be able to reach.",
+      "Any other image you upload is shown from your OneUptime URL, which the people who read those emails need to be able to reach, and so is a status page's SVG logo whose words are text rather than shapes.",
+    );
+
+    // An SVG that draws words is refused before anything is drawn: it keeps its address.
+    expect(readSource("emailLogoImage").split(WHITESPACE).join("")).toContain(
+      "if(sourceType===EmailLogoSourceType.Svg&&svgDrawsText(bytes)){returnEmailLogoImage.refused(label,EmailLogoOutcome.SvgWithText);}",
     );
 
     // The installation's own logo, on HOST; a status page's, on the host given.

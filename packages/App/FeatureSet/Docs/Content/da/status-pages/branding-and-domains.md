@@ -40,6 +40,8 @@ Logoet, logoet til mørkt tema, forsidebilledet og faviconet er filer, der er up
 
 Din statusside viser kun billeder fra sit eget projekt; et billede, den ikke kan vise, udelades, som om siden ikke havde noget. Dashboardet, API'et og Terraform læser sidens billeder på samme måde: et billede fra et andet projekt kommer tilbage som slet intet billede. De e-mails, siden sender (til abonnenter og til private brugere om deres login), viser dens logo på samme måde: et logo, siden ikke kan vise, udelades også fra dem i stedet for at blive vist som et ødelagt billede.
 
+Disse e-mails har logoet inde i sig, så det vises, selv hvor en mailklient ikke henter billeder fra internettet eller ikke kan nå OneUptime: et PNG-, JPEG-, GIF-, WebP- eller SVG-logo kommer med som et billede i størrelse med e-mailens sidehoved. Et SVG-logo, hvis ord er tekst og ikke former, vises i stedet fra sin adresse, fordi serveren ikke har nogen skrifttype at tegne ordene med: lav teksten om til konturer i dit designværktøj, eller upload en PNG.
+
 ### Tema
 
 Kortet **Tema**, lige under logoet, bestemmer, hvordan siden ser ud for dens besøgende. Vælg et af dets tre valg, så gemmes det med det samme; der er ingen knap **Rediger**.

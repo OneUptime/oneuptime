@@ -24,7 +24,19 @@ jest.mock("Common/Server/EnvironmentConfig", () => {
 });
 
 import EnterpriseEdition from "Common/Server/Enterprise/EnterpriseEdition";
+import { CarriedLogo } from "Common/Server/Utils/Mail/EmailCarriedLogos";
 import EmailLogo from "Common/Server/Utils/Mail/EmailLogo";
+import EmailLogoImage, {
+  PRODUCT_EMAIL_LOGO_BOX,
+} from "Common/Server/Utils/Mail/EmailLogoImage";
+import {
+  INDIGO,
+  ImageFacts,
+  ORANGE,
+  dataUriBytes,
+  imageFacts,
+  twoColourLogo,
+} from "Common/Tests/Helpers/EmailLogoFixtures";
 import { ProductBranding } from "Common/Types/Branding/ProductBranding";
 import Dictionary from "Common/Types/Dictionary";
 import {
@@ -240,7 +252,8 @@ describe("getCurrentEmailBrandingVariables", () => {
  * The installation's own logo goes inside an email that shows it, in place
  * of its address (Common/Server/Utils/Mail/EmailCarriedLogos): MailService
  * asks getCarriedProductLogo for every image address of an email just
- * before it goes out.
+ * before it goes out. A logo larger than the header needs is made smaller
+ * first, for the 200 x 32 box the header draws it in (EmailLogoImage).
  */
 describe("getCarriedProductLogo", () => {
   const LOGO_PATH: string = "/api/branding/logo?v=1730000000000";
@@ -262,7 +275,7 @@ describe("getCarriedProductLogo", () => {
     );
   };
 
-  test("the address the header shows the logo from: the logo itself, as an email carries it", () => {
+  test("the address the header shows the logo from: the logo itself, as an email carries it", async () => {
     brandWithLogo();
     jest
       .spyOn(EnterpriseEdition, "getProductBrandingLogo")
@@ -275,24 +288,97 @@ describe("getCarriedProductLogo", () => {
       ],
     ).toBe(LOGO_ADDRESS);
 
-    expect(getCarriedProductLogo(LOGO_ADDRESS)).toEqual({
+    // A logo that fits the header goes byte for byte as it was uploaded.
+    expect(await getCarriedProductLogo(LOGO_ADDRESS)).toEqual({
       dataUri: ONEUPTIME_LOGO,
       fileName: `${PRODUCT_LOGO_ATTACHMENT_NAME}.png`,
     });
   });
 
-  test("written once for every email that shows the same logo", () => {
+  test("a logo larger than the header needs is made smaller, for the box the header draws it in", async () => {
     brandWithLogo();
+    const large: Buffer = await twoColourLogo({
+      width: 1000,
+      height: 300,
+      format: "png",
+      left: INDIGO,
+      right: ORANGE,
+    });
     jest
       .spyOn(EnterpriseEdition, "getProductBrandingLogo")
-      .mockReturnValue(PNG_BYTES);
-
-    expect(getCarriedProductLogo(LOGO_ADDRESS)).toBe(
-      getCarriedProductLogo(LOGO_ADDRESS),
+      .mockReturnValue(large);
+    const making: ReturnType<typeof jest.spyOn> = jest.spyOn(
+      EmailLogoImage,
+      "carriedLogoOf",
     );
+
+    const logo: CarriedLogo | null = await getCarriedProductLogo(LOGO_ADDRESS);
+    const facts: ImageFacts = await imageFacts(dataUriBytes(logo!.dataUri));
+
+    expect(making).toHaveBeenCalledWith({
+      bytes: large,
+      name: PRODUCT_LOGO_ATTACHMENT_NAME,
+      box: PRODUCT_EMAIL_LOGO_BOX,
+      label: "The installation's logo",
+    });
+    // Three times the 32 pixels the header draws it, and no wider than its proportions.
+    expect([logo!.fileName, facts.format, facts.width, facts.height]).toEqual([
+      "logo.png",
+      "png",
+      320,
+      96,
+    ]);
   });
 
-  test("any other address is not the installation's logo", () => {
+  test("made once for every email that shows the same logo", async () => {
+    brandWithLogo();
+    // Bytes no test handed over before: the enterprise module's new read.
+    const bytes: Buffer = Buffer.from(PNG_BYTES);
+    jest
+      .spyOn(EnterpriseEdition, "getProductBrandingLogo")
+      .mockReturnValue(bytes);
+    const making: ReturnType<typeof jest.spyOn> = jest.spyOn(
+      EmailLogoImage,
+      "carriedLogoOf",
+    );
+
+    const logos: Array<CarriedLogo | null> = await Promise.all(
+      Array.from({ length: 50 }, (): Promise<CarriedLogo | null> => {
+        return getCarriedProductLogo(LOGO_ADDRESS);
+      }),
+    );
+
+    expect(new Set(logos).size).toBe(1);
+    expect(logos[0]).not.toBeNull();
+    expect(making).toHaveBeenCalledTimes(1);
+  });
+
+  test("new bytes from the enterprise module are made again", async () => {
+    brandWithLogo();
+    const making: ReturnType<typeof jest.spyOn> = jest.spyOn(
+      EmailLogoImage,
+      "carriedLogoOf",
+    );
+
+    for (const color of [INDIGO, ORANGE]) {
+      jest.spyOn(EnterpriseEdition, "getProductBrandingLogo").mockReturnValue(
+        await twoColourLogo({
+          width: 700,
+          height: 200,
+          format: "png",
+          left: color,
+          right: color,
+        }),
+      );
+
+      expect(await getCarriedProductLogo(LOGO_ADDRESS)).not.toBeNull();
+      expect(await getCarriedProductLogo(LOGO_ADDRESS)).not.toBeNull();
+    }
+
+    expect(making).toHaveBeenCalledTimes(2);
+  });
+
+  test("any other address is not the installation's logo", async () => {
     brandWithLogo();
     const bytes: ReturnType<typeof jest.spyOn> = jest
       .spyOn(EnterpriseEdition, "getProductBrandingLogo")
@@ -305,14 +391,14 @@ describe("getCarriedProductLogo", () => {
       "https://status.acme.example/status-page-api/logo/2b0f6f3f-6c11-4bd1-8bb0-0d3b1c0e58f1",
       "",
     ]) {
-      expect(getCarriedProductLogo(address)).toBeNull();
+      expect(await getCarriedProductLogo(address)).toBeNull();
     }
 
     // The bytes are never even asked for.
     expect(bytes).not.toHaveBeenCalled();
   });
 
-  test("no logo of the installation's own, or one no email shows (SVG, WebP): nothing", () => {
+  test("no logo of the installation's own, or one no email shows (SVG, WebP): nothing", async () => {
     jest
       .spyOn(EnterpriseEdition, "getProductBrandingLogo")
       .mockReturnValue(PNG_BYTES);
@@ -328,11 +414,11 @@ describe("getCarriedProductLogo", () => {
         .spyOn(EnterpriseEdition, "getProductBranding")
         .mockReturnValue(branding as ProductBranding | null);
 
-      expect(getCarriedProductLogo(LOGO_ADDRESS)).toBeNull();
+      expect(await getCarriedProductLogo(LOGO_ADDRESS)).toBeNull();
     }
   });
 
-  test("bytes the module does not hand over, or cannot go in every email: the address stays", () => {
+  test("bytes the module does not hand over, or cannot go in every email: the address stays", async () => {
     brandWithLogo();
 
     const tooLarge: Buffer = Buffer.concat([
@@ -345,7 +431,7 @@ describe("getCarriedProductLogo", () => {
         .spyOn(EnterpriseEdition, "getProductBrandingLogo")
         .mockReturnValue(bytes);
 
-      expect(getCarriedProductLogo(LOGO_ADDRESS)).toBeNull();
+      expect(await getCarriedProductLogo(LOGO_ADDRESS)).toBeNull();
     }
   });
 });

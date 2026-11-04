@@ -83,7 +83,7 @@ flowchart TB
 
 反方向的连接——SendGrid 投递入站邮件、Slack 和 Microsoft Teams 回调——需要 ingress 能从互联网访问。应用和探针可以访问哪些私有地址由你决定：请参阅[私有网络访问](/docs/self-hosted/private-network-access)。
 
-OneUptime 的徽标就在它发送的每封邮件之中，因此即使在无法访问互联网的网络中也能显示，打开邮件时也不会向其他任何主机请求内容。你自己上传的徽标，例如你自己的徽标或状态页的徽标，如果是不超过 512 KB 的 PNG、JPEG 或 GIF，也会放在邮件之中。你上传的其他图片会从你的 OneUptime URL 显示，因此阅读这些邮件的人需要能够访问它。
+OneUptime 的徽标就在它发送的每封邮件之中，因此即使在无法访问互联网的网络中也能显示，打开邮件时也不会向其他任何主机请求内容。你自己上传的徽标也会放在邮件之中：你自己的徽标须是 PNG、JPEG 或 GIF，状态页的徽标可以是 PNG、JPEG、GIF、WebP 或 SVG，OneUptime 会把它做成与邮件页眉大小相称的图片。你上传的其他图片会从你的 OneUptime URL 显示，因此阅读这些邮件的人需要能够访问它；字样是文本而不是图形的状态页 SVG 徽标也是如此。
 
 ## 后续步骤
 

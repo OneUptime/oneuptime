@@ -8,6 +8,10 @@ import {
   toCarriedLogo,
 } from "../../../../Server/Utils/Mail/EmailCarriedLogos";
 import { EMAIL_LOGO_PATH } from "../../../../Server/Utils/Mail/EmailLogo";
+import EmailLogoImage, {
+  EmailLogoResult,
+  STATUS_PAGE_EMAIL_LOGO_BOX,
+} from "../../../../Server/Utils/Mail/EmailLogoImage";
 import logger from "../../../../Server/Utils/Logger";
 import StatusPageCarriedLogo, {
   CARRIED_LOGO_CACHE_TTL_IN_MS,
@@ -17,6 +21,17 @@ import StatusPageCarriedLogo, {
 import Hostname from "../../../../Types/API/Hostname";
 import Protocol from "../../../../Types/API/Protocol";
 import ObjectID from "../../../../Types/ObjectID";
+import {
+  INDIGO,
+  ImageFacts,
+  ORANGE,
+  dataUriBytes,
+  imageFacts,
+  noiseLogo,
+  solidLogo,
+  svgLogo,
+  twoColourLogo,
+} from "../../../Helpers/EmailLogoFixtures";
 import {
   afterEach,
   beforeEach,
@@ -36,9 +51,11 @@ jest.mock("../../../../Server/Utils/Logger");
  * Every email a status page sends shows its logo by its address on the
  * page's logo route. Just before one goes out, the notification service
  * asks here for the logo that address shows: read as the route serves it -
- * a page that is not archived, a file of the page's own project - and only
- * a PNG, JPEG or GIF small enough for every email. A notification goes to
- * every subscriber at once, so the logo is read once for all of them.
+ * a page that is not archived, a file of the page's own project - and made
+ * into an image every mail client draws, sized for the 200 x 48 box the
+ * header draws it in (EmailLogoImage), when it is not one already: an SVG,
+ * a WebP, a file over 512 KB. A notification goes to every subscriber at
+ * once, so the logo is read, and made, once for all of them.
  */
 
 const PROJECT_ID: ObjectID = new ObjectID(
@@ -147,27 +164,109 @@ describe("StatusPageCarriedLogo.read", () => {
     expect(await StatusPageCarriedLogo.read(STATUS_PAGE_ID)).toBeNull();
   });
 
-  test("an SVG, a WebP or a logo over the limit stays its address", async () => {
-    const svg: Buffer = Buffer.from(
-      '<svg xmlns="http://www.w3.org/2000/svg"></svg>',
+  test("an SVG, a WebP and a logo over 512 KB go inside the email too, made into a PNG for the header", async () => {
+    const svg: Buffer = svgLogo(
+      `<rect width="60" height="40" fill="#4f46e5"/><rect x="60" width="60" height="40" fill="#f97316"/>`,
     );
-    const webp: Buffer = Buffer.concat([
-      Buffer.from("RIFF", "latin1"),
-      Buffer.from([0x10, 0, 0, 0]),
-      Buffer.from("WEBP", "latin1"),
-      Buffer.alloc(100, 1),
-    ]);
-    const large: Buffer = Buffer.concat([
-      PNG.subarray(0, 8),
-      Buffer.alloc(MAX_CARRIED_LOGO_BYTES, 1),
-    ]);
+    const webp: Buffer = await twoColourLogo({
+      width: 3000,
+      height: 1000,
+      format: "webp",
+      left: INDIGO,
+      right: ORANGE,
+    });
+    const large: Buffer = await noiseLogo({
+      width: 1200,
+      height: 300,
+      format: "png",
+      seed: 5459,
+    });
 
-    for (const bytes of [svg, webp, large]) {
+    expect(large.length).toBeGreaterThan(MAX_CARRIED_LOGO_BYTES);
+
+    for (const [bytes, width] of [
+      [svg, 432],
+      [webp, 432],
+      [large, 576],
+    ] as Array<[Buffer, number]>) {
+      StatusPageCarriedLogo.clearCache();
+      findOneBy.mockResolvedValue(pageWithLogo({ bytes: bytes }) as never);
+
+      const logo: CarriedLogo | null =
+        await StatusPageCarriedLogo.read(STATUS_PAGE_ID);
+
+      expect(logo).not.toBeNull();
+      expect(logo!.fileName).toBe("logo.png");
+
+      const made: Buffer = dataUriBytes(logo!.dataUri);
+      const facts: ImageFacts = await imageFacts(made);
+
+      // Three times the 200 x 48 box the header draws it in, and as tall.
+      expect([facts.format, facts.width, facts.height]).toEqual([
+        "png",
+        width,
+        144,
+      ]);
+      expect(made.length).toBeLessThanOrEqual(MAX_CARRIED_LOGO_BYTES);
+    }
+  });
+
+  test("a logo that cannot be made into one keeps its address, as before", async () => {
+    for (const bytes of [
+      // Words the server has no font for.
+      svgLogo('<text x="5" y="30">Acme</text>'),
+      // An SVG that draws nothing.
+      svgLogo(""),
+      // A TIFF: no image decoder runs on any other type.
+      await solidLogo({
+        width: 64,
+        height: 32,
+        format: "tiff",
+        color: INDIGO,
+      }),
+      // A WebP's first bytes, then nothing an image is made of.
+      Buffer.concat([
+        Buffer.from("RIFF", "latin1"),
+        Buffer.from([0x10, 0, 0, 0]),
+        Buffer.from("WEBP", "latin1"),
+        Buffer.alloc(100, 1),
+      ]),
+    ]) {
       StatusPageCarriedLogo.clearCache();
       findOneBy.mockResolvedValue(pageWithLogo({ bytes: bytes }) as never);
 
       expect(await StatusPageCarriedLogo.read(STATUS_PAGE_ID)).toBeNull();
     }
+  });
+
+  test("the logo is made for the status page header's box, once for every email of a notification", async () => {
+    const svg: Buffer = svgLogo('<rect width="120" height="40" fill="#4f46e5"/>');
+    findOneBy.mockResolvedValue(pageWithLogo({ bytes: svg }) as never);
+
+    const making: ReturnType<typeof jest.spyOn> = jest.spyOn(
+      EmailLogoImage,
+      "carriedLogoOf",
+    );
+
+    const logos: Array<CarriedLogo | null> = await Promise.all(
+      Array.from({ length: 500 }, (): Promise<CarriedLogo | null> => {
+        return StatusPageCarriedLogo.read(STATUS_PAGE_ID);
+      }),
+    );
+
+    expect(making).toHaveBeenCalledTimes(1);
+    expect(making).toHaveBeenCalledWith({
+      bytes: svg,
+      name: "logo",
+      box: STATUS_PAGE_EMAIL_LOGO_BOX,
+      label: `The logo of status page ${STATUS_PAGE_ID.toString()}`,
+    });
+
+    const made: EmailLogoResult = await (making.mock.results[0]!
+      .value as Promise<EmailLogoResult>);
+
+    expect(new Set(logos)).toEqual(new Set([made.logo]));
+    expect(made.logo).not.toBeNull();
   });
 
   test("one read for every email of a notification, even those that ask while it is being read", async () => {

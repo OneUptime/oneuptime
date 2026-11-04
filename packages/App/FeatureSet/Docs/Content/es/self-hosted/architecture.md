@@ -83,7 +83,7 @@ Todo lo demás solo se conecta hacia fuera cuando lo activas, y cada conexión t
 
 Las conexiones en sentido contrario – SendGrid entregando correo entrante, Slack y Microsoft Teams devolviendo llamadas – necesitan que el ingress sea accesible desde internet. Qué direcciones privadas pueden alcanzar la aplicación y las sondas lo decides tú: consulta [Acceso a red privada](/docs/self-hosted/private-network-access).
 
-El logotipo de OneUptime va dentro de cada correo que envía OneUptime, así que se ve incluso en una red sin acceso a internet, y abrir un correo no le pide nada a ningún otro host. Un logotipo que subes tú, como el tuyo propio o el de una página de estado, también va dentro del correo cuando es un PNG, JPEG o GIF de 512 KB como máximo. Cualquier otra imagen que subas se muestra desde tu URL de OneUptime, a la que deben poder acceder quienes lean esos correos.
+El logotipo de OneUptime va dentro de cada correo que envía OneUptime, así que se ve incluso en una red sin acceso a internet, y abrir un correo no le pide nada a ningún otro host. Un logotipo que subes tú también va dentro del correo: tu propio logotipo cuando es un PNG, JPEG o GIF, y el logotipo de una página de estado cuando es un PNG, JPEG, GIF, WebP o SVG, que OneUptime convierte en una imagen del tamaño de la cabecera del correo. Cualquier otra imagen que subas se muestra desde tu URL de OneUptime, a la que deben poder acceder quienes lean esos correos, y lo mismo pasa con el logotipo SVG de una página de estado cuyas palabras son texto y no formas.
 
 ## Próximos pasos
 

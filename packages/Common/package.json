@@ -158,6 +158,7 @@
     "reflect-metadata": "^0.2.2",
     "remark-gfm": "^4.0.0",
     "remark-parse": "^11.0.0",
+    "sharp": "^0.35.5",
     "slackify-markdown": "^4.4.0",
     "slugify": "^1.6.5",
     "socket.io": "^4.7.4",

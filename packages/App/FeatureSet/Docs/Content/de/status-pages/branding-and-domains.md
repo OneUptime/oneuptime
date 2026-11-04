@@ -40,6 +40,8 @@ Das Logo, das Logo für dunkles Design, das Titelbild und das Favicon sind Datei
 
 Ihre Statusseite zeigt nur Bilder ihres eigenen Projekts; ein Bild, das sie nicht zeigen kann, wird weggelassen, als hätte die Seite keines. Das Dashboard, die API und Terraform lesen die Bilder der Seite genauso: Ein Bild eines anderen Projekts kommt als gar kein Bild zurück. Die E-Mails, die die Seite sendet – an Abonnenten und an private Benutzer zu ihrer Anmeldung –, zeigen ihr Logo genauso: Ein Logo, das die Seite nicht zeigen kann, wird auch darin weggelassen, statt als defektes Bild zu erscheinen.
 
+Diese E-Mails tragen das Logo in sich, sodass es auch dort angezeigt wird, wo ein E-Mail-Programm keine Bilder aus dem Internet lädt oder OneUptime nicht erreicht: Ein PNG-, JPEG-, GIF-, WebP- oder SVG-Logo kommt als Bild in der Größe des E-Mail-Kopfes hinein. Ein SVG-Logo, dessen Schriftzug aus Text statt aus Formen besteht, wird stattdessen von seiner Adresse geladen, weil der Server keine Schriftart hat, mit der er die Wörter zeichnen könnte: Wandeln Sie den Text in Ihrem Designprogramm in Pfade um, oder laden Sie ein PNG hoch.
+
 ### Design
 
 Die Karte **Design**, direkt unter dem Logo, legt fest, wie die Seite für ihre Besucher aussieht. Wählen Sie eine ihrer drei Möglichkeiten, und sie wird sofort gespeichert; es gibt keine Schaltfläche **Bearbeiten**.

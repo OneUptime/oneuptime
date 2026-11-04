@@ -2,7 +2,11 @@ import DatabaseConfig from "../../DatabaseConfig";
 import StatusPageService from "../../Services/StatusPageService";
 import FileOwnership from "../File/FileOwnership";
 import logger from "../Logger";
-import { CarriedLogo, toCarriedLogo } from "../Mail/EmailCarriedLogos";
+import { CarriedLogo } from "../Mail/EmailCarriedLogos";
+import EmailLogoImage, {
+  EmailLogoResult,
+  STATUS_PAGE_EMAIL_LOGO_BOX,
+} from "../Mail/EmailLogoImage";
 import StatusPageEmailLogo from "./StatusPageEmailLogo";
 import File from "../../../Models/DatabaseModels/File";
 import StatusPage from "../../../Models/DatabaseModels/StatusPage";
@@ -19,15 +23,18 @@ import OldestKeyMap from "../../../Utils/OldestKeyMap";
  * notification service asks here for the logo that address shows, and the
  * email carries it inside itself instead (Utils/Mail/EmailCarriedLogos.ts):
  * read as the route serves it - a page that is not archived, a file of the
- * page's own project - and only a PNG, JPEG or GIF of at most
- * MAX_CARRIED_LOGO_BYTES. Anything else is null, and the email keeps the
- * address, as it always did.
+ * page's own project - and made into an image sized for the email's header
+ * (Utils/Mail/EmailLogoImage.ts): a PNG, JPEG, GIF, WebP or SVG logo of any
+ * size, at most 3x the 200 x 48 box the header draws it in, and a logo
+ * that already fits goes as it was. What cannot be made into one - an SVG
+ * that draws words, which the server has no font for, a file of another
+ * type - is null, and the email keeps the address, as it always did.
  *
  * A notification goes to every subscriber of a page at once, one email
- * each, so the logo is read once for all of them: a read is kept for
- * CARRIED_LOGO_CACHE_TTL_IN_MS, and the emails that ask while it is still
- * being read wait for that one read. A new logo is carried within a minute
- * of its upload. A read that fails is kept only for
+ * each, so the logo is read, and made, once for all of them: a read is kept
+ * for CARRIED_LOGO_CACHE_TTL_IN_MS, and the emails that ask while it is
+ * still being read wait for that one read. A new logo is carried within a
+ * minute of its upload. A read that fails is kept only for
  * CARRIED_LOGO_RETRY_AFTER_FAILURE_IN_MS: those emails show the address.
  */
 
@@ -159,6 +166,14 @@ export default class StatusPageCarriedLogo {
       statusPage?.projectId,
     );
 
-    return toCarriedLogo(logo?.file, STATUS_PAGE_LOGO_ATTACHMENT_NAME);
+    // Made for the header that draws it, as its emails carry it.
+    const carried: EmailLogoResult = await EmailLogoImage.carriedLogoOf({
+      bytes: logo?.file,
+      name: STATUS_PAGE_LOGO_ATTACHMENT_NAME,
+      box: STATUS_PAGE_EMAIL_LOGO_BOX,
+      label: `The logo of status page ${statusPageId.toString()}`,
+    });
+
+    return carried.logo;
   }
 }

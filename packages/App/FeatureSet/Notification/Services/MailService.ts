@@ -933,7 +933,8 @@ export default class MailService {
   private static async readCarriedLogo(
     address: string,
   ): Promise<CarriedLogo | null> {
-    const productLogo: CarriedLogo | null = getCarriedProductLogo(address);
+    const productLogo: CarriedLogo | null =
+      await getCarriedProductLogo(address);
 
     if (productLogo) {
       return productLogo;
@@ -1435,8 +1436,9 @@ export default class MailService {
       /*
        * A logo an operator uploaded - the installation's own, a status
        * page's - that the email shows by its address goes inside the email
-       * in its place, when every mail client can draw it and it is small
-       * enough (EmailCarriedLogos); any other stays its address.
+       * in its place (EmailCarriedLogos), made into an image every mail
+       * client draws, sized for the header, when it is not one already
+       * (EmailLogoImage); a logo that cannot be made stays its address.
        */
       const carried: EmailWithCarriedLogos = await EmailCarriedLogos.carry(
         rendered.body,

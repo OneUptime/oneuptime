@@ -40,6 +40,8 @@ Le logo, le logo du thème sombre, l'image de couverture et le favicon sont des 
 
 Votre page de statut n'affiche que les images de son propre projet ; une image qu'elle ne peut pas afficher est omise, comme si la page n'en avait pas. Le tableau de bord, l'API et Terraform lisent les images de la page de la même façon : une image d'un autre projet revient comme aucune image. Les e-mails que la page envoie – aux abonnés, et aux utilisateurs privés au sujet de leur connexion – affichent son logo de la même manière : un logo que la page ne peut pas afficher en est omis lui aussi, plutôt qu'affiché comme une image cassée.
 
+Ces e-mails emportent le logo à l'intérieur : il s'affiche donc même là où un client de messagerie ne charge aucune image depuis Internet ou ne peut pas joindre OneUptime. Un logo PNG, JPEG, GIF, WebP ou SVG y entre sous la forme d'une image à la taille de l'en-tête de l'e-mail. Un logo SVG dont les mots sont du texte, et non des formes, s'affiche plutôt depuis son adresse, car le serveur n'a aucune police pour dessiner ces mots : vectorisez le texte dans votre outil de conception, ou importez un PNG.
+
 ### Thème
 
 La carte **Thème**, juste sous le logo, définit l'apparence de la page pour ses visiteurs. Choisissez l'une de ses trois options et elle est enregistrée aussitôt ; il n'y a pas de bouton **Modifier**.

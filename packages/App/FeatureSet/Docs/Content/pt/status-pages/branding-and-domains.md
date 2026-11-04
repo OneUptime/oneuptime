@@ -40,6 +40,8 @@ O logotipo, o logotipo do tema escuro, a imagem de capa e o favicon são arquivo
 
 Sua página de status só mostra imagens do próprio projeto; uma imagem que ela não pode mostrar fica de fora, como se a página não tivesse nenhuma. O painel, a API e o Terraform leem as imagens da página do mesmo jeito: uma imagem de outro projeto volta como nenhuma imagem. Os e-mails que a página envia (aos assinantes, e aos usuários privados sobre o acesso deles) mostram o logotipo do mesmo jeito: um logotipo que a página não pode mostrar também fica de fora deles, em vez de aparecer como uma imagem quebrada.
 
+Esses e-mails levam o logotipo dentro deles, então ele aparece até onde um cliente de e-mail não carrega imagens da internet ou não consegue acessar o OneUptime: um logotipo PNG, JPEG, GIF, WebP ou SVG vai dentro como uma imagem do tamanho do cabeçalho do e-mail. Um logotipo SVG cujas palavras são texto, e não formas, é mostrado a partir do seu endereço, porque o servidor não tem nenhuma fonte para desenhar as palavras: converta o texto em contornos na sua ferramenta de design, ou envie um PNG.
+
 ### Tema
 
 O cartão **Tema**, logo abaixo do logotipo, define como a página aparece para os visitantes. Escolha uma das três opções e ela é salva na hora; não há botão **Editar**.

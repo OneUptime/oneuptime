@@ -33,20 +33,23 @@ import {
  * Which addresses are logos, and what each logo is, a reader says
  * (CarriedLogoReader): App's EmailBranding knows the installation's own
  * logo, and StatusPageCarriedLogo a status page's, read with the rules its
- * logo route serves it by. A logo travels only when every mail client can
- * draw it and it is small enough to go in every email: a PNG, JPEG or GIF
- * of at most MAX_CARRIED_LOGO_BYTES, the most the installation's own logo
- * may be. Any other logo - an SVG, a WebP, a larger file - and any address
- * no reader knows, stays the address it was, so nothing is shown worse
- * than before. A reader that fails leaves the address too: an email is
- * never held up, or lost, for its logo.
+ * logo route serves it by. An email carries only an image every mail
+ * client draws, small enough to go in every email: a PNG, JPEG or GIF of
+ * at most MAX_CARRIED_LOGO_BYTES. A reader makes any other logo into one
+ * first - an SVG, a WebP, a larger file - sized for the header that draws
+ * it (EmailLogoImage), and a logo that already is one goes as it is. A
+ * logo that cannot be made into one (an SVG that draws words, which the
+ * server has no font for) and any address no reader knows stay the address
+ * they were, so nothing is shown worse than before. A reader that fails
+ * leaves the address too: an email is never held up, or lost, for its
+ * logo.
  */
 
 /*
  * The largest logo an email carries: the most the installation's own logo
  * may be (the enterprise module refuses a larger upload), far more than a
  * header drawn 32 to 48 pixels tall needs. A status page's logo may be
- * larger, and then loads from its address.
+ * larger, and is then made smaller for its emails (EmailLogoImage).
  */
 export const MAX_CARRIED_LOGO_BYTES: number = 512 * 1024;
 
@@ -125,11 +128,12 @@ const toWebAddress: (source: string) => string | null = (
 };
 
 /**
- * A logo's bytes as the image an email carries, its attachment named
- * `name` and the extension of the type its bytes are - or null when an
- * email cannot carry it: no bytes, more than MAX_CARRIED_LOGO_BYTES, or not
- * a PNG, JPEG or GIF file (read from its own first bytes, whatever it was
- * uploaded as).
+ * A logo's bytes as the image an email carries, as they are, its
+ * attachment named `name` and the extension of the type its bytes are - or
+ * null when an email cannot carry them as they are: no bytes, more than
+ * MAX_CARRIED_LOGO_BYTES, or not a PNG, JPEG or GIF file (read from its own
+ * first bytes, whatever it was uploaded as). EmailLogoImage makes such a
+ * logo into one first, and sizes one for the header that draws it.
  */
 export const toCarriedLogo: (
   bytes: Buffer | null | undefined,
