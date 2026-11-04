@@ -60,7 +60,10 @@ const Settings: FunctionComponent<ComponentProps> = (
             filterDropdownOptions: DropdownUtil.getDropdownOptionsFromEnum(
               ProductType,
             ).filter((option: DropdownOption) => {
-              return option.value !== ProductType.ActiveMonitoring;
+              return (
+                option.value !== ProductType.ActiveMonitoring &&
+                option.value !== ProductType.WatchedTables
+              );
             }), // Remove Active Monitoring from the dropdown
           },
           {

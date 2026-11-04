@@ -1,6 +1,6 @@
 # Checks and Reconciliations
 
-Table health says whether a table changes. A **check** says whether what it holds is right, a **reconciliation** says whether two copies of the data agree, and **dbt's tests** report on the tables dbt builds. Each one runs where the database's collection runs, by OneUptime or by its probe, and only a number ever leaves the database.
+Table health says whether a table changes. A **check** says whether what it holds is right, a **reconciliation** says whether two copies of the data agree, and **dbt's tests** report on the tables dbt builds. Each one runs where the database's collection runs, by OneUptime or by its probe, and only a number leaves the database, unless a self-hosted project chooses to keep a masked sample of failing rows.
 
 ## Checks
 
@@ -13,16 +13,17 @@ Add a check on a table's **Checks** tab:
 | **Distinct Count** | How many different values the column holds |
 | **Minimum**, **Maximum**, **Average**, **Sum** | Of a numeric column (a Sum of no rows is 0) |
 | **Invalid Percent** | Percent of values outside a list you give |
-| **Format Mismatch Percent** | Percent of values that do not match a regular expression (every engine but SQL Server) |
+| **Format Mismatch Percent** | Percent of values that are not in a format you pick, such as Email, UUID or Country Code, or that do not match a regular expression of yours (every engine but SQL Server) |
 | **Orphan Count** | Rows whose value has no match in another table's column |
 | **Row Count** | Rows in the table, most useful with **Segment By** |
 | **Custom SQL** | The number one read-only SELECT of yours returns, named `value` (on MongoDB, an aggregation pipeline's) |
+| **Failing Rows** | How many rows one read-only SELECT of yours returns: the rows that should not exist. 0 is healthy (on MongoDB, the documents a pipeline ends in) |
 
 Each check runs every 15 minutes, hour, 6 hours or day, as one aggregate statement in a read-only transaction with a statement timeout. Its value is written as `oneuptime.data.check.value`, with `oneuptime.data.check.id`, `oneuptime.data.check.name` and `oneuptime.data.check.segment`.
 
 ## Suggested checks
 
-**Suggested Checks** on the same tab offer the checks a table's columns call for, from their names and types alone: an id is unique, a `customer_id` has a matching row in `customers`, an email looks like one, an amount is not negative, a status keeps its usual values, and a table split by tenant is counted per tenant. Add one, add them all, or dismiss one for good.
+**Suggested Checks** on the same tab offer the checks a table's columns call for, from their names and types alone: an id is unique, a `customer_id` has a matching row in `customers`, an email looks like one, an amount is not negative, a status keeps its usual values, and a table split by tenant is counted per tenant. A column Data Security knows holds an email address, a phone number or an IP address is held to that format, whatever it is called. Add one, add them all, or dismiss one for good.
 
 ## A check from a sentence
 
@@ -40,6 +41,60 @@ Set **Alert When** to alert on a check:
 - **Above** or **Below** compares it with a threshold.
 
 Saving the check makes a metric monitor for it, as you and with your permissions. Clearing the condition removes the monitor.
+
+## What a check costs
+
+A check competes with your application for the database, and on a warehouse that bills by what a query reads, it costs money. Three things keep that in hand:
+
+- **Sample Percent** reads a share of the rows instead of all of them, for a check that reads a rate: Null Percent, Average, Invalid Percent and Format Mismatch Percent. Most engines skip whole pages of the table; MySQL, Redshift, ClickHouse and MongoDB still read every row, and are spared the work on the rest. A view can refuse it, and the check says so.
+- **Most a Check May Read (GB)**, under **Settings**, stops a check on BigQuery or Athena before it reads more than that many gigabytes. It is 10 until you change it.
+- **Wait When a Database Is Busy**, under **Settings**, leaves due checks for the next collection when a PostgreSQL, MySQL or SQL Server database looks busy. It is on until you turn it off, and the database says when checks waited.
+
+## Failing rows
+
+A number says something is wrong; a few rows say what. On a self-hosted OneUptime, **Keep Failing Rows** under **Settings** keeps up to 20 of the rows a Failing Rows, Invalid Percent, Format Mismatch Percent or Orphan Count check found, and **Failing Rows** on the check shows them. Sensitive columns are masked where the row is read, by what Data Security found in them or by their names, so what leaves the database, or a probe, is already masked. OneUptime Cloud keeps none.
+
+## Checks in a file
+
+Checks written by hand drift from the code that changes the tables. Keep them in your repository, reviewed in the same pull request:
+
+```yaml
+checks:
+  - name: Orders have a total
+    table: public.orders
+    type: Null Percent
+    column: total
+    every: 60
+    alert: { when: Above, threshold: 1 }
+  - name: Emails look right
+    table: public.customers
+    database: Orders database
+    type: Format Mismatch Percent
+    column: email
+    format: Email
+    sample_percent: 10
+  - name: Orders have a customer
+    table: public.orders
+    type: Orphan Count
+    column: customer_id
+    references: public.customers.id
+  - name: No negative totals
+    table: public.orders
+    type: Failing Rows
+    query: SELECT id FROM orders WHERE total < 0
+    alert: { when: Above, threshold: 0 }
+```
+
+Apply it from CI with the [OneUptime CLI](/docs/cli/index) and an API key:
+
+```bash
+oneuptime data-checks apply checks.yaml --dry-run
+oneuptime data-checks apply checks.yaml --prune
+```
+
+A check is the same check if it has the same name on the same table, so applying a file twice changes nothing. A mistake anywhere in the file applies nothing and exits with an error, so run `--dry-run` on the pull request and apply on merge. With `--prune`, a check an earlier apply made that the file no longer names is deleted. A check you added by hand never is. A check from a file says so on its row, and its next apply overwrites what was changed by hand.
+
+The keys are `name`, `table`, `database`, `type`, `column`, `segment`, `accepted_values`, `format`, `pattern`, `references`, `query`, `sample_percent`, `every`, `alert`, `description` and `enabled`.
 
 ## Reconciliations
 

@@ -9,12 +9,16 @@ Dataobserverbarhet läser varje databas med en inloggning som bara läser dess k
 
 ## Välj vem som ansluter
 
-Under **Dataobserverbarhet > Databaser** väljer du **Connect a Database**, och sedan:
+Under **Dataobserverbarhet > Databaser** väljer du **Anslut en databas**, och sedan:
 
-- **OneUptime connects**: klistra in en anslutningssträng. Den lagras krypterad, används bara av OneUptimes workers och visas aldrig igen.
-- **A probe in my network connects**: välj en av dina sonder och ange namnet på den miljövariabel på sonden som innehåller anslutningssträngen, till exempel `ORDERS_DB_URL`. Anslutningssträngen lämnar aldrig ditt nätverk. Se [Anpassade sonder](/docs/probe/custom-probe).
+- **OneUptime ansluter**: klistra in en anslutningssträng. Den lagras krypterad, används bara av OneUptimes workers och visas aldrig igen.
+- **En sond i mitt nätverk ansluter**: välj en av dina sonder och ange namnet på den miljövariabel på sonden som innehåller anslutningssträngen, till exempel `ORDERS_DB_URL`. Anslutningssträngen lämnar aldrig ditt nätverk. Se [Anpassade sonder](/docs/probe/custom-probe).
 
 En databas som redan är ansluten för Datasäkerhet övervakas också, utan något att ansluta, och detsamma gäller varje BigQuery-dataset som din [molnanslutning](/docs/telemetry/cloud-accounts) har hittat.
+
+## Databaser du kan ansluta
+
+**Databaser du kan ansluta**, under **Databaser**, listar det som ditt projekt redan känner till och som ingen har anslutit: databaser som dina spår pratar med, sådana i dina molnkonton och sådana som databasövervakning bevakar. **Anslut** startar formuläret utifrån det som är känt om var och en, med en anslutningssträng att fylla i. **Dölj** hindrar en från att komma tillbaka. Ingenting läses förrän du ansluter den.
 
 ## En inloggning som bara kan läsa, per motor
 
@@ -30,7 +34,7 @@ Anslutningssträngen: `postgres://oneuptime_reader:...@orders-db.internal:5432/o
 @tab MySQL and MariaDB
 ```sql
 CREATE USER 'oneuptime_reader'@'%' IDENTIFIED BY '...';
-GRANT SHOW VIEW ON orders.* TO 'oneuptime_reader'@'%';
+GRANT SHOW VIEW, REFERENCES ON orders.* TO 'oneuptime_reader'@'%';
 GRANT SELECT ON performance_schema.table_io_waits_summary_by_table TO 'oneuptime_reader'@'%';
 ```
 
@@ -140,13 +144,24 @@ MongoDB läses med sin egen drivrutin: `mongodb+srv://oneuptime_reader:...@clust
 | Kontroller | Var 15:e minut, varje timme, var 6:e timme eller varje dag, enligt vad var och en anger |
 | Härkomst och senaste läsningar från frågehistoriken | En gång i timmen, tillbaka till den senaste läsningen |
 
-Varje sats körs med enbart läsbehörighet, med en tidsgräns för satser och lås där motorn har sådana. Anslutningssträngen loggas aldrig och tas bort ur varje felmeddelande. En statistik som inloggningen inte får läsa utelämnas med en varning på databasen; insamlingen misslyckas aldrig på grund av det.
+Varje sats körs med enbart läsbehörighet, med en tidsgräns för satser och lås där motorn har sådana. Anslutningssträngen loggas aldrig och tas bort ur varje felmeddelande. En statistik som inloggningen inte får läsa utelämnas med en varning på databasen; insamlingen misslyckas aldrig på grund av det. Anslutningar till privata adresser nekas i OneUptime Cloud: använd en sond.
+
+## Läsrepliker
+
+En läsreplik i PostgreSQL eller SQL Server flyttar inte sina skrivräknare, så en tabell där kan se oförändrad ut medan den ändras. OneUptime ser att det är en replik, utelämnar räknarna, säger det på databasen och faller tillbaka på tabellens storlek och rader. Anslut primärservern där du kan, eller ange en [aktualitetskolumn](/docs/data-observability/table-health) för de tabeller som är viktiga.
+
+## Lagringssökvägar
+
+Inte allt du är beroende av finns i en databas. En export som landar i en bucket varje natt är lika sen, eller lika kort, som vilken tabell som helst. Under **Lagringssökvägar** väljer du **Redigera sökvägar** för en bucket som din [molnanslutning](/docs/telemetry/cloud-accounts) har hittat, i Amazon S3, Google Cloud Storage eller ett Azure-lagringskonto, och anger de sökvägar som är viktiga, en per rad. I Azure börjar du varje med containerns namn.
+
+Varje sökväg visas sedan under **Tabeller**: dess nyaste objekt är när den senast ändrades, dess objekt är dess rader och deras storlek dess storlek, och samma larm gäller. Bara namn, storlekar och tider läses, aldrig ett objekt. En sökväg med fler än 10000 objekt har inget exakt antal, ingen exakt storlek och inget exakt nyaste objekt, och säger det: ange en smalare.
 
 ## Felsökning
 
 - **Databasen visar Misslyckades.** Dess meddelande säger varför: en värd som OneUptime inte kan nå, en inloggning som nekades, ett TLS-läge som servern inte accepterar. Anslut en databas inuti ditt nätverk via en sond.
 - **Tabeller visar ingen senaste ändring.** Inloggningen kan inte läsa motorns statistik: bevilja det som fliken för din motor listar, eller vänta tills en tabells rader har ändrats två gånger.
 - **En tabell saknas.** Den ligger i ett schema som inloggningen inte får använda, eller så är den undantagen i databasen. Bevilja `USAGE` på dess schema, eller ta bort undantaget.
+- **En MySQL-tabell har inga kolumner.** Inloggningen behöver `REFERENCES`, som ovan: den visar en tabells kolumner utan att ge någon läsning av dess rader.
 
 ## Nästa steg
 

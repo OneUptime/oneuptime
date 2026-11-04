@@ -216,6 +216,12 @@ import DataBiConnection from "./DataBiConnection";
 import DataDashboard from "./DataDashboard";
 import DataWarehouseJob from "./DataWarehouseJob";
 import DataReconciliation from "./DataReconciliation";
+import DataIssueReport from "./DataIssueReport";
+import DataAssetOwnerUser from "./DataAssetOwnerUser";
+import DataAssetOwnerTeam from "./DataAssetOwnerTeam";
+import DataAssetOwnerRule from "./DataAssetOwnerRule";
+import DataAssetLabelRule from "./DataAssetLabelRule";
+import DataObservabilitySetting from "./DataObservabilitySetting";
 import DataAssetLineage from "./DataAssetLineage";
 import DataAlert from "./DataAlert";
 import SecurityProtectedEntity from "./SecurityProtectedEntity";
@@ -699,6 +705,12 @@ const AllModelTypes: Array<{
   DataDashboard,
   DataWarehouseJob,
   DataReconciliation,
+  DataIssueReport,
+  DataAssetOwnerUser,
+  DataAssetOwnerTeam,
+  DataAssetOwnerRule,
+  DataAssetLabelRule,
+  DataObservabilitySetting,
   DataAssetLineage,
   DataAlert,
   SecurityProtectedEntity,

@@ -6,7 +6,7 @@ Elke opdracht van de CLI `oneuptime`, met zijn argumenten, opties en standaardwa
 - [Globale opties](#globale-opties): De opties die elke opdracht neemt.
 - [Inloggen en contexten](#inloggen-en-contexten): login en de context-opdrachten.
 - [Bronopdrachten](#opdrachten-voor-bronnen): De bewerkingen, velden en acties van elke bron.
-- [Andere opdrachten](#andere-opdrachten): deploy, dbt upload, whoami, resources, version en help.
+- [Andere opdrachten](#andere-opdrachten): deploy, dbt upload, data-checks apply, whoami, resources, version en help.
 :::
 
 ## De opdrachten
@@ -322,6 +322,19 @@ oneuptime dbt upload [--target-path <dir>] [--manifest <file>] [--run-results <f
 | `--run-results <file>` | Nee | De uitvoeringsresultaten die worden verstuurd | `run_results.json` in de doelmap |
 | `--project <name>` | Nee | De naam van het dbt-project, alleen nodig als er geen manifest wordt verstuurd | Het project van het manifest |
 | `--ingestion-key <key>` | Nee | Een telemetrie-ingestiesleutel van het project | `ONEUPTIME_TELEMETRY_INGESTION_KEY` |
+
+### `oneuptime data-checks apply`
+
+Laat de gegevenscontroles van het project overeenkomen met een YAML-bestand, zodat ze in een repository worden bewaard en als code worden beoordeeld. Een fout ergens in het bestand past niets toe en eindigt met een foutmelding. Het formaat van het bestand staat in [Controles en reconciliaties](/docs/data-observability/checks).
+
+```bash
+oneuptime data-checks apply <file> [--dry-run] [--prune]
+```
+
+| Optie | Verplicht | Wat het is | Standaard |
+| --- | --- | --- | --- |
+| `--dry-run` | Nee | Zegt wat er zou veranderen, en verandert niets | Uit |
+| `--prune` | Nee | Verwijdert controles die een eerdere apply maakte en die het bestand niet meer noemt | Uit |
 
 ### `oneuptime whoami`
 

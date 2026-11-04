@@ -6,7 +6,7 @@ Het beantwoordt vier vragen:
 
 :::cards
 - [Waar staan onze gevoelige gegevens?](/docs/data-security/data-types): 143 gegevenstypen, van kaartnummers en nationale identiteitsnummers tot API-sleutels, gevonden in buckets, tabellen en telemetrie.
-- [Is het blootgesteld?](/docs/data-security/checks-and-issues): 33 controles van elke opslag: openbare toegang, versleuteling, back-ups, logging, geheimen en kopieën.
+- [Is het blootgesteld?](/docs/data-security/checks-and-issues): 34 controles van elke opslag: openbare toegang, versleuteling, back-ups, logging, geheimen en kopieën.
 - [Wie kan erbij, en waar gaat het heen?](/docs/data-security/flows-access-residency): Elke identiteit die bij elke opslag kan, de riskantste eerst, welke services hem gebruiken, en welke AI-providers en hosts zijn gegevens bereiken.
 - [Voldoet het aan onze regels?](/docs/data-security/compliance): Residentieregels, en negen kaders gescoord op wat de scans vonden.
 :::

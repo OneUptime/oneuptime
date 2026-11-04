@@ -1,10 +1,10 @@
 # Datasikkerhedskontroller og problemer
 
-Datasikkerhed kører 33 kontroller på hvert datalager, fordelt på ni grupper. En kontrol læser det, der vides om ét datalager - hvordan det er konfigureret, hvad der er fundet i det, hvem der kan nå det, hvor det ligger - og består, fejler eller kan ikke afgøre det. En kontrol, der fejler, åbner ét problem på det datalager, og problemet lukker af sig selv, når kontrollen består. Denne side viser alle kontroller, hvordan et problems alvorlighed og risikoscore beregnes, og hvad der sker med et problem i løbet af dets levetid.
+Datasikkerhed kører 34 kontroller på hvert datalager, fordelt på ni grupper. En kontrol læser det, der vides om ét datalager - hvordan det er konfigureret, hvad der er fundet i det, hvem der kan nå det, hvor det ligger - og består, fejler eller kan ikke afgøre det. En kontrol, der fejler, åbner ét problem på det datalager, og problemet lukker af sig selv, når kontrollen består. Denne side viser alle kontroller, hvordan et problems alvorlighed og risikoscore beregnes, og hvad der sker med et problem i løbet af dets levetid.
 
 :::cards
 - [Sådan afgør en kontrol](#sådan-afgør-en-kontrol): Bestået, fejlet eller kan ikke afgøre, og hvor slem en fejl er.
-- [Alle kontroller](#alle-kontroller): Alle 33, med hvad hver enkelt kontrollerer, og hvordan det rettes.
+- [Alle kontroller](#alle-kontroller): Alle 34, med hvad hver enkelt kontrollerer, og hvordan det rettes.
 - [Risikoscore](#risikoscore): Hvordan problemer ordnes inden for en alvorlighed.
 - [Hvad der sker med et problem](#hvad-der-sker-med-et-problem): Åben, løst, accepteret, ikke et problem.
 - [Ret det herfra](#ret-det-herfra): Luk en eksponering, eller slå en manglende beskyttelse til, med ét klik.
@@ -87,6 +87,7 @@ Alvorligheden angives for data med følsomheden Begrænset, Fortrolig, Intern og
 | Adgangskoder gemmes i klartekst (`plaintext-passwords`) | Alle datalagre undtagen telemetri | Et adgangskodefelt indeholder værdier, der ikke er adgangskode-hashes (bcrypt, argon2, scrypt eller PBKDF2). | Kritisk / Kritisk / Kritisk / Kritisk | Hash adgangskoder med bcrypt, scrypt eller argon2, migrér de gemte, og få alle konti til at nulstille deres adgangskode. |
 | Produktionsdata blev kopieret til et datalager uden for produktion (`production-data-in-non-production`) | Alle datalagre undtagen telemetri | Værdier fundet i et produktionsdatalager blev også fundet her, i et udviklings-, test- eller stagingdatalager. | Høj / Middel / — / — | Erstat kopien med maskerede eller syntetiske data, og slet de rigtige data fra datalageret uden for produktion. |
 | Følsomme data, som ingen har brugt i 90 dage (`stale-sensitive-data`) | Alle datalagre undtagen telemetri | Datalageret indeholder følsomme data og har ikke haft nogen læsninger eller skrivninger i 90 dage. | Middel / Lav / — / — | Bekræft, at dataene ikke længere er nødvendige, og arkivér dem derefter med en opbevaringsdato, eller slet dem. |
+| En ny kolonne indeholder personoplysninger (`new-personal-data-column`) | Alle datalagre undtagen telemetri | En kolonne, der er tilføjet inden for de seneste 14 dage, har et navn, der siger, at den indeholder personoplysninger. | Høj / Høj / Middel / Middel | Bekræft, at kolonnen skal indeholde disse data, og notér hvorfor. Hvis den ikke skal, så fjern den, eller hold op med at skrive til den. |
 | Ingen ejer dette følsomme datalager (`no-owner`) | Alle datalagre | Datalageret indeholder følsomme data og har ingen ejer. | Middel / Lav / — / — | Tilføj en ejer på datalagerets side **Ejere** eller en ejerregel, der matcher dets tags. |
 
 ### Telemetri

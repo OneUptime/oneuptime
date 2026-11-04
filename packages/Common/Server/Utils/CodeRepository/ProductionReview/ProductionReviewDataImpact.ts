@@ -1,3 +1,4 @@
+import StagingTableComparison from "../../DataObservability/StagingTableComparison";
 import DataAsset from "../../../../Models/DatabaseModels/DataAsset";
 import DataAssetLineage from "../../../../Models/DatabaseModels/DataAssetLineage";
 import DataAssetUsage from "../../../../Models/DatabaseModels/DataAssetUsage";
@@ -11,6 +12,7 @@ import {
   PRODUCTION_REVIEW_LIMITS,
   ProductionReviewDataChange,
   ProductionReviewDataDashboardJSON,
+  ProductionReviewDataStagingJSON,
   ProductionReviewDataImpactJSON,
   ProductionReviewDataProductJSON,
   ProductionReviewDataServiceJSON,
@@ -57,7 +59,8 @@ import { ResponseJSON } from "@clickhouse/client";
  *     (DataAssetUsage), and for a column change, how many of each one's
  *     queries of the last day name the column;
  *   - the tables built from it (lineage);
- *   - the data products it is part of, with their owners.
+ *   - the data products it is part of, with their owners;
+ *   - how its copy on staging differs, with its checks run there.
  *
  * Only what the change adds is read (a migration's down step, which undoes
  * it, is left out), and a table name several databases hold is narrowed to
@@ -1092,6 +1095,12 @@ export default class ProductionReviewDataImpact {
       }
     }
 
+    const staging: ProductionReviewDataStagingJSON | null =
+      await StagingTableComparison.compare({
+        projectId: data.projectId,
+        asset: data.asset,
+      });
+
     return {
       dataAssetId: assetId.toString(),
       table: data.asset.assetKey || data.asset.name || data.change.table,
@@ -1103,6 +1112,7 @@ export default class ProductionReviewDataImpact {
       services: services.slice(0, MAX_SERVICES),
       downstreamTables: downstream,
       downstreamCount: downstreamIds.size,
+      ...(staging ? { staging } : {}),
       dashboards: dashboards
         .slice(0, MAX_DASHBOARDS)
         .map((dashboard: TableDashboard): ProductionReviewDataDashboardJSON => {

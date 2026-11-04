@@ -1,3 +1,5 @@
+import { maskFailingRows } from "../../../Types/DataObservability/DataCheckFailingRows";
+import { IsBillingEnabled } from "../../EnvironmentConfig";
 import DataAsset from "../../../Models/DatabaseModels/DataAsset";
 import DataCheck from "../../../Models/DatabaseModels/DataCheck";
 import MetricType from "../../../Models/DatabaseModels/MetricType";
@@ -26,6 +28,7 @@ import MetricService from "../../Services/MetricService";
 import QueryHelper from "../../Types/Database/QueryHelper";
 import logger from "../Logger";
 import MonitorMetricUtil from "../Monitor/MonitorMetricUtil";
+import { getNextCollectionTime } from "./DataObservabilityProbeCollect";
 import TelemetryUtil from "../Telemetry/Telemetry";
 import {
   DataCheckRunResult,
@@ -217,7 +220,11 @@ export default class DataCheckIngest {
                 : null,
             lastValue: result.values[0]?.value ?? null,
             lastSegmentCount: result.values.length,
-            nextRunAt: OneUptimeDate.addRemoveMinutes(
+            // Refused on OneUptime Cloud whatever a report says. An empty list clears the last ones.
+            ...(result.failingRows && !IsBillingEnabled
+              ? { failingRowsSample: maskFailingRows(result.failingRows) }
+              : {}),
+            nextRunAt: getNextCollectionTime(
               data.collectedAt,
               check.intervalInMinutes || DEFAULT_DATA_CHECK_INTERVAL_IN_MINUTES,
             ),

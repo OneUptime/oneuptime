@@ -92,6 +92,23 @@ export default class MonitorStepResourceIdentity {
     return this.dedupeRefs(refs);
   }
 
+  // The metric filters a monitor scopes itself with, across its steps.
+  public static getMetricFilterAttributes(monitor: Monitor): JSONObject {
+    const merged: JSONObject = {};
+
+    for (const monitorStep of monitor.monitorSteps?.data
+      ?.monitorStepsInstanceArray || []) {
+      if (monitorStep.data) {
+        Object.assign(
+          merged,
+          this.collectMetricFilterAttributes({ stepData: monitorStep.data }),
+        );
+      }
+    }
+
+    return merged;
+  }
+
   private static collectFromStep(input: {
     monitorStep: MonitorStep;
     monitorType: MonitorType;

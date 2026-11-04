@@ -1,5 +1,7 @@
 import { DataAssetColumn } from "./DataAssetColumn";
+import { getFormatOfDataType, getFormatPattern } from "./DataCheckFormats";
 import { DataCheckAlertCondition, DataCheckType } from "./DataCheckType";
+import { DataColumnSensitivity } from "./DataColumnSensitivity";
 
 /*
  * THE CHECKS A TABLE SHOULD PROBABLY HAVE.
@@ -17,7 +19,9 @@ import { DataCheckAlertCondition, DataCheckType } from "./DataCheckType";
  *  - a reference that is sometimes empty should not become empty more
  *    often than usual;
  *  - a table split by tenant, organization or account should not stop
- *    receiving rows for one of them.
+ *    receiving rows for one of them;
+ *  - a column Data Security knows holds an email address, a phone number or an
+ *    IP address, whatever it is called, should look like one.
  *
  * A suggestion the table already has a check for, or one dismissed, is not
  * offered again. Each has a stable id, so dismissing it sticks.
@@ -122,6 +126,8 @@ export function suggestDataChecks(data: {
   otherTables: ReadonlyArray<SuggestionTable>;
   existing: ReadonlyArray<ExistingDataCheck>;
   dismissedIds: ReadonlyArray<string>;
+  // What Data Security knows the columns hold.
+  sensitiveColumns?: ReadonlyArray<DataColumnSensitivity> | undefined;
 }): Array<DataCheckSuggestion> {
   const suggestions: Array<DataCheckSuggestion> = [];
 
@@ -224,6 +230,41 @@ export function suggestDataChecks(data: {
         alertCondition: DataCheckAlertCondition.UnusuallyHigh,
       });
     }
+  }
+
+  for (const sensitive of data.sensitiveColumns || []) {
+    const column: DataAssetColumn | undefined = data.columns.find(
+      (candidate: DataAssetColumn) => {
+        return candidate.name === sensitive.column;
+      },
+    );
+    const format: string | null = getFormatOfDataType(sensitive.dataTypeId);
+    const pattern: string | null = getFormatPattern(format);
+
+    if (
+      !column ||
+      !pattern ||
+      !isText(column) ||
+      suggestions.some((suggestion: DataCheckSuggestion) => {
+        return (
+          suggestion.checkType === DataCheckType.FormatMismatchPercent &&
+          suggestion.columnName === column.name
+        );
+      })
+    ) {
+      continue;
+    }
+
+    suggestions.push({
+      id: `sensitive-format:${column.name}`,
+      name: `${column.name} looks like ${sensitive.dataTypeName}`,
+      reason: `Data Security says this column holds ${sensitive.dataTypeName}. Values that do not look like it are bad input, or a column filled from the wrong field.`,
+      checkType: DataCheckType.FormatMismatchPercent,
+      columnName: column.name,
+      pattern,
+      alertCondition: DataCheckAlertCondition.Above,
+      alertThreshold: 1,
+    });
   }
 
   return suggestions

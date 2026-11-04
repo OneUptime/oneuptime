@@ -1,6 +1,6 @@
 # Linaje y pipelines
 
-El linaje dice a partir de qué tablas se construye cada tabla y qué pipelines escriben en ella. Observabilidad de datos lo reúne desde cinco fuentes a la vez (los eventos de OpenLineage, dbt, las sincronizaciones de Fivetran y Airbyte, las vistas y el propio historial de consultas de cada base de datos) y lo usa para vincular cada tabla retrasada o rota con la ejecución que hay detrás, de modo que un problema abra una sola incidencia.
+El linaje dice a partir de qué tablas se construye cada tabla y qué pipelines escriben en ella. Observabilidad de datos lo reúne desde seis fuentes a la vez (los eventos de OpenLineage, dbt, las sincronizaciones de Fivetran y Airbyte, los jobs de tus trazas, las vistas y el propio historial de consultas de cada base de datos) y lo usa para vincular cada tabla retrasada o rota con la ejecución que hay detrás, de modo que un problema abra una sola incidencia.
 
 ## De dónde sale el linaje
 
@@ -9,10 +9,13 @@ El linaje dice a partir de qué tablas se construye cada tabla y qué pipelines 
 | **OpenLineage** | Cada ejecución de un job de Airflow, Dagster, Spark, dbt o Flink, con las tablas que leyó y escribió |
 | **dbt** | A partir de qué se construye cada modelo, cada build como una ejecución y el resultado de cada prueba |
 | **Fivetran y Airbyte** | Cada sincronización como una ejecución de su conector, y las tablas sin procesar que carga |
-| **Vistas** | Una vista se construye a partir de las tablas sobre las que está definida (PostgreSQL, Redshift, MySQL 8, SQL Server, Oracle, vistas materializadas de ClickHouse, Databricks, MongoDB) |
-| **Historial de consultas** | Una consulta que leyó una tabla y escribió otra (los jobs de BigQuery, el registro de consultas de Redshift, el registro de consultas de ClickHouse, la tabla de linaje de Databricks) |
+| **Jobs de tus trazas** | Un CronJob de Kubernetes o una función programada, sus ejecuciones, y las tablas que leyeron y escribieron las llamadas a su base de datos |
+| **Vistas** | Una vista se construye a partir de las tablas sobre las que está definida (PostgreSQL, Redshift, MySQL 8, SQL Server, Oracle, Snowflake, vistas materializadas de ClickHouse, Databricks, MongoDB) |
+| **Historial de consultas** | Una consulta que leyó una tabla y escribió otra (el historial de acceso de Snowflake, los jobs de BigQuery, el registro de consultas de Redshift, el registro de consultas de ClickHouse, la tabla de linaje de Databricks) |
 
 La pestaña **Linaje** de una tabla muestra las tablas a partir de las que se construye, los pipelines que escriben en ella con su última ejecución, y las tablas que se construyen a partir de ella. Cada arista indica dónde se vio.
+
+Cuando la fuente nombra columnas, la pestaña **Columnas** de una tabla indica de dónde viene cada columna y qué alimenta: el historial de acceso de Snowflake (edición Enterprise, que necesita `IMPORTED PRIVILEGES` sobre la base de datos `SNOWFLAKE`) y la faceta `columnLineage` de OpenLineage.
 
 ## OpenLineage
 
@@ -53,6 +56,16 @@ Sus webhooks indican cuándo empieza y termina cada sincronización. **Canalizac
 
 Una sincronización de Fivetran reprogramada por el límite de frecuencia de una API termina como **Reprogramada**: no es un fallo, así que no avisa a nadie.
 
+## Jobs de tus trazas
+
+Muchos pipelines son un CronJob de Kubernetes, o una función con un temporizador, sin ningún programador que envíe linaje. Sus trazas lo dicen igualmente, sin nada que instalar. Cada quince minutos, los spans con el atributo de recurso `k8s.cronjob.name` o `k8s.job.name`, o `faas.name` con un `faas.trigger` de `timer` o `datasource`, se convierten en un pipeline en **Canalizaciones**:
+
+- Una ejecución de un CronJob es su Job de Kubernetes, y una ejecución de una función es su `faas.invocation_id`.
+- Una ejecución falló cuando falló el span que encabeza su traza. Una llamada que falló y se reintentó dentro de ella no la hace fallar.
+- Las tablas que escribió y leyó salen de sus spans de base de datos.
+
+Cada ejecución enlaza con su traza, con sus registros. Se aplican los mismos tres monitores, así que un CronJob que deja de ejecutarse se ve como retrasado.
+
 ## Paneles en herramientas de BI
 
 El impacto real de los datos malos es el panel que alguien abre. En **Paneles de BI**, añade tus herramientas de BI con credenciales que puedan leer sus paneles. Cada hora, Observabilidad de datos lee cada panel y las tablas que hay detrás, asocia cada tabla con una vigilada y muestra los paneles construidos sobre una tabla, y sobre las tablas construidas a partir de ella, en su pestaña **Linaje**, en sus alertas y en Production Review.
@@ -64,12 +77,16 @@ El impacto real de los datos malos es el panel que alguien abre. En **Paneles de
 | **Tableau** | `{ "tokenName": "...", "tokenSecret": "...", "site": "acme" }` |
 | **Looker** | `{ "clientId": "...", "clientSecret": "..." }` |
 | **Power BI** | `{ "tenantId": "...", "clientId": "...", "clientSecret": "..." }`, una entidad de servicio autorizada a usar las API de administración de Power BI |
+| **Hightouch** | `{ "apiKey": "..." }` |
+| **Census** | `{ "apiKey": "...", "region": "us" }` (o `eu`) |
+
+Hightouch y Census son herramientas de ETL inverso: una sincronización que copia una tabla en un CRM depende de esa tabla igual que un panel, así que se lee del mismo modo y se nombra en las alertas de la tabla.
 
 Solo se leen los nombres y enlaces de los paneles y las tablas que consultan: nunca sus datos.
 
 ## Pipelines
 
-Cada job, proyecto de dbt y sincronización aparece en **Canalizaciones**, con sus ejecuciones: cuándo empezó y terminó cada una, cuánto duró y el error de una ejecución fallida. Tras cinco ejecuciones, cada pipeline aprende de sus propias ejecuciones cuánto suele durar una ejecución y cuánto tiempo pasa entre ejecuciones según su programación. La página de un pipeline recomienda tres monitores:
+Cada job, proyecto de dbt y sincronización aparece en **Canalizaciones**, con sus ejecuciones: cuándo empezó y terminó cada una, cuánto duró, qué intento fue donde el programador lo indica (el número de intento de Airflow) y el error de una ejecución fallida. Tras cinco ejecuciones, cada pipeline aprende de sus propias ejecuciones cuánto suele durar una ejecución y cuánto tiempo pasa entre ejecuciones según su programación. La página de un pipeline recomienda tres monitores:
 
 - **Pipeline Run Failed**: una ejecución falló o se canceló.
 - **Pipeline Run Unusually Long**: una ejecución ha tardado el doble de lo habitual o más, comprobado cada cinco minutos mientras se ejecuta, de modo que una ejecución que se cuelga se detecta antes de que termine.
@@ -82,7 +99,11 @@ Cuando una tabla se queda desactualizada, todas las tablas construidas a partir 
 - Empieza en estado **Reconocido**, para que nadie reciba dos avisos por un mismo problema, y se recupera sola en cuanto sus datos se recuperan.
 - Su feed y su tarjeta **Datos** indican qué alerta la causó, y se une al episodio de la causa.
 
-La tarjeta **Datos** de la causa enumera su **Downstream Impact**: todas las alertas que causó. La tarjeta de una alerta de tabla también muestra los servicios que escriben en la tabla, con sus escrituras fallidas, y sus despliegues y otros cambios en el día anterior a la alerta.
+La tarjeta **Datos** de la causa enumera su **Impacto aguas abajo**: todas las alertas que causó. La tarjeta de una alerta de tabla también muestra los servicios que escriben en la tabla, con sus escrituras fallidas, y sus despliegues y otros cambios en el día anterior a la alerta.
+
+## Antes de que se fusione un cambio
+
+Cuando una pull request cambia una tabla vigilada, [Production Review](/docs/ai/ai-agent) indica en la pull request qué depende de ella: los servicios que la leen, las tablas construidas a partir de ella, los paneles sobre ella y sus productos de datos. Una tabla con una copia en una base de datos marcada como Staging también indica en qué se diferencia la copia: sus filas, sus columnas y lo que leen allí las comprobaciones de la tabla, ejecutadas al momento. En una base de datos a la que solo llega una sonda, las comprobaciones se omiten, y lo indica.
 
 ## Próximos pasos
 

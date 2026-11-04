@@ -1,6 +1,6 @@
 # Lineage und Pipelines
 
-Lineage sagt, aus welchen Tabellen jede Tabelle erstellt wird und welche Pipelines in sie schreiben. Data Observability sammelt sie aus fünf Quellen zugleich - OpenLineage-Ereignissen, dbt, Syncs von Fivetran und Airbyte, Views und dem eigenen Abfrageverlauf jeder Datenbank - und nutzt sie, um jede verspätete oder fehlerhafte Tabelle mit dem Lauf dahinter zu verknüpfen, sodass ein Problem nur eine Meldung erzeugt.
+Lineage sagt, aus welchen Tabellen jede Tabelle erstellt wird und welche Pipelines in sie schreiben. Data Observability sammelt sie aus sechs Quellen zugleich - OpenLineage-Ereignissen, dbt, Syncs von Fivetran und Airbyte, Jobs in Ihren Traces, Views und dem eigenen Abfrageverlauf jeder Datenbank - und nutzt sie, um jede verspätete oder fehlerhafte Tabelle mit dem Lauf dahinter zu verknüpfen, sodass ein Problem nur eine Meldung erzeugt.
 
 ## Woher die Lineage kommt
 
@@ -9,10 +9,13 @@ Lineage sagt, aus welchen Tabellen jede Tabelle erstellt wird und welche Pipelin
 | **OpenLineage** | Jeden Lauf eines Airflow-, Dagster-, Spark-, dbt- oder Flink-Jobs, mit den Tabellen, die er gelesen und geschrieben hat |
 | **dbt** | Woraus jedes Modell erstellt wird, jeden Build als Lauf und das Ergebnis jedes Tests |
 | **Fivetran und Airbyte** | Jeden Sync als Lauf seines Connectors, und die Rohtabellen, die er lädt |
-| **Views** | Eine View wird aus den Tabellen erstellt, auf denen sie definiert ist (PostgreSQL, Redshift, MySQL 8, SQL Server, Oracle, materialisierte Views von ClickHouse, Databricks, MongoDB) |
-| **Abfrageverlauf** | Eine Abfrage, die eine Tabelle gelesen und eine andere geschrieben hat (die Jobs von BigQuery, das Abfrageprotokoll von Redshift, das Abfrageprotokoll von ClickHouse, die Lineage-Tabelle von Databricks) |
+| **Jobs in Ihren Traces** | Ein Kubernetes CronJob oder eine zeitgesteuerte Funktion, ihre Läufe und die Tabellen, die ihre Datenbankaufrufe gelesen und geschrieben haben |
+| **Views** | Eine View wird aus den Tabellen erstellt, auf denen sie definiert ist (PostgreSQL, Redshift, MySQL 8, SQL Server, Oracle, Snowflake, materialisierte Views von ClickHouse, Databricks, MongoDB) |
+| **Abfrageverlauf** | Eine Abfrage, die eine Tabelle gelesen und eine andere geschrieben hat (der Zugriffsverlauf von Snowflake, die Jobs von BigQuery, das Abfrageprotokoll von Redshift, das Abfrageprotokoll von ClickHouse, die Lineage-Tabelle von Databricks) |
 
 Der Tab **Datenherkunft** einer Tabelle zeigt die Tabellen, aus denen sie erstellt wird, die Pipelines, die in sie schreiben, mit ihrem letzten Lauf, und die Tabellen, die aus ihr erstellt werden. Jede Kante sagt, wo sie gesehen wurde.
+
+Wo die Quelle Spalten nennt, sagt der Tab **Spalten** einer Tabelle, woher jede Spalte kommt und was sie speist: der Zugriffsverlauf von Snowflake (Enterprise-Edition, die `IMPORTED PRIVILEGES` auf der Datenbank `SNOWFLAKE` braucht) und das Facet `columnLineage` von OpenLineage.
 
 ## OpenLineage
 
@@ -53,6 +56,16 @@ Ihre Webhooks melden, wann jeder Sync beginnt und endet. **Pipelines > Fivetran 
 
 Ein Fivetran-Sync, der wegen des Rate Limits einer API neu angesetzt wird, endet als **Neu geplant**: kein Fehlschlag, also alarmiert er niemanden.
 
+## Jobs in Ihren Traces
+
+Viele Pipelines sind ein Kubernetes CronJob oder eine Funktion auf einem Timer, ohne Scheduler, der Lineage sendet. Ihre Traces sagen trotzdem alles, ohne dass etwas zu installieren wäre. Alle fünfzehn Minuten werden Spans mit dem Ressourcenattribut `k8s.cronjob.name` oder `k8s.job.name`, oder `faas.name` mit einem `faas.trigger` von `timer` oder `datasource`, zu einer Pipeline unter **Pipelines**:
+
+- Ein Lauf eines CronJobs ist sein Kubernetes Job, und ein Lauf einer Funktion ist ihre `faas.invocation_id`.
+- Ein Lauf ist fehlgeschlagen, wenn der Span an der Spitze seines Traces fehlgeschlagen ist. Ein Aufruf, der darin fehlgeschlagen ist und wiederholt wurde, lässt ihn nicht fehlschlagen.
+- Die Tabellen, die er geschrieben und gelesen hat, stammen aus seinen Datenbank-Spans.
+
+Jeder Lauf verweist auf seinen Trace, mit seinen Protokollen. Es gelten dieselben drei Monitore, sodass ein CronJob, der nicht mehr läuft, als verspätet erkannt wird.
+
 ## Dashboards in BI-Tools
 
 Die eigentliche Folge schlechter Daten ist das Dashboard, das jemand öffnet. Fügen Sie unter **BI-Dashboards** Ihre BI-Tools mit Zugangsdaten hinzu, die deren Dashboards lesen dürfen. Jede Stunde liest Data Observability jedes Dashboard und die Tabellen dahinter, ordnet jede Tabelle einer überwachten zu und zeigt die Dashboards, die auf einer Tabelle und auf den daraus erstellten Tabellen aufbauen, auf ihrem Tab **Datenherkunft**, an ihren Alarmen und im Production Review.
@@ -64,12 +77,16 @@ Die eigentliche Folge schlechter Daten ist das Dashboard, das jemand öffnet. F�
 | **Tableau** | `{ "tokenName": "...", "tokenSecret": "...", "site": "acme" }` |
 | **Looker** | `{ "clientId": "...", "clientSecret": "..." }` |
 | **Power BI** | `{ "tenantId": "...", "clientId": "...", "clientSecret": "..." }`, ein Service Principal, der die Admin-APIs von Power BI verwenden darf |
+| **Hightouch** | `{ "apiKey": "..." }` |
+| **Census** | `{ "apiKey": "...", "region": "us" }` (oder `eu`) |
+
+Hightouch und Census sind Reverse-ETL-Werkzeuge: Ein Sync, der eine Tabelle in ein CRM kopiert, hängt von dieser Tabelle ab wie ein Dashboard, wird also auf dieselbe Weise gelesen und bei den Warnungen der Tabelle genannt.
 
 Gelesen werden nur die Namen und Links der Dashboards und die Tabellen, die sie abfragen: nie ihre Daten.
 
 ## Pipelines
 
-Jeder Job, jedes dbt-Projekt und jeder Sync erscheint unter **Pipelines**, mit seinen Läufen: wann jeder begann und endete, wie lange er dauerte und der Fehler eines fehlgeschlagenen Laufs. Jede Pipeline lernt nach fünf Läufen aus ihren eigenen Läufen, wie lange ein Lauf üblicherweise dauert und wie viel Zeit nach ihrem Zeitplan zwischen zwei Läufen vergeht. Die Seite einer Pipeline empfiehlt drei Monitore:
+Jeder Job, jedes dbt-Projekt und jeder Sync erscheint unter **Pipelines**, mit seinen Läufen: wann jeder begann und endete, wie lange er dauerte, der wievielte Versuch er war, wo der Scheduler das sagt (die Try-Nummer von Airflow), und der Fehler eines fehlgeschlagenen Laufs. Jede Pipeline lernt nach fünf Läufen aus ihren eigenen Läufen, wie lange ein Lauf üblicherweise dauert und wie viel Zeit nach ihrem Zeitplan zwischen zwei Läufen vergeht. Die Seite einer Pipeline empfiehlt drei Monitore:
 
 - **Pipeline Run Failed**: Ein Lauf ist fehlgeschlagen oder wurde abgebrochen.
 - **Pipeline Run Unusually Long**: Ein Lauf dauert doppelt so lange wie üblich oder länger, geprüft alle fünf Minuten, während er läuft, sodass ein hängender Lauf erkannt wird, bevor er endet.
@@ -82,7 +99,11 @@ Veraltet eine Tabelle, veralten auch alle Tabellen, die aus ihr erstellt werden.
 - Sie beginnt im Zustand **Bestätigt**, sodass niemand für ein Problem zweimal alarmiert wird, und erholt sich von selbst, sobald ihre Daten es tun.
 - Ihr Feed und ihre Karte **Daten** sagen, welche Warnung sie verursacht hat, und sie schließt sich der Episode der Ursache an.
 
-Die Karte **Daten** der Ursache listet ihren **Downstream Impact** auf: jede Warnung, die sie verursacht hat. Die Karte einer Tabellenwarnung zeigt außerdem die Dienste, die in die Tabelle schreiben, mit ihren fehlgeschlagenen Schreibvorgängen sowie ihren Deployments und anderen Änderungen am Tag vor der Warnung.
+Die Karte **Daten** der Ursache listet ihren **Auswirkung auf nachgelagerte Daten** auf: jede Warnung, die sie verursacht hat. Die Karte einer Tabellenwarnung zeigt außerdem die Dienste, die in die Tabelle schreiben, mit ihren fehlgeschlagenen Schreibvorgängen sowie ihren Deployments und anderen Änderungen am Tag vor der Warnung.
+
+## Bevor eine Änderung gemergt wird
+
+Ändert ein Pull Request eine überwachte Tabelle, sagt die [Produktionsprüfung](/docs/ai/ai-agent) im Pull Request, was davon abhängt: die Dienste, die sie lesen, die Tabellen, die aus ihr erstellt werden, die Dashboards darauf und ihre Datenprodukte. Eine Tabelle mit einer Kopie in einer Datenbank, die als Staging markiert ist, sagt außerdem, wie sich die Kopie unterscheidet: ihre Zeilen, ihre Spalten und was die Prüfungen der Tabelle dort lesen, an Ort und Stelle ausgeführt. Bei einer Datenbank, die nur eine Sonde erreicht, werden die Prüfungen weggelassen, und es sagt das.
 
 ## Nächste Schritte
 

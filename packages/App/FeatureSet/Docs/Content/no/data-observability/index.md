@@ -1,6 +1,6 @@
 # Dataobserverbarhet
 
-Dataobserverbarhet holder øye med tabellene bedriften din er avhengig av, i PostgreSQL, MySQL, SQL Server, Oracle, MongoDB, Redshift, Snowflake, BigQuery, ClickHouse, Databricks og Athena, og sier fra når dataene er forsinket, mangler, er feil eller er ødelagt, før de som bruker dem, merker det. Den lærer seg rytmen til hver tabell på egen hånd, leser katalogen til hver database og aldri en rad, og knytter hvert dataproblem til pipeline-kjøringen, utrullingen eller oppstrømstabellen som ligger bak.
+Dataobserverbarhet holder øye med tabellene bedriften din er avhengig av, i PostgreSQL, MySQL, SQL Server, Oracle, MongoDB, Redshift, Snowflake, BigQuery, ClickHouse, Databricks og Athena, og sier fra når dataene er forsinket, mangler, er feil eller er ødelagt, før de som bruker dem, merker det. Den lærer seg rytmen til hver tabell på egen hånd, leser katalogen til hver database slik at ingen verdi forlater den, og knytter hvert dataproblem til pipeline-kjøringen, utrullingen eller oppstrømstabellen som ligger bak.
 
 Den svarer på fire spørsmål:
 
@@ -26,7 +26,7 @@ flowchart TB
 ```
 
 1. **Koble til en database** med en skrivebeskyttet bruker. En database som Datasikkerhet allerede kjenner, overvåkes uten at du trenger å gjøre noe, og det samme gjelder hvert BigQuery-datasett Google Cloud-tilkoblingen din har funnet. En database i et privat nettverk leses av en sonde du kjører der.
-2. **Hvert femte minutt** leser OneUptime katalogen og statistikken til hver database: hver tabell og visning, kolonnene, radene og størrelsen, og når den sist ble endret. Ingen tabell skannes, og ingen rad leses.
+2. **Hvert femte minutt** leser OneUptime katalogen og statistikken til hver database: hver tabell og visning, kolonnene, radene og størrelsen, og når den sist ble endret. Ingen tabell skannes, og i MongoDB leses bare feltnavnene til de nyeste dokumentene. En sti i en bucket kan overvåkes på samme måte.
 3. **Rytmen til hver tabell læres**: hvor ofte den vanligvis endres. En tabell som bryter rytmen sin, er forsinket; en tabell som mister rader, eller der kolonnene endres, sier fra om det.
 4. **Anbefalte varsler** gjør hvert av disse til en monitor du selv velger å ha, og sjekker du legger til, leser hva en tabell inneholder.
 5. **Avstamning** viser hvilke tabeller som mater hvilke, slik at et varsel på en tabell der kilden svikter først, blir en følge av kilden: én sak, ikke ti.
@@ -36,27 +36,28 @@ flowchart TB
 - **Den er en del av resten av OneUptime.** Et datavarsel er et vanlig varsel: det tilkaller den som har vakt, åpner hendelser, vises på statussider og teller mot SLO-er. Tjenestene som trasene dine viser at skriver til en tabell, og utrullingene deres, står ved siden av hvert tabellvarsel.
 - **Ingenting å konfigurere per tabell.** Rytmer, tidsplaner og vanlige kjøretider læres av det hver tabell og pipeline gjør, og en monitor som anbefales for en database, dekker hver tabell i den, også de som opprettes senere.
 - **Én sak per årsak.** Et varsel der oppstrømstabellen, pipelinen eller databasen allerede har et åpent varsel, slutter seg til det varselet som en følge av det, allerede bekreftet, så en ødelagt lasting tilkaller vakten bare én gang.
+- **Hvert varsel forklarer seg selv.** Det rangerer den sannsynlige årsaken, sier hva som avhenger av tabellen og hvem som eier den, og lærer av det du sier om det: marker ett som **Ikke et problem**, så er det samme stille neste gang.
 - **OneUptime AI kjenner dataene dine.** Undersøkelser av datavarsler starter fra tabellens skrivere, kjøringer og oppstrømstabeller; Spør AI, Slack, Microsoft Teams og AI-agenter kan spørre om en tabell er fersk; og en sjekk kan skrives ut fra én setning. Se [OneUptime AI og API-et](/docs/data-observability/ai-and-api).
 
 ## Før du begynner
 
 - **En rolle som kan sette det opp.** Prosjekteiere, prosjektadministratorer og telemetriadministratorer kobler til databaser. Alle som kan redigere dataressurser, legger til sjekker, avstemminger og dataprodukter; de med rollen Leser ser det den har funnet. Se [Tillatelsesreferanse](/docs/permissions/reference).
-- **En skrivebeskyttet bruker på hver database.** [Koble til en database](/docs/data-observability/connect) viser det minste hver databasemotor trenger.
+- **En skrivebeskyttet bruker på hver database.** [Koble til en database](/docs/data-observability/connect) viser det minste hver databasemotor trenger. OneUptime foreslår databasene sporene dine, skykontoene dine og Databaseovervåking allerede kjenner til.
 
 ## Kom i gang
 
 :::steps
 ### Koble til en database
 
-Åpne **Dataobserverbarhet**, gå til **Databaser** og velg **Connect a Database**. Velg databasemotoren, og oppgi en skrivebeskyttet tilkoblingsstreng, eller navnet på miljøvariabelen sonden din leser den fra. [Koble til en database](/docs/data-observability/connect) viser brukeren hver databasemotor trenger.
+Åpne **Dataobserverbarhet**, gå til **Databaser** og velg **Koble til en database**. Velg databasemotoren, og oppgi en skrivebeskyttet tilkoblingsstreng, eller navnet på miljøvariabelen sonden din leser den fra. [Koble til en database](/docs/data-observability/connect) viser brukeren hver databasemotor trenger.
 
 ### Se tabellene
 
-Innen fem minutter vises tabellene under **Tabeller**, hver med rader, størrelse og når den sist ble endret. Aktualiteten til en tabell er kjent når den har endret seg to ganger: **Fresh** så lenge den holder rytmen, **Late** når den bryter den.
+Innen fem minutter vises tabellene under **Tabeller**, hver med rader, størrelse og når den sist ble endret. Aktualiteten til en tabell er kjent når den har endret seg to ganger: **Fersk** så lenge den holder rytmen, **Sen** når den bryter den.
 
 ### Legg til de anbefalte varslene
 
-Under **Databaser** velger du **Recommended Alerts** for databasen og legger til dem du vil ha: en tabell som er forsinket, en der antall rader faller kraftig eller er uvanlig lavt, en der kolonnene endres, og en database som slutter å rapportere. Hver av dem er en vanlig monitor: vakt, eiere, vedlikeholdsvinduer og statussider fungerer som for alle andre.
+Under **Databaser** velger du **Anbefalte varsler** for databasen og legger til dem du vil ha: en tabell som er forsinket, en der antall rader faller kraftig eller er uvanlig lavt, en der kolonnene endres, og en database som slutter å rapportere. Hver av dem er en vanlig monitor: vakt, eiere, vedlikeholdsvinduer og statussider fungerer som for alle andre.
 :::
 
 ## Neste steg

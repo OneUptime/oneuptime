@@ -373,6 +373,30 @@ enum Permission {
   EditDataStoreLabelRule = "EditDataStoreLabelRule",
   ReadDataStoreLabelRule = "ReadDataStoreLabelRule",
 
+  // Table User Owners
+  CreateDataAssetOwnerUser = "CreateDataAssetOwnerUser",
+  DeleteDataAssetOwnerUser = "DeleteDataAssetOwnerUser",
+  EditDataAssetOwnerUser = "EditDataAssetOwnerUser",
+  ReadDataAssetOwnerUser = "ReadDataAssetOwnerUser",
+
+  // Table Team Owners
+  CreateDataAssetOwnerTeam = "CreateDataAssetOwnerTeam",
+  DeleteDataAssetOwnerTeam = "DeleteDataAssetOwnerTeam",
+  EditDataAssetOwnerTeam = "EditDataAssetOwnerTeam",
+  ReadDataAssetOwnerTeam = "ReadDataAssetOwnerTeam",
+
+  // Table Owner Rules: owners assigned to matching stores
+  CreateDataAssetOwnerRule = "CreateDataAssetOwnerRule",
+  DeleteDataAssetOwnerRule = "DeleteDataAssetOwnerRule",
+  EditDataAssetOwnerRule = "EditDataAssetOwnerRule",
+  ReadDataAssetOwnerRule = "ReadDataAssetOwnerRule",
+
+  // Table Label Rules: labels added to matching stores
+  CreateDataAssetLabelRule = "CreateDataAssetLabelRule",
+  DeleteDataAssetLabelRule = "DeleteDataAssetLabelRule",
+  EditDataAssetLabelRule = "EditDataAssetLabelRule",
+  ReadDataAssetLabelRule = "ReadDataAssetLabelRule",
+
   // Data Store Feed: what happened to a store, written by OneUptime
   CreateDataStoreFeed = "CreateDataStoreFeed",
   ReadDataStoreFeed = "ReadDataStoreFeed",
@@ -9259,6 +9283,174 @@ export class PermissionHelper {
         isAccessControlPermission: false,
         isRolePermission: false,
         group: PermissionGroup.Security,
+      },
+
+      // Table User Owner Permissions
+      {
+        permission: Permission.CreateDataAssetOwnerUser,
+        title: "Create Table User Owner",
+        description:
+          "This permission can create Table User Owners of this project.",
+        isAssignableToTenant: true,
+        isAccessControlPermission: false,
+        isRolePermission: false,
+        group: PermissionGroup.Telemetry,
+      },
+      {
+        permission: Permission.DeleteDataAssetOwnerUser,
+        title: "Delete Table User Owner",
+        description:
+          "This permission can delete Table User Owners of this project.",
+        isAssignableToTenant: true,
+        isAccessControlPermission: false,
+        isRolePermission: false,
+        group: PermissionGroup.Telemetry,
+      },
+      {
+        permission: Permission.EditDataAssetOwnerUser,
+        title: "Edit Table User Owner",
+        description:
+          "This permission can edit Table User Owners of this project.",
+        isAssignableToTenant: true,
+        isAccessControlPermission: false,
+        isRolePermission: false,
+        group: PermissionGroup.Telemetry,
+      },
+      {
+        permission: Permission.ReadDataAssetOwnerUser,
+        title: "Read Table User Owner",
+        description:
+          "This permission can read Table User Owners of this project.",
+        isAssignableToTenant: true,
+        isAccessControlPermission: false,
+        isRolePermission: false,
+        group: PermissionGroup.Telemetry,
+      },
+
+      // Table Team Owner Permissions
+      {
+        permission: Permission.CreateDataAssetOwnerTeam,
+        title: "Create Table Team Owner",
+        description:
+          "This permission can create Table Team Owners of this project.",
+        isAssignableToTenant: true,
+        isAccessControlPermission: false,
+        isRolePermission: false,
+        group: PermissionGroup.Telemetry,
+      },
+      {
+        permission: Permission.DeleteDataAssetOwnerTeam,
+        title: "Delete Table Team Owner",
+        description:
+          "This permission can delete Table Team Owners of this project.",
+        isAssignableToTenant: true,
+        isAccessControlPermission: false,
+        isRolePermission: false,
+        group: PermissionGroup.Telemetry,
+      },
+      {
+        permission: Permission.EditDataAssetOwnerTeam,
+        title: "Edit Table Team Owner",
+        description:
+          "This permission can edit Table Team Owners of this project.",
+        isAssignableToTenant: true,
+        isAccessControlPermission: false,
+        isRolePermission: false,
+        group: PermissionGroup.Telemetry,
+      },
+      {
+        permission: Permission.ReadDataAssetOwnerTeam,
+        title: "Read Table Team Owner",
+        description:
+          "This permission can read Table Team Owners of this project.",
+        isAssignableToTenant: true,
+        isAccessControlPermission: false,
+        isRolePermission: false,
+        group: PermissionGroup.Telemetry,
+      },
+
+      // Table Owner Rule Permissions
+      {
+        permission: Permission.CreateDataAssetOwnerRule,
+        title: "Create Table Owner Rule",
+        description:
+          "This permission can create Table Owner Rules of this project.",
+        isAssignableToTenant: true,
+        isAccessControlPermission: false,
+        isRolePermission: false,
+        group: PermissionGroup.Telemetry,
+      },
+      {
+        permission: Permission.DeleteDataAssetOwnerRule,
+        title: "Delete Table Owner Rule",
+        description:
+          "This permission can delete Table Owner Rules of this project.",
+        isAssignableToTenant: true,
+        isAccessControlPermission: false,
+        isRolePermission: false,
+        group: PermissionGroup.Telemetry,
+      },
+      {
+        permission: Permission.EditDataAssetOwnerRule,
+        title: "Edit Table Owner Rule",
+        description:
+          "This permission can edit Table Owner Rules of this project.",
+        isAssignableToTenant: true,
+        isAccessControlPermission: false,
+        isRolePermission: false,
+        group: PermissionGroup.Telemetry,
+      },
+      {
+        permission: Permission.ReadDataAssetOwnerRule,
+        title: "Read Table Owner Rule",
+        description:
+          "This permission can read Table Owner Rules of this project.",
+        isAssignableToTenant: true,
+        isAccessControlPermission: false,
+        isRolePermission: false,
+        group: PermissionGroup.Telemetry,
+      },
+
+      // Table Label Rule Permissions
+      {
+        permission: Permission.CreateDataAssetLabelRule,
+        title: "Create Table Label Rule",
+        description:
+          "This permission can create Table Label Rules of this project.",
+        isAssignableToTenant: true,
+        isAccessControlPermission: false,
+        isRolePermission: false,
+        group: PermissionGroup.Telemetry,
+      },
+      {
+        permission: Permission.DeleteDataAssetLabelRule,
+        title: "Delete Table Label Rule",
+        description:
+          "This permission can delete Table Label Rules of this project.",
+        isAssignableToTenant: true,
+        isAccessControlPermission: false,
+        isRolePermission: false,
+        group: PermissionGroup.Telemetry,
+      },
+      {
+        permission: Permission.EditDataAssetLabelRule,
+        title: "Edit Table Label Rule",
+        description:
+          "This permission can edit Table Label Rules of this project.",
+        isAssignableToTenant: true,
+        isAccessControlPermission: false,
+        isRolePermission: false,
+        group: PermissionGroup.Telemetry,
+      },
+      {
+        permission: Permission.ReadDataAssetLabelRule,
+        title: "Read Table Label Rule",
+        description:
+          "This permission can read Table Label Rules of this project.",
+        isAssignableToTenant: true,
+        isAccessControlPermission: false,
+        isRolePermission: false,
+        group: PermissionGroup.Telemetry,
       },
 
       // Data Store Feed Permissions

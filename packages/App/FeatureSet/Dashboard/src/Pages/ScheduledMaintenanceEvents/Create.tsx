@@ -91,6 +91,7 @@ import {
   SCHEDULED_NOTIFICATION_DESCRIPTION,
 } from "../../Components/ScheduledMaintenance/ScheduledMaintenancePublishing";
 import getPublishAtFormField from "../../Components/ScheduledMaintenance/ScheduledMaintenancePublishingFormFields";
+import { getDataStoresMaintenanceField } from "../../Components/ScheduledMaintenance/ScheduledMaintenanceAffectedResourcesFormFields";
 import { getColumnChoiceField } from "../../Utils/Form/ColumnChoiceField";
 import {
   CreatedRecordKind,
@@ -687,6 +688,10 @@ const ScheduledMaintenanceCreate: FunctionComponent<
                       />
                     );
                   },
+                },
+                {
+                  ...getDataStoresMaintenanceField(),
+                  stepId: "resources-affected",
                 },
                 /*
                  * Everything else the event affects. Anchored on `hosts`; its

@@ -9,7 +9,7 @@ Under **Dataobserverbarhet > Dataprodukter** oppretter du et dataprodukt: gi det
 - **Oppdatert innen et klokkeslett (UTC):** dataene for hver dag kommer samme dag, innen da. Fra det klokkeslettet må hver tabell ha endret seg den dagen; inntil da gjelder gårsdagens lasting. En lasting som alltid er en halvtime forsinket, er forsinket i den halvtimen hver dag.
 - **En maksimal alder:** ingen tabells siste endring kan være eldre enn dette.
 
-Hvert femte minutt sjekkes tabellene i hvert produkt mot SLA-en. Produktet er **Late** når en av tabellene er det, og dataene er oppdatert per den eldste siste endringen blant dem. Det skriver `oneuptime.data.product.late_tables` og `oneuptime.data.product.data_age`, så du kan vise aktualiteten til alle produktene side om side i en graf.
+Hvert femte minutt sjekkes tabellene i hvert produkt mot SLA-en. Produktet er **Sen** når en av tabellene er det, og dataene er oppdatert per den eldste siste endringen blant dem. Det skriver `oneuptime.data.product.late_tables` og `oneuptime.data.product.data_age`, så du kan vise aktualiteten til alle produktene side om side i en graf.
 
 ## På statussider
 
