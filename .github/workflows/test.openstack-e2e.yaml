@@ -74,6 +74,18 @@ jobs:
           branch: ${{ matrix.branch }}
           enabled_services: ${{ matrix.enabled_services }}
           conf_overrides: ${{ matrix.conf_overrides }}
+          # Its workaround replaces containerd with runc, which stops Docker, and
+          # the agent's exporter and collector run in Docker. Kuryr is not used here.
+          enable_workaround_docker_io: "false"
+
+      - name: Docker still answers
+        run: |
+          if ! docker info >/dev/null 2>&1; then
+            # DevStack can leave the runner's Docker stopped or removed.
+            sudo systemctl start docker || sudo apt-get install -y docker.io
+            sudo systemctl start docker
+          fi
+          docker info --format 'Docker {{.ServerVersion}}'
 
       - name: Build the estate
         run: bash Tests/Ops/openstack-e2e/estate.sh
