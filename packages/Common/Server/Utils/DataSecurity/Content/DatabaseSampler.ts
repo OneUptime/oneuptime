@@ -74,7 +74,10 @@ export type DatabaseEngine =
   | "snowflake"
   | "bigquery"
   | "clickhouse"
-  | "databricks";
+  | "databricks"
+  | "athena"
+  | "oracle"
+  | "mongodb";
 
 export const DATABASE_ENGINES: ReadonlyArray<DatabaseEngine> = [
   "postgresql",
@@ -238,6 +241,10 @@ function addJsonSecrets(
  * string, its password (as written and decoded) and its user:password, and
  * in a JSON connection every value whose key names a credential.
  */
+// A URL's user and password, read by hand: scheme://user:password@...
+const URL_USER_INFO_PATTERN: RegExp =
+  /^[a-z][a-z0-9+.-]*:\/\/([^:@/]*):([^@/]*)@/i;
+
 export function getConnectionSecrets(connectionString: string): Array<string> {
   const secrets: Set<string> = new Set([connectionString]);
 
@@ -252,7 +259,21 @@ export function getConnectionSecrets(connectionString: string): Array<string> {
       secrets.add(`${url.username}:${url.password}`);
     }
   } catch {
-    // Not a URL: read its key=value pairs below.
+    // Not a URL new URL reads - a MongoDB replica set's host list among them.
+    const userInfo: RegExpMatchArray | null = connectionString.match(
+      URL_USER_INFO_PATTERN,
+    );
+
+    if (userInfo && userInfo[2]) {
+      secrets.add(userInfo[2]);
+      secrets.add(`${userInfo[1]}:${userInfo[2]}`);
+
+      try {
+        secrets.add(decodeURIComponent(userInfo[2]));
+      } catch {
+        // Not percent-encoded: the password as it is was added.
+      }
+    }
   }
 
   for (const pair of connectionString.split(";")) {

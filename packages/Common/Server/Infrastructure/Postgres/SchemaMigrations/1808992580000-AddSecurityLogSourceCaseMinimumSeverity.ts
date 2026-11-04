@@ -14,10 +14,10 @@ import { MigrationInterface, QueryRunner } from "typeorm";
  * A constant default adds the column without rewriting the table, and no
  * index or foreign key is added, so nothing scans or locks it.
  */
-export class AddSecurityLogSourceCaseMinimumSeverity1808992500000
+export class AddSecurityLogSourceCaseMinimumSeverity1808992580000
   implements MigrationInterface
 {
-  public name: string = "AddSecurityLogSourceCaseMinimumSeverity1808992500000";
+  public name: string = "AddSecurityLogSourceCaseMinimumSeverity1808992580000";
 
   public async up(queryRunner: QueryRunner): Promise<void> {
     await queryRunner.query(

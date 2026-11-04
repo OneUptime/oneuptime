@@ -5,6 +5,8 @@ import {
   createConnection as createMySqlConnection,
 } from "mysql2/promise";
 import * as mssql from "mssql";
+import oracledb from "oracledb";
+import { Collection, Db, MongoClient } from "mongodb";
 import DataAssetKind from "../../../Types/DataObservability/DataAssetKind";
 import DataAssetLineageSource from "../../../Types/DataObservability/DataAssetLineageSource";
 import {
@@ -37,6 +39,14 @@ import ClickHouseHttpApi, {
   readClickHouseConnection,
 } from "./ClickHouseHttpApi";
 import DatabricksApi, { readDatabricksConnection } from "./DatabricksApi";
+import AthenaApi, { readAthenaConnection } from "./AthenaApi";
+import { MongoCheckStatement, readMongoCheckStatement } from "./MongoDbChecks";
+import { isMongoSystemDatabase, readMongoUri } from "./MongoUri";
+import { MAX_SEGMENTS_PER_CHECK } from "../../../Types/DataObservability/DataCheckType";
+import {
+  OracleConnectAttributes,
+  readOracleConnection,
+} from "./OracleConnection";
 import { JSONObject } from "../../../Types/JSON";
 import {
   DataCheckRunResult,
@@ -87,6 +97,15 @@ import {
  *    of each insert. system.columns gives the columns.
  *  - Databricks: Unity Catalog's REST API gives every table, view and
  *    column, and each Delta table's last commit, with no SQL warehouse.
+ *  - MongoDB: listCollections and $collStats give each collection's
+ *    documents and size, its newest ObjectId _id when it last took one,
+ *    and its validator - or a sample's field names and types - its fields.
+ *  - Oracle: ALL_TABLES and ALL_TAB_MODIFICATIONS give rows, inserts,
+ *    updates and deletes since the last statistics, and the last change;
+ *    DBA_SEGMENTS the size; ALL_TAB_COLUMNS the columns.
+ *  - Amazon Athena: the Glue Data Catalog's API gives every table and view
+ *    of a Glue database, its columns and statistics, and each Iceberg
+ *    table's last commit.
  *
  * Each engine also says which tables feed which, where it can (lineage
  * with no pipeline to report it): a view's tables from its definition
@@ -116,6 +135,12 @@ export const MAX_IDENTIFIER_LENGTH: number = 240;
 export const MAX_COLUMNS_PER_COLLECTION: number = 200_000;
 // Most warnings one collection keeps.
 export const MAX_COLLECTION_WARNINGS: number = 20;
+/*
+ * The newest documents of a MongoDB collection whose fields are read when
+ * no validator names them: the same documents read the same, so a field
+ * leaves the list only when the newest ones stop carrying it.
+ */
+const MONGO_FIELD_SAMPLE_SIZE: number = 100;
 // Most edges of lineage one collection reports.
 export const MAX_LINEAGE_EDGES_PER_COLLECTION: number = 5_000;
 // The longest login or service account an edge keeps.
@@ -286,6 +311,8 @@ interface CatalogRead {
   columns: Array<RawColumn>;
   warnings: Array<string>;
   secondsSinceStatsReset: number | null;
+  // Tables ("schema.table" keys) whose columns could not be read this time: unknown, not dropped.
+  columnsUnknown?: Array<string> | undefined;
 }
 
 interface LineageRead {
@@ -3334,6 +3361,1111 @@ class DatabricksCatalog implements CatalogSession {
   }
 }
 
+// A Glue table's kind: a view, else a table (Iceberg, Hive-style or governed).
+export function readGlueKind(tableType: unknown): DataAssetKind {
+  return String(tableType ?? "").toUpperCase() === "VIRTUAL_VIEW"
+    ? DataAssetKind.View
+    : DataAssetKind.Table;
+}
+
+/*
+ * A Glue table as a table and its columns. An Iceberg table's every commit
+ * updates its Glue table (its metadata location), so its UpdateTime is when
+ * it last changed; a Hive-style table's is only when its definition did,
+ * so it says no change. Rows and size come from the statistics a crawler
+ * or ANALYZE keeps.
+ */
+export function readGlueTable(
+  info: JSONObject,
+  now: Date,
+): { table: RawTable; columns: Array<RawColumn> } | null {
+  const name: string = readText(info["Name"], MAX_IDENTIFIER_LENGTH);
+  const schema: string = readText(info["DatabaseName"], MAX_IDENTIFIER_LENGTH);
+
+  if (!name || !schema) {
+    return null;
+  }
+
+  const kind: DataAssetKind = readGlueKind(info["TableType"]);
+  const parameters: JSONObject =
+    info["Parameters"] && typeof info["Parameters"] === "object"
+      ? (info["Parameters"] as JSONObject)
+      : {};
+  const isIceberg: boolean =
+    String(parameters["table_type"] ?? "").toUpperCase() === "ICEBERG" ||
+    Boolean(parameters["metadata_location"]);
+  const updatedAt: number = Number(info["UpdateTime"]);
+  const storage: JSONObject =
+    info["StorageDescriptor"] && typeof info["StorageDescriptor"] === "object"
+      ? (info["StorageDescriptor"] as JSONObject)
+      : {};
+  const columns: Array<RawColumn> = [
+    ...(Array.isArray(storage["Columns"])
+      ? (storage["Columns"] as Array<unknown>)
+      : []),
+    ...(Array.isArray(info["PartitionKeys"])
+      ? (info["PartitionKeys"] as Array<unknown>)
+      : []),
+  ]
+    .map((value: unknown, index: number): RawColumn | null => {
+      const column: JSONObject =
+        value && typeof value === "object" ? (value as JSONObject) : {};
+      const columnName: string = readText(
+        column["Name"],
+        MAX_COLUMN_NAME_LENGTH,
+      );
+
+      return columnName
+        ? {
+            schema,
+            table: name,
+            column: {
+              name: columnName,
+              dataType: readText(column["Type"], MAX_COLUMN_TYPE_LENGTH)
+                .trim()
+                .toLowerCase(),
+              isNullable: true,
+              position: index + 1,
+            },
+          }
+        : null;
+    })
+    .filter((column: RawColumn | null): column is RawColumn => {
+      return column !== null;
+    });
+  const holdsRows: boolean = kind === DataAssetKind.Table;
+
+  return {
+    table: {
+      schema,
+      name,
+      kind,
+      estimatedRows: holdsRows
+        ? readCount(parameters["numRows"] ?? parameters["recordCount"])
+        : null,
+      sizeInBytes: holdsRows ? readCount(parameters["totalSize"]) : null,
+      writeCount: null,
+      secondsSinceChange:
+        holdsRows && isIceberg && Number.isFinite(updatedAt) && updatedAt > 0
+          ? Math.max(0, Math.floor(now.getTime() / 1000 - updatedAt))
+          : null,
+      readCount: null,
+      secondsSinceRead: null,
+    },
+    columns,
+  };
+}
+
+/*
+ * Amazon Athena, a Glue database at a time (AthenaApi): its tables and
+ * views, their columns, statistics and - for Iceberg - last commit, from
+ * the Glue Data Catalog's API, which reads no data and costs nothing. A
+ * data check runs as an Athena query in the connection's workgroup, its
+ * names in double quotes and its values written in as quoted strings.
+ */
+class AthenaCatalog implements CatalogSession {
+  public readonly engine: DatabaseEngine = "athena";
+  private readonly api: AthenaApi;
+
+  private constructor(api: AthenaApi) {
+    this.api = api;
+  }
+
+  public static async open(connectionString: string): Promise<AthenaCatalog> {
+    const session: AthenaCatalog = new AthenaCatalog(
+      new AthenaApi({ connection: readAthenaConnection(connectionString) }),
+    );
+
+    await session.api.getDatabase();
+
+    return session;
+  }
+
+  public async readAggregate(
+    sql: string,
+    params: Array<string>,
+  ): Promise<Array<Record<string, unknown>>> {
+    return await this.api.query({ statement: sql, params });
+  }
+
+  public async read(options: TableHealthCollectOptions): Promise<CatalogRead> {
+    const now: Date = new Date();
+    const tables: Array<RawTable> = [];
+    const columns: Array<RawColumn> = [];
+
+    for (const info of await this.api.listTables(options.maxTables)) {
+      const read: ReturnType<typeof readGlueTable> = readGlueTable(info, now);
+
+      if (!read) {
+        continue;
+      }
+
+      tables.push(read.table);
+
+      for (const column of read.columns) {
+        if (columns.length < options.maxColumns) {
+          columns.push(column);
+        }
+      }
+    }
+
+    return { tables, columns, warnings: [], secondsSinceStatsReset: null };
+  }
+
+  public async close(): Promise<void> {
+    // Each call is its own request: nothing is held open.
+  }
+}
+
+// Every key of an Oracle row in lower case: Oracle names columns in upper case.
+function lowerKeys(row: Record<string, unknown>): Record<string, unknown> {
+  const lowered: Record<string, unknown> = {};
+
+  for (const [key, value] of Object.entries(row)) {
+    lowered[key.toLowerCase()] = value;
+  }
+
+  return lowered;
+}
+
+// The schemas Oracle maintains itself: never a store's tables.
+const ORACLE_USER_JOIN: (alias: string, column: string) => string = (
+  alias: string,
+  column: string,
+): string => {
+  return `JOIN all_users ${alias} ON ${alias}.username = ${column} AND ${alias}.oracle_maintained = 'N'`;
+};
+
+/*
+ * Oracle Database, over the oracledb driver in its thin mode (no Oracle
+ * client to install). ALL_TABLES gives every table the login can see in a
+ * schema Oracle does not maintain itself, with its rows from its last
+ * statistics; ALL_TAB_MODIFICATIONS its inserts, updates and deletes since
+ * then, and when it last changed; DBA_SEGMENTS (or the login's own
+ * USER_SEGMENTS) its size; ALL_VIEWS and ALL_MVIEWS the views;
+ * ALL_TAB_COLUMNS the columns; ALL_DEPENDENCIES the views' lineage. Every
+ * statement runs in a read-only transaction, rolled back after it, bounded
+ * by the call timeout.
+ */
+class OracleCatalog implements CatalogSession {
+  public readonly engine: DatabaseEngine = "oracle";
+  private readonly connection: oracledb.Connection;
+
+  private constructor(connection: oracledb.Connection) {
+    this.connection = connection;
+  }
+
+  public static async open(connectionString: string): Promise<OracleCatalog> {
+    const attributes: OracleConnectAttributes =
+      readOracleConnection(connectionString);
+    const connection: oracledb.Connection = await oracledb.getConnection({
+      ...attributes,
+      connectTimeout: Math.ceil(CONNECT_TIMEOUT_IN_MS / 1000),
+    });
+
+    connection.callTimeout = STATEMENT_TIMEOUT_IN_MS;
+
+    return new OracleCatalog(connection);
+  }
+
+  private async rows(
+    sql: string,
+    binds: Array<string | number> = [],
+  ): Promise<Array<Record<string, unknown>>> {
+    await this.connection.execute("SET TRANSACTION READ ONLY");
+
+    try {
+      const result: oracledb.Result<Record<string, unknown>> =
+        await this.connection.execute<Record<string, unknown>>(sql, binds, {
+          outFormat: oracledb.OUT_FORMAT_OBJECT,
+          maxRows: MAX_COLUMNS_PER_COLLECTION,
+        });
+
+      return (result.rows || []).map(lowerKeys);
+    } finally {
+      await this.connection.rollback();
+    }
+  }
+
+  public async readAggregate(
+    sql: string,
+    params: Array<string>,
+  ): Promise<Array<Record<string, unknown>>> {
+    return await this.rows(sql, params);
+  }
+
+  public async readLineage(
+    options: TableHealthCollectOptions,
+  ): Promise<LineageRead> {
+    return await readViewLineage(async () => {
+      return await this.rows(
+        `SELECT d.referenced_owner AS upstream_schema, d.referenced_name AS upstream_table,
+            d.owner AS downstream_schema, d.name AS downstream_table
+          FROM all_dependencies d
+          ${ORACLE_USER_JOIN("u", "d.owner")}
+          WHERE d.type IN ('VIEW', 'MATERIALIZED VIEW')
+            AND d.referenced_type IN ('TABLE', 'VIEW', 'MATERIALIZED VIEW')
+            AND d.referenced_link_name IS NULL
+          ORDER BY 3, 4, 1, 2
+          FETCH FIRST :1 ROWS ONLY`,
+        [Math.min(options.maxTables, MAX_LINEAGE_EDGES_PER_COLLECTION)],
+      );
+    });
+  }
+
+  public async read(options: TableHealthCollectOptions): Promise<CatalogRead> {
+    const warnings: Array<string> = [];
+    const materialized: Set<string> = new Set();
+
+    try {
+      for (const row of await this.rows(
+        `SELECT m.owner AS table_schema, m.mview_name AS table_name
+          FROM all_mviews m ${ORACLE_USER_JOIN("u", "m.owner")}`,
+      )) {
+        materialized.add(
+          keyOf(
+            String(row["table_schema"] ?? ""),
+            String(row["table_name"] ?? ""),
+          ),
+        );
+      }
+    } catch (error) {
+      warnings.push(
+        `Materialized views were read as tables (ALL_MVIEWS could not be read): ${describeError(error).slice(0, 200)}`,
+      );
+    }
+
+    const sizes: Map<string, number> = new Map();
+
+    for (const sizeSql of [
+      `SELECT owner AS table_schema, segment_name AS table_name, SUM(bytes) AS size_bytes
+        FROM dba_segments WHERE segment_type LIKE 'TABLE%' GROUP BY owner, segment_name`,
+      `SELECT USER AS table_schema, segment_name AS table_name, SUM(bytes) AS size_bytes
+        FROM user_segments WHERE segment_type LIKE 'TABLE%' GROUP BY segment_name`,
+    ]) {
+      try {
+        for (const row of await this.rows(sizeSql)) {
+          const size: number | null = readCount(row["size_bytes"]);
+
+          if (size !== null) {
+            sizes.set(
+              keyOf(
+                String(row["table_schema"] ?? ""),
+                String(row["table_name"] ?? ""),
+              ),
+              size,
+            );
+          }
+        }
+        break;
+      } catch {
+        // DBA_SEGMENTS needs SELECT_CATALOG_ROLE: the login's own segments, then none.
+      }
+    }
+
+    const tables: Array<RawTable> = [];
+
+    for (const row of await this.rows(
+      `SELECT t.owner AS table_schema, t.table_name AS table_name, t.num_rows AS num_rows,
+          m.inserts + m.updates + m.deletes AS write_count,
+          ROUND((SYSDATE - m.timestamp) * 86400) AS seconds_since_change
+        FROM all_tables t
+        ${ORACLE_USER_JOIN("u", "t.owner")}
+        LEFT JOIN all_tab_modifications m ON m.table_owner = t.owner AND m.table_name = t.table_name
+          AND m.partition_name IS NULL AND m.subpartition_name IS NULL
+        WHERE t.temporary = 'N' AND t.nested = 'NO' AND t.secondary = 'N' AND t.dropped = 'NO'
+        ORDER BY t.owner, t.table_name
+        FETCH FIRST :1 ROWS ONLY`,
+      [options.maxTables],
+    )) {
+      const schema: string = readText(
+        row["table_schema"],
+        MAX_IDENTIFIER_LENGTH,
+      );
+      const name: string = readText(row["table_name"], MAX_IDENTIFIER_LENGTH);
+
+      if (!schema || !name) {
+        continue;
+      }
+
+      const key: string = keyOf(schema, name);
+
+      tables.push({
+        schema,
+        name,
+        kind: materialized.has(key)
+          ? DataAssetKind.MaterializedView
+          : DataAssetKind.Table,
+        estimatedRows: readCount(row["num_rows"]),
+        sizeInBytes: sizes.get(key) ?? null,
+        writeCount: readCount(row["write_count"]),
+        secondsSinceChange: readCount(row["seconds_since_change"]),
+        readCount: null,
+        secondsSinceRead: null,
+      });
+    }
+
+    try {
+      for (const row of await this.rows(
+        `SELECT v.owner AS table_schema, v.view_name AS table_name
+          FROM all_views v ${ORACLE_USER_JOIN("u", "v.owner")}
+          ORDER BY v.owner, v.view_name
+          FETCH FIRST :1 ROWS ONLY`,
+        [options.maxTables],
+      )) {
+        const schema: string = readText(
+          row["table_schema"],
+          MAX_IDENTIFIER_LENGTH,
+        );
+        const name: string = readText(row["table_name"], MAX_IDENTIFIER_LENGTH);
+
+        if (schema && name) {
+          tables.push({
+            schema,
+            name,
+            kind: DataAssetKind.View,
+            estimatedRows: null,
+            sizeInBytes: null,
+            writeCount: null,
+            secondsSinceChange: null,
+            readCount: null,
+            secondsSinceRead: null,
+          });
+        }
+      }
+    } catch (error) {
+      warnings.push(
+        `Views were left out (ALL_VIEWS could not be read): ${describeError(error).slice(0, 200)}`,
+      );
+    }
+
+    let columns: Array<RawColumn> = [];
+
+    try {
+      columns = (
+        await this.rows(
+          `SELECT c.owner AS table_schema, c.table_name AS table_name, c.column_name AS column_name,
+              c.data_type AS data_type, c.nullable AS is_nullable, c.column_id AS ordinal_position
+            FROM all_tab_columns c ${ORACLE_USER_JOIN("u", "c.owner")}
+            ORDER BY c.owner, c.table_name, c.column_id
+            FETCH FIRST :1 ROWS ONLY`,
+          [options.maxColumns],
+        )
+      )
+        .map((row: Record<string, unknown>): RawColumn | null => {
+          return readColumnRow(row);
+        })
+        .filter((column: RawColumn | null): column is RawColumn => {
+          return column !== null;
+        });
+    } catch (error) {
+      warnings.push(
+        `Columns were left out (ALL_TAB_COLUMNS could not be read): ${describeError(error).slice(0, 200)}`,
+      );
+    }
+
+    return {
+      tables: tables
+        .sort((a: RawTable, b: RawTable) => {
+          return keyOf(a.schema, a.name).localeCompare(keyOf(b.schema, b.name));
+        })
+        .slice(0, options.maxTables),
+      columns,
+      warnings,
+      secondsSinceStatsReset: null,
+    };
+  }
+
+  public async close(): Promise<void> {
+    await this.connection.close();
+  }
+}
+
+// BSON's and JSON Schema's numeric types, one to a column: 1 and 1.5 are both a number.
+const MONGO_NUMBER_TYPES: ReadonlySet<string> = new Set([
+  "int",
+  "long",
+  "double",
+  "decimal",
+  "integer",
+  "number",
+]);
+
+// What a field of a document store always may be, so never a type of its own.
+const MONGO_ABSENT_TYPES: ReadonlySet<string> = new Set([
+  "null",
+  "missing",
+  "undefined",
+]);
+
+// Collections read at once, over the client's small pool.
+const MONGO_COLLECTION_CONCURRENCY: number = 4;
+
+export interface MongoCollectionInfo {
+  name: string;
+  // "collection", "view" or "timeseries".
+  type: string;
+  // Its validator, a view's source and pipeline, a time series' fields; empty when not read.
+  options: JSONObject;
+}
+
+interface MongoCollectionRead {
+  table: RawTable;
+  // Null when they could not be read this time: unknown, never all dropped.
+  columns: Array<DataAssetColumn> | null;
+  viewOn: string | null;
+}
+
+function readMongoObject(value: unknown): JSONObject {
+  return value && typeof value === "object" && !Array.isArray(value)
+    ? (value as JSONObject)
+    : {};
+}
+
+/*
+ * A field's BSON types as a column's type: "string", "number", or
+ * "date|string" when its documents disagree. Null and missing are left out:
+ * any field of a document may be either.
+ */
+export function readMongoFieldType(types: Array<unknown>): string {
+  const names: Set<string> = new Set();
+
+  for (const type of types) {
+    const name: string = String(type ?? "")
+      .trim()
+      .toLowerCase();
+
+    if (name && !MONGO_ABSENT_TYPES.has(name)) {
+      names.add(MONGO_NUMBER_TYPES.has(name) ? "number" : name);
+    }
+  }
+
+  return ([...names].sort().join("|") || "null").slice(
+    0,
+    MAX_COLUMN_TYPE_LENGTH,
+  );
+}
+
+/*
+ * A collection's fields as its validator's JSON schema declares them, the
+ * required ones not nullable. Null when it declares none.
+ */
+export function readMongoSchemaFields(
+  validator: unknown,
+): Array<DataAssetColumn> | null {
+  const schema: JSONObject = readMongoObject(
+    readMongoObject(validator)["$jsonSchema"],
+  );
+  const properties: JSONObject = readMongoObject(schema["properties"]);
+  const required: Array<unknown> = Array.isArray(schema["required"])
+    ? schema["required"]
+    : [];
+  const names: Array<string> = Object.keys(properties)
+    .filter((name: string): boolean => {
+      return name.length > 0;
+    })
+    .slice(0, MAX_COLUMNS_PER_DATA_ASSET);
+
+  if (names.length === 0) {
+    return null;
+  }
+
+  return names.map((name: string, index: number): DataAssetColumn => {
+    const definition: JSONObject = readMongoObject(properties[name]);
+    const declared: unknown = definition["bsonType"] ?? definition["type"];
+    const types: Array<unknown> = Array.isArray(declared)
+      ? declared
+      : [declared ?? "mixed"];
+
+    return {
+      name: name.slice(0, MAX_COLUMN_NAME_LENGTH),
+      dataType: readMongoFieldType(types),
+      isNullable: !required.includes(name) || types.includes("null"),
+      position: index + 1,
+    };
+  });
+}
+
+/*
+ * A collection's fields as its newest documents carry them, grouped in the
+ * database to names and types - never a value - _id first, then by name,
+ * so the same documents always read the same.
+ */
+export function readMongoSampledFields(
+  rows: Array<Record<string, unknown>>,
+): Array<DataAssetColumn> {
+  return rows
+    .map((row: Record<string, unknown>) => {
+      return {
+        name: readText(row["_id"], MAX_COLUMN_NAME_LENGTH),
+        types: Array.isArray(row["types"])
+          ? (row["types"] as Array<unknown>)
+          : [],
+      };
+    })
+    .filter((field: { name: string }): boolean => {
+      return field.name.length > 0;
+    })
+    .sort((a: { name: string }, b: { name: string }): number => {
+      if (a.name === b.name) {
+        return 0;
+      }
+
+      if (a.name === "_id" || b.name === "_id") {
+        return a.name === "_id" ? -1 : 1;
+      }
+
+      return a.name < b.name ? -1 : 1;
+    })
+    .slice(0, MAX_COLUMNS_PER_DATA_ASSET)
+    .map(
+      (
+        field: { name: string; types: Array<unknown> },
+        index: number,
+      ): DataAssetColumn => {
+        return {
+          name: field.name,
+          dataType: readMongoFieldType(field.types),
+          isNullable: field.name !== "_id",
+          position: index + 1,
+        };
+      },
+    );
+}
+
+// A time series collection's fields as its options name them: its time, and its metadata.
+export function readMongoTimeSeriesFields(
+  options: JSONObject,
+): Array<DataAssetColumn> | null {
+  const timeseries: JSONObject = readMongoObject(options["timeseries"]);
+  const timeField: string = readText(
+    timeseries["timeField"],
+    MAX_COLUMN_NAME_LENGTH,
+  );
+  const metaField: string = readText(
+    timeseries["metaField"],
+    MAX_COLUMN_NAME_LENGTH,
+  );
+
+  if (!timeField) {
+    return null;
+  }
+
+  return [
+    { name: timeField, dataType: "date", isNullable: false, position: 1 },
+    ...(metaField
+      ? [{ name: metaField, dataType: "mixed", isNullable: true, position: 2 }]
+      : []),
+  ];
+}
+
+/*
+ * The newest documents' fields and the newest one's _id, in one walk down
+ * the _id index: an ObjectId says when its document was made.
+ */
+export function buildMongoSamplePipeline(): Array<JSONObject> {
+  return [
+    { $sort: { _id: -1 } },
+    { $limit: MONGO_FIELD_SAMPLE_SIZE },
+    {
+      $facet: {
+        newest: [{ $limit: 1 }, { $project: { _id: 1 } }],
+        fields: [
+          { $project: { _id: 0, field: { $objectToArray: "$$ROOT" } } },
+          { $unwind: "$field" },
+          {
+            $group: {
+              _id: "$field.k",
+              types: { $addToSet: { $type: "$field.v" } },
+            },
+          },
+          { $sort: { _id: 1 } },
+          { $limit: MAX_COLUMNS_PER_DATA_ASSET },
+        ],
+      },
+    },
+  ];
+}
+
+// When an ObjectId was made, from its leading seconds; null for any other _id.
+export function readObjectIdTime(value: unknown): Date | null {
+  const getTimestamp: unknown =
+    value && typeof value === "object"
+      ? (value as { getTimestamp?: unknown }).getTimestamp
+      : undefined;
+
+  if (typeof getTimestamp !== "function") {
+    return null;
+  }
+
+  const time: unknown = getTimestamp.call(value);
+
+  return time instanceof Date && Number.isFinite(time.getTime()) ? time : null;
+}
+
+/*
+ * What $collStats says of a collection, summed over its shards: its
+ * documents, its size on disk with its indexes, and the writes it has taken
+ * since the server started - a counter that moves on every insert, update
+ * and delete, which OneUptime's reads never move.
+ */
+export function readMongoCollectionStats(
+  documents: Array<Record<string, unknown>>,
+): { rows: number | null; size: number | null; writes: number | null } {
+  const add: (total: number | null, value: number | null) => number | null = (
+    total: number | null,
+    value: number | null,
+  ): number | null => {
+    return value === null ? total : (total ?? 0) + value;
+  };
+  let rows: number | null = null;
+  let size: number | null = null;
+  let writes: number | null = null;
+
+  for (const document of documents) {
+    const storage: JSONObject = readMongoObject(document["storageStats"]);
+    const storageSize: number | null = readCount(storage["storageSize"]);
+
+    rows = add(rows, readCount(storage["count"]));
+    size = add(
+      size,
+      readCount(storage["totalSize"]) ??
+        (storageSize === null
+          ? null
+          : storageSize + (readCount(storage["totalIndexSize"]) ?? 0)),
+    );
+    writes = add(
+      writes,
+      readCount(
+        readMongoObject(readMongoObject(document["latencyStats"])["writes"])[
+          "ops"
+        ],
+      ),
+    );
+  }
+
+  return { rows, size, writes };
+}
+
+/*
+ * A value of a check's document as readCheckRows reads it: BSON's numbers
+ * (Decimal128, Long) as their text, an ObjectId as its hex.
+ */
+export function readMongoCell(value: unknown): unknown {
+  if (
+    value === null ||
+    value === undefined ||
+    typeof value !== "object" ||
+    value instanceof Date
+  ) {
+    return value ?? null;
+  }
+
+  if ("_bsontype" in value) {
+    return String(value);
+  }
+
+  return JSON.stringify(value).slice(0, MAX_IDENTIFIER_LENGTH);
+}
+
+/*
+ * MongoDB, over its own driver. Each database's collections, views and
+ * time series (listCollections); each collection's documents, size and
+ * write counter ($collStats, from the member that takes the writes); when
+ * it last took a document, and its fields, from its newest documents in one
+ * walk down the _id index - its validator's JSON schema naming the fields
+ * when it has one. A view's source collection is lineage. Documents are
+ * read on a secondary where there is one, and every read is bounded by
+ * maxTimeMS. Nothing is ever written.
+ */
+class MongoCatalog implements CatalogSession {
+  public readonly engine: DatabaseEngine = "mongodb";
+  private readonly client: MongoClient;
+  private readonly databases: Array<string>;
+  private viewEdges: Array<CollectedLineageEdge> = [];
+  private isComplete: boolean = false;
+
+  private constructor(client: MongoClient, databases: Array<string>) {
+    this.client = client;
+    this.databases = databases;
+  }
+
+  public static async open(connectionString: string): Promise<MongoCatalog> {
+    const client: MongoClient = new MongoClient(connectionString, {
+      appName: APPLICATION_NAME,
+      serverSelectionTimeoutMS: CONNECT_TIMEOUT_IN_MS,
+      connectTimeoutMS: CONNECT_TIMEOUT_IN_MS,
+      socketTimeoutMS: STATEMENT_TIMEOUT_IN_MS + 5_000,
+      maxPoolSize: MONGO_COLLECTION_CONCURRENCY,
+      readPreference: "secondaryPreferred",
+      retryWrites: false,
+    });
+
+    await client.connect();
+
+    try {
+      // The database the string names, else every one the login may read.
+      const named: string | null =
+        readMongoUri(connectionString)?.database || null;
+      const databases: Array<string> = named
+        ? [named]
+        : (
+            await client
+              .db("admin")
+              .admin()
+              .listDatabases({ nameOnly: true, authorizedDatabases: true })
+          ).databases
+            .map((database: { name: string }): string => {
+              return database.name;
+            })
+            .filter((name: string): boolean => {
+              return !isMongoSystemDatabase(name);
+            })
+            .sort();
+
+      return new MongoCatalog(client, databases);
+    } catch (error) {
+      await client.close();
+      throw error;
+    }
+  }
+
+  /*
+   * A database's collections with their options; a login that may not list
+   * them in full lists their names and types alone.
+   */
+  private async listCollections(
+    database: Db,
+  ): Promise<Array<MongoCollectionInfo>> {
+    let infos: Array<Record<string, unknown>>;
+
+    try {
+      infos = (await database
+        .listCollections({}, { nameOnly: false })
+        .toArray()) as unknown as Array<Record<string, unknown>>;
+    } catch {
+      infos = (await database
+        .listCollections({}, { nameOnly: true, authorizedCollections: true })
+        .toArray()) as unknown as Array<Record<string, unknown>>;
+    }
+
+    return infos
+      .map((info: Record<string, unknown>): MongoCollectionInfo => {
+        return {
+          name: readText(info["name"], MAX_IDENTIFIER_LENGTH),
+          type: readText(info["type"] ?? "collection", 40),
+          options: readMongoObject(info["options"]),
+        };
+      })
+      .filter((info: MongoCollectionInfo): boolean => {
+        // system.views, system.buckets.* and the like are MongoDB's own.
+        return info.name.length > 0 && !info.name.startsWith("system.");
+      })
+      .sort((a: MongoCollectionInfo, b: MongoCollectionInfo): number => {
+        return a.name < b.name ? -1 : a.name > b.name ? 1 : 0;
+      });
+  }
+
+  // $collStats, from the member that takes the writes: its write counter is the one that moves.
+  private async readStats(
+    collection: Collection,
+    withCounters: boolean,
+  ): Promise<{
+    rows: number | null;
+    size: number | null;
+    writes: number | null;
+  }> {
+    try {
+      return readMongoCollectionStats(
+        await collection
+          .aggregate(
+            [
+              {
+                $collStats: {
+                  storageStats: { scale: 1 },
+                  ...(withCounters ? { latencyStats: {} } : {}),
+                },
+              },
+              {
+                $project: {
+                  "storageStats.count": 1,
+                  "storageStats.size": 1,
+                  "storageStats.storageSize": 1,
+                  "storageStats.totalIndexSize": 1,
+                  "storageStats.totalSize": 1,
+                  "latencyStats.writes.ops": 1,
+                },
+              },
+            ],
+            {
+              maxTimeMS: STATEMENT_TIMEOUT_IN_MS,
+              readPreference: "primaryPreferred",
+            },
+          )
+          .toArray(),
+      );
+    } catch {
+      // A server without $collStats (or a login without collStats): the count it keeps.
+      const rows: number | null = withCounters
+        ? readCount(
+            await collection
+              .estimatedDocumentCount({ maxTimeMS: STATEMENT_TIMEOUT_IN_MS })
+              .catch((): null => {
+                return null;
+              }),
+          )
+        : null;
+
+      return { rows, size: null, writes: null };
+    }
+  }
+
+  // The newest documents' fields and the newest _id; null when they could not be read.
+  private async readSample(
+    collection: Collection,
+  ): Promise<{ newestId: unknown; fields: Array<DataAssetColumn> } | null> {
+    try {
+      const [sample] = await collection
+        .aggregate(buildMongoSamplePipeline(), {
+          maxTimeMS: STATEMENT_TIMEOUT_IN_MS,
+        })
+        .toArray();
+      const newest: Array<unknown> = Array.isArray(sample?.["newest"])
+        ? (sample["newest"] as Array<unknown>)
+        : [];
+      const fields: Array<Record<string, unknown>> = Array.isArray(
+        sample?.["fields"],
+      )
+        ? (sample["fields"] as Array<Record<string, unknown>>)
+        : [];
+
+      return {
+        newestId: readMongoObject(newest[0])["_id"] ?? null,
+        fields: readMongoSampledFields(fields),
+      };
+    } catch {
+      return null;
+    }
+  }
+
+  private async readCollection(
+    database: Db,
+    info: MongoCollectionInfo,
+    now: Date,
+  ): Promise<MongoCollectionRead> {
+    const collection: Collection = database.collection(info.name);
+    const table: RawTable = {
+      schema: database.databaseName,
+      name: info.name,
+      kind: info.type === "view" ? DataAssetKind.View : DataAssetKind.Table,
+      estimatedRows: null,
+      sizeInBytes: null,
+      writeCount: null,
+      secondsSinceChange: null,
+      readCount: null,
+      secondsSinceRead: null,
+    };
+
+    // A view holds nothing of its own: running its pipeline to read it is a query, not a look.
+    if (info.type === "view") {
+      return {
+        table,
+        columns: null,
+        viewOn: readText(info.options["viewOn"], MAX_IDENTIFIER_LENGTH) || null,
+      };
+    }
+
+    /*
+     * A time series keeps its documents in buckets with no _id index to
+     * walk: its size moving says it changed, and its options name its fields.
+     */
+    if (info.type === "timeseries") {
+      const stats: { size: number | null } = await this.readStats(
+        collection,
+        false,
+      );
+
+      return {
+        table: { ...table, sizeInBytes: stats.size },
+        columns: readMongoTimeSeriesFields(info.options),
+        viewOn: null,
+      };
+    }
+
+    const [stats, sample] = await Promise.all([
+      this.readStats(collection, true),
+      this.readSample(collection),
+    ]);
+    const newestAt: Date | null = readObjectIdTime(sample?.newestId);
+
+    return {
+      table: {
+        ...table,
+        estimatedRows: stats.rows,
+        sizeInBytes: stats.size,
+        writeCount: stats.writes,
+        secondsSinceChange: newestAt
+          ? Math.max(0, Math.floor((now.getTime() - newestAt.getTime()) / 1000))
+          : null,
+      },
+      columns:
+        readMongoSchemaFields(info.options["validator"]) ??
+        sample?.fields ??
+        null,
+      viewOn: null,
+    };
+  }
+
+  public async read(options: TableHealthCollectOptions): Promise<CatalogRead> {
+    const excluded: Set<string> = readExclusions(options.exclusions);
+    const warnings: Array<string> = [];
+    const tables: Array<RawTable> = [];
+    const columns: Array<RawColumn> = [];
+    const columnsUnknown: Array<string> = [];
+    const now: Date = new Date();
+    let isComplete: boolean = true;
+
+    this.viewEdges = [];
+
+    for (const databaseName of this.databases) {
+      if (excluded.has(databaseName.toLowerCase())) {
+        continue;
+      }
+
+      if (tables.length >= options.maxTables) {
+        isComplete = false;
+        break;
+      }
+
+      const database: Db = this.client.db(databaseName);
+      let infos: Array<MongoCollectionInfo>;
+
+      try {
+        infos = (await this.listCollections(database)).filter(
+          (info: MongoCollectionInfo): boolean => {
+            return !isExcluded(databaseName, info.name, excluded);
+          },
+        );
+      } catch (error) {
+        isComplete = false;
+        warnings.push(
+          `The collections of ${databaseName} were left out: ${describeError(error).slice(0, 200)}`,
+        );
+        continue;
+      }
+
+      const wanted: Array<MongoCollectionInfo> = infos.slice(
+        0,
+        Math.max(0, options.maxTables - tables.length),
+      );
+
+      for (
+        let start: number = 0;
+        start < wanted.length;
+        start += MONGO_COLLECTION_CONCURRENCY
+      ) {
+        const reads: Array<MongoCollectionRead> = await Promise.all(
+          wanted
+            .slice(start, start + MONGO_COLLECTION_CONCURRENCY)
+            .map((info: MongoCollectionInfo) => {
+              return this.readCollection(database, info, now);
+            }),
+        );
+
+        for (const read of reads) {
+          tables.push(read.table);
+
+          if (read.columns === null) {
+            columnsUnknown.push(keyOf(databaseName, read.table.name));
+          }
+
+          for (const column of read.columns || []) {
+            if (columns.length < options.maxColumns) {
+              columns.push({
+                schema: databaseName,
+                table: read.table.name,
+                column,
+              });
+            }
+          }
+
+          const edge: CollectedLineageEdge | null = read.viewOn
+            ? readLineageRow(
+                {
+                  upstream_schema: databaseName,
+                  upstream_table: read.viewOn,
+                  downstream_schema: databaseName,
+                  downstream_table: read.table.name,
+                },
+                DataAssetLineageSource.ViewDefinition,
+              )
+            : null;
+
+          if (edge) {
+            this.viewEdges.push(edge);
+          }
+        }
+      }
+    }
+
+    this.isComplete = isComplete;
+
+    return {
+      tables,
+      columns,
+      warnings,
+      secondsSinceStatsReset: null,
+      columnsUnknown,
+    };
+  }
+
+  // Each view's source collection, read with the catalog.
+  public async readLineage(): Promise<LineageRead> {
+    return {
+      edges: this.viewEdges.slice(0, MAX_LINEAGE_EDGES_PER_COLLECTION),
+      isViewLineageComplete: this.isComplete,
+      warnings: [],
+    };
+  }
+
+  /*
+   * One check's pipeline, on a secondary where there is one, its documents
+   * capped at a check's segments. No documents is the check's own empty
+   * value: a count's 0, else nothing.
+   */
+  public async readAggregate(
+    sql: string,
+    _params: Array<string>,
+  ): Promise<Array<Record<string, unknown>>> {
+    const statement: MongoCheckStatement = readMongoCheckStatement(sql);
+    const documents: Array<Record<string, unknown>> = await this.client
+      .db(statement.database || this.databases[0] || "test")
+      .collection(statement.collection)
+      .aggregate([...statement.pipeline, { $limit: MAX_SEGMENTS_PER_CHECK }], {
+        maxTimeMS: STATEMENT_TIMEOUT_IN_MS,
+      })
+      .toArray();
+
+    if (documents.length === 0) {
+      return statement.isSegmented ? [] : [{ value: statement.emptyValue }];
+    }
+
+    return documents.map((document: Record<string, unknown>) => {
+      const row: Record<string, unknown> = {};
+
+      for (const [key, value] of Object.entries(document)) {
+        row[key] = readMongoCell(value);
+      }
+
+      return row;
+    });
+  }
+
+  public async close(): Promise<void> {
+    await this.client.close();
+  }
+}
+
 async function openCatalog(
   connection: DatabaseConnection,
 ): Promise<CatalogSession> {
@@ -3354,11 +4486,30 @@ async function openCatalog(
       return await ClickHouseCatalog.open(connection.connectionString);
     case "databricks":
       return await DatabricksCatalog.open(connection.connectionString);
+    case "athena":
+      return await AthenaCatalog.open(connection.connectionString);
+    case "oracle":
+      return await OracleCatalog.open(connection.connectionString);
+    case "mongodb":
+      return await MongoCatalog.open(connection.connectionString);
     default:
       throw new Error(
         `Data Observability cannot collect ${String(connection.engine)} databases yet.`,
       );
   }
+}
+
+// The store's exclusions, as isExcluded compares them.
+function readExclusions(exclusions: Array<string>): Set<string> {
+  return new Set(
+    exclusions
+      .map((exclusion: string) => {
+        return exclusion.trim().toLowerCase();
+      })
+      .filter((exclusion: string) => {
+        return exclusion.length > 0;
+      }),
+  );
 }
 
 function isExcluded(
@@ -3391,15 +4542,8 @@ export function assembleSnapshot(data: {
   collectedAt: Date;
   lineage?: LineageRead | undefined;
 }): TableHealthSnapshot {
-  const excluded: Set<string> = new Set(
-    data.options.exclusions
-      .map((exclusion: string) => {
-        return exclusion.trim().toLowerCase();
-      })
-      .filter((exclusion: string) => {
-        return exclusion.length > 0;
-      }),
-  );
+  const excluded: Set<string> = readExclusions(data.options.exclusions);
+  const columnsUnknown: Set<string> = new Set(data.read.columnsUnknown || []);
   const columnsCut: boolean =
     data.read.columns.length >= data.options.maxColumns;
   const columnsByTable: Map<string, Array<DataAssetColumn>> = new Map();
@@ -3438,7 +4582,7 @@ export function assembleSnapshot(data: {
         ? columns.sort((a: DataAssetColumn, b: DataAssetColumn) => {
             return a.position - b.position;
           })
-        : columnsCut
+        : columnsCut || columnsUnknown.has(keyOf(raw.schema, raw.name))
           ? null
           : [],
     });

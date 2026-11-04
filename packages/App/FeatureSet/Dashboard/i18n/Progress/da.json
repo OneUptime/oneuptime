@@ -1,7 +1,7 @@
 {
   "baseline": {
-    "keys": 42078,
-    "untranslated": 12157
+    "keys": 42106,
+    "untranslated": 12131
   },
   "sameAsEnglish": [
     "0 (kiss-o'-death {{kissCode}})",
@@ -151,6 +151,7 @@
     "Ok",
     "Online",
     "OpenShift",
+    "Over budget",
     "PGs",
     "PR #{{number}}",
     "PV",
@@ -239,6 +240,7 @@
     "Trigger",
     "Tunnel",
     "Type",
+    "USD",
     "UTC",
     "Up + In",
     "Up + Out",
@@ -281,6 +283,7 @@
     "deadlocks",
     "debug",
     "deployment",
+    "destination",
     "failed password",
     "frustration",
     "govc",
@@ -306,6 +309,7 @@
     "p99 (ms)",
     "persistent volume",
     "persistent volume claim",
+    "platform",
     "pod",
     "port {{port}}",
     "prod, staging",
@@ -327,6 +331,7 @@
     "teams",
     "timeout|connection refused",
     "total",
+    "type",
     "vApp {{name}}",
     "vCenter",
     "vSphere Client",
@@ -339,8 +344,10 @@
     "{{count}} MB",
     "{{count}} VM",
     "{{count}} alarm",
+    "{{count}} app",
     "{{count}} appliance",
     "{{count}} appliances",
+    "{{count}} apps",
     "{{count}} bucket",
     "{{count}} buckets",
     "{{count}} container",

@@ -82,7 +82,7 @@ export const PERMISSION_NAMES: Readonly<Record<string, ReadonlyArray<string>>> =
       "Create Alert",
       "Create Incident State Timeline",
       "Create Alert State Timeline",
-      "Create On-Call Duty Policy Execution Log",
+      "Execute On-Call Duty Policy",
       "Create Runbook Execution",
     ],
     [AI_SRE]: ["Manage Billing", "Edit AI Rule"],

@@ -1,7 +1,7 @@
 {
   "baseline": {
-    "keys": 42078,
-    "untranslated": 12147
+    "keys": 42106,
+    "untranslated": 12121
   },
   "sameAsEnglish": [
     "0 (kiss-o'-death {{kissCode}})",
@@ -179,6 +179,7 @@
     "Top P",
     "Tunnel",
     "Type",
+    "USD",
     "UTC",
     "Up + In",
     "Up + Out",
@@ -247,6 +248,7 @@
     "svc-backup",
     "syslog",
     "timeout|connection refused",
+    "type",
     "vApp {{name}}",
     "vCenter",
     "vSphere Client",
@@ -259,6 +261,7 @@
     "{{count}} MB",
     "{{count}} VM",
     "{{count}} alarm",
+    "{{count}} app",
     "{{count}} appliance",
     "{{count}} bucket",
     "{{count}} container",

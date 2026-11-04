@@ -1,7 +1,7 @@
 {
   "baseline": {
-    "keys": 42078,
-    "untranslated": 12152
+    "keys": 42106,
+    "untranslated": 12127
   },
   "sameAsEnglish": [
     "0 (kiss-o'-death {{kissCode}})",
@@ -12,6 +12,7 @@
     "4xx",
     "5xx",
     "Account",
+    "Account: {{accounts}}",
     "Active + Clean",
     "Agenda",
     "Apache Kafka · kafka-1:9092",
@@ -102,6 +103,7 @@
     "LXC 201 · pve3",
     "Leader",
     "Link-local",
+    "Listener",
     "Log4Shell",
     "Loopback",
     "MCP",
@@ -169,6 +171,7 @@
     "Report",
     "Repository",
     "Rollback: {{command}}",
+    "Route",
     "Runbook",
     "Runbook: {{name}}",
     "Runner",
@@ -204,6 +207,7 @@
     "Top P",
     "Trigger",
     "Tunnel",
+    "USD",
     "UTC",
     "Up + In",
     "Up + Out",
@@ -228,6 +232,8 @@
     "[\".customer-name\", \"#invoice-total\"]",
     "[\"ResizeObserver loop\", \"third-party-tag\\\\.js\"]",
     "[\"iframe.payment\", \".id-document\"]",
+    "account",
+    "account {{account}}",
     "alice@example.com",
     "aws_lambda · us-east-1 · nodejs 20",
     "bucket",
@@ -244,6 +250,7 @@
     "debug",
     "deployment",
     "directory",
+    "endpoint",
     "failed password",
     "file system",
     "govc",
@@ -295,6 +302,7 @@
     "{{count}} KB",
     "{{count}} MB",
     "{{count}} VM",
+    "{{count}} app",
     "{{count}} appliance",
     "{{count}} bucket",
     "{{count}} client",

@@ -52,6 +52,9 @@ const KIND_OPTIONS: Array<DropdownOption> = [
   { value: DataStoreKind.GcpBigQueryDataset, label: "Google BigQuery" },
   { value: DataStoreKind.ClickHouse, label: "ClickHouse" },
   { value: DataStoreKind.Databricks, label: "Databricks" },
+  { value: DataStoreKind.AwsAthena, label: "Amazon Athena" },
+  { value: DataStoreKind.Oracle, label: "Oracle" },
+  { value: DataStoreKind.MongoDb, label: "MongoDB" },
 ];
 
 /*
@@ -182,7 +185,7 @@ const ConnectDatabaseModal: FunctionComponent<ComponentProps> = (
             stepId: CONNECTION_STEP_ID,
             // Documentation shows every engine's format in full, with examples.
             description:
-              "A URL such as postgres://reader:password@db.internal:5432/orders. Snowflake, BigQuery and Databricks take JSON with a key: Documentation shows each engine's.",
+              "A URL such as postgres://reader:pw@db.internal:5432/orders, or JSON for Snowflake, BigQuery, Databricks and Athena. Documentation shows each engine's.",
             fieldType: FormFieldSchemaType.Password,
             required: (values: FormValues<JSONObject>): boolean => {
               return (

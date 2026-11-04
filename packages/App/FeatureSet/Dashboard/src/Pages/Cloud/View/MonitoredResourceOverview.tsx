@@ -23,9 +23,10 @@ import { getCloudProviderLabel } from "Common/Types/Cloud/CloudPlatform";
 import {
   CLOUD_RESOURCE_CATEGORY_LABELS,
   CLOUD_SERVICE_MODEL_LABELS,
+  CLOUD_SERVICE_MODEL_WORDS,
   CloudResourceTypeDescriptor,
   getCloudResourceTypeDescriptor,
-  getCloudResourceTypeLabel,
+  getCloudResourceTypeDisplayName,
   isInventoryOnlyCloudResourceType,
 } from "Common/Types/Cloud/CloudResourceCatalog";
 import ResourceOverview, {
@@ -220,7 +221,7 @@ const CloudMonitoredResourceOverview: FunctionComponent<
   const r: CloudResource = cloudResource;
   const provider: string = (r.cloudProvider as string) || "";
   const type: string = (r.cloudResourceType as string) || "";
-  const typeLabel: string = getCloudResourceTypeLabel(provider, type);
+  const typeLabel: string = getCloudResourceTypeDisplayName(provider, type);
   const descriptor: CloudResourceTypeDescriptor | null =
     getCloudResourceTypeDescriptor(provider, type);
   const now: Date = OneUptimeDate.getCurrentDate();
@@ -280,10 +281,16 @@ const CloudMonitoredResourceOverview: FunctionComponent<
       mono: false,
     },
     { label: "Resource Type", value: type, mono: true },
+    /*
+     * The service model in words a reader knows - "Managed service (PaaS)"
+     * - in their language; the chip above keeps its short name.
+     */
     {
       label: "Service Model",
       value: descriptor
-        ? CLOUD_SERVICE_MODEL_LABELS[descriptor.serviceModel]
+        ? translator.translateText(
+            CLOUD_SERVICE_MODEL_WORDS[descriptor.serviceModel],
+          ) || CLOUD_SERVICE_MODEL_WORDS[descriptor.serviceModel]
         : undefined,
       mono: false,
     },

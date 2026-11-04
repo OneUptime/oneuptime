@@ -9,7 +9,7 @@ Herkomst (lineage) zegt uit welke tabellen elke tabel is opgebouwd, en welke pip
 | **OpenLineage** | Elke uitvoering van een Airflow-, Dagster-, Spark-, dbt- of Flink-job, en de tabellen die ze las en schreef |
 | **dbt** | Waaruit elk model is opgebouwd, elke build als een uitvoering, en het resultaat van elke test |
 | **Fivetran en Airbyte** | Elke synchronisatie als een uitvoering van de connector, en de ruwe tabellen die ze laadt |
-| **Views** | Een view is opgebouwd uit de tabellen waarop ze is gedefinieerd (PostgreSQL, Redshift, MySQL 8, SQL Server, materialized views van ClickHouse, Databricks) |
+| **Views** | Een view is opgebouwd uit de tabellen waarop ze is gedefinieerd (PostgreSQL, Redshift, MySQL 8, SQL Server, Oracle, materialized views van ClickHouse, Databricks, MongoDB) |
 | **Querygeschiedenis** | Een query die de ene tabel las en naar een andere schreef (de jobs van BigQuery, het querylog van Redshift, het querylog van ClickHouse, de lineagetabel van Databricks) |
 
 Het tabblad **Herkomst** van een tabel toont de tabellen waaruit ze is opgebouwd, de pipelines die ernaar schrijven met hun laatste uitvoering, en de tabellen die uit haar zijn opgebouwd. Elke verbinding zegt waar ze is gezien.

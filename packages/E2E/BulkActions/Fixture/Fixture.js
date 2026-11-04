@@ -54,6 +54,7 @@ import {
   useParams,
 } from "react-router-dom";
 import i18next from "i18next";
+import { followLanguageForDates } from "Common/UI/Utils/DateDisplayLanguage";
 import { initReactI18next } from "react-i18next";
 import WorkflowsPage from "../../../App/FeatureSet/Dashboard/src/Pages/Workflow/Workflows";
 import MonitorsPage from "../../../App/FeatureSet/Dashboard/src/Pages/Monitor/Monitors";
@@ -805,6 +806,8 @@ await i18next.use(initReactI18next).init(
         nsSeparator: false,
       },
 );
+// Dates in the reader's language ("vor 2 Stunden"), as Utils/i18n.ts sets them.
+followLanguageForDates(i18next);
 document.documentElement.lang = language;
 // Persian reads right to left, as the Dashboard sets it for that language.
 document.documentElement.dir = language === "fa" ? "rtl" : "ltr";

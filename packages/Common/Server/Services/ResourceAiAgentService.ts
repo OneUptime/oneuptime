@@ -1,3 +1,4 @@
+import AutoRemediationRuleEngineService from "./AutoRemediationRuleEngineService";
 import CephClusterFeedService from "./CephClusterFeedService";
 import CephClusterService from "./CephClusterService";
 import CloudAccountService from "./CloudAccountService";
@@ -92,6 +93,7 @@ import {
   isAgentAiSettingsSourceAgent,
   isSameAgentAiSettings,
 } from "../../Types/AI/AgentAiSettings";
+import { AutoRemediationDecisionLane } from "../../Types/AutoRemediation/AutoRemediationDecision";
 import crypto from "crypto";
 import FeedMarkdown, {
   mdText,
@@ -1278,6 +1280,11 @@ export class Service extends DatabaseService<Model> {
       await this.writeDefaultsFeedItem({ resource, posture, defaultsApplied });
     }
 
+    this.decideAgainOnceConnected({
+      projectId: data.projectId,
+      resourceId: resource.id,
+    });
+
     return {
       agentId,
       agentKey,
@@ -1286,6 +1293,31 @@ export class Service extends DatabaseService<Model> {
       resourceName: resource.name || identifier,
       admission,
     };
+  }
+
+  /*
+   * The resource's AI agent is connected now - it registered, or it
+   * reported again after it had stopped: the open incidents and alerts
+   * whose fixes OneUptime AI found waiting for it are decided again
+   * (AutoRemediationRuleEngineService.onAgentConnected). Fire and forget:
+   * the agent's request never waits for a fix to start, and nothing here
+   * can fail it.
+   */
+  private decideAgainOnceConnected(data: {
+    projectId: ObjectID;
+    resourceId: ObjectID;
+  }): void {
+    AutoRemediationRuleEngineService.onAgentConnected({
+      projectId: data.projectId,
+      target: {
+        lane: AutoRemediationDecisionLane.Resource,
+        id: data.resourceId.toString(),
+      },
+    }).catch((error: unknown) => {
+      logger.error(
+        `ResourceAiAgent: could not decide again about the records waiting for the AI agent of ${data.resourceId.toString()}: ${error}`,
+      );
+    });
   }
 
   /*
@@ -2725,10 +2757,24 @@ export class Service extends DatabaseService<Model> {
       update["agentVersion"] = agentVersion;
     }
 
+    /*
+     * Whether the agent is coming back: it had signed off, or had not
+     * been heard from within the alive window, as the row read before this
+     * heartbeat says.
+     */
+    const isComingBack: boolean = !this.isOnline(data.agent, now);
+
     await this.updateColumnsByIdWithoutHooks({
       id: agentId,
       data: update as never,
     });
+
+    if (isComingBack && data.agent.projectId && data.agent.resourceId) {
+      this.decideAgainOnceConnected({
+        projectId: data.agent.projectId,
+        resourceId: data.agent.resourceId,
+      });
+    }
 
     /*
      * What AI may do, as the agent reports it: applied when it differs from

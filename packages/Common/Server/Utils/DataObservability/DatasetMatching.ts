@@ -31,6 +31,9 @@ const KIND_SYSTEMS: Readonly<Partial<Record<DataStoreKind, string>>> = {
   [DataStoreKind.GcpBigQueryDataset]: "bigquery",
   [DataStoreKind.ClickHouse]: "clickhouse",
   [DataStoreKind.Databricks]: "databricks",
+  [DataStoreKind.AwsAthena]: "athena",
+  [DataStoreKind.Oracle]: "oracle",
+  [DataStoreKind.MongoDb]: "mongodb",
 };
 
 export function matchDataset(data: {

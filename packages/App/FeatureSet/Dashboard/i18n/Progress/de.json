@@ -1,7 +1,7 @@
 {
   "baseline": {
-    "keys": 42078,
-    "untranslated": 3671
+    "keys": 42106,
+    "untranslated": 3657
   },
   "sameAsEnglish": [
     "\"/health\"",
@@ -295,6 +295,7 @@
     "Limits",
     "Link",
     "Links",
+    "Listener",
     "Live",
     "Load Balancer",
     "Log4Shell",
@@ -449,6 +450,7 @@
     "Rollback: {{command}}",
     "Rollbacks",
     "Rotation",
+    "Route",
     "Router",
     "Router Discovery - Region 1100",
     "Runbook",

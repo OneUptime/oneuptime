@@ -20,7 +20,6 @@ import ObjectID from "Common/Types/ObjectID";
 import OneUptimeDate from "Common/Types/Date";
 import IconProp from "Common/Types/Icon/IconProp";
 import Icon from "Common/UI/Components/Icon/Icon";
-import InfoTooltip from "Common/UI/Components/Tooltip/InfoTooltip";
 import { CloudProvider } from "Common/Types/Cloud/CloudPlatform";
 import { CloudResourceKind } from "Common/Types/Cloud/CloudResourceKind";
 import {
@@ -30,12 +29,11 @@ import {
   summarizeCloudFleet,
 } from "../../Pages/AppPlatforms/Utils/CloudFleetSummary";
 import { CLOUD_INSTANCE_LIVE_WINDOW_MINUTES } from "../../Pages/AppPlatforms/Utils/CloudResourceTelemetryScope";
-import {
-  getTileTitleWordsClassName,
-  TILE_TITLE_LONG_WORDS,
-} from "../TelemetryResource/TileTitleWords";
-import HyphenatedWords from "Common/UI/Components/HyphenatedWords/HyphenatedWords";
-import { getDrawnLanguage } from "Common/UI/Components/SideMenu/SideMenuEntryState";
+import CloudStatTileTitle, {
+  CLOUD_STAT_TILE_HEAD_CLASS_NAME,
+  CLOUD_STAT_TILE_ICON_ROOM_CLASS_NAME,
+  CLOUD_STAT_TILE_ROWS_CLASS_NAME,
+} from "./CloudStatTileTitle";
 import { Translator } from "Common/UI/Utils/TranslateTemplate";
 import useTranslator from "Common/UI/Utils/UseTranslator";
 
@@ -302,7 +300,9 @@ const CloudFleetSummary: FunctionComponent<ComponentProps> = (
    * beside the side menu a 1024px window leaves a quarter of the row too
    * narrow for a title, its (i) and the icon. Four in a row from 52rem of
    * strip, two below; a tile under 11rem drops its icon, which only
-   * decorates, so the title and its (i) are never drawn under it.
+   * decorates, so the title and its (i) are never drawn under it. As
+   * Cloud's strip: a tile is three of the strip's rows, so a row's values
+   * start on one line, and a title's (i) follows its last word.
    */
   return (
     <div
@@ -313,46 +313,30 @@ const CloudFleetSummary: FunctionComponent<ComponentProps> = (
         {tiles.map(
           (tile: CloudFleetSummaryTile, index: number): ReactElement => {
             const style: TileStyle = TILE_STYLES[index] || FALLBACK_TILE_STYLE;
-            /*
-             * In the reader's language, as the golden-metric tiles draw
-             * theirs (ResourceOverview): the title says its language, so a
-             * long word breaks where that language hyphenates it. The (i)
-             * translates its own label and text.
-             */
-            const title: string =
-              translator.translateText(tile.title) || tile.title;
-            const titleLanguage: string | undefined = getDrawnLanguage({
-              english: tile.title,
-              drawn: title,
-              language: translator.language,
-            });
             const sublabel: string =
               translator.translateText(tile.sublabel) || tile.sublabel;
             return (
               <div
                 key={tile.title}
                 data-testid="cloud-fleet-summary-tile"
-                className="h-full rounded-xl border border-gray-200 bg-white p-4 shadow-sm [container-type:inline-size]"
+                className={`${CLOUD_STAT_TILE_ROWS_CLASS_NAME} rounded-xl border border-gray-200 bg-white p-4 shadow-sm`}
               >
-                <div className="mb-3 flex items-start justify-between gap-2">
-                  <div className="flex min-w-0 flex-wrap items-center gap-1">
-                    <span
-                      className={`min-w-0 text-xs font-medium uppercase tracking-wider text-gray-500 ${getTileTitleWordsClassName(
-                        { text: title, lang: titleLanguage },
-                      )}`}
-                      lang={titleLanguage}
-                    >
-                      <HyphenatedWords
-                        text={title}
-                        lang={titleLanguage}
-                        rule={TILE_TITLE_LONG_WORDS}
-                      />
-                    </span>
-                    <InfoTooltip label={tile.title} text={tile.description} />
-                  </div>
+                <div className={CLOUD_STAT_TILE_HEAD_CLASS_NAME}>
+                  {/*
+                   * In the reader's language, as the golden-metric tiles
+                   * draw theirs (ResourceOverview): the title says its
+                   * language, so a long word longer than a line breaks
+                   * where that language hyphenates it. The (i) translates
+                   * its own label and text.
+                   */}
+                  <CloudStatTileTitle
+                    title={tile.title}
+                    description={tile.description}
+                    dataTestId="cloud-fleet-summary-tile-title"
+                  />
                   <div
                     data-testid="cloud-fleet-summary-tile-icon"
-                    className={`flex h-7 w-7 flex-none items-center justify-center rounded-md ${style.bg} ring-1 ring-inset ${style.ring} [@container(max-width:10.99rem)]:hidden`}
+                    className={`flex h-7 w-7 flex-none items-center justify-center rounded-md ${style.bg} ring-1 ring-inset ${style.ring} ${CLOUD_STAT_TILE_ICON_ROOM_CLASS_NAME}`}
                   >
                     <Icon
                       icon={style.icon}

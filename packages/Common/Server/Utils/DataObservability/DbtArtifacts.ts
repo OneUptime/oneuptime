@@ -392,6 +392,8 @@ const ADAPTER_SCHEMES: Readonly<Record<string, string>> = {
   bigquery: "bigquery",
   clickhouse: "clickhouse",
   databricks: "databricks",
+  athena: "awsathena",
+  oracle: "oracle",
 };
 
 /*

@@ -5,10 +5,31 @@
     only the person's own press sends it. The page's token (OnCallPageLinkToken)
     rides in the form, not in the address it posts to.
 
-    Locals: formUrl, tokenParam, token, buttonText, isPrimary (optional).
+    With two or more levels after the person's, it asks which to page
+    first: "Escalate to", a radio for each level, the next one picked
+    (levelChoices, UserOnCallLogTimelineAPI's PassOnFormLevels). The next
+    level sends no level, as a form without levels does, so leaving it
+    picked escalates as Escalate always has.
+
+    Locals: formUrl, tokenParam, token, buttonText, isPrimary (optional),
+    levelChoices (optional).
 -%>
 <form method="POST" action="<%= formUrl %>" class="mt-4">
     <input type="hidden" name="<%= tokenParam %>" value="<%= token %>">
+    <% if (typeof levelChoices !== 'undefined' && levelChoices && levelChoices.options && levelChoices.options.length > 1) { %>
+    <fieldset class="mb-4" data-testid="pass-on-levels">
+        <legend class="text-sm font-medium text-gray-900 dark:text-slate-50"><%= levelChoices.label %></legend>
+        <div class="mt-2 space-y-2">
+            <% levelChoices.options.forEach(function (option) { %>
+            <label class="flex items-start gap-3 text-sm text-gray-700 dark:text-slate-200" data-testid="pass-on-level">
+                <input type="radio" name="<%= levelChoices.param %>" value="<%= option.value %>" <%= option.isPicked ? 'checked' : '' %>
+                    class="mt-0.5 h-4 w-4 flex-none accent-gray-900 dark:accent-slate-100">
+                <span class="min-w-0 break-words"><%= option.label %></span>
+            </label>
+            <% }) %>
+        </div>
+    </fieldset>
+    <% } %>
     <% if (typeof isPrimary !== 'undefined' && isPrimary) { %>
     <button type="submit" data-testid="pass-on-button"
         class="w-full flex justify-center py-2 px-4 border border-transparent rounded-md shadow-sm text-sm font-medium text-white dark:text-slate-900 bg-gray-900 dark:bg-slate-100 hover:bg-gray-800 dark:hover:bg-white focus:outline-none focus:ring-2 focus:ring-offset-2 dark:focus:ring-offset-slate-800 focus:ring-gray-700">

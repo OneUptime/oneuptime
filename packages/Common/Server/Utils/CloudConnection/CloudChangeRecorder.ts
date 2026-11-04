@@ -13,6 +13,7 @@ import {
   ChangeEventStatus,
   ChangeEventType,
 } from "../../../Utils/Telemetry/ChangeEventFields";
+import { getCloudChangeTitle } from "../../../Utils/Telemetry/CloudChangeTitle";
 import GlobalCache from "../../Infrastructure/GlobalCache";
 import CloudAccountService from "../../Services/CloudAccountService";
 import ChangeEventService from "../../Services/ChangeEventService";
@@ -27,6 +28,10 @@ import {
   buildChangeEventDbRow,
 } from "../Telemetry/ChangeEventRow";
 import TelemetryFanInWriter from "../Telemetry/TelemetryFanInWriter";
+import CloudAiChangeAttributionReader, {
+  CloudAiChangeAttribution,
+  CloudAiChangeMatch,
+} from "./CloudAiChangeAttribution";
 import { CloudChange } from "./CloudConnectorTypes";
 
 /*
@@ -44,12 +49,20 @@ import { CloudChange } from "./CloudConnectorTypes";
  *     of an incident linked to that resource counts it as linked;
  *   - tied to its Cloud Account (oneuptime.cloud_account.id), for the
  *     account's Changes page;
+ *   - marked as OneUptime AI's when the account's Cloud AI agent made it
+ *     (oneuptime.change.made_by), with the fix it belongs to: the agent's
+ *     job, the fix, its AI run and the incident or alert it fixed
+ *     (CloudAiChangeAttribution);
  *   - written once per provider event id, and never failing a read: a
  *     change that cannot be written is logged.
  *
  * The words are the provider's - an operation's name, a principal, a
  * health event's own title - clamped to the change event's limits; they
- * are data, never instructions, wherever they are read.
+ * are data, never instructions, wherever they are read. An operation's
+ * title is English ("Failed: DeleteLoadBalancer on web-alb"), for the API
+ * and OneUptime AI; the facts it is worded from are kept beside it - the
+ * operation, whether it failed and the resource's name - so a page words
+ * it in its reader's language (Utils/Telemetry/CloudChangeTitle).
  */
 
 // Change events written in one insert at most.
@@ -139,12 +152,15 @@ function subjectOf(
 
 /*
  * One change as a change event entry. `resource` is the Cloud Resource it
- * changed, when the connection holds it; `account` the Cloud Account row.
+ * changed, when the connection holds it; `account` the Cloud Account row;
+ * `madeByOneUptimeAi` the job of the account's Cloud AI agent that made
+ * it, when the agent did.
  */
 export function buildCloudChangeEntry(data: {
   change: CloudChange;
   resource: { id: ObjectID; name: string } | null;
   accountRecordId: ObjectID | null;
+  madeByOneUptimeAi?: CloudAiChangeMatch | null | undefined;
 }): ParsedChangeEventEntry {
   const { change, resource } = data;
   const subject: string = subjectOf(change, resource);
@@ -155,9 +171,11 @@ export function buildCloudChangeEntry(data: {
   const title: string =
     change.kind === "health"
       ? change.title || change.operation
-      : `${change.failed ? "Failed: " : ""}${change.operation}${
-          subject ? ` on ${subject}` : ""
-        }`;
+      : getCloudChangeTitle({
+          operation: change.operation,
+          resource: subject,
+          failed: change.failed,
+        });
 
   const description: string =
     change.kind === "health"
@@ -211,11 +229,53 @@ export function buildCloudChangeEntry(data: {
   if (resource) {
     attributes[ChangeEventAttribute.ResourceType] = "CloudResource";
     attributes[ChangeEventAttribute.ResourceId] = resource.id.toString();
+
+    /*
+     * The name its title gives the resource, so the title is worded from
+     * it in the reader's language; a change the account names no held
+     * resource for is titled by the cloud's id (cloud.resource_id).
+     */
+    if (change.kind === "change" && resource.name) {
+      attributes[ChangeEventAttribute.CloudResourceName] = clamp(
+        resource.name,
+        300,
+      );
+    }
   }
 
   if (data.accountRecordId) {
     attributes[ChangeEventAttribute.CloudAccountRecordId] =
       data.accountRecordId.toString();
+  }
+
+  /*
+   * OneUptime AI made it, through the account's Cloud AI agent: said so,
+   * with the fix it belongs to when its job is known.
+   */
+  if (change.kind === "change" && data.madeByOneUptimeAi) {
+    attributes[ChangeEventAttribute.MadeBy] = ChangeEventSource.OneUptimeAi;
+
+    const job: CloudAiChangeMatch["job"] = data.madeByOneUptimeAi.job;
+
+    if (job) {
+      attributes[ChangeEventAttribute.RunnerJobId] = job.jobId.toString();
+      attributes[ChangeEventAttribute.AiStep] = job.step;
+
+      if (job.suggestionId) {
+        attributes[ChangeEventAttribute.AutoRemediationSuggestionId] =
+          job.suggestionId.toString();
+      }
+
+      if (job.aiRunId) {
+        attributes[ChangeEventAttribute.AiRunId] = job.aiRunId.toString();
+      }
+
+      if (job.incidentId) {
+        attributes[ChangeEventAttribute.IncidentId] = job.incidentId.toString();
+      } else if (job.alertId) {
+        attributes[ChangeEventAttribute.AlertId] = job.alertId.toString();
+      }
+    }
   }
 
   return {
@@ -461,12 +521,24 @@ export default class CloudChangeRecorder {
           provider: data.provider,
           accountId,
         });
+      const accountChanges: Array<CloudChange> = data.changes.filter(
+        (change: CloudChange): boolean => {
+          return change.accountId === accountId;
+        },
+      );
+      // Which of them OneUptime AI made, through the account's Cloud AI agent.
+      const attribution: CloudAiChangeAttribution | null = account?.id
+        ? await CloudAiChangeAttributionReader.read({
+            projectId: data.projectId,
+            provider: data.provider,
+            accountRecordId: account.id,
+            accountId,
+            changes: accountChanges,
+            index,
+          })
+        : null;
 
-      for (const change of data.changes) {
-        if (change.accountId !== accountId) {
-          continue;
-        }
-
+      for (const change of accountChanges) {
         let resource: { id: ObjectID; name: string } | null = null;
 
         for (const touched of change.resources) {
@@ -484,6 +556,12 @@ export default class CloudChangeRecorder {
               change,
               resource,
               accountRecordId: account?.id || null,
+              madeByOneUptimeAi: attribution
+                ? attribution.match({
+                    change,
+                    resourceRowId: resource ? resource.id.toString() : null,
+                  })
+                : null,
             }),
             projectId: data.projectId,
             serviceMetadata: null,

@@ -16,7 +16,7 @@ import User from "Common/Models/DatabaseModels/User";
 import UserElement from "../../Components/User/User";
 import AppLink from "../../Components/AppLink/AppLink";
 import React, { Fragment, FunctionComponent, ReactElement } from "react";
-import { getCloudResourceTypeLabel } from "Common/Types/Cloud/CloudResourceCatalog";
+import { getCloudResourceTypeDisplayName } from "Common/Types/Cloud/CloudResourceCatalog";
 import { CloudResourceKind } from "Common/Types/Cloud/CloudResourceKind";
 import useTranslator from "Common/UI/Utils/UseTranslator";
 import { Translator } from "Common/UI/Utils/TranslateTemplate";
@@ -160,7 +160,7 @@ const CloudArchivedPage: FunctionComponent<
             type: FieldType.Element,
             hideOnMobile: true,
             getElement: (item: CloudResource): ReactElement => {
-              const type: string = getCloudResourceTypeLabel(
+              const type: string = getCloudResourceTypeDisplayName(
                 item.cloudProvider as string | undefined,
                 item.cloudResourceType as string | undefined,
               );

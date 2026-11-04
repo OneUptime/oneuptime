@@ -104,6 +104,32 @@ GRANT USE SCHEMA, SELECT ON SCHEMA system.access TO `oneuptime-reader`;
 ```
 
 کاتالوگ، ستون‌های آن و آخرین commit هر جدول Delta بدون هیچ SQL warehouse از REST API مربوط به Unity Catalog می‌آیند، پس جمع‌آوری هیچ هزینهٔ محاسباتی ندارد. بررسی‌ها، و تبار داده و آخرین خواندن‌ها از `system.access.table_lineage` که ساعتی یک بار خوانده می‌شوند، روی SQL warehouseای اجرا می‌شوند که نام می‌برید؛ دسترسی **Can use** روی آن را به service principal بدهید.
+@tab Oracle
+```sql
+CREATE USER oneuptime_reader IDENTIFIED BY "...";
+GRANT CREATE SESSION TO oneuptime_reader;
+GRANT READ ON sales.orders TO oneuptime_reader;
+GRANT SELECT_CATALOG_ROLE TO oneuptime_reader;
+```
+
+Oracle از طریق پروتکل خودش و بدون نصب کلاینت Oracle خوانده می‌شود: `oracle://oneuptime_reader:...@orders-db.internal:1521/ORCLPDB1`. این کاربر جدول‌هایی را می‌بیند که اجازهٔ خواندنشان را دارد: برای هر جدولی که باید پایش شود `READ` بدهید؛ با آن می‌تواند پرس‌وجو کند و هرگز قفل یا تغییر نمی‌دهد. `SELECT_CATALOG_ROLE` به OneUptime اجازه می‌دهد اندازهٔ هر جدول را بخواند، و `ALL_TAB_MODIFICATIONS` درج‌ها، به‌روزرسانی‌ها و حذف‌های هر جدول از آخرین آمارش و زمان آخرین تغییرش را می‌دهد.
+@tab Amazon Athena
+یک پایگاه دادهٔ Glue یک پایگاه داده است. جدول‌ها و نماهای آن، ستون‌ها و آمارشان، و آخرین commit هر جدول Iceberg از API ‏Glue Data Catalog می‌آید که هیچ داده‌ای نمی‌خواند و هزینه‌ای ندارد. بررسی‌ها به‌صورت پرس‌وجوهای Athena در workgroup‌ای که نام می‌برید اجرا می‌شوند. با کلیدهای یک کاربر یا نقش IAM وصل شوید که بتواند `glue:GetDatabase` و `glue:GetTables` را فراخوانی کند و برای بررسی‌ها پرس‌وجوهای Athena را در workgroup با دسترسی خواندن به دادهٔ جدول‌ها اجرا کند:
+
+```json
+{ "region": "us-east-1", "accessKeyId": "AKIA...", "secretAccessKey": "...", "database": "analytics", "workgroup": "primary", "outputLocation": "s3://acme-athena-results/oneuptime/" }
+```
+@tab MongoDB
+```javascript
+use admin
+db.createUser({
+  user: "oneuptime_reader",
+  pwd: "...",
+  roles: [{ role: "readAnyDatabase", db: "admin" }]
+})
+```
+
+MongoDB با درایور خودش خوانده می‌شود: `mongodb+srv://oneuptime_reader:...@cluster0.example.mongodb.net/`، یا `mongodb://` با میزبان‌های یک replica set. پایگاه داده‌ای که در مسیر آمده تنها پایگاه دادهٔ پایش‌شده است؛ بدون آن، هر پایگاه داده‌ای که این کاربر اجازهٔ خواندنش را دارد پایش می‌شود، و `{ role: "read", db: "orders" }` به جای `readAnyDatabase` آن را به یکی محدود می‌کند. اسناد، اندازه و نوشتن‌های هر کالکشن از `$collStats` می‌آیند، و زمان دریافت آخرین سند از جدیدترین `_id` آن. فیلدهای آن از اسکیمای JSON اعتبارسنج آن می‌آیند، یا در غیر این صورت از نام‌ها و نوع‌های فیلدهای 100 سند جدیدتر آن، که در خود پایگاه داده محاسبه می‌شوند تا هیچ مقداری از آن بیرون نرود. اسناد در صورت وجود روی یک secondary خوانده می‌شوند، و بررسی سفارشی یک پایپ‌لاین تجمیع به صورت JSON است.
 :::
 
 ## چه چیزی خوانده می‌شود، و هر چند وقت یک بار

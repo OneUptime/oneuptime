@@ -1,7 +1,7 @@
 {
   "baseline": {
-    "keys": 42078,
-    "untranslated": 11826
+    "keys": 42106,
+    "untranslated": 11800
   },
   "sameAsEnglish": [
     "0 (kiss-o'-death {{kissCode}})",
@@ -50,6 +50,7 @@
     "OK",
     "OS",
     "OSD",
+    "OneUptime URL",
     "OpenShift",
     "PR #{{number}}",
     "PV",
@@ -69,6 +70,7 @@
     "Swarm ID",
     "TLS",
     "Top P",
+    "USD",
     "UTC",
     "Up + In",
     "Up + Out",

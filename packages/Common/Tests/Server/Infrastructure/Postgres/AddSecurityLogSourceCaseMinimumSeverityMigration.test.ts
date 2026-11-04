@@ -6,7 +6,7 @@ import { ColumnMetadataArgs } from "typeorm/metadata-args/ColumnMetadataArgs";
 import SecurityEventConnection from "../../../../Models/DatabaseModels/SecurityEventConnection";
 import SecurityLogSource from "../../../../Models/DatabaseModels/SecurityLogSource";
 import Migrations from "../../../../Server/Infrastructure/Postgres/SchemaMigrations/Index";
-import { AddSecurityLogSourceCaseMinimumSeverity1808992500000 } from "../../../../Server/Infrastructure/Postgres/SchemaMigrations/1808992500000-AddSecurityLogSourceCaseMinimumSeverity";
+import { AddSecurityLogSourceCaseMinimumSeverity1808992580000 } from "../../../../Server/Infrastructure/Postgres/SchemaMigrations/1808992580000-AddSecurityLogSourceCaseMinimumSeverity";
 import { TableColumnMetadata } from "../../../../Types/Database/TableColumn";
 import TableColumnType from "../../../../Types/Database/TableColumnType";
 import Permission from "../../../../Types/Permission";
@@ -35,8 +35,8 @@ const MIGRATIONS_DIR: string = path.join(
   "SchemaMigrations",
 );
 
-const NAME: string = "AddSecurityLogSourceCaseMinimumSeverity1808992500000";
-const TIMESTAMP: number = 1808992500000;
+const NAME: string = "AddSecurityLogSourceCaseMinimumSeverity1808992580000";
+const TIMESTAMP: number = 1808992580000;
 const COLUMN: string = "caseMinimumSeverity";
 
 type MigrationClass = { name: string };
@@ -66,7 +66,7 @@ async function recordQueries(direction: "up" | "down"): Promise<Array<string>> {
     },
   } as unknown as QueryRunner;
 
-  await new AddSecurityLogSourceCaseMinimumSeverity1808992500000()[direction](
+  await new AddSecurityLogSourceCaseMinimumSeverity1808992580000()[direction](
     queryRunner,
   );
 
@@ -84,7 +84,7 @@ function declaredColumn(target: unknown): ColumnMetadataArgs | undefined {
 describe("AddSecurityLogSourceCaseMinimumSeverity: registration", () => {
   test("its name and its file carry its timestamp", () => {
     expect(
-      new AddSecurityLogSourceCaseMinimumSeverity1808992500000().name,
+      new AddSecurityLogSourceCaseMinimumSeverity1808992580000().name,
     ).toBe(NAME);
     expect(
       fs.existsSync(

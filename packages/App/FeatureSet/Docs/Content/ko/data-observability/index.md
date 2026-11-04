@@ -1,6 +1,6 @@
 # 데이터 옵저버빌리티
 
-데이터 옵저버빌리티는 PostgreSQL, MySQL, SQL Server, Redshift, Snowflake, BigQuery, ClickHouse, Databricks에 있는, 회사가 의존하는 테이블을 지켜보다가 데이터가 늦거나, 빠지거나, 틀리거나, 깨지면 그 데이터를 쓰는 사람들이 알아차리기 전에 알려 줍니다. 각 테이블의 리듬을 스스로 학습하고, 각 데이터베이스의 카탈로그만 읽을 뿐 행은 절대 읽지 않으며, 모든 데이터 문제를 그 배후의 파이프라인 실행, 배포 또는 업스트림 테이블과 연결합니다.
+데이터 옵저버빌리티는 PostgreSQL, MySQL, SQL Server, Oracle, MongoDB, Redshift, Snowflake, BigQuery, ClickHouse, Databricks, Athena에 있는, 회사가 의존하는 테이블을 지켜보다가 데이터가 늦거나, 빠지거나, 틀리거나, 깨지면 그 데이터를 쓰는 사람들이 알아차리기 전에 알려 줍니다. 각 테이블의 리듬을 스스로 학습하고, 각 데이터베이스의 카탈로그만 읽을 뿐 행은 절대 읽지 않으며, 모든 데이터 문제를 그 배후의 파이프라인 실행, 배포 또는 업스트림 테이블과 연결합니다.
 
 다음 네 가지 질문에 답합니다.
 

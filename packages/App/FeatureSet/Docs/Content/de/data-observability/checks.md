@@ -16,7 +16,7 @@ Fügen Sie eine Prüfung im Tab **Prüfungen** einer Tabelle hinzu:
 | **Format Mismatch Percent** | Prozentsatz der Werte, die nicht auf einen regulären Ausdruck passen (jede Engine außer SQL Server) |
 | **Orphan Count** | Zeilen, deren Wert keine Entsprechung in der Spalte einer anderen Tabelle hat |
 | **Zeilenanzahl** | Zeilen in der Tabelle, am nützlichsten mit **Segment By** |
-| **Benutzerdefiniertes SQL** | Die Zahl, die ein schreibgeschütztes SELECT von Ihnen zurückgibt, benannt `value` |
+| **Benutzerdefiniertes SQL** | Die Zahl, die ein schreibgeschütztes SELECT von Ihnen zurückgibt, benannt `value` (bei MongoDB die einer Aggregations-Pipeline) |
 
 Jede Prüfung läuft alle 15 Minuten, stündlich, alle 6 Stunden oder täglich, als eine einzige Aggregatanweisung in einer schreibgeschützten Transaktion mit einem Timeout für Anweisungen. Ihr Wert wird als `oneuptime.data.check.value` geschrieben, mit `oneuptime.data.check.id`, `oneuptime.data.check.name` und `oneuptime.data.check.segment`.
 
@@ -26,7 +26,7 @@ Jede Prüfung läuft alle 15 Minuten, stündlich, alle 6 Stunden oder täglich, 
 
 ## Eine Prüfung aus einem Satz
 
-**Prüfung aus einem Satz schreiben** macht aus einer Regel wie „Bestellungen haben nie einen negativen Gesamtbetrag“ eine Prüfung mit benutzerdefiniertem SQL, die die Zeilen zählt, die gegen sie verstoßen, im eigenen SQL Ihrer Engine, mit einer Warnung, sobald es welche gibt. Sie lesen die Abfrage, bevor **Prüfung hinzufügen** sie hinzufügt, und sie unterliegt allen Regeln, die für jede Prüfung mit benutzerdefiniertem SQL gelten. Dafür muss OneUptime AI für das Projekt eingeschaltet sein.
+**Prüfung aus einem Satz schreiben** macht aus einer Regel wie „Bestellungen haben nie einen negativen Gesamtbetrag“ eine Prüfung mit benutzerdefiniertem SQL, die die Zeilen zählt, die gegen sie verstoßen, im eigenen SQL Ihrer Engine, mit einer Warnung, sobald es welche gibt. Sie lesen die Abfrage, bevor **Prüfung hinzufügen** sie hinzufügt, und sie unterliegt allen Regeln, die für jede Prüfung mit benutzerdefiniertem SQL gelten. Dafür muss OneUptime AI für das Projekt eingeschaltet sein. Bei MongoDB entsteht stattdessen eine Aggregations-Pipeline.
 
 ## Segmente
 

@@ -104,6 +104,32 @@ GRANT USE SCHEMA, SELECT ON SCHEMA system.access TO `oneuptime-reader`;
 ```
 
 Каталог, его столбцы и последний коммит каждой таблицы Delta берутся из REST API Unity Catalog без SQL warehouse, поэтому сбор не тратит вычислительные ресурсы. Проверки, а также происхождение данных и последние чтения из `system.access.table_lineage` раз в час выполняются на SQL warehouse, который вы укажете; выдайте сервисному принципалу право **Can use** на него.
+@tab Oracle
+```sql
+CREATE USER oneuptime_reader IDENTIFIED BY "...";
+GRANT CREATE SESSION TO oneuptime_reader;
+GRANT READ ON sales.orders TO oneuptime_reader;
+GRANT SELECT_CATALOG_ROLE TO oneuptime_reader;
+```
+
+Oracle читается по собственному протоколу, без установки клиента Oracle: `oracle://oneuptime_reader:...@orders-db.internal:1521/ORCLPDB1`. Пользователь видит таблицы, которые ему разрешено читать: выдайте `READ` на каждую отслеживаемую таблицу — это позволяет запрашивать их, но никогда не блокировать и не изменять. `SELECT_CATALOG_ROLE` позволяет OneUptime читать размер каждой таблицы, а `ALL_TAB_MODIFICATIONS` даёт вставки, обновления и удаления каждой таблицы с момента последней статистики и время её последнего изменения.
+@tab Amazon Athena
+Одна база данных Glue — это одна база данных. Её таблицы и представления, их столбцы и статистика, а также последний коммит каждой таблицы Iceberg берутся из API Glue Data Catalog, который не читает данные и ничего не стоит. Проверки выполняются как запросы Athena в указанной вами рабочей группе (workgroup). Подключайтесь с ключами пользователя или роли IAM, которым разрешено вызывать `glue:GetDatabase` и `glue:GetTables`, а для проверок — выполнять запросы Athena в рабочей группе с доступом на чтение к данным таблиц:
+
+```json
+{ "region": "us-east-1", "accessKeyId": "AKIA...", "secretAccessKey": "...", "database": "analytics", "workgroup": "primary", "outputLocation": "s3://acme-athena-results/oneuptime/" }
+```
+@tab MongoDB
+```javascript
+use admin
+db.createUser({
+  user: "oneuptime_reader",
+  pwd: "...",
+  roles: [{ role: "readAnyDatabase", db: "admin" }]
+})
+```
+
+MongoDB читается собственным драйвером: `mongodb+srv://oneuptime_reader:...@cluster0.example.mongodb.net/` или `mongodb://` с хостами replica set. База данных в пути — единственная отслеживаемая; без неё отслеживается каждая база, которую пользователю разрешено читать, а `{ role: "read", db: "orders" }` вместо `readAnyDatabase` ограничивает его одной. Документы, размер и записи каждой коллекции берутся из `$collStats`, а время последнего документа — из её самого нового `_id`. Её поля берутся из JSON-схемы её валидатора, а иначе — из имён и типов полей её 100 самых новых документов, вычисленных в базе, так что ни одно значение её не покидает. Документы читаются на secondary, если он есть, а пользовательская проверка — это конвейер агрегации в формате JSON.
 :::
 
 ## Что читается и как часто

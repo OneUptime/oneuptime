@@ -104,6 +104,32 @@ GRANT USE SCHEMA, SELECT ON SCHEMA system.access TO `oneuptime-reader`;
 ```
 
 目录、它的列以及每个 Delta 表的最后一次提交都来自 Unity Catalog 的 REST API，无需 SQL 仓库，因此采集不消耗计算资源。检查，以及每小时一次来自 `system.access.table_lineage` 的血缘和最后读取时间，都在你指定的 SQL 仓库上运行；请在该仓库上授予服务主体 **Can use** 权限。
+@tab Oracle
+```sql
+CREATE USER oneuptime_reader IDENTIFIED BY "...";
+GRANT CREATE SESSION TO oneuptime_reader;
+GRANT READ ON sales.orders TO oneuptime_reader;
+GRANT SELECT_CATALOG_ROLE TO oneuptime_reader;
+```
+
+Oracle 通过其自有协议读取，无需安装 Oracle 客户端：`oracle://oneuptime_reader:...@orders-db.internal:1521/ORCLPDB1`。该登录只能看到它有权读取的表：为每个要监控的表授予 `READ`，这样它可以查询这些表，但永远不能锁定或更改它们。`SELECT_CATALOG_ROLE` 让 OneUptime 读取每个表的大小，`ALL_TAB_MODIFICATIONS` 给出每个表自上次统计以来的插入、更新和删除，以及最后一次变化的时间。
+@tab Amazon Athena
+一个 Glue 数据库就是一个数据库。它的表和视图、列和统计信息，以及每个 Iceberg 表的最后一次提交都来自 Glue Data Catalog 的 API，不读取任何数据，也不产生费用。检查作为 Athena 查询在你指定的工作组中运行。使用一个 IAM 用户或角色的密钥连接，它需要能调用 `glue:GetDatabase` 和 `glue:GetTables`，并且为了检查，能在工作组中以对表数据的读取权限运行 Athena 查询：
+
+```json
+{ "region": "us-east-1", "accessKeyId": "AKIA...", "secretAccessKey": "...", "database": "analytics", "workgroup": "primary", "outputLocation": "s3://acme-athena-results/oneuptime/" }
+```
+@tab MongoDB
+```javascript
+use admin
+db.createUser({
+  user: "oneuptime_reader",
+  pwd: "...",
+  roles: [{ role: "readAnyDatabase", db: "admin" }]
+})
+```
+
+MongoDB 通过其自有驱动读取：`mongodb+srv://oneuptime_reader:...@cluster0.example.mongodb.net/`，或带副本集主机列表的 `mongodb://`。路径中指定的数据库是唯一被监控的；未指定时，监控该登录可读取的每个数据库，用 `{ role: "read", db: "orders" }` 代替 `readAnyDatabase` 可将其限制为一个。每个集合的文档、大小和写入来自 `$collStats`，最后一次收到文档的时间来自其最新的 `_id`。字段来自其验证器的 JSON 模式，否则来自其最新 100 个文档的字段名称和类型，均在数据库内计算，任何值都不会离开数据库。有从节点时在从节点上读取文档，自定义检查是 JSON 格式的聚合管道。
 :::
 
 ## 读取的内容和频率

@@ -1,6 +1,6 @@
 # データオブザーバビリティ
 
-データオブザーバビリティは、PostgreSQL、MySQL、SQL Server、Redshift、Snowflake、BigQuery、ClickHouse、Databricks にある、会社が頼りにしているテーブルを見守り、データが遅れている、欠けている、間違っている、壊れているときに、それを使う人が気づく前に知らせます。各テーブルの更新のリズムを自動で学習し、各データベースのカタログだけを読んで行は決して読まず、あらゆるデータの問題を、その背後にあるパイプラインの実行、デプロイ、上流のテーブルに結び付けます。
+データオブザーバビリティは、PostgreSQL、MySQL、SQL Server、Oracle、MongoDB、Redshift、Snowflake、BigQuery、ClickHouse、Databricks、Athena にある、会社が頼りにしているテーブルを見守り、データが遅れている、欠けている、間違っている、壊れているときに、それを使う人が気づく前に知らせます。各テーブルの更新のリズムを自動で学習し、各データベースのカタログだけを読んで行は決して読まず、あらゆるデータの問題を、その背後にあるパイプラインの実行、デプロイ、上流のテーブルに結び付けます。
 
 次の 4 つの問いに答えます。
 
@@ -17,7 +17,7 @@
 flowchart TB
     db["データベースと<br/>データウェアハウス"] --> collect["カタログを 5 分ごとに読み取り、<br/>OneUptime かプローブが実行"]
     pipes["Airflow、dbt、Spark、<br/>Fivetran、Airbyte"] --> runs["パイプラインの実行<br/>とリネージ"]
-    collect --> health["テーブルの健全性:<br/>鮮度、データ量、スキーマ"]
+    collect --> health["テーブルのヘルス:<br/>鮮度、データ量、スキーマ"]
     collect --> checks["チェックと<br/>照合"]
     health --> alerts["アラートと、その背後にある<br/>実行やデプロイ"]
     checks --> alerts
@@ -63,7 +63,7 @@ flowchart TB
 
 :::cards
 - [データベースを接続する](/docs/data-observability/connect): 各エンジンの最小権限のログインと、プライベートネットワーク向けのプローブ。
-- [テーブルの健全性](/docs/data-observability/table-health): 鮮度、データ量、スキーマの変更、未使用のテーブル、そしてすべてのテーブルが書き込むメトリクス。
+- [テーブルのヘルス](/docs/data-observability/table-health): 鮮度、データ量、スキーマの変更、未使用のテーブル、そしてすべてのテーブルが書き込むメトリクス。
 - [チェックと照合](/docs/data-observability/checks): テーブルの値に対するルール、テーブルとそのコピーの比較、dbt のテスト。
 - [リネージとパイプライン](/docs/data-observability/lineage-and-pipelines): OpenLineage、dbt、Fivetran、Airbyte、そして原因ごとに 1 件のアラート。
 - [データプロダクト](/docs/data-observability/data-products): データを使う人のための鮮度 SLA。ステータスページに表示し、SLO として追跡します。

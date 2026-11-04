@@ -197,19 +197,38 @@ export function detectChangeTime(
   table: CollectedTable,
   collectedAt: Date,
 ): Date | null {
+  const counterMoved: boolean =
+    previous !== null &&
+    table.writeCount !== null &&
+    previous.writeCount !== null &&
+    table.writeCount > previous.writeCount;
+
   if (table.secondsSinceChange !== null) {
-    return new Date(collectedAt.getTime() - table.secondsSinceChange * 1000);
+    const changeAt: Date = new Date(
+      collectedAt.getTime() - table.secondsSinceChange * 1000,
+    );
+
+    /*
+     * A time that only inserts move (MongoDB's newest ObjectId) misses an
+     * update: a write counter that moved while the time stood still says
+     * the table changed since the last collection.
+     */
+    if (
+      counterMoved &&
+      previous?.lastChangedAt &&
+      changeAt.getTime() <= previous.lastChangedAt.getTime()
+    ) {
+      return collectedAt;
+    }
+
+    return changeAt;
   }
 
   if (!previous) {
     return null;
   }
 
-  if (
-    table.writeCount !== null &&
-    previous.writeCount !== null &&
-    table.writeCount > previous.writeCount
-  ) {
+  if (counterMoved) {
     return collectedAt;
   }
 

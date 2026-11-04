@@ -9,7 +9,7 @@ Il lineage dice da quali tabelle viene costruita ogni tabella, e quali pipeline 
 | **OpenLineage** | Ogni esecuzione di un job Airflow, Dagster, Spark, dbt o Flink, con le tabelle che ha letto e scritto |
 | **dbt** | Da cosa viene costruito ogni modello, ogni build come esecuzione, e il risultato di ogni test |
 | **Fivetran e Airbyte** | Ogni sincronizzazione come esecuzione del suo connettore, e le tabelle grezze che carica |
-| **Viste** | Una vista viene costruita dalle tabelle su cui è definita (PostgreSQL, Redshift, MySQL 8, SQL Server, viste materializzate di ClickHouse, Databricks) |
+| **Viste** | Una vista viene costruita dalle tabelle su cui è definita (PostgreSQL, Redshift, MySQL 8, SQL Server, Oracle, viste materializzate di ClickHouse, Databricks, MongoDB) |
 | **Cronologia delle query** | Una query che ha letto una tabella e ne ha scritta un'altra (i job di BigQuery, il log delle query di Redshift, il log delle query di ClickHouse, la tabella di lineage di Databricks) |
 
 La scheda **Derivazione** di una tabella mostra le tabelle da cui viene costruita, le pipeline che la scrivono con la loro ultima esecuzione, e le tabelle costruite a partire da essa. Ogni arco indica dove è stato osservato.

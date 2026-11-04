@@ -313,6 +313,11 @@ export const QueryCloudAccountsTool: ObservabilityTool = {
   inputSchema: {
     type: "object",
     properties: {
+      cloudAccountRecordId: {
+        type: "string",
+        description:
+          "Only this account: OneUptime's id of the cloud account (a UUID, as a cloud account's page names it) - not its id in its cloud.",
+      },
       provider: {
         type: "string",
         enum: Object.values(CloudProvider),
@@ -344,11 +349,26 @@ export const QueryCloudAccountsTool: ObservabilityTool = {
     const search: string = (ToolArgs.getString(args, "search") || "")
       .toLowerCase()
       .trim();
+    // One account, by OneUptime's id of it: the account a page is about.
+    const recordIdText: string = (
+      ToolArgs.getString(args, "cloudAccountRecordId") || ""
+    ).trim();
+
+    if (recordIdText && !ObjectID.isValidUUID(recordIdText)) {
+      throw new BadDataException(
+        "cloudAccountRecordId must be a cloud account's OneUptime UUID (as its page names it), not its id in its cloud. Leave it out to list every account, or pass search with the account's id in its cloud.",
+      );
+    }
+
+    const recordId: ObjectID | undefined = recordIdText
+      ? new ObjectID(recordIdText)
+      : undefined;
 
     const accounts: Array<CloudAccount> = await CloudAccountService.findBy({
       query: {
         projectId: ctx.projectId,
         ...(provider ? { provider } : {}),
+        ...(recordId ? { _id: recordId.toString() } : {}),
       },
       select: {
         _id: true,
@@ -413,7 +433,9 @@ export const QueryCloudAccountsTool: ObservabilityTool = {
     return {
       dataForLlm:
         rows.length === 0
-          ? "No cloud account is connected, or none matches. A cloud is connected under Cloud > Connect."
+          ? recordId
+            ? "No cloud account of this project has that id, or you may not read it."
+            : "No cloud account is connected, or none matches. A cloud is connected under Cloud > Connect."
           : serialized.text,
       rowCount: serialized.rowCount,
       citationLabel: `Cloud accounts (${rows.length})`,

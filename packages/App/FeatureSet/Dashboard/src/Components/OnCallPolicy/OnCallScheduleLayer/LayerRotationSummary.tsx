@@ -3,10 +3,10 @@ import {
   getUserAvatarStyle,
   getUserInitials,
 } from "./LayerUserColors";
+import HandOffTimes from "./HandOffTimes";
 import {
   formatDurationFromSeconds,
   formatRelativeStart,
-  formatShiftInstant,
   summarizeOffHoursFallback,
   summarizeRestriction,
   summarizeRotation,
@@ -368,9 +368,12 @@ const LayerRotationSummary: FunctionComponent<ComponentProps> = (
               ))}
           </div>
           <div className="mt-0.5 text-xs text-gray-500">
-            {formatShiftInstant(turn.start, props.timezone)}
-            <span className="mx-1 text-gray-300">&rarr;</span>
-            {formatShiftInstant(turn.end, props.timezone)}
+            <HandOffTimes
+              start={turn.start}
+              end={turn.end}
+              timezone={props.timezone}
+              now={props.now}
+            />
           </div>
         </div>
         <div className="flex flex-shrink-0 flex-col items-end gap-0.5">

@@ -47,7 +47,7 @@
                                         <% if (passOn.warning) { %>
                                         <%- include('./Partials/OnCallPassOnWarning.ejs', { warning: passOn.warning }) -%>
                                         <% } %>
-                                        <%- include('./Partials/OnCallPassOnForm.ejs', { formUrl: passOn.formUrl, tokenParam: passOn.tokenParam, token: passOn.token, buttonText: passOn.buttonText, isPrimary: false }) -%>
+                                        <%- include('./Partials/OnCallPassOnForm.ejs', { formUrl: passOn.formUrl, tokenParam: passOn.tokenParam, token: passOn.token, buttonText: passOn.buttonText, isPrimary: false, levelChoices: passOn.levelChoices || null }) -%>
                                     </div>
                                     <% } %>
                                 </div>

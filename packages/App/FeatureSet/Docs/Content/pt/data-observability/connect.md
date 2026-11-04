@@ -104,6 +104,32 @@ Um catálogo do Unity Catalog é um banco de dados. Conecte-se com uma entidade 
 ```
 
 O catálogo, as colunas dele e o último commit de cada tabela Delta vêm da API REST do Unity Catalog, sem SQL warehouse, então a coleta não consome computação. As verificações, e a linhagem e as últimas leituras de `system.access.table_lineage` uma vez por hora, rodam no SQL warehouse que você indicar; conceda à entidade de serviço **Can use** nele.
+@tab Oracle
+```sql
+CREATE USER oneuptime_reader IDENTIFIED BY "...";
+GRANT CREATE SESSION TO oneuptime_reader;
+GRANT READ ON sales.orders TO oneuptime_reader;
+GRANT SELECT_CATALOG_ROLE TO oneuptime_reader;
+```
+
+O Oracle é lido pelo próprio protocolo, sem instalar um cliente Oracle: `oracle://oneuptime_reader:...@orders-db.internal:1521/ORCLPDB1`. O usuário vê as tabelas que pode ler: conceda `READ` em cada tabela a monitorar, o que permite consultá-las sem nunca bloqueá-las ou alterá-las. `SELECT_CATALOG_ROLE` permite ao OneUptime ler o tamanho de cada tabela, e `ALL_TAB_MODIFICATIONS` dá os inserts, updates e deletes de cada tabela desde as últimas estatísticas, e quando ela mudou pela última vez.
+@tab Amazon Athena
+Um banco de dados do Glue é um banco de dados. Suas tabelas e views, suas colunas e estatísticas, e o último commit de cada tabela Iceberg vêm da API do Glue Data Catalog, que não lê dados e não custa nada. As verificações são executadas como consultas do Athena no workgroup que você indicar. Conecte-se com as chaves de um usuário ou função do IAM que possa chamar `glue:GetDatabase` e `glue:GetTables` e, para as verificações, executar consultas do Athena no workgroup com acesso de leitura aos dados das tabelas:
+
+```json
+{ "region": "us-east-1", "accessKeyId": "AKIA...", "secretAccessKey": "...", "database": "analytics", "workgroup": "primary", "outputLocation": "s3://acme-athena-results/oneuptime/" }
+```
+@tab MongoDB
+```javascript
+use admin
+db.createUser({
+  user: "oneuptime_reader",
+  pwd: "...",
+  roles: [{ role: "readAnyDatabase", db: "admin" }]
+})
+```
+
+O MongoDB é lido pelo próprio driver: `mongodb+srv://oneuptime_reader:...@cluster0.example.mongodb.net/`, ou `mongodb://` com os hosts de um replica set. Um banco de dados no caminho é o único monitorado; sem ele, cada banco que o usuário pode ler é monitorado, e `{ role: "read", db: "orders" }` no lugar de `readAnyDatabase` o limita a um. Os documentos, o tamanho e as escritas de cada coleção vêm de `$collStats`, e quando ela recebeu o último documento, do seu `_id` mais recente. Seus campos vêm do esquema JSON do validador ou, senão, dos nomes e tipos dos campos dos seus 100 documentos mais recentes, calculados no banco para que nenhum valor saia dele. Os documentos são lidos em um secundário quando há um, e uma verificação personalizada é um pipeline de agregação, em JSON.
 :::
 
 ## O que é lido, e com que frequência

@@ -31,6 +31,11 @@ enum AIChatPageContextType {
   // One data store's pages, and one data security issue's (Data Security).
   DataStore = "DataStore",
   DataSecurityIssue = "DataSecurityIssue",
+  /*
+   * One cloud account's pages (Cloud > Accounts > an account): an AWS
+   * account, an Azure subscription or a Google Cloud project.
+   */
+  CloudAccount = "CloudAccount",
 
   // Area pages — no id; the user is browsing a list or an explorer.
   IncidentsList = "IncidentsList",
@@ -53,6 +58,8 @@ enum AIChatPageContextType {
   SecurityEvents = "SecurityEvents",
   // Any other Data Security page: the overview, stores, issues, access.
   DataSecurity = "DataSecurity",
+  // Cloud > Accounts: every account the project's cloud connections read.
+  CloudAccountsList = "CloudAccountsList",
 }
 
 export default AIChatPageContextType;
@@ -93,6 +100,7 @@ const ENTITY_TYPES: Array<AIChatPageContextType> = [
   AIChatPageContextType.SecurityCase,
   AIChatPageContextType.DataStore,
   AIChatPageContextType.DataSecurityIssue,
+  AIChatPageContextType.CloudAccount,
 ];
 
 export class AIChatPageContextHelper {

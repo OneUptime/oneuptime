@@ -1,7 +1,7 @@
 {
   "baseline": {
-    "keys": 42078,
-    "untranslated": 12139
+    "keys": 42106,
+    "untranslated": 12116
   },
   "sameAsEnglish": [
     "0 (kiss-o'-death {{kissCode}})",
@@ -188,6 +188,7 @@
     "Tokens",
     "Top P",
     "Tunnel",
+    "USD",
     "UTC",
     "Up + In",
     "Up + Out",
@@ -269,6 +270,7 @@
     "{{count}} KB",
     "{{count}} MB",
     "{{count}} VM",
+    "{{count}} app",
     "{{count}} appliance",
     "{{count}} bucket",
     "{{count}} buckets",

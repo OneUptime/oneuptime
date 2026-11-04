@@ -16,7 +16,7 @@ Legg til en sjekk i fanen **Sjekker** for en tabell:
 | **Format Mismatch Percent** | Prosentandelen verdier som ikke samsvarer med et regulært uttrykk (alle databasemotorer unntatt SQL Server) |
 | **Orphan Count** | Rader der verdien ikke har noe samsvar i en kolonne i en annen tabell |
 | **Row Count** | Rader i tabellen, mest nyttig med **Segment By** |
-| **Egendefinert SQL** | Tallet som én skrivebeskyttet SELECT fra deg returnerer, kalt `value` |
+| **Egendefinert SQL** | Tallet som én skrivebeskyttet SELECT fra deg returnerer, kalt `value` (i MongoDB en aggregeringspipelines) |
 
 Hver sjekk kjører hvert 15. minutt, hver time, hver 6. time eller hver dag, som én aggregeringssetning i en skrivebeskyttet transaksjon med tidsavbrudd for setninger. Verdien skrives som `oneuptime.data.check.value`, med `oneuptime.data.check.id`, `oneuptime.data.check.name` og `oneuptime.data.check.segment`.
 
@@ -26,7 +26,7 @@ Hver sjekk kjører hvert 15. minutt, hver time, hver 6. time eller hver dag, som
 
 ## En sjekk ut fra en setning
 
-**Skriv en sjekk fra en setning** gjør en regel som «ordrer har aldri en negativ totalsum» om til en sjekk med egendefinert SQL som teller radene som bryter regelen, i databasemotorens egen SQL, med et varsel når noen gjør det. Du leser spørringen før **Legg til sjekk** legger den til, og den holdes til alt som gjelder for enhver sjekk med egendefinert SQL. Det krever at OneUptime AI er slått på for prosjektet.
+**Skriv en sjekk fra en setning** gjør en regel som «ordrer har aldri en negativ totalsum» om til en sjekk med egendefinert SQL som teller radene som bryter regelen, i databasemotorens egen SQL, med et varsel når noen gjør det. Du leser spørringen før **Legg til sjekk** legger den til, og den holdes til alt som gjelder for enhver sjekk med egendefinert SQL. Det krever at OneUptime AI er slått på for prosjektet. I MongoDB er resultatet en aggregeringspipeline.
 
 ## Segmenter
 

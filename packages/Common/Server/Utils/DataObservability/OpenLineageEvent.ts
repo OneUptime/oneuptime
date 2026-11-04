@@ -255,6 +255,9 @@ const SCHEME_KINDS: Readonly<Record<string, DataStoreKind>> = {
   bigquery: DataStoreKind.GcpBigQueryDataset,
   clickhouse: DataStoreKind.ClickHouse,
   databricks: DataStoreKind.Databricks,
+  awsathena: DataStoreKind.AwsAthena,
+  oracle: DataStoreKind.Oracle,
+  mongodb: DataStoreKind.MongoDb,
 };
 
 /*
@@ -284,8 +287,30 @@ export function parseDatasetName(
     return null;
   }
 
-  // MySQL's and ClickHouse's schema is their database: db.table.
-  if (kind === DataStoreKind.MySql || kind === DataStoreKind.ClickHouse) {
+  /*
+   * Athena names a table catalog.database.table, its catalog Glue's
+   * (AwsDataCatalog): the Glue database is the store, and its schema too.
+   */
+  if (kind === DataStoreKind.AwsAthena) {
+    const database: string | undefined = parts[parts.length - 2];
+
+    return parts.length >= 2 && parts.length <= 3 && database
+      ? {
+          kind,
+          host,
+          database,
+          schema: database,
+          table: parts[parts.length - 1]!,
+        }
+      : null;
+  }
+
+  // MySQL's, ClickHouse's and MongoDB's schema is their database: db.table.
+  if (
+    kind === DataStoreKind.MySql ||
+    kind === DataStoreKind.ClickHouse ||
+    kind === DataStoreKind.MongoDb
+  ) {
     return parts.length === 2
       ? {
           kind,

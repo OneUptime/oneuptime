@@ -34,6 +34,8 @@ import { getJestSpyOn } from "../../Spy";
 import { PROJECT_ID, goTo } from "./SideMenuHarness";
 import { CloudCostPoint } from "../../../../App/FeatureSet/Dashboard/src/Components/Cloud/CloudCostReads";
 import CloudCostsView, {
+  BREAKDOWN_DESCRIPTION,
+  BREAKDOWN_DESCRIPTION_ONE_ACCOUNT,
   BREAKDOWN_RESOURCES_NOTE,
   BREAKDOWN_SHOWN,
 } from "../../../../App/FeatureSet/Dashboard/src/Components/Cloud/CloudCostsView";
@@ -423,6 +425,35 @@ describe("one account's Costs tab", () => {
         "cloud-stat-tile-value",
       )[0],
     ).toHaveTextContent("$2,000");
+  });
+
+  /*
+   * #5702's review: an account's own breakdown offers no Accounts choice,
+   * so its card no longer says it breaks costs down by account.
+   */
+  test("its breakdown says what it breaks down by: never by account", async () => {
+    await openView({ accounts: [WEB], cloudAccountId: WEB.id });
+
+    await screen.findByTestId("cloud-cost-breakdown");
+
+    expect(screen.getByText(BREAKDOWN_DESCRIPTION_ONE_ACCOUNT)).toBeTruthy();
+    expect(screen.queryByText(BREAKDOWN_DESCRIPTION)).toBeNull();
+    expect(BREAKDOWN_DESCRIPTION_ONE_ACCOUNT).not.toMatch(/account/i);
+    expect(BREAKDOWN_DESCRIPTION).toContain("account");
+  });
+});
+
+describe("the breakdown's description over every account", () => {
+  test("names every way it breaks costs down, accounts too", async () => {
+    await openView();
+
+    await screen.findByTestId("cloud-cost-breakdown");
+
+    expect(screen.getByText(BREAKDOWN_DESCRIPTION)).toBeTruthy();
+    expect(screen.queryByText(BREAKDOWN_DESCRIPTION_ONE_ACCOUNT)).toBeNull();
+    expect(
+      screen.getByTestId("cloud-cost-breakdown-dimension-cloudAccountId"),
+    ).toBeTruthy();
   });
 });
 
