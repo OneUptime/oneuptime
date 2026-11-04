@@ -36,11 +36,14 @@ import {
 } from "../../../../Types/Cloud/CloudCost";
 import { CloudProvider } from "../../../../Types/Cloud/CloudPlatform";
 import { CloudResourceKind } from "../../../../Types/Cloud/CloudResourceKind";
+import { describeAwsSavingResourceType } from "../../../../Server/Utils/CloudConnection/Aws/AwsCosts";
 import {
   CLOUD_DAYS_IN_AVERAGE_MONTH,
+  CLOUD_RIGHT_SIZING_PROFILES,
   CLOUD_RIGHT_SIZING_WINDOW_DAYS,
   CLOUD_SAVINGS_SOURCE_ONEUPTIME,
   CloudRightSizing,
+  CloudRightSizingProfile,
   CloudRightSizingVerdict,
   CloudUsageObservation,
   buildCloudRightSizing,
@@ -631,7 +634,8 @@ describe("the row a right-sizing is kept as", () => {
       recommendationId: getCloudRightSizingRecommendationId(WEB_1.toString()),
       region: "us-east-1",
       resourceId: arn("i-0web1"),
-      resourceType: "EC2 Instance",
+      // As AWS Cost Optimization Hub's own rows name it beside it on Savings.
+      resourceType: "EC2 instance",
       resourceName: "i-0web1",
       currentConfiguration: "m5.2xlarge",
       recommendedConfiguration: "m5.xlarge",
@@ -694,6 +698,55 @@ describe("the row a right-sizing is kept as", () => {
         sizing: atSmallest,
       }),
     ).toBeNull();
+  });
+
+  test("its type is named as the clouds' recommenders name theirs, so Savings reads as one list", () => {
+    const named: Record<string, string> = {};
+
+    for (const profile of CLOUD_RIGHT_SIZING_PROFILES) {
+      named[`${profile.provider}|${profile.type}`] = profile.savingResourceType;
+    }
+
+    // AWS Cost Optimization Hub's words for the same resources.
+    expect(named[`${CloudProvider.AWS}|AWS::EC2::Instance`]).toBe(
+      describeAwsSavingResourceType("Ec2Instance"),
+    );
+    expect(named[`${CloudProvider.AWS}|AWS::RDS::DBInstance`]).toBe(
+      describeAwsSavingResourceType("RdsDbInstance"),
+    );
+    // Google Cloud's Recommender rows say "Compute Engine instance" (GcpCosts).
+    expect(named[`${CloudProvider.GCP}|gce_instance`]).toBe(
+      "Compute Engine instance",
+    );
+
+    // Every one a sentence-case name: its first letter capital, no type id.
+    for (const profile of CLOUD_RIGHT_SIZING_PROFILES) {
+      const name: string = profile.savingResourceType;
+      expect(name.length).toBeGreaterThan(0);
+      expect(name).not.toContain("::");
+      expect(name).not.toContain("/");
+      expect(name).not.toContain("_");
+      expect(name[0]).toBe(name[0]!.toUpperCase());
+    }
+
+    // What the row keeps is its profile's name.
+    const sized: CloudRightSizingCandidate = candidate(ec2(WEB_1, "i-0web1"))!;
+    const profile: CloudRightSizingProfile = sized.profile;
+    const sizing: CloudRightSizing = buildCloudRightSizing({
+      profile,
+      size: sized.size,
+      observation: {
+        cpuP95Percent: 14,
+        cpuMaxPercent: 30,
+        memoryPeakPercent: null,
+        samples: 4032,
+        observedHours: 14 * 24,
+      },
+    });
+    expect(
+      CloudRightSizingWriter.toRecord({ candidate: sized, sizing })
+        ?.resourceType,
+    ).toBe(profile.savingResourceType);
   });
 });
 

@@ -17,7 +17,6 @@ import {
   startOfUtcDay,
 } from "../../../Types/Cloud/CloudCost";
 import { CloudProvider } from "../../../Types/Cloud/CloudPlatform";
-import { getCloudResourceTypeDisplayName } from "../../../Types/Cloud/CloudResourceCatalog";
 import { CloudResourceKind } from "../../../Types/Cloud/CloudResourceKind";
 import {
   CLOUD_RIGHT_SIZING_PROFILES,
@@ -670,10 +669,8 @@ export default class CloudRightSizingWriter {
       ),
       region: data.candidate.region,
       resourceId: data.candidate.providerResourceId,
-      resourceType: getCloudResourceTypeDisplayName(
-        data.candidate.provider,
-        data.candidate.type,
-      ),
+      // Named as the clouds' recommenders name theirs on Savings.
+      resourceType: data.candidate.profile.savingResourceType,
       resourceName: data.candidate.name,
       currentConfiguration: data.sizing.currentSize || "",
       recommendedConfiguration: data.sizing.recommendedSize || "",

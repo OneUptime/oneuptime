@@ -165,6 +165,12 @@ export interface CloudRightSizingProfile {
   memoryNotRead?: string | undefined;
   // Whether its bill holds more than its size (a database's storage).
   billHoldsMoreThanSize: boolean;
+  /*
+   * The type as a way to spend less names it on Savings, the way the
+   * clouds' recommenders write theirs ("EC2 instance", "Compute Engine
+   * instance"), so OneUptime's rows read like the rows beside them.
+   */
+  savingResourceType: string;
 }
 
 // An Azure Monitor metric under each aggregation it may be stored with.
@@ -198,6 +204,7 @@ export const CLOUD_RIGHT_SIZING_PROFILES: ReadonlyArray<CloudRightSizingProfile>
     {
       provider: CloudProvider.AWS,
       type: "AWS::EC2::Instance",
+      savingResourceType: "EC2 instance",
       sizeProperty: "InstanceType",
       ladder: CloudSizeLadder.Aws,
       cpu: { names: awsStoredName("AWS/EC2", "CPUUtilization"), toPercent: 1 },
@@ -208,6 +215,7 @@ export const CLOUD_RIGHT_SIZING_PROFILES: ReadonlyArray<CloudRightSizingProfile>
     {
       provider: CloudProvider.AWS,
       type: "AWS::RDS::DBInstance",
+      savingResourceType: "RDS DB instance",
       sizeProperty: "DBInstanceClass",
       ladder: CloudSizeLadder.Aws,
       cpu: { names: awsStoredName("AWS/RDS", "CPUUtilization"), toPercent: 1 },
@@ -218,6 +226,7 @@ export const CLOUD_RIGHT_SIZING_PROFILES: ReadonlyArray<CloudRightSizingProfile>
     {
       provider: CloudProvider.AWS,
       type: "AWS::ElastiCache::CacheCluster",
+      savingResourceType: "ElastiCache cluster",
       sizeProperty: "CacheNodeType",
       ladder: CloudSizeLadder.Aws,
       cpu: {
@@ -236,6 +245,7 @@ export const CLOUD_RIGHT_SIZING_PROFILES: ReadonlyArray<CloudRightSizingProfile>
     {
       provider: CloudProvider.AWS,
       type: "AWS::ElastiCache::ReplicationGroup",
+      savingResourceType: "ElastiCache replication group",
       sizeProperty: "CacheNodeType",
       ladder: CloudSizeLadder.Aws,
       cpu: {
@@ -254,6 +264,7 @@ export const CLOUD_RIGHT_SIZING_PROFILES: ReadonlyArray<CloudRightSizingProfile>
     {
       provider: CloudProvider.Azure,
       type: "Microsoft.Compute/virtualMachines",
+      savingResourceType: "Virtual machine",
       sizeProperty: "vmSize",
       ladder: CloudSizeLadder.AzureVm,
       cpu: { names: azureStoredNames("Percentage CPU"), toPercent: 1 },
@@ -264,6 +275,7 @@ export const CLOUD_RIGHT_SIZING_PROFILES: ReadonlyArray<CloudRightSizingProfile>
     {
       provider: CloudProvider.Azure,
       type: "Microsoft.DBforPostgreSQL/flexibleServers",
+      savingResourceType: "PostgreSQL flexible server",
       sizeProperty: "skuName",
       ladder: CloudSizeLadder.AzureVm,
       cpu: { names: azureStoredNames("cpu_percent"), toPercent: 1 },
@@ -273,6 +285,7 @@ export const CLOUD_RIGHT_SIZING_PROFILES: ReadonlyArray<CloudRightSizingProfile>
     {
       provider: CloudProvider.Azure,
       type: "Microsoft.DBforMySQL/flexibleServers",
+      savingResourceType: "MySQL flexible server",
       sizeProperty: "skuName",
       ladder: CloudSizeLadder.AzureVm,
       cpu: { names: azureStoredNames("cpu_percent"), toPercent: 1 },
@@ -282,6 +295,7 @@ export const CLOUD_RIGHT_SIZING_PROFILES: ReadonlyArray<CloudRightSizingProfile>
     {
       provider: CloudProvider.Azure,
       type: "Microsoft.Web/serverfarms",
+      savingResourceType: "App Service plan",
       sizeProperty: "skuName",
       ladder: CloudSizeLadder.AzureAppServicePlan,
       cpu: { names: azureStoredNames("CpuPercentage"), toPercent: 1 },
@@ -291,6 +305,7 @@ export const CLOUD_RIGHT_SIZING_PROFILES: ReadonlyArray<CloudRightSizingProfile>
     {
       provider: CloudProvider.GCP,
       type: "gce_instance",
+      savingResourceType: "Compute Engine instance",
       sizeProperty: "machineType",
       ladder: CloudSizeLadder.GcpMachine,
       cpu: {
@@ -304,6 +319,7 @@ export const CLOUD_RIGHT_SIZING_PROFILES: ReadonlyArray<CloudRightSizingProfile>
     {
       provider: CloudProvider.GCP,
       type: "cloudsql_database",
+      savingResourceType: "Cloud SQL instance",
       sizeProperty: "settings.tier",
       ladder: CloudSizeLadder.GcpCloudSql,
       cpu: {

@@ -564,7 +564,7 @@ const RECOMMENDATIONS = [
     kind: CloudSavingKind.Rightsize,
     action: "Rightsize",
     resourceName: "batch-1",
-    resourceType: "EC2 Instance",
+    resourceType: "EC2 instance",
     resourceId: "arn:aws:ec2:us-west-2:210987654321:instance/i-0batch1",
     cloudResourceId: BATCH_1,
     cloudResource: { name: "batch-1" },
