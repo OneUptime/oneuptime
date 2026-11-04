@@ -1,3 +1,4 @@
+import { JSONObject } from "../../Types/JSON";
 import { PlanType } from "../../Types/Billing/SubscriptionPlan";
 import ColumnBillingAccessControl from "../../Types/Database/AccessControl/ColumnBillingAccessControl";
 import EnableAuditLog from "../../Types/Database/EnableAuditLog";
@@ -819,7 +820,8 @@ export default class OpenStackCloud extends BaseModel {
   @TableColumn({
     type: TableColumnType.Number,
     title: "Services",
-    description: "How many services and agents (nova-compute, neutron agents, cinder-volume and so on) this cloud reports.",
+    description:
+      "How many services and agents (nova-compute, neutron agents, cinder-volume and so on) this cloud reports.",
   })
   @Column({
     type: ColumnType.Number,
@@ -849,7 +851,8 @@ export default class OpenStackCloud extends BaseModel {
   @TableColumn({
     type: TableColumnType.Number,
     title: "Services Down",
-    description: "How many enabled services and agents are down. A service someone disabled is not counted.",
+    description:
+      "How many enabled services and agents are down. A service someone disabled is not counted.",
   })
   @Column({
     type: ColumnType.Number,
@@ -879,7 +882,8 @@ export default class OpenStackCloud extends BaseModel {
   @TableColumn({
     type: TableColumnType.Number,
     title: "vCPU Capacity",
-    description: "vCPUs the cloud can promise to instances, as Placement counts them: (total - reserved) * allocation ratio.",
+    description:
+      "vCPUs the cloud can promise to instances, as Placement counts them: (total - reserved) * allocation ratio.",
   })
   @Column({
     type: ColumnType.Number,
@@ -909,7 +913,8 @@ export default class OpenStackCloud extends BaseModel {
   @TableColumn({
     type: TableColumnType.Number,
     title: "vCPUs Allocated",
-    description: "vCPUs promised to instances. This is what is promised, not what is busy.",
+    description:
+      "vCPUs promised to instances. This is what is promised, not what is busy.",
   })
   @Column({
     type: ColumnType.Number,
@@ -939,7 +944,8 @@ export default class OpenStackCloud extends BaseModel {
   @TableColumn({
     type: TableColumnType.BigPositiveNumber,
     title: "Memory Capacity",
-    description: "Memory the cloud can promise to instances, as Placement counts it.",
+    description:
+      "Memory the cloud can promise to instances, as Placement counts it.",
   })
   @Column({
     type: ColumnType.BigPositiveNumber,
@@ -983,7 +989,8 @@ export default class OpenStackCloud extends BaseModel {
   @TableColumn({
     type: TableColumnType.BigPositiveNumber,
     title: "Memory Allocated",
-    description: "Memory promised to instances. This is what is promised, not what is in use.",
+    description:
+      "Memory promised to instances. This is what is promised, not what is in use.",
   })
   @Column({
     type: ColumnType.BigPositiveNumber,
@@ -1688,8 +1695,7 @@ export default class OpenStackCloud extends BaseModel {
     required: false,
     type: TableColumnType.LongText,
     title: "User Domain Name",
-    description:
-      "The Keystone domain of that user. Default, when left out.",
+    description: "The Keystone domain of that user. Default, when left out.",
     example: "Default",
   })
   @Column({
@@ -1728,8 +1734,7 @@ export default class OpenStackCloud extends BaseModel {
     required: false,
     type: TableColumnType.LongText,
     title: "Project Domain Name",
-    description:
-      "The Keystone domain of that project. Default, when left out.",
+    description: "The Keystone domain of that project. Default, when left out.",
     example: "Default",
   })
   @Column({
@@ -1899,6 +1904,28 @@ export default class OpenStackCloud extends BaseModel {
     nullable: true,
   })
   public collectionOptions?: OpenStackCollectionOptions = undefined;
+
+  /*
+   * Apart from collectionOptions, which holds what the probe knows and nothing more:
+   * this is read at ingest, for agent clouds too.
+   */
+  @ColumnAccessControl({
+    create: OPENSTACK_CLOUD_CREATORS,
+    read: OPENSTACK_CLOUD_READERS,
+    update: OPENSTACK_CLOUD_EDITORS,
+  })
+  @TableColumn({
+    required: false,
+    type: TableColumnType.JSON,
+    title: "Instance Metrics Options",
+    description:
+      "Whether real per-instance CPU, memory, disk and network series are kept for this cloud, as JSON: mode (automatic, all, selected or off), and for selected, the projectIds and aggregates. Per-instance series multiply fast, so automatic stops keeping them past a stated number of instances.",
+  })
+  @Column({
+    type: ColumnType.JSON,
+    nullable: true,
+  })
+  public instanceMetricsOptions?: JSONObject = undefined;
 
   @ColumnAccessControl({
     create: [],
