@@ -27,6 +27,7 @@ import CloudAiChangeAttributionReader, {
   toCloudAiChangeJob,
 } from "../../../../Server/Utils/CloudConnection/CloudAiChangeAttribution";
 import { CloudChange } from "../../../../Server/Utils/CloudConnection/CloudConnectorTypes";
+import { FastestRun, fastestRun } from "../../../Helpers/FastestRun";
 import logger from "../../../../Server/Utils/Logger";
 import InBetween from "../../../../Types/BaseDatabase/InBetween";
 import SortOrder from "../../../../Types/BaseDatabase/SortOrder";
@@ -526,6 +527,46 @@ describe("whether the agent made a change", () => {
         }),
       ),
     ).toBe(false);
+  });
+
+  /*
+   * The caller's ARN is what CloudTrail says, and the agent's principal ARN
+   * what the agent reports: text from outside, read in time in line with
+   * its length - 400,000 characters of the reader's worst cases, each
+   * almost an assumed-role session ARN.
+   */
+  test("a caller's ARN of 400,000 characters is read in time", () => {
+    const principals: CloudAiAgentPrincipals = getCloudAiAgentPrincipals({
+      provider: CloudProvider.AWS,
+      accountId: ACCOUNT,
+    });
+    const worstCases: Array<string> = [
+      `arn:aws${"-".repeat(400000)}`,
+      `arn:aws:sts::${ACCOUNT}:assumed-role/${"a".repeat(400000)}`,
+      `arn:aws:sts::${ACCOUNT}:assumed-role/${AWS_CLOUD_AI_AGENT_WRITE_ROLE_NAME}/${"/".repeat(400000)}`,
+    ];
+
+    for (const identity of worstCases) {
+      const timed: FastestRun<Array<boolean>> = fastestRun({
+        run: (): Array<boolean> => {
+          return [
+            isCloudAiAgentChange(
+              awsChange({ actorIdentity: `${identity}x` }),
+              principals,
+            ),
+            getCloudAiAgentPrincipals({
+              provider: CloudProvider.AWS,
+              accountId: ACCOUNT,
+              posture: posture({ awsPrincipalArn: `${identity}y` }),
+            }).awsRoleNames.length > 2,
+          ];
+        },
+        limitInMs: 2000,
+      });
+
+      expect(timed.inMs).toBeLessThan(2000);
+      expect(timed.result).toEqual([false, false]);
+    }
   });
 });
 
