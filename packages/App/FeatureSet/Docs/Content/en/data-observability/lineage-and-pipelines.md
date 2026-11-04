@@ -53,6 +53,20 @@ Their webhooks say when each sync starts and ends. **Pipelines > Connect Fivetra
 
 A Fivetran sync rescheduled at an API's rate limit ends as **Rescheduled**: not a failure, so it pages no one.
 
+## Dashboards in BI tools
+
+The real impact of bad data is the dashboard someone opens. Under **BI Dashboards**, add your BI tools with credentials that may read their dashboards. Every hour Data Observability reads each dashboard and the tables behind it, matches each table to a watched one, and lists the dashboards built on a table, and on the tables built from it, on its **Lineage** tab, on its alerts and in Production Review.
+
+| Tool | Credentials |
+| --- | --- |
+| **Metabase** | `{ "apiKey": "mb_..." }` |
+| **Superset** | `{ "username": "...", "password": "..." }` |
+| **Tableau** | `{ "tokenName": "...", "tokenSecret": "...", "site": "acme" }` |
+| **Looker** | `{ "clientId": "...", "clientSecret": "..." }` |
+| **Power BI** | `{ "tenantId": "...", "clientId": "...", "clientSecret": "..." }`, a service principal allowed to use Power BI's admin APIs |
+
+Only dashboards' names and links, and the tables they query, are read: never their data.
+
 ## Pipelines
 
 Each job, dbt project and sync appears under **Pipelines**, with its runs: when each started and ended, how long it took, and a failed run's error. Each pipeline learns from its own runs how long a run usually takes and how long it goes between runs on its schedule, after five runs. A pipeline's page recommends three monitors:

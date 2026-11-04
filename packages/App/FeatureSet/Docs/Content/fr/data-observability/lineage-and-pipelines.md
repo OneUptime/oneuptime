@@ -53,6 +53,20 @@ Leurs webhooks indiquent quand chaque synchronisation commence et se termine. **
 
 Une synchronisation Fivetran reprogrammée à cause de la limite de débit d'une API se termine en **Reprogrammée** : ce n'est pas un échec, donc elle ne prévient personne.
 
+## Tableaux de bord des outils BI
+
+Le véritable impact de données erronées, c'est le tableau de bord que quelqu'un ouvre. Dans **Tableaux de bord BI**, ajoutez vos outils BI avec des identifiants autorisés à lire leurs tableaux de bord. Toutes les heures, l'Observabilité des données lit chaque tableau de bord et les tables qui le sous-tendent, associe chaque table à une table surveillée et affiche les tableaux de bord construits sur une table, et sur les tables construites à partir d'elle, dans son onglet **Lignage**, sur ses alertes et dans Production Review.
+
+| Outil | Identifiants |
+| --- | --- |
+| **Metabase** | `{ "apiKey": "mb_..." }` |
+| **Superset** | `{ "username": "...", "password": "..." }` |
+| **Tableau** | `{ "tokenName": "...", "tokenSecret": "...", "site": "acme" }` |
+| **Looker** | `{ "clientId": "...", "clientSecret": "..." }` |
+| **Power BI** | `{ "tenantId": "...", "clientId": "...", "clientSecret": "..." }`, un principal de service autorisé à utiliser les API d'administration de Power BI |
+
+Seuls les noms et liens des tableaux de bord et les tables qu'ils interrogent sont lus : jamais leurs données.
+
 ## Pipelines
 
 Chaque job, projet dbt et synchronisation apparaît sous **Pipelines**, avec ses exécutions : quand chacune a commencé et s'est terminée, combien de temps elle a duré, et l'erreur d'une exécution en échec. Après cinq exécutions, chaque pipeline apprend de ses propres exécutions combien de temps dure habituellement une exécution et combien de temps s'écoule entre deux exécutions selon sa planification. La page d'un pipeline recommande trois moniteurs :

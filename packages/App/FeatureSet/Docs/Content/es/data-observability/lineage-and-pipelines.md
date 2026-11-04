@@ -53,6 +53,20 @@ Sus webhooks indican cuándo empieza y termina cada sincronización. **Canalizac
 
 Una sincronización de Fivetran reprogramada por el límite de frecuencia de una API termina como **Reprogramada**: no es un fallo, así que no avisa a nadie.
 
+## Paneles en herramientas de BI
+
+El impacto real de los datos malos es el panel que alguien abre. En **Paneles de BI**, añade tus herramientas de BI con credenciales que puedan leer sus paneles. Cada hora, Observabilidad de datos lee cada panel y las tablas que hay detrás, asocia cada tabla con una vigilada y muestra los paneles construidos sobre una tabla, y sobre las tablas construidas a partir de ella, en su pestaña **Linaje**, en sus alertas y en Production Review.
+
+| Herramienta | Credenciales |
+| --- | --- |
+| **Metabase** | `{ "apiKey": "mb_..." }` |
+| **Superset** | `{ "username": "...", "password": "..." }` |
+| **Tableau** | `{ "tokenName": "...", "tokenSecret": "...", "site": "acme" }` |
+| **Looker** | `{ "clientId": "...", "clientSecret": "..." }` |
+| **Power BI** | `{ "tenantId": "...", "clientId": "...", "clientSecret": "..." }`, una entidad de servicio autorizada a usar las API de administración de Power BI |
+
+Solo se leen los nombres y enlaces de los paneles y las tablas que consultan: nunca sus datos.
+
 ## Pipelines
 
 Cada job, proyecto de dbt y sincronización aparece en **Canalizaciones**, con sus ejecuciones: cuándo empezó y terminó cada una, cuánto duró y el error de una ejecución fallida. Tras cinco ejecuciones, cada pipeline aprende de sus propias ejecuciones cuánto suele durar una ejecución y cuánto tiempo pasa entre ejecuciones según su programación. La página de un pipeline recomienda tres monitores:

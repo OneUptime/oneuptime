@@ -53,6 +53,20 @@ Deras webhooks talar om när varje synkronisering startar och slutar. **Pipeline
 
 En Fivetran-synkronisering som omplaneras vid ett API:s hastighetsgräns slutar som **Omplanerad**: inget fel, så den larmar ingen.
 
+## Instrumentpaneler i BI-verktyg
+
+Den verkliga följden av dåliga data är instrumentpanelen som någon öppnar. Lägg under **BI-instrumentpaneler** till dina BI-verktyg med autentiseringsuppgifter som får läsa deras instrumentpaneler. Varje timme läser Dataobserverbarhet varje instrumentpanel och tabellerna bakom den, matchar varje tabell mot en bevakad tabell och visar de instrumentpaneler som byggs på en tabell, och på tabellerna som byggs av den, på fliken **Härkomst**, på dess larm och i Production Review.
+
+| Verktyg | Autentiseringsuppgifter |
+| --- | --- |
+| **Metabase** | `{ "apiKey": "mb_..." }` |
+| **Superset** | `{ "username": "...", "password": "..." }` |
+| **Tableau** | `{ "tokenName": "...", "tokenSecret": "...", "site": "acme" }` |
+| **Looker** | `{ "clientId": "...", "clientSecret": "..." }` |
+| **Power BI** | `{ "tenantId": "...", "clientId": "...", "clientSecret": "..." }`, ett tjänsthuvudnamn (service principal) som får använda Power BI:s administratörs-API:er |
+
+Bara instrumentpanelernas namn och länkar, och tabellerna de frågar mot, läses: aldrig deras data.
+
 ## Pipelines
 
 Varje jobb, dbt-projekt och synkronisering visas under **Pipelines**, med sina körningar: när varje körning startade och slutade, hur lång tid den tog, och felet för en misslyckad körning. Efter fem körningar lär sig varje pipeline av sina egna körningar hur lång tid en körning brukar ta och hur lång tid det brukar gå mellan körningarna enligt dess schema. En pipelines sida rekommenderar tre monitorer:

@@ -53,6 +53,20 @@ Os webhooks deles dizem quando cada sincronização começa e termina. **Pipelin
 
 Uma sincronização do Fivetran reagendada por causa do limite de taxa de uma API termina como **Reagendada**: não é uma falha, então não aciona ninguém.
 
+## Painéis em ferramentas de BI
+
+O impacto real de dados ruins é o painel que alguém abre. Em **Painéis de BI**, adicione suas ferramentas de BI com credenciais que possam ler os painéis delas. A cada hora, a Observabilidade de dados lê cada painel e as tabelas por trás dele, associa cada tabela a uma monitorada e mostra os painéis construídos sobre uma tabela, e sobre as tabelas construídas a partir dela, na aba **Linhagem**, nos alertas e no Production Review.
+
+| Ferramenta | Credenciais |
+| --- | --- |
+| **Metabase** | `{ "apiKey": "mb_..." }` |
+| **Superset** | `{ "username": "...", "password": "..." }` |
+| **Tableau** | `{ "tokenName": "...", "tokenSecret": "...", "site": "acme" }` |
+| **Looker** | `{ "clientId": "...", "clientSecret": "..." }` |
+| **Power BI** | `{ "tenantId": "...", "clientId": "...", "clientSecret": "..." }`, uma entidade de serviço autorizada a usar as APIs de administração do Power BI |
+
+Somente nomes e links dos painéis e as tabelas que eles consultam são lidos: nunca seus dados.
+
 ## Pipelines
 
 Cada job, projeto dbt e sincronização aparece em **Pipelines**, com as suas execuções: quando cada uma começou e terminou, quanto tempo levou e o erro de uma execução com falha. Depois de cinco execuções, cada pipeline aprende com as próprias execuções quanto tempo uma execução costuma levar e quanto tempo ele costuma ficar entre execuções no seu agendamento. A página de um pipeline recomenda três monitores:
