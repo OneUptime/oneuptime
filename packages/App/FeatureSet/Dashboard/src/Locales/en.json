@@ -40711,7 +40711,7 @@
   "What Docker Swarm reports about this service.": "What Docker Swarm reports about this service.",
   "What Docker Swarm reports about this task.": "What Docker Swarm reports about this task.",
   "What a calendar month may cost, before credits and refunds.": "What a calendar month may cost, before credits and refunds.",
-  "What a month may cost, for one account or all of them. OneUptime alerts as the month's spend passes each threshold, and when the month is on course to pass the budget.": "What a month may cost, for one account or all of them. OneUptime alerts as the month's spend passes each threshold, and when the month is on course to pass the budget.",
+  "What a month may cost, for one account or all of them. OneUptime alerts as the month's spend passes each threshold, when the month is on course to pass the budget, and on a day that costs far more than usual.": "What a month may cost, for one account or all of them. OneUptime alerts as the month's spend passes each threshold, when the month is on course to pass the budget, and on a day that costs far more than usual.",
   "What about this node and the tasks it runs is broken or needs a look.": "What about this node and the tasks it runs is broken or needs a look.",
   "What about this service and its tasks is broken or needs a look.": "What about this service and its tasks is broken or needs a look.",
   "What about this task is broken or needs a look.": "What about this task is broken or needs a look.",

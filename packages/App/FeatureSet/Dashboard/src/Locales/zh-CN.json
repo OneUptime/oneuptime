@@ -40711,7 +40711,7 @@
   "What Docker Swarm reports about this service.": "Docker Swarm 上报的此服务信息。",
   "What Docker Swarm reports about this task.": "Docker Swarm 上报的此任务信息。",
   "What a calendar month may cost, before credits and refunds.": "一个自然月允许的成本（抵扣额度和退款之前）。",
-  "What a month may cost, for one account or all of them. OneUptime alerts as the month's spend passes each threshold, and when the month is on course to pass the budget.": "一个账户或所有账户每月允许的成本。OneUptime 会在本月支出超过每个阈值时，以及本月预计超出预算时发出警报。",
+  "What a month may cost, for one account or all of them. OneUptime alerts as the month's spend passes each threshold, when the month is on course to pass the budget, and on a day that costs far more than usual.": "一个账户或所有账户每月允许的成本。OneUptime 会在本月支出超过每个阈值时、本月预计超出预算时，以及某天的成本远高于平常时发出警报。",
   "What about this node and the tasks it runs is broken or needs a look.": "此节点及其运行的任务中已损坏或需要查看的问题。",
   "What about this service and its tasks is broken or needs a look.": "此服务及其任务中已损坏或需要查看的问题。",
   "What about this task is broken or needs a look.": "此任务中已损坏或需要查看的问题。",

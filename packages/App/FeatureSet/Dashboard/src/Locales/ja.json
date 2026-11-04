@@ -40711,7 +40711,7 @@
   "What Docker Swarm reports about this service.": "Docker Swarm がこのサービスについて報告している内容。",
   "What Docker Swarm reports about this task.": "Docker Swarm がこのタスクについて報告している内容。",
   "What a calendar month may cost, before credits and refunds.": "暦月 1 か月に許容するコスト (クレジットと払い戻しの前)。",
-  "What a month may cost, for one account or all of them. OneUptime alerts as the month's spend passes each threshold, and when the month is on course to pass the budget.": "1 つのアカウントまたはすべてのアカウントで 1 か月に許容するコスト。OneUptime は、月の支出が各しきい値を超えたときと、月が予算を超える見込みのときにアラートを出します。",
+  "What a month may cost, for one account or all of them. OneUptime alerts as the month's spend passes each threshold, when the month is on course to pass the budget, and on a day that costs far more than usual.": "1 つのアカウントまたはすべてのアカウントで 1 か月に許容するコスト。OneUptime は、月の支出が各しきい値を超えたとき、月が予算を超える見込みのとき、通常よりはるかに高くついた日があったときにアラートを出します。",
   "What about this node and the tasks it runs is broken or needs a look.": "このノードと、そこで実行されているタスクのうち、壊れているものや確認が必要なもの。",
   "What about this service and its tasks is broken or needs a look.": "このサービスとそのタスクのうち、壊れているものや確認が必要なもの。",
   "What about this task is broken or needs a look.": "このタスクのうち、壊れているものや確認が必要なもの。",

@@ -40711,7 +40711,7 @@
   "What Docker Swarm reports about this service.": "Lo que Docker Swarm informa sobre este servicio.",
   "What Docker Swarm reports about this task.": "Lo que Docker Swarm informa sobre esta tarea.",
   "What a calendar month may cost, before credits and refunds.": "Lo que puede costar un mes natural, antes de créditos y reembolsos.",
-  "What a month may cost, for one account or all of them. OneUptime alerts as the month's spend passes each threshold, and when the month is on course to pass the budget.": "Lo que puede costar un mes, para una cuenta o para todas. OneUptime alerta cuando el gasto del mes supera cada umbral, y cuando el mes va camino de superar el presupuesto.",
+  "What a month may cost, for one account or all of them. OneUptime alerts as the month's spend passes each threshold, when the month is on course to pass the budget, and on a day that costs far more than usual.": "Lo que puede costar un mes, para una cuenta o para todas. OneUptime alerta cuando el gasto del mes supera cada umbral, cuando el mes va camino de superar el presupuesto y ante un día que cuesta mucho más de lo habitual.",
   "What about this node and the tasks it runs is broken or needs a look.": "Lo que está roto o necesita revisión en este nodo y las tareas que ejecuta.",
   "What about this service and its tasks is broken or needs a look.": "Lo que está roto o necesita revisión en este servicio y sus tareas.",
   "What about this task is broken or needs a look.": "Lo que está roto o necesita revisión en esta tarea.",

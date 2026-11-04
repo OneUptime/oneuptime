@@ -46,7 +46,7 @@ import React, { FunctionComponent, ReactElement } from "react";
 
 export const BUDGETS_TITLE: string = translationKey("Budgets");
 export const BUDGETS_DESCRIPTION: string = translationKey(
-  "What a month may cost, for one account or all of them. OneUptime alerts as the month's spend passes each threshold, and when the month is on course to pass the budget.",
+  "What a month may cost, for one account or all of them. OneUptime alerts as the month's spend passes each threshold, when the month is on course to pass the budget, and on a day that costs far more than usual.",
 );
 export const BUDGETS_EMPTY: string = translationKey(
   "No budgets yet. Create one to be alerted before a month costs more than it should.",

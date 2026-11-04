@@ -40711,7 +40711,7 @@
   "What Docker Swarm reports about this service.": "Docker Swarm이 이 서비스에 대해 보고하는 내용입니다.",
   "What Docker Swarm reports about this task.": "Docker Swarm이 이 작업에 대해 보고하는 내용입니다.",
   "What a calendar month may cost, before credits and refunds.": "한 달(달력 기준)에 허용하는 비용. 크레딧과 환불 전 금액입니다.",
-  "What a month may cost, for one account or all of them. OneUptime alerts as the month's spend passes each threshold, and when the month is on course to pass the budget.": "한 계정 또는 모든 계정에 한 달 동안 허용하는 비용. OneUptime은 그달 지출이 각 기준을 넘을 때와 예산을 넘을 것으로 예상될 때 알림을 보냅니다.",
+  "What a month may cost, for one account or all of them. OneUptime alerts as the month's spend passes each threshold, when the month is on course to pass the budget, and on a day that costs far more than usual.": "한 계정 또는 모든 계정에 한 달 동안 허용하는 비용. OneUptime은 그달 지출이 각 기준을 넘을 때, 예산을 넘을 것으로 예상될 때, 평소보다 훨씬 많은 비용이 든 날이 있을 때 알림을 보냅니다.",
   "What about this node and the tasks it runs is broken or needs a look.": "이 노드와 노드에서 실행되는 작업 중 고장 났거나 확인이 필요한 부분입니다.",
   "What about this service and its tasks is broken or needs a look.": "이 서비스와 서비스의 작업 중 고장 났거나 확인이 필요한 부분입니다.",
   "What about this task is broken or needs a look.": "이 작업 중 고장 났거나 확인이 필요한 부분입니다.",
