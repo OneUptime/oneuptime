@@ -195,6 +195,30 @@ describe("Probe Playwright browser install", () => {
     expect(listsDropped).toBeGreaterThan(purge);
   });
 
+  test("removes the X server Playwright lists, which nothing here starts, in the same layer", () => {
+    /*
+     * Playwright's Debian list names xvfb, for headed browsers, and it brings
+     * xserver-common: 14 high findings in the image scans. Headless is
+     * Playwright's default and SyntheticBrowser.ts does not change it. If it
+     * ever does, the browsers need these back.
+     */
+    expect(browserInstallInstruction).toContain(
+      "apt-get purge -y --auto-remove libavcodec59 xvfb xserver-common",
+    );
+    expect(
+      fs.readFileSync(
+        path.join(
+          PROBE_ROOT,
+          "Utils",
+          "Monitors",
+          "SyntheticRuntime",
+          "SyntheticBrowser.ts",
+        ),
+        "utf8",
+      ),
+    ).not.toMatch(/headless\s*:/);
+  });
+
   test("refreshes and then drops the apt lists in the same layer", () => {
     /*
      * `--with-deps` shells out to apt, so the lists have to be present, and
