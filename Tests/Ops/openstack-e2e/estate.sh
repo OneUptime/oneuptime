@@ -4,7 +4,7 @@
 # DevStack just deployed. Every page, health rule and alert template in the
 # OpenStack product is tested on what this estate makes a real cloud answer,
 # so it holds one of everything worth telling apart: instances running, shut
-# off and failed, volumes available, attached and in error, a network with a
+# off and failed, volumes available, attached, in error and stuck, a network with a
 # router and floating IPs, two projects to own them, a host in two aggregates, an
 # image stuck on its way to being usable and an instance booted from a volume.
 #
@@ -153,7 +153,7 @@ if ! openstack floating ip list --tags ou-spare -f value -c ID | grep -q .; then
   openstack floating ip create public --tag ou-spare >/dev/null
 fi
 
-log "Volumes: available, attached and in error"
+log "Volumes: available, attached, in error and stuck"
 make_volume() {
   local name="$1"
   openstack volume show "$name" >/dev/null 2>&1 || openstack volume create --size 1 "$name" >/dev/null
@@ -172,6 +172,11 @@ if OS_PROJECT_NAME=admin openstack volume service list >/dev/null 2>&1; then
     # A cloud admin forcing the state is the only way a healthy backend
     # produces this on demand; what the series then say is the same.
     OS_PROJECT_NAME=admin openstack volume set --state error "$(openstack volume show ou-vol-bad -f value -c id)"
+  fi
+  # Left on its way to something else, which nothing will finish: a volume stuck.
+  if [ "$(openstack volume show ou-vol-stuck -f value -c status 2>/dev/null || true)" != "attaching" ]; then
+    make_volume ou-vol-stuck
+    OS_PROJECT_NAME=admin openstack volume set --state attaching "$(openstack volume show ou-vol-stuck -f value -c id)"
   fi
   openstack volume snapshot show ou-snap >/dev/null 2>&1 \
     || openstack volume snapshot create --volume ou-vol-free ou-snap >/dev/null
