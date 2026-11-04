@@ -46,6 +46,13 @@ const ORDERS_DB_ID: string = "82000000-0000-4000-8000-000000000002";
 const CACHE_ID: string = "82000000-0000-4000-8000-000000000003";
 // A Compute Engine instance its billing export names: well, with a cost.
 const ETL_RUNNER_ID: string = "82000000-0000-4000-8000-000000000004";
+/*
+ * Sized by OneUptime from its own readings, no recommender speaking for
+ * them: an Azure VM billed by name with half its size to spare, a cache
+ * running hot, and an EC2 instance kept among the ways to spend less.
+ */
+const SHOP_WEB_1_ID: string = "82000000-0000-4000-8000-000000000005";
+const BATCH_1_ID: string = "82000000-0000-4000-8000-000000000006";
 
 const LAPTOP: { width: number; height: number } = { width: 1280, height: 900 };
 const PHONE: { width: number; height: number } = { width: 390, height: 844 };
@@ -86,6 +93,13 @@ function persian(english: string): string {
 interface Recorded {
   listRequests: Array<{ modelName: string; query: Record<string, unknown> }>;
   countRequests: Array<{ modelName: string; query: Record<string, unknown> }>;
+  // A resource's readings, as its right-sizing reads them.
+  metricRequests: Array<{
+    aggregationType: string;
+    interval: string | undefined;
+    names: Array<string>;
+    attributes: Record<string, string>;
+  }>;
   aggregateRequests: Array<{
     modelName: string;
     interval: string | undefined;
@@ -497,11 +511,15 @@ test.describe("the Overview", () => {
       page.getByRole("link", { name: "View costs" }),
     ).toHaveAttribute("href", COSTS);
 
-    // Ways to spend less: what the clouds' recommenders say, the largest first.
+    /*
+     * Ways to spend less: what the clouds' recommenders say, and
+     * OneUptime's own right-sizing (one, its saving not known yet), the
+     * largest first.
+     */
     const savingsCard: Locator = page.getByTestId("cloud-savings-card");
     await expect(savingsCard).toHaveAttribute("data-state", "found");
     await expect(savingsCard).toContainText("Up to $1,279 a month");
-    await expect(savingsCard).toContainText("7 recommendations");
+    await expect(savingsCard).toContainText("8 recommendations");
     const topSavings: Locator = savingsCard.getByTestId(
       "cloud-savings-top-row",
     );
@@ -1051,7 +1069,7 @@ test.describe("Costs", () => {
     const lastMonth: string = await tileValue(page, costs, "last-month");
     expect(await tileValue(page, costs, "savings")).toBe("$1,279");
     await expect(tileSublabel(page, costs, "savings")).toHaveText(
-      "7 recommendations",
+      "8 recommendations",
     );
     await expect(tileLink(page, costs, "savings")).toHaveAttribute(
       "href",
@@ -1431,19 +1449,43 @@ test.describe("Savings", () => {
     // What could be saved a month, and in what way.
     const savings: string = "cloud-savings-strip";
     expect(await tileValue(page, savings, "savings")).toBe("$1,279");
+    // OneUptime's own right-sizing counts as a fourth, saving not known yet.
     expect(await tileValue(page, savings, "rightsize")).toBe("$881.26");
     await expect(tileSublabel(page, savings, "rightsize")).toHaveText(
-      "3 recommendations",
+      "4 recommendations",
     );
     expect(await tileValue(page, savings, "idle")).toBe("$44.10");
     expect(await tileValue(page, savings, "commitment")).toBe("$300.00");
 
     const rows: Locator = page.locator("#cloud-savings-table-body > tr");
-    await expect(rows).toHaveCount(7);
+    await expect(rows).toHaveCount(8);
     const amounts: Array<number> = (
       await page.getByTestId("cloud-saving-amount").allTextContents()
     ).map(amountOf);
     expect(amounts).toEqual([410.5, 300, 280.32, 190.44, 54.1, 36.8, 7.3]);
+
+    /*
+     * OneUptime's own right-sizing, last: what it changes, what its
+     * readings were, and no amount until its cloud bills it by name.
+     */
+    const ours: Locator = rows.nth(7);
+    await expect(ours.getByTestId("cloud-saving-change")).toHaveText(
+      "m5.4xlarge → m5.xlarge",
+    );
+    await expect(ours.getByTestId("cloud-saving-evidence")).toHaveText(
+      "OneUptime's readings: CPU at or under 8% 95% of the time, never above 22%.",
+    );
+    await expect(ours.getByTestId("cloud-saving-amount-not-known")).toHaveText(
+      "Not known yet",
+    );
+    await expect(ours.getByRole("link", { name: "batch-1" })).toHaveAttribute(
+      "href",
+      `${CLOUD}/${BATCH_1_ID}`,
+    );
+    // The clouds' own say what made them in their consoles: no line of it.
+    await expect(rows.nth(0).getByTestId("cloud-saving-evidence")).toHaveCount(
+      0,
+    );
 
     /*
      * A row: what to do and what it changes, to which resource (its page),
@@ -1763,6 +1805,239 @@ test.describe("a resource's page and an account's Overview", () => {
     expect(amountOf(lastThirtyDays)).toBeGreaterThan(amountOf(month));
     await expect(cost).toContainText("n2-standard-16 → n2-standard-8");
   });
+
+  /*
+   * A resource no recommender of its cloud speaks for is sized from
+   * OneUptime's own readings of its CPU and memory: its right-sizing beside
+   * what it costs, side by side at a laptop's width and one under the other
+   * on a phone.
+   */
+  test("a resource no recommender speaks for: its right-sizing from OneUptime's own readings, beside what it costs", async ({
+    page,
+  }: {
+    page: Page;
+  }) => {
+    await page.setViewportSize(LAPTOP);
+    await open(page, `${CLOUD}/${SHOP_WEB_1_ID}`);
+
+    const sizing: Locator = page.getByTestId("cloud-right-sizing");
+    await expect(sizing).toHaveAttribute("data-verdict", "overprovisioned");
+    await expect(
+      page.getByTestId("card").filter({ has: sizing }),
+    ).toContainText("Right-sizing");
+    await expect(sizing.getByTestId("cloud-right-sizing-verdict")).toHaveText(
+      "Over-provisioned",
+    );
+    await expect(sizing.getByTestId("cloud-right-sizing-change")).toHaveText(
+      "Standard_D8s_v5 → Standard_D4s_v5",
+    );
+    await expect(sizing.getByTestId("cloud-right-sizing-headline")).toHaveText(
+      "A size half as big would do.",
+    );
+    // Its cloud bills it by name: what the change saves, in its currency.
+    const saving: Locator = sizing.getByTestId("cloud-right-sizing-saving");
+    await expect(saving).toHaveAttribute("data-known", "true");
+    await expect(saving).toContainText("a month less");
+    await expect(saving).toContainText("€");
+    for (const [testId, value] of [
+      ["cloud-right-sizing-cpu-p95", "12%"],
+      ["cloud-right-sizing-cpu-max", "30%"],
+      ["cloud-right-sizing-memory", "Not read"],
+      ["cloud-right-sizing-days", "14"],
+    ] as Array<[string, string]>) {
+      await expect(sizing.getByTestId(testId).locator("dd")).toHaveText(value);
+    }
+    await expect(sizing.getByTestId("cloud-right-sizing-why")).toContainText(
+      "At Standard_D4s_v5, its CPU would be at or under 24% 95% of the time.",
+    );
+    // Azure reports the memory left: what to check before a smaller size.
+    await expect(sizing.getByTestId("cloud-right-sizing-caveat")).toContainText(
+      "Its cloud reports the memory left, not the share used.",
+    );
+
+    // Three reads of its readings, then its cost a day, in euros.
+    const recordedReads: Recorded = await recorded(page);
+    expect(
+      recordedReads.metricRequests.map(
+        (request: { aggregationType: string }) => {
+          return request.aggregationType;
+        },
+      ),
+    ).toEqual(["P95", "Max", "Count"]);
+    for (const request of recordedReads.metricRequests) {
+      expect(request.interval).toBe("Total");
+      expect(Object.values(request.attributes)).toEqual([
+        "/subscriptions/5f0c2d7e-9a41-4f3b-8c6e-1d2a3b4c5d6e/resourceGroups/shop/providers/Microsoft.Compute/virtualMachines/shop-web-1",
+      ]);
+    }
+    const daily: Array<{ interval: string | undefined }> =
+      recordedReads.aggregateRequests.filter(
+        (request: { interval: string | undefined }) => {
+          return request.interval === "Day";
+        },
+      );
+    expect(daily).toHaveLength(1);
+    expect(
+      (daily[0] as unknown as { query: Record<string, unknown> }).query[
+        "currency"
+      ],
+    ).toBe("EUR");
+
+    // Side by side: What it costs first, its right-sizing beside it.
+    const cost: Locator = page.getByTestId("cloud-resource-cost");
+    const [costBox, sizingBox] = await boxesInOneFrame([cost, sizing]);
+    expect(Math.abs(costBox!.y - sizingBox!.y)).toBeLessThan(2);
+    expect(sizingBox!.x).toBeGreaterThan(costBox!.x + costBox!.width);
+    await screenshot(page, "cloud-resource-right-sizing-1280");
+
+    // On a phone: one under the other, nothing sideways.
+    await page.setViewportSize(PHONE);
+    const [phoneCost, phoneSizing] = await boxesInOneFrame([cost, sizing]);
+    expect(phoneSizing!.y).toBeGreaterThanOrEqual(
+      phoneCost!.y + phoneCost!.height,
+    );
+    await expectNoSidewaysScroll(page);
+    await screenshot(page, "cloud-resource-right-sizing-390");
+  });
+
+  test("a resource running hot is under-provisioned: the size twice as big, its memory read too", async ({
+    page,
+  }: {
+    page: Page;
+  }) => {
+    await page.setViewportSize(LAPTOP);
+    await open(page, `${CLOUD}/${CACHE_ID}`);
+
+    const sizing: Locator = page.getByTestId("cloud-right-sizing");
+    await expect(sizing).toHaveAttribute("data-verdict", "underprovisioned");
+    await expect(sizing.getByTestId("cloud-right-sizing-change")).toHaveText(
+      "cache.r6g.large → cache.r6g.xlarge",
+    );
+    await expect(sizing.getByTestId("cloud-right-sizing-headline")).toHaveText(
+      "A size twice as big would keep up.",
+    );
+    await expect(
+      sizing.getByTestId("cloud-right-sizing-memory").locator("dd"),
+    ).toHaveText("62%");
+    // Not billed by name, and no saving to say: no line of it, no caveat.
+    await expect(sizing.getByTestId("cloud-right-sizing-saving")).toHaveCount(
+      0,
+    );
+    await expect(sizing.getByTestId("cloud-right-sizing-caveat")).toHaveCount(
+      0,
+    );
+    // Its memory read too, under the name its cloud stores it with.
+    expect(
+      (await recorded(page)).metricRequests.map(
+        (request: { names: Array<string> }) => {
+          return request.names[0];
+        },
+      ),
+    ).toEqual([
+      "amazonaws.com/aws/elasticache/cpuutilization",
+      "amazonaws.com/aws/elasticache/cpuutilization",
+      "amazonaws.com/aws/elasticache/cpuutilization",
+      "amazonaws.com/aws/elasticache/databasememoryusagepercentage",
+    ]);
+  });
+
+  test("OneUptime's own right-sizing is said once: on its card, never again as a way to spend less", async ({
+    page,
+  }: {
+    page: Page;
+  }) => {
+    await page.setViewportSize(LAPTOP);
+    await open(page, `${CLOUD}/${BATCH_1_ID}`);
+
+    const sizing: Locator = page.getByTestId("cloud-right-sizing");
+    await expect(sizing.getByTestId("cloud-right-sizing-change")).toHaveText(
+      "m5.4xlarge → m5.xlarge",
+    );
+    await expect(sizing.getByTestId("cloud-right-sizing-headline")).toHaveText(
+      "A size a quarter as big would do.",
+    );
+    await expect(sizing.getByTestId("cloud-right-sizing-saving")).toHaveText(
+      "What it would save is said once its cloud bills it by name.",
+    );
+    // AWS bills it under its service only, and its one row is OneUptime's.
+    await expect(page.getByTestId("cloud-resource-cost")).toHaveCount(0);
+    await expect(sizing.getByTestId("cloud-right-sizing-caveat")).toContainText(
+      "CloudWatch reads an instance's memory only with its agent.",
+    );
+  });
+
+  test("a resource its cloud's recommender speaks for: its word only, and its readings never read for a size", async ({
+    page,
+  }: {
+    page: Page;
+  }) => {
+    await page.setViewportSize(LAPTOP);
+    await open(page, `${CLOUD}/${WEB_1_ID}`);
+
+    await expect(page.getByTestId("cloud-resource-cost")).toContainText(
+      "m5.2xlarge → m5.xlarge",
+    );
+    await expect(page.getByTestId("cloud-right-sizing")).toHaveCount(0);
+    expect((await recorded(page)).metricRequests).toEqual([]);
+  });
+
+  for (const way of [
+    { name: "de", query: "lang=de" },
+    { name: "fa", query: "lang=fa" },
+    { name: "dark", query: "theme=dark" },
+  ]) {
+    test(`${way.name}: a resource's right-sizing drawn whole at 1280 and 390, nothing sideways`, async ({
+      page,
+    }: {
+      page: Page;
+    }) => {
+      for (const width of [1280, 390]) {
+        await page.setViewportSize({ width, height: 900 });
+        await open(page, `${CLOUD}/${SHOP_WEB_1_ID}`, way.query);
+        const sizing: Locator = page.getByTestId("cloud-right-sizing");
+        await expect(sizing).toHaveAttribute("data-verdict", "overprovisioned");
+        // A size is its cloud's own name, left to right on every page.
+        await expect(
+          sizing.getByTestId("cloud-right-sizing-change"),
+        ).toHaveText("Standard_D8s_v5 → Standard_D4s_v5");
+        await expect(sizing.getByTestId("cloud-right-sizing-change")).toHaveCSS(
+          "direction",
+          "ltr",
+        );
+
+        if (way.name === "de") {
+          await expect(
+            sizing.getByTestId("cloud-right-sizing-headline"),
+          ).toHaveText(german("A size half as big would do."));
+          await expect(
+            page.getByTestId("card").filter({ has: sizing }),
+          ).toContainText(german("Right-sizing"));
+        }
+
+        if (way.name === "fa") {
+          await expect(
+            sizing.getByTestId("cloud-right-sizing-headline"),
+          ).toHaveText(persian("A size half as big would do."));
+          // Persian digits in its figures.
+          await expect(
+            sizing.getByTestId("cloud-right-sizing-days").locator("dd"),
+          ).toHaveText("۱۴");
+        }
+
+        if (way.name === "dark") {
+          expect(await surfaceLightnessOf(sizing)).toBeLessThan(0.3);
+        }
+
+        await expectNoSidewaysScroll(page, {
+          message: `right-sizing at ${width}, ${way.name}`,
+        });
+        await screenshot(
+          page,
+          `cloud-resource-right-sizing-${width}-${way.name}`,
+        );
+      }
+    });
+  }
 
   test("an account's Overview leads with what needs attention, and its month's spend is a click from its Costs", async ({
     page,
