@@ -1825,6 +1825,7 @@
   "Copy to clipboard": "Kopiér til udklipsholder",
   "Copied": "Kopieret",
   "Status: {{status}}": "Tilstand: {{status}}",
+  "Loading content": "Indlæser indhold",
   "markdownCallouts": {
     "caution": "Forsigtig",
     "danger": "Fare",
