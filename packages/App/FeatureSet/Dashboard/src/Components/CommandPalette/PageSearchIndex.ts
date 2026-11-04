@@ -2610,6 +2610,12 @@ export const PAGE_SEARCH_AREAS: ReadonlyArray<PageSearchArea> = [
             icon: IconProp.Database,
             keywords: ["connect a database", "collect now"],
           },
+          {
+            page: PageMap.DATA_OBSERVABILITY_STORAGE_PATHS,
+            title: "Storage Paths",
+            icon: IconProp.Folder,
+            keywords: ["s3", "gcs", "azure blob", "bucket", "partition"],
+          },
         ],
       },
       {
@@ -2638,6 +2644,18 @@ export const PAGE_SEARCH_AREAS: ReadonlyArray<PageSearchArea> = [
             icon: IconProp.Archive,
             keywords: ["deleted tables", "gone tables"],
           },
+          {
+            page: PageMap.DATA_OBSERVABILITY_SETTINGS,
+            title: "Settings",
+            icon: IconProp.Settings,
+            keywords: [
+              "keep failing rows",
+              "most a check may read",
+              "wait when a database is busy",
+            ],
+          },
+          ownerRules(PageMap.DATA_OBSERVABILITY_SETTINGS_OWNER_RULES),
+          labelRules(PageMap.DATA_OBSERVABILITY_SETTINGS_LABEL_RULES),
         ],
       },
     ],

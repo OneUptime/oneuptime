@@ -3,6 +3,7 @@ import { AddSecurityHunts1808450000000 } from "../../../../Server/Infrastructure
 import { AddDataSecurityIdentities1808791000000 } from "../../../../Server/Infrastructure/Postgres/SchemaMigrations/1808791000000-AddDataSecurityIdentities";
 import { AddDataSecurityFieldSuggestions1808792000000 } from "../../../../Server/Infrastructure/Postgres/SchemaMigrations/1808792000000-AddDataSecurityFieldSuggestions";
 import { AddDataObservability1808910000000 } from "../../../../Server/Infrastructure/Postgres/SchemaMigrations/1808910000000-AddDataObservability";
+import { AddDataAssetOwnersAndFeedback1808992700000 } from "../../../../Server/Infrastructure/Postgres/SchemaMigrations/1808992700000-AddDataAssetOwnersAndFeedback";
 import { AddDataAssetUsage1808991300000 } from "../../../../Server/Infrastructure/Postgres/SchemaMigrations/1808991300000-AddDataAssetUsage";
 import SchemaMigrations from "../../../../Server/Infrastructure/Postgres/SchemaMigrations/Index";
 import BaseModel from "../../../../Models/DatabaseModels/DatabaseBaseModel/DatabaseBaseModel";
@@ -129,6 +130,12 @@ const ADDED_LATER: ReadonlyArray<[string, string, MigrationClass]> = [
     AddDataSecurityFieldSuggestions1808792000000,
   ],
   // Data Observability's table-health schedule and status, on the same store.
+  [
+    "DataStore",
+    "newPersonalDataColumns",
+    AddDataAssetOwnersAndFeedback1808992700000,
+  ],
+  ["DataStore", "watchedPaths", AddDataAssetOwnersAndFeedback1808992700000],
   ["DataStore", "isTableHealthEnabled", AddDataObservability1808910000000],
   ["DataStore", "tableHealthCollectedAt", AddDataObservability1808910000000],
   ["DataStore", "tableHealthStatus", AddDataObservability1808910000000],

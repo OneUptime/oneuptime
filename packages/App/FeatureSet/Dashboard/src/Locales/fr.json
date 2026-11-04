@@ -43717,5 +43717,6 @@
   "The token is not scoped to a project that has endpoints. Scope the credential to a project.": "The token is not scoped to a project that has endpoints. Scope the credential to a project.",
   "This address is not Keystone": "This address is not Keystone",
   "This cloud is too large to collect from a probe": "This cloud is too large to collect from a probe",
-  "This probe may not collect this cloud": "This probe may not collect this cloud"
+  "This probe may not collect this cloud": "This probe may not collect this cloud",
+  "Issues someone acted on or called useful, less those called noise, over the last {{days}} days.": "Problèmes traités ou jugés utiles par quelqu'un, moins ceux jugés comme du bruit, au cours des {{days}} derniers jours."
 }

@@ -559,14 +559,17 @@ export class BillingService extends BaseService {
     }
 
     /*
-     * Set by the install (billing.watchedTables.stripePriceId), not fixed here:
-     * until it is, nothing is charged for watched tables.
+     * The live price is set by the install (billing.watchedTables.stripePriceId),
+     * not fixed here: until it is, nothing is charged for watched tables.
      */
-    if (
-      productType === ProductType.WatchedTables &&
-      WatchedTableStripePriceId
-    ) {
-      return WatchedTableStripePriceId;
+    if (productType === ProductType.WatchedTables) {
+      if (WatchedTableStripePriceId) {
+        return WatchedTableStripePriceId;
+      }
+
+      if (this.isTestEnvironment()) {
+        return "price_1UY8imANuQdJ93r7P5GmOhds";
+      }
     }
 
     throw new BadDataException(

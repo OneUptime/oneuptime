@@ -65,6 +65,13 @@ const DASHBOARD: string = "packages/App/FeatureSet/Dashboard/src";
  * one row there.
  */
 export const LONG_STEPS_ALLOWED: Array<ListedStep> = [
+  {
+    file: `${DASHBOARD}/Pages/ScheduledMaintenanceEvents/Create.tsx`,
+    form: "ModelForm: Create New Scheduled Maintenance Event",
+    step: "resources-affected",
+    reason:
+      "One question, what this event affects, asked per kind of resource: every field is an optional picker, and Change Monitor Status to only shows with a monitor picked.",
+  },
   /*
    * Read since the form's fields stopped going through a wrapper the scan
    * could not follow (the owner-user loader the owners picker replaced).

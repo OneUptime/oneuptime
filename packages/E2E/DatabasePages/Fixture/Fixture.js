@@ -686,6 +686,14 @@ async function handleApi(method, options) {
   const body = serialize(options.data) || {};
   fixture.apiRequests.push({ method, url: parsed.pathname, body });
 
+  // The tables of this database that Data Observability watches: none here.
+  if (
+    method === "POST" &&
+    parsed.pathname.endsWith("/data-observability/stores/of-database-server")
+  ) {
+    return ok({ stores: [] });
+  }
+
   // The logs and exceptions charts: nothing in this range.
   if (
     method === "POST" &&

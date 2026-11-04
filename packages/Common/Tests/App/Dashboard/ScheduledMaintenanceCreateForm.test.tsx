@@ -674,6 +674,7 @@ describe("Create Scheduled Maintenance Event", () => {
      */
     expect(fieldLabelsIn(form())).toEqual([
       "Monitors",
+      "Data Observability Databases",
       "Other Affected Resources",
       "Show event on these status pages",
       "Publish on Status Pages",

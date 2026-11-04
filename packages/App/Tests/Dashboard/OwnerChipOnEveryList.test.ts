@@ -74,6 +74,8 @@ const IDENTIFIER: RegExp = /^\w+$/;
  * file (from the Dashboard's src) and the table's id or name.
  */
 const NO_OWNER_CHIP: Record<string, string> = {
+  "Pages/DataProduct/View/Overview.tsx#data-product-tables":
+    "The few tables one data product is made of, picked by hand: a part of its page, not a list to search.",
   "Pages/Global/ActiveIncidents.tsx#active-incidents-table":
     "Every project's active incidents: owners and teams are each project's own.",
   "Pages/Global/ActiveAlerts.tsx#active-alerts-table":

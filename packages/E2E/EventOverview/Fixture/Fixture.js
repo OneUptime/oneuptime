@@ -8232,6 +8232,18 @@ async function handleApi(method, options) {
     return ok(subscriberAudience(body));
   }
 
+  /*
+   * Why a data alert happened (DataAlertExplanationCard), asked only for an
+   * alert a data monitor raised: nothing found, so the card draws nothing.
+   */
+  if (
+    method === "POST" &&
+    url.includes("/data-observability/alerts/") &&
+    url.endsWith("/explanation")
+  ) {
+    return ok({ explanation: null });
+  }
+
   if (
     url.includes("/ai-investigation/incident") ||
     url.includes("/ai-investigation/alert")

@@ -131,6 +131,12 @@ const OWNER_TABLES_CREATED_AFTER_MIGRATION: Array<string> = [
   // 1808500000000-AddDataSecurity
   "DataStoreOwnerTeam",
   "DataStoreOwnerUser",
+  // 1808992700000-AddDataAssetOwnersAndFeedback
+  "DataAssetOwnerTeam",
+  "DataAssetOwnerUser",
+  // 1808992900000-AddOpenStackClouds
+  "OpenStackCloudOwnerTeam",
+  "OpenStackCloudOwnerUser",
 ];
 
 const MIGRATED_OWNER_MODELS: Array<OwnerModel> = OWNER_MODELS.filter(

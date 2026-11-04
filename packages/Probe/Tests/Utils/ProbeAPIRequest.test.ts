@@ -44,6 +44,7 @@ describe("getDefaultRequestBody", () => {
         "snmpTables",
         "snmpWalk",
         "dataSecurityScan",
+        "dataObservabilityCollect",
       ],
     });
   });

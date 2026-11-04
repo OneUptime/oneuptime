@@ -84,6 +84,12 @@ const DASHBOARD: string = "packages/App/FeatureSet/Dashboard/src";
  */
 export const LONG_FORMS_WITHOUT_STEPS: Array<ListedForm> = [
   {
+    file: `${DASHBOARD}/Pages/ScheduledMaintenanceEvents/View/Index.tsx`,
+    form: "CardModelDetail: Affected Resources",
+    reason:
+      "One question, what this maintenance affects, asked per kind of resource: every field is an optional picker, and one of them only shows with a monitor picked.",
+  },
+  {
     file: "packages/App/FeatureSet/Accounts/src/Pages/Register.tsx",
     form: "ModelForm: Register",
     reason:
