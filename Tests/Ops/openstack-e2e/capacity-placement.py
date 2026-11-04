@@ -20,7 +20,8 @@ import urllib.error
 import urllib.parse
 import urllib.request
 
-MICROVERSION = "placement 1.39"
+# What the product's probe asks at: the first that says which tree a provider is in.
+MICROVERSION = "placement 1.29"
 COMPUTE_MICROVERSION = "compute 2.87"
 # Nova's own [scheduler] max_placement_results default: what one boot asks for.
 CANDIDATE_LIMIT = 1000
