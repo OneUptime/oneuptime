@@ -8,6 +8,7 @@ Koble til en AWS-konto, et Azure-abonnement eller et Google Cloud-prosjekt fra d
 - [Google Cloud](#google-cloud): En tjenestekonto med seks roller som bare kan lese.
 - [Hva OneUptime leser](#hva-oneuptime-leser): Ressurser, målinger, endringer, helsehendelser og kostnader, hvor ofte, og hva det koster å lese dem.
 - [Skykostnader og besparelser](/docs/telemetry/cloud-costs): Hva hver konto koster, måtene å bruke mindre på og budsjetter som varsler.
+- [Strøm CloudWatch-målinger og -logger](/docs/telemetry/cloud-streaming): Hver måling innen minutter, og CloudWatch Logs, via Amazon Data Firehose.
 - [Datasikkerhet](#datasikkerhet): Hva tilkoblingen lar Datasikkerhet lese, og hva hvert nivå legger til i kommandoen.
 - [La AI rette problemer](#la-ai-rette-problemer): Én kommando til, så kan OneUptime AI rette det den finner.
 :::
@@ -320,7 +321,7 @@ En organisasjonspolicy, `iam.disableServiceAccountKeyCreation`, kan forby nøkle
 :::
 
 :::details Ingen ressurser vises
-Den første lesingen lister hver ressurs i kontoen, enten den rapporterer målinger eller ikke. Hvis en tilkobling ikke virker, sier **View error** under **Sky → Koble til** hvorfor den siste lesingen mislyktes.
+Den første lesingen lister hver ressurs i kontoen, enten den rapporterer målinger eller ikke. Hvis en tilkobling ikke virker, sier **Vis feil** under **Sky → Koble til** hvorfor den siste lesingen mislyktes.
 :::
 
 :::details Noen av organisasjonens kontoer mangler

@@ -37,6 +37,7 @@ export const CLOUD_TROUBLESHOOTING: string = "telemetry/cloud-troubleshooting";
 export const CLOUD_ACCOUNTS: string = "telemetry/cloud-accounts";
 export const CLOUD_COSTS: string = "telemetry/cloud-costs";
 export const CLOUD_RESOURCES: string = "telemetry/cloud-resources";
+export const CLOUD_STREAMING: string = "telemetry/cloud-streaming";
 
 export interface CloudDocsPage {
   page: string;
@@ -52,6 +53,7 @@ export const CLOUD_DOCS_PAGES: ReadonlyArray<CloudDocsPage> = [
   { page: CLOUD_OTHER_PLATFORMS, navTitle: "Other Cloud Platforms" },
   { page: CLOUD_TROUBLESHOOTING, navTitle: "Cloud Troubleshooting" },
   { page: CLOUD_ACCOUNTS, navTitle: "Connect a Cloud Account" },
+  { page: CLOUD_STREAMING, navTitle: "Stream CloudWatch Metrics and Logs" },
   { page: CLOUD_COSTS, navTitle: "Cloud Costs and Savings" },
   { page: CLOUD_RESOURCES, navTitle: "Cloud Resources (IaaS & PaaS)" },
 ];
@@ -210,6 +212,8 @@ export const KEPT_AS_WRITTEN: Readonly<Record<string, Array<string>>> = {
     "JSON",
     "Monitoring Viewer",
   ],
+  // The streaming page names no console label: its bold words are the dialog's.
+  [CLOUD_STREAMING]: [],
 };
 
 /*
@@ -346,6 +350,16 @@ export const PROSE_LEADS: Readonly<Record<string, Array<string>>> = {
     "Discovery follows the metrics.",
     "No retention setting of its own.",
     "Polling costs money",
+  ],
+  [CLOUD_STREAMING]: [
+    "One stack in each Region.",
+    "The stream key says whose it is.",
+    "The reads leave streamed metrics to the stream.",
+    "Nothing is lost while OneUptime cannot take it.",
+    "A connected AWS account.",
+    "A project owner or admin.",
+    "AWS CloudShell in that account",
+    "An HTTPS address, on a self-hosted OneUptime.",
   ],
 };
 

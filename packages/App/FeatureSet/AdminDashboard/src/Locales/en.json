@@ -1825,6 +1825,7 @@
   "Copy to clipboard": "Copy to clipboard",
   "Copied": "Copied",
   "Status: {{status}}": "Status: {{status}}",
+  "Loading content": "Loading content",
   "markdownCallouts": {
     "caution": "Caution",
     "danger": "Danger",

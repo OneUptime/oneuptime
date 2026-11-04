@@ -1825,6 +1825,7 @@
   "Copy to clipboard": "क्लिपबोर्ड पर कॉपी करें",
   "Copied": "कॉपी हो गया",
   "Status: {{status}}": "स्थिति: {{status}}",
+  "Loading content": "सामग्री लोड हो रही है",
   "markdownCallouts": {
     "caution": "सावधानी",
     "danger": "खतरा",

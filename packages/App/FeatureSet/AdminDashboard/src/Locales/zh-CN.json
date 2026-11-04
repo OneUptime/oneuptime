@@ -1825,6 +1825,7 @@
   "Copy to clipboard": "复制到剪贴板",
   "Copied": "已复制",
   "Status: {{status}}": "状态：{{status}}",
+  "Loading content": "正在加载内容",
   "markdownCallouts": {
     "caution": "小心",
     "danger": "危险",

@@ -287,7 +287,8 @@ import { AddDataWarehouseSpend1808992400000 } from "./1808992400000-AddDataWareh
 import { WidenThingNameColumns1808992530000 } from "./1808992530000-WidenThingNameColumns";
 import { AddDataCheckReconciliationIndex1808992540000 } from "./1808992540000-AddDataCheckReconciliationIndex";
 import { AddSecurityLogSourceCaseMinimumSeverity1808992580000 } from "./1808992580000-AddSecurityLogSourceCaseMinimumSeverity";
-import { AddFixApprovalSourceAndRunbookTrackRecord1808992590000 } from "./1808992590000-AddFixApprovalSourceAndRunbookTrackRecord";
+import { AddCloudConnectionStreams1808992600000 } from "./1808992600000-AddCloudConnectionStreams";
+import { AddFixApprovalSourceAndRunbookTrackRecord1808992610000 } from "./1808992610000-AddFixApprovalSourceAndRunbookTrackRecord";
 import { AddConfigurableRuleCriteria1792500000000 } from "./1792500000000-AddConfigurableRuleCriteria";
 import { AddGoogleSecOpsDiagnostics1792300000000 } from "./1792300000000-AddGoogleSecOpsDiagnostics";
 import { AddIncomingCallPolicyPhoneNumbers1792600000000 } from "./1792600000000-AddIncomingCallPolicyPhoneNumbers";
@@ -1777,5 +1778,6 @@ export default [
   WidenThingNameColumns1808992530000,
   AddDataCheckReconciliationIndex1808992540000,
   AddSecurityLogSourceCaseMinimumSeverity1808992580000,
-  AddFixApprovalSourceAndRunbookTrackRecord1808992590000,
+  AddCloudConnectionStreams1808992600000,
+  AddFixApprovalSourceAndRunbookTrackRecord1808992610000,
 ];

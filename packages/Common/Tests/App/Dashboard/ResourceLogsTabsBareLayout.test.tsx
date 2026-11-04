@@ -189,6 +189,7 @@ import CephMetrics from "../../../../App/FeatureSet/Dashboard/src/Pages/Ceph/Vie
 import AppPlatformsLogs from "../../../../App/FeatureSet/Dashboard/src/Pages/AppPlatforms/View/Logs";
 import AppPlatformsMetrics from "../../../../App/FeatureSet/Dashboard/src/Pages/AppPlatforms/View/Metrics";
 import AppPlatformsTraces from "../../../../App/FeatureSet/Dashboard/src/Pages/AppPlatforms/View/Traces";
+import CloudLogs from "../../../../App/FeatureSet/Dashboard/src/Pages/Cloud/View/Logs";
 import DockerLogs from "../../../../App/FeatureSet/Dashboard/src/Pages/Docker/View/Logs";
 import DockerTraces from "../../../../App/FeatureSet/Dashboard/src/Pages/Docker/View/Traces";
 import DockerSwarmLogs from "../../../../App/FeatureSet/Dashboard/src/Pages/DockerSwarm/View/Logs";
@@ -243,6 +244,11 @@ const CLOUD_ENVIRONMENT: Fixture = {
   cloudAccountId: "123456789012",
   cloudRegion: "us-east-1",
 };
+// A function an AWS stream delivers the log group of.
+const CLOUD_RESOURCE: Fixture = {
+  name: "checkout",
+  providerResourceId: "arn:aws:lambda:us-east-1:123456789012:function:checkout",
+};
 const INVENTORY_ITEM: Fixture = {
   entityKey: "10000000-0000-4000-8000-000000000001:host:db-01",
   displayName: "db-01",
@@ -289,6 +295,15 @@ const LOGS_TABS: Record<string, LogsTabCase> = {
     viewerId: `cloud-resource-logs-${MODEL_ID_STRING}`,
     loaderTestId: "page-loader",
     notFoundMessage: "Cloud environment not found.",
+    remainingCardTitles: [],
+  },
+  Cloud: {
+    Page: CloudLogs,
+    item: CLOUD_RESOURCE,
+    removedCardTitle: "Cloud Resource Logs",
+    viewerId: `cloud-resource-streamed-logs-${MODEL_ID_STRING}`,
+    loaderTestId: "page-loader",
+    notFoundMessage: "Cloud resource not found.",
     remainingCardTitles: [],
   },
   Docker: {
