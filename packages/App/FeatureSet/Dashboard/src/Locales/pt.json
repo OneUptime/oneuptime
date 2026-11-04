@@ -42427,6 +42427,7 @@
   "Connect your Mattermost account": "Conecte sua conta do Mattermost",
   "Create a bot account for OneUptime in Mattermost, add it to your team, and paste its access token here.": "Crie uma conta de bot para o OneUptime no Mattermost, adicione-a à sua equipe e cole aqui o token de acesso dela.",
   "Disconnect Mattermost": "Desconectar o Mattermost",
+  "Drag to resize": "Arraste para redimensionar",
   "If Mattermost already has a channel with this name, OneUptime adds -2 to the end.": "Se o Mattermost já tiver um canal com este nome, o OneUptime adiciona -2 ao final.",
   "In Mattermost, go to Integrations → Bot Accounts, add a bot for OneUptime and copy its access token. Then add the bot to your team.": "No Mattermost, vá em Integrações → Contas de bot, adicione um bot para o OneUptime e copie o token de acesso dele. Depois adicione o bot à sua equipe.",
   "It posts as @{{bot}} on {{server}}: what your notification rules send, a channel for each incident with its people added. Each member connects their own Mattermost account to act as themselves.": "Publica como @{{bot}} em {{server}}: o que suas regras de notificação enviam e um canal para cada incidente com as pessoas dele adicionadas. Cada membro conecta a própria conta do Mattermost para agir em seu próprio nome.",
@@ -42440,6 +42441,7 @@
   "OneUptime sent a link to @{{username}} in Mattermost. Open it in this browser to finish connecting. It works once, for 15 minutes.": "O OneUptime enviou um link para @{{username}} no Mattermost. Abra-o neste navegador para concluir a conexão. Ele funciona uma vez, por 15 minutos.",
   "Post incidents, alerts and scheduled maintenance to your Mattermost channels, give each incident a channel of its own, and let your team acknowledge and resolve from Mattermost.": "Publique incidentes, alertas e manutenções programadas nos seus canais do Mattermost, dê a cada incidente um canal próprio e deixe sua equipe reconhecer e resolver pelo Mattermost.",
   "Post notifications to your Mattermost channels and act on them from Mattermost.": "Publique notificações nos seus canais do Mattermost e aja sobre elas no próprio Mattermost.",
+  "Resize Ask AI": "Redimensionar Pergunte à IA",
   "Send a link to your Mattermost account": "Enviar um link para sua conta do Mattermost",
   "Send link": "Enviar link",
   "Send link to @{{username}}": "Enviar link para @{{username}}",
@@ -42470,5 +42472,6 @@
   "In Slack": "No Slack",
   "Runbook Track Record": "Histórico de resultados do runbook",
   "Where fixes were approved": "Onde as correções foram aprovadas",
-  "You do not have permission to dismiss this fix. Dismissing a fix needs the same permission as approving one: starting runbook executions in this project.": "Você não tem permissão para dispensar esta correção. Dispensar uma correção exige a mesma permissão que aprová-la: iniciar execuções de runbook neste projeto."
+  "You do not have permission to dismiss this fix. Dismissing a fix needs the same permission as approving one: starting runbook executions in this project.": "Você não tem permissão para dispensar esta correção. Dispensar uma correção exige a mesma permissão que aprová-la: iniciar execuções de runbook neste projeto.",
+  "Disable Sign-In Links": "Disable Sign-In Links"
 }

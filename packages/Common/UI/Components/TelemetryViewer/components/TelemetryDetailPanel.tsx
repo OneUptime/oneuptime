@@ -6,6 +6,7 @@ import React, {
   useId,
   useRef,
 } from "react";
+import { PAGE_DOCK_END_CLASS_NAME } from "../../../Utils/PageDock";
 import { Translator } from "../../../Utils/TranslateTemplate";
 import useTranslator from "../../../Utils/UseTranslator";
 
@@ -204,7 +205,7 @@ const TelemetryDetailPanel: FunctionComponent<TelemetryDetailPanelProps> = (
       ref={panelRef}
       className={`flex h-full flex-col bg-white ${
         variant === "floating"
-          ? `fixed right-0 top-0 z-40 ${widthClassName} border-l border-gray-200 shadow-2xl`
+          ? `fixed ${PAGE_DOCK_END_CLASS_NAME} top-0 z-40 ${widthClassName} border-l border-gray-200 shadow-2xl`
           : "rounded-lg border border-gray-200"
       }`}
       role={variant === "floating" ? "dialog" : "region"}

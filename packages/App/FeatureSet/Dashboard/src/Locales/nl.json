@@ -42427,6 +42427,7 @@
   "Connect your Mattermost account": "Koppel je Mattermost-account",
   "Create a bot account for OneUptime in Mattermost, add it to your team, and paste its access token here.": "Maak in Mattermost een botaccount voor OneUptime aan, voeg het toe aan je team en plak hier het toegangstoken.",
   "Disconnect Mattermost": "Mattermost ontkoppelen",
+  "Drag to resize": "Sleep om het formaat te wijzigen",
   "If Mattermost already has a channel with this name, OneUptime adds -2 to the end.": "Als Mattermost al een kanaal met deze naam heeft, voegt OneUptime -2 aan het einde toe.",
   "In Mattermost, go to Integrations → Bot Accounts, add a bot for OneUptime and copy its access token. Then add the bot to your team.": "Ga in Mattermost naar Integraties → Botaccounts, voeg een bot voor OneUptime toe en kopieer het toegangstoken. Voeg de bot daarna toe aan je team.",
   "It posts as @{{bot}} on {{server}}: what your notification rules send, a channel for each incident with its people added. Each member connects their own Mattermost account to act as themselves.": "Het plaatst berichten als @{{bot}} op {{server}}: wat je meldingsregels versturen, en een kanaal voor elk incident waaraan de betrokken mensen worden toegevoegd. Elk lid koppelt zijn eigen Mattermost-account om als zichzelf te handelen.",
@@ -42440,6 +42441,7 @@
   "OneUptime sent a link to @{{username}} in Mattermost. Open it in this browser to finish connecting. It works once, for 15 minutes.": "OneUptime heeft een link naar @{{username}} in Mattermost gestuurd. Open die in deze browser om het koppelen af te ronden. De link werkt één keer, 15 minuten lang.",
   "Post incidents, alerts and scheduled maintenance to your Mattermost channels, give each incident a channel of its own, and let your team acknowledge and resolve from Mattermost.": "Plaats incidenten, waarschuwingen en gepland onderhoud in je Mattermost-kanalen, geef elk incident een eigen kanaal en laat je team ze vanuit Mattermost bevestigen en oplossen.",
   "Post notifications to your Mattermost channels and act on them from Mattermost.": "Plaats meldingen in je Mattermost-kanalen en handel ze af vanuit Mattermost.",
+  "Resize Ask AI": "Formaat van AI vragen wijzigen",
   "Send a link to your Mattermost account": "Een link naar je Mattermost-account sturen",
   "Send link": "Link sturen",
   "Send link to @{{username}}": "Link naar @{{username}} sturen",
@@ -42470,5 +42472,6 @@
   "In Slack": "In Slack",
   "Runbook Track Record": "Eerdere resultaten van het runbook",
   "Where fixes were approved": "Waar oplossingen zijn goedgekeurd",
-  "You do not have permission to dismiss this fix. Dismissing a fix needs the same permission as approving one: starting runbook executions in this project.": "Je hebt geen toestemming om deze oplossing te negeren. Een oplossing negeren vraagt dezelfde toestemming als haar goedkeuren: runbookuitvoeringen starten in dit project."
+  "You do not have permission to dismiss this fix. Dismissing a fix needs the same permission as approving one: starting runbook executions in this project.": "Je hebt geen toestemming om deze oplossing te negeren. Een oplossing negeren vraagt dezelfde toestemming als haar goedkeuren: runbookuitvoeringen starten in dit project.",
+  "Disable Sign-In Links": "Disable Sign-In Links"
 }

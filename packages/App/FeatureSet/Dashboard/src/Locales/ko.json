@@ -42427,6 +42427,7 @@
   "Connect your Mattermost account": "Mattermost 계정 연결",
   "Create a bot account for OneUptime in Mattermost, add it to your team, and paste its access token here.": "Mattermost에서 OneUptime용 봇 계정을 만들어 팀에 추가하고, 그 액세스 토큰을 여기에 붙여 넣으세요.",
   "Disconnect Mattermost": "Mattermost 연결 해제",
+  "Drag to resize": "드래그하여 크기 조정",
   "If Mattermost already has a channel with this name, OneUptime adds -2 to the end.": "Mattermost에 같은 이름의 채널이 이미 있으면 OneUptime이 끝에 -2를 붙입니다.",
   "In Mattermost, go to Integrations → Bot Accounts, add a bot for OneUptime and copy its access token. Then add the bot to your team.": "Mattermost에서 통합 → 봇 계정으로 이동해 OneUptime용 봇을 추가하고 액세스 토큰을 복사하세요. 그런 다음 봇을 팀에 추가하세요.",
   "It posts as @{{bot}} on {{server}}: what your notification rules send, a channel for each incident with its people added. Each member connects their own Mattermost account to act as themselves.": "{{server}}에서 @{{bot}}(으)로 게시합니다. 알림 규칙이 보내는 내용과, 관련된 사람들이 추가된 인시던트별 채널입니다. 각 멤버는 자신의 Mattermost 계정을 연결해 본인으로 작업합니다.",
@@ -42440,6 +42441,7 @@
   "OneUptime sent a link to @{{username}} in Mattermost. Open it in this browser to finish connecting. It works once, for 15 minutes.": "OneUptime이 Mattermost의 @{{username}}에게 링크를 보냈습니다. 이 브라우저에서 열어 연결을 완료하세요. 링크는 한 번, 15분 동안 사용할 수 있습니다.",
   "Post incidents, alerts and scheduled maintenance to your Mattermost channels, give each incident a channel of its own, and let your team acknowledge and resolve from Mattermost.": "인시던트, 알림, 예정된 유지보수를 Mattermost 채널에 게시하고, 인시던트마다 전용 채널을 만들어 팀이 Mattermost에서 바로 확인하고 해결하도록 하세요.",
   "Post notifications to your Mattermost channels and act on them from Mattermost.": "Mattermost 채널에 알림을 게시하고 Mattermost에서 바로 대응하세요.",
+  "Resize Ask AI": "AI에게 질문 크기 조정",
   "Send a link to your Mattermost account": "Mattermost 계정으로 링크 보내기",
   "Send link": "링크 보내기",
   "Send link to @{{username}}": "@{{username}}에게 링크 보내기",
@@ -42470,5 +42472,6 @@
   "In Slack": "Slack에서",
   "Runbook Track Record": "런북의 이전 결과",
   "Where fixes were approved": "수정이 승인된 곳",
-  "You do not have permission to dismiss this fix. Dismissing a fix needs the same permission as approving one: starting runbook executions in this project.": "이 수정을 무시할 권한이 없습니다. 수정을 무시하려면 승인할 때와 같은 권한이 필요합니다: 이 프로젝트에서 런북 실행을 시작할 권한입니다."
+  "You do not have permission to dismiss this fix. Dismissing a fix needs the same permission as approving one: starting runbook executions in this project.": "이 수정을 무시할 권한이 없습니다. 수정을 무시하려면 승인할 때와 같은 권한이 필요합니다: 이 프로젝트에서 런북 실행을 시작할 권한입니다.",
+  "Disable Sign-In Links": "Disable Sign-In Links"
 }
