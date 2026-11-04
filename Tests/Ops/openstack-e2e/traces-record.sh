@@ -67,6 +67,9 @@
 #   versions.txt         the versions a release really runs, and what the client offers
 #   profiler-conf.txt    the [profiler] section, without the key
 #   journal.jsonl.gz     what the services logged, to hold a trace's requests against
+#   stuck/<name>/        when a cloud did not come back: each service's status, last lines, and
+#                        where each of its processes is, by py-spy
+#   which-services-start.txt  then, whether it is the libraries or the driver, and which service
 #   scene-output/        what each scene's commands printed, for a person to check
 #   collector.log        the collector's own log
 #
@@ -119,6 +122,8 @@ PASTE_FILES=(
   /etc/cinder/api-paste.ini
   /etc/glance/glance-api-paste.ini
 )
+# A service's config that OSProfiler stays off in, once it has shown it cannot start with it on.
+declare -A NOT_TRACED_CONFS=()
 SAVED_DIR="$(mktemp -d)"
 PLACEMENT_WSGI="$("$VENV/bin/python" -I -c 'import placement.wsgi as module; print(module.__file__)' 2>/dev/null || true)"
 OSPROFILER_OPTS="$("$VENV/bin/python" -I -c 'import osprofiler.opts as module; print(module.__file__)' 2>/dev/null || true)"
@@ -156,10 +161,60 @@ set_in() {
 set_profiler() {
   local key="$1" value="$2" conf
   for conf in "${SERVICE_CONFS[@]}"; do
+    if [ -n "${NOT_TRACED_CONFS[$conf]:-}" ]; then
+      continue
+    fi
     if sudo test -f "$conf"; then
       sudo python3 -I "$CONFIGURE" ini-set "$conf" profiler "$key" "$value"
     fi
   done
+}
+
+# When a whole cloud will not come back with the driver on: whether the libraries alone do that,
+# and if not, which service does, one config at a time, each kept on only if the cloud answers
+# with it on. What it finds is in which-services-start.txt, and the scenes go on with those.
+find_what_starts_with_the_driver() {
+  local line conf units answer
+  : >"$TRACES_DIR/which-services-start.txt"
+  set_profiler enabled False
+  if restart_services; then
+    echo "With the libraries in and OSProfiler off, the cloud answers." >>"$TRACES_DIR/which-services-start.txt"
+  else
+    echo "With the libraries in and OSProfiler off, the cloud does not answer." >>"$TRACES_DIR/which-services-start.txt"
+    return 0
+  fi
+  for line in \
+    "/etc/keystone/keystone.conf devstack@keystone" \
+    "/etc/glance/glance-api.conf devstack@g-api" \
+    "/etc/placement/placement.conf devstack@placement-api" \
+    "/etc/neutron/neutron.conf devstack@neutron-api devstack@neutron-rpc-server" \
+    "/etc/cinder/cinder.conf devstack@c-api devstack@c-sch devstack@c-vol" \
+    "/etc/nova/nova-cpu.conf devstack@n-cpu" \
+    "/etc/nova/nova_cell1.conf devstack@n-cond-cell1" \
+    "/etc/nova/nova.conf devstack@n-api devstack@n-api-meta devstack@n-sch devstack@n-super-cond"; do
+    conf="${line%% *}"
+    units="${line#* }"
+    if ! sudo test -f "$conf"; then
+      continue
+    fi
+    log "With OSProfiler on in $conf alone"
+    set_in "$conf" profiler enabled True
+    answer=yes
+    # shellcheck disable=SC2086
+    sudo timeout 120 systemctl restart $units || answer=no
+    wait_until_answers 90 || answer=no
+    echo "$conf ($units): $answer" >>"$TRACES_DIR/which-services-start.txt"
+    if [ "$answer" != yes ]; then
+      record_where_everything_is "$(basename "$conf")"
+      clear_what_is_stuck
+      NOT_TRACED_CONFS[$conf]=1
+      set_in "$conf" profiler enabled False
+      # shellcheck disable=SC2086
+      sudo timeout 120 systemctl restart $units || true
+      wait_until_answers 90 || true
+    fi
+  done
+  cat "$TRACES_DIR/which-services-start.txt"
 }
 
 # What the guide gives, with two of its settings written out so a scene can turn them on.
@@ -172,28 +227,83 @@ profiler_on() {
   set_profiler trace_requests False
 }
 
+# How long a cloud gets to come back. It takes about a minute when nothing is wrong. Nothing
+# here waits for longer than this on one command, because on Hibiscus, with the driver's
+# libraries in, a restart never came back, and that cost the whole step and said nothing.
+COMES_BACK_WITHIN=240
+ONE_READ_WITHIN=30
+# Past this no scene starts, which leaves the end of the script the time to put the cloud back
+# and write down what happened, inside the step's own limit.
+SCENES_WITHIN=3600
+
 # Every part a boot needs, because a restart brings them back one at a time.
+answers_now() {
+  timeout "$ONE_READ_WITHIN" openstack compute service list --service nova-compute -f value -c State 2>/dev/null | grep -q '^up$' \
+    && timeout "$ONE_READ_WITHIN" openstack network list -f value -c ID >/dev/null 2>&1 \
+    && timeout "$ONE_READ_WITHIN" openstack image list -f value -c ID >/dev/null 2>&1 \
+    && timeout "$ONE_READ_WITHIN" openstack volume service list -f value -c State 2>/dev/null | grep -q '^up$'
+}
+
 wait_until_answers() {
-  local attempt
-  for attempt in $(seq 1 60); do
-    if openstack compute service list --service nova-compute -f value -c State 2>/dev/null | grep -q '^up$' \
-      && openstack network list -f value -c ID >/dev/null 2>&1 \
-      && openstack volume service list -f value -c State 2>/dev/null | grep -q '^up$'; then
+  local until_then=$((SECONDS + ${1:-$COMES_BACK_WITHIN}))
+  while [ "$SECONDS" -lt "$until_then" ]; do
+    if answers_now; then
       return 0
     fi
     sleep 5
-    : "$attempt"
   done
   echo "The cloud did not answer after a restart" >&2
   return 1
 }
 
+# Where every process of every service is, so that a service that hangs says where. Once per
+# name, in stuck/<name>/.
+record_where_everything_is() {
+  local name="$1" folder="$TRACES_DIR/stuck/$1" unit pid
+  mkdir -p "$folder"
+  sudo "$VENV/bin/pip" install py-spy >"$folder/py-spy-install.txt" 2>&1 || true
+  systemctl list-jobs --no-pager >"$folder/jobs.txt" 2>&1 || true
+  systemctl list-units --no-pager --all 'devstack@*' >"$folder/units.txt" 2>&1 || true
+  for unit in $(systemctl list-units --no-legend --plain --all 'devstack@*' | awk '{ print $1 }'); do
+    {
+      systemctl status --no-pager --lines=0 "$unit" || true
+      echo
+      sudo journalctl --no-pager -n 60 -u "$unit" || true
+      echo
+      for pid in $(systemctl show -p MainPID --value "$unit") \
+        $(sudo cat "/sys/fs/cgroup/system.slice/system-devstack.slice/$unit/cgroup.procs" 2>/dev/null); do
+        if [ "$pid" != 0 ]; then
+          echo "--- where $pid is"
+          sudo timeout 20 "$VENV/bin/py-spy" dump --pid "$pid" || true
+        fi
+      done
+    } >"$folder/$unit.txt" 2>&1
+  done
+}
+
+clear_what_is_stuck() {
+  sudo systemctl cancel || true
+  sudo systemctl reset-failed 'devstack@*' || true
+}
+
+STUCK_RESTARTS=0
+
+# Whether it came back. A caller that goes on regardless has what it needs to say why not.
 restart_services() {
+  local code=0
   log "Restarting the services"
-  sudo systemctl restart 'devstack@*' || true
-  wait_until_answers || sudo systemctl --no-pager --failed 'devstack@*' || true
+  sudo timeout "$COMES_BACK_WITHIN" systemctl restart 'devstack@*' || code=$?
+  if ! wait_until_answers; then
+    code=1
+  fi
+  if [ "$code" != 0 ]; then
+    STUCK_RESTARTS=$((STUCK_RESTARTS + 1))
+    record_where_everything_is "restart-$STUCK_RESTARTS"
+    clear_what_is_stuck
+  fi
   # A service that has just come back can still be registering itself.
   sleep 20
+  return "$code"
 }
 
 # Only what a patch to Placement changed, which takes seconds rather than a whole cloud.
@@ -203,7 +313,7 @@ restart_placement() {
 }
 
 signed() {
-  OS_PROFILE="$HMAC_KEY" timeout 600 openstack "$@"
+  OS_PROFILE="$HMAC_KEY" timeout 300 openstack "$@"
 }
 
 remember() {
@@ -223,6 +333,10 @@ spans_so_far() {
 scene() {
   local name="$1" started ended began finished code before after traces seconds output
   shift
+  if [ "$SECONDS" -gt "$SCENES_WITHIN" ]; then
+    echo "Scene $name did not start: this has run for too long already." | tee -a "$TRACES_DIR/scenes-not-run.txt" >&2
+    return 0
+  fi
   log "Scene $name"
   output="$TRACES_DIR/scene-output/$name.txt"
   before="$(spans_so_far)"
@@ -295,11 +409,11 @@ scene_signed_list() {
 }
 
 scene_unsigned_list() {
-  timeout 600 openstack server list --all-projects
+  timeout 300 openstack server list --all-projects
 }
 
 scene_wrong_key_list() {
-  OS_PROFILE=ou-not-the-key timeout 600 openstack server list --all-projects
+  OS_PROFILE=ou-not-the-key timeout 300 openstack server list --all-projects
 }
 
 scene_signed_boot() {
@@ -349,7 +463,7 @@ scene_signed_image() {
 # leads with the environment, because a flag stays in a shell's history and the process
 # list.
 scene_signed_token() {
-  timeout 600 openstack --os-profile "$HMAC_KEY" token issue -f value -c expires
+  timeout 300 openstack --os-profile "$HMAC_KEY" token issue -f value -c expires
 }
 
 scene_signed_delete() {
@@ -389,7 +503,7 @@ scene_signed_by_header() {
 # Nova says asked for it is what a span's request ID is held to.
 scene_unsigned_boot_and_delete() {
   export OS_PROJECT_NAME=ou-payments
-  timeout 600 openstack server create --wait --flavor ou.tiny --image "$IMAGE" --network ou-net "$1"
+  timeout 300 openstack server create --wait --flavor ou.tiny --image "$IMAGE" --network ou-net "$1"
   record_instance "${1//-/_}" "$1"
   openstack server delete --wait "$1"
 }
@@ -532,14 +646,15 @@ finish() {
   log "Putting the cloud back"
   restore_files "${SERVICE_CONFS[@]}" "${PASTE_FILES[@]}" "$PLACEMENT_WSGI" "$OSPROFILER_OPTS"
   sudo rm -rf "$SAVED_DIR"
+  clear_what_is_stuck
   (
     export OS_PROJECT_NAME=ou-payments
     for name in ou-trace-vm ou-trace-failed ou-trace-collector-down ou-trace-sql ou-trace-requests \
       ou-trace-placement ou-trace-whole ou-trace-whole-failed ou-trace-fix ou-trace-native-messaging \
       ou-trace-native-both ou-trace-native-osprofiler ou-trace-off; do
-      openstack server delete "$name" >/dev/null 2>&1
+      timeout "$ONE_READ_WITHIN" openstack server delete "$name" >/dev/null 2>&1
     done
-    openstack volume delete ou-trace-vol >/dev/null 2>&1
+    timeout "$ONE_READ_WITHIN" openstack volume delete ou-trace-vol >/dev/null 2>&1
   )
   restart_services
 
@@ -600,7 +715,7 @@ sudo sed -n '/^\[profiler\]/,/^\[/p' /etc/nova/nova.conf | sed -E 's/^(hmac_keys
 if "$VENV/bin/python" -I -c 'import opentelemetry.sdk' 2>/dev/null; then
   echo "This release's services already hold the OpenTelemetry SDK." | tee -a "$TRACES_DIR/versions.txt"
 else
-  restart_services
+  restart_services || true
   EXPECT_NO_SPANS=true MUST_SUCCEED=true scene no-libraries-signed-list scene_signed_list
 fi
 
@@ -613,9 +728,12 @@ fi
 {
   echo
   echo "What was installed for the driver:"
-  "$VENV/bin/pip" list 2>/dev/null | grep -iE '^opentelemetry-' || true
+  "$VENV/bin/pip" list 2>/dev/null | grep -iE '^(opentelemetry-|protobuf|grpcio)' || true
 } >>"$TRACES_DIR/versions.txt"
-restart_services
+if ! restart_services; then
+  log "The cloud did not come back with the driver on"
+  find_what_starts_with_the_driver
+fi
 
 EXPECT_NO_SPANS=true MUST_SUCCEED=true scene unsigned-list scene_unsigned_list
 EXPECT_NO_SPANS=true MUST_SUCCEED=true scene wrong-key-list scene_wrong_key_list
@@ -641,13 +759,13 @@ wait_for_collector
 
 log "trace_sqlalchemy on: what it costs, and what it holds"
 set_profiler trace_sqlalchemy True
-restart_services
+restart_services || true
 scene signed-boot-sql scene_boot_and_delete ou-trace-sql
 set_profiler trace_sqlalchemy False
 
 log "trace_requests on: the client spans it adds between services"
 set_profiler trace_requests True
-restart_services
+restart_services || true
 scene signed-boot-requests scene_boot_and_delete ou-trace-requests
 set_profiler trace_requests False
 
@@ -658,7 +776,7 @@ scene signed-boot-placement scene_boot_and_delete ou-trace-placement
 
 log "That, with Nova's conductor and scheduler on one worker each"
 one_worker_each
-restart_services
+restart_services || true
 scene signed-boot-whole scene_boot_and_delete ou-trace-whole
 scene signed-boot-failed-whole scene_boot_failed_and_delete ou-trace-whole-failed
 
@@ -666,7 +784,7 @@ log "Stock Placement over the fix OSProfiler could take"
 restore_files "${SERVICE_CONFS[@]}" "$PLACEMENT_WSGI"
 profiler_on
 apply_osprofiler_fix || echo "The fix did not apply: check.txt will say what is missing." >&2
-restart_services
+restart_services || true
 scene signed-boot-osprofiler-fix scene_boot_and_delete ou-trace-fix
 restore_files "$OSPROFILER_OPTS"
 
@@ -674,20 +792,20 @@ if has_native_tracing; then
   log "oslo.messaging's own tracing, with OSProfiler off"
   restore_files "${SERVICE_CONFS[@]}"
   native_messaging_on
-  restart_services
+  restart_services || true
   scene native-messaging-boot scene_unsigned_boot_and_delete ou-trace-native-messaging
   scene native-messaging-idle scene_idle
 
   log "oslo.middleware's as well"
   native_middleware_on
   record_native_settings
-  restart_services
+  restart_services || true
   scene native-both-boot scene_unsigned_boot_and_delete ou-trace-native-both
   scene native-both-idle scene_idle
 
   log "Both of those and OSProfiler at once"
   profiler_on
-  restart_services
+  restart_services || true
   scene native-with-osprofiler-boot scene_boot_and_delete ou-trace-native-osprofiler
 
   restore_files "${SERVICE_CONFS[@]}" "${PASTE_FILES[@]}"
@@ -700,5 +818,5 @@ fi
 
 log "Off again"
 set_profiler enabled False
-restart_services
+restart_services || true
 EXPECT_NO_SPANS=true MUST_SUCCEED=true scene off-again-signed-boot scene_boot_and_delete ou-trace-off
