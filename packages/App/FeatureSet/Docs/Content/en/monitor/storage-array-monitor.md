@@ -103,7 +103,7 @@ Several series carry their state in a **label**, with a value that is always 1:
 | `purefa_host_connectivity_info` | `status`, with `details` | Host |
 | `purefa_drive_capacity_bytes` | `component_status` (the value is the drive's capacity) | Drive |
 
-A series filtered to a bad state exists only while something is in that state, so no series means healthy. That is why **Max above 0 fires and 0 recovers** is the right shape for them, and how the templates are built: their recover criteria count a missing series as zero.
+A series filtered to a bad state exists only while something is in that state, so no series means healthy. That is why **Max above 0 fires and 0 recovers** is the right shape for them, and how the templates are built: their recover criteria count a missing series as zero. With no series left at all, such a template recovers only if `purefa_info` or `purefb_info` arrived in the same window, so an array that stopped reporting closes nothing.
 
 In monitor filters and group-by keys, the agent's attributes start with `resource.` (`resource.storage.array.name`, `resource.storage.system`), while Pure's own labels do not (`name`, `host`, `component_name`, `dimension`, `space`, `severity`).
 

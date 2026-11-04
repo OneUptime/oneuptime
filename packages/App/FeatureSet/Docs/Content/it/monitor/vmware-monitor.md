@@ -145,6 +145,7 @@ I modelli leggono gli ultimi 5 minuti, salvo diversa indicazione nella tabella. 
 - **I modelli di conteggio e di stato usano Max**, così una sola raccolta che mostra la condizione li fa scattare: errori di pacchetto, ballooning, swapping, stato rosso e giallo, host non effettivi, congestione.
 - **Host Not Responding usa Max e scatta a 0:** un host ESXi in funzione usa sempre memoria, quindi una raccolta che riporta memoria in uso è un host che risponde, e solo una finestra in cui nessuna lo ha fatto lo fa scattare.
 - **Ogni modello raggruppa sull'attributo di identità proprio dell'oggetto**, quindi scatta un incidente per ogni oggetto interessato, e l'incidente lo nomina. L'eccezione è **vCenter Stopped Reporting**, che osserva l'intero vCenter: quando i dati smettono di arrivare, gli altri modelli non hanno nulla da confrontare e mantengono il loro ultimo stato, quindi è questo il modello che te lo segnala.
+- **I modelli di conteggio per datacenter rientrano quando la loro serie scompare:** il ricevitore registra un conteggio solo per gli stati che esistono, quindi quando l'ultimo host rosso diventa verde non resta alcuna serie, e i loro criteri di rientro contano una serie mancante come 0. Quando nessun datacenter ha più una serie, rientrano solo se `vcenter.datacenter.cpu.limit` è arrivato nella stessa finestra, quindi un vCenter che ha smesso di riferire non chiude nulla.
 - **Le soglie sono fissate nella loro unità** (`%`, `ms`, `us`), così mantengono il loro significato qualunque unità mostri un grafico.
 
 ## Metriche raccolte

@@ -159,6 +159,7 @@ Maler leser de siste 5 minuttene med mindre tabellen sier noe annet. Et kriteriu
 - **PG- og poolserier er per pool**: Det finnes ingen måling for hele klyngen, så disse malene grupperer etter `pool_id` og åpner én hendelse per pool.
 - **Kapasitetsforhold** tar **Sum** av begge sider. Begge kommer fra samme innhenting fra mgr-en, så resultatet er en ekte prosentandel. **Inactive Placement Groups** bruker i stedet **Maksimum** per pool, fordi en sum ville lagt sammen innhentingene i en subtraksjon.
 - **Health check-maler** gjenoppretter når checken forsvinner: Gjenopprettingskriteriene deres teller en manglende serie som 0.
+- **Daemon Slow Operations** har én serie per daemon, så når ingen daemon har en serie igjen, er det ingenting å lese. Den gjenoppretter da bare hvis `ceph_health_status` kom i samme vindu, så en stoppet agent lukker ingenting.
 
 Noen varsler har ingen mal. Skjevfordelte PG-er krever statistikk på tvers av serier som kriterier ikke kan beregne. Kapasitetsprognoser krever en vekstkurve, som klyngens dashbord tegner i stedet. Forutsigelse av diskfeil og forsinket scrubbing har ingen mgr-metrikk, og NVMe-oF, RBD-speiling og cephadm krever andre eksportører.
 
