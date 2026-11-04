@@ -124,6 +124,11 @@ import LayerRotationSummary, {
   LAYER_TURNS_LIST_CLASS_NAME,
 } from "../../../../App/FeatureSet/Dashboard/src/Components/OnCallPolicy/OnCallScheduleLayer/LayerRotationSummary";
 import { getLayerPreviewEvents } from "../../../../App/FeatureSet/Dashboard/src/Components/OnCallPolicy/OnCallScheduleLayer/LayerShiftPreview";
+import { HAND_OFF_MOMENT_CLASS_NAME } from "../../../../App/FeatureSet/Dashboard/src/Components/OnCallPolicy/OnCallScheduleLayer/HandOffTimes";
+import {
+  formatHandOffInstant,
+  formatShiftInstant,
+} from "../../../../App/FeatureSet/Dashboard/src/Components/OnCallPolicy/OnCallScheduleLayer/LayerSummary";
 import { SCHEDULE_FINAL_SCHEDULE_DESCRIPTION } from "../../../../App/FeatureSet/Dashboard/src/Components/OnCallPolicy/OnCallScheduleLayer/ScheduleOverviewCopy";
 import OnCallDutyPolicyEscalationRuleSchedule from "../../../Models/DatabaseModels/OnCallDutyPolicyEscalationRuleSchedule";
 import OnCallDutyPolicyScheduleLayer from "../../../Models/DatabaseModels/OnCallDutyPolicyScheduleLayer";
@@ -615,6 +620,145 @@ describe("the labels and the hand-offs", () => {
       expect(row.classList.contains("border")).toBe(false);
       expect(row.classList.contains("rounded-lg")).toBe(false);
     }
+  });
+});
+
+/*
+ * A HAND-OFF ROW ON A PHONE (#5412's UI review): each of its two moments
+ * carried its year and its zone - "Mon, Nov 4, 2026, 9:00 AM GMT -> Mon,
+ * Nov 11, 2026, 9:00 AM GMT" - and a row took three lines. The card says
+ * its zone once, beside View as, and its moments are of this year: each
+ * moment says neither, unless it is of another year, and stays on one line,
+ * so a row too narrow for both breaks after the arrow - one moment a line.
+ */
+// A zone's abbreviation, as the card's moments would carry it in London.
+const ZONE_ABBREVIATION: RegExp = /\b(?:GMT|BST|UTC)\b/;
+
+describe("a hand-off row", () => {
+  // The rows' moments, as each row of a list draws them.
+  function momentsOf(list: HTMLElement): Array<Array<HTMLElement>> {
+    return Array.from(list.children).map((row: Element) => {
+      return Array.from(
+        row.querySelectorAll("[data-testid='hand-off-moment']"),
+      ) as Array<HTMLElement>;
+    });
+  }
+
+  function expectHandOffRows(list: HTMLElement): void {
+    const rows: Array<Array<HTMLElement>> = momentsOf(list);
+
+    expect(rows.length).toBeGreaterThan(1);
+
+    for (const moments of rows) {
+      // Two moments, each kept on one line.
+      expect(moments).toHaveLength(2);
+
+      for (const moment of moments) {
+        expect(moment.className).toBe(HAND_OFF_MOMENT_CLASS_NAME);
+        // No zone: the card says it once.
+        expect(moment.textContent).not.toMatch(ZONE_ABBREVIATION);
+      }
+
+      // The arrow goes with the first; the only break is after it.
+      expect(moments[0]!.textContent).toContain("\u2192");
+      expect(moments[1]!.textContent).not.toContain("\u2192");
+      expect(moments[0]!.nextSibling?.textContent).toBe(" ");
+    }
+  }
+
+  test("the Final schedule's upcoming hand-offs: no zone, no year of this year, each moment whole", async () => {
+    answerReads({ overrides: [], attachedPolicyIds: [POLICY_ID] });
+
+    renderPreview();
+    await waitForPreview();
+
+    expectHandOffRows(screen.getByTestId("upcoming-hand-offs"));
+  });
+
+  test("a layer's upcoming shifts read the same", () => {
+    const layer: OnCallDutyPolicyScheduleLayer = makeLayer();
+    const users: Array<OnCallDutyPolicyScheduleLayerUser> =
+      makeLayerUsers()[LAYER_ID]!;
+    const preview: { events: Array<any>; now: Date } = getLayerPreviewEvents({
+      layer: layer,
+      users: users,
+      timezone: "Europe/London",
+      numberOfShifts: 5,
+      overrides: [],
+    });
+
+    render(
+      <LayerRotationSummary
+        layer={layer}
+        users={users}
+        timezone="Europe/London"
+        events={preview.events}
+        now={preview.now}
+        hasLowerPriorityLayer={false}
+      />,
+    );
+
+    expectHandOffRows(screen.getByTestId("layer-upcoming-turns"));
+  });
+
+  test("an override in force names its window the same way", async () => {
+    answerReads({ overrides: [anOverride()], attachedPolicyIds: [POLICY_ID] });
+
+    renderPreview();
+    await waitForPreview();
+    await screen.findByTestId("override-scope-pill", {}, { timeout: 10000 });
+
+    const moments: Array<HTMLElement> =
+      screen.getAllByTestId("hand-off-moment");
+    const override: OnCallDutyPolicyUserOverride = anOverride();
+    const now: Date = OneUptimeDate.getCurrentDate();
+
+    expect(
+      moments.some((moment: HTMLElement): boolean => {
+        return (
+          moment.textContent ===
+          `${formatHandOffInstant(override.startsAt!, "Europe/London", now)}\u2192`
+        );
+      }),
+    ).toBe(true);
+  });
+
+  test("a moment of this year leaves its year and zone out; one of another year keeps its year", () => {
+    const now: Date = new Date("2026-11-04T09:00:00Z");
+
+    expect(
+      formatHandOffInstant(new Date("2026-11-11T09:00:00Z"), "UTC", now),
+    ).toBe(
+      OneUptimeDate.getDateAsFormattedStringInTimezone({
+        date: new Date("2026-11-11T09:00:00Z"),
+        timezone: "UTC",
+        showWeekday: true,
+        hideYear: true,
+        hideZone: true,
+      }),
+    );
+    expect(
+      formatHandOffInstant(new Date("2026-11-11T09:00:00Z"), "UTC", now),
+    ).not.toContain("2026");
+
+    // Into the new year: the year is said, the zone still is not.
+    const nextYear: string = formatHandOffInstant(
+      new Date("2027-01-04T09:00:00Z"),
+      "UTC",
+      now,
+    );
+
+    expect(nextYear).toContain("2027");
+    expect(nextYear).not.toContain("UTC");
+
+    // And never shorter than the moment it is: only the year and the zone go.
+    const full: string = formatShiftInstant(
+      new Date("2026-11-11T09:00:00Z"),
+      "UTC",
+    );
+
+    expect(full).toContain("2026");
+    expect(full).toContain("UTC");
   });
 });
 

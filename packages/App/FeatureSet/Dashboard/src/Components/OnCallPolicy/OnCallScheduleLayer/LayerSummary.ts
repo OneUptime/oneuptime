@@ -265,6 +265,26 @@ export function formatShiftInstant(
 }
 
 /*
+ * A moment in a list of hand-offs that says its zone once (HandOffTimes):
+ * "Mon, Jul 7, 9:00 AM" - no zone, and no year while it is the year `now`
+ * is in, read in the same zone. One of another year keeps its year: "Thu,
+ * Jan 1, 2026, 9:00 AM".
+ */
+export function formatHandOffInstant(
+  date: Date,
+  timezone: string | undefined,
+  now: Date,
+): string {
+  return OneUptimeDate.getDateAsFormattedStringInTimezone({
+    date,
+    timezone,
+    showWeekday: true,
+    hideZone: true,
+    hideYear: OneUptimeDate.isSameYearInTimezone(date, now, timezone),
+  });
+}
+
+/*
  * Compact human duration from a raw seconds count, e.g. "24h", "8h 30m",
  * "5d 12h", "45m".
  *

@@ -1,4 +1,6 @@
+import { ON_CALL_SECTION_LABEL_CLASS_NAME } from "../OnCallLabelClasses";
 import { getUserAvatarStyle, getUserInitials } from "./LayerUserColors";
+import HandOffTimes from "./HandOffTimes";
 import {
   formatDurationFromSeconds,
   formatRelativeStart,
@@ -49,7 +51,7 @@ const MAX_SHOWN_GAPS: number = 3;
  * too pale to read.
  */
 export const SECTION_LABEL_CLASS_NAME: string =
-  "flex items-center gap-1.5 text-xs font-semibold";
+  ON_CALL_SECTION_LABEL_CLASS_NAME;
 
 export const UPCOMING_HAND_OFFS_LIST_CLASS_NAME: string =
   "divide-y divide-gray-100 rounded-lg border border-gray-200 bg-white";
@@ -555,9 +557,12 @@ const FinalScheduleSummary: FunctionComponent<ComponentProps> = (
                     {getName(shift.userId)}
                   </div>
                   <div className="mt-0.5 text-xs text-gray-500">
-                    {formatShiftInstant(shift.start, props.timezone)}
-                    <span className="mx-1 text-gray-300">&rarr;</span>
-                    {formatShiftInstant(shift.end, props.timezone)}
+                    <HandOffTimes
+                      start={shift.start}
+                      end={shift.end}
+                      timezone={props.timezone}
+                      now={props.now}
+                    />
                   </div>
                   {getOverridePill(shift)}
                 </div>

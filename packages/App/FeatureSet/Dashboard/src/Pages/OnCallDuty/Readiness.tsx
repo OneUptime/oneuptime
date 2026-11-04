@@ -1,3 +1,4 @@
+import { ON_CALL_SECTION_LABEL_ON_WHITE_CLASS_NAME } from "../../Components/OnCallPolicy/OnCallLabelClasses";
 import CoverageMatrix, {
   CoverageModel,
   buildCoverageModel,
@@ -1992,7 +1993,7 @@ const OnCallReadinessPage: FunctionComponent<
         >
           <div className="grid grid-cols-1 gap-6 lg:grid-cols-3">
             <div className="lg:col-span-1">
-              <div className="text-xs font-medium uppercase tracking-wide text-gray-400">
+              <div className={ON_CALL_SECTION_LABEL_ON_WHITE_CLASS_NAME}>
                 {translator.translateText("Notification methods")}
               </div>
               {coverageRow.readiness.methods.length === 0 ? (
@@ -2053,7 +2054,7 @@ const OnCallReadinessPage: FunctionComponent<
 
               {coverageRow.readiness.reasons.length > 0 && (
                 <div className="mt-5">
-                  <div className="text-xs font-medium uppercase tracking-wide text-gray-400">
+                  <div className={ON_CALL_SECTION_LABEL_ON_WHITE_CLASS_NAME}>
                     {translator.translateText("Why this status")}
                   </div>
                   <ul className="mt-2 list-disc space-y-1 pl-4 text-sm text-gray-600">
@@ -2068,7 +2069,9 @@ const OnCallReadinessPage: FunctionComponent<
             </div>
 
             <div className="lg:col-span-2">
-              <div className="mb-2 text-xs font-medium uppercase tracking-wide text-gray-400">
+              <div
+                className={`mb-2 ${ON_CALL_SECTION_LABEL_ON_WHITE_CLASS_NAME}`}
+              >
                 {translator.translateText("Coverage")}
               </div>
               <CoverageMatrix model={coverageRow.model} />

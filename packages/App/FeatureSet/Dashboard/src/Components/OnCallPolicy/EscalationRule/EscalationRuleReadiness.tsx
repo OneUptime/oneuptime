@@ -1,3 +1,4 @@
+import { ON_CALL_SECTION_LABEL_ON_WHITE_CLASS_NAME } from "../OnCallLabelClasses";
 import HTTPErrorResponse from "Common/Types/API/HTTPErrorResponse";
 import HTTPResponse from "Common/Types/API/HTTPResponse";
 import URL from "Common/Types/API/URL";
@@ -1656,7 +1657,7 @@ export const RuleReadinessDetails: FunctionComponent<
         {report.unreachable.length > 0 ? (
           <div>
             <div className="mb-2 flex items-center justify-between">
-              <span className="text-xs font-semibold uppercase tracking-wide text-gray-400">
+              <span className={ON_CALL_SECTION_LABEL_ON_WHITE_CLASS_NAME}>
                 {translator.translateText("Cannot be paged")}
               </span>
               <span className="text-xs font-medium tabular-nums text-gray-500">
@@ -1689,7 +1690,9 @@ export const RuleReadinessDetails: FunctionComponent<
 
         {report.gaps.length > 0 ? (
           <div>
-            <div className="mb-2 text-xs font-semibold uppercase tracking-wide text-gray-400">
+            <div
+              className={`mb-2 ${ON_CALL_SECTION_LABEL_ON_WHITE_CLASS_NAME}`}
+            >
               {translator.translateText(
                 props.delivery.isFallbackEnabled
                   ? "Paged, but not the way they asked"
