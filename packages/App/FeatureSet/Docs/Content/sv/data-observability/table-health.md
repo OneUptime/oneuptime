@@ -15,7 +15,7 @@ Bara katalogen läses, och i MongoDB fältnamnen i en samlings nyaste dokument. 
 
 ## Aktualitet
 
-En tabells **rytm** är hur ofta den brukar ändras, inlärd från tiden mellan dess ändringar. En tabell som går en bra bit förbi sin rytm visas som **Late**, på sin sida och under **Tabeller**, och skriver hur långt förbi den är. Dess aktualitet är känd när den har ändrats två gånger: en tabell som laddas varje timme lärs in inom några timmar, en som laddas varje natt inom några dagar.
+En tabells **rytm** är hur ofta den brukar ändras, inlärd från tiden mellan dess ändringar. En tabell som går en bra bit förbi sin rytm visas som **Sen**, på sin sida och under **Tabeller**, och skriver hur långt förbi den är. Dess aktualitet är känd när den har ändrats två gånger: en tabell som laddas varje timme lärs in inom några timmar, en som laddas varje natt inom några dagar.
 
 En vy har inga egna rader, så dess aktualitet är dess källors aktualitet: se [Härkomst och pipelines](/docs/data-observability/lineage-and-pipelines).
 
@@ -29,7 +29,7 @@ En katalog kan säga att en tabell ändrades när bara dess underhåll gjorde de
 
 ## Rekommenderade larm
 
-Välj **Recommended Alerts** för en databas under **Databaser**. Varje rekommendation är en metrikövervakning för hela databasen som larmar en gång per tabell, så att även en tabell som skapas senare övervakas:
+Välj **Rekommenderade larm** för en databas under **Databaser**. Varje rekommendation är en metrikövervakning för hela databasen som larmar en gång per tabell, så att även en tabell som skapas senare övervakas:
 
 | Larm | Utlöses när |
 | --- | --- |

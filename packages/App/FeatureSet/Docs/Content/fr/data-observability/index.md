@@ -49,15 +49,15 @@ flowchart TB
 :::steps
 ### Connecter une base de données
 
-Ouvrez **Observabilité des données**, allez dans **Bases de données** et choisissez **Connect a Database**. Choisissez le moteur, puis donnez une chaîne de connexion en lecture seule, ou le nom de la variable d'environnement dans laquelle votre sonde la lit. [Connecter une base de données](/docs/data-observability/connect) montre le compte à créer pour chaque moteur.
+Ouvrez **Observabilité des données**, allez dans **Bases de données** et choisissez **Connecter une base de données**. Choisissez le moteur, puis donnez une chaîne de connexion en lecture seule, ou le nom de la variable d'environnement dans laquelle votre sonde la lit. [Connecter une base de données](/docs/data-observability/connect) montre le compte à créer pour chaque moteur.
 
 ### Voir ses tables
 
-En moins de cinq minutes, ses tables apparaissent sous **Tables**, chacune avec ses lignes, sa taille et le moment de sa dernière modification. La fraîcheur d'une table est connue dès qu'elle a changé deux fois : **Fresh** tant qu'elle garde son rythme, **Late** dès qu'elle le manque.
+En moins de cinq minutes, ses tables apparaissent sous **Tables**, chacune avec ses lignes, sa taille et le moment de sa dernière modification. La fraîcheur d'une table est connue dès qu'elle a changé deux fois : **À jour** tant qu'elle garde son rythme, **En retard** dès qu'elle le manque.
 
 ### Ajouter les alertes recommandées
 
-Dans **Bases de données**, choisissez **Recommended Alerts** pour la base de données, et ajoutez celles que vous voulez : une table en retard, une table dont les lignes chutent fortement ou sont anormalement peu nombreuses, une table dont les colonnes changent, et une base de données qui cesse de remonter des données. Chacune est un moniteur ordinaire : l'astreinte, les propriétaires, les fenêtres de maintenance et les pages de statut fonctionnent comme pour n'importe quel autre.
+Dans **Bases de données**, choisissez **Alertes recommandées** pour la base de données, et ajoutez celles que vous voulez : une table en retard, une table dont les lignes chutent fortement ou sont anormalement peu nombreuses, une table dont les colonnes changent, et une base de données qui cesse de remonter des données. Chacune est un moniteur ordinaire : l'astreinte, les propriétaires, les fenêtres de maintenance et les pages de statut fonctionnent comme pour n'importe quel autre.
 :::
 
 ## Prochaines étapes

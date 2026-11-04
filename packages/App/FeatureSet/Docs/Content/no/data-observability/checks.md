@@ -15,15 +15,15 @@ Legg til en sjekk i fanen **Sjekker** for en tabell:
 | **Invalid Percent** | Prosentandelen verdier utenfor en liste du oppgir |
 | **Format Mismatch Percent** | Prosentandelen verdier som ikke har et format du velger, for eksempel Email, UUID eller Country Code, eller som ikke samsvarer med et regulært uttrykk fra deg (alle databasemotorer unntatt SQL Server) |
 | **Orphan Count** | Rader der verdien ikke har noe samsvar i en kolonne i en annen tabell |
-| **Row Count** | Rader i tabellen, mest nyttig med **Segment By** |
+| **Row Count** | Rader i tabellen, mest nyttig med **Segmenter etter** |
 | **Egendefinert SQL** | Tallet som én skrivebeskyttet SELECT fra deg returnerer, kalt `value` (i MongoDB en aggregeringspipelines) |
-| **Failing Rows** | Hvor mange rader én skrivebeskyttet SELECT fra deg returnerer: radene som ikke skal finnes. 0 er friskt (i MongoDB dokumentene en pipeline ender i) |
+| **Rader som feiler** | Hvor mange rader én skrivebeskyttet SELECT fra deg returnerer: radene som ikke skal finnes. 0 er friskt (i MongoDB dokumentene en pipeline ender i) |
 
 Hver sjekk kjører hvert 15. minutt, hver time, hver 6. time eller hver dag, som én aggregeringssetning i en skrivebeskyttet transaksjon med tidsavbrudd for setninger. Verdien skrives som `oneuptime.data.check.value`, med `oneuptime.data.check.id`, `oneuptime.data.check.name` og `oneuptime.data.check.segment`.
 
 ## Foreslåtte sjekker
 
-**Suggested Checks** i den samme fanen foreslår sjekkene kolonnene i en tabell tilsier, bare ut fra navnene og typene deres: en id er unik, en `customer_id` har en tilsvarende rad i `customers`, en e-postadresse ser ut som en e-postadresse, et beløp er ikke negativt, en status holder seg til de vanlige verdiene, og en tabell som er delt opp etter leietaker, telles per leietaker. En kolonne Datasikkerhet vet inneholder en e-postadresse, et telefonnummer eller en IP-adresse, må ha det formatet, uansett hva den heter. Legg til én, legg til alle, eller avvis én for godt.
+**Foreslåtte sjekker** i den samme fanen foreslår sjekkene kolonnene i en tabell tilsier, bare ut fra navnene og typene deres: en id er unik, en `customer_id` har en tilsvarende rad i `customers`, en e-postadresse ser ut som en e-postadresse, et beløp er ikke negativt, en status holder seg til de vanlige verdiene, og en tabell som er delt opp etter leietaker, telles per leietaker. En kolonne Datasikkerhet vet inneholder en e-postadresse, et telefonnummer eller en IP-adresse, må ha det formatet, uansett hva den heter. Legg til én, legg til alle, eller avvis én for godt.
 
 ## En sjekk ut fra en setning
 
@@ -31,11 +31,11 @@ Hver sjekk kjører hvert 15. minutt, hver time, hver 6. time eller hver dag, som
 
 ## Segmenter
 
-**Segment By** kjører en sjekk én gang per verdi i en kolonne, for eksempel en leietaker eller en region: én serie og ett varsel for hver, for de 100 største segmentene. En segmentert Row Count-sjekk varsler når én leietaker slutter å sende data mens de andre fortsetter.
+**Segmenter etter** kjører en sjekk én gang per verdi i en kolonne, for eksempel en leietaker eller en region: én serie og ett varsel for hver, for de 100 største segmentene. En segmentert Row Count-sjekk varsler når én leietaker slutter å sende data mens de andre fortsetter.
 
 ## Varsler på en sjekk
 
-Sett **Alert When** for å varsle på en sjekk:
+Sett **Varsle når** for å varsle på en sjekk:
 
 - **Unusually High** eller **Unusually Low** sammenligner hver verdi med sin egen innlærte grunnlinje for den timen i uken.
 - **Over** eller **Under** sammenligner den med en terskel.
@@ -52,7 +52,7 @@ En sjekk konkurrerer med applikasjonen din om databasen, og på et datavarehus s
 
 ## Rader som feiler
 
-Et tall sier at noe er galt; noen få rader sier hva. På en selvdriftet OneUptime beholder **Behold feilaktige rader** under **Innstillinger** opptil 20 av radene en Failing Rows-, Invalid Percent-, Format Mismatch Percent- eller Orphan Count-sjekk fant, og **Failing Rows** på sjekken viser dem. Sensitive kolonner maskeres der raden leses, ut fra det Datasikkerhet fant i dem eller ut fra navnene deres, så det som forlater databasen, eller en sonde, allerede er maskert. OneUptime Cloud beholder ingen.
+Et tall sier at noe er galt; noen få rader sier hva. På en selvdriftet OneUptime beholder **Behold feilaktige rader** under **Innstillinger** opptil 20 av radene en Failing Rows-, Invalid Percent-, Format Mismatch Percent- eller Orphan Count-sjekk fant, og **Rader som feiler** på sjekken viser dem. Sensitive kolonner maskeres der raden leses, ut fra det Datasikkerhet fant i dem eller ut fra navnene deres, så det som forlater databasen, eller en sonde, allerede er maskert. OneUptime Cloud beholder ingen.
 
 ## Sjekker i en fil
 
@@ -115,7 +115,7 @@ En kopi som lastes etter en tidsplan, henger etter kilden sin: sammenlign en må
 
 ## dbt-tester
 
-Etter en dbt-bygging sender `oneuptime dbt upload` prosjektets artefakter (se [Avstamning og pipelines](/docs/data-observability/lineage-and-pipelines)). Hver test av en overvåket tabell vises deretter i fanen **Sjekker**, med siste resultat og radene den fant som feilet. Velg **Alert on Failures** for at en test som feiler, skal åpne et varsel.
+Etter en dbt-bygging sender `oneuptime dbt upload` prosjektets artefakter (se [Avstamning og pipelines](/docs/data-observability/lineage-and-pipelines)). Hver test av en overvåket tabell vises deretter i fanen **Sjekker**, med siste resultat og radene den fant som feilet. Velg **Varsle ved feil** for at en test som feiler, skal åpne et varsel.
 
 ## Neste steg
 

@@ -99,7 +99,7 @@ Wanneer een tabel verouderd raakt, raakt elke tabel die eruit is opgebouwd ook v
 - Ze begint als **bevestigd**, zodat niemand twee keer wordt opgeroepen voor één probleem, en herstelt vanzelf zodra haar gegevens herstellen.
 - Haar feed en haar kaart **Gegevens** zeggen welke waarschuwing haar veroorzaakte, en ze sluit zich aan bij de episode van de oorzaak.
 
-De kaart **Gegevens** van de oorzaak toont haar **Downstream Impact**: elke waarschuwing die ze veroorzaakte. De kaart van een tabelwaarschuwing toont ook de services die naar de tabel schrijven, met hun mislukte schrijfacties, en hun deploys en andere wijzigingen in de dag vóór de waarschuwing.
+De kaart **Gegevens** van de oorzaak toont haar **Impact stroomafwaarts**: elke waarschuwing die ze veroorzaakte. De kaart van een tabelwaarschuwing toont ook de services die naar de tabel schrijven, met hun mislukte schrijfacties, en hun deploys en andere wijzigingen in de dag vóór de waarschuwing.
 
 ## Voordat een wijziging wordt gemerged
 

@@ -15,7 +15,7 @@ Só o catálogo é lido e, no MongoDB, os nomes dos campos dos documentos mais r
 
 ## Atualidade
 
-O **ritmo** de uma tabela é a frequência com que ela costuma mudar, aprendida a partir do tempo entre as suas mudanças. Uma tabela que passa bem do seu ritmo aparece como **Late**, na página dela e em **Tabelas**, e grava o quanto já passou. A atualidade dela é conhecida assim que ela muda duas vezes: uma tabela carregada de hora em hora é aprendida em poucas horas, e uma carregada todas as noites, em poucos dias.
+O **ritmo** de uma tabela é a frequência com que ela costuma mudar, aprendida a partir do tempo entre as suas mudanças. Uma tabela que passa bem do seu ritmo aparece como **Atrasada**, na página dela e em **Tabelas**, e grava o quanto já passou. A atualidade dela é conhecida assim que ela muda duas vezes: uma tabela carregada de hora em hora é aprendida em poucas horas, e uma carregada todas as noites, em poucos dias.
 
 Uma view não tem linhas próprias, então a atualidade dela é a atualidade das suas origens: veja [Linhagem e pipelines](/docs/data-observability/lineage-and-pipelines).
 
@@ -29,7 +29,7 @@ Um catálogo pode dizer que uma tabela mudou quando só a manutenção dela mudo
 
 ## Alertas recomendados
 
-Em **Bancos de dados**, escolha **Recommended Alerts** para um banco de dados. Cada recomendação é um monitor de métricas para o banco de dados inteiro que alerta uma vez por tabela, então uma tabela criada depois também é observada:
+Em **Bancos de dados**, escolha **Alertas recomendados** para um banco de dados. Cada recomendação é um monitor de métricas para o banco de dados inteiro que alerta uma vez por tabela, então uma tabela criada depois também é observada:
 
 | Alerta | Dispara quando |
 | --- | --- |

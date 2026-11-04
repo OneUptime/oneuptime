@@ -15,15 +15,15 @@ Aggiungi un controllo nella scheda **Controlli** di una tabella:
 | **Invalid Percent** | Percentuale di valori fuori da un elenco che fornisci tu |
 | **Format Mismatch Percent** | Percentuale di valori che non sono in un formato che scegli, come Email, UUID o Country Code, oppure che non corrispondono a un'espressione regolare tua (tutti i motori tranne SQL Server) |
 | **Orphan Count** | Righe il cui valore non ha corrispondenza nella colonna di un'altra tabella |
-| **Row Count** | Righe nella tabella, utile soprattutto con **Segment By** |
+| **Row Count** | Righe nella tabella, utile soprattutto con **Segmenta per** |
 | **SQL personalizzato** | Il numero restituito da una tua SELECT di sola lettura, chiamato `value` (su MongoDB, quello di una pipeline di aggregazione) |
-| **Failing Rows** | Quante righe restituisce una tua SELECT di sola lettura: le righe che non dovrebbero esistere. 0 significa tutto a posto (su MongoDB, i documenti con cui termina una pipeline) |
+| **Righe in errore** | Quante righe restituisce una tua SELECT di sola lettura: le righe che non dovrebbero esistere. 0 significa tutto a posto (su MongoDB, i documenti con cui termina una pipeline) |
 
 Ogni controllo viene eseguito ogni 15 minuti, ogni ora, ogni 6 ore o ogni giorno, come un'unica istruzione di aggregazione in una transazione di sola lettura con un timeout per l'istruzione. Il suo valore viene scritto come `oneuptime.data.check.value`, con `oneuptime.data.check.id`, `oneuptime.data.check.name` e `oneuptime.data.check.segment`.
 
 ## Controlli suggeriti
 
-**Suggested Checks**, nella stessa scheda, propone i controlli che le colonne di una tabella richiedono, solo in base ai loro nomi e tipi: un id è univoco, un `customer_id` ha una riga corrispondente in `customers`, un'email ha l'aspetto di un'email, un importo non è negativo, uno stato mantiene i suoi valori abituali, e una tabella suddivisa per tenant viene contata per tenant. Una colonna che Data Security sa contenere un indirizzo email, un numero di telefono o un indirizzo IP viene vincolata a quel formato, qualunque sia il suo nome. Aggiungine uno, aggiungili tutti, oppure scartane uno per sempre.
+**Controlli suggeriti**, nella stessa scheda, propone i controlli che le colonne di una tabella richiedono, solo in base ai loro nomi e tipi: un id è univoco, un `customer_id` ha una riga corrispondente in `customers`, un'email ha l'aspetto di un'email, un importo non è negativo, uno stato mantiene i suoi valori abituali, e una tabella suddivisa per tenant viene contata per tenant. Una colonna che Data Security sa contenere un indirizzo email, un numero di telefono o un indirizzo IP viene vincolata a quel formato, qualunque sia il suo nome. Aggiungine uno, aggiungili tutti, oppure scartane uno per sempre.
 
 ## Un controllo da una frase
 
@@ -31,11 +31,11 @@ Ogni controllo viene eseguito ogni 15 minuti, ogni ora, ogni 6 ore o ogni giorno
 
 ## Segmenti
 
-**Segment By** esegue un controllo una volta per ogni valore di una colonna, come un tenant o una regione: una serie e un avviso per ciascuno, per i 100 segmenti più grandi. Un numero di righe segmentato avvisa quando un tenant smette di inviare dati mentre gli altri continuano.
+**Segmenta per** esegue un controllo una volta per ogni valore di una colonna, come un tenant o una regione: una serie e un avviso per ciascuno, per i 100 segmenti più grandi. Un numero di righe segmentato avvisa quando un tenant smette di inviare dati mentre gli altri continuano.
 
 ## Avvisi su un controllo
 
-Imposta **Alert When** per ricevere un avviso su un controllo:
+Imposta **Avvisa quando** per ricevere un avviso su un controllo:
 
 - **Unusually High** o **Unusually Low** confronta ogni valore con la sua baseline appresa per quell'ora della settimana.
 - **Sopra** o **Sotto** lo confronta con una soglia.
@@ -52,7 +52,7 @@ Un controllo compete con la tua applicazione per il database e, su un warehouse 
 
 ## Righe in errore
 
-Un numero dice che qualcosa non va; poche righe dicono cosa. Su un OneUptime self-hosted, **Conserva Failing Rows** in **Impostazioni** conserva fino a 20 delle righe trovate da un controllo Failing Rows, Invalid Percent, Format Mismatch Percent o Orphan Count, e **Failing Rows** sul controllo le mostra. Le colonne sensibili sono mascherate dove la riga viene letta, in base a ciò che Data Security vi ha trovato o ai loro nomi, quindi ciò che lascia il database, o una sonda, è già mascherato. OneUptime Cloud non ne conserva nessuna.
+Un numero dice che qualcosa non va; poche righe dicono cosa. Su un OneUptime self-hosted, **Conserva Failing Rows** in **Impostazioni** conserva fino a 20 delle righe trovate da un controllo Failing Rows, Invalid Percent, Format Mismatch Percent o Orphan Count, e **Righe in errore** sul controllo le mostra. Le colonne sensibili sono mascherate dove la riga viene letta, in base a ciò che Data Security vi ha trovato o ai loro nomi, quindi ciò che lascia il database, o una sonda, è già mascherato. OneUptime Cloud non ne conserva nessuna.
 
 ## Controlli in un file
 
@@ -115,7 +115,7 @@ Una copia caricata secondo una pianificazione resta indietro rispetto alla sua o
 
 ## Test di dbt
 
-Dopo una build di dbt, `oneuptime dbt upload` invia gli artefatti del progetto (vedi [Lineage e pipeline](/docs/data-observability/lineage-and-pipelines)). Ogni test di una tabella sorvegliata compare allora nella sua scheda **Controlli**, con il suo ultimo risultato e le righe che ha trovato in errore. Scegli **Alert on Failures** perché un test non superato apra un avviso.
+Dopo una build di dbt, `oneuptime dbt upload` invia gli artefatti del progetto (vedi [Lineage e pipeline](/docs/data-observability/lineage-and-pipelines)). Ogni test di una tabella sorvegliata compare allora nella sua scheda **Controlli**, con il suo ultimo risultato e le righe che ha trovato in errore. Scegli **Avvisa in caso di errori** perché un test non superato apra un avviso.
 
 ## Passaggi successivi
 

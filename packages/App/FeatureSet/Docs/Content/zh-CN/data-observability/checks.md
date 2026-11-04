@@ -15,15 +15,15 @@
 | **Invalid Percent** | 不在你给出的列表中的值所占的百分比 |
 | **Format Mismatch Percent** | 不在你选择的格式中的值所占的百分比，例如 Email、UUID 或 Country Code，或者不匹配你自己的正则表达式的值所占的百分比（SQL Server 以外的所有引擎） |
 | **Orphan Count** | 其值在另一个表的列中没有匹配项的行 |
-| **Row Count** | 表中的行数，与 **Segment By** 搭配使用最有用 |
+| **Row Count** | 表中的行数，与 **分段依据** 搭配使用最有用 |
 | **自定义 SQL** | 你的一条只读 SELECT 返回的、名为 `value` 的数字（在 MongoDB 中为聚合管道返回的数字） |
-| **Failing Rows** | 你的一条只读 SELECT 返回多少行：即不应该存在的行。0 表示健康（在 MongoDB 中为管道最终得到的文档） |
+| **失败的行** | 你的一条只读 SELECT 返回多少行：即不应该存在的行。0 表示健康（在 MongoDB 中为管道最终得到的文档） |
 
 每个检查每 15 分钟、每小时、每 6 小时或每天运行一次，作为一条聚合语句，在带有语句超时的只读事务中执行。它的值写入为 `oneuptime.data.check.value`，并带有 `oneuptime.data.check.id`、`oneuptime.data.check.name` 和 `oneuptime.data.check.segment`。
 
 ## 建议的检查
 
-同一标签页上的 **Suggested Checks** 会仅根据列的名称和类型，提供表的列所需要的检查：id 是唯一的、`customer_id` 在 `customers` 中有匹配的行、电子邮件看起来像电子邮件、金额不是负数、状态保持其通常的值，以及按租户拆分的表按租户计数。数据安全知道其中保存的是电子邮件地址、电话号码或 IP 地址的列，无论它叫什么名字，都会按该格式检查。你可以添加一个、全部添加，或者永久隐藏某一个。
+同一标签页上的 **建议的检查** 会仅根据列的名称和类型，提供表的列所需要的检查：id 是唯一的、`customer_id` 在 `customers` 中有匹配的行、电子邮件看起来像电子邮件、金额不是负数、状态保持其通常的值，以及按租户拆分的表按租户计数。数据安全知道其中保存的是电子邮件地址、电话号码或 IP 地址的列，无论它叫什么名字，都会按该格式检查。你可以添加一个、全部添加，或者永久隐藏某一个。
 
 ## 用一句话编写检查
 
@@ -31,11 +31,11 @@
 
 ## 分段
 
-**Segment By** 会针对某一列的每个值（例如租户或区域）各运行一次检查：最大的 100 个分段各有一个序列和一个警报。分段的 Row Count 检查会在某个租户停止发送数据、而其他租户仍在继续发送时发出警报。
+**分段依据** 会针对某一列的每个值（例如租户或区域）各运行一次检查：最大的 100 个分段各有一个序列和一个警报。分段的 Row Count 检查会在某个租户停止发送数据、而其他租户仍在继续发送时发出警报。
 
 ## 检查的警报
 
-设置 **Alert When** 以针对检查发出警报：
+设置 **发出警报的条件** 以针对检查发出警报：
 
 - **Unusually High** 或 **Unusually Low** 会把每个值与它自己在每周该时段学习到的基线进行比较。
 - **高于** 或 **低于** 会把它与阈值进行比较。
@@ -52,7 +52,7 @@
 
 ## 失败的行
 
-数字说明出了问题；几行数据则说明问题出在哪里。在自托管的 OneUptime 上，**设置** 下的 **保留失败的行** 会保留 Failing Rows、Invalid Percent、Format Mismatch Percent 或 Orphan Count 检查发现的最多 20 行，检查上的 **Failing Rows** 会显示它们。敏感列会在读取行的地方被遮盖，依据是数据安全在其中发现的内容或它们的名称，因此离开数据库或探测器的内容已经被遮盖。OneUptime Cloud 不保留任何行。
+数字说明出了问题；几行数据则说明问题出在哪里。在自托管的 OneUptime 上，**设置** 下的 **保留失败的行** 会保留 Failing Rows、Invalid Percent、Format Mismatch Percent 或 Orphan Count 检查发现的最多 20 行，检查上的 **失败的行** 会显示它们。敏感列会在读取行的地方被遮盖，依据是数据安全在其中发现的内容或它们的名称，因此离开数据库或探测器的内容已经被遮盖。OneUptime Cloud 不保留任何行。
 
 ## 文件中的检查
 
@@ -115,7 +115,7 @@ oneuptime data-checks apply checks.yaml --prune
 
 ## dbt 测试
 
-dbt 构建完成后，`oneuptime dbt upload` 会发送项目的构建产物（请参阅 [血缘与管道](/docs/data-observability/lineage-and-pipelines)）。之后，受监视的表的每个测试都会显示在该表的 **检查** 标签页上，并附上它的最新结果和它发现的失败行。选择 **Alert on Failures**，即可让失败的测试打开一个警报。
+dbt 构建完成后，`oneuptime dbt upload` 会发送项目的构建产物（请参阅 [血缘与管道](/docs/data-observability/lineage-and-pipelines)）。之后，受监视的表的每个测试都会显示在该表的 **检查** 标签页上，并附上它的最新结果和它发现的失败行。选择 **失败时发出警报**，即可让失败的测试打开一个警报。
 
 ## 后续步骤
 

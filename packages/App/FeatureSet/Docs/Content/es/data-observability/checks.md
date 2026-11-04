@@ -15,15 +15,15 @@ Añade una comprobación en la pestaña **Comprobaciones** de una tabla:
 | **Invalid Percent** | Porcentaje de valores que están fuera de una lista que proporcionas |
 | **Format Mismatch Percent** | Porcentaje de valores que no están en un formato que eliges, como Email, UUID o Country Code, o que no coinciden con una expresión regular tuya (todos los motores salvo SQL Server) |
 | **Orphan Count** | Filas cuyo valor no tiene correspondencia en la columna de otra tabla |
-| **Número de filas** | Filas de la tabla, sobre todo útil con **Segment By** |
+| **Número de filas** | Filas de la tabla, sobre todo útil con **Segmentar por** |
 | **SQL personalizado** | El número que devuelve un SELECT tuyo de solo lectura, llamado `value` (en MongoDB, el de un pipeline de agregación) |
-| **Failing Rows** | Cuántas filas devuelve un SELECT tuyo de solo lectura: las filas que no deberían existir. 0 es saludable (en MongoDB, los documentos con los que termina un pipeline) |
+| **Filas con error** | Cuántas filas devuelve un SELECT tuyo de solo lectura: las filas que no deberían existir. 0 es saludable (en MongoDB, los documentos con los que termina un pipeline) |
 
 Cada comprobación se ejecuta cada 15 minutos, cada hora, cada 6 horas o cada día, como una única sentencia de agregación en una transacción de solo lectura con un tiempo de espera de sentencia. Su valor se escribe como `oneuptime.data.check.value`, con `oneuptime.data.check.id`, `oneuptime.data.check.name` y `oneuptime.data.check.segment`.
 
 ## Comprobaciones sugeridas
 
-**Suggested Checks**, en la misma pestaña, ofrece las comprobaciones que piden las columnas de una tabla, solo a partir de sus nombres y tipos: un id es único, un `customer_id` tiene una fila correspondiente en `customers`, un correo electrónico tiene forma de correo, un importe no es negativo, un estado mantiene sus valores habituales y una tabla dividida por inquilino se cuenta por inquilino. Una columna que Seguridad de datos sabe que contiene una dirección de correo, un número de teléfono o una dirección IP se somete a ese formato, se llame como se llame. Añade una, añádelas todas o descarta una para siempre.
+**Comprobaciones sugeridas**, en la misma pestaña, ofrece las comprobaciones que piden las columnas de una tabla, solo a partir de sus nombres y tipos: un id es único, un `customer_id` tiene una fila correspondiente en `customers`, un correo electrónico tiene forma de correo, un importe no es negativo, un estado mantiene sus valores habituales y una tabla dividida por inquilino se cuenta por inquilino. Una columna que Seguridad de datos sabe que contiene una dirección de correo, un número de teléfono o una dirección IP se somete a ese formato, se llame como se llame. Añade una, añádelas todas o descarta una para siempre.
 
 ## Una comprobación a partir de una frase
 
@@ -31,11 +31,11 @@ Cada comprobación se ejecuta cada 15 minutos, cada hora, cada 6 horas o cada d�
 
 ## Segmentos
 
-**Segment By** ejecuta una comprobación una vez por cada valor de una columna, como un inquilino o una región: una serie y una alerta para cada uno, para los 100 segmentos más grandes. Un número de filas segmentado alerta cuando un inquilino deja de enviar datos mientras los demás siguen.
+**Segmentar por** ejecuta una comprobación una vez por cada valor de una columna, como un inquilino o una región: una serie y una alerta para cada uno, para los 100 segmentos más grandes. Un número de filas segmentado alerta cuando un inquilino deja de enviar datos mientras los demás siguen.
 
 ## Alertas sobre una comprobación
 
-Configura **Alert When** para alertar sobre una comprobación:
+Configura **Alertar cuando** para alertar sobre una comprobación:
 
 - **Unusually High** o **Unusually Low** compara cada valor con su propia línea base aprendida para esa hora de la semana.
 - **Por encima de** o **Por debajo de** lo compara con un umbral.
@@ -52,7 +52,7 @@ Una comprobación compite con tu aplicación por la base de datos, y en un almac
 
 ## Filas que fallan
 
-Un número dice que algo va mal; unas pocas filas dicen qué. En un OneUptime autoalojado, **Guardar filas que fallan** en **Ajustes** guarda hasta 20 de las filas que encontró una comprobación Failing Rows, Invalid Percent, Format Mismatch Percent u Orphan Count, y **Failing Rows** en la comprobación las muestra. Las columnas sensibles se enmascaran donde se lee la fila, según lo que Seguridad de datos encontró en ellas o según sus nombres, así que lo que sale de la base de datos, o de una sonda, ya está enmascarado. OneUptime Cloud no guarda ninguna.
+Un número dice que algo va mal; unas pocas filas dicen qué. En un OneUptime autoalojado, **Guardar filas que fallan** en **Ajustes** guarda hasta 20 de las filas que encontró una comprobación Failing Rows, Invalid Percent, Format Mismatch Percent u Orphan Count, y **Filas con error** en la comprobación las muestra. Las columnas sensibles se enmascaran donde se lee la fila, según lo que Seguridad de datos encontró en ellas o según sus nombres, así que lo que sale de la base de datos, o de una sonda, ya está enmascarado. OneUptime Cloud no guarda ninguna.
 
 ## Comprobaciones en un archivo
 
@@ -115,7 +115,7 @@ Una copia que se carga según una programación va por detrás de su fuente: com
 
 ## Pruebas de dbt
 
-Después de un build de dbt, `oneuptime dbt upload` envía los artefactos del proyecto (consulta [Linaje y pipelines](/docs/data-observability/lineage-and-pipelines)). Cada prueba de una tabla vigilada aparece entonces en su pestaña **Comprobaciones**, con su último resultado y las filas que encontró fallando. Elige **Alert on Failures** para que una prueba fallida abra una alerta.
+Después de un build de dbt, `oneuptime dbt upload` envía los artefactos del proyecto (consulta [Linaje y pipelines](/docs/data-observability/lineage-and-pipelines)). Cada prueba de una tabla vigilada aparece entonces en su pestaña **Comprobaciones**, con su último resultado y las filas que encontró fallando. Elige **Alertar en caso de fallo** para que una prueba fallida abra una alerta.
 
 ## Próximos pasos
 

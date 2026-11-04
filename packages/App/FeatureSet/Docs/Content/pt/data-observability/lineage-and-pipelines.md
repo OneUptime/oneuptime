@@ -99,7 +99,7 @@ Quando uma tabela fica desatualizada, todas as tabelas construídas a partir del
 - Ele começa **confirmado**, para que ninguém seja acionado duas vezes por um só problema, e se recupera sozinho assim que os dados dele se recuperam.
 - O feed dele e o cartão **Dados** dele dizem qual alerta o causou, e ele entra no episódio da causa.
 
-O cartão **Dados** da causa lista o **Downstream Impact** dela: cada alerta que ela causou. O cartão de um alerta de tabela também mostra os serviços que escrevem na tabela, com as escritas que falharam, e as implantações e outras mudanças deles no dia anterior ao alerta.
+O cartão **Dados** da causa lista o **Impacto a jusante** dela: cada alerta que ela causou. O cartão de um alerta de tabela também mostra os serviços que escrevem na tabela, com as escritas que falharam, e as implantações e outras mudanças deles no dia anterior ao alerta.
 
 ## Antes de uma alteração ser mesclada
 

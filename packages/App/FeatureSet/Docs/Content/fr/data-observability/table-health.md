@@ -15,7 +15,7 @@ Seul le catalogue est lu, et sur MongoDB les noms de champs des documents les pl
 
 ## Fraîcheur
 
-Le **rythme** d'une table est la fréquence à laquelle elle change d'habitude, appris à partir du temps écoulé entre ses modifications. Une table qui dépasse nettement son rythme apparaît comme **Late**, sur sa page et dans **Tables**, et indique de combien elle le dépasse. Sa fraîcheur est connue dès qu'elle a changé deux fois : une table chargée toutes les heures est apprise en quelques heures, une table chargée chaque nuit en quelques jours.
+Le **rythme** d'une table est la fréquence à laquelle elle change d'habitude, appris à partir du temps écoulé entre ses modifications. Une table qui dépasse nettement son rythme apparaît comme **En retard**, sur sa page et dans **Tables**, et indique de combien elle le dépasse. Sa fraîcheur est connue dès qu'elle a changé deux fois : une table chargée toutes les heures est apprise en quelques heures, une table chargée chaque nuit en quelques jours.
 
 Une vue ne contient aucune ligne propre : sa fraîcheur est donc celle de ses sources. Voir [Lignage et pipelines](/docs/data-observability/lineage-and-pipelines).
 
@@ -29,7 +29,7 @@ Un catalogue peut dire qu'une table a changé alors que seule son entretien inte
 
 ## Alertes recommandées
 
-Dans **Bases de données**, choisissez **Recommended Alerts** pour une base de données. Chaque recommandation est un seul moniteur de métrique pour toute la base de données, qui alerte une fois par table, si bien qu'une table créée plus tard est surveillée elle aussi :
+Dans **Bases de données**, choisissez **Alertes recommandées** pour une base de données. Chaque recommandation est un seul moniteur de métrique pour toute la base de données, qui alerte une fois par table, si bien qu'une table créée plus tard est surveillée elle aussi :
 
 | Alerte | Se déclenche quand |
 | --- | --- |

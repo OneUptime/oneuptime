@@ -99,7 +99,7 @@ Når en tabel bliver forældet, bliver hver tabel, der er bygget af den, også f
 - Den starter som **bekræftet**, så ingen tilkaldes to gange for ét problem, og genopretter sig selv, når dens data gør det.
 - Dens feed og dens **Data**-kort viser, hvilken advarsel der forårsagede den, og den slutter sig til årsagens episode.
 
-Årsagens **Data**-kort viser dens **Downstream Impact**: hver advarsel, den forårsagede. En tabeladvarsels kort viser også de tjenester, der skriver til tabellen, med deres mislykkede skrivninger og deres udrulninger og andre ændringer i døgnet før advarslen.
+Årsagens **Data**-kort viser dens **Nedstrøms påvirkning**: hver advarsel, den forårsagede. En tabeladvarsels kort viser også de tjenester, der skriver til tabellen, med deres mislykkede skrivninger og deres udrulninger og andre ændringer i døgnet før advarslen.
 
 ## Før en ændring flettes
 

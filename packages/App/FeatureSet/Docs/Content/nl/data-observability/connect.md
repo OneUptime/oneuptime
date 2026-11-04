@@ -9,10 +9,10 @@ Data-observability leest elke database met een login die alleen de catalogus erv
 
 ## Kies wie verbinding maakt
 
-Kies op **Data Observability > Databases** de knop **Connect a Database**, en dan:
+Kies op **Data Observability > Databases** de knop **Een database koppelen**, en dan:
 
-- **OneUptime connects**: plak een verbindingsreeks. Die wordt versleuteld opgeslagen, alleen door de workers van OneUptime gebruikt en nooit meer getoond.
-- **A probe in my network connects**: kies een van je sondes en geef de naam op van de omgevingsvariabele op de sonde die de verbindingsreeks bevat, zoals `ORDERS_DB_URL`. De verbindingsreeks verlaat je netwerk nooit. Zie [Aangepaste sondes](/docs/probe/custom-probe).
+- **OneUptime maakt verbinding**: plak een verbindingsreeks. Die wordt versleuteld opgeslagen, alleen door de workers van OneUptime gebruikt en nooit meer getoond.
+- **Een sonde in mijn netwerk maakt verbinding**: kies een van je sondes en geef de naam op van de omgevingsvariabele op de sonde die de verbindingsreeks bevat, zoals `ORDERS_DB_URL`. De verbindingsreeks verlaat je netwerk nooit. Zie [Aangepaste sondes](/docs/probe/custom-probe).
 
 Een database die al voor Gegevensbeveiliging is gekoppeld, wordt ook bewaakt, zonder dat je iets hoeft te koppelen, net als elke BigQuery-dataset die je [cloudkoppeling](/docs/telemetry/cloud-accounts) heeft gevonden.
 

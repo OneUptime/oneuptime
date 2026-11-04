@@ -9,10 +9,10 @@ Data Observability liest jede Datenbank mit einem Login, das nur ihren Katalog l
 
 ## Wählen, wer sich verbindet
 
-Wählen Sie unter **Data Observability > Datenbanken** die Option **Connect a Database** und dann:
+Wählen Sie unter **Data Observability > Datenbanken** die Option **Datenbank verbinden** und dann:
 
-- **OneUptime connects**: Fügen Sie eine Verbindungszeichenfolge ein. Sie wird verschlüsselt gespeichert, nur von den Workern von OneUptime verwendet und nie wieder angezeigt.
-- **A probe in my network connects**: Wählen Sie eine Ihrer Sonden und nennen Sie die Umgebungsvariable auf der Sonde, die die Verbindungszeichenfolge enthält, etwa `ORDERS_DB_URL`. Die Verbindungszeichenfolge verlässt Ihr Netzwerk nie. Siehe [Benutzerdefinierte Probes](/docs/probe/custom-probe).
+- **OneUptime verbindet sich**: Fügen Sie eine Verbindungszeichenfolge ein. Sie wird verschlüsselt gespeichert, nur von den Workern von OneUptime verwendet und nie wieder angezeigt.
+- **Eine Sonde in meinem Netzwerk verbindet sich**: Wählen Sie eine Ihrer Sonden und nennen Sie die Umgebungsvariable auf der Sonde, die die Verbindungszeichenfolge enthält, etwa `ORDERS_DB_URL`. Die Verbindungszeichenfolge verlässt Ihr Netzwerk nie. Siehe [Benutzerdefinierte Probes](/docs/probe/custom-probe).
 
 Eine Datenbank, die bereits für Datensicherheit verbunden ist, wird ebenfalls überwacht, ohne dass Sie etwas verbinden müssen, und ebenso jedes BigQuery-Dataset, das Ihre [Cloud-Verbindung](/docs/telemetry/cloud-accounts) gefunden hat.
 

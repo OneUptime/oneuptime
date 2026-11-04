@@ -9,10 +9,10 @@
 
 ## 选择由谁连接
 
-在 **数据可观测性 > 数据库** 上，选择 **Connect a Database**，然后：
+在 **数据可观测性 > 数据库** 上，选择 **连接数据库**，然后：
 
-- **OneUptime connects**：粘贴一个连接字符串。它会被加密存储，只由 OneUptime 的工作进程使用，并且不会再次显示。
-- **A probe in my network connects**：选择你的一个探测器，并指定该探测器上保存连接字符串的环境变量名称，例如 `ORDERS_DB_URL`。连接字符串永远不会离开你的网络。请参阅 [自定义探测器](/docs/probe/custom-probe)。
+- **OneUptime 进行连接**：粘贴一个连接字符串。它会被加密存储，只由 OneUptime 的工作进程使用，并且不会再次显示。
+- **我网络中的探测器进行连接**：选择你的一个探测器，并指定该探测器上保存连接字符串的环境变量名称，例如 `ORDERS_DB_URL`。连接字符串永远不会离开你的网络。请参阅 [自定义探测器](/docs/probe/custom-probe)。
 
 已经为数据安全连接的数据库也会受到监视，无需再次连接；你的 [云连接](/docs/telemetry/cloud-accounts) 找到的每个 BigQuery 数据集也是如此。
 

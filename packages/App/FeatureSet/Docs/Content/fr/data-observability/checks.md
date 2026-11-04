@@ -15,15 +15,15 @@ Ajoutez un contrôle dans l'onglet **Vérifications** d'une table :
 | **Invalid Percent** | Pourcentage de valeurs hors d'une liste que vous fournissez |
 | **Format Mismatch Percent** | Pourcentage de valeurs qui ne sont pas dans un format que vous choisissez, comme Email, UUID ou Country Code, ou qui ne correspondent pas à une expression régulière de votre choix (tous les moteurs sauf SQL Server) |
 | **Orphan Count** | Lignes dont la valeur n'a aucune correspondance dans la colonne d'une autre table |
-| **Row Count** | Lignes de la table, surtout utile avec **Segment By** |
+| **Row Count** | Lignes de la table, surtout utile avec **Segmenter par** |
 | **SQL personnalisé** | Le nombre que renvoie l'un de vos SELECT en lecture seule, nommé `value` (sur MongoDB, celui d'un pipeline d'agrégation) |
-| **Failing Rows** | Combien de lignes renvoie l'un de vos SELECT en lecture seule : les lignes qui ne devraient pas exister. 0 est sain (sur MongoDB, les documents auxquels aboutit un pipeline) |
+| **Lignes en échec** | Combien de lignes renvoie l'un de vos SELECT en lecture seule : les lignes qui ne devraient pas exister. 0 est sain (sur MongoDB, les documents auxquels aboutit un pipeline) |
 
 Chaque contrôle s'exécute toutes les 15 minutes, toutes les heures, toutes les 6 heures ou tous les jours, sous la forme d'une seule instruction d'agrégation dans une transaction en lecture seule avec un délai d'expiration d'instruction. Sa valeur est écrite comme `oneuptime.data.check.value`, avec `oneuptime.data.check.id`, `oneuptime.data.check.name` et `oneuptime.data.check.segment`.
 
 ## Contrôles suggérés
 
-**Suggested Checks**, dans le même onglet, propose les contrôles qu'appellent les colonnes d'une table, d'après leurs seuls noms et types : un identifiant est unique, un `customer_id` a une ligne correspondante dans `customers`, une adresse e-mail en a bien la forme, un montant n'est pas négatif, un statut garde ses valeurs habituelles, et une table répartie par locataire est comptée par locataire. Une colonne dont Sécurité des données sait qu'elle contient une adresse e-mail, un numéro de téléphone ou une adresse IP est tenue à ce format, quel que soit son nom. Ajoutez-en un, ajoutez-les tous, ou écartez-en un définitivement.
+**Vérifications suggérées**, dans le même onglet, propose les contrôles qu'appellent les colonnes d'une table, d'après leurs seuls noms et types : un identifiant est unique, un `customer_id` a une ligne correspondante dans `customers`, une adresse e-mail en a bien la forme, un montant n'est pas négatif, un statut garde ses valeurs habituelles, et une table répartie par locataire est comptée par locataire. Une colonne dont Sécurité des données sait qu'elle contient une adresse e-mail, un numéro de téléphone ou une adresse IP est tenue à ce format, quel que soit son nom. Ajoutez-en un, ajoutez-les tous, ou écartez-en un définitivement.
 
 ## Un contrôle à partir d'une phrase
 
@@ -31,11 +31,11 @@ Chaque contrôle s'exécute toutes les 15 minutes, toutes les heures, toutes les
 
 ## Segments
 
-**Segment By** exécute un contrôle une fois par valeur d'une colonne, comme un locataire ou une région : une série et une alerte pour chacune, pour les 100 segments les plus volumineux. Un nombre de lignes segmenté alerte quand un locataire cesse d'envoyer des données alors que les autres continuent.
+**Segmenter par** exécute un contrôle une fois par valeur d'une colonne, comme un locataire ou une région : une série et une alerte pour chacune, pour les 100 segments les plus volumineux. Un nombre de lignes segmenté alerte quand un locataire cesse d'envoyer des données alors que les autres continuent.
 
 ## Alertes sur un contrôle
 
-Renseignez **Alert When** pour déclencher une alerte sur un contrôle :
+Renseignez **Alerter quand** pour déclencher une alerte sur un contrôle :
 
 - **Unusually High** ou **Unusually Low** compare chaque valeur à sa propre référence apprise pour cette heure de la semaine.
 - **Au-dessus de** ou **En dessous de** la compare à un seuil.
@@ -52,7 +52,7 @@ Un contrôle se dispute la base de données avec votre application, et sur un en
 
 ## Lignes en échec
 
-Un nombre dit que quelque chose ne va pas ; quelques lignes disent quoi. Sur un OneUptime auto-hébergé, **Conserver les Failing Rows** sous **Paramètres** conserve jusqu'à 20 des lignes qu'a trouvées un contrôle Failing Rows, Invalid Percent, Format Mismatch Percent ou Orphan Count, et **Failing Rows** sur le contrôle les affiche. Les colonnes sensibles sont masquées à l'endroit où la ligne est lue, d'après ce que Sécurité des données y a trouvé ou d'après leurs noms, de sorte que ce qui quitte la base de données, ou une sonde, est déjà masqué. OneUptime Cloud n'en conserve aucune.
+Un nombre dit que quelque chose ne va pas ; quelques lignes disent quoi. Sur un OneUptime auto-hébergé, **Conserver les Failing Rows** sous **Paramètres** conserve jusqu'à 20 des lignes qu'a trouvées un contrôle Failing Rows, Invalid Percent, Format Mismatch Percent ou Orphan Count, et **Lignes en échec** sur le contrôle les affiche. Les colonnes sensibles sont masquées à l'endroit où la ligne est lue, d'après ce que Sécurité des données y a trouvé ou d'après leurs noms, de sorte que ce qui quitte la base de données, ou une sonde, est déjà masqué. OneUptime Cloud n'en conserve aucune.
 
 ## Des contrôles dans un fichier
 
@@ -115,7 +115,7 @@ Une copie chargée selon une planification est en retard sur sa source : compare
 
 ## Tests dbt
 
-Après un build dbt, `oneuptime dbt upload` envoie les artefacts du projet (voir [Lignage et pipelines](/docs/data-observability/lineage-and-pipelines)). Chaque test d'une table surveillée apparaît alors dans son onglet **Vérifications**, avec son dernier résultat et les lignes qu'il a trouvées en échec. Choisissez **Alert on Failures** pour qu'un test en échec ouvre une alerte.
+Après un build dbt, `oneuptime dbt upload` envoie les artefacts du projet (voir [Lignage et pipelines](/docs/data-observability/lineage-and-pipelines)). Chaque test d'une table surveillée apparaît alors dans son onglet **Vérifications**, avec son dernier résultat et les lignes qu'il a trouvées en échec. Choisissez **Alerter en cas d'échec** pour qu'un test en échec ouvre une alerte.
 
 ## Prochaines étapes
 

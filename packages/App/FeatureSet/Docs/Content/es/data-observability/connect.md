@@ -9,10 +9,10 @@ Observabilidad de datos lee cada base de datos con un usuario que solo lee su ca
 
 ## Elegir quién se conecta
 
-En **Observabilidad de datos > Bases de datos**, elige **Connect a Database** y luego:
+En **Observabilidad de datos > Bases de datos**, elige **Conectar una base de datos** y luego:
 
-- **OneUptime connects**: pega una cadena de conexión. Se guarda cifrada, solo la usan los workers de OneUptime y no se vuelve a mostrar nunca.
-- **A probe in my network connects**: elige una de tus sondas e indica la variable de entorno de la sonda que contiene la cadena de conexión, como `ORDERS_DB_URL`. La cadena de conexión nunca sale de tu red. Consulta [Sondas personalizadas](/docs/probe/custom-probe).
+- **OneUptime se conecta**: pega una cadena de conexión. Se guarda cifrada, solo la usan los workers de OneUptime y no se vuelve a mostrar nunca.
+- **Una sonda de mi red se conecta**: elige una de tus sondas e indica la variable de entorno de la sonda que contiene la cadena de conexión, como `ORDERS_DB_URL`. La cadena de conexión nunca sale de tu red. Consulta [Sondas personalizadas](/docs/probe/custom-probe).
 
 Una base de datos ya conectada para Seguridad de datos también se vigila, sin nada que conectar, igual que cada conjunto de datos de BigQuery que encontró tu [conexión a la nube](/docs/telemetry/cloud-accounts).
 

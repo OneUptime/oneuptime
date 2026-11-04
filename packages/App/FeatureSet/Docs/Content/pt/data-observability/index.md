@@ -49,15 +49,15 @@ flowchart TB
 :::steps
 ### Conecte um banco de dados
 
-Abra **Observabilidade de dados**, vá para **Bancos de dados** e escolha **Connect a Database**. Escolha o mecanismo e informe uma string de conexão somente leitura, ou o nome da variável de ambiente de onde a sua sonda a lê. [Conectar um banco de dados](/docs/data-observability/connect) mostra o login de cada mecanismo.
+Abra **Observabilidade de dados**, vá para **Bancos de dados** e escolha **Conectar um banco de dados**. Escolha o mecanismo e informe uma string de conexão somente leitura, ou o nome da variável de ambiente de onde a sua sonda a lê. [Conectar um banco de dados](/docs/data-observability/connect) mostra o login de cada mecanismo.
 
 ### Veja as tabelas dele
 
-Em até cinco minutos as tabelas dele aparecem em **Tabelas**, cada uma com as suas linhas, o seu tamanho e quando mudou pela última vez. A atualidade de uma tabela é conhecida assim que ela muda duas vezes: **Fresh** enquanto mantém o seu ritmo, **Late** quando o perde.
+Em até cinco minutos as tabelas dele aparecem em **Tabelas**, cada uma com as suas linhas, o seu tamanho e quando mudou pela última vez. A atualidade de uma tabela é conhecida assim que ela muda duas vezes: **Atualizada** enquanto mantém o seu ritmo, **Atrasada** quando o perde.
 
 ### Adicione os alertas recomendados
 
-Em **Bancos de dados**, escolha **Recommended Alerts** para o banco de dados e adicione os que você quiser: uma tabela atrasada, uma cujas linhas caem bruscamente ou ficam anormalmente baixas, uma cujas colunas mudam, e um banco de dados que para de reportar. Cada um é um monitor comum: plantão, proprietários, janelas de manutenção e páginas de status funcionam como em qualquer outro.
+Em **Bancos de dados**, escolha **Alertas recomendados** para o banco de dados e adicione os que você quiser: uma tabela atrasada, uma cujas linhas caem bruscamente ou ficam anormalmente baixas, uma cujas colunas mudam, e um banco de dados que para de reportar. Cada um é um monitor comum: plantão, proprietários, janelas de manutenção e páginas de status funcionam como em qualquer outro.
 :::
 
 ## Próximos passos

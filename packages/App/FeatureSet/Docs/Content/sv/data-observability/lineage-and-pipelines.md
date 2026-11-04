@@ -99,7 +99,7 @@ När en tabell blir inaktuell blir varje tabell som byggs av den också inaktuel
 - Det startar som **bekräftat**, så att ingen larmas två gånger för samma problem, och återställs av sig självt när dess data gör det.
 - Dess flöde och dess kort **Data** visar vilket larm som orsakade det, och det ansluter sig till orsakens episod.
 
-Orsakens kort **Data** listar dess **Downstream Impact**: varje larm den orsakade. Ett tabellarms kort visar också de tjänster som skriver till tabellen, med deras misslyckade skrivningar, och deras driftsättningar och andra ändringar under dygnet före larmet.
+Orsakens kort **Data** listar dess **Påverkan nedströms**: varje larm den orsakade. Ett tabellarms kort visar också de tjänster som skriver till tabellen, med deras misslyckade skrivningar, och deras driftsättningar och andra ändringar under dygnet före larmet.
 
 ## Innan en ändring slås ihop
 

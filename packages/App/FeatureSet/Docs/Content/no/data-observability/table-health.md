@@ -15,7 +15,7 @@ Bare katalogen leses, og i MongoDB feltnavnene til de nyeste dokumentene i en sa
 
 ## Aktualitet
 
-**Rytmen** til en tabell er hvor ofte den vanligvis endres, lært ut fra tiden mellom endringene. En tabell som går godt over rytmen sin, vises som **Late**, på siden sin og under **Tabeller**, og skriver hvor langt over den er. Aktualiteten er kjent når tabellen har endret seg to ganger: en tabell som lastes hver time, læres i løpet av noen timer, en som lastes hver natt, i løpet av noen dager.
+**Rytmen** til en tabell er hvor ofte den vanligvis endres, lært ut fra tiden mellom endringene. En tabell som går godt over rytmen sin, vises som **Sen**, på siden sin og under **Tabeller**, og skriver hvor langt over den er. Aktualiteten er kjent når tabellen har endret seg to ganger: en tabell som lastes hver time, læres i løpet av noen timer, en som lastes hver natt, i løpet av noen dager.
 
 En visning har ingen egne rader, så aktualiteten dens er aktualiteten til kildene: se [Avstamning og pipelines](/docs/data-observability/lineage-and-pipelines).
 
@@ -29,7 +29,7 @@ En katalog kan si at en tabell er endret når bare husholdningen den gjør noe, 
 
 ## Anbefalte varsler
 
-Under **Databaser** velger du **Recommended Alerts** for en database. Hver anbefaling er én metrikkmonitor for hele databasen som varsler én gang per tabell, så en tabell som opprettes senere, overvåkes også:
+Under **Databaser** velger du **Anbefalte varsler** for en database. Hver anbefaling er én metrikkmonitor for hele databasen som varsler én gang per tabell, så en tabell som opprettes senere, overvåkes også:
 
 | Varsel | Utløses når |
 | --- | --- |

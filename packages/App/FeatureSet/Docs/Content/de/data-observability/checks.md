@@ -15,15 +15,15 @@ Fügen Sie eine Prüfung im Tab **Prüfungen** einer Tabelle hinzu:
 | **Invalid Percent** | Prozentsatz der Werte außerhalb einer Liste, die Sie angeben |
 | **Format Mismatch Percent** | Prozentsatz der Werte, die nicht in einem Format sind, das Sie wählen, etwa Email, UUID oder Country Code, oder die nicht auf einen regulären Ausdruck von Ihnen passen (jede Engine außer SQL Server) |
 | **Orphan Count** | Zeilen, deren Wert keine Entsprechung in der Spalte einer anderen Tabelle hat |
-| **Zeilenanzahl** | Zeilen in der Tabelle, am nützlichsten mit **Segment By** |
+| **Zeilenanzahl** | Zeilen in der Tabelle, am nützlichsten mit **Segmentieren nach** |
 | **Benutzerdefiniertes SQL** | Die Zahl, die ein schreibgeschütztes SELECT von Ihnen zurückgibt, benannt `value` (bei MongoDB die einer Aggregations-Pipeline) |
-| **Failing Rows** | Wie viele Zeilen ein schreibgeschütztes SELECT von Ihnen zurückgibt: die Zeilen, die es nicht geben sollte. 0 ist gesund (bei MongoDB die Dokumente, mit denen eine Pipeline endet) |
+| **Fehlerhafte Zeilen** | Wie viele Zeilen ein schreibgeschütztes SELECT von Ihnen zurückgibt: die Zeilen, die es nicht geben sollte. 0 ist gesund (bei MongoDB die Dokumente, mit denen eine Pipeline endet) |
 
 Jede Prüfung läuft alle 15 Minuten, stündlich, alle 6 Stunden oder täglich, als eine einzige Aggregatanweisung in einer schreibgeschützten Transaktion mit einem Timeout für Anweisungen. Ihr Wert wird als `oneuptime.data.check.value` geschrieben, mit `oneuptime.data.check.id`, `oneuptime.data.check.name` und `oneuptime.data.check.segment`.
 
 ## Vorgeschlagene Prüfungen
 
-**Suggested Checks** im selben Tab bieten die Prüfungen an, die die Spalten einer Tabelle nahelegen, allein aus ihren Namen und Typen: Eine ID ist eindeutig, eine `customer_id` hat eine passende Zeile in `customers`, eine E-Mail-Adresse sieht wie eine aus, ein Betrag ist nicht negativ, ein Status behält seine üblichen Werte, und eine nach Mandanten aufgeteilte Tabelle wird pro Mandant gezählt. Eine Spalte, von der Datensicherheit weiß, dass sie eine E-Mail-Adresse, eine Telefonnummer oder eine IP-Adresse enthält, muss diesem Format entsprechen, egal wie sie heißt. Fügen Sie eine hinzu, fügen Sie alle hinzu oder verwerfen Sie eine endgültig.
+**Vorgeschlagene Prüfungen** im selben Tab bieten die Prüfungen an, die die Spalten einer Tabelle nahelegen, allein aus ihren Namen und Typen: Eine ID ist eindeutig, eine `customer_id` hat eine passende Zeile in `customers`, eine E-Mail-Adresse sieht wie eine aus, ein Betrag ist nicht negativ, ein Status behält seine üblichen Werte, und eine nach Mandanten aufgeteilte Tabelle wird pro Mandant gezählt. Eine Spalte, von der Datensicherheit weiß, dass sie eine E-Mail-Adresse, eine Telefonnummer oder eine IP-Adresse enthält, muss diesem Format entsprechen, egal wie sie heißt. Fügen Sie eine hinzu, fügen Sie alle hinzu oder verwerfen Sie eine endgültig.
 
 ## Eine Prüfung aus einem Satz
 
@@ -31,11 +31,11 @@ Jede Prüfung läuft alle 15 Minuten, stündlich, alle 6 Stunden oder täglich, 
 
 ## Segmente
 
-**Segment By** führt eine Prüfung einmal pro Wert einer Spalte aus, etwa pro Mandant oder Region: eine Reihe und eine Warnung für jeden Wert, für die größten 100 Segmente. Eine segmentierte Zeilenanzahl warnt, wenn ein Mandant keine Daten mehr sendet, während die anderen weitermachen.
+**Segmentieren nach** führt eine Prüfung einmal pro Wert einer Spalte aus, etwa pro Mandant oder Region: eine Reihe und eine Warnung für jeden Wert, für die größten 100 Segmente. Eine segmentierte Zeilenanzahl warnt, wenn ein Mandant keine Daten mehr sendet, während die anderen weitermachen.
 
 ## Warnungen zu einer Prüfung
 
-Setzen Sie **Alert When**, um bei einer Prüfung zu warnen:
+Setzen Sie **Warnen, wenn**, um bei einer Prüfung zu warnen:
 
 - **Unusually High** oder **Unusually Low** vergleicht jeden Wert mit seiner eigenen gelernten Baseline für diese Stunde der Woche.
 - **Über** oder **Unter** vergleicht ihn mit einem Schwellenwert.
@@ -52,7 +52,7 @@ Eine Prüfung konkurriert mit Ihrer Anwendung um die Datenbank, und bei einem Wa
 
 ## Fehlerhafte Zeilen
 
-Eine Zahl sagt, dass etwas nicht stimmt; ein paar Zeilen sagen, was. Bei einem selbst gehosteten OneUptime behält **Fehlerhafte Zeilen aufbewahren** unter **Einstellungen** bis zu 20 der Zeilen, die eine Prüfung Failing Rows, Invalid Percent, Format Mismatch Percent oder Orphan Count gefunden hat, und **Failing Rows** an der Prüfung zeigt sie. Sensible Spalten werden dort maskiert, wo die Zeile gelesen wird, nach dem, was die Datensicherheit in ihnen gefunden hat, oder nach ihren Namen, sodass das, was die Datenbank oder eine Sonde verlässt, bereits maskiert ist. OneUptime Cloud behält keine.
+Eine Zahl sagt, dass etwas nicht stimmt; ein paar Zeilen sagen, was. Bei einem selbst gehosteten OneUptime behält **Fehlerhafte Zeilen aufbewahren** unter **Einstellungen** bis zu 20 der Zeilen, die eine Prüfung Failing Rows, Invalid Percent, Format Mismatch Percent oder Orphan Count gefunden hat, und **Fehlerhafte Zeilen** an der Prüfung zeigt sie. Sensible Spalten werden dort maskiert, wo die Zeile gelesen wird, nach dem, was die Datensicherheit in ihnen gefunden hat, oder nach ihren Namen, sodass das, was die Datenbank oder eine Sonde verlässt, bereits maskiert ist. OneUptime Cloud behält keine.
 
 ## Prüfungen in einer Datei
 
@@ -115,7 +115,7 @@ Eine nach Zeitplan geladene Kopie hinkt ihrer Quelle hinterher: Vergleichen Sie 
 
 ## dbt-Tests
 
-Nach einem dbt-Build sendet `oneuptime dbt upload` die Artefakte des Projekts (siehe [Lineage und Pipelines](/docs/data-observability/lineage-and-pipelines)). Jeder Test einer überwachten Tabelle erscheint dann in ihrem Tab **Prüfungen**, mit seinem letzten Ergebnis und den Zeilen, bei denen er Fehler gefunden hat. Wählen Sie **Alert on Failures**, damit ein fehlschlagender Test eine Warnung eröffnet.
+Nach einem dbt-Build sendet `oneuptime dbt upload` die Artefakte des Projekts (siehe [Lineage und Pipelines](/docs/data-observability/lineage-and-pipelines)). Jeder Test einer überwachten Tabelle erscheint dann in ihrem Tab **Prüfungen**, mit seinem letzten Ergebnis und den Zeilen, bei denen er Fehler gefunden hat. Wählen Sie **Bei Fehlern warnen**, damit ein fehlschlagender Test eine Warnung eröffnet.
 
 ## Nächste Schritte
 

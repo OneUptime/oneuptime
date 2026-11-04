@@ -9,10 +9,10 @@ Dataobserverbarhet läser varje databas med en inloggning som bara läser dess k
 
 ## Välj vem som ansluter
 
-Under **Dataobserverbarhet > Databaser** väljer du **Connect a Database**, och sedan:
+Under **Dataobserverbarhet > Databaser** väljer du **Anslut en databas**, och sedan:
 
-- **OneUptime connects**: klistra in en anslutningssträng. Den lagras krypterad, används bara av OneUptimes workers och visas aldrig igen.
-- **A probe in my network connects**: välj en av dina sonder och ange namnet på den miljövariabel på sonden som innehåller anslutningssträngen, till exempel `ORDERS_DB_URL`. Anslutningssträngen lämnar aldrig ditt nätverk. Se [Anpassade sonder](/docs/probe/custom-probe).
+- **OneUptime ansluter**: klistra in en anslutningssträng. Den lagras krypterad, används bara av OneUptimes workers och visas aldrig igen.
+- **En sond i mitt nätverk ansluter**: välj en av dina sonder och ange namnet på den miljövariabel på sonden som innehåller anslutningssträngen, till exempel `ORDERS_DB_URL`. Anslutningssträngen lämnar aldrig ditt nätverk. Se [Anpassade sonder](/docs/probe/custom-probe).
 
 En databas som redan är ansluten för Datasäkerhet övervakas också, utan något att ansluta, och detsamma gäller varje BigQuery-dataset som din [molnanslutning](/docs/telemetry/cloud-accounts) har hittat.
 

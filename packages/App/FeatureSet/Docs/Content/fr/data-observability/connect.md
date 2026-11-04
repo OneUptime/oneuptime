@@ -9,10 +9,10 @@ Observabilité des données lit chaque base de données avec un compte qui ne li
 
 ## Choisir qui se connecte
 
-Dans **Observabilité des données > Bases de données**, choisissez **Connect a Database**, puis :
+Dans **Observabilité des données > Bases de données**, choisissez **Connecter une base de données**, puis :
 
-- **OneUptime connects** : collez une chaîne de connexion. Elle est stockée chiffrée, utilisée uniquement par les workers de OneUptime, et n'est plus jamais affichée.
-- **A probe in my network connects** : choisissez l'une de vos sondes et indiquez la variable d'environnement de la sonde qui contient la chaîne de connexion, comme `ORDERS_DB_URL`. La chaîne de connexion ne quitte jamais votre réseau. Voir [Sondes personnalisées](/docs/probe/custom-probe).
+- **OneUptime se connecte** : collez une chaîne de connexion. Elle est stockée chiffrée, utilisée uniquement par les workers de OneUptime, et n'est plus jamais affichée.
+- **Une sonde de mon réseau se connecte** : choisissez l'une de vos sondes et indiquez la variable d'environnement de la sonde qui contient la chaîne de connexion, comme `ORDERS_DB_URL`. La chaîne de connexion ne quitte jamais votre réseau. Voir [Sondes personnalisées](/docs/probe/custom-probe).
 
 Une base de données déjà connectée pour Sécurité des données est elle aussi surveillée, sans rien connecter, tout comme chaque jeu de données BigQuery trouvé par votre [connexion cloud](/docs/telemetry/cloud-accounts).
 

@@ -49,15 +49,15 @@ flowchart TB
 :::steps
 ### Collega un database
 
-Apri **Osservabilità dei dati**, vai su **Database** e scegli **Connect a Database**. Scegli il motore e fornisci una stringa di connessione di sola lettura, oppure il nome della variabile d'ambiente da cui la legge la tua sonda. [Collegare un database](/docs/data-observability/connect) mostra l'utente di ogni motore.
+Apri **Osservabilità dei dati**, vai su **Database** e scegli **Collega un database**. Scegli il motore e fornisci una stringa di connessione di sola lettura, oppure il nome della variabile d'ambiente da cui la legge la tua sonda. [Collegare un database](/docs/data-observability/connect) mostra l'utente di ogni motore.
 
 ### Guarda le sue tabelle
 
-Entro cinque minuti le sue tabelle compaiono in **Tabelle**, ognuna con le sue righe, le sue dimensioni e il momento dell'ultima modifica. La freschezza di una tabella è nota non appena è cambiata due volte: **Fresh** finché mantiene il suo ritmo, **Late** appena lo salta.
+Entro cinque minuti le sue tabelle compaiono in **Tabelle**, ognuna con le sue righe, le sue dimensioni e il momento dell'ultima modifica. La freschezza di una tabella è nota non appena è cambiata due volte: **Aggiornata** finché mantiene il suo ritmo, **In ritardo** appena lo salta.
 
 ### Aggiungi gli avvisi consigliati
 
-In **Database**, scegli **Recommended Alerts** per il database e aggiungi quelli che vuoi: una tabella in ritardo, una le cui righe calano bruscamente o sono insolitamente poche, una le cui colonne cambiano, e un database che smette di inviare dati. Ognuno è un monitor come gli altri: reperibilità, proprietari, finestre di manutenzione e pagine di stato funzionano come per qualsiasi altro.
+In **Database**, scegli **Avvisi consigliati** per il database e aggiungi quelli che vuoi: una tabella in ritardo, una le cui righe calano bruscamente o sono insolitamente poche, una le cui colonne cambiano, e un database che smette di inviare dati. Ognuno è un monitor come gli altri: reperibilità, proprietari, finestre di manutenzione e pagine di stato funzionano come per qualsiasi altro.
 :::
 
 ## Passaggi successivi

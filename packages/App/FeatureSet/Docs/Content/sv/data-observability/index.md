@@ -49,15 +49,15 @@ flowchart TB
 :::steps
 ### Anslut en databas
 
-Öppna **Dataobserverbarhet**, gå till **Databaser** och välj **Connect a Database**. Välj motor och ange en anslutningssträng med enbart läsbehörighet, eller namnet på den miljövariabel som din sond läser den från. [Anslut en databas](/docs/data-observability/connect) visar inloggningen för varje motor.
+Öppna **Dataobserverbarhet**, gå till **Databaser** och välj **Anslut en databas**. Välj motor och ange en anslutningssträng med enbart läsbehörighet, eller namnet på den miljövariabel som din sond läser den från. [Anslut en databas](/docs/data-observability/connect) visar inloggningen för varje motor.
 
 ### Se dess tabeller
 
-Inom fem minuter visas dess tabeller under **Tabeller**, var och en med sina rader, sin storlek och när den senast ändrades. En tabells aktualitet är känd när den har ändrats två gånger: **Fresh** så länge den håller sin rytm, **Late** när den missar den.
+Inom fem minuter visas dess tabeller under **Tabeller**, var och en med sina rader, sin storlek och när den senast ändrades. En tabells aktualitet är känd när den har ändrats två gånger: **Färsk** så länge den håller sin rytm, **Sen** när den missar den.
 
 ### Lägg till de rekommenderade larmen
 
-Välj **Recommended Alerts** för databasen under **Databaser**, och lägg till de larm du vill ha: en tabell som är försenad, en vars rader faller kraftigt eller är ovanligt få, en vars kolumner ändras, och en databas som slutar rapportera. Var och en är en vanlig monitor: jour, ägare, underhållsfönster och statussidor fungerar som för vilken annan som helst.
+Välj **Rekommenderade larm** för databasen under **Databaser**, och lägg till de larm du vill ha: en tabell som är försenad, en vars rader faller kraftigt eller är ovanligt få, en vars kolumner ändras, och en databas som slutar rapportera. Var och en är en vanlig monitor: jour, ägare, underhållsfönster och statussidor fungerar som för vilken annan som helst.
 :::
 
 ## Nästa steg

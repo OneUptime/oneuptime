@@ -15,7 +15,7 @@ Kun kataloget læses, og i MongoDB feltnavnene på en samlings nyeste dokumenter
 
 ## Aktualitet
 
-En tabels **rytme** er, hvor ofte den plejer at ændre sig, lært ud fra tiden mellem dens ændringer. En tabel, der går et godt stykke forbi sin rytme, vises som **Late**, på sin side og under **Tabeller**, og skriver, hvor langt forbi den er. Dens aktualitet kendes, når den har ændret sig to gange: en tabel, der indlæses hver time, læres inden for få timer, en, der indlæses hver nat, inden for få dage.
+En tabels **rytme** er, hvor ofte den plejer at ændre sig, lært ud fra tiden mellem dens ændringer. En tabel, der går et godt stykke forbi sin rytme, vises som **Forsinket**, på sin side og under **Tabeller**, og skriver, hvor langt forbi den er. Dens aktualitet kendes, når den har ændret sig to gange: en tabel, der indlæses hver time, læres inden for få timer, en, der indlæses hver nat, inden for få dage.
 
 Et view har ingen egne rækker, så dets aktualitet er dets kilders aktualitet: se [Afstamning og pipelines](/docs/data-observability/lineage-and-pipelines).
 
@@ -29,7 +29,7 @@ Et katalog kan sige, at en tabel er ændret, når kun dens vedligeholdelse er de
 
 ## Anbefalede advarsler
 
-Vælg **Recommended Alerts** for en database under **Databaser**. Hver anbefaling er én metrik-monitor for hele databasen, der advarer én gang pr. tabel, så en tabel, der oprettes senere, også overvåges:
+Vælg **Anbefalede advarsler** for en database under **Databaser**. Hver anbefaling er én metrik-monitor for hele databasen, der advarer én gang pr. tabel, så en tabel, der oprettes senere, også overvåges:
 
 | Advarsel | Udløses, når |
 | --- | --- |
