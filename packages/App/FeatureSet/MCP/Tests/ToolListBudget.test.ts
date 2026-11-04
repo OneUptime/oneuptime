@@ -67,8 +67,13 @@ import { generateAllTools } from "../Tools/ToolGenerator";
 import McpCredentialUtil from "../Types/McpCredential";
 import { McpToolInfo } from "../Types/McpTypes";
 
-// The budget for the whole answer: about 62,500 tokens at four bytes a token.
-const MAX_TOOLS_LIST_BYTES: number = 250_000;
+/*
+ * The budget for the whole answer: about 65,000 tokens at four bytes a token.
+ * 250,000 on 2026-11-02; 260,000 on 2026-11-04, when Cloud Budget's six
+ * tools (about 5,600 bytes) took the answer to 254,308, so AI agents manage
+ * cloud budgets as people do (fu-cloud-costs).
+ */
+const MAX_TOOLS_LIST_BYTES: number = 260_000;
 
 // The most any one tool may take of it.
 const MAX_TOOL_BYTES: number = 5_000;
