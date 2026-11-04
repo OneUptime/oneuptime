@@ -1087,7 +1087,7 @@
   "Stop": "توقف",
   "Stopped": "متوقف‌شده",
   "{{count}} of {{total}} {{suffix}}": "{{count}} از {{total}} ({{suffix}})",
-  "Progress: {{count}} of {{total}} {{suffix}} ({{percent}}%)": "پیشرفت: {{count}} از {{total}} ({{suffix}})، ٪{{percent}}",
+  "Progress: {{count}} of {{total}} {{suffix}} ({{percent}}%)": "پیشرفت: {{count}} از {{total}} ({{suffix}})، {{percent}}٪",
   "Delete {{count}} {{itemsName}}": "حذف {{count}} مورد ({{itemsName}})",
   "Delete {{count}} {{itemsName}}_one": "حذف {{count}} مورد ({{itemName}})",
   "Are you sure you want to delete {{count}} {{itemsName}}? This action cannot be undone.": "مطمئنید می‌خواهید {{count}} مورد ({{itemsName}}) را حذف کنید؟ این کار قابل بازگشت نیست.",
