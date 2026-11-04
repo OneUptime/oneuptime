@@ -27,6 +27,8 @@
 #                             boot notices, which decides if tracing can hurt a cloud
 #   signed-boot-sql           trace_sqlalchemy on: what it costs in spans, and what it holds
 #   signed-boot-requests      trace_requests on: the client spans it adds between services
+#   signed-by-header          A request signed by hand, with no OSProfiler where it was sent
+#                             from, as a probe's scheduled check would have to
 #   signed-boot-placement     Placement with the one line a local patch adds, because stock
 #                             Placement cannot start the driver at all
 #   signed-boot-whole         That, with Nova's conductor and scheduler on one worker each:
@@ -369,6 +371,20 @@ scene_boot_failed_and_delete() {
   openstack server delete --wait "$1"
 }
 
+# What a client without OSProfiler sends to sign a request: the two headers its WSGI middleware
+# reads, as OpenStackTraceSigning.ts writes them. Prints the ID it chose as the client prints
+# its own, so the scene finds its trace the same way.
+scene_signed_by_header() {
+  local token url trace_id info hmac
+  token="$(openstack token issue -f value -c id)"
+  url="$(openstack endpoint list --service compute --interface public -f value -c URL | head -1)"
+  trace_id="$(python3 -I -c 'import uuid; print(uuid.uuid4())')"
+  read -r info hmac < <(OU_TRACES_KEY="$HMAC_KEY" python3 -I "$READ" sign "$trace_id")
+  curl -sS --fail -o /dev/null -w '%{http_code}\n' \
+    -H "X-Auth-Token: $token" -H "X-Trace-Info: $info" -H "X-Trace-HMAC: $hmac" "$url/servers"
+  echo "Trace ID: $trace_id"
+}
+
 # Signed by nobody: what native tracing makes of an ordinary boot. Remembered, because what
 # Nova says asked for it is what a span's request ID is held to.
 scene_unsigned_boot_and_delete() {
@@ -614,6 +630,7 @@ scene signed-network scene_signed_network
 scene signed-image scene_signed_image
 scene signed-token scene_signed_token
 scene signed-delete scene_signed_delete
+scene signed-by-header scene_signed_by_header
 
 log "With the local collector stopped: does anything notice?"
 docker stop "$COLLECTOR_NAME" >/dev/null

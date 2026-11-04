@@ -6,6 +6,7 @@
     traces-read.py check TRACES_DIR
     traces-read.py native TRACES_DIR
     OU_TRACES_KEY=... traces-read.py remove-key TRACES_DIR
+    OU_TRACES_KEY=... traces-read.py sign TRACE_ID
 
 count says how many spans a recording file holds so far, so a scene can say whether it
 made any. A file that is not there yet holds none: the collector only makes one when the
@@ -26,12 +27,18 @@ native writes native-summary.json: what the scenes with nothing signed made of O
 OpenTelemetry tracing, where a release ships it. They print no Trace ID, so they are read by
 their moments.
 
+sign prints the two header values that sign a request for that trace, without OSProfiler,
+exactly as Common/Server/Utils/OpenStack/OpenStackTraceSigning.ts writes them.
+
 remove-key replaces the HMAC key wherever it turned up in the recording, so it never
 leaves the runner, and writes down how many times it was found in each file. A count over
 zero is a finding, not a failure: it says what the key can reach.
 """
+import base64
 import datetime
 import gzip
+import hashlib
+import hmac
 import json
 import os
 import sys
@@ -52,6 +59,7 @@ SCHEDULER = "nova-nova-scheduler"
 # What each scene with something changed has to add to that, once it has run. The scenes come
 # and go with what a release can do, so only one that ran is held to anything.
 SCENE_MUST_CROSS = {
+    "signed-by-header": ("nova-osapi_compute",),
     "signed-boot-placement": (PLACEMENT,),
     "signed-boot-whole": (PLACEMENT, CONDUCTOR, SCHEDULER),
     "signed-boot-failed-whole": (CONDUCTOR, SCHEDULER),
@@ -343,6 +351,18 @@ def native(traces_dir):
         )
 
 
+def sign(trace_id):
+    key = os.environ.get("OU_TRACES_KEY", "")
+    if not key:
+        print("No key to sign with.", file=sys.stderr)
+        return 1
+    info = base64.urlsafe_b64encode(
+        json.dumps({"base_id": trace_id, "parent_id": trace_id}, separators=(",", ":")).encode()
+    )
+    print(info.decode(), hmac.new(key.encode(), info, hashlib.sha1).hexdigest())
+    return 0
+
+
 def remove_key(traces_dir):
     key = os.environ.get("OU_TRACES_KEY", "")
     if not key:
@@ -385,6 +405,8 @@ def main():
         return 0
     if command == "remove-key":
         return remove_key(sys.argv[2])
+    if command == "sign":
+        return sign(sys.argv[2])
     print(__doc__, file=sys.stderr)
     return 2
 

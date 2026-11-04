@@ -55,6 +55,7 @@ WHOLE_SCENES = (
     "signed-token",
     "signed-delete",
     "signed-boot-requests",
+    "signed-by-header",
     "signed-boot-placement",
     "signed-boot-whole",
     "signed-boot-failed-whole",
@@ -87,7 +88,7 @@ JOURNAL_UNITS_LEFT_OUT = (
     "n-api-meta",
     "ceilometer",
 )
-DRIVER_LOG_WORDS = ("osprofiler", "OSProfiler", "opentelemetry", "OTLP", "otlp")
+DRIVER_LOG_WORDS = ("osprofiler", "OSProfiler", "opentelemetry", "OpenTelemetry", "OTLP", "otlp", "tracing")
 
 
 def load_replace_secrets():
