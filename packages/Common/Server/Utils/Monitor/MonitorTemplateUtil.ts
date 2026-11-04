@@ -690,6 +690,18 @@ export default class MonitorTemplateUtil {
             (externalStatusPageResponse?.componentNames?.length
               ? externalStatusPageResponse.componentNames.join(", ")
               : undefined),
+          /*
+           * The same components as a list, for a template that repeats a
+           * line for each of them ({{#each componentNames}}): the chosen
+           * names and patterns as the monitor keeps them, else the one name
+           * filter of a monitor saved before it could watch several. Unset
+           * while the monitor watches the whole page, as componentName is.
+           */
+          componentNames: externalStatusPageResponse?.componentNames?.length
+            ? [...externalStatusPageResponse.componentNames]
+            : externalStatusPageResponse?.componentName
+              ? [externalStatusPageResponse.componentName]
+              : undefined,
         } as JSONObject;
 
         // Add component statuses

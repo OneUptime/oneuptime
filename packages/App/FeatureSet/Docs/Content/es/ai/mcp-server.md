@@ -337,6 +337,8 @@ Un ciclo típico: `list_incidents` → `acknowledge_incident` → investigar con
 
 La herramienta **`oneuptime_whoami`** devuelve el proyecto al que pertenecen tus credenciales (su ID y su nombre). Para un cliente que inició sesión, también dice con qué usuario inició sesión y si puede hacer cambios. Es una buena primera llamada para que un agente se oriente, y como las herramientas de creación toman `projectId` de las credenciales, el agente nunca tiene que pasar un ID de proyecto.
 
+La herramienta **`get_data_table_freshness`** le dice a un agente si una tabla que Data Observability vigila está al día antes de usar sus datos: al día o con retraso según el propio ritmo de la tabla, cuándo cambió por última vez, sus alertas abiertas y cómo fue la última ejecución de cada pipeline que la escribe. Pase `table` como `schema.table`, solo el nombre de la tabla o su ID. No cambia nada.
+
 ## Consultar la telemetría
 
 Los logs, las métricas, las trazas (spans), las excepciones, los logs de monitores y los demás tipos de telemetría llegan como herramientas `list_` y `count_` de solo lectura (`list_logs`, `list_metrics`, `list_spans`, `list_exception_instances`, `list_monitor_logs` y sus gemelas `count_`). La telemetría llega a través de OpenTelemetry, así que no hay herramientas de creación.

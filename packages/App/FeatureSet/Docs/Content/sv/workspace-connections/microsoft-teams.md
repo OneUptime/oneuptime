@@ -141,7 +141,7 @@ För att bli larmad via direktmeddelande när du har jour lägger du till Micros
 
 :::steps
 1. Anslut ditt eget Microsoft Teams-konto (se [Anslut Microsoft Teams](#anslut-microsoft-teams)).
-2. Gå till **Användarinställningar** > **Aviseringsmetoder**, öppna fliken **Workspace Apps** och klicka på **Add Microsoft Teams Account**.
+2. Gå till **Användarinställningar** > **Aviseringsmetoder**, öppna fliken **Arbetsyteappar** och klicka på **Add Microsoft Teams Account**.
 3. Klicka på **Send Test Message** på dess rad. Meddelandet kommer i dina chattar i Microsoft Teams.
 :::
 

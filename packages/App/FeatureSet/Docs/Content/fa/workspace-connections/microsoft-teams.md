@@ -141,7 +141,7 @@ flowchart TB
 
 :::steps
 1. حساب Microsoft Teams خودتان را وصل کنید ([اتصال Microsoft Teams](#اتصال-microsoft-teams) را ببینید).
-2. به **تنظیمات کاربر** > **روش‌های اعلان** بروید، زبانهٔ **Workspace Apps** را باز کنید و روی **Add Microsoft Teams Account** کلیک کنید.
+2. به **تنظیمات کاربر** > **روش‌های اعلان** بروید، زبانهٔ **برنامه‌های فضای کاری** را باز کنید و روی **Add Microsoft Teams Account** کلیک کنید.
 3. روی **Send Test Message** در ردیف آن کلیک کنید. پیام به گفتگوهای Microsoft Teams شما می‌رسد.
 :::
 

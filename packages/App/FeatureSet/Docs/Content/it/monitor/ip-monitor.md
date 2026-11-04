@@ -47,7 +47,7 @@ Una sonda che ha perso la propria connessione di rete non riporta alcun risultat
 :::steps
 ### Iniziare un nuovo monitor
 
-Andate in **Monitor** e fate clic su **Crea monitor**. In **Tipo di monitor**, fate clic su **Altri tipi di monitor** e scegliete **IP** sotto **Basic Monitoring**.
+Andate in **Monitor** e fate clic su **Crea monitor**. In **Tipo di monitor**, fate clic su **Altri tipi di monitor** e scegliete **IP** sotto **Monitoraggio di base**.
 
 ### Dargli un nome
 

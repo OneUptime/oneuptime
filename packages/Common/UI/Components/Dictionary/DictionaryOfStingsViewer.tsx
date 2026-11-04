@@ -4,6 +4,7 @@ import FieldType from "../Types/FieldType";
 import SortOrder from "../../../Types/BaseDatabase/SortOrder";
 import { Translator } from "../../Utils/TranslateTemplate";
 import useTranslator from "../../Utils/UseTranslator";
+import IsolatedText from "../IsolatedText/IsolatedText";
 import React, {
   FunctionComponent,
   ReactElement,
@@ -80,7 +81,7 @@ const DictionaryOfStringsViewer: FunctionComponent<ComponentProps> = (
           getElement: (item: Item): ReactElement => {
             return (
               <span className="font-mono font-medium text-gray-900">
-                {item.key}
+                <IsolatedText text={item.key} />
               </span>
             );
           },
@@ -92,8 +93,14 @@ const DictionaryOfStringsViewer: FunctionComponent<ComponentProps> = (
           disableSort: true,
           getElement: (item: Item): ReactElement => {
             return (
+              /*
+               * A key and its value as they were written: "region" and
+               * "us-east-1*" keep their own order on a Persian page.
+               */
               <span className="font-mono text-gray-600">
-                {item.value || (
+                {item.value ? (
+                  <IsolatedText text={item.value} />
+                ) : (
                   <span className="text-gray-400 italic">
                     {translator.translateText("empty")}
                   </span>

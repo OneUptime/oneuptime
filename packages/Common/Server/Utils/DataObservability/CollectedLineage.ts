@@ -10,6 +10,7 @@ import { matchDataset } from "./DatasetMatching";
 import OpenLineageIngest, { ProjectCatalog } from "./OpenLineageIngest";
 import { CollectedLineageEdge } from "./TableHealthCollector";
 import { UsageAsset } from "./TableUsageMatching";
+import { OpenLineageDataset } from "./OpenLineageEvent";
 
 /*
  * THE LINEAGE A DATABASE SAYS, KEPT AS EDGES.
@@ -37,6 +38,41 @@ type CollectedSource =
   | DataAssetLineageSource.ViewDefinition;
 
 // An edge whose tables are both watched tables.
+/*
+ * An upstream table another store may hold, as an OpenLineage dataset: a
+ * BigQuery table of another project or dataset, a Databricks table of
+ * another catalog, and a ClickHouse table of another database of the
+ * server (its schema is its database) when only one database is watched
+ * here. Null for an edge whose upstream can only be this store's.
+ */
+export function getUpstreamDataset(
+  engine: DatabaseEngine,
+  edge: CollectedLineageEdge,
+): OpenLineageDataset | null {
+  if (engine === "bigquery" && edge.upstreamDatabase) {
+    return {
+      namespace: "bigquery",
+      name: `${edge.upstreamDatabase}.${edge.upstreamSchema}.${edge.upstreamTable}`,
+    };
+  }
+
+  if (engine === "databricks" && edge.upstreamDatabase) {
+    return {
+      namespace: "databricks://",
+      name: `${edge.upstreamDatabase}.${edge.upstreamSchema}.${edge.upstreamTable}`,
+    };
+  }
+
+  if (engine === "clickhouse" && edge.upstreamSchema) {
+    return {
+      namespace: "clickhouse://",
+      name: `${edge.upstreamSchema}.${edge.upstreamTable}`,
+    };
+  }
+
+  return null;
+}
+
 export interface ResolvedLineageEdge {
   source: CollectedSource;
   upstreamDataAssetId: string;
@@ -295,15 +331,16 @@ export default class CollectedLineage {
             ?.toString() || null;
       }
 
-      if (!upstream && edge.upstreamDatabase && data.engine === "bigquery") {
+      const elsewhere: OpenLineageDataset | null = !upstream
+        ? getUpstreamDataset(data.engine, edge)
+        : null;
+
+      if (elsewhere) {
         catalog =
           catalog || (await OpenLineageIngest.readCatalog(data.projectId));
 
         const asset: UsageAsset | null = matchDataset({
-          dataset: {
-            namespace: "bigquery",
-            name: `${edge.upstreamDatabase}.${edge.upstreamSchema}.${edge.upstreamTable}`,
-          },
+          dataset: elsewhere,
           stores: catalog.stores,
           assets: catalog.assets,
         });

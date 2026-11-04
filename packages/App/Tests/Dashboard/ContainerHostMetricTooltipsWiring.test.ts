@@ -40,11 +40,10 @@ const JSX_EMPTY_EXPRESSION_PATTERN: RegExp = /\{\s*\}/g;
 const TILE_PATTERN: RegExp = /<GoldenMetricTile\b[\s\S]*?\/>/g;
 const CHART_CALL_PATTERN: RegExp = /renderChartCard\(\{[\s\S]*?\}\)/g;
 /*
- * A tile draws its title and line as given (GoldenMetricTile), so the page
- * looks each up in the reader's language where it hands it over.
+ * A tile is handed its title as English (GoldenMetricTile draws it in the
+ * reader's language), and its line looked up by the page or as English.
  */
-const TILE_TITLE_PATTERN: RegExp =
-  /title=\{translator\.translateText\("([^"]+)"\) as string\}/;
+const TILE_TITLE_PATTERN: RegExp = /title="([^"]+)"/;
 const TITLE_PROPERTY_PATTERN: RegExp = /title: "([^"]+)"/;
 const RECORD_KEY_PATTERN: RegExp =
   /CONTAINER_HOST_METRIC_DESCRIPTIONS\.([A-Za-z]+)/;
@@ -203,16 +202,15 @@ describe.each(RUNTIMES)("%s host overview", (runtime: string) => {
   test("the Processes tile shows the process total the page already computed", () => {
     const tiles: Array<string> = code.match(TILE_PATTERN) || [];
     const processes: string = tiles.find((tile: string): boolean => {
-      return tile.includes(
-        'title={translator.translateText("Processes") as string}',
-      );
+      return tile.includes('title="Processes"');
     })!;
 
     expect(processes).toContain("value={formatInt(s.totalPids)}");
-    // The pid count includes threads; the tile says so, not just the (i).
-    expect(processes).toContain(
-      'sublabel={translator.translateText("incl. threads") as string}',
-    );
+    /*
+     * The pid count includes threads; the tile says so, not just the (i) -
+     * in English the tile draws in the reader's words.
+     */
+    expect(processes).toContain('sublabel="incl. threads"');
     expect(code).toContain('"container.pids.count"');
     expect(code).toContain("totalPids: totalPids");
   });
@@ -232,9 +230,7 @@ describe.each(RUNTIMES)("%s host overview", (runtime: string) => {
      * container.memory.percent is of the host's memory.
      */
     expect(code).not.toContain("of container limit");
-    expect(code).toContain(
-      'translator.translateText("of limit or host memory")',
-    );
+    expect(code).toContain('sublabel="of limit or host memory"');
   });
 
   test("every chart card is called with the description written for it", () => {

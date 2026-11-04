@@ -54,7 +54,7 @@ Appen visar aviseringar genom sin webbläsare, när du har registrerat webbläsa
 
 :::steps
 ### Öppna dina push-enheter
-Öppna **Användarinställningar → Aviseringsmetoder** och fliken **Push Notifications** i appen.
+Öppna **Användarinställningar → Aviseringsmetoder** och fliken **Push-aviseringar** i appen.
 
 ### Registrera den här webbläsaren
 Klicka på **Registrera enhet**, behåll det föreslagna **Enhetsnamn**, till exempel `Chrome on Linux`, eller ändra det, och klicka på **Registrera enhet** igen. När webbläsaren frågar om OneUptime får visa aviseringar väljer du **Tillåt**.
@@ -80,7 +80,7 @@ Det finns inget att uppdatera. Appen hämtar instrumentpanelen från ditt OneUpt
 Öppna `edge://apps` i Edge, välj **Detaljer** för OneUptime och sedan **Avinstallera**.
 :::
 
-Att avinstallera appen avregistrerar inte dess webbläsare: den får fortfarande aviseringar. Vill du stoppa dem tar du bort webbläsaren under **Användarinställningar → Aviseringsmetoder**, på fliken **Push Notifications**, med **Ta bort**.
+Att avinstallera appen avregistrerar inte dess webbläsare: den får fortfarande aviseringar. Vill du stoppa dem tar du bort webbläsaren under **Användarinställningar → Aviseringsmetoder**, på fliken **Push-aviseringar**, med **Ta bort**.
 
 ## Felsökning
 
@@ -89,7 +89,7 @@ Att avinstallera appen avregistrerar inte dess webbläsare: den får fortfarande
 :::
 
 :::details Inga aviseringar visas
-- Kontrollera under **Användarinställningar → Aviseringsmetoder**, på fliken **Push Notifications**, att den här webbläsaren finns i listan, och skicka en **Testavisering** till den.
+- Kontrollera under **Användarinställningar → Aviseringsmetoder**, på fliken **Push-aviseringar**, att den här webbläsaren finns i listan, och skicka en **Testavisering** till den.
 - Kontrollera att skrivbordets Stör ej är av och att dess aviseringsinställningar tillåter webbläsaren.
 - Blockerar webbläsaren aviseringar för OneUptime, klicka på ikonen till vänster i adressfältet, tillåt aviseringar för webbplatsen och registrera webbläsaren igen.
 - På ett OneUptime i egen drift säger dialogrutan **Registrera enhet** när servern saknar VAPID-nycklar.

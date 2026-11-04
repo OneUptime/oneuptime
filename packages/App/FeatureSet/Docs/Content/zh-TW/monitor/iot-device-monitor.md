@@ -34,7 +34,7 @@ flowchart TB
 ## 開始之前
 
 - **讓你的裝置開始回報。** [IoT 裝置指南](/docs/telemetry/iot-devices) 介紹了如何用 OpenTelemetry SDK 或 Collector，或透過 MQTT 傳送指標。
-- **確認機群已註冊。** 它會以裝置傳送的 `iot.fleet.name` 命名，出現在 **產品 → 基礎設施 → IoT → All Fleets** 下。
+- **確認機群已註冊。** 它會以裝置傳送的 `iot.fleet.name` 命名，出現在 **產品 → 基礎設施 → IoT → 所有裝置群** 下。
 - **註冊你預期的裝置**，在機群的 **裝置註冊表** 下註冊，這樣裝置靜默時你會收到通知：請參閱 [離線偵測](#離線偵測)。
 
 ## 建立 IoT 裝置監測器
@@ -50,7 +50,7 @@ flowchart TB
 
 ### 選擇機群
 
-在 **IoT Monitor Configuration** 下，從 **IoT Fleet** 中選擇機群。每個傳送過資料的機群都在清單中。選好後，欄位下方的一行會顯示是否有資料傳入。**新增 IoT 裝置群** 會開啟已填好你的金鑰的設定步驟，並等待第一批資料。
+在 **IoT Monitor Configuration** 下，從 **IoT 裝置群** 中選擇機群。每個傳送過資料的機群都在清單中。選好後，欄位下方的一行會顯示是否有資料傳入。**新增 IoT 裝置群** 會開啟已填好你的金鑰的設定步驟，並等待第一批資料。
 
 ### 選擇要監看的內容
 
@@ -76,7 +76,7 @@ flowchart TB
 
 | 欄位 | 索引標籤 | 作用 |
 | --- | --- | --- |
-| **IoT Fleet** | 全部 | 必填。把每個查詢限定到 `resource.iot.fleet.name`。 |
+| **IoT 裝置群** | 全部 | 必填。把每個查詢限定到 `resource.iot.fleet.name`。 |
 | **Device ID** | Custom Metric、進階 | 選填。一個裝置，依其 `device.id`，例如 `sensor-001`。 |
 | **裝置類型** | Custom Metric、進階 | 選填。回報該 `iot.device.type` 的裝置，例如 `sensor` 或 `gateway`。 |
 | **IoT Metric** | Custom Metric | [目錄](#收集的指標) 中的一個指標。 |

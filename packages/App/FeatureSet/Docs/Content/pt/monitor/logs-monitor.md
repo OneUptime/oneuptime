@@ -48,7 +48,7 @@ Em **Logs a observar**, defina **Severidade do Registro** e **A mensagem contém
 
 ### Refinar (opcional)
 
-Abra **Mais campos** para filtrar por serviço de telemetria, entidade de infraestrutura ou atributo. Para receber um alerta por túnel, usuário ou interface em vez de um para o monitor inteiro, adicione o atributo em **Group by Attributes** (veja [Alertas por grupo](#alertas-por-grupo-group-by)).
+Abra **Mais campos** para filtrar por serviço de telemetria, entidade de infraestrutura ou atributo. Para receber um alerta por túnel, usuário ou interface em vez de um para o monitor inteiro, adicione o atributo em **Agrupar por atributos** (veja [Alertas por grupo](#alertas-por-grupo-group-by)).
 
 ### Dizer quando alertar
 
@@ -70,8 +70,8 @@ Clique em **Criar monitor**. O monitor abre na sua página **Visão geral**, e s
 | **Severidade do Registro** | Logs com qualquer uma das severidades escolhidas. | Vazio: todas as severidades |
 | **A mensagem contém** | Logs cujo corpo contém este texto, sem diferenciar maiúsculas de minúsculas. | Vazio: todos os logs |
 | **Janela de tempo** (em **Quando alertar**) | Logs dos últimos 5 segundos até as últimas 24 horas. | **Últimos 5 minutos** |
-| **Group by Attributes** | Não é um filtro: conta separadamente cada combinação de valores desses atributos. | Vazio: uma só contagem |
-| **Resolvido por atributos** | Não é um filtro: o log que resolve um grupo. Aparece assim que **Group by Attributes** tem um atributo; veja [Resolvido por um log](#resolvido-por-um-log). | Vazio: um grupo se resolve quando os logs dele param |
+| **Agrupar por atributos** | Não é um filtro: conta separadamente cada combinação de valores desses atributos. | Vazio: uma só contagem |
+| **Resolvido por atributos** | Não é um filtro: o log que resolve um grupo. Aparece assim que **Agrupar por atributos** tem um atributo; veja [Resolvido por um log](#resolvido-por-um-log). | Vazio: um grupo se resolve quando os logs dele param |
 | **Filtrar por serviço de telemetria** (em **Mais campos**) | Logs de qualquer um dos serviços escolhidos. | Vazio: todos os serviços |
 | **Filtrar por entidade de infraestrutura** (em **Mais campos**) | Logs de qualquer um dos hosts, pods, contêineres e outras entidades escolhidos. | Vazio: todas as entidades |
 | **Filtrar por atributos** (em **Mais campos**) | Logs cujos atributos atendem a todas as condições. Cada condição tem seu próprio operador, como "igual a" ou "contém". | Vazio: nenhuma condição |
@@ -157,7 +157,7 @@ Como as janelas se sobrepõem, uma única rajada de erros mantém a contagem alt
 
 ## Alertas por grupo (Group By)
 
-**Group by Attributes** divide a contagem de um monitor de logs em uma contagem por combinação distinta de valores de atributos (uma por túnel IPsec, por usuário de VPN, por interface de firewall) e avalia os critérios em cada grupo separadamente. É o equivalente, para logs, do [Group By](/docs/monitor/metrics-monitor#alertas-por-série-group-by) de um monitor de métricas.
+**Agrupar por atributos** divide a contagem de um monitor de logs em uma contagem por combinação distinta de valores de atributos (uma por túnel IPsec, por usuário de VPN, por interface de firewall) e avalia os critérios em cada grupo separadamente. É o equivalente, para logs, do [Group By](/docs/monitor/metrics-monitor#alertas-por-série-group-by) de um monitor de métricas.
 
 ### Um alerta por grupo
 
@@ -193,7 +193,7 @@ Um dispositivo que relata um túnel fora do ar geralmente relata quando ele volt
 
 Considere um monitor que conta os logs com `event.name` = `vpn.tunnel_down`, agrupados por `event.device` e `vpn.tunnel.name`, com **Resolvido por atributos** definido como `event.name` = `vpn.tunnel_up`. A queda do túnel `HQ-Branch1` abre o alerta dele. O alerta fica aberto a noite toda, embora o firewall não registre mais nada sobre o túnel, e se resolve quando o firewall relata `HQ-Branch1` de volta. Se o túnel cair de novo, um novo alerta é aberto.
 
-- O campo aparece assim que **Group by Attributes** tem um atributo. Ele aceita até 10 atributos, e um log de resolução traz todos eles.
+- O campo aparece assim que **Agrupar por atributos** tem um atributo. Ele aceita até 10 atributos, e um log de resolução traz todos eles.
 - Um log de resolução pertence a um grupo quando tem os valores do grupo para os atributos de agrupamento, então os dois tipos de log precisam trazer esses atributos.
 - Os serviços de telemetria e a janela de tempo do monitor valem também para os logs de resolução. Os filtros de texto e de severidade dele, não: eles descrevem o problema.
 - Um grupo cujo log mais recente é de resolução é fechado. Um que registrou o problema de novo depois continua aberto.
@@ -213,7 +213,7 @@ log_component="IPSec" con_name="HQ-Branch1" status="Terminated" message="IPSec C
 1. Crie um monitor de **Registros** e escolha **Aparece uma mensagem**.
 2. Defina **A mensagem contém** como `terminated` e a **Janela de tempo** como **Últimos 5 minutos**.
 3. Em **Mais campos**, adicione o filtro de atributo `log_component` = `IPSec`.
-4. Em **Group by Attributes**, adicione `con_name`.
+4. Em **Agrupar por atributos**, adicione `con_name`.
 5. Mantenha a regra em **Mais de** `0`, e dê ao alerta ou ao incidente o título `IPsec tunnel {{con_name}} terminated`.
 :::
 
@@ -248,7 +248,7 @@ Os critérios são verificados de cima para baixo e a primeira correspondência 
 :::
 
 :::details Um critério de anomalia nunca dispara
-Ele ainda está aprendendo: os serviços do monitor ainda não têm duas semanas de histórico. Em um monitor com **Group by Attributes**, as condições de anomalia nunca correspondem; use um limite ali.
+Ele ainda está aprendendo: os serviços do monitor ainda não têm duas semanas de histórico. Em um monitor com **Agrupar por atributos**, as condições de anomalia nunca correspondem; use um limite ali.
 :::
 
 :::details Os alertas de grupo chegam sem valor de grupo

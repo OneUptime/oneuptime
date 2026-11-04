@@ -48,7 +48,7 @@ RDAP-verzoeken volgen de instellingen `HTTP_PROXY_URL` / `HTTPS_PROXY_URL` / `NO
 :::steps
 ### Een nieuwe monitor beginnen
 
-Ga naar **Monitoren** en klik op **Monitor maken**. Klik onder **Monitortype** op **Meer monitortypen** en kies **Domein** onder **Basic Monitoring**.
+Ga naar **Monitoren** en klik op **Monitor maken**. Klik onder **Monitortype** op **Meer monitortypen** en kies **Domein** onder **Basisbewaking**.
 
 ### Hem een naam geven
 

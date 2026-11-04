@@ -62,7 +62,7 @@ O aplicativo mostra um projeto por vez: toque no nome do projeto no topo de uma 
 
 :::steps
 ### Encontrar o dispositivo no painel
-No painel, abra **Configurações do usuário → Métodos de notificação** e a aba **Push Notifications**. O iPhone ou iPad aparece em **Dispositivos de Notificação Push** com o nome do modelo. Cada projeto mantém a sua própria lista.
+No painel, abra **Configurações do usuário → Métodos de notificação** e a aba **Notificações push**. O iPhone ou iPad aparece em **Dispositivos de Notificação Push** com o nome do modelo. Cada projeto mantém a sua própria lista.
 
 ### Enviar um teste
 Clique em **Notificação de teste** na linha do dispositivo. Uma notificação chega ao dispositivo; toque nela para abrir o aplicativo.
@@ -130,7 +130,7 @@ O aplicativo não conseguiu chegar a `https://<your-oneuptime>/api/status`. Veri
 
 :::details Nenhuma notificação chega
 - Verifique se **Permitir Notificações** está ativado em **Ajustes → Notificações → OneUptime On-Call**, e se nenhum Foco está retendo os acionamentos.
-- Verifique se o dispositivo aparece em **Push Notifications** em **Configurações do usuário → Métodos de notificação**, e envie a ele uma **Notificação de teste**.
+- Verifique se o dispositivo aparece em **Notificações push** em **Configurações do usuário → Métodos de notificação**, e envie a ele uma **Notificação de teste**.
 - Se o dispositivo está marcado como **Não está recebendo notificações**, abra o aplicativo estando conectado. Ele registra o dispositivo de novo; veja [Quando um celular precisa se registrar de novo](/docs/mobile-desktop-apps/faq-troubleshooting#quando-um-celular-precisa-se-registrar-de-novo).
 - Verifique as suas regras de plantão em **Configurações do usuário → Regras de Plantão**.
 - Num OneUptime auto-hospedado, verifique se o seu servidor chega ao relay push dele: veja [Notificações push](/docs/self-hosted/push-notifications#acesso-de-rede).

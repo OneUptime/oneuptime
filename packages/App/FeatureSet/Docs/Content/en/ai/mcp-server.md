@@ -337,6 +337,8 @@ A typical loop: `list_incidents` → `acknowledge_incident` → investigate with
 
 The **`oneuptime_whoami`** tool returns the project your credentials belong to (its ID and name). For a client that signed in, it also says who it is signed in as and whether it may make changes. It is a good first call for an agent to find its bearings, and since create tools take `projectId` from the credentials, the agent never has to pass a project ID.
 
+The **`get_data_table_freshness`** tool tells an agent whether a table Data Observability watches is fresh, before it uses the data: fresh or late by the table's own rhythm, when it last changed, its open alerts, and how the latest run of each pipeline that writes it went. Pass `table` as `schema.table`, the table's name alone, or its ID. It changes nothing.
+
 ## Querying Telemetry
 
 Logs, metrics, traces (spans), exceptions, monitor logs and the other kinds of telemetry come as read-only `list_` and `count_` tools (`list_logs`, `list_metrics`, `list_spans`, `list_exception_instances`, `list_monitor_logs` and their `count_` twins). Telemetry arrives through OpenTelemetry, so there are no create tools.

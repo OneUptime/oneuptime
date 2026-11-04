@@ -108,7 +108,7 @@ Para uma permissão mais restrita, dê ao usuário `SELECT` apenas nas tabelas q
 :::steps
 ### Começar um novo monitor
 
-Vá para **Monitores** e clique em **Criar monitor**. Em **Tipo de monitor**, clique em **Mais tipos de monitor** e escolha **SQL Query** em **Database Monitoring**, ou digite `query` na caixa de pesquisa. Digite um **Nome** e clique em **Próximo**.
+Vá para **Monitores** e clique em **Criar monitor**. Em **Tipo de monitor**, clique em **Mais tipos de monitor** e escolha **SQL Query** em **Monitoramento de bancos de dados**, ou digite `query` na caixa de pesquisa. Digite um **Nome** e clique em **Próximo**.
 
 ### Informar os dados de conexão
 

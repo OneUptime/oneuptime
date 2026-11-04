@@ -48,7 +48,7 @@ Nettleserne er Chromium og Firefox.
 :::steps
 ### Start en ny monitor
 
-Gå til **Monitorer**, og klikk på **Opprett monitor**. Under **Monitortype** klikker du på **Flere monitortyper** og velger **Synthetic Monitor** under **Synthetic Monitoring**, eller skriver `playwright` i søkefeltet. Skriv inn et **Navn**, og klikk deretter på **Neste**.
+Gå til **Monitorer**, og klikk på **Opprett monitor**. Under **Monitortype** klikker du på **Flere monitortyper** og velger **Synthetic Monitor** under **Syntetisk overvåking**, eller skriver `playwright` i søkefeltet. Skriv inn et **Navn**, og klikk deretter på **Neste**.
 
 ### Legg til skriptet
 

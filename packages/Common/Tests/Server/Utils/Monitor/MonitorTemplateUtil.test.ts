@@ -929,6 +929,7 @@ describe("MonitorTemplateUtil.buildTemplateStorageMap — ExternalStatusPage", (
       provider: "Atlassian Statuspage",
       componentGroup: "APIs",
       componentName: "REST API",
+      componentNames: ["REST API"],
       componentStatuses: [
         {
           name: "REST API",
@@ -996,6 +997,87 @@ describe("MonitorTemplateUtil.buildTemplateStorageMap — ExternalStatusPage", (
       expect(map["componentName"]).toBe(expected);
     },
   );
+
+  /*
+   * The same components as a list, for a template that repeats a line for
+   * each of them: the chosen names and patterns as the monitor keeps them,
+   * the one name filter of a monitor saved before it could watch several,
+   * and nothing while the monitor watches the whole page.
+   */
+  test.each([
+    [
+      "several chosen components",
+      { componentNames: ["Git Operations", "Pull Requests", "Actions"] },
+      ["Git Operations", "Pull Requests", "Actions"],
+    ],
+    [
+      "one chosen component",
+      { componentNames: ["Git Operations"], componentName: "Git Operations" },
+      ["Git Operations"],
+    ],
+    ["a pattern", { componentNames: ["*us-east-1*"] }, ["*us-east-1*"]],
+    [
+      "a monitor saved with one name filter, before it chose components",
+      { componentNames: [], componentName: "API" },
+      ["API"],
+    ],
+    ["the whole page", { componentNames: [] }, undefined],
+  ])(
+    "{{componentNames}} for %s",
+    (
+      _name: string,
+      scope: { componentNames: Array<string>; componentName?: string },
+      expected: Array<string> | undefined,
+    ) => {
+      const map: JSONObject = build(
+        MonitorType.ExternalStatusPage,
+        probeResponse({
+          isOnline: true,
+          externalStatusPageResponse: {
+            isOnline: true,
+            overallStatus: "operational",
+            activeIncidentCount: 0,
+            responseTimeInMs: 150,
+            failureCause: "",
+            componentStatuses: [],
+            ...scope,
+          },
+        }),
+      );
+
+      expect(map["componentNames"]).toEqual(expected);
+    },
+  );
+
+  test("a template repeats a line for each chosen component, and the list is the monitor's own copy", () => {
+    const chosen: Array<string> = ["Git Operations", "Pull Requests"];
+    const map: JSONObject = build(
+      MonitorType.ExternalStatusPage,
+      probeResponse({
+        isOnline: true,
+        externalStatusPageResponse: {
+          isOnline: true,
+          overallStatus: "major_outage",
+          activeIncidentCount: 1,
+          responseTimeInMs: 150,
+          failureCause: "",
+          componentStatuses: [],
+          componentNames: chosen,
+        },
+      }),
+    );
+
+    expect(
+      MonitorTemplateUtil.processTemplateString({
+        value: "Watching:{{#each componentNames}} [{{this}}]{{/each}}",
+        storageMap: map,
+      }),
+    ).toBe("Watching: [Git Operations] [Pull Requests]");
+
+    // The map never shares the response's array.
+    (map["componentNames"] as Array<string>).push("Copilot");
+    expect(chosen).toEqual(["Git Operations", "Pull Requests"]);
+  });
 
   test("no response leaves componentStatuses off the map", () => {
     const map: JSONObject = build(

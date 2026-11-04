@@ -5,7 +5,9 @@ import { JSONObject, JSONValue } from "Common/Types/JSON";
 import ObjectID from "Common/Types/ObjectID";
 import {
   DATA_OBSERVABILITY_API_ROUTES,
+  DataObservabilityBiSyncResponse,
   DataObservabilityCheckAlertResponse,
+  DataObservabilityCheckSuggestion,
   DataObservabilityConnectStoreRequest,
   DataObservabilityConnectStoreResponse,
   DataObservabilityDataProductBadgeResetResponse,
@@ -13,6 +15,7 @@ import {
   DataObservabilityOverview,
   DataObservabilityReconciliationSyncResponse,
   DataObservabilityStoreSummary,
+  DataObservabilityTableDashboard,
 } from "Common/Types/DataObservability/DataObservabilityApiTypes";
 import { APP_API_URL } from "Common/UI/Config";
 import API from "Common/UI/Utils/API/API";
@@ -144,6 +147,40 @@ export default class DataObservabilityApi {
         reconciliationId.toString(),
       ),
     );
+  }
+
+  // OneUptime AI writes a Custom SQL check from a rule in a sentence, for the person to review.
+  public static async suggestCheck(
+    dataAssetId: ObjectID,
+    sentence: string,
+  ): Promise<DataObservabilityCheckSuggestion> {
+    return (await post(DATA_OBSERVABILITY_API_ROUTES.checkSuggest, {
+      dataAssetId: dataAssetId.toString(),
+      sentence,
+    })) as unknown as DataObservabilityCheckSuggestion;
+  }
+
+  // Reads a BI tool's dashboards now, and says how it went.
+  public static async syncBiConnection(
+    dataBiConnectionId: ObjectID,
+  ): Promise<DataObservabilityBiSyncResponse> {
+    return (await post(
+      DATA_OBSERVABILITY_API_ROUTES.biSync(dataBiConnectionId.toString()),
+    )) as unknown as DataObservabilityBiSyncResponse;
+  }
+
+  // The dashboards built on a table, and on the tables built from it.
+  public static async getTableDashboards(
+    dataAssetId: ObjectID,
+  ): Promise<Array<DataObservabilityTableDashboard>> {
+    const response: JSONObject = (await post(
+      DATA_OBSERVABILITY_API_ROUTES.tableDashboards,
+      { dataAssetId: dataAssetId.toString() },
+    )) as JSONObject;
+
+    return (Array.isArray(response["dashboards"])
+      ? response["dashboards"]
+      : []) as unknown as Array<DataObservabilityTableDashboard>;
   }
 
   public static async runCheckNow(dataCheckId: ObjectID): Promise<void> {

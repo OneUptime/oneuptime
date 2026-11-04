@@ -317,7 +317,7 @@ criteria = [
 | डोमेन | `Domain Expires In Days`, `Domain Is Expired`, `Domain Registrar`, `Domain Name Server` |
 | DNSSEC | `DNSSEC Chain Is Valid`, `DNSSEC DS Record Exists At Parent`, `DNSSEC Signature Expires In Days` |
 | SQL क्वेरी | `SQL Is Online`, `SQL Query Row Count`, `SQL Query Scalar Value` |
-| डेटाबेस हेल्थ | `Database Is Online`, `Database Metric` (`database_monitor_options` JSON के साथ जो सीरीज़ का नाम बताता है, जैसे `jsonencode({ metricType = "oneuptime.monitor.database.connections.used.percent" })`), `Database Collection Error` |
+| डेटाबेस स्वास्थ्य | `Database Is Online`, `Database Metric` (`database_monitor_options` JSON के साथ जो सीरीज़ का नाम बताता है, जैसे `jsonencode({ metricType = "oneuptime.monitor.database.connections.used.percent" })`), `Database Collection Error` |
 | बाहरी स्थिति पृष्ठ | `External Status Page Is Online`, `External Status Page Active Incidents`, `External Status Page Component Status` |
 | NTP | `NTP Is Online`, `NTP Is Synchronized`, `NTP Stratum`, `NTP Clock Offset (in ms)`, `NTP Response Time (in ms)`, `NTP Root Dispersion (in ms)` (`NTP Is Online` और `NTP Is Synchronized` कोई `value` नहीं लेते) |
 | नेटवर्क डिवाइस (SNMP) | `SNMP Device Is Online` (यह ping या SNMP का जवाब देता है), `SNMP Walk Is Succeeding` (false जब यह जवाब देता है पर walk नहीं किया जा सकता), `SNMP OID Value` (SNMP फ़िल्टर `snmp_monitor_options` JSON ले सकते हैं) |

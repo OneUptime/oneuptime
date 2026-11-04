@@ -50,7 +50,7 @@ Una firma a la que le queda menos de un día ya cuenta como rota, así que se en
 :::steps
 ### Empezar un monitor nuevo
 
-Vaya a **Monitores** y haga clic en **Crear monitor**. En **Tipo de monitor**, haga clic en **Más tipos de monitor** y elija **DNSSEC** en **DNS Monitoring**.
+Vaya a **Monitores** y haga clic en **Crear monitor**. En **Tipo de monitor**, haga clic en **Más tipos de monitor** y elija **DNSSEC** en **Monitoreo de DNS**.
 
 ### Ponerle nombre
 

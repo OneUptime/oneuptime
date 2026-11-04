@@ -69,7 +69,7 @@ flowchart TB
 | AWS | AWS S3 Bucket、AWS RDS Instance、AWS Aurora Cluster、AWS RDS Snapshot、AWS DynamoDB Table、AWS Redshift Cluster、AWS DocumentDB Cluster、AWS OpenSearch Domain、AWS ElastiCache Cluster、AWS EFS File System | AWS S3 Bucket |
 | Azure | Azure Storage Account、Azure SQL Database、Azure Cosmos DB Account、Azure PostgreSQL Server、Azure MySQL Server | Azure Storage Account |
 | Google Cloud | Google Cloud Storage Bucket、Google Cloud SQL Instance、Google BigQuery Dataset、Google Firestore Database、Google Spanner Instance、Google Bigtable Instance | Google Cloud Storage Bucket、Google BigQuery Dataset |
-| 你自行執行的資料庫 | PostgreSQL、MySQL、MongoDB、SQL Server、Oracle、Redis、Elasticsearch、Snowflake | PostgreSQL、MySQL |
+| 你自行執行的資料庫 | PostgreSQL、MySQL、MongoDB、SQL Server、Oracle、Redis、Elasticsearch、Snowflake、ClickHouse、Databricks | PostgreSQL、MySQL |
 | OneUptime | 日誌、追蹤、例外、工作階段重播、AI 對話 | 日誌、追蹤、例外、工作階段重播、AI 對話 |
 
 每個資料儲存區都會執行適用於其種類的檢查。無法對內容取樣的資料儲存區仍會接受檢查：公開的儲存貯體或未加密的資料庫，無論其中保存什麼，都是缺失。

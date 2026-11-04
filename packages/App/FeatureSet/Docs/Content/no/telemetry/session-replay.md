@@ -43,7 +43,7 @@ For å lagre mindre samarbeider to innstillinger i applikasjonens retningslinje:
 
 | Hvor | Hva som er der |
 | --- | --- |
-| Applikasjonens side **Replay Policy** | Retningslinjen (opptak, maskering, samtykke, sporing og grenser), et sammendrag av **Opptakets tilstand**, kortet **Hva et opptak inneholder**, panelet **Test your installation** og **Record a specific user's next session**. |
+| Applikasjonens side **Avspillingspolicy** | Retningslinjen (opptak, maskering, samtykke, sporing og grenser), et sammendrag av **Opptakets tilstand**, kortet **Hva et opptak inneholder**, panelet **Test your installation** og **Record a specific user's next session**. |
 | Applikasjonens side **Helse** | Om opptak kommer inn, og hvorfor ikke når de ikke gjør det. Se [Opptaksstatus](#opptaksstatus). |
 | **Overvåking av reelle brukere → Innstillinger → Øktavspilling** | Bryteren for hele prosjektet som stopper alle applikasjoner på én gang, og en skrivebeskyttet liste over hver applikasjons retningslinje. |
 
@@ -290,7 +290,7 @@ copy(JSON.stringify(OneUptimeReplay.getDiagnostics(), null, 2));
 
 ## Personvern
 
-**Maskering skjer ved opptaket, på sluttbrukerens enhet, før noe lastes opp.** Serveren mottar aldri det som ble maskert, så en maskeringsbeslutning kan ikke angres i etterkant og heller ikke brukes med tilbakevirkende kraft. På web avhenger det som maskeres, av modusen; React Native sender alltid den strengere wireframe-strukturen som er beskrevet i [Personvern og maskering i React Native](#personvern-og-maskering-i-react-native). Kortet **Hva et opptak inneholder** på applikasjonens side **Replay Policy** omformulerer disse beslutningene til vanlige setninger for det du har konfigurert.
+**Maskering skjer ved opptaket, på sluttbrukerens enhet, før noe lastes opp.** Serveren mottar aldri det som ble maskert, så en maskeringsbeslutning kan ikke angres i etterkant og heller ikke brukes med tilbakevirkende kraft. På web avhenger det som maskeres, av modusen; React Native sender alltid den strengere wireframe-strukturen som er beskrevet i [Personvern og maskering i React Native](#personvern-og-maskering-i-react-native). Kortet **Hva et opptak inneholder** på applikasjonens side **Avspillingspolicy** omformulerer disse beslutningene til vanlige setninger for det du har konfigurert.
 
 Retningslinjens personverninnstillinger, med navnet som **Rediger policy** gir dem:
 
@@ -333,7 +333,7 @@ Hvis sidene dine viser personopplysninger, hever du modusen eller legger til mas
 Inntakstokenet ditt leveres til klienten — i sidens JavaScript eller i mobilappens binærfil — så det finnes to porter, og de kombineres:
 
 - **På nøkkelen.** Opprett inntaksnøkkelen med **Nettleser** som **Nøkkeltype**. For web oppgir du dens **Tillatte opprinnelser** (`https://app.example.com`, eller `https://*.example.com` for ett underdomenenivå). For React Native legger du til den nøyaktige appidentiteten som `app://com.example.storefront`. Gi også nøkkelen en **Utløper**: da slutter et kopiert token å virke på en dato du velger, i stedet for aldri.
-- **På applikasjonen.** **Replay Policy → Tillatte opprinnelser** begrenser hvem som kan skrive opptak til denne applikasjonen, uansett hvilken nøkkel som presenteres. Legg til de samme webopprinnelsene og de nøyaktige mobile `app://`-identitetene her.
+- **På applikasjonen.** **Avspillingspolicy → Tillatte opprinnelser** begrenser hvem som kan skrive opptak til denne applikasjonen, uansett hvilken nøkkel som presenteres. Legg til de samme webopprinnelsene og de nøyaktige mobile `app://`-identitetene her.
 
 En `app://`-oppføring er det bokstavelige prefikset pluss den normaliserte Android-application-ID-en eller iOS-bundle-identifikatoren som leveres som `mobileAppIdentifier`. Sammenligningen skiller ikke mellom store og små bokstaver, etter at mellomrom er fjernet og en gyldig reverse-DNS-identifikator er gjort om til små bokstaver. Mobile identiteter godtar **ikke** jokertegn: `app://*.example.com` er ugyldig. Mobil-SDK-et sender ingen nettleser-`Origin`; det sender opptakertypen og appidentiteten i egne headere. Hvis en forespørsel bærer en ekte `Origin`, vinner alltid den opprinnelsen — de mobile headerne kan aldri brukes til å omgå nettleserens opprinnelsessjekk.
 
@@ -370,7 +370,7 @@ Maskerte verdier beholder ikke lengden. Et maskert felt er en plassholder med fa
 <div class="oneuptime-ignore">...</div>
 ```
 
-Du kan også legge til **Ekstra maskeringsselektorer** og **Blokkeringsselektorer** på applikasjonens side **Replay Policy** uten å endre markupen din. Med standardmodusen for maskering er de det viktigste verktøyet for å beskytte innhold som markupen din ikke erklærer som følsomt.
+Du kan også legge til **Ekstra maskeringsselektorer** og **Blokkeringsselektorer** på applikasjonens side **Avspillingspolicy** uten å endre markupen din. Med standardmodusen for maskering er de det viktigste verktøyet for å beskytte innhold som markupen din ikke erklærer som følsomt.
 
 ### Hva dine egne forespørsler bærer
 
@@ -387,7 +387,7 @@ tracestate:  oneuptime=sid:<32 hex session id>;p:<16 hex parent id>
 - **Hva den kobler.** Et backend-spenn, en logg eller et unntak som nevner brukeren (et attributt `enduser.id`, en e-postadresse i en logglinje), er nå ett klikk unna opptaket, selv med **Registrer sluttbrukerens identitet** slått av: den bryteren avgjør hva opptaket beholder, ikke hva backenden din logger. Hvis opptak ikke skal kunne kobles til hvem brukeren var, slår du også av **Sporvideresending fra samme opprinnelse**.
 - **Hvem som kan påstå det.** Som all sporingskontekst skrives medlemmet av klienten. Den som kjente en økt-ID, kunne sende den til API-et ditt og få spennene fra sine egne forespørsler arkivert under den økten. Økt-ID-er er tilfeldige verdier på 128 bit, så vedkommende måtte først ha ID-en. Det samme gjelder sporet en klient nevner: en forespørsel som sender en `traceparent` fra et spor den kjenner, sammen med medlemmet for sin egen økt, trekker det sporets backend-rader inn i øktens panel og innenfor rekkevidden av den øktens sletting. Sletting fjerner bare et helt spor når det utelukkende tilhører de slettede øktene; fra et spor som deles med andre økter, fjerner den bare radene som er merket med de slettede ID-ene (se [Slett økter](#slett-økter)).
 
-Slå det av per applikasjon med **Sporvideresending fra samme opprinnelse** på siden **Replay Policy**; se [Slå av automatisk kobling](#slå-av-automatisk-kobling).
+Slå det av per applikasjon med **Sporvideresending fra samme opprinnelse** på siden **Avspillingspolicy**; se [Slå av automatisk kobling](#slå-av-automatisk-kobling).
 
 ### Samtykke
 
@@ -438,7 +438,7 @@ Hvis du hoster OneUptime selv, bruker du din egen vert i stedet.
 
 Én ting til knyttet til CSP, som handler om stilark og ikke om retningslinjen din: opptakeren kan bare beholde et stilark den kan lese. Et stilark fra en annen opprinnelse kan bare leses når serveren dets sender en header `Access-Control-Allow-Origin` som tillater nettstedet ditt, **og** `<link>`-en din bærer `crossorigin="anonymous"`. Ellers beholder opptaket bare adressen, og avspillingen laster det inn derfra i nettleseren til den som ser på; se [Bilder, stiler og skrifttyper under avspilling](#bilder-stiler-og-skrifttyper-under-avspilling). Legg bare til attributtet når headeren er på plass: `crossorigin` uten headeren får din egen side til å avvise stilarket.
 
-Bruk panelet **Test your installation** på applikasjonens side **Replay Policy** for å bekrefte tokenet, retningslinjens brytere og listene over tillatte opprinnelser fra serversiden. Det kan ikke sjekke CSP-en din: en CSP er en header som ditt eget nettsted sender til dine egne besøkende, og ingenting på serversiden ser den noen gang. En CSP-blokkering viser seg bare indirekte der: `script-src` blokkerer opptakeren, så panelets rad _Recorder loaded on your site_ fortsetter å vente; `connect-src` blokkerer opplastingen, så den raden består mens raden for det mottatte opptaket under fortsetter å vente. I begge tilfeller logger nettleserkonsollen på den blokkerte siden avvisningen, og det er det eneste positive beviset.
+Bruk panelet **Test your installation** på applikasjonens side **Avspillingspolicy** for å bekrefte tokenet, retningslinjens brytere og listene over tillatte opprinnelser fra serversiden. Det kan ikke sjekke CSP-en din: en CSP er en header som ditt eget nettsted sender til dine egne besøkende, og ingenting på serversiden ser den noen gang. En CSP-blokkering viser seg bare indirekte der: `script-src` blokkerer opptakeren, så panelets rad _Recorder loaded on your site_ fortsetter å vente; `connect-src` blokkerer opplastingen, så den raden består mens raden for det mottatte opptaket under fortsetter å vente. I begge tilfeller logger nettleserkonsollen på den blokkerte siden avvisningen, og det er det eneste positive beviset.
 
 ## Korreler med resten av telemetrien din
 
@@ -466,7 +466,7 @@ Avspillerens faner **Logger**, **Spor** og **Feil** viser da de radene på oppta
 
 ### API-er på en annen opprinnelse
 
-En forespørsel til en annen opprinnelse får ingenting som standard: å legge til en hvilken som helst header gjør en enkel forespørsel på tvers av opprinnelser om til en med preflight, og et API som ikke tillater headeren, ville begynne å feile fordi du installerte en opptaker. For å koble en legger du opprinnelsen til i **Opprinnelser for sporvideresending** på siden **Replay Policy**, i trinnet **Ytelse og sporing** i **Rediger policy**. Oppgi bare en opprinnelse der API-et tillater `traceparent` i `Access-Control-Allow-Headers`; det er hele grunnen til at det er en eksplisitt liste.
+En forespørsel til en annen opprinnelse får ingenting som standard: å legge til en hvilken som helst header gjør en enkel forespørsel på tvers av opprinnelser om til en med preflight, og et API som ikke tillater headeren, ville begynne å feile fordi du installerte en opptaker. For å koble en legger du opprinnelsen til i **Opprinnelser for sporvideresending** på siden **Avspillingspolicy**, i trinnet **Ytelse og sporing** i **Rediger policy**. Oppgi bare en opprinnelse der API-et tillater `traceparent` i `Access-Control-Allow-Headers`; det er hele grunnen til at det er en eksplisitt liste.
 
 Forespørsler til en opprinnelse på listen får bare en `traceparent`, ingen `tracestate` og derfor ingen økt-ID, og backend-telemetrien deres matches med opptaket **via spor-ID**, gjennom spor-ID-ene som opptaket observerte. Forespørsler som allerede bærer en `traceparent`, og `fetch`-kall med et `Request`-objekt i stedet for en URL, berøres ikke på denne veien.
 
@@ -519,7 +519,7 @@ Et spor som backenden din da kaster, når aldri OneUptime, så det kobles heller
 
 ### Slå av automatisk kobling
 
-**Sporvideresending fra samme opprinnelse**, på siden **Replay Policy** ved siden av **Opprinnelser for sporvideresending**, er slått på som standard for hver applikasjon. Slått av legger opptakeren ikke til noe i forespørsler til samme opprinnelse fra neste sideinnlasting, og **Opprinnelser for sporvideresending** fortsetter å virke som før for hver opprinnelse den inneholder. Så hvis du har lagt din egen opprinnelse der (tidligere versjoner av denne siden sa at du skulle), fjerner du den også, ellers fortsetter dine egne forespørsler å få en `traceparent`. Med diagnostikk slått på sier opptakeren ved oppstart hvilken som gjelder: `same-origin-propagation`, med `enabled` og en `reason` (se [Feilsøking av øktavspilling](/docs/rum/session-replay-troubleshooting#koder)).
+**Sporvideresending fra samme opprinnelse**, på siden **Avspillingspolicy** ved siden av **Opprinnelser for sporvideresending**, er slått på som standard for hver applikasjon. Slått av legger opptakeren ikke til noe i forespørsler til samme opprinnelse fra neste sideinnlasting, og **Opprinnelser for sporvideresending** fortsetter å virke som før for hver opprinnelse den inneholder. Så hvis du har lagt din egen opprinnelse der (tidligere versjoner av denne siden sa at du skulle), fjerner du den også, ellers fortsetter dine egne forespørsler å få en `traceparent`. Med diagnostikk slått på sier opptakeren ved oppstart hvilken som gjelder: `same-origin-propagation`, med `enabled` og en `reason` (se [Feilsøking av øktavspilling](/docs/rum/session-replay-troubleshooting#koder)).
 
 ### Omdirigeringer til en annen opprinnelse
 
@@ -572,7 +572,7 @@ En spennprosessor merker hvert spenn med ID-en som gjaldt da det startet. Å skr
 
 ### Hvor koblingene er
 
-Et unntak i dashbordet viser et kort **Watch what the user saw** når det finnes et opptak av en økt som hadde den feilen, og åpner avspilleren ti sekunder før unntaket med fanen Errors valgt. Detaljene for et spenn tilbyr **Se økten ved dette spennet**; detaljene for en loggrad tilbyr **View session replay** på linjens tidspunkt når loggen selv bærer økt-ID-en, og en logg som er koblet via spor-ID, når opptaket gjennom sporet sitt. I den andre retningen lenker hver nettverks-, logg-, spor- og feilrad i avspilleren til sporvisningen, loggutforskeren avgrenset til økten på det tidspunktet, eller unntaksgruppen.
+Et unntak i dashbordet viser et kort **Se hva brukeren så** når det finnes et opptak av en økt som hadde den feilen, og åpner avspilleren ti sekunder før unntaket med fanen Errors valgt. Detaljene for et spenn tilbyr **Se økten ved dette spennet**; detaljene for en loggrad tilbyr **View session replay** på linjens tidspunkt når loggen selv bærer økt-ID-en, og en logg som er koblet via spor-ID, når opptaket gjennom sporet sitt. I den andre retningen lenker hver nettverks-, logg-, spor- og feilrad i avspilleren til sporvisningen, loggutforskeren avgrenset til økten på det tidspunktet, eller unntaksgruppen.
 
 ## Se en økt
 
@@ -589,7 +589,7 @@ Hver rad viser:
 | **Varighet** | Varighet, sider, klikk og den inaktive andelen («idle 40%»). Tall vises først når de er målt; en økt som ennå ikke er ferdigstilt, sier «counting». |
 | **Signaler** | Feil, raseri-, døde og feilklikk, raseri-innlastinger, spor, unntaksgrupper og _Slow_ (et ytelsesbudsjett gikk av). Hvert merke åpner avspilleren på den tilsvarende fanen i hendelsespanelet. En ferdigstilt økt uten noe å rapportere sier _Clean_; en som ennå ikke er ferdigstilt, _Not counted yet_. |
 | **Opptak** | Et merke som ærlig sier om det finnes opptak å se, pluss utløserens årsak («Always-on», «Sampled (25%)», «Error», «Frustration», «Slow page», «Manual»). |
-| **Handlinger** | **Watch** er radens knapp. Radens meny **⋯** har **Vis ID**, øktens hele ID til å kopiere, og, når økten hadde en feil, **Watch from first error**, som åpner avspilleren ved den første feilen med fanen Errors valgt. **Watch** tilbys bare der det finnes opptak; ellers sier raden _Signals only_. Klikk hvor som helst på en rad for å åpne den; Cmd/Ctrl-klikk åpner en ny fane. **View journey**, i **⋯**-menyen, viser øktens sider i rekkefølge på User Flows. |
+| **Handlinger** | **Se** er radens knapp. Radens meny **⋯** har **Vis ID**, øktens hele ID til å kopiere, og, når økten hadde en feil, **Watch from first error**, som åpner avspilleren ved den første feilen med fanen Errors valgt. **Se** tilbys bare der det finnes opptak; ellers sier raden _Signals only_. Klikk hvor som helst på en rad for å åpne den; Cmd/Ctrl-klikk åpner en ny fane. **View journey**, i **⋯**-menyen, viser øktens sider i rekkefølge på User Flows. |
 
 Opptaksmerkets tilstander:
 
@@ -684,7 +684,7 @@ Hver kontroll beholdes i URL-en, så et kart er en lenke du kan dele.
 
 **Én bruker eller én økt.** **Filter by user or session ID** snevrer inn hele siden til én person eller én økt, så ingen andres aktivitet blandes inn. Feltet åpnes med personene som er sett i tidsrommet, og `Enter` slår opp det du skriver, noe som også finner personer listen ikke viser: en brukers referanse, `user:<reference>` for en som ligner en økt-ID, en hel økt-ID eller `id:<sessionId>`, eller `visitor:<id>` for én nettleser. **View journey**, i **⋯**-menyen på en rad på siden Brukere eller i øktlisten, åpner samme visning over den sidens tidsrom. **Show all users** går tilbake til alle, og **See all their journeys** utvider fra en økt til personen den tilhører.
 
-**Journeys** viser én linje per økt, nyeste først: når den startet, hvor lenge den varte, på hva, og antall feil og frustrasjonssignaler, deretter sidene i rekkefølge fra **Landing page** til **Exit page**. En ravgul side med en pil er en retur til en side økten allerede hadde sett, en rød prikk markerer en side med en feil, og en ravgul prikk en side med et frustrasjonssignal. **Watch** åpner opptaket; en økt uten opptak sier det. En økt på mer enn 100 sider kuttes der, sier det og navngir ingen utgangsside. Rutene, kartet og tabellene under fungerer som alltid, bare over disse øktene.
+**Journeys** viser én linje per økt, nyeste først: når den startet, hvor lenge den varte, på hva, og antall feil og frustrasjonssignaler, deretter sidene i rekkefølge fra **Landing page** til **Exit page**. En ravgul side med en pil er en retur til en side økten allerede hadde sett, en rød prikk markerer en side med en feil, og en ravgul prikk en side med et frustrasjonssignal. **Se** åpner opptaket; en økt uten opptak sier det. En økt på mer enn 100 sider kuttes der, sier det og navngir ingen utgangsside. Rutene, kartet og tabellene under fungerer som alltid, bare over disse øktene.
 
 URL-en inneholder aldri en referanse. Den inneholder `userKey`, den pseudonyme nøkkelen personen er lagret under, eller `visitor` eller `sessionId`. Bare en rolle som kan lese sluttbrukeridentitet, kan slå opp en referanse; alle andre roller får beskjed om det i stedet for et svar for alle, og kan fortsatt velge personen fra listen, under et skjult navn. En person matches slik øktlistens filtre gjør det, så økter tatt opp før `identify()` nås gjennom besøks-ID-en.
 
@@ -781,12 +781,12 @@ Trykk på `?` i avspilleren for denne listen. Hurtigtaster utløses aldri mens d
 
 ## Opptaksstatus
 
-Applikasjonens side **Helse**, i delen **Øktavspilling** i sidemenyen, svarer fra serversiden på «tas det opp noe, og hvis ikke, hvorfor?», og siden **Replay Policy** gjentar diagnosen på én linje over retningslinjen. Diagnosen nevner én årsak, tallfester den og tilbyr én handling; den sier aldri «disconnected» uten en grunn. Tilstandene, i den rekkefølgen de sjekkes:
+Applikasjonens side **Helse**, i delen **Øktavspilling** i sidemenyen, svarer fra serversiden på «tas det opp noe, og hvis ikke, hvorfor?», og siden **Avspillingspolicy** gjentar diagnosen på én linje over retningslinjen. Diagnosen nevner én årsak, tallfester den og tilbyr én handling; den sier aldri «disconnected» uten en grunn. Tilstandene, i den rekkefølgen de sjekkes:
 
 | Tilstand | Hva den betyr | Hva du gjør |
 | --- | --- | --- |
 | `disabled-project` | Hovedbryteren for hele prosjektet er slått av. | Slå den på under **Overvåking av reelle brukere → Innstillinger → Øktavspilling**. |
-| `disabled-app` | Øktavspilling er slått av for denne applikasjonen. | Slå den på under **Replay Policy**. |
+| `disabled-app` | Øktavspilling er slått av for denne applikasjonen. | Slå den på under **Avspillingspolicy**. |
 | `budget-paused` | Applikasjonens månedlige budsjett eller deploymentens daglige bytegrense er brukt opp; aktive opptakere har fått beskjed om å stoppe. | Øk budsjettet, eller vent til neste dag / måned. Sett opp [varsler for lagringsbudsjettet](#varsler-for-lagringsbudsjettet) for å få vite det før det skjer. |
 | `refusing` | Opplastinger kommer inn og avvises — diagnosen sier den viktigste årsaken og antallet de siste 24 timene, for eksempel `origin-not-allowed` (212 opplastinger fra en opprinnelse som ikke er blant de tillatte opprinnelsene dine) eller `not-sampled`. | Følg årsaken: rediger de tillatte opprinnelsene, øk samplingsprosenten og så videre. |
 | `never-loaded` | Ingen nettleser har noen gang hentet denne applikasjonens retningslinje. Skript-taggen er ikke på siden, eller identifikatoren samsvarer ikke. | Oppsettsveiledningen på applikasjonens side **Dokumentasjon**, i delen **Øktavspilling**, leder deg gjennom det. |
@@ -811,7 +811,7 @@ De to lagringsbudsjettene — prosjektets daglige opplastingsgrense og en applik
 | **Session Replay Monthly Budget Nearly Spent** | Advarsel | Applikasjonen har brukt 80 % av det månedlige budsjettet sitt. |
 | **Session Replay Monthly Budget Spent** | Kritisk | Applikasjonens månedlige budsjett er brukt opp: opptakerne har fått beskjed om å stoppe til den 1. i neste måned (UTC) eller til budsjettet økes. |
 
-Så lenge øktavspilling er slått på for applikasjonen, tilbys det daglige paret så snart den har tatt opp en avspilling, og det månedlige paret så snart den også har et **Månedlig budsjett (GB)** på siden **Replay Policy**; mangler ett av dem på en applikasjon der du bruker øktavspilling, sier fanen hvorfor. Så snart det daglige paret tilbys, åpner **Sett opp varsler** i panelet **Storage budget** på siden **Helse** fanen filtrert på budsjettvarslene, inkludert dem du allerede har opprettet. Hvert varsel du oppretter, er en vanlig metrikk-overvåking på applikasjonen, og hendelsen og varselet den åpner, sier hva du skal gjøre. For å få et budsjett til å vare lenger senker du **Utvalgsprosent**, laster bare opp _On error or frustration_ eller snevrer inn **Tillatte opprinnelser** på **Replay Policy** — hver av dem stopper en opplasting før den telles — eller øker **Månedlig budsjett (GB)**. Den daglige grensen kan ikke økes fra dashbordet; på en egenhostet installasjon er den `SESSION_REPLAY_MAX_BYTES_PER_PROJECT_PER_DAY` (se [Merknader om egen hosting](#merknader-om-egen-hosting)).
+Så lenge øktavspilling er slått på for applikasjonen, tilbys det daglige paret så snart den har tatt opp en avspilling, og det månedlige paret så snart den også har et **Månedlig budsjett (GB)** på siden **Avspillingspolicy**; mangler ett av dem på en applikasjon der du bruker øktavspilling, sier fanen hvorfor. Så snart det daglige paret tilbys, åpner **Sett opp varsler** i panelet **Storage budget** på siden **Helse** fanen filtrert på budsjettvarslene, inkludert dem du allerede har opprettet. Hvert varsel du oppretter, er en vanlig metrikk-overvåking på applikasjonen, og hendelsen og varselet den åpner, sier hva du skal gjøre. For å få et budsjett til å vare lenger senker du **Utvalgsprosent**, laster bare opp _On error or frustration_ eller snevrer inn **Tillatte opprinnelser** på **Avspillingspolicy** — hver av dem stopper en opplasting før den telles — eller øker **Månedlig budsjett (GB)**. Den daglige grensen kan ikke økes fra dashbordet; på en egenhostet installasjon er den `SESSION_REPLAY_MAX_BYTES_PER_PROJECT_PER_DAY` (se [Merknader om egen hosting](#merknader-om-egen-hosting)).
 
 **Én daglig overvåking dekker prosjektet.** Den daglige grensen tilhører prosjektet, ikke en applikasjon: alle applikasjonene bruker av den sammen, og hver applikasjon som tar opp, bærer prosjektets tall, så det daglige paret tilbys på hver av dem, og en daglig overvåking på en hvilken som helst av dem dekker dem alle. Opprett det daglige paret på én applikasjon, en som holder øktavspilling slått på (overvåkingen dens ser bare punktene som er skrevet for den applikasjonen), og avvis de daglige kortene på de andre; ellers gir én oppbrukt dag ett varsel per applikasjon. Det månedlige paret tilhører hver applikasjon: opprett det overalt der du setter et budsjett.
 
@@ -840,7 +840,7 @@ Det daglige paret bærer bare `projectId`: tallet er prosjektets, og ingenting i
 
 - Ingen opplasting er talt ennå i dag, eller denne måneden for det månedlige paret — for eksempel mellom 00:00 UTC og dagens første opplasting.
 - Bruks-tellerne kan ikke leses fra Valkey. Et ukjent tall skrives aldri som 0, akkurat som siden Health viser **ukjent** i stedet for 0. Åpne varsler løses så snart vinduet deres ikke inneholder noe punkt, og åpnes igjen, med nytt varsel, når tellerne kan leses og budsjettet fortsatt er over terskelen.
-- Øktavspilling er slått av for applikasjonen (**Replay Policy**) eller for hele prosjektet (**Overvåking av reelle brukere → Innstillinger → Øktavspilling**).
+- Øktavspilling er slått av for applikasjonen (**Avspillingspolicy**) eller for hele prosjektet (**Overvåking av reelle brukere → Innstillinger → Øktavspilling**).
 - Applikasjonen har aldri tatt opp en avspilling.
 - Applikasjonen har ikke noe månedlig budsjett: ingenting telles mot et budsjett som ikke er satt, så det finnes ikke noe månedlig par i det hele tatt. Å fjerne budsjettet gjør de månedlige overvåkingene stille, og det månedlige tallet teller bare opplastinger som gjøres mens et budsjett er satt: et som settes første gang midt i måneden, teller fra det øyeblikket, ikke fra den 1., mens et som fjernes og settes igjen i samme måned, fortsetter månedens tidligere telling.
 
@@ -859,7 +859,7 @@ Det daglige paret bærer bare `projectId`: tallet er prosjektets, og ingenting i
 
 ## Ytelsesutløsere for opptak
 
-Under standardutløseren _Always_ lastes hver samplet økt opp, så disse budsjettene endrer ingenting ved hva som tas opp — de merker bare hendelsene som overskred dem, på tidslinjen og på fanen **Ytelse**. Når utløseren er _On error or frustration_, utvider de utløserne til økter som bare var *trege*. Sett dem på siden **Replay Policy**, i trinnet **Ytelse og sporing** i **Rediger policy**:
+Under standardutløseren _Always_ lastes hver samplet økt opp, så disse budsjettene endrer ingenting ved hva som tas opp — de merker bare hendelsene som overskred dem, på tidslinjen og på fanen **Ytelse**. Når utløseren er _On error or frustration_, utvider de utløserne til økter som bare var *trege*. Sett dem på siden **Avspillingspolicy**, i trinnet **Ytelse og sporing** i **Rediger policy**:
 
 | Budsjett | Går av når | Foreslått utgangspunkt |
 | --- | --- | --- |
@@ -888,7 +888,7 @@ Når en navngitt kunde rapporterer et problem du ikke kan gjenskape, aktiverer d
 :::steps
 ### Åpne retningslinjen
 
-Åpne applikasjonens side **Replay Policy**, og finn **Record a specific user's next session**.
+Åpne applikasjonens side **Avspillingspolicy**, og finn **Record a specific user's next session**.
 
 ### Aktiver målet
 
@@ -1069,7 +1069,7 @@ Under standardutløseren _Always_ sender en fungerende side en chunk omtrent hve
 
 To ting forteller deg hvilken av dem du har foran deg:
 
-- **Fra serversiden** applikasjonens side **Helse** (se [Opptaksstatus](#opptaksstatus)) og panelet **Test your installation** på **Replay Policy**.
+- **Fra serversiden** applikasjonens side **Helse** (se [Opptaksstatus](#opptaksstatus)) og panelet **Test your installation** på **Avspillingspolicy**.
 - **Fra nettlesersiden** opptakerens egen diagnostikk. Slå den på, og last inn på nytt:
 
   ```js

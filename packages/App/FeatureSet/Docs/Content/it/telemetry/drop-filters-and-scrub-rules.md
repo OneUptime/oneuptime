@@ -52,7 +52,7 @@ In **Azione**, lasciate **Scarta** per buttare via ogni record corrispondente, o
 Il filtro inizia a scartare entro un minuto. Per salvarlo senza scartare ancora nulla, disattivate **Abilitato** in **Avanzato** prima di crearlo.
 
 > [!WARNING]
-> Un record scartato non si può recuperare. Tenete ristretta la query di un filtro, e controllate il suo conteggio **Dropped** dopo averlo creato.
+> Un record scartato non si può recuperare. Tenete ristretta la query di un filtro, e controllate il suo conteggio **Scartati** dopo averlo creato.
 
 Un filtro può verificare questi campi, e qualsiasi attributo con **Custom Attribute...**:
 
@@ -131,7 +131,7 @@ Hash:   Payment failed for [HASHED:8c87b489]
 
 ## Verificare che cosa ha scartato un filtro
 
-L'elenco **Filtri di scarto** mostra per ogni filtro il conteggio **Dropped** e quando è avvenuto il suo **Last Dropped**. **Nothing dropped yet** significa che non ha mai trovato corrispondenze. La pagina di un filtro mostra lo stesso in **Attività**, aggiornato entro un minuto da uno scarto. La sua scheda **Condizioni di filtro** mostra che cosa seleziona, e lì potete cambiare le condizioni.
+L'elenco **Filtri di scarto** mostra per ogni filtro il conteggio **Scartati** e quando è avvenuto il suo **Last Dropped**. **Nothing dropped yet** significa che non ha mai trovato corrispondenze. La pagina di un filtro mostra lo stesso in **Attività**, aggiornato entro un minuto da uno scarto. La sua scheda **Condizioni di filtro** mostra che cosa seleziona, e lì potete cambiare le condizioni.
 
 ## Risoluzione dei problemi
 
@@ -140,7 +140,7 @@ L'elenco **Filtri di scarto** mostra per ogni filtro il conteggio **Dropped** e 
 :::
 
 :::details Mancano dei log che mi aspettavo
-Guardate il conteggio **Dropped** e l'ora del **Last Dropped** di ogni filtro di scarto. Disattivate **Abilitato** su quello che sospettate, e i log successivi tornano ad arrivare.
+Guardate il conteggio **Scartati** e l'ora del **Last Dropped** di ogni filtro di scarto. Disattivate **Abilitato** su quello che sospettate, e i log successivi tornano ad arrivare.
 :::
 
 :::details Una regola di mascheramento personalizzata indica Non pulisce nulla

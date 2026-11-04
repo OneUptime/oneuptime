@@ -337,6 +337,8 @@ Ein typischer Ablauf: `list_incidents` → `acknowledge_incident` → mit `list_
 
 Das Tool **`oneuptime_whoami`** gibt das Projekt zurück, zu dem Ihre Zugangsdaten gehören (seine ID und seinen Namen). Für einen angemeldeten Client sagt es auch, als wer er angemeldet ist und ob er Änderungen vornehmen darf. Es ist ein guter erster Aufruf, damit ein Agent sich orientiert, und da Tools zum Anlegen `projectId` aus den Zugangsdaten nehmen, muss der Agent nie eine Projekt-ID übergeben.
 
+Das Tool **`get_data_table_freshness`** sagt einem Agenten, ob eine Tabelle, die Data Observability überwacht, aktuell ist, bevor er ihre Daten verwendet: aktuell oder verspätet gemessen am eigenen Rhythmus der Tabelle, wann sie sich zuletzt geändert hat, ihre offenen Alerts und wie der letzte Lauf jeder Pipeline verlief, die sie schreibt. Übergeben Sie `table` als `schema.table`, nur den Namen der Tabelle oder ihre ID. Es ändert nichts.
+
 ## Telemetrie abfragen
 
 Logs, Metriken, Traces (Spans), Ausnahmen, Monitor-Logs und die anderen Arten von Telemetrie gibt es als nur lesende Tools `list_` und `count_` (`list_logs`, `list_metrics`, `list_spans`, `list_exception_instances`, `list_monitor_logs` und ihre `count_`-Gegenstücke). Telemetrie kommt über OpenTelemetry herein, daher gibt es keine Tools zum Anlegen.

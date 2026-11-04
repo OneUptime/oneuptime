@@ -101,7 +101,7 @@ Una gravedad que tu proyecto añade más tarde recibe reglas en pocos minutos, h
 Un aviso que aun así no encuentra regla se envía igualmente a tus métodos verificados, y recibes un correo al respecto; consulta [Cuando ninguna regla coincide](/docs/notifications/index#cuando-ninguna-regla-coincide).
 
 :::details Desactivar una gravedad a propósito
-La API puede guardar una regla de exclusión, con `isOptOut` activado y sin método: entonces no te avisan para ese tipo de aviso y esa gravedad, y nada la sustituye. La fila muestra **Muted - notifications turned off for this rule**, y eliminarla vuelve a activar los avisos. Una gravedad añadida más tarde también queda silenciada cuando todas las reglas que tienes en esa pestaña son exclusiones.
+La API puede guardar una regla de exclusión, con `isOptOut` activado y sin método: entonces no te avisan para ese tipo de aviso y esa gravedad, y nada la sustituye. La fila muestra **Silenciado: notificaciones desactivadas para esta regla**, y eliminarla vuelve a activar los avisos. Una gravedad añadida más tarde también queda silenciada cuando todas las reglas que tienes en esa pestaña son exclusiones.
 :::
 
 :::details Desactivar la alternativa para todo un proyecto
@@ -115,7 +115,7 @@ Los propietarios y administradores del proyecto pueden ver y cambiar la misma p�
 ## Solución de problemas
 
 :::details Mi teléfono no sonó con un aviso crítico
-Comprueba que el push de la regla es **Alerta crítica** y no **Estándar**, y que **Alertas críticas** está activado para el teléfono en **Ajustes de usuario → Métodos de notificación**, en la pestaña **Push Notifications**.
+Comprueba que el push de la regla es **Alerta crítica** y no **Estándar**, y que **Alertas críticas** está activado para el teléfono en **Ajustes de usuario → Métodos de notificación**, en la pestaña **Notificaciones push**.
 :::
 
 :::details Me avisan dos veces por cada incidente

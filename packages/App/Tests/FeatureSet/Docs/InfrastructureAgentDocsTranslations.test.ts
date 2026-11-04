@@ -171,16 +171,13 @@ const SHOWN_IN_ENGLISH: Record<string, Array<string>> = {
     "Node Fenced",
   ],
   /*
-   * The pod and container pages' link to a database (OPEN_DATABASE_LABEL),
-   * a recommended monitor's template name, and two of the Overview's
-   * engine charts, which their metric catalog titles in English.
+   * The pod and container pages' link to a database (OPEN_DATABASE_LABEL)
+   * and a recommended monitor's template name. (The Overview's engine
+   * charts, Row operations and Handler operations among them, read their
+   * catalog titles in the reader's language: DatabaseServerMetricCatalog's
+   * titles are keys.)
    */
-  [DATABASES]: [
-    "Open database",
-    "Engine Metrics Stopped",
-    "Row operations",
-    "Handler operations",
-  ],
+  [DATABASES]: ["Open database", "Engine Metrics Stopped"],
 };
 
 // Permission names, which the docs write as the product names them, in English.

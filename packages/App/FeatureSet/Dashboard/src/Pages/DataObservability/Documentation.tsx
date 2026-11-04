@@ -91,6 +91,31 @@ Google BigQuery: every dataset your Google Cloud connection found is watched alr
 { "projectId": "my-project", "dataset": "analytics", "location": "US", "serviceAccountJson": { "type": "service_account", "...": "..." } }
 \`\`\`
 
+ClickHouse: connect over its HTTP interface, port 8443 with TLS (ClickHouse Cloud) or 8123 without, for example \`clickhouse://oneuptime_reader:...@abc123.us-east-1.aws.clickhouse.cloud:8443/analytics\`. Name a database to watch only it; leave it out to watch every database but the server's own. \`system.parts\` lets OneUptime see each insert between collections (a merge does not count), \`system.part_log\`, where the server keeps it, gives each insert's time, and \`system.query_log\` gives each table's last read and lineage from \`INSERT ... SELECT\`, once an hour. Every statement runs with \`readonly\` set, so even a login that could write cannot.
+
+\`\`\`sql
+CREATE USER oneuptime_reader IDENTIFIED BY '...' SETTINGS readonly = 2;
+GRANT SHOW TABLES, SHOW COLUMNS ON *.* TO oneuptime_reader;
+GRANT SELECT ON system.parts TO oneuptime_reader;
+GRANT SELECT ON system.part_log TO oneuptime_reader;
+GRANT SELECT ON system.query_log TO oneuptime_reader;
+-- Checks read rows: SELECT on the tables they check.
+\`\`\`
+
+Databricks: one Unity Catalog catalog is a database. Its schemas, tables, views and columns, and each Delta table's last commit, are read from Unity Catalog's REST API with no SQL warehouse, so collection costs no compute. Data checks, and lineage, last writes and last reads from the \`system.access.table_lineage\` system table (once an hour), run on the SQL warehouse you name. Connect with a service principal (or a personal access token in place of \`clientId\` and \`clientSecret\`: \`"token": "dapi..."\`):
+
+\`\`\`json
+{ "host": "adb-1234567890123456.7.azuredatabricks.net", "clientId": "...", "clientSecret": "...", "catalog": "main", "warehouseId": "abc123def456" }
+\`\`\`
+
+\`\`\`sql
+GRANT USE CATALOG, BROWSE ON CATALOG main TO \`oneuptime-reader\`;
+GRANT USE SCHEMA ON CATALOG main TO \`oneuptime-reader\`;
+GRANT USE CATALOG ON CATALOG system TO \`oneuptime-reader\`;
+GRANT USE SCHEMA, SELECT ON SCHEMA system.access TO \`oneuptime-reader\`;
+-- Checks read rows: SELECT on the tables they check. And CAN USE on the SQL warehouse.
+\`\`\`
+
 ## Metrics every table writes
 
 Each collection writes these for every table, so you can chart them, put them on dashboards and alert on them like any other metric:
@@ -208,7 +233,7 @@ For any OpenLineage client, set \`OPENLINEAGE_URL\` and \`OPENLINEAGE_API_KEY\`.
 
 Each job appears under **Pipelines**, with its latest run: when it started and ended, how long it took, and the error of a failed run. A run that reads and writes tables OneUptime watches becomes **lineage**: a table's **Lineage** tab shows the tables it is built from, the pipelines that write it with their latest run, and the tables built from it.
 
-Datasets are matched to tables by the OpenLineage naming spec: \`postgres://host:5432\` with \`database.schema.table\`, \`mysql://host:3306\` with \`database.table\`, \`sqlserver://host:1433\` and \`redshift://cluster:5439\` with \`database.schema.table\`, \`snowflake://account\` with \`database.schema.table\`, and \`bigquery\` with \`project.dataset.table\`.
+Datasets are matched to tables by the OpenLineage naming spec: \`postgres://host:5432\` with \`database.schema.table\`, \`mysql://host:3306\` with \`database.table\`, \`sqlserver://host:1433\` and \`redshift://cluster:5439\` with \`database.schema.table\`, \`snowflake://account\` with \`database.schema.table\`, \`bigquery\` with \`project.dataset.table\`, \`clickhouse://host:8443\` with \`database.table\`, and \`databricks://workspace-host\` with \`catalog.schema.table\`.
 
 Each pipeline learns from its own runs how long a run usually takes (the median of its last 20 completed runs) and how long it goes between runs on its schedule (the longest gap between its last 50 starts that is not a one-off). Both are known after five runs, and fit a job that runs every five minutes as well as one that runs nightly. When your scheduler sends OpenLineage's \`nominalTime\` facet, as Airflow does, a run's scheduled time stands for its start, so a backfill still reads as the schedule.
 
@@ -236,6 +261,20 @@ A pipeline is named as the tool names the connector or connection, under \`fivet
 
 A Fivetran connector loads the schema of its destination that is named after it. When exactly one watched database has that schema, its tables record the connector as their writer: a table that goes stale points at the sync that should have loaded it, and a failed sync's alert is the cause of the tables' alerts (see One issue per cause). Airbyte names no tables.
 
+## Dashboards in BI tools
+
+The real impact of bad data is the dashboard someone opens. Under **BI Dashboards**, add your BI tools with credentials that may read their dashboards:
+
+| Tool | Credentials (JSON) |
+| --- | --- |
+| **Metabase** | \`{ "apiKey": "mb_..." }\` (or a user's \`username\` and \`password\`) |
+| **Superset** | \`{ "username": "...", "password": "..." }\` |
+| **Tableau** | \`{ "tokenName": "...", "tokenSecret": "...", "site": "acme" }\`, a personal access token |
+| **Looker** | \`{ "clientId": "...", "clientSecret": "..." }\`, an API client |
+| **Power BI** | \`{ "tenantId": "...", "clientId": "...", "clientSecret": "..." }\`, a service principal allowed to use Power BI's admin APIs |
+
+Every hour, and when a tool is added or you choose **Read Now**, OneUptime reads each dashboard and the tables behind it: a card's table and a native question's SQL (Metabase), a dataset's table or a virtual dataset's SQL (Superset), the Metadata API's upstream tables (Tableau), each tile's explore (Looker), and each report's dataset (Power BI, from a workspace scan). Each table is matched to a watched one by its database, schema and name; a name that still fits two watched tables is left unmatched. A table's **Lineage** tab, its alerts' **Data** card and Production Review list the dashboards built on it, and on the tables built from it. Only names and links are read, never a dashboard's data.
+
 ## Lineage the databases say
 
 Lineage does not need a pipeline that sends OpenLineage. Each database says some of it itself, and OneUptime reads it with the database's collection:
@@ -261,7 +300,7 @@ oneuptime dbt upload
 In CI, run \`oneuptime dbt upload\` as the step after the build, even when the build fails, so failed tests are recorded. For a dbt Cloud job, download its artifacts with dbt Cloud's API, then upload them with \`--manifest\` and \`--run-results\`. Or post them yourself: \`POST /telemetry/dbt/v1/artifacts\` with \`{ "manifest": ..., "run_results": ... }\` and the key in \`x-oneuptime-token\`.
 
 What each upload does:
-- **Tables:** each model, seed, snapshot and source that is a table OneUptime watches gets a **dbt** card on its Overview: the node, its materialization, owner, tags and last build. Its dbt description fills the table's description when that is empty. A table is matched by its database, schema and name, for PostgreSQL, MySQL, SQL Server, Redshift, Snowflake and BigQuery. dbt does not know the host, so when two watched databases share a name, their tables are left unmatched, unless only one of them holds the table.
+- **Tables:** each model, seed, snapshot and source that is a table OneUptime watches gets a **dbt** card on its Overview: the node, its materialization, owner, tags and last build. Its dbt description fills the table's description when that is empty. A table is matched by its database, schema and name, for PostgreSQL, MySQL, SQL Server, Redshift, Snowflake, BigQuery, ClickHouse and Databricks. dbt does not know the host, so when two watched databases share a name, their tables are left unmatched, unless only one of them holds the table.
 - **Lineage:** what each model is built from becomes lineage on the table's **Lineage** tab, through the project's pipeline.
 - **Tests:** each test of a watched table shows on its **Checks** tab, with its last result and the rows it found failing. Click **Alert on Failures** to have a failing test open an alert.
 - **Builds:** each build is a run of the project's pipeline under **Pipelines** (namespace \`dbt\`). A build with an error or a failed test is a failed run, so the pipeline alerts work on dbt builds too: failed, unusually long and late.
@@ -285,6 +324,13 @@ When a table goes stale, every table built from it goes stale too. Before a data
 - It joins the cause's episode, when the cause is in one.
 
 The cause's **Data** card lists its **Downstream Impact**: every alert it caused. A table alert's card also shows the services that write the table, with their failed writes, and their deploys and other changes in the day before the alert.
+
+
+## OneUptime AI
+
+- **Investigations of data alerts.** When OneUptime AI investigates an alert on a table, a pipeline or a database, it reads what is next to it: the table's freshness and open alerts, the alert it is a consequence of, the runs of the pipelines that write it since the day before (a failed run with its error), the services that write it with their failed writes and their deploys and other changes, and the tables it is built from. It names the run, deploy or upstream table behind the alert.
+- **A check from a sentence.** On a table's Checks tab, **Write a Check from a Sentence** turns a rule such as "orders never have a negative total" into a Custom SQL check that counts the rows breaking it, with an alert when any do. You read the query before **Add Check** adds it, and it is held to everything any Custom SQL check is: one read-only statement, run in a read-only transaction.
+- **Is this table fresh?** Ask OneUptime AI in Ask AI, Slack or Microsoft Teams ("is the orders table fresh?"). It answers with the table's freshness by its own rhythm, when it last changed, its open alerts, its writers' latest runs and the data products it is part of. AI agents ask the same through the MCP server's \`get_data_table_freshness\` tool, before they use the data.
 
 ## Services that use each table
 

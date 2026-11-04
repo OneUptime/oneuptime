@@ -66,6 +66,7 @@ De documentatie is net als de zijbalk ingedeeld in negen secties. Kies het deel 
 - [AI-observability](/docs/telemetry/ai-llm-observability): De gesprekken van uw AI volgen, en horen wanneer die slecht antwoordt.
 - [Beveiliging](/docs/telemetry/security-events): Beveiligingsgebeurtenissen en dreigingsinformatie verzamelen.
 - [Gegevensbeveiliging](/docs/data-security/index): De gevoelige gegevens in uw buckets, databases en telemetrie vinden, en verbeteren hoe ze worden bewaard.
+- [Data-observability](/docs/data-observability/index): Weet wanneer de gegevens in uw databases en datawarehouses te laat, onjuist of kapot zijn, en welke run, deploy of tabel erachter zit.
 - [Real User Monitoring](/docs/rum/index): Meten wat echte gebruikers ervaren, met Core Web Vitals en session replay.
 - [Dashboards](/docs/dashboards/index): Dashboards bouwen van uw metrics, logs en monitoren.
 - [Inventaris](/docs/inventory/overview): Elke service, host en elk apparaat zien dat OneUptime kent.

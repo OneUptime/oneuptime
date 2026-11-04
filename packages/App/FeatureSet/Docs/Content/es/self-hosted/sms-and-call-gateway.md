@@ -116,7 +116,7 @@ El registro de SMS o de llamadas, y para un aviso de guardia el registro de guar
 
 ## Solicitudes de prueba
 
-**Send test** envía una solicitud con `event` en `test`, y `to`, `project` y `actions` en `null`. Respóndela con un estado 2xx y no envíes nada.
+**Enviar prueba** envía una solicitud con `event` en `test`, y `to`, `project` y `actions` en `null`. Respóndela con un estado 2xx y no envíes nada.
 
 ## Próximos pasos
 

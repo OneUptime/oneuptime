@@ -45,6 +45,11 @@ import { queueTableHealthCollection } from "../Utils/DataObservability/DataObser
 import DataCheckAlerts from "../Utils/DataObservability/DataCheckAlerts";
 import DataProductSync from "../Utils/DataObservability/DataProductSync";
 import DataReconciliationSync from "../Utils/DataObservability/DataReconciliationSync";
+import DataCheckFromSentence from "../Utils/DataObservability/DataCheckFromSentence";
+import DataTableAnswerer, {
+  DataTableAnswer,
+  formatDataTableAnswer,
+} from "../Utils/DataObservability/DataTableAnswer";
 import DataReconciliation from "../../Models/DatabaseModels/DataReconciliation";
 import DataReconciliationService from "../Services/DataReconciliationService";
 import DataProduct from "../../Models/DatabaseModels/DataProduct";
@@ -57,6 +62,10 @@ import DataCheck from "../../Models/DatabaseModels/DataCheck";
 import DataCheckService from "../Services/DataCheckService";
 import { isValidProbeConnectionVariable } from "../Utils/DataSecurity/DataSecurityProbeScan";
 import { DATA_OBSERVABILITY_KINDS } from "../Utils/DataObservability/DataObservabilityEngines";
+import DataBiSync from "../Utils/DataObservability/Bi/DataBiSync";
+import DataTableDashboards from "../Utils/DataObservability/Bi/DataTableDashboards";
+import DataBiConnection from "../../Models/DatabaseModels/DataBiConnection";
+import DataBiConnectionService from "../Services/DataBiConnectionService";
 import {
   ExpressRequest,
   ExpressResponse,
@@ -79,6 +88,11 @@ import CommonAPI from "./CommonAPI";
  *    secret for its badge, for the same people;
  *  - a reconciliation's two checks and its monitor kept in step with it,
  *    and Run Now on it, for the same people;
+ *  - a check written by OneUptime AI from a rule in a sentence, to review,
+ *    for the same people;
+ *  - whether a table is fresh, as one answer (DataTableAnswer), for anyone
+ *    who may read data assets - what the MCP server's
+ *    get_data_table_freshness tool asks;
  *  - a data product's "data as of" badge, for anyone with its secret, so it
  *    can be embedded where nobody signs in to OneUptime;
  *  - Connect a database, for those who may create data assets.
@@ -223,6 +237,112 @@ export default class DataObservabilityAPI extends BaseAPI<
           dataProductId: DataObservabilityAPI.readId(req),
           props,
         })) as unknown as JSONObject;
+      },
+    );
+
+    this.post(
+      DATA_OBSERVABILITY_API_ROUTES.checkSuggest,
+      OPERATE_PERMISSIONS,
+      async (
+        projectId: ObjectID,
+        req: ExpressRequest,
+        props: DatabaseCommonInteractionProps,
+      ) => {
+        const body: JSONObject = (req.body || {}) as JSONObject;
+        const dataAssetId: string = String(body["dataAssetId"] || "");
+
+        if (!ObjectID.isValidUUID(dataAssetId)) {
+          throw new BadDataException("Choose the table the check reads.");
+        }
+
+        return (await DataCheckFromSentence.draft({
+          projectId,
+          userId: props.userId,
+          dataAssetId: new ObjectID(dataAssetId),
+          sentence:
+            typeof body["sentence"] === "string" ? body["sentence"] : "",
+        })) as unknown as JSONObject;
+      },
+    );
+
+    this.post(
+      DATA_OBSERVABILITY_API_ROUTES.tableFreshness,
+      READ_PERMISSIONS,
+      async (projectId: ObjectID, req: ExpressRequest) => {
+        const body: JSONObject = (req.body || {}) as JSONObject;
+        const reference: string =
+          typeof body["table"] === "string" ? body["table"].trim() : "";
+
+        if (!reference) {
+          throw new BadDataException(
+            "Name the table: its schema.table key, its name, or its ID.",
+          );
+        }
+
+        const now: Date = OneUptimeDate.getCurrentDate();
+        const answers: Array<JSONObject> = [];
+
+        for (const table of await DataTableAnswerer.findTables(
+          projectId,
+          reference,
+        )) {
+          const answer: DataTableAnswer | null = await DataTableAnswerer.answer(
+            projectId,
+            table.id!,
+            now,
+          );
+
+          if (answer) {
+            answers.push({
+              ...(answer as unknown as JSONObject),
+              answer: formatDataTableAnswer(answer, now),
+            });
+          }
+        }
+
+        return { tables: answers } as unknown as JSONObject;
+      },
+    );
+
+    this.post(
+      DATA_OBSERVABILITY_API_ROUTES.biSync(":id"),
+      CONNECT_PERMISSIONS,
+      async (projectId: ObjectID, req: ExpressRequest) => {
+        const connection: DataBiConnection | null =
+          await DataBiConnectionService.findOneBy({
+            query: { _id: DataObservabilityAPI.readId(req), projectId },
+            select: { _id: true },
+            props: { isRoot: true },
+          });
+
+        if (!connection?.id) {
+          throw new BadDataException("No such BI tool in this project.");
+        }
+
+        return (await DataBiSync.syncConnection(
+          connection.id,
+        )) as unknown as JSONObject;
+      },
+    );
+
+    this.post(
+      DATA_OBSERVABILITY_API_ROUTES.tableDashboards,
+      READ_PERMISSIONS,
+      async (projectId: ObjectID, req: ExpressRequest) => {
+        const body: JSONObject = (req.body || {}) as JSONObject;
+        const dataAssetId: string =
+          typeof body["dataAssetId"] === "string" ? body["dataAssetId"] : "";
+
+        if (!ObjectID.isValidUUID(dataAssetId)) {
+          throw new BadDataException("Name the table by its ID.");
+        }
+
+        return {
+          dashboards: await DataTableDashboards.find({
+            projectId,
+            dataAssetId: new ObjectID(dataAssetId),
+          }),
+        } as unknown as JSONObject;
       },
     );
 
