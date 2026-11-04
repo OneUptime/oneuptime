@@ -218,7 +218,10 @@ describe("what Telemetry brings into the page", () => {
   });
 
   test("importing it loads nothing of the SDK, configured or not", () => {
-    for (const config of [CONFIGURED, { ...CONFIGURED, DisableTelemetry: true }]) {
+    for (const config of [
+      CONFIGURED,
+      { ...CONFIGURED, DisableTelemetry: true },
+    ]) {
       jest.resetModules();
 
       expect(loadTelemetry(config).recorded.loaded).toEqual([]);

@@ -1,4 +1,12 @@
-import { afterEach, beforeEach, describe, expect, jest, test } from "@jest/globals";
+import {
+  afterEach,
+  beforeEach,
+  describe,
+  expect,
+  jest,
+  test,
+} from "@jest/globals";
+import type { Mock, SpyInstance } from "jest-mock";
 import URL from "../../../Types/API/URL";
 
 /*
@@ -13,7 +21,13 @@ import URL from "../../../Types/API/URL";
 
 const TELEMETRY_PATH: string = "../../../UI/Utils/Telemetry/Telemetry";
 const OPENTELEMETRY_GLOBAL: symbol = Symbol.for("opentelemetry.js.api.1");
-const SPAN_TIMEOUT_IN_MS: number = 5000;
+const SPAN_TIMEOUT_IN_MS: number = 30000;
+
+/*
+ * Every test here evaluates the whole SDK afresh, a second's work that took over
+ * a minute on a machine busy with other builds.
+ */
+jest.setTimeout(180000);
 
 interface TelemetryClass {
   init: (data: { serviceName: string }) => Promise<void>;
@@ -68,11 +82,9 @@ interface PageGlobals {
 const page: PageGlobals = globalThis as unknown as PageGlobals;
 
 let exported: Array<ExportedSpan> = [];
-let fetchStub: jest.Mock<FetchStub>;
-let sendStub: jest.Mock<() => void>;
-let setRequestHeader: jest.SpiedFunction<
-  (name: string, value: string) => void
->;
+let fetchStub: Mock<FetchStub>;
+let sendStub: Mock<() => void>;
+let setRequestHeader: SpyInstance<(name: string, value: string) => void>;
 let nativeOpen: typeof XMLHttpRequest.prototype.open;
 let nativeSend: typeof XMLHttpRequest.prototype.send;
 
@@ -132,17 +144,16 @@ beforeEach(() => {
    * jsdom has no fetch, and the fetch instrumentation does not patch one in a
    * page without PerformanceObserver. Defined first: it reads them on load.
    */
-  fetchStub = jest.fn<FetchStub>(
-    (url: string): Promise<FakeResponse> =>
-      Promise.resolve({
-        status: 200,
-        statusText: "OK",
-        url,
-        clone: (): { body: null } => {
-          return { body: null };
-        },
-      }),
-  );
+  fetchStub = jest.fn<FetchStub>((url: string): Promise<FakeResponse> => {
+    return Promise.resolve({
+      status: 200,
+      statusText: "OK",
+      url,
+      clone: (): { body: null } => {
+        return { body: null };
+      },
+    });
+  });
   page.fetch = fetchStub;
   page.Request = class {};
   page.Headers = FakeHeaders;
@@ -190,7 +201,7 @@ beforeEach(() => {
   jest.doMock("@opentelemetry/sdk-trace-web", () => {
     const actual: { SimpleSpanProcessor: unknown } = jest.requireActual(
       "@opentelemetry/sdk-trace-web",
-    );
+    ) as { SimpleSpanProcessor: unknown };
 
     return { ...actual, BatchSpanProcessor: actual.SimpleSpanProcessor };
   });
@@ -329,9 +340,9 @@ describe("the default context manager, with no zone.js", () => {
   test("a request made from another's callback starts a trace of its own", async () => {
     await loadTelemetry().init({ serviceName: "dashboard" });
 
-    await page.fetch!("/api/first").then(
-      (): Promise<FakeResponse> => page.fetch!("/api/second"),
-    );
+    await page.fetch!("/api/first").then((): Promise<FakeResponse> => {
+      return page.fetch!("/api/second");
+    });
 
     await waitForSpans(2);
 
