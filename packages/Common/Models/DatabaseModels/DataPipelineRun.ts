@@ -291,6 +291,37 @@ export default class DataPipelineRun extends BaseModel {
 
   @ColumnAccessControl(serverWrittenColumnAccess)
   @TableColumn({
+    type: TableColumnType.Number,
+    required: false,
+    computed: true,
+    title: "Attempt",
+    description:
+      "Which try of its task this run is, when its scheduler says (Airflow's try number).",
+  })
+  @Column({
+    type: ColumnType.Number,
+    nullable: true,
+  })
+  public attemptNumber?: number = undefined;
+
+  @ColumnAccessControl(serverWrittenColumnAccess)
+  @TableColumn({
+    type: TableColumnType.ShortText,
+    required: false,
+    computed: true,
+    title: "Trace ID",
+    description:
+      "The trace of a run found in traces: a CronJob or a scheduled function.",
+  })
+  @Column({
+    type: ColumnType.ShortText,
+    length: ColumnLength.ShortText,
+    nullable: true,
+  })
+  public traceId?: string = undefined;
+
+  @ColumnAccessControl(serverWrittenColumnAccess)
+  @TableColumn({
     manyToOneRelationColumn: "createdByUserId",
     type: TableColumnType.Entity,
     modelType: User,

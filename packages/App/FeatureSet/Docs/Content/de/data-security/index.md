@@ -6,7 +6,7 @@ Sie beantwortet vier Fragen:
 
 :::cards
 - [Wo sind unsere sensiblen Daten?](/docs/data-security/data-types): 143 Datentypen, von Kartennummern und nationalen Ausweisnummern bis zu API-Schlüsseln, gefunden in Buckets, Tabellen und Telemetrie.
-- [Sind sie exponiert?](/docs/data-security/checks-and-issues): 33 Prüfungen jedes Datenspeichers: öffentlicher Zugriff, Verschlüsselung, Backups, Protokollierung, Geheimnisse und Kopien.
+- [Sind sie exponiert?](/docs/data-security/checks-and-issues): 34 Prüfungen jedes Datenspeichers: öffentlicher Zugriff, Verschlüsselung, Backups, Protokollierung, Geheimnisse und Kopien.
 - [Wer kann sie erreichen, und wohin gelangen sie?](/docs/data-security/flows-access-residency): Jede Identität, die einen Datenspeicher erreichen kann, die riskanteste zuerst, welche Dienste ihn nutzen und welche KI-Anbieter und Hosts seine Daten erreichen.
 - [Entsprechen sie unseren Regeln?](/docs/data-security/compliance): Residenzregeln und neun Compliance-Rahmenwerke, bewertet anhand dessen, was die Scans gefunden haben.
 :::

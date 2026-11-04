@@ -12,6 +12,7 @@ import {
   DataAssetColumn,
   readDataAssetColumns,
 } from "../../Types/DataObservability/DataAssetColumn";
+import { getFormatPattern } from "../../Types/DataObservability/DataCheckFormats";
 import { getDataTableKey } from "../../Types/DataObservability/DataObservabilityMetric";
 import { DataCheckType } from "../../Types/DataObservability/DataCheckType";
 import OneUptimeDate from "../../Types/Date";
@@ -62,6 +63,8 @@ const RUN_FIELDS: ReadonlyArray<string> = [
   "referenceTableKey",
   "referenceColumnName",
   "customSql",
+  "formatPreset",
+  "samplePercent",
   "intervalInMinutes",
   "alertCondition",
   "alertThreshold",
@@ -108,6 +111,8 @@ export class Service extends ProjectReferencesService<Model> {
       createBy.props.tenantId || createBy.data.projectId,
     );
 
+    this.applyFormatPreset(createBy.data as unknown as JSONObject);
+
     await this.validate(createBy.data as unknown as DataCheckDraft, asset);
 
     createBy.data.dataStoreId = asset.dataStoreId!;
@@ -124,6 +129,8 @@ export class Service extends ProjectReferencesService<Model> {
 
     const data: JSONObject = updateBy.data as unknown as JSONObject;
     const isPerson: boolean = !updateBy.props.isRoot;
+
+    this.applyFormatPreset(data);
 
     // A person sets only whether a dbt test is recorded, and its alert.
     if (isPerson && data["checkType"] === DataCheckType.DbtTest) {
@@ -170,6 +177,7 @@ export class Service extends ProjectReferencesService<Model> {
         referenceTableKey: true,
         referenceColumnName: true,
         customSql: true,
+        samplePercent: true,
         intervalInMinutes: true,
         alertCondition: true,
         alertThreshold: true,
@@ -254,6 +262,17 @@ export class Service extends ProjectReferencesService<Model> {
     }
 
     return { deleteBy, carryForward: undefined };
+  }
+
+  // A format picked by name brings its pattern; Custom keeps the one the person wrote.
+  private applyFormatPreset(data: JSONObject): void {
+    const pattern: string | null = getFormatPattern(
+      data["formatPreset"] as string | null | undefined,
+    );
+
+    if (pattern) {
+      data["pattern"] = pattern;
+    }
   }
 
   // A reconciliation's checks are changed and deleted only through it.

@@ -4,9 +4,12 @@ OneUptime AI 了解你的数据：它从表的写入方、运行和上游表出�
 
 ## OneUptime AI
 
-- **数据警报的调查。** 当 OneUptime AI 调查某个表、管道或数据库上的警报时，它会从与之相邻的内容入手：表的新鲜度和打开的警报、导致这个警报的那个警报、自前一天以来写入该表的管道的运行（带有错误的失败运行，或者从未到来的运行）、写入该表的服务及其失败的写入、部署和其他更改，以及构建该表的表。它会指出警报背后的运行、部署或上游表。请参阅 [AI SRE](/docs/ai/ai-sre)。
+- **数据警报的调查。** 当 OneUptime AI 调查某个表、管道或数据库上的警报时，它会从与之相邻的内容入手：表的新鲜度和打开的警报、导致这个警报的那个警报、自前一天以来写入该表的管道的运行（带有错误的失败运行，或者从未到来的运行）、写入该表的服务及其失败的写入、部署和其他更改、构建该表的表，以及发生变化的列。它会指出警报背后的运行、部署或上游表。请参阅 [AI SRE](/docs/ai/ai-sre)。
 - **这个表新鲜吗？** 在 [询问 AI](/docs/ai/ask-ai)、Slack 或 Microsoft Teams 中提问：“orders 表新鲜吗？”。答案会给出按表自身节奏判断的新鲜度、它最后一次更改的时间、打开的警报、写入方的最新运行，以及它所属的数据产品。多个数据库共用的名称会针对每个数据库分别回答，因此不会有人被告知错误的表是新鲜的。
 - **用一句话编写检查。** 在表的 **检查** 标签页上，**用一句话编写检查** 会把一条规则转换成使用你的引擎 SQL 的自定义 SQL 检查。请参阅 [检查与对账](/docs/data-observability/checks)。
+
+- **缓慢漂移。** 表的行数或检查的值在一周内变化了五分之一或更多，但变化太慢、不足以触发任何警报时，会作为一条值得留意的提示送到 AI 洞察。它不会呼叫任何人。
+- **AI 应用背后的过时数据。** 既调用模型又读取某个表的服务，就是该表的 AI 使用方。当这样的表延迟时，AI 产品的 **对话** 页面会指出这一点：用旧数据作答的应用，在它自己的追踪中看不出任何问题。
 
 这些功能都需要为项目开启 OneUptime AI，并以提问者的权限执行操作。
 
@@ -29,9 +32,10 @@ AI 代理应该在使用数据之前先检查数据是否新鲜。[MCP 服务器
 | `POST /telemetry/fivetran/v1/webhook/<ingestion key ID>` | Fivetran 的同步 webhook | 摄取密钥，作为 Fivetran 的签名密钥 |
 | `POST /telemetry/airbyte/v1/webhook/<ingestion key>` | Airbyte 的同步 webhook | URL 中的摄取密钥 |
 | `POST /api/data-observability/tables/freshness` | 表的新鲜度，与 MCP 工具的回答相同，请求体为 `{ "table": "public.orders" }` | API 密钥 |
+| `POST /api/data-observability/checks/apply` | 让项目的检查与一个文件一致，与 `oneuptime data-checks apply` 的作用相同，请求体为 `{ "manifest": "...", "isDryRun": true, "shouldPrune": false }` | API 密钥 |
 | `GET /api/data-observability/data-products/<data product ID>/badge?token=<badge token>` | 数据产品的“data as of”徽章 | 徽章自己的令牌 |
 
-表、检查、对账、管道和数据产品也是 [API](/docs/api-reference/api-reference) 中的普通资源，可以使用拥有相应权限的 API 密钥读取和更改。
+表、检查、对账、管道、数据产品、BI 连接和数据仓库作业也是 [API](/docs/api-reference/api-reference) 中的普通资源，可以使用拥有相应权限的 API 密钥读取和更改，也可以通过 MCP 服务器和工作流使用。
 
 ## 指标
 

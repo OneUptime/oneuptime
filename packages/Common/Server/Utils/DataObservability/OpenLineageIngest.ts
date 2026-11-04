@@ -236,6 +236,29 @@ export default class OpenLineageIngest {
     return recorded;
   }
 
+  private static addNamedAssets(
+    assets: Array<UsageAsset>,
+    ids: Array<string> | undefined,
+    catalog: ProjectCatalog,
+  ): void {
+    if (!ids || ids.length === 0) {
+      return;
+    }
+
+    const named: Set<string> = new Set(ids);
+    const matched: Set<string> = new Set(
+      assets.map((asset: UsageAsset): string => {
+        return asset.dataAssetId;
+      }),
+    );
+
+    for (const asset of catalog.assets) {
+      if (named.has(asset.dataAssetId) && !matched.has(asset.dataAssetId)) {
+        assets.push(asset);
+      }
+    }
+  }
+
   private static async recordEvent(data: {
     projectId: ObjectID;
     event: OpenLineageRunEvent;
@@ -255,21 +278,9 @@ export default class OpenLineageIngest {
       data.catalog,
     );
 
-    // Tables its producer named by id (a Fivetran connector's schema).
-    if (event.outputDataAssetIds && event.outputDataAssetIds.length > 0) {
-      const named: Set<string> = new Set(event.outputDataAssetIds);
-      const matched: Set<string> = new Set(
-        outputAssets.map((asset: UsageAsset): string => {
-          return asset.dataAssetId;
-        }),
-      );
-
-      for (const asset of data.catalog.assets) {
-        if (named.has(asset.dataAssetId) && !matched.has(asset.dataAssetId)) {
-          outputAssets.push(asset);
-        }
-      }
-    }
+    // Tables its producer named by id (a Fivetran connector's schema, a job in traces).
+    this.addNamedAssets(outputAssets, event.outputDataAssetIds, data.catalog);
+    this.addNamedAssets(inputAssets, event.inputDataAssetIds, data.catalog);
 
     if (event.runId) {
       await this.recordRun({
@@ -283,8 +294,10 @@ export default class OpenLineageIngest {
     }
 
     const edges: Array<LineageEdgeToKeep> = [];
-    const columnMappings: Map<string, Array<DataColumnMapping>> =
-      this.readColumnMappings(event, data.catalog);
+    const columnMappings: Map<
+      string,
+      Array<DataColumnMapping>
+    > = this.readColumnMappings(event, data.catalog);
 
     for (const output of outputAssets) {
       // Every table a pipeline writes knows the pipeline, whatever it reads.
@@ -441,6 +454,10 @@ export default class OpenLineageIngest {
           ...(event.scheduledAt && !run.scheduledAt
             ? { scheduledAt: event.scheduledAt }
             : {}),
+          ...(event.attemptNumber
+            ? { attemptNumber: event.attemptNumber }
+            : {}),
+          ...(event.traceId ? { traceId: event.traceId } : {}),
           inputs: mergeDatasetLabels(run.inputs, event.inputs),
           outputs: mergeDatasetLabels(run.outputs, event.outputs),
           outputDataAssetIds: outputIds,
@@ -455,6 +472,14 @@ export default class OpenLineageIngest {
       created.startedAt = startedAt;
       if (event.scheduledAt) {
         created.scheduledAt = event.scheduledAt;
+      }
+
+      if (event.attemptNumber) {
+        created.attemptNumber = event.attemptNumber;
+      }
+
+      if (event.traceId) {
+        created.traceId = event.traceId;
       }
 
       created.inputs = mergeDatasetLabels([], event.inputs);

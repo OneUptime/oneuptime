@@ -6,7 +6,7 @@ It answers four questions:
 
 :::cards
 - [Where is our sensitive data?](/docs/data-security/data-types): 143 data types, from card numbers and national IDs to API keys, found in buckets, tables and telemetry.
-- [Is it exposed?](/docs/data-security/checks-and-issues): 33 checks of each store: public access, encryption, backups, logging, secrets and copies.
+- [Is it exposed?](/docs/data-security/checks-and-issues): 34 checks of each store: public access, encryption, backups, logging, secrets and copies.
 - [Who can reach it, and where does it go?](/docs/data-security/flows-access-residency): Every identity that can reach each store, the riskiest first, which services use it, and which AI providers and hosts its data reaches.
 - [Does it meet our rules?](/docs/data-security/compliance): Residency rules, and nine frameworks scored from what the scans found.
 :::

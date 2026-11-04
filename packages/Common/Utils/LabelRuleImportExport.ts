@@ -107,6 +107,7 @@ const RESOURCES_WITH_GENERIC_CRITERIA: ReadonlyArray<string> = [
   "CloudResource",
   "ServerlessFunction",
   "DataStore",
+  "DataAsset",
 ];
 
 /*

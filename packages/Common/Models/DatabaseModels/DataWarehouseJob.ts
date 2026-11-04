@@ -1,3 +1,5 @@
+import EnableWorkflow from "../../Types/Database/EnableWorkflow";
+import EnableMCP from "../../Types/Database/EnableMCP";
 import DataStore from "./DataStore";
 import Project from "./Project";
 import User from "./User";
@@ -103,6 +105,13 @@ const bigNumberTransformer: {
   },
 };
 
+@EnableMCP()
+@EnableWorkflow({
+  create: true,
+  delete: true,
+  update: true,
+  read: true,
+})
 @EnableDocumentation()
 @TableBillingAccessControl({
   create: PlanType.Free,

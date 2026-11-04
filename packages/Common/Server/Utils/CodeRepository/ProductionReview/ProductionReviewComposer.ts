@@ -9,6 +9,7 @@ import {
   ProductionReviewDataChange,
   ProductionReviewDataImpactJSON,
   ProductionReviewDataServiceJSON,
+  ProductionReviewDataStagingJSON,
   ProductionReviewDeployJSON,
   ProductionReviewExceptionJSON,
   ProductionReviewHotFunctionJSON,
@@ -315,6 +316,41 @@ export function describeDataChangeMarkdown(
     default:
       return mdText`Changes the dbt model that builds ${table}`;
   }
+}
+
+// How a table's copy on staging differs: its rows, its columns, and what its checks read there.
+export function describeStagingMarkdown(
+  staging: ProductionReviewDataStagingJSON,
+): MarkdownText {
+  const parts: Array<MarkdownText> = [];
+
+  if (staging.stagingRows !== null && staging.productionRows !== null) {
+    parts.push(
+      mdText`${String(staging.stagingRows)} rows there, ${String(staging.productionRows)} in production`,
+    );
+  }
+
+  for (const difference of staging.columnDifferences.slice(0, 3)) {
+    parts.push(mdText`${githubSafeText(difference, 160)}`);
+  }
+
+  for (const check of staging.checks.slice(0, 3)) {
+    const name: string = githubSafeText(check.name, 80);
+
+    parts.push(
+      check.error
+        ? mdText`check **${name}** could not run there: ${githubSafeText(check.error, 160)}`
+        : mdText`check **${name}** reads ${check.staging === null ? "nothing" : String(check.staging)} there, ${check.production === null ? "nothing" : String(check.production)} in production`,
+    );
+  }
+
+  if (!staging.areChecksRun) {
+    parts.push(mdText`its checks were not run, as only a probe can reach it`);
+  }
+
+  return parts.length > 0
+    ? mdText`on staging (${githubSafeText(staging.storeName, 80)}), ${FeedMarkdown.join(parts, ", ")}`
+    : mdText`on staging (${githubSafeText(staging.storeName, 80)}) it looks the same`;
 }
 
 export default class ProductionReviewComposer {
@@ -983,6 +1019,10 @@ export default class ProductionReviewComposer {
           parts.push(
             mdText`part of ${impact.dataProducts.length === 1 ? "data product" : "data products"} ${listing(products)}`,
           );
+        }
+
+        if (impact.staging) {
+          parts.push(describeStagingMarkdown(impact.staging));
         }
 
         const dependents: MarkdownText =

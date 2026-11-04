@@ -36,9 +36,12 @@ describe("column mappings", () => {
     expect(isSameColumnMappings(merged, merged.slice(1))).toBe(false);
     expect(
       readColumnMappings(
-        Array.from({ length: MAX_COLUMN_MAPPINGS_PER_EDGE + 50 }, (_x: unknown, i: number) => {
-          return { upstreamColumn: `u${i}`, downstreamColumn: "d" };
-        }),
+        Array.from(
+          { length: MAX_COLUMN_MAPPINGS_PER_EDGE + 50 },
+          (_x: unknown, i: number) => {
+            return { upstreamColumn: `u${i}`, downstreamColumn: "d" };
+          },
+        ),
       ),
     ).toHaveLength(MAX_COLUMN_MAPPINGS_PER_EDGE);
   });

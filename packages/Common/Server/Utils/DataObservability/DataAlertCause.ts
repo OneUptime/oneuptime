@@ -466,24 +466,29 @@ export default class DataAlertCause {
 
     // How long after its update was due a late table's alert opened.
     if (data.subject.dataAssetId) {
-      const asset: DataAsset | null = await DataAssetService.findOneById({
-        id: data.subject.dataAssetId,
-        select: {
-          assetKind: true,
-          lastChangedAt: true,
-          updateIntervalInSeconds: true,
-        },
-        props: { isRoot: true },
-      });
-      const overdue: number = getDataAssetFreshness({
-        kind: asset?.assetKind as DataAssetKind | undefined,
-        lastChangedAt: asset?.lastChangedAt,
-        updateIntervalInSeconds: asset?.updateIntervalInSeconds,
-        now: new Date(),
-      }).overdueBySeconds;
+      try {
+        const asset: DataAsset | null = await DataAssetService.findOneById({
+          id: data.subject.dataAssetId,
+          select: {
+            assetKind: true,
+            lastChangedAt: true,
+            updateIntervalInSeconds: true,
+          },
+          props: { isRoot: true },
+        });
+        const overdue: number = getDataAssetFreshness({
+          kind: asset?.assetKind as DataAssetKind | undefined,
+          lastChangedAt: asset?.lastChangedAt,
+          updateIntervalInSeconds: asset?.updateIntervalInSeconds,
+          now: new Date(),
+        }).overdueBySeconds;
 
-      if (overdue > 0) {
-        row.detectedAfterInSeconds = overdue;
+        if (overdue > 0) {
+          row.detectedAfterInSeconds = overdue;
+        }
+      } catch (error) {
+        // A measure of how quickly it was seen: never a reason to lose the alert's record.
+        logger.debug(error);
       }
     }
 

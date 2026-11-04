@@ -37,7 +37,7 @@ import {
 } from "../../Types/DataSecurity/DataStorePosture";
 import SecuritySeverity from "../../Types/SecuritySeverity";
 import ColumnLength from "../../Types/Database/ColumnLength";
-import { JSONObject } from "../../Types/JSON";
+import { JSONArray, JSONObject } from "../../Types/JSON";
 import {
   Column,
   Entity,
@@ -990,6 +990,20 @@ export default class DataStore extends BaseModel {
 
   @ColumnAccessControl(editableColumnAccess)
   @TableColumn({
+    type: TableColumnType.VeryLongText,
+    required: false,
+    title: "Watched Paths",
+    description:
+      "The paths of a bucket Data Observability watches like tables, one per line.",
+  })
+  @Column({
+    type: ColumnType.VeryLongText,
+    nullable: true,
+  })
+  public watchedPaths?: string = undefined;
+
+  @ColumnAccessControl(editableColumnAccess)
+  @TableColumn({
     type: TableColumnType.LongText,
     required: false,
     canReadOnRelationQuery: true,
@@ -1197,6 +1211,21 @@ export default class DataStore extends BaseModel {
     nullable: true,
   })
   public tableHealthTarget?: JSONObject = undefined;
+
+  @ColumnAccessControl(serverWrittenColumnAccess)
+  @TableColumn({
+    type: TableColumnType.JSON,
+    required: false,
+    computed: true,
+    title: "New Personal Data Columns",
+    description:
+      "Columns added lately whose names say they hold personal data, as a collection saw them appear.",
+  })
+  @Column({
+    type: ColumnType.JSON,
+    nullable: true,
+  })
+  public newPersonalDataColumns?: JSONArray = undefined;
 
   @ColumnAccessControl(hiddenColumnAccess)
   @Index()

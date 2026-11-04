@@ -175,7 +175,11 @@ router.post(
           continue;
         }
 
-        work.push(storeWork);
+        work.push({
+          ...storeWork,
+          freshnessReads: plan.freshnessReads,
+          waitWhenBusy: plan.waitWhenBusy,
+        });
       }
 
       return Response.sendJsonObjectResponse(req, res, {

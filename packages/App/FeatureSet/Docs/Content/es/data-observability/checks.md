@@ -1,6 +1,6 @@
 # Comprobaciones y conciliaciones
 
-La salud de las tablas dice si una tabla cambia. Una **comprobación** dice si lo que contiene es correcto, una **conciliación** dice si dos copias de los datos coinciden, y las **pruebas de dbt** informan sobre las tablas que construye dbt. Cada una se ejecuta donde se ejecuta la recopilación de la base de datos, en OneUptime o en su sonda, y lo único que sale de la base de datos es un número.
+La salud de las tablas dice si una tabla cambia. Una **comprobación** dice si lo que contiene es correcto, una **conciliación** dice si dos copias de los datos coinciden, y las **pruebas de dbt** informan sobre las tablas que construye dbt. Cada una se ejecuta donde se ejecuta la recopilación de la base de datos, en OneUptime o en su sonda, y lo único que sale de la base de datos es un número, salvo que un proyecto autoalojado decida guardar una muestra enmascarada de las filas que fallan.
 
 ## Comprobaciones
 
@@ -13,16 +13,17 @@ Añade una comprobación en la pestaña **Comprobaciones** de una tabla:
 | **Distinct Count** | Cuántos valores distintos contiene la columna |
 | **Mínimo**, **Máximo**, **Promedio**, **Suma** | De una columna numérica (la suma de cero filas es 0) |
 | **Invalid Percent** | Porcentaje de valores que están fuera de una lista que proporcionas |
-| **Format Mismatch Percent** | Porcentaje de valores que no coinciden con una expresión regular (todos los motores salvo SQL Server) |
+| **Format Mismatch Percent** | Porcentaje de valores que no están en un formato que eliges, como Email, UUID o Country Code, o que no coinciden con una expresión regular tuya (todos los motores salvo SQL Server) |
 | **Orphan Count** | Filas cuyo valor no tiene correspondencia en la columna de otra tabla |
 | **Número de filas** | Filas de la tabla, sobre todo útil con **Segment By** |
 | **SQL personalizado** | El número que devuelve un SELECT tuyo de solo lectura, llamado `value` (en MongoDB, el de un pipeline de agregación) |
+| **Failing Rows** | Cuántas filas devuelve un SELECT tuyo de solo lectura: las filas que no deberían existir. 0 es saludable (en MongoDB, los documentos con los que termina un pipeline) |
 
 Cada comprobación se ejecuta cada 15 minutos, cada hora, cada 6 horas o cada día, como una única sentencia de agregación en una transacción de solo lectura con un tiempo de espera de sentencia. Su valor se escribe como `oneuptime.data.check.value`, con `oneuptime.data.check.id`, `oneuptime.data.check.name` y `oneuptime.data.check.segment`.
 
 ## Comprobaciones sugeridas
 
-**Suggested Checks**, en la misma pestaña, ofrece las comprobaciones que piden las columnas de una tabla, solo a partir de sus nombres y tipos: un id es único, un `customer_id` tiene una fila correspondiente en `customers`, un correo electrónico tiene forma de correo, un importe no es negativo, un estado mantiene sus valores habituales y una tabla dividida por inquilino se cuenta por inquilino. Añade una, añádelas todas o descarta una para siempre.
+**Suggested Checks**, en la misma pestaña, ofrece las comprobaciones que piden las columnas de una tabla, solo a partir de sus nombres y tipos: un id es único, un `customer_id` tiene una fila correspondiente en `customers`, un correo electrónico tiene forma de correo, un importe no es negativo, un estado mantiene sus valores habituales y una tabla dividida por inquilino se cuenta por inquilino. Una columna que Seguridad de datos sabe que contiene una dirección de correo, un número de teléfono o una dirección IP se somete a ese formato, se llame como se llame. Añade una, añádelas todas o descarta una para siempre.
 
 ## Una comprobación a partir de una frase
 
@@ -40,6 +41,60 @@ Configura **Alert When** para alertar sobre una comprobación:
 - **Por encima de** o **Por debajo de** lo compara con un umbral.
 
 Al guardar la comprobación se crea un monitor de métricas para ella, en tu nombre y con tus permisos. Si vacías la condición, se elimina el monitor.
+
+## Lo que cuesta una comprobación
+
+Una comprobación compite con tu aplicación por la base de datos, y en un almacén de datos que factura por lo que lee una consulta, cuesta dinero. Tres cosas lo mantienen bajo control:
+
+- **Porcentaje de muestra** lee una parte de las filas en lugar de todas, para una comprobación que lee una tasa: Null Percent, Promedio, Invalid Percent y Format Mismatch Percent. La mayoría de los motores se saltan páginas enteras de la tabla; MySQL, Redshift, ClickHouse y MongoDB siguen leyendo todas las filas, y se ahorran el trabajo con el resto. Una vista puede rechazarlo, y la comprobación lo indica.
+- **Máximo que puede leer una comprobación (GB)**, en **Ajustes**, detiene una comprobación en BigQuery o Athena antes de que lea más de esos gigabytes. Es 10 hasta que lo cambies.
+- **Esperar cuando una base de datos está ocupada**, en **Ajustes**, deja las comprobaciones pendientes para la siguiente recopilación cuando una base de datos de PostgreSQL, MySQL o SQL Server parece ocupada. Está activado hasta que lo desactives, y la base de datos indica cuándo esperaron las comprobaciones.
+
+## Filas que fallan
+
+Un número dice que algo va mal; unas pocas filas dicen qué. En un OneUptime autoalojado, **Guardar filas que fallan** en **Ajustes** guarda hasta 20 de las filas que encontró una comprobación Failing Rows, Invalid Percent, Format Mismatch Percent u Orphan Count, y **Failing Rows** en la comprobación las muestra. Las columnas sensibles se enmascaran donde se lee la fila, según lo que Seguridad de datos encontró en ellas o según sus nombres, así que lo que sale de la base de datos, o de una sonda, ya está enmascarado. OneUptime Cloud no guarda ninguna.
+
+## Comprobaciones en un archivo
+
+Las comprobaciones escritas a mano se desvían del código que cambia las tablas. Guárdalas en tu repositorio, revisadas en la misma pull request:
+
+```yaml
+checks:
+  - name: Orders have a total
+    table: public.orders
+    type: Null Percent
+    column: total
+    every: 60
+    alert: { when: Above, threshold: 1 }
+  - name: Emails look right
+    table: public.customers
+    database: Orders database
+    type: Format Mismatch Percent
+    column: email
+    format: Email
+    sample_percent: 10
+  - name: Orders have a customer
+    table: public.orders
+    type: Orphan Count
+    column: customer_id
+    references: public.customers.id
+  - name: No negative totals
+    table: public.orders
+    type: Failing Rows
+    query: SELECT id FROM orders WHERE total < 0
+    alert: { when: Above, threshold: 0 }
+```
+
+Aplícalo desde CI con la [CLI de OneUptime](/docs/cli/index) y una clave de API:
+
+```bash
+oneuptime data-checks apply checks.yaml --dry-run
+oneuptime data-checks apply checks.yaml --prune
+```
+
+Una comprobación es la misma comprobación si tiene el mismo nombre en la misma tabla, así que aplicar un archivo dos veces no cambia nada. Un error en cualquier parte del archivo no aplica nada y termina con un error, así que ejecuta `--dry-run` en la pull request y aplica al fusionar. Con `--prune`, se elimina una comprobación que creó una aplicación anterior y que el archivo ya no nombra. Una comprobación que añadiste a mano nunca se elimina. Una comprobación de un archivo lo indica en su fila, y su siguiente aplicación sobrescribe lo que se cambió a mano.
+
+Las claves son `name`, `table`, `database`, `type`, `column`, `segment`, `accepted_values`, `format`, `pattern`, `references`, `query`, `sample_percent`, `every`, `alert`, `description` y `enabled`.
 
 ## Conciliaciones
 

@@ -16,6 +16,10 @@ Kies op **Data Observability > Databases** de knop **Connect a Database**, en da
 
 Een database die al voor Gegevensbeveiliging is gekoppeld, wordt ook bewaakt, zonder dat je iets hoeft te koppelen, net als elke BigQuery-dataset die je [cloudkoppeling](/docs/telemetry/cloud-accounts) heeft gevonden.
 
+## Databases die je kunt koppelen
+
+**Databases die u kunt koppelen**, onder **Databases**, toont wat je project al kent en niemand heeft gekoppeld: databases waarmee je traces praten, databases in je cloudaccounts en databases die Database Monitoring bewaakt. **Koppelen** start het formulier vanuit wat van elk bekend is, met een verbindingsreeks om in te vullen. **Verbergen** voorkomt dat er een terugkomt. Er wordt niets gelezen totdat je hem koppelt.
+
 ## Een alleen-lezen login per engine
 
 :::tabs
@@ -30,7 +34,7 @@ De verbindingsreeks: `postgres://oneuptime_reader:...@orders-db.internal:5432/or
 @tab MySQL and MariaDB
 ```sql
 CREATE USER 'oneuptime_reader'@'%' IDENTIFIED BY '...';
-GRANT SHOW VIEW ON orders.* TO 'oneuptime_reader'@'%';
+GRANT SHOW VIEW, REFERENCES ON orders.* TO 'oneuptime_reader'@'%';
 GRANT SELECT ON performance_schema.table_io_waits_summary_by_table TO 'oneuptime_reader'@'%';
 ```
 
@@ -140,13 +144,24 @@ MongoDB wordt gelezen met de eigen driver: `mongodb+srv://oneuptime_reader:...@c
 | Controles | Elke 15 minuten, elk uur, elke 6 uur of elke dag, zoals elke controle aangeeft |
 | Herkomst en laatste leesacties uit de querygeschiedenis | Eens per uur, terug tot de vorige uitlezing |
 
-Elk statement draait alleen-lezen, met een statement- en lock-time-out waar de engine die heeft. De verbindingsreeks wordt nooit gelogd en uit elke foutmelding gehaald. Een statistiek die de login niet mag lezen, wordt weggelaten met een waarschuwing op de database; de verzamelronde mislukt er nooit door.
+Elk statement draait alleen-lezen, met een statement- en lock-time-out waar de engine die heeft. De verbindingsreeks wordt nooit gelogd en uit elke foutmelding gehaald. Een statistiek die de login niet mag lezen, wordt weggelaten met een waarschuwing op de database; de verzamelronde mislukt er nooit door. Verbindingen met privéadressen worden geweigerd op OneUptime Cloud: gebruik een sonde.
+
+## Read replica's
+
+Een read replica van PostgreSQL of SQL Server verhoogt haar schrijftellers niet, dus een tabel daar kan ongewijzigd lijken terwijl ze wijzigt. OneUptime ziet dat het een replica is, laat de tellers weg, meldt dat op de database en valt terug op de grootte en rijen van de tabel. Koppel waar mogelijk de primary, of geef een [freshness-kolom](/docs/data-observability/table-health) op voor de tabellen die ertoe doen.
+
+## Opslagpaden
+
+Niet alles waar je op vertrouwt staat in een database. Een export die elke nacht in een bucket landt, is net zo laat of net zo kort als elke tabel. Kies onder **Opslagpaden** de optie **Paden bewerken** voor een bucket die je [cloudkoppeling](/docs/telemetry/cloud-accounts) heeft gevonden, op Amazon S3, Google Cloud Storage of een Azure-opslagaccount, en noem de paden die ertoe doen, één per regel. Begin bij Azure elk pad met de naam van de container.
+
+Elk pad verschijnt dan onder **Tabellen**: het nieuwste object is het moment van de laatste wijziging, de objecten zijn de rijen en hun grootte is de grootte, en dezelfde waarschuwingen gelden. Alleen namen, groottes en tijden worden gelezen, nooit een object. Een pad met meer dan 10000 objecten heeft geen exact aantal, geen exacte grootte en geen exact nieuwste object, en meldt dat: noem een smaller pad.
 
 ## Probleemoplossing
 
 - **De database toont Mislukt.** De melding zegt waarom: een host die OneUptime niet kan bereiken, een geweigerde login, een TLS-modus die de server niet accepteert. Koppel een database binnen je netwerk via een sonde.
 - **Tabellen tonen geen laatste wijziging.** De login kan de statistieken van de engine niet lezen: verleen wat het tabblad van je engine opsomt, of wacht tot de rijen van een tabel twee keer zijn gewijzigd.
 - **Er ontbreekt een tabel.** Die staat in een schema dat de login niet mag gebruiken, of is op de database uitgesloten. Verleen `USAGE` op het schema, of verwijder de uitsluiting.
+- **Een MySQL-tabel heeft geen kolommen.** De login heeft `REFERENCES` nodig, zoals hierboven: het toont de kolommen van een tabel zonder enige leestoegang tot haar rijen.
 
 ## Volgende stappen
 

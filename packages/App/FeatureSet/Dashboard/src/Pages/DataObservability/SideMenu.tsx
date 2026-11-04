@@ -91,6 +91,13 @@ const DataObservabilitySideMenu: FunctionComponent = (): ReactElement => {
           }}
           icon={IconProp.Database}
         />
+        <SideMenuItem
+          link={{
+            title: "Storage Paths",
+            to: routeOf(PageMap.DATA_OBSERVABILITY_STORAGE_PATHS),
+          }}
+          icon={IconProp.Folder}
+        />
       </SideMenuSection>
 
       <SideMenuSection title="Help">

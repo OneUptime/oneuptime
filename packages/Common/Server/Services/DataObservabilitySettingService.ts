@@ -18,12 +18,18 @@ export const MIN_GIGABYTES_SCANNED_PER_CHECK: number = 1;
 export const MAX_GIGABYTES_SCANNED_PER_CHECK: number = 10_000;
 export const BYTES_IN_A_GIGABYTE: number = 1024 * 1024 * 1024;
 
+// What checkValues reads of a create or an update, as whatever was sent.
+export interface DataObservabilitySettingValues {
+  maxGigabytesScannedPerCheck?: unknown;
+  keepFailingRows?: unknown;
+}
+
 export class Service extends ProjectReferencesService<Model> {
   public constructor() {
     super(Model);
   }
 
-  public static checkValues(data: Partial<Model>): void {
+  public static checkValues(data: DataObservabilitySettingValues): void {
     const gigabytes: unknown = data.maxGigabytesScannedPerCheck;
 
     if (
@@ -53,7 +59,7 @@ export class Service extends ProjectReferencesService<Model> {
   ): Promise<OnCreate<Model>> {
     await super.onBeforeCreate(createBy);
 
-    Service.checkValues(createBy.data as Partial<Model>);
+    Service.checkValues(createBy.data as DataObservabilitySettingValues);
 
     return { createBy, carryForward: undefined };
   }
@@ -64,7 +70,9 @@ export class Service extends ProjectReferencesService<Model> {
   ): Promise<OnUpdate<Model>> {
     await super.onBeforeUpdate(updateBy);
 
-    Service.checkValues(updateBy.data as Partial<Model>);
+    Service.checkValues(
+      updateBy.data as unknown as DataObservabilitySettingValues,
+    );
 
     return { updateBy, carryForward: undefined };
   }

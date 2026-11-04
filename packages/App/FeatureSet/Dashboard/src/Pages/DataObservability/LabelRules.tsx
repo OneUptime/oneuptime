@@ -49,8 +49,7 @@ const DataAssetLabelRulesPage: FunctionComponent<RuleSettingsPageProps> = (
       createEditModalWidth={ModalWidth.Large}
       cardProps={{
         title: "Table Label Rules",
-        description:
-          "Auto-attach labels when matching tables are discovered.",
+        description: "Auto-attach labels when matching tables are discovered.",
       }}
       sortBy="name"
       sortOrder={SortOrder.Ascending}
@@ -124,7 +123,7 @@ const DataAssetLabelRulesPage: FunctionComponent<RuleSettingsPageProps> = (
           field: { schemaRegexPattern: true },
           title: "Schema",
           stepId: "match-criteria",
-          
+
           fieldType: FormFieldSchemaType.Text,
           required: false,
           placeholder: "^billing$",

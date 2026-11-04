@@ -28,7 +28,8 @@ describe("the hosts a connection string can reach", () => {
     expect(() => {
       return getDatabaseConnectionHosts({
         engine: "postgresql",
-        connectionString: "postgres://reader:pw@/orders?host=/var/run/postgresql",
+        connectionString:
+          "postgres://reader:pw@/orders?host=/var/run/postgresql",
       });
     }).toThrow(/local socket/);
   });

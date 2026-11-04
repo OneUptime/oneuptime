@@ -102,7 +102,10 @@ export async function assertDatabaseConnectionAllowed(
   const hosts: Array<string> = getDatabaseConnectionHosts(connection);
 
   // An SRV name says where it points only when asked.
-  if (connection.engine === "mongodb" && readMongoUri(connection.connectionString)?.isSrv) {
+  if (
+    connection.engine === "mongodb" &&
+    readMongoUri(connection.connectionString)?.isSrv
+  ) {
     for (const host of [...hosts]) {
       const records: Array<{ name: string }> = await dns.resolveSrv(
         `_mongodb._tcp.${host}`,

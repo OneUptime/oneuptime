@@ -346,8 +346,7 @@ export default class DataAssetLabelRule extends RuleBaseModel {
     required: false,
     type: TableColumnType.LongText,
     title: "Table Name",
-    description:
-      "Case-insensitive regex matched against the table's name.",
+    description: "Case-insensitive regex matched against the table's name.",
   })
   @Column({
     type: ColumnType.LongText,
@@ -390,8 +389,7 @@ export default class DataAssetLabelRule extends RuleBaseModel {
     required: false,
     type: TableColumnType.LongText,
     title: "Schema",
-    description:
-      "Case-insensitive regex matched against the table's schema.",
+    description: "Case-insensitive regex matched against the table's schema.",
   })
   @Column({
     type: ColumnType.LongText,

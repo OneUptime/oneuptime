@@ -6,7 +6,7 @@
 
 :::cards
 - [민감한 데이터는 어디에 있나요?](/docs/data-security/data-types): 카드 번호와 국가 신분증 번호부터 API 키까지, 버킷, 테이블, 텔레메트리에서 찾아내는 143가지 데이터 유형.
-- [노출되어 있나요?](/docs/data-security/checks-and-issues): 각 저장소에 대한 33가지 검사: 공개 액세스, 암호화, 백업, 로깅, 시크릿, 복사본.
+- [노출되어 있나요?](/docs/data-security/checks-and-issues): 각 저장소에 대한 34가지 검사: 공개 액세스, 암호화, 백업, 로깅, 시크릿, 복사본.
 - [누가 접근할 수 있고, 데이터는 어디로 가나요?](/docs/data-security/flows-access-residency): 각 저장소에 접근할 수 있는 모든 ID(위험한 순), 어떤 서비스가 사용하는지, 그 데이터가 어떤 AI 공급자와 호스트에 도달하는지.
 - [규칙을 지키고 있나요?](/docs/data-security/compliance): 데이터 상주 규칙, 그리고 스캔에서 찾은 내용으로 점수를 매기는 아홉 가지 프레임워크.
 :::

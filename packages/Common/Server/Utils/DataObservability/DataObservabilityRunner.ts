@@ -1,3 +1,13 @@
+import {
+  isObjectStoreKind,
+  OBJECT_STORE_KINDS,
+  readWatchedPaths,
+} from "../../../Types/DataObservability/StoragePaths";
+import { createAwsObjectStoreReader } from "../DataSecurity/Cloud/Aws/AwsDataSecurityReader";
+import { createAzureBlobObjectStoreReader } from "../DataSecurity/Cloud/Azure/AzureDataSecurityReader";
+import { ObjectStoreReader } from "../DataSecurity/Cloud/DataSecurityCloudTypes";
+import { createGcsObjectStoreReader } from "../DataSecurity/Cloud/Gcp/GcpDataSecurityReader";
+import { collectStoragePaths } from "./StoragePathCollector";
 import CloudConnection from "../../../Models/DatabaseModels/CloudConnection";
 import DataStore from "../../../Models/DatabaseModels/DataStore";
 import { DataStoreKind } from "../../../Types/DataSecurity/DataStoreKind";
@@ -84,6 +94,26 @@ export default class DataObservabilityRunner {
       );
     }
 
+    // Buckets a person named paths of: listed with the cloud connection that found them.
+    if (stores.length < limit) {
+      stores.push(
+        ...(await DataStoreService.findBy({
+          query: {
+            isArchived: false,
+            isTableHealthEnabled: true,
+            kind: new Includes([...OBJECT_STORE_KINDS]),
+            watchedPaths: QueryHelper.notNull(),
+            cloudConnectionId: QueryHelper.notNull(),
+            nextTableHealthCollectionAt: QueryHelper.lessThanEqualToOrNull(now),
+          },
+          select: { _id: true, projectId: true },
+          skip: 0,
+          limit: limit - stores.length,
+          props: { isRoot: true },
+        })),
+      );
+    }
+
     const claimed: Array<{ projectId: ObjectID; dataStoreId: ObjectID }> = [];
 
     for (const store of stores) {
@@ -127,6 +157,7 @@ export default class DataObservabilityRunner {
         cloudAccountNumber: true,
         region: true,
         tableHealthCollectedAt: true,
+        watchedPaths: true,
       },
       props: { isRoot: true },
     });
@@ -142,6 +173,10 @@ export default class DataObservabilityRunner {
     // A probe's store is collected by its probe.
     if (store.scanProbeId) {
       return null;
+    }
+
+    if (isObjectStoreKind(store.kind)) {
+      return await this.collectWatchedPaths(projectId, store);
     }
 
     const engine: ReturnType<typeof getCollectorEngineOfKind> =
@@ -185,6 +220,8 @@ export default class DataObservabilityRunner {
         {
           ...DEFAULT_COLLECT_OPTIONS,
           checks: plan.planned,
+          freshnessReads: plan.freshnessReads,
+          waitWhenBusy: plan.waitWhenBusy,
           queryHistoryLookbackInSeconds: getQueryHistoryLookbackInSeconds(
             store.tableHealthCollectedAt,
             OneUptimeDate.getCurrentDate(),
@@ -229,6 +266,79 @@ export default class DataObservabilityRunner {
     });
 
     return result;
+  }
+
+  // A bucket's watched paths, listed with the cloud connection that found it.
+  private static async collectWatchedPaths(
+    projectId: ObjectID,
+    store: DataStore,
+  ): Promise<TableHealthIngestResult | null> {
+    const paths: Array<string> = readWatchedPaths(store.watchedPaths);
+
+    if (paths.length === 0 || !store.id) {
+      return null;
+    }
+
+    const connection: CloudConnection | null = store.cloudConnectionId
+      ? await CloudConnectionService.findOneBy({
+          query: { _id: store.cloudConnectionId, projectId },
+          select: {
+            _id: true,
+            projectId: true,
+            provider: true,
+            isEnabled: true,
+            config: true,
+            secrets: true,
+          },
+          props: { isRoot: true },
+        })
+      : null;
+
+    if (!connection?.id || connection.isEnabled === false) {
+      await TableHealthIngest.recordFailure({
+        storeId: store.id,
+        error: "This bucket's cloud connection is off or gone.",
+      });
+      return null;
+    }
+
+    const settings: CloudConnectionSettings =
+      await CloudConnectionService.getConnectorSettings(connection);
+    const connectionId: ObjectID = connection.id;
+    const name: string = store.name || "";
+
+    return await TableHealthIngest.recordSnapshot({
+      store: { id: store.id, projectId, name, kind: store.kind || "" },
+      snapshot: await collectStoragePaths({
+        kind: store.kind,
+        storeName: name,
+        paths,
+        now: OneUptimeDate.getCurrentDate(),
+        openReader: (container: string): ObjectStoreReader => {
+          if (store.kind === DataStoreKind.AwsS3Bucket) {
+            return createAwsObjectStoreReader(settings, {
+              connectionId,
+              bucket: name,
+              region: store.region || "us-east-1",
+              accountNumber: store.cloudAccountNumber || "",
+            });
+          }
+
+          if (store.kind === DataStoreKind.GcpStorageBucket) {
+            return createGcsObjectStoreReader(settings, {
+              connectionId: connectionId.toString(),
+              bucket: name,
+            });
+          }
+
+          return createAzureBlobObjectStoreReader(settings, {
+            connectionId: connectionId.toString(),
+            accountName: name,
+            containerName: container,
+          });
+        },
+      }),
+    });
   }
 
   /*

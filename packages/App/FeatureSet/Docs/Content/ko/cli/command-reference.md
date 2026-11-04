@@ -6,7 +6,7 @@
 - [전역 옵션](#전역-옵션): 모든 명령이 받는 옵션.
 - [로그인과 컨텍스트](#로그인과-컨텍스트): login과 context 명령.
 - [리소스 명령](#리소스-명령): 모든 리소스의 작업, 필드, 동작.
-- [기타 명령](#기타-명령): deploy, dbt upload, whoami, resources, version, help.
+- [기타 명령](#기타-명령): deploy, dbt upload, data-checks apply, whoami, resources, version, help.
 :::
 
 ## 명령 구성
@@ -322,6 +322,19 @@ oneuptime dbt upload [--target-path <dir>] [--manifest <file>] [--run-results <f
 | `--run-results <file>` | 아니요 | 보낼 실행 결과 | 대상 폴더의 `run_results.json` |
 | `--project <name>` | 아니요 | dbt 프로젝트 이름. 매니페스트를 보내지 않을 때만 필요합니다 | 매니페스트의 프로젝트 |
 | `--ingestion-key <key>` | 아니요 | 프로젝트의 텔레메트리 수집 키 | `ONEUPTIME_TELEMETRY_INGESTION_KEY` |
+
+### `oneuptime data-checks apply`
+
+프로젝트의 데이터 검사를 YAML 파일과 일치시켜, 검사를 저장소에 보관하고 코드처럼 리뷰할 수 있게 합니다. 파일의 어디에든 실수가 있으면 아무것도 적용하지 않고 오류와 함께 종료합니다. 파일 형식은 [검사 및 대사](/docs/data-observability/checks)에 있습니다.
+
+```bash
+oneuptime data-checks apply <file> [--dry-run] [--prune]
+```
+
+| 옵션 | 필수 | 설명 | 기본값 |
+| --- | --- | --- | --- |
+| `--dry-run` | 아니요 | 무엇이 바뀔지 알려 주고, 아무것도 바꾸지 않습니다 | 꺼짐 |
+| `--prune` | 아니요 | 이전 apply가 만들었지만 파일에 더 이상 나오지 않는 검사를 삭제합니다 | 꺼짐 |
 
 ### `oneuptime whoami`
 

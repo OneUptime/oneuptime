@@ -49,8 +49,7 @@ const DataAssetOwnerRulesPage: FunctionComponent<RuleSettingsPageProps> = (
       createEditModalWidth={ModalWidth.Large}
       cardProps={{
         title: "Table Owner Rules",
-        description:
-          "Auto-assign owners when matching tables are discovered.",
+        description: "Auto-assign owners when matching tables are discovered.",
       }}
       sortBy="name"
       sortOrder={SortOrder.Ascending}
@@ -124,7 +123,7 @@ const DataAssetOwnerRulesPage: FunctionComponent<RuleSettingsPageProps> = (
           field: { schemaRegexPattern: true },
           title: "Schema",
           stepId: "match-criteria",
-          
+
           fieldType: FormFieldSchemaType.Text,
           required: false,
           placeholder: "^billing$",

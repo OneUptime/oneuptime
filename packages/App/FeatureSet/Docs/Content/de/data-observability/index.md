@@ -1,6 +1,6 @@
 # Data Observability
 
-Data Observability überwacht die Tabellen, auf die sich Ihr Unternehmen verlässt, in PostgreSQL, MySQL, SQL Server, Oracle, MongoDB, Redshift, Snowflake, BigQuery, ClickHouse, Databricks und Athena, und sagt Ihnen, wenn ihre Daten verspätet, unvollständig, falsch oder fehlerhaft sind, bevor es den Menschen auffällt, die sie nutzen. Sie lernt den Rhythmus jeder Tabelle von selbst, liest den Katalog jeder Datenbank und nie eine Zeile, und verknüpft jedes Datenproblem mit dem Pipeline-Lauf, dem Deployment oder der vorgelagerten Tabelle, die dahintersteckt.
+Data Observability überwacht die Tabellen, auf die sich Ihr Unternehmen verlässt, in PostgreSQL, MySQL, SQL Server, Oracle, MongoDB, Redshift, Snowflake, BigQuery, ClickHouse, Databricks und Athena, und sagt Ihnen, wenn ihre Daten verspätet, unvollständig, falsch oder fehlerhaft sind, bevor es den Menschen auffällt, die sie nutzen. Sie lernt den Rhythmus jeder Tabelle von selbst, liest den Katalog jeder Datenbank, sodass kein Wert sie verlässt, und verknüpft jedes Datenproblem mit dem Pipeline-Lauf, dem Deployment oder der vorgelagerten Tabelle, die dahintersteckt.
 
 Sie beantwortet vier Fragen:
 
@@ -26,7 +26,7 @@ flowchart TB
 ```
 
 1. **Verbinden Sie eine Datenbank** mit einem schreibgeschützten Login. Eine Datenbank, die Datensicherheit bereits kennt, wird ohne weiteres Zutun überwacht, ebenso jedes BigQuery-Dataset, das Ihre Google-Cloud-Verbindung gefunden hat. Eine Datenbank in einem privaten Netzwerk liest eine Sonde, die Sie dort betreiben.
-2. **Alle fünf Minuten** liest OneUptime den Katalog und die Statistiken jeder Datenbank: jede Tabelle und jede View, ihre Spalten, Zeilen und Größe und wann sie sich zuletzt geändert hat. Keine Tabelle wird gescannt und keine Zeile gelesen.
+2. **Alle fünf Minuten** liest OneUptime den Katalog und die Statistiken jeder Datenbank: jede Tabelle und jede View, ihre Spalten, Zeilen und Größe und wann sie sich zuletzt geändert hat. Keine Tabelle wird gescannt, und bei MongoDB werden nur die Feldnamen ihrer neuesten Dokumente gelesen. Ein Pfad in einem Bucket lässt sich auf dieselbe Weise überwachen.
 3. **Der Rhythmus jeder Tabelle wird gelernt**: wie oft sie sich üblicherweise ändert. Eine Tabelle, die ihren Rhythmus verpasst, ist verspätet; eine, deren Zeilen einbrechen oder deren Spalten sich ändern, meldet das.
 4. **Empfohlene Warnungen** machen aus jedem dieser Fälle einen Monitor, für den Sie sich bewusst entscheiden, und Prüfungen, die Sie hinzufügen, lesen, was eine Tabelle enthält.
 5. Die **Datenherkunft** (Lineage) sagt, welche Tabellen welche speisen, sodass eine Warnung zu einer Tabelle, deren Quelle zuerst ausgefallen ist, als Folge dieser Quelle gilt: eine Meldung, nicht zehn.
@@ -36,12 +36,13 @@ flowchart TB
 - **Sie ist Teil des übrigen OneUptime.** Eine Datenwarnung ist eine gewöhnliche Warnung: Sie alarmiert über die Bereitschaft, eröffnet Vorfälle, erscheint auf Statusseiten und zählt gegen SLOs. Die Dienste, die laut Ihren Traces in eine Tabelle schreiben, und deren Deployments stehen bei jeder Tabellenwarnung.
 - **Nichts pro Tabelle zu konfigurieren.** Rhythmen, Zeitpläne und übliche Laufzeiten werden aus dem gelernt, was jede Tabelle und jede Pipeline tut, und ein für eine Datenbank empfohlener Monitor deckt jede Tabelle darin ab, auch später angelegte.
 - **Eine Meldung pro Ursache.** Eine Warnung, für deren vorgelagerte Tabelle, Pipeline oder Datenbank schon eine Warnung offen ist, schließt sich dieser Warnung als deren Folge an, bereits bestätigt, sodass ein fehlerhafter Ladevorgang nur einmal alarmiert.
+- **Jede Warnung erklärt sich selbst.** Sie ordnet die wahrscheinliche Ursache nach Rang, sagt, was von der Tabelle abhängt und wem sie gehört, und lernt aus dem, was Sie dazu sagen: Markieren Sie eine als **Kein Problem**, und dasselbe bleibt beim nächsten Mal still.
 - **OneUptime AI kennt Ihre Daten.** Untersuchungen von Datenwarnungen beginnen bei dem, was in die Tabelle schreibt, bei ihren Läufen und ihren vorgelagerten Tabellen; in KI fragen, Slack und Microsoft Teams sowie über KI-Agenten lässt sich fragen, ob eine Tabelle aktuell ist; und eine Prüfung lässt sich aus einem Satz schreiben. Siehe [OneUptime AI und die API](/docs/data-observability/ai-and-api).
 
 ## Bevor Sie beginnen
 
 - **Eine Rolle, die sie einrichten darf.** Projektinhaber, Projektadministratoren und Telemetrie-Administratoren verbinden Datenbanken. Alle, die Datenbestände bearbeiten dürfen, fügen Prüfungen, Abgleiche und Datenprodukte hinzu; Betrachter lesen, was sie gefunden hat. Siehe [Berechtigungsreferenz](/docs/permissions/reference).
-- **Ein schreibgeschütztes Login auf jeder Datenbank.** [Eine Datenbank verbinden](/docs/data-observability/connect) nennt, was jede Engine mindestens braucht.
+- **Ein schreibgeschütztes Login auf jeder Datenbank.** [Eine Datenbank verbinden](/docs/data-observability/connect) nennt, was jede Engine mindestens braucht. OneUptime schlägt die Datenbanken vor, die Ihre Traces, Cloud-Konten und das Datenbank-Monitoring bereits kennen.
 
 ## Schnellstart
 

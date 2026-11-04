@@ -2,6 +2,7 @@ import { DataObservabilityQuality } from "Common/Types/DataObservability/DataAle
 import PageComponentProps from "../PageComponentProps";
 import AppLink from "../../Components/AppLink/AppLink";
 import ConnectDatabaseModal from "../../Components/DataObservability/ConnectDatabaseModal";
+import DataSourceSuggestionsCard from "../../Components/DataObservability/DataSourceSuggestionsCard";
 import DataObservabilityApi from "../../Components/DataObservability/DataObservabilityApi";
 import {
   formatOverdue,
@@ -17,6 +18,7 @@ import {
   DataObservabilityOverview,
   DataObservabilityOverviewAsset,
   DataObservabilityOverviewChange,
+  DataObservabilitySourceSuggestion,
   DataObservabilityStoreSummary,
 } from "Common/Types/DataObservability/DataObservabilityApiTypes";
 import IconProp from "Common/Types/Icon/IconProp";
@@ -62,6 +64,9 @@ const DataObservabilityOverviewPage: FunctionComponent<
   const [isLoading, setIsLoading] = useState<boolean>(true);
   const [readCount, setReadCount] = useState<number>(0);
   const [isConnecting, setIsConnecting] = useState<boolean>(false);
+  const [suggestion, setSuggestion] = useState<
+    DataObservabilitySourceSuggestion | undefined
+  >(undefined);
   const hasLoaded: React.MutableRefObject<boolean> = useRef<boolean>(false);
 
   useEffect(() => {
@@ -124,6 +129,7 @@ const DataObservabilityOverviewPage: FunctionComponent<
 
   const connectModal: ReactElement = isConnecting ? (
     <ConnectDatabaseModal
+      suggestion={suggestion}
       onClose={() => {
         setIsConnecting(false);
       }}
@@ -149,13 +155,14 @@ const DataObservabilityOverviewPage: FunctionComponent<
       <>
         <Card
           title="Watch your data, not just your services"
-          description="Connect a database and every table in it is watched from the first minute: its rows, size, last change and columns. Only the catalog is read, never a row, and no threshold has to be set."
+          description="Connect a database and every table in it is watched from the first minute: its rows, size, last change and columns. Only the catalog is read, so no value leaves the database, and no threshold has to be set."
           buttons={[
             {
               title: "Connect a Database",
               buttonStyle: ButtonStyleType.PRIMARY,
               icon: IconProp.Add,
               onClick: () => {
+                setSuggestion(undefined);
                 setIsConnecting(true);
               },
             },
@@ -174,7 +181,7 @@ const DataObservabilityOverviewPage: FunctionComponent<
           <ul className="list-disc space-y-1 px-6 pb-6 text-sm text-gray-600">
             <li>
               {translator.translateText(
-                "PostgreSQL, MySQL, MariaDB and SQL Server, connected by OneUptime or by a probe inside your network.",
+                "PostgreSQL, MySQL, MariaDB, SQL Server, Oracle, MongoDB and the major warehouses, connected by OneUptime or by a probe inside your network.",
               )}
             </li>
             <li>
@@ -189,6 +196,12 @@ const DataObservabilityOverviewPage: FunctionComponent<
             </li>
           </ul>
         </Card>
+        <DataSourceSuggestionsCard
+          onConnect={(chosen: DataObservabilitySourceSuggestion) => {
+            setSuggestion(chosen);
+            setIsConnecting(true);
+          }}
+        />
         {connectModal}
       </>
     );

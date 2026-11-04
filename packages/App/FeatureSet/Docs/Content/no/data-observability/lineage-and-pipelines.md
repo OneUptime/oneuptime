@@ -1,6 +1,6 @@
 # Avstamning og pipelines
 
-Avstamning viser hvilke tabeller hver tabell er bygget fra, og hvilke pipelines som skriver til den. Dataobserverbarhet samler den inn fra fem steder samtidig – OpenLineage-hendelser, dbt, synkroniseringer fra Fivetran og Airbyte, visninger og hver databases egen spørringshistorikk – og bruker den til å knytte hver forsinkede eller ødelagte tabell til kjøringen bak, slik at ett problem åpner én sak.
+Avstamning viser hvilke tabeller hver tabell er bygget fra, og hvilke pipelines som skriver til den. Dataobserverbarhet samler den inn fra seks steder samtidig – OpenLineage-hendelser, dbt, synkroniseringer fra Fivetran og Airbyte, jobber i sporene dine, visninger og hver databases egen spørringshistorikk – og bruker den til å knytte hver forsinkede eller ødelagte tabell til kjøringen bak, slik at ett problem åpner én sak.
 
 ## Hvor avstamningen kommer fra
 
@@ -9,10 +9,13 @@ Avstamning viser hvilke tabeller hver tabell er bygget fra, og hvilke pipelines 
 | **OpenLineage** | Hver kjøring av en Airflow-, Dagster-, Spark-, dbt- eller Flink-jobb, og tabellene den leste og skrev til |
 | **dbt** | Hva hver modell er bygget fra, hver bygging som en kjøring, og resultatet av hver test |
 | **Fivetran og Airbyte** | Hver synkronisering som en kjøring av koblingen, og råtabellene den laster |
-| **Visninger** | En visning er bygget fra tabellene den er definert på (PostgreSQL, Redshift, MySQL 8, SQL Server, Oracle, materialiserte visninger i ClickHouse, Databricks, MongoDB) |
-| **Spørringshistorikk** | En spørring som leste én tabell og skrev til en annen (jobbene i BigQuery, spørringsloggen i Redshift, spørringsloggen i ClickHouse, avstamningstabellen i Databricks) |
+| **Jobber i sporene dine** | En Kubernetes CronJob eller en planlagt funksjon, kjøringene dens, og tabellene databasekallene dens leste og skrev |
+| **Visninger** | En visning er bygget fra tabellene den er definert på (PostgreSQL, Redshift, MySQL 8, SQL Server, Oracle, Snowflake, materialiserte visninger i ClickHouse, Databricks, MongoDB) |
+| **Spørringshistorikk** | En spørring som leste én tabell og skrev til en annen (tilgangshistorikken i Snowflake, jobbene i BigQuery, spørringsloggen i Redshift, spørringsloggen i ClickHouse, avstamningstabellen i Databricks) |
 
 Fanen **Opphav** for en tabell viser tabellene den er bygget fra, pipelinene som skriver til den med siste kjøring, og tabellene som er bygget fra den. Hver forbindelse viser hvor den ble sett.
+
+Der kilden oppgir kolonner, sier fanen **Kolonner** for en tabell hvor hver kolonne kommer fra og hva den mater: tilgangshistorikken i Snowflake (Enterprise-utgaven, som trenger `IMPORTED PRIVILEGES` på databasen `SNOWFLAKE`), og `columnLineage`-fasetten i OpenLineage.
 
 ## OpenLineage
 
@@ -53,6 +56,16 @@ Webhookene deres sier når hver synkronisering starter og slutter. **Pipelines >
 
 En Fivetran-synkronisering som planlegges på nytt fordi et API har nådd frekvensgrensen sin, ender som **Omplanlagt**: ikke en feil, så den tilkaller ingen.
 
+## Jobber i sporene dine
+
+Mange pipelines er en Kubernetes CronJob, eller en funksjon på en timer, uten noen planlegger som sender avstamning. Sporene deres sier alt det samme, uten noe å installere. Hvert kvarter blir spans med ressursattributtet `k8s.cronjob.name` eller `k8s.job.name`, eller `faas.name` med en `faas.trigger` på `timer` eller `datasource`, til en pipeline under **Pipelines**:
+
+- En kjøring av en CronJob er dens Kubernetes Job, og en kjøring av en funksjon er dens `faas.invocation_id`.
+- En kjøring feilet når spanet øverst i sporet gjorde det. Et kall som feilet og ble prøvd på nytt inni den, lar den ikke feile.
+- Tabellene den skrev til og leste kommer fra databasespanene dens.
+
+Hver kjøring lenker til sporet sitt, med loggene. De samme tre monitorene gjelder, så en CronJob som slutter å kjøre, ses som forsinket.
+
 ## Dashbord i BI-verktøy
 
 Den virkelige følgen av dårlige data er dashbordet noen åpner. Under **BI-dashbord** legger du til BI-verktøyene dine med legitimasjon som kan lese dashbordene deres. Hver time leser Dataobserverbarhet hvert dashbord og tabellene bak det, matcher hver tabell med en overvåket tabell og viser dashbordene som er bygget på en tabell, og på tabellene som bygges av den, på fanen **Opphav**, på varslene og i Production Review.
@@ -64,12 +77,16 @@ Den virkelige følgen av dårlige data er dashbordet noen åpner. Under **BI-das
 | **Tableau** | `{ "tokenName": "...", "tokenSecret": "...", "site": "acme" }` |
 | **Looker** | `{ "clientId": "...", "clientSecret": "..." }` |
 | **Power BI** | `{ "tenantId": "...", "clientId": "...", "clientSecret": "..." }`, en tjenestekontohaver (service principal) som kan bruke Power BIs administrator-API-er |
+| **Hightouch** | `{ "apiKey": "..." }` |
+| **Census** | `{ "apiKey": "...", "region": "us" }` (eller `eu`) |
+
+Hightouch og Census er reverse ETL-verktøy: en synkronisering som kopierer en tabell inn i et CRM, avhenger av den tabellen slik et dashbord gjør, så den leses på samme måte og nevnes på varslene til tabellen.
 
 Bare dashbordenes navn og lenker, og tabellene de spør mot, leses: aldri dataene deres.
 
 ## Pipelines
 
-Hver jobb, hvert dbt-prosjekt og hver synkronisering vises under **Pipelines**, med kjøringene sine: når hver startet og sluttet, hvor lang tid den tok, og feilen fra en mislykket kjøring. Etter fem kjøringer har hver pipeline lært av sine egne kjøringer hvor lang tid en kjøring vanligvis tar, og hvor lenge det går mellom kjøringene etter tidsplanen. Siden for en pipeline anbefaler tre monitorer:
+Hver jobb, hvert dbt-prosjekt og hver synkronisering vises under **Pipelines**, med kjøringene sine: når hver startet og sluttet, hvor lang tid den tok, hvilket forsøk den var der planleggeren oppgir det (Airflows try number), og feilen fra en mislykket kjøring. Etter fem kjøringer har hver pipeline lært av sine egne kjøringer hvor lang tid en kjøring vanligvis tar, og hvor lenge det går mellom kjøringene etter tidsplanen. Siden for en pipeline anbefaler tre monitorer:
 
 - **Pipeline Run Failed**: en kjøring feilet eller ble avbrutt.
 - **Pipeline Run Unusually Long**: en kjøring har tatt dobbelt så lang tid som vanlig eller mer, sjekket hvert femte minutt mens den kjører, så en kjøring som henger, oppdages før den er ferdig.
@@ -83,6 +100,10 @@ Når en tabell blir utdatert, blir hver tabell som er bygget fra den, også utda
 - Feeden og **Data**-kortet sier hvilket varsel som forårsaket det, og det blir med i episoden til årsaken.
 
 **Data**-kortet til årsaken viser **Downstream Impact**: hvert varsel den forårsaket. Kortet for et tabellvarsel viser også tjenestene som skriver til tabellen, med de mislykkede skrivingene deres, og utrullingene og andre endringer deres i døgnet før varselet.
+
+## Før en endring slås sammen
+
+Når en pull request endrer en overvåket tabell, sier [Production Review](/docs/ai/ai-agent) på pull requesten hva som avhenger av den: tjenestene som leser den, tabellene som er bygget fra den, dashbordene på den, og dataproduktene dens. En tabell med en kopi på en database merket Staging sier også hvordan kopien er forskjellig: radene, kolonnene, og hva sjekkene til tabellen leser der, kjørt på stedet. På en database bare en sonde kan nå, utelates sjekkene, og det sies fra om det.
 
 ## Neste steg
 

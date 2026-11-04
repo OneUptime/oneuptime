@@ -1,5 +1,7 @@
 import PageComponentProps from "../../PageComponentProps";
 import { useTableViewContext } from "./TableViewContext";
+import DataObservabilityApi from "../../../Components/DataObservability/DataObservabilityApi";
+import { SensitivityPill } from "../../../Components/DataSecurity/DataSecurityPills";
 import PageMap from "../../../Utils/PageMap";
 import RouteMap, { RouteUtil } from "../../../Utils/RouteMap";
 import AppLink from "../../../Components/AppLink/AppLink";
@@ -11,6 +13,8 @@ import {
   DataColumnMapping,
   readColumnMappings,
 } from "Common/Types/DataObservability/DataColumnLineage";
+import { DataColumnSensitivity } from "Common/Types/DataObservability/DataColumnSensitivity";
+import DataAssetKind from "Common/Types/DataObservability/DataAssetKind";
 import ObjectID from "Common/Types/ObjectID";
 import ModelAPI from "Common/UI/Utils/ModelAPI/ModelAPI";
 import {
@@ -37,7 +41,8 @@ import React, {
  * one's name, type and whether it allows empty values. How they changed over
  * time is on the Timeline. Where the table's lineage names columns (Snowflake's
  * access history, OpenLineage's column lineage), each one says where it comes
- * from and what it feeds.
+ * from and what it feeds. What Data Security knows a column holds shows beside
+ * it, from its scans or, until one reads the column, from the column's name.
  */
 
 // The most links one cell shows: the rest are counted.
@@ -160,6 +165,34 @@ const ColumnLinksCell: FunctionComponent<{
   );
 };
 
+const ColumnSensitivityCell: FunctionComponent<{
+  sensitivity: DataColumnSensitivity | undefined;
+}> = (props: {
+  sensitivity: DataColumnSensitivity | undefined;
+}): ReactElement => {
+  const translator: Translator = useTranslator();
+
+  if (!props.sensitivity) {
+    return <span className="text-gray-400">-</span>;
+  }
+
+  return (
+    <div className="flex flex-wrap items-center gap-2">
+      <span className="text-gray-700">{props.sensitivity.dataTypeName}</span>
+      <SensitivityPill
+        sensitivity={props.sensitivity.sensitivity || undefined}
+      />
+      {props.sensitivity.isFromName ? (
+        <span className="text-xs text-gray-500">
+          {translator.translateText("From its name")}
+        </span>
+      ) : (
+        <></>
+      )}
+    </div>
+  );
+};
+
 const TableColumnsPage: FunctionComponent<
   PageComponentProps
 > = (): ReactElement => {
@@ -169,6 +202,9 @@ const TableColumnsPage: FunctionComponent<
     dataAsset?.columns,
   );
   const [links, setLinks] = useState<ColumnLinks | null>(null);
+  const [sensitivities, setSensitivities] = useState<
+    Array<DataColumnSensitivity>
+  >([]);
 
   // Extra to the columns: a page that cannot read lineage still lists them.
   useEffect(() => {
@@ -177,7 +213,21 @@ const TableColumnsPage: FunctionComponent<
       .catch(() => {
         setLinks(null);
       });
+    DataObservabilityApi.getTableSensitivity(dataAssetId)
+      .then(setSensitivities)
+      .catch(() => {
+        setSensitivities([]);
+      });
   }, [dataAssetId?.toString()]);
+
+  const sensitivityByColumn: Map<string, DataColumnSensitivity> = new Map(
+    sensitivities.map(
+      (item: DataColumnSensitivity): [string, DataColumnSensitivity] => {
+        return [item.column, item];
+      },
+    ),
+  );
+  const hasSensitivity: boolean = sensitivities.length > 0;
 
   const hasColumnLineage: boolean =
     Boolean(links) && (links!.comesFrom.size > 0 || links!.feeds.size > 0);
@@ -194,8 +244,13 @@ const TableColumnsPage: FunctionComponent<
       { id: "name", cellNumber: 2 },
       { id: "type", cellNumber: 3 },
       { id: "allowsEmpty", cellNumber: 4 },
-      { id: "comesFrom", cellNumber: 5 },
-      { id: "feeds", cellNumber: 6 },
+      ...(hasSensitivity ? [{ id: "holds", cellNumber: 5 }] : []),
+      ...(hasColumnLineage
+        ? [
+            { id: "comesFrom", cellNumber: hasSensitivity ? 6 : 5 },
+            { id: "feeds", cellNumber: hasSensitivity ? 7 : 6 },
+          ]
+        : []),
     ],
   });
 
@@ -207,9 +262,13 @@ const TableColumnsPage: FunctionComponent<
       <div className="overflow-x-auto px-6 pb-6">
         {columns.length === 0 ? (
           <p className="text-sm text-gray-500">
-            {translator.translateText(
-              "No columns read yet. They show after the next collection.",
-            )}
+            {dataAsset?.assetKind === DataAssetKind.StoragePath
+              ? translator.translateText(
+                  "A storage path has no columns: only its objects' names, sizes and times are read.",
+                )
+              : translator.translateText(
+                  "No columns read yet. They show after the next collection.",
+                )}
           </p>
         ) : (
           <>
@@ -252,6 +311,20 @@ const TableColumnsPage: FunctionComponent<
                   >
                     <span>{translator.translateText("Allows Empty")}</span>
                   </ResizableHeaderCell>
+                  {hasSensitivity ? (
+                    <ResizableHeaderCell
+                      className="py-2 pr-4"
+                      resize={tableColumns.getResize(
+                        "holds",
+                        translator.translateText("Holds") || "Holds",
+                        ColumnWidthKind.Text,
+                      )}
+                    >
+                      <span>{translator.translateText("Holds")}</span>
+                    </ResizableHeaderCell>
+                  ) : (
+                    <></>
+                  )}
                   {hasColumnLineage ? (
                     <>
                       <ResizableHeaderCell
@@ -299,6 +372,15 @@ const TableColumnsPage: FunctionComponent<
                           ? translator.translateText("Yes")
                           : translator.translateText("No")}
                       </td>
+                      {hasSensitivity ? (
+                        <td className="py-2 pr-4">
+                          <ColumnSensitivityCell
+                            sensitivity={sensitivityByColumn.get(column.name)}
+                          />
+                        </td>
+                      ) : (
+                        <></>
+                      )}
                       {hasColumnLineage ? (
                         <>
                           <td className="py-2 pr-4">

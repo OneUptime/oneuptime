@@ -16,6 +16,10 @@ Wählen Sie unter **Data Observability > Datenbanken** die Option **Connect a Da
 
 Eine Datenbank, die bereits für Datensicherheit verbunden ist, wird ebenfalls überwacht, ohne dass Sie etwas verbinden müssen, und ebenso jedes BigQuery-Dataset, das Ihre [Cloud-Verbindung](/docs/telemetry/cloud-accounts) gefunden hat.
 
+## Datenbanken, die Sie verbinden könnten
+
+**Datenbanken, die Sie verbinden könnten** unter **Datenbanken** listet auf, was Ihr Projekt bereits kennt und niemand verbunden hat: Datenbanken, mit denen Ihre Traces sprechen, solche in Ihren Cloud-Konten und solche, die Datenbank-Monitoring überwacht. **Verbinden** startet das Formular mit dem, was über jede bekannt ist, mit einer Verbindungszeichenfolge zum Ausfüllen. **Ausblenden** verhindert, dass eine wiederkommt. Es wird nichts gelesen, bis Sie sie verbinden.
+
 ## Ein schreibgeschütztes Login, je Engine
 
 :::tabs
@@ -30,7 +34,7 @@ Die Verbindungszeichenfolge: `postgres://oneuptime_reader:...@orders-db.internal
 @tab MySQL and MariaDB
 ```sql
 CREATE USER 'oneuptime_reader'@'%' IDENTIFIED BY '...';
-GRANT SHOW VIEW ON orders.* TO 'oneuptime_reader'@'%';
+GRANT SHOW VIEW, REFERENCES ON orders.* TO 'oneuptime_reader'@'%';
 GRANT SELECT ON performance_schema.table_io_waits_summary_by_table TO 'oneuptime_reader'@'%';
 ```
 
@@ -140,13 +144,24 @@ MongoDB wird über seinen eigenen Treiber gelesen: `mongodb+srv://oneuptime_read
 | Prüfungen | Alle 15 Minuten, stündlich, alle 6 Stunden oder täglich, wie jede es angibt |
 | Lineage und letzte Lesezugriffe aus dem Abfrageverlauf | Einmal pro Stunde, zurück bis zum letzten Lesen |
 
-Jede Anweisung läuft schreibgeschützt, mit einem Timeout für Anweisungen und Sperren, wo die Engine sie kennt. Die Verbindungszeichenfolge wird nie protokolliert und aus jeder Fehlermeldung entfernt. Eine Statistik, die das Login nicht lesen darf, wird mit einem Hinweis an der Datenbank ausgelassen, nie mit einer fehlgeschlagenen Erfassung.
+Jede Anweisung läuft schreibgeschützt, mit einem Timeout für Anweisungen und Sperren, wo die Engine sie kennt. Die Verbindungszeichenfolge wird nie protokolliert und aus jeder Fehlermeldung entfernt. Eine Statistik, die das Login nicht lesen darf, wird mit einem Hinweis an der Datenbank ausgelassen, nie mit einer fehlgeschlagenen Erfassung. Verbindungen zu privaten Adressen werden bei OneUptime Cloud abgelehnt: Verwenden Sie eine Sonde.
+
+## Lesereplikate
+
+Ein Lesereplikat von PostgreSQL oder SQL Server bewegt seine Schreibzähler nicht, sodass eine Tabelle dort unverändert wirken kann, während sie sich ändert. OneUptime erkennt, dass es ein Replikat ist, lässt die Zähler weg, sagt das an der Datenbank und fällt auf die Größe und die Zeilen der Tabelle zurück. Verbinden Sie, wo möglich, den Primärserver, oder nennen Sie für die wichtigen Tabellen eine [Freshness-Spalte](/docs/data-observability/table-health).
+
+## Speicherpfade
+
+Nicht alles, worauf Sie sich verlassen, liegt in einer Datenbank. Ein Export, der jede Nacht in einem Bucket landet, ist so verspätet oder so kurz wie jede Tabelle. Wählen Sie unter **Speicherpfade** **Pfade bearbeiten** für einen Bucket, den Ihre [Cloud-Verbindung](/docs/telemetry/cloud-accounts) gefunden hat, bei Amazon S3, Google Cloud Storage oder einem Azure-Speicherkonto, und nennen Sie die wichtigen Pfade, einen pro Zeile. Beginnen Sie bei Azure jeden mit dem Namen seines Containers.
+
+Jeder Pfad erscheint dann unter **Tabellen**: Sein neuestes Objekt ist seine letzte Änderung, seine Objekte sind seine Zeilen und deren Größe seine Größe, und es gelten dieselben Warnungen. Es werden nur Namen, Größen und Zeiten gelesen, nie ein Objekt. Ein Pfad mit mehr als 10000 Objekten hat keine genaue Anzahl, Größe oder kein neuestes Objekt und sagt das: Nennen Sie einen engeren.
 
 ## Fehlerbehebung
 
 - **Die Datenbank zeigt den Status Fehlgeschlagen.** Ihre Meldung sagt, warum: ein Host, den OneUptime nicht erreicht, ein abgelehntes Login, ein TLS-Modus, den der Server nicht akzeptiert. Verbinden Sie eine Datenbank innerhalb Ihres Netzwerks über eine Sonde.
 - **Tabellen zeigen keine letzte Änderung.** Das Login kann die Statistiken der Engine nicht lesen: Gewähren Sie, was der Tab Ihrer Engine auflistet, oder warten Sie, bis sich die Zeilen einer Tabelle zweimal geändert haben.
 - **Eine Tabelle fehlt.** Sie liegt in einem Schema, das das Login nicht nutzen kann, oder sie ist an der Datenbank ausgeschlossen. Gewähren Sie `USAGE` auf ihr Schema oder entfernen Sie den Ausschluss.
+- **Eine MySQL-Tabelle hat keine Spalten.** Das Login braucht `REFERENCES`, wie oben: Es zeigt die Spalten einer Tabelle, ohne irgendeinen Lesezugriff auf ihre Zeilen zu geben.
 
 ## Nächste Schritte
 

@@ -3,6 +3,7 @@ import AlertLabelRule from "../../Models/DatabaseModels/AlertLabelRule";
 import BaseModel, {
   DatabaseBaseModelType,
 } from "../../Models/DatabaseModels/DatabaseBaseModel/DatabaseBaseModel";
+import DataAssetLabelRule from "../../Models/DatabaseModels/DataAssetLabelRule";
 import IncidentLabelRule from "../../Models/DatabaseModels/IncidentLabelRule";
 import Label from "../../Models/DatabaseModels/Label";
 import Monitor from "../../Models/DatabaseModels/Monitor";
@@ -85,6 +86,8 @@ const criteriaByType: Record<string, [string, string, string]> = {
     "dashboardDescriptionPattern",
     "dashboardLabels",
   ],
+  // A table has a schema where other resources have a description.
+  DataAssetLabelRule: ["nameRegexPattern", "schemaRegexPattern", "matchLabels"],
   DataStoreLabelRule: [
     "nameRegexPattern",
     "descriptionRegexPattern",
@@ -434,8 +437,31 @@ describe("portable label rule files", () => {
     }).toThrow("requires a valid regular expression or wildcard pattern");
   });
 
+  test("a table's rule moves with its name and labels, and refuses to lose its schema", () => {
+    const output: ParsedLabelRuleImport = parse(
+      [{ ...base, nameRegexPattern: "^orders_", matchLabels: ["Existing"] }],
+      DataAssetLabelRule,
+      MonitorLabelRule,
+    );
+    expect(output.items[0]!.json).toMatchObject({
+      monitorNamePattern: "^orders_",
+      monitorLabels: ["Existing"],
+      labelsToAdd: ["Production"],
+    });
+
+    expect(() => {
+      parse(
+        [{ ...base, schemaRegexPattern: "^public$" }],
+        DataAssetLabelRule,
+        MonitorLabelRule,
+      );
+    }).toThrow("is configured but is not supported by");
+  });
+
   test.each(
-    LABEL_RULE_MODELS.map(
+    LABEL_RULE_MODELS.filter((modelType: DatabaseBaseModelType): boolean => {
+      return modelType !== DataAssetLabelRule;
+    }).map(
       (modelType: DatabaseBaseModelType): [string, DatabaseBaseModelType] => {
         return [new modelType().tableName!, modelType];
       },

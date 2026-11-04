@@ -4726,10 +4726,10 @@ const BaseAPIFeatureSet: FeatureSet = {
 
     app.use(
       `/${APP_NAME.toLocaleLowerCase()}`,
-      new BaseAPI<DataObservabilitySetting, DataObservabilitySettingServiceType>(
+      new BaseAPI<
         DataObservabilitySetting,
-        DataObservabilitySettingService,
-      ).getRouter(),
+        DataObservabilitySettingServiceType
+      >(DataObservabilitySetting, DataObservabilitySettingService).getRouter(),
     );
 
     app.use(

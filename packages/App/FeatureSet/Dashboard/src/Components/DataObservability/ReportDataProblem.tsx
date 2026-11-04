@@ -20,12 +20,14 @@ const ReportDataProblem: FunctionComponent<ComponentProps> = (
   props: ComponentProps,
 ): ReactElement => {
   const [isOpen, setIsOpen] = useState<boolean>(false);
+  const [isReported, setIsReported] = useState<boolean>(false);
 
   return (
     <>
       <Button
-        title="Report a Problem"
-        icon={IconProp.Alert}
+        title={isReported ? "Problem Reported" : "Report a Problem"}
+        icon={isReported ? IconProp.Check : IconProp.Alert}
+        disabled={isReported}
         buttonStyle={ButtonStyleType.NORMAL}
         onClick={() => {
           setIsOpen(true);
@@ -43,6 +45,7 @@ const ReportDataProblem: FunctionComponent<ComponentProps> = (
           submitButtonText="Report"
           onSuccess={() => {
             setIsOpen(false);
+            setIsReported(true);
           }}
           onBeforeCreate={async (
             item: DataIssueReport,

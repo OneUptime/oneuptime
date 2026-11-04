@@ -86,6 +86,12 @@ export interface OpenLineageRunEvent {
    * from an OpenLineage event.
    */
   outputDataAssetIds?: Array<string> | undefined;
+  // The same for what it read: a job found in traces names tables, not datasets.
+  inputDataAssetIds?: Array<string> | undefined;
+  // Which try of its task this run is, when its scheduler says (Airflow's try_number).
+  attemptNumber?: number | null | undefined;
+  // The trace of a run found in traces, so its run links to its spans and logs.
+  traceId?: string | null | undefined;
 }
 
 export const MAX_EVENTS_PER_REQUEST: number = 500;
@@ -201,6 +207,23 @@ function readDatasets(value: unknown): Array<OpenLineageDataset> {
   return datasets;
 }
 
+// Which try this run is, from the airflow facet Airflow's OpenLineage provider sends.
+export function readAttemptNumber(facets: JSONObject | null): number | null {
+  const airflow: JSONObject | null =
+    facets?.["airflow"] && typeof facets["airflow"] === "object"
+      ? (facets["airflow"] as JSONObject)
+      : null;
+  const taskInstance: JSONObject | null =
+    airflow?.["taskInstance"] && typeof airflow["taskInstance"] === "object"
+      ? (airflow["taskInstance"] as JSONObject)
+      : null;
+  const attempt: number = Number(taskInstance?.["try_number"]);
+
+  return Number.isInteger(attempt) && attempt > 0 && attempt < 1000
+    ? attempt
+    : null;
+}
+
 export function readOpenLineageEvent(
   value: unknown,
   now: Date,
@@ -261,6 +284,7 @@ export function readOpenLineageEvent(
   const parsedScheduledTime: number = Date.parse(
     String(nominalTimeFacet?.["nominalStartTime"] || ""),
   );
+  const attemptNumber: number | null = readAttemptNumber(facets);
 
   return {
     eventType,
@@ -282,6 +306,7 @@ export function readOpenLineageEvent(
         : null,
     inputs: readDatasets(item["inputs"]),
     outputs: readDatasets(item["outputs"]),
+    ...(attemptNumber ? { attemptNumber } : {}),
   };
 }
 

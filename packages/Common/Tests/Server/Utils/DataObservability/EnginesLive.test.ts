@@ -1,4 +1,11 @@
-import { afterAll, beforeAll, describe, expect, test } from "@jest/globals";
+import {
+  afterAll,
+  beforeAll,
+  describe,
+  expect,
+  jest,
+  test,
+} from "@jest/globals";
 import fs from "fs";
 import http from "http";
 import { MongoClient, ObjectId } from "mongodb";
@@ -7,16 +14,24 @@ import { createConnection as createMySqlConnection } from "mysql2/promise";
 import oracledb from "oracledb";
 import { Client as PostgresClient } from "pg";
 import {
-  buildDataCheckStatement,
   DataCheckTarget,
+  buildDataCheckSampleStatement,
+  buildDataCheckStatement,
+  buildFreshnessStatement,
 } from "../../../../Server/Utils/DataObservability/DataCheckSql";
+import {
+  DataCheckRunResult,
+  PlannedDataCheck,
+} from "../../../../Server/Utils/DataObservability/DataCheckResults";
 import { buildMongoCheckStatement } from "../../../../Server/Utils/DataObservability/MongoDbChecks";
 import {
-  collectTableHealth,
   CollectedTable,
   TableHealthCollectOptions,
   TableHealthSnapshot,
+  collectTableHealth,
+  isDatabaseBusy,
 } from "../../../../Server/Utils/DataObservability/TableHealthCollector";
+import DataSourceEgressGuard from "../../../../Server/Utils/DataSource/EgressGuard";
 import { DatabaseEngine } from "../../../../Server/Utils/DataSecurity/Content/DatabaseSampler";
 import { DataCheckType } from "../../../../Types/DataObservability/DataCheckType";
 import DataAssetKind from "../../../../Types/DataObservability/DataAssetKind";
@@ -52,7 +67,8 @@ import DataAssetKind from "../../../../Types/DataObservability/DataAssetKind";
  * earlier run left them.
  */
 
-const LIVE: boolean = process.env["RUN_DATA_OBSERVABILITY_LIVE_TESTS"] === "true";
+const LIVE: boolean =
+  process.env["RUN_DATA_OBSERVABILITY_LIVE_TESTS"] === "true";
 const PASSWORD: string = process.env["DATA_OBSERVABILITY_LIVE_PASSWORD"] || "";
 const HOST: string = process.env["DATA_OBSERVABILITY_LIVE_HOST"] || "127.0.0.1";
 /*
@@ -61,9 +77,20 @@ const HOST: string = process.env["DATA_OBSERVABILITY_LIVE_HOST"] || "127.0.0.1";
  */
 const CLICKHOUSE_HOST: string =
   process.env["DATA_OBSERVABILITY_LIVE_CLICKHOUSE_HOST"] || HOST;
+
+/*
+ * Where this machine cannot reach its own network address, the server is read
+ * over loopback with the guard stood aside: this test is of the engine, and the
+ * guard has tests of its own.
+ */
+const ALLOW_LOOPBACK: boolean =
+  process.env["DATA_OBSERVABILITY_LIVE_ALLOW_LOOPBACK"] === "true";
 const READER_PASSWORD: string = `${PASSWORD}Rd1`;
-const DUMP_DIRECTORY: string = process.env["DATA_OBSERVABILITY_LIVE_DUMP"] || "";
-const ONLY: Array<string> = (process.env["DATA_OBSERVABILITY_LIVE_ENGINES"] || "")
+const DUMP_DIRECTORY: string =
+  process.env["DATA_OBSERVABILITY_LIVE_DUMP"] || "";
+const ONLY: Array<string> = (
+  process.env["DATA_OBSERVABILITY_LIVE_ENGINES"] || ""
+)
   .split(",")
   .map((engine: string): string => {
     return engine.trim();
@@ -351,6 +378,129 @@ async function expectChecks(live: LiveEngine): Promise<void> {
   expect(answers).toEqual(expected);
 }
 
+/*
+ * What a check can do beyond one number from every row, on this engine's own
+ * syntax: count the rows a query returns, read a share of a table, read failing
+ * rows, read a freshness column, and ask how busy the server is.
+ */
+async function expectCheckOptions(live: LiveEngine): Promise<void> {
+  const orders: Pick<DataCheckTarget, "schemaName" | "tableName"> = {
+    schemaName: live.schema,
+    tableName: live.name("orders"),
+  };
+  const customers: Pick<DataCheckTarget, "schemaName" | "tableName"> = {
+    schemaName: live.schema,
+    tableName: live.name("customers"),
+  };
+  const failing: DataCheckTarget = {
+    type: DataCheckType.FailingRows,
+    ...orders,
+    customSql: live.customCheck,
+  };
+  const invalid: DataCheckTarget = {
+    type: DataCheckType.InvalidPercent,
+    ...orders,
+    columnName: live.name("status"),
+    acceptedValues: ["paid", "refunded"],
+  };
+  const orphans: DataCheckTarget = {
+    type: DataCheckType.OrphanCount,
+    ...orders,
+    columnName: live.name("customer_id"),
+    referenceSchemaName: live.schema,
+    referenceTableName: live.name("customers"),
+    referenceColumnName: live.name("id"),
+  };
+  const sampled: DataCheckTarget = {
+    type: DataCheckType.NullPercent,
+    ...customers,
+    columnName: live.name("email"),
+    samplePercent: 50,
+  };
+  const plan: (checkId: string, target: DataCheckTarget) => PlannedDataCheck = (
+    checkId: string,
+    target: DataCheckTarget,
+  ): PlannedDataCheck => {
+    const statement: ReturnType<typeof buildDataCheckStatement> =
+      buildDataCheckStatement(live.engine, target);
+    const sample: ReturnType<typeof buildDataCheckSampleStatement> =
+      buildDataCheckSampleStatement(live.engine, target);
+
+    return {
+      checkId,
+      type: target.type,
+      isSegmented: statement.isSegmented,
+      sql: statement.sql,
+      params: statement.params,
+      ...(sample ? { sample: { ...sample, maskedColumns: {} } } : {}),
+    };
+  };
+  const freshness: ReturnType<typeof buildFreshnessStatement> =
+    buildFreshnessStatement(live.engine, {
+      ...orders,
+      columnName: live.name("total"),
+    });
+  const snapshot: TableHealthSnapshot = await collectTableHealth(
+    { engine: live.engine, connectionString: live.connection },
+    {
+      ...COLLECT,
+      waitWhenBusy: true,
+      checks: [
+        plan("failing", failing),
+        plan("invalid", invalid),
+        plan("orphans", orphans),
+        plan("sampled", sampled),
+      ],
+      freshnessReads: [
+        {
+          tableKey: `${live.schema}.${live.name("orders")}`,
+          sql: freshness.sql,
+          params: freshness.params,
+        },
+      ],
+    },
+  );
+
+  dump(`${live.engine}-options`, snapshot);
+
+  const result: (checkId: string) => DataCheckRunResult | undefined = (
+    checkId: string,
+  ): DataCheckRunResult | undefined => {
+    return (snapshot.checkResults || []).find((item: DataCheckRunResult) => {
+      return item.checkId === checkId;
+    });
+  };
+
+  // A share of a small table may read nothing, but it must read without an error.
+  expect({
+    failing: result("failing")?.error ?? null,
+    invalid: result("invalid")?.error ?? null,
+    orphans: result("orphans")?.error ?? null,
+    sampled: result("sampled")?.error ?? null,
+  }).toEqual({ failing: null, invalid: null, orphans: null, sampled: null });
+  expect(result("failing")?.values[0]?.value).toBe(1);
+
+  // MongoDB ends every check in a number, so it has no rows to name.
+  if (live.engine !== "mongodb") {
+    expect(result("failing")?.failingRows?.length).toBe(1);
+    expect(result("invalid")?.failingRows?.length).toBeGreaterThan(0);
+    expect(result("orphans")?.failingRows?.length).toBeGreaterThan(0);
+  }
+
+  const table: CollectedTable | undefined = findTable(snapshot, live, "orders");
+
+  expect(table?.isChangeTimeFromData).toBe(true);
+  expect(snapshot.warnings.join(" ")).not.toContain("freshness column");
+
+  // An idle test server is not busy, and a query that fails would throw here.
+  expect(
+    await isDatabaseBusy({
+      engine: live.engine,
+      connectionString: live.connection,
+    }),
+  ).toBe(false);
+}
+
 describe("every engine against a real server", () => {
   (isRunning("postgresql") ? describe : describe.skip)("PostgreSQL", () => {
     const live: LiveEngine = {
@@ -397,32 +547,41 @@ describe("every engine against a real server", () => {
       await shop.end();
     }, SLOW_IN_MS);
 
-    test("the documented grants read the catalog, its counters and view lineage", async () => {
-      const snapshot: TableHealthSnapshot = await expectCatalog(live);
-      const orders: CollectedTable = findTable(snapshot, live, "orders")!;
+    test(
+      "the documented grants read the catalog, its counters and view lineage",
+      async () => {
+        const snapshot: TableHealthSnapshot = await expectCatalog(live);
+        const orders: CollectedTable = findTable(snapshot, live, "orders")!;
 
-      expect(orders.sizeInBytes).toBeGreaterThan(0);
-      expect(orders.writeCount).toBeGreaterThanOrEqual(0);
-      expect(snapshot.lineage).toEqual(
-        expect.arrayContaining([
-          expect.objectContaining({
-            upstreamTable: "orders",
-            downstreamTable: "orders_v",
-          }),
-        ]),
-      );
-    }, SLOW_IN_MS);
+        expect(orders.sizeInBytes).toBeGreaterThan(0);
+        expect(orders.writeCount).toBeGreaterThanOrEqual(0);
+        expect(snapshot.lineage).toEqual(
+          expect.arrayContaining([
+            expect.objectContaining({
+              upstreamTable: "orders",
+              downstreamTable: "orders_v",
+            }),
+          ]),
+        );
+      },
+      SLOW_IN_MS,
+    );
 
-    test("with SELECT, every check says what the data says", async () => {
-      const shop: PostgresClient = admin("shop");
+    test(
+      "with SELECT, every check says what the data says",
+      async () => {
+        const shop: PostgresClient = admin("shop");
 
-      await shop.connect();
-      await shop.query(
-        "GRANT SELECT ON orders, customers TO oneuptime_reader",
-      );
-      await shop.end();
-      await expectChecks(live);
-    }, SLOW_IN_MS);
+        await shop.connect();
+        await shop.query(
+          "GRANT SELECT ON orders, customers TO oneuptime_reader",
+        );
+        await shop.end();
+        await expectChecks(live);
+        await expectCheckOptions(live);
+      },
+      SLOW_IN_MS,
+    );
   });
 
   (isRunning("mysql") ? describe : describe.skip)("MySQL", () => {
@@ -466,32 +625,43 @@ describe("every engine against a real server", () => {
       await server.end();
     }, SLOW_IN_MS);
 
-    test("the documented grants read the catalog", async () => {
-      await expectCatalog(live);
-    }, SLOW_IN_MS);
+    test(
+      "the documented grants read the catalog",
+      async () => {
+        await expectCatalog(live);
+      },
+      SLOW_IN_MS,
+    );
 
-    test("with SELECT, every check says what the data says, and writes are counted", async () => {
-      const server: Awaited<ReturnType<typeof createMySqlConnection>> =
-        await admin();
+    test(
+      "with SELECT, every check says what the data says, and writes are counted",
+      async () => {
+        const server: Awaited<ReturnType<typeof createMySqlConnection>> =
+          await admin();
 
-      await server.query(
-        "GRANT SELECT ON shop.orders TO 'oneuptime_reader'@'%'; GRANT SELECT ON shop.customers TO 'oneuptime_reader'@'%'; GRANT SELECT ON shop.orders_v TO 'oneuptime_reader'@'%';",
-      );
-      await server.end();
-      await expectChecks(live);
+        await server.query(
+          "GRANT SELECT ON shop.orders TO 'oneuptime_reader'@'%'; GRANT SELECT ON shop.customers TO 'oneuptime_reader'@'%'; GRANT SELECT ON shop.orders_v TO 'oneuptime_reader'@'%';",
+        );
+        await server.end();
+        await expectChecks(live);
+        await expectCheckOptions(live);
 
-      const snapshot: TableHealthSnapshot = await expectCatalog(live);
+        const snapshot: TableHealthSnapshot = await expectCatalog(live);
 
-      expect(snapshot.lineage).toEqual(
-        expect.arrayContaining([
-          expect.objectContaining({
-            upstreamTable: "orders",
-            downstreamTable: "orders_v",
-          }),
-        ]),
-      );
-      expect(findTable(snapshot, live, "orders")!.writeCount).toBeGreaterThan(0);
-    }, SLOW_IN_MS);
+        expect(snapshot.lineage).toEqual(
+          expect.arrayContaining([
+            expect.objectContaining({
+              upstreamTable: "orders",
+              downstreamTable: "orders_v",
+            }),
+          ]),
+        );
+        expect(findTable(snapshot, live, "orders")!.writeCount).toBeGreaterThan(
+          0,
+        );
+      },
+      SLOW_IN_MS,
+    );
   });
 
   (isRunning("sqlserver") ? describe : describe.skip)("SQL Server", () => {
@@ -506,25 +676,30 @@ describe("every engine against a real server", () => {
       // SQL Server has no regular expressions: validation refuses this check.
       skips: ["format"],
     };
-    const run: (statements: Array<string>, database: string) => Promise<void> =
-      async (statements: Array<string>, database: string): Promise<void> => {
-        const pool: mssql.ConnectionPool = new mssql.ConnectionPool({
-          server: HOST,
-          port: 21433,
-          user: "sa",
-          password: PASSWORD,
-          database,
-          options: { encrypt: true, trustServerCertificate: true },
-        });
+    const run: (
+      statements: Array<string>,
+      database: string,
+    ) => Promise<void> = async (
+      statements: Array<string>,
+      database: string,
+    ): Promise<void> => {
+      const pool: mssql.ConnectionPool = new mssql.ConnectionPool({
+        server: HOST,
+        port: 21433,
+        user: "sa",
+        password: PASSWORD,
+        database,
+        options: { encrypt: true, trustServerCertificate: true },
+      });
 
-        await pool.connect();
+      await pool.connect();
 
-        for (const statement of statements) {
-          await pool.request().batch(statement);
-        }
+      for (const statement of statements) {
+        await pool.request().batch(statement);
+      }
 
-        await pool.close();
-      };
+      await pool.close();
+    };
 
     beforeAll(async () => {
       await run(
@@ -551,33 +726,52 @@ describe("every engine against a real server", () => {
       );
     }, SLOW_IN_MS);
 
-    test("the documented grants read the catalog, last updates and view lineage", async () => {
-      const snapshot: TableHealthSnapshot = await expectCatalog(live);
+    test(
+      "the documented grants read the catalog, last updates and view lineage",
+      async () => {
+        const snapshot: TableHealthSnapshot = await expectCatalog(live);
 
-      expect(findTable(snapshot, live, "orders")!.sizeInBytes).toBeGreaterThan(0);
-      expect(snapshot.lineage).toEqual(
-        expect.arrayContaining([
-          expect.objectContaining({
-            upstreamTable: "orders",
-            downstreamTable: "orders_v",
-          }),
-        ]),
-      );
-    }, SLOW_IN_MS);
+        expect(
+          findTable(snapshot, live, "orders")!.sizeInBytes,
+        ).toBeGreaterThan(0);
+        expect(snapshot.lineage).toEqual(
+          expect.arrayContaining([
+            expect.objectContaining({
+              upstreamTable: "orders",
+              downstreamTable: "orders_v",
+            }),
+          ]),
+        );
+      },
+      SLOW_IN_MS,
+    );
 
-    test("with SELECT, every check says what the data says", async () => {
-      await run(
-        [
-          "GRANT SELECT ON dbo.orders TO oneuptime_reader",
-          "GRANT SELECT ON dbo.customers TO oneuptime_reader",
-        ],
-        "shop",
-      );
-      await expectChecks(live);
-    }, SLOW_IN_MS);
+    test(
+      "with SELECT, every check says what the data says",
+      async () => {
+        await run(
+          [
+            "GRANT SELECT ON dbo.orders TO oneuptime_reader",
+            "GRANT SELECT ON dbo.customers TO oneuptime_reader",
+          ],
+          "shop",
+        );
+        await expectChecks(live);
+        await expectCheckOptions(live);
+      },
+      SLOW_IN_MS,
+    );
   });
 
   (isRunning("clickhouse") ? describe : describe.skip)("ClickHouse", () => {
+    if (ALLOW_LOOPBACK) {
+      beforeAll(() => {
+        jest
+          .spyOn(DataSourceEgressGuard, "assertHostnameAllowed")
+          .mockResolvedValue([]);
+      });
+    }
+
     const live: LiveEngine = {
       engine: "clickhouse",
       schema: "shop",
@@ -597,37 +791,39 @@ describe("every engine against a real server", () => {
     const run: (statement: string) => Promise<string> = (
       statement: string,
     ): Promise<string> => {
-      return new Promise((resolve: (text: string) => void, reject: (error: Error) => void) => {
-        const request: http.ClientRequest = http.request(
-          {
-            host: HOST,
-            port: 28123,
-            method: "POST",
-            path: "/",
-            headers: {
-              "X-ClickHouse-User": "default",
-              "X-ClickHouse-Key": PASSWORD,
+      return new Promise(
+        (resolve: (text: string) => void, reject: (error: Error) => void) => {
+          const request: http.ClientRequest = http.request(
+            {
+              host: HOST,
+              port: 28123,
+              method: "POST",
+              path: "/",
+              headers: {
+                "X-ClickHouse-User": "default",
+                "X-ClickHouse-Key": PASSWORD,
+              },
             },
-          },
-          (response: http.IncomingMessage) => {
-            let text: string = "";
+            (response: http.IncomingMessage) => {
+              let text: string = "";
 
-            response.on("data", (chunk: Buffer) => {
-              text += chunk.toString();
-            });
-            response.on("end", () => {
-              if (response.statusCode === 200) {
-                resolve(text);
-              } else {
-                reject(new Error(text));
-              }
-            });
-          },
-        );
+              response.on("data", (chunk: Buffer) => {
+                text += chunk.toString();
+              });
+              response.on("end", () => {
+                if (response.statusCode === 200) {
+                  resolve(text);
+                } else {
+                  reject(new Error(text));
+                }
+              });
+            },
+          );
 
-        request.on("error", reject);
-        request.end(statement);
-      });
+          request.on("error", reject);
+          request.end(statement);
+        },
+      );
     };
 
     beforeAll(async () => {
@@ -650,20 +846,29 @@ describe("every engine against a real server", () => {
       }
     }, SLOW_IN_MS);
 
-    test("the documented grants read the catalog and each table's parts", async () => {
-      const snapshot: TableHealthSnapshot = await expectCatalog(live);
-      const orders: CollectedTable = findTable(snapshot, live, "orders")!;
+    test(
+      "the documented grants read the catalog and each table's parts",
+      async () => {
+        const snapshot: TableHealthSnapshot = await expectCatalog(live);
+        const orders: CollectedTable = findTable(snapshot, live, "orders")!;
 
-      expect(orders.estimatedRows).toBe(6);
-      expect(orders.sizeInBytes).toBeGreaterThan(0);
-      expect(orders.secondsSinceChange).not.toBeNull();
-    }, SLOW_IN_MS);
+        expect(orders.estimatedRows).toBe(6);
+        expect(orders.sizeInBytes).toBeGreaterThan(0);
+        expect(orders.secondsSinceChange).not.toBeNull();
+      },
+      SLOW_IN_MS,
+    );
 
-    test("with SELECT, every check says what the data says", async () => {
-      await run("GRANT SELECT ON shop.orders TO oneuptime_reader");
-      await run("GRANT SELECT ON shop.customers TO oneuptime_reader");
-      await expectChecks(live);
-    }, SLOW_IN_MS);
+    test(
+      "with SELECT, every check says what the data says",
+      async () => {
+        await run("GRANT SELECT ON shop.orders TO oneuptime_reader");
+        await run("GRANT SELECT ON shop.customers TO oneuptime_reader");
+        await expectChecks(live);
+        await expectCheckOptions(live);
+      },
+      SLOW_IN_MS,
+    );
   });
 
   (isRunning("oracle") ? describe : describe.skip)("Oracle", () => {
@@ -673,7 +878,8 @@ describe("every engine against a real server", () => {
       name: (value: string): string => {
         return value.toUpperCase();
       },
-      customCheck: "SELECT COUNT(*) AS value FROM sales.orders WHERE total > 25",
+      customCheck:
+        "SELECT COUNT(*) AS value FROM sales.orders WHERE total > 25",
       connection: `oracle://oneuptime_reader:${READER_PASSWORD}@${HOST}:21521/FREEPDB1`,
     };
     const run: (statements: Array<string>) => Promise<void> = async (
@@ -722,27 +928,36 @@ describe("every engine against a real server", () => {
       ]);
     }, SLOW_IN_MS);
 
-    test("the documented grants read the catalog, its modifications and view lineage", async () => {
-      const snapshot: TableHealthSnapshot = await expectCatalog(live);
-      const orders: CollectedTable = findTable(snapshot, live, "orders")!;
+    test(
+      "the documented grants read the catalog, its modifications and view lineage",
+      async () => {
+        const snapshot: TableHealthSnapshot = await expectCatalog(live);
+        const orders: CollectedTable = findTable(snapshot, live, "orders")!;
 
-      expect(orders.estimatedRows).toBe(6);
-      expect(orders.sizeInBytes).toBeGreaterThan(0);
-      expect(orders.writeCount).toBeGreaterThan(0);
-      expect(orders.secondsSinceChange).not.toBeNull();
-      expect(snapshot.lineage).toEqual(
-        expect.arrayContaining([
-          expect.objectContaining({
-            upstreamTable: "ORDERS",
-            downstreamTable: "ORDERS_V",
-          }),
-        ]),
-      );
-    }, SLOW_IN_MS);
+        expect(orders.estimatedRows).toBe(6);
+        expect(orders.sizeInBytes).toBeGreaterThan(0);
+        expect(orders.writeCount).toBeGreaterThan(0);
+        expect(orders.secondsSinceChange).not.toBeNull();
+        expect(snapshot.lineage).toEqual(
+          expect.arrayContaining([
+            expect.objectContaining({
+              upstreamTable: "ORDERS",
+              downstreamTable: "ORDERS_V",
+            }),
+          ]),
+        );
+      },
+      SLOW_IN_MS,
+    );
 
-    test("every check says what the data says, in a read-only transaction", async () => {
-      await expectChecks(live);
-    }, SLOW_IN_MS);
+    test(
+      "every check says what the data says, in a read-only transaction",
+      async () => {
+        await expectChecks(live);
+        await expectCheckOptions(live);
+      },
+      SLOW_IN_MS,
+    );
   });
 
   (isRunning("mongodb") ? describe : describe.skip)("MongoDB", () => {
@@ -784,7 +999,13 @@ describe("every engine against a real server", () => {
       await shop.collection("orders").insertMany([
         { id: 1, customer_id: 1, total: 10, status: "paid", region: "eu" },
         { id: 2, customer_id: 2, total: 20, status: "paid", region: "eu" },
-        { id: 3, customer_id: 3, total: 30.0, status: "refunded", region: "us" },
+        {
+          id: 3,
+          customer_id: 3,
+          total: 30.0,
+          status: "refunded",
+          region: "us",
+        },
         { id: 4, customer_id: 3, total: 40, status: "paid", region: "us" },
         { id: 5, customer_id: 99, total: 50, status: "bogus", region: "us" },
         // A document store: this one's fields are simply missing, or the wrong type.
@@ -819,59 +1040,68 @@ describe("every engine against a real server", () => {
       await client.close();
     }, SLOW_IN_MS);
 
-    test("the documented login reads collections, views, time series and validators", async () => {
-      const snapshot: TableHealthSnapshot = await expectCatalog(live);
-      const orders: CollectedTable = findTable(snapshot, live, "orders")!;
+    test(
+      "the documented login reads collections, views, time series and validators",
+      async () => {
+        const snapshot: TableHealthSnapshot = await expectCatalog(live);
+        const orders: CollectedTable = findTable(snapshot, live, "orders")!;
 
-      // The newest _id of ObjectIds says when; the write counter and size are the server's.
-      expect(orders.estimatedRows).toBe(6);
-      expect(orders.sizeInBytes).toBeGreaterThan(0);
-      expect(orders.writeCount).toBeGreaterThan(0);
-      expect(orders.secondsSinceChange).toBeLessThan(600);
-      expect(orders.columns).toEqual(
-        expect.arrayContaining([
-          expect.objectContaining({ name: "_id", dataType: "objectid" }),
-          expect.objectContaining({ name: "note", dataType: "object" }),
-          expect.objectContaining({ name: "total", dataType: "number" }),
-        ]),
-      );
-      expect(findTable(snapshot, live, "orders_v")!.columns).toBeNull();
-      expect(findTable(snapshot, live, "validated")!.columns).toEqual([
-        { name: "email", dataType: "string", isNullable: false, position: 1 },
-        { name: "age", dataType: "number", isNullable: true, position: 2 },
-      ]);
+        // The newest _id of ObjectIds says when; the write counter and size are the server's.
+        expect(orders.estimatedRows).toBe(6);
+        expect(orders.sizeInBytes).toBeGreaterThan(0);
+        expect(orders.writeCount).toBeGreaterThan(0);
+        expect(orders.secondsSinceChange).toBeLessThan(600);
+        expect(orders.columns).toEqual(
+          expect.arrayContaining([
+            expect.objectContaining({ name: "_id", dataType: "objectid" }),
+            expect.objectContaining({ name: "note", dataType: "object" }),
+            expect.objectContaining({ name: "total", dataType: "number" }),
+          ]),
+        );
+        expect(findTable(snapshot, live, "orders_v")!.columns).toBeNull();
+        expect(findTable(snapshot, live, "validated")!.columns).toEqual([
+          { name: "email", dataType: "string", isNullable: false, position: 1 },
+          { name: "age", dataType: "number", isNullable: true, position: 2 },
+        ]);
 
-      const metrics: CollectedTable = findTable(snapshot, live, "metrics")!;
+        const metrics: CollectedTable = findTable(snapshot, live, "metrics")!;
 
-      expect(metrics.kind).toBe(DataAssetKind.Table);
-      expect(metrics.sizeInBytes).not.toBeNull();
-      expect(
-        (metrics.columns || []).map((column: { name: string }): string => {
-          return column.name;
-        }),
-      ).toEqual(["ts", "host"]);
-      expect(snapshot.lineage).toEqual(
-        expect.arrayContaining([
-          expect.objectContaining({
-            upstreamTable: "orders",
-            downstreamTable: "orders_v",
+        expect(metrics.kind).toBe(DataAssetKind.Table);
+        expect(metrics.sizeInBytes).not.toBeNull();
+        expect(
+          (metrics.columns || []).map((column: { name: string }): string => {
+            return column.name;
           }),
-        ]),
-      );
-      expect(ObjectId.isValid("65f0c0ffee0000000000abcd")).toBe(true);
-    }, SLOW_IN_MS);
+        ).toEqual(["ts", "host"]);
+        expect(snapshot.lineage).toEqual(
+          expect.arrayContaining([
+            expect.objectContaining({
+              upstreamTable: "orders",
+              downstreamTable: "orders_v",
+            }),
+          ]),
+        );
+        expect(ObjectId.isValid("65f0c0ffee0000000000abcd")).toBe(true);
+      },
+      SLOW_IN_MS,
+    );
 
-    test("every check is a pipeline that says what the data says", async () => {
-      // MongoDB's own builder, as buildDataCheckStatement delegates to it.
-      expect(
-        buildMongoCheckStatement({
-          type: DataCheckType.RowCount,
-          schemaName: "shop",
-          tableName: "orders",
-        }).isSegmented,
-      ).toBe(false);
-      await expectChecks(live);
-    }, SLOW_IN_MS);
+    test(
+      "every check is a pipeline that says what the data says",
+      async () => {
+        // MongoDB's own builder, as buildDataCheckStatement delegates to it.
+        expect(
+          buildMongoCheckStatement({
+            type: DataCheckType.RowCount,
+            schemaName: "shop",
+            tableName: "orders",
+          }).isSegmented,
+        ).toBe(false);
+        await expectChecks(live);
+        await expectCheckOptions(live);
+      },
+      SLOW_IN_MS,
+    );
   });
 
   test("the suite says when it was not asked to run", () => {

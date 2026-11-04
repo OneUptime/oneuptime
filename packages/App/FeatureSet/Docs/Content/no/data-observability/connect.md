@@ -16,6 +16,10 @@ Under **Dataobserverbarhet > Databaser** velger du **Connect a Database**, og de
 
 En database som allerede er koblet til for Datasikkerhet, overvåkes også, uten at du trenger å koble til noe, og det samme gjelder hvert BigQuery-datasett [skytilkoblingen](/docs/telemetry/cloud-accounts) din har funnet.
 
+## Databaser du kan koble til
+
+**Databaser du kan koble til**, under **Databaser**, lister det prosjektet ditt allerede kjenner til og ingen har koblet til: databaser sporene dine snakker med, databaser i skykontoene dine, og databaser Databaseovervåking overvåker. **Koble til** starter skjemaet ut fra det som er kjent om hver av dem, med en tilkoblingsstreng du fyller ut. **Skjul** hindrer at en kommer tilbake. Ingenting leses før du kobler den til.
+
 ## En skrivebeskyttet bruker, per databasemotor
 
 :::tabs
@@ -30,7 +34,7 @@ Tilkoblingsstrengen: `postgres://oneuptime_reader:...@orders-db.internal:5432/or
 @tab MySQL and MariaDB
 ```sql
 CREATE USER 'oneuptime_reader'@'%' IDENTIFIED BY '...';
-GRANT SHOW VIEW ON orders.* TO 'oneuptime_reader'@'%';
+GRANT SHOW VIEW, REFERENCES ON orders.* TO 'oneuptime_reader'@'%';
 GRANT SELECT ON performance_schema.table_io_waits_summary_by_table TO 'oneuptime_reader'@'%';
 ```
 
@@ -140,13 +144,24 @@ MongoDB leses med sin egen driver: `mongodb+srv://oneuptime_reader:...@cluster0.
 | Sjekker | Hvert 15. minutt, hver time, hver 6. time eller hver dag, slik hver sjekk angir |
 | Avstamning og siste lesinger fra spørringshistorikken | Én gang i timen, tilbake til forrige lesing |
 
-Hver setning kjører skrivebeskyttet, med tidsavbrudd for setninger og låser der databasemotoren har det. Tilkoblingsstrengen logges aldri og fjernes fra hver feilmelding. En statistikk brukeren ikke har lov til å lese, utelates med en advarsel på databasen, og gir aldri en mislykket innsamling.
+Hver setning kjører skrivebeskyttet, med tidsavbrudd for setninger og låser der databasemotoren har det. Tilkoblingsstrengen logges aldri og fjernes fra hver feilmelding. En statistikk brukeren ikke har lov til å lese, utelates med en advarsel på databasen, og gir aldri en mislykket innsamling. Tilkoblinger til private adresser avvises på OneUptime Cloud: bruk en sonde.
+
+## Lesereplikaer
+
+En lesereplika i PostgreSQL eller SQL Server flytter ikke skrivetellerne sine, så en tabell der kan se uendret ut mens den endres. OneUptime ser at det er en replika, utelater tellerne, sier fra om det på databasen, og faller tilbake på tabellens størrelse og rader. Koble til primærdatabasen der du kan, eller oppgi en [aktualitetskolonne](/docs/data-observability/table-health) for tabellene som betyr noe.
+
+## Lagringsstier
+
+Ikke alt du er avhengig av ligger i en database. Et eksport som havner i en bucket hver natt, er like forsinket, eller like kort, som en hvilken som helst tabell. Under **Lagringsstier** velger du **Rediger stier** for en bucket [skytilkoblingen](/docs/telemetry/cloud-accounts) din fant, på Amazon S3, Google Cloud Storage eller en Azure-lagringskonto, og oppgir stiene som betyr noe, én per linje. På Azure starter du hver med containerens navn.
+
+Hver sti vises deretter under **Tabeller**: det nyeste objektet er når den sist ble endret, objektene er radene, og størrelsen deres er størrelsen, og de samme varslene gjelder. Bare navn, størrelser og tidspunkter leses, aldri et objekt. En sti med mer enn 10000 objekter har ikke noe eksakt antall, noen eksakt størrelse eller noe eksakt nyeste objekt, og sier fra om det: oppgi en smalere.
 
 ## Feilsøking
 
 - **Innsamlingen fra databasen mislykkes.** Meldingen sier hvorfor: en vert OneUptime ikke når, en pålogging som avvises, en TLS-modus serveren ikke godtar. En database inne i nettverket ditt kobler du til gjennom en sonde.
 - **Tabeller viser ingen siste endring.** Brukeren kan ikke lese databasemotorens statistikk: gi det fanen for databasemotoren din viser, eller vent til antall rader i en tabell har endret seg to ganger.
 - **En tabell mangler.** Den ligger i et skjema brukeren ikke kan bruke, eller den er utelatt på databasen. Gi `USAGE` på skjemaet, eller fjern utelatelsen.
+- **En MySQL-tabell har ingen kolonner.** Brukeren trenger `REFERENCES`, som ovenfor: det viser kolonnene i en tabell uten å gi noen lesing av radene.
 
 ## Neste steg
 

@@ -1489,7 +1489,7 @@ export const DATA_SECURITY_CHECKS: ReadonlyArray<DataSecurityCheckInfo> = [
       "A migration can start collecting personal data without anyone deciding it should. Catching it the day it ships is when it is cheapest to mask, move or drop.",
     severityBySensitivity: severities(S.High, S.High, S.Medium, S.Medium),
     families: STORING_FAMILIES,
-    requirements: [r(CF.GDPR, "Art. 30"), ...MINIMISATION_REQUIREMENTS],
+    requirements: MINIMISATION_REQUIREMENTS,
     remediation: {
       default: {
         steps: [

@@ -55,10 +55,18 @@ import { JSONObject } from "../../../Types/JSON";
 import {
   DataCheckLimits,
   DataCheckRunResult,
+  DataCheckSegmentValue,
   MAX_CHECK_ERROR_LENGTH,
   PlannedDataCheck,
+  PlannedFreshnessRead,
   readCheckRows,
+  readFreshnessAge,
 } from "./DataCheckResults";
+import {
+  FailingRow,
+  maskFailingRows,
+} from "../../../Types/DataObservability/DataCheckFailingRows";
+import { getDataTableKey } from "../../../Types/DataObservability/DataObservabilityMetric";
 import {
   CollectedJobSpend,
   MAX_SPEND_JOBS,
@@ -231,6 +239,12 @@ export interface CollectedTable {
    * documents hold, not that anything broke.
    */
   columnsAreInferred?: boolean | undefined;
+  /*
+   * True when secondsSinceChange came from the table's freshness column, and
+   * so says when its data last changed, whatever its write counter did. Null
+   * then means "not read this time", and the last known time stands.
+   */
+  isChangeTimeFromData?: boolean | undefined;
 }
 
 // Where the database itself shows one table feeding another.
@@ -261,7 +275,8 @@ export interface CollectedLineageEdge {
 }
 
 export interface TableHealthSnapshot {
-  engine: DatabaseEngine;
+  // "storage" for a bucket's watched paths (StoragePathCollector): no database, and no probe.
+  engine: DatabaseEngine | "storage";
   collectedAt: string;
   tables: Array<CollectedTable>;
   // False when the table list was cut at its limit, so absence proves nothing.
@@ -294,6 +309,10 @@ export interface TableHealthCollectOptions {
   exclusions: Array<string>;
   // The store's data checks that are due, run after the catalog in the same session.
   checks?: Array<PlannedDataCheck> | undefined;
+  // Tables whose change time comes from a column of their own.
+  freshnessReads?: Array<PlannedFreshnessRead> | undefined;
+  // Leave the checks for the next collection when the database is busy.
+  waitWhenBusy?: boolean | undefined;
   /*
    * How far back to read the query history (getQueryHistoryLookbackInSeconds);
    * 0, or not given (an older server, which keeps no lineage from a
@@ -371,6 +390,12 @@ interface CatalogSession {
     params: Array<string>,
     limits?: DataCheckLimits | undefined,
   ): Promise<Array<Record<string, unknown>>>;
+  /*
+   * How loaded the database looks, for a project that would rather have its
+   * checks wait. Only where a check competes with the application for the same
+   * server; one that cannot say is not busy.
+   */
+  isBusy?(): Promise<boolean>;
   close(): Promise<void>;
 }
 
@@ -658,6 +683,18 @@ class PostgresCatalog implements CatalogSession {
     return await this.rows(sql, params);
   }
 
+  // Half of its connections working at once is a server a check should leave alone.
+  public async isBusy(): Promise<boolean> {
+    const [row] = await this.rows(
+      `SELECT COUNT(*) FILTER (WHERE state = 'active' AND pid <> pg_catalog.pg_backend_pid()) AS active,
+        pg_catalog.current_setting('max_connections')::int AS max_connections
+       FROM pg_catalog.pg_stat_activity`,
+      [],
+    );
+
+    return isBusyAtShare(row?.["active"], row?.["max_connections"]);
+  }
+
   private static readonly RELATION_FILTER: string = `c.relkind IN ('r', 'v', 'm', 'p', 'f')
       AND NOT c.relispartition
       AND n.nspname NOT IN ('pg_catalog', 'information_schema')
@@ -938,6 +975,21 @@ class MySqlCatalog implements CatalogSession {
     return await this.inReadOnlyTransaction(sql, params);
   }
 
+  // Half of its connections working at once is a server a check should leave alone.
+  public async isBusy(): Promise<boolean> {
+    const [running] = await this.run(
+      "SHOW GLOBAL STATUS LIKE 'Threads_running'",
+    );
+    const [limit] = await this.run(
+      "SELECT @@max_connections AS max_connections",
+    );
+
+    return isBusyAtShare(
+      running?.["Value"] ?? running?.["value"],
+      limit?.["max_connections"],
+    );
+  }
+
   private static readonly SCHEMA_FILTER: string = `NOT IN ('mysql', 'information_schema', 'performance_schema', 'sys')`;
 
   // Each view's tables (MySQL 8.0.13 and later; MariaDB keeps none).
@@ -1172,6 +1224,22 @@ class SqlServerCatalog implements CatalogSession {
     params: Array<string>,
   ): Promise<Array<Record<string, unknown>>> {
     return await this.run(sql, params);
+  }
+
+  /*
+   * More work waiting for a processor than it has processors. This needs VIEW
+   * SERVER STATE: a login without it cannot tell, and is told nothing is busy.
+   */
+  public async isBusy(): Promise<boolean> {
+    const [row] = await this.run(
+      `SELECT SUM(runnable_tasks_count) AS waiting, COUNT(*) AS schedulers
+        FROM sys.dm_os_schedulers WHERE status = 'VISIBLE ONLINE'`,
+      [],
+    );
+    const waiting: number | null = readCount(row?.["waiting"]);
+    const schedulers: number | null = readCount(row?.["schedulers"]);
+
+    return waiting !== null && schedulers !== null && waiting > schedulers;
   }
 
   // Each view's tables and views, from its expression dependencies.
@@ -4896,6 +4964,171 @@ export function assembleSnapshot(data: {
   return snapshot;
 }
 
+// The share of its connections at work that makes a database busy.
+const BUSY_SHARE_OF_CONNECTIONS: number = 0.5;
+
+export function isBusyAtShare(active: unknown, limit: unknown): boolean {
+  const activeCount: number | null = readCount(active);
+  const limitCount: number | null = readCount(limit);
+
+  return (
+    activeCount !== null &&
+    limitCount !== null &&
+    limitCount > 0 &&
+    activeCount / limitCount >= BUSY_SHARE_OF_CONNECTIONS
+  );
+}
+
+const BUSY_DATABASE_WARNING: string =
+  "The database looked busy, so the checks that were due wait for the next collection.";
+
+async function isCatalogBusy(catalog: CatalogSession): Promise<boolean> {
+  try {
+    return catalog.isBusy ? await catalog.isBusy() : false;
+  } catch {
+    // A login that may not see how busy the database is has nothing to wait for.
+    return false;
+  }
+}
+
+// A few of a check's failing rows, when the project keeps them and the check found any.
+async function readFailingRowsOf(
+  catalog: CatalogSession,
+  check: PlannedDataCheck,
+  values: Array<DataCheckSegmentValue>,
+): Promise<{ failingRows?: Array<FailingRow> }> {
+  if (!check.sample) {
+    return {};
+  }
+
+  const found: boolean = values.some((value: DataCheckSegmentValue) => {
+    return value.value > 0;
+  });
+
+  if (!found) {
+    return { failingRows: [] };
+  }
+
+  try {
+    return {
+      failingRows: maskFailingRows(
+        await catalog.readAggregate(
+          check.sample.sql,
+          check.sample.params,
+          check.limits,
+        ),
+        check.sample.maskedColumns,
+      ),
+    };
+  } catch {
+    // Extra to the number the check read: it stands without them.
+    return {};
+  }
+}
+
+interface FreshnessRead {
+  // How long ago each table's data changed; null for "not known this time".
+  ages: Map<string, number | null>;
+  warnings: Array<string>;
+}
+
+async function readFreshnessColumns(
+  catalog: CatalogSession,
+  options: TableHealthCollectOptions,
+  now: Date,
+): Promise<FreshnessRead> {
+  const read: FreshnessRead = { ages: new Map(), warnings: [] };
+
+  for (const item of options.freshnessReads || []) {
+    if (!item.sql) {
+      read.ages.set(item.tableKey, null);
+      continue;
+    }
+
+    try {
+      const rows: Array<Record<string, unknown>> = await catalog.readAggregate(
+        item.sql,
+        item.params,
+        item.limits,
+      );
+
+      read.ages.set(item.tableKey, readFreshnessAge(rows[0]?.["value"], now));
+    } catch (error) {
+      read.warnings.push(
+        `The freshness column of ${item.tableKey} could not be read: ${describeError(error).slice(0, 200)}`,
+      );
+    }
+  }
+
+  return read;
+}
+
+// How loaded a database looks, asked directly: nothing is caught, so a wrong query shows.
+export async function isDatabaseBusy(
+  connection: DatabaseConnection,
+): Promise<boolean> {
+  const catalog: CatalogSession = await openCatalog(connection);
+
+  try {
+    return catalog.isBusy ? await catalog.isBusy() : false;
+  } finally {
+    await catalog.close();
+  }
+}
+
+/*
+ * Reads checks on a connection and nothing else: for a table's copy on staging,
+ * when a pull request changes it (StagingTableComparison). Each check on its own,
+ * as at a collection.
+ */
+export async function readCheckValues(
+  connection: DatabaseConnection,
+  checks: Array<PlannedDataCheck>,
+): Promise<Array<DataCheckRunResult>> {
+  if (checks.length === 0) {
+    return [];
+  }
+
+  const secrets: Array<string> = getConnectionSecrets(
+    connection.connectionString,
+  );
+  const catalog: CatalogSession = await openCatalog(connection);
+  const results: Array<DataCheckRunResult> = [];
+
+  try {
+    for (const check of checks) {
+      try {
+        results.push({
+          checkId: check.checkId,
+          values: readCheckRows({
+            type: check.type,
+            isSegmented: check.isSegmented,
+            rows: await catalog.readAggregate(
+              check.sql,
+              check.params,
+              check.limits,
+            ),
+          }),
+          error: null,
+        });
+      } catch (error) {
+        results.push({
+          checkId: check.checkId,
+          values: [],
+          error: sanitizeErrorMessage(error, secrets).slice(
+            0,
+            MAX_CHECK_ERROR_LENGTH,
+          ),
+        });
+      }
+    }
+  } finally {
+    await catalog.close();
+  }
+
+  return results;
+}
+
 export async function collectTableHealth(
   connection: DatabaseConnection,
   options: TableHealthCollectOptions = DEFAULT_COLLECT_OPTIONS,
@@ -4941,22 +5174,33 @@ export async function collectTableHealth(
     }
 
     const checkResults: Array<DataCheckRunResult> = [];
+    const hasReads: boolean =
+      (options.checks || []).length > 0 ||
+      (options.freshnessReads || []).length > 0;
+    const waits: boolean =
+      hasReads &&
+      options.waitWhenBusy === true &&
+      (await isCatalogBusy(catalog));
+    const waitWarnings: Array<string> = waits ? [BUSY_DATABASE_WARNING] : [];
 
     // Each check on its own: one that cannot run never stops the others.
-    for (const check of options.checks || []) {
+    for (const check of waits ? [] : options.checks || []) {
       try {
+        const values: Array<DataCheckSegmentValue> = readCheckRows({
+          type: check.type,
+          isSegmented: check.isSegmented,
+          rows: await catalog.readAggregate(
+            check.sql,
+            check.params,
+            check.limits,
+          ),
+        });
+
         checkResults.push({
           checkId: check.checkId,
-          values: readCheckRows({
-            type: check.type,
-            isSegmented: check.isSegmented,
-            rows: await catalog.readAggregate(
-              check.sql,
-              check.params,
-              check.limits,
-            ),
-          }),
+          values,
           error: null,
+          ...(await readFailingRowsOf(catalog, check, values)),
         });
       } catch (error) {
         checkResults.push({
@@ -4970,26 +5214,46 @@ export async function collectTableHealth(
       }
     }
 
+    const freshness: FreshnessRead = waits
+      ? { ages: new Map(), warnings: [] }
+      : await readFreshnessColumns(catalog, options, collectedAt);
+    const assembled: TableHealthSnapshot = assembleSnapshot({
+      engine: connection.engine,
+      read: {
+        ...read,
+        warnings: [
+          ...read.warnings,
+          ...lineage.warnings,
+          ...spend.warnings,
+          ...waitWarnings,
+          ...freshness.warnings,
+        ].map((warning: string) => {
+          return sanitizeErrorMessage(new Error(warning), secrets);
+        }),
+      },
+      options,
+      collectedAt,
+      lineage,
+    });
+
     return {
-      ...assembleSnapshot({
-        engine: connection.engine,
-        read: {
-          ...read,
-          warnings: [
-            ...read.warnings,
-            ...lineage.warnings,
-            ...spend.warnings,
-          ].map((warning: string) => {
-            return sanitizeErrorMessage(new Error(warning), secrets);
-          }),
-        },
-        options,
-        collectedAt,
-        lineage,
+      ...assembled,
+      tables: assembled.tables.map((table: CollectedTable): CollectedTable => {
+        const key: string = getDataTableKey(table.schema, table.name);
+
+        return freshness.ages.has(key)
+          ? {
+              ...table,
+              secondsSinceChange: freshness.ages.get(key) ?? null,
+              isChangeTimeFromData: true,
+            }
+          : table;
       }),
       target: readConnectionTarget(connection),
       ...(spend.isRead ? { spend: spend.jobs.slice(0, MAX_SPEND_JOBS) } : {}),
-      ...(options.checks && options.checks.length > 0 ? { checkResults } : {}),
+      ...(options.checks && options.checks.length > 0 && !waits
+        ? { checkResults }
+        : {}),
     };
   } catch (error) {
     throw new Error(sanitizeErrorMessage(error, secrets));

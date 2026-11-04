@@ -1,12 +1,20 @@
+import DatabaseConfig from "../DatabaseConfig";
 import ProjectReferencesService from "./ProjectReferencesService";
 import DataAssetLabelRuleEngineService from "./DataAssetLabelRuleEngineService";
 import DataAssetOwnerRuleEngineService from "./DataAssetOwnerRuleEngineService";
 import DataAsset from "../../Models/DatabaseModels/DataAsset";
-import { AppApiClientUrl } from "../EnvironmentConfig";
-import { OnCreate } from "../Types/Database/Hooks";
+import { OnCreate, OnUpdate } from "../Types/Database/Hooks";
+import UpdateBy from "../Types/Database/UpdateBy";
 import logger, { LogAttributes } from "../Utils/Logger";
 import CaptureSpan from "../Utils/Telemetry/CaptureSpan";
+import {
+  DataAssetColumn,
+  readDataAssetColumns,
+} from "../../Types/DataObservability/DataAssetColumn";
+import BadDataException from "../../Types/Exception/BadDataException";
+import { JSONObject } from "../../Types/JSON";
 import ObjectID from "../../Types/ObjectID";
+import URL from "../../Types/API/URL";
 import { MarkdownText, mdText } from "../../Utils/Markdown/FeedMarkdown";
 
 /*
@@ -20,9 +28,41 @@ export class Service extends ProjectReferencesService<DataAsset> {
     super(DataAsset);
   }
 
+  // A table's freshness column must be one of its columns: the name goes into a statement.
+  protected override async onBeforeUpdate(
+    updateBy: UpdateBy<DataAsset>,
+  ): Promise<OnUpdate<DataAsset>> {
+    await super.onBeforeUpdate(updateBy);
+
+    const column: unknown = (updateBy.data as unknown as JSONObject)[
+      "freshnessColumn"
+    ];
+
+    if (typeof column === "string" && column) {
+      for (const asset of await this.findRowsAndHoldUpdateToThem(updateBy, {
+        columns: true,
+        name: true,
+      })) {
+        const isKnown: boolean = readDataAssetColumns(asset.columns).some(
+          (known: DataAssetColumn): boolean => {
+            return known.name === column;
+          },
+        );
+
+        if (!isKnown) {
+          throw new BadDataException(
+            `${asset.name || "The table"} has no column "${column}".`,
+          );
+        }
+      }
+    }
+
+    return { updateBy, carryForward: undefined };
+  }
+
   @CaptureSpan()
   protected override async onCreateSuccess(
-    onCreate: OnCreate<DataAsset>,
+    _onCreate: OnCreate<DataAsset>,
     createdItem: DataAsset,
   ): Promise<DataAsset> {
     if (createdItem.projectId && createdItem.id) {
@@ -64,9 +104,12 @@ export class Service extends ProjectReferencesService<DataAsset> {
     const name: string = asset?.schemaName
       ? `${asset.schemaName}.${asset.name || ""}`
       : asset?.name || "";
-    const link: string = `${AppApiClientUrl.toString().replace(/\/api\/?$/, "")}/dashboard/${projectId.toString()}/data-observability/tables/${dataAssetId.toString()}`;
+    const dashboardUrl: URL = await DatabaseConfig.getDashboardUrl();
+    const link: URL = URL.fromString(dashboardUrl.toString()).addRoute(
+      `/${projectId.toString()}/data-observability/tables/${dataAssetId.toString()}`,
+    );
 
-    return mdText`[Table ${name}](${link})`;
+    return mdText`[Table ${name}](${link.toString()})`;
   }
 }
 

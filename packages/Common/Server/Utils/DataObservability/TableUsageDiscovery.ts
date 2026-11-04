@@ -86,6 +86,8 @@ export interface UsageDraft {
   lastSeenAt: Date;
   // Calls by endpoint, when this run read them.
   endpointCalls?: Map<string, number> | undefined;
+  // The service also calls a model, when this run read that.
+  isAiApp?: boolean | undefined;
 }
 
 export function getUsageKey(data: {
@@ -136,6 +138,38 @@ export function addUsageMatch(data: {
   }
 }
 
+/*
+ * The services that call a model: one reading a table is an AI app that depends
+ * on it, whether it retrieves from it or not. Read once an hour, with the endpoints.
+ */
+export function buildAiServicesStatement(data: {
+  projectId: ObjectID;
+  since: Date;
+  until: Date;
+}): Statement {
+  const statement: Statement = SQL`SELECT DISTINCT primaryEntityId AS serviceId FROM `;
+
+  statement.append(`${getClickhouseDatabaseName()}.${AnalyticsTableName.Span}`);
+  statement.append(
+    SQL` WHERE projectId = ${{
+      type: TableColumnType.ObjectID,
+      value: data.projectId,
+    }} AND isLlmSpan = 1 AND startTime >= ${{
+      type: TableColumnType.Date,
+      value: data.since,
+    }} AND startTime < ${{
+      type: TableColumnType.Date,
+      value: data.until,
+    }} LIMIT ${{
+      type: TableColumnType.Number,
+      value: MAX_USAGE_ROWS_PER_PROJECT,
+    }}`,
+  );
+  statement.append(getQuerySettings({ ...INTERACTIVE_READ_TIME_LIMIT }));
+
+  return statement;
+}
+
 // ClickHouse hands DateTime64 back as "YYYY-MM-DD hh:mm:ss.ffffff", in UTC.
 export function readClickhouseDate(value: unknown): Date | null {
   if (typeof value !== "string" || !value.trim()) {
@@ -171,7 +205,7 @@ export function readSpanTableUsageRow(
 }
 
 // What a client span says about one call, as the reads below group it.
-function usageColumns(): Statement {
+export function usageColumns(): Statement {
   return SQL`primaryEntityId AS serviceId, lower(multiIf(attributes['db.system.name'] != '', attributes['db.system.name'], attributes['db.system'])) AS dbSystem, multiIf(attributes['db.namespace'] != '', attributes['db.namespace'], attributes['db.name']) AS dbNamespace, multiIf(attributes['server.address'] != '', attributes['server.address'], attributes['net.peer.name']) AS serverAddress, multiIf(attributes['db.collection.name'] != '', attributes['db.collection.name'], attributes['db.sql.table'] != '', attributes['db.sql.table'], attributes['db.mongodb.collection'] != '', attributes['db.mongodb.collection'], match(name, ${{
     type: TableColumnType.Text,
     value: NAMED_STATEMENT_PATTERN,
@@ -366,6 +400,39 @@ export default class TableUsageDiscovery {
 
     // The endpoints are extra, and read at the first run of each hour.
     if (data.now.getUTCMinutes() < 10) {
+      try {
+        const aiServices: Results = await SpanService.executeQuery(
+          buildAiServicesStatement({
+            projectId: data.projectId,
+            since: OneUptimeDate.addRemoveMinutes(
+              data.now,
+              -TABLE_USAGE_WINDOW_IN_MINUTES,
+            ),
+            until: data.now,
+          }),
+        );
+        const answer: ResponseJSON<JSONObject> =
+          await aiServices.json<JSONObject>();
+        const callsModels: Set<string> = new Set(
+          ((answer.data || []) as Array<JSONObject>).map(
+            (row: JSONObject): string => {
+              return String(row["serviceId"] || "");
+            },
+          ),
+        );
+
+        for (const draft of drafts.values()) {
+          if (callsModels.has(draft.serviceId)) {
+            draft.isAiApp = true;
+          }
+        }
+      } catch (error) {
+        logger.error(
+          `Data Observability: could not read which services of project ${data.projectId.toString()} call a model.`,
+        );
+        logger.error(error);
+      }
+
       try {
         const result: Results = await SpanService.executeQuery(
           buildTableUsageEndpointsStatement({
@@ -576,6 +643,7 @@ export default class TableUsageDiscovery {
               ...(draft.endpointCalls
                 ? { endpoints: getTopEndpoints(draft.endpointCalls) }
                 : {}),
+              ...(draft.isAiApp ? { isAiApp: true } : {}),
             } as never,
           });
           continue;
@@ -598,6 +666,10 @@ export default class TableUsageDiscovery {
         usage.errorCount = draft.errorCount;
         usage.firstSeenAt = draft.lastSeenAt;
         usage.lastSeenAt = draft.lastSeenAt;
+
+        if (draft.isAiApp) {
+          usage.isAiApp = true;
+        }
 
         if (draft.endpointCalls) {
           usage.endpoints = getTopEndpoints(draft.endpointCalls);

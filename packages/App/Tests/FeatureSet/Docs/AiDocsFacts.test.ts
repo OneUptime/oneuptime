@@ -1997,10 +1997,12 @@ describe("MCP Server", () => {
      * findings and access, flows, issues, scans, settings, check settings,
      * custom data types and residency rules - with the product, and the
      * identities that reach its stores (Data Security Identity) after it;
-     * and Data Observability's watched tables (Data Asset, #5647) and the
-     * checks on their values (Data Check).
+     * and Data Observability's watched tables (Data Asset, #5647), the
+     * checks on their values (Data Check), its settings, and what is built
+     * on tables: pipelines, data products, reconciliations, BI tools and
+     * dashboards, and warehouse jobs.
      */
-    expect(records()).toHaveLength(45);
+    expect(records()).toHaveLength(52);
     expect(namesIn(0)).toEqual(records());
     // Every database model with MCP on gets all six tools.
     for (const tool of [

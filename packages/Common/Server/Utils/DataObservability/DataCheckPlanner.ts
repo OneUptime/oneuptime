@@ -13,8 +13,20 @@ import {
   DataCheckLimits,
   DataCheckRunResult,
   PlannedDataCheck,
+  PlannedFreshnessRead,
 } from "./DataCheckResults";
-import { buildDataCheckStatement, DataCheckStatement } from "./DataCheckSql";
+import {
+  buildDataCheckSampleStatement,
+  buildDataCheckStatement,
+  buildFreshnessStatement,
+  DataCheckStatement,
+  DataCheckTarget,
+} from "./DataCheckSql";
+import DataTableSensitivity from "./DataTableSensitivity";
+import DataObservabilitySetting from "../../../Models/DatabaseModels/DataObservabilitySetting";
+import { MaskedColumns } from "../../../Types/DataObservability/DataCheckFailingRows";
+import { getDataTableKey } from "../../../Types/DataObservability/DataObservabilityMetric";
+import { IsBillingEnabled } from "../../EnvironmentConfig";
 
 /*
  * THE CHECKS A STORE'S COLLECTION RUNS.
@@ -27,6 +39,9 @@ import { buildDataCheckStatement, DataCheckStatement } from "./DataCheckSql";
  * here, with the reason, and never reaches the database.
  */
 
+// How long into an hour a collection still counts as that hour's first.
+const FIRST_COLLECTION_OF_THE_HOUR_IN_MINUTES: number = 5;
+
 // The most checks one collection runs; the rest wait for the next one.
 export const MAX_CHECKS_PER_COLLECTION: number = 50;
 
@@ -34,7 +49,14 @@ export interface DataCheckPlan {
   planned: Array<PlannedDataCheck>;
   // Checks that cannot run, with why: recorded as failed runs.
   refused: Array<DataCheckRunResult>;
+  // Tables whose change time comes from a column of their own.
+  freshnessReads?: Array<PlannedFreshnessRead> | undefined;
+  // Leave the checks for the next collection when the database is busy.
+  waitWhenBusy?: boolean | undefined;
 }
+
+// The most freshness columns one collection reads.
+export const MAX_FRESHNESS_READS_PER_COLLECTION: number = 50;
 
 function splitTableKey(key: string): { schema: string; table: string } {
   const dot: number = key.indexOf(".");
@@ -50,19 +72,34 @@ const ENGINES_BILLED_BY_BYTES: ReadonlyArray<DatabaseEngine> = [
   "athena",
 ];
 
-async function getCheckLimits(
-  projectId: ObjectID,
+function getCheckLimits(
+  setting: DataObservabilitySetting,
   engine: DatabaseEngine,
-): Promise<DataCheckLimits | undefined> {
+): DataCheckLimits | undefined {
   if (!ENGINES_BILLED_BY_BYTES.includes(engine)) {
     return undefined;
   }
 
-  const gigabytes: number =
-    (await DataObservabilitySettingService.getOrCreateForProject(projectId))
-      .maxGigabytesScannedPerCheck || 10;
+  return {
+    maxBytesScanned:
+      (setting.maxGigabytesScannedPerCheck || 10) * BYTES_IN_A_GIGABYTE,
+  };
+}
 
-  return { maxBytesScanned: gigabytes * BYTES_IN_A_GIGABYTE };
+// Which columns of a table to mask in a sample of its failing rows: the ones the scans found.
+async function readMaskedColumns(data: {
+  projectId: ObjectID;
+  dataAssetId: ObjectID;
+}): Promise<MaskedColumns> {
+  const masked: Record<string, string> = {};
+
+  for (const item of await DataTableSensitivity.read(data)) {
+    if (item.dataTypeId) {
+      masked[item.column.toLowerCase()] = item.dataTypeId;
+    }
+  }
+
+  return masked;
 }
 
 export default class DataCheckPlanner {
@@ -91,6 +128,7 @@ export default class DataCheckPlanner {
         referenceTableKey: true,
         referenceColumnName: true,
         customSql: true,
+        samplePercent: true,
         projectId: true,
       },
       limit: MAX_CHECKS_PER_COLLECTION,
@@ -98,14 +136,51 @@ export default class DataCheckPlanner {
       props: { isRoot: true },
     });
 
+    const freshnessAssets: Array<DataAsset> = await DataAssetService.findBy({
+      query: {
+        dataStoreId: data.dataStoreId,
+        isDropped: false,
+        freshnessColumn: QueryHelper.notNull(),
+      },
+      select: {
+        schemaName: true,
+        name: true,
+        freshnessColumn: true,
+        projectId: true,
+      },
+      limit: MAX_FRESHNESS_READS_PER_COLLECTION,
+      skip: 0,
+      props: { isRoot: true },
+    });
+
+    if (checks.length === 0 && freshnessAssets.length === 0) {
+      return plan;
+    }
+
+    const projectId: ObjectID = (checks[0]?.projectId ||
+      freshnessAssets[0]?.projectId)!;
+    const setting: DataObservabilitySetting =
+      await DataObservabilitySettingService.getOrCreateForProject(projectId);
+    const limits: DataCheckLimits | undefined = getCheckLimits(
+      setting,
+      data.engine,
+    );
+    // Refused on OneUptime Cloud when it is saved; checked here too, as the row may be older.
+    const keepsFailingRows: boolean =
+      setting.keepFailingRows === true && !IsBillingEnabled;
+
+    plan.waitWhenBusy = setting.waitWhenDatabaseIsBusy !== false;
+    plan.freshnessReads = this.planFreshnessReads({
+      assets: freshnessAssets,
+      engine: data.engine,
+      limits,
+      now: data.now,
+    });
+
     if (checks.length === 0) {
       return plan;
     }
 
-    const limits: DataCheckLimits | undefined = await getCheckLimits(
-      checks[0]!.projectId!,
-      data.engine,
-    );
     const assetIds: Array<string> = Array.from(
       new Set(
         checks
@@ -147,22 +222,28 @@ export default class DataCheckPlanner {
         check.referenceTableKey ? splitTableKey(check.referenceTableKey) : null;
 
       try {
+        const target: DataCheckTarget = {
+          type: check.checkType as DataCheckType,
+          schemaName: asset.schemaName || "",
+          tableName: asset.name,
+          columnName: check.columnName,
+          segmentColumn: check.segmentColumn,
+          acceptedValues: check.acceptedValues,
+          pattern: check.pattern,
+          referenceSchemaName: reference?.schema,
+          referenceTableName: reference?.table,
+          referenceColumnName: check.referenceColumnName,
+          customSql: check.customSql,
+          samplePercent: check.samplePercent,
+        };
         const statement: DataCheckStatement = buildDataCheckStatement(
           data.engine,
-          {
-            type: check.checkType as DataCheckType,
-            schemaName: asset.schemaName || "",
-            tableName: asset.name,
-            columnName: check.columnName,
-            segmentColumn: check.segmentColumn,
-            acceptedValues: check.acceptedValues,
-            pattern: check.pattern,
-            referenceSchemaName: reference?.schema,
-            referenceTableName: reference?.table,
-            referenceColumnName: check.referenceColumnName,
-            customSql: check.customSql,
-          },
+          target,
         );
+        const sample: { sql: string; params: Array<string> } | null =
+          keepsFailingRows
+            ? buildDataCheckSampleStatement(data.engine, target)
+            : null;
 
         plan.planned.push({
           checkId,
@@ -171,6 +252,17 @@ export default class DataCheckPlanner {
           sql: statement.sql,
           params: statement.params,
           ...(limits ? { limits } : {}),
+          ...(sample
+            ? {
+                sample: {
+                  ...sample,
+                  maskedColumns: await readMaskedColumns({
+                    projectId,
+                    dataAssetId: check.dataAssetId!,
+                  }),
+                },
+              }
+            : {}),
         });
       } catch (error) {
         plan.refused.push({
@@ -182,5 +274,41 @@ export default class DataCheckPlanner {
     }
 
     return plan;
+  }
+
+  /*
+   * A table's freshness column is read at every collection, unless reading it
+   * costs money by what it scans: there, in the first collection of each hour.
+   */
+  private static planFreshnessReads(data: {
+    assets: Array<DataAsset>;
+    engine: DatabaseEngine;
+    limits: DataCheckLimits | undefined;
+    now: Date;
+  }): Array<PlannedFreshnessRead> {
+    const isRead: boolean =
+      !ENGINES_BILLED_BY_BYTES.includes(data.engine) ||
+      data.now.getUTCMinutes() < FIRST_COLLECTION_OF_THE_HOUR_IN_MINUTES;
+
+    return data.assets
+      .filter((asset: DataAsset): boolean => {
+        return Boolean(asset.name && asset.freshnessColumn);
+      })
+      .map((asset: DataAsset): PlannedFreshnessRead => {
+        const statement: { sql: string; params: Array<string> } | null = isRead
+          ? buildFreshnessStatement(data.engine, {
+              schemaName: asset.schemaName || "",
+              tableName: asset.name!,
+              columnName: asset.freshnessColumn!,
+            })
+          : null;
+
+        return {
+          tableKey: getDataTableKey(asset.schemaName || "", asset.name!),
+          sql: statement?.sql || null,
+          params: statement?.params || [],
+          ...(data.limits ? { limits: data.limits } : {}),
+        };
+      });
   }
 }

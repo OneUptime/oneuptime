@@ -36,6 +36,7 @@ import DataPipelineRecommendationsPage from "../Pages/DataPipeline/View/Recommen
 import DataObservabilityDataProductsPage from "../Pages/DataObservability/DataProducts";
 import DataObservabilityReconciliationsPage from "../Pages/DataObservability/Reconciliations";
 import DataObservabilitySettingsPage from "../Pages/DataObservability/Settings";
+import DataObservabilityStoragePathsPage from "../Pages/DataObservability/StoragePaths";
 import DataObservabilityOwnerRulesPage from "../Pages/DataObservability/OwnerRules";
 import DataObservabilityLabelRulesPage from "../Pages/DataObservability/LabelRules";
 import TableOwners from "../Pages/DataObservability/TableView/Owners";
@@ -194,6 +195,14 @@ const DataObservabilityRoutes: FunctionComponent<ComponentProps> = (
         {page(PageMap.DATA_OBSERVABILITY_SETTINGS, (pageRoute: Route) => {
           return (
             <DataObservabilitySettingsPage {...props} pageRoute={pageRoute} />
+          );
+        })}
+        {page(PageMap.DATA_OBSERVABILITY_STORAGE_PATHS, (pageRoute: Route) => {
+          return (
+            <DataObservabilityStoragePathsPage
+              {...props}
+              pageRoute={pageRoute}
+            />
           );
         })}
         {page(PageMap.DATA_OBSERVABILITY_BI_DASHBOARDS, (pageRoute: Route) => {

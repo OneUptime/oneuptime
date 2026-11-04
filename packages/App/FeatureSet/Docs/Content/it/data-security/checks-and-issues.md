@@ -1,10 +1,10 @@
 # Controlli e problemi di Sicurezza dei dati
 
-Sicurezza dei dati esegue 33 controlli su ogni archivio, in nove gruppi. Un controllo legge ciò che si sa di un archivio - come è configurato, cosa vi è stato trovato, chi può raggiungerlo, dove si trova - e viene superato, non viene superato o non può stabilirlo. Un controllo non superato apre un problema su quell'archivio, e il problema si chiude da solo quando il controllo viene superato. Questa pagina elenca ogni controllo, come si calcolano la gravità e il punteggio di rischio di un problema, e cosa succede a un problema nel corso della sua vita.
+Sicurezza dei dati esegue 34 controlli su ogni archivio, in nove gruppi. Un controllo legge ciò che si sa di un archivio - come è configurato, cosa vi è stato trovato, chi può raggiungerlo, dove si trova - e viene superato, non viene superato o non può stabilirlo. Un controllo non superato apre un problema su quell'archivio, e il problema si chiude da solo quando il controllo viene superato. Questa pagina elenca ogni controllo, come si calcolano la gravità e il punteggio di rischio di un problema, e cosa succede a un problema nel corso della sua vita.
 
 :::cards
 - [Come decide un controllo](#come-decide-un-controllo): Superato, non superato o non può stabilirlo, e quanto è grave un fallimento.
-- [Tutti i controlli](#tutti-i-controlli): Tutti i 33, con cosa verifica ciascuno e come correggerlo.
+- [Tutti i controlli](#tutti-i-controlli): Tutti i 34, con cosa verifica ciascuno e come correggerlo.
 - [Punteggio di rischio](#punteggio-di-rischio): Come vengono ordinati i problemi all'interno di una gravità.
 - [Cosa succede a un problema](#cosa-succede-a-un-problema): Aperto, risolto, accettato, non è un problema.
 - [Correggi da qui](#correggi-da-qui): Chiudi un'esposizione, o attiva una protezione mancante, con un clic.
@@ -87,6 +87,7 @@ La gravità è indicata per i dati di livello Ristretto, Confidenziale, Interno 
 | Le password sono conservate in chiaro (`plaintext-passwords`) | Ogni archivio tranne la telemetria | Un campo password contiene valori che non sono hash di password (bcrypt, argon2, scrypt o PBKDF2). | Critico / Critico / Critico / Critico | Esegui l'hash delle password con bcrypt, scrypt o argon2, migra quelle conservate, e fai reimpostare la password a ogni account. |
 | Dati di produzione sono stati copiati in un archivio non di produzione (`production-data-in-non-production`) | Ogni archivio tranne la telemetria | Valori trovati in un archivio di produzione sono stati trovati anche qui, in un archivio di sviluppo, di test o di staging. | Alto / Medio / — / — | Sostituisci la copia con dati mascherati o sintetici, ed elimina i dati reali dall'archivio non di produzione. |
 | Dati sensibili che nessuno usa da 90 giorni (`stale-sensitive-data`) | Ogni archivio tranne la telemetria | L'archivio contiene dati sensibili e non ha avuto letture né scritture per 90 giorni. | Medio / Basso / — / — | Conferma che i dati non servono più, poi archiviali con una data di conservazione, o eliminali. |
+| Una nuova colonna contiene dati personali (`new-personal-data-column`) | Ogni archivio tranne la telemetria | Una colonna aggiunta negli ultimi 14 giorni ha un nome che indica che contiene dati personali. | Alto / Alto / Medio / Medio | Conferma che la colonna debba contenere questi dati, e registra perché. Se non dovrebbe, eliminala o smetti di scriverci. |
 | Questo archivio sensibile non ha un proprietario (`no-owner`) | Ogni archivio | L'archivio contiene dati sensibili e non ha un proprietario. | Medio / Basso / — / — | Aggiungi un proprietario nella pagina **Proprietari** dell'archivio, o una regola del proprietario che corrisponda ai suoi tag. |
 
 ### Telemetria

@@ -1,3 +1,7 @@
+import DatabaseServer from "../../../Models/DatabaseModels/DatabaseServer";
+import { DataObservabilityTableErrors } from "../../../Types/DataObservability/DataObservabilityApiTypes";
+import DatabaseServerService from "../../Services/DatabaseServerService";
+import DataTableErrors from "./DataTableErrors";
 import Alert from "../../../Models/DatabaseModels/Alert";
 import ChangeEvent from "../../../Models/AnalyticsModels/ChangeEvent";
 import DataAlert from "../../../Models/DatabaseModels/DataAlert";
@@ -39,7 +43,8 @@ import DataStoreService from "../../Services/DataStoreService";
 import QueryHelper from "../../Types/Database/QueryHelper";
 import logger from "../Logger";
 import DataTableDashboards, { TableDashboard } from "./Bi/DataTableDashboards";
-import { isFailedState } from "./OpenLineageEvent";
+import { isFailedState } from "./OpenLineageIngest";
+import { TableHealthStatus } from "./TableHealthIngest";
 
 /*
  * WHY A DATA ALERT MOST LIKELY HAPPENED, AND WHAT IT REACHES.
@@ -294,6 +299,30 @@ export default class DataAlertExplanationReader {
     );
     const causes: Array<DataAlertLikelyCause> = [];
 
+    // What the writers' own errors say, when they name the table.
+    if (row.dataAssetId) {
+      const errors: DataObservabilityTableErrors = await orNothing(
+        DataTableErrors.read({
+          projectId,
+          dataAssetId: row.dataAssetId,
+          now: windowEnd,
+        }),
+        { services: [], exceptions: [], logs: [] },
+      );
+
+      for (const exception of errors.exceptions.slice(
+        0,
+        MAX_CAUSES_OF_A_KIND,
+      )) {
+        causes.push({
+          kind: DataAlertCauseKind.FailingWrites,
+          title: `${exception.serviceName || "A service"} keeps raising ${exception.type || "an error"} naming this table`,
+          detail: clip(exception.message),
+          at: exception.lastSeenAt || undefined,
+        });
+      }
+    }
+
     for (const writer of writers) {
       if (writer.errorCount) {
         causes.push({
@@ -420,22 +449,45 @@ export default class DataAlertExplanationReader {
           tableHealthStatus: true,
           tableHealthMessage: true,
           tableHealthCollectedAt: true,
+          databaseServerId: true,
         },
         props: { isRoot: true },
       }),
       null,
     );
+    const causes: Array<DataAlertLikelyCause> =
+      store?.tableHealthStatus === TableHealthStatus.Failed
+        ? [
+            {
+              kind: DataAlertCauseKind.Database,
+              title: `${store.name || "The database"} could not be read`,
+              detail: clip(store.tableHealthMessage),
+              at: toTime(store.tableHealthCollectedAt),
+            },
+          ]
+        : [];
 
-    return store?.tableHealthStatus === "Failed"
-      ? [
-          {
-            kind: DataAlertCauseKind.Database,
-            title: `${store.name || "The database"} could not be read`,
-            detail: clip(store.tableHealthMessage),
-            at: toTime(store.tableHealthCollectedAt),
-          },
-        ]
-      : [];
+    // The server under it, from the Database product: a server that is unwell explains its tables.
+    if (store?.databaseServerId) {
+      const server: DatabaseServer | null = await orNothing(
+        DatabaseServerService.findOneBy({
+          query: { projectId, _id: store.databaseServerId },
+          select: { name: true, engineHealth: true, engineReadingsAt: true },
+          props: { isRoot: true },
+        }),
+        null,
+      );
+
+      if (server?.engineHealth && server.engineHealth !== "healthy") {
+        causes.push({
+          kind: DataAlertCauseKind.Database,
+          title: `${server.name || "The database server"} is ${server.engineHealth}`,
+          at: toTime(server.engineReadingsAt),
+        });
+      }
+    }
+
+    return causes;
   }
 
   private static async readImpact(
@@ -537,7 +589,10 @@ export default class DataAlertExplanationReader {
         return dashboard.name;
       });
 
-    const allIds: Array<string> = [row.dataAssetId.toString(), ...downstreamIds];
+    const allIds: Array<string> = [
+      row.dataAssetId.toString(),
+      ...downstreamIds,
+    ];
     const readers: Array<DataAssetUsage> = await orNothing(
       DataAssetUsageService.findBy({
         query: {

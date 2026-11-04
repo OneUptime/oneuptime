@@ -5,7 +5,7 @@ import React, { FunctionComponent, ReactElement } from "react";
 
 /*
  * How Data Observability works and how to connect a database, on one page:
- * what is read (the catalog, never a row), the read-only login each engine
+ * what is read (the catalog, so no value leaves the database), the read-only login each engine
  * needs, how a probe collects a database only the customer's network can
  * reach, and the metrics every table writes - which is how alerts, charts
  * and dashboards are made from table health.
@@ -20,7 +20,11 @@ Every table and view of each connected database, every five minutes:
 - **Its columns**: a column added, removed, renamed, retyped or made nullable goes on the table's timeline and on Schema Changes.
 - **Its usual rhythm**: how often it usually changes. A table that goes well past its rhythm shows as **Late**.
 
-Only the database's catalog is read. **No row is ever read**, and no value leaves the database.
+Only the database's catalog is read, and on MongoDB the field names of a collection's newest documents. No value leaves the database.
+
+A catalog can say a table changed when only its housekeeping did, or say nothing at all. On a table's **Settings**, name a **Freshness Column** such as \`updated_at\`, and its last change becomes that column's newest value. The login needs to read the column, and it should be indexed.
+
+A PostgreSQL or SQL Server read replica does not move its write counters, so OneUptime leaves them out there and says so on the database.
 
 ## Connect a database
 
@@ -30,6 +34,12 @@ Use a **read-only login**. On Databases, choose **Connect a Database**, then eit
 - **A probe in my network connects**: pick one of this project's probes and name the probe's environment variable that holds the connection string (for example \`ORDERS_DB_URL\`). The connection string never leaves your network. Update the probe to the latest version first.
 
 A database already connected for Data Security is watched too.
+
+**Databases You Could Connect**, on the same page, lists what your project already knows of and nobody has connected: databases your traces talk to, ones in your cloud accounts, and ones Database Monitoring watches. **Connect** starts the form from what is known of each. Nothing is read until you connect it.
+
+## Storage paths
+
+An export that lands in a bucket every night is as late, or as short, as any table. Under **Storage Paths**, choose **Edit Paths** for a bucket your cloud connection found, on Amazon S3, Google Cloud Storage or an Azure storage account, and name the paths that matter, one per line. Each shows under **Tables**: its newest object is when it last changed, its objects are its rows, and the same alerts apply. Only names, sizes and times are read, never an object.
 
 ### A read-only login, per engine
 
@@ -45,7 +55,7 @@ MySQL and MariaDB (\`performance_schema\` lets OneUptime see writes between coll
 
 \`\`\`sql
 CREATE USER 'oneuptime_reader'@'%' IDENTIFIED BY '...';
-GRANT SHOW VIEW ON orders.* TO 'oneuptime_reader'@'%';
+GRANT SHOW VIEW, REFERENCES ON orders.* TO 'oneuptime_reader'@'%';
 GRANT SELECT ON performance_schema.table_io_waits_summary_by_table TO 'oneuptime_reader'@'%';
 \`\`\`
 
@@ -160,6 +170,7 @@ Each collection writes these for every table, so you can chart them, put them on
 | \`oneuptime.data.table.overdue_seconds\` | Seconds the table is past the time it usually changes by; 0 while it is on time. Written once its rhythm is learned |
 | \`oneuptime.data.table.row_count_change_percent\` | How much the row count moved since the collection before, in percent (-50 is half the rows gone). Tables under 1,000 rows are left out |
 | \`oneuptime.data.table.schema_changes\` | Columns changed since the collection before |
+| \`oneuptime.data.table.breaking_schema_changes\` | Columns removed, renamed or retyped since the collection before |
 
 Every row carries \`oneuptime.data.store.id\`, \`oneuptime.data.store.name\`, \`oneuptime.data.table.id\`, \`oneuptime.data.table.schema\`, \`oneuptime.data.table.name\` and \`oneuptime.data.table.key\` (\`schema.table\`). A Metrics monitor grouped by \`oneuptime.data.table.key\` alerts once per table, and its **Anomalously High** and **Anomalously Low** filters compare each table with its own usual value for that hour of the week, so no threshold has to be set.
 
@@ -172,10 +183,22 @@ On **Databases**, choose **Recommended Alerts** for a database. Each recommendat
 | **Table Is Late** | A table stays past the time it usually changes by for fifteen minutes - the same rule as the **Late** pill |
 | **Row Count Fell Sharply** | A table loses half its rows or more between two collections |
 | **Row Count Unusually Low** | A table holds far fewer rows than usual for that hour of the week (learns over two weeks) |
-| **Schema Changed** | A table's columns are added, removed, renamed or retyped |
+| **Schema Changed** | A table's columns are removed, renamed or retyped. A column added breaks nothing, and stays on the timeline |
 | **Table Health Stopped Reporting** | No table of the database has been read for fifteen minutes |
 
 Pick severities, on-call policies, owners and labels when you create them. They are ordinary monitors from then on: edit, mute or put them on a status page like any other.
+
+A backfill or a migration should page nobody. Name the database under **Data Observability Databases** on a scheduled maintenance event, or put its database server in one, and its data alerts stay quiet while the event is on.
+
+## Owners and labels
+
+A table's **Owners** tab names the people and teams it belongs to, and a table's alert goes to them; with none, to the owners of its database. **Owner Rules** and **Label Rules** apply to every table as it first appears, matched by its labels, or by a regular expression on its name, schema or database.
+
+## When an alert opens
+
+A table's alert has a **Data** card that says why it most likely happened, ranked: an alert upstream, a failed run, a deploy of a service that writes it, its failing writes, a column that changed, the database or the server it runs on. Below that is what depends on it: tables, dashboards, services and the people who own them.
+
+Say what you made of it: **Useful**, **Expected** (a planned event: nothing changes) or **Not an Issue** (the table is given more room, so the same thing stays quiet next time). If a person finds a problem first, **Report a Problem** on the table records it. **Overview** shows how it adds up: useful issues a week, how many were not noise, how often a problem was raised before someone reported it, how quickly, and how often the likely cause was the real one.
 
 
 ## Data products
@@ -203,7 +226,7 @@ Table health says whether a table changes. A **check** says whether what it hold
 | **Distinct Count** | How many different values the column holds |
 | **Minimum**, **Maximum**, **Average**, **Sum** | Of a numeric column (a Sum of no rows is 0) |
 | **Invalid Percent** | Percent of values outside a list you give |
-| **Format Mismatch Percent** | Percent of values that do not match a regular expression (PostgreSQL and MySQL) |
+| **Format Mismatch Percent** | Percent of values not in a format you pick, such as Email, UUID or Country Code, or that do not match a regular expression of yours (every engine but SQL Server) |
 | **Orphan Count** | Rows whose value has no match in another table's column |
 | **Row Count** | Rows in the table, most useful with **Segment By** |
 | **Custom SQL** | The number one read-only SELECT of yours returns |
@@ -219,13 +242,21 @@ Add one, add them all, or dismiss one for good.
 
 **Segment By** runs a check once per value of a column, such as a tenant or a region: one series and one alert each, for the largest 100 segments. A segmented Row Count alerts when one tenant stops sending data.
 
-Checks run with the database's collection, by OneUptime or by its probe, every 15 minutes, hour, 6 hours or day. Each runs as one aggregate statement in a read-only transaction with a statement timeout: only the number leaves the database, never a row. The value is written as \`oneuptime.data.check.value\`, with \`oneuptime.data.check.id\`, \`oneuptime.data.check.name\` and \`oneuptime.data.check.segment\`.
+Checks run with the database's collection, by OneUptime or by its probe, every 15 minutes, hour, 6 hours or day. Each runs as one aggregate statement in a read-only transaction with a statement timeout: only the number leaves the database, unless a self-hosted project chooses to keep a masked sample of failing rows. The value is written as \`oneuptime.data.check.value\`, with \`oneuptime.data.check.id\`, \`oneuptime.data.check.name\` and \`oneuptime.data.check.segment\`.
 
 Set **Alert When** to alert on a check:
 - **Unusually High** or **Unusually Low** compares each value with its own learned baseline for that hour of the week.
 - **Above** or **Below** compares it with a threshold.
 
 Saving the check makes a Metrics monitor for it, as you, with your permissions. Clearing the condition removes the monitor.
+
+**Failing Rows** counts the rows one read-only SELECT of yours returns: the rows that should not exist. 0 is healthy.
+
+Three things keep a check's cost in hand. **Sample Percent** reads a share of the rows, for a check that reads a rate. **Most a Check May Read (GB)**, under **Settings**, stops a check on BigQuery or Athena before it reads more than that. **Wait When a Database Is Busy**, also there, leaves due checks for the next collection when a PostgreSQL, MySQL or SQL Server database looks busy.
+
+On a self-hosted OneUptime, **Keep Failing Rows** under **Settings** keeps up to 20 failing rows of a check, with sensitive columns masked before they leave the database. OneUptime Cloud keeps none.
+
+Keep checks in a file in your repository, and apply them from CI with \`oneuptime data-checks apply checks.yaml\`. Run it with \`--dry-run\` on a pull request. A mistake anywhere in the file applies nothing. See the documentation for the file's format.
 
 
 ## Reconciliations
@@ -304,8 +335,14 @@ The real impact of bad data is the dashboard someone opens. Under **BI Dashboard
 | **Tableau** | \`{ "tokenName": "...", "tokenSecret": "...", "site": "acme" }\`, a personal access token |
 | **Looker** | \`{ "clientId": "...", "clientSecret": "..." }\`, an API client |
 | **Power BI** | \`{ "tenantId": "...", "clientId": "...", "clientSecret": "..." }\`, a service principal allowed to use Power BI's admin APIs |
+| **Hightouch** | \`{ "apiKey": "..." }\`: each sync is read as one more thing that depends on a table |
+| **Census** | \`{ "apiKey": "...", "region": "us" }\`: each sync is read as one more thing that depends on a table |
 
 Every hour, and when a tool is added or you choose **Read Now**, OneUptime reads each dashboard and the tables behind it: a card's table and a native question's SQL (Metabase), a dataset's table or a virtual dataset's SQL (Superset), the Metadata API's upstream tables (Tableau), each tile's explore (Looker), and each report's dataset (Power BI, from a workspace scan). Each table is matched to a watched one by its database, schema and name; a name that still fits two watched tables is left unmatched. A table's **Lineage** tab, its alerts' **Data** card and Production Review list the dashboards built on it, and on the tables built from it. Only names and links are read, never a dashboard's data.
+
+## Jobs in your traces
+
+A Kubernetes CronJob, or a function on a timer, needs nothing installed to show up as a pipeline: spans with \`k8s.cronjob.name\` or \`k8s.job.name\`, or \`faas.name\` with a \`faas.trigger\` of \`timer\` or \`datasource\`, become one, with its runs and the tables its database calls touched. Each run links to its trace and logs, and a CronJob that stops running is seen as late.
 
 ## Lineage the databases say
 
@@ -373,6 +410,8 @@ The cause's **Data** card lists its **Downstream Impact**: every alert it caused
 ## Services that use each table
 
 A table's **Services** tab lists the services seen writing and reading it, with the statements each ran, its calls and failures in the last hour, and when it was last seen. It comes from the database spans your services already send with OpenTelemetry: a client span with \`db.system.name\`, \`db.namespace\` and \`db.collection.name\` (or \`db.sql.table\`, or a span named like \`INSERT orders\`). Nothing extra to install. It is updated every 15 minutes.
+
+Each service also shows the endpoints that make its calls, and is marked **AI app** when it calls a model too. **Errors Naming This Table** lists the open exceptions and the last day's error logs from the services that write the table, when they mention it by name.
 
 A span is tied to a table only when its database is the one a collection read, and when two databases share a name, only when its \`server.address\` is one of theirs. When it is not sure, it leaves the span out.
 

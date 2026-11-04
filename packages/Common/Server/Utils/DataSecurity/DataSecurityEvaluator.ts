@@ -1,3 +1,7 @@
+import {
+  describeNewPersonalDataColumn,
+  readNewPersonalDataColumns,
+} from "../../../Types/DataObservability/DataColumnSensitivity";
 import DataStore from "../../../Models/DatabaseModels/DataStore";
 import DataStoreAccess from "../../../Models/DatabaseModels/DataStoreAccess";
 import DataStoreFinding from "../../../Models/DatabaseModels/DataStoreFinding";
@@ -137,32 +141,6 @@ interface StoreFacts {
   aiProvidersReached: Set<string>;
   hasRecentSecurityActivity: boolean;
   issues: Array<DataSecurityIssue>;
-}
-
-// How long a new column that holds personal data stays an issue, unless it is dropped sooner.
-const NEW_PERSONAL_DATA_COLUMN_WINDOW_IN_DAYS: number = 14;
-
-// The columns Data Observability saw added whose names say they hold personal data.
-export function readNewPersonalDataColumns(
-  state: JSONObject,
-  now: Date,
-): Array<string> | undefined {
-  const raw: unknown = state["newPersonalDataColumns"];
-
-  if (!Array.isArray(raw)) {
-    return undefined;
-  }
-
-  const since: number =
-    now.getTime() - NEW_PERSONAL_DATA_COLUMN_WINDOW_IN_DAYS * 86_400_000;
-
-  return (raw as Array<JSONObject>)
-    .filter((item: JSONObject): boolean => {
-      return Date.parse(String(item["seenAt"])) >= since;
-    })
-    .map((item: JSONObject): string => {
-      return `${String(item["column"])} (${String(item["dataType"])})`;
-    });
 }
 
 function newFacts(): StoreFacts {
@@ -420,7 +398,12 @@ export default class DataSecurityEvaluator {
       isAiData: Boolean(store.isAiData),
       residencyViolations,
       plaintextPasswordFields,
-      newPersonalDataColumns: readNewPersonalDataColumns(state, now),
+      // Only a store whose tables are collected can say: the others have no columns to judge.
+      newPersonalDataColumns: store.tableHealthCollectedAt
+        ? readNewPersonalDataColumns(store.newPersonalDataColumns, now).map(
+            describeNewPersonalDataColumn,
+          )
+        : undefined,
       now,
     };
 
@@ -506,6 +489,8 @@ export default class DataSecurityEvaluator {
       lastActivityAt: true,
       estimatedRecords: true,
       contentScanState: true,
+      newPersonalDataColumns: true,
+      tableHealthCollectedAt: true,
       serviceId: true,
       fingerprints: true,
       firstSeenAt: true,

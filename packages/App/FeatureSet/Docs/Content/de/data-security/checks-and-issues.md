@@ -1,10 +1,10 @@
 # Prüfungen und Probleme der Datensicherheit
 
-Datensicherheit führt an jedem Datenspeicher 33 Prüfungen aus, in neun Gruppen. Eine Prüfung liest, was über einen Datenspeicher bekannt ist - wie er konfiguriert ist, was darin gefunden wurde, wer ihn erreichen kann, wo er liegt - und besteht, schlägt fehl oder kann es nicht feststellen. Eine fehlschlagende Prüfung eröffnet ein Problem an diesem Datenspeicher, und das Problem schließt sich von selbst, sobald die Prüfung besteht. Diese Seite listet jede Prüfung auf, wie Schweregrad und Risikowert eines Problems ermittelt werden und was mit einem Problem im Lauf seines Lebens geschieht.
+Datensicherheit führt an jedem Datenspeicher 34 Prüfungen aus, in neun Gruppen. Eine Prüfung liest, was über einen Datenspeicher bekannt ist - wie er konfiguriert ist, was darin gefunden wurde, wer ihn erreichen kann, wo er liegt - und besteht, schlägt fehl oder kann es nicht feststellen. Eine fehlschlagende Prüfung eröffnet ein Problem an diesem Datenspeicher, und das Problem schließt sich von selbst, sobald die Prüfung besteht. Diese Seite listet jede Prüfung auf, wie Schweregrad und Risikowert eines Problems ermittelt werden und was mit einem Problem im Lauf seines Lebens geschieht.
 
 :::cards
 - [Wie eine Prüfung entscheidet](#wie-eine-prüfung-entscheidet): Bestanden, fehlgeschlagen oder nicht feststellbar, und wie schlimm ein Fehlschlag ist.
-- [Jede Prüfung](#jede-prüfung): Alle 33, mit dem, was jede prüft, und wie Sie den Mangel beheben.
+- [Jede Prüfung](#jede-prüfung): Alle 34, mit dem, was jede prüft, und wie Sie den Mangel beheben.
 - [Risikowert](#risikowert): Wie Probleme innerhalb eines Schweregrads geordnet werden.
 - [Was mit einem Problem geschieht](#was-mit-einem-problem-geschieht): Offen, behoben, akzeptiert, kein Problem.
 - [Hier beheben](#hier-beheben): Eine Exponierung schließen oder einen fehlenden Schutz einschalten, mit einem Klick.
@@ -87,6 +87,7 @@ Der Schweregrad wird für eingeschränkte, vertrauliche, interne und öffentlich
 | Passwörter werden im Klartext gespeichert (`plaintext-passwords`) | Jeder Datenspeicher außer Telemetrie | Ein Passwortfeld enthält Werte, die keine Passwort-Hashes sind (bcrypt, argon2, scrypt oder PBKDF2). | Kritisch / Kritisch / Kritisch / Kritisch | Hashen Sie Passwörter mit bcrypt, scrypt oder argon2, migrieren Sie die gespeicherten, und lassen Sie jedes Konto sein Passwort zurücksetzen. |
 | Produktionsdaten wurden in einen Nicht-Produktions-Datenspeicher kopiert (`production-data-in-non-production`) | Jeder Datenspeicher außer Telemetrie | Werte, die in einem Produktions-Datenspeicher gefunden wurden, wurden auch hier gefunden, in einem Entwicklungs-, Test- oder Staging-Datenspeicher. | Hoch / Mittel / — / — | Ersetzen Sie die Kopie durch maskierte oder synthetische Daten, und löschen Sie die echten Daten aus dem Nicht-Produktions-Datenspeicher. |
 | Sensible Daten, die seit 90 Tagen niemand genutzt hat (`stale-sensitive-data`) | Jeder Datenspeicher außer Telemetrie | Der Datenspeicher enthält sensible Daten und hatte seit 90 Tagen keine Lese- oder Schreibzugriffe. | Mittel / Niedrig / — / — | Bestätigen Sie, dass die Daten nicht mehr gebraucht werden, und archivieren Sie sie dann mit einem Aufbewahrungsdatum, oder löschen Sie sie. |
+| Eine neue Spalte enthält personenbezogene Daten (`new-personal-data-column`) | Jeder Datenspeicher außer Telemetrie | Eine in den letzten 14 Tagen hinzugefügte Spalte hat einen Namen, der besagt, dass sie personenbezogene Daten enthält. | Hoch / Hoch / Mittel / Mittel | Bestätigen Sie, dass die Spalte diese Daten enthalten soll, und halten Sie fest, warum. Falls nicht, löschen Sie sie oder hören Sie auf, in sie zu schreiben. |
 | Dieser sensible Datenspeicher hat keinen Eigentümer (`no-owner`) | Jeder Datenspeicher | Der Datenspeicher enthält sensible Daten und hat keinen Eigentümer. | Mittel / Niedrig / — / — | Fügen Sie auf der Seite **Eigentümer** des Datenspeichers einen Eigentümer hinzu, oder eine Eigentümerregel, die auf seine Tags passt. |
 
 ### Telemetrie

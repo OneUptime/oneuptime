@@ -42,18 +42,13 @@ export function getFormatPattern(
 
 // The format a Data Security data type should look like, when it has one.
 const FORMAT_OF_DATA_TYPE: Readonly<Record<string, DataCheckFormat>> = {
-  email: DataCheckFormat.Email,
   "email-address": DataCheckFormat.Email,
-  phone: DataCheckFormat.PhoneNumber,
   "phone-number": DataCheckFormat.PhoneNumber,
   "ip-address": DataCheckFormat.IpAddress,
-  ipv4: DataCheckFormat.IpAddress,
-  uuid: DataCheckFormat.Uuid,
-  url: DataCheckFormat.Url,
 };
 
 export function getFormatOfDataType(
   dataTypeId: string,
 ): DataCheckFormat | null {
-  return FORMAT_OF_DATA_TYPE[dataTypeId.toLowerCase()] || null;
+  return FORMAT_OF_DATA_TYPE[dataTypeId] || null;
 }
