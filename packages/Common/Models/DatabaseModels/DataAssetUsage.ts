@@ -274,6 +274,21 @@ export default class DataAssetUsage extends BaseModel {
 
   @ColumnAccessControl(columnAccess)
   @TableColumn({
+    type: TableColumnType.JSON,
+    required: false,
+    title: "Endpoints",
+    description:
+      "The service's busiest endpoints that made these calls, from the server spans of the same traces.",
+    example: '["POST /orders", "GET /orders/:id"]',
+  })
+  @Column({
+    type: ColumnType.JSON,
+    nullable: true,
+  })
+  public endpoints?: Array<string> = undefined;
+
+  @ColumnAccessControl(columnAccess)
+  @TableColumn({
     type: TableColumnType.Number,
     required: false,
     title: "Calls",

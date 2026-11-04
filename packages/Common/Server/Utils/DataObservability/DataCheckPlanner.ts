@@ -6,7 +6,14 @@ import QueryHelper from "../../Types/Database/QueryHelper";
 import { DataCheckType } from "../../../Types/DataObservability/DataCheckType";
 import ObjectID from "../../../Types/ObjectID";
 import { DatabaseEngine } from "../DataSecurity/Content/DatabaseSampler";
-import { DataCheckRunResult, PlannedDataCheck } from "./DataCheckResults";
+import DataObservabilitySettingService, {
+  BYTES_IN_A_GIGABYTE,
+} from "../../Services/DataObservabilitySettingService";
+import {
+  DataCheckLimits,
+  DataCheckRunResult,
+  PlannedDataCheck,
+} from "./DataCheckResults";
 import { buildDataCheckStatement, DataCheckStatement } from "./DataCheckSql";
 
 /*
@@ -37,6 +44,27 @@ function splitTableKey(key: string): { schema: string; table: string } {
     : { schema: "", table: key };
 }
 
+// The engines that bill by what a query reads: a check there runs under the project's limit.
+const ENGINES_BILLED_BY_BYTES: ReadonlyArray<DatabaseEngine> = [
+  "bigquery",
+  "athena",
+];
+
+async function getCheckLimits(
+  projectId: ObjectID,
+  engine: DatabaseEngine,
+): Promise<DataCheckLimits | undefined> {
+  if (!ENGINES_BILLED_BY_BYTES.includes(engine)) {
+    return undefined;
+  }
+
+  const gigabytes: number =
+    (await DataObservabilitySettingService.getOrCreateForProject(projectId))
+      .maxGigabytesScannedPerCheck || 10;
+
+  return { maxBytesScanned: gigabytes * BYTES_IN_A_GIGABYTE };
+}
+
 export default class DataCheckPlanner {
   public static async planDueChecks(data: {
     dataStoreId: ObjectID;
@@ -63,6 +91,7 @@ export default class DataCheckPlanner {
         referenceTableKey: true,
         referenceColumnName: true,
         customSql: true,
+        projectId: true,
       },
       limit: MAX_CHECKS_PER_COLLECTION,
       skip: 0,
@@ -73,6 +102,10 @@ export default class DataCheckPlanner {
       return plan;
     }
 
+    const limits: DataCheckLimits | undefined = await getCheckLimits(
+      checks[0]!.projectId!,
+      data.engine,
+    );
     const assetIds: Array<string> = Array.from(
       new Set(
         checks
@@ -137,6 +170,7 @@ export default class DataCheckPlanner {
           isSegmented: statement.isSegmented,
           sql: statement.sql,
           params: statement.params,
+          ...(limits ? { limits } : {}),
         });
       } catch (error) {
         plan.refused.push({

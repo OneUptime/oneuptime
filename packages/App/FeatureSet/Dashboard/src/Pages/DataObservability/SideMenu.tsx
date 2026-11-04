@@ -118,6 +118,27 @@ const DataObservabilitySideMenu: FunctionComponent = (): ReactElement => {
           }}
           icon={IconProp.Archive}
         />
+        <SideMenuItem
+          link={{
+            title: "Settings",
+            to: routeOf(PageMap.DATA_OBSERVABILITY_SETTINGS),
+          }}
+          icon={IconProp.Settings}
+        />
+        <SideMenuItem
+          link={{
+            title: "Owner Rules",
+            to: routeOf(PageMap.DATA_OBSERVABILITY_SETTINGS_OWNER_RULES),
+          }}
+          icon={IconProp.Team}
+        />
+        <SideMenuItem
+          link={{
+            title: "Label Rules",
+            to: routeOf(PageMap.DATA_OBSERVABILITY_SETTINGS_LABEL_RULES),
+          }}
+          icon={IconProp.Label}
+        />
       </SideMenuSection>
     </SideMenu>
   );

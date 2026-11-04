@@ -9,6 +9,7 @@ import oracledb from "oracledb";
 import { Collection, Db, MongoClient } from "mongodb";
 import DataAssetKind from "../../../Types/DataObservability/DataAssetKind";
 import DataAssetLineageSource from "../../../Types/DataObservability/DataAssetLineageSource";
+import { DataColumnMapping } from "../../../Types/DataObservability/DataColumnLineage";
 import {
   DataAssetColumn,
   MAX_COLUMN_NAME_LENGTH,
@@ -39,7 +40,10 @@ import ClickHouseHttpApi, {
   readClickHouseConnection,
 } from "./ClickHouseHttpApi";
 import DatabricksApi, { readDatabricksConnection } from "./DatabricksApi";
-import AthenaApi, { readAthenaConnection } from "./AthenaApi";
+import AthenaApi, {
+  describeScanLimit,
+  readAthenaConnection,
+} from "./AthenaApi";
 import { MongoCheckStatement, readMongoCheckStatement } from "./MongoDbChecks";
 import { isMongoSystemDatabase, readMongoUri } from "./MongoUri";
 import { MAX_SEGMENTS_PER_CHECK } from "../../../Types/DataObservability/DataCheckType";
@@ -49,6 +53,7 @@ import {
 } from "./OracleConnection";
 import { JSONObject } from "../../../Types/JSON";
 import {
+  DataCheckLimits,
   DataCheckRunResult,
   MAX_CHECK_ERROR_LENGTH,
   PlannedDataCheck,
@@ -135,6 +140,13 @@ export const MAX_IDENTIFIER_LENGTH: number = 240;
 export const MAX_COLUMNS_PER_COLLECTION: number = 200_000;
 // Most warnings one collection keeps.
 export const MAX_COLLECTION_WARNINGS: number = 20;
+
+// What a read replica cannot say, as its database's warning.
+const READ_REPLICA_WARNING: string =
+  "This is a read replica. It does not count the writes it replays, or the reads on its primary, so a table's last change comes from its rows and size, and its reads are left out. Connect the primary to count both.";
+
+// BigQuery's words when a query would bill more than it was allowed.
+const BYTES_BILLED_LIMIT_PATTERN: RegExp = /bytes ?billed/i;
 /*
  * The newest documents of a MongoDB collection whose fields are read when
  * no validator names them: the same documents read the same, so a field
@@ -213,6 +225,12 @@ export interface CollectedTable {
   secondsSinceRead?: number | null | undefined;
   // Null when the collection could not read all of them (the column list was cut).
   columns: Array<DataAssetColumn> | null;
+  /*
+   * True when the columns were worked out from its data, not read from a
+   * schema (MongoDB's newest documents): one coming or going says what the
+   * documents hold, not that anything broke.
+   */
+  columnsAreInferred?: boolean | undefined;
 }
 
 // Where the database itself shows one table feeding another.
@@ -238,6 +256,8 @@ export interface CollectedLineageEdge {
   secondsSinceSeen: number | null;
   // A login or service account whose queries moved it; null for a view.
   seenBy: string | null;
+  // Which columns feed which, when the database says (Snowflake's access history).
+  columnMappings?: Array<DataColumnMapping> | undefined;
 }
 
 export interface TableHealthSnapshot {
@@ -298,6 +318,7 @@ interface RawTable {
   secondsSinceChange: number | null;
   readCount: number | null;
   secondsSinceRead: number | null;
+  columnsAreInferred?: boolean | undefined;
 }
 
 interface RawColumn {
@@ -348,6 +369,7 @@ interface CatalogSession {
   readAggregate(
     sql: string,
     params: Array<string>,
+    limits?: DataCheckLimits | undefined,
   ): Promise<Array<Record<string, unknown>>>;
   close(): Promise<void>;
 }
@@ -724,6 +746,16 @@ class PostgresCatalog implements CatalogSession {
       tableRows = await this.rows(this.tablesSql(false), [options.maxTables]);
     }
 
+    const [recovery] = await this.rows(
+      "SELECT pg_catalog.pg_is_in_recovery() AS in_recovery",
+      [],
+    );
+    const isReplica: boolean = recovery?.["in_recovery"] === true;
+
+    if (isReplica) {
+      warnings.push(READ_REPLICA_WARNING);
+    }
+
     const tables: Array<RawTable> = [];
 
     for (const row of tableRows) {
@@ -740,9 +772,9 @@ class PostgresCatalog implements CatalogSession {
         kind,
         estimatedRows: readCount(row["estimated_rows"]),
         sizeInBytes: readCount(row["size_bytes"]),
-        writeCount: readCount(row["write_count"]),
+        writeCount: isReplica ? null : readCount(row["write_count"]),
         secondsSinceChange: null,
-        readCount: readCount(row["read_count"]),
+        readCount: isReplica ? null : readCount(row["read_count"]),
         secondsSinceRead: null,
       });
     }
@@ -1195,6 +1227,17 @@ class SqlServerCatalog implements CatalogSession {
     > = new Map();
     let secondsSinceStatsReset: number | null = null;
 
+    // A readable secondary replays writes without counting them, and sees its own reads only.
+    const [role] = await this.run(
+      "SELECT CAST(DATABASEPROPERTYEX(DB_NAME(), 'Updateability') AS nvarchar(20)) AS updateability",
+      [],
+    );
+    const isReplica: boolean = role?.["updateability"] === "READ_ONLY";
+
+    if (isReplica) {
+      warnings.push(READ_REPLICA_WARNING);
+    }
+
     try {
       const statisticRows: Array<Record<string, unknown>> = await this.run(
         `SELECT TOP (@p0) s.name AS table_schema, o.name AS table_name,
@@ -1225,10 +1268,14 @@ class SqlServerCatalog implements CatalogSession {
           ),
           {
             sizeInBytes: readCount(row["size_bytes"]),
-            secondsSinceChange: readCount(row["seconds_since_change"]),
-            writeCount: readCount(row["write_count"]),
-            readCount: readCount(row["read_count"]),
-            secondsSinceRead: readCount(row["seconds_since_read"]),
+            secondsSinceChange: isReplica
+              ? null
+              : readCount(row["seconds_since_change"]),
+            writeCount: isReplica ? null : readCount(row["write_count"]),
+            readCount: isReplica ? null : readCount(row["read_count"]),
+            secondsSinceRead: isReplica
+              ? null
+              : readCount(row["seconds_since_read"]),
           },
         );
       }
@@ -1742,6 +1789,137 @@ class SnowflakeCatalog implements CatalogSession {
     });
   }
 
+  /*
+   * Views from OBJECT_DEPENDENCIES and queries from ACCESS_HISTORY, down to
+   * which column feeds which. Both are ACCOUNT_USAGE, read on the warehouse
+   * once an hour with spend. ACCESS_HISTORY is Snowflake Enterprise's:
+   * without it, views still say their lineage.
+   */
+  public async readLineage(
+    options: TableHealthCollectOptions,
+  ): Promise<LineageRead> {
+    const lookback: number = readLookback(options);
+
+    if (lookback <= 0) {
+      return NO_LINEAGE;
+    }
+
+    const window: number = Math.max(
+      lookback,
+      SNOWFLAKE_ACCOUNT_USAGE_LATENCY_IN_SECONDS,
+    );
+    const warnings: Array<string> = [];
+    const edges: Array<CollectedLineageEdge> = [];
+    let isViewLineageComplete: boolean = false;
+
+    try {
+      const rows: Array<Record<string, unknown>> = await this.api.query({
+        statement: SNOWFLAKE_VIEW_LINEAGE_QUERY,
+        bindings: [this.database],
+        useWarehouse: true,
+      });
+
+      for (const row of rows) {
+        const isHere: boolean =
+          String(row["upstream_database"] ?? "").toUpperCase() ===
+          this.database.toUpperCase();
+        const edge: CollectedLineageEdge | null = readLineageRow(
+          { ...row, upstream_database: isHere ? "" : row["upstream_database"] },
+          DataAssetLineageSource.ViewDefinition,
+        );
+
+        if (edge) {
+          edges.push(edge);
+        }
+      }
+
+      isViewLineageComplete = rows.length < MAX_LINEAGE_EDGES_PER_COLLECTION;
+    } catch (error) {
+      warnings.push(
+        `View lineage was left out (SNOWFLAKE.ACCOUNT_USAGE needs IMPORTED PRIVILEGES): ${describeError(error).slice(0, 200)}`,
+      );
+    }
+
+    try {
+      const queryEdges: Map<string, CollectedLineageEdge> = new Map();
+
+      for (const row of await this.api.query({
+        statement: buildSnowflakeQueryLineageQuery(window),
+        bindings: [this.database],
+        useWarehouse: true,
+      })) {
+        const upstream: ReturnType<typeof readSnowflakeObjectParts> =
+          readSnowflakeObjectParts(row["upstream_object"], this.database);
+        const downstream: ReturnType<typeof readSnowflakeObjectParts> =
+          readSnowflakeObjectParts(row["downstream_object"], this.database);
+
+        if (!upstream || !downstream || downstream.database) {
+          continue;
+        }
+
+        const edge: CollectedLineageEdge | null = readLineageRow(
+          {
+            upstream_database: upstream.database,
+            upstream_schema: upstream.schema,
+            upstream_table: upstream.table,
+            downstream_schema: downstream.schema,
+            downstream_table: downstream.table,
+            seconds_since_seen: row["seconds_since_seen"],
+            seen_by: row["seen_by"],
+          },
+          DataAssetLineageSource.QueryHistory,
+        );
+
+        if (edge) {
+          queryEdges.set(
+            `${row["upstream_object"]}\u0000${row["downstream_object"]}`.toUpperCase(),
+            edge,
+          );
+        }
+      }
+
+      // Column lineage is extra: the tables' edge stands without it.
+      try {
+        for (const row of await this.api.query({
+          statement: buildSnowflakeColumnLineageQuery(window),
+          bindings: [this.database],
+          useWarehouse: true,
+        })) {
+          const edge: CollectedLineageEdge | undefined = queryEdges.get(
+            `${row["upstream_object"]}\u0000${row["downstream_object"]}`.toUpperCase(),
+          );
+          const upstreamColumn: string = readText(
+            row["upstream_column"],
+            MAX_COLUMN_NAME_LENGTH,
+          );
+          const downstreamColumn: string = readText(
+            row["downstream_column"],
+            MAX_COLUMN_NAME_LENGTH,
+          );
+
+          if (edge && upstreamColumn && downstreamColumn) {
+            edge.columnMappings = [
+              ...(edge.columnMappings || []),
+              { upstreamColumn, downstreamColumn },
+            ];
+          }
+        }
+      } catch (error) {
+        warnings.push(
+          `Column lineage was left out: ${describeError(error).slice(0, 200)}`,
+        );
+      }
+
+      edges.push(...queryEdges.values());
+    } catch (error) {
+      warnings.push(
+        `Query lineage was left out (ACCESS_HISTORY is Snowflake Enterprise's): ${describeError(error).slice(0, 200)}`,
+      );
+    }
+
+    return { edges, isViewLineageComplete, warnings };
+  }
+
   public async read(options: TableHealthCollectOptions): Promise<CatalogRead> {
     const warnings: Array<string> = [];
     const database: string = snowflakeIdentifier(this.database);
@@ -2027,6 +2205,76 @@ export function buildSnowflakeSpendQuery(withAttribution: boolean): string {
 }
 
 // The tables each job wrote, from ACCESS_HISTORY (Snowflake Enterprise).
+// ACCOUNT_USAGE runs up to three hours behind: a shorter look back would miss what it has not said yet.
+const SNOWFLAKE_ACCOUNT_USAGE_LATENCY_IN_SECONDS: number = 6 * 60 * 60;
+
+// A view and what it is defined on, across the account's databases.
+export const SNOWFLAKE_VIEW_LINEAGE_QUERY: string = `SELECT d.referenced_database AS upstream_database,
+    d.referenced_schema AS upstream_schema, d.referenced_object_name AS upstream_table,
+    d.referencing_schema AS downstream_schema, d.referencing_object_name AS downstream_table
+  FROM SNOWFLAKE.ACCOUNT_USAGE.OBJECT_DEPENDENCIES d
+  WHERE UPPER(d.referencing_database) = UPPER(?)
+    AND d.referencing_object_domain IN ('VIEW', 'MATERIALIZED VIEW')
+    AND d.referenced_object_domain IN ('TABLE', 'VIEW', 'MATERIALIZED VIEW')
+  LIMIT ${MAX_LINEAGE_EDGES_PER_COLLECTION}`;
+
+// A query that read one table and wrote another, by the base tables behind any view it read.
+export function buildSnowflakeQueryLineageQuery(
+  lookbackInSeconds: number,
+): string {
+  return `SELECT base.value:"objectName"::string AS upstream_object,
+    written.value:"objectName"::string AS downstream_object,
+    DATEDIFF('second', MAX(h.query_start_time), CURRENT_TIMESTAMP()) AS seconds_since_seen,
+    MAX(h.user_name) AS seen_by
+  FROM SNOWFLAKE.ACCOUNT_USAGE.ACCESS_HISTORY h,
+    LATERAL FLATTEN(input => h.base_objects_accessed) base,
+    LATERAL FLATTEN(input => h.objects_modified) written
+  WHERE h.query_start_time > DATEADD('second', -${Math.floor(lookbackInSeconds)}, CURRENT_TIMESTAMP())
+    AND base.value:"objectDomain"::string IN ('Table', 'Materialized view')
+    AND written.value:"objectDomain"::string = 'Table'
+    AND STARTSWITH(UPPER(written.value:"objectName"::string), UPPER(?) || '.')
+  GROUP BY 1, 2
+  LIMIT ${MAX_LINEAGE_EDGES_PER_COLLECTION}`;
+}
+
+// The same history, a column at a time: each written column and the base columns behind it.
+export function buildSnowflakeColumnLineageQuery(
+  lookbackInSeconds: number,
+): string {
+  return `SELECT source.value:"objectName"::string AS upstream_object,
+    source.value:"columnName"::string AS upstream_column,
+    written.value:"objectName"::string AS downstream_object,
+    col.value:"columnName"::string AS downstream_column
+  FROM SNOWFLAKE.ACCOUNT_USAGE.ACCESS_HISTORY h,
+    LATERAL FLATTEN(input => h.objects_modified) written,
+    LATERAL FLATTEN(input => written.value:"columns") col,
+    LATERAL FLATTEN(input => col.value:"baseSources") source
+  WHERE h.query_start_time > DATEADD('second', -${Math.floor(lookbackInSeconds)}, CURRENT_TIMESTAMP())
+    AND written.value:"objectDomain"::string = 'Table'
+    AND STARTSWITH(UPPER(written.value:"objectName"::string), UPPER(?) || '.')
+  GROUP BY 1, 2, 3, 4
+  LIMIT ${MAX_LINEAGE_EDGES_PER_COLLECTION}`;
+}
+
+// An object's three-part name as a lineage row names it: its database only when it is another's.
+export function readSnowflakeObjectParts(
+  value: unknown,
+  storeDatabase: string,
+): { database: string; schema: string; table: string } | null {
+  const parts: Array<string> = String(value ?? "").split(".");
+
+  if (parts.length !== 3 || parts.some((part: string) => !part)) {
+    return null;
+  }
+
+  return {
+    database:
+      parts[0]!.toUpperCase() === storeDatabase.toUpperCase() ? "" : parts[0]!,
+    schema: parts[1]!,
+    table: parts[2]!,
+  };
+}
+
 export const SNOWFLAKE_WRITTEN_TABLES_QUERY: string = `SELECT q.query_parameterized_hash AS job_key,
     f.value:"objectName"::string AS object_name
   FROM SNOWFLAKE.ACCOUNT_USAGE.ACCESS_HISTORY h,
@@ -2225,8 +2473,24 @@ class BigQueryCatalog implements CatalogSession {
   public async readAggregate(
     sql: string,
     params: Array<string>,
+    limits?: DataCheckLimits | undefined,
   ): Promise<Array<Record<string, unknown>>> {
-    return await this.api.query({ statement: sql, params });
+    try {
+      return await this.api.query({
+        statement: sql,
+        params,
+        maximumBytesBilled: limits?.maxBytesScanned,
+      });
+    } catch (error) {
+      if (
+        limits?.maxBytesScanned &&
+        BYTES_BILLED_LIMIT_PATTERN.test(describeError(error))
+      ) {
+        throw new Error(describeScanLimit(limits.maxBytesScanned));
+      }
+
+      throw error;
+    }
   }
 
   private datasetReference(): string {
@@ -3484,8 +3748,13 @@ class AthenaCatalog implements CatalogSession {
   public async readAggregate(
     sql: string,
     params: Array<string>,
+    limits?: DataCheckLimits | undefined,
   ): Promise<Array<Record<string, unknown>>> {
-    return await this.api.query({ statement: sql, params });
+    return await this.api.query({
+      statement: sql,
+      params,
+      maxBytesScanned: limits?.maxBytesScanned,
+    });
   }
 
   public async read(options: TableHealthCollectOptions): Promise<CatalogRead> {
@@ -4297,6 +4566,9 @@ class MongoCatalog implements CatalogSession {
       this.readSample(collection),
     ]);
     const newestAt: Date | null = readObjectIdTime(sample?.newestId);
+    const declared: Array<DataAssetColumn> | null = readMongoSchemaFields(
+      info.options["validator"],
+    );
 
     return {
       table: {
@@ -4304,14 +4576,12 @@ class MongoCatalog implements CatalogSession {
         estimatedRows: stats.rows,
         sizeInBytes: stats.size,
         writeCount: stats.writes,
+        columnsAreInferred: declared === null,
         secondsSinceChange: newestAt
           ? Math.max(0, Math.floor((now.getTime() - newestAt.getTime()) / 1000))
           : null,
       },
-      columns:
-        readMongoSchemaFields(info.options["validator"]) ??
-        sample?.fields ??
-        null,
+      columns: declared ?? sample?.fields ?? null,
       viewOn: null,
     };
   }
@@ -4680,7 +4950,11 @@ export async function collectTableHealth(
           values: readCheckRows({
             type: check.type,
             isSegmented: check.isSegmented,
-            rows: await catalog.readAggregate(check.sql, check.params),
+            rows: await catalog.readAggregate(
+              check.sql,
+              check.params,
+              check.limits,
+            ),
           }),
           error: null,
         });

@@ -73,6 +73,10 @@ export function getDataObservabilityBreadcrumbs(
       ["Project", "Data Observability", "Tables", "View Table", "Lineage"],
     ),
     ...BuildBreadcrumbLinksByTitles(
+      PageMap.DATA_OBSERVABILITY_TABLE_VIEW_OWNERS,
+      ["Project", "Data Observability", "Tables", "View Table", "Owners"],
+    ),
+    ...BuildBreadcrumbLinksByTitles(
       PageMap.DATA_OBSERVABILITY_TABLE_VIEW_SETTINGS,
       ["Project", "Data Observability", "Tables", "View Table", "Settings"],
     ),
@@ -119,6 +123,33 @@ export function getDataObservabilityBreadcrumbs(
       PageMap.DATA_OBSERVABILITY_RECONCILIATIONS,
       ["Project", "Data Observability", "Reconciliations"],
     ),
+    ...BuildBreadcrumbLinksByTitles(PageMap.DATA_OBSERVABILITY_SETTINGS_OWNER_RULES, [
+      "Project",
+      "Data Observability",
+      "Owner Rules",
+    ]),
+    ...BuildBreadcrumbLinksByTitles(PageMap.DATA_OBSERVABILITY_SETTINGS_OWNER_RULE_VIEW, [
+      "Project",
+      "Data Observability",
+      "Owner Rules",
+      "View Rule",
+    ]),
+    ...BuildBreadcrumbLinksByTitles(PageMap.DATA_OBSERVABILITY_SETTINGS_LABEL_RULES, [
+      "Project",
+      "Data Observability",
+      "Label Rules",
+    ]),
+    ...BuildBreadcrumbLinksByTitles(PageMap.DATA_OBSERVABILITY_SETTINGS_LABEL_RULE_VIEW, [
+      "Project",
+      "Data Observability",
+      "Label Rules",
+      "View Rule",
+    ]),
+    ...BuildBreadcrumbLinksByTitles(PageMap.DATA_OBSERVABILITY_SETTINGS, [
+      "Project",
+      "Data Observability",
+      "Settings",
+    ]),
     ...BuildBreadcrumbLinksByTitles(PageMap.DATA_OBSERVABILITY_BI_DASHBOARDS, [
       "Project",
       "Data Observability",

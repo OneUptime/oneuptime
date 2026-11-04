@@ -60,6 +60,10 @@ export const USAGE_RETENTION_IN_DAYS: number = 30;
 // The most span groups one project's read hands back.
 export const MAX_USAGE_ROWS_PER_PROJECT: number = 10_000;
 
+// A usage's busiest endpoints that are kept, and how long a route may be.
+export const MAX_ENDPOINTS_PER_USAGE: number = 10;
+const MAX_ENDPOINT_LENGTH: number = 200;
+
 // The most usage rows one project keeps.
 export const MAX_USAGES_PER_PROJECT: number = 20_000;
 
@@ -80,6 +84,8 @@ export interface UsageDraft {
   callCount: number;
   errorCount: number;
   lastSeenAt: Date;
+  // Calls by endpoint, when this run read them.
+  endpointCalls?: Map<string, number> | undefined;
 }
 
 export function getUsageKey(data: {
@@ -164,16 +170,24 @@ export function readSpanTableUsageRow(
   };
 }
 
+// What a client span says about one call, as the reads below group it.
+function usageColumns(): Statement {
+  return SQL`primaryEntityId AS serviceId, lower(multiIf(attributes['db.system.name'] != '', attributes['db.system.name'], attributes['db.system'])) AS dbSystem, multiIf(attributes['db.namespace'] != '', attributes['db.namespace'], attributes['db.name']) AS dbNamespace, multiIf(attributes['server.address'] != '', attributes['server.address'], attributes['net.peer.name']) AS serverAddress, multiIf(attributes['db.collection.name'] != '', attributes['db.collection.name'], attributes['db.sql.table'] != '', attributes['db.sql.table'], attributes['db.mongodb.collection'] != '', attributes['db.mongodb.collection'], match(name, ${{
+    type: TableColumnType.Text,
+    value: NAMED_STATEMENT_PATTERN,
+  }}), splitByChar(' ', name)[2], '') AS collection, multiIf(attributes['db.operation.name'] != '', attributes['db.operation.name'], attributes['db.operation'] != '', attributes['db.operation'], splitByChar(' ', name)[1]) AS operation`;
+}
+
 // The read: a project's client spans to a database in the window, grouped.
 export function buildTableUsageStatement(data: {
   projectId: ObjectID;
   since: Date;
   until: Date;
 }): Statement {
-  const statement: Statement = SQL`SELECT serviceId, dbSystem, dbNamespace, serverAddress, collection, operation, count() AS callCount, countIf(statusCode = 2) AS errorCount, max(startTime) AS lastSeenAt FROM (SELECT primaryEntityId AS serviceId, lower(multiIf(attributes['db.system.name'] != '', attributes['db.system.name'], attributes['db.system'])) AS dbSystem, multiIf(attributes['db.namespace'] != '', attributes['db.namespace'], attributes['db.name']) AS dbNamespace, multiIf(attributes['server.address'] != '', attributes['server.address'], attributes['net.peer.name']) AS serverAddress, multiIf(attributes['db.collection.name'] != '', attributes['db.collection.name'], attributes['db.sql.table'] != '', attributes['db.sql.table'], attributes['db.mongodb.collection'] != '', attributes['db.mongodb.collection'], match(name, ${{
-    type: TableColumnType.Text,
-    value: NAMED_STATEMENT_PATTERN,
-  }}), splitByChar(' ', name)[2], '') AS collection, multiIf(attributes['db.operation.name'] != '', attributes['db.operation.name'], attributes['db.operation'] != '', attributes['db.operation'], splitByChar(' ', name)[1]) AS operation, statusCode, startTime FROM `;
+  const statement: Statement = SQL`SELECT serviceId, dbSystem, dbNamespace, serverAddress, collection, operation, count() AS callCount, countIf(statusCode = 2) AS errorCount, max(startTime) AS lastSeenAt FROM (SELECT `;
+
+  statement.append(usageColumns());
+  statement.append(`, statusCode, startTime FROM `);
 
   statement.append(`${getClickhouseDatabaseName()}.${AnalyticsTableName.Span}`);
   statement.append(
@@ -200,6 +214,96 @@ export function buildTableUsageStatement(data: {
   statement.append(getQuerySettings({ ...INTERACTIVE_READ_TIME_LIMIT }));
 
   return statement;
+}
+
+/*
+ * Which endpoints make those calls: a client span tied to the server span of
+ * the same service and trace, for its route. Costlier than the read above,
+ * and extra to it, so it runs once an hour.
+ */
+export function buildTableUsageEndpointsStatement(data: {
+  projectId: ObjectID;
+  since: Date;
+  until: Date;
+}): Statement {
+  const table: string = `${getClickhouseDatabaseName()}.${AnalyticsTableName.Span}`;
+  const statement: Statement = SQL`SELECT c.serviceId AS serviceId, c.dbSystem AS dbSystem, c.dbNamespace AS dbNamespace, c.serverAddress AS serverAddress, c.collection AS collection, c.operation AS operation, s.route AS route, count() AS callCount, 0 AS errorCount, max(c.startTime) AS lastSeenAt FROM (SELECT traceId, startTime, `;
+
+  statement.append(usageColumns());
+  statement.append(` FROM ${table}`);
+  statement.append(
+    SQL` WHERE projectId = ${{
+      type: TableColumnType.ObjectID,
+      value: data.projectId,
+    }} AND kind = ${{
+      type: TableColumnType.Text,
+      value: SpanKind.Client,
+    }} AND startTime >= ${{
+      type: TableColumnType.Date,
+      value: data.since,
+    }} AND startTime < ${{
+      type: TableColumnType.Date,
+      value: data.until,
+    }}) c ANY INNER JOIN (SELECT traceId, primaryEntityId AS serviceId, any(attributes['http.route']) AS route FROM `,
+  );
+  statement.append(table);
+  statement.append(
+    SQL` WHERE projectId = ${{
+      type: TableColumnType.ObjectID,
+      value: data.projectId,
+    }} AND kind = ${{
+      type: TableColumnType.Text,
+      value: SpanKind.Server,
+    }} AND startTime >= ${{
+      type: TableColumnType.Date,
+      value: data.since,
+    }} AND startTime < ${{
+      type: TableColumnType.Date,
+      value: data.until,
+    }} AND attributes['http.route'] != '' GROUP BY traceId, serviceId) s ON c.traceId = s.traceId AND c.serviceId = s.serviceId WHERE c.dbSystem != '' AND c.collection != '' GROUP BY serviceId, dbSystem, dbNamespace, serverAddress, collection, operation, route ORDER BY callCount DESC LIMIT ${{
+      type: TableColumnType.Number,
+      value: MAX_USAGE_ROWS_PER_PROJECT,
+    }}`,
+  );
+  statement.append(getQuerySettings({ ...INTERACTIVE_READ_TIME_LIMIT }));
+
+  return statement;
+}
+
+// Adds one endpoint's calls to the draft of the table, service and way they belong to.
+export function addUsageEndpoint(data: {
+  drafts: Map<string, UsageDraft>;
+  row: SpanTableUsageRow;
+  match: TableUsageMatch;
+  route: string;
+}): void {
+  const draft: UsageDraft | undefined = data.drafts.get(
+    `${data.match.asset.dataAssetId}:${getUsageKey({
+      serviceId: data.row.serviceId,
+      accessKind: data.match.accessKind,
+    })}`,
+  );
+
+  if (draft) {
+    const calls: Map<string, number> = draft.endpointCalls || new Map();
+
+    calls.set(data.route, (calls.get(data.route) || 0) + data.row.callCount);
+    draft.endpointCalls = calls;
+  }
+}
+
+// A usage's busiest endpoints, most calls first.
+export function getTopEndpoints(
+  calls: Map<string, number> | undefined,
+): Array<string> {
+  return Array.from((calls || new Map<string, number>()).entries())
+    .sort((a: [string, number], b: [string, number]): number => {
+      return b[1] - a[1] || (a[0] < b[0] ? -1 : 1);
+    })
+    .slice(0, MAX_ENDPOINTS_PER_USAGE)
+    .map((entry: [string, number]): string => {
+      return entry[0].slice(0, MAX_ENDPOINT_LENGTH);
+    });
 }
 
 export default class TableUsageDiscovery {
@@ -257,6 +361,41 @@ export default class TableUsageDiscovery {
 
       if (match) {
         addUsageMatch({ drafts, row, match });
+      }
+    }
+
+    // The endpoints are extra, and read at the first run of each hour.
+    if (data.now.getUTCMinutes() < 10) {
+      try {
+        const result: Results = await SpanService.executeQuery(
+          buildTableUsageEndpointsStatement({
+            projectId: data.projectId,
+            since: OneUptimeDate.addRemoveMinutes(
+              data.now,
+              -TABLE_USAGE_WINDOW_IN_MINUTES,
+            ),
+            until: data.now,
+          }),
+        );
+        const response: ResponseJSON<JSONObject> =
+          await result.json<JSONObject>();
+
+        for (const raw of (response.data || []) as Array<JSONObject>) {
+          const row: SpanTableUsageRow | null = readSpanTableUsageRow(raw);
+          const route: string = String(raw["route"] || "").trim();
+          const match: TableUsageMatch | null = row
+            ? matchSpanTableUsage({ row, stores, assets })
+            : null;
+
+          if (row && match && route) {
+            addUsageEndpoint({ drafts, row, match, route });
+          }
+        }
+      } catch (error) {
+        logger.error(
+          `Data Observability: could not read which endpoints use the tables of project ${data.projectId.toString()}`,
+        );
+        logger.error(error);
       }
     }
 
@@ -434,6 +573,9 @@ export default class TableUsageDiscovery {
               callCount: draft.callCount,
               errorCount: draft.errorCount,
               lastSeenAt: draft.lastSeenAt,
+              ...(draft.endpointCalls
+                ? { endpoints: getTopEndpoints(draft.endpointCalls) }
+                : {}),
             } as never,
           });
           continue;
@@ -456,6 +598,10 @@ export default class TableUsageDiscovery {
         usage.errorCount = draft.errorCount;
         usage.firstSeenAt = draft.lastSeenAt;
         usage.lastSeenAt = draft.lastSeenAt;
+
+        if (draft.endpointCalls) {
+          usage.endpoints = getTopEndpoints(draft.endpointCalls);
+        }
 
         const created: DataAssetUsage = await DataAssetUsageService.create({
           data: usage,

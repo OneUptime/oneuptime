@@ -118,6 +118,8 @@ export interface DataStoreCheckInput {
     | undefined;
   // Password columns whose values are not password hashes.
   plaintextPasswordFields?: ReadonlyArray<string> | undefined;
+  // Columns added lately whose names say they hold personal data (Data Observability saw them).
+  newPersonalDataColumns?: ReadonlyArray<string> | undefined;
   now?: Date | undefined;
 }
 
@@ -1475,6 +1477,34 @@ export const DATA_SECURITY_CHECKS: ReadonlyArray<DataSecurityCheckInfo> = [
       );
 
       return idleDays >= 90 ? fail(`No activity for ${idleDays} days.`) : PASS;
+    },
+  },
+  {
+    id: "new-personal-data-column",
+    group: G.Hygiene,
+    title: "A new column holds personal data",
+    description:
+      "A column added in the last 14 days has a name that says it holds personal data.",
+    whyItMatters:
+      "A migration can start collecting personal data without anyone deciding it should. Catching it the day it ships is when it is cheapest to mask, move or drop.",
+    severityBySensitivity: severities(S.High, S.High, S.Medium, S.Medium),
+    families: STORING_FAMILIES,
+    requirements: [r(CF.GDPR, "Art. 30"), ...MINIMISATION_REQUIREMENTS],
+    remediation: {
+      default: {
+        steps: [
+          "Confirm the column should hold this data, and record why. If it should not, drop it or stop writing to it.",
+        ],
+      },
+    },
+    evaluate: (input: DataStoreCheckInput): DataSecurityCheckResult => {
+      if (input.newPersonalDataColumns === undefined) {
+        return NOT_APPLICABLE;
+      }
+
+      return input.newPersonalDataColumns.length > 0
+        ? fail(`New columns: ${input.newPersonalDataColumns.join(", ")}.`)
+        : PASS;
     },
   },
   {

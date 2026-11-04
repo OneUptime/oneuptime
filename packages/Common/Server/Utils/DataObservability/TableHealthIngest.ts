@@ -1,3 +1,4 @@
+import { applyRowCountTolerance } from "../../../Types/DataObservability/DataAlertFeedback";
 import DataAsset from "../../../Models/DatabaseModels/DataAsset";
 import { DataAssetFeedEventType } from "../../../Models/DatabaseModels/DataAssetFeed";
 import MetricType from "../../../Models/DatabaseModels/MetricType";
@@ -119,6 +120,7 @@ export interface PreviousAssetState {
   isDropped: boolean;
   // When it was last read, and since when it has had none (DataAssetReads).
   reads?: DataAssetReadState | undefined;
+  rowCountChangeTolerancePercent?: number | null | undefined;
 }
 
 export interface AssetPlan {
@@ -164,6 +166,8 @@ export function toPreviousAssetState(asset: DataAsset): PreviousAssetState {
       ? readDataAssetColumns(asset.columns)
       : null,
     rowCount: typeof asset.rowCount === "number" ? asset.rowCount : null,
+    rowCountChangeTolerancePercent:
+      asset.rowCountChangeTolerancePercent ?? null,
     sizeInBytes:
       typeof asset.sizeInBytes === "number" ? asset.sizeInBytes : null,
     lastChangedAt: asset.lastChangedAt
@@ -466,6 +470,8 @@ export function getTableMetricValues(data: {
   collectedAt: Date;
   // The row count the collection before saw; null for a table seen for the first time.
   previousRowCount?: number | null | undefined;
+  // A change this small counts as none: raised by "not an issue" on such an alert.
+  rowCountChangeTolerancePercent?: number | null | undefined;
 }): Array<{ name: DataObservabilityMetricName; value: number }> {
   const values: Array<{ name: DataObservabilityMetricName; value: number }> =
     [];
@@ -503,6 +509,13 @@ export function getTableMetricValues(data: {
     value: data.plan.columnChanges.length,
   });
 
+  values.push({
+    name: DataObservabilityMetricName.BreakingSchemaChanges,
+    value: data.table.columnsAreInferred
+      ? 0
+      : data.plan.columnChanges.filter(isBreakingColumnChange).length,
+  });
+
   if (holdsRows) {
     const freshness: DataAssetFreshnessResult = getDataAssetFreshness({
       kind: data.table.kind,
@@ -533,11 +546,13 @@ export function getTableMetricValues(data: {
   ) {
     values.push({
       name: DataObservabilityMetricName.RowCountChangePercent,
-      value:
+      value: applyRowCountTolerance(
         Math.round(
           ((data.table.estimatedRows - previousRowCount) / previousRowCount) *
             10000,
         ) / 100,
+        data.rowCountChangeTolerancePercent,
+      ),
     });
   }
 
@@ -567,6 +582,7 @@ export default class TableHealthIngest {
         assetKey: true,
         columns: true,
         rowCount: true,
+        rowCountChangeTolerancePercent: true,
         sizeInBytes: true,
         lastChangedAt: true,
         updateIntervalInSeconds: true,
@@ -656,6 +672,8 @@ export default class TableHealthIngest {
           plan,
           collectedAt,
           previousRowCount: previous?.rowCount ?? null,
+          rowCountChangeTolerancePercent:
+            previous?.rowCountChangeTolerancePercent ?? null,
         })) {
           metricRows.push(
             buildMetricRow({

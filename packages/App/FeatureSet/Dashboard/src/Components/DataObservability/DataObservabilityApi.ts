@@ -1,3 +1,8 @@
+import {
+  DataAlertExplanation,
+  DataAlertFeedback,
+  DataObservabilityQuality,
+} from "Common/Types/DataObservability/DataAlertFeedback";
 import URL from "Common/Types/API/URL";
 import HTTPErrorResponse from "Common/Types/API/HTTPErrorResponse";
 import HTTPResponse from "Common/Types/API/HTTPResponse";
@@ -168,6 +173,34 @@ export default class DataObservabilityApi {
     return (await post(
       DATA_OBSERVABILITY_API_ROUTES.biSync(dataBiConnectionId.toString()),
     )) as unknown as DataObservabilityBiSyncResponse;
+  }
+
+  public static async getAlertExplanation(
+    alertId: ObjectID,
+  ): Promise<DataAlertExplanation | null> {
+    const response: JSONObject = await post(
+      DATA_OBSERVABILITY_API_ROUTES.alertExplanation(alertId.toString()),
+    );
+
+    return (response["explanation"] ||
+      null) as unknown as DataAlertExplanation | null;
+  }
+
+  public static async sendAlertFeedback(
+    alertId: ObjectID,
+    data: { feedback?: DataAlertFeedback; isCauseConfirmed?: boolean },
+  ): Promise<void> {
+    await post(
+      DATA_OBSERVABILITY_API_ROUTES.alertFeedback(alertId.toString()),
+      data as unknown as JSONObject,
+    );
+  }
+
+  // How well Data Observability is working for the project.
+  public static async getQuality(): Promise<DataObservabilityQuality> {
+    return (await post(
+      DATA_OBSERVABILITY_API_ROUTES.quality,
+    )) as unknown as DataObservabilityQuality;
   }
 
   // What the project's warehouses spent over the last day.

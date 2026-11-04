@@ -139,6 +139,32 @@ interface StoreFacts {
   issues: Array<DataSecurityIssue>;
 }
 
+// How long a new column that holds personal data stays an issue, unless it is dropped sooner.
+const NEW_PERSONAL_DATA_COLUMN_WINDOW_IN_DAYS: number = 14;
+
+// The columns Data Observability saw added whose names say they hold personal data.
+export function readNewPersonalDataColumns(
+  state: JSONObject,
+  now: Date,
+): Array<string> | undefined {
+  const raw: unknown = state["newPersonalDataColumns"];
+
+  if (!Array.isArray(raw)) {
+    return undefined;
+  }
+
+  const since: number =
+    now.getTime() - NEW_PERSONAL_DATA_COLUMN_WINDOW_IN_DAYS * 86_400_000;
+
+  return (raw as Array<JSONObject>)
+    .filter((item: JSONObject): boolean => {
+      return Date.parse(String(item["seenAt"])) >= since;
+    })
+    .map((item: JSONObject): string => {
+      return `${String(item["column"])} (${String(item["dataType"])})`;
+    });
+}
+
 function newFacts(): StoreFacts {
   return {
     findings: [],
@@ -394,6 +420,7 @@ export default class DataSecurityEvaluator {
       isAiData: Boolean(store.isAiData),
       residencyViolations,
       plaintextPasswordFields,
+      newPersonalDataColumns: readNewPersonalDataColumns(state, now),
       now,
     };
 

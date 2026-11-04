@@ -35,6 +35,12 @@ import PipelineOverviewPage from "../Pages/DataPipeline/View/Overview";
 import DataPipelineRecommendationsPage from "../Pages/DataPipeline/View/Recommendations";
 import DataObservabilityDataProductsPage from "../Pages/DataObservability/DataProducts";
 import DataObservabilityReconciliationsPage from "../Pages/DataObservability/Reconciliations";
+import DataObservabilitySettingsPage from "../Pages/DataObservability/Settings";
+import DataObservabilityOwnerRulesPage from "../Pages/DataObservability/OwnerRules";
+import DataObservabilityLabelRulesPage from "../Pages/DataObservability/LabelRules";
+import TableOwners from "../Pages/DataObservability/TableView/Owners";
+import DataAssetOwnerRule from "Common/Models/DatabaseModels/DataAssetOwnerRule";
+import DataAssetLabelRule from "Common/Models/DatabaseModels/DataAssetLabelRule";
 import DataObservabilityBiDashboardsPage from "../Pages/DataObservability/BiDashboards";
 import DataObservabilitySpendPage from "../Pages/DataObservability/Spend";
 import DataProductViewLayout from "../Pages/DataProduct/View/Layout";
@@ -139,6 +145,57 @@ const DataObservabilityRoutes: FunctionComponent<ComponentProps> = (
             );
           },
         )}
+        {page(
+          PageMap.DATA_OBSERVABILITY_SETTINGS_OWNER_RULES,
+          (pageRoute: Route) => {
+            return (
+              <DataObservabilityOwnerRulesPage
+                {...props}
+                pageRoute={pageRoute}
+              />
+            );
+          },
+        )}
+        {page(
+          PageMap.DATA_OBSERVABILITY_SETTINGS_OWNER_RULE_VIEW,
+          (pageRoute: Route) => {
+            return (
+              <DataObservabilityOwnerRulesPage
+                {...props}
+                pageRoute={pageRoute}
+                ruleViewModelType={DataAssetOwnerRule}
+              />
+            );
+          },
+        )}
+        {page(
+          PageMap.DATA_OBSERVABILITY_SETTINGS_LABEL_RULES,
+          (pageRoute: Route) => {
+            return (
+              <DataObservabilityLabelRulesPage
+                {...props}
+                pageRoute={pageRoute}
+              />
+            );
+          },
+        )}
+        {page(
+          PageMap.DATA_OBSERVABILITY_SETTINGS_LABEL_RULE_VIEW,
+          (pageRoute: Route) => {
+            return (
+              <DataObservabilityLabelRulesPage
+                {...props}
+                pageRoute={pageRoute}
+                ruleViewModelType={DataAssetLabelRule}
+              />
+            );
+          },
+        )}
+        {page(PageMap.DATA_OBSERVABILITY_SETTINGS, (pageRoute: Route) => {
+          return (
+            <DataObservabilitySettingsPage {...props} pageRoute={pageRoute} />
+          );
+        })}
         {page(PageMap.DATA_OBSERVABILITY_BI_DASHBOARDS, (pageRoute: Route) => {
           return (
             <DataObservabilityBiDashboardsPage
@@ -243,6 +300,19 @@ const DataObservabilityRoutes: FunctionComponent<ComponentProps> = (
               {...props}
               pageRoute={
                 RouteMap[PageMap.DATA_OBSERVABILITY_TABLE_VIEW_LINEAGE] as Route
+              }
+            />
+          }
+        />
+        <PageRoute
+          path={RouteUtil.getLastPathForKey(
+            PageMap.DATA_OBSERVABILITY_TABLE_VIEW_OWNERS,
+          )}
+          element={
+            <TableOwners
+              {...props}
+              pageRoute={
+                RouteMap[PageMap.DATA_OBSERVABILITY_TABLE_VIEW_OWNERS] as Route
               }
             />
           }

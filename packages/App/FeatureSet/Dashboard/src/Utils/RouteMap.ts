@@ -961,6 +961,7 @@ export const DataObservabilityRoutePath: Dictionary<string> = {
   [PageMap.DATA_OBSERVABILITY_TABLE_VIEW_SERVICES]: `tables/${RouteParams.ModelID}/services`,
   [PageMap.DATA_OBSERVABILITY_TABLE_VIEW_CHECKS]: `tables/${RouteParams.ModelID}/checks`,
   [PageMap.DATA_OBSERVABILITY_TABLE_VIEW_LINEAGE]: `tables/${RouteParams.ModelID}/lineage`,
+  [PageMap.DATA_OBSERVABILITY_TABLE_VIEW_OWNERS]: `tables/${RouteParams.ModelID}/owners`,
   [PageMap.DATA_OBSERVABILITY_TABLE_VIEW_SETTINGS]: `tables/${RouteParams.ModelID}/settings`,
   [PageMap.DATA_OBSERVABILITY_TABLE_VIEW_DELETE]: `tables/${RouteParams.ModelID}/delete`,
   [PageMap.DATA_OBSERVABILITY_STORES]: "stores",
@@ -974,6 +975,11 @@ export const DataObservabilityRoutePath: Dictionary<string> = {
   [PageMap.DATA_OBSERVABILITY_PIPELINE_VIEW_RECOMMENDATIONS]: `pipelines/${RouteParams.ModelID}/recommendations`,
   [PageMap.DATA_OBSERVABILITY_DATA_PRODUCTS]: "data-products",
   [PageMap.DATA_OBSERVABILITY_RECONCILIATIONS]: "reconciliations",
+  [PageMap.DATA_OBSERVABILITY_SETTINGS]: "settings",
+  [PageMap.DATA_OBSERVABILITY_SETTINGS_OWNER_RULES]: "settings/owner-rules",
+  [PageMap.DATA_OBSERVABILITY_SETTINGS_OWNER_RULE_VIEW]: `settings/owner-rules/${RouteParams.ModelID}`,
+  [PageMap.DATA_OBSERVABILITY_SETTINGS_LABEL_RULES]: "settings/label-rules",
+  [PageMap.DATA_OBSERVABILITY_SETTINGS_LABEL_RULE_VIEW]: `settings/label-rules/${RouteParams.ModelID}`,
   [PageMap.DATA_OBSERVABILITY_BI_DASHBOARDS]: "bi-dashboards",
   [PageMap.DATA_OBSERVABILITY_SPEND]: "spend",
   [PageMap.DATA_OBSERVABILITY_DATA_PRODUCT_VIEW]: `data-products/${RouteParams.ModelID}`,
@@ -7863,6 +7869,12 @@ const RouteMap: Dictionary<Route> = {
     }`,
   ),
 
+  [PageMap.DATA_OBSERVABILITY_TABLE_VIEW_OWNERS]: new Route(
+    `/dashboard/${RouteParams.ProjectID}/data-observability/${
+      DataObservabilityRoutePath[PageMap.DATA_OBSERVABILITY_TABLE_VIEW_OWNERS]
+    }`,
+  ),
+
   [PageMap.DATA_OBSERVABILITY_TABLE_VIEW_LINEAGE]: new Route(
     `/dashboard/${RouteParams.ProjectID}/data-observability/${
       DataObservabilityRoutePath[PageMap.DATA_OBSERVABILITY_TABLE_VIEW_LINEAGE]
@@ -7948,6 +7960,36 @@ const RouteMap: Dictionary<Route> = {
   [PageMap.DATA_OBSERVABILITY_RECONCILIATIONS]: new Route(
     `/dashboard/${RouteParams.ProjectID}/data-observability/${
       DataObservabilityRoutePath[PageMap.DATA_OBSERVABILITY_RECONCILIATIONS]
+    }`,
+  ),
+
+  [PageMap.DATA_OBSERVABILITY_SETTINGS_OWNER_RULES]: new Route(
+    `/dashboard/${RouteParams.ProjectID}/data-observability/${
+      DataObservabilityRoutePath[PageMap.DATA_OBSERVABILITY_SETTINGS_OWNER_RULES]
+    }`,
+  ),
+
+  [PageMap.DATA_OBSERVABILITY_SETTINGS_OWNER_RULE_VIEW]: new Route(
+    `/dashboard/${RouteParams.ProjectID}/data-observability/${
+      DataObservabilityRoutePath[PageMap.DATA_OBSERVABILITY_SETTINGS_OWNER_RULE_VIEW]
+    }`,
+  ),
+
+  [PageMap.DATA_OBSERVABILITY_SETTINGS_LABEL_RULES]: new Route(
+    `/dashboard/${RouteParams.ProjectID}/data-observability/${
+      DataObservabilityRoutePath[PageMap.DATA_OBSERVABILITY_SETTINGS_LABEL_RULES]
+    }`,
+  ),
+
+  [PageMap.DATA_OBSERVABILITY_SETTINGS_LABEL_RULE_VIEW]: new Route(
+    `/dashboard/${RouteParams.ProjectID}/data-observability/${
+      DataObservabilityRoutePath[PageMap.DATA_OBSERVABILITY_SETTINGS_LABEL_RULE_VIEW]
+    }`,
+  ),
+
+  [PageMap.DATA_OBSERVABILITY_SETTINGS]: new Route(
+    `/dashboard/${RouteParams.ProjectID}/data-observability/${
+      DataObservabilityRoutePath[PageMap.DATA_OBSERVABILITY_SETTINGS]
     }`,
   ),
 

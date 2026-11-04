@@ -422,3 +422,47 @@ describe("getPipelineScheduleValues", () => {
     ).toEqual([]);
   });
 });
+
+describe("column lineage", () => {
+  test("an output's columnLineage facet says which input columns feed each of its columns", () => {
+    const event: ReturnType<typeof readOpenLineageEvent> = readOpenLineageEvent({
+      eventType: "COMPLETE",
+      eventTime: "2026-11-04T12:00:00.000Z",
+      run: { runId: "r1" },
+      job: { namespace: "spark", name: "orders_daily" },
+      inputs: [{ namespace: "postgres://db:5432", name: "shop.public.orders" }],
+      outputs: [
+        {
+          namespace: "postgres://db:5432",
+          name: "shop.public.orders_daily",
+          facets: {
+            columnLineage: {
+              fields: {
+                revenue: {
+                  inputFields: [
+                    {
+                      namespace: "postgres://db:5432",
+                      name: "shop.public.orders",
+                      field: "total",
+                    },
+                    { namespace: "x" },
+                  ],
+                },
+              },
+            },
+          },
+        },
+      ],
+    });
+
+    expect(event?.outputs[0]?.columnLineage).toEqual([
+      {
+        downstreamColumn: "revenue",
+        inputNamespace: "postgres://db:5432",
+        inputName: "shop.public.orders",
+        inputColumn: "total",
+      },
+    ]);
+    expect(event?.inputs[0]?.columnLineage).toBeUndefined();
+  });
+});

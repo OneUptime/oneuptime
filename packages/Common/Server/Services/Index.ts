@@ -432,6 +432,12 @@ import DataPipelineService from "./DataPipelineService";
 import DataPipelineRunService from "./DataPipelineRunService";
 import DataProductService from "./DataProductService";
 import DataReconciliationService from "./DataReconciliationService";
+import DataIssueReportService from "./DataIssueReportService";
+import DataAssetOwnerUserService from "./DataAssetOwnerUserService";
+import DataAssetOwnerTeamService from "./DataAssetOwnerTeamService";
+import DataAssetOwnerRuleService from "./DataAssetOwnerRuleService";
+import DataAssetLabelRuleService from "./DataAssetLabelRuleService";
+import DataObservabilitySettingService from "./DataObservabilitySettingService";
 import DataAssetLineageService from "./DataAssetLineageService";
 import DataAlertService from "./DataAlertService";
 import SecurityProtectedEntityService from "./SecurityProtectedEntityService";
@@ -989,6 +995,12 @@ const services: Array<BaseService> = [
   DataPipelineRunService,
   DataProductService,
   DataReconciliationService,
+  DataIssueReportService,
+  DataAssetOwnerUserService,
+  DataAssetOwnerTeamService,
+  DataAssetOwnerRuleService,
+  DataAssetLabelRuleService,
+  DataObservabilitySettingService,
   DataAssetLineageService,
   DataAlertService,
   SecurityProtectedEntityService,

@@ -1,3 +1,4 @@
+import { readColumnMappings } from "../../../Types/DataObservability/DataColumnLineage";
 import DataAssetLineageSource from "../../../Types/DataObservability/DataAssetLineageSource";
 import DataAssetKind, {
   isDataAssetKind,
@@ -137,12 +138,19 @@ export function readPlannedChecks(value: unknown): Array<PlannedDataCheck> {
       continue;
     }
 
+    const limits: JSONObject =
+      item["limits"] && typeof item["limits"] === "object"
+        ? (item["limits"] as JSONObject)
+        : {};
+    const maxBytesScanned: number | null = readCount(limits["maxBytesScanned"]);
+
     checks.push({
       checkId,
       type: type as DataCheckType,
       isSegmented: item["isSegmented"] === true,
       sql,
       params: params as Array<string>,
+      ...(maxBytesScanned ? { limits: { maxBytesScanned } } : {}),
     });
   }
 
@@ -339,6 +347,9 @@ function readCollectedTable(value: unknown): CollectedTable | null {
     secondsSinceChange: readCount(item["secondsSinceChange"]),
     readCount: readCount(item["readCount"]),
     secondsSinceRead: readCount(item["secondsSinceRead"]),
+    ...(item["columnsAreInferred"] === true
+      ? { columnsAreInferred: true }
+      : {}),
     columns:
       columns === null
         ? null
@@ -391,6 +402,9 @@ function readLineageEdge(value: unknown): CollectedLineageEdge | null {
       isQuery && typeof seenBy === "string"
         ? seenBy.slice(0, MAX_SEEN_BY_LENGTH) || null
         : null,
+    ...(Array.isArray(item["columnMappings"])
+      ? { columnMappings: readColumnMappings(item["columnMappings"]) }
+      : {}),
   };
 }
 

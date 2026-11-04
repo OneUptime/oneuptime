@@ -42,6 +42,9 @@ import DataStoreService from "../Services/DataStoreService";
 import ProbeService from "../Services/ProbeService";
 import QueryHelper from "../Types/Database/QueryHelper";
 import { queueTableHealthCollection } from "../Utils/DataObservability/DataObservabilityJobs";
+import DataAlertExplanationReader from "../Utils/DataObservability/DataAlertExplanation";
+import DataAlertFeedbackRecorder from "../Utils/DataObservability/DataAlertFeedbackRecorder";
+import DataObservabilityQualityReader from "../Utils/DataObservability/DataObservabilityQualityReader";
 import DataCheckAlerts from "../Utils/DataObservability/DataCheckAlerts";
 import DataProductSync from "../Utils/DataObservability/DataProductSync";
 import DataReconciliationSync from "../Utils/DataObservability/DataReconciliationSync";
@@ -165,6 +168,56 @@ export default class DataObservabilityAPI extends BaseAPI<
         return (await DataObservabilityAPI.getOverview(
           projectId,
         )) as unknown as JSONObject;
+      },
+    );
+
+    this.post(
+      DATA_OBSERVABILITY_API_ROUTES.quality,
+      READ_PERMISSIONS,
+      async (projectId: ObjectID) => {
+        return (await DataObservabilityQualityReader.read(
+          projectId,
+          OneUptimeDate.getCurrentDate(),
+        )) as unknown as JSONObject;
+      },
+    );
+
+    this.post(
+      DATA_OBSERVABILITY_API_ROUTES.alertExplanation(":id"),
+      READ_PERMISSIONS,
+      async (projectId: ObjectID, req: ExpressRequest) => {
+        return {
+          explanation: (await DataAlertExplanationReader.read({
+            projectId,
+            alertId: DataObservabilityAPI.readId(req),
+          })) as unknown as JSONObject,
+        };
+      },
+    );
+
+    this.post(
+      DATA_OBSERVABILITY_API_ROUTES.alertFeedback(":id"),
+      OPERATE_PERMISSIONS,
+      async (
+        projectId: ObjectID,
+        req: ExpressRequest,
+        props: DatabaseCommonInteractionProps,
+      ) => {
+        const body: JSONObject = (req.body || {}) as JSONObject;
+
+        await DataAlertFeedbackRecorder.record({
+          projectId,
+          alertId: DataObservabilityAPI.readId(req),
+          userId: props.userId || null,
+          ...(typeof body["feedback"] === "string"
+            ? { feedback: body["feedback"] }
+            : {}),
+          ...(typeof body["isCauseConfirmed"] === "boolean"
+            ? { isCauseConfirmed: body["isCauseConfirmed"] }
+            : {}),
+        });
+
+        return {};
       },
     );
 

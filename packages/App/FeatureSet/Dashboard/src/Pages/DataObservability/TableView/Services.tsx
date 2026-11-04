@@ -134,6 +134,22 @@ const TableServicesPage: FunctionComponent<
           },
         },
         {
+          field: { endpoints: true },
+          title: "Endpoints",
+          type: FieldType.Element,
+          disableSort: true,
+          getExportValue: (usage: DataAssetUsage): string => {
+            return (usage.endpoints || []).join(", ");
+          },
+          getElement: (usage: DataAssetUsage): ReactElement => {
+            return (
+              <span className="font-mono text-xs text-gray-700">
+                {(usage.endpoints || []).slice(0, 3).join(", ") || "-"}
+              </span>
+            );
+          },
+        },
+        {
           field: { callCount: true },
           title: "Calls (last hour)",
           type: FieldType.Element,

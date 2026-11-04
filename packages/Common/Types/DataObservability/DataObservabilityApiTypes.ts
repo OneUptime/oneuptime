@@ -21,12 +21,24 @@ export const DATA_OBSERVABILITY_API_ROUTES: {
   reconciliationSync: (reconciliationId: string) => string;
   reconciliationRunNow: (reconciliationId: string) => string;
   checkSuggest: string;
+  alertExplanation: (alertId: string) => string;
+  alertFeedback: (alertId: string) => string;
+  quality: string;
   tableFreshness: string;
   biSync: (dataBiConnectionId: string) => string;
   tableDashboards: string;
   spendSummary: string;
 } = {
   overview: "/data-observability/overview",
+  // Why a data alert most likely happened, and what depends on it.
+  alertExplanation: (alertId: string): string => {
+    return `/data-observability/alerts/${alertId}/explanation`;
+  },
+  alertFeedback: (alertId: string): string => {
+    return `/data-observability/alerts/${alertId}/feedback`;
+  },
+  // How well Data Observability is working for the project.
+  quality: "/data-observability/quality",
   stores: "/data-observability/stores",
   connectStore: "/data-observability/stores/connect",
   collectNow: (dataStoreId: string): string => {

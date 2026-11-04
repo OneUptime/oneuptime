@@ -814,7 +814,7 @@ export const PageSEOConfig: Record<string, PageSEOData> = {
         "Watch the tables your company relies on: freshness learned from each table's own rhythm, volume and schema changes, checks and reconciliations, lineage from pipelines and query history, and data products with freshness SLAs.",
       features: [
         "PostgreSQL, MySQL, SQL Server, Oracle, MongoDB, Redshift, Snowflake, BigQuery, ClickHouse, Databricks and Athena",
-        "Reads only the catalog - never a row",
+        "Table health reads the catalog - a check brings back only its number",
         "Freshness learned from each table's own rhythm",
         "Volume, schema change and unused table detection",
         "Checks, suggested checks and reconciliations between copies",

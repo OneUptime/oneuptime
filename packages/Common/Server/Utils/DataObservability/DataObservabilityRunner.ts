@@ -18,6 +18,7 @@ import {
   getCollectorEngineOfKind,
 } from "./DataObservabilityEngines";
 import { TABLE_HEALTH_CLAIM_IN_MINUTES } from "./DataObservabilityProbeCollect";
+import { assertDatabaseConnectionAllowed } from "./DatabaseConnectionGuard";
 import DataCheckIngest from "./DataCheckIngest";
 import DataCheckPlanner, { DataCheckPlan } from "./DataCheckPlanner";
 import {
@@ -177,6 +178,8 @@ export default class DataObservabilityRunner {
     });
 
     try {
+      await assertDatabaseConnectionAllowed({ engine, connectionString });
+
       snapshot = await collectTableHealth(
         { engine, connectionString },
         {

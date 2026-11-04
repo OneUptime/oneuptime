@@ -21,6 +21,11 @@ export interface DataCheckSegmentValue {
   value: number;
 }
 
+// What a check may spend where the warehouse bills by what a query reads.
+export interface DataCheckLimits {
+  maxBytesScanned?: number | undefined;
+}
+
 // One check to run at a collection: its statement, built by the server (DataCheckPlanner).
 export interface PlannedDataCheck {
   checkId: string;
@@ -28,6 +33,7 @@ export interface PlannedDataCheck {
   isSegmented: boolean;
   sql: string;
   params: Array<string>;
+  limits?: DataCheckLimits | undefined;
 }
 
 // What the probe or the worker sends back for one check.

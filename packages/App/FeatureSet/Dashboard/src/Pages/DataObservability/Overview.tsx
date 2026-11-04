@@ -1,3 +1,4 @@
+import { DataObservabilityQuality } from "Common/Types/DataObservability/DataAlertFeedback";
 import PageComponentProps from "../PageComponentProps";
 import AppLink from "../../Components/AppLink/AppLink";
 import ConnectDatabaseModal from "../../Components/DataObservability/ConnectDatabaseModal";
@@ -44,10 +45,16 @@ import React, {
  * lately, and whether every database is being collected. A project with no
  * database yet sees how to connect one, in one click.
  */
+// A share, or a dash until there is anything to measure.
+function formatPercent(value: number | null): string {
+  return value === null ? "-" : `${value}%`;
+}
+
 const DataObservabilityOverviewPage: FunctionComponent<
   PageComponentProps
 > = (): ReactElement => {
   const translator: Translator = useTranslator();
+  const [quality, setQuality] = useState<DataObservabilityQuality | null>(null);
   const [overview, setOverview] = useState<DataObservabilityOverview | null>(
     null,
   );
@@ -66,6 +73,11 @@ const DataObservabilityOverviewPage: FunctionComponent<
       try {
         const result: DataObservabilityOverview =
           await DataObservabilityApi.getOverview();
+        // Extra to the Overview: without it, the rest still shows.
+        const measures: DataObservabilityQuality | null =
+          await DataObservabilityApi.getQuality().catch(() => {
+            return null;
+          });
 
         if (!isCurrent) {
           return;
@@ -74,6 +86,7 @@ const DataObservabilityOverviewPage: FunctionComponent<
         hasLoaded.current = true;
         setError("");
         setOverview(result);
+        setQuality(measures);
       } catch (err) {
         if (isCurrent && !hasLoaded.current) {
           setError(API.getFriendlyMessage(err));
@@ -183,6 +196,36 @@ const DataObservabilityOverviewPage: FunctionComponent<
 
   return (
     <div className="space-y-5">
+      {quality && quality.issueCount > 0 ? (
+        <EventStatBar columns={4} ariaLabel="How well it is working">
+          <EventStatTile
+            label="Useful Issues a Week"
+            value={translator.formatNumber(quality.usefulIssuesPerWeek)}
+            icon={IconProp.CheckCircle}
+            description={`Issues someone acted on or called useful, less those called noise, over the last ${quality.windowInDays} days.`}
+          />
+          <EventStatTile
+            label="Precision"
+            value={formatPercent(quality.precisionPercent)}
+            icon={IconProp.Filter}
+            description="The share of issues not marked expected or not an issue."
+          />
+          <EventStatTile
+            label="Caught First"
+            value={formatPercent(quality.caughtFirstPercent)}
+            icon={IconProp.Bolt}
+            description="The share of problems people reported that OneUptime had already raised."
+          />
+          <EventStatTile
+            label="Cause Found"
+            value={formatPercent(quality.causeFoundPercent)}
+            icon={IconProp.Search}
+            description="The share of answered issues whose likely cause was the real one."
+          />
+        </EventStatBar>
+      ) : (
+        <></>
+      )}
       <EventStatBar columns={4} ariaLabel="Data health">
         <EventStatTile
           label="Tables Watched"

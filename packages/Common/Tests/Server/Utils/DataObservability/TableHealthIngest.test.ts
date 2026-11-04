@@ -125,6 +125,60 @@ describe("detectChangeTime", () => {
   });
 });
 
+describe("what a schema change is worth", () => {
+  const before: CollectedTable["columns"] = [
+    { name: "id", dataType: "bigint", isNullable: false, position: 1 },
+    { name: "total", dataType: "numeric", isNullable: true, position: 2 },
+  ];
+
+  function metric(
+    changed: CollectedTable,
+    name: DataObservabilityMetricName,
+  ): number | undefined {
+    const plan: AssetPlan = planAssetUpdate(
+      previous({ columns: before }),
+      changed,
+      COLLECTED_AT,
+    );
+
+    return getTableMetricValues({
+      plan,
+      table: changed,
+      collectedAt: COLLECTED_AT,
+    }).find((value: { name: string; value: number }) => {
+      return value.name === name;
+    })?.value;
+  }
+
+  test("an added column is a change, not a breaking one", () => {
+    const added: CollectedTable = table({
+      columns: [
+        ...before!,
+        { name: "note", dataType: "text", isNullable: true, position: 3 },
+      ],
+    });
+
+    expect(metric(added, DataObservabilityMetricName.SchemaChanges)).toBe(1);
+    expect(
+      metric(added, DataObservabilityMetricName.BreakingSchemaChanges),
+    ).toBe(0);
+  });
+
+  test("a removed column breaks what reads it, unless the columns were only worked out from documents", () => {
+    const removed: CollectedTable = table({ columns: [before![0]!] });
+
+    expect(
+      metric(removed, DataObservabilityMetricName.BreakingSchemaChanges),
+    ).toBe(1);
+    expect(
+      metric(
+        { ...removed, columnsAreInferred: true },
+        DataObservabilityMetricName.BreakingSchemaChanges,
+      ),
+    ).toBe(0);
+  });
+});
+
 describe("learnUpdateInterval", () => {
   test("the first interval is taken as it is", () => {
     expect(
