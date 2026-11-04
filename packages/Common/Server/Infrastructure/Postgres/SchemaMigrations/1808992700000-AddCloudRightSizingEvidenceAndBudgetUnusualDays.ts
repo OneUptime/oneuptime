@@ -22,11 +22,11 @@ import { MigrationInterface, QueryRunner } from "typeorm";
  * rewriting either table, a column default changes no row, and no index or
  * foreign key is added, so nothing scans or locks them.
  */
-export class AddCloudRightSizingEvidenceAndBudgetUnusualDays1808992650000
+export class AddCloudRightSizingEvidenceAndBudgetUnusualDays1808992700000
   implements MigrationInterface
 {
   public name: string =
-    "AddCloudRightSizingEvidenceAndBudgetUnusualDays1808992650000";
+    "AddCloudRightSizingEvidenceAndBudgetUnusualDays1808992700000";
 
   public async up(queryRunner: QueryRunner): Promise<void> {
     await queryRunner.query(

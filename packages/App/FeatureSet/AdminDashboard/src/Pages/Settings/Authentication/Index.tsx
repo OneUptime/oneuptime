@@ -1,5 +1,7 @@
 import AdminModelAPI from "../../../Utils/ModelAPI";
 import {
+  MAGIC_LINK_SSO_REQUIRED_TEST_ID,
+  MAGIC_LINK_SWITCH_TEST_ID,
   PROJECT_CREATION_SWITCH_TEST_ID,
   SIGN_UP_SSO_REQUIRED_TEST_ID,
   SIGN_UP_SWITCH_TEST_ID,
@@ -19,7 +21,7 @@ import React, { FunctionComponent, ReactElement, ReactNode } from "react";
 import { useTranslation } from "react-i18next";
 
 /*
- * Settings > Authentication: two instance-wide switches, each saving the
+ * Settings > Authentication: three instance-wide switches, each saving the
  * moment it is flipped (the shared ModelSwitchCard, through AdminModelAPI).
  * Each used to be a card whose Edit dialog held the one switch.
  *
@@ -28,6 +30,11 @@ import { useTranslation } from "react-i18next";
  *     way (the /signup route lets them in), so it locks nobody out. While
  *     the server requires SSO nobody signs up, whatever it says
  *     (SsoRequiredSignIn), and a line under it says so.
+ *   - Sign-In Links: "Let people sign in with an emailed link", on while
+ *     GlobalConfig.disableMagicLinkLogin is false (Common/Types/Accounts/
+ *     MagicLink). Turned off, the sign-in page stops offering them and links
+ *     already sent stop working. While the server requires SSO the sign-in
+ *     page offers SSO alone, whatever it says, and a line under it says so.
  *   - Project Creation: "Let users create projects", on while
  *     GlobalConfig.disableUserProjectCreation is false. Master admins can
  *     always create projects.
@@ -100,6 +107,41 @@ const Settings: FunctionComponent = (): ReactElement => {
           );
         }}
         dataTestId={SIGN_UP_SWITCH_TEST_ID}
+      />
+
+      <ModelSwitchCard<GlobalConfig>
+        modelType={GlobalConfig}
+        modelId={globalConfigId}
+        column="disableMagicLinkLogin"
+        isInverted={true}
+        modelAPI={AdminModelAPI}
+        cardTitle={t("pages.settings.authentication.magicLinkCardTitle")}
+        cardDescription={t(
+          "pages.settings.authentication.magicLinkCardDescription",
+        )}
+        title={t("pages.settings.authentication.magicLinkSwitchTitle")}
+        getDescription={(isOn: boolean): string => {
+          return isOn
+            ? t("pages.settings.authentication.magicLinkSwitchOnDescription")
+            : t("pages.settings.authentication.magicLinkSwitchOffDescription");
+        }}
+        // Whether the server requires SSO, read with the switch.
+        select={{ requireSsoForLogin: true }}
+        getDetails={(item: GlobalConfig): ReactNode => {
+          if (!item.requireSsoForLogin) {
+            return null;
+          }
+
+          return (
+            <p
+              className="text-sm text-gray-600"
+              data-testid={MAGIC_LINK_SSO_REQUIRED_TEST_ID}
+            >
+              {t("pages.settings.authentication.magicLinkWhileSsoRequired")}
+            </p>
+          );
+        }}
+        dataTestId={MAGIC_LINK_SWITCH_TEST_ID}
       />
 
       <ModelSwitchCard<GlobalConfig>

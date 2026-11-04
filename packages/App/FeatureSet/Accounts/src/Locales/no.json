@@ -67,6 +67,7 @@
     "forgotPassword": "Glemt passord?",
     "signInWithSso": "Logg inn med SSO",
     "signInWithMicrosoft": "Logg inn med Microsoft",
+    "emailSignInLink": "Send meg en innloggingslenke",
     "noAccountPrompt": "Har du ikke en konto?",
     "registerLink": "Registrer.",
     "twoFactor": {
@@ -114,6 +115,15 @@
       "generate": "Generer reservekoder",
       "skip": "Hopp over for nå",
       "generateFailed": "Ingen reservekoder ble returnert. Prøv igjen fra Brukerprofil > Tofaktorautentisering."
+    },
+    "magicLink": {
+      "title": "Fullfør innloggingen",
+      "subtitle": "Bruk knappen nedenfor for å fullføre innloggingen med lenken fra e-posten din.",
+      "submit": "Logg inn",
+      "noLink": "Denne siden trenger innloggingslenken fra e-posten din. Åpne lenken på nytt, eller be om en ny.",
+      "turnedOff": "Innloggingslenker er slått av på denne serveren. Logg inn med e-postadressen og passordet ditt.",
+      "requestNewLink": "Send meg en ny lenke",
+      "backToSignIn": "Tilbake til innlogging"
     }
   },
   "register": {
@@ -147,6 +157,17 @@
     "successMessage": "Vi har sendt deg lenken til tilbakestilling av passord på e-post. Ikke glem å sjekke søppelpost.",
     "submitButton": "Send lenke til tilbakestilling",
     "rememberPasswordPrompt": "Husker du passordet ditt?",
+    "loginLink": "Logg inn."
+  },
+  "magicLink": {
+    "title": "Logg inn med en lenke",
+    "subtitle": "Skriv inn e-postadressen din, så sender vi deg en lenke som logger deg inn. Du trenger ikke passord.",
+    "submitButton": "Send meg en innloggingslenke",
+    "sentTitle": "Sjekk e-posten din",
+    "sent": "Hvis {{email}} har en konto, er en innloggingslenke på vei. Den virker én gang og utløper om {{minutes}} minutter.",
+    "notReceived": "Ikke i innboksen? Sjekk søppelpostmappen, eller kontroller at du skrev adressen du registrerte deg med.",
+    "sendAnother": "Send en ny lenke",
+    "knowPasswordPrompt": "Kan du passordet ditt?",
     "loginLink": "Logg inn."
   },
   "resetPassword": {

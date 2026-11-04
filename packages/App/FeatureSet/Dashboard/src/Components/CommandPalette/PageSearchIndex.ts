@@ -2548,6 +2548,12 @@ export const PAGE_SEARCH_AREAS: ReadonlyArray<PageSearchArea> = [
             keywords: ["data health", "late tables", "stale data"],
           },
           {
+            page: PageMap.DATA_OBSERVABILITY_DATA_PRODUCTS,
+            title: "Data Products",
+            icon: IconProp.Layers,
+            keywords: ["freshness sla", "data consumers", "data as of badge"],
+          },
+          {
             page: PageMap.DATA_OBSERVABILITY_TABLES,
             title: "Tables",
             icon: IconProp.TableCells,
@@ -2565,10 +2571,32 @@ export const PAGE_SEARCH_AREAS: ReadonlyArray<PageSearchArea> = [
             keywords: ["data quality", "data tests", "dbt tests"],
           },
           {
+            page: PageMap.DATA_OBSERVABILITY_RECONCILIATIONS,
+            title: "Reconciliations",
+            icon: IconProp.Scale,
+            keywords: ["compare two tables", "data parity", "source and copy"],
+          },
+          {
             page: PageMap.DATA_OBSERVABILITY_PIPELINES,
             title: "Pipelines",
             icon: IconProp.Workflow,
             keywords: ["openlineage", "airflow", "etl jobs"],
+          },
+          {
+            page: PageMap.DATA_OBSERVABILITY_BI_DASHBOARDS,
+            title: "BI Dashboards",
+            icon: IconProp.ChartBar,
+            keywords: ["metabase", "tableau", "looker", "power bi", "superset"],
+          },
+          {
+            page: PageMap.DATA_OBSERVABILITY_SPEND,
+            title: "Warehouse Spend",
+            icon: IconProp.Billing,
+            keywords: [
+              "snowflake credits",
+              "bigquery bytes billed",
+              "query costs",
+            ],
           },
           {
             page: PageMap.DATA_OBSERVABILITY_SCHEMA_CHANGES,

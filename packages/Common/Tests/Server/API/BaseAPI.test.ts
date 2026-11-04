@@ -741,14 +741,48 @@ describe("BaseAPI", () => {
       /*
        * A body without miscDataProps still hands the service an empty
        * object, the way createItem always has (BaseAPIUpdateMiscDataProps
-       * covers the non-empty cases).
+       * covers the non-empty cases). The props are the request's: this one
+       * names no user, project or permission, and where it came from - the
+       * address, place and device every request's props carry for the
+       * security emails a write sends (4da45410a15, RequestOriginUtil) - is
+       * not known.
        */
       expect(updateOneBySpy).toHaveBeenCalledWith({
         id: new ObjectID(TEST_UPDATE_ID),
         data: { name: "updatedName" },
         miscDataProps: {},
-        props: emptyProps,
+        props: {
+          ...emptyProps,
+          requestOrigin: {
+            ipAddress: undefined,
+            location: undefined,
+            device: undefined,
+          },
+        },
       });
+    });
+
+    /*
+     * A write's hooks send the security emails ("Your password was
+     * changed") from the props the route hands the service, so they say
+     * which device the change came from only when the route hands it on.
+     */
+    it("should hand the service where the request came from", async () => {
+      updateRequest.headers = { "user-agent": "curl/8.4.0" };
+
+      await baseApiInstance.updateItem(updateRequest, updateResponse);
+      const updateOneBySpy: jest.SpyInstance = jest.spyOn(
+        baseApiInstance.service,
+        "updateOneById",
+      );
+
+      expect(updateOneBySpy).toHaveBeenCalledWith(
+        expect.objectContaining({
+          props: expect.objectContaining({
+            requestOrigin: expect.objectContaining({ device: "curl" }),
+          }),
+        }),
+      );
     });
 
     it("should send empty response on success", async () => {

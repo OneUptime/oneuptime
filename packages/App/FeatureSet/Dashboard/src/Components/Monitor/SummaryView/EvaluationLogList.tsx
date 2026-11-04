@@ -282,9 +282,13 @@ const EvaluationLogList: FunctionComponent<ComponentProps> = (
         )}
         className="rounded-md border border-gray-200 bg-white p-4 shadow-sm"
       >
-        <div className="flex items-start justify-between">
-          <div>
-            <div className="text-sm font-semibold text-gray-900">
+        {/*
+         * Met / Not Met keeps to one line beside a long criteria name, which
+         * wraps instead: on a phone it read "Not" over "Met".
+         */}
+        <div className="flex items-start justify-between gap-3">
+          <div className="min-w-0">
+            <div className="break-words text-sm font-semibold text-gray-900">
               {criteriaName}
             </div>
             {/*
@@ -301,7 +305,7 @@ const EvaluationLogList: FunctionComponent<ComponentProps> = (
             )}
           </div>
           <span
-            className={`text-xs font-semibold ${
+            className={`shrink-0 whitespace-nowrap text-xs font-semibold ${
               criteria.met ? "text-green-600" : "text-gray-500"
             }`}
           >
@@ -451,10 +455,18 @@ const EvaluationLogList: FunctionComponent<ComponentProps> = (
                   );
                 }
 
+                /*
+                 * On a phone the status sits above the message, which then
+                 * has the row's whole width: beside it, a waiting series'
+                 * message ran a dozen lines of three or four words. The
+                 * message is the server's sentence, in English: dir="auto"
+                 * keeps its full stop at its end on a Persian page.
+                 */
                 return (
                   <li
                     key={`criteria-${index}-filter-group-${filterGroup.firstIndex}-${filterGroupIndex}`}
-                    className="flex items-center space-x-2 rounded-md border border-gray-100 bg-gray-50 p-3"
+                    data-testid="evaluation-filter-result"
+                    className="flex flex-col items-start gap-2 rounded-md border border-gray-100 bg-gray-50 p-3 sm:flex-row sm:items-center"
                   >
                     <span
                       className={`text-xs font-semibold flex-shrink-0 px-2 py-1 rounded ${statusClassName}`}
@@ -462,7 +474,10 @@ const EvaluationLogList: FunctionComponent<ComponentProps> = (
                       {translator.translateText(statusText)}
                     </span>
                     <div className="min-w-0 space-y-1">
-                      <div className="break-words text-sm text-gray-700">
+                      <div
+                        dir="auto"
+                        className="break-words text-sm text-gray-700"
+                      >
                         {filterGroup.message}
                       </div>
                       {metadataParts.length > 0 && (

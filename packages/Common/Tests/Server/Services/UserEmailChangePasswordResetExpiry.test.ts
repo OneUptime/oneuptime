@@ -235,7 +235,12 @@ describe("UserService.onBeforeUpdate — a password reset link dies with the add
   });
 
   describe("what the clearing write looks like", () => {
-    test("it nulls both the token and its expiry, and touches nothing else", async () => {
+    test("it nulls the reset link and the sign-in link, each with its expiry, and touches nothing else", async () => {
+      /*
+       * A sign-in link (Types/Accounts/MagicLink) is found by its token's
+       * hash alone too, and signs the account in outright, so it goes with
+       * the reset link.
+       */
       await userService().onBeforeUpdate(
         updatePayload({ patch: { email: new Email(NEW_EMAIL) } }),
       );
@@ -249,7 +254,44 @@ describe("UserService.onBeforeUpdate — a password reset link dies with the add
       expect(write).toEqual({
         resetPasswordToken: null,
         resetPasswordExpires: null,
+        magicLinkToken: null,
+        magicLinkExpires: null,
       });
+    });
+
+    test("a sign-in link mailed to the old address no longer signs anybody in", async () => {
+      const row: {
+        magicLinkToken: string | null;
+        magicLinkExpires: Date | null;
+      } = {
+        magicLinkToken: "a-live-sign-in-link-digest",
+        magicLinkExpires: new Date(Date.now() + 15 * 60 * 1000),
+      };
+
+      stubs.updateOneById.mockImplementation(
+        (updateBy: { data: Record<string, unknown> }): Promise<number> => {
+          if ("magicLinkToken" in updateBy.data) {
+            row.magicLinkToken = updateBy.data["magicLinkToken"] as
+              | string
+              | null;
+          }
+
+          if ("magicLinkExpires" in updateBy.data) {
+            row.magicLinkExpires = updateBy.data[
+              "magicLinkExpires"
+            ] as Date | null;
+          }
+
+          return Promise.resolve(1);
+        },
+      );
+
+      await userService().onBeforeUpdate(
+        updatePayload({ patch: { email: new Email(NEW_EMAIL) } }),
+      );
+
+      expect(row.magicLinkToken).toBeNull();
+      expect(row.magicLinkExpires).toBeNull();
     });
 
     test("it is aimed at the row whose address is changing", async () => {
