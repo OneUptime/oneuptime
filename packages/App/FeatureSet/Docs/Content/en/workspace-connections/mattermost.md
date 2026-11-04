@@ -6,6 +6,7 @@ Connect OneUptime to your Mattermost server to post incidents, alerts, episodes,
 - [Connect Mattermost](#connect-mattermost): Create a bot account for OneUptime, then connect the project with its token.
 - [Connect your own account](#connect-your-own-mattermost-account): Link your Mattermost account to your OneUptime account.
 - [Notification rules](#notification-rules): Decide which events post where, and which get a channel of their own.
+- [Who is in a record's channel](#who-is-in-a-records-channel): See who is in it, join it and add people, from the record's page.
 - [Acting from Mattermost](#acting-on-incidents-alerts-and-events-from-mattermost): The buttons on OneUptime's messages.
 - [Network and self-hosting](#network-and-self-hosting): What each server must be able to reach.
 :::
@@ -91,6 +92,22 @@ An incident, alert, episode or scheduled maintenance event with a channel of its
 
 OneUptime's messages notify nobody with what they quote: a name or a description that holds `@channel`, `@here` or `@someone` is shown as written, and pings nobody.
 
+## Who is in a record's channel
+
+An incident, alert, episode or scheduled maintenance event with a Mattermost channel of its own has a **Mattermost Channel** card on its page in OneUptime. The card shows the channel, as a link that opens it on your Mattermost server, whether it is private, and who is in it, you first. From the card, without a Mattermost admin:
+
+- **Join channel** adds you, when you are not in the channel.
+- **Add people** opens a list of the project's people and teams: pick a person to add them, or a team to add everyone in it.
+
+OneUptime's bot adds them, as it adds the people of a rule's channel. The bot stays in the channels it creates, so this works for a private channel that everybody has left, too. A record that also has channels in Slack or Microsoft Teams lists them all on one **Chat Channels** card.
+
+- **Who may add people.** Whoever may edit the record: **Project Owner**, **Project Admin**, **Project Member**, **Incident Admin** and **Incident Member** for an incident, or **Edit Incident** in a custom role, and the same permission for an alert, an episode or an event (**Edit Alert**, for example). Anyone else sees who is in the channel, and how to get in.
+- **Who can be added.** Someone OneUptime can find in Mattermost, by the account they connected or else by their email address, when your server shows email addresses to the bot, and who is in the team the project is connected to. A guest account in that team can be added too: Mattermost lets a channel's members add guests. The card names whoever it could not add, and why.
+- **What it records.** Who was added, and by whom, in the record's feed (**Channel Member Added**) and in **Project Settings** > **Notifications** > **Notification Logs**, on the **Workspace** tab.
+- **An archived channel.** The card still lists who is in it, and adds nobody until the channel is unarchived in Mattermost.
+- **A channel the bot was taken out of.** Mattermost shows a channel's people only to someone in it, even a public channel's, so the card says it can't see the channel. Someone in it can add the bot back in Mattermost. OneUptime also joins a public channel by itself the next time it posts there.
+- **Taking someone out.** OneUptime only adds people: remove someone from the channel in Mattermost.
+
 ## Acting on incidents, alerts and events from Mattermost
 
 OneUptime's messages carry buttons, and a **More actions** menu for what fewer people need. Each acts as you, with your permissions in the project, and answers in a message only you see.
@@ -127,3 +144,5 @@ Every button OneUptime posts carries a signature, checked when it is pressed, fo
 | **The bot is not a member of the private Mattermost channel** | Add the bot to the channel in Mattermost. |
 | A button does nothing, or Mattermost says it could not complete the action | Mattermost cannot reach OneUptime. See [Network and self-hosting](#network-and-self-hosting). |
 | No direct message arrives with your link | Check the username, and that the bot is in a team you are in. |
+| The channel card says OneUptime can't see the channel | The channel was deleted, or the bot was removed from it. If it's still there, someone in it can add the bot back in Mattermost. |
+| The channel card says someone isn't in the Mattermost team | Add them, in Mattermost, to the team the project is connected to, then add them again. |
