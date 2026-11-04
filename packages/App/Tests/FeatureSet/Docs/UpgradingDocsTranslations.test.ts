@@ -45,14 +45,17 @@ import { isPermissionTitleKeptInEnglish } from "./DocsRoleNames";
  * and links, a title that is the nav link's - and names each screen the way
  * the screen the reader is on draws it in their language.
  *
- * "The way it is drawn" has two sources on this page:
+ * "The way it is drawn" has three sources on this page:
  *
  *   - The Dashboard, Persian included: a label, a menu path segment by
  *     segment, a "Mark as <state>" button filled from its template.
- *   - The Admin Dashboard: its breadcrumbs and its OneUptime Health page,
- *     and the names it draws in English in every language - "This
- *     installation" (no key of its locale) and the Health dashboards and the
- *     Query Console, which its own translated sentences keep in English.
+ *   - The Admin Dashboard: its breadcrumbs, its OneUptime Health page and the
+ *     way to its Authentication settings, and the names it draws in English
+ *     in every language - "This installation" (no key of its locale) and the
+ *     Health dashboards and the Query Console, which its own translated
+ *     sentences keep in English.
+ *   - The sign-in page and the Admin Dashboard's switch, for the note on
+ *     sign-in links (SIGN_IN_LINK_LABELS).
  *
  * Other names stay in English on purpose, each list with its reason below:
  * roles and permissions, plans, the Slack, Microsoft Teams and mobile app
@@ -275,18 +278,32 @@ const MARK_AS: Record<string, { state: string; keptInEnglish: number }> = {
 const MARK_AS_TEMPLATE: string = "Mark as {{state}}";
 
 /*
- * The Admin Dashboard's words: its breadcrumb and its OneUptime Health page,
- * by the key each is drawn with ("Valkey" is drawn as it is).
+ * The Admin Dashboard's words: its breadcrumb, its OneUptime Health page and
+ * the way to its Authentication settings, by the key each is drawn with
+ * ("Valkey" is drawn as it is).
  */
 const ADMIN_KEYS: Record<string, string> = {
   "Admin Dashboard": "breadcrumbs.adminDashboard",
   "OneUptime Health": "OneUptime Health",
+  Settings: "navbar.settings",
+  Authentication: "sideMenu.settingsAuthentication",
 };
 
 // The page's bold paths through the Admin Dashboard.
 const ADMIN_PATHS: Array<string> = [
   "Admin Dashboard → OneUptime Health → Valkey",
   "Admin Dashboard → OneUptime Health",
+  "Admin Dashboard > Settings > Authentication",
+];
+
+/*
+ * What the note on sign-in links names on screens other than the Dashboard:
+ * the sign-in page's option and the Admin Dashboard's switch. A translation
+ * names each as that screen draws it, which SignInLinksDocs holds it to.
+ */
+const SIGN_IN_LINK_LABELS: Array<string> = [
+  "Email me a sign-in link",
+  "Let people sign in with an emailed link",
 ];
 
 // Bold words that are Dashboard labels by coincidence: words of the page.
@@ -360,6 +377,7 @@ const PROSE_LEADS: Array<string> = [
   "Global and status page SSO providers end their sign-ins the same way, and turning on Require SSO for Login needs a provider.",
   "Creating a project follows the SSO rules too, and changes that let people sign in reach every app server at once.",
   "Saving Require SSO for Login on again is checked as turning it on is.",
+  "The sign-in page offers an emailed sign-in link, even with no working mail server.",
   "A record you may not read can no longer be changed or deleted, and a change by ID that reaches nothing says so.",
   "A record read through another one is created only under a record its creator may read.",
   "Owned",
@@ -1064,6 +1082,7 @@ describe("the lists this test keeps", () => {
       ...PROSE_LEADS,
       ...FORMER_DASHBOARD_LABELS,
       ...ADMIN_PATHS,
+      ...SIGN_IN_LINK_LABELS,
       ...Object.keys(MARK_AS),
       ...Object.keys(KEPT_IN_ENGLISH_SOME_TIMES),
     ]) {
@@ -1081,6 +1100,7 @@ describe("the lists this test keeps", () => {
       ...PROSE_LEADS,
       ...FORMER_DASHBOARD_LABELS,
       ...ADMIN_PATHS,
+      ...SIGN_IN_LINK_LABELS,
       ...Object.keys(MARK_AS),
     ];
     const unlisted: Array<string> = boldLabels(englishPage()).filter(
