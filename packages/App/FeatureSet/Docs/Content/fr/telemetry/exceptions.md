@@ -56,7 +56,7 @@ Chaque ligne indique aussi combien d'utilisateurs l'exception a touchés sur la 
 
 ### Choisir ce qui compte comme un problème
 
-**Problèmes**, la vue par défaut, masque les erreurs d'utilisateur et les refus attendus, pour que la liste montre ce qui demande un correctif. **User errors** ne montre qu'eux, et **Tous** montre chaque exception.
+**Problèmes**, la vue par défaut, masque les erreurs d'utilisateur et les refus attendus, pour que la liste montre ce qui demande un correctif. **Erreurs utilisateur** ne montre qu'eux, et **Tous** montre chaque exception.
 
 ### Chercher et filtrer
 

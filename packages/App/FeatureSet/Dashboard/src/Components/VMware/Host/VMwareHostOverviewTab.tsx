@@ -374,7 +374,7 @@ const VMwareHostOverviewTab: FunctionComponent<ComponentProps> = (
         data-testid="vmware-host-tiles"
       >
         <GoldenMetricTile
-          title={tx("CPU")}
+          title="CPU"
           icon={IconProp.CPUChip}
           iconColor="blue"
           value={formatPercent(tiles.cpuPercent)}
@@ -390,7 +390,7 @@ const VMwareHostOverviewTab: FunctionComponent<ComponentProps> = (
           description={VMWARE_METRIC_DESCRIPTIONS.hostCpu}
         />
         <GoldenMetricTile
-          title={tx("Memory")}
+          title="Memory"
           icon={IconProp.SquareStack}
           iconColor="violet"
           value={formatPercent(tiles.memoryPercent)}
@@ -406,19 +406,19 @@ const VMwareHostOverviewTab: FunctionComponent<ComponentProps> = (
           description={VMWARE_METRIC_DESCRIPTIONS.hostMemory}
         />
         <GoldenMetricTile
-          title={tx("Disk latency")}
+          title="Disk latency"
           icon={IconProp.Database}
           iconColor="amber"
           value={formatVMwareMilliseconds(tiles.highestDiskLatencyMs)}
           sublabel={
-            tiles.highestDiskLatencyMs !== null ? tx("slowest disk") : undefined
+            tiles.highestDiskLatencyMs !== null ? "slowest disk" : undefined
           }
           percent={getVMwareDiskLatencyGaugePercent(tiles.highestDiskLatencyMs)}
           thresholds={VMWARE_DISK_LATENCY_GAUGE_THRESHOLDS}
           description={VMWARE_METRIC_DESCRIPTIONS.hostPageDiskLatency}
         />
         <GoldenMetricTile
-          title={tx("Network")}
+          title="Network"
           icon={IconProp.Wifi}
           iconColor="emerald"
           value={formatBytesPerSecond(networkTotal)}
@@ -454,7 +454,7 @@ const VMwareHostOverviewTab: FunctionComponent<ComponentProps> = (
     const cpu: Array<SeriesPoint> = metrics?.series.cpuPercent.length
       ? [
           {
-            seriesName: tx("CPU"),
+            seriesName: "CPU",
             data: metrics.series.cpuPercent,
           },
         ]
@@ -462,7 +462,7 @@ const VMwareHostOverviewTab: FunctionComponent<ComponentProps> = (
     const memory: Array<SeriesPoint> = metrics?.series.memoryPercent.length
       ? [
           {
-            seriesName: tx("Memory"),
+            seriesName: "Memory",
             data: metrics.series.memoryPercent,
           },
         ]
@@ -471,7 +471,7 @@ const VMwareHostOverviewTab: FunctionComponent<ComponentProps> = (
       .length
       ? [
           {
-            seriesName: tx("Slowest disk"),
+            seriesName: "Slowest disk",
             data: metrics.series.highestDiskLatencyMs,
           },
         ]
@@ -480,14 +480,14 @@ const VMwareHostOverviewTab: FunctionComponent<ComponentProps> = (
 
     if (metrics?.series.networkReceivedBytesPerSecond.length) {
       network.push({
-        seriesName: tx("Received"),
+        seriesName: "Received",
         data: metrics.series.networkReceivedBytesPerSecond,
       });
     }
 
     if (metrics?.series.networkSentBytesPerSecond.length) {
       network.push({
-        seriesName: tx("Sent"),
+        seriesName: "Sent",
         data: metrics.series.networkSentBytesPerSecond,
       });
     }
@@ -498,7 +498,7 @@ const VMwareHostOverviewTab: FunctionComponent<ComponentProps> = (
         data-testid="vmware-host-charts"
       >
         <ChartCard
-          title={tx("CPU")}
+          title="CPU"
           icon={IconProp.CPUChip}
           iconColor="blue"
           series={cpu}
@@ -512,7 +512,7 @@ const VMwareHostOverviewTab: FunctionComponent<ComponentProps> = (
           description={VMWARE_METRIC_DESCRIPTIONS.hostPageCpuChart}
         />
         <ChartCard
-          title={tx("Memory")}
+          title="Memory"
           icon={IconProp.SquareStack}
           iconColor="violet"
           series={memory}
@@ -526,7 +526,7 @@ const VMwareHostOverviewTab: FunctionComponent<ComponentProps> = (
           description={VMWARE_METRIC_DESCRIPTIONS.hostPageMemoryChart}
         />
         <ChartCard
-          title={tx("Disk latency")}
+          title="Disk latency"
           icon={IconProp.Database}
           iconColor="amber"
           series={latency}
@@ -541,7 +541,7 @@ const VMwareHostOverviewTab: FunctionComponent<ComponentProps> = (
           description={VMWARE_METRIC_DESCRIPTIONS.hostPageDiskLatencyChart}
         />
         <ChartCard
-          title={tx("Network")}
+          title="Network"
           icon={IconProp.Wifi}
           iconColor="emerald"
           series={network}

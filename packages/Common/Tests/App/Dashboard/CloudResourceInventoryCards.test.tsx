@@ -231,6 +231,159 @@ describe("a listed resource's inventory", () => {
   });
 });
 
+describe("what each connection is", () => {
+  function typeNextTo(text: string): string {
+    const item: HTMLElement = screen.getByText(text).closest("li")!;
+    return (
+      within(item).queryByTestId("cloud-connection-type")?.textContent || ""
+    );
+  }
+
+  test("a subnet and a security group read as words, never as the cloud's type", async () => {
+    await renderCards(instance());
+    await screen.findByText("Connected Resources");
+
+    // Held: the account lists the subnet, by its own name.
+    expect(typeNextTo("private-a")).toBe("Subnet");
+    // Not held: the cloud's id, with what it is.
+    expect(typeNextTo("sg-0gone")).toBe("Security Group");
+    // The catalog's own label for a type it lists.
+    expect(typeNextTo("web-alb")).toBe(
+      "Elastic Load Balancer (ALB, NLB, GWLB)",
+    );
+
+    for (const raw of [
+      "AWS::EC2::Subnet",
+      "AWS::EC2::SecurityGroup",
+      "AWS::ElasticLoadBalancingV2::LoadBalancer",
+    ]) {
+      expect(screen.queryByText(raw)).not.toBeInTheDocument();
+    }
+  });
+
+  /*
+   * #5702's review: on a Persian page "web-1" and "EC2 Instance" - two
+   * Latin runs side by side - were read as one, left to right, with no gap
+   * between them. Each is set apart (bdi), so the line keeps the page's
+   * reading order and the gap.
+   */
+  test("the name and its kind are each set apart, with the gap between them", async () => {
+    await renderCards(instance());
+    await screen.findByText("Connected Resources");
+
+    const rows: Array<HTMLElement> = screen.getAllByTestId(
+      "cloud-connected-resource",
+    );
+    expect(rows.length).toBeGreaterThan(0);
+
+    for (const row of rows) {
+      const name: HTMLElement = within(row).getByTestId(
+        "cloud-connected-resource-name",
+      );
+      expect(name.tagName).toBe("BDI");
+      expect(name.textContent).toBeTruthy();
+
+      const kind: HTMLElement | null = within(row).queryByTestId(
+        "cloud-connection-type",
+      );
+
+      if (kind) {
+        /*
+         * The gap is on the span, in the page's direction, so it is beside
+         * the name either way; the kind itself is set apart inside it (a
+         * Latin kind on a bdi of its own would put its start on the far
+         * side, read right to left).
+         */
+        expect(kind.tagName).toBe("SPAN");
+        expect(kind).toHaveClass("ml-2");
+        expect(kind.children).toHaveLength(1);
+        expect(kind.firstElementChild!.tagName).toBe("BDI");
+        expect(kind.firstElementChild!.textContent).toBe(kind.textContent);
+        // The name comes first, then its kind.
+        expect(
+          name.compareDocumentPosition(kind) & Node.DOCUMENT_POSITION_FOLLOWING,
+        ).toBeTruthy();
+      }
+    }
+
+    // A linked name is set apart inside its link.
+    const linked: HTMLElement = within(
+      screen.getByText("web-alb").closest("li")!,
+    ).getByTestId("cloud-connected-resource-name");
+    expect(linked.closest("a")).not.toBeNull();
+  });
+
+  test("a type no catalog names reads in words, with its service", async () => {
+    listSpy.mockResolvedValue({ data: [], count: 0, skip: 0, limit: 2000 });
+
+    await renderCards(
+      instance({
+        cloudRelationships: [
+          {
+            kind: CloudRelationshipKind.AttachedTo,
+            target: "tgw-attach-0abc",
+            targetType: "AWS::EC2::TransitGatewayAttachment",
+          },
+        ],
+      }),
+    );
+    await screen.findByText("Connected Resources");
+
+    expect(typeNextTo("tgw-attach-0abc")).toBe(
+      "Transit Gateway Attachment (EC2)",
+    );
+  });
+
+  test("an Azure subnet and a Google Cloud subnetwork read as subnets too", async () => {
+    listSpy.mockResolvedValue({ data: [], count: 0, skip: 0, limit: 2000 });
+
+    await renderCards(
+      instance({
+        cloudProvider: "azure",
+        cloudResourceType: "Microsoft.Compute/virtualMachines",
+        cloudRelationships: [
+          {
+            kind: CloudRelationshipKind.RunsIn,
+            target:
+              "/subscriptions/0000/resourceGroups/rg/providers/Microsoft.Network/virtualNetworks/vnet/subnets/default",
+            targetType: "Microsoft.Network/virtualNetworks/subnets",
+          },
+        ],
+      }),
+    );
+    await screen.findByText("Connected Resources");
+
+    expect(
+      typeNextTo(
+        "/subscriptions/0000/resourceGroups/rg/providers/Microsoft.Network/virtualNetworks/vnet/subnets/default",
+      ),
+    ).toBe("Subnet");
+    cleanup();
+
+    await renderCards(
+      instance({
+        cloudProvider: "gcp",
+        cloudResourceType: "gce_instance",
+        cloudRelationships: [
+          {
+            kind: CloudRelationshipKind.RunsIn,
+            target:
+              "//compute.googleapis.com/projects/p/regions/us-central1/subnetworks/default",
+            targetType: "compute.googleapis.com/Subnetwork",
+          },
+        ],
+      }),
+    );
+    await screen.findByText("Connected Resources");
+
+    expect(
+      typeNextTo(
+        "//compute.googleapis.com/projects/p/regions/us-central1/subnetworks/default",
+      ),
+    ).toBe("Subnet");
+  });
+});
+
 describe("a resource no connection lists", () => {
   test("draws none of it, and reads nothing it does not need", async () => {
     const unlisted: CloudResource = instance();

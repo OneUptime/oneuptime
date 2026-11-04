@@ -1,3 +1,7 @@
+import {
+  ON_CALL_SECTION_LABEL_ON_WHITE_CLASS_NAME,
+  ON_CALL_TAG_TEXT_CLASS_NAME,
+} from "../OnCallLabelClasses";
 import EscalationSummary, {
   EscalationLevelSummary,
   EscalationResponder,
@@ -1322,14 +1326,14 @@ const EscalationRules: FunctionComponent<ComponentProps> = (
             </span>
           )}
           {isUncovered && (
-            <span className="whitespace-nowrap text-[10px] font-semibold uppercase tracking-wide text-amber-700">
+            <span className={`${ON_CALL_TAG_TEXT_CLASS_NAME} text-amber-700`}>
               {translator.translateText("No one on call")}
             </span>
           )}
           {isNobodyNext && (
             <span
               data-testid="escalation-rule-no-one-next"
-              className="whitespace-nowrap text-[10px] font-semibold uppercase tracking-wide text-amber-700"
+              className={`${ON_CALL_TAG_TEXT_CLASS_NAME} text-amber-700`}
             >
               {translator.translateText(NO_ONE_NEXT_LABEL)}
             </span>
@@ -1679,7 +1683,7 @@ const EscalationRules: FunctionComponent<ComponentProps> = (
               {/* Notifies */}
               <div className="mt-4">
                 <div className="mb-2.5 flex flex-wrap items-center justify-between gap-2">
-                  <div className="text-[11px] font-semibold uppercase tracking-wider text-gray-400">
+                  <div className={ON_CALL_SECTION_LABEL_ON_WHITE_CLASS_NAME}>
                     {translator.translateText("Notifies")}
                   </div>
                   {/*

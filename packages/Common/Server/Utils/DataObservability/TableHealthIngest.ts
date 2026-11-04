@@ -46,6 +46,8 @@ import DataAssetService from "../../Services/DataAssetService";
 import DataStoreService from "../../Services/DataStoreService";
 import MetricService from "../../Services/MetricService";
 import logger from "../Logger";
+import CollectedLineage from "./CollectedLineage";
+import DataWarehouseSpendIngest from "./DataWarehouseSpendIngest";
 import MonitorMetricUtil from "../Monitor/MonitorMetricUtil";
 import TelemetryUtil from "../Telemetry/Telemetry";
 import {
@@ -195,19 +197,38 @@ export function detectChangeTime(
   table: CollectedTable,
   collectedAt: Date,
 ): Date | null {
+  const counterMoved: boolean =
+    previous !== null &&
+    table.writeCount !== null &&
+    previous.writeCount !== null &&
+    table.writeCount > previous.writeCount;
+
   if (table.secondsSinceChange !== null) {
-    return new Date(collectedAt.getTime() - table.secondsSinceChange * 1000);
+    const changeAt: Date = new Date(
+      collectedAt.getTime() - table.secondsSinceChange * 1000,
+    );
+
+    /*
+     * A time that only inserts move (MongoDB's newest ObjectId) misses an
+     * update: a write counter that moved while the time stood still says
+     * the table changed since the last collection.
+     */
+    if (
+      counterMoved &&
+      previous?.lastChangedAt &&
+      changeAt.getTime() <= previous.lastChangedAt.getTime()
+    ) {
+      return collectedAt;
+    }
+
+    return changeAt;
   }
 
   if (!previous) {
     return null;
   }
 
-  if (
-    table.writeCount !== null &&
-    previous.writeCount !== null &&
-    table.writeCount > previous.writeCount
-  ) {
+  if (counterMoved) {
     return collectedAt;
   }
 
@@ -568,6 +589,8 @@ export default class TableHealthIngest {
     const retentionDays: number = await MonitorMetricUtil.getRetentionDays();
     const metricRows: Array<JSONObject> = [];
     const seenKeys: Set<string> = new Set();
+    // The store's watched tables after this collection, by key: what lineage resolves against.
+    const assetIdByKey: Map<string, ObjectID> = new Map();
 
     for (const table of snapshot.tables) {
       const key: string = getDataTableKey(table.schema, table.name);
@@ -626,6 +649,8 @@ export default class TableHealthIngest {
           }
         }
 
+        assetIdByKey.set(key, assetId);
+
         for (const metric of getTableMetricValues({
           table,
           plan,
@@ -680,6 +705,58 @@ export default class TableHealthIngest {
 
     await this.writeMetricRows(store.projectId, metricRows);
     result.metricRows = metricRows.length;
+
+    if (snapshot.lineage) {
+      // A cut table list leaves tables out that are still there.
+      if (!snapshot.isComplete) {
+        for (const asset of existing) {
+          if (
+            asset.id &&
+            asset.assetKey &&
+            !asset.isDropped &&
+            !assetIdByKey.has(asset.assetKey)
+          ) {
+            assetIdByKey.set(asset.assetKey, asset.id);
+          }
+        }
+      }
+
+      // Lineage is extra: one that cannot be kept never fails the collection.
+      try {
+        await CollectedLineage.record({
+          projectId: store.projectId,
+          engine: snapshot.engine,
+          databaseName: snapshot.target?.databaseName || null,
+          lineage: snapshot.lineage,
+          isViewLineageComplete: snapshot.isViewLineageComplete === true,
+          assetIdByKey,
+          collectedAt,
+        });
+      } catch (error) {
+        logger.error(
+          `Data Observability: could not record the lineage of store ${store.id.toString()}`,
+        );
+        logger.error(error);
+      }
+    }
+
+    // Spend is extra too: what cannot be kept never fails the collection.
+    if (snapshot.spend) {
+      try {
+        await DataWarehouseSpendIngest.record({
+          projectId: store.projectId,
+          dataStoreId: store.id,
+          spend: snapshot.spend,
+          assetIdByKey,
+          collectedAt,
+        });
+      } catch (error) {
+        logger.error(
+          `Data Observability: could not record the spend of store ${store.id.toString()}`,
+        );
+        logger.error(error);
+      }
+    }
 
     await DataStoreService.updateColumnsByIdWithoutHooks({
       id: store.id,

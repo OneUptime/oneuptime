@@ -445,6 +445,7 @@ Les noms de séries dans `metrics` contiennent des points, comme `oneuptime.moni
 | `provider` | Le type de page de statut : Atlassian Statuspage, incident.io, RSS ou Atom. | `string` |
 | `componentGroup` | Le groupe de composants que surveille le moniteur, s'il en surveille un. | `string` |
 | `componentName` | Les composants que surveille le moniteur, séparés par des virgules, s'il en a choisi. | `string` |
+| `componentNames` | Les mêmes composants sous forme de liste, pour répéter une ligne pour chacun avec `{{#each componentNames}}`. | `Array<string>` |
 | `isOnline` | Si la page de statut a répondu. | `boolean` |
 | `responseTimeInMs` | Le temps de réponse de la page de statut, en millisecondes. | `number` |
 | `failureCause` | La raison de l'échec de la vérification, le cas échéant. | `string` |

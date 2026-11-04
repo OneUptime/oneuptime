@@ -368,12 +368,38 @@ describe("a rule that creates no channel", () => {
       ],
     ).toBeUndefined();
   });
+
+  test("a hunt rule has no name to preview either, and no words for one", () => {
+    expect(
+      getChannelNameExample({
+        workspaceType: WorkspaceType.Slack,
+        eventType: NotificationRuleEventType.SecurityHunt,
+        prefix: "hunt-",
+        numberPrefixes: PREFIXES,
+        exampleRecordName: "Encoded PowerShell",
+      }),
+    ).toBeNull();
+
+    renderPreview({
+      prefix: "hunt-",
+      eventType: NotificationRuleEventType.SecurityHunt,
+    });
+
+    expect(screen.queryByTestId("preview")).toBeNull();
+    expect(screen.queryByTestId("channel-name-preview")).toBeNull();
+    expect(
+      (CHANNEL_NAME_PREFIX_DESCRIPTIONS as Record<string, string>)[
+        NotificationRuleEventType.SecurityHunt
+      ],
+    ).toBeUndefined();
+  });
 });
 
 describe("the words", () => {
   test("one description, one record sentence for every kind of record a rule can create a channel for", () => {
+    // Every kind but the two that only post: a security case and a hunt.
     expect(CHANNEL_EVENT_TYPES).toHaveLength(
-      Object.values(NotificationRuleEventType).length - 1,
+      Object.values(NotificationRuleEventType).length - 2,
     );
 
     for (const eventType of CHANNEL_EVENT_TYPES) {

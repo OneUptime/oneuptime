@@ -38,6 +38,7 @@ Open **Producten → Beveiligingsgebeurtenissen**, onder **Beveiliging**. Het me
 | **Alle zaken** | Beveiligingszaken | Elke zaak, open of gesloten |
 | **Gebeurtenissen** | Gebeurtenissen | Elke gebeurtenis zoeken en filteren, en er een openen om al haar velden te zien |
 | **Hunts** | Gebeurtenissen | Zoekopdrachten opgeslagen vanuit Gebeurtenissen, met één klik weer geopend of volgens een schema uitgevoerd dat mensen laat weten wanneer ze iets vinden |
+| **Huntbibliotheek** | Gebeurtenissen | Kant-en-klare hunts om op Gebeurtenissen te proberen of aan je hunts toe te voegen, elk met de gebeurtenissen die hij leest en of die binnenkomen |
 | **Campagnes** | Gebeurtenissen | Elk adres dat aanvalsverzoeken stuurde, en of een van zijn verzoeken erdoor kwam |
 | **Entiteitrisico** | Gebeurtenissen | Elke gebruiker, host en elk adres, gescoord op wat er deze week over werd gevonden, de riskantste eerst |
 | **Correleren** | Gebeurtenissen | Een grafiek van de gebeurtenissen die een host, een gebruiker of een IP-adres delen |
@@ -286,6 +287,14 @@ Zoek en filter op **Gebeurtenissen** tot de lijst laat zien wat je zoekt, open d
 
 De pagina van een hunt is zijn zoekopdracht, geopend in de verkenner Gebeurtenissen. Wijzig daar de zoekopdracht of de filters, en de kop van de hunt biedt **Wijzigingen opslaan** en **Wijzigingen verwerpen**. **Bewerken** wijzigt zijn naam, zijn zoekopdracht, hoe ver hij terugkijkt, zijn schema en wie hij op de hoogte stelt, en **Hunt verwijderen** staat in zijn menu. Vanaf Security Member kun je hunts opslaan, wijzigen en verwijderen, en een Security Viewer kan ze openen.
 
+Een hunt die is opgeslagen met filters uit de zijbalk van Gebeurtenissen, toont ze in **Bewerken** onder **Filters**, zoals Gebeurtenissen ze tekent, elk met een x om het weg te halen. Voeg filters toe op de pagina van de hunt, vanuit de zijbalk.
+
+### Begin vanuit de Huntbibliotheek
+
+**Gebeurtenissen → Huntbibliotheek** toont kant-en-klare hunts voor waar beveiligingsteams het vaakst naar zoeken, zoals mislukte aanmeldingen, gecodeerde PowerShell, het AWS-rootaccount en shells die in Kubernetes-pods zijn geopend. Elke hunt toont wat hij vindt, zijn zoekopdracht zoals je die op **Gebeurtenissen** zou typen, en of de gebeurtenissen die hij leest binnenkomen, zoals de **Regelbibliotheek** dat voor haar regels doet. Verfijn ze op **Huntcategorie**, **Gegevens** en **Status**, of doorzoek ze.
+
+**Uitproberen** opent de zoekopdracht op **Gebeurtenissen**, over het tijdvenster van de hunt, en slaat niets op. **Toevoegen** slaat hem meteen op als een van de hunts van het project, benoemd en beschreven in jouw taal en zonder schema, zoals elke nieuwe hunt. Daarna staat er **Toegevoegd**, en **Openen** opent hem, waar je hem een schema kunt geven.
+
 ### Een hunt volgens een schema uitvoeren
 
 | Schema | Draait |
@@ -303,9 +312,15 @@ Een run opent geen zaak en geeft geen waarschuwing: schrijf wat zaken moet opene
 
 Een geplande hunt draait onder de persoon die als laatste zijn schema instelde, zijn zoekopdracht wijzigde of hem opsloeg met **Bewerken**. Een API-sleutel kan geen schema instellen. Als die persoon het project verlaat of geen beveiligingsgebeurtenissen meer mag lezen, zegt de hunt dat: open **Bewerken** en sla hem op om hem onder jou te laten draaien.
 
+### Runhistorie
+
+Elke geplande run wordt 90 dagen bewaard. **Runhistorie**, aan het eind van de regel die zegt wat de runs van een hunt vonden, toont ze met de nieuwste eerst: wanneer elke run draaide en welke gebeurtenissen hij doorzocht, dan hoeveel hij vond, met **Tonen** om die gebeurtenissen op de pagina van de hunt te openen; dat hij niets vond; of waarom hij niet kon draaien. Wie een hunt kan openen, kan zijn runs lezen.
+
 ### Wie op de hoogte wordt gesteld
 
 De melding **Hunt heeft beveiligingsgebeurtenissen gevonden** noemt de hunt en zijn zoekopdracht, hoeveel gebeurtenissen zijn run vond en welk venster die las, en linkt naar de pagina van de hunt op die gebeurtenissen; er staat geen woord van een gebeurtenis zelf in. Iedereen krijgt hem per e-mail en push, en kiest de kanalen onder **Gebruikersinstellingen → Meldingsinstellingen**. Net als andere routine-e-mails kan hij worden vastgehouden in een [e-mailoverzicht](/docs/emails/notification-rollup).
+
+Om wat hunts vinden in Slack of Microsoft Teams te plaatsen, voeg je een regel toe aan **Regels voor hunts** onder **Producten → Beveiligingsgebeurtenissen → Werkruimte → Slack** (of **Microsoft Teams**), onder de regels die [beveiligingszaken](/docs/telemetry/security-cases#plaatsen-in-kanalen-van-slack-en-microsoft-teams) plaatsen. Een regel noemt de kanalen waarin geplaatst wordt (en in Microsoft Teams de chats) en, als je wilt, de hunts waarvoor hij geldt, op **Naam van hunt**: een naam die jouw tekst is, die bevat, ermee begint of ermee eindigt. Telkens wanneer een geplande run gebeurtenissen vindt, plaatst hij de hunt, zijn zoekopdracht, hoeveel gebeurtenissen en wanneer, met een link ernaar, en geen van de eigen woorden van een gebeurtenis. Een huntregel wordt ingesteld door een rol die beveiligingsplaybooks mag instellen, zoals Project Owner, Project Admin of Security Admin.
 
 ### Gebeurtenissen bij een zaak bewaren
 
@@ -313,7 +328,7 @@ Selecteer gebeurtenissen op **Gebeurtenissen** of op de pagina van een hunt en k
 
 OneUptime leest elke gebeurtenis opnieuw namens jou en bewaart haar zoals ze was op de pagina **Bewijs** van de zaak, zodat de zaak haar nog toont als de bewaartermijn van de gebeurtenis voorbij is. Een gebeurtenis die je niet mag lezen, wordt niet bewaard, en een die de zaak al bewaart, blijft zoals ze is. Een gebeurtenis die via een hunt is gevonden, noemt de hunt, en **Gebeurtenis bekijken** opent haar zoals ze werd bewaard.
 
-Hunts hebben dezelfde REST API als de rest van OneUptime, onder `/security-hunt`, en `POST /security-case-evidence/add-events` bewaart gebeurtenissen bij een zaak. Zie [API-referentie](/docs/api-reference/api-reference).
+Hunts hebben dezelfde REST API als de rest van OneUptime, onder `/security-hunt`, en `POST /security-case-evidence/add-events` bewaart gebeurtenissen bij een zaak. De runs van een hunt worden gelezen onder `/security-hunt-run`. Zie [API-referentie](/docs/api-reference/api-reference).
 
 ## Detectieregels
 

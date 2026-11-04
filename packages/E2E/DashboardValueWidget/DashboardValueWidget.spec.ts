@@ -288,10 +288,33 @@ const pad: (value: number) => string = (value: number): string => {
  * OneUptimeDate's short month names are), so the check holds in a month a
  * locale spells its own way ("Sept" in en-GB).
  */
-const dayLabel: (page: Page, date: Date) => Promise<string> = async (
+const dayLabel: (
   page: Page,
   date: Date,
+  language?: string,
+) => Promise<string> = async (
+  page: Page,
+  date: Date,
+  language?: string,
 ): Promise<string> => {
+  /*
+   * A page in another language writes its dates in it, as the Dashboard
+   * does (followLanguageForDates): its Intl's day and month, in the
+   * Gregorian calendar and the language's digits ("۲۸ اکتبر").
+   */
+  if (language) {
+    return await page.evaluate(
+      (data: { iso: string; language: string }): string => {
+        return new Intl.DateTimeFormat(`${data.language}-u-ca-gregory`, {
+          day: "2-digit",
+          month: "short",
+          timeZone: "UTC",
+        }).format(new Date(data.iso));
+      },
+      { iso: date.toISOString(), language },
+    );
+  }
+
   const month: string = await page.evaluate((iso: string): string => {
     return new Date(iso).toLocaleString("default", {
       month: "short",
@@ -302,17 +325,36 @@ const dayLabel: (page: Page, date: Date) => Promise<string> = async (
   return `${pad(date.getUTCDate())} ${month}`;
 };
 
+// Digits as a language writes them: Persian's own ("۰۱:۰۰").
+const PERSIAN_DIGITS: string = "۰۱۲۳۴۵۶۷۸۹";
+
+const inDigitsOf: (language: string | undefined, text: string) => string = (
+  language: string | undefined,
+  text: string,
+): string => {
+  return language === "fa"
+    ? text.replace(/[0-9]/g, (digit: string): string => {
+        return PERSIAN_DIGITS[Number(digit)]!;
+      })
+    : text;
+};
+
 /*
  * The hovered point of a week's line, an hour's bucket, named as a line
  * chart's tooltip names it and in the order of the line's end labels: day
  * first, "15 Oct, 09:00" (Utils/DashboardDateTime getDashboardBucketLabel),
- * in UTC, the suite's timezone.
+ * in UTC, the suite's timezone - in the page's language when it has one.
  */
-const hourLabel: (page: Page, date: Date) => Promise<string> = async (
+const hourLabel: (
   page: Page,
   date: Date,
+  language?: string,
+) => Promise<string> = async (
+  page: Page,
+  date: Date,
+  language?: string,
 ): Promise<string> => {
-  return `${await dayLabel(page, date)}, ${pad(date.getUTCHours())}:${pad(date.getUTCMinutes())}`;
+  return `${await dayLabel(page, date, language)}, ${inDigitsOf(language, `${pad(date.getUTCHours())}:${pad(date.getUTCMinutes())}`)}`;
 };
 
 /*
@@ -1247,6 +1289,12 @@ test.describe("the Value widgets on the dashboard inside OneUptime", () => {
     page: Page;
   }, testInfo: TestInfo) => {
     atDesktopOnly();
+    /*
+     * Its dates are Persian, as the Dashboard writes them ("۲۸ اکتبر"): a
+     * Value widget 1280 pixels give is too narrow to label the line's ends
+     * in them, and one 1440 give is not.
+     */
+    await page.setViewportSize({ width: 1440, height: 900 });
     await openApp(page, "?lang=fa");
 
     await expectLinesOldestFirst(page, [LINES[0]!]);
@@ -1264,9 +1312,11 @@ test.describe("the Value widgets on the dashboard inside OneUptime", () => {
     const start: Locator = widget.getByTestId("value-widget-sparkline-start");
     const end: Locator = widget.getByTestId("value-widget-sparkline-end");
 
-    await expect(start).toHaveText(await dayLabel(page, series[0]!.timestamp));
+    await expect(start).toHaveText(
+      await dayLabel(page, series[0]!.timestamp, "fa"),
+    );
     await expect(end).toHaveText(
-      await dayLabel(page, series[series.length - 1]!.timestamp),
+      await dayLabel(page, series[series.length - 1]!.timestamp, "fa"),
     );
 
     // The oldest end is labelled on the left, on a right-to-left page too.
@@ -1280,11 +1330,14 @@ test.describe("the Value widgets on the dashboard inside OneUptime", () => {
      * starts with a digit, and a right-to-left page reordered such a run.
      */
     const hovered: Locator = widget.getByTestId("value-widget-hovered-time");
-    const oldestDay: string = await dayLabel(page, series[0]!.timestamp);
-    const oldestHour: string = `${pad(series[0]!.timestamp.getUTCHours())}:00`;
+    const oldestDay: string = await dayLabel(page, series[0]!.timestamp, "fa");
+    const oldestHour: string = inDigitsOf(
+      "fa",
+      `${pad(series[0]!.timestamp.getUTCHours())}:00`,
+    );
 
     await expect(hovered).toHaveText(
-      await hourLabel(page, series[0]!.timestamp),
+      await hourLabel(page, series[0]!.timestamp, "fa"),
     );
     expect(await drawnInOrder(hovered, oldestDay, oldestHour)).toBe(true);
 
@@ -1307,9 +1360,9 @@ test.describe("the Value widgets on the dashboard inside OneUptime", () => {
     const details: Locator = await trendTooltipSettled(page);
     const firstHalf: Locator = details.locator('[data-half="first"] bdi');
     const secondHalf: Locator = details.locator('[data-half="second"] bdi');
-    const startDay: string = await dayLabel(page, trend.firstHalfStart);
-    const midDay: string = await dayLabel(page, trend.midpoint);
-    const endDay: string = await dayLabel(page, trend.secondHalfEnd);
+    const startDay: string = await dayLabel(page, trend.firstHalfStart, "fa");
+    const midDay: string = await dayLabel(page, trend.midpoint, "fa");
+    const endDay: string = await dayLabel(page, trend.secondHalfEnd, "fa");
 
     await expect(firstHalf).toHaveText(`${startDay} – ${midDay}`);
     await expect(secondHalf).toHaveText(`${midDay} – ${endDay}`);

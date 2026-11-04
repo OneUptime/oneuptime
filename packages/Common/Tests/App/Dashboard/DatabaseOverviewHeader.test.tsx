@@ -344,9 +344,10 @@ describe("the database Overview header", () => {
     expect(
       screen.getByText("Engine metrics: Not connected"),
     ).toBeInTheDocument();
+    // The identifier line: its label, then the endpoint set apart.
     expect(
-      screen.getByText("endpoint: orders-db.example.com:5432"),
-    ).toBeInTheDocument();
+      screen.getByTestId("resource-overview-identifier"),
+    ).toHaveTextContent(/^endpoint: orders-db\.example\.com:5432$/);
   });
 
   test("a database no source ever saw reads 'Never seen', not 'Disconnected'", async () => {
@@ -381,9 +382,11 @@ describe("the database Overview header", () => {
     await renderOverview();
 
     expect(
-      screen.getByText("endpoint: e2e-receivers-postgres:5432"),
-    ).toBeInTheDocument();
-    expect(screen.queryByText(/endpoint: Container\//)).not.toBeInTheDocument();
+      screen.getByTestId("resource-overview-identifier"),
+    ).toHaveTextContent(/^endpoint: e2e-receivers-postgres:5432$/);
+    expect(
+      screen.getByTestId("resource-overview-identifier"),
+    ).not.toHaveTextContent(/Container\//);
   });
 
   test("a workload with no endpoint at all is labelled as a workload", async () => {
@@ -405,8 +408,8 @@ describe("the database Overview header", () => {
     await renderOverview();
 
     expect(
-      screen.getByText("workload: Container/e2e-receivers-postgres"),
-    ).toBeInTheDocument();
+      screen.getByTestId("resource-overview-identifier"),
+    ).toHaveTextContent(/^workload: Container\/e2e-receivers-postgres$/);
   });
 });
 

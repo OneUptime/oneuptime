@@ -85,7 +85,7 @@ flowchart TB
     Registered --> Gone --> Marked --> Open --> Renewed
 ```
 
-Expo melder en telefon væk, når appen er fjernet fra den, eller når dens push-token ikke længere er gyldigt. Telefonen slettes ikke: **Brugerindstillinger → Notifikationsmetoder** viser den på fanen **Push Notifications** som **Modtager ikke notifikationer**, og vagttidslinjen for en alarm, der ikke nåede den, siger hvorfor. Dine andre telefoner og notifikationsmetoder bliver tilkaldt som sædvanlig.
+Expo melder en telefon væk, når appen er fjernet fra den, eller når dens push-token ikke længere er gyldigt. Telefonen slettes ikke: **Brugerindstillinger → Notifikationsmetoder** viser den på fanen **Push-notifikationer** som **Modtager ikke notifikationer**, og vagttidslinjen for en alarm, der ikke nåede den, siger hvorfor. Dine andre telefoner og notifikationsmetoder bliver tilkaldt som sædvanlig.
 
 Appen registrerer telefonen, hver gang den starter, når du logger ind, og når du vender tilbage til den, højst én gang hvert femte minut. Registreringen beder Expo om push-tokenet igen, hvilket fornyer det, og telefonen får alarmer igen med de regler, den havde.
 
@@ -124,7 +124,7 @@ Adgangsnøgler kræver, at dit OneUptimes adresse starter med `https://`, og en 
 
 :::details Ingen notifikationer på telefonen
 - Tjek, at telefonen tillader notifikationer fra OneUptime On-Call, og at Forstyr ikke eller et Fokus ikke holder dem tilbage.
-- Tjek under **Brugerindstillinger → Notifikationsmetoder** på fanen **Push Notifications**, at telefonen står på listen, og send den en **Testnotifikation**.
+- Tjek under **Brugerindstillinger → Notifikationsmetoder** på fanen **Push-notifikationer**, at telefonen står på listen, og send den en **Testnotifikation**.
 - Er den markeret som **Modtager ikke notifikationer**, så åbn appen, mens du er logget ind: se [Når en telefon skal registreres igen](#når-en-telefon-skal-registreres-igen).
 - Tjek dine vagtregler under **Brugerindstillinger → Vagtregler**: de bestemmer, hvilke alarmer der når hvilken metode.
 - På et selv-hostet OneUptime skal du tjekke, at serveren kan nå sit push-relæ: se [Push-notifikationer](/docs/self-hosted/push-notifications#netværksadgang).
@@ -145,7 +145,7 @@ Installer fra en dashboardside efter login, over `https://`, i Edge eller Chrome
 :::
 
 :::details Ingen desktop-notifikationer
-Registrer browseren under **Brugerindstillinger → Notifikationsmetoder** på fanen **Push Notifications** med **Registrer enhed**, tillad notifikationer, når du bliver spurgt, og tjek computerens egne notifikationsindstillinger. Et selv-hostet OneUptime kræver sine VAPID-nøgler til browsernotifikationer.
+Registrer browseren under **Brugerindstillinger → Notifikationsmetoder** på fanen **Push-notifikationer** med **Registrer enhed**, tillad notifikationer, når du bliver spurgt, og tjek computerens egne notifikationsindstillinger. Et selv-hostet OneUptime kræver sine VAPID-nøgler til browsernotifikationer.
 :::
 
 ## Få hjælp

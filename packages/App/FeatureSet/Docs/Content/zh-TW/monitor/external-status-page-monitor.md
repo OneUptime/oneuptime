@@ -66,7 +66,7 @@ flowchart TB
 :::steps
 ### 開始一個新的監測器
 
-前往 **監測器**，點選 **建立監測器**。在 **監測器類型** 下點選 **更多監測器類型**，然後在 **Basic Monitoring** 下選擇 **External Status Page**，或在搜尋方塊中輸入 `statuspage`。輸入 **名稱**，然後點選 **下一步**。
+前往 **監測器**，點選 **建立監測器**。在 **監測器類型** 下點選 **更多監測器類型**，然後在 **基本監控** 下選擇 **External Status Page**，或在搜尋方塊中輸入 `statuspage`。輸入 **名稱**，然後點選 **下一步**。
 
 ### 輸入狀態頁面的 URL
 
@@ -74,7 +74,7 @@ flowchart TB
 
 ### 視需要選擇元件
 
-開啟 **元件**，從頁面本身的清單中選擇你依賴的元件，例如 GitHub 的 `Git Operations` 和 `Pull Requests`；留空則留意整個頁面。若要改為只留意一個群組，請開啟 **更多欄位**，輸入 **Component Group Filter**（例如 `APIs`）。
+開啟 **元件**，從頁面本身的清單中選擇你依賴的元件，例如 GitHub 的 `Git Operations` 和 `Pull Requests`；留空則留意整個頁面。若要改為只留意一個群組，請開啟 **更多欄位**，輸入 **元件群組篩選器**（例如 `APIs`）。
 
 ### 測試
 
@@ -96,7 +96,7 @@ flowchart TB
 | **狀態頁面 URL** | 狀態頁面的 URL。對於由 Atlassian Statuspage 和 incident.io 提供的網站，通常是根 URL（例如 `https://status.example.com`）。對於 RSS/Atom 摘要，請直接輸入摘要的 URL。 | — |
 | **提供者** | **Auto** 表示自動判斷格式；如果你知道格式，可選擇 **Atlassian Statuspage**、**incident.io**、**OneUptime Status Page**、**RSS** 或 **Atom**。 | **Auto** |
 | **元件** | 要留意的元件，從頁面本身的清單中選擇或直接輸入。 | 整個頁面 |
-| **Component Group Filter** | 監測器限定到的群組。位於 **更多欄位** 下。 | 所有群組 |
+| **元件群組篩選器** | 監測器限定到的群組。位於 **更多欄位** 下。 | 所有群組 |
 | **逾時（ms）** | 等待狀態頁面的最長時間。位於 **更多欄位** 下。 | `10000`（10 秒） |
 | **重試** | 第一次嘗試失敗後重試的次數，每次間隔一秒；`0` 表示只嘗試一次。位於 **更多欄位** 下。 | `3`（最多 4 次嘗試） |
 
@@ -115,7 +115,7 @@ flowchart TB
 > [!WARNING]
 > 什麼都比對不到的名稱什麼也不留意，看起來卻是正常的。**元件** 和 **測試監測器** 都會列出頁面上沒有的所選元件。
 
-### Component Group Filter
+### 元件群組篩選器
 
 如果狀態頁面把元件分成群組，你可以把監測器限定到單一群組。例如在 `https://status.openai.com` 上輸入 `APIs`，就會把監測器限定到 OpenAI 的 API 服務。
 
@@ -131,7 +131,7 @@ flowchart TB
 | --- | --- | --- |
 | **External Status Page Is Online** | 狀態頁面是否可以連線並傳回狀態資料 | 是 或 否 |
 | **External Status Page Overall Status** | 頁面回報的整體狀態 | 等於、不等於、包含、不包含、開頭是、結尾是 |
-| **External Status Page Component Status** | 範圍內每個元件的狀態（設定後為所選元件或該群組的元件）：運作中、Under Maintenance、Degraded Performance、Partial Outage、Major Outage 或 Full Outage | 等於、不等於、包含、不包含、開頭是、結尾是 |
+| **External Status Page Component Status** | 範圍內每個元件的狀態（設定後為所選元件或該群組的元件）：運作中、維護中、效能降低、部分中斷、重大中斷 或 完全中斷 | 等於、不等於、包含、不包含、開頭是、結尾是 |
 | **External Status Page Active Incidents** | 狀態頁面上目前進行中的事件數（選擇了元件或群組時，只計算影響範圍內元件的事件） | 等於、不等於以及數值比較 |
 | **External Status Page Response Time (in ms)** | 取得狀態頁面資料所花的時間 | 大於、小於、大於或等於、小於或等於 |
 
@@ -145,7 +145,7 @@ flowchart TB
 
 | 條件 | 篩選器 | 效果 |
 | --- | --- | --- |
-| Offline | 下列 **任何** 一項：頁面不在線上；範圍內至少有一個進行中的事件；範圍內有元件回報 Degraded Performance、Partial Outage、Major Outage 或 Full Outage | 將監測器標示為離線並宣告一個事件，該事件會在條件不再符合時自動解決 |
+| Offline | 下列 **任何** 一項：頁面不在線上；範圍內至少有一個進行中的事件；範圍內有元件回報 效能降低、部分中斷、重大中斷 或 完全中斷 | 將監測器標示為離線並宣告一個事件，該事件會在條件不再符合時自動解決 |
 | Online | 下列 **全部** 成立：頁面在線上；範圍內沒有進行中的事件 | 將監測器標示為上線 |
 
 由於進行中的事件數和元件狀態都遵循所選的元件和群組，這些預設條件會自動只針對你在意的元件。
@@ -154,7 +154,7 @@ flowchart TB
 
 若要監測用 OneUptime 製作的狀態頁面（另一個團隊的專案，或供應商在 OneUptime Cloud 或自行託管的 OneUptime 上的頁面），請把提供者選為 **OneUptime Status Page** ，或保留 **Auto** 。在 **狀態頁面 URL** 中輸入頁面本身的位址：有網域就輸入網域，例如 `https://status.example.com`，沒有就輸入 `https://oneuptime.com/status-page/<status-page-id>`。
 
-監測器讀取頁面的狀態概要 `/status-page-api/summary/<page>`（請參閱 [讀取狀態概要](/docs/status-pages/public-api#讀取狀態概要)）：只讀取頁面向訪客顯示的內容，不讀取另一個專案的其他任何內容。頁面上的每個資源（一個監測器或一個監測器群組）都是一個元件，使用頁面為它取的名稱，位於頁面的群組中；群組中的群組寫作 `Core / Databases`。在 **元件** 中選擇資源，或用 **Component Group Filter** 監測一個群組。
+監測器讀取頁面的狀態概要 `/status-page-api/summary/<page>`（請參閱 [讀取狀態概要](/docs/status-pages/public-api#讀取狀態概要)）：只讀取頁面向訪客顯示的內容，不讀取另一個專案的其他任何內容。頁面上的每個資源（一個監測器或一個監測器群組）都是一個元件，使用頁面為它取的名稱，位於頁面的群組中；群組中的群組寫作 `Core / Databases`。在 **元件** 中選擇資源，或用 **元件群組篩選器** 監測一個群組。
 
 元件的狀態是它在頁面上的狀態所代表的值，因此元件狀態條件的用法與任何狀態頁面相同：
 
@@ -208,6 +208,7 @@ flowchart TB
 | `{{provider}}`            | 判斷出的供應商（Atlassian Statuspage、incident.io、OneUptime Status Page、RSS、Atom）；連線能力檢查之後為空 |
 | `{{componentGroup}}`      | 監測器限定到的元件群組（如果有） |
 | `{{componentName}}`       | 監測器留意的元件，以逗號分隔（如果選擇了元件） |
+| `{{componentNames}}`      | 以清單形式提供的同一組元件（可用 `{{#each componentNames}}` 為每個元件重複一行） |
 
 ## 常用狀態頁面 URL
 
@@ -248,7 +249,7 @@ flowchart TB
 ## 疑難排解
 
 :::details 監測器離線了，但事件涉及的是我沒有使用的那部分服務
-在 **元件** 中選擇你依賴的元件，或在 **Component Group Filter** 中指定一個群組。這樣進行中的事件數和元件狀態就只會計算這些內容；沒有指明任何元件的事件不會被計入。
+在 **元件** 中選擇你依賴的元件，或在 **元件群組篩選器** 中指定一個群組。這樣進行中的事件數和元件狀態就只會計算這些內容；沒有指明任何元件的事件不會被計入。
 :::
 
 :::details 即使在服務中斷期間，監測器也從不離線

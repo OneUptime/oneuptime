@@ -50,6 +50,11 @@ const KIND_OPTIONS: Array<DropdownOption> = [
   { value: DataStoreKind.AwsRedshiftCluster, label: "Amazon Redshift" },
   { value: DataStoreKind.Snowflake, label: "Snowflake" },
   { value: DataStoreKind.GcpBigQueryDataset, label: "Google BigQuery" },
+  { value: DataStoreKind.ClickHouse, label: "ClickHouse" },
+  { value: DataStoreKind.Databricks, label: "Databricks" },
+  { value: DataStoreKind.AwsAthena, label: "Amazon Athena" },
+  { value: DataStoreKind.Oracle, label: "Oracle" },
+  { value: DataStoreKind.MongoDb, label: "MongoDB" },
 ];
 
 /*
@@ -178,8 +183,9 @@ const ConnectDatabaseModal: FunctionComponent<ComponentProps> = (
             field: { connectionString: true },
             title: "Connection String",
             stepId: CONNECTION_STEP_ID,
+            // Documentation shows every engine's format in full, with examples.
             description:
-              'For example postgres://reader:password@db.internal:5432/orders. For Redshift, its endpoint: postgres://reader:password@cluster.abc123.us-east-1.redshift.amazonaws.com:5439/dev?sslmode=require. For Snowflake, JSON with its key pair: {"account": "myorg-myaccount", "user": "ONEUPTIME_READER", "privateKey": "-----BEGIN PRIVATE KEY-----...", "database": "ANALYTICS", "warehouse": "CHECKS_WH", "role": "ONEUPTIME_READER"}. For a BigQuery dataset, JSON with a service account key: {"projectId": "my-project", "dataset": "analytics", "location": "US", "serviceAccountJson": {...}}.',
+              "A URL such as postgres://reader:pw@db.internal:5432/orders, or JSON for Snowflake, BigQuery, Databricks and Athena. Documentation shows each engine's.",
             fieldType: FormFieldSchemaType.Password,
             required: (values: FormValues<JSONObject>): boolean => {
               return (

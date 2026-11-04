@@ -176,6 +176,7 @@ const KEPT_IN_ENGLISH: Record<string, Array<string>> = {
     "Days",
     "Hours",
     "Minutes",
+    "Seconds",
     // Execute Workflow: its setting, and the trigger it needs.
     "Workflow",
     "Manual",

@@ -385,7 +385,8 @@ describe("the Growth pages become the plan note below the plan", () => {
     ["ScheduledMaintenanceEvents", ["ScheduledMaintenance"], []],
     ["OnCallDuty", ["OnCallDutyPolicy"], []],
     ["Monitor", ["Monitor"], []],
-    ["SecurityEvents", ["SecurityCase"], []],
+    // The rules that post security cases, and the rules that post what hunts find.
+    ["SecurityEvents", ["SecurityCase", "SecurityHunt"], []],
   ] as Array<[string, Array<string>, Array<string>]>) {
     for (const workspace of ["Slack", "MicrosoftTeams"]) {
       WORKSPACE_PAGES.push([

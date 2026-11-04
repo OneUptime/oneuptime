@@ -68,6 +68,8 @@ export const targetTypeToPageMap: {
   [AIChatCitationTargetType.DataSecurityIssueView]:
     PageMap.DATA_SECURITY_ISSUE_VIEW,
   [AIChatCitationTargetType.DataSecurityAccess]: PageMap.DATA_SECURITY_ACCESS,
+  [AIChatCitationTargetType.DataTableView]:
+    PageMap.DATA_OBSERVABILITY_TABLE_VIEW,
 };
 
 export const targetTypeToIcon: {
@@ -114,6 +116,7 @@ export const targetTypeToIcon: {
   [AIChatCitationTargetType.DataSecurityIssues]: IconProp.ShieldExclamation,
   [AIChatCitationTargetType.DataSecurityIssueView]: IconProp.ShieldExclamation,
   [AIChatCitationTargetType.DataSecurityAccess]: IconProp.Key,
+  [AIChatCitationTargetType.DataTableView]: IconProp.TableCells,
 };
 
 /*

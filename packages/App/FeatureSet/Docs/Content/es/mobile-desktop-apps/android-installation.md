@@ -72,7 +72,7 @@ La aplicación muestra un proyecto a la vez: toque el nombre del proyecto en la 
 
 :::steps
 ### Encontrar el teléfono en el panel
-En el panel, abra **Ajustes de usuario → Métodos de notificación** y la pestaña **Push Notifications**. El teléfono aparece en **Dispositivos de notificaciones push** con el nombre de su modelo. Cada proyecto mantiene su propia lista.
+En el panel, abra **Ajustes de usuario → Métodos de notificación** y la pestaña **Notificaciones push**. El teléfono aparece en **Dispositivos de notificaciones push** con el nombre de su modelo. Cada proyecto mantiene su propia lista.
 
 ### Enviar una prueba
 Haga clic en **Notificación de prueba** en la fila del teléfono. Llega una notificación al teléfono; tóquela para abrir la aplicación.
@@ -137,7 +137,7 @@ La aplicación no pudo llegar a `https://<your-oneuptime>/api/status`. Compruebe
 
 :::details No llegan notificaciones
 - Compruebe en los ajustes de Android que las notificaciones de la aplicación están activadas, y que No molestar está desactivado o las alertas críticas activadas.
-- Compruebe que el teléfono aparece en **Push Notifications** en **Ajustes de usuario → Métodos de notificación**, y envíele una **Notificación de prueba**.
+- Compruebe que el teléfono aparece en **Notificaciones push** en **Ajustes de usuario → Métodos de notificación**, y envíele una **Notificación de prueba**.
 - Si el teléfono está marcado como **No recibe notificaciones**, abra la aplicación con la sesión iniciada. Vuelve a registrar el teléfono; consulte [Cuando un teléfono tiene que volver a registrarse](/docs/mobile-desktop-apps/faq-troubleshooting#cuando-un-teléfono-tiene-que-volver-a-registrarse).
 - Compruebe sus reglas de guardia en **Ajustes de usuario → Reglas de guardia**.
 - En un OneUptime autoalojado, compruebe que su servidor llega a su relé push: consulte [Notificaciones push](/docs/self-hosted/push-notifications#acceso-de-red).

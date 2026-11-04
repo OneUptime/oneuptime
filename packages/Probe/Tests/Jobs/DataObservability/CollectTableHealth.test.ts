@@ -115,6 +115,8 @@ describe("collectStore", () => {
           maxColumns: 1000,
           exclusions: ["audit"],
           checks: [],
+          // A server that sends no lookback reads no lineage.
+          queryHistoryLookbackInSeconds: 0,
         },
       },
     ]);

@@ -38,7 +38,7 @@ Sandkassen er ikke Node.js: det finnes ingen `require`, `process`, `fetch` eller
 :::steps
 ### Start en ny monitor
 
-Gå til **Monitorer**, og klikk på **Opprett monitor**. Under **Monitortype** klikker du på **Flere monitortyper** og velger **Custom JavaScript Code** under **Synthetic Monitoring**, eller skriver `script` i søkefeltet. Skriv inn et **Navn**, og klikk deretter på **Neste**.
+Gå til **Monitorer**, og klikk på **Opprett monitor**. Under **Monitortype** klikker du på **Flere monitortyper** og velger **Custom JavaScript Code** under **Syntetisk overvåking**, eller skriver `script` i søkefeltet. Skriv inn et **Navn**, og klikk deretter på **Neste**.
 
 ### Legg til skriptet
 

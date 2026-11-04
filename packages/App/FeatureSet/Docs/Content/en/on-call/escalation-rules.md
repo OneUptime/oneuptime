@@ -228,6 +228,8 @@ Every page can be escalated from where it reached you:
 
 Every way but the call asks before it does anything, and says what will happen, such as "This will immediately page Platform leads (Level 2 of 3), without waiting."; on a call, pressing 2 is the answer. Only the person being paged can escalate the page: the button in OneUptime shows only to them, and the link in a message escalates only the page it was sent about, for the person it was sent to, for 7 days.
 
+With two or more levels after yours, OneUptime and the pages a message's links open also ask which level to page, under **Escalate to**, with the next level picked. Keep it to page the next level as always, or pick a later level to page it straight away instead: the levels in between are skipped, and the policy goes on from the level you picked. A call and the OneUptime On-Call app page the next level.
+
 What happens next depends on who else is being paged:
 
 - Others on the same level are still being paged: the policy waits for them, as before. It moves on when the level's wait runs out, or as soon as the last of them escalates it too.
@@ -238,7 +240,7 @@ Escalating a page does not acknowledge it: the incident or alert still waits for
 
 A page a workflow sends to people directly has no levels: escalating it stops paging you, and once everybody it paged has escalated it, paging stops.
 
-Escalating is recorded. The run's **Execution Timeline** marks the person's line **Escalated**, the incident's feed says "Alex Kim escalated the page from on-call policy Payments at Level 1 of 3.", the run's message in Slack and Microsoft Teams says they escalated it, and their **On-Call Logs** show the page as **Escalated**.
+Escalating is recorded. The run's **Execution Timeline** marks the person's line **Escalated**, the incident's feed says "Alex Kim escalated the page from on-call policy Payments at Level 1 of 3.", the run's message in Slack and Microsoft Teams says they escalated it, and their **On-Call Logs** show the page as **Escalated**. A level skipped for a later one is marked **Skipped** on the **Execution Timeline**, and the feed says "On-call policy Payments skipped Platform leads (Level 2 of 3): the page was escalated past it."
 
 ## Editing, reordering and deleting rules
 

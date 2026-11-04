@@ -70,6 +70,7 @@ export const NOTIFICATION_RULE_CONDITIONS_TITLES: ByEventType = {
   [NotificationRuleEventType.SecurityCase]: translationKey(
     "Which security cases",
   ),
+  [NotificationRuleEventType.SecurityHunt]: translationKey("Which hunts"),
 };
 
 /*
@@ -103,6 +104,10 @@ export const NOTIFICATION_RULE_CONDITIONS_DESCRIPTIONS: ByEventType = {
   ),
   [NotificationRuleEventType.SecurityCase]: translationKey(
     "Conditions are checked each time there is something to post about a security case: when it opens or rises to a higher priority, is assigned, or has a playbook step waiting for approval.",
+  ),
+  // What there is to post about a hunt: SecurityHuntNotifications.
+  [NotificationRuleEventType.SecurityHunt]: translationKey(
+    "Conditions are checked each time a scheduled run of a hunt finds security events.",
   ),
 };
 
@@ -141,6 +146,10 @@ const OWN_ANSWERS: Readonly<
   [NotificationRuleEventType.SecurityCase]: {
     all: translationKey("All security cases"),
     matching: translationKey("Only security cases that match conditions"),
+  },
+  [NotificationRuleEventType.SecurityHunt]: {
+    all: translationKey("All hunts"),
+    matching: translationKey("Only hunts that match conditions"),
   },
 };
 
@@ -205,6 +214,9 @@ export const RULE_SINGULAR_NAMES: ByEventType = {
   [NotificationRuleEventType.SecurityCase]: translationKey(
     "Security Case Notification Rule",
   ),
+  [NotificationRuleEventType.SecurityHunt]: translationKey(
+    "Hunt Notification Rule",
+  ),
 };
 
 export const RULE_PLURAL_NAMES: ByEventType = {
@@ -229,6 +241,9 @@ export const RULE_PLURAL_NAMES: ByEventType = {
   ),
   [NotificationRuleEventType.SecurityCase]: translationKey(
     "Security Case Notification Rules",
+  ),
+  [NotificationRuleEventType.SecurityHunt]: translationKey(
+    "Hunt Notification Rules",
   ),
 };
 
@@ -280,6 +295,7 @@ export const CONDITION_FIELD_WORDS: ReadonlyArray<string> = [
   translationKey("Security Case Status"),
   translationKey("Security Case Source"),
   translationKey("Security Case Labels"),
+  translationKey("Security Hunt Name"),
 ];
 
 export const CONDITION_OPERATOR_WORDS: ReadonlyArray<string> = [
@@ -304,6 +320,30 @@ export const CONDITION_OPERATOR_WORDS: ReadonlyArray<string> = [
 // The rules' card on a product's Slack or Microsoft Teams page.
 export const NOTIFICATION_RULES_CARD_TITLE: string =
   translationKey("Notification Rules");
+
+/*
+ * The card's title on a page with more than one kind of rule, each card
+ * under the other: Security Events' Slack and Microsoft Teams pages hold
+ * the rules that post security cases and the rules that post what hunts
+ * find. Every other kind of rule is the only one on its page, and its card
+ * is "Notification Rules".
+ */
+export const NOTIFICATION_RULES_CARD_TITLES: Readonly<
+  Partial<Record<NotificationRuleEventType, string>>
+> = {
+  [NotificationRuleEventType.SecurityCase]: translationKey(
+    "Security Case Rules",
+  ),
+  [NotificationRuleEventType.SecurityHunt]: translationKey("Hunt Rules"),
+};
+
+export function getNotificationRulesCardTitle(
+  eventType: NotificationRuleEventType,
+): string {
+  return (
+    NOTIFICATION_RULES_CARD_TITLES[eventType] || NOTIFICATION_RULES_CARD_TITLE
+  );
+}
 
 export const NOTIFICATION_RULES_CARD_DESCRIPTIONS: ByEventType = {
   [NotificationRuleEventType.Incident]: translationKey(
@@ -330,6 +370,10 @@ export const NOTIFICATION_RULES_CARD_DESCRIPTIONS: ByEventType = {
   // What there is to post about a case: SecurityCaseNotifications.
   [NotificationRuleEventType.SecurityCase]: translationKey(
     "Each rule picks the security cases it is for, then posts to channels you have when a case opens, is assigned or has a playbook step waiting for approval.",
+  ),
+  // What there is to post about a hunt: SecurityHuntNotifications.
+  [NotificationRuleEventType.SecurityHunt]: translationKey(
+    "Each rule picks the hunts it is for, then posts to channels you have each time a scheduled run finds security events.",
   ),
 };
 
@@ -623,6 +667,7 @@ export const NO_CONDITIONS_SENTENCES: ByEventType = {
   [NotificationRuleEventType.SecurityCase]: translationKey(
     "Every security case.",
   ),
+  [NotificationRuleEventType.SecurityHunt]: translationKey("Every hunt."),
 };
 
 /*

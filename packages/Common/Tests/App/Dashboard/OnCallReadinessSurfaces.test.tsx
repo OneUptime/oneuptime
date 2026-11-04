@@ -4063,6 +4063,12 @@ describe("the readiness table, with less to read", () => {
      * unverified)", not "Verified methods (1 / unverified)".
      */
     expect(label.classList.contains("text-balance")).toBe(true);
+    /*
+     * A word wider than a phone's tile is hyphenated in the page's language
+     * - German's "Eskalationsstufen" as "Eskalati- / onsstufen" - not torn
+     * at the tile's edge as "Eskalationsstuf / en".
+     */
+    expect(label.classList.contains("hyphens-auto")).toBe(true);
   });
 
   /*

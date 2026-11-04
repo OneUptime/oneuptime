@@ -350,7 +350,7 @@ window.addEventListener("unhandledrejection", (event: PromiseRejectionEvent) => 
 });
 ```
 
-Met [Sessieherhaling](/docs/telemetry/session-replay) vangt ook de recorder onafgevangen fouten op en markeert ze op de tijdlijn van de herhaling. De pagina van de uitzondering toont dan een kaart **Watch what the user saw**, die de herhaling tien seconden vóór de fout opent. Met het standaardbeleid wordt elke sessie opgenomen, of er nu iets fout gaat of niet; de fout bepaalt alleen waar de kaart opent.
+Met [Sessieherhaling](/docs/telemetry/session-replay) vangt ook de recorder onafgevangen fouten op en markeert ze op de tijdlijn van de herhaling. De pagina van de uitzondering toont dan een kaart **Bekijk wat de gebruiker zag**, die de herhaling tien seconden vóór de fout opent. Met het standaardbeleid wordt elke sessie opgenomen, of er nu iets fout gaat of niet; de fout bepaalt alleen waar de kaart opent.
 
 ## Logs en metrieken toevoegen
 

@@ -114,7 +114,7 @@ De connectiviteit van apparaten is een aparte vereiste. iOS-apparaten hebben toe
 
 :::steps
 1. Controleer DNS en HTTPS vanaf de container of pod die meldingen verstuurt naar de bestemming van uw afleverwijze: de relay, Expo of de pushdienst van een browser.
-2. Stuur een test vanuit **Gebruikersinstellingen > Meldingsmethoden > Push Notifications** met **Testmelding**, en controleer of hij op een geregistreerd apparaat aankomt. Test voor Web Push elke browser afzonderlijk.
+2. Stuur een test vanuit **Gebruikersinstellingen > Meldingsmethoden > Pushmeldingen** met **Testmelding**, en controleer of hij op een geregistreerd apparaat aankomt. Test voor Web Push elke browser afzonderlijk.
 3. Controleer fouten van de relay, Expo of Web Push in de logs van OneUptime; een geslaagde indiening bij de API alleen bevestigt de aflevering op het apparaat niet.
 :::
 
@@ -122,12 +122,12 @@ Bij mobiele pushes leest OneUptime ook het afleverbewijs van Expo, ongeveer 15 m
 
 ## Push uitzetten voor de hele server
 
-Als er niets via Expo, de push-relay of de pushdienst van een browser uw netwerk mag verlaten, kan een hoofdbeheerder push uitzetten in **Admin Dashboard > Instellingen > Push Notifications**: zet **Send push notifications** uit en bevestig.
+Als er niets via Expo, de push-relay of de pushdienst van een browser uw netwerk mag verlaten, kan een hoofdbeheerder push uitzetten in **Admin Dashboard > Instellingen > Pushmeldingen**: zet **Send push notifications** uit en bevestig.
 
 Zolang push uit staat:
 
 - Er wordt niets naar telefoons of browsers gepusht, in geen enkel project.
-- Er kan geen apparaat worden geregistreerd. Het tabblad **Push Notifications** onder **Gebruikersinstellingen > Meldingsmethoden** meldt iedereen dat push uit staat, en bereikbaarheidsregels bieden geen pushapparaten aan.
+- Er kan geen apparaat worden geregistreerd. Het tabblad **Pushmeldingen** onder **Gebruikersinstellingen > Meldingsmethoden** meldt iedereen dat push uit staat, en bereikbaarheidsregels bieden geen pushapparaten aan.
 - Een melding via een pushregel wordt niet verstuurd. In het bereikbaarheidslogboek van de persoon staat `Push notification not sent: Push notifications are turned off on this server.`
 - Gereedheid telt pushapparaten als onbruikbaar, en de terugval slaat ze over. Wie als enige geverifieerde methode een pushapparaat heeft, wordt als onbereikbaar getoond.
 
@@ -191,7 +191,7 @@ Er spelen twee mechanismen, en ze dekken verschillende gevallen:
 Android bevriest de instellingen van een kanaal wanneer het kanaal voor het eerst wordt aangemaakt, dus ze kunnen niet worden gewijzigd door een app-update – alleen door een nieuwe kanaal-id uit te brengen.
 :::
 
-Om te controleren of het werkt, stuurt u vanuit **Gebruikersinstellingen > Meldingsmethoden > Push Notifications** een testmelding naar het apparaat. Wanneer het apparaat kritieke meldingen heeft ingeschakeld, wordt ook de test als kritieke melding verstuurd – zet de telefoon dus eerst op stil, dan hoort u of een echte melding u zou bereiken. Dezelfde lijst toont of elk apparaat kritieke meldingen aan heeft en, voor een telefoon waarbij dat niet zo is, hoe u ze aanzet.
+Om te controleren of het werkt, stuurt u vanuit **Gebruikersinstellingen > Meldingsmethoden > Pushmeldingen** een testmelding naar het apparaat. Wanneer het apparaat kritieke meldingen heeft ingeschakeld, wordt ook de test als kritieke melding verstuurd – zet de telefoon dus eerst op stil, dan hoort u of een echte melding u zou bereiken. Dezelfde lijst toont of elk apparaat kritieke meldingen aan heeft en, voor een telefoon waarbij dat niet zo is, hoe u ze aanzet.
 
 ### Het alarmgeluid kiezen
 
@@ -214,7 +214,7 @@ Een pushregel kan zijn melding opnieuw sturen tot iemand die bevestigt. Stel **H
 - Controleer of het apparaat is geregistreerd in de tabel `UserPush` van uw database
 - Controleer de serverlogs van OneUptime op fouten van de Expo Push API
 - Bevestig dat het apparaat een actieve internetverbinding heeft en meldingen mag ontvangen
-- Controleer **Gebruikersinstellingen > Meldingsmethoden > Push Notifications**: een apparaat gemarkeerd als **Ontvangt geen meldingen** ontvangt ze niet meer en moet opnieuw worden geregistreerd (zie hieronder)
+- Controleer **Gebruikersinstellingen > Meldingsmethoden > Pushmeldingen**: een apparaat gemarkeerd als **Ontvangt geen meldingen** ontvangt ze niet meer en moet opnieuw worden geregistreerd (zie hieronder)
 
 ### Geen schakelaar voor Critical Alerts in de iOS-instellingen
 
@@ -244,7 +244,7 @@ Wanneer Expo een push direct weigert, geeft het pushlog de reden meteen. Via de 
 
 ### "DeviceNotRegistered"-fouten in de logs
 
-Expo meldt `DeviceNotRegistered` wanneer de mobiele app van het apparaat is verwijderd of het pushtoken van het apparaat niet meer geldig is. Meestal staat dat in het afleverbewijs van een push, dat OneUptime ongeveer 15 minuten na de push leest, en soms weigert Expo de push direct. In beide gevallen stopt OneUptime met versturen naar dat apparaat. Het wordt gemarkeerd als niet meer ontvangend in plaats van verwijderd, dus de meldingsregels blijven, en het pushlog en de tijdlijn van de dienst van de melding die niet aankwam, zeggen waarom. **Gebruikersinstellingen > Meldingsmethoden > Push Notifications** toont het als **Ontvangt geen meldingen**. De andere apparaten en meldingsmethoden van de eigenaar worden nog steeds gewaarschuwd.
+Expo meldt `DeviceNotRegistered` wanneer de mobiele app van het apparaat is verwijderd of het pushtoken van het apparaat niet meer geldig is. Meestal staat dat in het afleverbewijs van een push, dat OneUptime ongeveer 15 minuten na de push leest, en soms weigert Expo de push direct. In beide gevallen stopt OneUptime met versturen naar dat apparaat. Het wordt gemarkeerd als niet meer ontvangend in plaats van verwijderd, dus de meldingsregels blijven, en het pushlog en de tijdlijn van de dienst van de melding die niet aankwam, zeggen waarom. **Gebruikersinstellingen > Meldingsmethoden > Pushmeldingen** toont het als **Ontvangt geen meldingen**. De andere apparaten en meldingsmethoden van de eigenaar worden nog steeds gewaarschuwd.
 
 Om het apparaat terug te halen, opent u er de mobiele app op terwijl u bent aangemeld. De app registreert zich opnieuw, wat zijn pushtoken bij Expo vernieuwt, en het apparaat ontvangt weer meldingen met zijn regels. Is de app verwijderd, installeer hem dan opnieuw en meld u aan. Een bewijs voor een push die is verstuurd voordat de app zich opnieuw registreerde, markeert het apparaat niet. Wanneer een actuele mobiele app op een nieuwe telefoon wordt ingericht uit een back-up van de oude, geeft hij OneUptime het pushtoken door dat hij eerder had; ontvangt het apparaat van de oude telefoon geen meldingen meer, dan neemt de nieuwe telefoon het met zijn regels over.
 

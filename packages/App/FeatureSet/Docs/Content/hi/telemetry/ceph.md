@@ -1,6 +1,6 @@
 # Ceph एजेंट
 
-OneUptime Ceph एजेंट एक Ceph क्लस्टर की निगरानी करता है: उसकी हेल्थ, मॉनिटर क्वोरम, OSD, पूल और प्लेसमेंट ग्रुप। यह हर mgr डेमन पर Ceph mgr के `prometheus` मॉड्यूल को स्क्रैप करता है, हर मेट्रिक पर आपके क्लस्टर का नाम लगाता है और उसे OneUptime को भेजता है, जहाँ क्लस्टर अपने OSD, पूल और डेमन के साथ दिखता है। [Ceph मॉनिटर](/docs/monitor/ceph-monitor) आने वाले डेटा पर अलर्ट करते हैं।
+OneUptime Ceph एजेंट एक Ceph क्लस्टर की निगरानी करता है: उसका स्वास्थ्य, मॉनिटर क्वोरम, OSD, पूल और प्लेसमेंट ग्रुप। यह हर mgr डेमन पर Ceph mgr के `prometheus` मॉड्यूल को स्क्रैप करता है, हर मेट्रिक पर आपके क्लस्टर का नाम लगाता है और उसे OneUptime को भेजता है, जहाँ क्लस्टर अपने OSD, पूल और डेमन के साथ दिखता है। [Ceph मॉनिटर](/docs/monitor/ceph-monitor) आने वाले डेटा पर अलर्ट करते हैं।
 
 :::cards
 - [एजेंट इंस्टॉल करें](#एजेंट-इंस्टॉल-करें): mgr मॉड्यूल चालू करें, फिर इंस्टॉल स्क्रिप्ट या Docker Compose।
@@ -133,7 +133,7 @@ AI एजेंट की अपनी सेटिंग्स [AI एजें
 
 | श्रेणी | मेट्रिक्स |
 | --- | --- |
-| क्लस्टर हेल्थ | `ceph_health_status` (0 = OK, 1 = WARN, 2 = ERR), `ceph_health_detail` (हर हेल्थ चेक के लिए एक सीरीज़, सक्रिय रहने तक 1 और साफ़ होने के बाद 0, `name` और `severity` लेबल के साथ, Quincy से आगे; हेल्थ-चेक अलर्ट टेम्पलेट और अवलोकन के **ध्यान देने की ज़रूरत** में दिखने वाली जाँचों का आधार), `ceph_healthcheck_slow_ops`, `ceph_daemon_health_metrics` (हर डेमन के लिए, `type` से पहचाना गया), `ceph_mon_quorum_status`, `ceph_mon_metadata`, `ceph_cluster_total_bytes`, `ceph_cluster_total_used_bytes` |
+| क्लस्टर स्वास्थ्य | `ceph_health_status` (0 = OK, 1 = WARN, 2 = ERR), `ceph_health_detail` (हर स्वास्थ्य जाँच के लिए एक सीरीज़, सक्रिय रहने तक 1 और साफ़ होने के बाद 0, `name` और `severity` लेबल के साथ, Quincy से आगे; स्वास्थ्य-जाँच अलर्ट टेम्पलेट और अवलोकन के **ध्यान देने की ज़रूरत** में दिखने वाली जाँचों का आधार), `ceph_healthcheck_slow_ops`, `ceph_daemon_health_metrics` (हर डेमन के लिए, `type` से पहचाना गया), `ceph_mon_quorum_status`, `ceph_mon_metadata`, `ceph_cluster_total_bytes`, `ceph_cluster_total_used_bytes` |
 | OSD | `ceph_osd_up`, `ceph_osd_in`, `ceph_osd_apply_latency_ms`, `ceph_osd_commit_latency_ms`, `ceph_osd_stat_bytes`, `ceph_osd_stat_bytes_used`, `ceph_osd_numpg`, `ceph_osd_metadata`, हर OSD के लिए `ceph_daemon` लेबल से (जैसे `osd.3`) |
 | पूल | `ceph_pool_stored`, `ceph_pool_max_avail`, `ceph_pool_objects`, `ceph_pool_rd`, `ceph_pool_wr`, `ceph_pool_rd_bytes`, `ceph_pool_wr_bytes`, `ceph_pool_metadata`। डेटा सीरीज़ में सिर्फ़ `pool_id` लेबल होता है; पूल का नाम `ceph_pool_metadata` पर होता है। |
 | प्लेसमेंट ग्रुप | `ceph_pg_total`, `ceph_pg_active`, `ceph_pg_clean`, `ceph_pg_degraded`, `ceph_pg_undersized` (सभी हर पूल के लिए, `pool_id` से), `ceph_num_objects_degraded`, `ceph_num_objects_misplaced` |
@@ -141,7 +141,7 @@ AI एजेंट की अपनी सेटिंग्स [AI एजें
 
 ### और स्क्रैप लक्ष्य
 
-mgr मॉड्यूल क्लस्टर की हेल्थ और क्षमता को कवर करता है। करीब से देखने के लिए, `otel-collector-config.yaml` में `scrape_configs` के अंतर्गत और जॉब जोड़ें:
+mgr मॉड्यूल क्लस्टर के स्वास्थ्य और क्षमता को कवर करता है। करीब से देखने के लिए, `otel-collector-config.yaml` में `scrape_configs` के अंतर्गत और जॉब जोड़ें:
 
 - **`ceph-exporter` (Reef 18.2 और बाद के)।** cephadm हर क्लस्टर होस्ट पर एक `ceph-exporter` डेमन चलाता है, जो पोर्ट `9926` पर हर डेमन के परफ़ॉर्मेंस काउंटर देता है। हर होस्ट के लिए एक लक्ष्य जोड़ें।
 - **`node_exporter`।** हर Ceph होस्ट के CPU, मेमोरी, डिस्क और नेटवर्क मेट्रिक्स के लिए सामान्य साथी, डिफ़ॉल्ट रूप से पोर्ट `9100` पर।
@@ -305,7 +305,7 @@ OneUptime किसी Ceph क्लस्टर को उसके `ceph.clus
 ## अगले कदम
 
 :::cards
-- [Ceph मॉनिटर](/docs/monitor/ceph-monitor): हेल्थ, OSD, प्लेसमेंट ग्रुप, क्षमता, क्रैश और धीमे ऑपरेशन पर अलर्ट करें।
+- [Ceph मॉनिटर](/docs/monitor/ceph-monitor): स्वास्थ्य, OSD, प्लेसमेंट ग्रुप, क्षमता, क्रैश और धीमे ऑपरेशन पर अलर्ट करें।
 - [Proxmox एजेंट](/docs/telemetry/proxmox): Proxmox VE के अंतर्गत Ceph चलाते हैं? क्लस्टर की भी निगरानी करें।
 - [Infrastructure AI Agents](/docs/ai/infrastructure-ai-agents): Ceph AI एजेंट क्या चला सकता है, और सुधार कैसे काम करते हैं।
 - [होस्ट OpenTelemetry कलेक्टर](/docs/telemetry/host-otel-collector): हर Ceph होस्ट का ऑपरेटिंग सिस्टम स्तर का दृश्य।

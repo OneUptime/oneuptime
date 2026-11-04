@@ -66,10 +66,10 @@ Under **Flere felt** setter du **Datasikkerhet** til **Bare konfigurasjon** for 
 
 | Hvor | Datalagre | Innholdsprøver |
 | --- | --- | --- |
-| AWS | AWS S3 Bucket, AWS RDS Instance, AWS Aurora Cluster, AWS RDS Snapshot, AWS DynamoDB Table, AWS Redshift Cluster, AWS DocumentDB Cluster, AWS OpenSearch Domain, AWS ElastiCache Cluster, AWS EFS File System | AWS S3 Bucket |
+| AWS | AWS S3 Bucket, AWS RDS Instance, AWS Aurora Cluster, AWS RDS Snapshot, AWS DynamoDB Table, AWS Redshift Cluster, AWS DocumentDB Cluster, AWS OpenSearch Domain, AWS ElastiCache Cluster, AWS EFS File System, Amazon Athena | AWS S3 Bucket |
 | Azure | Azure Storage Account, Azure SQL Database, Azure Cosmos DB Account, Azure PostgreSQL Server, Azure MySQL Server | Azure Storage Account |
 | Google Cloud | Google Cloud Storage Bucket, Google Cloud SQL Instance, Google BigQuery Dataset, Google Firestore Database, Google Spanner Instance, Google Bigtable Instance | Google Cloud Storage Bucket, Google BigQuery Dataset |
-| Databaser du drifter selv | PostgreSQL, MySQL, MongoDB, SQL Server, Oracle, Redis, Elasticsearch | PostgreSQL, MySQL |
+| Databaser du drifter selv | PostgreSQL, MySQL, MongoDB, SQL Server, Oracle, Redis, Elasticsearch, Snowflake, ClickHouse, Databricks | PostgreSQL, MySQL |
 | OneUptime | Logger, traser, unntak, øktavspillinger, AI-samtaler | Logger, traser, unntak, øktavspillinger, AI-samtaler |
 
 Hvert datalager får kontrollene som gjelder for typen. Et datalager der innholdet ikke kan prøvetas, kontrolleres likevel: en offentlig bucket eller en ukryptert database er et problem uansett hva den inneholder.

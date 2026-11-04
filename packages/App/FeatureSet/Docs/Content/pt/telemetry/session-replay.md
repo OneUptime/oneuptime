@@ -43,7 +43,7 @@ A reprodução de sessões vem ativada por padrão. As configurações dela fica
 
 | Onde | O que há lá |
 | --- | --- |
-| A página **Replay Policy** da aplicação | A política (gravação, mascaramento, consentimento, rastreamento e limites), um resumo de **Saúde da gravação**, o cartão **O que uma gravação contém**, o painel **Test your installation** e **Record a specific user's next session**. |
+| A página **Política de reprodução** da aplicação | A política (gravação, mascaramento, consentimento, rastreamento e limites), um resumo de **Saúde da gravação**, o cartão **O que uma gravação contém**, o painel **Test your installation** e **Record a specific user's next session**. |
 | A página **Integridade** da aplicação | Se as gravações estão chegando, e por que não quando não estão. Consulte [Saúde da gravação](#saúde-da-gravação). |
 | **Monitoramento de Usuários Reais → Configurações → Reprodução de sessões** | A chave do projeto inteiro que para todas as aplicações de uma vez, e uma lista somente leitura da política de cada aplicação. |
 
@@ -290,7 +290,7 @@ copy(JSON.stringify(OneUptimeReplay.getDiagnostics(), null, 2));
 
 ## Privacidade
 
-**O mascaramento acontece na captura, no dispositivo do usuário final, antes de qualquer coisa ser enviada.** O servidor nunca recebe o que foi mascarado, então uma decisão de mascaramento não pode ser desfeita depois, nem aplicada retroativamente. Na web, o que é mascarado depende do modo; o React Native sempre envia a estrutura em wireframe mais rígida descrita em [Privacidade e mascaramento no React Native](#privacidade-e-mascaramento-no-react-native). O cartão **O que uma gravação contém** na página **Replay Policy** da aplicação reformula essas decisões em frases simples para o que você configurou.
+**O mascaramento acontece na captura, no dispositivo do usuário final, antes de qualquer coisa ser enviada.** O servidor nunca recebe o que foi mascarado, então uma decisão de mascaramento não pode ser desfeita depois, nem aplicada retroativamente. Na web, o que é mascarado depende do modo; o React Native sempre envia a estrutura em wireframe mais rígida descrita em [Privacidade e mascaramento no React Native](#privacidade-e-mascaramento-no-react-native). O cartão **O que uma gravação contém** na página **Política de reprodução** da aplicação reformula essas decisões em frases simples para o que você configurou.
 
 As configurações de privacidade da política, com o nome que **Editar política** dá a elas:
 
@@ -333,7 +333,7 @@ A reprodução de sessões funciona de imediato com uma lista de origens permiti
 O seu token de ingestão é entregue ao cliente — no JavaScript da página ou no binário móvel — então há duas barreiras, e elas se combinam:
 
 - **Na chave.** Crie a chave de ingestão com **Navegador** como **Tipo de chave**. Para a web, liste os **Origens permitidas** dela (`https://app.example.com`, ou `https://*.example.com` para um nível de subdomínio). Para o React Native, adicione a identidade exata do app como `app://com.example.storefront`. Dê também à chave um **Expira em**: assim um token copiado para de funcionar em uma data que você escolhe em vez de nunca.
-- **Na aplicação.** **Replay Policy → Origens permitidas** restringe quem pode gravar gravações nesta aplicação, seja qual for a chave apresentada. Adicione aqui as mesmas origens web e as identidades móveis `app://` exatas.
+- **Na aplicação.** **Política de reprodução → Origens permitidas** restringe quem pode gravar gravações nesta aplicação, seja qual for a chave apresentada. Adicione aqui as mesmas origens web e as identidades móveis `app://` exatas.
 
 Uma entrada `app://` é o prefixo literal mais o application id do Android ou o bundle identifier do iOS normalizado fornecido como `mobileAppIdentifier`. A comparação não diferencia maiúsculas de minúsculas, depois de remover espaços e passar para minúsculas um identificador reverse-DNS válido. As identidades móveis **não** aceitam curingas: `app://*.example.com` é inválido. O SDK móvel não envia nenhum `Origin` de navegador; ele envia o tipo de gravador e a identidade do app em cabeçalhos dedicados. Se uma requisição carregar um `Origin` real, essa origem sempre prevalece — os cabeçalhos móveis nunca podem ser usados para contornar a verificação de origem do navegador.
 
@@ -370,7 +370,7 @@ Os valores mascarados não preservam o comprimento. Um campo mascarado é um mar
 <div class="oneuptime-ignore">...</div>
 ```
 
-Você também pode adicionar **Seletores de mascaramento adicionais** e **Seletores de bloqueio** na página **Replay Policy** da sua aplicação, sem mudar o seu markup. Com o modo de mascaramento padrão, eles são a principal ferramenta para proteger conteúdo que o seu markup não declara como sensível.
+Você também pode adicionar **Seletores de mascaramento adicionais** e **Seletores de bloqueio** na página **Política de reprodução** da sua aplicação, sem mudar o seu markup. Com o modo de mascaramento padrão, eles são a principal ferramenta para proteger conteúdo que o seu markup não declara como sensível.
 
 ### O que as suas próprias requisições carregam
 
@@ -387,7 +387,7 @@ tracestate:  oneuptime=sid:<32 hex session id>;p:<16 hex parent id>
 - **O que ele vincula.** Um span, um registro ou uma exceção do backend que indica o usuário (um atributo `enduser.id`, um e-mail em uma linha de log) fica agora a um clique da gravação, mesmo com **Capturar a identidade do usuário final** desativado: essa chave decide o que a gravação guarda, não o que o seu backend registra. Se as gravações não puderem ser ligadas a quem era o usuário, desative também **Propagação de traços da mesma origem**.
 - **Quem pode declará-lo.** Como qualquer contexto de traço, o membro é escrito pelo cliente. Alguém que conhecesse um id de sessão poderia enviá-lo à sua API e fazer os spans das próprias requisições serem arquivados sob essa sessão. Os ids de sessão são valores aleatórios de 128 bits, então primeiro essa pessoa precisaria do id. O mesmo vale para o traço que um cliente indica: uma requisição que envia um `traceparent` de um traço que ela conhece, junto com o membro da própria sessão, traz as linhas de backend desse traço para o painel da sessão dela e para o alcance do apagamento dessa sessão. O apagamento só remove um traço inteiro quando ele pertence apenas às sessões apagadas; de um traço compartilhado com outras sessões, ele só remove as linhas marcadas com os ids apagados (consulte [Apagar sessões](#apagar-sessões)).
 
-Desative-o por aplicação com **Propagação de traços da mesma origem** na página **Replay Policy**; consulte [Desativar a vinculação automática](#desativar-a-vinculação-automática).
+Desative-o por aplicação com **Propagação de traços da mesma origem** na página **Política de reprodução**; consulte [Desativar a vinculação automática](#desativar-a-vinculação-automática).
 
 ### Consentimento
 
@@ -438,7 +438,7 @@ Se você hospeda o OneUptime por conta própria, use o seu próprio host em vez 
 
 Mais um detalhe ligado à CSP, sobre folhas de estilos e não sobre a sua política: o gravador só consegue guardar uma folha de estilos que consegue ler. Uma folha de estilos de outra origem só pode ser lida quando o servidor dela envia um cabeçalho `Access-Control-Allow-Origin` que permite o seu site **e** o seu `<link>` carrega `crossorigin="anonymous"`. Caso contrário, a gravação guarda só o endereço dela, e a reprodução a carrega de lá no navegador de quem assiste; consulte [Imagens, estilos e fontes durante a reprodução](#imagens-estilos-e-fontes-durante-a-reprodução). Adicione o atributo só quando o cabeçalho estiver no lugar: `crossorigin` sem o cabeçalho faz a sua própria página recusar a folha de estilos.
 
-Use o painel **Test your installation** na página **Replay Policy** da aplicação para confirmar, do lado do servidor, o token, as chaves da política e as listas de origens permitidas. Ele não consegue verificar a sua CSP: uma CSP é um cabeçalho que o seu próprio site envia aos seus próprios visitantes, e nada do lado do servidor jamais o vê. Um bloqueio da CSP só aparece ali de forma indireta: `script-src` bloqueia o gravador, então a linha _Recorder loaded on your site_ do painel continua esperando; `connect-src` bloqueia o envio, então essa linha passa enquanto a linha da gravação recebida, abaixo dela, continua esperando. Nos dois casos, o console do navegador na página bloqueada registra a recusa, e essa é a única prova positiva.
+Use o painel **Test your installation** na página **Política de reprodução** da aplicação para confirmar, do lado do servidor, o token, as chaves da política e as listas de origens permitidas. Ele não consegue verificar a sua CSP: uma CSP é um cabeçalho que o seu próprio site envia aos seus próprios visitantes, e nada do lado do servidor jamais o vê. Um bloqueio da CSP só aparece ali de forma indireta: `script-src` bloqueia o gravador, então a linha _Recorder loaded on your site_ do painel continua esperando; `connect-src` bloqueia o envio, então essa linha passa enquanto a linha da gravação recebida, abaixo dela, continua esperando. Nos dois casos, o console do navegador na página bloqueada registra a recusa, e essa é a única prova positiva.
 
 ## Correlacionar com o resto da sua telemetria
 
@@ -466,7 +466,7 @@ As abas **Registros**, **Traços** e **Erros** do reprodutor mostram então essa
 
 ### APIs em outra origem
 
-Uma requisição para outra origem não recebe nada por padrão: adicionar qualquer cabeçalho transforma uma requisição cross-origin simples em uma com preflight, e uma API que não permite o cabeçalho começaria a falhar porque você instalou um gravador. Para vincular uma, adicione a origem dela a **Origens de propagação de traços** na página **Replay Policy**, na etapa **Desempenho e rastreamento** de **Editar política**. Liste só uma origem cuja API permita `traceparent` em `Access-Control-Allow-Headers`; esse é todo o motivo de ser uma lista explícita.
+Uma requisição para outra origem não recebe nada por padrão: adicionar qualquer cabeçalho transforma uma requisição cross-origin simples em uma com preflight, e uma API que não permite o cabeçalho começaria a falhar porque você instalou um gravador. Para vincular uma, adicione a origem dela a **Origens de propagação de traços** na página **Política de reprodução**, na etapa **Desempenho e rastreamento** de **Editar política**. Liste só uma origem cuja API permita `traceparent` em `Access-Control-Allow-Headers`; esse é todo o motivo de ser uma lista explícita.
 
 As requisições para uma origem listada recebem só um `traceparent`, sem `tracestate` e, portanto, sem id de sessão, e a telemetria do backend delas é associada à gravação **pelo id do traço**, por meio dos ids de traço que a gravação observou. As requisições que já carregam um `traceparent`, e as chamadas `fetch` feitas com um objeto `Request` em vez de uma URL, não são tocadas nesse caminho.
 
@@ -519,7 +519,7 @@ Um traço que o seu backend descarta nunca chega ao OneUptime, então também n�
 
 ### Desativar a vinculação automática
 
-**Propagação de traços da mesma origem**, na página **Replay Policy** ao lado de **Origens de propagação de traços**, vem ativado por padrão em toda aplicação. Desativado, o gravador não adiciona nada às requisições de mesma origem a partir do próximo carregamento de página, e **Origens de propagação de traços** continua funcionando como antes, para cada origem que contém. Então, se você colocou a sua própria origem lá (as versões anteriores desta página diziam para fazer isso), remova-a também, senão as suas próprias requisições continuam recebendo um `traceparent`. Com o diagnóstico ativado, o gravador diz qual vale quando inicia: `same-origin-propagation`, com `enabled` e uma `reason` (consulte [Solução de problemas de reprodução de sessões](/docs/rum/session-replay-troubleshooting#códigos)).
+**Propagação de traços da mesma origem**, na página **Política de reprodução** ao lado de **Origens de propagação de traços**, vem ativado por padrão em toda aplicação. Desativado, o gravador não adiciona nada às requisições de mesma origem a partir do próximo carregamento de página, e **Origens de propagação de traços** continua funcionando como antes, para cada origem que contém. Então, se você colocou a sua própria origem lá (as versões anteriores desta página diziam para fazer isso), remova-a também, senão as suas próprias requisições continuam recebendo um `traceparent`. Com o diagnóstico ativado, o gravador diz qual vale quando inicia: `same-origin-propagation`, com `enabled` e uma `reason` (consulte [Solução de problemas de reprodução de sessões](/docs/rum/session-replay-troubleshooting#códigos)).
 
 ### Redirecionamentos para outra origem
 
@@ -572,7 +572,7 @@ Um processador de spans marca cada span com o id que estava valendo quando ele c
 
 ### Onde estão os links
 
-Uma exceção no painel mostra um cartão **Watch what the user saw** quando existe uma gravação de uma sessão que teve esse erro, e abre o reprodutor dez segundos antes da exceção com a aba Errors selecionada. Os detalhes de um span oferecem **Assistir à sessão neste span**; os detalhes de uma linha de log oferecem **View session replay** no momento da linha quando o próprio log carrega o id da sessão, e um log vinculado pelo id do traço chega à gravação pelo traço dele. Na outra direção, cada linha de rede, registro, traço e erro do reprodutor leva à visão do traço, ao explorador de registros limitado à sessão naquele momento, ou ao grupo de exceções.
+Uma exceção no painel mostra um cartão **Veja o que o usuário viu** quando existe uma gravação de uma sessão que teve esse erro, e abre o reprodutor dez segundos antes da exceção com a aba Errors selecionada. Os detalhes de um span oferecem **Assistir à sessão neste span**; os detalhes de uma linha de log oferecem **View session replay** no momento da linha quando o próprio log carrega o id da sessão, e um log vinculado pelo id do traço chega à gravação pelo traço dele. Na outra direção, cada linha de rede, registro, traço e erro do reprodutor leva à visão do traço, ao explorador de registros limitado à sessão naquele momento, ou ao grupo de exceções.
 
 ## Assistir a uma sessão
 
@@ -589,7 +589,7 @@ Cada linha mostra:
 | **Duração** | Duração, páginas, cliques e a parcela ociosa («idle 40%»). As contagens só aparecem depois de medidas; uma sessão ainda não finalizada diz «counting». |
 | **Sinais** | Erros, cliques de raiva / mortos / de erro, recargas de raiva, traços, grupos de exceções e _Slow_ (um orçamento de desempenho disparou). Cada selo abre o reprodutor na aba correspondente do painel de eventos. Uma sessão finalizada sem nada a relatar diz _Clean_; uma ainda não finalizada, _Not counted yet_. |
 | **Gravação** | Um selo que diz honestamente se há gravação para assistir, mais o motivo do gatilho («Always-on», «Sampled (25%)», «Error», «Frustration», «Slow page», «Manual»). |
-| **Ações** | **Watch** é o botão da linha. O seu menu **⋯** tem **Mostrar ID**, o ID completo da sessão para copiar, e, quando a sessão teve um erro, **Watch from first error**, que abre o reprodutor no primeiro erro com a aba Errors selecionada. **Watch** só é oferecido onde existe gravação; caso contrário, a linha diz _Signals only_. Clique em qualquer parte de uma linha para abri-la; Cmd/Ctrl-clique abre uma nova aba. **View journey**, no menu **⋯**, mostra as páginas da sessão em ordem em User Flows. |
+| **Ações** | **Assistir** é o botão da linha. O seu menu **⋯** tem **Mostrar ID**, o ID completo da sessão para copiar, e, quando a sessão teve um erro, **Watch from first error**, que abre o reprodutor no primeiro erro com a aba Errors selecionada. **Assistir** só é oferecido onde existe gravação; caso contrário, a linha diz _Signals only_. Clique em qualquer parte de uma linha para abri-la; Cmd/Ctrl-clique abre uma nova aba. **View journey**, no menu **⋯**, mostra as páginas da sessão em ordem em User Flows. |
 
 Os estados do selo Gravação:
 
@@ -684,7 +684,7 @@ Cada controle fica na URL, então um mapa é um link que você pode compartilhar
 
 **Um usuário ou uma sessão.** **Filter by user or session ID** restringe a página inteira a uma pessoa ou uma sessão, para que a atividade de mais ninguém se misture. O campo abre com as pessoas vistas no intervalo, e `Enter` procura o que você digita, o que também encontra quem a lista não mostra: a referência de um usuário, `user:<reference>` para uma com formato de id de sessão, um id de sessão completo ou `id:<sessionId>`, ou `visitor:<id>` para um navegador. **View journey**, no menu **⋯** de uma linha da página Usuários ou da lista de sessões, abre a mesma visão no intervalo dessa página. **Show all users** volta para todos, e **See all their journeys** amplia de uma sessão para a pessoa a quem ela pertence.
 
-**Journeys** lista uma linha por sessão, a mais recente primeiro: quando começou, quanto durou, em quê, e suas contagens de erros e frustração, depois suas páginas em ordem de **Landing page** a **Exit page**. Uma página em âmbar com uma seta é um retorno a uma página que a sessão já tinha visto, um ponto vermelho marca uma página com erro e um ponto âmbar uma com sinal de frustração. **Watch** abre a gravação; uma sessão sem gravação informa isso. Uma sessão com mais de 100 páginas é cortada ali, informa isso e não nomeia nenhuma página de saída. Os blocos, o mapa e as tabelas abaixo funcionam como sempre, apenas sobre essas sessões.
+**Journeys** lista uma linha por sessão, a mais recente primeiro: quando começou, quanto durou, em quê, e suas contagens de erros e frustração, depois suas páginas em ordem de **Landing page** a **Exit page**. Uma página em âmbar com uma seta é um retorno a uma página que a sessão já tinha visto, um ponto vermelho marca uma página com erro e um ponto âmbar uma com sinal de frustração. **Assistir** abre a gravação; uma sessão sem gravação informa isso. Uma sessão com mais de 100 páginas é cortada ali, informa isso e não nomeia nenhuma página de saída. Os blocos, o mapa e as tabelas abaixo funcionam como sempre, apenas sobre essas sessões.
 
 A URL nunca contém uma referência. Ela contém `userKey`, a chave pseudônima sob a qual a pessoa está armazenada, ou `visitor`, ou `sessionId`. Somente uma função que pode ler a identidade do usuário final pode procurar uma referência; qualquer outra função é informada disso em vez de receber uma resposta sobre todos, e ainda pode escolher a pessoa na lista, com o nome oculto. Uma pessoa é identificada como os filtros da lista de sessões fazem, então sessões gravadas antes de `identify()` são alcançadas pelo id de visitante.
 
@@ -781,12 +781,12 @@ Pressione `?` no reprodutor para ver esta lista. Os atalhos nunca disparam enqua
 
 ## Saúde da gravação
 
-A página **Integridade** da aplicação, na seção **Reprodução de sessões** do menu lateral dela, responde pelo lado do servidor a «algo está sendo gravado e, se não, por quê?», e a página **Replay Policy** repete o diagnóstico de uma linha dela acima da política. O diagnóstico indica uma causa, a quantifica e oferece uma ação; ele nunca diz «disconnected» sem um motivo. Os estados, na ordem em que são verificados:
+A página **Integridade** da aplicação, na seção **Reprodução de sessões** do menu lateral dela, responde pelo lado do servidor a «algo está sendo gravado e, se não, por quê?», e a página **Política de reprodução** repete o diagnóstico de uma linha dela acima da política. O diagnóstico indica uma causa, a quantifica e oferece uma ação; ele nunca diz «disconnected» sem um motivo. Os estados, na ordem em que são verificados:
 
 | Estado | O que significa | O que fazer |
 | --- | --- | --- |
 | `disabled-project` | A chave geral do projeto inteiro está desligada. | Ligue-a em **Monitoramento de Usuários Reais → Configurações → Reprodução de sessões**. |
-| `disabled-app` | A reprodução de sessões está desativada para esta aplicação. | Ative-a em **Replay Policy**. |
+| `disabled-app` | A reprodução de sessões está desativada para esta aplicação. | Ative-a em **Política de reprodução**. |
 | `budget-paused` | O orçamento mensal da aplicação ou o limite diário de bytes do deployment se esgotou; os gravadores ativos receberam ordem de parar. | Aumente o orçamento, ou espere o próximo dia / mês. Configure [alertas de orçamento de armazenamento](#alertas-de-orçamento-de-armazenamento) para saber disso antes de acontecer. |
 | `refusing` | Envios estão chegando e sendo recusados — o diagnóstico diz o principal motivo e a contagem nas últimas 24 horas, por exemplo `origin-not-allowed` (212 envios de uma origem que não está nas suas origens permitidas) ou `not-sampled`. | Siga o motivo: edite as origens permitidas, aumente a porcentagem de amostragem e assim por diante. |
 | `never-loaded` | Nenhum navegador jamais buscou a política desta aplicação. A tag script não está na página, ou o identificador não corresponde. | O guia de configuração na página **Documentação** da aplicação, na seção **Reprodução de sessões** dela, mostra o passo a passo. |
@@ -811,7 +811,7 @@ Os dois orçamentos de armazenamento — o limite diário de envio do projeto e 
 | **Session Replay Monthly Budget Nearly Spent** | Aviso | A aplicação usou 80% do orçamento mensal dela. |
 | **Session Replay Monthly Budget Spent** | Crítico | O orçamento mensal da aplicação se esgotou: os gravadores dela receberam ordem de parar até o dia 1 do mês seguinte (UTC) ou até o orçamento ser aumentado. |
 
-Enquanto a reprodução de sessões está ativada para a aplicação, o par diário é oferecido assim que ela grava uma reprodução, e o par mensal assim que ela também tem um **Orçamento mensal (GB)** na página **Replay Policy** dela; se faltar um em uma aplicação em que você usa a reprodução de sessões, a aba diz por quê. Assim que o par diário é oferecido, **Configurar alertas** no painel **Storage budget** da página **Integridade** abre a aba filtrada nos alertas de orçamento, incluindo os que você já criou. Cada um que você cria é um monitor de métricas comum na aplicação, e o incidente e o alerta que ele abre dizem o que fazer. Para fazer um orçamento durar, diminua a **Porcentagem de amostragem**, envie só _On error or frustration_ ou restrinja os **Origens permitidas** em **Replay Policy** — cada um interrompe um envio antes de ele ser contado — ou aumente o **Orçamento mensal (GB)**. O limite diário não pode ser aumentado pelo painel; em uma instalação auto-hospedada, ele é `SESSION_REPLAY_MAX_BYTES_PER_PROJECT_PER_DAY` (consulte [Notas para instalações auto-hospedadas](#notas-para-instalações-auto-hospedadas)).
+Enquanto a reprodução de sessões está ativada para a aplicação, o par diário é oferecido assim que ela grava uma reprodução, e o par mensal assim que ela também tem um **Orçamento mensal (GB)** na página **Política de reprodução** dela; se faltar um em uma aplicação em que você usa a reprodução de sessões, a aba diz por quê. Assim que o par diário é oferecido, **Configurar alertas** no painel **Storage budget** da página **Integridade** abre a aba filtrada nos alertas de orçamento, incluindo os que você já criou. Cada um que você cria é um monitor de métricas comum na aplicação, e o incidente e o alerta que ele abre dizem o que fazer. Para fazer um orçamento durar, diminua a **Porcentagem de amostragem**, envie só _On error or frustration_ ou restrinja os **Origens permitidas** em **Política de reprodução** — cada um interrompe um envio antes de ele ser contado — ou aumente o **Orçamento mensal (GB)**. O limite diário não pode ser aumentado pelo painel; em uma instalação auto-hospedada, ele é `SESSION_REPLAY_MAX_BYTES_PER_PROJECT_PER_DAY` (consulte [Notas para instalações auto-hospedadas](#notas-para-instalações-auto-hospedadas)).
 
 **Um único monitor diário cobre o projeto.** O limite diário pertence ao projeto, não a uma aplicação: todas as aplicações dele o consomem juntas, e cada aplicação que grava carrega o número do projeto, então o par diário é oferecido em cada uma delas, e um monitor diário em qualquer uma cobre todas. Crie o par diário em uma única aplicação, uma que mantenha a reprodução de sessões ativada (o monitor dela só vê os pontos gravados para essa aplicação), e dispense os cartões diários das outras; caso contrário, um dia esgotado gera um alerta por aplicação. O par mensal é próprio de cada aplicação: crie-o onde você definir um orçamento.
 
@@ -840,7 +840,7 @@ O par diário carrega só `projectId`: o número dele é o do projeto, e nada em
 
 - Nenhum envio foi contado ainda hoje, ou neste mês para o par mensal — por exemplo entre 00:00 UTC e o primeiro envio do dia.
 - Os contadores de uso não podem ser lidos do Valkey. Um número desconhecido nunca é gravado como 0, assim como a página Health mostra **desconhecido** em vez de 0. Os alertas abertos se resolvem assim que a janela deles não contém nenhum ponto, e abrem de novo, notificando de novo, quando os contadores podem ser lidos e o orçamento ainda está acima do limite.
-- A reprodução de sessões está desativada para a aplicação (**Replay Policy**) ou para o projeto inteiro (**Monitoramento de Usuários Reais → Configurações → Reprodução de sessões**).
+- A reprodução de sessões está desativada para a aplicação (**Política de reprodução**) ou para o projeto inteiro (**Monitoramento de Usuários Reais → Configurações → Reprodução de sessões**).
 - A aplicação nunca gravou uma reprodução.
 - A aplicação não tem orçamento mensal: nada é contado em um orçamento que não está definido, então não há nenhum par mensal. Remover o orçamento silencia os monitores mensais dele, e o número mensal conta só os envios feitos enquanto há um orçamento definido: um definido pela primeira vez no meio do mês conta a partir desse momento, não do dia 1, enquanto um removido e definido de novo no mesmo mês retoma a contagem anterior desse mês.
 
@@ -859,7 +859,7 @@ O par diário carrega só `projectId`: o número dele é o do projeto, e nada em
 
 ## Gatilhos de captura por desempenho
 
-Com o gatilho _Always_ padrão, toda sessão amostrada é enviada, então esses orçamentos não mudam nada do que é gravado — eles só marcam, na linha do tempo e na aba **Desemp.**, os eventos que os ultrapassaram. Quando o gatilho é _On error or frustration_, eles estendem os gatilhos às sessões que foram apenas *lentas*. Defina-os na página **Replay Policy**, na etapa **Desempenho e rastreamento** de **Editar política**:
+Com o gatilho _Always_ padrão, toda sessão amostrada é enviada, então esses orçamentos não mudam nada do que é gravado — eles só marcam, na linha do tempo e na aba **Desemp.**, os eventos que os ultrapassaram. Quando o gatilho é _On error or frustration_, eles estendem os gatilhos às sessões que foram apenas *lentas*. Defina-os na página **Política de reprodução**, na etapa **Desempenho e rastreamento** de **Editar política**:
 
 | Orçamento | Dispara quando | Ponto de partida sugerido |
 | --- | --- | --- |
@@ -888,7 +888,7 @@ Quando um cliente identificado relata um problema que você não consegue reprod
 :::steps
 ### Abrir a política
 
-Abra a página **Replay Policy** da aplicação e encontre **Record a specific user's next session**.
+Abra a página **Política de reprodução** da aplicação e encontre **Record a specific user's next session**.
 
 ### Armar o alvo
 
@@ -1069,7 +1069,7 @@ Com o gatilho _Always_ padrão, uma página funcionando envia um fragmento a cad
 
 Duas coisas dizem qual das duas você tem na frente:
 
-- **Pelo lado do servidor**, a página **Integridade** da aplicação (consulte [Saúde da gravação](#saúde-da-gravação)) e o painel **Test your installation** de **Replay Policy**.
+- **Pelo lado do servidor**, a página **Integridade** da aplicação (consulte [Saúde da gravação](#saúde-da-gravação)) e o painel **Test your installation** de **Política de reprodução**.
 - **Pelo lado do navegador**, o próprio diagnóstico do gravador. Ative-o e recarregue:
 
   ```js

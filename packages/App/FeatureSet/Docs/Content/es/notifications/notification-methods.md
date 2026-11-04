@@ -28,17 +28,17 @@ Cada pestaña de **Métodos de notificación** contiene una o más tarjetas, una
 
 | Tarjeta | Pestaña | Lo que añades | Cómo se verifica |
 | --- | --- | --- | --- |
-| **Correos para notificaciones** | **Direct Contact** | Una dirección de correo | Un código por correo |
-| **Números de teléfono para notificaciones SMS** | **Direct Contact** | Un número de teléfono | Un código por SMS |
-| **Números de teléfono para notificaciones por llamada** | **Direct Contact** | Un número de teléfono | Un código leído en una llamada, o ninguno para un número verificado para SMS |
-| **Números de WhatsApp para notificaciones** | **Direct Contact** | Un número de WhatsApp | Un código por WhatsApp |
-| **Cuentas de Telegram para notificaciones** | **Direct Contact** | Tu cuenta de Telegram | Un mensaje al bot de OneUptime |
-| **Cuenta de Slack para notificaciones** | **Workspace Apps** | Tu cuenta de Slack | Vincular tu cuenta al espacio de trabajo del proyecto |
-| **Cuenta de Microsoft Teams para notificaciones** | **Workspace Apps** | Tu cuenta de Microsoft Teams | Vincular tu cuenta al espacio de trabajo del proyecto |
-| **Dispositivos de notificaciones push** | **Push Notifications** | Un teléfono con la app OneUptime On-Call, o un navegador | Registrar el dispositivo |
+| **Correos para notificaciones** | **Contacto directo** | Una dirección de correo | Un código por correo |
+| **Números de teléfono para notificaciones SMS** | **Contacto directo** | Un número de teléfono | Un código por SMS |
+| **Números de teléfono para notificaciones por llamada** | **Contacto directo** | Un número de teléfono | Un código leído en una llamada, o ninguno para un número verificado para SMS |
+| **Números de WhatsApp para notificaciones** | **Contacto directo** | Un número de WhatsApp | Un código por WhatsApp |
+| **Cuentas de Telegram para notificaciones** | **Contacto directo** | Tu cuenta de Telegram | Un mensaje al bot de OneUptime |
+| **Cuenta de Slack para notificaciones** | **Aplicaciones del espacio de trabajo** | Tu cuenta de Slack | Vincular tu cuenta al espacio de trabajo del proyecto |
+| **Cuenta de Microsoft Teams para notificaciones** | **Aplicaciones del espacio de trabajo** | Tu cuenta de Microsoft Teams | Vincular tu cuenta al espacio de trabajo del proyecto |
+| **Dispositivos de notificaciones push** | **Notificaciones push** | Un teléfono con la app OneUptime On-Call, o un navegador | Registrar el dispositivo |
 | **Webhooks para notificaciones** | **Webhooks** | Un endpoint HTTPS propio | Ninguno |
 
-**Workspace Apps** solo aparece si el proyecto ha conectado Slack o Microsoft Teams, y solo contiene los que ha conectado. SMS, llamadas, WhatsApp y Telegram se pueden desactivar para todo el proyecto; consulta [Activa un canal para tu proyecto](#activa-un-canal-para-tu-proyecto).
+**Aplicaciones del espacio de trabajo** solo aparece si el proyecto ha conectado Slack o Microsoft Teams, y solo contiene los que ha conectado. SMS, llamadas, WhatsApp y Telegram se pueden desactivar para todo el proyecto; consulta [Activa un canal para tu proyecto](#activa-un-canal-para-tu-proyecto).
 
 ## Añade y verifica un método
 
@@ -47,7 +47,7 @@ Las direcciones de correo, los números para SMS, los números para llamadas y l
 :::steps
 ### Abre tus métodos
 
-Ve a **Ajustes de usuario → Métodos de notificación**. **Direct Contact** es la primera pestaña.
+Ve a **Ajustes de usuario → Métodos de notificación**. **Contacto directo** es la primera pestaña.
 
 ### Añade la dirección
 
@@ -88,12 +88,12 @@ De vuelta en OneUptime, haz clic en **He enviado el mensaje: comprueba**. En cua
 ## Slack y Microsoft Teams
 
 1. Vincula tu propia cuenta al espacio de trabajo del proyecto: **Ajustes de usuario → Espacio de trabajo → Slack**, o **Microsoft Teams**. Consulta [Slack](/docs/workspace-connections/slack) y [Microsoft Teams](/docs/workspace-connections/microsoft-teams).
-2. En la pestaña **Workspace Apps**, haz clic en **Añadir cuenta de Slack** o **Añadir cuenta de Microsoft Teams**. La cuenta queda verificada al añadirla.
+2. En la pestaña **Aplicaciones del espacio de trabajo**, haz clic en **Añadir cuenta de Slack** o **Añadir cuenta de Microsoft Teams**. La cuenta queda verificada al añadirla.
 3. Haz clic en **Enviar mensaje de prueba** en su fila. Los avisos llegan como mensajes directos de la app de OneUptime.
 
 ## Notificaciones push
 
-La pestaña **Push Notifications** lista tus **Dispositivos de notificaciones push**.
+La pestaña **Notificaciones push** lista tus **Dispositivos de notificaciones push**.
 
 - **Un teléfono.** Instala la app OneUptime On-Call, conéctala a tu OneUptime, inicia sesión y permite las notificaciones: el teléfono se añade solo a esta lista. Consulta [Visión general de las aplicaciones](/docs/mobile-desktop-apps/index).
 - **Este navegador.** Haz clic en **Registrar dispositivo**, ponle un **Nombre del dispositivo** y permite las notificaciones cuando el navegador lo pida.

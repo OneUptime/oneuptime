@@ -1,51 +1,69 @@
 "use strict";
 
 /**
- * Pins IronBank/App to one OneUptime release.
+ * Pins one of OneUptime's Iron Bank projects (IronBank/<Project>) to one
+ * OneUptime release.
  *
- * Iron Bank does not build OneUptime from source. Its pipeline builds
- * IronBank/App/Dockerfile from the files beside it, without internet access,
- * and that Dockerfile copies /usr/src out of the release's Enterprise Edition
- * image, which hardening_manifest.yaml lists as a resource pinned by digest
- * (IronBank/README.md). So moving the Iron Bank image to another release
- * changes seven values in two files, and this changes them together:
+ * Iron Bank does not build OneUptime from source. Its pipeline builds a
+ * project's Dockerfile from the files beside it, without internet access, and
+ * that Dockerfile copies what it ships out of the release's image on Docker
+ * Hub, which hardening_manifest.yaml lists as a resource pinned by digest
+ * (IronBank/README.md). So moving a project to another release changes seven
+ * values in two files, and this changes them together:
  *
  *   hardening_manifest.yaml  the first tag, the version label, and the
- *                            resource's tag and digest
+ *                            release resource's tag and digest
  *   Dockerfile               the release stage's FROM, APP_VERSION, GIT_SHA
  *                            and the revision label
  *
- * The digest is the linux/amd64 image of the release's enterprise-<version> tag
- * on Docker Hub. APP_VERSION and GIT_SHA are read from that image's own
- * environment, so the Iron Bank image reports the version and commit the
- * release does: a COPY --from brings files and no environment, and without them
- * the App says "unknown" for both (packages/Common/Server/EnvironmentConfig.ts).
- * The image must also be the Enterprise Edition: its com.oneuptime.edition
- * label says so.
+ * PROJECTS says which image each project copies: the App's Enterprise Edition
+ * (enterprise-<version>), the ingress (oneuptime/nginx), the runner and the
+ * probe. The digest is the linux/amd64 image of the release's tag on Docker
+ * Hub. APP_VERSION and GIT_SHA are read from that image's own environment, so
+ * the Iron Bank image reports the version and commit the release does: a COPY
+ * --from brings files and no environment, and without them the services say
+ * "unknown" for both (packages/Common/Server/EnvironmentConfig.ts). The App's
+ * image must also be the Enterprise Edition: its com.oneuptime.edition label
+ * says so.
  *
- *   node Scripts/IronBank/PinRelease.js --version 14.0.101
- *   node Scripts/IronBank/PinRelease.js --version 14.0.101 --check
+ *   node Scripts/IronBank/PinRelease.js --version 14.0.102
+ *   node Scripts/IronBank/PinRelease.js --project Probe --version 14.0.102 --check
  *
- * --check changes nothing, and fails when the files are not pinned to that
- * release as Docker Hub has it. The Iron Bank Preflight workflow runs it on
- * pull requests, so a hand edit cannot leave a digest or a commit that is not
- * the release's. --dir points it at another copy of IronBank/App.
+ * --project defaults to App. --check changes nothing, and fails when the files
+ * are not pinned to that release as Docker Hub has it: the Iron Bank Preflight
+ * workflow runs it on pull requests, so a hand edit cannot leave a digest or a
+ * commit that is not the release's. --dir points it at another copy of the
+ * project. Other resources a manifest lists (the probe's ODBC driver) are not
+ * the release's, and stay as they are.
  *
  * Every value is found by a pattern that must match exactly once, so a file
  * whose layout drifted fails here instead of keeping the old release in one
- * place. Tests/Ops/IronBankApp.test.js runs `pin` on the real files.
+ * place. Tests/Ops/IronBankApp.test.js and IronBankProjects.test.js run `pin`
+ * on the real files.
  */
 
 const fs = require("fs");
 const path = require("path");
 
 const REPO_ROOT = path.resolve(__dirname, "..", "..");
-const DEFAULT_DIRECTORY = path.join(REPO_ROOT, "IronBank", "App");
 
-const REPOSITORY = "oneuptime/app";
-const EDITION = "enterprise";
-// The release workflow tags the Enterprise Edition image enterprise-<version>.
-const TAG_PREFIX = "enterprise-";
+/*
+ * Each Iron Bank project, by its folder under IronBank/: the release image it
+ * copies, the prefix of that image's tags, and the edition its
+ * com.oneuptime.edition label must say (null for images that have none).
+ */
+const PROJECTS = {
+  // The release workflow tags the Enterprise Edition image enterprise-<version>.
+  App: {
+    repository: "oneuptime/app",
+    tagPrefix: "enterprise-",
+    edition: "enterprise",
+  },
+  Ingress: { repository: "oneuptime/nginx", tagPrefix: "", edition: null },
+  Runner: { repository: "oneuptime/runner", tagPrefix: "", edition: null },
+  Probe: { repository: "oneuptime/probe", tagPrefix: "", edition: null },
+};
+
 const PLATFORM = { os: "linux", architecture: "amd64" };
 
 const VERSION = /^\d+\.\d+\.\d+$/;
@@ -63,79 +81,95 @@ const MANIFEST_TYPES = [
 
 const ATTEMPTS = 4;
 
-/*
- * The values a release changes, by file. `replace` gets the match's groups
- * and the release, and returns the line(s) that take the match's place.
- */
-const FIELDS = {
-  manifest: [
-    {
-      name: "the first tag",
-      pattern: /^(tags:\n {2}- )"[^"\n]*"$/m,
-      replace: (groups, release) => {
-        return `${groups[1]}"${release.version}"`;
-      },
-    },
-    {
-      name: "the org.opencontainers.image.version label",
-      pattern: /^( {2}org\.opencontainers\.image\.version: )"[^"\n]*"$/m,
-      replace: (groups, release) => {
-        return `${groups[1]}"${release.version}"`;
-      },
-    },
-    {
-      name: "the release resource",
-      pattern:
-        /^( {2}- tag: )"oneuptime\/app:[^"\n]*"(\n {4}url: )"docker:\/\/docker\.io\/oneuptime\/app@sha256:[0-9a-f]{64}"$/m,
-      replace: (groups, release) => {
-        return `${groups[1]}"${REPOSITORY}:${TAG_PREFIX}${release.version}"${groups[2]}"docker://docker.io/${REPOSITORY}@${release.digest}"`;
-      },
-    },
-  ],
-  dockerfile: [
-    {
-      name: "the release stage",
-      pattern: /^FROM oneuptime\/app:\S+ AS release$/m,
-      replace: (groups, release) => {
-        return `FROM ${REPOSITORY}:${TAG_PREFIX}${release.version} AS release`;
-      },
-    },
-    {
-      name: "APP_VERSION",
-      pattern: /^ENV APP_VERSION=\S*$/m,
-      replace: (groups, release) => {
-        return `ENV APP_VERSION=${release.version}`;
-      },
-    },
-    {
-      name: "GIT_SHA",
-      pattern: /^ENV GIT_SHA=\S*$/m,
-      replace: (groups, release) => {
-        return `ENV GIT_SHA=${release.gitSha}`;
-      },
-    },
-    {
-      name: "the org.opencontainers.image.revision label",
-      pattern: /^(LABEL org\.opencontainers\.image\.revision=)"[^"\n]*"$/m,
-      replace: (groups, release) => {
-        return `${groups[1]}"${release.gitSha}"`;
-      },
-    },
-  ],
-};
-
 const FILES = {
   manifest: "hardening_manifest.yaml",
   dockerfile: "Dockerfile",
 };
 
+function escapeRegExp(text) {
+  return text.replace(/[.*+?^${}()|[\]\\/]/g, "\\$&");
+}
+
+/**
+ * The values a release changes in a project, by file. `replace` gets the
+ * match's groups and the release, and returns the line(s) that take the
+ * match's place.
+ * @param {{repository: string, tagPrefix: string}} project
+ */
+function fieldsFor(project) {
+  const repository = escapeRegExp(project.repository);
+  const tag = (release) => {
+    return `${project.repository}:${project.tagPrefix}${release.version}`;
+  };
+
+  return {
+    manifest: [
+      {
+        name: "the first tag",
+        pattern: /^(tags:\n {2}- )"[^"\n]*"$/m,
+        replace: (groups, release) => {
+          return `${groups[1]}"${release.version}"`;
+        },
+      },
+      {
+        name: "the org.opencontainers.image.version label",
+        pattern: /^( {2}org\.opencontainers\.image\.version: )"[^"\n]*"$/m,
+        replace: (groups, release) => {
+          return `${groups[1]}"${release.version}"`;
+        },
+      },
+      {
+        name: "the release resource",
+        pattern: new RegExp(
+          `^( {2}- tag: )"${repository}:[^"\\n]*"(\\n {4}url: )"docker:\\/\\/docker\\.io\\/${repository}@sha256:[0-9a-f]{64}"$`,
+          "m",
+        ),
+        replace: (groups, release) => {
+          return `${groups[1]}"${tag(release)}"${groups[2]}"docker://docker.io/${project.repository}@${release.digest}"`;
+        },
+      },
+    ],
+    dockerfile: [
+      {
+        name: "the release stage",
+        pattern: new RegExp(`^FROM ${repository}:\\S+ AS release$`, "m"),
+        replace: (groups, release) => {
+          return `FROM ${tag(release)} AS release`;
+        },
+      },
+      {
+        name: "APP_VERSION",
+        pattern: /^ENV APP_VERSION=\S*$/m,
+        replace: (groups, release) => {
+          return `ENV APP_VERSION=${release.version}`;
+        },
+      },
+      {
+        name: "GIT_SHA",
+        pattern: /^ENV GIT_SHA=\S*$/m,
+        replace: (groups, release) => {
+          return `ENV GIT_SHA=${release.gitSha}`;
+        },
+      },
+      {
+        name: "the org.opencontainers.image.revision label",
+        pattern: /^(LABEL org\.opencontainers\.image\.revision=)"[^"\n]*"$/m,
+        replace: (groups, release) => {
+          return `${groups[1]}"${release.gitSha}"`;
+        },
+      },
+    ],
+  };
+}
+
 /**
  * The files' text pinned to a release.
  * @param {{manifest: string, dockerfile: string}} files - Their current text
  * @param {{version: string, digest: string, gitSha: string}} release
+ * @param {object} [project] - One of PROJECTS (the App by default)
  * @returns {{manifest: string, dockerfile: string}}
  */
-function pin(files, release) {
+function pin(files, release, project = PROJECTS.App) {
   if (!VERSION.test(release.version)) {
     throw new Error(`Not a release version: ${release.version}`);
   }
@@ -147,7 +181,7 @@ function pin(files, release) {
   }
 
   const pinned = {};
-  for (const [file, fields] of Object.entries(FIELDS)) {
+  for (const [file, fields] of Object.entries(fieldsFor(project))) {
     let text = files[file];
     for (const field of fields) {
       const count = (text.match(new RegExp(field.pattern.source, "gm")) || [])
@@ -199,12 +233,14 @@ function platformDigest(manifest, tagDigest) {
 
 /**
  * What an image's config says about the release it is: its commit, after
- * checking it is the Enterprise Edition of that version for linux/amd64.
+ * checking it is that version for linux/amd64 (and, for the App, the
+ * Enterprise Edition).
  * @param {object} config - The image's config blob
  * @param {string} version - The release it must be
+ * @param {object} [project] - One of PROJECTS (the App by default)
  * @returns {{gitSha: string}}
  */
-function releaseEnvironment(config, version) {
+function releaseEnvironment(config, version, project = PROJECTS.App) {
   if (
     config.os !== PLATFORM.os ||
     config.architecture !== PLATFORM.architecture
@@ -224,9 +260,9 @@ function releaseEnvironment(config, version) {
   }
   const edition = (settings.Labels || {})["com.oneuptime.edition"];
 
-  if (edition !== EDITION) {
+  if (project.edition && edition !== project.edition) {
     throw new Error(
-      `The image is the ${edition || "unlabelled"} edition, not the ${EDITION} edition`,
+      `The image is the ${edition || "unlabelled"} edition, not the ${project.edition} edition`,
     );
   }
   if (environment["APP_VERSION"] !== version) {
@@ -278,23 +314,27 @@ async function get(url, headers) {
 /**
  * The release as Docker Hub has it.
  * @param {string} version
+ * @param {object} [project] - One of PROJECTS (the App by default)
  * @returns {Promise<{version: string, digest: string, gitSha: string}>}
  */
-async function readRelease(version) {
+async function readRelease(version, project = PROJECTS.App) {
   const token = (
     await (
       await get(
-        `https://auth.docker.io/token?service=registry.docker.io&scope=repository:${REPOSITORY}:pull`,
+        `https://auth.docker.io/token?service=registry.docker.io&scope=repository:${project.repository}:pull`,
       )
     ).json()
   ).token;
   const authorization = { Authorization: `Bearer ${token}` };
-  const registry = `https://registry-1.docker.io/v2/${REPOSITORY}`;
+  const registry = `https://registry-1.docker.io/v2/${project.repository}`;
 
-  const tag = await get(`${registry}/manifests/${TAG_PREFIX}${version}`, {
-    ...authorization,
-    Accept: [...INDEX_TYPES, ...MANIFEST_TYPES].join(", "),
-  });
+  const tag = await get(
+    `${registry}/manifests/${project.tagPrefix}${version}`,
+    {
+      ...authorization,
+      Accept: [...INDEX_TYPES, ...MANIFEST_TYPES].join(", "),
+    },
+  );
   const digest = platformDigest(
     await tag.json(),
     tag.headers.get("docker-content-digest"),
@@ -312,20 +352,22 @@ async function readRelease(version) {
     await get(`${registry}/blobs/${manifest.config.digest}`, authorization)
   ).json();
 
-  return { version, digest, ...releaseEnvironment(config, version) };
+  return { version, digest, ...releaseEnvironment(config, version, project) };
 }
 
 /**
  * @param {Array<string>} argv
- * @returns {{version: string, directory: string, check: boolean}}
+ * @returns {{version: string, project: string, directory: string, check: boolean}}
  */
 function parseArgs(argv) {
-  const options = { version: "", directory: DEFAULT_DIRECTORY, check: false };
+  const options = { version: "", project: "App", directory: "", check: false };
 
   for (let index = 0; index < argv.length; index++) {
     const argument = argv[index];
     if (argument === "--version") {
       options.version = argv[++index] || "";
+    } else if (argument === "--project") {
+      options.project = argv[++index] || "";
     } else if (argument === "--dir") {
       options.directory = path.resolve(argv[++index] || "");
     } else if (argument === "--check") {
@@ -335,11 +377,16 @@ function parseArgs(argv) {
     }
   }
 
-  if (!VERSION.test(options.version)) {
+  if (
+    !VERSION.test(options.version) ||
+    !Object.prototype.hasOwnProperty.call(PROJECTS, options.project)
+  ) {
     throw new Error(
-      "Usage: PinRelease.js --version <major.minor.patch> [--check] [--dir <IronBank/App>]",
+      `Usage: PinRelease.js --version <major.minor.patch> [--project ${Object.keys(PROJECTS).join("|")}] [--check] [--dir <IronBank/Project>]`,
     );
   }
+  options.directory =
+    options.directory || path.join(REPO_ROOT, "IronBank", options.project);
 
   return options;
 }
@@ -360,17 +407,18 @@ function changedLines(before, after) {
 
 async function main(argv) {
   const options = parseArgs(argv);
+  const project = PROJECTS[options.project];
   const current = {};
   for (const [file, name] of Object.entries(FILES)) {
     current[file] = fs.readFileSync(path.join(options.directory, name), "utf8");
   }
 
-  const release = await readRelease(options.version);
-  const pinned = pin(current, release);
+  const release = await readRelease(options.version, project);
+  const pinned = pin(current, release, project);
   const stale = Object.keys(FILES).filter((file) => {
     return pinned[file] !== current[file];
   });
-  const summary = `${REPOSITORY}:${TAG_PREFIX}${release.version} (${release.digest}, commit ${release.gitSha})`;
+  const summary = `${project.repository}:${project.tagPrefix}${release.version} (${release.digest}, commit ${release.gitSha})`;
 
   if (options.check) {
     if (stale.length > 0) {
@@ -379,12 +427,12 @@ async function main(argv) {
         console.error(changedLines(current[file], pinned[file]).join("\n"));
       }
       console.error(
-        `The Iron Bank files are not pinned to ${summary}. Run: node Scripts/IronBank/PinRelease.js --version ${release.version}`,
+        `IronBank/${options.project} is not pinned to ${summary}. Run: node Scripts/IronBank/PinRelease.js --project ${options.project} --version ${release.version}`,
       );
       process.exitCode = 1;
       return;
     }
-    console.log(`The Iron Bank files are pinned to ${summary}.`);
+    console.log(`IronBank/${options.project} is pinned to ${summary}.`);
     return;
   }
 
@@ -393,13 +441,14 @@ async function main(argv) {
   }
   console.log(
     stale.length > 0
-      ? `Pinned the Iron Bank files to ${summary}.`
-      : `The Iron Bank files were already pinned to ${summary}.`,
+      ? `Pinned IronBank/${options.project} to ${summary}.`
+      : `IronBank/${options.project} was already pinned to ${summary}.`,
   );
 }
 
 module.exports = {
   FILES,
+  PROJECTS,
   pin,
   platformDigest,
   releaseEnvironment,

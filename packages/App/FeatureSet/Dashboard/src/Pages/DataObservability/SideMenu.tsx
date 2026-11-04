@@ -30,6 +30,13 @@ const DataObservabilitySideMenu: FunctionComponent = (): ReactElement => {
         />
         <SideMenuItem
           link={{
+            title: "Data Products",
+            to: routeOf(PageMap.DATA_OBSERVABILITY_DATA_PRODUCTS),
+          }}
+          icon={IconProp.Layers}
+        />
+        <SideMenuItem
+          link={{
             title: "Tables",
             to: routeOf(PageMap.DATA_OBSERVABILITY_TABLES),
           }}
@@ -44,10 +51,31 @@ const DataObservabilitySideMenu: FunctionComponent = (): ReactElement => {
         />
         <SideMenuItem
           link={{
+            title: "Reconciliations",
+            to: routeOf(PageMap.DATA_OBSERVABILITY_RECONCILIATIONS),
+          }}
+          icon={IconProp.Scale}
+        />
+        <SideMenuItem
+          link={{
             title: "Pipelines",
             to: routeOf(PageMap.DATA_OBSERVABILITY_PIPELINES),
           }}
           icon={IconProp.Workflow}
+        />
+        <SideMenuItem
+          link={{
+            title: "BI Dashboards",
+            to: routeOf(PageMap.DATA_OBSERVABILITY_BI_DASHBOARDS),
+          }}
+          icon={IconProp.ChartBar}
+        />
+        <SideMenuItem
+          link={{
+            title: "Warehouse Spend",
+            to: routeOf(PageMap.DATA_OBSERVABILITY_SPEND),
+          }}
+          icon={IconProp.Billing}
         />
         <SideMenuItem
           link={{

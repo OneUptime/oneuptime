@@ -38,6 +38,7 @@ flowchart TB
 | **Alle saker** | Sikkerhetssaker | Hver sak, åpen eller lukket |
 | **Hendelser** | Hendelser | Søk i og filtrer alle hendelser, og åpne en for å se alle feltene |
 | **Hunts** | Hendelser | Søk lagret fra Hendelser, åpnet igjen med ett klikk eller kjørt etter en tidsplan som varsler personer når de finner noe |
+| **Huntbibliotek** | Hendelser | Ferdige hunts du kan prøve under Hendelser eller legge til blant dine hunts, hver med hendelsene den leser og om de kommer |
 | **Kampanjer** | Hendelser | Hver adresse som sendte angrepsforespørsler, og om noen av forespørslene kom gjennom |
 | **Entitetsrisiko** | Hendelser | Hver bruker, vert og adresse, vurdert etter hva som er funnet om den denne uken, de mest risikable først |
 | **Korreler** | Hendelser | En graf over hendelsene som deler en vert, en bruker eller en IP-adresse |
@@ -286,6 +287,14 @@ Søk og filtrer under **Hendelser** til listen viser det du leter etter, åpne s
 
 Siden til en hunt er søket dens, åpnet i hendelsesutforskeren. Endre søket eller filtrene der, så tilbyr overskriften til hunten **Lagre endringer** og **Forkast endringer**. **Rediger** endrer navnet, søket, hvor langt tilbake den ser, tidsplanen og hvem den varsler, og **Slett hunt** ligger i menyen dens. Fra Security Member og oppover kan man lagre, endre og slette hunts, og en Security Viewer kan åpne dem.
 
+En hunt som er lagret med filtre fra sidepanelet under Hendelser, viser dem i **Rediger** under **Filtre**, slik Hendelser tegner dem, hvert med en x for å fjerne det. Legg til filtre på siden til hunten, fra sidepanelet.
+
+### Start fra Huntbiblioteket
+
+**Hendelser → Huntbibliotek** viser ferdige hunts for det sikkerhetsteam oftest ser etter, som mislykkede pålogginger, kodet PowerShell, AWS-rotkontoen og skall åpnet i Kubernetes-poder. Hver viser hva den finner, søket slik du ville skrevet det under **Hendelser**, og om hendelsene den leser kommer, slik **Regelbibliotek** gjør for sine regler. Avgrens dem etter **Huntkategori**, **Data** og **Status**, eller søk i dem.
+
+**Prøv det** åpner søket under **Hendelser** over tidsvinduet til hunten og lagrer ingenting. **Legg til** lagrer den med en gang som en av prosjektets hunts, navngitt og beskrevet på ditt språk og uten tidsplan, som enhver ny hunt. Deretter står det **Lagt til**, og **Åpne** åpner den, der du kan gi den en tidsplan.
+
 ### Kjør en hunt etter en tidsplan
 
 | Tidsplan | Kjører |
@@ -303,9 +312,15 @@ En kjøring åpner ingen sak og utløser ikke noe varsel: skriv det som skal åp
 
 En planlagt hunt kjører som personen som sist satte tidsplanen, endret søket eller lagret den med **Rediger**. En API-nøkkel kan ikke sette en tidsplan. Når den personen forlater prosjektet eller ikke lenger kan lese sikkerhetshendelser, sier hunten fra: åpne **Rediger** og lagre den for å kjøre den som deg.
 
+### Kjøringshistorikk
+
+Hver planlagte kjøring tas vare på i 90 dager. **Kjøringshistorikk**, på slutten av linjen som sier hva kjøringene til en hunt fant, viser dem med den nyeste først: når hver kjørte og hvilke hendelser den søkte i, deretter hvor mange den fant, med **Vis dem** for å åpne de hendelsene på siden til hunten; at den ikke fant noe; eller hvorfor den ikke kunne kjøre. Den som kan åpne en hunt, kan lese kjøringene dens.
+
 ### Hvem som varsles
 
 Varselet **En hunt fant sikkerhetshendelser** nevner hunten og søket, hvor mange hendelser kjøringen fant og vinduet den leste, og lenker til siden til hunten på de hendelsene; ingen av hendelsenes egne ord står i det. Alle får det på e-post og push, og velger kanalene under **Brukerinnstillinger → Varselinnstillinger**. Som andre rutinemessige e-poster kan det holdes tilbake i en [e-postsamling](/docs/emails/notification-rollup).
+
+For å legge ut det hunts finner i Slack eller Microsoft Teams, legger du til en regel i **Regler for hunts** under **Produkter → Sikkerhetshendelser → Arbeidsområde → Slack** (eller **Microsoft Teams**), under reglene som legger ut [sikkerhetssaker](/docs/telemetry/security-cases#legg-ut-i-slack-og-microsoft-teams-kanaler). En regel navngir kanalene det skal legges ut i (og i Microsoft Teams chattene) og, om du vil, hvilke hunts den gjelder for, etter **Navn på hunt**: et navn som er teksten din, inneholder den, begynner eller slutter med den. Hver gang en planlagt kjøring finner hendelser, legger den ut hunten, søket, hvor mange hendelser og når, med en lenke til dem, og ingen av en hendelses egne ord. En huntregel settes opp av en rolle som kan sette opp sikkerhets-playbooks, som Project Owner, Project Admin eller Security Admin.
 
 ### Oppbevar hendelser på en sak
 
@@ -313,7 +328,7 @@ Velg hendelser under **Hendelser** eller på siden til en hunt og velg **Masseha
 
 OneUptime leser hver hendelse på nytt som deg og oppbevarer den slik den var, på sakens side **Bevis**, så saken fortsatt viser den etter at oppbevaringstiden for hendelsen er ute. En hendelse du ikke kan lese, oppbevares ikke, og en som saken allerede oppbevarer, blir stående som den er. En hendelse funnet via en hunt nevner hunten, og **Vis hendelse** åpner den slik den ble oppbevart.
 
-Hunts har det samme REST-API-et som resten av OneUptime, under `/security-hunt`, og `POST /security-case-evidence/add-events` oppbevarer hendelser på en sak. Se [API-referanse](/docs/api-reference/api-reference).
+Hunts har det samme REST-API-et som resten av OneUptime, under `/security-hunt`, og `POST /security-case-evidence/add-events` oppbevarer hendelser på en sak. Kjøringene til en hunt leses under `/security-hunt-run`. Se [API-referanse](/docs/api-reference/api-reference).
 
 ## Deteksjonsregler
 

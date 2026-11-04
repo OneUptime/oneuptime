@@ -62,6 +62,7 @@ type Arguments = {
   projectId: ObjectID;
   recordType: OnCallPageRecordType;
   recordId: ObjectID;
+  escalateTo?: Record<string, ObjectID> | undefined;
 };
 
 type Read = (data: Arguments) => Promise<Array<OnCallOpenPage>>;
@@ -215,17 +216,19 @@ describe("the pass-on routes", () => {
     method: "GET" | "POST";
     path: string;
     headers?: Record<string, string>;
+    body?: unknown;
   }) => Promise<ProbeResponse> = (data: {
     method: "GET" | "POST";
     path: string;
     headers?: Record<string, string>;
+    body?: unknown;
   }): Promise<ProbeResponse> => {
     return httpRequest({
       port,
       method: data.method,
       path: `/api/on-call-page/pass-on${data.path}`,
       headers: data.headers || signedIn(),
-      body: data.method === "POST" ? {} : undefined,
+      body: data.method === "POST" ? data.body ?? {} : undefined,
       timeoutMs: 20000,
     });
   };
@@ -450,6 +453,156 @@ describe("the pass-on routes", () => {
       ).toBe(
         "It was already acknowledged by Ana Lopez, so there is nothing to escalate.",
       );
+    });
+  });
+
+  describe("POST: a later level picked for a page", () => {
+    const LEVEL_3_ID: string = "0fb00000-0000-4000-8000-000000000003";
+
+    beforeEach(() => {
+      mockPassOn.mockResolvedValue([
+        {
+          passedOn: true,
+          result: {
+            ...PAGE.preview,
+            outcome: OnCallPassOnOutcome.NextRulePaged,
+            isPreview: false,
+            pagedNames: ["Carl Diaz"],
+            rule: { order: 3, name: "DBA leads" },
+            ruleCount: 3,
+          },
+        },
+      ]);
+    });
+
+    test("hands the level picked for each page's run on, as ids", async () => {
+      const response: ProbeResponse = await call({
+        method: "POST",
+        path: `/incident/${INCIDENT_ID}`,
+        body: { escalateTo: { [RUN_ID]: LEVEL_3_ID } },
+      });
+
+      expect(response.status).toBe(200);
+
+      const asked: Arguments = mockPassOn.mock.calls[0]![0];
+
+      expect(Object.keys(asked.escalateTo || {})).toEqual([RUN_ID]);
+      expect(asked.escalateTo![RUN_ID]).toBeInstanceOf(ObjectID);
+      expect(asked.escalateTo![RUN_ID]!.toString()).toBe(LEVEL_3_ID);
+      expect(
+        (response.body as { answers: Array<{ sentence: string }> }).answers[0]!
+          .sentence,
+      ).toBe(
+        `The policy is now paging DBA leads (${["Level", "3", "of", "3"].join(ON_CALL_PASS_ON_NO_BREAK_SPACE)}): Carl Diaz.`,
+      );
+    });
+
+    test.each<[string, unknown]>([
+      ["no body field", {}],
+      ["an empty map", { escalateTo: {} }],
+      ["null", { escalateTo: null }],
+    ])(
+      "%s picks nothing: each page pages its next level",
+      async (_name: string, body: unknown) => {
+        await call({
+          method: "POST",
+          path: `/incident/${INCIDENT_ID}`,
+          body: body,
+        });
+
+        expect(mockPassOn.mock.calls[0]![0].escalateTo).toBeUndefined();
+      },
+    );
+
+    test.each<[string, unknown]>([
+      ["a list", { escalateTo: [LEVEL_3_ID] }],
+      ["a string", { escalateTo: LEVEL_3_ID }],
+      ["a number", { escalateTo: 3 }],
+      ["a run that is not an id", { escalateTo: { "run-1": LEVEL_3_ID } }],
+      ["a level that is not an id", { escalateTo: { [RUN_ID]: "Level 3" } }],
+      ["a level as a number", { escalateTo: { [RUN_ID]: 3 } }],
+      [
+        "a level as an object",
+        { escalateTo: { [RUN_ID]: { id: LEVEL_3_ID } } },
+      ],
+    ])(
+      "%s is refused before anything is escalated",
+      async (_name: string, body: unknown) => {
+        const response: ProbeResponse = await call({
+          method: "POST",
+          path: `/incident/${INCIDENT_ID}`,
+          body: body,
+        });
+
+        expect(response.status).toBe(400);
+        expect(JSON.stringify(response.body)).toContain("escalateTo");
+        expect(mockPassOn).not.toHaveBeenCalled();
+      },
+    );
+
+    test("answers a level not offered any more in so many words", async () => {
+      mockPassOn.mockResolvedValue([
+        { passedOn: false, refusal: OnCallPassOnRefusal.LevelNotAvailable },
+      ]);
+
+      const response: ProbeResponse = await call({
+        method: "POST",
+        path: `/incident/${INCIDENT_ID}`,
+        body: { escalateTo: { [RUN_ID]: LEVEL_3_ID } },
+      });
+
+      expect(response.body).toEqual({
+        answers: [
+          {
+            passedOn: false,
+            refusal: "LevelNotAvailable",
+            sentence:
+              "The policy's levels have changed, so nothing was escalated. Escalate again to pick a level.",
+          },
+        ],
+      });
+    });
+
+    test("GET hands the levels a page offers on, as plain JSON", async () => {
+      const levels: Array<{
+        escalationRuleId: string;
+        order: number;
+        name?: string;
+      }> = [
+        {
+          escalationRuleId: "0fb00000-0000-4000-8000-000000000012",
+          order: 2,
+          name: "Platform leads",
+        },
+        { escalationRuleId: LEVEL_3_ID, order: 3 },
+      ];
+
+      mockRead.mockResolvedValue([
+        {
+          executionLogId: RUN_ID,
+          preview: {
+            ...PAGE.preview,
+            outcome: OnCallPassOnOutcome.NextRulePaged,
+            stillPagedNames: [],
+            rule: { order: 2, name: "Platform leads" },
+            ruleCount: 3,
+            levelChoices: levels,
+          },
+        },
+      ]);
+
+      const response: ProbeResponse = await call({
+        method: "GET",
+        path: `/incident/${INCIDENT_ID}`,
+      });
+
+      expect(
+        (
+          response.body as {
+            pages: Array<{ preview: { levelChoices: unknown } }>;
+          }
+        ).pages[0]!.preview.levelChoices,
+      ).toEqual(levels);
     });
   });
 

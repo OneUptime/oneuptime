@@ -186,13 +186,16 @@ Status" workflow checks every place after each release and every day; its run su
 
 ### Iron Bank
 
-The App's Enterprise Edition image is also packaged for Iron Bank, the US Department of Defense's registry of hardened
-images (registry1.dso.mil), from `IronBank/App`. Iron Bank's pipeline does not build the App: that project's Dockerfile
-copies `/usr/src` out of a release's `oneuptime/app:enterprise-<version>` image onto Iron Bank's Node.js 26 image, and sets
-again what the runtime and enterprise stages of `packages/App/Dockerfile.tpl` set. So when you change one of those stages' start command,
-user, environment, labels, Alpine packages or what it copies, `Tests/Ops/IronBankApp.test.js` fails until
-`IronBank/App/Dockerfile` does the same. Before changing anything in `IronBank/`, `Scripts/IronBank/` or
-`.github/workflows/iron-bank.yml` (the "Iron Bank Preflight" workflow), read [the Iron Bank guide](IronBank/README.md).
+The App (its Enterprise Edition), ingress, runner and probe images are also packaged for Iron Bank, the US Department of
+Defense's registry of hardened images (registry1.dso.mil), from `IronBank/App`, `IronBank/Ingress`, `IronBank/Runner` and
+`IronBank/Probe`. Iron Bank's pipeline does not build them: each project's Dockerfile copies what a release's image adds
+(`/usr/src`, and the ingress's nginx configuration, the runner's kubectl, the probe's browsers and Node.js) onto an Iron
+Bank base image of the same distribution, and sets again what the release's Dockerfile sets. So when you change
+`packages/App/Dockerfile.tpl`, `packages/Nginx/Dockerfile.tpl`, `packages/Runner/Dockerfile.tpl` or
+`packages/Probe/Dockerfile.tpl` - a start command, entrypoint, user, environment variable, label or package, or what the
+image copies or builds in - `Tests/Ops/IronBankApp.test.js` or `IronBankProjects.test.js` fails until the project's
+Dockerfile does the same. Before changing anything in `IronBank/`, `Scripts/IronBank/` or `.github/workflows/iron-bank.yml`
+(the "Iron Bank Preflight" workflow), read [the Iron Bank guide](IronBank/README.md).
 
 ### Commit frequently
 

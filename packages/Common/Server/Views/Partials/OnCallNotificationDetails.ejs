@@ -30,10 +30,15 @@ var hasAnyContext = hasResourceTitle || hasResourceDescription || resourceDetail
     <% } %>
 
     <% if (resourceDetails.length > 0) { %>
+    <%#
+        Each label in its own case - Severity, State, Project - as the
+        Dashboard's on-call labels read: letter-spaced capitals shouted over
+        the values they label, at three in the morning.
+    -%>
     <dl class="mt-5 grid grid-cols-1 gap-x-6 gap-y-4 sm:grid-cols-2">
         <% resourceDetails.forEach(function (detail) { %>
         <div>
-            <dt class="text-xs font-medium uppercase tracking-wide text-gray-500 dark:text-slate-400"><%= detail.label %></dt>
+            <dt class="text-xs font-medium text-gray-500 dark:text-slate-400"><%= detail.label %></dt>
             <dd class="mt-1 flex items-center text-sm text-gray-900 dark:text-slate-50">
                 <% if (detail.color) { %>
                 <span class="mr-2 inline-block h-2.5 w-2.5 flex-none rounded-full" style="background-color: <%= detail.color %>"></span>

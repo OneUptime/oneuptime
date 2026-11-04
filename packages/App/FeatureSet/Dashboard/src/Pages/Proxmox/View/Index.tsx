@@ -1780,7 +1780,7 @@ const ProxmoxClusterOverview: FunctionComponent<
     return (
       <div className="mb-6 grid grid-cols-1 gap-4 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-5">
         <GoldenMetricTile
-          title={tx("Node Availability")}
+          title="Node Availability"
           icon={IconProp.Heartbeat}
           iconColor="emerald"
           value={
@@ -1801,16 +1801,16 @@ const ProxmoxClusterOverview: FunctionComponent<
           description={PROXMOX_METRIC_DESCRIPTIONS.nodeAvailability}
         />
         <GoldenMetricTile
-          title={tx("CPU")}
+          title="CPU"
           icon={IconProp.ChartBar}
           iconColor="blue"
           value={formatPercent(s.cpuPercent)}
-          sublabel={tx("capacity-weighted across nodes")}
+          sublabel="capacity-weighted across nodes"
           percent={s.cpuPercent}
           description={PROXMOX_METRIC_DESCRIPTIONS.clusterCpu}
         />
         <GoldenMetricTile
-          title={tx("Memory")}
+          title="Memory"
           icon={IconProp.SquareStack}
           iconColor="violet"
           value={formatPercent(s.memoryPercent)}
@@ -1827,7 +1827,7 @@ const ProxmoxClusterOverview: FunctionComponent<
           description={PROXMOX_METRIC_DESCRIPTIONS.clusterMemory}
         />
         <GoldenMetricTile
-          title={tx("Storage")}
+          title="Storage"
           icon={IconProp.Database}
           iconColor="amber"
           value={formatPercent(inventory?.worstStoragePercent ?? null)}
@@ -1843,7 +1843,7 @@ const ProxmoxClusterOverview: FunctionComponent<
           description={PROXMOX_METRIC_DESCRIPTIONS.fullestStorage}
         />
         <GoldenMetricTile
-          title={tx("Guests")}
+          title="Guests"
           icon={IconProp.Cube}
           iconColor="sky"
           value={

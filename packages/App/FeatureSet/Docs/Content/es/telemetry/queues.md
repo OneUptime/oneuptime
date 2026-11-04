@@ -256,10 +256,10 @@ Un topic se nombra igual desde ambos lados: los spans informan de su ARN o de su
 
 | Métrica | Se muestra como | Tipo |
 | --- | --- | --- |
-| `amazonaws.com/aws/sns/numberofmessagespublished` (flujo JSON: `numberofmessagespublished`) | Messages published | Recuento por período |
-| `amazonaws.com/aws/sns/numberofnotificationsdelivered` (flujo JSON: `numberofnotificationsdelivered`) | Notifications delivered | Recuento por período |
-| `amazonaws.com/aws/sns/numberofnotificationsfailed` (flujo JSON: `numberofnotificationsfailed`) | Notifications failed | Recuento por período |
-| `amazonaws.com/aws/sns/numberofnotificationsredriventodlq` (flujo JSON: `numberofnotificationsredriventodlq`) | Redriven to dead-letter queue | Recuento por período |
+| `amazonaws.com/aws/sns/numberofmessagespublished` (flujo JSON: `numberofmessagespublished`) | Mensajes publicados | Recuento por período |
+| `amazonaws.com/aws/sns/numberofnotificationsdelivered` (flujo JSON: `numberofnotificationsdelivered`) | Notificaciones entregadas | Recuento por período |
+| `amazonaws.com/aws/sns/numberofnotificationsfailed` (flujo JSON: `numberofnotificationsfailed`) | Notificaciones fallidas | Recuento por período |
+| `amazonaws.com/aws/sns/numberofnotificationsredriventodlq` (flujo JSON: `numberofnotificationsredriventodlq`) | Redirigidos a la cola de mensajes con problemas de entrega | Recuento por período |
 
 ### Amazon SQS
 
@@ -345,12 +345,12 @@ Una cola de mensajes fallidos es una cola de SQS normal con métricas propias, a
 
 | Métrica | Se muestra como | Tipo |
 | --- | --- | --- |
-| `amazonaws.com/aws/sqs/approximatenumberofmessagesvisible` (flujo JSON: `approximatenumberofmessagesvisible`) | Messages visible | Indicador |
-| `amazonaws.com/aws/sqs/approximateageofoldestmessage` (flujo JSON: `approximateageofoldestmessage`) | Oldest message age | Indicador |
-| `amazonaws.com/aws/sqs/approximatenumberofmessagesnotvisible` (flujo JSON: `approximatenumberofmessagesnotvisible`) | Messages in flight | Indicador |
-| `amazonaws.com/aws/sqs/numberofmessagessent` (flujo JSON: `numberofmessagessent`) | Messages sent | Recuento por período |
-| `amazonaws.com/aws/sqs/numberofmessagesreceived` (flujo JSON: `numberofmessagesreceived`) | Messages received | Recuento por período |
-| `amazonaws.com/aws/sqs/numberofmessagesdeleted` (flujo JSON: `numberofmessagesdeleted`) | Messages deleted | Recuento por período |
+| `amazonaws.com/aws/sqs/approximatenumberofmessagesvisible` (flujo JSON: `approximatenumberofmessagesvisible`) | Mensajes visibles | Indicador |
+| `amazonaws.com/aws/sqs/approximateageofoldestmessage` (flujo JSON: `approximateageofoldestmessage`) | Antigüedad del mensaje más antiguo | Indicador |
+| `amazonaws.com/aws/sqs/approximatenumberofmessagesnotvisible` (flujo JSON: `approximatenumberofmessagesnotvisible`) | Mensajes en tránsito | Indicador |
+| `amazonaws.com/aws/sqs/numberofmessagessent` (flujo JSON: `numberofmessagessent`) | Mensajes enviados | Recuento por período |
+| `amazonaws.com/aws/sqs/numberofmessagesreceived` (flujo JSON: `numberofmessagesreceived`) | Mensajes recibidos | Recuento por período |
+| `amazonaws.com/aws/sqs/numberofmessagesdeleted` (flujo JSON: `numberofmessagesdeleted`) | Mensajes eliminados | Recuento por período |
 
 ### Apache ActiveMQ
 
@@ -384,14 +384,14 @@ Las métricas del broker se unen a la cola que crearon los spans de sus clientes
 
 | Métrica | Se muestra como | Tipo |
 | --- | --- | --- |
-| `activemq.message.queue.size` | Queue size | Indicador |
-| `activemq.message.current` | Queue size (legacy names) | Indicador |
-| `activemq.message.enqueued` | Enqueued | Contador, representado por segundo |
-| `activemq.message.dequeued` | Dequeued | Contador, representado por segundo |
-| `activemq.message.expired` | Expired | Contador, representado por segundo |
-| `activemq.consumer.count` | Consumers | Indicador |
-| `activemq.message.enqueue.average_duration` | Average time in queue | Indicador |
-| `activemq.message.wait_time.avg` | Average time in queue (legacy names) | Indicador |
+| `activemq.message.queue.size` | Tamaño de la cola | Indicador |
+| `activemq.message.current` | Tamaño de la cola (nombres heredados) | Indicador |
+| `activemq.message.enqueued` | Encolados | Contador, representado por segundo |
+| `activemq.message.dequeued` | Desencolados | Contador, representado por segundo |
+| `activemq.message.expired` | Caducado | Contador, representado por segundo |
+| `activemq.consumer.count` | Consumidores | Indicador |
+| `activemq.message.enqueue.average_duration` | Tiempo medio en la cola | Indicador |
+| `activemq.message.wait_time.avg` | Tiempo medio en la cola (nombres heredados) | Indicador |
 
 ### Apache Kafka
 
@@ -434,10 +434,10 @@ Para un clúster con SASL o TLS, descomenta `auth` y `tls`. El receptor nombra c
 
 | Métrica | Se muestra como | Tipo |
 | --- | --- | --- |
-| `kafka.consumer_group.lag_sum` | Consumer lag | Indicador |
-| `kafka.consumer_group.lag` | Partition lag | Indicador |
-| `kafka.consumer_group.offset_sum` | Consumed | Contador, representado por segundo |
-| `kafka.partition.current_offset` | Produced | Contador, representado por segundo |
+| `kafka.consumer_group.lag_sum` | Retraso de consumidores | Indicador |
+| `kafka.consumer_group.lag` | Retraso de partición | Indicador |
+| `kafka.consumer_group.offset_sum` | Consumido | Contador, representado por segundo |
+| `kafka.partition.current_offset` | Producidos | Contador, representado por segundo |
 
 ### Apache Pulsar
 
@@ -486,11 +486,11 @@ service:
 
 | Métrica | Se muestra como | Tipo |
 | --- | --- | --- |
-| `pulsar_msg_backlog` | Backlog | Indicador |
-| `pulsar_subscription_back_log` | Subscription backlog | Indicador |
-| `pulsar_storage_backlog_age_seconds` | Backlog age | Indicador |
-| `pulsar_in_messages_total` | Messages in | Contador, representado por segundo |
-| `pulsar_out_messages_total` | Messages out | Contador, representado por segundo |
+| `pulsar_msg_backlog` | Acumulado | Indicador |
+| `pulsar_subscription_back_log` | Acumulado de la suscripción | Indicador |
+| `pulsar_storage_backlog_age_seconds` | Antigüedad del acumulado | Indicador |
+| `pulsar_in_messages_total` | Mensajes de entrada | Contador, representado por segundo |
+| `pulsar_out_messages_total` | Mensajes de salida | Contador, representado por segundo |
 
 ### Apache RocketMQ
 
@@ -536,10 +536,10 @@ Este es el exportador integrado de RocketMQ 5. RocketMQ 4 no tiene ninguno; el `
 
 | Métrica | Se muestra como | Tipo |
 | --- | --- | --- |
-| `rocketmq_consumer_lag_messages` | Consumer lag | Indicador |
-| `rocketmq_consumer_ready_messages` | Ready messages | Indicador |
-| `rocketmq_send_to_dlq_messages_total` | Sent to dead-letter queue | Contador, representado por segundo |
-| `rocketmq_messages_in_total` | Messages in | Contador, representado por segundo |
+| `rocketmq_consumer_lag_messages` | Retraso de consumidores | Indicador |
+| `rocketmq_consumer_ready_messages` | Mensajes listos | Indicador |
+| `rocketmq_send_to_dlq_messages_total` | Enviados a la cola de mensajes con problemas de entrega | Contador, representado por segundo |
+| `rocketmq_messages_in_total` | Mensajes de entrada | Contador, representado por segundo |
 
 ### Azure Event Grid
 
@@ -642,12 +642,12 @@ Azure Monitor no tiene métrica de retraso de los consumidores para Event Hubs: 
 
 | Métrica | Se muestra como | Tipo |
 | --- | --- | --- |
-| `azure_incomingmessages_total` | Incoming messages | Recuento por período |
-| `azure_outgoingmessages_total` | Outgoing messages | Recuento por período |
-| `azure_servererrors_total` | Server errors | Recuento por período |
-| `azure_usererrors_total` | User errors | Recuento por período |
-| `azure_quotaexceedederrors_total` | Quota exceeded errors | Recuento por período |
-| `azure_throttledrequests_total` | Throttled requests | Recuento por período |
+| `azure_incomingmessages_total` | Mensajes entrantes | Recuento por período |
+| `azure_outgoingmessages_total` | Mensajes salientes | Recuento por período |
+| `azure_servererrors_total` | Errores del servidor | Recuento por período |
+| `azure_usererrors_total` | Errores de usuario | Recuento por período |
+| `azure_quotaexceedederrors_total` | Errores de cuota superada | Recuento por período |
+| `azure_throttledrequests_total` | Solicitudes limitadas | Recuento por período |
 
 ### Azure Service Bus
 
@@ -711,15 +711,15 @@ service:
 
 | Métrica | Se muestra como | Tipo |
 | --- | --- | --- |
-| `azure_activemessages_average` | Active messages | Indicador |
-| `azure_deadletteredmessages_average` | Dead-lettered messages | Indicador |
-| `azure_incomingmessages_total` | Incoming messages | Recuento por período |
-| `azure_outgoingmessages_total` | Outgoing messages | Recuento por período |
-| `azure_completemessage_total` | Completed messages | Recuento por período |
-| `azure_abandonmessage_total` | Abandoned messages | Recuento por período |
-| `azure_servererrors_total` | Server errors | Recuento por período |
-| `azure_usererrors_total` | User errors | Recuento por período |
-| `azure_throttledrequests_total` | Throttled requests | Recuento por período |
+| `azure_activemessages_average` | Mensajes activos | Indicador |
+| `azure_deadletteredmessages_average` | Mensajes con problemas de entrega | Indicador |
+| `azure_incomingmessages_total` | Mensajes entrantes | Recuento por período |
+| `azure_outgoingmessages_total` | Mensajes salientes | Recuento por período |
+| `azure_completemessage_total` | Mensajes completados | Recuento por período |
+| `azure_abandonmessage_total` | Mensajes abandonados | Recuento por período |
+| `azure_servererrors_total` | Errores del servidor | Recuento por período |
+| `azure_usererrors_total` | Errores de usuario | Recuento por período |
+| `azure_throttledrequests_total` | Solicitudes limitadas | Recuento por período |
 
 ### BullMQ
 
@@ -837,11 +837,11 @@ service:
 
 | Métrica | Se muestra como | Tipo |
 | --- | --- | --- |
-| `pubsub.googleapis.com/subscription/num_undelivered_messages` | Undelivered messages | Indicador |
-| `pubsub.googleapis.com/subscription/oldest_unacked_message_age` | Oldest unacked message age | Indicador |
-| `pubsub.googleapis.com/subscription/dead_letter_message_count` | Dead-lettered messages | Recuento por período |
-| `pubsub.googleapis.com/subscription/ack_message_count` | Acknowledged messages | Recuento por período |
-| `pubsub.googleapis.com/topic/send_request_count` | Publish requests | Recuento por período |
+| `pubsub.googleapis.com/subscription/num_undelivered_messages` | Mensajes no entregados | Indicador |
+| `pubsub.googleapis.com/subscription/oldest_unacked_message_age` | Antigüedad del mensaje sin confirmar más antiguo | Indicador |
+| `pubsub.googleapis.com/subscription/dead_letter_message_count` | Mensajes con problemas de entrega | Recuento por período |
+| `pubsub.googleapis.com/subscription/ack_message_count` | Mensajes confirmados | Recuento por período |
+| `pubsub.googleapis.com/topic/send_request_count` | Solicitudes de publicación | Recuento por período |
 
 ### JMS
 
@@ -936,12 +936,12 @@ service:
 
 | Métrica | Se muestra como | Tipo |
 | --- | --- | --- |
-| `rabbitmq.message.current` | Queue depth | Indicador |
-| `rabbitmq.message.published` | Published | Contador, representado por segundo |
-| `rabbitmq.message.delivered` | Delivered | Contador, representado por segundo |
-| `rabbitmq.message.acknowledged` | Acknowledged | Contador, representado por segundo |
-| `rabbitmq.message.dropped` | Dropped | Contador, representado por segundo |
-| `rabbitmq.consumer.count` | Consumers | Indicador |
+| `rabbitmq.message.current` | Profundidad de la cola | Indicador |
+| `rabbitmq.message.published` | Publicado | Contador, representado por segundo |
+| `rabbitmq.message.delivered` | Entregados | Contador, representado por segundo |
+| `rabbitmq.message.acknowledged` | Reconocido | Contador, representado por segundo |
+| `rabbitmq.message.dropped` | Descartado | Contador, representado por segundo |
+| `rabbitmq.consumer.count` | Consumidores | Indicador |
 
 ## Alertas
 

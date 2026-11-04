@@ -162,6 +162,7 @@ Het werkt in GitHub-, GitLab-, Forgejo- en Gitea-repository's. GitHub laat OneUp
 | **Zware functies** | De functies van de gewijzigde code die in het afgelopen uur een deel van de profielen van de services innemen. |
 | **Incidenten** | De incidenten van de services uit de afgelopen 30 dagen die nog open zijn, of waarvan de hoofdoorzaak of postmortem de gewijzigde code noemt. Nooit een privé-incident. |
 | **Deploys** | De deploys van de services uit de afgelopen 7 dagen die OneUptime verdenkt van een regressie. |
+| **Gegevens** | De bewaakte tabellen die zijn migraties en dbt-modellen verwijderen, hernoemen of van type veranderen, met de diensten waarvan de query's van de afgelopen dag een gewijzigde kolom gebruiken, de tabellen die eruit worden gebouwd en hun dataproducten. |
 
 Als productie iets laat zien, leest OneUptime AI het naast de diff en voegt **Aandachtspunten** toe: een paar korte punten, elk gebaseerd op de feiten. Dat gebeurt met de standaard-LLM-provider van het project, tenzij **LLM-provider voor productiebeoordeling**, onder **Meer instellingen** op de pagina **Instellingen** van de repository, een andere provider van het project of een globale kiest. Dit draait alleen zolang AI voor het project aan staat, hooguit 10 keer per dag voor een pull request en 100 keer voor een repository, en wordt gemeten zoals elke AI-aanroep; de feiten worden elke keer zonder AI gelezen. Als productie niets over de wijziging laat zien, plaatst OneUptime geen opmerking.
 

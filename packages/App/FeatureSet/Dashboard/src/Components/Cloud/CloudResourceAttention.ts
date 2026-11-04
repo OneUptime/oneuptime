@@ -9,7 +9,7 @@ import {
   CloudHealthTone,
   assessCloudResourceHealth,
 } from "Common/Types/Cloud/CloudResourceHealth";
-import { getCloudResourceTypeLabel } from "Common/Types/Cloud/CloudResourceCatalog";
+import { getCloudResourceTypeDisplayName } from "Common/Types/Cloud/CloudResourceCatalog";
 import IconProp from "Common/Types/Icon/IconProp";
 import { translationKey } from "Common/UI/Utils/TranslateTemplate";
 import {
@@ -203,7 +203,7 @@ export function getCloudResourceAttentionItems(data: {
          * "DB Instance"), the same in every language as the lists show it.
          */
         kind:
-          getCloudResourceTypeLabel(
+          getCloudResourceTypeDisplayName(
             entry.row.cloudProvider || "",
             entry.row.cloudResourceType || "",
           ) || translationKey("Cloud Resource"),

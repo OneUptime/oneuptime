@@ -170,12 +170,23 @@ describe("the Security Events menu", () => {
       ],
       /*
        * The events, and the searches over them saved and run on a schedule
-       * (Hunts) right under them. Who is attacking, and who is riskiest from
+       * (Hunts) right under them, with the ready-made ones to start from
+       * (Hunt Library) after. Who is attacking, and who is riskiest from
        * everything found about each: the one list that says so. Entities, a
        * second "riskiest" by how many findings named a value, folded into
        * Entity Risk.
        */
-      ["Events", ["Events", "Hunts", "Campaigns", "Entity Risk", "Correlate"]],
+      [
+        "Events",
+        [
+          "Events",
+          "Hunts",
+          "Hunt Library",
+          "Campaigns",
+          "Entity Risk",
+          "Correlate",
+        ],
+      ],
       /*
        * What the rules skip on purpose sits right under the rules, and the
        * lists they match against (VIP users, critical hosts) after it,
@@ -237,6 +248,7 @@ describe("the Security Events menu", () => {
       ["All Cases", "SECURITY_CASES_ALL"],
       ["Events", "SECURITY_EVENTS"],
       ["Hunts", "SECURITY_EVENTS_HUNTS"],
+      ["Hunt Library", "SECURITY_EVENTS_HUNT_LIBRARY"],
       ["Campaigns", "SECURITY_EVENTS_CAMPAIGNS"],
       ["Entity Risk", "SECURITY_EVENTS_ENTITY_RISK"],
       ["Correlate", "SECURITY_EVENTS_CORRELATE"],
@@ -690,6 +702,7 @@ describe("where each page says it is", () => {
       ["Security Events", "Security Cases", "All Cases"],
       ["Security Events", "Events"],
       ["Security Events", "Events", "Hunts"],
+      ["Security Events", "Events", "Hunt Library"],
       ["Security Events", "Events", "Campaigns"],
       ["Security Events", "Events", "Entity Risk"],
       ["Security Events", "Events", "Correlate"],

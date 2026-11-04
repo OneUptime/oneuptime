@@ -66,7 +66,7 @@ La comprobación de accesibilidad también es el último recurso cuando falla un
 :::steps
 ### Empezar un monitor nuevo
 
-Vaya a **Monitores** y haga clic en **Crear monitor**. En **Tipo de monitor**, haga clic en **Más tipos de monitor** y elija **Página de estado externa** en **Basic Monitoring**, o escriba `statuspage` en el cuadro de búsqueda. Introduzca un **Nombre** y haga clic en **Siguiente**.
+Vaya a **Monitores** y haga clic en **Crear monitor**. En **Tipo de monitor**, haga clic en **Más tipos de monitor** y elija **Página de estado externa** en **Monitoreo básico**, o escriba `statuspage` en el cuadro de búsqueda. Introduzca un **Nombre** y haga clic en **Siguiente**.
 
 ### Introducir la URL de la página de estado
 
@@ -208,6 +208,7 @@ Al crear incidentes o alertas a partir de monitores de página de estado externa
 | `{{provider}}`            | Proveedor detectado (Atlassian Statuspage, incident.io, OneUptime Status Page, RSS, Atom); vacío tras una comprobación de accesibilidad |
 | `{{componentGroup}}`      | Grupo de componentes al que está acotado el monitor, si lo hay |
 | `{{componentName}}`       | Los componentes que vigila el monitor, separados por comas, si eligió alguno |
+| `{{componentNames}}`      | Los mismos componentes como lista, para repetir una línea por cada uno con `{{#each componentNames}}` |
 
 ## URL de páginas de estado populares
 

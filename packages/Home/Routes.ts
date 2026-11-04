@@ -1050,6 +1050,20 @@ const HomeFeatureSet: FeatureSet = {
       },
     );
 
+    app.get(
+      "/product/data-observability",
+      (_req: ExpressRequest, res: ExpressResponse) => {
+        const seo: PageSEOData & { fullCanonicalUrl: string } = getSEOForPath(
+          "/product/data-observability",
+          res.locals["homeUrl"] as string,
+        );
+        res.render(`${ViewsPath}/data-observability`, {
+          enableGoogleTagManager: GoogleTagManagerEnabled,
+          seo,
+        });
+      },
+    );
+
     app.get("/product/ceph", (_req: ExpressRequest, res: ExpressResponse) => {
       const seo: PageSEOData & { fullCanonicalUrl: string } = getSEOForPath(
         "/product/ceph",

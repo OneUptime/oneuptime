@@ -7,6 +7,7 @@ import SsoTeamMembership, {
   SSO_NO_ROOM_TITLE,
   SsoTeamMembershipOutcome,
 } from "../Utils/SsoTeamMembership";
+import RequestOriginUtil from "Common/Server/Utils/RequestOrigin/RequestOriginUtil";
 import ProjectSsoSignInConfirmation, {
   PROJECT_SSO_ADMIN_SIGN_IN_REFUSED_ERROR,
   PROJECT_SSO_ADMIN_SIGN_IN_REFUSED_MESSAGE,
@@ -582,6 +583,7 @@ const handleOidcCallback: HandleOidcCallbackFunction = async (
           projectId: projectIdForConfirmation,
           kind: ProjectSsoKind.OIDC,
           providerId: projectOidcId,
+          origin: RequestOriginUtil.fromRequest(req),
         });
 
         if (

@@ -50,7 +50,7 @@ Una firma a cui resta meno di un giorno conta già come interrotta, quindi lo sa
 :::steps
 ### Iniziare un nuovo monitor
 
-Andate in **Monitor** e fate clic su **Crea monitor**. In **Tipo di monitor**, fate clic su **Altri tipi di monitor** e scegliete **DNSSEC** sotto **DNS Monitoring**.
+Andate in **Monitor** e fate clic su **Crea monitor**. In **Tipo di monitor**, fate clic su **Altri tipi di monitor** e scegliete **DNSSEC** sotto **Monitoraggio DNS**.
 
 ### Dargli un nome
 

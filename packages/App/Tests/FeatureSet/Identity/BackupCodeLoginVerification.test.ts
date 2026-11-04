@@ -8,6 +8,7 @@ import {
 import UserService from "Common/Server/Services/UserService";
 import PasswordHash from "Common/Server/Utils/PasswordHash";
 import User from "Common/Models/DatabaseModels/User";
+import RequestOrigin from "Common/Types/RequestOrigin";
 import UserTotpAuth from "Common/Models/DatabaseModels/UserTotpAuth";
 import UserWebAuthn from "Common/Models/DatabaseModels/UserWebAuthn";
 import Email from "Common/Types/Email";
@@ -418,14 +419,19 @@ const LOGIN_URI: string = "/login";
 
 type InvokeResult = { nextError: Exception | null };
 
-type InvokeFunction = (uri: string, body: unknown) => Promise<InvokeResult>;
+type InvokeFunction = (
+  uri: string,
+  body: unknown,
+  headers?: Record<string, string> | undefined,
+) => Promise<InvokeResult>;
 
 const invoke: InvokeFunction = async (
   uri: string,
   body: unknown,
+  headers?: Record<string, string> | undefined,
 ): Promise<InvokeResult> => {
   const handler: RouteHandler = mockRouter.match("post", uri);
-  const req: ExpressRequest = buildRequest(body);
+  const req: ExpressRequest = buildRequest(body, { headers: headers });
   const res: ExpressResponse = buildResponse();
 
   let nextError: Exception | null = null;
@@ -518,6 +524,8 @@ type PostBackupCodeInput = {
   omitBackupCode?: boolean;
   password?: string;
   extraData?: JSONObject;
+  // The request's headers, as the browser and the bundled Nginx send them.
+  headers?: Record<string, string>;
 };
 
 type PostBackupCodeFunction = (
@@ -542,7 +550,7 @@ const postBackupCode: PostBackupCodeFunction = (
     ) as JSONValue;
   }
 
-  return invoke(BACKUP_CODE_URI, { data: data });
+  return invoke(BACKUP_CODE_URI, { data: data }, input?.headers);
 };
 
 /*
@@ -666,20 +674,21 @@ const consumeCall: ConsumeCallFunction = (index: number): Array<unknown> => {
   return consumeCode.mock.calls[index] as Array<unknown>;
 };
 
-type BackupCodeEmailArgsFunction = () => {
+type BackupCodeEmailArgs = {
   user: User;
   remainingCodeCount: number;
+  origin?: RequestOrigin | undefined;
 };
 
-const backupCodeEmailArgs: BackupCodeEmailArgsFunction = (): {
-  user: User;
-  remainingCodeCount: number;
-} => {
-  const call: Array<unknown> = sendTwoFactorBackupCodeUsedEmail.mock
-    .calls[0] as Array<unknown>;
+type BackupCodeEmailArgsFunction = () => BackupCodeEmailArgs;
 
-  return call[0] as { user: User; remainingCodeCount: number };
-};
+const backupCodeEmailArgs: BackupCodeEmailArgsFunction =
+  (): BackupCodeEmailArgs => {
+    const call: Array<unknown> = sendTwoFactorBackupCodeUsedEmail.mock
+      .calls[0] as Array<unknown>;
+
+    return call[0] as BackupCodeEmailArgs;
+  };
 
 beforeEach(() => {
   jest.clearAllMocks();
@@ -987,6 +996,34 @@ describe("the notification that a backup code was spent", () => {
     }
 
     expect(violations).toEqual([]);
+  });
+
+  /*
+   * Where the code was spent from - the address, and the device - so an
+   * owner who sees a sign-in they do not remember knows where it came from
+   * (RequestOriginUtil). Read while the request is open, before the detached
+   * chain that mails it.
+   */
+  it("says where the code was spent from: the address and the device", async () => {
+    const user: User = await storedUser();
+
+    jest.spyOn(UserService, "findOneBy").mockResolvedValue(user as never);
+
+    await postBackupCode({
+      headers: {
+        "x-forwarded-for": "203.0.113.9",
+        "user-agent":
+          "Mozilla/5.0 (iPhone; CPU iPhone OS 18_1 like Mac OS X) AppleWebKit/605.1.15 (KHTML, like Gecko) Version/18.1 Mobile/15E148 Safari/604.1",
+      },
+    });
+    await flushDetachedWork();
+
+    expect(sendTwoFactorBackupCodeUsedEmail).toHaveBeenCalledTimes(1);
+    expect(backupCodeEmailArgs().origin).toEqual({
+      ipAddress: "203.0.113.9",
+      location: undefined,
+      device: "Safari 18 on iPhone",
+    });
   });
 
   /*

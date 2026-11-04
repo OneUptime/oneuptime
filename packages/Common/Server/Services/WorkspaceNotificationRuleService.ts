@@ -70,6 +70,8 @@ import Project from "../../Models/DatabaseModels/Project";
 import SecurityCase from "../../Models/DatabaseModels/SecurityCase";
 import SecurityPlaybook from "../../Models/DatabaseModels/SecurityPlaybook";
 import SecurityCaseService from "./SecurityCaseService";
+import SecurityHunt from "../../Models/DatabaseModels/SecurityHunt";
+import SecurityHuntService from "./SecurityHuntService";
 import CreateBy from "../Types/Database/CreateBy";
 import DeleteBy from "../Types/Database/DeleteBy";
 import { OnCreate, OnDelete, OnUpdate } from "../Types/Database/Hooks";
@@ -187,6 +189,12 @@ export interface NotificationFor {
    * chats its Security Case rules name. It has no channel of its own.
    */
   securityCaseId?: ObjectID | undefined;
+  /*
+   * A hunt whose scheduled run found events (SecurityHuntNotifications):
+   * posted to the channels and chats its Security Hunt rules name. It has
+   * no channel of its own.
+   */
+  securityHuntId?: ObjectID | undefined;
 }
 
 // Slack conversation ids are short upper-case alphanumerics (C0123ABCD, G..., D...).
@@ -230,6 +238,7 @@ const LATER_CHANNEL_RECORD_WORDS: Record<NotificationRuleEventType, string> = {
   [NotificationRuleEventType.Monitor]: "monitor",
   [NotificationRuleEventType.OnCallDutyPolicy]: "on-call policy",
   [NotificationRuleEventType.SecurityCase]: "security case",
+  [NotificationRuleEventType.SecurityHunt]: "hunt",
 };
 
 /*
@@ -244,15 +253,58 @@ const LATER_CHANNEL_RECORD_WORDS: Record<NotificationRuleEventType, string> = {
 export const SECURITY_CASE_RULE_PERMISSION_MESSAGE: string =
   "A Security Case rule posts security cases to Slack and Microsoft Teams, so it takes a role that may set up security playbooks, such as Project Owner, Project Admin or Security Admin.";
 
+/*
+ * A Security Hunt rule posts what every hunt it matches finds - the hunt,
+ * its search, how many events and when - to the channels it names: security
+ * data, as a case is, so it is set up by the same roles.
+ */
+export const SECURITY_HUNT_RULE_PERMISSION_MESSAGE: string =
+  "A Security Hunt rule posts what hunts find to Slack and Microsoft Teams, so it takes a role that may set up security playbooks, such as Project Owner, Project Admin or Security Admin.";
+
+/*
+ * The rules that post security data, each with why setting one up takes a
+ * Security role: every other rule is set up by whoever may set up rules.
+ */
+const SECURITY_RULE_PERMISSION_MESSAGES: Readonly<
+  Partial<Record<NotificationRuleEventType, string>>
+> = {
+  [NotificationRuleEventType.SecurityCase]:
+    SECURITY_CASE_RULE_PERMISSION_MESSAGE,
+  [NotificationRuleEventType.SecurityHunt]:
+    SECURITY_HUNT_RULE_PERMISSION_MESSAGE,
+};
+
+/*
+ * The kinds of record a rule only posts about, in channels and chats that
+ * exist: a security case and a hunt never get a channel of their own.
+ */
+export function isPostOnlyNotificationRuleEventType(
+  eventType: NotificationRuleEventType | undefined,
+): boolean {
+  return (
+    eventType === NotificationRuleEventType.SecurityCase ||
+    eventType === NotificationRuleEventType.SecurityHunt
+  );
+}
+
 export class Service extends DatabaseService<WorkspaceNotificationRule> {
   public constructor() {
     super(WorkspaceNotificationRule);
   }
 
-  private assertMaySetUpSecurityCaseRules(
+  /*
+   * A rule that posts security data (SECURITY_RULE_PERMISSION_MESSAGES) is
+   * set up only by a role that may create a security playbook; `eventType`
+   * is the kind of rule asked about, and says why when the caller may not.
+   */
+  private assertMaySetUpSecurityRules(
     props: DatabaseCommonInteractionProps,
+    eventType: NotificationRuleEventType,
   ): void {
-    if (props.isRoot || props.isMasterAdmin) {
+    const message: string | undefined =
+      SECURITY_RULE_PERMISSION_MESSAGES[eventType];
+
+    if (!message || props.isRoot || props.isMasterAdmin) {
       return;
     }
 
@@ -263,31 +315,41 @@ export class Service extends DatabaseService<WorkspaceNotificationRule> {
         { projectId: props.tenantId },
       )
     ) {
-      throw new NotAuthorizedException(SECURITY_CASE_RULE_PERMISSION_MESSAGE);
+      throw new NotAuthorizedException(message);
     }
   }
 
+  // Whether a kind of rule posts security data: a Security Case or Security Hunt rule.
+  private static isSecurityRuleEventType(eventType: unknown): boolean {
+    return Boolean(
+      SECURITY_RULE_PERMISSION_MESSAGES[eventType as NotificationRuleEventType],
+    );
+  }
+
   /*
-   * Whether the rules a write changes include a Security Case rule. The
-   * rules are the ones the update writes or the delete removes, read the
-   * way every hook that judges a write by its rows reads them
+   * The first rule that posts security data among the rules a write
+   * changes, if any: the ones the update writes or the delete removes, read
+   * the way every hook that judges a write by its rows reads them
    * (findRowsAndHoldUpdateToThem, findRowsAndHoldDeleteToThem), with the
    * write held to them - so the rules judged are the rules written.
    */
-  private static includesSecurityCaseRule(
+  private static findSecurityRuleEventType(
     rules: Array<WorkspaceNotificationRule>,
-  ): boolean {
-    return rules.some((rule: WorkspaceNotificationRule): boolean => {
-      return rule.eventType === NotificationRuleEventType.SecurityCase;
-    });
+  ): NotificationRuleEventType | undefined {
+    return rules.find((rule: WorkspaceNotificationRule): boolean => {
+      return Service.isSecurityRuleEventType(rule.eventType);
+    })?.eventType;
   }
 
   @CaptureSpan()
   protected override async onBeforeCreate(
     createBy: CreateBy<WorkspaceNotificationRule>,
   ): Promise<OnCreate<WorkspaceNotificationRule>> {
-    if (createBy.data.eventType === NotificationRuleEventType.SecurityCase) {
-      this.assertMaySetUpSecurityCaseRules(createBy.props);
+    if (
+      createBy.data.eventType &&
+      Service.isSecurityRuleEventType(createBy.data.eventType)
+    ) {
+      this.assertMaySetUpSecurityRules(createBy.props, createBy.data.eventType);
     }
 
     return { createBy, carryForward: undefined };
@@ -297,17 +359,23 @@ export class Service extends DatabaseService<WorkspaceNotificationRule> {
   protected override async onBeforeUpdate(
     updateBy: UpdateBy<WorkspaceNotificationRule>,
   ): Promise<OnUpdate<WorkspaceNotificationRule>> {
-    if (
-      !updateBy.props.isRoot &&
-      ((updateBy.data as unknown as Record<string, unknown>)["eventType"] ===
-        NotificationRuleEventType.SecurityCase ||
-        Service.includesSecurityCaseRule(
-          await this.findRowsAndHoldUpdateToThem(updateBy, {
-            eventType: true,
-          }),
-        ))
-    ) {
-      this.assertMaySetUpSecurityCaseRules(updateBy.props);
+    if (!updateBy.props.isRoot) {
+      const sentEventType: unknown = (
+        updateBy.data as unknown as Record<string, unknown>
+      )["eventType"];
+
+      const eventType: NotificationRuleEventType | undefined =
+        Service.isSecurityRuleEventType(sentEventType)
+          ? (sentEventType as NotificationRuleEventType)
+          : Service.findSecurityRuleEventType(
+              await this.findRowsAndHoldUpdateToThem(updateBy, {
+                eventType: true,
+              }),
+            );
+
+      if (eventType) {
+        this.assertMaySetUpSecurityRules(updateBy.props, eventType);
+      }
     }
 
     return { updateBy, carryForward: null };
@@ -317,15 +385,17 @@ export class Service extends DatabaseService<WorkspaceNotificationRule> {
   protected override async onBeforeDelete(
     deleteBy: DeleteBy<WorkspaceNotificationRule>,
   ): Promise<OnDelete<WorkspaceNotificationRule>> {
-    if (
-      !deleteBy.props.isRoot &&
-      Service.includesSecurityCaseRule(
-        await this.findRowsAndHoldDeleteToThem(deleteBy, {
-          eventType: true,
-        }),
-      )
-    ) {
-      this.assertMaySetUpSecurityCaseRules(deleteBy.props);
+    if (!deleteBy.props.isRoot) {
+      const eventType: NotificationRuleEventType | undefined =
+        Service.findSecurityRuleEventType(
+          await this.findRowsAndHoldDeleteToThem(deleteBy, {
+            eventType: true,
+          }),
+        );
+
+      if (eventType) {
+        this.assertMaySetUpSecurityRules(deleteBy.props, eventType);
+      }
     }
 
     return { deleteBy, carryForward: null };
@@ -431,7 +501,7 @@ export class Service extends DatabaseService<WorkspaceNotificationRule> {
     let createdChannels: NotificationRuleWorkspaceChannel[] = [];
 
     if (
-      rule.eventType !== NotificationRuleEventType.SecurityCase &&
+      !isPostOnlyNotificationRuleEventType(rule.eventType) &&
       (notificationRule as IncidentNotificationRule).shouldCreateNewChannel
     ) {
       /*
@@ -2010,6 +2080,10 @@ export class Service extends DatabaseService<WorkspaceNotificationRule> {
 
     if (notificationFor.securityCaseId) {
       return NotificationRuleEventType.SecurityCase;
+    }
+
+    if (notificationFor.securityHuntId) {
+      return NotificationRuleEventType.SecurityHunt;
     }
 
     throw new BadDataException("Notification for not found");
@@ -4810,6 +4884,7 @@ export class Service extends DatabaseService<WorkspaceNotificationRule> {
         [NotificationRuleConditionCheckOn.SecurityCaseStatus]: undefined,
         [NotificationRuleConditionCheckOn.SecurityCaseSource]: undefined,
         [NotificationRuleConditionCheckOn.SecurityCaseLabels]: undefined,
+        [NotificationRuleConditionCheckOn.SecurityHuntName]: undefined,
         [NotificationRuleConditionCheckOn.MonitorName]: undefined,
         [NotificationRuleConditionCheckOn.IncidentTitle]: incident.title || "",
         [NotificationRuleConditionCheckOn.IncidentDescription]:
@@ -4905,6 +4980,7 @@ export class Service extends DatabaseService<WorkspaceNotificationRule> {
         [NotificationRuleConditionCheckOn.SecurityCaseStatus]: undefined,
         [NotificationRuleConditionCheckOn.SecurityCaseSource]: undefined,
         [NotificationRuleConditionCheckOn.SecurityCaseLabels]: undefined,
+        [NotificationRuleConditionCheckOn.SecurityHuntName]: undefined,
         [NotificationRuleConditionCheckOn.MonitorName]: undefined,
         [NotificationRuleConditionCheckOn.IncidentTitle]: undefined,
         [NotificationRuleConditionCheckOn.IncidentDescription]: undefined,
@@ -5019,6 +5095,7 @@ export class Service extends DatabaseService<WorkspaceNotificationRule> {
         [NotificationRuleConditionCheckOn.SecurityCaseStatus]: undefined,
         [NotificationRuleConditionCheckOn.SecurityCaseSource]: undefined,
         [NotificationRuleConditionCheckOn.SecurityCaseLabels]: undefined,
+        [NotificationRuleConditionCheckOn.SecurityHuntName]: undefined,
         [NotificationRuleConditionCheckOn.MonitorName]: undefined,
         [NotificationRuleConditionCheckOn.IncidentTitle]: undefined,
         [NotificationRuleConditionCheckOn.IncidentDescription]: undefined,
@@ -5106,6 +5183,7 @@ export class Service extends DatabaseService<WorkspaceNotificationRule> {
         [NotificationRuleConditionCheckOn.SecurityCaseStatus]: undefined,
         [NotificationRuleConditionCheckOn.SecurityCaseSource]: undefined,
         [NotificationRuleConditionCheckOn.SecurityCaseLabels]: undefined,
+        [NotificationRuleConditionCheckOn.SecurityHuntName]: undefined,
         [NotificationRuleConditionCheckOn.MonitorName]: monitor?.name || "",
         [NotificationRuleConditionCheckOn.IncidentTitle]: undefined,
         [NotificationRuleConditionCheckOn.IncidentDescription]: undefined,
@@ -5206,6 +5284,7 @@ export class Service extends DatabaseService<WorkspaceNotificationRule> {
         [NotificationRuleConditionCheckOn.SecurityCaseStatus]: undefined,
         [NotificationRuleConditionCheckOn.SecurityCaseSource]: undefined,
         [NotificationRuleConditionCheckOn.SecurityCaseLabels]: undefined,
+        [NotificationRuleConditionCheckOn.SecurityHuntName]: undefined,
         [NotificationRuleConditionCheckOn.MonitorName]: undefined,
         [NotificationRuleConditionCheckOn.IncidentTitle]: undefined,
         [NotificationRuleConditionCheckOn.IncidentDescription]: undefined,
@@ -5283,6 +5362,7 @@ export class Service extends DatabaseService<WorkspaceNotificationRule> {
         [NotificationRuleConditionCheckOn.SecurityCaseStatus]: undefined,
         [NotificationRuleConditionCheckOn.SecurityCaseSource]: undefined,
         [NotificationRuleConditionCheckOn.SecurityCaseLabels]: undefined,
+        [NotificationRuleConditionCheckOn.SecurityHuntName]: undefined,
         [NotificationRuleConditionCheckOn.MonitorName]: undefined,
         [NotificationRuleConditionCheckOn.IncidentTitle]: undefined,
         [NotificationRuleConditionCheckOn.IncidentDescription]: undefined,
@@ -5362,6 +5442,7 @@ export class Service extends DatabaseService<WorkspaceNotificationRule> {
         [NotificationRuleConditionCheckOn.SecurityCaseStatus]: undefined,
         [NotificationRuleConditionCheckOn.SecurityCaseSource]: undefined,
         [NotificationRuleConditionCheckOn.SecurityCaseLabels]: undefined,
+        [NotificationRuleConditionCheckOn.SecurityHuntName]: undefined,
         [NotificationRuleConditionCheckOn.MonitorName]: undefined,
         [NotificationRuleConditionCheckOn.IncidentTitle]: undefined,
         [NotificationRuleConditionCheckOn.IncidentDescription]: undefined,
@@ -5451,6 +5532,7 @@ export class Service extends DatabaseService<WorkspaceNotificationRule> {
           securityCase.labels?.map((label: Label) => {
             return label._id?.toString() || "";
           }) || [],
+        [NotificationRuleConditionCheckOn.SecurityHuntName]: undefined,
         [NotificationRuleConditionCheckOn.MonitorName]: undefined,
         [NotificationRuleConditionCheckOn.IncidentTitle]: undefined,
         [NotificationRuleConditionCheckOn.IncidentDescription]: undefined,
@@ -5488,6 +5570,48 @@ export class Service extends DatabaseService<WorkspaceNotificationRule> {
         [NotificationRuleConditionCheckOn.IncidentEpisodeState]: undefined,
         [NotificationRuleConditionCheckOn.IncidentEpisodeLabels]: undefined,
       };
+    }
+
+    /*
+     * A hunt whose scheduled run found events: matched by its name, the one
+     * thing its rules ask of it. Read as it is now, so a renamed hunt is
+     * matched by its new name.
+     */
+    if (data.notificationFor.securityHuntId) {
+      const hunt: SecurityHunt | null = await SecurityHuntService.findOneById({
+        id: data.notificationFor.securityHuntId,
+        select: {
+          name: true,
+        },
+        props: {
+          isRoot: true,
+        },
+      });
+
+      if (!hunt) {
+        throw new BadDataException("Security Hunt ID not found");
+      }
+
+      const values: {
+        [key in NotificationRuleConditionCheckOn]:
+          | string
+          | Array<string>
+          | undefined;
+      } = {} as {
+        [key in NotificationRuleConditionCheckOn]:
+          | string
+          | Array<string>
+          | undefined;
+      };
+
+      for (const checkOn of Object.values(NotificationRuleConditionCheckOn)) {
+        values[checkOn] = undefined;
+      }
+
+      values[NotificationRuleConditionCheckOn.SecurityHuntName] =
+        hunt.name || "";
+
+      return values;
     }
 
     throw new BadDataException("NotificationFor is not supported");

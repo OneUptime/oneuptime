@@ -39,7 +39,7 @@ Ga naar **Monitoren** en klik op **Monitor maken**.
 
 ### Incoming Email kiezen
 
-Klik onder **Monitortype** op **Meer monitortypen** en kies **Incoming Email** onder **Inbound Monitoring**, of typ `email` in het zoekvak. Voer een **Naam** in en klik daarna op **Volgende**.
+Klik onder **Monitortype** op **Meer monitortypen** en kies **Incoming Email** onder **Inkomende bewaking**, of typ `email` in het zoekvak. Voer een **Naam** in en klik daarna op **Volgende**.
 
 ### De criteria nakijken
 

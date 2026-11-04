@@ -9,8 +9,10 @@ import {
   within,
 } from "@testing-library/react";
 import React from "react";
+import { loadDragAndDrop } from "../../../../UI/Components/DragAndDrop/DragAndDropLoader";
 import {
   afterEach,
+  beforeAll,
   beforeEach,
   describe,
   expect,
@@ -355,6 +357,15 @@ const waitForRows: (count: number) => Promise<void> = async (
     expect(screen.getAllByTestId("drag-handle")).toHaveLength(count);
   });
 };
+
+/*
+ * The drag-and-drop library is there before the first table is drawn, as it
+ * is on every page once a list has loaded it (DragAndDropLoader): the grips
+ * drag from their first frame.
+ */
+beforeAll(async () => {
+  await loadDragAndDrop();
+});
 
 beforeEach(() => {
   permissionsForTest = [Permission.ProjectAdmin];

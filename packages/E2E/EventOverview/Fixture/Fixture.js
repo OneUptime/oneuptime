@@ -195,8 +195,13 @@
  *            left to page), acknowledged (Sam Rivera acknowledged it
  *            meanwhile: the POST refuses, and incident #1042 is
  *            Acknowledged from then on) or two (two policies page the
- *            viewer about it). Once escalated, the record no longer pages
- *            the viewer.
+ *            viewer about it), levels (three levels after the viewer's to
+ *            pick from - Platform leads, DBA leads and Level 4 of 4 - and the
+ *            POST pages the one its escalateTo names) or levels-gone (the
+ *            same, but DBA leads was deleted meanwhile: a POST that picks a
+ *            later level is refused, LevelNotAvailable, and the page then
+ *            offers Platform leads and Level 4 of 4). Once escalated, the
+ *            record no longer pages the viewer.
  *   ?hold=   1: OneUptime AI holds the on-call pages of Incident #1042 and
  *            Alert #311 while it works (OnCallPolicyAiHold): an on-call rule
  *            set to After OneUptime AI tries holds each record's policy run
@@ -251,8 +256,10 @@
  *            (linked to no cluster and no resource with an AI agent, and
  *            no monitor either - an incident Ask AI declared, #5293) |
  *            nothing-linked-monitor (the same, with its monitor named so
- *            the card links it) | none (nothing recorded, as for a record
- *            from before decisions were).
+ *            the card links it) | cluster-fixes-off | cluster-agent-not-
+ *            connected (Fixes on for staging-us-east-1, whose Kubernetes AI
+ *            agent never connected) | none (nothing recorded, as for a
+ *            record from before decisions were).
  *   ?switches= on: the project's "Investigate new ..." and "Fix new ...
  *            automatically" switches are on now (and Enable AI). By
  *            default they are off - and with ?ai=off-project so is Enable
@@ -365,6 +372,11 @@ import AutoRemediationDecision from "Common/Models/DatabaseModels/AutoRemediatio
 import AutoRemediationSuggestion from "Common/Models/DatabaseModels/AutoRemediationSuggestion";
 import AlertVideoCall from "Common/Models/DatabaseModels/AlertVideoCall";
 import IncidentVideoCall from "Common/Models/DatabaseModels/IncidentVideoCall";
+import DataAlert from "Common/Models/DatabaseModels/DataAlert";
+import DataAsset from "Common/Models/DatabaseModels/DataAsset";
+import DataAssetUsage from "Common/Models/DatabaseModels/DataAssetUsage";
+import ChangeEvent from "Common/Models/AnalyticsModels/ChangeEvent";
+import { DataAssetAccessKind } from "Common/Types/DataObservability/DataAssetUsage";
 import Incident from "Common/Models/DatabaseModels/Incident";
 import IncidentCustomField from "Common/Models/DatabaseModels/IncidentCustomField";
 import IncidentEpisode from "Common/Models/DatabaseModels/IncidentEpisode";
@@ -627,6 +639,13 @@ const securityMode = ["declared", "naming", "both"].includes(
   ? params.get("security")
   : "";
 /*
+ * ?data=table: alert #311 was raised by a data monitor, on a table, while
+ * alert #310 was open on the table it is built from - so #311 is #310's
+ * consequence (see "Data alerts" below). Left out, no alert here was raised
+ * by a data monitor.
+ */
+const dataMode = params.get("data") === "table" ? "table" : "";
+/*
  * ?ai=off-*: not investigated because something was off for the record;
  * ?fixing=: what auto-remediation recorded beside it; ?switches=: the
  * project's switches as they are now (see the parameters above).
@@ -648,6 +667,7 @@ const FIXING_MODES = [
   "nothing-linked",
   "nothing-linked-monitor",
   "cluster-fixes-off",
+  "cluster-agent-not-connected",
   "none",
 ];
 const DEFAULT_FIXING_MODES = {
@@ -762,6 +782,9 @@ const PASS_ON_MODES = [
   "stopped",
   "acknowledged",
   "two",
+  "levels",
+  "levels-gone",
+  "levels-two",
 ];
 const passOnMode = PASS_ON_MODES.includes(params.get("passOn"))
   ? params.get("passOn")
@@ -909,6 +932,7 @@ const ID = {
   slo: (number) => uuid("86000000", number),
   cluster: (number) => uuid("83000000", number),
   measurement: (number) => uuid("87000000", number),
+  dataAsset: (number) => uuid("8b000000", number),
 };
 let rowCounter = 0;
 function rowId() {
@@ -937,6 +961,7 @@ const fixture = {
     publish: publishMode,
     fail: Array.from(failures),
     role: roleMode,
+    data: dataMode,
     resources: resourcesMode,
     clusters: clustersMode,
     thread: threadMode,
@@ -1450,6 +1475,14 @@ const roles = {
  *
  * The incident and alert pages also list the record's video calls; no call
  * has been started for any of them here.
+ *
+ * The alert page reads what a data monitor's alert is about, and the alerts
+ * downstream it caused (Components/DataObservability/DataAlertLineage): its
+ * data alert by { alertId }, and the data alerts naming it by
+ * { causeAlertId }. No alert here was raised by a data monitor (but with
+ * ?data=table: see "Data alerts" below), so the API answers two empty lists
+ * and neither the Data nor the Downstream Impact card is drawn, as on any
+ * other alert's page.
  */
 for (const modelType of [
   IncidentCustomField,
@@ -1463,6 +1496,7 @@ for (const modelType of [
   AutoRemediationDecision,
   IncidentVideoCall,
   AlertVideoCall,
+  DataAlert,
 ]) {
   table(modelType);
 }
@@ -2112,6 +2146,101 @@ const mainAlert = defineAlert({
   services: [services.payments],
   episode: alertEpisodeRecord,
 });
+
+/*
+ * ---------------------------------------------------------------------------
+ * Data alerts (?data=table)
+ * ---------------------------------------------------------------------------
+ * What a data monitor's alert is about, and the alert it is a consequence
+ * of, as Server/Utils/DataObservability/DataAlertCause records them, with
+ * the relations the server's read joins in. Alert #310 is about the table
+ * payments.provider_callbacks; #311, raised three minutes later on
+ * payments.ledger_entries, which is built from it, is #310's consequence.
+ * Two services write ledger_entries - payments-webhooks, 37 of its writes
+ * failed - and payments-webhooks was deployed eight minutes before #311.
+ *
+ * ?fail=data-alert refuses the alert page's two data alert reads;
+ * ?fail=data-writers fails the read of who writes #311's table (a server
+ * error); and ?fail=data-changes refuses the read of the writers' changes
+ * (ChangeEvent, kept in ClickHouse), as the server refuses it to a team
+ * given Read Data Asset alone.
+ */
+const DATA_CAUSE_ALERT_NUMBER = 310;
+const DATA_ALERT_REFUSAL = "You do not have permission to read data alerts.";
+const DATA_WRITERS_FAILURE =
+  "Who writes this table could not be read. Please try again.";
+const DATA_CHANGES_REFUSAL =
+  "You do not have permission to read change events.";
+// The writers' changes, an analytics table: AnalyticsModelAPI answers them.
+const dataChangeEvents = [];
+
+// An alert as a data alert's read joins it in.
+function dataAlertRelation(number) {
+  const record = table(Alert).find((item) => {
+    return String(item._id) === ID.alert(number);
+  });
+  return make(Alert, {
+    _id: record._id,
+    title: record.title,
+    alertNumberWithPrefix: record.alertNumberWithPrefix,
+    createdAt: record.createdAt,
+  });
+}
+
+if (dataMode === "table") {
+  const providerCallbacksId = new ObjectID(ID.dataAsset(1));
+  const ledgerEntriesId = new ObjectID(ID.dataAsset(2));
+  insert(DataAlert, {
+    alertId: new ObjectID(ID.alert(DATA_CAUSE_ALERT_NUMBER)),
+    alert: dataAlertRelation(DATA_CAUSE_ALERT_NUMBER),
+    dataAssetId: providerCallbacksId,
+    dataAsset: make(DataAsset, {
+      _id: ID.dataAsset(1),
+      assetKey: "payments.provider_callbacks",
+      dataStoreName: "Payments warehouse",
+    }),
+    createdAt: at("18:03"),
+  });
+  insert(DataAlert, {
+    alertId: new ObjectID(ID.alert(ALERT_NUMBER)),
+    alert: dataAlertRelation(ALERT_NUMBER),
+    causeAlertId: new ObjectID(ID.alert(DATA_CAUSE_ALERT_NUMBER)),
+    causeAlert: dataAlertRelation(DATA_CAUSE_ALERT_NUMBER),
+    dataAssetId: ledgerEntriesId,
+    dataAsset: make(DataAsset, {
+      _id: ID.dataAsset(2),
+      assetKey: "payments.ledger_entries",
+      dataStoreName: "Payments warehouse",
+    }),
+    createdAt: at("18:06"),
+  });
+  insert(DataAssetUsage, {
+    dataAssetId: ledgerEntriesId,
+    accessKind: DataAssetAccessKind.Write,
+    serviceId: services.payments.id,
+    serviceName: "payments-webhooks",
+    callCount: 4120,
+    errorCount: 37,
+    lastSeenAt: at("18:05"),
+  });
+  insert(DataAssetUsage, {
+    dataAssetId: ledgerEntriesId,
+    accessKind: DataAssetAccessKind.Write,
+    serviceId: services.checkout.id,
+    serviceName: "checkout-api",
+    callCount: 860,
+    errorCount: 0,
+    lastSeenAt: at("17:50"),
+  });
+  dataChangeEvents.push({
+    _id: new ObjectID(rowId()),
+    projectId: projectObjectId,
+    time: at("17:58"),
+    title: "Deployed payments-webhooks v2.14.0",
+    eventType: "Deployment",
+    primaryEntityId: services.payments.id,
+  });
+}
 
 /*
  * ---------------------------------------------------------------------------
@@ -4423,6 +4552,34 @@ function remediationDecisionEntries() {
     ];
   }
   /*
+   * Linked to cluster staging-us-east-1, whose Fixes are on but whose
+   * Kubernetes AI agent never connected: OneUptime AI could not apply a
+   * fix there. While the record is open, the agent connecting makes it
+   * decide again (AutoRemediationRuleEngineService.onAgentConnected), and
+   * the line says so under what to do.
+   */
+  if (fixingMode === "cluster-agent-not-connected") {
+    return [
+      {
+        lane: "KubernetesCluster",
+        reason: "ClusterNotReady",
+        kubernetesClusterId: ID.kubernetesCluster(2),
+        kubernetesClusterName: "staging-us-east-1",
+        remediationMode: "RequireApproval",
+        gaps: [
+          {
+            code: "ai_agent_not_connected",
+            title: "The Kubernetes AI agent is not connected",
+            description:
+              "OneUptime AI runs kubectl on this cluster through the Kubernetes AI agent, and no agent has connected for this cluster yet.",
+            nextStep:
+              "Install the Kubernetes AI agent: helm upgrade --install kubernetes-agent oneuptime/kubernetes-agent --set aiAgent.enabled=true",
+          },
+        ],
+      },
+    ];
+  }
+  /*
    * Linked to nothing a fix acts on (#5293): no cluster, no resource with
    * an AI agent. The engine names the signal's monitors on both entries,
    * so the card can link them; one Ask AI declared has none.
@@ -6023,6 +6180,12 @@ ModelAPI.getList = async (options) => {
     skip,
     limit,
   });
+  if (failures.has("data-alert") && modelName === tableName(DataAlert)) {
+    throw fail(403, DATA_ALERT_REFUSAL);
+  }
+  if (failures.has("data-writers") && modelName === tableName(DataAssetUsage)) {
+    throw fail(500, DATA_WRITERS_FAILURE);
+  }
   const known = knownTable(options.modelType, "getList", {
     query: serialize(options.query),
   });
@@ -6283,7 +6446,9 @@ ModelAPI.deleteItem = async (options) => {
 
 /*
  * No telemetry is attached to these events, so analytics reads are not
- * modelled: they answer empty and are recorded as unhandled.
+ * modelled: they answer empty and are recorded as unhandled. All but one:
+ * with ?data=table, the changes of the services that write #311's table,
+ * which its Data card reads around the alert.
  */
 AnalyticsModelAPI.getList = async (options) => {
   const modelName = tableName(options.modelType);
@@ -6297,6 +6462,26 @@ AnalyticsModelAPI.getList = async (options) => {
     limit: Number(options.limit || 10),
   };
   fixture.listRequests.push(record);
+  if (dataMode && modelName === tableName(ChangeEvent)) {
+    if (failures.has("data-changes")) {
+      throw fail(403, DATA_CHANGES_REFUSAL);
+    }
+    // The time window is not modelled: every change here is inside it.
+    const rows = sortRecords(
+      dataChangeEvents.filter((row) => {
+        return matches(row, options.query);
+      }),
+      options.sort,
+    );
+    return {
+      data: rows.slice(record.skip, record.skip + record.limit).map((row) => {
+        return make(ChangeEvent, row);
+      }),
+      count: rows.length,
+      skip: record.skip,
+      limit: record.limit,
+    };
+  }
   fixture.unhandled.push({ kind: "analytics.getList", modelName });
   return { data: [], count: 0, skip: record.skip, limit: record.limit };
 };
@@ -8069,7 +8254,7 @@ async function handleApi(method, options) {
       if (failures.has("pass-on")) {
         throw fail(500, "The page could not be escalated.");
       }
-      return ok({ answers: passOnAnswers(recordType, recordId) });
+      return ok({ answers: passOnAnswers(recordType, recordId, body) });
     }
   }
 
@@ -8143,7 +8328,100 @@ async function handleApi(method, options) {
  */
 const passedOnRecords = new Set();
 
+/*
+ * ?passOn=levels / levels-gone: the levels after the viewer's, as the
+ * preview offers them (levelChoices), each with who it pages.
+ */
+const LATER_LEVELS = [
+  {
+    escalationRuleId: uuid("74000000", 2),
+    order: 2,
+    name: "Platform leads",
+    paged: ["Sam Lee", "Priya Patel"],
+  },
+  {
+    escalationRuleId: uuid("74000000", 3),
+    order: 3,
+    name: "DBA leads",
+    paged: ["Dana Kim"],
+  },
+  {
+    escalationRuleId: uuid("74000000", 4),
+    order: 4,
+    name: "Level 4",
+    paged: ["Morgan Chen"],
+  },
+];
+
+/*
+ * ?passOn=levels-two: the second policy paging the viewer, Payments
+ * escalation, has levels of its own after the viewer's - one with a name
+ * as long as people give them.
+ */
+const PAYMENTS_POLICY = "Payments escalation";
+const PAYMENTS_LATER_LEVELS = [
+  {
+    escalationRuleId: uuid("74100000", 2),
+    order: 2,
+    name: "Payments on-call",
+    paged: ["Lee Wong"],
+  },
+  {
+    escalationRuleId: uuid("74100000", 3),
+    order: 3,
+    name: "Payments platform engineering managers, EU and US regions",
+    paged: ["Ana Lopez"],
+  },
+];
+
+// levels-gone: DBA leads was deleted while the dialog asked.
+let isDbaLevelGone = false;
+
+function laterLevels(policyName) {
+  if (policyName === PAYMENTS_POLICY) {
+    return PAYMENTS_LATER_LEVELS;
+  }
+
+  return LATER_LEVELS.filter((level) => {
+    return !(isDbaLevelGone && level.order === 3);
+  });
+}
+
+function levelsResult(isPreview, policyName, pickedLevel) {
+  const level = pickedLevel || laterLevels(policyName)[0];
+
+  return {
+    isPreview,
+    isDirectPage: false,
+    policyName,
+    stillPagedNames: [],
+    ruleCount: policyName === PAYMENTS_POLICY ? 3 : 4,
+    outcome: "NextRulePaged",
+    rule: { order: level.order, name: level.name },
+    pagedNames: isPreview ? [] : level.paged,
+    ...(isPreview
+      ? {
+          levelChoices: laterLevels(policyName).map((choice) => {
+            return {
+              escalationRuleId: choice.escalationRuleId,
+              order: choice.order,
+              name: choice.name,
+            };
+          }),
+        }
+      : {}),
+  };
+}
+
 function passOnResult(isPreview, policyName) {
+  if (
+    passOnMode === "levels" ||
+    passOnMode === "levels-gone" ||
+    passOnMode === "levels-two"
+  ) {
+    return levelsResult(isPreview, policyName);
+  }
+
   const base = {
     isPreview,
     isDirectPage: false,
@@ -8204,8 +8482,8 @@ function openPassOnPages(recordType, recordId) {
   }
 
   const policies =
-    passOnMode === "two"
-      ? ["Checkout on-call", "Payments escalation"]
+    passOnMode === "two" || passOnMode === "levels-two"
+      ? ["Checkout on-call", PAYMENTS_POLICY]
       : ["Checkout on-call"];
 
   return policies.map((policyName, index) => {
@@ -8261,11 +8539,45 @@ function acknowledgeMeanwhile(recordType, recordId) {
   mainIncident.record.currentIncidentStateId = acknowledged.id;
 }
 
-function passOnAnswers(recordType, recordId) {
+function passOnAnswers(recordType, recordId, body) {
   const pages = openPassOnPages(recordType, recordId);
 
   if (pages.length === 0) {
     return [{ passedOn: false, refusal: "NotPaged" }];
+  }
+
+  /*
+   * ?passOn=levels: the level the POST picked for the page's run, or the
+   * next. levels-gone: a later level picked is no longer offered - the
+   * first time - and nothing is escalated; the page is still paging.
+   * levels-two: each policy's page pages the level picked for its own run.
+   */
+  if (
+    passOnMode === "levels" ||
+    passOnMode === "levels-gone" ||
+    passOnMode === "levels-two"
+  ) {
+    const escalateTo = (body && body.escalateTo) || {};
+    const pickedId = escalateTo[pages[0].executionLogId];
+
+    if (pickedId && passOnMode === "levels-gone" && !isDbaLevelGone) {
+      isDbaLevelGone = true;
+      return [{ passedOn: false, refusal: "LevelNotAvailable" }];
+    }
+
+    passedOnRecords.add(`${recordType}:${recordId}`);
+
+    return pages.map((page) => {
+      const policyName = page.preview.policyName;
+      const picked = laterLevels(policyName).find((level) => {
+        return level.escalationRuleId === escalateTo[page.executionLogId];
+      });
+
+      return {
+        passedOn: true,
+        result: levelsResult(false, policyName, picked),
+      };
+    });
   }
 
   if (passOnMode === "acknowledged") {

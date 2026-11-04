@@ -1,17 +1,15 @@
 import React, { FunctionComponent, ReactElement } from "react";
 import Route from "Common/Types/API/Route";
 import IconProp from "Common/Types/Icon/IconProp";
-import HyphenatedWords from "Common/UI/Components/HyphenatedWords/HyphenatedWords";
 import Icon from "Common/UI/Components/Icon/Icon";
-import { getDrawnLanguage } from "Common/UI/Components/SideMenu/SideMenuEntryState";
-import InfoTooltip from "Common/UI/Components/Tooltip/InfoTooltip";
 import { Translator } from "Common/UI/Utils/TranslateTemplate";
 import useTranslator from "Common/UI/Utils/UseTranslator";
 import AppLink from "../AppLink/AppLink";
-import {
-  TILE_TITLE_LONG_WORDS,
-  getTileTitleWordsClassName,
-} from "../TelemetryResource/TileTitleWords";
+import CloudStatTileTitle, {
+  CLOUD_STAT_TILE_HEAD_CLASS_NAME,
+  CLOUD_STAT_TILE_ICON_ROOM_CLASS_NAME,
+  CLOUD_STAT_TILE_ROWS_CLASS_NAME,
+} from "./CloudStatTileTitle";
 
 /*
  * The stat strip at the top of the Cloud Overview and the Costs pages: four
@@ -20,7 +18,10 @@ import {
  * The same tiles as App Platforms' strip (CloudFleetSummary), laid out the
  * same way: by the room the strip and each tile have, not the window's -
  * four in a row from 52rem of strip, two below, and a tile under 11rem
- * drops its icon, which only decorates.
+ * drops its icon, which only decorates. A tile is three of the strip's
+ * rows (CLOUD_STAT_TILE_ROWS_CLASS_NAME), so the values of a row start on
+ * one line however many lines a title takes in the reader's language, and
+ * a title's (i) follows its last word (CloudStatTileTitle).
  *
  * Titles and sublabels are English, drawn in the reader's language; a value
  * is drawn as given (a page formats its numbers and money in the reader's
@@ -88,12 +89,6 @@ const Tile: FunctionComponent<{ tile: CloudStatTile }> = (props: {
   const translator: Translator = useTranslator();
   const tile: CloudStatTile = props.tile;
   const style: { bg: string; ring: string; text: string } = COLORS[tile.color];
-  const title: string = translator.translateText(tile.title) || tile.title;
-  const titleLanguage: string | undefined = getDrawnLanguage({
-    english: tile.title,
-    drawn: title,
-    language: translator.language,
-  });
   const sublabel: string = tile.sublabel
     ? tile.sublabelIsTranslated
       ? tile.sublabel
@@ -105,35 +100,21 @@ const Tile: FunctionComponent<{ tile: CloudStatTile }> = (props: {
       data-testid="cloud-stat-tile"
       data-key={tile.key}
       data-tone={tile.tone || "neutral"}
-      className={`h-full rounded-xl border border-gray-200 bg-white p-4 shadow-sm [container-type:inline-size] ${
+      className={`${CLOUD_STAT_TILE_ROWS_CLASS_NAME} rounded-xl border border-gray-200 bg-white p-4 shadow-sm ${
         tile.to
           ? "transition-colors hover:border-indigo-300 hover:shadow focus-within:ring-2 focus-within:ring-indigo-500"
           : ""
       }`}
     >
-      <div className="mb-3 flex items-start justify-between gap-2">
-        <div className="flex min-w-0 flex-wrap items-center gap-1">
-          <span
-            className={`min-w-0 text-xs font-medium uppercase tracking-wider text-gray-500 ${getTileTitleWordsClassName(
-              { text: title, lang: titleLanguage },
-            )}`}
-            lang={titleLanguage}
-          >
-            <HyphenatedWords
-              text={title}
-              lang={titleLanguage}
-              rule={TILE_TITLE_LONG_WORDS}
-            />
-          </span>
-          {tile.description ? (
-            <InfoTooltip label={tile.title} text={tile.description} />
-          ) : (
-            <></>
-          )}
-        </div>
+      <div className={CLOUD_STAT_TILE_HEAD_CLASS_NAME}>
+        <CloudStatTileTitle
+          title={tile.title}
+          description={tile.description}
+          dataTestId="cloud-stat-tile-title"
+        />
         <div
           aria-hidden="true"
-          className={`flex h-7 w-7 flex-none items-center justify-center rounded-md ${style.bg} ring-1 ring-inset ${style.ring} [@container(max-width:10.99rem)]:hidden`}
+          className={`flex h-7 w-7 flex-none items-center justify-center rounded-md ${style.bg} ring-1 ring-inset ${style.ring} ${CLOUD_STAT_TILE_ICON_ROOM_CLASS_NAME}`}
         >
           <Icon icon={tile.icon} className={`h-3.5 w-3.5 ${style.text}`} />
         </div>
@@ -173,7 +154,7 @@ const Tile: FunctionComponent<{ tile: CloudStatTile }> = (props: {
   return (
     <AppLink
       to={tile.to}
-      className="block h-full rounded-xl focus:outline-none"
+      className={`${CLOUD_STAT_TILE_ROWS_CLASS_NAME} rounded-xl focus:outline-none`}
       dataTestId="cloud-stat-tile-link"
     >
       {body}

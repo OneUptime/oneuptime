@@ -6,6 +6,9 @@ import { toTracesExplorerQueryParams } from "../../../../Utils/Telemetry/CrossSi
 import {
   PRODUCTION_REVIEW_COMMENT_MARKER,
   PRODUCTION_REVIEW_WINDOWS,
+  ProductionReviewDataChange,
+  ProductionReviewDataImpactJSON,
+  ProductionReviewDataServiceJSON,
   ProductionReviewDeployJSON,
   ProductionReviewExceptionJSON,
   ProductionReviewHotFunctionJSON,
@@ -269,6 +272,51 @@ function plural(count: number, one: string, many: string): string {
   return `${formatCount(count)} ${count === 1 ? one : many}`;
 }
 
+// How a service uses a table: the column in its queries, or reads and writes.
+export function describeDataUse(
+  service: ProductionReviewDataServiceJSON,
+): string {
+  if (service.columnQueryCount && service.columnQueryCount > 0) {
+    return `names the column in ${plural(service.columnQueryCount, "query", "queries")} of the last day`;
+  }
+
+  return service.reads && service.writes
+    ? "reads and writes it"
+    : service.writes
+      ? "writes it"
+      : "reads it";
+}
+
+// What a change does to its table, in words: "Drops column `total` of `public.orders`".
+export function describeDataChangeMarkdown(
+  impact: ProductionReviewDataImpactJSON,
+): MarkdownText {
+  const table: MarkdownText = FeedMarkdown.code(
+    githubSafeText(impact.table, 120),
+  );
+  const column: MarkdownText = FeedMarkdown.code(
+    githubSafeText(impact.column || "", 120),
+  );
+  const newName: MarkdownText = FeedMarkdown.code(
+    githubSafeText(impact.newName || "", 120),
+  );
+
+  switch (impact.change) {
+    case ProductionReviewDataChange.DropTable:
+      return mdText`Drops ${table}`;
+    case ProductionReviewDataChange.RenameTable:
+      return mdText`Renames ${table} to ${newName}`;
+    case ProductionReviewDataChange.DropColumn:
+      return mdText`Drops column ${column} of ${table}`;
+    case ProductionReviewDataChange.RenameColumn:
+      return mdText`Renames column ${column} of ${table} to ${newName}`;
+    case ProductionReviewDataChange.AlterColumn:
+      return mdText`Changes the type of column ${column} of ${table}`;
+    default:
+      return mdText`Changes the dbt model that builds ${table}`;
+  }
+}
+
 export default class ProductionReviewComposer {
   /*
    * The comment: the hidden marker, the heading, then the review or the
@@ -379,6 +427,14 @@ export default class ProductionReviewComposer {
       );
     }
 
+    const tables: number = (report.dataImpact || []).length;
+
+    if (tables > 0) {
+      found.push(
+        plural(tables, "watched table changed", "watched tables changed"),
+      );
+    }
+
     const last: string = found.pop() || "";
 
     return `Production review: ${
@@ -428,6 +484,7 @@ export default class ProductionReviewComposer {
     }
 
     const facts: Array<MarkdownText> = [
+      ProductionReviewComposer.dataSection(input),
       ProductionReviewComposer.exceptionsSection(input),
       ProductionReviewComposer.operationsSection(input),
       ProductionReviewComposer.hotFunctionsSection(input),
@@ -836,6 +893,122 @@ export default class ProductionReviewComposer {
 
     return FeedMarkdown.join(
       [mdText`**Recent deploys**`, FeedMarkdown.bulletList(lines)],
+      "\n\n",
+    );
+  }
+
+  /*
+   * The watched tables the change's migrations and dbt models change, each
+   * with the services that use it - those whose queries name a changed
+   * column first - the tables built from it, and its data products.
+   */
+  private static dataSection(
+    input: ProductionReviewCommentInput,
+  ): MarkdownText {
+    const impacts: Array<ProductionReviewDataImpactJSON> =
+      input.report.dataImpact || [];
+
+    if (impacts.length === 0) {
+      return FeedMarkdown.empty();
+    }
+
+    const lines: Array<MarkdownText> = impacts
+      .slice(0, MAX_LISTED_IN_COMMENT)
+      .map((impact: ProductionReviewDataImpactJSON): MarkdownText => {
+        const parts: Array<MarkdownText> = [];
+        const services: Array<ProductionReviewDataServiceJSON> =
+          impact.services.slice(0, 3);
+
+        if (services.length > 0) {
+          const named: Array<MarkdownText> = services.map(
+            (service: ProductionReviewDataServiceJSON): MarkdownText => {
+              return mdText`**${githubSafeText(service.name, 80)}** (${describeDataUse(service)})`;
+            },
+          );
+
+          if (impact.services.length > services.length) {
+            named.push(
+              mdText`${plural(impact.services.length - services.length, "more service", "more services")}`,
+            );
+          }
+
+          parts.push(mdText`used by ${listing(named)}`);
+        }
+
+        if (impact.downstreamCount > 0) {
+          const tables: Array<MarkdownText> = impact.downstreamTables
+            .slice(0, 3)
+            .map((table: { table: string }): MarkdownText => {
+              return FeedMarkdown.code(githubSafeText(table.table, 120));
+            });
+
+          parts.push(
+            mdText`${plural(impact.downstreamCount, "table is", "tables are")} built from it (${listing(tables)}${impact.downstreamCount > tables.length ? mdText`, …` : FeedMarkdown.empty()})`,
+          );
+        }
+
+        const dashboards: Array<{ name: string; tool: string }> =
+          impact.dashboards || [];
+
+        if (dashboards.length > 0) {
+          const named: Array<MarkdownText> = dashboards
+            .slice(0, 3)
+            .map((dashboard: { name: string; tool: string }): MarkdownText => {
+              return mdText`**${githubSafeText(dashboard.name, 80)}** (${githubSafeText(dashboard.tool, 40)})`;
+            });
+
+          if (dashboards.length > named.length) {
+            named.push(
+              mdText`${plural(dashboards.length - named.length, "more", "more")}`,
+            );
+          }
+
+          parts.push(
+            mdText`shown on ${dashboards.length === 1 ? "dashboard" : "dashboards"} ${listing(named)}`,
+          );
+        }
+
+        if (impact.dataProducts.length > 0) {
+          const products: Array<MarkdownText> = impact.dataProducts.map(
+            (product: {
+              name: string;
+              owner?: string | undefined;
+            }): MarkdownText => {
+              return product.owner
+                ? mdText`**${githubSafeText(product.name, 80)}** (owned by ${githubSafeText(product.owner, 80)})`
+                : mdText`**${githubSafeText(product.name, 80)}**`;
+            },
+          );
+
+          parts.push(
+            mdText`part of ${impact.dataProducts.length === 1 ? "data product" : "data products"} ${listing(products)}`,
+          );
+        }
+
+        const dependents: MarkdownText =
+          parts.length > 0
+            ? FeedMarkdown.join(parts, "; ")
+            : mdText`nothing ${githubSafeText(input.productName, 60)} sees depends on it yet`;
+
+        return mdText`${describeDataChangeMarkdown(impact)} in ${FeedMarkdown.code(
+          githubSafeText(impact.path, 200),
+        )}: ${dependents}.`;
+      });
+
+    return FeedMarkdown.join(
+      [
+        mdText`**Data this change touches**`,
+        FeedMarkdown.bulletList(lines),
+        ProductionReviewComposer.more(
+          impacts.length,
+          lines.length,
+          "table",
+          "tables",
+          input,
+        ),
+      ].filter((part: MarkdownText): boolean => {
+        return !part.isEmpty();
+      }),
       "\n\n",
     );
   }

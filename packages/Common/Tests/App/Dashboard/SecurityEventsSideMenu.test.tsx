@@ -129,6 +129,8 @@ const EXPECTED: Array<[string, Array<[string, string]>]> = [
       ["Events", PageMap.SECURITY_EVENTS],
       // Searches over the events, saved, and run on a schedule.
       ["Hunts", PageMap.SECURITY_EVENTS_HUNTS],
+      // Ready-made hunts, one click from being the project's own.
+      ["Hunt Library", PageMap.SECURITY_EVENTS_HUNT_LIBRARY],
       ["Campaigns", PageMap.SECURITY_EVENTS_CAMPAIGNS],
       // The one riskiest list: Entities folded into it.
       ["Entity Risk", PageMap.SECURITY_EVENTS_ENTITY_RISK],

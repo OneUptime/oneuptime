@@ -1,0 +1,101 @@
+# trustedGeoHeaders names the request headers a CDN or load balancer in front
+# of OneUptime writes the visitor's country, region and city into, which
+# security emails read to say roughly where a request came from. A request
+# header is the visitor's own writing unless a proxy overwrites it, so:
+#
+#   - none is read by default: every name renders empty;
+#   - a name the operator sets reaches every workload that sends those
+#     emails, app and worker alike.
+suite: trusted geo headers
+release:
+  name: oneuptime
+  namespace: oneuptime
+tests:
+  - it: reads no header by default
+    templates:
+      - templates/app.yaml
+    # app.yaml renders both a Service and a Deployment under the same name,
+    # so select the Deployment by kind.
+    documentSelector:
+      path: kind
+      value: Deployment
+    asserts:
+      - contains:
+          path: spec.template.spec.containers[0].env
+          content:
+            name: TRUSTED_GEO_COUNTRY_HEADER
+            value: ""
+      - contains:
+          path: spec.template.spec.containers[0].env
+          content:
+            name: TRUSTED_GEO_REGION_HEADER
+            value: ""
+      - contains:
+          path: spec.template.spec.containers[0].env
+          content:
+            name: TRUSTED_GEO_CITY_HEADER
+            value: ""
+
+  - it: passes through the headers a CDN in front writes
+    templates:
+      - templates/app.yaml
+    documentSelector:
+      path: kind
+      value: Deployment
+    set:
+      trustedGeoHeaders.country: cf-ipcountry
+      trustedGeoHeaders.region: cf-region
+      trustedGeoHeaders.city: cf-ipcity
+    asserts:
+      - contains:
+          path: spec.template.spec.containers[0].env
+          content:
+            name: TRUSTED_GEO_COUNTRY_HEADER
+            value: cf-ipcountry
+      - contains:
+          path: spec.template.spec.containers[0].env
+          content:
+            name: TRUSTED_GEO_REGION_HEADER
+            value: cf-region
+      - contains:
+          path: spec.template.spec.containers[0].env
+          content:
+            name: TRUSTED_GEO_CITY_HEADER
+            value: cf-ipcity
+
+  - it: a country alone leaves the region and the city unread
+    templates:
+      - templates/app.yaml
+    documentSelector:
+      path: kind
+      value: Deployment
+    set:
+      trustedGeoHeaders.country: cf-ipcountry
+    asserts:
+      - contains:
+          path: spec.template.spec.containers[0].env
+          content:
+            name: TRUSTED_GEO_COUNTRY_HEADER
+            value: cf-ipcountry
+      - contains:
+          path: spec.template.spec.containers[0].env
+          content:
+            name: TRUSTED_GEO_CITY_HEADER
+            value: ""
+
+  - it: reaches the worker too
+    templates:
+      - templates/worker.yaml
+    documentSelector:
+      path: kind
+      value: Deployment
+    set:
+      # Off by default; the worker Deployment renders nothing without this.
+      worker.enabled: true
+      trustedGeoHeaders.city: cloudfront-viewer-city
+    asserts:
+      - contains:
+          path: spec.template.spec.containers[0].env
+          content:
+            name: TRUSTED_GEO_CITY_HEADER
+            value: cloudfront-viewer-city

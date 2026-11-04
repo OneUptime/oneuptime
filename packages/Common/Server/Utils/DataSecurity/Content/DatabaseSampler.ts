@@ -72,7 +72,12 @@ export type DatabaseEngine =
   | "sqlserver"
   | "redshift"
   | "snowflake"
-  | "bigquery";
+  | "bigquery"
+  | "clickhouse"
+  | "databricks"
+  | "athena"
+  | "oracle"
+  | "mongodb";
 
 export const DATABASE_ENGINES: ReadonlyArray<DatabaseEngine> = [
   "postgresql",
@@ -209,10 +214,37 @@ export function quoteSqlServerIdentifier(name: string): string {
   return `[${name.split("]").join("]]")}]`;
 }
 
+// A key whose value is a credential: a password, a token, a key, a secret.
+const SECRET_KEY: RegExp = /pass|pwd|secret|token|key|credential/i;
+
+function addJsonSecrets(
+  value: unknown,
+  secrets: Set<string>,
+  depth: number,
+): void {
+  if (!value || typeof value !== "object" || depth > 3) {
+    return;
+  }
+
+  for (const [key, item] of Object.entries(value as Record<string, unknown>)) {
+    if (typeof item === "string" && SECRET_KEY.test(key)) {
+      secrets.add(item);
+      secrets.add(JSON.stringify(item).slice(1, -1));
+    } else if (item && typeof item === "object") {
+      addJsonSecrets(item, secrets, depth + 1);
+    }
+  }
+}
+
 /*
  * SECRETS OF A CONNECTION STRING, to take out of error messages: the whole
- * string, its password (as written and decoded) and its user:password.
+ * string, its password (as written and decoded) and its user:password, and
+ * in a JSON connection every value whose key names a credential.
  */
+// A URL's user and password, read by hand: scheme://user:password@...
+const URL_USER_INFO_PATTERN: RegExp =
+  /^[a-z][a-z0-9+.-]*:\/\/([^:@/]*):([^@/]*)@/i;
+
 export function getConnectionSecrets(connectionString: string): Array<string> {
   const secrets: Set<string> = new Set([connectionString]);
 
@@ -227,7 +259,21 @@ export function getConnectionSecrets(connectionString: string): Array<string> {
       secrets.add(`${url.username}:${url.password}`);
     }
   } catch {
-    // Not a URL: read its key=value pairs below.
+    // Not a URL new URL reads - a MongoDB replica set's host list among them.
+    const userInfo: RegExpMatchArray | null = connectionString.match(
+      URL_USER_INFO_PATTERN,
+    );
+
+    if (userInfo && userInfo[2]) {
+      secrets.add(userInfo[2]);
+      secrets.add(`${userInfo[1]}:${userInfo[2]}`);
+
+      try {
+        secrets.add(decodeURIComponent(userInfo[2]));
+      } catch {
+        // Not percent-encoded: the password as it is was added.
+      }
+    }
   }
 
   for (const pair of connectionString.split(";")) {
@@ -241,6 +287,15 @@ export function getConnectionSecrets(connectionString: string): Array<string> {
 
     if (key === "password" || key === "pwd") {
       secrets.add(pair.slice(equals + 1).trim());
+    }
+  }
+
+  // A JSON connection (Snowflake, BigQuery, Databricks): each value of a key that names a secret.
+  if (connectionString.trim().startsWith("{")) {
+    try {
+      addJsonSecrets(JSON.parse(connectionString) as unknown, secrets, 0);
+    } catch {
+      // Not JSON after all: the whole string is a secret already.
     }
   }
 

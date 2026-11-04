@@ -1,3 +1,4 @@
+import DataAssetLineageSource from "../../../Types/DataObservability/DataAssetLineageSource";
 import DataAssetKind, {
   isDataAssetKind,
 } from "../../../Types/DataObservability/DataAssetKind";
@@ -8,12 +9,21 @@ import {
 import { JSONObject } from "../../../Types/JSON";
 import { DatabaseEngine } from "../DataSecurity/Content/DatabaseSampler";
 import { isCollectorEngine } from "./DataObservabilityEngines";
+import {
+  CollectedJobSpend,
+  MAX_SPEND_JOBS,
+  readCollectedJobSpend,
+} from "../../../Types/DataObservability/DataWarehouseSpend";
 import { isValidProbeConnectionVariable } from "../DataSecurity/DataSecurityProbeScan";
 import {
+  CollectedLineageEdge,
   CollectedTable,
   MAX_COLLECTION_WARNINGS,
   MAX_COLUMNS_PER_COLLECTION,
   MAX_IDENTIFIER_LENGTH,
+  MAX_LINEAGE_EDGES_PER_COLLECTION,
+  MAX_QUERY_HISTORY_LOOKBACK_IN_SECONDS,
+  MAX_SEEN_BY_LENGTH,
   MAX_TABLES_PER_COLLECTION,
   readCount,
   TableHealthCollectOptions,
@@ -81,6 +91,8 @@ export interface DataObservabilityProbeStoreWork {
   exclusions: Array<string>;
   // The store's due data checks, their statements built by the server.
   checks?: Array<PlannedDataCheck> | undefined;
+  // How far back to read the query history for lineage; 0 reads no lineage this time.
+  queryHistoryLookbackInSeconds?: number | undefined;
 }
 
 // The most checks one work item carries, and one report records.
@@ -267,6 +279,12 @@ export function readProbeCollectWork(
           .slice(0, MAX_EXCLUSIONS)
       : [],
     checks: readPlannedChecks(item["checks"]),
+    // An item from an older server says nothing: no lineage, which it would not keep.
+    queryHistoryLookbackInSeconds: boundedWholeNumber(
+      item["queryHistoryLookbackInSeconds"],
+      0,
+      MAX_QUERY_HISTORY_LOOKBACK_IN_SECONDS,
+    ),
   };
 }
 
@@ -278,6 +296,7 @@ export function buildProbeCollectOptions(
     maxColumns: work.maxColumns,
     exclusions: work.exclusions,
     checks: work.checks || [],
+    queryHistoryLookbackInSeconds: work.queryHistoryLookbackInSeconds || 0,
   };
 }
 
@@ -324,6 +343,54 @@ function readCollectedTable(value: unknown): CollectedTable | null {
       columns === null
         ? null
         : readDataAssetColumns(columns).slice(0, MAX_COLUMNS_PER_DATA_ASSET),
+  };
+}
+
+// An edge of lineage a probe sent: known sources only, names bounded as a table's are.
+function readLineageEdge(value: unknown): CollectedLineageEdge | null {
+  if (!value || typeof value !== "object") {
+    return null;
+  }
+
+  const item: JSONObject = value as JSONObject;
+  const source: unknown = item["source"];
+
+  if (
+    source !== DataAssetLineageSource.QueryHistory &&
+    source !== DataAssetLineageSource.ViewDefinition
+  ) {
+    return null;
+  }
+
+  const upstreamSchema: string | null = readName(item["upstreamSchema"]);
+  const upstreamTable: string | null = readName(item["upstreamTable"]);
+  const downstreamSchema: string | null = readName(item["downstreamSchema"]);
+  const downstreamTable: string | null = readName(item["downstreamTable"]);
+
+  if (
+    upstreamSchema === null ||
+    !upstreamTable ||
+    downstreamSchema === null ||
+    !downstreamTable
+  ) {
+    return null;
+  }
+
+  const isQuery: boolean = source === DataAssetLineageSource.QueryHistory;
+  const seenBy: unknown = item["seenBy"];
+
+  return {
+    source,
+    upstreamDatabase: readName(item["upstreamDatabase"]) || null,
+    upstreamSchema,
+    upstreamTable,
+    downstreamSchema,
+    downstreamTable,
+    secondsSinceSeen: isQuery ? readCount(item["secondsSinceSeen"]) : null,
+    seenBy:
+      isQuery && typeof seenBy === "string"
+        ? seenBy.slice(0, MAX_SEEN_BY_LENGTH) || null
+        : null,
   };
 }
 
@@ -386,6 +453,33 @@ export function readTableHealthSnapshot(
     secondsSinceStatsReset: readCount(item["secondsSinceStatsReset"]),
     target: readTableHealthTarget(item["target"]),
     checkResults: readCheckResults(item["checkResults"]),
+    ...(Array.isArray(item["lineage"])
+      ? {
+          lineage: (item["lineage"] as Array<unknown>)
+            .slice(0, MAX_LINEAGE_EDGES_PER_COLLECTION)
+            .map(readLineageEdge)
+            .filter(
+              (
+                edge: CollectedLineageEdge | null,
+              ): edge is CollectedLineageEdge => {
+                return edge !== null;
+              },
+            ),
+          isViewLineageComplete: item["isViewLineageComplete"] === true,
+        }
+      : {}),
+    ...(Array.isArray(item["spend"])
+      ? {
+          spend: (item["spend"] as Array<unknown>)
+            .slice(0, MAX_SPEND_JOBS)
+            .map(readCollectedJobSpend)
+            .filter(
+              (job: CollectedJobSpend | null): job is CollectedJobSpend => {
+                return job !== null;
+              },
+            ),
+        }
+      : {}),
     warnings: Array.isArray(item["warnings"])
       ? (item["warnings"] as Array<unknown>)
           .filter((warning: unknown): warning is string => {

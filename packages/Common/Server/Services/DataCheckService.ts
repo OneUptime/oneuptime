@@ -5,8 +5,9 @@ import DataAsset from "../../Models/DatabaseModels/DataAsset";
 import Model from "../../Models/DatabaseModels/DataCheck";
 import DataStore from "../../Models/DatabaseModels/DataStore";
 import CreateBy from "../Types/Database/CreateBy";
+import DeleteBy from "../Types/Database/DeleteBy";
 import UpdateBy from "../Types/Database/UpdateBy";
-import { OnCreate, OnUpdate } from "../Types/Database/Hooks";
+import { OnCreate, OnDelete, OnUpdate } from "../Types/Database/Hooks";
 import {
   DataAssetColumn,
   readDataAssetColumns,
@@ -17,6 +18,7 @@ import OneUptimeDate from "../../Types/Date";
 import BadDataException from "../../Types/Exception/BadDataException";
 import { JSONObject } from "../../Types/JSON";
 import ObjectID from "../../Types/ObjectID";
+import RelationIdUtil from "../Utils/Database/RelationIdUtil";
 import { getCollectorEngineOfKind } from "../Utils/DataObservability/DataObservabilityEngines";
 import {
   DataCheckDraft,
@@ -29,8 +31,13 @@ import {
  * table it refers to must be ones the collection saw - and runs at the
  * store's next collection once saved or changed. A dbt test's check is
  * made and kept by its project's uploaded artifacts (DbtIngest): a person
- * turns it off or on, and sets its alert, and nothing else.
+ * turns it off or on, and sets its alert, and nothing else. A check that
+ * reads one side of a reconciliation is made and kept by the reconciliation
+ * (DataReconciliationSync): nobody changes or deletes it but through it.
  */
+
+// The table a check reads, under both of its names.
+const DATA_ASSET_KEYS: Array<string> = ["dataAssetId", "dataAsset"];
 
 // What a person may change of a dbt test's check.
 const DBT_TEST_EDITABLE_FIELDS: ReadonlyArray<string> = [
@@ -41,6 +48,9 @@ const DBT_TEST_EDITABLE_FIELDS: ReadonlyArray<string> = [
 
 const DBT_TEST_REFUSAL: string =
   "A dbt test is defined in your dbt project and comes from its artifacts: here it is only turned off or on, and alerted on.";
+
+const RECONCILIATION_REFUSAL: string =
+  "This check reads one side of a reconciliation, which keeps it: change or delete it from the reconciliation, under Reconciliations.";
 
 // The fields of a check that decide what it runs.
 const RUN_FIELDS: ReadonlyArray<string> = [
@@ -58,6 +68,14 @@ const RUN_FIELDS: ReadonlyArray<string> = [
 ];
 
 export class Service extends ProjectReferencesService<Model> {
+  /*
+   * The updates onBeforeUpdate found to change what a check runs, for
+   * onUpdatePermitted to have the checks run again once they are permitted.
+   * Keyed on the update itself, so nothing outlives it.
+   */
+  private readonly updatesThatChangeTheRun: WeakSet<UpdateBy<Model>> =
+    new WeakSet<UpdateBy<Model>>();
+
   public constructor() {
     super(Model);
   }
@@ -74,8 +92,19 @@ export class Service extends ProjectReferencesService<Model> {
       throw new BadDataException(DBT_TEST_REFUSAL);
     }
 
+    /*
+     * The table under either of its names - the two must agree - kept in
+     * the ID column for the saved row: the table checked is the table
+     * stored.
+     */
+    const dataAssetId: ObjectID | null = RelationIdUtil.readIntoIdColumn(
+      createBy.data as unknown as Record<string, unknown>,
+      DATA_ASSET_KEYS,
+      "Data Asset",
+    );
+
     const asset: DataAsset = await this.readAsset(
-      createBy.data.dataAssetId,
+      dataAssetId,
       createBy.props.tenantId || createBy.data.projectId,
     );
 
@@ -94,24 +123,45 @@ export class Service extends ProjectReferencesService<Model> {
     await super.onBeforeUpdate(updateBy);
 
     const data: JSONObject = updateBy.data as unknown as JSONObject;
+    const isPerson: boolean = !updateBy.props.isRoot;
 
-    if (!updateBy.props.isRoot) {
-      await this.refuseDbtTestEdits(updateBy, data);
+    // A person sets only whether a dbt test is recorded, and its alert.
+    if (isPerson && data["checkType"] === DataCheckType.DbtTest) {
+      throw new BadDataException(DBT_TEST_REFUSAL);
     }
+
+    const changesDbtTestDefinition: boolean =
+      isPerson &&
+      Object.keys(data).some((field: string) => {
+        return (
+          data[field] !== undefined && !DBT_TEST_EDITABLE_FIELDS.includes(field)
+        );
+      });
+
     const changesRun: boolean = RUN_FIELDS.some((field: string) => {
       return data[field] !== undefined;
     });
 
-    if (!changesRun) {
+    /*
+     * A person's update is judged on its checks whatever it changes - a
+     * reconciliation's is changed only through the reconciliation - and
+     * OneUptime's only when it changes what a check runs.
+     */
+    if (!isPerson && !changesRun) {
       return { updateBy, carryForward: undefined };
     }
 
-    const checks: Array<Model> = await this.findBy({
-      query: updateBy.query,
-      select: {
-        _id: true,
+    /*
+     * Every check the update writes, and the update held to them: the
+     * checks judged here are the checks written - each one, however many -
+     * and never a check its caller may not write.
+     */
+    const checks: Array<Model> = await this.findRowsAndHoldUpdateToThem(
+      updateBy,
+      {
         projectId: true,
         dataAssetId: true,
+        dataReconciliationId: true,
         checkType: true,
         columnName: true,
         segmentColumn: true,
@@ -124,10 +174,24 @@ export class Service extends ProjectReferencesService<Model> {
         alertCondition: true,
         alertThreshold: true,
       },
-      limit: 10,
-      skip: 0,
-      props: { isRoot: true },
-    });
+    );
+
+    if (isPerson) {
+      this.refuseReconciliationChecks(checks);
+    }
+
+    if (
+      changesDbtTestDefinition &&
+      checks.some((check: Model) => {
+        return check.checkType === DataCheckType.DbtTest;
+      })
+    ) {
+      throw new BadDataException(DBT_TEST_REFUSAL);
+    }
+
+    if (!changesRun) {
+      return { updateBy, carryForward: undefined };
+    }
 
     for (const check of checks) {
       const asset: DataAsset = await this.readAsset(
@@ -142,48 +206,69 @@ export class Service extends ProjectReferencesService<Model> {
       await this.validate(merged, asset);
     }
 
-    // A changed check runs again at the store's next collection.
-    (updateBy.data as unknown as JSONObject)["nextRunAt"] =
-      OneUptimeDate.getCurrentDate();
+    /*
+     * A changed check runs again at the store's next collection, once the
+     * change has passed every permission check (onUpdatePermitted).
+     */
+    this.updatesThatChangeTheRun.add(updateBy);
 
     return { updateBy, carryForward: undefined };
   }
 
-  // A person sets only whether a dbt test is recorded, and its alert.
-  private async refuseDbtTestEdits(
+  /*
+   * Runs a changed check at the store's next collection (onBeforeUpdate
+   * decides which). Written here, after every permission check, and never
+   * in onBeforeUpdate: nextRunAt is OneUptime's (create: [], update: []),
+   * and DatabaseService holds what onBeforeUpdate leaves to the caller's
+   * column permissions - so written there, it refused every change of what
+   * a check runs, for everyone who may edit a check ("User is not allowed
+   * to update on nextRunAt column of Data Check").
+   */
+  protected override async onUpdatePermitted(
     updateBy: UpdateBy<Model>,
-    data: JSONObject,
   ): Promise<void> {
-    if (data["checkType"] === DataCheckType.DbtTest) {
-      throw new BadDataException(DBT_TEST_REFUSAL);
-    }
+    await super.onUpdatePermitted(updateBy);
 
-    const changesDefinition: boolean = Object.keys(data).some(
-      (field: string) => {
-        return (
-          data[field] !== undefined && !DBT_TEST_EDITABLE_FIELDS.includes(field)
-        );
-      },
-    );
-
-    if (!changesDefinition) {
+    if (!this.updatesThatChangeTheRun.delete(updateBy)) {
       return;
     }
 
-    const dbtTests: number = (
-      await this.countBy({
-        query: { ...updateBy.query, checkType: DataCheckType.DbtTest },
-        props: { isRoot: true },
-      })
-    ).toNumber();
+    (updateBy.data as unknown as JSONObject)["nextRunAt"] =
+      OneUptimeDate.getCurrentDate();
+  }
 
-    if (dbtTests > 0) {
-      throw new BadDataException(DBT_TEST_REFUSAL);
+  protected override async onBeforeDelete(
+    deleteBy: DeleteBy<Model>,
+  ): Promise<OnDelete<Model>> {
+    /*
+     * A person's delete is judged on the checks it removes, and held to
+     * them: never a check its caller may not delete. OneUptime deletes a
+     * reconciliation's checks with it (DataReconciliationService).
+     */
+    if (!deleteBy.props.isRoot) {
+      this.refuseReconciliationChecks(
+        await this.findRowsAndHoldDeleteToThem(deleteBy, {
+          dataReconciliationId: true,
+        }),
+      );
+    }
+
+    return { deleteBy, carryForward: undefined };
+  }
+
+  // A reconciliation's checks are changed and deleted only through it.
+  private refuseReconciliationChecks(checks: Array<Model>): void {
+    if (
+      checks.some((check: Model) => {
+        return Boolean(check.dataReconciliationId);
+      })
+    ) {
+      throw new BadDataException(RECONCILIATION_REFUSAL);
     }
   }
 
   private async readAsset(
-    dataAssetId: ObjectID | undefined,
+    dataAssetId: ObjectID | null | undefined,
     projectId: ObjectID | undefined,
   ): Promise<DataAsset> {
     if (!dataAssetId || !projectId) {

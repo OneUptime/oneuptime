@@ -3,6 +3,7 @@ import {
   getDatabaseSystemMetricsEngine,
   normalizeDatabaseSystem,
 } from "./DatabaseSystem";
+import { translationKey } from "../Translator";
 
 /*
  * The curated engine metrics a Database's Overview charts, per engine, from
@@ -148,10 +149,10 @@ export const DATABASE_SERVER_METRICS: ReadonlyArray<DatabaseServerMetricDefiniti
     {
       system: "postgresql",
       metricName: "postgresql.backends",
-      title: "Connections",
+      title: translationKey("Connections"),
       description:
         "Open backends (client connections), added up across every database on the server.",
-      unit: "connections",
+      unit: translationKey("connections"),
       aggregation: AggregationType.Avg,
       kind: "gauge",
       seriesKeys: POSTGRESQL_DATABASE_KEYS,
@@ -160,9 +161,9 @@ export const DATABASE_SERVER_METRICS: ReadonlyArray<DatabaseServerMetricDefiniti
     {
       system: "postgresql",
       metricName: "postgresql.connection.max",
-      title: "Max connections",
+      title: translationKey("Max connections"),
       description: "The configured max_connections limit.",
-      unit: "connections",
+      unit: translationKey("connections"),
       aggregation: AggregationType.Max,
       kind: "gauge",
       seriesCombine: "max",
@@ -170,10 +171,10 @@ export const DATABASE_SERVER_METRICS: ReadonlyArray<DatabaseServerMetricDefiniti
     {
       system: "postgresql",
       metricName: "postgresql.commits",
-      title: "Commits",
+      title: translationKey("Commits"),
       description:
         "Committed transactions per second, added up across every database.",
-      unit: "commits",
+      unit: translationKey("commits"),
       aggregation: AggregationType.Max,
       kind: "counter",
       seriesCombine: "sum",
@@ -181,10 +182,10 @@ export const DATABASE_SERVER_METRICS: ReadonlyArray<DatabaseServerMetricDefiniti
     {
       system: "postgresql",
       metricName: "postgresql.rollbacks",
-      title: "Rollbacks",
+      title: translationKey("Rollbacks"),
       description:
         "Rolled-back transactions per second, added up across every database.",
-      unit: "rollbacks",
+      unit: translationKey("rollbacks"),
       aggregation: AggregationType.Max,
       kind: "counter",
       seriesCombine: "sum",
@@ -192,7 +193,7 @@ export const DATABASE_SERVER_METRICS: ReadonlyArray<DatabaseServerMetricDefiniti
     {
       system: "postgresql",
       metricName: "postgresql.db_size",
-      title: "Database size",
+      title: translationKey("Database size"),
       description: "Disk space used by the largest database.",
       unit: "bytes",
       aggregation: AggregationType.Max,
@@ -203,9 +204,9 @@ export const DATABASE_SERVER_METRICS: ReadonlyArray<DatabaseServerMetricDefiniti
     {
       system: "postgresql",
       metricName: "postgresql.database.count",
-      title: "Databases",
+      title: translationKey("Databases"),
       description: "Number of user databases on the server.",
-      unit: "databases",
+      unit: translationKey("databases"),
       aggregation: AggregationType.Max,
       kind: "gauge",
       // Replicas report the same databases; they are not added up.
@@ -214,7 +215,7 @@ export const DATABASE_SERVER_METRICS: ReadonlyArray<DatabaseServerMetricDefiniti
     {
       system: "postgresql",
       metricName: "postgresql.replication.data_delay",
-      title: "Replication lag",
+      title: translationKey("Replication lag"),
       description:
         "Bytes of WAL a replica is behind the primary (worst replica).",
       unit: "bytes",
@@ -226,7 +227,7 @@ export const DATABASE_SERVER_METRICS: ReadonlyArray<DatabaseServerMetricDefiniti
     {
       system: "postgresql",
       metricName: "postgresql.wal.age",
-      title: "WAL age",
+      title: translationKey("WAL age"),
       description: "Age of the oldest WAL file not yet archived or replayed.",
       unit: "s",
       aggregation: AggregationType.Max,
@@ -237,7 +238,7 @@ export const DATABASE_SERVER_METRICS: ReadonlyArray<DatabaseServerMetricDefiniti
     {
       system: "postgresql",
       metricName: "postgresql.uptime",
-      title: "Uptime",
+      title: translationKey("Uptime"),
       description: `How long the server has been up since it last started; it drops to nothing on a restart.${AGENT_QUERY_NOTE}`,
       unit: "s",
       aggregation: AggregationType.Min,
@@ -250,9 +251,9 @@ export const DATABASE_SERVER_METRICS: ReadonlyArray<DatabaseServerMetricDefiniti
     {
       system: "postgresql",
       metricName: "postgresql.xid.oldest_age",
-      title: "Oldest transaction ID age",
+      title: translationKey("Oldest transaction ID age"),
       description: `How many transactions old the oldest transaction ID of any database is. PostgreSQL stops accepting writes near 2.1 billion.${AGENT_QUERY_NOTE}`,
-      unit: "transactions",
+      unit: translationKey("transactions"),
       aggregation: AggregationType.Max,
       kind: "gauge",
       seriesCombine: "max",
@@ -262,7 +263,7 @@ export const DATABASE_SERVER_METRICS: ReadonlyArray<DatabaseServerMetricDefiniti
     {
       system: "postgresql",
       metricName: "postgresql.transaction.longest_duration",
-      title: "Longest open transaction",
+      title: translationKey("Longest open transaction"),
       description: `How long the oldest open transaction of a client session has been open (0 when none is).${AGENT_QUERY_NOTE}`,
       unit: "s",
       aggregation: AggregationType.Max,
@@ -274,9 +275,9 @@ export const DATABASE_SERVER_METRICS: ReadonlyArray<DatabaseServerMetricDefiniti
     {
       system: "postgresql",
       metricName: "postgresql.sessions.waiting_on_lock",
-      title: "Sessions waiting on locks",
+      title: translationKey("Sessions waiting on locks"),
       description: `Sessions waiting for a lock another session holds.${AGENT_QUERY_NOTE}`,
-      unit: "sessions",
+      unit: translationKey("sessions"),
       aggregation: AggregationType.Max,
       kind: "gauge",
       seriesCombine: "max",
@@ -288,10 +289,10 @@ export const DATABASE_SERVER_METRICS: ReadonlyArray<DatabaseServerMetricDefiniti
     {
       system: "mysql",
       metricName: "mysql.threads",
-      title: "Connected threads",
+      title: translationKey("Connected threads"),
       description:
         "Threads with an open client connection (Threads_connected).",
-      unit: "threads",
+      unit: translationKey("threads"),
       aggregation: AggregationType.Avg,
       kind: "gauge",
       attributes: { kind: "connected" },
@@ -300,10 +301,10 @@ export const DATABASE_SERVER_METRICS: ReadonlyArray<DatabaseServerMetricDefiniti
     {
       system: "mysql",
       metricName: "mysql.threads",
-      title: "Running threads",
+      title: translationKey("Running threads"),
       description:
         "Threads executing a statement right now (Threads_running) — the server's real concurrency.",
-      unit: "threads",
+      unit: translationKey("threads"),
       aggregation: AggregationType.Avg,
       kind: "gauge",
       attributes: { kind: "running" },
@@ -312,7 +313,7 @@ export const DATABASE_SERVER_METRICS: ReadonlyArray<DatabaseServerMetricDefiniti
     {
       system: "mysql",
       metricName: "mysql.buffer_pool.usage",
-      title: "Buffer pool usage",
+      title: translationKey("Buffer pool usage"),
       description:
         "Bytes held in the InnoDB buffer pool, clean and dirty pages together.",
       unit: "bytes",
@@ -330,10 +331,10 @@ export const DATABASE_SERVER_METRICS: ReadonlyArray<DatabaseServerMetricDefiniti
     {
       system: "mysql",
       metricName: "mysql.buffer_pool.pages",
-      title: "Buffer pool size",
+      title: translationKey("Buffer pool size"),
       description:
         "The InnoDB buffer pool's size in pages (Innodb_buffer_pool_pages_total); a page is innodb_page_size, 16 KiB by default.",
-      unit: "pages",
+      unit: translationKey("pages"),
       aggregation: AggregationType.Max,
       kind: "gauge",
       attributes: { kind: "total" },
@@ -342,10 +343,10 @@ export const DATABASE_SERVER_METRICS: ReadonlyArray<DatabaseServerMetricDefiniti
     {
       system: "mysql",
       metricName: "mysql.handlers",
-      title: "Handler operations",
+      title: translationKey("Handler operations"),
       description:
         "Internal handler calls (reads, writes, commits, …) per second, every kind added up.",
-      unit: "operations",
+      unit: translationKey("operations"),
       aggregation: AggregationType.Max,
       kind: "counter",
       seriesCombine: "sum",
@@ -359,10 +360,10 @@ export const DATABASE_SERVER_METRICS: ReadonlyArray<DatabaseServerMetricDefiniti
     {
       system: "mysql",
       metricName: "mysql.row_operations",
-      title: "Row operations",
+      title: translationKey("Row operations"),
       description:
         "InnoDB rows read, inserted, updated and deleted per second, added up.",
-      unit: "rows",
+      unit: translationKey("rows"),
       aggregation: AggregationType.Max,
       kind: "counter",
       seriesCombine: "sum",
@@ -371,9 +372,9 @@ export const DATABASE_SERVER_METRICS: ReadonlyArray<DatabaseServerMetricDefiniti
     {
       system: "mysql",
       metricName: "mysql.row_locks",
-      title: "Row lock waits",
+      title: translationKey("Row lock waits"),
       description: "InnoDB row lock waits per second.",
-      unit: "waits",
+      unit: translationKey("waits"),
       aggregation: AggregationType.Max,
       kind: "counter",
       // The metric also carries kind "time", cumulative milliseconds.
@@ -383,7 +384,7 @@ export const DATABASE_SERVER_METRICS: ReadonlyArray<DatabaseServerMetricDefiniti
     {
       system: "mysql",
       metricName: "mysql.uptime",
-      title: "Uptime",
+      title: translationKey("Uptime"),
       description:
         "Seconds since the server started; a drop means it restarted.",
       unit: "s",
@@ -397,9 +398,9 @@ export const DATABASE_SERVER_METRICS: ReadonlyArray<DatabaseServerMetricDefiniti
     {
       system: "redis",
       metricName: "redis.clients.connected",
-      title: "Connected clients",
+      title: translationKey("Connected clients"),
       description: "Number of client connections.",
-      unit: "clients",
+      unit: translationKey("clients"),
       aggregation: AggregationType.Avg,
       kind: "gauge",
       seriesCombine: "sum",
@@ -407,7 +408,7 @@ export const DATABASE_SERVER_METRICS: ReadonlyArray<DatabaseServerMetricDefiniti
     {
       system: "redis",
       metricName: "redis.memory.used",
-      title: "Memory used",
+      title: translationKey("Memory used"),
       description: "Bytes allocated by Redis.",
       unit: "bytes",
       aggregation: AggregationType.Avg,
@@ -417,9 +418,9 @@ export const DATABASE_SERVER_METRICS: ReadonlyArray<DatabaseServerMetricDefiniti
     {
       system: "redis",
       metricName: "redis.memory.fragmentation_ratio",
-      title: "Memory fragmentation",
+      title: translationKey("Memory fragmentation"),
       description: "Ratio of resident memory to memory allocated by Redis.",
-      unit: "ratio",
+      unit: translationKey("ratio"),
       aggregation: AggregationType.Avg,
       kind: "gauge",
       seriesCombine: "avg",
@@ -427,7 +428,7 @@ export const DATABASE_SERVER_METRICS: ReadonlyArray<DatabaseServerMetricDefiniti
     {
       system: "redis",
       metricName: "redis.commands",
-      title: "Commands per second",
+      title: translationKey("Commands per second"),
       description: "Instantaneous commands processed per second.",
       unit: "ops/s",
       aggregation: AggregationType.Avg,
@@ -437,9 +438,9 @@ export const DATABASE_SERVER_METRICS: ReadonlyArray<DatabaseServerMetricDefiniti
     {
       system: "redis",
       metricName: "redis.commands.processed",
-      title: "Commands processed",
+      title: translationKey("Commands processed"),
       description: "Commands processed per second.",
-      unit: "commands",
+      unit: translationKey("commands"),
       aggregation: AggregationType.Max,
       kind: "counter",
       seriesCombine: "sum",
@@ -447,9 +448,9 @@ export const DATABASE_SERVER_METRICS: ReadonlyArray<DatabaseServerMetricDefiniti
     {
       system: "redis",
       metricName: "redis.keyspace.hits",
-      title: "Keyspace hits",
+      title: translationKey("Keyspace hits"),
       description: "Successful key lookups per second.",
-      unit: "hits",
+      unit: translationKey("hits"),
       aggregation: AggregationType.Max,
       kind: "counter",
       seriesCombine: "sum",
@@ -457,9 +458,9 @@ export const DATABASE_SERVER_METRICS: ReadonlyArray<DatabaseServerMetricDefiniti
     {
       system: "redis",
       metricName: "redis.keyspace.misses",
-      title: "Keyspace misses",
+      title: translationKey("Keyspace misses"),
       description: "Failed key lookups per second.",
-      unit: "misses",
+      unit: translationKey("misses"),
       aggregation: AggregationType.Max,
       kind: "counter",
       seriesCombine: "sum",
@@ -467,9 +468,9 @@ export const DATABASE_SERVER_METRICS: ReadonlyArray<DatabaseServerMetricDefiniti
     {
       system: "redis",
       metricName: "redis.keys.evicted",
-      title: "Evicted keys",
+      title: translationKey("Evicted keys"),
       description: "Keys evicted because of the maxmemory limit, per second.",
-      unit: "keys",
+      unit: translationKey("keys"),
       aggregation: AggregationType.Max,
       kind: "counter",
       seriesCombine: "sum",
@@ -483,9 +484,9 @@ export const DATABASE_SERVER_METRICS: ReadonlyArray<DatabaseServerMetricDefiniti
     {
       system: "mongodb",
       metricName: "mongodb.connection.count",
-      title: "Connections",
+      title: translationKey("Connections"),
       description: "Client connections currently open (type current).",
-      unit: "connections",
+      unit: translationKey("connections"),
       aggregation: AggregationType.Avg,
       kind: "gauge",
       attributes: { type: "current" },
@@ -495,7 +496,7 @@ export const DATABASE_SERVER_METRICS: ReadonlyArray<DatabaseServerMetricDefiniti
     {
       system: "mongodb",
       metricName: "mongodb.memory.usage",
-      title: "Resident memory",
+      title: translationKey("Resident memory"),
       description: "Resident memory used by mongod (type resident).",
       unit: "bytes",
       aggregation: AggregationType.Avg,
@@ -507,7 +508,7 @@ export const DATABASE_SERVER_METRICS: ReadonlyArray<DatabaseServerMetricDefiniti
     {
       system: "mongodb",
       metricName: "mongodb.data.size",
-      title: "Data size",
+      title: translationKey("Data size"),
       description: "Size of the data stored (largest database).",
       unit: "bytes",
       aggregation: AggregationType.Max,
@@ -518,9 +519,9 @@ export const DATABASE_SERVER_METRICS: ReadonlyArray<DatabaseServerMetricDefiniti
     {
       system: "mongodb",
       metricName: "mongodb.cursor.count",
-      title: "Open cursors",
+      title: translationKey("Open cursors"),
       description: "Number of open cursors.",
-      unit: "cursors",
+      unit: translationKey("cursors"),
       aggregation: AggregationType.Avg,
       kind: "gauge",
       seriesCombine: "sum",
@@ -528,10 +529,10 @@ export const DATABASE_SERVER_METRICS: ReadonlyArray<DatabaseServerMetricDefiniti
     {
       system: "mongodb",
       metricName: "mongodb.operation.count",
-      title: "Operations",
+      title: translationKey("Operations"),
       description:
         "Operations (insert, query, update, …) per second, every type added up.",
-      unit: "operations",
+      unit: translationKey("operations"),
       aggregation: AggregationType.Max,
       kind: "counter",
       seriesCombine: "sum",
@@ -539,7 +540,7 @@ export const DATABASE_SERVER_METRICS: ReadonlyArray<DatabaseServerMetricDefiniti
     {
       system: "mongodb",
       metricName: "mongodb.operation.time",
-      title: "Operation time",
+      title: translationKey("Operation time"),
       description:
         "Time spent executing operations, per second, every type added up.",
       unit: "ms",
@@ -550,9 +551,9 @@ export const DATABASE_SERVER_METRICS: ReadonlyArray<DatabaseServerMetricDefiniti
     {
       system: "mongodb",
       metricName: "mongodb.cache.operations",
-      title: "Cache operations",
+      title: translationKey("Cache operations"),
       description: "WiredTiger cache hits and misses per second, added up.",
-      unit: "operations",
+      unit: translationKey("operations"),
       aggregation: AggregationType.Max,
       kind: "counter",
       seriesCombine: "sum",
@@ -570,9 +571,9 @@ export const DATABASE_SERVER_METRICS: ReadonlyArray<DatabaseServerMetricDefiniti
     {
       system: "microsoft.sql_server",
       metricName: "sqlserver.user.connection.count",
-      title: "User connections",
+      title: translationKey("User connections"),
       description: "Number of users connected to the server.",
-      unit: "connections",
+      unit: translationKey("connections"),
       aggregation: AggregationType.Avg,
       kind: "gauge",
       seriesCombine: "sum",
@@ -580,10 +581,10 @@ export const DATABASE_SERVER_METRICS: ReadonlyArray<DatabaseServerMetricDefiniti
     {
       system: "microsoft.sql_server",
       metricName: "sqlserver.batch.request.rate",
-      title: "Batch requests",
+      title: translationKey("Batch requests"),
       description:
         "Transact-SQL batches received per second. Over the agent's direct connection SQL Server reports a running total since it started, so the chart shows the per-second rate computed from it.",
-      unit: "requests",
+      unit: translationKey("requests"),
       aggregation: AggregationType.Max,
       kind: "counter",
       seriesCombine: "sum",
@@ -591,10 +592,10 @@ export const DATABASE_SERVER_METRICS: ReadonlyArray<DatabaseServerMetricDefiniti
     {
       system: "microsoft.sql_server",
       metricName: "sqlserver.batch.sql_compilation.rate",
-      title: "SQL compilations",
+      title: translationKey("SQL compilations"),
       description:
         "SQL compilations per second. Many compilations next to few batch requests means query plans are not being reused. Over the agent's direct connection SQL Server reports a running total since it started, so the chart shows the per-second rate computed from it.",
-      unit: "compilations",
+      unit: translationKey("compilations"),
       aggregation: AggregationType.Max,
       kind: "counter",
       seriesCombine: "sum",
@@ -602,7 +603,7 @@ export const DATABASE_SERVER_METRICS: ReadonlyArray<DatabaseServerMetricDefiniti
     {
       system: "microsoft.sql_server",
       metricName: "sqlserver.page.buffer_cache.hit_ratio",
-      title: "Buffer cache hit ratio",
+      title: translationKey("Buffer cache hit ratio"),
       description: "Percentage of pages found in the buffer cache.",
       unit: "%",
       aggregation: AggregationType.Avg,
@@ -612,7 +613,7 @@ export const DATABASE_SERVER_METRICS: ReadonlyArray<DatabaseServerMetricDefiniti
     {
       system: "microsoft.sql_server",
       metricName: "sqlserver.page.life_expectancy",
-      title: "Page life expectancy",
+      title: translationKey("Page life expectancy"),
       description:
         "Seconds a page stays in the buffer pool (low = pressure); the lowest buffer node or manager.",
       unit: "s",
@@ -624,10 +625,10 @@ export const DATABASE_SERVER_METRICS: ReadonlyArray<DatabaseServerMetricDefiniti
     {
       system: "microsoft.sql_server",
       metricName: "sqlserver.lock.wait.rate",
-      title: "Lock waits",
+      title: translationKey("Lock waits"),
       description:
         "Lock requests per second that had to wait. Over the agent's direct connection SQL Server reports a running total since it started, so the chart shows the per-second rate computed from it.",
-      unit: "requests",
+      unit: translationKey("requests"),
       aggregation: AggregationType.Max,
       kind: "counter",
       seriesCombine: "sum",
@@ -635,9 +636,9 @@ export const DATABASE_SERVER_METRICS: ReadonlyArray<DatabaseServerMetricDefiniti
     {
       system: "microsoft.sql_server",
       metricName: "sqlserver.deadlock.rate",
-      title: "Deadlocks",
+      title: translationKey("Deadlocks"),
       description: `Deadlocks per second. Over the agent's direct connection SQL Server reports a running total since it started, so the chart shows the per-second rate computed from it.${AGENT_ENABLED_NOTE}`,
-      unit: "deadlocks",
+      unit: translationKey("deadlocks"),
       aggregation: AggregationType.Max,
       kind: "counter",
       seriesCombine: "sum",
@@ -646,9 +647,9 @@ export const DATABASE_SERVER_METRICS: ReadonlyArray<DatabaseServerMetricDefiniti
     {
       system: "microsoft.sql_server",
       metricName: "sqlserver.processes.blocked",
-      title: "Blocked processes",
+      title: translationKey("Blocked processes"),
       description: `Sessions waiting on a lock another session holds (the peak in each interval).${AGENT_ENABLED_NOTE}`,
-      unit: "processes",
+      unit: translationKey("processes"),
       aggregation: AggregationType.Max,
       kind: "gauge",
       seriesCombine: "sum",
@@ -665,10 +666,10 @@ export const DATABASE_SERVER_METRICS: ReadonlyArray<DatabaseServerMetricDefiniti
     {
       system: "oracle.db",
       metricName: "oracledb.sessions.usage",
-      title: "Sessions",
+      title: translationKey("Sessions"),
       description:
         "Sessions in use, every type, status and pluggable database added up.",
-      unit: "sessions",
+      unit: translationKey("sessions"),
       aggregation: AggregationType.Avg,
       kind: "gauge",
       seriesKeys: ["session_type", "session_status", "oracle.db.pdb"],
@@ -677,7 +678,7 @@ export const DATABASE_SERVER_METRICS: ReadonlyArray<DatabaseServerMetricDefiniti
     {
       system: "oracle.db",
       metricName: "oracledb.db.time",
-      title: "DB time",
+      title: translationKey("DB time"),
       description: `Seconds user sessions spent in database calls, per second: the average number of active sessions.${AGENT_ENABLED_NOTE}`,
       unit: "s",
       aggregation: AggregationType.Max,
@@ -690,7 +691,7 @@ export const DATABASE_SERVER_METRICS: ReadonlyArray<DatabaseServerMetricDefiniti
     {
       system: "oracle.db",
       metricName: "oracledb.sga.usage",
-      title: "SGA in use",
+      title: translationKey("SGA in use"),
       description: `Memory in the System Global Area: the buffer cache, shared pool and every other component added up.${AGENT_ENABLED_NOTE}`,
       unit: "bytes",
       aggregation: AggregationType.Avg,
@@ -702,7 +703,7 @@ export const DATABASE_SERVER_METRICS: ReadonlyArray<DatabaseServerMetricDefiniti
     {
       system: "oracle.db",
       metricName: "oracledb.tablespace.utilization",
-      title: "Fullest tablespace",
+      title: translationKey("Fullest tablespace"),
       description: `How full the fullest tablespace is.${AGENT_ENABLED_NOTE}`,
       unit: "fraction",
       aggregation: AggregationType.Max,
@@ -714,7 +715,7 @@ export const DATABASE_SERVER_METRICS: ReadonlyArray<DatabaseServerMetricDefiniti
     {
       system: "oracle.db",
       metricName: "oracledb.tablespace_size.usage",
-      title: "Largest tablespace",
+      title: translationKey("Largest tablespace"),
       description: "Bytes used in the largest tablespace.",
       unit: "bytes",
       aggregation: AggregationType.Max,
@@ -725,10 +726,10 @@ export const DATABASE_SERVER_METRICS: ReadonlyArray<DatabaseServerMetricDefiniti
     {
       system: "oracle.db",
       metricName: "oracledb.executions",
-      title: "Executions",
+      title: translationKey("Executions"),
       description:
         "SQL statements executed per second, every pluggable database added up.",
-      unit: "executions",
+      unit: translationKey("executions"),
       aggregation: AggregationType.Max,
       kind: "counter",
       seriesCombine: "sum",
@@ -736,10 +737,10 @@ export const DATABASE_SERVER_METRICS: ReadonlyArray<DatabaseServerMetricDefiniti
     {
       system: "oracle.db",
       metricName: "oracledb.user_commits",
-      title: "Commits",
+      title: translationKey("Commits"),
       description:
         "User commits per second, every pluggable database added up.",
-      unit: "commits",
+      unit: translationKey("commits"),
       aggregation: AggregationType.Max,
       kind: "counter",
       seriesCombine: "sum",
@@ -747,10 +748,10 @@ export const DATABASE_SERVER_METRICS: ReadonlyArray<DatabaseServerMetricDefiniti
     {
       system: "oracle.db",
       metricName: "oracledb.physical_reads",
-      title: "Physical reads",
+      title: translationKey("Physical reads"),
       description:
         "Data blocks read from disk per second, every pluggable database added up.",
-      unit: "reads",
+      unit: translationKey("reads"),
       aggregation: AggregationType.Max,
       kind: "counter",
       seriesCombine: "sum",
@@ -766,7 +767,7 @@ export const DATABASE_SERVER_METRICS: ReadonlyArray<DatabaseServerMetricDefiniti
     {
       system: "elasticsearch",
       metricName: "elasticsearch.cluster.health",
-      title: "Cluster green",
+      title: translationKey("Cluster green"),
       description:
         "Share of the interval the cluster health was green. Below 100% it went yellow (replica shards unassigned) or red (primary shards unassigned, some data unavailable).",
       unit: "fraction",
@@ -779,10 +780,10 @@ export const DATABASE_SERVER_METRICS: ReadonlyArray<DatabaseServerMetricDefiniti
     {
       system: "elasticsearch",
       metricName: "elasticsearch.cluster.nodes",
-      title: "Nodes",
+      title: translationKey("Nodes"),
       description:
         "Nodes in the cluster; the lowest count in each interval, so a node that dropped out shows.",
-      unit: "nodes",
+      unit: translationKey("nodes"),
       aggregation: AggregationType.Min,
       kind: "gauge",
       seriesCombine: "min",
@@ -790,10 +791,10 @@ export const DATABASE_SERVER_METRICS: ReadonlyArray<DatabaseServerMetricDefiniti
     {
       system: "elasticsearch",
       metricName: "elasticsearch.cluster.shards",
-      title: "Unassigned shards",
+      title: translationKey("Unassigned shards"),
       description:
         "Shards no node holds: replicas make the cluster yellow, primaries red.",
-      unit: "shards",
+      unit: translationKey("shards"),
       aggregation: AggregationType.Max,
       kind: "gauge",
       attributes: { state: "unassigned" },
@@ -802,10 +803,10 @@ export const DATABASE_SERVER_METRICS: ReadonlyArray<DatabaseServerMetricDefiniti
     {
       system: "elasticsearch",
       metricName: "elasticsearch.cluster.pending_tasks",
-      title: "Pending tasks",
+      title: translationKey("Pending tasks"),
       description:
         "Cluster-level changes (mappings, shard allocation) waiting for the master node.",
-      unit: "tasks",
+      unit: translationKey("tasks"),
       aggregation: AggregationType.Max,
       kind: "gauge",
       seriesCombine: "max",
@@ -813,7 +814,7 @@ export const DATABASE_SERVER_METRICS: ReadonlyArray<DatabaseServerMetricDefiniti
     {
       system: "elasticsearch",
       metricName: "jvm.memory.heap.utilization",
-      title: "JVM heap used",
+      title: translationKey("JVM heap used"),
       description: `Share of the JVM heap in use on the fullest node.${AGENT_ENABLED_NOTE}`,
       unit: "fraction",
       aggregation: AggregationType.Max,
@@ -825,7 +826,7 @@ export const DATABASE_SERVER_METRICS: ReadonlyArray<DatabaseServerMetricDefiniti
     {
       system: "elasticsearch",
       metricName: "elasticsearch.node.fs.disk.available",
-      title: "Disk available",
+      title: translationKey("Disk available"),
       description: "Disk space left for data on the node with the least of it.",
       unit: "bytes",
       aggregation: AggregationType.Min,
@@ -836,10 +837,10 @@ export const DATABASE_SERVER_METRICS: ReadonlyArray<DatabaseServerMetricDefiniti
     {
       system: "elasticsearch",
       metricName: "elasticsearch.node.operations.completed",
-      title: "Searches",
+      title: translationKey("Searches"),
       description:
         "Search query phases completed per second — one per shard a search reads — every node added up.",
-      unit: "queries",
+      unit: translationKey("queries"),
       aggregation: AggregationType.Max,
       kind: "counter",
       attributes: { operation: "query" },
@@ -848,10 +849,10 @@ export const DATABASE_SERVER_METRICS: ReadonlyArray<DatabaseServerMetricDefiniti
     {
       system: "elasticsearch",
       metricName: "elasticsearch.node.operations.completed",
-      title: "Indexing",
+      title: translationKey("Indexing"),
       description:
         "Documents written per second — each shard copy counts, replicas included — every node added up.",
-      unit: "documents",
+      unit: translationKey("documents"),
       aggregation: AggregationType.Max,
       kind: "counter",
       attributes: { operation: "index" },
@@ -862,9 +863,9 @@ export const DATABASE_SERVER_METRICS: ReadonlyArray<DatabaseServerMetricDefiniti
     {
       system: "memcached",
       metricName: "memcached.connections.current",
-      title: "Connections",
+      title: translationKey("Connections"),
       description: "Client connections currently open.",
-      unit: "connections",
+      unit: translationKey("connections"),
       aggregation: AggregationType.Avg,
       kind: "gauge",
       seriesCombine: "sum",
@@ -872,7 +873,7 @@ export const DATABASE_SERVER_METRICS: ReadonlyArray<DatabaseServerMetricDefiniti
     {
       system: "memcached",
       metricName: "memcached.bytes",
-      title: "Memory used",
+      title: translationKey("Memory used"),
       description: "Bytes the server uses to store items.",
       unit: "bytes",
       aggregation: AggregationType.Avg,
@@ -882,9 +883,9 @@ export const DATABASE_SERVER_METRICS: ReadonlyArray<DatabaseServerMetricDefiniti
     {
       system: "memcached",
       metricName: "memcached.current_items",
-      title: "Items",
+      title: translationKey("Items"),
       description: "Items currently stored in the cache.",
-      unit: "items",
+      unit: translationKey("items"),
       aggregation: AggregationType.Avg,
       kind: "gauge",
       seriesCombine: "sum",
@@ -897,9 +898,9 @@ export const DATABASE_SERVER_METRICS: ReadonlyArray<DatabaseServerMetricDefiniti
     {
       system: "memcached",
       metricName: "memcached.operations",
-      title: "Get hits",
+      title: translationKey("Get hits"),
       description: "Reads that found their key, per second.",
-      unit: "hits",
+      unit: translationKey("hits"),
       aggregation: AggregationType.Max,
       kind: "counter",
       attributes: { operation: "get", type: "hit" },
@@ -908,9 +909,9 @@ export const DATABASE_SERVER_METRICS: ReadonlyArray<DatabaseServerMetricDefiniti
     {
       system: "memcached",
       metricName: "memcached.operations",
-      title: "Get misses",
+      title: translationKey("Get misses"),
       description: "Reads that did not find their key, per second.",
-      unit: "misses",
+      unit: translationKey("misses"),
       aggregation: AggregationType.Max,
       kind: "counter",
       attributes: { operation: "get", type: "miss" },
@@ -919,10 +920,10 @@ export const DATABASE_SERVER_METRICS: ReadonlyArray<DatabaseServerMetricDefiniti
     {
       system: "memcached",
       metricName: "memcached.commands",
-      title: "Commands",
+      title: translationKey("Commands"),
       description:
         "Commands (get, set, touch, flush) per second, every kind added up.",
-      unit: "commands",
+      unit: translationKey("commands"),
       aggregation: AggregationType.Max,
       kind: "counter",
       seriesCombine: "sum",
@@ -930,10 +931,10 @@ export const DATABASE_SERVER_METRICS: ReadonlyArray<DatabaseServerMetricDefiniti
     {
       system: "memcached",
       metricName: "memcached.evictions",
-      title: "Evictions",
+      title: translationKey("Evictions"),
       description:
         "Items evicted to make room for new ones, per second: the cache is too small for what it holds.",
-      unit: "evictions",
+      unit: translationKey("evictions"),
       aggregation: AggregationType.Max,
       kind: "counter",
       seriesCombine: "sum",

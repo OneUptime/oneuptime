@@ -152,7 +152,7 @@ AWS 帳戶、Azure 訂用帳戶或 Google Cloud 專案旁邊沒有可供代理�
 | -------------------- | ------------------ | ------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------ |
 | AWS 帳戶 | AWS CloudShell | 一個 CloudFormation 堆疊 `oneuptime-ai-agent`，它執行一個 ECS Fargate 任務。其任務角色只能擔任寫入角色 `OneUptimeAiAgentWrite`，該角色具有已開啟變更的權限。它連線時使用的金鑰保存在 Secrets Manager 中，只有 ECS 會讀取。 |
 | Azure 訂用帳戶 | Azure Cloud Shell | 資源群組 `oneuptime-ai-agent` 中的一個 Container App `oneuptime-ai-agent`。其受控識別在訂用帳戶上具有一個自訂角色，含已開啟變更的權限。它連線時使用的金鑰保存為 Container Apps 祕密。 |
-| Google Cloud 專案 | Google Cloud Shell | 一個一律分配 CPU 的 Cloud Run 服務 `oneuptime-ai-agent`，以服務帳戶 `oneuptime-ai-agent` 的身分執行，該服務帳戶在專案上具有一個自訂角色，含已開啟變更的權限。它連線時使用的金鑰保存在 Secret Manager 中，只有該服務帳戶可以讀取。 |
+| Google Cloud 專案 | Google Cloud Shell | 一台執行 Container-Optimized OS 的 `e2-micro` 類型 Compute Engine 虛擬機器 `oneuptime-ai-agent`，位於沒有任何防火牆規則的專用網路中，因此任何東西都無法連線到它。它以服務帳戶 `oneuptime-ai-agent` 的身分執行，該服務帳戶在專案上具有一個自訂角色，含已開啟變更的權限。它連線時使用的金鑰保存在 Secret Manager 中，只有該服務帳戶可以讀取。虛擬機器每次啟動時讀取該金鑰，從不將其保存在磁碟或中繼資料中。在 **更多欄位** 的 **代理程式的執行位置** 中，可以改為選擇一律分配 CPU 的 Cloud Run 服務，適用於不允許任何虛擬機器擁有外部 IP 位址的專案。 |
 
 該指令只在為其撰寫的帳戶中有效：在 AWS 上，如果 Shell 登入的是另一個帳戶，它不會建立任何內容；Azure 和 Google Cloud 的指令則會在每次呼叫時指明其訂用帳戶或專案。它會設定 `ONEUPTIME_AI_INVESTIGATION=true`、依您的回答設定 `ONEUPTIME_AI_FIXES`、設定 `ONEUPTIME_AI_ALLOW_WRITES=true`，並將 `ONEUPTIME_AI_CLOUD_ACCOUNT_ID` 設為為其撰寫指令的帳戶。代理程式依其雲端所回報的所在帳戶註冊，從不向 OneUptime 新增帳戶：如果在與其指令不同的帳戶中啟動，它會被拒絕，為其撰寫指令的帳戶會在其頁面上說明原因；如果在專案的任何連線都不讀取的帳戶中啟動，它同樣會被拒絕，其日誌會說明這一點。
 
@@ -459,7 +459,7 @@ OneUptime 會透過帳戶的唯讀連線，自行即時讀取 AWS 帳戶、Azure
 - **資料庫伺服器：** 代理程式自己的工作階段。
 - **主機：** 每個 OneUptime 單元（`oneuptime-*`，包括主機 AI 代理程式自己的單元）、OpenTelemetry 收集器（`otelcol-contrib.service`、`otelcol.service`）、代理程式執行所在的 Docker 引擎（`docker.service`、`docker.socket`、`containerd.service`），以及代理程式自己的處理程序和其上層處理程序。
 - **Proxmox：** 代理程式無法判斷自己在哪個客體中執行。如果它在同一叢集的虛擬機器或容器中執行，請把該 VMID 加入 `ONEUPTIME_AI_PROTECTED_TARGETS`；對 VMware 上代理程式所在的虛擬機器也這樣做。
-- **雲端帳戶：** 其設定指令建立的一切：在 AWS 上是 `oneuptime-ai-agent` 堆疊、其 ECS 叢集和服務，以及角色 `OneUptimeAiAgentTask` 和 `OneUptimeAiAgentWrite`；在 Azure 上是 `oneuptime-ai-agent` 資源群組；在 Google Cloud 上是 `oneuptime-ai-agent` Cloud Run 服務和服務帳戶。
+- **雲端帳戶：** 其設定指令建立的一切：在 AWS 上是 `oneuptime-ai-agent` 堆疊、其 ECS 叢集和服務，以及角色 `OneUptimeAiAgentTask` 和 `OneUptimeAiAgentWrite`；在 Azure 上是 `oneuptime-ai-agent` 資源群組；在 Google Cloud 上是 `oneuptime-ai-agent` 虛擬機器或 Cloud Run 服務及其服務帳戶。
 
 ## 憑證與最小權限
 
@@ -473,7 +473,7 @@ OneUptime 會透過帳戶的唯讀連線，自行即時讀取 AWS 帳戶、Azure
 | Ceph 叢集 | 其專用用戶端 `client.oneuptime-ai` 的金鑰圈和一個最小的 `ceph.conf`，掛載在 `/etc/ceph`（`CEPH_CLIENT_ID`、`CEPH_CONF`、`CEPH_KEYRING`） | `mon 'allow r' mgr 'allow r' osd 'allow r'`——從不使用管理員金鑰圈 | 讀取 caps 加上恰好對應所需修正的 `allow command` 項目（Ceph 代理程式的 README 列出了它們） |
 | 資料庫伺服器 | `DATABASE_USERNAME` / `DATABASE_PASSWORD`（收集器的登入），或設定時使用 `ONEUPTIME_AI_DATABASE_USERNAME` / `ONEUPTIME_AI_DATABASE_PASSWORD`；`DATABASE_ENDPOINT` 和 TLS 設定 | 收集器的監控登入（在 PostgreSQL 上為 `pg_monitor`） | 代理程式專用、可以向其他工作階段傳送訊號的登入：`pg_signal_backend`（PostgreSQL）、`CONNECTION_ADMIN`（MySQL 8）、`+client\|kill`（Redis ACL）、`killop` 動作（MongoDB） |
 | 主機 | 無：它在主機的命名空間中以 root 身分特權執行 | 不要設定 `ONEUPTIME_AI_ALLOW_WRITES` | 用 `ONEUPTIME_AI_WRITE_TARGETS` 指定 AI 可以變更的單元 |
-| 雲端帳戶 | 其執行所在位置的身分：在 AWS 上是其 ECS 任務的角色，該角色只能擔任 `ONEUPTIME_AI_AWS_WRITE_ROLE_ARN` 中的寫入角色；在 Azure 上是其 Container App 的受控識別；在 Google Cloud 上是其 Cloud Run 服務的服務帳戶 | 無：OneUptime 透過帳戶的唯讀連線讀取帳戶 | 其設定指令寫出的角色：已開啟變更的權限及其所需的讀取權限，僅此而已。在 AWS 上，每項變更都會擔任 `OneUptimeAiAgentWrite`，並附帶只針對該資源上這一項變更的工作階段原則 |
+| 雲端帳戶 | 其執行所在位置的身分：在 AWS 上是其 ECS 任務的角色，該角色只能擔任 `ONEUPTIME_AI_AWS_WRITE_ROLE_ARN` 中的寫入角色；在 Azure 上是其 Container App 的受控識別；在 Google Cloud 上是其虛擬機器或 Cloud Run 服務執行時使用的服務帳戶 | 無：OneUptime 透過帳戶的唯讀連線讀取帳戶 | 其設定指令寫出的角色：已開啟變更的權限及其所需的讀取權限，僅此而已。在 AWS 上，每項變更都會擔任 `OneUptimeAiAgentWrite`，並附帶只針對該資源上這一項變更的工作階段原則 |
 
 各收集器的 README 中有確切的指令：用於 Proxmox 修正權杖的 `pveum` 指令（[ProxmoxAgent](https://github.com/OneUptime/oneuptime/tree/master/agents/ProxmoxAgent)）、vSphere 修正角色（[VMwareAgent](https://github.com/OneUptime/oneuptime/tree/master/agents/VMwareAgent)）、Ceph 的讀取和修正 caps（[CephAgent](https://github.com/OneUptime/oneuptime/tree/master/agents/CephAgent)），以及各引擎的資料庫授權（[DatabaseAgent](https://github.com/OneUptime/oneuptime/tree/master/agents/DatabaseAgent)）。雲端 AI 代理程式的角色由其設定指令寫出：關閉某項變更並再次執行該指令，其權限就會從角色中移除。
 
@@ -522,7 +522,7 @@ docker exec oneuptime-docker-ai-agent wget -qO- http://127.0.0.1:3877/status
 
 請使用您資源的容器名稱：`oneuptime-docker-ai-agent`、`oneuptime-podman-ai-agent`（以 `podman` 取代 `docker`）、`oneuptime-docker-swarm-ai-agent`、`oneuptime-proxmox-ai-agent`、`oneuptime-vmware-ai-agent`、`oneuptime-ceph-ai-agent`、`oneuptime-host-ai-agent`。資料庫代理程式的服務沒有固定的容器名稱，因此請在 `/opt/oneuptime-database-agent` 中使用 `docker compose logs --tail=100 oneuptime-database-ai-agent` 和 `docker compose exec oneuptime-database-ai-agent wget -qO- http://127.0.0.1:3877/status`。主機 AI 代理程式使用主機的網路，因此 `curl -s http://127.0.0.1:3877/status` 可以直接在主機上執行。
 
-雲端 AI 代理程式在其雲端中執行，沒有可以 `exec` 進入的容器：請在雲端平台的 Shell 中用 `aws logs tail /oneuptime/oneuptime-ai-agent --since 30m`、`az containerapp logs show --name oneuptime-ai-agent --resource-group oneuptime-ai-agent --tail 100` 或 `gcloud run services logs read oneuptime-ai-agent --region "$(gcloud run services list --filter "metadata.name=oneuptime-ai-agent" --format "value(region)" | head -1)" --limit 100` 讀取其日誌，並在帳戶的 **AI 代理程式** 頁面上查看其狀態，該頁面也會顯示同樣的指令。
+雲端 AI 代理程式在其雲端中執行，沒有可以 `exec` 進入的容器：請在雲端平台的 Shell 中用 `aws logs tail /oneuptime/oneuptime-ai-agent --since 30m`、`az containerapp logs show --name oneuptime-ai-agent --resource-group oneuptime-ai-agent --tail 100` 或 `gcloud logging read 'resource.type="gce_instance" AND jsonPayload.container.name="/oneuptime-ai-agent"' --freshness 30m --limit 100 --format "value(jsonPayload.data)"`（在 Cloud Run 上為 `gcloud run services logs read oneuptime-ai-agent --region "$(gcloud run services list --filter "metadata.name=oneuptime-ai-agent" --format "value(region)" | head -1)" --limit 100`） 讀取其日誌，並在帳戶的 **AI 代理程式** 頁面上查看其狀態，該頁面也會顯示同樣的指令。
 
 缺少某項設定不會讓代理程式當機：它會保持執行且狀態健康，在日誌和 `/status` 中說明缺少什麼，而且不做其他任何事，因此容器永遠不會循環重新啟動。
 

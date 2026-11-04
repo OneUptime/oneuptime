@@ -76,7 +76,7 @@ const ObjectIDView: FunctionComponent<ComponentProps> = (
         <div
           className={`inline-flex items-center gap-2 px-2.5 py-1.5 rounded-md font-mono text-sm transition-all duration-200 ${pillClassName}`}
         >
-          <code ref={idRef} className="break-all">
+          <code ref={idRef} className="break-all" dir="ltr">
             {props.objectId}
           </code>
           <div

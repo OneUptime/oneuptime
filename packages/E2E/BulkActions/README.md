@@ -47,6 +47,29 @@ A switch's question counts only the rows it changes, and says how many of the
 selection are in that state already ("1 selected workflow is already
 disabled."), so the count under the question and the count in the bar add up.
 
+`BulkRuns.spec.ts` watches runs that go through the shared bulk runner and its
+progress dialog while they go on (`?hold=1` keeps every create and two-factor
+post waiting until the spec lets it through with
+`window.__fixture.releaseAll()`):
+
+- Admin Dashboard > Users (`?page=users`, under `/admin/`): Require and Do Not
+  Require Two Factor Auth, four users at once, each a post to
+  `/user/<id>/set-two-factor-auth-required`; Add to Project, one user at a
+  time, each a team membership in the project and team picked; Stop, and a
+  user the server refuses (`?refuse=<user id>`);
+- a status page's Email Subscribers: Add in Bulk, four addresses at once, a
+  line that is not an address skipped with why, an address the server
+  refuses (`?refuse=<address>`), and a paste with no address in it refused
+  under its field, with nothing sent;
+- the results in the actions' own words ("6 Users updated", "2 Users
+  added", "6 Subscribers added");
+- at 1280 and 390 pixels, dark, German, and Persian read right to left
+  (`?lang=fa`), its progress percent in Persian digits.
+
+The fixture records every create on `window.__fixture.creates`, every
+two-factor post on `window.__fixture.posts`, and the most of each in flight at
+once on `window.__fixture.highWater`.
+
 The Enterprise Licenses screen ships in the Enterprise Edition. The server
 resolves the Admin Dashboard's plugin as its build does
 (`Common/UI/esbuild-enterprise.js`), says which edition it bundled at

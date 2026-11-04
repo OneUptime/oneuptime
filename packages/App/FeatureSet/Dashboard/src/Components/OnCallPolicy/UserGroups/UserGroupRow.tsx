@@ -118,7 +118,7 @@ const PILL_CLASS_NAME: string =
 
 // The label column of the row's facts: as wide as its longest label.
 const FACT_LABEL_CLASS_NAME: string =
-  "text-xs font-medium uppercase tracking-wide text-gray-500 sm:pt-0.5";
+  "text-xs font-semibold text-gray-500 sm:pt-0.5";
 
 const UserGroupRow: FunctionComponent<ComponentProps> = (
   props: ComponentProps,

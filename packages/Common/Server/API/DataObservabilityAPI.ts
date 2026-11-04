@@ -43,10 +43,30 @@ import ProbeService from "../Services/ProbeService";
 import QueryHelper from "../Types/Database/QueryHelper";
 import { queueTableHealthCollection } from "../Utils/DataObservability/DataObservabilityJobs";
 import DataCheckAlerts from "../Utils/DataObservability/DataCheckAlerts";
+import DataProductSync from "../Utils/DataObservability/DataProductSync";
+import DataReconciliationSync from "../Utils/DataObservability/DataReconciliationSync";
+import DataCheckFromSentence from "../Utils/DataObservability/DataCheckFromSentence";
+import DataTableAnswerer, {
+  DataTableAnswer,
+  formatDataTableAnswer,
+} from "../Utils/DataObservability/DataTableAnswer";
+import DataReconciliation from "../../Models/DatabaseModels/DataReconciliation";
+import DataReconciliationService from "../Services/DataReconciliationService";
+import DataProduct from "../../Models/DatabaseModels/DataProduct";
+import DataProductService from "../Services/DataProductService";
+import { DataProductStatus } from "../../Types/DataObservability/DataProductFreshness";
+import { renderDataProductBadge } from "../../Types/DataObservability/DataProductBadge";
+import logger from "../Utils/Logger";
+import crypto from "crypto";
 import DataCheck from "../../Models/DatabaseModels/DataCheck";
 import DataCheckService from "../Services/DataCheckService";
 import { isValidProbeConnectionVariable } from "../Utils/DataSecurity/DataSecurityProbeScan";
 import { DATA_OBSERVABILITY_KINDS } from "../Utils/DataObservability/DataObservabilityEngines";
+import DataBiSync from "../Utils/DataObservability/Bi/DataBiSync";
+import DataWarehouseSpendSummary from "../Utils/DataObservability/DataWarehouseSpendSummary";
+import DataTableDashboards from "../Utils/DataObservability/Bi/DataTableDashboards";
+import DataBiConnection from "../../Models/DatabaseModels/DataBiConnection";
+import DataBiConnectionService from "../Services/DataBiConnectionService";
 import {
   ExpressRequest,
   ExpressResponse,
@@ -65,6 +85,17 @@ import CommonAPI from "./CommonAPI";
  *  - a data check's alert monitor kept in step with it, and Run Now on a
  *    check, for the same people - the monitor made with their own
  *    permissions;
+ *  - a data product's monitor and SLO kept in step with it, and a new
+ *    secret for its badge, for the same people;
+ *  - a reconciliation's two checks and its monitor kept in step with it,
+ *    and Run Now on it, for the same people;
+ *  - a check written by OneUptime AI from a rule in a sentence, to review,
+ *    for the same people;
+ *  - whether a table is fresh, as one answer (DataTableAnswer), for anyone
+ *    who may read data assets - what the MCP server's
+ *    get_data_table_freshness tool asks;
+ *  - a data product's "data as of" badge, for anyone with its secret, so it
+ *    can be embedded where nobody signs in to OneUptime;
  *  - Connect a database, for those who may create data assets.
  *
  * A data store is Data Security's record, readable by the Security tiers
@@ -191,6 +222,311 @@ export default class DataObservabilityAPI extends BaseAPI<
           checkId: DataObservabilityAPI.readId(req),
           props,
         })) as unknown as JSONObject;
+      },
+    );
+
+    this.post(
+      DATA_OBSERVABILITY_API_ROUTES.dataProductSync(":id"),
+      OPERATE_PERMISSIONS,
+      async (
+        projectId: ObjectID,
+        req: ExpressRequest,
+        props: DatabaseCommonInteractionProps,
+      ) => {
+        return (await DataProductSync.sync({
+          projectId,
+          dataProductId: DataObservabilityAPI.readId(req),
+          props,
+        })) as unknown as JSONObject;
+      },
+    );
+
+    this.post(
+      DATA_OBSERVABILITY_API_ROUTES.checkSuggest,
+      OPERATE_PERMISSIONS,
+      async (
+        projectId: ObjectID,
+        req: ExpressRequest,
+        props: DatabaseCommonInteractionProps,
+      ) => {
+        const body: JSONObject = (req.body || {}) as JSONObject;
+        const dataAssetId: string = String(body["dataAssetId"] || "");
+
+        if (!ObjectID.isValidUUID(dataAssetId)) {
+          throw new BadDataException("Choose the table the check reads.");
+        }
+
+        return (await DataCheckFromSentence.draft({
+          projectId,
+          userId: props.userId,
+          dataAssetId: new ObjectID(dataAssetId),
+          sentence:
+            typeof body["sentence"] === "string" ? body["sentence"] : "",
+        })) as unknown as JSONObject;
+      },
+    );
+
+    this.post(
+      DATA_OBSERVABILITY_API_ROUTES.tableFreshness,
+      READ_PERMISSIONS,
+      async (projectId: ObjectID, req: ExpressRequest) => {
+        const body: JSONObject = (req.body || {}) as JSONObject;
+        const reference: string =
+          typeof body["table"] === "string" ? body["table"].trim() : "";
+
+        if (!reference) {
+          throw new BadDataException(
+            "Name the table: its schema.table key, its name, or its ID.",
+          );
+        }
+
+        const now: Date = OneUptimeDate.getCurrentDate();
+        const answers: Array<JSONObject> = [];
+
+        for (const table of await DataTableAnswerer.findTables(
+          projectId,
+          reference,
+        )) {
+          const answer: DataTableAnswer | null = await DataTableAnswerer.answer(
+            projectId,
+            table.id!,
+            now,
+          );
+
+          if (answer) {
+            answers.push({
+              ...(answer as unknown as JSONObject),
+              answer: formatDataTableAnswer(answer, now),
+            });
+          }
+        }
+
+        return { tables: answers } as unknown as JSONObject;
+      },
+    );
+
+    this.post(
+      DATA_OBSERVABILITY_API_ROUTES.biSync(":id"),
+      CONNECT_PERMISSIONS,
+      async (projectId: ObjectID, req: ExpressRequest) => {
+        const connection: DataBiConnection | null =
+          await DataBiConnectionService.findOneBy({
+            query: { _id: DataObservabilityAPI.readId(req), projectId },
+            select: { _id: true },
+            props: { isRoot: true },
+          });
+
+        if (!connection?.id) {
+          throw new BadDataException("No such BI tool in this project.");
+        }
+
+        return (await DataBiSync.syncConnection(
+          connection.id,
+        )) as unknown as JSONObject;
+      },
+    );
+
+    this.post(
+      DATA_OBSERVABILITY_API_ROUTES.spendSummary,
+      READ_PERMISSIONS,
+      async (projectId: ObjectID) => {
+        return (await DataWarehouseSpendSummary.read(
+          projectId,
+          OneUptimeDate.getCurrentDate(),
+        )) as unknown as JSONObject;
+      },
+    );
+
+    this.post(
+      DATA_OBSERVABILITY_API_ROUTES.tableDashboards,
+      READ_PERMISSIONS,
+      async (projectId: ObjectID, req: ExpressRequest) => {
+        const body: JSONObject = (req.body || {}) as JSONObject;
+        const dataAssetId: string =
+          typeof body["dataAssetId"] === "string" ? body["dataAssetId"] : "";
+
+        if (!ObjectID.isValidUUID(dataAssetId)) {
+          throw new BadDataException("Name the table by its ID.");
+        }
+
+        return {
+          dashboards: await DataTableDashboards.find({
+            projectId,
+            dataAssetId: new ObjectID(dataAssetId),
+          }),
+        } as unknown as JSONObject;
+      },
+    );
+
+    this.post(
+      DATA_OBSERVABILITY_API_ROUTES.reconciliationSync(":id"),
+      OPERATE_PERMISSIONS,
+      async (
+        projectId: ObjectID,
+        req: ExpressRequest,
+        props: DatabaseCommonInteractionProps,
+      ) => {
+        return (await DataReconciliationSync.sync({
+          projectId,
+          reconciliationId: DataObservabilityAPI.readId(req),
+          props,
+        })) as unknown as JSONObject;
+      },
+    );
+
+    this.post(
+      DATA_OBSERVABILITY_API_ROUTES.reconciliationRunNow(":id"),
+      OPERATE_PERMISSIONS,
+      async (projectId: ObjectID, req: ExpressRequest) => {
+        const reconciliation: DataReconciliation | null =
+          await DataReconciliationService.findOneBy({
+            query: { _id: DataObservabilityAPI.readId(req), projectId },
+            select: {
+              _id: true,
+              sourceDataCheckId: true,
+              targetDataCheckId: true,
+            },
+            props: { isRoot: true },
+          });
+
+        if (!reconciliation?.id) {
+          throw new BadDataException("Reconciliation not found.");
+        }
+
+        const checkIds: Array<ObjectID> = [
+          reconciliation.sourceDataCheckId,
+          reconciliation.targetDataCheckId,
+        ].filter((id: ObjectID | undefined): id is ObjectID => {
+          return Boolean(id);
+        });
+
+        if (checkIds.length < 2) {
+          throw new BadDataException(
+            "This reconciliation's checks are not set up yet: save it again to make them.",
+          );
+        }
+
+        const now: Date = OneUptimeDate.getCurrentDate();
+        const checks: Array<DataCheck> = await DataCheckService.findBy({
+          query: { _id: QueryHelper.any(checkIds), projectId },
+          select: { _id: true, dataStoreId: true },
+          limit: checkIds.length,
+          skip: 0,
+          props: { isRoot: true },
+        });
+
+        for (const check of checks) {
+          await DataCheckService.updateColumnsByIdWithoutHooks({
+            id: check.id!,
+            data: { nextRunAt: now } as never,
+          });
+        }
+
+        // Each side's store collects right away, unless a probe does on its next poll.
+        for (const dataStoreId of new Set(
+          checks.map((check: DataCheck): string => {
+            return check.dataStoreId!.toString();
+          }),
+        )) {
+          const store: DataStore | null = await DataStoreService.findOneBy({
+            query: { _id: new ObjectID(dataStoreId), projectId },
+            select: { _id: true, scanProbeId: true },
+            props: { isRoot: true },
+          });
+
+          if (store?.id) {
+            await DataStoreService.updateColumnsByIdWithoutHooks({
+              id: store.id,
+              data: { nextTableHealthCollectionAt: now } as never,
+            });
+
+            if (!store.scanProbeId) {
+              await queueTableHealthCollection({
+                projectId,
+                dataStoreId: store.id,
+              });
+            }
+          }
+        }
+
+        return {};
+      },
+    );
+
+    this.post(
+      DATA_OBSERVABILITY_API_ROUTES.dataProductBadgeReset(":id"),
+      OPERATE_PERMISSIONS,
+      async (projectId: ObjectID, req: ExpressRequest) => {
+        const product: DataProduct | null = await DataProductService.findOneBy({
+          query: { _id: DataObservabilityAPI.readId(req), projectId },
+          select: { _id: true },
+          props: { isRoot: true },
+        });
+
+        if (!product?.id) {
+          throw new BadDataException("Data product not found.");
+        }
+
+        const badgeToken: string = ObjectID.generate().toString();
+
+        await DataProductService.updateColumnsByIdWithoutHooks({
+          id: product.id,
+          data: { badgeToken } as never,
+        });
+
+        return { badgeToken };
+      },
+    );
+
+    /*
+     * The badge needs no sign-in - it is embedded where nobody has one - so
+     * its secret is the token in its URL. An unknown product and a wrong
+     * token answer alike. It is only ever loaded through <img>, and the
+     * headers keep it inert when opened as a page.
+     */
+    this.router.get(
+      DATA_OBSERVABILITY_API_ROUTES.dataProductBadge(":id"),
+      async (req: ExpressRequest, res: ExpressResponse) => {
+        try {
+          const id: string = String(req.params["id"] || "");
+          const token: string =
+            typeof req.query["token"] === "string" ? req.query["token"] : "";
+          const product: DataProduct | null =
+            ObjectID.isValidUUID(id) && token
+              ? await DataProductService.findOneBy({
+                  query: { _id: new ObjectID(id) },
+                  select: { badgeToken: true, status: true, dataAsOf: true },
+                  props: { isRoot: true },
+                })
+              : null;
+
+          if (
+            !product?.badgeToken ||
+            !DataObservabilityAPI.isSameSecret(product.badgeToken, token)
+          ) {
+            res.status(404).send("Not Found");
+            return;
+          }
+
+          res.setHeader("Content-Type", "image/svg+xml");
+          res.setHeader("Cache-Control", "no-cache, no-store, must-revalidate");
+          res.setHeader("X-Content-Type-Options", "nosniff");
+          res.setHeader(
+            "Content-Security-Policy",
+            "sandbox; script-src 'none'; object-src 'none'",
+          );
+          res.send(
+            renderDataProductBadge({
+              status:
+                (product.status as DataProductStatus) ||
+                DataProductStatus.Unknown,
+              dataAsOf: product.dataAsOf ? new Date(product.dataAsOf) : null,
+            }),
+          );
+        } catch (error) {
+          logger.error(error);
+          res.status(500).send("Internal Server Error");
+        }
       },
     );
 
@@ -606,6 +942,14 @@ export default class DataObservabilityAPI extends BaseAPI<
         }
       },
     );
+  }
+
+  // Whether a secret given matches the one kept, compared in constant time.
+  private static isSameSecret(kept: string, given: string): boolean {
+    const a: Buffer = Buffer.from(kept);
+    const b: Buffer = Buffer.from(given);
+
+    return a.length === b.length && crypto.timingSafeEqual(a, b);
   }
 
   private static readId(req: ExpressRequest): ObjectID {

@@ -30,9 +30,19 @@ import {
   CLOUD_AI_AGENT_DEFAULT_FIXES_MODE,
   CLOUD_AI_AGENT_SIZES,
   CLOUD_AI_AGENT_STARTED_MESSAGE,
+  CloudAiAgentSetupOptions,
   CloudAiAgentSize,
+  GCP_CLOUD_AI_AGENT_BOOT_DISK_GB,
+  GCP_CLOUD_AI_AGENT_BOOT_DISK_TYPE,
+  GCP_CLOUD_AI_AGENT_MACHINE_TYPE,
   getCloudAiAgentRolePermissions,
+  getGcpCloudAiAgentSetupCommand,
 } from "Common/Types/CloudConnection/CloudAiAgentSetupCommands";
+import {
+  GCP_CLOUD_AI_AGENT_DEFAULT_HOST,
+  GCP_CLOUD_AI_AGENT_INSTANCE_NAME,
+} from "Common/Types/ResourceAiAgent/CloudAiAgentNames";
+import { GCP_HOST_TITLES } from "../../../FeatureSet/Dashboard/src/Components/Cloud/CloudAiAgentSetup";
 import {
   AWS_GET_METRIC_DATA_USD_PER_THOUSAND_METRICS,
   AZURE_FREE_METRIC_READS_PER_SUBSCRIPTION,
@@ -104,6 +114,7 @@ const SOURCES: Record<string, string> = {
   aiAgentCard: `${DASHBOARD}/Components/Cloud/CloudAiAgentCard.tsx`,
   aiAgentDialog: `${DASHBOARD}/Components/Cloud/CloudAiAgentSetupModal.tsx`,
   aiAgentSetup: `${DASHBOARD}/Components/Cloud/CloudAiAgentSetup.ts`,
+  aiChangeWords: `${DASHBOARD}/Components/Cloud/CloudAiChangeWords.ts`,
   costWords: `${DASHBOARD}/Components/Cloud/CloudCostWords.ts`,
   budgets: `${DASHBOARD}/Pages/Cloud/Budgets.tsx`,
   costWindow: "packages/Common/Types/Cloud/CloudCost.ts",
@@ -769,15 +780,35 @@ describe("Let AI fix problems", () => {
       rows.map((row: Array<string>): string => {
         return row[0] as string;
       }),
-    ).toEqual(["AWS", "Azure", "Google Cloud"]);
+    ).toEqual(["AWS", "Azure", "Google Cloud", "Google Cloud, on Cloud Run"]);
 
-    for (const [cloud, provider] of [
-      ["AWS", CloudProvider.AWS],
-      ["Azure", CloudProvider.Azure],
-      ["Google Cloud", CloudProvider.GCP],
-    ] as Array<[string, CloudProvider]>) {
+    // Google Cloud's agent on its VM, by default: the VM the command makes.
+    const vm: CloudAiAgentCostEstimate = estimateCloudAiAgentMonthlyCost(
+      CloudProvider.GCP,
+    );
+    expect(GCP_CLOUD_AI_AGENT_DEFAULT_HOST).toBe("compute-engine");
+    expect(rowOf("Google Cloud")[2]).toBe(`$${vm.usd} a month`);
+    expect(rowOf("Google Cloud")[1]).toContain(
+      `One \`${GCP_CLOUD_AI_AGENT_MACHINE_TYPE}\` Compute Engine VM, with its ${GCP_CLOUD_AI_AGENT_BOOT_DISK_GB} GB standard boot disk and its external IPv4 address, at \`us-central1\` prices.`,
+    );
+    expect(vm.description).toContain(
+      `One ${GCP_CLOUD_AI_AGENT_MACHINE_TYPE} Compute Engine VM running all month, with its ${GCP_CLOUD_AI_AGENT_BOOT_DISK_GB} GB standard boot disk and its external IPv4 address, at us-central1 list prices.`,
+    );
+    expect(GCP_CLOUD_AI_AGENT_BOOT_DISK_TYPE).toBe("pd-standard");
+    expect(rowOf("Google Cloud")[1]).toContain(
+      `Google Cloud's free tier covers one \`${GCP_CLOUD_AI_AGENT_MACHINE_TYPE}\` VM a month in \`us-central1\`, \`us-west1\` and \`us-east1\``,
+    );
+    expect(vm.description).toContain(
+      `Google Cloud's free tier covers one ${GCP_CLOUD_AI_AGENT_MACHINE_TYPE} VM a month in us-central1, us-west1 and us-east1.`,
+    );
+
+    for (const [cloud, provider, host] of [
+      ["AWS", CloudProvider.AWS, undefined],
+      ["Azure", CloudProvider.Azure, undefined],
+      ["Google Cloud, on Cloud Run", CloudProvider.GCP, "cloud-run"],
+    ] as Array<[string, CloudProvider, "cloud-run" | undefined]>) {
       const estimate: CloudAiAgentCostEstimate =
-        estimateCloudAiAgentMonthlyCost(provider);
+        estimateCloudAiAgentMonthlyCost(provider, host);
       const size: CloudAiAgentSize = CLOUD_AI_AGENT_SIZES[provider];
       const row: Array<string> = rowOf(cloud);
 
@@ -803,18 +834,69 @@ describe("Let AI fix problems", () => {
       `after the subscription's monthly free grant of ${written(AZURE_CONTAINER_APPS_FREE_VCPU_SECONDS)} vCPU-seconds and ${written(AZURE_CONTAINER_APPS_FREE_GIB_SECONDS)} GiB-seconds`,
     );
     expect(
-      estimateCloudAiAgentMonthlyCost(CloudProvider.GCP).description,
+      estimateCloudAiAgentMonthlyCost(CloudProvider.GCP, "cloud-run")
+        .description,
     ).toContain("with CPU always allocated");
-    expect(rowOf("Google Cloud")[1]).toContain(
+    expect(rowOf("Google Cloud, on Cloud Run")[1]).toContain(
       `with CPU always allocated, which takes a whole vCPU, after the monthly free tier of ${written(GCP_CLOUD_RUN_FREE_VCPU_SECONDS)} vCPU-seconds and ${written(GCP_CLOUD_RUN_FREE_GIB_SECONDS)} GiB-seconds`,
     );
-    // The dialog says the same: one small always-on container, at list prices.
-    expect(source("aiAgentDialog")).toContain(
+    // The dialog says the same: one small always-on container or VM, at list prices.
+    const dialog: string = source("aiAgentDialog");
+    expect(dialog).toContain(
       "It runs one small always-on container in your account: about ${{usd}} a month at list prices, billed by your cloud.",
     );
-    expect(fix).toContain(
-      "The agent is one small container that runs all month in your account, billed by your cloud at its list prices:",
+    expect(dialog).toContain(
+      "It runs on one small always-on VM in your project: about ${{usd}} a month at list prices, billed by your cloud. Google Cloud's free tier can cover it.",
     );
+    expect(fix).toContain(
+      "The agent runs all month in your account, billed by your cloud at its list prices.",
+    );
+  });
+
+  it("says where Google Cloud's agent runs, and how to run it on Cloud Run, as the dialog's More fields ask it", () => {
+    const setup: string = source("aiAgentSetup");
+    const dialog: string = source("aiAgentDialog");
+
+    expect(GCP_HOST_TITLES["cloud-run"]).toBe("Cloud Run");
+    expect(setup).toContain('"cloud-run": translationKey("Cloud Run")');
+    expect(dialog).toContain('translationKey("Where the agent runs")');
+    expect(dialog).toContain("title={MORE_FIELDS_SECTION_TITLE}");
+    expect(fix).toContain(
+      "On Google Cloud it runs on a small VM of its own, in a network that lets nothing in; for a project whose organization lets no VM have an external IP address, choose **Cloud Run** in **Where the agent runs**, under **More fields**:",
+    );
+    // The VM's network lets nothing in: the command writes no firewall rule.
+    const options: CloudAiAgentSetupOptions = {
+      provider: CloudProvider.GCP,
+      oneuptimeUrl: "https://oneuptime.com",
+      ingestionKey: "ingestion-key",
+      cloudAccountId: "11111111-1111-1111-1111-111111111111",
+      accountId: "my-project",
+      fixesMode: "RequireApproval",
+    };
+    const vm: string = getGcpCloudAiAgentSetupCommand(options);
+    expect(vm).toContain(
+      `gcloud compute instances create ${GCP_CLOUD_AI_AGENT_INSTANCE_NAME} `,
+    );
+    expect(vm).not.toContain("firewall-rules create");
+    expect(
+      getGcpCloudAiAgentSetupCommand({ ...options, gcpHost: "cloud-run" }),
+    ).toContain("gcloud run deploy oneuptime-ai-agent ");
+  });
+
+  it("marks the changes OneUptime AI made on an account's Changes, with their fix", () => {
+    const what: string = section("What you see in OneUptime").replace(
+      /\s+/g,
+      " ",
+    );
+    const words: string = source("aiChangeWords").replace(/\s+/g, " ");
+
+    expect(what).toContain(
+      "On **Changes**, a change OneUptime AI made reads **OneUptime AI**, with the incident or alert it fixed, who approved it or that it ran on its own, and a link to its entry in the account's **AI Logs**.",
+    );
+    expect(words).toContain('translationKey("OneUptime AI")');
+    expect(words).toContain('translationKey("AI Logs")');
+    expect(words).toContain('translationKey( "Approved by {{name}}", )');
+    expect(words).toContain('translationKey( "Applied automatically", )');
   });
 
   it("sends the reader to the Cloud AI agent's part of Infrastructure AI Agents", () => {
