@@ -154,6 +154,13 @@ function cut(value: string, limit: number = MAX_ATTRIBUTE_LENGTH): string {
   return value.length <= limit ? value : value.slice(0, limit);
 }
 
+// Never half of a character that takes two: storage refuses what is left of one.
+function cutWhole(value: string, limit: number): string {
+  const lastKept: number = value.charCodeAt(limit - 1);
+
+  return value.slice(0, lastKept >= 0xd800 && lastKept <= 0xdbff ? limit - 1 : limit);
+}
+
 function readDigits(text: string, from: number, count: number): number | null {
   if (from + count > text.length) {
     return null;
@@ -1067,15 +1074,17 @@ export function stampOpenStackLogRecord(data: {
   const exceptionInfo: unknown = data.attributes["journald.exception_info"];
 
   if (typeof exceptionInfo === "string" && exceptionInfo) {
-    source = `${source}\n${exceptionInfo}`;
+    source = source ? `${source}\n${exceptionInfo}` : exceptionInfo;
     removedAttributes.push("journald.exception_info");
   }
 
-  if (source.length > MAX_OPENSTACK_LOG_BODY_LENGTH) {
-    source = `${source.slice(0, MAX_OPENSTACK_LOG_BODY_LENGTH)}${TRUNCATED_NOTE}`;
+  const wasCut: boolean = source.length > MAX_OPENSTACK_LOG_BODY_LENGTH;
+
+  if (wasCut) {
+    source = cutWhole(source, MAX_OPENSTACK_LOG_BODY_LENGTH);
   }
 
-  let body: string = scrubOpenStackSecrets(stripAnsiCodes(source));
+  let body: string = scrubOpenStackSecrets(stripAnsiCodes(source), { wasCut });
   let line: OpenStackLogLine | null = null;
   let notification: Record<string, unknown> | null = null;
 
@@ -1126,10 +1135,15 @@ export function stampOpenStackLogRecord(data: {
     if (read) {
       notification = read.parsed;
 
-      // The line as it came, with its fields replaced by what may be kept.
-      const start: number = body.indexOf(line.message);
+      /*
+       * The line as it came, with its fields replaced by what may be kept. A line's message
+       * is what it ends with, so where it starts needs no looking for. oslo.log's JSON
+       * formatter has no line around its message to keep.
+       */
       body =
-        start > 0 ? `${body.slice(0, start)}${read.text}` : read.text;
+        line.format === OpenStackLogFormat.OsloJson
+          ? read.text
+          : `${body.slice(0, body.length - line.message.length)}${read.text}`;
     }
   }
 
@@ -1295,7 +1309,8 @@ export function stampOpenStackLogRecord(data: {
     removedAttributes,
     severityNumber,
     time: event && event.time ? event.time : line ? line.time : null,
-    body,
+    // Written last: nothing that reads a value can take it for one, or take it away.
+    body: wasCut ? `${body}${TRUNCATED_NOTE}` : body,
     event,
   };
 }

@@ -1,6 +1,5 @@
 import { describe, expect, test } from "@jest/globals";
 import {
-  MAX_SECRET_VALUE_LENGTH,
   OPENSTACK_SCRUBBED_VALUE,
   removeOpenStackSecretFields,
   scrubOpenStackSecrets,
@@ -81,12 +80,284 @@ describe("a value named as a secret", () => {
     expect(kept(`password=${SECRET} token=${SECRET}2`)).not.toContain(SECRET);
   });
 
-  test("a value longer than any real one is cut off where the read stops, and the secret is gone", () => {
-    const long: string = "x".repeat(MAX_SECRET_VALUE_LENGTH + 20);
-    const result: string = kept(`"password": "${long}`);
+  /*
+   * The read used to stop at 8 KiB, and only what it had read went: all but the first 8 KiB of a
+   * long value stayed in the clear, which is what a PKI token or an old-style blob can be.
+   */
+  describe("however long it is", () => {
+    const LONG: number = 200 * 1024;
 
-    expect(result.length).toBeLessThan(100);
-    expect(result).toContain(OPENSTACK_SCRUBBED_VALUE);
+    test.each([
+      ["unquoted", `password=${"x".repeat(LONG)}`],
+      ["with a space around it", `password = ${"x".repeat(LONG)}`],
+      ["quoted and closed", `"password": "${"x".repeat(LONG)}"`],
+      ["quoted and never closed", `"password": "${"x".repeat(LONG)}`],
+      ["single quoted and never closed", `'password': '${"x".repeat(LONG)}`],
+      ["escaped and closed", `\\"password\\": \\"${"x".repeat(LONG)}\\"`],
+      ["escaped and never closed", `\\"password\\": \\"${"x".repeat(LONG)}`],
+      ["a header", `X-Auth-Token: ${"x".repeat(LONG)}`],
+      ["a bearer token", `Authorization: Bearer ${"x".repeat(LONG)}`],
+      ["a cookie", `Cookie: session=${"x".repeat(LONG)}`],
+      ["on a command", `--password ${"x".repeat(LONG)}`],
+    ])("%s", (_how: string, text: string) => {
+      const result: string = kept(text);
+
+      expect(result).not.toContain("xxxx");
+      expect(result).toContain(OPENSTACK_SCRUBBED_VALUE);
+      expect(result.length).toBeLessThan(100);
+    });
+
+    test("what comes after a closed one stays", () => {
+      expect(kept(`"password": "${"x".repeat(LONG)}", "name": "demo"`)).toBe(
+        `"password": "${OPENSTACK_SCRUBBED_VALUE}", "name": "demo"`,
+      );
+    });
+
+    test("an unclosed quote takes the rest of the text, because it can't say where it stops", () => {
+      expect(kept(`password='abc\nnext line\nand the next`)).toBe(
+        `password='${OPENSTACK_SCRUBBED_VALUE}`,
+      );
+    });
+  });
+
+  describe("a value holding what usually ends one", () => {
+    test.each([
+      ["a closing bracket", "abc)def", "(", ")"],
+      ["a square bracket", "abc]def", "[", "]"],
+      ["a brace", "abc}def", "{", "}"],
+      ["a comma", "abc,def", "", ""],
+      ["a semicolon", "abc;def", "", ""],
+      ["an ampersand", "abc&def", "", ""],
+      ["a single quote", "abc'def", "", ""],
+      ["a double quote", 'abc"def', "", ""],
+    ])("%s goes whole", (_what: string, value: string) => {
+      const result: string = kept(`password=${value} after`);
+
+      expect(result).toBe(`password=${OPENSTACK_SCRUBBED_VALUE} after`);
+    });
+
+    test.each([
+      ["(password=abc) after", `(password=${OPENSTACK_SCRUBBED_VALUE}) after`],
+      ["{password=abc} after", `{password=${OPENSTACK_SCRUBBED_VALUE}} after`],
+      ["[token=abc] after", `[token=${OPENSTACK_SCRUBBED_VALUE}] after`],
+      ["password=abc, after", `password=${OPENSTACK_SCRUBBED_VALUE}, after`],
+      ["password=abc; after", `password=${OPENSTACK_SCRUBBED_VALUE}; after`],
+      ['"password=abc" after', `"password=${OPENSTACK_SCRUBBED_VALUE}" after`],
+      ["'password=abc', 'x'", `'password=${OPENSTACK_SCRUBBED_VALUE}', 'x'`],
+      [
+        '{"password":123,"user":"bob"}',
+        `{"password":${OPENSTACK_SCRUBBED_VALUE},"user":"bob"}`,
+      ],
+    ])("%s still ends where it ends", (text: string, expected: string) => {
+      expect(kept(text)).toBe(expected);
+    });
+
+    test("what is unsure goes: the names after a comma with no space go too", () => {
+      expect(kept("password=abc,user=bob after")).toBe(
+        `password=${OPENSTACK_SCRUBBED_VALUE} after`,
+      );
+      expect(kept("?password=abc&limit=1 HTTP/1.1")).toBe(
+        `?password=${OPENSTACK_SCRUBBED_VALUE} HTTP/1.1`,
+      );
+    });
+
+    test.each([
+      "{abc}",
+      "{SHA256}5e8f0a",
+      "[abc]",
+      "{ab}cd",
+      "[ab]cd",
+    ])("a value that starts with a bracket, %s, is a value", (value: string) => {
+      expect(kept(`password=${value} after`)).toBe(
+        `password=${OPENSTACK_SCRUBBED_VALUE} after`,
+      );
+    });
+
+    test.each([
+      '"password": {"user": {"name": "admin", "password": "s3cr3t"}}',
+      "'token': {'expires_at': 'x', 'id': 'y', 'password': 's3cr3t'}",
+      '"secrets": ["a", {"password": "s3cr3t"}]',
+      "'secret': {u'password': u's3cr3t'}",
+      '"token": { "password": "s3cr3t" }',
+    ])("an object or a list stays, and what is secret in it goes: %s", (text: string) => {
+      const result: string = kept(text);
+
+      expect(result).not.toContain("s3cr3t");
+      expect(result).toContain(OPENSTACK_SCRUBBED_VALUE);
+      expect(result.startsWith(text.slice(0, 12))).toBe(true);
+    });
+  });
+
+  describe("names it used to miss", () => {
+    test.each([
+      "passwords",
+      "password1",
+      "new_password2",
+      "passphrase",
+      "encryption_passphrase",
+      "pwd",
+      "sys_pswd",
+      "new_pass",
+      "secrets",
+      "secret_uuid",
+      "client_secret",
+      "api_key",
+      "api-key",
+      "X-Api-Key",
+      "apikey",
+      "auth_key",
+      "encrypted_key",
+      "encryption_key",
+      "fernetkey",
+      "sslkey",
+      "temp_url_key",
+      "X-Account-Meta-Temp-URL-Key",
+      "temp_url_sig",
+      "signature",
+      "tokens",
+      "token_id",
+      "credentials",
+      "credential_blob",
+      "blob",
+      "configdrive",
+      "CHAPPASSWORD",
+      "rabbit_password",
+      "metadata_proxy_shared_secret",
+      "aws_secret_access_key",
+    ])("%s", (name: string) => {
+      for (const text of [
+        `${name}=${SECRET}`,
+        `${name}: ${SECRET}`,
+        `"${name}": "${SECRET}"`,
+        `'${name}': '${SECRET}'`,
+        `\t${name}\t=\t${SECRET}`,
+      ]) {
+        expect(kept(text)).not.toContain(SECRET);
+      }
+    });
+  });
+
+  describe("named in the other ways a service writes it", () => {
+    test.each([
+      [`('password', '${SECRET}')`, `('password', '${OPENSTACK_SCRUBBED_VALUE}')`],
+      [`["X-Auth-Token", "${SECRET}"]`, `["X-Auth-Token", "${OPENSTACK_SCRUBBED_VALUE}"]`],
+      [`password\t=\t${SECRET}`, `password\t=\t${OPENSTACK_SCRUBBED_VALUE}`],
+      [`password=b'${SECRET}'`, `password=b'${OPENSTACK_SCRUBBED_VALUE}'`],
+      [`password=r'${SECRET}'`, `password=r'${OPENSTACK_SCRUBBED_VALUE}'`],
+    ])("%s", (text: string, expected: string) => {
+      expect(kept(text)).toBe(expected);
+    });
+
+    test("only a quote after the comma makes a pair, and a list of names costs its next name", () => {
+      expect(kept('["password", "username"]')).toBe(
+        `["password", "${OPENSTACK_SCRUBBED_VALUE}"]`,
+      );
+      expect(kept('"password", 12')).toBe('"password", 12');
+      expect(kept("password, and more")).toBe("password, and more");
+    });
+
+    test("a word with a number on it stays another word when it runs on", () => {
+      expect(kept("password1_expires_at=2026")).toBe(
+        "password1_expires_at=2026",
+      );
+    });
+  });
+
+  describe("JSON inside JSON, however deep", () => {
+    const DEEP: Array<[string, Record<string, unknown>]> = [
+      ["one level", { password: SECRET, name: "demo" }],
+      ["two levels", { body: JSON.stringify({ password: SECRET, name: "demo" }) }],
+      [
+        "three levels",
+        {
+          outer: JSON.stringify({
+            body: JSON.stringify({ password: SECRET, name: "demo" }),
+          }),
+        },
+      ],
+      [
+        "four levels",
+        {
+          a: JSON.stringify({
+            b: JSON.stringify({
+              c: JSON.stringify({ password: SECRET, name: "demo" }),
+            }),
+          }),
+        },
+      ],
+    ];
+
+    test.each(DEEP)("%s", (_how: string, value: Record<string, unknown>) => {
+      const result: string = kept(JSON.stringify(value));
+
+      expect(result).not.toContain(SECRET);
+      expect(result).toContain("demo");
+      // Still JSON: a notification is read from this.
+      expect(() => {
+        return JSON.parse(result);
+      }).not.toThrow();
+    });
+
+    test("a value holding a quote escaped deeper than the one that opened it goes whole", () => {
+      const inner: string = JSON.stringify({
+        password: `abc"${SECRET}`,
+        name: "demo",
+      });
+      const result: string = kept(JSON.stringify({ body: inner }));
+
+      expect(result).not.toContain(SECRET);
+      expect(result).toContain("demo");
+      expect(JSON.parse(result)).toEqual({
+        body: `{"password":"${OPENSTACK_SCRUBBED_VALUE}","name":"demo"}`,
+      });
+    });
+
+    test("an unquoted value inside a string of JSON leaves the string closed", () => {
+      const result: string = kept(
+        JSON.stringify({ body: JSON.stringify({ url: `http://x?token=${SECRET}`, n: 1 }) }),
+      );
+
+      expect(result).not.toContain(SECRET);
+      expect(JSON.parse(JSON.parse(result)["body"])).toEqual({
+        url: `http://x?token=${OPENSTACK_SCRUBBED_VALUE}`,
+        n: 1,
+      });
+    });
+
+    test("a Fernet token and a URL's password inside one too", () => {
+      const result: string = kept(
+        JSON.stringify({
+          body: JSON.stringify({
+            id: FERNET,
+            transport_url: `rabbit://u:${SECRET}@host:5672/`,
+          }),
+        }),
+      );
+
+      expect(result).not.toContain(SECRET);
+      expect(result).not.toContain("gAAAA");
+      expect(JSON.parse(JSON.parse(result)["body"])).toEqual({
+        id: OPENSTACK_SCRUBBED_VALUE,
+        transport_url: `rabbit://u:${OPENSTACK_SCRUBBED_VALUE}@host:5672/`,
+      });
+    });
+  });
+
+  test("scrubbing twice changes nothing", () => {
+    for (const text of [
+      `password=${SECRET}`,
+      `"password": "${SECRET}"`,
+      `password={${SECRET}}`,
+      `(token=${SECRET})`,
+      `rabbit://u:${SECRET}@host/`,
+      `Authorization: Bearer ${SECRET}`,
+      `Validating ${FERNET} now`,
+      "-----BEGIN PRIVATE KEY-----\nabc\n-----END PRIVATE KEY-----",
+    ]) {
+      const once: string = kept(text);
+
+      expect(kept(once)).toBe(once);
+    }
   });
 });
 
@@ -176,10 +447,97 @@ describe("the password in a URL", () => {
     for (const url of [
       "http://controller:5000/v3",
       "https://example.com:8774/v2.1/servers",
+      "https://example.com:8774/v2.1/users/a@b.com",
       "rabbit://controller:5672/",
+      "rabbit://controller:5672",
+      "rabbit://one:5672,two:5672,three:5672/",
+      "http://[::1]:5000/v3",
+      "http://[fe80::1]:5000/v3/users/a@b.com",
+      "http://user@controller:5000/v3",
+      "file:///etc/nova/nova.conf",
     ]) {
       expect(kept(url)).toBe(url);
     }
+  });
+
+  test("a password however long", () => {
+    const result: string = kept(
+      `rabbit://user:${"x".repeat(200 * 1024)}@host:5672/`,
+    );
+
+    expect(result).toBe(`rabbit://user:${OPENSTACK_SCRUBBED_VALUE}@host:5672/`);
+  });
+
+  test.each([
+    ["a comma", "rabbit://u:ab,cd@host:5672/"],
+    ["a slash", "mysql://root:ab/cd@host/nova"],
+    ["a question mark", "mysql://root:ab?cd@host/nova"],
+    ["a hash", "mysql://root:ab#cd@host/nova"],
+    ["a quote", "mysql://root:ab'cd@host/nova"],
+    ["several slashes", "mysql://root:ab/cd/ef@host/nova"],
+    ["something like a port", "mysql://root:123456/cd@host/nova"],
+    ["an IPv6 host after it", "rabbit://u:abcd@[::1]:5672/"],
+  ])("a password holding %s goes whole", (_what: string, url: string) => {
+    const result: string = kept(url);
+
+    expect(result).toContain(OPENSTACK_SCRUBBED_VALUE);
+
+    for (const piece of ["ab", "cd", "ef", "123456"]) {
+      expect(result).not.toContain(`:${piece}`);
+      expect(result).not.toContain(`/${piece}`);
+      expect(result).not.toContain(`${piece}@`);
+    }
+
+    expect(result).toContain("@");
+  });
+
+  test("a second host's name goes too when a password held both a comma and an @", () => {
+    const result: string = kept("rabbit://u:ab@cd,ef@host:5672/");
+
+    expect(result).not.toContain("ef");
+    expect(result).toContain("host:5672");
+  });
+
+  test("the address inside another, and after another", () => {
+    for (const text of [
+      "http://proxy/?url=rabbit://u:PASSWORD@host/",
+      "http://proxy:8080/?url=rabbit://u:PASSWORD@host/",
+      "http://a?next=rabbit://u:PASSWORD@host",
+      "x://rabbit://u:PASSWORD@host",
+      "a://b://c:PASSWORD@host",
+      "http://a:5000/ rabbit://u:PASSWORD@host",
+    ]) {
+      expect(kept(text)).not.toContain("PASSWORD");
+    }
+  });
+
+  test("inside a string that closes after it", () => {
+    expect(kept('{"url": "rabbit://u:PASSWORD@host", "b": "c"}')).toBe(
+      `{"url": "rabbit://u:${OPENSTACK_SCRUBBED_VALUE}@host", "b": "c"}`,
+    );
+  });
+
+  describe("in a text cut short", () => {
+    test("ends inside its password, with no @ left to say so", () => {
+      expect(
+        scrubOpenStackSecrets("rabbit://u:PASSWO", { wasCut: true }),
+      ).toBe(`rabbit://u:${OPENSTACK_SCRUBBED_VALUE}`);
+    });
+
+    test("a port and a host at the cut are left", () => {
+      for (const text of [
+        "rabbit://u:5672",
+        "http://controller",
+        "http://controller:",
+        "http://controller:5000/v3",
+      ]) {
+        expect(scrubOpenStackSecrets(text, { wasCut: true })).toBe(text);
+      }
+    });
+
+    test("a text that was not cut says nothing about what is missing", () => {
+      expect(kept("rabbit://u:PASSWO")).toBe("rabbit://u:PASSWO");
+    });
   });
 });
 
@@ -194,9 +552,34 @@ describe("a private key", () => {
     expect(result.endsWith("after")).toBe(true);
   });
 
-  test("one with no end goes as far as a value can go", () => {
-    expect(kept("-----BEGIN PRIVATE KEY-----\nMIIEpAIBAAKCAQEA")).not.toContain(
-      "MIIEpAIBAAKCAQEA",
+  test("one with no end takes everything after it, however long", () => {
+    const result: string = kept(
+      `before -----BEGIN PRIVATE KEY-----\n${"MIIEpAIBAAKCAQEA\n".repeat(20000)}`,
+    );
+
+    expect(result).not.toContain("MIIEpAIBAAKCAQEA");
+    expect(result).toBe(`before ${OPENSTACK_SCRUBBED_VALUE}`);
+  });
+
+  test("one written with \\n inside a string of JSON", () => {
+    const result: string = kept(
+      JSON.stringify({
+        key: "-----BEGIN RSA PRIVATE KEY-----\nMIIEpAIBAAKCAQEA\n-----END RSA PRIVATE KEY-----",
+        name: "demo",
+      }),
+    );
+
+    expect(result).not.toContain("MIIEpAIBAAKCAQEA");
+    expect(JSON.parse(result)["name"]).toBe("demo");
+  });
+
+  test("two of them both go, and what is between them stays", () => {
+    const key: string =
+      "-----BEGIN PRIVATE KEY-----\nMIIEpAIBAAKCAQEA\n-----END PRIVATE KEY-----";
+    const result: string = kept(`${key} between ${key}`);
+
+    expect(result).toBe(
+      `${OPENSTACK_SCRUBBED_VALUE} between ${OPENSTACK_SCRUBBED_VALUE}`,
     );
   });
 });
