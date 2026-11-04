@@ -320,7 +320,7 @@ En organisasjonspolicy, `iam.disableServiceAccountKeyCreation`, kan forby nøkle
 :::
 
 :::details Ingen ressurser vises
-Den første lesingen lister hver ressurs i kontoen, enten den rapporterer målinger eller ikke. Hvis en tilkobling ikke virker, sier **View error** under **Sky → Koble til** hvorfor den siste lesingen mislyktes.
+Den første lesingen lister hver ressurs i kontoen, enten den rapporterer målinger eller ikke. Hvis en tilkobling ikke virker, sier **Vis feil** under **Sky → Koble til** hvorfor den siste lesingen mislyktes.
 :::
 
 :::details Noen av organisasjonens kontoer mangler
