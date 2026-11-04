@@ -42257,5 +42257,7 @@
   "The page was escalated past this level": "エスカレーションでこのレベルはスキップされました",
   "The policy's levels have changed, so nothing was escalated. Escalate again to pick a level.": "ポリシーのレベルが変更されたため、何もエスカレーションしませんでした。もう一度エスカレーションしてレベルを選んでください。",
   "{{policy}}: escalate to": "{{policy}}: エスカレーション先",
-  "no one next": "次の人なし"
+  "no one next": "次の人なし",
+  "Drag to resize": "ドラッグしてサイズを変更",
+  "Resize Ask AI": "AI に質問のサイズを変更"
 }

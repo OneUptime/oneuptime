@@ -153,12 +153,12 @@ describe("network topology detail panel layering", () => {
   test("the panel stays under the overlays that are mounted ahead of the page", () => {
     /*
      * Ask AI is mounted in App.tsx BEFORE the routed page, so an equal
-     * z-index would be broken in the dialog's favour by document order and
+     * z-index would be broken in the panel's favour by document order and
      * the drawer would vanish behind it. It has to be strictly higher, not
      * merely equal.
      */
     const askAi: number = highestZIndexIn(
-      readAppCode("Components", "AIChat", "AskAiDialog.tsx"),
+      readAppCode("Components", "AIChat", "AskAiPanel.tsx"),
     );
 
     expect(askAi).toBeGreaterThan(sideOverZIndex());

@@ -35,16 +35,15 @@ import { JSONObject } from "../../../Types/JSON";
 import ObjectID from "../../../Types/ObjectID";
 import GlobalEvents from "../../../UI/Utils/GlobalEvents";
 import Navigation from "../../../UI/Utils/Navigation";
-import AskAiDialog from "../../../../App/FeatureSet/Dashboard/src/Components/AIChat/AskAiDialog";
+import AskAiPanel from "../../../../App/FeatureSet/Dashboard/src/Components/AIChat/AskAiPanel";
 import EventName from "../../../../App/FeatureSet/Dashboard/src/Utils/EventName";
 
 /*
  * Issue #3844: insights have to follow the module the user is investigating.
- * Exercise the actual Ask AI dialog, hook, route detection, suggestions, and
- * request serialization together. The dialog steps aside when the page under
- * it changes (a source opened from it), so a test that moves to another page
- * opens Ask AI again there, as a person does, and the context follows. Only network, project storage, and the unused PDF
- * exporter are replaced. Navigation is wired to MemoryRouter in the same way
+ * Exercise the actual Ask AI panel, hook, route detection, suggestions, and
+ * request serialization together. The panel stays open beside the page while
+ * the page moves, and the context follows. Only network, project storage, and
+ * the unused PDF exporter are replaced. Navigation is wired to MemoryRouter in the same way
  * the dashboard wires it to its browser router, so these tests also catch a
  * valid route being classified as the wrong module.
  */
@@ -170,16 +169,12 @@ function PanelWithNavigation(): ReactElement {
   Navigation.setLocation(useLocation());
   navigate = useNavigate();
   Navigation.setNavigateHook(navigate);
-  return <AskAiDialog />;
+  return <AskAiPanel />;
 }
 
 // The context pill in the composer: what the questions are about.
 function contextChip(): HTMLElement {
   return screen.getByTestId("ai-chat-context");
-}
-
-function isDialogOpen(): boolean {
-  return document.querySelector('[data-testid="ask-ai-dialog"]') !== null;
 }
 
 async function openAskAi(modulePath: string): Promise<void> {
@@ -201,13 +196,6 @@ async function goTo(
     currentProjectId = projectId;
     await navigate(route(modulePath, projectId));
   });
-
-  // The page moved under the dialog, which stepped aside: open it again.
-  if (!isDialogOpen()) {
-    await act(async () => {
-      GlobalEvents.dispatchEvent(EventName.AI_CHAT_TOGGLE, { open: true });
-    });
-  }
 }
 
 function sentRequests(): Array<PostRequest> {

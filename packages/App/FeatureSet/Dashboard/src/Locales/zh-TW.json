@@ -42257,5 +42257,7 @@
   "The page was escalated past this level": "升級時跳過了此層級",
   "The policy's levels have changed, so nothing was escalated. Escalate again to pick a level.": "策略的級別已變更，因此未升級任何內容。請再次升級以選擇級別。",
   "{{policy}}: escalate to": "{{policy}}：升級到",
-  "no one next": "沒有下一個人"
+  "no one next": "沒有下一個人",
+  "Drag to resize": "拖曳以調整大小",
+  "Resize Ask AI": "調整詢問 AI 的大小"
 }

@@ -1,15 +1,16 @@
 /*
- * Offline fixture for Ask AI: the dialog (Components/AIChat/AskAiDialog)
- * over a Dashboard page, as App.tsx mounts it - once, for the whole app -
+ * Offline fixture for Ask AI: the panel (Components/AIChat/AskAiPanel)
+ * beside a Dashboard page, as App.tsx mounts it - once, for the whole app -
  * with every way in the page offers: the header's Ask AI, Ctrl/Cmd + I, an
  * "Explain with AI" button with a prepared question, and the chat's own
- * address (Pages/AICopilot), which opens the dialog over the page it came
- * from.
+ * address (Pages/AICopilot), which opens the panel beside the page it came
+ * from. The page's links go to its other pages with the panel open, and it
+ * opens one of the app's own side panels (SideOver) beside it.
  *
- * The dialog and every component in it are the production ones from this
+ * The panel and every component in it are the production ones from this
  * branch; only the ModelAPI / API data boundary, the realtime socket and
  * the signed-in user are replaced. A conversation is answered by an
- * in-page server that writes a run's steps as the dialog polls, as the
+ * in-page server that writes a run's steps as the panel polls, as the
  * real one does.
  *
  * Steered by the query string:
@@ -63,9 +64,10 @@ import {
 } from "react-router-dom";
 import i18next from "i18next";
 import { initReactI18next } from "react-i18next";
-import AskAiDialog from "../../../App/FeatureSet/Dashboard/src/Components/AIChat/AskAiDialog";
+import AskAiPanel from "../../../App/FeatureSet/Dashboard/src/Components/AIChat/AskAiPanel";
 import { openAskAi } from "../../../App/FeatureSet/Dashboard/src/Components/AIChat/AskAiEvents";
 import AskAI from "../../../App/FeatureSet/Dashboard/src/Components/Header/AskAI";
+import SideOver from "Common/UI/Components/SideOver/SideOver";
 import AICopilot from "../../../App/FeatureSet/Dashboard/src/Pages/AICopilot/AICopilot";
 import EventName from "../../../App/FeatureSet/Dashboard/src/Utils/EventName";
 import DE from "../../../App/FeatureSet/Dashboard/src/Locales/de.json";
@@ -1241,12 +1243,33 @@ function NavigationShell(props) {
   return props.children;
 }
 
+// A link inside the app, as the Dashboard's menus and tables have them.
+function PageLink(props) {
+  return (
+    <a
+      href={props.to}
+      data-testid={props.testId}
+      onClick={(event) => {
+        event.preventDefault();
+        fixture.navigate(props.to);
+      }}
+      className="rounded-md px-3 py-2 hover:bg-gray-100"
+    >
+      {props.children}
+    </a>
+  );
+}
+
 /*
- * A Dashboard page to look at through the blur: the header with the real
- * Ask AI button, and a page of cards. What matters is that it is busy,
- * real-looking and behind the dialog - inert while the dialog is open.
+ * A Dashboard page to work on beside the panel: the header with the real
+ * Ask AI button, links to the other pages, one of the app's own side panels
+ * to open, and a page of cards. What matters is that it is busy, real-looking
+ * and all there while the panel is open: nothing behind it, and all of it
+ * answering.
  */
 function Frame(props) {
+  const [isSideOverOpen, setIsSideOverOpen] = React.useState(false);
+
   return (
     <div className="min-h-screen bg-gray-50" data-testid="fixture-page">
       <header className="sticky top-0 z-10 border-b border-gray-200 bg-white">
@@ -1258,12 +1281,15 @@ function Frame(props) {
             Acme Production
           </span>
           <nav className="max-md:hidden flex items-center gap-1 text-sm text-gray-600 md:flex">
-            <a href="#" className="rounded-md px-3 py-2 hover:bg-gray-100">
+            <PageLink to={PAGE_PATHS.home} testId="fixture-link-home">
               Home
-            </a>
-            <a href="#" className="rounded-md px-3 py-2 hover:bg-gray-100">
-              Products
-            </a>
+            </PageLink>
+            <PageLink to={PAGE_PATHS.logs} testId="fixture-link-logs">
+              Logs
+            </PageLink>
+            <PageLink to={PAGE_PATHS.incident} testId="fixture-link-incident">
+              Incident
+            </PageLink>
           </nav>
           <div className="ms-auto flex items-center">
             <button
@@ -1279,7 +1305,30 @@ function Frame(props) {
       </header>
       <main className="mx-auto max-w-7xl px-4 py-8 sm:px-6">
         {props.children}
+        <button
+          type="button"
+          data-testid="fixture-open-side-over"
+          onClick={() => {
+            setIsSideOverOpen(true);
+          }}
+          className="mt-6 rounded-lg border border-gray-200 bg-white px-3 py-1.5 text-sm text-gray-700"
+        >
+          Open details
+        </button>
       </main>
+      {isSideOverOpen ? (
+        <SideOver
+          title="Span details"
+          description="The span the trace was slowest in."
+          onClose={() => {
+            setIsSideOverOpen(false);
+          }}
+        >
+          <p className="p-6 text-sm text-gray-600">checkout-api · 2.4 s</p>
+        </SideOver>
+      ) : (
+        <></>
+      )}
     </div>
   );
 }
@@ -1387,7 +1436,7 @@ function App() {
   return (
     <NavigationShell>
       {/* As App.tsx mounts it: once, before the routed pages. */}
-      <AskAiDialog />
+      <AskAiPanel />
       <Routes>
         <PageRoute
           path="/dashboard/:projectId/incidents/:modelId"

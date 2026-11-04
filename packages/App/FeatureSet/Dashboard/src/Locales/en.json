@@ -42257,5 +42257,7 @@
   "The page was escalated past this level": "The page was escalated past this level",
   "The policy's levels have changed, so nothing was escalated. Escalate again to pick a level.": "The policy's levels have changed, so nothing was escalated. Escalate again to pick a level.",
   "{{policy}}: escalate to": "{{policy}}: escalate to",
-  "no one next": "no one next"
+  "no one next": "no one next",
+  "Drag to resize": "Drag to resize",
+  "Resize Ask AI": "Resize Ask AI"
 }

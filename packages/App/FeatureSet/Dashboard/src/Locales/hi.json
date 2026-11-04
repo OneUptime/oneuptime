@@ -42257,5 +42257,7 @@
   "The page was escalated past this level": "एस्केलेट करते समय यह स्तर छोड़ दिया गया",
   "The policy's levels have changed, so nothing was escalated. Escalate again to pick a level.": "नीति के स्तर बदल गए हैं, इसलिए कुछ भी एस्केलेट नहीं किया गया। स्तर चुनने के लिए फिर से एस्केलेट करें।",
   "{{policy}}: escalate to": "{{policy}}: किस स्तर पर एस्केलेट करें",
-  "no one next": "कोई अगला नहीं"
+  "no one next": "कोई अगला नहीं",
+  "Drag to resize": "आकार बदलने के लिए खींचें",
+  "Resize Ask AI": "AI से पूछें का आकार बदलें"
 }

@@ -42257,5 +42257,7 @@
   "The page was escalated past this level": "Dette nivået ble hoppet over ved eskaleringen",
   "The policy's levels have changed, so nothing was escalated. Escalate again to pick a level.": "Policyens nivåer er endret, så ingenting ble eskalert. Eskaler på nytt for å velge et nivå.",
   "{{policy}}: escalate to": "{{policy}}: eskaler til",
-  "no one next": "ingen neste"
+  "no one next": "ingen neste",
+  "Drag to resize": "Dra for å endre størrelsen",
+  "Resize Ask AI": "Endre størrelsen på Spør AI"
 }

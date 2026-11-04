@@ -42257,5 +42257,7 @@
   "The page was escalated past this level": "این سطح هنگام تشدید رد شد",
   "The policy's levels have changed, so nothing was escalated. Escalate again to pick a level.": "سطح‌های سیاست تغییر کرده‌اند، پس چیزی تشدید نشد. برای انتخاب یک سطح دوباره تشدید کنید.",
   "{{policy}}: escalate to": "{{policy}}: تشدید به",
-  "no one next": "نفر بعدی نیست"
+  "no one next": "نفر بعدی نیست",
+  "Drag to resize": "برای تغییر اندازه بکشید",
+  "Resize Ask AI": "تغییر اندازه پرسش از هوش مصنوعی"
 }

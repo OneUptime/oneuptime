@@ -42257,5 +42257,7 @@
   "The page was escalated past this level": "Este nível foi pulado ao escalonar",
   "The policy's levels have changed, so nothing was escalated. Escalate again to pick a level.": "Os níveis da política mudaram, então nada foi escalonado. Escalone novamente para escolher um nível.",
   "{{policy}}: escalate to": "{{policy}}: escalonar para",
-  "no one next": "nenhum próximo"
+  "no one next": "nenhum próximo",
+  "Drag to resize": "Arraste para redimensionar",
+  "Resize Ask AI": "Redimensionar Pergunte à IA"
 }

@@ -47,37 +47,53 @@ import ObjectID from "../../../Types/ObjectID";
 import GlobalEvents from "../../../UI/Utils/GlobalEvents";
 import ModelListCache from "../../../UI/Utils/ModelListCache";
 import Navigation from "../../../UI/Utils/Navigation";
-import AskAiDialog from "../../../../App/FeatureSet/Dashboard/src/Components/AIChat/AskAiDialog";
+import { PAGE_DOCK_WIDTH_VARIABLE } from "../../../UI/Utils/PageDock";
+import RememberedChoice from "../../../UI/Utils/RememberedChoice";
+import AskAiPanel from "../../../../App/FeatureSet/Dashboard/src/Components/AIChat/AskAiPanel";
 import { openAskAi } from "../../../../App/FeatureSet/Dashboard/src/Components/AIChat/AskAiEvents";
+import {
+  ASK_AI_PANEL_DEFAULT_WIDTH,
+  ASK_AI_PANEL_MIN_WIDTH,
+  ASK_AI_PANEL_RESIZE_KEY_STEP,
+  ASK_AI_PANEL_WIDTH_KEY,
+} from "../../../../App/FeatureSet/Dashboard/src/Components/AIChat/AskAiPanelLayout";
 import { PAGE_START_ALIGN_CLASS_NAME } from "../../../../App/FeatureSet/Dashboard/src/Components/AIChat/TitleDirection";
 import AskAI from "../../../../App/FeatureSet/Dashboard/src/Components/Header/AskAI";
 import AICopilot from "../../../../App/FeatureSet/Dashboard/src/Pages/AICopilot/AICopilot";
 import EventName from "../../../../App/FeatureSet/Dashboard/src/Utils/EventName";
 
 /*
- * ASK AI ON THE MAIN STAGE.
+ * ASK AI BESIDE THE PAGE.
  *
- * The maintainer, of Ask AI: "It is very clunky to use currently, and it
- * shows up on the side. Please let it take the main stage: open a modal
- * with a blurred background [...] The ask AI is very noisy as well."
+ * The maintainer, of Ask AI (issue #5597): "instead of having the thing pop up
+ * in the middle of the screen with a blurred background, can I have it pop up
+ * on the side so I can ask AI and do stuff on the left with OneUptime? And the
+ * sidebar should not hide anything behind [...] I can still do like everything
+ * on the left side in oneuptime (go to different pages) investigate stuff and
+ * ask AI again."
  *
- * These tests render the REAL dialog the Dashboard mounts once at its root
- * (AskAiDialog), with the hook, the start, the composer, the conversation
- * and the history it draws, over a page in a router, and replace only the
+ * These tests render the REAL panel the Dashboard mounts once at its root
+ * (AskAiPanel), with the hook, the start, the composer, the conversation
+ * and the history it draws, beside a page in a router, and replace only the
  * network: the API, the model API, the project and the realtime socket.
  * They hold:
  *
  *   - every way in: the header's Ask AI, Ctrl/Cmd + I, the command
  *     palette's plain toggle, a page's prepared question, a conversation,
- *     a request made before the dialog listened, and the chat's own
- *     address, which opens the dialog over the page the person came from;
- *   - a real dialog: focus in, kept in, given back; Esc; the page behind
- *     inert and still; a click beside it;
+ *     a request made before the panel listened, and the chat's own
+ *     address, which opens the panel beside the page the person came from;
+ *   - beside the page: the page makes room and keeps working, its clicks and
+ *     its keys its own; the panel stays while the page moves, and the context
+ *     follows the page; the focus goes in, out and back;
+ *   - its edge, by pointer and by keyboard, the width kept for next time and
+ *     the page always keeping its room;
+ *   - where the window has no room for both: a real dialog, focus in, kept in,
+ *     given back, the page behind it inert and still;
  *   - what it is about: the page's context pill, cleared and brought back,
  *     and the page's own suggestions;
  *   - quiet answers: one live line that opens into its steps, sources, the
  *     time and the actions on one row, a failed answer asked again, an
- *     approval decided inside the dialog;
+ *     approval decided inside the panel;
  *   - closing loses nothing: the history, and the way back to an answer
  *     still being written.
  */
@@ -203,6 +219,10 @@ interface FakeServer {
 
 let server: FakeServer;
 let navigate: NavigateFunction;
+let pageButtonPresses: number = 0;
+const onPageButton: () => void = (): void => {
+  pageButtonPresses++;
+};
 
 function conversation(id: string, title: string): AIConversation {
   const item: AIConversation = new AIConversation();
@@ -454,12 +474,44 @@ beforeEach(() => {
   });
   // No page of the app to go back to, at no address of its own.
   window.history.replaceState(null, "", "/");
+  window.localStorage.clear();
+  RememberedChoice.clearHeldForThisPage();
+  setWindowWidth(LAPTOP_WIDTH);
 });
 
 afterEach(() => {
   cleanup();
   jest.useRealTimers();
 });
+
+// A window with room for the page and for the panel at the width it opens at.
+const LAPTOP_WIDTH: number = 1440;
+
+function setWindowWidth(width: number): void {
+  Object.defineProperty(window, "innerWidth", {
+    configurable: true,
+    writable: true,
+    value: width,
+  });
+}
+
+async function resizeWindowTo(width: number): Promise<void> {
+  setWindowWidth(width);
+  await act(async () => {
+    window.dispatchEvent(new Event("resize"));
+  });
+  await settle();
+}
+
+function pageDockWidth(): string {
+  return document.documentElement.style.getPropertyValue(
+    PAGE_DOCK_WIDTH_VARIABLE,
+  );
+}
+
+function pageEndPadding(): string {
+  return document.documentElement.style.getPropertyValue("padding-inline-end");
+}
 
 // ---- the page under the dialog ---------------------------------------------------
 
@@ -487,10 +539,12 @@ function Shell(): ReactElement {
 
   return (
     <>
-      <AskAiDialog />
+      <AskAiPanel />
       <main data-testid="page">
         <AskAI />
-        <button type="button">Acknowledge</button>
+        <button type="button" onClick={onPageButton}>
+          Acknowledge
+        </button>
         <input aria-label="A note" />
         {/* The page the router shows, read by the tests. */}
         <p data-testid="page-path">{location.pathname}</p>
@@ -537,8 +591,8 @@ async function toggle(detail?: JSONObject): Promise<void> {
   await settle();
 }
 
-function dialog(): HTMLElement | null {
-  return document.querySelector('[data-testid="ask-ai-dialog"]');
+function askAi(): HTMLElement | null {
+  return document.querySelector('[data-testid="ask-ai-panel"]');
 }
 
 function composer(): HTMLTextAreaElement {
@@ -569,38 +623,50 @@ async function sendQuestion(text: string): Promise<void> {
 // ---- every way in -----------------------------------------------------------------
 
 describe("Ask AI opens from every way in", () => {
-  test("the header's Ask AI opens it as a dialog in the middle of the screen", async () => {
+  test("the header's Ask AI opens it beside the page, and reads as pressed while it is open", async () => {
     await renderAt();
-    expect(dialog()).toBeNull();
+    expect(askAi()).toBeNull();
+    const button: HTMLElement = screen.getByRole("button", { name: /Ask AI/ });
+    expect(button).toHaveAttribute("aria-pressed", "false");
 
     await act(async () => {
-      fireEvent.click(screen.getByRole("button", { name: /Ask AI/ }));
+      fireEvent.click(button);
     });
     await settle();
 
-    const opened: HTMLElement = screen.getByRole("dialog", { name: "Ask AI" });
-    expect(opened).toHaveAttribute("aria-modal", "true");
-    expect(opened).toBe(dialog());
-    // Over a dimmed, blurred page.
-    expect(screen.getByTestId("ask-ai-backdrop").className).toContain(
-      "backdrop-blur-md",
-    );
+    const opened: HTMLElement = screen.getByRole("complementary", {
+      name: "Ask AI",
+    });
+    expect(opened).toBe(askAi());
+    expect(opened).not.toHaveAttribute("aria-modal");
+    expect(button).toHaveAttribute("aria-pressed", "true");
     expect(screen.getByRole("heading", { level: 3 })).toHaveTextContent(
       "What would you like to know?",
     );
+    // Beside the page: no veil over it.
+    expect(screen.queryByTestId("ask-ai-backdrop")).not.toBeInTheDocument();
+
+    // Still in sight, pressed again it closes the panel.
+    await act(async () => {
+      fireEvent.click(button);
+    });
+    await settle();
+
+    expect(askAi()).toBeNull();
+    expect(button).toHaveAttribute("aria-pressed", "false");
   });
 
   test("Ctrl + I and Cmd + I open it and close it again", async () => {
     await renderAt();
 
     await pressKeys("i", { ctrlKey: true });
-    expect(dialog()).not.toBeNull();
+    expect(askAi()).not.toBeNull();
 
     await pressKeys("i", { ctrlKey: true });
-    expect(dialog()).toBeNull();
+    expect(askAi()).toBeNull();
 
     await pressKeys("I", { metaKey: true });
-    expect(dialog()).not.toBeNull();
+    expect(askAi()).not.toBeNull();
   });
 
   test("in another text box Ctrl + I stays the italics shortcut", async () => {
@@ -609,7 +675,7 @@ describe("Ask AI opens from every way in", () => {
 
     await pressKeys("i", { ctrlKey: true }, note);
 
-    expect(dialog()).toBeNull();
+    expect(askAi()).toBeNull();
   });
 
   test("in Ask AI's own composer, which has no italics, Ctrl + I closes it", async () => {
@@ -618,7 +684,7 @@ describe("Ask AI opens from every way in", () => {
 
     await pressKeys("i", { ctrlKey: true }, composer());
 
-    expect(dialog()).toBeNull();
+    expect(askAi()).toBeNull();
   });
 
   test("the command palette's Ask AI, a plain toggle, opens it", async () => {
@@ -626,7 +692,7 @@ describe("Ask AI opens from every way in", () => {
 
     await toggle();
 
-    expect(dialog()).not.toBeNull();
+    expect(askAi()).not.toBeNull();
     expect(composer()).toHaveFocus();
   });
 
@@ -654,8 +720,8 @@ describe("Ask AI opens from every way in", () => {
 
     await toggle({ conversationId: CONVERSATION_ID });
 
-    expect(screen.getByRole("dialog", { name: "Checkout latency" })).toBe(
-      dialog(),
+    expect(screen.getByRole("complementary", { name: "Checkout latency" })).toBe(
+      askAi(),
     );
     expect(screen.getByText(QUESTION)).toBeInTheDocument();
     expect(screen.getByTestId("ai-chat-answer-text")).toHaveTextContent(
@@ -663,19 +729,19 @@ describe("Ask AI opens from every way in", () => {
     );
   });
 
-  test("a request made before the dialog was listening is not lost", async () => {
+  test("a request made before the panel was listening is not lost", async () => {
     server.messages.set(CONVERSATION_ID, answeredConversation());
 
     openAskAi({ conversationId: CONVERSATION_ID });
     await renderAt();
 
-    expect(dialog()).not.toBeNull();
+    expect(askAi()).not.toBeNull();
     expect(screen.getByText(QUESTION)).toBeInTheDocument();
   });
 });
 
-describe("the chat's own address opens the dialog over the page", () => {
-  test("from a page of the app: back to that page, with the conversation open over it", async () => {
+describe("the chat's own address opens the panel beside the page", () => {
+  test("from a page of the app: back to that page, with the conversation open beside it", async () => {
     server.messages.set(CONVERSATION_ID, answeredConversation());
     const chatAddress: string = `/dashboard/${PROJECT_ID}/ai/chat/${CONVERSATION_ID}`;
     // The address bar, and a page of this app before it to go back to.
@@ -685,8 +751,8 @@ describe("the chat's own address opens the dialog over the page", () => {
     await settle();
 
     expect(pagePath()).toBe(incidentPath());
-    // The page it came back to did not close the dialog it asked for.
-    expect(dialog()).not.toBeNull();
+    // The page it came back to did not close the panel it asked for.
+    expect(askAi()).not.toBeNull();
     expect(screen.getByText(QUESTION)).toBeInTheDocument();
     // And the incident is what the next question is about.
     expect(screen.getByTestId("ai-chat-context")).toHaveTextContent(
@@ -694,7 +760,7 @@ describe("the chat's own address opens the dialog over the page", () => {
     );
   });
 
-  test("opened on its own: Home under the dialog, in place of the address", async () => {
+  test("opened on its own: Home beside the panel, in place of the address", async () => {
     const chatAddress: string = `/dashboard/${PROJECT_ID}/ai/chat`;
     window.history.replaceState(null, "", chatAddress);
 
@@ -702,7 +768,7 @@ describe("the chat's own address opens the dialog over the page", () => {
     await settle();
 
     expect(pagePath()).toBe(homePath());
-    expect(dialog()).not.toBeNull();
+    expect(askAi()).not.toBeNull();
     expect(screen.getByRole("heading", { level: 3 })).toHaveTextContent(
       "What would you like to know?",
     );
@@ -710,9 +776,528 @@ describe("the chat's own address opens the dialog over the page", () => {
   });
 });
 
-// ---- a real dialog ------------------------------------------------------------------
+// ---- beside the page -------------------------------------------------------------
 
-describe("a real dialog", () => {
+describe("beside the page", () => {
+  test("the focus moves into the composer", async () => {
+    await renderAt();
+
+    await toggle();
+
+    expect(composer()).toHaveFocus();
+  });
+
+  test("the page makes room for it: nothing is behind it", async () => {
+    await renderAt();
+
+    await toggle();
+
+    expect(askAi()).toHaveAttribute("data-docked", "true");
+    expect(askAi()!.style.width).toBe(`${ASK_AI_PANEL_DEFAULT_WIDTH}px`);
+    expect(pageDockWidth()).toBe(`${ASK_AI_PANEL_DEFAULT_WIDTH}px`);
+    expect(pageEndPadding()).toBe(`var(${PAGE_DOCK_WIDTH_VARIABLE})`);
+
+    await act(async () => {
+      fireEvent.click(screen.getByRole("button", { name: "Close" }));
+    });
+
+    // All of the page's room comes back with it.
+    expect(pageDockWidth()).toBe("");
+    expect(pageEndPadding()).toBe("");
+  });
+
+  test("the room it took comes back if the whole app goes", async () => {
+    const { unmount } = render(
+      <MemoryRouter initialEntries={[incidentPath()]}>
+        <Shell />
+      </MemoryRouter>,
+    );
+    await settle();
+    await toggle();
+    expect(pageDockWidth()).not.toBe("");
+
+    unmount();
+
+    expect(pageDockWidth()).toBe("");
+  });
+
+  test("the page stays awake: not inert, not locked, and its buttons answer", async () => {
+    pageButtonPresses = 0;
+    await renderAt();
+    const page: HTMLElement = screen.getByTestId("page");
+    const pageRoot: HTMLElement = page.closest("body > div") as HTMLElement;
+
+    await toggle();
+
+    expect(pageRoot).not.toHaveAttribute("inert");
+    expect(page.closest("[inert]")).toBeNull();
+    expect(document.body.style.overflow).toBe("");
+
+    const button: HTMLElement = screen.getByRole("button", {
+      name: "Acknowledge",
+    });
+    await act(async () => {
+      button.focus();
+      fireEvent.click(button);
+    });
+
+    expect(pageButtonPresses).toBe(1);
+    expect(button).toHaveFocus();
+    // Working on the page does not close what it is working beside.
+    expect(askAi()).not.toBeNull();
+  });
+
+  test("a click on the page is a click on the page: the panel stays", async () => {
+    await renderAt();
+    await toggle();
+    const page: HTMLElement = screen.getByTestId("page");
+
+    await act(async () => {
+      fireEvent.mouseDown(page);
+      fireEvent.mouseUp(page);
+      fireEvent.click(page);
+    });
+
+    expect(askAi()).not.toBeNull();
+  });
+
+  test("Tab is not kept inside it: the keyboard leaves it as it leaves any part of the page", async () => {
+    await renderAt();
+    await toggle();
+    const last: HTMLElement = screen.getByRole("button", {
+      name: "Send (Enter)",
+    });
+
+    // Disabled until there is a question to send: the box comes before it.
+    composer().focus();
+    fireEvent.change(composer(), { target: { value: "Why?" } });
+    last.focus();
+
+    // fireEvent says whether anything called preventDefault on the key.
+    expect(fireEvent.keyDown(last, { key: "Tab" })).toBe(true);
+    expect(last).toHaveFocus();
+  });
+
+  test("Esc on the page is the page's; from inside the panel it closes it and gives the focus back", async () => {
+    await renderAt();
+    const opener: HTMLElement = screen.getByRole("button", {
+      name: "Acknowledge",
+    });
+    opener.focus();
+
+    await toggle();
+    expect(composer()).toHaveFocus();
+
+    // Back on the page, the key is left to the page.
+    opener.focus();
+    expect(fireEvent.keyDown(opener, { key: "Escape" })).toBe(true);
+    await settle();
+    expect(askAi()).not.toBeNull();
+
+    composer().focus();
+    await pressKeys("Escape", {}, composer());
+
+    expect(askAi()).toBeNull();
+    expect(opener).toHaveFocus();
+  });
+
+  test("Esc in its menu closes the menu only", async () => {
+    await renderAt();
+    await toggle();
+    const modeButton: HTMLElement = screen.getByTitle(
+      "Choose what the AI is allowed to do",
+    );
+
+    await act(async () => {
+      fireEvent.click(modeButton);
+    });
+    expect(screen.getByRole("menu")).toBeInTheDocument();
+
+    await pressKeys("Escape", {}, screen.getByRole("menu"));
+
+    expect(screen.queryByRole("menu")).not.toBeInTheDocument();
+    expect(askAi()).not.toBeNull();
+  });
+
+  test("Ctrl + I from the page goes back to the composer; from the composer it closes", async () => {
+    await renderAt();
+    await toggle();
+    const onPage: HTMLElement = screen.getByRole("button", {
+      name: "Acknowledge",
+    });
+    onPage.focus();
+
+    await pressKeys("i", { ctrlKey: true }, onPage);
+
+    expect(askAi()).not.toBeNull();
+    expect(composer()).toHaveFocus();
+
+    await pressKeys("i", { ctrlKey: true }, composer());
+
+    expect(askAi()).toBeNull();
+  });
+
+  test("in the page's own text box those keys stay its italics, with the panel open too", async () => {
+    await renderAt();
+    await toggle();
+    const note: HTMLElement = screen.getByRole("textbox", { name: "A note" });
+    note.focus();
+
+    await pressKeys("i", { ctrlKey: true }, note);
+
+    expect(askAi()).not.toBeNull();
+    expect(note).toHaveFocus();
+  });
+
+  test("a dialog over the page keeps the keys and the focus it is holding", async () => {
+    await renderAt();
+    await toggle();
+    const modal: HTMLDivElement = document.createElement("div");
+    modal.setAttribute("role", "dialog");
+    modal.setAttribute("aria-modal", "true");
+    const inModal: HTMLButtonElement = document.createElement("button");
+    modal.appendChild(inModal);
+    document.body.appendChild(modal);
+    inModal.focus();
+
+    await pressKeys("i", { ctrlKey: true }, inModal);
+
+    expect(inModal).toHaveFocus();
+    expect(askAi()).not.toBeNull();
+
+    modal.remove();
+  });
+
+  test("closed from the page, the focus stays on the page, where the person is working", async () => {
+    await renderAt();
+    const opener: HTMLElement = screen.getByRole("button", {
+      name: "Acknowledge",
+    });
+    opener.focus();
+    await toggle();
+
+    // The person has moved on, to the header's button that closes the panel.
+    const askAiButton: HTMLElement = screen.getByRole("button", {
+      name: /Ask AI/,
+    });
+    askAiButton.focus();
+    await act(async () => {
+      fireEvent.click(askAiButton);
+    });
+    await settle();
+
+    expect(askAi()).toBeNull();
+    expect(askAiButton).toHaveFocus();
+  });
+
+  test("closed from inside with the page it opened from gone, the focus goes nowhere strange", async () => {
+    server.messages.set(CONVERSATION_ID, answeredConversation());
+    await renderAt();
+    await toggle({ conversationId: CONVERSATION_ID });
+    composer().focus();
+
+    await act(async () => {
+      navigate(`/dashboard/${PROJECT_ID}/logs`);
+    });
+    await settle();
+    await pressKeys("Escape", {}, composer());
+
+    expect(askAi()).toBeNull();
+  });
+
+  test("a prepared question from the page, with the panel open, takes the focus to the box it is in", async () => {
+    await renderAt();
+    await toggle();
+    const onPage: HTMLElement = screen.getByRole("button", {
+      name: "Acknowledge",
+    });
+    onPage.focus();
+
+    await toggle({ prompt: "Explain this error pattern." });
+
+    expect(composer()).toHaveFocus();
+    expect(composer()).toHaveValue("Explain this error pattern.");
+    expect(sentRequests("/ai-chat/send-message")).toHaveLength(0);
+  });
+});
+
+describe("it stays while the page beside it moves", () => {
+  test("the conversation is on screen on every page the person goes to", async () => {
+    server.messages.set(CONVERSATION_ID, answeredConversation());
+    await renderAt();
+    await toggle({ conversationId: CONVERSATION_ID });
+
+    await act(async () => {
+      navigate(`/dashboard/${PROJECT_ID}/logs`);
+    });
+    await settle();
+
+    expect(pagePath()).toBe(`/dashboard/${PROJECT_ID}/logs`);
+    expect(askAi()).not.toBeNull();
+    expect(screen.getByText(QUESTION)).toBeInTheDocument();
+
+    await act(async () => {
+      navigate(homePath());
+    });
+    await settle();
+
+    expect(askAi()).not.toBeNull();
+    expect(screen.getByText(QUESTION)).toBeInTheDocument();
+  });
+
+  test("the page keeps the room it made through every move", async () => {
+    await renderAt();
+    await toggle();
+
+    await act(async () => {
+      navigate(`/dashboard/${PROJECT_ID}/logs`);
+    });
+    await settle();
+
+    expect(pageDockWidth()).toBe(`${ASK_AI_PANEL_DEFAULT_WIDTH}px`);
+  });
+
+  test("what it asks about follows the page on screen", async () => {
+    await renderAt();
+    await toggle();
+    await settle();
+    expect(screen.getByTestId("ai-chat-context")).toHaveTextContent(
+      "This incident",
+    );
+
+    await act(async () => {
+      navigate(homePath());
+    });
+    await settle();
+
+    expect(screen.queryByTestId("ai-chat-context")).not.toBeInTheDocument();
+
+    await act(async () => {
+      navigate(`/dashboard/${PROJECT_ID}/logs`);
+    });
+    await settle();
+
+    expect(screen.getByTestId("ai-chat-context")).toHaveTextContent("Logs");
+  });
+
+  test("the next question is about the page on screen", async () => {
+    await renderAt([homePath()]);
+    await toggle();
+
+    await act(async () => {
+      navigate(incidentPath());
+    });
+    await settle();
+    await settle();
+
+    await sendQuestion("What is on fire?");
+
+    expect(sentRequests("/ai-chat/send-message")[0]!.data).toEqual(
+      expect.objectContaining({
+        content: "What is on fire?",
+        pageContext: expect.objectContaining({
+          type: AIChatPageContextType.Incident,
+          entityId: INCIDENT_ID,
+        }),
+      }),
+    );
+  });
+
+  test("what is typed in the box stays through a move", async () => {
+    await renderAt();
+    await toggle();
+    fireEvent.change(composer(), { target: { value: "Half a question" } });
+
+    await act(async () => {
+      navigate(homePath());
+    });
+    await settle();
+
+    expect(composer()).toHaveValue("Half a question");
+  });
+
+  test("the focus stays where the person put it as the page moves", async () => {
+    await renderAt();
+    await toggle();
+    const onPage: HTMLElement = screen.getByRole("button", {
+      name: "Acknowledge",
+    });
+    onPage.focus();
+
+    await act(async () => {
+      navigate(homePath());
+    });
+    await settle();
+
+    expect(onPage).toHaveFocus();
+  });
+});
+
+// ---- its edge ---------------------------------------------------------------------
+
+describe("its edge", () => {
+  function edge(): HTMLElement {
+    return screen.getByRole("separator", { name: "Resize Ask AI" });
+  }
+
+  test("is a window splitter that says how wide the panel is", async () => {
+    await renderAt();
+    await toggle();
+
+    expect(edge()).toHaveAttribute("aria-orientation", "vertical");
+    expect(edge()).toHaveAttribute(
+      "aria-valuenow",
+      String(ASK_AI_PANEL_DEFAULT_WIDTH),
+    );
+    expect(edge()).toHaveAttribute(
+      "aria-valuemin",
+      String(ASK_AI_PANEL_MIN_WIDTH),
+    );
+    // 1440 - the page's 640.
+    expect(edge()).toHaveAttribute("aria-valuemax", "800");
+    expect(edge()).toHaveAttribute("tabindex", "0");
+  });
+
+  test("the arrow keys move it the way they point, the panel and the page with it", async () => {
+    await renderAt();
+    await toggle();
+    const wider: number =
+      ASK_AI_PANEL_DEFAULT_WIDTH + ASK_AI_PANEL_RESIZE_KEY_STEP;
+
+    await pressKeys("ArrowLeft", {}, edge());
+
+    expect(askAi()!.style.width).toBe(`${wider}px`);
+    expect(pageDockWidth()).toBe(`${wider}px`);
+    expect(edge()).toHaveAttribute("aria-valuenow", String(wider));
+
+    await pressKeys("ArrowRight", {}, edge());
+
+    expect(askAi()!.style.width).toBe(`${ASK_AI_PANEL_DEFAULT_WIDTH}px`);
+  });
+
+  test("right to left, where it sits at the left, they still move it the way they point", async () => {
+    await renderAt();
+    await toggle();
+    edge().style.direction = "rtl";
+
+    await pressKeys("ArrowRight", {}, edge());
+
+    expect(edge()).toHaveAttribute(
+      "aria-valuenow",
+      String(ASK_AI_PANEL_DEFAULT_WIDTH + ASK_AI_PANEL_RESIZE_KEY_STEP),
+    );
+  });
+
+  test("Home and End take it to its ends", async () => {
+    await renderAt();
+    await toggle();
+
+    await pressKeys("Home", {}, edge());
+    expect(pageDockWidth()).toBe(`${ASK_AI_PANEL_MIN_WIDTH}px`);
+
+    await pressKeys("End", {}, edge());
+    expect(pageDockWidth()).toBe("800px");
+  });
+
+  test("it never goes past its ends", async () => {
+    await renderAt();
+    await toggle();
+
+    await pressKeys("Home", {}, edge());
+    await pressKeys("ArrowRight", {}, edge());
+    expect(pageDockWidth()).toBe(`${ASK_AI_PANEL_MIN_WIDTH}px`);
+
+    await pressKeys("End", {}, edge());
+    await pressKeys("ArrowLeft", {}, edge());
+    expect(pageDockWidth()).toBe("800px");
+  });
+
+  test("the width it was moved to is the width it opens at next time", async () => {
+    await renderAt();
+    await toggle();
+
+    await pressKeys("End", {}, edge());
+    expect(window.localStorage.getItem(ASK_AI_PANEL_WIDTH_KEY)).toBe("800");
+
+    await act(async () => {
+      fireEvent.click(screen.getByRole("button", { name: "Close" }));
+    });
+    await toggle();
+
+    expect(pageDockWidth()).toBe("800px");
+  });
+
+  test("a double click puts it back at the width it opens at, and forgets the other", async () => {
+    window.localStorage.setItem(ASK_AI_PANEL_WIDTH_KEY, "700");
+    await renderAt();
+    await toggle();
+    expect(pageDockWidth()).toBe("700px");
+
+    await act(async () => {
+      fireEvent.doubleClick(edge());
+    });
+
+    expect(pageDockWidth()).toBe(`${ASK_AI_PANEL_DEFAULT_WIDTH}px`);
+    expect(window.localStorage.getItem(ASK_AI_PANEL_WIDTH_KEY)).toBeNull();
+  });
+
+  test("a narrower window narrows it for the page's sake, and keeps what was chosen for a wider one", async () => {
+    window.localStorage.setItem(ASK_AI_PANEL_WIDTH_KEY, "700");
+    await renderAt();
+    await toggle();
+    expect(pageDockWidth()).toBe("700px");
+
+    await resizeWindowTo(1100);
+    expect(pageDockWidth()).toBe("460px");
+    expect(edge()).toHaveAttribute("aria-valuemax", "460");
+
+    await resizeWindowTo(LAPTOP_WIDTH);
+    expect(pageDockWidth()).toBe("700px");
+  });
+
+  test("a value in the browser that no version wrote is read as no choice", async () => {
+    window.localStorage.setItem(ASK_AI_PANEL_WIDTH_KEY, "wide");
+    await renderAt();
+    await toggle();
+
+    expect(pageDockWidth()).toBe(`${ASK_AI_PANEL_DEFAULT_WIDTH}px`);
+  });
+});
+
+// ---- where the window has no room for both ------------------------------------------
+
+describe("where the window has no room for both", () => {
+  const TABLET_WIDTH: number = 768;
+
+  beforeEach(() => {
+    setWindowWidth(TABLET_WIDTH);
+  });
+
+  test("a sheet over the page, and a real dialog", async () => {
+    await renderAt();
+
+    await toggle();
+
+    const opened: HTMLElement = screen.getByRole("dialog", { name: "Ask AI" });
+    expect(opened).toHaveAttribute("aria-modal", "true");
+    expect(opened).toBe(askAi());
+    expect(opened).toHaveAttribute("data-docked", "false");
+    expect(opened.style.width).toBe("");
+    expect(screen.getByTestId("ask-ai-backdrop")).toBeInTheDocument();
+    expect(
+      screen.queryByRole("separator", { name: "Resize Ask AI" }),
+    ).not.toBeInTheDocument();
+  });
+
+  test("the page takes nothing away: it has the whole window under the sheet", async () => {
+    await renderAt();
+
+    await toggle();
+
+    expect(pageDockWidth()).toBe("");
+    expect(pageEndPadding()).toBe("");
+  });
+
   test("the focus moves into the composer", async () => {
     await renderAt();
 
@@ -724,9 +1309,9 @@ describe("a real dialog", () => {
   test("Tab goes round inside it, both ways", async () => {
     await renderAt();
     await toggle();
-    const panel: HTMLElement = dialog()!;
+    const sheet: HTMLElement = askAi()!;
     const focusable: Array<HTMLElement> = Array.from(
-      panel.querySelectorAll<HTMLElement>(
+      sheet.querySelectorAll<HTMLElement>(
         'button, [href], input, select, textarea, [tabindex]:not([tabindex="-1"])',
       ),
     ).filter((element: HTMLElement): boolean => {
@@ -735,7 +1320,7 @@ describe("a real dialog", () => {
         element.getAttribute("aria-hidden") !== "true"
       );
     });
-    // The dialog's own buttons and its composer: there is a round to go.
+    // The panel's own buttons and its composer: there is a round to go.
     expect(focusable.length).toBeGreaterThan(3);
     const first: HTMLElement = focusable[0]!;
     const last: HTMLElement = focusable[focusable.length - 1]!;
@@ -760,26 +1345,8 @@ describe("a real dialog", () => {
 
     await pressKeys("Escape", {});
 
-    expect(dialog()).toBeNull();
+    expect(askAi()).toBeNull();
     expect(opener).toHaveFocus();
-  });
-
-  test("Esc in its menu closes the menu only", async () => {
-    await renderAt();
-    await toggle();
-    const modeButton: HTMLElement = screen.getByTitle(
-      "Choose what the AI is allowed to do",
-    );
-
-    await act(async () => {
-      fireEvent.click(modeButton);
-    });
-    expect(screen.getByRole("menu")).toBeInTheDocument();
-
-    await pressKeys("Escape", {}, screen.getByRole("menu"));
-
-    expect(screen.queryByRole("menu")).not.toBeInTheDocument();
-    expect(dialog()).not.toBeNull();
   });
 
   test("the page behind it is inert and still while it is open, and wakes when it closes", async () => {
@@ -790,7 +1357,7 @@ describe("a real dialog", () => {
     await toggle();
 
     expect(pageRoot).toHaveAttribute("inert");
-    expect(dialog()!.closest("[inert]")).toBeNull();
+    expect(askAi()!.closest("[inert]")).toBeNull();
     expect(document.body.style.overflow).toBe("hidden");
 
     await act(async () => {
@@ -801,23 +1368,15 @@ describe("a real dialog", () => {
     expect(document.body.style.overflow).toBe("");
   });
 
-  test("a click beside it closes it; a press that started inside it does not", async () => {
+  test("a click beside it closes it", async () => {
     await renderAt();
     await toggle();
-    const backdrop: HTMLElement = dialog()!.parentElement as HTMLElement;
-
-    // Selecting text in the composer and letting go beside the dialog.
-    await act(async () => {
-      fireEvent.mouseDown(composer());
-      fireEvent.click(backdrop);
-    });
-    expect(dialog()).not.toBeNull();
 
     await act(async () => {
-      fireEvent.mouseDown(backdrop);
-      fireEvent.click(backdrop);
+      fireEvent.click(screen.getByTestId("ask-ai-backdrop"));
     });
-    expect(dialog()).toBeNull();
+
+    expect(askAi()).toBeNull();
   });
 
   test("opening something from inside it steps it aside, and the conversation waits", async () => {
@@ -825,15 +1384,61 @@ describe("a real dialog", () => {
     await renderAt();
     await toggle({ conversationId: CONVERSATION_ID });
 
-    // A source opened from the answer moves the page under the dialog.
+    // A source opened from the answer moves the page under the sheet.
     await act(async () => {
       navigate(`/dashboard/${PROJECT_ID}/logs`);
     });
     await settle();
-    expect(dialog()).toBeNull();
+    expect(askAi()).toBeNull();
 
     await toggle();
     expect(screen.getByText(QUESTION)).toBeInTheDocument();
+  });
+
+  test("the chat's own address still opens it, passing the browser on", async () => {
+    server.messages.set(CONVERSATION_ID, answeredConversation());
+    const chatAddress: string = `/dashboard/${PROJECT_ID}/ai/chat/${CONVERSATION_ID}`;
+    window.history.replaceState({ idx: 1 }, "", chatAddress);
+
+    await renderAt([incidentPath(), chatAddress]);
+    await settle();
+
+    expect(pagePath()).toBe(incidentPath());
+    expect(askAi()).not.toBeNull();
+  });
+
+  test("a window made narrow while it is open turns it into the sheet, and everything in it stays", async () => {
+    setWindowWidth(LAPTOP_WIDTH);
+    server.messages.set(CONVERSATION_ID, answeredConversation());
+    await renderAt();
+    await toggle({ conversationId: CONVERSATION_ID });
+    fireEvent.change(composer(), { target: { value: "And payments?" } });
+    const panelElement: HTMLElement = askAi()!;
+    const page: HTMLElement = screen.getByTestId("page");
+    const pageRoot: HTMLElement = page.closest("body > div") as HTMLElement;
+    expect(panelElement).toHaveAttribute("data-docked", "true");
+    expect(pageDockWidth()).not.toBe("");
+
+    await resizeWindowTo(TABLET_WIDTH);
+
+    // The same element: nothing in it was drawn anew.
+    expect(askAi()).toBe(panelElement);
+    expect(panelElement).toHaveAttribute("data-docked", "false");
+    expect(panelElement).toHaveAttribute("role", "dialog");
+    expect(pageDockWidth()).toBe("");
+    expect(pageRoot).toHaveAttribute("inert");
+    expect(document.body.style.overflow).toBe("hidden");
+    expect(screen.getByText(QUESTION)).toBeInTheDocument();
+    expect(composer()).toHaveValue("And payments?");
+
+    await resizeWindowTo(LAPTOP_WIDTH);
+
+    expect(askAi()).toBe(panelElement);
+    expect(panelElement).toHaveAttribute("data-docked", "true");
+    expect(panelElement).toHaveAttribute("role", "complementary");
+    expect(pageDockWidth()).toBe(`${ASK_AI_PANEL_DEFAULT_WIDTH}px`);
+    expect(pageRoot).not.toHaveAttribute("inert");
+    expect(document.body.style.overflow).toBe("");
   });
 });
 
@@ -966,14 +1571,14 @@ describe("conversations within reach", () => {
       );
     });
 
-    expect(screen.getByRole("dialog", { name: "All conversations" })).toBe(
-      dialog(),
-    );
+    expect(
+      screen.getByRole("complementary", { name: "All conversations" }),
+    ).toBe(askAi());
     expect(
       within(screen.getByTestId("ai-chat-history")).getAllByRole("listitem"),
     ).toHaveLength(4);
     // The history is a list to pick from: nothing to type into.
-    expect(within(dialog()!).queryByRole("textbox")).not.toBeInTheDocument();
+    expect(within(askAi()!).queryByRole("textbox")).not.toBeInTheDocument();
   });
 
   test("the header's history opens a conversation, and Back returns", async () => {
@@ -1086,7 +1691,7 @@ describe("conversations within reach", () => {
     expect(document.activeElement).toBe(screen.getByTestId("ask-ai-back"));
   });
 
-  test("the row's question keeps the conversation: Cancel, or Esc, which leaves the dialog open", async () => {
+  test("the row's question keeps the conversation: Cancel, or Esc, which leaves the panel open", async () => {
     await renderAt();
     await toggle();
     await act(async () => {
@@ -1120,13 +1725,13 @@ describe("conversations within reach", () => {
         }),
     ).toEqual(["Delete", "Cancel"]);
 
-    // Esc keeps it - and only takes the question back, not the dialog.
+    // Esc keeps it - and only takes the question back, not the panel.
     await pressKeys("Escape", {}, document.activeElement!);
 
     expect(
       screen.queryByRole("group", { name: /^Delete conversation/ }),
     ).not.toBeInTheDocument();
-    expect(dialog()).toBeInTheDocument();
+    expect(askAi()).toBeInTheDocument();
     expect(document.activeElement).toBe(bin());
 
     // Cancel keeps it too.
@@ -1248,6 +1853,49 @@ describe("conversations within reach", () => {
     expect(heading).toHaveTextContent("Why did checkout slow down?");
     expect(heading).toHaveAttribute("dir", "ltr");
     expect(heading.className).toContain(PAGE_START_ALIGN_CLASS_NAME);
+  });
+
+  test("a recent conversation picked from the start leaves the focus in the box, not on the page's body", async () => {
+    await renderAt();
+    await toggle();
+
+    await act(async () => {
+      fireEvent.click(
+        within(screen.getByTestId("ai-chat-recent")).getByRole("button", {
+          name: /^Error log volume by service/,
+        }),
+      );
+    });
+    await settle();
+
+    expect(composer()).toHaveFocus();
+  });
+
+  test("New chat leaves the focus in the box too", async () => {
+    await renderAt();
+    await toggle({ conversationId: CONVERSATION_ID });
+    const newChat: HTMLElement = screen.getByRole("button", {
+      name: "New chat",
+    });
+    newChat.focus();
+
+    await act(async () => {
+      fireEvent.click(newChat);
+    });
+    await settle();
+
+    expect(composer()).toHaveFocus();
+  });
+
+  test("the box stays the same element from the start into a conversation", async () => {
+    await renderAt();
+    await toggle();
+    const box: HTMLTextAreaElement = composer();
+
+    await sendQuestion(QUESTION);
+
+    expect(composer()).toBe(box);
+    expect(box).toHaveFocus();
   });
 
   test("New chat starts over from a conversation", async () => {
@@ -1409,7 +2057,7 @@ describe("an answer, quietly", () => {
     );
   });
 
-  test("an action waiting for approval is decided inside the dialog", async () => {
+  test("an action waiting for approval is decided inside the panel", async () => {
     server.messages.set(CONVERSATION_ID, [
       message({
         id: "a1111111-1111-4111-8111-111111111111",
@@ -1502,7 +2150,7 @@ describe("the composer asks only what there is to choose", () => {
     expect(
       screen.queryByRole("menu", { name: "AI provider" }),
     ).not.toBeInTheDocument();
-    expect(dialog()).not.toBeNull();
+    expect(askAi()).not.toBeNull();
   });
 });
 
@@ -1522,7 +2170,7 @@ describe("closing Ask AI loses nothing", () => {
     const resume: HTMLElement = screen.getByTestId("ask-ai-resume");
     expect(resume).toHaveTextContent("Ask AI is answering…");
 
-    // The answer comes in while the dialog is closed.
+    // The answer comes in while the panel is closed.
     server.messages.set(CONVERSATION_ID, answeredConversation());
     await act(async () => {
       jest.advanceTimersByTime(1500);
@@ -1538,7 +2186,7 @@ describe("closing Ask AI loses nothing", () => {
     });
     await settle();
 
-    expect(dialog()).not.toBeNull();
+    expect(askAi()).not.toBeNull();
     expect(screen.getByTestId("ai-chat-answer-text")).toBeInTheDocument();
     expect(screen.queryByTestId("ask-ai-resume")).not.toBeInTheDocument();
   });
@@ -1790,7 +2438,7 @@ describe("the questions follow the incident on screen", () => {
     await act(async () => {
       fireEvent.click(screen.getByRole("button", { name: "Close" }));
     });
-    expect(dialog()).toBeNull();
+    expect(askAi()).toBeNull();
 
     // Reopened meanwhile, and read slowly this time.
     let answer: (value: unknown) => void = (): void => {
