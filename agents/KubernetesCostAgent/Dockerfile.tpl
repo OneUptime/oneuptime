@@ -1,9 +1,12 @@
-# syntax=docker/dockerfile:1.7
+# syntax=docker/dockerfile:1.19
 #
 # OneUptime Kubernetes Cost Agent Dockerfile
 #
 # Polls an in-cluster cost engine's Allocation API (OpenCost / Kubecost
 # cost-model) and ships pre-priced workload cost allocations to OneUptime.
+#
+# Syntax 1.19 is the first whose stable channel has COPY --exclude, which keeps
+# the agent's tests out of the image (see the copy of the agent below).
 #
 
 # Alpine, like the App, Home and TestServer images. This agent is plain
@@ -66,7 +69,10 @@ ENTRYPOINT ["/sbin/tini", "--"]
 USER node
 CMD [ "npm", "run", "dev" ]
 {{ else }}
-COPY --chown=node:node ./agents/KubernetesCostAgent /usr/src/app
+# Without its tests, which no image runs (see packages/Probe/Dockerfile.tpl):
+# they stay out of this layer and of what the compile below writes to
+# build/dist. `npm test` compiles and runs them on a checkout.
+COPY --chown=node:node --exclude=Tests ./agents/KubernetesCostAgent /usr/src/app
 RUN npm run compile
 USER node
 # Per-build metadata last so the npm ci / compile layers above stay cacheable

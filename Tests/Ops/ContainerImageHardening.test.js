@@ -1109,7 +1109,7 @@ describe("App", () => {
         "--package /usr/src/Common",
         "&& npm prune --omit=dev --offline --no-audit --no-fund",
         "&& node -e \"require('ts-node'); require('typescript')\"",
-        "&& rm -rf /tmp/PruneUnreachablePackages.js /usr/src/Common/Tests /usr/src/app/build /usr/src/app/Tests /usr/src/app/FeatureSet/*/node_modules",
+        "&& rm -rf /tmp/PruneUnreachablePackages.js /usr/src/Common/Tests /usr/src/app/build /usr/src/app/Tests /usr/src/app/FeatureSet/BrowserRecorder/Tests /usr/src/app/FeatureSet/MCP/Tests /usr/src/app/FeatureSet/MobileRecorder/Tests /usr/src/app/FeatureSet/*/node_modules",
       ].join(" ");
     };
 
@@ -1201,7 +1201,7 @@ describe("App", () => {
       expect(appPackage.dependencies["ts-node"]).toBeDefined();
     });
 
-    test("the build's other files under /usr/src stay: the licence files, the agents and the mermaid build", () => {
+    test("the build's other files under /usr/src stay: the licence files, the agents, the mermaid build and the features whose tests go", () => {
       const removed = byName("community-pruned")
         .instructions[1].split("rm -rf ")[1]
         .split(" ");
@@ -1210,6 +1210,9 @@ describe("App", () => {
         "/usr/src/Common/Tests",
         "/usr/src/app/build",
         "/usr/src/app/Tests",
+        "/usr/src/app/FeatureSet/BrowserRecorder/Tests",
+        "/usr/src/app/FeatureSet/MCP/Tests",
+        "/usr/src/app/FeatureSet/MobileRecorder/Tests",
         "/usr/src/app/FeatureSet/*/node_modules",
       ]);
       for (const kept of [
@@ -1217,6 +1220,9 @@ describe("App", () => {
         "/usr/src/agents",
         "/usr/src/Common/build",
         "/usr/src/app/FeatureSet/Dashboard/public",
+        "/usr/src/app/FeatureSet/BrowserRecorder",
+        "/usr/src/app/FeatureSet/MCP",
+        "/usr/src/app/FeatureSet/MobileRecorder",
       ]) {
         expect(
           removed.some((removedPath) => {
@@ -1324,7 +1330,7 @@ describe("Nginx", () => {
     const PRUNE_COPY =
       "COPY ./Scripts/Docker/PruneUnreachablePackages.js /tmp/PruneUnreachablePackages.js";
     const PRUNE_RUN =
-      "RUN node /tmp/PruneUnreachablePackages.js --entry /usr/src/app/Index.ts --package /usr/src/Common && rm -rf /tmp/PruneUnreachablePackages.js /usr/src/Common/Tests /usr/src/app/build && chmod +x /usr/src/app/run.sh";
+      "RUN node /tmp/PruneUnreachablePackages.js --entry /usr/src/app/Index.ts --package /usr/src/Common && rm -rf /tmp/PruneUnreachablePackages.js /usr/src/Common/Tests /usr/src/app/build /usr/src/app/Tests && chmod +x /usr/src/app/run.sh";
 
     function indexOf(lines, line) {
       const index = lines.indexOf(line);
@@ -1411,7 +1417,8 @@ describe("Nginx", () => {
  * Every layer counts. An `rm` in a stage the image is built on only hides what
  * a layer below it holds: a pull still downloads it and a scan of the layers
  * still reads it. So tests either never enter the stages an image is made of
- * (COPY --exclude=Tests: the Probe, Home, the Test Server), or enter a stage
+ * (COPY --exclude=Tests: the Probe, Home, the Test Server, and the Kubernetes AI
+ * agent, cost agent and log tailer and the resource AI agent), or enter a stage
  * that does not ship and leave it before the image copies out of it (the App,
  * the Runner, Nginx). .dockerignore cannot do it for Common: the E2E image's
  * fixtures import Common's test helpers.
@@ -1423,25 +1430,6 @@ const IMAGES_THAT_RUN_TESTS = [
   "Tests/Dockerfile.tpl",
   "packages/E2E/Dockerfile.tpl",
 ];
-
-/*
- * The tests an image still ships: its own, and never Common's. They are small
- * and nothing has flagged them, but nothing runs them either. A listed folder
- * that goes away fails the check below until it is taken off this list.
- */
-const OWN_TESTS_STILL_SHIPPED = {
-  "agents/KubernetesAIAgent/Dockerfile.tpl": ["/usr/src/app/Tests"],
-  "agents/KubernetesCostAgent/Dockerfile.tpl": ["/usr/src/app/Tests"],
-  "agents/KubernetesLogTailer/Dockerfile.tpl": ["/usr/src/app/Tests"],
-  "agents/ResourceAIAgent/Dockerfile.tpl": ["/usr/src/app/Tests"],
-  // The pruned stages remove /usr/src/app/Tests, and these are below it.
-  "packages/App/Dockerfile.tpl": [
-    "/usr/src/app/FeatureSet/BrowserRecorder/Tests",
-    "/usr/src/app/FeatureSet/MCP/Tests",
-    "/usr/src/app/FeatureSet/MobileRecorder/Tests",
-  ],
-  "packages/Nginx/Dockerfile.tpl": ["/usr/src/app/Tests"],
-};
 
 // Every folder git tracks under the name Tests, the topmost one of each path.
 function trackedTestFolders() {
@@ -1613,6 +1601,12 @@ describe("the images that ship carry no tests", () => {
   });
   const COMMON_TESTS = "/usr/src/Common/Tests";
   const OWN_TESTS = "/usr/src/app/Tests";
+  // Deeper in the App than its own, so removing that one leaves them.
+  const APP_FEATURE_TESTS = [
+    "/usr/src/app/FeatureSet/BrowserRecorder/Tests",
+    "/usr/src/app/FeatureSet/MCP/Tests",
+    "/usr/src/app/FeatureSet/MobileRecorder/Tests",
+  ];
 
   test("the two images that run tests are templates, and every other Node image is checked", () => {
     expect(TEMPLATES).toEqual(expect.arrayContaining(IMAGES_THAT_RUN_TESTS));
@@ -1623,49 +1617,24 @@ describe("the images that ship carry no tests", () => {
     ).toEqual(IMAGES_THAT_RUN_TESTS);
   });
 
+  /*
+   * This covers what the `shipped` stage of each IronBank/<Project>/Dockerfile
+   * cuts out of the release it pins, so a release built from these templates
+   * leaves that stage nothing to do.
+   */
   test.each(
     SHIPPED_TEMPLATES.map((template) => {
       return [template];
     }),
-  )(
-    "%s: no layer holds Common's tests, and only a listed image's its own",
-    (template) => {
-      for (const { target, folders } of testFoldersShipped(template)) {
-        expect({ template, target, folders }).toEqual({
-          template,
-          target,
-          folders: OWN_TESTS_STILL_SHIPPED[template] || [],
-        });
-      }
-    },
-  );
-
-  test("what an image may still ship is never Common's tests", () => {
-    for (const folders of Object.values(OWN_TESTS_STILL_SHIPPED)) {
-      expect(folders).not.toContain(COMMON_TESTS);
-    }
-    for (const template of Object.keys(OWN_TESTS_STILL_SHIPPED)) {
-      expect(SHIPPED_TEMPLATES).toContain(template);
+  )("%s: no layer holds any tests", (template) => {
+    for (const { target, folders } of testFoldersShipped(template)) {
+      expect({ template, target, folders }).toEqual({
+        template,
+        target,
+        folders: [],
+      });
     }
   });
-
-  /*
-   * What IronBank/Runner/Dockerfile and IronBank/Probe/Dockerfile cut out of a
-   * release in their `shipped` stages: a release built from these templates
-   * has neither, so those stages have nothing left to do.
-   */
-  test.each([
-    ["packages/Runner/Dockerfile.tpl"],
-    ["packages/Probe/Dockerfile.tpl"],
-  ])(
-    "%s holds neither of the folders Iron Bank's shipped stage removes",
-    (template) => {
-      for (const { folders } of testFoldersShipped(template)) {
-        expect(folders).not.toContain(COMMON_TESTS);
-        expect(folders).not.toContain(OWN_TESTS);
-      }
-    },
-  );
 
   test.each([
     ["packages/Runner/Dockerfile.tpl", "build", [COMMON_TESTS, OWN_TESTS]],
@@ -1673,15 +1642,15 @@ describe("the images that ship carry no tests", () => {
     [
       "packages/App/Dockerfile.tpl",
       "community-pruned",
-      [COMMON_TESTS, OWN_TESTS],
+      [COMMON_TESTS, OWN_TESTS, ...APP_FEATURE_TESTS],
     ],
     [
       "packages/App/Dockerfile.tpl",
       "enterprise-pruned",
-      [COMMON_TESTS, OWN_TESTS],
+      [COMMON_TESTS, OWN_TESTS, ...APP_FEATURE_TESTS],
     ],
   ])(
-    "%s's %s stage brings tests in, and has removed Common's when the image copies out of it",
+    "%s's %s stage brings tests in, and has removed them all when the image copies out of it",
     (template, stageName, broughtIn) => {
       const stages = stagesOf(template, "production");
       const { end, layers } = followTestFolders(
@@ -1692,7 +1661,7 @@ describe("the images that ship carry no tests", () => {
       );
 
       expect(sorted(layers)).toEqual(expect.arrayContaining(broughtIn));
-      expect(sorted(end)).not.toContain(COMMON_TESTS);
+      expect(sorted(end)).toEqual([]);
     },
   );
 
@@ -1737,6 +1706,10 @@ describe("the images that ship carry no tests", () => {
 
     expect(using).toEqual(
       expect.arrayContaining([
+        "agents/KubernetesAIAgent/Dockerfile.tpl",
+        "agents/KubernetesCostAgent/Dockerfile.tpl",
+        "agents/KubernetesLogTailer/Dockerfile.tpl",
+        "agents/ResourceAIAgent/Dockerfile.tpl",
         "packages/Home/Dockerfile.tpl",
         "packages/Probe/Dockerfile.tpl",
         "packages/TestServer/Dockerfile.tpl",
@@ -1813,6 +1786,16 @@ describe("the images that ship carry no tests", () => {
         "an --exclude that is not the folder's own path",
         "FROM x\nCOPY --exclude=Test ./packages/Common /usr/src/Common\n",
         [COMMON_TESTS],
+      ],
+      [
+        "a package's deeper test folders, when only its topmost is removed",
+        `FROM x AS build\nCOPY ./packages/App /usr/src/app\nRUN rm -rf ${OWN_TESTS}\nFROM x\nCOPY --from=build /usr/src /usr/src\n`,
+        APP_FEATURE_TESTS,
+      ],
+      [
+        "an agent's copy, with other flags and no --exclude",
+        "FROM x\nCOPY --chown=node:node ./agents/KubernetesAIAgent /usr/src/app\n",
+        [OWN_TESTS],
       ],
     ])("counts %s", (_name, dockerfile, expected) => {
       expect(layersOf(dockerfile)).toEqual(expected);
