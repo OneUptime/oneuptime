@@ -2,6 +2,9 @@
 # OneUptime says how full a cloud really is. Merge these into your
 # /etc/placement/policy.yaml. oslo.policy notices a changed file on its own, so no
 # restart is needed.
+# To take them off again, empty the file rather than deleting it: on Flamingo and
+# Epoxy a service fails every request once a policy file it has read is gone, until
+# it is restarted, and Keystone failing that way stops the whole cloud.
 "placement:resource_providers:list": "rule:admin_api or role:oneuptime_monitoring"
 "placement:resource_providers:show": "rule:admin_api or role:oneuptime_monitoring"
 "placement:resource_providers:inventories:list": "rule:admin_api or role:oneuptime_monitoring"

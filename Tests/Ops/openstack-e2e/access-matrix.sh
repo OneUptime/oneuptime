@@ -163,8 +163,11 @@ WRITTEN=()
 BACKED_UP=()
 restore_policy() {
   local file
+  # Emptied, never deleted. On Flamingo and Epoxy, oslo.policy raises on every check
+  # once a file it has read is gone, so Keystone stops validating tokens and the whole
+  # cloud answers 503 until it is restarted. Seen here first, and in the docs now.
   for file in "${WRITTEN[@]:-}"; do
-    [ -z "$file" ] || sudo rm -f "$file"
+    [ -z "$file" ] || printf '{}\n' | sudo tee "$file" >/dev/null
   done
   for file in "${BACKED_UP[@]:-}"; do
     [ -z "$file" ] || sudo mv -f "$file.ou-backup" "$file"
