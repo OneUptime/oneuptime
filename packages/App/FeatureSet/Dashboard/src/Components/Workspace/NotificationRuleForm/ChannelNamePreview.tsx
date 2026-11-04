@@ -108,6 +108,9 @@ export const CHANNEL_NAME_CHARACTER_NOTES: Record<WorkspaceType, string> = {
   [WorkspaceType.MicrosoftTeams]: translationKey(
     "OneUptime uses only letters, numbers, spaces, - and _ in Microsoft Teams channel names.",
   ),
+  [WorkspaceType.Mattermost]: translationKey(
+    "Mattermost channel names use only lowercase letters, numbers, - and _.",
+  ),
 };
 
 // When the name was too long for the workspace.
@@ -117,6 +120,9 @@ export const CHANNEL_NAME_SHORTENED_NOTES: Record<WorkspaceType, string> = {
   ),
   [WorkspaceType.MicrosoftTeams]: translationKey(
     "Shortened to the Microsoft Teams limit of {{count}} characters.",
+  ),
+  [WorkspaceType.Mattermost]: translationKey(
+    "Shortened to Mattermost's limit of {{count}} characters.",
   ),
 };
 
@@ -128,9 +134,12 @@ export const CHANNEL_NAME_TAKEN_NOTES: Record<WorkspaceType, string> = {
   [WorkspaceType.MicrosoftTeams]: translationKey(
     "If the team already has a channel with this name, OneUptime adds -2 to the end.",
   ),
+  [WorkspaceType.Mattermost]: translationKey(
+    "If Mattermost already has a channel with this name, OneUptime adds -2 to the end.",
+  ),
 };
 
-// A channel name as the workspace shows it: #inc-42 in Slack, inc-42 in Microsoft Teams.
+// A channel name as the workspace shows it: #inc-42 in Slack, inc-42 in Microsoft Teams and Mattermost.
 export const getShownChannelName: (
   workspaceType: WorkspaceType,
   name: string,

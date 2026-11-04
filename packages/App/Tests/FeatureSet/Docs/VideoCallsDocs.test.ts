@@ -197,13 +197,18 @@ describe("Video Calls docs - the page", () => {
     expect(readPage()).toMatch(/^# Video Calls\n/);
   });
 
-  test("is listed under Workspace Connections, after Slack and Microsoft Teams", () => {
+  test("is listed under Workspace Connections, after Slack, Microsoft Teams and Mattermost", () => {
     const links: Array<NavLink> = workspaceConnectionsGroup().links;
     const titles: Array<string> = links.map((link: NavLink): string => {
       return link.title;
     });
 
-    expect(titles).toEqual(["Slack", "Microsoft Teams", NAV_LINK_TITLE]);
+    expect(titles).toEqual([
+      "Slack",
+      "Microsoft Teams",
+      "Mattermost",
+      NAV_LINK_TITLE,
+    ]);
     expect(
       links.find((link: NavLink): boolean => {
         return link.title === NAV_LINK_TITLE;

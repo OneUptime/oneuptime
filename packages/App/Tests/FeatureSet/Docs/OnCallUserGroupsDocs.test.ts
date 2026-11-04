@@ -12,6 +12,7 @@ import {
   USER_GROUP_STATUS_LABELS,
   USER_GROUPS_COPY,
   UserGroupStatusKind,
+  UserGroupWorkspaceType,
 } from "../../../FeatureSet/Dashboard/src/Components/OnCallPolicy/UserGroups/UserGroupsCopy";
 import { describe, expect, test } from "@jest/globals";
 import fs from "fs";
@@ -104,7 +105,7 @@ const PAGES: Array<{
   name: string;
   markdown: string;
   heading: string;
-  workspaceType: WorkspaceType;
+  workspaceType: UserGroupWorkspaceType;
 }> = [
   {
     name: "Slack",
@@ -126,11 +127,11 @@ describe("each page's section, against the schedule page's card", () => {
     (page: {
       markdown: string;
       heading: string;
-      workspaceType: WorkspaceType;
+      workspaceType: UserGroupWorkspaceType;
     }) => {
       const anchor: string = `#${slugify(page.heading)}`;
       const text: string = section(page.markdown, `## ${page.heading}`);
-      const copy: (typeof USER_GROUPS_COPY)[WorkspaceType] =
+      const copy: (typeof USER_GROUPS_COPY)[UserGroupWorkspaceType] =
         USER_GROUPS_COPY[page.workspaceType];
 
       // Linked from the page's cards.

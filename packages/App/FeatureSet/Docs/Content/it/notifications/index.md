@@ -48,9 +48,9 @@ Aprite le **Impostazioni utente**, a destra della barra sotto la barra superiore
 | **Policy chiamate in entrata** | **Numeri di telefono in entrata**: il numero su cui vi chiama una policy di chiamate in entrata |
 | **Calendario** | **Feed calendario**: i vostri turni nella vostra app di calendario, e promemoria prima che inizino |
 | **Profilo** | **Campi personalizzati**: dati che il vostro progetto chiede ai suoi membri |
-| **Area di lavoro** | **Slack** e **Microsoft Teams**: il vostro account, in ogni area di lavoro che il progetto ha collegato |
+| **Area di lavoro** | **Slack**, **Microsoft Teams** e **Mattermost**: il vostro account, in ogni area di lavoro che il progetto ha collegato |
 
-**Per iniziare** e **Avvisi e notifiche** sono aperte; le altre sezioni partono chiuse, e una sezione si apre da sola quando siete su una delle sue pagine. **Area di lavoro** compare solo se il progetto ha collegato Slack o Microsoft Teams.
+**Per iniziare** e **Avvisi e notifiche** sono aperte; le altre sezioni partono chiuse, e una sezione si apre da sola quando siete su una delle sue pagine. **Area di lavoro** compare solo se il progetto ha collegato Slack, Microsoft Teams o Mattermost.
 
 Anche i proprietari e gli amministratori del progetto possono vedere la vostra configurazione: in **Utenti** aprono la vostra riga e la sua sezione **Reperibilità**, con **Prontezza**, **Metodi di notifica** e **Regole di reperibilità**. Lì possono aggiungere un metodo per voi, ma il codice va al metodo stesso, quindi solo voi potete verificarlo.
 

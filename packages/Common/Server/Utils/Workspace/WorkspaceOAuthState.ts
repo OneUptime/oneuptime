@@ -26,6 +26,14 @@ export enum WorkspaceOAuthFlow {
   MicrosoftTeamsAdminConsent = "MicrosoftTeamsAdminConsent",
   // Second leg of admin consent: the sign-in that proves which tenant it was.
   MicrosoftTeamsAdminConsentSignIn = "MicrosoftTeamsAdminConsentSignIn",
+  /*
+   * Connecting a person's Mattermost account. Mattermost has no sign-in
+   * OneUptime can send people to, so the bot sends the account a direct
+   * message with a one-use link: opened in the browser that asked, by the
+   * member who asked, it proves they hold both the OneUptime account and
+   * the Mattermost one (MattermostAPI).
+   */
+  MattermostUserSignIn = "MattermostUserSignIn",
   // Installing the GitHub App, which connects its repositories to a project.
   GitHubAppInstall = "GitHubAppInstall",
   /*

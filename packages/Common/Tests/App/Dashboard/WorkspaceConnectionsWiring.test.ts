@@ -15,9 +15,9 @@ import { PROJECT_ID, goTo, routeFor } from "./SideMenuHarness";
 /*
  * Each product's Workspace page, the one its menu lists while nothing is
  * connected: a real route under the product, a breadcrumb trail that names
- * it, and mounted inside the product's own layout with that product's Slack
- * and Microsoft Teams pages, so its "Set up notifications" steps stay in
- * the product.
+ * it, and mounted inside the product's own layout with that product's
+ * Slack, Microsoft Teams and Mattermost pages, so its "Set up
+ * notifications" steps stay in the product.
  */
 
 const DASHBOARD_SRC: string = path.join(
@@ -41,6 +41,7 @@ interface Product {
   connect: string;
   slack: string;
   microsoftTeams: string;
+  mattermost: string;
   getBreadcrumbs: (path: string) => Array<Link> | undefined;
 }
 
@@ -54,6 +55,7 @@ const PRODUCTS: Array<Product> = [
     connect: "INCIDENTS_WORKSPACE_CONNECTIONS",
     slack: "INCIDENTS_WORKSPACE_CONNECTION_SLACK",
     microsoftTeams: "INCIDENTS_WORKSPACE_CONNECTION_MICROSOFT_TEAMS",
+    mattermost: "INCIDENTS_WORKSPACE_CONNECTION_MATTERMOST",
     getBreadcrumbs: getIncidentsBreadcrumbs,
   },
   {
@@ -65,6 +67,7 @@ const PRODUCTS: Array<Product> = [
     connect: "ALERTS_WORKSPACE_CONNECTIONS",
     slack: "ALERTS_WORKSPACE_CONNECTION_SLACK",
     microsoftTeams: "ALERTS_WORKSPACE_CONNECTION_MICROSOFT_TEAMS",
+    mattermost: "ALERTS_WORKSPACE_CONNECTION_MATTERMOST",
     getBreadcrumbs: getAlertsBreadcrumbs,
   },
   {
@@ -77,6 +80,7 @@ const PRODUCTS: Array<Product> = [
     slack: "SCHEDULED_MAINTENANCE_EVENTS_WORKSPACE_CONNECTION_SLACK",
     microsoftTeams:
       "SCHEDULED_MAINTENANCE_EVENTS_WORKSPACE_CONNECTION_MICROSOFT_TEAMS",
+    mattermost: "SCHEDULED_MAINTENANCE_EVENTS_WORKSPACE_CONNECTION_MATTERMOST",
     getBreadcrumbs: getScheduleMaintenanceBreadcrumbs,
   },
   {
@@ -88,6 +92,7 @@ const PRODUCTS: Array<Product> = [
     connect: "MONITORS_WORKSPACE_CONNECTIONS",
     slack: "MONITORS_WORKSPACE_CONNECTION_SLACK",
     microsoftTeams: "MONITORS_WORKSPACE_CONNECTION_MICROSOFT_TEAMS",
+    mattermost: "MONITORS_WORKSPACE_CONNECTION_MATTERMOST",
     getBreadcrumbs: getMonitorBreadcrumbs,
   },
   {
@@ -99,6 +104,7 @@ const PRODUCTS: Array<Product> = [
     connect: "ON_CALL_DUTY_WORKSPACE_CONNECTIONS",
     slack: "ON_CALL_DUTY_WORKSPACE_CONNECTION_SLACK",
     microsoftTeams: "ON_CALL_DUTY_WORKSPACE_CONNECTION_MICROSOFT_TEAMS",
+    mattermost: "ON_CALL_DUTY_WORKSPACE_CONNECTION_MATTERMOST",
     getBreadcrumbs: getOnCallDutyBreadcrumbs,
   },
 ];
@@ -128,17 +134,18 @@ describe("each product's Workspace page", () => {
   );
 
   test.each(CASES)(
-    "%s: does not collide with its Slack and Microsoft Teams pages",
+    "%s: does not collide with its Slack, Microsoft Teams and Mattermost pages",
     (_name: string, product: Product) => {
       const routes: Array<string> = [
         product.connect,
         product.slack,
         product.microsoftTeams,
+        product.mattermost,
       ].map((key: string): string => {
         return (RouteMap[key] as Route).toString();
       });
 
-      expect(new Set(routes).size).toBe(3);
+      expect(new Set(routes).size).toBe(4);
     },
   );
 
@@ -167,7 +174,17 @@ describe("each product's Workspace page", () => {
   );
 
   test.each(CASES)(
-    "%s: is mounted with the product's own Slack and Microsoft Teams pages",
+    "%s: its Mattermost page lives at <product>/workspace-connection-mattermost",
+    (_name: string, product: Product) => {
+      expect(Object.values(PageMap)).toContain(product.mattermost);
+      expect((RouteMap[product.mattermost] as Route).toString()).toBe(
+        `/dashboard/:projectId/${product.segment}/workspace-connection-mattermost`,
+      );
+    },
+  );
+
+  test.each(CASES)(
+    "%s: is mounted with the product's own Slack, Microsoft Teams and Mattermost pages",
     (_name: string, product: Product) => {
       const code: string = dense(
         fs.readFileSync(path.join(DASHBOARD_SRC, product.routesFile), "utf8"),
@@ -177,13 +194,13 @@ describe("each product's Workspace page", () => {
         'importWorkspaceConnectionsOverviewfrom"../Components/Workspace/WorkspaceConnectionsOverview";',
       );
       expect(code).toContain(
-        `path={${product.routePathTable}[PageMap.${product.connect}]||""}element={<WorkspaceConnectionsOverviewslackPage={PageMap.${product.slack}}microsoftTeamsPage={PageMap.${product.microsoftTeams}}/>}`,
+        `path={${product.routePathTable}[PageMap.${product.connect}]||""}element={<WorkspaceConnectionsOverviewslackPage={PageMap.${product.slack}}microsoftTeamsPage={PageMap.${product.microsoftTeams}}mattermostPage={PageMap.${product.mattermost}}/>}`,
       );
     },
   );
 
   test.each(CASES)(
-    "%s: sits next to its Slack and Microsoft Teams pages, inside the same layout",
+    "%s: sits next to its Slack, Microsoft Teams and Mattermost pages, inside the same layout",
     (_name: string, product: Product) => {
       const code: string = dense(
         fs.readFileSync(path.join(DASHBOARD_SRC, product.routesFile), "utf8"),
@@ -195,13 +212,17 @@ describe("each product's Workspace page", () => {
       const teamsAt: number = code.indexOf(
         `${product.routePathTable}[PageMap.${product.microsoftTeams}]`,
       );
+      const mattermostAt: number = code.indexOf(
+        `${product.routePathTable}[PageMap.${product.mattermost}]`,
+      );
       const connectAt: number = code.indexOf(
         `${product.routePathTable}[PageMap.${product.connect}]`,
       );
 
       expect(slackAt).toBeGreaterThan(-1);
       expect(teamsAt).toBeGreaterThan(slackAt);
-      expect(connectAt).toBeGreaterThan(teamsAt);
+      expect(mattermostAt).toBeGreaterThan(teamsAt);
+      expect(connectAt).toBeGreaterThan(mattermostAt);
 
       // No layout opens or closes between the Microsoft Teams page and this one.
       const between: string = code.slice(teamsAt, connectAt);

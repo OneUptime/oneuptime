@@ -5,6 +5,7 @@ import WorkspaceBase, {
 } from "./WorkspaceBase";
 import SlackWorkspace from "./Slack/Slack";
 import MicrosoftTeamsUtil from "./MicrosoftTeams/MicrosoftTeams";
+import MattermostUtil from "./Mattermost/Mattermost";
 import BadDataException from "../../../Types/Exception/BadDataException";
 import ObjectID from "../../../Types/ObjectID";
 import { MarkdownText, mdText } from "../../../Utils/Markdown/FeedMarkdown";
@@ -200,6 +201,18 @@ export default class WorkspaceUtil {
       }
     }
 
+    /*
+     * Mattermost: the username the account had when it was connected
+     * (MattermostAPI), so a message is not held up asking the server.
+     */
+    if (data.workspaceType === WorkspaceType.Mattermost) {
+      const username: unknown = data.workspaceUserToken.miscData?.["username"];
+
+      if (typeof username === "string" && username.trim()) {
+        return username.trim();
+      }
+    }
+
     const projectAuthToken: WorkspaceProjectAuthToken | null =
       await WorkspaceProjectAuthTokenService.getProjectAuth({
         projectId: data.projectId,
@@ -239,6 +252,10 @@ export default class WorkspaceUtil {
 
     if (workspaceType === WorkspaceType.MicrosoftTeams) {
       return MicrosoftTeamsUtil;
+    }
+
+    if (workspaceType === WorkspaceType.Mattermost) {
+      return MattermostUtil;
     }
 
     throw new BadDataException(
