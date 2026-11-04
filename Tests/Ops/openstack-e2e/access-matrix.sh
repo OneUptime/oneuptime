@@ -6,7 +6,11 @@
 #   admin                 what there is to see
 #   reader                a plain reader on one project, with default policy
 #   monitoring-role       the oneuptime_monitoring role, with the policy overrides
-#                         in agents/OpenStackAgent/access/ applied to each service
+#                         in agents/OpenStackAgent/access/ applied to each service,
+#                         on a project of its own that holds nothing and has no quota
+#   role-on-a-project     the same role on a project that holds things, for what that
+#                         adds and what it costs: nothing here must not write, but
+#                         this records whether it can
 #   monitoring-admin-get  an application credential on an admin account, limited
 #                         by access rules to reading
 #
@@ -118,7 +122,7 @@ echo "--- What the exporter gets as admin, to compare the others with"
 scrape_into "${EXPORTER_URL:-http://127.0.0.1:9180}" "$OUTPUT_DIR/access/exporter/admin"
 
 echo "--- Accounts"
-for user in ou-reader ou-monitor; do
+for user in ou-reader ou-monitor ou-monitor-on-project; do
   openstack user show "$user" >/dev/null 2>&1 \
     || openstack user create --domain default --password "$PASSWORD" "$user" >/dev/null
   openstack user set --password "$PASSWORD" "$user"
@@ -126,11 +130,42 @@ done
 openstack role add --project ou-payments --user ou-reader reader
 openstack role show oneuptime_monitoring >/dev/null 2>&1 \
   || openstack role create oneuptime_monitoring >/dev/null
-openstack role add --project ou-payments --user ou-monitor oneuptime_monitoring
-openstack role add --project ou-payments --user ou-monitor reader
+
+# The recommended home for the role: holding nothing and able to hold nothing, because
+# on a cloud where Cinder has enforce_new_defaults off (its own default), any role on
+# a project can write that project's volumes. Nothing to touch and no quota to make
+# anything with is what makes the credential unable to write on every cloud.
+openstack project show ou-monitoring >/dev/null 2>&1 \
+  || openstack project create --domain default --description "OneUptime monitoring: holds nothing" ou-monitoring >/dev/null
+openstack quota set --instances 0 --cores 0 --ram 0 --key-pairs 0 ou-monitoring
+openstack quota set --volumes 0 --gigabytes 0 --snapshots 0 --backups 0 --backup-gigabytes 0 ou-monitoring
+openstack quota set --networks 0 --subnets 0 --ports 0 --routers 0 --floating-ips 0 --secgroups 0 --secgroup-rules 0 ou-monitoring
+openstack role add --project ou-monitoring --user ou-monitor oneuptime_monitoring
+openstack role add --project ou-monitoring --user ou-monitor reader
+openstack role add --project ou-payments --user ou-monitor-on-project oneuptime_monitoring
+openstack role add --project ou-payments --user ou-monitor-on-project reader
+
+# What the write checks try to make, if they are wrongly let.
+export OU_WRITE_FLAVOR_ID OU_WRITE_IMAGE_ID OU_WRITE_EXTERNAL_NETWORK_ID
+OU_WRITE_FLAVOR_ID="$(openstack flavor show ou.tiny -f value -c id)"
+OU_WRITE_IMAGE_ID="$(openstack image list --status active -f value -c ID | head -1)"
+OU_WRITE_EXTERNAL_NETWORK_ID="$(openstack network show public -f value -c id)"
+
+# A credential that could write fails the job, but only at the end: the rest of what
+# this finds is what shows how to fix it. A file, because these run in a pipeline.
+WROTE="$OUTPUT_DIR/access/.a-credential-could-write"
+rm -f "$WROTE"
+matrix() {
+  python3 -I "$HERE/access-matrix.py" "$1" || touch "$WROTE"
+}
 
 echo "--- An application credential on the admin account, limited to reads"
-RULES_FILE="$ACCESS_DIR/application-credential-access-rules.json"
+# Fitted to this cloud's own endpoints, because a service behind a path prefix (as all
+# of DevStack's are) sees its requests under that prefix.
+RULES_FILE="$OUTPUT_DIR/access/access-rules-for-this-cloud.json"
+openstack catalog list -f json \
+  | python3 -I "$ACCESS_DIR/access-rules-for-cloud.py" "$ACCESS_DIR/application-credential-access-rules.json" \
+  >"$RULES_FILE"
 APPCRED_JSON="$(openstack application credential create ou-read-only \
   --role admin --access-rules "$(cat "$RULES_FILE")" -f json 2>"$OUTPUT_DIR/access/appcred-error.txt" || true)"
 APPCRED_TOKEN=""
@@ -152,9 +187,9 @@ echo "--- Before the policy overrides"
 {
   echo "admin=$ADMIN_TOKEN"
   echo "reader=$(token_for ou-reader ou-payments)"
-  echo "monitoring-role=$(token_for ou-monitor ou-payments)"
-  [ -z "$APPCRED_TOKEN" ] || echo "monitoring-admin-get=$APPCRED_TOKEN"
-} | python3 -I "$HERE/access-matrix.py" "$OUTPUT_DIR/access/matrix-default-policy.json"
+  echo "monitoring-role=$(token_for ou-monitor ou-monitoring)"
+  echo "role-on-a-project=$(token_for ou-monitor-on-project ou-payments)"
+} | matrix "$OUTPUT_DIR/access/matrix-default-policy.json"
 
 echo "--- With the policy overrides"
 # oslo.policy notices a changed file on its own, so no service restarts. Every file
@@ -216,10 +251,12 @@ sleep 5
 {
   echo "admin=$(openstack token issue -f value -c id)"
   echo "reader=$(token_for ou-reader ou-payments)"
-  echo "monitoring-role=$(token_for ou-monitor ou-payments)"
-} | python3 -I "$HERE/access-matrix.py" "$OUTPUT_DIR/access/matrix.json"
+  echo "monitoring-role=$(token_for ou-monitor ou-monitoring)"
+  echo "role-on-a-project=$(token_for ou-monitor-on-project ou-payments)"
+} | matrix "$OUTPUT_DIR/access/matrix.json"
 
-exporter_sees monitoring-role "$(clouds_for_user ou-monitor ou-payments)"
+exporter_sees monitoring-role "$(clouds_for_user ou-monitor ou-monitoring)"
+exporter_sees role-on-a-project "$(clouds_for_user ou-monitor-on-project ou-payments)"
 exporter_sees reader "$(clouds_for_user ou-reader ou-payments)"
 
 restore_policy
@@ -233,7 +270,8 @@ echo "--- An application credential limited by access rules"
 # restart on the cloud, which is what the docs have to say, and what this proves.
 if [ -z "$APPCRED_TOKEN" ]; then
   echo "No application credential to test: see access/appcred-error.txt" >&2
-  exit 0
+  [ ! -e "$WROTE" ]
+  exit
 fi
 
 set_service_type() {
@@ -272,6 +310,11 @@ done
 {
   echo "admin=$(openstack token issue -f value -c id)"
   echo "monitoring-admin-get=$APPCRED_TOKEN"
-} | python3 -I "$HERE/access-matrix.py" "$OUTPUT_DIR/access/matrix-access-rules.json"
+} | matrix "$OUTPUT_DIR/access/matrix-access-rules.json"
 
 exporter_sees monitoring-admin-get "$(clouds_for_application_credential)"
+
+if [ -e "$WROTE" ]; then
+  echo "A credential we recommend could write: see the lines above, and access/matrix*.json" >&2
+  exit 1
+fi

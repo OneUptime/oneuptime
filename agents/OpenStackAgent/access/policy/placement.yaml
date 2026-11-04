@@ -11,3 +11,4 @@
 "placement:resource_providers:inventories:show": "rule:admin_api or role:oneuptime_monitoring"
 "placement:resource_providers:usages": "rule:admin_api or role:oneuptime_monitoring"
 "placement:resource_providers:aggregates:list": "rule:admin_api or role:oneuptime_monitoring"
+"placement:resource_providers:allocations:list": "rule:admin_api or role:oneuptime_monitoring"
