@@ -179,7 +179,19 @@ once the database exists, `config.env` is left alone. The Docker Compose
 guide's "Change the database password" block is run as written, pasted whole:
 while PostgreSQL is not running it changes nothing, and while it runs it
 changes the password in PostgreSQL and in `config.env`. Its
-`docker-compose.override.yml` example is applied.
+`docker-compose.override.yml` example is applied. PostgreSQL's health check
+passes and leaves no error in its log, with the names `config.example.env`
+ships and with a role and database of an operator's own.
+
+### `ComposePostgresHealthcheck.test.js`
+
+The command Docker runs as PostgreSQL's health check, through a real shell with
+a stand-in `pg_isready`, which needs no database: it names the role and database
+the container created, read from the container's environment when it runs, and
+connects over TCP, so it passes only once the server other containers connect
+to is up. A check that names neither leaves `FATAL: role "root" does not exist`
+in the log every ten seconds. Every other probe of a PostgreSQL this repository
+starts is held to naming its role too.
 
 ### `ComposeDatastorePasswordRuntime.test.js`
 

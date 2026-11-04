@@ -16,6 +16,9 @@
  *     run as written, change the password of a database created with the
  *     placeholder, and the guide's override publishes PostgreSQL on a
  *     private address next to the loopback one.
+ *   - Its health check passes without writing an error to its log, with the
+ *     names config.example.env ships and with a role and database of an
+ *     operator's own (ComposePostgresHealthcheck.test.js has the reasons).
  *
  * Needs Docker, and pulls postgres:15. Ops Config Test runs it with
  * RUN_COMPOSE_DATABASE_RUNTIME_TESTS=1; without it the suite is skipped.
@@ -63,6 +66,14 @@ const RANDOM_PASSWORD = /^[0-9a-f]{64}$/;
 const GENERATED_PASSWORD_LINE = /^DATABASE_PASSWORD=[0-9a-f]{64}$/m;
 // 10.0.0.0/8, 172.16.0.0/12 and 192.168.0.0/16.
 const PRIVATE_IPV4 = /^(?:10\.|172\.(?:1[6-9]|2\d|3[01])\.|192\.168\.)/;
+/*
+ * What a connection that names no role, or a role with no database of its name,
+ * leaves in PostgreSQL's log. Not "any FATAL": a connection that lands while the
+ * server starts is told "the database system is starting up", at the same level.
+ */
+const MISSING_ROLE_OR_DATABASE = /FATAL:\s+(?:role|database) ".*" does not exist/;
+// A few of Docker's checks, ten seconds apart, once PostgreSQL is healthy.
+const HEALTH_CHECKS_TO_WATCH = 3;
 
 jest.setTimeout(10 * 60 * 1000);
 
@@ -407,6 +418,99 @@ describeRuntime("PostgreSQL as docker-compose.yml publishes it", () => {
   });
 });
 
+describeRuntime("PostgreSQL's health check, as Docker runs it", () => {
+  describe.each([
+    ["the names config.example.env ships", {}],
+    [
+      "a role and database of an operator's own",
+      {
+        DATABASE_USERNAME: "oneuptime_owner",
+        DATABASE_NAME: "oneuptime_status",
+      },
+    ],
+  ])("%s", (_name, names) => {
+    const project = projectName("healthcheck");
+    let directory;
+    let configFile;
+    let container;
+
+    beforeAll(async () => {
+      directory = fs.mkdtempSync(path.join(os.tmpdir(), "oneuptime-ops-pg-"));
+      const password = randomPassword();
+      const rendered = writeRenderedPostgres(
+        directory,
+        project,
+        await freePort(),
+        { DATABASE_PASSWORD: password, ...names },
+      );
+      configFile = configEnvWith(directory, [
+        `COMPOSE_PROJECT_NAME=${project}`,
+        `COMPOSE_FILE=${rendered.file}`,
+        `DATABASE_PASSWORD=${password}`,
+      ]);
+      const up = composeIn(directory, configFile, [
+        "up",
+        "-d",
+        "--wait",
+        "--wait-timeout",
+        "180",
+        "postgres",
+      ]);
+
+      if (up.status !== 0) {
+        throw new Error(`compose up failed: ${up.output}`);
+      }
+
+      container = composeIn(directory, configFile, [
+        "ps",
+        "-q",
+        "postgres",
+      ]).stdout.trim();
+    });
+
+    afterAll(() => {
+      removeProject(directory, configFile, project);
+    });
+
+    function healthChecks() {
+      return (
+        JSON.parse(
+          mustDocker([
+            "inspect",
+            "--format",
+            "{{json .State.Health.Log}}",
+            container,
+          ]).stdout,
+        ) || []
+      );
+    }
+
+    test("every check passes, and leaves no error in the server's log", () => {
+      for (
+        let attempt = 0;
+        attempt < 30 && healthChecks().length < HEALTH_CHECKS_TO_WATCH;
+        attempt++
+      ) {
+        spawnSync("sleep", ["2"]);
+      }
+
+      const checks = healthChecks();
+
+      expect(checks.length).toBeGreaterThanOrEqual(HEALTH_CHECKS_TO_WATCH);
+      expect(
+        checks.map((check) => {
+          return check.ExitCode;
+        }),
+      ).toEqual(checks.map(() => {
+        return 0;
+      }));
+      expect(mustDocker(["logs", container]).output).not.toMatch(
+        MISSING_ROLE_OR_DATABASE,
+      );
+    });
+  });
+});
+
 describeRuntime(
   "npm start's first step against real Docker and docker-compose.yml",
   () => {
@@ -491,6 +595,10 @@ describeRuntime(
             "-q",
             "-h",
             "127.0.0.1",
+            "-U",
+            "postgres",
+            "-d",
+            "oneuptimedb",
           ]).status === 0;
         if (!ready) {
           spawnSync("sleep", ["1"]);
