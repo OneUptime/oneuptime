@@ -51,7 +51,8 @@ token_for() {
 
 # Read from what ships, so this can never test another exporter or other flags.
 EXPORTER_IMAGE="$(grep -E '^[[:space:]]*image:[[:space:]]*ghcr.io/openstack-exporter/' "$AGENT_DIR/docker-compose.yml" | head -1 | sed -E 's/^[[:space:]]*image:[[:space:]]*//')"
-EXPORTER_FLAGS="$(grep -E '^[[:space:]]*- --disable-metric=' "$AGENT_DIR/docker-compose.yml" | sed -E 's/^[[:space:]]*- //' | tr '\n' ' ')"
+# Only its own service's: the compose file also starts an exporter with most reads turned off.
+EXPORTER_FLAGS="$(sed -n '/^  openstack-exporter:$/,/^  [a-z-]*:$/p' "$AGENT_DIR/docker-compose.yml" | grep -E '^[[:space:]]*- --disable-metric=' | sed -E 's/^[[:space:]]*- //' | tr '\n' ' ')"
 EXPORTER_SERVICES="identity compute placement network volume image"
 
 scrape_into() {

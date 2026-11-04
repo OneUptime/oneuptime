@@ -191,7 +191,7 @@ Et valg beder om bekræftelse og siger, hvad der ændrer sig for besøgende, og 
 
 ### Private brugere
 
-Tilføj de personer, der må logge ind, under **Statussider → din side → Sikkerhed → Private brugere**. Der er en handling **Tilføj i bulk**: indsæt en liste med e-mailadresser, og hver adresse får en invitationsmail. Private brugere har deres eget forløb for glemt adgangskode og nulstilling, adskilt fra kontiene i dit OneUptime-projekt.
+Tilføj de personer, der må logge ind, under **Statussider → din side → Sikkerhed → Private brugere**. Der er en handling **Tilføj i bulk**: indsæt en liste med e-mailadresser, og hver adresse får en invitationsmail. Private brugere har deres eget forløb for glemt adgangskode og nulstilling, adskilt fra kontiene i dit OneUptime-projekt. En ny adgangskode logger dem ud på alle enheder, og ethvert login-link eller nulstillingslink, der allerede er sendt, holder op med at virke.
 
 **Private brugere og adgangskoden lægges ikke sammen.** Så længe **Alle med adgangskoden** er valget, kan private brugere ikke logge ind (de indtaster også adgangskoden), og skærmen **Private brugere** siger det, med et link tilbage til **Adgang**.
 
