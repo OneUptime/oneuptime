@@ -2564,8 +2564,12 @@ describe("Production review of pull requests", () => {
     expect(rowStartingWith(reads, bold("Deploys"))[1]).toContain(
       `deploys of the last ${PRODUCTION_REVIEW_WINDOWS.deploysDays} days`,
     );
+    expect(rowStartingWith(reads, bold("Data"))[1]).toContain(
+      "migrations and dbt models",
+    );
     expect(Object.values(ProductionReviewSection).sort()).toEqual(
       [
+        "Data",
         "Deploys",
         "Exceptions",
         "Incidents",
