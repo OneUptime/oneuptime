@@ -20,7 +20,8 @@ worker and the telemetry writer run the App's image.
 
 Iron Bank's onboarding team picks the final Repo1 paths; keep each manifest's
 `name` the same as its path. PostgreSQL, ClickHouse, Valkey and kubectl are
-already in Iron Bank, so the chart can run those from Registry1 as they are.
+already in Iron Bank, and [values.yaml](values.yaml) runs them from Registry1
+with OneUptime's four images ("Installing from Registry1" below).
 
 [Justifications](Justifications) is not pushed to Repo1. It records, per
 project, the findings OneUptime has justified in VAT.
@@ -136,6 +137,58 @@ Registry1 credentials are two repository secrets, `REGISTRY1_USERNAME` and
 issue in [dccscr](https://repo1.dso.mil/dsop/dccscr/-/issues/new), and Iron
 Bank emails the credentials. Without the secrets, the workflow runs steps 1 to
 3 and warns.
+
+One more job, **Install the chart from Iron Bank's images**, builds all four
+images under the names they will have on Registry1, and installs the Helm chart
+with [values.yaml](values.yaml) on a KinD cluster, on Iron Bank's own PostgreSQL,
+ClickHouse and Valkey (`HelmChart/Tests/suites/iron-bank-install.sh`). It fails
+when a workload does not become ready, when OneUptime's schema does not reach a
+database, or when ClickHouse refuses something OneUptime sends as beyond its
+version.
+
+## Installing from Registry1
+
+[values.yaml](values.yaml) runs every image the chart runs by default from
+Registry1. OneUptime's four images are there once Iron Bank has approved them.
+
+```bash
+kubectl create namespace oneuptime
+```
+
+```bash
+kubectl create secret docker-registry registry1 --namespace oneuptime --docker-server=registry1.dso.mil --docker-username=<Registry1 username> --docker-password=<Registry1 CLI secret>
+```
+
+```bash
+helm install oneuptime oneuptime/oneuptime --namespace oneuptime -f values.yaml
+```
+
+What differs from a stock install:
+
+| | Stock install | With these values |
+| --- | --- | --- |
+| PostgreSQL | `postgres:latest` | `opensource/postgres/postgresql:17.11`, as user 1001 |
+| ClickHouse | `clickhouse/clickhouse-server:26.7` | `opensource/clickhouse:26.3.20.7`, as user 998 |
+| Valkey | `valkey/valkey:9.1-alpine` | `opensource/valkey-io/valkey:9.1.3`, as user 1001 |
+| kubectl, for the cleanup CronJobs (off by default) | `bitnami/kubectl:latest` | `opensource/kubernetes/kubectl:v1.36.6` |
+| `helm test` | runs `oneuptime/test` | off: that image is not on Iron Bank |
+
+- **For new installs.** An existing install's data cannot move onto these
+  images: ClickHouse does not support going back from 26.7 to 26.3, and
+  PostgreSQL's data directory belongs to one major version.
+- **ClickHouse is older than the chart's.** Iron Bank carries the 26.3 long-term
+  support line, and OneUptime's other tests run on 26.7. The install job above is
+  what shows OneUptime's schema and background jobs work on 26.3; it does not
+  send telemetry through it.
+- **What the chart leaves off by default is not moved.** Turning on `home`,
+  `pgbouncer`, `vllm` or the ClickHouse Keeper pulls from Docker Hub unless you
+  give `image.overrides` an image for it.
+- **Your own registry.** Each reference in `image.overrides` is used as written,
+  so `global.imageRegistry` does not move them. To mirror Registry1, replace
+  `registry1.dso.mil/ironbank` in the file with your mirror's path.
+- **Valkey's persistence** is off by default. To turn it on, also add `dir /data`
+  to `valkey.commonConfiguration`: Iron Bank's image works in `/home/data`, and
+  the chart mounts the volume at `/data`.
 
 ## Shipping a release to Iron Bank
 
