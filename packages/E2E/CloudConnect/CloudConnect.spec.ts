@@ -3606,6 +3606,11 @@ test.describe("streaming an AWS account's metrics and logs", () => {
     await open(page, "state=connected&https=1&stream=receiving");
 
     await expect(streamLine(page)).toHaveText("Streaming");
+    await expect(streamLine(page)).toHaveAttribute(
+      "title",
+      /^Receiving\. The last delivery came /,
+    );
+    await shoot(page, "stream-list");
 
     await openRowMenu(page);
     await page.getByRole("menuitem", { name: "Stop streaming" }).click();
@@ -3676,6 +3681,8 @@ test.describe("streaming an AWS account's metrics and logs", () => {
     await expect(
       sideMenu(page).getByRole("link", { name: "Logs", exact: true }),
     ).toHaveAttribute("href", `${RESOURCE_PATH}/${NIGHTLY_EXPORT}/logs`);
+
+    await shoot(page, "stream-function-menu");
 
     await openAccounts(page, `${RESOURCE_PATH}/${WEB_ALB}?state=connected`);
     await expect(
