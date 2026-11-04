@@ -460,6 +460,16 @@ describe("agents/OpenStackAgent/install.sh, a fresh install", () => {
       OPENSTACK_EXPORTER_USER: "1000:1000",
       OPENSTACK_CA_FILE: "''",
       COMPOSE_PROFILES: "'openstack-exporter'",
+      OPENSTACK_CONTROL_PLANE_REGION: "'RegionOne'",
+      OPENSTACK_SINGLE_CLOUD_EXPORTER_TARGETS: "'[]'",
+      OPENSTACK_RABBITMQ_TARGETS: "'[]'",
+      OPENSTACK_MARIADB_TARGETS: "'[]'",
+      OPENSTACK_MEMCACHED_TARGETS: "'[]'",
+      OPENSTACK_HAPROXY_TARGETS: "'[]'",
+      OPENSTACK_NETWORK_EXPORTER_TARGETS: "'[]'",
+      OPENSTACK_LIBVIRT_HEALTH_TARGETS: "'[]'",
+      OPENSTACK_LIBVIRT_EXPORTER_TARGETS: "'[]'",
+      OPENSTACK_CEILOMETER_EXPORTER_TARGETS: "'[]'",
     });
     expect(mode(path.join(run.installDir, ".env"))).toBe(0o600);
     expect(run.output).not.toContain("reusing it");

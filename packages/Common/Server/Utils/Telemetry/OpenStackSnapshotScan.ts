@@ -82,14 +82,16 @@ export const OPENSTACK_SERVICE_LABEL: string = "openstack_service";
  * service there does not start giving every cloud a row for it. So are the agent's VM
  * metric jobs left out, which read compute nodes rather than an API to list.
  */
-export const OPENSTACK_SERVICES_EVERY_CLOUD_RUNS: ReadonlySet<string> = new Set([
-  OpenStackServiceType.Identity,
-  OpenStackServiceType.Compute,
-  OpenStackServiceType.Placement,
-  OpenStackServiceType.Network,
-  OpenStackServiceType.Volume,
-  OpenStackServiceType.Image,
-]);
+export const OPENSTACK_SERVICES_EVERY_CLOUD_RUNS: ReadonlySet<string> = new Set(
+  [
+    OpenStackServiceType.Identity,
+    OpenStackServiceType.Compute,
+    OpenStackServiceType.Placement,
+    OpenStackServiceType.Network,
+    OpenStackServiceType.Volume,
+    OpenStackServiceType.Image,
+  ],
+);
 
 /*
  * The exporter's series do not say which region they are from. The agent reads
