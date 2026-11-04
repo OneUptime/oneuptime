@@ -1,6 +1,7 @@
 import { expect, Locator, Page, test } from "@playwright/test";
 import fs from "fs";
 import path from "path";
+import { boxesInOneFrame, FrameBox } from "../SuiteHelpers/Frames";
 import { expectNoSidewaysScroll } from "../SuiteHelpers/PageFit";
 
 /*
@@ -2859,6 +2860,49 @@ const READERS: Array<{ code: string; locale: Record<string, string> }> = [
   { code: "fa", locale: PERSIAN },
 ];
 
+/*
+ * #5702's review: the hero's identifier line is monospace, both its label
+ * and its value - set apart in elements of their own, each took the page's
+ * universal Inter rule until each said font-mono.
+ */
+async function expectIdentifierInMonospace(page: Page): Promise<void> {
+  const fonts: Array<string> = await page
+    .getByTestId("resource-overview-identifier")
+    .evaluate((line: Element): Array<string> => {
+      return Array.from(line.children).map((piece: Element): string => {
+        return getComputedStyle(piece).fontFamily;
+      });
+    });
+
+  expect(fonts).toHaveLength(2);
+  for (const font of fonts) {
+    expect(font).toMatch(/mono/i);
+  }
+}
+
+/*
+ * Each value of a change's title - its operation, its resource - is one
+ * line: it moves to the next line whole, never breaking at its hyphen
+ * ("nightly-" / "export", "sg-" / "0f1e2d3c..." on a phone).
+ */
+async function expectTitleValuesWhole(page: Page): Promise<void> {
+  const values: Array<Locator> = await page
+    .getByTestId("cloud-change-title-value")
+    .all();
+  expect(values.length).toBeGreaterThan(0);
+
+  const lineHeight: number = await page
+    .getByTestId("cloud-change-title")
+    .first()
+    .evaluate((title: Element): number => {
+      return parseFloat(getComputedStyle(title).lineHeight);
+    });
+
+  for (const box of await boxesInOneFrame(values)) {
+    expect(box.height).toBeLessThanOrEqual(lineHeight + 1);
+  }
+}
+
 test.describe("a cloud account and a cloud resource, in German and in Persian", () => {
   for (const reader of READERS) {
     test(`${reader.code}: the account's Overview and Changes`, async ({
@@ -2879,6 +2923,7 @@ test.describe("a cloud account and a cloud resource, in German and in Persian", 
       expect(await readText(identifier)).toBe(
         `${wordIn(reader.locale, "account")}: 123456789012`,
       );
+      await expectIdentifierInMonospace(page);
       // Its status says what it means, under the pointer.
       await expect(
         page.getByTestId("resource-overview-status"),
@@ -2912,6 +2957,26 @@ test.describe("a cloud account and a cloud resource, in German and in Persian", 
         }),
       );
       expect(titles).not.toContain("Failed: DeleteLoadBalancer on web-alb");
+      await expectTitleValuesWhole(page);
+      /*
+       * Each line in its own direction: a change worded in Persian reads
+       * right to left, the health event's English left to right.
+       */
+      const directions: Array<string> = await page
+        .getByTestId("cloud-change-title")
+        .evaluateAll((elements: Array<Element>): Array<string> => {
+          return elements.map((element: Element): string => {
+            return getComputedStyle(element).direction;
+          });
+        });
+      expect(directions).toContain("ltr");
+      if (reader.code === "fa") {
+        expect(directions).toContain("rtl");
+      }
+      await expect(page.getByTestId("cloud-change-detail")).toHaveCSS(
+        "direction",
+        "ltr",
+      );
       await expectNoSidewaysScroll(page, { tolerance: 1 });
       await shoot(page, `account-changes-${reader.code}`);
     });
@@ -2963,6 +3028,7 @@ test.describe("a cloud account and a cloud resource, in German and in Persian", 
           },
         );
       expect(reading).toEqual({ direction: "ltr", startVisible: true });
+      await expectIdentifierInMonospace(page);
 
       // How it is run, in words.
       await expect(
@@ -2978,6 +3044,24 @@ test.describe("a cloud account and a cloud resource, in German and in Persian", 
         wordIn(reader.locale, "Security Group"),
       );
       await expect(connected).not.toContainText("AWS::EC2::");
+      /*
+       * A name and its kind in reading order, with the gap between them:
+       * on a Persian page "web-1" and "EC2 Instance" read as one Latin run,
+       * left to right, with no gap (#5702's review).
+       */
+      const webOne: Locator = connected
+        .getByTestId("cloud-connected-resource")
+        .filter({ hasText: "web-1" });
+      const [name, kind]: Array<FrameBox> = await boxesInOneFrame([
+        webOne.getByTestId("cloud-connected-resource-name"),
+        webOne.getByTestId("cloud-connection-type"),
+      ]);
+      const gap: number =
+        reader.code === "fa"
+          ? name!.x - (kind!.x + kind!.width)
+          : kind!.x - (name!.x + name!.width);
+      expect(gap).toBeGreaterThanOrEqual(4);
+      expect(gap).toBeLessThanOrEqual(12);
       await expectNoSidewaysScroll(page, { tolerance: 1 });
       await shoot(page, `resource-overview-${reader.code}`);
 

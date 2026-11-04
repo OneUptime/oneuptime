@@ -61,6 +61,7 @@ import PermissionUtil from "Common/UI/Utils/Permission";
 import ProjectUtil from "Common/UI/Utils/Project";
 import UserUtil from "Common/UI/Utils/User";
 import { setPageLanguage } from "Common/UI/Utils/PageLanguage";
+import { followLanguageForDates } from "Common/UI/Utils/DateDisplayLanguage";
 
 /*
  * The fixture page: the real Cloud > Connect page in the real Cloud layout
@@ -175,6 +176,12 @@ await i18next.use(initReactI18next).init({
   nsSeparator: false,
 });
 setPageLanguage(language);
+/*
+ * Dates in the reader's language, as the Dashboard's Utils/i18n.ts sets
+ * them: without it a German or Persian page here wrote "4 minutes ago" and
+ * "Nov 4, 02:04" in English, which no reader of the real page sees.
+ */
+followLanguageForDates(i18next);
 
 const PROJECT_ID = "10000000-0000-4000-8000-000000000001";
 

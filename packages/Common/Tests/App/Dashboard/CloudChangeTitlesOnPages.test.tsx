@@ -333,12 +333,13 @@ describe("a change's title as the Changes list draws it", () => {
     }
 
     expect(CLOUD_CHANGE_TITLE_VALUE_CLASS_NAME.split(" ")).toEqual(
-      expect.arrayContaining([
-        "inline-block",
-        "max-w-full",
-        "[overflow-wrap:anywhere]",
-      ]),
+      expect.arrayContaining(["inline-block", "max-w-full", "break-words"]),
     );
+    /*
+     * Never anywhere: it lowers the least the table's column must hold,
+     * and the table narrowed the column until an operation broke inside.
+     */
+    expect(CLOUD_CHANGE_TITLE_VALUE_CLASS_NAME).not.toContain("anywhere");
   });
 
   test("an operation alone, or one that failed on nothing named, is one box", async () => {

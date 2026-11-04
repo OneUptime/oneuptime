@@ -84,11 +84,15 @@ export function getCloudChangeTitleText(
  * A value of a change's title - its operation, its resource - as a box of
  * its own: it moves to the next line whole rather than breaking at its
  * hyphen ("nightly-" / "export", "sg-" / "0f1e2d3c..." on a phone), and only
- * a value longer than the line is broken, anywhere, inside its box. Set
- * apart (bdi), so a Latin name keeps its place in a Persian sentence.
+ * a value longer than the line is broken, inside its box. Set apart (bdi),
+ * so a Latin name keeps its place in a Persian sentence.
+ *
+ * break-words, never overflow-wrap:anywhere: anywhere lowers what the
+ * table's column must hold, and the table then narrowed "What changed"
+ * until an operation broke inside ("UpdateFunctionCode20150331v" / "2").
  */
 export const CLOUD_CHANGE_TITLE_VALUE_CLASS_NAME: string =
-  "inline-block max-w-full [overflow-wrap:anywhere]";
+  "inline-block max-w-full break-words";
 
 const TitleValue: FunctionComponent<{ text: string }> = (props: {
   text: string;

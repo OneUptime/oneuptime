@@ -1219,12 +1219,23 @@ test.describe("Costs", () => {
     expect(await dailyBars(page)).toEqual({ finished: 29, partlyReported: 1 });
     await expect(breakdownTotal(page)).toHaveText(`${accountSpend} in all`);
 
-    // One account: no breakdown by account.
+    // One account: no breakdown by account, and its card does not offer one.
     await expect(dimensions(page).getByRole("radio")).toHaveText([
       "Services",
       "Regions",
       "Resources",
     ]);
+    await expect(
+      page.getByText("What cost the most, by service, Region or resource.", {
+        exact: true,
+      }),
+    ).toBeVisible();
+    await expect(
+      page.getByText(
+        "What cost the most, by service, Region, account or resource.",
+        { exact: true },
+      ),
+    ).toHaveCount(0);
 
     // Only this account's costs are summed.
     for (const request of (await recorded(page)).aggregateRequests) {
