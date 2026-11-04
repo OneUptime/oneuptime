@@ -16,9 +16,10 @@
 # one a stock install runs. So it asks:
 #
 #   - does every workload become ready, with the migrations finished, on these
-#     images, pulled with the pull secret?
-#   - did OneUptime's schema reach PostgreSQL and ClickHouse, and did ClickHouse
-#     refuse anything OneUptime sent it as beyond its version?
+#     images, pulled with the pull secret, and stay up?
+#   - did OneUptime's schema reach PostgreSQL and ClickHouse, and, after five
+#     minutes of background jobs, did ClickHouse refuse anything OneUptime sent
+#     it as beyond its version?
 #   - does the ingress serve the product, and do the cleanup CronJobs run on Iron
 #     Bank's kubectl, which has no shell of its own to promise?
 #   - does PostgreSQL start again on its own data?
@@ -40,6 +41,7 @@ RELEASE="oneuptime"
 LOCAL_PORT=18080
 READY_SECONDS="${READY_SECONDS:-1200}"
 SCHEMA_SECONDS="${SCHEMA_SECONDS:-300}"
+SOAK_SECONDS="${SOAK_SECONDS:-300}"
 
 in_namespace() {
     kubectl --namespace "$NAMESPACE" "$@"
@@ -181,9 +183,29 @@ fi
 echo "OneUptime's ClickHouse tables, by engine:"
 clickhouse_query "SELECT engine, count() FROM system.tables WHERE database = 'oneuptime' GROUP BY engine ORDER BY engine FORMAT TSV"
 
+# Readiness comes within minutes, so give the background jobs time to run: what
+# follows then sees what they send as well as what booting does.
+echo "Letting the background jobs run for ${SOAK_SECONDS} seconds..."
+sleep "$SOAK_SECONDS"
+
+in_namespace get pods -o wide
+restarted="$(in_namespace get pods -o jsonpath='{range .items[*]}{.metadata.name}{" "}{range .status.containerStatuses[*]}{.restartCount}{" "}{end}{"\n"}{end}' | awk '{ for (i = 2; i <= NF; i++) if ($i != 0) print $1 }' | sort -u)"
+assert_eq "no container has restarted" "" "$restarted"
+
+clickhouse_query "SYSTEM FLUSH LOGS" >/dev/null
+echo "What ClickHouse ran, by kind:"
+clickhouse_query "SELECT query_kind, count() FROM system.query_log WHERE type = 'QueryFinish' GROUP BY query_kind ORDER BY query_kind FORMAT TSV"
+
+# An empty log would refuse nothing too. A check that cannot fail is no check.
+created="$(clickhouse_query "SELECT count() FROM system.query_log WHERE type = 'QueryFinish' AND query_kind = 'Create'")"
+if [[ "$created" =~ ^[0-9]+$ ]] && [ "$created" -gt 0 ]; then
+    pass "ClickHouse's query log holds the ${created} statements that created OneUptime's tables"
+else
+    fail "ClickHouse's query log does not hold the statements that created OneUptime's tables (answer: ${created})"
+fi
+
 # Every query ClickHouse refused, for the log; those a newer server would have
 # taken are what a version older than the chart's would cost.
-clickhouse_query "SYSTEM FLUSH LOGS" >/dev/null
 echo "Queries ClickHouse refused, by error:"
 clickhouse_query "SELECT errorCodeToName(exception_code) AS error, count() AS times, substring(any(exception), 1, 300) FROM system.query_log WHERE exception_code != 0 GROUP BY error ORDER BY times DESC FORMAT TSV"
 TOO_NEW="'UNKNOWN_SETTING', 'SYNTAX_ERROR', 'UNKNOWN_FUNCTION', 'UNKNOWN_AGGREGATE_FUNCTION', 'UNKNOWN_TYPE', 'UNKNOWN_ELEMENT_IN_CONFIG', 'UNKNOWN_STORAGE', 'NOT_IMPLEMENTED'"
