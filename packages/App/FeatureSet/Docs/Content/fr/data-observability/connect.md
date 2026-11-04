@@ -104,6 +104,12 @@ Un catalogue Unity Catalog correspond à une base de données. Connectez-vous av
 ```
 
 Le catalogue, ses colonnes et le dernier commit de chaque table Delta viennent de l'API REST d'Unity Catalog, sans entrepôt SQL : la collecte ne coûte donc aucune ressource de calcul. Les contrôles, ainsi que le lignage et les dernières lectures tirés de `system.access.table_lineage` une fois par heure, s'exécutent sur l'entrepôt SQL que vous indiquez ; accordez-y **Can use** au principal de service.
+@tab Amazon Athena
+Une base de données Glue est une base de données. Ses tables et vues, leurs colonnes et statistiques, et le dernier commit de chaque table Iceberg viennent de l'API du Glue Data Catalog, qui ne lit aucune donnée et ne coûte rien. Les contrôles s'exécutent comme des requêtes Athena dans le workgroup que vous indiquez. Connectez-vous avec les clés d'un utilisateur ou d'un rôle IAM autorisé à appeler `glue:GetDatabase` et `glue:GetTables` et, pour les contrôles, à exécuter des requêtes Athena dans le workgroup avec un accès en lecture aux données des tables :
+
+```json
+{ "region": "us-east-1", "accessKeyId": "AKIA...", "secretAccessKey": "...", "database": "analytics", "workgroup": "primary", "outputLocation": "s3://acme-athena-results/oneuptime/" }
+```
 :::
 
 ## Ce qui est lu, et à quelle fréquence

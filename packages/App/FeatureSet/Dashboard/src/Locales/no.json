@@ -42150,6 +42150,7 @@
   "Writes unused tables": "Skriver ubrukte tabeller",
   "{{bytes}} billed": "{{bytes}} fakturert",
   "{{credits}} credits": "{{credits}} kreditter",
+  "Amazon Athena": "Amazon Athena",
   "{{writes}} writes, {{failed}} failed, in the hour last seen {{time}}": "{{writes}} writes, {{failed}} failed, in the hour last seen {{time}}",
   "Every table has been read in the last {{days}} days, or its reads cannot be counted yet.": "Every table has been read in the last {{days}} days, or its reads cannot be counted yet.",
   "Last Written": "Last Written",

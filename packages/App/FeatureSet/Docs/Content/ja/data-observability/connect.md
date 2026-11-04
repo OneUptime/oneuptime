@@ -104,6 +104,12 @@ Unity Catalog のカタログ 1 つが 1 つのデータベースです。サー
 ```
 
 カタログ、その列、各 Delta テーブルの最後のコミットは、SQL ウェアハウスを使わずに Unity Catalog の REST API から取得するため、収集にコンピュートのコストはかかりません。チェック、そして `system.access.table_lineage` からのリネージと最終読み取り (1 時間に 1 回) は、指定した SQL ウェアハウスで実行されます。サービスプリンシパルに、そのウェアハウスに対する **Can use** を付与してください。
+@tab Amazon Athena
+1 つの Glue データベースが 1 つのデータベースです。テーブルとビュー、その列と統計、各 Iceberg テーブルの最後のコミットは Glue Data Catalog の API から読み取り、データは読まず、費用もかかりません。チェックは指定したワークグループで Athena クエリとして実行されます。`glue:GetDatabase` と `glue:GetTables` を呼び出せ、チェックのためにテーブルのデータへの読み取りアクセスを持ってワークグループで Athena クエリを実行できる IAM ユーザーまたはロールのキーで接続します:
+
+```json
+{ "region": "us-east-1", "accessKeyId": "AKIA...", "secretAccessKey": "...", "database": "analytics", "workgroup": "primary", "outputLocation": "s3://acme-athena-results/oneuptime/" }
+```
 :::
 
 ## 読み取る内容と頻度

@@ -13,8 +13,9 @@ import {
  * PostgreSQL protocol with its own catalog views; Snowflake, over its SQL API
  * (SnowflakeSqlApi); Google BigQuery, each dataset with its Google Cloud
  * connection's service account (BigQueryApi); ClickHouse, over its HTTP
- * interface (ClickHouseHttpApi); and Databricks, a Unity Catalog catalog at
- * a time (DatabricksApi). Data Security's own list and engine mapping are
+ * interface (ClickHouseHttpApi); Databricks, a Unity Catalog catalog at a
+ * time (DatabricksApi); and Amazon Athena, a Glue database at a time
+ * (AthenaApi). Data Security's own list and engine mapping are
  * left as they are: it does not sample a warehouse.
  */
 
@@ -25,6 +26,7 @@ export const DATA_OBSERVABILITY_KINDS: ReadonlyArray<DataStoreKind> = [
   DataStoreKind.GcpBigQueryDataset,
   DataStoreKind.ClickHouse,
   DataStoreKind.Databricks,
+  DataStoreKind.AwsAthena,
 ];
 
 export const DATA_OBSERVABILITY_ENGINES: ReadonlyArray<DatabaseEngine> = [
@@ -36,6 +38,7 @@ export const DATA_OBSERVABILITY_ENGINES: ReadonlyArray<DatabaseEngine> = [
   "bigquery",
   "clickhouse",
   "databricks",
+  "athena",
 ];
 
 export function getCollectorEngineOfKind(
@@ -59,6 +62,10 @@ export function getCollectorEngineOfKind(
 
   if (kind === DataStoreKind.Databricks) {
     return "databricks";
+  }
+
+  if (kind === DataStoreKind.AwsAthena) {
+    return "athena";
   }
 
   return getDatabaseEngineOfKind(kind);

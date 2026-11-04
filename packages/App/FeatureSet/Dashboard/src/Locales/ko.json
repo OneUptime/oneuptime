@@ -42150,6 +42150,7 @@
   "Writes unused tables": "사용되지 않는 테이블을 씀",
   "{{bytes}} billed": "{{bytes}} 청구됨",
   "{{credits}} credits": "{{credits}} 크레딧",
+  "Amazon Athena": "Amazon Athena",
   "{{writes}} writes, {{failed}} failed, in the hour last seen {{time}}": "{{writes}} writes, {{failed}} failed, in the hour last seen {{time}}",
   "Every table has been read in the last {{days}} days, or its reads cannot be counted yet.": "Every table has been read in the last {{days}} days, or its reads cannot be counted yet.",
   "Last Written": "Last Written",

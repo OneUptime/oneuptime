@@ -104,6 +104,12 @@ Eén catalogus van Unity Catalog is één database. Maak verbinding met een serv
 ```
 
 De catalogus, de kolommen ervan en de laatste commit van elke Delta-tabel komen uit de REST API van Unity Catalog, zonder SQL-warehouse, dus het verzamelen kost geen rekenkracht. Controles, en herkomst en laatste leesacties uit `system.access.table_lineage` eens per uur, draaien op het SQL-warehouse dat je opgeeft; geef de service principal daarop **Can use**.
+@tab Amazon Athena
+Eén Glue-database is één database. De tabellen en views, hun kolommen en statistieken en de laatste commit van elke Iceberg-tabel komen uit de API van de Glue Data Catalog, die geen gegevens leest en niets kost. Controles draaien als Athena-query's in de workgroup die je opgeeft. Maak verbinding met de sleutels van een IAM-gebruiker of -rol die `glue:GetDatabase` en `glue:GetTables` mag aanroepen en voor controles Athena-query's in de workgroup mag uitvoeren met leestoegang tot de gegevens van de tabellen:
+
+```json
+{ "region": "us-east-1", "accessKeyId": "AKIA...", "secretAccessKey": "...", "database": "analytics", "workgroup": "primary", "outputLocation": "s3://acme-athena-results/oneuptime/" }
+```
 :::
 
 ## Wat wordt gelezen, en hoe vaak

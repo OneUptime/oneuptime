@@ -43,6 +43,7 @@ export enum DataStoreKind {
   Snowflake = "Snowflake",
   ClickHouse = "ClickHouse",
   Databricks = "Databricks",
+  AwsAthena = "Amazon Athena",
   TelemetryLogs = "Logs",
   TelemetryTraces = "Traces",
   TelemetryExceptions = "Exceptions",
@@ -188,6 +189,9 @@ export const DATA_STORE_KINDS: ReadonlyArray<DataStoreKindInfo> = [
   kind(K.Snowflake, P.SelfManaged, F.Warehouse),
   kind(K.ClickHouse, P.SelfManaged, F.Warehouse),
   kind(K.Databricks, P.SelfManaged, F.Warehouse),
+  kind(K.AwsAthena, P.Aws, F.Warehouse, {
+    cloudResourceType: "AWS::Glue::Database",
+  }),
   kind(K.TelemetryLogs, P.OneUptime, F.Telemetry, {
     contentScannable: true,
     icon: IconProp.Logs,

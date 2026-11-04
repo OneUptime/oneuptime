@@ -118,6 +118,14 @@ GRANT USE SCHEMA, SELECT ON SCHEMA system.access TO \`oneuptime-reader\`;
 -- Checks read rows: SELECT on the tables they check. And CAN USE on the SQL warehouse.
 \`\`\`
 
+Amazon Athena: one Glue database is a database. Its tables and views, their columns and statistics, and each Iceberg table's last commit come from the Glue Data Catalog's API, which reads no data and costs nothing; checks run as Athena queries in the workgroup you name. Connect with the keys of an IAM user or role that may read the Glue database and run Athena queries:
+
+\`\`\`json
+{ "region": "us-east-1", "accessKeyId": "AKIA...", "secretAccessKey": "...", "database": "analytics", "workgroup": "primary", "outputLocation": "s3://acme-athena-results/oneuptime/" }
+\`\`\`
+
+It needs \`glue:GetDatabase\` and \`glue:GetTables\` on the database and its tables, and for checks \`athena:StartQueryExecution\`, \`athena:GetQueryExecution\`, \`athena:GetQueryResults\` and \`athena:StopQueryExecution\` on the workgroup, with read access to the tables' S3 data and write access to the output location.
+
 ## Metrics every table writes
 
 Each collection writes these for every table, so you can chart them, put them on dashboards and alert on them like any other metric:
