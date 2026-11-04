@@ -9,7 +9,14 @@ import {
   jest,
   test,
 } from "@jest/globals";
-import { act, cleanup, render, screen, within } from "@testing-library/react";
+import {
+  act,
+  cleanup,
+  fireEvent,
+  render,
+  screen,
+  within,
+} from "@testing-library/react";
 import i18next from "i18next";
 import { initReactI18next } from "react-i18next";
 import fs from "fs";
@@ -29,13 +36,19 @@ jest.mock("../../../UI/Components/Markdown.tsx/LazyMarkdownViewer", () => {
 import RemediationStep, {
   REMEDIATION_APPROVAL_NOTE,
 } from "../../../../App/FeatureSet/Dashboard/src/Components/AutoRemediation/RemediationStep";
+import { REMEDIATION_FIX_DISMISS } from "../../../../App/FeatureSet/Dashboard/src/Components/AutoRemediation/RemediationStepCopy";
 import { REMEDIATION_STEP_STATUS_TEXT } from "../../../../App/FeatureSet/Dashboard/src/Components/AutoRemediation/RemediationStepStatus";
 import AutoRemediationDecision from "../../../Models/DatabaseModels/AutoRemediationDecision";
 import AutoRemediationSuggestion from "../../../Models/DatabaseModels/AutoRemediationSuggestion";
+import HTTPErrorResponse from "../../../Types/API/HTTPErrorResponse";
 import AutoRemediationSuggestionStatus from "../../../Types/AutoRemediation/AutoRemediationSuggestionStatus";
+import AutoRemediationSuggestionType from "../../../Types/AutoRemediation/AutoRemediationSuggestionType";
+import { RemediationTrackRecordOutcome } from "../../../Types/AutoRemediation/RemediationTrackRecord";
 import ListResult from "../../../Types/BaseDatabase/ListResult";
 import { JSONObject } from "../../../Types/JSON";
 import ObjectID from "../../../Types/ObjectID";
+import { FIX_DISMISS_REFUSED_MESSAGE } from "../../../Types/Runbook/RunbookRunPermissions";
+import API from "../../../UI/Utils/API/API";
 import ModelAPI from "../../../UI/Utils/ModelAPI/ModelAPI";
 import { goTo, PROJECT_ID } from "./SideMenuHarness";
 
@@ -278,5 +291,81 @@ describe("the Remediation step in Japanese", () => {
     expect(
       screen.queryByTestId("remediation-decision-heading"),
     ).not.toBeInTheDocument();
+  });
+
+  test("a runbook's fix: how it went before, Dismiss fix - never the shared Hide - and Dismiss fix refused, all in the reader's words", async () => {
+    serve({
+      suggestions: [
+        Object.assign(new AutoRemediationSuggestion(), {
+          _id: "0193c0de-6666-4aaa-8bbb-000000000016",
+          status: AutoRemediationSuggestionStatus.Suggested,
+          suggestionType: AutoRemediationSuggestionType.Runbook,
+          ruleNameSnapshot: "Restart checkout",
+          runbookNameSnapshot: "Restart the checkout pods",
+          runbookTrackRecord: {
+            workedCount: 3,
+            didNotWorkCount: 0,
+            runs: [
+              {
+                subjectKind: "incident",
+                subjectId: "0193c0de-aaaa-4aaa-8bbb-00000000001a",
+                subjectNumber: "INC-41",
+                ranAt: "2026-10-28T10:00:00.000Z",
+                outcome: RemediationTrackRecordOutcome.Worked,
+              },
+            ],
+          },
+          createdAt: new Date("2026-10-05T10:00:00Z"),
+        }),
+      ],
+      entries: [],
+    });
+    jest.spyOn(ModelAPI, "getCommonHeaders").mockReturnValue({});
+    jest
+      .spyOn(API, "post")
+      .mockResolvedValue(
+        new HTTPErrorResponse(
+          403,
+          { message: FIX_DISMISS_REFUSED_MESSAGE },
+          {},
+        ) as never,
+      );
+
+    render(
+      <RemediationStep
+        investigationStage="reported"
+        incidentId={INCIDENT_ID}
+      />,
+    );
+
+    const trackRecord: HTMLElement = await screen.findByTestId(
+      "remediation-runbook-track-record",
+    );
+    expect(trackRecord).toHaveTextContent(
+      japanese("Worked all {{count}} times it ran here before").replace(
+        "{{count}}",
+        "3",
+      ),
+    );
+
+    const dismiss: HTMLElement = screen.getByTestId(
+      "remediation-dismiss-button",
+    );
+    expect(dismiss).toHaveTextContent(japanese(REMEDIATION_FIX_DISMISS));
+    // The shared Dismiss is Japanese's Hide: a fix is not hidden.
+    expect(JA["Dismiss"]).toBe(JA["Hide"]);
+    expect(dismiss).not.toHaveTextContent(JA["Hide"]!);
+
+    await act(async (): Promise<void> => {
+      fireEvent.click(dismiss);
+    });
+
+    const notice: HTMLElement = await screen.findByTestId(
+      "remediation-action-error",
+    );
+    expect(notice).toHaveTextContent(
+      japanese("Could not save your action: the suggestion was not dismissed"),
+    );
+    expect(notice).toHaveTextContent(japanese(FIX_DISMISS_REFUSED_MESSAGE));
   });
 });

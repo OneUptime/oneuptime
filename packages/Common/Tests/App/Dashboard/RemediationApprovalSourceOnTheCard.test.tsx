@@ -176,24 +176,17 @@ describe("the Remediation step's approval line", () => {
     ).toBe("Slack で承認されました");
   });
 
-  test("its words are the step's copy, and the step reads where from the fix", () => {
+  test("its words are the step's copy (the step reads where from the fix: RemediationRunbookFixOnTheCard)", () => {
     expect(REMEDIATION_FIX_STEP_COPY.approvedByInSlack).toBe(
       "Approved by {{name}} in Slack",
     );
     expect(REMEDIATION_FIX_STEP_COPY.approvedByInTeams).toBe(
       "Approved by {{name}} in Microsoft Teams",
     );
-
-    const step: string = fs.readFileSync(
-      path.resolve(
-        __dirname,
-        "../../../../App/FeatureSet/Dashboard/src/Components/AutoRemediation/RemediationStep.tsx",
-      ),
-      "utf8",
+    expect(REMEDIATION_FIX_STEP_COPY.approvedInSlack).toBe("Approved in Slack");
+    expect(REMEDIATION_FIX_STEP_COPY.approvedInTeams).toBe(
+      "Approved in Microsoft Teams",
     );
-
-    expect(step).toContain("approvedFrom: true,");
-    expect(step).toContain("runbookTrackRecord: true,");
   });
 });
 
