@@ -7,10 +7,10 @@ import AggregationType from "Common/Types/BaseDatabase/AggregationType";
 import InBetween from "Common/Types/BaseDatabase/InBetween";
 import SortOrder from "Common/Types/BaseDatabase/SortOrder";
 import {
-  CLOUD_SAVING_KIND_LABELS,
   CloudSavingKind,
   addUtcDays,
   getCloudCostResourceKey,
+  getCloudSavingActionText,
   getMostCommonCloudCurrency,
   startOfUtcDay,
   startOfUtcMonth,
@@ -304,10 +304,11 @@ const CloudResourceCostCard: FunctionComponent<ComponentProps> = (
                   >
                     <div className="min-w-0">
                       <div className="break-words text-sm font-medium text-gray-900">
-                        {recommendation.action ||
-                          translator.translateText(
-                            CLOUD_SAVING_KIND_LABELS[kind],
-                          )}
+                        {getCloudSavingActionText({
+                          action: recommendation.action,
+                          kind,
+                          translateText: translator.translateText,
+                        })}
                       </div>
                       {change ? (
                         /*

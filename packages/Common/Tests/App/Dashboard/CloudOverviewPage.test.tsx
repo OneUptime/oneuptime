@@ -495,6 +495,15 @@ describe("with accounts connected", () => {
     expect(
       screen.getByTestId("cloud-app-platforms-environments"),
     ).toHaveAttribute("href", expect.stringContaining("/app-platforms"));
+    /*
+     * App Platforms' lists hold every environment: the one in an account
+     * no connection here reads is said, so the list it opens adds up.
+     */
+    expect(
+      screen.getByTestId("cloud-app-platforms-other-environments"),
+    ).toHaveTextContent(
+      "The lists also hold 1 environment in an account Cloud does not read, and its apps.",
+    );
 
     const request: { modelType: unknown; query: Record<string, unknown> } =
       countSpy.mock.calls[0]![0];

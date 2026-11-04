@@ -39873,7 +39873,7 @@
   "Cloud Run service": "Cloud Run サービス",
   "Cloud SQL instance": "Cloud SQL インスタンス",
   "Compute Engine VM": "Compute Engine VM",
-  "Container App": "Container App",
+  "Container App": "コンテナー アプリ",
   "Didn't work here": "ここで効果なし",
   "Didn't work any of the {{count}} times it ran here before": "ここで以前に実行された {{count}} 回すべてで効果がありませんでした",
   "Didn't work any of the {{count}} times it ran here before_one": "ここで以前に実行された 1 回では効果がありませんでした",
@@ -41671,5 +41671,17 @@
   "Which of our cloud accounts are connected, and is any of them no longer being read?": "接続されているクラウド アカウントはどれですか？もう読み取られていないものはありますか？",
   "Which of this account's resources need attention, and why?": "このアカウントのどのリソースに対応が必要ですか？その理由は？",
   "cloud account": "クラウド アカウント",
-  "cloud accounts": "クラウド アカウント"
+  "cloud accounts": "クラウド アカウント",
+  "Change machine type": "マシンタイプを変更",
+  "Delete address": "アドレスを削除",
+  "Delete disk": "ディスクを削除",
+  "Delete image": "イメージを削除",
+  "Migrate to Graviton": "Graviton に移行",
+  "Purchase Reserved Instances": "リザーブドインスタンスを購入",
+  "Purchase Savings Plans": "Savings Plans を購入",
+  "Scale in": "スケールイン",
+  "Snapshot and delete disk": "スナップショットを作成してディスクを削除",
+  "Stop VM": "VM を停止",
+  "The lists also hold {{count}} environments in accounts Cloud does not read, and their apps.": "一覧には、クラウドが読み取らないアカウントの環境 {{count}} 件とそのアプリも含まれます。",
+  "The lists also hold {{count}} environments in accounts Cloud does not read, and their apps._one": "一覧には、クラウドが読み取らないアカウントの環境 {{count}} 件とそのアプリも含まれます。"
 }

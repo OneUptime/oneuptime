@@ -41671,5 +41671,17 @@
   "Which of our cloud accounts are connected, and is any of them no longer being read?": "Which of our cloud accounts are connected, and is any of them no longer being read?",
   "Which of this account's resources need attention, and why?": "Which of this account's resources need attention, and why?",
   "cloud account": "cloud account",
-  "cloud accounts": "cloud accounts"
+  "cloud accounts": "cloud accounts",
+  "Change machine type": "Change machine type",
+  "Delete address": "Delete address",
+  "Delete disk": "Delete disk",
+  "Delete image": "Delete image",
+  "Migrate to Graviton": "Migrate to Graviton",
+  "Purchase Reserved Instances": "Purchase Reserved Instances",
+  "Purchase Savings Plans": "Purchase Savings Plans",
+  "Scale in": "Scale in",
+  "Snapshot and delete disk": "Snapshot and delete disk",
+  "Stop VM": "Stop VM",
+  "The lists also hold {{count}} environments in accounts Cloud does not read, and their apps.": "The lists also hold {{count}} environments in accounts Cloud does not read, and their apps.",
+  "The lists also hold {{count}} environments in accounts Cloud does not read, and their apps._one": "The lists also hold {{count}} environment in an account Cloud does not read, and its apps."
 }

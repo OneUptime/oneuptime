@@ -33,6 +33,12 @@ import AppLink from "../AppLink/AppLink";
  * and their apps, each count a link to its list there, so a reader who
  * came to Cloud for an app finds it one click away. Nothing is drawn while
  * the accounts run none, or when the count cannot be read.
+ *
+ * App Platforms finds an environment from its telemetry, whatever account
+ * it is in, and its lists hold every one: an environment in an account no
+ * connection reads is in them too. The card says how many there are of
+ * those, so a list that holds more than the count it was opened from says
+ * why (#5646's review).
  */
 
 export const APP_PLATFORMS_CARD_TITLE: string = translationKey("App Platforms");
@@ -47,10 +53,18 @@ export const APP_PLATFORMS_APPS: PluralTemplate = {
   one: "{{count}} app",
   other: "{{count}} apps",
 };
+export const APP_PLATFORMS_OTHER_ENVIRONMENTS: PluralTemplate = {
+  one: "The lists also hold {{count}} environment in an account Cloud does not read, and its apps.",
+  other:
+    "The lists also hold {{count}} environments in accounts Cloud does not read, and their apps.",
+};
 
 export interface CloudAppPlatformsCounts {
+  // In the accounts Cloud reads.
   environments: number;
   apps: number;
+  // In accounts no connection here reads: App Platforms lists them too.
+  otherEnvironments: number;
 }
 
 // How an account is matched to an environment: its cloud and its id there.
@@ -73,7 +87,7 @@ export async function fetchCloudAppPlatformsCounts(
   );
 
   if (keys.size === 0) {
-    return { environments: 0, apps: 0 };
+    return { environments: 0, apps: 0, otherEnvironments: 0 };
   }
 
   const environments: ListResult<CloudResource> =
@@ -89,24 +103,27 @@ export async function fetchCloudAppPlatformsCounts(
       limit: LIMIT_PER_PROJECT,
     });
 
-  const ids: Array<ObjectID> = environments.data
+  const listed: Array<CloudResource> = environments.data.filter(
+    (environment: CloudResource): boolean => {
+      return Boolean(environment._id);
+    },
+  );
+  const ids: Array<ObjectID> = listed
     .filter((environment: CloudResource): boolean => {
-      return (
-        Boolean(environment._id) &&
-        keys.has(
-          toAccountKey(
-            (environment.cloudProvider as string) || "",
-            (environment.cloudAccountId as string) || "",
-          ),
-        )
+      return keys.has(
+        toAccountKey(
+          (environment.cloudProvider as string) || "",
+          (environment.cloudAccountId as string) || "",
+        ),
       );
     })
     .map((environment: CloudResource): ObjectID => {
       return new ObjectID(environment._id!.toString());
     });
+  const otherEnvironments: number = listed.length - ids.length;
 
   if (ids.length === 0) {
-    return { environments: 0, apps: 0 };
+    return { environments: 0, apps: 0, otherEnvironments };
   }
 
   const apps: number = await ModelAPI.count({
@@ -114,7 +131,7 @@ export async function fetchCloudAppPlatformsCounts(
     query: { cloudResourceId: new Includes(ids) },
   });
 
-  return { environments: ids.length, apps: apps || 0 };
+  return { environments: ids.length, apps: apps || 0, otherEnvironments };
 }
 
 const CountLink: FunctionComponent<{
@@ -211,6 +228,19 @@ const CloudAppPlatformsCard: FunctionComponent<ComponentProps> = (
             testId="cloud-app-platforms-apps"
           />
         </div>
+        {counts.otherEnvironments > 0 ? (
+          <p
+            data-testid="cloud-app-platforms-other-environments"
+            className="mt-3 text-sm text-gray-500"
+          >
+            {translator.translatePlural(
+              APP_PLATFORMS_OTHER_ENVIRONMENTS,
+              counts.otherEnvironments,
+            )}
+          </p>
+        ) : (
+          <></>
+        )}
       </div>
     </Card>
   );
