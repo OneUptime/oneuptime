@@ -42071,7 +42071,6 @@
   "No reconciliation yet. Create one to compare a table with its copy, such as orders in the app's database and the warehouse, and hear when they drift.": "Ingen avstämning än. Skapa en för att jämföra en tabell med dess kopia, som order i appens databas och i datalagret, och få veta när de glider isär.",
   "One measure of two tables - rows, a sum, distinct values, a query's number - compared, in one database or two, with a tolerance, and an alert when they drift.": "One measure of two tables - rows, a sum, distinct values, a query's number - compared, in one database or two, with a tolerance, and an alert when they drift.",
   "Orders: app vs warehouse": "Orders: app vs warehouse",
-  "Percent": "Procent",
   "Percent compares the difference with the source's value; Absolute with an amount.": "Percent compares the difference with the source's value; Absolute with an amount.",
   "Reconciliation": "Avstämning",
   "Reconciliations": "Avstämningar",

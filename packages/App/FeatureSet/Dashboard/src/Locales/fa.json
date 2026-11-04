@@ -42071,7 +42071,6 @@
   "No reconciliation yet. Create one to compare a table with its copy, such as orders in the app's database and the warehouse, and hear when they drift.": "هنوز هیچ تطبیقی نیست. یکی بسازید تا یک جدول را با نسخه‌اش مقایسه کنید، مانند سفارش‌ها در پایگاه داده برنامه و در انبار داده، و وقتی از هم فاصله گرفتند باخبر شوید.",
   "One measure of two tables - rows, a sum, distinct values, a query's number - compared, in one database or two, with a tolerance, and an alert when they drift.": "One measure of two tables - rows, a sum, distinct values, a query's number - compared, in one database or two, with a tolerance, and an alert when they drift.",
   "Orders: app vs warehouse": "Orders: app vs warehouse",
-  "Percent": "درصد",
   "Percent compares the difference with the source's value; Absolute with an amount.": "Percent compares the difference with the source's value; Absolute with an amount.",
   "Reconciliation": "تطبیق",
   "Reconciliations": "تطبیق‌ها",

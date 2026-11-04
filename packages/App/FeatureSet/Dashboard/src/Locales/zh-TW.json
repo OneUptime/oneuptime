@@ -42071,7 +42071,6 @@
   "No reconciliation yet. Create one to compare a table with its copy, such as orders in the app's database and the warehouse, and hear when they drift.": "還沒有對帳。建立一個，將一張資料表與其副本進行比較，例如應用程式資料庫和資料倉儲中的訂單，並在兩者出現偏差時收到通知。",
   "One measure of two tables - rows, a sum, distinct values, a query's number - compared, in one database or two, with a tolerance, and an alert when they drift.": "One measure of two tables - rows, a sum, distinct values, a query's number - compared, in one database or two, with a tolerance, and an alert when they drift.",
   "Orders: app vs warehouse": "Orders: app vs warehouse",
-  "Percent": "百分比",
   "Percent compares the difference with the source's value; Absolute with an amount.": "Percent compares the difference with the source's value; Absolute with an amount.",
   "Reconciliation": "對帳",
   "Reconciliations": "對帳",

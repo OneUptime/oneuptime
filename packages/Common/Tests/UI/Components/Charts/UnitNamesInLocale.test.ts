@@ -208,9 +208,9 @@ describe("getUnitNameInLanguage", () => {
 
     expect(getUnitNameInLanguage("1", german)).toBe("");
     expect(getUnitNameInLanguage("", german)).toBe("");
-    expect(getUnitNameInLanguage("{reconciliations}", german)).toBe(
-      "Reconciliations",
-    );
+    // A word no locale has (Data Observability made "Reconciliations" one).
+    expect(locale("de")["Sprockets"]).toBeUndefined();
+    expect(getUnitNameInLanguage("{sprockets}", german)).toBe("Sprockets");
     // "Tasks" is a word the Dashboard says in German.
     expect(getUnitNameInLanguage("{tasks}", german)).toBe(
       String(locale("de")["Tasks"]),

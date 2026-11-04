@@ -42071,7 +42071,6 @@
   "No reconciliation yet. Create one to compare a table with its copy, such as orders in the app's database and the warehouse, and hear when they drift.": "अभी कोई मिलान नहीं। किसी तालिका की उसकी प्रति से तुलना करने के लिए एक बनाएँ, जैसे ऐप के डेटाबेस और वेयरहाउस में ऑर्डर, और जानें कि वे कब अलग होने लगते हैं।",
   "One measure of two tables - rows, a sum, distinct values, a query's number - compared, in one database or two, with a tolerance, and an alert when they drift.": "One measure of two tables - rows, a sum, distinct values, a query's number - compared, in one database or two, with a tolerance, and an alert when they drift.",
   "Orders: app vs warehouse": "Orders: app vs warehouse",
-  "Percent": "प्रतिशत",
   "Percent compares the difference with the source's value; Absolute with an amount.": "Percent compares the difference with the source's value; Absolute with an amount.",
   "Reconciliation": "मिलान",
   "Reconciliations": "मिलान",
