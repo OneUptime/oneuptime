@@ -42604,5 +42604,13 @@
   "From a file": "Aus einer Datei",
   "Problem Reported": "Problem gemeldet",
   "SELECT * FROM orders WHERE total < 0": "SELECT * FROM orders WHERE total < 0",
-  "[{ \"$match\": { \"total\": { \"$lt\": 0 } } }]": "[{ \"$match\": { \"total\": { \"$lt\": 0 } } }]"
+  "[{ \"$match\": { \"total\": { \"$lt\": 0 } } }]": "[{ \"$match\": { \"total\": { \"$lt\": 0 } } }]",
+  "Its tables stop being read and stop counting toward the bill. Their history stays, and so do its monitors, which you can delete.": "Ihre Tabellen werden nicht mehr gelesen und zählen nicht mehr für die Rechnung. Ihr Verlauf bleibt erhalten, ebenso ihre Monitore, die Sie löschen können.",
+  "Stop Watching": "Überwachung beenden",
+  "Stop watching this database?": "Überwachung dieser Datenbank beenden?",
+  "Tables watched: {{count}}, about {{cost}} a month.": "Überwachte Tabellen: {{count}}, etwa {{cost}} im Monat.",
+  "Tables watched: {{count}}. Not charged yet: at the listed price, about {{cost}} a month.": "Überwachte Tabellen: {{count}}. Noch nicht berechnet: zum Listenpreis etwa {{cost}} im Monat.",
+  "The first {{included}} tables are free, then {{price}} a table a month, and {{volumePrice}} above {{threshold}}. Views are free.": "Die ersten {{included}} Tabellen sind kostenlos, danach {{price}} pro Tabelle im Monat und {{volumePrice}} ab {{threshold}}. Views sind kostenlos.",
+  "This project has used its free tables. Add a payment method under Project Settings > Billing to watch more.": "Dieses Projekt hat seine kostenlosen Tabellen ausgeschöpft. Fügen Sie unter Projekteinstellungen > Abrechnung eine Zahlungsmethode hinzu, um weitere zu überwachen.",
+  "Watch Again": "Wieder überwachen"
 }

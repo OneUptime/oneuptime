@@ -1205,6 +1205,21 @@ billing:
   smsHighRiskValueInCents:
   callHighRiskValueInCentsPerMinute:
   allowedActiveMonitorCountInFreePlan: 10
+  # What Data Observability's watched tables cost. Only used with billing.enabled.
+  # A view is free, and so is any table of a database nobody is watching.
+  watchedTables:
+    # Tables every project watches free.
+    includedPerProject: 100
+    # What each table past those costs a month, in USD.
+    pricePerTableInUSD: 1
+    # Past this many tables, each further table costs volumePricePerTableInUSD.
+    volumeThreshold: 1000
+    volumePricePerTableInUSD: 0.25
+    # The Stripe price watched tables bill against: metered, one cent a unit,
+    # aggregating usage as "last during period". OneUptime works out each month's
+    # cost from the rates above and reports it in cents. Leave it empty and nothing
+    # is charged: projects only see what their tables would cost.
+    stripePriceId:
   telemetry:
     averageSpanRowSizeInBytes: 1024
     averageLogRowSizeInBytes: 1024

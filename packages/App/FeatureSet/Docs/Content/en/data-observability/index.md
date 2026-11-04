@@ -60,6 +60,12 @@ Within five minutes its tables appear under **Tables**, each with its rows, size
 On **Databases**, choose **Recommended Alerts** for the database, and add the ones you want: a table that is late, one whose rows fall sharply or run unusually low, one whose columns change, and a database that stops reporting. Each is an ordinary monitor: on-call, owners, maintenance windows and status pages work as for any other.
 :::
 
+## What it costs
+
+On OneUptime Cloud, the first 100 tables of a project are free. Each table after that costs $1 a month, and $0.25 above 1,000. Views are free, and so are the tables of a database you stop watching. A check with an alert is billed as an active monitor. **Databases** and **Overview** show how many tables your project watches and what they cost, and [Pricing](https://oneuptime.com/pricing) has a calculator.
+
+A self-hosted OneUptime pays nothing for tables.
+
 ## Next steps
 
 :::cards

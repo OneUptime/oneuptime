@@ -42604,5 +42604,13 @@
   "From a file": "来自文件",
   "Problem Reported": "问题已报告",
   "SELECT * FROM orders WHERE total < 0": "SELECT * FROM orders WHERE total < 0",
-  "[{ \"$match\": { \"total\": { \"$lt\": 0 } } }]": "[{ \"$match\": { \"total\": { \"$lt\": 0 } } }]"
+  "[{ \"$match\": { \"total\": { \"$lt\": 0 } } }]": "[{ \"$match\": { \"total\": { \"$lt\": 0 } } }]",
+  "Its tables stop being read and stop counting toward the bill. Their history stays, and so do its monitors, which you can delete.": "其表将不再被读取，也不再计入账单。历史记录保留，其监视器也保留，您可以删除它们。",
+  "Stop Watching": "停止监控",
+  "Stop watching this database?": "停止监控此数据库？",
+  "Tables watched: {{count}}, about {{cost}} a month.": "受监控的表：{{count}}，每月约 {{cost}}。",
+  "Tables watched: {{count}}. Not charged yet: at the listed price, about {{cost}} a month.": "受监控的表：{{count}}。尚未收费：按标价每月约 {{cost}}。",
+  "The first {{included}} tables are free, then {{price}} a table a month, and {{volumePrice}} above {{threshold}}. Views are free.": "前 {{included}} 张表免费，之后每张表每月 {{price}}，超过 {{threshold}} 张的部分为 {{volumePrice}}。视图免费。",
+  "This project has used its free tables. Add a payment method under Project Settings > Billing to watch more.": "此项目已用完免费表。要监控更多，请在项目设置 > 账单中添加付款方式。",
+  "Watch Again": "重新监控"
 }

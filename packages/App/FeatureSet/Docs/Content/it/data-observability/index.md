@@ -60,6 +60,12 @@ Entro cinque minuti le sue tabelle compaiono in **Tabelle**, ognuna con le sue r
 In **Database**, scegli **Avvisi consigliati** per il database e aggiungi quelli che vuoi: una tabella in ritardo, una le cui righe calano bruscamente o sono insolitamente poche, una le cui colonne cambiano, e un database che smette di inviare dati. Ognuno è un monitor come gli altri: reperibilità, proprietari, finestre di manutenzione e pagine di stato funzionano come per qualsiasi altro.
 :::
 
+## Quanto costa
+
+Su OneUptime Cloud le prime 100 tabelle di un progetto sono gratuite. Ogni tabella successiva costa 1 $ al mese, e 0,25 $ oltre le 1.000. Le viste sono gratuite, così come le tabelle di un database che smetti di monitorare. Un controllo con un avviso viene fatturato come monitor attivo. **Database** e **Panoramica** mostrano quante tabelle monitora il tuo progetto e quanto costano, e [Prezzi](https://oneuptime.com/pricing) ha un calcolatore.
+
+Un'installazione self-hosted di OneUptime non paga nulla per le tabelle.
+
 ## Passaggi successivi
 
 :::cards

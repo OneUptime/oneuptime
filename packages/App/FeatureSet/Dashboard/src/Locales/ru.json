@@ -42604,5 +42604,13 @@
   "From a file": "Из файла",
   "Problem Reported": "Сообщение о проблеме отправлено",
   "SELECT * FROM orders WHERE total < 0": "SELECT * FROM orders WHERE total < 0",
-  "[{ \"$match\": { \"total\": { \"$lt\": 0 } } }]": "[{ \"$match\": { \"total\": { \"$lt\": 0 } } }]"
+  "[{ \"$match\": { \"total\": { \"$lt\": 0 } } }]": "[{ \"$match\": { \"total\": { \"$lt\": 0 } } }]",
+  "Its tables stop being read and stop counting toward the bill. Their history stays, and so do its monitors, which you can delete.": "Её таблицы перестают читаться и больше не учитываются в счёте. История сохраняется, как и мониторы, которые можно удалить.",
+  "Stop Watching": "Прекратить отслеживание",
+  "Stop watching this database?": "Прекратить отслеживание этой базы данных?",
+  "Tables watched: {{count}}, about {{cost}} a month.": "Отслеживаемые таблицы: {{count}}, примерно {{cost}} в месяц.",
+  "Tables watched: {{count}}. Not charged yet: at the listed price, about {{cost}} a month.": "Отслеживаемые таблицы: {{count}}. Пока не оплачивается: по указанной цене примерно {{cost}} в месяц.",
+  "The first {{included}} tables are free, then {{price}} a table a month, and {{volumePrice}} above {{threshold}}. Views are free.": "Первые таблицы бесплатны ({{included}}), затем {{price}} за таблицу в месяц и {{volumePrice}} свыше {{threshold}}. Представления бесплатны.",
+  "This project has used its free tables. Add a payment method under Project Settings > Billing to watch more.": "Этот проект использовал свои бесплатные таблицы. Добавьте способ оплаты в разделе «Настройки проекта > Биллинг», чтобы отслеживать больше.",
+  "Watch Again": "Отслеживать снова"
 }

@@ -60,6 +60,12 @@ En moins de cinq minutes, ses tables apparaissent sous **Tables**, chacune avec 
 Dans **Bases de données**, choisissez **Alertes recommandées** pour la base de données, et ajoutez celles que vous voulez : une table en retard, une table dont les lignes chutent fortement ou sont anormalement peu nombreuses, une table dont les colonnes changent, et une base de données qui cesse de remonter des données. Chacune est un moniteur ordinaire : l'astreinte, les propriétaires, les fenêtres de maintenance et les pages de statut fonctionnent comme pour n'importe quel autre.
 :::
 
+## Ce que ça coûte
+
+Sur OneUptime Cloud, les 100 premières tables d'un projet sont gratuites. Chaque table suivante coûte 1 $ par mois, et 0,25 $ au-delà de 1 000. Les vues sont gratuites, tout comme les tables d'une base de données que vous ne surveillez plus. Une vérification avec une alerte est facturée comme un moniteur actif. **Bases de données** et **Vue d'ensemble** indiquent combien de tables votre projet surveille et ce qu'elles coûtent, et la page [Tarifs](https://oneuptime.com/pricing) propose un calculateur.
+
+Une installation auto-hébergée de OneUptime ne paie rien pour les tables.
+
 ## Prochaines étapes
 
 :::cards

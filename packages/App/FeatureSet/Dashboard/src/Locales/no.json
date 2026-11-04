@@ -42604,5 +42604,13 @@
   "From a file": "Fra en fil",
   "Problem Reported": "Problem rapportert",
   "SELECT * FROM orders WHERE total < 0": "SELECT * FROM orders WHERE total < 0",
-  "[{ \"$match\": { \"total\": { \"$lt\": 0 } } }]": "[{ \"$match\": { \"total\": { \"$lt\": 0 } } }]"
+  "[{ \"$match\": { \"total\": { \"$lt\": 0 } } }]": "[{ \"$match\": { \"total\": { \"$lt\": 0 } } }]",
+  "Its tables stop being read and stop counting toward the bill. Their history stays, and so do its monitors, which you can delete.": "Tabellene leses ikke lenger og teller ikke med på regningen. Historikken blir værende, og det samme gjør monitorene, som du kan slette.",
+  "Stop Watching": "Stopp overvåking",
+  "Stop watching this database?": "Stoppe overvåkingen av denne databasen?",
+  "Tables watched: {{count}}, about {{cost}} a month.": "Overvåkede tabeller: {{count}}, omtrent {{cost}} i måneden.",
+  "Tables watched: {{count}}. Not charged yet: at the listed price, about {{cost}} a month.": "Overvåkede tabeller: {{count}}. Ikke belastet ennå: til listepris omtrent {{cost}} i måneden.",
+  "The first {{included}} tables are free, then {{price}} a table a month, and {{volumePrice}} above {{threshold}}. Views are free.": "De første {{included}} tabellene er gratis, deretter {{price}} per tabell i måneden, og {{volumePrice}} over {{threshold}}. Visninger er gratis.",
+  "This project has used its free tables. Add a payment method under Project Settings > Billing to watch more.": "Dette prosjektet har brukt opp de gratis tabellene. Legg til en betalingsmåte under Prosjektinnstillinger > Fakturering for å overvåke flere.",
+  "Watch Again": "Overvåk igjen"
 }

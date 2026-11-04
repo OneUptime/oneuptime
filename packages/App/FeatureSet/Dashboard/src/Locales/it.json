@@ -42604,5 +42604,13 @@
   "From a file": "Da un file",
   "Problem Reported": "Problema segnalato",
   "SELECT * FROM orders WHERE total < 0": "SELECT * FROM orders WHERE total < 0",
-  "[{ \"$match\": { \"total\": { \"$lt\": 0 } } }]": "[{ \"$match\": { \"total\": { \"$lt\": 0 } } }]"
+  "[{ \"$match\": { \"total\": { \"$lt\": 0 } } }]": "[{ \"$match\": { \"total\": { \"$lt\": 0 } } }]",
+  "Its tables stop being read and stop counting toward the bill. Their history stays, and so do its monitors, which you can delete.": "Le sue tabelle non vengono più lette e non contano più in fattura. La cronologia resta, e così i suoi monitor, che puoi eliminare.",
+  "Stop Watching": "Interrompi il monitoraggio",
+  "Stop watching this database?": "Interrompere il monitoraggio di questo database?",
+  "Tables watched: {{count}}, about {{cost}} a month.": "Tabelle monitorate: {{count}}, circa {{cost}} al mese.",
+  "Tables watched: {{count}}. Not charged yet: at the listed price, about {{cost}} a month.": "Tabelle monitorate: {{count}}. Non ancora addebitate: al prezzo di listino, circa {{cost}} al mese.",
+  "The first {{included}} tables are free, then {{price}} a table a month, and {{volumePrice}} above {{threshold}}. Views are free.": "Le prime {{included}} tabelle sono gratuite, poi {{price}} a tabella al mese, e {{volumePrice}} oltre {{threshold}}. Le viste sono gratuite.",
+  "This project has used its free tables. Add a payment method under Project Settings > Billing to watch more.": "Questo progetto ha usato le sue tabelle gratuite. Aggiungi un metodo di pagamento in Impostazioni del progetto > Fatturazione per monitorarne altre.",
+  "Watch Again": "Monitora di nuovo"
 }

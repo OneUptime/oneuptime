@@ -42604,5 +42604,13 @@
   "From a file": "फ़ाइल से",
   "Problem Reported": "समस्या की रिपोर्ट हो गई",
   "SELECT * FROM orders WHERE total < 0": "SELECT * FROM orders WHERE total < 0",
-  "[{ \"$match\": { \"total\": { \"$lt\": 0 } } }]": "[{ \"$match\": { \"total\": { \"$lt\": 0 } } }]"
+  "[{ \"$match\": { \"total\": { \"$lt\": 0 } } }]": "[{ \"$match\": { \"total\": { \"$lt\": 0 } } }]",
+  "Its tables stop being read and stop counting toward the bill. Their history stays, and so do its monitors, which you can delete.": "इसकी टेबल पढ़ी जाना और बिल में गिनी जाना बंद हो जाएँगी। इतिहास बना रहेगा, और इसके मॉनिटर भी, जिन्हें आप हटा सकते हैं।",
+  "Stop Watching": "देखना बंद करें",
+  "Stop watching this database?": "इस डेटाबेस को देखना बंद करें?",
+  "Tables watched: {{count}}, about {{cost}} a month.": "देखी जा रही टेबल: {{count}}, लगभग {{cost}} प्रति माह।",
+  "Tables watched: {{count}}. Not charged yet: at the listed price, about {{cost}} a month.": "देखी जा रही टेबल: {{count}}। अभी शुल्क नहीं: सूची मूल्य पर लगभग {{cost}} प्रति माह।",
+  "The first {{included}} tables are free, then {{price}} a table a month, and {{volumePrice}} above {{threshold}}. Views are free.": "पहली {{included}} टेबल मुफ़्त हैं, फिर {{price}} प्रति टेबल प्रति माह, और {{threshold}} से ऊपर {{volumePrice}}। व्यू मुफ़्त हैं।",
+  "This project has used its free tables. Add a payment method under Project Settings > Billing to watch more.": "इस प्रोजेक्ट ने अपनी मुफ़्त टेबल इस्तेमाल कर ली हैं। और देखने के लिए प्रोजेक्ट सेटिंग्स > बिलिंग में भुगतान विधि जोड़ें।",
+  "Watch Again": "फिर से देखें"
 }

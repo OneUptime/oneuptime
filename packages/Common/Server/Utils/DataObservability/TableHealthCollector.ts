@@ -2272,7 +2272,6 @@ export function buildSnowflakeSpendQuery(withAttribution: boolean): string {
     LIMIT ${MAX_SPEND_JOBS}`;
 }
 
-// The tables each job wrote, from ACCESS_HISTORY (Snowflake Enterprise).
 // ACCOUNT_USAGE runs up to three hours behind: a shorter look back would miss what it has not said yet.
 const SNOWFLAKE_ACCOUNT_USAGE_LATENCY_IN_SECONDS: number = 6 * 60 * 60;
 
@@ -2331,7 +2330,12 @@ export function readSnowflakeObjectParts(
 ): { database: string; schema: string; table: string } | null {
   const parts: Array<string> = String(value ?? "").split(".");
 
-  if (parts.length !== 3 || parts.some((part: string) => !part)) {
+  if (
+    parts.length !== 3 ||
+    parts.some((part: string) => {
+      return !part;
+    })
+  ) {
     return null;
   }
 
@@ -2343,6 +2347,7 @@ export function readSnowflakeObjectParts(
   };
 }
 
+// The tables each job wrote, from ACCESS_HISTORY (Snowflake Enterprise).
 export const SNOWFLAKE_WRITTEN_TABLES_QUERY: string = `SELECT q.query_parameterized_hash AS job_key,
     f.value:"objectName"::string AS object_name
   FROM SNOWFLAKE.ACCOUNT_USAGE.ACCESS_HISTORY h,

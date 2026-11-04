@@ -1858,6 +1858,40 @@
                 "allowedActiveMonitorCountInFreePlan": {
                     "type": "integer"
                 },
+                "watchedTables": {
+                    "type": "object",
+                    "description": "What Data Observability's watched tables cost. Only used with billing.enabled.",
+                    "properties": {
+                        "includedPerProject": {
+                            "type": "integer",
+                            "minimum": 0,
+                            "description": "Tables every project watches free."
+                        },
+                        "pricePerTableInUSD": {
+                            "type": "number",
+                            "minimum": 0,
+                            "description": "What each table past the free ones costs a month, in USD."
+                        },
+                        "volumeThreshold": {
+                            "type": "integer",
+                            "minimum": 0,
+                            "description": "Past this many tables, each further table costs volumePricePerTableInUSD."
+                        },
+                        "volumePricePerTableInUSD": {
+                            "type": "number",
+                            "minimum": 0,
+                            "description": "What each table past volumeThreshold costs a month, in USD."
+                        },
+                        "stripePriceId": {
+                            "type": [
+                                "string",
+                                "null"
+                            ],
+                            "description": "The Stripe price watched tables bill against: metered, one cent a unit, aggregating usage as last during period. Empty charges nothing."
+                        }
+                    },
+                    "additionalProperties": false
+                },
                 "telemetry": {
                     "type": "object",
                     "properties": {

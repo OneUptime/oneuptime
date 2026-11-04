@@ -42604,5 +42604,13 @@
   "From a file": "از یک فایل",
   "Problem Reported": "مشکل گزارش شد",
   "SELECT * FROM orders WHERE total < 0": "SELECT * FROM orders WHERE total < 0",
-  "[{ \"$match\": { \"total\": { \"$lt\": 0 } } }]": "[{ \"$match\": { \"total\": { \"$lt\": 0 } } }]"
+  "[{ \"$match\": { \"total\": { \"$lt\": 0 } } }]": "[{ \"$match\": { \"total\": { \"$lt\": 0 } } }]",
+  "Its tables stop being read and stop counting toward the bill. Their history stays, and so do its monitors, which you can delete.": "جدول‌های آن دیگر خوانده نمی‌شوند و در صورت‌حساب حساب نمی‌شوند. تاریخچه می‌ماند و مانیتورهای آن هم می‌مانند که می‌توانید حذفشان کنید.",
+  "Stop Watching": "توقف پایش",
+  "Stop watching this database?": "پایش این پایگاه داده متوقف شود؟",
+  "Tables watched: {{count}}, about {{cost}} a month.": "جدول‌های پایش‌شده: {{count}}، حدود {{cost}} در ماه.",
+  "Tables watched: {{count}}. Not charged yet: at the listed price, about {{cost}} a month.": "جدول‌های پایش‌شده: {{count}}. هنوز هزینه‌ای گرفته نمی‌شود: با قیمت اعلام‌شده حدود {{cost}} در ماه.",
+  "The first {{included}} tables are free, then {{price}} a table a month, and {{volumePrice}} above {{threshold}}. Views are free.": "{{included}} جدول نخست رایگان است، سپس {{price}} برای هر جدول در ماه و بالای {{threshold}}، {{volumePrice}}. نماها رایگان هستند.",
+  "This project has used its free tables. Add a payment method under Project Settings > Billing to watch more.": "این پروژه جدول‌های رایگان خود را مصرف کرده است. برای پایش بیشتر، در تنظیمات پروژه > صورت‌حساب یک روش پرداخت اضافه کنید.",
+  "Watch Again": "پایش دوباره"
 }

@@ -1,4 +1,4 @@
-import Pricing from "../Utils/Pricing";
+import Pricing, { getWatchedTablePricingContent } from "../Utils/Pricing";
 import { getPageSEO, PageSEOData } from "../Utils/PageSEO";
 import { markupAsSpaces } from "../../Common/Tests/Helpers/HtmlText";
 import {
@@ -43,6 +43,7 @@ function pageLocals(): Record<string, unknown> {
   // The locals Routes.ts hands the template, plus homeUrl.
   return {
     pricing: Pricing,
+    watchedTables: getWatchedTablePricingContent(),
     enableGoogleTagManager: false,
     seo: { ...seo, fullCanonicalUrl: `${HOME_URL}/pricing` },
     homeUrl: HOME_URL,

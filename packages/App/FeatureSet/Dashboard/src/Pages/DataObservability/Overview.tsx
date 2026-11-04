@@ -3,6 +3,7 @@ import PageComponentProps from "../PageComponentProps";
 import AppLink from "../../Components/AppLink/AppLink";
 import ConnectDatabaseModal from "../../Components/DataObservability/ConnectDatabaseModal";
 import DataSourceSuggestionsCard from "../../Components/DataObservability/DataSourceSuggestionsCard";
+import WatchedTablesCost from "../../Components/DataObservability/WatchedTablesCost";
 import DataObservabilityApi from "../../Components/DataObservability/DataObservabilityApi";
 import {
   formatOverdue,
@@ -275,6 +276,7 @@ const DataObservabilityOverviewPage: FunctionComponent<
           }
         />
       </EventStatBar>
+      <WatchedTablesCost />
 
       {overview.unusedAssetCount > 0 ? (
         <Card

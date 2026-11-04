@@ -57,7 +57,9 @@ import DataAssetService from "../../Services/DataAssetService";
 import DataStoreService from "../../Services/DataStoreService";
 import MetricService from "../../Services/MetricService";
 import logger from "../Logger";
+import { isBilledAsWatchedTable } from "../../../Types/DataObservability/DataAssetKind";
 import CollectedLineage from "./CollectedLineage";
+import WatchedTableLimit from "./WatchedTableLimit";
 import DataWarehouseSpendIngest from "./DataWarehouseSpendIngest";
 import MonitorMetricUtil from "../Monitor/MonitorMetricUtil";
 import TelemetryUtil from "../Telemetry/Telemetry";
@@ -627,6 +629,18 @@ export default class TableHealthIngest {
     const assetIdByKey: Map<string, ObjectID> = new Map();
     // Columns that appeared whose names say they hold personal data: Data Security's to judge.
     const newPersonalDataColumns: Array<NewPersonalDataColumn> = [];
+    // What the project may add, asked only when there is a new table to add.
+    let roomForNewTables: number = snapshot.tables.some(
+      (table: CollectedTable): boolean => {
+        return (
+          isBilledAsWatchedTable(table.kind) &&
+          !existingByKey.has(getDataTableKey(table.schema, table.name))
+        );
+      },
+    )
+      ? await WatchedTableLimit.getRoomForNewTables(store.projectId)
+      : Number.POSITIVE_INFINITY;
+    let tablesLeftOut: number = 0;
 
     for (const table of snapshot.tables) {
       const key: string = getDataTableKey(table.schema, table.name);
@@ -651,6 +665,16 @@ export default class TableHealthIngest {
         let assetId: ObjectID;
 
         if (!known || !previous) {
+          if (isBilledAsWatchedTable(table.kind)) {
+            if (roomForNewTables <= 0) {
+              tablesLeftOut++;
+              seenKeys.delete(key);
+              continue;
+            }
+
+            roomForNewTables--;
+          }
+
           assetId = await this.createAsset({ store, table, plan, collectedAt });
           result.created++;
 
@@ -771,6 +795,12 @@ export default class TableHealthIngest {
           result.dropped++;
         }
       }
+    }
+
+    if (tablesLeftOut > 0) {
+      snapshot.warnings.push(
+        `${tablesLeftOut} more tables were left out: this project has used its free tables. Add a payment method under Project Settings > Billing to watch them.`,
+      );
     }
 
     await this.writeMetricRows(store.projectId, metricRows);

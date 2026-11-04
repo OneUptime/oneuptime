@@ -173,7 +173,6 @@ export function buildPipelineMetricRow(data: {
   } as JSONObject;
 }
 
-// The stores and tables of a project, read once per request and matched against.
 // An edge a run says it moved data along.
 interface LineageEdgeToKeep {
   // Null for the pipeline-writes-table edge.
@@ -182,6 +181,7 @@ interface LineageEdgeToKeep {
   columnMappings?: Array<DataColumnMapping> | undefined;
 }
 
+// The stores and tables of a project, read once per request and matched against.
 export interface ProjectCatalog {
   stores: Array<UsageStore>;
   assets: Array<UsageAsset>;
