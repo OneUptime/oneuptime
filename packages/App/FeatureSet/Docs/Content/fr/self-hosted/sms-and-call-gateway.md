@@ -33,7 +33,7 @@ La passerelle remplace le compte Twilio propre au serveur pour tout ce qui passe
 4. Cliquez sur **Send Test**. Votre passerelle doit répondre avec un statut 2xx et ne rien envoyer.
 :::
 
-Pour remplacer le secret, videz **Signing Secret** sous **Plus de champs** et enregistrez : OneUptime en crée un nouveau. Pour revenir à Twilio, choisissez **Twilio** et enregistrez.
+Pour remplacer le secret, videz **Secret de signature** sous **Plus de champs** et enregistrez : OneUptime en crée un nouveau. Pour revenir à Twilio, choisissez **Twilio** et enregistrez.
 
 ## Ce que reçoit votre passerelle
 
@@ -116,7 +116,7 @@ Le journal des SMS ou des appels, et pour une alerte d'astreinte le journal d'as
 
 ## Requêtes de test
 
-**Send test** envoie une requête avec `event` à `test`, et `to`, `project` et `actions` à `null`. Répondez-y avec un statut 2xx et n'envoyez rien.
+**Envoyer un test** envoie une requête avec `event` à `test`, et `to`, `project` et `actions` à `null`. Répondez-y avec un statut 2xx et n'envoyez rien.
 
 ## Étapes suivantes
 

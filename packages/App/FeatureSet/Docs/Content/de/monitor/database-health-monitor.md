@@ -160,7 +160,7 @@ Die Sonde erkennt Azure SQL Database an `SERVERPROPERTY('EngineEdition')` statt 
 :::steps
 ### Einen neuen Monitor beginnen
 
-Gehen Sie zu **Monitore** und klicken Sie auf **Monitor erstellen**. Klicken Sie unter **Monitortyp** auf **Weitere Monitortypen** und wählen Sie **Datenbank-Integrität** unter **Database Monitoring**, oder geben Sie `health` in das Suchfeld ein. Geben Sie einen **Name** ein und klicken Sie dann auf **Weiter**.
+Gehen Sie zu **Monitore** und klicken Sie auf **Monitor erstellen**. Klicken Sie unter **Monitortyp** auf **Weitere Monitortypen** und wählen Sie **Datenbank-Integrität** unter **Datenbanküberwachung**, oder geben Sie `health` in das Suchfeld ein. Geben Sie einen **Name** ein und klicken Sie dann auf **Weiter**.
 
 ### Die Verbindungsdaten eingeben
 

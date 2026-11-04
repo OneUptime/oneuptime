@@ -62,7 +62,7 @@ Appen viser ét projekt ad gangen: tryk på projektets navn øverst på en skær
 
 :::steps
 ### Find enheden i dashboardet
-Åbn **Brugerindstillinger → Notifikationsmetoder** og fanen **Push Notifications** i dashboardet. Din iPhone eller iPad står under **Enheder til push-notifikationer** med sit modelnavn. Hvert projekt har sin egen liste.
+Åbn **Brugerindstillinger → Notifikationsmetoder** og fanen **Push-notifikationer** i dashboardet. Din iPhone eller iPad står under **Enheder til push-notifikationer** med sit modelnavn. Hvert projekt har sin egen liste.
 
 ### Send en test
 Klik på **Testnotifikation** i enhedens række. En notifikation kommer frem på enheden; tryk på den for at åbne appen.
@@ -130,7 +130,7 @@ Appen kunne ikke nå `https://<your-oneuptime>/api/status`. Tjek adressen, inklu
 
 :::details Der kommer ingen notifikationer
 - Tjek, at **Tillad notifikationer** er slået til under **Indstillinger → Notifikationer → OneUptime On-Call**, og at intet Fokus holder alarmer tilbage.
-- Tjek, at enheden står under **Push Notifications** i **Brugerindstillinger → Notifikationsmetoder**, og send den en **Testnotifikation**.
+- Tjek, at enheden står under **Push-notifikationer** i **Brugerindstillinger → Notifikationsmetoder**, og send den en **Testnotifikation**.
 - Er enheden markeret som **Modtager ikke notifikationer**, så åbn appen, mens du er logget ind. Den registrerer enheden igen; se [Når en telefon skal registreres igen](/docs/mobile-desktop-apps/faq-troubleshooting#når-en-telefon-skal-registreres-igen).
 - Tjek dine vagtregler under **Brugerindstillinger → Vagtregler**.
 - På et selv-hostet OneUptime skal du tjekke, at din server kan nå sit push-relæ: se [Push-notifikationer](/docs/self-hosted/push-notifications#netværksadgang).

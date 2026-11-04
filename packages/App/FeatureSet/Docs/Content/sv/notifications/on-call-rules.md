@@ -101,7 +101,7 @@ En allvarlighetsgrad som ditt projekt lägger till senare får regler inom någr
 Ett larm som ändå inte hittar någon regel skickas till dina verifierade metoder i alla fall, och du får ett e-postmeddelande om det; se [När ingen regel matchar](/docs/notifications/index#när-ingen-regel-matchar).
 
 :::details Stäng av en allvarlighetsgrad med avsikt
-API:et kan spara en avregistreringsregel, med `isOptOut` satt och utan metod: då larmas du inte alls för den typen av larm och den allvarlighetsgraden, och ingenting tar över. Raden visar **Muted - notifications turned off for this rule**, och att ta bort den slår på larmen igen. En allvarlighetsgrad som läggs till senare blir också tyst när varje regel du har på den fliken är en avregistrering.
+API:et kan spara en avregistreringsregel, med `isOptOut` satt och utan metod: då larmas du inte alls för den typen av larm och den allvarlighetsgraden, och ingenting tar över. Raden visar **Tystad – aviseringar avstängda för den här regeln**, och att ta bort den slår på larmen igen. En allvarlighetsgrad som läggs till senare blir också tyst när varje regel du har på den fliken är en avregistrering.
 :::
 
 :::details Stäng av reservlösningen för ett helt projekt
@@ -115,7 +115,7 @@ Projektägare och administratörer kan se och ändra samma sida för alla i proj
 ## Felsökning
 
 :::details Min telefon var tyst vid ett kritiskt larm
-Kontrollera att regelns push är **Kritiskt larm** och inte **Normal**, och att **Kritiska larm** är påslaget för telefonen under **Användarinställningar → Aviseringsmetoder**, på fliken **Push Notifications**.
+Kontrollera att regelns push är **Kritiskt larm** och inte **Normal**, och att **Kritiska larm** är påslaget för telefonen under **Användarinställningar → Aviseringsmetoder**, på fliken **Push-aviseringar**.
 :::
 
 :::details Jag larmas två gånger för varje incident

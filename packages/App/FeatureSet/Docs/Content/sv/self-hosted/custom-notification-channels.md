@@ -1,9 +1,9 @@
 # Anpassade aviseringskanaler
 
-En anpassad kanal skickar jourlarm till en tjänst som du driver: ditt företags egen app, ett personsökarsystem eller en gateway som kontrollerar vad som lämnar ditt nätverk. Du lägger till den en gång, för hela servern, och alla kan larmas via den utan att ställa in något. I Admin Dashboard heter de **Custom Channels**.
+En anpassad kanal skickar jourlarm till en tjänst som du driver: ditt företags egen app, ett personsökarsystem eller en gateway som kontrollerar vad som lämnar ditt nätverk. Du lägger till den en gång, för hela servern, och alla kan larmas via den utan att ställa in något. I Admin Dashboard heter de **Anpassade kanaler**.
 
 > [!NOTE]
-> Anpassade kanaler ingår i [OneUptime Enterprise Edition](/docs/self-hosted/enterprise) och kräver en Enterprise-licens som omfattar dem. Community Edition har ingen sida **Custom Channels** och skickar ingenting till en kanal. Se [Utan licens](#utan-licens).
+> Anpassade kanaler ingår i [OneUptime Enterprise Edition](/docs/self-hosted/enterprise) och kräver en Enterprise-licens som omfattar dem. Community Edition har ingen sida **Anpassade kanaler** och skickar ingenting till en kanal. Se [Utan licens](#utan-licens).
 
 :::cards
 - [Lägg till en kanal](#lägg-till-en-kanal): Ett namn, en URL och en signeringshemlighet.
@@ -31,18 +31,18 @@ När en jourpolicy larmar någon och personens jourregel använder kanalen skick
 
 ## Lägg till en kanal
 
-1. Öppna **Inställningar** i Admin Dashboard, sedan **Notifieringar > Custom Channels** i sidomenyn (**Notifieringar** är hopfällt från början), och välj **Add**.
+1. Öppna **Inställningar** i Admin Dashboard, sedan **Notifieringar > Anpassade kanaler** i sidomenyn (**Notifieringar** är hopfällt från början), och välj **Add**.
 2. Fyll i steget **Channel**:
    - **Namn**: det som personer ser i sina aviseringsmetoder och jourregler, till exempel `CorpoApp`.
    - **Webhook URL**: dit OneUptime skickar varje larm. Den kan ligga i ditt privata nätverk.
-   - **Signing Secret**: OneUptime skapar en åt dig. Kopiera den till din tjänst, som kontrollerar varje begäran med den. Du kan se den igen genom att redigera kanalen.
-3. Spara i steget **Delivery** och välj sedan **Send test** för att skicka en [testbegäran](#testbegäranden) till din tjänst.
+   - **Signeringshemlighet**: OneUptime skapar en åt dig. Kopiera den till din tjänst, som kontrollerar varje begäran med den. Du kan se den igen genom att redigera kanalen.
+3. Spara i steget **Delivery** och välj sedan **Skicka test** för att skicka en [testbegäran](#testbegäranden) till din tjänst.
 
 I steget **Delivery** är **Page everyone through this channel** påslaget. OneUptime lägger då till kanalen i allas jourregler i varje projekt, och i reglerna för alla som går med i ett projekt senare, och använder den för att nå en jourhavande som saknar regel för det som utlöstes. Stäng av det för att låta personer lägga till kanalen i sina regler själva.
 
-Personer ser kanalen under **Användarinställningar**, sedan **Aviseringsmetoder**, sedan **Custom Channels**, med knappen **Send test**, och väljer den i sina jourregler som `Custom Channel: CorpoApp`. De ställer inte in något: din tjänst får veta vem varje larm gäller.
+Personer ser kanalen under **Användarinställningar**, sedan **Aviseringsmetoder**, sedan **Anpassade kanaler**, med knappen **Skicka test**, och väljer den i sina jourregler som `Custom Channel: CorpoApp`. De ställer inte in något: din tjänst får veta vem varje larm gäller.
 
-För att sluta skicka utan att ändra någons regler redigerar du kanalen och stänger av **På**. Larm som skulle ha gått till den registreras i jourloggen som inte skickade. Tar du bort en kanal tas alla jourregler som använder den bort.
+För att sluta skicka utan att ändra någons regler väljer du **Inaktivera** i kanalens ⋯-meny, eller redigerar kanalen och stänger av **På**; **Aktivera** i samma meny slår på den igen. Larm som skulle ha gått till den registreras i jourloggen som inte skickade. Tar du bort en kanal tas alla jourregler som använder den bort.
 
 ## Vad din tjänst tar emot
 
@@ -149,7 +149,7 @@ Svaret talar om vad som hände, med ord som din app kan visa som de är:
 
 ## Andra aviseringar
 
-Larm är inte de enda aviseringar som personer får: OneUptime talar också om när en incident som de äger byter tillstånd, när en anteckning publiceras, när deras jourpass börjar, med mera. Var och en väljer vart var och en av dem ska gå under **Användarinställningar > Aviseringsinställningar**, som har en kolumn **Custom Channels** så länge en kanal är påslagen. Den är avstängd för alla tills de slår på den själva.
+Larm är inte de enda aviseringar som personer får: OneUptime talar också om när en incident som de äger byter tillstånd, när en anteckning publiceras, när deras jourpass börjar, med mera. Var och en väljer vart var och en av dem ska gå under **Användarinställningar > Aviseringsinställningar**, som har en kolumn **Anpassade kanaler** så länge en kanal är påslagen. Den är avstängd för alla tills de slår på den själva.
 
 En avisering går till varje påslagen kanal, som en begäran per kanal, med `event` satt till `notification`:
 
@@ -186,7 +186,7 @@ Utfallet av varje försök finns i personens jourlogg, med kanalens namn och den
 
 ## Testbegäranden
 
-**Send test**, på sidan i Admin Dashboard eller bland en persons aviseringsmetoder, skickar en begäran med `event` satt till `test`, personen som tryckte som `user`, och `notificationId`, `record` och `actions` satta till `null`. Använd den för att prova din tjänst innan ett riktigt larm kommer.
+**Skicka test**, på sidan i Admin Dashboard eller bland en persons aviseringsmetoder, skickar en begäran med `event` satt till `test`, personen som tryckte som `user`, och `notificationId`, `record` och `actions` satta till `null`. Använd den för att prova din tjänst innan ett riktigt larm kommer.
 
 ## Utan licens
 
@@ -194,6 +194,7 @@ Anpassade kanaler fungerar under Enterprise Editions provperiod på 14 dagar och
 
 - **Ingenting skickas till en anpassad kanal.** Ett larm som skulle ha gått till en registreras i personens jourlogg som inte skickat, och det gör även ett test.
 - **Kanaler erbjuds inte längre.** De försvinner från personers aviseringsmetoder, jourregler och aviseringsinställningar, och beredskapen och reservlösningen slutar räkna med dem.
+- **Teamets efterlevnad kontrollerar inte anpassade kanaler.** En efterlevnadsregel för ett team som kräver en anpassad kanal visar **Inte kontrollerad**, och medlemmar kontrolleras inte för den förrän en anpassad kanal åter kan bära ett larm.
 - **Sidan är skrivskyddad.** Du kan se och ta bort kanaler, men inte lägga till eller ändra dem, och ingen kan rikta en regel eller en aviseringsinställning mot en kanal.
 - **Ingenting tas bort.** Kanalerna, och de jourregler och inställningar som använder dem, behålls.
 

@@ -149,7 +149,7 @@ ALTER SERVER ROLE ##MS_ServerStateReader## ADD MEMBER oneuptime_health;
 
 En innesluttet databasebruker (`CREATE USER oneuptime_health WITH PASSWORD = '...'` i den overvåkede databasen, uten pålogging) fungerer med `VIEW DATABASE STATE` fra S2 og oppover, men kan ikke bli medlem av `##MS_ServerStateReader##`: serverroller tar bare pålogginger. For å flytte en innesluttet bruker til rollen sletter du den (`DROP USER oneuptime_health;`) og følger setningene ovenfor.
 
-Proben gjenkjenner Azure SQL Database på `SERVERPROPERTY('EngineEdition')` og ikke på versjonen — Azure SQL Database rapporterer `12.0.2000.8` uansett hva den faktisk kjører, noe som leses som SQL Server 2014. Derfor viser monitorens **Engine** `Azure SQL Database 12.0.2000.8`, og en manglende rettighet vises som Azure-setningen ovenfor, aldri som `VIEW SERVER STATE`.
+Proben gjenkjenner Azure SQL Database på `SERVERPROPERTY('EngineEdition')` og ikke på versjonen — Azure SQL Database rapporterer `12.0.2000.8` uansett hva den faktisk kjører, noe som leses som SQL Server 2014. Derfor viser monitorens **Motor** `Azure SQL Database 12.0.2000.8`, og en manglende rettighet vises som Azure-setningen ovenfor, aldri som `VIEW SERVER STATE`.
 
 - **Replikering samles ikke inn på Azure SQL Database.** Azure SQL Database har ingen `sys.dm_hadr_database_replica_states`, så gruppen Replication hoppes over der i stedet for å bli rapportert som feilet ved hver kontroll. Azures egne replikavisninger (`sys.dm_database_replica_states`, `sys.dm_geo_replication_link_status`) leses ikke ennå.
 - **Tilkoblinger gjelder per database.** Med `VIEW DATABASE STATE` viser Azure SQL Database bare øktene til den overvåkede databasen, så Connections teller den databasen og ikke den logiske serveren. Overvåk hver database du bryr deg om.
@@ -160,7 +160,7 @@ Proben gjenkjenner Azure SQL Database på `SERVERPROPERTY('EngineEdition')` og i
 :::steps
 ### Start en ny monitor
 
-Gå til **Monitorer** og klikk på **Opprett monitor**. Under **Monitortype** klikker du på **Flere monitortyper** og velger **Database Health** under **Database Monitoring**, eller skriver `health` i søkefeltet. Skriv inn et **Navn**, og klikk deretter på **Neste**.
+Gå til **Monitorer** og klikk på **Opprett monitor**. Under **Monitortype** klikker du på **Flere monitortyper** og velger **Database Health** under **Databaseovervåking**, eller skriver `health` i søkefeltet. Skriv inn et **Navn**, og klikk deretter på **Neste**.
 
 ### Fyll inn tilkoblingsinformasjonen
 

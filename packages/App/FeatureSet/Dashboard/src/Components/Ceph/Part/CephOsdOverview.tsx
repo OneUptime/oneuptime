@@ -173,7 +173,7 @@ const CephOsdOverview: FunctionComponent<ComponentProps> = (
           data-testid="ceph-osd-tiles"
         >
           <GoldenMetricTile
-            title={tx("Used")}
+            title="Used"
             icon={IconProp.Disc}
             iconColor="blue"
             value={formatShare(readings.usedPercent)}
@@ -199,7 +199,7 @@ const CephOsdOverview: FunctionComponent<ComponentProps> = (
             description={CEPH_METRIC_DESCRIPTIONS.osdUsedTile}
           />
           <GoldenMetricTile
-            title={tx("Apply Latency")}
+            title="Apply Latency"
             icon={IconProp.Clock}
             iconColor="amber"
             value={
@@ -224,7 +224,7 @@ const CephOsdOverview: FunctionComponent<ComponentProps> = (
             description={CEPH_METRIC_DESCRIPTIONS.osdLatencyTile}
           />
           <GoldenMetricTile
-            title={tx("Placement Groups")}
+            title="Placement Groups"
             icon={IconProp.SquareStack}
             iconColor="violet"
             value={
@@ -232,7 +232,7 @@ const CephOsdOverview: FunctionComponent<ComponentProps> = (
                 ? "—"
                 : translator.formatNumber(Math.round(readings.pgCount))
             }
-            sublabel={tx("held on this OSD")}
+            sublabel="held on this OSD"
             description={CEPH_METRIC_DESCRIPTIONS.osdPlacementGroups}
           />
         </div>

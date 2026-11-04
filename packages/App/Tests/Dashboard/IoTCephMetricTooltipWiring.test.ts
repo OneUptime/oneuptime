@@ -416,9 +416,9 @@ describe("Ceph cluster overview", () => {
   ] as Array<[string, CephMetric]>)(
     "the %s tile passes its description, its title in the reader's words",
     (title: string, key: CephMetric) => {
-      // The tile draws its title as it is given: the page looks it up.
+      // The page hands the tile its English title: the tile translates it.
       expect(code).toContain(
-        `<GoldenMetricTile title={tx("${title}")} description={CEPH_METRIC_DESCRIPTIONS.${key}}`,
+        `<GoldenMetricTile title="${title}" description={CEPH_METRIC_DESCRIPTIONS.${key}}`,
       );
     },
   );
@@ -429,7 +429,7 @@ describe("Ceph cluster overview", () => {
     expect(
       count(
         code,
-        /<GoldenMetricTile title=\{tx\("[^"]+"\)\} description=\{CEPH_METRIC_DESCRIPTIONS\.\w+\}/g,
+        /<GoldenMetricTile title="[^"]+" description=\{CEPH_METRIC_DESCRIPTIONS\.\w+\}/g,
       ),
     ).toBe(4);
   });
@@ -862,7 +862,7 @@ describe("an OSD's page", () => {
   ] as Array<[string, CephMetric]>)(
     "the %s tile carries its description",
     (title: string, key: CephMetric) => {
-      expect(segment(overview, `title={tx("${title}")}`, "/>")).toContain(
+      expect(segment(overview, `title="${title}"`, "/>")).toContain(
         `description={CEPH_METRIC_DESCRIPTIONS.${key}}`,
       );
     },
@@ -910,7 +910,7 @@ describe("a pool's page", () => {
   ] as Array<[string, CephMetric]>)(
     "the %s tile carries its description",
     (title: string, key: CephMetric) => {
-      expect(segment(overview, `title={tx("${title}")}`, "/>")).toContain(
+      expect(segment(overview, `title="${title}"`, "/>")).toContain(
         `description={CEPH_METRIC_DESCRIPTIONS.${key}}`,
       );
     },

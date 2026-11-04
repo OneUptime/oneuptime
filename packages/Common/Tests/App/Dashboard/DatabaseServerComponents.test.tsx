@@ -961,6 +961,19 @@ describe("DatabaseEngineMetricsSection", () => {
     expect(
       screen.getByRole("button", { name: "About Connections" }),
     ).toBeInTheDocument();
+    /*
+     * Its title is one line, cut short on a narrow tile (a German
+     * "Replikationsverzögerung"), and whole under the pointer.
+     */
+    for (const tileTitle of screen.getAllByTestId(
+      "database-engine-metric-tile-title",
+    )) {
+      expect(tileTitle.className).toContain("truncate");
+      expect(tileTitle).toHaveAttribute("title", tileTitle.textContent || "");
+    }
+    expect(
+      screen.getAllByTestId("database-engine-metric-tile-title")[0],
+    ).toHaveAttribute("title", "Connections");
 
     // Only metrics that returned points are charted; counters say "per second".
     const titles: Array<string> = screen

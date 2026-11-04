@@ -160,7 +160,7 @@ La sonda reconoce Azure SQL Database por `SERVERPROPERTY('EngineEdition')` y no 
 :::steps
 ### Empezar un monitor nuevo
 
-Ve a **Monitores** y haz clic en **Crear monitor**. En **Tipo de monitor**, haz clic en **Más tipos de monitor** y elige **Salud de la base de datos** en **Database Monitoring**, o escribe `health` en el cuadro de búsqueda. Escribe un **Nombre** y haz clic en **Siguiente**.
+Ve a **Monitores** y haz clic en **Crear monitor**. En **Tipo de monitor**, haz clic en **Más tipos de monitor** y elige **Salud de la base de datos** en **Monitoreo de bases de datos**, o escribe `health` en el cuadro de búsqueda. Escribe un **Nombre** y haz clic en **Siguiente**.
 
 ### Introducir los datos de conexión
 

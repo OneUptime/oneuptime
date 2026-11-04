@@ -267,7 +267,7 @@ Podman 主机通过 Podman 的 Docker 兼容 API 运行相同的 `docker` CLI �
 OneUptime 会通过账户的只读连接，亲自实时读取 AWS 账户、Azure 订阅或 Google Cloud 项目（参见 [连接云账户](/docs/telemetry/cloud-accounts)）：这些读取在 OneUptime 上运行，不需要代理，因此无论关联的账户中是否运行着云 AI 代理，调查都会读取它。一条命令是 `cloud`，加上固定目录中的一项操作和一个资源的 ID，写法与账户清单中列出的完全一致：例如 ARN `arn:aws:ecs:us-east-1:123456789012:service/prod/web`、Azure 资源 ID `/subscriptions/00000000-0000-0000-0000-000000000000/resourceGroups/prod/providers/Microsoft.Web/sites/web`，或 Google Cloud 完整资源名称 `//run.googleapis.com/projects/my-project/locations/us-central1/services/web`。从不会有 `aws`、`az` 或 `gcloud` 命令，并且标志只能使用长格式，每个只能给出一次。
 
 - `cloud describe RESOURCE`——资源的实时设置和状态。在 AWS 上，不属于 ECS 服务、EC2 实例、RDS 实例、Aurora 集群、Auto Scaling 组、Lambda 函数、Lambda 别名、SQS 队列、目标组或负载均衡器的资源，会从 OneUptime 保存的该账户最近一次读取的副本中读取，并标记为 NOT LIVE。
-- `cloud recent-events RESOURCE [--hours N] [--limit N]`——平台最近对该资源做了什么：部署和服务事件、RDS 事件、扩缩活动、资源运行状况和活动日志条目（`--hours` 默认为 6，最多 72）。
+- `cloud recent-events RESOURCE [--hours N] [--limit N]`——平台最近对该资源做了什么：部署和服务事件、RDS 事件、扩缩活动、资源健康状况和活动日志条目（`--hours` 默认为 6，最多 72）。
 - `cloud target-health RESOURCE`——仅限 AWS：目标组或负载均衡器将哪些后端视为健康，以及其他后端为何不健康。
 - `cloud quota-usage RESOURCE [--limit N]`——账户在资源所在区域中针对该资源所属服务的用量与其限额的对比。
 - `cloud read-logs RESOURCE [--filter TEXT] [--minutes N] [--limit N]`——资源的日志行，按从新到旧排列，给出 `--filter` 时只返回包含它的日志行（`--minutes` 默认为 60，最多 1440）。日志行可能包含客户数据，因此在有人开启 **让 AI 修复问题** 中 **更多字段** 下的 **允许 AI 在调查期间读取此账户的日志** 之前，这项读取一直是关闭的；该设置会立即保存，无需运行命令。

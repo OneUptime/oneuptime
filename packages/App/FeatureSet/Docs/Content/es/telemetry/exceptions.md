@@ -56,7 +56,7 @@ Cada fila muestra también a cuántos usuarios afectó la excepción en el inter
 
 ### Elegir qué cuenta como problema
 
-**Problemas**, el predeterminado, oculta los errores de usuario y las denegaciones esperadas, para que la lista muestre lo que necesita una corrección. **User errors** muestra solo esos, y **Todos** muestra cada excepción.
+**Problemas**, el predeterminado, oculta los errores de usuario y las denegaciones esperadas, para que la lista muestre lo que necesita una corrección. **Errores de usuario** muestra solo esos, y **Todos** muestra cada excepción.
 
 ### Buscar y filtrar
 

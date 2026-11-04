@@ -28,17 +28,17 @@ Hver fane i **Varselmetoder** har ett eller flere kort, ett per type metode:
 
 | Kort | Fane | Hva du legger til | Hvordan den verifiseres |
 | --- | --- | --- | --- |
-| **E-poster for varsler** | **Direct Contact** | En e-postadresse | En kode på e-post |
-| **Telefonnumre for SMS-varsler** | **Direct Contact** | Et telefonnummer | En kode på SMS |
-| **Telefonnumre for anropsvarsler** | **Direct Contact** | Et telefonnummer | En kode som leses opp i et anrop, eller ingen for et nummer som er verifisert for SMS |
-| **WhatsApp-numre for varsler** | **Direct Contact** | Et WhatsApp-nummer | En kode på WhatsApp |
-| **Telegram-kontoer for varsler** | **Direct Contact** | Telegram-kontoen din | En melding til OneUptime-boten |
-| **Slack Account for Notifications** | **Workspace Apps** | Slack-kontoen din | Å koble kontoen din til prosjektets arbeidsområde |
-| **Microsoft Teams Account for Notifications** | **Workspace Apps** | Microsoft Teams-kontoen din | Å koble kontoen din til prosjektets arbeidsområde |
-| **Enheter for push-varsler** | **Push Notifications** | En telefon med appen OneUptime On-Call, eller en nettleser | Å registrere enheten |
-| **Webhooks for varsler** | **Webhooks** | Et eget HTTPS-endepunkt | Ingen |
+| **E-poster for varsler** | **Direkte kontakt** | En e-postadresse | En kode på e-post |
+| **Telefonnumre for SMS-varsler** | **Direkte kontakt** | Et telefonnummer | En kode på SMS |
+| **Telefonnumre for anropsvarsler** | **Direkte kontakt** | Et telefonnummer | En kode som leses opp i et anrop, eller ingen for et nummer som er verifisert for SMS |
+| **WhatsApp-numre for varsler** | **Direkte kontakt** | Et WhatsApp-nummer | En kode på WhatsApp |
+| **Telegram-kontoer for varsler** | **Direkte kontakt** | Telegram-kontoen din | En melding til OneUptime-boten |
+| **Slack Account for Notifications** | **Arbeidsområdeapper** | Slack-kontoen din | Å koble kontoen din til prosjektets arbeidsområde |
+| **Microsoft Teams Account for Notifications** | **Arbeidsområdeapper** | Microsoft Teams-kontoen din | Å koble kontoen din til prosjektets arbeidsområde |
+| **Enheter for push-varsler** | **Push-varsler** | En telefon med appen OneUptime On-Call, eller en nettleser | Å registrere enheten |
+| **Webhooks for varsler** | **Webhooker** | Et eget HTTPS-endepunkt | Ingen |
 
-**Workspace Apps** vises bare når prosjektet har koblet til Slack eller Microsoft Teams, og inneholder bare dem det har koblet til. SMS, anrop, WhatsApp og Telegram kan være slått av for hele prosjektet; se [Slå på en kanal for prosjektet](#slå-på-en-kanal-for-prosjektet).
+**Arbeidsområdeapper** vises bare når prosjektet har koblet til Slack eller Microsoft Teams, og inneholder bare dem det har koblet til. SMS, anrop, WhatsApp og Telegram kan være slått av for hele prosjektet; se [Slå på en kanal for prosjektet](#slå-på-en-kanal-for-prosjektet).
 
 ## Legg til og verifiser en metode
 
@@ -47,7 +47,7 @@ E-postadresser, SMS-numre, anropsnumre og WhatsApp-numre verifiseres med en kode
 :::steps
 ### Åpne metodene dine
 
-Gå til **Brukerinnstillinger → Varselmetoder**. **Direct Contact** er den første fanen.
+Gå til **Brukerinnstillinger → Varselmetoder**. **Direkte kontakt** er den første fanen.
 
 ### Legg til adressen
 
@@ -88,12 +88,12 @@ Tilbake i OneUptime klikker du **I've sent the message — check**. Så snart bo
 ## Slack og Microsoft Teams
 
 1. Koble din egen konto til prosjektets arbeidsområde: **Brukerinnstillinger → Arbeidsområde → Slack**, eller **Microsoft Teams**. Se [Slack](/docs/workspace-connections/slack) og [Microsoft Teams](/docs/workspace-connections/microsoft-teams).
-2. Klikk **Add Slack Account** eller **Add Microsoft Teams Account** på fanen **Workspace Apps**. Kontoen er verifisert så snart den er lagt til.
+2. Klikk **Add Slack Account** eller **Add Microsoft Teams Account** på fanen **Arbeidsområdeapper**. Kontoen er verifisert så snart den er lagt til.
 3. Klikk **Send Test Message** i raden dens. Tilkallinger kommer som direktemeldinger fra OneUptime-appen.
 
 ## Push-varsler
 
-Fanen **Push Notifications** viser **Enheter for push-varsler** dine.
+Fanen **Push-varsler** viser **Enheter for push-varsler** dine.
 
 - **En telefon.** Installer appen OneUptime On-Call, koble den til OneUptime-en din, logg inn og tillat varsler: telefonen legger seg selv til i denne listen. Se [Apper – Oversikt](/docs/mobile-desktop-apps/index).
 - **Denne nettleseren.** Klikk **Registrer enhet**, fyll ut **Enhetsnavn**, og tillat varsler når nettleseren spør.
@@ -108,7 +108,7 @@ En webhook sender hver tilkalling som JSON til et HTTPS-endepunkt du eier, slik 
 :::steps
 ### Legg til webhooken
 
-Klikk **Legg til Webhook** på fanen **Webhooks**. Fyll ut **Navn** med noe du kjenner igjen, deretter **Webhook-URL** og **Signeringshemmelighet (valgfritt)**.
+Klikk **Legg til Webhook** på fanen **Webhooker**. Fyll ut **Navn** med noe du kjenner igjen, deretter **Webhook-URL** og **Signeringshemmelighet (valgfritt)**.
 
 ### Send en test
 

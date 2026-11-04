@@ -49,6 +49,9 @@ import { APP_API_URL } from "Common/UI/Config";
 import OneUptimeDate from "Common/Types/Date";
 import EntityType from "Common/Types/Telemetry/EntityType";
 import useTranslateValue from "Common/UI/Utils/Translation";
+import useTranslator from "Common/UI/Utils/UseTranslator";
+import { Translator } from "Common/UI/Utils/TranslateTemplate";
+import { withTranslatedSeriesNames } from "Common/UI/Components/Charts/Utils/SeriesNames";
 import ObjectID from "Common/Types/ObjectID";
 import Route from "Common/Types/API/Route";
 import RouteMap, { RouteUtil } from "../../Utils/RouteMap";
@@ -204,6 +207,8 @@ const EdgeDetailPanel: FunctionComponent<ComponentProps> = (
   props: ComponentProps,
 ): ReactElement => {
   const { translateString } = useTranslateValue();
+  // The lines' names in the reader's words: Calls, Errors, Avg latency.
+  const translator: Translator = useTranslator();
   const fromName: string = props.fromEntity.displayName || "Unknown service";
   const toName: string = props.toEntity.displayName || "Unknown service";
   const historyAvailable: boolean =
@@ -473,7 +478,7 @@ const EdgeDetailPanel: FunctionComponent<ComponentProps> = (
         description: `${fromName} → ${toName}`,
         type: ChartType.LINE,
         props: {
-          data: callSeries,
+          data: withTranslatedSeriesNames(callSeries, translator),
           xAxis,
           yAxis: {
             legend: "Calls",
@@ -500,7 +505,7 @@ const EdgeDetailPanel: FunctionComponent<ComponentProps> = (
           "How long the callee took to answer",
         type: ChartType.LINE,
         props: {
-          data: latencySeries,
+          data: withTranslatedSeriesNames(latencySeries, translator),
           xAxis: latencyXAxis,
           yAxis: {
             legend: "Latency",

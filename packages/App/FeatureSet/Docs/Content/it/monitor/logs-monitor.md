@@ -48,7 +48,7 @@ In **Log da osservare**, impostate **Gravità del log** e **Il messaggio contien
 
 ### Restringere il campo (facoltativo)
 
-Aprite **Altri campi** per filtrare per servizio di telemetria, entità dell'infrastruttura o attributo. Per ricevere un avviso per tunnel, utente o interfaccia invece di uno per l'intero monitor, aggiungete l'attributo in **Group by Attributes** (vedete [Avvisi per gruppo](#avvisi-per-gruppo-group-by)).
+Aprite **Altri campi** per filtrare per servizio di telemetria, entità dell'infrastruttura o attributo. Per ricevere un avviso per tunnel, utente o interfaccia invece di uno per l'intero monitor, aggiungete l'attributo in **Raggruppa per attributi** (vedete [Avvisi per gruppo](#avvisi-per-gruppo-group-by)).
 
 ### Dire quando avvisare
 
@@ -70,8 +70,8 @@ Fate clic su **Crea monitor**. Il monitor si apre sulla sua pagina **Panoramica*
 | **Gravità del log** | Log con una qualsiasi delle gravità scelte. | Vuoto: tutte le gravità |
 | **Il messaggio contiene** | Log il cui corpo contiene questo testo, senza distinzione tra maiuscole e minuscole. | Vuoto: tutti i log |
 | **Finestra temporale** (in **Quando avvisare**) | Log degli ultimi 5 secondi fino alle ultime 24 ore. | **Ultimi 5 minuti** |
-| **Group by Attributes** | Non è un filtro: conta separatamente ogni combinazione di valori di questi attributi. | Vuoto: un solo conteggio |
-| **Risolto per attributi** | Non è un filtro: il log che risolve un gruppo. Compare appena **Group by Attributes** ha un attributo; vedi [Risolto da un log](#risolto-da-un-log). | Vuoto: un gruppo si risolve quando i suoi log si fermano |
+| **Raggruppa per attributi** | Non è un filtro: conta separatamente ogni combinazione di valori di questi attributi. | Vuoto: un solo conteggio |
+| **Risolto per attributi** | Non è un filtro: il log che risolve un gruppo. Compare appena **Raggruppa per attributi** ha un attributo; vedi [Risolto da un log](#risolto-da-un-log). | Vuoto: un gruppo si risolve quando i suoi log si fermano |
 | **Filtra per servizio di telemetria** (in **Altri campi**) | Log di uno qualsiasi dei servizi scelti. | Vuoto: tutti i servizi |
 | **Filtra per entità dell'infrastruttura** (in **Altri campi**) | Log di uno qualsiasi degli host, pod, container e altre entità scelti. | Vuoto: tutte le entità |
 | **Filtra per attributi** (in **Altri campi**) | Log i cui attributi soddisfano ogni condizione. Ogni condizione ha il proprio operatore, come «uguale a» o «contiene». | Vuoto: nessuna condizione |
@@ -157,7 +157,7 @@ Poiché le finestre si sovrappongono, una sola raffica di errori tiene alto il c
 
 ## Avvisi per gruppo (Group By)
 
-**Group by Attributes** divide il conteggio di un monitor log in un conteggio per ogni combinazione distinta di valori degli attributi (uno per tunnel IPsec, per utente VPN, per interfaccia del firewall) e valuta i criteri su ciascun gruppo separatamente. È l'equivalente, per i log, del [Group By](/docs/monitor/metrics-monitor#avvisi-per-serie-group-by) di un monitor metriche.
+**Raggruppa per attributi** divide il conteggio di un monitor log in un conteggio per ogni combinazione distinta di valori degli attributi (uno per tunnel IPsec, per utente VPN, per interfaccia del firewall) e valuta i criteri su ciascun gruppo separatamente. È l'equivalente, per i log, del [Group By](/docs/monitor/metrics-monitor#avvisi-per-serie-group-by) di un monitor metriche.
 
 ### Un avviso per gruppo
 
@@ -193,7 +193,7 @@ Un dispositivo che segnala un tunnel caduto di solito ne segnala anche il ritorn
 
 Prendi un monitor che conta i log con `event.name` = `vpn.tunnel_down`, raggruppati per `event.device` e `vpn.tunnel.name`, con **Risolto per attributi** impostato su `event.name` = `vpn.tunnel_up`. La caduta del tunnel `HQ-Branch1` apre il suo avviso. L'avviso resta aperto per tutta la notte, anche se il firewall non registra più nulla sul tunnel, e si risolve quando il firewall segnala `HQ-Branch1` di nuovo attivo. Se il tunnel cade di nuovo, si apre un nuovo avviso.
 
-- Il campo compare appena **Group by Attributes** ha un attributo. Accetta fino a 10 attributi, e un log di risoluzione li porta tutti.
+- Il campo compare appena **Raggruppa per attributi** ha un attributo. Accetta fino a 10 attributi, e un log di risoluzione li porta tutti.
 - Un log di risoluzione appartiene a un gruppo quando ha i valori del gruppo per gli attributi di raggruppamento, quindi entrambi i tipi di log devono portare quegli attributi.
 - I servizi di telemetria e la finestra di tempo del monitor valgono anche per i log di risoluzione. I suoi filtri di testo e di gravità no: descrivono il problema.
 - Un gruppo il cui log più recente è di risoluzione viene chiuso. Uno che ha registrato di nuovo il problema dopo resta aperto.
@@ -213,7 +213,7 @@ log_component="IPSec" con_name="HQ-Branch1" status="Terminated" message="IPSec C
 1. Create un monitor **Registri** e scegliete **Compare un messaggio**.
 2. Impostate **Il messaggio contiene** su `terminated` e la **Finestra temporale** su **Ultimi 5 minuti**.
 3. In **Altri campi**, aggiungete il filtro di attributo `log_component` = `IPSec`.
-4. In **Group by Attributes**, aggiungete `con_name`.
+4. In **Raggruppa per attributi**, aggiungete `con_name`.
 5. Lasciate la regola su **Più di** `0`, e intitolate l'avviso o l'incidente `IPsec tunnel {{con_name}} terminated`.
 :::
 
@@ -248,7 +248,7 @@ I criteri vengono controllati dall'alto verso il basso e decide la prima corrisp
 :::
 
 :::details Un criterio di anomalia non scatta mai
-Sta ancora imparando: i servizi del monitor non hanno ancora due settimane di storico. Su un monitor con **Group by Attributes**, le condizioni di anomalia non corrispondono mai; usate lì una soglia.
+Sta ancora imparando: i servizi del monitor non hanno ancora due settimane di storico. Su un monitor con **Raggruppa per attributi**, le condizioni di anomalia non corrispondono mai; usate lì una soglia.
 :::
 
 :::details Gli avvisi di gruppo arrivano senza valore di gruppo

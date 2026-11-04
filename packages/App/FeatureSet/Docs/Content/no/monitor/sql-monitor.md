@@ -108,7 +108,7 @@ For strammere rettigheter kan du gi brukeren `SELECT` på bare tabellene spørri
 :::steps
 ### Start en ny monitor
 
-Gå til **Monitorer**, og klikk på **Opprett monitor**. Under **Monitortype** klikker du på **Flere monitortyper** og velger **SQL Query** under **Database Monitoring**, eller skriver `query` i søkefeltet. Skriv inn et **Navn**, og klikk deretter på **Neste**.
+Gå til **Monitorer**, og klikk på **Opprett monitor**. Under **Monitortype** klikker du på **Flere monitortyper** og velger **SQL Query** under **Databaseovervåking**, eller skriver `query` i søkefeltet. Skriv inn et **Navn**, og klikk deretter på **Neste**.
 
 ### Skriv inn tilkoblingsdetaljene
 

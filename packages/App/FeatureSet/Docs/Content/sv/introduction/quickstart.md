@@ -72,7 +72,7 @@ Reglaget lade till en jourregel för incidenter och en för larm. För att se di
 
 ### Välj hur du nås
 
-E-postadressen du loggar in med är redan ett sätt att nå dig. För att också få SMS eller samtal öppnar du **Användarinställningar** i fältet under toppfältet, går till **Aviseringsmetoder** och lägger på fliken **Direct Contact** till ditt nummer under **Telefonnummer för SMS-aviseringar** eller **Telefonnummer för samtalsaviseringar**. Klicka på **Verifiera** och ange koden som OneUptime skickar till dig. Ett verifierat nummer används för jourlarm direkt.
+E-postadressen du loggar in med är redan ett sätt att nå dig. För att också få SMS eller samtal öppnar du **Användarinställningar** i fältet under toppfältet, går till **Aviseringsmetoder** och lägger på fliken **Direktkontakt** till ditt nummer under **Telefonnummer för SMS-aviseringar** eller **Telefonnummer för samtalsaviseringar**. Klicka på **Verifiera** och ange koden som OneUptime skickar till dig. Ett verifierat nummer används för jourlarm direkt.
 :::
 
 > [!NOTE]

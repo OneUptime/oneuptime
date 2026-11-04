@@ -48,7 +48,7 @@ RDAP-forespørsler respekterer sondens innstillinger `HTTP_PROXY_URL` / `HTTPS_P
 :::steps
 ### Start en ny monitor
 
-Gå til **Monitorer**, og klikk på **Opprett monitor**. Klikk på **Flere monitortyper** under **Monitortype**, og velg **Domene** under **Basic Monitoring**.
+Gå til **Monitorer**, og klikk på **Opprett monitor**. Klikk på **Flere monitortyper** under **Monitortype**, og velg **Domene** under **Grunnleggende overvåking**.
 
 ### Gi den et navn
 
