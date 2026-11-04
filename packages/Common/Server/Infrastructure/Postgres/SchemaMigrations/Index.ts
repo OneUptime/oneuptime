@@ -287,6 +287,7 @@ import { AddDataWarehouseSpend1808992400000 } from "./1808992400000-AddDataWareh
 import { WidenThingNameColumns1808992530000 } from "./1808992530000-WidenThingNameColumns";
 import { AddDataCheckReconciliationIndex1808992540000 } from "./1808992540000-AddDataCheckReconciliationIndex";
 import { AddSecurityLogSourceCaseMinimumSeverity1808992580000 } from "./1808992580000-AddSecurityLogSourceCaseMinimumSeverity";
+import { AddCloudRightSizingEvidenceAndBudgetUnusualDays1808992600000 } from "./1808992600000-AddCloudRightSizingEvidenceAndBudgetUnusualDays";
 import { AddConfigurableRuleCriteria1792500000000 } from "./1792500000000-AddConfigurableRuleCriteria";
 import { AddGoogleSecOpsDiagnostics1792300000000 } from "./1792300000000-AddGoogleSecOpsDiagnostics";
 import { AddIncomingCallPolicyPhoneNumbers1792600000000 } from "./1792600000000-AddIncomingCallPolicyPhoneNumbers";
@@ -1776,4 +1777,5 @@ export default [
   WidenThingNameColumns1808992530000,
   AddDataCheckReconciliationIndex1808992540000,
   AddSecurityLogSourceCaseMinimumSeverity1808992580000,
+  AddCloudRightSizingEvidenceAndBudgetUnusualDays1808992600000,
 ];
