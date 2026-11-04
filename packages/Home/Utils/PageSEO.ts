@@ -797,7 +797,7 @@ export const PageSEOConfig: Record<string, PageSEOData> = {
   "/product/data-observability": {
     title: "Data Observability | Freshness & Lineage | OneUptime",
     description:
-      "Know your data is fresh before anyone asks: table freshness, volume and schema changes for PostgreSQL, MySQL, SQL Server, Redshift, Snowflake, BigQuery, ClickHouse and Databricks, with checks, lineage, pipelines and data products. Open source.",
+      "Know your data is fresh before anyone asks: table freshness, volume and schema changes for PostgreSQL, MySQL, SQL Server, Oracle, MongoDB, Redshift, Snowflake, BigQuery, ClickHouse, Databricks and Athena, with checks, lineage, pipelines and data products. Open source.",
     canonicalPath: "/product/data-observability",
     twitterCard: "summary_large_image",
     pageType: "product",
@@ -813,7 +813,7 @@ export const PageSEOConfig: Record<string, PageSEOData> = {
       description:
         "Watch the tables your company relies on: freshness learned from each table's own rhythm, volume and schema changes, checks and reconciliations, lineage from pipelines and query history, and data products with freshness SLAs.",
       features: [
-        "PostgreSQL, MySQL, SQL Server, Redshift, Snowflake, BigQuery, ClickHouse and Databricks",
+        "PostgreSQL, MySQL, SQL Server, Oracle, MongoDB, Redshift, Snowflake, BigQuery, ClickHouse, Databricks and Athena",
         "Reads only the catalog - never a row",
         "Freshness learned from each table's own rhythm",
         "Volume, schema change and unused table detection",

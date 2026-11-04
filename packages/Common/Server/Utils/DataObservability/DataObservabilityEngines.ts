@@ -27,6 +27,8 @@ export const DATA_OBSERVABILITY_KINDS: ReadonlyArray<DataStoreKind> = [
   DataStoreKind.ClickHouse,
   DataStoreKind.Databricks,
   DataStoreKind.AwsAthena,
+  DataStoreKind.Oracle,
+  DataStoreKind.MongoDb,
 ];
 
 export const DATA_OBSERVABILITY_ENGINES: ReadonlyArray<DatabaseEngine> = [
@@ -39,6 +41,8 @@ export const DATA_OBSERVABILITY_ENGINES: ReadonlyArray<DatabaseEngine> = [
   "clickhouse",
   "databricks",
   "athena",
+  "oracle",
+  "mongodb",
 ];
 
 export function getCollectorEngineOfKind(
@@ -66,6 +70,14 @@ export function getCollectorEngineOfKind(
 
   if (kind === DataStoreKind.AwsAthena) {
     return "athena";
+  }
+
+  if (kind === DataStoreKind.Oracle) {
+    return "oracle";
+  }
+
+  if (kind === DataStoreKind.MongoDb) {
+    return "mongodb";
   }
 
   return getDatabaseEngineOfKind(kind);

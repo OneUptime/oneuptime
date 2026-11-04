@@ -9,7 +9,7 @@ Avstamning viser hvilke tabeller hver tabell er bygget fra, og hvilke pipelines 
 | **OpenLineage** | Hver kjøring av en Airflow-, Dagster-, Spark-, dbt- eller Flink-jobb, og tabellene den leste og skrev til |
 | **dbt** | Hva hver modell er bygget fra, hver bygging som en kjøring, og resultatet av hver test |
 | **Fivetran og Airbyte** | Hver synkronisering som en kjøring av koblingen, og råtabellene den laster |
-| **Visninger** | En visning er bygget fra tabellene den er definert på (PostgreSQL, Redshift, MySQL 8, SQL Server, materialiserte visninger i ClickHouse, Databricks) |
+| **Visninger** | En visning er bygget fra tabellene den er definert på (PostgreSQL, Redshift, MySQL 8, SQL Server, Oracle, materialiserte visninger i ClickHouse, Databricks, MongoDB) |
 | **Spørringshistorikk** | En spørring som leste én tabell og skrev til en annen (jobbene i BigQuery, spørringsloggen i Redshift, spørringsloggen i ClickHouse, avstamningstabellen i Databricks) |
 
 Fanen **Opphav** for en tabell viser tabellene den er bygget fra, pipelinene som skriver til den med siste kjøring, og tabellene som er bygget fra den. Hver forbindelse viser hvor den ble sett.

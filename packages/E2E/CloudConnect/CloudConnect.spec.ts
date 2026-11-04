@@ -5,7 +5,7 @@ import {
   FIRST_STRONG_ISOLATE,
   POP_DIRECTIONAL_ISOLATE,
 } from "Common/Types/ReadingDirection";
-import { boxesInOneFrame } from "../SuiteHelpers/Frames";
+import { boxesInOneFrame, FrameBox } from "../SuiteHelpers/Frames";
 import { expectNoSidewaysScroll } from "../SuiteHelpers/PageFit";
 
 /*
@@ -2892,6 +2892,269 @@ test.describe("OneUptime AI on a cloud account", () => {
     await expect(setUpButton(page)).toBeEnabled();
     await expect(page.getByTestId("ai-agent-status-summary")).toHaveCount(0);
   });
+});
+
+/*
+ * ---------------------------------------------------------------------------
+ * A cloud account and a cloud resource in German and in Persian, at a
+ * desktop's width and a phone's (the follow-ups of #5300, part 1): what a
+ * change did is said in the reader's language from what the cloud
+ * recorded - the fixture's rows were written before titles were, as old
+ * rows are - the hero names its identifier in the reader's language and
+ * cuts a long one at its own end, a resource's Details say how it is run in
+ * words, and what it runs in and is protected by has a name, not a cloud
+ * type.
+ * ---------------------------------------------------------------------------
+ */
+
+// FSI, LRI, RLI and PDI: the marks a Persian sentence sets its values apart with.
+const ISOLATE_MARKS: RegExp = /[⁦-⁩]/g;
+
+async function readText(locator: Locator): Promise<string> {
+  return ((await locator.textContent()) || "")
+    .replace(ISOLATE_MARKS, "")
+    .replace(/\s+/g, " ")
+    .trim();
+}
+
+async function changeTitles(page: Page): Promise<Array<string>> {
+  const titles: Locator = page.getByTestId("cloud-change-title");
+  await expect(titles.first()).toBeVisible();
+  const texts: Array<string> = [];
+  for (const title of await titles.all()) {
+    texts.push(await readText(title));
+  }
+  return texts;
+}
+
+const READERS: Array<{ code: string; locale: Record<string, string> }> = [
+  { code: "de", locale: GERMAN },
+  { code: "fa", locale: PERSIAN },
+];
+
+/*
+ * #5702's review: the hero's identifier line is monospace, both its label
+ * and its value - set apart in elements of their own, each took the page's
+ * universal Inter rule until each said font-mono.
+ */
+async function expectIdentifierInMonospace(page: Page): Promise<void> {
+  const fonts: Array<string> = await page
+    .getByTestId("resource-overview-identifier")
+    .evaluate((line: Element): Array<string> => {
+      return Array.from(line.children).map((piece: Element): string => {
+        return getComputedStyle(piece).fontFamily;
+      });
+    });
+
+  expect(fonts).toHaveLength(2);
+  for (const font of fonts) {
+    expect(font).toMatch(/mono/i);
+  }
+}
+
+/*
+ * Each value of a change's title - its operation, its resource - is one
+ * line: it moves to the next line whole, never breaking at its hyphen
+ * ("nightly-" / "export", "sg-" / "0f1e2d3c..." on a phone).
+ */
+async function expectTitleValuesWhole(page: Page): Promise<void> {
+  const values: Array<Locator> = await page
+    .getByTestId("cloud-change-title-value")
+    .all();
+  expect(values.length).toBeGreaterThan(0);
+
+  const lineHeight: number = await page
+    .getByTestId("cloud-change-title")
+    .first()
+    .evaluate((title: Element): number => {
+      return parseFloat(getComputedStyle(title).lineHeight);
+    });
+
+  for (const box of await boxesInOneFrame(values)) {
+    expect(box.height).toBeLessThanOrEqual(lineHeight + 1);
+  }
+}
+
+test.describe("a cloud account and a cloud resource, in German and in Persian", () => {
+  for (const reader of READERS) {
+    test(`${reader.code}: the account's Overview and Changes`, async ({
+      page,
+    }: {
+      page: Page;
+    }) => {
+      await openAccounts(
+        page,
+        `${ACCOUNTS_PATH}/${AWS_ACCOUNT}?state=connected&lang=${reader.code}`,
+      );
+
+      // The hero names the account in the reader's language.
+      const identifier: Locator = page.getByTestId(
+        "resource-overview-identifier",
+      );
+      await expect(identifier).toBeVisible();
+      expect(await readText(identifier)).toBe(
+        `${wordIn(reader.locale, "account")}: 123456789012`,
+      );
+      await expectIdentifierInMonospace(page);
+      // Its status says what it means, under the pointer.
+      await expect(
+        page.getByTestId("resource-overview-status"),
+      ).toHaveAttribute(
+        "title",
+        wordIn(
+          reader.locale,
+          "A cloud connection read this account within the last hour.",
+        ),
+      );
+      await expectNoSidewaysScroll(page, { tolerance: 1 });
+      await shoot(page, `account-overview-${reader.code}`);
+
+      await openAccounts(
+        page,
+        `${ACCOUNTS_PATH}/${AWS_ACCOUNT}/changes?state=connected&lang=${reader.code}`,
+      );
+
+      // What each did, in the reader's words - never the stored English.
+      const titles: Array<string> = await changeTitles(page);
+      expect(titles).toContain(
+        wordIn(reader.locale, "Failed: {{operation}} on {{resource}}", {
+          operation: "DeleteLoadBalancer",
+          resource: "web-alb",
+        }),
+      );
+      expect(titles).toContain(
+        wordIn(reader.locale, "{{operation}} on {{resource}}", {
+          operation: "AuthorizeSecurityGroupIngress",
+          resource: "sg-0f1e2d3c4b5a69788",
+        }),
+      );
+      expect(titles).not.toContain("Failed: DeleteLoadBalancer on web-alb");
+      await expectTitleValuesWhole(page);
+      /*
+       * Each line in its own direction: a change worded in Persian reads
+       * right to left, the health event's English left to right.
+       */
+      const directions: Array<string> = await page
+        .getByTestId("cloud-change-title")
+        .evaluateAll((elements: Array<Element>): Array<string> => {
+          return elements.map((element: Element): string => {
+            return getComputedStyle(element).direction;
+          });
+        });
+      expect(directions).toContain("ltr");
+      if (reader.code === "fa") {
+        expect(directions).toContain("rtl");
+      }
+      await expect(page.getByTestId("cloud-change-detail")).toHaveCSS(
+        "direction",
+        "ltr",
+      );
+      await expectNoSidewaysScroll(page, { tolerance: 1 });
+      await shoot(page, `account-changes-${reader.code}`);
+    });
+
+    test(`${reader.code}: a resource's Overview and Changes`, async ({
+      page,
+    }: {
+      page: Page;
+    }) => {
+      await openAccounts(
+        page,
+        `${RESOURCE_PATH}/${WEB_ALB}?state=connected&lang=${reader.code}`,
+      );
+
+      // The hero says what its identifier is, in the reader's language.
+      const identifier: Locator = page.getByTestId(
+        "resource-overview-identifier",
+      );
+      await expect(identifier).toBeVisible();
+      expect(await readText(identifier)).toBe(
+        `${wordIn(reader.locale, "type")}: Elastic Load Balancer (ALB, NLB, GWLB)`,
+      );
+      /*
+       * A type longer than a phone's line is cut at its own end, in its
+       * own direction: it still says "Elastic", never "…d Balancer".
+       */
+      const reading: { direction: string; startVisible: boolean } = await page
+        .getByTestId("resource-overview-identifier-value")
+        .evaluate(
+          (element: Element): { direction: string; startVisible: boolean } => {
+            /*
+             * What is seen of it: its own box and its line's, either of
+             * which may be the one that cuts it.
+             */
+            const own: DOMRect = element.getBoundingClientRect();
+            const line: DOMRect =
+              element.parentElement!.getBoundingClientRect();
+            const left: number = Math.max(own.left, line.left);
+            const right: number = Math.min(own.right, line.right);
+            const range: Range = document.createRange();
+            range.setStart(element.firstChild!, 0);
+            range.setEnd(element.firstChild!, "Elastic".length);
+            const word: DOMRect = range.getBoundingClientRect();
+            return {
+              direction: getComputedStyle(element).direction,
+              startVisible:
+                word.left >= left - 0.5 && word.right <= right + 0.5,
+            };
+          },
+        );
+      expect(reading).toEqual({ direction: "ltr", startVisible: true });
+      await expectIdentifierInMonospace(page);
+
+      // How it is run, in words.
+      await expect(
+        cardTitled(page, wordIn(reader.locale, "Details")),
+      ).toContainText(wordIn(reader.locale, "Infrastructure (IaaS)"));
+      // What it runs in and is protected by: named, never a cloud type.
+      const connected: Locator = cardTitled(
+        page,
+        wordIn(reader.locale, "Connected Resources"),
+      );
+      await expect(connected).toContainText(wordIn(reader.locale, "Subnet"));
+      await expect(connected).toContainText(
+        wordIn(reader.locale, "Security Group"),
+      );
+      await expect(connected).not.toContainText("AWS::EC2::");
+      /*
+       * A name and its kind in reading order, with the gap between them:
+       * on a Persian page "web-1" and "EC2 Instance" read as one Latin run,
+       * left to right, with no gap (#5702's review).
+       */
+      const webOne: Locator = connected
+        .getByTestId("cloud-connected-resource")
+        .filter({ hasText: "web-1" });
+      const [name, kind]: Array<FrameBox> = await boxesInOneFrame([
+        webOne.getByTestId("cloud-connected-resource-name"),
+        webOne.getByTestId("cloud-connection-type"),
+      ]);
+      const gap: number =
+        reader.code === "fa"
+          ? name!.x - (kind!.x + kind!.width)
+          : kind!.x - (name!.x + name!.width);
+      expect(gap).toBeGreaterThanOrEqual(4);
+      expect(gap).toBeLessThanOrEqual(12);
+      await expectNoSidewaysScroll(page, { tolerance: 1 });
+      await shoot(page, `resource-overview-${reader.code}`);
+
+      await openAccounts(
+        page,
+        `${RESOURCE_PATH}/${WEB_ALB}/changes?state=connected&lang=${reader.code}`,
+      );
+
+      expect(await changeTitles(page)).toEqual([
+        wordIn(reader.locale, "Failed: {{operation}} on {{resource}}", {
+          operation: "DeleteLoadBalancer",
+          resource: "web-alb",
+        }),
+        wordIn(reader.locale, "{{operation}} on {{resource}}", {
+          operation: "ModifyLoadBalancerAttributes",
+          resource: "web-alb",
+        }),
+      ]);
+      await expectNoSidewaysScroll(page, { tolerance: 1 });
+    });
+  }
 });
 
 /*

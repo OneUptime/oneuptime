@@ -256,7 +256,7 @@ export default class SecurityPlaybookRun extends BaseModel {
 
   @ColumnAccessControl(engineColumnAccess)
   @TableColumn({
-    type: TableColumnType.Name,
+    type: TableColumnType.ShortText,
     computed: true,
     canReadOnRelationQuery: true,
     title: "Playbook Name",
@@ -265,8 +265,8 @@ export default class SecurityPlaybookRun extends BaseModel {
   })
   @Column({
     nullable: true,
-    type: ColumnType.Name,
-    length: ColumnLength.Name,
+    type: ColumnType.ShortText,
+    length: ColumnLength.ShortText,
   })
   public playbookName?: string = undefined;
 

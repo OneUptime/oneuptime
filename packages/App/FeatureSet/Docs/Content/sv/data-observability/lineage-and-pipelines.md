@@ -9,7 +9,7 @@ Härkomst visar vilka tabeller varje tabell byggs av, och vilka pipelines som sk
 | **OpenLineage** | Varje körning av ett Airflow-, Dagster-, Spark-, dbt- eller Flink-jobb, och de tabeller det läste och skrev |
 | **dbt** | Vad varje modell byggs av, varje build som en körning, och varje tests resultat |
 | **Fivetran och Airbyte** | Varje synkronisering som en körning av dess anslutning, och de råtabeller den laddar |
-| **Vyer** | En vy byggs av de tabeller den är definierad på (PostgreSQL, Redshift, MySQL 8, SQL Server, materialiserade vyer i ClickHouse, Databricks) |
+| **Vyer** | En vy byggs av de tabeller den är definierad på (PostgreSQL, Redshift, MySQL 8, SQL Server, Oracle, materialiserade vyer i ClickHouse, Databricks, MongoDB) |
 | **Frågehistorik** | En fråga som läste en tabell och skrev till en annan (BigQuerys jobb, Redshifts frågelogg, ClickHouses frågelogg, Databricks härkomsttabell) |
 
 En tabells flik **Härkomst** visar de tabeller den byggs av, de pipelines som skriver till den med deras senaste körning, och de tabeller som byggs av den. Varje kant visar var den sågs.

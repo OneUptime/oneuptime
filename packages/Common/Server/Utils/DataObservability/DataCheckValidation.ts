@@ -9,6 +9,7 @@ import {
 import { DataAssetColumn } from "../../../Types/DataObservability/DataAssetColumn";
 import BadDataException from "../../../Types/Exception/BadDataException";
 import { checkCustomSql } from "./DataCheckSql";
+import { checkMongoPipeline } from "./MongoDbChecks";
 
 /*
  * WHETHER A CHECK CAN RUN, BEFORE IT IS SAVED.
@@ -133,7 +134,11 @@ export function validateDataCheck(
   }
 
   if (type === DataCheckType.CustomSql) {
-    checkCustomSql(draft.customSql || "");
+    if (table.engine === "mongodb") {
+      checkMongoPipeline(draft.customSql || "");
+    } else {
+      checkCustomSql(draft.customSql || "");
+    }
   }
 
   if (

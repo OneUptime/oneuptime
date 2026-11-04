@@ -16,6 +16,15 @@ import Pill from "Common/UI/Components/Pill/Pill";
 import FieldType from "Common/UI/Components/Types/FieldType";
 import ModelAPI, { ListResult } from "Common/UI/Utils/ModelAPI/ModelAPI";
 import ProjectUtil from "Common/UI/Utils/Project";
+import TranslatedSentence from "Common/UI/Components/TranslatedSentence/TranslatedSentence";
+import { Translator } from "Common/UI/Utils/TranslateTemplate";
+import useTranslator from "Common/UI/Utils/UseTranslator";
+import {
+  CloudChangeTitleFacts,
+  getChangeTitleForReader,
+  getCloudChangeTitleSentence,
+  readCloudChangeTitleFacts,
+} from "Common/Utils/Telemetry/CloudChangeTitle";
 import React, {
   FunctionComponent,
   MutableRefObject,
@@ -49,7 +58,10 @@ import {
  * (CloudChangesScope).
  *
  * The words are the cloud's - an operation's name, a principal, a health
- * event's title - shown as written.
+ * event's title - shown as written, in a title worded in the reader's
+ * language from what the change keeps: "DeleteLoadBalancer on web-alb" is
+ * "DeleteLoadBalancer für web-alb" in German (CloudChangeTitle), for rows
+ * written before the resource's name was kept too.
  *
  * A change OneUptime AI made, through the account's Cloud AI agent, says
  * so (CloudChangeAi): OneUptime AI and who approved it in its By column,
@@ -72,6 +84,91 @@ export const CLOUD_CHANGE_TYPE_OPTIONS: Array<DropdownOption> = [
 ].map((type: ChangeEventType): DropdownOption => {
   return { label: getChangeEventTypeLabel(type), value: type };
 });
+
+/*
+ * What changed, in the reader's language: an operation the activity log
+ * recorded worded from its operation, resource and outcome; a health
+ * event, or any other change, by its own title.
+ */
+export function getCloudChangeTitleText(
+  change: ChangeEvent,
+  translator: Translator,
+): string {
+  return getChangeTitleForReader({
+    title: change.title,
+    eventType: change.eventType,
+    facts: readCloudChangeTitleFacts({
+      title: change.title,
+      attributes: change.attributes as JSONObject | undefined,
+    }),
+    translator,
+    options: { setsValuesApart: true },
+  });
+}
+
+/*
+ * A value of a change's title - its operation, its resource - as a box of
+ * its own: it moves to the next line whole rather than breaking at its
+ * hyphen ("nightly-" / "export", "sg-" / "0f1e2d3c..." on a phone), and only
+ * a value longer than the line is broken, inside its box. Set apart (bdi),
+ * so a Latin name keeps its place in a Persian sentence.
+ *
+ * break-words, never overflow-wrap:anywhere: anywhere lowers what the
+ * table's column must hold, and the table then narrowed "What changed"
+ * until an operation broke inside ("UpdateFunctionCode20150331v" / "2").
+ */
+export const CLOUD_CHANGE_TITLE_VALUE_CLASS_NAME: string =
+  "inline-block max-w-full break-words";
+
+const TitleValue: FunctionComponent<{ text: string }> = (props: {
+  text: string;
+}): ReactElement => {
+  return (
+    <bdi
+      className={CLOUD_CHANGE_TITLE_VALUE_CLASS_NAME}
+      data-testid="cloud-change-title-value"
+    >
+      {props.text}
+    </bdi>
+  );
+};
+
+/*
+ * What changed, drawn: an operation the activity log recorded as the
+ * sentence getCloudChangeTitleText words, with its operation and resource
+ * each a box of their own (TitleValue); any other change by its title.
+ */
+export const CloudChangeTitle: FunctionComponent<{
+  change: ChangeEvent;
+}> = (props: { change: ChangeEvent }): ReactElement => {
+  const translator: Translator = useTranslator();
+  const facts: CloudChangeTitleFacts | null = readCloudChangeTitleFacts({
+    title: props.change.title,
+    attributes: props.change.attributes as JSONObject | undefined,
+  });
+
+  if (!facts) {
+    return <>{getCloudChangeTitleText(props.change, translator) || "—"}</>;
+  }
+
+  const operation: string = facts.operation.trim();
+  const resource: string = facts.resource.trim();
+  const sentence: string | null = getCloudChangeTitleSentence(facts);
+
+  if (!sentence) {
+    return <TitleValue text={operation} />;
+  }
+
+  return (
+    <TranslatedSentence
+      template={sentence}
+      slots={{
+        operation: <TitleValue text={operation} />,
+        ...(resource ? { resource: <TitleValue text={resource} /> } : {}),
+      }}
+    />
+  );
+};
 
 function readAttribute(change: ChangeEvent, key: string): string {
   const attributes: JSONObject | undefined = change.attributes as
@@ -300,15 +397,28 @@ const CloudChangesTable: FunctionComponent<ComponentProps> = (
               attributes: change.attributes as JSONObject | undefined,
             });
 
+            /*
+             * Each line in its own direction (dir="auto"): a change worded
+             * in Persian reads right to left, a health event's English
+             * title and its provider's words left to right, so an English
+             * line on a Persian page keeps its start, and its cut, at the
+             * end it is read to. The values a title sets apart are not
+             * counted.
+             */
             return (
               <div className="min-w-0">
-                <div className="text-sm font-medium text-gray-900 break-words">
-                  {change.title || "—"}
+                <div
+                  className="text-sm font-medium text-gray-900 break-words"
+                  dir="auto"
+                  data-testid="cloud-change-title"
+                >
+                  <CloudChangeTitle change={change} />
                 </div>
                 {detail ? (
                   <div
                     className="mt-0.5 text-xs text-gray-500 line-clamp-2 break-words"
                     title={detail}
+                    dir="auto"
                     data-testid="cloud-change-detail"
                   >
                     {detail}

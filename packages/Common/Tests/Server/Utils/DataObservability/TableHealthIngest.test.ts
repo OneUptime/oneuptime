@@ -77,6 +77,25 @@ describe("detectChangeTime", () => {
     ).toEqual(COLLECTED_AT);
   });
 
+  test("a time only inserts move (MongoDB's newest ObjectId) gives way to a write counter that moved", () => {
+    // The newest document is the one already known, but the collection took writes since.
+    expect(
+      detectChangeTime(
+        previous(),
+        table({ secondsSinceChange: 3600, writeCount: 5001 }),
+        COLLECTED_AT,
+      ),
+    ).toEqual(COLLECTED_AT);
+    // Nothing written since: the time stands.
+    expect(
+      detectChangeTime(
+        previous(),
+        table({ secondsSinceChange: 3600, writeCount: 5000 }),
+        COLLECTED_AT,
+      )?.toISOString(),
+    ).toBe("2026-11-03T11:00:00.000Z");
+  });
+
   test("a counter that went down was reset, and says nothing", () => {
     expect(
       detectChangeTime(

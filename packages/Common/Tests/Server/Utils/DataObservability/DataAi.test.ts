@@ -203,4 +203,43 @@ describe("a rule in a sentence, as a check", () => {
       return readCheckSuggestion("Sure! Here is a query.");
     }).toThrow("not a check");
   });
+
+  test("a MongoDB collection's check is an aggregation pipeline, held to a custom pipeline's rules", () => {
+    const prompt: { system: string; user: string } =
+      buildCheckFromSentencePrompt({
+        sentence: "orders never have a negative total",
+        engine: "mongodb",
+        schemaName: "shop",
+        tableName: "orders",
+        columns: [
+          { name: "total", dataType: "number", isNullable: true, position: 1 },
+        ],
+      });
+
+    expect(prompt.system).toContain("aggregation pipeline");
+    expect(prompt.system).not.toContain("SELECT");
+    expect(prompt.user).toContain(
+      "Collection: orders (MongoDB, database shop)",
+    );
+    expect(prompt.user).toContain("- total number");
+
+    expect(
+      readCheckSuggestion(
+        '{"name": "Orders with a negative total", "pipeline": [{"$match": {"total": {"$lt": 0}}}, {"$count": "value"}], "alertCondition": "Above", "alertThreshold": 0, "explanation": "Counts orders whose total is below zero."}',
+        "mongodb",
+      ).customSql,
+    ).toBe('[{"$match":{"total":{"$lt":0}}},{"$count":"value"}]');
+    expect(() => {
+      return readCheckSuggestion(
+        '{"name": "x", "pipeline": [{"$match": {}}, {"$out": "copy"}], "alertCondition": "Above", "alertThreshold": 0}',
+        "mongodb",
+      );
+    }).toThrow("may only read");
+    expect(() => {
+      return readCheckSuggestion(
+        '{"name": "x", "pipeline": [{"$count": "n"}], "alertCondition": "Above", "alertThreshold": 0}',
+        "mongodb",
+      );
+    }).toThrow("value");
+  });
 });

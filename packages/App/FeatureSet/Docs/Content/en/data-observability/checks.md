@@ -16,7 +16,7 @@ Add a check on a table's **Checks** tab:
 | **Format Mismatch Percent** | Percent of values that do not match a regular expression (every engine but SQL Server) |
 | **Orphan Count** | Rows whose value has no match in another table's column |
 | **Row Count** | Rows in the table, most useful with **Segment By** |
-| **Custom SQL** | The number one read-only SELECT of yours returns, named `value` |
+| **Custom SQL** | The number one read-only SELECT of yours returns, named `value` (on MongoDB, an aggregation pipeline's) |
 
 Each check runs every 15 minutes, hour, 6 hours or day, as one aggregate statement in a read-only transaction with a statement timeout. Its value is written as `oneuptime.data.check.value`, with `oneuptime.data.check.id`, `oneuptime.data.check.name` and `oneuptime.data.check.segment`.
 

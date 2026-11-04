@@ -5,6 +5,7 @@ import {
   MAX_SEGMENTS_PER_CHECK,
 } from "../../../Types/DataObservability/DataCheckType";
 import { DatabaseEngine } from "../DataSecurity/Content/DatabaseSampler";
+import { buildMongoCheckStatement } from "./MongoDbChecks";
 
 /*
  * THE ONE STATEMENT A DATA CHECK RUNS.
@@ -89,6 +90,18 @@ export function tableReference(
     : quoteIdentifier(engine, tableName);
 }
 
+/*
+ * A table's alias: Oracle takes none of AS before one, and VALUE is one of
+ * its words, so its value column is named in quotes.
+ */
+function aliasOf(engine: DatabaseEngine, name: string): string {
+  return engine === "oracle" ? ` ${name}` : ` AS ${name}`;
+}
+
+function valueAlias(engine: DatabaseEngine): string {
+  return engine === "oracle" ? '"value"' : "value";
+}
+
 function placeholder(engine: DatabaseEngine, index: number): string {
   switch (engine) {
     // MySQL, Snowflake's SQL API and BigQuery's bind by position; Athena's are written in, quoted (AthenaApi).
@@ -106,6 +119,9 @@ function placeholder(engine: DatabaseEngine, index: number): string {
     // Named parameters of the SQL Statement Execution API (DatabricksApi).
     case "databricks":
       return `:p${index}`;
+    // The oracledb driver binds :1, :2, ... by position.
+    case "oracle":
+      return `:${index}`;
     default:
       return `$${index}`;
   }
@@ -122,6 +138,8 @@ function asText(engine: DatabaseEngine, expression: string): string {
       return `CAST(${expression} AS STRING)`;
     case "athena":
       return `CAST(${expression} AS VARCHAR)`;
+    case "oracle":
+      return `CAST(${expression} AS VARCHAR2(4000))`;
     // A NULL stays NULL: CAST to String would refuse it.
     case "clickhouse":
       return `toString(${expression})`;
@@ -141,6 +159,8 @@ function asNumber(engine: DatabaseEngine, expression: string): string {
     case "databricks":
     case "athena":
       return `CAST(${expression} AS DOUBLE)`;
+    case "oracle":
+      return `CAST(${expression} AS BINARY_DOUBLE)`;
     case "clickhouse":
       return `toFloat64(${expression})`;
     default:
@@ -236,8 +256,8 @@ function valueExpression(
                 ? `NOT match(${asText(engine, column)}, ${placeholder(engine, params.length)})`
                 : engine === "databricks"
                   ? `NOT (${asText(engine, column)} RLIKE ${placeholder(engine, params.length)})`
-                  : engine === "athena"
-                    ? `NOT regexp_like(${asText(engine, column)}, ${placeholder(engine, params.length)})`
+                  : engine === "athena" || engine === "oracle"
+                    ? `NOT ${engine === "oracle" ? "REGEXP_LIKE" : "regexp_like"}(${asText(engine, column)}, ${placeholder(engine, params.length)})`
                     : `${asText(engine, column)} !~ ${placeholder(engine, params.length)}`;
 
       return `100.0 * SUM(CASE WHEN ${column} IS NOT NULL AND ${mismatch} THEN 1 ELSE 0 END) / NULLIF(COUNT(${column}), 0)`;
@@ -261,6 +281,10 @@ function withSegments(data: {
 
   if (data.engine === "sqlserver") {
     return `SELECT TOP ${MAX_SEGMENTS_PER_CHECK} ${segmentText} AS segment, ${data.value} AS value FROM ${data.from}${where} GROUP BY ${data.segment} ORDER BY COUNT(*) DESC`;
+  }
+
+  if (data.engine === "oracle") {
+    return `SELECT ${segmentText} AS "segment", ${data.value} AS "value" FROM ${data.from}${where} GROUP BY ${data.segment} ORDER BY COUNT(*) DESC FETCH FIRST ${MAX_SEGMENTS_PER_CHECK} ROWS ONLY`;
   }
 
   return `SELECT ${segmentText} AS segment, ${data.value} AS value FROM ${data.from}${where} GROUP BY ${data.segment} ORDER BY COUNT(*) DESC LIMIT ${MAX_SEGMENTS_PER_CHECK}`;
@@ -307,6 +331,11 @@ export function buildDataCheckStatement(
   engine: DatabaseEngine,
   target: DataCheckTarget,
 ): DataCheckStatement {
+  // MongoDB has no SQL: an aggregation pipeline (MongoDbChecks).
+  if (engine === "mongodb") {
+    return buildMongoCheckStatement(target);
+  }
+
   const params: Array<string> = [];
   const table: string = tableReference(
     engine,
@@ -322,7 +351,9 @@ export function buildDataCheckStatement(
     const limit: string =
       engine === "sqlserver"
         ? `SELECT TOP ${MAX_SEGMENTS_PER_CHECK} * FROM (${sql}) AS oneuptime_check`
-        : `SELECT * FROM (${sql}) AS oneuptime_check LIMIT ${MAX_SEGMENTS_PER_CHECK}`;
+        : engine === "oracle"
+          ? `SELECT * FROM (${sql}) oneuptime_check FETCH FIRST ${MAX_SEGMENTS_PER_CHECK} ROWS ONLY`
+          : `SELECT * FROM (${sql}) AS oneuptime_check LIMIT ${MAX_SEGMENTS_PER_CHECK}`;
 
     return { sql: limit, params, isSegmented: Boolean(target.segmentColumn) };
   }
@@ -352,7 +383,7 @@ export function buildDataCheckStatement(
     const from: string =
       engine === "clickhouse"
         ? `${table} AS checked`
-        : `${table} AS checked LEFT JOIN ${reference} AS referenced ON checked.${column} = referenced.${referenceColumn}`;
+        : `${table}${aliasOf(engine, "checked")} LEFT JOIN ${reference}${aliasOf(engine, "referenced")} ON checked.${column} = referenced.${referenceColumn}`;
     const where: string =
       engine === "clickhouse"
         ? `checked.${column} IS NOT NULL AND checked.${column} NOT IN (SELECT ${referenceColumn} FROM ${reference})`
@@ -373,7 +404,7 @@ export function buildDataCheckStatement(
     }
 
     return {
-      sql: `SELECT COUNT(*) AS value FROM ${from} WHERE ${where}`,
+      sql: `SELECT COUNT(*) AS ${valueAlias(engine)} FROM ${from} WHERE ${where}`,
       params,
       isSegmented: false,
     };
@@ -390,7 +421,7 @@ export function buildDataCheckStatement(
   }
 
   return {
-    sql: `SELECT ${value} AS value FROM ${table}`,
+    sql: `SELECT ${value} AS ${valueAlias(engine)} FROM ${table}`,
     params,
     isSegmented: false,
   };

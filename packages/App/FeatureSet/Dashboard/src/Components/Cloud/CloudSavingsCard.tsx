@@ -1,9 +1,9 @@
 import CloudCostRecommendation from "Common/Models/DatabaseModels/CloudCostRecommendation";
 import Route from "Common/Types/API/Route";
 import {
-  CLOUD_SAVING_KIND_LABELS,
   CloudSavingKind,
   CloudSavingsTotals,
+  getCloudSavingActionText,
 } from "Common/Types/Cloud/CloudCost";
 import ObjectID from "Common/Types/ObjectID";
 import Card from "Common/UI/Components/Card/Card";
@@ -186,8 +186,11 @@ const CloudSavingsCard: FunctionComponent<ComponentProps> = (
                   getSavingResourceLine(recommendation);
                 const label: ReactElement = (
                   <span className="block break-words text-sm font-medium text-gray-900">
-                    {recommendation.action ||
-                      translator.translateText(CLOUD_SAVING_KIND_LABELS[kind])}
+                    {getCloudSavingActionText({
+                      action: recommendation.action,
+                      kind,
+                      translateText: translator.translateText,
+                    })}
                   </span>
                 );
 

@@ -24,6 +24,7 @@ import {
   tableReference,
 } from "./DataCheckSql";
 import { getCollectorEngineOfKind } from "./DataObservabilityEngines";
+import { checkMongoPipeline } from "./MongoDbChecks";
 
 /*
  * A RULE IN A SENTENCE, AS A CHECK.
@@ -36,6 +37,8 @@ import { getCollectorEngineOfKind } from "./DataObservabilityEngines";
  * be broken. Its answer is read strictly (readCheckSuggestion): JSON only,
  * the query held to everything a Custom SQL check is (checkCustomSql), and
  * nothing saved - the person reviews it, as any check, before adding it.
+ * A MongoDB collection has no SQL: its check is an aggregation pipeline,
+ * held to everything a MongoDB custom check is (checkMongoPipeline).
  */
 
 const MAX_SENTENCE_LENGTH: number = 1_000;
@@ -54,6 +57,36 @@ export interface DataCheckSuggestion {
   explanation: string;
 }
 
+// MongoDB's prompt: a collection's fields, and an aggregation pipeline for an answer.
+function buildPipelinePrompt(data: {
+  sentence: string;
+  schemaName: string;
+  tableName: string;
+  columns: Array<DataAssetColumn>;
+}): { system: string; user: string } {
+  const fields: string = data.columns
+    .slice(0, MAX_COLUMNS_SHOWN)
+    .map((column: DataAssetColumn): string => {
+      return `- ${column.name} ${column.dataType}`;
+    })
+    .join("\n");
+
+  return {
+    system: [
+      "You turn a rule about a MongoDB collection, written in a sentence, into one data quality check.",
+      "Write ONE read-only aggregation pipeline, as a JSON array of stages, that ends in one document with a number named value: how many documents break the rule (or, when the rule is about a total or an average, that number itself).",
+      "Rules:",
+      "- It runs on the collection given: never $out, $merge, $function, $accumulator, $where or $lookup into another database.",
+      "- Read only the fields listed. A field may be missing or null in any document.",
+      '- End with {"$count": "value"}, or a $group or $project that names its number value.',
+      'Answer with JSON only, no prose and no code fence: {"name": "a short name for the check", "pipeline": [the stages], "alertCondition": "Above" or "Below", "alertThreshold": a number, "explanation": "one sentence on what the pipeline counts"}.',
+      'For a rule that must never be broken, count the documents that break it and alert Above 0. Example: "orders never have a negative total" becomes {"name": "Orders with a negative total", "pipeline": [{"$match": {"total": {"$lt": 0}}}, {"$count": "value"}], "alertCondition": "Above", "alertThreshold": 0, "explanation": "Counts orders whose total is below zero."}',
+      'If the sentence cannot be checked with the fields given, answer {"error": "why"}.',
+    ].join("\n"),
+    user: `Collection: ${data.tableName} (MongoDB, database ${data.schemaName})\nFields:\n${fields || "- (none known)"}\n\nRule: ${data.sentence}`,
+  };
+}
+
 export function buildCheckFromSentencePrompt(data: {
   sentence: string;
   engine: DatabaseEngine;
@@ -65,6 +98,10 @@ export function buildCheckFromSentencePrompt(data: {
 
   if (!sentence) {
     throw new BadDataException("Say the rule the check should hold to.");
+  }
+
+  if (data.engine === "mongodb") {
+    return buildPipelinePrompt({ ...data, sentence });
   }
 
   const table: string = tableReference(
@@ -125,8 +162,31 @@ function readJson(text: string): JSONObject {
   );
 }
 
-// The model's answer, as a check to review: refused unless it is one a Custom SQL check may be.
-export function readCheckSuggestion(text: string): DataCheckSuggestion {
+// A pipeline answer, as a MongoDB custom check holds it: JSON text, read-only, naming its value.
+function readPipelineAnswer(answer: JSONObject): string {
+  const pipeline: unknown = answer["pipeline"];
+  const text: string =
+    typeof pipeline === "string" ? pipeline : JSON.stringify(pipeline ?? "");
+  const stages: Array<JSONObject> = checkMongoPipeline(text);
+  const namesItsValue: boolean = JSON.stringify(stages).includes('"value"');
+
+  if (!namesItsValue) {
+    throw new BadDataException(
+      "The AI's pipeline does not name its number value. Say the rule another way, or write the check yourself.",
+    );
+  }
+
+  return JSON.stringify(stages);
+}
+
+/*
+ * The model's answer, as a check to review: refused unless it is one a
+ * Custom SQL check may be - for MongoDB, a custom pipeline.
+ */
+export function readCheckSuggestion(
+  text: string,
+  engine?: DatabaseEngine | undefined,
+): DataCheckSuggestion {
   const answer: JSONObject = readJson(text);
 
   if (typeof answer["error"] === "string" && answer["error"].trim()) {
@@ -135,16 +195,22 @@ export function readCheckSuggestion(text: string): DataCheckSuggestion {
     );
   }
 
-  const sql: string = checkCustomSql(
-    typeof answer["sql"] === "string" ? answer["sql"] : "",
-  );
+  let sql: string;
 
-  const namesItsValue: RegExp = /\bAS\s+["`[]?value["`\]]?/i;
-
-  if (!namesItsValue.test(sql)) {
-    throw new BadDataException(
-      "The AI's query does not name its number value. Say the rule another way, or write the check yourself.",
+  if (engine === "mongodb") {
+    sql = readPipelineAnswer(answer);
+  } else {
+    sql = checkCustomSql(
+      typeof answer["sql"] === "string" ? answer["sql"] : "",
     );
+
+    const namesItsValue: RegExp = /\bAS\s+["`[]?value["`\]]?/i;
+
+    if (!namesItsValue.test(sql)) {
+      throw new BadDataException(
+        "The AI's query does not name its number value. Say the rule another way, or write the check yourself.",
+      );
+    }
   }
 
   const condition: DataCheckAlertCondition =
@@ -249,7 +315,7 @@ export default class DataCheckFromSentence {
       const content: string = response.content || "";
 
       try {
-        return readCheckSuggestion(content);
+        return readCheckSuggestion(content, engine);
       } catch (error) {
         lastError =
           error instanceof Error && error.message
