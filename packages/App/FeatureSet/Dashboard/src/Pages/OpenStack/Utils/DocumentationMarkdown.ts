@@ -170,7 +170,7 @@ export const OPENSTACK_AGENT_IDENTITY_CONFIG: string = `processors:
         value: \${env:OPENSTACK_CLOUD_NAME}
         action: upsert
       - key: oneuptime.agent.version
-        value: "0.161.0"
+        value: "0.161.1"
         action: upsert
       - key: service.name
         action: delete
@@ -685,7 +685,19 @@ function getEnvironmentVariablesTopic(context: GuideContext): SetupGuideTopic {
 | \`OPENSTACK_LIBVIRT_EXPORTER_TARGETS\` | No | The same exporter, for what each instance is really doing. Per-instance series multiply fast |
 | \`OPENSTACK_CEILOMETER_EXPORTER_TARGETS\` | No | Ceilometer's exporter on each compute node, usually on \`9101\`, for the same |
 
-\`clouds.yaml\` alone holds the credential.`,
+\`clouds.yaml\` alone holds the credential.
+
+Only the largest clouds need these, and none is asked for:
+
+| Variable | Description |
+|----------|-------------|
+| \`OPENSTACK_AGENT_SERVICES\` | Which services this agent reads, as a pattern: \`compute\|placement\` here and the rest on a second agent. Every service by default. No two agents should read one service of one region |
+| \`OPENSTACK_AGENT_MEMORY_LIMIT_MIB\` | The memory the collector may use, in MiB (default: \`512\`). It holds a whole scrape, so raise this past tens of thousands of instances |
+| \`OPENSTACK_DATABASE_EXPORTER_TARGETS\` | Reading each service's database rather than its API, with a read-only account: where that exporter answers. Set \`OPENSTACK_EXPORTER_CLOUDS=[]\` with it, or every series arrives twice |
+| \`NOVA_DATABASE_URL\`, \`NOVA_API_DATABASE_URL\`, \`PLACEMENT_DATABASE_URL\`, \`NEUTRON_DATABASE_URL\`, \`CINDER_DATABASE_URL\`, \`GLANCE_DATABASE_URL\`, \`KEYSTONE_DATABASE_URL\` | The database of each service it reads, as \`mysql+pymysql://oneuptime:secret@db.example:3306/nova\`. One left empty is a service it leaves alone. Each holds a password, and \`.env\` is readable by its owner alone |
+| \`OPENSTACK_DATABASE_EXPORTER_HOST_SUFFIX\` | What Nova adds to a host's name to make a hypervisor's, such as \`.example.org\`, so an instance finds the hypervisor it runs on |
+| \`OPENSTACK_WORKER_STATE_CLOUDS\` | The \`clouds.yaml\` entries to read from Nova's and Cinder's APIs what their databases cannot say: whether each worker is alive, and how full each pool is |
+| \`OPENSTACK_WORKER_STATE_EXPORTER_ADDRESS\` | \`host:port\` of the exporter that reads those. Leave it out for the bundled one |`,
   };
 }
 

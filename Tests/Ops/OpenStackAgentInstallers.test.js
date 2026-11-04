@@ -329,14 +329,22 @@ function newerUpstream() {
 }
 
 // The variables a script's ENV_NAMES list names.
-function envNames(script) {
-  const match = script.match(/^ENV_NAMES="([^"]+)"$/m);
+// A list of names in the script, one shell assignment that may go over several lines.
+function namesIn(script, variable) {
+  const match = script.match(new RegExp(`^${variable}="([^"]+)"$`, "m"));
   expect(match).not.toBeNull();
   return match[1].replace(/\\\n/g, " ").split(/\s+/).filter(Boolean);
 }
 
+// What the script keeps in .env. Two of its lists are named inside this one.
+function envNames(script) {
+  return namesIn(script, "ENV_NAMES").flatMap((name) => {
+    return name.startsWith("$") ? namesIn(script, name.slice(1)) : [name];
+  });
+}
+
 // The variables the heredoc that writes .env sets, in order.
-function writtenNames(script) {
+function heredocNames(script) {
   const heredoc = script.match(
     /cat > "\$ENV_FILE" <<ENVEOF\n([\s\S]*?)\nENVEOF/,
   );
@@ -344,6 +352,18 @@ function writtenNames(script) {
   return heredoc[1].split("\n").map((line) => {
     return line.split("=")[0];
   });
+}
+
+// The heredoc's, then each loop's that writes after it, in order.
+function writtenNames(script) {
+  for (const list of ["TARGET_LIST_NAMES", "VERY_LARGE_CLOUD_NAMES"]) {
+    expect(script).toContain(`for name in $${list}; do`);
+  }
+  return [
+    ...heredocNames(script),
+    ...namesIn(script, "TARGET_LIST_NAMES"),
+    ...namesIn(script, "VERY_LARGE_CLOUD_NAMES"),
+  ];
 }
 
 // Every ${VAR} docker-compose.yml interpolates ($$ is a literal $).
@@ -441,6 +461,17 @@ describe("agents/OpenStackAgent/install.sh, a fresh install", () => {
       OPENSTACK_EXPORTER_USER: "1000:1000",
       OPENSTACK_CA_FILE: "''",
       COMPOSE_PROFILES: "'openstack-exporter'",
+      // The region of a target that does not say its own, and the lists nobody named yet.
+      OPENSTACK_CONTROL_PLANE_REGION: "'RegionOne'",
+      OPENSTACK_SINGLE_CLOUD_EXPORTER_TARGETS: "'[]'",
+      OPENSTACK_RABBITMQ_TARGETS: "'[]'",
+      OPENSTACK_MARIADB_TARGETS: "'[]'",
+      OPENSTACK_MEMCACHED_TARGETS: "'[]'",
+      OPENSTACK_HAPROXY_TARGETS: "'[]'",
+      OPENSTACK_NETWORK_EXPORTER_TARGETS: "'[]'",
+      OPENSTACK_LIBVIRT_HEALTH_TARGETS: "'[]'",
+      OPENSTACK_LIBVIRT_EXPORTER_TARGETS: "'[]'",
+      OPENSTACK_CEILOMETER_EXPORTER_TARGETS: "'[]'",
     });
     expect(mode(path.join(run.installDir, ".env"))).toBe(0o600);
     expect(run.output).not.toContain("reusing it");
@@ -1761,6 +1792,16 @@ describe("install.sh, as the upgrade", () => {
       OPENSTACK_EXPORTER_USER: "1000:1000",
       OPENSTACK_CA_FILE: "",
       COMPOSE_PROFILES: "openstack-exporter",
+      OPENSTACK_CONTROL_PLANE_REGION: "RegionOne",
+      OPENSTACK_SINGLE_CLOUD_EXPORTER_TARGETS: "[]",
+      OPENSTACK_RABBITMQ_TARGETS: "[]",
+      OPENSTACK_MARIADB_TARGETS: "[]",
+      OPENSTACK_MEMCACHED_TARGETS: "[]",
+      OPENSTACK_HAPROXY_TARGETS: "[]",
+      OPENSTACK_NETWORK_EXPORTER_TARGETS: "[]",
+      OPENSTACK_LIBVIRT_HEALTH_TARGETS: "[]",
+      OPENSTACK_LIBVIRT_EXPORTER_TARGETS: "[]",
+      OPENSTACK_CEILOMETER_EXPORTER_TARGETS: "[]",
     });
   });
 
@@ -2173,13 +2214,17 @@ describe("agents/OpenStackAgent/install.sh, statically", () => {
     const heredoc = script.match(
       /cat > "\$ENV_FILE" <<ENVEOF\n([\s\S]*?)\nENVEOF/,
     )[1];
-    for (const name of envNames(script)) {
+    for (const name of heredocNames(script)) {
       const line =
         name === "OPENSTACK_EXPORTER_USER"
           ? `${name}=$${name}`
           : `${name}=$(env_value "$${name}")`;
       expect(heredoc.split("\n")).toContain(line);
     }
+    // The two loops write theirs through the same helper.
+    expect(script).toContain(
+      `printf '%s=%s\\n' "$name" "$(env_value "\${!name}")" >> "$ENV_FILE"`,
+    );
   });
 
   test("reads an existing .env back with the helper VMware's installer uses", () => {

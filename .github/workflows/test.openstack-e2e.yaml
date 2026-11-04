@@ -53,6 +53,21 @@ concurrency:
   cancel-in-progress: true
 
 jobs:
+  # Every agent's collector config through the real collector, which the "Ops Config Test"
+  # workflow also does, but never gets to when master moves faster than it runs.
+  validate-collector-configs:
+    name: every collector config, in the real collector
+    if: ${{ inputs.kolla_aio || inputs.osa_aio }}
+    runs-on: ubuntu-24.04
+    timeout-minutes: 30
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 26
+      - run: cd Tests/Ops && npm install --no-audit --no-fund
+      - run: bash Tests/Ops/validate-collector-configs.sh
+
   # A real deployment by Kolla-Ansible, as its quick start says, and its guide followed on
   # it with the guide's exact commands. By hand only: it takes hours, and fills a runner.
   # Each part of the guide is a step of its own, so that one failing costs only itself.
@@ -156,6 +171,82 @@ jobs:
         uses: actions/upload-artifact@v4
         with:
           name: openstack-recording-kolla-aio
+          path: ${{ runner.temp }}/recording
+          if-no-files-found: warn
+          retention-days: 30
+
+  # The same for OpenStack-Ansible. Its quick start asks for twice the vCPUs a runner has, so it
+  # has longer, and a step that fails says how far it got.
+  follow-osa-guide:
+    name: OpenStack-Ansible all-in-one, following its guide
+    if: ${{ inputs.osa_aio }}
+    runs-on: ubuntu-24.04
+    timeout-minutes: 355
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: ./.github/actions/free-disk-space
+        with:
+          min-free-gb: "80"
+
+      - name: Say where the recording goes, to every step after this
+        run: echo "OUTPUT_DIR=${RUNNER_TEMP}/recording" >>"$GITHUB_ENV"
+
+      - name: Deploy OpenStack-Ansible, as its quick start says
+        id: deploy
+        timeout-minutes: 270
+        run: bash Tests/Ops/openstack-e2e/osa-aio.sh deploy
+
+      - name: Build the estate
+        id: estate
+        if: ${{ steps.deploy.outcome == 'success' }}
+        continue-on-error: true
+        run: bash Tests/Ops/openstack-e2e/osa-aio.sh estate
+
+      - name: Start a OneUptime for the guide to name
+        id: prepare
+        if: ${{ steps.deploy.outcome == 'success' }}
+        run: bash Tests/Ops/openstack-e2e/osa-guide.sh prepare
+
+      - name: Record what the cloud and the agent's exporter answer
+        if: ${{ steps.prepare.outcome == 'success' }}
+        continue-on-error: true
+        timeout-minutes: 15
+        run: bash Tests/Ops/openstack-e2e/osa-guide.sh record
+
+      - name: "The guide: the agent, on the first credential"
+        if: ${{ steps.prepare.outcome == 'success' }}
+        continue-on-error: true
+        timeout-minutes: 30
+        run: bash Tests/Ops/openstack-e2e/osa-guide.sh full-view
+
+      - name: "The guide: what the cloud stands on"
+        if: ${{ steps.prepare.outcome == 'success' }}
+        continue-on-error: true
+        timeout-minutes: 25
+        run: bash Tests/Ops/openstack-e2e/osa-guide.sh stands-on
+
+      - name: "The guide: service logs, from the journal"
+        if: ${{ steps.prepare.outcome == 'success' }}
+        continue-on-error: true
+        timeout-minutes: 15
+        run: bash Tests/Ops/openstack-e2e/osa-guide.sh logs
+
+      - name: "The guide: the second credential, and its policy overrides"
+        if: ${{ steps.prepare.outcome == 'success' }}
+        continue-on-error: true
+        timeout-minutes: 30
+        run: bash Tests/Ops/openstack-e2e/osa-guide.sh infrastructure-only
+
+      - name: Make every name one an artifact can hold
+        if: always()
+        run: bash Tests/Ops/openstack-e2e/safe-artifact-names.sh "${OUTPUT_DIR}"
+
+      - name: Upload the recording
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: openstack-recording-osa-aio
           path: ${{ runner.temp }}/recording
           if-no-files-found: warn
           retention-days: 30

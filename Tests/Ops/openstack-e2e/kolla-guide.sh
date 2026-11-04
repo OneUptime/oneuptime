@@ -27,85 +27,30 @@
 set -uo pipefail
 
 HERE="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
-AGENT_DIR="$(cd "$HERE/../../../agents/OpenStackAgent" && pwd)"
 # shellcheck source=Tests/Ops/openstack-e2e/kolla-env.sh
 source "$HERE/kolla-env.sh"
 
 GUIDE_RECORDING="$OUTPUT_DIR/guide"
 GUIDE_DIR="$KOLLA_HOME/guide"
-COMMANDS="$GUIDE_RECORDING/commands.log"
-PROBLEMS="$GUIDE_RECORDING/problems.txt"
-AGENT_FOLDER="/opt/oneuptime-openstack-agent"
-LOGS_FOLDER="/opt/oneuptime-openstack-logs"
+ONEUPTIME_URL="http://$KOLLA_API_ADDRESS:8099"
+# shellcheck source=Tests/Ops/openstack-e2e/guide-follow.sh
+source "$HERE/guide-follow.sh"
 
 mkdir -p "$GUIDE_RECORDING"
 sudo mkdir -p "$GUIDE_DIR"
 sudo chown "$(id -u):$(id -g)" "$GUIDE_DIR"
 
-ONEUPTIME_PORT=8099
-ONEUPTIME_URL="http://$KOLLA_API_ADDRESS:$ONEUPTIME_PORT"
-INGESTION_KEY="rig-ingestion-key"
-HEARTBEAT_KEY="rig-heartbeat-key"
 CLOUD_NAME="kolla-aio"
 KEYSTONE_URL="http://$KOLLA_VIP:5000/v3"
-MONITORING_PASSWORD="ou-rig-monitoring-password"
 OWN_EXPORTER_PORT=9180
 OWN_EXPORTER_170_PORT=9181
-
-# The expiry the guide prints, when it is read on the date OpenStackDeploymentGuides.test.ts
-# reads it, and one a year from now to use instead.
-GUIDE_EXPIRATION="2027-11-04T00:00:00"
-EXPIRATION="$(date -u -d '+1 year' +%Y-%m-%dT%H:%M:%S)"
-
-# Read from what ships, so this can never test another version.
-COLLECTOR_IMAGE="$(grep -E '^[[:space:]]*image:[[:space:]]*otel/opentelemetry-collector-contrib' "$AGENT_DIR/docker-compose.yml" | head -1 | awk '{print $2}')"
-EXPORTER_IMAGE="$(grep -E '^[[:space:]]*image:[[:space:]]*ghcr.io/openstack-exporter/' "$AGENT_DIR/docker-compose.yml" | head -1 | awk '{print $2}')"
 EXPORTER_170_IMAGE="ghcr.io/openstack-exporter/openstack-exporter:1.7.0"
-EXPORTER_FLAGS="$(awk '/^  [a-z]/ { in_exporter = ($0 == "  openstack-exporter:") } in_exporter && /^[[:space:]]*- --disable-metric=/ { print $2 }' "$AGENT_DIR/docker-compose.yml" | tr '\n' ' ')"
-CURL_IMAGE="$(grep -E '^CURL_IMAGE=' "$AGENT_DIR/troubleshoot.sh" | head -1 | cut -d '"' -f 2)"
 
-log() {
-  printf '\n=== %s\n' "$*"
-}
-
-problem() {
-  printf '%s\n' "$*" | tee -a "$PROBLEMS" >&2
-}
-
-# ----------------------------------------------------------------------------
-# Following the guide
-# ----------------------------------------------------------------------------
-# Runs the text on its standard input as the guide says it. Its settings, given in front:
-#   FOLLOW_AS       who runs it. Root by default, as install.sh writes to /opt
-#   FOLLOW_ANSWERS  what a person would type at its questions
-#   FOLLOW_LOGIN    what a person would have done first, in the same shell
-#   FOLLOW_OUTPUT   a file to keep its output in, for what comes next to read
-#   FOLLOW_LIMIT    seconds, for what the guide leaves running until someone stops it
-follow() {
-  local text status=0 output
-  text="$(cat)"
-  text="${text//https:\/\/oneuptime.example/$ONEUPTIME_URL}"
+fill_placeholders() {
+  local text="$1"
   text="${text//<inventory>/$KOLLA_INVENTORY}"
   text="${text//<kolla_internal_vip_address>/$KOLLA_VIP}"
-  text="${text//<secret key>/$HEARTBEAT_KEY}"
-  # It asks a terminal, and there is none: the one word changed from what the guide says.
-  text="${text//--password-prompt/--password $MONITORING_PASSWORD}"
-  text="${text//$GUIDE_EXPIRATION/$EXPIRATION}"
-  output="${FOLLOW_OUTPUT:-$(mktemp)}"
-  printf '\n$ %s\n' "${text//$MONITORING_PASSWORD/<password>}" | tee -a "$COMMANDS"
-  (
-    cd "$GUIDE_DIR" || exit 1
-    # shellcheck disable=SC2086 # Who runs it is one or two words.
-    ${FOLLOW_LIMIT:+timeout "$FOLLOW_LIMIT"} ${FOLLOW_AS:-sudo -E env "PATH=$PATH"} \
-      bash -uo pipefail -c "set -e; ${FOLLOW_LOGIN:-}
-$text" <<<"${FOLLOW_ANSWERS:-}"
-  ) >"$output" 2>&1 || status=$?
-  sed -e "s/$MONITORING_PASSWORD/<password>/g" "$output" | tee -a "$COMMANDS"
-  printf '[exit %s]\n' "$status" | tee -a "$COMMANDS"
-  if [ -z "${FOLLOW_OUTPUT:-}" ]; then
-    rm -f "$output"
-  fi
-  return "$status"
+  printf '%s' "$text"
 }
 
 AS_PERSON="env"
@@ -114,38 +59,9 @@ LOGGED_IN_AS_ACCOUNT="source /etc/kolla/admin-openrc.sh
 export OS_USERNAME=oneuptime-monitoring OS_PASSWORD='$MONITORING_PASSWORD'
 export OS_PROJECT_NAME=oneuptime-monitoring OS_TENANT_NAME=oneuptime-monitoring"
 
-# ----------------------------------------------------------------------------
-# What stands in for OneUptime
-# ----------------------------------------------------------------------------
-keep_otlp_in() {
-  local folder="$GUIDE_RECORDING/$1/otlp"
-  docker rm -f ou-sink >/dev/null 2>&1 || true
-  mkdir -p "$folder"
-  chmod 0777 "$folder"
-  docker run -d --name ou-sink --network host --user "$(id -u):$(id -g)" \
-    -v "$HERE/collector-sink.yaml:/etc/otelcol-contrib/config.yaml:ro" \
-    -v "$folder:/recording" \
-    "$COLLECTOR_IMAGE" --config=/etc/otelcol-contrib/config.yaml >/dev/null
-}
-
-stop_keeping_otlp() {
-  docker logs ou-sink >"$GUIDE_RECORDING/${1}/sink.log" 2>&1 || true
-  docker rm -f ou-sink >/dev/null 2>&1 || true
-}
-
 prepare() {
   log "A OneUptime for the guide to name"
-  nohup python3 -I "$HERE/fake-oneuptime.py" "$ONEUPTIME_PORT" "$AGENT_DIR" "$OUTPUT_DIR" \
-    http://127.0.0.1:14318 >"$GUIDE_RECORDING/fake-oneuptime.log" 2>&1 &
-  disown
-  for attempt in $(seq 1 20); do
-    if curl -fsS --max-time 3 "$ONEUPTIME_URL/otlp/v1/validate" >/dev/null; then
-      echo "It answers at $ONEUPTIME_URL"
-      break
-    fi
-    sleep 1
-    : "$attempt"
-  done
+  start_fake_oneuptime "$OUTPUT_DIR"
   docker pull -q "$COLLECTOR_IMAGE"
 }
 
@@ -276,71 +192,12 @@ GUIDE
 # ----------------------------------------------------------------------------
 # The agent, four ways
 # ----------------------------------------------------------------------------
-remove_agent() {
-  if [ -f "$AGENT_FOLDER/docker-compose.yml" ]; then
-    (cd "$AGENT_FOLDER" && sudo docker compose down --remove-orphans) >/dev/null 2>&1 || true
-  fi
-  sudo systemctl disable --now oneuptime-openstack-agent oneuptime-openstack-exporter >/dev/null 2>&1 || true
-  sudo rm -f /etc/systemd/system/oneuptime-openstack-agent.service /etc/systemd/system/oneuptime-openstack-exporter.service
-  sudo systemctl daemon-reload || true
-  sudo rm -rf "$AGENT_FOLDER"
-}
-
-keep_what_the_agent_was() {
-  local phase="$1" folder="$GUIDE_RECORDING/$1"
-  mkdir -p "$folder"
-  sudo cat "$AGENT_FOLDER/.env" >"$folder/env.txt" 2>/dev/null || true
-  (
-    cd "$AGENT_FOLDER" || exit 0
-    sudo docker compose ps -a >"$folder/compose-ps.txt" 2>&1
-    sudo docker compose logs --no-color >"$folder/compose-logs.txt" 2>&1
-  ) || true
-  sudo journalctl -u oneuptime-openstack-agent -u oneuptime-openstack-exporter --no-pager \
-    >"$folder/journal.txt" 2>&1 || true
-  [ -s "$folder/journal.txt" ] || rm -f "$folder/journal.txt"
-  : "$phase"
-}
-
-# Until the collector has sent every service's series, which the slowest two read every 5
-# minutes, and a second scrape of everything after that, for what takes two to work out.
-wait_for_what_it_sends() {
-  local phase="$1" file="$GUIDE_RECORDING/$1/otlp/metrics.json" waited=0
-  while [ "$waited" -lt 480 ]; do
-    if [ -s "$file" ] && grep -q 'openstack_nova_' "$file" && grep -q 'openstack_neutron_' "$file" \
-      && grep -q 'openstack_identity_' "$file" && grep -q 'openstack_glance_' "$file"; then
-      echo "$phase: every service's series arrived after $waited seconds"
-      sleep 130
-      return 0
-    fi
-    sleep 15
-    waited=$((waited + 15))
-  done
-  problem "$phase: not every service's series arrived in $waited seconds"
-  return 1
-}
-
-troubleshoot() {
-  local phase="$1"
-  curl -fsSL "$ONEUPTIME_URL/install/openstack-agent/troubleshoot.sh" -o "$GUIDE_DIR/troubleshoot.sh"
-  (cd "$GUIDE_DIR" && sudo bash troubleshoot.sh --no-color) >"$GUIDE_RECORDING/$phase/troubleshoot.txt" 2>&1 || true
-  tail -n 15 "$GUIDE_RECORDING/$phase/troubleshoot.txt"
-}
-
-# The guide's check, once the agent is up.
-verify_agent() {
-  FOLLOW_LIMIT=30 follow <<'GUIDE' || true
-cd /opt/oneuptime-openstack-agent
-docker compose ps
-docker compose logs -f oneuptime-openstack-agent
-GUIDE
-}
-
 kolla_exporter() {
   local phase="kolla-exporter" targets="$GUIDE_DIR/targets.env" status=0
   log "The agent, on Kolla's own exporter"
   remove_agent
   keep_otlp_in "$phase"
-  curl -fsSL "$ONEUPTIME_URL/install/openstack-agent" -o "$GUIDE_DIR/install.sh"
+  download_install_script
   FOLLOW_ANSWERS="$(printf '%s\n%s\n%s\n' "$ONEUPTIME_URL" "$INGESTION_KEY" "$CLOUD_NAME")" follow <<'GUIDE' || status=$?
 OPENSTACK_SINGLE_CLOUD_EXPORTER_TARGETS=<kolla_internal_vip_address>:9198 \
 OPENSTACK_CONTROL_PLANE_REGION=RegionOne \
@@ -355,7 +212,7 @@ sudo cat /etc/kolla/prometheus-server/prometheus.yml | python3 control-plane-tar
 GUIDE
   cp "$targets" "$KOLLA_RECORDING/control-plane-targets.txt"
   sudo tee -a "$AGENT_FOLDER/.env" <"$targets" >/dev/null
-  (cd "$AGENT_FOLDER" && sudo docker compose up -d) 2>&1 | tee -a "$COMMANDS" || status=$?
+  (cd "$AGENT_FOLDER" && sudo docker compose up -d) 2>&1 | tee -a "$GUIDE_RECORDING/commands.log" || status=$?
 
   wait_for_what_it_sends "$phase" || status=$?
   troubleshoot "$phase"
@@ -386,11 +243,9 @@ openstack application credential create oneuptime-agent \
 GUIDE
   mkdir -p "$GUIDE_RECORDING/$phase"
   cp "$GUIDE_DIR/access-rules-for-this-cloud.json" "$GUIDE_RECORDING/$phase/" 2>/dev/null || true
-  id="$(awk -F'|' '$2 ~ /^ *[Ii][Dd] *$/ { gsub(/ /, "", $3); print $3 }' "$output" | head -1)"
-  secret="$(awk -F'|' '$2 ~ /^ *[Ss]ecret *$/ { gsub(/ /, "", $3); print $3 }' "$output" | head -1)"
-  if [ -n "$secret" ]; then
-    sed -i "s/$secret/<secret>/g" "$COMMANDS"
-  fi
+  id="$(credential_field id "$output")"
+  secret="$(credential_field secret "$output")"
+  forget_in_commands "$secret"
   if [ -z "$id" ] || [ -z "$secret" ]; then
     problem "$phase: the credential's id and secret are not in what it printed"
     return 1
@@ -425,12 +280,12 @@ own_exporter() {
   log "The agent, on an exporter someone already runs: $phase"
   remove_agent
   keep_otlp_in "$phase"
-  curl -fsSL "$ONEUPTIME_URL/install/openstack-agent" -o "$GUIDE_DIR/install.sh"
+  download_install_script
   FOLLOW_ANSWERS="$(printf '%s\n' "$ONEUPTIME_URL" "$INGESTION_KEY" "$CLOUD_NAME" RegionOne)" \
     OPENSTACK_EXPORTER_ADDRESS="$address" follow <<'GUIDE' || status=$?
 bash install.sh
 GUIDE
-  sudo docker compose --project-directory "$AGENT_FOLDER" ps -a 2>&1 | tee -a "$COMMANDS" || true
+  sudo docker compose --project-directory "$AGENT_FOLDER" ps -a 2>&1 | tee -a "$GUIDE_RECORDING/commands.log" || true
   wait_for_what_it_sends "$phase" || status=$?
   keep_what_the_agent_was "$phase"
   stop_keeping_otlp "$phase"
@@ -445,13 +300,13 @@ without_docker() {
   log "The agent as systemd services, on a Kolla node"
   remove_agent
   keep_otlp_in "$phase"
-  curl -fsSL "$ONEUPTIME_URL/install/openstack-agent" -o "$GUIDE_DIR/install.sh"
+  download_install_script
   FOLLOW_ANSWERS="$(printf '%s\n' "$ONEUPTIME_URL" "$INGESTION_KEY" "$CLOUD_NAME")" \
     OPENSTACK_SINGLE_CLOUD_EXPORTER_TARGETS="$KOLLA_VIP:9198" OPENSTACK_CONTROL_PLANE_REGION=RegionOne \
     follow <<'GUIDE' || status=$?
 bash install.sh --without-docker
 GUIDE
-  sudo systemctl status oneuptime-openstack-agent --no-pager 2>&1 | tee -a "$COMMANDS" || true
+  sudo systemctl status oneuptime-openstack-agent --no-pager 2>&1 | tee -a "$GUIDE_RECORDING/commands.log" || true
   wait_for_what_it_sends "$phase" || status=$?
   keep_what_the_agent_was "$phase"
   stop_keeping_otlp "$phase"
@@ -463,29 +318,15 @@ GUIDE
 # Logs, on Kolla's own files
 # ----------------------------------------------------------------------------
 logs_profile() {
-  local phase="logs" network status=0
+  local phase="logs" status=0
   log "The logs profile, on Kolla's files"
   keep_otlp_in "$phase"
   FOLLOW_ANSWERS="$(printf '%s\n' "$ONEUPTIME_URL" "$INGESTION_KEY" "$CLOUD_NAME")" follow <<'GUIDE' || status=$?
 curl -fsSLO https://oneuptime.example/install/openstack-agent/install-logs.sh
 sudo bash install-logs.sh files
 GUIDE
-  sudo docker compose --project-directory "$LOGS_FOLDER" -f "$LOGS_FOLDER/docker-compose.logs.yml" ps -a 2>&1 | tee -a "$COMMANDS" || true
-
-  # What a line needs to reach a real OneUptime from this container. A OneUptime on this very
-  # machine proves little: the question is whether it can get off the machine at all.
-  network="$(sudo docker inspect oneuptime-openstack-logs --format '{{range $name, $_ := .NetworkSettings.Networks}}{{$name}}{{end}}' 2>/dev/null)"
-  {
-    echo "network: $network"
-    sudo cat /etc/docker/daemon.json
-    echo
-    if [ "$network" = "host" ]; then
-      sudo docker run --rm --network host "$CURL_IMAGE" -sS -o /dev/null -m 20 -w 'oneuptime.com answers %{http_code}\n' https://oneuptime.com/ 2>&1
-    else
-      sudo docker run --rm --network "$network" "$CURL_IMAGE" -sS -o /dev/null -m 20 -w 'oneuptime.com answers %{http_code}\n' https://oneuptime.com/ 2>&1
-      sudo docker run --rm --network "$network" "$CURL_IMAGE" -sS -o /dev/null -m 20 -w 'this OneUptime answers %{http_code}\n' "$ONEUPTIME_URL/otlp/v1/validate" 2>&1
-    fi
-  } | tee "$GUIDE_RECORDING/$phase/reach.txt"
+  sudo docker compose --project-directory "$LOGS_FOLDER" -f "$LOGS_FOLDER/docker-compose.logs.yml" ps -a 2>&1 | tee -a "$GUIDE_RECORDING/commands.log" || true
+  record_where_the_logs_can_reach oneuptime-openstack-logs "$GUIDE_RECORDING/$phase/reach.txt"
 
   log "Make the services say something"
   for attempt in 1 2 3 4 5 6 7 8; do
@@ -544,11 +385,9 @@ openstack application credential create oneuptime-agent \
   --expiration 2027-11-04T00:00:00
 GUIDE
   local id secret folder="$GUIDE_RECORDING/$phase/exporter" clouds="$KOLLA_HOME/infrastructure-clouds.yaml"
-  id="$(awk -F'|' '$2 ~ /^ *[Ii][Dd] *$/ { gsub(/ /, "", $3); print $3 }' "$output" | head -1)"
-  secret="$(awk -F'|' '$2 ~ /^ *[Ss]ecret *$/ { gsub(/ /, "", $3); print $3 }' "$output" | head -1)"
-  if [ -n "$secret" ]; then
-    sed -i "s/$secret/<secret>/g" "$COMMANDS"
-  fi
+  id="$(credential_field id "$output")"
+  secret="$(credential_field secret "$output")"
+  forget_in_commands "$secret"
   if [ -z "$id" ] || [ -z "$secret" ]; then
     problem "$phase: the credential's id and secret are not in what it printed"
     return 1
