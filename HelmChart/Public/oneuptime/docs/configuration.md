@@ -673,6 +673,40 @@ or servers in one. Both are read from the address `trustedProxyHops` picks.
 |--------------------|------------------------------------------------------------------------------------------------------|---------|
 | `trustedProxyHops` | Number of appending reverse proxies you run in front of OneUptime. `0` ignores `X-Forwarded-For` entirely and uses the connecting address. | `1` |
 
+## Locations in security emails
+
+Security emails - a password reset, a changed password, wrong two factor
+codes, a backup code used - tell the account's owner when the request came,
+from which IP address and on which device and browser, so they can tell their
+own request from somebody else's. They can also say roughly where it came from
+("Berlin, Germany"), but only from your CDN or load balancer: OneUptime has no
+IP location database of its own. Name the request headers it writes the
+visitor's country, region and city into, and the emails show them.
+
+Name only headers a proxy in front of OneUptime always writes itself,
+replacing whatever the visitor sent. Any other header is the visitor's own
+writing: whoever asks for someone's password reset could choose the place
+their email shows. With no header named, the emails show no location.
+
+| CDN | `country` | `region` | `city` |
+|-----|-----------|----------|--------|
+| Cloudflare, with *Add visitor location headers* turned on in its Managed Transforms | `cf-ipcountry` | `cf-region` | `cf-ipcity` |
+| Amazon CloudFront, with the headers forwarded to the origin | `cloudfront-viewer-country` | `cloudfront-viewer-country-region-name` | `cloudfront-viewer-city` |
+| Vercel | `x-vercel-ip-country` | `x-vercel-ip-country-region` | `x-vercel-ip-city` |
+
+```yaml
+trustedGeoHeaders:
+  country: cf-ipcountry
+  region: cf-region
+  city: cf-ipcity
+```
+
+| Parameter                   | Description                                                            | Default |
+|-----------------------------|------------------------------------------------------------------------|---------|
+| `trustedGeoHeaders.country` | Request header your CDN writes the visitor's country into, as a two-letter code or a name. | `""` |
+| `trustedGeoHeaders.region`  | Request header your CDN writes the visitor's region or state into.    | `""` |
+| `trustedGeoHeaders.city`    | Request header your CDN writes the visitor's city into.                | `""` |
+
 ## Visitor addresses
 
 OneUptime counts each visitor by the address its gateway accepted the

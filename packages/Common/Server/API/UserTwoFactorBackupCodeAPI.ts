@@ -9,6 +9,8 @@ import { DashboardRoute } from "../../ServiceRoute";
 import DatabaseConfig from "../DatabaseConfig";
 import MailService from "../Services/MailService";
 import ProductBrandingText from "../Utils/ProductBrandingText";
+import RequestOriginUtil from "../Utils/RequestOrigin/RequestOriginUtil";
+import RequestOrigin from "../../Types/RequestOrigin";
 import UserService from "../Services/UserService";
 import User from "../../Models/DatabaseModels/User";
 import UserMiddleware from "../Middleware/UserAuthorization";
@@ -122,6 +124,7 @@ export default class UserTwoFactorBackupCodeAPI extends BaseAPI<
           UserTwoFactorBackupCodeAPI.notifyCodesRegenerated({
             userId: userId,
             newCodeCount: codes.length,
+            origin: RequestOriginUtil.fromRequest(req),
           }).catch((err: Error) => {
             logger.error(err);
           });
@@ -199,11 +202,14 @@ export default class UserTwoFactorBackupCodeAPI extends BaseAPI<
   private static async notifyCodesRegenerated(data: {
     userId: ObjectID;
     newCodeCount: number;
+    // The request that replaced the codes: where it came from.
+    origin?: RequestOrigin | undefined;
   }): Promise<void> {
     const user: User | null = await UserService.findOneById({
       id: data.userId,
       select: {
         email: true,
+        timezone: true,
       },
       props: {
         isRoot: true,
@@ -233,6 +239,14 @@ export default class UserTwoFactorBackupCodeAPI extends BaseAPI<
           ),
         ).toString(),
         homeUrl: new URL(httpProtocol, host).toString(),
+        /*
+         * Which address, place and device replaced the codes: a stolen
+         * session can, and this is how the owner tells.
+         */
+        ...RequestOriginUtil.getEmailVars({
+          origin: data.origin,
+          timezone: user.timezone,
+        }),
       },
     });
   }

@@ -1,6 +1,7 @@
 import type {} from "highlight.js";
 import hljs from "highlight.js/lib/core";
-import "../../../../UI/Components/CodeEditor/CodeEditorHighlight";
+// The grammars an editor loads when it is drawn, registered on the core.
+import "../../../../UI/Components/CodeEditor/CodeEditorGrammars";
 import {
   CODE_LANGUAGES,
   CodeLanguage,
