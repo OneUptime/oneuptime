@@ -188,7 +188,12 @@ describe("which resources it sizes", () => {
     expect(
       candidate(
         ec2(WEB_1, "i-0web1", {
-          telemetryAttributes: { Namespace: "AWS/EC2", "x.y": " ", n: 5 },
+          // A value that is not text, as a row read from JSON may hold.
+          telemetryAttributes: {
+            Namespace: "AWS/EC2",
+            "x.y": " ",
+            n: 5,
+          } as unknown as NonNullable<CloudResource["telemetryAttributes"]>,
         }),
       )!.telemetryAttributes,
     ).toEqual({ Namespace: "AWS/EC2" });
