@@ -466,7 +466,7 @@ describe("picking the level", () => {
     expect(html).toContain("&lt;b&gt;Platform&lt;/b&gt;");
   });
 
-  test("why it asks again is drawn apart, over what escalating does", () => {
+  test("why it asks again is drawn apart, under what escalating does, as the warning is", () => {
     const notice: string =
       "The policy's levels have changed, so nothing was escalated. Escalate again to pick a level.";
     const html: string = render(PASS_ON_VIEW, {
@@ -487,9 +487,11 @@ describe("picking the level", () => {
     expect(box).toContain('role="alert"');
     expect(box).toContain("bg-amber-50");
     expect(htmlAsText(box)).toContain(notice);
-    expect(marker).toBeLessThan(
+    expect(marker).toBeGreaterThan(
       html.indexOf("This will immediately page the level you pick"),
     );
+    // Before the levels it asks about again.
+    expect(marker).toBeLessThan(html.indexOf('data-testid="pass-on-levels"'));
     // Not the warning that nobody is left to page.
     expect(html).not.toContain('data-testid="pass-on-warning"');
   });

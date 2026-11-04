@@ -25,11 +25,11 @@
                                     <div>
                                         <h2 id="pass-on-heading"
                                             class="text-lg font-medium leading-6 text-gray-900 dark:text-slate-50"><%= title %></h2>
+                                        <p class="mt-1 text-sm text-gray-500 dark:text-slate-400"><%= message %></p>
                                         <%# Why it asks again: the level picked was not there to page. -%>
                                         <% if (typeof notice !== 'undefined' && notice) { %>
                                         <%- include('./Partials/OnCallPassOnWarning.ejs', { warning: notice, testId: 'pass-on-notice' }) -%>
                                         <% } %>
-                                        <p class="mt-1 text-sm text-gray-500 dark:text-slate-400"><%= message %></p>
                                         <% if (typeof warning !== 'undefined' && warning) { %>
                                         <%- include('./Partials/OnCallPassOnWarning.ejs', { warning: warning }) -%>
                                         <% } %>
