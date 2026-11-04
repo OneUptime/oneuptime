@@ -141,7 +141,10 @@ jest.mock("../../../UI/Utils/Translation", () => {
   };
 });
 
-import CloudChangesTable from "../../../../App/FeatureSet/Dashboard/src/Components/Cloud/CloudChangesTable";
+import CloudChangesTable, {
+  CLOUD_CHANGE_BY_CONTENT_CLASS_NAME,
+} from "../../../../App/FeatureSet/Dashboard/src/Components/Cloud/CloudChangesTable";
+import { TABLE_WRAP_CELL_MIN_WIDTH_CLASS_NAME } from "../../../UI/Components/Table/TableLayout";
 import {
   CLOUD_CHANGES_BY_COLUMN_ID,
   CLOUD_CHANGE_AI_ACTOR_TEST_ID,
@@ -1180,6 +1183,37 @@ describe("an account's Changes, with OneUptime AI's change beside a person's", (
   function rowOf(text: string): HTMLElement {
     return screen.getByText(text).closest("tr") as HTMLElement;
   }
+
+  /*
+   * #5704's review: at 1280 pixels in German, the By column's 10rem floor
+   * (a wrapping column's) held the table 16 pixels past its card. Its
+   * cells wrap or cut on their own, so it gives way to 7rem.
+   */
+  test("who made a change gives way before the table scrolls: a 7rem floor, not a wrapping column's 10rem", async () => {
+    await mountChanges();
+
+    expect(CLOUD_CHANGE_BY_CONTENT_CLASS_NAME).toBe("min-w-[7rem]");
+    expect(TABLE_WRAP_CELL_MIN_WIDTH_CLASS_NAME).toBe("min-w-[10rem]");
+
+    const person: HTMLElement = within(
+      rowOf("ecs:UpdateService on checkout-api (by hand)"),
+    ).getByTestId("cloud-change-actor");
+    await waitFor(() => {
+      expect(
+        screen.getByTestId(`${CLOUD_CHANGE_AI_ACTOR_TEST_ID}-approval`),
+      ).toBeInTheDocument();
+    });
+    const ai: HTMLElement = screen.getByTestId(CLOUD_CHANGE_AI_ACTOR_TEST_ID);
+
+    for (const cellContent of [person, ai]) {
+      const content: HTMLElement = cellContent.closest("td")!
+        .firstElementChild as HTMLElement;
+      const classes: Array<string> = content.className.split(/\s+/);
+
+      expect(classes).toContain(CLOUD_CHANGE_BY_CONTENT_CLASS_NAME);
+      expect(classes).not.toContain(TABLE_WRAP_CELL_MIN_WIDTH_CLASS_NAME);
+    }
+  });
 
   test("OneUptime AI's change says so and links its fix; the person's is as it was", async () => {
     await mountChanges();

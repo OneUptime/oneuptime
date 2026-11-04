@@ -74,6 +74,15 @@ import {
 // A change's time takes the room it needs (TableLayout's min-w- floor).
 export const CLOUD_CHANGE_TIME_CONTENT_CLASS_NAME: string = "min-w-max";
 
+/*
+ * Who made a change gives way before the table scrolls: a name, OneUptime
+ * AI and who approved it wrap or cut on their own, so the column's floor is
+ * 7rem, not a wrapping column's 10rem (TableLayout). At 1280 pixels in
+ * German, beside a 12-hour time and "Konfigurationsänderung", the 10rem
+ * floor held the table 16 pixels past its card, and the Region scrolled.
+ */
+export const CLOUD_CHANGE_BY_CONTENT_CLASS_NAME: string = "min-w-[7rem]";
+
 // The kinds of change a cloud records, for the Type filter.
 export const CLOUD_CHANGE_TYPE_OPTIONS: Array<DropdownOption> = [
   ChangeEventType.ConfigChange,
@@ -480,6 +489,7 @@ const CloudChangesTable: FunctionComponent<ComponentProps> = (
           hideOnMobile: true,
           disableSort: true,
           wrapContent: true,
+          contentClassName: CLOUD_CHANGE_BY_CONTENT_CLASS_NAME,
           getElement: (change: ChangeEvent): ReactElement => {
             const actor: string = readAttribute(
               change,
