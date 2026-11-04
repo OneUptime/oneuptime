@@ -1,0 +1,136 @@
+receivers:
+  # openstack-exporter translates each OpenStack API into Prometheus series
+  # (openstack_nova_*, openstack_neutron_*, openstack_cinder_* ...). The
+  # OpenTelemetry Collector has no OpenStack receiver of its own.
+  #
+  # One scrape job per OpenStack service, on purpose. A scrape of everything at
+  # once answers nothing at all when one service fails
+  # (openstack-exporter issue 660), which is exactly when the data matters: a
+  # failing Nova would hide a healthy Neutron. Asked one service at a time, it
+  # only costs that service's series.
+  #
+  # Every job's targets are OPENSTACK_EXPORTER_CLOUDS: the clouds.yaml entries
+  # to read, one per region, as a list in square brackets so the collector reads
+  # a list, e.g. [region-one,region-two]. The relabelling hands each one to the
+  # exporter as its `cloud` parameter, and scrapes the exporter.
+  #
+  # Each scrape makes real API calls and logs in to Keystone, so the intervals
+  # are minutes, not seconds, and each timeout sits under its interval: a slow
+  # scrape never stacks on the one before.
+  prometheus:
+    config:
+      scrape_configs:
+        - job_name: oneuptime-openstack-identity
+          metrics_path: /probe
+          params:
+            include_services: [identity]
+          scrape_interval: 300s
+          scrape_timeout: 120s
+          static_configs:
+            - targets: ${env:OPENSTACK_EXPORTER_CLOUDS}
+          relabel_configs: &openstack_exporter_target
+            - source_labels: [__address__]
+              target_label: __param_cloud
+            - source_labels: [__param_cloud]
+              target_label: openstack_clouds_entry
+            - target_label: __address__
+              replacement: ${env:OPENSTACK_EXPORTER_ADDRESS}
+        - job_name: oneuptime-openstack-compute
+          metrics_path: /probe
+          params:
+            include_services: [compute]
+          scrape_interval: 120s
+          scrape_timeout: 110s
+          static_configs:
+            - targets: ${env:OPENSTACK_EXPORTER_CLOUDS}
+          relabel_configs: *openstack_exporter_target
+        - job_name: oneuptime-openstack-placement
+          metrics_path: /probe
+          params:
+            include_services: [placement]
+          scrape_interval: 120s
+          scrape_timeout: 110s
+          static_configs:
+            - targets: ${env:OPENSTACK_EXPORTER_CLOUDS}
+          relabel_configs: *openstack_exporter_target
+        - job_name: oneuptime-openstack-network
+          metrics_path: /probe
+          params:
+            include_services: [network]
+          scrape_interval: 120s
+          scrape_timeout: 110s
+          static_configs:
+            - targets: ${env:OPENSTACK_EXPORTER_CLOUDS}
+          relabel_configs: *openstack_exporter_target
+        - job_name: oneuptime-openstack-volume
+          metrics_path: /probe
+          params:
+            include_services: [volume]
+          scrape_interval: 120s
+          scrape_timeout: 110s
+          static_configs:
+            - targets: ${env:OPENSTACK_EXPORTER_CLOUDS}
+          relabel_configs: *openstack_exporter_target
+        - job_name: oneuptime-openstack-image
+          metrics_path: /probe
+          params:
+            include_services: [image]
+          scrape_interval: 300s
+          scrape_timeout: 120s
+          static_configs:
+            - targets: ${env:OPENSTACK_EXPORTER_CLOUDS}
+          relabel_configs: *openstack_exporter_target
+
+processors:
+  # Lift what OneUptime filters on out of the exporter's labels. Monitor
+  # criteria and attribute filters match on equality, and every OpenStack page
+  # and monitor scopes on these. Do not remove this processor.
+  transform/openstack-identity:
+    error_mode: ignore
+    metric_statements:
+      - context: datapoint
+        statements:
+          - set(attributes["openstack.region.name"], attributes["region"]) where attributes["region"] != nil and attributes["region"] != ""
+  # Stamp every metric with the cloud's identity. OneUptime registers the cloud
+  # from `openstack.cloud.name`, and every OpenStack page and monitor scopes on
+  # it. Keep it stable: changing it later registers a brand-new cloud.
+  resource:
+    attributes:
+      - key: openstack.cloud.name
+        value: ${env:OPENSTACK_CLOUD_NAME}
+        action: upsert
+      # Shown as the agent version on the cloud's page, with a sign when a newer
+      # one is out. The collector image docker-compose.yml pins, its last number
+      # raised each time these files change on that collector.
+      - key: oneuptime.agent.version
+        value: "0.161.0"
+        action: upsert
+      # The prometheus receiver synthesizes service.name (the scrape job's name)
+      # and service.instance.id on every batch. OneUptime routes batches by
+      # service.name first, so leaving them in would register a phantom Service
+      # instead of routing this data to the OpenStack cloud. Do not remove these
+      # two deletes.
+      - key: service.name
+        action: delete
+      - key: service.instance.id
+        action: delete
+  batch:
+    timeout: 10s
+    send_batch_size: 1024
+  memory_limiter:
+    check_interval: 5s
+    limit_mib: 512
+    spike_limit_mib: 128
+
+exporters:
+  otlphttp:
+    endpoint: ${env:ONEUPTIME_URL}/otlp
+    headers:
+      x-oneuptime-token: ${env:ONEUPTIME_TELEMETRY_INGESTION_KEY}
+
+service:
+  pipelines:
+    metrics:
+      receivers: [prometheus]
+      processors: [memory_limiter, transform/openstack-identity, resource, batch]
+      exporters: [otlphttp]

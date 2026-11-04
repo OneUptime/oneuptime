@@ -1,0 +1,124 @@
+name: OpenStack E2E
+
+# Deploys a real OpenStack with DevStack on the runner, builds a known estate
+# on it, breaks it in the ways that page operators, and records what its APIs
+# and openstack-exporter answer each time. The OpenStack product's collectors,
+# health rules and alert templates are tested on those recordings
+# (packages/Common/Tests/Fixtures/OpenStack), because OpenStack answers
+# differently by release and network backend, and a wrong guess costs empty
+# pages rather than a failed test. See Tests/Ops/openstack-e2e/README.md.
+#
+# A DevStack takes about half an hour to deploy, so this runs by hand and once
+# a week, and on a pull request only when the rig itself or the agent changes.
+# Path-filtered, so it must not be a required check.
+on:
+  workflow_dispatch:
+  schedule:
+    - cron: "23 3 * * 1"
+  pull_request:
+    paths:
+      - ".github/workflows/test.openstack-e2e.yaml"
+      - "Tests/Ops/openstack-e2e/**"
+      - "agents/OpenStackAgent/**"
+
+permissions:
+  contents: read
+
+concurrency:
+  group: ${{ github.workflow }}-${{ github.event.pull_request.number || github.ref }}
+  cancel-in-progress: true
+
+jobs:
+  record:
+    name: ${{ matrix.name }}
+    runs-on: ubuntu-24.04
+    timeout-minutes: 120
+    strategy:
+      fail-fast: false
+      matrix:
+        include:
+          # Every maintained release, and the newest unmaintained SLURP release
+          # (https://releases.openstack.org). DevStack's default network
+          # backend is OVN.
+          - name: hibiscus-ovn
+            branch: stable/2026.2
+            conf_overrides: ""
+          - name: gazpacho-ovn
+            branch: stable/2026.1
+            conf_overrides: ""
+          - name: flamingo-ovn
+            branch: stable/2025.2
+            conf_overrides: ""
+          - name: epoxy-ovn
+            branch: unmaintained/2025.1
+            conf_overrides: ""
+          # ML2/OVS reports the DHCP, L3 and OVS agents OVN does not have, and
+          # the product must read both.
+          - name: gazpacho-ovs
+            branch: stable/2026.1
+            enabled_services: "-ovn-controller,-ovn-northd,-ovs-vswitchd,-ovsdb-server,-q-ovn-metadata-agent,-q-ovn-agent,q-agt,q-dhcp,q-l3,q-meta"
+            conf_overrides: |
+              Q_AGENT=openvswitch
+              Q_ML2_PLUGIN_MECHANISM_DRIVERS=openvswitch
+              Q_ML2_TENANT_NETWORK_TYPE=vxlan
+              Q_ML2_PLUGIN_TYPE_DRIVERS=flat,vlan,vxlan
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Deploy DevStack
+        uses: gophercloud/devstack-action@60ca1042045c0c9e3e001c64575d381654ffcba1 # v0.19
+        with:
+          branch: ${{ matrix.branch }}
+          enabled_services: ${{ matrix.enabled_services }}
+          conf_overrides: ${{ matrix.conf_overrides }}
+
+      - name: Build the estate
+        run: bash Tests/Ops/openstack-e2e/estate.sh
+
+      - name: Start the agent's exporter and collector
+        run: bash Tests/Ops/openstack-e2e/start-agent.sh
+        env:
+          OUTPUT_DIR: ${{ runner.temp }}/recording
+
+      - name: Least privilege, tested on the real policies
+        run: bash Tests/Ops/openstack-e2e/access-matrix.sh
+        env:
+          OUTPUT_DIR: ${{ runner.temp }}/recording
+
+      - name: Record the failure drills
+        run: bash Tests/Ops/openstack-e2e/drills.sh
+        env:
+          OUTPUT_DIR: ${{ runner.temp }}/recording
+          EXPORTER_STABLE_URL: http://127.0.0.1:9181
+
+      - name: Stop the agent and keep what it exported
+        if: always()
+        run: bash Tests/Ops/openstack-e2e/stop-agent.sh
+        env:
+          OUTPUT_DIR: ${{ runner.temp }}/recording
+
+      - name: Upload the recordings
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: openstack-recording-${{ matrix.name }}
+          path: ${{ runner.temp }}/recording
+          if-no-files-found: warn
+          retention-days: 30
+
+      - name: Collect DevStack's logs on failure
+        if: failure()
+        run: |
+          mkdir -p "${RUNNER_TEMP}/devstack-logs"
+          sudo journalctl -u 'devstack@*' --no-pager -n 5000 > "${RUNNER_TEMP}/devstack-logs/journal.txt" || true
+          sudo cp -r /tmp/devstack-logs/. "${RUNNER_TEMP}/devstack-logs/" 2>/dev/null || true
+          sudo chown -R "$(id -u)" "${RUNNER_TEMP}/devstack-logs"
+
+      - name: Upload DevStack's logs on failure
+        if: failure()
+        uses: actions/upload-artifact@v4
+        with:
+          name: openstack-devstack-logs-${{ matrix.name }}
+          path: ${{ runner.temp }}/devstack-logs
+          if-no-files-found: ignore
+          retention-days: 7
