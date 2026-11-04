@@ -256,8 +256,10 @@
  *            (linked to no cluster and no resource with an AI agent, and
  *            no monitor either - an incident Ask AI declared, #5293) |
  *            nothing-linked-monitor (the same, with its monitor named so
- *            the card links it) | none (nothing recorded, as for a record
- *            from before decisions were).
+ *            the card links it) | cluster-fixes-off | cluster-agent-not-
+ *            connected (Fixes on for staging-us-east-1, whose Kubernetes AI
+ *            agent never connected) | none (nothing recorded, as for a
+ *            record from before decisions were).
  *   ?switches= on: the project's "Investigate new ..." and "Fix new ...
  *            automatically" switches are on now (and Enable AI). By
  *            default they are off - and with ?ai=off-project so is Enable
@@ -665,6 +667,7 @@ const FIXING_MODES = [
   "nothing-linked",
   "nothing-linked-monitor",
   "cluster-fixes-off",
+  "cluster-agent-not-connected",
   "none",
 ];
 const DEFAULT_FIXING_MODES = {
@@ -4545,6 +4548,34 @@ function remediationDecisionEntries() {
         reason: "ClusterFixesOff",
         kubernetesClusterId: ID.kubernetesCluster(1),
         kubernetesClusterName: "prod-eu-west-1",
+      },
+    ];
+  }
+  /*
+   * Linked to cluster staging-us-east-1, whose Fixes are on but whose
+   * Kubernetes AI agent never connected: OneUptime AI could not apply a
+   * fix there. While the record is open, the agent connecting makes it
+   * decide again (AutoRemediationRuleEngineService.onAgentConnected), and
+   * the line says so under what to do.
+   */
+  if (fixingMode === "cluster-agent-not-connected") {
+    return [
+      {
+        lane: "KubernetesCluster",
+        reason: "ClusterNotReady",
+        kubernetesClusterId: ID.kubernetesCluster(2),
+        kubernetesClusterName: "staging-us-east-1",
+        remediationMode: "RequireApproval",
+        gaps: [
+          {
+            code: "ai_agent_not_connected",
+            title: "The Kubernetes AI agent is not connected",
+            description:
+              "OneUptime AI runs kubectl on this cluster through the Kubernetes AI agent, and no agent has connected for this cluster yet.",
+            nextStep:
+              "Install the Kubernetes AI agent: helm upgrade --install kubernetes-agent oneuptime/kubernetes-agent --set aiAgent.enabled=true",
+          },
+        ],
       },
     ];
   }

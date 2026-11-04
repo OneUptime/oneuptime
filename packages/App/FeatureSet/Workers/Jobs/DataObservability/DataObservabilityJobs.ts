@@ -4,6 +4,7 @@ import { QueueJob } from "Common/Server/Infrastructure/Queue";
 import DataObservabilityRunner from "Common/Server/Utils/DataObservability/DataObservabilityRunner";
 import DataPipelineScheduleCheck from "Common/Server/Utils/DataObservability/DataPipelineScheduleCheck";
 import DataProductCheck from "Common/Server/Utils/DataObservability/DataProductCheck";
+import DataBiSync from "Common/Server/Utils/DataObservability/Bi/DataBiSync";
 import DataReconciliationCompare from "Common/Server/Utils/DataObservability/DataReconciliationCompare";
 import {
   DATA_OBSERVABILITY_COLLECT_STORE_JOB,
@@ -13,7 +14,11 @@ import {
 } from "Common/Server/Utils/DataObservability/DataObservabilityJobs";
 import TableUsageDiscovery from "Common/Server/Utils/DataObservability/TableUsageDiscovery";
 import OneUptimeDate from "Common/Types/Date";
-import { EVERY_FIFTEEN_MINUTE, EVERY_FIVE_MINUTE } from "Common/Utils/CronTime";
+import {
+  EVERY_FIFTEEN_MINUTE,
+  EVERY_FIVE_MINUTE,
+  EVERY_HOUR,
+} from "Common/Utils/CronTime";
 import { JSONObject } from "Common/Types/JSON";
 import ObjectID from "Common/Types/ObjectID";
 
@@ -154,5 +159,18 @@ RunCron(
   },
   async () => {
     await DataReconciliationCompare.compareAll(OneUptimeDate.getCurrentDate());
+  },
+);
+
+// Every BI tool's dashboards, and the tables behind them, once an hour.
+RunCron(
+  "DataObservability:SyncBiDashboards",
+  {
+    schedule: EVERY_HOUR,
+    runOnStartup: false,
+    timeoutInMS: 50 * 60 * 1000,
+  },
+  async () => {
+    await DataBiSync.syncAll();
   },
 );

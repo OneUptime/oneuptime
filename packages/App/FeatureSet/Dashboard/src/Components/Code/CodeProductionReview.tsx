@@ -25,10 +25,12 @@ import PageMap from "../../Utils/PageMap";
 import { buildProfilesRoute } from "../../Utils/ProfilesUrlState";
 import RouteMap, { RouteUtil } from "../../Utils/RouteMap";
 import Route from "Common/Types/API/Route";
+import URL from "Common/Types/API/URL";
 import { CodeHost } from "Common/Types/CodeRepository/CodeHost";
 import CodeRepositoryType from "Common/Types/CodeRepository/CodeRepositoryType";
 import {
   PRODUCTION_REVIEW_WINDOWS,
+  ProductionReviewDataDashboardJSON,
   ProductionReviewDataImpactJSON,
   ProductionReviewDataProductJSON,
   ProductionReviewDataServiceJSON,
@@ -90,6 +92,19 @@ export interface ComponentProps {
 
 const SECTION_CLASS_NAME: string =
   "overflow-hidden rounded-xl border border-gray-200 bg-white shadow-sm";
+
+// A dashboard's link, when its BI tool gave one that reads as a URL.
+function readDashboardUrl(value: string | undefined): URL | null {
+  if (!value) {
+    return null;
+  }
+
+  try {
+    return URL.fromString(value);
+  } catch {
+    return null;
+  }
+}
 
 // The page an id opens, or none for one that is not an id.
 function recordRoute(pageMap: PageMap, id: string): Route | null {
@@ -1013,6 +1028,7 @@ const CodeProductionReview: FunctionComponent<ComponentProps> = (
             const hasDependents: boolean =
               impact.services.length > 0 ||
               impact.downstreamCount > 0 ||
+              (impact.dashboards || []).length > 0 ||
               impact.dataProducts.length > 0;
 
             return (
@@ -1117,6 +1133,42 @@ const CodeProductionReview: FunctionComponent<ComponentProps> = (
                       </span>
                     ) : (
                       <></>
+                    )}
+                  </div>
+                ) : (
+                  <></>
+                )}
+                {(impact.dashboards || []).length > 0 ? (
+                  <div className="mt-2 flex flex-wrap items-center gap-x-2 gap-y-1 text-sm text-gray-700">
+                    <span className="font-medium">
+                      {text(PRODUCTION_REVIEW_DATA_COPY.dashboards)}
+                    </span>
+                    {(impact.dashboards || []).map(
+                      (dashboard: ProductionReviewDataDashboardJSON) => {
+                        const url: URL | null = readDashboardUrl(dashboard.url);
+                        const name: ReactElement = (
+                          <span className="font-medium text-gray-900">
+                            {dashboard.name}
+                            <span className="font-normal text-gray-500">
+                              {" "}
+                              ({dashboard.tool})
+                            </span>
+                          </span>
+                        );
+
+                        return url ? (
+                          <Link
+                            key={dashboard.dataDashboardId}
+                            to={url}
+                            openInNewTab={true}
+                            className="hover:underline"
+                          >
+                            {name}
+                          </Link>
+                        ) : (
+                          <span key={dashboard.dataDashboardId}>{name}</span>
+                        );
+                      },
                     )}
                   </div>
                 ) : (

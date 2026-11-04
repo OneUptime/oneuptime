@@ -241,6 +241,22 @@ export interface AutoRemediationDecisionEntry {
 // The most monitors an entry names; the card links each one.
 export const MAX_DECISION_MONITORS: number = 5;
 
+/*
+ * The gaps that say a cluster's or a resource's AI agent was not there when
+ * OneUptime AI decided: it never connected, or it connected once and then
+ * stopped reporting. The record's Remediation step said its Fixes are on
+ * but its AI agent is not connected, and the agent connecting is what that
+ * decision waited for: the rule engine decides again then
+ * (AutoRemediationRuleEngineService.onAgentConnected), and the step says
+ * so while the record is open (RemediationDecisionLines). Shared by the
+ * resource AI agents' gaps (ResourceAiAccessGapCode) and the Kubernetes AI
+ * agent's (KubernetesAiAccessGapCode), which spell them the same.
+ */
+export const AGENT_NOT_CONNECTED_GAP_CODES: ReadonlyArray<string> = [
+  "ai_agent_not_connected",
+  "ai_agent_offline",
+];
+
 const LANES: Array<string> = Object.values(AutoRemediationDecisionLane);
 const REASONS: Array<string> = Object.values(AutoRemediationDecisionReason);
 

@@ -22,6 +22,9 @@ export const DATA_OBSERVABILITY_API_ROUTES: {
   reconciliationRunNow: (reconciliationId: string) => string;
   checkSuggest: string;
   tableFreshness: string;
+  biSync: (dataBiConnectionId: string) => string;
+  tableDashboards: string;
+  spendSummary: string;
 } = {
   overview: "/data-observability/overview",
   stores: "/data-observability/stores",
@@ -61,7 +64,61 @@ export const DATA_OBSERVABILITY_API_ROUTES: {
   checkSuggest: "/data-observability/checks/suggest",
   // Whether a table is fresh, as one answer: what the MCP server's tool asks.
   tableFreshness: "/data-observability/tables/freshness",
+  // Reads a BI tool's dashboards now, and says how it went.
+  biSync: (dataBiConnectionId: string): string => {
+    return `/data-observability/bi-connections/${dataBiConnectionId}/sync`;
+  },
+  // The dashboards built on a table, and on the tables built from it.
+  tableDashboards: "/data-observability/tables/dashboards",
+  // What the project's warehouses spent over the last day: by team, by table, and where it is wasted.
+  spendSummary: "/data-observability/spend/summary",
 };
+
+export interface DataObservabilitySpendTable {
+  dataAssetId: string;
+  table: string;
+  database: string;
+  credits: number | null;
+  bytesBilled: number | null;
+  // Unread for 90 days: what writing it spends, nobody uses.
+  isUnused: boolean;
+}
+
+export interface DataObservabilitySpendSummary {
+  credits: number;
+  bytesBilled: number;
+  jobCount: number;
+  failingJobCount: number;
+  // Jobs whose every table has gone unread for 90 days, and what they spent.
+  unusedJobCount: number;
+  unusedCredits: number;
+  unusedBytesBilled: number;
+  // By the team a job's tag names, else whoever runs it.
+  byTeam: Array<{
+    team: string;
+    credits: number;
+    bytesBilled: number;
+    jobCount: number;
+  }>;
+  topTables: Array<DataObservabilitySpendTable>;
+}
+
+export interface DataObservabilityBiSyncResponse {
+  dashboardCount: number;
+  matchedTableCount: number;
+  error: string | null;
+}
+
+export interface DataObservabilityTableDashboard {
+  dataDashboardId: string;
+  name: string;
+  url: string | null;
+  tool: string;
+  folder: string | null;
+  owner: string | null;
+  // The table built from this one that the dashboard reads; null when it reads this one.
+  via: { dataAssetId: string; table: string } | null;
+}
 
 export interface DataObservabilityCheckSuggestRequest {
   dataAssetId: string;

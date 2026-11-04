@@ -74,7 +74,8 @@ export type DatabaseEngine =
   | "snowflake"
   | "bigquery"
   | "clickhouse"
-  | "databricks";
+  | "databricks"
+  | "athena";
 
 export const DATABASE_ENGINES: ReadonlyArray<DatabaseEngine> = [
   "postgresql",

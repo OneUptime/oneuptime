@@ -496,6 +496,7 @@ export const PRODUCTION_REVIEW_DATA_COPY: {
   inFile: string;
   services: string;
   downstream: string;
+  dashboards: string;
   dataProducts: string;
   nothing: string;
 } = {
@@ -503,6 +504,7 @@ export const PRODUCTION_REVIEW_DATA_COPY: {
   inFile: translationKey("In {{path}}"),
   services: translationKey("Used by"),
   downstream: translationKey("Tables built from it"),
+  dashboards: translationKey("Shown on dashboards"),
   dataProducts: translationKey("Data products"),
   nothing: translationKey("Nothing watched depends on it yet"),
 };

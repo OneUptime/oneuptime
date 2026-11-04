@@ -741,6 +741,15 @@ import DataPipelineRunService, {
 import DataProductService, {
   Service as DataProductServiceType,
 } from "Common/Server/Services/DataProductService";
+import DataBiConnectionService, {
+  Service as DataBiConnectionServiceType,
+} from "Common/Server/Services/DataBiConnectionService";
+import DataDashboardService, {
+  Service as DataDashboardServiceType,
+} from "Common/Server/Services/DataDashboardService";
+import DataWarehouseJobService, {
+  Service as DataWarehouseJobServiceType,
+} from "Common/Server/Services/DataWarehouseJobService";
 import DataReconciliationService, {
   Service as DataReconciliationServiceType,
 } from "Common/Server/Services/DataReconciliationService";
@@ -1817,6 +1826,9 @@ import DataCheck from "Common/Models/DatabaseModels/DataCheck";
 import DataPipeline from "Common/Models/DatabaseModels/DataPipeline";
 import DataPipelineRun from "Common/Models/DatabaseModels/DataPipelineRun";
 import DataProduct from "Common/Models/DatabaseModels/DataProduct";
+import DataBiConnection from "Common/Models/DatabaseModels/DataBiConnection";
+import DataDashboard from "Common/Models/DatabaseModels/DataDashboard";
+import DataWarehouseJob from "Common/Models/DatabaseModels/DataWarehouseJob";
 import DataReconciliation from "Common/Models/DatabaseModels/DataReconciliation";
 import DataAssetLineage from "Common/Models/DatabaseModels/DataAssetLineage";
 import DataAlert from "Common/Models/DatabaseModels/DataAlert";
@@ -4612,6 +4624,30 @@ const BaseAPIFeatureSet: FeatureSet = {
       new BaseAPI<DataProduct, DataProductServiceType>(
         DataProduct,
         DataProductService,
+      ).getRouter(),
+    );
+
+    app.use(
+      `/${APP_NAME.toLocaleLowerCase()}`,
+      new BaseAPI<DataBiConnection, DataBiConnectionServiceType>(
+        DataBiConnection,
+        DataBiConnectionService,
+      ).getRouter(),
+    );
+
+    app.use(
+      `/${APP_NAME.toLocaleLowerCase()}`,
+      new BaseAPI<DataDashboard, DataDashboardServiceType>(
+        DataDashboard,
+        DataDashboardService,
+      ).getRouter(),
+    );
+
+    app.use(
+      `/${APP_NAME.toLocaleLowerCase()}`,
+      new BaseAPI<DataWarehouseJob, DataWarehouseJobServiceType>(
+        DataWarehouseJob,
+        DataWarehouseJobService,
       ).getRouter(),
     );
 

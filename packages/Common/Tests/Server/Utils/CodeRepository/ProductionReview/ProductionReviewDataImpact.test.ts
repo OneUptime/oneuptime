@@ -18,6 +18,7 @@ import DataAssetUsageService from "../../../../../Server/Services/DataAssetUsage
 import DataAssetLineageService from "../../../../../Server/Services/DataAssetLineageService";
 import DataProductService from "../../../../../Server/Services/DataProductService";
 import SpanService from "../../../../../Server/Services/SpanService";
+import DataTableDashboards from "../../../../../Server/Utils/DataObservability/Bi/DataTableDashboards";
 import DataAsset from "../../../../../Models/DatabaseModels/DataAsset";
 import DataAssetUsage from "../../../../../Models/DatabaseModels/DataAssetUsage";
 import DataAssetLineage from "../../../../../Models/DatabaseModels/DataAssetLineage";
@@ -322,6 +323,7 @@ describe("what depends on a watched table", () => {
       .spyOn(DataAssetLineageService, "findBy")
       .mockResolvedValue([downstream]);
     jest.spyOn(DataProductService, "findBy").mockResolvedValue([product]);
+    jest.spyOn(DataTableDashboards, "find").mockResolvedValue([]);
     jest.spyOn(SpanService, "executeQuery").mockResolvedValue({
       json: async () => {
         return {
@@ -372,6 +374,7 @@ describe("what depends on a watched table", () => {
           },
         ],
         downstreamCount: 1,
+        dashboards: [],
         dataProducts: [
           {
             dataProductId: product.id!.toString(),

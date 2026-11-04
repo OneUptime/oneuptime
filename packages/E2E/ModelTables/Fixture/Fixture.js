@@ -106,6 +106,7 @@ import {
   useParams,
 } from "react-router-dom";
 import i18next from "i18next";
+import { followLanguageForDates } from "Common/UI/Utils/DateDisplayLanguage";
 import { initReactI18next } from "react-i18next";
 import IncidentsPage from "../../../App/FeatureSet/Dashboard/src/Pages/Incidents/Incidents";
 import AlertsPage from "../../../App/FeatureSet/Dashboard/src/Pages/Alerts/Alerts";
@@ -1986,6 +1987,8 @@ await i18next.use(initReactI18next).init({
   keySeparator: false,
   nsSeparator: false,
 });
+// Dates in the reader's language ("vor 2 Stunden"), as Utils/i18n.ts sets them.
+followLanguageForDates(i18next);
 document.documentElement.lang = language;
 if (language === "fa") {
   document.documentElement.dir = "rtl";

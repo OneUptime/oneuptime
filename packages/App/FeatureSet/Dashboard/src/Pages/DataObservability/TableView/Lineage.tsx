@@ -1,5 +1,6 @@
 import PageComponentProps from "../../PageComponentProps";
 import AppLink from "../../../Components/AppLink/AppLink";
+import TableDashboards from "../../../Components/DataObservability/TableDashboards";
 import PageMap from "../../../Utils/PageMap";
 import RouteMap, { RouteUtil } from "../../../Utils/RouteMap";
 import { getRunStatePill } from "../Pipelines";
@@ -142,6 +143,7 @@ const TableLineagePage: FunctionComponent<
 
   return (
     <div className="space-y-5">
+      <TableDashboards dataAssetId={dataAssetId} />
       <ModelTable<DataAssetLineage>
         modelType={DataAssetLineage}
         id="data-observability-table-upstream"

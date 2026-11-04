@@ -147,7 +147,7 @@ De velden op het hoogste niveau worden opgeslagen als attributen onder de namen 
 
 Attributen waarvan de naam begint met `oneuptime.` zijn van OneUptime zelf en worden weggelaten uit wat een pipeline stuurt. Elke wijziging die een pipeline vastlegt, vermeldt dat in `oneuptime.change.source`, met de waarde `api`.
 
-Een wijziging die uit een cloudaccount is gelezen, noemt het account en de resource onder de namen van OpenTelemetry, `cloud.provider`, `cloud.account.id`, `cloud.region` en `cloud.resource_id`, en bewaart de bewerking in `oneuptime.cloud.operation`, wie hem uitvoerde in `oneuptime.cloud.actor`, of hij mislukte in `oneuptime.change.status` en het cloudaccount in `oneuptime.cloud_account.id`.
+Een wijziging die uit een cloudaccount is gelezen, noemt het account en de resource onder de namen van OpenTelemetry, `cloud.provider`, `cloud.account.id`, `cloud.region` en `cloud.resource_id`, en bewaart de bewerking in `oneuptime.cloud.operation`, wie hem uitvoerde in `oneuptime.cloud.actor`, of hij mislukte in `oneuptime.change.status` en het cloudaccount in `oneuptime.cloud_account.id`. Een wijziging die OneUptime AI via een Cloud-AI-agent heeft gemaakt, zegt dat in `oneuptime.change.made_by`, dat `oneuptime-ai` is, en noemt de taak van de agent in `oneuptime.runner_job.id`, de oplossing in `oneuptime.auto_remediation_suggestion.id`, de AI-run die haar plande in `oneuptime.ai_run.id`, of het de oplossing of het terugdraaien ervan was in `oneuptime.ai.step` (`fix` of `rollback`), en het incident of de waarschuwing die ze verhielp in `oneuptime.incident.id` of `oneuptime.alert.id`.
 
 ### Limieten
 

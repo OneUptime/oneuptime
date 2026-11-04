@@ -37,6 +37,7 @@ import ClickHouseHttpApi, {
   readClickHouseConnection,
 } from "./ClickHouseHttpApi";
 import DatabricksApi, { readDatabricksConnection } from "./DatabricksApi";
+import AthenaApi, { readAthenaConnection } from "./AthenaApi";
 import { JSONObject } from "../../../Types/JSON";
 import {
   DataCheckRunResult,
@@ -44,6 +45,14 @@ import {
   PlannedDataCheck,
   readCheckRows,
 } from "./DataCheckResults";
+import {
+  CollectedJobSpend,
+  MAX_SPEND_JOBS,
+  MAX_WRITTEN_TABLES_PER_JOB,
+  nameJob,
+  readTeamOfTag,
+  SPEND_WINDOW_IN_HOURS,
+} from "../../../Types/DataObservability/DataWarehouseSpend";
 
 /*
  * EVERY TABLE OF A DATABASE, FROM ITS CATALOG, WITHOUT READING A ROW.
@@ -79,6 +88,9 @@ import {
  *    of each insert. system.columns gives the columns.
  *  - Databricks: Unity Catalog's REST API gives every table, view and
  *    column, and each Delta table's last commit, with no SQL warehouse.
+ *  - Amazon Athena: the Glue Data Catalog's API gives every table and view
+ *    of a Glue database, its columns and statistics, and each Iceberg
+ *    table's last commit.
  *
  * Each engine also says which tables feed which, where it can (lineage
  * with no pipeline to report it): a view's tables from its definition
@@ -227,6 +239,11 @@ export interface TableHealthSnapshot {
   lineage?: Array<CollectedLineageEdge> | undefined;
   // True when every view's definition was read, so a view edge not reported is gone.
   isViewLineageComplete?: boolean | undefined;
+  /*
+   * What the warehouse spent on each job over the last day, read once an
+   * hour; unset when it was not read this time.
+   */
+  spend?: Array<CollectedJobSpend> | undefined;
 }
 
 export interface TableHealthCollectOptions {
@@ -288,11 +305,22 @@ const NO_LINEAGE: LineageRead = {
   warnings: [],
 };
 
+interface SpendRead {
+  jobs: Array<CollectedJobSpend>;
+  warnings: Array<string>;
+  // Whether spend was read this time: a job not in a read list ran in none of the last day.
+  isRead: boolean;
+}
+
+const NO_SPEND: SpendRead = { jobs: [], warnings: [], isRead: false };
+
 interface CatalogSession {
   readonly engine: DatabaseEngine;
   read(options: TableHealthCollectOptions): Promise<CatalogRead>;
   // Which tables feed which, as the engine shows it; one that cannot say has none.
   readLineage?(options: TableHealthCollectOptions): Promise<LineageRead>;
+  // What the warehouse spent on each job over the last day: once an hour, where it bills by use.
+  readSpend?(options: TableHealthCollectOptions): Promise<SpendRead>;
   // One data check's aggregate, read-only and bounded like every catalog read.
   readAggregate(
     sql: string,
@@ -1828,6 +1856,87 @@ class SnowflakeCatalog implements CatalogSession {
     };
   }
 
+  /*
+   * Once an hour, on the connection's warehouse: each job's runs, failures
+   * and credits over the last day, and the tables it wrote where the
+   * account keeps ACCESS_HISTORY. ACCOUNT_USAGE needs IMPORTED PRIVILEGES
+   * on the SNOWFLAKE database.
+   */
+  public async readSpend(
+    options: TableHealthCollectOptions,
+  ): Promise<SpendRead> {
+    if (readLookback(options) <= 0) {
+      return NO_SPEND;
+    }
+
+    const warnings: Array<string> = [];
+    let rows: Array<Record<string, unknown>>;
+
+    try {
+      rows = await this.api.query({
+        statement: buildSnowflakeSpendQuery(true),
+        bindings: [this.database],
+        useWarehouse: true,
+      });
+    } catch (attributionError) {
+      try {
+        rows = await this.api.query({
+          statement: buildSnowflakeSpendQuery(false),
+          bindings: [this.database],
+          useWarehouse: true,
+        });
+        warnings.push(
+          `Credits per job were left out (QUERY_ATTRIBUTION_HISTORY could not be read): ${describeError(attributionError).slice(0, 200)}`,
+        );
+      } catch (error) {
+        return {
+          ...NO_SPEND,
+          warnings: [
+            `Warehouse spend was left out (SNOWFLAKE.ACCOUNT_USAGE needs IMPORTED PRIVILEGES on the SNOWFLAKE database): ${describeError(error).slice(0, 200)}`,
+          ],
+        };
+      }
+    }
+
+    const written: Map<
+      string,
+      Array<{ schema: string; table: string }>
+    > = new Map();
+
+    try {
+      for (const row of await this.api.query({
+        statement: SNOWFLAKE_WRITTEN_TABLES_QUERY,
+        bindings: [this.database],
+        useWarehouse: true,
+      })) {
+        const table: { schema: string; table: string } | null =
+          readSnowflakeObjectName(row["object_name"], this.database);
+        const jobKey: string = String(row["job_key"] ?? "");
+
+        if (table && jobKey) {
+          written.set(jobKey, [...(written.get(jobKey) || []), table]);
+        }
+      }
+    } catch {
+      // ACCESS_HISTORY is Snowflake Enterprise's: without it a job writes no table we know of.
+    }
+
+    return {
+      jobs: rows
+        .map((row: Record<string, unknown>): CollectedJobSpend | null => {
+          return readSpendRow(
+            row,
+            written.get(String(row["job_key"] ?? "")) || [],
+          );
+        })
+        .filter((job: CollectedJobSpend | null): job is CollectedJobSpend => {
+          return job !== null;
+        }),
+      warnings,
+      isRead: true,
+    };
+  }
+
   public async close(): Promise<void> {
     // Each statement is its own request: nothing is held open.
   }
@@ -1837,6 +1946,174 @@ class SnowflakeCatalog implements CatalogSession {
 const BIGQUERY_LOCATION: RegExp = /^[a-z0-9-]{2,40}$/;
 // A query job runs for six hours at most, so one ending in a window began at most this long before it.
 const BIGQUERY_LONGEST_JOB_IN_SECONDS: number = 6 * 60 * 60;
+
+// A Snowflake object name, DB.SCHEMA.TABLE, as a table of the store's database.
+export function readSnowflakeObjectName(
+  objectName: unknown,
+  database: string,
+): { schema: string; table: string } | null {
+  const parts: Array<string> = String(objectName ?? "")
+    .split(".")
+    .map((part: string): string => {
+      return part.replace(/^"|"$/g, "");
+    });
+
+  if (
+    parts.length !== 3 ||
+    !parts.every(Boolean) ||
+    parts[0]!.toUpperCase() !== database.toUpperCase()
+  ) {
+    return null;
+  }
+
+  return { schema: parts[1]!, table: parts[2]! };
+}
+
+/*
+ * Snowflake's spend over the last day, a job (a parameterized query) a
+ * row: its runs and failures from QUERY_HISTORY, its compute credits from
+ * QUERY_ATTRIBUTION_HISTORY, read back 30 hours since it fills in late.
+ */
+export function buildSnowflakeSpendQuery(withAttribution: boolean): string {
+  return `WITH q AS (
+      SELECT query_id, query_parameterized_hash AS job_key, query_tag, query_type, user_name,
+        warehouse_name, execution_status, end_time
+      FROM SNOWFLAKE.ACCOUNT_USAGE.QUERY_HISTORY
+      WHERE end_time > DATEADD('hour', -${SPEND_WINDOW_IN_HOURS}, CURRENT_TIMESTAMP())
+        AND warehouse_name IS NOT NULL
+        AND query_parameterized_hash IS NOT NULL
+        AND UPPER(database_name) = UPPER(?)
+    )${
+      withAttribution
+        ? `, a AS (
+      SELECT query_id, credits_attributed_compute AS credits
+      FROM SNOWFLAKE.ACCOUNT_USAGE.QUERY_ATTRIBUTION_HISTORY
+      WHERE start_time > DATEADD('hour', -${SPEND_WINDOW_IN_HOURS + 6}, CURRENT_TIMESTAMP())
+    )`
+        : ""
+    }
+    SELECT q.job_key, ANY_VALUE(q.query_tag) AS query_tag, ANY_VALUE(q.query_type) AS query_type,
+      ANY_VALUE(q.user_name) AS user_name, ANY_VALUE(q.warehouse_name) AS warehouse_name,
+      COUNT(*) AS runs, COUNT_IF(q.execution_status = 'FAIL') AS failed_runs,
+      ${withAttribution ? "SUM(a.credits)" : "NULL"} AS credits,
+      DATEDIFF('second', MAX(q.end_time), CURRENT_TIMESTAMP()) AS seconds_since_last_run
+    FROM q${withAttribution ? " LEFT JOIN a ON a.query_id = q.query_id" : ""}
+    GROUP BY q.job_key
+    ORDER BY credits DESC NULLS LAST, runs DESC
+    LIMIT ${MAX_SPEND_JOBS}`;
+}
+
+// The tables each job wrote, from ACCESS_HISTORY (Snowflake Enterprise).
+export const SNOWFLAKE_WRITTEN_TABLES_QUERY: string = `SELECT q.query_parameterized_hash AS job_key,
+    f.value:"objectName"::string AS object_name
+  FROM SNOWFLAKE.ACCOUNT_USAGE.ACCESS_HISTORY h,
+    LATERAL FLATTEN(input => h.objects_modified) f,
+    SNOWFLAKE.ACCOUNT_USAGE.QUERY_HISTORY q
+  WHERE q.query_id = h.query_id
+    AND h.query_start_time > DATEADD('hour', -${SPEND_WINDOW_IN_HOURS}, CURRENT_TIMESTAMP())
+    AND q.end_time > DATEADD('hour', -${SPEND_WINDOW_IN_HOURS}, CURRENT_TIMESTAMP())
+    AND f.value:"objectDomain"::string = 'Table'
+    AND UPPER(q.database_name) = UPPER(?)
+  GROUP BY 1, 2
+  LIMIT 5000`;
+
+// A spend row as a job: named without its query's text.
+export function readSpendRow(
+  row: Record<string, unknown>,
+  written: Array<{ schema: string; table: string }>,
+): CollectedJobSpend | null {
+  const jobKey: string = String(row["job_key"] ?? "").slice(0, 200);
+
+  if (!jobKey) {
+    return null;
+  }
+
+  const tag: string | null = row["query_tag"] ? String(row["query_tag"]) : null;
+  const user: string | null = row["user_name"]
+    ? String(row["user_name"]).slice(0, MAX_SEEN_BY_LENGTH)
+    : null;
+  const firstWritten: { schema: string; table: string } | undefined =
+    written[0];
+  const credits: number | null =
+    row["credits"] === null || row["credits"] === undefined
+      ? null
+      : Number(row["credits"]);
+  const bytesBilled: number | null = readCount(row["bytes_billed"]);
+
+  return {
+    jobKey,
+    name: nameJob({
+      tag: row["tag"] ? String(row["tag"]) : tag,
+      queryType: row["query_type"] ? String(row["query_type"]) : null,
+      writtenTable: firstWritten
+        ? `${firstWritten.schema}.${firstWritten.table}`
+        : null,
+      user,
+    }),
+    user,
+    warehouse: row["warehouse_name"]
+      ? String(row["warehouse_name"]).slice(0, MAX_IDENTIFIER_LENGTH)
+      : null,
+    team: row["team"]
+      ? String(row["team"]).slice(0, MAX_IDENTIFIER_LENGTH)
+      : readTeamOfTag(tag),
+    runs: readCount(row["runs"]) || 0,
+    failedRuns: readCount(row["failed_runs"]) || 0,
+    credits:
+      credits !== null && Number.isFinite(credits) && credits >= 0
+        ? credits
+        : null,
+    bytesBilled,
+    writtenTables: written.slice(0, MAX_WRITTEN_TABLES_PER_JOB),
+    secondsSinceLastRun: readCount(row["seconds_since_last_run"]),
+  };
+}
+
+/*
+ * BigQuery's spend over the last day, a job (a query, its literals left
+ * out) a row: its runs, failures and bytes billed from the jobs view of
+ * the dataset's project and location, for jobs that wrote or read a table
+ * of the dataset; null when the location cannot be named.
+ */
+export function buildBigQuerySpendQuery(
+  connection: Pick<BigQueryConnection, "projectId" | "dataset" | "location">,
+): { statement: string; params: Array<string> } | null {
+  const location: string = (connection.location || "US").toLowerCase();
+
+  if (!BIGQUERY_LOCATION.test(location)) {
+    return null;
+  }
+
+  return {
+    statement: `SELECT COALESCE(j.query_info.query_hashes.normalized_literals, j.job_id) AS job_key,
+        ANY_VALUE((SELECT l.value FROM UNNEST(j.labels) AS l WHERE l.key = 'team' LIMIT 1)) AS team,
+        ANY_VALUE((SELECT l.value FROM UNNEST(j.labels) AS l WHERE l.key = 'job' LIMIT 1)) AS tag,
+        ANY_VALUE(j.statement_type) AS query_type,
+        ANY_VALUE(j.user_email) AS user_name,
+        ANY_VALUE(j.reservation_id) AS warehouse_name,
+        COUNT(*) AS runs,
+        COUNTIF(j.error_result IS NOT NULL) AS failed_runs,
+        SUM(j.total_bytes_billed) AS bytes_billed,
+        ANY_VALUE(IF(j.destination_table.dataset_id = ?, j.destination_table.table_id, NULL)) AS written_table,
+        TIMESTAMP_DIFF(CURRENT_TIMESTAMP(), MAX(j.end_time), SECOND) AS seconds_since_last_run
+      FROM \`${connection.projectId}\`.\`region-${location}\`.INFORMATION_SCHEMA.JOBS AS j
+      WHERE j.creation_time > TIMESTAMP_SUB(CURRENT_TIMESTAMP(), INTERVAL ${SPEND_WINDOW_IN_HOURS + 6} HOUR)
+        AND j.end_time > TIMESTAMP_SUB(CURRENT_TIMESTAMP(), INTERVAL ${SPEND_WINDOW_IN_HOURS} HOUR)
+        AND j.job_type = 'QUERY'
+        AND j.statement_type != 'SCRIPT'
+        AND (j.destination_table.dataset_id = ?
+          OR EXISTS(SELECT 1 FROM UNNEST(j.referenced_tables) AS r WHERE r.project_id = ? AND r.dataset_id = ?))
+      GROUP BY 1
+      ORDER BY bytes_billed DESC
+      LIMIT ${MAX_SPEND_JOBS}`,
+    params: [
+      connection.dataset,
+      connection.dataset,
+      connection.projectId,
+      connection.dataset,
+    ],
+  };
+}
 
 /*
  * The query that reads a dataset's lineage from the jobs view of its
@@ -2035,6 +2312,52 @@ class BigQueryCatalog implements CatalogSession {
       warnings,
       secondsSinceStatsReset: null,
     };
+  }
+
+  /*
+   * Once an hour: each job of the last day that wrote or read a table of
+   * the dataset, with its runs, failures and bytes billed, from the jobs
+   * view (BigQuery Resource Viewer sees every user's).
+   */
+  public async readSpend(
+    options: TableHealthCollectOptions,
+  ): Promise<SpendRead> {
+    const query: { statement: string; params: Array<string> } | null =
+      readLookback(options) > 0
+        ? buildBigQuerySpendQuery(this.connection)
+        : null;
+
+    if (!query) {
+      return NO_SPEND;
+    }
+
+    try {
+      const rows: Array<Record<string, unknown>> = await this.api.query(query);
+
+      return {
+        jobs: rows
+          .map((row: Record<string, unknown>): CollectedJobSpend | null => {
+            const table: string = String(row["written_table"] ?? "");
+
+            return readSpendRow(
+              row,
+              table ? [{ schema: this.connection.dataset, table }] : [],
+            );
+          })
+          .filter((job: CollectedJobSpend | null): job is CollectedJobSpend => {
+            return job !== null;
+          }),
+        warnings: [],
+        isRead: true,
+      };
+    } catch (error) {
+      return {
+        ...NO_SPEND,
+        warnings: [
+          `Warehouse spend was left out (INFORMATION_SCHEMA.JOBS needs the BigQuery Resource Viewer role): ${describeError(error).slice(0, 200)}`,
+        ],
+      };
+    }
   }
 
   public async close(): Promise<void> {
@@ -3015,6 +3338,162 @@ class DatabricksCatalog implements CatalogSession {
   }
 }
 
+// A Glue table's kind: a view, else a table (Iceberg, Hive-style or governed).
+export function readGlueKind(tableType: unknown): DataAssetKind {
+  return String(tableType ?? "").toUpperCase() === "VIRTUAL_VIEW"
+    ? DataAssetKind.View
+    : DataAssetKind.Table;
+}
+
+/*
+ * A Glue table as a table and its columns. An Iceberg table's every commit
+ * updates its Glue table (its metadata location), so its UpdateTime is when
+ * it last changed; a Hive-style table's is only when its definition did,
+ * so it says no change. Rows and size come from the statistics a crawler
+ * or ANALYZE keeps.
+ */
+export function readGlueTable(
+  info: JSONObject,
+  now: Date,
+): { table: RawTable; columns: Array<RawColumn> } | null {
+  const name: string = readText(info["Name"], MAX_IDENTIFIER_LENGTH);
+  const schema: string = readText(info["DatabaseName"], MAX_IDENTIFIER_LENGTH);
+
+  if (!name || !schema) {
+    return null;
+  }
+
+  const kind: DataAssetKind = readGlueKind(info["TableType"]);
+  const parameters: JSONObject =
+    info["Parameters"] && typeof info["Parameters"] === "object"
+      ? (info["Parameters"] as JSONObject)
+      : {};
+  const isIceberg: boolean =
+    String(parameters["table_type"] ?? "").toUpperCase() === "ICEBERG" ||
+    Boolean(parameters["metadata_location"]);
+  const updatedAt: number = Number(info["UpdateTime"]);
+  const storage: JSONObject =
+    info["StorageDescriptor"] && typeof info["StorageDescriptor"] === "object"
+      ? (info["StorageDescriptor"] as JSONObject)
+      : {};
+  const columns: Array<RawColumn> = [
+    ...(Array.isArray(storage["Columns"])
+      ? (storage["Columns"] as Array<unknown>)
+      : []),
+    ...(Array.isArray(info["PartitionKeys"])
+      ? (info["PartitionKeys"] as Array<unknown>)
+      : []),
+  ]
+    .map((value: unknown, index: number): RawColumn | null => {
+      const column: JSONObject =
+        value && typeof value === "object" ? (value as JSONObject) : {};
+      const columnName: string = readText(
+        column["Name"],
+        MAX_COLUMN_NAME_LENGTH,
+      );
+
+      return columnName
+        ? {
+            schema,
+            table: name,
+            column: {
+              name: columnName,
+              dataType: readText(column["Type"], MAX_COLUMN_TYPE_LENGTH)
+                .trim()
+                .toLowerCase(),
+              isNullable: true,
+              position: index + 1,
+            },
+          }
+        : null;
+    })
+    .filter((column: RawColumn | null): column is RawColumn => {
+      return column !== null;
+    });
+  const holdsRows: boolean = kind === DataAssetKind.Table;
+
+  return {
+    table: {
+      schema,
+      name,
+      kind,
+      estimatedRows: holdsRows
+        ? readCount(parameters["numRows"] ?? parameters["recordCount"])
+        : null,
+      sizeInBytes: holdsRows ? readCount(parameters["totalSize"]) : null,
+      writeCount: null,
+      secondsSinceChange:
+        holdsRows && isIceberg && Number.isFinite(updatedAt) && updatedAt > 0
+          ? Math.max(0, Math.floor(now.getTime() / 1000 - updatedAt))
+          : null,
+      readCount: null,
+      secondsSinceRead: null,
+    },
+    columns,
+  };
+}
+
+/*
+ * Amazon Athena, a Glue database at a time (AthenaApi): its tables and
+ * views, their columns, statistics and - for Iceberg - last commit, from
+ * the Glue Data Catalog's API, which reads no data and costs nothing. A
+ * data check runs as an Athena query in the connection's workgroup, its
+ * names in double quotes and its values written in as quoted strings.
+ */
+class AthenaCatalog implements CatalogSession {
+  public readonly engine: DatabaseEngine = "athena";
+  private readonly api: AthenaApi;
+
+  private constructor(api: AthenaApi) {
+    this.api = api;
+  }
+
+  public static async open(connectionString: string): Promise<AthenaCatalog> {
+    const session: AthenaCatalog = new AthenaCatalog(
+      new AthenaApi({ connection: readAthenaConnection(connectionString) }),
+    );
+
+    await session.api.getDatabase();
+
+    return session;
+  }
+
+  public async readAggregate(
+    sql: string,
+    params: Array<string>,
+  ): Promise<Array<Record<string, unknown>>> {
+    return await this.api.query({ statement: sql, params });
+  }
+
+  public async read(options: TableHealthCollectOptions): Promise<CatalogRead> {
+    const now: Date = new Date();
+    const tables: Array<RawTable> = [];
+    const columns: Array<RawColumn> = [];
+
+    for (const info of await this.api.listTables(options.maxTables)) {
+      const read: ReturnType<typeof readGlueTable> = readGlueTable(info, now);
+
+      if (!read) {
+        continue;
+      }
+
+      tables.push(read.table);
+
+      for (const column of read.columns) {
+        if (columns.length < options.maxColumns) {
+          columns.push(column);
+        }
+      }
+    }
+
+    return { tables, columns, warnings: [], secondsSinceStatsReset: null };
+  }
+
+  public async close(): Promise<void> {
+    // Each call is its own request: nothing is held open.
+  }
+}
+
 async function openCatalog(
   connection: DatabaseConnection,
 ): Promise<CatalogSession> {
@@ -3035,6 +3514,8 @@ async function openCatalog(
       return await ClickHouseCatalog.open(connection.connectionString);
     case "databricks":
       return await DatabricksCatalog.open(connection.connectionString);
+    case "athena":
+      return await AthenaCatalog.open(connection.connectionString);
     default:
       throw new Error(
         `Data Observability cannot collect ${String(connection.engine)} databases yet.`,
@@ -3193,6 +3674,20 @@ export async function collectTableHealth(
       };
     }
 
+    // Spend is extra too: a warehouse that cannot say it never fails the collection.
+    let spend: SpendRead = NO_SPEND;
+
+    try {
+      spend = catalog.readSpend ? await catalog.readSpend(options) : NO_SPEND;
+    } catch (error) {
+      spend = {
+        ...NO_SPEND,
+        warnings: [
+          `Warehouse spend was left out: ${describeError(error).slice(0, 200)}`,
+        ],
+      };
+    }
+
     const checkResults: Array<DataCheckRunResult> = [];
 
     // Each check on its own: one that cannot run never stops the others.
@@ -3224,17 +3719,20 @@ export async function collectTableHealth(
         engine: connection.engine,
         read: {
           ...read,
-          warnings: [...read.warnings, ...lineage.warnings].map(
-            (warning: string) => {
-              return sanitizeErrorMessage(new Error(warning), secrets);
-            },
-          ),
+          warnings: [
+            ...read.warnings,
+            ...lineage.warnings,
+            ...spend.warnings,
+          ].map((warning: string) => {
+            return sanitizeErrorMessage(new Error(warning), secrets);
+          }),
         },
         options,
         collectedAt,
         lineage,
       }),
       target: readConnectionTarget(connection),
+      ...(spend.isRead ? { spend: spend.jobs.slice(0, MAX_SPEND_JOBS) } : {}),
       ...(options.checks && options.checks.length > 0 ? { checkResults } : {}),
     };
   } catch (error) {

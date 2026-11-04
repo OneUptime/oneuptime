@@ -1,6 +1,11 @@
 import { expect, Locator, Page, test } from "@playwright/test";
 import fs from "fs";
 import path from "path";
+import {
+  FIRST_STRONG_ISOLATE,
+  POP_DIRECTIONAL_ISOLATE,
+} from "Common/Types/ReadingDirection";
+import { boxesInOneFrame } from "../SuiteHelpers/Frames";
 import { expectNoSidewaysScroll } from "../SuiteHelpers/PageFit";
 
 /*
@@ -2409,6 +2414,74 @@ test.describe("OneUptime AI on a cloud account", () => {
     await shoot(page, "account-ai-logs");
   });
 
+  for (const [language, locale, name, theme] of [
+    ["de", GERMAN, "German, dark", "&theme=dark"],
+    ["fa", PERSIAN, "Persian", ""],
+  ] as Array<[string, Record<string, string>, string, string]>) {
+    test(`AI Logs in ${name}: every sentence, status and subject in the language's words (#5367's follow-up)`, async ({
+      page,
+    }: {
+      page: Page;
+    }) => {
+      await openAccounts(
+        page,
+        `${AI_LOGS_PATH}?state=connected&ai=connected&lang=${language}${theme}`,
+      );
+
+      const heading: Locator = page.getByTestId("ai-logs-page-heading");
+      await expect(heading).toContainText(wordIn(locale, "AI Logs"));
+      // The subtitle is the language's sentence, the account named in it.
+      for (const part of wordIn(
+        locale,
+        "Everything OneUptime AI did on this {{noun}}, newest first: every investigation, fix and command.",
+      ).split("{{noun}}")) {
+        if (part.trim()) {
+          await expect(heading).toContainText(part.trim());
+        }
+      }
+      await expect(
+        page.getByText(
+          wordIn(locale, "Incident #{{number}}: {{title}}", {
+            number: "18",
+            title: "Checkout is slow for every customer",
+          }),
+        ),
+      ).toBeVisible();
+      await expect(page.getByTestId("ai-logs-fix")).toContainText(
+        wordIn(locale, "Applied after approval"),
+      );
+      await expect(page.getByTestId("ai-logs-fix-approved-by")).toContainText(
+        `${wordIn(locale, "Approved by")} Maya Chen`,
+      );
+      await expect(page.getByTestId("ai-logs-fix")).toContainText(
+        wordIn(locale, "Command plan"),
+      );
+      // How a command ended, in the language's sentence.
+      await expect(
+        page
+          .getByText(
+            wordIn(locale, "{{status}} (exit {{exitCode}})", {
+              status: wordIn(locale, "Succeeded"),
+              exitCode: "0",
+            }),
+          )
+          .first(),
+      ).toBeVisible();
+      for (const english of [
+        "newest first",
+        "Applied after approval",
+        "Command plan",
+        "(exit 0)",
+        "Incident #18",
+      ]) {
+        await expect(page.locator("body")).not.toContainText(english);
+      }
+
+      await expectNoSidewaysScroll(page, { tolerance: 1 });
+      await shoot(page, `account-ai-logs-${language}`);
+    });
+  }
+
   test("the project's automatic fixes: said under the question and under the page's fixes, with a link to each switch that is off", async ({
     page,
   }: {
@@ -2819,4 +2892,404 @@ test.describe("OneUptime AI on a cloud account", () => {
     await expect(setUpButton(page)).toBeEnabled();
     await expect(page.getByTestId("ai-agent-status-summary")).toHaveCount(0);
   });
+});
+
+/*
+ * ---------------------------------------------------------------------------
+ * The changes OneUptime AI made, on an account's Changes (#5367's
+ * follow-up). The cloud records them under the Cloud AI agent's role, as
+ * an assumed-role session; the list says OneUptime AI made them and links
+ * each to its fix: the incident it fixed, by its number, who approved it,
+ * and its entry in the account's AI Logs, which opens on that fix, marked.
+ * A person's change stays as it was. At 1280 and 390 pixels, dark, in
+ * German and right to left in Persian (?changes=ai).
+ * ---------------------------------------------------------------------------
+ */
+
+const AI_CHANGES_PATH: string = `${ACCOUNTS_PATH}/${AWS_ACCOUNT}/changes?state=connected&changes=ai`;
+const AI_FIX: string = "80000000-0000-4000-8000-000000000001";
+const FIXED_INCIDENT: string = "70000000-0000-4000-8000-000000000001";
+const AI_SESSION: string = "oneuptime-ai-scale-out-9f2c61d0";
+
+// The line under each change OneUptime AI made, newest first.
+function aiLines(page: Page): Locator {
+  return page.getByTestId("cloud-change-ai");
+}
+
+interface SuggestionListRequest {
+  model: string;
+  ids?: Array<string>;
+  select?: Array<string>;
+}
+
+async function waitForAiLines(page: Page): Promise<[Locator, Locator]> {
+  await expect(aiLines(page)).toHaveCount(2);
+  // The rollback, half an hour ago, above the fix, 39 minutes ago.
+  const rollback: Locator = aiLines(page).nth(0);
+  const fix: Locator = aiLines(page).nth(1);
+  // The fix says who approved it once it was read.
+  await expect(approvalOf(page, 1)).toBeVisible();
+  return [rollback, fix];
+}
+
+/*
+ * Who approved the change OneUptime AI made, newest first: the By column's
+ * to say beside the change on a desktop, and the line's, on a row of its
+ * own, on a phone - whose card draws no By column.
+ */
+function approvalOf(page: Page, index: number): Locator {
+  return isDesktop()
+    ? page
+        .getByTestId("cloud-change-ai-actor")
+        .nth(index)
+        .getByTestId("cloud-change-ai-actor-approval")
+    : aiLines(page).nth(index).getByTestId("cloud-change-ai-approval");
+}
+
+/*
+ * The number of the record a change fixed, as a sentence of the language
+ * holds it: set apart from the words around it where they read right to
+ * left, as every Persian sentence's values are.
+ */
+function numberIn(locale: Record<string, string>, value: string): string {
+  return locale === PERSIAN
+    ? `${FIRST_STRONG_ISOLATE}${value}${POP_DIRECTIONAL_ISOLATE}`
+    : value;
+}
+
+test.describe("OneUptime AI's changes, on an account's Changes", () => {
+  test("its fix and the fix's rollback read OneUptime AI, linked to the incident and its AI Logs entry, the fix with its approver; a person's change is as it was", async ({
+    page,
+  }: {
+    page: Page;
+  }) => {
+    await openAccounts(page, AI_CHANGES_PATH);
+
+    const [rollback, fix] = await waitForAiLines(page);
+
+    await expect(
+      fix.getByRole("link", { name: "Fix for incident #18" }),
+    ).toHaveAttribute(
+      "href",
+      `/dashboard/${PROJECT_ID}/incidents/${FIXED_INCIDENT}`,
+    );
+    await expect(approvalOf(page, 1)).toHaveText("Approved by Maya Chen");
+    await expect(fix.getByRole("link", { name: "AI Logs" })).toHaveAttribute(
+      "href",
+      `${AI_LOGS_PATH}#fix-${AI_FIX}`,
+    );
+    await expect(
+      rollback.getByRole("link", {
+        name: "Rollback of the fix for incident #18",
+      }),
+    ).toHaveAttribute(
+      "href",
+      `/dashboard/${PROJECT_ID}/incidents/${FIXED_INCIDENT}`,
+    );
+    await expect(
+      rollback.getByRole("link", { name: "AI Logs" }),
+    ).toHaveAttribute("href", `${AI_LOGS_PATH}#fix-${AI_FIX}`);
+    // The rollback arm ran it on its own: nobody approved the rollback.
+    await expect(approvalOf(page, 0)).toHaveCount(0);
+    // Two links, apart by a gap: no dot is left at the end of a line.
+    await expect(fix.getByTestId("cloud-change-ai-links")).not.toContainText(
+      "·",
+    );
+
+    // The fix both changes name was read once, as the reader, with what the row says.
+    const reads: Array<SuggestionListRequest> = (
+      (await listRequests(page)) as unknown as Array<SuggestionListRequest>
+    ).filter((request: SuggestionListRequest): boolean => {
+      return request.model === "AutoRemediationSuggestion";
+    });
+    expect(
+      reads.map((read: SuggestionListRequest) => {
+        return read.ids;
+      }),
+    ).toEqual([[AI_FIX]]);
+    expect(reads[0]!.select).toEqual(
+      expect.arrayContaining(["approvedByUser", "incident", "status"]),
+    );
+
+    if (isDesktop()) {
+      // The By column says OneUptime AI, and who approved the fix under it.
+      const actors: Locator = page.getByTestId("cloud-change-ai-actor");
+      await expect(actors).toHaveCount(2);
+      await expect(actors.nth(0)).toHaveText("OneUptime AI");
+      await expect(actors.nth(1)).toHaveText(
+        "OneUptime AIApproved by Maya Chen",
+      );
+      // The role's session the cloud's audit log names: on the name's hover, never cut short.
+      await expect(
+        actors.nth(1).getByTestId("cloud-change-ai-actor-name"),
+      ).toHaveAttribute("title", AI_SESSION);
+      await expect(actors.nth(1)).not.toContainText("oneuptime-ai-scal");
+      // So the line does not say it again, and its two links share one row.
+      await expect(fix.getByTestId("cloud-change-ai-mark")).toHaveCount(0);
+      await expect(fix).toHaveText("Fix for incident #18AI Logs");
+      const [subject, logs] = await boxesInOneFrame([
+        fix.getByRole("link", { name: "Fix for incident #18" }),
+        fix.getByRole("link", { name: "AI Logs" }),
+      ]);
+      expect(Math.abs(subject!.y - logs!.y)).toBeLessThan(4);
+      expect(logs!.x).toBeGreaterThan(subject!.x + subject!.width);
+      // A person's change: their name, and no line of OneUptime AI's.
+      await expect(page.getByTestId("cloud-change-actor").first()).toHaveText(
+        "maya.lopez",
+      );
+      const person: Locator = page
+        .locator("tbody tr")
+        .filter({ hasText: "AuthorizeSecurityGroupIngress" });
+      await expect(person.getByTestId("cloud-change-ai")).toHaveCount(0);
+      await expect(page.locator("tbody tr")).toHaveCount(8);
+    } else {
+      // A phone's card draws no By column: the line says who first, on a row of its own.
+      await expect(fix.getByTestId("cloud-change-ai-mark")).toBeVisible();
+      await expect(fix.getByTestId("cloud-change-ai-mark")).toHaveText(
+        "OneUptime AI·Approved by Maya Chen",
+      );
+      await expect(rollback.getByTestId("cloud-change-ai-mark")).toHaveText(
+        "OneUptime AI",
+      );
+      const [mark, links] = await boxesInOneFrame([
+        fix.getByTestId("cloud-change-ai-mark"),
+        fix.getByTestId("cloud-change-ai-links"),
+      ]);
+      expect(links!.y).toBeGreaterThanOrEqual(mark!.y + mark!.height - 1);
+    }
+
+    await expectNoSidewaysScroll(page, { tolerance: 1 });
+    await shoot(page, "account-changes-ai");
+  });
+
+  test("its AI Logs link opens the account's AI Logs on that fix, marked", async ({
+    page,
+  }: {
+    page: Page;
+  }) => {
+    await openAccounts(page, AI_CHANGES_PATH);
+
+    const [, fix] = await waitForAiLines(page);
+    await fix.getByRole("link", { name: "AI Logs" }).click();
+
+    await expect(page).toHaveURL(new RegExp(`/ai/logs#fix-${AI_FIX}$`));
+    const linked: Locator = page.locator(
+      '[data-testid="ai-logs-fix"][data-linked="true"]',
+    );
+    await expect(linked).toHaveCount(1);
+    await expect(linked).toHaveAttribute("aria-current", "true");
+    await expect(linked).toContainText("Approved by Maya Chen");
+    await expect(linked).toBeInViewport();
+    await expectNoSidewaysScroll(page, { tolerance: 1 });
+    await shoot(page, "account-ai-logs-linked-fix");
+  });
+
+  test("dark: the line and its links read on the dark page", async ({
+    page,
+  }: {
+    page: Page;
+  }) => {
+    await openAccounts(page, `${AI_CHANGES_PATH}&theme=dark`);
+
+    await expect(page.locator("html")).toHaveClass(/dark/);
+    const [, fix] = await waitForAiLines(page);
+    await expect(
+      fix.getByRole("link", { name: "Fix for incident #18" }),
+    ).toBeVisible();
+    await expectNoSidewaysScroll(page, { tolerance: 1 });
+    await shoot(page, "account-changes-ai-dark");
+  });
+
+  for (const [language, locale, name] of [
+    ["de", GERMAN, "German"],
+    ["fa", PERSIAN, "Persian"],
+  ] as Array<[string, Record<string, string>, string]>) {
+    test(`${name}: every phrase of the line is the language's own`, async ({
+      page,
+    }: {
+      page: Page;
+    }) => {
+      await openAccounts(page, `${AI_CHANGES_PATH}&lang=${language}`);
+
+      const [rollback, fix] = await waitForAiLines(page);
+      const subject: string = wordIn(locale, "Fix for incident {{number}}", {
+        number: numberIn(locale, "#18"),
+      });
+      const logs: string = wordIn(locale, "AI Logs");
+
+      expect(subject).not.toContain("Fix for incident");
+      await expect(fix.getByRole("link", { name: subject })).toBeVisible();
+      await expect(fix.getByRole("link", { name: logs })).toBeVisible();
+      await expect(
+        rollback.getByRole("link", {
+          name: wordIn(locale, "Rollback of the fix for incident {{number}}", {
+            number: numberIn(locale, "#18"),
+          }),
+        }),
+      ).toBeVisible();
+      const approval: Locator = approvalOf(page, 1);
+      await expect(approval).toContainText("Maya Chen");
+      for (const part of wordIn(locale, "Approved by {{name}}").split(
+        "{{name}}",
+      )) {
+        if (part.trim()) {
+          await expect(approval).toContainText(part.trim());
+        }
+      }
+      for (const english of [
+        "Fix for incident",
+        "Rollback of",
+        "Approved by",
+      ]) {
+        await expect(page.locator("body")).not.toContainText(english);
+      }
+
+      if (language === "fa") {
+        await expect(page.locator("html")).toHaveAttribute("dir", "rtl");
+        // Right to left: the record it fixed first, on the right; AI Logs last, on the left.
+        const [first, last] = await boxesInOneFrame([
+          fix.getByRole("link", { name: subject }),
+          fix.getByRole("link", { name: logs }),
+        ]);
+        if (Math.abs(first!.y - last!.y) < 4) {
+          expect(first!.x).toBeGreaterThan(last!.x);
+        }
+      }
+
+      await expectNoSidewaysScroll(page, { tolerance: 1 });
+      await shoot(page, `account-changes-ai-${language}`);
+    });
+  }
+});
+
+/*
+ * ---------------------------------------------------------------------------
+ * Google Cloud's agent: on a small VM by default, about $10 a month, in a
+ * network that lets nothing in - or, under More fields, on Cloud Run with
+ * CPU always allocated, about $45. The dialog prices the host chosen and
+ * writes its command and its logs command (#5367's follow-up).
+ * ---------------------------------------------------------------------------
+ */
+test.describe("where Google Cloud's agent runs", () => {
+  const GCP_ACCOUNT_PATH: string = `${ACCOUNTS_PATH}/${GCP_ACCOUNT}?state=connected`;
+
+  function hostChoice(page: Page): Locator {
+    return setupDialog(page).getByTestId("cloud-ai-agent-setup-host");
+  }
+
+  test("a small VM by default, priced and written as one; Cloud Run under More fields, as one too", async ({
+    page,
+  }: {
+    page: Page;
+  }) => {
+    await openAccounts(page, GCP_ACCOUNT_PATH);
+    await openSetup(page);
+
+    const command: Locator = setupDialog(page).getByTestId(
+      "cloud-ai-agent-setup-command",
+    );
+    const cost: Locator = setupDialog(page).getByTestId(
+      "cloud-ai-agent-setup-cost",
+    );
+    const logs: Locator = setupDialog(page).getByTestId(
+      "cloud-ai-agent-setup-logs-command",
+    );
+
+    await expect(command).toContainText(
+      "gcloud compute instances create oneuptime-ai-agent",
+    );
+    await expect(command).toContainText("acme-legacy");
+    await expect(command).not.toContainText("gcloud run deploy");
+    await expect(cost).toHaveText(
+      "It runs on one small always-on VM in your project: about $10 a month at list prices, billed by your cloud. Google Cloud's free tier can cover it.",
+    );
+    await expect(logs).toContainText("gcloud logging read");
+
+    // Where it runs is asked under More fields, the VM chosen.
+    await expect(hostChoice(page)).toBeHidden();
+    await setupDialog(page)
+      .getByRole("button", { name: "More fields" })
+      .click();
+    await expect(hostChoice(page)).toBeVisible();
+    await expect(hostChoice(page).locator("legend")).toHaveText(
+      "Where the agent runs",
+    );
+    await expect(
+      setupDialog(page).getByTestId("cloud-ai-agent-setup-host-compute-engine"),
+    ).toBeChecked();
+    await expect(hostChoice(page)).toContainText(
+      "One e2-micro Compute Engine VM in a network of its own that lets nothing in: about $10 a month.",
+    );
+    await expect(hostChoice(page)).toContainText(
+      "A Cloud Run service with CPU always allocated: about $45 a month. For a project that allows no VM an external IP address.",
+    );
+    await shoot(page, "account-ai-setup-gcp-host");
+
+    // Cloud Run: its command, its price and its logs.
+    await setupDialog(page)
+      .getByTestId("cloud-ai-agent-setup-host-cloud-run")
+      .check();
+    await expect(command).toContainText("gcloud run deploy oneuptime-ai-agent");
+    await expect(command).not.toContainText("gcloud compute instances create");
+    // A project, as Google Cloud and the VM's line name it.
+    await expect(cost).toHaveText(
+      "It runs one small always-on container in your project: about $45 a month at list prices, billed by your cloud.",
+    );
+    await expect(logs).toContainText("gcloud run services logs read");
+
+    // Folded again, More fields says where it runs, now that it is not the default.
+    await setupDialog(page)
+      .getByRole("button", { name: /More fields/ })
+      .click();
+    await expect(hostChoice(page)).toBeHidden();
+    await expect(
+      setupDialog(page).getByTestId("cloud-ai-agent-setup-more-fields"),
+    ).toContainText("Cloud Run");
+
+    await expectNoSidewaysScroll(page, { tolerance: 1 });
+    await shoot(page, "account-ai-setup-gcp");
+  });
+
+  for (const [language, locale, name] of [
+    ["de", GERMAN, "German"],
+    ["fa", PERSIAN, "Persian"],
+  ] as Array<[string, Record<string, string>, string]>) {
+    test(`${name}: where it runs, and what each costs, in the language's words`, async ({
+      page,
+    }: {
+      page: Page;
+    }) => {
+      await openAccounts(page, `${GCP_ACCOUNT_PATH}&lang=${language}`);
+      await openSetup(page);
+
+      await expect(
+        setupDialog(page).getByTestId("cloud-ai-agent-setup-cost"),
+      ).toHaveText(
+        wordIn(
+          locale,
+          "It runs on one small always-on VM in your project: about ${{usd}} a month at list prices, billed by your cloud. Google Cloud's free tier can cover it.",
+          { usd: "10" },
+        ),
+      );
+      await setupDialog(page)
+        .getByRole("button", { name: wordIn(locale, "More fields") })
+        .click();
+      await expect(hostChoice(page).locator("legend")).toHaveText(
+        wordIn(locale, "Where the agent runs"),
+      );
+      await expect(hostChoice(page)).toContainText(
+        wordIn(locale, "A small VM"),
+      );
+      expect(wordIn(locale, "A small VM")).not.toBe("A small VM");
+      await expect(hostChoice(page)).toContainText(
+        wordIn(
+          locale,
+          "A Cloud Run service with CPU always allocated: about ${{usd}} a month. For a project that allows no VM an external IP address.",
+          { usd: "45" },
+        ),
+      );
+      await expectNoSidewaysScroll(page, { tolerance: 1 });
+      await shoot(page, `account-ai-setup-gcp-${language}`);
+    });
+  }
 });

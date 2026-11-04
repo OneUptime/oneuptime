@@ -350,6 +350,15 @@ export interface CloudChange {
   // Who did it: an IAM user or role, an Azure caller, a Google principal.
   actor: string;
   /*
+   * AWS only: who did it, exactly - the caller's ARN, which for an assumed
+   * role's session is arn:aws:sts::<account>:assumed-role/<role>/<session>,
+   * where the actor is only the session's name. (Azure's caller and Google
+   * Cloud's principal already are exact.) Read to tell the changes the
+   * account's Cloud AI agent made (CloudAiChangeAttribution); never shown,
+   * never kept.
+   */
+  actorIdentity?: string | undefined;
+  /*
    * What it changed, as the cloud names it: an ARN, an ARM id, a full
    * resource name, or a plain id with its type ("sg-0abc", AWS::EC2::SecurityGroup).
    */

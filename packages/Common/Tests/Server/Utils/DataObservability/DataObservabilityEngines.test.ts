@@ -25,6 +25,7 @@ describe("DataObservabilityEngines", () => {
       DataStoreKind.GcpBigQueryDataset,
       DataStoreKind.ClickHouse,
       DataStoreKind.Databricks,
+      DataStoreKind.AwsAthena,
     ]);
   });
 
@@ -47,6 +48,7 @@ describe("DataObservabilityEngines", () => {
     expect(getCollectorEngineOfKind(DataStoreKind.Databricks)).toBe(
       "databricks",
     );
+    expect(getCollectorEngineOfKind(DataStoreKind.AwsAthena)).toBe("athena");
     expect(getCollectorEngineOfKind(DataStoreKind.AwsS3Bucket)).toBe(null);
   });
 

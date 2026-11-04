@@ -9,6 +9,11 @@ import {
 import { JSONObject } from "../../../Types/JSON";
 import { DatabaseEngine } from "../DataSecurity/Content/DatabaseSampler";
 import { isCollectorEngine } from "./DataObservabilityEngines";
+import {
+  CollectedJobSpend,
+  MAX_SPEND_JOBS,
+  readCollectedJobSpend,
+} from "../../../Types/DataObservability/DataWarehouseSpend";
 import { isValidProbeConnectionVariable } from "../DataSecurity/DataSecurityProbeScan";
 import {
   CollectedLineageEdge,
@@ -461,6 +466,18 @@ export function readTableHealthSnapshot(
               },
             ),
           isViewLineageComplete: item["isViewLineageComplete"] === true,
+        }
+      : {}),
+    ...(Array.isArray(item["spend"])
+      ? {
+          spend: (item["spend"] as Array<unknown>)
+            .slice(0, MAX_SPEND_JOBS)
+            .map(readCollectedJobSpend)
+            .filter(
+              (job: CollectedJobSpend | null): job is CollectedJobSpend => {
+                return job !== null;
+              },
+            ),
         }
       : {}),
     warnings: Array.isArray(item["warnings"])

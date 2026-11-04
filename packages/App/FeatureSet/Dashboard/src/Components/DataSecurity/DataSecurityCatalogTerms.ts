@@ -103,6 +103,7 @@ export const DATA_SECURITY_CATALOG_TERMS: ReadonlyArray<string> = [
   translationKey("Snowflake"),
   translationKey("ClickHouse"),
   translationKey("Databricks"),
+  translationKey("Amazon Athena"),
   translationKey("Logs"),
   translationKey("Traces"),
   translationKey("Exceptions"),

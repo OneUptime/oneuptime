@@ -59,6 +59,7 @@ GRANT USAGE ON DATABASE ANALYTICS TO ROLE ONEUPTIME_READER;
 GRANT USAGE ON ALL SCHEMAS IN DATABASE ANALYTICS TO ROLE ONEUPTIME_READER;
 GRANT REFERENCES ON ALL TABLES IN DATABASE ANALYTICS TO ROLE ONEUPTIME_READER;
 GRANT USAGE ON WAREHOUSE CHECKS_WH TO ROLE ONEUPTIME_READER;
+GRANT IMPORTED PRIVILEGES ON DATABASE SNOWFLAKE TO ROLE ONEUPTIME_READER;
 CREATE USER ONEUPTIME_READER DEFAULT_ROLE = ONEUPTIME_READER RSA_PUBLIC_KEY = 'MIIBIjANBgkqh...';
 GRANT ROLE ONEUPTIME_READER TO USER ONEUPTIME_READER;
 ```
@@ -103,6 +104,12 @@ GRANT USE SCHEMA, SELECT ON SCHEMA system.access TO `oneuptime-reader`;
 ```
 
 目录、它的列以及每个 Delta 表的最后一次提交都来自 Unity Catalog 的 REST API，无需 SQL 仓库，因此采集不消耗计算资源。检查，以及每小时一次来自 `system.access.table_lineage` 的血缘和最后读取时间，都在你指定的 SQL 仓库上运行；请在该仓库上授予服务主体 **Can use** 权限。
+@tab Amazon Athena
+一个 Glue 数据库就是一个数据库。它的表和视图、列和统计信息，以及每个 Iceberg 表的最后一次提交都来自 Glue Data Catalog 的 API，不读取任何数据，也不产生费用。检查作为 Athena 查询在你指定的工作组中运行。使用一个 IAM 用户或角色的密钥连接，它需要能调用 `glue:GetDatabase` 和 `glue:GetTables`，并且为了检查，能在工作组中以对表数据的读取权限运行 Athena 查询：
+
+```json
+{ "region": "us-east-1", "accessKeyId": "AKIA...", "secretAccessKey": "...", "database": "analytics", "workgroup": "primary", "outputLocation": "s3://acme-athena-results/oneuptime/" }
+```
 :::
 
 ## 读取的内容和频率

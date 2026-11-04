@@ -5,7 +5,10 @@ import {
   REMEDIATION_FIX_HIDE_DETAILS,
   REMEDIATION_FIX_REVIEW_AND_APPROVE,
 } from "../../../FeatureSet/Dashboard/src/Components/AutoRemediation/RemediationStepCopy";
-import { MAX_SUBJECTS_TRIED_AGAIN_WHEN_FIXES_TURN_ON } from "Common/Server/Services/AutoRemediationRuleEngineService";
+import {
+  AGENT_NOT_CONNECTED_GAP_CODES,
+  MAX_SUBJECTS_TRIED_AGAIN_WHEN_FIXES_TURN_ON,
+} from "Common/Server/Services/AutoRemediationRuleEngineService";
 import { describe, expect, test } from "@jest/globals";
 
 /*
@@ -103,6 +106,19 @@ describe("the English pages", () => {
     );
   });
 
+  test("say an AI agent connecting reaches back too, once, for as many open records as the engine tries again", () => {
+    const line: string = ENGLISH_AI_SRE[DECIDED_ONCE_LINE]!;
+
+    expect(line).toContain(
+      `A cluster's or resource's AI agent connecting reaches back too: when it registers, or reports in again after it was offline, OneUptime AI decides again, once, for the ${MAX_SUBJECTS_TRIED_AGAIN_WHEN_FIXES_TURN_ON} most recent open incidents and alerts it did not fix because that agent was not connected.`,
+    );
+    // What the engine reads: the decisions whose agent was not connected or offline.
+    expect(AGENT_NOT_CONNECTED_GAP_CODES).toEqual([
+      "ai_agent_not_connected",
+      "ai_agent_offline",
+    ]);
+  });
+
   test("the External MCP Servers page sums the changes up, and Review and approve lists them", () => {
     expect(ASK_BEFORE_FIXING_LINE).toBeGreaterThan(0);
     expect(ENGLISH_MCP[ASK_BEFORE_FIXING_LINE]).toContain(
@@ -147,5 +163,16 @@ describe.each(TRANSLATED_LANGUAGES)("the %s pages", (language: string) => {
     expect(line).toContain(
       writtenCount(language, MAX_SUBJECTS_TRIED_AGAIN_WHEN_FIXES_TURN_ON),
     );
+  });
+
+  test("say an AI agent connecting reaches back too, for the same number of open records", () => {
+    const line: string = aiSre[DECIDED_ONCE_LINE] || "";
+    const count: string = writtenCount(
+      language,
+      MAX_SUBJECTS_TRIED_AGAIN_WHEN_FIXES_TURN_ON,
+    );
+
+    // Once for Fixes turned on, once for an agent connecting.
+    expect(line.split(count).length - 1).toBe(2);
   });
 });

@@ -91,10 +91,11 @@ export function tableReference(
 
 function placeholder(engine: DatabaseEngine, index: number): string {
   switch (engine) {
-    // MySQL, Snowflake's SQL API and BigQuery's bind by position.
+    // MySQL, Snowflake's SQL API and BigQuery's bind by position; Athena's are written in, quoted (AthenaApi).
     case "mysql":
     case "snowflake":
     case "bigquery":
+    case "athena":
       return "?";
     case "sqlserver":
       // The session binds @p0, @p1, ... (TableHealthCollector).
@@ -119,6 +120,8 @@ function asText(engine: DatabaseEngine, expression: string): string {
     case "bigquery":
     case "databricks":
       return `CAST(${expression} AS STRING)`;
+    case "athena":
+      return `CAST(${expression} AS VARCHAR)`;
     // A NULL stays NULL: CAST to String would refuse it.
     case "clickhouse":
       return `toString(${expression})`;
@@ -136,6 +139,7 @@ function asNumber(engine: DatabaseEngine, expression: string): string {
     case "bigquery":
       return `CAST(${expression} AS FLOAT64)`;
     case "databricks":
+    case "athena":
       return `CAST(${expression} AS DOUBLE)`;
     case "clickhouse":
       return `toFloat64(${expression})`;
@@ -232,7 +236,9 @@ function valueExpression(
                 ? `NOT match(${asText(engine, column)}, ${placeholder(engine, params.length)})`
                 : engine === "databricks"
                   ? `NOT (${asText(engine, column)} RLIKE ${placeholder(engine, params.length)})`
-                  : `${asText(engine, column)} !~ ${placeholder(engine, params.length)}`;
+                  : engine === "athena"
+                    ? `NOT regexp_like(${asText(engine, column)}, ${placeholder(engine, params.length)})`
+                    : `${asText(engine, column)} !~ ${placeholder(engine, params.length)}`;
 
       return `100.0 * SUM(CASE WHEN ${column} IS NOT NULL AND ${mismatch} THEN 1 ELSE 0 END) / NULLIF(COUNT(${column}), 0)`;
     }

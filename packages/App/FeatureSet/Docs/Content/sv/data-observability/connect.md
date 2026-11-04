@@ -59,6 +59,7 @@ GRANT USAGE ON DATABASE ANALYTICS TO ROLE ONEUPTIME_READER;
 GRANT USAGE ON ALL SCHEMAS IN DATABASE ANALYTICS TO ROLE ONEUPTIME_READER;
 GRANT REFERENCES ON ALL TABLES IN DATABASE ANALYTICS TO ROLE ONEUPTIME_READER;
 GRANT USAGE ON WAREHOUSE CHECKS_WH TO ROLE ONEUPTIME_READER;
+GRANT IMPORTED PRIVILEGES ON DATABASE SNOWFLAKE TO ROLE ONEUPTIME_READER;
 CREATE USER ONEUPTIME_READER DEFAULT_ROLE = ONEUPTIME_READER RSA_PUBLIC_KEY = 'MIIBIjANBgkqh...';
 GRANT ROLE ONEUPTIME_READER TO USER ONEUPTIME_READER;
 ```
@@ -103,6 +104,12 @@ En katalog i Unity Catalog är en databas. Anslut med ett tjänsthuvudnamn, elle
 ```
 
 Katalogen, dess kolumner och varje Delta-tabells senaste commit kommer från Unity Catalogs REST-API utan något SQL-warehouse, så insamlingen kostar ingen beräkningskapacitet. Kontroller, samt härkomst och senaste läsningar från `system.access.table_lineage` en gång i timmen, körs i det SQL-warehouse som du anger; ge tjänsthuvudnamnet **Can use** på det.
+@tab Amazon Athena
+En Glue-databas är en databas. Dess tabeller och vyer, deras kolumner och statistik och varje Iceberg-tabells senaste commit kommer från Glue Data Catalogs API, som inte läser några data och inte kostar något. Kontroller körs som Athena-frågor i den workgroup du anger. Anslut med nycklarna för en IAM-användare eller -roll som får anropa `glue:GetDatabase` och `glue:GetTables` och för kontroller köra Athena-frågor i workgroupen med läsåtkomst till tabellernas data:
+
+```json
+{ "region": "us-east-1", "accessKeyId": "AKIA...", "secretAccessKey": "...", "database": "analytics", "workgroup": "primary", "outputLocation": "s3://acme-athena-results/oneuptime/" }
+```
 :::
 
 ## Vad som läses, och hur ofta

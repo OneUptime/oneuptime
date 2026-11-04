@@ -59,6 +59,7 @@ GRANT USAGE ON DATABASE ANALYTICS TO ROLE ONEUPTIME_READER;
 GRANT USAGE ON ALL SCHEMAS IN DATABASE ANALYTICS TO ROLE ONEUPTIME_READER;
 GRANT REFERENCES ON ALL TABLES IN DATABASE ANALYTICS TO ROLE ONEUPTIME_READER;
 GRANT USAGE ON WAREHOUSE CHECKS_WH TO ROLE ONEUPTIME_READER;
+GRANT IMPORTED PRIVILEGES ON DATABASE SNOWFLAKE TO ROLE ONEUPTIME_READER;
 CREATE USER ONEUPTIME_READER DEFAULT_ROLE = ONEUPTIME_READER RSA_PUBLIC_KEY = 'MIIBIjANBgkqh...';
 GRANT ROLE ONEUPTIME_READER TO USER ONEUPTIME_READER;
 ```
@@ -103,6 +104,12 @@ One Unity Catalog catalog is one database. Connect with a service principal, or 
 ```
 
 The catalog, its columns and each Delta table's last commit come from Unity Catalog's REST API with no SQL warehouse, so collection costs no compute. Checks, and lineage and last reads from `system.access.table_lineage` once an hour, run on the SQL warehouse you name; give the service principal **Can use** on it.
+@tab Amazon Athena
+One Glue database is one database. Its tables and views, their columns and statistics, and each Iceberg table's last commit come from the Glue Data Catalog's API, which reads no data and costs nothing. Checks run as Athena queries in the workgroup you name. Connect with the keys of an IAM user or role that may call `glue:GetDatabase` and `glue:GetTables`, and for checks run Athena queries in the workgroup with read access to the tables' data:
+
+```json
+{ "region": "us-east-1", "accessKeyId": "AKIA...", "secretAccessKey": "...", "database": "analytics", "workgroup": "primary", "outputLocation": "s3://acme-athena-results/oneuptime/" }
+```
 :::
 
 ## What is read, and how often

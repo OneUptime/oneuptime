@@ -53,6 +53,20 @@ I loro webhook indicano quando ogni sincronizzazione inizia e finisce. **Pipelin
 
 Una sincronizzazione di Fivetran riprogrammata per il limite di frequenza di un'API termina come **Riprogrammata**: non è un errore, quindi non chiama nessuno.
 
+## Dashboard negli strumenti BI
+
+Il vero impatto dei dati sbagliati è la dashboard che qualcuno apre. In **Dashboard BI**, aggiungi i tuoi strumenti BI con credenziali che possano leggerne le dashboard. Ogni ora l'Osservabilità dei dati legge ogni dashboard e le tabelle che la alimentano, abbina ogni tabella a una monitorata e mostra le dashboard costruite su una tabella, e sulle tabelle costruite da essa, nella sua scheda **Derivazione**, nei suoi avvisi e in Production Review.
+
+| Strumento | Credenziali |
+| --- | --- |
+| **Metabase** | `{ "apiKey": "mb_..." }` |
+| **Superset** | `{ "username": "...", "password": "..." }` |
+| **Tableau** | `{ "tokenName": "...", "tokenSecret": "...", "site": "acme" }` |
+| **Looker** | `{ "clientId": "...", "clientSecret": "..." }` |
+| **Power BI** | `{ "tenantId": "...", "clientId": "...", "clientSecret": "..." }`, un service principal autorizzato a usare le API di amministrazione di Power BI |
+
+Vengono letti solo nomi e link delle dashboard e le tabelle che interrogano: mai i loro dati.
+
 ## Pipeline
 
 Ogni job, progetto dbt e sincronizzazione compare in **Pipeline**, con le sue esecuzioni: quando ciascuna è iniziata e finita, quanto è durata, e l'errore di un'esecuzione non riuscita. Dopo cinque esecuzioni, ogni pipeline impara dalle proprie esecuzioni quanto dura di solito un'esecuzione e quanto tempo passa tra un'esecuzione e l'altra secondo la sua pianificazione. La pagina di una pipeline consiglia tre monitor:

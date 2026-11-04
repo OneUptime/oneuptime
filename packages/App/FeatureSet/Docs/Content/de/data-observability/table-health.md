@@ -60,6 +60,12 @@ Jede Engine, die Lesezugriffe zählt, sagt, wann jede Tabelle zuletzt gelesen wu
 
 **Ungenutzte Tabellen** listet die Tabellen auf, die seit 90 Tagen niemand gelesen hat, die größten zuerst, mit dem Zeitpunkt, zu dem jede zuletzt beschrieben wurde: Eine Tabelle, die noch beschrieben, aber nie gelesen wird, kostet ihre Schreibvorgänge und ihren Speicher. Ein Zähler von 0 bei der ersten Erfassung einer Tabelle bedeutet, dass sie seit dem Start der Statistiken der Engine nicht gelesen wurde, sodass eine ungenutzte Tabelle von Anfang an als ungenutzt erscheint.
 
+## Warehouse-Ausgaben
+
+Einmal pro Stunde liest Data Observability, was jedes Snowflake- und BigQuery-Warehouse am letzten Tag ausgegeben hat, Job für Job: die Compute-Credits von Snowflake aus `QUERY_ATTRIBUTION_HISTORY` und die abgerechneten Bytes von BigQuery aus seiner Jobs-Ansicht, die **BigQuery Resource Viewer** benötigt. Ein Job ist eine Abfrage, die immer wieder läuft, benannt nach ihrem Query-Tag oder Label oder danach, was sie tut und welche Tabelle sie schreibt: nie nach dem Text der Abfrage.
+
+**Warehouse-Ausgaben** zeigt die Summen nach Team (das `team` im Query-Tag oder Label eines Jobs, sonst wer ihn ausführt), die Tabellen, deren Schreibvorgänge am meisten kosten, die fehlgeschlagenen Jobs und was auf Jobs entfällt, die nur Tabellen schreiben, die seit 90 Tagen niemand gelesen hat.
+
 ## Dienste, die jede Tabelle nutzen
 
 Der Tab **Dienste** einer Tabelle listet die Dienste auf, die beim Schreiben und Lesen der Tabelle gesehen wurden, mit den Anweisungen, die jeder ausgeführt hat, seinen Aufrufen und Fehlern in der letzten Stunde und dem Zeitpunkt, zu dem er zuletzt gesehen wurde. Die Angaben stammen aus den Datenbank-Spans, die Ihre Dienste bereits mit OpenTelemetry senden: ein Client-Span mit `db.system.name`, `db.namespace` und `db.collection.name`. Es muss nichts zusätzlich installiert werden.

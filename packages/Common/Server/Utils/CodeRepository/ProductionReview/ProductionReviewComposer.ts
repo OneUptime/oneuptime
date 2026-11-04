@@ -947,6 +947,27 @@ export default class ProductionReviewComposer {
           );
         }
 
+        const dashboards: Array<{ name: string; tool: string }> =
+          impact.dashboards || [];
+
+        if (dashboards.length > 0) {
+          const named: Array<MarkdownText> = dashboards
+            .slice(0, 3)
+            .map((dashboard: { name: string; tool: string }): MarkdownText => {
+              return mdText`**${githubSafeText(dashboard.name, 80)}** (${githubSafeText(dashboard.tool, 40)})`;
+            });
+
+          if (dashboards.length > named.length) {
+            named.push(
+              mdText`${plural(dashboards.length - named.length, "more", "more")}`,
+            );
+          }
+
+          parts.push(
+            mdText`shown on ${dashboards.length === 1 ? "dashboard" : "dashboards"} ${listing(named)}`,
+          );
+        }
+
         if (impact.dataProducts.length > 0) {
           const products: Array<MarkdownText> = impact.dataProducts.map(
             (product: {
