@@ -7,6 +7,11 @@ import {
   TELEMETRY_PRICE_IN_USD_PER_GB,
   TELEMETRY_PRICE_RETENTION_IN_DAYS,
   formatPriceInUSD,
+  DEFAULT_WATCHED_TABLE_PRICING,
+  describeWatchedTablePricing,
+  getWatchedTablesCostInCents,
+  getWatchedTablesCostInUSD,
+  WatchedTablePricing,
 } from "../../../Types/Billing/PayAsYouGoPricing";
 
 /*
@@ -73,5 +78,71 @@ describe("PayAsYouGoPricing", () => {
         "$1",
       );
     });
+  });
+});
+
+describe("Watched table pricing", () => {
+  test.each([
+    [0, 0],
+    [60, 0],
+    [100, 0],
+    [101, 1],
+    [500, 400],
+    [1000, 900],
+    [1001, 900.25],
+    [5000, 1900],
+  ])("%i tables cost $%f a month", (tableCount: number, cost: number) => {
+    expect(
+      getWatchedTablesCostInUSD(tableCount, DEFAULT_WATCHED_TABLE_PRICING),
+    ).toBe(cost);
+    expect(
+      getWatchedTablesCostInCents(tableCount, DEFAULT_WATCHED_TABLE_PRICING),
+    ).toBe(cost * 100);
+  });
+
+  test("a threshold inside the free tables charges every billed table the volume price", () => {
+    const pricing: WatchedTablePricing = {
+      includedTables: 100,
+      pricePerTableInUSD: 1,
+      volumeThresholdInTables: 10,
+      volumePricePerTableInUSD: 0.25,
+    };
+
+    expect(getWatchedTablesCostInUSD(50, pricing)).toBe(0);
+    expect(getWatchedTablesCostInUSD(200, pricing)).toBe(25);
+  });
+
+  test("no free tables bills from the first", () => {
+    const pricing: WatchedTablePricing = {
+      ...DEFAULT_WATCHED_TABLE_PRICING,
+      includedTables: 0,
+    };
+
+    expect(getWatchedTablesCostInUSD(1, pricing)).toBe(1);
+    expect(describeWatchedTablePricing(pricing)).toBe(
+      "$1 per table a month, $0.25 above 1,000",
+    );
+  });
+
+  test("whole cents survive floating point", () => {
+    const pricing: WatchedTablePricing = {
+      ...DEFAULT_WATCHED_TABLE_PRICING,
+      includedTables: 0,
+      pricePerTableInUSD: 0.1,
+    };
+
+    expect(getWatchedTablesCostInCents(3, pricing)).toBe(30);
+  });
+
+  test("says the rates as the pricing page writes them", () => {
+    expect(describeWatchedTablePricing(DEFAULT_WATCHED_TABLE_PRICING)).toBe(
+      "First 100 tables free, then $1 per table a month, $0.25 above 1,000",
+    );
+    expect(
+      describeWatchedTablePricing({
+        ...DEFAULT_WATCHED_TABLE_PRICING,
+        volumePricePerTableInUSD: 1,
+      }),
+    ).toBe("First 100 tables free, then $1 per table a month");
   });
 });

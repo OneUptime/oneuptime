@@ -43582,5 +43582,13 @@
   "{{used}} of {{total}} ({{percent}})": "{{used}} of {{total}} ({{percent}})",
   "{{used}} of {{total}} · fullest pool {{percent}}": "{{used}} of {{total}} · fullest pool {{percent}}",
   "{{used}} used": "{{used}} used",
-  "{{used}}, no limit": "{{used}}, no limit"
+  "{{used}}, no limit": "{{used}}, no limit",
+  "Its tables stop being read and stop counting toward the bill. Their history stays, and so do its monitors, which you can delete.": "Ses tables ne sont plus lues et ne comptent plus dans la facture. Leur historique reste, ainsi que ses moniteurs, que vous pouvez supprimer.",
+  "Stop Watching": "Arrêter la surveillance",
+  "Stop watching this database?": "Arrêter de surveiller cette base de données ?",
+  "Tables watched: {{count}}, about {{cost}} a month.": "Tables surveillées : {{count}}, environ {{cost}} par mois.",
+  "Tables watched: {{count}}. Not charged yet: at the listed price, about {{cost}} a month.": "Tables surveillées : {{count}}. Pas encore facturé : au tarif affiché, environ {{cost}} par mois.",
+  "The first {{included}} tables are free, then {{price}} a table a month, and {{volumePrice}} above {{threshold}}. Views are free.": "Les {{included}} premières tables sont gratuites, puis {{price}} par table par mois, et {{volumePrice}} au-delà de {{threshold}}. Les vues sont gratuites.",
+  "This project has used its free tables. Add a payment method under Project Settings > Billing to watch more.": "Ce projet a utilisé ses tables gratuites. Ajoutez un moyen de paiement dans Paramètres du projet > Facturation pour en surveiller davantage.",
+  "Watch Again": "Surveiller à nouveau"
 }

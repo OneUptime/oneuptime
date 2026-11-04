@@ -60,6 +60,12 @@ Inden for fem minutter vises dens tabeller under **Tabeller**, hver med sine ræ
 Vælg **Anbefalede advarsler** for databasen under **Databaser**, og tilføj dem, du vil have: en tabel, der er forsinket, en, hvis rækker falder kraftigt eller er usædvanligt få, en, hvis kolonner ændrer sig, og en database, der holder op med at rapportere. Hver er en almindelig monitor: vagtordning, ejere, vedligeholdelsesvinduer og statussider fungerer som for enhver anden.
 :::
 
+## Hvad det koster
+
+På OneUptime Cloud er de første 100 tabeller i et projekt gratis. Hver tabel derefter koster 1 $ om måneden og 0,25 $ over 1.000. Views er gratis, og det samme er tabellerne i en database, du holder op med at overvåge. En kontrol med en alarm faktureres som en aktiv monitor. **Databaser** og **Oversigt** viser, hvor mange tabeller dit projekt overvåger, og hvad de koster, og [Priser](https://oneuptime.com/pricing) har en beregner.
+
+En selvhostet OneUptime betaler ikke for tabeller.
+
 ## Næste trin
 
 :::cards

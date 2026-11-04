@@ -1,4 +1,5 @@
 import DataObservabilityApi from "./DataObservabilityApi";
+import WatchedTablesCost from "./WatchedTablesCost";
 import Probe from "Common/Models/DatabaseModels/Probe";
 import SortOrder from "Common/Types/BaseDatabase/SortOrder";
 import { DataStoreKind } from "Common/Types/DataSecurity/DataStoreKind";
@@ -133,6 +134,7 @@ const ConnectDatabaseModal: FunctionComponent<ComponentProps> = (
       title="Connect a Database"
       description="Reads the database's catalog every few minutes: tables, columns, row counts, sizes and last changes. No value leaves it. Use a read-only login."
       name="Data Observability > Connect a Database"
+      beforeFormElement={<WatchedTablesCost />}
       submitButtonText="Connect"
       isLoading={isLoading}
       isSubmitting={isSaving}

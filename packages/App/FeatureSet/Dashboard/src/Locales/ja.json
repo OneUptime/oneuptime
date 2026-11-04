@@ -43582,5 +43582,13 @@
   "{{used}} of {{total}} ({{percent}})": "{{used}} of {{total}} ({{percent}})",
   "{{used}} of {{total}} · fullest pool {{percent}}": "{{used}} of {{total}} · fullest pool {{percent}}",
   "{{used}} used": "{{used}} used",
-  "{{used}}, no limit": "{{used}}, no limit"
+  "{{used}}, no limit": "{{used}}, no limit",
+  "Its tables stop being read and stop counting toward the bill. Their history stays, and so do its monitors, which you can delete.": "テーブルの読み取りと課金対象への算入が止まります。履歴は残り、モニターも残ります。モニターは削除できます。",
+  "Stop Watching": "監視を停止",
+  "Stop watching this database?": "このデータベースの監視を停止しますか?",
+  "Tables watched: {{count}}, about {{cost}} a month.": "監視中のテーブル: {{count}}、月額約 {{cost}}。",
+  "Tables watched: {{count}}. Not charged yet: at the listed price, about {{cost}} a month.": "監視中のテーブル: {{count}}。まだ課金されていません。表示価格では月額約 {{cost}} です。",
+  "The first {{included}} tables are free, then {{price}} a table a month, and {{volumePrice}} above {{threshold}}. Views are free.": "最初の {{included}} テーブルは無料で、以降は 1 テーブルあたり月額 {{price}}、{{threshold}} を超える分は {{volumePrice}} です。ビューは無料です。",
+  "This project has used its free tables. Add a payment method under Project Settings > Billing to watch more.": "このプロジェクトは無料のテーブルを使い切りました。さらに監視するには、プロジェクト設定 > 請求で支払い方法を追加してください。",
+  "Watch Again": "監視を再開"
 }

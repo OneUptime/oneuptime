@@ -43582,5 +43582,13 @@
   "{{used}} of {{total}} ({{percent}})": "{{used}} of {{total}} ({{percent}})",
   "{{used}} of {{total}} · fullest pool {{percent}}": "{{used}} of {{total}} · fullest pool {{percent}}",
   "{{used}} used": "{{used}} used",
-  "{{used}}, no limit": "{{used}}, no limit"
+  "{{used}}, no limit": "{{used}}, no limit",
+  "Its tables stop being read and stop counting toward the bill. Their history stays, and so do its monitors, which you can delete.": "Its tables stop being read and stop counting toward the bill. Their history stays, and so do its monitors, which you can delete.",
+  "Stop Watching": "Stop Watching",
+  "Stop watching this database?": "Stop watching this database?",
+  "Tables watched: {{count}}, about {{cost}} a month.": "Tables watched: {{count}}, about {{cost}} a month.",
+  "Tables watched: {{count}}. Not charged yet: at the listed price, about {{cost}} a month.": "Tables watched: {{count}}. Not charged yet: at the listed price, about {{cost}} a month.",
+  "The first {{included}} tables are free, then {{price}} a table a month, and {{volumePrice}} above {{threshold}}. Views are free.": "The first {{included}} tables are free, then {{price}} a table a month, and {{volumePrice}} above {{threshold}}. Views are free.",
+  "This project has used its free tables. Add a payment method under Project Settings > Billing to watch more.": "This project has used its free tables. Add a payment method under Project Settings > Billing to watch more.",
+  "Watch Again": "Watch Again"
 }

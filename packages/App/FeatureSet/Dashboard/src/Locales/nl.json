@@ -43582,5 +43582,13 @@
   "{{used}} of {{total}} ({{percent}})": "{{used}} of {{total}} ({{percent}})",
   "{{used}} of {{total}} · fullest pool {{percent}}": "{{used}} of {{total}} · fullest pool {{percent}}",
   "{{used}} used": "{{used}} used",
-  "{{used}}, no limit": "{{used}}, no limit"
+  "{{used}}, no limit": "{{used}}, no limit",
+  "Its tables stop being read and stop counting toward the bill. Their history stays, and so do its monitors, which you can delete.": "De tabellen worden niet meer gelezen en tellen niet meer mee op de factuur. De geschiedenis blijft, net als de monitors, die je kunt verwijderen.",
+  "Stop Watching": "Stoppen met bewaken",
+  "Stop watching this database?": "Stoppen met het bewaken van deze database?",
+  "Tables watched: {{count}}, about {{cost}} a month.": "Bewaakte tabellen: {{count}}, ongeveer {{cost}} per maand.",
+  "Tables watched: {{count}}. Not charged yet: at the listed price, about {{cost}} a month.": "Bewaakte tabellen: {{count}}. Nog niet in rekening gebracht: tegen de vermelde prijs ongeveer {{cost}} per maand.",
+  "The first {{included}} tables are free, then {{price}} a table a month, and {{volumePrice}} above {{threshold}}. Views are free.": "De eerste {{included}} tabellen zijn gratis, daarna {{price}} per tabel per maand, en {{volumePrice}} boven {{threshold}}. Views zijn gratis.",
+  "This project has used its free tables. Add a payment method under Project Settings > Billing to watch more.": "Dit project heeft zijn gratis tabellen gebruikt. Voeg een betaalmethode toe onder Projectinstellingen > Facturering om meer te bewaken.",
+  "Watch Again": "Opnieuw bewaken"
 }

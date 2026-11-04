@@ -8,7 +8,11 @@ import ProductCompare, {
   Product,
   getProductCompareSlugs,
 } from "../Utils/ProductCompare";
-import Pricing, { PricingPlan, PricingPlans } from "../Utils/Pricing";
+import Pricing, {
+  getWatchedTablePricingContent,
+  PricingPlan,
+  PricingPlans,
+} from "../Utils/Pricing";
 import { Claim, Claims, getClaim } from "../Utils/Claims";
 import { getAirGappedTopicContent } from "../Utils/AirGapped";
 import {
@@ -688,6 +692,7 @@ describe("the pricing page", () => {
     // The locals Routes.ts hands pricing.ejs, plus homeUrl.
     const html: string = await render("pricing.ejs", {
       pricing: Pricing,
+      watchedTables: getWatchedTablePricingContent(),
       enableGoogleTagManager: false,
       seo: seoFor("/pricing"),
       homeUrl: HOME_URL,

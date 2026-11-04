@@ -239,6 +239,17 @@
                       d="M16.704 4.153a.75.75 0 01.143 1.052l-8 10.5a.75.75 0 01-1.127.075l-4.5-4.5a.75.75 0 011.06-1.06l3.894 3.893 7.48-9.817a.75.75 0 011.05-.143z"
                       clip-rule="evenodd" />
                   </svg>
+                  <span class="text-sm text-gray-500">First <%= watchedTables.rates.includedTables.toLocaleString("en-US") %> Watched Tables Free</span>
+                </li>
+
+                <li class="flex space-x-3">
+                  <!-- Heroicon name: mini/check -->
+                  <svg class="h-5 w-5 flex-shrink-0 text-emerald-600" xmlns="http://www.w3.org/2000/svg"
+                    viewBox="0 0 20 20" fill="currentColor" aria-hidden="true">
+                    <path fill-rule="evenodd"
+                      d="M16.704 4.153a.75.75 0 01.143 1.052l-8 10.5a.75.75 0 01-1.127.075l-4.5-4.5a.75.75 0 011.06-1.06l3.894 3.893 7.48-9.817a.75.75 0 011.05-.143z"
+                      clip-rule="evenodd" />
+                  </svg>
                   <span class="text-sm text-gray-500">Incident Management</span>
                 </li>
 
@@ -644,6 +655,10 @@
                   class="payg-tab whitespace-nowrap border-b-2 border-transparent py-4 px-1 text-sm font-medium text-gray-500 hover:border-gray-300 hover:text-gray-700">
                   Telemetry
                 </button>
+                <button onclick="switchPayAsYouGoTab('data-observability')" id="tab-data-observability"
+                  class="payg-tab whitespace-nowrap border-b-2 border-transparent py-4 px-1 text-sm font-medium text-gray-500 hover:border-gray-300 hover:text-gray-700">
+                  Data Observability
+                </button>
                 <button onclick="switchPayAsYouGoTab('ai-agent')" id="tab-ai-agent"
                   class="payg-tab whitespace-nowrap border-b-2 border-transparent py-4 px-1 text-sm font-medium text-gray-500 hover:border-gray-300 hover:text-gray-700">
                   AI
@@ -886,6 +901,79 @@
                   <p id="less-than-minimum-billable-retention-message" style="display: none;" class="mt-2 text-sm text-gray-600">Retention shorter than 7 days is billed as 7 days.</p>
                   <p id="more-than-6-months-retention" style="display: none;" class="mt-2 text-sm text-gray-600">If you're looking for data retention of more than 6 months, contact sales@oneuptime.com for a discount.</p>
                 </div>
+              </div>
+            </div>
+
+            <!-- Data Observability Tab Content -->
+            <div id="content-data-observability" class="payg-content pt-8 hidden">
+              <div class="lg:flex">
+                <div class="lg:flex-auto">
+                  <h4 class="text-xl font-semibold tracking-tight text-gray-900">Data Observability: Watched Tables</h4>
+                  <p id="watched-tables-rates" class="mt-4 text-base leading-7 text-gray-600"><%= watchedTables.description %>.</p>
+                  <p class="mt-2 text-sm leading-6 text-gray-600">Views are free, and so are the tables of a database you stop watching. A check with an alert is billed as an active monitor. Self-hosted installs pay nothing for tables.</p>
+                  <div class="mt-6 flex items-center gap-x-4">
+                    <h5 class="flex-none text-sm font-semibold leading-6 text-gray-600">What's included</h5>
+                    <div class="h-px flex-auto bg-gray-100"></div>
+                  </div>
+                  <ul role="list" class="mt-4 grid grid-cols-1 gap-3 text-sm leading-6 text-gray-600 sm:grid-cols-2">
+                    <li class="flex gap-x-3">
+                      <svg class="h-6 w-5 flex-none text-green-500" viewBox="0 0 20 20" fill="currentColor" aria-hidden="true">
+                        <path fill-rule="evenodd" d="M16.704 4.153a.75.75 0 01.143 1.052l-8 10.5a.75.75 0 01-1.127.075l-4.5-4.5a.75.75 0 011.06-1.06l3.894 3.893 7.48-9.817a.75.75 0 011.05-.143z" clip-rule="evenodd" />
+                      </svg>
+                      Every table in a connected database
+                    </li>
+                    <li class="flex gap-x-3">
+                      <svg class="h-6 w-5 flex-none text-green-500" viewBox="0 0 20 20" fill="currentColor" aria-hidden="true">
+                        <path fill-rule="evenodd" d="M16.704 4.153a.75.75 0 01.143 1.052l-8 10.5a.75.75 0 01-1.127.075l-4.5-4.5a.75.75 0 011.06-1.06l3.894 3.893 7.48-9.817a.75.75 0 011.05-.143z" clip-rule="evenodd" />
+                      </svg>
+                      Freshness, row counts and schema changes
+                    </li>
+                    <li class="flex gap-x-3">
+                      <svg class="h-6 w-5 flex-none text-green-500" viewBox="0 0 20 20" fill="currentColor" aria-hidden="true">
+                        <path fill-rule="evenodd" d="M16.704 4.153a.75.75 0 01.143 1.052l-8 10.5a.75.75 0 01-1.127.075l-4.5-4.5a.75.75 0 011.06-1.06l3.894 3.893 7.48-9.817a.75.75 0 011.05-.143z" clip-rule="evenodd" />
+                      </svg>
+                      No thresholds to set: each table learns its own rhythm
+                    </li>
+                    <li class="flex gap-x-3">
+                      <svg class="h-6 w-5 flex-none text-green-500" viewBox="0 0 20 20" fill="currentColor" aria-hidden="true">
+                        <path fill-rule="evenodd" d="M16.704 4.153a.75.75 0 01.143 1.052l-8 10.5a.75.75 0 01-1.127.075l-4.5-4.5a.75.75 0 011.06-1.06l3.894 3.893 7.48-9.817a.75.75 0 011.05-.143z" clip-rule="evenodd" />
+                      </svg>
+                      Lineage from pipelines, dbt, BI tools and services
+                    </li>
+                    <li class="flex gap-x-3">
+                      <svg class="h-6 w-5 flex-none text-green-500" viewBox="0 0 20 20" fill="currentColor" aria-hidden="true">
+                        <path fill-rule="evenodd" d="M16.704 4.153a.75.75 0 01.143 1.052l-8 10.5a.75.75 0 01-1.127.075l-4.5-4.5a.75.75 0 011.06-1.06l3.894 3.893 7.48-9.817a.75.75 0 011.05-.143z" clip-rule="evenodd" />
+                      </svg>
+                      Alerts through on-call, incidents and status pages
+                    </li>
+                    <li class="flex gap-x-3">
+                      <svg class="h-6 w-5 flex-none text-green-500" viewBox="0 0 20 20" fill="currentColor" aria-hidden="true">
+                        <path fill-rule="evenodd" d="M16.704 4.153a.75.75 0 01.143 1.052l-8 10.5a.75.75 0 01-1.127.075l-4.5-4.5a.75.75 0 011.06-1.06l3.894 3.893 7.48-9.817a.75.75 0 011.05-.143z" clip-rule="evenodd" />
+                      </svg>
+                      Read by OneUptime, or by a probe in your network
+                    </li>
+                  </ul>
+                </div>
+                <div class="mt-8 lg:mt-0 lg:ml-8 lg:w-full lg:max-w-xs lg:flex-shrink-0">
+                  <div class="rounded-lg bg-gray-50 p-6 text-center ring-1 ring-inset ring-gray-900/5">
+                    <p class="text-base font-semibold text-gray-600">Starting at</p>
+                    <p class="mt-4 flex items-baseline justify-center gap-x-2">
+                      <span id="total-watched-tables-price" class="text-4xl font-bold tracking-tight text-gray-900">$0</span>
+                    </p>
+                    <p id="total-watched-tables-price-description" class="mt-2 text-sm text-gray-600">a month for your first <%= watchedTables.rates.includedTables.toLocaleString("en-US") %> tables</p>
+                    <a href="/accounts/register" class="mt-6 block w-full hover:text-white rounded-md border border-gray-800 bg-gray-800 py-2 text-center text-sm font-semibold text-white hover:bg-gray-900">Start Free Trial</a>
+                  </div>
+                </div>
+              </div>
+              <div class="mt-8 pt-6 border-t border-gray-100">
+                <div class="flex justify-between mb-2">
+                  <p class="text-sm font-medium text-gray-500">Tables watched</p>
+                  <p id="total-number-of-watched-tables" class="text-sm font-semibold text-gray-900"><%= watchedTables.rates.includedTables.toLocaleString("en-US") %> Tables</p>
+                </div>
+                <input id="watched-tables-range" type="range" value="<%= watchedTables.rates.includedTables %>" max="5000" min="0" step="10"
+                  onchange="updateWatchedTablesPrice(this.value)" oninput="updateWatchedTablesPrice(this.value)"
+                  class="w-full h-2 bg-gray-200 rounded-lg appearance-none cursor-pointer">
+                <p id="more-than-5000-watched-tables-message" style="display: none;" class="mt-2 text-sm text-gray-600">If you have more than 5,000 tables, contact sales@oneuptime.com for a discount.</p>
               </div>
             </div>
 
@@ -1744,6 +1832,21 @@
                   <!-- Expand/collapse question div -->
                   <div class="flex w-full items-start justify-between text-left text-gray-900" aria-controls="faq-0"
                     aria-expanded="false">
+                    <span class="text-base font-semibold leading-7">How is Data Observability priced?</span>
+                  </div>
+                </dt>
+                <dd class="mt-2 pr-12" id="faq-0">
+                  <p class="text-base leading-7 text-gray-600"><%= watchedTables.description %>. Views are free, and so
+                    are the tables of a database you stop watching. A check with an alert is billed as an active
+                    monitor. Self-hosted installs pay nothing for tables.</p>
+                </dd>
+              </div>
+
+              <div class="pt-6">
+                <dt>
+                  <!-- Expand/collapse question div -->
+                  <div class="flex w-full items-start justify-between text-left text-gray-900" aria-controls="faq-0"
+                    aria-expanded="false">
                     <span class="text-base font-semibold leading-7">Is there a minimum telemetry retention?</span>
                   </div>
                 </dt>
@@ -1930,6 +2033,31 @@
             document.getElementById("more-than-6-months-retention").style.display = "none";
           }
 
+        }
+
+        // What the rates the install bills at charge for that many tables: WatchedTableMeteredPlan's sum.
+        const watchedTableRates = <%- JSON.stringify(watchedTables.rates) %>;
+
+        function updateWatchedTablesPrice(tableCount) {
+
+          if (typeof tableCount !== 'number') {
+            tableCount = parseInt(tableCount);
+          }
+
+          const billedTables = Math.max(0, tableCount - watchedTableRates.includedTables);
+          const tablesAtVolumePrice = Math.max(
+            0,
+            tableCount - Math.max(watchedTableRates.volumeThresholdInTables, watchedTableRates.includedTables),
+          );
+          const monthlyPrice =
+            (billedTables - tablesAtVolumePrice) * watchedTableRates.pricePerTableInUSD +
+            tablesAtVolumePrice * watchedTableRates.volumePricePerTableInUSD;
+          const tables = tableCount.toLocaleString("en-US") + (tableCount === 1 ? " Table" : " Tables");
+
+          document.getElementById("total-watched-tables-price").innerHTML = "$" + monthlyPrice.toLocaleString("en-US");
+          document.getElementById("total-watched-tables-price-description").innerHTML = "a month for " + tables.toLowerCase();
+          document.getElementById("total-number-of-watched-tables").innerHTML = tables;
+          document.getElementById("more-than-5000-watched-tables-message").style.display = tableCount === 5000 ? "block" : "none";
         }
 
         // Pay As You Go Tab Switching

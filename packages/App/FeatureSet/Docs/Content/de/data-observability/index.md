@@ -60,6 +60,12 @@ Innerhalb von fünf Minuten erscheinen ihre Tabellen unter **Tabellen**, jede mi
 Wählen Sie unter **Datenbanken** für die Datenbank **Empfohlene Warnungen** und fügen Sie die gewünschten hinzu: eine Tabelle, die verspätet ist, eine, deren Zeilen stark fallen oder ungewöhnlich niedrig liegen, eine, deren Spalten sich ändern, und eine Datenbank, die nicht mehr meldet. Jede ist ein gewöhnlicher Monitor: Bereitschaft, Eigentümer, Wartungsfenster und Statusseiten funktionieren wie bei jedem anderen.
 :::
 
+## Was es kostet
+
+In OneUptime Cloud sind die ersten 100 Tabellen eines Projekts kostenlos. Jede weitere Tabelle kostet 1 $ im Monat, ab 1.000 Tabellen 0,25 $. Views sind kostenlos, ebenso die Tabellen einer Datenbank, die Sie nicht mehr überwachen. Eine Prüfung mit Alarm wird als aktiver Monitor abgerechnet. **Datenbanken** und **Übersicht** zeigen, wie viele Tabellen Ihr Projekt überwacht und was sie kosten, und [Preise](https://oneuptime.com/pricing) hat einen Rechner.
+
+Eine selbst gehostete OneUptime-Installation zahlt nichts für Tabellen.
+
 ## Nächste Schritte
 
 :::cards

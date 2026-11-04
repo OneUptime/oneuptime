@@ -43582,5 +43582,13 @@
   "{{used}} of {{total}} ({{percent}})": "{{used}} of {{total}} ({{percent}})",
   "{{used}} of {{total}} · fullest pool {{percent}}": "{{used}} of {{total}} · fullest pool {{percent}}",
   "{{used}} used": "{{used}} used",
-  "{{used}}, no limit": "{{used}}, no limit"
+  "{{used}}, no limit": "{{used}}, no limit",
+  "Its tables stop being read and stop counting toward the bill. Their history stays, and so do its monitors, which you can delete.": "Dess tabeller läses inte längre och räknas inte på fakturan. Historiken finns kvar, liksom dess monitorer, som du kan ta bort.",
+  "Stop Watching": "Sluta bevaka",
+  "Stop watching this database?": "Sluta bevaka den här databasen?",
+  "Tables watched: {{count}}, about {{cost}} a month.": "Bevakade tabeller: {{count}}, cirka {{cost}} i månaden.",
+  "Tables watched: {{count}}. Not charged yet: at the listed price, about {{cost}} a month.": "Bevakade tabeller: {{count}}. Debiteras inte än: till listpriset cirka {{cost}} i månaden.",
+  "The first {{included}} tables are free, then {{price}} a table a month, and {{volumePrice}} above {{threshold}}. Views are free.": "De första {{included}} tabellerna är gratis, sedan {{price}} per tabell i månaden och {{volumePrice}} över {{threshold}}. Vyer är gratis.",
+  "This project has used its free tables. Add a payment method under Project Settings > Billing to watch more.": "Det här projektet har använt sina gratistabeller. Lägg till en betalningsmetod under Projektinställningar > Fakturering för att bevaka fler.",
+  "Watch Again": "Bevaka igen"
 }

@@ -1,5 +1,6 @@
 import PageComponentProps from "../PageComponentProps";
 import DataObservabilityApi from "../../Components/DataObservability/DataObservabilityApi";
+import WatchedTablesCost from "../../Components/DataObservability/WatchedTablesCost";
 import OneUptimeDate from "Common/Types/Date";
 import { DataObservabilityStoragePathStore } from "Common/Types/DataObservability/DataObservabilityApiTypes";
 import { readWatchedPaths } from "Common/Types/DataObservability/StoragePaths";
@@ -85,7 +86,8 @@ const DataObservabilityStoragePathsPage: FunctionComponent<
         title="Storage Paths"
         description="Name the paths of a bucket that matter, and each is watched like a table: late, shrinking or empty, it alerts. Only names, sizes and times are read, never an object."
       >
-        <div className="px-6 pb-6">
+        <div className="space-y-4 px-6 pb-6">
+          <WatchedTablesCost />
           {stores.length === 0 ? (
             <p className="text-sm text-gray-500">
               {translator.translateText(

@@ -43582,5 +43582,13 @@
   "{{used}} of {{total}} ({{percent}})": "{{used}} of {{total}} ({{percent}})",
   "{{used}} of {{total}} · fullest pool {{percent}}": "{{used}} of {{total}} · fullest pool {{percent}}",
   "{{used}} used": "{{used}} used",
-  "{{used}}, no limit": "{{used}}, no limit"
+  "{{used}}, no limit": "{{used}}, no limit",
+  "Its tables stop being read and stop counting toward the bill. Their history stays, and so do its monitors, which you can delete.": "其資料表將不再被讀取，也不再計入帳單。歷史記錄會保留，其監視器也會保留，您可以刪除。",
+  "Stop Watching": "停止監看",
+  "Stop watching this database?": "要停止監看此資料庫嗎？",
+  "Tables watched: {{count}}, about {{cost}} a month.": "受監看的資料表：{{count}}，每月約 {{cost}}。",
+  "Tables watched: {{count}}. Not charged yet: at the listed price, about {{cost}} a month.": "受監看的資料表：{{count}}。尚未收費：依標價每月約 {{cost}}。",
+  "The first {{included}} tables are free, then {{price}} a table a month, and {{volumePrice}} above {{threshold}}. Views are free.": "前 {{included}} 張資料表免費，之後每張每月 {{price}}，超過 {{threshold}} 張的部分為 {{volumePrice}}。檢視免費。",
+  "This project has used its free tables. Add a payment method under Project Settings > Billing to watch more.": "此專案已用完免費資料表。若要監看更多，請在專案設定 > 帳單中新增付款方式。",
+  "Watch Again": "重新監看"
 }

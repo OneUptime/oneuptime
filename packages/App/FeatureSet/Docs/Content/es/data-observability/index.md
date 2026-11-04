@@ -60,6 +60,12 @@ En menos de cinco minutos sus tablas aparecen en **Tablas**, cada una con sus fi
 En **Bases de datos**, elige **Alertas recomendadas** para la base de datos y añade las que quieras: una tabla que llega tarde, una cuyas filas caen bruscamente o son inusualmente pocas, una cuyas columnas cambian y una base de datos que deja de informar. Cada una es un monitor normal: la guardia, los propietarios, las ventanas de mantenimiento y las páginas de estado funcionan como con cualquier otro.
 :::
 
+## Cuánto cuesta
+
+En OneUptime Cloud, las primeras 100 tablas de un proyecto son gratis. Cada tabla adicional cuesta 1 $ al mes, y 0,25 $ por encima de 1.000. Las vistas son gratis, igual que las tablas de una base de datos que dejes de vigilar. Una comprobación con alerta se factura como un monitor activo. **Bases de datos** y **Vista general** muestran cuántas tablas vigila tu proyecto y cuánto cuestan, y [Precios](https://oneuptime.com/pricing) tiene una calculadora.
+
+Una instalación autoalojada de OneUptime no paga nada por las tablas.
+
 ## Próximos pasos
 
 :::cards

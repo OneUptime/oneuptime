@@ -265,7 +265,6 @@ export interface ProductionReviewDataDashboardJSON {
   url?: string | undefined;
 }
 
-// One watched table a migration or a dbt model changes, and what depends on it.
 // One of a table's checks, read on its staging copy, beside what it last read in production.
 export interface ProductionReviewDataStagingCheckJSON {
   name: string;
@@ -286,6 +285,7 @@ export interface ProductionReviewDataStagingJSON {
   checks: Array<ProductionReviewDataStagingCheckJSON>;
 }
 
+// One watched table a migration or a dbt model changes, and what depends on it.
 export interface ProductionReviewDataImpactJSON {
   dataAssetId: string;
   table: string;

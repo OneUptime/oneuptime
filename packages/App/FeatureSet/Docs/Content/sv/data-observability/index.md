@@ -60,6 +60,12 @@ Inom fem minuter visas dess tabeller under **Tabeller**, var och en med sina rad
 Välj **Rekommenderade larm** för databasen under **Databaser**, och lägg till de larm du vill ha: en tabell som är försenad, en vars rader faller kraftigt eller är ovanligt få, en vars kolumner ändras, och en databas som slutar rapportera. Var och en är en vanlig monitor: jour, ägare, underhållsfönster och statussidor fungerar som för vilken annan som helst.
 :::
 
+## Vad det kostar
+
+På OneUptime Cloud är de första 100 tabellerna i ett projekt gratis. Varje tabell därefter kostar 1 $ i månaden, och 0,25 $ över 1 000. Vyer är gratis, liksom tabellerna i en databas du slutar bevaka. En kontroll med en avisering faktureras som en aktiv monitor. **Databaser** och **Översikt** visar hur många tabeller ditt projekt bevakar och vad de kostar, och [Priser](https://oneuptime.com/pricing) har en kalkylator.
+
+En egenhostad OneUptime betalar ingenting för tabeller.
+
 ## Nästa steg
 
 :::cards

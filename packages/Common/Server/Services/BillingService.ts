@@ -1,4 +1,8 @@
-import { BillingPrivateKey, IsBillingEnabled } from "../EnvironmentConfig";
+import {
+  BillingPrivateKey,
+  IsBillingEnabled,
+  WatchedTableStripePriceId,
+} from "../EnvironmentConfig";
 import EnterpriseEdition from "../Enterprise/EnterpriseEdition";
 import type BillingProvider from "../Types/Billing/BillingProvider";
 import type {
@@ -554,6 +558,17 @@ export class BillingService extends BaseService {
       return "price_1U7edTANuQdJ93r7hR9jpBfv";
     }
 
+    /*
+     * Set by the install (billing.watchedTables.stripePriceId), not fixed here:
+     * until it is, nothing is charged for watched tables.
+     */
+    if (
+      productType === ProductType.WatchedTables &&
+      WatchedTableStripePriceId
+    ) {
+      return WatchedTableStripePriceId;
+    }
+
     throw new BadDataException(
       "Plan with productType " + productType + " not found",
     );
@@ -563,8 +578,8 @@ export class BillingService extends BaseService {
    * Whether a Stripe metered price exists for this product type yet.
    *
    * getMeteredPlanPriceId throws for product types whose Stripe prices have
-   * not been created and for unknown types. Every product type is priced
-   * today, so this only guards the next one added ahead of its Stripe price.
+   * not been created and for unknown types: watched tables until the install
+   * names their price, and the next product type added ahead of its own.
    * Callers that build Stripe subscription items must skip those plans instead of
    * letting the throw abort the whole operation - a metered plan without a
    * price still stages usage into TelemetryUsageBilling, only the push to
