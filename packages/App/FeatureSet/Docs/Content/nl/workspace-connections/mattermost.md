@@ -85,6 +85,8 @@ Om in een bestaand kanaal te plaatsen, vul je de naam in zoals die in het adres 
 
 Mensen worden lid van het kanaal van een regel via het Mattermost-account dat ze hebben gekoppeld, of anders via het Mattermost-account met hun e-mailadres, als je server e-mailadressen aan de bot toont (**System Console** > **Site Configuration** > **Users and Teams** > **Show Email Address**). OneUptime noemt wie het niet kon toevoegen in één bericht in het kanaal, met een link om hun account te koppelen.
 
+Een incident, waarschuwing, episode of geplande onderhoudsgebeurtenis met een eigen kanaal heeft **Openen in Mattermost** in de kop van zijn pagina in OneUptime, naast de statusknoppen. Die opent dat kanaal in een nieuw tabblad, op je Mattermost-server. Een record met twee eigen kanalen toont ze allebei onder de knop. Een record dat ook kanalen in Slack of Microsoft Teams heeft, heeft in plaats daarvan één knop **Kanaal openen**, die ze allemaal toont. De bestaande kanalen waarin je regels posten, worden niet aangeboden.
+
 **Testregel** in de rij van een regel plaatst een testbericht voor die regel in de kanalen die hij noemt, zoals bij Slack.
 
 De berichten van OneUptime sturen niemand een melding via wat ze citeren: een naam of een beschrijving met `@channel`, `@here` of `@someone` wordt getoond zoals die is geschreven, en pingt niemand.

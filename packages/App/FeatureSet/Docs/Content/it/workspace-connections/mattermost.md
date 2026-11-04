@@ -85,6 +85,8 @@ Per pubblicare in un canale esistente, inserisci il suo nome come compare nel su
 
 Le persone entrano nel canale di una regola tramite l'account Mattermost che hanno collegato, altrimenti tramite l'account Mattermost con il loro indirizzo email, quando il tuo server mostra gli indirizzi email al bot (**System Console** > **Site Configuration** > **Users and Teams** > **Show Email Address**). OneUptime nomina chi non è riuscito ad aggiungere in un solo messaggio nel canale, con un link per collegare il proprio account.
 
+Un incidente, un avviso, un episodio o un evento di manutenzione pianificata con un canale tutto suo ha **Apri in Mattermost** nell'intestazione della sua pagina in OneUptime, accanto ai pulsanti di stato. Apre quel canale in una nuova scheda, sul tuo server Mattermost. Un record con due canali suoi li elenca entrambi sotto il pulsante. Un record che ha canali anche in Slack o Microsoft Teams ha invece un solo pulsante **Apri canale**, che li elenca tutti. I canali esistenti in cui pubblicano le tue regole non vengono proposti.
+
 **Regola di test** nella riga di una regola pubblica un messaggio di prova di quella regola nei canali che indica, come fa per Slack.
 
 I messaggi di OneUptime non notificano nessuno con ciò che citano: un nome o una descrizione che contiene `@channel`, `@here` o `@someone` viene mostrato così com'è scritto, e non avvisa nessuno.

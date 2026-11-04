@@ -85,6 +85,8 @@ Mattermost 没有可供 OneUptime 将您引导过去的登录页面，因此 One
 
 人员通过其已连接的 Mattermost 账户加入规则的频道；否则，当您的服务器向机器人显示电子邮件地址时（ **System Console** > **Site Configuration** > **Users and Teams** > **Show Email Address** ），通过使用其电子邮件地址的 Mattermost 账户加入。OneUptime 会在频道中用一条消息列出它无法添加的所有人，并附上连接其账户的链接。
 
+拥有专属频道的事件、警报、片段或计划维护事件，会在其 OneUptime 页面标题的状态按钮旁显示 **在 Mattermost 中打开**。它会在新标签页中打开您的 Mattermost 服务器上的该频道。拥有两个专属频道的记录会在按钮下列出这两个频道。同时在 Slack 或 Microsoft Teams 中有频道的记录，会改为只显示一个 **打开频道** 按钮，列出所有频道。不会提供您的规则所发布到的现有频道。
+
 规则所在行的 **测试规则** 会将该规则的测试消息发布到它指定的频道，与 Slack 中一样。
 
 OneUptime 的消息不会因其引用的内容而通知任何人：包含 `@channel`、`@here` 或 `@someone` 的名称或描述会按原样显示，不会提醒任何人。

@@ -85,6 +85,8 @@ Mattermost 沒有可供 OneUptime 將您導向過去的登入頁面，因此 One
 
 人員會透過其已連接的 Mattermost 帳戶加入規則的頻道；否則，當您的伺服器向機器人顯示電子郵件地址時（ **System Console** > **Site Configuration** > **Users and Teams** > **Show Email Address** ），會透過使用其電子郵件地址的 Mattermost 帳戶加入。OneUptime 會在頻道中用一則訊息列出它無法加入的所有人，並附上連接其帳戶的連結。
 
+擁有專屬頻道的事件、警示、片段或排定維護事件，會在其 OneUptime 頁面標題的狀態按鈕旁顯示 **在 Mattermost 中開啟**。它會在新分頁中開啟您的 Mattermost 伺服器上的該頻道。擁有兩個專屬頻道的紀錄會在按鈕下列出這兩個頻道。同時在 Slack 或 Microsoft Teams 中有頻道的紀錄，會改為只顯示一個 **開啟頻道** 按鈕，列出所有頻道。不會提供您的規則所發布到的現有頻道。
+
 規則所在列的 **測試規則** 會將該規則的測試訊息發布到它指定的頻道，與 Slack 中一樣。
 
 OneUptime 的訊息不會因其引用的內容而通知任何人：包含 `@channel`、`@here` 或 `@someone` 的名稱或描述會照原樣顯示，不會提醒任何人。
