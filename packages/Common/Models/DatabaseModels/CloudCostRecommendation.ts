@@ -18,6 +18,7 @@ import TenantColumn from "../../Types/Database/TenantColumn";
 import { CloudSavingKind } from "../../Types/Cloud/CloudCost";
 import { CloudProvider } from "../../Types/Cloud/CloudPlatform";
 import IconProp from "../../Types/Icon/IconProp";
+import { JSONObject } from "../../Types/JSON";
 import ObjectID from "../../Types/ObjectID";
 import Permission from "../../Types/Permission";
 import { PlanType } from "../../Types/Billing/SubscriptionPlan";
@@ -42,6 +43,12 @@ import {
  * recommender: a recommendation it no longer makes is removed. Not
  * user-editable. Cloud > Savings, an account's Costs and a resource's
  * Overview list them.
+ *
+ * Where no recommender covers a resource, OneUptime right-sizes it from its
+ * own readings of its CPU and memory (Types/Cloud/CloudRightSizing,
+ * CloudRightSizingWriter): source OneUptime, its recommendationId
+ * "oneuptime-rightsize:<the resource's id>", kept in step by that writer
+ * and never by the cloud's.
  */
 
 // Postgres answers a decimal as text: read it back as the number it is.
@@ -96,7 +103,7 @@ const READ_PERMISSIONS: Array<Permission> = [
   pluralName: "Cloud Cost Recommendations",
   icon: IconProp.Billing,
   tableDescription:
-    "Ways to spend less in your connected cloud accounts - rightsizing, idle resources, newer generations and commitments - with what each saves a month, from AWS Cost Optimization Hub, Azure Advisor and Google Cloud's Recommender. Written by the cloud connections; not user-editable.",
+    "Ways to spend less in your connected cloud accounts - rightsizing, idle resources, newer generations and commitments - with what each saves a month, from AWS Cost Optimization Hub, Azure Advisor, Google Cloud's Recommender and OneUptime's own CPU and memory readings. Written by the cloud connections; not user-editable.",
 })
 @Index(["projectId", "provider", "recommendationId"], {
   unique: true,
@@ -444,7 +451,7 @@ export default class CloudCostRecommendation extends BaseModel {
     type: TableColumnType.ShortText,
     title: "Source",
     description:
-      "Which recommender made it: AWS Cost Optimization Hub, Azure Advisor or Google Cloud Recommender.",
+      "Which recommender made it: AWS Cost Optimization Hub, Azure Advisor, Google Cloud Recommender or OneUptime.",
   })
   @Column({
     nullable: false,
@@ -452,6 +459,27 @@ export default class CloudCostRecommendation extends BaseModel {
     length: ColumnLength.ShortText,
   })
   public source?: string = undefined;
+
+  /*
+   * What made a right-sizing OneUptime worked out from its own readings
+   * (CloudRightSizing's CloudRightSizingEvidence): its CPU's 95th
+   * percentile and highest reading, its memory's peak and the days read,
+   * so a page says why in the reader's language. Empty for the clouds'
+   * own recommendations.
+   */
+  @ColumnAccessControl({ create: [], read: READ_PERMISSIONS, update: [] })
+  @TableColumn({
+    required: false,
+    type: TableColumnType.JSON,
+    title: "Evidence",
+    description:
+      "For a right-sizing OneUptime worked out from its own readings: the CPU and memory readings and the days it was judged from.",
+  })
+  @Column({
+    nullable: true,
+    type: ColumnType.JSON,
+  })
+  public evidence?: JSONObject = undefined;
 
   @ColumnAccessControl({ create: [], read: READ_PERMISSIONS, update: [] })
   @TableColumn({

@@ -2,10 +2,13 @@ import CloudCostRecommendation from "../../../Models/DatabaseModels/CloudCostRec
 import CloudResource from "../../../Models/DatabaseModels/CloudResource";
 import Includes from "../../../Types/BaseDatabase/Includes";
 import LessThan from "../../../Types/BaseDatabase/LessThan";
+import NotEqual from "../../../Types/BaseDatabase/NotEqual";
 import { CloudSavingKind } from "../../../Types/Cloud/CloudCost";
+import { CLOUD_SAVINGS_SOURCE_ONEUPTIME } from "../../../Types/Cloud/CloudRightSizing";
 import { CloudProvider } from "../../../Types/Cloud/CloudPlatform";
 import ColumnLength from "../../../Types/Database/ColumnLength";
 import LIMIT_MAX from "../../../Types/Database/LimitMax";
+import SortOrder from "../../../Types/BaseDatabase/SortOrder";
 import ObjectID from "../../../Types/ObjectID";
 import CloudCostRecommendationService from "../../Services/CloudCostRecommendationService";
 import CloudResourceService from "../../Services/CloudResourceService";
@@ -23,6 +26,10 @@ import { CloudSavingRecord } from "./CloudConnectorTypes";
  * the accounts read are kept so: one that could not be read keeps what it
  * has. Each row is linked to the resource it is about when OneUptime holds
  * it, by the resource's id in its cloud.
+ *
+ * OneUptime's own right-sizing (source OneUptime) sits beside them in the
+ * same table, kept in step by CloudRightSizingWriter: this writer never
+ * removes it.
  */
 
 // At most this many recommendations are kept per account.
@@ -250,13 +257,15 @@ export default class CloudSavingsWriter {
     /*
      * What the recommender no longer says - every row of an account read
      * that this read did not see - removed for good: a recommendation has
-     * no history worth keeping.
+     * no history worth keeping. OneUptime's own right-sizing is not the
+     * recommender's to remove.
      */
     result.removed = await CloudCostRecommendationService.hardDeleteBy({
       query: {
         projectId: data.projectId,
         cloudAccountId: new Includes(cloudAccountIds),
         lastSeenAt: new LessThan<Date>(data.now),
+        source: new NotEqual<string>(CLOUD_SAVINGS_SOURCE_ONEUPTIME),
       },
       limit: LIMIT_MAX,
       skip: 0,
@@ -264,5 +273,76 @@ export default class CloudSavingsWriter {
     });
 
     return result;
+  }
+
+  /*
+   * Every way to spend less each account holds now - its recommender's and
+   * OneUptime's own right-sizing - by its CloudAccount row id: what its
+   * summary counts.
+   */
+  public static async loadSavingsByAccount(data: {
+    projectId: ObjectID;
+    cloudAccountIds: Array<ObjectID>;
+  }): Promise<
+    Map<
+      string,
+      Array<{ monthlySavings: number; currency: string; kind: CloudSavingKind }>
+    >
+  > {
+    const byAccount: Map<
+      string,
+      Array<{ monthlySavings: number; currency: string; kind: CloudSavingKind }>
+    > = new Map();
+
+    if (data.cloudAccountIds.length === 0) {
+      return byAccount;
+    }
+
+    for (let skip: number = 0; ; skip += LIMIT_MAX) {
+      const rows: Array<CloudCostRecommendation> =
+        await CloudCostRecommendationService.findBy({
+          query: {
+            projectId: data.projectId,
+            cloudAccountId: new Includes(data.cloudAccountIds),
+          },
+          select: {
+            _id: true,
+            cloudAccountId: true,
+            monthlySavings: true,
+            currency: true,
+            kind: true,
+          },
+          sort: { _id: SortOrder.Ascending },
+          skip,
+          limit: LIMIT_MAX,
+          props: { isRoot: true },
+        });
+
+      for (const row of rows) {
+        const accountRow: string = row.cloudAccountId?.toString() || "";
+
+        if (!accountRow) {
+          continue;
+        }
+
+        const savings: Array<{
+          monthlySavings: number;
+          currency: string;
+          kind: CloudSavingKind;
+        }> = byAccount.get(accountRow) || [];
+        savings.push({
+          monthlySavings: Number(row.monthlySavings) || 0,
+          currency: row.currency || "USD",
+          kind: (row.kind as CloudSavingKind) || CloudSavingKind.Other,
+        });
+        byAccount.set(accountRow, savings);
+      }
+
+      if (rows.length < LIMIT_MAX) {
+        break;
+      }
+    }
+
+    return byAccount;
   }
 }

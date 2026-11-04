@@ -218,7 +218,12 @@ export const GCP_INVENTORY_TYPES: ReadonlyArray<GcpInventoryType> = [
           }
         : null;
     },
+    /*
+     * Its machine type first - kept as its URL, its last part its name - so
+     * OneUptime can size it (Types/Cloud/CloudRightSizing).
+     */
     properties: [
+      "machineType",
       "status",
       "cpuPlatform",
       "scheduling.preemptible",

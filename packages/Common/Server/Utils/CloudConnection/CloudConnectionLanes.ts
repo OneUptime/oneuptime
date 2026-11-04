@@ -2,13 +2,12 @@ import CloudAccount from "../../../Models/DatabaseModels/CloudAccount";
 import {
   CLOUD_COSTS_INTERVAL_MS,
   CLOUD_SAVINGS_INTERVAL_MS,
-  CLOUD_COST_DEFAULT_CURRENCY,
   CloudAccountCostSummary,
   CloudAccountSavingsSummary,
   CloudCostState,
+  CloudSavingKind,
   getCloudCostWindow,
   readCloudAccountCostSummary,
-  readCloudAccountSavingsSummary,
   summarizeCloudAccountSavings,
 } from "../../../Types/Cloud/CloudCost";
 import { CloudProvider } from "../../../Types/Cloud/CloudPlatform";
@@ -24,6 +23,9 @@ import CloudCostWriter, { CloudCostWriteResult } from "./CloudCostWriter";
 import CloudSavingsWriter, {
   CloudSavingsWriteResult,
 } from "./CloudSavingsWriter";
+import CloudRightSizingWriter, {
+  CloudRightSizingWriteResult,
+} from "./CloudRightSizingWriter";
 import CloudConnectionResourceSync, {
   CloudConnectionSyncResult,
 } from "./CloudConnectionResourceSync";
@@ -156,6 +158,8 @@ export interface CloudSavingsLaneOutcome {
   warnings: Array<string>;
   // Recommendations the accounts read now have.
   recommendations: number;
+  // Right-sizings OneUptime worked out itself, kept beside them.
+  rightSized?: number | undefined;
 }
 
 export interface CloudInventoryLaneOutcome {
@@ -819,9 +823,42 @@ export default class CloudConnectionLanes {
       });
 
       /*
-       * Each account's summary: what its recommendations save now, or -
-       * when they could not be read - what it had, with why.
+       * OneUptime's own right-sizing, from its readings of the CPU and
+       * memory of what no recommender speaks for: after the recommender,
+       * so a resource it now covers is left to it. Never throws.
        */
+      const rightSizing: CloudRightSizingWriteResult =
+        await CloudRightSizingWriter.run({
+          projectId: data.projectId,
+          connectionId: data.connectionId,
+          provider: data.provider,
+          accountRows: CloudConnectionLanes.toRowIds(rows),
+          now: data.now,
+        });
+
+      /*
+       * Each account's summary, from every way to spend less it now holds:
+       * its recommender's and OneUptime's own. One whose recommender could
+       * not be read keeps what it had - its rows stay - with why.
+       */
+      const stored: Map<
+        string,
+        Array<{
+          monthlySavings: number;
+          currency: string;
+          kind: CloudSavingKind;
+        }>
+      > = await CloudSavingsWriter.loadSavingsByAccount({
+        projectId: data.projectId,
+        cloudAccountIds: read.accounts
+          .map((outcome: CloudCostAccountOutcome): ObjectID | null => {
+            return rows.get(outcome.accountId.trim().toLowerCase())?.id || null;
+          })
+          .filter((id: ObjectID | null): boolean => {
+            return Boolean(id);
+          }) as Array<ObjectID>,
+      });
+
       for (const outcome of read.accounts) {
         const accountKey: string = outcome.accountId.trim().toLowerCase();
         const row: CloudAccount | undefined = rows.get(accountKey);
@@ -830,25 +867,15 @@ export default class CloudConnectionLanes {
           continue;
         }
 
-        const previous: CloudAccountSavingsSummary | null =
-          readCloudAccountSavingsSummary(row.savingsSummary);
+        const figures: CloudAccountSavingsSummary =
+          summarizeCloudAccountSavings({
+            savings: stored.get(row.id.toString()) || [],
+            now: data.now,
+          });
         const summary: CloudAccountSavingsSummary =
           outcome.state === CloudCostState.Reading
-            ? summarizeCloudAccountSavings({
-                savings: written.savingsByAccount.get(accountKey) || [],
-                now: data.now,
-              })
-            : {
-                ...(previous || {
-                  count: 0,
-                  monthlySavings: 0,
-                  byKind: {},
-                  currency: CLOUD_COST_DEFAULT_CURRENCY,
-                  readAt: data.now.toISOString(),
-                }),
-                state: outcome.state,
-                message: outcome.message,
-              };
+            ? figures
+            : { ...figures, state: outcome.state, message: outcome.message };
 
         await CloudAccountService.updateOneById({
           id: row.id,
@@ -865,6 +892,7 @@ export default class CloudConnectionLanes {
         ran: true,
         warnings,
         recommendations: written.created + written.updated,
+        rightSized: rightSizing.kept,
       };
     } catch (error) {
       warnings.push(

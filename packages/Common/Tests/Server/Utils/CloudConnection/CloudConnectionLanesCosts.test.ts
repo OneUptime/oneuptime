@@ -27,6 +27,7 @@ import {
 } from "../../../../Server/Utils/CloudConnection/CloudConnectorTypes";
 import CloudCostWriter from "../../../../Server/Utils/CloudConnection/CloudCostWriter";
 import CloudSavingsWriter from "../../../../Server/Utils/CloudConnection/CloudSavingsWriter";
+import CloudRightSizingWriter from "../../../../Server/Utils/CloudConnection/CloudRightSizingWriter";
 import LlmProviderError from "../../../../Server/Utils/LlmObservability/LlmProviderError";
 import {
   CLOUD_COSTS_INTERVAL_MS,
@@ -368,10 +369,12 @@ describe("the costs lane", () => {
 });
 
 describe("the savings lane", () => {
-  test("keeps the recommendations in step and writes each account's savings summary", async () => {
+  test("keeps the recommendations in step, sizes what none speaks for, and writes each account's savings summary from what it holds", async () => {
+    const order: Array<string> = [];
     const write: SpyInstance<typeof CloudSavingsWriter.write> = jest
       .spyOn(CloudSavingsWriter, "write")
       .mockImplementation(async () => {
+        order.push("recommender");
         return {
           created: 1,
           updated: 1,
@@ -395,6 +398,59 @@ describe("the savings lane", () => {
           ]),
         };
       });
+    const rightSize: SpyInstance<typeof CloudRightSizingWriter.run> = jest
+      .spyOn(CloudRightSizingWriter, "run")
+      .mockImplementation(async () => {
+        order.push("right-sizing");
+        return { judged: 3, kept: 1, removed: 0 };
+      });
+    /*
+     * What each account holds after both: the read one its recommender's
+     * two and OneUptime's right-sizing; the one not read what it had.
+     */
+    const load: SpyInstance<typeof CloudSavingsWriter.loadSavingsByAccount> =
+      jest
+        .spyOn(CloudSavingsWriter, "loadSavingsByAccount")
+        .mockImplementation(async () => {
+          order.push("summaries");
+          return new Map([
+            [
+              READ_ROW.toString(),
+              [
+                {
+                  monthlySavings: 40,
+                  currency: "USD",
+                  kind: CloudSavingKind.Rightsize,
+                },
+                {
+                  monthlySavings: 2,
+                  currency: "USD",
+                  kind: CloudSavingKind.Idle,
+                },
+                {
+                  monthlySavings: 18,
+                  currency: "USD",
+                  kind: CloudSavingKind.Rightsize,
+                },
+              ],
+            ],
+            [
+              FAILED_ROW.toString(),
+              [
+                {
+                  monthlySavings: 20,
+                  currency: "USD",
+                  kind: CloudSavingKind.Rightsize,
+                },
+                {
+                  monthlySavings: 10,
+                  currency: "USD",
+                  kind: CloudSavingKind.Commitment,
+                },
+              ],
+            ],
+          ]);
+        });
     const state: CloudConnectionPullState = {};
 
     const outcome: CloudSavingsLaneOutcome =
@@ -424,10 +480,39 @@ describe("the savings lane", () => {
         ),
       );
 
-    expect(outcome).toEqual({ ran: true, warnings: [], recommendations: 2 });
+    expect(outcome).toEqual({
+      ran: true,
+      warnings: [],
+      recommendations: 2,
+      rightSized: 1,
+    });
     expect(Array.from(write.mock.calls[0]![0].accountsRead)).toEqual([
       "123456789012",
     ]);
+    // The recommender first: a resource it speaks for is left to it.
+    expect(order).toEqual(["recommender", "right-sizing", "summaries"]);
+    expect(rightSize.mock.calls[0]![0]).toMatchObject({
+      projectId: PROJECT,
+      connectionId: CONNECTION,
+      provider: CloudProvider.AWS,
+      now: NOW,
+    });
+    expect(
+      Array.from(rightSize.mock.calls[0]![0].accountRows.entries()).map(
+        ([accountId, row]: [string, ObjectID]) => {
+          return [accountId, row.toString()];
+        },
+      ),
+    ).toEqual([
+      ["123456789012", READ_ROW.toString()],
+      ["210987654321", FAILED_ROW.toString()],
+    ]);
+    // Both accounts' summaries are read from what they hold.
+    expect(
+      load.mock.calls[0]![0].cloudAccountIds.map((id: ObjectID) => {
+        return id.toString();
+      }),
+    ).toEqual([READ_ROW.toString(), FAILED_ROW.toString()]);
 
     const byId: Map<string, JSONObject> = new Map(
       accountUpdates.map((entry: { id: string; data: JSONObject }) => {
@@ -437,15 +522,16 @@ describe("the savings lane", () => {
     const read: CloudAccountSavingsSummary = byId.get(READ_ROW.toString())![
       "savingsSummary"
     ] as unknown as CloudAccountSavingsSummary;
+    // OneUptime's right-sizing counts beside its recommender's own.
     expect(read).toMatchObject({
       state: CloudCostState.Reading,
-      count: 2,
-      monthlySavings: 42,
+      count: 3,
+      monthlySavings: 60,
       currency: "USD",
     });
     expect(read.byKind[CloudSavingKind.Rightsize]).toEqual({
-      count: 1,
-      monthlySavings: 40,
+      count: 2,
+      monthlySavings: 58,
     });
     // The account not read keeps what it had, and says why.
     expect(byId.get(FAILED_ROW.toString())!["savingsSummary"]).toMatchObject({
