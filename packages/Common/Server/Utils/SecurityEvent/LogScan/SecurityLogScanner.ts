@@ -29,6 +29,9 @@ import SecurityProjectWork, {
 } from "../SecurityProjectWork";
 import ThreatIntelEnricher from "../ThreatIntel/ThreatIntelEnricher";
 import SecurityRequestTrace from "../RequestTrace/SecurityRequestTrace";
+import SecurityEventStoreOnce, {
+  SharedRecordGroup,
+} from "../SecurityEventStoreOnce";
 
 /*
  * "Your logs" (SecurityLogSource): every minute, for each project that
@@ -59,6 +62,11 @@ import SecurityRequestTrace from "../RequestTrace/SecurityRequestTrace";
  * span and session - followed into the trace before the event is stored
  * (RequestTrace/SecurityRequestTrace.ts), so it is stored knowing what the
  * app answered and how far an attack got.
+ *
+ * A record another way brings in too - a Microsoft Entra ID sign-in its
+ * connection reads, a cloud audit record a connected cloud account's
+ * Cloud audit logs read - is stored once, whichever way reads it first
+ * (SecurityEventStoreOnce).
  *
  * The work is spread by project (SecurityProjectWork): the cron queues one
  * turn for each project that turned the scan on.
@@ -389,13 +397,14 @@ export default class SecurityLogScanner {
               projectId,
             }));
 
-          await this.storeEvents({
-            projectId,
-            events,
-            serviceMetadata,
-          });
+          const stored: Array<NormalizedSecurityEvent> =
+            await this.storeEvents({
+              projectId,
+              events,
+              serviceMetadata,
+            });
 
-          for (const event of events) {
+          for (const event of stored) {
             const format: string = String(
               event.attributes[SECURITY_LOG_FORMAT_ATTRIBUTE] || "",
             );
@@ -403,8 +412,11 @@ export default class SecurityLogScanner {
             result.lastFoundAtByFormat[format] = now.toISOString();
           }
 
-          result.eventsFound += events.length;
-          lastEventFoundAt = now;
+          result.eventsFound += stored.length;
+
+          if (stored.length > 0) {
+            lastEventFoundAt = now;
+          }
         }
 
         offset += rows.length;
@@ -454,11 +466,15 @@ export default class SecurityLogScanner {
     return result;
   }
 
-  private static async storeEvents(data: {
+  /*
+   * Store a read's events, and return the ones stored: all of them but the
+   * records another way stored already (SecurityEventStoreOnce).
+   */
+  public static async storeEvents(data: {
     projectId: ObjectID;
     events: Array<NormalizedSecurityEvent>;
     serviceMetadata: TelemetryServiceMetadata;
-  }): Promise<void> {
+  }): Promise<Array<NormalizedSecurityEvent>> {
     /*
      * Each event made from a line written inside a traced request is
      * followed into that request first: the trace says who sent it, what
@@ -484,20 +500,53 @@ export default class SecurityLogScanner {
       projectRetentionInDays: data.serviceMetadata.projectRetentionInDays,
     });
 
-    const rows: Array<JSONObject> = data.events.map(
-      (normalized: NormalizedSecurityEvent): JSONObject => {
-        return buildSecurityEventDbRow({
-          normalized,
-          projectId: data.projectId,
-          serviceMetadata: data.serviceMetadata,
-          retentionDays,
-        });
-      },
-    );
+    const toRow: (normalized: NormalizedSecurityEvent) => JSONObject = (
+      normalized: NormalizedSecurityEvent,
+    ): JSONObject => {
+      return buildSecurityEventDbRow({
+        normalized,
+        projectId: data.projectId,
+        serviceMetadata: data.serviceMetadata,
+        retentionDays,
+      });
+    };
 
-    await SecurityEventService.insertJsonRows(rows);
+    const split: {
+      shared: Array<SharedRecordGroup>;
+      rest: Array<NormalizedSecurityEvent>;
+    } = SecurityEventStoreOnce.split(data.events);
+    const stored: Array<NormalizedSecurityEvent> = [...split.rest];
+    const rows: Array<JSONObject> = split.rest.map(toRow);
+
+    if (rows.length > 0) {
+      await SecurityEventService.insertJsonRows(rows);
+    }
+
+    for (const group of split.shared) {
+      stored.push(
+        ...(await SecurityEventStoreOnce.storeNew({
+          projectId: data.projectId,
+          group,
+          insert: async (
+            events: Array<NormalizedSecurityEvent>,
+          ): Promise<void> => {
+            const groupRows: Array<JSONObject> = events.map(toRow);
+
+            // Seen by the next way to look, before the lock is released.
+            await SecurityEventService.insertJsonRows(groupRows, {
+              clickhouseSettings: { async_insert: 0, insert_distributed_sync: 1 },
+            });
+            rows.push(...groupRows);
+          },
+        })),
+      );
+    }
 
     // Checked against the project's real-time detection rules as they land.
-    await RealTimeDetections.screen({ projectId: data.projectId, rows });
+    if (rows.length > 0) {
+      await RealTimeDetections.screen({ projectId: data.projectId, rows });
+    }
+
+    return stored;
   }
 }

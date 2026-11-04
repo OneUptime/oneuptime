@@ -66,6 +66,15 @@ import GoogleWorkspaceClient, {
  * a bound that stops a read names no resume point (the poller narrows the
  * next window from the same start instead).
  *
+ * Google documents every log the connection reads as readable within
+ * minutes, but OAuth token activity, which can take a few hours - past the
+ * overlap. So once every GOOGLE_WORKSPACE_LATE_SWEEP_EVERY_HOURS hours a
+ * poll also sweeps the day before its window for the applications Google
+ * documents that late (GOOGLE_WORKSPACE_LATE_APPLICATIONS), with a budget
+ * of its own; the id dedupe drops what was imported before. A sweep is an
+ * addition: one a bound or a failure stops is a warning, never a window
+ * left unread.
+ *
  * Each application is read with a page budget of its own, so a busy one
  * (sign-ins, Drive) cannot starve the others. Drive is read only for the
  * events the normalizer keeps, one listing per event name: Drive records
@@ -106,6 +115,20 @@ export const GOOGLE_WORKSPACE_PAGE_BUDGETS: Record<
 // The worker job times out at ten minutes; importing follows the fetch.
 export const GOOGLE_WORKSPACE_FETCH_DURATION_MS: number = 4 * 60 * 1000;
 
+/*
+ * The late sweep (see the header): the applications Google documents as
+ * readable later than the catalog's overlap - "up to a few hours" for OAuth
+ * token activity, minutes for every other log the connection reads - how
+ * often a poll sweeps them, how far back, and the pages each sweep reads.
+ */
+export const GOOGLE_WORKSPACE_LATE_APPLICATIONS: ReadonlyArray<GoogleWorkspaceApplication> =
+  [GoogleWorkspaceApplication.Token];
+export const GOOGLE_WORKSPACE_LATE_SWEEP_EVERY_HOURS: number = 6;
+export const GOOGLE_WORKSPACE_LATE_SWEEP_LOOK_BACK_HOURS: number = 24;
+export const GOOGLE_WORKSPACE_LATE_SWEEP_PAGES: number = 5;
+
+const HOUR_IN_MS: number = 60 * 60 * 1000;
+
 const DAY_IN_MS: number = 24 * 60 * 60 * 1000;
 // Normalization failures quoted into warnings before the rest are counted only.
 const MAX_NORMALIZATION_WARNINGS: number = 5;
@@ -144,6 +167,11 @@ const DRIVE_CHECK: { key: string; name: string } = {
   name: "Read Drive activity",
 };
 
+const LATE_SWEEP_CHECK: { key: string; name: string } = {
+  key: "read-late-activity",
+  name: "Read activity Google made readable late",
+};
+
 const AVAILABILITY_CHECK: { key: string; name: string } = {
   key: "detections-available",
   name: "Activities available to import",
@@ -175,6 +203,9 @@ interface FetchRun {
   imported: Record<string, number>;
   // Listings a bound stopped, in words.
   stopped: Array<string>;
+  // Activities the late sweep read, and what it stopped at, if anything.
+  lateSweepRead: number;
+  lateSweepStopped: Array<string>;
 }
 
 export default class GoogleWorkspaceConnector
@@ -189,11 +220,70 @@ export default class GoogleWorkspaceConnector
    * budget, Drive's included, with room for the token and a 401 retry.
    */
   public fetchBudget: ConnectorFetchBudget = {
-    maxRequests: GoogleWorkspaceConnector.plannedPages(true) + 3,
+    maxRequests:
+      GoogleWorkspaceConnector.plannedPages(true) +
+      GoogleWorkspaceConnector.lateSweepPages() +
+      3,
     maxEvents:
-      GoogleWorkspaceConnector.plannedPages(true) * GOOGLE_WORKSPACE_PAGE_SIZE,
+      (GoogleWorkspaceConnector.plannedPages(true) +
+        GoogleWorkspaceConnector.lateSweepPages()) *
+      GOOGLE_WORKSPACE_PAGE_SIZE,
     maxDurationMs: GOOGLE_WORKSPACE_FETCH_DURATION_MS,
   };
+
+  // The pages a late sweep reads at most, across its applications.
+  public static lateSweepPages(): number {
+    return (
+      GOOGLE_WORKSPACE_LATE_APPLICATIONS.length *
+      GOOGLE_WORKSPACE_LATE_SWEEP_PAGES
+    );
+  }
+
+  /*
+   * The stretch a poll sweeps for late activity, or null when this poll
+   * does not sweep. A poll sweeps when the ground it adds - from where the
+   * previous poll stopped (its window's start plus the catalog's overlap)
+   * to its end - takes in a GOOGLE_WORKSPACE_LATE_SWEEP_EVERY_HOURS
+   * boundary of UTC time: polls follow each other, so exactly one does for
+   * each boundary, whatever the poll interval. It sweeps the day before that
+   * ground, up to the overlap the window reads again anyway. Never for a
+   * first poll's day-long look back, a preview or a backfill.
+   */
+  public static getLateSweepWindow(data: {
+    window: ConnectorFetchWindow;
+    purpose?: string | undefined;
+  }): ConnectorFetchWindow | null {
+    if ((data.purpose || "poll") !== "poll") {
+      return null;
+    }
+
+    const overlapMs: number =
+      (getSecurityEventConnectorDefinition(
+        SecurityEventConnectorProvider.GoogleWorkspace,
+      )?.cursorOverlapInMinutes || 0) *
+      60 *
+      1000;
+    const startMs: number = data.window.startTime.getTime();
+    const endMs: number = data.window.endTime.getTime();
+    const progressFromMs: number = startMs + overlapMs;
+    const everyMs: number = GOOGLE_WORKSPACE_LATE_SWEEP_EVERY_HOURS * HOUR_IN_MS;
+    const boundaryMs: number = Math.floor(endMs / everyMs) * everyMs;
+
+    if (
+      endMs - startMs >= DAY_IN_MS ||
+      boundaryMs < progressFromMs ||
+      boundaryMs >= endMs
+    ) {
+      return null;
+    }
+
+    return {
+      startTime: new Date(
+        progressFromMs - GOOGLE_WORKSPACE_LATE_SWEEP_LOOK_BACK_HOURS * HOUR_IN_MS,
+      ),
+      endTime: new Date(startMs),
+    };
+  }
 
   private transport: ConnectorTransport;
 
@@ -658,8 +748,15 @@ export default class GoogleWorkspaceConnector
       activitiesRead: {},
       imported: {},
       stopped: [],
+      lateSweepRead: 0,
+      lateSweepStopped: [],
     };
     const checks: Array<SecurityConnectorCheck> = [];
+    const lateSweep: ConnectorFetchWindow | null =
+      GoogleWorkspaceConnector.getLateSweepWindow({
+        window,
+        purpose: options.purpose,
+      });
     const budgetFor: (read: PlannedRead) => {
       maxPages: number;
       maxActivities: number;
@@ -716,6 +813,17 @@ export default class GoogleWorkspaceConnector
             )}.${auditStopped.length > 0 ? ` Stopped early: ${auditStopped.join("; ")}.` : ""}`,
         }),
       );
+
+      if (lateSweep) {
+        checks.push(
+          await GoogleWorkspaceConnector.sweepLateActivity({
+            client,
+            run,
+            sweep: lateSweep,
+            pageScale: requestScale,
+          }),
+        );
+      }
 
       phase = DRIVE_CHECK;
       phaseStartedMs = Date.now();
@@ -811,8 +919,80 @@ export default class GoogleWorkspaceConnector
       details: {
         basis: "activity-time",
         activitiesRead: { ...run.activitiesRead },
+        ...(lateSweep
+          ? {
+              lateSweep: {
+                from: lateSweep.startTime.toISOString(),
+                to: lateSweep.endTime.toISOString(),
+                activitiesRead: run.lateSweepRead,
+              },
+            }
+          : {}),
       },
     };
+  }
+
+  /*
+   * The late sweep: each late application over the sweep's stretch, newest
+   * first, within the sweep's own pages. Never throws and never leaves the
+   * window unread - the window was read whole before it - so a bound or a
+   * failure is a warning under its own check.
+   */
+  private static async sweepLateActivity(data: {
+    client: GoogleWorkspaceClient;
+    run: FetchRun;
+    sweep: ConnectorFetchWindow;
+    pageScale: number;
+  }): Promise<SecurityConnectorCheck> {
+    const { client, run, sweep } = data;
+    const startedAtMs: number = Date.now();
+    const maxPages: number = Math.max(
+      1,
+      Math.floor(GOOGLE_WORKSPACE_LATE_SWEEP_PAGES * data.pageScale),
+    );
+    const before: number = run.events.length;
+
+    try {
+      for (const application of GOOGLE_WORKSPACE_LATE_APPLICATIONS) {
+        await GoogleWorkspaceConnector.readListing({
+          client,
+          run,
+          read: { application },
+          window: sweep,
+          maxPages,
+          maxActivities: maxPages * GOOGLE_WORKSPACE_PAGE_SIZE,
+          isLateSweep: true,
+        });
+      }
+    } catch (error) {
+      run.warnings.push(
+        `Activity Google made readable late was not swept: ${GoogleWorkspaceConnector.errorMessage(error)}`,
+      );
+
+      return makeCheck({
+        key: LATE_SWEEP_CHECK.key,
+        name: LATE_SWEEP_CHECK.name,
+        status: "warn",
+        startedAtMs,
+        message: GoogleWorkspaceConnector.errorMessage(error),
+        remediation: GoogleWorkspaceConnector.remediationFor(error),
+      });
+    }
+
+    const nouns: string = GOOGLE_WORKSPACE_LATE_APPLICATIONS.map(
+      (application: GoogleWorkspaceApplication): string => {
+        return APPLICATION_NOUNS[application];
+      },
+    ).join(", ");
+    const found: number = run.events.length - before;
+
+    return makeCheck({
+      key: LATE_SWEEP_CHECK.key,
+      name: LATE_SWEEP_CHECK.name,
+      status: run.lateSweepStopped.length > 0 ? "warn" : "pass",
+      startedAtMs,
+      message: `Read ${nouns} again from ${sweep.startTime.toISOString()} to ${sweep.endTime.toISOString()}, which Google can make readable hours late: ${run.lateSweepRead} ${run.lateSweepRead === 1 ? "activity" : "activities"}, ${found} not in this run already; the ones imported before are skipped.${run.lateSweepStopped.length > 0 ? ` Stopped early: ${run.lateSweepStopped.join("; ")}.` : ""}`,
+    });
   }
 
   // One listing over the window, page by page, within its budget.
@@ -823,6 +1003,8 @@ export default class GoogleWorkspaceConnector
     window: ConnectorFetchWindow;
     maxPages: number;
     maxActivities: number;
+    // A late sweep's listing: counted on its own, and never an unread window.
+    isLateSweep?: boolean | undefined;
   }): Promise<void> {
     const { client, run, read, window, maxPages, maxActivities } = data;
     let pages: number = 0;
@@ -873,6 +1055,21 @@ export default class GoogleWorkspaceConnector
       }
 
       pageToken = page.nextPageToken;
+    }
+
+    if (data.isLateSweep) {
+      run.lateSweepRead += returned;
+
+      if (stoppedBy !== "end") {
+        const what: string = `${APPLICATION_NOUNS[read.application]} after ${returned} activities (${GoogleWorkspaceConnector.stopReason(stoppedBy)})`;
+
+        run.lateSweepStopped.push(what);
+        run.warnings.push(
+          `Stopped sweeping ${what}: the oldest of the day before the window were not read again. The window itself was read.`,
+        );
+      }
+
+      return;
     }
 
     run.activitiesRead[read.application] =
