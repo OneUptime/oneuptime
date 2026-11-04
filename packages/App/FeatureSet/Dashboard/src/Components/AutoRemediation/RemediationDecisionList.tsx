@@ -122,7 +122,7 @@ const RemediationDecisionList: FunctionComponent<ComponentProps> = (
                 >
                   {line.text}
                 </p>
-                {line.why || line.whatToDo ? (
+                {line.why || line.whatToDo || line.whatHappensNext ? (
                   <dl
                     data-testid="remediation-decision-gap"
                     className="mt-2 space-y-1 border-l-2 border-gray-200 pl-3 text-sm leading-6"
@@ -145,14 +145,35 @@ const RemediationDecisionList: FunctionComponent<ComponentProps> = (
                     ) : (
                       <></>
                     )}
-                    {line.whatToDo ? (
+                    {line.whatToDo || line.whatHappensNext ? (
                       <div data-testid="remediation-decision-what-to-do">
                         <dt className="inline font-medium text-gray-900">
                           {translator.translateText("What to do:")}{" "}
                         </dt>
-                        <dd className="inline break-words text-gray-600">
-                          {line.whatToDo}
-                        </dd>
+                        {line.whatToDo ? (
+                          <dd className="inline break-words text-gray-600">
+                            {line.whatToDo}
+                          </dd>
+                        ) : (
+                          <></>
+                        )}
+                        {/*
+                          What follows once it is done - OneUptime AI
+                          trying again when the agent connects - on a line
+                          of its own: a step can end in a command.
+                        */}
+                        {line.whatHappensNext ? (
+                          <dd
+                            data-testid="remediation-decision-what-happens-next"
+                            className={`break-words text-gray-600 ${
+                              line.whatToDo ? "mt-1 block" : "inline"
+                            }`}
+                          >
+                            {line.whatHappensNext}
+                          </dd>
+                        ) : (
+                          <></>
+                        )}
                       </div>
                     ) : (
                       <></>

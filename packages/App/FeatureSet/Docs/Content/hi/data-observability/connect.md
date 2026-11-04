@@ -131,6 +131,6 @@ GRANT USE SCHEMA, SELECT ON SCHEMA system.access TO `oneuptime-reader`;
 ## अगले कदम
 
 :::cards
-- [टेबल की सेहत](/docs/data-observability/table-health): हर संग्रह हर टेबल के बारे में क्या सीखता है, और कौन-से अलर्ट सुझाता है।
+- [टेबल का स्वास्थ्य](/docs/data-observability/table-health): हर संग्रह हर टेबल के बारे में क्या सीखता है, और कौन-से अलर्ट सुझाता है।
 - [जांचें और मिलान](/docs/data-observability/checks): टेबल में रखी चीज़ों पर नियम।
 :::

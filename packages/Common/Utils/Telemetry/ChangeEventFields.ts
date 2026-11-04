@@ -101,6 +101,10 @@ export const ChangeEventAttribute: {
   readonly CloudActor: string;
   readonly CloudEventId: string;
   readonly CloudAccountRecordId: string;
+  readonly MadeBy: string;
+  readonly RunnerJobId: string;
+  readonly AutoRemediationSuggestionId: string;
+  readonly AiStep: string;
   readonly CloudPlatform: string;
   readonly AppPlatformApp: string;
   readonly AppPlatformAppId: string;
@@ -147,6 +151,18 @@ export const ChangeEventAttribute: {
   CloudEventId: "oneuptime.cloud.event_id",
   // The CloudAccount row the change belongs to.
   CloudAccountRecordId: "oneuptime.cloud_account.id",
+  /*
+   * Who made a change a cloud's activity log recorded, when it was
+   * OneUptime itself: oneuptime-ai (ChangeEventSource.OneUptimeAi) for a
+   * change the account's Cloud AI agent made, under its own role
+   * (CloudAiChangeAttribution). The fix it belongs to: the agent's job,
+   * the fix (an auto-remediation suggestion) and whether the job made the
+   * fix or rolled it back (CloudAiChangeStep).
+   */
+  MadeBy: "oneuptime.change.made_by",
+  RunnerJobId: "oneuptime.runner_job.id",
+  AutoRemediationSuggestionId: "oneuptime.auto_remediation_suggestion.id",
+  AiStep: "oneuptime.ai.step",
   // The app platform an app runs on: OpenTelemetry's cloud.platform.
   CloudPlatform: "cloud.platform",
   // An App Platforms app (CloudApp): its name, its row and its revisions.
@@ -163,6 +179,16 @@ export const ChangeEventAttribute: {
  * do with: investigations match changes to incidents by these keys.
  */
 export const RESERVED_CHANGE_ATTRIBUTE_PREFIX: string = "oneuptime.";
+
+/*
+ * What the job behind a change OneUptime AI made did (oneuptime.ai.step):
+ * the fix itself, or the rollback that undid it once verification found it
+ * did not help.
+ */
+export enum CloudAiChangeStep {
+  Fix = "fix",
+  Rollback = "rollback",
+}
 
 // Whether a change event's outcome was a success (oneuptime.change.status).
 export enum ChangeEventStatus {

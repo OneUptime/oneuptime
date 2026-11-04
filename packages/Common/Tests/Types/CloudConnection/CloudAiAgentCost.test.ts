@@ -14,11 +14,17 @@ import {
   GCP_CLOUD_RUN_FREE_VCPU_SECONDS,
   GCP_CLOUD_RUN_USD_PER_GIB_SECOND,
   GCP_CLOUD_RUN_USD_PER_VCPU_SECOND,
+  GCP_E2_MICRO_USD_PER_HOUR,
+  GCP_EXTERNAL_IPV4_USD_PER_HOUR,
+  GCP_STANDARD_DISK_USD_PER_GB_MONTH,
   estimateCloudAiAgentMonthlyCost,
 } from "../../../Types/CloudConnection/CloudAiAgentCost";
 import {
   CLOUD_AI_AGENT_SIZES,
   CloudAiAgentSetupOptions,
+  GCP_CLOUD_AI_AGENT_BOOT_DISK_GB,
+  GCP_CLOUD_AI_AGENT_BOOT_DISK_TYPE,
+  GCP_CLOUD_AI_AGENT_MACHINE_TYPE,
   getAwsCloudAiAgentTemplate,
   getAzureCloudAiAgentSetupCommand,
   getGcpCloudAiAgentSetupCommand,
@@ -61,6 +67,10 @@ describe("the month and the list prices", () => {
     expect(GCP_CLOUD_RUN_USD_PER_GIB_SECOND).toBe(0.000002);
     expect(GCP_CLOUD_RUN_FREE_VCPU_SECONDS).toBe(240000);
     expect(GCP_CLOUD_RUN_FREE_GIB_SECONDS).toBe(450000);
+    // Compute Engine in us-central1: an e2-micro, standard disk, an external IPv4 address.
+    expect(GCP_E2_MICRO_USD_PER_HOUR).toBe(0.008376);
+    expect(GCP_STANDARD_DISK_USD_PER_GB_MONTH).toBe(0.04);
+    expect(GCP_EXTERNAL_IPV4_USD_PER_HOUR).toBe(0.005);
   });
 });
 
@@ -84,22 +94,54 @@ describe("estimateCloudAiAgentMonthlyCost", () => {
     expect(estimateCloudAiAgentMonthlyCost(CloudProvider.Azure).usd).toBe(14);
   });
 
-  test("Google Cloud: a whole vCPU and half a GiB of Cloud Run with CPU always allocated, past the free tier", () => {
+  test("Google Cloud on Cloud Run: a whole vCPU and half a GiB with CPU always allocated, past the free tier", () => {
     const exact: number =
       (2628000 - 240000) * 0.000018 + (0.5 * 2628000 - 450000) * 0.000002;
 
     expect(exact).toBeCloseTo(42.984 + 1.728, 6);
-    expect(estimateCloudAiAgentMonthlyCost(CloudProvider.GCP).usd).toBe(45);
+    expect(
+      estimateCloudAiAgentMonthlyCost(CloudProvider.GCP, "cloud-run").usd,
+    ).toBe(45);
   });
 
-  test("every figure is whole dollars, and above nothing: an always-on container is never free", () => {
-    for (const provider of [
-      CloudProvider.AWS,
-      CloudProvider.Azure,
-      CloudProvider.GCP,
-    ]) {
+  test("Google Cloud on its VM, the default: an e2-micro, its 10 GB standard disk and its external address all month", () => {
+    const exact: number = 730 * (0.008376 + 0.005) + 10 * 0.04;
+
+    expect(exact).toBeCloseTo(6.11448 + 3.65 + 0.4, 6);
+    expect(estimateCloudAiAgentMonthlyCost(CloudProvider.GCP).usd).toBe(10);
+    expect(
+      estimateCloudAiAgentMonthlyCost(CloudProvider.GCP, "compute-engine"),
+    ).toEqual(estimateCloudAiAgentMonthlyCost(CloudProvider.GCP));
+  });
+
+  test("the VM is the cheaper host, by far: what the follow-up asked for", () => {
+    expect(
+      estimateCloudAiAgentMonthlyCost(CloudProvider.GCP, "compute-engine").usd,
+    ).toBeLessThan(
+      estimateCloudAiAgentMonthlyCost(CloudProvider.GCP, "cloud-run").usd / 4,
+    );
+  });
+
+  test("a host is Google Cloud's choice alone: the other clouds' figures ignore it", () => {
+    for (const provider of [CloudProvider.AWS, CloudProvider.Azure]) {
+      expect(estimateCloudAiAgentMonthlyCost(provider, "cloud-run")).toEqual(
+        estimateCloudAiAgentMonthlyCost(provider),
+      );
+      expect(
+        estimateCloudAiAgentMonthlyCost(provider, "compute-engine"),
+      ).toEqual(estimateCloudAiAgentMonthlyCost(provider));
+    }
+  });
+
+  test("every figure is whole dollars, and above nothing: an always-on agent is never free at list prices", () => {
+    for (const [provider, host] of [
+      [CloudProvider.AWS, undefined],
+      [CloudProvider.Azure, undefined],
+      [CloudProvider.GCP, "compute-engine"],
+      [CloudProvider.GCP, "cloud-run"],
+    ] as Array<[CloudProvider, "compute-engine" | "cloud-run" | undefined]>) {
       const estimate: CloudAiAgentCostEstimate =
-        estimateCloudAiAgentMonthlyCost(provider);
+        estimateCloudAiAgentMonthlyCost(provider, host);
 
       expect(Number.isInteger(estimate.usd)).toBe(true);
       expect(estimate.usd).toBeGreaterThan(0);
@@ -116,8 +158,14 @@ describe("estimateCloudAiAgentMonthlyCost", () => {
     ).toBe(
       "One Container Apps replica of 0.25 vCPU and 0.5 GiB running all month, at the consumption plan's list prices for active use, after the subscription's monthly free grant of 180,000 vCPU-seconds and 360,000 GiB-seconds.",
     );
-    expect(estimateCloudAiAgentMonthlyCost(CloudProvider.GCP).description).toBe(
+    expect(
+      estimateCloudAiAgentMonthlyCost(CloudProvider.GCP, "cloud-run")
+        .description,
+    ).toBe(
       "One Cloud Run instance of 1 vCPU and 0.5 GiB with CPU always allocated, running all month at the instance-based list prices of a tier 1 region, after the monthly free tier of 240,000 vCPU-seconds and 450,000 GiB-seconds.",
+    );
+    expect(estimateCloudAiAgentMonthlyCost(CloudProvider.GCP).description).toBe(
+      "One e2-micro Compute Engine VM running all month, with its 10 GB standard boot disk and its external IPv4 address, at us-central1 list prices. Google Cloud's free tier covers one e2-micro VM a month in us-central1, us-west1 and us-east1.",
     );
   });
 
@@ -138,6 +186,12 @@ describe("estimateCloudAiAgentMonthlyCost", () => {
       ...BASE,
       provider: CloudProvider.GCP,
       accountId: "my-project-123",
+      gcpHost: "cloud-run",
+    });
+    const gcpVm: string = getGcpCloudAiAgentSetupCommand({
+      ...BASE,
+      provider: CloudProvider.GCP,
+      accountId: "my-project-123",
     });
 
     expect(Number(task.Cpu) / 1024).toBe(
@@ -152,6 +206,19 @@ describe("estimateCloudAiAgentMonthlyCost", () => {
     expect(gcp).toContain(
       `--cpu ${CLOUD_AI_AGENT_SIZES[CloudProvider.GCP].vcpu} --memory ${CLOUD_AI_AGENT_SIZES[CloudProvider.GCP].memoryGiB * 1024}Mi `,
     );
+    // The VM priced is the VM the command makes.
+    expect(gcpVm).toContain(
+      `--machine-type ${GCP_CLOUD_AI_AGENT_MACHINE_TYPE} `,
+    );
+    expect(gcpVm).toContain(
+      `--boot-disk-size ${GCP_CLOUD_AI_AGENT_BOOT_DISK_GB}GB --boot-disk-type ${GCP_CLOUD_AI_AGENT_BOOT_DISK_TYPE}`,
+    );
+    expect(GCP_CLOUD_AI_AGENT_BOOT_DISK_TYPE).toBe("pd-standard");
+    expect(
+      estimateCloudAiAgentMonthlyCost(CloudProvider.GCP).description,
+    ).toContain(
+      `${GCP_CLOUD_AI_AGENT_MACHINE_TYPE} Compute Engine VM running all month, with its ${GCP_CLOUD_AI_AGENT_BOOT_DISK_GB} GB standard boot disk`,
+    );
   });
 
   test("the free allowances are what bring Azure and Google Cloud down", () => {
@@ -165,8 +232,8 @@ describe("estimateCloudAiAgentMonthlyCost", () => {
       estimateCloudAiAgentMonthlyCost(CloudProvider.Azure).usd,
     ).toBeLessThan(Math.round(withoutAzureGrant));
     expect(Math.round(withoutGcpTier)).toBe(50);
-    expect(estimateCloudAiAgentMonthlyCost(CloudProvider.GCP).usd).toBeLessThan(
-      Math.round(withoutGcpTier),
-    );
+    expect(
+      estimateCloudAiAgentMonthlyCost(CloudProvider.GCP, "cloud-run").usd,
+    ).toBeLessThan(Math.round(withoutGcpTier));
   });
 });

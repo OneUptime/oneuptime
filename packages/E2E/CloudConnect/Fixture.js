@@ -9,6 +9,7 @@ import {
   useParams,
 } from "react-router-dom";
 import i18next from "i18next";
+import { followLanguageForDates } from "Common/UI/Utils/DateDisplayLanguage";
 import { initReactI18next } from "react-i18next";
 import "Common/UI/Styles/Theme.css";
 import CloudConnectPage from "../../App/FeatureSet/Dashboard/src/Pages/Cloud/Connect";
@@ -35,6 +36,7 @@ import JA from "../../App/FeatureSet/Dashboard/src/Locales/ja.json";
 import DE from "../../App/FeatureSet/Dashboard/src/Locales/de.json";
 import FA from "../../App/FeatureSet/Dashboard/src/Locales/fa.json";
 import Alert from "Common/Models/DatabaseModels/Alert";
+import AutoRemediationSuggestion from "Common/Models/DatabaseModels/AutoRemediationSuggestion";
 import AlertSeverity from "Common/Models/DatabaseModels/AlertSeverity";
 import AlertState from "Common/Models/DatabaseModels/AlertState";
 import ChangeEvent from "Common/Models/AnalyticsModels/ChangeEvent";
@@ -61,7 +63,6 @@ import PermissionUtil from "Common/UI/Utils/Permission";
 import ProjectUtil from "Common/UI/Utils/Project";
 import UserUtil from "Common/UI/Utils/User";
 import { setPageLanguage } from "Common/UI/Utils/PageLanguage";
-import { followLanguageForDates } from "Common/UI/Utils/DateDisplayLanguage";
 
 /*
  * The fixture page: the real Cloud > Connect page in the real Cloud layout
@@ -115,6 +116,9 @@ import { followLanguageForDates } from "Common/UI/Utils/DateDisplayLanguage";
  *   ?agentsettings=custom  the connected agent reports three changes, the
  *               tag it requires and two protected resources (Change opens
  *               the dialog on them)
+ *   ?changes=ai the AWS account's Changes also hold two changes OneUptime
+ *               AI made through its Cloud AI agent, as the recorder marks
+ *               them: the approved fix of incident #18 and its rollback
  *
  * window.__cloudConnectFixture.connectAgent() makes the agent connect, as
  * it does a few minutes after the setup command finished. The page says
@@ -175,13 +179,9 @@ await i18next.use(initReactI18next).init({
   keySeparator: false,
   nsSeparator: false,
 });
-setPageLanguage(language);
-/*
- * Dates in the reader's language, as the Dashboard's Utils/i18n.ts sets
- * them: without it a German or Persian page here wrote "4 minutes ago" and
- * "Nov 4, 02:04" in English, which no reader of the real page sees.
- */
+// Dates in the reader's language ("vor 2 Stunden"), as Utils/i18n.ts sets them.
 followLanguageForDates(i18next);
+setPageLanguage(language);
 
 const PROJECT_ID = "10000000-0000-4000-8000-000000000001";
 
@@ -912,6 +912,70 @@ const CHANGES =
     : [];
 
 /*
+ * ?changes=ai: what the Cloud AI agent changed for OneUptime AI, as the
+ * recorder marks a change it matched to the agent's job - its identity
+ * (an assumed-role session of OneUptimeAiAgentWrite), the job, the fix,
+ * the AI run that planned it, whether it was the fix or its rollback, and
+ * the incident it fixed. Its fix is the one the account's AI Logs list,
+ * approved by Maya Chen.
+ */
+const AI_FIX_ID = "80000000-0000-4000-8000-000000000001";
+const AI_FIX_INCIDENT_ID = "70000000-0000-4000-8000-000000000001";
+const AI_SESSION = "oneuptime-ai-scale-out-9f2c61d0";
+
+function aiChange(minutesAgo, step, title) {
+  return cloudChange(
+    minutesAgo,
+    {
+      eventType: "scaling",
+      title: title,
+      description: `${AI_SESSION} ran UpdateService in account 123456789012 (us-east-1), on checkout.`,
+    },
+    {
+      "oneuptime.change.status": "succeeded",
+      "cloud.region": "us-east-1",
+      "oneuptime.cloud.actor": AI_SESSION,
+      "oneuptime.cloud.operation": "UpdateService",
+      "oneuptime.change.made_by": "oneuptime-ai",
+      "oneuptime.runner_job.id": "90000000-0000-4000-8000-000000000001",
+      "oneuptime.auto_remediation_suggestion.id": AI_FIX_ID,
+      "oneuptime.ai_run.id": "60000000-0000-4000-8000-000000000001",
+      "oneuptime.ai.step": step,
+      "oneuptime.incident.id": AI_FIX_INCIDENT_ID,
+    },
+  );
+}
+
+if (dataState === "connected" && params.get("changes") === "ai") {
+  CHANGES.push(
+    aiChange(39, "fix", "UpdateService on checkout"),
+    aiChange(30, "rollback", "UpdateService on checkout (rolled back)"),
+  );
+  // Newest first, as the list reads them.
+  CHANGES.sort((left, right) => {
+    return right.time.getTime() - left.time.getTime();
+  });
+}
+
+// The fix the agent's changes name, as the reader may read it.
+const AI_FIXES = [
+  {
+    _id: AI_FIX_ID,
+    status: "Approved",
+    incidentId: new ObjectID(AI_FIX_INCIDENT_ID),
+    approvedByUser: {
+      _id: "10000000-0000-4000-8000-000000000003",
+      name: "Maya Chen",
+    },
+    incident: {
+      _id: AI_FIX_INCIDENT_ID,
+      incidentNumber: 18,
+      incidentNumberWithPrefix: "#18",
+    },
+  },
+];
+
+/*
  * Whether a row matches a list's query, as far as these lists ask: each
  * field equal, an Includes any of its values, an attributes map each of
  * its keys. A relation (cloudResources) matches by the ids it holds.
@@ -1495,6 +1559,22 @@ ModelAPI.getList = async (args) => {
       allowedOrigins: [],
     });
     return { data: [key], count: 1, skip: 0, limit: args.limit };
+  }
+
+  // The fixes OneUptime AI's changes on a Changes page name, read once.
+  if (args.modelType === AutoRemediationSuggestion) {
+    const ids = plainValues(args.query?._id);
+    state.listRequests.push({
+      model: "AutoRemediationSuggestion",
+      ids: ids,
+      select: Object.keys(args.select || {}).sort(),
+    });
+    const data = AI_FIXES.filter((row) => {
+      return ids.includes(row._id);
+    }).map((row) => {
+      return Object.assign(new AutoRemediationSuggestion(), row);
+    });
+    return { data: data, count: data.length, skip: 0, limit: args.limit };
   }
 
   // The commands OneUptime AI ran on an account through its agent.

@@ -152,7 +152,7 @@ AWS 账户、Azure 订阅或 Google Cloud 项目旁边没有可供代理依附�
 | -------------------- | ------------------ | ------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------ |
 | AWS 账户 | AWS CloudShell | 一个 CloudFormation 堆栈 `oneuptime-ai-agent`，它运行一个 ECS Fargate 任务。其任务角色只能代入写入角色 `OneUptimeAiAgentWrite`，该角色持有已开启更改的权限。它连接时使用的密钥保存在 Secrets Manager 中，只有 ECS 会读取。 |
 | Azure 订阅 | Azure Cloud Shell | 资源组 `oneuptime-ai-agent` 中的一个 Container App `oneuptime-ai-agent`。其托管标识在订阅上持有一个自定义角色，具有已开启更改的权限。它连接时使用的密钥保存为 Container Apps 机密。 |
-| Google Cloud 项目 | Google Cloud Shell | 一个始终分配 CPU 的 Cloud Run 服务 `oneuptime-ai-agent`，以服务账号 `oneuptime-ai-agent` 的身份运行，该服务账号在项目上持有一个自定义角色，具有已开启更改的权限。它连接时使用的密钥保存在 Secret Manager 中，只有该服务账号可以读取。 |
+| Google Cloud 项目 | Google Cloud Shell | 一台运行 Container-Optimized OS 的 `e2-micro` 类型 Compute Engine 虚拟机 `oneuptime-ai-agent`，位于没有任何防火墙规则的专用网络中，因此任何东西都无法连接到它。它以服务账号 `oneuptime-ai-agent` 的身份运行，该服务账号在项目上持有一个自定义角色，具有已开启更改的权限。它连接时使用的密钥保存在 Secret Manager 中，只有该服务账号可以读取。虚拟机每次启动时读取该密钥，从不将其保存在磁盘或元数据中。在 **更多字段** 的 **代理的运行位置** 中，可以改为选择始终分配 CPU 的 Cloud Run 服务，适用于不允许任何虚拟机拥有外部 IP 地址的项目。 |
 
 该命令只在为其编写的账户中有效：在 AWS 上，如果 Shell 登录的是另一个账户，它不会创建任何内容；Azure 和 Google Cloud 的命令则会在每次调用时指明其订阅或项目。它会设置 `ONEUPTIME_AI_INVESTIGATION=true`、根据您的回答设置 `ONEUPTIME_AI_FIXES`、设置 `ONEUPTIME_AI_ALLOW_WRITES=true`，并将 `ONEUPTIME_AI_CLOUD_ACCOUNT_ID` 设为为其编写命令的账户。代理按其云所报告的所在账户注册，从不向 OneUptime 添加账户：如果在与其命令不同的账户中启动，它会被拒绝，为其编写命令的账户会在其页面上说明原因；如果在项目的任何连接都不读取的账户中启动，它同样会被拒绝，其日志会说明这一点。
 
@@ -459,7 +459,7 @@ OneUptime 会通过账户的只读连接，亲自实时读取 AWS 账户、Azure
 - **数据库服务器：** 代理自己的会话。
 - **主机：** 每个 OneUptime 单元（`oneuptime-*`，包括主机 AI 代理自己的单元）、OpenTelemetry 采集器（`otelcol-contrib.service`、`otelcol.service`）、代理运行所在的 Docker 引擎（`docker.service`、`docker.socket`、`containerd.service`），以及代理自己的进程和其上层进程。
 - **Proxmox：** 代理无法判断自己运行在哪个客户机中。如果它运行在同一集群的虚拟机或容器中，请把该 VMID 加入 `ONEUPTIME_AI_PROTECTED_TARGETS`；对 VMware 上代理所在的虚拟机也这样做。
-- **云账户：** 其设置命令创建的一切：在 AWS 上是 `oneuptime-ai-agent` 堆栈、其 ECS 集群和服务，以及角色 `OneUptimeAiAgentTask` 和 `OneUptimeAiAgentWrite`；在 Azure 上是 `oneuptime-ai-agent` 资源组；在 Google Cloud 上是 `oneuptime-ai-agent` Cloud Run 服务和服务账号。
+- **云账户：** 其设置命令创建的一切：在 AWS 上是 `oneuptime-ai-agent` 堆栈、其 ECS 集群和服务，以及角色 `OneUptimeAiAgentTask` 和 `OneUptimeAiAgentWrite`；在 Azure 上是 `oneuptime-ai-agent` 资源组；在 Google Cloud 上是 `oneuptime-ai-agent` 虚拟机或 Cloud Run 服务及其服务账号。
 
 ## 凭据与最小权限
 
@@ -473,7 +473,7 @@ OneUptime 会通过账户的只读连接，亲自实时读取 AWS 账户、Azure
 | Ceph 集群 | 其专用客户端 `client.oneuptime-ai` 的密钥环和一个最小的 `ceph.conf`，挂载在 `/etc/ceph`（`CEPH_CLIENT_ID`、`CEPH_CONF`、`CEPH_KEYRING`） | `mon 'allow r' mgr 'allow r' osd 'allow r'`——从不使用管理员密钥环 | 读取 caps 加上恰好对应所需修复的 `allow command` 条目（Ceph 代理的 README 中列出了它们） |
 | 数据库服务器 | `DATABASE_USERNAME` / `DATABASE_PASSWORD`（采集器的登录名），或设置时使用 `ONEUPTIME_AI_DATABASE_USERNAME` / `ONEUPTIME_AI_DATABASE_PASSWORD`；`DATABASE_ENDPOINT` 和 TLS 设置 | 采集器的监控登录名（在 PostgreSQL 上为 `pg_monitor`） | 代理专用、可以向其他会话发送信号的登录名：`pg_signal_backend`（PostgreSQL）、`CONNECTION_ADMIN`（MySQL 8）、`+client\|kill`（Redis ACL）、`killop` 操作（MongoDB） |
 | 主机 | 无：它在主机的命名空间中以 root 身份特权运行 | 不要设置 `ONEUPTIME_AI_ALLOW_WRITES` | 用 `ONEUPTIME_AI_WRITE_TARGETS` 指定 AI 可以更改的单元 |
-| 云账户 | 其运行所在位置的身份：在 AWS 上是其 ECS 任务的角色，该角色只能代入 `ONEUPTIME_AI_AWS_WRITE_ROLE_ARN` 中的写入角色；在 Azure 上是其 Container App 的托管标识；在 Google Cloud 上是其 Cloud Run 服务的服务账号 | 无：OneUptime 通过账户的只读连接读取账户 | 其设置命令写出的角色：已开启更改的权限及其所需的读取权限，仅此而已。在 AWS 上，每项更改都会代入 `OneUptimeAiAgentWrite`，并附带只针对该资源上这一项更改的会话策略 |
+| 云账户 | 其运行所在位置的身份：在 AWS 上是其 ECS 任务的角色，该角色只能代入 `ONEUPTIME_AI_AWS_WRITE_ROLE_ARN` 中的写入角色；在 Azure 上是其 Container App 的托管标识；在 Google Cloud 上是其虚拟机或 Cloud Run 服务运行时使用的服务账号 | 无：OneUptime 通过账户的只读连接读取账户 | 其设置命令写出的角色：已开启更改的权限及其所需的读取权限，仅此而已。在 AWS 上，每项更改都会代入 `OneUptimeAiAgentWrite`，并附带只针对该资源上这一项更改的会话策略 |
 
 各采集器的 README 中有确切的命令：用于 Proxmox 修复令牌的 `pveum` 命令（[ProxmoxAgent](https://github.com/OneUptime/oneuptime/tree/master/agents/ProxmoxAgent)）、vSphere 修复角色（[VMwareAgent](https://github.com/OneUptime/oneuptime/tree/master/agents/VMwareAgent)）、Ceph 的读取和修复 caps（[CephAgent](https://github.com/OneUptime/oneuptime/tree/master/agents/CephAgent)），以及各引擎的数据库授权（[DatabaseAgent](https://github.com/OneUptime/oneuptime/tree/master/agents/DatabaseAgent)）。云 AI 代理的角色由其设置命令写出：关闭某项更改并再次运行该命令，其权限就会从角色中移除。
 
@@ -522,7 +522,7 @@ docker exec oneuptime-docker-ai-agent wget -qO- http://127.0.0.1:3877/status
 
 请使用您资源的容器名称：`oneuptime-docker-ai-agent`、`oneuptime-podman-ai-agent`（用 `podman` 代替 `docker`）、`oneuptime-docker-swarm-ai-agent`、`oneuptime-proxmox-ai-agent`、`oneuptime-vmware-ai-agent`、`oneuptime-ceph-ai-agent`、`oneuptime-host-ai-agent`。数据库代理的服务没有固定的容器名称，因此请在 `/opt/oneuptime-database-agent` 中使用 `docker compose logs --tail=100 oneuptime-database-ai-agent` 和 `docker compose exec oneuptime-database-ai-agent wget -qO- http://127.0.0.1:3877/status`。主机 AI 代理使用主机的网络，因此 `curl -s http://127.0.0.1:3877/status` 可以直接在主机上运行。
 
-云 AI 代理运行在其云中，没有可以 `exec` 进入的容器：请在云平台的 Shell 中用 `aws logs tail /oneuptime/oneuptime-ai-agent --since 30m`、`az containerapp logs show --name oneuptime-ai-agent --resource-group oneuptime-ai-agent --tail 100` 或 `gcloud run services logs read oneuptime-ai-agent --region "$(gcloud run services list --filter "metadata.name=oneuptime-ai-agent" --format "value(region)" | head -1)" --limit 100` 读取其日志，并在账户的 **AI 代理** 页面上查看其状态，该页面也会显示同样的命令。
+云 AI 代理运行在其云中，没有可以 `exec` 进入的容器：请在云平台的 Shell 中用 `aws logs tail /oneuptime/oneuptime-ai-agent --since 30m`、`az containerapp logs show --name oneuptime-ai-agent --resource-group oneuptime-ai-agent --tail 100` 或 `gcloud logging read 'resource.type="gce_instance" AND jsonPayload.container.name="/oneuptime-ai-agent"' --freshness 30m --limit 100 --format "value(jsonPayload.data)"`（在 Cloud Run 上为 `gcloud run services logs read oneuptime-ai-agent --region "$(gcloud run services list --filter "metadata.name=oneuptime-ai-agent" --format "value(region)" | head -1)" --limit 100`） 读取其日志，并在账户的 **AI 代理** 页面上查看其状态，该页面也会显示同样的命令。
 
 缺少某项设置不会让代理崩溃：它会保持运行且状态健康，在日志和 `/status` 中说明缺少什么，并且不做其他任何事，因此容器永远不会循环重启。
 

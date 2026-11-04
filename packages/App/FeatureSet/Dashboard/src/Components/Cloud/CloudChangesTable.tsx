@@ -1,4 +1,6 @@
 import ChangeEvent from "Common/Models/AnalyticsModels/ChangeEvent";
+import AutoRemediationSuggestion from "Common/Models/DatabaseModels/AutoRemediationSuggestion";
+import Includes from "Common/Types/BaseDatabase/Includes";
 import Query from "Common/Types/BaseDatabase/Query";
 import SortOrder from "Common/Types/BaseDatabase/SortOrder";
 import { Gray500, Indigo500, Red500 } from "Common/Types/BrandColors";
@@ -12,6 +14,7 @@ import { DropdownOption } from "Common/UI/Components/Dropdown/Dropdown";
 import AnalyticsModelTable from "Common/UI/Components/ModelTable/AnalyticsModelTable";
 import Pill from "Common/UI/Components/Pill/Pill";
 import FieldType from "Common/UI/Components/Types/FieldType";
+import ModelAPI, { ListResult } from "Common/UI/Utils/ModelAPI/ModelAPI";
 import ProjectUtil from "Common/UI/Utils/Project";
 import TranslatedSentence from "Common/UI/Components/TranslatedSentence/TranslatedSentence";
 import { Translator } from "Common/UI/Utils/TranslateTemplate";
@@ -22,12 +25,28 @@ import {
   getCloudChangeTitleSentence,
   readCloudChangeTitleFacts,
 } from "Common/Utils/Telemetry/CloudChangeTitle";
-import React, { FunctionComponent, ReactElement, useMemo } from "react";
+import React, {
+  FunctionComponent,
+  MutableRefObject,
+  ReactElement,
+  useMemo,
+  useRef,
+  useState,
+} from "react";
 import { getChangeEventTypeLabel } from "../Metrics/Utils/UseEventTimeReferenceLines";
 import {
+  CLOUD_CHANGES_BY_COLUMN_ID,
+  CloudChangeAiActor,
+  CloudChangeAiLine,
+} from "./CloudChangeAi";
+import { CloudAiChangeFix, readCloudAiChangeFix } from "./CloudAiChangeWords";
+import {
+  CloudAiChange,
   CloudChangesScope,
+  getCloudAiChangeSuggestionIds,
   getCloudChangesAttributeFilter,
   isCloudHealthChange,
+  readCloudAiChange,
 } from "./CloudChangesScope";
 
 /*
@@ -43,6 +62,13 @@ import {
  * language from what the change keeps: "DeleteLoadBalancer on web-alb" is
  * "DeleteLoadBalancer für web-alb" in German (CloudChangeTitle), for rows
  * written before the resource's name was kept too.
+ *
+ * A change OneUptime AI made, through the account's Cloud AI agent, says
+ * so (CloudChangeAi): OneUptime AI and who approved it in its By column,
+ * and under what changed, the incident or alert it fixed and its AI Logs
+ * entry - read from its fix, as the reader, once the page of changes is in
+ * (an AutoRemediationSuggestion read, so a fix the reader may not read
+ * names no record number and no approver).
  */
 
 // A change's time takes the room it needs (TableLayout's min-w- floor).
@@ -176,6 +202,106 @@ const CloudChangesTable: FunctionComponent<ComponentProps> = (
     } as Query<ChangeEvent>;
   }, [scopeKey]);
 
+  // The fixes of the changes OneUptime AI made, as the reader read them, by id.
+  const [fixes, setFixes] = useState<Map<string, CloudAiChangeFix>>(
+    (): Map<string, CloudAiChangeFix> => {
+      return new Map<string, CloudAiChangeFix>();
+    },
+  );
+  /*
+   * Each fix is asked for once, whichever page or refresh first shows it -
+   * once it was read: one whose read failed is asked for again by the next
+   * page or refresh that shows it.
+   */
+  const askedFixIdsRef: MutableRefObject<Set<string>> = useRef<Set<string>>(
+    new Set<string>(),
+  );
+
+  const readFixes: (changes: Array<ChangeEvent>) => Promise<void> = async (
+    changes: Array<ChangeEvent>,
+  ): Promise<void> => {
+    const ids: Array<string> = getCloudAiChangeSuggestionIds(
+      changes.map((change: ChangeEvent) => {
+        return { attributes: change.attributes as JSONObject | undefined };
+      }),
+    ).filter((id: string): boolean => {
+      return !askedFixIdsRef.current.has(id);
+    });
+
+    if (ids.length === 0) {
+      return;
+    }
+
+    for (const id of ids) {
+      askedFixIdsRef.current.add(id);
+    }
+
+    try {
+      const result: ListResult<AutoRemediationSuggestion> =
+        await ModelAPI.getList<AutoRemediationSuggestion>({
+          modelType: AutoRemediationSuggestion,
+          query: { _id: new Includes(ids) },
+          limit: ids.length,
+          skip: 0,
+          select: {
+            _id: true,
+            status: true,
+            incidentId: true,
+            alertId: true,
+            approvedByUser: {
+              _id: true,
+              name: true,
+              email: true,
+            },
+            incident: {
+              _id: true,
+              incidentNumber: true,
+              incidentNumberWithPrefix: true,
+            },
+            alert: {
+              _id: true,
+              alertNumber: true,
+              alertNumberWithPrefix: true,
+            },
+          },
+          sort: {},
+        });
+
+      const read: Array<CloudAiChangeFix> = result.data
+        .map(readCloudAiChangeFix)
+        .filter((fix: CloudAiChangeFix | null): fix is CloudAiChangeFix => {
+          return Boolean(fix);
+        });
+
+      if (read.length > 0) {
+        setFixes((current: Map<string, CloudAiChangeFix>) => {
+          const next: Map<string, CloudAiChangeFix> = new Map(current);
+
+          for (const fix of read) {
+            next.set(fix.id, fix);
+          }
+
+          return next;
+        });
+      }
+    } catch {
+      /*
+       * A reader who may not read the fixes still sees which changes
+       * OneUptime AI made, and their AI Logs. A read that failed is not
+       * one that answered: the next page or refresh asks again.
+       */
+      for (const id of ids) {
+        askedFixIdsRef.current.delete(id);
+      }
+    }
+  };
+
+  // The account a change's AI Logs are on: the page's own, else the change's.
+  const scopeAccountId: string | null =
+    "cloudAccountId" in props.scope
+      ? props.scope.cloudAccountId.toString()
+      : null;
+
   return (
     <AnalyticsModelTable<ChangeEvent>
       modelType={ChangeEvent}
@@ -190,6 +316,11 @@ const CloudChangesTable: FunctionComponent<ComponentProps> = (
       isViewable={false}
       showRefreshButton={true}
       query={query}
+      onFetchSuccess={(changes: Array<ChangeEvent>) => {
+        readFixes(changes).catch(() => {
+          // handled inside readFixes
+        });
+      }}
       sortBy="time"
       sortOrder={SortOrder.Descending}
       selectMoreFields={{
@@ -262,6 +393,9 @@ const CloudChangesTable: FunctionComponent<ComponentProps> = (
             })
               ? (change.description || "").trim()
               : "";
+            const ai: CloudAiChange | null = readCloudAiChange({
+              attributes: change.attributes as JSONObject | undefined,
+            });
 
             /*
              * Each line in its own direction (dir="auto"): a change worded
@@ -289,6 +423,19 @@ const CloudChangesTable: FunctionComponent<ComponentProps> = (
                   >
                     {detail}
                   </div>
+                ) : (
+                  <></>
+                )}
+                {ai ? (
+                  <CloudChangeAiLine
+                    change={ai}
+                    fix={
+                      ai.suggestionId
+                        ? fixes.get(ai.suggestionId) || null
+                        : null
+                    }
+                    cloudAccountId={scopeAccountId}
+                  />
                 ) : (
                   <></>
                 )}
@@ -327,7 +474,7 @@ const CloudChangesTable: FunctionComponent<ComponentProps> = (
           field: {
             attributes: true,
           },
-          id: "by",
+          id: CLOUD_CHANGES_BY_COLUMN_ID,
           title: "By",
           type: FieldType.Element,
           hideOnMobile: true,
@@ -338,6 +485,26 @@ const CloudChangesTable: FunctionComponent<ComponentProps> = (
               change,
               ChangeEventAttribute.CloudActor,
             );
+
+            /*
+             * OneUptime AI made it, under the agent's role: said so, with
+             * who approved it.
+             */
+            const ai: CloudAiChange | null = readCloudAiChange({
+              attributes: change.attributes as JSONObject | undefined,
+            });
+
+            if (ai) {
+              return (
+                <CloudChangeAiActor
+                  actor={actor}
+                  change={ai}
+                  fix={
+                    ai.suggestionId ? fixes.get(ai.suggestionId) || null : null
+                  }
+                />
+              );
+            }
 
             /*
              * One line, the whole name on hover: a service account's
