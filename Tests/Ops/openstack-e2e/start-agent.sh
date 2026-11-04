@@ -66,6 +66,12 @@ docker run -d --name ou-openstack-collector --network host \
   -e OPENSTACK_LIBVIRT_HEALTH_TARGETS="${OPENSTACK_LIBVIRT_HEALTH_TARGETS:-[]}" \
   -e OPENSTACK_CONTROL_PLANE_REGION="$REGION" \
   -e OPENSTACK_SINGLE_CLOUD_EXPORTER_TARGETS='[]' \
+  -e OPENSTACK_AGENT_SERVICES='.*' \
+  -e OPENSTACK_AGENT_MEMORY_LIMIT_MIB=512 \
+  -e OPENSTACK_DATABASE_EXPORTER_TARGETS='[]' \
+  -e OPENSTACK_DATABASE_EXPORTER_HOST_SUFFIX= \
+  -e OPENSTACK_WORKER_STATE_CLOUDS='[]' \
+  -e OPENSTACK_WORKER_STATE_EXPORTER_ADDRESS=127.0.0.1:9180 \
   "$COLLECTOR_IMAGE" --config=/etc/otelcol-contrib/config.yaml --config=/etc/otelcol-contrib/recording.yaml
 
 # The exporter answers once it is listening. Keystone's answer is the real test,

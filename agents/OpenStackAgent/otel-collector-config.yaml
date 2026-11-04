@@ -100,6 +100,115 @@ receivers:
                 openstack_service: image
           relabel_configs: *openstack_exporter_target
 
+        # The services a cloud may or may not run, one job each for the same reason as the
+        # jobs above. Barbican has none: the exporter has no reader for it.
+        #
+        # Asked about a service that is not in the cloud's catalog, the exporter logs in to
+        # Keystone, logs one line and answers 200 with nothing (13 ms on a real DevStack), so
+        # a cloud without one pays one login each interval. The scrape's own `up` still reads
+        # 1, so OneUptime goes by the exporter's series for these and never by `up`: a cloud
+        # without a service shows no trace of it. These are the reason the interval is 5
+        # minutes: every region pays for them, whichever services it runs.
+        - job_name: oneuptime-openstack-load-balancer
+          metrics_path: /probe
+          params:
+            include_services: [load-balancer]
+          scrape_interval: 300s
+          scrape_timeout: 120s
+          static_configs:
+            - targets: ${env:OPENSTACK_EXPORTER_CLOUDS}
+              labels:
+                openstack_service: load-balancer
+          relabel_configs: *openstack_exporter_target
+        - job_name: oneuptime-openstack-baremetal
+          metrics_path: /probe
+          params:
+            include_services: [baremetal]
+          scrape_interval: 300s
+          scrape_timeout: 120s
+          static_configs:
+            - targets: ${env:OPENSTACK_EXPORTER_CLOUDS}
+              labels:
+                openstack_service: baremetal
+          relabel_configs: *openstack_exporter_target
+        - job_name: oneuptime-openstack-orchestration
+          metrics_path: /probe
+          params:
+            include_services: [orchestration]
+          scrape_interval: 300s
+          scrape_timeout: 120s
+          static_configs:
+            - targets: ${env:OPENSTACK_EXPORTER_CLOUDS}
+              labels:
+                openstack_service: orchestration
+          relabel_configs: *openstack_exporter_target
+        - job_name: oneuptime-openstack-container-infra
+          metrics_path: /probe
+          params:
+            include_services: [container-infra]
+          scrape_interval: 300s
+          scrape_timeout: 120s
+          static_configs:
+            - targets: ${env:OPENSTACK_EXPORTER_CLOUDS}
+              labels:
+                openstack_service: container-infra
+          relabel_configs: *openstack_exporter_target
+        - job_name: oneuptime-openstack-sharev2
+          metrics_path: /probe
+          params:
+            include_services: [sharev2]
+          scrape_interval: 300s
+          scrape_timeout: 120s
+          static_configs:
+            - targets: ${env:OPENSTACK_EXPORTER_CLOUDS}
+              labels:
+                openstack_service: sharev2
+          relabel_configs: *openstack_exporter_target
+        - job_name: oneuptime-openstack-dns
+          metrics_path: /probe
+          params:
+            include_services: [dns]
+          scrape_interval: 300s
+          scrape_timeout: 120s
+          static_configs:
+            - targets: ${env:OPENSTACK_EXPORTER_CLOUDS}
+              labels:
+                openstack_service: dns
+          relabel_configs: *openstack_exporter_target
+        - job_name: oneuptime-openstack-object-store
+          metrics_path: /probe
+          params:
+            include_services: [object-store]
+          scrape_interval: 300s
+          scrape_timeout: 120s
+          static_configs:
+            - targets: ${env:OPENSTACK_EXPORTER_CLOUDS}
+              labels:
+                openstack_service: object-store
+          relabel_configs: *openstack_exporter_target
+        - job_name: oneuptime-openstack-database
+          metrics_path: /probe
+          params:
+            include_services: [database]
+          scrape_interval: 300s
+          scrape_timeout: 120s
+          static_configs:
+            - targets: ${env:OPENSTACK_EXPORTER_CLOUDS}
+              labels:
+                openstack_service: database
+          relabel_configs: *openstack_exporter_target
+        - job_name: oneuptime-openstack-gnocchi
+          metrics_path: /probe
+          params:
+            include_services: [gnocchi]
+          scrape_interval: 300s
+          scrape_timeout: 120s
+          static_configs:
+            - targets: ${env:OPENSTACK_EXPORTER_CLOUDS}
+              labels:
+                openstack_service: gnocchi
+          relabel_configs: *openstack_exporter_target
+
   # What an instance is really doing, from whichever of these a cloud already runs:
   # prometheus-libvirt-exporter (Kolla-Ansible runs it with KVM, on 9177) or
   # Ceilometer's own exporter (`[polling] enable_prometheus_exporter`, from 2025.1, on
@@ -317,6 +426,42 @@ receivers:
               regex: openstack_glance_.+
               target_label: openstack_service
               replacement: image
+            - source_labels: [__name__]
+              regex: openstack_loadbalancer_.+
+              target_label: openstack_service
+              replacement: load-balancer
+            - source_labels: [__name__]
+              regex: openstack_ironic_.+
+              target_label: openstack_service
+              replacement: baremetal
+            - source_labels: [__name__]
+              regex: openstack_heat_.+
+              target_label: openstack_service
+              replacement: orchestration
+            - source_labels: [__name__]
+              regex: openstack_container_infra_.+
+              target_label: openstack_service
+              replacement: container-infra
+            - source_labels: [__name__]
+              regex: openstack_sharev2_.+
+              target_label: openstack_service
+              replacement: sharev2
+            - source_labels: [__name__]
+              regex: openstack_designate_.+
+              target_label: openstack_service
+              replacement: dns
+            - source_labels: [__name__]
+              regex: openstack_object_store_.+
+              target_label: openstack_service
+              replacement: object-store
+            - source_labels: [__name__]
+              regex: openstack_trove_.+
+              target_label: openstack_service
+              replacement: database
+            - source_labels: [__name__]
+              regex: openstack_gnocchi_.+
+              target_label: openstack_service
+              replacement: gnocchi
 
   # The largest clouds' path: openstack_database_exporter reads Nova, Neutron, Cinder, Glance,
   # Keystone and Placement from their databases, with a read-only account, instead of through
@@ -454,7 +599,7 @@ processors:
       # one is out. The collector image docker-compose.yml pins, its last number
       # raised each time these files change on that collector.
       - key: oneuptime.agent.version
-        value: "0.161.1"
+        value: "0.161.2"
         action: upsert
       # The prometheus receiver synthesizes service.name (the scrape job's name)
       # and service.instance.id on every batch. OneUptime routes batches by
