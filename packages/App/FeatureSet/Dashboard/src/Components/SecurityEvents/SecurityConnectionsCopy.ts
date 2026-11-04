@@ -81,6 +81,24 @@ export const SECURITY_LOG_FORMAT_TEXTS: Record<
       "The same from products that send Log Event Extended Format, as many do for IBM QRadar.",
     ),
   },
+  [SecurityLogFormat.PaloAlto]: {
+    title: translationKey("Palo Alto Networks"),
+    description: translationKey(
+      "Threats, blocked connections, GlobalProtect and administrator sign-ins, and configuration changes from PAN-OS's own syslog.",
+    ),
+  },
+  [SecurityLogFormat.FortiGate]: {
+    title: translationKey("Fortinet FortiGate"),
+    description: translationKey(
+      "IPS and antivirus findings, denied traffic, VPN and administrator sign-ins, and configuration changes from FortiGate's own syslog.",
+    ),
+  },
+  [SecurityLogFormat.CiscoAsa]: {
+    title: translationKey("Cisco ASA"),
+    description: translationKey(
+      "Denied connections, threat detection and IPS findings, VPN and administrator sign-ins, and commands from Cisco ASA and Firepower Threat Defense.",
+    ),
+  },
   [SecurityLogFormat.WebAttack]: {
     title: translationKey("Web attacks"),
     description: translationKey(

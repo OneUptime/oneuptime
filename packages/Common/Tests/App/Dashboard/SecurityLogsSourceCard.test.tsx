@@ -158,6 +158,9 @@ describe("Your logs", () => {
       "Azure activity and Entra ID logs",
       "CEF",
       "LEEF",
+      "Palo Alto Networks",
+      "Fortinet FortiGate",
+      "Cisco ASA",
       "Kubernetes audit logs",
       "Web attacks",
     ]);
@@ -173,7 +176,10 @@ describe("Your logs", () => {
     const groups: Array<[string, Array<string>]> = [
       ["servers", ["ssh-sign-in", "sudo", "windows-events"]],
       ["cloud", ["aws-cloudtrail", "google-cloud-audit", "azure-activity"]],
-      ["security-devices", ["cef", "leef"]],
+      [
+        "security-devices",
+        ["cef", "leef", "palo-alto", "fortigate", "cisco-asa"],
+      ],
       ["applications", ["kubernetes-audit", "web-attack"]],
     ];
 

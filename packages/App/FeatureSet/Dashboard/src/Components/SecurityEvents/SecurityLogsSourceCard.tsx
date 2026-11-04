@@ -49,6 +49,9 @@ export const SECURITY_LOG_FORMAT_ICONS: Record<SecurityLogFormat, IconProp> = {
   [SecurityLogFormat.AzureActivity]: IconProp.Identification,
   [SecurityLogFormat.Cef]: IconProp.ShieldExclamation,
   [SecurityLogFormat.Leef]: IconProp.ShieldCheck,
+  [SecurityLogFormat.PaloAlto]: IconProp.Fire,
+  [SecurityLogFormat.FortiGate]: IconProp.Lock,
+  [SecurityLogFormat.CiscoAsa]: IconProp.ServerStack,
   [SecurityLogFormat.WebAttack]: IconProp.Globe,
 };
 
