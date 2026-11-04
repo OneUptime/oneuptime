@@ -14,6 +14,7 @@ import { env } from "Common/UI/Config";
 import {
   PRODUCTION_REVIEW_WINDOWS,
   ProductionReviewAiNoteCode,
+  ProductionReviewDataChange,
   ProductionReviewOperationMatch,
   ProductionReviewPosting,
   ProductionReviewPullRequestContent,
@@ -448,6 +449,62 @@ export const PRODUCTION_REVIEW_SECTION_LABELS: Record<
   [ProductionReviewSection.Profiles]: translationKey("Profiles"),
   [ProductionReviewSection.Incidents]: translationKey("Incidents"),
   [ProductionReviewSection.Deploys]: translationKey("Deployments"),
+  [ProductionReviewSection.Data]: translationKey("Data"),
+};
+
+// What a migration or dbt model does to a watched table: {{table}}, {{column}}, {{newName}}.
+export const PRODUCTION_REVIEW_DATA_CHANGES: Record<
+  ProductionReviewDataChange,
+  string
+> = {
+  [ProductionReviewDataChange.DropTable]: translationKey("Drops {{table}}"),
+  [ProductionReviewDataChange.RenameTable]: translationKey(
+    "Renames {{table}} to {{newName}}",
+  ),
+  [ProductionReviewDataChange.DropColumn]: translationKey(
+    "Drops column {{column}} of {{table}}",
+  ),
+  [ProductionReviewDataChange.RenameColumn]: translationKey(
+    "Renames column {{column}} of {{table}} to {{newName}}",
+  ),
+  [ProductionReviewDataChange.AlterColumn]: translationKey(
+    "Changes the type of column {{column}} of {{table}}",
+  ),
+  [ProductionReviewDataChange.ChangeModel]: translationKey(
+    "Changes the dbt model that builds {{table}}",
+  ),
+};
+
+// How a service uses a watched table the change touches.
+export const PRODUCTION_REVIEW_DATA_USE: {
+  columnQueries: string;
+  readsAndWrites: string;
+  writes: string;
+  reads: string;
+} = {
+  columnQueries: translationKey(
+    "Names the column in {{count}} queries of the last day",
+  ),
+  readsAndWrites: translationKey("Reads and writes it"),
+  writes: translationKey("Writes it"),
+  reads: translationKey("Reads it"),
+};
+
+// The rest of a data row: the file, who depends on the table, and when nothing does.
+export const PRODUCTION_REVIEW_DATA_COPY: {
+  title: string;
+  inFile: string;
+  services: string;
+  downstream: string;
+  dataProducts: string;
+  nothing: string;
+} = {
+  title: translationKey("Data this change touches"),
+  inFile: translationKey("In {{path}}"),
+  services: translationKey("Used by"),
+  downstream: translationKey("Tables built from it"),
+  dataProducts: translationKey("Data products"),
+  nothing: translationKey("Nothing watched depends on it yet"),
 };
 
 /*
