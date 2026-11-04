@@ -57,7 +57,7 @@ const PAGES = [
     // 2026-11-03: 1,264,535 bytes.
     // 2026-11-03: 1,119,050 bytes, loading the reader's language only (#5614).
     // 2026-11-03: 923,776 bytes, loading what it does not draw with where it is used (#5619).
-    // 2026-11-04: 881,218 bytes, loading browser telemetry only where it is configured.
+    // 2026-11-04: 883,196 bytes, loading browser telemetry only where it is configured (#5619).
     ceiling: 880 * KIB,
   },
   {
@@ -67,7 +67,7 @@ const PAGES = [
     // 2026-11-03: 1,260,250 bytes.
     // 2026-11-03: 1,114,772 bytes, loading the reader's language only (#5614).
     // 2026-11-03: 929,191 bytes, loading what it does not draw with where it is used (#5619).
-    // 2026-11-04: 886,730 bytes, loading browser telemetry only where it is configured.
+    // 2026-11-04: 887,494 bytes, loading browser telemetry only where it is configured (#5619).
     ceiling: 885 * KIB,
   },
   {
@@ -77,7 +77,7 @@ const PAGES = [
     // 2026-11-03: 1,362,136 bytes.
     // 2026-11-03: 1,271,934 bytes, loading the reader's language only (#5614).
     // 2026-11-03: 1,101,030 bytes, loading what it does not draw with where it is used (#5619).
-    // 2026-11-04: 1,059,173 bytes, loading browser telemetry only where it is configured.
+    // 2026-11-04: 1,059,516 bytes, loading browser telemetry only where it is configured (#5619).
     ceiling: 1055 * KIB,
   },
   {
@@ -86,7 +86,7 @@ const PAGES = [
     route: "src/Pages/AllPages.tsx",
     // 2026-11-03: 1,961,449 bytes.
     // 2026-11-03: 1,839,798 bytes, loading what it does not draw with where it is used (#5619).
-    // 2026-11-04: 1,806,485 bytes, loading browser telemetry only where it is configured.
+    // 2026-11-04: 1,807,182 bytes, loading browser telemetry only where it is configured (#5619).
     ceiling: 1790 * KIB,
   },
 ];
