@@ -218,7 +218,7 @@ OneUptime avisa a las personas de cinco cosas de un caso. Nadie tiene que config
 
 ### Elegir de qué se te avisa
 
-Cada persona elige por sí misma, en **Ajustes de usuario → Ajustes de notificaciones → Seguridad**: los canales de cada notificación (correo, SMS, llamada, push, Telegram, Slack, Microsoft Teams o webhook) y, en **Nuevo caso de seguridad**, la prioridad a partir de la cual se le avisa:
+Cada persona elige por sí misma, en **Ajustes de usuario → Ajustes de notificaciones → Seguridad**: los canales de cada notificación (correo, SMS, llamada, push, Telegram, Slack, Microsoft Teams, Mattermost o webhook) y, en **Nuevo caso de seguridad**, la prioridad a partir de la cual se le avisa:
 
 | Opción | Avisa de los casos de prioridad |
 | --- | --- |

@@ -1958,7 +1958,7 @@ describe("notification settings", () => {
     );
   });
 
-  it("names its channels as the matrix's columns do, Slack and Microsoft Teams only when connected", () => {
+  it("names its channels as the matrix's columns do, Slack, Microsoft Teams and Mattermost only when connected", () => {
     const channels: Array<string> = captures(
       page.slice(
         page.indexOf("const CHANNELS"),
@@ -1976,19 +1976,21 @@ describe("notification settings", () => {
       "Telegram",
       "Slack",
       "Microsoft Teams",
+      "Mattermost",
       "Webhook",
       // A server's custom channels: a column only while one is on.
       "Custom Channels",
     ]);
     expect(page).toContain("workspaceType: WorkspaceType.Slack,");
     expect(page).toContain("workspaceType: WorkspaceType.MicrosoftTeams,");
+    expect(page).toContain("workspaceType: WorkspaceType.Mattermost,");
     expect(page).toContain("isCustomChannels: true,");
 
     const columns: string =
-      "Email, SMS, Call, Push, WhatsApp, Telegram, Slack and Microsoft Teams, and Webhook.";
+      "Email, SMS, Call, Push, WhatsApp, Telegram, Slack, Microsoft Teams, Mattermost and Webhook.";
 
     expect(settings).toContain(
-      `${columns} Slack and Microsoft Teams are columns only when the project has connected them.`,
+      `${columns} Slack, Microsoft Teams and Mattermost are columns only when the project has connected them.`,
     );
 
     /*

@@ -18,7 +18,7 @@ flowchart TB
     setting -->|"tout désactivé"| nothing["Rien n'est envoyé"]
 ```
 
-- Chaque ligne est un événement, et chaque colonne un canal : E-mail, SMS, Appel, Push, WhatsApp, Telegram, Slack et Microsoft Teams, et Webhook. Slack et Microsoft Teams ne sont des colonnes que si le projet les a connectés.
+- Chaque ligne est un événement, et chaque colonne un canal : E-mail, SMS, Appel, Push, WhatsApp, Telegram, Slack, Microsoft Teams, Mattermost et Webhook. Slack, Microsoft Teams et Mattermost ne sont des colonnes que si le projet les a connectés.
 - Un canal activé envoie à chaque méthode vérifiée que vous avez dessus dans ce projet, pas à une seule.
 - Un canal activé sans méthode vérifiée derrière lui n'envoie rien. **Your setup checklist** le signale sous **Staying informed**.
 - Une nouvelle va aux propriétaires de l'élément : les personnes nommées comme propriétaires, et les membres de ses équipes propriétaires. Quand un élément n'a pas de propriétaire, elle va plutôt aux propriétaires du projet. Un événement indiquant que vous avez été ajouté comme propriétaire ne va qu'à la personne ajoutée.

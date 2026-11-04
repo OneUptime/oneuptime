@@ -18,7 +18,7 @@ flowchart TB
     setting -->|"alt fra"| nothing["Intet bliver sendt"]
 ```
 
-- Hver række er en begivenhed, og hver kolonne en kanal: E-mail, SMS, Opkald, Push, WhatsApp, Telegram, Slack og Microsoft Teams samt Webhook. Slack og Microsoft Teams er kun kolonner, når projektet har forbundet dem.
+- Hver række er en begivenhed, og hver kolonne en kanal: E-mail, SMS, Opkald, Push, WhatsApp, Telegram, Slack, Microsoft Teams, Mattermost og Webhook. Slack, Microsoft Teams og Mattermost er kun kolonner, når projektet har forbundet dem.
 - En kanal, der er slået til, sender til hver bekræftet metode, du har på den i dette projekt, ikke kun til én.
 - En kanal, der er slået til uden en bekræftet metode bagved, sender intet. **Your setup checklist** siger det under **Staying informed**.
 - En nyhed går til tingens ejere: de personer, der er angivet som ejere, og medlemmerne af dens ejerteams. Har en ting ingen ejere, går den i stedet til projektets ejere. En begivenhed om at være blevet tilføjet som ejer går kun til den person, der blev tilføjet.

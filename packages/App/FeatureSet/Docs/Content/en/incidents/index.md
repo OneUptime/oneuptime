@@ -67,7 +67,7 @@ Workflows open incidents too: the [Huntress](/docs/integrations/huntress) workfl
 
 On creation OneUptime runs the automation you configured: privacy rules, owner rules, label rules, on-call rules and runbook rules. Any on-call duty policies attached to the incident — manually, from a template, or merged in by a matching on-call rule — are executed in parallel.
 
-Owners are notified on the channels each of them turned on in **User Settings → Notification Settings**: email, SMS, voice call, push, WhatsApp, Telegram, Slack, Microsoft Teams or webhook. If an incident has no owners at all, the notification falls back to the project owners rather than being dropped.
+Owners are notified on the channels each of them turned on in **User Settings → Notification Settings**: email, SMS, voice call, push, WhatsApp, Telegram, Slack, Microsoft Teams, Mattermost or webhook. If an incident has no owners at all, the notification falls back to the project owners rather than being dropped.
 
 If the incident is visible on a status page and subscriber notifications are enabled, subscribers get told too: the subscribers of every status page that lists one of its monitors, or only of the pages you limited it to. See [One Status Page per Audience](/docs/status-pages/one-status-page-per-audience) for giving each audience a status page of its own.
 

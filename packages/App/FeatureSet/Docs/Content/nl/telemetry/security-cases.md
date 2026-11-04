@@ -218,7 +218,7 @@ OneUptime brengt mensen op de hoogte van vijf dingen op een zaak. Niemand hoeft 
 
 ### Kiezen wat je hoort
 
-Ieder kiest dat voor zichzelf, onder **Gebruikersinstellingen → Meldingsinstellingen → Beveiliging**: de kanalen voor elke melding (e-mail, sms, oproep, push, Telegram, Slack, Microsoft Teams of webhook), en onder **Nieuwe beveiligingszaak** de prioriteit die hem een melding geeft:
+Ieder kiest dat voor zichzelf, onder **Gebruikersinstellingen → Meldingsinstellingen → Beveiliging**: de kanalen voor elke melding (e-mail, sms, oproep, push, Telegram, Slack, Microsoft Teams, Mattermost of webhook), en onder **Nieuwe beveiligingszaak** de prioriteit die hem een melding geeft:
 
 | Keuze | Meldt zaken met |
 | --- | --- |

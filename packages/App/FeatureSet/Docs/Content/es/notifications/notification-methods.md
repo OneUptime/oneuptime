@@ -92,8 +92,6 @@ De vuelta en OneUptime, haz clic en **He enviado el mensaje: comprueba**. En cua
 2. En la pestaña **Aplicaciones del espacio de trabajo**, haz clic en **Añadir cuenta de Slack**, **Añadir cuenta de Microsoft Teams** o **Añadir cuenta de Mattermost**. La cuenta queda verificada al añadirla.
 3. Haz clic en **Enviar mensaje de prueba** en su fila. Los avisos llegan como mensajes directos de la app de OneUptime o, en Mattermost, del bot del proyecto.
 
-Una cuenta de Mattermost solo recibe tus avisos, no las novedades que eliges en **Ajustes de notificaciones**.
-
 ## Notificaciones push
 
 La pestaña **Notificaciones push** lista tus **Dispositivos de notificaciones push**.
