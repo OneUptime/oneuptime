@@ -1,5 +1,6 @@
 import { ProxmoxResourceScope } from "./MonitorStepProxmoxMonitor";
 import MetricsAggregationType from "../Metrics/MetricsAggregationType";
+import { translationKey } from "../Translator";
 
 export type ProxmoxMetricCategory =
   | "Availability"
@@ -38,7 +39,7 @@ const proxmoxMetricCatalog: Array<ProxmoxMetricDefinition> = [
   // Availability Metrics
   {
     id: "pve-up",
-    friendlyName: "Resource Up",
+    friendlyName: translationKey("Resource Up"),
     description:
       "Whether a Proxmox resource is up (1) or down/stopped (0). Reported for nodes, guests and storage, and for the cluster itself (id cluster/<name>, 1 while it is quorate) — filter on pve.scope or the id label to scope.",
     metricName: "pve_up",
@@ -48,7 +49,7 @@ const proxmoxMetricCatalog: Array<ProxmoxMetricDefinition> = [
   },
   {
     id: "pve-uptime-seconds",
-    friendlyName: "Uptime",
+    friendlyName: translationKey("Uptime"),
     description:
       "How long a node or guest has been running. Drops to zero when the resource is stopped or rebooted.",
     metricName: "pve_uptime_seconds",
@@ -59,7 +60,7 @@ const proxmoxMetricCatalog: Array<ProxmoxMetricDefinition> = [
   },
   {
     id: "pve-version-info",
-    friendlyName: "PVE Version Info",
+    friendlyName: translationKey("PVE Version Info"),
     description:
       "Metadata series carrying the Proxmox VE release in its version/release labels (value is always 1).",
     metricName: "pve_version_info",
@@ -72,7 +73,7 @@ const proxmoxMetricCatalog: Array<ProxmoxMetricDefinition> = [
   // Node Metrics
   {
     id: "pve-cpu-usage-ratio",
-    friendlyName: "CPU Usage Ratio",
+    friendlyName: translationKey("CPU Usage Ratio"),
     description:
       "CPU usage as a ratio of available CPU (0 to 1, where 1 = all cores fully used). Reported for nodes and guests — filter on pve.scope to pick one.",
     metricName: "pve_cpu_usage_ratio",
@@ -83,7 +84,7 @@ const proxmoxMetricCatalog: Array<ProxmoxMetricDefinition> = [
   },
   {
     id: "pve-cpu-usage-limit",
-    friendlyName: "CPU Limit (Cores)",
+    friendlyName: translationKey("CPU Limit (Cores)"),
     description:
       "Maximum CPU available to a node or guest, in cores. For guests this is the number of allocated vCPUs.",
     metricName: "pve_cpu_usage_limit",
@@ -94,7 +95,7 @@ const proxmoxMetricCatalog: Array<ProxmoxMetricDefinition> = [
   },
   {
     id: "pve-memory-usage-bytes",
-    friendlyName: "Memory Usage",
+    friendlyName: translationKey("Memory Usage"),
     description:
       "Memory currently in use by a node or guest. Compare against Memory Size to gauge memory pressure.",
     metricName: "pve_memory_usage_bytes",
@@ -105,7 +106,7 @@ const proxmoxMetricCatalog: Array<ProxmoxMetricDefinition> = [
   },
   {
     id: "pve-memory-size-bytes",
-    friendlyName: "Memory Size",
+    friendlyName: translationKey("Memory Size"),
     description:
       "Total memory available to a node or guest. For guests this is the configured memory allocation.",
     metricName: "pve_memory_size_bytes",
@@ -116,7 +117,7 @@ const proxmoxMetricCatalog: Array<ProxmoxMetricDefinition> = [
   },
   {
     id: "pve-node-info",
-    friendlyName: "Node Info",
+    friendlyName: translationKey("Node Info"),
     description:
       "Metadata series for each Proxmox node (value is always 1) carrying the node's name label: 1 while the node reports. The agent scrapes every 30 seconds, and a Sum adds every scrape in the minute, so it does not count nodes.",
     metricName: "pve_node_info",
@@ -129,7 +130,7 @@ const proxmoxMetricCatalog: Array<ProxmoxMetricDefinition> = [
   // Guest Metrics
   {
     id: "pve-network-receive-bytes",
-    friendlyName: "Network Received",
+    friendlyName: translationKey("Network Received"),
     description:
       "Cumulative bytes received over the network by a guest (VM or container). Chart as a rate to see throughput. Max reads its latest total.",
     metricName: "pve_network_receive_bytes",
@@ -140,7 +141,7 @@ const proxmoxMetricCatalog: Array<ProxmoxMetricDefinition> = [
   },
   {
     id: "pve-network-transmit-bytes",
-    friendlyName: "Network Transmitted",
+    friendlyName: translationKey("Network Transmitted"),
     description:
       "Cumulative bytes transmitted over the network by a guest (VM or container). Chart as a rate to see throughput. Max reads its latest total.",
     metricName: "pve_network_transmit_bytes",
@@ -151,7 +152,7 @@ const proxmoxMetricCatalog: Array<ProxmoxMetricDefinition> = [
   },
   {
     id: "pve-disk-read-bytes",
-    friendlyName: "Disk Read",
+    friendlyName: translationKey("Disk Read"),
     description:
       "Cumulative bytes read from disk by a guest (VM or container). Chart as a rate to see read throughput. Max reads its latest total.",
     metricName: "pve_disk_read_bytes",
@@ -162,7 +163,7 @@ const proxmoxMetricCatalog: Array<ProxmoxMetricDefinition> = [
   },
   {
     id: "pve-disk-write-bytes",
-    friendlyName: "Disk Write",
+    friendlyName: translationKey("Disk Write"),
     description:
       "Cumulative bytes written to disk by a guest (VM or container). Chart as a rate to see write throughput. Max reads its latest total.",
     metricName: "pve_disk_write_bytes",
@@ -173,7 +174,7 @@ const proxmoxMetricCatalog: Array<ProxmoxMetricDefinition> = [
   },
   {
     id: "pve-guest-info",
-    friendlyName: "Guest Info",
+    friendlyName: translationKey("Guest Info"),
     description:
       "Metadata series for each guest (value is always 1) carrying name, node, and type labels: 1 while the guest exists. A Sum adds every scrape in the minute, so it does not count guests.",
     metricName: "pve_guest_info",
@@ -184,7 +185,7 @@ const proxmoxMetricCatalog: Array<ProxmoxMetricDefinition> = [
   },
   {
     id: "pve-lock-state",
-    friendlyName: "Lock State",
+    friendlyName: translationKey("Lock State"),
     description:
       "The lock Proxmox holds on a guest while a backup, migration, snapshot or clone runs, as an enum-style series: one series per lock (backup, migrate, snapshot, suspended...) with value 1 for the one held. Filter on the state label.",
     metricName: "pve_lock_state",
@@ -194,7 +195,7 @@ const proxmoxMetricCatalog: Array<ProxmoxMetricDefinition> = [
   },
   {
     id: "pve-onboot-status",
-    friendlyName: "Start-on-Boot Status",
+    friendlyName: translationKey("Start-on-Boot Status"),
     description:
       "Whether a guest is configured to start on node boot (1) or not (0). A stopped guest with onboot=1 is usually unintended downtime.",
     metricName: "pve_onboot_status",
@@ -207,7 +208,7 @@ const proxmoxMetricCatalog: Array<ProxmoxMetricDefinition> = [
   // Storage Metrics
   {
     id: "pve-disk-usage-bytes",
-    friendlyName: "Disk Usage",
+    friendlyName: translationKey("Disk Usage"),
     description:
       "Disk space currently used. Reported for storage volumes, node root filesystems, and guest root disks — filter on pve.scope to pick one. For QEMU guests this reads 0 unless the QEMU guest agent is installed.",
     metricName: "pve_disk_usage_bytes",
@@ -218,7 +219,7 @@ const proxmoxMetricCatalog: Array<ProxmoxMetricDefinition> = [
   },
   {
     id: "pve-disk-size-bytes",
-    friendlyName: "Disk Size",
+    friendlyName: translationKey("Disk Size"),
     description:
       "Total disk space available on a storage volume, node root filesystem, or guest root disk.",
     metricName: "pve_disk_size_bytes",
@@ -229,7 +230,7 @@ const proxmoxMetricCatalog: Array<ProxmoxMetricDefinition> = [
   },
   {
     id: "pve-storage-shared",
-    friendlyName: "Shared Storage",
+    friendlyName: translationKey("Shared Storage"),
     description:
       "Whether every node of the cluster can use a storage (1) or only its own node (0).",
     metricName: "pve_storage_shared",
@@ -240,7 +241,7 @@ const proxmoxMetricCatalog: Array<ProxmoxMetricDefinition> = [
   },
   {
     id: "pve-storage-info",
-    friendlyName: "Storage Info",
+    friendlyName: translationKey("Storage Info"),
     description:
       "Metadata series for each storage volume (value is always 1) carrying node and storage labels: 1 while the storage exists. A Sum adds every scrape in the minute, so it does not count storage volumes.",
     metricName: "pve_storage_info",
@@ -253,7 +254,7 @@ const proxmoxMetricCatalog: Array<ProxmoxMetricDefinition> = [
   // HA Metrics
   {
     id: "pve-ha-state",
-    friendlyName: "HA State",
+    friendlyName: translationKey("HA State"),
     description:
       "High-availability state of a node or guest as an enum-style series: one series per possible state (e.g. started, stopped, error) with value 1 for the current state. Filter on the state label to alert on specific states.",
     metricName: "pve_ha_state",
@@ -269,7 +270,7 @@ const proxmoxMetricCatalog: Array<ProxmoxMetricDefinition> = [
    */
   {
     id: "pve-not-backed-up-total",
-    friendlyName: "Guests Without Backup",
+    friendlyName: translationKey("Guests Without Backup"),
     description:
       "Count of guests (VMs and containers) not covered by ANY backup job. A single cluster-level series, id cluster/<name>, reported at 0 too. Covers backup-job membership only — not whether backups ran recently or succeeded.",
     metricName: "pve_not_backed_up_total",
@@ -280,7 +281,7 @@ const proxmoxMetricCatalog: Array<ProxmoxMetricDefinition> = [
   },
   {
     id: "pve-not-backed-up-info",
-    friendlyName: "Guest Without Backup Info",
+    friendlyName: translationKey("Guest Without Backup Info"),
     description:
       "Metadata series present for each guest NOT covered by any backup job (value is always 1), labeled only with the guest's id. Group by id to list the uncovered guests; the series disappears once the guest joins a backup job.",
     metricName: "pve_not_backed_up_info",
@@ -299,7 +300,7 @@ const proxmoxMetricCatalog: Array<ProxmoxMetricDefinition> = [
    */
   {
     id: "pve-replication-failed-syncs",
-    friendlyName: "Replication Failed Syncs",
+    friendlyName: translationKey("Replication Failed Syncs"),
     description:
       "Number of consecutive failed sync attempts for a storage replication job. Anything above 0 means the job's replica is going stale — group by id to alert per job.",
     metricName: "pve_replication_failed_syncs",
@@ -310,7 +311,7 @@ const proxmoxMetricCatalog: Array<ProxmoxMetricDefinition> = [
   },
   {
     id: "pve-replication-duration-seconds",
-    friendlyName: "Replication Duration",
+    friendlyName: translationKey("Replication Duration"),
     description:
       "How long a replication job's last sync took. A rising duration usually means growing deltas or a slow/congested target.",
     metricName: "pve_replication_duration_seconds",
@@ -321,7 +322,7 @@ const proxmoxMetricCatalog: Array<ProxmoxMetricDefinition> = [
   },
   {
     id: "pve-replication-last-sync-timestamp-seconds",
-    friendlyName: "Replication Last Sync",
+    friendlyName: translationKey("Replication Last Sync"),
     description:
       "Unix timestamp of a replication job's last SUCCESSFUL sync. Compare against the current time to gauge replica staleness (the criteria engine has no wall-clock math, so staleness is a chart/UI concern, not an alert).",
     metricName: "pve_replication_last_sync_timestamp_seconds",
@@ -332,7 +333,7 @@ const proxmoxMetricCatalog: Array<ProxmoxMetricDefinition> = [
   },
   {
     id: "pve-replication-last-try-timestamp-seconds",
-    friendlyName: "Replication Last Try",
+    friendlyName: translationKey("Replication Last Try"),
     description:
       "Unix timestamp of a replication job's last sync ATTEMPT. A last-try newer than last-sync means the most recent attempt failed.",
     metricName: "pve_replication_last_try_timestamp_seconds",
@@ -343,7 +344,7 @@ const proxmoxMetricCatalog: Array<ProxmoxMetricDefinition> = [
   },
   {
     id: "pve-replication-next-sync-timestamp-seconds",
-    friendlyName: "Replication Next Sync",
+    friendlyName: translationKey("Replication Next Sync"),
     description: "Unix timestamp of a replication job's next scheduled sync.",
     metricName: "pve_replication_next_sync_timestamp_seconds",
     category: "Replication",
@@ -353,7 +354,7 @@ const proxmoxMetricCatalog: Array<ProxmoxMetricDefinition> = [
   },
   {
     id: "pve-replication-info",
-    friendlyName: "Replication Info",
+    friendlyName: translationKey("Replication Info"),
     description:
       "Metadata series for each storage replication job (value is always 1) carrying type, source, target and guest labels: 1 while the job exists. Join its labels to map a job id to the guest and node pair it replicates.",
     metricName: "pve_replication_info",

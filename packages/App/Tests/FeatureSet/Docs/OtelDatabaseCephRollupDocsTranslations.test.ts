@@ -88,7 +88,8 @@ const CEPH_PAGE: string = "monitor/ceph-monitor";
  * The database metric picker lists the catalog's names
  * (DatabaseMetricCatalog's friendlyName) as they are, so the metric tables
  * keep them in English. These are the ones that happen to be Dashboard labels
- * elsewhere too; the rest are in SHOWN_IN_ENGLISH.
+ * elsewhere too (Deadlocks: a database server's Engine Metrics, from
+ * DatabaseServerMetricCatalog); the rest are in SHOWN_IN_ENGLISH.
  */
 const METRIC_NAMES_THAT_ARE_LABELS: Array<string> = [
   "Uptime",
@@ -96,6 +97,7 @@ const METRIC_NAMES_THAT_ARE_LABELS: Array<string> = [
   "Queries",
   "Database Size",
   "Replication Lag",
+  "Deadlocks",
 ];
 
 /*

@@ -1,9 +1,9 @@
 # Benutzerdefinierte Benachrichtigungskanäle
 
-Ein benutzerdefinierter Kanal sendet Bereitschaftsalarme an einen Dienst, den Sie betreiben: die eigene App Ihres Unternehmens, ein Pager-System oder ein Gateway, das prüft, was Ihr Netzwerk verlässt. Sie fügen ihn einmal für den ganzen Server hinzu, und alle können darüber alarmiert werden, ohne etwas einzurichten. Im Admin Dashboard heißen sie **Custom Channels**.
+Ein benutzerdefinierter Kanal sendet Bereitschaftsalarme an einen Dienst, den Sie betreiben: die eigene App Ihres Unternehmens, ein Pager-System oder ein Gateway, das prüft, was Ihr Netzwerk verlässt. Sie fügen ihn einmal für den ganzen Server hinzu, und alle können darüber alarmiert werden, ohne etwas einzurichten. Im Admin Dashboard heißen sie **Benutzerdefinierte Kanäle**.
 
 > [!NOTE]
-> Benutzerdefinierte Kanäle sind Teil der [OneUptime Enterprise Edition](/docs/self-hosted/enterprise) und brauchen eine Enterprise-Lizenz, die sie umfasst. Die Community Edition hat keine Seite **Custom Channels** und sendet nichts an einen Kanal. Siehe [Ohne Lizenz](#ohne-lizenz).
+> Benutzerdefinierte Kanäle sind Teil der [OneUptime Enterprise Edition](/docs/self-hosted/enterprise) und brauchen eine Enterprise-Lizenz, die sie umfasst. Die Community Edition hat keine Seite **Benutzerdefinierte Kanäle** und sendet nichts an einen Kanal. Siehe [Ohne Lizenz](#ohne-lizenz).
 
 :::cards
 - [Einen Kanal hinzufügen](#einen-kanal-hinzufügen): Ein Name, eine URL und ein Signaturgeheimnis.
@@ -31,18 +31,18 @@ Wenn eine Bereitschaftsrichtlinie jemanden alarmiert und dessen Bereitschaftsreg
 
 ## Einen Kanal hinzufügen
 
-1. Öffnen Sie im Admin Dashboard **Einstellungen**, dann im Seitenmenü **Benachrichtigungen > Custom Channels** (**Benachrichtigungen** ist anfangs eingeklappt), und wählen Sie **Add**.
+1. Öffnen Sie im Admin Dashboard **Einstellungen**, dann im Seitenmenü **Benachrichtigungen > Benutzerdefinierte Kanäle** (**Benachrichtigungen** ist anfangs eingeklappt), und wählen Sie **Add**.
 2. Füllen Sie im Schritt **Channel** aus:
    - **Name**: was Personen in ihren Benachrichtigungsmethoden und Bereitschaftsregeln sehen, zum Beispiel `CorpoApp`.
    - **Webhook URL**: wohin OneUptime jeden Alarm sendet. Sie kann in Ihrem privaten Netzwerk liegen.
    - **Signing Secret**: OneUptime erzeugt eines für Sie. Kopieren Sie es in Ihren Dienst, der jede Anfrage damit prüft. Sie sehen es wieder, wenn Sie den Kanal bearbeiten.
-3. Speichern Sie im Schritt **Delivery**, und wählen Sie dann **Send test**, um Ihrem Dienst eine [Testanfrage](#testanfragen) zu senden.
+3. Speichern Sie im Schritt **Delivery**, und wählen Sie dann **Test senden**, um Ihrem Dienst eine [Testanfrage](#testanfragen) zu senden.
 
 Im Schritt **Delivery** ist **Page everyone through this channel** eingeschaltet. OneUptime fügt den Kanal dann den Bereitschaftsregeln aller Personen in jedem Projekt hinzu, ebenso den Regeln aller, die später einem Projekt beitreten, und erreicht über ihn auch Personen in Bereitschaft, die für das Ausgelöste keine Regel haben. Schalten Sie es aus, damit jede Person den Kanal selbst zu ihren Regeln hinzufügt.
 
-Personen sehen den Kanal unter **Benutzereinstellungen**, dann **Benachrichtigungsmethoden**, dann **Custom Channels**, mit einer Schaltfläche **Send test**, und wählen ihn in ihren Bereitschaftsregeln als `Custom Channel: CorpoApp`. Sie richten nichts ein: Ihr Dienst erfährt, für wen jeder Alarm ist.
+Personen sehen den Kanal unter **Benutzereinstellungen**, dann **Benachrichtigungsmethoden**, dann **Benutzerdefinierte Kanäle**, mit einer Schaltfläche **Test senden**, und wählen ihn in ihren Bereitschaftsregeln als `Custom Channel: CorpoApp`. Sie richten nichts ein: Ihr Dienst erfährt, für wen jeder Alarm ist.
 
-Um das Senden zu stoppen, ohne die Regeln von jemandem zu ändern, bearbeiten Sie den Kanal und schalten **An** aus. Alarme, die an ihn gegangen wären, werden im Bereitschaftsprotokoll als nicht gesendet erfasst. Wenn Sie einen Kanal löschen, wird jede Bereitschaftsregel gelöscht, die ihn verwendet.
+Um das Senden zu stoppen, ohne die Regeln von jemandem zu ändern, wählen Sie im ⋯-Menü des Kanals **Deaktivieren**, oder bearbeiten Sie den Kanal und schalten **An** aus; **Aktivieren** im selben Menü schaltet ihn wieder ein. Alarme, die an ihn gegangen wären, werden im Bereitschaftsprotokoll als nicht gesendet erfasst. Wenn Sie einen Kanal löschen, wird jede Bereitschaftsregel gelöscht, die ihn verwendet.
 
 ## Was Ihr Dienst empfängt
 
@@ -149,7 +149,7 @@ Die Antwort sagt, was passiert ist, in Worten, die Ihre App unverändert anzeige
 
 ## Andere Benachrichtigungen
 
-Alarme sind nicht die einzigen Benachrichtigungen, die Personen erhalten: OneUptime teilt ihnen auch mit, wenn ein Vorfall, dessen Besitzer sie sind, seinen Status ändert, wenn eine Notiz veröffentlicht wird, wenn ihre Bereitschaftsschicht beginnt, und mehr. Jede Person wählt unter **Benutzereinstellungen > Benachrichtigungseinstellungen**, wohin jede davon geht; dort gibt es eine Spalte **Custom Channels**, solange ein Kanal eingeschaltet ist. Sie ist für alle ausgeschaltet, bis sie sie selbst einschalten.
+Alarme sind nicht die einzigen Benachrichtigungen, die Personen erhalten: OneUptime teilt ihnen auch mit, wenn ein Vorfall, dessen Besitzer sie sind, seinen Status ändert, wenn eine Notiz veröffentlicht wird, wenn ihre Bereitschaftsschicht beginnt, und mehr. Jede Person wählt unter **Benutzereinstellungen > Benachrichtigungseinstellungen**, wohin jede davon geht; dort gibt es eine Spalte **Benutzerdefinierte Kanäle**, solange ein Kanal eingeschaltet ist. Sie ist für alle ausgeschaltet, bis sie sie selbst einschalten.
 
 Eine Benachrichtigung geht an jeden eingeschalteten Kanal, als eine Anfrage pro Kanal, mit `event` auf `notification`:
 
@@ -186,7 +186,7 @@ Das Ergebnis jedes Versuchs steht im Bereitschaftsprotokoll der Person, mit dem 
 
 ## Testanfragen
 
-**Send test** auf der Seite im Admin Dashboard oder in den Benachrichtigungsmethoden einer Person sendet eine Anfrage mit `event` auf `test`, der Person, die die Schaltfläche gedrückt hat, als `user` und `notificationId`, `record` und `actions` auf `null`. Damit probieren Sie Ihren Dienst aus, bevor ein echter Alarm ankommt.
+**Test senden** auf der Seite im Admin Dashboard oder in den Benachrichtigungsmethoden einer Person sendet eine Anfrage mit `event` auf `test`, der Person, die die Schaltfläche gedrückt hat, als `user` und `notificationId`, `record` und `actions` auf `null`. Damit probieren Sie Ihren Dienst aus, bevor ein echter Alarm ankommt.
 
 ## Ohne Lizenz
 
@@ -194,6 +194,7 @@ Benutzerdefinierte Kanäle funktionieren während der 14-tägigen Testphase der 
 
 - **An einen benutzerdefinierten Kanal wird nichts gesendet.** Ein Alarm, der an einen gegangen wäre, wird im Bereitschaftsprotokoll der Person als nicht gesendet erfasst, ebenso ein Test.
 - **Kanäle werden nicht mehr angeboten.** Sie verschwinden aus den Benachrichtigungsmethoden, Bereitschaftsregeln und Benachrichtigungseinstellungen der Personen, und die Einsatzbereitschaft und der Rückfall zählen sie nicht mehr.
+- **Die Team-Compliance prüft benutzerdefinierte Kanäle nicht.** Eine Compliance-Regel eines Teams, die einen benutzerdefinierten Kanal verlangt, zeigt **Nicht geprüft**, und Mitglieder werden darauf nicht geprüft, bis ein benutzerdefinierter Kanal wieder einen Alarm überbringen kann.
 - **Die Seite ist schreibgeschützt.** Sie können Kanäle sehen und löschen, aber nicht hinzufügen oder ändern, und niemand kann eine Regel oder eine Benachrichtigungseinstellung auf einen richten.
 - **Nichts wird gelöscht.** Die Kanäle sowie die Bereitschaftsregeln und Einstellungen, die sie verwenden, bleiben erhalten.
 

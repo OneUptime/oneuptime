@@ -141,7 +141,7 @@ Um per Direktnachricht alarmiert zu werden, wenn Sie Bereitschaft haben, fügen 
 
 :::steps
 1. Verbinden Sie Ihr eigenes Microsoft-Teams-Konto (siehe [Microsoft Teams verbinden](#microsoft-teams-verbinden)).
-2. Gehen Sie zu **Benutzereinstellungen** > **Benachrichtigungsmethoden**, öffnen Sie die Registerkarte **Workspace Apps** und klicken Sie auf **Microsoft Teams-Konto hinzufügen**.
+2. Gehen Sie zu **Benutzereinstellungen** > **Benachrichtigungsmethoden**, öffnen Sie die Registerkarte **Workspace-Apps** und klicken Sie auf **Microsoft Teams-Konto hinzufügen**.
 3. Klicken Sie in seiner Zeile auf **Testnachricht senden**. Die Nachricht kommt in Ihren Microsoft-Teams-Chats an.
 :::
 

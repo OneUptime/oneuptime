@@ -149,7 +149,7 @@ ALTER SERVER ROLE ##MS_ServerStateReader## ADD MEMBER oneuptime_health;
 
 Un utente di database indipendente (`CREATE USER oneuptime_health WITH PASSWORD = '...'` nel database monitorato, senza login) funziona con `VIEW DATABASE STATE` da S2 in su, ma non può entrare in `##MS_ServerStateReader##`: i ruoli server accettano solo login. Per spostare un utente indipendente nel ruolo, eliminalo (`DROP USER oneuptime_health;`) e segui le istruzioni qui sopra.
 
-La sonda riconosce Azure SQL Database da `SERVERPROPERTY('EngineEdition')` e non dalla versione: Azure SQL Database riporta `12.0.2000.8` qualunque versione esegua davvero, che si legge come SQL Server 2014. Per questo l'**Engine** del monitor indica `Azure SQL Database 12.0.2000.8`, e un permesso mancante viene mostrato come l'istruzione Azure qui sopra, mai come `VIEW SERVER STATE`.
+La sonda riconosce Azure SQL Database da `SERVERPROPERTY('EngineEdition')` e non dalla versione: Azure SQL Database riporta `12.0.2000.8` qualunque versione esegua davvero, che si legge come SQL Server 2014. Per questo il **Motore** del monitor indica `Azure SQL Database 12.0.2000.8`, e un permesso mancante viene mostrato come l'istruzione Azure qui sopra, mai come `VIEW SERVER STATE`.
 
 - **La replica non viene raccolta su Azure SQL Database.** Azure SQL Database non ha `sys.dm_hadr_database_replica_states`, quindi lì il gruppo Replication viene saltato invece di essere segnalato come fallito a ogni controllo. Le viste di replica proprie di Azure (`sys.dm_database_replica_states`, `sys.dm_geo_replication_link_status`) non vengono ancora lette.
 - **Le connessioni sono per database.** Con `VIEW DATABASE STATE`, Azure SQL Database mostra solo le sessioni del database monitorato, quindi Connections conta quel database e non il server logico. Monitora ogni database che ti interessa.
@@ -160,7 +160,7 @@ La sonda riconosce Azure SQL Database da `SERVERPROPERTY('EngineEdition')` e non
 :::steps
 ### Inizia un nuovo monitor
 
-Vai su **Monitor** e fai clic su **Crea monitor**. In **Tipo di monitor**, fai clic su **Altri tipi di monitor** e scegli **Database Health** in **Database Monitoring**, oppure digita `health` nella casella di ricerca. Inserisci un **Nome**, poi fai clic su **Avanti**.
+Vai su **Monitor** e fai clic su **Crea monitor**. In **Tipo di monitor**, fai clic su **Altri tipi di monitor** e scegli **Database Health** in **Monitoraggio dei database**, oppure digita `health` nella casella di ricerca. Inserisci un **Nome**, poi fai clic su **Avanti**.
 
 ### Inserisci i dati di connessione
 

@@ -62,7 +62,7 @@ L'application affiche un projet à la fois : touchez le nom du projet en haut d'
 
 :::steps
 ### Trouver l'appareil dans le tableau de bord
-Dans le tableau de bord, ouvrez **Paramètres utilisateur → Méthodes de notification** et l'onglet **Push Notifications**. L'iPhone ou l'iPad figure sous **Appareils de notification push**, avec son nom de modèle. Chaque projet tient sa propre liste.
+Dans le tableau de bord, ouvrez **Paramètres utilisateur → Méthodes de notification** et l'onglet **Notifications push**. L'iPhone ou l'iPad figure sous **Appareils de notification push**, avec son nom de modèle. Chaque projet tient sa propre liste.
 
 ### Envoyer un test
 Cliquez sur **Notification de test** sur la ligne de l'appareil. Une notification arrive sur l'appareil ; touchez-la pour ouvrir l'application.
@@ -130,7 +130,7 @@ L'application n'a pas pu joindre `https://<your-oneuptime>/api/status`. Vérifie
 
 :::details Aucune notification n'arrive
 - Vérifiez que **Autoriser les notifications** est activé sous **Réglages → Notifications → OneUptime On-Call**, et qu'aucun mode de concentration ne retient les alertes.
-- Vérifiez que l'appareil figure sous **Push Notifications** dans **Paramètres utilisateur → Méthodes de notification**, et envoyez-lui une **Notification de test**.
+- Vérifiez que l'appareil figure sous **Notifications push** dans **Paramètres utilisateur → Méthodes de notification**, et envoyez-lui une **Notification de test**.
 - Si l'appareil est marqué **Ne reçoit pas de notifications**, ouvrez l'application en étant connecté. Elle enregistre à nouveau l'appareil ; voir [Quand un téléphone doit se réenregistrer](/docs/mobile-desktop-apps/faq-troubleshooting#quand-un-téléphone-doit-se-réenregistrer).
 - Vérifiez vos règles d'astreinte sous **Paramètres utilisateur → Règles d'astreinte**.
 - Sur un OneUptime auto-hébergé, vérifiez que votre serveur joint son relais push : voir [Notifications push](/docs/self-hosted/push-notifications#accès-réseau).

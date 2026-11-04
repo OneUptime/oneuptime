@@ -50,6 +50,8 @@ const KIND_OPTIONS: Array<DropdownOption> = [
   { value: DataStoreKind.AwsRedshiftCluster, label: "Amazon Redshift" },
   { value: DataStoreKind.Snowflake, label: "Snowflake" },
   { value: DataStoreKind.GcpBigQueryDataset, label: "Google BigQuery" },
+  { value: DataStoreKind.ClickHouse, label: "ClickHouse" },
+  { value: DataStoreKind.Databricks, label: "Databricks" },
 ];
 
 /*
@@ -180,7 +182,7 @@ const ConnectDatabaseModal: FunctionComponent<ComponentProps> = (
             stepId: CONNECTION_STEP_ID,
             // Documentation shows every engine's format in full, with examples.
             description:
-              "A URL such as postgres://reader:password@db.internal:5432/orders. Snowflake and BigQuery take JSON with a key: Documentation shows each engine's.",
+              "A URL such as postgres://reader:password@db.internal:5432/orders. Snowflake, BigQuery and Databricks take JSON with a key: Documentation shows each engine's.",
             fieldType: FormFieldSchemaType.Password,
             required: (values: FormValues<JSONObject>): boolean => {
               return (

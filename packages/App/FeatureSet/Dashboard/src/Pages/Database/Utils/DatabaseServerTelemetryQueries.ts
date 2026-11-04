@@ -36,6 +36,7 @@ import AnalyticsModelAPI, {
 import {
   translatableTerm,
   translateTemplate,
+  translationKey,
 } from "Common/UI/Utils/TranslateTemplate";
 
 /*
@@ -1151,32 +1152,36 @@ export function getDatabaseMetricRowUnit(
 /**
  * The caption under a catalog metric's list value: how its series combine,
  * and for an entry pinned to one breakdown value (`mysql.threads{kind=
- * running}`), which one — its title.
+ * running}`), which one — its title. MetricRow draws it as given, so it
+ * is said here, in the reader's language.
  */
 export function getDatabaseMetricListCaption(
   definition: DatabaseServerMetricDefinition,
 ): string {
   let how: string;
   if (definition.kind === "counter") {
-    how = "per second, all series";
+    how = translationKey("per second, all series");
   } else {
     switch (definition.seriesCombine) {
       case "max":
-        how = "highest series";
+        how = translationKey("highest series");
         break;
       case "min":
-        how = "lowest series";
+        how = translationKey("lowest series");
         break;
       case "avg":
-        how = "average of series";
+        how = translationKey("average of series");
         break;
       default:
-        how = "total of series";
+        how = translationKey("total of series");
     }
   }
   return Object.keys(definition.attributes || {}).length > 0
-    ? `${definition.title}, ${how}`
-    : how;
+    ? translateTemplate("{{metric}}, {{how}}", {
+        metric: translatableTerm(definition.title),
+        how: translatableTerm(how),
+      })
+    : translateTemplate(how);
 }
 
 /**

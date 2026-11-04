@@ -56,7 +56,7 @@ Hver rad viser også hvor mange brukere unntaket rammet i det valgte tidsrommet,
 
 ### Velg hva som teller som et problem
 
-**Problemer**, som er standard, skjuler brukerfeil og forventede avvisninger, slik at listen viser det som trenger retting. **User errors** viser bare dem, og **Alle** viser alle unntak.
+**Problemer**, som er standard, skjuler brukerfeil og forventede avvisninger, slik at listen viser det som trenger retting. **Brukerfeil** viser bare dem, og **Alle** viser alle unntak.
 
 ### Søk og filtrer
 

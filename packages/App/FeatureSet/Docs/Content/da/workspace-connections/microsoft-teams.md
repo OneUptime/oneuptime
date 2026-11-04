@@ -141,7 +141,7 @@ For at blive tilkaldt via direkte besked, når du har vagt, tilføjer du Microso
 
 :::steps
 1. Forbind din egen Microsoft Teams-konto (se [Forbind Microsoft Teams](#forbind-microsoft-teams)).
-2. Gå til **Brugerindstillinger** > **Notifikationsmetoder**, åbn fanen **Workspace Apps**, og klik på **Add Microsoft Teams Account**.
+2. Gå til **Brugerindstillinger** > **Notifikationsmetoder**, åbn fanen **Arbejdsområdeapps**, og klik på **Add Microsoft Teams Account**.
 3. Klik på **Send Test Message** i dens række. Beskeden ankommer i dine chats i Microsoft Teams.
 :::
 

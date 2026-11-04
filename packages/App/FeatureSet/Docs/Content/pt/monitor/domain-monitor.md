@@ -48,7 +48,7 @@ As requisições RDAP respeitam as configurações `HTTP_PROXY_URL` / `HTTPS_PRO
 :::steps
 ### Começar um monitor novo
 
-Vá em **Monitores** e clique em **Criar monitor**. Em **Tipo de monitor**, clique em **Mais tipos de monitor** e escolha **Domínio** em **Basic Monitoring**.
+Vá em **Monitores** e clique em **Criar monitor**. Em **Tipo de monitor**, clique em **Mais tipos de monitor** e escolha **Domínio** em **Monitoramento básico**.
 
 ### Dar um nome a ele
 

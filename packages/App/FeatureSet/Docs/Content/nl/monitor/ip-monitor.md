@@ -47,7 +47,7 @@ Een sonde die haar eigen netwerkverbinding kwijt is, meldt geen resultaat, en ka
 :::steps
 ### Een nieuwe monitor beginnen
 
-Ga naar **Monitoren** en klik op **Monitor maken**. Klik onder **Monitortype** op **Meer monitortypen** en kies **IP** onder **Basic Monitoring**.
+Ga naar **Monitoren** en klik op **Monitor maken**. Klik onder **Monitortype** op **Meer monitortypen** en kies **IP** onder **Basisbewaking**.
 
 ### Hem een naam geven
 

@@ -72,7 +72,7 @@ L'application affiche un projet à la fois : appuyez sur le nom du projet en hau
 
 :::steps
 ### Trouver le téléphone dans le tableau de bord
-Dans le tableau de bord, ouvrez **Paramètres utilisateur → Méthodes de notification** et l'onglet **Push Notifications**. Le téléphone figure sous **Appareils de notification push**, avec son nom de modèle. Chaque projet tient sa propre liste.
+Dans le tableau de bord, ouvrez **Paramètres utilisateur → Méthodes de notification** et l'onglet **Notifications push**. Le téléphone figure sous **Appareils de notification push**, avec son nom de modèle. Chaque projet tient sa propre liste.
 
 ### Envoyer un test
 Cliquez sur **Notification de test** sur la ligne du téléphone. Une notification arrive sur le téléphone ; appuyez dessus pour ouvrir l'application.
@@ -137,7 +137,7 @@ L'application n'a pas pu joindre `https://<your-oneuptime>/api/status`. Vérifie
 
 :::details Aucune notification n'arrive
 - Vérifiez dans les paramètres d'Android que les notifications sont activées pour l'application, et que Ne pas déranger est désactivé ou les alertes critiques activées.
-- Vérifiez que le téléphone figure sous **Push Notifications** dans **Paramètres utilisateur → Méthodes de notification**, et envoyez-lui une **Notification de test**.
+- Vérifiez que le téléphone figure sous **Notifications push** dans **Paramètres utilisateur → Méthodes de notification**, et envoyez-lui une **Notification de test**.
 - Si le téléphone est marqué **Ne reçoit pas de notifications**, ouvrez l'application en étant connecté. Elle enregistre à nouveau le téléphone ; voir [Quand un téléphone doit se réenregistrer](/docs/mobile-desktop-apps/faq-troubleshooting#quand-un-téléphone-doit-se-réenregistrer).
 - Vérifiez vos règles d'astreinte sous **Paramètres utilisateur → Règles d'astreinte**.
 - Sur un OneUptime auto-hébergé, vérifiez que votre serveur joint son relais push : voir [Notifications push](/docs/self-hosted/push-notifications#accès-réseau).

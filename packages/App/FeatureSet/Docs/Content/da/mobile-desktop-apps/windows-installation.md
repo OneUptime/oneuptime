@@ -55,7 +55,7 @@ Appen viser notifikationer gennem sin browser, når du har registreret browseren
 
 :::steps
 ### Åbn dine push-enheder
-Åbn **Brugerindstillinger → Notifikationsmetoder** og fanen **Push Notifications** i appen.
+Åbn **Brugerindstillinger → Notifikationsmetoder** og fanen **Push-notifikationer** i appen.
 
 ### Registrer denne browser
 Klik på **Registrer enhed**, behold det foreslåede **Enhedsnavn**, for eksempel `Edge on Windows`, eller ret det, og klik på **Registrer enhed** igen. Når browseren spørger, om OneUptime må vise notifikationer, vælger du **Tillad**.
@@ -83,7 +83,7 @@ Der er intet at opdatere. Appen henter dashboardet fra dit OneUptime, hver gang 
 
 Windows viser også appen under **Indstillinger → Apps → Installerede apps**, hvor **Afinstaller** også fjerner den.
 
-At afinstallere appen afregistrerer ikke dens browser: den får stadig notifikationer. Vil du stoppe dem, så slet browseren under **Brugerindstillinger → Notifikationsmetoder** på fanen **Push Notifications** med **Slet**.
+At afinstallere appen afregistrerer ikke dens browser: den får stadig notifikationer. Vil du stoppe dem, så slet browseren under **Brugerindstillinger → Notifikationsmetoder** på fanen **Push-notifikationer** med **Slet**.
 
 ## Fejlfinding
 
@@ -92,7 +92,7 @@ At afinstallere appen afregistrerer ikke dens browser: den får stadig notifikat
 :::
 
 :::details Der vises ingen notifikationer
-- Tjek under **Brugerindstillinger → Notifikationsmetoder** på fanen **Push Notifications**, at denne browser står på listen, og send den en **Testnotifikation**.
+- Tjek under **Brugerindstillinger → Notifikationsmetoder** på fanen **Push-notifikationer**, at denne browser står på listen, og send den en **Testnotifikation**.
 - Åbn **Indstillinger → System → Meddelelser** i Windows: notifikationer skal være slået til, også for browseren, og Forstyr ikke slået fra. Windows 10 kalder siden »Meddelelser og handlinger«.
 - Blokerer browseren notifikationer for OneUptime, så klik på ikonet til venstre i adresselinjen, tillad notifikationer for webstedet, og registrer browseren igen.
 - På et selv-hostet OneUptime siger dialogen **Registrer enhed**, når serveren ikke har VAPID-nøgler.

@@ -141,7 +141,7 @@ Para recibir avisos por mensaje directo cuando estás de guardia, añade Microso
 
 :::steps
 1. Conecta tu propia cuenta de Microsoft Teams (consulta [Conectar Microsoft Teams](#conectar-microsoft-teams)).
-2. Ve a **Ajustes de usuario** > **Métodos de notificación**, abre la pestaña **Workspace Apps** y haz clic en **Añadir cuenta de Microsoft Teams**.
+2. Ve a **Ajustes de usuario** > **Métodos de notificación**, abre la pestaña **Aplicaciones del espacio de trabajo** y haz clic en **Añadir cuenta de Microsoft Teams**.
 3. Haz clic en **Enviar mensaje de prueba** en su fila. El mensaje llega a tus chats de Microsoft Teams.
 :::
 

@@ -208,6 +208,7 @@ When creating incidents or alerts from External Status Page monitors, you can us
 | `{{provider}}`            | Detected provider (Atlassian Statuspage, incident.io, OneUptime Status Page, RSS, Atom); empty after a reachability check |
 | `{{componentGroup}}`      | Component group the monitor is scoped to, if any                                |
 | `{{componentName}}`       | The components the monitor watches, separated by commas, if any are chosen     |
+| `{{componentNames}}`      | The same components as a list, to repeat a line for each with `{{#each componentNames}}` |
 
 ## Popular Status Page URLs
 

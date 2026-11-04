@@ -101,7 +101,7 @@ Een ernst die je project later toevoegt, krijgt binnen een paar minuten regels, 
 Een oproep die toch geen regel vindt, gaat alsnog naar je geverifieerde methoden, en je krijgt er een e-mail over; zie [Als geen regel past](/docs/notifications/index#als-geen-regel-past).
 
 :::details Een ernst bewust uitzetten
-De API kan een afmeldregel opslaan, met `isOptOut` ingesteld en zonder methode: je wordt dan helemaal niet opgeroepen voor dat soort oproep en die ernst, en er springt niets in. De rij toont **Muted - notifications turned off for this rule**, en hem verwijderen zet de oproepen weer aan. Een later toegevoegde ernst blijft ook stil wanneer elke regel die je op dat tabblad hebt, een afmeldregel is.
+De API kan een afmeldregel opslaan, met `isOptOut` ingesteld en zonder methode: je wordt dan helemaal niet opgeroepen voor dat soort oproep en die ernst, en er springt niets in. De rij toont **Gedempt – meldingen uitgeschakeld voor deze regel**, en hem verwijderen zet de oproepen weer aan. Een later toegevoegde ernst blijft ook stil wanneer elke regel die je op dat tabblad hebt, een afmeldregel is.
 :::
 
 :::details De terugval voor een heel project uitzetten
@@ -115,7 +115,7 @@ Projecteigenaren en -beheerders kunnen dezelfde pagina voor iedereen in het proj
 ## Probleemoplossing
 
 :::details Mijn telefoon bleef stil bij een kritieke oproep
-Controleer of de push van de regel **Kritieke waarschuwing** is en niet **Normaal**, en of **Kritieke waarschuwingen** aanstaat voor de telefoon onder **Gebruikersinstellingen → Meldingsmethoden**, op het tabblad **Push Notifications**.
+Controleer of de push van de regel **Kritieke waarschuwing** is en niet **Normaal**, en of **Kritieke waarschuwingen** aanstaat voor de telefoon onder **Gebruikersinstellingen → Meldingsmethoden**, op het tabblad **Pushmeldingen**.
 :::
 
 :::details Ik word voor elk incident twee keer opgeroepen

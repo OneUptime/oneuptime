@@ -101,7 +101,7 @@ En alvorlighed, dit projekt tilføjer senere, får regler inden for få minutter
 Et tilkald, der alligevel ikke finder en regel, sendes til dine bekræftede metoder alligevel, og du får en e-mail om det; se [Når ingen regel passer](/docs/notifications/index#når-ingen-regel-passer).
 
 :::details Slå en alvorlighed fra med vilje
-API'et kan gemme en fravalgsregel, med `isOptOut` sat og uden metode: du bliver så slet ikke tilkaldt for den slags tilkald og den alvorlighed, og intet træder i stedet. Rækken viser **Muted - notifications turned off for this rule**, og at slette den slår tilkaldene til igen. En alvorlighed, der tilføjes senere, er også lydløs, når hver regel, du har på den fane, er et fravalg.
+API'et kan gemme en fravalgsregel, med `isOptOut` sat og uden metode: du bliver så slet ikke tilkaldt for den slags tilkald og den alvorlighed, og intet træder i stedet. Rækken viser **Slået lyd fra – notifikationer er slået fra for denne regel**, og at slette den slår tilkaldene til igen. En alvorlighed, der tilføjes senere, er også lydløs, når hver regel, du har på den fane, er et fravalg.
 :::
 
 :::details Slå reserven fra for et helt projekt
@@ -115,7 +115,7 @@ Projektejere og administratorer kan se og ændre den samme side for alle i proje
 ## Fejlfinding
 
 :::details Min telefon forblev tavs ved et kritisk tilkald
-Tjek, at reglens push er **Kritisk advarsel** og ikke **Normal**, og at **Kritiske advarsler** er slået til for telefonen under **Brugerindstillinger → Notifikationsmetoder**, på fanen **Push Notifications**.
+Tjek, at reglens push er **Kritisk advarsel** og ikke **Normal**, og at **Kritiske advarsler** er slået til for telefonen under **Brugerindstillinger → Notifikationsmetoder**, på fanen **Push-notifikationer**.
 :::
 
 :::details Jeg bliver tilkaldt to gange for hver hændelse

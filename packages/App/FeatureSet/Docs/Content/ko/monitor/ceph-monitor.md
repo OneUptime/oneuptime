@@ -1,11 +1,11 @@
 # Ceph 모니터
 
-Ceph 모니터는 하나의 Ceph 클러스터(상태, 헬스 체크, 모니터 쿼럼, OSD, 풀, 배치 그룹)를 감시하고, 상태가 나빠지거나 OSD가 다운되거나 용량이 부족해지는 순간 알려 줍니다. Ceph mgr의 `prometheus` 모듈이 내보내고 OneUptime Ceph Agent가 수집한 `ceph_*` 메트릭을 읽으므로, 외부에서 아무것도 프로브하지 않습니다.
+Ceph 모니터는 하나의 Ceph 클러스터(상태, 상태 확인, 모니터 쿼럼, OSD, 풀, 배치 그룹)를 감시하고, 상태가 나빠지거나 OSD가 다운되거나 용량이 부족해지는 순간 알려 줍니다. Ceph mgr의 `prometheus` 모듈이 내보내고 OneUptime Ceph Agent가 수집한 `ceph_*` 메트릭을 읽으므로, 외부에서 아무것도 프로브하지 않습니다.
 
 :::cards
 - [모니터 만들기](#ceph-모니터-만들기): 대시보드에서 진행하는 6단계.
 - [템플릿](#기본-제공-알림-템플릿): 보고를 멈춘 클러스터, 상태, OSD, 배치 그룹, 용량에 대한 24개의 기본 제공 알림.
-- [헬스 체크](#헬스-체크-시리즈): 모든 Ceph 헬스 체크에 대해 이름으로 알림을 설정합니다.
+- [상태 확인](#상태-확인-시리즈): 모든 Ceph 상태 확인에 대해 이름으로 알림을 설정합니다.
 - [메트릭](#수집되는-메트릭): 모니터가 알림을 보낼 수 있는 모든 `ceph_*` 시리즈.
 :::
 
@@ -42,7 +42,7 @@ flowchart TB
 
 - 포트 9283으로 모든 mgr 데몬에 접근할 수 있는 머신에 **Ceph Agent를 설치**하고, 그 데몬을 모두 `CEPH_MGR_ENDPOINTS`에 나열합니다. 설치 방법은 [Ceph 에이전트 가이드](/docs/telemetry/ceph)에서 다룹니다.
 - **클러스터가 등록되었는지 확인합니다.** 첫 스크레이프 후 약 1분이 지나면 에이전트의 `CEPH_CLUSTER_NAME` 이름으로 **제품 → 인프라 → Ceph → 모든 클러스터**에 표시됩니다.
-- **헬스 체크 알림을 쓰려면** Ceph Quincy 이상을 실행하세요. 이전 릴리스는 `ceph_health_detail`을 내보내지 않습니다.
+- **상태 확인 알림을 쓰려면** Ceph Quincy 이상을 실행하세요. 이전 릴리스는 `ceph_health_detail`을 내보내지 않습니다.
 
 ## Ceph 모니터 만들기
 
@@ -93,9 +93,9 @@ flowchart TB
 
 풀 데이터 시리즈에는 `pool_id` 레이블만 있습니다. 풀 이름은 `ceph_pool_metadata`에만 있습니다. 풀 시리즈는 `pool_id`로 필터링하고 그룹화하며, 이름이 필요하면 `ceph_pool_metadata`에서 찾아봅니다.
 
-### 헬스 체크 시리즈
+### 상태 확인 시리즈
 
-`ceph_health_detail` 은 **상태 점검마다 하나의 시리즈** 를 내보내며, 레이블은 `name`(예: `OSD_NEARFULL` 또는 `RECENT_CRASH`)과 `severity` 입니다. 점검의 시리즈는 점검이 활성인 동안 `1`, 해제된 뒤에는 `0` 이며, 한 번도 발생하지 않은 점검에는 시리즈가 없습니다. 모든 Ceph 헬스 체크에 대해 알림을 보내려면 그 `name`으로 필터링하고, **최대**가 `0`을 넘으면 발생시키고, **데이터가 없는 경우**를 **Treat As Zero**로 설정해 `0`에서 복구되게 합니다. 헬스 체크 템플릿이 바로 이렇게 만들어져 있습니다. `ceph_daemon_health_metrics`도 데몬별로 같은 방식으로 동작하며, `type` 레이블(예: `SLOW_OPS`)과 `ceph_daemon`이 키입니다.
+`ceph_health_detail` 은 **상태 확인마다 하나의 시리즈** 를 내보내며, 레이블은 `name`(예: `OSD_NEARFULL` 또는 `RECENT_CRASH`)과 `severity` 입니다. 점검의 시리즈는 점검이 활성인 동안 `1`, 해제된 뒤에는 `0` 이며, 한 번도 발생하지 않은 점검에는 시리즈가 없습니다. 모든 Ceph 상태 확인에 대해 알림을 보내려면 그 `name`으로 필터링하고, **최대**가 `0`을 넘으면 발생시키고, **데이터가 없는 경우**를 **Treat As Zero**로 설정해 `0`에서 복구되게 합니다. 상태 확인 템플릿이 바로 이렇게 만들어져 있습니다. `ceph_daemon_health_metrics`도 데몬별로 같은 방식으로 동작하며, `type` 레이블(예: `SLOW_OPS`)과 `ceph_daemon`이 키입니다.
 
 ## 기본 제공 알림 템플릿
 
@@ -109,7 +109,7 @@ flowchart TB
 | --- | --- | --- | --- | --- |
 | Cluster Stopped Reporting | 심각 | `ceph_health_status`, Count, 최근 10분 | 창 전체에 데이터 없음 | 데이터가 다시 들어옴 |
 
-**Cluster Stopped Reporting** 템플릿은 클러스터에서 10분 동안 아무것도 들어오지 않으면 발생합니다. Ceph Agent가 멈췄거나 OneUptime으로 가는 경로를 잃었거나 토큰이 취소된 경우, 또는 `prometheus` 모듈을 제공하는 mgr이 없는 경우입니다. 데이터가 돌아오면 해결됩니다. 데이터가 끊기면 다른 템플릿은 비교할 값이 없어 마지막 상태를 그대로 유지하고, 헬스 체크 템플릿은 보고를 멈춘 클러스터를 정상인 클러스터로 읽으므로, 이를 알려 주는 것은 이 템플릿입니다.
+**Cluster Stopped Reporting** 템플릿은 클러스터에서 10분 동안 아무것도 들어오지 않으면 발생합니다. Ceph Agent가 멈췄거나 OneUptime으로 가는 경로를 잃었거나 토큰이 취소된 경우, 또는 `prometheus` 모듈을 제공하는 mgr이 없는 경우입니다. 데이터가 돌아오면 해결됩니다. 데이터가 끊기면 다른 템플릿은 비교할 값이 없어 마지막 상태를 그대로 유지하고, 상태 확인 템플릿은 보고를 멈춘 클러스터를 정상인 클러스터로 읽으므로, 이를 알려 주는 것은 이 템플릿입니다.
 
 ### 클러스터 상태 템플릿
 
@@ -155,10 +155,10 @@ flowchart TB
 | OSD Full | 심각 | `name = OSD_FULL`인 `ceph_health_detail`, Max, 최근 1분 | 체크가 활성 상태: OSD가 full 임계값(기본값 95%)에 도달해 쓰기가 거부됨 | 체크가 사라짐 |
 
 - **다운과 쿼럼 템플릿은 최소를 사용**하므로, 다운된 OSD 하나나 쿼럼에서 빠진 모니터 하나가 정상인 다수에 가려지지 않고 템플릿을 발생시킵니다.
-- **개수와 헬스 체크 템플릿은 최대를 사용**하므로, 잘못된 스크레이프 한 번으로 충분합니다.
+- **개수와 상태 확인 템플릿은 최대를 사용**하므로, 잘못된 스크레이프 한 번으로 충분합니다.
 - **PG와 풀 시리즈는 풀별입니다**: 클러스터 전체 게이지가 없으므로 이 템플릿들은 `pool_id`로 그룹화하고 풀마다 인시던트를 하나씩 엽니다.
 - **용량 비율**은 양쪽의 **합계**를 사용합니다. 둘 다 같은 mgr 스크레이프에서 오므로 결과는 실제 백분율입니다. **Inactive Placement Groups**는 대신 풀별 **최대**를 사용합니다. 뺄셈에서 합계를 쓰면 여러 스크레이프가 더해지기 때문입니다.
-- **헬스 체크 템플릿**은 체크가 사라지면 복구됩니다. 복구 기준이 없는 시리즈를 0으로 세기 때문입니다.
+- **상태 확인 템플릿**은 체크가 사라지면 복구됩니다. 복구 기준이 없는 시리즈를 0으로 세기 때문입니다.
 
 일부 알림에는 템플릿이 없습니다. PG 불균형에는 기준이 계산할 수 없는, 여러 시리즈에 걸친 통계가 필요합니다. 용량 예측에는 증가 추세 피팅이 필요하며, 대신 클러스터 대시보드가 이를 그립니다. 디스크 장애 예측과 스크럽 지연에는 mgr 메트릭이 없고, NVMe-oF, RBD 미러링, cephadm에는 다른 익스포터가 필요합니다.
 
@@ -171,7 +171,7 @@ flowchart TB
 | 메트릭 | 단위 | 설명 |
 | --- | --- | --- |
 | `ceph_health_status` | — | 전체 상태: 0 = `HEALTH_OK`, 1 = `HEALTH_WARN`, 2 = `HEALTH_ERR`. |
-| `ceph_health_detail` | 개수 | **활성** 헬스 체크마다 시리즈 하나. 레이블은 `name`과 `severity`. Quincy 이상만 해당. |
+| `ceph_health_detail` | 개수 | **활성** 상태 확인마다 시리즈 하나. 레이블은 `name`과 `severity`. Quincy 이상만 해당. |
 | `ceph_healthcheck_slow_ops` | 개수 | `SLOW_OPS` 체크가 보고하는 느린 OSD 및 모니터 작업. |
 | `ceph_daemon_health_metrics` | 개수 | 데몬별 상태 메트릭. 키는 `type`(예: `SLOW_OPS`)과 `ceph_daemon`. |
 | `ceph_mon_quorum_status` | 개수 | 모니터가 쿼럼에 있으면 1. `ceph_daemon`(예: `mon.a`)별. |
@@ -263,14 +263,14 @@ flowchart TB
 기준이 **보다 큼**이 아니라 **이상** `1`을 쓰는지, 그리고 모니터의 **시간 범위**가 30초 간격의 스크레이프를 적어도 한 번 포함하는지 확인합니다.
 :::
 
-:::details 헬스 체크 템플릿이 발생하지 않음
+:::details 상태 확인 템플릿이 발생하지 않음
 `ceph_health_detail`을 감시하는 템플릿(Daemon Crash, Monitor Clock Skew, OSD Nearfull, OSD Backfillfull, OSD Full, 모니터 디스크 템플릿 두 개, Damaged Placement Groups, OSD Slow Heartbeats)에는 Quincy 이상의 mgr `prometheus` 모듈이 필요합니다. 체크가 활성 상태인 동안 시리즈가 있는지 확인하세요:
 
 ```bash
 curl http://ACTIVE_MGR:9283/metrics | grep ceph_health_detail
 ```
 
-한 번도 발생하지 않은 상태 점검에는 시리즈가 없고(`ceph_daemon_health_metrics` 포함), 해제된 점검은 `0` 이므로, 클러스터가 정상일 때 시리즈가 없거나 0만 보이는 것은 예상된 결과입니다.
+한 번도 발생하지 않은 상태 확인에는 시리즈가 없고(`ceph_daemon_health_metrics` 포함), 해제된 점검은 `0` 이므로, 클러스터가 정상일 때 시리즈가 없거나 0만 보이는 것은 예상된 결과입니다.
 :::
 
 :::details ceph_pool_wr_bytes 같은 카운터가 계속 증가하기만 함

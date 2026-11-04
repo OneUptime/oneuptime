@@ -114,7 +114,7 @@ La connectivité des appareils est une exigence distincte. Les appareils iOS ont
 
 :::steps
 1. Vérifiez le DNS et le HTTPS depuis le conteneur ou le pod qui envoie les notifications vers la destination de votre mode de livraison : le relais, Expo ou le service push d'un navigateur.
-2. Envoyez un test depuis **Paramètres utilisateur > Méthodes de notification > Push Notifications** avec **Notification de test**, et confirmez qu'il arrive sur un appareil enregistré. Pour le Web Push, testez chaque navigateur séparément.
+2. Envoyez un test depuis **Paramètres utilisateur > Méthodes de notification > Notifications push** avec **Notification de test**, et confirmez qu'il arrive sur un appareil enregistré. Pour le Web Push, testez chaque navigateur séparément.
 3. Cherchez les erreurs du relais, d'Expo ou du Web Push dans les logs de OneUptime ; un envoi réussi à l'API ne confirme pas à lui seul la livraison sur l'appareil.
 :::
 
@@ -122,12 +122,12 @@ Pour les push mobiles, OneUptime lit aussi l'accusé de livraison d'Expo environ
 
 ## Désactiver le push sur tout le serveur
 
-Si rien ne doit quitter votre réseau via Expo, le relais push ou le service push d'un navigateur, un administrateur principal peut désactiver le push dans **Admin Dashboard > Paramètres > Push Notifications** : désactivez **Send push notifications** et confirmez.
+Si rien ne doit quitter votre réseau via Expo, le relais push ou le service push d'un navigateur, un administrateur principal peut désactiver le push dans **Admin Dashboard > Paramètres > Notifications push** : désactivez **Send push notifications** et confirmez.
 
 Tant que le push est désactivé :
 
 - Rien n'est envoyé par push aux téléphones ni aux navigateurs, dans aucun projet.
-- Aucun appareil ne peut être enregistré. L'onglet **Push Notifications** de chaque personne, sous **Paramètres utilisateur > Méthodes de notification**, indique que le push est désactivé, et les règles d'astreinte ne proposent aucun appareil push.
+- Aucun appareil ne peut être enregistré. L'onglet **Notifications push** de chaque personne, sous **Paramètres utilisateur > Méthodes de notification**, indique que le push est désactivé, et les règles d'astreinte ne proposent aucun appareil push.
 - Une alerte passant par une règle push n'est pas envoyée. Le journal d'astreinte de la personne indique `Push notification not sent: Push notifications are turned off on this server.`
 - La disponibilité d'astreinte compte les appareils push comme inutilisables, et le repli les ignore. Une personne dont la seule méthode vérifiée est un appareil push apparaît comme injoignable.
 
@@ -191,7 +191,7 @@ Deux mécanismes interviennent, et ils couvrent des cas différents :
 Android fige les réglages d'un canal à sa première création : ils ne peuvent donc pas être modifiés par une mise à jour de l'application – seulement en livrant un nouvel identifiant de canal.
 :::
 
-Pour vérifier que cela fonctionne, envoyez une notification de test à l'appareil depuis **Paramètres utilisateur > Méthodes de notification > Push Notifications**. Si l'appareil a les alertes critiques activées, le test est lui aussi envoyé comme alerte critique – mettez donc d'abord le téléphone en silencieux, et vous entendrez si une vraie alerte vous atteindrait. La même liste indique pour chaque appareil si les alertes critiques sont activées et, pour un téléphone où elles ne le sont pas, comment les activer.
+Pour vérifier que cela fonctionne, envoyez une notification de test à l'appareil depuis **Paramètres utilisateur > Méthodes de notification > Notifications push**. Si l'appareil a les alertes critiques activées, le test est lui aussi envoyé comme alerte critique – mettez donc d'abord le téléphone en silencieux, et vous entendrez si une vraie alerte vous atteindrait. La même liste indique pour chaque appareil si les alertes critiques sont activées et, pour un téléphone où elles ne le sont pas, comment les activer.
 
 ### Choisir le son d'alarme
 
@@ -214,7 +214,7 @@ Une règle push peut renvoyer son alerte jusqu'à ce que quelqu'un la prenne en 
 - Vérifiez que l'appareil est enregistré dans la table `UserPush` de votre base de données
 - Cherchez les erreurs de l'API Expo Push dans les logs du serveur OneUptime
 - Confirmez que l'appareil a une connexion Internet active et que les notifications sont autorisées
-- Consultez **Paramètres utilisateur > Méthodes de notification > Push Notifications** : un appareil marqué **Ne reçoit pas de notifications** a cessé de les recevoir et doit être réenregistré (voir ci-dessous)
+- Consultez **Paramètres utilisateur > Méthodes de notification > Notifications push** : un appareil marqué **Ne reçoit pas de notifications** a cessé de les recevoir et doit être réenregistré (voir ci-dessous)
 
 ### Pas d'interrupteur Critical Alerts dans les réglages iOS
 
@@ -244,7 +244,7 @@ Quand Expo refuse un push d'emblée, le journal des push en donne la raison imm�
 
 ### Erreurs « DeviceNotRegistered » dans les logs
 
-Expo signale `DeviceNotRegistered` lorsque l'application mobile a été supprimée de l'appareil ou que le jeton push de l'appareil n'est plus valide. Il l'indique généralement dans l'accusé de livraison d'un push, que OneUptime lit environ 15 minutes après le push, et refuse parfois le push d'emblée. Dans les deux cas, OneUptime cesse d'envoyer à cet appareil. Il est marqué comme ne recevant plus de notifications plutôt que supprimé, ses règles de notification restent donc, et le journal des push et la chronologie d'astreinte de l'alerte qui n'est pas arrivée en donnent la raison. **Paramètres utilisateur > Méthodes de notification > Push Notifications** l'affiche comme **Ne reçoit pas de notifications**. Les autres appareils et méthodes de notification de son propriétaire sont toujours alertés.
+Expo signale `DeviceNotRegistered` lorsque l'application mobile a été supprimée de l'appareil ou que le jeton push de l'appareil n'est plus valide. Il l'indique généralement dans l'accusé de livraison d'un push, que OneUptime lit environ 15 minutes après le push, et refuse parfois le push d'emblée. Dans les deux cas, OneUptime cesse d'envoyer à cet appareil. Il est marqué comme ne recevant plus de notifications plutôt que supprimé, ses règles de notification restent donc, et le journal des push et la chronologie d'astreinte de l'alerte qui n'est pas arrivée en donnent la raison. **Paramètres utilisateur > Méthodes de notification > Notifications push** l'affiche comme **Ne reçoit pas de notifications**. Les autres appareils et méthodes de notification de son propriétaire sont toujours alertés.
 
 Pour récupérer l'appareil, ouvrez-y l'application mobile en étant connecté. L'application se réenregistre, ce qui renouvelle son jeton push auprès d'Expo, et l'appareil reçoit de nouveau les notifications avec ses règles. Si l'application a été supprimée, réinstallez-la et connectez-vous. Un accusé pour un push envoyé avant le réenregistrement de l'application ne marque pas l'appareil. Quand une application mobile à jour est configurée sur un nouveau téléphone à partir d'une sauvegarde de l'ancien, elle communique à OneUptime le jeton push qu'elle avait auparavant ; si l'appareil de l'ancien téléphone ne reçoit plus de notifications, le nouveau téléphone le reprend avec ses règles.
 

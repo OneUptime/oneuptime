@@ -66,6 +66,8 @@ export enum AIChatCitationTargetType {
   DataSecurityIssues = "DataSecurityIssues",
   DataSecurityIssueView = "DataSecurityIssueView",
   DataSecurityAccess = "DataSecurityAccess",
+  // Data Observability: one watched table ({ dataAssetId }).
+  DataTableView = "DataTableView",
 }
 
 export interface AIChatCitationTarget {

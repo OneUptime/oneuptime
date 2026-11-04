@@ -143,7 +143,7 @@ OneUptime Cloud 에서 알림 규칙과 요약은 **Growth** 플랜 이상에서
 
 :::steps
 1. 자신의 Slack 계정을 연결합니다 ( [Slack 연결하기](#slack-연결하기) 참조).
-2. **사용자 설정** > **알림 방법** 으로 이동해 **Workspace Apps** 탭을 열고 **Add Slack Account** 를 클릭합니다.
+2. **사용자 설정** > **알림 방법** 으로 이동해 **워크스페이스 앱** 탭을 열고 **Add Slack Account** 를 클릭합니다.
 3. 해당 행에서 **Send Test Message** 를 클릭합니다. Slack 다이렉트 메시지로 메시지가 도착합니다.
 :::
 

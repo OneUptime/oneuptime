@@ -24,6 +24,7 @@ import GreaterThan from "Common/Types/BaseDatabase/GreaterThan";
 import SortOrder from "Common/Types/BaseDatabase/SortOrder";
 import { PromiseVoidFunction } from "Common/Types/FunctionTypes";
 import LineChartElement from "Common/UI/Components/Charts/Line/LineChart";
+import { withTranslatedSeriesNames } from "Common/UI/Components/Charts/Utils/SeriesNames";
 import ChartCurve from "Common/UI/Components/Charts/Types/ChartCurve";
 import XAxisType from "Common/UI/Components/Charts/Types/XAxis/XAxisType";
 import YAxisType from "Common/UI/Components/Charts/Types/YAxis/YAxisType";
@@ -805,7 +806,7 @@ const HostSystemdUnitView: FunctionComponent<
         </div>
         <div className="rounded-xl border border-gray-200 bg-white p-4 shadow-sm">
           <LineChartElement
-            data={data}
+            data={withTranslatedSeriesNames(data, translator)}
             xAxis={xAxis}
             yAxis={yAxis}
             curve={ChartCurve.STEP}

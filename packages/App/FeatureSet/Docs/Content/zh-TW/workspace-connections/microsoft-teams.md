@@ -141,7 +141,7 @@ flowchart TB
 
 :::steps
 1. 連接您自己的 Microsoft Teams 帳戶（請參閱 [連接 Microsoft Teams](#連接-microsoft-teams) ）。
-2. 前往 **使用者設定** > **通知方式**，開啟 **Workspace Apps** 分頁，然後按一下 **Add Microsoft Teams Account**。
+2. 前往 **使用者設定** > **通知方式**，開啟 **工作區應用程式** 分頁，然後按一下 **Add Microsoft Teams Account**。
 3. 在其所在列按一下 **Send Test Message**。訊息會送到您的 Microsoft Teams 聊天。
 :::
 

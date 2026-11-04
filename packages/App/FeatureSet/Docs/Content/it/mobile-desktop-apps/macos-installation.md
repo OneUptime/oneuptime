@@ -61,7 +61,7 @@ L'app mostra notifiche una volta che l'hai registrata per le notifiche push, in 
 
 :::steps
 ### Aprire i tuoi dispositivi push
-Nell'app, apri **Impostazioni utente → Metodi di notifica** e la scheda **Push Notifications**.
+Nell'app, apri **Impostazioni utente → Metodi di notifica** e la scheda **Notifiche push**.
 
 ### Registrare questa app
 Fai clic su **Registra dispositivo**, mantieni il valore proposto in **Nome del dispositivo**, ad esempio `Safari on macOS`, o modificalo, e fai di nuovo clic su **Registra dispositivo**. Quando macOS o il browser chiede se OneUptime può inviare notifiche, scegli **Consenti**.
@@ -89,7 +89,7 @@ Nella finestra dell'app, apri il menu **⋮**, scegli la voce che disinstalla l'
 Apri `edge://apps` in Edge, scegli **Dettagli** su OneUptime, poi **Disinstalla**.
 :::
 
-Disinstallare l'app non ne annulla la registrazione: il suo browser continua a ricevere notifiche. Per fermarle, eliminala in **Impostazioni utente → Metodi di notifica**, nella scheda **Push Notifications**, con **Elimina**.
+Disinstallare l'app non ne annulla la registrazione: il suo browser continua a ricevere notifiche. Per fermarle, eliminala in **Impostazioni utente → Metodi di notifica**, nella scheda **Notifiche push**, con **Elimina**.
 
 ## Risoluzione dei problemi
 
@@ -98,7 +98,7 @@ Safari aggiunge app web al Dock a partire da macOS Sonoma 14. Aggiorna macOS, op
 :::
 
 :::details Non compare nessuna notifica
-- In **Impostazioni utente → Metodi di notifica**, scheda **Push Notifications**, controlla che l'app o il suo browser sia elencato, e inviagli una **Notifica di test**.
+- In **Impostazioni utente → Metodi di notifica**, scheda **Notifiche push**, controlla che l'app o il suo browser sia elencato, e inviagli una **Notifica di test**.
 - Sul Mac, apri **Impostazioni di Sistema → Notifiche** e controlla che OneUptime, o il browser da cui è stato installato, possa inviare notifiche, e che nessuna modalità Full immersion le trattenga.
 - Se il browser blocca le notifiche per OneUptime, consentile nelle sue impostazioni per il sito e registra di nuovo.
 - Su un OneUptime self-hosted, la finestra di dialogo **Registra dispositivo** indica quando il server non ha le chiavi VAPID.

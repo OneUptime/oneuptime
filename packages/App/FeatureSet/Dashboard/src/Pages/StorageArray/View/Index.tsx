@@ -1322,7 +1322,7 @@ const StorageArrayOverview: FunctionComponent<
     return (
       <div className="mb-6 grid grid-cols-1 gap-4 sm:grid-cols-2 lg:grid-cols-5">
         <GoldenMetricTile
-          title={translator.translateText("Capacity Used") as string}
+          title="Capacity Used"
           description={STORAGE_ARRAY_METRIC_DESCRIPTIONS.capacityUsed}
           icon={IconProp.ChartBar}
           iconColor="blue"
@@ -1332,15 +1332,15 @@ const StorageArrayOverview: FunctionComponent<
           thresholds={{ warn: 80, danger: 90 }}
         />
         <GoldenMetricTile
-          title={translator.translateText("Data Reduction") as string}
+          title="Data Reduction"
           description={STORAGE_ARRAY_METRIC_DESCRIPTIONS.dataReduction}
           icon={IconProp.SquareStack}
           iconColor="violet"
           value={StorageArrayResourceUtils.formatRatio(dataReduction)}
-          sublabel={translator.translateText("deduplication and compression")}
+          sublabel="deduplication and compression"
         />
         <GoldenMetricTile
-          title={translator.translateText("Open Alerts") as string}
+          title="Open Alerts"
           description={STORAGE_ARRAY_METRIC_DESCRIPTIONS.openAlerts}
           icon={IconProp.Alert}
           iconColor="amber"
@@ -1358,7 +1358,7 @@ const StorageArrayOverview: FunctionComponent<
           )}
         />
         <GoldenMetricTile
-          title={translator.translateText("Unhealthy Hardware") as string}
+          title="Unhealthy Hardware"
           description={STORAGE_ARRAY_METRIC_DESCRIPTIONS.unhealthyHardware}
           icon={IconProp.CPUChip}
           iconColor="emerald"
@@ -1381,7 +1381,7 @@ const StorageArrayOverview: FunctionComponent<
         />
         {isFlashBlade ? (
           <GoldenMetricTile
-            title={translator.translateText("File Systems") as string}
+            title="File Systems"
             description={STORAGE_ARRAY_METRIC_DESCRIPTIONS.fileSystemsTile}
             icon={IconProp.Folder}
             iconColor="sky"
@@ -1398,7 +1398,7 @@ const StorageArrayOverview: FunctionComponent<
           />
         ) : (
           <GoldenMetricTile
-            title={translator.translateText("Volumes") as string}
+            title="Volumes"
             description={STORAGE_ARRAY_METRIC_DESCRIPTIONS.volumesTile}
             icon={IconProp.Disc}
             iconColor="sky"

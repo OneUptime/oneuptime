@@ -337,6 +337,8 @@ curl https://oneuptime.com/mcp/tools
 
 **`oneuptime_whoami`** 工具返回您的凭据所属的项目（其 ID 和名称）。对于已登录的客户端，它还会说明以谁的身份登录以及是否可以进行更改。这是代理了解自身处境的理想首次调用，并且由于创建工具会从凭据中获取 `projectId`，代理永远不必传递项目 ID。
 
+**`get_data_table_freshness`** 工具在智能体使用数据之前，告诉它 Data Observability 监视的某张表是否新鲜：按表自身的节奏判断是新鲜还是延迟、最后一次变更的时间、未关闭的告警，以及写入该表的每条管道最近一次运行的结果。`table` 传入 `schema.table`、仅表名或其 ID。它不做任何更改。
+
 ## 查询遥测
 
 日志、指标、追踪（span）、异常、监视器日志和其他种类的遥测以只读的 `list_` 和 `count_` 工具提供（`list_logs`、`list_metrics`、`list_spans`、`list_exception_instances`、`list_monitor_logs` 及其对应的 `count_` 工具）。遥测通过 OpenTelemetry 传入，因此没有创建工具。

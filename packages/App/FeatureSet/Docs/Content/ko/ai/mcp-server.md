@@ -337,6 +337,8 @@ curl https://oneuptime.com/mcp/tools
 
 **`oneuptime_whoami`** 도구는 자격 증명이 속한 프로젝트(ID와 이름)를 반환합니다. 로그인한 클라이언트라면 누구로 로그인했는지, 변경할 수 있는지도 알려 줍니다. 에이전트가 상황을 파악하기에 좋은 첫 호출이며, 생성 도구는 자격 증명에서 `projectId` 를 가져오므로 에이전트가 프로젝트 ID를 넘길 필요가 없습니다.
 
+**`get_data_table_freshness`** 도구는 에이전트가 데이터를 사용하기 전에 Data Observability가 감시하는 테이블이 최신인지 알려 줍니다. 테이블 자체의 주기에 비춰 최신인지 지연되었는지, 마지막으로 변경된 시각, 열린 알림, 그리고 그 테이블에 쓰는 각 파이프라인의 최근 실행 결과입니다. `table`에는 `schema.table`, 테이블 이름만, 또는 ID를 전달합니다. 아무것도 변경하지 않습니다.
+
 ## 텔레메트리 조회하기
 
 로그, 메트릭, 트레이스(스팬), 예외, 모니터 로그 등의 텔레메트리는 읽기 전용 `list_` 및 `count_` 도구로 제공됩니다(`list_logs`, `list_metrics`, `list_spans`, `list_exception_instances`, `list_monitor_logs` 와 각각의 `count_` 짝). 텔레메트리는 OpenTelemetry로 들어오므로 생성 도구는 없습니다.

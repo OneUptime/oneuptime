@@ -34,7 +34,11 @@ export interface DataCheckTarget {
 
 export interface DataCheckStatement {
   sql: string;
-  // In order, for the engine's placeholders: $1 (PostgreSQL), ? (MySQL), @p0 (SQL Server).
+  /*
+   * In order, for the engine's placeholders: $1 (PostgreSQL), ? (MySQL,
+   * Snowflake, BigQuery), @p0 (SQL Server), {p1:String} (ClickHouse), :p1
+   * (Databricks).
+   */
   params: Array<string>;
   // Whether the statement reads one row per segment.
   isSegmented: boolean;
@@ -62,8 +66,10 @@ export function quoteIdentifier(engine: DatabaseEngine, name: string): string {
 
   switch (engine) {
     case "mysql":
+    case "databricks":
       return `\`${name.replace(/`/g, "``")}\``;
     case "bigquery":
+    case "clickhouse":
       return `\`${name.replace(/[`\\]/g, "\\$&")}\``;
     case "sqlserver":
       return `[${name.replace(/\]/g, "]]")}]`;
@@ -72,7 +78,7 @@ export function quoteIdentifier(engine: DatabaseEngine, name: string): string {
   }
 }
 
-function tableReference(
+export function tableReference(
   engine: DatabaseEngine,
   schemaName: string,
   tableName: string,
@@ -93,6 +99,12 @@ function placeholder(engine: DatabaseEngine, index: number): string {
     case "sqlserver":
       // The session binds @p0, @p1, ... (TableHealthCollector).
       return `@p${index - 1}`;
+    // Query parameters of the HTTP interface (ClickHouseHttpApi).
+    case "clickhouse":
+      return `{p${index}:String}`;
+    // Named parameters of the SQL Statement Execution API (DatabricksApi).
+    case "databricks":
+      return `:p${index}`;
     default:
       return `$${index}`;
   }
@@ -105,7 +117,11 @@ function asText(engine: DatabaseEngine, expression: string): string {
     case "sqlserver":
       return `CAST(${expression} AS NVARCHAR(4000))`;
     case "bigquery":
+    case "databricks":
       return `CAST(${expression} AS STRING)`;
+    // A NULL stays NULL: CAST to String would refuse it.
+    case "clickhouse":
+      return `toString(${expression})`;
     default:
       return `CAST(${expression} AS TEXT)`;
   }
@@ -119,6 +135,10 @@ function asNumber(engine: DatabaseEngine, expression: string): string {
       return `CAST(${expression} AS FLOAT)`;
     case "bigquery":
       return `CAST(${expression} AS FLOAT64)`;
+    case "databricks":
+      return `CAST(${expression} AS DOUBLE)`;
+    case "clickhouse":
+      return `toFloat64(${expression})`;
     default:
       return `CAST(${expression} AS DOUBLE PRECISION)`;
   }
@@ -208,7 +228,11 @@ function valueExpression(
               `REGEXP_INSTR(${asText(engine, column)}, ${placeholder(engine, params.length)}) = 0`
             : engine === "bigquery"
               ? `NOT REGEXP_CONTAINS(${asText(engine, column)}, ${placeholder(engine, params.length)})`
-              : `${asText(engine, column)} !~ ${placeholder(engine, params.length)}`;
+              : engine === "clickhouse"
+                ? `NOT match(${asText(engine, column)}, ${placeholder(engine, params.length)})`
+                : engine === "databricks"
+                  ? `NOT (${asText(engine, column)} RLIKE ${placeholder(engine, params.length)})`
+                  : `${asText(engine, column)} !~ ${placeholder(engine, params.length)}`;
 
       return `100.0 * SUM(CASE WHEN ${column} IS NOT NULL AND ${mismatch} THEN 1 ELSE 0 END) / NULLIF(COUNT(${column}), 0)`;
     }
@@ -315,8 +339,18 @@ export function buildDataCheckStatement(
       engine,
       target.referenceColumnName,
     );
-    const from: string = `${table} AS checked LEFT JOIN ${reference} AS referenced ON checked.${column} = referenced.${referenceColumn}`;
-    const where: string = `checked.${column} IS NOT NULL AND referenced.${referenceColumn} IS NULL`;
+    /*
+     * ClickHouse fills a LEFT JOIN's missing side with default values, not
+     * NULL, so a value with no row to refer to is one NOT IN the other's.
+     */
+    const from: string =
+      engine === "clickhouse"
+        ? `${table} AS checked`
+        : `${table} AS checked LEFT JOIN ${reference} AS referenced ON checked.${column} = referenced.${referenceColumn}`;
+    const where: string =
+      engine === "clickhouse"
+        ? `checked.${column} IS NOT NULL AND checked.${column} NOT IN (SELECT ${referenceColumn} FROM ${reference})`
+        : `checked.${column} IS NOT NULL AND referenced.${referenceColumn} IS NULL`;
 
     if (segment) {
       return {

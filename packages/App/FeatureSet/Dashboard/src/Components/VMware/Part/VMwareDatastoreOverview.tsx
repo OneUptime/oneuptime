@@ -154,7 +154,7 @@ const VMwareDatastoreOverview: FunctionComponent<ComponentProps> = (
         data-testid="vmware-datastore-tiles"
       >
         <GoldenMetricTile
-          title={tx("Used")}
+          title="Used"
           icon={IconProp.Database}
           iconColor="amber"
           value={formatPercent(percent)}
@@ -174,7 +174,7 @@ const VMwareDatastoreOverview: FunctionComponent<ComponentProps> = (
           description={VMWARE_METRIC_DESCRIPTIONS.datastoreUsedPercent}
         />
         <GoldenMetricTile
-          title={tx("Free")}
+          title="Free"
           icon={IconProp.SquareStack}
           iconColor="emerald"
           value={formatBytes(free)}
@@ -189,7 +189,7 @@ const VMwareDatastoreOverview: FunctionComponent<ComponentProps> = (
         />
         {hasForecast ? (
           <GoldenMetricTile
-            title={tx("Growth Forecast")}
+            title="Growth Forecast"
             icon={IconProp.ArrowTrendingUp}
             iconColor="violet"
             value={
