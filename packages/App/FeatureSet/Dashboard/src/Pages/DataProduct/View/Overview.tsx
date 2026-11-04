@@ -297,7 +297,7 @@ const DataProductOverviewPage: FunctionComponent<
 
       <Card
         title="Status Page and SLO"
-        description="The data product's monitor is the product on a status page: Degraded while a table is late, with an incident that reaches the page's subscribers. Its SLO tracks the SLA over 30 days, with fast and slow burn-rate alerts."
+        description="The data product's monitor shows it on a status page: Degraded while a table is late, with an incident its subscribers hear of. Its SLO tracks the SLA over 30 days, with fast and slow burn-rate alerts."
         buttons={[
           {
             title:

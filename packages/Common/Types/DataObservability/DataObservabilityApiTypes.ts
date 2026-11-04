@@ -17,6 +17,8 @@ export const DATA_OBSERVABILITY_API_ROUTES: {
   dataProductSync: (dataProductId: string) => string;
   dataProductBadge: (dataProductId: string) => string;
   dataProductBadgeReset: (dataProductId: string) => string;
+  reconciliationSync: (reconciliationId: string) => string;
+  reconciliationRunNow: (reconciliationId: string) => string;
 } = {
   overview: "/data-observability/overview",
   stores: "/data-observability/stores",
@@ -44,7 +46,21 @@ export const DATA_OBSERVABILITY_API_ROUTES: {
   dataProductBadgeReset: (dataProductId: string): string => {
     return `/data-observability/data-products/${dataProductId}/badge/reset`;
   },
+  // Makes the reconciliation's two checks and its monitor match it.
+  reconciliationSync: (reconciliationId: string): string => {
+    return `/data-observability/reconciliations/${reconciliationId}/sync`;
+  },
+  // Reads both sides at their stores' very next collections, together.
+  reconciliationRunNow: (reconciliationId: string): string => {
+    return `/data-observability/reconciliations/${reconciliationId}/run-now`;
+  },
 };
+
+export interface DataObservabilityReconciliationSyncResponse {
+  sourceDataCheckId: string;
+  targetDataCheckId: string;
+  monitorId: string;
+}
 
 export interface DataObservabilityDataProductSyncResponse {
   monitorId: string;

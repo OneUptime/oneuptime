@@ -446,6 +446,52 @@ describe("Data Observability registry wiring", () => {
     }
   });
 
+  test("reconciliations - model, service, migration, CRUD API, their sweep, comparing on ingest, and their page - are wired", () => {
+    expect(readSquashed("Common/Models/DatabaseModels/Index.ts")).toContain(
+      "DataReconciliation,",
+    );
+    expect(readSquashed("Common/Server/Services/Index.ts")).toContain(
+      "DataReconciliationService,",
+    );
+    expect(readSquashed("App/FeatureSet/BaseAPI/Index.ts")).toMatch(
+      /new BaseAPI<\s*DataReconciliation,\s*DataReconciliationServiceType\s*>\(\s*DataReconciliation,\s*DataReconciliationService,?\s*\)/,
+    );
+
+    const migrations: string = readSquashed(
+      "Common/Server/Infrastructure/Postgres/SchemaMigrations/Index.ts",
+    );
+
+    expect(migrations).toContain(
+      'import { AddDataReconciliations1808992200000 } from "./1808992200000-AddDataReconciliations";',
+    );
+    expect(
+      migrations.indexOf("AddDataReconciliations1808992200000,"),
+    ).toBeGreaterThan(migrations.indexOf("AddDataProducts1808992100000,"));
+
+    const migration: string = readSquashed(
+      "Common/Server/Infrastructure/Postgres/SchemaMigrations/1808992200000-AddDataReconciliations.ts",
+    );
+
+    expect(migration).toContain('CREATE TABLE "DataReconciliation"');
+    expect(migration).toContain(
+      'ALTER TABLE "DataCheck" ADD "dataReconciliationId" uuid',
+    );
+
+    expect(
+      readSquashed(
+        "App/FeatureSet/Workers/Jobs/DataObservability/DataObservabilityJobs.ts",
+      ),
+    ).toContain("DataReconciliationCompare.compareAll(");
+    expect(
+      readSquashed("Common/Server/Utils/DataObservability/DataCheckIngest.ts"),
+    ).toContain("DataReconciliationCompare.compareForReconciliations(");
+    expect(
+      readSquashed(
+        "App/FeatureSet/Dashboard/src/Routes/DataObservabilityRoutes.tsx",
+      ),
+    ).toContain("<DataObservabilityReconciliationsPage");
+  });
+
   test("the Workers import its jobs, and the probe ingest mounts its routes", () => {
     expect(readSquashed("App/FeatureSet/Workers/Index.ts")).toContain(
       'import "./Jobs/DataObservability/DataObservabilityJobs"',

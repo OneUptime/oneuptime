@@ -51,6 +51,13 @@ const DataObservabilitySideMenu: FunctionComponent = (): ReactElement => {
         />
         <SideMenuItem
           link={{
+            title: "Reconciliations",
+            to: routeOf(PageMap.DATA_OBSERVABILITY_RECONCILIATIONS),
+          }}
+          icon={IconProp.Scale}
+        />
+        <SideMenuItem
+          link={{
             title: "Pipelines",
             to: routeOf(PageMap.DATA_OBSERVABILITY_PIPELINES),
           }}

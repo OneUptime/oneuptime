@@ -5,8 +5,10 @@ import DataAsset from "../../Models/DatabaseModels/DataAsset";
 import Model from "../../Models/DatabaseModels/DataCheck";
 import DataStore from "../../Models/DatabaseModels/DataStore";
 import CreateBy from "../Types/Database/CreateBy";
+import DeleteBy from "../Types/Database/DeleteBy";
 import UpdateBy from "../Types/Database/UpdateBy";
-import { OnCreate, OnUpdate } from "../Types/Database/Hooks";
+import { OnCreate, OnDelete, OnUpdate } from "../Types/Database/Hooks";
+import QueryHelper from "../Types/Database/QueryHelper";
 import {
   DataAssetColumn,
   readDataAssetColumns,
@@ -30,7 +32,9 @@ import {
  * table it refers to must be ones the collection saw - and runs at the
  * store's next collection once saved or changed. A dbt test's check is
  * made and kept by its project's uploaded artifacts (DbtIngest): a person
- * turns it off or on, and sets its alert, and nothing else.
+ * turns it off or on, and sets its alert, and nothing else. A check that
+ * reads one side of a reconciliation is made and kept by the reconciliation
+ * (DataReconciliationSync): nobody changes or deletes it but through it.
  */
 
 // The table a check reads, under both of its names.
@@ -45,6 +49,9 @@ const DBT_TEST_EDITABLE_FIELDS: ReadonlyArray<string> = [
 
 const DBT_TEST_REFUSAL: string =
   "A dbt test is defined in your dbt project and comes from its artifacts: here it is only turned off or on, and alerted on.";
+
+const RECONCILIATION_REFUSAL: string =
+  "This check reads one side of a reconciliation, which keeps it: change or delete it from the reconciliation, under Reconciliations.";
 
 // The fields of a check that decide what it runs.
 const RUN_FIELDS: ReadonlyArray<string> = [
@@ -121,6 +128,10 @@ export class Service extends ProjectReferencesService<Model> {
     // A person sets only whether a dbt test is recorded, and its alert.
     if (!updateBy.props.isRoot && data["checkType"] === DataCheckType.DbtTest) {
       throw new BadDataException(DBT_TEST_REFUSAL);
+    }
+
+    if (!updateBy.props.isRoot) {
+      await this.refuseReconciliationChecks(updateBy.query);
     }
 
     const changesDbtTestDefinition: boolean =
@@ -218,6 +229,32 @@ export class Service extends ProjectReferencesService<Model> {
 
     (updateBy.data as unknown as JSONObject)["nextRunAt"] =
       OneUptimeDate.getCurrentDate();
+  }
+
+  protected override async onBeforeDelete(
+    deleteBy: DeleteBy<Model>,
+  ): Promise<OnDelete<Model>> {
+    if (!deleteBy.props.isRoot) {
+      await this.refuseReconciliationChecks(deleteBy.query);
+    }
+
+    return { deleteBy, carryForward: undefined };
+  }
+
+  // A reconciliation's checks are changed and deleted only through it.
+  private async refuseReconciliationChecks(
+    query: UpdateBy<Model>["query"],
+  ): Promise<void> {
+    const managed: number = (
+      await this.countBy({
+        query: { ...query, dataReconciliationId: QueryHelper.notNull() },
+        props: { isRoot: true },
+      })
+    ).toNumber();
+
+    if (managed > 0) {
+      throw new BadDataException(RECONCILIATION_REFUSAL);
+    }
   }
 
   private async readAsset(
