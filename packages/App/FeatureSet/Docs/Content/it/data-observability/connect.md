@@ -9,12 +9,16 @@ Osservabilità dei dati legge ogni database con un utente che legge solo il suo 
 
 ## Scegliere chi si collega
 
-In **Osservabilità dei dati > Database**, scegli **Connect a Database**, poi:
+In **Osservabilità dei dati > Database**, scegli **Collega un database**, poi:
 
-- **OneUptime connects**: incolla una stringa di connessione. Viene salvata cifrata, usata solo dai worker di OneUptime e non viene mai più mostrata.
-- **A probe in my network connects**: scegli una delle tue sonde e indica la variabile d'ambiente sulla sonda che contiene la stringa di connessione, ad esempio `ORDERS_DB_URL`. La stringa di connessione non lascia mai la tua rete. Vedi [Sonde personalizzate](/docs/probe/custom-probe).
+- **OneUptime si collega**: incolla una stringa di connessione. Viene salvata cifrata, usata solo dai worker di OneUptime e non viene mai più mostrata.
+- **Una sonda nella mia rete si collega**: scegli una delle tue sonde e indica la variabile d'ambiente sulla sonda che contiene la stringa di connessione, ad esempio `ORDERS_DB_URL`. La stringa di connessione non lascia mai la tua rete. Vedi [Sonde personalizzate](/docs/probe/custom-probe).
 
 Anche un database già collegato per Sicurezza dei dati viene sorvegliato, senza nulla da collegare, e così ogni dataset BigQuery trovato dalla tua [connessione cloud](/docs/telemetry/cloud-accounts).
+
+## Database che potresti collegare
+
+**Database che potresti collegare**, in **Database**, elenca ciò che il tuo progetto già conosce e nessuno ha collegato: database con cui parlano i tuoi trace, database nei tuoi account cloud e database che Database Monitoring sorveglia. **Collega** avvia il modulo a partire da ciò che si sa di ciascuno, con una stringa di connessione da compilare. **Nascondi** impedisce che uno ricompaia. Non si legge nulla finché non lo colleghi.
 
 ## Un utente di sola lettura, per motore
 
@@ -30,7 +34,7 @@ La stringa di connessione: `postgres://oneuptime_reader:...@orders-db.internal:5
 @tab MySQL and MariaDB
 ```sql
 CREATE USER 'oneuptime_reader'@'%' IDENTIFIED BY '...';
-GRANT SHOW VIEW ON orders.* TO 'oneuptime_reader'@'%';
+GRANT SHOW VIEW, REFERENCES ON orders.* TO 'oneuptime_reader'@'%';
 GRANT SELECT ON performance_schema.table_io_waits_summary_by_table TO 'oneuptime_reader'@'%';
 ```
 
@@ -140,13 +144,24 @@ MongoDB viene letto con il suo driver: `mongodb+srv://oneuptime_reader:...@clust
 | Controlli | Ogni 15 minuti, ogni ora, ogni 6 ore o ogni giorno, come indica ciascuno |
 | Lineage e ultime letture dalla cronologia delle query | Una volta all'ora, a partire dall'ultima lettura |
 
-Ogni istruzione viene eseguita in sola lettura, con un timeout per istruzioni e lock dove il motore li prevede. La stringa di connessione non viene mai registrata nei log ed è rimossa da ogni errore. Una statistica che l'utente non può leggere viene omessa con un avvertimento sul database, mai con una raccolta non riuscita.
+Ogni istruzione viene eseguita in sola lettura, con un timeout per istruzioni e lock dove il motore li prevede. La stringa di connessione non viene mai registrata nei log ed è rimossa da ogni errore. Una statistica che l'utente non può leggere viene omessa con un avvertimento sul database, mai con una raccolta non riuscita. Le connessioni a indirizzi privati sono rifiutate su OneUptime Cloud: usa una sonda.
+
+## Repliche di lettura
+
+Una replica di lettura PostgreSQL o SQL Server non muove i suoi contatori di scrittura, quindi una tabella può sembrare invariata mentre cambia. OneUptime vede che si tratta di una replica, esclude i contatori, lo indica sul database e ripiega sulla dimensione e sulle righe della tabella. Collega il primario dove puoi, oppure indica una [colonna Freshness](/docs/data-observability/table-health) per le tabelle che contano.
+
+## Percorsi di archiviazione
+
+Non tutto ciò su cui fai affidamento si trova in un database. Un'esportazione che arriva ogni notte in un bucket è in ritardo, o incompleta, come qualsiasi tabella. In **Percorsi di archiviazione**, scegli **Modifica percorsi** per un bucket trovato dalla tua [connessione cloud](/docs/telemetry/cloud-accounts), su Amazon S3, Google Cloud Storage o un account di archiviazione Azure, e indica i percorsi che contano, uno per riga. Su Azure, inizia ciascuno con il nome del suo container.
+
+Ogni percorso compare allora in **Tabelle**: il suo oggetto più recente è il momento dell'ultima modifica, i suoi oggetti sono le sue righe e la loro dimensione è la sua dimensione, e valgono gli stessi avvisi. Si leggono solo nomi, dimensioni e orari, mai un oggetto. Un percorso che contiene più di 10000 oggetti non ha un conteggio, una dimensione o un oggetto più recente esatti, e lo indica: indica un percorso più stretto.
 
 ## Risoluzione dei problemi
 
 - **Il database mostra lo stato Non riuscito.** Il suo messaggio dice perché: un host che OneUptime non riesce a raggiungere, un utente rifiutato, una modalità TLS che il server non accetta. Se il database è all'interno della tua rete, collegalo tramite una sonda.
 - **Le tabelle non mostrano alcuna ultima modifica.** L'utente non può leggere le statistiche del motore: concedi ciò che elenca la scheda del tuo motore, oppure attendi che le righe di una tabella cambino due volte.
 - **Manca una tabella.** Si trova in uno schema che l'utente non può usare, oppure è esclusa sul database. Concedi `USAGE` sul suo schema, oppure rimuovi l'esclusione.
+- **Una tabella MySQL non ha colonne.** L'utente ha bisogno di `REFERENCES`, come sopra: mostra le colonne di una tabella senza dare alcuna lettura delle sue righe.
 
 ## Passaggi successivi
 

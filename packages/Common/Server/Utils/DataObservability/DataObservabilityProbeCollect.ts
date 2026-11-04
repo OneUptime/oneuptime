@@ -1,3 +1,5 @@
+import { readFailingRows } from "../../../Types/DataObservability/DataCheckFailingRows";
+import { readColumnMappings } from "../../../Types/DataObservability/DataColumnLineage";
 import DataAssetLineageSource from "../../../Types/DataObservability/DataAssetLineageSource";
 import DataAssetKind, {
   isDataAssetKind,
@@ -6,6 +8,7 @@ import {
   MAX_COLUMNS_PER_DATA_ASSET,
   readDataAssetColumns,
 } from "../../../Types/DataObservability/DataAssetColumn";
+import OneUptimeDate from "../../../Types/Date";
 import { JSONObject } from "../../../Types/JSON";
 import { DatabaseEngine } from "../DataSecurity/Content/DatabaseSampler";
 import { isCollectorEngine } from "./DataObservabilityEngines";
@@ -35,6 +38,7 @@ import {
   DataCheckSegmentValue,
   MAX_CHECK_ERROR_LENGTH,
   PlannedDataCheck,
+  PlannedFreshnessRead,
   readNumber,
   readSegment,
 } from "./DataCheckResults";
@@ -75,6 +79,26 @@ export const DATA_OBSERVABILITY_PROBE_RESULT_ROUTE: string =
   "/probe/data-observability/result";
 // How often a store's tables are collected.
 export const TABLE_HEALTH_COLLECTION_INTERVAL_IN_MINUTES: number = 5;
+
+/*
+ * When something collected on the five-minute tick is due again. A collection
+ * starts a moment after its tick and ends later still, so exactly one interval
+ * after it falls just past the tick it should run on: a store would be
+ * collected every other tick, and an hourly check every 65 minutes. A minute's
+ * slack keeps both on their tick.
+ */
+const COLLECTION_TICK_SLACK_IN_MINUTES: number = 1;
+
+export function getNextCollectionTime(
+  after: Date,
+  intervalInMinutes: number,
+): Date {
+  return OneUptimeDate.addRemoveMinutes(
+    after,
+    intervalInMinutes - COLLECTION_TICK_SLACK_IN_MINUTES,
+  );
+}
+
 // How long a claimed store is held for its collector before it is due again.
 export const TABLE_HEALTH_CLAIM_IN_MINUTES: number = 15;
 // The most stores handed to a probe in one poll.
@@ -91,6 +115,10 @@ export interface DataObservabilityProbeStoreWork {
   exclusions: Array<string>;
   // The store's due data checks, their statements built by the server.
   checks?: Array<PlannedDataCheck> | undefined;
+  // Tables whose change time comes from a column of their own.
+  freshnessReads?: Array<PlannedFreshnessRead> | undefined;
+  // Leave the checks for the next collection when the database is busy.
+  waitWhenBusy?: boolean | undefined;
   // How far back to read the query history for lineage; 0 reads no lineage this time.
   queryHistoryLookbackInSeconds?: number | undefined;
 }
@@ -137,16 +165,109 @@ export function readPlannedChecks(value: unknown): Array<PlannedDataCheck> {
       continue;
     }
 
+    const limits: JSONObject =
+      item["limits"] && typeof item["limits"] === "object"
+        ? (item["limits"] as JSONObject)
+        : {};
+    const maxBytesScanned: number | null = readCount(limits["maxBytesScanned"]);
+
     checks.push({
       checkId,
       type: type as DataCheckType,
       isSegmented: item["isSegmented"] === true,
       sql,
       params: params as Array<string>,
+      ...(maxBytesScanned ? { limits: { maxBytesScanned } } : {}),
+      ...readPlannedSample(item["sample"]),
     });
   }
 
   return checks;
+}
+
+// How a check's failing rows are read, when the project keeps them.
+function readPlannedSample(value: unknown): Pick<PlannedDataCheck, "sample"> {
+  if (!value || typeof value !== "object") {
+    return {};
+  }
+
+  const item: JSONObject = value as JSONObject;
+  const sql: unknown = item["sql"];
+  const params: unknown = item["params"];
+
+  if (
+    typeof sql !== "string" ||
+    sql.length === 0 ||
+    sql.length > MAX_CHECK_SQL_LENGTH ||
+    !Array.isArray(params) ||
+    params.length > MAX_ACCEPTED_VALUES + 1 ||
+    !params.every((param: unknown) => {
+      return typeof param === "string";
+    })
+  ) {
+    return {};
+  }
+
+  const maskedColumns: Record<string, string> = {};
+
+  if (item["maskedColumns"] && typeof item["maskedColumns"] === "object") {
+    for (const [column, type] of Object.entries(
+      item["maskedColumns"] as JSONObject,
+    )) {
+      if (typeof type === "string") {
+        maskedColumns[column] = type;
+      }
+    }
+  }
+
+  return { sample: { sql, params: params as Array<string>, maskedColumns } };
+}
+
+// The freshness columns a work item carries, read strictly like its checks.
+export function readPlannedFreshnessReads(
+  value: unknown,
+): Array<PlannedFreshnessRead> {
+  if (!Array.isArray(value)) {
+    return [];
+  }
+
+  const reads: Array<PlannedFreshnessRead> = [];
+
+  for (const raw of value.slice(0, MAX_CHECKS_PER_WORK)) {
+    if (!raw || typeof raw !== "object") {
+      continue;
+    }
+
+    const item: JSONObject = raw as JSONObject;
+    const tableKey: unknown = item["tableKey"];
+    const sql: unknown = item["sql"];
+    const params: unknown = item["params"];
+    const maxBytesScanned: number | null = readCount(
+      ((item["limits"] as JSONObject | undefined) || {})["maxBytesScanned"],
+    );
+
+    if (
+      typeof tableKey !== "string" ||
+      !tableKey ||
+      (sql !== null &&
+        (typeof sql !== "string" || sql.length > MAX_CHECK_SQL_LENGTH)) ||
+      !Array.isArray(params) ||
+      !params.every((param: unknown) => {
+        return typeof param === "string";
+      })
+    ) {
+      continue;
+    }
+
+    reads.push({
+      tableKey,
+      sql: (sql as string | null) || null,
+      params: params as Array<string>,
+      ...(maxBytesScanned ? { limits: { maxBytesScanned } } : {}),
+    });
+  }
+
+  return reads;
 }
 
 // What a report says each check read, read strictly: numbers, bounded text, known checks only.
@@ -199,6 +320,9 @@ export function readCheckResults(value: unknown): Array<DataCheckRunResult> {
         typeof item["error"] === "string" && item["error"].length > 0
           ? item["error"].slice(0, MAX_CHECK_ERROR_LENGTH)
           : null,
+      ...(Array.isArray(item["failingRows"])
+        ? { failingRows: readFailingRows(item["failingRows"]) }
+        : {}),
     });
   }
 
@@ -279,6 +403,11 @@ export function readProbeCollectWork(
           .slice(0, MAX_EXCLUSIONS)
       : [],
     checks: readPlannedChecks(item["checks"]),
+    // An item from an older server says neither.
+    ...(Array.isArray(item["freshnessReads"])
+      ? { freshnessReads: readPlannedFreshnessReads(item["freshnessReads"]) }
+      : {}),
+    ...(item["waitWhenBusy"] === true ? { waitWhenBusy: true } : {}),
     // An item from an older server says nothing: no lineage, which it would not keep.
     queryHistoryLookbackInSeconds: boundedWholeNumber(
       item["queryHistoryLookbackInSeconds"],
@@ -296,6 +425,8 @@ export function buildProbeCollectOptions(
     maxColumns: work.maxColumns,
     exclusions: work.exclusions,
     checks: work.checks || [],
+    ...(work.freshnessReads ? { freshnessReads: work.freshnessReads } : {}),
+    ...(work.waitWhenBusy ? { waitWhenBusy: true } : {}),
     queryHistoryLookbackInSeconds: work.queryHistoryLookbackInSeconds || 0,
   };
 }
@@ -339,6 +470,12 @@ function readCollectedTable(value: unknown): CollectedTable | null {
     secondsSinceChange: readCount(item["secondsSinceChange"]),
     readCount: readCount(item["readCount"]),
     secondsSinceRead: readCount(item["secondsSinceRead"]),
+    ...(item["columnsAreInferred"] === true
+      ? { columnsAreInferred: true }
+      : {}),
+    ...(item["isChangeTimeFromData"] === true
+      ? { isChangeTimeFromData: true }
+      : {}),
     columns:
       columns === null
         ? null
@@ -391,6 +528,9 @@ function readLineageEdge(value: unknown): CollectedLineageEdge | null {
       isQuery && typeof seenBy === "string"
         ? seenBy.slice(0, MAX_SEEN_BY_LENGTH) || null
         : null,
+    ...(Array.isArray(item["columnMappings"])
+      ? { columnMappings: readColumnMappings(item["columnMappings"]) }
+      : {}),
   };
 }
 

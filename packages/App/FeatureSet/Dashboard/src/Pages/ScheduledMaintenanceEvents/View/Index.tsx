@@ -21,6 +21,7 @@ import getLabelsFormField from "../../../Utils/Form/LabelsFormField";
 import ScheduledMaintenance from "Common/Models/DatabaseModels/ScheduledMaintenance";
 import ScheduledMaintenanceState from "Common/Models/DatabaseModels/ScheduledMaintenanceState";
 import AffectedResourcesDisplay from "../../../Components/AffectedResources/AffectedResourcesDisplay";
+import { DataStoresUnderMaintenance } from "../../../Components/DataObservability/DataStoresMaintenancePicker";
 import {
   getScheduledMaintenanceAffectedResourcesFormFields,
   getScheduledMaintenanceAffectedResourcesOnBeforeUpdate,
@@ -1278,6 +1279,18 @@ const ScheduledMaintenanceView: FunctionComponent<
                     return (
                       <ChangeMonitorStatusToElement
                         monitorStatus={item.changeMonitorStatusTo}
+                      />
+                    );
+                  },
+                },
+                {
+                  field: { dataStoreIds: true },
+                  title: "Data Observability Databases",
+                  fieldType: FieldType.Element,
+                  getElement: (item: ScheduledMaintenance): ReactElement => {
+                    return (
+                      <DataStoresUnderMaintenance
+                        ids={item.dataStoreIds || []}
                       />
                     );
                   },

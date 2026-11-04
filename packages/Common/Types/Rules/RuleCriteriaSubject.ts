@@ -47,6 +47,7 @@ export enum RuleCriteriaSubject {
   Workflows = "Workflows",
   StorageArrays = "StorageArrays",
   DataStores = "DataStores",
+  DataAssets = "DataAssets",
   /*
    * No model's own: a page's (RULE_CRITERIA_SUBJECTS_NAMED_BY_A_PAGE). The
    * cloud owner and label rules are about cloud resources on Cloud's pages,
@@ -105,6 +106,8 @@ export const RULE_CRITERIA_SUBJECT_BY_MODEL: Readonly<
   CloudResourceOwnerRule: RuleCriteriaSubject.CloudResources,
   DashboardLabelRule: RuleCriteriaSubject.Dashboards,
   DashboardOwnerRule: RuleCriteriaSubject.Dashboards,
+  DataAssetLabelRule: RuleCriteriaSubject.DataAssets,
+  DataAssetOwnerRule: RuleCriteriaSubject.DataAssets,
   DataStoreLabelRule: RuleCriteriaSubject.DataStores,
   DataStoreOwnerRule: RuleCriteriaSubject.DataStores,
   DatabaseServerLabelRule: RuleCriteriaSubject.Databases,

@@ -9,7 +9,7 @@ Under **Dataobserverbarhet > Dataprodukter** skapar du en dataprodukt: namnge de
 - **Uppdaterad senast en viss tid på dygnet (UTC):** varje dags data landar samma dag, senast då. Från den tiden måste varje tabell ha ändrats den dagen; fram till dess gäller gårdagens laddning. En laddning som alltid är en halvtimme sen är försenad den halvtimmen varje dag.
 - **En högsta ålder:** ingen tabells senaste ändring får vara äldre än så.
 
-Var femte minut kontrolleras varje produkts tabeller mot dess SLA. Produkten är **Late** när någon tabell är försenad, och dess data gäller per den äldsta senaste ändringen bland tabellerna. Den skriver `oneuptime.data.product.late_tables` och `oneuptime.data.product.data_age`, så att du kan visa alla produkters aktualitet sida vid sida i ett diagram.
+Var femte minut kontrolleras varje produkts tabeller mot dess SLA. Produkten är **Sen** när någon tabell är försenad, och dess data gäller per den äldsta senaste ändringen bland tabellerna. Den skriver `oneuptime.data.product.late_tables` och `oneuptime.data.product.data_age`, så att du kan visa alla produkters aktualitet sida vid sida i ett diagram.
 
 ## På statussidor
 

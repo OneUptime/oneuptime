@@ -9,12 +9,16 @@ A Observabilidade de dados lê cada banco de dados com um login que só lê o ca
 
 ## Escolha quem se conecta
 
-Em **Observabilidade de dados > Bancos de dados**, escolha **Connect a Database** e depois:
+Em **Observabilidade de dados > Bancos de dados**, escolha **Conectar um banco de dados** e depois:
 
-- **OneUptime connects**: cole uma string de conexão. Ela é armazenada criptografada, usada apenas pelos workers do OneUptime e nunca mais é exibida.
-- **A probe in my network connects**: escolha uma das suas sondas e informe o nome da variável de ambiente, na sonda, que contém a string de conexão, como `ORDERS_DB_URL`. A string de conexão nunca sai da sua rede. Veja [Sondas personalizadas](/docs/probe/custom-probe).
+- **O OneUptime conecta**: cole uma string de conexão. Ela é armazenada criptografada, usada apenas pelos workers do OneUptime e nunca mais é exibida.
+- **Uma sonda na minha rede conecta**: escolha uma das suas sondas e informe o nome da variável de ambiente, na sonda, que contém a string de conexão, como `ORDERS_DB_URL`. A string de conexão nunca sai da sua rede. Veja [Sondas personalizadas](/docs/probe/custom-probe).
 
 Um banco de dados já conectado para a Segurança de dados também é observado, sem nada para conectar, assim como cada dataset do BigQuery que a sua [conexão de nuvem](/docs/telemetry/cloud-accounts) encontrou.
+
+## Bancos de dados que você pode conectar
+
+**Bancos de dados que você pode conectar**, em **Bancos de dados**, lista o que o seu projeto já conhece e ninguém conectou: bancos de dados com os quais os seus traces conversam, os das suas contas de nuvem e os que o Monitoramento de banco de dados acompanha. **Conectar** inicia o formulário a partir do que se sabe de cada um, com uma string de conexão para preencher. **Dispensar** impede que um volte. Nada é lido até que você o conecte.
 
 ## Um login somente leitura, por mecanismo
 
@@ -30,7 +34,7 @@ A string de conexão: `postgres://oneuptime_reader:...@orders-db.internal:5432/o
 @tab MySQL and MariaDB
 ```sql
 CREATE USER 'oneuptime_reader'@'%' IDENTIFIED BY '...';
-GRANT SHOW VIEW ON orders.* TO 'oneuptime_reader'@'%';
+GRANT SHOW VIEW, REFERENCES ON orders.* TO 'oneuptime_reader'@'%';
 GRANT SELECT ON performance_schema.table_io_waits_summary_by_table TO 'oneuptime_reader'@'%';
 ```
 
@@ -140,13 +144,24 @@ O MongoDB é lido pelo próprio driver: `mongodb+srv://oneuptime_reader:...@clus
 | Verificações | A cada 15 minutos, hora, 6 horas ou dia, conforme cada uma indica |
 | Linhagem e últimas leituras a partir do histórico de consultas | Uma vez por hora, desde a última leitura |
 
-Toda instrução roda em modo somente leitura, com um tempo limite de instrução e de bloqueio onde o mecanismo os tem. A string de conexão nunca é registrada em log e é retirada de toda mensagem de erro. Uma estatística que o login não pode ler fica de fora, com um aviso no banco de dados; a coleta nunca falha por causa disso.
+Toda instrução roda em modo somente leitura, com um tempo limite de instrução e de bloqueio onde o mecanismo os tem. A string de conexão nunca é registrada em log e é retirada de toda mensagem de erro. Uma estatística que o login não pode ler fica de fora, com um aviso no banco de dados; a coleta nunca falha por causa disso. Conexões a endereços privados são recusadas no OneUptime Cloud: use uma sonda.
+
+## Réplicas de leitura
+
+Uma réplica de leitura do PostgreSQL ou do SQL Server não move os seus contadores de escrita, então uma tabela nela pode parecer inalterada enquanto muda. O OneUptime percebe que é uma réplica, deixa os contadores de fora, avisa no banco de dados e recorre ao tamanho e às linhas da tabela. Conecte o primário sempre que possível, ou informe uma [coluna de freshness](/docs/data-observability/table-health) para as tabelas que importam.
+
+## Caminhos de armazenamento
+
+Nem tudo de que você depende está em um banco de dados. Uma exportação que chega a um bucket toda noite pode estar tão atrasada, ou incompleta, quanto qualquer tabela. Em **Caminhos de armazenamento**, escolha **Editar caminhos** para um bucket que a sua [conexão de nuvem](/docs/telemetry/cloud-accounts) encontrou, no Amazon S3, no Google Cloud Storage ou em uma conta de armazenamento Azure, e informe os caminhos que importam, um por linha. No Azure, comece cada um com o nome do contêiner.
+
+Cada caminho passa então a aparecer em **Tabelas**: o objeto mais recente dele é quando ele mudou pela última vez, os objetos dele são as linhas e o tamanho deles é o tamanho dele, e valem os mesmos alertas. Só são lidos nomes, tamanhos e horários, nunca um objeto. Um caminho com mais de 10000 objetos não tem contagem, tamanho nem objeto mais recente exatos, e avisa: informe um mais restrito.
 
 ## Solução de problemas
 
 - **O banco de dados aparece como Falhou.** A mensagem dele diz por quê: um host que o OneUptime não consegue alcançar, um login recusado, um modo TLS que o servidor não aceita. Para um banco de dados dentro da sua rede, conecte-o por meio de uma sonda.
 - **As tabelas não mostram a última alteração.** O login não consegue ler as estatísticas do mecanismo: conceda o que a aba do seu mecanismo lista, ou espere as linhas de uma tabela mudarem duas vezes.
 - **Uma tabela está faltando.** Ela está em um esquema que o login não pode usar, ou está excluída no banco de dados. Conceda `USAGE` no esquema dela, ou remova a exclusão.
+- **Uma tabela do MySQL não tem colunas.** O login precisa de `REFERENCES`, como acima: ele mostra as colunas de uma tabela sem dar nenhuma leitura das linhas dela.
 
 ## Próximos passos
 

@@ -3,6 +3,7 @@ import AlertLabelRule from "../Models/DatabaseModels/AlertLabelRule";
 import CephClusterLabelRule from "../Models/DatabaseModels/CephClusterLabelRule";
 import CloudResourceLabelRule from "../Models/DatabaseModels/CloudResourceLabelRule";
 import DashboardLabelRule from "../Models/DatabaseModels/DashboardLabelRule";
+import DataAssetLabelRule from "../Models/DatabaseModels/DataAssetLabelRule";
 import DataStoreLabelRule from "../Models/DatabaseModels/DataStoreLabelRule";
 import BaseModel, {
   DatabaseBaseModelType,
@@ -67,6 +68,7 @@ export const LABEL_RULE_MODELS: Array<DatabaseBaseModelType> = [
   CephClusterLabelRule,
   CloudResourceLabelRule,
   DashboardLabelRule,
+  DataAssetLabelRule,
   DataStoreLabelRule,
   DatabaseServerLabelRule,
   DockerHostLabelRule,
@@ -107,6 +109,7 @@ const RESOURCES_WITH_GENERIC_CRITERIA: ReadonlyArray<string> = [
   "CloudResource",
   "ServerlessFunction",
   "DataStore",
+  "DataAsset",
 ];
 
 /*

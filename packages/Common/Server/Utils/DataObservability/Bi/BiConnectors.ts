@@ -23,6 +23,11 @@ import DataSourceHttpFetch, {
  *   - Power BI: a service principal allowed to use the admin APIs. A scan
  *     of the workspaces says each dataset's tables, from their Power Query
  *     sources; a report charts its dataset.
+ *   - Hightouch: an API key. Each sync's model is a table, or SQL naming them.
+ *   - Census: a workspace API key. Each sync's source is a table.
+ *
+ * A reverse ETL tool's sync is read as one more thing that depends on a table:
+ * its name says where the rows go.
  *
  * A table is named as the tool names it - its database, schema and name,
  * and the engine when the tool says - and matched to a watched table
@@ -64,6 +69,12 @@ const MAX_TABLES_PER_DASHBOARD: number = 200;
 const REQUEST_TIMEOUT_IN_MS: number = 30_000;
 const MAX_NAME_LENGTH: number = 240;
 const POWER_BI_API: string = "https://api.powerbi.com/v1.0/myorg";
+const HIGHTOUCH_API: string = "https://api.hightouch.com/api/v1";
+const HIGHTOUCH_PAGE_SIZE: number = 100;
+const CENSUS_API: string = "https://app.getcensus.com/api/v1";
+const CENSUS_EU_API: string = "https://app-eu.getcensus.com/api/v1";
+const CENSUS_PAGE_SIZE: number = 100;
+const REVERSE_ETL_FOLDER: string = "Reverse ETL";
 const POWER_BI_SCAN_POLLS: number = 30;
 const POWER_BI_SCAN_WAIT_IN_MS: number = 2_000;
 
@@ -1035,6 +1046,171 @@ export class PowerBiConnector {
 }
 
 // A tool's dashboards, by the tool's own reader.
+/*
+ * Hightouch: a sync copies a model into a destination. A model is a table, or
+ * SQL naming its tables; a dbt or visual model says neither, so it names none.
+ */
+export class HightouchConnector {
+  public static async read(
+    input: BiReadInput,
+  ): Promise<Array<BiDashboardRead>> {
+    const apiKey: string = requireText(
+      input.credentials,
+      "apiKey",
+      "Hightouch",
+    );
+    const transport: BiTransport = transportOf(input);
+    const list: (path: string) => Promise<Array<JSONObject>> = async (
+      path: string,
+    ): Promise<Array<JSONObject>> => {
+      const items: Array<JSONObject> = [];
+
+      for (let offset: number = 0; offset < MAX_BI_DASHBOARDS; ) {
+        const page: JSONObject = readObject(
+          await requestJson({
+            transport,
+            tool: "Hightouch",
+            method: "GET",
+            url: `${HIGHTOUCH_API}/${path}?limit=${HIGHTOUCH_PAGE_SIZE}&offset=${offset}`,
+            headers: { Authorization: `Bearer ${apiKey}` },
+          }),
+        );
+        const data: Array<unknown> = readArray(page["data"]);
+
+        items.push(...data.map(readObject));
+        offset += HIGHTOUCH_PAGE_SIZE;
+
+        if (page["hasMore"] !== true || data.length === 0) {
+          break;
+        }
+      }
+
+      return items;
+    };
+    const byId: (items: Array<JSONObject>) => Map<string, JSONObject> = (
+      items: Array<JSONObject>,
+    ): Map<string, JSONObject> => {
+      return new Map(
+        items.map((item: JSONObject): [string, JSONObject] => {
+          return [readText(item["id"]), item];
+        }),
+      );
+    };
+    const [syncs, models, destinations]: [
+      Array<JSONObject>,
+      Map<string, JSONObject>,
+      Map<string, JSONObject>,
+    ] = [
+      await list("syncs"),
+      byId(await list("models")),
+      byId(await list("destinations")),
+    ];
+
+    return syncs.map((sync: JSONObject): BiDashboardRead => {
+      const model: JSONObject =
+        models.get(readText(sync["modelId"])) || ({} as JSONObject);
+      const destination: JSONObject =
+        destinations.get(readText(sync["destinationId"])) || ({} as JSONObject);
+      const from: string = readText(model["name"]) || readText(sync["slug"]);
+      const to: string = readText(destination["name"]);
+
+      return {
+        externalId: readText(sync["id"]),
+        name: to ? `${from} to ${to}` : from,
+        url: null,
+        folder: REVERSE_ETL_FOLDER,
+        owner: null,
+        changedAt: readDate(sync["lastRunAt"]),
+        tables: uniqueTables(readHightouchModelTables(model)),
+      };
+    });
+  }
+}
+
+export function readHightouchModelTables(model: JSONObject): Array<BiTableRef> {
+  const table: string = readText(readObject(model["table"])["name"]);
+
+  if (table) {
+    const ref: BiTableRef | null = readQualifiedName(table);
+
+    return ref ? [ref] : [];
+  }
+
+  const sql: string = readText(readObject(model["raw"])["sql"], 100_000);
+
+  return sql ? readSqlTables(sql) : [];
+}
+
+// Census: a sync's source is a table, its destination an object in another tool.
+export class CensusConnector {
+  public static async read(
+    input: BiReadInput,
+  ): Promise<Array<BiDashboardRead>> {
+    const apiKey: string = requireText(input.credentials, "apiKey", "Census");
+    const transport: BiTransport = transportOf(input);
+    const api: string =
+      readText(input.credentials["region"]).toLowerCase() === "eu"
+        ? CENSUS_EU_API
+        : CENSUS_API;
+    const dashboards: Array<BiDashboardRead> = [];
+
+    for (let page: number | null = 1; page; ) {
+      const answer: JSONObject = readObject(
+        await requestJson({
+          transport,
+          tool: "Census",
+          method: "GET",
+          url: `${api}/syncs?page=${page}&per_page=${CENSUS_PAGE_SIZE}`,
+          headers: { Authorization: `Bearer ${apiKey}` },
+        }),
+      );
+
+      for (const raw of readArray(answer["data"])) {
+        dashboards.push(readCensusSync(readObject(raw)));
+      }
+
+      const next: unknown = readObject(answer["pagination"])["next_page"];
+
+      page =
+        typeof next === "number" && dashboards.length < MAX_BI_DASHBOARDS
+          ? next
+          : null;
+    }
+
+    return dashboards;
+  }
+}
+
+export function readCensusSync(sync: JSONObject): BiDashboardRead {
+  const source: JSONObject = readObject(
+    readObject(sync["source_attributes"])["object"],
+  );
+  const table: string = readText(source["table_name"]);
+  const to: string = readText(
+    readObject(sync["destination_attributes"])["object"],
+  );
+
+  return {
+    externalId: readText(sync["id"]),
+    name: readText(sync["label"]) || (to ? `${table} to ${to}` : table),
+    url: null,
+    folder: REVERSE_ETL_FOLDER,
+    owner: null,
+    changedAt: readDate(sync["updated_at"]),
+    tables: table
+      ? [
+          {
+            database: readText(source["table_catalog"]) || null,
+            schema: readText(source["table_schema"]) || null,
+            table,
+            engine: null,
+            host: null,
+          },
+        ]
+      : [],
+  };
+}
+
 export async function readBiDashboards(
   tool: DataBiTool,
   input: BiReadInput,
@@ -1050,6 +1226,10 @@ export async function readBiDashboards(
       return await LookerConnector.read(input);
     case DataBiTool.PowerBI:
       return await PowerBiConnector.read(input);
+    case DataBiTool.Hightouch:
+      return await HightouchConnector.read(input);
+    case DataBiTool.Census:
+      return await CensusConnector.read(input);
     default:
       throw new Error(`OneUptime cannot read ${String(tool)} yet.`);
   }

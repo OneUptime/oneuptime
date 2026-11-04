@@ -168,9 +168,17 @@ ENV PLAYWRIGHT_BROWSERS_PATH=/ms-playwright-browsers
 # without it Firefox still launches, renders, and plays WebM/VP9 and Ogg with
 # its own decoders, which is exactly what the image did before 1.63 (1.60 never
 # installed FFmpeg). So it is removed again in the same layer.
+#
+# Playwright's list also names xvfb, an X server for headed browsers, which
+# brings xserver-common: 14 high findings in the scans. The probe launches its
+# browsers headless, Playwright's default (SyntheticRuntime/SyntheticBrowser.ts),
+# and a monitor's script cannot launch its own (PlaywrightCapabilityBroker.ts),
+# so nothing starts them, and they go the same way. So do the OpenGL libraries
+# only xvfb needed: Chromium's WebGL is its own and still works, and headless
+# Firefox has none with or without them (compared on 14.0.103).
 RUN apt-get update \
     && npx playwright install --with-deps chromium firefox \
-    && apt-get purge -y --auto-remove libavcodec59 \
+    && apt-get purge -y --auto-remove libavcodec59 xvfb xserver-common \
     && rm -rf /var/lib/apt/lists/* \
     && chmod -R a+rX /ms-playwright-browsers \
     && chmod -R a+rX /usr/src/Common /usr/src/app

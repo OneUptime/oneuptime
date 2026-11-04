@@ -1,4 +1,7 @@
 import PageComponentProps from "../../PageComponentProps";
+import AppLink from "../../../Components/AppLink/AppLink";
+import PageMap from "../../../Utils/PageMap";
+import RouteMap, { RouteUtil } from "../../../Utils/RouteMap";
 import EventStatBar from "../../../Components/EventView/EventStatBar";
 import EventStatTile from "../../../Components/EventView/EventStatTile";
 import {
@@ -11,6 +14,7 @@ import {
 } from "../../DataObservability/Pipelines";
 import DataPipeline from "Common/Models/DatabaseModels/DataPipeline";
 import DataPipelineRun from "Common/Models/DatabaseModels/DataPipelineRun";
+import Route from "Common/Types/API/Route";
 import SortOrder from "Common/Types/BaseDatabase/SortOrder";
 import OneUptimeDate from "Common/Types/Date";
 import { DataPipelineLateness } from "Common/Types/DataObservability/DataPipelineSchedule";
@@ -174,8 +178,13 @@ const PipelineOverviewPage: FunctionComponent<
           description:
             "Every run of this pipeline, newest first: how it went, how long it took, and what it wrote.",
         }}
-        noItemsMessage="No run yet. Runs appear as the pipeline's OpenLineage events arrive."
-        selectMoreFields={{ errorMessage: true, scheduledAt: true }}
+        noItemsMessage="No run yet. Runs appear as the pipeline's events arrive."
+        selectMoreFields={{
+          errorMessage: true,
+          scheduledAt: true,
+          attemptNumber: true,
+          traceId: true,
+        }}
         filters={[
           {
             field: { state: true },
@@ -200,6 +209,28 @@ const PipelineOverviewPage: FunctionComponent<
               return (
                 <div className="min-w-0 space-y-1">
                   {getRunStatePill(run.state)}
+                  {run.attemptNumber && run.attemptNumber > 1 ? (
+                    <span className="block text-xs text-gray-500">
+                      {translator.translateTemplate("Attempt {{attempt}}", {
+                        attempt: run.attemptNumber,
+                      })}
+                    </span>
+                  ) : (
+                    <></>
+                  )}
+                  {run.traceId ? (
+                    <AppLink
+                      className="block text-xs text-indigo-600 hover:underline"
+                      to={RouteUtil.populateRouteParams(
+                        RouteMap[PageMap.TRACE_VIEW] as Route,
+                        { modelId: run.traceId },
+                      )}
+                    >
+                      {translator.translateText("Trace and logs") || ""}
+                    </AppLink>
+                  ) : (
+                    <></>
+                  )}
                   {run.errorMessage ? (
                     <span className="block max-w-md whitespace-pre-line text-xs text-red-600">
                       {run.errorMessage}

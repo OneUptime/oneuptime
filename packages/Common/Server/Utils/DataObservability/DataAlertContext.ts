@@ -2,6 +2,9 @@ import Alert from "../../../Models/DatabaseModels/Alert";
 import ChangeEvent from "../../../Models/AnalyticsModels/ChangeEvent";
 import DataAlert from "../../../Models/DatabaseModels/DataAlert";
 import DataAsset from "../../../Models/DatabaseModels/DataAsset";
+import DataAssetFeed, {
+  DataAssetFeedEventType,
+} from "../../../Models/DatabaseModels/DataAssetFeed";
 import DataAssetLineage from "../../../Models/DatabaseModels/DataAssetLineage";
 import DataAssetUsage from "../../../Models/DatabaseModels/DataAssetUsage";
 import DataPipeline from "../../../Models/DatabaseModels/DataPipeline";
@@ -19,6 +22,7 @@ import ObjectID from "../../../Types/ObjectID";
 import AlertService from "../../Services/AlertService";
 import ChangeEventService from "../../Services/ChangeEventService";
 import DataAlertService from "../../Services/DataAlertService";
+import DataAssetFeedService from "../../Services/DataAssetFeedService";
 import DataAssetLineageService from "../../Services/DataAssetLineageService";
 import DataAssetService from "../../Services/DataAssetService";
 import DataAssetUsageService from "../../Services/DataAssetUsageService";
@@ -52,7 +56,8 @@ import DataTableAnswerer, {
  *  - the services seen writing it in their database spans, with how many
  *    of their writes failed, and their deploys and other changes in the
  *    window;
- *  - the tables it is built from, with the ones that are late.
+ *  - the tables it is built from, with the ones that are late;
+ *  - the columns of the table that changed in the window.
  *
  * Every read is bounded, and one that fails leaves its part out rather
  * than the investigation without the rest.
@@ -62,6 +67,14 @@ import DataTableAnswerer, {
  * which everyone who may see the alert reads. A private alert - seen only
  * by its owners - is never named there, nor its title written.
  */
+
+const COLUMN_CHANGE_EVENTS: ReadonlyArray<DataAssetFeedEventType> = [
+  DataAssetFeedEventType.ColumnAdded,
+  DataAssetFeedEventType.ColumnRemoved,
+  DataAssetFeedEventType.ColumnRenamed,
+  DataAssetFeedEventType.ColumnTypeChanged,
+  DataAssetFeedEventType.ColumnNullabilityChanged,
+];
 
 const CHANGES_BEFORE_IN_HOURS: number = 24;
 const CHANGES_AFTER_IN_HOURS: number = 1;
@@ -230,6 +243,13 @@ export default class DataAlertContext {
           dataAssetId: dataAlert.dataAssetId,
           now: data.now,
         })),
+        ...(await this.describeSchemaChanges({
+          projectId: data.projectId,
+          dataAssetId: dataAlert.dataAssetId,
+          windowStart,
+          windowEnd,
+          now: data.now,
+        })),
       );
     }
 
@@ -247,6 +267,36 @@ export default class DataAlertContext {
     );
 
     return sections.join("\n");
+  }
+
+  // A column that changed just before is often the whole story: a writer still using the old one fails.
+  private static async describeSchemaChanges(data: {
+    projectId: ObjectID;
+    dataAssetId: ObjectID;
+    windowStart: Date;
+    windowEnd: Date;
+    now: Date;
+  }): Promise<Array<string>> {
+    const changes: Array<DataAssetFeed> = await orNothing(
+      DataAssetFeedService.findBy({
+        query: {
+          projectId: data.projectId,
+          dataAssetId: data.dataAssetId,
+          dataAssetFeedEventType: QueryHelper.any([...COLUMN_CHANGE_EVENTS]),
+          postedAt: new InBetween(data.windowStart, data.windowEnd),
+        },
+        select: { feedInfoInMarkdown: true, postedAt: true },
+        sort: { postedAt: SortOrder.Descending },
+        limit: MAX_CHANGES,
+        skip: 0,
+        props: { isRoot: true },
+      }),
+      [] as Array<DataAssetFeed>,
+    );
+
+    return changes.map((change: DataAssetFeed): string => {
+      return `- Its columns changed ${when(change.postedAt, data.now)}: ${clip(change.feedInfoInMarkdown, MAX_ERROR_LENGTH)}`;
+    });
   }
 
   // Each writing pipeline's runs since the window began: a failed one names itself.

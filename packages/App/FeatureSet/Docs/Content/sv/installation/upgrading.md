@@ -193,7 +193,7 @@ helm upgrade my-oneuptime oneuptime/oneuptime -f values.yaml
 
 ### Andra ändringar i 14
 
-De här ändringarna ändrar hur OneUptime beter sig efter uppgraderingen, och de flesta kräver ingenting av dig. Läs dem om du använder anpassade roller eller API-nycklar som består av enskilda behörigheter, egna tillstånd för incidenter, larm eller underhåll, Terraform eller API:t, SSO, eller apparna för Slack och Microsoft Teams.
+De här ändringarna ändrar hur OneUptime beter sig efter uppgraderingen, och de flesta kräver ingenting av dig. Läs dem om du använder anpassade roller eller API-nycklar som består av enskilda behörigheter, egna tillstånd för incidenter, larm eller underhåll, Terraform eller API:t, SSO, eller apparna för Slack och Microsoft Teams, eller om din server inte har en fungerande e-postserver.
 
 :::details Läs de övriga ändringarna i 14
 - **OTLP-inmatning bekräftar en batch först när kön har tagit emot den.** 13 svarade först `200` och köade efteråt, så en batch som kön avvisade gick förlorad i tysthet. 14 svarar i stället `503` med `Telemetry queue unavailable. Please retry.`, och gRPC-slutpunkten returnerar `UNAVAILABLE`; båda går att försöka igen, och exportörer försöker igen. Det gäller loggar, mätvärden, spårningar och profiler. Du behöver inte göra något, men exportörernas nya försök och köns mottryck syns nu där data tidigare försvann – bra att veta om du dimensionerar inmatningskapaciteten.

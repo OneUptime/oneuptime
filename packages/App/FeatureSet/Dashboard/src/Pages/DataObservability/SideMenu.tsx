@@ -91,6 +91,13 @@ const DataObservabilitySideMenu: FunctionComponent = (): ReactElement => {
           }}
           icon={IconProp.Database}
         />
+        <SideMenuItem
+          link={{
+            title: "Storage Paths",
+            to: routeOf(PageMap.DATA_OBSERVABILITY_STORAGE_PATHS),
+          }}
+          icon={IconProp.Folder}
+        />
       </SideMenuSection>
 
       <SideMenuSection title="Help">
@@ -117,6 +124,27 @@ const DataObservabilitySideMenu: FunctionComponent = (): ReactElement => {
             to: routeOf(PageMap.DATA_OBSERVABILITY_TABLES_DROPPED),
           }}
           icon={IconProp.Archive}
+        />
+        <SideMenuItem
+          link={{
+            title: "Settings",
+            to: routeOf(PageMap.DATA_OBSERVABILITY_SETTINGS),
+          }}
+          icon={IconProp.Settings}
+        />
+        <SideMenuItem
+          link={{
+            title: "Owner Rules",
+            to: routeOf(PageMap.DATA_OBSERVABILITY_SETTINGS_OWNER_RULES),
+          }}
+          icon={IconProp.Team}
+        />
+        <SideMenuItem
+          link={{
+            title: "Label Rules",
+            to: routeOf(PageMap.DATA_OBSERVABILITY_SETTINGS_LABEL_RULES),
+          }}
+          icon={IconProp.Label}
         />
       </SideMenuSection>
     </SideMenu>

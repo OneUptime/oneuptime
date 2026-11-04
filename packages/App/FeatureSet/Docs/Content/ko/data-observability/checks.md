@@ -1,6 +1,6 @@
 # 검사 및 대사
 
-테이블 상태는 테이블이 바뀌는지를 알려 줍니다. **검사** 는 담긴 내용이 올바른지, **대사** 는 데이터의 두 복사본이 일치하는지 알려 주고, **dbt의 테스트** 는 dbt가 빌드하는 테이블에 대해 보고합니다. 각각은 데이터베이스의 수집이 실행되는 곳(OneUptime 또는 그 프로브)에서 실행되며, 데이터베이스 밖으로 나가는 것은 숫자뿐입니다.
+테이블 상태는 테이블이 바뀌는지를 알려 줍니다. **검사** 는 담긴 내용이 올바른지, **대사** 는 데이터의 두 복사본이 일치하는지 알려 주고, **dbt의 테스트** 는 dbt가 빌드하는 테이블에 대해 보고합니다. 각각은 데이터베이스의 수집이 실행되는 곳(OneUptime 또는 그 프로브)에서 실행되며, 데이터베이스 밖으로 나가는 것은 숫자뿐입니다. 다만 셀프 호스팅 프로젝트가 실패한 행의 마스킹된 샘플을 보관하도록 선택한 경우는 예외입니다.
 
 ## 검사
 
@@ -13,16 +13,17 @@
 | **Distinct Count** | 열에 담긴 서로 다른 값의 수 |
 | **최소**, **최대**, **평균**, **합계** | 숫자 열의 값(행이 없을 때의 합계는 0) |
 | **Invalid Percent** | 지정한 목록에 없는 값의 비율 |
-| **Format Mismatch Percent** | 정규식과 일치하지 않는 값의 비율(SQL Server를 제외한 모든 엔진) |
+| **Format Mismatch Percent** | 지정한 형식(Email, UUID, Country Code 등)이 아니거나 직접 작성한 정규식과 일치하지 않는 값의 비율(SQL Server를 제외한 모든 엔진) |
 | **Orphan Count** | 값이 다른 테이블의 열에서 일치하는 값을 찾지 못하는 행 |
-| **Row Count** | 테이블의 행 수. **Segment By** 와 함께 쓸 때 가장 유용합니다 |
+| **Row Count** | 테이블의 행 수. **분할 기준** 와 함께 쓸 때 가장 유용합니다 |
 | **사용자 지정 SQL** | 직접 작성한 읽기 전용 SELECT 하나가 `value` 라는 이름으로 반환하는 숫자 (MongoDB에서는 집계 파이프라인이 반환하는 숫자) |
+| **실패한 행** | 직접 작성한 읽기 전용 SELECT 하나가 반환하는 행의 수로, 존재해서는 안 되는 행입니다. 0이면 정상입니다 (MongoDB에서는 파이프라인이 끝나는 지점의 문서) |
 
 각 검사는 15분, 1시간, 6시간 또는 하루마다, 문 시간 제한이 있는 읽기 전용 트랜잭션 안에서 집계 문 하나로 실행됩니다. 그 값은 `oneuptime.data.check.id`, `oneuptime.data.check.name`, `oneuptime.data.check.segment` 와 함께 `oneuptime.data.check.value` 로 기록됩니다.
 
 ## 제안된 검사
 
-같은 탭의 **Suggested Checks** 는 열의 이름과 타입만으로 테이블의 열에 필요한 검사를 제안합니다. id는 고유해야 하고, `customer_id` 에는 `customers` 에 일치하는 행이 있어야 하며, 이메일은 이메일 형식이어야 하고, 금액은 음수가 아니어야 하며, 상태는 평소의 값을 유지해야 하고, 테넌트별로 나뉜 테이블은 테넌트별로 세는 식입니다. 하나를 추가하거나, 모두 추가하거나, 하나를 영구히 숨길 수 있습니다.
+같은 탭의 **제안된 검사** 는 열의 이름과 타입만으로 테이블의 열에 필요한 검사를 제안합니다. id는 고유해야 하고, `customer_id` 에는 `customers` 에 일치하는 행이 있어야 하며, 이메일은 이메일 형식이어야 하고, 금액은 음수가 아니어야 하며, 상태는 평소의 값을 유지해야 하고, 테넌트별로 나뉜 테이블은 테넌트별로 세는 식입니다. 데이터 보안이 이메일 주소, 전화번호, IP 주소를 담고 있다고 아는 열은 이름과 상관없이 그 형식이어야 합니다. 하나를 추가하거나, 모두 추가하거나, 하나를 영구히 숨길 수 있습니다.
 
 ## 문장으로 만드는 검사
 
@@ -30,16 +31,70 @@
 
 ## 세그먼트
 
-**Segment By** 는 테넌트나 리전처럼 열의 값마다 검사를 한 번씩 실행합니다. 가장 큰 100개 세그먼트 각각에 시리즈 하나와 경고 하나가 생깁니다. 세그먼트로 나눈 Row Count 검사는 다른 테넌트는 계속 데이터를 보내는데 한 테넌트만 데이터를 보내지 않을 때 경고합니다.
+**분할 기준** 는 테넌트나 리전처럼 열의 값마다 검사를 한 번씩 실행합니다. 가장 큰 100개 세그먼트 각각에 시리즈 하나와 경고 하나가 생깁니다. 세그먼트로 나눈 Row Count 검사는 다른 테넌트는 계속 데이터를 보내는데 한 테넌트만 데이터를 보내지 않을 때 경고합니다.
 
 ## 검사에 대한 경고
 
-검사로 경고하려면 **Alert When** 을 설정합니다.
+검사로 경고하려면 **경고 조건** 을 설정합니다.
 
 - **Unusually High** 또는 **Unusually Low** 는 각 값을 그 요일 그 시간대에 대해 학습한 검사 자체의 기준선과 비교합니다.
 - **초과** 또는 **미만** 은 값을 임계값과 비교합니다.
 
 검사를 저장하면 사용자 본인으로서, 본인의 권한으로 그 검사의 메트릭 모니터가 만들어집니다. 조건을 지우면 모니터가 제거됩니다.
+
+## 검사의 비용
+
+검사는 데이터베이스를 두고 애플리케이션과 경쟁하며, 쿼리가 읽은 양으로 과금하는 웨어하우스에서는 비용이 듭니다. 세 가지가 이를 관리합니다.
+
+- **샘플 비율** 은 전체 행 대신 일부 행만 읽으며, Null Percent, Average, Invalid Percent, Format Mismatch Percent처럼 비율을 읽는 검사에 쓰입니다. 대부분의 엔진은 테이블의 페이지 전체를 건너뜁니다. MySQL, Redshift, ClickHouse, MongoDB는 여전히 모든 행을 읽지만 나머지 작업은 줄어듭니다. 뷰는 이를 거부할 수 있으며, 그러면 검사가 그렇게 알려 줍니다.
+- **설정** 아래의 **검사가 읽을 수 있는 최대량(GB)** 은 BigQuery나 Athena의 검사가 그 기가바이트 수보다 많이 읽기 전에 중단시킵니다. 바꾸기 전에는 10입니다.
+- **설정** 아래의 **데이터베이스가 바쁠 때 대기** 는 PostgreSQL, MySQL, SQL Server 데이터베이스가 바빠 보이면 실행할 차례가 된 검사를 다음 수집으로 미룹니다. 끄기 전까지는 켜져 있으며, 검사가 기다렸을 때는 데이터베이스에 표시됩니다.
+
+## 실패한 행
+
+숫자는 무언가 잘못되었다고 알려 주고, 몇 개의 행은 무엇이 잘못되었는지 알려 줍니다. 셀프 호스팅 OneUptime에서는 **설정** 아래의 **실패한 행 보관** 이 Failing Rows, Invalid Percent, Format Mismatch Percent, Orphan Count 검사가 찾은 행을 최대 20개까지 보관하고, 검사의 **실패한 행** 가 이를 보여 줍니다. 민감한 열은 행을 읽는 곳에서, 데이터 보안이 그 열에서 찾은 내용이나 열 이름에 따라 마스킹되므로, 데이터베이스나 프로브 밖으로 나가는 것은 이미 마스킹된 상태입니다. OneUptime Cloud는 아무것도 보관하지 않습니다.
+
+## 파일로 관리하는 검사
+
+직접 작성한 검사는 테이블을 바꾸는 코드와 어긋납니다. 검사를 저장소에 보관하고 같은 풀 리퀘스트에서 리뷰하세요.
+
+```yaml
+checks:
+  - name: Orders have a total
+    table: public.orders
+    type: Null Percent
+    column: total
+    every: 60
+    alert: { when: Above, threshold: 1 }
+  - name: Emails look right
+    table: public.customers
+    database: Orders database
+    type: Format Mismatch Percent
+    column: email
+    format: Email
+    sample_percent: 10
+  - name: Orders have a customer
+    table: public.orders
+    type: Orphan Count
+    column: customer_id
+    references: public.customers.id
+  - name: No negative totals
+    table: public.orders
+    type: Failing Rows
+    query: SELECT id FROM orders WHERE total < 0
+    alert: { when: Above, threshold: 0 }
+```
+
+API 키와 [OneUptime CLI](/docs/cli/index)로 CI에서 적용합니다.
+
+```bash
+oneuptime data-checks apply checks.yaml --dry-run
+oneuptime data-checks apply checks.yaml --prune
+```
+
+같은 테이블에서 이름이 같으면 같은 검사이므로, 파일을 두 번 적용해도 아무것도 바뀌지 않습니다. 파일의 어디에든 실수가 있으면 아무것도 적용하지 않고 오류와 함께 종료하므로, 풀 리퀘스트에서는 `--dry-run` 을 실행하고 병합할 때 적용하세요. `--prune` 을 쓰면 이전 apply가 만들었지만 파일에 더 이상 나오지 않는 검사가 삭제됩니다. 직접 추가한 검사는 삭제되지 않습니다. 파일에서 온 검사는 그 행에 그렇게 표시되며, 다음 apply는 직접 바꾼 내용을 덮어씁니다.
+
+키는 `name`, `table`, `database`, `type`, `column`, `segment`, `accepted_values`, `format`, `pattern`, `references`, `query`, `sample_percent`, `every`, `alert`, `description`, `enabled` 입니다.
 
 ## 대사
 
@@ -60,7 +115,7 @@
 
 ## dbt 테스트
 
-dbt 빌드가 끝나면 `oneuptime dbt upload` 가 프로젝트의 아티팩트를 보냅니다([리니지와 파이프라인](/docs/data-observability/lineage-and-pipelines) 참고). 그러면 감시 중인 테이블의 각 테스트가 마지막 결과와 실패로 찾은 행과 함께 그 테이블의 **점검** 탭에 표시됩니다. 실패한 테스트가 경고를 열게 하려면 **Alert on Failures** 를 선택하세요.
+dbt 빌드가 끝나면 `oneuptime dbt upload` 가 프로젝트의 아티팩트를 보냅니다([리니지와 파이프라인](/docs/data-observability/lineage-and-pipelines) 참고). 그러면 감시 중인 테이블의 각 테스트가 마지막 결과와 실패로 찾은 행과 함께 그 테이블의 **점검** 탭에 표시됩니다. 실패한 테스트가 경고를 열게 하려면 **실패 시 경고** 를 선택하세요.
 
 ## 다음 단계
 

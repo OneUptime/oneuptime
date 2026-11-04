@@ -116,6 +116,7 @@ import EntityRunbooks from "../../../Components/Runbook/EntityRunbooks";
 import { AFFECTED_RESOURCES_PLACE_ID } from "../../../Components/AutoRemediation/RemediationDecisionLines";
 import AlertAffectedResources from "./AffectedResources";
 import DataAlertLineage from "../../../Components/DataObservability/DataAlertLineage";
+import DataAlertExplanationCard from "../../../Components/DataObservability/DataAlertExplanationCard";
 import MonitorSummarySnapshotCard from "../../../Components/Monitor/MonitorSummarySnapshotCard";
 import ExceptionsViewer from "../../../Components/Exceptions/ExceptionsViewer";
 import Query from "Common/Types/BaseDatabase/Query";
@@ -1333,6 +1334,8 @@ const AlertView: FunctionComponent<PageComponentProps> = (): ReactElement => {
           />
 
           <DataAlertLineage alertId={modelId} />
+
+          <DataAlertExplanationCard alertId={modelId} />
 
           <EntityRunbooks alertId={modelId} hideIfEmpty={true} />
 

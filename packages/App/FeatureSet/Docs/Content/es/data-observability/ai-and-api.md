@@ -4,9 +4,12 @@ OneUptime AI conoce tus datos: investiga una alerta de datos a partir de quienes
 
 ## OneUptime AI
 
-- **Investigaciones de alertas de datos.** Cuando OneUptime AI investiga una alerta sobre una tabla, un pipeline o una base de datos, parte de lo que tiene al lado: la frescura y las alertas abiertas de la tabla, la alerta de la que es consecuencia, las ejecuciones de los pipelines que escriben en ella desde el día anterior (una ejecución fallida con su error, o la ejecución que nunca llegó), los servicios que escriben en ella con sus escrituras fallidas, despliegues y otros cambios, y las tablas a partir de las que se construye. Nombra la ejecución, el despliegue o la tabla de origen que hay detrás de la alerta. Consulta [AI SRE](/docs/ai/ai-sre).
+- **Investigaciones de alertas de datos.** Cuando OneUptime AI investiga una alerta sobre una tabla, un pipeline o una base de datos, parte de lo que tiene al lado: la frescura y las alertas abiertas de la tabla, la alerta de la que es consecuencia, las ejecuciones de los pipelines que escriben en ella desde el día anterior (una ejecución fallida con su error, o la ejecución que nunca llegó), los servicios que escriben en ella con sus escrituras fallidas, despliegues y otros cambios, las tablas a partir de las que se construye y las columnas que cambiaron. Nombra la ejecución, el despliegue o la tabla de origen que hay detrás de la alerta. Consulta [AI SRE](/docs/ai/ai-sre).
 - **¿Está actualizada esta tabla?** Pregunta en [Preguntar a la IA](/docs/ai/ask-ai), Slack o Microsoft Teams: «¿está actualizada la tabla orders?». La respuesta da la frescura de la tabla según su propio ritmo, cuándo cambió por última vez, sus alertas abiertas, las últimas ejecuciones de quienes escriben en ella y los productos de datos de los que forma parte. Un nombre que comparten varias bases de datos se responde para cada una, para que a nadie se le diga que la tabla equivocada está actualizada.
 - **Una comprobación a partir de una frase.** En la pestaña **Comprobaciones** de una tabla, **Escribir una comprobación a partir de una frase** convierte una regla en una comprobación de SQL personalizado en el SQL de tu motor. Consulta [Comprobaciones y conciliaciones](/docs/data-observability/checks).
+
+- **Deriva lenta.** Las filas de una tabla, o el valor de una comprobación, que se mueven una quinta parte o más en una semana, con demasiada lentitud para cualquier alerta, llegan a AI Insights como un «mira aquí». No avisa a nadie.
+- **Datos obsoletos detrás de apps de IA.** Un servicio que llama a un modelo y lee una tabla es el consumidor de IA de esa tabla. Cuando esa tabla se retrasa, la página **Conversaciones** del producto de IA lo dice: una app que responde con datos antiguos no muestra nada raro en sus propias trazas.
 
 Cada una de estas funciones necesita que OneUptime AI esté activado para el proyecto, y actúa con los permisos de la persona que pregunta.
 
@@ -29,9 +32,10 @@ Funciona con un inicio de sesión de solo lectura y responde como la persona o l
 | `POST /telemetry/fivetran/v1/webhook/<ingestion key ID>` | Los webhooks de sincronización de Fivetran | La clave de ingesta, como secreto de firma de Fivetran |
 | `POST /telemetry/airbyte/v1/webhook/<ingestion key>` | Los webhooks de sincronización de Airbyte | La clave de ingesta en la URL |
 | `POST /api/data-observability/tables/freshness` | La frescura de una tabla, tal como la responde la herramienta MCP, con `{ "table": "public.orders" }` | Una clave de API |
+| `POST /api/data-observability/checks/apply` | Hacer que las comprobaciones del proyecto coincidan con un archivo, como lo hace `oneuptime data-checks apply`, con `{ "manifest": "...", "isDryRun": true, "shouldPrune": false }` | Una clave de API |
 | `GET /api/data-observability/data-products/<data product ID>/badge?token=<badge token>` | La insignia «data as of» de un producto de datos | El token propio de la insignia |
 
-Las tablas, comprobaciones, conciliaciones, pipelines y productos de datos son también recursos normales de la [API](/docs/api-reference/api-reference), que se leen y modifican con una clave de API que tenga los permisos correspondientes.
+Las tablas, comprobaciones, conciliaciones, pipelines, productos de datos, conexiones de BI y trabajos del almacén de datos son también recursos normales de la [API](/docs/api-reference/api-reference), que se leen y modifican con una clave de API que tenga los permisos correspondientes, y del servidor MCP y de los flujos de trabajo.
 
 ## Métricas
 

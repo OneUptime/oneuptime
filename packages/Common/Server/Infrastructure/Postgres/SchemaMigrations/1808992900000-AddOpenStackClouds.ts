@@ -1,7 +1,7 @@
 import { MigrationInterface, QueryRunner } from "typeorm";
 
-export class AddOpenStackClouds1808992700000 implements MigrationInterface {
-    name = 'AddOpenStackClouds1808992700000'
+export class AddOpenStackClouds1808992900000 implements MigrationInterface {
+    name = 'AddOpenStackClouds1808992900000'
 
     public async up(queryRunner: QueryRunner): Promise<void> {
         await queryRunner.query(`CREATE TABLE "OpenStackCloud" ("_id" uuid NOT NULL DEFAULT uuid_generate_v4(), "createdAt" TIMESTAMP WITH TIME ZONE NOT NULL DEFAULT now(), "updatedAt" TIMESTAMP WITH TIME ZONE NOT NULL DEFAULT now(), "deletedAt" TIMESTAMP WITH TIME ZONE, "version" integer NOT NULL, "projectId" uuid NOT NULL, "name" character varying(100) NOT NULL, "slug" character varying(100) NOT NULL, "description" character varying(500), "otelCollectorStatus" character varying(100) DEFAULT 'disconnected', "agentVersion" character varying(100), "lastSeenAt" TIMESTAMP WITH TIME ZONE, "regionCount" integer DEFAULT '0', "availabilityZoneCount" integer DEFAULT '0', "hypervisorCount" integer DEFAULT '0', "instanceCount" integer DEFAULT '0', "activeInstanceCount" integer DEFAULT '0', "volumeCount" integer DEFAULT '0', "networkCount" integer DEFAULT '0', "routerCount" integer DEFAULT '0', "floatingIpCount" integer DEFAULT '0', "projectCount" integer DEFAULT '0', "serviceCount" integer DEFAULT '0', "downServiceCount" integer DEFAULT '0', "vcpuCapacity" integer DEFAULT '0', "vcpuAllocated" integer DEFAULT '0', "memoryCapacityBytes" bigint, "memoryAllocatedBytes" bigint, "storageCapacityBytes" bigint, "storageUsedBytes" bigint, "createdByUserId" uuid, "isArchived" boolean NOT NULL DEFAULT false, "archivedAt" TIMESTAMP WITH TIME ZONE, "archivedByUserId" uuid, "deletedByUserId" uuid, "retainTelemetryDataForDays" integer, "telemetryRetentionConfig" jsonb, CONSTRAINT "PK_0926c4cd6ff7acfa1161cb539fd" PRIMARY KEY ("_id"))`);

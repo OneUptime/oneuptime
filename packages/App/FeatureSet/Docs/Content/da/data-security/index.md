@@ -6,7 +6,7 @@ Den besvarer fire spørgsmål:
 
 :::cards
 - [Hvor er vores følsomme data?](/docs/data-security/data-types): 143 datatyper, fra kortnumre og nationale ID-numre til API-nøgler, fundet i buckets, tabeller og telemetri.
-- [Er de eksponeret?](/docs/data-security/checks-and-issues): 33 kontroller af hvert datalager: offentlig adgang, kryptering, backup, logning, hemmeligheder og kopier.
+- [Er de eksponeret?](/docs/data-security/checks-and-issues): 34 kontroller af hvert datalager: offentlig adgang, kryptering, backup, logning, hemmeligheder og kopier.
 - [Hvem kan nå dem, og hvor ender de?](/docs/data-security/flows-access-residency): Hver identitet, der kan nå hvert datalager, den mest risikable først, hvilke tjenester der bruger det, og hvilke AI-udbydere og værter dets data når.
 - [Lever de op til vores regler?](/docs/data-security/compliance): Residensregler og ni compliancerammer, scoret ud fra det, scanningerne fandt.
 :::

@@ -15,6 +15,7 @@ import Card from "Common/UI/Components/Card/Card";
 import MarkdownViewer from "Common/UI/Components/Markdown.tsx/LazyMarkdownViewer";
 import { Translator } from "Common/UI/Utils/TranslateTemplate";
 import useTranslator from "Common/UI/Utils/UseTranslator";
+import ReportDataProblem from "../../../Components/DataObservability/ReportDataProblem";
 import React, { FunctionComponent, ReactElement } from "react";
 
 /*
@@ -54,6 +55,9 @@ const TableOverviewPage: FunctionComponent<
 
   return (
     <div className="space-y-5">
+      <div className="flex justify-end">
+        <ReportDataProblem dataAssetId={dataAsset.id!} />
+      </div>
       <EventStatBar columns={4} ariaLabel="Table health">
         <EventStatTile
           label="Rows"

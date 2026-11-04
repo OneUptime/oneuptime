@@ -67,6 +67,7 @@ sets, those suites say what to change here.
 - **Probe.** It copies `/usr/src`, the Node.js that runs it, the Chromium and
   Firefox that Playwright downloaded, and the synthetic monitors' native
   helpers. Playwright's own `install-deps` installs the browsers' libraries.
+  It leaves out the release's `curl`, which only the release's build uses.
   Microsoft's ODBC Driver 18 for SQL Server comes from Microsoft's repository,
   which Iron Bank's pipeline cannot reach. So the manifest pins its package by
   URL and sha256. Update both values from Microsoft's

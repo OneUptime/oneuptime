@@ -11,6 +11,7 @@ import { ScheduledMaintenanceFeedEventType } from "../../../Models/DatabaseModel
 import Team from "../../../Models/DatabaseModels/Team";
 import User from "../../../Models/DatabaseModels/User";
 import WorkspaceProjectAuthToken, {
+  MattermostMiscData,
   MicrosoftTeamsMiscData,
   SlackMiscData,
 } from "../../../Models/DatabaseModels/WorkspaceProjectAuthToken";
@@ -38,7 +39,9 @@ import {
   WorkspaceRecordChannel,
   WorkspaceRecordChannels,
 } from "../../../Types/Workspace/WorkspaceChannelMembers";
-import WorkspaceType from "../../../Types/Workspace/WorkspaceType";
+import WorkspaceType, {
+  getWorkspaceTypeDisplayName,
+} from "../../../Types/Workspace/WorkspaceType";
 import FeedMarkdown, {
   MarkdownText,
   mdText,
@@ -67,6 +70,14 @@ import QueryHelper from "../../Types/Database/QueryHelper";
 import logger from "../Logger";
 import CaptureSpan from "../Telemetry/CaptureSpan";
 import ProjectMembership from "../TeamMember/ProjectMembership";
+import MattermostUtil, {
+  MattermostChannel,
+  MattermostRequestError,
+  MattermostUser,
+} from "./Mattermost/Mattermost";
+import MattermostConnection, {
+  MattermostConnectionData,
+} from "./Mattermost/MattermostConnection";
 import MicrosoftTeamsUtil from "./MicrosoftTeams/MicrosoftTeams";
 import SlackAccountByEmail, {
   SlackEmailAccount,
@@ -83,12 +94,12 @@ import WorkspaceChannelLinks from "./WorkspaceChannelLinks";
 /*
  * WHO IS IN A RECORD'S OWN CHANNEL, AND ADDING PEOPLE TO IT.
  *
- * A workspace notification rule can create a Slack or Microsoft Teams
- * channel for an incident, an alert, an episode or a scheduled maintenance
- * event, and invites the record's people as they join the record
+ * A workspace notification rule can create a Slack, Microsoft Teams or
+ * Mattermost channel for an incident, an alert, an episode or a scheduled
+ * maintenance event, and invites the record's people as they join the record
  * (NotificationRuleInvites). People still leave channels, a rule can miss
- * somebody, and a private Slack channel that everybody has left is entered
- * again only through an invitation from someone in it: the OneUptime app,
+ * somebody, and a private channel that everybody has left is entered again
+ * only through an invitation from someone in it: the OneUptime app or bot,
  * which created it and stays in it. So the record's page shows its channels
  * with the people in them, and a member who may edit the record adds people
  * through the app - themselves (Join channel) or anybody in the project.
@@ -114,6 +125,23 @@ import WorkspaceChannelLinks from "./WorkspaceChannelLinks";
  * OneUptime neither reads nor changes them - that would take Microsoft
  * Graph's ChannelMember permissions in every tenant - and says who can open
  * the channel instead.
+ *
+ * MATTERMOST. As for Slack: the bot adds people, and somebody is the account
+ * they connected, or else the account with their email address, when the
+ * server shows the bot people's email addresses. Mattermost's own rules differ
+ * from Slack's (its server's api4/channel.go and app/channel.go):
+ *
+ * - It lists a channel's people only for somebody in it, a public channel's
+ *   too. Looking at a page joins nothing and writes nothing in a channel, so a
+ *   public channel the bot left is out of sight until the bot is back: it
+ *   joins by itself when it next posts there, or when somebody is added.
+ * - It takes people into an archived channel without a word, so OneUptime
+ *   reads first whether it is archived, and adds nobody.
+ * - It answers somebody in the channel already as somebody it added, so
+ *   OneUptime reads first who is in it.
+ * - It lets the bot add a guest: being added is how a guest gets in. Guest or
+ *   not, somebody outside the channel's team is refused, with a 404 only the
+ *   error's id tells from a channel that is gone.
  */
 
 // A record whose channels are shown, as its page asks for it.
@@ -427,8 +455,18 @@ type InviteResult =
       joined?: undefined;
     };
 
-// A Slack account, as the page's list names it.
-interface KnownSlackPerson {
+// How trying to add one person went: for them, or for the whole channel.
+type AddAttempt =
+  | { outcome: WorkspaceChannelAddOutcome; channelState?: undefined }
+  | { channelState: WorkspaceChannelState; outcome?: undefined };
+
+// What adding people to a channel came to, and the channel's link for the feed.
+interface ChannelAddition extends WorkspaceChannelAddAnswer {
+  channelUrl: string | null;
+}
+
+// An account in a channel, as the page's list names it.
+interface KnownPerson {
   name: string;
   isBot: boolean;
   isDeactivated: boolean;
@@ -441,6 +479,14 @@ interface SlackConnection {
   authToken: string;
   teamId: string;
   botUserId: string;
+}
+
+// A project's Mattermost connection, as this needs it.
+interface ProjectMattermostConnection {
+  authToken: string;
+  botUserId: string;
+  serverUrl: string;
+  teamName: string;
 }
 
 export default class WorkspaceChannelMembers {
@@ -493,6 +539,10 @@ export default class WorkspaceChannelMembers {
       channels.filter((channel: NotificationRuleWorkspaceChannel) => {
         return channel.workspaceType === WorkspaceType.MicrosoftTeams;
       });
+    const mattermostChannels: Array<NotificationRuleWorkspaceChannel> =
+      channels.filter((channel: NotificationRuleWorkspaceChannel) => {
+        return channel.workspaceType === WorkspaceType.Mattermost;
+      });
 
     if (slackChannels.length > 0) {
       answer.push(
@@ -513,16 +563,26 @@ export default class WorkspaceChannelMembers {
       );
     }
 
+    if (mattermostChannels.length > 0) {
+      answer.push(
+        ...(await WorkspaceChannelMembers.readMattermostChannels({
+          projectId: projectId,
+          channels: mattermostChannels,
+          viewerUserId: data.props.userId,
+        })),
+      );
+    }
+
     return { channels: answer, canAddPeople: canAddPeople };
   }
 
   /*
-   * Adds people to one of the record's own Slack channels: each user named,
-   * and everybody in each team named, once - members of the project only.
-   * Each is answered on their own (added, in it already, not found in
-   * Slack...). The channel's state is answered instead when it can take
-   * nobody. Whoever was added is written to the record's feed, in one entry
-   * by the person who added them, and to its Notification Logs.
+   * Adds people to one of the record's own Slack or Mattermost channels: each
+   * user named, and everybody in each team named, once - members of the
+   * project only. Each is answered on their own (added, in it already, not
+   * found in the workspace...). The channel's state is answered instead when
+   * it can take nobody. Whoever was added is written to the record's feed, in
+   * one entry by the person who added them, and to its Notification Logs.
    */
   @CaptureSpan()
   public static async add(data: {
@@ -585,7 +645,7 @@ export default class WorkspaceChannelMembers {
       );
     }
 
-    if (channel.workspaceType !== WorkspaceType.Slack) {
+    if (channel.workspaceType === WorkspaceType.MicrosoftTeams) {
       throw new BadDataException(
         "People are added to a Microsoft Teams channel in Microsoft Teams: its team, or for a private channel its owners, decide who can open it.",
       );
@@ -618,128 +678,20 @@ export default class WorkspaceChannelMembers {
       );
     }
 
-    const connection: SlackConnection | null =
-      await WorkspaceChannelMembers.getSlackConnection(projectId);
+    const addition: ChannelAddition =
+      channel.workspaceType === WorkspaceType.Mattermost
+        ? await WorkspaceChannelMembers.addToMattermostChannel({
+            projectId: projectId,
+            channel: channel,
+            people: people,
+          })
+        : await WorkspaceChannelMembers.addToSlackChannel({
+            projectId: projectId,
+            channel: channel,
+            people: people,
+          });
 
-    if (!connection) {
-      return {
-        channelState: WorkspaceChannelState.NotConnected,
-        results: [],
-      };
-    }
-
-    let facts: SlackChannelFacts;
-    let memberIds: Array<string>;
-
-    try {
-      facts = await SlackChannelMembers.getChannel({
-        authToken: connection.authToken,
-        channelId: channel.id,
-      });
-
-      if (facts.isArchived) {
-        return { channelState: WorkspaceChannelState.Archived, results: [] };
-      }
-
-      memberIds = (
-        await SlackChannelMembers.getMemberIds({
-          authToken: connection.authToken,
-          channelId: channel.id,
-          max: WORKSPACE_CHANNEL_MEMBERS_READ_LIMIT,
-        })
-      ).memberIds;
-    } catch (err) {
-      return {
-        channelState: WorkspaceChannelMembers.getChannelStateOfError(err),
-        results: [],
-      };
-    }
-
-    const users: Map<string, User> =
-      await WorkspaceChannelMembers.getUsers(people);
-    const projectMemberIds: Set<string> =
-      await ProjectMembership.getMemberUserIds({
-        projectId: projectId,
-        userIds: people,
-      });
-
-    const results: Array<WorkspaceChannelAddResult> = [];
-    let hasJoined: boolean = false;
-    let channelState: WorkspaceChannelState | undefined = undefined;
-
-    for (const userId of people) {
-      const key: string = userId.toString().toLowerCase();
-      const user: User | undefined = users.get(key);
-      const name: string =
-        user?.name?.toString() || user?.email?.toString() || "Someone";
-      const answer: (outcome: WorkspaceChannelAddOutcome) => void = (
-        outcome: WorkspaceChannelAddOutcome,
-      ): void => {
-        results.push({
-          userId: userId.toString(),
-          name: name,
-          outcome: outcome,
-        });
-      };
-
-      if (!projectMemberIds.has(key)) {
-        answer(WorkspaceChannelAddOutcome.NotProjectMember);
-        continue;
-      }
-
-      let slackUserId: string | null = null;
-
-      try {
-        slackUserId = await WorkspaceChannelMembers.findSlackAccount({
-          projectId: projectId,
-          authToken: connection.authToken,
-          userId: userId,
-          email: user?.email?.toString() || "",
-          useCache: false,
-        });
-      } catch (err) {
-        if (SlackChannelMembersError.isNotConnected(err)) {
-          channelState = WorkspaceChannelState.NotConnected;
-          break;
-        }
-
-        answer(WorkspaceChannelAddOutcome.TryAgain);
-        continue;
-      }
-
-      if (!slackUserId) {
-        answer(WorkspaceChannelAddOutcome.NotFound);
-        continue;
-      }
-
-      if (memberIds.includes(slackUserId)) {
-        answer(WorkspaceChannelAddOutcome.AlreadyIn);
-        continue;
-      }
-
-      const invited: InviteResult = await WorkspaceChannelMembers.invite({
-        authToken: connection.authToken,
-        channel: facts,
-        slackUserId: slackUserId,
-        mayJoin: !hasJoined,
-      });
-
-      if (invited.channelState) {
-        // The channel itself refused: nobody else would be added either.
-        channelState = invited.channelState;
-        break;
-      }
-
-      hasJoined = hasJoined || invited.joined;
-
-      if (invited.outcome === WorkspaceChannelAddOutcome.Added) {
-        memberIds.push(slackUserId);
-      }
-
-      answer(invited.outcome);
-    }
-
-    const added: Array<ObjectID> = results
+    const added: Array<ObjectID> = addition.results
       .filter((result: WorkspaceChannelAddResult) => {
         return result.outcome === WorkspaceChannelAddOutcome.Added;
       })
@@ -753,16 +705,299 @@ export default class WorkspaceChannelMembers {
         recordId: data.recordId,
         projectId: projectId,
         channel: channel,
-        teamId: connection.teamId,
+        channelUrl: addition.channelUrl,
         actorUserId: actorUserId,
         addedUserIds: added,
       });
     }
 
-    const answer: WorkspaceChannelAddAnswer = { results: results };
+    const answer: WorkspaceChannelAddAnswer = { results: addition.results };
 
-    if (channelState) {
-      answer.channelState = channelState;
+    if (addition.channelState) {
+      answer.channelState = addition.channelState;
+    }
+
+    return answer;
+  }
+
+  // Adds people to a Slack channel the record holds, through the app.
+  private static async addToSlackChannel(data: {
+    projectId: ObjectID;
+    channel: NotificationRuleWorkspaceChannel;
+    people: Array<ObjectID>;
+  }): Promise<ChannelAddition> {
+    const connection: SlackConnection | null =
+      await WorkspaceChannelMembers.getSlackConnection(data.projectId);
+
+    if (!connection) {
+      return {
+        channelState: WorkspaceChannelState.NotConnected,
+        results: [],
+        channelUrl: null,
+      };
+    }
+
+    let facts: SlackChannelFacts;
+    let memberIds: Array<string>;
+
+    try {
+      facts = await SlackChannelMembers.getChannel({
+        authToken: connection.authToken,
+        channelId: data.channel.id,
+      });
+
+      if (facts.isArchived) {
+        return {
+          channelState: WorkspaceChannelState.Archived,
+          results: [],
+          channelUrl: null,
+        };
+      }
+
+      memberIds = (
+        await SlackChannelMembers.getMemberIds({
+          authToken: connection.authToken,
+          channelId: data.channel.id,
+          max: WORKSPACE_CHANNEL_MEMBERS_READ_LIMIT,
+        })
+      ).memberIds;
+    } catch (err) {
+      return {
+        channelState: WorkspaceChannelMembers.getChannelStateOfError(err),
+        results: [],
+        channelUrl: null,
+      };
+    }
+
+    let hasJoined: boolean = false;
+
+    const answer: WorkspaceChannelAddAnswer =
+      await WorkspaceChannelMembers.addEachPerson({
+        projectId: data.projectId,
+        people: data.people,
+        addPerson: async (person: {
+          userId: ObjectID;
+          email: string;
+        }): Promise<AddAttempt> => {
+          let slackUserId: string | null = null;
+
+          try {
+            slackUserId = await WorkspaceChannelMembers.findSlackAccount({
+              projectId: data.projectId,
+              authToken: connection.authToken,
+              userId: person.userId,
+              email: person.email,
+              useCache: false,
+            });
+          } catch (err) {
+            return SlackChannelMembersError.isNotConnected(err)
+              ? { channelState: WorkspaceChannelState.NotConnected }
+              : { outcome: WorkspaceChannelAddOutcome.TryAgain };
+          }
+
+          if (!slackUserId) {
+            return { outcome: WorkspaceChannelAddOutcome.NotFound };
+          }
+
+          if (memberIds.includes(slackUserId)) {
+            return { outcome: WorkspaceChannelAddOutcome.AlreadyIn };
+          }
+
+          const invited: InviteResult = await WorkspaceChannelMembers.invite({
+            authToken: connection.authToken,
+            channel: facts,
+            slackUserId: slackUserId,
+            mayJoin: !hasJoined,
+          });
+
+          // The channel itself refused: nobody else would be added either.
+          if (invited.channelState) {
+            return { channelState: invited.channelState };
+          }
+
+          hasJoined = hasJoined || invited.joined;
+
+          if (invited.outcome === WorkspaceChannelAddOutcome.Added) {
+            memberIds.push(slackUserId);
+          }
+
+          return { outcome: invited.outcome };
+        },
+      });
+
+    return {
+      ...answer,
+      channelUrl: WorkspaceChannelLinkUtil.getSlackChannelUrl({
+        teamId: connection.teamId,
+        channelId: data.channel.id,
+      }),
+    };
+  }
+
+  /*
+   * Adds people to a Mattermost channel the record holds, through the bot. It
+   * reads the channel first, for what Mattermost would not refuse: an archived
+   * channel, and somebody in it already.
+   */
+  private static async addToMattermostChannel(data: {
+    projectId: ObjectID;
+    channel: NotificationRuleWorkspaceChannel;
+    people: Array<ObjectID>;
+  }): Promise<ChannelAddition> {
+    const connection: ProjectMattermostConnection | null =
+      await WorkspaceChannelMembers.getMattermostConnection(data.projectId);
+
+    if (!connection) {
+      return {
+        channelState: WorkspaceChannelState.NotConnected,
+        results: [],
+        channelUrl: null,
+      };
+    }
+
+    if (!MattermostConnection.isMattermostId(data.channel.id)) {
+      return {
+        channelState: WorkspaceChannelState.Unreachable,
+        results: [],
+        channelUrl: null,
+      };
+    }
+
+    let facts: MattermostChannel;
+    let memberIds: Set<string>;
+
+    try {
+      facts = await MattermostUtil.getChannel({
+        authToken: connection.authToken,
+        channelId: data.channel.id,
+      });
+
+      if (facts.isArchived) {
+        return {
+          channelState: WorkspaceChannelState.Archived,
+          results: [],
+          channelUrl: null,
+        };
+      }
+
+      memberIds = new Set<string>(
+        (
+          await WorkspaceChannelMembers.readMattermostMembersToAddTo({
+            authToken: connection.authToken,
+            channel: facts,
+          })
+        ).map((member: MattermostUser): string => {
+          return member.id;
+        }),
+      );
+    } catch (err) {
+      return {
+        channelState:
+          WorkspaceChannelMembers.getMattermostChannelStateOfError(err),
+        results: [],
+        channelUrl: null,
+      };
+    }
+
+    const answer: WorkspaceChannelAddAnswer =
+      await WorkspaceChannelMembers.addEachPerson({
+        projectId: data.projectId,
+        people: data.people,
+        addPerson: async (person: {
+          userId: ObjectID;
+          email: string;
+        }): Promise<AddAttempt> => {
+          let accountId: string | null = null;
+
+          try {
+            accountId = await WorkspaceChannelMembers.findMattermostAccount({
+              projectId: data.projectId,
+              authToken: connection.authToken,
+              userId: person.userId,
+              email: person.email,
+            });
+          } catch (err) {
+            return MattermostUtil.isUnauthorizedError(err)
+              ? { channelState: WorkspaceChannelState.NotConnected }
+              : { outcome: WorkspaceChannelAddOutcome.TryAgain };
+          }
+
+          if (!accountId) {
+            return { outcome: WorkspaceChannelAddOutcome.NotFound };
+          }
+
+          if (memberIds.has(accountId)) {
+            return { outcome: WorkspaceChannelAddOutcome.AlreadyIn };
+          }
+
+          const attempt: AddAttempt =
+            await WorkspaceChannelMembers.inviteToMattermostChannel({
+              authToken: connection.authToken,
+              channelId: data.channel.id,
+              accountId: accountId,
+            });
+
+          if (attempt.outcome === WorkspaceChannelAddOutcome.Added) {
+            memberIds.add(accountId);
+          }
+
+          return attempt;
+        },
+      });
+
+    return {
+      ...answer,
+      channelUrl: WorkspaceChannelMembers.getMattermostChannelUrl({
+        connection: connection,
+        channelName: facts.name,
+      }),
+    };
+  }
+
+  /*
+   * Each person in turn, members of the project only, answered on their own -
+   * until the channel itself refuses, when nobody else would be added either.
+   */
+  private static async addEachPerson(data: {
+    projectId: ObjectID;
+    people: Array<ObjectID>;
+    addPerson: (person: {
+      userId: ObjectID;
+      email: string;
+    }) => Promise<AddAttempt>;
+  }): Promise<WorkspaceChannelAddAnswer> {
+    const users: Map<string, User> = await WorkspaceChannelMembers.getUsers(
+      data.people,
+    );
+    const projectMemberIds: Set<string> =
+      await ProjectMembership.getMemberUserIds({
+        projectId: data.projectId,
+        userIds: data.people,
+      });
+
+    const answer: WorkspaceChannelAddAnswer = { results: [] };
+
+    for (const userId of data.people) {
+      const key: string = userId.toString().toLowerCase();
+      const user: User | undefined = users.get(key);
+
+      const attempt: AddAttempt = projectMemberIds.has(key)
+        ? await data.addPerson({
+            userId: userId,
+            email: user?.email?.toString() || "",
+          })
+        : { outcome: WorkspaceChannelAddOutcome.NotProjectMember };
+
+      if (attempt.channelState) {
+        answer.channelState = attempt.channelState;
+        break;
+      }
+
+      answer.results.push({
+        userId: userId.toString(),
+        name: user?.name?.toString() || user?.email?.toString() || "Someone",
+        outcome: attempt.outcome,
+      });
     }
 
     return answer;
@@ -771,20 +1006,25 @@ export default class WorkspaceChannelMembers {
   /*
    * The feed entry for people added to a channel, as the record's feed
    * shows it after the name of the person who added them: "Joined the Slack
-   * channel #inc-42.", "Added Bob Jones and Carol Lee to the Slack channel
-   * #inc-42.", or both: "Joined the Slack channel #inc-42 and added Bob
-   * Jones to it."
+   * channel #inc-42.", "Added Bob Jones and Carol Lee to the Mattermost channel
+   * inc-42.", or both: "Joined the Slack channel #inc-42 and added Bob Jones
+   * to it."
    */
   public static getFeedMarkdown(data: {
+    workspaceType: WorkspaceType;
     channelName: string;
     channelUrl: string | null;
     actorJoined: boolean;
     // The others added, each as Markdown (UserService.getUserMarkdownString).
     others: Array<MarkdownText>;
   }): MarkdownText {
-    const channelLabel: string = WorkspaceChannelMembers.getSlackChannelLabel(
-      data.channelName,
+    const workspaceName: string = getWorkspaceTypeDisplayName(
+      data.workspaceType,
     );
+    const channelLabel: string =
+      data.workspaceType === WorkspaceType.Slack
+        ? WorkspaceChannelMembers.getSlackChannelLabel(data.channelName)
+        : (data.channelName || "").trim() || "channel";
     // Placed after words on its line: its "#" starts no heading.
     const channelMarkdown: MarkdownText = data.channelUrl
       ? FeedMarkdown.link(channelLabel, data.channelUrl)
@@ -796,14 +1036,14 @@ export default class WorkspaceChannelMembers {
     );
 
     if (data.actorJoined && data.others.length === 0) {
-      return mdText`👥 Joined the Slack channel ${channelMarkdown}.`;
+      return mdText`👥 Joined the ${workspaceName} channel ${channelMarkdown}.`;
     }
 
     if (data.actorJoined) {
-      return mdText`👥 Joined the Slack channel ${channelMarkdown} and added ${othersMarkdown} to it.`;
+      return mdText`👥 Joined the ${workspaceName} channel ${channelMarkdown} and added ${othersMarkdown} to it.`;
     }
 
-    return mdText`👥 Added ${othersMarkdown} to the Slack channel ${channelMarkdown}.`;
+    return mdText`👥 Added ${othersMarkdown} to the ${workspaceName} channel ${channelMarkdown}.`;
   }
 
   // "#inc-42": a Slack channel as Slack writes it.
@@ -852,7 +1092,8 @@ export default class WorkspaceChannelMembers {
         typeof channel.id !== "string" ||
         !channel.id ||
         (channel.workspaceType !== WorkspaceType.Slack &&
-          channel.workspaceType !== WorkspaceType.MicrosoftTeams)
+          channel.workspaceType !== WorkspaceType.MicrosoftTeams &&
+          channel.workspaceType !== WorkspaceType.Mattermost)
       ) {
         continue;
       }
@@ -1176,7 +1417,7 @@ export default class WorkspaceChannelMembers {
     recordId: ObjectID;
     projectId: ObjectID;
     channel: NotificationRuleWorkspaceChannel;
-    teamId: string;
+    channelUrl: string | null;
     actorUserId: ObjectID;
     addedUserIds: Array<ObjectID>;
   }): Promise<void> {
@@ -1189,7 +1430,7 @@ export default class WorkspaceChannelMembers {
         await WorkspaceNotificationLogService.logInviteUser(
           {
             projectId: data.projectId,
-            workspaceType: WorkspaceType.Slack,
+            workspaceType: data.channel.workspaceType,
             channelId: data.channel.id,
             channelName: data.channel.name,
             userId: userId,
@@ -1221,11 +1462,9 @@ export default class WorkspaceChannelMembers {
       }
 
       const markdown: MarkdownText = WorkspaceChannelMembers.getFeedMarkdown({
+        workspaceType: data.channel.workspaceType,
         channelName: data.channel.name,
-        channelUrl: WorkspaceChannelLinkUtil.getSlackChannelUrl({
-          teamId: data.teamId,
-          channelId: data.channel.id,
-        }),
+        channelUrl: data.channelUrl,
         actorJoined: data.addedUserIds.some((userId: ObjectID) => {
           return userId.toString().toLowerCase() === actorKey;
         }),
@@ -1306,9 +1545,19 @@ export default class WorkspaceChannelMembers {
 
     const viewerSlackUserId: string | null =
       await WorkspaceChannelMembers.findViewer({
-        projectId: data.projectId,
-        connection: connection,
         viewerUserId: data.viewerUserId,
+        findAccount: (viewer: {
+          userId: ObjectID;
+          email: string;
+        }): Promise<string | null> => {
+          return WorkspaceChannelMembers.findSlackAccount({
+            projectId: data.projectId,
+            authToken: connection.authToken,
+            userId: viewer.userId,
+            email: viewer.email,
+            useCache: true,
+          });
+        },
       });
 
     const answer: Array<WorkspaceRecordChannel> = [];
@@ -1328,11 +1577,13 @@ export default class WorkspaceChannelMembers {
     return answer;
   }
 
-  // Who the person looking is in Slack, when OneUptime can tell.
+  // Who the person looking is in the workspace, when OneUptime can tell.
   private static async findViewer(data: {
-    projectId: ObjectID;
-    connection: SlackConnection;
     viewerUserId: ObjectID | undefined;
+    findAccount: (viewer: {
+      userId: ObjectID;
+      email: string;
+    }) => Promise<string | null>;
   }): Promise<string | null> {
     if (!data.viewerUserId) {
       return null;
@@ -1345,15 +1596,12 @@ export default class WorkspaceChannelMembers {
         props: { isRoot: true },
       });
 
-      return await WorkspaceChannelMembers.findSlackAccount({
-        projectId: data.projectId,
-        authToken: data.connection.authToken,
+      return await data.findAccount({
         userId: data.viewerUserId,
         email: viewer?.email?.toString() || "",
-        useCache: true,
       });
     } catch (err) {
-      logger.debug("Could not tell who the viewer is in Slack.");
+      logger.debug("Could not tell who the viewer is in the workspace.");
       logger.debug(err);
       return null;
     }
@@ -1415,10 +1663,22 @@ export default class WorkspaceChannelMembers {
       count: number;
     } = await WorkspaceChannelMembers.describePeople({
       projectId: data.projectId,
-      connection: data.connection,
-      memberIds: memberIds,
+      workspaceType: WorkspaceType.Slack,
+      memberIds: memberIds.filter((memberId: string) => {
+        return (
+          memberId !== data.connection.botUserId &&
+          memberId !== SLACKBOT_USER_ID
+        );
+      }),
+      getKnownPeople: (slackUserIds: Array<string>) => {
+        return WorkspaceChannelMembers.getKnownSlackPeople({
+          projectId: data.projectId,
+          connection: data.connection,
+          slackUserIds: slackUserIds,
+        });
+      },
       viewerUserId: data.viewerUserId,
-      viewerSlackUserId: data.viewerSlackUserId,
+      viewerAccountId: data.viewerSlackUserId,
     });
 
     return {
@@ -1442,35 +1702,31 @@ export default class WorkspaceChannelMembers {
 
   /*
    * The people of a channel, by name: OneUptime's name and picture for an
-   * account connected to it, or matched to a project member by email;
-   * Slack's name for anybody else. Apps and bots - OneUptime's own app among
+   * account connected to it, or matched to a project member by email; the
+   * workspace's name for anybody else. Apps and bots - OneUptime's own among
    * them - are left out, and so are deactivated accounts. The person looking
    * comes first, then everybody by name.
    */
   private static async describePeople(data: {
     projectId: ObjectID;
-    connection: SlackConnection;
+    workspaceType: WorkspaceType;
+    // The channel's accounts, without the bots that are known to be bots.
     memberIds: Array<string>;
+    // What is known of the accounts not connected to OneUptime.
+    getKnownPeople: (
+      accountIds: Array<string>,
+    ) => Promise<Map<string, KnownPerson>>;
     viewerUserId: ObjectID | undefined;
-    viewerSlackUserId: string | null;
+    viewerAccountId: string | null;
   }): Promise<{ listed: Array<WorkspaceChannelPerson>; count: number }> {
-    const memberIds: Array<string> = data.memberIds.filter(
-      (memberId: string) => {
-        return (
-          memberId !== data.connection.botUserId &&
-          memberId !== SLACKBOT_USER_ID
-        );
-      },
-    );
-
     // Accounts connected to OneUptime, in this project.
     const connectedRows: Array<WorkspaceUserAuthToken> =
-      memberIds.length > 0
+      data.memberIds.length > 0
         ? await WorkspaceUserAuthTokenService.findBy({
             query: {
               projectId: data.projectId,
-              workspaceType: WorkspaceType.Slack,
-              workspaceUserId: QueryHelper.any(memberIds),
+              workspaceType: data.workspaceType,
+              workspaceUserId: QueryHelper.any(data.memberIds),
             },
             select: { userId: true, workspaceUserId: true },
             skip: 0,
@@ -1479,35 +1735,31 @@ export default class WorkspaceChannelMembers {
           })
         : [];
 
-    const userIdBySlackId: Map<string, string> = new Map<string, string>();
+    const userIdByAccountId: Map<string, string> = new Map<string, string>();
 
     for (const row of connectedRows) {
       if (row.workspaceUserId && row.userId) {
-        userIdBySlackId.set(
+        userIdByAccountId.set(
           row.workspaceUserId.toString(),
           row.userId.toString(),
         );
       }
     }
 
-    // Everybody else: from the cache, or asked of Slack, within a budget.
-    const known: Map<string, KnownSlackPerson> =
-      await WorkspaceChannelMembers.getKnownPeople({
-        projectId: data.projectId,
-        connection: data.connection,
-        slackUserIds: memberIds.filter((memberId: string) => {
-          return !userIdBySlackId.has(memberId);
-        }),
-      });
+    const known: Map<string, KnownPerson> = await data.getKnownPeople(
+      data.memberIds.filter((memberId: string) => {
+        return !userIdByAccountId.has(memberId);
+      }),
+    );
 
-    for (const [slackUserId, person] of known) {
-      if (person.userId && !userIdBySlackId.has(slackUserId)) {
-        userIdBySlackId.set(slackUserId, person.userId);
+    for (const [accountId, person] of known) {
+      if (person.userId && !userIdByAccountId.has(accountId)) {
+        userIdByAccountId.set(accountId, person.userId);
       }
     }
 
     const users: Map<string, User> = await WorkspaceChannelMembers.getUsers(
-      Array.from(new Set<string>(userIdBySlackId.values())).map(
+      Array.from(new Set<string>(userIdByAccountId.values())).map(
         (userId: string) => {
           return new ObjectID(userId);
         },
@@ -1520,12 +1772,12 @@ export default class WorkspaceChannelMembers {
     const listed: Array<WorkspaceChannelPerson> = [];
     let count: number = 0;
 
-    for (const slackUserId of memberIds) {
-      const userId: string | undefined = userIdBySlackId.get(slackUserId);
+    for (const accountId of data.memberIds) {
+      const userId: string | undefined = userIdByAccountId.get(accountId);
       const user: User | undefined = userId
         ? users.get(userId.toLowerCase())
         : undefined;
-      const person: KnownSlackPerson | undefined = known.get(slackUserId);
+      const person: KnownPerson | undefined = known.get(accountId);
 
       if (person && (person.isBot || person.isDeactivated)) {
         continue;
@@ -1542,11 +1794,11 @@ export default class WorkspaceChannelMembers {
       }
 
       const isViewer: boolean =
-        slackUserId === data.viewerSlackUserId ||
+        accountId === data.viewerAccountId ||
         Boolean(user && userId && viewerKey === userId.toLowerCase());
 
       listed.push({
-        key: slackUserId,
+        key: accountId,
         name: name,
         ...(user && userId ? { userId: userId } : {}),
         ...(user?.profilePictureId ? { hasProfilePicture: true } : {}),
@@ -1575,15 +1827,12 @@ export default class WorkspaceChannelMembers {
    * member each one's email address belongs to. An account Slack says it
    * does not know is left out.
    */
-  private static async getKnownPeople(data: {
+  private static async getKnownSlackPeople(data: {
     projectId: ObjectID;
     connection: SlackConnection;
     slackUserIds: Array<string>;
-  }): Promise<Map<string, KnownSlackPerson>> {
-    const known: Map<string, KnownSlackPerson> = new Map<
-      string,
-      KnownSlackPerson
-    >();
+  }): Promise<Map<string, KnownPerson>> {
+    const known: Map<string, KnownPerson> = new Map<string, KnownPerson>();
 
     if (data.slackUserIds.length === 0) {
       return known;
@@ -1603,7 +1852,7 @@ export default class WorkspaceChannelMembers {
     const toAsk: Array<string> = [];
 
     data.slackUserIds.forEach((slackUserId: string, index: number) => {
-      const person: KnownSlackPerson | null =
+      const person: KnownPerson | null =
         WorkspaceChannelMembers.parseKnownPerson(cached[index] || null);
 
       if (person) {
@@ -1660,7 +1909,7 @@ export default class WorkspaceChannelMembers {
       const userId: string | undefined = memberIdByEmail.get(
         person.email.trim().toLowerCase(),
       );
-      const entry: KnownSlackPerson = {
+      const entry: KnownPerson = {
         name: person.name,
         isBot: person.isBot,
         isDeactivated: person.isDeactivated,
@@ -1720,6 +1969,417 @@ export default class WorkspaceChannelMembers {
     }
 
     return byEmail;
+  }
+
+  /*
+   * What OneUptime needs of a project's Mattermost connection; null when it
+   * has none, or one it cannot read.
+   */
+  private static async getMattermostConnection(
+    projectId: ObjectID,
+  ): Promise<ProjectMattermostConnection | null> {
+    const projectAuth: WorkspaceProjectAuthToken | null =
+      await WorkspaceProjectAuthTokenService.getProjectAuth({
+        projectId: projectId,
+        workspaceType: WorkspaceType.Mattermost,
+      });
+
+    if (!projectAuth || !projectAuth.authToken) {
+      return null;
+    }
+
+    try {
+      const connection: MattermostConnectionData =
+        MattermostConnection.fromAuthToken(projectAuth.authToken);
+      const miscData: MattermostMiscData | undefined = projectAuth.miscData as
+        | MattermostMiscData
+        | undefined;
+
+      return {
+        authToken: projectAuth.authToken,
+        botUserId: connection.botUserId,
+        serverUrl: connection.serverUrl,
+        teamName: miscData?.teamName || "",
+      };
+    } catch (err) {
+      logger.error(err);
+      return null;
+    }
+  }
+
+  private static getMattermostChannelUrl(data: {
+    connection: ProjectMattermostConnection;
+    channelName: string;
+  }): string | null {
+    return WorkspaceChannelLinkUtil.getMattermostChannelUrl({
+      serverUrl: data.connection.serverUrl,
+      teamName: data.connection.teamName,
+      channelName: data.channelName,
+    });
+  }
+
+  /*
+   * What a failed read of a Mattermost channel says about the channel: 401 is a
+   * token it no longer takes; 403 and 404 are a channel out of the bot's sight
+   * (the bot is not in it, or it was deleted). Anything else, it did not answer.
+   */
+  private static getMattermostChannelStateOfError(
+    err: unknown,
+  ): WorkspaceChannelState {
+    if (MattermostUtil.isUnauthorizedError(err)) {
+      return WorkspaceChannelState.NotConnected;
+    }
+
+    if (
+      MattermostUtil.isForbiddenError(err) ||
+      MattermostUtil.isNotFoundError(err)
+    ) {
+      return WorkspaceChannelState.Unreachable;
+    }
+
+    if (!(err instanceof MattermostRequestError)) {
+      logger.error(err);
+    }
+
+    return WorkspaceChannelState.Unavailable;
+  }
+
+  /*
+   * Who a project member is in Mattermost: the account they connected, or else
+   * the account with their email address - a guest's too, whom Mattermost lets
+   * in when they are added. Null when neither is there: a deactivated account
+   * or a bot is nobody to add.
+   */
+  private static async findMattermostAccount(data: {
+    projectId: ObjectID;
+    authToken: string;
+    userId: ObjectID;
+    email: string;
+  }): Promise<string | null> {
+    const connected: string | null =
+      await WorkspaceNotificationRuleService.getWorkspaceUserIdFromOneUptimeUserId(
+        {
+          projectId: data.projectId,
+          workspaceType: WorkspaceType.Mattermost,
+          oneuptimeUserId: data.userId,
+        },
+      );
+
+    if (MattermostConnection.isMattermostId(connected)) {
+      return connected;
+    }
+
+    const account: MattermostUser | null = await MattermostUtil.findUserByEmail(
+      {
+        authToken: data.authToken,
+        email: data.email,
+      },
+    );
+
+    return account && !account.isBot && !account.isDeactivated
+      ? account.id
+      : null;
+  }
+
+  /*
+   * Who is in a channel people are about to be added to. Mattermost lists a
+   * channel's people, and lets others be added, only for somebody in it. So the
+   * bot joins a public channel it is not in first, as it does before it posts.
+   * A private one stays refused: only somebody in it can add the bot.
+   */
+  private static async readMattermostMembersToAddTo(data: {
+    authToken: string;
+    channel: MattermostChannel;
+  }): Promise<Array<MattermostUser>> {
+    const read: () => Promise<Array<MattermostUser>> = (): Promise<
+      Array<MattermostUser>
+    > => {
+      return MattermostUtil.getChannelMembers({
+        authToken: data.authToken,
+        channelId: data.channel.id,
+        max: WORKSPACE_CHANNEL_MEMBERS_READ_LIMIT,
+      });
+    };
+
+    try {
+      return await read();
+    } catch (err) {
+      if (!MattermostUtil.isForbiddenError(err) || data.channel.type !== "O") {
+        throw err;
+      }
+    }
+
+    await MattermostUtil.joinChannel({
+      authToken: data.authToken,
+      channelId: data.channel.id,
+    });
+
+    return await read();
+  }
+
+  /*
+   * Adds one account to a Mattermost channel, and answers how it went. Only the
+   * error's id tells somebody outside the team, or an account that is gone,
+   * from a channel that is gone or a bot that may not add anybody.
+   */
+  private static async inviteToMattermostChannel(data: {
+    authToken: string;
+    channelId: string;
+    accountId: string;
+  }): Promise<AddAttempt> {
+    try {
+      await MattermostUtil.inviteUserToChannelByChannelId({
+        authToken: data.authToken,
+        channelId: data.channelId,
+        workspaceUserId: data.accountId,
+      });
+
+      return { outcome: WorkspaceChannelAddOutcome.Added };
+    } catch (err) {
+      if (MattermostUtil.isUnauthorizedError(err)) {
+        return { channelState: WorkspaceChannelState.NotConnected };
+      }
+
+      if (MattermostUtil.isNotInTeamError(err)) {
+        return { outcome: WorkspaceChannelAddOutcome.NotInTeam };
+      }
+
+      if (MattermostUtil.isAccountGoneError(err)) {
+        return { outcome: WorkspaceChannelAddOutcome.NotFound };
+      }
+
+      // Whatever else is not found is the channel, deleted since it was read.
+      if (MattermostUtil.isNotFoundError(err)) {
+        return { channelState: WorkspaceChannelState.Unreachable };
+      }
+
+      if (MattermostUtil.isUnavailableError(err)) {
+        return { outcome: WorkspaceChannelAddOutcome.TryAgain };
+      }
+
+      logger.debug(
+        `Mattermost refused to add somebody to a channel: ${(err as MattermostRequestError).errorId}`,
+      );
+      return { outcome: WorkspaceChannelAddOutcome.Refused };
+    }
+  }
+
+  // The record's Mattermost channels, each with the people in it.
+  private static async readMattermostChannels(data: {
+    projectId: ObjectID;
+    channels: Array<NotificationRuleWorkspaceChannel>;
+    viewerUserId: ObjectID | undefined;
+  }): Promise<Array<WorkspaceRecordChannel>> {
+    const connection: ProjectMattermostConnection | null =
+      await WorkspaceChannelMembers.getMattermostConnection(data.projectId);
+
+    if (!connection) {
+      return data.channels.map(
+        (channel: NotificationRuleWorkspaceChannel): WorkspaceRecordChannel => {
+          return WorkspaceChannelMembers.emptyChannel({
+            channel: channel,
+            state: WorkspaceChannelState.NotConnected,
+            url: null,
+          });
+        },
+      );
+    }
+
+    const viewerAccountId: string | null =
+      await WorkspaceChannelMembers.findViewer({
+        viewerUserId: data.viewerUserId,
+        findAccount: (viewer: {
+          userId: ObjectID;
+          email: string;
+        }): Promise<string | null> => {
+          return WorkspaceChannelMembers.findMattermostAccount({
+            projectId: data.projectId,
+            authToken: connection.authToken,
+            userId: viewer.userId,
+            email: viewer.email,
+          });
+        },
+      });
+
+    const answer: Array<WorkspaceRecordChannel> = [];
+
+    for (const channel of data.channels) {
+      answer.push(
+        await WorkspaceChannelMembers.readMattermostChannel({
+          projectId: data.projectId,
+          connection: connection,
+          channel: channel,
+          viewerUserId: data.viewerUserId,
+          viewerAccountId: viewerAccountId,
+        }),
+      );
+    }
+
+    return answer;
+  }
+
+  private static async readMattermostChannel(data: {
+    projectId: ObjectID;
+    connection: ProjectMattermostConnection;
+    channel: NotificationRuleWorkspaceChannel;
+    viewerUserId: ObjectID | undefined;
+    viewerAccountId: string | null;
+  }): Promise<WorkspaceRecordChannel> {
+    const storedUrl: string | null =
+      WorkspaceChannelMembers.getMattermostChannelUrl({
+        connection: data.connection,
+        channelName: data.channel.name,
+      });
+
+    if (!MattermostConnection.isMattermostId(data.channel.id)) {
+      return WorkspaceChannelMembers.emptyChannel({
+        channel: data.channel,
+        state: WorkspaceChannelState.Unreachable,
+        url: storedUrl,
+      });
+    }
+
+    let facts: MattermostChannel;
+
+    try {
+      facts = await MattermostUtil.getChannel({
+        authToken: data.connection.authToken,
+        channelId: data.channel.id,
+      });
+    } catch (err) {
+      return WorkspaceChannelMembers.emptyChannel({
+        channel: data.channel,
+        state: WorkspaceChannelMembers.getMattermostChannelStateOfError(err),
+        url: storedUrl,
+      });
+    }
+
+    // Its address goes by its name now: somebody may have renamed it since.
+    const url: string | null =
+      WorkspaceChannelMembers.getMattermostChannelUrl({
+        connection: data.connection,
+        channelName: facts.name,
+      }) || storedUrl;
+    const isPrivate: boolean | null =
+      facts.type === "P" ? true : facts.type === "O" ? false : null;
+
+    let members: Array<MattermostUser> = [];
+
+    try {
+      members = await MattermostUtil.getChannelMembers({
+        authToken: data.connection.authToken,
+        channelId: data.channel.id,
+        max: WORKSPACE_CHANNEL_MEMBERS_READ_LIMIT,
+      });
+    } catch (err) {
+      // An archived channel is still named as such, with nobody listed.
+      return {
+        ...WorkspaceChannelMembers.emptyChannel({
+          channel: data.channel,
+          state: facts.isArchived
+            ? WorkspaceChannelState.Archived
+            : WorkspaceChannelMembers.getMattermostChannelStateOfError(err),
+          url: url,
+        }),
+        isPrivate: isPrivate,
+      };
+    }
+
+    const accounts: Array<MattermostUser> = members.filter(
+      (member: MattermostUser): boolean => {
+        return (
+          !member.isBot &&
+          !member.isDeactivated &&
+          member.id !== data.connection.botUserId
+        );
+      },
+    );
+    const accountIds: Array<string> = accounts.map(
+      (account: MattermostUser): string => {
+        return account.id;
+      },
+    );
+
+    const people: {
+      listed: Array<WorkspaceChannelPerson>;
+      count: number;
+    } = await WorkspaceChannelMembers.describePeople({
+      projectId: data.projectId,
+      workspaceType: WorkspaceType.Mattermost,
+      memberIds: accountIds,
+      getKnownPeople: (notConnectedIds: Array<string>) => {
+        const notConnected: Set<string> = new Set<string>(notConnectedIds);
+
+        return WorkspaceChannelMembers.getKnownMattermostPeople({
+          projectId: data.projectId,
+          accounts: accounts.filter((account: MattermostUser): boolean => {
+            return notConnected.has(account.id);
+          }),
+        });
+      },
+      viewerUserId: data.viewerUserId,
+      viewerAccountId: data.viewerAccountId,
+    });
+
+    return {
+      channelId: data.channel.id,
+      workspaceType: WorkspaceType.Mattermost,
+      name: (data.channel.name || facts.name || "").trim(),
+      ...(url ? { url: url } : {}),
+      isPrivate: isPrivate,
+      state: facts.isArchived
+        ? WorkspaceChannelState.Archived
+        : WorkspaceChannelState.Members,
+      people: people.listed,
+      peopleCount: people.count,
+      viewer: data.viewerAccountId
+        ? accountIds.includes(data.viewerAccountId)
+          ? WorkspaceChannelViewerStatus.In
+          : WorkspaceChannelViewerStatus.NotIn
+        : WorkspaceChannelViewerStatus.NotFound,
+    };
+  }
+
+  /*
+   * What the channel's own list says of Mattermost accounts OneUptime has no
+   * connection for: a name - their full name or nickname, else their username,
+   * when the server hides those - and the project member their email address
+   * belongs to, when the server shows it to the bot.
+   */
+  private static async getKnownMattermostPeople(data: {
+    projectId: ObjectID;
+    accounts: Array<MattermostUser>;
+  }): Promise<Map<string, KnownPerson>> {
+    const emailOf: (account: MattermostUser) => string = (
+      account: MattermostUser,
+    ): string => {
+      return (account.email || "").toLowerCase();
+    };
+
+    const memberIdByEmail: Map<string, string> =
+      await WorkspaceChannelMembers.getProjectMembersByEmail({
+        projectId: data.projectId,
+        emails: Array.from(new Set<string>(data.accounts.map(emailOf))).filter(
+          (email: string): boolean => {
+            return Boolean(email);
+          },
+        ),
+      });
+
+    const known: Map<string, KnownPerson> = new Map<string, KnownPerson>();
+
+    for (const account of data.accounts) {
+      const userId: string | undefined = memberIdByEmail.get(emailOf(account));
+
+      known.set(account.id, {
+        name: account.displayName || account.username,
+        isBot: false,
+        isDeactivated: false,
+        ...(userId ? { userId: userId } : {}),
+      });
+    }
+
+    return known;
   }
 
   /*
@@ -1862,9 +2522,7 @@ export default class WorkspaceChannelMembers {
     };
   }
 
-  private static parseKnownPerson(
-    value: string | null,
-  ): KnownSlackPerson | null {
+  private static parseKnownPerson(value: string | null): KnownPerson | null {
     if (!value) {
       return null;
     }

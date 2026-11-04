@@ -9,7 +9,7 @@ Sous **Observabilité des données > Produits de données**, créez un produit d
 - **À jour avant une heure de la journée (UTC) :** les données de chaque jour arrivent ce jour-là, avant cette heure. À partir de cette heure, chaque table doit avoir changé dans la journée ; jusque-là, le chargement de la veille fait foi. Un chargement qui a toujours une demi-heure de retard est en retard pendant cette demi-heure, chaque jour.
 - **Un âge maximal :** aucune table ne doit avoir une dernière modification plus ancienne que cette durée.
 
-Toutes les cinq minutes, les tables de chaque produit sont vérifiées par rapport à son SLA. Le produit est **Late** dès que l'une de ses tables l'est, et ses données datent de la plus ancienne dernière modification parmi elles. Il écrit `oneuptime.data.product.late_tables` et `oneuptime.data.product.data_age`, afin que vous puissiez tracer côte à côte la fraîcheur de tous les produits.
+Toutes les cinq minutes, les tables de chaque produit sont vérifiées par rapport à son SLA. Le produit est **En retard** dès que l'une de ses tables l'est, et ses données datent de la plus ancienne dernière modification parmi elles. Il écrit `oneuptime.data.product.late_tables` et `oneuptime.data.product.data_age`, afin que vous puissiez tracer côte à côte la fraîcheur de tous les produits.
 
 ## Sur les pages de statut
 

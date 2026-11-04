@@ -6,6 +6,13 @@ import MonitorCriteriaInstance from "../../../Types/Monitor/MonitorCriteriaInsta
 import MonitorEvaluationSummary from "../../../Types/Monitor/MonitorEvaluationSummary";
 import ObjectID from "../../../Types/ObjectID";
 import { PerSeriesCriteriaMatch } from "../../../Types/Probe/ProbeApiIngestResponse";
+import DataCheck from "../../../Models/DatabaseModels/DataCheck";
+import DataStore from "../../../Models/DatabaseModels/DataStore";
+import { DataCheckAttribute } from "../../../Types/DataObservability/DataCheckMetric";
+import { DataObservabilityAttribute } from "../../../Types/DataObservability/DataObservabilityMetric";
+import { JSONObject } from "../../../Types/JSON";
+import DataCheckService from "../../Services/DataCheckService";
+import DataStoreService from "../../Services/DataStoreService";
 import ScheduledMaintenanceService from "../../Services/ScheduledMaintenanceService";
 import ScheduledMaintenanceStateService from "../../Services/ScheduledMaintenanceStateService";
 import QueryHelper from "../../Types/Database/QueryHelper";
@@ -70,6 +77,11 @@ export interface MaintainedResourceKeys {
   iotFleets: ResourceKeySet;
   services: ResourceKeySet;
   /*
+   * The stores Data Observability watches: named on the event, or on a
+   * database server that is itself under maintenance. Ids only.
+   */
+  dataStoreIds?: Set<string> | undefined;
+  /*
    * Databases are the reverse of the name-only clusters above: a series
    * identifies one only by the `oneuptime.database.server.id` stamp (see
    * DatabaseServerIdLabelKeys), so only the id set is ever matched; the
@@ -93,6 +105,11 @@ export interface MonitorMaintenanceSuppressionResult {
    * under maintenance.
    */
   suppressingDatabaseServerIds: Array<string>;
+  /*
+   * The stores under maintenance that silence a monitor of Data Observability:
+   * every store it watches is one. Empty for any other monitor.
+   */
+  suppressingDataStoreIds?: Array<string> | undefined;
 }
 
 /*
@@ -197,8 +214,9 @@ export default class MonitorMaintenanceSuppression {
     );
 
     const namesDatabase: boolean = this.monitorNamesDatabase(input.monitor);
+    const watchesData: boolean = this.monitorWatchesData(input.monitor);
 
-    if (!hasSeries && !namesDatabase) {
+    if (!hasSeries && !namesDatabase && !watchesData) {
       return result;
     }
 
@@ -215,6 +233,17 @@ export default class MonitorMaintenanceSuppression {
           matchesPerSeries: input.matchesPerSeries || [],
           maintained,
         });
+    }
+
+    if (watchesData && maintained.dataStoreIds?.size) {
+      const stores: Array<string> = await this.readDataStoresOfMonitor(
+        input.monitor,
+      );
+
+      result.suppressingDataStoreIds = this.getSuppressingDataStoreIds({
+        stores,
+        maintained,
+      });
     }
 
     if (namesDatabase && maintained.databaseServers.ids.size > 0) {
@@ -242,7 +271,10 @@ export default class MonitorMaintenanceSuppression {
   public static isMonitorSuppressed(
     result: MonitorMaintenanceSuppressionResult,
   ): boolean {
-    return result.suppressingDatabaseServerIds.length > 0;
+    return (
+      result.suppressingDatabaseServerIds.length > 0 ||
+      (result.suppressingDataStoreIds || []).length > 0
+    );
   }
 
   /*
@@ -296,6 +328,23 @@ export default class MonitorMaintenanceSuppression {
   }
 
   /*
+   * The whole-monitor decision for a monitor of Data Observability: the stores
+   * it watches, when it watches at least one and every one is under an ongoing
+   * maintenance window. Pure, so it can be tested without a database.
+   */
+  public static getSuppressingDataStoreIds(input: {
+    stores: Array<string>;
+    maintained: Pick<MaintainedResourceKeys, "dataStoreIds">;
+  }): Array<string> {
+    return input.stores.length > 0 &&
+      input.stores.every((id: string): boolean => {
+        return Boolean(input.maintained.dataStoreIds?.has(id));
+      })
+      ? input.stores
+      : [];
+  }
+
+  /*
    * Record, on the monitor's evaluation summary, what one matching
    * criteria did NOT create because the monitor is silenced as a whole —
    * the counterpart of the "suppressed by scheduled maintenance" events
@@ -307,10 +356,14 @@ export default class MonitorMaintenanceSuppression {
     criteriaInstance: MonitorCriteriaInstance;
     suppression: MonitorMaintenanceSuppressionResult;
   }): void {
+    const suppressing: Array<string> = [
+      ...input.suppression.suppressingDatabaseServerIds,
+      ...(input.suppression.suppressingDataStoreIds || []),
+    ];
     const databases: string =
-      input.suppression.suppressingDatabaseServerIds.length === 1
-        ? `the database ${input.suppression.suppressingDatabaseServerIds[0]} this monitor watches is`
-        : `the databases ${input.suppression.suppressingDatabaseServerIds.join(", ")} this monitor watches are`;
+      suppressing.length === 1
+        ? `the database ${suppressing[0]} this monitor watches is`
+        : `the databases ${suppressing.join(", ")} this monitor watches are`;
 
     logger.debug(
       `Skipping incident and alert creation for criteria ${input.criteriaInstance.data?.id}: ${databases} under an active scheduled maintenance window.`,
@@ -364,6 +417,85 @@ export default class MonitorMaintenanceSuppression {
       );
       return false;
     }
+  }
+
+  /*
+   * Whether a monitor reads Data Observability's metrics: scoped by a store, as
+   * its recommended alerts are, or by a data check. Query-free, as above.
+   */
+  private static monitorWatchesData(monitor: Monitor): boolean {
+    try {
+      const filters: JSONObject =
+        MonitorStepResourceIdentity.getMetricFilterAttributes(monitor);
+
+      return Boolean(
+        filters[DataObservabilityAttribute.DataStoreId] ||
+          filters[DataCheckAttribute.CheckId],
+      );
+    } catch (err) {
+      logger.error(
+        `Failed to read the data stores monitor ${monitor.id?.toString()} watches for maintenance suppression: ${err}`,
+      );
+      return false;
+    }
+  }
+
+  /*
+   * The stores a monitor of Data Observability watches: the one it is scoped by,
+   * or the one its data check reads. Asked only while a store is under
+   * maintenance, and a failed read silences nothing.
+   */
+  private static async readDataStoresOfMonitor(
+    monitor: Monitor,
+  ): Promise<Array<string>> {
+    try {
+      const filters: JSONObject =
+        MonitorStepResourceIdentity.getMetricFilterAttributes(monitor);
+      const stores: Array<string> = this.readFilterValues(
+        filters[DataObservabilityAttribute.DataStoreId],
+      );
+
+      if (stores.length > 0) {
+        return stores;
+      }
+
+      const checkIds: Array<string> = this.readFilterValues(
+        filters[DataCheckAttribute.CheckId],
+      );
+
+      if (checkIds.length === 0) {
+        return [];
+      }
+
+      const checks: Array<DataCheck> = await DataCheckService.findBy({
+        query: { _id: QueryHelper.any(checkIds) },
+        select: { dataStoreId: true },
+        skip: 0,
+        limit: checkIds.length,
+        props: { isRoot: true },
+      });
+
+      return Array.from(
+        new Set(
+          checks.map((check: DataCheck): string => {
+            return check.dataStoreId?.toString() || "";
+          }),
+        ),
+      ).filter(Boolean);
+    } catch (err) {
+      logger.error(
+        `Failed to read the data stores of monitor ${monitor.id?.toString()}: ${err}`,
+      );
+      return [];
+    }
+  }
+
+  private static readFilterValues(value: unknown): Array<string> {
+    const values: Array<unknown> = Array.isArray(value) ? value : [value];
+
+    return values.filter((item: unknown): item is string => {
+      return typeof item === "string" && item.length > 0;
+    });
   }
 
   /*
@@ -485,7 +617,8 @@ export default class MonitorMaintenanceSuppression {
       maintained.iotFleets.names.size > 0 ||
       maintained.services.ids.size > 0 ||
       maintained.services.names.size > 0 ||
-      maintained.databaseServers.ids.size > 0
+      maintained.databaseServers.ids.size > 0 ||
+      Boolean(maintained.dataStoreIds?.size)
     );
   }
 
@@ -524,6 +657,8 @@ export default class MonitorMaintenanceSuppression {
       databaseServers: { ids: new Set<string>(), names: new Set<string>() },
     };
 
+    const dataStores: Set<string> = new Set<string>();
+
     const inProgressStateIds: Array<ObjectID> =
       await ScheduledMaintenanceStateService.getInProgressScheduledMaintenanceStateIds(
         projectId,
@@ -555,6 +690,7 @@ export default class MonitorMaintenanceSuppression {
           iotFleets: { _id: true, name: true },
           services: { _id: true, name: true },
           databaseServers: { _id: true },
+          dataStoreIds: true,
         },
         skip: 0,
         limit: LIMIT_PER_PROJECT,
@@ -637,6 +773,41 @@ export default class MonitorMaintenanceSuppression {
         // Id only — the display name is not an identity (see the interface).
         this.addKey(maintained.databaseServers, databaseServer._id, undefined);
       }
+      for (const dataStoreId of event.dataStoreIds || []) {
+        dataStores.add(String(dataStoreId));
+      }
+    }
+
+    // A database server under maintenance takes the stores it holds with it.
+    if (maintained.databaseServers.ids.size > 0) {
+      try {
+        const onServers: Array<DataStore> = await DataStoreService.findBy({
+          query: {
+            projectId: projectId,
+            databaseServerId: QueryHelper.any([
+              ...maintained.databaseServers.ids,
+            ]),
+          },
+          select: { _id: true },
+          skip: 0,
+          limit: LIMIT_PER_PROJECT,
+          props: { isRoot: true },
+        });
+
+        for (const store of onServers) {
+          if (store.id) {
+            dataStores.add(store.id.toString());
+          }
+        }
+      } catch (err) {
+        logger.error(
+          `Failed to read the data stores on database servers under maintenance: ${err}`,
+        );
+      }
+    }
+
+    if (dataStores.size > 0) {
+      maintained.dataStoreIds = dataStores;
     }
 
     return maintained;

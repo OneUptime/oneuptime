@@ -4,9 +4,12 @@ OneUptime AI connaît vos données : il examine une alerte de données en partan
 
 ## OneUptime AI
 
-- **Les investigations des alertes de données.** Quand OneUptime AI examine une alerte sur une table, un pipeline ou une base de données, il part de ce qui l'entoure : la fraîcheur et les alertes ouvertes de la table, l'alerte dont elle est la conséquence, les exécutions des pipelines qui y écrivent depuis la veille (une exécution en échec avec son erreur, ou l'exécution qui n'est jamais venue), les services qui y écrivent avec leurs écritures en échec, leurs déploiements et autres changements, et les tables à partir desquelles elle est construite. Il nomme l'exécution, le déploiement ou la table en amont à l'origine de l'alerte. Voir [AI SRE](/docs/ai/ai-sre).
+- **Les investigations des alertes de données.** Quand OneUptime AI examine une alerte sur une table, un pipeline ou une base de données, il part de ce qui l'entoure : la fraîcheur et les alertes ouvertes de la table, l'alerte dont elle est la conséquence, les exécutions des pipelines qui y écrivent depuis la veille (une exécution en échec avec son erreur, ou l'exécution qui n'est jamais venue), les services qui y écrivent avec leurs écritures en échec, leurs déploiements et autres changements, les tables à partir desquelles elle est construite, et les colonnes qui ont changé. Il nomme l'exécution, le déploiement ou la table en amont à l'origine de l'alerte. Voir [AI SRE](/docs/ai/ai-sre).
 - **Cette table est-elle fraîche ?** Posez la question dans [Demander à l'IA](/docs/ai/ask-ai), Slack ou Microsoft Teams : « la table orders est-elle fraîche ? ». La réponse donne la fraîcheur de la table selon son propre rythme, le moment de sa dernière modification, ses alertes ouvertes, les dernières exécutions de ceux qui y écrivent et les produits de données dont elle fait partie. Un nom que partagent plusieurs bases de données reçoit une réponse pour chacune, afin que personne ne s'entende dire que la mauvaise table est fraîche.
 - **Un contrôle à partir d'une phrase.** Dans l'onglet **Vérifications** d'une table, **Écrire un contrôle à partir d'une phrase** transforme une règle en un contrôle SQL personnalisé dans le SQL de votre moteur. Voir [Contrôles et rapprochements](/docs/data-observability/checks).
+
+- **Dérive lente.** Les lignes d'une table, ou la valeur d'un contrôle, qui bougent d'un cinquième ou plus en une semaine, trop lentement pour déclencher une alerte, vont dans AI Insights comme un point à regarder. Cela ne réveille personne.
+- **Données obsolètes derrière les applications IA.** Un service qui appelle un modèle et lit une table est le consommateur IA de cette table. Quand une telle table prend du retard, la page **Conversations** du produit IA le signale : une application qui répond à partir de données anciennes n'a rien d'anormal dans ses propres traces.
 
 Chacune de ces fonctions exige que OneUptime AI soit activé pour le projet, et agit avec les autorisations de la personne qui pose la question.
 
@@ -29,9 +32,10 @@ Il fonctionne avec une connexion en lecture seule, et répond au nom de la perso
 | `POST /telemetry/fivetran/v1/webhook/<ingestion key ID>` | Les webhooks de synchronisation de Fivetran | La clé d'ingestion, comme secret de signature de Fivetran |
 | `POST /telemetry/airbyte/v1/webhook/<ingestion key>` | Les webhooks de synchronisation d'Airbyte | La clé d'ingestion dans l'URL |
 | `POST /api/data-observability/tables/freshness` | La fraîcheur d'une table, telle que l'outil MCP la donne, avec `{ "table": "public.orders" }` | Une clé API |
+| `POST /api/data-observability/checks/apply` | Faire correspondre les contrôles du projet à un fichier, comme le fait `oneuptime data-checks apply`, avec `{ "manifest": "...", "isDryRun": true, "shouldPrune": false }` | Une clé API |
 | `GET /api/data-observability/data-products/<data product ID>/badge?token=<badge token>` | Le badge « data as of » d'un produit de données | Le jeton propre au badge |
 
-Les tables, contrôles, rapprochements, pipelines et produits de données sont aussi des ressources ordinaires de l'[API](/docs/api-reference/api-reference), lues et modifiées avec une clé API qui dispose des autorisations correspondantes.
+Les tables, contrôles, rapprochements, pipelines, produits de données, connexions BI et tâches d'entrepôt sont aussi des ressources ordinaires de l'[API](/docs/api-reference/api-reference), lues et modifiées avec une clé API qui dispose des autorisations correspondantes, ainsi que du serveur MCP et des workflows.
 
 ## Métriques
 

@@ -1,3 +1,14 @@
+import DatabaseServerEndpoint from "../../../Models/DatabaseModels/DatabaseServerEndpoint";
+import { formatDatabaseEndpoint } from "../../../Types/DatabaseServer/DatabaseEndpoint";
+import DatabaseServerEndpointService from "../../Services/DatabaseServerEndpointService";
+import { TableHealthTarget } from "./TableHealthTarget";
+import DataStore from "../../../Models/DatabaseModels/DataStore";
+import {
+  findNewPersonalDataColumns,
+  mergeNewPersonalDataColumns,
+  NewPersonalDataColumn,
+} from "../../../Types/DataObservability/DataColumnSensitivity";
+import { applyRowCountTolerance } from "../../../Types/DataObservability/DataAlertFeedback";
 import DataAsset from "../../../Models/DatabaseModels/DataAsset";
 import { DataAssetFeedEventType } from "../../../Models/DatabaseModels/DataAssetFeed";
 import MetricType from "../../../Models/DatabaseModels/MetricType";
@@ -52,6 +63,7 @@ import MonitorMetricUtil from "../Monitor/MonitorMetricUtil";
 import TelemetryUtil from "../Telemetry/Telemetry";
 import {
   FAILED_COLLECTION_RETRY_IN_MINUTES,
+  getNextCollectionTime,
   TABLE_HEALTH_COLLECTION_INTERVAL_IN_MINUTES,
 } from "./DataObservabilityProbeCollect";
 import { CollectedTable, TableHealthSnapshot } from "./TableHealthCollector";
@@ -119,6 +131,7 @@ export interface PreviousAssetState {
   isDropped: boolean;
   // When it was last read, and since when it has had none (DataAssetReads).
   reads?: DataAssetReadState | undefined;
+  rowCountChangeTolerancePercent?: number | null | undefined;
 }
 
 export interface AssetPlan {
@@ -164,6 +177,8 @@ export function toPreviousAssetState(asset: DataAsset): PreviousAssetState {
       ? readDataAssetColumns(asset.columns)
       : null,
     rowCount: typeof asset.rowCount === "number" ? asset.rowCount : null,
+    rowCountChangeTolerancePercent:
+      asset.rowCountChangeTolerancePercent ?? null,
     sizeInBytes:
       typeof asset.sizeInBytes === "number" ? asset.sizeInBytes : null,
     lastChangedAt: asset.lastChangedAt
@@ -197,6 +212,13 @@ export function detectChangeTime(
   table: CollectedTable,
   collectedAt: Date,
 ): Date | null {
+  // The table's own column says when its data changed: not read this time, the last answer stands.
+  if (table.isChangeTimeFromData) {
+    return table.secondsSinceChange !== null
+      ? new Date(collectedAt.getTime() - table.secondsSinceChange * 1000)
+      : previous?.lastChangedAt || null;
+  }
+
   const counterMoved: boolean =
     previous !== null &&
     table.writeCount !== null &&
@@ -466,6 +488,8 @@ export function getTableMetricValues(data: {
   collectedAt: Date;
   // The row count the collection before saw; null for a table seen for the first time.
   previousRowCount?: number | null | undefined;
+  // A change this small counts as none: raised by "not an issue" on such an alert.
+  rowCountChangeTolerancePercent?: number | null | undefined;
 }): Array<{ name: DataObservabilityMetricName; value: number }> {
   const values: Array<{ name: DataObservabilityMetricName; value: number }> =
     [];
@@ -503,6 +527,13 @@ export function getTableMetricValues(data: {
     value: data.plan.columnChanges.length,
   });
 
+  values.push({
+    name: DataObservabilityMetricName.BreakingSchemaChanges,
+    value: data.table.columnsAreInferred
+      ? 0
+      : data.plan.columnChanges.filter(isBreakingColumnChange).length,
+  });
+
   if (holdsRows) {
     const freshness: DataAssetFreshnessResult = getDataAssetFreshness({
       kind: data.table.kind,
@@ -533,11 +564,13 @@ export function getTableMetricValues(data: {
   ) {
     values.push({
       name: DataObservabilityMetricName.RowCountChangePercent,
-      value:
+      value: applyRowCountTolerance(
         Math.round(
           ((data.table.estimatedRows - previousRowCount) / previousRowCount) *
             10000,
         ) / 100,
+        data.rowCountChangeTolerancePercent,
+      ),
     });
   }
 
@@ -567,6 +600,7 @@ export default class TableHealthIngest {
         assetKey: true,
         columns: true,
         rowCount: true,
+        rowCountChangeTolerancePercent: true,
         sizeInBytes: true,
         lastChangedAt: true,
         updateIntervalInSeconds: true,
@@ -591,6 +625,8 @@ export default class TableHealthIngest {
     const seenKeys: Set<string> = new Set();
     // The store's watched tables after this collection, by key: what lineage resolves against.
     const assetIdByKey: Map<string, ObjectID> = new Map();
+    // Columns that appeared whose names say they hold personal data: Data Security's to judge.
+    const newPersonalDataColumns: Array<NewPersonalDataColumn> = [];
 
     for (const table of snapshot.tables) {
       const key: string = getDataTableKey(table.schema, table.name);
@@ -617,6 +653,21 @@ export default class TableHealthIngest {
         if (!known || !previous) {
           assetId = await this.createAsset({ store, table, plan, collectedAt });
           result.created++;
+
+          // A table new to a store we already read. A store's first collection finds nothing new.
+          if (existingByKey.size > 0 && !table.columnsAreInferred) {
+            newPersonalDataColumns.push(
+              ...findNewPersonalDataColumns({
+                tableKey: key,
+                columnNames: (table.columns || []).map(
+                  (column: DataAssetColumn): string => {
+                    return column.name;
+                  },
+                ),
+                seenAt: collectedAt,
+              }),
+            );
+          }
         } else {
           assetId = previous.id;
 
@@ -646,6 +697,23 @@ export default class TableHealthIngest {
               changes: plan.columnChanges,
               collectedAt,
             });
+
+            // A column first seen in a sample of documents is not a change to the table.
+            if (!table.columnsAreInferred) {
+              newPersonalDataColumns.push(
+                ...findNewPersonalDataColumns({
+                  tableKey: key,
+                  columnNames: plan.columnChanges
+                    .filter((change: DataAssetColumnChange): boolean => {
+                      return change.kind === DataAssetColumnChangeKind.Added;
+                    })
+                    .map((change: DataAssetColumnChange): string => {
+                      return change.column;
+                    }),
+                  seenAt: collectedAt,
+                }),
+              );
+            }
           }
         }
 
@@ -656,6 +724,8 @@ export default class TableHealthIngest {
           plan,
           collectedAt,
           previousRowCount: previous?.rowCount ?? null,
+          rowCountChangeTolerancePercent:
+            previous?.rowCountChangeTolerancePercent ?? null,
         })) {
           metricRows.push(
             buildMetricRow({
@@ -706,7 +776,8 @@ export default class TableHealthIngest {
     await this.writeMetricRows(store.projectId, metricRows);
     result.metricRows = metricRows.length;
 
-    if (snapshot.lineage) {
+    // A storage path has no lineage: only a database's own catalog does.
+    if (snapshot.lineage && snapshot.engine !== "storage") {
       // A cut table list leaves tables out that are still there.
       if (!snapshot.isComplete) {
         for (const asset of existing) {
@@ -758,6 +829,13 @@ export default class TableHealthIngest {
       }
     }
 
+    await this.writeNewPersonalDataColumns({
+      store,
+      found: newPersonalDataColumns,
+      collectedAt,
+    });
+    await this.linkDatabaseServer(store, snapshot.target);
+
     await DataStoreService.updateColumnsByIdWithoutHooks({
       id: store.id,
       data: {
@@ -772,7 +850,7 @@ export default class TableHealthIngest {
         ...(snapshot.target
           ? { tableHealthTarget: snapshot.target as unknown as JSONObject }
           : {}),
-        nextTableHealthCollectionAt: OneUptimeDate.addRemoveMinutes(
+        nextTableHealthCollectionAt: getNextCollectionTime(
           OneUptimeDate.getCurrentDate(),
           TABLE_HEALTH_COLLECTION_INTERVAL_IN_MINUTES,
         ),
@@ -894,6 +972,83 @@ export default class TableHealthIngest {
     await DataAssetService.updateColumnsByIdWithoutHooks({
       id: data.assetId,
       data: update as never,
+    });
+  }
+
+  /*
+   * The Database product's server this store's database runs on, by the address
+   * the collection read: a server that is down or overloaded explains its tables,
+   * and its page shows how they are. Asked only until it is known. One that fails
+   * leaves the collection as it was.
+   */
+  private static async linkDatabaseServer(
+    store: IngestStore,
+    target: TableHealthTarget | null | undefined,
+  ): Promise<void> {
+    if (!target?.host) {
+      return;
+    }
+
+    try {
+      const current: DataStore | null = await DataStoreService.findOneById({
+        id: store.id,
+        select: { databaseServerId: true },
+        props: { isRoot: true },
+      });
+
+      if (current?.databaseServerId) {
+        return;
+      }
+
+      const endpoint: DatabaseServerEndpoint | null =
+        await DatabaseServerEndpointService.findOneBy({
+          query: {
+            projectId: store.projectId,
+            endpoint: formatDatabaseEndpoint({
+              host: target.host,
+              port: target.port,
+            }),
+          },
+          select: { databaseServerId: true },
+          props: { isRoot: true },
+        });
+
+      if (endpoint?.databaseServerId) {
+        await DataStoreService.updateColumnsByIdWithoutHooks({
+          id: store.id,
+          data: { databaseServerId: endpoint.databaseServerId } as never,
+        });
+      }
+    } catch (error) {
+      logger.debug(error);
+    }
+  }
+
+  // Only when there is something to add: most collections find no new column.
+  private static async writeNewPersonalDataColumns(data: {
+    store: IngestStore;
+    found: Array<NewPersonalDataColumn>;
+    collectedAt: Date;
+  }): Promise<void> {
+    if (data.found.length === 0) {
+      return;
+    }
+
+    const current: DataStore | null = await DataStoreService.findOneById({
+      id: data.store.id,
+      select: { newPersonalDataColumns: true },
+      props: { isRoot: true },
+    });
+
+    await DataStoreService.updateColumnsByIdWithoutHooks({
+      id: data.store.id,
+      data: {
+        newPersonalDataColumns: mergeNewPersonalDataColumns({
+          previous: current?.newPersonalDataColumns,
+          found: data.found,
+          now: data.collectedAt,
+        }),
+      } as never,
     });
   }
 
